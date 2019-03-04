@@ -153,15 +153,16 @@ defmodule Mix.Tasks.Test do
     * `--exclude` - excludes tests that match the filter
     * `--failed` - runs only tests that failed the last time they ran
     * `--force` - forces compilation regardless of modification times
-    * `--formatter` - formatter module
+    * `--formatter` - sets the formatter module that will print the results.
+      Defaults to `ExUnit.CLIFormatter`
     * `--include` - includes tests that match the filter
     * `--listen-on-stdin` - runs tests, and then listens on stdin. Receiving a newline will
       result in the tests being run again. Very useful when combined with `--stale` and
-      external commands which produce output on stdout upon file system modification
-    * `--max-cases` - sets the maximum number of tests running async. Only tests from
+      external commands which produce output on stdout upon file system modifications
+    * `--max-cases` - sets the maximum number of tests running asynchronously. Only tests from
       different modules run in parallel. Defaults to twice the number of cores
     * `--max-failures` - the suite stops evaluating tests when this number of test
-      failures is reached. When not given, it always runs all tests
+      failures is reached. It runs all tests if omitted
     * `--no-archives-check` - does not check archives
     * `--no-color` - disables color in the output
     * `--no-compile` - does not compile, even if files require compilation
@@ -179,7 +180,7 @@ defmodule Mix.Tasks.Test do
       last time tests were ran with `--stale`. You can read more about this option
       in the "Stale" section below
     * `--timeout` - sets the timeout for the tests
-    * `--trace` - runs tests with detailed reporting. Automatically sets `--max-cases` to 1.
+    * `--trace` - runs tests with detailed reporting. Automatically sets `--max-cases` to `1`.
       Note that in trace mode test timeouts will be ignored as timeout is set to `:infinity`
 
   See `ExUnit.configure/1` for more information on configuration options.
