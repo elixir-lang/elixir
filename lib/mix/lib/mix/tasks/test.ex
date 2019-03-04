@@ -162,7 +162,7 @@ defmodule Mix.Tasks.Test do
     * `--max-cases` - sets the maximum number of tests running asynchronously. Only tests from
       different modules run in parallel. Defaults to twice the number of cores
     * `--max-failures` - the suite stops evaluating tests when this number of test
-      failures is reached. It runs all test if omitted
+      failures is reached. It runs all tests if omitted
     * `--no-archives-check` - does not check archives
     * `--no-color` - disables color in the output
     * `--no-compile` - does not compile, even if files require compilation
