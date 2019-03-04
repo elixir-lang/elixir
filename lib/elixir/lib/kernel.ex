@@ -180,7 +180,7 @@ defmodule Kernel do
   concept of a "truthy" or "falsy" value.
 
     *  a value is truthy when it is neither `false` nor `nil`
-    *  a value is falsy when it is `false` or `nil`
+    *  a value is falsy when it is either `false` or `nil`
 
   Elixir has functions, like `and/2`, that *only* work with
   booleans, but also functions that work with these
