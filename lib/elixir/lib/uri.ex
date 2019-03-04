@@ -178,6 +178,9 @@ defmodule URI do
       iex> URI.query_decoder("foo=1&bar=2") |> Enum.to_list()
       [{"foo", "1"}, {"bar", "2"}]
 
+      iex> URI.query_decoder("food=bread%26butter&drinks=tap%20water") |> Enum.to_list()
+      [{"food", "bread&butter"}, {"drinks", "tap water"}]
+
   """
   @spec query_decoder(binary) :: Enumerable.t()
   def query_decoder(query) when is_binary(query) do
