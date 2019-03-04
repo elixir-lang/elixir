@@ -159,7 +159,7 @@ defmodule Mix.Tasks.Test do
     * `--listen-on-stdin` - runs tests, and then listens on stdin. Receiving a newline will
       result in the tests being run again. Very useful when combined with `--stale` and
       external commands which produce output on stdout upon file system modifications
-    * `--max-cases` - sets the maximum number of tests running asyncronously. Only tests from
+    * `--max-cases` - sets the maximum number of tests running asynchronously. Only tests from
       different modules run in parallel. Defaults to twice the number of cores
     * `--max-failures` - the suite stops evaluating tests when this number of test
       failures is reached. It runs all test if omitted
