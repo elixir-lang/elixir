@@ -258,8 +258,8 @@ defmodule URI do
   @doc """
   Percent-escapes all characters that require escaping in `string`.
 
-  This means reserved characters, such as `:` and `/`, and the so-
-  called unreserved characters, which have the same meaning both
+  This means reserved characters, such as `:` and `/`, and the
+  so-called unreserved characters, which have the same meaning both
   escaped and unescaped, won't be escaped by default.
 
   See `encode_www_form` if you are interested in escaping reserved
