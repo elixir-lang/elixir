@@ -153,7 +153,7 @@ defmodule Mix.Tasks.Test do
     * `--exclude` - excludes tests that match the filter
     * `--failed` - runs only tests that failed the last time they ran
     * `--force` - forces compilation regardless of modification times
-    * `--formatter` - sets the formatter modules that will print the results.
+    * `--formatter` - sets the formatter module that will print the results.
       Defaults to `ExUnit.CLIFormatter`
     * `--include` - includes tests that match the filter
     * `--listen-on-stdin` - runs tests, and then listens on stdin. Receiving a newline will
