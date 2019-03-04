@@ -205,7 +205,13 @@ defmodule System do
       }
 
   """
-  @spec build_info() :: %{required(atom) => String.t()}
+  @spec build_info() :: %{
+          build: String.t(),
+          date: String.t(),
+          revision: String.t(),
+          version: String.t(),
+          otp_release: String.t()
+        }
   def build_info do
     %{
       build: build(),
