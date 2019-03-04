@@ -2,15 +2,12 @@ defprotocol Enumerable do
   @moduledoc """
   Enumerable protocol used by `Enum` and `Stream` modules.
 
-  When you invoke a function in the `Enum` module, the first argument
-  is usually a collection that must implement this protocol.
-  For example, the expression:
-
-      Enum.map([1, 2, 3], &(&1 * 2))
-
-  invokes `Enumerable.reduce/3` to perform the reducing operation that
-  builds a mapped list by calling the mapping function `&(&1 * 2)` on
-  every element in the collection and consuming the element with an
+  When you invoke a function in the `Enum` module, the first argument is
+  usually a collection that must implement this protocol. For example,
+  the expression `Enum.map([1, 2, 3], &(&1 * 2))` invokes
+  `Enumerable.reduce/3` to perform the reducing operation that builds a
+  mapped list by calling the mapping function `&(&1 * 2)` on every
+  element in the collection and consuming the element with an
   accumulated list.
 
   Internally, `Enum.map/2` is implemented as follows:
@@ -289,7 +286,7 @@ defmodule Enum do
 
       iex> Enum.all?([2, 3, 4], fn x -> rem(x, 2) == 0 end)
       false
-      
+
       iex> Enum.all?([], fn x -> x > 0 end)
       true
 
@@ -302,7 +299,7 @@ defmodule Enum do
 
       iex> Enum.all?([1, nil, 3])
       false
-      
+
       iex> Enum.all?([])
       true
 
@@ -336,7 +333,7 @@ defmodule Enum do
 
       iex> Enum.any?([2, 3, 4], fn x -> rem(x, 2) == 1 end)
       true
-      
+
       iex> Enum.any?([], fn x -> x > 0 end)
       false
 
@@ -349,7 +346,7 @@ defmodule Enum do
 
       iex> Enum.any?([false, true, false])
       true
-      
+
       iex> Enum.any?([])
       false
 
