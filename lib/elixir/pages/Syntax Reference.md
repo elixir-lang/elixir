@@ -60,7 +60,7 @@ Strings are always represented as themselves in the AST.
 
 Charlists in Elixir are written in single-quotes, such as `'foo'`. Any single-quote inside the string must be escaped with `\ `. Charlists are made of non-negative integers, where each integer represents a Unicode code point.
 
-Multi-line charlists are written with three single-quotes (`'''`), the same multi-line strings are.
+Multi-line charlists are written with three single-quotes (`'''`), the same way multi-line strings are.
 
 Charlists are always represented as themselves in the AST.
 
@@ -295,7 +295,7 @@ end
 #=> {:{}, [], [1, 2, 3]}
 ```
 
-Binaries have a representation similar to tuples, except they are tagged with `:<<>>` instead of `:{}`:
+Binaries have a representation similar to tuples. They are tagged with with `:<<>>` instead of `:{}`:
 
 ```elixir
 quote do
@@ -304,7 +304,7 @@ end
 #=> {:<<>>, [], [1, 2, 3]}
 ```
 
-The same applies to maps where each pairs is treated as a list of tuples with two elements:
+The same applies to maps where each pair is treated as a list of tuples with two elements:
 
 ```elixir
 quote do
