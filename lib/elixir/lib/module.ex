@@ -197,10 +197,10 @@ defmodule Module do
 
   As can be seen in the example above, `@doc` and `@typedoc` also accept
   a keyword list that serves as a way to provide arbitrary metadata
-  about the entity. Tools like [`ExDoc`](https://hexdocs.pm/ex_doc/)
-  and `IEx` may use this information to
-  display annotations. A common use case is `since` that may be used
-  to annotate in which version the function was introduced.
+  about the entity. Tools like [`ExDoc`](https://hexdocs.pm/ex_doc/) and
+  `IEx` may use this information to display annotations. A common use
+  case is `since` that may be used to annotate in which version the
+  function was introduced.
 
   As illustrated in the example, it is possible to use these attributes
   more than once before an entity. However, the compiler will warn if
