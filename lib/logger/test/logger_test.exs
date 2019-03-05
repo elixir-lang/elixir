@@ -57,6 +57,11 @@ defmodule LoggerTest do
     assert :ok = Logger.remove_backend({MyBackend, :hello})
   end
 
+  test "add_backend/1 with unknown backend" do
+    assert {:error, {{:EXIT, {:undef, [_ | _]}}, _}} =
+             Logger.add_backend({UnknownBackend, :hello})
+  end
+
   test "logs or writes to stderr on failed backends" do
     assert {:ok, _} = Logger.add_backend({MyBackend, :hello})
 
