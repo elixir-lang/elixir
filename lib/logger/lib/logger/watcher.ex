@@ -38,6 +38,9 @@ defmodule Logger.Watcher do
 
           {:error, reason} ->
             {:stop, reason}
+
+          {:EXIT, _} = exit ->
+            {:stop, exit}
         end
 
       _ ->

@@ -11,7 +11,18 @@ defmodule Logger.BackendSupervisor do
     case Supervisor.start_link(__MODULE__, [], name: @name) do
       {:ok, _} = ok ->
         for backend <- Application.get_env(:logger, :backends) do
-          {:ok, _} = watch(backend)
+          case watch(backend) do
+            {:ok, _} ->
+              :ok
+
+            {:error, {{:EXIT, exit}, _spec}} ->
+              raise "EXIT when installing backend #{inspect(backend)}: " <>
+                      Exception.format_exit(exit)
+
+            {:error, error} ->
+              raise "ERROR when installing backend #{inspect(backend)}: " <>
+                      Exception.format_exit(error)
+          end
         end
 
         ok
