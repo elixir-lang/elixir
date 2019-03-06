@@ -258,7 +258,7 @@ defmodule NaiveDateTime do
       iex> NaiveDateTime.add(~N[0000-01-01 00:00:00], 63_579_428_950)
       ~N[2014-10-02 00:29:10]
 
-  Passing a `Datetime` automatically converts it to `NaiveDateTime`,
+  Passing a `DateTime` automatically converts it to `NaiveDateTime`,
   discarding the time zone information:
 
       iex> dt = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "CET",
