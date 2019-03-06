@@ -550,7 +550,7 @@ defmodule IEx do
 
   Keep in mind that `IEx.pry/0` runs in the caller process,
   blocking the caller during the evaluation cycle. The caller
-  process can be freed by calling `respawn/0`, which starts a
+  process can be freed by calling [`respawn/0`](`IEx.Helpers.respawn/0`), which starts a
   new IEx evaluation cycle, letting this one go:
 
       pry(2)> respawn()

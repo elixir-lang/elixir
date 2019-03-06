@@ -67,7 +67,7 @@ defmodule Kernel.ParallelCompiler do
     * `:long_compilation_threshold` - the timeout (in seconds) after the
       `:each_long_compilation` callback is invoked; defaults to `15`
 
-    * `:dest` - the destination directory for the BEAM files. When using `files/2`,
+    * `:dest` - the destination directory for the BEAM files. When using `compile/2`,
       this information is only used to properly annotate the BEAM files before
       they are loaded into memory. If you want a file to actually be written to
       `dest`, use `compile_to_path/3` instead.

@@ -965,7 +965,7 @@ defmodule Registry do
   end
 
   @doc """
-  Reads registry metadata given on `start_link/3`.
+  Reads registry metadata given on `start_link/1`.
 
   Atoms and tuples are allowed as keys.
 

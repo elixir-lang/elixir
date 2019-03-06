@@ -4,7 +4,7 @@ defmodule Mix.Task.Compiler do
 
   A Mix compiler task can be defined by simply using `Mix.Task.Compiler`
   in a module whose name starts with `Mix.Tasks.Compile.` and defining
-  the `run/1` function:
+  the [`run/1`](`c:run/1`) function:
 
       defmodule Mix.Tasks.Compile.MyLanguage do
         use Mix.Task.Compiler
@@ -14,7 +14,7 @@ defmodule Mix.Task.Compiler do
         end
       end
 
-  The `run/1` function returns an atom indicating the status of the
+  The [`run/1`](`c:run/1`) function returns an atom indicating the status of the
   compilation, and optionally can also return a list of "diagnostics"
   such as warnings or compilation errors. Doing this enables code
   editors to display issues inline without having to analyze the

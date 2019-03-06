@@ -684,7 +684,7 @@ defmodule Inspect.Algebra do
   to the document fitting. On the other hand, they are more expensive
   since each break needs to be re-evaluated.
 
-  This function is used by `container_doc/4` and friends to the
+  This function is used by `container_doc/6` and friends to the
   maximum number of entries on the same line.
   """
   @doc since: "1.6.0"
@@ -807,7 +807,7 @@ defmodule Inspect.Algebra do
   @doc ~S"""
   Inserts a mandatory linebreak between two documents.
 
-  See `line/1`.
+  See `line/0`.
 
   ## Examples
 
