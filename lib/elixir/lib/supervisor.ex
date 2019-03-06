@@ -391,7 +391,7 @@ defmodule Supervisor do
   The `start_link/1` (or a custom) is then called for each child process.
   The `start_link/1` function must return `{:ok, pid}` where `pid` is the
   process identifier of a new process that is linked to the supervisor.
-  The child process usually starts its work by executing the `init/1`
+  The child process usually starts its work by executing the `c:init/1`
   callback. Generally speaking, the `init` callback is where we initialize
   and configure the child process.
 

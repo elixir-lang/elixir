@@ -153,7 +153,7 @@ Built-in type           | Defined as
 
 ### Remote types
 
-Any module is also able to define its own types and the modules in Elixir are no exception. For example, the `Range` module defines a `t/0` type that represents a range: this type can be referred to as `t:Range.t/0`. In a similar fashion, a string is `t:String.t/0`, any enumerable can be `t:Enum.t/0`, and so on.
+Any module is also able to define its own types and the modules in Elixir are no exception. For example, the `Range` module defines a [`t/0`](t:Range.t/0) type that represents a range: this type can be referred to as `t:Range.t/0`. In a similar fashion, a string is `t:String.t/0`, any enumerable can be `t:Enum.t/0`, and so on.
 
 ### Maps
 

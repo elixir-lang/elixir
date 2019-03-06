@@ -1479,7 +1479,7 @@ defmodule Enum do
 
   In the example above, `max/1` returned March 31st instead of April 1st
   because the structural comparison compares the day before the year. This
-  can be addressed by using `max_by/1` and by relying on structures where
+  can be addressed by using `max_by/3` and by relying on structures where
   the most significant digits come first. In this particular case, we can
   use `Date.to_erl/1` to get a tuple representation with year, month and day
   fields:
@@ -1601,7 +1601,7 @@ defmodule Enum do
 
   In the example above, `min/1` returned April 1st instead of March 31st
   because the structural comparison compares the day before the year. This
-  can be addressed by using `min_by/1` and by relying on structures where
+  can be addressed by using `min_by/3` and by relying on structures where
   the most significant digits come first. In this particular case, we can
   use `Date.to_erl/1` to get a tuple representation with year, month and day
   fields:

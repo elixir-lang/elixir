@@ -88,7 +88,7 @@ Version | Deprecated feature                                  | Replaced by (ava
 [v1.7]  | `Code.get_docs/2`                                   | `Code.fetch_docs/1` (v1.7)
 [v1.7]  | Calling `super/1` on GenServer callbacks            | Implenting the behaviour explicitly without calling `super/1` (v1.0)
 [v1.7]  | `Enum.chunk/2`[`/3/4`](`Enum.chunk/4`)              | `Enum.chunk_every/2`[`/3/4`](`Enum.chunk_every/4`) (v1.5)
-[v1.7]  | `not left in right`                                 | [`left not in right`](`Kernel.SpecialForms.in/2`) (v1.5)
+[v1.7]  | `not left in right`                                 | [`left not in right`](`Kernel.in/2`) (v1.5)
 [v1.7]  | `Registry.start_link/3`                             | `Registry.start_link/1` (v1.5)
 [v1.7]  | `Stream.chunk/2`[`/3/4`](`Stream.chunk/4`)          | `Stream.chunk_every/2`[`/3/4`](`Stream.chunk_every/4`) (v1.5)
 [v1.6]  | `Enum.partition/2`                                  | `Enum.split_with/2` (v1.4)
