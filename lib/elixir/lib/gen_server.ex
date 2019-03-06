@@ -63,7 +63,7 @@ defmodule GenServer do
   that must be handled by the `c:handle_call/3` callback in the GenServer.
   A `cast/2` message must be handled by `c:handle_cast/2`. There are 7 possible
   callbacks to be implemented when you use a `GenServer`. The only required
-  callback is `init/1`.
+  callback is `c:init/1`.
 
   ## Client / Server APIs
 

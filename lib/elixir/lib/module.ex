@@ -8,7 +8,8 @@ defmodule Module do
   After a module is compiled, using many of the functions in
   this module will raise errors, since it is out of their scope
   to inspect runtime data. Most of the runtime data can be inspected
-  via the `__info__/1` function attached to each compiled module.
+  via the [`__info__/1`](`c:Module.__info__/1`) function attached to
+  each compiled module.
 
   ## Module attributes
 

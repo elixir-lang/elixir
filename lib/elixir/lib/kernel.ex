@@ -779,7 +779,7 @@ defmodule Kernel do
       iex> max(~D[2017-03-31], ~D[2017-04-01])
       ~D[2017-03-31]
 
-  In the example above, `max/1` returned March 31st instead of April 1st
+  In the example above, `max/2` returned March 31st instead of April 1st
   because the structural comparison compares the day before the year. In
   such cases it is common for modules to provide functions such as
   `Date.compare/2` that perform semantic comparison.
@@ -810,7 +810,7 @@ defmodule Kernel do
       iex> min(~D[2017-03-31], ~D[2017-04-01])
       ~D[2017-04-01]
 
-  In the example above, `min/1` returned April 1st instead of March 31st
+  In the example above, `min/2` returned April 1st instead of March 31st
   because the structural comparison compares the day before the year. In
   such cases it is common for modules to provide functions such as
   `Date.compare/2` that perform semantic comparison.
@@ -4342,12 +4342,12 @@ defmodule Kernel do
   the `Exception` behaviour. The `Exception` behaviour requires
   two functions to be implemented:
 
-    * `exception/1` - receives the arguments given to `raise/2`
+    * [`exception/1`](`c:Exception.exception/1`) - receives the arguments given to `raise/2`
       and returns the exception struct. The default implementation
       accepts either a set of keyword arguments that is merged into
       the struct or a string to be used as the exception's message.
 
-    * `message/1` - receives the exception struct and must return its
+    * [`message/1`](`c:Exception.message/1`) - receives the exception struct and must return its
       message. Most commonly exceptions have a message field which
       by default is accessed by this function. However, if an exception
       does not have a message field, this function must be explicitly

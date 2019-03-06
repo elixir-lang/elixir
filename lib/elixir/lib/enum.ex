@@ -289,7 +289,7 @@ defmodule Enum do
 
       iex> Enum.all?([2, 3, 4], fn x -> rem(x, 2) == 0 end)
       false
-      
+
       iex> Enum.all?([], fn x -> x > 0 end)
       true
 
@@ -302,7 +302,7 @@ defmodule Enum do
 
       iex> Enum.all?([1, nil, 3])
       false
-      
+
       iex> Enum.all?([])
       true
 
@@ -336,7 +336,7 @@ defmodule Enum do
 
       iex> Enum.any?([2, 3, 4], fn x -> rem(x, 2) == 1 end)
       true
-      
+
       iex> Enum.any?([], fn x -> x > 0 end)
       false
 
@@ -349,7 +349,7 @@ defmodule Enum do
 
       iex> Enum.any?([false, true, false])
       true
-      
+
       iex> Enum.any?([])
       false
 
@@ -1479,7 +1479,7 @@ defmodule Enum do
 
   In the example above, `max/1` returned March 31st instead of April 1st
   because the structural comparison compares the day before the year. This
-  can be addressed by using `max_by/1` and by relying on structures where
+  can be addressed by using `max_by/3` and by relying on structures where
   the most significant digits come first. In this particular case, we can
   use `Date.to_erl/1` to get a tuple representation with year, month and day
   fields:
@@ -1601,7 +1601,7 @@ defmodule Enum do
 
   In the example above, `min/1` returned April 1st instead of March 31st
   because the structural comparison compares the day before the year. This
-  can be addressed by using `min_by/1` and by relying on structures where
+  can be addressed by using `min_by/3` and by relying on structures where
   the most significant digits come first. In this particular case, we can
   use `Date.to_erl/1` to get a tuple representation with year, month and day
   fields:
