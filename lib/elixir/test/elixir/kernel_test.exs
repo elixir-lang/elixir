@@ -129,12 +129,6 @@ defmodule KernelTest do
     assert is_map(defstruct name: "john")
   end
 
-  defmodule UserTuple do
-    def __struct__({UserTuple, :ok}) do
-      %User{}
-    end
-  end
-
   test "struct/1 and struct/2" do
     assert struct(User) == %User{name: "john"}
 
