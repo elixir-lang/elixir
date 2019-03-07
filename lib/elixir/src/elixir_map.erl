@@ -220,7 +220,7 @@ format_error({invalid_struct_return_value, Module, Arity, Expr}) ->
   Message =
     "expected ~ts.__struct__/~p to return a map with a :__struct__ key that holds the "
     "name of the struct (atom), got: ~ts",
-  io_lib:format(Message, ['Elixir.Macro':to_string(Module), Arity, 'Elixir.Macro':to_string(Expr)]);
+  io_lib:format(Message, [elixir_aliases:inspect(Module), Arity, 'Elixir.Macro':to_string(Expr)]);
 format_error({inaccessible_struct, Module}) ->
   Message =
     "cannot access struct ~ts, the struct was not yet defined or the struct is "
