@@ -450,15 +450,89 @@ defmodule Kernel.ErrorsTest do
                       "nofile:1: BadStruct.__struct__/0 is undefined, cannot expand struct BadStruct",
                       '%BadStruct{} = %{}'
 
-    defmodule BadStruct do
-      def __struct__ do
-        []
+    bad_struct_type_error =
+      ~r"expected Kernel.ErrorsTest.BadStructType.__struct__/(0|1) to return a map.*, got: :invalid"
+
+    defmodule BadStructType do
+      def __struct__, do: :invalid
+      def __struct__(_), do: :invalid
+
+      assert_raise CompileError, bad_struct_type_error, fn ->
+        Macro.struct!(__MODULE__, __ENV__)
       end
     end
 
     assert_eval_raise CompileError,
-                      "nofile:1: expected Kernel.ErrorsTest.BadStruct.__struct__/0 to return a map, got: []",
-                      '%#{BadStruct}{} = %{}'
+                      bad_struct_type_error,
+                      '%#{BadStructType}{} = %{}'
+
+    assert_eval_raise CompileError,
+                      bad_struct_type_error,
+                      '%#{BadStructType}{}'
+
+    assert_raise ArgumentError, bad_struct_type_error, fn ->
+      struct(BadStructType)
+    end
+
+    assert_raise ArgumentError, bad_struct_type_error, fn ->
+      struct(BadStructType, foo: 1)
+    end
+
+    missing_struct_key_error =
+      ~r"expected Kernel.ErrorsTest.MissingStructKey.__struct__/(0|1) to return a map.*, got: %\{\}"
+
+    defmodule MissingStructKey do
+      def __struct__, do: %{}
+      def __struct__(_), do: %{}
+
+      assert_raise CompileError, missing_struct_key_error, fn ->
+        Macro.struct!(__MODULE__, __ENV__)
+      end
+    end
+
+    assert_eval_raise CompileError,
+                      missing_struct_key_error,
+                      '%#{MissingStructKey}{} = %{}'
+
+    assert_eval_raise CompileError,
+                      missing_struct_key_error,
+                      '%#{MissingStructKey}{}'
+
+    assert_raise ArgumentError, missing_struct_key_error, fn ->
+      struct(MissingStructKey)
+    end
+
+    assert_raise ArgumentError, missing_struct_key_error, fn ->
+      struct(MissingStructKey, foo: 1)
+    end
+
+    invalid_struct_key_error =
+      ~r"expected Kernel.ErrorsTest.InvalidStructKey.__struct__/(0|1) to return a map.*, got: %\{__struct__: 1\}"
+
+    defmodule InvalidStructKey do
+      def __struct__, do: %{__struct__: 1}
+      def __struct__(_), do: %{__struct__: 1}
+
+      assert_raise CompileError, invalid_struct_key_error, fn ->
+        Macro.struct!(__MODULE__, __ENV__)
+      end
+    end
+
+    assert_eval_raise CompileError,
+                      invalid_struct_key_error,
+                      '%#{InvalidStructKey}{} = %{}'
+
+    assert_eval_raise CompileError,
+                      invalid_struct_key_error,
+                      '%#{InvalidStructKey}{}'
+
+    assert_raise ArgumentError, invalid_struct_key_error, fn ->
+      struct(InvalidStructKey)
+    end
+
+    assert_raise ArgumentError, invalid_struct_key_error, fn ->
+      struct(InvalidStructKey, foo: 1)
+    end
 
     defmodule GoodStruct do
       defstruct name: "john"

@@ -155,7 +155,7 @@ load_struct(Meta, Name, Args, E) ->
         end
     end
   of
-    #{} = Struct ->
+    #{'__struct__' := Module} = Struct when is_atom(Module) ->
       Struct;
     Other ->
       form_error(Meta, ?key(E, file), ?MODULE, {invalid_struct_return_value, Name, Arity, Other})
@@ -217,8 +217,10 @@ format_error({non_map_after_struct, Expr}) ->
   io_lib:format("expected struct to be followed by a map, got: ~ts",
                 ['Elixir.Macro':to_string(Expr)]);
 format_error({invalid_struct_return_value, Module, Arity, Expr}) ->
-  io_lib:format("expected ~ts.__struct__/~p to return a map, got: ~ts",
-                ['Elixir.Macro':to_string(Module), Arity, 'Elixir.Macro':to_string(Expr)]);
+  Message =
+    "expected ~ts.__struct__/~p to return a map with a :__struct__ key that holds the "
+    "name of the struct (atom), got: ~ts",
+  io_lib:format(Message, [elixir_aliases:inspect(Module), Arity, 'Elixir.Macro':to_string(Expr)]);
 format_error({inaccessible_struct, Module}) ->
   Message =
     "cannot access struct ~ts, the struct was not yet defined or the struct is "
