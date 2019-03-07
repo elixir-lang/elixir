@@ -2178,8 +2178,11 @@ defmodule Kernel do
   end
 
   defp validate_struct!(expr, module, arity) do
-    error_message = :elixir_map.format_error({:invalid_struct_return_value, module, arity, expr})
-    :erlang.error(ArgumentError.exception(:erlang.iolist_to_binary(error_message)))
+    error_message =
+      "expected #{inspect(module)}.__struct__/#{arity} to return a map with a :__struct__ " <>
+        "key that holds the name of the struct (atom), got: #{inspect(expr)}"
+
+    :erlang.error(ArgumentError.exception(error_message))
   end
 
   @doc """
