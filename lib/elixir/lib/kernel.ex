@@ -3405,9 +3405,14 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> function_exported?(Enum, :member?, 2)
+      iex> function_exported?(Enum, :map, 2)
       true
 
+      iex> function_exported?(Enum, :map, 200)
+      false
+
+      iex> function_exported?(List, :to_string, 1)
+      true
   """
   @spec function_exported?(module, atom, arity) :: boolean
   def function_exported?(module, function, arity) do
