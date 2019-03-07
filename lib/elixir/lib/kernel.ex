@@ -2144,7 +2144,7 @@ defmodule Kernel do
   def struct!(struct, fields \\ [])
 
   def struct!(struct, fields) when is_atom(struct) do
-    struct.__struct__(fields)
+    validate_struct!(struct.__struct__(fields), struct, 1)
   end
 
   def struct!(struct, fields) when is_map(struct) do
@@ -2158,11 +2158,11 @@ defmodule Kernel do
   end
 
   defp struct(struct, [], _fun) when is_atom(struct) do
-    struct.__struct__()
+    validate_struct!(struct.__struct__(), struct, 0)
   end
 
   defp struct(struct, fields, fun) when is_atom(struct) do
-    struct(struct.__struct__(), fields, fun)
+    struct(validate_struct!(struct.__struct__(), struct, 0), fields, fun)
   end
 
   defp struct(%_{} = struct, [], _fun) do
@@ -2171,6 +2171,18 @@ defmodule Kernel do
 
   defp struct(%_{} = struct, fields, fun) do
     Enum.reduce(fields, struct, fun)
+  end
+
+  defp validate_struct!(%{__struct__: module} = struct, _module, _arity) when is_atom(module) do
+    struct
+  end
+
+  defp validate_struct!(expr, module, arity) do
+    error_message =
+      "expected #{inspect(module)}.__struct__/#{arity} to return a map with a :__struct__ " <>
+        "key that holds the name of the struct (atom), got: #{inspect(expr)}"
+
+    :erlang.error(ArgumentError.exception(error_message))
   end
 
   @doc """
