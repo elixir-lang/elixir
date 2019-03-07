@@ -3408,7 +3408,7 @@ defmodule Kernel do
       iex> function_exported?(Enum, :map, 2)
       true
 
-      iex> function_exported?(Enum, :map, 200)
+      iex> function_exported?(Enum, :map, 10)
       false
 
       iex> function_exported?(List, :to_string, 1)
