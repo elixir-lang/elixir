@@ -54,7 +54,7 @@ defmodule Logger do
     * `:error` - for errors
     
   For example, `:info` takes precedence over `:debug`. If your log 
-  level is set to `:info`, `:info`, `:warn:`, and `:error` will be 
+  level is set to `:info`, `:info`, `:warn`, and `:error` will be 
   printed to the console. If your log level is set to `:warn`, only 
   `:warn` and `:error` will be printed.
 
