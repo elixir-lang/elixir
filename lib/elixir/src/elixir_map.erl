@@ -216,11 +216,11 @@ format_error({not_kv_pair, Expr}) ->
 format_error({non_map_after_struct, Expr}) ->
   io_lib:format("expected struct to be followed by a map, got: ~ts",
                 ['Elixir.Macro':to_string(Expr)]);
-format_error({invalid_struct_return_value, Module, Arity, Expr}) ->
+format_error({invalid_struct_return_value, Module, Arity, Value}) ->
   Message =
     "expected ~ts.__struct__/~p to return a map with a :__struct__ key that holds the "
     "name of the struct (atom), got: ~ts",
-  io_lib:format(Message, [elixir_aliases:inspect(Module), Arity, 'Elixir.Macro':to_string(Expr)]);
+  io_lib:format(Message, [elixir_aliases:inspect(Module), Arity, 'Elixir.Kernel':inspect(Value)]);
 format_error({inaccessible_struct, Module}) ->
   Message =
     "cannot access struct ~ts, the struct was not yet defined or the struct is "
