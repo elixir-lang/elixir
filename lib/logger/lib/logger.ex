@@ -46,12 +46,17 @@ defmodule Logger do
 
   ## Levels
 
-  The supported levels are:
+  The supported levels, ordered by precedence, are:
 
     * `:debug` - for debug-related messages
     * `:info` - for information of any kind
     * `:warn` - for warnings
     * `:error` - for errors
+    
+  For example, `:info` takes precedence over `:debug`. If your log 
+  level is set to `:info`, `:info`, `:warn:`, and `:error` will be 
+  printed to the console. If your log level is set to `:warn`, only 
+  `:warn` and `:error` will be printed.
 
   ## Configuration
 
