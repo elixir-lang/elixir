@@ -307,10 +307,17 @@ end
 
 defimpl Inspect, for: Regex do
   def inspect(regex, opts) do
-    {escaped, _} = Identifier.escape(regex.source, ?/, :infinity, &escape_map/1)
+    {escaped, _} =
+      regex.source
+      |> :elixir_interpolation.unescape_chars(&unescape_map/1)
+      |> Identifier.escape(?/, :infinity, &escape_map/1)
+
     source = IO.iodata_to_binary(['~r/', escaped, ?/, regex.opts])
     color(source, :regex, opts)
   end
+
+  defp unescape_map(?/), do: ?/
+  defp unescape_map(_), do: false
 
   defp escape_map(?\a), do: '\\a'
   defp escape_map(?\f), do: '\\f'
