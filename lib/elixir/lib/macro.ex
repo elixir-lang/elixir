@@ -617,7 +617,7 @@ defmodule Macro do
   def to_string(tree, fun \\ fn _ast, string -> string end)
 
   # Variables
-  def to_string({var, _, atom} = ast, fun) when is_atom(atom) do
+  def to_string({var, _, context} = ast, fun) when is_atom(var) and is_atom(context) do
     fun.(ast, Atom.to_string(var))
   end
 
