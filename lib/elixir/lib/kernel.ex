@@ -354,7 +354,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns the smallest integer not greater than `number`.
+  Returns the smallest integer greater than or equal to `number`.
 
   If you want to perform ceil operation on other decimal places,
   use `Float.ceil/2` instead.
@@ -469,7 +469,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns the largest integer not greater than `number`.
+  Returns the largest integer smaller than or equal to `number`.
 
   If you want to perform floor operation on other decimal places,
   use `Float.floor/2` instead.
