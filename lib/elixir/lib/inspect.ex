@@ -309,15 +309,17 @@ defimpl Inspect, for: Regex do
   def inspect(regex, opts) do
     {escaped, _} =
       regex.source
-      |> :elixir_interpolation.unescape_chars(&unescape_map/1)
+      |> normalize(<<>>)
       |> Identifier.escape(?/, :infinity, &escape_map/1)
 
     source = IO.iodata_to_binary(['~r/', escaped, ?/, regex.opts])
     color(source, :regex, opts)
   end
 
-  defp unescape_map(?/), do: ?/
-  defp unescape_map(_), do: false
+  defp normalize(<<?\\, ?\\, rest::binary>>, acc), do: normalize(rest, <<acc::binary, ?\\, ?\\>>)
+  defp normalize(<<?\\, ?/, rest::binary>>, acc), do: normalize(rest, <<acc::binary, ?/>>)
+  defp normalize(<<char, rest::binary>>, acc), do: normalize(rest, <<acc::binary, char>>)
+  defp normalize(<<>>, acc), do: acc
 
   defp escape_map(?\a), do: '\\a'
   defp escape_map(?\f), do: '\\f'
