@@ -640,6 +640,8 @@ defmodule Inspect.OthersTest do
   test "regex" do
     assert inspect(~r(foo)m) == "~r/foo/m"
 
+    assert inspect(Regex.compile!("a\\/b")) == "~r/a\\/b/"
+
     assert inspect(Regex.compile!("\a\b\d\e\f\n\r\s\t\v/")) ==
              "~r/\\a\\x08\\x7F\\x1B\\f\\n\\r \\t\\v\\//"
 

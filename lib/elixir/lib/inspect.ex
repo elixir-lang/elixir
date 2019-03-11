@@ -307,10 +307,19 @@ end
 
 defimpl Inspect, for: Regex do
   def inspect(regex, opts) do
-    {escaped, _} = Identifier.escape(regex.source, ?/, :infinity, &escape_map/1)
+    {escaped, _} =
+      regex.source
+      |> normalize(<<>>)
+      |> Identifier.escape(?/, :infinity, &escape_map/1)
+
     source = IO.iodata_to_binary(['~r/', escaped, ?/, regex.opts])
     color(source, :regex, opts)
   end
+
+  defp normalize(<<?\\, ?\\, rest::binary>>, acc), do: normalize(rest, <<acc::binary, ?\\, ?\\>>)
+  defp normalize(<<?\\, ?/, rest::binary>>, acc), do: normalize(rest, <<acc::binary, ?/>>)
+  defp normalize(<<char, rest::binary>>, acc), do: normalize(rest, <<acc::binary, char>>)
+  defp normalize(<<>>, acc), do: acc
 
   defp escape_map(?\a), do: '\\a'
   defp escape_map(?\f), do: '\\f'
