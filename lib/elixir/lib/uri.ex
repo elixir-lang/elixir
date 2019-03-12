@@ -29,14 +29,8 @@ defmodule URI do
 
   import Bitwise
 
-  format_charlist = fn [first | rest] ->
-    Enum.reduce(rest, <<?`, first, ?`>>, fn char, acc ->
-      acc <> <<?,, ?\s, ?`, char, ?`>>
-    end)
-  end
-
   @reserved_characters ':/?#[]@!$&\'()*+,;='
-  @formatted_reserved_characters format_charlist.(@reserved_characters)
+  @formatted_reserved_characters Enum.map_join(@reserved_characters, ", ", &"`#{<<&1>>}`")
 
   @doc """
   Returns the default port for a given `scheme`.
