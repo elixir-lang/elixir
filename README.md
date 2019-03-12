@@ -12,11 +12,17 @@ For more about Elixir, installation and documentation,
 
 ## Announcements
 
-New releases are announced in the [announcements mailing list](https://groups.google.com/group/elixir-lang-ann). All security releases [will be tagged with `[security]`](https://groups.google.com/forum/#!searchin/elixir-lang-ann/%5Bsecurity%5D%7Csort:date).
+New releases are announced in the
+[announcements mailing list](https://groups.google.com/group/elixir-lang-ann).
+All security releases [will be tagged with `[security]`](https://groups.google.com/forum/#!searchin/elixir-lang-ann/%5Bsecurity%5D%7Csort:date).
 
 ## Compiling from source
 
-To run Elixir from source, clone this repository to your machine, compile and test it:
+For the many different ways to install Elixir,
+[see our installation instructions on the website](https://elixir-lang.org/install.html).
+To compile from source, you can follow the steps below.
+
+First, [install Erlang](https://elixir-lang.org/install.html#installing-erlang). Then clone this repository to your machine, compile and test it:
 
 ```sh
 git clone https://github.com/elixir-lang/elixir.git
@@ -32,8 +38,7 @@ If Elixir fails to build (specifically when pulling in a new version via
 `git`), be sure to remove any previous build artifacts by running
 `make clean`, then `make test`.
 
-If tests pass, you are ready to move on to the [Getting Started guide][1]
-or to try Interactive Elixir by running `bin/iex` in your terminal.
+If tests pass, you can Interactive Elixir by running `bin/iex` in your terminal.
 
 However, if tests fail, it is likely you have an outdated Erlang/OTP version
 (Elixir requires Erlang/OTP 20.0 or later). You can check your Erlang/OTP version
@@ -67,7 +72,7 @@ in the next release are marked as "closed" in the issues tracker and are
 added to the [CHANGELOG](CHANGELOG.md).
 
 Finally, remember all interactions in our official spaces follow our
-[Code of Conduct][7].
+[Code of Conduct][1].
 
 ## Contributing
 
@@ -179,20 +184,18 @@ the `doc` directory. If you are planning to contribute documentation,
 
 ## Development links
 
-  * [Elixir Getting Started guide][1]
   * [Elixir Documentation][6]
   * [Elixir Core Mailing list (development)][3]
   * [Issues tracker][2]
-  * [Code of Conduct][7]
+  * [Code of Conduct][1]
   * **[#elixir-lang][4]** on [Freenode][5] IRC
 
-  [1]: https://elixir-lang.org/getting-started/introduction.html
+  [1]: CODE_OF_CONDUCT.md
   [2]: https://github.com/elixir-lang/elixir/issues
   [3]: https://groups.google.com/group/elixir-lang-core
   [4]: https://webchat.freenode.net/?channels=#elixir-lang
   [5]: http://www.freenode.net
   [6]: https://elixir-lang.org/docs.html
-  [7]: CODE_OF_CONDUCT.md
 
 ## License
 
