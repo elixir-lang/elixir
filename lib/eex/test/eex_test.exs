@@ -622,7 +622,7 @@ defmodule EExTest do
     list
     |> Enum.with_index()
     |> Enum.map(fn
-      {element index} when rem(index, 2) == 0 -> a.(element)
+      {element, index} when rem(index, 2) == 0 -> a.(element)
       {element, index} when rem(index, 2) == 1 -> b.(element)
     end)
   end
