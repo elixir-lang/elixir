@@ -235,8 +235,9 @@ defmodule URI do
 
   As specified in [RFC 3986, section 2.3](https://tools.ietf.org/html/rfc3986#section-2.3)
   the following characters are unreserved:
-    - Alphabumeric characters: `A-Z`, `a-z`, `0-9`
-    - `~`, `_`, `-`
+
+    * Alphanumeric characters: `A-Z`, `a-z`, `0-9`
+    * `~`, `_`, `-`
 
   ## Examples
 
