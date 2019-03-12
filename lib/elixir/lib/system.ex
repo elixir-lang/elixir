@@ -178,7 +178,8 @@ defmodule System do
   @doc """
   Elixir build information.
 
-  Returns a map with the Elixir version, short Git revision hash and compilation date.
+  Returns a map with the Elixir version, the Erlang/OTP release it was compiled
+  with, a short Git revision hash and the date and time it was built.
 
   Every value in the map is a string, and these are:
 
@@ -186,7 +187,8 @@ defmodule System do
       Erlang/OTP release it was compiled with
     * `:date` - a string representation of the ISO8601 date and time it was built
     * `:opt_release` - OTP release it was compiled with
-    * `:revision` - short Git revision hash
+    * `:revision` - short Git revision hash. If Git was not available at building
+      time, it is set to `""`
     * `:version` - the Elixir version
 
   One should not rely on the specific formats returned by each of those fields.
