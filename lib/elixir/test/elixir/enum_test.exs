@@ -1666,7 +1666,7 @@ defmodule EnumTest.SideEffects do
     end
   end
 
-  test "take/2 with no item works as no-op" do
+  test "take/2 with no elements works as no-op" do
     iterator = File.stream!(fixture_path("unknown.txt"))
 
     assert Enum.take(iterator, 0) == []

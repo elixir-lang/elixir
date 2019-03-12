@@ -23,8 +23,8 @@ defmodule GenServerTest do
       {:reply, reason, state}
     end
 
-    def handle_cast({:push, item}, state) do
-      {:noreply, [item | state]}
+    def handle_cast({:push, element}, state) do
+      {:noreply, [element | state]}
     end
 
     def terminate(_reason, _state) do

@@ -377,7 +377,7 @@ defmodule IEx.HelpersTest do
       c_h = "* def c(files, path \\\\ :in_memory)\n\nCompiles the given files."
 
       eq_h =
-        "* def left == right\n\n  @spec term() == term() :: boolean()\n\nguard: true\n\nReturns `true` if the two items are equal.\n\n"
+        "* def left == right\n\n  @spec term() == term() :: boolean()\n\nguard: true\n\nReturns `true` if the two terms are equal.\n\n"
 
       def_h =
         "* defmacro def(call, expr \\\\ nil)\n\nDefines a function with the given name and body."

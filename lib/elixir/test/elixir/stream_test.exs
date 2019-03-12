@@ -1212,8 +1212,8 @@ defmodule StreamTest do
 
   defp inbox_stream({:cont, acc}, f) do
     receive do
-      {:stream, item} ->
-        inbox_stream(f.(item, acc), f)
+      {:stream, element} ->
+        inbox_stream(f.(element, acc), f)
     end
   end
 end

@@ -206,8 +206,8 @@ defmodule Map do
     |> :maps.from_list()
   end
 
-  defp new_transform([item | rest], fun, acc) do
-    new_transform(rest, fun, [fun.(item) | acc])
+  defp new_transform([element | rest], fun, acc) do
+    new_transform(rest, fun, [fun.(element) | acc])
   end
 
   @doc """

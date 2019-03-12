@@ -199,7 +199,7 @@ which is represented as a tuple with three elements:
 {:sum, meta, [1, 2, 3]}
 ```
 
-the first element is an atom (or another tuple), the second element is a list of two-item tuples with metadata (such as line numbers) and the third is a list of arguments.
+the first element is an atom (or another tuple), the second element is a list of two-element tuples with metadata (such as line numbers) and the third is a list of arguments.
 
 We can retrieve the AST for any Elixir expression by calling `quote`:
 
