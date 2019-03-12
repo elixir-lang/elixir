@@ -104,16 +104,16 @@ defmodule MapSet do
     :maps.from_list(acc)
   end
 
-  defp new_from_list([item | rest], acc) do
-    new_from_list(rest, [{item, @dummy_value} | acc])
+  defp new_from_list([element | rest], acc) do
+    new_from_list(rest, [{element, @dummy_value} | acc])
   end
 
   defp new_from_list_transform([], _fun, acc) do
     :maps.from_list(acc)
   end
 
-  defp new_from_list_transform([item | rest], fun, acc) do
-    new_from_list_transform(rest, fun, [{fun.(item), @dummy_value} | acc])
+  defp new_from_list_transform([element | rest], fun, acc) do
+    new_from_list_transform(rest, fun, [{fun.(element), @dummy_value} | acc])
   end
 
   @doc """
@@ -148,7 +148,7 @@ defmodule MapSet do
   def difference(map_set1, map_set2)
 
   # If the first set is less than twice the size of the second map,
-  # it is fastest to re-accumulate items in the first set that are not
+  # it is fastest to re-accumulate elements in the first set that are not
   # present in the second set.
   def difference(%MapSet{map: map1}, %MapSet{map: map2})
       when map_size(map1) < map_size(map2) * 2 do
@@ -161,7 +161,7 @@ defmodule MapSet do
   end
 
   # If the second set is less than half the size of the first set, it's fastest
-  # to simply iterate through each item in the second set, deleting them from
+  # to simply iterate through each element in the second set, deleting them from
   # the first set.
   def difference(%MapSet{map: map1} = map_set, %MapSet{map: map2}) do
     %{map_set | map: Map.drop(map1, Map.keys(map2))}

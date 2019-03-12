@@ -1310,8 +1310,8 @@ defmodule Kernel do
   Concatenates a proper list and a term, returning a list.
 
   The complexity of `a ++ b` is proportional to `length(a)`, so avoid repeatedly
-  appending to lists of arbitrary length, e.g. `list ++ [item]`.
-  Instead, consider prepending via `[item | rest]` and then reversing.
+  appending to lists of arbitrary length, e.g. `list ++ [element]`.
+  Instead, consider prepending via `[element | rest]` and then reversing.
 
   If the `right` operand is not a proper list, it returns an improper list.
   If the `left` operand is not a proper list, it raises `ArgumentError`.
@@ -1345,8 +1345,8 @@ defmodule Kernel do
   end
 
   @doc """
-  Removes the first occurrence of an item on the left list
-  for each item on the right.
+  Removes the first occurrence of an element on the left list
+  for each element on the right.
 
   The complexity of `a -- b` is proportional to `length(a) * length(b)`,
   meaning that it will be very slow if both `a` and `b` are long lists.
@@ -1466,7 +1466,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if the two items are equal.
+  Returns `true` if the two terms are equal.
 
   This operator considers 1 and 1.0 to be equal. For stricter
   semantics, use `===/2` instead.
@@ -1491,7 +1491,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if the two items are not equal.
+  Returns `true` if the two terms are not equal.
 
   This operator considers 1 and 1.0 to be equal. For match
   comparison, use `!==/2` instead.
@@ -1516,9 +1516,9 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if the two items are exactly equal.
+  Returns `true` if the two terms are exactly equal.
 
-  The items are only considered to be exactly equal if they
+  The terms are only considered to be exactly equal if they
   have the same value and are of the same type. For example,
   `1 == 1.0` returns `true`, but since they are of different
   types, `1 === 1.0` returns `false`.
@@ -1543,7 +1543,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if the two items are not exactly equal.
+  Returns `true` if the two terms are not exactly equal.
 
   All terms in Elixir can be compared with each other.
 
@@ -3140,7 +3140,7 @@ defmodule Kernel do
 
   In the example above, even though the right list has more entries than the
   left one, destructuring works fine. If the right list is smaller, the
-  remaining items are simply set to `nil`:
+  remaining elements are simply set to `nil`:
 
       iex> destructure([x, y, z], [1])
       iex> {x, y, z}
