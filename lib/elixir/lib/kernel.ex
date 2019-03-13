@@ -1773,7 +1773,7 @@ defmodule Kernel do
 
   defp wrap_concatenation(other, side, caller) do
     expanded = expand_concat_argument(other, side, caller)
-    {:::, [], [expanded, {:binary, [], nil}]}
+    {:"::", [], [expanded, {:binary, [], nil}]}
   end
 
   defp expand_concat_argument(arg, :left, %{context: :match} = caller) do
@@ -5243,7 +5243,7 @@ defmodule Kernel do
 
   defp unescape_list_tokens(tokens) do
     escape = fn
-      {:::, _, [expr, _]} -> expr
+      {:"::", _, [expr, _]} -> expr
       binary when is_binary(binary) -> :elixir_interpolation.unescape_chars(binary)
     end
 

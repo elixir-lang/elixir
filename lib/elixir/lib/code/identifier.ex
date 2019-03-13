@@ -34,7 +34,7 @@ defmodule Code.Identifier do
     cond do
       op in [:<-, :\\] -> {:left, 40}
       op in [:when] -> {:right, 50}
-      op in [:::] -> {:right, 60}
+      op in [:"::"] -> {:right, 60}
       op in [:|] -> {:right, 70}
       op in [:=] -> {:right, 100}
       op in [:||, :|||, :or] -> {:left, 130}
@@ -60,7 +60,7 @@ defmodule Code.Identifier do
     * `:callable_local` - an atom that can be used as a local call;
       this category includes identifiers like `:foo`
 
-    * `:callable_operators` - all callable operators, such as `:<>`. Note
+    * `:callable_operator` - all callable operators, such as `:<>`. Note
       operators such as `:..` are not callable because of ambiguity
 
     * `:not_callable` - an atom that cannot be used as a function call after the
@@ -79,6 +79,9 @@ defmodule Code.Identifier do
     cond do
       atom in [:%, :%{}, :{}, :<<>>, :..., :.., :., :->] ->
         :not_callable
+
+      atom in [:"::"] ->
+        :not_atomable
 
       unary_op(atom) != :error or binary_op(atom) != :error ->
         :callable_operator
@@ -143,7 +146,7 @@ defmodule Code.Identifier do
       type when type in [:callable_local, :callable_operator, :not_callable] ->
         ":" <> binary
 
-      :other ->
+      _ ->
         {escaped, _} = escape(binary, ?")
         IO.iodata_to_binary([?:, ?", escaped, ?"])
     end
@@ -172,7 +175,7 @@ defmodule Code.Identifier do
     binary = Atom.to_string(atom)
 
     case classify(atom) do
-      type when type in [:callable_local, :callable_operator] ->
+      type when type in [:callable_local, :callable_operator, :not_atomable] ->
         binary
 
       type ->

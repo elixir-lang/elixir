@@ -56,6 +56,10 @@ defmodule Inspect.AtomTest do
     assert inspect(:<|>) == ":<|>"
   end
 
+  test "::" do
+    assert inspect(:"::") == ~s[:"::"]
+  end
+
   test "with @" do
     assert inspect(:@) == ":@"
     assert inspect(:foo@bar) == ":foo@bar"
@@ -281,6 +285,10 @@ defmodule Inspect.ListTest do
 
     assert inspect([foo: [1, 2, 3], baz: [4, 5, 6]], pretty: true, width: 20) ==
              "[\n  foo: [1, 2, 3],\n  baz: [4, 5, 6]\n]"
+  end
+
+  test "keyword operators" do
+    assert inspect("::": 1, +: 2) == ~s(["::": 1, +: 2])
   end
 
   test "opt infer" do

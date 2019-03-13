@@ -28,7 +28,7 @@ defmodule Behaviour do
     do_defcallback(:defmacro, split_spec(spec, quote(do: Macro.t())))
   end
 
-  defp split_spec({:when, _, [{:::, _, [spec, return]}, guard]}, _default) do
+  defp split_spec({:when, _, [{:"::", _, [spec, return]}, guard]}, _default) do
     {spec, return, guard}
   end
 
@@ -36,7 +36,7 @@ defmodule Behaviour do
     {spec, default, guard}
   end
 
-  defp split_spec({:::, _, [spec, return]}, _default) do
+  defp split_spec({:"::", _, [spec, return]}, _default) do
     {spec, return, []}
   end
 
@@ -56,7 +56,7 @@ defmodule Behaviour do
 
   defp do_callback(kind, name, args, return, guards) do
     fun = fn
-      {:::, _, [left, right]} ->
+      {:"::", _, [left, right]} ->
         ensure_not_default(left)
         ensure_not_default(right)
         left

@@ -28,7 +28,7 @@ defmodule Code.Formatter do
   @required_parens_logical_binary_operands [:||, :|||, :or, :&&, :&&&, :and]
 
   # Operators with next break fits. = and :: do not consider new lines though
-  @next_break_fits_operators [:<-, :==, :!=, :=~, :===, :!==, :<, :>, :<=, :>=, :=, :::]
+  @next_break_fits_operators [:<-, :==, :!=, :=~, :===, :!==, :<, :>, :<=, :>=, :=, :"::"]
 
   # Operators that always require parens on operands when they are the parent
   @required_parens_on_binary_operands [
@@ -1305,7 +1305,7 @@ defmodule Code.Formatter do
 
   defp interpolated?(entries) do
     Enum.all?(entries, fn
-      {:::, _, [{{:., _, [Kernel, :to_string]}, _, [_]}, {:binary, _, _}]} -> true
+      {:"::", _, [{{:., _, [Kernel, :to_string]}, _, [_]}, {:binary, _, _}]} -> true
       entry when is_binary(entry) -> true
       _ -> false
     end)
@@ -1343,7 +1343,7 @@ defmodule Code.Formatter do
   end
 
   defp interpolation_to_algebra([entry | entries], escape, state, acc, last) do
-    {:::, _, [{{:., _, [Kernel, :to_string]}, meta, [quoted]}, {:binary, _, _}]} = entry
+    {:"::", _, [{{:., _, [Kernel, :to_string]}, meta, [quoted]}, {:binary, _, _}]} = entry
     {doc, state} = block_to_algebra(quoted, line(meta), end_line(meta), state)
     doc = surround("\#{", doc, "}")
     interpolation_to_algebra(entries, escape, state, concat(acc, doc), last)
@@ -1412,7 +1412,7 @@ defmodule Code.Formatter do
     {bitstring_wrap_parens(doc, i, last), state}
   end
 
-  defp bitstring_segment_to_algebra({{:::, _, [segment, spec]}, i}, state, last) do
+  defp bitstring_segment_to_algebra({{:"::", _, [segment, spec]}, i}, state, last) do
     {doc, state} = quoted_to_algebra(segment, :parens_arg, state)
     {spec, state} = bitstring_spec_to_algebra(spec, state)
 

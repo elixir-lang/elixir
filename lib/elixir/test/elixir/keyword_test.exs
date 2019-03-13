@@ -13,7 +13,7 @@ defmodule KeywordTest do
   end
 
   test "is a :: operator on ambiguity" do
-    assert [{:::, _, [{:a, _, _}, {:b, _, _}]}] = quote(do: [a :: b])
+    assert [{:"::", _, [{:a, _, _}, {:b, _, _}]}] = quote(do: [a :: b])
   end
 
   test "supports optional comma" do
