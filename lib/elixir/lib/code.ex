@@ -753,15 +753,9 @@ defmodule Code do
   def require_file(file, relative_to \\ nil) when is_binary(file) do
     file = find_file(file, relative_to)
 
-    # TODO: Simply block until :required or :proceed once load_file is removed on v2.0
     case :elixir_code_server.call({:acquire, file}) do
       :required ->
         nil
-
-      {:queued, ref} ->
-        receive do
-          {:elixir_code_server, ^ref, :required} -> nil
-        end
 
       :proceed ->
         loaded = :elixir_compiler.file(file)

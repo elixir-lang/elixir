@@ -45,12 +45,12 @@ handle_call({acquire, Path}, From, Config) ->
   case maps:find(Path, Current) of
     {ok, true} ->
       {reply, required, Config};
-    {ok, {Ref, List}} when is_list(List), is_reference(Ref) ->
-      Queued = maps:put(Path, {Ref, [From | List]}, Current),
-      {reply, {queued, Ref}, Config#elixir_code_server{required=Queued}};
+    {ok, Queued} when is_list(Queued) ->
+      Required = maps:put(Path, [From | Queued], Current),
+      {noreply, Config#elixir_code_server{required=Required}};
     error ->
-      Queued = maps:put(Path, {make_ref(), []}, Current),
-      {reply, proceed, Config#elixir_code_server{required=Queued}}
+      Required = maps:put(Path, [], Current),
+      {reply, proceed, Config#elixir_code_server{required=Required}}
   end;
 
 handle_call(required, _From, Config) ->
@@ -99,8 +99,8 @@ handle_cast({required, Path}, Config) ->
   case maps:find(Path, Current) of
     {ok, true} ->
       {noreply, Config};
-    {ok, {Ref, List}} when is_list(List), is_reference(Ref) ->
-      _ = [Pid ! {elixir_code_server, Ref, required} || {Pid, _Tag} <- lists:reverse(List)],
+    {ok, Queued} ->
+      _ = [gen_server:reply(From, required) || From <- lists:reverse(Queued)],
       Done = maps:put(Path, true, Current),
       {noreply, Config#elixir_code_server{required=Done}};
     error ->
