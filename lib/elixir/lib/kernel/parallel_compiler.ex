@@ -196,43 +196,48 @@ defmodule Kernel.ParallelCompiler do
   defp spawn_workers([file | queue], spawned, waiting, files, result, warnings, state) do
     %{output: output, long_compilation_threshold: threshold, dest: dest} = state
     parent = self()
+    file = Path.expand(file)
 
-    {pid, ref} =
-      :erlang.spawn_monitor(fn ->
-        :erlang.put(:elixir_compiler_pid, parent)
-        :erlang.put(:elixir_compiler_file, file)
+    if should_spawn?(output, file) do
+      {pid, ref} =
+        :erlang.spawn_monitor(fn ->
+          :erlang.put(:elixir_compiler_pid, parent)
+          :erlang.put(:elixir_compiler_file, file)
 
-        result =
-          try do
-            _ =
+          result =
+            try do
               case output do
                 {:compile, path} ->
                   :erlang.process_flag(:error_handler, Kernel.ErrorHandler)
                   :erlang.put(:elixir_compiler_dest, path)
-                  :elixir_compiler.file_to_path(Path.expand(file), path)
+                  :elixir_compiler.file_to_path(file, path)
 
                 :compile ->
                   :erlang.process_flag(:error_handler, Kernel.ErrorHandler)
                   :erlang.put(:elixir_compiler_dest, dest)
-                  Code.compile_file(file)
+                  :elixir_compiler.file(file)
 
                 :require ->
-                  Code.require_file(file)
+                  :elixir_compiler.file(file)
+                  :elixir_code_server.cast({:required, file})
               end
 
-            :ok
-          catch
-            kind, reason ->
-              {kind, reason, __STACKTRACE__}
-          end
+              :ok
+            catch
+              kind, reason ->
+                {kind, reason, __STACKTRACE__}
+            end
 
-        send(parent, {:file_done, self(), file, result})
-        exit(:shutdown)
-      end)
+          send(parent, {:file_done, self(), file, result})
+          exit(:shutdown)
+        end)
 
-    timer_ref = Process.send_after(self(), {:timed_out, pid}, threshold * 1000)
-    files = [{pid, ref, file, timer_ref} | files]
-    spawn_workers(queue, spawned + 1, waiting, files, result, warnings, state)
+      timer_ref = Process.send_after(self(), {:timed_out, pid}, threshold * 1000)
+      files = [{pid, ref, file, timer_ref} | files]
+      spawn_workers(queue, spawned + 1, waiting, files, result, warnings, state)
+    else
+      spawn_workers(queue, spawned, waiting, files, result, warnings, state)
+    end
   end
 
   # No more queue, nothing waiting, this cycle is done
@@ -314,6 +319,12 @@ defmodule Kernel.ParallelCompiler do
   defp spawn_workers([], spawned, waiting, files, result, warnings, state) do
     wait_for_messages([], spawned, waiting, files, result, warnings, state)
   end
+
+  defp should_spawn?(:require, file),
+    do: :elixir_code_server.call({:acquire, file}) == :proceed
+
+  defp should_spawn?(_output, _file),
+    do: true
 
   defp waiting_on_without_definition(waiting, pid) do
     {_, ^pid, _, on, _} = entry = List.keyfind(waiting, pid, 1)
