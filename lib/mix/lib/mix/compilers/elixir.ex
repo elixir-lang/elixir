@@ -274,12 +274,6 @@ defmodule Mix.Compilers.Elixir do
 
     {modules, structs, sources, pending_modules, pending_structs} = get_compiler_info()
 
-    {source_external, existing_source?} =
-      case List.keyfind(sources, source, source(:source)) do
-        source(external: old_external) -> {external ++ old_external, true}
-        nil -> {external, false}
-      end
-
     {module_sources, existing_module?} =
       case List.keyfind(modules, module, module(:module)) do
         module(sources: old_sources) -> {[source | List.delete(old_sources, source)], true}
@@ -297,7 +291,8 @@ defmodule Mix.Compilers.Elixir do
         binary: binary
       )
 
-    source(size: size) = List.keyfind(sources, source, source(:source))
+    source(size: size, external: old_external) =
+      List.keyfind(sources, source, source(:source))
 
     new_source =
       source(
@@ -308,8 +303,7 @@ defmodule Mix.Compilers.Elixir do
         runtime_references: runtime_references,
         compile_dispatches: compile_dispatches,
         runtime_dispatches: runtime_dispatches,
-        external: source_external,
-        warnings: []
+        external: external ++ old_external
       )
 
     old_struct = Map.get(structs, module)
@@ -322,7 +316,7 @@ defmodule Mix.Compilers.Elixir do
       end
 
     modules = prepend_or_merge(modules, module, module(:module), new_module, existing_module?)
-    sources = prepend_or_merge(sources, source, source(:source), new_source, existing_source?)
+    sources = prepend_or_merge(sources, source, source(:source), new_source, true)
     put_compiler_info({modules, structs, sources, pending_modules, pending_structs})
     :ok
   end
