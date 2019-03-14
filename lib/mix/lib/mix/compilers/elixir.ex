@@ -291,8 +291,7 @@ defmodule Mix.Compilers.Elixir do
         binary: binary
       )
 
-    source(size: size, external: old_external) =
-      List.keyfind(sources, source, source(:source))
+    source(size: size, external: old_external) = List.keyfind(sources, source, source(:source))
 
     new_source =
       source(
