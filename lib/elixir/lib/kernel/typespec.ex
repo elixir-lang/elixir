@@ -962,7 +962,15 @@ defmodule Kernel.Typespec do
 
   defp ensure_no_unused_local_vars!(caller, local_vars) do
     fun = fn
-      {name, :used_once} -> compile_error(caller, "type variable #{name} is unused")
+      {:_, _used} ->
+        compile_error(caller, "type variable '_' is invalid")
+      {name, :used_once} ->
+        case :erlang.atom_to_list(name) do
+          [?_|_] ->
+            :ok
+          _ ->
+            compile_error(caller, "type variable #{name} is unused")
+        end
       _ -> :ok
     end
 
