@@ -136,7 +136,7 @@ defmodule Kernel.ParallelCompiler do
       spawn_workers(files, 0, [], [], [], [], %{
         dest: Keyword.get(options, :dest),
         each_cycle: Keyword.get(options, :each_cycle, fn -> [] end),
-        each_file: Keyword.get(options, :each_file, fn _file -> :ok end),
+        each_file: Keyword.get(options, :each_file, fn _, _ -> :ok end) |> each_file(),
         each_long_compilation: Keyword.get(options, :each_long_compilation, fn _file -> :ok end),
         each_module: Keyword.get(options, :each_module, fn _file, _module, _binary -> :ok end),
         output: output,
@@ -159,6 +159,19 @@ defmodule Kernel.ParallelCompiler do
 
       _ ->
         result
+    end
+  end
+
+  defp each_file(fun) when is_function(fun, 1), do: fn file, _ -> fun.(file) end
+  defp each_file(fun) when is_function(fun, 2), do: fun
+
+  defp each_file(file, lexical, parent) do
+    ref = Process.monitor(parent)
+    send(parent, {:file_ok, self(), ref, file, lexical})
+
+    receive do
+      ^ref -> :ok
+      {:DOWN, ^ref, _, _, _} -> :ok
     end
   end
 
@@ -204,31 +217,27 @@ defmodule Kernel.ParallelCompiler do
           :erlang.put(:elixir_compiler_pid, parent)
           :erlang.put(:elixir_compiler_file, file)
 
-          result =
-            try do
-              case output do
-                {:compile, path} ->
-                  :erlang.process_flag(:error_handler, Kernel.ErrorHandler)
-                  :erlang.put(:elixir_compiler_dest, path)
-                  :elixir_compiler.file_to_path(file, path)
+          try do
+            case output do
+              {:compile, path} ->
+                :erlang.process_flag(:error_handler, Kernel.ErrorHandler)
+                :erlang.put(:elixir_compiler_dest, path)
+                :elixir_compiler.file_to_path(file, path, &each_file(&1, &2, parent))
 
-                :compile ->
-                  :erlang.process_flag(:error_handler, Kernel.ErrorHandler)
-                  :erlang.put(:elixir_compiler_dest, dest)
-                  :elixir_compiler.file(file)
+              :compile ->
+                :erlang.process_flag(:error_handler, Kernel.ErrorHandler)
+                :erlang.put(:elixir_compiler_dest, dest)
+                :elixir_compiler.file(file, &each_file(&1, &2, parent))
 
-                :require ->
-                  :elixir_compiler.file(file)
-                  :elixir_code_server.cast({:required, file})
-              end
-
-              :ok
-            catch
-              kind, reason ->
-                {kind, reason, __STACKTRACE__}
+              :require ->
+                :elixir_compiler.file(file, &each_file(&1, &2, parent))
+                :elixir_code_server.cast({:required, file})
             end
+          catch
+            kind, reason ->
+              send(parent, {:file_error, self(), file, {kind, reason, __STACKTRACE__}})
+          end
 
-          send(parent, {:file_done, self(), file, result})
           exit(:shutdown)
         end)
 
@@ -406,22 +415,23 @@ defmodule Kernel.ParallelCompiler do
         warning = {file, line, message}
         wait_for_messages(queue, spawned, waiting, files, result, [warning | warnings], state)
 
-      {:file_done, child_pid, file, :ok} ->
-        discard_down(child_pid)
-        state.each_file.(file)
+      {:file_ok, child_pid, ref, file, lexical} ->
+        state.each_file.(file, lexical)
+        send(child_pid, ref)
         cancel_waiting_timer(files, child_pid)
 
         # Sometimes we may have spurious entries in the waiting list
         # because someone invoked try/rescue UndefinedFunctionError
+        discard_down(child_pid)
         new_queue = List.delete(queue, child_pid)
         new_files = List.keydelete(files, child_pid, 0)
         new_waiting = List.keydelete(waiting, child_pid, 1)
         spawn_workers(new_queue, spawned - 1, new_waiting, new_files, result, warnings, state)
 
-      {:file_done, child_pid, file, {kind, reason, stack}} ->
-        discard_down(child_pid)
+      {:file_error, child_pid, file, {kind, reason, stack}} ->
         print_error(file, kind, reason, stack)
         cancel_waiting_timer(files, child_pid)
+        discard_down(child_pid)
         files |> List.keydelete(child_pid, 0) |> terminate()
         {:error, [to_error(file, kind, reason, stack)], warnings}
 

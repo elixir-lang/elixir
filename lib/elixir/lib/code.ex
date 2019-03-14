@@ -712,7 +712,7 @@ defmodule Code do
   def load_file(file, relative_to \\ nil) when is_binary(file) do
     file = find_file(file, relative_to)
     :elixir_code_server.call({:acquire, file})
-    loaded = :elixir_compiler.file(file)
+    loaded = :elixir_compiler.file(file, fn _, _ -> :ok end)
     :elixir_code_server.cast({:required, file})
     loaded
   end
@@ -758,7 +758,7 @@ defmodule Code do
         nil
 
       :proceed ->
-        loaded = :elixir_compiler.file(file)
+        loaded = :elixir_compiler.file(file, fn _, _ -> :ok end)
         :elixir_code_server.cast({:required, file})
         loaded
     end
@@ -887,7 +887,7 @@ defmodule Code do
   """
   @spec compile_string(List.Chars.t(), binary) :: [{module, binary}]
   def compile_string(string, file \\ "nofile") when is_binary(file) do
-    :elixir_compiler.string(to_charlist(string), file)
+    :elixir_compiler.string(to_charlist(string), file, fn _, _ -> :ok end)
   end
 
   @doc """
@@ -900,7 +900,7 @@ defmodule Code do
   """
   @spec compile_quoted(Macro.t(), binary) :: [{module, binary}]
   def compile_quoted(quoted, file \\ "nofile") when is_binary(file) do
-    :elixir_compiler.quoted(quoted, file)
+    :elixir_compiler.quoted(quoted, file, fn _, _ -> :ok end)
   end
 
   @doc """
@@ -919,7 +919,7 @@ defmodule Code do
   """
   @spec compile_file(binary, nil | binary) :: [{module, binary}]
   def compile_file(file, relative_to \\ nil) when is_binary(file) do
-    :elixir_compiler.file(find_file(file, relative_to))
+    :elixir_compiler.file(find_file(file, relative_to), fn _, _ -> :ok end)
   end
 
   @doc """

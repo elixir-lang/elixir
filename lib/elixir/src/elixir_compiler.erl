@@ -1,7 +1,7 @@
 %% Elixir compiler front-end to the Erlang backend.
 -module(elixir_compiler).
--export([get_opt/1, string/2, quoted/2, bootstrap/0,
-         file/1, file_to_path/2, eval_forms/3]).
+-export([get_opt/1, string/3, quoted/3, bootstrap/0,
+         file/2, file_to_path/3, eval_forms/3]).
 -include("elixir.hrl").
 
 get_opt(Key) ->
@@ -11,32 +11,34 @@ get_opt(Key) ->
     error -> false
   end.
 
-string(Contents, File) ->
+string(Contents, File, Callback) ->
   Forms = elixir:'string_to_quoted!'(Contents, 1, File, []),
-  quoted(Forms, File).
+  quoted(Forms, File, Callback).
 
-quoted(Forms, File) ->
+quoted(Forms, File, Callback) ->
   Previous = get(elixir_module_binaries),
 
   try
     put(elixir_module_binaries, []),
     elixir_lexical:run(File, fun(Pid) ->
       Env = elixir:env_for_eval([{line, 1}, {file, File}]),
-      eval_forms(Forms, [], Env#{lexical_tracker := Pid})
+      eval_forms(Forms, [], Env#{lexical_tracker := Pid}),
+      Callback(File, Pid)
     end),
     lists:reverse(get(elixir_module_binaries))
   after
     put(elixir_module_binaries, Previous)
   end.
 
-file(File) ->
+file(File, Callback) ->
   {ok, Bin} = file:read_file(File),
-  string(elixir_utils:characters_to_list(Bin), File).
+  string(elixir_utils:characters_to_list(Bin), File, Callback).
 
-file_to_path(File, Dest) when is_binary(File), is_binary(Dest) ->
-  Comp = file(File),
-  _ = [binary_to_path(X, Dest) || X <- Comp],
-  Comp.
+file_to_path(File, Dest, Callback) when is_binary(File), is_binary(Dest) ->
+  file(File, fun(CallbackFile, CallbackLexical) ->
+    _ = [binary_to_path(Mod, Dest) || Mod <- get(elixir_module_binaries)],
+    Callback(CallbackFile, CallbackLexical)
+  end).
 
 %% Evaluates the given code through the Erlang compiler.
 %% It may end-up evaluating the code if it is deemed a
@@ -127,7 +129,7 @@ bootstrap() ->
 
 bootstrap_file(File) ->
   try
-    Lists = file(filename:absname(File)),
+    Lists = file(filename:absname(File), fun(_, _) -> ok end),
     _ = [binary_to_path(X, "lib/elixir/ebin") || X <- Lists],
     io:format("Compiled ~ts~n", [File])
   catch
