@@ -204,6 +204,16 @@ env_for_eval(Env, Opts) ->
     false -> nil
   end,
 
+  LexicalTracker = case lists:keyfind(lexical_tracker, 1, Opts) of
+    {lexical_tracker, Pid} ->
+      case is_process_alive(Pid) of
+        true -> Pid;
+        false -> nil
+      end;
+    false ->
+      nil
+  end,
+
   FA = case lists:keyfind(function, 1, Opts) of
     {function, {Function, Arity}} when is_atom(Function), is_integer(Arity) -> {Function, Arity};
     {function, nil} -> nil;
@@ -212,7 +222,7 @@ env_for_eval(Env, Opts) ->
 
   Env#{
     file := File, module := Module, function := FA,
-    macros := Macros, functions := Functions,
+    macros := Macros, functions := Functions, lexical_tracker := LexicalTracker,
     requires := Requires, aliases := Aliases, line := Line
   }.
 
