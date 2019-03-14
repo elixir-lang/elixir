@@ -295,6 +295,7 @@ defmodule Kernel.Typespec do
     type = {name, spec, vars}
     arity = length(args)
 
+    ensure_no_underscore_local_vars!(caller, var_names)
     ensure_no_unused_local_vars!(caller, state.local_vars)
 
     {kind, export} =
@@ -960,11 +961,18 @@ defmodule Kernel.Typespec do
     end
   end
 
-  defp ensure_no_unused_local_vars!(caller, local_vars) do
-    fun = fn
-      {:_, _used} ->
+  defp ensure_no_underscore_local_vars!(caller, var_names) do
+    case :lists.any(&(&1 == :_), var_names) do
+      true ->
         compile_error(caller, "type variable '_' is invalid")
 
+      false ->
+        :ok
+    end
+  end
+
+  defp ensure_no_unused_local_vars!(caller, local_vars) do
+    fun = fn
       {name, :used_once} ->
         case :erlang.atom_to_list(name) do
           [?_ | _] ->
