@@ -197,8 +197,8 @@ defmodule Kernel.LexicalTrackerTest do
         @macrocallback foo2(Foo.Bar.t) :: Foo.Bar.t
         @spec foo(bar3) :: Foo.Bar.t
         def foo(_), do: :bar
-        refs = Kernel.LexicalTracker.remote_references(__ENV__.module)
-        dispatches = Kernel.LexicalTracker.remote_dispatches(__ENV__.module)
+        refs = Kernel.LexicalTracker.remote_references(__ENV__.lexical_tracker)
+        dispatches = Kernel.LexicalTracker.remote_dispatches(__ENV__.lexical_tracker)
         {refs, dispatches}
       end |> elem(3)
       """)
@@ -245,7 +245,7 @@ defmodule Kernel.LexicalTrackerTest do
         _ = &is_record/1; def b(a), do: is_record(a) # both runtime and compile
         %Macro.Env{}
 
-        Kernel.LexicalTracker.remote_dispatches(__ENV__.module)
+        Kernel.LexicalTracker.remote_dispatches(__ENV__.lexical_tracker)
       end |> elem(3)
       """)
 
@@ -295,7 +295,7 @@ defmodule Kernel.LexicalTrackerTest do
 
           String.upcase("foo")
 
-          Kernel.LexicalTracker.remote_dispatches(__ENV__.module)
+          Kernel.LexicalTracker.remote_dispatches(__ENV__.lexical_tracker)
         end |> elem(3)
         """,
         [],

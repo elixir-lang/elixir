@@ -110,7 +110,12 @@ defmodule Mix.Compilers.Test do
     else
       {:ok, pid} = Agent.start_link(fn -> sources end)
       cwd = File.cwd!()
-      parallel_require_callbacks = [each_module: &each_module(pid, cwd, &1, &2, &3)]
+
+      parallel_require_callbacks = [
+        each_module: &each_module(pid, cwd, &1, &2, &3),
+        each_file: &each_file(pid, cwd, &1, &2)
+      ]
+
       {test_files_to_run, pid, parallel_require_callbacks}
     end
   end
@@ -234,29 +239,36 @@ defmodule Mix.Compilers.Test do
 
   ## ParallelRequire callback
 
-  defp each_module(pid, cwd, source, module, _binary) do
-    {compile_references, struct_references, runtime_references} =
-      Kernel.LexicalTracker.remote_references(module)
-
+  defp each_module(pid, cwd, file, module, _binary) do
     external = get_external_resources(module, cwd)
-    source = Path.relative_to(source, cwd)
 
-    Agent.cast(pid, fn sources ->
-      external =
-        case List.keyfind(sources, source, source(:source)) do
-          source(external: old_external) -> external ++ old_external
-          nil -> external
-        end
+    if external != [] do
+      Agent.update(pid, fn sources ->
+        file = Path.relative_to(file, cwd)
+        {source, sources} = List.keytake(sources, file, source(:source))
+        [source(source, external: external ++ source(source, :external)) | sources]
+      end)
+    end
 
-      new_source =
+    :ok
+  end
+
+  defp each_file(pid, cwd, file, lexical) do
+    Agent.update(pid, fn sources ->
+      file = Path.relative_to(file, cwd)
+      {source, sources} = List.keytake(sources, file, source(:source))
+
+      {compile_references, struct_references, runtime_references} =
+        Kernel.LexicalTracker.remote_references(lexical)
+
+      source =
         source(
-          source: source,
+          source,
           compile_references: compile_references ++ struct_references,
-          runtime_references: runtime_references,
-          external: external
+          runtime_references: runtime_references
         )
 
-      List.keystore(sources, source, source(:source), new_source)
+      [source | sources]
     end)
   end
 

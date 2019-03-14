@@ -12,22 +12,15 @@ defmodule Kernel.LexicalTracker do
   @doc """
   Returns all remotes referenced in this lexical scope.
   """
-  def remote_references(arg) do
-    :gen_server.call(to_pid(arg), :remote_references, @timeout)
+  def remote_references(pid) do
+    :gen_server.call(pid, :remote_references, @timeout)
   end
 
   @doc """
   Returns all remote dispatches in this lexical scope.
   """
-  def remote_dispatches(arg) do
-    :gen_server.call(to_pid(arg), :remote_dispatches, @timeout)
-  end
-
-  defp to_pid(pid) when is_pid(pid), do: pid
-
-  defp to_pid(mod) when is_atom(mod) do
-    {set, _} = :elixir_module.data_tables(mod)
-    :ets.lookup_element(set, {:elixir, :lexical_tracker}, 2)
+  def remote_dispatches(pid) do
+    :gen_server.call(pid, :remote_dispatches, @timeout)
   end
 
   # Internal API
