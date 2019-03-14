@@ -63,6 +63,10 @@ defmodule Code.Identifier do
     * `:callable_operator` - all callable operators, such as `:<>`. Note
       operators such as `:..` are not callable because of ambiguity
 
+    * `:not_atomable` - callable operators that must be wrapped in quotes when
+      defined as an atom. For example, `::` must be written as `:"::"` to avoid
+      the ambiguity between the atom and the keyword identifier
+
     * `:not_callable` - an atom that cannot be used as a function call after the
       `.` operator (for example, `:<<>>` is not callable because `Foo.<<>>` is a
       syntax error); this category includes atoms like `:Foo`, since they are
