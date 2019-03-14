@@ -593,7 +593,7 @@ defmodule ExUnit.Assertions do
 
   defp collect_vars_from_pattern(expr) do
     Macro.prewalk(expr, [], fn
-      {:::, _, [left, _]}, acc ->
+      {:"::", _, [left, _]}, acc ->
         {[left], acc}
 
       {skip, _, [_]}, acc when skip in [:^, :@] ->

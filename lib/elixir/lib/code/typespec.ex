@@ -18,7 +18,7 @@ defmodule Code.Typespec do
           uniq: true,
           do: {var, {:var, meta, nil}}
 
-    spec = {:::, meta, [body, typespec_to_quoted(result)]}
+    spec = {:"::", meta, [body, typespec_to_quoted(result)]}
 
     if vars == [] do
       spec
@@ -28,7 +28,7 @@ defmodule Code.Typespec do
   end
 
   def spec_to_quoted(name, {:type, line, :fun, []}) when is_atom(name) do
-    {:::, [line: line], [{name, [line: line], []}, quote(do: term)]}
+    {:"::", [line: line], [{name, [line: line], []}, quote(do: term)]}
   end
 
   def spec_to_quoted(name, {:type, line, :bounded_fun, [type, constrs]}) when is_atom(name) do
@@ -52,7 +52,7 @@ defmodule Code.Typespec do
     args = for arg <- args, do: typespec_to_quoted(arg)
 
     when_args = [
-      {:::, meta, [{name, [line: line], args}, typespec_to_quoted(result)]},
+      {:"::", meta, [{name, [line: line], args}, typespec_to_quoted(result)]},
       guards ++ vars
     ]
 
@@ -341,7 +341,7 @@ defmodule Code.Typespec do
   end
 
   defp typespec_to_quoted({:ann_type, line, [var, type]}) do
-    {:::, [line: line], [typespec_to_quoted(var), typespec_to_quoted(type)]}
+    {:"::", [line: line], [typespec_to_quoted(var), typespec_to_quoted(type)]}
   end
 
   defp typespec_to_quoted(

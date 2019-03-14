@@ -911,42 +911,42 @@ defmodule TypespecTest do
       end
 
       assert [
-               {:type, {:::, _, [{:type1, _, _}, {:boolean, _, _}]},
+               {:type, {:"::", _, [{:type1, _, _}, {:boolean, _, _}]},
                 {TypespecTest.TypeModuleAttributes, _}}
              ] = TypeModuleAttributes.type1()
 
       assert [
-               {:type, {:::, _, [{:type3, _, _}, {:pid, _, _}]},
+               {:type, {:"::", _, [{:type3, _, _}, {:pid, _, _}]},
                 {TypespecTest.TypeModuleAttributes, _}},
-               {:type, {:::, _, [{:type2, _, _}, {:atom, _, _}]},
+               {:type, {:"::", _, [{:type2, _, _}, {:atom, _, _}]},
                 {TypespecTest.TypeModuleAttributes, _}},
-               {:type, {:::, _, [{:type1, _, _}, {:boolean, _, _}]},
+               {:type, {:"::", _, [{:type1, _, _}, {:boolean, _, _}]},
                 {TypespecTest.TypeModuleAttributes, _}}
              ] = TypeModuleAttributes.type2()
 
       assert [
-               {:opaque, {:::, _, [{:opaque1, _, _}, {:boolean, _, _}]},
+               {:opaque, {:"::", _, [{:opaque1, _, _}, {:boolean, _, _}]},
                 {TypespecTest.TypeModuleAttributes, _}}
              ] = TypeModuleAttributes.opaque1()
 
       assert [
-               {:opaque, {:::, _, [{:opaque3, _, _}, {:pid, _, _}]},
+               {:opaque, {:"::", _, [{:opaque3, _, _}, {:pid, _, _}]},
                 {TypespecTest.TypeModuleAttributes, _}},
-               {:opaque, {:::, _, [{:opaque2, _, _}, {:atom, _, _}]},
+               {:opaque, {:"::", _, [{:opaque2, _, _}, {:atom, _, _}]},
                 {TypespecTest.TypeModuleAttributes, _}},
-               {:opaque, {:::, _, [{:opaque1, _, _}, {:boolean, _, _}]},
+               {:opaque, {:"::", _, [{:opaque1, _, _}, {:boolean, _, _}]},
                 {TypespecTest.TypeModuleAttributes, _}}
              ] = TypeModuleAttributes.opaque2()
 
       assert [
-               {:typep, {:::, _, [{:typep1, _, _}, {:boolean, _, _}]},
+               {:typep, {:"::", _, [{:typep1, _, _}, {:boolean, _, _}]},
                 {TypespecTest.TypeModuleAttributes, _}}
              ] = TypeModuleAttributes.typep1()
 
       assert [
-               {:typep, {:::, _, [{:typep2, _, _}, {:atom, _, _}]},
+               {:typep, {:"::", _, [{:typep2, _, _}, {:atom, _, _}]},
                 {TypespecTest.TypeModuleAttributes, _}},
-               {:typep, {:::, _, [{:typep1, _, _}, {:boolean, _, _}]},
+               {:typep, {:"::", _, [{:typep1, _, _}, {:boolean, _, _}]},
                 {TypespecTest.TypeModuleAttributes, _}}
              ] = TypeModuleAttributes.typep2()
     after
@@ -977,37 +977,37 @@ defmodule TypespecTest do
       end
 
       assert [
-               {:spec, {:::, _, [{:spec1, _, _}, {:boolean, _, _}]},
+               {:spec, {:"::", _, [{:spec1, _, _}, {:boolean, _, _}]},
                 {TypespecTest.SpecModuleAttributes, _}}
              ] = SpecModuleAttributes.spec1()
 
       assert [
-               {:spec, {:::, _, [{:spec2, _, _}, {:atom, _, _}]},
+               {:spec, {:"::", _, [{:spec2, _, _}, {:atom, _, _}]},
                 {TypespecTest.SpecModuleAttributes, _}},
-               {:spec, {:::, _, [{:spec1, _, _}, {:boolean, _, _}]},
+               {:spec, {:"::", _, [{:spec1, _, _}, {:boolean, _, _}]},
                 {TypespecTest.SpecModuleAttributes, _}}
              ] = SpecModuleAttributes.spec2()
 
       assert [
-               {:spec, {:::, _, [{:spec3, _, _}, {:pid, _, _}]},
+               {:spec, {:"::", _, [{:spec3, _, _}, {:pid, _, _}]},
                 {TypespecTest.SpecModuleAttributes, _}},
-               {:spec, {:::, _, [{:spec2, _, _}, {:atom, _, _}]},
+               {:spec, {:"::", _, [{:spec2, _, _}, {:atom, _, _}]},
                 {TypespecTest.SpecModuleAttributes, _}},
-               {:spec, {:::, _, [{:spec1, _, _}, {:boolean, _, _}]},
+               {:spec, {:"::", _, [{:spec1, _, _}, {:boolean, _, _}]},
                 {TypespecTest.SpecModuleAttributes, _}}
              ] = SpecModuleAttributes.spec4()
 
       assert [
-               {:callback, {:::, _, [{:callback2, _, _}, {:boolean, _, _}]},
+               {:callback, {:"::", _, [{:callback2, _, _}, {:boolean, _, _}]},
                 {TypespecTest.SpecModuleAttributes, _}},
-               {:callback, {:::, _, [{:callback1, _, _}, {:integer, _, _}]},
+               {:callback, {:"::", _, [{:callback1, _, _}, {:integer, _, _}]},
                 {TypespecTest.SpecModuleAttributes, _}}
              ] = SpecModuleAttributes.callback()
 
       assert [
-               {:macrocallback, {:::, _, [{:macrocallback2, _, _}, {:boolean, _, _}]},
+               {:macrocallback, {:"::", _, [{:macrocallback2, _, _}, {:boolean, _, _}]},
                 {TypespecTest.SpecModuleAttributes, _}},
-               {:macrocallback, {:::, _, [{:macrocallback1, _, _}, {:integer, _, _}]},
+               {:macrocallback, {:"::", _, [{:macrocallback1, _, _}, {:integer, _, _}]},
                 {TypespecTest.SpecModuleAttributes, _}}
              ] = SpecModuleAttributes.macrocallback()
     after
@@ -1141,7 +1141,7 @@ defmodule TypespecTest do
       type = {:my_type, {:paren_type, 0, [{:type, 0, :integer, []}]}, []}
 
       assert Code.Typespec.type_to_quoted(type) ==
-               {:::, [], [{:my_type, [], []}, {:integer, [line: 0], []}]}
+               {:"::", [], [{:my_type, [], []}, {:integer, [line: 0], []}]}
     end
 
     test "spec_to_quoted" do

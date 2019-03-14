@@ -812,9 +812,10 @@ defmodule Macro do
     Kernel.inspect(value, limit: :infinity, printable_limit: :infinity)
   end
 
-  defp bitpart_to_string({:::, _, [left, right]} = ast, fun) do
+  defp bitpart_to_string({:"::", _, [left, right]} = ast, fun) do
     result =
-      op_to_string(left, fun, :::, :left) <> "::" <> bitmods_to_string(right, fun, :::, :right)
+      op_to_string(left, fun, :"::", :left) <>
+        "::" <> bitmods_to_string(right, fun, :"::", :right)
 
     fun.(ast, result)
   end
@@ -847,7 +848,7 @@ defmodule Macro do
   # Check if we have an interpolated string.
   defp interpolated?({:<<>>, _, [_ | _] = parts}) do
     Enum.all?(parts, fn
-      {:::, _, [{{:., _, [Kernel, :to_string]}, _, [_]}, {:binary, _, _}]} -> true
+      {:"::", _, [{{:., _, [Kernel, :to_string]}, _, [_]}, {:binary, _, _}]} -> true
       binary when is_binary(binary) -> true
       _ -> false
     end)
@@ -860,7 +861,7 @@ defmodule Macro do
   defp interpolate({:<<>>, _, parts}, fun) do
     parts =
       Enum.map_join(parts, "", fn
-        {:::, _, [{{:., _, [Kernel, :to_string]}, _, [arg]}, {:binary, _, _}]} ->
+        {:"::", _, [{{:., _, [Kernel, :to_string]}, _, [arg]}, {:binary, _, _}]} ->
           "\#{" <> to_string(arg, fun) <> "}"
 
         binary when is_binary(binary) ->
