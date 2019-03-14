@@ -128,6 +128,26 @@ defmodule TypespecTest do
       end
     end
 
+    test "@type with a variable starting with underscore" do
+      test_module do
+        assert @type(foo(_hello) :: integer) == :ok
+      end
+    end
+
+    test "type variable _ should be invalid" do
+      assert_raise CompileError, ~r"type variable '_' is invalid", fn ->
+        test_module do
+          @type foo(_) :: integer
+        end
+      end
+
+      assert_raise CompileError, ~r"type variable '_' is invalid", fn ->
+        test_module do
+          @type foo(_, _) :: integer
+        end
+      end
+    end
+
     test "spec for undefined function" do
       assert_raise CompileError, ~r"spec for undefined function omg/0", fn ->
         test_module do
