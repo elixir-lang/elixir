@@ -128,7 +128,7 @@ defmodule TypespecTest do
       end
     end
 
-    test "type variable unused ignore variable started with _" do
+    test "@type with a variable starting with underscore" do
       test_module do
         assert @type(foo(_hello) :: integer) == :ok
       end
