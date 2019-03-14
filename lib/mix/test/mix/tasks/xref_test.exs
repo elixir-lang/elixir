@@ -626,6 +626,28 @@ defmodule Mix.Tasks.XrefTest do
     assert_unreachable(code, warning)
   end
 
+  test "unreachable: reports missing entries from multiple Module.create" do
+    # This checks we pass the lexical tracker forward if it is still alive
+    code = """
+    Module.create(Module1, quote do
+      def foo, do: Unknown1.dep()
+    end, __ENV__)
+
+    Module.create(Module2, quote do
+      def foo, do: Unknown2.dep()
+    end, __ENV__)
+    """
+
+    warning = """
+    Compiling 2 files (.ex)
+    Generated sample app
+    lib/a.ex:3: Unknown1.dep/0
+    lib/a.ex:7: Unknown2.dep/0
+    """
+
+    assert_unreachable(code, warning)
+  end
+
   test "unreachable: aborts if any" do
     code = """
     defmodule A do
