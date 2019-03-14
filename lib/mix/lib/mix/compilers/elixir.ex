@@ -173,7 +173,7 @@ defmodule Mix.Compilers.Elixir do
 
     extra =
       if opts[:verbose] do
-        [each_file: &each_file/1]
+        [each_file: &each_file(&1, cwd)]
       else
         []
       end
@@ -186,7 +186,7 @@ defmodule Mix.Compilers.Elixir do
     compile_opts = [
       each_cycle: &each_cycle/0,
       each_module: &each_module(cwd, &1, &2, &3),
-      each_long_compilation: &each_long_compilation(&1, long_compilation_threshold),
+      each_long_compilation: &each_long_compilation(&1, cwd, long_compilation_threshold),
       long_compilation_threshold: long_compilation_threshold,
       dest: dest
     ]
@@ -347,12 +347,14 @@ defmodule Mix.Compilers.Elixir do
     for file <- Module.get_attribute(module, :external_resource), do: Path.relative_to(file, cwd)
   end
 
-  defp each_file(source) do
-    Mix.shell().info("Compiled #{source}")
+  defp each_file(file, cwd) do
+    Mix.shell().info("Compiled #{Path.relative_to(file, cwd)}")
   end
 
-  defp each_long_compilation(source, threshold) do
-    Mix.shell().info("Compiling #{source} (it's taking more than #{threshold}s)")
+  defp each_long_compilation(file, cwd, threshold) do
+    Mix.shell().info(
+      "Compiling #{Path.relative_to(file, cwd)} (it's taking more than #{threshold}s)"
+    )
   end
 
   ## Resolution
