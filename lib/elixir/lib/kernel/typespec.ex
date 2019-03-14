@@ -962,7 +962,7 @@ defmodule Kernel.Typespec do
   end
 
   defp ensure_no_underscore_local_vars!(caller, var_names) do
-    case :lists.any(&(&1 == :_), var_names) do
+    case :lists.member(:_, var_names) do
       true ->
         compile_error(caller, "type variable '_' is invalid")
 
