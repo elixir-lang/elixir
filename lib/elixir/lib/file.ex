@@ -536,6 +536,12 @@ defmodule File do
   (as returned by `:erlang.universaltime()`) or an integer
   representing the POSIX timestamp (as returned by `System.os_time(:second)`).
 
+  In Unix-like systems, changing the modification time may require
+  you to be either `root` or the owner of the file. Having write
+  access may not be enough. In those cases, touching the file the
+  first time (to create it) will succeed, but touching an existing
+  file with fail with `{:error, :eperm}`.
+
   ## Examples
 
       File.touch("/tmp/a.txt", {{2018, 1, 30}, {13, 59, 59}})
