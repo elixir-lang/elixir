@@ -627,7 +627,7 @@ defmodule IEx.Introspection do
     format_typespec(callbacks, :optional_callbacks, 0)
   end
 
-  defp drop_macro_env({name, meta, [{:::, _, [_, {{:., _, [Macro.Env, :t]}, _, _}]} | args]}),
+  defp drop_macro_env({name, meta, [{:"::", _, [_, {{:., _, [Macro.Env, :t]}, _, _}]} | args]}),
     do: {name, meta, args}
 
   defp drop_macro_env(other), do: other
@@ -708,7 +708,7 @@ defmodule IEx.Introspection do
   end
 
   defp format_type({:opaque, type}) do
-    {:::, _, [ast, _]} = Typespec.type_to_quoted(type)
+    {:"::", _, [ast, _]} = Typespec.type_to_quoted(type)
     format_typespec(ast, :opaque, 0)
   end
 

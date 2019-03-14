@@ -202,11 +202,11 @@ defmodule Kernel.Typespec do
   defp spec_to_signature({:when, _, [spec, _]}), do: type_to_signature(spec)
   defp spec_to_signature(other), do: type_to_signature(other)
 
-  defp type_to_signature({:::, _, [{name, _, context}, _]})
-       when is_atom(name) and name != ::: and is_atom(context),
+  defp type_to_signature({:"::", _, [{name, _, context}, _]})
+       when is_atom(name) and name != :"::" and is_atom(context),
        do: {name, 0}
 
-  defp type_to_signature({:::, _, [{name, _, args}, _]}) when is_atom(name) and name != :::,
+  defp type_to_signature({:"::", _, [{name, _, args}, _]}) when is_atom(name) and name != :"::",
     do: {name, length(args)}
 
   defp type_to_signature(_), do: :error
@@ -277,7 +277,7 @@ defmodule Kernel.Typespec do
     :lists.filter(fun, types)
   end
 
-  defp translate_type({kind, {:::, _, [{name, _, args}, definition]}, pos}, state) do
+  defp translate_type({kind, {:"::", _, [{name, _, args}, definition]}, pos}, state) do
     caller = :elixir_locals.get_cached_env(pos)
     state = clean_local_state(state)
 
@@ -343,13 +343,13 @@ defmodule Kernel.Typespec do
     translate_spec(kind, spec, [], caller, state)
   end
 
-  defp translate_spec(kind, {:::, meta, [{name, _, args}, return]}, guard, caller, state)
-       when is_atom(name) and name != ::: do
+  defp translate_spec(kind, {:"::", meta, [{name, _, args}, return]}, guard, caller, state)
+       when is_atom(name) and name != :"::" do
     translate_spec(kind, meta, name, args, return, guard, caller, state)
   end
 
   defp translate_spec(_kind, {name, _meta, _args} = spec, _guard, caller, _state)
-       when is_atom(name) and name != ::: do
+       when is_atom(name) and name != :"::" do
     spec = Macro.to_string(spec)
     compile_error(caller, "type specification missing return type: #{spec}")
   end
@@ -401,7 +401,7 @@ defmodule Kernel.Typespec do
 
   defp ensure_no_defaults!(args) do
     fun = fn
-      {:::, _, [left, right]} ->
+      {:"::", _, [left, right]} ->
         ensure_not_default(left)
         ensure_not_default(right)
         left
@@ -458,7 +458,7 @@ defmodule Kernel.Typespec do
   end
 
   defp typespec(
-         {:<<>>, meta, [{:::, unit_meta, [{:_, _, ctx1}, {:*, _, [{:_, _, ctx2}, unit]}]}]},
+         {:<<>>, meta, [{:"::", unit_meta, [{:_, _, ctx1}, {:*, _, [{:_, _, ctx2}, unit]}]}]},
          _,
          _,
          state
@@ -468,7 +468,7 @@ defmodule Kernel.Typespec do
     {{:type, line, :binary, [{:integer, line, 0}, {:integer, line(unit_meta), unit}]}, state}
   end
 
-  defp typespec({:<<>>, meta, [{:::, size_meta, [{:_, _, ctx}, size]}]}, _, _, state)
+  defp typespec({:<<>>, meta, [{:"::", size_meta, [{:_, _, ctx}, size]}]}, _, _, state)
        when is_atom(ctx) and is_integer(size) and size >= 0 do
     line = line(meta)
     {{:type, line, :binary, [{:integer, line(size_meta), size}, {:integer, line, 0}]}, state}
@@ -479,8 +479,8 @@ defmodule Kernel.Typespec do
            :<<>>,
            meta,
            [
-             {:::, size_meta, [{:_, _, ctx1}, size]},
-             {:::, unit_meta, [{:_, _, ctx2}, {:*, _, [{:_, _, ctx3}, unit]}]}
+             {:"::", size_meta, [{:_, _, ctx1}, size]},
+             {:"::", unit_meta, [{:_, _, ctx2}, {:*, _, [{:_, _, ctx3}, unit]}]}
            ]
          },
          _,
@@ -586,7 +586,7 @@ defmodule Kernel.Typespec do
         types =
           :lists.map(
             fn {field, _} ->
-              {:::, [],
+              {:"::", [],
                [
                  {field, [], nil},
                  Keyword.get(field_specs, field, quote(do: term()))
@@ -644,7 +644,7 @@ defmodule Kernel.Typespec do
 
   # Handle type operator
   defp typespec(
-         {:::, meta, [{var_name, var_meta, context}, expr]} = ann_type,
+         {:"::", meta, [{var_name, var_meta, context}, expr]} = ann_type,
          vars,
          caller,
          state
@@ -669,7 +669,7 @@ defmodule Kernel.Typespec do
     end
   end
 
-  defp typespec({:::, meta, [left, right]} = expr, vars, caller, state) do
+  defp typespec({:"::", meta, [left, right]} = expr, vars, caller, state) do
     message =
       "invalid type annotation. When using the | operator to represent the union of types, " <>
         "make sure to wrap type annotations in parentheses: #{Macro.to_string(expr)}"
