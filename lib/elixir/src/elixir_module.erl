@@ -3,8 +3,6 @@
          compile/4, expand_callback/6, format_error/1, compiler_modules/0,
          write_cache/3, read_cache/2, next_counter/1]).
 -include("elixir.hrl").
-
--define(lexical_attr, {elixir, lexical_tracker}).
 -define(counter_attr, {elixir, counter}).
 
 %% Stores modules currently being defined by the compiler
@@ -81,7 +79,7 @@ compile(Line, Module, Block, Vars, E) ->
   check_module_availability(Line, File, Module),
 
   CompilerModules = compiler_modules(),
-  {Tables, Ref} = build(Line, File, Module, ?key(E, lexical_tracker)),
+  {Tables, Ref} = build(Line, File, Module),
   {DataSet, DataBag} = Tables,
 
   try
@@ -218,7 +216,7 @@ check_module_availability(Line, File, Module) ->
 
 %% Hook that builds both attribute and functions and set up common hooks.
 
-build(Line, File, Module, Lexical) ->
+build(Line, File, Module) ->
   %% In the set table we store:
   %%
   %% * {Attribute, Value, AccumulateOrReadOrUnreadline}
@@ -271,7 +269,6 @@ build(Line, File, Module, Lexical) ->
     {optional_callbacks, [], accumulate},
 
     % Others
-    {?lexical_attr, Lexical},
     {?counter_attr, 0}
   ]),
 

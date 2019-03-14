@@ -1163,6 +1163,7 @@ defmodule Mix.Tasks.XrefTest do
       assert File.read!("xref_graph.dot") === """
              digraph "xref graph" {
                "lib/a.ex"
+               "lib/a.ex" -> "lib/b.ex" [label="(compile)"]
                "lib/b.ex"
              }
              """

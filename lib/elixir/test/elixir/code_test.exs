@@ -8,7 +8,7 @@ defmodule CodeTest do
 
   def genmodule(name) do
     defmodule name do
-      Kernel.LexicalTracker.remote_references(__MODULE__)
+      Kernel.LexicalTracker.remote_references(__ENV__.lexical_tracker)
     end
   end
 
