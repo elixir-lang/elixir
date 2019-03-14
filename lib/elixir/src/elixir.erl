@@ -205,11 +205,13 @@ env_for_eval(Env, Opts) ->
   end,
 
   LexicalTracker = case lists:keyfind(lexical_tracker, 1, Opts) of
-    {lexical_tracker, Pid} ->
+    {lexical_tracker, Pid} when is_pid(Pid) ->
       case is_process_alive(Pid) of
         true -> Pid;
         false -> nil
       end;
+    {lexical_tracker, nil} ->
+      nil;
     false ->
       nil
   end,
