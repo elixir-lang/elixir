@@ -30,7 +30,7 @@ defmodule URI do
   import Bitwise
 
   @reserved_characters ':/?#[]@!$&\'()*+,;='
-  @formatted_reserved_characters Enum.map_join(@reserved_characters, ", ", &"`#{<<&1>>}`")
+  @formatted_reserved_characters Enum.map_join(@reserved_characters, ", ", &<<?`, &1, ?`>>)
 
   @doc """
   Returns the default port for a given `scheme`.
@@ -227,7 +227,7 @@ defmodule URI do
   @doc """
   Checks if `character` is an unreserved one in a URI.
 
-  As specified in [RFC 3986, section 2.3](https://tools.ietf.org/html/rfc3986#section-2.3)
+  As specified in [RFC 3986, section 2.3](https://tools.ietf.org/html/rfc3986#section-2.3),
   the following characters are unreserved:
 
     * Alphanumeric characters: `A-Z`, `a-z`, `0-9`
