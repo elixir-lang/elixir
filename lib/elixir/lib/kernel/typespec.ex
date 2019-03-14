@@ -964,14 +964,18 @@ defmodule Kernel.Typespec do
     fun = fn
       {:_, _used} ->
         compile_error(caller, "type variable '_' is invalid")
+
       {name, :used_once} ->
         case :erlang.atom_to_list(name) do
-          [?_|_] ->
+          [?_ | _] ->
             :ok
+
           _ ->
             compile_error(caller, "type variable #{name} is unused")
         end
-      _ -> :ok
+
+      _ ->
+        :ok
     end
 
     :lists.foreach(fun, :maps.to_list(local_vars))
