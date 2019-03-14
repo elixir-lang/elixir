@@ -140,9 +140,7 @@ defmodule TypespecTest do
           @type foo(_) :: integer
         end
       end
-    end
 
-    test "type variable _ should be invalid too" do
       assert_raise CompileError, ~r"type variable '_' is invalid", fn ->
         test_module do
           @type foo(_, _) :: integer
