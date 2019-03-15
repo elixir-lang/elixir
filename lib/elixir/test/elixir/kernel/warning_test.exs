@@ -1227,6 +1227,30 @@ defmodule Kernel.WarningTest do
       purge(Sample)
     end
 
+    test "underscored types variables" do
+      output =
+        capture_err(fn ->
+          Code.eval_string("""
+          defmodule Sample do
+            @type in_typespec_vars(_var1, _var1) :: atom
+            @type in_typespec(_var2) :: {atom, _var2}
+
+            @spec in_spec(_var3) :: {atom, _var3} when _var3: var
+            def in_spec(a), do: {:ok, a}
+          end
+          """)
+        end)
+
+      assert output =~ "nofile:2"
+      assert output =~ ~r/the underscored type variable "_var1" is used more than once/
+      assert output =~ "nofile:3"
+      assert output =~ ~r/the underscored type variable "_var2" is used more than once/
+      assert output =~ "nofile:5"
+      assert output =~ ~r/the underscored type variable "_var3" is used more than once/
+    after
+      purge(Sample)
+    end
+
     test "typedoc on typep" do
       assert capture_err(fn ->
                Code.eval_string("""

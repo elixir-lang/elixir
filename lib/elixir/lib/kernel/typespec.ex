@@ -972,18 +972,26 @@ defmodule Kernel.Typespec do
   end
 
   defp ensure_no_unused_local_vars!(caller, local_vars) do
-    fun = fn
-      {name, :used_once} ->
-        case :erlang.atom_to_list(name) do
-          [?_ | _] ->
-            :ok
+    fun = fn {name, used_times} ->
+      case {:erlang.atom_to_list(name), used_times} do
+        {[?_ | _], :used_once} ->
+          :ok
 
-          _ ->
-            compile_error(caller, "type variable #{name} is unused")
-        end
+        {[?_ | _], :used_multiple} ->
+          warning =
+            "the underscored type variable \"#{name}\" is used more than once in the " <>
+              "type specification. A leading underscore indicates that the value of the " <>
+              "variable should be ignored. If this is intended please rename the variable to " <>
+              "remove the underscore"
 
-      _ ->
-        :ok
+          :elixir_errors.erl_warn(caller.line, caller.file, warning)
+
+        {_, :used_once} ->
+          compile_error(caller, "type variable #{name} is unused")
+
+        _ ->
+          :ok
+      end
     end
 
     :lists.foreach(fun, :maps.to_list(local_vars))
