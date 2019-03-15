@@ -444,12 +444,8 @@ defmodule GenServer do
   `{:error, reason}` and the process to exit with reason `reason` without
   entering the loop or calling `c:terminate/2`.
   """
-  @callback init(init_arg :: term) ::
-              {:ok, state}
-              | {:ok, state, timeout | :hibernate | {:continue, term}}
-              | :ignore
-              | {:stop, reason :: any}
-            when state: any
+
+  @callback init(init_arg :: term) :: on_init
 
   @doc """
   Invoked to handle synchronous `call/3` messages. `call/3` will block until a
@@ -512,14 +508,8 @@ defmodule GenServer do
   This callback is optional. If one is not implemented, the server will fail
   if a call is performed against it.
   """
-  @callback handle_call(request :: term, from, state :: term) ::
-              {:reply, reply, new_state}
-              | {:reply, reply, new_state, timeout | :hibernate | {:continue, term}}
-              | {:noreply, new_state}
-              | {:noreply, new_state, timeout | :hibernate | {:continue, term}}
-              | {:stop, reason, reply, new_state}
-              | {:stop, reason, new_state}
-            when reply: term, new_state: term, reason: term
+
+  @callback handle_call(request :: term, from, state :: term) :: sync_result
 
   @doc """
   Invoked to handle asynchronous `cast/2` messages.
@@ -548,11 +538,8 @@ defmodule GenServer do
   This callback is optional. If one is not implemented, the server will fail
   if a cast is performed against it.
   """
-  @callback handle_cast(request :: term, state :: term) ::
-              {:noreply, new_state}
-              | {:noreply, new_state, timeout | :hibernate | {:continue, term}}
-              | {:stop, reason :: term, new_state}
-            when new_state: term
+
+  @callback handle_cast(request :: term, state :: term) :: async_result
 
   @doc """
   Invoked to handle all other messages.
@@ -565,11 +552,8 @@ defmodule GenServer do
   This callback is optional. If one is not implemented, the received message
   will be logged.
   """
-  @callback handle_info(msg :: :timeout | term, state :: term) ::
-              {:noreply, new_state}
-              | {:noreply, new_state, timeout | :hibernate | {:continue, term}}
-              | {:stop, reason :: term, new_state}
-            when new_state: term
+
+  @callback handle_info(msg :: :timeout | term, state :: term) :: async_result
 
   @doc """
   Invoked to handle `continue` instructions.
@@ -584,11 +568,7 @@ defmodule GenServer do
 
   This callback is only supported on Erlang/OTP 21+.
   """
-  @callback handle_continue(continue :: term, state :: term) ::
-              {:noreply, new_state}
-              | {:noreply, new_state, timeout | :hibernate | {:continue, term}}
-              | {:stop, reason :: term, new_state}
-            when new_state: term
+  @callback handle_continue(continue :: term, state :: term) :: async_result
 
   @doc """
   Invoked when the server is about to exit. It should do any cleanup required.
@@ -664,11 +644,7 @@ defmodule GenServer do
 
   This callback is optional.
   """
-  @callback code_change(old_vsn, state :: term, extra :: term) ::
-              {:ok, new_state :: term}
-              | {:error, reason :: term}
-              | {:down, term}
-            when old_vsn: term
+  @callback code_change(old_vsn, state :: term, extra :: term) :: on_code_change
 
   @doc """
   Invoked in some cases to retrieve a formatted version of the `GenServer` status.
@@ -683,11 +659,11 @@ defmodule GenServer do
     * the `GenServer` terminates abnormally and logs an error; in such cases,
       `reason` is `:terminate`
 
-  `pdict_and_state` is a two-elements list `[pdict, state]` where `pdict` is a
-  list of `{key, value}` tuples representing the current process dictionary of
-  the `GenServer` and `state` is the current state of the `GenServer`.
+  `pdict` is a list of `{key, value}` tuples representing the current process
+  dictionary of the `GenServer` and `state` is the current state of the
+  `GenServer`.
   """
-  @callback format_status(reason, pdict_and_state :: list) :: term
+  @callback format_status(reason, [pdict :: [{term, term}], state :: term]) :: term
             when reason: :normal | :terminate
 
   @optional_callbacks code_change: 3,
@@ -728,6 +704,41 @@ defmodule GenServer do
   call.
   """
   @type from :: {pid, tag :: term}
+
+  @typedoc "Possible return values of `c:init/1` function"
+  @type on_init ::
+          {:ok, state}
+          | {:ok, state, timeout | :hibernate | {:continue, term}}
+          | :ignore
+          | {:stop, reason :: any}
+        when state: any
+
+  @typedoc "Possible return values of `c:handle_call/3` function"
+  @type sync_result ::
+          {:reply, reply, new_state}
+          | {:reply, reply, new_state, timeout | :hibernate | {:continue, term}}
+          | {:noreply, new_state}
+          | {:noreply, new_state, timeout | :hibernate | {:continue, term}}
+          | {:stop, reason, reply, new_state}
+          | {:stop, reason, new_state}
+        when reply: term, new_state: term, reason: term
+
+  @typedoc """
+  Possible return values of `c:handle_cast/2`, `c:handle_info/2` and
+  `c:handle_continue/2` functions
+  """
+  @type async_result ::
+          {:noreply, new_state}
+          | {:noreply, new_state, timeout | :hibernate | {:continue, term}}
+          | {:stop, reason :: term, new_state}
+        when new_state: term
+
+  @typedoc "Possible return values of `c:code_change/3`"
+  @type on_code_change ::
+          {:ok, new_state :: term}
+          | {:error, reason :: term}
+          | {:down, term}
+        when old_vsn: term
 
   @doc false
   defmacro __using__(opts) do
