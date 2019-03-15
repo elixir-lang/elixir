@@ -29,6 +29,9 @@ defmodule URI do
 
   import Bitwise
 
+  @reserved_characters ':/?#[]@!$&\'()*+,;='
+  @formatted_reserved_characters Enum.map_join(@reserved_characters, ", ", &<<?`, &1, ?`>>)
+
   @doc """
   Returns the default port for a given `scheme`.
 
@@ -207,11 +210,11 @@ defmodule URI do
     {next_pair, rest}
   end
 
-  @doc """
+  @doc ~s"""
   Checks if `character` is a reserved one in a URI.
 
-  Reserved characters are specified in
-  [RFC 3986, section 2.2](https://tools.ietf.org/html/rfc3986#section-2.2).
+  As specified in [RFC 3986, section 2.2](https://tools.ietf.org/html/rfc3986#section-2.2),
+  the following characters are reserved: #{@formatted_reserved_characters}
 
   ## Examples
 
@@ -221,14 +224,17 @@ defmodule URI do
   """
   @spec char_reserved?(char) :: boolean
   def char_reserved?(character) when character in 0..0x10FFFF do
-    character in ':/?#[]@!$&\'()*+,;='
+    character in @reserved_characters
   end
 
   @doc """
   Checks if `character` is an unreserved one in a URI.
 
-  Unreserved characters are specified in
-  [RFC 3986, section 2.3](https://tools.ietf.org/html/rfc3986#section-2.3).
+  As specified in [RFC 3986, section 2.3](https://tools.ietf.org/html/rfc3986#section-2.3),
+  the following characters are unreserved:
+
+    * Alphanumeric characters: `A-Z`, `a-z`, `0-9`
+    * `~`, `_`, `-`
 
   ## Examples
 
