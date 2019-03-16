@@ -442,6 +442,7 @@ defmodule System do
       "4001"
 
   """
+  @doc since: "1.9.0"
   @spec get_env(String.t(), String.t() | nil) :: String.t() | nil
   def get_env(varname, default \\ nil)
       when is_binary(varname) and
