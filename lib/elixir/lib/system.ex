@@ -447,13 +447,37 @@ defmodule System do
     end
   end
 
+  @doc """
+  Returns the value of the given environment variable or the supplied default value.
+
+  If the environment variable `varname` is set, then the value is returned.
+  If `varname` is not set, then the supplied `default` value is returned.
+  If the default value is an integer, then the `varname` value will be cast
+  from a string to an integer. If an exception occurs, the default value
+  will be returned.
+
+  ## Examples
+
+      iex> System.fetch_env("PORT", "7000")
+      "4000"
+
+      iex> System.fetch_env("PORT", 10)
+      4000
+
+      iex> System.fetch_env("NOT_SET", "7000")
+      "7000"
+
+      iex> System.fetch_env("NOT_SET", 10)
+      10
+
+  """
   @spec fetch_env(String.t(), String.t() | integer()) :: String.t() | integer()
   def fetch_env(varname, default) when is_integer(default) do
     case fetch_env(varname) do
       :error -> default
       {:ok, value} -> String.to_integer(value)
     end
-    rescue
+  rescue
     _ -> default
   end
 

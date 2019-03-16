@@ -53,6 +53,8 @@ defmodule SystemTest do
   test "*_env/*" do
     assert System.get_env(@test_var) == nil
     assert System.fetch_env(@test_var) == :error
+    assert System.fetch_env(@test_var, 10) == 10
+    assert System.fetch_env(@test_var, "DEFAULT") == "DEFAULT"
 
     message = "could not fetch environment variable #{inspect(@test_var)} because it is not set"
     assert_raise ArgumentError, message, fn -> System.fetch_env!(@test_var) end
@@ -63,6 +65,8 @@ defmodule SystemTest do
     assert System.get_env()[@test_var] == "SAMPLE"
     assert System.fetch_env(@test_var) == {:ok, "SAMPLE"}
     assert System.fetch_env!(@test_var) == "SAMPLE"
+    assert System.fetch_env(@test_var, "DEFAULT") == "SAMPLE"
+    assert System.fetch_env(@test_var, 1) == 1
 
     System.delete_env(@test_var)
     assert System.get_env(@test_var) == nil
@@ -73,6 +77,9 @@ defmodule SystemTest do
     assert_raise ArgumentError, ~r[cannot execute System.put_env/2 for key with \"=\"], fn ->
       System.put_env("FOO=BAR", "BAZ")
     end
+
+    System.put_env(@test_var, "15")
+    assert System.fetch_env(@test_var, 10) == 15
   end
 
   test "cmd/2 raises for null bytes" do
