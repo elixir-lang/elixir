@@ -427,8 +427,8 @@ defmodule System do
   Returns the value of the given environment variable.
 
   The returned value of the environment variable
-  `varname` is a string, or `nil` if the environment
-  variable is not set.
+  `varname` is a string. If the environment variable
+  is undefined, returns default (or `nil` if not provided)
 
   ## Examples
 
@@ -438,11 +438,16 @@ defmodule System do
       iex> System.get_env("NOT_SET")
       nil
 
+      iex> System.get_env("NOT_SET", "4001")
+      "4001"
+
   """
-  @spec get_env(String.t()) :: String.t() | nil
-  def get_env(varname) when is_binary(varname) do
+  @spec get_env(String.t(), String.t() | nil) :: String.t() | nil
+  def get_env(varname, default \\ nil)
+      when is_binary(varname) and
+             (is_binary(default) or is_nil(default)) do
     case :os.getenv(String.to_charlist(varname)) do
-      false -> nil
+      false -> default
       other -> List.to_string(other)
     end
   end
