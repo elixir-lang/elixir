@@ -447,6 +447,23 @@ defmodule System do
     end
   end
 
+  @spec fetch_env(String.t(), String.t() | integer()) :: String.t() | integer()
+  def fetch_env(varname, default) when is_integer(default) do
+    case fetch_env(varname) do
+      :error -> default
+      {:ok, value} -> String.to_integer(value)
+    end
+    rescue
+    _ -> default
+  end
+
+  def fetch_env(varname, default) when is_binary(default) do
+    case fetch_env(varname) do
+      :error -> default
+      {:ok, value} -> value
+    end
+  end
+
   @doc """
   Returns the value of the given environment variable or `:error` if not found.
 
