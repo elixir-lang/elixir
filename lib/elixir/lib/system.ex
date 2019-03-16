@@ -428,7 +428,8 @@ defmodule System do
 
   The returned value of the environment variable
   `varname` is a string. If the environment variable
-  is undefined, returns default (or `nil` if not provided)
+  is not set, returns the string specified in `default` or
+  `nil` if none is specified.
 
   ## Examples
 
