@@ -52,6 +52,7 @@ defmodule SystemTest do
 
   test "*_env/*" do
     assert System.get_env(@test_var) == nil
+    assert System.get_env(@test_var, "SAMPLE") == "SAMPLE"
     assert System.fetch_env(@test_var) == :error
 
     message = "could not fetch environment variable #{inspect(@test_var)} because it is not set"
