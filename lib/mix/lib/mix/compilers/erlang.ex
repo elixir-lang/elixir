@@ -271,9 +271,11 @@ defmodule Mix.Compilers.Erlang do
   defp to_diagnostics(warnings_or_errors, severity) do
     for {file, issues} <- warnings_or_errors,
         {line, module, data} <- issues do
+      position = if is_integer(line) and line >= 1, do: line
+
       %Mix.Task.Compiler.Diagnostic{
         file: Path.absname(file),
-        position: line,
+        position: position,
         message: to_string(module.format_error(data)),
         severity: severity,
         compiler_name: to_string(module),

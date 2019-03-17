@@ -33,6 +33,32 @@ defmodule Mix.Tasks.Compile.YeccTest do
     end)
   end
 
+  test "returns warning diagnostics on conflicts" do
+    in_fixture("compile_yecc", fn ->
+      file = Path.absname("src/conflict.yrl")
+
+      File.write!(file, """
+      Nonterminals exp.
+      Terminals number '+'.
+      Rootsymbol exp.
+      exp -> exp '+' exp.
+      exp -> number.
+      """)
+
+      capture_io(fn ->
+        assert {:ok, [diagnostic]} = Mix.Tasks.Compile.Yecc.run(["--force"])
+
+        assert %Mix.Task.Compiler.Diagnostic{
+                 compiler_name: "yecc",
+                 file: ^file,
+                 message: "conflicts: 1 shift/reduce, 0 reduce/reduce",
+                 position: nil,
+                 severity: :warning
+               } = diagnostic
+      end)
+    end)
+  end
+
   test "compiles src/test_ok.yrl" do
     in_fixture("compile_yecc", fn ->
       assert Mix.Tasks.Compile.Yecc.run(["--verbose"]) == {:ok, []}
