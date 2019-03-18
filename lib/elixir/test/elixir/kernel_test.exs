@@ -547,6 +547,10 @@ defmodule KernelTest do
   end
 
   describe "access" do
+    defmodule StructAccess do
+      defstruct [:foo, :bar]
+    end
+
     test "get_in/2" do
       users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
       assert get_in(users, ["john", :age]) == 27
@@ -583,6 +587,11 @@ defmodule KernelTest do
       assert put_in(users["john"][:age], 28) == %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
       assert put_in(users["john"].age, 28) == %{"john" => %{age: 28}, "meg" => %{age: 23}}
+
+      struct = %StructAccess{foo: %StructAccess{}}
+
+      assert put_in(struct.foo.bar, :baz) ==
+               %StructAccess{bar: nil, foo: %StructAccess{bar: :baz, foo: nil}}
 
       assert_raise BadMapError, fn ->
         put_in(users["dave"].age, 19)
@@ -621,6 +630,11 @@ defmodule KernelTest do
       assert update_in(users["john"].age, &(&1 + 1)) ==
                %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
+      struct = %StructAccess{foo: %StructAccess{bar: 41}}
+
+      assert update_in(struct.foo.bar, &(&1 + 1)) ==
+               %StructAccess{bar: nil, foo: %StructAccess{bar: 42, foo: nil}}
+
       assert_raise BadMapError, fn ->
         update_in(users["dave"].age, &(&1 + 1))
       end
@@ -657,6 +671,11 @@ defmodule KernelTest do
 
       assert get_and_update_in(users["john"].age, &{&1, &1 + 1}) ==
                {27, %{"john" => %{age: 28}, "meg" => %{age: 23}}}
+
+      struct = %StructAccess{foo: %StructAccess{bar: 41}}
+
+      assert get_and_update_in(struct.foo.bar, &{&1, &1 + 1}) ==
+               {41, %StructAccess{bar: nil, foo: %StructAccess{bar: 42, foo: nil}}}
 
       assert_raise ArgumentError, "could not put/update key \"john\" on a nil value", fn ->
         get_and_update_in(nil["john"][:age], fn nil -> {:ok, 28} end)
