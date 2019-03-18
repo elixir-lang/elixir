@@ -2434,6 +2434,11 @@ defmodule Kernel do
 
       put_in(opts, [:foo, :bar], :baz)
 
+  This also works with nested structs and the `struct.path.to.value` way to specify
+  paths:
+
+      put_in(struct.foo.bar, :baz)
+
   Note that in order for this macro to work, the complete path must always
   be visible by this macro. For more information about the supported path
   expressions, please check `get_and_update_in/2` docs.
@@ -2506,6 +2511,11 @@ defmodule Kernel do
 
       update_in(opts, [:foo, :bar], &(&1 + 1))
 
+  This also works with nested structs and the `struct.path.to.value` way to specify
+  paths:
+
+      update_in(struct.foo.bar, &(&1 + 1))
+
   Note that in order for this macro to work, the complete path must always
   be visible by this macro. For more information about the supported path
   expressions, please check `get_and_update_in/2` docs.
@@ -2543,6 +2553,11 @@ defmodule Kernel do
   Is equivalent to:
 
       get_and_update_in(opts, [:foo, :bar], &{&1, &1 + 1})
+
+  This also works with nested structs and the `struct.path.to.value` way to specify
+  paths:
+
+      get_and_update_in(struct.foo.bar, &{&1, &1 + 1})
 
   Note that in order for this macro to work, the complete path must always
   be visible by this macro. See the Paths section below.
