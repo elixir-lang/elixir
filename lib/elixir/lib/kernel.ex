@@ -2435,7 +2435,7 @@ defmodule Kernel do
       put_in(opts, [:foo, :bar], :baz)
 
   This also works with nested structs and the `struct.path.to.value` way to specify
-  paths"
+  paths:
 
       put_in(struct.foo.bar, :baz)
 
@@ -2512,7 +2512,7 @@ defmodule Kernel do
       update_in(opts, [:foo, :bar], &(&1 + 1))
 
   This also works with nested structs and the `struct.path.to.value` way to specify
-  paths"
+  paths:
 
       update_in(struct.foo.bar, &(&1 + 1))
 
@@ -2555,7 +2555,7 @@ defmodule Kernel do
       get_and_update_in(opts, [:foo, :bar], &{&1, &1 + 1})
 
   This also works with nested structs and the `struct.path.to.value` way to specify
-  paths"
+  paths:
 
       get_and_update_in(struct.foo.bar, &{&1, &1 + 1})
 
