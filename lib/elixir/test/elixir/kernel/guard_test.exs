@@ -270,7 +270,7 @@ defmodule Kernel.GuardTest do
     test "fails on expressions not allowed in guards" do
       # Slightly unique errors
 
-      assert_raise ArgumentError, ~r{invalid args for operator "in"}, fn ->
+      assert_raise ArgumentError, ~r{invalid right argument for operator "in"}, fn ->
         defmodule RuntimeListUsage do
           defguard foo(bar, baz) when bar in baz
         end

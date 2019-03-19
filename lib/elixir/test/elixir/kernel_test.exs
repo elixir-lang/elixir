@@ -7,6 +7,12 @@ defmodule KernelTest do
 
   defp empty_list(), do: []
 
+  defp assert_eval_raise(error, msg, string) do
+    assert_raise error, msg, fn ->
+      Code.eval_string(string)
+    end
+  end
+
   test "=~/2" do
     assert "abcd" =~ ~r/c(d)/ == true
     assert "abcd" =~ ~r/e/ == false
@@ -260,6 +266,14 @@ defmodule KernelTest do
 
       assert 2 in [1 | [2, 3]]
       assert 3 in [1 | list]
+
+      some_call = & &1
+      refute :x in [1, 2 | some_call.([3, 4])]
+      assert :x in [1, 2 | some_call.([3, :x])]
+
+      assert_raise ArgumentError, fn ->
+        :x in [1, 2 | some_call.({3, 4})]
+      end
     end
 
     @at_list1 [4, 5]
@@ -405,7 +419,7 @@ defmodule KernelTest do
     end
 
     test "with a non-compile-time range in guards" do
-      message = ~r/invalid args for operator "in", .* got: :hello/
+      message = ~r/invalid right argument for operator "in", .* got: :hello/
 
       assert_eval_raise(ArgumentError, message, """
       defmodule InErrors do
@@ -415,7 +429,7 @@ defmodule KernelTest do
     end
 
     test "with a non-compile-time list cons in guards" do
-      message = ~r/invalid args for operator "in", .* got: \[1 | list\(\)\]/
+      message = ~r/invalid right argument for operator "in", .* got: \[1 | list\(\)\]/
 
       assert_eval_raise(ArgumentError, message, """
       defmodule InErrors do
@@ -426,7 +440,7 @@ defmodule KernelTest do
     end
 
     test "with a compile-time non-list in tail in guards" do
-      message = ~r/invalid args for operator "in", .* got: \[1 | 1..3\]/
+      message = ~r/invalid right argument for operator "in", .* got: \[1 | 1..3\]/
 
       assert_eval_raise(ArgumentError, message, """
       defmodule InErrors do
@@ -453,38 +467,192 @@ defmodule KernelTest do
 
       result = expand_to_string(quote(do: rand() in [1, 2]))
       assert result =~ "var = rand()"
-      assert result =~ ":erlang.orelse(:erlang.\"=:=\"(var, 2), :erlang.\"=:=\"(var, 1))"
+      assert result =~ ":lists.member(var, [1, 2])"
 
       result = expand_to_string(quote(do: rand() in [1 | [2]]))
       assert result =~ "var = rand()"
-      assert result =~ ":erlang.orelse(:erlang.\"=:=\"(var, 1), :erlang.\"=:=\"(var, 2))"
+      assert result =~ ":lists.member(var, [1, 2])"
+
+      result = expand_to_string(quote(do: rand() in [1, 2 | [3]]))
+      assert result =~ "var = rand()"
+      assert result =~ ":lists.member(var, [1, 2, 3])"
 
       result = expand_to_string(quote(do: rand() in [1 | some_call()]))
       assert result =~ "var = rand()"
       assert result =~ "{arg0} = {some_call()}"
-      assert result =~ ":erlang.orelse(:erlang.\"=:=\"(var, 1), :lists.member(var, arg0))"
+      assert result =~ ":lists.member(var, [1 | arg0])"
+
+      result = expand_to_string(quote(do: rand() in [{1}, {2}, {3} | some_call()]))
+      assert result =~ "var = rand()"
+      assert result =~ "{arg0, arg1, arg2, arg3} = {{1}, {2}, {3}, some_call()}"
+
+      assert result =~
+               ":erlang.orelse(:lists.member(var, [arg0, arg1, arg2]), :lists.member(var, arg3))"
+    end
+
+    defp quote_case_in(left, right) do
+      quote do
+        case 0 do
+          _ when unquote(left) in unquote(right) -> true
+        end
+      end
+    end
+
+    test "verify code and order of generated expressions" do
+      # Empty list
+      assert expand_to_string(quote(do: :x in [])) ==
+               ":lists.member(:x, [])"
+
+      assert expand_to_string(quote(do: :x in []), :guard) ==
+               "false"
+
+      # One-element list
+      assert expand_to_string(quote(do: :x in [1])) =~
+               ~S"""
+                 var = :x
+                 :erlang."=:="(var, 1)
+               """
+
+      assert expand_to_string(quote(do: :x in [1]), :guard) ==
+               ":erlang.\"=:=\"(:x, 1)"
+
+      # Two-element list
+      assert expand_to_string(quote(do: :x in [1, 2])) =~
+               ~S"""
+                 var = :x
+                 :lists.member(var, [1, 2])
+               """
+
+      assert expand_to_string(quote(do: :x in [1, 2]), :guard) ==
+               ":erlang.orelse(:erlang.\"=:=\"(:x, 1), :erlang.\"=:=\"(:x, 2))"
+
+      assert expand_to_string(quote(do: :x in [1 | [2]])) =~
+               ~S"""
+                 var = :x
+                 :lists.member(var, [1, 2])
+               """
+
+      assert expand_to_string(quote(do: :x in [{1} | [{2}, {3} | [{4} | [{5}, {6} | [{7, 8}]]]]])) =~
+               ~S"""
+                 {arg0, arg1, arg2, arg3, arg4, arg5, arg6} = {{1}, {2}, {3}, {4}, {5}, {6}, {7, 8}}
+                 (
+                   var = :x
+                   :lists.member(var, [arg0, arg1, arg2, arg3, arg4, arg5, arg6])
+                 )
+               """
+
+      assert expand_to_string(
+               quote(do: :x in [{1} | [{2}, {3} | [{4} | [{5}, {6} | [{7, 8}]]]]]),
+               :guard
+             ) =~
+               ":erlang.orelse(:erlang.orelse(:erlang.\"=:=\"(:x, {1}), :erlang.\"=:=\"(:x, {2})), :erlang.orelse(:erlang.orelse(:erlang.orelse(:erlang.\"=:=\"(:x, {3}), :erlang.\"=:=\"(:x, {4})), :erlang.\"=:=\"(:x, {5})), :erlang.orelse(:erlang.\"=:=\"(:x, {6}), :erlang.\"=:=\"(:x, {7, 8}))))"
+
+      # improper list
+      assert expand_to_string(quote(do: :x in [{1} | [{2}, {3} | [{4} | [{5}, {6} | {7, 8}]]]])) =~
+               ~S"""
+                 {arg0, arg1, arg2, arg3, arg4, arg5, arg6} = {{1}, {2}, {3}, {4}, {5}, {6}, {7, 8}}
+                 (
+                   var = :x
+                   :erlang.orelse(:lists.member(var, [arg0, arg1, arg2, arg3, arg4, arg5]), :lists.member(var, arg6))
+                 )
+               """
+
+      assert expand_to_string(quote(do: :x in [1 | [2 | [3]]]), :guard) ==
+               ":erlang.orelse(:erlang.orelse(:erlang.\"=:=\"(:x, 1), :erlang.\"=:=\"(:x, 2)), :erlang.\"=:=\"(:x, 3))"
+
+      # Multi-element proper list
+      assert expand_to_string(quote(do: :x in [1, 2, 3, 4])) =~
+               ~S"""
+                 var = :x
+                 :lists.member(var, [1, 2, 3, 4])
+               """
+
+      assert expand_to_string(quote(do: :x in [1, 2, 3, 4]), :guard) ==
+               ":erlang.orelse(:erlang.orelse(:erlang.orelse(:erlang.\"=:=\"(:x, 1), :erlang.\"=:=\"(:x, 2)), :erlang.\"=:=\"(:x, 3)), :erlang.\"=:=\"(:x, 4))"
+
+      assert expand_to_string(quote(do: :x in [1, 2, some_call(3), 4]), :guard) ==
+               ":erlang.orelse(:erlang.orelse(:erlang.orelse(:erlang.\"=:=\"(:x, 1), :erlang.\"=:=\"(:x, 2)), :erlang.\"=:=\"(:x, some_call(3))), :erlang.\"=:=\"(:x, 4))"
+
+      assert expand_to_string(quote(do: :x in [1, 2 | [3, 4]]), :guard) ==
+               ":erlang.orelse(:erlang.\"=:=\"(:x, 1), :erlang.orelse(:erlang.orelse(:erlang.\"=:=\"(:x, 2), :erlang.\"=:=\"(:x, 3)), :erlang.\"=:=\"(:x, 4)))"
+
+      assert_raise ArgumentError, fn ->
+        expand_to_string(quote(do: :x in some_call.([4, 3, 2, 1])), :guard)
+      end
+
+      # Two-element list with cons operator
+      assert expand_to_string(quote(do: :x in [1 | some_call.([2])])) =~
+               ~S"""
+                 {arg0} = {some_call.([2])}
+                 (
+                   var = :x
+                   :lists.member(var, [1 | arg0])
+                 )
+               """
+
+      assert_raise ArgumentError,
+                   "invalid right argument for operator \"in\", it expects a compile-time proper " <>
+                     "list or compile-time range on the right side when used in guard expressions, " <>
+                     "got: [1 | some_call.([2])]",
+                   fn ->
+                     expand_to_string(
+                       quote(do: :x in [1 | some_call.([2])]),
+                       :guard
+                     )
+                   end
+
+      # left side of in/2 accepts remote calls in guards
+      assert expand_to_string(quote(do: some_call.([2]) in [1]), :guard) ==
+               ":erlang.\"=:=\"(some_call.([2]), 1)"
+
+      # Multi-element proper list
+      assert expand_to_string(quote(do: :x in [1, 2 | some_call.([4, 3])])) =~
+               ~S"""
+                 {arg0} = {some_call.([4, 3])}
+                 (
+                   var = :x
+                   :erlang.orelse(:lists.member(var, [1, 2]), :lists.member(var, arg0))
+                 )
+               """
+
+      assert_raise ArgumentError,
+                   "invalid right argument for operator \"in\", it expects a compile-time proper " <>
+                     "list or compile-time range on the right side when used in guard expressions, " <>
+                     "got: [1, 2 | some_call.([4, 3])]",
+                   fn ->
+                     expand_to_string(
+                       quote(do: some_call.(:x) in [1, 2 | some_call.([4, 3])]),
+                       :guard
+                     )
+                   end
     end
 
     test "is optimized" do
-      assert expand_to_string(quote(do: foo in [])) == "Enum.member?([], foo)"
+      assert expand_to_string(quote(do: foo in [])) == ":lists.member(foo, [])"
+
+      assert expand_to_string(quote(do: foo in [foo])) =~
+               ~r/{arg0} = {foo}\n\s+:erlang."=:="\(foo, arg0\)\n/
 
       assert expand_to_string(quote(do: foo in 0..1)) ==
                ":erlang.andalso(:erlang.is_integer(foo), :erlang.andalso(:erlang.>=(foo, 0), :erlang.\"=<\"(foo, 1)))"
 
       assert expand_to_string(quote(do: foo in -1..0)) ==
                ":erlang.andalso(:erlang.is_integer(foo), :erlang.andalso(:erlang.>=(foo, -1), :erlang.\"=<\"(foo, 0)))"
+
+      assert expand_to_string(quote(do: foo in 1..1)) ==
+               ":erlang.\"=:=\"(foo, 1)"
     end
 
-    defp expand_to_string(ast) do
+    defp expand_to_string(ast, environment_or_context \\ __ENV__)
+
+    defp expand_to_string(ast, context) when is_atom(context) do
+      expand_to_string(ast, Map.put(__ENV__, :context, context))
+    end
+
+    defp expand_to_string(ast, environment) do
       ast
-      |> Macro.prewalk(&Macro.expand(&1, __ENV__))
+      |> Macro.prewalk(&Macro.expand(&1, environment))
       |> Macro.to_string()
-    end
-
-    defp assert_eval_raise(error, msg, string) do
-      assert_raise error, msg, fn ->
-        Code.eval_string(string)
-      end
     end
   end
 

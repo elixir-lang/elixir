@@ -3543,17 +3543,28 @@ defmodule Kernel do
       [] when not in_module? ->
         false
 
-      [head | tail] = list when not in_module? ->
-        in_var(in_module?, left, &in_list(&1, head, tail, expand, list, in_module?))
+      [] ->
+        quote(do: :lists.member(unquote(left), []))
+
+      [head | tail] when not in_module? ->
+        in_var(
+          in_module?,
+          left,
+          &in_list(&1, head, tail, expand, right, in_module?, true, [])
+        )
 
       [_ | _] = list when in_module? ->
         case ensure_evaled(list, {0, []}, expand) do
           {[head | tail], {_, []}} ->
-            in_var(in_module?, left, &in_list(&1, head, tail, expand, list, in_module?))
+            in_var(
+              in_module?,
+              left,
+              &in_list(&1, head, tail, expand, list, in_module?, false, [])
+            )
 
           {[head | tail], {_, vars_values}} ->
             {vars, values} = :lists.unzip(:lists.reverse(vars_values))
-            is_in_list = &in_list(&1, head, tail, expand, list, in_module?)
+            is_in_list = &in_list(&1, head, tail, expand, list, in_module?, false, [])
 
             quote do
               {unquote_splicing(vars)} = {unquote_splicing(values)}
@@ -3571,11 +3582,7 @@ defmodule Kernel do
         raise ArgumentError, "non-literal range in guard should be escaped with Macro.escape/2"
 
       right ->
-        raise ArgumentError, <<
-          "invalid args for operator \"in\", it expects a compile-time proper list ",
-          "or compile-time range on the right side when used in guard expressions, got: ",
-          Macro.to_string(right)::binary
-        >>
+        raise_on_invalid_args_in_2(right)
     end
   end
 
@@ -3669,48 +3676,116 @@ defmodule Kernel do
     end
   end
 
-  defp in_list(left, head, tail, expand, right, in_module?) do
-    fun = fn elem, acc ->
-      quote do
-        :erlang.orelse(unquote(comp(left, elem, expand, right, in_module?)), unquote(acc))
-      end
-    end
-
-    :lists.foldr(fun, comp(left, head, expand, right, in_module?), tail)
-  end
-
-  defp comp(left, {:|, _, [head, tail]}, expand, right, in_module?) do
+  defp in_list(left, {:|, _, [head, tail]}, [], expand, right, in_module?, _use_right?, acc) do
     case expand.(tail) do
       [] ->
-        quote(do: :erlang."=:="(unquote(left), unquote(head)))
+        in_list(left, head, [], expand, right, in_module?, false, acc)
 
-      [tail_head | tail] ->
-        quote do
-          :erlang.orelse(
-            :erlang."=:="(unquote(left), unquote(head)),
-            unquote(in_list(left, tail_head, tail, expand, right, in_module?))
-          )
-        end
+      [tail_head | tail_rest] ->
+        in_list(left, tail_head, tail_rest, expand, right, in_module?, false, [head | acc])
 
       tail when in_module? ->
-        quote do
-          :erlang.orelse(
-            :erlang."=:="(unquote(left), unquote(head)),
-            :lists.member(unquote(left), unquote(tail))
-          )
+        case expand.(acc) do
+          [] ->
+            quote do
+              :lists.member(
+                unquote(left),
+                [unquote(head) | unquote(tail)]
+              )
+            end
+
+          acc ->
+            quote do
+              :erlang.orelse(
+                :lists.member(
+                  unquote(left),
+                  unquote(:lists.reverse([head | acc]))
+                ),
+                :lists.member(
+                  unquote(left),
+                  unquote(tail)
+                )
+              )
+            end
         end
 
       _ ->
-        raise ArgumentError, <<
-          "invalid args for operator \"in\", it expects a compile-time proper list ",
-          "or compile-time range on the right side when used in guard expressions, got: ",
-          Macro.to_string(right)::binary
-        >>
+        raise_on_invalid_args_in_2(right)
     end
   end
 
-  defp comp(left, right, _expand, _right, _in_module?) do
-    quote(do: :erlang."=:="(unquote(left), unquote(right)))
+  defp in_list(left, head, [], expand, right, in_module?, use_right?, []) do
+    comp(left, head, expand, right, in_module?, use_right?, [])
+  end
+
+  defp in_list(left, head, tail, expand, right, false, _use_right?, acc) do
+    fun = fn fun_element, fun_acc ->
+      quote do
+        :erlang.orelse(
+          unquote(fun_acc),
+          unquote(comp(left, fun_element, expand, right, false, false, []))
+        )
+      end
+    end
+
+    :lists.foldl(fun, comp(left, head, expand, right, false, false, acc), tail)
+  end
+
+  defp in_list(left, _head, [], _expand, right, true, true, _acc) do
+    quote(do: :lists.member(unquote(left), unquote(right)))
+  end
+
+  defp in_list(left, head, [], _expand, _right, true, false, acc) do
+    quote(do: :lists.member(unquote(left), unquote(:lists.reverse([head | acc]))))
+  end
+
+  defp in_list(left, head, [tail_head | tail_rest], expand, right, true, use_right?, acc) do
+    in_list(left, tail_head, tail_rest, expand, right, true, use_right?, [head | acc])
+  end
+
+  defp in_list(left, head, [tail_head | tail_rest], expand, right, false, _use_right?, acc) do
+    quote do
+      :erlang.orelse(
+        unquote(in_list(left, tail_head, tail_rest, expand, right, false, false, acc)),
+        :erlang."=:="(unquote(left), unquote(head))
+      )
+    end
+  end
+
+  defp comp(left, {:|, _, [head, tail]}, expand, right, in_module?, _use_right?, acc) do
+    case expand.(tail) do
+      [] ->
+        case acc do
+          [] ->
+            quote(do: :erlang."=:="(unquote(left), unquote(head)))
+
+          _ ->
+            in_list(left, head, [], expand, right, in_module?, false, acc)
+        end
+
+      [tail_head | tail_rest] ->
+        in_list(left, tail_head, tail_rest, expand, right, in_module?, false, [head | acc])
+
+      _ ->
+        raise_on_invalid_args_in_2(right)
+    end
+  end
+
+  defp comp(left, term, _expand, _right, _in_module?, _use_right?, []) do
+    quote(do: :erlang."=:="(unquote(left), unquote(term)))
+  end
+
+  defp comp(left, term, expand, right, true, use_right?, acc) do
+    in_list(left, term, [], expand, right, true, use_right?, acc)
+  end
+
+  defp comp(left, term, expand, right, false, _use_right?, [acc_head | acc_rest]) do
+    quote do
+      :erlang.orelse(
+        unquote(comp(left, acc_head, expand, right, false, false, acc_rest)),
+        :erlang."=:="(unquote(left), unquote(term))
+      )
+    end
   end
 
   defp increasing_compare(var, first, last) do
@@ -3729,6 +3804,14 @@ defmodule Kernel do
         :erlang.>=(unquote(var), unquote(last))
       )
     end
+  end
+
+  defp raise_on_invalid_args_in_2(right) do
+    raise ArgumentError, <<
+      "invalid right argument for operator \"in\", it expects a compile-time proper list ",
+      "or compile-time range on the right side when used in guard expressions, got: ",
+      Macro.to_string(right)::binary
+    >>
   end
 
   @doc """
