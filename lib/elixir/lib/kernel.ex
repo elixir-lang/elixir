@@ -3543,6 +3543,9 @@ defmodule Kernel do
       [] when not in_module? ->
         false
 
+      [] ->
+        quote(do: _ = unquote(left))
+
       [head | tail] = list when not in_module? ->
         in_var(in_module?, left, &in_list(&1, head, tail, expand, list, in_module?))
 
@@ -3571,12 +3574,16 @@ defmodule Kernel do
         raise ArgumentError, "non-literal range in guard should be escaped with Macro.escape/2"
 
       right ->
-        raise ArgumentError, <<
-          "invalid args for operator \"in\", it expects a compile-time proper list ",
-          "or compile-time range on the right side when used in guard expressions, got: ",
-          Macro.to_string(right)::binary
-        >>
+        raise_on_invalid_args_in_2(right)
     end
+  end
+
+  defp raise_on_invalid_args_in_2(right) do
+    raise ArgumentError, <<
+      "invalid right argument for operator \"in\", it expects a compile-time proper list ",
+      "or compile-time range on the right side when used in guard expressions, got: ",
+      Macro.to_string(right)::binary
+    >>
   end
 
   defp in_var(false, ast, fun), do: fun.(ast)
@@ -3670,13 +3677,14 @@ defmodule Kernel do
   end
 
   defp in_list(left, head, tail, expand, right, in_module?) do
-    fun = fn elem, acc ->
-      quote do
-        :erlang.orelse(unquote(comp(left, elem, expand, right, in_module?)), unquote(acc))
-      end
-    end
+    [head | tail] =
+      :lists.foldl(
+        &[comp(left, &1, expand, right, in_module?) | &2],
+        [],
+        [head | tail]
+      )
 
-    :lists.foldr(fun, comp(left, head, expand, right, in_module?), tail)
+    :lists.foldl(&quote(do: :erlang.orelse(unquote(&1), unquote(&2))), head, tail)
   end
 
   defp comp(left, {:|, _, [head, tail]}, expand, right, in_module?) do
@@ -3701,11 +3709,7 @@ defmodule Kernel do
         end
 
       _ ->
-        raise ArgumentError, <<
-          "invalid args for operator \"in\", it expects a compile-time proper list ",
-          "or compile-time range on the right side when used in guard expressions, got: ",
-          Macro.to_string(right)::binary
-        >>
+        raise_on_invalid_args_in_2(right)
     end
   end
 
