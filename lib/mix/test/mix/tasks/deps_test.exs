@@ -90,6 +90,27 @@ defmodule Mix.Tasks.DepsTest do
     end)
   end
 
+  test "prints misspelled dependency name hint" do
+    Mix.Project.push(DepsApp)
+
+    in_fixture("deps_status", fn ->
+      other_app_path = Path.join(Mix.Project.build_path(), "lib/noappfile/ebin/other_app.app")
+      File.mkdir_p!(Path.dirname(other_app_path))
+      File.write!(other_app_path, "")
+
+      Mix.Tasks.Deps.run([])
+
+      message =
+        "  could not find an app file at \"_build/dev/lib/noappfile/ebin/noappfile.app\". " <>
+          "Another app file was found in the same directory " <>
+          "\"_build/dev/lib/noappfile/ebin/other_app.app\", " <>
+          "try changing the dependency name to :other_app"
+
+      assert_received {:mix_shell, :info, ["* noappfile (deps/noappfile)"]}
+      assert_received {:mix_shell, :info, [^message]}
+    end)
+  end
+
   test "prints Elixir req mismatches" do
     Mix.Project.push(ReqDepsApp)
 
