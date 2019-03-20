@@ -135,11 +135,11 @@ end
 defmodule ExUnit.DocTestTest.Invalid do
   @moduledoc """
 
-      iex> 1 + * 1
-      1
+  iex> 1 + * 1
+  1
 
-      iex> 1 + hd(List.flatten([1]))
-      3
+  iex> 1 + hd(List.flatten([1]))
+  3
 
       iex> a = "This is an egregiously long text string."
       iex> b = ~r{an egregiously long}
@@ -471,7 +471,8 @@ defmodule ExUnit.DocTestTest do
              2) doctest module ExUnit.DocTestTest.Invalid (2) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
                 Doctest failed
-                code:  1 + hd(List.flatten([1])) === 3
+                code:  iex> 1 + hd(List.flatten([1]))
+                       3
                 left:  2
                 right: 3
                 stacktrace:
@@ -482,10 +483,11 @@ defmodule ExUnit.DocTestTest do
              3) doctest module ExUnit.DocTestTest.Invalid (3) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
                 Doctest failed
-                code:  a = "This is an egregiously long text string."
-                        b = ~r{an egregiously long}
-                        c = "a slightly shorter"
-                        String.replace(a, b, c) === "This is a much shorter text string."
+                code:  iex> a = "This is an egregiously long text string."
+                       iex> b = ~r{an egregiously long}
+                       iex> c = "a slightly shorter"
+                       iex> String.replace(a, b, c)
+                       "This is a much shorter text string."
                 left:  "This is a slightly shorter text string."
                 right: "This is a much shorter text string."
                 stacktrace:
