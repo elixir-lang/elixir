@@ -422,7 +422,10 @@ defmodule Mix.Dep.Loader do
         {:invalidapp, app_path}
 
       {:error, _} ->
-        {:noappfile, app_path}
+        case Path.wildcard(Path.join(Path.dirname(app_path), "*.app")) do
+          [other_app_path] -> {:noappfile, {app_path, other_app_path}}
+          _ -> {:noappfile, {app_path, nil}}
+        end
     end
   end
 end

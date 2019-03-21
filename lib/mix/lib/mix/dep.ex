@@ -276,11 +276,19 @@ defmodule Mix.Dep do
     "ok"
   end
 
-  def format_status(%Mix.Dep{status: {:noappfile, path}}) do
+  def format_status(%Mix.Dep{status: {:noappfile, {path, nil}}}) do
     "could not find an app file at #{inspect(Path.relative_to_cwd(path))}. " <>
-      "This may happen if the dependency was not yet compiled, " <>
-      "or you specified the wrong application name in your deps, " <>
+      "This may happen if the dependency was not yet compiled " <>
       "or the dependency indeed has no app file (then you can pass app: false as option)"
+  end
+
+  def format_status(%Mix.Dep{status: {:noappfile, {path, other_path}}}) do
+    other_app = Path.rootname(Path.basename(other_path))
+
+    "could not find an app file at #{inspect(Path.relative_to_cwd(path))}. " <>
+      "Another app file was found in the same directory " <>
+      "#{inspect(Path.relative_to_cwd(other_path))}, " <>
+      "try changing the dependency name to :#{other_app}"
   end
 
   def format_status(%Mix.Dep{status: {:invalidapp, path}}) do
@@ -468,7 +476,7 @@ defmodule Mix.Dep do
   Returns `true` if the dependency is compilable.
   """
   def compilable?(%Mix.Dep{status: {:elixirlock, _}}), do: true
-  def compilable?(%Mix.Dep{status: {:noappfile, _}}), do: true
+  def compilable?(%Mix.Dep{status: {:noappfile, {_, _}}}), do: true
   def compilable?(%Mix.Dep{status: {:scmlock, _}}), do: true
   def compilable?(%Mix.Dep{status: :compile}), do: true
   def compilable?(_), do: false
