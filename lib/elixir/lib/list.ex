@@ -235,6 +235,8 @@ defmodule List do
   @doc """
   Returns the last element in `list` or `nil` if `list` is empty.
 
+  It accepts improper lists.
+
   ## Examples
 
       iex> List.last([])
@@ -246,11 +248,18 @@ defmodule List do
       iex> List.last([1, 2, 3])
       3
 
+      iex> List.last([1, 2, 3 | 4])
+      4
   """
+  @spec last([]) :: nil
   @spec last([elem]) :: nil | elem when elem: var
-  def last([]), do: nil
-  def last([head]), do: head
-  def last([_ | tail]), do: last(tail)
+  @spec last(nonempty_improper_list(any, tail)) :: tail when tail: var
+  def last(list) when is_list(list), do: last_guarded(list)
+
+  defp last_guarded([]), do: nil
+  defp last_guarded([head]), do: head
+  defp last_guarded([_ | tail]), do: last_guarded(tail)
+  defp last_guarded(improper_list_tail), do: improper_list_tail
 
   @doc """
   Receives a list of tuples and returns the first tuple

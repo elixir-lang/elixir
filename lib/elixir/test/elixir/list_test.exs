@@ -75,6 +75,8 @@ defmodule ListTest do
     assert List.last([]) == nil
     assert List.last([1]) == 1
     assert List.last([1, 2, 3]) == 3
+    assert List.last([1, 2, 3 | 4]) == 4
+    assert List.last([1, 2, 3 | [4, 5 | 6]]) == 6
   end
 
   test "zip/1" do
