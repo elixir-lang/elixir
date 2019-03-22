@@ -137,13 +137,16 @@ compute_alignment(_, _, _) -> unknown.
 %% Expands the expression of a bitstring, that is, the LHS of :: or
 %% an argument of the bitstring (such as "foo" in "<<foo>>").
 
-expand_expr(_, {{'.', M1, [Mod, to_string]}, M2, [Arg]}, Fun, E)
+expand_expr(Meta, {{'.', M1, [Mod, to_string]}, M2, [Arg]}, Fun, E)
     when Mod == 'Elixir.Kernel'; Mod == 'Elixir.String.Chars' ->
   case Fun(Arg, E) of
     {EBin, EE} when is_binary(EBin) -> {EBin, EE};
-    {EArg, EE} -> {{{'.', M1, ['Elixir.String.Chars', to_string]}, M2, [EArg]}, EE}
+    _ -> do_expand_expr(Meta, {{'.', M1, ['Elixir.String.Chars', to_string]}, M2, [Arg]}, Fun, E)
   end;
 expand_expr(Meta, Component, Fun, E) ->
+  do_expand_expr(Meta, Component, Fun, E).
+
+do_expand_expr(Meta, Component, Fun, E) ->
   case Fun(Component, E) of
     {EComponent, _} when is_list(EComponent); is_atom(EComponent) ->
       ErrorE = env_for_error(E),

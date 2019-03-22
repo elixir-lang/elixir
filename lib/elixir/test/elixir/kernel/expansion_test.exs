@@ -595,6 +595,24 @@ defmodule Kernel.ExpansionTest do
         expand(quote(do: fn arg when make_ref() -> arg end))
       end
     end
+
+    test "in guards with bitstrings" do
+      message = ~r"cannot invoke remote function String.Chars.to_string/1 inside guards"
+
+      assert_raise CompileError, message, fn ->
+        expand(quote(do: fn arg when "#{arg}foo" == "argfoo" -> arg end))
+      end
+
+      assert_raise CompileError, message, fn ->
+        expand(
+          quote do
+            fn arg when <<:"Elixir.Kernel".to_string(arg)::binary, "foo">> == "argfoo" ->
+              arg
+            end
+          end
+        )
+      end
+    end
   end
 
   describe "comprehensions" do
