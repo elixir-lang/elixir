@@ -870,11 +870,11 @@ defmodule List do
         raise ArgumentError, """
         cannot convert the given list to a string.
 
-        To be converted to a string, a list must contain only:
+        To be converted to a string, a list must only contain one of the following:
 
           * strings
           * integers representing Unicode code points
-          * or a list containing one of these three elements
+          * a list containing one of these three elements
 
         Please check the given list or call inspect/1 to get the list representation, got:
 
