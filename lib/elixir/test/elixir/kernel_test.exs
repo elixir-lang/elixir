@@ -361,6 +361,16 @@ defmodule KernelTest do
       _ = a
     end
 
+    test "setting attribute with uppercase" do
+      message = "module attributes set via @ cannot start with an uppercase letter"
+
+      assert_raise ArgumentError, message, fn ->
+        defmodule UpcaseAttrSample do
+          @Upper
+        end
+      end
+    end
+
     test "in module body" do
       defmodule InSample do
         @foo [:a, :b]

@@ -2867,6 +2867,10 @@ defmodule Kernel do
   """
   defmacro @expr
 
+  defmacro @{:__aliases__, _meta, _args} do
+    raise ArgumentError, "module attributes set via @ cannot start with an uppercase letter"
+  end
+
   defmacro @{name, meta, args} do
     assert_module_scope(__CALLER__, :@, 1)
     function? = __CALLER__.function != nil
