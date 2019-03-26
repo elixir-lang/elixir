@@ -1058,7 +1058,7 @@ defmodule Module do
   developer to customize it. See `Kernel.defoverridable/1` for
   more information and documentation.
 
-  Once a function or macro are marked as overridable, it will
+  Once a function or a macro is marked as overridable, it will
   no longer be listed under `definitions_in/1` or return true
   when given to `defines?/2` until another implementation is
   given.
