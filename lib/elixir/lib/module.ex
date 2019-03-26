@@ -921,6 +921,11 @@ defmodule Module do
   Use `Kernel.function_exported?/3` and `Kernel.macro_exported?/3` to check for
   public functions and macros respectively in compiled modules.
 
+  Note that `defines?` returns false for functions and macros that have
+  been defined but then marked as overridable and no other implementation
+  has been provided. You can check the overridable status by calling
+  `overridable?/2`.
+
   ## Examples
 
       defmodule Example do
@@ -1052,6 +1057,11 @@ defmodule Module do
   An overridable function is lazily defined, allowing a
   developer to customize it. See `Kernel.defoverridable/1` for
   more information and documentation.
+
+  Once a function or macro are marked as overridable, it will
+  no longer be listed under `definitions_in/1` or return true
+  when given to `defines?/2` until another implementation is
+  given.
   """
   @spec make_overridable(module, [definition]) :: :ok
   def make_overridable(module, tuples) when is_atom(module) and is_list(tuples) do
