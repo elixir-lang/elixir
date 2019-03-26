@@ -256,6 +256,22 @@ defmodule System do
   end
 
   @doc """
+  Marks if the system should halt or not at the end of ARGV processing.
+  """
+  @spec no_halt(boolean) :: :ok
+  def no_halt(boolean) when is_boolean(boolean) do
+    :elixir_config.put(:no_halt, boolean)
+  end
+
+  @doc """
+  Checks if the system will halt or not at the end of ARGV processing.
+  """
+  @spec no_halt() :: boolean
+  def no_halt() do
+    :elixir_config.get(:no_halt)
+  end
+
+  @doc """
   Current working directory.
 
   Returns the current working directory or `nil` if one
