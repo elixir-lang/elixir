@@ -382,7 +382,6 @@ defmodule Mix.Tasks.Escript.Build do
           ]
 
           io_error(error_message)
-
           :erlang.halt(1)
       end
 
@@ -391,7 +390,7 @@ defmodule Mix.Tasks.Escript.Build do
           load_config(@config)
           start_app(@app)
           args = Enum.map(args, &List.to_string(&1))
-          Kernel.CLI.run(fn _ -> @module.main(args) end, true)
+          Kernel.CLI.run(fn _ -> @module.main(args) end)
 
         error ->
           io_error(["Failed to start Elixir.\n", :io_lib.format('error: ~p~n', [error])])

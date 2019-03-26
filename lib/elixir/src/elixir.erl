@@ -63,7 +63,8 @@ start(_Type, _Args) ->
     {bootstrap, false},
     {compiler_options, CompilerOpts},
     {home, unicode:characters_to_binary(Home, Encoding, Encoding)},
-    {identifier_tokenizer, Tokenizer}
+    {identifier_tokenizer, Tokenizer},
+    {no_halt, false}
     | URIConfig
   ],
 
