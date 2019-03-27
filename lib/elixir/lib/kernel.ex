@@ -3554,9 +3554,7 @@ defmodule Kernel do
         end
 
       {:%{}, _meta, [__struct__: Elixir.Range, first: first, last: last]} ->
-        first = Macro.expand(first, __CALLER__)
-        last = Macro.expand(last, __CALLER__)
-        in_var(in_module?, left, &in_range(&1, first, last))
+        in_var(in_module?, left, &in_range(&1, expand.(first), expand.(last)))
 
       right when in_module? ->
         quote(do: Elixir.Enum.member?(unquote(right), unquote(left)))
