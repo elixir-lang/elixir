@@ -194,13 +194,10 @@ defmodule String.Unicode do
 
   for codepoint <- cluster["ZWJ"] do
     defp next_extend_size(<<unquote(codepoint), rest::binary>>, size, marker) do
-      next_extend_size(rest, size + unquote(byte_size(codepoint)), from_emoji_to_zwj(marker))
-    end
-  end
-
-  for codepoint <- cluster["Extended_Pictographic"] do
-    defp next_extend_size(<<unquote(codepoint), rest::binary>>, size, :zwj) do
-      next_extend_size(rest, size + unquote(byte_size(codepoint)), :emoji)
+      case marker do
+        :emoji -> next_pictographic_size(rest, size + unquote(byte_size(codepoint)))
+        _ -> next_extend_size(rest, size + unquote(byte_size(codepoint)), :other)
+      end
     end
   end
 
@@ -208,11 +205,19 @@ defmodule String.Unicode do
     {size, rest}
   end
 
+  # Handle Pictographic (always after zwj, falls back to extend size)
+  for codepoint <- cluster["Extended_Pictographic"] do
+    defp next_pictographic_size(<<unquote(codepoint), rest::binary>>, size) do
+      next_extend_size(rest, size + unquote(byte_size(codepoint)), :emoji)
+    end
+  end
+
+  defp next_pictographic_size(rest, size) do
+    next_extend_size(rest, size, :other)
+  end
+
   defp keep_emoji(:emoji), do: :emoji
   defp keep_emoji(_), do: :other
-
-  defp from_emoji_to_zwj(:emoji), do: :zwj
-  defp from_emoji_to_zwj(_), do: :other
 
   # Handle Prepend
   for codepoint <- cluster["Prepend"] do
