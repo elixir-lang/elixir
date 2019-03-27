@@ -181,8 +181,11 @@ defmodule List do
   end
 
   @doc """
-  Folds (reduces) the given list from the left with
+  Folds (reduces) the given `list` from the left with
   a function. Requires an accumulator.
+
+  If `list` is empty, it returns the accumulator without the function
+  ever being invoked.
 
   ## Examples
 
@@ -192,8 +195,13 @@ defmodule List do
       iex> List.foldl([1, 2, 3, 4], 0, fn x, acc -> x - acc end)
       2
 
+      iex> List.foldl([], 5, fn x, acc -> x + acc + 100 end)
+      5
+
   """
-  @spec foldl([elem], acc, (elem, acc -> acc)) :: acc when elem: var, acc: var
+  @spec foldl([elem, ...], acc, (elem, acc -> acc)) :: acc when elem: var, acc: var
+  @spec foldl([], initial_acc, (_elem, acc -> acc)) :: initial_acc
+        when initial_acc: var, _elem: var, acc: var
   def foldl(list, acc, fun) when is_list(list) and is_function(fun) do
     :lists.foldl(fun, acc, list)
   end
@@ -202,13 +210,21 @@ defmodule List do
   Folds (reduces) the given list from the right with
   a function. Requires an accumulator.
 
+  If `list` is empty, it returns the accumulator without the function
+  ever being invoked.
+
   ## Examples
 
       iex> List.foldr([1, 2, 3, 4], 0, fn x, acc -> x - acc end)
       -2
 
+      iex> List.foldr([], 5, fn x, acc -> x + acc + 100 end)
+      5
+
   """
-  @spec foldr([elem], acc, (elem, acc -> acc)) :: acc when elem: var, acc: var
+  @spec foldr([elem, ...], acc, (elem, acc -> acc)) :: acc when elem: var, acc: var
+  @spec foldr([], initial_acc, (_elem, acc -> acc)) :: initial_acc
+        when initial_acc: var, _elem: var, acc: var
   def foldr(list, acc, fun) when is_list(list) and is_function(fun) do
     :lists.foldr(fun, acc, list)
   end

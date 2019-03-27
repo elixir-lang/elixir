@@ -52,12 +52,14 @@ defmodule ListTest do
     assert List.foldl([1, 2, 3], 0, fn x, y -> x + y end) == 6
     assert List.foldl([1, 2, 3], 10, fn x, y -> x + y end) == 16
     assert List.foldl([1, 2, 3, 4], 0, fn x, y -> x - y end) == 2
+    assert List.foldl([], 5, fn x, acc -> x + acc + 100 end) == 5
   end
 
   test "foldr/3" do
     assert List.foldr([1, 2, 3], 0, fn x, y -> x + y end) == 6
     assert List.foldr([1, 2, 3], 10, fn x, y -> x + y end) == 16
     assert List.foldr([1, 2, 3, 4], 0, fn x, y -> x - y end) == -2
+    assert List.foldr([], 5, fn x, acc -> x + acc + 100 end) == 5
   end
 
   test "duplicate/2" do
