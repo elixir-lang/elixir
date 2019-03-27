@@ -870,7 +870,8 @@ defmodule List do
         raise ArgumentError, """
         cannot convert the given list to a string.
 
-        To be converted to a string, a list must only contain one of the following:
+        To be converted to a string, a list must either be empty or only
+        contain the following elements:
 
           * strings
           * integers representing Unicode code points
