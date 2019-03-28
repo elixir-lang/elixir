@@ -40,12 +40,14 @@ defmodule ListTest do
 
     assert List.flatten([]) == []
     assert List.flatten([[]]) == []
+    assert List.flatten([[], [[], []]]) = []
   end
 
   test "flatten/2" do
     assert List.flatten([1, 2, 3], [4, 5]) == [1, 2, 3, 4, 5]
     assert List.flatten([1, [2], 3], [4, 5]) == [1, 2, 3, 4, 5]
     assert List.flatten([[1, [2], 3]], [4, 5]) == [1, 2, 3, 4, 5]
+    assert List.flatten([1, [], 2], [3, [], 4]) == [1, 2, 3, [], 4]
   end
 
   test "foldl/3" do

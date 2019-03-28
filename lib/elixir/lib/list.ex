@@ -154,10 +154,15 @@ defmodule List do
   @doc """
   Flattens the given `list` of nested lists.
 
+  Empty list elements are discarded.
+
   ## Examples
 
       iex> List.flatten([1, [[2], 3]])
       [1, 2, 3]
+
+      iex> List.flatten([[], [[], []]])
+      []
 
   """
   @spec flatten(deep_list) :: list when deep_list: [any | deep_list]
@@ -170,10 +175,16 @@ defmodule List do
   The list `tail` will be added at the end of
   the flattened list.
 
+  Empty list elements from `list` are discarded,
+  but not the ones from `tail`.
+
   ## Examples
 
       iex> List.flatten([1, [[2], 3]], [4, 5])
       [1, 2, 3, 4, 5]
+
+      iex> List.flatten([1, [], 2], [3, [], 4])
+      [1, 2, 3, [], 4]
 
   """
   @spec flatten(deep_list, [elem]) :: [elem] when elem: var, deep_list: [elem | deep_list]
