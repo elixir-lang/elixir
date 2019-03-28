@@ -228,7 +228,8 @@ defmodule List do
       1
 
   """
-  @spec first([elem]) :: nil | elem when elem: var
+  @spec first([]) :: nil
+  @spec first([elem, ...]) :: elem when elem: var
   def first([]), do: nil
   def first([head | _]), do: head
 
@@ -247,7 +248,8 @@ defmodule List do
       3
 
   """
-  @spec last([elem]) :: nil | elem when elem: var
+  @spec last([]) :: nil
+  @spec last([elem, ...]) :: elem when elem: var
   def last([]), do: nil
   def last([head]), do: head
   def last([_ | tail]), do: last(tail)
