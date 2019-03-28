@@ -137,16 +137,27 @@ defmodule List do
   @doc """
   Duplicates the given element `n` times in a list.
 
+  `n` is an integer greater or equal than `0`.
+
+  If `n` is `0`, an empty list is returned.
+
   ## Examples
 
-      iex> List.duplicate("hello", 3)
-      ["hello", "hello", "hello"]
+      iex> List.duplicate("hello", 0)
+      []
 
-      iex> List.duplicate([1, 2], 2)
-      [[1, 2], [1, 2]]
+      iex> List.duplicate("hi", 1)
+      ["hi"]
+
+      iex> List.duplicate("bye", 2)
+      ["bye", "bye"]
+
+      iex> List.duplicate([1, 2], 3)
+      [[1, 2], [1, 2], [1, 2]]
 
   """
-  @spec duplicate(elem, non_neg_integer) :: [elem] when elem: var
+  @spec duplicate(any, 0) :: []
+  @spec duplicate(elem, pos_integer) :: [elem, ...] when elem: var
   def duplicate(elem, n) do
     :lists.duplicate(n, elem)
   end
