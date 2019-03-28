@@ -24,7 +24,9 @@ defmodule ListTest do
 
   test "delete/2" do
     assert List.delete([:a, :b, :c], :a) == [:b, :c]
+    assert List.delete([:a, :b, :c], :d) == [:a, :b, :c]
     assert List.delete([:a, :b, :b, :c], :b) == [:a, :b, :c]
+    assert List.delete([], :b) == []
   end
 
   test "wrap/1" do
