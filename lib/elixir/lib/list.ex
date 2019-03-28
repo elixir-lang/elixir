@@ -845,6 +845,13 @@ defmodule List do
   Converts a list of integers representing code points, lists or
   strings into a string.
 
+  To be converted to a string, a list must either be empty or only
+  contain the following elements:
+
+    * strings
+    * integers representing Unicode code points
+    * a list containing one of these three elements
+
   Notice that this function expects a list of integers representing
   UTF-8 code points. If you have a list of bytes, you must instead use
   the [`:binary` module](http://www.erlang.org/doc/man/binary.html).
@@ -860,6 +867,9 @@ defmodule List do
       iex> List.to_string([0x0064, "ee", ['p']])
       "deep"
 
+      iex> List.to_string([])
+      ""
+
   """
   @spec to_string(:unicode.charlist()) :: String.t()
   def to_string(list) when is_list(list) do
@@ -870,11 +880,12 @@ defmodule List do
         raise ArgumentError, """
         cannot convert the given list to a string.
 
-        To be converted to a string, a list must contain only:
+        To be converted to a string, a list must either be empty or only
+        contain the following elements:
 
           * strings
           * integers representing Unicode code points
-          * or a list containing one of these three elements
+          * a list containing one of these three elements
 
         Please check the given list or call inspect/1 to get the list representation, got:
 

@@ -220,6 +220,8 @@ defmodule ListTest do
   test "to_string/1" do
     assert List.to_string([?æ, ?ß]) == "æß"
     assert List.to_string([?a, ?b, ?c]) == "abc"
+    assert List.to_string([]) == ""
+    assert List.to_string([[], []]) == ""
 
     assert_raise UnicodeConversionError, "invalid code point 57343", fn ->
       List.to_string([0xDFFF])
