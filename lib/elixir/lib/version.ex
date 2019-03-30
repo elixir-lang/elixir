@@ -110,11 +110,15 @@ defmodule Version do
     @moduledoc """
     A struct that holds version requirement information.
 
+    The struct fields are private and should not be accessed.
+
     See the "Requirements" section in the `Version` module
     for more information.
     """
 
     defstruct [:source, :matchspec, :compiled]
+
+    @typedoc false
     @type t :: %__MODULE__{source: String.t(), matchspec: :ets.match_spec(), compiled: boolean}
   end
 
