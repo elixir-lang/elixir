@@ -946,10 +946,15 @@ defmodule Keyword do
   end
 
   @doc """
-  Returns and removes all values associated with `key` in the keyword list.
+  Returns the value for `key` and removes all associated entries in the keyword list.
 
-  All duplicated keys are removed. See `pop_first/3` for
-  removing only the first entry.
+  It returns a tuple where the first value for `key` is the first element and the
+  second element is a keyword list with all values associated with `key` are removed.
+  If the `key` is not present in the keyword list, `{default, keyword_list}` is
+  returned.
+
+  If you don't want to remove all the values associated with key use `pop_first/3`
+  instead, that function will remove only the first entry.
 
   ## Examples
 
@@ -960,20 +965,17 @@ defmodule Keyword do
       iex> Keyword.pop([a: 1], :b, 3)
       {3, [a: 1]}
       iex> Keyword.pop([a: 1, a: 2], :a)
-      {[1, 2], []}
+      {1, []}
 
   """
   @spec pop(t, key, value) :: {value, t}
   def pop(keywords, key, default \\ nil) when is_list(keywords) do
-    case get_values(keywords, key) do
-      [] ->
-        {default, keywords}
-
-      [value | []] ->
+    case fetch(keywords, key) do
+      {:ok, value} ->
         {value, delete(keywords, key)}
 
-      values ->
-        {values, delete(keywords, key)}
+      :error ->
+        {default, keywords}
     end
   end
 
