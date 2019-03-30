@@ -2173,8 +2173,16 @@ defmodule Kernel do
     Enum.reduce(fields, struct, fun)
   end
 
-  defp validate_struct!(%{__struct__: module} = struct, _module, _arity) when is_atom(module) do
+  defp validate_struct!(%{__struct__: module} = struct, module, _arity) do
     struct
+  end
+
+  defp validate_struct!(%{__struct__: struct_name}, module, arity) when is_atom(struct_name) do
+    error_message =
+      "expected struct name returned by #{inspect(module)}.__struct__/#{arity} to be " <>
+        "#{inspect(module)}, got: #{inspect(struct_name)}"
+
+    :erlang.error(ArgumentError.exception(error_message))
   end
 
   defp validate_struct!(expr, module, arity) do
