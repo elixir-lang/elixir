@@ -118,8 +118,7 @@ defmodule Version do
 
     defstruct [:source, :matchspec, :compiled]
 
-    @typedoc false
-    @type t :: %__MODULE__{source: String.t(), matchspec: :ets.match_spec(), compiled: boolean}
+    @opaque t :: %__MODULE__{source: String.t(), matchspec: :ets.match_spec(), compiled: boolean}
   end
 
   defmodule InvalidRequirementError do
