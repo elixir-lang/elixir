@@ -107,9 +107,18 @@ defmodule Version do
   @type t :: %__MODULE__{major: major, minor: minor, patch: patch, pre: pre, build: build}
 
   defmodule Requirement do
-    @moduledoc false
+    @moduledoc """
+    A struct that holds version requirement information.
+
+    The struct fields are private and should not be accessed.
+
+    See the "Requirements" section in the `Version` module
+    for more information.
+    """
+
     defstruct [:source, :matchspec, :compiled]
-    @type t :: %__MODULE__{source: String.t(), matchspec: :ets.match_spec(), compiled: boolean}
+
+    @opaque t :: %__MODULE__{source: String.t(), matchspec: :ets.match_spec(), compiled: boolean}
   end
 
   defmodule InvalidRequirementError do
