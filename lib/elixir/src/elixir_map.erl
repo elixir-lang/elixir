@@ -155,8 +155,10 @@ load_struct(Meta, Name, Args, E) ->
         end
     end
   of
-    #{'__struct__' := Module} = Struct when is_atom(Module) ->
+    #{'__struct__' := Name} = Struct ->
       Struct;
+    #{'__struct__' := StructName} when is_atom(StructName) ->
+      form_error(Meta, ?key(E, file), ?MODULE, {struct_name_mismatch, Name, Arity, StructName});
     Other ->
       form_error(Meta, ?key(E, file), ?MODULE, {invalid_struct_return_value, Name, Arity, Other})
   catch
@@ -216,6 +218,10 @@ format_error({not_kv_pair, Expr}) ->
 format_error({non_map_after_struct, Expr}) ->
   io_lib:format("expected struct to be followed by a map, got: ~ts",
                 ['Elixir.Macro':to_string(Expr)]);
+format_error({struct_name_mismatch, Module, Arity, StructName}) ->
+  Name = elixir_aliases:inspect(Module),
+  Message = "expected struct name returned by ~ts.__struct__/~p to be ~ts, got: ~ts",
+  io_lib:format(Message, [Name, Arity, Name, elixir_aliases:inspect(StructName)]);
 format_error({invalid_struct_return_value, Module, Arity, Value}) ->
   Message =
     "expected ~ts.__struct__/~p to return a map with a :__struct__ key that holds the "

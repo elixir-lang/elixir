@@ -534,6 +534,34 @@ defmodule Kernel.ErrorsTest do
       struct(InvalidStructKey, foo: 1)
     end
 
+    invalid_struct_name_error =
+      ~r"expected struct name returned by Kernel.ErrorsTest.InvalidStructName.__struct__/(0|1) to be Kernel.ErrorsTest.InvalidStructName, got: InvalidName"
+
+    defmodule InvalidStructName do
+      def __struct__, do: %{__struct__: InvalidName}
+      def __struct__(_), do: %{__struct__: InvalidName}
+
+      assert_raise CompileError, invalid_struct_name_error, fn ->
+        Macro.struct!(__MODULE__, __ENV__)
+      end
+    end
+
+    assert_eval_raise CompileError,
+                      invalid_struct_name_error,
+                      '%#{InvalidStructName}{} = %{}'
+
+    assert_eval_raise CompileError,
+                      invalid_struct_name_error,
+                      '%#{InvalidStructName}{}'
+
+    assert_raise ArgumentError, invalid_struct_name_error, fn ->
+      struct(InvalidStructName)
+    end
+
+    assert_raise ArgumentError, invalid_struct_name_error, fn ->
+      struct(InvalidStructName, foo: 1)
+    end
+
     defmodule GoodStruct do
       defstruct name: "john"
     end

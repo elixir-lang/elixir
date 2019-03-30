@@ -211,7 +211,7 @@ defmodule MapTest do
 
   defmodule ExternalUser do
     def __struct__ do
-      %{__struct__: ThisDoesNotLeak, name: "john", age: 27}
+      %{__struct__: __MODULE__, name: "john", age: 27}
     end
 
     def __struct__(kv) do
