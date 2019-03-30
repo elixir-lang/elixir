@@ -960,17 +960,20 @@ defmodule Keyword do
       iex> Keyword.pop([a: 1], :b, 3)
       {3, [a: 1]}
       iex> Keyword.pop([a: 1, a: 2], :a)
-      {1, []}
+      {[1, 2], []}
 
   """
   @spec pop(t, key, value) :: {value, t}
   def pop(keywords, key, default \\ nil) when is_list(keywords) do
-    case fetch(keywords, key) do
-      {:ok, value} ->
+    case get_values(keywords, key) do
+      [] ->
+        {default, keywords}
+
+      [value | []] ->
         {value, delete(keywords, key)}
 
-      :error ->
-        {default, keywords}
+      values ->
+        {values, delete(keywords, key)}
     end
   end
 
