@@ -329,7 +329,7 @@ defmodule Code.Typespec do
   end
 
   defp typespec_to_quoted({:var, line, var}) do
-    {erl_to_ex_var(var), line, nil}
+    {erl_to_ex_var(var), [line: line], nil}
   end
 
   defp typespec_to_quoted({:op, line, op, arg}) do
