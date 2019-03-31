@@ -446,10 +446,10 @@ debug_opts(Map, Specs, Opts) ->
   end.
 
 take_debug_opts(Opts) ->
-  case lists:keytake(debug_info, 1, Opts) of
-    {value, {debug_info, true}, Rest} -> {true, Rest};
-    {value, {debug_info, false}, Rest} -> {false, Rest};
-    false -> {elixir_compiler:get_opt(debug_info), Opts}
+  case proplists:get_value(debug_info, Opts) of
+    true -> {true, proplists:delete(debug_info, Opts)};
+    false -> {false, proplists:delete(debug_info, Opts)};
+    undefined -> {elixir_compiler:get_opt(debug_info), Opts}
   end.
 
 extra_chunks_opts([], Opts) -> Opts;

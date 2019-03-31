@@ -160,6 +160,21 @@ defmodule ProtocolTest do
     assert WithAny.__info__(:attributes)[:protocol] == [fallback_to_any: true]
   end
 
+  test "protocols always keep debug_info" do
+    Code.compiler_options(debug_info: false)
+
+    {:module, _, binary, _} =
+      defprotocol DebugInfoProto do
+      end
+
+    assert {:ok, {DebugInfoProto, [debug_info: debug_info]}} =
+             :beam_lib.chunks(binary, [:debug_info])
+
+    assert {:debug_info_v1, :elixir_erl, {:elixir_v1, _, _}} = debug_info
+  after
+    Code.compiler_options(debug_info: true)
+  end
+
   test "defimpl" do
     module = Module.concat(Sample, ImplStruct)
     assert module.__impl__(:for) == ImplStruct
