@@ -368,10 +368,17 @@ defmodule Mix.Dep do
       "\n  Ensure they match or specify one of the above in your deps and set \"override: true\""
   end
 
-  def format_status(%Mix.Dep{app: app, status: {:overridden, other}} = dep) do
-    "the dependency #{app} in #{Path.relative_to_cwd(dep.from)} is overriding a child dependency:\n" <>
-      "#{dep_status(dep)}#{dep_status(other)}" <>
-      "\n  Ensure they match or specify one of the above in your deps and set \"override: true\""
+  def format_status(%Mix.Dep{app: app, opts: opts, status: {:overridden, %Mix.Dep{opts: other_opts} = other}} = dep) do
+    problem = "the dependency #{app} in #{Path.relative_to_cwd(dep.from)} is overriding a child dependency:\n" <>
+    "#{dep_status(dep)}#{dep_status(other)}"
+
+    resolution = case Keyword.get(opts, :in_umbrella) || Keyword.get(other_opts, :in_umbrella) do
+      true ->
+        "It is not possible to override a dependency within an umbrella app. " <>
+        "Either ensure the above dependencies match, or move them out of the umbrella"
+      _ -> "Ensure they match or specify one of the above in your deps and set \"override: true\""
+    end
+    problem <> "\n" <> resolution
   end
 
   def format_status(%Mix.Dep{status: {:unavailable, _}, scm: scm}) do
