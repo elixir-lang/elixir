@@ -946,10 +946,15 @@ defmodule Keyword do
   end
 
   @doc """
-  Returns and removes all values associated with `key` in the keyword list.
+  Returns the first value for `key` and removes all associated entries in the keyword list.
 
-  All duplicated keys are removed. See `pop_first/3` for
-  removing only the first entry.
+  It returns a tuple where the first element is the first value for `key` and the
+  second element is a keyword list with all entries associated with `key` removed.
+  If the `key` is not present in the keyword list, `{default, keyword_list}` is
+  returned.
+
+  If you don't want to remove all the entries associated with `key` use `pop_first/3`
+  instead, that function will remove only the first entry.
 
   ## Examples
 
