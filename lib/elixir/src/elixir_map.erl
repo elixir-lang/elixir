@@ -181,7 +181,7 @@ ensure_loaded(Module) ->
 
 wait_for_struct(Module) ->
   is_pid(erlang:get(elixir_compiler_pid)) andalso
-    'Elixir.Kernel.ErrorHandler':ensure_compiled(Module, struct).
+    ('Elixir.Kernel.ErrorHandler':ensure_compiled(Module, struct, false) =:= found).
 
 assert_struct_keys(Meta, Name, Struct, Assocs, E) ->
   [begin

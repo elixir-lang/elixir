@@ -213,6 +213,61 @@ defmodule Kernel.ParallelCompilerTest do
       assert msg =~ "** (CompileError)  deadlocked waiting on module FooDeadlock"
     end
 
+    test "handles deadlocks from Code.ensure_compiled" do
+      [foo, bar] =
+        write_tmp(
+          "parallel_ensure_deadlock",
+          foo: """
+          defmodule FooDeadlock do
+            Code.ensure_compiled(BarDeadlock)
+          end
+          """,
+          bar: """
+          defmodule BarDeadlock do
+            Code.ensure_compiled(FooDeadlock)
+          end
+          """
+        )
+
+      msg =
+        capture_io(fn ->
+          fixtures = [foo, bar]
+          assert {:error, [bar_error, foo_error], []} = Kernel.ParallelCompiler.compile(fixtures)
+          assert bar_error == {bar, nil, "deadlocked waiting on module FooDeadlock"}
+          assert foo_error == {foo, nil, "deadlocked waiting on module BarDeadlock"}
+        end)
+
+      assert msg =~ "Compilation failed because of a deadlock between files."
+      assert msg =~ "parallel_ensure_deadlock/foo.ex => BarDeadlock"
+      assert msg =~ "parallel_ensure_deadlock/bar.ex => FooDeadlock"
+      assert msg =~ ~r"== Compilation error in file .+parallel_ensure_deadlock/foo\.ex =="
+      assert msg =~ "** (CompileError)  deadlocked waiting on module BarDeadlock"
+      assert msg =~ ~r"== Compilation error in file .+parallel_ensure_deadlock/bar\.ex =="
+      assert msg =~ "** (CompileError)  deadlocked waiting on module FooDeadlock"
+    end
+
+    test "does not deadlock from soft Code.ensure_compiled" do
+      [foo, bar] =
+        write_tmp(
+          "parallel_ensure_nodeadlock",
+          foo: """
+          defmodule FooCircular do
+            {:error, :deadlock} = Code.ensure_compiled(BarCircular, raise_on_deadlock: false)
+          end
+          """,
+          bar: """
+          defmodule BarCircular do
+            {:error, :deadlock} = Code.ensure_compiled(FooCircular, raise_on_deadlock: false)
+          end
+          """
+        )
+
+      assert {:ok, modules, []} = Kernel.ParallelCompiler.compile([foo, bar])
+      assert Enum.sort([FooCircular, BarCircular]) == [BarCircular, FooCircular]
+    after
+      purge([FooCircular, BarCircular])
+    end
+
     test "handles async deadlocks" do
       [foo, bar] =
         write_tmp(

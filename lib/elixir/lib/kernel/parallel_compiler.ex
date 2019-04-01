@@ -193,7 +193,7 @@ defmodule Kernel.ParallelCompiler do
   defp spawn_workers([{ref, found} | t], spawned, waiting, files, result, warnings, state) do
     waiting =
       case List.keytake(waiting, ref, 2) do
-        {{_kind, pid, ^ref, _on, _defining}, waiting} ->
+        {{_kind, pid, ^ref, _on, _defining, _deadlock?}, waiting} ->
           send(pid, {ref, found})
           waiting
 
@@ -268,7 +268,7 @@ defmodule Kernel.ParallelCompiler do
   defp spawn_workers(
          [],
          1,
-         [{_, pid, ref, _, _}] = waiting,
+         [{_, pid, ref, _, _, _}] = waiting,
          [{pid, _, _, _}] = files,
          result,
          warnings,
@@ -291,7 +291,7 @@ defmodule Kernel.ParallelCompiler do
     # struct is a guaranteed compile error, so we never release it and treat
     # it exclusively a missing entry/deadlock.
     pending =
-      for {:module, _, ref, on, _} <- without_definition,
+      for {:module, _, ref, on, _, _} <- without_definition,
           do: {on, {ref, :not_found}}
 
     # Instead of releasing all pending at once, we release them in groups
@@ -311,12 +311,18 @@ defmodule Kernel.ParallelCompiler do
         spawn_workers(refs, spawned, waiting, files, result, warnings, state)
 
       [] ->
-        # There is a deadlock. Instead of printing a deadlock, let's release
-        # structs, as a missing struct error is clearer than a deadlock one.
-        structs = for {:struct, _, ref, _, _} <- without_definition, do: {ref, :not_found}
-
-        if structs != [] do
-          spawn_workers(structs, spawned, waiting, files, result, warnings, state)
+        # There is a deadlock.
+        #
+        # The first step is to release all soft deadlocks without definition.
+        # This is particular useful for missing structs, were a missing struct
+        # error message is easier to manage than a deadlock one.
+        #
+        # Then we release all soft deadlocks even with waiting dependencies
+        # between them. There is nothing stopping us from releasing all of
+        # them at once, but the general idea of releasing them in steps is
+        # to have more deterministic compiler errors.
+        if no_deadlock = no_deadlock(without_definition) || no_deadlock(waiting) do
+          spawn_workers(no_deadlock, spawned, waiting, files, result, warnings, state)
         else
           errors = handle_deadlock(waiting, files)
           {:error, errors, warnings}
@@ -329,6 +335,13 @@ defmodule Kernel.ParallelCompiler do
     wait_for_messages([], spawned, waiting, files, result, warnings, state)
   end
 
+  defp no_deadlock(waiting) do
+    case for({_, _, ref, _, _, false} <- waiting, do: {ref, :deadlock}) do
+      [] -> nil
+      [_ | _] = unlock -> unlock
+    end
+  end
+
   defp should_spawn?(:require, file),
     do: :elixir_code_server.call({:acquire, file}) == :proceed
 
@@ -336,9 +349,9 @@ defmodule Kernel.ParallelCompiler do
     do: true
 
   defp waiting_on_without_definition(waiting, pid) do
-    {_, ^pid, _, on, _} = entry = List.keyfind(waiting, pid, 1)
+    {_, ^pid, _, on, _, _} = entry = List.keyfind(waiting, pid, 1)
 
-    if Enum.any?(waiting, fn {_, _, _, _, defining} -> on in defining end) do
+    if Enum.any?(waiting, fn {_, _, _, _, defining, _} -> on in defining end) do
       nil
     else
       entry
@@ -356,7 +369,7 @@ defmodule Kernel.ParallelCompiler do
 
       {:struct_available, module} ->
         available =
-          for {:struct, _, ref, waiting_module, _defining} <- waiting,
+          for {:struct, _, ref, waiting_module, _defining, _deadlock?} <- waiting,
               module == waiting_module,
               do: {ref, :found}
 
@@ -370,7 +383,7 @@ defmodule Kernel.ParallelCompiler do
         send(child, {ref, :ack})
 
         available =
-          for {:module, _, ref, waiting_module, _defining} <- waiting,
+          for {:module, _, ref, waiting_module, _defining, _deadlock?} <- waiting,
               module == waiting_module,
               do: {ref, :found}
 
@@ -380,11 +393,11 @@ defmodule Kernel.ParallelCompiler do
         spawn_workers(available ++ queue, spawned, waiting, files, result, warnings, state)
 
       # If we are simply requiring files, we do not add to waiting.
-      {:waiting, _kind, child, ref, _on, _defining} when output == :require ->
+      {:waiting, _kind, child, ref, _on, _defining, _deadlock?} when output == :require ->
         send(child, {ref, :not_found})
         spawn_workers(queue, spawned, waiting, files, result, warnings, state)
 
-      {:waiting, kind, child, ref, on, defining} ->
+      {:waiting, kind, child, ref, on, defining, deadlock?} ->
         # If we already got what we were waiting for, do not put it on waiting.
         # Alternatively, we're waiting on ourselves,
         # send :found so that we can crash with a better error.
@@ -393,7 +406,7 @@ defmodule Kernel.ParallelCompiler do
             send(child, {ref, :found})
             waiting
           else
-            [{kind, child, ref, on, defining} | waiting]
+            [{kind, child, ref, on, defining, deadlock?} | waiting]
           end
 
         spawn_workers(queue, spawned, waiting, files, result, warnings, state)
@@ -477,7 +490,7 @@ defmodule Kernel.ParallelCompiler do
         {:current_stacktrace, stacktrace} = Process.info(pid, :current_stacktrace)
         Process.exit(pid, :kill)
 
-        {kind, ^pid, _, on, _} = List.keyfind(waiting, pid, 1)
+        {kind, ^pid, _, on, _, _} = List.keyfind(waiting, pid, 1)
         description = "deadlocked waiting on #{kind} #{inspect(on)}"
         error = CompileError.exception(description: description, file: nil, line: nil)
         print_error(file, :error, error, stacktrace)
