@@ -1007,7 +1007,7 @@ defmodule Code do
 
   If we need to wait for the module to be compiled and there is a deadlock,
   for instance because `Foo` called `Code.ensure_compiled(Bar)` and
-  `Baar` called `Code.ensure_compiled(Foo)`, the compiler will abort
+  `Bar` called `Code.ensure_compiled(Foo)`, the compiler will abort
   with a deadlock. If you don't to raise on deadlock, you can set
   `:raise_on_deadlock` to false.
 
