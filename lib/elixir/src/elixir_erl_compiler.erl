@@ -25,10 +25,10 @@ spawn(Fun, Args) ->
   end.
 
 forms(Forms, File, Opts) ->
-  compile(fun compile:forms/2, Forms, File, Opts).
+  compile(Forms, File, Opts ++ compile:env_compiler_options()).
 
 noenv_forms(Forms, File, Opts) ->
-  compile(fun compile:noenv_forms/2, Forms, File, Opts).
+  compile(Forms, File, Opts).
 
 erl_to_core(Forms, Opts) ->
   %% TODO: Remove parse transform handling on Elixir v2.0
@@ -42,14 +42,14 @@ erl_to_core(Forms, Opts) ->
       end
   end.
 
-compile(Fun, Forms, File, Opts) when is_list(Forms), is_list(Opts), is_binary(File) ->
+compile(Forms, File, Opts) when is_list(Forms), is_list(Opts), is_binary(File) ->
   Source = elixir_utils:characters_to_list(File),
 
   case erl_to_core(Forms, Opts) of
     {ok, CoreForms, CoreWarnings} ->
       format_warnings(Opts, CoreWarnings),
 
-      case Fun(CoreForms, [?NO_SPAWN_COMPILER_PROCESS, from_core, no_auto_import, return, {source, Source} | Opts]) of
+      case compile:noenv_forms(CoreForms, [?NO_SPAWN_COMPILER_PROCESS, from_core, no_auto_import, return, {source, Source} | Opts]) of
         {ok, Module, Binary, Warnings} when is_binary(Binary) ->
           format_warnings(Opts, Warnings),
           {Module, Binary};
