@@ -51,6 +51,7 @@ start(_Type, _Args) ->
     docs => true,
     ignore_module_conflict => false,
     debug_info => true,
+    export_all => false,
     warnings_as_errors => false,
     relative_paths => true
   },

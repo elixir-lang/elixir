@@ -794,7 +794,7 @@ defmodule Code do
   """
   @spec available_compiler_options() :: [atom]
   def available_compiler_options do
-    [:docs, :debug_info, :ignore_module_conflict, :relative_paths, :warnings_as_errors]
+    [:docs, :debug_info, :ignore_module_conflict, :relative_paths, :warnings_as_errors, :export_all]
   end
 
   @doc """
@@ -841,6 +841,8 @@ defmodule Code do
 
     * `:warnings_as_errors` - causes compilation to fail when warnings are
       generated. Defaults to `false`.
+
+    * `:export_all` - Exports all functions in a module. Defaults to `false`.
 
   It returns the new map of compiler options.
 

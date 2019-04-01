@@ -23,6 +23,7 @@ defmodule Mix.Tasks.Compile.Elixir do
     * `--ignore-module-conflict` - does not emit warnings if a module was previously defined
     * `--warnings-as-errors` - treats warnings in the current project as errors and
       return a non-zero exit code
+    * `--export-all` - export all functions in modules
     * `--long-compilation-threshold N` - sets the "long compilation" threshold
       (in seconds) to `N` (see the docs for `Kernel.ParallelCompiler.compile/2`)
     * `--all-warnings` - prints warnings even from files that do not need to be recompiled
@@ -46,6 +47,7 @@ defmodule Mix.Tasks.Compile.Elixir do
     warnings_as_errors: :boolean,
     ignore_module_conflict: :boolean,
     debug_info: :boolean,
+    export_all: :boolean,
     verbose: :boolean,
     long_compilation_threshold: :integer,
     all_warnings: :boolean

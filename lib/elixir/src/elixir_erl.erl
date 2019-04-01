@@ -441,9 +441,22 @@ attributes_form(Line, Attributes, Forms) ->
 % Loading forms
 
 load_form(#{file := File, compile_opts := Opts} = Map, Prefix, Forms, Specs, Chunks) ->
-  CompileOpts = extra_chunks_opts(Chunks, debug_opts(Map, Specs, Opts)),
+  CompileOpts = extra_chunks_opts(Chunks, debug_opts(Map, Specs, export_opts(Opts))),
   {_, Binary} = elixir_erl_compiler:forms(Prefix ++ Specs ++ Forms, File, CompileOpts),
   Binary.
+
+export_opts(Opts) ->
+  case take_export_opts(Opts) of
+    {true, Rest} -> [export_all, nowarn_export_all | Rest];
+    {false, Rest} -> Rest
+  end.
+
+take_export_opts(Opts) ->
+  case proplists:get_value(export_all, Opts) of
+    true -> {true, proplists:delete(export_all, Opts)};
+    false -> {false, proplists:delete(export_all, Opts)};
+    undefined -> {elixir_compiler:get_opt(export_all), Opts}
+  end.
 
 debug_opts(Map, Specs, Opts) ->
   case take_debug_opts(Opts) of

@@ -342,6 +342,11 @@ defmodule Kernel.CLI do
     parse_compiler(t, %{config | compiler_options: compiler_options})
   end
 
+  defp parse_compiler(["--export_all" | t], config) do
+    compiler_options = [{:export_all, true} | config.compiler_options]
+    parse_compiler(t, %{config | compiler_options: compiler_options})
+  end
+
   defp parse_compiler(["--verbose" | t], config) do
     parse_compiler(t, %{config | verbose_compile: true})
   end
