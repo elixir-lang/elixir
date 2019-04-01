@@ -1005,20 +1005,32 @@ defmodule Code do
   not loaded yet, it checks if it needs to be compiled first and then
   tries to load it.
 
+  If we need to wait for the module to be compiled and there is a deadlock,
+  for instance because `Foo` called `Code.ensure_compiled(Bar)` and
+  `Baar` called `Code.ensure_compiled(Foo)`, the compiler will abort
+  with a deadlock. If you don't to raise on deadlock, you can set
+  `:raise_on_deadlock` to false.
+
   If it succeeds in loading the module, it returns `{:module, module}`.
   If not, returns `{:error, reason}` with the error reason.
 
   Check `ensure_loaded/1` for more information on module loading
   and when to use `ensure_loaded/1` or `ensure_compiled/1`.
   """
-  @spec ensure_compiled(module) ::
-          {:module, module} | {:error, :embedded | :badfile | :nofile | :on_load_failure}
-  def ensure_compiled(module) when is_atom(module) do
+  @spec ensure_compiled(module, keyword) ::
+          {:module, module}
+          | {:error, :embedded | :badfile | :nofile | :on_load_failure | :deadlock}
+  def ensure_compiled(module, opts \\ []) when is_atom(module) do
     case :code.ensure_loaded(module) do
       {:error, :nofile} = error ->
-        if is_pid(:erlang.get(:elixir_compiler_pid)) and
-             Kernel.ErrorHandler.ensure_compiled(module, :module) do
-          {:module, module}
+        if is_pid(:erlang.get(:elixir_compiler_pid)) do
+          deadlock? = Keyword.get(opts, :raise_on_deadlock, true)
+
+          case Kernel.ErrorHandler.ensure_compiled(module, :module, deadlock?) do
+            :found -> {:module, module}
+            :not_found -> error
+            :deadlock -> {:error, :deadlock}
+          end
         else
           error
         end
