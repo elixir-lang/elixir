@@ -897,4 +897,21 @@ defmodule Map do
   def size(map) do
     map_size(map)
   end
+
+  @doc """
+  Returns a new map without keys through list and their associated values from map.
+
+  Any key in list that does not exist in map is ignored
+
+  ## Examples
+
+      iex> Map.without(%{a: 1, b: 2, c: 3}, [:a, :b])
+      %{c: 3}
+
+  """
+
+  @spec without(map, list) :: map
+  def without(%{} = map, keys) when is_list(keys) do
+    :maps.without(keys, map)
+  end
 end

@@ -194,6 +194,10 @@ defmodule MapTest do
              %{a: 1, b: 2, c: :x, d: 5}
   end
 
+  test "without/2" do
+    assert Map.without(%{a: 1, b: 2, c: 3}, [:a, :b]) == %{c: 3}
+  end
+
   test "implements (almost) all functions in Keyword" do
     assert Keyword.__info__(:functions) -- Map.__info__(:functions) ==
              [delete: 3, delete_first: 2, get_values: 2, keyword?: 1, pop_first: 2, pop_first: 3]
