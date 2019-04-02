@@ -133,7 +133,7 @@ defmodule Version do
     @doc false
     def match?(%__MODULE__{matchspec: spec, compiled: true}, matchable_pattern) do
       matches = :ets.match_spec_run([matchable_pattern], spec)
-      Enum.any?(matches)
+      matches != []
     end
 
     def match?(%__MODULE__{matchspec: spec, compiled: false}, matchable_pattern) do
