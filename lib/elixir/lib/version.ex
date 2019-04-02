@@ -119,6 +119,26 @@ defmodule Version do
     defstruct [:source, :matchspec, :compiled]
 
     @opaque t :: %__MODULE__{source: String.t(), matchspec: :ets.match_spec(), compiled: boolean}
+
+    @doc false
+    def new(source, spec) do
+      %__MODULE__{source: source, matchspec: spec, compiled: false}
+    end
+
+    @doc false
+    def compile(%__MODULE__{matchspec: spec} = req) do
+      %{req | matchspec: :ets.match_spec_compile(spec), compiled: true}
+    end
+
+    @doc false
+    def compiled?(%__MODULE__{compiled: compiled?}) do
+      compiled?
+    end
+
+    @doc false
+    def matchspec(%__MODULE__{matchspec: spec}) do
+      spec
+    end
   end
 
   defmodule InvalidRequirementError do
@@ -192,15 +212,17 @@ defmodule Version do
     match?(version, parse_requirement!(requirement), opts)
   end
 
-  def match?(version, %Requirement{matchspec: spec, compiled: false}, opts) do
+  def match?(version, requirement, opts) do
+    spec = Requirement.matchspec(requirement)
     allow_pre = Keyword.get(opts, :allow_pre, true)
-    {:ok, result} = :ets.test_ms(to_matchable(version, allow_pre), spec)
-    result != false
-  end
 
-  def match?(version, %Requirement{matchspec: spec, compiled: true}, opts) do
-    allow_pre = Keyword.get(opts, :allow_pre, true)
-    :ets.match_spec_run([to_matchable(version, allow_pre)], spec) != []
+    if Requirement.compiled?(requirement) do
+      matches = :ets.match_spec_run([to_matchable(version, allow_pre)], spec)
+      matches != []
+    else
+      {:ok, result} = :ets.test_ms(to_matchable(version, allow_pre), spec)
+      result != false
+    end
   end
 
   @doc """
@@ -321,7 +343,8 @@ defmodule Version do
   def parse_requirement(string) when is_binary(string) do
     case Version.Parser.parse_requirement(string) do
       {:ok, spec} ->
-        {:ok, %Requirement{source: string, matchspec: spec, compiled: false}}
+        requirement = Requirement.new(string, spec)
+        {:ok, requirement}
 
       :error ->
         :error
@@ -347,7 +370,7 @@ defmodule Version do
   def parse_requirement!(string) when is_binary(string) do
     case Version.Parser.parse_requirement(string) do
       {:ok, spec} ->
-        %Requirement{source: string, matchspec: spec, compiled: false}
+        Requirement.new(string, spec)
 
       :error ->
         raise InvalidRequirementError, string
@@ -364,8 +387,8 @@ defmodule Version do
   compiled match_spec, nor can it be stored on disk).
   """
   @spec compile_requirement(Requirement.t()) :: Requirement.t()
-  def compile_requirement(%Requirement{matchspec: spec} = req) do
-    %{req | matchspec: :ets.match_spec_compile(spec), compiled: true}
+  def compile_requirement(requirement) do
+    Requirement.compile(requirement)
   end
 
   defp to_matchable(%Version{major: major, minor: minor, patch: patch, pre: pre}, allow_pre?) do
