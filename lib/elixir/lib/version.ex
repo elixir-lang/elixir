@@ -119,8 +119,8 @@ defmodule Version do
     defstruct [:source, :matchspec, :compiled]
 
     @opaque t :: %__MODULE__{
-              source: String.t(), 
-              matchspec: :ets.match_spec() | :ets.comp_match_spec(), 
+              source: String.t(),
+              matchspec: :ets.match_spec() | :ets.comp_match_spec(),
               compiled: boolean
             }
 
