@@ -222,4 +222,8 @@ if [ -n "$RUN_ERL_PIPE" ]; then
   set -- "$ERTS_BIN$ERL_EXEC" -daemon "$RUN_ERL_PIPE/" "$RUN_ERL_LOG/" "$ESCAPED"
 fi
 
-exec "$@"
+if [ -n "$ELIXIR_CLI_DRY_RUN" ]; then
+  echo "$@"
+else
+  exec "$@"
+fi
