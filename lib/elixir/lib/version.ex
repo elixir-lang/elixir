@@ -131,13 +131,14 @@ defmodule Version do
     end
 
     @doc false
-    def compiled?(%__MODULE__{compiled: compiled?}) do
-      compiled?
+    def match?(%__MODULE__{matchspec: spec, compiled: true}, matchable_pattern) do
+      matches = :ets.match_spec_run([matchable_pattern], spec)
+      Enum.any?(matches)
     end
 
-    @doc false
-    def matchspec(%__MODULE__{matchspec: spec}) do
-      spec
+    def match?(%__MODULE__{matchspec: spec, compiled: false}, matchable_pattern) do
+      {:ok, result} = :ets.test_ms(matchable_pattern, spec)
+      result != false
     end
   end
 
@@ -213,16 +214,10 @@ defmodule Version do
   end
 
   def match?(version, requirement, opts) do
-    spec = Requirement.matchspec(requirement)
     allow_pre = Keyword.get(opts, :allow_pre, true)
+    matchable_pattern = to_matchable(version, allow_pre)
 
-    if Requirement.compiled?(requirement) do
-      matches = :ets.match_spec_run([to_matchable(version, allow_pre)], spec)
-      matches != []
-    else
-      {:ok, result} = :ets.test_ms(to_matchable(version, allow_pre), spec)
-      result != false
-    end
+    Requirement.match?(requirement, matchable_pattern)
   end
 
   @doc """
