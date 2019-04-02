@@ -118,18 +118,23 @@ defmodule Version do
 
     defstruct [:source, :matchspec, :compiled]
 
-    @opaque t :: %__MODULE__{source: String.t(), matchspec: :ets.match_spec(), compiled: boolean}
+    @typep source_string :: String.t()
+    @typep matchspec :: :ets.match_spec() | :ets.comp_match_spec()
+    @opaque t :: %__MODULE__{source: source_string, matchspec: matchspec, compiled: boolean}
 
+    @spec new(source_string, matchspec) :: t
     @doc false
     def new(source, spec) do
       %__MODULE__{source: source, matchspec: spec, compiled: false}
     end
 
+    @spec compile(t) :: t
     @doc false
     def compile(%__MODULE__{matchspec: spec} = req) do
       %{req | matchspec: :ets.match_spec_compile(spec), compiled: true}
     end
 
+    @spec match?(t, tuple) :: boolean
     @doc false
     def match?(%__MODULE__{matchspec: spec, compiled: true}, matchable_pattern) do
       matches = :ets.match_spec_run([matchable_pattern], spec)
