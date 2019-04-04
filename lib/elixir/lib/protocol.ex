@@ -351,7 +351,7 @@ defmodule Protocol do
   ## Examples
 
       defprotocol Derivable do
-        def ok(a)
+        def ok(arg)
       end
 
       defimpl Derivable, for: Any do
@@ -373,13 +373,10 @@ defmodule Protocol do
       defmodule ImplStruct do
         @derive [Derivable]
         defstruct a: 0, b: 0
-
-        defimpl Sample do
-          def ok(struct) do
-            Unknown.undefined(struct)
-          end
-        end
       end
+
+      Derivable.ok(%ImplStruct{})
+      {:ok, %ImplStruct{a: 0, b: 0}, %ImplStruct{a: 0, b: 0}, []}
 
   Explicit derivations can now be called via `__deriving__`:
 
