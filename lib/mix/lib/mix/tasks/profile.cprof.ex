@@ -29,7 +29,6 @@ defmodule Mix.Tasks.Profile.Cprof do
     * `--matching` - only profile calls matching the given `Module.function/arity` pattern
     * `--limit` - filters out any results with a call count less than the limit
     * `--module` - filters out any results not pertaining to the given module
-    * `--config`, `-c` - loads the given configuration file
     * `--eval`, `-e` - evaluate the given code
     * `--require`, `-r` - requires pattern before running the command
     * `--parallel`, `-p` - makes all requires parallel
