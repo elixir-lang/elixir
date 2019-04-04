@@ -245,6 +245,9 @@ defmodule Mix do
     * `MIX_REBAR` - path to rebar command that overrides the one Mix installs
     * `MIX_REBAR3` - path to rebar3 command that overrides the one Mix installs
 
+  Mix also falls back to the `XDG_DATA_HOME` and `XDG_CONFIG_HOME`
+  environment variables when storing its contents and configuration.
+
   Environment variables that are not meant to hold a value (and act basically as
   flags) should be set to either `1` or `true`, for example:
 
