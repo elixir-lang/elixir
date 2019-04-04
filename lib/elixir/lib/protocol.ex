@@ -351,7 +351,7 @@ defmodule Protocol do
   ## Examples
 
       defprotocol Derivable do
-        def ok(a)
+        def ok(arg)
       end
 
       defimpl Derivable, for: Any do
