@@ -30,7 +30,6 @@ defmodule Mix.Tasks.Profile.Eprof do
     * `--calls` - filters out any results with a call count lower than this
     * `--time` - filters out any results that took lower than specified (in µs)
     * `--sort` - sorts the results by `time` or `calls` (default: `time`)
-    * `--config`, `-c` - loads the given configuration file
     * `--eval`, `-e` - evaluates the given code
     * `--require`, `-r` - requires pattern before running the command
     * `--parallel`, `-p` - makes all requires parallel
