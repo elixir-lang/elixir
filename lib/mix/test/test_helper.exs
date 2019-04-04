@@ -185,6 +185,8 @@ end
 home = MixTest.Case.tmp_path(".mix")
 File.mkdir_p!(home)
 System.put_env("MIX_HOME", home)
+System.delete_env("XDG_DATA_HOME")
+System.delete_env("XDG_CONFIG_HOME")
 
 rebar = System.get_env("REBAR") || Path.expand("fixtures/rebar", __DIR__)
 File.cp!(rebar, Path.join(home, "rebar"))
