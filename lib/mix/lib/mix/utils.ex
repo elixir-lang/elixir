@@ -35,7 +35,7 @@ defmodule Mix.Utils do
   defp mix_home_xdg_lookup(xdg) do
     case {System.get_env("MIX_HOME"), System.get_env(xdg)} do
       {directory, _} when is_binary(directory) -> directory
-      {nil, directory} when is_binary(directory) -> :filename.basedir(:user_config, "mix")
+      {nil, directory} when is_binary(directory) -> Path.join(directory, "mix")
       {nil, nil} -> Path.expand("~/.mix")
     end
   end
