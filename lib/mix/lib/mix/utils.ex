@@ -4,8 +4,8 @@ defmodule Mix.Utils do
   @doc """
   Gets the Mix home.
 
-  It defaults to `~/.mix` unless the `MIX_HOME`
-  environment variable is set.
+  It uses the the locations `MIX_HOME`, `XDG_DATA_HOME/mix`,
+  `~/.mix` with decreasing priority.
 
   Developers should only store entries in the
   `MIX_HOME` directory which are guaranteed to
@@ -15,7 +15,29 @@ defmodule Mix.Utils do
   stored there.
   """
   def mix_home do
-    System.get_env("MIX_HOME") || Path.expand("~/.mix")
+    case {System.get_env("MIX_HOME"), System.get_env("XDG_DATA_HOME")} do
+      {directory, _} when is_binary(directory) -> directory
+      {nil, directory} when is_binary(directory) -> :filename.basedir(:user_data, "mix")
+      {nil, nil} -> Path.expand("~/.mix")
+    end
+  end
+
+  @doc """
+  Gets possible location of global Mix configuration.
+
+  Possible locations:
+
+   * `~/.mix`
+   * `MIX_HOME`
+   * `XDG_CONFIG_HOME/mix`
+
+  """
+  def mix_config_home do
+    case {System.get_env("MIX_HOME"), System.get_env("XDG_CONFIG_HOME")} do
+      {directory, _} when is_binary(directory) -> directory
+      {nil, directory} when is_binary(directory) -> :filename.basedir(:user_config, "mix")
+      {nil, nil} -> Path.expand("~/.mix")
+    end
   end
 
   @doc """
