@@ -375,6 +375,9 @@ defmodule Protocol do
         defstruct a: 0, b: 0
       end
 
+      Derivable.ok(%ImplStruct{})
+      {:ok, %ImplStruct{a: 0, b: 0}, %ImplStruct{a: 0, b: 0}, []}
+
   Explicit derivations can now be called via `__deriving__`:
 
       # Explicitly derived via `__deriving__`
