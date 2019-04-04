@@ -1457,7 +1457,7 @@ defmodule Enum do
   Returns the maximal element in the `enumerable` according
   to Erlang's term ordering.
 
-  If multiple elements are considered maximal, the first one that was found
+  If multiple elements are considered maximal, the last one that was found
   is returned.
 
   Calls the provided `empty_fallback` function and returns its value if
@@ -1579,7 +1579,7 @@ defmodule Enum do
   Returns the minimal element in the `enumerable` according
   to Erlang's term ordering.
 
-  If multiple elements are considered minimal, the first one that was found
+  If multiple elements are considered minimal, the last one that was found
   is returned.
 
   Calls the provided `empty_fallback` function and returns its value if
