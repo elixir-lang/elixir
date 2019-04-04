@@ -106,9 +106,6 @@ defmodule Mix.Tasks.New do
       create_file("mix.exs", mix_exs_template(assigns))
     end
 
-    create_directory("config")
-    create_file("config/config.exs", config_template(assigns))
-
     create_directory("lib")
     create_file("lib/#{mod_filename}.ex", lib_template(assigns))
 
@@ -388,60 +385,25 @@ defmodule Mix.Tasks.New do
   end
   """)
 
-  embed_template(:config, ~S"""
-  # This file is responsible for configuring your application
-  # and its dependencies with the aid of the Mix.Config module.
-  use Mix.Config
-
-  # This configuration is loaded before any dependency and is restricted
-  # to this project. If another project depends on this project, this
-  # file won't be loaded nor affect the parent project. For this reason,
-  # if you want to provide default values for your application for
-  # third-party users, it should be done in your "mix.exs" file.
-
-  # You can configure your application as:
-  #
-  #     config :<%= @app %>, key: :value
-  #
-  # and access this configuration in your application as:
-  #
-  #     Application.get_env(:<%= @app %>, :key)
-  #
-  # You can also configure a third-party app:
-  #
-  #     config :logger, level: :info
-  #
-
-  # It is also possible to import configuration files, relative to this
-  # directory. For example, you can emulate configuration per environment
-  # by uncommenting the line below and defining dev.exs, test.exs and such.
-  # Configuration from the imported file will override the ones defined
-  # here (which is why it is important to import them last).
-  #
-  #     import_config "#{Mix.env()}.exs"
-  """)
-
   embed_template(:config_umbrella, ~S"""
-  # This file is responsible for configuring your application
-  # and its dependencies with the aid of the Mix.Config module.
+  # This file is responsible for configuring your umbrella
+  # and **all applications** and their dependencies with the
+  # help of Mix.Config.
+  #
+  # Note that all applications in your umbrella share the
+  # same configuration and dependencies, which is why they
+  # all use the same configuration file. If you want different
+  # configurations or dependencies per app, it is best to
+  # move said applications out of the umbrella.
   use Mix.Config
 
-  # By default, the umbrella project as well as each child
-  # application will require this configuration file, as
-  # configuration and dependencies are shared in an umbrella
-  # project. While one could configure all applications here,
-  # we prefer to keep the configuration of each individual
-  # child application in their own app, but all other
-  # dependencies, regardless if they belong to one or multiple
-  # apps, should be configured in the umbrella to avoid confusion.
-  import_config "../apps/*/config/config.exs"
-
-  # Sample configuration (overrides the imported configuration above):
+  # Sample configuration:
   #
   #     config :logger, :console,
   #       level: :info,
   #       format: "$date $time [$level] $metadata$message\n",
   #       metadata: [:user_id]
+  #
   """)
 
   embed_template(:lib, """

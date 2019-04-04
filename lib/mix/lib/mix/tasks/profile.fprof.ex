@@ -27,7 +27,6 @@ defmodule Mix.Tasks.Profile.Fprof do
     * `--callers` - prints detailed information about immediate callers and called functions
     * `--details` - includes profile data for each profiled process
     * `--sort key` - sorts the output by given key: `acc` (default) or `own`
-    * `--config`, `-c`  - loads the given configuration file
     * `--eval`, `-e` - evaluates the given code
     * `--require`, `-r` - requires pattern before running the command
     * `--parallel`, `-p` - makes all requires parallel
