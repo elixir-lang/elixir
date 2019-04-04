@@ -373,12 +373,6 @@ defmodule Protocol do
       defmodule ImplStruct do
         @derive [Derivable]
         defstruct a: 0, b: 0
-
-        defimpl Sample do
-          def ok(struct) do
-            Unknown.undefined(struct)
-          end
-        end
       end
 
   Explicit derivations can now be called via `__deriving__`:
