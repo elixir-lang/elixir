@@ -137,20 +137,20 @@ defmodule Mix.UtilsTest do
     end
   end
 
-  describe "mix_config_home/0" do
+  describe "mix_config/0" do
     test "prefers MIX_HOME over XDG_CONFIG_HOME" do
       System.put_env("MIX_HOME", "mix_home")
       System.put_env("XDG_CONFIG_HOME", "xdg_data_home")
-      assert "mix_home" = Mix.Utils.mix_config_home()
+      assert "mix_home" = Mix.Utils.mix_config()
     end
 
     test "falls back to XDG_CONFIG_HOME/mix" do
       System.put_env("XDG_CONFIG_HOME", "xdg_config_home")
-      assert :filename.basedir(:user_config, "mix") == Mix.Utils.mix_config_home()
+      assert :filename.basedir(:user_config, "mix") == Mix.Utils.mix_config()
     end
 
     test "falls back to $HOME/.mix" do
-      assert Path.expand("~/.mix") == Mix.Utils.mix_config_home()
+      assert Path.expand("~/.mix") == Mix.Utils.mix_config()
     end
   end
 
