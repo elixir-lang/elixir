@@ -370,6 +370,9 @@ defmodule EnumTest do
     assert Enum.max([1, 2, 3]) == 3
     assert Enum.max([1, [], :a, {}]) == []
 
+    assert Enum.max([1, 1.0]) === 1
+    assert Enum.max([1.0, 1]) === 1.0
+
     assert_raise Enum.EmptyError, fn ->
       Enum.max([])
     end
@@ -386,6 +389,9 @@ defmodule EnumTest do
 
   test "max_by/2" do
     assert Enum.max_by(["a", "aa", "aaa"], fn x -> String.length(x) end) == "aaa"
+
+    assert Enum.max_by([1, 1.0], & &1) === 1
+    assert Enum.max_by([1.0, 1], & &1) === 1.0
 
     assert_raise Enum.EmptyError, fn ->
       Enum.max_by([], fn x -> String.length(x) end)
@@ -415,6 +421,9 @@ defmodule EnumTest do
     assert Enum.min([1, 2, 3]) == 1
     assert Enum.min([[], :a, {}]) == :a
 
+    assert Enum.min([1, 1.0]) === 1
+    assert Enum.min([1.0, 1]) === 1.0
+
     assert_raise Enum.EmptyError, fn ->
       Enum.min([])
     end
@@ -431,6 +440,9 @@ defmodule EnumTest do
 
   test "min_by/2" do
     assert Enum.min_by(["a", "aa", "aaa"], fn x -> String.length(x) end) == "a"
+
+    assert Enum.min_by([1, 1.0], & &1) === 1
+    assert Enum.min_by([1.0, 1], & &1) === 1.0
 
     assert_raise Enum.EmptyError, fn ->
       Enum.min_by([], fn x -> String.length(x) end)
@@ -454,6 +466,9 @@ defmodule EnumTest do
     assert Enum.min_max([2, 3, 1]) == {1, 3}
     assert Enum.min_max([[], :a, {}]) == {:a, []}
 
+    assert Enum.min_max([1, 1.0]) === {1, 1}
+    assert Enum.min_max([1.0, 1]) === {1.0, 1.0}
+
     assert_raise Enum.EmptyError, fn ->
       Enum.min_max([])
     end
@@ -470,6 +485,9 @@ defmodule EnumTest do
 
   test "min_max_by/2" do
     assert Enum.min_max_by(["aaa", "a", "aa"], fn x -> String.length(x) end) == {"a", "aaa"}
+
+    assert Enum.min_max_by([1, 1.0], & &1) === {1, 1}
+    assert Enum.min_max_by([1.0, 1], & &1) === {1.0, 1.0}
 
     assert_raise Enum.EmptyError, fn ->
       Enum.min_max_by([], fn x -> String.length(x) end)
