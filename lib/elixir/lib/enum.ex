@@ -1688,7 +1688,7 @@ defmodule Enum do
     first_fun = &{&1, &1}
 
     reduce_fun = fn entry, {min, max} ->
-      {Kernel.min(entry, min), Kernel.max(entry, max)}
+      {Kernel.min(min, entry), Kernel.max(max, entry)}
     end
 
     case reduce_by(enumerable, first_fun, reduce_fun) do
@@ -2828,7 +2828,7 @@ defmodule Enum do
   defp entry_to_string(entry), do: String.Chars.to_string(entry)
 
   defp aggregate([head | tail], fun, _empty) do
-    :lists.foldl(fun, head, tail)
+    aggregate_list(tail, head, fun)
   end
 
   defp aggregate([], _fun, empty) do
@@ -2845,13 +2845,16 @@ defmodule Enum do
     enumerable
     |> reduce(ref, fn
       element, ^ref -> element
-      element, acc -> fun.(element, acc)
+      element, acc -> fun.(acc, element)
     end)
     |> case do
       ^ref -> empty.()
       result -> result
     end
   end
+
+  defp aggregate_list([head | tail], acc, fun), do: aggregate_list(tail, fun.(acc, head), fun)
+  defp aggregate_list([], acc, _fun), do: acc
 
   defp reduce_by([head | tail], first, fun) do
     :lists.foldl(fun, first.(head), tail)
