@@ -2220,6 +2220,9 @@ defmodule Enum do
   then takes `amount` of elements, returning as many elements as possible if there are not enough
   elements.
 
+  A negative `start_index` can be passed, which means the enumerable is enumerated once and the
+  index is counted from the end (e.g. -1 finds the last element).
+
   It returns `[]` if `amount` is `0` or if `start_index` is out of bounds.
 
   ## Examples
@@ -2234,7 +2237,11 @@ defmodule Enum do
       iex> Enum.slice(1..10, 5, 0)
       []
 
-      # out of bound start index
+      # using a negative start index
+      iex> Enum.slice(1..10, -6, 3)
+      [5, 6, 7]
+
+      # out of bound start index (positive)
       iex> Enum.slice(1..10, 10, 5)
       []
 
