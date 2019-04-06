@@ -7,13 +7,10 @@ defmodule IO do
   For convenience, Elixir provides `:stdio` and `:stderr` as
   shortcuts to Erlang's `:standard_io` and `:standard_error`.
 
-  The majority of the functions expect chardata, i.e. strings or
-  lists of characters and strings. In case another type is given,
-  functions will convert to string via the `String.Chars` protocol
-  (as shown in typespecs).
-
-  The functions starting with `bin` expect iodata as an argument,
-  i.e. binaries or lists of bytes and binaries.
+  The majority of the functions expect chardata. In case another type is given,
+  functions will convert those types to string via the `String.Chars` protocol
+  (as shown in typespecs). For more information on chardata, see the
+  "Iolists and iodata" section below.
 
   ## IO devices
 
@@ -31,6 +28,109 @@ defmodule IO do
   reading or writing functions will start from the place where the device
   was last accessed. The position of files can be changed using the
   `:file.position/2` function.
+
+  ## Iolists and iodata
+
+  Iolists and iodata are data structures that can be used as a sometimes
+  more efficient alternative to binaries.
+
+  An **iolist** is a list containing bytes (integers in `0..255`), binaries,
+  or nested iolists. The type is recursive. Let's see an example of one of
+  the possible iolists representing the binary `"hello"`:
+
+      [?h, "el", ["l", [?o]]]
+
+  Iodata is similar to an iolist, except that it can be a binary at the
+  top level as well, that is, it's either a binary or an iolist.
+
+  ### Use cases for iolists and iodata
+
+  Iolists and iodata exist because often you need to do many append operations
+  on smaller chunks of binaries in order to create a bigger binary. However, in
+  Erlang and Elixir concatenating binaries will copy the concatenated binaries
+  into a new binary.
+
+      def email(username, domain) do
+        username <> "@" <> domain
+      end
+
+  In this function, creating the email address will copy the `username` and `domain`
+  binaries. Now imagine you want to use the resulting email inside another binary:
+
+      def welcome_message(name, username, domain) do
+        "Welcome #{name}, your email is: #{email(username, domain)}"
+      end
+
+      IO.puts(welcome_message("Meg", "meg", "example.com"))
+      #=> "Welcome Meg, your email is: meg@example.com"
+
+  Every time you concatenate binaries and use interpolation (`#{}`) you are making
+  copies of those binaries. However, in many cases you don't need the complete
+  binary while you manipulate it, but only at the end to print it out or send it
+  somewhere. In such cases, you can construct the binary by creating iolists and
+  then convert the final iolist to a binary through `iodata_to_binary/1`:
+
+      def email(username, domain) do
+        [username, ?@, domain]
+      end
+
+      def welcome_message(name, username, domain) do
+        ["Welcome ", name, ", your email is: ", email(username, domain)]
+      end
+
+      welcome_message("Meg", "meg", "example.com")
+      |> IO.iodata_to_binary()
+      |> IO.puts()
+      #=> "Welcome Meg, your email is: meg@example.com"
+
+  Building iodata is cheaper than concatenating binaries. Concatenating multiple
+  pieces of iodata just means putting them together inside a list since iodata
+  can be arbitrarily nested, and that's a cheap and efficient operation.
+  `iodata_to_binary/1` is reasonably efficient since it's implemented natively
+  in C.
+
+  ### Using iolists and iodata without converting to binary
+
+  In cases where you need to write iodata to some kind of external device, it's
+  often possible to avoid converting the iodata to binary altogether. For example,
+  the `:gen_tcp.send/2` function used to write data on a TCP socket accepts iodata
+  directly. The `:gen_tcp.send/2` function will take care of writing the iodata to
+  the socket directly without converting it to binary. There's a lot more functions
+  that work this way. A good example is `IO.puts/1` itself, which accepts iodata
+  for efficient writing on the output device:
+
+      IO.puts([?h, "el", ["l", [?o]]])
+      #=> "hello"
+
+  In many cases avoiding to turn iodata into binaries is the correct choice
+  for performance. One drawback of iodata is that you can't do things like
+  pattern match on the first part of a piece of iodata like you can with a
+  binary, because you usually don't know the shape of the iodata. However the
+  `IO` module provides the `iodata_length/1` function for when you want to
+  compute the length of a piece of iodata in an efficient way without converting
+  the iodata to a binary.
+
+  ### Chardata
+
+  Erlang and Elixir also have the idea of `t:chardata/0`. Chardata is very
+  similar to iodata: the only difference is that integers in iodata represent
+  bytes while integers in chardata represent Unicode codepoints. Bytes
+  (`t:byte/0`) are integers in the `0..255` range, while Unicode codepoints
+  (`t:char/0`) are integers in the range `0..0x10FFFF`. The `IO` module provides
+  the `chardata_to_string/1` function for chardata as the "counter-part" of the
+  `iodata_to_binary/1` function for iodata.
+
+  If you try to use `iodata_to_binary/1` on chardata, it will result in an
+  argument error. For example, let's try to put a codepoint that is not
+  representable with one byte, like `?π`, inside iodata:
+
+      iex> IO.iodata_to_binary(["The symbol for pi is: ", ?π])
+      ** (ArgumentError) argument error
+
+  If we use chardata instead, it will work as expected:
+
+      iex> IO.chardata_to_string(["The symbol for pi is: ", ?π])
+      "The symbol for pi is: π"
 
   """
 
