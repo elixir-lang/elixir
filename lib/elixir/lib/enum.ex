@@ -375,7 +375,7 @@ defmodule Enum do
   Returns `default` if `index` is out of bounds.
 
   A negative `index` can be passed, which means the `enumerable` is
-  enumerated once and the `index` is counted from the end (e.g.
+  enumerated once and the `index` is counted from the end (for example,
   `-1` finds the last element).
 
   ## Examples
@@ -830,7 +830,7 @@ defmodule Enum do
   Returns `{:ok, element}` if found, otherwise `:error`.
 
   A negative `index` can be passed, which means the `enumerable` is
-  enumerated once and the `index` is counted from the end (e.g.
+  enumerated once and the `index` is counted from the end (for example,
   `-1` fetches the last element).
 
   ## Examples
@@ -1759,8 +1759,8 @@ defmodule Enum do
   `fun` returned a falsy value (`false` or `nil`).
 
   The elements in both the returned lists are in the same relative order as they
-  were in the original enumerable (if such enumerable was ordered, e.g., a
-  list); see the examples below.
+  were in the original enumerable (if such enumerable was ordered, like a
+  list). See the examples below.
 
   ## Examples
 
@@ -2161,7 +2161,7 @@ defmodule Enum do
   until element `index_range.last` (inclusively).
 
   Indexes are normalized, meaning that negative indexes will be counted
-  from the end (e.g. `-1` means the last element of the `enumerable`).
+  from the end (for example, `-1` means the last element of the `enumerable`).
 
   If `index_range.last` is out of bounds, then it is assigned as the index
   of the last element.
@@ -2221,7 +2221,7 @@ defmodule Enum do
   elements.
 
   A negative `start_index` can be passed, which means the enumerable is enumerated once and the
-  index is counted from the end (e.g. -1 finds the last element).
+  index is counted from the end (for example, `-1` means the last element).
 
   It returns `[]` if `amount` is `0` or if `start_index` is out of bounds.
 
