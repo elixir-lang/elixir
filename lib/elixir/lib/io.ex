@@ -34,8 +34,8 @@ defmodule IO do
   IO data is a data type that can be used as a more efficient alternative to binaries
   in certain situations.
 
-  A term of type **IO data** is a binary or a list containing bytes (integers in `0..255`),
-  binaries, or nested iolists. The type is recursive. Let's see an example of one of
+  A term of type **IO data** is a binary or a list containing bytes (integers in `0..255`)
+  or nested IO data. The type is recursive. Let's see an example of one of
   the possible IO data representing the binary `"hello"`:
 
       [?h, "el", ["l", [?o]]]
