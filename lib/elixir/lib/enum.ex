@@ -2217,11 +2217,12 @@ defmodule Enum do
   with `amount` number of elements if available.
 
   Given an `enumerable`, it drops elements right before element `start_index`,
-  then takes `amount` of elements, returning as many elements as possible if there are not enough
-  elements.
+  then takes `amount` of elements, returning as many elements as possible if
+  there are not enough elements.
 
-  A negative `start_index` can be passed, which means the enumerable is enumerated once and the
-  index is counted from the end (for example, `-1` means the last element).
+  A negative `start_index` can be passed, which means the `enumerable` is
+  enumerated once and the index is counted from the end (for example,
+  `-1` starts slicing from the last element).
 
   It returns `[]` if `amount` is `0` or if `start_index` is out of bounds.
 
