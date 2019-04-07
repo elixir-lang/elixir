@@ -2,7 +2,7 @@ defmodule OptionParser do
   @moduledoc """
   Functions for parsing command line arguments.
 
-  When calling a command, it's possible to pass commandline options
+  When calling a command, it's possible to pass command line options
   to modify what that command does. In this documentation those are
   called "switches", in other situations they may be called "flags"
   or simply "options". A switch can be given a value, also called an
