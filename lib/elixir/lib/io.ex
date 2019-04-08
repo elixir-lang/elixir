@@ -1,5 +1,5 @@
 defmodule IO do
-  @moduledoc """
+  @moduledoc ~S"""
   Functions handling input/output (IO).
 
   Many functions in this module expect an IO device as an argument.
@@ -7,13 +7,10 @@ defmodule IO do
   For convenience, Elixir provides `:stdio` and `:stderr` as
   shortcuts to Erlang's `:standard_io` and `:standard_error`.
 
-  The majority of the functions expect chardata, i.e. strings or
-  lists of characters and strings. In case another type is given,
-  functions will convert to string via the `String.Chars` protocol
-  (as shown in typespecs).
-
-  The functions starting with `bin` expect iodata as an argument,
-  i.e. binaries or lists of bytes and binaries.
+  The majority of the functions expect chardata. In case another type is given,
+  functions will convert those types to string via the `String.Chars` protocol
+  (as shown in typespecs). For more information on chardata, see the
+  "IO data" section below.
 
   ## IO devices
 
@@ -31,6 +28,110 @@ defmodule IO do
   reading or writing functions will start from the place where the device
   was last accessed. The position of files can be changed using the
   `:file.position/2` function.
+
+  ## IO data
+
+  IO data is a data type that can be used as a more efficient alternative to binaries
+  in certain situations.
+
+  A term of type **IO data** is a binary or a list containing bytes (integers in `0..255`)
+  or nested IO data. The type is recursive. Let's see an example of one of
+  the possible IO data representing the binary `"hello"`:
+
+      [?h, "el", ["l", [?o]]]
+
+  The built-in `t:iodata/0` type is defined in terms of `t:iolist/0`. An IO list is
+  the same as IO data, but it doesn't allow for a binary at the top level (that is,
+  a binary is not an IO list but it is valid IO data).
+
+  ### Use cases for IO data
+
+  IO data exists because often you need to do many append operations
+  on smaller chunks of binaries in order to create a bigger binary. However, in
+  Erlang and Elixir concatenating binaries will copy the concatenated binaries
+  into a new binary.
+
+      def email(username, domain) do
+        username <> "@" <> domain
+      end
+
+  In this function, creating the email address will copy the `username` and `domain`
+  binaries. Now imagine you want to use the resulting email inside another binary:
+
+      def welcome_message(name, username, domain) do
+        "Welcome #{name}, your email is: #{email(username, domain)}"
+      end
+
+      IO.puts(welcome_message("Meg", "meg", "example.com"))
+      #=> "Welcome Meg, your email is: meg@example.com"
+
+  Every time you concatenate binaries and use interpolation (`#{}`) you are making
+  copies of those binaries. However, in many cases you don't need the complete
+  binary while you manipulate it, but only at the end to print it out or send it
+  somewhere. In such cases, you can construct the binary by creating IO data and
+  then convert the final piece of IO data to a binary through `iodata_to_binary/1`:
+
+      def email(username, domain) do
+        [username, ?@, domain]
+      end
+
+      def welcome_message(name, username, domain) do
+        ["Welcome ", name, ", your email is: ", email(username, domain)]
+      end
+
+      welcome_message("Meg", "meg", "example.com")
+      |> IO.iodata_to_binary()
+      |> IO.puts()
+      #=> "Welcome Meg, your email is: meg@example.com"
+
+  Building IO data is cheaper than concatenating binaries. Concatenating multiple
+  pieces of IO data just means putting them together inside a list since IO data
+  can be arbitrarily nested, and that's a cheap and efficient operation.
+  `iodata_to_binary/1` is reasonably efficient since it's implemented natively
+  in C.
+
+  ### Using IO data without converting it to binary
+
+  In cases where you need to write IO data to some kind of external device, it's
+  often possible to avoid converting the IO data to binary altogether. For example,
+  the `:gen_tcp.send/2` function used to write data on a TCP socket accepts IO data
+  directly. This function will take care of writing the IO data to the socket directly
+  without converting it to binary. There's a lot more functions that work in the same
+  way. A good example is `IO.puts/1` itself, which accepts IO data for efficient writing
+  on the output device:
+
+      IO.puts([?h, "el", ["l", [?o]]])
+      #=> "hello"
+
+  In many cases avoiding to turn IO data into binaries is the correct choice
+  for performance. One drawback of IO data is that you can't do things like
+  pattern match on the first part of a piece of IO data like you can with a
+  binary, because you usually don't know the shape of the IO data. However the
+  `IO` module provides the `iodata_length/1` function for when you want to
+  compute the length of a piece of IO data in an efficient way without converting
+  the iodata to a binary.
+
+  ### Chardata
+
+  Erlang and Elixir also have the idea of `t:chardata/0`. Chardata is very
+  similar to IO data: the only difference is that integers in IO data represent
+  bytes while integers in chardata represent Unicode codepoints. Bytes
+  (`t:byte/0`) are integers in the `0..255` range, while Unicode codepoints
+  (`t:char/0`) are integers in the range `0..0x10FFFF`. The `IO` module provides
+  the `chardata_to_string/1` function for chardata as the "counter-part" of the
+  `iodata_to_binary/1` function for IO data.
+
+  If you try to use `iodata_to_binary/1` on chardata, it will result in an
+  argument error. For example, let's try to put a codepoint that is not
+  representable with one byte, like `?π`, inside IO data:
+
+      iex> IO.iodata_to_binary(["The symbol for pi is: ", ?π])
+      ** (ArgumentError) argument error
+
+  If we use chardata instead, it will work as expected:
+
+      iex> IO.chardata_to_string(["The symbol for pi is: ", ?π])
+      "The symbol for pi is: π"
 
   """
 
@@ -160,7 +261,9 @@ defmodule IO do
 
   This operation is meant to be used with "raw" devices
   that are started without an encoding. The given `iodata`
-  is written as is to the device, without conversion.
+  is written as is to the device, without conversion. For
+  more information on IO data, see the "IO data" section in
+  the module documentation.
 
   Use `write/2` for devices with encoding.
 
@@ -440,8 +543,10 @@ defmodule IO do
   end
 
   @doc """
-  Converts chardata (a list of integers representing code points,
-  lists and strings) into a string.
+  Converts chardata into a string.
+
+  For more information about chardata, see the ["Chardata"](#module-chardata)
+  section in the module documentation.
 
   In case the conversion fails, it raises an `UnicodeConversionError`.
   If a string is given, it returns the string itself.
@@ -468,14 +573,16 @@ defmodule IO do
   end
 
   @doc """
-  Converts iodata (a list of integers representing bytes, lists
-  and binaries) into a binary.
+  Converts IO data into a binary
+
   The operation is Unicode unsafe.
 
-  Notice that this function treats lists of integers as raw bytes
-  and does not perform any kind of encoding conversion. If you want
-  to convert from a charlist to a string (UTF-8 encoded), please
-  use `chardata_to_string/1` instead.
+  Notice that this function treats integers in the given IO data as
+  raw bytes and does not perform any kind of encoding conversion.
+  If you want to convert from a charlist to a UTF-8-encoded string,
+  use `chardata_to_string/1` instead. For more information about
+  IO data and chardata, see the ["IO data"](#module-io-data) section in the
+  module documentation.
 
   If this function receives a binary, the same binary is returned.
 
@@ -500,7 +607,10 @@ defmodule IO do
   end
 
   @doc """
-  Returns the size of an iodata.
+  Returns the size of an IO data.
+
+  For more information about IO data, see the ["IO data"](#module-io-data)
+  section in the module documentation.
 
   Inlined by the compiler.
 
