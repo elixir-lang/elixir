@@ -73,12 +73,17 @@ defmodule ExUnit.Diff do
     compare_maybe_list(left, right, env)
   end
 
-  defp compare_quoted({:{}, _, list_left}, right, env) when is_tuple(right) do
-    compare_tuple(list_left, right, env)
+  defp compare_quoted({:{}, _, _} = left, right, env) when is_tuple(right) do
+    compare_tuple(left, right, env)
   end
 
-  defp compare_quoted({a, b}, right, env) when is_tuple(right) do
-    compare_tuple([a, b], right, env)
+  defp compare_quoted({_, _} = left, right, env) when is_tuple(right) do
+    compare_tuple(left, right, env)
+  end
+
+  defp compare_quoted(left, right, %{context: nil} = env)
+       when is_tuple(left) and is_tuple(right) do
+    compare_tuple(left, right, env)
   end
 
   defp compare_quoted({:%, _, [_, {:%{}, _, items}]} = left, %{} = right, env)
@@ -172,7 +177,15 @@ defmodule ExUnit.Diff do
 
   # Tuples
 
-  def compare_tuple(list_left, right, env) do
+  def compare_tuple({:{}, _, left_list}, right, %{context: :match} = env) do
+    compare_tuple_items(left_list, right, env)
+  end
+
+  def compare_tuple(left, right, env) do
+    compare_tuple_items(Tuple.to_list(left), right, env)
+  end
+
+  def compare_tuple_items(list_left, right, env) do
     list_right = Tuple.to_list(right)
 
     {diff, list_post_env} = myers_difference_list(list_left, list_right, env)

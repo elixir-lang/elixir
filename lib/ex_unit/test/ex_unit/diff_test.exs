@@ -371,6 +371,13 @@ defmodule ExUnit.DiffTest do
     refute_diff({:a, :b} = :a, "-{:a, :b}-", "+:a+")
   end
 
+  test "tuples outside of match context" do
+    assert_diff({:a, :b} == {:a, :b}, [])
+
+    refute_diff({:a} == {:a, :b}, "{:a}", "{:a, +:b+}")
+    refute_diff({:a, :b} == {:a}, "{:a, -:b-}", "{:a}")
+  end
+
   test "maps" do
     assert_diff(%{a: 1} = %{a: 1}, [])
     assert_diff(%{a: 1} = %{a: 1, b: 2}, [])
