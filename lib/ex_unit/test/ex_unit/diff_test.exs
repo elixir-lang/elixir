@@ -249,7 +249,7 @@ defmodule ExUnit.DiffTest do
       "[[:a | +:b+], +:c+ | :d]"
     )
 
-    assert_diff([:a | x] = [:a | :b], [x: :b])
+    assert_diff([:a | x] = [:a | :b], x: :b)
   end
 
   test "proper lists" do
@@ -307,7 +307,7 @@ defmodule ExUnit.DiffTest do
     refute_diff([:a] ++ [:b] ++ [:c] = [:a, :b], "[:a] ++ [:b] ++ [-:c-]", "[:a, :b]")
 
     assert_diff([:a] ++ :b = [:a | :b], [])
-    assert_diff([:a] ++ x = [:a, :b], [x: [:b]])
+    assert_diff([:a] ++ x = [:a, :b], x: [:b])
 
     refute_diff([:a, :b] ++ :c = [:a, :b, :c], "[:a, :b] ++ -:c-", "[:a, :b, +:c+]")
     refute_diff([:a] ++ [:b] ++ :c = [:a, :b, :c], "[:a] ++ [:b] ++ -:c-", "[:a, :b, +:c+]")
@@ -585,8 +585,8 @@ defmodule ExUnit.DiffTest do
 
     pins = [x: " over the dog"]
 
-    assert_diff("fox hops" <> x = "fox hops over the dog", [x: " over the dog"])
-    assert_diff("fox hops " <> "over " <> x = "fox hops over the dog", [x: "the dog"])
+    assert_diff("fox hops" <> x = "fox hops over the dog", x: " over the dog")
+    assert_diff("fox hops " <> "over " <> x = "fox hops over the dog", x: "the dog")
     assert_diff("fox hops" <> ^x = "fox hops over the dog", [], pins)
 
     refute_diff(
@@ -614,7 +614,7 @@ defmodule ExUnit.DiffTest do
 
   test "macros" do
     assert_diff(one() = 1, [])
-    assert_diff(tuple(x, x) = {1, 1}, [x: 1])
+    assert_diff(tuple(x, x) = {1, 1}, x: 1)
 
     refute_diff(one() = 2, "-one()-", "+2+")
     refute_diff(tuple(x, x) = {1, 2}, "-tuple(x, x)-", "{1, +2+}")
