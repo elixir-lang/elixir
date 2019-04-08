@@ -39,11 +39,19 @@ defmodule ExUnit.DiffTest do
     quote(do: ^unquote(x))
   end
 
-  defmacrop assert_diff({:=, _, [a, b]}, pins \\ [], binding \\ []) do
+  defmacrop assert_diff(expr, pins \\ [], binding \\ [])
+
+  defmacrop assert_diff({:=, _, [a, b]}, pins, binding) do
     a = Assertions.expand_pattern(a, __CALLER__) |> Macro.escape()
 
     quote do
       assert_diff(unquote(a), unquote(b), unquote(pins), unquote(binding), :match)
+    end
+  end
+
+  defmacrop assert_diff({:==, _, [a, b]}, [], []) do
+    quote do
+      assert_diff(Macro.escape(unquote(a)), unquote(b), [], [], nil)
     end
   end
 
@@ -385,7 +393,6 @@ defmodule ExUnit.DiffTest do
     refute_diff(%{a: 1, b: 2} = %{a: 1}, "%{a: 1, -b: 2-}", "%{a: 1}")
     refute_diff(%{a: 1, b: 2} = %{a: 1, b: 12}, "%{a: 1, b: 2}", "%{a: 1, b: +1+2}")
     refute_diff(%{a: 1, b: 2} = %{a: 1, c: 2}, "%{a: 1, -b: 2-}", "%{a: 1, c: 2}")
-    refute_diff(%{a: 1, b: 2} = %{a: 1, c: 2}, "%{a: 1, -b: 2-}", "%{a: 1, c: 2}")
 
     refute_diff(%{a: 1, b: 2, c: 3} = %{a: 1, b: 12}, "%{a: 1, b: 2, -c: 3-}", "%{a: 1, b: +1+2}")
     refute_diff(%{a: 1, b: 2, c: 3} = %{a: 1, c: 2}, "%{a: 1, -b: 2-, c: -3-}", "%{a: 1, c: +2+}")
@@ -419,6 +426,20 @@ defmodule ExUnit.DiffTest do
       "%{a: 1, b: +2+}",
       pins
     )
+  end
+
+  test "maps outside match context" do
+    assert_diff(%{a: 1} == %{a: 1})
+    assert_diff(%{a: 1, b: 2} == %{a: 1, b: 2})
+    assert_diff(%{b: 2, a: 1} == %{a: 1, b: 2})
+    assert_diff(%{a: 1, b: 2, c: 3} == %{a: 1, b: 2, c: 3})
+    assert_diff(%{c: 3, b: 2, a: 1} == %{a: 1, b: 2, c: 3})
+
+    refute_diff(%{a: 1} == %{a: 1, b: 2}, "%{a: 1}", "%{a: 1, +b: 2+}")
+    refute_diff(%{a: 1, b: 2} == %{a: 1}, "%{a: 1, -b: 2-}", "%{a: 1}")
+    refute_diff(%{a: 1, b: 12} == %{a: 1, b: 2}, "%{a: 1, b: -1-2}", "%{a: 1, b: 2}")
+    refute_diff(%{a: 1, b: 2} == %{a: 1, b: 12}, "%{a: 1, b: 2}", "%{a: 1, b: +1+2}")
+    refute_diff(%{a: 1, b: 2} == %{a: 1, c: 2}, "%{a: 1, -b: 2-}", "%{a: 1, +c: 2+}")
   end
 
   test "structs" do
@@ -466,6 +487,29 @@ defmodule ExUnit.DiffTest do
       "%ExUnit.DiffTest.User{-^tweety_one => 21-}",
       "%ExUnit.DiffTest.User{age: 21}",
       pins
+    )
+  end
+
+  test "structs outside of match context" do
+    assert_diff(%User{age: 16} == %User{age: 16})
+    assert_diff(%{age: 16, __struct__: User} == %User{age: 16})
+
+    refute_diff(
+      %User{age: 16} == %{age: 16},
+      "%-ExUnit.DiffTest.User-{age: 16}",
+      "%{age: 16}"
+    )
+
+    refute_diff(
+      %User{age: 16} == %User{age: 21},
+      "%ExUnit.DiffTest.User{age: 1-6-}",
+      "%ExUnit.DiffTest.User{age: +2+1}"
+    )
+
+    refute_diff(
+      %User{age: 16} == %Person{age: 21},
+      "%-ExUnit.DiffTest.User-{age: 1-6-}",
+      "%+ExUnit.DiffTest.Person+{age: +2+1}"
     )
   end
 
