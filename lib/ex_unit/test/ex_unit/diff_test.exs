@@ -51,7 +51,7 @@ defmodule ExUnit.DiffTest do
 
   defmacrop assert_diff({:==, _, [left, right]}, [], []) do
     quote do
-      assert_diff(Macro.escape(unquote(left)), unquote(right), [], [], nil)
+      assert_diff(unquote(left), unquote(right), [], [], nil)
     end
   end
 
@@ -74,10 +74,8 @@ defmodule ExUnit.DiffTest do
 
   defmacrop refute_diff({:==, _, [left, right]}, expected_left, expected_right, []) do
     quote do
-      left = Macro.escape(unquote(left))
-
       refute_diff(
-        left,
+        unquote(left),
         unquote(right),
         unquote(expected_left),
         unquote(expected_right),
@@ -508,7 +506,7 @@ defmodule ExUnit.DiffTest do
     refute_diff(
       ~D[2017-10-01] = ~D[2017-10-02],
       ~s/-~D"2017-10-01"-/,
-      "~D[2017-10-0+2+]"
+      "%Date{calendar: Calendar.ISO, day: +2+, month: 10, year: 2017}"
     )
   end
 

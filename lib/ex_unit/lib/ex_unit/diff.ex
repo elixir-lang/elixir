@@ -81,12 +81,12 @@ defmodule ExUnit.Diff do
     compare_tuple([a, b], right, env)
   end
 
-  defp compare_quoted({:%, _, [_, {:%{}, _, items}]} = left, right, env)
-       when is_list(items) and is_map(right) do
+  defp compare_quoted({:%, _, [_, {:%{}, _, items}]} = left, %{} = right, env)
+       when is_list(items) do
     compare_struct(left, right, env)
   end
 
-  defp compare_quoted({:%{}, _, [{:__struct__, _} | _]} = left, right, env) do
+  defp compare_quoted({:%{}, _, [{:__struct__, _} | _]} = left, %{} = right, env) do
     compare_struct(left, right, env)
   end
 
@@ -94,8 +94,15 @@ defmodule ExUnit.Diff do
     compare_map(left, right, nil, struct, env)
   end
 
-  defp compare_quoted({:%{}, _, items} = left, right, env)
-       when is_list(items) and is_map(right) do
+  defp compare_quoted({:%{}, _, items} = left, %{} = right, env) when is_list(items) do
+    compare_map(left, right, nil, nil, env)
+  end
+
+  defp compare_quoted(%_{} = left, %{} = right, env) do
+    compare_struct(left, right, env)
+  end
+
+  defp compare_quoted(%{} = left, %{} = right, env) do
     compare_map(left, right, nil, nil, env)
   end
 
@@ -473,6 +480,10 @@ defmodule ExUnit.Diff do
 
   # Maps
 
+  defp compare_map(%{} = left, right, struct1, struct2, env) do
+    compare_map_items(left, right, struct1, struct2, env)
+  end
+
   defp compare_map({:%{}, _, items}, right, struct1, struct2, env) do
     compare_map_items(items, right, struct1, struct2, env)
   end
@@ -585,12 +596,20 @@ defmodule ExUnit.Diff do
     compare_struct(left_map, Map.from_struct(right), struct1, struct2, env)
   end
 
-  defp compare_struct({:%, _, [struct1, left_map]}, %{} = right, env) do
+  defp compare_struct({:%, _, [struct1, left_map]}, right, env) do
     compare_struct(left_map, right, struct1, nil, env)
   end
 
   defp compare_struct({:%{}, _, [{:__struct__, struct1} | left_items]}, %struct2{} = right, env) do
     compare_struct({:%{}, [], left_items}, right, struct1, struct2, env)
+  end
+
+  defp compare_struct(%struct1{} = left, %struct2{} = right, env) do
+    compare_struct(left, right, struct1, struct2, env)
+  end
+
+  defp compare_struct(%struct1{} = left, right, env) do
+    compare_struct(left, right, struct1, nil, env)
   end
 
   defp compare_struct(left, %struct2{} = right, env) do
@@ -601,9 +620,7 @@ defmodule ExUnit.Diff do
     compare_map(left, right, nil, nil, env)
   end
 
-  defp compare_struct({:%{}, _, left_items} = left_map, right, struct1, struct2, env) do
-    left = struct(struct1, left_items)
-
+  defp compare_struct(%{} = left, right, struct1, struct2, env) do
     if Inspect.impl_for(left) not in [Inspect.Any, Inspect.Map] do
       inspect_left = inspect(left)
       inspect_right = inspect(right)
@@ -611,11 +628,15 @@ defmodule ExUnit.Diff do
       if inspect_left != inspect_right do
         compare_string(inspect_left, inspect_right, ?\", env)
       else
-        compare_map(left_map, right, struct1, struct2, env)
+        compare_map(Map.from_struct(left), right, struct1, struct2, env)
       end
     else
-      compare_map(left_map, right, struct1, struct2, env)
+      compare_map(Map.from_struct(left), right, struct1, struct2, env)
     end
+  end
+
+  defp compare_struct(left_map, right, struct1, struct2, env) do
+    compare_map(left_map, right, struct1, struct2, env)
   end
 
   defp build_struct_result(nil, nil) do
@@ -979,14 +1000,15 @@ defmodule ExUnit.Diff do
   end
 
   defp container_to_algebra(open, list, close, diff_wrapper, item_to_algebra) do
-    list_doc =
+    docs =
       list
       |> Enum.map(&item_to_algebra.(&1, diff_wrapper))
-      |> Algebra.fold_doc(&Algebra.glue(&1, ", ", &2))
-      |> Algebra.nest(:cursor)
-      |> Algebra.group()
+      |> Algebra.fold_doc(&Algebra.flex_glue(&1, ", ", &2))
+      |> Algebra.nest(1)
 
-    Algebra.concat([open, list_doc, close])
+    [open, docs, close]
+    |> Algebra.concat()
+    |> Algebra.group()
   end
 
   defp struct_to_algebra(quoted, diff_wrapper) do
