@@ -515,6 +515,14 @@ defmodule ExUnit.DiffTest do
 
   test "structs with inspect" do
     refute_diff(
+      ~D[2017-10-01] = ~D[2017-10-02],
+      ~s/-~D"2017-10-01"-/,
+      "~D[2017-10-0+2+]"
+    )
+  end
+
+  test "structs with inspect outside match context" do
+    refute_diff(
       ~D[2017-10-01] == ~D[2017-10-02],
       "~D[2017-10-0-1-]",
       "~D[2017-10-0+2+]"
