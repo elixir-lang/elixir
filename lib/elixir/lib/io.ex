@@ -10,7 +10,7 @@ defmodule IO do
   The majority of the functions expect chardata. In case another type is given,
   functions will convert those types to string via the `String.Chars` protocol
   (as shown in typespecs). For more information on chardata, see the
-  "Iolists and iodata" section below.
+  "IO data" section below.
 
   ## IO devices
 
