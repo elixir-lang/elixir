@@ -211,42 +211,44 @@ defmodule Kernel.ParallelCompiler do
     parent = self()
     file = Path.expand(file)
 
-    if should_spawn?(output, file) do
-      {pid, ref} =
-        :erlang.spawn_monitor(fn ->
-          :erlang.put(:elixir_compiler_pid, parent)
-          :erlang.put(:elixir_compiler_file, file)
+    {pid, ref} =
+      :erlang.spawn_monitor(fn ->
+        :erlang.put(:elixir_compiler_pid, parent)
+        :erlang.put(:elixir_compiler_file, file)
 
-          try do
-            case output do
-              {:compile, path} ->
-                :erlang.process_flag(:error_handler, Kernel.ErrorHandler)
-                :erlang.put(:elixir_compiler_dest, path)
-                :elixir_compiler.file_to_path(file, path, &each_file(&1, &2, parent))
+        try do
+          case output do
+            {:compile, path} ->
+              :erlang.process_flag(:error_handler, Kernel.ErrorHandler)
+              :erlang.put(:elixir_compiler_dest, path)
+              :elixir_compiler.file_to_path(file, path, &each_file(&1, &2, parent))
 
-              :compile ->
-                :erlang.process_flag(:error_handler, Kernel.ErrorHandler)
-                :erlang.put(:elixir_compiler_dest, dest)
-                :elixir_compiler.file(file, &each_file(&1, &2, parent))
+            :compile ->
+              :erlang.process_flag(:error_handler, Kernel.ErrorHandler)
+              :erlang.put(:elixir_compiler_dest, dest)
+              :elixir_compiler.file(file, &each_file(&1, &2, parent))
 
-              :require ->
-                :elixir_compiler.file(file, &each_file(&1, &2, parent))
-                :elixir_code_server.cast({:required, file})
-            end
-          catch
-            kind, reason ->
-              send(parent, {:file_error, self(), file, {kind, reason, __STACKTRACE__}})
+            :require ->
+              case :elixir_code_server.call({:acquire, file}) do
+                :required ->
+                  send(parent, {:file_cancel, self()})
+
+                :proceed ->
+                  :elixir_compiler.file(file, &each_file(&1, &2, parent))
+                  :elixir_code_server.cast({:required, file})
+              end
           end
+        catch
+          kind, reason ->
+            send(parent, {:file_error, self(), file, {kind, reason, __STACKTRACE__}})
+        end
 
-          exit(:shutdown)
-        end)
+        exit(:shutdown)
+      end)
 
-      timer_ref = Process.send_after(self(), {:timed_out, pid}, threshold * 1000)
-      files = [{pid, ref, file, timer_ref} | files]
-      spawn_workers(queue, spawned + 1, waiting, files, result, warnings, state)
-    else
-      spawn_workers(queue, spawned, waiting, files, result, warnings, state)
-    end
+    timer_ref = Process.send_after(self(), {:timed_out, pid}, threshold * 1000)
+    files = [{pid, ref, file, timer_ref} | files]
+    spawn_workers(queue, spawned + 1, waiting, files, result, warnings, state)
   end
 
   # No more queue, nothing waiting, this cycle is done
@@ -342,12 +344,6 @@ defmodule Kernel.ParallelCompiler do
     end
   end
 
-  defp should_spawn?(:require, file),
-    do: :elixir_code_server.call({:acquire, file}) == :proceed
-
-  defp should_spawn?(_output, _file),
-    do: true
-
   defp waiting_on_without_definition(waiting, pid) do
     {_, ^pid, _, on, _, _} = entry = List.keyfind(waiting, pid, 1)
 
@@ -383,12 +379,10 @@ defmodule Kernel.ParallelCompiler do
         send(child, {ref, :ack})
 
         available =
-          for {:module, _, ref, waiting_module, _defining, _deadlock?} <- waiting,
-              module == waiting_module,
+          for {:module, _, ref, ^module, _defining, _deadlock?} <- waiting,
               do: {ref, :found}
 
         cancel_waiting_timer(files, child)
-
         result = [{:module, module} | result]
         spawn_workers(available ++ queue, spawned, waiting, files, result, warnings, state)
 
@@ -413,11 +407,8 @@ defmodule Kernel.ParallelCompiler do
 
       {:timed_out, child} ->
         case List.keyfind(files, child, 0) do
-          {^child, _, file, _} ->
-            state.each_long_compilation.(file)
-
-          _ ->
-            :ok
+          {^child, _, file, _} -> state.each_long_compilation.(file)
+          _ -> :ok
         end
 
         spawn_workers(queue, spawned, waiting, files, result, warnings, state)
@@ -433,13 +424,19 @@ defmodule Kernel.ParallelCompiler do
         send(child_pid, ref)
         cancel_waiting_timer(files, child_pid)
 
+        discard_down(child_pid)
+        new_files = List.keydelete(files, child_pid, 0)
+
         # Sometimes we may have spurious entries in the waiting list
         # because someone invoked try/rescue UndefinedFunctionError
-        discard_down(child_pid)
-        new_queue = List.delete(queue, child_pid)
-        new_files = List.keydelete(files, child_pid, 0)
         new_waiting = List.keydelete(waiting, child_pid, 1)
-        spawn_workers(new_queue, spawned - 1, new_waiting, new_files, result, warnings, state)
+        spawn_workers(queue, spawned - 1, new_waiting, new_files, result, warnings, state)
+
+      {:file_cancel, child_pid} ->
+        cancel_waiting_timer(files, child_pid)
+        discard_down(child_pid)
+        new_files = List.keydelete(files, child_pid, 0)
+        spawn_workers(queue, spawned - 1, waiting, new_files, result, warnings, state)
 
       {:file_error, child_pid, file, {kind, reason, stack}} ->
         print_error(file, kind, reason, stack)
