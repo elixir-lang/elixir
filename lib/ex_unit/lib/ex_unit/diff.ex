@@ -767,6 +767,10 @@ defmodule ExUnit.Diff do
     left
   end
 
+  defp rebuild_split_strings({:__block__, meta, left_list}, {:__block__, _, right_list}) do
+    {:__block__, meta, left_list ++ right_list}
+  end
+
   defp rebuild_split_strings({:__block__, meta, left_list}, right) do
     {:__block__, meta, left_list ++ [right]}
   end

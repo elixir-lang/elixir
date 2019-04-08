@@ -583,13 +583,23 @@ defmodule ExUnit.DiffTest do
       ~s/"fox hops over the dog"/
     )
 
+    pins = [x: " over the dog"]
+
     assert_diff("fox hops" <> x = "fox hops over the dog", [x: " over the dog"])
     assert_diff("fox hops " <> "over " <> x = "fox hops over the dog", [x: "the dog"])
+    assert_diff("fox hops" <> ^x = "fox hops over the dog", [], pins)
 
     refute_diff(
       "fox hops " <> "hover " <> x = "fox hops over the dog",
       ~s/"fox hops " <> "-h-over " <> x/,
       ~s/"fox hops over +t+he dog"/
+    )
+
+    refute_diff(
+      "fox hops " <> "hover " <> ^x = "fox hops over the dog",
+      ~s/"fox hops " <> "-h-over " <> -^x-/,
+      ~s/"fox hops over +t+he dog"/,
+      pins
     )
 
     refute_diff("fox" <> " hops" = :a, ~s/-"fox" <> " hops"-/, "+:a+")
