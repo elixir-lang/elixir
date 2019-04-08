@@ -580,13 +580,13 @@ defmodule ExUnit.DiffTest do
     )
   end
 
-  # test "not supported" do
-  #   bin1 = <<147, 1, 2, 31>>
-  #   bin2 = <<193, 1, 31>>
-  #   assert script(bin1, bin2) == nil
-  #   assert script(:foo, :bar) == nil
-  #   assert script(:foo, "bar") == nil
-  # end
+  test "not supported" do
+    refute_diff(
+      <<147, 1, 2, 31>> = <<193, 1, 31>>,
+      "-<<147, 1, 2, 31>>-",
+      "+<<193, 1, 31>>+"
+    )
+  end
 
   defp refute_diff(a, b, left_diff, right_diff, pins, context) do
     {result, _env} = compare_quoted(a, b, pins, context)
