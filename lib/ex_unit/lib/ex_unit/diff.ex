@@ -86,6 +86,10 @@ defmodule ExUnit.Diff do
     compare_struct(left, right, env)
   end
 
+  defp compare_quoted({:%{}, _, [{:__struct__, _} | _]} = left, right, env) do
+    compare_struct(left, right, env)
+  end
+
   defp compare_quoted({:%{}, _, items} = left, %struct{} = right, env) when is_list(items) do
     compare_map(left, right, nil, struct, env)
   end
@@ -577,16 +581,41 @@ defmodule ExUnit.Diff do
 
   # Structs
 
-  defp compare_struct({:%, _, [name, attributes]}, %name{} = value, env) do
-    compare_map(attributes, Map.from_struct(value), name, name, env)
+  defp compare_struct({:%, _, [struct1, left_map]}, %struct2{} = right, env) do
+    compare_struct(left_map, Map.from_struct(right), struct1, struct2, env)
   end
 
-  defp compare_struct({:%, _, [name1, attributes]}, %name2{} = value, env) do
-    compare_map(attributes, Map.from_struct(value), name1, name2, env)
+  defp compare_struct({:%, _, [struct1, left_map]}, %{} = right, env) do
+    compare_struct(left_map, right, struct1, nil, env)
   end
 
-  defp compare_struct({:%, _, [name, attributes]}, %{} = value, env) do
-    compare_map(attributes, value, name, nil, env)
+  defp compare_struct({:%{}, _, [{:__struct__, struct1} | left_items]}, %struct2{} = right, env) do
+    compare_struct({:%{}, [], left_items}, right, struct1, struct2, env)
+  end
+
+  defp compare_struct(left, %struct2{} = right, env) do
+    compare_map(left, right, nil, struct2, env)
+  end
+
+  defp compare_struct(left, right, env) do
+    compare_map(left, right, nil, nil, env)
+  end
+
+  defp compare_struct({:%{}, _, left_items} = left_map, right, struct1, struct2, env) do
+    left = struct(struct1, left_items)
+
+    if Inspect.impl_for(left) not in [Inspect.Any, Inspect.Map] do
+      inspect_left = inspect(left)
+      inspect_right = inspect(right)
+
+      if inspect_left != inspect_right do
+        compare_string(inspect_left, inspect_right, ?\", env)
+      else
+        compare_map(left_map, right, struct1, struct2, env)
+      end
+    else
+      compare_map(left_map, right, struct1, struct2, env)
+    end
   end
 
   defp build_struct_result(nil, nil) do

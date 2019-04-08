@@ -47,7 +47,9 @@ defmodule ExUnit.DiffTest do
     end
   end
 
-  defmacrop refute_diff({:=, _, [a, b]}, left_diff, right_diff, pins \\ []) do
+  defmacrop refute_diff(expr, left_diff, right_diff, pins \\ [])
+
+  defmacrop refute_diff({:=, _, [a, b]}, left_diff, right_diff, pins) do
     a = Assertions.expand_pattern(a, __CALLER__) |> Macro.escape()
 
     quote do
@@ -58,6 +60,19 @@ defmodule ExUnit.DiffTest do
         unquote(right_diff),
         unquote(pins),
         :match
+      )
+    end
+  end
+
+  defmacrop refute_diff({:==, _, [a, b]}, left_diff, right_diff, []) do
+    quote do
+      refute_diff(
+        Macro.escape(unquote(a)),
+        unquote(b),
+        unquote(left_diff),
+        unquote(right_diff),
+        [],
+        nil
       )
     end
   end
@@ -454,14 +469,21 @@ defmodule ExUnit.DiffTest do
     )
   end
 
-  # test "structs with inspect" do
-  #   refute_diff(
-  #     ~D[2017-10-01],
-  #     ~D[2017-10-02],
-  #     "~D[2017-10-0-1-]",
-  #     "~D[2017-10-0+2+]"
-  #   )
-  # end
+  test "structs with inspect" do
+    refute_diff(
+      ~D[2017-10-01] == ~D[2017-10-02],
+      "~D[2017-10-0-1-]",
+      "~D[2017-10-0+2+]"
+    )
+  end
+
+  test "structs without inspect difference" do
+    refute_diff(
+      %Opaque{data: 1} == %Opaque{data: 2},
+      "%ExUnit.DiffTest.Opaque{data: -1-}",
+      "%ExUnit.DiffTest.Opaque{data: +2+}"
+    )
+  end
 
   test "strings" do
     assert_diff("" = "")
@@ -558,17 +580,6 @@ defmodule ExUnit.DiffTest do
     )
   end
 
-  # test "structs without inspect difference" do
-  #   opaque1 = %Opaque{data: 1}
-  #   opaque2 = %Opaque{data: 2}
-  #
-  #   assert script(opaque1, opaque2) == [
-  #            {:eq, "%ExUnit.DiffTest.Opaque{"},
-  #            [[{:eq, "data: "}, [del: "1", ins: "2"]]],
-  #            {:eq, "}"}
-  #          ]
-  # end
-  #
   # test "not supported" do
   #   bin1 = <<147, 1, 2, 31>>
   #   bin2 = <<193, 1, 31>>
