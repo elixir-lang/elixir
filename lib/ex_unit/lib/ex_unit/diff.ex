@@ -20,9 +20,9 @@ defmodule ExUnit.Diff do
   Returns `nil` if they are not the same data type,
   or if the given data type is not supported.
   """
-  def compare_quoted(expression, value, pins, context) do
+  def compare_quoted(left, right, pins, context) do
     env = %Env{pins: Map.new(pins), context: context}
-    compare_quoted(expression, value, env)
+    compare_quoted(left, right, env)
   end
 
   defp compare_quoted({:_, _, _} = left, right, env) do
