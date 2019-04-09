@@ -1,9 +1,15 @@
 defmodule OptionParser do
   @moduledoc """
-  Functions for parsing command line options.
+  Functions for parsing command line arguments.
 
-  The main function in this module is `parse/2`, which allows
-  developers to parse a list of arguments into options:
+  When calling a command, it's possible to pass command line options
+  to modify what the command does. In this documentation, those are
+  called "switches", in other situations they may be called "flags"
+  or simply "options". A switch can be given a value, also called an
+  "argument".
+
+  The main function in this module is `parse/2`, which parses a list
+  of command line options and arguments into a keyword list:
 
       iex> OptionParser.parse(["--debug"], strict: [debug: :boolean])
       {[debug: true], [], []}
