@@ -257,12 +257,20 @@ defmodule KernelTest do
       assert 2 in 1..3
       refute 4 in [1, 2, 3]
       refute 4 in 1..3
+      refute 2 in []
+      refute false in []
+      refute true in []
     end
 
     test "with expressions on right side" do
       list = [1, 2, 3]
+      empty_list = []
       assert 2 in list
       refute 4 in list
+
+      refute 4 in empty_list
+      refute false in empty_list
+      refute true in empty_list
 
       assert 2 in [1 | [2, 3]]
       assert 3 in [1 | list]
@@ -467,8 +475,11 @@ defmodule KernelTest do
                ":erlang.andalso(:erlang.is_integer(var), :erlang.andalso(:erlang.>=(var, 1), :erlang.\"=<\"(var, 2)))"
 
       # Empty list
-      assert expand_to_string(quote(do: :x in [])) ==
-               "_ = :x"
+      assert expand_to_string(quote(do: :x in [])) =~
+               ~S"""
+                 _ = :x
+                 false
+               """
 
       assert expand_to_string(quote(do: :x in []), :guard) ==
                "false"
@@ -516,7 +527,11 @@ defmodule KernelTest do
     end
 
     test "is optimized" do
-      assert expand_to_string(quote(do: foo in [])) == "_ = foo"
+      assert expand_to_string(quote(do: foo in [])) =~
+               ~S"""
+                 _ = foo
+                 false
+               """
 
       assert expand_to_string(quote(do: foo in [foo])) =~
                ~r/{arg0} = {foo}\n\s+:erlang."=:="\(foo, arg0\)\n/
