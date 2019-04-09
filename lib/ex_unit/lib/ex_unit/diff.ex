@@ -148,8 +148,15 @@ defmodule ExUnit.Diff do
     compare_macro(macro, expanded, right, env)
   end
 
-  defp compare_quoted(left, right, env) do
+  defp compare_quoted(left, right, %Env{context: :match} = env) do
     diff_left = update_diff_meta(left, true)
+    diff_right = value_to_result(right, true)
+    diff = %__MODULE__{equivalent?: false, left: diff_left, right: diff_right}
+    {diff, env}
+  end
+
+  defp compare_quoted(left, right, env) do
+    diff_left = value_to_result(left, true)
     diff_right = value_to_result(right, true)
     diff = %__MODULE__{equivalent?: false, left: diff_left, right: diff_right}
     {diff, env}

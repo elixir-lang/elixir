@@ -376,6 +376,9 @@ defmodule ExUnit.DiffTest do
 
     refute_diff({:a} == {:a, :b}, "{:a}", "{:a, +:b+}")
     refute_diff({:a, :b} == {:a}, "{:a, -:b-}", "{:a}")
+
+    refute_diff({:{}, [], [:a]} == {:a}, "{-:{}-, -[]-, -[:a]-}", "{+:a+}")
+    refute_diff({:{}, [], [:a]} == :a, "-{:{}, [], [:a]}-", "+:a+")
   end
 
   test "maps" do
