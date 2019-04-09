@@ -1,5 +1,22 @@
 defmodule ExUnit.Diff do
-  @moduledoc false
+  @moduledoc """
+  A Diff struct and functions.
+
+  The Diff struct contains the fields `:equivalent?`, `:left`, `:right`.
+  The `:equivalent?` field represents if the `:left` and `:right` side are
+  equivalents and contain no diffs. The `:left` and `:right` represent the sides
+  of the comparison and contain ASTs with some special metas: `:diff` and
+  `:diff_container`.
+
+  When meta `:diff` is `true`, the AST inside of it has no equivalent on the
+  other side and should be rendered in a different color. If the AST is a
+  literal and doesn't contain meta, the `:diff` meta will be place in a wrapping
+  block.
+
+  The `:diff_container` meta appears in blocks and contains a list of strings
+  that must be rendered in sequence and surrounded by the char in the value or
+  nothing in case of `:number`.
+  """
 
   alias Code.Identifier
   alias Inspect.Algebra
@@ -9,16 +26,23 @@ defmodule ExUnit.Diff do
             right: nil
 
   defmodule Env do
+    @moduledoc """
+    Defines the Diff.Env struct used to calculate the diffs between to sides
+    and keep the context, the pins, and the vars evaluated during the comparison.
+    """
+
     defstruct pins: %{},
               current_vars: %{},
               context: nil
   end
 
   @doc """
-  Returns an edit script representing the difference between `left` and `right`.
+  Returns the diff between `left` and `right` and env after the comparison.
 
-  Returns `nil` if they are not the same data type,
-  or if the given data type is not supported.
+  The `left` side can be a literal or an AST, the `right` should be always a
+  value. The `pins` are a keyword list with the name of the pin as key and its
+  value. The `context` should be `:match` for pattern matching and `nil` or
+  any other case.
   """
   def compare_quoted(left, right, pins, context) do
     env = %Env{pins: Map.new(pins), context: context}
@@ -205,6 +229,10 @@ defmodule ExUnit.Diff do
     end
   end
 
+  # Compare two lists, removing all the operators (`|` and `++`) before and
+  # adding them back in the end. When the `left` contains a improper element
+  # it will extract forcefully a improper element on the `right` for matching
+  # purposes.
   def compare_maybe_improper_list(left, right, env) do
     {parsed_left, improper_left, operators_left, length_left} = parse_list(left, 0)
     {parsed_right, improper_right, operators_right, _} = parse_list(right, 0)
@@ -501,9 +529,11 @@ defmodule ExUnit.Diff do
     compare_map_items(items, right, struct1, struct2, env)
   end
 
-  defp compare_map_items(items, right, struct1, struct2, env) do
+  # Compare items based on the keys of `left_items` and add the `:diff` meta to
+  # the element that it wasn't able to compare.
+  defp compare_map_items(left_items, right, struct1, struct2, env) do
     {non_comparable_by_key, remaining, compared, struct1, by_key_post_env} =
-      compare_map_items_by_key(items, right, struct1, env)
+      compare_map_items_by_key(left_items, right, struct1, env)
 
     remaining_diff = compare_map_remaining_pairs(non_comparable_by_key, remaining, env)
 
@@ -562,9 +592,9 @@ defmodule ExUnit.Diff do
     literal
   end
 
-  # Can't compare using `compare_maybe_improper_list` because if key and value are equivalent,
-  # it gives strange results. It should just mark them as different depending on the
-  # context: if `:match` only left side, otherwise both sides
+  # Can't compare using `myers_difference_list` because if key and value are
+  # equivalent, it gives strange results. It just mark them as different
+  # depending on the context, if `:match` only left side, otherwise both sides.
   defp compare_map_remaining_pairs(remaining, right, env) do
     list_left = Enum.map(remaining, &update_diff_meta(&1, true))
 
@@ -700,6 +730,9 @@ defmodule ExUnit.Diff do
     {diff, env}
   end
 
+  # Concat all the literals on `left` and split `right` based on the size of
+  # that, comparing them and the remaining AST from `left` and the remaining
+  # string from `right`.
   def compare_string_concat(left, right, env) do
     {parsed_left, quoted, indexes, parsed_left_length} = parse_string(left)
 
@@ -1051,7 +1084,7 @@ defmodule ExUnit.Diff do
     end
   end
 
-  # Diffs
+  # Diff helpers
 
   defp value_to_result(value, diff_meta?) do
     value
