@@ -3544,7 +3544,10 @@ defmodule Kernel do
         false
 
       [] ->
-        quote(do: _ = unquote(left))
+        quote do
+          _ = unquote(left)
+          false
+        end
 
       [head | tail] = list when not in_module? ->
         in_var(in_module?, left, &in_list(&1, head, tail, expand, list, in_module?))
