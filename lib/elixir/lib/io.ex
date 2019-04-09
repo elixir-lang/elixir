@@ -41,8 +41,8 @@ defmodule IO do
       [?h, "el", ["l", [?o]]]
 
   The built-in `t:iodata/0` type is defined in terms of `t:iolist/0`. An IO list is
-  the same as IO data, but it doesn't allow for a binary at the top level (that is,
-  a binary is not an IO list but it is valid IO data).
+  the same as IO data but it doesn't allow for a binary at the top level (but binaries
+  are still allowed in the list itself).
 
   ### Use cases for IO data
 
@@ -65,11 +65,10 @@ defmodule IO do
       IO.puts(welcome_message("Meg", "meg", "example.com"))
       #=> "Welcome Meg, your email is: meg@example.com"
 
-  Every time you concatenate binaries and use interpolation (`#{}`) you are making
+  Every time you concatenate binaries or use interpolation (`#{}`) you are making
   copies of those binaries. However, in many cases you don't need the complete
-  binary while you manipulate it, but only at the end to print it out or send it
-  somewhere. In such cases, you can construct the binary by creating IO data and
-  then convert the final piece of IO data to a binary through `iodata_to_binary/1`:
+  binary while you create it, but only at the end to print it out or send it
+  somewhere. In such cases, you can construct the binary by creating IO data:
 
       def email(username, domain) do
         [username, ?@, domain]
@@ -79,37 +78,21 @@ defmodule IO do
         ["Welcome ", name, ", your email is: ", email(username, domain)]
       end
 
-      welcome_message("Meg", "meg", "example.com")
-      |> IO.iodata_to_binary()
-      |> IO.puts()
+      IO.puts(welcome_message("Meg", "meg", "example.com"))
       #=> "Welcome Meg, your email is: meg@example.com"
 
   Building IO data is cheaper than concatenating binaries. Concatenating multiple
   pieces of IO data just means putting them together inside a list since IO data
-  can be arbitrarily nested, and that's a cheap and efficient operation.
-  `iodata_to_binary/1` is reasonably efficient since it's implemented natively
-  in C.
+  can be arbitrarily nested, and that's a cheap and efficient operation. Most of
+  the IO-based APIs, such as `:gen_tcp`, `IO`, etc, receive IO data and write it
+  to the socket directly without converting it to binary.
 
-  ### Using IO data without converting it to binary
-
-  In cases where you need to write IO data to some kind of external device, it's
-  often possible to avoid converting the IO data to binary altogether. For example,
-  the `:gen_tcp.send/2` function used to write data on a TCP socket accepts IO data
-  directly. This function will take care of writing the IO data to the socket directly
-  without converting it to binary. There's a lot more functions that work in the same
-  way. A good example is `IO.puts/1` itself, which accepts IO data for efficient writing
-  on the output device:
-
-      IO.puts([?h, "el", ["l", [?o]]])
-      #=> "hello"
-
-  In many cases avoiding to turn IO data into binaries is the correct choice
-  for performance. One drawback of IO data is that you can't do things like
-  pattern match on the first part of a piece of IO data like you can with a
-  binary, because you usually don't know the shape of the IO data. However the
-  `IO` module provides the `iodata_length/1` function for when you want to
-  compute the length of a piece of IO data in an efficient way without converting
-  the iodata to a binary.
+  One drawback of IO data is that you can't do things like pattern match on the
+  first part of a piece of IO data like you can with a binary, because you usually
+  don't know the shape of the IO data. In those cases, you may need to convert it
+  to a binary by calling `iodata_to_binary/1`, which is reasonably efficient
+  since it's implemented natively in C. Other functionality, like computing the
+  length of IO data, can be computed directly on the iodata by calling `iodata_length/1`.
 
   ### Chardata
 
