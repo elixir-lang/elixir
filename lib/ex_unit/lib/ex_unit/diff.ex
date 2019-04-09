@@ -686,7 +686,20 @@ defmodule ExUnit.Diff do
   end
 
   defp compare_struct(left_map, right, struct1, struct2, env) do
-    compare_map(left_map, right, struct1, struct2, env)
+    try do
+      pid = self()
+
+      ExUnit.CaptureIO.capture_io(:stderr, fn ->
+        {items, _} = Code.eval_quoted(left_map)
+        send(pid, {:struct, struct(struct1, items)})
+      end)
+
+      receive do
+        {:struct, left} -> compare_struct(left, right, struct1, struct2, env)
+      end
+    rescue
+      _ -> compare_map(left_map, right, struct1, struct2, env)
+    end
   end
 
   defp build_struct_result(nil, nil) do

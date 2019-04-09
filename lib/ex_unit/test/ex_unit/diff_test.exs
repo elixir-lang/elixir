@@ -516,7 +516,7 @@ defmodule ExUnit.DiffTest do
     refute_diff(
       ~D[2017-10-01] = ~D[2017-10-02],
       ~s/-~D"2017-10-01"-/,
-      "%Date{calendar: Calendar.ISO, day: +2+, month: 10, year: 2017}"
+      "~D[2017-10-0+2+]"
     )
   end
 
