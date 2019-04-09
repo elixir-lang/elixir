@@ -1093,6 +1093,10 @@ defmodule ExUnit.Diff do
 
   # Diff helpers
 
+  defp value_to_result(reference, diff_meta?) when is_reference(reference) do
+    update_diff_meta(reference, diff_meta?)
+  end
+
   defp value_to_result(value, diff_meta?) do
     value
     |> Macro.escape()
