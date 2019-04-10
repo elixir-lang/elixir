@@ -50,7 +50,7 @@ defmodule ExUnit.Diff do
   end
 
   defp compare_quoted({:_, _, _} = left, right, env) do
-    diff_right = value_to_result(right, false)
+    diff_right = escape(right)
     diff = %__MODULE__{equivalent?: true, left: left, right: diff_right}
     {diff, env}
   end
@@ -66,26 +66,23 @@ defmodule ExUnit.Diff do
   end
 
   defp compare_quoted({:-, _, [number]}, right, env)
-       when is_integer(number) and is_integer(right)
-       when is_float(number) and is_float(right) do
+       when is_number(number) and is_number(right) do
     compare_quoted(-number, right, env)
   end
 
   defp compare_quoted({:+, _, [number]}, right, env)
-       when is_integer(number) and is_integer(right)
-       when is_float(number) and is_float(right) do
+       when is_number(number) and is_number(right) do
     compare_quoted(number, right, env)
   end
 
   defp compare_quoted(literal, literal, env)
-       when is_atom(literal) or is_integer(literal) or is_float(literal) do
+       when is_atom(literal) or is_number(literal) or is_reference(literal) or
+              is_pid(literal) or is_function(literal) do
     diff = %__MODULE__{equivalent?: true, left: literal, right: literal}
     {diff, env}
   end
 
-  defp compare_quoted(left, right, env)
-       when is_integer(left) and is_integer(right)
-       when is_float(left) and is_float(right) do
+  defp compare_quoted(left, right, env) when is_number(left) and is_number(right) do
     compare_number(left, right, env)
   end
 
@@ -150,14 +147,14 @@ defmodule ExUnit.Diff do
 
   defp compare_quoted(left, right, %Env{context: :match} = env) do
     diff_left = update_diff_meta(left, true)
-    diff_right = value_to_result(right, true)
+    diff_right = escape(right) |> update_diff_meta(true)
     diff = %__MODULE__{equivalent?: false, left: diff_left, right: diff_right}
     {diff, env}
   end
 
   defp compare_quoted(left, right, env) do
-    diff_left = value_to_result(left, true)
-    diff_right = value_to_result(right, true)
+    diff_left = escape(left) |> update_diff_meta(true)
+    diff_right = escape(right) |> update_diff_meta(true)
     diff = %__MODULE__{equivalent?: false, left: diff_left, right: diff_right}
     {diff, env}
   end
@@ -188,19 +185,19 @@ defmodule ExUnit.Diff do
 
     case env.current_vars do
       %{^identifier => ^right} ->
-        diff_right = value_to_result(right, false)
+        diff_right = escape(right)
         diff = %__MODULE__{equivalent?: true, left: left, right: diff_right}
         {diff, env}
 
       %{^identifier => _} ->
         diff_left = update_diff_meta(left, true)
-        diff_right = value_to_result(right, true)
+        diff_right = escape(right) |> update_diff_meta(true)
         diff = %__MODULE__{equivalent?: false, left: diff_left, right: diff_right}
         {diff, env}
 
       current_vars = %{} ->
         updated_vars = Map.put(current_vars, identifier, right)
-        diff_right = value_to_result(right, false)
+        diff_right = escape(right)
         diff = %__MODULE__{equivalent?: true, left: left, right: diff_right}
         {diff, %{env | current_vars: updated_vars}}
     end
@@ -281,7 +278,7 @@ defmodule ExUnit.Diff do
   end
 
   defp compare_improper(:empty, {:element, right}, env, _split?) do
-    diff_right = value_to_result(right, true)
+    diff_right = escape(right) |> update_diff_meta(true)
     diff = %__MODULE__{equivalent?: false, right: diff_right}
     {diff, env, true}
   end
@@ -511,7 +508,7 @@ defmodule ExUnit.Diff do
   end
 
   defp list_script_to_result(list1, [{:ins, elem2} | rest2], env) do
-    diff_right = value_to_result(elem2, true)
+    diff_right = escape(elem2) |> update_diff_meta(true)
 
     elem_diff = %__MODULE__{equivalent?: false, right: diff_right}
     {rest_diff, rest_post_env} = list_script_to_result(list1, rest2, env)
@@ -1106,14 +1103,34 @@ defmodule ExUnit.Diff do
 
   # Diff helpers
 
-  defp value_to_result(reference, diff_meta?) when is_reference(reference) do
-    update_diff_meta(reference, diff_meta?)
+  defp escape([head | tail]) when is_list(tail) do
+    [escape(head) | escape(tail)]
   end
 
-  defp value_to_result(value, diff_meta?) do
-    value
-    |> Macro.escape()
-    |> update_diff_meta(diff_meta?)
+  defp escape([head | tail]) do
+    [{:|, [], [escape(head), escape(tail)]}]
+  end
+
+  defp escape({a, b}) do
+    {escape(a), escape(b)}
+  end
+
+  defp escape(tuple) when is_tuple(tuple) do
+    list = Tuple.to_list(tuple)
+    {:{}, [], escape(list)}
+  end
+
+  defp escape(%_{} = struct) do
+    {:%{}, [], Map.to_list(struct) |> escape()}
+  end
+
+  defp escape(%{} = map) do
+    list = Map.to_list(map)
+    {:%{}, [], escape(list)}
+  end
+
+  defp escape(other) do
+    other
   end
 
   defp merge_diff(%__MODULE__{} = result1, %__MODULE__{} = result2, fun) do

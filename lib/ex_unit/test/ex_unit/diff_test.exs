@@ -641,6 +641,97 @@ defmodule ExUnit.DiffTest do
     )
   end
 
+  test "refs" do
+    ref1 = make_ref()
+    ref2 = make_ref()
+
+    inspect_ref1 = inspect(ref1)
+    inspect_ref2 = inspect(ref2)
+
+    assert_diff(ref1 == ref1, [])
+    assert_diff({ref1, ref2} == {ref1, ref2}, [])
+
+    refute_diff(ref1 == ref2, "-#{inspect_ref1}-", "+#{inspect_ref2}+")
+
+    refute_diff(
+      {ref1, ref2} == {ref2, ref1},
+      "{-#{inspect_ref1}-, #{inspect_ref2}}",
+      "{#{inspect_ref2}, +#{inspect_ref1}+}"
+    )
+
+    refute_diff(
+      {ref1, ref2} == ref1,
+      "-{#{inspect_ref1}, #{inspect_ref2}}-",
+      "+#{inspect_ref1}+"
+    )
+
+    refute_diff(
+      ref1 == {ref1, ref2},
+      "-#{inspect_ref1}-",
+      "+{#{inspect_ref1}, #{inspect_ref2}}+"
+    )
+
+    refute_diff(ref1 == :a, "-#{inspect_ref1}-", "+:a+")
+    refute_diff({ref1, ref2} == :a, "-{#{inspect_ref1}, #{inspect_ref2}}", "+:a+")
+    refute_diff(%{ref1 => ref2} == :a, "-%{#{inspect_ref1} => #{inspect_ref2}}", "+:a+")
+
+    refute_diff(
+      %Opaque{data: ref1} == :a,
+      "-%ExUnit.DiffTest.Opaque{data: #{inspect_ref1}}",
+      "+:a+"
+    )
+  end
+
+  test "pids" do
+    pid = self()
+    inspect_pid = inspect(pid)
+
+    assert_diff(pid == pid, [])
+    assert_diff({pid, pid} == {pid, pid}, [])
+
+    refute_diff(pid == :a, "-#{inspect_pid}-", "+:a+")
+    refute_diff({pid, pid} == :a, "-{#{inspect_pid}, #{inspect_pid}}", "+:a+")
+
+    refute_diff(
+      {pid, :a} == {:a, pid},
+      "{-#{inspect_pid}-, :a}",
+      "{:a, +#{inspect_pid}+}"
+    )
+
+    refute_diff(%{pid => pid} == :a, "-%{#{inspect_pid} => #{inspect_pid}}", "+:a+")
+
+    refute_diff(
+      %Opaque{data: pid} == :a,
+      "-%ExUnit.DiffTest.Opaque{data: #{inspect_pid}}",
+      "+:a+"
+    )
+  end
+
+  test "functions" do
+    identity = & &1
+    inspect = inspect(identity)
+
+    assert_diff(identity == identity, [])
+    assert_diff({identity, identity} == {identity, identity}, [])
+
+    refute_diff(identity == :a, "-#{inspect}-", "+:a+")
+    refute_diff({identity, identity} == :a, "-{#{inspect}, #{inspect}}", "+:a+")
+
+    refute_diff(
+      {identity, :a} == {:a, identity},
+      "{-#{inspect}-, :a}",
+      "{:a, +#{inspect}+}"
+    )
+
+    refute_diff(%{identity => identity} == :a, "-%{#{inspect} => #{inspect}}", "+:a+")
+
+    refute_diff(
+      %Opaque{data: identity} == :a,
+      "-%ExUnit.DiffTest.Opaque{data: #{inspect}}",
+      "+:a+"
+    )
+  end
+
   test "not supported" do
     refute_diff(
       <<147, 1, 2, 31>> = <<193, 1, 31>>,
