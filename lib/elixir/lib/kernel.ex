@@ -5319,10 +5319,8 @@ defmodule Kernel do
   """
   @doc since: "1.9.0"
   defmacro dbg(expr, opts \\ []) do
-    inspect_opts =
-      opts
-      |> Keyword.get(:inspect, [])
-      |> Keyword.put_new(:pretty, true)
+    inspect_opts = Keyword.get(opts, :inspect, [])
+    inspect_opts = Keyword.put_new(inspect_opts, :pretty, true)
 
     label =
       case Keyword.get(opts, :label, Macro.to_string(expr)) do
