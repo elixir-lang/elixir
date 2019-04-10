@@ -359,13 +359,13 @@ expand({Name, Meta, Kind} = Var, #{context := match} = E) when is_atom(Name), is
   EE =
     case Current of
       %% Variable is being overridden now
-      #{Pair := {PrematchVersion, _}} ->
+      #{Pair := PrematchVersion} ->
         NewUnused = var_unused(Pair, Meta, PrematchVersion + 1, Unused),
-        NewCurrent = Current#{Pair => {PrematchVersion + 1, term}},
+        NewCurrent = Current#{Pair => PrematchVersion + 1},
         E#{unused_vars := NewUnused, current_vars := NewCurrent};
 
       %% Variable was already overriden
-      #{Pair := {CurrentVersion, _}} ->
+      #{Pair := CurrentVersion} ->
         maybe_warn_underscored_var_repeat(Meta, Name, Kind, E),
         NewUnused = Unused#{{Pair, CurrentVersion} => false},
         E#{unused_vars := NewUnused};
@@ -374,7 +374,7 @@ expand({Name, Meta, Kind} = Var, #{context := match} = E) when is_atom(Name), is
       _ ->
         NewVars = ordsets:add_element(Pair, ?key(E, vars)),
         NewUnused = var_unused(Pair, Meta, 0, Unused),
-        NewCurrent = Current#{Pair => {0, term}},
+        NewCurrent = Current#{Pair => 0},
         E#{vars := NewVars, unused_vars := NewUnused, current_vars := NewCurrent}
     end,
 
@@ -384,7 +384,7 @@ expand({Name, Meta, Kind} = Var, E) when is_atom(Name), is_atom(Kind) ->
   Pair = {Name, elixir_utils:var_context(Meta, Kind)},
 
   case Current of
-    #{Pair := {Version, _}} ->
+    #{Pair := Version} ->
       maybe_warn_underscored_var_access(Meta, Name, Kind, E),
       UnusedKey = {Pair, Version},
 
@@ -614,7 +614,7 @@ var_unused({_Name, Kind} = Pair, Meta, Version, Unused) ->
 
 var_version(Map, Pair) ->
   case Map of
-    #{Pair := {Version, _}} -> Version;
+    #{Pair := Version} -> Version;
     _ -> -1
   end.
 

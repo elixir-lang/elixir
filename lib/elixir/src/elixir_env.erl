@@ -33,7 +33,7 @@ linify(#{} = Env) ->
   Env.
 
 with_vars(Env, Vars) ->
-  CurrentVars = maps:from_list([{Var, {0, term}} || Var <- Vars]),
+  CurrentVars = maps:from_list([{Var, 0} || Var <- Vars]),
   Env#{vars := Vars, current_vars := CurrentVars}.
 
 env_to_scope(#{context := Context}) ->
