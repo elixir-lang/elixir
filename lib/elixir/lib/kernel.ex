@@ -5301,7 +5301,7 @@ defmodule Kernel do
 
       now = dbg Time.utc_now()
 
-  The `Time.utc_now()` expression is evaluated, it's result is bound to the
+  First, the `Time.utc_now()` expression is evaluated. Then, its result is bound to the
   `now` variable, and the following is printed:
 
       run.exs:1: Time.utc_now() #=> ~T[07:03:39.303151] (49µs)
