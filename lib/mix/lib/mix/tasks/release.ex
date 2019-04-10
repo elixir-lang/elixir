@@ -515,7 +515,7 @@ defmodule Mix.Tasks.Release do
   the process may have both old and new messages temporarily mixed, so
   we need to handle both. The final version would be:
 
-     defmodule Counter do
+      defmodule Counter do
         use GenServer
 
         def start_link(_) do
