@@ -10,7 +10,8 @@ defmodule ExUnit.AssertionError do
                message: @no_value,
                expr: @no_value,
                args: @no_value,
-               doctest: @no_value
+               doctest: @no_value,
+               context: :expr
 
   @doc """
   Indicates no meaningful value for a field.
@@ -89,6 +90,7 @@ defmodule ExUnit.Assertions do
 
       match (=) failed
       code:  assert [1] = [2]
+      left: [1]
       right: [2]
 
   Keep in mind that `assert` does not change its semantics
@@ -136,10 +138,14 @@ defmodule ExUnit.Assertions do
               unquote(vars)
 
             _ ->
+              left = unquote(Macro.escape(left))
+
               raise ExUnit.AssertionError,
+                left: left,
                 right: right,
                 expr: expr,
-                message: "match (=) failed" <> ExUnit.Assertions.__pins__(unquote(pins))
+                message: "match (=) failed" <> ExUnit.Assertions.__pins__(unquote(pins)),
+                context: {:match, unquote(pins)}
           end
         end
       )
@@ -156,14 +162,18 @@ defmodule ExUnit.Assertions do
     code = escape_quoted(:assert, assertion)
     match? = {:match?, meta, [left, Macro.var(:right, __MODULE__)]}
     pins = collect_pins_from_pattern(left, Macro.Env.vars(__CALLER__))
+    left = expand_pattern(left, __CALLER__)
 
     quote do
       right = unquote(right)
+      left = unquote(Macro.escape(left))
 
       assert unquote(match?),
         right: right,
+        left: left,
         expr: unquote(code),
-        message: "match (match?) failed" <> ExUnit.Assertions.__pins__(unquote(pins))
+        message: "match (match?) failed" <> ExUnit.Assertions.__pins__(unquote(pins)),
+        context: {:match, unquote(pins)}
     end
   end
 
@@ -214,15 +224,20 @@ defmodule ExUnit.Assertions do
     match? = {:match?, meta, [left, Macro.var(:right, __MODULE__)]}
     pins = collect_pins_from_pattern(left, Macro.Env.vars(__CALLER__))
 
+    left = expand_pattern(left, __CALLER__)
+
     quote do
       right = unquote(right)
+      left = unquote(Macro.escape(left))
 
       refute unquote(match?),
         right: right,
+        left: left,
         expr: unquote(code),
         message:
           "match (match?) succeeded, but should have failed" <>
-            ExUnit.Assertions.__pins__(unquote(pins))
+            ExUnit.Assertions.__pins__(unquote(pins)),
+        context: {:match, unquote(pins)}
     end
   end
 
@@ -603,6 +618,9 @@ defmodule ExUnit.Assertions do
       {:_, _, context}, acc when is_atom(context) ->
         {:ok, acc}
 
+      {_, [{:expanded, expanded} | _], _}, acc ->
+        {[expanded], acc}
+
       {name, meta, context}, acc when is_atom(name) and is_atom(context) ->
         {:ok, [{name, [generated: true] ++ meta, context} | acc]}
 
@@ -612,20 +630,33 @@ defmodule ExUnit.Assertions do
     |> elem(1)
   end
 
-  defp expand_pattern({:when, meta, [left, right]}, caller) do
+  @doc false
+  def expand_pattern({:when, meta, [left, right]}, caller) do
     left = expand_pattern_except_vars(left, Macro.Env.to_match(caller))
     right = expand_pattern_except_vars(right, %{caller | context: :guard})
     {:when, meta, [left, right]}
   end
 
-  defp expand_pattern(expr, caller) do
+  def expand_pattern(expr, caller) do
     expand_pattern_except_vars(expr, Macro.Env.to_match(caller))
   end
 
   defp expand_pattern_except_vars(expr, caller) do
     Macro.prewalk(expr, fn
-      {var, _, context} = node when is_atom(var) and is_atom(context) -> node
-      other -> Macro.expand(other, caller)
+      {var, _, context} = node when is_atom(var) and is_atom(context) ->
+        node
+
+      {:__aliases__, _, _} = expr ->
+        Macro.expand(expr, caller)
+
+      {left, meta, right} = expr ->
+        case Macro.expand(expr, caller) do
+          ^expr -> expr
+          other -> {left, [expanded: other] ++ meta, right}
+        end
+
+      other ->
+        Macro.expand(other, caller)
     end)
   end
 

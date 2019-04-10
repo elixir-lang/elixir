@@ -22,7 +22,7 @@ defmodule TestOneOfEach do
   end
 
   test "2. assert with a binary operator" do
-    assert @one * 4 > @two *3
+    assert @one * 4 > @two * 3
   end
 
   test "3. assert match with a long argument" do
@@ -38,7 +38,7 @@ defmodule TestOneOfEach do
   end
 
   test "6. refute with a binary operator" do
-    refute @one * 6 > @two *2
+    refute @one * 6 > @two * 2
   end
 
   test "7. refute match with a long argument" do
@@ -139,7 +139,7 @@ defmodule TestOneOfEach do
 
     error2 =
       try do
-        assert @one * 4 > @two *3
+        assert @one * 4 > @two * 3
       rescue e in ExUnit.AssertionError ->
         {:error, e, System.stacktrace}
       end
