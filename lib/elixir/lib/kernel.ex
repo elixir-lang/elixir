@@ -5308,13 +5308,15 @@ defmodule Kernel do
 
   ## Options
 
-    * `:device` - IO device to write the output to (default: `:stdio`)
+    * `:device` - IO device to write the output to. Defaults to `:stdio`
+
     * `:inspect` - list of options passed to `Kernel.inspect/2` to pretty-print
-      the result. See `Inspect.Opts` for a full list of options (default:
-      `[pretty: true]`)
+      the result. See `Inspect.Opts` for a full list of options. Defaults to
+      `[pretty: true]`
+
     * `:label` - print a given label instead of the expression. This is especially
-      useful for pipelines which can expand to very long expressions.
-      (default: `Macro.to_string(expr)`)
+      useful for pipelines which can expand to very long expressions. Defaults to
+      `Macro.to_string(expr)`
 
   """
   @doc since: "1.9.0"
