@@ -822,6 +822,7 @@ defmodule ExUnit.AssertionsTest do
 
       match (=) failed
       code:  assert :a = :b
+      left:  :a
       right: :b
       """ = Exception.message(error)
   end

@@ -3,9 +3,14 @@ Code.require_file("../test_helper.exs", __DIR__)
 defmodule ExUnit.DiffTest do
   use ExUnit.Case, async: true
 
-  import ExUnit.Diff
+  alias Inspect.Algebra
+  alias ExUnit.{Assertions, Diff}
 
   defmodule User do
+    defstruct [:age]
+  end
+
+  defmodule Person do
     defstruct [:age]
   end
 
@@ -19,490 +24,751 @@ defmodule ExUnit.DiffTest do
     end
   end
 
-  test "numbers" do
-    int1 = 491_512_235
-    int2 = 490_512_035
-    expected = [eq: "49", del: "1", ins: "0", eq: "512", del: "2", ins: "0", eq: "35"]
-    assert script(int1, int2) == expected
-    assert script(42.0, 43.0) == [eq: "4", del: "2", ins: "3", eq: ".0"]
-    assert script(int1, 43.0) == nil
+  defmacrop one, do: 1
+
+  defmacrop tuple(a, b) do
+    quote do
+      {unquote(a), unquote(b)}
+    end
   end
 
-  test "strings" do
-    string1 = "fox hops over \"the dog"
-    string2 = "fox jumps over the lazy cat"
+  defmacrop pin_x do
+    x = Macro.var(:x, nil)
+    quote(do: ^unquote(x))
+  end
 
-    expected = [
-      {:eq, "\""},
-      [
-        eq: "fox ",
-        del: "ho",
-        ins: "jum",
-        eq: "ps over ",
-        del: "\\\"",
-        eq: "the ",
-        del: "dog",
-        ins: "lazy cat"
-      ],
-      {:eq, "\""}
-    ]
+  defmacrop assert_diff(expr, expected_binding, pins \\ [])
 
-    assert script(string1, string2) == expected
-    assert script(string1, <<193, 31>>) == nil
+  defmacrop assert_diff({:=, _, [left, right]}, expected_binding, pins) do
+    left = Assertions.expand_pattern(left, __CALLER__) |> Macro.escape()
 
-    # Filtered due to bag distance
-    assert script("aaa", "bba") == nil
-    assert script("aaa", "baa") == [{:eq, "\""}, [ins: "b", eq: "aa", del: "a"], {:eq, "\""}]
+    quote do
+      assert_diff(
+        unquote(left),
+        unquote(right),
+        unquote(expected_binding),
+        {:match, unquote(pins)}
+      )
+    end
+  end
 
-    assert script("", "") == [eq: "\"\""]
+  defmacrop assert_diff({:==, _, [left, right]}, [], []) do
+    quote do
+      assert_diff(unquote(left), unquote(right), [], :expr)
+    end
+  end
+
+  defmacrop refute_diff(expr, expected_left, expected_right, pins \\ [])
+
+  defmacrop refute_diff({:=, _, [left, right]}, expected_left, expected_right, pins) do
+    left = Assertions.expand_pattern(left, __CALLER__) |> Macro.escape()
+
+    quote do
+      refute_diff(
+        unquote(left),
+        unquote(right),
+        unquote(expected_left),
+        unquote(expected_right),
+        {:match, unquote(pins)}
+      )
+    end
+  end
+
+  defmacrop refute_diff({:==, _, [left, right]}, expected_left, expected_right, []) do
+    quote do
+      refute_diff(
+        unquote(left),
+        unquote(right),
+        unquote(expected_left),
+        unquote(expected_right),
+        :expr
+      )
+    end
+  end
+
+  test "atoms" do
+    assert_diff(:a = :a, [])
+    assert_diff(:"$a" = :"$a", [])
+
+    refute_diff(:a = :b, "-:a-", "+:b+")
+    refute_diff(:a = :aa, "-:a-", "+:aa+")
+
+    refute_diff(:"$" = :"$a", ~s[-:"$"-], ~s[+:"$a"+])
+    refute_diff(:"$a" = :"$b", ~s[-:"$a"-], ~s[+:"$b"+])
+
+    refute_diff(:bar = 42, "-:bar-", "+42+")
+    refute_diff(42 = :bar, "-42-", "+:bar+")
+
+    pins = [a: :a, b: :b]
+
+    assert_diff(x = :a, [x: :a], pins)
+    assert_diff(^a = :a, [], pins)
+    assert_diff(^b = :b, [], pins)
+
+    refute_diff(^a = :b, "-^a-", "+:b+", pins)
+    refute_diff(^b = :a, "-^b-", "+:a+", pins)
+  end
+
+  test "integers" do
+    assert_diff(123 = 123, [])
+    assert_diff(-123 = -123, [])
+    assert_diff(123 = +123, [])
+    assert_diff(+123 = 123, [])
+
+    refute_diff(12 = 13, "1-2-", "1+3+")
+
+    refute_diff(12345 = 123, "123-45-", "123")
+    refute_diff(123 = 12345, "123", "123+45+")
+
+    refute_diff(12345 = 345, "-12-345", "345")
+    refute_diff(345 = 12345, "345", "+12+345")
+
+    refute_diff(123 = -123, "123", "+-+123")
+    refute_diff(-123 = 123, "---123", "123")
+
+    refute_diff(491_512_235 = 490_512_035, "49-1-512-2-35", "49+0+512+0+35")
+
+    assert_diff(0xF = 15, [])
+
+    refute_diff(0xF = 16, "1-5-", "1+6+")
+
+    refute_diff(123 = :a, "-123-", "+:a+")
+  end
+
+  test "floats" do
+    assert_diff(123.0 = 123.0, [])
+    assert_diff(-123.0 = -123.0, [])
+    assert_diff(123.0 = +123.0, [])
+    assert_diff(+123.0 = 123.0, [])
+
+    refute_diff(1.2 = 1.3, "1.-2-", "1.+3+")
+
+    refute_diff(12.345 = 12.3, "12.3-45-", "12.3")
+    refute_diff(12.3 = 12.345, "12.3", "12.3+45+")
+
+    refute_diff(123.45 = 3.45, "-12-3.45", "3.45")
+    refute_diff(3.45 = 123.45, "3.45", "+12+3.45")
+
+    refute_diff(1.23 = -1.23, "1.23", "+-+1.23")
+    refute_diff(-1.23 = 1.23, "---1.23", "1.23")
+
+    refute_diff(123.0 = :a, "-123.0-", "+:a+")
+    refute_diff(123.0 = 123_512_235, "-123.0-", "+123512235+")
   end
 
   test "lists" do
-    list1 = ["Tvo", nil, :ok, {}, :ok]
-    list2 = ["Two", :ok, self(), {true}]
+    assert_diff([] = [], [])
 
-    expected = [
-      {:eq, "["},
-      [
-        [{:eq, "\""}, [eq: "T", del: "v", ins: "w", eq: "o"], {:eq, "\""}],
-        {:eq, ", "},
-        {:del, "nil"},
-        {:del, ", "},
-        {:eq, ":ok"},
-        {:eq, ", "},
-        {:ins, inspect(self())},
-        {:ins, ", "},
-        [{:eq, "{"}, [{:ins, "true"}], {:eq, "}"}],
-        {:del, ", "},
-        {:del, ":ok"}
-      ],
-      {:eq, "]"}
-    ]
+    assert_diff([:a] = [:a], [])
+    assert_diff([:a, :b, :c] = [:a, :b, :c], [])
 
-    assert script(list1, list2) == expected
+    refute_diff([] = [:a], "[]", "[+:a+]")
+    refute_diff([:a] = [], "[-:a-]", "[]")
+    refute_diff([:a] = [:b], "[-:a-]", "[+:b+]")
+    refute_diff([:a, :b, :c] = [:a, :b, :x], "[:a, :b, -:c-]", "[:a, :b, +:x+]")
+    refute_diff([:a, :x, :c] = [:a, :b, :c], "[:a, -:x-, :c]", "[:a, +:b+, :c]")
+    refute_diff([:a, :d, :b, :c] = [:a, :b, :c, :d], "[:a, -:d-, :b, :c]", "[:a, :b, :c, +:d+]")
 
-    list1 = [1, "2", 1]
-    list2 = [1, 1, 2]
+    refute_diff([:a, :b, :c] = [:a, :b, []], "[:a, :b, -:c-]", "[:a, :b, +[]+]")
+    refute_diff([:a, :b, []] = [:a, :b, :c], "[:a, :b, -[]-]", "[:a, :b, +:c+]")
+    refute_diff([:a, :b, :c] = [:a, :b], "[:a, :b, -:c-]", "[:a, :b]")
+    refute_diff([:a, :b] = [:a, :b, :c], "[:a, :b]", "[:a, :b, +:c+]")
+    refute_diff([:a, :b, :c, :d, :e] = [:a, :b], "[:a, :b, -:c-, -:d-, -:e-]", "[:a, :b]")
+    refute_diff([:a, :b] = [:a, :b, :c, :d, :e], "[:a, :b]", "[:a, :b, +:c+, +:d+, +:e+]")
 
-    expected = [
-      {:eq, "["},
-      [eq: "1", eq: ", ", del: "\"2\"", del: ", ", eq: "1", ins: ", ", ins: "2"],
-      {:eq, "]"}
-    ]
+    refute_diff(
+      [:a, [:d, :b, :c]] = [:a, [:b, :c, :d]],
+      "[:a, [-:d-, :b, :c]]",
+      "[:a, [:b, :c, +:d+]]"
+    )
 
-    assert script(list1, list2) == expected
+    refute_diff(
+      [:e, :a, :b, :c, :d] = [:a, :b, :c, :d, :e],
+      "[-:e-, :a, :b, :c, :d]",
+      "[:a, :b, :c, :d, +:e+]"
+    )
 
-    list1 = [1, 1, "1", 2]
-    list2 = [1, 1, 2]
+    refute_diff([:a, [:c, :b]] = [:a, [:b, :c]], "[:a, [-:c-, :b]]", "[:a, [:b, +:c+]]")
+    refute_diff(:a = [:a, [:b, :c]], "-:a-", "+[:a, [:b, :c]]+")
 
-    expected = [
-      {:eq, "["},
-      [eq: "1, 1", eq: ", ", del: "\"1\"", del: ", ", eq: "2"],
-      {:eq, "]"}
-    ]
+    pins = [a: :a, b: :b, list_ab: [:a, :b]]
 
-    assert script(list1, list2) == expected
+    assert_diff(x = [], [x: []], pins)
+    assert_diff(x = [:a, :b], [x: [:a, :b]], pins)
+    assert_diff([x] = [:a], [x: :a], pins)
+    assert_diff([x, :b, :c] = [:a, :b, :c], [x: :a], pins)
+    assert_diff([x, y, z] = [:a, :b, :c], [x: :a, y: :b, z: :c], pins)
+    assert_diff([x, x, :c] = [:a, :a, :c], [x: :a], pins)
 
-    list1 = []
-    list2 = [1, 2]
-    expected = [{:eq, "["}, [ins: "1, 2"], {:eq, "]"}]
-    assert script(list1, list2) == expected
+    refute_diff([x] = [], "[-x-]", "[]")
+    refute_diff([x, :b, :c] = [:a, :b, :x], "[x, :b, -:c-]", "[:a, :b, +:x+]")
+    refute_diff([x, x, :c] = [:a, :b, :c], "[x, -x-, :c]", "[:a, +:b+, :c]")
 
-    list1 = [1, 2]
-    list2 = []
-    expected = [{:eq, "["}, [del: "1, 2"], {:eq, "]"}]
-    assert script(list1, list2) == expected
+    assert_diff(^list_ab = [:a, :b], [], pins)
+    assert_diff([^a, :b, :c] = [:a, :b, :c], [], pins)
+    assert_diff([^a, ^b, :c] = [:a, :b, :c], [], pins)
+    assert_diff([^a, a, :c] = [:a, :b, :c], [a: :b], pins)
+    assert_diff([b, ^b, :c] = [:a, :b, :c], [b: :a], pins)
 
-    assert script([], []) == [eq: "[]"]
-  end
+    refute_diff(^list_ab = [:x, :b], "-^list_ab-", "[+:x+, :b]", pins)
+    refute_diff([^a, :b, :c] = [:a, :b, :x], "[^a, :b, -:c-]", "[:a, :b, +:x+]", pins)
+    refute_diff([:a, ^a, :c] = [:a, :b, :c], "[:a, -^a-, :c]", "[:a, +:b+, :c]", pins)
 
-  test "lists containing non-empty subsets or supersets" do
-    list1 = [1, 2]
-    list2 = [1, 1, 2]
+    refute_diff(
+      [x, :a, :b, :c, :d] = [:a, :b, :c, :d, :e],
+      "[x, -:a-, :b, :c, :d]",
+      "[:a, :b, :c, :d, +:e+]"
+    )
 
-    expected1 = [
-      {:eq, "["},
-      [ins: "1", ins: ", ", eq: "1, 2"],
-      {:eq, "]"}
-    ]
-
-    assert script(list1, list2) == expected1
-
-    expected2 = [
-      {:eq, "["},
-      [del: "1", del: ", ", eq: "1, 2"],
-      {:eq, "]"}
-    ]
-
-    assert script(list2, list1) == expected2
-
-    list1 = [1, 2, 3]
-    list2 = [2, 3]
-
-    expected1 = [
-      {:eq, "["},
-      [del: "1", del: ", ", eq: "2, 3"],
-      {:eq, "]"}
-    ]
-
-    assert script(list1, list2) == expected1
-
-    expected2 = [
-      {:eq, "["},
-      [ins: "1", ins: ", ", eq: "2, 3"],
-      {:eq, "]"}
-    ]
-
-    assert script(list2, list1) == expected2
-  end
-
-  test "charlists" do
-    charlist1 = 'fox hops over \'the dog'
-    charlist2 = 'fox jumps over the lazy cat'
-
-    expected = [
-      {:eq, "'"},
-      [
-        eq: "fox ",
-        del: "ho",
-        ins: "jum",
-        eq: "ps over ",
-        del: "\\'",
-        eq: "the ",
-        del: "dog",
-        ins: "lazy cat"
-      ],
-      {:eq, "'"}
-    ]
-
-    assert script(charlist1, charlist2) == expected
-  end
-
-  test "keyword lists" do
-    keyword1 = [file: "nofile", line: 1]
-    keyword2 = [file: nil, lime: 1]
-
-    expected = [
-      {:eq, "["},
-      [
-        [{:eq, "file: "}, [del: "\"nofile\"", ins: "nil"]],
-        {:eq, ", "},
-        {:del, "line: 1"},
-        {:ins, "lime: 1"}
-      ],
-      {:eq, "]"}
-    ]
-
-    assert script(keyword1, keyword2) == expected
-
-    keyword1 = [file: nil, line: 1]
-    keyword2 = [file: "nofile"]
-
-    expected = [
-      {:eq, "["},
-      [
-        [{:eq, "file: "}, [del: "nil", ins: "\"nofile\""]],
-        {:del, ", "},
-        {:del, "line: 1"}
-      ],
-      {:eq, "]"}
-    ]
-
-    assert script(keyword1, keyword2) == expected
-
-    keyword1 = [file: "nofile"]
-    keyword2 = [file: nil, line: 1]
-
-    expected = [
-      {:eq, "["},
-      [
-        [{:eq, "file: "}, [del: "\"nofile\"", ins: "nil"]],
-        {:ins, ", "},
-        {:ins, "line: 1"}
-      ],
-      {:eq, "]"}
-    ]
-
-    assert script(keyword1, keyword2) == expected
-
-    keyword1 = [file: "nofile", line: 1]
-    keyword2 = [file: nil, line: 1]
-
-    expected = [
-      {:eq, "["},
-      [
-        [{:eq, "file: "}, [del: "\"nofile\"", ins: "nil"]],
-        {:eq, ", "},
-        {:eq, "line: 1"}
-      ],
-      {:eq, "]"}
-    ]
-
-    assert script(keyword1, keyword2) == expected
-
-    keyword1 = [line: 1, file: "nofile"]
-    keyword2 = [line: 1, file: nil]
-
-    expected = [
-      {:eq, "["},
-      [
-        {:eq, "line: 1"},
-        {:eq, ", "},
-        [{:eq, "file: "}, [del: "\"nofile\"", ins: "nil"]]
-      ],
-      {:eq, "]"}
-    ]
-
-    assert script(keyword1, keyword2) == expected
-
-    keyword1 = [file: "one", line: 1]
-    keyword2 = [file: "two", line: 2]
-
-    expected = [
-      {:eq, "["},
-      [
-        [{:eq, "file: "}, [del: "\"one\"", ins: "\"two\""]],
-        {:eq, ", "},
-        [{:eq, "line: "}, [del: "1", ins: "2"]]
-      ],
-      {:eq, "]"}
-    ]
-
-    assert script(keyword1, keyword2) == expected
-
-    keyword1 = [file: "nofile"]
-    keyword2 = [file: nil]
-
-    expected = [
-      {:eq, "["},
-      [{:eq, "file: "}, [del: "\"nofile\"", ins: "nil"]],
-      {:eq, "]"}
-    ]
-
-    assert script(keyword1, keyword2) == expected
-
-    keyword1 = [file: nil]
-    keyword2 = []
-    expected = [{:eq, "["}, [{:del, "file: nil"}], {:eq, "]"}]
-    assert script(keyword1, keyword2) == expected
-
-    keyword1 = []
-    keyword2 = [file: nil]
-    expected = [{:eq, "["}, [{:ins, "file: nil"}], {:eq, "]"}]
-    assert script(keyword1, keyword2) == expected
-
-    keyword1 = [port: 4000, max_connections: 1000]
-    keyword2 = [max_connections: 1000, port: 4000]
-
-    expected = [
-      {:eq, "["},
-      [del: "port: 4000", del: ", ", eq: "max_connections: 1000", ins: ", ", ins: "port: 4000"],
-      {:eq, "]"}
-    ]
-
-    assert script(keyword1, keyword2) == expected
-
-    assert script(["foo-bar": 1], []) == [{:eq, "["}, [{:del, "\"foo-bar\": 1"}], {:eq, "]"}]
-  end
-
-  test "keyword lists containing non-empty subsets or supersets" do
-    keyword1 = [file: nil, line: 1]
-    keyword2 = [line: 1]
-
-    expected = [
-      {:eq, "["},
-      [{:del, "file: nil"}, {:del, ", "}, {:eq, "line: 1"}],
-      {:eq, "]"}
-    ]
-
-    assert script(keyword1, keyword2) == expected
-
-    keyword1 = [line: 1]
-    keyword2 = [file: nil, line: 1]
-
-    expected = [{:eq, "["}, [ins: "file: nil", ins: ", ", eq: "line: 1"], {:eq, "]"}]
-
-    assert script(keyword1, keyword2) == expected
+    refute_diff([:a, :b] = :a, "-[:a, :b]-", "+:a+")
   end
 
   test "improper lists" do
-    expected = [{:eq, "["}, [[eq: "1, 2"], {:ins, " | 3"}], {:eq, "]"}]
-    assert script([1, 2], [1, 2 | 3]) == expected
-    expected = [{:eq, "["}, [[eq: "1, 2"], {:del, " | 3"}], {:eq, "]"}]
-    assert script([1, 2 | 3], [1, 2]) == expected
+    assert_diff([:a | :b] = [:a | :b], [])
+    assert_diff([:a, :b | :c] = [:a, :b | :c], [])
 
-    expected = [
-      {:eq, "["},
-      [[eq: "1", del: ", ", del: "\"a\""], {:ins, " | \"b\""}],
-      {:eq, "]"}
-    ]
+    refute_diff([:a | :b] = [:b | :a], "[-:a- | -:b-]", "[+:b+ | +:a+]")
+    refute_diff([:a | :b] = [:a | :x], "[:a | -:b-]", "[:a | +:x+]")
+    refute_diff([:a, :b | :c] = [:a, :b | :x], "[:a, :b | -:c-]", "[:a, :b | +:x+]")
+    refute_diff([:a, :x | :c] = [:a, :b | :c], "[:a, -:x- | :c]", "[:a, +:b+ | :c]")
+    refute_diff([:x, :b | :c] = [:a, :b | :c], "[-:x-, :b | :c]", "[+:a+, :b | :c]")
+    refute_diff([:c, :a | :b] = [:a, :b | :c], "[-:c-, :a | -:b-]", "[:a, +:b+ | +:c+]")
 
-    assert script([1, "a"], [1 | "b"]) == expected
+    refute_diff(
+      [:a, :c, :x | :b] = [:a, :b, :c | :d],
+      "[:a, :c, -:x- | -:b-]",
+      "[:a, +:b+, :c | +:d+]"
+    )
 
-    expected = [
-      {:eq, "["},
-      [[eq: "1", ins: ", ", ins: "\"a\""], {:del, " | \"b\""}],
-      {:eq, "]"}
-    ]
+    refute_diff([:a | :d] = [:a, :b, :c | :d], "[:a | :d]", "[:a, +:b+, +:c+ | :d]")
 
-    assert script([1 | "b"], [1, "a"]) == expected
+    refute_diff(
+      [[:a | :x], :x | :d] = [[:a | :b], :c | :d],
+      "[[:a | -:x-], -:x- | :d]",
+      "[[:a | +:b+], +:c+ | :d]"
+    )
 
-    expected = [{:eq, "["}, [[eq: "1"], [eq: " | ", del: "2", ins: "3"]], {:eq, "]"}]
-    assert script([1 | 2], [1 | 3]) == expected
+    assert_diff([:a | x] = [:a | :b], x: :b)
+  end
 
-    expected = [
-      {:eq, "["},
-      [[eq: "1", eq: ", ", del: "'b'", ins: "'a'"], [eq: " | ", eq: "3"]],
-      {:eq, "]"}
-    ]
+  test "proper lists" do
+    assert_diff([:a | [:b]] = [:a, :b], [])
+    assert_diff([:a | [:b, :c]] = [:a, :b, :c], [])
 
-    assert script([1, 'b' | 3], [1, 'a' | 3]) == expected
+    refute_diff([:a | [:b]] = [:a, :x], "[:a | [-:b-]]", "[:a, +:x+]")
 
-    expected = [
-      {:eq, "["},
-      [[del: "'a'", del: ", ", ins: "'b'", ins: ", ", eq: "2"], [eq: " | ", eq: "3"]],
-      {:eq, "]"}
-    ]
+    refute_diff([:a, :b | [:c]] = [:a, :b, :x], "[:a, :b | [-:c-]]", "[:a, :b, +:x+]")
+    refute_diff([:a, :x | [:c]] = [:a, :b, :c], "[:a, -:x- | [:c]]", "[:a, +:b+, :c]")
+    refute_diff([:a | [:b, :c]] = [:a, :b, :x], "[:a | [:b, -:c-]]", "[:a, :b, +:x+]")
+    refute_diff([:a | [:b, :c]] = [:x, :b, :c], "[-:a- | [:b, :c]]", "[+:x+, :b, :c]")
 
-    assert script(['a', 2 | 3], ['b', 2 | 3]) == expected
+    refute_diff(
+      [:a, :c, :x | [:b, :c]] = [:a, :b, :c, :d, :e],
+      "[:a, -:c-, -:x- | [:b, :c]]",
+      "[:a, :b, :c, +:d+, +:e+]"
+    )
+
+    refute_diff([:a, :b | [:c]] = [:a, :b], "[:a, :b | [-:c-]]", "[:a, :b]")
+    refute_diff([:a, :b | []] = [:a, :b, :c], "[:a, :b | []]", "[:a, :b, +:c+]")
+    refute_diff([:a, :b | [:c, :d]] = [:a, :b, :c], "[:a, :b | [:c, -:d-]]", "[:a, :b, :c]")
+    refute_diff([:a, :b | [:c, :d]] = [:a], "[:a, -:b- | [-:c-, -:d-]]", "[:a]")
+
+    refute_diff(
+      [:a, [:b, :c] | [:d, :e]] = [:a, [:x, :y], :d, :e],
+      "[:a, [-:b-, -:c-] | [:d, :e]]",
+      "[:a, [+:x+, +:y+], :d, :e]"
+    )
+
+    refute_diff(
+      [:a, [:b, :c] | [:d, :e]] = [:a, [:x, :c], :d, :e],
+      "[:a, [-:b-, :c] | [:d, :e]]",
+      "[:a, [+:x+, :c], :d, :e]"
+    )
+
+    pins = [list_bc: [:b, :c]]
+
+    assert_diff([:a | x] = [:a, :b], [x: [:b]], pins)
+    assert_diff([:a | x] = [:a, :b, :c], [x: [:b, :c]], pins)
+    assert_diff([:a | ^list_bc] = [:a, :b, :c], [], pins)
+
+    refute_diff([:a | ^list_bc] = [:x, :x, :c], "[-:a- | -^list_bc-]", "[+:x+, +:x+, :c]", pins)
+    refute_diff([:a | ^list_bc] = [:a, :x, :c], "[:a | -^list_bc-]", "[:a, +:x+, :c]", pins)
+  end
+
+  test "concat lists" do
+    assert_diff([:a] ++ [:b] = [:a, :b], [])
+    assert_diff([:a, :b] ++ [] = [:a, :b], [])
+    assert_diff([] ++ [:a, :b] = [:a, :b], [])
+
+    refute_diff([:a, :b] ++ [:c] = [:a, :b], "[:a, :b] ++ [-:c-]", "[:a, :b]")
+    refute_diff([:a, :c] ++ [:b] = [:a, :b], "[:a, -:c-] ++ [:b]", "[:a, :b]")
+
+    refute_diff([:a] ++ [:b] ++ [:c] = [:a, :b], "[:a] ++ [:b] ++ [-:c-]", "[:a, :b]")
+
+    assert_diff([:a] ++ :b = [:a | :b], [])
+    assert_diff([:a] ++ x = [:a, :b], x: [:b])
+
+    refute_diff([:a, :b] ++ :c = [:a, :b, :c], "[:a, :b] ++ -:c-", "[:a, :b, +:c+]")
+    refute_diff([:a] ++ [:b] ++ :c = [:a, :b, :c], "[:a] ++ [:b] ++ -:c-", "[:a, :b, +:c+]")
+
+    refute_diff([:a] ++ [:b] = :a, "-[:a] ++ [:b]-", "+:a+")
+  end
+
+  test "mixed lists" do
+    refute_diff([:a | :b] = [:a, :b], "[:a | -:b-]", "[:a, +:b+]")
+    refute_diff([:a, :b] = [:a | :b], "[:a, -:b-]", "[:a | +:b+]")
+    refute_diff([:a | [:b]] = [:a | :b], "[:a | -[:b]-]", "[:a | +:b+]")
+    refute_diff([:a | [:b | [:c]]] = [:a | :c], "[:a | [-:b- | -[:c]-]]", "[:a | +:c+]")
+    refute_diff([:a | :b] = [:a, :b, :c], "[:a | -:b-]", "[:a, +:b+, +:c+]")
+    refute_diff([:a, :b, :c] = [:a | :b], "[:a, -:b-, -:c-]", "[:a | +:b+]")
+
+    refute_diff([:a | [:b] ++ [:c]] = [:a, :b], "[:a | [:b] ++ [-:c-]]", "[:a, :b]")
+
+    refute_diff(
+      [:a | [:b] ++ [:c]] ++ [:d | :e] = [:a, :b | :e],
+      "[:a | [:b] ++ [-:c-]] ++ [-:d- | :e]",
+      "[:a, :b | :e]"
+    )
+  end
+
+  test "keyword lists" do
+    assert_diff([file: "nofile", line: 1] = [file: "nofile", line: 1], [])
+
+    refute_diff(
+      [file: "nofile", line: 1] = [file: nil, lime: 1],
+      ~s/[file: -"nofile"-, -line:- 1]/,
+      "[file: +nil+, +lime:+ 1]"
+    )
+
+    refute_diff(
+      [file: nil, line: 1] = [file: "nofile"],
+      "[file: -nil-, -line: 1-]",
+      ~s/[file: +"nofile"+]/
+    )
+
+    refute_diff(
+      ["foo-bar": 1] = [],
+      ~s/[-"foo-bar": 1-]/,
+      "[]"
+    )
+
+    refute_diff(
+      [file: nil] = [{:line, 1}, {1, :foo}],
+      "[-file:- -nil-]",
+      "[{+:line+, +1+}, +{1, :foo}+]"
+    )
   end
 
   test "tuples" do
-    tuple1 = {:hex, '1.1'}
-    tuple2 = {:hex, '0.1', [{:ex_doc}]}
+    assert_diff({:a, :b} = {:a, :b}, [])
 
-    expected = [
-      {:eq, "{"},
-      [
-        {:eq, ":hex"},
-        {:eq, ", "},
-        [{:eq, "'"}, [del: "1", ins: "0", eq: ".1"], {:eq, "'"}],
-        {:ins, ", "},
-        {:ins, "[{:ex_doc}]"}
-      ],
-      {:eq, "}"}
-    ]
+    refute_diff({:a, :b} = {:a, :x}, "{:a, -:b-}", "{:a, +:x+}")
+    refute_diff({:a, :b} = {:x, :x}, "{-:a-, -:b-}", "{+:x+, +:x+}")
+    refute_diff({:a, :b, :c} = {:a, :b, :x}, "{:a, :b, -:c-}", "{:a, :b, +:x+}")
 
-    assert script(tuple1, tuple2) == expected
+    refute_diff({:a} = {:a, :b}, "{:a}", "{:a, +:b+}")
+    refute_diff({:a, :b} = {:a}, "{:a, -:b-}", "{:a}")
 
-    assert script(tuple1, {}) == [{:eq, "{"}, [{:del, ":hex, '1.1'"}], {:eq, "}"}]
-    assert script({}, tuple1) == [{:eq, "{"}, [{:ins, ":hex, '1.1'"}], {:eq, "}"}]
-    assert script({}, {}) == [eq: "{}"]
+    refute_diff({:a, :b} = :a, "-{:a, :b}-", "+:a+")
   end
 
-  test "tuples containing non-empty subsets or supersets" do
-    tuple1 = {:ok}
-    tuple2 = {:ok, [1, 2, 3]}
+  test "tuples outside of match context" do
+    assert_diff({:a, :b} == {:a, :b}, [])
 
-    expected = [{:eq, "{"}, [eq: ":ok", ins: ", ", ins: "[1, 2, 3]"], {:eq, "}"}]
+    refute_diff({:a} == {:a, :b}, "{:a}", "{:a, +:b+}")
+    refute_diff({:a, :b} == {:a}, "{:a, -:b-}", "{:a}")
 
-    assert script(tuple1, tuple2) == expected
-
-    tuple1 = {:ok, [1, 2, 3]}
-    tuple2 = {[1, 2, 3]}
-
-    expected = [{:eq, "{"}, [del: ":ok", del: ", ", eq: "[1, 2, 3]"], {:eq, "}"}]
-
-    assert script(tuple1, tuple2) == expected
+    refute_diff({:{}, [], [:a]} == {:a}, "{-:{}-, -[]-, -[:a]-}", "{+:a+}")
+    refute_diff({:{}, [], [:a]} == :a, "-{:{}, [], [:a]}-", "+:a+")
   end
 
   test "maps" do
-    map1 = Enum.into(1..15, %{}, &{&1, &1}) |> Map.delete(13)
-    map2 = Enum.reduce(5..10, map1, &Map.delete(&2, &1)) |> Map.put(13, 13) |> Map.put(12, 32)
+    assert_diff(%{a: 1} = %{a: 1}, [])
+    assert_diff(%{a: 1} = %{a: 1, b: 2}, [])
+    assert_diff(%{a: 1, b: 2} = %{a: 1, b: 2}, [])
+    assert_diff(%{b: 2, a: 1} = %{a: 1, b: 2}, [])
+    assert_diff(%{a: 1, b: 2, c: 3} = %{a: 1, b: 2, c: 3}, [])
+    assert_diff(%{c: 3, b: 2, a: 1} = %{a: 1, b: 2, c: 3}, [])
 
-    expected = [
-      {:eq, "%{"},
-      [
-        [eq: "1 => 1"],
-        [eq: ", ", eq: "2 => 2"],
-        [eq: ", ", eq: "3 => 3"],
-        [eq: ", ", eq: "4 => 4"],
-        [eq: ", ", eq: "11 => 11"],
-        [eq: ", ", eq: "14 => 14"],
-        [eq: ", ", eq: "15 => 15"],
-        [{:eq, ", "}, {:eq, "12 => "}, [del: "1", ins: "3", eq: "2"]],
-        [del: ", ", del: "5 => 5"],
-        [del: ", ", del: "6 => 6"],
-        [del: ", ", del: "7 => 7"],
-        [del: ", ", del: "8 => 8"],
-        [del: ", ", del: "9 => 9"],
-        [del: ", ", del: "10 => 10"],
-        [ins: ", ", ins: "13 => 13"]
-      ],
-      {:eq, "}"}
-    ]
+    refute_diff(%{a: 1, b: 2} = %{a: 1}, "%{a: 1, -b: 2-}", "%{a: 1}")
+    refute_diff(%{a: 1, b: 2} = %{a: 1, b: 12}, "%{a: 1, b: 2}", "%{a: 1, b: +1+2}")
+    refute_diff(%{a: 1, b: 2} = %{a: 1, c: 2}, "%{a: 1, -b: 2-}", "%{a: 1, c: 2}")
+    refute_diff(%{a: 1, b: 2, c: 3} = %{a: 1, b: 12}, "%{a: 1, b: 2, -c: 3-}", "%{a: 1, b: +1+2}")
+    refute_diff(%{a: 1, b: 2, c: 3} = %{a: 1, c: 2}, "%{a: 1, -b: 2-, c: -3-}", "%{a: 1, c: +2+}")
+    refute_diff(%{a: 1} = %{a: 2, b: 2, c: 3}, "%{a: -1-}", "%{a: +2+, b: 2, c: 3}")
 
-    assert script(map1, map2) == expected
+    refute_diff(
+      %{1 => :a, 2 => :b} = %{1 => :a, 12 => :b},
+      "%{1 => :a, -2 => :b-}",
+      "%{1 => :a, 12 => :b}"
+    )
 
-    map1 = %{baz: 12}
-    map2 = %{foo: 12, bar: 12, baz: 12}
+    refute_diff(
+      %{1 => :a, 2 => :b} = %{1 => :a, :b => 2},
+      "%{1 => :a, -2 => :b-}",
+      "%{1 => :a, :b => 2}"
+    )
 
-    expected = [
-      {:eq, "%{"},
-      [[eq: "baz: 12"], [ins: ", ", ins: "bar: 12"], [ins: ", ", ins: "foo: 12"]],
-      {:eq, "}"}
-    ]
+    pins = [a: :a, b: :b]
 
-    assert script(map1, map2) == expected
+    assert_diff(%{^a => 1} = %{a: 1}, [], pins)
+    assert_diff(%{^a => x} = %{a: 1}, [x: 1], pins)
 
-    expected = [
-      {:eq, "%{"},
-      [[eq: "baz: 12"], [del: ", ", del: "bar: 12"], [del: ", ", del: "foo: 12"]],
-      {:eq, "}"}
-    ]
+    refute_diff(%{^a => 1, :a => 2} = %{a: 1}, "%{^a => 1, -:a => 2-}", "%{a: 1}", pins)
 
-    assert script(map2, map1) == expected
-    assert script(map1, %{}) == [{:eq, "%{"}, [[del: "baz: 12"]], {:eq, "}"}]
-    assert script(%{}, map1) == [{:eq, "%{"}, [[ins: "baz: 12"]], {:eq, "}"}]
-    expected = [{:eq, "%{"}, [[del: "baz: 12"], [ins: "foo: 12"]], {:eq, "}"}]
-    assert script(map1, %{foo: 12}) == expected
+    refute_diff(
+      %{^a => x, ^b => x} = %{a: 1, b: 2},
+      "%{^a => x, ^b => -x-}",
+      "%{a: 1, b: +2+}",
+      pins
+    )
 
-    assert script(%{"foo-bar": 1}, %{}) == [{:eq, "%{"}, [[del: "\"foo-bar\": 1"]], {:eq, "}"}]
-    assert script(%{}, %{}) == [eq: "%{}"]
+    refute_diff(%{a: 1} = :a, "-%{a: 1}-", "+:a+")
+  end
 
-    assert script(%{nil: 42}, %{}) == [{:eq, "%{"}, [[del: "nil: 42"]], {:eq, "}"}]
-    assert script(%{true: 42}, %{}) == [{:eq, "%{"}, [[del: "true: 42"]], {:eq, "}"}]
-    assert script(%{false: 42}, %{}) == [{:eq, "%{"}, [[del: "false: 42"]], {:eq, "}"}]
+  test "maps outside match context" do
+    assert_diff(%{a: 1} == %{a: 1}, [])
+    assert_diff(%{a: 1, b: 2} == %{a: 1, b: 2}, [])
+    assert_diff(%{b: 2, a: 1} == %{a: 1, b: 2}, [])
+    assert_diff(%{a: 1, b: 2, c: 3} == %{a: 1, b: 2, c: 3}, [])
+    assert_diff(%{c: 3, b: 2, a: 1} == %{a: 1, b: 2, c: 3}, [])
+
+    refute_diff(%{a: 1} == %{a: 1, b: 2}, "%{a: 1}", "%{a: 1, +b: 2+}")
+    refute_diff(%{a: 1, b: 2} == %{a: 1}, "%{a: 1, -b: 2-}", "%{a: 1}")
+    refute_diff(%{a: 1, b: 12} == %{a: 1, b: 2}, "%{a: 1, b: -1-2}", "%{a: 1, b: 2}")
+    refute_diff(%{a: 1, b: 2} == %{a: 1, b: 12}, "%{a: 1, b: 2}", "%{a: 1, b: +1+2}")
+    refute_diff(%{a: 1, b: 2} == %{a: 1, c: 2}, "%{a: 1, -b: 2-}", "%{a: 1, +c: 2+}")
   end
 
   test "structs" do
-    user1 = %User{age: 16}
-    user2 = %User{age: 21}
+    assert_diff(%User{age: 16} = %User{age: 16}, [])
+    assert_diff(%User{age: 16} = %{age: 16}, [])
+    assert_diff(%{age: 16, __struct__: User} = %User{age: 16}, [])
 
-    expected = [
-      {:eq, "%ExUnit.DiffTest.User{"},
-      [[{:eq, "age: "}, [ins: "2", eq: "1", del: "6"]]],
-      {:eq, "}"}
-    ]
+    refute_diff(
+      %User{age: 16} = %User{age: 21},
+      "%ExUnit.DiffTest.User{age: 1-6-}",
+      "%ExUnit.DiffTest.User{age: +2+1}"
+    )
 
-    assert script(user1, user2) == expected
-    assert script(%User{}, %{}) == nil
-    assert script(%User{}, %ExUnit.Test{}) == nil
+    refute_diff(
+      %User{age: 16} = %Person{age: 21},
+      "%-ExUnit.DiffTest.User-{age: 1-6-}",
+      "%+ExUnit.DiffTest.Person+{age: +2+1}"
+    )
+
+    refute_diff(
+      %User{age: 16} = %Person{age: 21},
+      "%-ExUnit.DiffTest.User-{age: 1-6-}",
+      "%+ExUnit.DiffTest.Person+{age: +2+1}"
+    )
+
+    refute_diff(
+      %User{age: 16} = %{age: 21},
+      "%-ExUnit.DiffTest.User-{age: 1-6-}",
+      "%{age: +2+1}"
+    )
+
+    refute_diff(
+      %{age: 16, __struct__: Person} = %User{age: 16},
+      "%-ExUnit.DiffTest.Person-{age: 16}",
+      "%+ExUnit.DiffTest.User+{age: 16}"
+    )
+
+    pins = [tweety_one: 21]
+
+    assert_diff(%User{age: ^tweety_one} = %User{age: 21}, [], pins)
+    assert_diff(%User{age: age} = %User{age: 21}, [age: 21], pins)
+
+    refute_diff(
+      %User{^tweety_one => 21} = %User{age: 21},
+      "%ExUnit.DiffTest.User{-^tweety_one => 21-}",
+      "%ExUnit.DiffTest.User{age: 21}",
+      pins
+    )
+
+    refute_diff(%User{age: 21} = :a, "-%ExUnit.DiffTest.User{age: 21}-", "+:a+", pins)
+  end
+
+  test "structs outside of match context" do
+    assert_diff(%User{age: 16} == %User{age: 16}, [])
+    assert_diff(%{age: 16, __struct__: User} == %User{age: 16}, [])
+
+    refute_diff(
+      %User{age: 16} == %{age: 16},
+      "%-ExUnit.DiffTest.User-{age: 16}",
+      "%{age: 16}"
+    )
+
+    refute_diff(
+      %User{age: 16} == %User{age: 21},
+      "%ExUnit.DiffTest.User{age: 1-6-}",
+      "%ExUnit.DiffTest.User{age: +2+1}"
+    )
+
+    refute_diff(
+      %User{age: 16} == %Person{age: 21},
+      "%-ExUnit.DiffTest.User-{age: 1-6-}",
+      "%+ExUnit.DiffTest.Person+{age: +2+1}"
+    )
   end
 
   test "structs with inspect" do
-    date1 = ~D[2017-10-01]
-    date2 = ~D[2017-10-02]
+    refute_diff(
+      ~D[2017-10-01] = ~D[2017-10-02],
+      ~s/-~D"2017-10-01"-/,
+      "~D[2017-10-0+2+]"
+    )
+  end
 
-    assert script(date1, date2) == [eq: "~D[2017-10-0", del: "1", ins: "2", eq: "]"]
+  test "structs with inspect outside match context" do
+    refute_diff(
+      ~D[2017-10-01] == ~D[2017-10-02],
+      "~D[2017-10-0-1-]",
+      "~D[2017-10-0+2+]"
+    )
   end
 
   test "structs without inspect difference" do
-    opaque1 = %Opaque{data: 1}
-    opaque2 = %Opaque{data: 2}
+    refute_diff(
+      %Opaque{data: 1} == %Opaque{data: 2},
+      "%ExUnit.DiffTest.Opaque{data: -1-}",
+      "%ExUnit.DiffTest.Opaque{data: +2+}"
+    )
+  end
 
-    assert script(opaque1, opaque2) == [
-             {:eq, "%ExUnit.DiffTest.Opaque{"},
-             [[{:eq, "data: "}, [del: "1", ins: "2"]]],
-             {:eq, "}"}
-           ]
+  test "strings" do
+    assert_diff("" = "", [])
+    assert_diff("fox hops over the dog" = "fox hops over the dog", [])
+
+    refute_diff("fox" = "foo", "fo-x-", "fo+o+")
+
+    refute_diff(
+      "fox hops over \"the dog" = "fox  jumps over the  lazy cat",
+      ~s/"fox -ho-ps over -\\\"-the -dog-"/,
+      ~s/"fox + jum+ps over the + lazy cat+"/
+    )
+
+    refute_diff(
+      "short" = "really long string that should not emit diff against short",
+      ~s/"-short-"/,
+      ~s/"+really long string that should not emit diff against short+"/
+    )
+
+    refute_diff("foo" = :a, ~s/-"foo"-/, "+:a+")
+  end
+
+  test "concat operator" do
+    assert_diff("fox hops" <> " over the dog" = "fox hops over the dog", [])
+    assert_diff("fox hops " <> "over " <> "the dog" = "fox hops over the dog", [])
+
+    refute_diff(
+      "fox hops" <> " under the dog" = "fox hops over the dog",
+      ~s/"fox hops" <> " -und-er the dog"/,
+      ~s/"fox hops +ov+er the dog"/
+    )
+
+    refute_diff(
+      "fox hops over" <> " the dog" = "fox hops over",
+      ~s/"fox hops over" <> "- the dog-"/,
+      ~s/"fox hops over"/
+    )
+
+    refute_diff(
+      "fox hops" <> " over the dog" = "fox",
+      ~s/"-fox hops-" <> "- over the dog-"/,
+      ~s/"+fox+"/
+    )
+
+    refute_diff(
+      "fox" <> " hops" = "fox h",
+      ~s/"fox" <> " h-ops-"/,
+      ~s/"fox h"/
+    )
+
+    refute_diff(
+      "fox hops " <> "hover " <> "the dog" = "fox hops over the dog",
+      ~s/"fox hops " <> "-h-over " <> "the dog"/,
+      ~s/"fox hops over the dog"/
+    )
+
+    pins = [x: " over the dog"]
+
+    assert_diff("fox hops" <> x = "fox hops over the dog", x: " over the dog")
+    assert_diff("fox hops " <> "over " <> x = "fox hops over the dog", x: "the dog")
+    assert_diff("fox hops" <> ^x = "fox hops over the dog", [], pins)
+
+    refute_diff(
+      "fox hops " <> "hover " <> x = "fox hops over the dog",
+      ~s/"fox hops " <> "-h-over " <> x/,
+      ~s/"fox hops over +t+he dog"/
+    )
+
+    refute_diff(
+      "fox hops " <> "hover " <> ^x = "fox hops over the dog",
+      ~s/"fox hops " <> "-h-over " <> -^x-/,
+      ~s/"fox hops over +t+he dog"/,
+      pins
+    )
+
+    refute_diff("fox" <> " hops" = :a, ~s/-"fox" <> " hops"-/, "+:a+")
+  end
+
+  test "underscore" do
+    assert_diff(_ = :a, [])
+    assert_diff({_, _} = {:a, :b}, [])
+
+    refute_diff({_, :a} = {:b, :b}, "{_, -:a-}", "{:b, +:b+}")
+  end
+
+  test "macros" do
+    assert_diff(one() = 1, [])
+    assert_diff(tuple(x, x) = {1, 1}, x: 1)
+
+    refute_diff(one() = 2, "-one()-", "+2+")
+    refute_diff(tuple(x, x) = {1, 2}, "-tuple(x, x)-", "{1, +2+}")
+
+    pins = [x: 1]
+    assert_diff(pin_x() = 1, [], pins)
+    refute_diff(pin_x() = 2, "-pin_x()-", "+2+", pins)
+  end
+
+  test "charlists" do
+    refute_diff(
+      'fox hops over \'the dog' = 'fox jumps over the lazy cat',
+      "'fox -ho-ps over -\\'-the -dog-'",
+      "'fox +jum+ps over the +lazy cat+'"
+    )
+  end
+
+  test "refs" do
+    ref1 = make_ref()
+    ref2 = make_ref()
+
+    inspect_ref1 = inspect(ref1)
+    inspect_ref2 = inspect(ref2)
+
+    assert_diff(ref1 == ref1, [])
+    assert_diff({ref1, ref2} == {ref1, ref2}, [])
+
+    refute_diff(ref1 == ref2, "-#{inspect_ref1}-", "+#{inspect_ref2}+")
+
+    refute_diff(
+      {ref1, ref2} == {ref2, ref1},
+      "{-#{inspect_ref1}-, #{inspect_ref2}}",
+      "{#{inspect_ref2}, +#{inspect_ref1}+}"
+    )
+
+    refute_diff(
+      {ref1, ref2} == ref1,
+      "-{#{inspect_ref1}, #{inspect_ref2}}-",
+      "+#{inspect_ref1}+"
+    )
+
+    refute_diff(
+      ref1 == {ref1, ref2},
+      "-#{inspect_ref1}-",
+      "+{#{inspect_ref1}, #{inspect_ref2}}+"
+    )
+
+    refute_diff(ref1 == :a, "-#{inspect_ref1}-", "+:a+")
+    refute_diff({ref1, ref2} == :a, "-{#{inspect_ref1}, #{inspect_ref2}}", "+:a+")
+    refute_diff(%{ref1 => ref2} == :a, "-%{#{inspect_ref1} => #{inspect_ref2}}", "+:a+")
+
+    refute_diff(
+      %Opaque{data: ref1} == :a,
+      "-%ExUnit.DiffTest.Opaque{data: #{inspect_ref1}}",
+      "+:a+"
+    )
+  end
+
+  test "pids" do
+    pid = self()
+    inspect_pid = inspect(pid)
+
+    assert_diff(pid == pid, [])
+    assert_diff({pid, pid} == {pid, pid}, [])
+
+    refute_diff(pid == :a, "-#{inspect_pid}-", "+:a+")
+    refute_diff({pid, pid} == :a, "-{#{inspect_pid}, #{inspect_pid}}", "+:a+")
+
+    refute_diff(
+      {pid, :a} == {:a, pid},
+      "{-#{inspect_pid}-, :a}",
+      "{:a, +#{inspect_pid}+}"
+    )
+
+    refute_diff(%{pid => pid} == :a, "-%{#{inspect_pid} => #{inspect_pid}}", "+:a+")
+
+    refute_diff(
+      %Opaque{data: pid} == :a,
+      "-%ExUnit.DiffTest.Opaque{data: #{inspect_pid}}",
+      "+:a+"
+    )
+  end
+
+  test "functions" do
+    identity = & &1
+    inspect = inspect(identity)
+
+    assert_diff(identity == identity, [])
+    assert_diff({identity, identity} == {identity, identity}, [])
+
+    refute_diff(identity == :a, "-#{inspect}-", "+:a+")
+    refute_diff({identity, identity} == :a, "-{#{inspect}, #{inspect}}", "+:a+")
+
+    refute_diff(
+      {identity, :a} == {:a, identity},
+      "{-#{inspect}-, :a}",
+      "{:a, +#{inspect}+}"
+    )
+
+    refute_diff(%{identity => identity} == :a, "-%{#{inspect} => #{inspect}}", "+:a+")
+
+    refute_diff(
+      %Opaque{data: identity} == :a,
+      "-%ExUnit.DiffTest.Opaque{data: #{inspect}}",
+      "+:a+"
+    )
   end
 
   test "not supported" do
-    bin1 = <<147, 1, 2, 31>>
-    bin2 = <<193, 1, 31>>
-    assert script(bin1, bin2) == nil
-    assert script(:foo, :bar) == nil
-    assert script(:foo, "bar") == nil
+    refute_diff(
+      <<147, 1, 2, 31>> = <<193, 1, 31>>,
+      "-<<147, 1, 2, 31>>-",
+      "+<<193, 1, 31>>+"
+    )
+  end
+
+  defp refute_diff(left, right, expected_left, expected_right, context) do
+    {diff, _env} = Diff.compute(left, right, context)
+
+    diff_left =
+      diff.left
+      |> Diff.to_algebra(&diff_wrapper(&1, "-"))
+      |> Algebra.format(:infinity)
+      |> IO.iodata_to_binary()
+
+    assert diff_left =~ expected_left
+
+    diff_right =
+      diff.right
+      |> Diff.to_algebra(&diff_wrapper(&1, "+"))
+      |> Algebra.format(:infinity)
+      |> IO.iodata_to_binary()
+
+    assert diff_right =~ expected_right
+  end
+
+  defp assert_diff(left, right, expected_binding, context) do
+    {diff, env} = Diff.compute(left, right, context)
+    env_binding = for {{name, _}, value} <- env.current_vars, do: {name, value}
+
+    assert diff.equivalent?
+    assert env_binding == expected_binding
+  end
+
+  defp diff_wrapper(doc, side) do
+    Algebra.concat([side, doc, side])
   end
 end

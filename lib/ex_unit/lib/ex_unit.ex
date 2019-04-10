@@ -222,8 +222,14 @@ defmodule ExUnit do
       and print them on test failure. Can be overridden for individual tests via
       `@tag capture_log: false`. Defaults to `false`;
 
-    * `:colors` - a keyword list of colors to be used by some formatters.
-      The only option so far is `[enabled: boolean]` which defaults to `IO.ANSI.enabled?/0`;
+    * `:colors` - a keyword list of color options to be used by some formatters:
+      * `:enabled` - boolean option to enable colors, defaults to `IO.ANSI.enabled?/0`;
+      * `:diff_insert` - color of the insertions on diffs, defaults to `:green`;
+      * `:diff_insert_whitespace` - color of the whitespace insertions on diffs,
+        defaults to `IO.ANSI.color_background(2, 0, 0)`;
+      * `:diff_delete` - color of the deletiopns on diffs, defaults to `:red`;
+      * `:diff_delete_whitespace` - color of the whitespace deletions on diffs,
+        defaults to `IO.ANSI.color_background(0, 2, 0)`;
 
     * `:exclude` - specifies which tests are run by skipping tests that match the
       filter;

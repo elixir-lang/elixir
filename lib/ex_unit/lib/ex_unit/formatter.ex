@@ -49,6 +49,9 @@ defmodule ExUnit.Formatter do
 
   import Exception, only: [format_stacktrace_entry: 1, format_file_line: 3]
 
+  alias ExUnit.Diff
+  alias Inspect.Algebra
+
   @counter_padding "     "
   @no_value ExUnit.AssertionError.no_value()
 
@@ -139,7 +142,7 @@ defmodule ExUnit.Formatter do
     label_padding_size = if has_value?(struct.right), do: 7, else: 6
     padding_size = label_padding_size + byte_size(@counter_padding)
     inspect = &inspect_multiline(&1, padding_size, width)
-    {left, right} = format_sides(struct, formatter, inspect)
+    {left, right} = format_sides(struct, formatter, inspect, padding_size, width)
 
     [
       note: if_value(struct.message, &format_message(&1, formatter)),
@@ -308,53 +311,60 @@ defmodule ExUnit.Formatter do
     padding <> Enum.join(reasons, "\n" <> padding) <> "\n"
   end
 
-  defp format_sides(struct, formatter, inspect) do
-    %{left: left, right: right} = struct
+  defp format_sides(struct, formatter, inspect, padding_size, width) do
+    %{left: left, right: right, context: context} = struct
+    width = if width == :infinity, do: width, else: width - padding_size
 
-    case format_diff(left, right, formatter) do
-      {left, right} ->
-        {IO.iodata_to_binary(left), IO.iodata_to_binary(right)}
+    case format_diff(left, right, context, formatter) do
+      {result, _env} ->
+        left =
+          result.left
+          |> Diff.to_algebra(&colorize_diff_delete(&1, formatter))
+          |> Algebra.format(width)
+          |> IO.iodata_to_binary()
+
+        right =
+          result.right
+          |> Diff.to_algebra(&colorize_diff_insert(&1, formatter))
+          |> Algebra.format(width)
+          |> IO.iodata_to_binary()
+
+        {left, right}
 
       nil ->
         {if_value(left, inspect), if_value(right, inspect)}
     end
   end
 
-  defp format_diff(left, right, formatter) do
+  defp format_diff(left, right, context, formatter) do
     if has_value?(left) and has_value?(right) and formatter.(:diff_enabled?, false) do
-      if script = edit_script(left, right) do
-        colorize_diff(script, formatter, {[], []})
-      end
+      find_diff(left, right, context)
     end
   end
 
-  defp colorize_diff(script, formatter, acc) when is_list(script) do
-    Enum.reduce(script, acc, &colorize_diff(&1, formatter, &2))
+  defp colorize_diff_delete(doc, formatter) do
+    format = colorize_format(doc, :diff_delete, :diff_delete_whitespace)
+    formatter.(format, doc)
   end
 
-  defp colorize_diff({:eq, content}, _formatter, {left, right}) do
-    {[left | content], [right | content]}
+  defp colorize_diff_insert(doc, formatter) do
+    format = colorize_format(doc, :diff_insert, :diff_insert_whitespace)
+    formatter.(format, doc)
   end
 
-  defp colorize_diff({:del, content}, formatter, {left, right}) do
-    format = colorize_format(content, :diff_delete, :diff_delete_whitespace)
-    {[left | formatter.(format, content)], right}
-  end
-
-  defp colorize_diff({:ins, content}, formatter, {left, right}) do
-    format = colorize_format(content, :diff_insert, :diff_insert_whitespace)
-    {left, [right | formatter.(format, content)]}
-  end
-
-  defp colorize_format(content, normal, whitespace) do
+  defp colorize_format(content, normal, whitespace) when is_binary(content) do
     if String.trim_leading(content) == "", do: whitespace, else: normal
   end
 
-  defp edit_script(left, right) do
-    task = Task.async(ExUnit.Diff, :script, [left, right])
+  defp colorize_format(_doc, normal, _whitespace) do
+    normal
+  end
+
+  defp find_diff(left, right, context) do
+    task = Task.async(Diff, :compute, [left, right, context])
 
     case Task.yield(task, 1500) || Task.shutdown(task, :brutal_kill) do
-      {:ok, script} -> script
+      {:ok, diff} -> diff
       nil -> nil
     end
   end
