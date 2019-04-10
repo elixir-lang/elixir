@@ -5319,20 +5319,25 @@ defmodule Kernel do
   """
   @doc since: "1.9.0"
   defmacro dbg(expr, opts \\ []) do
-    inspect_opts = Keyword.get(opts, :inspect, [])
-    inspect_opts = Keyword.put_new(inspect_opts, :pretty, true)
-
-    label =
-      case Keyword.get(opts, :label, Macro.to_string(expr)) do
-        list when is_list(list) -> list
-        other -> to_string(other)
-      end
-
-    device = Keyword.get(opts, :device, :stdio)
     file = Path.relative_to_cwd(__CALLER__.file)
     line = to_string(__CALLER__.line)
+    default_label = Macro.to_string(expr)
 
     quote do
+      opts = unquote(opts)
+      device = Keyword.get(opts, :device, :stdio)
+
+      inspect_opts =
+        opts
+        |> Keyword.get(:inspect, [])
+        |> Keyword.put_new(:pretty, true)
+
+      label =
+        case Keyword.get(opts, :label, unquote(default_label)) do
+          list when is_list(list) -> list
+          other -> to_string(other)
+        end
+
       {time, result} = :timer.tc(fn -> unquote(expr) end)
 
       formatted_time =
@@ -5342,16 +5347,16 @@ defmodule Kernel do
           [Integer.to_string(time), "µs"]
         end
 
-      IO.puts(unquote(device), [
+      IO.puts(device, [
         IO.ANSI.yellow(),
         unquote(file),
         ":",
         unquote(line),
         ": ",
         IO.ANSI.reset(),
-        unquote(label),
+        label,
         " #=> ",
-        inspect(result, unquote(inspect_opts)),
+        inspect(result, inspect_opts),
         " (",
         formatted_time,
         ")"
