@@ -1080,8 +1080,7 @@ defmodule Enum do
 
   """
   @spec flat_map_reduce(t, acc, fun) :: {[any], acc}
-        when fun: (element, acc -> {t, acc} | {:halt, acc}),
-             acc: any
+        when fun: (element, acc -> {t, acc} | {:halt, acc})
   def flat_map_reduce(enumerable, acc, fun) do
     {_, {list, acc}} =
       Enumerable.reduce(enumerable, {:cont, {[], acc}}, fn entry, {list, acc} ->
@@ -1439,7 +1438,6 @@ defmodule Enum do
 
   """
   @spec map_reduce(t, acc, (element, acc -> {element, acc})) :: {list, acc}
-        when acc: any
   def map_reduce(enumerable, acc, fun) when is_list(enumerable) do
     :lists.mapfoldl(fun, acc, enumerable)
   end
@@ -1885,7 +1883,7 @@ defmodule Enum do
       24
 
   """
-  @spec reduce(t, (element, acc -> acc)) :: acc when acc: any
+  @spec reduce(t, (element, acc -> acc)) :: acc
   def reduce(enumerable, fun)
 
   def reduce([h | t], fun) do
