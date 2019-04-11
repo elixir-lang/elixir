@@ -759,7 +759,7 @@ handle_dot([$., H | T] = Original, Line, Column, DotInfo, Scope, Tokens) when ?i
           {error, Reason, Original, Tokens}
       end;
     {_NewLine, _NewColumn, _Parts, Rest} ->
-        {error, {Line, Column, "interpolation is not allowed when invoking functions", [H]}, Rest, Tokens};
+        {error, {Line, Column, "interpolation is not allowed when calling function/macro. Found interpolation in a call starting with: ", [H]}, Rest, Tokens};
     {error, Reason} ->
       interpolation_error(Reason, Original, Tokens, " (for function name starting at line ~B)", [Line])
   end;

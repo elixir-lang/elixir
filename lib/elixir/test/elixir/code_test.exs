@@ -133,11 +133,11 @@ defmodule CodeTest do
     end
 
     test "returns an error tuple on interpolation in calls" do
-      assert Code.string_to_quoted(".\"\#{}\"") ==
-               {:error, {1, "interpolation is not allowed when invoking functions", "\""}}
+      msg =
+        "interpolation is not allowed when calling function/macro. Found interpolation in a call starting with: "
 
-      assert Code.string_to_quoted(".\"a\#{:b}\"c") ==
-               {:error, {1, "interpolation is not allowed when invoking functions", "\""}}
+      assert Code.string_to_quoted(".\"\#{}\"") == {:error, {1, msg, "\""}}
+      assert Code.string_to_quoted(".\"a\#{:b}\"c") == {:error, {1, msg, "\""}}
     end
 
     test "returns an error tuple on long atoms" do
