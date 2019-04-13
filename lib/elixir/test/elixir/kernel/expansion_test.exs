@@ -74,6 +74,12 @@ defmodule Kernel.ExpansionTest do
       assert_raise CompileError, message, fn ->
         expand(quote(do: alias(:lists, as: :foobar)))
       end
+
+      message = ~r"invalid value for option :as, expected an alias, got: :\"Elixir.foobar\""
+
+      assert_raise CompileError, message, fn ->
+        expand(quote(do: alias(:lists, as: :"Elixir.foobar")))
+      end
     end
 
     test "invalid expansion" do
