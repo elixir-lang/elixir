@@ -48,7 +48,7 @@ defmodule Mix.Release do
           options: keyword()
         }
 
-  @default_apps %{elixir: :permanent, sasl: :permanent}
+  @default_apps [kernel: :permanent, stdlib: :permanent, sasl: :permanent, elixir: :permanent]
   @safe_modes [:permanent, :temporary, :transient]
   @unsafe_modes [:load, :none]
   @significant_chunks ~w(Atom AtU8 Attr Code StrT ImpT ExpT FunT LitT Line)c
@@ -58,7 +58,6 @@ defmodule Mix.Release do
   @spec from_config!(atom, keyword, keyword) :: t
   def from_config!(name, config, overrides) do
     {name, apps, opts} = find_release(name, config)
-    apps = Map.merge(@default_apps, apps)
 
     unless Atom.to_string(name) =~ Regex.recompile!(~r/^[a-z][a-z0-9_]*$/) do
       Mix.raise(
@@ -76,15 +75,14 @@ defmodule Mix.Release do
     {erts_source, erts_version} = erts_data(include_erts)
 
     erts_lib_dir = :code.lib_dir()
-    loaded_apps = apps |> Map.keys() |> load_apps(%{}, erts_lib_dir)
+    loaded_apps = apps |> Keyword.keys() |> load_apps(%{}, erts_lib_dir)
 
-    # First we built the release without IEx, if IEx is included,
-    # then use it as is, otherwise add it as none.
+    # Make sure IEx is either an active part of the release or add it as none.
     {loaded_apps, apps} =
       if Map.has_key?(loaded_apps, :iex) do
         {loaded_apps, apps}
       else
-        {load_apps([:iex], loaded_apps, erts_lib_dir), Map.put(apps, :iex, :none)}
+        {load_apps([:iex], loaded_apps, erts_lib_dir), apps ++ [iex: :none]}
       end
 
     start_boot = build_start_boot(loaded_apps, apps)
@@ -122,16 +120,18 @@ defmodule Mix.Release do
   defp find_release(name, config) do
     {name, opts} = lookup_release(name, config) || infer_release(config)
     {apps, opts} = Keyword.pop(opts, :applications, [])
-    apps = Map.new(apps)
 
-    if Mix.Project.umbrella?(config) do
-      if apps == %{} do
-        bad_umbrella!()
-      end
+    if apps == [] and Mix.Project.umbrella?(config) do
+      bad_umbrella!()
+    end
 
+    app = Keyword.get(config, :app)
+    apps = Keyword.merge(@default_apps, apps)
+
+    if is_nil(app) or Keyword.has_key?(apps, app) do
       {name, apps, opts}
     else
-      {name, Map.put_new(apps, Keyword.fetch!(config, :app), :permanent), opts}
+      {name, apps ++ [{app, :permanent}], opts}
     end
   end
 
@@ -240,14 +240,19 @@ defmodule Mix.Release do
     end
   end
 
-  defp build_start_boot(apps, modes) do
-    for {app, _properties} <- apps, do: {app, Map.get(modes, app, :permanent)}
+  defp build_start_boot(all_apps, specified_apps) do
+    specified_apps ++
+      for(
+        {app, _props} <- all_apps,
+        not List.keymember?(specified_apps, app, 0),
+        do: {app, :permanent}
+      )
   end
 
   defp build_start_clean_boot(boot) do
     for({app, _mode} <- boot, do: {app, :none})
-    |> Keyword.put(:kernel, :permanent)
     |> Keyword.put(:stdlib, :permanent)
+    |> Keyword.put(:kernel, :permanent)
   end
 
   @doc """
