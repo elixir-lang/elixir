@@ -17,7 +17,8 @@ defmodule Config.Reader do
 
   """
   @spec read!(Path.t(), [Path.t()]) :: keyword
-  def read!(file, imported_paths \\ []) do
+  def read!(file, imported_paths \\ [])
+      when is_binary(file) and is_list(imported_paths) do
     Config.__eval__!(file, imported_paths) |> elem(0)
   end
 
@@ -30,7 +31,8 @@ defmodule Config.Reader do
   It returns a tuple with the configuration and the imported paths.
   """
   @spec read_with_imports!(Path.t(), [Path.t()]) :: {keyword, [Path.t()]}
-  def read_with_imports!(file, imported_paths \\ []) do
+  def read_with_imports!(file, imported_paths \\ [])
+      when is_binary(file) and is_list(imported_paths) do
     Config.__eval__!(file, imported_paths)
   end
 
@@ -54,7 +56,8 @@ defmodule Config.Reader do
       [app1: [], app2: []]
 
   """
-  def merge(config1, config2) do
+  @spec merge(keyword, keyword) :: keyword
+  def merge(config1, config2) when is_list(config1) and is_list(config2) do
     Config.__merge__(config1, config2)
   end
 end

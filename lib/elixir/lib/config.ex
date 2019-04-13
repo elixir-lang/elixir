@@ -180,7 +180,7 @@ defmodule Config do
 
   @doc false
   @spec __import__!(Path.t()) :: keyword()
-  def __import__!(file) do
+  def __import__!(file) when is_binary(file) do
     current_files = get_files!()
 
     if file in current_files do
@@ -194,7 +194,7 @@ defmodule Config do
 
   @doc false
   @spec __eval__!(Path.t(), [Path.t()]) :: {keyword, [Path.t()]}
-  def __eval__!(file, imported_paths \\ []) do
+  def __eval__!(file, imported_paths \\ []) when is_binary(file) and is_list(imported_paths) do
     previous_config = put_config([])
     previous_files = put_files(imported_paths)
 
@@ -215,8 +215,7 @@ defmodule Config do
   end
 
   @doc false
-  @spec __merge__(keyword, keyword) :: keyword
-  def __merge__(config1, config2) do
+  def __merge__(config1, config2) when is_list(config1) and is_list(config2) do
     Keyword.merge(config1, config2, fn _, app1, app2 ->
       Keyword.merge(app1, app2, &deep_merge/3)
     end)
