@@ -7,17 +7,17 @@ defmodule Mix.ConfigTest do
   import Mix.Config
 
   setup do
-    Process.put({Mix.Config, :config}, [])
-    Process.put({Mix.Config, :files}, [])
+    Process.put({Config, :config}, [])
+    Process.put({Config, :files}, [])
     :ok
   end
 
   defp config do
-    Process.get({Mix.Config, :config})
+    Process.get({Config, :config})
   end
 
   defp files do
-    Process.get({Mix.Config, :files})
+    Process.get({Config, :files})
   end
 
   test "config/2" do
@@ -111,7 +111,7 @@ defmodule Mix.ConfigTest do
              {[], [fixture_path("configs/nested_import.exs")]}
 
     assert_raise ArgumentError,
-                 ~r"expected runtime config for app :sample to return keyword list",
+                 ~r"expected config for app :sample in .*/bad_app.exs to return keyword list",
                  fn -> Mix.Config.eval!(fixture_path("configs/bad_app.exs")) end
 
     assert_raise Code.LoadError,

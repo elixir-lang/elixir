@@ -524,9 +524,30 @@ defmodule Application do
   end
 
   @doc """
+  Puts the environment for multiple apps at the same time.
+
+  It will fail if any of the applications appear more than once
+  or if any of the keys in the application are repeated.
+
+  It receives the same options as `put_env/4`. Returns `:ok`.
+  """
+  @spec put_all_env([{app, [{key, value}]}], timeout: timeout, persistent: boolean) :: :ok
+  def put_all_env(config, opts \\ []) when is_list(config) and is_list(opts) do
+    if function_exported?(:application, :set_env, 2) do
+      :application.set_env(config, opts)
+    else
+      for {app, kw} <- config, {k, v} <- kw do
+        :application.set_env(app, k, v, opts)
+      end
+
+      :ok
+    end
+  end
+
+  @doc """
   Deletes the `key` from the given `app` environment.
 
-  See `put_env/4` for a description of the options.
+  It receives the same options as `put_env/4`. Returns `:ok`.
   """
   @spec delete_env(app, key, timeout: timeout, persistent: boolean) :: :ok
   def delete_env(app, key, opts \\ []) when is_atom(app) do

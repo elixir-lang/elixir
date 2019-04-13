@@ -670,7 +670,7 @@ defmodule Mix.Tasks.Release do
 
     sys_config =
       if File.regular?(config[:config_path]) do
-        config[:config_path] |> Mix.Config.eval!() |> elem(0)
+        config[:config_path] |> Config.Reader.read!()
       else
         []
       end

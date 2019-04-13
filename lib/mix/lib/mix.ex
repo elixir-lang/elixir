@@ -279,8 +279,8 @@ defmodule Mix do
 
   To differentiate the program behavior depending on the environment, it is
   recommended to use application environment through `Application.get_env/3`.
-  Proper configuration can be set in `Mix.Config` files, often per-environment
-  (see `Mix.Config.import_config/1` for more information).
+  Proper configuration can be set in config files, often per-environment
+  (see the `Config` module for more information).
   """
   @spec env() :: atom()
   def env do
