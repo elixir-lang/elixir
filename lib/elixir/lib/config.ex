@@ -116,7 +116,7 @@ defmodule Config do
   """
   def config(root_key, opts) when is_atom(root_key) and is_list(opts) do
     unless Keyword.keyword?(opts) do
-      raise ArgumentError, "config/2 expected a keyword list, got: #{inspect opts}"
+      raise ArgumentError, "config/2 expected a keyword list, got: #{inspect(opts)}"
     end
 
     get_config!()

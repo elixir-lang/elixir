@@ -533,6 +533,7 @@ defmodule Application do
   """
   @spec put_all_env([{app, [{key, value}]}], timeout: timeout, persistent: boolean) :: :ok
   def put_all_env(config, opts \\ []) when is_list(config) and is_list(opts) do
+    # TODO: Remove function exported? check when we require Erlang/OTP 22+
     if function_exported?(:application, :set_env, 2) do
       :application.set_env(config, opts)
     else
