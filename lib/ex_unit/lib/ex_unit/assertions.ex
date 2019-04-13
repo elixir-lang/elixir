@@ -352,7 +352,7 @@ defmodule ExUnit.Assertions do
   ## END HELPERS
 
   @doc """
-  Asserts `value` is `true`, displaying the given `message` otherwise.
+  Asserts `value` is truthy, displaying the given `message` otherwise.
 
   ## Examples
 
