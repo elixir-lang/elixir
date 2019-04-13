@@ -902,9 +902,9 @@ expand_as({as, nil}, _Meta, _IncludeByDefault, Ref, _E) ->
   Ref;
 expand_as({as, Atom}, Meta, _IncludeByDefault, _Ref, E) when is_atom(Atom), not is_boolean(Atom) ->
   case atom_to_list(Atom) of
-    "Elixir." ++ Rest ->
+    "Elixir." ++ ([FirstLetter | _] = Rest) when FirstLetter >= $A, FirstLetter =< $Z ->
       case string:tokens(Rest, ".") of
-        [Rest] ->
+        [_] ->
           Atom;
         _ ->
           form_error(Meta, ?key(E, file), ?MODULE, {invalid_alias_for_as, nested_alias, Atom})
