@@ -65,7 +65,7 @@ expand({alias, Meta, [Ref]}, E) ->
 expand({alias, Meta, [Ref, Opts]}, E) ->
   assert_no_match_or_guard_scope(Meta, "alias", E),
   {ERef, ER} = expand_without_aliases_report(Ref, E),
-  {EOpts, ET}  = expand_opts(Meta, alias, [as, warn], no_alias_opts(Opts, Meta, E), ER),
+  {EOpts, ET}  = expand_opts(Meta, alias, [as, warn], no_alias_opts(Opts), ER),
 
   if
     is_atom(ERef) ->
@@ -80,7 +80,7 @@ expand({require, Meta, [Ref, Opts]}, E) ->
   assert_no_match_or_guard_scope(Meta, "require", E),
 
   {ERef, ER} = expand_without_aliases_report(Ref, E),
-  {EOpts, ET}  = expand_opts(Meta, require, [as, warn], no_alias_opts(Opts, Meta, E), ER),
+  {EOpts, ET}  = expand_opts(Meta, require, [as, warn], no_alias_opts(Opts), ER),
 
   if
     is_atom(ERef) ->
@@ -862,39 +862,17 @@ validate_opts(Meta, Kind, Allowed, Opts, E) when is_list(Opts) ->
 validate_opts(Meta, Kind, _Allowed, Opts, E) ->
   form_error(Meta, ?key(E, file), ?MODULE, {options_are_not_keyword, Kind, Opts}).
 
-no_alias_opts(Opts, Meta, E) when is_list(Opts) ->
+no_alias_opts(Opts) when is_list(Opts) ->
   case lists:keyfind(as, 1, Opts) of
-    {as, As} -> lists:keystore(as, 1, Opts, {as, no_alias_expansion(As, Meta, E)});
+    {as, As} -> lists:keystore(as, 1, Opts, {as, no_alias_expansion(As)});
     false -> Opts
   end;
-no_alias_opts(Opts, _Meta, _E) -> Opts.
+no_alias_opts(Opts) -> Opts.
 
-no_alias_expansion(nil, _Meta, _E) ->
-  nil;
-no_alias_expansion({'__aliases__', _, [Atom]}, _Meta, _E) when is_atom(Atom) ->
-  elixir_aliases:concat([Atom]);
-no_alias_expansion({'__aliases__', _, [H | T]}, Meta, E) when is_atom(H) ->
-  Atom = elixir_aliases:concat([H | T]),
-  form_error(Meta, ?key(E, file), ?MODULE, {invalid_alias_for_as, nested_alias, Atom});
-%% TODO: Remove clause on v2.0
-no_alias_expansion(Atom, Meta, E) when is_atom(Atom) ->
-  {ErrorOrWarn, NewAtom} =
-    case atom_to_list(Atom) of
-      "Elixir." ++ Rest ->
-        case string:tokens(Rest, ".") of
-          [Rest] -> {fun elixir_errors:form_warn/4, Atom};
-          _ -> {fun elixir_errors:form_error/4, nil}
-        end;
-
-      _ ->
-        {fun elixir_errors:form_error/4, nil}
-    end,
-
-  ErrorOrWarn(Meta, ?key(E, file), ?MODULE, {invalid_alias_for_as, not_alias, Atom}),
-  NewAtom;
-no_alias_expansion(Other, Meta, E) ->
-  form_error(Meta, ?key(E, file), ?MODULE, {invalid_alias_for_as, not_alias, Other}).
-
+no_alias_expansion({'__aliases__', _, [H | T]}) when is_atom(H) ->
+  elixir_aliases:concat([H | T]);
+no_alias_expansion(Other) ->
+  Other.
 
 expand_require(Meta, Ref, Opts, E) ->
   %% We always record requires when they are defined
@@ -904,7 +882,7 @@ expand_require(Meta, Ref, Opts, E) ->
   expand_alias(Meta, false, Ref, Opts, RE).
 
 expand_alias(Meta, IncludeByDefault, Ref, Opts, #{context_modules := Context} = E) ->
-  New = expand_as(lists:keyfind(as, 1, Opts), IncludeByDefault, Ref),
+  New = expand_as(lists:keyfind(as, 1, Opts), Meta, IncludeByDefault, Ref, E),
 
   %% Add the alias to context_modules if defined is set.
   %% This is used by defmodule in order to store the defined
@@ -920,14 +898,26 @@ expand_alias(Meta, IncludeByDefault, Ref, Opts, #{context_modules := Context} = 
 
   E#{aliases := Aliases, macro_aliases := MacroAliases, context_modules := NewContext}.
 
-expand_as({as, nil}, _IncludeByDefault, Ref) ->
+expand_as({as, nil}, _Meta, _IncludeByDefault, Ref, _E) ->
   Ref;
-expand_as({as, Atom}, _IncludeByDefault, _Ref) when is_atom(Atom), not is_boolean(Atom) ->
-  Atom;
-expand_as(false, IncludeByDefault, Ref) ->
+expand_as({as, Atom}, Meta, _IncludeByDefault, _Ref, E) when is_atom(Atom), not is_boolean(Atom) ->
+  case atom_to_list(Atom) of
+    "Elixir." ++ ([FirstLetter | _] = Rest) when FirstLetter >= $A, FirstLetter =< $Z ->
+      case string:tokens(Rest, ".") of
+        [_] ->
+          Atom;
+        _ ->
+          form_error(Meta, ?key(E, file), ?MODULE, {invalid_alias_for_as, nested_alias, Atom})
+      end;
+    _ ->
+      form_error(Meta, ?key(E, file), ?MODULE, {invalid_alias_for_as, not_alias, Atom})
+  end;
+expand_as(false, _Meta, IncludeByDefault, Ref, _E) ->
   if IncludeByDefault -> elixir_aliases:last(Ref);
      true -> Ref
-  end.
+  end;
+expand_as({as, Other}, Meta, _IncludeByDefault, _Ref, E) ->
+  form_error(Meta, ?key(E, file), ?MODULE, {invalid_alias_for_as, not_alias, Other}).
 
 %% Aliases
 

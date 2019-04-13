@@ -562,24 +562,6 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
-  test "expands args and warn for atoms beginning with `Elixir.`" do
-    message = ~r"invalid value for option :as, expected an alias, got: :\"Elixir.foobar\""
-
-    assert capture_err(fn ->
-             Code.eval_string("""
-               alias :lists, as: :"Elixir.foobar"
-             """)
-           end) =~ message
-
-    message = ~r"invalid value for option :as, expected an alias, got: Foobar"
-
-    assert capture_err(fn ->
-             Code.eval_string("""
-               alias :lists, as: :"Elixir.Foobar"
-             """)
-           end) =~ message
-  end
-
   test "unused inside dynamic module" do
     import List, only: [flatten: 1], warn: false
 

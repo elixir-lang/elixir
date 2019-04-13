@@ -3927,7 +3927,7 @@ defmodule Kernel do
   # defmodule Alias nested
   defp expand_module({:__aliases__, _, [h | t]}, _module, env) when is_atom(h) do
     module = :elixir_aliases.concat([env.module, h])
-    alias = {:__aliases__, [], [h]}
+    alias = String.to_atom("Elixir." <> Atom.to_string(h))
 
     case t do
       [] -> {module, module, alias}
