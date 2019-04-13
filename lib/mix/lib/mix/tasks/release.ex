@@ -256,10 +256,13 @@ defmodule Mix.Tasks.Release do
 
       All applications default to `:permanent`.
 
-      It defaults to the current application and then we proceed to include all
-      applications the current application depends on recursively. You can
-      include new applications or change the mode of existing ones by listing
-      them here.
+      By default `:applications` include the current application and then we
+      proceed to include all applications the current application depends on
+      recursively. You can include new applications or change the mode of
+      existing ones by listing them here. The order of the applications given
+      in `:applications` will be preserved as much as possible, with only
+      `:kernel`, `:stdlib`, `:sasl` and `:elixir` listed before the given
+      application list.
 
       Releases assembled from an umbrella project require this configuration
       to be explicitly given.
