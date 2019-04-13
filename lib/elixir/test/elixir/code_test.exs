@@ -153,6 +153,36 @@ defmodule CodeTest do
                {:error, {1, "unsafe atom does not exist: ", "there_is_no_such_atom"}}
     end
 
+    test "supports static_atoms_encoder" do
+      ref = make_ref()
+
+      encoder = fn "there_is_no_such_atom", metadata ->
+        assert metadata[:line] == 1
+        assert metadata[:column] == 1
+        assert metadata[:file] == "nofile"
+        {:ok, {:my, "atom", ref}}
+      end
+
+      assert {:ok, {:my, "atom", ^ref}} =
+               Code.string_to_quoted(":there_is_no_such_atom", static_atoms_encoder: encoder)
+    end
+
+    test "extended static_atoms_encoder" do
+      encoder = fn string, _metadata ->
+        try do
+          {:ok, String.to_existing_atom(string)}
+        rescue
+          ArgumentError ->
+            {:ok, {:user_atom, string}}
+        end
+      end
+
+      assert {:ok, {:try, _, [[do: {:test, _, [{{:user_atom, "atom_does_not_exist"}, _, []}]}]]}} =
+               Code.string_to_quoted("try do: test(atom_does_not_exist())",
+                 static_atoms_encoder: encoder
+               )
+    end
+
     test "raises on errors when string_to_quoted!/2 is used" do
       assert Code.string_to_quoted!("1 + 2") == {:+, [line: 1], [1, 2]}
 
