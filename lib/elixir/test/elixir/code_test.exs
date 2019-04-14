@@ -168,6 +168,15 @@ defmodule CodeTest do
                Code.string_to_quoted(":there_is_no_such_atom", static_atoms_encoder: encoder)
     end
 
+    test "static_atoms_encoder, error case" do
+      encoder = fn _atom, _meta ->
+        {:error, "Invalid atom name"}
+      end
+
+      assert {:error, {1, "Invalid atom name: ", "there_is_no_such_atom"}} =
+               Code.string_to_quoted(":there_is_no_such_atom", static_atoms_encoder: encoder)
+    end
+
     test "extended static_atoms_encoder" do
       encoder = fn string, _metadata ->
         try do

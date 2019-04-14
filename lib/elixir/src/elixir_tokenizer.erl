@@ -816,8 +816,8 @@ unsafe_to_atom(Part, Line, Column, #elixir_tokenizer{static_atoms_encoder=Static
   case StaticAtomsEncoder(Value, Metadata) of
     {ok, Term} ->
       {ok, Term};
-    {error, Reason} ->
-      {error, {Line, Column, Reason, Part}}
+    {error, Reason} when is_binary(Reason) ->
+      {error, {Line, Column, elixir_utils:characters_to_list(Reason) ++ ": ", elixir_utils:characters_to_list(Part)}}
   end;
 unsafe_to_atom(Part, Line, Column, #elixir_tokenizer{}) when
     is_binary(Part) andalso byte_size(Part) > 255;
