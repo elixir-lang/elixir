@@ -684,10 +684,11 @@ defmodule Code do
   if you want to use the Elixir parser in a user-facing situation, but
   you don't want to exhaust the atom table.
 
-  When the encoder fails for some reason, it should return `{:error,
-  reason :: String.t}`. The atom encoder is not called for *all* atoms
+  When the encoder fails for some reason, it must return `{:error,
+  reason :: binary}`. The atom encoder is not called for *all* atoms
   that are present in the AST: it won't be invoked for operators,
-  syntax keywords (fn, etc), and for atoms containing interpolations.
+  syntax keywords (fn, do, etc), and neither for atoms containing
+  interpolations.
 
   """
   @spec string_to_quoted(List.Chars.t(), keyword) ::
