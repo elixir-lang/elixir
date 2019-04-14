@@ -651,9 +651,8 @@ defmodule Code do
       Defaults to `false`.
 
     * `:static_atom_encoder` - The static atom encoder function, see
-      ["The `:static_atom_encoder`
-      function"](#string_to_quoted/2-the-static_atom_encoder-function) section
-      below. This option overrides the `:existing_atoms_only` option.
+      "The `:static_atom_encoder` function" section below. This option
+      overrides the `:existing_atoms_only` option.
 
     * `:warn_on_unnecessary_quotes` - when `false`, does not warn
       when atoms, keywords or calls have unnecessary quotes on
