@@ -651,9 +651,9 @@ defmodule Code do
       Defaults to `false`.
 
     * `:static_atom_encoder` - The static atom encoder function, see
-      the ["The `:static_atom_encoder` function" section](module-the-static_atom_encoder-function)
-      below. The `:static_atom_encoder` option overrides
-      the `:existing_atoms_only` option.
+      ["The `:static_atom_encoder`
+      function"](#string_to_quoted/2-the-static_atom_encoder-function) section
+      below. This option overrides the `:existing_atoms_only` option.
 
     * `:warn_on_unnecessary_quotes` - when `false`, does not warn
       when atoms, keywords or calls have unnecessary quotes on
@@ -685,11 +685,15 @@ defmodule Code do
   if you want to use the Elixir parser in a user-facing situation, but
   you don't want to exhaust the atom table.
 
-  When the encoder fails for some reason, it must return `{:error,
-  reason :: binary}`. The atom encoder is not called for *all* atoms
-  that are present in the AST: it won't be invoked for operators,
-  syntax keywords (fn, do, etc), and neither for atoms containing
-  interpolations.
+  The atom encoder is not called for *all* atoms that are present in
+  the AST. It won't be invoked for the following atoms:
+
+    * operators (`:+`, `:-`, and so on)
+
+    * syntax keywords (`fn`, `do`, `else`, and so on)
+
+    * atoms containing interpolation (`:"\#{1 + 1} is two"`), as these
+      atoms are constructed at runtime.
 
   """
   @spec string_to_quoted(List.Chars.t(), keyword) ::
