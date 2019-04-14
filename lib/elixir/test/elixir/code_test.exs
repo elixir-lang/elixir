@@ -156,10 +156,11 @@ defmodule CodeTest do
     test "supports static_atoms_encoder" do
       ref = make_ref()
 
-      encoder = fn "there_is_no_such_atom", metadata ->
-        assert metadata[:line] == 1
-        assert metadata[:column] == 1
-        assert metadata[:file] == "nofile"
+      encoder = fn atom, meta ->
+        assert atom == "there_is_no_such_atom"
+        assert meta[:line] == 1
+        assert meta[:column] == 1
+        assert meta[:file] == "nofile"
         {:ok, {:my, "atom", ref}}
       end
 
