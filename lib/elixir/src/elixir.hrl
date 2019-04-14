@@ -33,6 +33,7 @@
   unescape=true,
   check_terminators=true,
   existing_atoms_only=false,
+  static_atoms_encoder=nil,
   preserve_comments=nil,
   identifier_tokenizer=elixir_tokenizer,
   indentation=0,

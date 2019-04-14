@@ -650,6 +650,12 @@ defmodule Code do
       when non-existing atoms are found by the tokenizer.
       Defaults to `false`.
 
+    * `:static_atom_encoder` - The static atom encoder function, see
+      "The `:static_atom_encoder` function" section below. This option
+      overrides the `:existing_atoms_only` behaviour for static atoms
+      but `:existing_atoms_only` is still used for dynamic atoms, such
+      as atoms with interpolations.
+
     * `:warn_on_unnecessary_quotes` - when `false`, does not warn
       when atoms, keywords or calls have unnecessary quotes on
       them. Defaults to `true`.
@@ -659,6 +665,37 @@ defmodule Code do
   The opposite of converting a string to its quoted form is
   `Macro.to_string/2`, which converts a quoted form to a string/binary
   representation.
+
+  ## The `:static_atom_encoder` function
+
+  When `static_atom_encoder: &my_encoder/2` is passed as an argument,
+  `my_encoder/2` is called every time the tokenizer needs to create a
+  "static" atom. Static atoms are atoms in the AST that function as
+  aliases, remote calls, local calls, variable names, regular atoms
+  and keyword lists.
+
+  The encoder function will receive the atom name (as a binary) and a
+  keyword list with the current file, line and column. It must return
+  `{:ok, token :: term} | {:error, reason :: binary}`.
+
+  The encoder function is supposed to create an atom from the given
+  string. It is required to return either `{:ok, term}`, where term is
+  an atom. It is possible to return something else than an atom,
+  however, in that case the AST is no longer "valid" in that it cannot
+  be used to compile or evaluate Elixir code. A use case for this is
+  if you want to use the Elixir parser in a user-facing situation, but
+  you don't want to exhaust the atom table.
+
+  The atom encoder is not called for *all* atoms that are present in
+  the AST. It won't be invoked for the following atoms:
+
+    * operators (`:+`, `:-`, and so on)
+
+    * syntax keywords (`fn`, `do`, `else`, and so on)
+
+    * atoms containing interpolation (`:"\#{1 + 1} is two"`), as these
+      atoms are constructed at runtime.
+
   """
   @spec string_to_quoted(List.Chars.t(), keyword) ::
           {:ok, Macro.t()} | {:error, {line :: pos_integer, term, term}}
