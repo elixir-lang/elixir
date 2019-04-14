@@ -669,7 +669,7 @@ defmodule Code do
 
   When `static_atom_encoder: &my_encoder/2` is passed as an argument,
   `my_encoder/2` is called every time the tokenizer needs to create a
-  'static' atom. Static atoms are atoms in the AST that function as
+  "static" atom. Static atoms are atoms in the AST that function as
   aliases, remote calls, local calls, variable names, regular atoms
   and keyword lists.
 
