@@ -809,6 +809,10 @@ is_unnecessary_quote([Part], #elixir_tokenizer{warn_on_unnecessary_quotes=true} 
 is_unnecessary_quote(_Parts, _Scope) ->
   false.
 
+unsafe_to_atom(Part, Line, Column, #elixir_tokenizer{}) when
+    is_binary(Part) andalso byte_size(Part) > 255;
+    is_list(Part) andalso length(Part) > 255 ->
+  {error, {Line, Column, "atom length must be less than system limit: ", elixir_utils:characters_to_list(Part)}};
 unsafe_to_atom(Part, Line, Column, #elixir_tokenizer{static_atoms_encoder=StaticAtomsEncoder} = Scope) when
     is_function(StaticAtomsEncoder) ->
   Metadata = [{line, Line}, {column, Column}, {file, Scope#elixir_tokenizer.file}],
@@ -819,10 +823,6 @@ unsafe_to_atom(Part, Line, Column, #elixir_tokenizer{static_atoms_encoder=Static
     {error, Reason} when is_binary(Reason) ->
       {error, {Line, Column, elixir_utils:characters_to_list(Reason) ++ ": ", elixir_utils:characters_to_list(Part)}}
   end;
-unsafe_to_atom(Part, Line, Column, #elixir_tokenizer{}) when
-    is_binary(Part) andalso byte_size(Part) > 255;
-    is_list(Part) andalso length(Part) > 255 ->
-  {error, {Line, Column, "atom length must be less than system limit: ", elixir_utils:characters_to_list(Part)}};
 unsafe_to_atom(Binary, Line, Column, #elixir_tokenizer{existing_atoms_only=true}) when is_binary(Binary) ->
   try
     {ok, binary_to_existing_atom(Binary, utf8)}

@@ -177,6 +177,15 @@ defmodule CodeTest do
                Code.string_to_quoted(":there_is_no_such_atom", static_atoms_encoder: encoder)
     end
 
+    test "returns an error tuple on long atoms, even when using static_atoms_encoder" do
+      atom = String.duplicate("a", 256)
+
+      encoder = fn atom, _meta -> {:ok, atom} end
+
+      assert Code.string_to_quoted(atom, static_atoms_encoder: encoder) ==
+               {:error, {1, "atom length must be less than system limit: ", atom}}
+    end
+
     test "extended static_atoms_encoder" do
       encoder = fn string, _metadata ->
         try do
