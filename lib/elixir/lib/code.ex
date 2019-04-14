@@ -651,7 +651,8 @@ defmodule Code do
       Defaults to `false`.
 
     * `:static_atom_encoder` - The static atom encoder function, see
-      the section below. The `:static_atom_encoder` option overrides
+      the ["The `:static_atom_encoder` function" section](module-the-static_atom_encoder-function)
+      below. The `:static_atom_encoder` option overrides
       the `:existing_atoms_only` option.
 
     * `:warn_on_unnecessary_quotes` - when `false`, does not warn
