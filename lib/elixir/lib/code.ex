@@ -652,7 +652,9 @@ defmodule Code do
 
     * `:static_atom_encoder` - The static atom encoder function, see
       "The `:static_atom_encoder` function" section below. This option
-      overrides the `:existing_atoms_only` option.
+      overrides the `:existing_atoms_only` behaviour for static atoms
+      but `:existing_atoms_only` is still used for dynamic atoms, such
+      as atoms with interpolations.
 
     * `:warn_on_unnecessary_quotes` - when `false`, does not warn
       when atoms, keywords or calls have unnecessary quotes on
