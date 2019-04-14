@@ -124,6 +124,8 @@ tokenize(String, Line, Column, Opts) ->
         Acc#elixir_tokenizer{file=File};
       ({existing_atoms_only, ExistingAtomsOnly}, Acc) when is_boolean(ExistingAtomsOnly) ->
         Acc#elixir_tokenizer{existing_atoms_only=ExistingAtomsOnly};
+      ({static_atoms_encoder, StaticAtomsEncoder}, Acc) when is_function(StaticAtomsEncoder) ->
+        Acc#elixir_tokenizer{static_atoms_encoder=StaticAtomsEncoder};
       ({check_terminators, CheckTerminators}, Acc) when is_boolean(CheckTerminators) ->
         Acc#elixir_tokenizer{check_terminators=CheckTerminators};
       ({preserve_comments, PreserveComments}, Acc) when is_function(PreserveComments) ->
@@ -811,6 +813,16 @@ unsafe_to_atom(Part, Line, Column, #elixir_tokenizer{}) when
     is_binary(Part) andalso byte_size(Part) > 255;
     is_list(Part) andalso length(Part) > 255 ->
   {error, {Line, Column, "atom length must be less than system limit: ", elixir_utils:characters_to_list(Part)}};
+unsafe_to_atom(Part, Line, Column, #elixir_tokenizer{static_atoms_encoder=StaticAtomsEncoder} = Scope) when
+    is_function(StaticAtomsEncoder) ->
+  Metadata = [{line, Line}, {column, Column}, {file, Scope#elixir_tokenizer.file}],
+  Value = elixir_utils:characters_to_binary(Part),
+  case StaticAtomsEncoder(Value, Metadata) of
+    {ok, Term} ->
+      {ok, Term};
+    {error, Reason} when is_binary(Reason) ->
+      {error, {Line, Column, elixir_utils:characters_to_list(Reason) ++ ": ", elixir_utils:characters_to_list(Part)}}
+  end;
 unsafe_to_atom(Binary, Line, Column, #elixir_tokenizer{existing_atoms_only=true}) when is_binary(Binary) ->
   try
     {ok, binary_to_existing_atom(Binary, utf8)}

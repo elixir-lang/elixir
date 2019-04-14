@@ -153,6 +153,55 @@ defmodule CodeTest do
                {:error, {1, "unsafe atom does not exist: ", "there_is_no_such_atom"}}
     end
 
+    test "supports static_atoms_encoder" do
+      ref = make_ref()
+
+      encoder = fn atom, meta ->
+        assert atom == "there_is_no_such_atom"
+        assert meta[:line] == 1
+        assert meta[:column] == 1
+        assert meta[:file] == "nofile"
+        {:ok, {:my, "atom", ref}}
+      end
+
+      assert {:ok, {:my, "atom", ^ref}} =
+               Code.string_to_quoted(":there_is_no_such_atom", static_atoms_encoder: encoder)
+    end
+
+    test "static_atoms_encoder, error case" do
+      encoder = fn _atom, _meta ->
+        {:error, "Invalid atom name"}
+      end
+
+      assert {:error, {1, "Invalid atom name: ", "there_is_no_such_atom"}} =
+               Code.string_to_quoted(":there_is_no_such_atom", static_atoms_encoder: encoder)
+    end
+
+    test "returns an error tuple on long atoms, even when using static_atoms_encoder" do
+      atom = String.duplicate("a", 256)
+
+      encoder = fn atom, _meta -> {:ok, atom} end
+
+      assert Code.string_to_quoted(atom, static_atoms_encoder: encoder) ==
+               {:error, {1, "atom length must be less than system limit: ", atom}}
+    end
+
+    test "extended static_atoms_encoder" do
+      encoder = fn string, _metadata ->
+        try do
+          {:ok, String.to_existing_atom(string)}
+        rescue
+          ArgumentError ->
+            {:ok, {:user_atom, string}}
+        end
+      end
+
+      assert {:ok, {:try, _, [[do: {:test, _, [{{:user_atom, "atom_does_not_exist"}, _, []}]}]]}} =
+               Code.string_to_quoted("try do: test(atom_does_not_exist())",
+                 static_atoms_encoder: encoder
+               )
+    end
+
     test "raises on errors when string_to_quoted!/2 is used" do
       assert Code.string_to_quoted!("1 + 2") == {:+, [line: 1], [1, 2]}
 
