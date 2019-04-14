@@ -19,6 +19,9 @@ defmodule Mix.Release do
     * `:boot_scripts` - a map of boot scripts with the boot script name
       as key and a keyword list with **all** applications that are part of
       it and their modes as value
+    * `:config_providers` - a list of `{config_provider, term}` tuples where the
+      first element is a module that implements the `Config.Provider` behaviour
+      and `term` is the value given to it on `c:Config.Provider.init/1`
     * `:options` - a keyword list with all other user supplied release options
 
   """
@@ -31,6 +34,7 @@ defmodule Mix.Release do
     :boot_scripts,
     :erts_source,
     :erts_version,
+    :config_providers,
     :options
   ]
 
@@ -45,6 +49,7 @@ defmodule Mix.Release do
           boot_scripts: %{atom() => [{application(), mode()}]},
           erts_version: charlist(),
           erts_source: charlist() | nil,
+          config_providers: [{module, term}],
           options: keyword()
         }
 
@@ -104,6 +109,8 @@ defmodule Mix.Release do
           )
       end)
 
+    {config_providers, opts} = Keyword.pop(opts, :config_providers, [])
+
     %Mix.Release{
       name: name,
       version: version,
@@ -113,6 +120,7 @@ defmodule Mix.Release do
       erts_version: erts_version,
       applications: loaded_apps,
       boot_scripts: %{start: start_boot, start_clean: start_clean_boot},
+      config_providers: config_providers,
       options: opts
     }
   end
@@ -258,11 +266,21 @@ defmodule Mix.Release do
   @doc """
   Makes the `sys.config` structure.
 
-  It receives the path to the directory where `sys.config`
-  should be added to.
+  If there are config providers, then a value is injected into
+  the `:elixir` application configuration in `sys_config` to be
+  read during boot and trigger the providers.
+
+  It uses two options to customize its behaviour:
+
+    * `:start_distribution_during_config`
+    * `:runtime_config_writable_dir`
+
+  In case there are no config providers, it doesn't change `sys_config`.
   """
-  @spec make_sys_config(t, Path.t(), keyword()) :: :ok | {:error, String.t()}
-  def make_sys_config(_release, path, sys_config) do
+  @spec make_sys_config(t, keyword()) :: :ok | {:error, String.t()}
+  def make_sys_config(release, sys_config) do
+    sys_config = merge_provider_config(release, sys_config)
+    path = Path.join(release.version_path, "sys.config")
     File.write!(path, consultable("config", sys_config))
 
     case :file.consult(path) do
@@ -271,6 +289,40 @@ defmodule Mix.Release do
 
       {:error, reason} ->
         {:error, "Could not read configuration file. Reason: #{inspect(reason)}"}
+    end
+  end
+
+  defp merge_provider_config(%{config_providers: []}, sys_config), do: sys_config
+
+  defp merge_provider_config(%{config_providers: providers} = release, sys_config) do
+    {extra_config, initial_config} = start_distribution(release)
+    {sys_location, provider_location} = provider_location(release)
+    init = Config.Provider.init(provider_location, providers, initial_config)
+
+    sys_config
+    |> Config.Reader.merge([elixir: [config_providers: init]] ++ extra_config)
+    |> Kernel.++([sys_location])
+  end
+
+  defp start_distribution(%{options: opts}) do
+    if Keyword.get(opts, :start_distribution_during_config, false) do
+      {[], []}
+    else
+      {[kernel: [start_distribution: false]], [kernel: [start_distribution: true]]}
+    end
+  end
+
+  defp provider_location(%{name: name, version: version, options: opts} = release) do
+    dir = Keyword.get(opts, :runtime_config_writable_dir, "releases/#{version}")
+    file = Path.join(dir, "#{name}-#{version}.runtime-cache.config")
+
+    if Path.type(dir) == :relative do
+      File.mkdir_p!(Path.join(release.path, dir))
+      File.write!(Path.join(release.path, file), "[].")
+      {"../.." |> Path.join(file) |> String.to_charlist(), {:system, "RELEASE_ROOT", file}}
+    else
+      # TODO: Warn that a file config is necessary
+      {file, file}
     end
   end
 
@@ -334,8 +386,17 @@ defmodule Mix.Release do
 
       case :systools.make_script(sys_path, sys_options) do
         {:ok, _module, _warnings} ->
-          prepend_paths != [] && prepend_paths_to_script(sys_path, prepend_paths)
-          :ok
+          script_path = sys_path ++ '.script'
+          {:ok, [{:script, rel_info, instructions}]} = :file.consult(script_path)
+
+          instructions =
+            instructions
+            |> boot_config_provider()
+            |> prepend_paths_to_script(prepend_paths)
+
+          script = {:script, rel_info, instructions}
+          File.write!(script_path, consultable("script", script))
+          :ok = :systools.script2boot(sys_path)
 
         {:error, module, info} ->
           message = module.format_error(info) |> to_string() |> String.trim()
@@ -415,27 +476,33 @@ defmodule Mix.Release do
     end
   end
 
-  defp prepend_paths_to_script(sys_path, prepend_paths) do
+  defp boot_config_provider(instructions) do
+    {pre, [stdlib | post]} =
+      Enum.split_while(
+        instructions,
+        &(not match?({:apply, {:application, :start_boot, [:stdlib, _]}}, &1))
+      )
+
+    config_provider = {:apply, {Config.Provider, :boot, [:elixir, :config_providers]}}
+    pre ++ [stdlib, config_provider | post]
+  end
+
+  defp prepend_paths_to_script(instructions, []), do: instructions
+
+  defp prepend_paths_to_script(instructions, prepend_paths) do
     prepend_paths = Enum.map(prepend_paths, &String.to_charlist/1)
-    script_path = sys_path ++ '.script'
-    {:ok, [{:script, rel_info, instructions}]} = :file.consult(script_path)
 
-    new_instructions =
-      Enum.map(instructions, fn
-        {:path, paths} ->
-          if Enum.any?(paths, &List.starts_with?(&1, '$RELEASE_LIB')) do
-            {:path, prepend_paths ++ paths}
-          else
-            {:path, paths}
-          end
+    Enum.map(instructions, fn
+      {:path, paths} ->
+        if Enum.any?(paths, &List.starts_with?(&1, '$RELEASE_LIB')) do
+          {:path, prepend_paths ++ paths}
+        else
+          {:path, paths}
+        end
 
-        other ->
-          other
-      end)
-
-    script = {:script, rel_info, new_instructions}
-    File.write!(script_path, consultable("script", script))
-    :ok = :systools.script2boot(sys_path)
+      other ->
+        other
+    end)
   end
 
   defp consultable(kind, term) do

@@ -375,10 +375,15 @@ defmodule Mix.Tasks.Release do
 
   Releases will read said environment variables when the release is
   assembled and on the machine the release is assembled, and not before
-  boot in your production servers. That's because the `config` directory
+  boot in your production servers. That's because `config/config.exs`
   is about build-time configuration.
 
   TODO: Implement runtime configuration and config providers.
+
+  # runtime_config_path: ...
+  # runtime_config_writable_dir: ...
+  # start_distribution_during_config: false
+  # config_providers: [...]
 
   ## Steps
 
@@ -675,14 +680,14 @@ defmodule Mix.Tasks.Release do
         []
       end
 
+    release = maybe_add_config_reader_provider(release, version_path)
     vm_args_path = Path.join(version_path, "vm.args")
-    sys_config_path = Path.join(version_path, "sys.config")
     cookie_path = Path.join(release.path, "releases/COOKIE")
     start_erl_path = Path.join(release.path, "releases/start_erl.data")
 
     with :ok <- make_boot_scripts(release, version_path, consolidation_path),
          :ok <- make_vm_args(release, vm_args_path),
-         :ok <- Mix.Release.make_sys_config(release, sys_config_path, sys_config),
+         :ok <- Mix.Release.make_sys_config(release, sys_config),
          :ok <- Mix.Release.make_cookie(release, cookie_path),
          :ok <- Mix.Release.make_start_erl(release, start_erl_path) do
       consolidation_path
@@ -690,6 +695,37 @@ defmodule Mix.Tasks.Release do
       {:error, message} ->
         File.rm_rf!(version_path)
         Mix.raise(message)
+    end
+  end
+
+  defp maybe_add_config_reader_provider(%{options: opts} = release, version_path) do
+    path =
+      cond do
+        path = opts[:release_config_path] ->
+          path
+
+        File.exists?("config/releases.exs") ->
+          "config/releases.exs"
+
+        true ->
+          nil
+      end
+
+    cond do
+      path ->
+        msg = "#{inspect(path)} to configure the release at runtime"
+        Mix.shell.info([:green, "* using", :reset, msg])
+        File.cp!(path, Path.join(version_path, "runtime.exs"))
+        init = {:system, "RELEASE_ROOT", "releases/#{release.version}/runtime.exs"}
+        update_in release.config_providers, &[{Config.Reader, init} | &1]
+
+      release.config_providers == [] ->
+        msg = "runtime configuration (config/releases.exs was not found)"
+        Mix.shell.info([:yellow, "* skipping ", :reset, msg])
+        release
+
+      true ->
+        release
     end
   end
 

@@ -3,6 +3,20 @@ defmodule Config.Reader do
   API for reading config files defined with `Config`.
   """
 
+  @behaviour Config.Provider
+
+  @impl true
+  def init(path) do
+    Config.Provider.validate_config_path!(path)
+    path
+  end
+
+  @impl true
+  def boot(config, path) do
+    {:ok, _} = Application.ensure_all_started(:elixir)
+    merge(config, path |> Config.Provider.resolve_config_path!() |> read!())
+  end
+
   @doc """
   Reads the configuration file.
 
