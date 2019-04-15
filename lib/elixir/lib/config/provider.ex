@@ -47,9 +47,12 @@ defmodule Config.Provider do
       {:ok, %Config.Provider{} = provider} ->
         path = resolve_config_path!(provider.path)
         validate_no_cyclic_boot!(path)
-        config = [{app, [{key, :booted}]} | provider.config]
-        config = Enum.reduce(provider.providers, config, &boot_provider/2)
-        write_config!(path, config)
+
+        read_config!(path)
+        |> Config.__merge__([{app, [{key, :booted}]} | provider.config])
+        |> run_providers(provider)
+        |> write_config!(path)
+
         restart_fun.()
 
       _ ->
@@ -65,17 +68,32 @@ defmodule Config.Provider do
     end
   end
 
-  defp boot_provider({provider, state}, acc) do
-    case provider.boot(acc, state) do
-      term when is_list(term) ->
-        term
+  defp read_config!(path) do
+    case :file.consult(path) do
+      {:ok, [inner]} ->
+        inner
 
-      term ->
-        abort("Expected provider #{inspect(provider)} to return a list, got: #{inspect(term)}")
+      {:error, reason} ->
+        bad_path_abort(
+          "Could not read runtime configuration due to reason: #{inspect(reason)}",
+          path
+        )
     end
   end
 
-  defp write_config!(path, config) do
+  defp run_providers(config, %{providers: providers}) do
+    Enum.reduce(providers, config, fn {provider, state}, acc ->
+      case provider.boot(acc, state) do
+        term when is_list(term) ->
+          term
+
+        term ->
+          abort("Expected provider #{inspect(provider)} to return a list, got: #{inspect(term)}")
+      end
+    end)
+  end
+
+  defp write_config!(config, path) do
     {date, time} = :erlang.localtime()
     args = [date, time, config]
     contents = :io_lib.format("%% coding: utf-8~n%% config generated at ~p ~p~n~p.~n", args)

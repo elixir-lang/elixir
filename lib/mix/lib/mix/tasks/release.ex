@@ -724,8 +724,8 @@ defmodule Mix.Tasks.Release do
 
     cond do
       path ->
-        msg = "#{inspect(path)} to configure the release at runtime"
-        Mix.shell().info([:green, "* using", :reset, msg])
+        msg = "#{path} to configure the release at runtime"
+        Mix.shell().info([:green, "* using ", :reset, msg])
         File.cp!(path, Path.join(version_path, "releases.exs"))
         init = {:system, "RELEASE_ROOT", "releases/#{release.version}/releases.exs"}
         update_in(release.config_providers, &[{Config.Reader, init} | &1])
@@ -944,7 +944,6 @@ defmodule Mix.Tasks.Release do
   export RELEASE_NODE=${RELEASE_NODE:-"$RELEASE_NAME@127.0.0.1"}
   export RELEASE_TMP=${RELEASE_TMP:-"$RELEASE_ROOT/tmp"}
   REL_VSN_DIR="$RELEASE_ROOT/releases/$RELEASE_VSN"
-  REL_RUNTIME_CONFIG="$RELEASE_TMP/$RELEASE_NAME-$RELEASE_VSN.runtime"
 
   gen_id () {
     od -t xS -N 2 -A n /dev/urandom | tr -d " \n"
@@ -959,24 +958,29 @@ defmodule Mix.Tasks.Release do
   }
 
   start () {
-    ensure_runtime_config
+    set_rel_sys_config
     REL_EXEC="$1"
     shift
     exec "$REL_VSN_DIR/$REL_EXEC" \
          --name "$RELEASE_NODE" --cookie "$RELEASE_COOKIE" \
-         --erl-config "$REL_VSN_DIR/sys" \
-         --optional-erl-config "$REL_RUNTIME_CONFIG" \
+          --erl-config "$REL_SYS_CONFIG" \
          --boot "$REL_VSN_DIR/start" \
          --boot-var RELEASE_LIB "$RELEASE_ROOT/lib" \
          --vm-args "$REL_VSN_DIR/vm.args" "$@"
   }
 
-  ensure_runtime_config () {
-    if grep -q "RUNTIME_CONFIG=true" "$REL_VSN_DIR/sys.config" && [ ! -f "$REL_RUNTIME_CONFIG.config" ]; then
-      (mkdir -p "$RELEASE_TMP" && echo "[]." > "$REL_RUNTIME_CONFIG.config") || (
-        echo "ERROR: Cannot start release because it could not write $REL_RUNTIME_CONFIG.config" >&2
-        exit 1
-      )
+  set_rel_sys_config () {
+    if grep -q "RUNTIME_CONFIG=true" "$REL_VSN_DIR/sys.config"; then
+      REL_SYS_CONFIG="$RELEASE_TMP/$RELEASE_NAME-$RELEASE_VSN.runtime"
+
+      if [ ! -f "$REL_SYS_CONFIG.config" ]; then
+        (mkdir -p "$RELEASE_TMP" && cp "$REL_VSN_DIR/sys.config" "$REL_SYS_CONFIG.config") || (
+          echo "ERROR: Cannot start release because it could not write $REL_SYS_CONFIG.config" >&2
+          exit 1
+        )
+      fi
+    else
+      REL_SYS_CONFIG="$REL_VSN_DIR/sys"
     fi
   }
 
@@ -1005,11 +1009,10 @@ defmodule Mix.Tasks.Release do
         exit 1
       fi
 
-      ensure_runtime_config
+      set_rel_sys_config
       exec "$REL_VSN_DIR/elixir" \
          --cookie "$RELEASE_COOKIE" \
-         --erl-config "$REL_VSN_DIR/sys" \
-         --optional-erl-config "$REL_RUNTIME_CONFIG" \
+         --erl-config "$REL_SYS_CONFIG" \
          --boot "$REL_VSN_DIR/start_clean" \
          --boot-var RELEASE_LIB "$RELEASE_ROOT/lib" \
          --vm-args "$REL_VSN_DIR/vm.args" --eval "$2"
@@ -1091,6 +1094,7 @@ defmodule Mix.Tasks.Release do
   if not defined RELEASE_NODE (set RELEASE_NODE=!RELEASE_NAME!@127.0.0.1)
   if not defined RELEASE_TMP (set RELEASE_TMP=!RELEASE_ROOT!/tmp)
   set REL_VSN_DIR=!RELEASE_ROOT!/releases/!RELEASE_VSN!
+  set REL_SYS_CONFIG=!REL_VSN_DIR!/sys
 
   if "%~1" == "start" (set "REL_EXEC=elixir" && set "REL_EXTRA=--no-halt" && set "REL_GOTO=start")
   if "%~1" == "start_iex" (set "REL_EXEC=iex" && set "REL_EXTRA=--werl" && set "REL_GOTO=start")
@@ -1104,12 +1108,12 @@ defmodule Mix.Tasks.Release do
   )
 
   if not "!REL_GOTO!" == "" (
-    findstr "RUNTIME_CONFIG=true" "!REL_VSN_DIR!\sys.config" >nil 2>&1 && (
-      set "REL_OPTIONAL_CONFIG=-config !RELEASE_TMP!/!RELEASE_NAME!-!RELEASE_VSN!.runtime"
+    findstr "RUNTIME_CONFIG=true" "!REL_SYS_CONFIG!.config" >nil 2>&1 && (
+      set REL_SYS_CONFIG=!RELEASE_TMP!/!RELEASE_NAME!-!RELEASE_VSN!.runtime
 
-      if not exist "!RELEASE_TMP!/!RELEASE_NAME!-!RELEASE_VSN!.runtime.config" (
-        (mkdir "!RELEASE_TMP!" && echo []. > "!RELEASE_TMP!/!RELEASE_NAME!-!RELEASE_VSN!.runtime.config") || (
-          echo Cannot start release because it could not write "!RELEASE_TMP!/!RELEASE_NAME!-!RELEASE_VSN!.runtime.config"
+      if not exist "!REL_SYS_CONFIG!.config" (
+        (mkdir "!RELEASE_TMP!" && copy "!REL_VSN_DIR!/sys.config" "!REL_SYS_CONFIG!.config") || (
+          echo Cannot start release because it could not write to "!REL_SYS_CONFIG!.config"
           goto end
         )
       )
@@ -1153,8 +1157,7 @@ defmodule Mix.Tasks.Release do
   :start
   "!REL_VSN_DIR!/!REL_EXEC!.bat" !REL_EXTRA! ^
     --name "!RELEASE_NODE!" --cookie "!RELEASE_COOKIE!" ^
-    --erl-config "!REL_VSN_DIR!\sys" ^
-    --optional-erl-config "!RELEASE_TMP!/!RELEASE_NAME!-!RELEASE_VSN!.runtime" ^
+    --erl-config "!REL_SYS_CONFIG!" ^
     --boot "!REL_VSN_DIR!\start" ^
     --boot-var RELEASE_LIB "!RELEASE_ROOT!\lib" ^
     --vm-args "!REL_VSN_DIR!\vm.args"
@@ -1165,7 +1168,6 @@ defmodule Mix.Tasks.Release do
     --eval "%~2" ^
     --cookie "!RELEASE_COOKIE!" ^
     --erl-config "!REL_VSN_DIR!\sys" ^
-    --optional-erl-config "!RELEASE_TMP!/!RELEASE_NAME!-!RELEASE_VSN!.runtime" ^
     --boot "!REL_VSN_DIR!\start_clean" ^
     --boot-var RELEASE_LIB "!RELEASE_ROOT!\lib" ^
     --vm-args "!REL_VSN_DIR!\vm.args"
@@ -1200,7 +1202,7 @@ defmodule Mix.Tasks.Release do
 
   !ERLSRV! add !RELEASE_NAME!_!RELEASE_NAME! ^
     -name "!RELEASE_NODE!" ^
-    -args "-setcookie !RELEASE_COOKIE! -config !REL_VSN_DIR!\sys !REL_OPTIONAL_CONFIG! -boot !REL_VSN_DIR!\start -boot_var RELEASE_LIB !RELEASE_ROOT!\lib -args_file !REL_VSN_DIR!\vm.args"
+    -args "-setcookie !RELEASE_COOKIE! -config !REL_SYS_CONFIG! -boot !REL_VSN_DIR!\start -boot_var RELEASE_LIB !RELEASE_ROOT!\lib -args_file !REL_VSN_DIR!\vm.args"
 
   if %ERRORLEVEL% EQU 0 (
     echo Service installed but not started. From now on, it must be started and stopped by erlsrv:
