@@ -963,7 +963,7 @@ defmodule Mix.Tasks.Release do
     shift
     exec "$REL_VSN_DIR/$REL_EXEC" \
          --name "$RELEASE_NODE" --cookie "$RELEASE_COOKIE" \
-          --erl-config "$REL_SYS_CONFIG" \
+         --erl-config "$REL_SYS_CONFIG" \
          --boot "$REL_VSN_DIR/start" \
          --boot-var RELEASE_LIB "$RELEASE_ROOT/lib" \
          --vm-args "$REL_VSN_DIR/vm.args" "$@"
