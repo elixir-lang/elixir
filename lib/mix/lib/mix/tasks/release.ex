@@ -446,7 +446,8 @@ defmodule Mix.Tasks.Release do
       It can be overridden on `bin/start` to a custom value
 
     * `RELEASE_TMP` - the directory in the release to write temporary
-      files to. Defaults to the `$RELEASE_ROOT/tmp`
+      files to. It can be overridden on `bin/start` to a custom value.
+      Defaults to the `$RELEASE_ROOT/tmp`
 
   ## Hot Code Upgrades
 
