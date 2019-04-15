@@ -7,7 +7,7 @@ defmodule Config.Provider do
   @callback boot(config, state) :: config
 
   @doc false
-  defstruct [:path, :providers, :config]
+  defstruct [:providers, :config_path, extra_config: [], prune_after_boot: true]
 
   @spec validate_config_path!(config_path) :: :ok
   def validate_config_path!({:system, name, path})
@@ -35,30 +35,40 @@ defmodule Config.Provider do
   def resolve_config_path!({:system, name, path}), do: System.fetch_env!(name) <> path
 
   @doc false
-  def init(path, providers, config) when is_list(providers) and is_list(config) do
-    validate_config_path!(path)
-    providers = for {provider, opts} <- providers, do: {provider, provider.init(opts)}
-    %Config.Provider{path: path, providers: providers, config: config}
+  def init(providers, config_path, opts \\ []) when is_list(providers) and is_list(opts) do
+    validate_config_path!(config_path)
+    providers = for {provider, init} <- providers, do: {provider, provider.init(init)}
+    struct!(%Config.Provider{config_path: config_path, providers: providers}, opts)
   end
 
   @doc false
   def boot(app, key, restart_fun \\ &System.restart/0) do
     case :application.get_env(app, key) do
       {:ok, %Config.Provider{} = provider} ->
-        path = resolve_config_path!(provider.path)
+        path = resolve_config_path!(provider.config_path)
         validate_no_cyclic_boot!(path)
 
         read_config!(path)
-        |> Config.__merge__([{app, [{key, :booted}]} | provider.config])
+        |> Config.__merge__([{app, [{key, booted_key(provider, path)}]} | provider.extra_config])
         |> run_providers(provider)
         |> write_config!(path)
 
         restart_fun.()
 
+      {:ok, {:booted, path}} ->
+        File.rm(path)
+        :booted
+
+      {:ok, :booted} ->
+        :booted
+
       _ ->
         :skip
     end
   end
+
+  defp booted_key(%{prune_after_boot: true}, path), do: {:booted, path}
+  defp booted_key(%{prune_after_boot: false}, _path), do: :booted
 
   defp validate_no_cyclic_boot!(path) do
     if System.get_env("ELIXIR_CONFIG_PROVIDER_BOOTED") do

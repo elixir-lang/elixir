@@ -298,9 +298,11 @@ defmodule Mix.Release do
 
   defp merge_provider_config(%{config_providers: []}, sys_config, _), do: {sys_config, false}
 
-  defp merge_provider_config(%{config_providers: providers} = release, sys_config, config_path) do
+  defp merge_provider_config(release, sys_config, config_path) do
     {extra_config, initial_config} = start_distribution(release)
-    init = Config.Provider.init(config_path, providers, initial_config)
+    prune_after_boot = Keyword.get(release.options, :prune_runtime_sys_config_after_boot, true)
+    opts = [extra_config: initial_config, prune_after_boot: prune_after_boot]
+    init = Config.Provider.init(release.config_providers, config_path, opts)
     {Config.Reader.merge(sys_config, [elixir: [config_providers: init]] ++ extra_config), true}
   end
 

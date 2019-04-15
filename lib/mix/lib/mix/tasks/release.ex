@@ -382,6 +382,7 @@ defmodule Mix.Tasks.Release do
 
   # runtime_config_path: ...
   # start_distribution_during_config: false
+  # prune_runtime_sys_config_after_boot: true
   # config_providers: [...]
 
   ## Steps
@@ -627,9 +628,6 @@ defmodule Mix.Tasks.Release do
   defp assemble(release, config) do
     message = "#{release.name}-#{release.version} on MIX_ENV=#{Mix.env()}"
     info(release, [:green, "* assembling ", :reset, message])
-
-    # Clear the tmp path so at least config caches are recomputed.
-    File.rm_rf!(Path.join(release.path, "tmp"))
 
     # releases/
     #   VERSION/
