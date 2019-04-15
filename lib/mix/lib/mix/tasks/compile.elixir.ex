@@ -33,10 +33,10 @@ defmodule Mix.Tasks.Compile.Elixir do
       Defaults to `["lib"]`.
 
     * `:elixirc_options` - compilation options that apply
-      to Elixir's compiler, they are: `:ignore_module_conflict`,
-      `:docs` and `:debug_info`. By default, uses the same
-      defaults as `elixirc` and they can always be overridden from
-      the command line according to the options above.
+      to Elixir's compiler. They are the same as the command line options listed above.
+      They must be specified as atoms and use underscores instead of dashes (e.g. 
+      `:debug_info`). By default, uses the same defaults as `elixirc` and they can always
+      be overridden from the command line according to the options above.
 
   """
 
