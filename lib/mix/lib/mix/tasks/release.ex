@@ -1104,8 +1104,8 @@ defmodule Mix.Tasks.Release do
   )
 
   if not "!REL_GOTO!" == "" (
-    findstr "%% RUNTIME_CONFIG=true" "!REL_VSN_DIR!\sys.config" >nil 2>&1 && (
-      set "!REL_OPTIONAL_CONFIG!=-config !RELEASE_TMP!/!RELEASE_NAME!-!RELEASE_VSN!.runtime"
+    findstr "RUNTIME_CONFIG=true" "!REL_VSN_DIR!\sys.config" >nil 2>&1 && (
+      set "REL_OPTIONAL_CONFIG=-config !RELEASE_TMP!/!RELEASE_NAME!-!RELEASE_VSN!.runtime"
 
       if not exist "!RELEASE_TMP!/!RELEASE_NAME!-!RELEASE_VSN!.runtime.config" (
         (mkdir "!RELEASE_TMP!" && echo []. > "!RELEASE_TMP!/!RELEASE_NAME!-!RELEASE_VSN!.runtime.config") || (
