@@ -32,11 +32,11 @@ defmodule Mix.Tasks.Compile.Elixir do
     * `:elixirc_paths` - directories to find source files.
       Defaults to `["lib"]`.
 
-    * `:elixirc_options` - compilation options that apply
-      to Elixir's compiler, they are: `:ignore_module_conflict`,
-      `:docs` and `:debug_info`. By default, uses the same
-      defaults as `elixirc` and they can always be overridden from
-      the command line according to the options above.
+    * `:elixirc_options` - compilation options that apply to Elixir's compiler.
+      They are the same as the command line options listed above. They must be specified
+      as atoms and use underscores instead of dashes (for example, `:debug_info`). These
+      options can always be overridden from the command line and they have the same defaults
+      as their command line counterparts, as documented above.
 
   """
 
