@@ -22,8 +22,8 @@ defmodule Config.Provider do
       expected configuration path to be:
 
         * a binary representing an absolute path
-        * a tuple {:system, system_var, relative_path} where the config is \
-          a relative path to the value in the system variable `system_var`
+        * a tuple {:system, system_var, path} where the config is the \
+          concatenation of the `system_var` with the given `path`
 
       Got: #{inspect(path)}
       """
@@ -32,7 +32,7 @@ defmodule Config.Provider do
 
   @spec resolve_config_path!(config_path) :: binary
   def resolve_config_path!(path) when is_binary(path), do: path
-  def resolve_config_path!({:system, name, path}), do: Path.join(System.fetch_env!(name), path)
+  def resolve_config_path!({:system, name, path}), do: System.fetch_env!(name) <> path
 
   @doc false
   def init(path, providers, config) when is_list(providers) and is_list(config) do
