@@ -22,7 +22,7 @@ defmodule Config do
   file persist it into `:some_app`'s application environment, which
   can be accessed in as follows:
 
-      "value" = Application.fetch_env!(:my_app, :key1)
+      "value1" = Application.fetch_env!(:some_app, :key1)
 
   See `Config.Reader` for evaluating and reading configuration
   files.
