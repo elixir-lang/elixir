@@ -42,7 +42,8 @@ The following options are generally used under releases.
 
   --boot \"FILE\"                Uses the given FILE.boot to start the system
   --boot-var VAR \"VALUE\"       Makes \$VAR available as VALUE to FILE.boot (*)
-  --erl-config \"FILE\"          Loads configuration in FILE.config written in Erlang (*)
+  --erl-config \"FILE\"          Loads Erlang configuration in FILE.config (*)
+  --optional-erl-config \"FILE\" Loads Erlang configuration in FILE.config if it exists (*)
   --pipe-to \"PIPEDIR\" \"LOGDIR\" Starts the Erlang VM as a named PIPEDIR and LOGDIR
   --vm-args \"FILE\"             Passes the contents in file as arguments to the VM
 
@@ -147,6 +148,13 @@ while [ $I -le $LENGTH ]; do
         S=2
         erl "-config"
         erl "$2"
+        ;;
+    --optional-erl-config)
+        S=2
+        if [ -f "$2.config" ]; then
+          erl "-config"
+          erl "$2"
+        fi
         ;;
     --vm-args)
         S=2

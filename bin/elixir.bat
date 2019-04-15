@@ -48,7 +48,8 @@ echo The following options are generally used under releases.
 echo.
 echo   --boot "FILE"                Uses the given FILE.boot to start the system
 echo   --boot-var VAR "VALUE"       Makes $VAR available as VALUE to FILE.boot (*)
-echo   --erl-config "FILE"          Loads configuration in FILE.config written in Erlang (*)
+echo   --erl-config "FILE"          Loads Erlang configuration in FILE.config (*)
+echo   --optional-erl-config "FILE" Loads Erlang configuration in FILE.config if it exists (*)
 echo   --vm-args "FILE"             Passes the contents in file as arguments to the VM
 echo.
 echo --pipe-to is not supported on Windows. If set, Elixir won't boot.
@@ -127,12 +128,16 @@ if ""==!par:--no-halt=!   (set "parsElixir=!parsElixir! --no-halt" && goto start
 if ""==!par:--remsh=!     (set "parsElixir=!parsElixir! --remsh %1" && shift && goto startloop)
 if ""==!par:--dot-iex=!   (set "parsElixir=!parsElixir! --dot-iex %1" && shift && goto startloop)
 rem ******* ERLANG PARAMETERS **********************
+if ""==!par:--optional-erl-config=! (
+  if exist "%1.config" (set "parsErlang=!parsErlang! -config %1")
+  shift && goto startloop
+)
+if ""==!par:--erl-config=!          (set "parsErlang=!parsErlang! -config %1" && shift && goto startloop)
 if ""==!par:--boot=!                (set "parsErlang=!parsErlang! -boot %1" && shift && goto startloop)
 if ""==!par:--boot-var=!            (set "parsErlang=!parsErlang! -boot_var %1 %2" && shift && shift && goto startloop)
 if ""==!par:--cookie=!              (set "parsErlang=!parsErlang! -setcookie %1" && shift && goto startloop)
 if ""==!par:--hidden=!              (set "parsErlang=!parsErlang! -hidden" && goto startloop)
 if ""==!par:--detached=!            (set "parsErlang=!parsErlang! -detached" && echo warning: the --detached option is deprecated && goto startloop)
-if ""==!par:--erl-config=!          (set "parsErlang=!parsErlang! -config %1" && shift && goto startloop)
 if ""==!par:--logger-otp-reports=!  (set "parsErlang=!parsErlang! -logger handle_otp_reports %1" && shift && goto startloop)
 if ""==!par:--logger-sasl-reports=! (set "parsErlang=!parsErlang! -logger handle_sasl_reports %1" && shift && goto startloop)
 if ""==!par:--name=!                (set "parsErlang=!parsErlang! -name %1" && shift && goto startloop)

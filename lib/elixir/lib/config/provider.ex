@@ -1,6 +1,7 @@
 defmodule Config.Provider do
   @type config :: keyword
   @type state :: term
+  @type config_path :: {:system, binary(), binary()} | binary()
 
   @callback init(term) :: state
   @callback boot(config, state) :: config
@@ -8,6 +9,7 @@ defmodule Config.Provider do
   @doc false
   defstruct [:path, :providers, :config]
 
+  @spec validate_config_path!(config_path) :: :ok
   def validate_config_path!({:system, name, path})
       when is_binary(name) and is_binary(path),
       do: :ok
@@ -28,6 +30,7 @@ defmodule Config.Provider do
     end
   end
 
+  @spec resolve_config_path!(config_path) :: binary
   def resolve_config_path!(path) when is_binary(path), do: path
   def resolve_config_path!({:system, name, path}), do: Path.join(System.fetch_env!(name), path)
 

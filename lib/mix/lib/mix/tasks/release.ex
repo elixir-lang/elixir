@@ -381,7 +381,6 @@ defmodule Mix.Tasks.Release do
   TODO: Implement runtime configuration and config providers.
 
   # runtime_config_path: ...
-  # runtime_config_writable_dir: ...
   # start_distribution_during_config: false
   # config_providers: [...]
 
@@ -409,10 +408,12 @@ defmodule Mix.Tasks.Release do
           ebin/
           include/
           priv/
-      releases
+      releases/
         RELEASE_VSN/
+          consolidated/
           elixir
           iex
+          releases.exs
           start.boot
           start.script
           start_clean.boot
@@ -421,6 +422,7 @@ defmodule Mix.Tasks.Release do
           vm.args
         COOKIE
         start_erl.data
+      tmp/
 
   Furthermore, the system can be configured and sets the following
   environment variables:
@@ -441,6 +443,9 @@ defmodule Mix.Tasks.Release do
 
     * `RELEASE_NODE` - the release node name, in the format `name@host`.
       It can be overridden on `bin/start` to a custom value
+
+    * `RELEASE_TMP` - the directory in the release to write temporary
+      files to. Defaults to the `$RELEASE_ROOT/tmp`
 
   ## Hot Code Upgrades
 
@@ -623,6 +628,9 @@ defmodule Mix.Tasks.Release do
     message = "#{release.name}-#{release.version} on MIX_ENV=#{Mix.env()}"
     info(release, [:green, "* assembling ", :reset, message])
 
+    # Clear the tmp path so at least config caches are recomputed.
+    File.rm_rf!(Path.join(release.path, "tmp"))
+
     # releases/
     #   VERSION/
     #     consolidated/
@@ -685,9 +693,12 @@ defmodule Mix.Tasks.Release do
     cookie_path = Path.join(release.path, "releases/COOKIE")
     start_erl_path = Path.join(release.path, "releases/start_erl.data")
 
+    config_provider_path =
+      {:system, "RELEASE_TMP", "#{release.name}-#{release.version}.runtime.config"}
+
     with :ok <- make_boot_scripts(release, version_path, consolidation_path),
          :ok <- make_vm_args(release, vm_args_path),
-         :ok <- Mix.Release.make_sys_config(release, sys_config),
+         :ok <- Mix.Release.make_sys_config(release, sys_config, config_provider_path),
          :ok <- Mix.Release.make_cookie(release, cookie_path),
          :ok <- Mix.Release.make_start_erl(release, start_erl_path) do
       consolidation_path
@@ -701,7 +712,7 @@ defmodule Mix.Tasks.Release do
   defp maybe_add_config_reader_provider(%{options: opts} = release, version_path) do
     path =
       cond do
-        path = opts[:release_config_path] ->
+        path = opts[:runtime_config_path] ->
           path
 
         File.exists?("config/releases.exs") ->
@@ -714,14 +725,14 @@ defmodule Mix.Tasks.Release do
     cond do
       path ->
         msg = "#{inspect(path)} to configure the release at runtime"
-        Mix.shell.info([:green, "* using", :reset, msg])
-        File.cp!(path, Path.join(version_path, "runtime.exs"))
-        init = {:system, "RELEASE_ROOT", "releases/#{release.version}/runtime.exs"}
-        update_in release.config_providers, &[{Config.Reader, init} | &1]
+        Mix.shell().info([:green, "* using", :reset, msg])
+        File.cp!(path, Path.join(version_path, "releases.exs"))
+        init = {:system, "RELEASE_ROOT", "releases/#{release.version}/releases.exs"}
+        update_in(release.config_providers, &[{Config.Reader, init} | &1])
 
       release.config_providers == [] ->
         msg = "runtime configuration (config/releases.exs was not found)"
-        Mix.shell.info([:yellow, "* skipping ", :reset, msg])
+        Mix.shell().info([:yellow, "* skipping ", :reset, msg])
         release
 
       true ->
@@ -931,7 +942,9 @@ defmodule Mix.Tasks.Release do
   export RELEASE_VSN="${RELEASE_VSN:-"$(cut -d' ' -f2 "$RELEASE_ROOT/releases/start_erl.data")"}"
   export RELEASE_COOKIE=${RELEASE_COOKIE:-"$(cat "$RELEASE_ROOT/releases/COOKIE")"}
   export RELEASE_NODE=${RELEASE_NODE:-"$RELEASE_NAME@127.0.0.1"}
+  export RELEASE_TMP=${RELEASE_TMP:-"$RELEASE_ROOT/tmp"}
   REL_VSN_DIR="$RELEASE_ROOT/releases/$RELEASE_VSN"
+  REL_RUNTIME_CONFIG="$RELEASE_TMP/$RELEASE_NAME-$RELEASE_VSN.runtime"
 
   gen_id () {
     od -t xS -N 2 -A n /dev/urandom | tr -d " \n"
@@ -946,14 +959,25 @@ defmodule Mix.Tasks.Release do
   }
 
   start () {
+    ensure_runtime_config
     REL_EXEC="$1"
     shift
     exec "$REL_VSN_DIR/$REL_EXEC" \
          --name "$RELEASE_NODE" --cookie "$RELEASE_COOKIE" \
          --erl-config "$REL_VSN_DIR/sys" \
+         --optional-erl-config "$REL_RUNTIME_CONFIG" \
          --boot "$REL_VSN_DIR/start" \
          --boot-var RELEASE_LIB "$RELEASE_ROOT/lib" \
          --vm-args "$REL_VSN_DIR/vm.args" "$@"
+  }
+
+  ensure_runtime_config () {
+    if grep -q "RUNTIME_CONFIG=true" "$REL_VSN_DIR/sys.config" && [ ! -f "$REL_RUNTIME_CONFIG.config" ]; then
+      (mkdir -p "$RELEASE_TMP" && echo "[]." > "$REL_RUNTIME_CONFIG.config") || (
+        echo "ERROR: Cannot start release because it could not write $REL_RUNTIME_CONFIG.config" >&2
+        exit 1
+      )
+    fi
   }
 
   case $1 in
@@ -981,9 +1005,11 @@ defmodule Mix.Tasks.Release do
         exit 1
       fi
 
+      ensure_runtime_config
       exec "$REL_VSN_DIR/elixir" \
          --cookie "$RELEASE_COOKIE" \
          --erl-config "$REL_VSN_DIR/sys" \
+         --optional-erl-config "$REL_RUNTIME_CONFIG" \
          --boot "$REL_VSN_DIR/start_clean" \
          --boot-var RELEASE_LIB "$RELEASE_ROOT/lib" \
          --vm-args "$REL_VSN_DIR/vm.args" --eval "$2"
@@ -1063,23 +1089,40 @@ defmodule Mix.Tasks.Release do
   if not defined RELEASE_VSN (for /f "tokens=1,2" %%K in (!RELEASE_ROOT!/releases/start_erl.data) do (set ERTS_VSN=%%K) && (set RELEASE_VSN=%%L))
   if not defined RELEASE_COOKIE (set /p RELEASE_COOKIE=<!RELEASE_ROOT!/releases/COOKIE)
   if not defined RELEASE_NODE (set RELEASE_NODE=!RELEASE_NAME!@127.0.0.1)
+  if not defined RELEASE_TMP (set RELEASE_TMP=!RELEASE_ROOT!/tmp)
   set REL_VSN_DIR=!RELEASE_ROOT!/releases/!RELEASE_VSN!
 
-  if "%~1" == "start" (set "REL_EXEC=elixir" && set "REL_EXTRA=--no-halt" && goto start)
-  if "%~1" == "start_iex" (set "REL_EXEC=iex" && set "REL_EXTRA=--werl" && goto start)
-  if "%~1" == "remote" (goto remote)
-  if "%~1" == "install" (goto install)
-  if "%~1" == "version" (goto version)
-  if "%~1" == "stop" (set "REL_RPC=System.stop()" && goto rpc)
-  if "%~1" == "restart" (set "REL_RPC=System.stop()" && goto rpc)
-  if "%~1" == "pid" (set "REL_RPC=IO.puts(System.pid())" && goto rpc)
+  if "%~1" == "start" (set "REL_EXEC=elixir" && set "REL_EXTRA=--no-halt" && set "REL_GOTO=start")
+  if "%~1" == "start_iex" (set "REL_EXEC=iex" && set "REL_EXTRA=--werl" && set "REL_GOTO=start")
+  if "%~1" == "install" (set "REL_GOTO=install")
   if "%~1" == "eval" (
     if "%~2" == "" (
       echo ERROR: EVAL expects an expression as argument
       goto end
     )
-    goto eval
+    set "REL_GOTO=eval"
   )
+
+  if not "!REL_GOTO!" == "" (
+    findstr "%% RUNTIME_CONFIG=true" "!REL_VSN_DIR!\sys.config" >nil 2>&1 && (
+      set "!REL_OPTIONAL_CONFIG!=-config !RELEASE_TMP!/!RELEASE_NAME!-!RELEASE_VSN!.runtime"
+
+      if not exist "!RELEASE_TMP!/!RELEASE_NAME!-!RELEASE_VSN!.runtime.config" (
+        (mkdir "!RELEASE_TMP!" && echo []. > "!RELEASE_TMP!/!RELEASE_NAME!-!RELEASE_VSN!.runtime.config") || (
+          echo Cannot start release because it could not write "!RELEASE_TMP!/!RELEASE_NAME!-!RELEASE_VSN!.runtime.config"
+          goto end
+        )
+      )
+    )
+
+    goto !REL_GOTO!
+  )
+
+  if "%~1" == "remote" (goto remote)
+  if "%~1" == "version" (goto version)
+  if "%~1" == "stop" (set "REL_RPC=System.stop()" && goto rpc)
+  if "%~1" == "restart" (set "REL_RPC=System.stop()" && goto rpc)
+  if "%~1" == "pid" (set "REL_RPC=IO.puts(System.pid())" && goto rpc)
   if "%~1" == "rpc" (
     if "%~2" == "" (
       echo ERROR: RPC expects an expression as argument
@@ -1111,6 +1154,7 @@ defmodule Mix.Tasks.Release do
   "!REL_VSN_DIR!/!REL_EXEC!.bat" !REL_EXTRA! ^
     --name "!RELEASE_NODE!" --cookie "!RELEASE_COOKIE!" ^
     --erl-config "!REL_VSN_DIR!\sys" ^
+    --optional-erl-config "!RELEASE_TMP!/!RELEASE_NAME!-!RELEASE_VSN!.runtime" ^
     --boot "!REL_VSN_DIR!\start" ^
     --boot-var RELEASE_LIB "!RELEASE_ROOT!\lib" ^
     --vm-args "!REL_VSN_DIR!\vm.args"
@@ -1121,6 +1165,7 @@ defmodule Mix.Tasks.Release do
     --eval "%~2" ^
     --cookie "!RELEASE_COOKIE!" ^
     --erl-config "!REL_VSN_DIR!\sys" ^
+    --optional-erl-config "!RELEASE_TMP!/!RELEASE_NAME!-!RELEASE_VSN!.runtime" ^
     --boot "!REL_VSN_DIR!\start_clean" ^
     --boot-var RELEASE_LIB "!RELEASE_ROOT!\lib" ^
     --vm-args "!REL_VSN_DIR!\vm.args"
@@ -1155,7 +1200,7 @@ defmodule Mix.Tasks.Release do
 
   !ERLSRV! add !RELEASE_NAME!_!RELEASE_NAME! ^
     -name "!RELEASE_NODE!" ^
-    -args "-setcookie !RELEASE_COOKIE! -config !REL_VSN_DIR!\sys -boot !REL_VSN_DIR!\start -boot_var RELEASE_LIB !RELEASE_ROOT!\lib -args_file !REL_VSN_DIR!\vm.args"
+    -args "-setcookie !RELEASE_COOKIE! -config !REL_VSN_DIR!\sys !REL_OPTIONAL_CONFIG! -boot !REL_VSN_DIR!\start -boot_var RELEASE_LIB !RELEASE_ROOT!\lib -args_file !REL_VSN_DIR!\vm.args"
 
   if %ERRORLEVEL% EQU 0 (
     echo Service installed but not started. From now on, it must be started and stopped by erlsrv:

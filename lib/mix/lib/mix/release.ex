@@ -270,18 +270,22 @@ defmodule Mix.Release do
   the `:elixir` application configuration in `sys_config` to be
   read during boot and trigger the providers.
 
-  It uses two options to customize its behaviour:
+  It uses one option to customize its behaviour:
 
     * `:start_distribution_during_config`
-    * `:runtime_config_writable_dir`
 
   In case there are no config providers, it doesn't change `sys_config`.
   """
-  @spec make_sys_config(t, keyword()) :: :ok | {:error, String.t()}
-  def make_sys_config(release, sys_config) do
-    sys_config = merge_provider_config(release, sys_config)
+  @spec make_sys_config(t, keyword(), Config.Provider.config_path()) ::
+          :ok | {:error, String.t()}
+  def make_sys_config(release, sys_config, config_provider_path) do
+    {sys_config, runtime?} = merge_provider_config(release, sys_config, config_provider_path)
     path = Path.join(release.version_path, "sys.config")
-    File.write!(path, consultable("config", sys_config))
+
+    {date, time} = :erlang.localtime()
+    args = [runtime?, date, time, sys_config]
+    format = "%% coding: utf-8~n%% RUNTIME_CONFIG=~s~n%% config generated at ~p ~p~n~p.~n"
+    File.write!(path, :io_lib.format(format, args))
 
     case :file.consult(path) do
       {:ok, _} ->
@@ -292,16 +296,12 @@ defmodule Mix.Release do
     end
   end
 
-  defp merge_provider_config(%{config_providers: []}, sys_config), do: sys_config
+  defp merge_provider_config(%{config_providers: []}, sys_config, _), do: {sys_config, false}
 
-  defp merge_provider_config(%{config_providers: providers} = release, sys_config) do
+  defp merge_provider_config(%{config_providers: providers} = release, sys_config, config_path) do
     {extra_config, initial_config} = start_distribution(release)
-    {sys_location, provider_location} = provider_location(release)
-    init = Config.Provider.init(provider_location, providers, initial_config)
-
-    sys_config
-    |> Config.Reader.merge([elixir: [config_providers: init]] ++ extra_config)
-    |> Kernel.++([sys_location])
+    init = Config.Provider.init(config_path, providers, initial_config)
+    {Config.Reader.merge(sys_config, [elixir: [config_providers: init]] ++ extra_config), true}
   end
 
   defp start_distribution(%{options: opts}) do
@@ -309,20 +309,6 @@ defmodule Mix.Release do
       {[], []}
     else
       {[kernel: [start_distribution: false]], [kernel: [start_distribution: true]]}
-    end
-  end
-
-  defp provider_location(%{name: name, version: version, options: opts} = release) do
-    dir = Keyword.get(opts, :runtime_config_writable_dir, "releases/#{version}")
-    file = Path.join(dir, "#{name}-#{version}.runtime-cache.config")
-
-    if Path.type(dir) == :relative do
-      File.mkdir_p!(Path.join(release.path, dir))
-      File.write!(Path.join(release.path, file), "[].")
-      {"../.." |> Path.join(file) |> String.to_charlist(), {:system, "RELEASE_ROOT", file}}
-    else
-      # TODO: Warn that a file config is necessary
-      {file, file}
     end
   end
 
