@@ -34,7 +34,7 @@ defmodule Mix.Tasks.Compile.Elixir do
 
     * `:elixirc_options` - compilation options that apply to Elixir's compiler. They are
       the same as the command line options listed above. They must be specified as atoms
-      and use underscores instead of dashes (e.g. `:debug_info`). Uses the same defaults 
+      and use underscores instead of dashes (for example, `:debug_info`). Uses the same defaults 
       as `elixirc`. These options can always be overridden from the command line according 
       to the options above.
 
