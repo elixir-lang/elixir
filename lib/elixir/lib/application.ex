@@ -526,8 +526,14 @@ defmodule Application do
   @doc """
   Puts the environment for multiple apps at the same time.
 
-  It will fail if any of the applications appear more than once
-  or if any of the keys in the application are repeated.
+  The given config should not:
+
+    * have the same application listed more than once
+    * have the same key inside the same application listed more than once
+
+  If those conditions are not met, the behaviour is undefined
+  (on Erlang/OTP 21 and earlier) or will raise (on Erlang/OPT 22
+  and later).
 
   It receives the same options as `put_env/4`. Returns `:ok`.
   """
@@ -537,8 +543,8 @@ defmodule Application do
     if function_exported?(:application, :set_env, 2) do
       :application.set_env(config, opts)
     else
-      for {app, kw} <- config, {k, v} <- kw do
-        :application.set_env(app, k, v, opts)
+      for {app, keyword} <- config, {key, value} <- keyword do
+        :application.set_env(app, key, value, opts)
       end
 
       :ok

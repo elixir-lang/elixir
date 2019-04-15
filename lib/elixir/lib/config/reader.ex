@@ -37,7 +37,7 @@ defmodule Config.Reader do
   end
 
   @doc """
-  Reads the given configuration file.
+  Reads the given configuration file alongside its imports.
 
   It accepts a list of `imported_paths` that should raise if attempted
   to be imported again (to avoid recursive imports).
