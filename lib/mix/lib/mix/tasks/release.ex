@@ -1087,8 +1087,8 @@ defmodule Mix.Tasks.Release do
   if not defined RELEASE_COOKIE (set /p RELEASE_COOKIE=<!RELEASE_ROOT!/releases/COOKIE)
   if not defined RELEASE_NODE (set RELEASE_NODE=!RELEASE_NAME!@127.0.0.1)
   if not defined RELEASE_TMP (set RELEASE_TMP=!RELEASE_ROOT!/tmp)
-  set RELEASE_SYS_CONFIG=!REL_VSN_DIR!/sys
   set REL_VSN_DIR=!RELEASE_ROOT!/releases/!RELEASE_VSN!
+  set RELEASE_SYS_CONFIG=!REL_VSN_DIR!/sys
 
   if "%~1" == "start" (set "REL_EXEC=elixir" && set "REL_EXTRA=--no-halt" && set "REL_GOTO=start")
   if "%~1" == "start_iex" (set "REL_EXEC=iex" && set "REL_EXTRA=--werl" && set "REL_GOTO=start")
