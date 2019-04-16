@@ -1,6 +1,14 @@
 defmodule Config.Reader do
   @moduledoc """
   API for reading config files defined with `Config`.
+
+  ## As a provider
+
+  `Config.Reader` can also be used as a `Config.Provider`.
+  When used as a provider, it expects a single argument:
+  which the configuration path (as outlined in
+  `t:Config.Provider.config_path/0`) for the configuration
+  to be read.
   """
 
   @behaviour Config.Provider
@@ -12,7 +20,7 @@ defmodule Config.Reader do
   end
 
   @impl true
-  def boot(config, path) do
+  def load(config, path) do
     {:ok, _} = Application.ensure_all_started(:elixir)
     merge(config, path |> Config.Provider.resolve_config_path!() |> read!())
   end
@@ -20,7 +28,7 @@ defmodule Config.Reader do
   @doc """
   Reads the configuration file.
 
-  The same as `read_with_imports!/2` but only returns the configuration
+  The same as `read_imports!/2` but only returns the configuration
   in the given file, without returning the imported paths.
 
   It exists for convenience purposes. For example, you could
@@ -44,8 +52,8 @@ defmodule Config.Reader do
 
   It returns a tuple with the configuration and the imported paths.
   """
-  @spec read_with_imports!(Path.t(), [Path.t()]) :: {keyword, [Path.t()]}
-  def read_with_imports!(file, imported_paths \\ [])
+  @spec read_imports!(Path.t(), [Path.t()]) :: {keyword, [Path.t()]}
+  def read_imports!(file, imported_paths \\ [])
       when is_binary(file) and is_list(imported_paths) do
     Config.__eval__!(file, imported_paths)
   end

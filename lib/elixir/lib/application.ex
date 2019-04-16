@@ -543,7 +543,10 @@ defmodule Application do
     if function_exported?(:application, :set_env, 2) do
       :application.set_env(config, opts)
     else
-      for {app, keyword} <- config, {key, value} <- keyword do
+      for app_keyword <- config,
+          {app, keyword} = app_keyword,
+          key_value <- keyword,
+          {key, value} = key_value do
         :application.set_env(app, key, value, opts)
       end
 

@@ -1,14 +1,71 @@
 defmodule Config.Provider do
+  @moduledoc """
+  Specifies a provider API that loads configuration during boot.
+
+  Config providers are typically used during releases to load
+  external configuration while the system boots. This is done
+  by starting the VM with the mininum amount of applications
+  running, then invoking all of the providers, and then
+  restarting the system. This requires a mutable configuration
+  file in disk, as the result of the providers are written to
+  disk. See `mix release` for more information and examples.
+  """
+
   @type config :: keyword
   @type state :: term
+
+  @typedoc """
+  A path pointing to a configuration file.
+
+  Since configuration files are often accessed on target machines,
+  it can be expressed either as:
+
+    * a binary representing an absolute path
+
+    * a tuple {:system, system_var, path} where the config is the
+      concatenation of the `system_var` with the given `path`
+
+  """
   @type config_path :: {:system, binary(), binary()} | binary()
 
+  @doc """
+  Invoked when initializing a config provider.
+
+  A config provider is typically initialized on the machine
+  where the system is assembled and not on the target machine.
+  The `c:init/1` callback is useful to verify the arguments
+  given to the provider and prepare the state that will be
+  given to `c:load/2`.
+
+  Furthermore, because the state returned by `c:init/1` can
+  be written to text-based config files, it should be
+  restricted only to simple data types, such as integers,
+  strings, atoms, tuples, maps, and lists. Entries such as
+  PIDs, references, and functions cannot be serialized.
+  """
   @callback init(term) :: state
-  @callback boot(config, state) :: config
+
+  @doc """
+  Loads configuration (typically during system boot).
+
+  It receives the current `config` and the `state` returned by
+  `c:init/1`. Then you typically read the extra configuration
+  from an external source and merge it into the received `config`.
+  Merging should be done with `Config.Reader.merge/2`, as it
+  performs deep merge. It should return the updated config.
+
+  Note that `c:load/2` is typically invoked very early in the
+  boot process, therefore if you need to use an application
+  in the provider, it is your responsibility to start it.
+  """
+  @callback load(config, state) :: config
 
   @doc false
   defstruct [:providers, :config_path, extra_config: [], prune_after_boot: true]
 
+  @doc """
+  Validates a `t:config_path/0`.
+  """
   @spec validate_config_path!(config_path) :: :ok
   def validate_config_path!({:system, name, path})
       when is_binary(name) and is_binary(path),
@@ -30,6 +87,9 @@ defmodule Config.Provider do
     end
   end
 
+  @doc """
+  Resolves a `t:config_path/0` to an actual path.
+  """
   @spec resolve_config_path!(config_path) :: binary
   def resolve_config_path!(path) when is_binary(path), do: path
   def resolve_config_path!({:system, name, path}), do: System.fetch_env!(name) <> path
@@ -93,7 +153,14 @@ defmodule Config.Provider do
 
   defp run_providers(config, %{providers: providers}) do
     Enum.reduce(providers, config, fn {provider, state}, acc ->
-      case provider.boot(acc, state) do
+      try do
+        provider.load(acc, state)
+      catch
+        kind, error ->
+          IO.puts(:stderr, "ERROR! Config provider #{inspect(provider)} failed with:")
+          IO.puts(:stderr, Exception.format(kind, error, __STACKTRACE__))
+          :erlang.raise(kind, error, __STACKTRACE__)
+      else
         term when is_list(term) ->
           term
 

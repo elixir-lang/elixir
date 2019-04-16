@@ -189,7 +189,7 @@ defmodule Mix.Config do
       releases: Mix.Config.read!("rel/releases.exs")
 
   """
-  @doc deprecated: "Use Config.Reader.read_with_imports!/2 instead"
+  @doc deprecated: "Use Config.Reader.read_imports!/2 instead"
   @spec read!(Path.t(), [Path.t()]) :: keyword
   def read!(file, imported_paths \\ []) do
     Config.__eval__!(file, imported_paths) |> elem(0)

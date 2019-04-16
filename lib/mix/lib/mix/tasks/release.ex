@@ -89,7 +89,7 @@ defmodule Mix.Tasks.Release do
 
   You can customize the tmp directory used both for logging and for
   piping in daemon mode by setting the `RELEASE_TMP` environment
-  variable before starting the system.
+  variable on `bin/start`.
 
   ### Services mode
 
