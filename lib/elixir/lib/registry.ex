@@ -1136,6 +1136,55 @@ defmodule Registry do
     end
   end
 
+  @doc """
+  Returns a list of all entries in the Registry.
+
+  Note that for large registries with many partitions this will be costly as it builds the list by
+  concatenating all the partitions.
+
+  ## Examples
+
+  Registering under a unique registry does not allow multiple entries:
+
+      iex> Registry.start_link(keys: :unique, name: Registry.UniqueListTest)
+      iex> Registry.to_list(Registry.UniqueListTest)
+      []
+      iex> {:ok, _} = Registry.register(Registry.UniqueListTest, "hello", :world)
+      iex> Registry.to_list(Registry.UniqueListTest)
+      [{"hello", {self(), :world}}]
+
+  to_list on a duplicate registry returns each entry separately:
+
+      iex> Registry.start_link(keys: :duplicate, name: Registry.DuplicateListTest)
+      iex> {:ok, _} = Registry.register(Registry.DuplicateListTest, "hello", :world)
+      iex> {:ok, _} = Registry.register(Registry.DuplicateListTest, "hello", :other)
+      iex> Registry.to_list(Registry.DuplicateListTest)
+      [{"hello", {self(), :world}}, {"hello", {self(), :other}}]
+
+  """
+  @doc since: "1.x.x"
+  @spec to_list(registry) :: [{key, {pid, value}}]
+  def to_list(registry)
+      when is_atom(registry) do
+    case key_info!(registry) do
+      {_kind, partitions, nil} ->
+        Enum.flat_map(0..(partitions - 1), fn partition_index ->
+          safe_to_list(key_ets!(registry, partition_index))
+        end)
+
+      {_kind, 1, key_ets} ->
+        safe_to_list(key_ets)
+    end
+  end
+
+  defp safe_to_list(ets) do
+    try do
+      :ets.tab2list(ets)
+    catch
+      :error, :badarg -> []
+    end
+  end
+
   ## Helpers
 
   @compile {:inline, hash: 2}

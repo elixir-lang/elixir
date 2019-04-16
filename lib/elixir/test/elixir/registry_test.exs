@@ -261,6 +261,19 @@ defmodule RegistryTest do
         {:ok, pid} = Agent.start_link(fn -> 0 end, name: name)
         assert Registry.lookup(registry, "hello") == [{pid, :value}]
       end
+
+      test "empty list for empty registry", %{registry: registry} do
+        assert Registry.to_list(registry) == []
+      end
+
+      test "to list", %{registry: registry} do
+        name = {:via, Registry, {registry, "hello"}}
+        {:ok, pid} = Agent.start_link(fn -> 0 end, name: name)
+        {:ok, _} = Registry.register(registry, "world", :value)
+
+        assert Registry.to_list(registry) |> Enum.sort() ==
+                 [{"hello", {pid, nil}}, {"world", {self(), :value}}]
+      end
     end
   end
 
@@ -549,6 +562,18 @@ defmodule RegistryTest do
           name = {:via, Registry, {registry, "hello"}}
           Agent.start_link(fn -> 0 end, name: name)
         end
+      end
+
+      test "empty list for empty registry", %{registry: registry} do
+        assert Registry.to_list(registry) == []
+      end
+
+      test "to list", %{registry: registry} do
+        {:ok, _} = Registry.register(registry, "hello", :value)
+        {:ok, _} = Registry.register(registry, "hello", :value)
+
+        assert Registry.to_list(registry) ==
+                 [{"hello", {self(), :value}}, {"hello", {self(), :value}}]
       end
     end
   end
