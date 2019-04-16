@@ -667,8 +667,7 @@ defmodule GenServer do
   @callback code_change(old_vsn, state :: term, extra :: term) ::
               {:ok, new_state :: term}
               | {:error, reason :: term}
-              | {:down, term}
-            when old_vsn: term
+            when old_vsn: term | {:down, term}
 
   @doc """
   Invoked in some cases to retrieve a formatted version of the `GenServer` status.
