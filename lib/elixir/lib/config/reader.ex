@@ -8,7 +8,7 @@ defmodule Config.Reader do
   When used as a provider, it expects a single argument:
   which the configuration path (as outlined in
   `t:Config.Provider.config_path/0`) for the configuration
-  to be read.
+  to be read and loaded during the system boot.
   """
 
   @behaviour Config.Provider

@@ -65,6 +65,28 @@ defmodule Mix.Tasks.Release do
   run it as a daemon on Unix-like system or install it as a service on
   Windows. Then we list all commands supported by `bin/RELEASE_NAME`.
 
+  ### One-off commands (eval and rpc)
+
+  If you want to invoke specific modules and functions in your release,
+  you can do so in two ways: using `eval` or `rpc`.
+
+      bin/RELEASE_NAME eval "IO.puts :hello"
+      bin/RELEASE_NAME rpc "IO.puts :hello"
+
+  The `eval` command starts its own instance of the VM but without
+  starting any of the applications in the release and without starting
+  distribution. For example, if you need to do some prep work before
+  running the actual system, like updating your database, `eval` can
+  be a good fit. Just keep in mind any application you may use during
+  eval has to be explicitly started.
+
+  Another way to run commands is with `rpc`, which will connect to the
+  system currently running and instruct it to execute the given
+  expression. This means you need to guarantee the system was already
+  started and be careful with the instructions you are executing.
+  You can also use `remote` to connect a remote IEx session to the
+  system.
+
   ### Daemon mode (Unix-like)
 
   If you open up `bin/start`, you will also see there is an option to
@@ -91,7 +113,7 @@ defmodule Mix.Tasks.Release do
   piping in daemon mode by setting the `RELEASE_TMP` environment
   variable on `bin/start`.
 
-  ### Services mode
+  ### Services mode (Windows)
 
   While daemons are not available on Windows, it is possible to install a
   released system as a service on Windows with the help of
@@ -239,7 +261,7 @@ defmodule Mix.Tasks.Release do
 
   ## Options
 
-  Inside each release, here are the built-in options:
+  Here are the general options available to each release:
 
     * `:applications` - a keyword list that configures and adds new applications
       to the release. The key is the application name and the value is one of:
@@ -307,83 +329,92 @@ defmodule Mix.Tasks.Release do
       set to `false` with caution and only if you are assembling the release on the
       same server that runs it.
 
-  ## Command line options
+  Other features, such as runtime configuration, may introduce their
+  options. Those will be listed in their own respective sections.
 
-    * `--force` - forces files to be overridden
-    * `--quiet` - do not write progress to the standard output
-    * `--path` - the path of the release
-    * `--version` - the version of the release
-    * `--no-archives-check` - does not check archive
-    * `--no-deps-check` - does not check dependencies
-    * `--no-elixir-version-check` - does not check Elixir version
-    * `--no-compile` - does not compile before assembling the release
+  ## Configuration
 
-  ## Umbrellas
+  Releases provides two mechanisms for configuration: built-time and
+  runtime.
 
-  Releases are well integrated with umbrella projects, allowing you to
-  release multiple subsets of your umbrellas child. The only difference
-  between performing a release in the umbrella project compared to a
-  regular application is that umbrellas require you to explicitly list
-  your release and the starting point for each release. For example,
-  imagine this umbrella applications:
+  ### Build-time configuration
 
-      my_app_umbrella/
-        apps/
-          my_app_core/
-          my_app_event_processing/
-          my_app_web/
+  Whenever you invoke a `mix` command, Mix loads the configuration
+  in `config/config.exs`, if said file exists. It is common for the
+  `config/config.exs` file itself import other configuration based
+  on the current `MIX_ENV`, such as `config/dev.exs`, `config/test.exs`,
+  and `config/prod.exs`. We say that this configuration is a build-time
+  configuration as it is evaluated whenever you compile your code or
+  whenever you assemble the release.
 
-  where both `my_app_event_processing` and `my_app_web` depend on
-  `my_app_core` but they do not depend on each other.
+  In other words, if your configuration does something like:
 
-  Inside your umbrella, you can define multiple releases:
+      config :my_app, :secret_key, System.fetch_env!("MY_APP_SECRET_KEY")
 
-      releases: [
-        web_and_event_processing: [
-          applications: [
-            my_app_event_processing: :permanent,
-            my_app_web: :permanent
-          ]
-        ],
+  The `:secret_key` key under `:my_app` will be computed on the
+  host machine, whenever the release is built. Setting the
+  `MY_APP_SECRET_KEY` right before starting your release will have
+  no effect.
 
-        web_only: [
-          applications: [my_app_web: :permanent]
-        ],
+  Luckily, releases also provide runtime configuration, which we will
+  see next.
 
-        event_processing_only: [
-          applications: [my_app_event_processing: :permanent]
-        ]
-      ]
+  ### Runtime configuration
 
-  Note you don't need to define all applications in `:applications`,
-  only the entry points. Also remember that the recommended mode
-  for all applications in the system is `:permanent`.
+  To enable runtime configuration in your release, all you need to do is
+  to create a file named `config/releases.exs`:
 
-  Finally, keep in mind it is not required for you to assemble the
-  release from the umbrella root. You can also assemble the release
-  from each child application individually. Doing it from the root,
-  however, allows you to include two applications that do not depend
-  on each other as part of the same release.
+      import Config
+      config :my_app, :secret_key, System.fetch_env!("MY_APP_SECRET_KEY")
 
-  ## Build-time configuration and runtime configuration
+  Your `config/releases.exs` file needs to follow three important rules:
 
-  All of the configuration in your `config` directory is computed
-  when the release is **assembled**. Therefore, if your configuration
-  file does something like:
+    * It MUST `import Config` at the top instead of the deprecated `use Mix.Config`
+    * It MUST NOT import any other configuration file via `import_file`
+    * It MUST NOT access `Mix` in any way, as `Mix` is a build tool and it not
+      available inside releases
 
-      config :my_app, :secret_key, System.get_env("MY_APP_SECRET_KEY")
+  If a `config/releases.exs` exists, it will be copied to your release
+  and executed as soon the system starts. Once the configuration is loaded,
+  the Erlang system will be restarted (within the same Operating System
+  process) and the new configuration will take place.
 
-  Releases will read said environment variables when the release is
-  assembled and on the machine the release is assembled, and not before
-  boot in your production servers. That's because `config/config.exs`
-  is about build-time configuration.
+  Therefore, for runtime configuration to work properly, it needs to be
+  able to persist the newly computed configuration to disk. The computed
+  config file will be written to "tmp" directory inside the release every
+  time the system boots. You can configure the "tmp" directory by setting
+  the `RELEASE_TMP` environment variable, either explicitly or inside your
+  `bin/start` script.
 
-  TODO: Implement runtime configuration and config providers.
+  Releases also supports custom mechanisms, called config providers, to load
+  any sort of runtime configuration to the system while it boots. For example,
+  if you need to access a vault or load configuration from a JSON file, it
+  can be achieved with config providers. See the `Config.Provider` for more
+  information and a simple example.
 
-  # runtime_config_path: ...
-  # start_distribution_during_config: false
-  # prune_runtime_sys_config_after_boot: true
-  # config_providers: [...]
+  The following options can be set inside your releases key in yourr mix.exs
+  to control how runtime configuration and config providers work:
+
+    * `:runtime_config_path` - the path to your runtime configuration file.
+      Defaults to `config/releases.exs`.
+
+    * `:start_distribution_during_config` - on Erlang/OTP 22+, releases
+      only start the Erlang VM distribution features after the config files
+      are evaluated. You can set it to `true` if you need distribution during
+      configurationn. Defaults to `false`.
+
+    * `:prune_runtime_sys_config_after_boot` - every time your system boots,
+      the release will write a config file to your tmp directory. These
+      configuration files are generally small. But if you are concerned with
+      disk space or if you have other restrictions, you can ask the system to
+      remove said config files after boot. The downside is that you will no
+      longer be able to restart the system internally (neither via
+      `System.restart/0` nor `bin/RELEASE_NAME start`). If you need a restart,
+      you will have to terminate the Operating System process and start a new
+      one. Defaults to `false`.
+
+    * `:config_providers` - a list of tuples with custom config providers.
+      See `Config.Provider` for more information. Defaults to `[]`.
 
   ## Steps
 
@@ -448,6 +479,53 @@ defmodule Mix.Tasks.Release do
     * `RELEASE_TMP` - the directory in the release to write temporary
       files to. It can be overridden on `bin/start` to a custom value.
       Defaults to the `$RELEASE_ROOT/tmp`
+
+  ## Umbrellas
+
+  Releases are well integrated with umbrella projects, allowing you to
+  release one or more subsets of your umbrella children. The only difference
+  between performing a release in the umbrella project compared to a
+  regular application is that umbrellas require you to explicitly list
+  your release and the starting point for each release. For example,
+  imagine this umbrella applications:
+
+      my_app_umbrella/
+        apps/
+          my_app_core/
+          my_app_event_processing/
+          my_app_web/
+
+  where both `my_app_event_processing` and `my_app_web` depend on
+  `my_app_core` but they do not depend on each other.
+
+  Inside your umbrella, you can define multiple releases:
+
+      releases: [
+        web_and_event_processing: [
+          applications: [
+            my_app_event_processing: :permanent,
+            my_app_web: :permanent
+          ]
+        ],
+
+        web_only: [
+          applications: [my_app_web: :permanent]
+        ],
+
+        event_processing_only: [
+          applications: [my_app_event_processing: :permanent]
+        ]
+      ]
+
+  Note you don't need to define all applications in `:applications`,
+  only the entry points. Also remember that the recommended mode
+  for all applications in the system is `:permanent`.
+
+  Finally, keep in mind it is not required for you to assemble the
+  release from the umbrella root. You can also assemble the release
+  from each child application individually. Doing it from the root,
+  however, allows you to include two applications that do not depend
+  on each other as part of the same release.
 
   ## Hot Code Upgrades
 
@@ -578,6 +656,18 @@ defmodule Mix.Tasks.Release do
   provided by Elixir out of the box. However, hot code upgrades can
   still be achieved by teams who desire to implement those steps
   on top of `mix release` in their projects or as separate libraries.
+
+  ## Command line options
+
+    * `--force` - forces files to be overridden
+    * `--quiet` - do not write progress to the standard output
+    * `--path` - the path of the release
+    * `--version` - the version of the release
+    * `--no-archives-check` - does not check archive
+    * `--no-deps-check` - does not check dependencies
+    * `--no-elixir-version-check` - does not check Elixir version
+    * `--no-compile` - does not compile before assembling the release
+
   """
 
   use Mix.Task

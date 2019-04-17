@@ -270,9 +270,10 @@ defmodule Mix.Release do
   the `:elixir` application configuration in `sys_config` to be
   read during boot and trigger the providers.
 
-  It uses one option to customize its behaviour:
+  It uses the following release options to customize its behaviour:
 
     * `:start_distribution_during_config`
+    * `:prune_runtime_sys_config_after_boot`
 
   In case there are no config providers, it doesn't change `sys_config`.
   """
@@ -300,7 +301,7 @@ defmodule Mix.Release do
 
   defp merge_provider_config(release, sys_config, config_path) do
     {extra_config, initial_config} = start_distribution(release)
-    prune_after_boot = Keyword.get(release.options, :prune_runtime_sys_config_after_boot, true)
+    prune_after_boot = Keyword.get(release.options, :prune_runtime_sys_config_after_boot, false)
     opts = [extra_config: initial_config, prune_after_boot: prune_after_boot]
     init = Config.Provider.init(release.config_providers, config_path, opts)
     {Config.Reader.merge(sys_config, [elixir: [config_providers: init]] ++ extra_config), true}

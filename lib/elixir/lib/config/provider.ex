@@ -8,7 +8,43 @@ defmodule Config.Provider do
   running, then invoking all of the providers, and then
   restarting the system. This requires a mutable configuration
   file in disk, as the result of the providers are written to
-  disk. See `mix release` for more information and examples.
+  disk. For more information on runtime configuration, see
+  `mix release`.
+
+  ## Sample config provider
+
+  For example, imagine you need to load some configuration from
+  a JSON file and load that into the system. Said configuration
+  provider would look like:
+
+      defmodule JSONConfigProvider do
+        @behaviour Config.Provider
+
+        # Let's pass the path to the JSON file as config
+        def init(path) when is_binary(path), do: path
+
+        def load(config, path) do
+          # We need to start any app we may depend on.
+          {:ok, _} = Application.ensure_all_started(:jason)
+          json = Jason.decode!(path)
+
+          Config.Reader.merge(
+            config,
+            my_app: [
+              some_value: json["my_app_some_value"],
+              another_value: json["my_app_another_value"],
+            ]
+          )
+        end
+      end
+
+  Then when specifying your release, you can specify the provider:
+
+      config_providers: [{JSONConfigProvider, "/etc/config.json"}]
+
+  Now once the system boots, it will invoke the provider early in
+  the boot process, save the merged configuration to disk, and
+  reboot the system with the new values in place.
   """
 
   @type config :: keyword
