@@ -116,7 +116,7 @@ defmodule Config.Provider do
 
         * a binary representing an absolute path
         * a tuple {:system, system_var, path} where the config is the \
-          concatenation of the `system_var` with the given `path`
+      concatenation of the `system_var` with the given `path`
 
       Got: #{inspect(path)}
       """
@@ -210,7 +210,6 @@ defmodule Config.Provider do
     {date, time} = :erlang.localtime()
     args = [date, time, config]
     contents = :io_lib.format("%% coding: utf-8~n%% config generated at ~p ~p~n~p.~n", args)
-    _ = File.mkdir_p(Path.dirname(path))
 
     case File.write(path, contents) do
       :ok ->
