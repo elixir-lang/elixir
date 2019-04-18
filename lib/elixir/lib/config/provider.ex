@@ -97,7 +97,7 @@ defmodule Config.Provider do
   @callback load(config, state) :: config
 
   @doc false
-  defstruct [:providers, :config_path, extra_config: [], prune_after_boot: true]
+  defstruct [:providers, :config_path, extra_config: [], prune_after_boot: false]
 
   @doc """
   Validates a `t:config_path/0`.

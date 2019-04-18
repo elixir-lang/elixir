@@ -86,7 +86,7 @@ defmodule Config do
   defp raise_improper_use!() do
     raise "could not set configuration via Config. " <>
             "This usually means you are trying to execute a configuration file " <>
-            "directly, instead of reading it with Config.Reader or the proper mix API"
+            "directly, instead of reading it with Config.Reader"
   end
 
   @doc """
@@ -230,25 +230,19 @@ defmodule Config do
   end
 
   defp validate!(config, file) do
-    if is_list(config) do
-      Enum.all?(config, fn
-        {app, value} when is_atom(app) ->
-          if Keyword.keyword?(value) do
-            true
-          else
-            raise ArgumentError,
-                  "expected config for app #{inspect(app)} in #{Path.relative_to_cwd(file)} " <>
-                    "to return keyword list, got: #{inspect(value)}"
-          end
+    Enum.all?(config, fn
+      {app, value} when is_atom(app) ->
+        if Keyword.keyword?(value) do
+          true
+        else
+          raise ArgumentError,
+                "expected config for app #{inspect(app)} in #{Path.relative_to_cwd(file)} " <>
+                  "to return keyword list, got: #{inspect(value)}"
+        end
 
-        _ ->
-          false
-      end)
-    else
-      raise ArgumentError,
-            "expected #{Path.relative_to_cwd(file)} config to return " <>
-              "keyword list, got: #{inspect(config)}"
-    end
+      _ ->
+        false
+    end)
 
     config
   end

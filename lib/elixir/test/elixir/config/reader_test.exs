@@ -17,9 +17,6 @@ defmodule Config.ReaderTest do
              {[my_app: [key: :value]],
               [fixture_path("configs/good_config.exs"), fixture_path("configs/good_import.exs")]}
 
-    assert Config.Reader.read_imports!(fixture_path("configs/nested_import.exs")) ==
-             {[], [fixture_path("configs/nested_import.exs")]}
-
     assert_raise ArgumentError,
                  ~r"expected config for app :sample in .*/bad_app.exs to return keyword list",
                  fn -> Config.Reader.read_imports!(fixture_path("configs/bad_app.exs")) end
@@ -44,5 +41,10 @@ defmodule Config.ReaderTest do
 
     assert Config.Reader.read!(fixture_path("configs/good_import.exs")) ==
              [my_app: [key: :value]]
+  end
+
+  test "as a provider" do
+    state = Config.Reader.init(fixture_path("configs/good_config.exs"))
+    assert Config.Reader.load([my_app: [key: :old_value]], state) == [my_app: [key: :value]]
   end
 end
