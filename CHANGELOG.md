@@ -12,6 +12,9 @@
 
   * [Access] Allow `Access.at/1` to handle negative index
   * [CLI] Add support for `--boot`, `--boot-var`, `--erl-config`, `--pipe-to`, `--rpc-eval`, and `--vm-args` options
+  * [Code] Add `static_atom_encoder` option to `Code.string_to_quoted/2`
+  * [Code] Allow `Code.ensure_compiled/2` to not raise on deadlocks
+  * [Config] Add `Config`, `Config.Reader` and `Config.Provider` modules for working with configuration
   * [File] Add `File.rename!/2`
   * [Kernel] Add `~U` sigil for UTC date times
   * [Kernel] Optimize generated code for `with` with a catch-all clause
@@ -19,7 +22,7 @@
   * [Protocol] Improve `Protocol.UndefinedError` messages to also include the type that was attempted to dispatch on
   * [Protocol] Optimize performance of dynamic dispatching for non-consolidated protocols
   * [Record] Include field names in generated type for records
-  * [System] Add `System.restart/0` and `System.pid/0`
+  * [System] Add `System.restart/0`, `System.pid/0` and `System.no_halt/1`
   * [System] Add `System.get_env/2`, `System.fetch_env/1`, and `System.fetch_env!/1`
   * [System] Support `SOURCE_DATE_EPOCH` for reproducible builds
 
@@ -33,6 +36,8 @@
 
 #### Mix
 
+  * [Mix] Follow XDG base dir specification in Mix for temporary and configuration files
+  * [mix new] No longer generate a `config/` directory for mix new
   * [mix release] Add support for releases
 
 ### 2. Bug fixes
@@ -40,10 +45,14 @@
 #### Elixir
 
   * [Code] Quote `::` in `Code.format_string!/1` to avoid ambiguity
+  * [Enum] Ensure the first equal entry is returned by `Enum.min/2` and `Enum.max/2`
+  * [Kernel] Improve error message when string interpolation is used in a guard
   * [Kernel] Properly merge and handle docs for callbacks with multiple clauses
   * [Kernel] Guarantee reproducible builds on modules with dozens of specs
   * [Kernel] Resolve `__MODULE__` accordingly in nested `defmodule` to avoid double nesting
   * [Kernel] Type variables starting with an underscore (`_foo`) should not raise compile error
+  * [System] Make sure `:init.get_status/0` is set to `{:started, :started}` once the system starts
+  * [Protocol] Ensure `debug_info` is kept in protocols
   * [Regex] Ensure inspect returns valid `~r//` expressions when they are manually compiled with backslashes
 
 #### ExUnit
@@ -60,6 +69,10 @@
   * [mix test] Do not consider modules that are no longer cover compiled when computing coverage report, which could lead to flawed reports
 
 ### 3. Soft-deprecations (no warnings emitted)
+
+#### Mix
+
+  * [Mix.Config] `Mix.Config` has been deprecated in favor of the `Config` module that now ships as part of Elixir itself. Reading configuration files should now be done by the `Config.Reader` module
 
 ### 4. Hard-deprecations
 
