@@ -268,6 +268,36 @@ defmodule Kernel.OverridableTest do
     purge(Kernel.OverridableOrder.Forwarding)
   end
 
+  test "invalid super call with different arity" do
+    message =
+      "nofile:4: super must be called with the same number of arguments as the current definition"
+
+    assert_raise CompileError, message, fn ->
+      Code.eval_string("""
+      defmodule Kernel.OverridableSuper.DifferentArities do
+        def bar(a), do: a
+        defoverridable bar: 1
+        def bar(_), do: super()
+      end
+      """)
+    end
+  end
+
+  test "invalid super capture with different arity" do
+    message =
+      "nofile:4: super must be called with the same number of arguments as the current definition"
+
+    assert_raise CompileError, message, fn ->
+      Code.eval_string("""
+      defmodule Kernel.OverridableSuperCapture.DifferentArities do
+        def bar(a), do: a
+        defoverridable bar: 1
+        def bar(_), do: (&super/0).()
+      end
+      """)
+    end
+  end
+
   test "does not allow to override a macro as a function" do
     message =
       "nofile:4: cannot override macro (defmacro, defmacrop) foo/0 in module " <>
