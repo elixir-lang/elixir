@@ -19,7 +19,7 @@ defmodule Config do
   and `import_config/1` to help you manage your configuration.
 
   Once Mix starts, it will automatically evaluate the configuration
-  file persist it into `:some_app`'s application environment, which
+  file and persist it into `:some_app`'s application environment, which
   can be accessed in as follows:
 
       "value1" = Application.fetch_env!(:some_app, :key1)
