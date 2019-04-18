@@ -1,10 +1,11 @@
-Code.require_file("../test_helper.exs", __DIR__)
+Code.require_file("test_helper.exs", __DIR__)
 
-defmodule Mix.ConfigTest do
-  use MixTest.Case, async: true
+defmodule ConfigTest do
+  use ExUnit.Case, async: true
 
-  doctest Mix.Config
-  import Mix.Config
+  doctest Config
+  import Config
+  import PathHelpers
 
   setup do
     Process.put({Config, :config}, [])
@@ -68,44 +69,21 @@ defmodule Mix.ConfigTest do
     assert files() == [fixture_path("configs/good_config.exs")]
   end
 
-  test "import_config/1 with wildcards" do
-    import_config fixture_path("configs/good_con*.exs")
-    assert config() == [my_app: [key: :value]]
+  test "import_config/1 raises for recursive import" do
+    assert_raise ArgumentError,
+                 ~r"attempting to load configuration .*/imports_recursive.exs recursively",
+                 fn -> import_config fixture_path("configs/imports_recursive.exs") end
   end
 
-  test "import_config/1 with wildcard with no matches" do
-    import_config fixture_path("configs/nonexistent_*.exs")
-    assert config() == []
+  test "import_config/1 with nested" do
+    config :app, Repo, key: [nested: false, other: true]
+    import_config fixture_path("configs/nested.exs")
+    assert config() == [app: [{Repo, key: [other: true, nested: true]}]]
   end
 
-  test "eval!/2" do
-    assert Mix.Config.eval!(fixture_path("configs/good_kw.exs")) ==
-             {[my_app: [key: :value]], [fixture_path("configs/good_kw.exs")]}
-
-    assert Mix.Config.eval!(fixture_path("configs/good_config.exs")) ==
-             {[my_app: [key: :value]], [fixture_path("configs/good_config.exs")]}
-
-    assert Mix.Config.eval!(fixture_path("configs/good_import.exs")) ==
-             {[my_app: [key: :value]],
-              [fixture_path("configs/good_config.exs"), fixture_path("configs/good_import.exs")]}
-  end
-
-  test "read!/2" do
-    assert Mix.Config.read!(fixture_path("configs/good_kw.exs")) ==
-             [my_app: [key: :value]]
-
-    assert Mix.Config.read!(fixture_path("configs/good_config.exs")) ==
-             [my_app: [key: :value]]
-
-    assert Mix.Config.read!(fixture_path("configs/good_import.exs")) ==
-             [my_app: [key: :value]]
-  end
-
-  test "persist/1" do
-    assert Application.get_env(:my_app, :key) == nil
-    Mix.Config.persist(my_app: [key: :value])
-    assert Application.get_env(:my_app, :key) == :value
-  after
-    Application.delete_env(:my_app, :key)
+  test "import_config/1 with bad path" do
+    assert_raise Code.LoadError, ~r"could not load .*/configs/unknown.exs", fn ->
+      import_config fixture_path("configs/unknown.exs")
+    end
   end
 end

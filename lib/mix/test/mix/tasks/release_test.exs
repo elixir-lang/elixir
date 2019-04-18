@@ -17,6 +17,9 @@ defmodule Mix.Tasks.ReleaseTest do
         assert_received {:mix_shell, :info,
                          ["\nRelease created at _build/dev/rel/release_test!" <> _]}
 
+        assert_received {:mix_shell, :info,
+                         ["* skipping runtime configuration (config/releases.exs was not found)"]}
+
         # Assert structure
         assert root |> Path.join("bin/release_test") |> File.exists?()
         assert root |> Path.join("erts-#{@erts_version}") |> File.exists?()
@@ -27,6 +30,10 @@ defmodule Mix.Tasks.ReleaseTest do
         assert root |> Path.join("releases/0.1.0/release_test.rel") |> File.exists?()
         assert root |> Path.join("releases/0.1.0/sys.config") |> File.exists?()
         assert root |> Path.join("releases/0.1.0/vm.args") |> File.exists?()
+
+        assert root
+               |> Path.join("releases/0.1.0/sys.config")
+               |> File.read!() =~ "RUNTIME_CONFIG=false"
 
         assert root
                |> Path.join("lib/release_test-0.1.0/priv")
@@ -48,17 +55,74 @@ defmodule Mix.Tasks.ReleaseTest do
                  release_root: release_root,
                  release_vsn: "0.1.0",
                  root_dir: root_dir,
-                 static_config: :was_set
+                 static_config: {:ok, :was_set},
+                 runtime_config: :error,
+                 sys_config_env: sys_config_env,
+                 sys_config_init: sys_config_init
                } = wait_until_evaled(Path.join(root, "RELEASE_BOOTED"))
 
         if match?({:win32, _}, :os.type()) do
           assert String.ends_with?(app_dir, "_build/dev/rel/RELEAS~1/lib/release_test-0.1.0")
           assert String.ends_with?(release_root, "_build\\dev\\rel\\RELEAS~1")
           assert String.ends_with?(root_dir, "_build/dev/rel/RELEAS~1")
+          assert String.ends_with?(sys_config_env, "releases\\0.1.0\\sys")
+          assert String.ends_with?(sys_config_init, "releases\\0.1.0\\sys")
         else
           assert app_dir == Path.join(root, "lib/release_test-0.1.0")
           assert release_root == root
           assert root_dir == root
+          assert sys_config_env == Path.join(root, "releases/0.1.0/sys")
+          assert sys_config_init == Path.join(root, "releases/0.1.0/sys")
+        end
+      end)
+    end)
+  end
+
+  test "assembles a bootable release with runtime configuration" do
+    in_fixture("release_test", fn ->
+      config = [releases: [runtime_config: []]]
+
+      Mix.Project.in_project(:release_test, ".", config, fn _ ->
+        File.write!("config/releases.exs", """
+        import Config
+        config :release_test, :runtime, :was_set
+        """)
+
+        root = Path.absname("_build/dev/rel/runtime_config")
+
+        # Assert command
+        Mix.Task.run("release", ["runtime_config"])
+        assert_received {:mix_shell, :info, ["* assembling runtime_config-0.1.0 on MIX_ENV=dev"]}
+
+        assert_received {:mix_shell, :info,
+                         ["* using config/releases.exs to configure the release at runtime"]}
+
+        # Assert structure
+        assert root
+               |> Path.join("releases/0.1.0/sys.config")
+               |> File.read!() =~ "RUNTIME_CONFIG=true"
+
+        # Assert runtime
+        open_port(Path.join(root, "bin/start"))
+
+        assert %{
+                 node: :"runtime_config@127.0.0.1",
+                 protocols_consolidated?: true,
+                 release_name: "runtime_config",
+                 release_node: "runtime_config@127.0.0.1",
+                 release_vsn: "0.1.0",
+                 static_config: {:ok, :was_set},
+                 runtime_config: {:ok, :was_set},
+                 sys_config_env: sys_config_env,
+                 sys_config_init: sys_config_init
+               } = wait_until_evaled(Path.join(root, "RELEASE_BOOTED"))
+
+        if match?({:win32, _}, :os.type()) do
+          assert sys_config_env =~ "tmp\\runtime_config-0.1.0"
+          assert sys_config_init =~ "tmp\\runtime_config-0.1.0"
+        else
+          assert sys_config_env =~ "tmp/runtime_config-0.1.0"
+          assert sys_config_init =~ "tmp/runtime_config-0.1.0"
         end
       end)
     end)
@@ -99,7 +163,8 @@ defmodule Mix.Tasks.ReleaseTest do
                  release_root: release_root,
                  release_vsn: "0.2.0",
                  root_dir: root_dir,
-                 static_config: :was_set
+                 static_config: {:ok, :was_set},
+                 runtime_config: :error
                } = wait_until_evaled(Path.join(root, "RELEASE_BOOTED"))
 
         if match?({:win32, _}, :os.type()) do
@@ -162,7 +227,8 @@ defmodule Mix.Tasks.ReleaseTest do
                  release_node: "eval@127.0.0.1",
                  release_root: root,
                  release_vsn: "0.1.0",
-                 static_config: :was_set
+                 static_config: {:ok, :was_set},
+                 runtime_config: :error
                } = wait_until_evaled(Path.join(root, "RELEASE_BOOTED"))
       end)
     end)
@@ -190,7 +256,10 @@ defmodule Mix.Tasks.ReleaseTest do
                  release_root: root,
                  release_vsn: "0.1.0",
                  root_dir: :code.root_dir() |> to_string(),
-                 static_config: :was_set
+                 static_config: {:ok, :was_set},
+                 runtime_config: :error,
+                 sys_config_env: Path.join(root, "releases/0.1.0/sys"),
+                 sys_config_init: Path.join(root, "releases/0.1.0/sys")
                }
 
         assert wait_until(fn ->

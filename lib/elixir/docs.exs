@@ -61,6 +61,9 @@
     "Processes & Applications": [
       Agent,
       Application,
+      Config,
+      Config.Provider,
+      Config.Reader,
       DynamicSupervisor,
       GenServer,
       Node,

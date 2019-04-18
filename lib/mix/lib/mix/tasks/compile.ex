@@ -176,7 +176,7 @@ defmodule Mix.Tasks.Compile do
   defp load_erl_config(opts) do
     if path = opts[:erl_config] do
       {:ok, terms} = :file.consult(path)
-      Mix.Config.persist(terms)
+      Application.put_all_env(terms, persistent: true)
     end
   end
 end
