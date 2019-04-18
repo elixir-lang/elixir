@@ -1174,12 +1174,12 @@ defmodule Mix.Tasks.Release do
   popd
 
   if not defined RELEASE_NAME (set RELEASE_NAME=<%= @name %>)
-  if not defined RELEASE_VSN (for /f "tokens=1,2" %%K in (!RELEASE_ROOT!/releases/start_erl.data) do (set ERTS_VSN=%%K) && (set RELEASE_VSN=%%L))
-  if not defined RELEASE_COOKIE (set /p RELEASE_COOKIE=<!RELEASE_ROOT!/releases/COOKIE)
+  if not defined RELEASE_VSN (for /f "tokens=1,2" %%K in (!RELEASE_ROOT!\releases\start_erl.data) do (set ERTS_VSN=%%K) && (set RELEASE_VSN=%%L))
+  if not defined RELEASE_COOKIE (set /p RELEASE_COOKIE=<!RELEASE_ROOT!\releases\COOKIE)
   if not defined RELEASE_NODE (set RELEASE_NODE=!RELEASE_NAME!@127.0.0.1)
-  if not defined RELEASE_TMP (set RELEASE_TMP=!RELEASE_ROOT!/tmp)
-  set REL_VSN_DIR=!RELEASE_ROOT!/releases/!RELEASE_VSN!
-  set RELEASE_SYS_CONFIG=!REL_VSN_DIR!/sys
+  if not defined RELEASE_TMP (set RELEASE_TMP=!RELEASE_ROOT!\tmp)
+  set REL_VSN_DIR=!RELEASE_ROOT!\releases\!RELEASE_VSN!
+  set RELEASE_SYS_CONFIG=!REL_VSN_DIR!\sys
 
   if "%~1" == "start" (set "REL_EXEC=elixir" && set "REL_EXTRA=--no-halt" && set "REL_GOTO=start")
   if "%~1" == "start_iex" (set "REL_EXEC=iex" && set "REL_EXTRA=--werl" && set "REL_GOTO=start")
@@ -1195,9 +1195,9 @@ defmodule Mix.Tasks.Release do
   if not "!REL_GOTO!" == "" (
     findstr "RUNTIME_CONFIG=true" "!RELEASE_SYS_CONFIG!.config" >nil 2>&1 && (
       for /f "skip=1" %%X in ('wmic os get localdatetime') do if not defined TIMESTAMP set TIMESTAMP=%%X
-      set RELEASE_SYS_CONFIG=!RELEASE_TMP!/!RELEASE_NAME!-!RELEASE_VSN!-!TIMESTAMP:~0,11!-!RANDOM!.runtime
-
-      (mkdir "!RELEASE_TMP!" >nil && copy /Y "!REL_VSN_DIR!/sys.config" "!RELEASE_SYS_CONFIG!.config" >nil) || (
+      set RELEASE_SYS_CONFIG=!RELEASE_TMP!\!RELEASE_NAME!-!RELEASE_VSN!-!TIMESTAMP:~0,11!-!RANDOM!.runtime
+      mkdir "!RELEASE_TMP!" >nil
+      copy /y "!REL_VSN_DIR!\sys.config" "!RELEASE_SYS_CONFIG!.config" >nil || (
         echo Cannot start release because it could not write to "!RELEASE_SYS_CONFIG!.config"
         goto end
       )
@@ -1239,7 +1239,7 @@ defmodule Mix.Tasks.Release do
   goto end
 
   :start
-  "!REL_VSN_DIR!/!REL_EXEC!.bat" !REL_EXTRA! ^
+  "!REL_VSN_DIR!\!REL_EXEC!.bat" !REL_EXTRA! ^
     --name "!RELEASE_NODE!" --cookie "!RELEASE_COOKIE!" ^
     --erl-config "!RELEASE_SYS_CONFIG!" ^
     --boot "!REL_VSN_DIR!\start" ^
@@ -1248,7 +1248,7 @@ defmodule Mix.Tasks.Release do
   goto end
 
   :eval
-  "!REL_VSN_DIR!/elixir.bat" ^
+  "!REL_VSN_DIR!\elixir.bat" ^
     --eval "%~2" ^
     --cookie "!RELEASE_COOKIE!" ^
     --erl-config "!RELEASE_SYS_CONFIG!" ^
@@ -1258,7 +1258,7 @@ defmodule Mix.Tasks.Release do
   goto end
 
   :remote
-  "!REL_VSN_DIR!/iex.bat" ^
+  "!REL_VSN_DIR!\iex.bat" ^
     --werl --hidden --name "remote-!RANDOM!@127.0.0.1" --cookie "!RELEASE_COOKIE!" ^
     --boot "!REL_VSN_DIR!\start_clean" ^
     --boot-var RELEASE_LIB "!RELEASE_ROOT!\lib" ^
@@ -1266,7 +1266,7 @@ defmodule Mix.Tasks.Release do
   goto end
 
   :rpc
-  "!REL_VSN_DIR!/elixir.bat" ^
+  "!REL_VSN_DIR!\elixir.bat" ^
     --hidden --name "rpc-!RANDOM!@127.0.0.1" --cookie "!RELEASE_COOKIE!" ^
     --boot "!REL_VSN_DIR!\start_clean" ^
     --boot-var RELEASE_LIB "!RELEASE_ROOT!\lib" ^

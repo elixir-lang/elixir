@@ -53,7 +53,7 @@ defmodule Mix.Release do
           options: keyword()
         }
 
-  @default_apps [kernel: :permanent, stdlib: :permanent, sasl: :permanent, elixir: :permanent]
+  @default_apps [kernel: :permanent, stdlib: :permanent, elixir: :permanent, sasl: :permanent]
   @safe_modes [:permanent, :temporary, :transient]
   @unsafe_modes [:load, :none]
   @significant_chunks ~w(Atom AtU8 Attr Code StrT ImpT ExpT FunT LitT Line)c

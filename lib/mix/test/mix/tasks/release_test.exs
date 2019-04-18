@@ -32,6 +32,10 @@ defmodule Mix.Tasks.ReleaseTest do
         assert root |> Path.join("releases/0.1.0/vm.args") |> File.exists?()
 
         assert root
+               |> Path.join("releases/0.1.0/sys.config")
+               |> File.read!() =~ "RUNTIME_CONFIG=false"
+
+        assert root
                |> Path.join("lib/release_test-0.1.0/priv")
                |> File.read_link()
                |> elem(0) == :error
@@ -61,8 +65,8 @@ defmodule Mix.Tasks.ReleaseTest do
           assert String.ends_with?(app_dir, "_build/dev/rel/RELEAS~1/lib/release_test-0.1.0")
           assert String.ends_with?(release_root, "_build\\dev\\rel\\RELEAS~1")
           assert String.ends_with?(root_dir, "_build/dev/rel/RELEAS~1")
-          assert String.ends_with?(sys_config_env, "releases/0.1.0/sys")
-          assert String.ends_with?(sys_config_init, "releases/0.1.0/sys")
+          assert String.ends_with?(sys_config_env, "releases\\0.1.0\\sys")
+          assert String.ends_with?(sys_config_init, "releases\\0.1.0\\sys")
         else
           assert app_dir == Path.join(root, "lib/release_test-0.1.0")
           assert release_root == root
@@ -93,6 +97,11 @@ defmodule Mix.Tasks.ReleaseTest do
         assert_received {:mix_shell, :info,
                          ["* using config/releases.exs to configure the release at runtime"]}
 
+        # Assert structure
+        assert root
+               |> Path.join("releases/0.1.0/sys.config")
+               |> File.read!() =~ "RUNTIME_CONFIG=true"
+
         # Assert runtime
         open_port(Path.join(root, "bin/start"))
 
@@ -108,8 +117,13 @@ defmodule Mix.Tasks.ReleaseTest do
                  sys_config_init: sys_config_init
                } = wait_until_evaled(Path.join(root, "RELEASE_BOOTED"))
 
-        assert sys_config_env =~ "tmp/runtime_config-0.1.0"
-        assert sys_config_init =~ "tmp/runtime_config-0.1.0"
+        if match?({:win32, _}, :os.type()) do
+          assert sys_config_env =~ "tmp\\runtime_config-0.1.0"
+          assert sys_config_init =~ "tmp\\runtime_config-0.1.0"
+        else
+          assert sys_config_env =~ "tmp/runtime_config-0.1.0"
+          assert sys_config_init =~ "tmp/runtime_config-0.1.0"
+        end
       end)
     end)
   end

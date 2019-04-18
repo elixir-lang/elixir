@@ -161,8 +161,8 @@ defmodule Mix.ReleaseTest do
       assert release.boot_scripts.start == [
                kernel: :permanent,
                stdlib: :permanent,
-               sasl: :permanent,
                elixir: :permanent,
+               sasl: :permanent,
                mix: :permanent,
                iex: :none,
                compiler: :permanent
@@ -176,8 +176,8 @@ defmodule Mix.ReleaseTest do
       assert release.boot_scripts.start == [
                kernel: :permanent,
                stdlib: :permanent,
-               sasl: :permanent,
                elixir: :permanent,
+               sasl: :permanent,
                eex: :permanent,
                mix: :permanent,
                iex: :none,
@@ -190,8 +190,8 @@ defmodule Mix.ReleaseTest do
       assert release.boot_scripts.start == [
                kernel: :permanent,
                stdlib: :permanent,
-               sasl: :permanent,
                elixir: :permanent,
+               sasl: :permanent,
                mix: :permanent,
                eex: :permanent,
                iex: :none,
@@ -213,8 +213,8 @@ defmodule Mix.ReleaseTest do
       assert release.boot_scripts.start_clean == [
                kernel: :permanent,
                stdlib: :permanent,
-               sasl: :none,
                elixir: :none,
+               sasl: :none,
                mix: :none,
                iex: :none,
                compiler: :none
@@ -271,8 +271,8 @@ defmodule Mix.ReleaseTest do
                  [
                    {:kernel, _, :permanent},
                    {:stdlib, _, :permanent},
-                   {:sasl, _, :permanent},
                    {:elixir, @elixir_version, :permanent},
+                   {:sasl, _, :permanent},
                    {:mix, @elixir_version, :permanent},
                    {:iex, @elixir_version, :none},
                    {:compiler, _, :permanent}
