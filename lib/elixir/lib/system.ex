@@ -258,6 +258,7 @@ defmodule System do
   @doc """
   Marks if the system should halt or not at the end of ARGV processing.
   """
+  @doc since: "1.9.0"
   @spec no_halt(boolean) :: :ok
   def no_halt(boolean) when is_boolean(boolean) do
     :elixir_config.put(:no_halt, boolean)
@@ -266,6 +267,7 @@ defmodule System do
   @doc """
   Checks if the system will halt or not at the end of ARGV processing.
   """
+  @doc since: "1.9.0"
   @spec no_halt() :: boolean
   def no_halt() do
     :elixir_config.get(:no_halt)

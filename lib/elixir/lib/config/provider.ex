@@ -102,6 +102,7 @@ defmodule Config.Provider do
   @doc """
   Validates a `t:config_path/0`.
   """
+  @doc since: "1.9.0"
   @spec validate_config_path!(config_path) :: :ok
   def validate_config_path!({:system, name, path})
       when is_binary(name) and is_binary(path),
@@ -126,6 +127,7 @@ defmodule Config.Provider do
   @doc """
   Resolves a `t:config_path/0` to an actual path.
   """
+  @doc since: "1.9.0"
   @spec resolve_config_path!(config_path) :: binary
   def resolve_config_path!(path) when is_binary(path), do: path
   def resolve_config_path!({:system, name, path}), do: System.fetch_env!(name) <> path

@@ -114,6 +114,7 @@ defmodule Config do
       [level: :info, backends: [:console], truncate: 1024]
 
   """
+  @doc since: "1.9.0"
   def config(root_key, opts) when is_atom(root_key) and is_list(opts) do
     unless Keyword.keyword?(opts) do
       raise ArgumentError, "config/2 expected a keyword list, got: #{inspect(opts)}"
@@ -150,6 +151,7 @@ defmodule Config do
       [log_level: :info, pool_size: 10, adapter: Ecto.Adapters.Postgres]
 
   """
+  @doc since: "1.9.0"
   def config(root_key, key, opts) when is_atom(root_key) do
     get_config!()
     |> __merge__([{root_key, [{key, opts}]}])
@@ -171,6 +173,7 @@ defmodule Config do
       import_config "#{Mix.env()}.exs"
 
   """
+  @doc since: "1.9.0"
   defmacro import_config(file) do
     quote do
       Config.__import__!(Path.expand(unquote(file), __DIR__))
