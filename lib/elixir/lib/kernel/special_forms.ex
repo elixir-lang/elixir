@@ -1609,6 +1609,8 @@ defmodule Kernel.SpecialForms do
 
       &local_function/1
 
+  See also `Function.capture/3`.
+
   ## Anonymous functions
 
   The capture operator can also be used to partially apply
