@@ -92,7 +92,7 @@ defmodule Config do
   @doc """
   Configures the given `root_key`.
 
-  Keyword lists are always deep merged.
+  Keyword lists are always deep-merged.
 
   ## Examples
 
