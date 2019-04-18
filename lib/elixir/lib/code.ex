@@ -981,24 +981,24 @@ defmodule Code do
   module uses this function to check if a specific parser exists for a given
   URI scheme.
 
-  ## `ensure_compiled/1`
+  ## `ensure_compiled/2`
 
-  Elixir also contains an `ensure_compiled/1` function that is a
+  Elixir also contains an `ensure_compiled/2` function that is a
   superset of `ensure_loaded/1`.
 
   Since Elixir's compilation happens in parallel, in some situations
   you may need to use a module that was not yet compiled, therefore
   it can't even be loaded.
 
-  When invoked, `ensure_compiled/1` halts the compilation of the caller
-  until the module given to `ensure_compiled/1` becomes available or
+  When invoked, `ensure_compiled/2` halts the compilation of the caller
+  until the module given to `ensure_compiled/2` becomes available or
   all files for the current project have been compiled. If compilation
   finishes and the module is not available, an error tuple is returned.
 
-  `ensure_compiled/1` does not apply to dependencies, as dependencies
+  `ensure_compiled/2` does not apply to dependencies, as dependencies
   must be compiled upfront.
 
-  In most cases, `ensure_loaded/1` is enough. `ensure_compiled/1`
+  In most cases, `ensure_loaded/1` is enough. `ensure_compiled/2`
   must be used in rare cases, usually involving macros that need to
   invoke a module for callback information.
 
@@ -1052,7 +1052,7 @@ defmodule Code do
   If not, returns `{:error, reason}` with the error reason.
 
   Check `ensure_loaded/1` for more information on module loading
-  and when to use `ensure_loaded/1` or `ensure_compiled/1`.
+  and when to use `ensure_loaded/1` or `ensure_compiled/2`.
   """
   @spec ensure_compiled(module, keyword) ::
           {:module, module}
@@ -1080,7 +1080,7 @@ defmodule Code do
   @doc """
   Ensures the given module is compiled and loaded.
 
-  Similar to `ensure_compiled/1`, but returns `true` if the module
+  Similar to `ensure_compiled/2`, but returns `true` if the module
   is already loaded or was successfully loaded and compiled.
   Returns `false` otherwise.
   """

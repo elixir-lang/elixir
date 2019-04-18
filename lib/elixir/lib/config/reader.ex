@@ -38,6 +38,7 @@ defmodule Config.Reader do
       releases: Config.Reader.read!("rel/releases.exs")
 
   """
+  @doc since: "1.9.0"
   @spec read!(Path.t(), [Path.t()]) :: keyword
   def read!(file, imported_paths \\ [])
       when is_binary(file) and is_list(imported_paths) do
@@ -52,6 +53,7 @@ defmodule Config.Reader do
 
   It returns a tuple with the configuration and the imported paths.
   """
+  @doc since: "1.9.0"
   @spec read_imports!(Path.t(), [Path.t()]) :: {keyword, [Path.t()]}
   def read_imports!(file, imported_paths \\ [])
       when is_binary(file) and is_list(imported_paths) do
@@ -78,6 +80,7 @@ defmodule Config.Reader do
       [app1: [], app2: []]
 
   """
+  @doc since: "1.9.0"
   @spec merge(keyword, keyword) :: keyword
   def merge(config1, config2) when is_list(config1) and is_list(config2) do
     Config.__merge__(config1, config2)
