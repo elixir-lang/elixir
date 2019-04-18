@@ -204,29 +204,29 @@ expand({quote, Meta, [_, _]}, E) ->
 
 %% Functions
 
-expand({'&', Meta, [{super, SuperMeta, Args}]}, E) when is_list(Args) ->
-  {_Kind, Name, _} = resolve_super(Meta, length(Args), E),
-  expand({'&', Meta, [{Name, SuperMeta, Args}]}, E);
-
-expand({'&', Meta, [{'/', _, [{super, _, Context}, Arity]}]}, E) when is_atom(Context), is_integer(Arity) ->
+expand({'&', Meta, [{super, SuperMeta, Args} = Expr]}, E) when is_list(Args) ->
   assert_no_match_or_guard_scope(Meta, "&", E),
-  {_Kind, Name, _} = resolve_super(Meta, Arity, E),
-  {{'&', Meta, [{'/', [], [{Name, [], Context}, Arity]}]}, E};
+
+  case resolve_super(Meta, length(Args), E) of
+    {Kind, Name, _} when Kind == def; Kind == defp ->
+      expand_fn_capture(Meta, {Name, SuperMeta, Args}, E);
+    _ ->
+      expand_fn_capture(Meta, Expr, E)
+  end;
+
+expand({'&', Meta, [{'/', _, [{super, _, Context}, Arity]} = Expr]}, E) when is_atom(Context), is_integer(Arity) ->
+  assert_no_match_or_guard_scope(Meta, "&", E),
+
+  case resolve_super(Meta, Arity, E) of
+    {Kind, Name, _} when Kind == def; Kind == defp ->
+      {{'&', Meta, [{'/', [], [{Name, [], Context}, Arity]}]}, E};
+    _ ->
+      expand_fn_capture(Meta, Expr, E)
+  end;
 
 expand({'&', Meta, [Arg]}, E) ->
   assert_no_match_or_guard_scope(Meta, "&", E),
-  case elixir_fn:capture(Meta, Arg, E) of
-    {{remote, Remote, Fun, Arity}, EE} ->
-      is_atom(Remote) andalso
-        elixir_lexical:record_remote(Remote, Fun, Arity, ?key(E, function), ?line(Meta), ?key(E, lexical_tracker)),
-      {{'&', Meta, [{'/', [], [{{'.', [], [Remote, Fun]}, [], []}, Arity]}]}, EE};
-    {{local, Fun, Arity}, #{function := nil}} ->
-      form_error(Meta, ?key(E, file), ?MODULE, {undefined_local_capture, Fun, Arity});
-    {{local, Fun, Arity}, EE} ->
-      {{'&', Meta, [{'/', [], [{Fun, [], nil}, Arity]}]}, EE};
-    {expand, Expr, EE} ->
-      expand(Expr, EE)
-  end;
+  expand_fn_capture(Meta, Arg, E);
 
 expand({fn, Meta, Pairs}, E) ->
   assert_no_match_or_guard_scope(Meta, "fn", E),
@@ -523,6 +523,20 @@ resolve_super(Meta, Arity, E) ->
 
     _ ->
       form_error(Meta, ?key(E, file), ?MODULE, wrong_number_of_args_for_super)
+  end.
+
+expand_fn_capture(Meta, Arg, E) ->
+  case elixir_fn:capture(Meta, Arg, E) of
+    {{remote, Remote, Fun, Arity}, EE} ->
+      is_atom(Remote) andalso
+        elixir_lexical:record_remote(Remote, Fun, Arity, ?key(E, function), ?line(Meta), ?key(E, lexical_tracker)),
+      {{'&', Meta, [{'/', [], [{{'.', [], [Remote, Fun]}, [], []}, Arity]}]}, EE};
+    {{local, Fun, Arity}, #{function := nil}} ->
+      form_error(Meta, ?key(E, file), ?MODULE, {undefined_local_capture, Fun, Arity});
+    {{local, Fun, Arity}, EE} ->
+      {{'&', Meta, [{'/', [], [{Fun, [], nil}, Arity]}]}, EE};
+    {expand, Expr, EE} ->
+      expand(Expr, EE)
   end.
 
 expand_list([{'|', Meta, [_, _] = Args}], Fun, Acc, List) ->

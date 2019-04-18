@@ -17,6 +17,14 @@ defmodule Kernel.Overridable do
     x + y
   end
 
+  def capture_super(x) do
+    x
+  end
+
+  defmacro capture_super_macro(x) do
+    x
+  end
+
   def many_clauses(0) do
     11
   end
@@ -41,6 +49,8 @@ defmodule Kernel.Overridable do
                  with_super: 0,
                  without_super: 0,
                  super_with_multiple_args: 2,
+                 capture_super: 1,
+                 capture_super_macro: 1,
                  many_clauses: 1,
                  locals: 0,
                  multiple_overrides: 0,
@@ -59,6 +69,14 @@ defmodule Kernel.Overridable do
 
   def super_with_multiple_args(x, y) do
     super(x, y * 2)
+  end
+
+  def capture_super(x) do
+    Enum.map(1..x, &super(&1)) ++ Enum.map(1..x, &super/1)
+  end
+
+  defmacro capture_super_macro(x) do
+    Enum.map(1..x, &super(&1)) ++ Enum.map(1..x, &super/1)
   end
 
   def many_clauses(2) do
@@ -226,6 +244,14 @@ defmodule Kernel.OverridableTest do
 
   test "calling super with multiple args" do
     assert Overridable.super_with_multiple_args(1, 2) == 5
+  end
+
+  test "calling super using function captures" do
+    assert Overridable.capture_super(5) == [1, 2, 3, 4, 5, 1, 2, 3, 4, 5]
+  end
+
+  test "calling super of an overridable macro using function captures" do
+    assert Overridable.capture_super_macro(5) == [1, 2, 3, 4, 5, 1, 2, 3, 4, 5]
   end
 
   test "overridable with many clauses" do
