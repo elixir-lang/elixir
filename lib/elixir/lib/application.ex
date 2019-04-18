@@ -524,9 +524,40 @@ defmodule Application do
   end
 
   @doc """
+  Puts the environment for multiple apps at the same time.
+
+  The given config should not:
+
+    * have the same application listed more than once
+    * have the same key inside the same application listed more than once
+
+  If those conditions are not met, the behaviour is undefined
+  (on Erlang/OTP 21 and earlier) or will raise (on Erlang/OPT 22
+  and later).
+
+  It receives the same options as `put_env/4`. Returns `:ok`.
+  """
+  @spec put_all_env([{app, [{key, value}]}], timeout: timeout, persistent: boolean) :: :ok
+  def put_all_env(config, opts \\ []) when is_list(config) and is_list(opts) do
+    # TODO: Remove function exported? check when we require Erlang/OTP 22+
+    if function_exported?(:application, :set_env, 2) do
+      :application.set_env(config, opts)
+    else
+      for app_keyword <- config,
+          {app, keyword} = app_keyword,
+          key_value <- keyword,
+          {key, value} = key_value do
+        :application.set_env(app, key, value, opts)
+      end
+
+      :ok
+    end
+  end
+
+  @doc """
   Deletes the `key` from the given `app` environment.
 
-  See `put_env/4` for a description of the options.
+  It receives the same options as `put_env/4`. Returns `:ok`.
   """
   @spec delete_env(app, key, timeout: timeout, persistent: boolean) :: :ok
   def delete_env(app, key, opts \\ []) when is_atom(app) do

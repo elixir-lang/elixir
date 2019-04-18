@@ -161,8 +161,8 @@ defmodule Mix.ReleaseTest do
       assert release.boot_scripts.start == [
                kernel: :permanent,
                stdlib: :permanent,
-               sasl: :permanent,
                elixir: :permanent,
+               sasl: :permanent,
                mix: :permanent,
                iex: :none,
                compiler: :permanent
@@ -176,8 +176,8 @@ defmodule Mix.ReleaseTest do
       assert release.boot_scripts.start == [
                kernel: :permanent,
                stdlib: :permanent,
-               sasl: :permanent,
                elixir: :permanent,
+               sasl: :permanent,
                eex: :permanent,
                mix: :permanent,
                iex: :none,
@@ -190,8 +190,8 @@ defmodule Mix.ReleaseTest do
       assert release.boot_scripts.start == [
                kernel: :permanent,
                stdlib: :permanent,
-               sasl: :permanent,
                elixir: :permanent,
+               sasl: :permanent,
                mix: :permanent,
                eex: :permanent,
                iex: :none,
@@ -213,8 +213,8 @@ defmodule Mix.ReleaseTest do
       assert release.boot_scripts.start_clean == [
                kernel: :permanent,
                stdlib: :permanent,
-               sasl: :none,
                elixir: :none,
+               sasl: :none,
                mix: :none,
                iex: :none,
                compiler: :none
@@ -271,8 +271,8 @@ defmodule Mix.ReleaseTest do
                  [
                    {:kernel, _, :permanent},
                    {:stdlib, _, :permanent},
-                   {:sasl, _, :permanent},
                    {:elixir, @elixir_version, :permanent},
+                   {:sasl, _, :permanent},
                    {:mix, @elixir_version, :permanent},
                    {:iex, @elixir_version, :none},
                    {:compiler, _, :permanent}
@@ -393,6 +393,51 @@ defmodule Mix.ReleaseTest do
     test "writes erts and release versions" do
       assert make_start_erl(release([]), @start_erl_path) == :ok
       assert File.read!(@start_erl_path) == "#{@erts_version} 0.1.0"
+    end
+  end
+
+  describe "make_sys_config/1" do
+    @sys_config tmp_path("mix_release/_build/dev/rel/demo/releases/0.1.0/sys.config")
+    @providers [{Config.Reader, "/foo/bar/baz"}]
+
+    test "writes the given sys_config" do
+      assert make_sys_config(release([]), [foo: [bar: :baz]], "unused/runtime/path") == :ok
+      contents = File.read!(@sys_config)
+      assert contents =~ "%% RUNTIME_CONFIG=false"
+      assert contents =~ "[{foo,[{bar,baz}]}]."
+    end
+
+    test "writes the given sys_config with config providers" do
+      release = release(config_providers: @providers)
+      assert make_sys_config(release, [kernel: [key: :value]], "/foo/bar/bat") == :ok
+      assert File.read!(@sys_config) =~ "%% RUNTIME_CONFIG=true"
+      {:ok, [config]} = :file.consult(@sys_config)
+      assert %Config.Provider{} = provider = config[:elixir][:config_providers]
+      refute provider.prune_after_boot
+      assert provider.extra_config == [kernel: [start_distribution: true]]
+      assert config[:kernel] == [key: :value, start_distribution: false]
+    end
+
+    test "writes the given sys_config without distribution and with pruning" do
+      release =
+        release(
+          config_providers: @providers,
+          start_distribution_during_config: true,
+          prune_runtime_sys_config_after_boot: true
+        )
+
+      assert make_sys_config(release, [kernel: [key: :value]], "/foo/bar/bat") == :ok
+      assert File.read!(@sys_config) =~ "%% RUNTIME_CONFIG=true"
+      {:ok, [config]} = :file.consult(@sys_config)
+      assert %Config.Provider{} = provider = config[:elixir][:config_providers]
+      assert provider.prune_after_boot
+      assert provider.extra_config == []
+      assert config[:kernel] == [key: :value]
+    end
+
+    test "errors on bad config" do
+      assert {:error, "Could not read configuration file." <> _} =
+               make_sys_config(release([]), [foo: self()], "unused/runtime/path")
     end
   end
 

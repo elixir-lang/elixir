@@ -3,6 +3,7 @@ defmodule ReleaseTest do
 
   def start(_type, _args) do
     cookie = System.get_env("RELEASE_COOKIE")
+    {:ok, [[sys_config]]} = :init.get_argument(:config)
 
     info = %{
       protocols_consolidated?: Protocol.consolidated?(Enumerable),
@@ -14,7 +15,10 @@ defmodule ReleaseTest do
       cookie_env: cookie,
       node: node(),
       root_dir: :code.root_dir() |> to_string(),
-      static_config: Application.fetch_env!(:release_test, :static)
+      static_config: Application.fetch_env(:release_test, :static),
+      runtime_config: Application.fetch_env(:release_test, :runtime),
+      sys_config_init: to_string(sys_config),
+      sys_config_env: System.get_env("RELEASE_SYS_CONFIG")
     }
 
     path = Path.join(System.get_env("RELEASE_ROOT"), "RELEASE_BOOTED")
