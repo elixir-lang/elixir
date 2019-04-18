@@ -286,6 +286,7 @@ defmodule Mix.Release do
     {date, time} = :erlang.localtime()
     args = [runtime?, date, time, sys_config]
     format = "%% coding: utf-8~n%% RUNTIME_CONFIG=~s~n%% config generated at ~p ~p~n~p.~n"
+    File.mkdir_p!(Path.dirname(path))
     File.write!(path, :io_lib.format(format, args))
 
     case :file.consult(path) do
@@ -293,7 +294,10 @@ defmodule Mix.Release do
         :ok
 
       {:error, reason} ->
-        {:error, "Could not read configuration file. Reason: #{inspect(reason)}"}
+        {:error,
+         "Could not read configuration file. It likely has invalid configuration terms " <>
+           "such as functions, references, and pids. Please make sure your configuration " <>
+           "is made of numbers, atoms, strings, maps, tuples and lists. Reason: #{inspect(reason)}"}
     end
   end
 
