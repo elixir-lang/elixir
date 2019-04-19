@@ -272,14 +272,18 @@ defmodule Mix.Release do
 
   defp validate_steps!(steps) do
     if not is_list(steps) or Enum.any?(steps, &(&1 != :assemble and not is_function(&1, 1))) do
-      Mix.raise(
-        "The :steps option must be a list of anonymous functions that receive one argument " <>
-          "or the atom :assemble, got: #{inspect(steps)}"
-      )
+      Mix.raise("""
+        The :steps option must be a list of:
+
+        * anonymous function that receives one argument
+        * the atom :assemble
+
+      Got: #{inspect(steps)}
+      """)
     end
 
-    if :assemble not in steps do
-      Mix.raise("The :steps option must contain the atom :assemble, got: #{inspect(steps)}")
+    if Enum.count(steps, &(&1 == :assemble)) != 1 do
+      Mix.raise("The :steps option must contain the atom :assemble once, got: #{inspect(steps)}")
     end
 
     :ok
