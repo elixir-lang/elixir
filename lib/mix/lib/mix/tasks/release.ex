@@ -438,33 +438,6 @@ defmodule Mix.Tasks.Release do
         ]
       ]
 
-  ### Steps
-
-  It is possible to add one or more steps before and after the release is
-  assembled. This can be done with the `:steps` option:
-
-      releases: [
-        demo: [
-          steps: [&set_configs/1, :assemble, &copy_extra_files/1]
-        ]
-      ]
-
-  The `:steps` option must be a list and it must always include the
-  atom `:assemble`, which does most of the release assembling. You
-  can pass anonymous functions before and after the `:assemble` to
-  customize your release assembling pipeline. Those anonymous functions
-  will receive a `Mix.Release` struct and must return the same or
-  an updated `Mix.Release` struct.
-
-  See `Mix.Release` for more documentation on the struct and which
-  fields can be modified. Note that `:steps` field itself can be
-  modified and it is updated every time a step is called. Therefore,
-  if you need to execute a command before and after assembling the
-  release, you only need to declare the first steps in your pipeline
-  and then inject the last step into the release struct. The steps
-  field can also be used to verify if the step was set before or
-  after assembling the release.
-
   ### vm.args and bin/start
 
   Developers may want to customize the VM flags and environment variables
@@ -497,6 +470,33 @@ defmodule Mix.Tasks.Release do
   Finally, you can invoke `mix release.init` and it will create
   a `rel` folder with the default `vm.args.eex`, `start.eex`, and
   `start.bat.eex` as example files.
+
+  ### Steps
+
+  It is possible to add one or more steps before and after the release is
+  assembled. This can be done with the `:steps` option:
+
+      releases: [
+        demo: [
+          steps: [&set_configs/1, :assemble, &copy_extra_files/1]
+        ]
+      ]
+
+  The `:steps` option must be a list and it must always include the
+  atom `:assemble`, which does most of the release assembling. You
+  can pass anonymous functions before and after the `:assemble` to
+  customize your release assembling pipeline. Those anonymous functions
+  will receive a `Mix.Release` struct and must return the same or
+  an updated `Mix.Release` struct.
+
+  See `Mix.Release` for more documentation on the struct and which
+  fields can be modified. Note that `:steps` field itself can be
+  modified and it is updated every time a step is called. Therefore,
+  if you need to execute a command before and after assembling the
+  release, you only need to declare the first steps in your pipeline
+  and then inject the last step into the release struct. The steps
+  field can also be used to verify if the step was set before or
+  after assembling the release.
 
   ## Directory structure and environment variables
 

@@ -5,7 +5,7 @@ defmodule Mix.Tasks.ReleaseTest do
 
   @erts_version :erlang.system_info(:version)
 
-  describe "customization" do
+  describe "customize" do
     test "rel/*.eex" do
       in_fixture("release_test", fn ->
         Mix.Project.in_project(:release_test, ".", fn _ ->
@@ -29,6 +29,36 @@ defmodule Mix.Tasks.ReleaseTest do
 
           assert root |> Path.join("releases/0.1.0/vm.args") |> File.read!() ==
                    "rel/vm.args.eex FOR release_test\n"
+        end)
+      end)
+    end
+
+    test "steps" do
+      in_fixture("release_test", fn ->
+        last_step = fn release ->
+          send(self(), {:last_step, release})
+          release
+        end
+
+        first_step = fn release ->
+          send(self(), {:first_step, release})
+          update_in(release.steps, &(&1 ++ [last_step]))
+        end
+
+        config = [releases: [demo: [steps: [first_step, :assemble]]]]
+
+        Mix.Project.in_project(:release_test, ".", config, fn _ ->
+          Mix.Task.run("release")
+          assert_received {:mix_shell, :info, ["* assembling demo-0.1.0 on MIX_ENV=dev"]}
+
+          # Discard info messages from inbox for upcoming assertions
+          Mix.shell().flush(& &1)
+
+          {:messages,
+           [
+             {:first_step, %Mix.Release{steps: [:assemble]}},
+             {:last_step, %Mix.Release{steps: []}}
+           ]} = Process.info(self(), :messages)
         end)
       end)
     end
@@ -157,7 +187,7 @@ defmodule Mix.Tasks.ReleaseTest do
     end)
   end
 
-  test "assembles a custom release" do
+  test "assembles a release with custom options" do
     in_fixture("release_test", fn ->
       config = [releases: [demo: [include_erts: false, cookie: "abcdefghijk"]]]
 
@@ -205,36 +235,6 @@ defmodule Mix.Tasks.ReleaseTest do
         end
 
         assert root_dir == :code.root_dir() |> to_string()
-      end)
-    end)
-  end
-
-  test "assembles a release with steps" do
-    in_fixture("release_test", fn ->
-      last_step = fn release ->
-        send(self(), {:last_step, release})
-        release
-      end
-
-      first_step = fn release ->
-        send(self(), {:first_step, release})
-        update_in(release.steps, &(&1 ++ [last_step]))
-      end
-
-      config = [releases: [demo: [steps: [first_step, :assemble]]]]
-
-      Mix.Project.in_project(:release_test, ".", config, fn _ ->
-        Mix.Task.run("release")
-        assert_received {:mix_shell, :info, ["* assembling demo-0.1.0 on MIX_ENV=dev"]}
-
-        # Discard info messages from inbox for upcoming assertions
-        Mix.shell().flush(& &1)
-
-        {:messages,
-         [
-           {:first_step, %Mix.Release{steps: [:assemble]}},
-           {:last_step, %Mix.Release{steps: []}}
-         ]} = Process.info(self(), :messages)
       end)
     end)
   end
