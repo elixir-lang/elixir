@@ -1137,7 +1137,7 @@ defmodule Registry do
   end
 
   @doc """
-  Returns a list of all entries in the Registry.
+  Returns a list of tuples in the shape of `{key, pid, value}`.
 
   Note that for large registries with many partitions this will be costly as it builds the list by
   concatenating all the partitions.
@@ -1151,7 +1151,7 @@ defmodule Registry do
       []
       iex> {:ok, _} = Registry.register(Registry.UniqueListTest, "hello", :world)
       iex> Registry.to_list(Registry.UniqueListTest)
-      [{"hello", {self(), :world}}]
+      [{"hello", self(), :world}]
 
   to_list on a duplicate registry returns each entry separately:
 
@@ -1159,30 +1159,78 @@ defmodule Registry do
       iex> {:ok, _} = Registry.register(Registry.DuplicateListTest, "hello", :world)
       iex> {:ok, _} = Registry.register(Registry.DuplicateListTest, "hello", :other)
       iex> Registry.to_list(Registry.DuplicateListTest)
-      [{"hello", {self(), :world}}, {"hello", {self(), :other}}]
+      [{"hello", self(), :world}, {"hello", self(), :other}]
 
   """
   @doc since: "1.x.x"
-  @spec to_list(registry) :: [{key, {pid, value}}]
+  @spec to_list(registry) :: [{key, pid, value}]
   def to_list(registry)
       when is_atom(registry) do
+    to_list_internal(registry, :_, [])
+  end
+
+  @doc """
+  Returns a list of tuples in the shape of `{key, pid, value}`, filtered by a match pattern and
+  optional guards.
+
+  Note that for large registries with many partitions this will be costly as it builds the list by
+  concatenating all the partitions.
+
+  ## Examples
+
+  This example shows registering the current process under two different keys and using a match pattern to
+  limit results.
+
+      iex> Registry.start_link(keys: :unique, name: Registry.ListMatchTest)
+      iex> {:ok, _} = Registry.register(Registry.ListMatchTest, "hello", :value)
+      iex> {:ok, _} = Registry.register(Registry.ListMatchTest, "world", :value)
+      iex> Registry.to_list_match(Registry.ListMatchTest, {"world", :_, :_})
+      [{"world", self(), :value}]
+
+  You can also supply guards for more advanced filtering. This shows a guard limiting results
+  to only ones where value is greater than 1.
+
+      iex> Registry.start_link(keys: :unique, name: Registry.ListMatchTest)
+      iex> {:ok, _} = Registry.register(Registry.ListMatchTest, "hello", 1)
+      iex> {:ok, _} = Registry.register(Registry.ListMatchTest, "world", 2)
+      iex> Registry.to_list_match(Registry.ListMatchTest, {:_, :_, :"$1"}, [{:<, 1, :"$1"}])
+      [{"world", self(), 2}]
+
+  """
+  @doc since: "1.x.x"
+  @spec to_list_match(registry, match_pattern, guards) :: [{key, pid, value}]
+  def to_list_match(registry, pattern, guards \\ [])
+      when is_atom(registry) and is_list(guards) do
+    to_list_internal(registry, pattern, guards)
+  end
+
+  defp to_list_internal(registry, pattern, guards) do
+    pattern = to_internal_pattern(pattern)
+    spec = [{pattern, guards, [:"$_"]}]
+
     case key_info!(registry) do
       {_kind, partitions, nil} ->
         Enum.flat_map(0..(partitions - 1), fn partition_index ->
-          safe_to_list(key_ets!(registry, partition_index))
+          :ets.select(key_ets!(registry, partition_index), spec)
+          |> Enum.map(&to_entry/1)
         end)
 
       {_kind, 1, key_ets} ->
-        safe_to_list(key_ets)
+        :ets.select(key_ets, spec)
+        |> Enum.map(&to_entry/1)
     end
   end
 
-  defp safe_to_list(ets) do
-    try do
-      :ets.tab2list(ets)
-    catch
-      :error, :badarg -> []
-    end
+  defp to_internal_pattern({key, pid, value}) do
+    {key, {pid, value}}
+  end
+
+  defp to_internal_pattern(pattern) do
+    pattern
+  end
+
+  defp to_entry({key, {pid, value}}) do
+    {key, pid, value}
   end
 
   ## Helpers

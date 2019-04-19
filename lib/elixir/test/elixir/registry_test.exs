@@ -272,7 +272,43 @@ defmodule RegistryTest do
         {:ok, _} = Registry.register(registry, "world", :value)
 
         assert Registry.to_list(registry) |> Enum.sort() ==
-                 [{"hello", {pid, nil}}, {"world", {self(), :value}}]
+                 [{"hello", pid, nil}, {"world", self(), :value}]
+      end
+
+      test "to_list_match supports match patterns", %{registry: registry} do
+        value = {1, :atom, 1}
+        {:ok, _} = Registry.register(registry, "hello", value)
+        assert [{"hello", self(), value}] == Registry.to_list_match(registry, {"hello", :_, :_})
+        assert [{"hello", self(), value}] == Registry.to_list_match(registry, {:_, self(), :_})
+        assert [{"hello", self(), value}] == Registry.to_list_match(registry, {:_, :_, value})
+        assert [{"hello", self(), value}] == Registry.to_list_match(registry, :_)
+        assert [] == Registry.to_list_match(registry, {"world", :_, :_})
+        assert [] == Registry.to_list_match(registry, {:_, :_, {1.0, :_, :_}})
+
+        assert [{"hello", self(), value}] ==
+                 Registry.to_list_match(registry, {:_, :_, {:_, :atom, :_}})
+
+        assert [{"hello", self(), {1, :atom, 1}}] ==
+                 Registry.to_list_match(registry, {:_, :_, {:"$1", :_, :"$1"}})
+
+        value2 = %{a: "a", b: "b"}
+        {:ok, _} = Registry.register(registry, "world", value2)
+
+        assert [{"world", self(), %{a: "a", b: "b"}}] ==
+                 Registry.to_list_match(registry, {"world", self(), %{b: "b"}})
+      end
+
+      test "to_list_match supports guard conditions", %{registry: registry} do
+        value = {1, :atom, 2}
+        {:ok, _} = Registry.register(registry, "hello", value)
+
+        assert [{"hello", self(), {1, :atom, 2}}] ==
+                 Registry.to_list_match(registry, {:_, :_, {:_, :_, :"$1"}}, [{:>, :"$1", 1}])
+
+        assert [] == Registry.to_list_match(registry, {:_, :_, {:_, :_, :"$1"}}, [{:>, :"$1", 2}])
+
+        assert [{"hello", self(), {1, :atom, 2}}] ==
+                 Registry.to_list_match(registry, {:_, :_, {:_, :"$1", :_}}, [{:is_atom, :"$1"}])
       end
     end
   end
@@ -573,7 +609,43 @@ defmodule RegistryTest do
         {:ok, _} = Registry.register(registry, "hello", :value)
 
         assert Registry.to_list(registry) ==
-                 [{"hello", {self(), :value}}, {"hello", {self(), :value}}]
+                 [{"hello", self(), :value}, {"hello", self(), :value}]
+      end
+
+      test "to_list_match supports match patterns", %{registry: registry} do
+        value = {1, :atom, 1}
+        {:ok, _} = Registry.register(registry, "hello", value)
+        assert [{"hello", self(), value}] == Registry.to_list_match(registry, {"hello", :_, :_})
+        assert [{"hello", self(), value}] == Registry.to_list_match(registry, {:_, self(), :_})
+        assert [{"hello", self(), value}] == Registry.to_list_match(registry, {:_, :_, value})
+        assert [{"hello", self(), value}] == Registry.to_list_match(registry, :_)
+        assert [] == Registry.to_list_match(registry, {"world", :_, :_})
+        assert [] == Registry.to_list_match(registry, {:_, :_, {1.0, :_, :_}})
+
+        assert [{"hello", self(), value}] ==
+                 Registry.to_list_match(registry, {:_, :_, {:_, :atom, :_}})
+
+        assert [{"hello", self(), {1, :atom, 1}}] ==
+                 Registry.to_list_match(registry, {:_, :_, {:"$1", :_, :"$1"}})
+
+        value2 = %{a: "a", b: "b"}
+        {:ok, _} = Registry.register(registry, "hello", value2)
+
+        assert [{"hello", self(), {1, :atom, 1}}, {"hello", self(), %{a: "a", b: "b"}}] ==
+                 Registry.to_list_match(registry, {"hello", :_, :_})
+      end
+
+      test "to_list_match supports guard conditions", %{registry: registry} do
+        value = {1, :atom, 2}
+        {:ok, _} = Registry.register(registry, "hello", value)
+
+        assert [{"hello", self(), {1, :atom, 2}}] ==
+                 Registry.to_list_match(registry, {:_, :_, {:_, :_, :"$1"}}, [{:>, :"$1", 1}])
+
+        assert [] == Registry.to_list_match(registry, {:_, :_, {:_, :_, :"$1"}}, [{:>, :"$1", 2}])
+
+        assert [{"hello", self(), {1, :atom, 2}}] ==
+                 Registry.to_list_match(registry, {:_, :_, {:_, :"$1", :_}}, [{:is_atom, :"$1"}])
       end
     end
   end
