@@ -23,6 +23,8 @@ defmodule Mix.Release do
       first element is a module that implements the `Config.Provider` behaviour
       and `term` is the value given to it on `c:Config.Provider.init/1`
     * `:options` - a keyword list with all other user supplied release options
+    * `:steps` - a list of functions that receive the release and returns a release.
+      Must also contain the atom `:assemble` which is the internal assembling step
 
   """
   defstruct [
@@ -35,7 +37,8 @@ defmodule Mix.Release do
     :erts_source,
     :erts_version,
     :config_providers,
-    :options
+    :options,
+    :steps
   ]
 
   @type mode :: :permanent | :transient | :temporary | :load | :none
@@ -50,7 +53,8 @@ defmodule Mix.Release do
           erts_version: charlist(),
           erts_source: charlist() | nil,
           config_providers: [{module, term}],
-          options: keyword()
+          options: keyword(),
+          steps: [(t -> t) | :assemble, ...]
         }
 
   @default_apps [kernel: :permanent, stdlib: :permanent, elixir: :permanent, sasl: :permanent]
@@ -110,6 +114,8 @@ defmodule Mix.Release do
       end)
 
     {config_providers, opts} = Keyword.pop(opts, :config_providers, [])
+    {steps, opts} = Keyword.pop(opts, :steps, [:assemble])
+    validate_steps!(steps)
 
     %Mix.Release{
       name: name,
@@ -121,7 +127,8 @@ defmodule Mix.Release do
       applications: loaded_apps,
       boot_scripts: %{start: start_boot, start_clean: start_clean_boot},
       config_providers: config_providers,
-      options: opts
+      options: opts,
+      steps: steps
     }
   end
 
@@ -261,6 +268,21 @@ defmodule Mix.Release do
     for({app, _mode} <- boot, do: {app, :none})
     |> Keyword.put(:stdlib, :permanent)
     |> Keyword.put(:kernel, :permanent)
+  end
+
+  defp validate_steps!(steps) do
+    if not is_list(steps) or Enum.any?(steps, &(&1 != :assemble and not is_function(&1, 1))) do
+      Mix.raise(
+        "The :steps option must be a list of anonymous functions that receive one argument " <>
+          "or the atom :assemble, got: #{inspect(steps)}"
+      )
+    end
+
+    if :assemble not in steps do
+      Mix.raise("The :steps option must contain the atom :assemble, got: #{inspect(steps)}")
+    end
+
+    :ok
   end
 
   @doc """
