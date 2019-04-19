@@ -435,7 +435,30 @@ defmodule Mix.Tasks.Release do
 
   ### Steps
 
-  TODO: Implement :steps.
+  It is possible to add one or more steps before and after the release is
+  assembled. This can be done with the `:steps` option:
+
+      releases: [
+        demo: [
+          steps: [&set_configs/1, :assemble, &copy_extra_files/1]
+        ]
+      ]
+
+  The `:steps` option must be a list and it must always include the
+  atom `:assemble`, which does most of the release assembling. You
+  can pass anonymous functions before and after the `:assemble` to
+  customize your release assembling pipeline. Those anonymous functions
+  will receive a `Mix.Release` struct and must return the same or
+  an updated `Mix.Release` struct.
+
+  See `Mix.Release` for more documentation on the struct and which
+  fields can be modified. Note that `:steps` field itself can be
+  modified and it is updated every time a step is called. Therefore,
+  if you need to execute a command before and after assembling the
+  release, you only need to declare the first steps in your pipeline
+  and then inject the last step into the release struct. The steps
+  field can also be used to verify if the step was set before or
+  after assembling the release.
 
   ### vm.args and bin/start
 
@@ -724,8 +747,7 @@ defmodule Mix.Tasks.Release do
 
     if not File.exists?(release.version_path) or
          yes?(release, "Release #{release.name}-#{release.version} already exists. Overwrite?") do
-      assemble(release, config)
-      announce(release)
+      run_steps(release)
     end
   end
 
@@ -733,7 +755,28 @@ defmodule Mix.Tasks.Release do
     release.options[:force] or Mix.shell().yes?(message)
   end
 
-  defp assemble(release, config) do
+  defp run_steps(%{steps: [step | steps]} = release) when is_function(step) do
+    case step.(%{release | steps: steps}) do
+      %Mix.Release{} = release ->
+        run_steps(release)
+
+      other ->
+        Mix.raise(
+          "Expected step #{inspect(step)} to return a Mix.Release, got: #{inspect(other)}"
+        )
+    end
+  end
+
+  defp run_steps(%{steps: [:assemble | steps]} = release) do
+    %{release | steps: steps} |> assemble() |> run_steps()
+  end
+
+  defp run_steps(%{steps: []} = release) do
+    announce(release)
+  end
+
+  defp assemble(release) do
+    config = Mix.Project.config()
     message = "#{release.name}-#{release.version} on MIX_ENV=#{Mix.env()}"
     info(release, [:green, "* assembling ", :reset, message])
 
@@ -773,6 +816,8 @@ defmodule Mix.Tasks.Release do
     ]
     |> Task.async_stream(&copy(&1, release), ordered: false, timeout: :infinity)
     |> Stream.run()
+
+    release
   end
 
   # build_rel
