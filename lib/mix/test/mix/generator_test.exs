@@ -211,7 +211,7 @@ defmodule Mix.GeneratorTest do
   describe "copy_template/4" do
     test "copies template" do
       in_tmp("copy_template", fn ->
-        copy_template(__ENV__.file, "foo", [a: 1, b: 2])
+        copy_template(__ENV__.file, "foo", a: 1, b: 2)
         assert File.read!("foo") =~ ~s[embed_template(:bar, "3")]
         assert_received {:mix_shell, :info, ["* creating foo"]}
       end)
@@ -238,8 +238,8 @@ defmodule Mix.GeneratorTest do
 
     test "with same contents" do
       in_tmp("copy_template", fn ->
-        copy_template(__ENV__.file, "foo", [a: 1, b: 2])
-        copy_template(__ENV__.file, "foo", [a: 1, b: 2])
+        copy_template(__ENV__.file, "foo", a: 1, b: 2)
+        copy_template(__ENV__.file, "foo", a: 1, b: 2)
         refute_received {:mix_shell, :yes?, ["foo already exists, overwrite?"]}
       end)
     end
@@ -249,7 +249,7 @@ defmodule Mix.GeneratorTest do
         File.write!("foo", "HELLO")
         send(self(), {:mix_shell_input, :yes?, true})
 
-        copy_template(__ENV__.file, "foo", [a: 1, b: 2])
+        copy_template(__ENV__.file, "foo", a: 1, b: 2)
         assert File.read!("foo") =~ ~s[embed_template(:bar, "3")]
         assert_received {:mix_shell, :yes?, ["foo already exists, overwrite?"]}
       end)
@@ -260,7 +260,7 @@ defmodule Mix.GeneratorTest do
         File.write!("foo", "HELLO")
         send(self(), {:mix_shell_input, :yes?, false})
 
-        copy_template(__ENV__.file, "foo", [a: 1, b: 2])
+        copy_template(__ENV__.file, "foo", a: 1, b: 2)
         assert File.read!("foo") == "HELLO"
         assert_received {:mix_shell, :yes?, ["foo already exists, overwrite?"]}
       end)

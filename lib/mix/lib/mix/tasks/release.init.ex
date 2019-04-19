@@ -28,7 +28,7 @@ defmodule Mix.Tasks.Release.Init do
     {opts, args} = OptionParser.parse!(args, strict: @switches, aliases: @aliases)
 
     if args != [] do
-      Mix.raise("Expected \"mix release.init\" without arguments, got: #{inspect args}")
+      Mix.raise("Expected \"mix release.init\" without arguments, got: #{inspect(args)}")
     end
 
     create_file("rel/vm.args.eex", vm_args_text(), opts)
