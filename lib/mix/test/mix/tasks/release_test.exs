@@ -180,6 +180,36 @@ defmodule Mix.Tasks.ReleaseTest do
     end)
   end
 
+  test "assembles a release with steps" do
+    in_fixture("release_test", fn ->
+      last_step = fn release ->
+        send(self(), {:last_step, release})
+        release
+      end
+
+      first_step = fn release ->
+        send(self(), {:first_step, release})
+        update_in(release.steps, &(&1 ++ [last_step]))
+      end
+
+      config = [releases: [demo: [steps: [first_step, :assemble]]]]
+
+      Mix.Project.in_project(:release_test, ".", config, fn _ ->
+        Mix.Task.run("release")
+        assert_received {:mix_shell, :info, ["* assembling demo-0.1.0 on MIX_ENV=dev"]}
+
+        # Discard info messages from inbox for upcoming assertions
+        Mix.shell().flush(& &1)
+
+        {:messages,
+         [
+           {:first_step, %Mix.Release{steps: [:assemble]}},
+           {:last_step, %Mix.Release{steps: []}}
+         ]} = Process.info(self(), :messages)
+      end)
+    end)
+  end
+
   test "executes rpc instructions" do
     in_fixture("release_test", fn ->
       config = [releases: [permanent1: [include_erts: false]]]

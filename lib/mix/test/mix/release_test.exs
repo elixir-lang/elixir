@@ -127,6 +127,24 @@ defmodule Mix.ReleaseTest do
         from_config!(nil, config(releases: ["invalid name": []]), [])
       end
     end
+
+    test "raises on bad steps" do
+      assert_raise Mix.Error,
+                   ~r"The :steps option must be",
+                   fn -> release(steps: :foo) end
+
+      assert_raise Mix.Error,
+                   ~r"The :steps option must contain the atom :assemble once, got: \[\]",
+                   fn -> release(steps: []) end
+
+      assert_raise Mix.Error,
+                   ~r"The :steps option must contain the atom :assemble once",
+                   fn -> release(steps: [:assemble, :assemble]) end
+
+      assert_raise Mix.Error,
+                   ~r"The :steps option must be",
+                   fn -> release(steps: [:foo]) end
+    end
   end
 
   describe "from_config!/3 + umbrella" do
