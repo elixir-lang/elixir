@@ -1,4 +1,8 @@
 defmodule Mix.Tasks.Release.Init do
+  use Mix.Task
+
+  @shortdoc "Generates sample files for releases"
+
   @moduledoc """
   Generates sample files for releases.
 
@@ -9,8 +13,6 @@ defmodule Mix.Tasks.Release.Init do
 
   """
 
-  @shortdoc "Generates sample files for releases"
-  use Mix.Task
   import Mix.Generator
 
   @switches [
@@ -22,16 +24,16 @@ defmodule Mix.Tasks.Release.Init do
     f: :force
   ]
 
-  def run(_args) do
+  def run(args) do
     {opts, args} = OptionParser.parse!(args, strict: @switches, aliases: @aliases)
 
     if args != [] do
-      Mix.raise("Expected \"mix release.init\"")
+      Mix.raise("Expected \"mix release.init\" without arguments, got: #{inspect args}")
     end
 
-    copy_file("rel/vm.args.eex", vm_args_text(), opts)
-    copy_file("rel/start.eex", start_text(), opts)
-    copy_file("rel/start.bat.eex", start_bat_text(), opts)
+    create_file("rel/vm.args.eex", vm_args_text(), opts)
+    create_file("rel/start.eex", start_text(), opts)
+    create_file("rel/start.bat.eex", start_bat_text(), opts)
     :ok
   end
 

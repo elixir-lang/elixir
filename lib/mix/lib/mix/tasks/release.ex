@@ -1,4 +1,8 @@
 defmodule Mix.Tasks.Release do
+  use Mix.Task
+
+  @shortdoc "Assembles a self-contained release"
+
   @moduledoc """
   Assembles a self-contained release for the current project:
 
@@ -737,8 +741,6 @@ defmodule Mix.Tasks.Release do
 
   """
 
-  @shortdoc "Assembles a self-contained release"
-  use Mix.Task
   import Mix.Generator
 
   @switches [
@@ -1011,21 +1013,21 @@ defmodule Mix.Tasks.Release do
     File.mkdir_p!(bin_path)
 
     for os <- include_executables_for do
-      {start, start_fun, clis} = cli_for(os)
+      {start, start_fun, clis} = cli_for(os, release)
       start_path = Path.join(bin_path, start)
       start_template_path = Path.join("rel", start <> ".eex")
 
       if File.exists?(start_template_path) do
         copy_template(start_template_path, start_path, [release: release], force: true)
       else
-        File.write!(start_path, contents.(release))
+        File.write!(start_path, start_fun.(release))
       end
 
       executable!(start_path)
 
       for {filename, contents} <- clis do
         path = Path.join(bin_path, filename)
-        File.write!(path, contents.(release))
+        File.write!(path, contents)
         executable!(path)
       end
 
@@ -1041,13 +1043,13 @@ defmodule Mix.Tasks.Release do
     end
   end
 
-  defp cli_for(:unix) do
-    {"start", &start_template(release: &1), [{"#{release.name}", &cli_template(release: &1)}]}
+  defp cli_for(:unix, release) do
+    {"start", &start_template(release: &1), [{"#{release.name}", cli_template(release: release)}]}
   end
 
-  defp cli_for(:windows) do
+  defp cli_for(:windows, release) do
     {"start.bat", &start_bat_template(release: &1),
-     [{"#{release.name}.bat", &cli_bat_template(release: &1)}]}
+     [{"#{release.name}.bat", cli_bat_template(release: release)}]}
   end
 
   defp elixir_cli_for(:unix, bin_path, release) do

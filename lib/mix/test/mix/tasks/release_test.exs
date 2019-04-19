@@ -5,6 +5,35 @@ defmodule Mix.Tasks.ReleaseTest do
 
   @erts_version :erlang.system_info(:version)
 
+  describe "customization" do
+    test "rel/*.eex" do
+      in_fixture("release_test", fn ->
+        Mix.Project.in_project(:release_test, ".", fn _ ->
+          File.mkdir_p!("rel")
+
+          for file <- ~w(rel/vm.args.eex rel/start.eex rel/start.bat.eex) do
+            File.write!(file, """
+            #{file} FOR <%= @release.name %>
+            """)
+          end
+
+          root = Path.absname("_build/dev/rel/release_test")
+          Mix.Task.run("release")
+          assert_received {:mix_shell, :info, ["* assembling release_test-0.1.0 on MIX_ENV=dev"]}
+
+          assert root |> Path.join("bin/start") |> File.read!() ==
+                   "rel/start.eex FOR release_test\n"
+
+          assert root |> Path.join("bin/start.bat") |> File.read!() ==
+                   "rel/start.bat.eex FOR release_test\n"
+
+          assert root |> Path.join("releases/0.1.0/vm.args") |> File.read!() ==
+                   "rel/vm.args.eex FOR release_test\n"
+        end)
+      end)
+    end
+  end
+
   test "assembles a bootable release with ERTS" do
     in_fixture("release_test", fn ->
       Mix.Project.in_project(:release_test, ".", fn _ ->

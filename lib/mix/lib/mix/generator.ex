@@ -76,6 +76,8 @@ defmodule Mix.Generator do
       :ok
 
   """
+  @doc since: "1.9.0"
+  @spec copy_file(Path.t(), Path.t(), keyword) :: boolean()
   def copy_file(source, target, options \\ []) do
     create_file(target, File.read!(source), options)
   end
@@ -100,8 +102,10 @@ defmodule Mix.Generator do
       :ok
 
   """
+  @doc since: "1.9.0"
+  @spec copy_template(Path.t(), Path.t(), keyword, keyword) :: boolean()
   def copy_template(source, target, assigns, options \\ []) do
-    create_file(target, EEx.eval_file(source, assigns), options)
+    create_file(target, EEx.eval_file(source, assigns: assigns), options)
   end
 
   @doc """
