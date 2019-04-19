@@ -1526,8 +1526,13 @@ defmodule Module do
     case acc do
       %{^callback => {_kind, conflict, _optional?}} ->
         message =
-          "conflicting behaviours found. #{format_definition(kind, callback)} is required by " <>
-            "#{inspect(conflict)} and #{inspect(behaviour)} (in module #{inspect(env.module)})"
+          if conflict == behaviour do
+            "the behavior #{inspect(conflict)} has been declared twice " <>
+              "(conflict in #{format_definition(kind, callback)} in module #{inspect(env.module)})"
+          else
+            "conflicting behaviours found. #{format_definition(kind, callback)} is required by " <>
+              "#{inspect(conflict)} and #{inspect(behaviour)} (in module #{inspect(env.module)})"
+          end
 
         IO.warn(message, Macro.Env.stacktrace(env))
 
