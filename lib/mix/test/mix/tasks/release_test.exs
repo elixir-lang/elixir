@@ -6,7 +6,7 @@ defmodule Mix.Tasks.ReleaseTest do
   @erts_version :erlang.system_info(:version)
 
   describe "customize" do
-    test "rel/*.eex" do
+    test "rel with eex" do
       in_fixture("release_test", fn ->
         Mix.Project.in_project(:release_test, ".", fn _ ->
           File.mkdir_p!("rel")
