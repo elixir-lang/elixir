@@ -1086,6 +1086,10 @@ defmodule KernelTest do
            }
 
     assert_raise ArgumentError, ~r"reason: :invalid_format", fn ->
+      Code.eval_string(~s{~U[2015-01-13 13:000]})
+    end
+
+    assert_raise ArgumentError, ~r"reason: :missing_offset", fn ->
       Code.eval_string(~s{~U[2015-01-13 13:00]})
     end
 

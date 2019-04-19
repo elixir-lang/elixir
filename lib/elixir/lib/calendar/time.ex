@@ -228,9 +228,10 @@ defmodule Time do
   defp raw_from_iso8601(string, calendar) do
     with <<unquote(match_time), rest::binary>> <- string,
          true <- unquote(guard_time),
+         {sec, rest} <- Calendar.ISO.parse_second(rest),
          {microsec, rest} <- Calendar.ISO.parse_microsecond(rest),
          {_offset, ""} <- Calendar.ISO.parse_offset(rest) do
-      {hour, min, sec} = unquote(read_time)
+      {hour, min} = unquote(read_time)
 
       with {:ok, utc_time} <- new(hour, min, sec, microsec, Calendar.ISO) do
         convert(utc_time, calendar)

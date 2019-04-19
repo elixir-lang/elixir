@@ -799,10 +799,11 @@ defmodule DateTime do
   defp raw_from_iso8601(string, calendar, is_year_negative) do
     with <<unquote(match_date), sep, unquote(match_time), rest::binary>> <- string,
          true <- unquote(guard_date) and sep in @sep and unquote(guard_time),
+         {second, rest} <- Calendar.ISO.parse_second(rest),
          {microsecond, rest} <- Calendar.ISO.parse_microsecond(rest),
          {offset, ""} <- Calendar.ISO.parse_offset(rest) do
       {year, month, day} = unquote(read_date)
-      {hour, minute, second} = unquote(read_time)
+      {hour, minute} = unquote(read_time)
       year = if is_year_negative, do: -year, else: year
 
       cond do

@@ -63,13 +63,12 @@ defmodule Calendar.ISO do
   def __match_time__ do
     quote do
       [
-        <<h1, h2, ?:, i1, i2, ?:, s1, s2>>,
+        <<h1, h2, ?:, i1, i2>>,
         h1 >= ?0 and h1 <= ?9 and h2 >= ?0 and h2 <= ?9 and i1 >= ?0 and i1 <= ?9 and i2 >= ?0 and
-          i2 <= ?9 and s1 >= ?0 and s1 <= ?9 and s2 >= ?0 and s2 <= ?9,
+          i2 <= ?9,
         {
           (h1 - ?0) * 10 + (h2 - ?0),
-          (i1 - ?0) * 10 + (i2 - ?0),
-          (s1 - ?0) * 10 + (s2 - ?0)
+          (i1 - ?0) * 10 + (i2 - ?0)
         }
       ]
     end
@@ -811,6 +810,21 @@ defmodule Calendar.ISO do
       "T" <>
       time_to_string(hour, minute, second, microsecond, format) <>
       offset_to_string(utc_offset, std_offset, time_zone, format)
+  end
+
+  @doc false
+  def parse_second(<<?:, s1, s2, rest::binary>>) do
+    case s1 >= ?0 and s1 <= ?9 and s2 >= ?0 and s2 <= ?9 do
+      true ->
+        {(s1 - ?0) * 10 + (s2 - ?0), rest}
+
+      false ->
+        :error
+    end
+  end
+
+  def parse_second(rest) do
+    {0, rest}
   end
 
   @doc false

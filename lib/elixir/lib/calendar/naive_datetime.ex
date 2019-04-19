@@ -553,10 +553,11 @@ defmodule NaiveDateTime do
   defp raw_from_iso8601(string, calendar) do
     with <<unquote(match_date), sep, unquote(match_time), rest::binary>> <- string,
          true <- unquote(guard_date) and sep in @sep and unquote(guard_time),
+         {sec, rest} <- Calendar.ISO.parse_second(rest),
          {microsec, rest} <- Calendar.ISO.parse_microsecond(rest),
          {_offset, ""} <- Calendar.ISO.parse_offset(rest) do
       {year, month, day} = unquote(read_date)
-      {hour, min, sec} = unquote(read_time)
+      {hour, min} = unquote(read_time)
 
       with {:ok, iso_naive_dt} <- new(year, month, day, hour, min, sec, microsec, Calendar.ISO) do
         convert(iso_naive_dt, calendar)

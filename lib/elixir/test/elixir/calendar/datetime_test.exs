@@ -152,6 +152,23 @@ defmodule DateTimeTest do
              }
   end
 
+  test "from_iso8601 handles times without seconds" do
+    assert DateTime.from_iso8601("2015-01-24T09:50-10:00") |> elem(1) ==
+             %DateTime{
+               microsecond: {0, 0},
+               month: 1,
+               std_offset: 0,
+               time_zone: "Etc/UTC",
+               utc_offset: 0,
+               year: 2015,
+               zone_abbr: "UTC",
+               day: 24,
+               hour: 19,
+               minute: 50,
+               second: 0
+             }
+  end
+
   test "from_iso8601 handles invalid date, time, formats correctly" do
     assert DateTime.from_iso8601("2015-01-23T23:50:07") == {:error, :missing_offset}
     assert DateTime.from_iso8601("2015-01-23 23:50:61") == {:error, :invalid_time}
