@@ -997,6 +997,24 @@ defmodule Kernel.WarningTest do
     purge([Sample1, Sample2, Sample3])
   end
 
+  test "duplicate behaviour" do
+    assert capture_err(fn ->
+             Code.eval_string("""
+             defmodule Sample1 do
+               @callback foo :: term
+             end
+
+             defmodule Sample2 do
+               @behaviour Sample1
+               @behaviour Sample1
+             end
+             """)
+           end) =~
+             "the behavior Sample1 has been declared twice (conflict in function foo/0 in module Sample2)"
+  after
+    purge([Sample1, Sample2])
+  end
+
   test "undefined behaviour" do
     assert capture_err(fn ->
              Code.eval_string("""
