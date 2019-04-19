@@ -293,9 +293,6 @@ defmodule Mix.Tasks.Release do
       information, documentation chunks and other non-essential metadata removed.
       Defaults to `true`.
 
-    * `:include_executables_for` - a list of atoms with executables to include on
-      the release
-
     * `:cookie` - a string representing the Erlang Distribution cookie. If no cookie
       is set, one is automatically generated when the first release is assembled. The
       cookie will be written to `releases/COOKIE` and shared across multiple release
@@ -328,6 +325,9 @@ defmodule Mix.Tasks.Release do
       `false` also disables hot code upgrades. Therefore, `:include_erts` should be
       set to `false` with caution and only if you are assembling the release on the
       same server that runs it.
+
+  Also see the "Customization" section for other options and the hooks
+  available to customize your release.
 
   Other features, such as runtime configuration, may introduce their
   options. Those will be listed in their own respective sections.
@@ -416,11 +416,28 @@ defmodule Mix.Tasks.Release do
     * `:config_providers` - a list of tuples with custom config providers.
       See `Config.Provider` for more information. Defaults to `[]`.
 
-  ## Steps
+  ## Customization
+
+  There are a couple ways in which developers can customize the generated
+  artifacts inside a release.
+
+  ### Executables
+
+  By default, a release will generate executables for both Windows and Unix.
+  You can customize those by setting the `:include_executables_for` option
+  inside your release:
+
+      releases: [
+        demo: [
+          include_executables_for: [:unix] # Or [:windows] or []
+        ]
+      ]
+
+  ### Steps
 
   TODO: Implement :steps.
 
-  ## vm.args
+  ### vm.args and bin/start
 
   TODO: Implement custom vm.args.
 
