@@ -1172,7 +1172,8 @@ defmodule Registry do
   """
   @doc since: "1.x.x"
   @spec select(registry, spec) :: [term]
-  def select(registry, spec) do
+  def select(registry, spec)
+      when is_atom(registry) and is_list(spec) do
     spec =
       for part <- spec do
         case part do

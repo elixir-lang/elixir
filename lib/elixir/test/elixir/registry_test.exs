@@ -356,6 +356,12 @@ defmodule RegistryTest do
                  ])
                  |> Enum.sort()
       end
+
+      test "raises on incorrect shape of match spec", %{registry: registry} do
+        assert_raise ArgumentError, fn ->
+          Registry.select(registry, [{:_, [], []}])
+        end
+      end
     end
   end
 
