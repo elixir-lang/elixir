@@ -1166,8 +1166,8 @@ defmodule Registry do
       iex> Registry.start_link(keys: :unique, name: Registry.SelectAllTest)
       iex> {:ok, _} = Registry.register(Registry.SelectAllTest, "hello", :value)
       iex> {:ok, _} = Registry.register(Registry.SelectAllTest, "world", :value)
-      iex> Registry.select(Registry.SelectAllTest, [{{:"$1", :_, :_}, [], [:"$1"]}]) |> Enum.sort()
-      ["hello", "world"]
+      iex> Registry.select(Registry.SelectAllTest, [{{:"$1", :_, :_}, [], [:"$1"]}])
+      ["world", "hello"]
 
   """
   @doc since: "1.x.x"
