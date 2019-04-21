@@ -346,6 +346,18 @@ defmodule RegistryTest do
                    {{:"$1", :_, {:_, :"$2", :_}}, [{:is_atom, :"$2"}], [:"$1"]}
                  ])
       end
+
+      test "select allows multiple specs", %{registry: registry} do
+        {:ok, _} = Registry.register(registry, "hello", :value)
+        {:ok, _} = Registry.register(registry, "world", :value)
+
+        assert ["hello", "world"] ==
+                 Registry.select(registry, [
+                   {{"hello", :_, :_}, [], [{:element, 1, :"$_"}]},
+                   {{"world", :_, :_}, [], [{:element, 1, :"$_"}]}
+                 ])
+                 |> Enum.sort()
+      end
     end
   end
 
@@ -718,6 +730,18 @@ defmodule RegistryTest do
                  Registry.select(registry, [
                    {{:"$1", :_, {:_, :"$2", :_}}, [{:is_atom, :"$2"}], [:"$1"]}
                  ])
+      end
+
+      test "select allows multiple specs", %{registry: registry} do
+        {:ok, _} = Registry.register(registry, "hello", :value)
+        {:ok, _} = Registry.register(registry, "world", :value)
+
+        assert ["hello", "world"] ==
+                 Registry.select(registry, [
+                   {{"hello", :_, :_}, [], [{:element, 1, :"$_"}]},
+                   {{"world", :_, :_}, [], [{:element, 1, :"$_"}]}
+                 ])
+                 |> Enum.sort()
       end
     end
   end

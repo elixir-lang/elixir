@@ -1145,6 +1145,9 @@ defmodule Registry do
   @doc """
   Allows selecting key, pid and values registered using full match specs.
 
+  Refer to the documentation for `match/3` for more information on how match specs work.
+  Avoid usage of special match variables `:"$_"` and `:"$$"`, because it might not work as expected.
+
   Note that for large registries with many partitions this will be costly as it builds the list by
   concatenating all the partitions.
 
@@ -1170,7 +1173,13 @@ defmodule Registry do
   @doc since: "1.x.x"
   @spec select(registry, spec) :: [term]
   def select(registry, spec) do
-    spec = to_internal_spec(spec)
+    spec =
+      for part <- spec do
+        case part do
+          {{key, pid, value}, guards, select} -> {{key, {pid, value}}, guards, select}
+          part -> part
+        end
+      end
 
     case key_info!(registry) do
       {_kind, partitions, nil} ->
@@ -1181,14 +1190,6 @@ defmodule Registry do
       {_kind, 1, key_ets} ->
         :ets.select(key_ets, spec)
     end
-  end
-
-  defp to_internal_spec([{{key, pid, value}, guards, select}]) do
-    [{{key, {pid, value}}, guards, select}]
-  end
-
-  defp to_internal_spec(spec) do
-    spec
   end
 
   ## Helpers
