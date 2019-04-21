@@ -263,7 +263,7 @@ defmodule RegistryTest do
       end
 
       test "empty list for empty registry", %{registry: registry} do
-        assert Registry.select(registry, [{{:_}, [], [:"$_"]}]) == []
+        assert Registry.select(registry, [{{:_, :_, :_}, [], [:"$_"]}]) == []
       end
 
       test "select all", %{registry: registry} do
@@ -294,8 +294,6 @@ defmodule RegistryTest do
                  Registry.select(registry, [
                    {{:"$1", :"$2", value}, [], [{{:"$1", :"$2", {value}}}]}
                  ])
-
-        assert [:exists] == Registry.select(registry, [{:_, [], [:exists]}])
 
         assert [] ==
                  Registry.select(registry, [
@@ -649,7 +647,7 @@ defmodule RegistryTest do
       end
 
       test "empty list for empty registry", %{registry: registry} do
-        assert Registry.select(registry, [{{:_}, [], [:"$_"]}]) == []
+        assert Registry.select(registry, [{{:_, :_, :_}, [], [:"$_"]}]) == []
       end
 
       test "select all", %{registry: registry} do
@@ -679,8 +677,6 @@ defmodule RegistryTest do
                  Registry.select(registry, [
                    {{:"$1", :"$2", value}, [], [{{:"$1", :"$2", {value}}}]}
                  ])
-
-        assert [:exists] == Registry.select(registry, [{:_, [], [:exists]}])
 
         assert [] ==
                  Registry.select(registry, [

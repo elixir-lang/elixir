@@ -1176,8 +1176,12 @@ defmodule Registry do
     spec =
       for part <- spec do
         case part do
-          {{key, pid, value}, guards, select} -> {{key, {pid, value}}, guards, select}
-          part -> part
+          {{key, pid, value}, guards, select} ->
+            {{key, {pid, value}}, guards, select}
+
+          _ ->
+            raise ArgumentError,
+                  "invalid arguments, got: #{inspect(registry)} and #{inspect(spec)}"
         end
       end
 
