@@ -204,10 +204,10 @@ defmodule Registry do
   @type guards :: [guard] | []
 
   @typedoc "A pattern used to representing the output format part of a match spec"
-  @type select :: [atom | tuple]
+  @type body :: [atom | tuple]
 
   @typedoc "A full match spec used when selecting objects in the registry"
-  @type spec :: [{match_pattern, guards, select}]
+  @type spec :: [{match_pattern, guards, body}]
 
   ## Via callbacks
 
@@ -1148,7 +1148,7 @@ defmodule Registry do
   Refer to the documentation for `match/3` for more information on how match specs work.
   Avoid usage of special match variables `:"$_"` and `:"$$"`, because it might not work as expected.
 
-  Note that for large registries with many partitions this will be costly as it builds the list by
+  Note that for large registries with many partitions this will be costly as it builds the result by
   concatenating all the partitions.
 
   ## Examples
