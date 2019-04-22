@@ -47,7 +47,7 @@ defmodule Mix.Tasks.Release.Init do
     ##+SDio 5
 
     ## Increase number of concurrent ports/sockets
-    ##-env ERL_MAX_PORTS 4096
+    ##+Q 65536
 
     ## Tweak GC to run more often
     ##-env ERL_FULLSWEEP_AFTER 10
