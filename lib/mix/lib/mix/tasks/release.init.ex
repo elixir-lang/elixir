@@ -241,7 +241,7 @@ defmodule Mix.Tasks.Release.Init do
     if not defined RELEASE_COOKIE (set /p RELEASE_COOKIE=<!RELEASE_ROOT!\releases\COOKIE)
     if not defined RELEASE_NODE (set RELEASE_NODE=!RELEASE_NAME!@127.0.0.1)
     if not defined RELEASE_TMP (set RELEASE_TMP=!RELEASE_ROOT!\tmp)
-    if not defined RELEASE_VM_ARGS (set RELEASE_TMP=!RELEASE_ROOT!\releases\!RELEASE_VSN!\vm.args)
+    if not defined RELEASE_VM_ARGS (set RELEASE_VM_ARGS=!RELEASE_ROOT!\releases\!RELEASE_VSN!\vm.args)
     set REL_VSN_DIR=!RELEASE_ROOT!\releases\!RELEASE_VSN!
     set RELEASE_SYS_CONFIG=!REL_VSN_DIR!\sys
 
