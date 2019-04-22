@@ -11,7 +11,7 @@ defmodule Mix.Generator do
 
   ## Options
 
-    * `:force` - forces installation without a shell prompt
+    * `:force` - forces creation without a shell prompt
     * `:quiet` - do not log command output
 
   ## Examples
@@ -56,6 +56,56 @@ defmodule Mix.Generator do
     log(:green, "creating", Path.relative_to_cwd(path), options)
     File.mkdir_p!(path)
     true
+  end
+
+  @doc ~S"""
+  Copies `source` to `target`.
+
+  If `target` already exists and the contents are not the same,
+  it asks for user confirmation.
+
+  ## Options
+
+    * `:force` - forces copying without a shell prompt
+    * `:quiet` - do not log command output
+
+  ## Examples
+
+      iex> Mix.Generator.copy_file("source/gitignore", ".gitignore", "_build\ndeps\n")
+      * creating .gitignore
+      :ok
+
+  """
+  @doc since: "1.9.0"
+  @spec copy_file(Path.t(), Path.t(), keyword) :: boolean()
+  def copy_file(source, target, options \\ []) do
+    create_file(target, File.read!(source), options)
+  end
+
+  @doc ~S"""
+  Evaluates and copy templates at `source` to `target`.
+
+  The template in `source` is evaluted with the given `assigns`.
+
+  If `target` already exists and the contents are not the same,
+  it asks for user confirmation.
+
+  ## Options
+
+    * `:force` - forces copying without a shell prompt
+    * `:quiet` - do not log command output
+
+  ## Examples
+
+      iex> Mix.Generator.copy_template("source/gitignore", ".gitignore", [project_path: path])
+      * creating .gitignore
+      :ok
+
+  """
+  @doc since: "1.9.0"
+  @spec copy_template(Path.t(), Path.t(), keyword, keyword) :: boolean()
+  def copy_template(source, target, assigns, options \\ []) do
+    create_file(target, EEx.eval_file(source, assigns: assigns), options)
   end
 
   @doc """

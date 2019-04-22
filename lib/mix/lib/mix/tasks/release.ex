@@ -1,6 +1,10 @@
 defmodule Mix.Tasks.Release do
+  use Mix.Task
+
+  @shortdoc "Assembles a self-contained release"
+
   @moduledoc """
-  Assembles a release for the current project:
+  Assembles a self-contained release for the current project:
 
       MIX_ENV=prod mix release
       MIX_ENV=prod mix release NAME
@@ -51,7 +55,8 @@ defmodule Mix.Tasks.Release do
 
   `bin/start` is a very short script that invokes the proper instruction
   on `bin/RELEASE_NAME`. You can customize `bin/start` in any way you want,
-  but you are not supposed to change `bin/RELEASE_NAME`.
+  see the "Customization" section, but you are not supposed to change
+  `bin/RELEASE_NAME`.
 
   `bin/start` will start the system connected to the current standard
   input/output, where logs are also written to by default. This is the
@@ -111,7 +116,7 @@ defmodule Mix.Tasks.Release do
 
   You can customize the tmp directory used both for logging and for
   piping in daemon mode by setting the `RELEASE_TMP` environment
-  variable on `bin/start`.
+  variable on `bin/start`. See the "Customization" section.
 
   ### Services mode (Windows)
 
@@ -384,7 +389,7 @@ defmodule Mix.Tasks.Release do
   config file will be written to "tmp" directory inside the release every
   time the system boots. You can configure the "tmp" directory by setting
   the `RELEASE_TMP` environment variable, either explicitly or inside your
-  `bin/start` script.
+  `bin/start` script. See the "Customization" section.
 
   Releases also supports custom mechanisms, called config providers, to load
   any sort of runtime configuration to the system while it boots. For example,
@@ -433,6 +438,39 @@ defmodule Mix.Tasks.Release do
         ]
       ]
 
+  ### vm.args and bin/start
+
+  Developers may want to customize the VM flags and environment variables
+  given when the release starts. This is typically done by customizing
+  two files: `vm.args` and `bin/start` (or `bin/start.bat` on Windows).
+
+  The `vm.args` is available on every release version, inside
+  `releases/RELEASE_VSN/vm.args`, and in there you can set all flags
+  known by the `erl` command: http://erlang.org/doc/man/erl.html
+
+  The `bin/start` is shared across all released versions and it is
+  the entry point to starting your release. It is also the best place
+  to set any environment variable you may need in your release, such
+  as `RELEASE_TMP`. You may also set `ELIXIR_ERL_OPTIONS` to
+  dynamically set VM options.
+
+  To configure both files, all you need to do is to define an EEx
+  template inside the `rel` folder at the root of your project. For
+  example, if you define `rel/vm.args.eex`, it will be evaluated
+  and written to `releases/RELEASE_VSN/vm.args` when the release
+  is assembled.
+
+  Similarly, if you have `rel/start.eex` (or `rel/start.bat.eex`
+  for Windows) inside `rel`, it will be copied to the release when
+  it is assembled.
+
+  When the EEx template is evaluated, it will have a single assign,
+  called `@release`, with the `Mix.Release` struct.
+
+  Finally, you can invoke `mix release.init` and it will create
+  a `rel` folder with the default `vm.args.eex`, `start.eex`, and
+  `start.bat.eex` as example files.
+
   ### Steps
 
   It is possible to add one or more steps before and after the release is
@@ -459,13 +497,6 @@ defmodule Mix.Tasks.Release do
   and then inject the last step into the release struct. The steps
   field can also be used to verify if the step was set before or
   after assembling the release.
-
-  ### vm.args and bin/start
-
-  TODO: Implement custom vm.args.
-
-  You may also set `ELIXIR_ERL_OPTIONS` inside `bin/start` to dynamically
-  set VM options.
 
   ## Directory structure and environment variables
 
@@ -502,22 +533,22 @@ defmodule Mix.Tasks.Release do
     * `RELEASE_ROOT` - points to the root of the release. If the system
       includes ERTS, then it is the same as `:code.root_dir/0`
 
-    * `RELEASE_NAME` - the name of the release. It can be overridden on
-      `bin/start` to a custom value
+    * `RELEASE_NAME` - the name of the release. It can be set in a
+      custom `bin/start` file to a custom value
 
     * `RELEASE_VSN` - the version of the release, otherwise the latest
-      version is used. It can be overridden on `bin/start` to a custom
-      value
+      version is used. It can be set in a custom `bin/start` file to
+      a custom value
 
     * `RELEASE_COOKIE` - the release cookie. By default uses the value
-      in `releases/COOKIE` . It can be overridden on `bin/start` to a
-      custom value
+      in `releases/COOKIE`. It can be set in a custom `bin/start` file
+      to a custom value
 
     * `RELEASE_NODE` - the release node name, in the format `name@host`.
-      It can be overridden on `bin/start` to a custom value
+      It can be set in a custom `bin/start` file to a custom value
 
     * `RELEASE_TMP` - the directory in the release to write temporary
-      files to. It can be overridden on `bin/start` to a custom value.
+      files to. It can be set in a custom `bin/start` file to a custom value.
       Defaults to the `$RELEASE_ROOT/tmp`
 
   ## Umbrellas
@@ -710,7 +741,6 @@ defmodule Mix.Tasks.Release do
 
   """
 
-  use Mix.Task
   import Mix.Generator
 
   @switches [
@@ -916,8 +946,13 @@ defmodule Mix.Tasks.Release do
     Enum.find(results, :ok, &(&1 != :ok))
   end
 
-  defp make_vm_args(_release, path) do
-    File.write!(path, vm_args_text())
+  defp make_vm_args(release, path) do
+    if File.exists?("rel/vm.args.eex") do
+      copy_template("rel/vm.args.eex", path, [release: release], force: true)
+    else
+      File.write!(path, vm_args_template(release: release))
+    end
+
     :ok
   end
 
@@ -978,13 +1013,17 @@ defmodule Mix.Tasks.Release do
     File.mkdir_p!(bin_path)
 
     for os <- include_executables_for do
-      [{start, contents} | clis] = cli_for(os, release)
+      {start, start_fun, clis} = cli_for(os, release)
       start_path = Path.join(bin_path, start)
+      start_template_path = Path.join("rel", start <> ".eex")
 
-      unless File.exists?(start_path) do
-        File.write!(start_path, contents)
-        executable!(start_path)
+      if File.exists?(start_template_path) do
+        copy_template(start_template_path, start_path, [release: release], force: true)
+      else
+        File.write!(start_path, start_fun.(release))
       end
+
+      executable!(start_path)
 
       for {filename, contents} <- clis do
         path = Path.join(bin_path, filename)
@@ -993,7 +1032,7 @@ defmodule Mix.Tasks.Release do
       end
 
       unless File.exists?(elixir_bin_path) do
-        Mix.raise("Could not find bin files from Elixir installation")
+        Mix.raise("Could not find bin files from Elixir installation for #{os}")
       end
 
       for {filename, contents} <- elixir_cli_for(os, elixir_bin_path, release) do
@@ -1005,17 +1044,12 @@ defmodule Mix.Tasks.Release do
   end
 
   defp cli_for(:unix, release) do
-    [
-      {"start", start_template(name: release.name)},
-      {"#{release.name}", cli_template(name: release.name)}
-    ]
+    {"start", &start_template(release: &1), [{"#{release.name}", cli_template(release: release)}]}
   end
 
   defp cli_for(:windows, release) do
-    [
-      {"start.bat", start_bat_template(name: release.name)},
-      {"#{release.name}.bat", cli_bat_template(name: release.name)}
-    ]
+    {"start.bat", &start_bat_template(release: &1),
+     [{"#{release.name}.bat", cli_bat_template(release: release)}]}
   end
 
   defp elixir_cli_for(:unix, bin_path, release) do
@@ -1050,319 +1084,9 @@ defmodule Mix.Tasks.Release do
 
   defp executable!(path), do: File.chmod!(path, 0o744)
 
-  embed_text(:vm_args, ~S"""
-  ## Preloads all modules instead of loading them dynamically
-  -mode embedded
-
-  ## Number of dirty schedulers doing IO work (file, sockets, etc)
-  ##+SDio 5
-
-  ## Increase number of concurrent ports/sockets
-  ##-env ERL_MAX_PORTS 4096
-
-  ## Tweak GC to run more often
-  ##-env ERL_FULLSWEEP_AFTER 10
-  """)
-
-  embed_template(:start, ~S"""
-  #!/bin/sh
-  # Feel free to edit this file in any way you want
-  set -e
-
-  # Sets and enables heart (recommended only in daemon mode)
-  # HEART_COMMAND="$(dirname "$0")/start"
-  # export HEART_COMMAND
-  # export ELIXIR_ERL_OPTIONS="-heart"
-
-  # To start your system using IEx: "$(dirname "$0")/<%= @name %>" start_iex
-  # To start it as a daemon using IEx: "$(dirname "$0")/<%= @name %>" daemon_iex
-  "$(dirname "$0")/<%= @name %>" start
-  """)
-
-  embed_template(:cli, ~S"""
-  #!/bin/sh
-  set -e
-
-  SELF=$(readlink "$0" || true)
-  if [ -z "$SELF" ]; then SELF="$0"; fi
-  RELEASE_ROOT="$(cd "$(dirname "$SELF")/.." && pwd -P)"
-  export RELEASE_ROOT
-  export RELEASE_NAME="${RELEASE_NAME:-"<%= @name %>"}"
-  export RELEASE_VSN="${RELEASE_VSN:-"$(cut -d' ' -f2 "$RELEASE_ROOT/releases/start_erl.data")"}"
-  export RELEASE_COOKIE=${RELEASE_COOKIE:-"$(cat "$RELEASE_ROOT/releases/COOKIE")"}
-  export RELEASE_NODE=${RELEASE_NODE:-"$RELEASE_NAME@127.0.0.1"}
-  export RELEASE_TMP=${RELEASE_TMP:-"$RELEASE_ROOT/tmp"}
-  REL_VSN_DIR="$RELEASE_ROOT/releases/$RELEASE_VSN"
-
-  rand () {
-    od -t xS -N 2 -A n /dev/urandom | tr -d " \n"
-  }
-
-  rpc () {
-    exec "$REL_VSN_DIR/elixir" \
-         --hidden --name "rpc-$(rand)@127.0.0.1" --cookie "$RELEASE_COOKIE" \
-         --boot "$REL_VSN_DIR/start_clean" \
-         --boot-var RELEASE_LIB "$RELEASE_ROOT/lib" \
-         --rpc-eval "$RELEASE_NODE" "$1"
-  }
-
-  start () {
-    export_release_sys_config
-    REL_EXEC="$1"
-    shift
-    exec "$REL_VSN_DIR/$REL_EXEC" \
-         --name "$RELEASE_NODE" --cookie "$RELEASE_COOKIE" \
-         --erl-config "$RELEASE_SYS_CONFIG" \
-         --boot "$REL_VSN_DIR/start" \
-         --boot-var RELEASE_LIB "$RELEASE_ROOT/lib" \
-         --vm-args "$REL_VSN_DIR/vm.args" "$@"
-  }
-
-  export_release_sys_config () {
-    if grep -q "RUNTIME_CONFIG=true" "$REL_VSN_DIR/sys.config"; then
-      RELEASE_SYS_CONFIG="$RELEASE_TMP/$RELEASE_NAME-$RELEASE_VSN-$(date +%Y%m%d%H%M%S)-$(rand).runtime"
-
-      (mkdir -p "$RELEASE_TMP" && cp "$REL_VSN_DIR/sys.config" "$RELEASE_SYS_CONFIG.config") || (
-        echo "ERROR: Cannot start release because it could not write $RELEASE_SYS_CONFIG.config" >&2
-        exit 1
-      )
-    else
-      RELEASE_SYS_CONFIG="$REL_VSN_DIR/sys"
-    fi
-
-    export RELEASE_SYS_CONFIG
-  }
-
-  case $1 in
-    start)
-      start "elixir" --no-halt
-      ;;
-
-    start_iex)
-      start "iex" --werl
-      ;;
-
-    daemon)
-      start "elixir" --no-halt --pipe-to "${RELEASE_TMP}/pipe" "${RELEASE_TMP}/log"
-      ;;
-
-    daemon_iex)
-      start "iex" --pipe-to "${RELEASE_TMP}/pipe" "${RELEASE_TMP}/log"
-      ;;
-
-    eval)
-      if [ -z "$2" ]; then
-        echo "ERROR: EVAL expects an expression as argument" >&2
-        exit 1
-      fi
-
-      export_release_sys_config
-      exec "$REL_VSN_DIR/elixir" \
-         --cookie "$RELEASE_COOKIE" \
-         --erl-config "$RELEASE_SYS_CONFIG" \
-         --boot "$REL_VSN_DIR/start_clean" \
-         --boot-var RELEASE_LIB "$RELEASE_ROOT/lib" \
-         --vm-args "$REL_VSN_DIR/vm.args" --eval "$2"
-      ;;
-
-    remote)
-      exec "$REL_VSN_DIR/iex" \
-           --werl --hidden --name "remote-$(rand)@127.0.0.1" --cookie "$RELEASE_COOKIE" \
-           --boot "$REL_VSN_DIR/start_clean" \
-           --boot-var RELEASE_LIB "$RELEASE_ROOT/lib" \
-           --remsh "$RELEASE_NODE"
-      ;;
-
-    rpc)
-      if [ -z "$2" ]; then
-        echo "ERROR: RPC expects an expression as argument" >&2
-        exit 1
-      fi
-      rpc "$2"
-      ;;
-
-    restart|stop)
-      rpc "System.$1"
-      ;;
-
-    pid)
-      rpc "IO.puts System.pid"
-      ;;
-
-    version)
-      echo "$RELEASE_NAME $RELEASE_VSN"
-      ;;
-
-    *)
-      echo "Usage: $(basename "$0") COMMAND [ARGS]
-
-  The known commands are:
-
-      start          Starts the system
-      start_iex      Starts the system with IEx attached
-      daemon         Starts the system as a daemon
-      daemon_iex     Starts the system as a daemon with IEx attached
-      eval \"EXPR\"    Executes the given expression on a new, non-booted system
-      rpc \"EXPR\"     Executes the given expression remotely on the running system
-      remote         Connects to the running system via a remote shell
-      restart        Restarts the running system via a remote command
-      stop           Stops the running system via a remote command
-      pid            Prints the OS PID of the running system via a remote command
-      version        Prints the release name and version to be booted
-  " >&2
-
-      if [ -n "$1" ]; then
-        echo "ERROR: Unknown command $1" >&2
-        exit 1
-      fi
-      ;;
-  esac
-  """)
-
-  embed_template(:start_bat, ~S"""
-  @echo off
-  rem Feel free to edit this file in anyway you want
-  rem To start your system using IEx: %~dp0/<%= @name %> start_iex
-  %~dp0/<%= @name %> start
-  """)
-
-  embed_template(:cli_bat, ~S"""
-  @echo off
-  setlocal enabledelayedexpansion
-
-  pushd .
-  cd "%~dp0/.."
-  set RELEASE_ROOT=%cd%
-  popd
-
-  if not defined RELEASE_NAME (set RELEASE_NAME=<%= @name %>)
-  if not defined RELEASE_VSN (for /f "tokens=1,2" %%K in (!RELEASE_ROOT!\releases\start_erl.data) do (set ERTS_VSN=%%K) && (set RELEASE_VSN=%%L))
-  if not defined RELEASE_COOKIE (set /p RELEASE_COOKIE=<!RELEASE_ROOT!\releases\COOKIE)
-  if not defined RELEASE_NODE (set RELEASE_NODE=!RELEASE_NAME!@127.0.0.1)
-  if not defined RELEASE_TMP (set RELEASE_TMP=!RELEASE_ROOT!\tmp)
-  set REL_VSN_DIR=!RELEASE_ROOT!\releases\!RELEASE_VSN!
-  set RELEASE_SYS_CONFIG=!REL_VSN_DIR!\sys
-
-  if "%~1" == "start" (set "REL_EXEC=elixir" && set "REL_EXTRA=--no-halt" && set "REL_GOTO=start")
-  if "%~1" == "start_iex" (set "REL_EXEC=iex" && set "REL_EXTRA=--werl" && set "REL_GOTO=start")
-  if "%~1" == "install" (set "REL_GOTO=install")
-  if "%~1" == "eval" (
-    if "%~2" == "" (
-      echo ERROR: EVAL expects an expression as argument
-      goto end
-    )
-    set "REL_GOTO=eval"
-  )
-
-  if not "!REL_GOTO!" == "" (
-    findstr "RUNTIME_CONFIG=true" "!RELEASE_SYS_CONFIG!.config" >nil 2>&1 && (
-      for /f "skip=1" %%X in ('wmic os get localdatetime') do if not defined TIMESTAMP set TIMESTAMP=%%X
-      set RELEASE_SYS_CONFIG=!RELEASE_TMP!\!RELEASE_NAME!-!RELEASE_VSN!-!TIMESTAMP:~0,11!-!RANDOM!.runtime
-      mkdir "!RELEASE_TMP!" >nil
-      copy /y "!REL_VSN_DIR!\sys.config" "!RELEASE_SYS_CONFIG!.config" >nil || (
-        echo Cannot start release because it could not write to "!RELEASE_SYS_CONFIG!.config"
-        goto end
-      )
-    )
-
-    goto !REL_GOTO!
-  )
-
-  if "%~1" == "remote" (goto remote)
-  if "%~1" == "version" (goto version)
-  if "%~1" == "stop" (set "REL_RPC=System.stop()" && goto rpc)
-  if "%~1" == "restart" (set "REL_RPC=System.stop()" && goto rpc)
-  if "%~1" == "pid" (set "REL_RPC=IO.puts(System.pid())" && goto rpc)
-  if "%~1" == "rpc" (
-    if "%~2" == "" (
-      echo ERROR: RPC expects an expression as argument
-      goto end
-    )
-    set "REL_RPC=%~2"
-    goto rpc
-  )
-
-  echo Usage: %~nx0 COMMAND [ARGS]
-  echo.
-  echo The known commands are:
-  echo.
-  echo    start        Starts the system
-  echo    start_iex    Starts the system with IEx attached
-  echo    install      Installs this system as a Windows service
-  echo    eval "EXPR"  Executes the given expression on a new, non-booted system
-  echo    rpc "EXPR"   Executes the given expression remotely on the running system
-  echo    remote       Connects to the running system via a remote shell
-  echo    restart      Restarts the running system via a remote command
-  echo    stop         Stops the running system via a remote command
-  echo    pid          Prints the OS PID of the running system via a remote command
-  echo    version      Prints the release name and version to be booted
-  echo.
-  if not "%~1" == "" (echo ERROR: Unknown command %~1)
-  goto end
-
-  :start
-  "!REL_VSN_DIR!\!REL_EXEC!.bat" !REL_EXTRA! ^
-    --name "!RELEASE_NODE!" --cookie "!RELEASE_COOKIE!" ^
-    --erl-config "!RELEASE_SYS_CONFIG!" ^
-    --boot "!REL_VSN_DIR!\start" ^
-    --boot-var RELEASE_LIB "!RELEASE_ROOT!\lib" ^
-    --vm-args "!REL_VSN_DIR!\vm.args"
-  goto end
-
-  :eval
-  "!REL_VSN_DIR!\elixir.bat" ^
-    --eval "%~2" ^
-    --cookie "!RELEASE_COOKIE!" ^
-    --erl-config "!RELEASE_SYS_CONFIG!" ^
-    --boot "!REL_VSN_DIR!\start_clean" ^
-    --boot-var RELEASE_LIB "!RELEASE_ROOT!\lib" ^
-    --vm-args "!REL_VSN_DIR!\vm.args"
-  goto end
-
-  :remote
-  "!REL_VSN_DIR!\iex.bat" ^
-    --werl --hidden --name "remote-!RANDOM!@127.0.0.1" --cookie "!RELEASE_COOKIE!" ^
-    --boot "!REL_VSN_DIR!\start_clean" ^
-    --boot-var RELEASE_LIB "!RELEASE_ROOT!\lib" ^
-    --remsh "!RELEASE_NODE!"
-  goto end
-
-  :rpc
-  "!REL_VSN_DIR!\elixir.bat" ^
-    --hidden --name "rpc-!RANDOM!@127.0.0.1" --cookie "!RELEASE_COOKIE!" ^
-    --boot "!REL_VSN_DIR!\start_clean" ^
-    --boot-var RELEASE_LIB "!RELEASE_ROOT!\lib" ^
-    --rpc-eval "!RELEASE_NODE!" "!REL_RPC!"
-  goto end
-
-  :version
-  echo !RELEASE_NAME! !RELEASE_VSN!
-  goto end
-
-  :install
-  if exist !RELEASE_ROOT!\erts-!ERTS_VSN! (
-    set ERLSRV=!RELEASE_ROOT!\erts-!ERTS_VSN!\bin\erlsrv.exe
-  ) else (
-    set ERLSRV=erlsrv.exe
-  )
-
-  !ERLSRV! add !RELEASE_NAME!_!RELEASE_NAME! ^
-    -name "!RELEASE_NODE!" ^
-    -args "-setcookie !RELEASE_COOKIE! -config !RELEASE_SYS_CONFIG! -boot !REL_VSN_DIR!\start -boot_var RELEASE_LIB !RELEASE_ROOT!\lib -args_file !REL_VSN_DIR!\vm.args"
-
-  if %ERRORLEVEL% EQU 0 (
-    echo Service installed but not started. From now on, it must be started and stopped by erlsrv:
-    echo.
-    echo     !ERLSRV! start !RELEASE_NAME!_!RELEASE_NAME!
-    echo     !ERLSRV! stop !RELEASE_NAME!_!RELEASE_NAME!
-    echo     !ERLSRV! remove !RELEASE_NAME!_!RELEASE_NAME!
-    echo     !ERLSRV! list
-    echo     !ERLSRV! help
-    echo.
-  )
-  goto end
-
-  :end
-  endlocal
-  """)
+  embed_template(:vm_args, Mix.Tasks.Release.Init.vm_args_text())
+  embed_template(:start, Mix.Tasks.Release.Init.start_text())
+  embed_template(:cli, Mix.Tasks.Release.Init.cli_text())
+  embed_template(:start_bat, Mix.Tasks.Release.Init.start_bat_text())
+  embed_template(:cli_bat, Mix.Tasks.Release.Init.cli_bat_text())
 end
