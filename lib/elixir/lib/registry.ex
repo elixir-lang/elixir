@@ -1189,7 +1189,7 @@ defmodule Registry do
       ["world", "hello"]
 
   """
-  @doc since: "1.x.x"
+  @doc since: "1.9.0"
   @spec select(registry, spec) :: [term]
   def select(registry, spec)
       when is_atom(registry) and is_list(spec) do
@@ -1201,7 +1201,7 @@ defmodule Registry do
 
           _ ->
             raise ArgumentError,
-                  "invalid arguments, got: #{inspect(registry)} and #{inspect(spec)}"
+                  "invalid match specification in Registry.select/2: #{inspect(spec)}"
         end
       end
 
