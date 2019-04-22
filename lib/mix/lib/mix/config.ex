@@ -52,7 +52,7 @@ defmodule Mix.Config do
   @doc false
   defmacro __using__(_) do
     quote do
-      import Config, only: [config: 2, config: 3, import_config: 1]
+      import Mix.Config, only: [config: 2, config: 3, import_config: 1]
     end
   end
 
