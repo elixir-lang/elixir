@@ -203,6 +203,12 @@ defmodule Registry do
   @typedoc "A list of guards to be evaluated when matching on objects in a registry"
   @type guards :: [guard] | []
 
+  @typedoc "A pattern used to representing the output format part of a match spec"
+  @type body :: [atom | tuple]
+
+  @typedoc "A full match spec used when selecting objects in the registry"
+  @type spec :: [{match_pattern, guards, body}]
+
   ## Via callbacks
 
   @doc false
@@ -1133,6 +1139,80 @@ defmodule Registry do
           count = :ets.select_count(key_ets!(registry, partition_index), spec)
           acc + count
         end)
+    end
+  end
+
+  @doc """
+  Select key, pid, and values registered using full match specs.
+
+  The `spec` consists of a list of three part tuples, in the shape of `[{match_pattern, guards, body}]`.
+
+  The first part, the match pattern, must be a tuple that will match the structure of the
+  the data stored in the registry, which is `{key, pid, value}`. The atom `:_` can be used to
+  ignore a given value or tuple element, while the atom `:"$1"` can be used to temporarily
+  assign part of pattern to a variable for a subsequent comparison. This can be combined
+  like `{:"$1", :_, :_}`.
+
+  The second part, the guards, is a list of conditions that allow filtering the results.
+  Each guard is a tuple, which describes checks that should be passed by assigned part of pattern.
+  For example the `$1 > 1` guard condition would be expressed as the `{:>, :"$1", 1}` tuple.
+  Please note that guard conditions will work only for assigned variables like `:"$1"`, `:"$2"`, etc.
+
+  The third part, the body, is a list of shapes of the returned entries. Like guards, you have access to
+  assigned variables like `:"$1"`, which you can combine with hardcoded values to freely shape entries
+  Note that tuples have to be wrapped in an additional tuple. To get a result format like
+  `%{key: key, pid: pid, value: value}`, assuming you bound those variables in order in the match part,
+  you would provide a body like `[%{key: :"$1", pid: :"$2", value: :"$3"}]`. Like guards, you can use
+  some operations like `:element` to modify the output format.
+
+  Do not use special match variables `:"$_"` and `:"$$"`, because they might not work as expected.
+
+  Note that for large registries with many partitions this will be costly as it builds the result by
+  concatenating all the partitions.
+
+  ## Examples
+
+  This example shows how to get everything from the registry.
+
+      iex> Registry.start_link(keys: :unique, name: Registry.SelectAllTest)
+      iex> {:ok, _} = Registry.register(Registry.SelectAllTest, "hello", :value)
+      iex> {:ok, _} = Registry.register(Registry.SelectAllTest, "world", :value)
+      iex> Registry.select(Registry.SelectAllTest, [{{:"$1", :"$2", :"$3"}, [], [{{:"$1", :"$2", :"$3"}}]}])
+      [{"world", self(), :value}, {"hello", self(), :value}]
+
+  Get all keys in the registry.
+
+      iex> Registry.start_link(keys: :unique, name: Registry.SelectAllTest)
+      iex> {:ok, _} = Registry.register(Registry.SelectAllTest, "hello", :value)
+      iex> {:ok, _} = Registry.register(Registry.SelectAllTest, "world", :value)
+      iex> Registry.select(Registry.SelectAllTest, [{{:"$1", :_, :_}, [], [:"$1"]}])
+      ["world", "hello"]
+
+  """
+  @doc since: "1.9.0"
+  @spec select(registry, spec) :: [term]
+  def select(registry, spec)
+      when is_atom(registry) and is_list(spec) do
+    spec =
+      for part <- spec do
+        case part do
+          {{key, pid, value}, guards, select} ->
+            {{key, {pid, value}}, guards, select}
+
+          _ ->
+            raise ArgumentError,
+                  "invalid match specification in Registry.select/2: #{inspect(spec)}"
+        end
+      end
+
+    case key_info!(registry) do
+      {_kind, partitions, nil} ->
+        Enum.flat_map(0..(partitions - 1), fn partition_index ->
+          :ets.select(key_ets!(registry, partition_index), spec)
+        end)
+
+      {_kind, 1, key_ets} ->
+        :ets.select(key_ets, spec)
     end
   end
 
