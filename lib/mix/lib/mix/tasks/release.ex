@@ -547,6 +547,9 @@ defmodule Mix.Tasks.Release do
     * `RELEASE_NODE` - the release node name, in the format `name@host`.
       It can be set in a custom `bin/start` file to a custom value
 
+    * `RELEASE_VM_ARGS` - the location of the vm.args file. It can be set in
+      a custom `bin/start` file to a custom value
+
     * `RELEASE_TMP` - the directory in the release to write temporary
       files to. It can be set in a custom `bin/start` file to a custom value.
       Defaults to the `$RELEASE_ROOT/tmp`

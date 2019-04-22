@@ -40,6 +40,9 @@ defmodule Mix.Tasks.Release.Init do
   @doc false
   def vm_args_text,
     do: ~S"""
+    ## Customize flags given to the VM: http://erlang.org/doc/man/erl.html
+    ## -name/-sname/-setcookie are given via the CLI, do not set them here
+
     ## Preloads all modules instead of loading them dynamically
     -mode embedded
 
@@ -85,6 +88,7 @@ defmodule Mix.Tasks.Release.Init do
     export RELEASE_COOKIE=${RELEASE_COOKIE:-"$(cat "$RELEASE_ROOT/releases/COOKIE")"}
     export RELEASE_NODE=${RELEASE_NODE:-"$RELEASE_NAME@127.0.0.1"}
     export RELEASE_TMP=${RELEASE_TMP:-"$RELEASE_ROOT/tmp"}
+    export RELEASE_VM_ARGS=${RELEASE_VM_ARGS:-"$RELEASE_ROOT/releases/$RELEASE_VSN/vm.args"}
     REL_VSN_DIR="$RELEASE_ROOT/releases/$RELEASE_VSN"
 
     rand () {
@@ -108,7 +112,7 @@ defmodule Mix.Tasks.Release.Init do
            --erl-config "$RELEASE_SYS_CONFIG" \
            --boot "$REL_VSN_DIR/start" \
            --boot-var RELEASE_LIB "$RELEASE_ROOT/lib" \
-           --vm-args "$REL_VSN_DIR/vm.args" "$@"
+           --vm-args "$RELEASE_VM_ARGS" "$@"
     }
 
     export_release_sys_config () {
@@ -155,7 +159,7 @@ defmodule Mix.Tasks.Release.Init do
            --erl-config "$RELEASE_SYS_CONFIG" \
            --boot "$REL_VSN_DIR/start_clean" \
            --boot-var RELEASE_LIB "$RELEASE_ROOT/lib" \
-           --vm-args "$REL_VSN_DIR/vm.args" --eval "$2"
+           --vm-args "$RELEASE_VM_ARGS" --eval "$2"
         ;;
 
       remote)
@@ -237,6 +241,7 @@ defmodule Mix.Tasks.Release.Init do
     if not defined RELEASE_COOKIE (set /p RELEASE_COOKIE=<!RELEASE_ROOT!\releases\COOKIE)
     if not defined RELEASE_NODE (set RELEASE_NODE=!RELEASE_NAME!@127.0.0.1)
     if not defined RELEASE_TMP (set RELEASE_TMP=!RELEASE_ROOT!\tmp)
+    if not defined RELEASE_VM_ARGS (set RELEASE_TMP=!RELEASE_ROOT!\releases\!RELEASE_VSN!\vm.args)
     set REL_VSN_DIR=!RELEASE_ROOT!\releases\!RELEASE_VSN!
     set RELEASE_SYS_CONFIG=!REL_VSN_DIR!\sys
 
@@ -303,7 +308,7 @@ defmodule Mix.Tasks.Release.Init do
       --erl-config "!RELEASE_SYS_CONFIG!" ^
       --boot "!REL_VSN_DIR!\start" ^
       --boot-var RELEASE_LIB "!RELEASE_ROOT!\lib" ^
-      --vm-args "!REL_VSN_DIR!\vm.args"
+      --vm-args "!RELEASE_VM_ARGS!"
     goto end
 
     :eval
@@ -313,7 +318,7 @@ defmodule Mix.Tasks.Release.Init do
       --erl-config "!RELEASE_SYS_CONFIG!" ^
       --boot "!REL_VSN_DIR!\start_clean" ^
       --boot-var RELEASE_LIB "!RELEASE_ROOT!\lib" ^
-      --vm-args "!REL_VSN_DIR!\vm.args"
+      --vm-args "!RELEASE_VM_ARGS!"
     goto end
 
     :remote
