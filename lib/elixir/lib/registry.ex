@@ -1143,13 +1143,15 @@ defmodule Registry do
   end
 
   @doc """
-  Allows selecting key, pid and values registered using full match specs.
-  The match spec consists of a list of three part tuples, in the shape of `[{match_pattern, guards, body}]`.
+  Select key, pid, and values registered using full match specs.
 
-  The first part, the match pattern, must be an atom or a tuple that will match the structure of the
-  the data stored in the registry, which is `{key, pid, value}`. The atom `:_` can be used to ignore a given
-  value or tuple element, while the atom `:"$1"` can be used to temporarily assign part
-  of pattern to a variable for a subsequent comparison. This can be combined like `{:"$1", :_, :_}`.
+  The `spec` consists of a list of three part tuples, in the shape of `[{match_pattern, guards, body}]`.
+
+  The first part, the match pattern, must be a tuple that will match the structure of the
+  the data stored in the registry, which is `{key, pid, value}`. The atom `:_` can be used to
+  ignore a given value or tuple element, while the atom `:"$1"` can be used to temporarily
+  assign part of pattern to a variable for a subsequent comparison. This can be combined
+  like `{:"$1", :_, :_}`.
 
   The second part, the guards, is a list of conditions that allow filtering the results.
   Each guard is a tuple, which describes checks that should be passed by assigned part of pattern.
@@ -1158,11 +1160,12 @@ defmodule Registry do
 
   The third part, the body, is a list of shapes of the returned entries. Like guards, you have access to
   assigned variables like `:"$1"`, which you can combine with hardcoded values to freely shape entries
-  Note that tuples have to be wrapped in an additional tuple. To get a result format like `%{key: key, pid: pid, value: value}`,
-  assuming you bound those variables in order in the match part, you would provide a body like `[%{key: :"$1", pid: :"$2", value: :"$3"}]`.
-  Like guards, you can use some operations like `:element` to modify the output format.
+  Note that tuples have to be wrapped in an additional tuple. To get a result format like
+  `%{key: key, pid: pid, value: value}`, assuming you bound those variables in order in the match part,
+  you would provide a body like `[%{key: :"$1", pid: :"$2", value: :"$3"}]`. Like guards, you can use
+  some operations like `:element` to modify the output format.
 
-  Avoid usage of special match variables `:"$_"` and `:"$$"`, because they might not work as expected.
+  Do not use special match variables `:"$_"` and `:"$$"`, because they might not work as expected.
 
   Note that for large registries with many partitions this will be costly as it builds the result by
   concatenating all the partitions.
