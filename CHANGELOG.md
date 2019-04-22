@@ -37,8 +37,10 @@
 #### Mix
 
   * [Mix] Follow XDG base dir specification in Mix for temporary and configuration files
+  * [Mix.Generator] Add `copy_file/3`, `copy_template/4`, and `overwite?/2`
   * [mix new] No longer generate a `config/` directory for mix new
   * [mix release] Add support for releases
+  * [mix release.init] Add templates for release configuration
 
 ### 2. Bug fixes
 
