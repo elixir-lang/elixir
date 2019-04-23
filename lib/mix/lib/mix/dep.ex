@@ -364,14 +364,12 @@ defmodule Mix.Dep do
 
   def format_status(%Mix.Dep{app: app, status: {:diverged, other}} = dep) do
     "different specs were given for the #{app} app:\n" <>
-      "#{dep_status(dep)}#{dep_status(other)}" <>
-      "\n  Ensure they match or specify one of the above in your deps and set \"override: true\""
+      "#{dep_status(dep)}#{dep_status(other)}\n  " <> override_diverge_recommendation(dep, other)
   end
 
   def format_status(%Mix.Dep{app: app, status: {:overridden, other}} = dep) do
     "the dependency #{app} in #{Path.relative_to_cwd(dep.from)} is overriding a child dependency:\n" <>
-      "#{dep_status(dep)}#{dep_status(other)}" <>
-      "\n  Ensure they match or specify one of the above in your deps and set \"override: true\""
+      "#{dep_status(dep)}#{dep_status(other)}\n  " <> override_diverge_recommendation(dep, other)
   end
 
   def format_status(%Mix.Dep{status: {:unavailable, _}, scm: scm}) do
@@ -388,6 +386,14 @@ defmodule Mix.Dep do
 
   def format_status(%Mix.Dep{status: {:scmlock, _}}) do
     "the dependency was built with another SCM, run \"#{mix_env_var()}mix deps.compile\""
+  end
+
+  defp override_diverge_recommendation(dep, other) do
+    if dep.opts[:from_umbrella] || other.opts[:from_umbrella] do
+      "Please remove the conflicting options from your definition"
+    else
+      "Ensure they match or specify one of the above in your deps and set \"override: true\""
+    end
   end
 
   defp dep_status(%Mix.Dep{} = dep) do

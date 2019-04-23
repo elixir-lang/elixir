@@ -223,7 +223,9 @@ defmodule Mix.UmbrellaTest do
         assert_received {:mix_shell, :error, ["Dependencies have diverged:"]}
 
         assert_received {:mix_shell, :error,
-                         ["  the dependency foo in mix.exs is overriding a child" <> _]}
+                         ["  the dependency foo in mix.exs is overriding a child" <> message]}
+
+        assert message =~ "Please remove the conflicting options from your definition"
       end)
     end)
   end
