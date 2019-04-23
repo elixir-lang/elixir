@@ -84,7 +84,7 @@ defmodule Logger.Config do
       {counter, :log, Application.fetch_env!(:logger, :discard_threshold),
        Application.fetch_env!(:logger, :discard_threshold_periodic_check)}
 
-    :ets.lookup_element(@table, :log_data, 2) || compute_data(state)
+    read_data(:log_data) || compute_data(state)
     state = update_counter(state, false)
     {:ok, state}
   end
@@ -122,7 +122,7 @@ defmodule Logger.Config do
 
   def handle_call({:deleted_handlers, new}, state) do
     old = deleted_handlers()
-    true = :ets.update_element(@table, :deleted_handlers, {2, new})
+    update_data(:deleted_handlers, new)
     {:ok, old, state}
   end
 
@@ -225,19 +225,38 @@ defmodule Logger.Config do
 
   ## Data helpers
 
+  # TODO: Use persistent_term exclusively when we require Erlang/OTP 22+.
+  # Once we do this, we can also:
+  #
+  # * Remove the initialization of deleted_handlers (the default value can be given on read)
+  # * Merge translation_data and log_data into a single map
+  #
   defp new_data do
-    entries = [
-      {:log_data, nil},
-      {:translation_data, nil},
-      {:deleted_handlers, []}
-    ]
+    if Code.ensure_loaded?(:persistent_term) do
+      :persistent_term.put({@table, :deleted_handlers}, [])
+    else
+      entries = [
+        {:log_data, nil},
+        {:translation_data, nil},
+        {:deleted_handlers, []}
+      ]
 
-    table = :ets.new(@table, [:named_table, :public, {:read_concurrency, true}])
-    true = :ets.insert_new(@table, entries)
-    table
+      _ = :ets.new(@table, [:named_table, :public, {:read_concurrency, true}])
+      true = :ets.insert_new(@table, entries)
+    end
+
+    @table
   end
 
-  defp delete_data(@table), do: :ets.delete(@table)
+  defp delete_data(@table) do
+    if :erlang.module_loaded(:persistent_term) do
+      :persistent_term.erase({@table, :log_data})
+      :persistent_term.erase({@table, :translation_data})
+      :persistent_term.erase({@table, :deleted_handlers})
+    else
+      :ets.delete(@table)
+    end
+  end
 
   defp update_translators(fun) do
     translation_data = read_data!(:translation_data)
@@ -271,7 +290,7 @@ defmodule Logger.Config do
 
   defp read_data!(key) do
     try do
-      :ets.lookup_element(@table, key, 2)
+      read_data(key)
     rescue
       ArgumentError ->
         raise "cannot use Logger, the :logger application is not running"
@@ -284,7 +303,19 @@ defmodule Logger.Config do
     end
   end
 
+  defp read_data(key) do
+    if :erlang.module_loaded(:persistent_term) do
+      :persistent_term.get({@table, key}, nil)
+    else
+      :ets.lookup_element(@table, key, 2)
+    end
+  end
+
   defp update_data(key, value) do
-    :ets.update_element(@table, key, {2, value})
+    if :erlang.module_loaded(:persistent_term) do
+      :persistent_term.put({@table, key}, value)
+    else
+      :ets.insert(@table, {key, value})
+    end
   end
 end
