@@ -158,6 +158,7 @@ defmodule EEx.Engine do
 
   @doc false
   def handle_begin(state) do
+    check_state!(state)
     %{state | binary: [], dynamic: []}
   end
 
@@ -168,6 +169,7 @@ defmodule EEx.Engine do
 
   @doc false
   def handle_body(state) do
+    check_state!(state)
     %{binary: binary, dynamic: dynamic} = state
     binary = {:<<>>, [], Enum.reverse(binary)}
     dynamic = [binary | dynamic]
@@ -206,5 +208,12 @@ defmodule EEx.Engine do
   def handle_expr(_state, marker, _ast) when marker in ["/", "|"] do
     raise EEx.SyntaxError,
           "unsupported EEx syntax <%#{marker} %> (the syntax is valid but not supported by the current EEx engine)"
+  end
+
+  defp check_state!(%{binary: _, dynamic: _, vars_count: _}), do: :ok
+
+  defp check_state!(state) do
+    raise "unexpected EEx.Engine state: #{inspect(state)}. " <>
+            "This typically means a bug or an outdated EEx.Engine or tool"
   end
 end
