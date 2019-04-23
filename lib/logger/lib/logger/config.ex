@@ -4,6 +4,8 @@ defmodule Logger.Config do
   @behaviour :gen_event
   @name __MODULE__
   @table __MODULE__
+  @data_key __MODULE__
+  @deleted_handlers_key __MODULE__.DeletedHandlers
   @counter_pos 1
   @update_counter_message {__MODULE__, :update_counter}
 
@@ -20,7 +22,7 @@ defmodule Logger.Config do
   end
 
   def level do
-    %{level: level} = read_data!(:translation_data)
+    %{level: level} = read_data!(@data_key)
     level
   end
 
@@ -36,11 +38,11 @@ defmodule Logger.Config do
   defp level_to_number(:error), do: 3
 
   def translation_data do
-    read_data!(:translation_data)
+    read_data!(@data_key)
   end
 
   def log_data(level) do
-    %{level: min_level} = config = read_data!(:log_data)
+    %{level: min_level} = config = read_data!(@data_key)
 
     if compare_levels(level, min_level) != :lt do
       %{thresholds: {counter, sync, discard}} = config
@@ -58,7 +60,7 @@ defmodule Logger.Config do
 
   def deleted_handlers do
     try do
-      :ets.lookup_element(@table, :deleted_handlers, 2)
+      read_data(@deleted_handlers_key, [])
     rescue
       ArgumentError -> []
     end
@@ -84,7 +86,7 @@ defmodule Logger.Config do
       {counter, :log, Application.fetch_env!(:logger, :discard_threshold),
        Application.fetch_env!(:logger, :discard_threshold_periodic_check)}
 
-    read_data(:log_data) || compute_data(state)
+    read_data(@data_key, nil) || compute_data(state)
     state = update_counter(state, false)
     {:ok, state}
   end
@@ -122,7 +124,7 @@ defmodule Logger.Config do
 
   def handle_call({:deleted_handlers, new}, state) do
     old = deleted_handlers()
-    update_data(:deleted_handlers, new)
+    update_data(@deleted_handlers_key, new)
     {:ok, old, state}
   end
 
@@ -226,21 +228,13 @@ defmodule Logger.Config do
   ## Data helpers
 
   # TODO: Use persistent_term exclusively when we require Erlang/OTP 22+.
-  # Once we do this, we can also:
-  #
-  # * Remove the initialization of deleted_handlers (the default value can be given on read)
-  # * Merge translation_data and log_data into a single map
-  #
   defp new_data do
-    if Code.ensure_loaded?(:persistent_term) do
-      :persistent_term.put({@table, :log_data}, nil)
-      :persistent_term.put({@table, :translation_data}, nil)
-      :persistent_term.put({@table, :deleted_handlers}, [])
-    else
+    _ = Code.ensure_loaded(:persistent_term)
+
+    if not function_exported?(:persistent_term, :get, 2) do
       entries = [
-        {:log_data, nil},
-        {:translation_data, nil},
-        {:deleted_handlers, []}
+        {@data_key, nil},
+        {@deleted_handlers_key, []}
       ]
 
       _ = :ets.new(@table, [:named_table, :public, {:read_concurrency, true}])
@@ -251,20 +245,19 @@ defmodule Logger.Config do
   end
 
   defp delete_data(@table) do
-    if :erlang.module_loaded(:persistent_term) do
-      :persistent_term.erase({@table, :log_data})
-      :persistent_term.erase({@table, :translation_data})
-      :persistent_term.erase({@table, :deleted_handlers})
+    if function_exported?(:persistent_term, :get, 2) do
+      :persistent_term.erase(@data_key)
+      :persistent_term.erase(@deleted_handlers_key)
     else
       :ets.delete(@table)
     end
   end
 
   defp update_translators(fun) do
-    translation_data = read_data!(:translation_data)
-    translators = fun.(translation_data.translators)
+    data = read_data!(@data_key)
+    translators = fun.(data.translators)
     Application.put_env(:logger, :translators, translators)
-    update_data(:translation_data, %{translation_data | translators: translators})
+    update_data(@data_key, %{data | translators: translators})
   end
 
   defp compute_data({counter, _mode, _discard_threshold, _discard_period}) do
@@ -272,27 +265,21 @@ defmodule Logger.Config do
     discard_threshold = Application.fetch_env!(:logger, :discard_threshold)
     discard_period = Application.fetch_env!(:logger, :discard_threshold_periodic_check)
 
-    log_data = %{
+    data = %{
       level: Application.fetch_env!(:logger, :level),
       utc_log: Application.fetch_env!(:logger, :utc_log),
       truncate: Application.fetch_env!(:logger, :truncate),
+      translators: Application.fetch_env!(:logger, :translators),
       thresholds: {counter, sync_threshold, discard_threshold}
     }
 
-    translation_data = %{
-      level: Application.fetch_env!(:logger, :level),
-      translators: Application.fetch_env!(:logger, :translators),
-      truncate: Application.fetch_env!(:logger, :truncate)
-    }
-
-    update_data(:log_data, log_data)
-    update_data(:translation_data, translation_data)
+    update_data(@data_key, data)
     {counter, :log, discard_threshold, discard_period}
   end
 
   defp read_data!(key) do
     try do
-      read_data(key)
+      read_data(key, nil)
     rescue
       ArgumentError ->
         raise "cannot use Logger, the :logger application is not running"
@@ -305,17 +292,17 @@ defmodule Logger.Config do
     end
   end
 
-  defp read_data(key) do
-    if :erlang.module_loaded(:persistent_term) do
-      :persistent_term.get({@table, key})
+  defp read_data(key, default) do
+    if function_exported?(:persistent_term, :get, 2) do
+      :persistent_term.get(key, default)
     else
       :ets.lookup_element(@table, key, 2)
     end
   end
 
   defp update_data(key, value) do
-    if :erlang.module_loaded(:persistent_term) do
-      :persistent_term.put({@table, key}, value)
+    if function_exported?(:persistent_term, :get, 2) do
+      :persistent_term.put(key, value)
     else
       :ets.insert(@table, {key, value})
     end
