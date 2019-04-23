@@ -233,6 +233,8 @@ defmodule Logger.Config do
   #
   defp new_data do
     if Code.ensure_loaded?(:persistent_term) do
+      :persistent_term.put({@table, :log_data}, nil)
+      :persistent_term.put({@table, :translation_data}, nil)
       :persistent_term.put({@table, :deleted_handlers}, [])
     else
       entries = [
@@ -305,7 +307,7 @@ defmodule Logger.Config do
 
   defp read_data(key) do
     if :erlang.module_loaded(:persistent_term) do
-      :persistent_term.get({@table, key}, nil)
+      :persistent_term.get({@table, key})
     else
       :ets.lookup_element(@table, key, 2)
     end
