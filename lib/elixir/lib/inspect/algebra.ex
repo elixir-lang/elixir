@@ -250,11 +250,27 @@ defmodule Inspect.Algebra do
 
   # Elixir + Inspect.Opts conveniences
 
+  @doc """
+  Gets the current inspect function.
+
+  See `put_inspect_fun/1` for more information.
+  """
+  @doc since: "1.9.0"
+  @spec get_inspect_fun() :: (any, Inspect.Opts.t() -> t)
   def get_inspect_fun() do
     # using :application instead of Application due to bootstrapping
     :application.get_env(:elixir, :inspect_fun, &to_doc/2)
   end
 
+  @doc """
+  Sets the current inspect function.
+
+  By default, functions like `Kernel.inspect/2`, `IO.inspect/2` etc
+  use `Inspect.Algebra.to_doc/2` to build an algebra document. This
+  function allows to use a custom function instead.
+  """
+  @doc since: "1.9.0"
+  @spec put_inspect_fun((any, Inspect.Opts.t() -> t)) :: :ok
   def put_inspect_fun(inspect_fun) when is_function(inspect_fun, 2) do
     :application.set_env(:elixir, :inspect_fun, inspect_fun)
   end

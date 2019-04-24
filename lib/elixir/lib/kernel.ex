@@ -2057,6 +2057,7 @@ defmodule Kernel do
   def inspect(term, opts \\ []) when is_list(opts) do
     opts = struct(Inspect.Opts, opts)
     inspect_fun = Inspect.Algebra.get_inspect_fun()
+    doc = Inspect.Algebra.group(inspect_fun.(term, opts))
 
     limit =
       case opts.pretty do
@@ -2064,7 +2065,6 @@ defmodule Kernel do
         false -> :infinity
       end
 
-    doc = Inspect.Algebra.group(inspect_fun.(term, opts))
     IO.iodata_to_binary(Inspect.Algebra.format(doc, limit))
   end
 

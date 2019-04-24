@@ -279,4 +279,24 @@ defmodule Inspect.AlgebraTest do
     assert sm.(["a" | empty()]) |> render(80) == "[a]"
     assert sm.([empty() | "b"]) |> render(80) == "[b]"
   end
+
+  defmodule Custom do
+    defstruct []
+  end
+
+  test "put_inspect_fun/1" do
+    fun = fn
+      %Custom{}, _opts ->
+        "#Custom<>"
+
+      term, opts ->
+        Inspect.Algebra.to_doc(term, opts)
+    end
+
+    Inspect.Algebra.put_inspect_fun(fun)
+    assert Inspect.Algebra.get_inspect_fun() == fun
+    assert inspect(%Custom{}) == "#Custom<>"
+  after
+    Inspect.Algebra.put_inspect_fun(&Inspect.Algebra.to_doc/2)
+  end
 end
