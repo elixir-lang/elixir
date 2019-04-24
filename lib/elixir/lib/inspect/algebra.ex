@@ -250,6 +250,15 @@ defmodule Inspect.Algebra do
 
   # Elixir + Inspect.Opts conveniences
 
+  def get_inspect_fun() do
+    # using :application instead of Application due to bootstrapping
+    :application.get_env(:elixir, :inspect_fun, &to_doc/2)
+  end
+
+  def put_inspect_fun(inspect_fun) when is_function(inspect_fun, 2) do
+    :application.set_env(:elixir, :inspect_fun, inspect_fun)
+  end
+
   @doc """
   Converts an Elixir term to an algebra document
   according to the `Inspect` protocol.

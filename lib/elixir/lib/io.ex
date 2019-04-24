@@ -392,7 +392,8 @@ defmodule IO do
   def inspect(device, item, opts) when is_list(opts) do
     label = if label = opts[:label], do: [to_chardata(label), ": "], else: []
     opts = struct(Inspect.Opts, opts)
-    doc = Inspect.Algebra.group(Inspect.Algebra.to_doc(item, opts))
+    inspect_fun = Inspect.Algebra.get_inspect_fun()
+    doc = Inspect.Algebra.group(inspect_fun.(item, opts))
     chardata = Inspect.Algebra.format(doc, opts.width)
     puts(device, [label, chardata])
     item

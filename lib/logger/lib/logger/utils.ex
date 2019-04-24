@@ -162,9 +162,8 @@ defmodule Logger.Utils do
   defp inspect_width(_, width), do: width
 
   defp inspect_data([data | _], opts) do
-    data
-    |> Inspect.Algebra.to_doc(opts)
-    |> Inspect.Algebra.format(opts.width)
+    inspect_fun = Inspect.Algebra.get_inspect_fun()
+    Inspect.Algebra.format(inspect_fun.(data, opts), opts.width)
   end
 
   @doc """
