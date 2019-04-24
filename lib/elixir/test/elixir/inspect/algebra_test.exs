@@ -296,6 +296,7 @@ defmodule Inspect.AlgebraTest do
     Inspect.Algebra.put_inspect_fun(fun)
     assert Inspect.Algebra.get_inspect_fun() == fun
     assert inspect(%Custom{}) == "#Custom<>"
+    assert inspect([%Custom{}]) == "[#Custom<>]"
   after
     Inspect.Algebra.put_inspect_fun(&Inspect.Algebra.to_doc/2)
   end

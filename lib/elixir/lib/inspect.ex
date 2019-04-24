@@ -206,14 +206,14 @@ defimpl Inspect, for: List do
         container_doc(open, term, close, opts, &keyword/2, separator: sep, break: :strict)
 
       true ->
-        container_doc(open, term, close, opts, &to_doc/2, separator: sep)
+        container_doc(open, term, close, opts, Inspect.Algebra.get_inspect_fun(), separator: sep)
     end
   end
 
   @doc false
   def keyword({key, value}, opts) do
     key = color(Identifier.inspect_as_key(key), :atom, opts)
-    concat(key, concat(" ", to_doc(value, opts)))
+    concat(key, concat(" ", Inspect.Algebra.get_inspect_fun().(value, opts)))
   end
 
   @doc false
@@ -234,7 +234,8 @@ defimpl Inspect, for: Tuple do
     sep = color(",", :tuple, opts)
     close = color("}", :tuple, opts)
     container_opts = [separator: sep, break: :flex]
-    container_doc(open, Tuple.to_list(tuple), close, opts, &to_doc/2, container_opts)
+    to_doc = Inspect.Algebra.get_inspect_fun()
+    container_doc(open, Tuple.to_list(tuple), close, opts, to_doc, container_opts)
   end
 end
 
@@ -261,7 +262,8 @@ defimpl Inspect, for: Map do
   end
 
   defp to_map({key, value}, opts, sep) do
-    concat(concat(to_doc(key, opts), sep), to_doc(value, opts))
+    to_doc = Inspect.Algebra.get_inspect_fun()
+    concat(concat(to_doc.(key, opts), sep), to_doc.(value, opts))
   end
 end
 

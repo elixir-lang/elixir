@@ -1590,6 +1590,7 @@ defimpl Inspect, for: Stream do
 
   def inspect(%{enum: enum, funs: funs}, opts) do
     inner = [enum: enum, funs: Enum.reverse(funs)]
-    concat(["#Stream<", to_doc(inner, opts), ">"])
+    to_doc = Inspect.Algebra.get_inspect_fun()
+    concat(["#Stream<", to_doc.(inner, opts), ">"])
   end
 end
