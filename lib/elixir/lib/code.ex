@@ -264,6 +264,13 @@ defmodule Code do
       expects a valid `Version` which is usually the minimum Elixir
       version supported by the project.
 
+    * `:force_do_end_blocks` (since v1.9.0) - when `true`, converts all
+      inline usages of `do: ...`,  `else: ...` and friends into `do/end`
+      blocks. Defaults to `false`. Notice this option is convergent:
+      once you set it to `true`, all keywords will be converted. If you
+      set it to `false` later on, `do/end` blocks won't be converted
+      back to keywords.
+
   ## Design principles
 
   The formatter was designed under three principles.
