@@ -47,7 +47,7 @@ defmodule EEx.Tokenizer do
         error
 
       {:ok, _, new_line, rest} ->
-        {rest, new_line, buffer} = trim_if_needed(rest, new_line, opts, buffer, acc)
+        {_, rest, new_line, buffer} = trim_if_needed(rest, new_line, opts, buffer, acc)
         tokenize(rest, new_line, opts, buffer, acc)
     end
   end
