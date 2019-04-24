@@ -61,9 +61,9 @@ defmodule EEx.Tokenizer do
 
       {:ok, expr, new_line, rest} ->
         token = token_name(expr)
-        {rest, new_line, buffer} = trim_if_needed(rest, new_line, opts, buffer, acc)
+        {trimmed?, rest, new_line, buffer} = trim_if_needed(rest, new_line, opts, buffer, acc)
         acc = tokenize_text(buffer, acc)
-        final = {token, line, marker, Enum.reverse(expr)}
+        final = {token, line, marker, Enum.reverse(expr), trimmed?}
         tokenize(rest, new_line, opts, [], [final | acc])
     end
   end
@@ -204,24 +204,19 @@ defmodule EEx.Tokenizer do
   # only itself and whitespace, trim the whitespace around it,
   # including the line break following it if there is one.
   defp trim_if_needed(rest, line, opts, buffer, acc) do
-    original = {rest, line, buffer}
-
-    if opts[:trim] do
-      case {trim_left(buffer, acc), trim_right(rest, line)} do
-        {{true, new_buffer}, {true, new_rest, new_line}} ->
-          {new_rest, new_line, new_buffer}
-
-        _ ->
-          original
-      end
+    with true <- opts[:trim],
+         {true, new_buffer} <- trim_left(buffer, acc),
+         {true, new_rest, new_line} <- trim_right(rest, line) do
+      {true, new_rest, new_line, new_buffer}
     else
-      original
+      _ -> {false, rest, line, buffer}
     end
   end
 
   defp trim_left(buffer, acc) do
     case {trim_whitespace(buffer), acc} do
       {[?\n | _] = trimmed_buffer, _} -> {true, trimmed_buffer}
+      {[], [{_, _, _, _, true} | _]} -> {true, []}
       {[], []} -> {true, []}
       _ -> {false, buffer}
     end
