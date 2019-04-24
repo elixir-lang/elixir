@@ -41,35 +41,40 @@ defmodule EEx.Compiler do
     generate_buffer(rest, buffer, scope, state)
   end
 
-  defp generate_buffer([{:expr, line, mark, chars} | rest], buffer, scope, state) do
+  defp generate_buffer([{:expr, line, mark, chars, _} | rest], buffer, scope, state) do
     expr = Code.string_to_quoted!(chars, line: line, file: state.file)
     buffer = state.engine.handle_expr(buffer, IO.chardata_to_string(mark), expr)
     generate_buffer(rest, buffer, scope, state)
   end
 
-  defp generate_buffer([{:start_expr, start_line, mark, chars} | rest], buffer, scope, state) do
-    {contents, line, rest} = look_ahead_text(rest, start_line, chars)
+  defp generate_buffer([{:start_expr, start_line, mark, chars, _} | rest], buffer, scope, state) do
+    {contents, line, rest} = look_ahead_middle(rest, start_line, chars)
 
     {contents, rest} =
-      generate_buffer(rest, state.engine.handle_begin(buffer), [contents | scope], %{
-        state
-        | quoted: [],
-          line: line,
-          start_line: start_line
-      })
+      generate_buffer(
+        rest,
+        state.engine.handle_begin(buffer),
+        [contents | scope],
+        %{state | quoted: [], line: line, start_line: start_line}
+      )
 
     buffer = state.engine.handle_expr(buffer, IO.chardata_to_string(mark), contents)
     generate_buffer(rest, buffer, scope, state)
   end
 
-  defp generate_buffer([{:middle_expr, line, '', chars} | rest], buffer, [current | scope], state) do
+  defp generate_buffer(
+         [{:middle_expr, line, '', chars, _} | rest],
+         buffer,
+         [current | scope],
+         state
+       ) do
     {wrapped, state} = wrap_expr(current, line, buffer, chars, state)
     state = %{state | line: line}
     generate_buffer(rest, state.engine.handle_begin(buffer), [wrapped | scope], state)
   end
 
   defp generate_buffer(
-         [{:middle_expr, line, modifier, chars} | t],
+         [{:middle_expr, line, modifier, chars, trimmed?} | t],
          buffer,
          [_ | _] = scope,
          state
@@ -79,37 +84,42 @@ defmodule EEx.Compiler do
         "please remove \"#{modifier}\" accordingly"
 
     :elixir_errors.erl_warn(line, state.file, message)
-    generate_buffer([{:middle_expr, line, '', chars} | t], buffer, scope, state)
+    generate_buffer([{:middle_expr, line, '', chars, trimmed?} | t], buffer, scope, state)
     # TODO: Make this an error on Elixir v2.0 since it accidentally worked previously.
     # raise EEx.SyntaxError, message: message, file: state.file, line: line
   end
 
-  defp generate_buffer([{:middle_expr, line, _, chars} | _], _buffer, [], state) do
+  defp generate_buffer([{:middle_expr, line, _, chars, _} | _], _buffer, [], state) do
     raise EEx.SyntaxError,
       message: "unexpected middle of expression <%#{chars}%>",
       file: state.file,
       line: line
   end
 
-  defp generate_buffer([{:end_expr, line, '', chars} | rest], buffer, [current | _], state) do
+  defp generate_buffer([{:end_expr, line, '', chars, _} | rest], buffer, [current | _], state) do
     {wrapped, state} = wrap_expr(current, line, buffer, chars, state)
     tuples = Code.string_to_quoted!(wrapped, line: state.start_line, file: state.file)
     buffer = insert_quoted(tuples, state.quoted)
     {buffer, rest}
   end
 
-  defp generate_buffer([{:end_expr, line, modifier, chars} | t], buffer, [_ | _] = scope, state) do
+  defp generate_buffer(
+         [{:end_expr, line, modifier, chars, trimmed?} | t],
+         buffer,
+         [_ | _] = scope,
+         state
+       ) do
     message =
       "unexpected beginning of EEx tag \"<%#{modifier}\" on end of " <>
         "expression \"<%#{modifier}#{chars}%>\", please remove \"#{modifier}\" accordingly"
 
     :elixir_errors.erl_warn(line, state.file, message)
-    generate_buffer([{:end_expr, line, '', chars} | t], buffer, scope, state)
+    generate_buffer([{:end_expr, line, '', chars, trimmed?} | t], buffer, scope, state)
     # TODO: Make this an error on Elixir v2.0 since it accidentally worked previously.
     # raise EEx.SyntaxError, message: message, file: state.file, line: line
   end
 
-  defp generate_buffer([{:end_expr, line, _, chars} | _], _buffer, [], state) do
+  defp generate_buffer([{:end_expr, line, _, chars, _} | _], _buffer, [], state) do
     raise EEx.SyntaxError,
       message: "unexpected end of expression <%#{chars}%>",
       file: state.file,
@@ -139,10 +149,10 @@ defmodule EEx.Compiler do
     {count, new_state}
   end
 
-  # Look text ahead on expressions
+  # Look middle expressions that immediatelly follow a start_expr
 
-  defp look_ahead_text(
-         [{:text, text}, {:middle_expr, line, _, chars} | rest] = tokens,
+  defp look_ahead_middle(
+         [{:text, text}, {:middle_expr, line, _, chars, _} | rest] = tokens,
          start,
          contents
        ) do
@@ -153,11 +163,11 @@ defmodule EEx.Compiler do
     end
   end
 
-  defp look_ahead_text([{:middle_expr, line, _, chars} | rest], _start, contents) do
+  defp look_ahead_middle([{:middle_expr, line, _, chars, _} | rest], _start, contents) do
     {contents ++ chars, line, rest}
   end
 
-  defp look_ahead_text(tokens, start, contents) do
+  defp look_ahead_middle(tokens, start, contents) do
     {contents, start, tokens}
   end
 

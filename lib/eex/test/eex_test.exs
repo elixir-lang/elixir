@@ -84,6 +84,18 @@ defmodule EExTest do
       assert_eval(expected, string, [], trim: true)
     end
 
+    test "trim mode with multiple lines" do
+      string = """
+      <%= "First line" %>
+      <%= "Second line" %>
+      <%= "Third line" %>
+      <%= "Fourth line" %>
+      """
+
+      expected = "First lineSecond lineThird lineFourth line"
+      assert_eval(expected, string, [], trim: true)
+    end
+
     test "embedded code" do
       assert_eval("foo bar", "foo <%= :bar %>")
     end
