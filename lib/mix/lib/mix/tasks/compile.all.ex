@@ -54,6 +54,10 @@ defmodule Mix.Tasks.Compile.All do
 
     case new_status do
       :error ->
+        if "--return-errors" not in args do
+          exit({:shutdown, 1})
+        end
+
         {:error, diagnostics}
 
       :ok ->
