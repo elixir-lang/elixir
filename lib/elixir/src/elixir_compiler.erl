@@ -168,7 +168,8 @@ bootstrap_main() ->
    <<"lib/elixir/lib/kernel/cli.ex">>,
    <<"lib/elixir/lib/kernel/error_handler.ex">>,
    <<"lib/elixir/lib/kernel/parallel_compiler.ex">>,
-   <<"lib/elixir/lib/kernel/lexical_tracker.ex">>].
+   <<"lib/elixir/lib/kernel/lexical_tracker.ex">>,
+   <<"lib/elixir/lib/kernel/types.ex">>].
 
 binary_to_path({ModuleName, Binary}, CompilePath) ->
   Path = filename:join(CompilePath, atom_to_list(ModuleName) ++ ".beam"),
