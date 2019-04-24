@@ -133,6 +133,8 @@ defmodule Code.Formatter do
     import_config: 1
   ]
 
+  @do_end_keywords [:rescue, :catch, :else, :after]
+
   @doc """
   Checks if two strings are equivalent.
   """
@@ -235,6 +237,8 @@ defmodule Code.Formatter do
   end
 
   defp state(comments, opts) do
+    force_do_end_blocks = Keyword.get(opts, :force_do_end_blocks, false)
+
     rename_deprecated_at =
       if version = opts[:rename_deprecated_at] do
         case Version.parse(version) do
@@ -251,6 +255,7 @@ defmodule Code.Formatter do
       Keyword.get(opts, :locals_without_parens, []) ++ @locals_without_parens
 
     %{
+      force_do_end_blocks: force_do_end_blocks,
       locals_without_parens: locals_without_parens,
       operand_nesting: 2,
       rename_deprecated_at: rename_deprecated_at,
@@ -1103,7 +1108,7 @@ defmodule Code.Formatter do
   defp call_args_to_algebra(args, meta, context, parens, list_to_keyword?, state) do
     {rest, last} = split_last(args)
 
-    if blocks = do_end_blocks(last) do
+    if blocks = do_end_blocks(last, state) do
       {call_doc, state} =
         if rest == [] do
           {" do", state}
@@ -1257,16 +1262,19 @@ defmodule Code.Formatter do
     not Enum.any?(args, &match?({:<-, _, [_, _]}, &1))
   end
 
-  defp do_end_blocks([{{:__block__, meta, [:do]}, _} | _] = blocks) do
-    if meta[:format] == :block do
+  defp do_end_blocks([{{:__block__, meta, [:do]}, _} | rest] = blocks, state) do
+    if meta[:format] == :block or can_force_do_end_blocks?(rest, state) do
       blocks
       |> Enum.map(fn {{:__block__, meta, [key]}, value} -> {key, line(meta), value} end)
       |> do_end_blocks_with_range(end_line(meta))
     end
   end
 
-  defp do_end_blocks(_) do
-    nil
+  defp do_end_blocks(_, _), do: nil
+
+  defp can_force_do_end_blocks?(rest, state) do
+    state.force_do_end_blocks and
+      Enum.all?(rest, fn {{:__block__, _, [key]}, _} -> key in @do_end_keywords end)
   end
 
   defp do_end_blocks_with_range([{key1, line1, value1}, {_, line2, _} = h | t], end_line) do
