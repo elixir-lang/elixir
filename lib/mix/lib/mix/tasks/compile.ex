@@ -98,10 +98,6 @@ defmodule Mix.Tasks.Compile do
       |> Enum.map(&Mix.Task.Compiler.normalize(&1, :all))
       |> Enum.reduce({:noop, []}, &merge_diagnostics/2)
 
-    if res == :error and "--return-errors" not in args do
-      exit({:shutdown, 1})
-    end
-
     res =
       if consolidate_protocols?(res) and "--no-protocol-consolidation" not in args do
         Mix.Task.run("compile.protocols", args)

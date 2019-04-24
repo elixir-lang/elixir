@@ -201,7 +201,7 @@ defmodule Mix.UmbrellaTest do
     end)
   end
 
-  test "umbrella sibling dependencies conflicts with :in_umbrella" do
+  test "conflicts with umbrella sibling dependencies in :in_umbrella" do
     in_fixture("umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
         File.write!("apps/bar/mix.exs", """
@@ -328,6 +328,22 @@ defmodule Mix.UmbrellaTest do
         Mix.Task.run("compile", ["--verbose"])
         assert_receive {:mix_shell, :info, ["no compile bar"]}
         refute_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
+      end)
+    end)
+  end
+
+  test "halts when sibling fails to compile" do
+    in_fixture("umbrella_dep/deps/umbrella", fn ->
+      Mix.Project.in_project(:umbrella, ".", fn _ ->
+        File.write!("apps/foo/lib/foo.ex", "raise ~s[oops]")
+
+        ExUnit.CaptureIO.capture_io(fn ->
+          assert catch_exit(Mix.Task.run("compile", ["--verbose"]))
+        end)
+
+        refute_received {:mix_shell, :info, ["Generated foo app"]}
+        refute_received {:mix_shell, :info, ["Generated bar app"]}
+        refute Code.ensure_loaded?(Bar)
       end)
     end)
   end
