@@ -6,17 +6,19 @@
 
 #### EEx
 
-  * [EEx] Allow more complex mixed expression when tokenizing
+  * [EEx] Allow more complex mixed expressions when tokenizing
 
 #### Elixir
 
   * [Access] Allow `Access.at/1` to handle negative index
   * [CLI] Add support for `--boot`, `--boot-var`, `--erl-config`, `--pipe-to`, `--rpc-eval`, and `--vm-args` options
   * [Code] Add `static_atom_encoder` option to `Code.string_to_quoted/2`
+  * [Code] Support `:force_do_end_blocks` on `Code.format_string!/2` and `Code.format_file!/2`
   * [Code] Allow `Code.ensure_compiled/2` to not raise on deadlocks
   * [Config] Add `Config`, `Config.Reader` and `Config.Provider` modules for working with configuration
   * [File] Add `File.rename!/2`
   * [Kernel] Add `~U` sigil for UTC date times
+  * [Kernel] Optimize `&super/arity` and `&super(&1)`
   * [Kernel] Optimize generated code for `with` with a catch-all clause
   * [Kernel] Validate `__struct__` key in map returned by `__struct__/0,1`
   * [Protocol] Improve `Protocol.UndefinedError` messages to also include the type that was attempted to dispatch on
@@ -33,6 +35,7 @@
 #### Logger
 
   * [Logger] Use a descentralized mode computation for Logger which allows overloads to be detect more quickly
+  * [Logger] Use `persistent_term` to store configuration whenever available for performance
 
 #### Mix
 
@@ -43,6 +46,10 @@
   * [mix release.init] Add templates for release configuration
 
 ### 2. Bug fixes
+
+#### EEx
+
+  * [EEx] Consistently trim newlines when you have a single EEx expression per line on multiple lines
 
 #### Elixir
 
@@ -56,6 +63,7 @@
   * [System] Make sure `:init.get_status/0` is set to `{:started, :started}` once the system starts
   * [Protocol] Ensure `debug_info` is kept in protocols
   * [Regex] Ensure inspect returns valid `~r//` expressions when they are manually compiled with backslashes
+  * [Registry] Fix ETS leak in `Registry.register/2` for already registered calls in unique registries while the process is still alive
 
 #### ExUnit
 
@@ -68,6 +76,7 @@
 #### Mix
 
   * [mix compile] Ensure Erlang-based Mix compilers (erlang, leex, yecc) set valid position on diagnostics
+  * [mix compile] Ensure compilation halts in an umbrella project if one of the siblings fail to compile
   * [mix test] Do not consider modules that are no longer cover compiled when computing coverage report, which could lead to flawed reports
 
 ### 3. Soft-deprecations (no warnings emitted)
