@@ -54,6 +54,22 @@ defmodule Kernel.Types do
     {:ok, :integer, context}
   end
 
+  def of_pattern(literal, context) when is_float(literal) do
+    {:ok, :float, context}
+  end
+
+  def of_pattern(literal, context) when is_binary(literal) do
+    {:ok, :binary, context}
+  end
+
+  def of_pattern({:<<>>, _meta, args}, context) do
+    # TODO: Add bitstring type
+    case of_binary(args, context) do
+      {:ok, context} -> {:ok, :binary, context}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
   def of_pattern([{:|, _meta, [left_expr, right_expr]}], context) do
     with {:ok, left, context} <- of_pattern(left_expr, context),
          {:ok, right, context} <- of_pattern(right_expr, context),
@@ -96,6 +112,47 @@ defmodule Kernel.Types do
     {:error, {:unsupported_pattern, expr}}
   end
 
+  defp of_binary([], context) do
+    {:ok, context}
+  end
+
+  defp of_binary([{:"::", _meta, [expr, specifiers]} | args], context) do
+    specifiers = List.flatten(collect_specifiers(specifiers))
+
+    expected_type =
+      cond do
+        :integer in specifiers -> :integer
+        :float in specifiers -> :float
+        # TODO: Add bitstring type
+        :bits in specifiers -> :binary
+        :bitstring in specifiers -> :binary
+        :bytes in specifiers -> :binary
+        :binary in specifiers -> :binary
+        # TODO: UTF needs union support
+        # :utf8 in specifiers -> {:union, [:integer, :binary]}
+        # :utf16 in specifiers -> {:union, [:integer, :binary]}
+        # :utf32 in specifiers -> {:union, [:integer, :binary]}
+        true -> :integer
+      end
+
+    with {:ok, type, context} <- of_pattern(expr, context),
+         {:ok, _type, context} <- unify(type, expected_type, context),
+         do: of_binary(args, context)
+  end
+
+  defp of_binary([expr | args], context) do
+    case of_pattern(expr, context) do
+      {:ok, type, context} when type in [:integer, :float, :binary] ->
+        of_binary(args, context)
+
+      {:ok, type, _context} ->
+        {:error, {:invalid_binary_type, type}}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
   defp unify(same, same, context) do
     {:ok, same, context}
   end
@@ -107,7 +164,7 @@ defmodule Kernel.Types do
       {_, {:ok, :unbound}} -> {:ok, {:var, left}, put_in(context.types[right], {:var, left})}
       {{:ok, :unbound}, _} -> {:ok, {:var, right}, put_in(context.types[left], {:var, right})}
       {{:ok, same}, {:ok, same}} -> {:ok, same}
-      {{:ok, left_type}, {:ok, right_type}} -> {:error, {:unable_unify, left_type, right_type}}
+      {{:ok, left_type}, {:ok, right_type}} -> unify(left_type, right_type, context)
     end
   end
 
@@ -121,6 +178,10 @@ defmodule Kernel.Types do
 
   defp unify({:var, var}, type, context) do
     unify(type, {:var, var}, context)
+  end
+
+  defp unify(left, right, _context) do
+    {:error, {:unable_unify, left, right}}
   end
 
   defp add_var(var, type, context) do
@@ -137,7 +198,7 @@ defmodule Kernel.Types do
     case Map.fetch(context.types, var) do
       :error -> false
       {:ok, :unbound} -> false
-      {:ok, type} -> (type in parents) or recursive_type?(type, [parent | parents], context)
+      {:ok, type} -> type in parents or recursive_type?(type, [parent | parents], context)
     end
   end
 
@@ -152,6 +213,22 @@ defmodule Kernel.Types do
 
   defp recursive_type?(_other, _parents, _context) do
     false
+  end
+
+  defp collect_specifiers({:-, _meta, [left, right]}) do
+    [collect_specifiers(left), collect_specifiers(right)]
+  end
+
+  defp collect_specifiers({specifier, _meta, []}) do
+    [specifier]
+  end
+
+  defp collect_specifiers(var) when is_var(var) do
+    [var_name(var)]
+  end
+
+  defp collect_specifiers(other) do
+    []
   end
 
   defp new_var(var_name, context) do

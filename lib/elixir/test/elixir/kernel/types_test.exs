@@ -5,20 +5,6 @@ defmodule Kernel.TypesTest do
 
   import Kernel.Types, only: [context: 0]
 
-  defp of_pattern(pattern) do
-    case Kernel.Types.of_pattern(pattern, context()) do
-      {:ok, type, context} -> {:ok, resolve_types(type, context)}
-      {:error, reason} -> {:error, reason}
-    end
-  end
-
-  defp of_clause(patterns) do
-    case Kernel.Types.of_clause(patterns) do
-      {:ok, types, context} -> {:ok, Enum.map(types, &resolve_types(&1, context))}
-      {:error, reason} -> {:error, reason}
-    end
-  end
-
   defmacrop quoted_pattern(expr) do
     quote do
       case Kernel.Types.of_pattern(unquote(Macro.escape(expr)), context()) do
@@ -63,26 +49,40 @@ defmodule Kernel.TypesTest do
 
   describe "of_pattern/1" do
     test "literals" do
-      assert of_pattern(true) == {:ok, {:literal, true}}
-      assert of_pattern(false) == {:ok, {:literal, false}}
-      assert of_pattern(:foo) == {:ok, {:literal, :foo}}
-      assert of_pattern(0) == {:ok, :integer}
-
-      assert of_pattern("foo") == {:error, {:unsupported_pattern, "foo"}}
+      assert quoted_pattern(true) == {:ok, {:literal, true}}
+      assert quoted_pattern(false) == {:ok, {:literal, false}}
+      assert quoted_pattern(:foo) == {:ok, {:literal, :foo}}
+      assert quoted_pattern(0) == {:ok, :integer}
+      assert quoted_pattern(0.0) == {:ok, :float}
+      assert quoted_pattern("foo") == {:ok, :binary}
     end
 
     test "list" do
-      assert of_pattern([]) == {:ok, :null}
-      assert of_pattern([123]) == {:ok, {:cons, :integer, :null}}
-      assert of_pattern([123 | []]) == {:ok, {:cons, :integer, :null}}
-      assert of_pattern([123 | 456]) == {:ok, {:cons, :integer, :integer}}
-      assert of_pattern([123, 456 | 789]) == {:ok, {:cons, :integer, {:cons, :integer, :integer}}}
+      assert quoted_pattern([]) == {:ok, :null}
+      assert quoted_pattern([123]) == {:ok, {:cons, :integer, :null}}
+      assert quoted_pattern([123 | []]) == {:ok, {:cons, :integer, :null}}
+      assert quoted_pattern([123 | 456]) == {:ok, {:cons, :integer, :integer}}
+
+      assert quoted_pattern([123, 456 | 789]) ==
+               {:ok, {:cons, :integer, {:cons, :integer, :integer}}}
     end
 
     test "tuple" do
       assert quoted_pattern({}) == {:ok, {:tuple, []}}
       assert quoted_pattern({:a}) == {:ok, {:tuple, [{:literal, :a}]}}
       assert quoted_pattern({:a, 123}) == {:ok, {:tuple, [{:literal, :a}, :integer]}}
+    end
+
+    test "binary" do
+      assert quoted_pattern(<<"foo"::binary>>) == {:ok, :binary}
+      assert quoted_pattern(<<123::integer>>) == {:ok, :binary}
+      assert quoted_pattern(<<foo::integer>>) == {:ok, :binary}
+
+      assert quoted_pattern(<<123::binary>>) == {:error, {:unable_unify, :integer, :binary}}
+      assert quoted_pattern(<<"foo"::integer>>) == {:error, {:unable_unify, :binary, :integer}}
+
+      assert quoted_pattern(<<foo::binary, foo::integer>>) ==
+               {:error, {:unable_unify, :integer, :binary}}
     end
 
     test "variables" do
@@ -107,7 +107,7 @@ defmodule Kernel.TypesTest do
 
   describe "of_clause/1" do
     test "various" do
-      assert of_clause([true]) == {:ok, [{:literal, true}]}
+      assert quoted_clause([true]) == {:ok, [{:literal, true}]}
       assert quoted_clause([foo]) == {:ok, [{:var, 0}]}
     end
 
@@ -116,9 +116,14 @@ defmodule Kernel.TypesTest do
       assert quoted_clause([x = y, x = y]) == {:ok, [{:var, 0}, {:var, 1}]}
       assert quoted_clause([x = y, y = x]) == {:ok, [{:var, 0}, {:var, 1}]}
 
-      assert quoted_clause([x = :foo, x = y, y = z]) == {:ok, [{:literal, :foo}, {:literal, :foo}, {:literal, :foo}]}
-      assert quoted_clause([x = y, y = :foo, y = z]) == {:ok, [{:literal, :foo}, {:literal, :foo}, {:literal, :foo}]}
-      assert quoted_clause([x = y, y = z, z = :foo]) == {:ok, [{:literal, :foo}, {:literal, :foo}, {:literal, :foo}]}
+      assert quoted_clause([x = :foo, x = y, y = z]) ==
+               {:ok, [{:literal, :foo}, {:literal, :foo}, {:literal, :foo}]}
+
+      assert quoted_clause([x = y, y = :foo, y = z]) ==
+               {:ok, [{:literal, :foo}, {:literal, :foo}, {:literal, :foo}]}
+
+      assert quoted_clause([x = y, y = z, z = :foo]) ==
+               {:ok, [{:literal, :foo}, {:literal, :foo}, {:literal, :foo}]}
 
       assert quoted_clause([{x} = y, {y} = x]) == {:error, {:recursive_type, {:tuple, [var: 1]}}}
     end
