@@ -30,10 +30,6 @@ cd elixir
 make clean test
 ```
 
-> Note: if you are running on Windows,
-[this article includes important notes for compiling Elixir from source
-on Windows](https://github.com/elixir-lang/elixir/wiki/Windows).
-
 If Elixir fails to build (specifically when pulling in a new version via
 `git`), be sure to remove any previous build artifacts by running
 `make clean`, then `make test`.
