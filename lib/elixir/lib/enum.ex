@@ -223,11 +223,11 @@ defmodule Enum do
   and the data type returned by `File.stream!/3` which allows a file to be
   traversed as if it was an enumerable.
 
-  The functions in this module work in linear time. This means that,
-  the larger the enumerable, the longer it will take to perform the desired
-  operation. This is expected on operations such as `Enum.map/2`. After all,
-  if we want to traverse every element on a list, the longer the list, the
-  more elements we need to traverse, and the longer it will take.
+  The functions in this module work in linear time. This means that, the
+  time it takes to perform an operation grows at the same rate as the length
+  of the enumerable. This is expected on operations such as `Enum.map/2`.
+  After all, if we want to traverse every element on a list, the longer the
+  list, the more elements we need to traverse, and the longer it will take.
 
   This linear behaviour should also be expected on operations like `count/1`,
   `member?/2`, `at/2` and similar. While Elixir does allow data types to

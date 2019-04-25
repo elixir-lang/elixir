@@ -67,6 +67,10 @@ defmodule Keyword do
   it comes to ordering. However, since a keyword list is simply a
   list, all the operations defined in `Enum` and `List` can be
   applied too, especially when ordering is required.
+
+  Most of the functions in this module work in linear time. This means
+  that, the time it takes to perform an operation grows at the same
+  rate as the length of the list.
   """
 
   @compile :inline_list_funcs

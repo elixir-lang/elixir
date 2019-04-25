@@ -91,6 +91,12 @@ defmodule Map do
       iex> %{map | three: 3}
       ** (KeyError) key :three not found
 
+  The functions in this module that need to find a specific key work in logarithmic time.
+  This means that the time it takes to find keys grows as the map grows, but it's not
+  directly proportional to the map size. In comparison to finding an element in a list,
+  it performs better because lists have a linear time complexity. Some functions,
+  such as `keys/1` and `values/1`, run in linear time because they need to get to every
+  element in the map.
   """
 
   @type key :: any

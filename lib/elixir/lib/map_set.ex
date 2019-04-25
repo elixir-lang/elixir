@@ -30,6 +30,10 @@ defmodule MapSet do
 
   `MapSet`s can also be constructed starting from other collection-type data
   structures: for example, see `MapSet.new/1` or `Enum.into/2`.
+
+  `MapSet` is built on top of `Map`, this means that they share many properties,
+  including logarithmic time complexity. See the documentation for `Map` for more
+  information on its execution time complexity.
   """
 
   # MapSets have an underlying Map. MapSet elements are keys of said map,
