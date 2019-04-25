@@ -1151,8 +1151,6 @@ defmodule Enum do
   @doc """
   Intersperses `element` between each element of the enumeration.
 
-  Complexity: O(n).
-
   ## Examples
 
       iex> Enum.intersperse([1, 2, 3], 0)
