@@ -128,10 +128,9 @@ defmodule Kernel.Types do
         :bitstring in specifiers -> :binary
         :bytes in specifiers -> :binary
         :binary in specifiers -> :binary
-        # TODO: UTF needs union support
-        # :utf8 in specifiers -> {:union, [:integer, :binary]}
-        # :utf16 in specifiers -> {:union, [:integer, :binary]}
-        # :utf32 in specifiers -> {:union, [:integer, :binary]}
+        :utf8 in specifiers -> :integer
+        :utf16 in specifiers -> :integer
+        :utf32 in specifiers -> :integer
         true -> :integer
       end
 
