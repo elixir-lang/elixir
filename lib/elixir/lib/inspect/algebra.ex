@@ -54,7 +54,7 @@ defmodule Inspect.Opts do
       `:number`, `:atom`, `regex`, `:tuple`, `:map`, `:list`, and `:reset`.
       Colors can be any `t:IO.ANSI.ansidata/0` as accepted by `IO.ANSI.format/1`.
 
-    * `:inspect_fun` - a function to build algebra document, defaults to
+    * `:inspect_fun` (since v1.9.0) - a function to build algebra document, defaults to
       `Inspect.inspect/2`
 
   """
