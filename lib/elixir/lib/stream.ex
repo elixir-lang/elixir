@@ -72,6 +72,13 @@ defmodule Stream do
   effectively composing the streams and keeping them lazy. The computations
   are only performed when you call a function from the `Enum` module.
 
+  Like with `Enum`, the functions in this module work in linear time. This
+  means that, the time it takes to perform an operation grows at the same
+  rate as the length of the list. This is expected on operations such as
+  `Stream.map/2`. After all, if we want to traverse every element on a
+  stream, the longer the stream, the more elements we need to traverse,
+  and the longer it will take.
+
   ## Creating Streams
 
   There are many functions in Elixir's standard library that return
