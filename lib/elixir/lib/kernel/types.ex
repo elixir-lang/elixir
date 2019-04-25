@@ -113,14 +113,45 @@ defmodule Kernel.Types do
 
   defp unify(type, {:var, var}, context) do
     case Map.fetch(context.types, var) do
-      :error -> {:ok, type, put_in(context.types[var], type)}
-      {:ok, :unbound} -> {:ok, type, put_in(context.types[var], type)}
+      :error -> add_var(var, type, context)
+      {:ok, :unbound} -> add_var(var, type, context)
       # {:ok, _var_type} -> :error
     end
   end
 
   defp unify({:var, var}, type, context) do
     unify(type, {:var, var}, context)
+  end
+
+  defp add_var(var, type, context) do
+    context = put_in(context.types[var], type)
+
+    if recursive_type?(type, [], context) do
+      {:error, {:recursive_type, type}}
+    else
+      {:ok, type, context}
+    end
+  end
+
+  defp recursive_type?({:var, var} = parent, parents, context) do
+    case Map.fetch(context.types, var) do
+      :error -> false
+      {:ok, :unbound} -> false
+      {:ok, type} -> (type in parents) or recursive_type?(type, [parent | parents], context)
+    end
+  end
+
+  defp recursive_type?({:cons, left, right} = parent, parents, context) do
+    recursive_type?(left, [parent | parents], context) or
+      recursive_type?(right, [parent | parents], context)
+  end
+
+  defp recursive_type?({:tuple, types} = parent, parents, context) do
+    Enum.any?(types, &recursive_type?(&1, [parent | parents], context))
+  end
+
+  defp recursive_type?(_other, _parents, _context) do
+    false
   end
 
   defp new_var(var_name, context) do

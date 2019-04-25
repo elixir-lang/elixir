@@ -7,7 +7,7 @@ defmodule Kernel.TypesTest do
 
   defp of_pattern(pattern) do
     case Kernel.Types.of_pattern(pattern, context()) do
-      {:ok, type, context} -> {:ok, resolve_types(type, nil, context)}
+      {:ok, type, context} -> {:ok, resolve_types(type, context)}
       {:error, reason} -> {:error, reason}
     end
   end
@@ -15,37 +15,33 @@ defmodule Kernel.TypesTest do
   defmacrop quoted_pattern(expr) do
     quote do
       case Kernel.Types.of_pattern(unquote(Macro.escape(expr)), context()) do
-        {:ok, type, context} -> {:ok, resolve_types(type, nil, context)}
+        {:ok, type, context} -> {:ok, resolve_types(type, context)}
         {:error, reason} -> {:error, reason}
       end
     end
   end
 
-  defp resolve_types({:var, var} = new_parent, parent, context) do
+  defp resolve_types({:var, var}, context) do
     case Map.fetch(context.types, var) do
       {:ok, :unbound} -> {:var, var}
-      {:ok, ^parent} -> {:var, var}
-      # Inadequate infinite recursion check
-      {:ok, type} -> resolve_types(type, new_parent, context)
+      {:ok, type} -> resolve_types(type, update_in(context.types, &Map.delete(&1, var)))
       :error -> {:var, var}
     end
   end
 
-  defp resolve_types({:tuple, types} = parent, _parent, context) do
-    {:tuple, Enum.map(types, &resolve_types(&1, parent, context))}
+  defp resolve_types({:tuple, types}, context) do
+    {:tuple, Enum.map(types, &resolve_types(&1, context))}
   end
 
-  defp resolve_types({:cons, left, right} = parent, _parent, context) do
-    {:cons, resolve_types(left, parent, context), resolve_types(right, parent, context)}
+  defp resolve_types({:cons, left, right}, context) do
+    {:cons, resolve_types(left, context), resolve_types(right, context)}
   end
 
-  defp resolve_types({:fn, params, return} = parent, _parent, context) do
-    params = Enum.map(params, &resolve_types(&1, parent, context))
-    return = resolve_types(return, parent, context)
-    {:fn, params, return}
+  defp resolve_types({:fn, params, return}, context) do
+    {:fn, Enum.map(params, &resolve_types(&1, context)), resolve_types(return, context)}
   end
 
-  defp resolve_types(other, _parent, _context) do
+  defp resolve_types(other, _context) do
     other
   end
 
@@ -89,7 +85,7 @@ defmodule Kernel.TypesTest do
       assert quoted_pattern(x = 123 = y) == {:ok, :integer}
       assert quoted_pattern(123 = x = y) == {:ok, :integer}
 
-      assert quoted_pattern({x} = x) == {:ok, {:tuple, [var: 0]}}
+      assert quoted_pattern({x} = x) == {:error, {:recursive_type, {:tuple, [var: 0]}}}
     end
   end
 end
