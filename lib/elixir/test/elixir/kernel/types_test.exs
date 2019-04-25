@@ -12,10 +12,26 @@ defmodule Kernel.TypesTest do
     end
   end
 
+  defp of_clause(patterns) do
+    case Kernel.Types.of_clause(patterns) do
+      {:ok, types, context} -> {:ok, Enum.map(types, &resolve_types(&1, context))}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
   defmacrop quoted_pattern(expr) do
     quote do
       case Kernel.Types.of_pattern(unquote(Macro.escape(expr)), context()) do
         {:ok, type, context} -> {:ok, resolve_types(type, context)}
+        {:error, reason} -> {:error, reason}
+      end
+    end
+  end
+
+  defmacrop quoted_clause(exprs) do
+    quote do
+      case Kernel.Types.of_clause(unquote(Macro.escape(exprs))) do
+        {:ok, types, context} -> {:ok, Enum.map(types, &resolve_types(&1, context))}
         {:error, reason} -> {:error, reason}
       end
     end
@@ -86,6 +102,25 @@ defmodule Kernel.TypesTest do
       assert quoted_pattern(123 = x = y) == {:ok, :integer}
 
       assert quoted_pattern({x} = x) == {:error, {:recursive_type, {:tuple, [var: 0]}}}
+    end
+  end
+
+  describe "of_clause/1" do
+    test "various" do
+      assert of_clause([true]) == {:ok, [{:literal, true}]}
+      assert quoted_clause([foo]) == {:ok, [{:var, 0}]}
+    end
+
+    test "assignment" do
+      # TODO: Should return [{:var, 0}, {:var, 0}] after they are lifted to quantified types
+      assert quoted_clause([x = y, x = y]) == {:ok, [{:var, 0}, {:var, 1}]}
+      assert quoted_clause([x = y, y = x]) == {:ok, [{:var, 0}, {:var, 1}]}
+
+      assert quoted_clause([x = :foo, x = y, y = z]) == {:ok, [{:literal, :foo}, {:literal, :foo}, {:literal, :foo}]}
+      assert quoted_clause([x = y, y = :foo, y = z]) == {:ok, [{:literal, :foo}, {:literal, :foo}, {:literal, :foo}]}
+      assert quoted_clause([x = y, y = z, z = :foo]) == {:ok, [{:literal, :foo}, {:literal, :foo}, {:literal, :foo}]}
+
+      assert quoted_clause([{x} = y, {y} = x]) == {:error, {:recursive_type, {:tuple, [var: 1]}}}
     end
   end
 end

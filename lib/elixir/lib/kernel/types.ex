@@ -115,7 +115,7 @@ defmodule Kernel.Types do
     case Map.fetch(context.types, var) do
       :error -> add_var(var, type, context)
       {:ok, :unbound} -> add_var(var, type, context)
-      # {:ok, _var_type} -> :error
+      {:ok, var_type} -> unify(type, var_type, context)
     end
   end
 
