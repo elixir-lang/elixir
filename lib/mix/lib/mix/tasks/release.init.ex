@@ -61,6 +61,8 @@ defmodule Mix.Tasks.Release.Init do
   @doc false
   def env_text,
     do: ~S"""
+    #!/bin/sh
+
     # Sets and enables heart (recommended only in daemon mode)
     # if [ "$RELEASE_COMMAND" = "daemon" ] || [ "$RELEASE_COMMAND" = "daemon_iex" ]; then
     #   HEART_COMMAND="$RELEASE_ROOT/bin/$RELEASE_NAME $RELEASE_COMMAND"
@@ -84,7 +86,7 @@ defmodule Mix.Tasks.Release.Init do
     export RELEASE_COMMAND="$1"
 
     REL_VSN_DIR="$RELEASE_ROOT/releases/$RELEASE_VSN"
-    source "$REL_VSN_DIR/env.sh"
+    . "$REL_VSN_DIR/env.sh"
 
     export RELEASE_COOKIE=${RELEASE_COOKIE:-"$(cat "$RELEASE_ROOT/releases/COOKIE")"}
     export RELEASE_NODE=${RELEASE_NODE:-"$RELEASE_NAME@127.0.0.1"}
