@@ -1046,7 +1046,7 @@ defmodule String do
   defdelegate trim_leading(string), to: String.Break
 
   @doc """
-  Returns a string where all leading `to_trim`s have been removed.
+  Returns a string where all leading `to_trim` characters have been removed.
 
   ## Examples
 
@@ -1076,7 +1076,7 @@ defmodule String do
   defdelegate trim_trailing(string), to: String.Break
 
   @doc """
-  Returns a string where all trailing `to_trim`s have been removed.
+  Returns a string where all trailing `to_trim` characters have been removed.
 
   ## Examples
 
@@ -1110,7 +1110,7 @@ defmodule String do
   end
 
   @doc """
-  Returns a string where all leading and trailing `to_trim`s have been
+  Returns a string where all leading and trailing `to_trim` characters have been
   removed.
 
   ## Examples
