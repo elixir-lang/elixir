@@ -396,7 +396,7 @@ defmodule Mix.Tasks.Release do
   sure the Erlang distribution listens only to a given port known at runtime,
   you can set the following in your `bin/start` script:
 
-      export ELIXIR_ERL_OPTIONS="-kernel inet_dist_listen_min ${BEAM_PORT} inet_dist_listen_max ${BEAM_PORT}"
+      export ELIXIR_ERL_OPTIONS="-kernel inet_dist_listen_min $BEAM_PORT inet_dist_listen_max $BEAM_PORT"
 
   Or for Windows, in your `bin/start.bat`:
 
@@ -485,7 +485,7 @@ defmodule Mix.Tasks.Release do
   distribution listens only to a given port known at runtime, you
   can set the following in your `bin/start` script:
 
-      export ELIXIR_ERL_OPTIONS="-kernel inet_dist_listen_min ${BEAM_PORT} inet_dist_listen_max ${BEAM_PORT}"
+      export ELIXIR_ERL_OPTIONS="-kernel inet_dist_listen_min $BEAM_PORT inet_dist_listen_max $BEAM_PORT"
 
   Or for Windows, in your `bin/start.bat`:
 
