@@ -16,7 +16,7 @@ defmodule Mix.Tasks.Release.InitTest do
     end)
   end
 
-  test "can be set to --ovewrite and --quiet" do
+  test "can be set to --overwrite and --quiet" do
     in_tmp("release_init", fn ->
       Mix.Task.run("release.init", ["--overwrite", "--quiet"])
       Mix.Task.run("release.init", ["--overwrite", "--quiet"])
