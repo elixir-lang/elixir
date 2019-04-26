@@ -24,6 +24,7 @@ defmodule Mix.Tasks.Release.Init do
     f: :force
   ]
 
+  @impl true
   def run(args) do
     {opts, args} = OptionParser.parse!(args, strict: @switches, aliases: @aliases)
 

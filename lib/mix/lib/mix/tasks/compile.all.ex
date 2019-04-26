@@ -8,6 +8,7 @@ defmodule Mix.Tasks.Compile.All do
   # is meant to be recursive and be invoked for each child
   # project.
 
+  @impl true
   def run(args) do
     Mix.Project.get!()
 
