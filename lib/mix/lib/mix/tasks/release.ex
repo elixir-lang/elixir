@@ -1000,9 +1000,9 @@ defmodule Mix.Tasks.Release do
     Release created at #{path}!
 
         # To start your system
-        #{path}/bin/start
+        #{cmd} start
 
-    Check bin/start for more information. Once the release is running:
+    Once the release is running:
 
         # To connect to it remotely
         #{cmd} remote
@@ -1048,17 +1048,15 @@ defmodule Mix.Tasks.Release do
     File.mkdir_p!(bin_path)
 
     for os <- include_executables_for do
-      {start, start_fun, clis} = cli_for(os, release)
-      start_path = Path.join(bin_path, start)
-      start_template_path = Path.join("rel", start <> ".eex")
+      {env, env_fun, clis} = cli_for(os, release)
+      env_path = Path.join(release.version_path, env)
+      env_template_path = Path.join("rel", env <> ".eex")
 
-      if File.exists?(start_template_path) do
-        copy_template(start_template_path, start_path, [release: release], force: true)
+      if File.exists?(env_template_path) do
+        copy_template(env_template_path, env_path, [release: release], force: true)
       else
-        File.write!(start_path, start_fun.(release))
+        File.write!(env_path, env_fun.(release))
       end
-
-      executable!(start_path)
 
       for {filename, contents} <- clis do
         path = Path.join(bin_path, filename)
@@ -1079,11 +1077,11 @@ defmodule Mix.Tasks.Release do
   end
 
   defp cli_for(:unix, release) do
-    {"start", &start_template(release: &1), [{"#{release.name}", cli_template(release: release)}]}
+    {"env.sh", &env_template(release: &1), [{"#{release.name}", cli_template(release: release)}]}
   end
 
   defp cli_for(:windows, release) do
-    {"start.bat", &start_bat_template(release: &1),
+    {"env.bat", &env_bat_template(release: &1),
      [{"#{release.name}.bat", cli_bat_template(release: release)}]}
   end
 
@@ -1120,8 +1118,8 @@ defmodule Mix.Tasks.Release do
   defp executable!(path), do: File.chmod!(path, 0o744)
 
   embed_template(:vm_args, Mix.Tasks.Release.Init.vm_args_text())
-  embed_template(:start, Mix.Tasks.Release.Init.start_text())
+  embed_template(:env, Mix.Tasks.Release.Init.env_text())
   embed_template(:cli, Mix.Tasks.Release.Init.cli_text())
-  embed_template(:start_bat, Mix.Tasks.Release.Init.start_bat_text())
+  embed_template(:env_bat, Mix.Tasks.Release.Init.env_bat_text())
   embed_template(:cli_bat, Mix.Tasks.Release.Init.cli_bat_text())
 end
