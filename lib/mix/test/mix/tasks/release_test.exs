@@ -351,7 +351,7 @@ defmodule Mix.Tasks.ReleaseTest do
     end)
   end
 
-  test "requires confirmation if release already exists unless forcing" do
+  test "requires confirmation if release already exists unless overwriting" do
     in_fixture("release_test", fn ->
       Mix.Project.in_project(:release_test, ".", fn _ ->
         Mix.Task.rerun("release")
@@ -364,7 +364,7 @@ defmodule Mix.Tasks.ReleaseTest do
         assert_received {:mix_shell, :yes?,
                          ["Release release_test-0.1.0 already exists. Overwrite?"]}
 
-        Mix.Task.rerun("release", ["--force"])
+        Mix.Task.rerun("release", ["--overwrite"])
         assert_received {:mix_shell, :info, ["* assembling release_test-0.1.0 on MIX_ENV=dev"]}
       end)
     end)
