@@ -549,7 +549,7 @@ defmodule Mix.Tasks.Release do
         start_erl.data
       tmp/
 
-  ## Environment variablees
+  ## Environment variables
 
   The system sets different environment variables. The following variables
   are set early on and can only be read by `env.sh` and `env.bat`:
