@@ -37,16 +37,16 @@ defmodule Mix.ReleaseTest do
 
     test "provides default options" do
       release = from_config!(nil, config(), [])
-      assert release.options == [force: false, quiet: false, strip_beams: true]
+      assert release.options == [overwrite: false, quiet: false, strip_beams: true]
     end
 
     test "allows overrides" do
-      overrides = [path: "demo", version: "0.2.0", force: true, quiet: true]
+      overrides = [path: "demo", version: "0.2.0", overwrite: true, quiet: true]
       release = from_config!(nil, config(), overrides)
 
       assert release.path == Path.absname("demo")
       assert release.version == "0.2.0"
-      assert release.options[:force]
+      assert release.options[:overwrite]
       assert release.options[:quiet]
     end
 

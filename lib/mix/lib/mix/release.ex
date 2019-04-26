@@ -76,7 +76,7 @@ defmodule Mix.Release do
     end
 
     opts =
-      [force: false, quiet: false, strip_beams: true]
+      [overwrite: false, quiet: false, strip_beams: true]
       |> Keyword.merge(opts)
       |> Keyword.merge(overrides)
 
@@ -349,7 +349,7 @@ defmodule Mix.Release do
   Copies the cookie to the given path.
 
   If a cookie option was given, we compare it with
-  the contents of the file (if any), and as the user
+  the contents of the file (if any), and ask the user
   if they want to override.
 
   If there is no option, we generate a random one

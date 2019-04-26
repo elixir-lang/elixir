@@ -298,11 +298,14 @@ defmodule Mix.Tasks.Release do
       information, documentation chunks and other non-essential metadata removed.
       Defaults to `true`.
 
-    * `:cookie` - a string representing the Erlang Distribution cookie. If no cookie
-      is set, one is automatically generated when the first release is assembled. The
-      cookie will be written to `releases/COOKIE` and shared across multiple release
-      versions. If you are setting this option manually, we recommend the cookie option
-      to be a long and randomly generated, such as:
+    * `:cookie` - a string representing the Erlang Distribution cookie. If this
+      option is not set, a random cookie is  written to `releases/COOKIE` file
+      when the first release is assembled. At runtime, we will first attempt
+      to fetch the cookie from the `RELEASE_COOKIE` environment variable and
+      then we'll read the `releases/COOKIE` file.
+
+      If you are setting this option manually, we recommend the cookie option
+      to be a long and randomly generated string, such as:
       `Base.url_encode64(:crypto.strong_rand_bytes(40))`. We also recommend to restrict
       the characters in the cookie to the subset returned by `Base.url_encode64/1`.
 
@@ -311,9 +314,6 @@ defmodule Mix.Tasks.Release do
 
     * `:version` - the release version as a string. Defaults to the current
       application version.
-
-    * `:force` - a boolean that controls if conflicting operations should be
-      always performed, without asking for confirmation before. Defaults to `false`.
 
     * `:quiet` - a boolean that controls if releases should write to the standard
       output its steps. Defaults to `false`.
@@ -550,32 +550,39 @@ defmodule Mix.Tasks.Release do
         start_erl.data
       tmp/
 
-  Furthermore, the system can be configured and sets the following
-  environment variables:
+  Furthermore, the system sets the following environment variables.
+  Many of them can be set, either directly in your production nodes
+  or inside the `bin/start` script:
 
     * `RELEASE_ROOT` - points to the root of the release. If the system
-      includes ERTS, then it is the same as `:code.root_dir/0`
+      includes ERTS, then it is the same as `:code.root_dir/0`. This
+      variable is always computed and it cannot be set to a custom value
 
-    * `RELEASE_NAME` - the name of the release. It can be set in a
-      custom `bin/start` file to a custom value
+    * `RELEASE_NAME` - the name of the release. It can be set to a custom
+      value
 
     * `RELEASE_VSN` - the version of the release, otherwise the latest
-      version is used. It can be set in a custom `bin/start` file to
-      a custom value
+      version is used. It can be set to a custom value. The custom value
+      must be an existing release version in the `releases/` directory
 
     * `RELEASE_COOKIE` - the release cookie. By default uses the value
-      in `releases/COOKIE`. It can be set in a custom `bin/start` file
-      to a custom value
+      in `releases/COOKIE`. It can be set to a custom value. Remember that,
+      if you change the value of this environment variable, the custom
+      value must also be set whenever you attempt to connect to the
+      running node via the `remote` or `rpc`commands
 
     * `RELEASE_NODE` - the release node name, in the format `name@host`.
-      It can be set in a custom `bin/start` file to a custom value
+      It can be set to a custom value. Remember that, if you change the
+      value of this environment variable, the custom value must also be
+      set whenever you attempt to connect to the running node via the
+      `remote` or `rpc`commands
 
-    * `RELEASE_VM_ARGS` - the location of the vm.args file. It can be set in
-      a custom `bin/start` file to a custom value
+    * `RELEASE_VM_ARGS` - the location of the vm.args file. It can be set
+      to a custom path
 
     * `RELEASE_TMP` - the directory in the release to write temporary
-      files to. It can be set in a custom `bin/start` file to a custom value.
-      Defaults to the `$RELEASE_ROOT/tmp`
+      files to. It can be set to a custom directory. It defaults to
+      `$RELEASE_ROOT/tmp`
 
   ## Umbrellas
 
@@ -756,20 +763,22 @@ defmodule Mix.Tasks.Release do
 
   ## Command line options
 
-    * `--force` - forces files to be overridden
-    * `--quiet` - do not write progress to the standard output
-    * `--path` - the path of the release
-    * `--version` - the version of the release
+    * `--force` - forces recompilation
     * `--no-archives-check` - does not check archive
     * `--no-deps-check` - does not check dependencies
     * `--no-elixir-version-check` - does not check Elixir version
     * `--no-compile` - does not compile before assembling the release
+    * `--overwrite` - if there is an existing release version, overwrite it
+    * `--path` - the path of the release
+    * `--quiet` - do not write progress to the standard output
+    * `--version` - the version of the release
 
   """
 
   import Mix.Generator
 
   @switches [
+    overwrite: :boolean,
     force: :boolean,
     quiet: :boolean,
     path: :string,
@@ -808,7 +817,7 @@ defmodule Mix.Tasks.Release do
   end
 
   defp yes?(release, message) do
-    release.options[:force] or Mix.shell().yes?(message)
+    release.options[:overwrite] or Mix.shell().yes?(message)
   end
 
   defp run_steps(%{steps: [step | steps]} = release) when is_function(step) do
