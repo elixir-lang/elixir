@@ -389,7 +389,23 @@ defmodule Mix.Tasks.Release do
   config file will be written to "tmp" directory inside the release every
   time the system boots. You can configure the "tmp" directory by setting
   the `RELEASE_TMP` environment variable, either explicitly or inside your
-  `bin/start` script. See the "Customization" section.
+  `bin/start` script.
+
+  The `bin/start` script can also be used to perform limited runtime
+  configuration via Erlang `-app` flags. For example, if you want to make
+  sure the Erlang distribution listens only to a given port known at runtime,
+  you can set the following in your `bin/start` script:
+
+      export ELIXIR_ERL_OPTIONS="-kernel inet_dist_listen_min ${BEAM_PORT} inet_dist_listen_max ${BEAM_PORT}"
+
+  Or for Windows, in your `bin/start.bat`:
+
+      set ELIXIR_ERL_OPTIONS=-kernel inet_dist_listen_min %BEAM_PORT% inet_dist_listen_max %BEAM_PORT%
+
+  See the "Customization" section to learn exactly how to provide a custom
+  `bin/start`.
+
+  ### Config providers
 
   Releases also supports custom mechanisms, called config providers, to load
   any sort of runtime configuration to the system while it boots. For example,
@@ -442,34 +458,41 @@ defmodule Mix.Tasks.Release do
 
   Developers may want to customize the VM flags and environment variables
   given when the release starts. This is typically done by customizing
-  two files: `vm.args` and `bin/start` (or `bin/start.bat` on Windows).
+  two files inside your release: `releases/RELEASE_VSN/vm.args` and
+  `bin/start` (or `bin/start.bat` on Windows).
 
-  The `vm.args` is available on every release version, inside
-  `releases/RELEASE_VSN/vm.args`, and in there you can set all flags
-  known by the `erl` command: http://erlang.org/doc/man/erl.html
-
-  The `bin/start` is shared across all released versions and it is
-  the entry point to starting your release. It is also the best place
-  to set any environment variable you may need in your release, such
-  as `RELEASE_TMP`. You may also set `ELIXIR_ERL_OPTIONS` to
-  dynamically set VM options.
-
-  To configure both files, all you need to do is to define an EEx
-  template inside the `rel` folder at the root of your project. For
-  example, if you define `rel/vm.args.eex`, it will be evaluated
-  and written to `releases/RELEASE_VSN/vm.args` when the release
-  is assembled.
-
-  Similarly, if you have `rel/start.eex` (or `rel/start.bat.eex`
-  for Windows) inside `rel`, it will be copied to the release when
-  it is assembled.
-
-  When the EEx template is evaluated, it will have a single assign,
+  However, instead of modifying those files after the release is built,
+  the simplest way to customize those files is by running `mix release.init`.
+  The Mix task will copy custom `rel/vm.args.eex`, `rel/start.eex`, and
+  `rel/start.bat.eex` files to your project root. You can modify those
+  files and they will be evaluated every time you perform a new release.
+  Those file are regular EEx templates and they have a single assign,
   called `@release`, with the `Mix.Release` struct.
 
-  Finally, you can invoke `mix release.init` and it will create
-  a `rel` folder with the default `vm.args.eex`, `start.eex`, and
-  `start.bat.eex` as example files.
+  The `vm.args` will be evaluated and copied per release version,
+  inside `releases/RELEASE_VSN/vm.args`. In there you can set all flags
+  known by the `erl` command: http://erlang.org/doc/man/erl.html
+
+  The `bin/start` is shared across all released versions. It is the
+  entry point to start your release. In there, you can set the
+  environment variables such as `RELEASE_NODE`, `RELEASE_COOKIE`,
+  and `RELEASE_TMP` to customize your node name, cookie and tmp
+  directory respectively.
+
+  Furthermore, while `vm.args` is static, you can use `bin/start`
+  to dynamically set VM options or to perform simple application
+  configuration. For example, if you want to make sure the Erlang
+  distribution listens only to a given port known at runtime, you
+  can set the following in your `bin/start` script:
+
+      export ELIXIR_ERL_OPTIONS="-kernel inet_dist_listen_min ${BEAM_PORT} inet_dist_listen_max ${BEAM_PORT}"
+
+  Or for Windows, in your `bin/start.bat`:
+
+      set ELIXIR_ERL_OPTIONS="-kernel inet_dist_listen_min %BEAM_PORT% inet_dist_listen_max %BEAM_PORT%"
+
+  For more fine grained configuration, see the "Configuration"
+  section.
 
   ### Steps
 

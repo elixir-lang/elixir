@@ -42,7 +42,7 @@ defmodule Mix.Tasks.Release.Init do
   def vm_args_text,
     do: ~S"""
     ## Customize flags given to the VM: http://erlang.org/doc/man/erl.html
-    ## -name/-sname/-setcookie are given via the CLI, do not set them here
+    ## -name/-sname/-setcookie are configured via env vars, do not set them here
 
     ## Preloads all modules instead of loading them dynamically
     -mode embedded
@@ -61,7 +61,6 @@ defmodule Mix.Tasks.Release.Init do
   def start_text,
     do: ~S"""
     #!/bin/sh
-    # Feel free to edit this file in any way you want
     set -e
 
     # Sets and enables heart (recommended only in daemon mode)
@@ -221,7 +220,6 @@ defmodule Mix.Tasks.Release.Init do
   def start_bat_text,
     do: ~S"""
     @echo off
-    rem Feel free to edit this file in anyway you want
     rem To start your system using IEx: %~dp0/<%= @release.name %> start_iex
     %~dp0/<%= @release.name %> start
     """
