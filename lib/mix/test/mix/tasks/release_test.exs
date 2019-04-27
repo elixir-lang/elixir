@@ -11,7 +11,7 @@ defmodule Mix.Tasks.ReleaseTest do
         Mix.Project.in_project(:release_test, ".", fn _ ->
           File.mkdir_p!("rel")
 
-          for file <- ~w(rel/vm.args.eex rel/start.eex rel/start.bat.eex) do
+          for file <- ~w(rel/vm.args.eex rel/env.sh.eex rel/env.bat.eex) do
             File.write!(file, """
             #{file} FOR <%= @release.name %>
             """)
@@ -21,11 +21,11 @@ defmodule Mix.Tasks.ReleaseTest do
           Mix.Task.run("release")
           assert_received {:mix_shell, :info, ["* assembling release_test-0.1.0 on MIX_ENV=dev"]}
 
-          assert root |> Path.join("bin/start") |> File.read!() ==
-                   "rel/start.eex FOR release_test\n"
+          assert root |> Path.join("releases/0.1.0/env.sh") |> File.read!() ==
+                   "rel/env.sh.eex FOR release_test\n"
 
-          assert root |> Path.join("bin/start.bat") |> File.read!() ==
-                   "rel/start.bat.eex FOR release_test\n"
+          assert root |> Path.join("releases/0.1.0/env.bat") |> File.read!() ==
+                   "rel/env.bat.eex FOR release_test\n"
 
           assert root |> Path.join("releases/0.1.0/vm.args") |> File.read!() ==
                    "rel/vm.args.eex FOR release_test\n"
@@ -99,7 +99,6 @@ defmodule Mix.Tasks.ReleaseTest do
                          ["* skipping runtime configuration (config/releases.exs was not found)"]}
 
         # Assert structure
-        assert root |> Path.join("bin/release_test") |> File.exists?()
         assert root |> Path.join("erts-#{@erts_version}") |> File.exists?()
         assert root |> Path.join("lib/release_test-0.1.0/ebin") |> File.exists?()
         assert root |> Path.join("lib/release_test-0.1.0/priv/hello") |> File.exists?()
@@ -107,6 +106,8 @@ defmodule Mix.Tasks.ReleaseTest do
         assert root |> Path.join("releases/start_erl.data") |> File.exists?()
         assert root |> Path.join("releases/0.1.0/release_test.rel") |> File.exists?()
         assert root |> Path.join("releases/0.1.0/sys.config") |> File.exists?()
+        assert root |> Path.join("releases/0.1.0/env.sh") |> File.exists?()
+        assert root |> Path.join("releases/0.1.0/env.bat") |> File.exists?()
         assert root |> Path.join("releases/0.1.0/vm.args") |> File.exists?()
 
         assert root
@@ -121,7 +122,7 @@ defmodule Mix.Tasks.ReleaseTest do
         cookie = File.read!(Path.join(root, "releases/COOKIE"))
 
         # Assert runtime
-        open_port(Path.join(root, "bin/start"))
+        open_port(Path.join(root, "bin/release_test"), ['start'])
 
         assert %{
                  app_dir: app_dir,
@@ -181,7 +182,7 @@ defmodule Mix.Tasks.ReleaseTest do
                |> File.read!() =~ "RUNTIME_CONFIG=true"
 
         # Assert runtime
-        open_port(Path.join(root, "bin/start"))
+        open_port(Path.join(root, "bin/runtime_config"), ['start'])
 
         assert %{
                  node: :"runtime_config@127.0.0.1",
@@ -229,7 +230,7 @@ defmodule Mix.Tasks.ReleaseTest do
         assert root |> Path.join("releases/0.2.0/vm.args") |> File.exists?()
 
         # Assert runtime
-        open_port(Path.join(root, "bin/start"))
+        open_port(Path.join(root, "bin/demo"), ['start'])
 
         assert %{
                  app_dir: app_dir,
@@ -265,10 +266,10 @@ defmodule Mix.Tasks.ReleaseTest do
       Mix.Project.in_project(:release_test, ".", config, fn _ ->
         root = Path.absname("_build/dev/rel/permanent1")
         Mix.Task.run("release")
-
-        open_port(Path.join(root, "bin/start"))
-        wait_until_evaled(Path.join(root, "RELEASE_BOOTED"))
         script = Path.join(root, "bin/permanent1")
+
+        open_port(script, ['start'])
+        wait_until_evaled(Path.join(root, "RELEASE_BOOTED"))
         assert System.cmd(script, ["rpc", "ReleaseTest.hello_world"]) == {"hello world\n", 0}
         assert System.cmd(script, ["stop"]) == {"", 0}
 
@@ -380,7 +381,7 @@ defmodule Mix.Tasks.ReleaseTest do
     end)
   end
 
-  defp open_port(command, args \\ []) do
+  defp open_port(command, args) do
     Port.open({:spawn_executable, to_charlist(command)}, [:hide, args: args])
   end
 

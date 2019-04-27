@@ -47,18 +47,13 @@ defmodule Mix.Tasks.Release do
 
   ## Running the release
 
-  Once a release is assembled, you can start it by calling `bin/start`
-  inside the release. In production, you would do:
+  Once a release is assembled, you can start it by calling
+  `bin/RELEASE_NAME start` inside the release. In production, you would do:
 
       MIX_ENV=prod mix release
-      _build/prod/rel/my_app/bin/start
+      _build/prod/rel/my_app/bin/my_app start
 
-  `bin/start` is a very short script that invokes the proper instruction
-  on `bin/RELEASE_NAME`. You can customize `bin/start` in any way you want,
-  see the "Customization" section, but you are not supposed to change
-  `bin/RELEASE_NAME`.
-
-  `bin/start` will start the system connected to the current standard
+  `bin/my_app start` will start the system connected to the current standard
   input/output, where logs are also written to by default. This is the
   preferred way to run the system. Many tools, such as `systemd`, platforms
   as a service, such as Heroku, and many containers platforms, such as Docker,
@@ -66,9 +61,10 @@ defmodule Mix.Tasks.Release do
   the log contents elsewhere. Those tools and platforms also take care
   of restarting the system in case it crashes.
 
-  For those looking for alternate ways of running the system, you can
-  run it as a daemon on Unix-like system or install it as a service on
-  Windows. Then we list all commands supported by `bin/RELEASE_NAME`.
+  You can also execute one-off commands, run the release as a daemon on
+  Unix-like system, or install it as a service on Windows. We will take a
+  look at those next. You can also list all available commands by invoking
+  `bin/RELEASE_NAME`.
 
   ### One-off commands (eval and rpc)
 
@@ -94,8 +90,7 @@ defmodule Mix.Tasks.Release do
 
   ### Daemon mode (Unix-like)
 
-  If you open up `bin/start`, you will also see there is an option to
-  run the release in daemon mode written as a comment:
+  You can run the release in daemon mode written as a comment:
 
       bin/RELEASE_NAME daemon_iex
 
@@ -103,7 +98,7 @@ defmodule Mix.Tasks.Release do
   [run_erl](http://erlang.org/doc/man/run_erl.html). You may also
   want to enable [heart](http://erlang.org/doc/man/heart.html)
   in daemon mode so it automatically restarts the system in case
-  of crashes. See the generated `bin/start`.
+  of crashes. See the generated `releases/RELEASE_VSN/env.sh` file.
 
   The daemon will write all of its standard output to the "tmp/log/"
   directory in the release root. A developer can also attach
@@ -116,7 +111,7 @@ defmodule Mix.Tasks.Release do
 
   You can customize the tmp directory used both for logging and for
   piping in daemon mode by setting the `RELEASE_TMP` environment
-  variable on `bin/start`. See the "Customization" section.
+  variable. See the "Customization" section.
 
   ### Services mode (Windows)
 
@@ -144,7 +139,7 @@ defmodule Mix.Tasks.Release do
 
   The `install` command must be executed as an administrator.
 
-  ## `bin/RELEASE_NAME` commands
+  ### `bin/RELEASE_NAME` commands
 
   The following commands are supported by `bin/RELEASE_NAME`:
 
@@ -217,7 +212,7 @@ defmodule Mix.Tasks.Release do
       cd my_app_source
       mix deps.get --only prod
       MIX_ENV=prod mix release
-      _build/prod/rel/my_app/bin/start
+      _build/prod/rel/my_app/bin/my_app start
 
   If you prefer, you can also compile the release to a separate directory,
   so you can erase all source after the release is assembled:
@@ -228,7 +223,7 @@ defmodule Mix.Tasks.Release do
       MIX_ENV=prod mix release --path ../my_app_release
       cd ../my_app_release
       rm -rf ../my_app_source
-      bin/start
+      bin/my_app start
 
   However, this option can be expensive if you have multiple production
   nodes or if the release assembling process is a long one, as each node
@@ -243,7 +238,7 @@ defmodule Mix.Tasks.Release do
   pipeline by calling `MIX_ENV=prod mix release` and push the artifact
   to S3 or any other network storage. To perform the deployment, your
   production machines can fetch the deployment from the network storage
-  and run the `bin/start` script.
+  and run `bin/my_app start`.
 
   Another mechanism to automate deployments is to use images, such as
   Amazon Machine Images, or container platforms, such as Docker.
@@ -389,21 +384,21 @@ defmodule Mix.Tasks.Release do
   config file will be written to "tmp" directory inside the release every
   time the system boots. You can configure the "tmp" directory by setting
   the `RELEASE_TMP` environment variable, either explicitly or inside your
-  `bin/start` script.
+  `releases/RELEASE_VSN/env.sh` (or `env.bat` on Windows).
 
-  The `bin/start` script can also be used to perform limited runtime
-  configuration via Erlang `-app` flags. For example, if you want to make
-  sure the Erlang distribution listens only to a given port known at runtime,
-  you can set the following in your `bin/start` script:
+  The `releases/RELEASE_VSN/env.sh` script can also be used to perform
+  limited runtime configuration via Erlang `-app` flags. For example, if
+  you want to make sure the Erlang Distribution listens only on a given
+  port known at runtime, you can set the following:
 
       export ELIXIR_ERL_OPTIONS="-kernel inet_dist_listen_min $BEAM_PORT inet_dist_listen_max $BEAM_PORT"
 
-  Or for Windows, in your `bin/start.bat`:
+  Or for Windows, in your `releases/RELEASE_VSN/env.bat`:
 
       set ELIXIR_ERL_OPTIONS=-kernel inet_dist_listen_min %BEAM_PORT% inet_dist_listen_max %BEAM_PORT%
 
   See the "Customization" section to learn exactly how to provide a custom
-  `bin/start`.
+  `releases/RELEASE_VSN/env.sh` file.
 
   ### Config providers
 
@@ -454,40 +449,41 @@ defmodule Mix.Tasks.Release do
         ]
       ]
 
-  ### vm.args and bin/start
+  ### vm.args and env.sh (env.bat)
 
   Developers may want to customize the VM flags and environment variables
   given when the release starts. This is typically done by customizing
   two files inside your release: `releases/RELEASE_VSN/vm.args` and
-  `bin/start` (or `bin/start.bat` on Windows).
+  `releases/RELEASE_VSN/env.sh` (or `env.bat` on Windows).
 
   However, instead of modifying those files after the release is built,
   the simplest way to customize those files is by running `mix release.init`.
-  The Mix task will copy custom `rel/vm.args.eex`, `rel/start.eex`, and
-  `rel/start.bat.eex` files to your project root. You can modify those
+  The Mix task will copy custom `rel/vm.args.eex`, `rel/env.sh.eex`, and
+  `rel/env.bat.eex` files to your project root. You can modify those
   files and they will be evaluated every time you perform a new release.
   Those file are regular EEx templates and they have a single assign,
   called `@release`, with the `Mix.Release` struct.
 
-  The `vm.args` will be evaluated and copied per release version,
-  inside `releases/RELEASE_VSN/vm.args`. In there you can set all flags
-  known by the `erl` command: http://erlang.org/doc/man/erl.html
+  The `vm.args` may contain any of the VM flags be known by the `erl`
+  command: http://erlang.org/doc/man/erl.html
 
-  The `bin/start` is shared across all released versions. It is the
-  entry point to start your release. In there, you can set the
-  environment variables such as `RELEASE_NODE`, `RELEASE_COOKIE`,
+  The `env.sh` and `env.bat` is used to set environment variables.
+  In there, you can set vars such as `RELEASE_NODE`, `RELEASE_COOKIE`,
   and `RELEASE_TMP` to customize your node name, cookie and tmp
-  directory respectively.
+  directory respectively. Whenever `env.sh` or `env.bat` is invoked,
+  the variables `RELEASE_ROOT`, `RELEASE_NAME`, `RELEASE_VSN`, and
+  `RELEASE_COMMAND` have already been set, so you can rely on them.
+  See the section on environment variables for more information.
 
-  Furthermore, while `vm.args` is static, you can use `bin/start`
-  to dynamically set VM options or to perform simple application
-  configuration. For example, if you want to make sure the Erlang
-  distribution listens only to a given port known at runtime, you
-  can set the following in your `bin/start` script:
+  Furthermore, while `vm.args` is static, you can use `env.sh` and
+  `env.bat` to dynamically set VM options or to perform simple
+  application configuration. For example, if you want to make sure
+  the Erlang Distribution listens only on a given port known at
+  runtime, you can set the following:
 
       export ELIXIR_ERL_OPTIONS="-kernel inet_dist_listen_min $BEAM_PORT inet_dist_listen_max $BEAM_PORT"
 
-  Or for Windows, in your `bin/start.bat`:
+  Or for Windows, in your `env.bat`:
 
       set ELIXIR_ERL_OPTIONS="-kernel inet_dist_listen_min %BEAM_PORT% inet_dist_listen_max %BEAM_PORT%"
 
@@ -521,13 +517,12 @@ defmodule Mix.Tasks.Release do
   field can also be used to verify if the step was set before or
   after assembling the release.
 
-  ## Directory structure and environment variables
+  ## Directory structure
 
   A release is organized as follows:
 
       bin/
         RELEASE_NAME
-        start
       erts-ERTS_VSN/
       lib/
         APP_NAME-APP_VSN/
@@ -538,7 +533,11 @@ defmodule Mix.Tasks.Release do
         RELEASE_VSN/
           consolidated/
           elixir
+          elixir.bat
+          env.bat
+          env.sh
           iex
+          iex.bat
           releases.exs
           start.boot
           start.script
@@ -550,32 +549,39 @@ defmodule Mix.Tasks.Release do
         start_erl.data
       tmp/
 
-  Furthermore, the system sets the following environment variables.
-  Many of them can be set, either directly in your production nodes
-  or inside the `bin/start` script:
+  ## Environment variables
+
+  The system sets different environment variables. The following variables
+  are set early on and can only be read by `env.sh` and `env.bat`:
 
     * `RELEASE_ROOT` - points to the root of the release. If the system
       includes ERTS, then it is the same as `:code.root_dir/0`. This
       variable is always computed and it cannot be set to a custom value
 
+    * `RELEASE_COMMAND` - the command given to the release, such as `"start"`,
+      `"remote"`, `"eval"`, etc. This is typically accessed inside `env.sh`
+      and `env.bat` to set different environment variables under different
+      conditions. Note, however, that `RELEASE_COMMAND` has not been
+      validated by the time `env.sh` and `env.bat` are called, so it may
+      be empty or contain invalid values. This variable is always computed
+      and it cannot be set to a custom value
+
     * `RELEASE_NAME` - the name of the release. It can be set to a custom
-      value
+      value when invoking the release
 
     * `RELEASE_VSN` - the version of the release, otherwise the latest
-      version is used. It can be set to a custom value. The custom value
-      must be an existing release version in the `releases/` directory
+      version is used. It can be set to a custom value when invoking the
+      release. The custom value must be an existing release version in
+      the `releases/` directory
+
+  The following variables can be set before you invoke the release or
+  inside `env.sh` and `env.bat`:
 
     * `RELEASE_COOKIE` - the release cookie. By default uses the value
-      in `releases/COOKIE`. It can be set to a custom value. Remember that,
-      if you change the value of this environment variable, the custom
-      value must also be set whenever you attempt to connect to the
-      running node via the `remote` or `rpc`commands
+      in `releases/COOKIE`. It can be set to a custom value
 
     * `RELEASE_NODE` - the release node name, in the format `name@host`.
-      It can be set to a custom value. Remember that, if you change the
-      value of this environment variable, the custom value must also be
-      set whenever you attempt to connect to the running node via the
-      `remote` or `rpc`commands
+      It can be set to a custom value
 
     * `RELEASE_VM_ARGS` - the location of the vm.args file. It can be set
       to a custom path
@@ -1000,9 +1006,9 @@ defmodule Mix.Tasks.Release do
     Release created at #{path}!
 
         # To start your system
-        #{path}/bin/start
+        #{cmd} start
 
-    Check bin/start for more information. Once the release is running:
+    Once the release is running:
 
         # To connect to it remotely
         #{cmd} remote
@@ -1048,17 +1054,15 @@ defmodule Mix.Tasks.Release do
     File.mkdir_p!(bin_path)
 
     for os <- include_executables_for do
-      {start, start_fun, clis} = cli_for(os, release)
-      start_path = Path.join(bin_path, start)
-      start_template_path = Path.join("rel", start <> ".eex")
+      {env, env_fun, clis} = cli_for(os, release)
+      env_path = Path.join(release.version_path, env)
+      env_template_path = Path.join("rel", env <> ".eex")
 
-      if File.exists?(start_template_path) do
-        copy_template(start_template_path, start_path, [release: release], force: true)
+      if File.exists?(env_template_path) do
+        copy_template(env_template_path, env_path, [release: release], force: true)
       else
-        File.write!(start_path, start_fun.(release))
+        File.write!(env_path, env_fun.(release))
       end
-
-      executable!(start_path)
 
       for {filename, contents} <- clis do
         path = Path.join(bin_path, filename)
@@ -1079,11 +1083,11 @@ defmodule Mix.Tasks.Release do
   end
 
   defp cli_for(:unix, release) do
-    {"start", &start_template(release: &1), [{"#{release.name}", cli_template(release: release)}]}
+    {"env.sh", &env_template(release: &1), [{"#{release.name}", cli_template(release: release)}]}
   end
 
   defp cli_for(:windows, release) do
-    {"start.bat", &start_bat_template(release: &1),
+    {"env.bat", &env_bat_template(release: &1),
      [{"#{release.name}.bat", cli_bat_template(release: release)}]}
   end
 
@@ -1120,8 +1124,8 @@ defmodule Mix.Tasks.Release do
   defp executable!(path), do: File.chmod!(path, 0o744)
 
   embed_template(:vm_args, Mix.Tasks.Release.Init.vm_args_text())
-  embed_template(:start, Mix.Tasks.Release.Init.start_text())
+  embed_template(:env, Mix.Tasks.Release.Init.env_text())
   embed_template(:cli, Mix.Tasks.Release.Init.cli_text())
-  embed_template(:start_bat, Mix.Tasks.Release.Init.start_bat_text())
+  embed_template(:env_bat, Mix.Tasks.Release.Init.env_bat_text())
   embed_template(:cli_bat, Mix.Tasks.Release.Init.cli_bat_text())
 end

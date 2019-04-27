@@ -16,25 +16,26 @@ defmodule Mix.Tasks.Release.Init do
   import Mix.Generator
 
   @switches [
-    force: :boolean,
+    overwrite: :boolean,
     quiet: :boolean
-  ]
-
-  @aliases [
-    f: :force
   ]
 
   @impl true
   def run(args) do
-    {opts, args} = OptionParser.parse!(args, strict: @switches, aliases: @aliases)
+    {opts, args} = OptionParser.parse!(args, strict: @switches)
+
+    generator_opts = [
+      force: Keyword.get(opts, :overwrite, false),
+      quiet: Keyword.get(opts, :quiet, false)
+    ]
 
     if args != [] do
       Mix.raise("Expected \"mix release.init\" without arguments, got: #{inspect(args)}")
     end
 
-    create_file("rel/vm.args.eex", vm_args_text(), opts)
-    create_file("rel/start.eex", start_text(), opts)
-    create_file("rel/start.bat.eex", start_bat_text(), opts)
+    create_file("rel/vm.args.eex", vm_args_text(), generator_opts)
+    create_file("rel/env.sh.eex", env_text(), generator_opts)
+    create_file("rel/env.bat.eex", env_bat_text(), generator_opts)
     :ok
   end
 
@@ -58,19 +59,16 @@ defmodule Mix.Tasks.Release.Init do
     """
 
   @doc false
-  def start_text,
+  def env_text,
     do: ~S"""
     #!/bin/sh
-    set -e
 
     # Sets and enables heart (recommended only in daemon mode)
-    # HEART_COMMAND="$(dirname "$0")/start"
-    # export HEART_COMMAND
-    # export ELIXIR_ERL_OPTIONS="-heart"
-
-    # To start your system using IEx: "$(dirname "$0")/<%= @release.name %>" start_iex
-    # To start it as a daemon using IEx: "$(dirname "$0")/<%= @release.name %>" daemon_iex
-    "$(dirname "$0")/<%= @release.name %>" start
+    # if [ "$RELEASE_COMMAND" = "daemon" ] || [ "$RELEASE_COMMAND" = "daemon_iex" ]; then
+    #   HEART_COMMAND="$RELEASE_ROOT/bin/$RELEASE_NAME $RELEASE_COMMAND"
+    #   export HEART_COMMAND
+    #   export ELIXIR_ERL_OPTIONS="-heart"
+    # fi
     """
 
   @doc false
@@ -85,11 +83,15 @@ defmodule Mix.Tasks.Release.Init do
     export RELEASE_ROOT
     export RELEASE_NAME="${RELEASE_NAME:-"<%= @release.name %>"}"
     export RELEASE_VSN="${RELEASE_VSN:-"$(cut -d' ' -f2 "$RELEASE_ROOT/releases/start_erl.data")"}"
+    export RELEASE_COMMAND="$1"
+
+    REL_VSN_DIR="$RELEASE_ROOT/releases/$RELEASE_VSN"
+    . "$REL_VSN_DIR/env.sh"
+
     export RELEASE_COOKIE=${RELEASE_COOKIE:-"$(cat "$RELEASE_ROOT/releases/COOKIE")"}
     export RELEASE_NODE=${RELEASE_NODE:-"$RELEASE_NAME@127.0.0.1"}
     export RELEASE_TMP=${RELEASE_TMP:-"$RELEASE_ROOT/tmp"}
-    export RELEASE_VM_ARGS=${RELEASE_VM_ARGS:-"$RELEASE_ROOT/releases/$RELEASE_VSN/vm.args"}
-    REL_VSN_DIR="$RELEASE_ROOT/releases/$RELEASE_VSN"
+    export RELEASE_VM_ARGS=${RELEASE_VM_ARGS:-"$REL_VSN_DIR/vm.args"}
 
     rand () {
       od -t xS -N 2 -A n /dev/urandom | tr -d " \n"
@@ -217,11 +219,9 @@ defmodule Mix.Tasks.Release.Init do
     """
 
   @doc false
-  def start_bat_text,
+  def env_bat_text,
     do: ~S"""
     @echo off
-    rem To start your system using IEx: %~dp0/<%= @release.name %> start_iex
-    %~dp0/<%= @release.name %> start
     """
 
   @doc false
@@ -237,11 +237,14 @@ defmodule Mix.Tasks.Release.Init do
 
     if not defined RELEASE_NAME (set RELEASE_NAME=<%= @release.name %>)
     if not defined RELEASE_VSN (for /f "tokens=1,2" %%K in (!RELEASE_ROOT!\releases\start_erl.data) do (set ERTS_VSN=%%K) && (set RELEASE_VSN=%%L))
+    set RELEASE_COMMAND=%~1
+    set REL_VSN_DIR=!RELEASE_ROOT!\releases\!RELEASE_VSN!
+    call !REL_VSN_DIR!/env.bat
+
     if not defined RELEASE_COOKIE (set /p RELEASE_COOKIE=<!RELEASE_ROOT!\releases\COOKIE)
     if not defined RELEASE_NODE (set RELEASE_NODE=!RELEASE_NAME!@127.0.0.1)
     if not defined RELEASE_TMP (set RELEASE_TMP=!RELEASE_ROOT!\tmp)
-    if not defined RELEASE_VM_ARGS (set RELEASE_VM_ARGS=!RELEASE_ROOT!\releases\!RELEASE_VSN!\vm.args)
-    set REL_VSN_DIR=!RELEASE_ROOT!\releases\!RELEASE_VSN!
+    if not defined RELEASE_VM_ARGS (set RELEASE_VM_ARGS=!REL_VSN_DIR!\vm.args)
     set RELEASE_SYS_CONFIG=!REL_VSN_DIR!\sys
 
     if "%~1" == "start" (set "REL_EXEC=elixir" && set "REL_EXTRA=--no-halt" && set "REL_GOTO=start")
