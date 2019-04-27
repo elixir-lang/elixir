@@ -16,26 +16,25 @@ defmodule Mix.Tasks.Release.Init do
   import Mix.Generator
 
   @switches [
-    overwrite: :boolean,
+    force: :boolean,
     quiet: :boolean
+  ]
+
+  @aliases [
+    force: :f
   ]
 
   @impl true
   def run(args) do
-    {opts, args} = OptionParser.parse!(args, strict: @switches)
-
-    generator_opts = [
-      force: Keyword.get(opts, :overwrite, false),
-      quiet: Keyword.get(opts, :quiet, false)
-    ]
+    {opts, args} = OptionParser.parse!(args, strict: @switches, aliases: @aliases)
 
     if args != [] do
       Mix.raise("Expected \"mix release.init\" without arguments, got: #{inspect(args)}")
     end
 
-    create_file("rel/vm.args.eex", vm_args_text(), generator_opts)
-    create_file("rel/env.sh.eex", env_text(), generator_opts)
-    create_file("rel/env.bat.eex", env_bat_text(), generator_opts)
+    create_file("rel/vm.args.eex", vm_args_text(), opts)
+    create_file("rel/env.sh.eex", env_text(), opts)
+    create_file("rel/env.bat.eex", env_bat_text(), opts)
     :ok
   end
 
