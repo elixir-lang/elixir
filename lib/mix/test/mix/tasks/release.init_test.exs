@@ -7,21 +7,22 @@ defmodule Mix.Tasks.Release.InitTest do
     in_tmp("release_init", fn ->
       Mix.Task.run("release.init", [])
       assert_received {:mix_shell, :info, ["* creating rel/vm.args.eex"]}
-      assert_received {:mix_shell, :info, ["* creating rel/start.eex"]}
-      assert_received {:mix_shell, :info, ["* creating rel/start.bat.eex"]}
+      assert_received {:mix_shell, :info, ["* creating rel/env.sh.eex"]}
+      assert_received {:mix_shell, :info, ["* creating rel/env.bat.eex"]}
 
       assert File.exists?("rel/vm.args.eex")
-      assert File.read!("rel/start.eex") =~ "<%= @release.name %>"
-      assert File.read!("rel/start.bat.eex") =~ "<%= @release.name %>"
+      assert File.exists?("rel/env.sh.eex")
+      assert File.exists?("rel/env.bat.eex")
     end)
   end
 
-  test "can be set to --force and --quiet" do
+  test "can be set to --overwrite and --quiet" do
     in_tmp("release_init", fn ->
-      Mix.Task.run("release.init", ["--force", "--quiet"])
+      Mix.Task.run("release.init", ["--overwrite", "--quiet"])
+      Mix.Task.run("release.init", ["--overwrite", "--quiet"])
       refute_received {:mix_shell, :info, ["* creating rel/vm.args.eex"]}
-      refute_received {:mix_shell, :info, ["* creating rel/start.eex"]}
-      refute_received {:mix_shell, :info, ["* creating rel/start.bat.eex"]}
+      refute_received {:mix_shell, :info, ["* creating rel/env.sh.eex"]}
+      refute_received {:mix_shell, :info, ["* creating rel/env.bat.eex"]}
     end)
   end
 
