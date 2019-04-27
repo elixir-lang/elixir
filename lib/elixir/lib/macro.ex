@@ -1142,9 +1142,11 @@ defmodule Macro do
     * Module attributes reader (`@foo`)
 
   If the expression cannot be expanded, it returns the expression
-  itself. Notice that `expand_once/2` performs the expansion just
-  once and it is not recursive. Check `expand/2` for expansion
-  until the node can no longer be expanded.
+  itself. This function does not traverse the AST, only the root
+  node is expanded.
+
+  `expand_once/2` performs the expansion just once. Check `expand/2`
+  to perform expansion until the node can no longer be expanded.
 
   ## Examples
 
@@ -1363,19 +1365,22 @@ defmodule Macro do
   Receives an AST node and expands it until it can no longer
   be expanded.
 
+  Note this function does not traverse the AST, only the root
+  node is expanded.
+
   This function uses `expand_once/2` under the hood. Check
   it out for more information and examples.
   """
-  def expand(tree, env) do
-    expand_until({tree, true}, env)
+  def expand(ast, env) do
+    expand_until({ast, true}, env)
   end
 
-  defp expand_until({tree, true}, env) do
-    expand_until(do_expand_once(tree, env), env)
+  defp expand_until({ast, true}, env) do
+    expand_until(do_expand_once(ast, env), env)
   end
 
-  defp expand_until({tree, false}, _env) do
-    tree
+  defp expand_until({ast, false}, _env) do
+    ast
   end
 
   @doc """
