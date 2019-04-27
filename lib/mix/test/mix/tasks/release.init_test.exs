@@ -16,10 +16,10 @@ defmodule Mix.Tasks.Release.InitTest do
     end)
   end
 
-  test "can be set to --overwrite and --quiet" do
+  test "can be set to --force and --quiet" do
     in_tmp("release_init", fn ->
-      Mix.Task.run("release.init", ["--overwrite", "--quiet"])
-      Mix.Task.run("release.init", ["--overwrite", "--quiet"])
+      Mix.Task.run("release.init", ["--force", "--quiet"])
+      Mix.Task.run("release.init", ["--force", "--quiet"])
       refute_received {:mix_shell, :info, ["* creating rel/vm.args.eex"]}
       refute_received {:mix_shell, :info, ["* creating rel/env.sh.eex"]}
       refute_received {:mix_shell, :info, ["* creating rel/env.bat.eex"]}
