@@ -509,7 +509,7 @@ defmodule Mix.Tasks.Release do
     * `config/releases.exs` - provides runtime application configuration
 
     * `rel/vm.args.eex` - provides a static mechanism for configuring the
-      Erlang Virtual Machine and other runtime flags  
+      Erlang Virtual Machine and other runtime flags
 
     * `rel/env.sh.eex` and `rel/env.bat.eex`- provides a dynamic mechanism
       for setting up the VM, runtime flags, and environment variables
