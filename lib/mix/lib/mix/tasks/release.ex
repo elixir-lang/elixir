@@ -259,9 +259,14 @@ defmodule Mix.Tasks.Release do
   their respective supervision trees will stop, one by one, in the
   opposite order that they were started.
 
-  ## Options
+  ## Customization
 
-  Here are the general options available to each release:
+  There are a couple ways in which developers can customize the generated
+  artifacts inside a release.
+
+  ### Options
+
+  The following options can be set inside your mix.exs on each release definition:
 
     * `:applications` - a keyword list that configures and adds new applications
       to the release. The key is the application name and the value is one of:
@@ -326,16 +331,91 @@ defmodule Mix.Tasks.Release do
       set to `false` with caution and only if you are assembling the release on the
       same server that runs it.
 
-  Also see the "Customization" section for other options and the hooks
-  available to customize your release.
+    * `:include_executables_for` - a list of atoms detailing for which Operating
+      Systems executable files should be generated for. By default, it is set to
+      `[:unix, :windows]`. You can customize those as follows:
 
-  Other features, such as runtime configuration, may introduce their
-  options. Those will be listed in their own respective sections.
+          releases: [
+            demo: [
+              include_executables_for: [:unix] # Or [:windows] or []
+            ]
+          ]
 
-  ## Configuration
+    * `:steps` - a list of steps to execute when assembling the release. See
+      the "Steps" section for more information.
 
-  Releases provides two mechanisms for configuration: built-time and
-  runtime.
+  Besides the options above, it is possible to customize the generated
+  release with custom template files or by tweaking the release steps.
+  We will detail both approaches next.
+
+  ### vm.args and env.sh (env.bat)
+
+  Developers may want to customize the VM flags and environment variables
+  given when the release starts. This is typically done by customizing
+  two files inside your release: `releases/RELEASE_VSN/vm.args` and
+  `releases/RELEASE_VSN/env.sh` (or `env.bat` on Windows).
+
+  However, instead of modifying those files after the release is built,
+  the simplest way to customize those files is by running `mix release.init`.
+  The Mix task will copy custom `rel/vm.args.eex`, `rel/env.sh.eex`, and
+  `rel/env.bat.eex` files to your project root. You can modify those
+  files and they will be evaluated every time you perform a new release.
+  Those file are regular EEx templates and they have a single assign,
+  called `@release`, with the `Mix.Release` struct.
+
+  The `vm.args` may contain any of the VM flags be known by the `erl`
+  command: http://erlang.org/doc/man/erl.html
+
+  The `env.sh` and `env.bat` is used to set environment variables.
+  In there, you can set vars such as `RELEASE_NODE`, `RELEASE_COOKIE`,
+  and `RELEASE_TMP` to customize your node name, cookie and tmp
+  directory respectively. Whenever `env.sh` or `env.bat` is invoked,
+  the variables `RELEASE_ROOT`, `RELEASE_NAME`, `RELEASE_VSN`, and
+  `RELEASE_COMMAND` have already been set, so you can rely on them.
+  See the section on environment variables for more information.
+
+  Furthermore, while `vm.args` is static, you can use `env.sh` and
+  `env.bat` to dynamically set VM options. For example, if you want
+  to make sure the Erlang Distribution listens only on a given port
+  known at runtime, you can set the following:
+
+      export ELIXIR_ERL_OPTIONS="-kernel inet_dist_listen_min $BEAM_PORT inet_dist_listen_max $BEAM_PORT"
+
+  Or for Windows, in your `env.bat`:
+
+      set ELIXIR_ERL_OPTIONS="-kernel inet_dist_listen_min %BEAM_PORT% inet_dist_listen_max %BEAM_PORT%"
+
+  ### Steps
+
+  It is possible to add one or more steps before and after the release is
+  assembled. This can be done with the `:steps` option:
+
+      releases: [
+        demo: [
+          steps: [&set_configs/1, :assemble, &copy_extra_files/1]
+        ]
+      ]
+
+  The `:steps` option must be a list and it must always include the
+  atom `:assemble`, which does most of the release assembling. You
+  can pass anonymous functions before and after the `:assemble` to
+  customize your release assembling pipeline. Those anonymous functions
+  will receive a `Mix.Release` struct and must return the same or
+  an updated `Mix.Release` struct.
+
+  See `Mix.Release` for more documentation on the struct and which
+  fields can be modified. Note that `:steps` field itself can be
+  modified and it is updated every time a step is called. Therefore,
+  if you need to execute a command before and after assembling the
+  release, you only need to declare the first steps in your pipeline
+  and then inject the last step into the release struct. The steps
+  field can also be used to verify if the step was set before or
+  after assembling the release.
+
+  ## Application configuration
+
+  Releases provides two mechanisms for configuring OTP applications:
+  build-time and runtime.
 
   ### Build-time configuration
 
@@ -386,20 +466,6 @@ defmodule Mix.Tasks.Release do
   the `RELEASE_TMP` environment variable, either explicitly or inside your
   `releases/RELEASE_VSN/env.sh` (or `env.bat` on Windows).
 
-  The `releases/RELEASE_VSN/env.sh` script can also be used to perform
-  limited runtime configuration via Erlang `-app` flags. For example, if
-  you want to make sure the Erlang Distribution listens only on a given
-  port known at runtime, you can set the following:
-
-      export ELIXIR_ERL_OPTIONS="-kernel inet_dist_listen_min $BEAM_PORT inet_dist_listen_max $BEAM_PORT"
-
-  Or for Windows, in your `releases/RELEASE_VSN/env.bat`:
-
-      set ELIXIR_ERL_OPTIONS=-kernel inet_dist_listen_min %BEAM_PORT% inet_dist_listen_max %BEAM_PORT%
-
-  See the "Customization" section to learn exactly how to provide a custom
-  `releases/RELEASE_VSN/env.sh` file.
-
   ### Config providers
 
   Releases also supports custom mechanisms, called config providers, to load
@@ -408,7 +474,7 @@ defmodule Mix.Tasks.Release do
   can be achieved with config providers. See the `Config.Provider` for more
   information and a simple example.
 
-  The following options can be set inside your releases key in yourr mix.exs
+  The following options can be set inside your releases key in your mix.exs
   to control how runtime configuration and config providers work:
 
     * `:runtime_config_path` - the path to your runtime configuration file.
@@ -432,90 +498,21 @@ defmodule Mix.Tasks.Release do
     * `:config_providers` - a list of tuples with custom config providers.
       See `Config.Provider` for more information. Defaults to `[]`.
 
-  ## Customization
+  ### Customization and configuration summary
 
-  There are a couple ways in which developers can customize the generated
-  artifacts inside a release.
+  Generally speaking, the following files are available for customizing
+  and configuring the running system:
 
-  ### Executables
+    * `config/config.exs` (and `config/prod.exs`) - provides build-time
+      application configuration
 
-  By default, a release will generate executables for both Windows and Unix.
-  You can customize those by setting the `:include_executables_for` option
-  inside your release:
+    * `config/releases.exs` - provides runtime application configuration
 
-      releases: [
-        demo: [
-          include_executables_for: [:unix] # Or [:windows] or []
-        ]
-      ]
+    * `rel/vm.args.eex` - provides a static mechanism for configuring the
+      Erlang Virtual Machine and other runtime flags  
 
-  ### vm.args and env.sh (env.bat)
-
-  Developers may want to customize the VM flags and environment variables
-  given when the release starts. This is typically done by customizing
-  two files inside your release: `releases/RELEASE_VSN/vm.args` and
-  `releases/RELEASE_VSN/env.sh` (or `env.bat` on Windows).
-
-  However, instead of modifying those files after the release is built,
-  the simplest way to customize those files is by running `mix release.init`.
-  The Mix task will copy custom `rel/vm.args.eex`, `rel/env.sh.eex`, and
-  `rel/env.bat.eex` files to your project root. You can modify those
-  files and they will be evaluated every time you perform a new release.
-  Those file are regular EEx templates and they have a single assign,
-  called `@release`, with the `Mix.Release` struct.
-
-  The `vm.args` may contain any of the VM flags be known by the `erl`
-  command: http://erlang.org/doc/man/erl.html
-
-  The `env.sh` and `env.bat` is used to set environment variables.
-  In there, you can set vars such as `RELEASE_NODE`, `RELEASE_COOKIE`,
-  and `RELEASE_TMP` to customize your node name, cookie and tmp
-  directory respectively. Whenever `env.sh` or `env.bat` is invoked,
-  the variables `RELEASE_ROOT`, `RELEASE_NAME`, `RELEASE_VSN`, and
-  `RELEASE_COMMAND` have already been set, so you can rely on them.
-  See the section on environment variables for more information.
-
-  Furthermore, while `vm.args` is static, you can use `env.sh` and
-  `env.bat` to dynamically set VM options or to perform simple
-  application configuration. For example, if you want to make sure
-  the Erlang Distribution listens only on a given port known at
-  runtime, you can set the following:
-
-      export ELIXIR_ERL_OPTIONS="-kernel inet_dist_listen_min $BEAM_PORT inet_dist_listen_max $BEAM_PORT"
-
-  Or for Windows, in your `env.bat`:
-
-      set ELIXIR_ERL_OPTIONS="-kernel inet_dist_listen_min %BEAM_PORT% inet_dist_listen_max %BEAM_PORT%"
-
-  For more fine grained configuration, see the "Configuration"
-  section.
-
-  ### Steps
-
-  It is possible to add one or more steps before and after the release is
-  assembled. This can be done with the `:steps` option:
-
-      releases: [
-        demo: [
-          steps: [&set_configs/1, :assemble, &copy_extra_files/1]
-        ]
-      ]
-
-  The `:steps` option must be a list and it must always include the
-  atom `:assemble`, which does most of the release assembling. You
-  can pass anonymous functions before and after the `:assemble` to
-  customize your release assembling pipeline. Those anonymous functions
-  will receive a `Mix.Release` struct and must return the same or
-  an updated `Mix.Release` struct.
-
-  See `Mix.Release` for more documentation on the struct and which
-  fields can be modified. Note that `:steps` field itself can be
-  modified and it is updated every time a step is called. Therefore,
-  if you need to execute a command before and after assembling the
-  release, you only need to declare the first steps in your pipeline
-  and then inject the last step into the release struct. The steps
-  field can also be used to verify if the step was set before or
-  after assembling the release.
+    * `rel/env.sh.eex` and `rel/env.bat.eex`- provides a dynamic mechanism
+      for setting up the VM, runtime flags, and environment variables
 
   ## Directory structure
 
