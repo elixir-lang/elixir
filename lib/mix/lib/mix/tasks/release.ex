@@ -483,7 +483,7 @@ defmodule Mix.Tasks.Release do
     * `:start_distribution_during_config` - on Erlang/OTP 22+, releases
       only start the Erlang VM distribution features after the config files
       are evaluated. You can set it to `true` if you need distribution during
-      configurationn. Defaults to `false`.
+      configuration. Defaults to `false`.
 
     * `:prune_runtime_sys_config_after_boot` - every time your system boots,
       the release will write a config file to your tmp directory. These
