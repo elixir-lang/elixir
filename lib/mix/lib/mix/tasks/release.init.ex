@@ -8,8 +8,8 @@ defmodule Mix.Tasks.Release.Init do
 
       mix release.init
       * creating rel/vm.args.eex
-      * creating rel/start.eex
-      * creating rel/start.bat.eex
+      * creating rel/env.sh.eex
+      * creating rel/env.bat.eex
 
   """
 
