@@ -140,6 +140,12 @@ dot_newline_operator_test() ->
    {identifier, {2, 1, nil}, '+'},
    {int, {2, 2, 1}, "1"}] = tokenize("foo.#bar\n+1").
 
+dot_call_operator_test() ->
+  [{identifier, {1, 1, nil}, f},
+   {dot_call_op, {1, 2, nil}, '.'},
+   {'(', {1, 3, nil}},
+   {')', {1, 4, nil}}] = tokenize("f.()").
+
 aliases_test() ->
   [{'alias', {1, 1, nil}, 'Foo'}] = tokenize("Foo"),
   [{'alias', {1, 1, nil}, 'Foo'},
