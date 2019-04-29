@@ -154,7 +154,7 @@ defmodule Keyword do
 
   """
   @spec new(Enum.t(), (term -> {key, value})) :: t
-  def new(pairs, transform) do
+  def new(pairs, transform) when is_function(transform, 1) do
     fun = fn el, acc ->
       {k, v} = transform.(el)
       put_new(acc, k, v)
@@ -831,7 +831,8 @@ defmodule Keyword do
 
   """
   @spec update!(t, key, (value -> value)) :: t
-  def update!(keywords, key, fun) do
+  def update!(keywords, key, fun)
+      when is_list(keywords) and is_atom(key) and is_function(fun, 1) do
     update!(keywords, key, fun, keywords)
   end
 
@@ -899,7 +900,7 @@ defmodule Keyword do
 
   """
   @spec split(t, [key]) :: {t, t}
-  def split(keywords, keys) when is_list(keywords) do
+  def split(keywords, keys) when is_list(keywords) and is_list(keys) do
     fun = fn {k, v}, {take, drop} ->
       case k in keys do
         true -> {[{k, v} | take], drop}
@@ -927,7 +928,7 @@ defmodule Keyword do
 
   """
   @spec take(t, [key]) :: t
-  def take(keywords, keys) when is_list(keywords) do
+  def take(keywords, keys) when is_list(keywords) and is_list(keys) do
     :lists.filter(fn {k, _} -> k in keys end, keywords)
   end
 
@@ -945,7 +946,7 @@ defmodule Keyword do
 
   """
   @spec drop(t, [key]) :: t
-  def drop(keywords, keys) when is_list(keywords) do
+  def drop(keywords, keys) when is_list(keywords) and is_list(keys) do
     :lists.filter(fn {key, _} -> key not in keys end, keywords)
   end
 
@@ -973,7 +974,7 @@ defmodule Keyword do
 
   """
   @spec pop(t, key, value) :: {value, t}
-  def pop(keywords, key, default \\ nil) when is_list(keywords) do
+  def pop(keywords, key, default \\ nil) when is_list(keywords) and is_atom(key) do
     case fetch(keywords, key) do
       {:ok, value} ->
         {value, delete(keywords, key)}
@@ -1007,7 +1008,7 @@ defmodule Keyword do
   """
   @spec pop_lazy(t, key, (() -> value)) :: {value, t}
   def pop_lazy(keywords, key, fun)
-      when is_list(keywords) and is_function(fun, 0) do
+      when is_list(keywords) and is_atom(key) and is_function(fun, 0) do
     case fetch(keywords, key) do
       {:ok, value} ->
         {value, delete(keywords, key)}
@@ -1035,7 +1036,7 @@ defmodule Keyword do
 
   """
   @spec pop_first(t, key, value) :: {value, t}
-  def pop_first(keywords, key, default \\ nil) when is_list(keywords) do
+  def pop_first(keywords, key, default \\ nil) when is_list(keywords) and is_atom(key) do
     case :lists.keytake(key, 1, keywords) do
       {:value, {^key, value}, rest} -> {value, rest}
       false -> {default, keywords}
