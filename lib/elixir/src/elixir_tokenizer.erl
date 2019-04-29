@@ -733,7 +733,7 @@ handle_dot([$., T | Rest], Line, Column, DotInfo, Scope, Tokens) when
 % ## Exception for .( as it needs to be treated specially in the parser
 handle_dot([$., $( | Rest], Line, Column, DotInfo, Scope, Tokens) ->
   TokensSoFar = add_token_with_eol({dot_call_op, DotInfo, '.'}, Tokens),
-  tokenize([$( | Rest], Line, Column + 2, Scope, TokensSoFar);
+  tokenize([$( | Rest], Line, Column, Scope, TokensSoFar);
 
 handle_dot([$., H | T] = Original, Line, Column, DotInfo, Scope, Tokens) when ?is_quote(H) ->
   case elixir_interpolation:extract(Line, Column + 1, Scope, true, T, H) of
