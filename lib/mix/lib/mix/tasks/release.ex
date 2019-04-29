@@ -59,19 +59,19 @@ defmodule Mix.Tasks.Release do
       many other modules, causing the first requests to have an unusual
       spike in response time. Releases run in embedded mode, which loads
       all available modules upfront, guaranteeing your system is ready
-      to handle requests after booting
+      to handle requests after booting.
 
     * Configuration and customization. Releases give developers fine
       grained control over system configuration and the VM flags used
       to start the system.
 
     * Self-contained. A release does not require the source code to be
-      included in your production artifacts. In fact, it does not even
-      require Erlang or Elixir in your servers, as it includes the
-      whole Erlang runtime by default.
+      included in your production artifacts. All of the code is precompiled
+      and packaged. Releases do not even require Erlang or Elixir in your
+      servers, as it includes the whole Erlang runtime by default.
 
     * Multiple releases. You can assemble different releases with
-      different configuration per application or even different
+      different configuration per application or even with different
       applications altogether.
 
     * Management scripts. Releases come with scripts to start, restart,
