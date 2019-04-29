@@ -45,6 +45,39 @@ defmodule Mix.Tasks.Release do
   If `mix release` is invoked and there are no names, a release using the
   application name and default values is assembled.
 
+  ## Why releases?
+
+  Releases allow developers to precompile and package all of their code
+  and the runtime into a single unit. The benefits of releases are:
+
+    * Code preloading. The VM has two mechanisms for loading code:
+      interactive and embedded. By default, it runs in the interactive
+      mode which dynamically loads modules when they are used for the
+      first time. The first time your application calls `Enum.map/2`,
+      the VM will find the `Enum` module and load it. There’s a downside.
+      When you start a new server in production, it may need to load
+      many other modules, causing the first requests to have an unusual
+      spike in response time. Releases run in embedded mode, which loads
+      all available modules upfront, guaranteeing your system is ready
+      to handle requests after booting
+
+    * Configuration and customization. Releases give developers fine
+      grained control over system configuration and the VM flags used
+      to start the system.
+
+    * Self-contained. A release does not require the source code to be
+      included in your production artifacts. In fact, it does not even
+      require Erlang or Elixir in your servers, as it includes the
+      whole Erlang runtime by default.
+
+    * Multiple releases. You can assemble different releases with
+      different configuration per application or even different
+      applications altogether.
+
+    * Management scripts. Releases come with scripts to start, restart,
+      connect to the running system remotely, execute RPC calls, run as
+      daemon, run as a Window server, and more.
+
   ## Running the release
 
   Once a release is assembled, you can start it by calling
