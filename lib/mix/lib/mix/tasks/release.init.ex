@@ -98,7 +98,7 @@ defmodule Mix.Tasks.Release.Init do
 
     rpc () {
       exec "$REL_VSN_DIR/elixir" \
-           --hidden --name "rpc-$(rand)@127.0.0.1" --cookie "$RELEASE_COOKIE" \
+           --hidden --name "rpc-$(rand)-$RELEASE_NODE" --cookie "$RELEASE_COOKIE" \
            --boot "$REL_VSN_DIR/start_clean" \
            --boot-var RELEASE_LIB "$RELEASE_ROOT/lib" \
            --rpc-eval "$RELEASE_NODE" "$1"
@@ -165,7 +165,7 @@ defmodule Mix.Tasks.Release.Init do
 
       remote)
         exec "$REL_VSN_DIR/iex" \
-             --werl --hidden --name "remote-$(rand)@127.0.0.1" --cookie "$RELEASE_COOKIE" \
+             --werl --hidden --name "rem-$(rand)-$RELEASE_NODE" --cookie "$RELEASE_COOKIE" \
              --boot "$REL_VSN_DIR/start_clean" \
              --boot-var RELEASE_LIB "$RELEASE_ROOT/lib" \
              --remsh "$RELEASE_NODE"
@@ -324,7 +324,7 @@ defmodule Mix.Tasks.Release.Init do
 
     :remote
     "!REL_VSN_DIR!\iex.bat" ^
-      --werl --hidden --name "remote-!RANDOM!@127.0.0.1" --cookie "!RELEASE_COOKIE!" ^
+      --werl --hidden --name "rem-!RANDOM!-!RELEASE_NODE!" --cookie "!RELEASE_COOKIE!" ^
       --boot "!REL_VSN_DIR!\start_clean" ^
       --boot-var RELEASE_LIB "!RELEASE_ROOT!\lib" ^
       --remsh "!RELEASE_NODE!"
@@ -332,7 +332,7 @@ defmodule Mix.Tasks.Release.Init do
 
     :rpc
     "!REL_VSN_DIR!\elixir.bat" ^
-      --hidden --name "rpc-!RANDOM!@127.0.0.1" --cookie "!RELEASE_COOKIE!" ^
+      --hidden --name "rpc-!RANDOM!-!RELEASE_NODE!" --cookie "!RELEASE_COOKIE!" ^
       --boot "!REL_VSN_DIR!\start_clean" ^
       --boot-var RELEASE_LIB "!RELEASE_ROOT!\lib" ^
       --rpc-eval "!RELEASE_NODE!" "!REL_RPC!"
