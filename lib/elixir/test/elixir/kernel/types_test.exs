@@ -8,8 +8,12 @@ defmodule Kernel.TypesTest do
   defmacrop quoted_pattern(expr) do
     quote do
       case Kernel.Types.of_pattern(unquote(Macro.escape(expr)), context()) do
-        {:ok, type, context} -> {:ok, resolve_types(type, context)}
-        {:error, reason} -> {:error, reason}
+        {:ok, type, context} ->
+          {type, _context} = Kernel.Types.lift_types(type, context)
+          {:ok, type}
+
+        {:error, reason} ->
+          {:error, reason}
       end
     end
   end
@@ -17,34 +21,14 @@ defmodule Kernel.TypesTest do
   defmacrop quoted_clause(exprs) do
     quote do
       case Kernel.Types.of_clause(unquote(Macro.escape(exprs))) do
-        {:ok, types, context} -> {:ok, Enum.map(types, &resolve_types(&1, context))}
-        {:error, reason} -> {:error, reason}
+        {:ok, types, context} ->
+          {types, _context} = Enum.map_reduce(types, context, &Kernel.Types.lift_types/2)
+          {:ok, types}
+
+        {:error, reason} ->
+          {:error, reason}
       end
     end
-  end
-
-  defp resolve_types({:var, var}, context) do
-    case Map.fetch(context.types, var) do
-      {:ok, :unbound} -> {:var, var}
-      {:ok, type} -> resolve_types(type, update_in(context.types, &Map.delete(&1, var)))
-      :error -> {:var, var}
-    end
-  end
-
-  defp resolve_types({:tuple, types}, context) do
-    {:tuple, Enum.map(types, &resolve_types(&1, context))}
-  end
-
-  defp resolve_types({:cons, left, right}, context) do
-    {:cons, resolve_types(left, context), resolve_types(right, context)}
-  end
-
-  defp resolve_types({:fn, params, return}, context) do
-    {:fn, Enum.map(params, &resolve_types(&1, context)), resolve_types(return, context)}
-  end
-
-  defp resolve_types(other, _context) do
-    other
   end
 
   describe "of_pattern/1" do
@@ -112,9 +96,8 @@ defmodule Kernel.TypesTest do
     end
 
     test "assignment" do
-      # TODO: Should return [{:var, 0}, {:var, 0}] after they are lifted to quantified types
-      assert quoted_clause([x = y, x = y]) == {:ok, [{:var, 0}, {:var, 1}]}
-      assert quoted_clause([x = y, y = x]) == {:ok, [{:var, 0}, {:var, 1}]}
+      assert quoted_clause([x = y, x = y]) == {:ok, [{:var, 0}, {:var, 0}]}
+      assert quoted_clause([x = y, y = x]) == {:ok, [{:var, 0}, {:var, 0}]}
 
       assert quoted_clause([x = :foo, x = y, y = z]) ==
                {:ok, [{:literal, :foo}, {:literal, :foo}, {:literal, :foo}]}

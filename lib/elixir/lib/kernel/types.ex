@@ -226,7 +226,7 @@ defmodule Kernel.Types do
     [var_name(var)]
   end
 
-  defp collect_specifiers(other) do
+  defp collect_specifiers(_other) do
     []
   end
 
@@ -246,4 +246,66 @@ defmodule Kernel.Types do
 
   # NOTE: Ignores the variable's context
   defp var_name({name, _meta, _context}), do: name
+
+  def lift_types(type, context) do
+    context =
+      context
+      |> Map.put(:quantified_types, %{})
+      |> Map.put(:quantified_counter, 0)
+
+    do_lift_types(type, context)
+  end
+
+  defp do_lift_types({:var, var}, context) do
+    case Map.fetch(context.quantified_types, var) do
+      {:ok, quantified_var} ->
+        {{:var, quantified_var}, context}
+
+      :error ->
+        case Map.fetch(context.types, var) do
+          {:ok, :unbound} ->
+            new_quantified_var(var, context)
+
+          {:ok, type} ->
+            # Remove visited types to avoid infinite loops
+            # then restore after we are done recursing on vars
+            types = context.types
+            context = update_in(context.types, &Map.delete(&1, var))
+            {type, context} = do_lift_types(type, context)
+            {type, put_in(context.types, types)}
+
+          :error ->
+            new_quantified_var(var, context)
+        end
+    end
+  end
+
+  defp do_lift_types({:tuple, types}, context) do
+    {types, context} = Enum.map_reduce(types, context, &do_lift_types/2)
+    {{:tuple, types}, context}
+  end
+
+  defp do_lift_types({:cons, left, right}, context) do
+    {left, context} = do_lift_types(left, context)
+    {right, context} = do_lift_types(right, context)
+    {{:cons, left, right}, context}
+  end
+
+  defp do_lift_types({:fn, params, return}, context) do
+    {params, context} = Enum.map_reduce(params, context, &do_lift_types/2)
+    {return, context} = do_lift_types(return, context)
+    {{:fn, params, return}, context}
+  end
+
+  defp do_lift_types(other, context) do
+    {other, context}
+  end
+
+  defp new_quantified_var(original_var, context) do
+    types = Map.put(context.quantified_types, original_var, context.quantified_counter)
+    counter = context.quantified_counter + 1
+    type = {:var, context.quantified_counter}
+    context = %{context | quantified_types: types, quantified_counter: counter}
+    {type, context}
+  end
 end
