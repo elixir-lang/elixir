@@ -532,7 +532,7 @@ defmodule Application do
     * have the same key inside the same application listed more than once
 
   If those conditions are not met, the behaviour is undefined
-  (on Erlang/OTP 21 and earlier) or will raise (on Erlang/OPT 22
+  (on Erlang/OTP 21 and earlier) or will raise (on Erlang/OTP 22
   and later).
 
   It receives the same options as `put_env/4`. Returns `:ok`.
