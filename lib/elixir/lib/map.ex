@@ -384,13 +384,20 @@ defmodule Map do
       %{a: 1, c: 3}
 
   """
-  @spec take(map, Enumerable.t()) :: map
+  @spec take(map, [key]) :: map
   def take(map, keys)
 
+  def take(map, keys) when is_map(map) and is_list(keys) do
+    take(keys, map, _acc = [])
+  end
+
   def take(map, keys) when is_map(map) do
-    keys
-    |> Enum.to_list()
-    |> take(map, [])
+    IO.warn(
+      "Map.take/2 with an Enumerable of keys that is not a list is deprecated. " <>
+        " Use a list of keys instead."
+    )
+
+    take(map, Enum.to_list(keys))
   end
 
   def take(non_map, _keys) do
@@ -677,23 +684,30 @@ defmodule Map do
       %{a: 1, c: 3}
 
   """
-  @spec drop(map, Enumerable.t()) :: map
+  @spec drop(map, [key]) :: map
   def drop(map, keys)
 
+  def drop(map, keys) when is_map(map) and is_list(keys) do
+    drop_keys(keys, map)
+  end
+
   def drop(map, keys) when is_map(map) do
-    keys
-    |> Enum.to_list()
-    |> drop_list(map)
+    IO.warn(
+      "Map.drop/2 with an Enumerable of keys that is not a list is deprecated. " <>
+        " Use a list of keys instead."
+    )
+
+    drop(map, Enum.to_list(keys))
   end
 
   def drop(non_map, keys) do
     :erlang.error({:badmap, non_map}, [non_map, keys])
   end
 
-  defp drop_list([], acc), do: acc
+  defp drop_keys([], acc), do: acc
 
-  defp drop_list([key | rest], acc) do
-    drop_list(rest, delete(acc, key))
+  defp drop_keys([key | rest], acc) do
+    drop_keys(rest, delete(acc, key))
   end
 
   @doc """
@@ -710,13 +724,20 @@ defmodule Map do
       {%{a: 1, c: 3}, %{b: 2}}
 
   """
-  @spec split(map, Enumerable.t()) :: {map, map}
+  @spec split(map, [key]) :: {map, map}
   def split(map, keys)
 
+  def split(map, keys) when is_map(map) and is_list(keys) do
+    split(keys, [], map)
+  end
+
   def split(map, keys) when is_map(map) do
-    keys
-    |> Enum.to_list()
-    |> split([], map)
+    IO.warn(
+      "Map.split/2 with an Enumerable of keys that is not a list is deprecated. " <>
+        " Use a list of keys instead."
+    )
+
+    split(map, Enum.to_list(keys))
   end
 
   def split(non_map, keys) do
