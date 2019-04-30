@@ -395,11 +395,11 @@ defmodule Mix.Tasks.Release do
   The Mix task will copy custom `rel/vm.args.eex`, `rel/env.sh.eex`, and
   `rel/env.bat.eex` files to your project root. You can modify those
   files and they will be evaluated every time you perform a new release.
-  Those file are regular EEx templates and they have a single assign,
+  Those files are regular EEx templates and they have a single assign,
   called `@release`, with the `Mix.Release` struct.
 
-  The `vm.args` may contain any of the VM flags be known by the `erl`
-  command: http://erlang.org/doc/man/erl.html
+  The `vm.args` may contain any of the VM flags accepted by the [`erl`
+  command](http://erlang.org/doc/man/erl.html).
 
   The `env.sh` and `env.bat` is used to set environment variables.
   In there, you can set vars such as `RELEASE_NODE`, `RELEASE_COOKIE`,
