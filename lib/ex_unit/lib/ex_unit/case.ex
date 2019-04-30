@@ -181,6 +181,10 @@ defmodule ExUnit.Case do
 
       ExUnit.configure(exclude: :os, include: [os: :unix])
 
+  A given include/exclude filter can be given more than once:
+
+      ExUnit.configure(exclude: [os: :unix, os: :windows])
+
   Keep in mind that all tests are included by default, so unless they are
   excluded first, the `include` option has no effect.
 
