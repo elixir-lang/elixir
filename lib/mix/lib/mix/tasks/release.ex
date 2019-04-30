@@ -209,14 +209,14 @@ defmodule Mix.Tasks.Release do
     * Target ABI (e.g. musl, gnu)
 
   This is often represented in the form of target triples, e.g.
-  x86_64-unknown-linux-gnu, x86_64-unknown-linux-musl, x86_64-apple-darwin.
+  `x86_64-unknown-linux-gnu`, `x86_64-unknown-linux-musl`, `x86_64-apple-darwin`.
 
   So to be more precise, to deploy straight from a host to a separate target,
   the Erlang Runtime System (ERTS), and any native dependencies (NIFs), must
   be compiled for the same target triple. If you are building on a MacBook
-  (x86_64-apple-darwin) and trying to deploy to a typical Ubuntu machine
-  (x86_64-unknown-linux-gnu), the release will not work. Instead you should
-  build the release on a x86_64-unknown-linux-gnu host. As we will see, this
+  (`x86_64-apple-darwin`) and trying to deploy to a typical Ubuntu machine
+  (`x86_64-unknown-linux-gnu`), the release will not work. Instead you should
+  build the release on a `x86_64-unknown-linux-gnu` host. As we will see, this
   can be done in multiple ways, such as releasing on the target itself, or by
   using virtual machines or containers, usually as part of your release pipeline.
 
@@ -231,7 +231,7 @@ defmodule Mix.Tasks.Release do
   These system packages are typically managed using the system package manager,
   but if necessary, you can also bundle the compiled object files in the release,
   as long as they were compiled for the same target. If doing so, you need to
-  update LD_LIBRARY_PATH with the paths containing the bundled objects.
+  update `LD_LIBRARY_PATH` with the paths containing the bundled objects.
 
   Currently, there is no official way to cross-compile a release from one
   target triple to another, due to the complexities involved in the process.
