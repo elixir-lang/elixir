@@ -25,15 +25,15 @@ defmodule Kernel.ErrorHandler do
 
   @spec ensure_compiled(module, atom, boolean) :: :found | :not_found | :deadlock
   # Never wait on nil because it should never be defined.
-  def ensure_compiled(nil, _kind, _deadlock?) do
+  def ensure_compiled(nil, _kind, _raise_on_deadlock?) do
     :not_found
   end
 
-  def ensure_compiled(module, kind, deadlock?) do
+  def ensure_compiled(module, kind, raise_on_deadlock?) do
     parent = :erlang.get(:elixir_compiler_pid)
     ref = :erlang.make_ref()
     modules = :elixir_module.compiler_modules()
-    send(parent, {:waiting, kind, self(), ref, module, modules, deadlock?})
+    send(parent, {:waiting, kind, self(), ref, module, modules, raise_on_deadlock?})
     :erlang.garbage_collect(self())
 
     receive do

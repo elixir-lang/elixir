@@ -14,7 +14,7 @@
   * [CLI] Add support for `--boot`, `--boot-var`, `--erl-config`, `--pipe-to`, `--rpc-eval`, and `--vm-args` options
   * [Code] Add `static_atom_encoder` option to `Code.string_to_quoted/2`
   * [Code] Support `:force_do_end_blocks` on `Code.format_string!/2` and `Code.format_file!/2`
-  * [Code] Allow `Code.ensure_compiled/2` to not raise on deadlocks
+  * [Code] Do not raise on deadlocks on `Code.ensure_compiled/1`
   * [Config] Add `Config`, `Config.Reader` and `Config.Provider` modules for working with configuration
   * [File] Add `File.rename!/2`
   * [Kernel] Add `~U` sigil for UTC date times
