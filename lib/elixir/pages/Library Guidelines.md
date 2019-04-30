@@ -172,7 +172,7 @@ end
 
 it allows `use MyLib` to run *any* code into the `MyApp` module. For someone reading the code, it is impossible to assess the impact that `use MyLib` has in a module without looking at the implementation of `__using__`.
 
-The following code is much clearer:
+The following code is clearer:
 
 ```elixir
 defmodule MyApp do
@@ -184,7 +184,7 @@ The code above says we are only bringing in the functions from `MyLib` so we can
 
 If the module you want to invoke a function on has a long name, such as `SomeLibrary.Namespace.MyLib`, and you find it verbose, you can leverage the `alias/2` special form and still refer to the module as `MyLib`.
 
-While there are many situations where using a module is required, `use` should be skipped when all it does is to `import` or `alias` a module. In a nutshell, `alias` is simpler and clearer than `import`, and `import` is simpler and clearer than `use`.
+While there are situations where `use SomeModule` is necessary, `use` should be skipped when all it does is to `import` or `alias` other modules. In a nutshell, `alias` should be preferred, as it is simpler and clearer than `import`, while `import` is simpler and clearer than `use`.
 
 ### Avoid macros
 
