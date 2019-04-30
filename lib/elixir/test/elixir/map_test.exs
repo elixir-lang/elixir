@@ -96,20 +96,17 @@ defmodule MapTest do
 
   test "take/2" do
     assert Map.take(%{a: 1, b: 2, c: 3}, [:b, :c]) == %{b: 2, c: 3}
-    assert Map.take(%{a: 1, b: 2, c: 3}, MapSet.new([:b, :c])) == %{b: 2, c: 3}
     assert Map.take(%{a: 1, b: 2, c: 3}, []) == %{}
     assert_raise BadMapError, fn -> Map.take(:foo, []) end
   end
 
   test "drop/2" do
     assert Map.drop(%{a: 1, b: 2, c: 3}, [:b, :c]) == %{a: 1}
-    assert Map.drop(%{a: 1, b: 2, c: 3}, MapSet.new([:b, :c])) == %{a: 1}
     assert_raise BadMapError, fn -> Map.drop(:foo, []) end
   end
 
   test "split/2" do
     assert Map.split(%{a: 1, b: 2, c: 3}, [:b, :c]) == {%{b: 2, c: 3}, %{a: 1}}
-    assert Map.split(%{a: 1, b: 2, c: 3}, MapSet.new([:b, :c])) == {%{b: 2, c: 3}, %{a: 1}}
     assert_raise BadMapError, fn -> Map.split(:foo, []) end
   end
 
