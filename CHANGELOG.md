@@ -24,6 +24,7 @@
   * [Protocol] Improve `Protocol.UndefinedError` messages to also include the type that was attempted to dispatch on
   * [Protocol] Optimize performance of dynamic dispatching for non-consolidated protocols
   * [Record] Include field names in generated type for records
+  * [Registry] Add `Registry.select/2`
   * [System] Add `System.restart/0`, `System.pid/0` and `System.no_halt/1`
   * [System] Add `System.get_env/2`, `System.fetch_env/1`, and `System.fetch_env!/1`
   * [System] Support `SOURCE_DATE_EPOCH` for reproducible builds
