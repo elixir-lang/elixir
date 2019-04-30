@@ -7,9 +7,9 @@ defmodule Config.Provider do
   by starting the VM with the mininum amount of applications
   running, then invoking all of the providers, and then
   restarting the system. This requires a mutable configuration
-  file in disk, as the result of the providers are written to
-  disk. For more information on runtime configuration, see
-  `mix release`.
+  file on disk, as the results of the providers are written to
+  the file system. For more information on runtime configuration,
+  see `mix release`.
 
   ## Sample config provider
 
@@ -26,7 +26,8 @@ defmodule Config.Provider do
         def load(config, path) do
           # We need to start any app we may depend on.
           {:ok, _} = Application.ensure_all_started(:jason)
-          json = Jason.decode!(path)
+
+          json = path |> File.read!() |> Jason.decode!()
 
           Config.Reader.merge(
             config,
@@ -43,7 +44,7 @@ defmodule Config.Provider do
       config_providers: [{JSONConfigProvider, "/etc/config.json"}]
 
   Now once the system boots, it will invoke the provider early in
-  the boot process, save the merged configuration to disk, and
+  the boot process, save the merged configuration to the disk, and
   reboot the system with the new values in place.
   """
 
