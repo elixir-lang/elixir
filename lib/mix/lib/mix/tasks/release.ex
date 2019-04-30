@@ -68,7 +68,9 @@ defmodule Mix.Tasks.Release do
     * Self-contained. A release does not require the source code to be
       included in your production artifacts. All of the code is precompiled
       and packaged. Releases do not even require Erlang or Elixir in your
-      servers, as it includes the whole Erlang runtime by default.
+      servers, as it includes the Erlang VM and its runtime by default.
+      Furthermore, both Erlang and Elixir standard libraries are stripped
+      to bring only the parts you are actually using.
 
     * Multiple releases. You can assemble different releases with
       different configuration per application or even with different
