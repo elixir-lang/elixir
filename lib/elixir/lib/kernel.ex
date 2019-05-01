@@ -4810,9 +4810,11 @@ defmodule Kernel do
   Defines a function that delegates to another module.
 
   Functions defined with `defdelegate/2` are public and can be invoked from
-  outside the module they're defined in (like if they were defined using
-  `def/2`). When the desire is to delegate as private functions, `import/2` should
-  be used.
+  outside the module they're defined in, as if they were defined using `def/2`.
+  Therefore, `defdelegate/2` is about extending the current module's public API.
+  If what you want is to invoke a function defined in another module without
+  using its full module name, then use `alias/2` to shorten the module name or use
+  `import/2` to be able to invoke the function without the module name altogether.
 
   Delegation only works with functions; delegating macros is not supported.
 
