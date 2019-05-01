@@ -71,6 +71,12 @@ defmodule ExUnit.Filters do
       iex> ExUnit.Filters.normalize([foo: true], [foo: "true"])
       {[foo: true], []}
 
+      iex> ExUnit.Filters.normalize([foo: 1, foo: 1, foo: 2], [])
+      {[foo: 1, foo: 2], []}
+
+      iex> ExUnit.Filters.normalize([], [foo: 1, foo: 1, foo: 2])
+      {[], [foo: 1, foo: 2]}
+
   """
   @spec normalize(t | nil, t | nil) :: {t, t}
   def normalize(include, exclude) do
@@ -80,13 +86,12 @@ defmodule ExUnit.Filters do
     {exclude_atoms, exclude_tags} =
       exclude |> List.wrap() |> Enum.uniq() |> Enum.split_with(&is_atom/1)
 
-    exclude_tags = Map.new(exclude_tags)
+    exclude_tags_map = Map.new(exclude_tags)
 
     exclude_included =
-      for include_tag <- include_tags, key = has_tag(include_tag, exclude_tags), do: key
+      for include_tag <- include_tags, key = has_tag(include_tag, exclude_tags_map), do: key
 
-    exclude_tags =
-      exclude_tags |> Map.drop(include_atoms) |> Map.drop(exclude_included) |> Map.to_list()
+    exclude_tags = exclude_tags |> Keyword.drop(include_atoms) |> Keyword.drop(exclude_included)
 
     {include_atoms ++ include_tags, (exclude_atoms -- include_atoms) ++ exclude_tags}
   end
