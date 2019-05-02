@@ -387,9 +387,18 @@ defmodule Kernel.ErrorsTest do
                       '''
   end
 
-  test "bad form" do
+  test "undefined function" do
     assert_eval_raise CompileError, "nofile:3: undefined function bar/0", '''
     defmodule Kernel.ErrorsTest.BadForm do
+      def foo do
+        bar()
+      end
+    end
+    '''
+
+    assert_eval_raise CompileError, "hello.ex:4: undefined function bar/0", '''
+    defmodule Kernel.ErrorsTest.BadForm do
+      @file "hello.ex"
       def foo do
         bar()
       end
@@ -408,6 +417,10 @@ defmodule Kernel.ErrorsTest do
       end
     end
     '''
+  end
+
+  test "undefined non-local function" do
+    assert_eval_raise CompileError, "nofile:1: undefined function call/2", 'call foo, do: :foo'
   end
 
   test "literal on map and struct" do
@@ -579,12 +592,6 @@ defmodule Kernel.ErrorsTest do
     assert_eval_raise CompileError, "nofile:1: invalid module name: 3", 'defmodule 1 + 2, do: 3'
   end
 
-  test "@compile inline with undefined function" do
-    assert_eval_raise CompileError,
-                      "nofile:1: inlined function foo/1 undefined",
-                      'defmodule Test do @compile {:inline, foo: 1} end'
-  end
-
   test "invalid unquote" do
     assert_eval_raise CompileError, "nofile:1: unquote called outside quote", 'unquote 1'
   end
@@ -604,10 +611,6 @@ defmodule Kernel.ErrorsTest do
                         end
                       end
                       '''
-  end
-
-  test "undefined non-local function" do
-    assert_eval_raise CompileError, "nofile:1: undefined function call/2", 'call foo, do: :foo'
   end
 
   test "invalid attribute" do
@@ -889,6 +892,12 @@ defmodule Kernel.ErrorsTest do
     assert_eval_raise ArgumentError,
                       "could not call Module.eval_quoted/4 because the module Record is already compiled",
                       'Module.eval_quoted Record, quote(do: 1), [], file: __ENV__.file'
+  end
+
+  test "@compile inline with undefined function" do
+    assert_eval_raise CompileError,
+                      "nofile:1: inlined function foo/1 undefined",
+                      'defmodule Test do @compile {:inline, foo: 1} end'
   end
 
   test "@on_load attribute format" do
