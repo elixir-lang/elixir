@@ -452,15 +452,13 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       # First compilation should print unused variable warning
       import ExUnit.CaptureIO
 
-      output =
-        capture_io(:standard_error, fn ->
-          Mix.Tasks.Compile.Elixir.run([]) == :ok
-        end)
+      assert capture_io(:standard_error, fn ->
+               Mix.Tasks.Compile.Elixir.run([]) == :ok
+             end) =~ "variable \"unused\" is unused"
 
-      # Should also print warning
       assert capture_io(:standard_error, fn ->
                Mix.Tasks.Compile.Elixir.run(["--all-warnings"])
-             end) == output
+             end) =~ "variable \"unused\" is unused"
 
       # Should not print warning once fixed
       File.write!("lib/a.ex", """

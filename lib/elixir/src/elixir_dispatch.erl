@@ -123,7 +123,7 @@ expand_import(Meta, {Name, Arity} = Tuple, Args, E, Extra, External) ->
         %% the receiver is the same as module (happens on bootstrap).
         {_, Receiver} when Local /= false, Receiver /= Module ->
           Error = {macro_conflict, {Receiver, Name, Arity}},
-          elixir_errors:form_error(Meta, ?key(E, file), ?MODULE, Error);
+          elixir_errors:form_error(Meta, E, ?MODULE, Error);
 
         %% There is no local. Dispatch the import.
         _ when Local == false ->
@@ -171,7 +171,7 @@ expand_require(Meta, Receiver, {Name, Arity} = Tuple, Args, E) ->
       {ok, Receiver, expand_macro_named(Meta, Receiver, Name, Arity, Args, E)};
     true ->
       Info = {unrequired_module, {Receiver, Name, length(Args), ?key(E, requires)}},
-      elixir_errors:form_error(Meta, ?key(E, file), ?MODULE, Info);
+      elixir_errors:form_error(Meta, E, ?MODULE, Info);
     false ->
       error
   end.
@@ -239,7 +239,7 @@ find_dispatch(Meta, Tuple, Extra, E) ->
           {Name, Arity} = Tuple,
           [First, Second | _] = FunMatch ++ MacMatch,
           Error = {ambiguous_call, {First, Second, Name, Arity}},
-          elixir_errors:form_error(Meta, ?key(E, file), ?MODULE, Error)
+          elixir_errors:form_error(Meta, E, ?MODULE, Error)
       end
   end.
 
@@ -286,29 +286,38 @@ format_error({ambiguous_call, {Mod1, Mod2, Name, Arity}}) ->
 
 %% INTROSPECTION
 
+%% TODO: Do not rely on erlang:module_loaded/1 on Erlang/OTP 21+.
+is_ensure_loaded(Receiver) ->
+  erlang:module_loaded(Receiver) orelse (code:ensure_loaded(Receiver) == {module, Receiver}).
+
 %% Do not try to get macros from Erlang. Speeds up compilation a bit.
 get_macros(erlang, _) -> [];
 
 get_macros(Receiver, false) ->
-  case code:is_loaded(Receiver) of
-    {file, _} ->
-      try
-        Receiver:'__info__'(macros)
-      catch
-        error:undef -> []
-      end;
+  case erlang:module_loaded(Receiver) of
+    true -> get_info(Receiver, macros);
     false -> []
   end;
 
 get_macros(Receiver, true) ->
-  case code:ensure_loaded(Receiver) of
-    {module, Receiver} ->
+  case is_ensure_loaded(Receiver) of
+    true -> get_info(Receiver, macros);
+    false -> []
+  end.
+
+get_deprecations(Receiver) ->
+  get_info(Receiver, deprecated).
+
+get_info(Receiver, Key) ->
+  case erlang:function_exported(Receiver, '__info__', 1) of
+    true ->
       try
-        Receiver:'__info__'(macros)
+        Receiver:'__info__'(Key)
       catch
-        error:undef -> []
+        error:_ -> []
       end;
-    {error, _} -> []
+    false ->
+      []
   end.
 
 elixir_imported_functions() ->
@@ -346,8 +355,8 @@ check_deprecation(Meta, 'Elixir.System', stacktrace, 0, #{contextual_vars := Var
       elixir_errors:erl_warn(?line(Meta), ?key(E, file), Message)
   end;
 check_deprecation(Meta, Receiver, Name, Arity, E) ->
-  case (get(elixir_compiler_dest) == undefined) andalso is_module_loaded(Receiver) andalso
-        erlang:function_exported(Receiver, '__info__', 1) andalso get_deprecations(Receiver) of
+  case (get(elixir_compiler_dest) == undefined) andalso
+         is_ensure_loaded(Receiver) andalso get_deprecations(Receiver) of
     [_ | _] = Deprecations ->
       case lists:keyfind({Name, Arity}, 1, Deprecations) of
         {_, Message} ->
@@ -358,18 +367,6 @@ check_deprecation(Meta, Receiver, Name, Arity, E) ->
       end;
     _ ->
       ok
-  end.
-
-%% TODO: Do not rely on erlang:module_loaded/1 on Erlang/OTP 21+.
-is_module_loaded(Receiver) ->
-  erlang:module_loaded(Receiver) orelse
-    (code:ensure_loaded(Receiver) == {module, Receiver}).
-
-get_deprecations(Receiver) ->
-  try
-    Receiver:'__info__'(deprecated)
-  catch
-    error:_ -> []
   end.
 
 deprecation_message(Receiver, '__using__', _Arity, Message) ->

@@ -30,6 +30,14 @@ defmodule Code do
   the result of evaluating the file rather than the modules it defines.
   """
 
+  @available_compiler_options [
+    :docs,
+    :debug_info,
+    :ignore_module_conflict,
+    :relative_paths,
+    :warnings_as_errors
+  ]
+
   @doc """
   Lists all required files.
 
@@ -816,8 +824,7 @@ defmodule Code do
   ## Examples
 
       Code.compiler_options()
-      #=> %{debug_info: true, docs: true,
-      #=>   warnings_as_errors: false, ignore_module_conflict: false}
+      #=> %{debug_info: true, docs: true, ...}
 
   """
   @spec compiler_options() :: %{optional(atom) => boolean}
@@ -832,13 +839,13 @@ defmodule Code do
 
   ## Examples
 
-      iex> Code.available_compiler_options()
-      [:docs, :debug_info, :ignore_module_conflict, :relative_paths, :warnings_as_errors]
+      Code.available_compiler_options()
+      #=> [:docs, :debug_info, ...]
 
   """
   @spec available_compiler_options() :: [atom]
   def available_compiler_options do
-    [:docs, :debug_info, :ignore_module_conflict, :relative_paths, :warnings_as_errors]
+    @available_compiler_options
   end
 
   @doc """
@@ -897,19 +904,14 @@ defmodule Code do
   """
   @spec compiler_options(Enumerable.t()) :: %{optional(atom) => boolean}
   def compiler_options(opts) do
-    available = available_compiler_options()
-
-    Enum.each(opts, fn {key, value} ->
-      cond do
-        key not in available ->
-          raise "unknown compiler option: #{inspect(key)}"
-
-        not is_boolean(value) ->
+    Enum.each(opts, fn
+      {key, value} when key in @available_compiler_options ->
+        if not is_boolean(value) do
           raise "compiler option #{inspect(key)} should be a boolean, got: #{inspect(value)}"
+        end
 
-        true ->
-          :ok
-      end
+      {key, _} ->
+        raise "unknown compiler option: #{inspect(key)}"
     end)
 
     :elixir_config.update(:compiler_options, &Enum.into(opts, &1))
@@ -1062,16 +1064,14 @@ defmodule Code do
   and when to use `ensure_loaded/1` or `ensure_compiled/1`.
   """
   @spec ensure_compiled(module) ::
-          {:module, module}
-          | {:error, :embedded | :badfile | :nofile | :on_load_failure | :deadlock}
+          {:module, module} | {:error, :embedded | :badfile | :nofile | :on_load_failure}
   def ensure_compiled(module) when is_atom(module) do
     case :code.ensure_loaded(module) do
       {:error, :nofile} = error ->
         if is_pid(:erlang.get(:elixir_compiler_pid)) do
-          case Kernel.ErrorHandler.ensure_compiled(module, :module, false) do
+          case Kernel.ErrorHandler.ensure_compiled(module, :module, :soft) do
             :found -> {:module, module}
             :not_found -> error
-            :deadlock -> {:error, :deadlock}
           end
         else
           error

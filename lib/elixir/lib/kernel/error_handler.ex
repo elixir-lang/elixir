@@ -5,13 +5,13 @@ defmodule Kernel.ErrorHandler do
 
   @spec undefined_function(module, atom, list) :: term
   def undefined_function(module, fun, args) do
-    ensure_loaded(module) or ensure_compiled(module, :module, true)
+    ensure_loaded(module) or ensure_compiled(module, :module, :raise)
     :error_handler.undefined_function(module, fun, args)
   end
 
   @spec undefined_lambda(module, fun, list) :: term
   def undefined_lambda(module, fun, args) do
-    ensure_loaded(module) or ensure_compiled(module, :module, true)
+    ensure_loaded(module) or ensure_compiled(module, :module, :raise)
     :error_handler.undefined_lambda(module, fun, args)
   end
 
@@ -23,17 +23,17 @@ defmodule Kernel.ErrorHandler do
     end
   end
 
-  @spec ensure_compiled(module, atom, boolean) :: :found | :not_found | :deadlock
+  @spec ensure_compiled(module, atom, atom) :: :found | :not_found | :deadlock
   # Never wait on nil because it should never be defined.
-  def ensure_compiled(nil, _kind, _raise_on_deadlock?) do
+  def ensure_compiled(nil, _kind, _deadlock) do
     :not_found
   end
 
-  def ensure_compiled(module, kind, raise_on_deadlock?) do
+  def ensure_compiled(module, kind, deadlock) do
     parent = :erlang.get(:elixir_compiler_pid)
     ref = :erlang.make_ref()
     modules = :elixir_module.compiler_modules()
-    send(parent, {:waiting, kind, self(), ref, module, modules, raise_on_deadlock?})
+    send(parent, {:waiting, kind, self(), ref, module, modules, deadlock})
     :erlang.garbage_collect(self())
 
     receive do
