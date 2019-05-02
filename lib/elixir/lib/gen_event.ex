@@ -324,14 +324,7 @@ defmodule GenEvent do
 
   def init_it(starter, parent, name, _mod, _args, options) do
     Process.put(:"$initial_call", {__MODULE__, :init_it, 6})
-
-    debug =
-      if function_exported?(:gen, :debug_options, 2) do
-        :gen.debug_options(name, options)
-      else
-        :gen.debug_options(options)
-      end
-
+    debug = :gen.debug_options(name, options)
     :proc_lib.init_ack(starter, {:ok, self()})
     loop(parent, name(name), [], debug, false)
   end

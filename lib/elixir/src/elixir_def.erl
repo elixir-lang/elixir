@@ -229,7 +229,7 @@ def_to_clauses(Kind, Meta, Args, Guards, Body, E) ->
     {do, _} ->
       [{Meta, Args, Guards, {'try', [{origin,  Kind} | Meta], [Body]}}];
     false ->
-      elixir_errors:form_error(Meta, ?key(E, file), elixir_expand, {missing_option, Kind, [do]})
+      elixir_errors:form_error(Meta, E, elixir_expand, {missing_option, Kind, [do]})
   end.
 
 run_on_definition_callbacks(Kind, Module, Name, Args, Guards, Body, E) ->
@@ -353,7 +353,7 @@ warn_bodiless_function(_Check, Meta, File, _Module, Kind, Tuple) ->
 
 check_args_for_function_head(Meta, Args, E) ->
   [begin
-     elixir_errors:form_error(Meta, ?key(E, file), ?MODULE, invalid_args_for_function_head)
+     elixir_errors:form_error(Meta, E, ?MODULE, invalid_args_for_function_head)
    end || Arg <- Args, invalid_arg(Arg)].
 
 invalid_arg({Name, _, Kind}) when is_atom(Name), is_atom(Kind) -> false;
@@ -363,7 +363,7 @@ check_previous_defaults(Meta, Module, Name, Arity, Kind, Defaults, E) ->
   {_Set, Bag} = elixir_module:data_tables(Module),
   Matches = ets:lookup(Bag, {default, Name}),
   [begin
-     elixir_errors:form_error(Meta, ?key(E, file), ?MODULE,
+     elixir_errors:form_error(Meta, E, ?MODULE,
        {defs_with_defaults, Kind, Name, Arity, A})
    end || {_, A, D} <- Matches, A /= Arity, D /= 0, defaults_conflict(A, D, Arity, Defaults)].
 

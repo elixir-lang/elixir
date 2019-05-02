@@ -105,7 +105,7 @@ merge_vars(V1, V2) ->
 %% UNUSED VARS
 
 check_unused_vars(#{unused_vars := Unused} = E) ->
-  [elixir_errors:form_warn([{line, Line}], ?key(E, file), ?MODULE, {unused_var, Name}) ||
+  [elixir_errors:form_warn([{line, Line}], E, ?MODULE, {unused_var, Name}) ||
     {{{Name, _}, _}, Line} <- maps:to_list(Unused), Line /= false, not_underscored(Name)],
   E.
 
@@ -141,7 +141,7 @@ merge_and_check_unused_vars(Unused, ClauseUnused, E) ->
             case not_underscored(Name) of
               true ->
                 Warn = {unused_var, Name},
-                elixir_errors:form_warn([{line, ClauseValue}], ?key(E, file), ?MODULE, Warn);
+                elixir_errors:form_warn([{line, ClauseValue}], E, ?MODULE, Warn);
 
               false ->
                 ok

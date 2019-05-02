@@ -219,12 +219,12 @@ defmodule Kernel.ParallelCompilerTest do
           "parallel_ensure_nodeadlock",
           foo: """
           defmodule FooCircular do
-            {:error, :deadlock} = Code.ensure_compiled(BarCircular)
+            {:error, _} = Code.ensure_compiled(BarCircular)
           end
           """,
           bar: """
           defmodule BarCircular do
-            {:error, :deadlock} = Code.ensure_compiled(FooCircular)
+            {:error, _} = Code.ensure_compiled(FooCircular)
           end
           """
         )

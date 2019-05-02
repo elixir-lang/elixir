@@ -5,37 +5,50 @@
 %% the line number to be none (as it may happen in some erlang errors).
 -module(elixir_errors).
 -export([compile_error/3, compile_error/4,
-         form_error/4, form_warn/4, parse_error/4, erl_warn/3, io_warn/3]).
+         form_error/4, form_warn/4, parse_error/4, erl_warn/3, io_warn/4]).
 -include("elixir.hrl").
 
+%% Low-level warning, should be used only from Erlang passes.
 -spec erl_warn(non_neg_integer() | none, unicode:chardata(), unicode:chardata()) -> ok.
 erl_warn(none, File, Warning) ->
   erl_warn(0, File, Warning);
 erl_warn(Line, File, Warning) when is_integer(Line), is_binary(File) ->
-  send_warning(File, Line, Warning),
-  print_warning([Warning, "\n  ", file_format(Line, File), $\n]).
+  io_warn(Line, File, Warning, [Warning, "\n  ", file_format(Line, File), $\n]).
 
--spec io_warn(non_neg_integer() | nil, unicode:chardata() | nil, unicode:chardata()) -> ok.
-io_warn(Line, File, Message) when is_integer(Line) or (Line == nil), is_binary(File) or (File == nil) ->
-  send_warning(File, Line, Message),
-  print_warning(Message).
-
-warning_prefix() ->
-  case application:get_env(elixir, ansi_enabled) of
-    {ok, true} -> <<"\e[33mwarning: \e[0m">>;
-    _ -> <<"warning: ">>
-  end.
+%% Low-level warning, all other warnings are built on top of it.
+-spec io_warn(non_neg_integer() | nil, unicode:chardata() | nil, unicode:chardata(), unicode:chardata()) -> ok.
+io_warn(Line, File, LogMessage, PrintMessage) when is_integer(Line) or (Line == nil), is_binary(File) or (File == nil) ->
+  send_warning(Line, File, LogMessage),
+  print_warning(PrintMessage).
 
 %% General forms handling.
 
--spec form_error(list(), binary(), module(), any()) -> no_return().
+-spec form_error(list(), binary() | #{file := binary()}, module(), any()) -> no_return().
+form_error(Meta, #{file := File}, Module, Desc) ->
+  compile_error(Meta, File, Module:format_error(Desc));
 form_error(Meta, File, Module, Desc) ->
   compile_error(Meta, File, Module:format_error(Desc)).
 
--spec form_warn(list(), binary(), module(), any()) -> ok.
-form_warn(Meta, File, Module, Desc) when is_list(Meta) ->
-  {MetaFile, MetaLine} = meta_location(Meta, File),
-  erl_warn(MetaLine, MetaFile, Module:format_error(Desc)).
+-spec form_warn(list(), binary() | #{file := binary()}, module(), any()) -> ok.
+form_warn(Meta, File, Module, Desc) when is_list(Meta), is_binary(File) ->
+  do_form_warn(Meta, File, #{}, Module:format_error(Desc));
+form_warn(Meta, #{file := File} = E, Module, Desc) when is_list(Meta) ->
+  do_form_warn(Meta, File, E, Module:format_error(Desc)).
+
+do_form_warn(Meta, GivenFile, E, Warning) ->
+  {File, Line} = meta_location(Meta, GivenFile),
+
+  Location =
+    case E of
+      #{function := {Name, Arity}, module := Module} ->
+        [file_format(Line, File), ": ", 'Elixir.Exception':format_mfa(Module, Name, Arity)];
+      #{module := Module} when Module /= nil ->
+        [file_format(Line, File), ": ", elixir_aliases:inspect(Module)];
+      #{} ->
+        file_format(Line, File)
+    end,
+
+  io_warn(Line, File, Warning, [Warning, "\n  ", Location, $\n]).
 
 %% Compilation error.
 
@@ -47,8 +60,7 @@ compile_error(Meta, File, Message) when is_binary(Message) ->
   raise(MetaLine, MetaFile, 'Elixir.CompileError', Message);
 compile_error(Meta, File, Message) when is_list(Message) ->
   {MetaFile, MetaLine} = meta_location(Meta, File),
-  raise(MetaLine, MetaFile, 'Elixir.CompileError',
-        elixir_utils:characters_to_binary(Message)).
+  raise(MetaLine, MetaFile, 'Elixir.CompileError', elixir_utils:characters_to_binary(Message)).
 
 compile_error(Meta, File, Format, Args) when is_list(Format)  ->
   compile_error(Meta, File, io_lib:format(Format, Args)).
@@ -114,11 +126,17 @@ parse_erl_term(Term) ->
 
 %% Helpers
 
+warning_prefix() ->
+  case application:get_env(elixir, ansi_enabled) of
+    {ok, true} -> <<"\e[33mwarning: \e[0m">>;
+    _ -> <<"warning: ">>
+  end.
+
 print_warning(Message) ->
   io:put_chars(standard_error, [warning_prefix(), Message, $\n]),
   ok.
 
-send_warning(File, Line, Message) ->
+send_warning(Line, File, Message) ->
   CompilerPid = get(elixir_compiler_pid),
   if
     CompilerPid =/= undefined ->

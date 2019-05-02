@@ -99,7 +99,7 @@ ensure_loaded(Meta, Ref, E) ->
           end;
         false -> unloaded_module
       end,
-      elixir_errors:form_error(Meta, ?key(E, file), ?MODULE, {Kind, Ref})
+      elixir_errors:form_error(Meta, E, ?MODULE, {Kind, Ref})
   end.
 
 %% Receives an atom and returns the last bit as an alias.
