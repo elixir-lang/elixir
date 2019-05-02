@@ -35,7 +35,7 @@
 
 #### Logger
 
-  * [Logger] Use a descentralized mode computation for Logger which allows overloads to be detect more quickly
+  * [Logger] Use a decentralized mode computation for Logger which allows overloads to be detected more quickly
   * [Logger] Use `persistent_term` to store configuration whenever available for performance
 
 #### Mix
