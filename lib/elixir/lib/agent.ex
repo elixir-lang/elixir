@@ -160,6 +160,47 @@ defmodule Agent do
   The best solution is to simply use the explicit module, function, and arguments
   APIs when working with distributed agents.
 
+  ## An example using named `global` Agents:
+
+  You can create named Agents that can be called from any connected node in a
+  cluster. This technique can be helpful when you have a cluster, don't
+  necessarily know which node will handle the work and you want to ensure
+  consistency between nodes by avoiding duplication between nodes. If you
+  don't, you can run into a situation where a you have multiple Agents with
+  different states in different nodes.
+
+  If you ever choose to use this technique, consider using a Supervision tree
+  that tries to keep its state across nodes. If one of your Agents goes
+  down, you'd probably want to handle that somehow. There are libraries that
+  currently support this functionality. On to the example:
+
+  Create two named `iex` instances in two separate terminal instances:
+
+    # On terminal 1:
+    iex --name t1@127.0.0.1
+
+    # On terminal 2:
+    iex --name t2@127.0.0.1
+
+    # Connect instances together. From either t1 or t2, connect to the other
+    # instance:
+
+    # from t2
+    Node.connect(:"t1@127.0.0.1") #=> true
+
+    # Assert we are connected. Check from either instance:
+    # from t2
+    Node.list() #=> [:"t1@127.0.0.1"]
+
+    # from t1
+    Node.list() #=> [:"t2@127.0.0.1"]
+
+    # Now, let's create an Agent from from `t1`:
+    Agent.start_link(fn -> %{t1: true, t2: false} end, name: {:global, "choose a name"})
+
+    # from `t2`
+    Agent.get({:global, "choose a name"}, & &1) #=> %{t1: true, t2: false}
+
   ## Hot code swapping
 
   An agent can have its code hot swapped live by simply passing a module,
