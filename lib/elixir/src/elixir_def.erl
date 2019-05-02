@@ -136,16 +136,18 @@ store_definition(Kind, CheckClauses, Call, Body, Pos) ->
   %% Line and File will always point to the caller. __ENV__.line
   %% will always point to the quoted one and __ENV__.file will
   %% always point to the one at @file or the quoted one.
-  {Location, LinifyLine} =
+  {Location, LinifyArgs, LinifyGuards, LinifyBody} =
     case elixir_utils:meta_keep(Meta) of
-      {_, _} = MetaFile -> {MetaFile, Line};
-      nil -> {nil, 0}
+      {_, _} = MetaFile ->
+        {MetaFile,
+         elixir_quote:linify(Line, keep, Args),
+         elixir_quote:linify(Line, keep, Guards),
+         elixir_quote:linify(Line, keep, Body)};
+      nil ->
+        {nil, Args, Guards, Body}
     end,
 
-  Arity        = length(Args),
-  LinifyArgs   = elixir_quote:linify(LinifyLine, keep, Args),
-  LinifyGuards = elixir_quote:linify(LinifyLine, keep, Guards),
-  LinifyBody   = elixir_quote:linify(LinifyLine, keep, Body),
+  Arity = length(Args),
 
   {File, DefMeta} =
     case retrieve_location(Location, ?key(E, module)) of
