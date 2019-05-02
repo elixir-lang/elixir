@@ -114,7 +114,7 @@ defmodule Kernel.Utils do
   def announce_struct(module) do
     case :erlang.get(:elixir_compiler_pid) do
       :undefined -> :ok
-      pid -> send(pid, {:struct_available, module})
+      pid -> send(pid, {:available, :struct, module})
     end
   end
 

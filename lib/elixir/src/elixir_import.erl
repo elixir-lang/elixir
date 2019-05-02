@@ -38,7 +38,7 @@ import_macros(Force, Meta, Ref, Opts, E) ->
       {ok, Macros} ->
         Macros;
       error when Force ->
-        elixir_errors:form_error(Meta, ?key(E, file), ?MODULE, {no_macros, Ref});
+        elixir_errors:form_error(Meta, E, ?MODULE, {no_macros, Ref});
       error ->
         []
     end

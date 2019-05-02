@@ -9,7 +9,7 @@ expand(Meta, Clauses, E) when is_list(Clauses) ->
   Transformer = fun({_, _, [Left, _Right]} = Clause, Acc) ->
     case lists:any(fun is_invalid_arg/1, Left) of
       true ->
-        form_error(Meta, ?key(E, file), ?MODULE, defaults_in_args);
+        form_error(Meta, E, ?MODULE, defaults_in_args);
       false ->
         {EClause, EAcc} = elixir_clauses:clause(Meta, fn, fun elixir_clauses:head/2, Clause, Acc),
         {EClause, elixir_env:merge_and_check_unused_vars(Acc, EAcc)}
@@ -23,7 +23,7 @@ expand(Meta, Clauses, E) when is_list(Clauses) ->
     [_] ->
       {{fn, Meta, EClauses}, EE};
     _ ->
-      form_error(Meta, ?key(E, file), ?MODULE, clauses_with_different_arities)
+      form_error(Meta, E, ?MODULE, clauses_with_different_arities)
   end.
 
 is_invalid_arg({'\\\\', _, _}) -> true;
@@ -61,7 +61,7 @@ capture(Meta, {'__block__', _, [Expr]}, E) ->
   capture(Meta, Expr, E);
 
 capture(Meta, {'__block__', _, _} = Expr, E) ->
-  form_error(Meta, ?key(E, file), ?MODULE, {block_expr_in_capture, Expr});
+  form_error(Meta, E, ?MODULE, {block_expr_in_capture, Expr});
 
 capture(Meta, {Atom, _, Args} = Expr, E) when is_atom(Atom), is_list(Args) ->
   capture_import(Meta, Expr, E, is_sequential_and_not_empty(Args));
@@ -73,7 +73,7 @@ capture(Meta, List, E) when is_list(List) ->
   capture_expr(Meta, List, E, is_sequential_and_not_empty(List));
 
 capture(Meta, Integer, E) when is_integer(Integer) ->
-  form_error(Meta, ?key(E, file), ?MODULE, {capture_arg_outside_of_capture, Integer});
+  form_error(Meta, E, ?MODULE, {capture_arg_outside_of_capture, Integer});
 
 capture(Meta, Arg, E) ->
   invalid_capture(Meta, Arg, E).
@@ -120,12 +120,12 @@ capture_expr(Meta, Expr, E, Escaped, Sequential) ->
   end.
 
 invalid_capture(Meta, Arg, E) ->
-  form_error(Meta, ?key(E, file), ?MODULE, {invalid_args_for_capture, Arg}).
+  form_error(Meta, E, ?MODULE, {invalid_args_for_capture, Arg}).
 
 validate(Meta, [{Pos, Var} | T], Pos, E) ->
   [Var | validate(Meta, T, Pos + 1, E)];
 validate(Meta, [{Pos, _} | _], Expected, E) ->
-  form_error(Meta, ?key(E, file), ?MODULE, {capture_arg_without_predecessor, Pos, Expected});
+  form_error(Meta, E, ?MODULE, {capture_arg_without_predecessor, Pos, Expected});
 validate(_Meta, [], _Pos, _E) ->
   [].
 
@@ -133,9 +133,9 @@ escape({'&', _, [Pos]}, _E, Dict) when is_integer(Pos), Pos > 0 ->
   Var = {list_to_atom([$x | integer_to_list(Pos)]), [], ?var_context},
   {Var, orddict:store(Pos, Var, Dict)};
 escape({'&', Meta, [Pos]}, E, _Dict) when is_integer(Pos) ->
-  form_error(Meta, ?key(E, file), ?MODULE, {unallowed_capture_arg, Pos});
+  form_error(Meta, E, ?MODULE, {unallowed_capture_arg, Pos});
 escape({'&', Meta, _} = Arg, E, _Dict) ->
-  form_error(Meta, ?key(E, file), ?MODULE, {nested_capture, Arg});
+  form_error(Meta, E, ?MODULE, {nested_capture, Arg});
 escape({Left, Meta, Right}, E, Dict0) ->
   {TLeft, Dict1}  = escape(Left, E, Dict0),
   {TRight, Dict2} = escape(Right, E, Dict1),
@@ -152,7 +152,7 @@ escape(Other, _E, Dict) ->
 args_from_arity(_Meta, A, _E) when is_integer(A), A >= 0, A =< 255 ->
   [{'&', [], [X]} || X <- lists:seq(1, A)];
 args_from_arity(Meta, A, E) ->
-  form_error(Meta, ?key(E, file), ?MODULE, {invalid_arity_for_capture, A}).
+  form_error(Meta, E, ?MODULE, {invalid_arity_for_capture, A}).
 
 is_sequential_and_not_empty([])   -> false;
 is_sequential_and_not_empty(List) -> is_sequential(List, 1).

@@ -43,13 +43,13 @@ expand_struct(Meta, Left, {'%{}', MapMeta, MapArgs}, #{context := Context} = E) 
       {{'%', Meta, [ELeft, ERight]}, EE};
 
     false when Context == match ->
-      form_error(Meta, ?key(E, file), ?MODULE, {invalid_struct_name_in_match, ELeft});
+      form_error(Meta, E, ?MODULE, {invalid_struct_name_in_match, ELeft});
 
     false ->
-      form_error(Meta, ?key(E, file), ?MODULE, {invalid_struct_name, ELeft})
+      form_error(Meta, E, ?MODULE, {invalid_struct_name, ELeft})
   end;
 expand_struct(Meta, _Left, Right, E) ->
-  form_error(Meta, ?key(E, file), ?MODULE, {non_map_after_struct, Right}).
+  form_error(Meta, E, ?MODULE, {non_map_after_struct, Right}).
 
 clean_struct_key_from_map_args(Meta, [{'|', PipeMeta, [Left, MapAssocs]}], E) ->
   [{'|', PipeMeta, [Left, clean_struct_key_from_map_assocs(Meta, MapAssocs, E)]}];
@@ -66,9 +66,9 @@ clean_struct_key_from_map_assocs(Meta, Assocs, E) ->
   end.
 
 validate_match_key(Meta, {'^', _, [{Name, _, Context}]}, E) when is_atom(Name), is_atom(Context) ->
-  form_error(Meta, ?key(E, file), ?MODULE, {invalid_pin_in_map_key_match, Name});
+  form_error(Meta, E, ?MODULE, {invalid_pin_in_map_key_match, Name});
 validate_match_key(Meta, {Name, _, Context}, E) when is_atom(Name), is_atom(Context) ->
-  form_error(Meta, ?key(E, file), ?MODULE, {invalid_variable_in_map_key_match, Name});
+  form_error(Meta, E, ?MODULE, {invalid_variable_in_map_key_match, Name});
 validate_match_key(_, {'%{}', _, [_ | _]}, _) ->
   ok;
 validate_match_key(Meta, {Left, _, Right}, E) ->
@@ -109,7 +109,7 @@ validate_kv(Meta, KV, Original, #{context := Context} = E) ->
       NewUsed = validate_not_repeated(Meta, K, Used, E),
       {Index + 1, NewUsed};
     (_, {Index, _Used}) ->
-      form_error(Meta, ?key(E, file), ?MODULE, {not_kv_pair, lists:nth(Index, Original)})
+      form_error(Meta, E, ?MODULE, {not_kv_pair, lists:nth(Index, Original)})
   end, {1, #{}}, KV).
 
 extract_struct_assocs(_, {'%{}', Meta, [{'|', _, [_, Assocs]}]}, _) ->
@@ -117,7 +117,7 @@ extract_struct_assocs(_, {'%{}', Meta, [{'|', _, [_, Assocs]}]}, _) ->
 extract_struct_assocs(_, {'%{}', Meta, Assocs}, _) ->
   {expand, Meta, delete_struct_key(Assocs)};
 extract_struct_assocs(Meta, Other, E) ->
-  form_error(Meta, ?key(E, file), ?MODULE, {non_map_after_struct, Other}).
+  form_error(Meta, E, ?MODULE, {non_map_after_struct, Other}).
 
 delete_struct_key(Assocs) ->
   lists:keydelete('__struct__', 1, Assocs).
@@ -158,16 +158,16 @@ load_struct(Meta, Name, Args, E) ->
     #{'__struct__' := Name} = Struct ->
       Struct;
     #{'__struct__' := StructName} when is_atom(StructName) ->
-      form_error(Meta, ?key(E, file), ?MODULE, {struct_name_mismatch, Name, Arity, StructName});
+      form_error(Meta, E, ?MODULE, {struct_name_mismatch, Name, Arity, StructName});
     Other ->
-      form_error(Meta, ?key(E, file), ?MODULE, {invalid_struct_return_value, Name, Arity, Other})
+      form_error(Meta, E, ?MODULE, {invalid_struct_return_value, Name, Arity, Other})
   catch
     error:undef ->
       case InContext andalso (?key(E, function) == nil) of
         true ->
-          form_error(Meta, ?key(E, file), ?MODULE, {inaccessible_struct, Name});
+          form_error(Meta, E, ?MODULE, {inaccessible_struct, Name});
         false ->
-          form_error(Meta, ?key(E, file), ?MODULE, {undefined_struct, Name, Arity})
+          form_error(Meta, E, ?MODULE, {undefined_struct, Name, Arity})
       end;
 
     Kind:Reason ->
@@ -181,11 +181,11 @@ ensure_loaded(Module) ->
 
 wait_for_struct(Module) ->
   is_pid(erlang:get(elixir_compiler_pid)) andalso
-    ('Elixir.Kernel.ErrorHandler':ensure_compiled(Module, struct, false) =:= found).
+    ('Elixir.Kernel.ErrorHandler':ensure_compiled(Module, struct, hard) =:= found).
 
 assert_struct_keys(Meta, Name, Struct, Assocs, E) ->
   [begin
-     form_error(Meta, ?key(E, file), ?MODULE, {unknown_key_for_struct, Name, Key})
+     form_error(Meta, E, ?MODULE, {unknown_key_for_struct, Name, Key})
    end || {Key, _} <- Assocs, not maps:is_key(Key, Struct)].
 
 format_error({update_syntax_in_wrong_context, Context, Expr}) ->

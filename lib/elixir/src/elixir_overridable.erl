@@ -44,7 +44,7 @@ super(Meta, Module, Tuple, E) ->
     [Overridable] ->
       store(Set, Module, Tuple, Overridable, true);
     [] ->
-      elixir_errors:form_error(Meta, ?key(E, file), ?MODULE, {no_super, Module, Tuple})
+      elixir_errors:form_error(Meta, E, ?MODULE, {no_super, Module, Tuple})
   end.
 
 store_not_overriden(Module) ->
