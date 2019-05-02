@@ -77,6 +77,7 @@ defmodule Code.Formatter do
     defmacro: 2,
     defmacrop: 1,
     defmacrop: 2,
+    defmodule: 2,
     defdelegate: 2,
     defexception: 1,
     defoverridable: 1,
