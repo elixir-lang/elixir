@@ -1051,14 +1051,11 @@ defmodule Code do
   not loaded yet, it checks if it needs to be compiled first and then
   tries to load it.
 
-  If we need to wait for the module to be compiled and there is a deadlock,
-  for instance because `Foo` called `Code.ensure_compiled(Bar)` and
-  `Bar` called `Code.ensure_compiled(Foo)`, the compiler will abort
-  with a deadlock. If you don't to raise on deadlock, you can set
-  `:raise_on_deadlock` to false.
-
   If it succeeds in loading the module, it returns `{:module, module}`.
   If not, returns `{:error, reason}` with the error reason.
+
+  If the module being checked is currently in a compiler deadlock,
+  this functions returns `{:error, :nofile}`.
 
   Check `ensure_loaded/1` for more information on module loading
   and when to use `ensure_loaded/1` or `ensure_compiled/1`.

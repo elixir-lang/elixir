@@ -465,7 +465,7 @@ defmodule Kernel.ParallelCompiler do
         description = "deadlocked waiting on #{kind} #{inspect(on)}"
         error = CompileError.exception(description: description, file: nil, line: nil)
         print_error(file, :error, error, stacktrace)
-        {file, on, description}
+        {Path.relative_to_cwd(file), on, description}
       end
 
     IO.puts("""
