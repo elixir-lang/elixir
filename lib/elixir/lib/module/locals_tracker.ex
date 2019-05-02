@@ -106,10 +106,10 @@ defmodule Module.LocalsTracker do
   """
   def collect_undefined_locals({set, bag}, all_defined) do
     undefined =
-      for {pair, _, _, _} <- all_defined,
+      for {pair, _, meta, _} <- all_defined,
           {local, line, macro_dispatch?} <- out_neighbours(bag, {:local, pair}),
           error = undefined_local_error(set, local, macro_dispatch?),
-          do: {build_meta(line), local, error}
+          do: {build_meta(line, meta), local, error}
 
     :lists.usort(undefined)
   end
@@ -209,8 +209,17 @@ defmodule Module.LocalsTracker do
 
   defp get_line(meta), do: Keyword.get(meta, :line)
 
-  defp build_meta(nil), do: []
-  defp build_meta(line), do: [line: line]
+  defp build_meta(nil, _meta), do: []
+
+  # We need to transform any file annotation in the function
+  # definition into a keep annotation that is used by the
+  # error handling system in order to respect line/file.
+  defp build_meta(line, meta) do
+    case Keyword.get(meta, :file) do
+      {file, _} -> [keep: {file, line}]
+      _ -> [line: line]
+    end
+  end
 
   ## Lightweight digraph implementation
 

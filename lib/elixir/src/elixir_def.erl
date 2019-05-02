@@ -109,8 +109,7 @@ store_definition(Kind, CheckClauses, Call, Body, Pos) ->
   {Name, Args} = case NameAndArgs of
     {N, _, A} when is_atom(N), is_atom(A) -> {N, []};
     {N, _, A} when is_atom(N), is_list(A) -> {N, A};
-    _ -> elixir_errors:form_error([{line, Line}], ?key(E, file), ?MODULE,
-                                  {invalid_def, Kind, NameAndArgs})
+    _ -> elixir_errors:form_error([{line, Line}], E, ?MODULE, {invalid_def, Kind, NameAndArgs})
   end,
 
   %% Now that we have verified the call format,
