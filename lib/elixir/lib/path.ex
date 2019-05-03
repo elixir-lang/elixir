@@ -401,6 +401,9 @@ defmodule Path do
       iex> Path.dirname("/foo/bar/")
       "/foo/bar"
 
+      iex> Path.dirname("bar.ex")
+      "."
+
   """
   @spec dirname(t) :: binary
   def dirname(path) do
