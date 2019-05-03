@@ -657,4 +657,26 @@ defmodule Inspect.OthersTest do
     assert inspect(~r" \\/ ") == "~r/ \\\\\\/ /"
     assert inspect(~r/hi/, syntax_colors: [regex: :red]) == "\e[31m~r/hi/\e[0m"
   end
+
+  test "inspect_fun" do
+    fun = fn
+      integer, _opts when is_integer(integer) ->
+        "<#{integer}>"
+
+      %URI{} = uri, _opts ->
+        "#URI<#{uri}>"
+
+      term, opts ->
+        Inspect.inspect(term, opts)
+    end
+
+    opts = [inspect_fun: fun]
+
+    assert inspect(1000, opts) == "<1000>"
+    assert inspect([1000], opts) == "[<1000>]"
+
+    uri = URI.parse("https://elixir-lang.org")
+    assert inspect(uri, opts) == "#URI<https://elixir-lang.org>"
+    assert inspect([uri], opts) == "[#URI<https://elixir-lang.org>]"
+  end
 end

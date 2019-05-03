@@ -54,6 +54,9 @@ defmodule Inspect.Opts do
       `:number`, `:atom`, `regex`, `:tuple`, `:map`, `:list`, and `:reset`.
       Colors can be any `t:IO.ANSI.ansidata/0` as accepted by `IO.ANSI.format/1`.
 
+    * `:inspect_fun` (since v1.9.0) - a function to build algebra documents,
+      defaults to `Inspect.inspect/2`
+
   """
 
   # TODO: Remove :char_lists key on v2.0
@@ -67,7 +70,8 @@ defmodule Inspect.Opts do
             base: :decimal,
             pretty: false,
             safe: true,
-            syntax_colors: []
+            syntax_colors: [],
+            inspect_fun: &Inspect.inspect/2
 
   @type color_key :: atom
 
@@ -83,7 +87,8 @@ defmodule Inspect.Opts do
           base: :decimal | :binary | :hex | :octal,
           pretty: boolean,
           safe: boolean,
-          syntax_colors: [{color_key, IO.ANSI.ansidata()}]
+          syntax_colors: [{color_key, IO.ANSI.ansidata()}],
+          inspect_fun: (any, t -> Inspect.Algebra.t())
         }
 end
 
@@ -257,10 +262,10 @@ defmodule Inspect.Algebra do
   @spec to_doc(any, Inspect.Opts.t()) :: t
   def to_doc(term, opts)
 
-  def to_doc(%_{} = struct, %Inspect.Opts{} = opts) do
+  def to_doc(%_{} = struct, %Inspect.Opts{inspect_fun: fun} = opts) do
     if opts.structs do
       try do
-        Inspect.inspect(struct, opts)
+        fun.(struct, opts)
       rescue
         caught_exception ->
           # Because we try to raise a nice error message in case
@@ -299,8 +304,8 @@ defmodule Inspect.Algebra do
     end
   end
 
-  def to_doc(arg, %Inspect.Opts{} = opts) do
-    Inspect.inspect(arg, opts)
+  def to_doc(arg, %Inspect.Opts{inspect_fun: fun} = opts) do
+    fun.(arg, opts)
   end
 
   @doc ~S"""
