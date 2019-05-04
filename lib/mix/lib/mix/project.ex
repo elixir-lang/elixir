@@ -202,7 +202,7 @@ defmodule Mix.Project do
   a full recompilation whenever such configuration files change.
 
   It returns the `mix.exs` file, the lock manifest, and all config
-  files in the `config` directory that do not start with a trailing
+  files in the `config` directory that do not start with a leading
   period (for example, `.my_config.exs`).
   """
   @spec config_files() :: [Path.t()]
