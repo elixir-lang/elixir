@@ -109,18 +109,23 @@ relative_to_cwd(Path) ->
 characters_to_list(Data) when is_list(Data) ->
   Data;
 characters_to_list(Data) ->
-  case elixir_config:get(bootstrap, true) of
-    true  -> unicode:characters_to_list(Data);
-    false -> 'Elixir.String':to_charlist(Data)
+  case unicode:characters_to_list(Data) of
+    Result when is_list(Result) -> Result;
+    {error, Encoded, Rest} -> conversion_error(invalid, Encoded, Rest);
+    {incomplete, Encoded, Rest} -> conversion_error(incomplete, Encoded, Rest)
   end.
 
 characters_to_binary(Data) when is_binary(Data) ->
   Data;
 characters_to_binary(Data) ->
-  case elixir_config:get(bootstrap, true) of
-    true -> unicode:characters_to_binary(Data);
-    false -> 'Elixir.List':to_string(Data)
+  case unicode:characters_to_binary(Data) of
+    Result when is_binary(Result) -> Result;
+    {error, Encoded, Rest} -> conversion_error(invalid, Encoded, Rest);
+    {incomplete, Encoded, Rest} -> conversion_error(incomplete, Encoded, Rest)
   end.
+
+conversion_error(Kind, Encoded, Rest) ->
+  error('Elixir.UnicodeConversionError':exception([{encoded, Encoded}, {rest, Rest}, {kind, Kind}])).
 
 %% Returns the caller as a stacktrace entry.
 caller(Line, File, nil, _) ->
