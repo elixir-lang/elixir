@@ -80,7 +80,7 @@ defprotocol Inspect do
   @doc """
   Converts `term` into an algebra document.
   """
-  @spec inspect(t, keyword) :: Inspect.Algebra.t
+  @spec inspect(t, Inspect.Opts.t) :: Inspect.Algebra.t
   def inspect(term, opts)
 end
 
