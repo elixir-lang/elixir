@@ -106,8 +106,8 @@ defmodule Mix.Tasks.Release do
   If you want to invoke specific modules and functions in your release,
   you can do so in two ways: using `eval` or `rpc`.
 
-      bin/RELEASE_NAME eval "IO.puts :hello"
-      bin/RELEASE_NAME rpc "IO.puts :hello"
+      bin/RELEASE_NAME eval "IO.puts(:hello)"
+      bin/RELEASE_NAME rpc "IO.puts(:hello)"
 
   The `eval` command starts its own instance of the VM but without
   starting any of the applications in the release and without starting

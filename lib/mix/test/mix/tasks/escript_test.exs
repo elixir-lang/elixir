@@ -308,7 +308,7 @@ defmodule Mix.Tasks.EscriptTest do
       File.write!("lib/git_repo.ex", """
       defmodule GitRepo do
         def main(_argv) do
-          IO.puts "TEST"
+          IO.puts("TEST")
         end
       end
       """)

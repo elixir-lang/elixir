@@ -32,7 +32,7 @@ Documentation in Elixir is usually attached to module attributes. Let's see an e
       """
       @doc since: "1.3.0"
       def world(name) do
-        IO.puts "hello #{name}"
+        IO.puts("hello #{name}")
       end
     end
 
