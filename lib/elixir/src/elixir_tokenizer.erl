@@ -608,6 +608,7 @@ strip_dot_space(T, Line, Column, Tokens, Scope) ->
       {Rest, Line, Column + Length}
   end.
 
+handle_char(0)   -> {"\\0", "null byte"};
 handle_char(7)   -> {"\\a", "alert"};
 handle_char($\b) -> {"\\b", "backspace"};
 handle_char($\d) -> {"\\d", "delete"};
