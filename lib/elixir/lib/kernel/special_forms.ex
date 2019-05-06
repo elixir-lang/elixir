@@ -1819,15 +1819,15 @@ defmodule Kernel.SpecialForms do
         do_something_that_may_fail(some_arg)
       rescue
         ArgumentError ->
-          IO.puts "Invalid argument given"
+          IO.puts("Invalid argument given")
       catch
         value ->
-          IO.puts "Caught #{inspect(value)}"
+          IO.puts("Caught #{inspect(value)}")
       else
         value ->
-          IO.puts "Success! The result was #{inspect(value)}"
+          IO.puts("Success! The result was #{inspect(value)}")
       after
-        IO.puts "This is printed regardless if it failed or succeeded"
+        IO.puts("This is printed regardless if it failed or succeeded")
       end
 
   The `rescue` clause is used to handle exceptions while the `catch`
@@ -1922,7 +1922,7 @@ defmodule Kernel.SpecialForms do
         throw(:some_value)
       catch
         thrown_value ->
-          IO.puts "A value was thrown: #{inspect(thrown_value)}"
+          IO.puts("A value was thrown: #{inspect(thrown_value)}")
       end
 
   ### Catching values of any kind
@@ -1935,14 +1935,14 @@ defmodule Kernel.SpecialForms do
         exit(:shutdown)
       catch
         :exit, value ->
-          IO.puts "Exited with value #{inspect(value)}"
+          IO.puts("Exited with value #{inspect(value)}")
       end
 
       try do
         exit(:shutdown)
       catch
         kind, value when kind in [:exit, :throw] ->
-          IO.puts "Caught exit or throw with value #{inspect(value)}"
+          IO.puts("Caught exit or throw with value #{inspect(value)}")
       end
 
   The `catch` clause also supports `:error` alongside `:exit` and `:throw` as
@@ -2114,7 +2114,7 @@ defmodule Kernel.SpecialForms do
         name when is_atom(name) ->
           name
         _ ->
-          IO.puts :stderr, "Unexpected message received"
+          IO.puts(:stderr, "Unexpected message received")
       end
 
   An optional `after` clause can be given in case the message was not
@@ -2126,10 +2126,10 @@ defmodule Kernel.SpecialForms do
         name when is_atom(name) ->
           name
         _ ->
-          IO.puts :stderr, "Unexpected message received"
+          IO.puts(:stderr, "Unexpected message received")
       after
         5000 ->
-          IO.puts :stderr, "No message in 5 seconds"
+          IO.puts(:stderr, "No message in 5 seconds")
       end
 
   The `after` clause can be specified even if there are no match clauses.
