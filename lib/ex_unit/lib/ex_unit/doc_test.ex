@@ -303,15 +303,30 @@ defmodule ExUnit.DocTest do
           :ok
 
         actual ->
-          expr = unquote(formatted <> "\n" <> expected)
+          doctest = unquote("\n" <> formatted <> "\n" <> expected)
 
-          error = [message: "Doctest failed", expr: expr, left: actual, right: expected]
+          last_exp =
+            unquote(expr)
+            |> String.split("\n")
+            |> List.last()
+            |> String.trim()
+
+          expr = "#{last_exp} === #{unquote(String.trim(expected))}"
+
+          error = [
+            message: "Doctest failed",
+            doctest: doctest,
+            expr: expr,
+            left: actual,
+            right: expected
+          ]
+
           reraise ExUnit.AssertionError, error, unquote(stack)
       end
     end
   end
 
-  defp test_case_content(expr, {:inspect, expected}, location, stack, _formatted) do
+  defp test_case_content(expr, {:inspect, expected}, location, stack, formatted) do
     expr_ast =
       quote do
         inspect(unquote(string_to_quoted(location, stack, expr)))
@@ -327,17 +342,32 @@ defmodule ExUnit.DocTest do
           :ok
 
         actual ->
+          doctest = unquote("\n" <> formatted <> "\n" <> expected)
           expr = "inspect(#{unquote(String.trim(expr))}) === #{unquote(String.trim(expected))}"
-          error = [message: "Doctest failed", expr: expr, left: actual, right: expected]
+
+          error = [
+            message: "Doctest failed",
+            doctest: doctest,
+            expr: expr,
+            left: actual,
+            right: expected
+          ]
+
           reraise ExUnit.AssertionError, error, unquote(stack)
       end
     end
   end
 
-  defp test_case_content(expr, {:error, exception, message}, location, stack, _formatted) do
+  defp test_case_content(expr, {:error, exception, message}, location, stack, formatted) do
     expr_ast = string_to_quoted(location, stack, expr)
 
     quote do
+      expected_exception = inspect(unquote(exception))
+
+      doctest =
+        unquote("\n" <> formatted <> "\n") <>
+          "** (#{expected_exception}) #{inspect(unquote(message))}"
+
       stack = unquote(stack)
       expr = unquote(String.trim(expr))
 
@@ -351,7 +381,7 @@ defmodule ExUnit.DocTest do
           message =
             cond do
               actual_exception != unquote(exception) ->
-                "Doctest failed: expected exception #{inspect(unquote(exception))} but got #{
+                "Doctest failed: expected exception #{expected_exception} but got #{
                   inspect(actual_exception)
                 } with message #{inspect(actual_message)}"
 
@@ -366,14 +396,14 @@ defmodule ExUnit.DocTest do
             end
 
           if message do
-            reraise ExUnit.AssertionError, [message: message, expr: expr], stack
+            reraise ExUnit.AssertionError, [message: message, doctest: doctest, expr: expr], stack
           end
       else
         _ ->
           message =
-            "Doctest failed: expected exception #{inspect(unquote(exception))} but nothing was raised"
+            "Doctest failed: expected exception #{expected_exception} but nothing was raised"
 
-          error = [message: message, expr: expr]
+          error = [message: message, doctest: doctest, expr: expr]
           reraise ExUnit.AssertionError, error, stack
       end
     end

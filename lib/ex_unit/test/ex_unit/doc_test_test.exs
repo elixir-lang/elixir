@@ -135,11 +135,11 @@ end
 defmodule ExUnit.DocTestTest.Invalid do
   @moduledoc """
 
-  iex> 1 + * 1
-  1
+      iex> 1 + * 1
+      1
 
-  iex> 1 + hd(List.flatten([1]))
-  3
+      iex> 1 + hd(List.flatten([1]))
+      3
 
       iex> a = "This is an egregiously long text string."
       iex> b = ~r{an egregiously long}
@@ -471,8 +471,10 @@ defmodule ExUnit.DocTestTest do
              2) doctest module ExUnit.DocTestTest.Invalid (2) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
                 Doctest failed
-                code:  iex> 1 + hd(List.flatten([1]))
+                doctest:
+                       iex> 1 + hd(List.flatten([1]))
                        3
+                code:  1 + hd(List.flatten([1])) === 3
                 left:  2
                 right: 3
                 stacktrace:
@@ -483,11 +485,13 @@ defmodule ExUnit.DocTestTest do
              3) doctest module ExUnit.DocTestTest.Invalid (3) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
                 Doctest failed
-                code:  iex> a = "This is an egregiously long text string."
+                doctest:
+                       iex> a = "This is an egregiously long text string."
                        iex> b = ~r{an egregiously long}
                        iex> c = "a slightly shorter"
                        iex> String.replace(a, b, c)
                        "This is a much shorter text string."
+                code:  String.replace(a, b, c) === "This is a much shorter text string."
                 left:  "This is a slightly shorter text string."
                 right: "This is a much shorter text string."
                 stacktrace:
@@ -498,6 +502,9 @@ defmodule ExUnit.DocTestTest do
              4) doctest module ExUnit.DocTestTest.Invalid (4) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
                 Doctest failed
+                doctest:
+                       iex> :oops
+                       "#MapSet<[]>"
                 code:  inspect(:oops) === "#MapSet<[]>"
                 left:  ":oops"
                 right: "#MapSet<[]>"
@@ -518,6 +525,9 @@ defmodule ExUnit.DocTestTest do
              6) doctest module ExUnit.DocTestTest.Invalid (6) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
                 Doctest failed: expected exception WhatIsThis but got RuntimeError with message "oops"
+                doctest:
+                      iex> raise "oops"
+                      ** (WhatIsThis) "oops"
                 code: raise "oops"
                 stacktrace:
                   test/ex_unit/doc_test_test.exs:156: ExUnit.DocTestTest.Invalid (module)
@@ -531,6 +541,9 @@ defmodule ExUnit.DocTestTest do
                   "hello"
                 actual:
                   "oops"
+                doctest:
+                      iex> raise "oops"
+                      ** (RuntimeError) "hello"
                 code: raise "oops"
                 stacktrace:
                   test/ex_unit/doc_test_test.exs:159: ExUnit.DocTestTest.Invalid (module)
