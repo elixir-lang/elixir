@@ -1934,7 +1934,7 @@ defmodule Kernel.SpecialForms do
       try do
         exit(:shutdown)
       catch
-        :exit, value
+        :exit, value ->
           IO.puts "Exited with value #{inspect(value)}"
       end
 
