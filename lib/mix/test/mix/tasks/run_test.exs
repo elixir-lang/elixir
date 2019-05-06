@@ -14,7 +14,7 @@ defmodule Mix.Tasks.RunTest do
   test "loads configuration", context do
     in_tmp(context.test, fn ->
       config = fixture_path("configs/good_config.exs")
-      expr = "IO.puts Application.get_env(:my_app, :key)"
+      expr = "IO.puts(Application.get_env(:my_app, :key))"
 
       output =
         capture_io(:stderr, fn ->

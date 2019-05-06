@@ -42,7 +42,7 @@ defmodule Mix.CLITest do
         @shortdoc "Says hello"
 
         def run(_) do
-          IO.puts Mix.Project.get!.hello_world
+          IO.puts(Mix.Project.get!().hello_world())
           Mix.shell.info("This won't appear")
           Mix.raise("oops")
         end
