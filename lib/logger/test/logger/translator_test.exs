@@ -981,6 +981,19 @@ defmodule Logger.TranslatorTest do
     assert {:stop, [_ | _]} = process_metadata[:crash_reason]
   end
 
+  test "translates process crash with erts" do
+    assert {:ok, msg, meta} =
+             Logger.Translator.translate(
+               :error,
+               :error,
+               :format,
+               {'Error in process ~p on node ~p with exit value:~n~p~n',
+                [self(), :"name@127.0.0.1", {:badarith, [{:erlang, :/, [1, 0], []}]}]}
+             )
+
+    assert Keyword.get(meta, :crash_reason)
+  end
+
   test "reports :undefined MFA properly" do
     defmodule WeirdFunctionNamesGenServer do
       use GenServer
