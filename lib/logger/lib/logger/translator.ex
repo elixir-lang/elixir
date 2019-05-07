@@ -126,6 +126,19 @@ defmodule Logger.Translator do
 
         {:ok, msg, metadata}
 
+      {'Error in process ' ++ _, [pid, node, {reason, stack}]} ->
+        reason = Exception.normalize(:error, reason, stack)
+
+        msg = [
+          "Process ",
+          inspect(pid),
+          " on node ",
+          inspect(node),
+          " raised an exception" | format(:error, reason, stack)
+        ]
+
+        {:ok, msg, [crash_reason: exit_reason(:error, reason, stack)]}
+
       {'Error in process ' ++ _, [pid, {reason, stack}]} ->
         reason = Exception.normalize(:error, reason, stack)
         msg = ["Process ", inspect(pid), " raised an exception" | format(:error, reason, stack)]
