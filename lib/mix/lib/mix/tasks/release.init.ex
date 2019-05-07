@@ -68,6 +68,10 @@ defmodule Mix.Tasks.Release.Init do
     #   export HEART_COMMAND
     #   export ELIXIR_ERL_OPTIONS="-heart"
     # fi
+
+    # Set the release to work across nodes
+    # export RELEASE_DISTRIBUTION=name
+    # export RELEASE_NAME=<%= @release.name %>@127.0.0.1
     """
 
   @doc false
@@ -88,9 +92,10 @@ defmodule Mix.Tasks.Release.Init do
     . "$REL_VSN_DIR/env.sh"
 
     export RELEASE_COOKIE=${RELEASE_COOKIE:-"$(cat "$RELEASE_ROOT/releases/COOKIE")"}
-    export RELEASE_NODE=${RELEASE_NODE:-"$RELEASE_NAME@127.0.0.1"}
+    export RELEASE_NODE=${RELEASE_NODE:-"$RELEASE_NAME"}
     export RELEASE_TMP=${RELEASE_TMP:-"$RELEASE_ROOT/tmp"}
     export RELEASE_VM_ARGS=${RELEASE_VM_ARGS:-"$REL_VSN_DIR/vm.args"}
+    export RELEASE_DISTRIBUTION=${RELEASE_DISTRIBUTION:-"sname"}
 
     rand () {
       od -t xS -N 2 -A n /dev/urandom | tr -d " \n"
@@ -98,7 +103,8 @@ defmodule Mix.Tasks.Release.Init do
 
     rpc () {
       exec "$REL_VSN_DIR/elixir" \
-           --hidden --name "rpc-$(rand)-$RELEASE_NODE" --cookie "$RELEASE_COOKIE" \
+           --hidden --cookie "$RELEASE_COOKIE" \
+           --$RELEASE_DISTRIBUTION "rpc-$(rand)-$RELEASE_NODE" \
            --boot "$REL_VSN_DIR/start_clean" \
            --boot-var RELEASE_LIB "$RELEASE_ROOT/lib" \
            --rpc-eval "$RELEASE_NODE" "$1"
@@ -109,7 +115,8 @@ defmodule Mix.Tasks.Release.Init do
       REL_EXEC="$1"
       shift
       exec "$REL_VSN_DIR/$REL_EXEC" \
-           --name "$RELEASE_NODE" --cookie "$RELEASE_COOKIE" \
+           --cookie "$RELEASE_COOKIE" \
+           --$RELEASE_DISTRIBUTION "$RELEASE_NODE" \
            --erl-config "$RELEASE_SYS_CONFIG" \
            --boot "$REL_VSN_DIR/start" \
            --boot-var RELEASE_LIB "$RELEASE_ROOT/lib" \
@@ -165,7 +172,8 @@ defmodule Mix.Tasks.Release.Init do
 
       remote)
         exec "$REL_VSN_DIR/iex" \
-             --werl --hidden --name "rem-$(rand)-$RELEASE_NODE" --cookie "$RELEASE_COOKIE" \
+             --werl --hidden --cookie "$RELEASE_COOKIE" \
+             --$RELEASE_DISTRIBUTION "rem-$(rand)-$RELEASE_NODE" \
              --boot "$REL_VSN_DIR/start_clean" \
              --boot-var RELEASE_LIB "$RELEASE_ROOT/lib" \
              --remsh "$RELEASE_NODE"
@@ -221,6 +229,9 @@ defmodule Mix.Tasks.Release.Init do
   def env_bat_text,
     do: ~S"""
     @echo off
+    rem Set the release to work across nodes
+    rem set RELEASE_DISTRIBUTION=name
+    rem set RELEASE_NAME=<%= @release.name %>@127.0.0.1
     """
 
   @doc false
@@ -244,6 +255,7 @@ defmodule Mix.Tasks.Release.Init do
     if not defined RELEASE_NODE (set RELEASE_NODE=!RELEASE_NAME!@127.0.0.1)
     if not defined RELEASE_TMP (set RELEASE_TMP=!RELEASE_ROOT!\tmp)
     if not defined RELEASE_VM_ARGS (set RELEASE_VM_ARGS=!REL_VSN_DIR!\vm.args)
+    if not defined RELEASE_DISTRIBUTION (set RELEASE_DISTRIBUTION=sname)
     set RELEASE_SYS_CONFIG=!REL_VSN_DIR!\sys
 
     if "%~1" == "start" (set "REL_EXEC=elixir" && set "REL_EXTRA=--no-halt" && set "REL_GOTO=start")
@@ -305,7 +317,8 @@ defmodule Mix.Tasks.Release.Init do
 
     :start
     "!REL_VSN_DIR!\!REL_EXEC!.bat" !REL_EXTRA! ^
-      --name "!RELEASE_NODE!" --cookie "!RELEASE_COOKIE!" ^
+      --cookie "!RELEASE_COOKIE!" ^
+      --!RELEASE_DISTRIBUTION! "!RELEASE_NODE!" ^
       --erl-config "!RELEASE_SYS_CONFIG!" ^
       --boot "!REL_VSN_DIR!\start" ^
       --boot-var RELEASE_LIB "!RELEASE_ROOT!\lib" ^
@@ -324,7 +337,8 @@ defmodule Mix.Tasks.Release.Init do
 
     :remote
     "!REL_VSN_DIR!\iex.bat" ^
-      --werl --hidden --name "rem-!RANDOM!-!RELEASE_NODE!" --cookie "!RELEASE_COOKIE!" ^
+      --werl --hidden --cookie "!RELEASE_COOKIE!" ^
+      --!RELEASE_DISTRIBUTION! "rem-!RANDOM!-!RELEASE_NODE!" ^
       --boot "!REL_VSN_DIR!\start_clean" ^
       --boot-var RELEASE_LIB "!RELEASE_ROOT!\lib" ^
       --remsh "!RELEASE_NODE!"
@@ -332,7 +346,8 @@ defmodule Mix.Tasks.Release.Init do
 
     :rpc
     "!REL_VSN_DIR!\elixir.bat" ^
-      --hidden --name "rpc-!RANDOM!-!RELEASE_NODE!" --cookie "!RELEASE_COOKIE!" ^
+      --hidden --cookie "!RELEASE_COOKIE!" ^
+      --!RELEASE_DISTRIBUTION! "rpc-!RANDOM!-!RELEASE_NODE!" ^
       --boot "!REL_VSN_DIR!\start_clean" ^
       --boot-var RELEASE_LIB "!RELEASE_ROOT!\lib" ^
       --rpc-eval "!RELEASE_NODE!" "!REL_RPC!"

@@ -622,6 +622,13 @@ defmodule Mix.Tasks.Release do
       files to. It can be set to a custom directory. It defaults to
       `$RELEASE_ROOT/tmp`
 
+    * `RELEASE_DISTRIBUTION` - how do we want to run the distribution.
+      Using `name` or `sname` (short names). Defaults to `sname` which
+      allows access only within the current system. `name` allows external
+      connections. If `name` is used and you are running on a version
+      earlier than Erlang/OTP 22+, you must set `RELEASE_NODE` to
+      `RELEASE_NODE=RELEASE_NAME@127.0.0.1` or another appropriate host
+
   ## Umbrellas
 
   Releases are well integrated with umbrella projects, allowing you to
