@@ -294,6 +294,7 @@ defmodule ExUnit.DocTest do
   defp test_case_content(expr, {:test, expected}, location, stack, formatted) do
     expr_ast = string_to_quoted(location, stack, expr)
     expected_ast = string_to_quoted(location, stack, expected)
+    last_expr_ast = last_expr(expr_ast)
 
     quote do
       expected = unquote(expected_ast)
@@ -304,7 +305,9 @@ defmodule ExUnit.DocTest do
 
         actual ->
           doctest = unquote("\n" <> formatted <> "\n" <> expected)
-          expr = "#{unquote(String.trim(expr))} === #{unquote(String.trim(expected))}"
+
+          expr =
+            "#{unquote(Macro.to_string(last_expr_ast))} === #{unquote(String.trim(expected))}"
 
           error = [
             message: "Doctest failed",
@@ -320,23 +323,23 @@ defmodule ExUnit.DocTest do
   end
 
   defp test_case_content(expr, {:inspect, expected}, location, stack, formatted) do
-    expr_ast =
-      quote do
-        inspect(unquote(string_to_quoted(location, stack, expr)))
-      end
-
+    expr_ast = string_to_quoted(location, stack, expr)
     expected_ast = string_to_quoted(location, stack, expected)
+    last_expr_ast = last_expr(expr_ast)
 
     quote do
       expected = unquote(expected_ast)
 
-      case unquote(expr_ast) do
+      case inspect(unquote(expr_ast)) do
         ^expected ->
           :ok
 
         actual ->
           doctest = unquote("\n" <> formatted <> "\n" <> expected)
-          expr = "inspect(#{unquote(String.trim(expr))}) === #{unquote(String.trim(expected))}"
+
+          expr =
+            "inspect(#{unquote(Macro.to_string(last_expr_ast))}) === " <>
+              "#{unquote(String.trim(expected))}"
 
           error = [
             message: "Doctest failed",
@@ -355,14 +358,12 @@ defmodule ExUnit.DocTest do
     expr_ast = string_to_quoted(location, stack, expr)
 
     quote do
+      stack = unquote(stack)
       expected_exception = inspect(unquote(exception))
 
       doctest =
         unquote("\n" <> formatted <> "\n") <>
           "** (#{expected_exception}) #{inspect(unquote(message))}"
-
-      stack = unquote(stack)
-      expr = unquote(String.trim(expr))
 
       try do
         unquote(expr_ast)
@@ -374,9 +375,8 @@ defmodule ExUnit.DocTest do
           message =
             cond do
               actual_exception != unquote(exception) ->
-                "Doctest failed: expected exception #{expected_exception} but got #{
-                  inspect(actual_exception)
-                } with message #{inspect(actual_message)}"
+                "Doctest failed: expected exception #{expected_exception} but got " <>
+                  "#{inspect(actual_exception)} with message #{inspect(actual_message)}"
 
               actual_message != unquote(message) ->
                 "Doctest failed: wrong message for #{inspect(actual_exception)}\n" <>
@@ -389,24 +389,21 @@ defmodule ExUnit.DocTest do
             end
 
           if message do
-            reraise ExUnit.AssertionError, [message: message, doctest: doctest, expr: expr], stack
+            reraise ExUnit.AssertionError, [message: message, doctest: doctest], stack
           end
       else
         _ ->
           message =
             "Doctest failed: expected exception #{expected_exception} but nothing was raised"
 
-          error = [message: message, doctest: doctest, expr: expr]
+          error = [message: message, doctest: doctest]
           reraise ExUnit.AssertionError, error, stack
       end
     end
   end
 
   defp test_import(_mod, false), do: []
-
-  defp test_import(mod, _) do
-    [quote(do: import(unquote(mod)))]
-  end
+  defp test_import(mod, _), do: [quote(do: import(unquote(mod)))]
 
   defp string_to_quoted(location, stack, expr) do
     try do
@@ -842,6 +839,9 @@ defmodule ExUnit.DocTest do
 
   defp inspectable_end?(<<?<, _::binary>>), do: true
   defp inspectable_end?(_), do: false
+
+  defp last_expr({:__block__, _, [_ | _] = block}), do: block |> List.last() |> last_expr()
+  defp last_expr(other), do: other
 
   defp raise_incomplete_doctest(line_no, module) do
     raise Error,
