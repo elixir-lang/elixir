@@ -252,7 +252,7 @@ defmodule Mix.Tasks.Release.Init do
     call !REL_VSN_DIR!/env.bat
 
     if not defined RELEASE_COOKIE (set /p RELEASE_COOKIE=<!RELEASE_ROOT!\releases\COOKIE)
-    if not defined RELEASE_NODE (set RELEASE_NODE=!RELEASE_NAME!@127.0.0.1)
+    if not defined RELEASE_NODE (set RELEASE_NODE=!RELEASE_NAME!)
     if not defined RELEASE_TMP (set RELEASE_TMP=!RELEASE_ROOT!\tmp)
     if not defined RELEASE_VM_ARGS (set RELEASE_VM_ARGS=!REL_VSN_DIR!\vm.args)
     if not defined RELEASE_DISTRIBUTION (set RELEASE_DISTRIBUTION=sname)
