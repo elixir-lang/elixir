@@ -623,11 +623,11 @@ defmodule Mix.Tasks.Release do
       `$RELEASE_ROOT/tmp`
 
     * `RELEASE_DISTRIBUTION` - how do we want to run the distribution.
-      Using `name` or `sname` (short names). Defaults to `sname` which
-      allows access only within the current system. `name` allows external
-      connections. If `name` is used and you are running on a version
-      earlier than Erlang/OTP 22+, you must set `RELEASE_NODE` to
-      `RELEASE_NODE=RELEASE_NAME@127.0.0.1` or another appropriate host
+      Using `name` (long names) or `sname` (short names). Defaults to
+      `sname` which allows access only within the current system.
+      `name` allows external connections. If `name` is used and you are
+      running on a version earlier than Erlang/OTP 22+, you must set
+      `RELEASE_NODE` to `RELEASE_NAME@127.0.0.1` or another appropriate host
 
   ## Umbrellas
 
