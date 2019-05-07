@@ -71,7 +71,7 @@ defmodule Mix.Tasks.Release.Init do
 
     # Set the release to work across nodes
     # export RELEASE_DISTRIBUTION=name
-    # export RELEASE_NAME=<%= @release.name %>@127.0.0.1
+    # export RELEASE_NODE=<%= @release.name %>@127.0.0.1
     """
 
   @doc false
@@ -231,7 +231,7 @@ defmodule Mix.Tasks.Release.Init do
     @echo off
     rem Set the release to work across nodes
     rem set RELEASE_DISTRIBUTION=name
-    rem set RELEASE_NAME=<%= @release.name %>@127.0.0.1
+    rem set RELEASE_NODE=<%= @release.name %>@127.0.0.1
     """
 
   @doc false
