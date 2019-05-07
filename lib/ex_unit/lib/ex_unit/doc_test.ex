@@ -277,8 +277,8 @@ defmodule ExUnit.DocTest do
     end
 
     tests =
-      Enum.map(exprs, fn {expr, expected} ->
-        test_case_content(expr, expected, location, stack)
+      Enum.map(exprs, fn {expr, expected, formatted} ->
+        test_case_content(expr, expected, location, stack, formatted)
       end)
 
     {:__block__, [], test_import(module, do_import) ++ tests}
@@ -286,12 +286,12 @@ defmodule ExUnit.DocTest do
 
   defp multiple_exceptions?(exprs) do
     Enum.count(exprs, fn
-      {_, {:error, _, _}} -> true
+      {_, {:error, _, _}, _} -> true
       _ -> false
     end) > 1
   end
 
-  defp test_case_content(expr, {:test, expected}, location, stack) do
+  defp test_case_content(expr, {:test, expected}, location, stack, formatted) do
     expr_ast = string_to_quoted(location, stack, expr)
     expected_ast = string_to_quoted(location, stack, expected)
 
@@ -303,14 +303,23 @@ defmodule ExUnit.DocTest do
           :ok
 
         actual ->
+          doctest = unquote("\n" <> formatted <> "\n" <> expected)
           expr = "#{unquote(String.trim(expr))} === #{unquote(String.trim(expected))}"
-          error = [message: "Doctest failed", expr: expr, left: actual, right: expected]
+
+          error = [
+            message: "Doctest failed",
+            doctest: doctest,
+            expr: expr,
+            left: actual,
+            right: expected
+          ]
+
           reraise ExUnit.AssertionError, error, unquote(stack)
       end
     end
   end
 
-  defp test_case_content(expr, {:inspect, expected}, location, stack) do
+  defp test_case_content(expr, {:inspect, expected}, location, stack, formatted) do
     expr_ast =
       quote do
         inspect(unquote(string_to_quoted(location, stack, expr)))
@@ -326,17 +335,32 @@ defmodule ExUnit.DocTest do
           :ok
 
         actual ->
+          doctest = unquote("\n" <> formatted <> "\n" <> expected)
           expr = "inspect(#{unquote(String.trim(expr))}) === #{unquote(String.trim(expected))}"
-          error = [message: "Doctest failed", expr: expr, left: actual, right: expected]
+
+          error = [
+            message: "Doctest failed",
+            doctest: doctest,
+            expr: expr,
+            left: actual,
+            right: expected
+          ]
+
           reraise ExUnit.AssertionError, error, unquote(stack)
       end
     end
   end
 
-  defp test_case_content(expr, {:error, exception, message}, location, stack) do
+  defp test_case_content(expr, {:error, exception, message}, location, stack, formatted) do
     expr_ast = string_to_quoted(location, stack, expr)
 
     quote do
+      expected_exception = inspect(unquote(exception))
+
+      doctest =
+        unquote("\n" <> formatted <> "\n") <>
+          "** (#{expected_exception}) #{inspect(unquote(message))}"
+
       stack = unquote(stack)
       expr = unquote(String.trim(expr))
 
@@ -350,7 +374,7 @@ defmodule ExUnit.DocTest do
           message =
             cond do
               actual_exception != unquote(exception) ->
-                "Doctest failed: expected exception #{inspect(unquote(exception))} but got #{
+                "Doctest failed: expected exception #{expected_exception} but got #{
                   inspect(actual_exception)
                 } with message #{inspect(actual_message)}"
 
@@ -365,14 +389,14 @@ defmodule ExUnit.DocTest do
             end
 
           if message do
-            reraise ExUnit.AssertionError, [message: message, expr: expr], stack
+            reraise ExUnit.AssertionError, [message: message, doctest: doctest, expr: expr], stack
           end
       else
         _ ->
           message =
-            "Doctest failed: expected exception #{inspect(unquote(exception))} but nothing was raised"
+            "Doctest failed: expected exception #{expected_exception} but nothing was raised"
 
-          error = [message: message, expr: expr]
+          error = [message: message, doctest: doctest, expr: expr]
           reraise ExUnit.AssertionError, error, stack
       end
     end
@@ -471,7 +495,7 @@ defmodule ExUnit.DocTest do
   defp extract_tests(line_no, doc, module) do
     all_lines = String.split(doc, "\n", trim: false)
     lines = adjust_indent(all_lines, line_no + 1, module)
-    extract_tests(lines, "", "", [], true, module)
+    extract_tests(lines, "", "", [], true, module, "")
   end
 
   @iex_prompt ["iex>", "iex("]
@@ -577,19 +601,19 @@ defmodule ExUnit.DocTest do
 
   @fences ["```", "~~~"]
 
-  defp extract_tests(lines, expr_acc, expected_acc, acc, new_test, module)
+  defp extract_tests(lines, expr_acc, expected_acc, acc, new_test, module, formatted)
 
-  defp extract_tests([], "", "", [], _, _) do
+  defp extract_tests([], "", "", [], _, _, _) do
     []
   end
 
-  defp extract_tests([], "", "", acc, _, _) do
+  defp extract_tests([], "", "", acc, _, _, _) do
     Enum.reverse(acc)
   end
 
   # End of input and we've still got a test pending.
-  defp extract_tests([], expr_acc, expected_acc, [test | rest], _, _) do
-    test = add_expr(test, expr_acc, expected_acc)
+  defp extract_tests([], expr_acc, expected_acc, [test | rest], _, _, formatted) do
+    test = add_expr(test, expr_acc, expected_acc, formatted)
     Enum.reverse([test | rest])
   end
 
@@ -600,47 +624,82 @@ defmodule ExUnit.DocTest do
          expected_acc,
          [test | rest],
          new_test,
-         module
+         module,
+         formatted
        )
        when expr_acc != "" and expected_acc != "" do
-    test = add_expr(test, expr_acc, expected_acc)
-    extract_tests(list, "", "", [test | rest], new_test, module)
+    test = add_expr(test, expr_acc, expected_acc, formatted)
+    extract_tests(list, "", "", [test | rest], new_test, module, "")
   end
 
   # Store expr_acc and start a new test case.
-  defp extract_tests([{"iex>" <> string, line_no} | lines], "", expected_acc, acc, true, module) do
+  defp extract_tests(
+         [{"iex>" <> string = line, line_no} | lines],
+         "",
+         expected_acc,
+         acc,
+         true,
+         module,
+         _
+       ) do
     test = %{line: line_no, fun_arity: nil, exprs: []}
-    extract_tests(lines, string, expected_acc, [test | acc], false, module)
+    extract_tests(lines, string, expected_acc, [test | acc], false, module, line)
   end
 
   # Store expr_acc.
-  defp extract_tests([{"iex>" <> string, _} | lines], "", expected_acc, acc, false, module) do
-    extract_tests(lines, string, expected_acc, acc, false, module)
+  defp extract_tests(
+         [{"iex>" <> string = line, _} | lines],
+         "",
+         expected_acc,
+         acc,
+         false,
+         module,
+         _
+       ) do
+    extract_tests(lines, string, expected_acc, acc, false, module, line)
   end
 
   # Still gathering expr_acc. Synonym for the next clause.
   defp extract_tests(
-         [{"iex>" <> string, _} | lines],
+         [{"iex>" <> string = line, _} | lines],
          expr_acc,
          expected_acc,
          acc,
          new_test,
-         module
+         module,
+         formatted
        ) do
-    extract_tests(lines, expr_acc <> "\n" <> string, expected_acc, acc, new_test, module)
+    extract_tests(
+      lines,
+      expr_acc <> "\n" <> string,
+      expected_acc,
+      acc,
+      new_test,
+      module,
+      formatted <> "\n" <> line
+    )
   end
 
   # Still gathering expr_acc. Synonym for the previous clause.
   defp extract_tests(
-         [{"...>" <> string, _} | lines],
+         [{"...>" <> string = line, _} | lines],
          expr_acc,
          expected_acc,
          acc,
          new_test,
-         module
+         module,
+         formatted
        )
        when expr_acc != "" do
-    extract_tests(lines, expr_acc <> "\n" <> string, expected_acc, acc, new_test, module)
+    extract_tests(
+      lines,
+      expr_acc <> "\n" <> string,
+      expected_acc,
+      acc,
+      new_test,
+      module,
+      formatted <> "\n" <> line
+    )
   end
 
   # Expression numbers are simply skipped.
@@ -650,10 +709,11 @@ defmodule ExUnit.DocTest do
          expected_acc,
          acc,
          new_test,
-         module
+         module,
+         formatted
        ) do
     new_line = {"iex" <> skip_iex_number(string, module, line_no, line), line_no}
-    extract_tests([new_line | lines], expr_acc, expected_acc, acc, new_test, module)
+    extract_tests([new_line | lines], expr_acc, expected_acc, acc, new_test, module, formatted)
   end
 
   # Expression numbers are simply skipped redux.
@@ -663,15 +723,16 @@ defmodule ExUnit.DocTest do
          expected_acc,
          acc,
          new_test,
-         module
+         module,
+         formatted
        ) do
     new_line = {"..." <> skip_iex_number(string, module, line_no, line), line_no}
-    extract_tests([new_line | lines], expr_acc, expected_acc, acc, new_test, module)
+    extract_tests([new_line | lines], expr_acc, expected_acc, acc, new_test, module, formatted)
   end
 
   # Skip empty or documentation line.
-  defp extract_tests([_ | lines], "", "", acc, _, module) do
-    extract_tests(lines, "", "", acc, true, module)
+  defp extract_tests([_ | lines], "", "", acc, _, module, _formatted) do
+    extract_tests(lines, "", "", acc, true, module, "")
   end
 
   # Encountered end of fenced code block, store pending test
@@ -681,26 +742,51 @@ defmodule ExUnit.DocTest do
          expected_acc,
          [test | rest],
          _new_test,
-         module
+         module,
+         formatted
        )
        when fence in @fences and expr_acc != "" do
-    test = add_expr(test, expr_acc, expected_acc)
-    extract_tests(lines, "", "", [test | rest], true, module)
+    test = add_expr(test, expr_acc, expected_acc, formatted)
+    extract_tests(lines, "", "", [test | rest], true, module, "")
   end
 
   # Encountered an empty line, store pending test
-  defp extract_tests([{"", _} | lines], expr_acc, expected_acc, [test | rest], _new_test, module) do
-    test = add_expr(test, expr_acc, expected_acc)
-    extract_tests(lines, "", "", [test | rest], true, module)
+  defp extract_tests(
+         [{"", _} | lines],
+         expr_acc,
+         expected_acc,
+         [test | rest],
+         _new_test,
+         module,
+         formatted
+       ) do
+    test = add_expr(test, expr_acc, expected_acc, formatted)
+    extract_tests(lines, "", "", [test | rest], true, module, "")
   end
 
   # Finally, parse expected_acc.
-  defp extract_tests([{expected, _} | lines], expr_acc, "", acc, new_test, module) do
-    extract_tests(lines, expr_acc, expected, acc, new_test, module)
+  defp extract_tests([{expected, _} | lines], expr_acc, "", acc, new_test, module, formatted) do
+    extract_tests(lines, expr_acc, expected, acc, new_test, module, formatted)
   end
 
-  defp extract_tests([{expected, _} | lines], expr_acc, expected_acc, acc, new_test, module) do
-    extract_tests(lines, expr_acc, expected_acc <> "\n" <> expected, acc, new_test, module)
+  defp extract_tests(
+         [{expected, _} | lines],
+         expr_acc,
+         expected_acc,
+         acc,
+         new_test,
+         module,
+         formatted
+       ) do
+    extract_tests(
+      lines,
+      expr_acc,
+      expected_acc <> "\n" <> expected,
+      acc,
+      new_test,
+      module,
+      formatted
+    )
   end
 
   defp skip_iex_number(")>" <> string, _module, _line_no, _line) do
@@ -722,8 +808,8 @@ defmodule ExUnit.DocTest do
     %{test | fun_arity: fa, exprs: Enum.reverse(exprs)}
   end
 
-  defp add_expr(%{exprs: exprs} = test, expr, expected) do
-    %{test | exprs: [{expr, tag_expected(expected)} | exprs]}
+  defp add_expr(%{exprs: exprs} = test, expr, expected, formatted) do
+    %{test | exprs: [{expr, tag_expected(expected), formatted} | exprs]}
   end
 
   defp tag_expected(string) do
