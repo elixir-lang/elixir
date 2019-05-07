@@ -626,8 +626,8 @@ defmodule Mix.Tasks.Release do
       Using `name` (long names) or `sname` (short names). Defaults to
       `sname` which allows access only within the current system.
       `name` allows external connections. If `name` is used and you are
-      running on a version earlier than Erlang/OTP 22+, you must set
-      `RELEASE_NODE` to `RELEASE_NAME@127.0.0.1` or another appropriate host
+      not running on Erlang/OTP 22 or later, you must set `RELEASE_NODE`
+      to `RELEASE_NAME@127.0.0.1` with an IP or a known host
 
   ## Umbrellas
 
