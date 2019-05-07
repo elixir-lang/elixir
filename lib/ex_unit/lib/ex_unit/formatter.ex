@@ -143,6 +143,7 @@ defmodule ExUnit.Formatter do
 
     [
       note: if_value(struct.message, &format_message(&1, formatter)),
+      doctest: if_value(struct.doctest, &code_multiline(&1, padding_size)),
       code: if_value(struct.expr, &code_multiline(&1, padding_size)),
       code: unless_value(struct.expr, fn -> get_code(test, stack) || @no_value end),
       arguments: if_value(struct.args, &format_args(&1, width)),

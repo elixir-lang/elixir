@@ -9,7 +9,8 @@ defmodule ExUnit.AssertionError do
                right: @no_value,
                message: @no_value,
                expr: @no_value,
-               args: @no_value
+               args: @no_value,
+               doctest: @no_value
 
   @doc """
   Indicates no meaningful value for a field.
