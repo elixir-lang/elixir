@@ -241,23 +241,42 @@ defmodule Mix.Local.Installer do
     {opts, argv} = OptionParser.parse!(argv, switches: switches)
 
     if name = List.first(argv) do
-      path = Path.join(root, name)
+      found =
+        cond do
+          File.exists?(Path.join(root, name)) -> Path.join(root, name)
+          matching = matching_package(root, name) -> Path.join(root, matching)
+          true -> nil
+        end
 
       cond do
-        not File.exists?(path) ->
-          Mix.shell().error("Could not find a local artifact named #{inspect(name)}. We found:")
-          Mix.Task.rerun(listing)
+        found && should_uninstall?(found, opts) ->
+          File.rm_rf!(found)
+          found
+
+        found ->
           nil
 
-        should_uninstall?(path, opts) ->
-          File.rm_rf!(path)
-          path
-
         true ->
+          Mix.shell().error("Could not find a local artifact named #{inspect(name)}. We found:")
+          Mix.Task.rerun(listing)
           nil
       end
     else
       Mix.raise("No argument was given to uninstall command")
+    end
+  end
+
+  defp matching_package(root, name) do
+    if File.exists?(root) do
+      root
+      |> File.ls!()
+      |> Enum.filter(&String.starts_with?(&1, name <> "-"))
+      |> case do
+        [] -> false
+        [found | _] -> found
+      end
+    else
+      false
     end
   end
 
