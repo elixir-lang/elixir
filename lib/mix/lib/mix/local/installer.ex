@@ -244,7 +244,7 @@ defmodule Mix.Local.Installer do
       found =
         cond do
           File.exists?(Path.join(root, name)) -> Path.join(root, name)
-          matching = matching_package(root, name) -> Path.join(root, matching)
+          matching = matching_package(root, name) -> matching
           true -> nil
         end
 
@@ -267,17 +267,7 @@ defmodule Mix.Local.Installer do
   end
 
   defp matching_package(root, name) do
-    if File.exists?(root) do
-      root
-      |> File.ls!()
-      |> Enum.filter(&String.starts_with?(&1, name <> "-"))
-      |> case do
-        [] -> false
-        [found | _] -> found
-      end
-    else
-      false
-    end
+    [root, name <> "-*"] |> Path.join() |> Path.wildcard() |> List.first()
   end
 
   defp should_uninstall?(path, opts) do
