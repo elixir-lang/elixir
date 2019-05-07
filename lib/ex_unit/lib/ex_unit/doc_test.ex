@@ -304,14 +304,7 @@ defmodule ExUnit.DocTest do
 
         actual ->
           doctest = unquote("\n" <> formatted <> "\n" <> expected)
-
-          last_exp =
-            unquote(expr)
-            |> String.split("\n")
-            |> List.last()
-            |> String.trim()
-
-          expr = "#{last_exp} === #{unquote(String.trim(expected))}"
+          expr = "#{unquote(String.trim(expr))} === #{unquote(String.trim(expected))}"
 
           error = [
             message: "Doctest failed",

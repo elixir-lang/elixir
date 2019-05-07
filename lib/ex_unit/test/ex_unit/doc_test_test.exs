@@ -491,7 +491,10 @@ defmodule ExUnit.DocTestTest do
                        iex> c = "a slightly shorter"
                        iex> String.replace(a, b, c)
                        "This is a much shorter text string."
-                code:  String.replace(a, b, c) === "This is a much shorter text string."
+                code:  a = "This is an egregiously long text string."
+                        b = ~r{an egregiously long}
+                        c = "a slightly shorter"
+                        String.replace(a, b, c) === "This is a much shorter text string."
                 left:  "This is a slightly shorter text string."
                 right: "This is a much shorter text string."
                 stacktrace:
