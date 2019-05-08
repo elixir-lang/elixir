@@ -4,6 +4,7 @@ defmodule Logger.Config do
   @behaviour :gen_event
   @name __MODULE__
   @table __MODULE__
+  @check_discard {__MODULE__, :check_discard}
 
   def start_link do
     GenServer.start_link(__MODULE__, :ok, name: @name)
@@ -76,29 +77,7 @@ defmodule Logger.Config do
   end
 
   def handle_event(_event, {state, thresholds}) do
-    %{mode: mode} = state
-
-    case compute_mode(mode, thresholds) do
-      ^mode ->
-        {:ok, {state, thresholds}}
-
-      new_mode ->
-        if new_mode == :discard do
-          message =
-            "Logger has #{message_queue_length()} messages in its queue, " <>
-              "which is above :discard_threshold. Messages will be discarded " <>
-              "until the message queue goes back to 75% of the threshold size"
-
-          log(:warn, message, state)
-        end
-
-        if mode == :discard do
-          log(:warn, "Logger has stopped discarding messages", state)
-        end
-
-        state = persist(%{state | mode: new_mode})
-        {:ok, {state, thresholds}}
-    end
+    {:ok, {compute_mode_and_persist_state(state, thresholds), thresholds}}
   end
 
   def handle_call({:configure, options}, {%{mode: mode}, _}) do
@@ -127,6 +106,16 @@ defmodule Logger.Config do
     {:ok, old, state}
   end
 
+  def handle_info(@check_discard, {%{mode: :discard} = state, thresholds}) do
+    state = compute_mode_and_persist_state(state, thresholds)
+
+    if state.mode == :discard do
+      Process.send_after(self(), @check_discard, state.discard_threshold_periodic_check)
+    end
+
+    {:ok, {state, thresholds}}
+  end
+
   def handle_info(_msg, state) do
     {:ok, state}
   end
@@ -137,6 +126,31 @@ defmodule Logger.Config do
 
   def code_change(_old, state, _extra) do
     {:ok, state}
+  end
+
+  defp compute_mode_and_persist_state(%{mode: mode} = state, thresholds) do
+    case compute_mode(mode, thresholds) do
+      ^mode ->
+        state
+
+      new_mode ->
+        if new_mode == :discard do
+          Process.send_after(self(), @check_discard, state.discard_threshold_periodic_check)
+
+          message =
+            "Logger has #{message_queue_length()} messages in its queue, " <>
+              "which is above :discard_threshold. Messages will be discarded " <>
+              "until the message queue goes back to 75% of the threshold size"
+
+          log(:warn, message, state)
+        end
+
+        if mode == :discard do
+          log(:warn, "Logger has stopped discarding messages", state)
+        end
+
+        persist(%{state | mode: new_mode})
+    end
   end
 
   ## Helpers
@@ -163,7 +177,9 @@ defmodule Logger.Config do
       level: Application.get_env(:logger, :level),
       translators: Application.get_env(:logger, :translators),
       truncate: Application.get_env(:logger, :truncate),
-      utc_log: Application.get_env(:logger, :utc_log)
+      utc_log: Application.get_env(:logger, :utc_log),
+      discard_threshold_periodic_check:
+        Application.get_env(:logger, :discard_threshold_periodic_check)
     })
   end
 

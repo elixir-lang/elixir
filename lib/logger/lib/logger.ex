@@ -555,6 +555,7 @@ defmodule Logger do
     :level,
     :utc_log,
     :discard_threshold,
+    :discard_threshold_periodic_check,
     :translator_inspect_opts
   ]
   @spec configure(keyword) :: :ok
