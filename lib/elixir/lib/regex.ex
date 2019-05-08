@@ -143,7 +143,8 @@ defmodule Regex do
 
   defstruct re_pattern: nil, source: "", opts: "", re_version: ""
 
-  @type t :: %__MODULE__{re_pattern: term, source: binary, opts: binary}
+  @type t :: t(term)
+  @type t(pattern) :: %__MODULE__{re_pattern: pattern, source: binary, opts: binary}
 
   defmodule CompileError do
     defexception message: "regex could not be compiled"
@@ -208,6 +209,23 @@ defmodule Regex do
       {:error, {reason, at}} -> raise Regex.CompileError, "#{reason} at position #{at}"
     end
   end
+
+  @spec compile_plain(binary, binary | [term]) :: {:ok, t(binary)} | {:error, any}
+  def compile_plain(source, options) do
+    case compile(source, options) do
+      {:ok, regex} -> {:ok, %{regex | re_pattern: source}}
+      error        -> error
+    end
+  end
+
+  @spec compile_plain!(binary, binary | [term]) :: t(binary)
+  def compile_plain!(source, options) do
+    case compile_plain(source, options) do
+      {:ok, regex} -> regex
+      {:error, {reason, at}} -> raise Regex.CompileError, "#{reason} at position #{at}"
+    end
+  end
+
 
   @doc """
   Recompiles the existing regular expression if necessary.
@@ -397,6 +415,9 @@ defmodule Regex do
 
   """
   @spec names(t) :: [String.t()]
+  def names(regex = %Regex{re_pattern: re_pattern}) when is_binary(re_pattern) do
+    names(recompile!(regex))
+  end
   def names(%Regex{re_pattern: re_pattern}) do
     {:namelist, names} = :re.inspect(re_pattern, :namelist)
     names

@@ -4995,13 +4995,26 @@ defmodule Kernel do
 
   defmacro sigil_r({:<<>>, _meta, [string]}, options) when is_binary(string) do
     binary = :elixir_interpolation.unescape_chars(string, &Regex.unescape_map/1)
-    regex = Regex.compile!(binary, :binary.list_to_bin(options))
+    bin_options = :binary.list_to_bin(options)
+
+    regex = case Mix.Project.config()[:plain_regex] do
+      true ->
+        Regex.compile_plain!(binary, bin_options)
+      _ ->
+        Regex.compile!(binary, bin_options)
+    end
     Macro.escape(regex)
   end
 
   defmacro sigil_r({:<<>>, meta, pieces}, options) do
     binary = {:<<>>, meta, unescape_tokens(pieces, &Regex.unescape_map/1)}
-    quote(do: Regex.compile!(unquote(binary), unquote(:binary.list_to_bin(options))))
+    bin_options = :binary.list_to_bin(options)
+    case Mix.Project.config()[:plain_regex] do
+      true ->
+        quote(do: Regex.compile_plain!(unquote(binary), unquote(bin_options)))
+      _ ->
+        quote(do: Regex.compile!(unquote(binary), unquote(bin_options)))
+    end
   end
 
   @doc ~S"""
@@ -5021,7 +5034,13 @@ defmodule Kernel do
   defmacro sigil_R(term, modifiers)
 
   defmacro sigil_R({:<<>>, _meta, [string]}, options) when is_binary(string) do
-    regex = Regex.compile!(string, :binary.list_to_bin(options))
+    bin_options = :binary.list_to_bin(options)
+    regex = case Mix.Project.config()[:plain_regex] do
+      true ->
+        Regex.compile_plain!(string, bin_options)
+      _ ->
+        Regex.compile!(string, bin_options)
+    end
     Macro.escape(regex)
   end
 
