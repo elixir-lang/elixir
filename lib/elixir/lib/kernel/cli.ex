@@ -253,6 +253,7 @@ defmodule Kernel.CLI do
   end
 
   defp parse_shared(["--rpc-eval", node, h | t], config) do
+    node = append_hostname(node)
     parse_shared(t, %{config | commands: [{:rpc_eval, node, h} | config.commands]})
   end
 
@@ -266,6 +267,13 @@ defmodule Kernel.CLI do
 
   defp parse_shared(list, config) do
     {list, config}
+  end
+
+  defp append_hostname(node) do
+    case :string.find(node, "@") do
+      :nomatch -> node <> :string.find(Atom.to_string(node()), "@")
+      _ -> node
+    end
   end
 
   defp expand_code_path(path) do
