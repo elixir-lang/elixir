@@ -18,6 +18,7 @@
   * [Config] Add `Config`, `Config.Reader` and `Config.Provider` modules for working with configuration
   * [File] Add `File.rename!/2`
   * [Kernel] Add `~U` sigil for UTC date times
+  * [Kernel] Keep order of elements when macro `in/2` is expanded
   * [Kernel] Optimize `&super/arity` and `&super(&1)`
   * [Kernel] Optimize generated code for `with` with a catch-all clause
   * [Kernel] Validate `__struct__` key in map returned by `__struct__/0,1`
