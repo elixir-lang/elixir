@@ -18,7 +18,6 @@
   * [Config] Add `Config`, `Config.Reader` and `Config.Provider` modules for working with configuration
   * [File] Add `File.rename!/2`
   * [Kernel] Add `~U` sigil for UTC date times
-  * [Kernel] Keep order of elements when macro `in/2` is expanded
   * [Kernel] Optimize `&super/arity` and `&super(&1)`
   * [Kernel] Optimize generated code for `with` with a catch-all clause
   * [Kernel] Validate `__struct__` key in map returned by `__struct__/0,1`
@@ -62,6 +61,7 @@
   * [Kernel] Guarantee reproducible builds on modules with dozens of specs
   * [Kernel] Resolve `__MODULE__` accordingly in nested `defmodule` to avoid double nesting
   * [Kernel] Type variables starting with an underscore (`_foo`) should not raise compile error
+  * [Kernel] Keep order of elements when macro `in/2` is expanded with a literal list on the right-side
   * [System] Make sure `:init.get_status/0` is set to `{:started, :started}` once the system starts
   * [Protocol] Ensure `debug_info` is kept in protocols
   * [Regex] Ensure inspect returns valid `~r//` expressions when they are manually compiled with backslashes
