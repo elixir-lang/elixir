@@ -25,54 +25,44 @@ defmodule Mix.Tasks.ArchiveTest do
   test "archive build" do
     in_fixture("archive", fn ->
       Mix.Tasks.Archive.Build.run(["--no-elixir-version-check"])
+      message = "Generated archive \"archive-0.1.0.ez\" with MIX_ENV=dev"
+      assert_received {:mix_shell, :info, [^message]}
+      assert File.regular?('archive-0.1.0.ez')
+
       assert_archive_content_default()
-      refute has_zip_file?('archive-0.1.0.ez', 'archive-0.1.0/priv/.dot_file')
+      refute has_in_zip_file?('archive-0.1.0.ez', 'archive-0.1.0/priv/.dot_file')
     end)
   end
 
   test "archive build with include-dot-files" do
     in_fixture("archive", fn ->
       Mix.Tasks.Archive.Build.run(["--no-elixir-version-check", "--include-dot-files"])
+      message = "Generated archive \"archive-0.1.0.ez\" with MIX_ENV=dev"
+      assert_received {:mix_shell, :info, [^message]}
+      assert File.regular?('archive-0.1.0.ez')
+
       assert_archive_content_default()
-      assert has_zip_file?('archive-0.1.0.ez', 'archive-0.1.0/priv/.dot_file')
+      assert has_in_zip_file?('archive-0.1.0.ez', 'archive-0.1.0/priv/.dot_file')
     end)
   end
 
   def assert_archive_content_default() do
     assert File.regular?('archive-0.1.0.ez')
-    assert has_zip_file?('archive-0.1.0.ez', 'archive-0.1.0/.elixir')
-    assert has_zip_file?('archive-0.1.0.ez', 'archive-0.1.0/priv/not_really_an.so')
+    assert has_in_zip_file?('archive-0.1.0.ez', 'archive-0.1.0/.elixir')
+    assert has_in_zip_file?('archive-0.1.0.ez', 'archive-0.1.0/priv/not_really_an.so')
 
-    assert has_zip_file?(
+    assert has_in_zip_file?(
              'archive-0.1.0.ez',
              'archive-0.1.0/ebin/Elixir.Mix.Tasks.Local.Sample.beam'
            )
 
-    assert has_zip_file?('archive-0.1.0.ez', 'archive-0.1.0/ebin/archive.app')
-  end
-
-  test "archive install --force" do
-    in_fixture("archive", fn ->
-      Mix.Tasks.Archive.Build.run(["--no-elixir-version-check"])
-      Mix.Tasks.Archive.Install.run(["--force"])
-
-      message = "Generated archive \"archive-0.1.0.ez\" with MIX_ENV=dev"
-      assert_received {:mix_shell, :info, [^message]}
-
-      Mix.Tasks.Archive.Uninstall.run(["archive-0.1.0", "--force"])
-      refute File.dir?(tmp_path("userhome/.mix/archives/archive-0.1.0/archive-0.1.0/ebin"))
-    end)
+    assert has_in_zip_file?('archive-0.1.0.ez', 'archive-0.1.0/ebin/archive.app')
   end
 
   test "archive install" do
     in_fixture("archive", fn ->
       # Build and install archive
       Mix.Tasks.Archive.Build.run(["--no-elixir-version-check"])
-
-      message = "Generated archive \"archive-0.1.0.ez\" with MIX_ENV=dev"
-      assert_received {:mix_shell, :info, [^message]}
-
-      assert File.regular?('archive-0.1.0.ez')
 
       send(self(), {:mix_shell_input, :yes?, true})
       Mix.Tasks.Archive.Install.run([])
@@ -147,7 +137,35 @@ defmodule Mix.Tasks.ArchiveTest do
     end
   end
 
-  test "archive update" do
+  test "archive install --force" do
+    in_fixture("archive", fn ->
+      Mix.Tasks.Archive.Build.run(["--no-elixir-version-check"])
+      Mix.Tasks.Archive.Install.run(["--force"])
+
+      message = "Generated archive \"archive-0.1.0.ez\" with MIX_ENV=dev"
+      assert_received {:mix_shell, :info, [^message]}
+
+      Mix.Tasks.Archive.Uninstall.run(["archive-0.1.0", "--force"])
+      refute File.dir?(tmp_path("userhome/.mix/archives/archive-0.1.0/archive-0.1.0/ebin"))
+    end)
+  end
+
+  test "archive.install from Git" do
+    in_fixture("git_repo", fn ->
+      send(self(), {:mix_shell_input, :yes?, true})
+      Mix.Tasks.Archive.Install.run(["git", File.cwd!()])
+
+      message = "Generated archive \"git_repo-0.1.0.ez\" with MIX_ENV=prod"
+      assert_received {:mix_shell, :info, [^message]}
+
+      refute File.regular?(tmp_path("userhome/.mix/archives/git_repo-0.1.0.ez"))
+      assert File.dir?(tmp_path("userhome/.mix/archives/git_repo-0.1.0/git_repo-0.1.0/ebin"))
+    end)
+  after
+    purge([GitRepo, GitRepo.MixProject])
+  end
+
+  test "archive install, update, and uninstall life-cycle" do
     in_fixture("archive", fn ->
       # Install previous version
       Mix.Tasks.Archive.Build.run(["--no-elixir-version-check"])
@@ -204,9 +222,20 @@ defmodule Mix.Tasks.ArchiveTest do
     end)
   end
 
-  defp has_zip_file?(archive, name) do
-    {:ok, files} = :zip.list_dir(archive)
-    Enum.find(files, &match?({:zip_file, ^name, _, _, _, _}, &1))
+  test "archive uninstall without version" do
+    in_fixture("archive", fn ->
+      Mix.Tasks.Archive.Build.run(["--no-elixir-version-check"])
+      send(self(), {:mix_shell_input, :yes?, true})
+      Mix.Tasks.Archive.Install.run([])
+
+      send(self(), {:mix_shell_input, :yes?, false})
+      Mix.Tasks.Archive.Uninstall.run(["archive"])
+      assert File.dir?(tmp_path("userhome/.mix/archives/archive-0.1.0/archive-0.1.0/ebin"))
+
+      send(self(), {:mix_shell_input, :yes?, true})
+      Mix.Tasks.Archive.Uninstall.run(["archive"])
+      refute File.dir?(tmp_path("userhome/.mix/archives/archive-0.1.0/archive-0.1.0/ebin"))
+    end)
   end
 
   test "archive checksum" do
@@ -268,18 +297,8 @@ defmodule Mix.Tasks.ArchiveTest do
     Base.encode16(:crypto.hash(:sha512, File.read!(file)), case: :lower)
   end
 
-  test "archive.install from Git" do
-    in_fixture("git_repo", fn ->
-      send(self(), {:mix_shell_input, :yes?, true})
-      Mix.Tasks.Archive.Install.run(["git", File.cwd!()])
-
-      message = "Generated archive \"git_repo-0.1.0.ez\" with MIX_ENV=prod"
-      assert_received {:mix_shell, :info, [^message]}
-
-      refute File.regular?(tmp_path("userhome/.mix/archives/git_repo-0.1.0.ez"))
-      assert File.dir?(tmp_path("userhome/.mix/archives/git_repo-0.1.0/git_repo-0.1.0/ebin"))
-    end)
-  after
-    purge([GitRepo, GitRepo.MixProject])
+  defp has_in_zip_file?(archive, name) do
+    {:ok, files} = :zip.list_dir(archive)
+    Enum.find(files, &match?({:zip_file, ^name, _, _, _, _}, &1))
   end
 end
