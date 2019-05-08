@@ -61,6 +61,7 @@
   * [Kernel] Guarantee reproducible builds on modules with dozens of specs
   * [Kernel] Resolve `__MODULE__` accordingly in nested `defmodule` to avoid double nesting
   * [Kernel] Type variables starting with an underscore (`_foo`) should not raise compile error
+  * [Kernel] Keep order of elements when macro `in/2` is expanded with a literal list on the right-hand side
   * [System] Make sure `:init.get_status/0` is set to `{:started, :started}` once the system starts
   * [Protocol] Ensure `debug_info` is kept in protocols
   * [Regex] Ensure inspect returns valid `~r//` expressions when they are manually compiled with backslashes
