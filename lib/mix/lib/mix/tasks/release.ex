@@ -238,7 +238,7 @@ defmodule Mix.Tasks.Release do
 
   ### Techniques
 
-  There a couple ways to guarantee that a release is built on a host with
+  There are a couple of ways to guarantee that a release is built on a host with
   the same properties as the target. A simple option is to fetch the source,
   compile the code and assemble the release on the target itself. It would
   be something like this:
