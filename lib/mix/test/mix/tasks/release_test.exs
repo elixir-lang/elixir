@@ -4,6 +4,9 @@ defmodule Mix.Tasks.ReleaseTest do
   use MixTest.Case
 
   @erts_version :erlang.system_info(:version)
+  @hostname :inet_db.gethostname()
+
+  defmacrop release_node(name), do: :"#{name}@#{@hostname}"
 
   describe "customize" do
     test "rel with eex" do
@@ -127,10 +130,10 @@ defmodule Mix.Tasks.ReleaseTest do
         assert %{
                  app_dir: app_dir,
                  cookie_env: ^cookie,
-                 node: :"release_test@127.0.0.1",
+                 node: release_node("release_test"),
                  protocols_consolidated?: true,
                  release_name: "release_test",
-                 release_node: "release_test@127.0.0.1",
+                 release_node: "release_test",
                  release_root: release_root,
                  release_vsn: "0.1.0",
                  root_dir: root_dir,
@@ -185,10 +188,10 @@ defmodule Mix.Tasks.ReleaseTest do
         open_port(Path.join(root, "bin/runtime_config"), ['start'])
 
         assert %{
-                 node: :"runtime_config@127.0.0.1",
+                 node: release_node("runtime_config"),
                  protocols_consolidated?: true,
                  release_name: "runtime_config",
-                 release_node: "runtime_config@127.0.0.1",
+                 release_node: "runtime_config",
                  release_vsn: "0.1.0",
                  static_config: {:ok, :was_set},
                  runtime_config: {:ok, :was_set},
@@ -235,10 +238,10 @@ defmodule Mix.Tasks.ReleaseTest do
         assert %{
                  app_dir: app_dir,
                  cookie_env: "abcdefghijk",
-                 node: :"demo@127.0.0.1",
+                 node: release_node("demo"),
                  protocols_consolidated?: true,
                  release_name: "demo",
-                 release_node: "demo@127.0.0.1",
+                 release_node: "demo",
                  release_root: release_root,
                  release_vsn: "0.2.0",
                  root_dir: root_dir,
@@ -303,7 +306,7 @@ defmodule Mix.Tasks.ReleaseTest do
                  node: :nonode@nohost,
                  protocols_consolidated?: true,
                  release_name: "eval",
-                 release_node: "eval@127.0.0.1",
+                 release_node: "eval",
                  release_root: root,
                  release_vsn: "0.1.0",
                  static_config: {:ok, :was_set},
@@ -328,10 +331,10 @@ defmodule Mix.Tasks.ReleaseTest do
         assert wait_until_evaled(Path.join(root, "RELEASE_BOOTED")) == %{
                  app_dir: Path.join(root, "lib/release_test-0.1.0"),
                  cookie_env: "abcdefghij",
-                 node: :"permanent2@127.0.0.1",
+                 node: :"permanent2@#{@hostname}",
                  protocols_consolidated?: true,
                  release_name: "permanent2",
-                 release_node: "permanent2@127.0.0.1",
+                 release_node: "permanent2",
                  release_root: root,
                  release_vsn: "0.1.0",
                  root_dir: :code.root_dir() |> to_string(),
@@ -343,7 +346,7 @@ defmodule Mix.Tasks.ReleaseTest do
 
         assert wait_until(fn ->
                  File.read!(Path.join(root, "tmp/log/erlang.log.1")) =~
-                   "iex(permanent2@127.0.0.1)1> "
+                   "iex(permanent2@#{@hostname})1> "
                end)
 
         assert System.cmd(script, ["rpc", "ReleaseTest.hello_world"]) == {"hello world\n", 0}
