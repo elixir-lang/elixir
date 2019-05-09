@@ -650,7 +650,7 @@ meta_from_location({Line, Column, _}) ->
   end.
 
 line_from_location({Line, _Column, _}) -> Line.
-is_eol({_, _, Eol}) -> Eol =:= eol.
+is_eol({_, _, Eol}) -> is_integer(Eol) and (Eol > 0).
 
 end_meta(Token) ->
   [{format, block}, {'end', meta_from_location(?location(Token))}].
@@ -754,7 +754,7 @@ eol_op(Location) ->
 
 next_is_eol(Token) ->
   {Line, Column, _} = ?location(Token),
-  setelement(2, Token, {Line, Column, eol}).
+  setelement(2, Token, {Line, Column, 1}).
 
 annotate_newlines({_, {_, _, Count}}, {Left, Meta, Right}) when is_integer(Count), is_list(Meta) ->
   case ?formatter_metadata() of
