@@ -627,6 +627,20 @@ defmodule KernelTest do
     end
   end
 
+  describe "defmodule" do
+    test "does not accept special atoms as module names" do
+      special_atoms = [nil, true, false]
+
+      Enum.each(special_atoms, fn special_atom ->
+        msg = ~r"invalid module name: #{inspect(special_atom)}"
+
+        assert_raise CompileError, msg, fn ->
+          defmodule special_atom, do: :ok
+        end
+      end)
+    end
+  end
+
   describe "access" do
     defmodule StructAccess do
       defstruct [:foo, :bar]
