@@ -252,10 +252,12 @@ defmodule CodeTest do
       assert string_to_quoted.(":one") == {:__block__, [line: 1], [:one]}
 
       args = [[{:__block__, [original: '1', line: 1], [1]}]]
-      assert string_to_quoted.("[1]") == {:__block__, [end_line: 1, line: 1], args}
+      assert string_to_quoted.("[1]") == {:__block__, [eol: false, end: [line: 1], line: 1], args}
 
       args = [{{:__block__, [line: 1], [:ok]}, {:__block__, [line: 1], [:test]}}]
-      assert string_to_quoted.("{:ok, :test}") == {:__block__, [end_line: 1, line: 1], args}
+
+      assert string_to_quoted.("{:ok, :test}") ==
+               {:__block__, [eol: false, end: [line: 1], line: 1], args}
 
       assert string_to_quoted.(~s("""\nhello\n""")) ==
                {:__block__, [format: :bin_heredoc, line: 1], ["hello\n"]}
@@ -263,10 +265,12 @@ defmodule CodeTest do
       assert string_to_quoted.("'''\nhello\n'''") ==
                {:__block__, [format: :list_heredoc, line: 1], ['hello\n']}
 
-      left = {:__block__, [original: '1', line: 1, end_line: 1, line: 1], [1]}
+      left = {:__block__, [original: '1', line: 1, end: [line: 1], line: 1], [1]}
       right = {:__block__, [format: :string, line: 1], ["hello"]}
       args = [{:->, [line: 1], [[left], right]}]
-      assert string_to_quoted.(~s[fn (1) -> "hello" end]) == {:fn, [end_line: 1, line: 1], args}
+
+      assert string_to_quoted.(~s[fn (1) -> "hello" end]) ==
+               {:fn, [end: [line: 1], line: 1], args}
     end
 
     test "adds newlines information to blocks when :formatter_metadata (private) is given" do
@@ -281,11 +285,11 @@ defmodule CodeTest do
       """
 
       args = [
-        {:one, [end_line: 1, line: 1], []},
-        {:two, [newlines: 0, end_line: 1, line: 1], []},
-        {:three, [newlines: 1, end_line: 2, line: 2], []},
-        {:four, [newlines: 2, end_line: 4, line: 4], []},
-        {:five, [newlines: 3, end_line: 7, line: 7], []}
+        {:one, [eol: false, end: [line: 1], line: 1], []},
+        {:two, [newlines: 0, eol: false, end: [line: 1], line: 1], []},
+        {:three, [newlines: 1, eol: false, end: [line: 2], line: 2], []},
+        {:four, [newlines: 2, eol: false, end: [line: 4], line: 4], []},
+        {:five, [newlines: 3, eol: false, end: [line: 7], line: 7], []}
       ]
 
       assert Code.string_to_quoted!(file, formatter_metadata: true) == {:__block__, [], args}

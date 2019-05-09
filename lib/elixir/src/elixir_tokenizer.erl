@@ -1184,9 +1184,9 @@ add_token_with_eol({unary_op, _, _} = Left, T) -> [Left | T];
 add_token_with_eol(Left, [{eol, _} | T]) -> [Left | T];
 add_token_with_eol(Left, T) -> [Left | T].
 
-previous_was_eol([{',', {_, _, Count}} | _]) when Count > 0 -> eol;
-previous_was_eol([{';', {_, _, Count}} | _]) when Count > 0 -> eol;
-previous_was_eol([{eol, {_, _, Count}} | _]) when Count > 0 -> eol;
+previous_was_eol([{',', {_, _, Count}} | _]) when Count > 0 -> Count;
+previous_was_eol([{';', {_, _, Count}} | _]) when Count > 0 -> Count;
+previous_was_eol([{eol, {_, _, Count}} | _]) when Count > 0 -> Count;
 previous_was_eol(_) -> nil.
 
 %% Error handling
