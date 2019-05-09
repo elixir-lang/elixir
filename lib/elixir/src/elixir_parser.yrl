@@ -637,7 +637,7 @@ Erlang code.
 %% The following directive is needed for (significantly) faster
 %% compilation of the generated .erl file by the HiPE compiler
 -compile([{hipe, [{regalloc, linear_scan}]}]).
--compile({inline, meta_from_token/1, meta_from_location/1, line_from_location/1, end_meta/1}).
+-compile({inline, meta_from_token/1, meta_from_location/1, line_from_location/1, is_eol/1}).
 -import(lists, [reverse/1, reverse/2]).
 
 meta_from_token(Token) ->
@@ -649,16 +649,16 @@ meta_from_location({Line, Column, _}) ->
     false -> [{line, Line}]
   end.
 
-line_from_location({Line, _Column, _}) ->
-  Line.
+line_from_location({Line, _Column, _}) -> Line.
+is_eol({_, _, Eol}) -> Eol =:= eol.
 
 end_meta(Token) ->
-  [{format, block}, {end_line, line_from_location(?location(Token))}].
+  [{format, block}, {'end', meta_from_location(?location(Token))}].
 
-meta_from_token_with_end_line(Begin, End) ->
+meta_from_token_with_end(Begin, End) ->
   case ?formatter_metadata() of
     true ->
-      [{end_line, line_from_location(?location(End))} | meta_from_token(Begin)];
+      [{'end', meta_from_location(?location(End))} | meta_from_token(Begin)];
     false ->
       meta_from_token(Begin)
   end.
@@ -738,23 +738,18 @@ build_block(Exprs) ->
 eol_pair(Left, Right) ->
   case ?formatter_metadata() of
     true ->
-      case {?location(Left), ?location(Right)} of
-        {{_, _, eol}, {Line, _, eol}} -> [{eol, true}, {end_line, Line}];
-        {_, {Line, _, _}} -> [{end_line, Line}]
-      end;
+      [
+        {eol, is_eol(?location(Left)) and is_eol(?location(Right))},
+        {'end', meta_from_location(?location(Right))}
+      ];
     false ->
       []
   end.
 
 eol_op(Location) ->
-  case ?formatter_metadata() of
-    true ->
-      case Location of
-        {_, _, eol} -> [{eol, true}];
-        _ -> []
-      end;
-    false ->
-      []
+  case ?formatter_metadata() and is_eol(Location) of
+    true -> [{eol, true}];
+    false -> []
   end.
 
 next_is_eol(Token) ->
@@ -833,7 +828,7 @@ build_identifier({_, Location, Identifier}, Args) ->
 build_fn(Fn, Stab, End) ->
   case check_stab(Stab, none) of
     stab ->
-      Meta = eol_op(?location(Fn)) ++ meta_from_token_with_end_line(Fn, End),
+      Meta = eol_op(?location(Fn)) ++ meta_from_token_with_end(Fn, End),
       {fn, Meta, collect_stab(Stab, [], [])};
     block ->
       return_error(meta_from_token(Fn), "expected anonymous functions to be defined with -> inside: ", "'fn'")
@@ -903,12 +898,12 @@ charlist_parts(Parts) ->
   [charlist_part(Part) || Part <- Parts].
 charlist_part(Binary) when is_binary(Binary) ->
   Binary;
-charlist_part({{Line, _, EndLine}, Tokens}) ->
+charlist_part({Begin, End, Tokens}) ->
   Form = string_tokens_parse(Tokens),
   Meta =
     case ?formatter_metadata() of
-      true -> [{line, Line}, {end_line, EndLine}];
-      false -> [{line, Line}]
+      true -> [{'end', meta_from_location(End)} | meta_from_location(Begin)];
+      false -> meta_from_location(Begin)
     end,
   {{'.', Meta, ['Elixir.Kernel', to_string]}, Meta, [Form]}.
 
@@ -916,12 +911,12 @@ string_parts(Parts) ->
   [string_part(Part) || Part <- Parts].
 string_part(Binary) when is_binary(Binary) ->
   Binary;
-string_part({{Line, _, EndLine}, Tokens}) ->
+string_part({Begin, End, Tokens}) ->
   Form = string_tokens_parse(Tokens),
   Meta =
     case ?formatter_metadata() of
-      true -> [{line, Line}, {end_line, EndLine}];
-      false -> [{line, Line}]
+      true -> [{'end', meta_from_location(End)} | meta_from_location(Begin)];
+      false -> meta_from_location(Begin)
     end,
   {'::', Meta, [{{'.', Meta, ['Elixir.Kernel', to_string]}, Meta, [Form]}, {binary, Meta, nil}]}.
 
@@ -948,7 +943,7 @@ build_stab(Stab) ->
 build_stab(Before, Stab, After) ->
   case build_stab(Stab) of
     {'__block__', Meta, Block} ->
-      {'__block__', Meta ++ meta_from_token_with_end_line(Before, After), Block};
+      {'__block__', Meta ++ meta_from_token_with_end(Before, After), Block};
     Other ->
       Other
   end.

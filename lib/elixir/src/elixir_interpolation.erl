@@ -56,7 +56,7 @@ extract(Line, Column, Scope, true, [$#, ${ | Rest], Buffer, Output, Last) ->
   Output1 = build_string(Line, Buffer, Output),
   case elixir_tokenizer:tokenize(Rest, Line, Column + 2, Scope) of
     {error, {EndLine, EndColumn, _, "}"}, [$} | NewRest], Tokens} ->
-      Output2 = build_interpol(Line, Column, EndLine, Tokens, Output1),
+      Output2 = build_interpol(Line, Column, EndLine, EndColumn, Tokens, Output1),
       extract(EndLine, EndColumn + 1, Scope, true, NewRest, [], Output2, Last);
     {error, Reason, _, _} ->
       {error, Reason};
@@ -79,11 +79,9 @@ unescape_tokens(Tokens) ->
 
 unescape_tokens(Tokens, Map) ->
   try [unescape_token(Token, Map) || Token <- Tokens] of
-    Unescaped ->
-      {ok, Unescaped}
+    Unescaped -> {ok, Unescaped}
   catch
-    {error, _Reason} = Error ->
-      Error
+    {error, _Reason} = Error -> Error
   end.
 
 unescape_token(Token, Map) when is_list(Token) ->
@@ -228,5 +226,5 @@ finish_extraction(Line, Column, Buffer, Output, Remaining) ->
 build_string(_Line, [], Output) -> Output;
 build_string(_Line, Buffer, Output) -> [lists:reverse(Buffer) | Output].
 
-build_interpol(Line, Column, EndLine, Buffer, Output) ->
-  [{{Line, Column, EndLine}, lists:reverse(Buffer)} | Output].
+build_interpol(Line, Column, EndLine, EndColumn, Buffer, Output) ->
+  [{{Line, Column, nil}, {EndLine, EndColumn, nil}, lists:reverse(Buffer)} | Output].

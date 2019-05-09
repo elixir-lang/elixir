@@ -1156,7 +1156,7 @@ defmodule Code.Formatter do
         {left_doc, _join, state} =
           args_to_algebra_with_comments(
             left,
-            Keyword.delete(meta, :end_line),
+            Keyword.delete(meta, :end),
             skip_parens?,
             :force_comma,
             join,
@@ -1847,7 +1847,7 @@ defmodule Code.Formatter do
   end
 
   defp add_max_line_to_last_clause([{op, meta, args}], max_line) do
-    [{op, [end_line: max_line] ++ meta, args}]
+    [{op, [end: [line: max_line]] ++ meta, args}]
   end
 
   defp add_max_line_to_last_clause([clause | clauses], max_line) do
@@ -2235,11 +2235,11 @@ defmodule Code.Formatter do
   end
 
   defp line(meta) do
-    Keyword.get(meta, :line, @max_line)
+    meta[:line] || @max_line
   end
 
   defp end_line(meta) do
-    Keyword.get(meta, :end_line, @min_line)
+    meta[:end][:line] || @min_line
   end
 
   ## Algebra helpers
