@@ -54,6 +54,8 @@ next_counter(Module) ->
 
 %% Compilation hook
 
+compile(Module, _Block, _Vars, #{line := Line, file := File}) when Module == nil; is_boolean(Module) ->
+  elixir_errors:form_error([{line, Line}], File, ?MODULE, {invalid_module, Module});
 compile(Module, Block, Vars, #{line := Line} = Env) when is_atom(Module) ->
   %% In case we are generating a module from inside a function,
   %% we get rid of the lexical tracker information as, at this
