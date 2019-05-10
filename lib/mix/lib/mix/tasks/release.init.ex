@@ -241,7 +241,7 @@ defmodule Mix.Tasks.Release.Init do
     setlocal enabledelayedexpansion
 
     pushd .
-    cd "%~dp0/.."
+    cd "%~dp0\.."
     set RELEASE_ROOT=%cd%
     popd
 
@@ -249,7 +249,7 @@ defmodule Mix.Tasks.Release.Init do
     if not defined RELEASE_VSN (for /f "tokens=1,2" %%K in (!RELEASE_ROOT!\releases\start_erl.data) do (set ERTS_VSN=%%K) && (set RELEASE_VSN=%%L))
     set RELEASE_COMMAND=%~1
     set REL_VSN_DIR=!RELEASE_ROOT!\releases\!RELEASE_VSN!
-    call !REL_VSN_DIR!/env.bat
+    call !REL_VSN_DIR!\env.bat
 
     if not defined RELEASE_COOKIE (set /p RELEASE_COOKIE=<!RELEASE_ROOT!\releases\COOKIE)
     if not defined RELEASE_NODE (set RELEASE_NODE=!RELEASE_NAME!)
