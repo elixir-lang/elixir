@@ -1278,7 +1278,7 @@ defmodule String do
   Returns a new string created by replacing occurrences of `pattern` in
   `subject` with `replacement`.
 
-  The `pattern` may be a string, a regular expression, or a compiled pattern.
+  The `pattern` may be a string, a regular expression, a compiled pattern or a function.
 
   By default it replaces all occurrences but this behaviour can be controlled
   through the `:global` option; see the "Options" section below.
@@ -1329,6 +1329,11 @@ defmodule String do
       iex> String.replace("a,b,c", ",", "[]", insert_replaced: [1, 1])
       "a[,,]b[,,]c"
 
+  When the `pattern` is a function, it will replace all matching ocurrencies with the `value`
+
+      iex> String.replace("ELIXIR", " ", fn letter -> letter == "I" end)
+      "EL X R"
+
   A compiled pattern can also be given:
 
       iex> pattern = :binary.compile_pattern(",")
@@ -1348,6 +1353,17 @@ defmodule String do
 
   """
   @spec replace(t, pattern | Regex.t(), t, keyword) :: t
+  def replace(subject, replacement, fun) when is_function(fun) do
+    {_status, pattern} =
+      subject
+      |> String.graphemes()
+      |> Enum.filter(fun)
+      |> Enum.join("|")
+      |> Regex.compile()
+
+    replace(subject, pattern, replacement)
+  end
+
   def replace(subject, pattern, replacement, options \\ [])
   def replace(subject, "", "", _), do: subject
 

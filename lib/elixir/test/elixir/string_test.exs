@@ -413,6 +413,8 @@ defmodule StringTest do
     assert String.replace("ELIXIR", "", ".") == ".E.L.I.X.I.R."
     assert String.replace("ELIXIR", "", ".", global: true) == ".E.L.I.X.I.R."
     assert String.replace("ELIXIR", "", ".", global: false) == ".ELIXIR"
+
+    assert String.replace("ELIXIR", " ", fn letter -> letter == "I" end) == "EL X R"
   end
 
   test "duplicate/2" do
