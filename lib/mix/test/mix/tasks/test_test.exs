@@ -152,6 +152,28 @@ defmodule Mix.Tasks.TestTest do
     end)
   end
 
+  test "--app: only runs specified app" do
+    in_fixture("umbrella_app", fn ->
+      output = mix(["test", "--app", "foo"])
+      # Runs foo
+      assert output =~ "==> foo\n.\n\nFinished in"
+
+      # Doesn't run bar
+      refute output =~ "==> bar\n.\n\nFinished in"
+    end)
+  end
+
+  test "--app: runs multiple specified apps" do
+    in_fixture("umbrella_app", fn ->
+      output = mix(["test", "--app", "foo", "--app", "bar"])
+      # Runs foo
+      assert output =~ "==> foo\n.\n\nFinished in"
+
+      # Runs bar
+      assert output =~ "==> bar\n.\n\nFinished in"
+    end)
+  end
+
   test "--failed: loads only files with failures and runs just the failures" do
     in_fixture("test_failed", fn ->
       loading_only_passing_test_msg = "loading OnlyPassingTest"

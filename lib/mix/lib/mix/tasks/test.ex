@@ -148,6 +148,8 @@ defmodule Mix.Tasks.Test do
 
   ## Command line options
 
+    * `--app` - runs test only on specified app(s). May specify multiple apps with
+      multiple `--app` flags.
     * `--color` - enables color in the output
     * `--cover` - runs coverage tool. See "Coverage" section below
     * `--exclude` - excludes tests that match the filter
@@ -296,6 +298,7 @@ defmodule Mix.Tasks.Test do
   """
 
   @switches [
+    app: :keep,
     force: :boolean,
     color: :boolean,
     cover: :boolean,
@@ -326,7 +329,16 @@ defmodule Mix.Tasks.Test do
   @impl true
   def run(args) do
     {opts, files} = OptionParser.parse!(args, strict: @switches)
+    apps = Keyword.get_values(opts, :app)
 
+    if apps == [] or Atom.to_string(Mix.Project.config()[:app]) in apps do
+      run(args, opts, files)
+    else
+      :ok
+    end
+  end
+
+  defp run(args, opts, files) do
     if opts[:listen_on_stdin] do
       System.at_exit(fn _ ->
         IO.gets(:stdio, "")
