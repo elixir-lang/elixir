@@ -12,11 +12,29 @@ defmodule Logger.ConfigTest do
   end
 
   test "log/2 relies on discard_threshold" do
-    Logger.remove_backend(:console)
     Logger.configure(discard_threshold: 0)
     for _ <- 1..1000, do: Logger.log(:info, "some message")
   after
     Logger.configure(discard_threshold: 10000)
+  end
+
+  test "log/2 recovers from discard_threshold" do
+    Logger.remove_backend(:console)
+    Logger.configure(discard_threshold: 1, discard_threshold_periodic_check: 0)
+
+    :sys.suspend(Logger)
+    assert Logger.log(:info, "BEGIN") == :ok
+    send(Logger, :garbage)
+    :sys.resume(Logger)
+
+    # Simulate a sync operation to make sure we are in :discard mode
+    Logger.add_translator({Unknown, :translate})
+    Logger.remove_translator({Unknown, :translate})
+
+    # It should eventually heal
+    wait_for_mode(:async)
+  after
+    Logger.configure(discard_threshold: 10000, discard_threshold_periodic_check: 30000)
     Logger.add_backend(:console)
   end
 
@@ -35,6 +53,13 @@ defmodule Logger.ConfigTest do
       assert Logger.level() === :error
     after
       Logger.configure(level: :debug)
+    end
+  end
+
+  def wait_for_mode(mode) do
+    unless Logger.Config.__data__().mode == mode do
+      Process.sleep(10)
+      wait_for_mode(mode)
     end
   end
 end
