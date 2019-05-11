@@ -1618,7 +1618,7 @@ defmodule String do
   defp make_chunk_pred(:valid), do: &valid?/1
   defp make_chunk_pred(:printable), do: &printable?/1
 
-  @doc """
+  @doc ~S"""
   Returns Unicode graphemes in the string as per Extended Grapheme
   Cluster algorithm.
 
