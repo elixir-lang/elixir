@@ -63,6 +63,23 @@ When a task is spawned directly from your code, without a supervisor, then the p
 
 This small feature is very powerful. It allows instrumentation and monitoring tools to better track and relate the events happening in your system. This feature can also be used by tools like the "Ecto Sandbox". The "Ecto Sandbox" allows developers to run tests concurrently against the database, by using transactions and an ownership mechanism where each process explicitly gets a connection assigned to it. Without `$callers`, every time you spawned a task that queries the database, the task would not know its caller, and therefore it would be unable to know which connection was assigned to it. This often meant features that relies on tasks could not be tested concurrently. With `$callers`, figuring out this relationship is trivial and you have more tests using the full power of your machine.
 
+## v1.8.2 (2019-05-11)
+
+### 1. Bug fixes
+
+#### EEx
+
+  * [EEx] Raise readable error message on bad EEx state
+
+#### Elixir
+
+  * [Protocol] Ensure `:debug_info` is kept in protocols
+
+#### Logger
+
+  * [Logger] Make sure Logger v1.8 does not get stuck in discard mode
+  * [Logger.Translator] Translate remote process crash in Logger
+
 ## v1.8.1 (2019-01-30)
 
 ### 1. Bug fixes
