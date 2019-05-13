@@ -3,6 +3,39 @@ Code.require_file("test_helper.exs", __DIR__)
 defmodule RegexTest do
   use ExUnit.Case, async: true
 
+  @re_21_3_little %Regex{
+    re_pattern:
+      {:re_pattern, 1, 0, 0,
+       <<69, 82, 67, 80, 94, 0, 0, 0, 0, 0, 0, 0, 17, 0, 0, 0, 255, 255, 255, 255, 255, 255, 255,
+         255, 99, 0, 0, 0, 0, 0, 1, 0, 0, 0, 64, 0, 6, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 102, 111, 111, 0, 131, 0, 20, 29, 99, 133,
+         0, 7, 0, 1, 29, 100, 119, 0, 5, 29, 101, 120, 0, 12, 120, 0, 20, 0>>},
+    re_version: {"8.42 2018-03-20", :little},
+    source: "c(?<foo>d|e)"
+  }
+
+  @re_21_3_big %Regex{
+    re_pattern:
+      {:re_pattern, 1, 0, 0,
+       <<80, 67, 82, 69, 0, 0, 0, 86, 0, 0, 0, 0, 0, 0, 0, 17, 255, 255, 255, 255, 255, 255, 255,
+         255, 0, 99, 0, 0, 0, 0, 0, 1, 0, 0, 0, 56, 0, 6, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 1, 102, 111, 111, 0, 131, 0, 20, 29, 99, 133, 0, 7, 0, 1, 29, 100, 119,
+         0, 5, 29, 101, 120, 0, 12, 120, 0, 20, 0>>},
+    re_version: {"8.42 2018-03-20", :big},
+    source: "c(?<foo>d|e)"
+  }
+
+  @re_19_3_little %Regex{
+    re_pattern:
+      {:re_pattern, 1, 0, 0,
+       <<69, 82, 67, 80, 94, 0, 0, 0, 0, 0, 0, 0, 17, 0, 0, 0, 255, 255, 255, 255, 255, 255, 255,
+         255, 99, 0, 0, 0, 0, 0, 1, 0, 0, 0, 64, 0, 6, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 102, 111, 111, 0, 125, 0, 20, 29, 99, 127,
+         0, 7, 0, 1, 29, 100, 113, 0, 5, 29, 101, 114, 0, 12, 114, 0, 20, 0>>},
+    re_version: {"8.33 2013-05-29", :little},
+    source: "c(?<foo>d|e)"
+  }
+
   doctest Regex
 
   test "multiline" do
@@ -155,6 +188,12 @@ defmodule RegexTest do
     assert Regex.run(~r"e", "abcd", return: :index) == nil
   end
 
+  test "run/3 with regexes compiled in different systems" do
+    assert Regex.run(@re_21_3_little, "abcd abce", capture: :all_names) == ["d"]
+    assert Regex.run(@re_21_3_big, "abcd abce", capture: :all_names) == ["d"]
+    assert Regex.run(@re_19_3_little, "abcd abce", capture: :all_names) == ["d"]
+  end
+
   test "scan/2" do
     assert Regex.scan(~r"c(d|e)", "abcd abce") == [["cd", "d"], ["ce", "e"]]
     assert Regex.scan(~r"c(?:d|e)", "abcd abce") == [["cd"], ["ce"]]
@@ -166,6 +205,12 @@ defmodule RegexTest do
     assert Regex.scan(~r/c(?<foo>d)/, "abcd", capture: :all_names) == [["d"]]
     assert Regex.scan(~r/c(?<foo>d)/, "no_match", capture: :all_names) == []
     assert Regex.scan(~r/c(?<foo>d|e)/, "abcd abce", capture: :all_names) == [["d"], ["e"]]
+  end
+
+  test "scan/2 with regexes compiled in different systems" do
+    assert Regex.scan(@re_21_3_little, "abcd abce", capture: :all_names) == [["d"], ["e"]]
+    assert Regex.scan(@re_21_3_big, "abcd abce", capture: :all_names) == [["d"], ["e"]]
+    assert Regex.scan(@re_19_3_little, "abcd abce", capture: :all_names) == [["d"], ["e"]]
   end
 
   test "split/2,3" do

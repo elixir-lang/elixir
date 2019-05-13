@@ -128,11 +128,11 @@ defmodule Regex do
   ## Precompilation
 
   Regular expressions built with sigil are precompiled and stored in `.beam`
-  files. Precompiled regexes are not guaranteed to be compatible between OSes
-  and OTP releases. This is rarely a problem, as most Elixir code shared
-  during development is compiled on the target (such as dependencies, archives,
-  and escripts) and, when running in production, the code must either be
-  compiled on the target (via `mix compile` or similar) or released on the
+  files. Precompiled regexes will be checked in runtime and may work slower
+  between OSes and OTP releases. This is rarely a problem, as most Elixir code
+  shared during development is compiled on the target (such as dependencies,
+  archives, and escripts) and, when running in production, the code must either
+  be compiled on the target (via `mix compile` or similar) or released on the
   host (via `mix releases` or similar) with a matching OTP, OS and architecture
   as as the target.
 
@@ -264,8 +264,8 @@ defmodule Regex do
 
   """
   @spec match?(t, String.t()) :: boolean
-  def match?(%Regex{re_pattern: compiled}, string) when is_binary(string) do
-    :re.run(string, compiled, [{:capture, :none}]) == :match
+  def match?(%Regex{} = regex, string) when is_binary(string) do
+    safe_run(regex, string, [{:capture, :none}]) == :match
   end
 
   @doc """
@@ -312,11 +312,11 @@ defmodule Regex do
   @spec run(t, binary, [term]) :: nil | [binary] | [{integer, integer}]
   def run(regex, string, options \\ [])
 
-  def run(%Regex{re_pattern: compiled}, string, options) when is_binary(string) do
+  def run(%Regex{} = regex, string, options) when is_binary(string) do
     return = Keyword.get(options, :return, :binary)
     captures = Keyword.get(options, :capture, :all)
 
-    case :re.run(string, compiled, [{:capture, captures, return}]) do
+    case safe_run(regex, string, [{:capture, captures, return}]) do
       :nomatch -> nil
       :match -> []
       {:match, results} -> results
@@ -397,7 +397,17 @@ defmodule Regex do
 
   """
   @spec names(t) :: [String.t()]
-  def names(%Regex{re_pattern: re_pattern}) do
+  def names(%Regex{re_pattern: compiled, re_version: version, source: source}) do
+    re_pattern =
+      case version() do
+        ^version ->
+          compiled
+
+        _ ->
+          {:ok, recompiled} = :re.compile(source)
+          recompiled
+      end
+
     {:namelist, names} = :re.inspect(re_pattern, :namelist)
     names
   end
@@ -437,15 +447,26 @@ defmodule Regex do
   @spec scan(t, String.t(), [term]) :: [[String.t()]]
   def scan(regex, string, options \\ [])
 
-  def scan(%Regex{re_pattern: compiled}, string, options) when is_binary(string) do
+  def scan(%Regex{} = regex, string, options) when is_binary(string) do
     return = Keyword.get(options, :return, :binary)
     captures = Keyword.get(options, :capture, :all)
     options = [{:capture, captures, return}, :global]
 
-    case :re.run(string, compiled, options) do
+    case safe_run(regex, string, options) do
       :match -> []
       :nomatch -> []
       {:match, results} -> results
+    end
+  end
+
+  defp safe_run(
+         %Regex{re_pattern: compiled, source: source, re_version: version},
+         string,
+         options
+       ) do
+    case version() do
+      ^version -> :re.run(string, compiled, options)
+      _ -> :re.run(string, source, options)
     end
   end
 
@@ -508,11 +529,11 @@ defmodule Regex do
     end
   end
 
-  def split(%Regex{re_pattern: compiled}, string, opts)
+  def split(%Regex{} = regex, string, opts)
       when is_binary(string) and is_list(opts) do
     on = Keyword.get(opts, :on, :first)
 
-    case :re.run(string, compiled, [:global, capture: on]) do
+    case safe_run(regex, string, [:global, capture: on]) do
       {:match, matches} ->
         index = parts_to_index(Keyword.get(opts, :parts, :infinity))
         trim = Keyword.get(opts, :trim, false)
@@ -634,11 +655,11 @@ defmodule Regex do
     do_replace(regex, string, {replacement, arity}, options)
   end
 
-  defp do_replace(%Regex{re_pattern: compiled}, string, replacement, options) do
+  defp do_replace(%Regex{} = regex, string, replacement, options) do
     opts = if Keyword.get(options, :global) != false, do: [:global], else: []
     opts = [{:capture, :all, :index} | opts]
 
-    case :re.run(string, compiled, opts) do
+    case safe_run(regex, string, opts) do
       :nomatch ->
         string
 
