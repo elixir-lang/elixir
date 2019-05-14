@@ -49,8 +49,8 @@ Elixir version | Supported Erlang/OTP versions
 1.4            | 18 - 19 (and Erlang/OTP 20 from v1.4.5)
 1.5            | 18 - 20
 1.6            | 19 - 20 (and Erlang/OTP 21 from v1.6.6)
-1.7            | 19 - 21
-1.8            | 20 - 21
+1.7            | 19 - 22
+1.8            | 20 - 22
 
 While Elixir often adds compatibility to new Erlang/OTP versions on released branches, such as support for Erlang/OTP 20 in v1.4.5, those releases usually contain the minimum changes for Elixir to run without errors. Only the next minor release, in this case v1.5.0, does effectively leverage the new features provided by the latest Erlang/OTP release.
 
