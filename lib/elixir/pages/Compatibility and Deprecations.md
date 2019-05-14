@@ -8,11 +8,11 @@ Elixir applies bug fixes only to the latest minor branch. Security patches are a
 
 Elixir version | Support
 :------------- | :-----------------------------
-1.8            | Bug fixes and security patches
+1.9            | Bug fixes and security patches
+1.8            | Security patches only
 1.7            | Security patches only
 1.6            | Security patches only
 1.5            | Security patches only
-1.4            | Security patches only
 
 New releases are announced in the read-only [announcements mailing list](https://groups.google.com/group/elixir-lang-ann). All security releases [will be tagged with `[security]`](https://groups.google.com/forum/#!searchin/elixir-lang-ann/%5Bsecurity%5D%7Csort:date).
 
@@ -49,9 +49,9 @@ Elixir version | Supported Erlang/OTP versions
 1.4            | 18 - 19 (and Erlang/OTP 20 from v1.4.5)
 1.5            | 18 - 20
 1.6            | 19 - 20 (and Erlang/OTP 21 from v1.6.6)
-1.7            | 19 - 21
-1.8            | 20 - 21
-1.9            | 20 - 21
+1.7            | 19 - 22
+1.8            | 20 - 22
+1.9            | 20 - 22
 
 While Elixir often adds compatibility to new Erlang/OTP versions on released branches, such as support for Erlang/OTP 20 in v1.4.5, those releases usually contain the minimum changes for Elixir to run without errors. Only the next minor release, in this case v1.5.0, does effectively leverage the new features provided by the latest Erlang/OTP release.
 
