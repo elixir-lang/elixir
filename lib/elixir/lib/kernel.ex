@@ -2939,12 +2939,12 @@ defmodule Kernel do
         arg = {env.line, arg}
 
         quote do
-          Module.put_attribute(__MODULE__, unquote(name), unquote(arg), unquote(line))
+          Module.__put_attribute__(__MODULE__, unquote(name), unquote(arg), unquote(line))
         end
 
       true ->
         quote do
-          Module.put_attribute(__MODULE__, unquote(name), unquote(arg), unquote(line))
+          Module.__put_attribute__(__MODULE__, unquote(name), unquote(arg), unquote(line))
         end
     end
   end

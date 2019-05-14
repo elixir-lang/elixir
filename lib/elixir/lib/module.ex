@@ -1178,7 +1178,7 @@ defmodule Module do
   """
   @spec put_attribute(module, atom, term) :: :ok
   def put_attribute(module, key, value) when is_atom(module) and is_atom(key) do
-    put_attribute(module, key, value, nil)
+    __put_attribute__(module, key, value, nil)
   end
 
   @doc """
@@ -1794,7 +1794,7 @@ defmodule Module do
   @doc false
   # Used internally by Kernel's @.
   # This function is private and must be used only internally.
-  def put_attribute(module, key, value, line) when is_atom(key) do
+  def __put_attribute__(module, key, value, line) when is_atom(key) do
     assert_not_compiled!(__ENV__.function, module)
     {set, bag} = data_tables_for(module)
     value = preprocess_attribute(key, value)
