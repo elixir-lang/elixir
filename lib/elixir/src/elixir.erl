@@ -31,7 +31,11 @@ start(_Type, _Args) ->
   preload_common_modules(),
   set_stdio_and_stderr_to_binary_and_maybe_utf8(),
   check_file_encoding(Encoding),
-  check_endianness(),
+
+  case application:get_env(elixir, check_endianness, true) of
+    true  -> check_endianness();
+    false -> ok
+  end,
 
   Tokenizer = case code:ensure_loaded('Elixir.String.Tokenizer') of
     {module, Mod} -> Mod;
