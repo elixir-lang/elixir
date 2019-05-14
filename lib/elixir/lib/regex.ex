@@ -136,9 +136,10 @@ defmodule Regex do
   host (via `mix releases` or similar) with a matching OTP, OS and architecture
   as as the target.
 
-  However, if you find yourself in a scenario where cross-compilation is
-  necessary, you can manually invoke `Regex.recompile/1` or `Regex.recompile!/1`
-  to perform a runtime version check and recompile the regex if necessary.
+  If you know you are running on a different system that the current one AND
+  you are doing multiple matches with the regex, you can manually invoke
+  `Regex.recompile/1` or `Regex.recompile!/1` to perform a runtime version
+  check and recompile the regex if necessary.
   """
 
   defstruct re_pattern: nil, source: "", opts: "", re_version: ""
