@@ -1209,15 +1209,21 @@ defmodule Module do
         Module.put_attribute(__MODULE__, :value, 1)
         Module.get_attribute(__MODULE__, :value) #=> 1
 
+        Module.get_attribute(__MODULE__, :value, :default) #=> 1
+        Module.get_attribute(__MODULE__, :not_found, :default) #=> :default
+
         Module.register_attribute(__MODULE__, :value, accumulate: true)
         Module.put_attribute(__MODULE__, :value, 1)
         Module.get_attribute(__MODULE__, :value) #=> [1]
       end
 
   """
-  @spec get_attribute(module, atom) :: term
-  def get_attribute(module, key) when is_atom(module) and is_atom(key) do
-    get_attribute(module, key, nil)
+  @spec get_attribute(module, atom, term) :: term
+  def get_attribute(module, key, default \\ nil) when is_atom(module) and is_atom(key) do
+    case __get_attribute__(module, key, nil) do
+      nil -> default
+      value -> value
+    end
   end
 
   @doc """
@@ -1751,7 +1757,7 @@ defmodule Module do
   @doc false
   # Used internally by Kernel's @.
   # This function is private and must be used only internally.
-  def get_attribute(module, key, line) when is_atom(key) do
+  def __get_attribute__(module, key, line) when is_atom(key) do
     assert_not_compiled!(
       {:get_attribute, 2},
       module,

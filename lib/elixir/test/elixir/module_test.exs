@@ -436,4 +436,30 @@ defmodule ModuleTest do
       Module.get_attribute(Enum, :moduledoc)
     end
   end
+
+  describe "get_attribute/{2,3}" do
+    test "returns a list when the attribute is marked as `accummulate`" do
+      in_module do
+        Module.register_attribute(__MODULE__, :value, accumulate: true)
+        Module.put_attribute(__MODULE__, :value, 1)
+        assert Module.get_attribute(__MODULE__, :value) == [1]
+        Module.put_attribute(__MODULE__, :value, 2)
+        assert Module.get_attribute(__MODULE__, :value) == [2, 1]
+      end
+    end
+
+    test "returns the value of the attribute if this exists" do
+      in_module do
+        Module.put_attribute(__MODULE__, :attribute, 1)
+        assert Module.get_attribute(__MODULE__, :attribute) == 1
+        assert Module.get_attribute(__MODULE__, :attribute, :default) == 1
+      end
+    end
+
+    test "returns the passed default if the attribute does not exist" do
+      in_module do
+        assert Module.get_attribute(__MODULE__, :attribute, :default) == :default
+      end
+    end
+  end
 end

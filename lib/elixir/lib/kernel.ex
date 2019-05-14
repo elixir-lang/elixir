@@ -2957,7 +2957,7 @@ defmodule Kernel do
     case function? do
       true ->
         value =
-          case Module.get_attribute(env.module, name, line) do
+          case Module.__get_attribute__(env.module, name, line) do
             {_, doc} when doc_attr? -> doc
             other -> other
           end
@@ -2973,7 +2973,7 @@ defmodule Kernel do
 
       false when doc_attr? ->
         quote do
-          case Module.get_attribute(__MODULE__, unquote(name), unquote(line)) do
+          case Module.__get_attribute__(__MODULE__, unquote(name), unquote(line)) do
             {_, doc} -> doc
             other -> other
           end
@@ -2981,7 +2981,7 @@ defmodule Kernel do
 
       false ->
         quote do
-          Module.get_attribute(__MODULE__, unquote(name), unquote(line))
+          Module.__get_attribute__(__MODULE__, unquote(name), unquote(line))
         end
     end
   end
