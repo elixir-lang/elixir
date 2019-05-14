@@ -227,7 +227,7 @@ Precompiled.zip: build_man compile
 
 zips: Precompiled.zip Docs.zip
 	@ echo ""
-	@ echo "## Checksums"
+	@ echo "### Checksums"
 	@ echo ""
 	@ shasum -a 1 < Precompiled-v$(VERSION).zip | sed -e "s/-//" | xargs echo "  * Precompiled.zip SHA1:"
 	@ shasum -a 512 < Precompiled-v$(VERSION).zip | sed -e "s/-//" | xargs echo "  * Precompiled.zip SHA512:"
