@@ -136,7 +136,7 @@ defmodule Regex do
   host (via `mix releases` or similar) with a matching OTP, OS and architecture
   as as the target.
 
-  If you know you are running on a different system that the current one AND
+  If you know you are running on a different system that the current one and
   you are doing multiple matches with the regex, you can manually invoke
   `Regex.recompile/1` or `Regex.recompile!/1` to perform a runtime version
   check and recompile the regex if necessary.
