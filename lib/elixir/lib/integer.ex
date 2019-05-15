@@ -269,15 +269,17 @@ defmodule Integer do
 
   defp count_digits_nosign(<<_::binary>>, _, count), do: count
 
+  # TODO: Remove Integer.to_string/1 once the minimum supported version is
+  #       Erlang/OTP 22, since it is covered by the now BIF Integer.to_string/2.
+  #       Please reapply commit 2622fd6b0aa419a983a899a1fbdb5deefba3d85d.
   @doc """
   Returns a binary which corresponds to the text representation
-  of `integer` in the given `base`.
-
-  `base` can be an integer between 2 and 36. If no `base` is given, it defaults to `10`.
+  of `integer`.
 
   Inlined by the compiler.
 
   ## Examples
+
       iex> Integer.to_string(123)
       "123"
 
@@ -290,6 +292,22 @@ defmodule Integer do
       iex> Integer.to_string(0123)
       "123"
 
+  """
+  @spec to_string(integer) :: String.t()
+  def to_string(integer) do
+    :erlang.integer_to_binary(integer)
+  end
+
+  @doc """
+  Returns a binary which corresponds to the text representation
+  of `integer` in the given `base`.
+
+  `base` can be an integer between 2 and 36.
+
+  Inlined by the compiler.
+
+  ## Examples
+
       iex> Integer.to_string(100, 16)
       "64"
 
@@ -301,14 +319,15 @@ defmodule Integer do
 
   """
   @spec to_string(integer, 2..36) :: String.t()
-  def to_string(integer, base \\ 10) do
+  def to_string(integer, base) do
     :erlang.integer_to_binary(integer, base)
   end
 
+  # TODO: Remove Integer.to_charlist/1 once the minimum supported version is
+  #       Erlang/OTP 22, since it is covered by the now BIF Integer.to_charlist/2.
+  #       Please reapply commit 2622fd6b0aa419a983a899a1fbdb5deefba3d85d.
   @doc """
-  Returns a charlist which corresponds to the text representation of `integer` in the given `base`.
-
-  `base` can be an integer between 2 and 36. If no `base` is given, it defaults to `10`.
+  Returns a charlist which corresponds to the text representation of the given `integer`.
 
   Inlined by the compiler.
 
@@ -326,6 +345,21 @@ defmodule Integer do
       iex> Integer.to_charlist(0123)
       '123'
 
+  """
+  @spec to_charlist(integer) :: charlist
+  def to_charlist(integer) do
+    :erlang.integer_to_list(integer)
+  end
+
+  @doc """
+  Returns a charlist which corresponds to the text representation of `integer` in the given `base`.
+
+  `base` can be an integer between 2 and 36.
+
+  Inlined by the compiler.
+
+  ## Examples
+
       iex> Integer.to_charlist(100, 16)
       '64'
 
@@ -337,7 +371,7 @@ defmodule Integer do
 
   """
   @spec to_charlist(integer, 2..36) :: charlist
-  def to_charlist(integer, base \\ 10) do
+  def to_charlist(integer, base) do
     :erlang.integer_to_list(integer, base)
   end
 
