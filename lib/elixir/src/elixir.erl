@@ -106,12 +106,12 @@ preload_common_modules() ->
   ok.
 
 parse_otp_release() ->
-  %% Whenever we change this check, we should also change escript.build and Makefile.
+  %% Whenever we change this check, we should also change Makefile.
   case string:to_integer(erlang:system_info(otp_release)) of
     {Num, _} when Num >= 20 ->
       Num;
     _ ->
-      io:format(standard_error, "unsupported Erlang/OTP version, expected Erlang/OTP 20+~n", []),
+      io:format(standard_error, "ERROR! Unsupported Erlang/OTP version, expected Erlang/OTP 20+~n", []),
       erlang:halt(1)
   end.
 
