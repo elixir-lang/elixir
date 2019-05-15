@@ -319,6 +319,7 @@ defmodule Mix.Tasks.Escript.Build do
 
         defp load_config(config) do
           each_fun = fn {app, kw} ->
+            :application.load(app)
             set_env_fun = fn {k, v} -> :application.set_env(app, k, v, persistent: true) end
             :lists.foreach(set_env_fun, kw)
           end
@@ -385,9 +386,9 @@ defmodule Mix.Tasks.Escript.Build do
           :erlang.halt(1)
       end
 
+      load_config(@config)
       case :application.ensure_all_started(:elixir) do
         {:ok, _} ->
-          load_config(@config)
           start_app(@app)
           args = Enum.map(args, &List.to_string(&1))
           Kernel.CLI.run(fn _ -> @module.main(args) end)
