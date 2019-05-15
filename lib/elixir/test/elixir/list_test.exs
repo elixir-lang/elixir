@@ -40,7 +40,7 @@ defmodule ListTest do
 
     assert List.flatten([]) == []
     assert List.flatten([[]]) == []
-    assert List.flatten([[], [[], []]]) = []
+    assert List.flatten([[], [[], []]]) == []
   end
 
   test "flatten/2" do
