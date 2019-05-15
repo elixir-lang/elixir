@@ -65,6 +65,7 @@ defmodule ListTest do
   end
 
   test "duplicate/2" do
+    assert List.duplicate(1, 0) == []
     assert List.duplicate(1, 3) == [1, 1, 1]
     assert List.duplicate([1], 1) == [[1]]
   end
