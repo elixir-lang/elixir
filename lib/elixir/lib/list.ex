@@ -124,11 +124,18 @@ defmodule List do
       iex> List.delete([:a, :b, :c], :a)
       [:b, :c]
 
+      iex> List.delete([:a, :b, :c], :d)
+      [:a, :b, :c]
+
       iex> List.delete([:a, :b, :b, :c], :b)
       [:a, :b, :c]
 
+      iex> List.delete([], :b)
+      []
+
   """
-  @spec delete(list, any) :: list
+  @spec delete([], any) :: []
+  @spec delete([...], any) :: list
   def delete(list, element)
   def delete([element | list], element), do: list
   def delete([other | list], element), do: [other | delete(list, element)]
