@@ -137,7 +137,7 @@ defmodule List do
   @doc """
   Duplicates the given element `n` times in a list.
 
-  `n` is an integer greater or equal than `0`.
+  `n` is an integer greater than or equal to `0`.
 
   If `n` is `0`, an empty list is returned.
 
