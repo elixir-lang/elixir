@@ -11,7 +11,7 @@ defmodule Kernel.Types do
     Enum.map(defs, fn {name, kind, _meta, clauses} ->
       types =
         Enum.map(clauses, fn {_meta, params, _guards, _body} ->
-          of_clause(params)
+          of_clause(params, context())
         end)
 
       {name, kind, types}
@@ -20,17 +20,23 @@ defmodule Kernel.Types do
     e ->
       case :code.ensure_loaded(Access) do
         {:module, _} -> reraise(e, __STACKTRACE__)
-        {:error, _} -> :error
+        {:error, _} -> {:error, :bootstrapping}
       end
-  end
-
-  def of_clause(params) do
-    of_pattern_multi(params, context())
   end
 
   def context(enum \\ []) do
     context = %{vars: %{}, types: %{}, counter: 0}
     Map.merge(context, Map.new(enum))
+  end
+
+  def of_clause({:when, _meta, [params, guard]}, context) do
+    with {:ok, types, context} <- of_pattern_multi(params, context),
+         {:ok, context} <- of_guard(when_to_or(guard), context),
+         do: {:ok, types, context}
+  end
+
+  def of_clause(params, context) do
+    of_pattern_multi(params, context)
   end
 
   def of_pattern_multi(patterns, pattern_types \\ [], context)
@@ -111,6 +117,63 @@ defmodule Kernel.Types do
   def of_pattern(expr, _context) do
     {:error, {:unsupported_pattern, expr}}
   end
+
+  # TODO: Remove this and let multiple when be treated as multiple clauses,
+  #       meaning they will be intersection types
+  defp when_to_or({:when, meta, [guards, more_guards]}) do
+    {:or, meta, [when_to_or(guards), when_to_or(more_guards)]}
+  end
+
+  defp when_to_or(other) do
+    other
+  end
+
+  defp flatten_binary_op(op, {op, _meta, [left, right]}) do
+    flatten_binary_op(op, left) ++ flatten_binary_op(op, right)
+  end
+
+  defp flatten_binary_op(_op, other) do
+    [other]
+  end
+
+  def of_guard(guard, context) do
+    reduce_ok(flatten_binary_op(:and, guard), context, fn guard, context ->
+      # TODO: Union types Enum.map(flatten_binary_op(:or, guard))
+      with {:ok, arg, guard_type} <- type_guard(guard),
+           # TODO: It is incorrect to use of_pattern/2 but it helps for simplicity now
+           {:ok, arg_type, context} <- of_pattern(arg, context),
+           {:ok, _, context} <- unify(arg_type, guard_type, context),
+           do: {:ok, context}
+    end)
+  end
+
+  # Unimplemented guards:
+  # !=/2 !==/2 </2 <=/2 >/2 >=/2 ==/2 ===/2 not/1
+  # */2 +/1 +/2 -/1 -/2 //2
+  # abs/2 ceil/1 floor/1 round/1 trunc/1
+  # elem/2 hd/1 in/2 length/1 map_size/1 tl/1 tuple_size/1
+  # is_function/1 is_function/2 is_list/1 is_map/1 is_number/1 is_pid/1 is_port/1 is_reference/1 is_tuple/1
+  # node/1 self/1
+  # binary_part/3 bit_size/1 byte_size/1 div/2 rem/2 node/0
+
+  @type_guards %{
+    is_atom: :atom,
+    is_binary: :binary,
+    # TODO: Add bitstring type
+    is_bitstring: :binary,
+    is_float: :float,
+    is_integer: :integer,
+    is_nil: {:literal, nil}
+  }
+
+  defp type_guard({guard, _meta, [arg]}) do
+    case Map.fetch(@type_guards, guard) do
+      {:ok, type} -> {:ok, arg, type}
+      :error -> :error
+    end
+  end
+
+  defp type_guard(_other), do: :error
 
   defp of_binary([], context) do
     {:ok, context}
@@ -308,4 +371,17 @@ defmodule Kernel.Types do
     context = %{context | quantified_types: types, quantified_counter: counter}
     {type, context}
   end
+
+  defp reduce_ok(list, acc, fun) do
+    do_reduce_ok(list, acc, fun)
+  end
+
+  defp do_reduce_ok([head | tail], acc, fun) do
+    case fun.(head, acc) do
+      {:ok, acc} -> do_reduce_ok(tail, acc, fun)
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp do_reduce_ok([], acc, _fun), do: {:ok, acc}
 end

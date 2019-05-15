@@ -20,7 +20,7 @@ defmodule Kernel.TypesTest do
 
   defmacrop quoted_clause(exprs) do
     quote do
-      case Kernel.Types.of_clause(unquote(Macro.escape(exprs))) do
+      case Kernel.Types.of_clause(unquote(Macro.escape(exprs)), context()) do
         {:ok, types, context} ->
           {types, _context} = Enum.map_reduce(types, context, &Kernel.Types.lift_types/2)
           {:ok, types}
@@ -31,7 +31,7 @@ defmodule Kernel.TypesTest do
     end
   end
 
-  describe "of_pattern/1" do
+  describe "of_pattern/2" do
     test "literals" do
       assert quoted_pattern(true) == {:ok, {:literal, true}}
       assert quoted_pattern(false) == {:ok, {:literal, false}}
@@ -89,7 +89,7 @@ defmodule Kernel.TypesTest do
     end
   end
 
-  describe "of_clause/1" do
+  describe "of_clause/2" do
     test "various" do
       assert quoted_clause([true]) == {:ok, [{:literal, true}]}
       assert quoted_clause([foo]) == {:ok, [{:var, 0}]}
@@ -109,6 +109,11 @@ defmodule Kernel.TypesTest do
                {:ok, [{:literal, :foo}, {:literal, :foo}, {:literal, :foo}]}
 
       assert quoted_clause([{x} = y, {y} = x]) == {:error, {:recursive_type, {:tuple, [var: 1]}}}
+    end
+
+    test "guards" do
+      assert quoted_clause([x] when is_binary(x)) == {:ok, [:binary]}
+      assert quoted_clause([x, y] when is_binary(x) and is_atom(y)) == {:ok, [:binary, :atom]}
     end
   end
 end
