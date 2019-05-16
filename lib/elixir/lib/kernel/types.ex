@@ -138,13 +138,22 @@ defmodule Kernel.Types do
 
   def of_guard(guard, context) do
     reduce_ok(flatten_binary_op(:and, guard), context, fn guard, context ->
-      # TODO: Union types Enum.map(flatten_binary_op(:or, guard))
-      with {:ok, arg, guard_type} <- type_guard(guard),
-           # TODO: It is incorrect to use of_pattern/2 but it helps for simplicity now
-           {:ok, arg_type, context} <- of_pattern(arg, context),
-           {:ok, _, context} <- unify(arg_type, guard_type, context),
-           do: {:ok, context}
+      union = Enum.map(flatten_binary_op(:or, guard), &type_guard/1)
+
+      with {:ok, args, guard_types} <- unzip_ok(union),
+           [arg] <- Enum.uniq(args) do
+        unify_guard(arg, to_union(guard_types), context)
+      else
+        _ -> {:ok, context}
+      end
     end)
+  end
+
+  defp unify_guard(arg, guard_type, context) do
+    # TODO: It is incorrect to use of_pattern/2 but it helps for simplicity now
+    with {:ok, arg_type, context} <- of_pattern(arg, context),
+         {:ok, _, context} <- unify(arg_type, guard_type, context),
+         do: {:ok, context}
   end
 
   # Unimplemented guards:
@@ -215,17 +224,12 @@ defmodule Kernel.Types do
     end
   end
 
-  defp unify(same, same, context) do
-    {:ok, same, context}
-  end
-
   defp unify({:var, left}, {:var, right}, context) do
     case {Map.fetch(context.types, left), Map.fetch(context.types, right)} do
       {{:ok, type}, :error} -> {:ok, type, put_in(context.types[right], type)}
       {:error, {:ok, type}} -> {:ok, type, put_in(context.types[left], type)}
       {_, {:ok, :unbound}} -> {:ok, {:var, left}, put_in(context.types[right], {:var, left})}
       {{:ok, :unbound}, _} -> {:ok, {:var, right}, put_in(context.types[left], {:var, right})}
-      {{:ok, same}, {:ok, same}} -> {:ok, same}
       {{:ok, left_type}, {:ok, right_type}} -> unify(left_type, right_type, context)
     end
   end
@@ -242,8 +246,12 @@ defmodule Kernel.Types do
     unify(type, {:var, var}, context)
   end
 
-  defp unify(left, right, _context) do
-    {:error, {:unable_unify, left, right}}
+  defp unify(left, right, context) do
+    cond do
+      subtype?(left, right, context) -> {:ok, right, context}
+      subtype?(right, left, context) -> {:ok, left, context}
+      true -> {:error, {:unable_unify, left, right}}
+    end
   end
 
   defp add_var(var, type, context) do
@@ -310,6 +318,44 @@ defmodule Kernel.Types do
   # NOTE: Ignores the variable's context
   defp var_name({name, _meta, _context}), do: name
 
+  defp subtype?({:var, var}, type, context),
+    do: subtype?(Map.fetch!(context.types, var), type, context)
+
+  defp subtype?(type, {:var, var}, context),
+    do: subtype?(type, Map.fetch!(context.types, var), context)
+
+  defp subtype?({:literal, boolean}, :boolean, _context) when is_boolean(boolean), do: true
+  defp subtype?({:literal, atom}, :atom, _context) when is_atom(atom), do: true
+  defp subtype?(:boolean, :atom, _context), do: true
+  defp subtype?({:tuple, _}, :tuple, _context), do: true
+
+  defp subtype?({:tuple, lefts}, {:tuple, rights}, context)
+       when length(lefts) == length(rights) do
+    Enum.all?(Enum.zip(lefts, rights), fn {left, right} -> subtype?(left, right, context) end)
+  end
+
+  defp subtype?({:tuple, _lefts}, {:tuple, _rights}, _context) do
+    false
+  end
+
+  defp subtype?({:union, left_types}, {:union, _} = right_union, context) do
+    Enum.all?(left_types, &subtype?(&1, right_union, context))
+  end
+
+  defp subtype?(left, {:union, right_types}, context) do
+    Enum.any?(right_types, &subtype?(left, &1, context))
+  end
+
+  defp subtype?(:dynamic, _right, _context), do: true
+
+  defp subtype?(_left, :dynamic, _context), do: true
+
+  defp subtype?(left, right, _context), do: left == right
+
+  defp to_union([]), do: raise("internal error")
+  defp to_union([type]), do: type
+  defp to_union(types) when is_list(types), do: {:union, types}
+
   def lift_types(type, context) do
     context =
       context
@@ -371,6 +417,27 @@ defmodule Kernel.Types do
     context = %{context | quantified_types: types, quantified_counter: counter}
     {type, context}
   end
+
+  defp unzip_ok(list) do
+    do_unzip_ok(list, [], [])
+  end
+
+  defp do_unzip_ok([{:ok, head1, head2} | tail], acc1, acc2) do
+    do_unzip_ok(tail, [head1 | acc1], [head2 | acc2])
+  end
+
+  defp do_unzip_ok([{:error, reason} | _tail], _acc1, _acc2), do: {:error, reason}
+
+  defp do_unzip_ok([], acc1, acc2), do: {:ok, Enum.reverse(acc1), Enum.reverse(acc2)}
+
+  defp do_map_ok([head | tail], acc, fun) do
+    case fun.(head) do
+      {:ok, elem} -> do_map_ok(tail, [elem | acc], fun)
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp do_map_ok([], acc, _fun), do: {:ok, Enum.reverse(acc)}
 
   defp reduce_ok(list, acc, fun) do
     do_reduce_ok(list, acc, fun)

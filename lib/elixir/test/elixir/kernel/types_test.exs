@@ -114,6 +114,9 @@ defmodule Kernel.TypesTest do
     test "guards" do
       assert quoted_clause([x] when is_binary(x)) == {:ok, [:binary]}
       assert quoted_clause([x, y] when is_binary(x) and is_atom(y)) == {:ok, [:binary, :atom]}
+
+      assert quoted_clause([x] when is_binary(x) or is_atom(x)) ==
+               {:ok, [{:union, [:binary, :atom]}]}
     end
   end
 end
