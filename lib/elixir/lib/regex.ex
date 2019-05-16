@@ -129,7 +129,7 @@ defmodule Regex do
 
   Regular expressions built with sigil are precompiled and stored in `.beam`
   files. Precompiled regexes will be checked in runtime and may work slower
-  between OSes and OTP releases. This is rarely a problem, as most Elixir code
+  between operating systems and OTP releases. This is rarely a problem, as most Elixir code
   shared during development is compiled on the target (such as dependencies,
   archives, and escripts) and, when running in production, the code must either
   be compiled on the target (via `mix compile` or similar) or released on the
