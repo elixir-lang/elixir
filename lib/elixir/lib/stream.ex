@@ -1118,7 +1118,6 @@ defmodule Stream do
 
   """
   @doc since: "1.4.0"
-  @spec zip([Enumerable.t()]) :: Enumerable.t()
   @spec zip(Enumerable.t()) :: Enumerable.t()
   def zip(enumerables) do
     &prepare_zip(enumerables, &1, &2)

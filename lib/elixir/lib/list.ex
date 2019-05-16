@@ -451,9 +451,7 @@ defmodule List do
       []
 
   """
-  @spec wrap(nil) :: []
-  @spec wrap(list) :: list when list: maybe_improper_list()
-  @spec wrap(term) :: nonempty_list(term) when term: any()
+  @spec wrap(term) :: list
   def wrap(term)
 
   def wrap(list) when is_list(list) do
@@ -750,7 +748,7 @@ defmodule List do
 
   """
   @doc since: "1.5.0"
-  @spec starts_with?(list, list) :: boolean
+  @spec starts_with?(nonempty_list, nonempty_list) :: boolean
   @spec starts_with?(list, []) :: true
   @spec starts_with?([], nonempty_list) :: false
   def starts_with?(list, prefix)

@@ -2813,7 +2813,6 @@ defmodule Enum do
 
   """
   @doc since: "1.4.0"
-  @spec zip([t]) :: t
   @spec zip(t) :: t
 
   def zip([]), do: []
