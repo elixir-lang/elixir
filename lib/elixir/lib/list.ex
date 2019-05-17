@@ -124,11 +124,18 @@ defmodule List do
       iex> List.delete([:a, :b, :c], :a)
       [:b, :c]
 
+      iex> List.delete([:a, :b, :c], :d)
+      [:a, :b, :c]
+
       iex> List.delete([:a, :b, :b, :c], :b)
       [:a, :b, :c]
 
+      iex> List.delete([], :b)
+      []
+
   """
-  @spec delete(list, any) :: list
+  @spec delete([], any) :: []
+  @spec delete([...], any) :: list
   def delete(list, element)
   def delete([element | list], element), do: list
   def delete([other | list], element), do: [other | delete(list, element)]
@@ -137,16 +144,27 @@ defmodule List do
   @doc """
   Duplicates the given element `n` times in a list.
 
+  `n` is an integer greater than or equal to `0`.
+
+  If `n` is `0`, an empty list is returned.
+
   ## Examples
 
-      iex> List.duplicate("hello", 3)
-      ["hello", "hello", "hello"]
+      iex> List.duplicate("hello", 0)
+      []
 
-      iex> List.duplicate([1, 2], 2)
-      [[1, 2], [1, 2]]
+      iex> List.duplicate("hi", 1)
+      ["hi"]
+
+      iex> List.duplicate("bye", 2)
+      ["bye", "bye"]
+
+      iex> List.duplicate([1, 2], 3)
+      [[1, 2], [1, 2], [1, 2]]
 
   """
-  @spec duplicate(elem, non_neg_integer) :: [elem] when elem: var
+  @spec duplicate(any, 0) :: []
+  @spec duplicate(elem, pos_integer) :: [elem, ...] when elem: var
   def duplicate(elem, n) do
     :lists.duplicate(n, elem)
   end
@@ -154,10 +172,15 @@ defmodule List do
   @doc """
   Flattens the given `list` of nested lists.
 
+  Empty list elements are discarded.
+
   ## Examples
 
       iex> List.flatten([1, [[2], 3]])
       [1, 2, 3]
+
+      iex> List.flatten([[], [[], []]])
+      []
 
   """
   @spec flatten(deep_list) :: list when deep_list: [any | deep_list]
@@ -170,10 +193,16 @@ defmodule List do
   The list `tail` will be added at the end of
   the flattened list.
 
+  Empty list elements from `list` are discarded,
+  but not the ones from `tail`.
+
   ## Examples
 
       iex> List.flatten([1, [[2], 3]], [4, 5])
       [1, 2, 3, 4, 5]
+
+      iex> List.flatten([1, [], 2], [3, [], 4])
+      [1, 2, 3, [], 4]
 
   """
   @spec flatten(deep_list, [elem]) :: [elem] when elem: var, deep_list: [elem | deep_list]

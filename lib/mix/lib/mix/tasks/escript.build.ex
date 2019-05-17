@@ -344,7 +344,7 @@ defmodule Mix.Tasks.Escript.Build do
                 end
 
               error_message = [
-                "Could not start application ",
+                "ERROR! Could not start application ",
                 :erlang.atom_to_binary(app, :utf8),
                 ": ",
                 formatted_error,
@@ -352,7 +352,6 @@ defmodule Mix.Tasks.Escript.Build do
               ]
 
               io_error(error_message)
-
               :erlang.halt(1)
           end
         end
@@ -368,24 +367,8 @@ defmodule Mix.Tasks.Escript.Build do
 
   defp main_body_for(:elixir) do
     quote do
-      erl_version = :erlang.system_info(:otp_release)
-
-      case :string.to_integer(erl_version) do
-        {num, _} when num >= 20 ->
-          :ok
-
-        _ ->
-          error_message = [
-            "Incompatible Erlang/OTP release: ",
-            erl_version,
-            ".\nThis escript requires at least Erlang/OTP 20.0\n"
-          ]
-
-          io_error(error_message)
-          :erlang.halt(1)
-      end
-
       load_config(@config)
+
       case :application.ensure_all_started(:elixir) do
         {:ok, _} ->
           start_app(@app)
@@ -393,7 +376,7 @@ defmodule Mix.Tasks.Escript.Build do
           Kernel.CLI.run(fn _ -> @module.main(args) end)
 
         error ->
-          io_error(["Failed to start Elixir.\n", :io_lib.format('error: ~p~n', [error])])
+          io_error(["ERROR! Failed to start Elixir.\n", :io_lib.format('error: ~p~n', [error])])
           :erlang.halt(1)
       end
     end

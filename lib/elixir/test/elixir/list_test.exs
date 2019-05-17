@@ -24,7 +24,9 @@ defmodule ListTest do
 
   test "delete/2" do
     assert List.delete([:a, :b, :c], :a) == [:b, :c]
+    assert List.delete([:a, :b, :c], :d) == [:a, :b, :c]
     assert List.delete([:a, :b, :b, :c], :b) == [:a, :b, :c]
+    assert List.delete([], :b) == []
   end
 
   test "wrap/1" do
@@ -40,12 +42,14 @@ defmodule ListTest do
 
     assert List.flatten([]) == []
     assert List.flatten([[]]) == []
+    assert List.flatten([[], [[], []]]) == []
   end
 
   test "flatten/2" do
     assert List.flatten([1, 2, 3], [4, 5]) == [1, 2, 3, 4, 5]
     assert List.flatten([1, [2], 3], [4, 5]) == [1, 2, 3, 4, 5]
     assert List.flatten([[1, [2], 3]], [4, 5]) == [1, 2, 3, 4, 5]
+    assert List.flatten([1, [], 2], [3, [], 4]) == [1, 2, 3, [], 4]
   end
 
   test "foldl/3" do
@@ -61,6 +65,7 @@ defmodule ListTest do
   end
 
   test "duplicate/2" do
+    assert List.duplicate(1, 0) == []
     assert List.duplicate(1, 3) == [1, 1, 1]
     assert List.duplicate([1], 1) == [[1]]
   end
