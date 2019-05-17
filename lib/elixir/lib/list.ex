@@ -451,7 +451,7 @@ defmodule List do
       []
 
   """
-  @spec wrap(term) :: list
+  @spec wrap(term) :: maybe_improper_list()
   def wrap(term)
 
   def wrap(list) when is_list(list) do
