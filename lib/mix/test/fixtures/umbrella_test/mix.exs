@@ -1,4 +1,4 @@
-defmodule UmbrellaCover.MixProject do
+defmodule UmbrellaTest.MixProject do
   use Mix.Project
 
   def project do

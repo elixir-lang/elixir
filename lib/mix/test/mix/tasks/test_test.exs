@@ -124,7 +124,7 @@ defmodule Mix.Tasks.TestTest do
   end
 
   test "--cover: reports the coverage of each app's modules in an umbrella" do
-    in_fixture("umbrella_cover", fn ->
+    in_fixture("umbrella_test", fn ->
       output = mix(["test", "--cover"])
 
       # For bar, we do regular --cover and also test protocols
@@ -295,6 +295,38 @@ defmodule Mix.Tasks.TestTest do
         )
       end)
     end)
+  end
+
+  describe "umbrella with file path" do
+    test "finds file in umbrella when root apps path specified" do
+      in_fixture("umbrella_test", fn ->
+        output = mix(["test", "apps/bar/test/bar_tests.exs"])
+
+        assert output =~ """
+               ==> bar
+               .
+
+               """
+      end)
+    end
+
+    test "only runs recursive tests for apps containing specified file" do
+      in_fixture("umbrella_test", fn ->
+        output = mix(["test", "apps/bar/test/bar_tests.exs"])
+
+        assert output =~ """
+               ==> bar
+               .
+
+               """
+
+        refute output =~ """
+               ==> foo
+               .
+
+               """
+      end)
+    end
   end
 
   defp receive_until_match(port, expected, acc) do

@@ -146,6 +146,11 @@ defmodule Mix.Tasks.Test do
 
       mix test test/some/particular/file_test.exs
 
+  Tests in umbrella apps can specify the full path including `apps/my_app/`
+  in which case recursive tests for other child apps will be skipped completely.
+
+      mix test apps/my_app/test/some/particular/file_test.exs
+
   ## Command line options
 
     * `--color` - enables color in the output
@@ -327,6 +332,31 @@ defmodule Mix.Tasks.Test do
   def run(args) do
     {opts, files} = OptionParser.parse!(args, strict: @switches)
 
+    if !Mix.Task.recursing?() do
+      do_run(opts, args, files)
+    else
+      {files_in_apps_path, files_not_in_apps_path} =
+        Enum.split_with(files, &String.starts_with?(&1, "apps/"))
+
+      current_app_path = "apps/#{Mix.Project.config()[:app]}/"
+
+      files_in_current_app_path =
+        files_in_apps_path
+        |> Enum.filter(fn file ->
+          String.starts_with?(file, current_app_path) or
+            not File.exists?(Path.join("../..", file))
+        end)
+        |> Enum.map(&String.trim_leading(&1, current_app_path))
+
+      if files_in_current_app_path == [] and files_in_apps_path != [] do
+        :ok
+      else
+        do_run(opts, args, files_in_current_app_path ++ files_not_in_apps_path)
+      end
+    end
+  end
+
+  defp do_run(opts, args, files) do
     if opts[:listen_on_stdin] do
       System.at_exit(fn _ ->
         IO.gets(:stdio, "")
