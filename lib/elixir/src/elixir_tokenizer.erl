@@ -879,7 +879,7 @@ extract_heredoc(Line0, Column0, Rest0, Marker, Scope) ->
           {error, {ErrorLine, ErrorColumn, Message, Token}}
       end;
     error ->
-      Message = "heredoc start must be followed by a new line after ",
+      Message = "heredoc start must be followed by optional whitespace and a new line after ",
       {error, {Line0, Column0, io_lib:format(Message, []), [Marker, Marker, Marker]}}
   end.
 
