@@ -34,7 +34,7 @@ defmodule Task.Supervised do
         _ = if mref, do: Process.demonitor(mref, [:flush])
         send(owner_pid, {ref, invoke_mfa(owner, mfa)})
 
-      {:DOWN, ^mref, _, _, reason} when is_reference(mref) ->
+      {:DOWN, ^mref, _, _, reason} ->
         exit({:shutdown, reason})
     after
       # There is a race condition on this operation when working across
