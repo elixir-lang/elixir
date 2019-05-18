@@ -237,28 +237,24 @@ defmodule Mix.Release do
   end
 
   defp load_app(app, seen, otp_root) do
-    path = Path.join([otp_root, "#{app}-*"])
+    path = Path.join(otp_root, "#{app}-*")
 
     case Path.wildcard(path) do
       [] ->
         case :code.lib_dir(app) do
-          {:error, :bad_name} ->
-            Mix.raise("Could not find application #{inspect(app)}")
-
-          path ->
-            do_load_app(app, path, seen, otp_root)
-        end
+          {:error, :bad_name} -> Mix.raise("Could not find application #{inspect(app)}")
+          path -> do_load_app(app, path, seen, otp_root, false)
+        end 
 
       [path] ->
-        do_load_app(app, to_charlist(path), seen, otp_root)
+        do_load_app(app, to_charlist(path), seen, otp_root, true)
     end
   end
 
-  defp do_load_app(app, path, seen, otp_root) do
+  def do_load_app(app, path, seen, otp_root, otp_app?) do
     case :file.consult(Path.join(path, "ebin/#{app}.app")) do
       {:ok, terms} ->
         [{:application, ^app, properties}] = terms
-        otp_app? = List.starts_with?(path, otp_root)
         seen = Map.put(seen, app, [path: path, otp_app?: otp_app?] ++ properties)
         load_apps(Keyword.get(properties, :applications, []), seen, otp_root)
 
