@@ -80,8 +80,10 @@ defprotocol Inspect do
   @doc """
   Converts `term` into an algebra document.
 
-  This function shouldn't be invoked directly, `Inspect.Algebra.to_doc/2` should be
-  preferred instead.
+  This function shouldn't be invoked directly, unless when implementing
+  a custom `inspect_fun` to be given to `Inspect.Opts`. Everywhere else,
+  `Inspect.Algebra.to_doc/2` should be preferred as it handles structs
+  and exceptions.
   """
   @spec inspect(t, Inspect.Opts.t()) :: Inspect.Algebra.t()
   def inspect(term, opts)

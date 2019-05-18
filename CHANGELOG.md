@@ -17,10 +17,12 @@
   * [Code] Do not raise on deadlocks on `Code.ensure_compiled/1`
   * [Config] Add `Config`, `Config.Reader` and `Config.Provider` modules for working with configuration
   * [File] Add `File.rename!/2`
+  * [Inspect] Add `:inspect_fun` to `Inspect.Opts`
   * [Kernel] Add `~U` sigil for UTC date times
   * [Kernel] Optimize `&super/arity` and `&super(&1)`
   * [Kernel] Optimize generated code for `with` with a catch-all clause
   * [Kernel] Validate `__struct__` key in map returned by `__struct__/0,1`
+  * [Module] Add `Module.get_attribute/3`
   * [Protocol] Improve `Protocol.UndefinedError` messages to also include the type that was attempted to dispatch on
   * [Protocol] Optimize performance of dynamic dispatching for non-consolidated protocols
   * [Record] Include field names in generated type for records
@@ -31,7 +33,14 @@
 
 #### ExUnit
 
+  * [ExUnit] Allow multiple `:exclude` on configuration/CLI
   * [ExUnit.DocTest] No longer wrap doctest errors in custom exceptions. They ended-up hiding more information than showing
+  * [ExUnit.DocTest] Display the actual doctest code when doctset fails
+
+#### IEx
+
+  * [IEx.CLI] Copy ticktime from remote node on IEx --remsh
+  * [IEx.CLI] Automatically add a host on node given to --remsh
 
 #### Logger
 
@@ -42,9 +51,11 @@
 
   * [Mix] Follow XDG base dir specification in Mix for temporary and configuration files
   * [Mix.Generator] Add `copy_file/3`, `copy_template/4`, and `overwite?/2`
+  * [mix archive.uninstall] Allow `mix archive.uninstall APP` to uninstall any installed version of APP
   * [mix new] No longer generate a `config/` directory for mix new
   * [mix release] Add support for releases
   * [mix release.init] Add templates for release configuration
+  * [mix test] Allow running tests for a given umbrella app from the umbrella root with `mix test apps/APP/test`. Test failures also include the `apps/APP` prefix in the test location
 
 ### 2. Bug fixes
 
@@ -62,6 +73,7 @@
   * [Kernel] Resolve `__MODULE__` accordingly in nested `defmodule` to avoid double nesting
   * [Kernel] Type variables starting with an underscore (`_foo`) should not raise compile error
   * [Kernel] Keep order of elements when macro `in/2` is expanded with a literal list on the right-hand side
+  * [Kernel] Print proper location on undefined function error from dynamically generated functions
   * [System] Make sure `:init.get_status/0` is set to `{:started, :started}` once the system starts
   * [Protocol] Ensure `debug_info` is kept in protocols
   * [Regex] Ensure inspect returns valid `~r//` expressions when they are manually compiled with backslashes
@@ -92,6 +104,7 @@
 #### Elixir
 
   * [CLI] Deprecate `--detached` option, use `--erl "-detached"` instead
+  * [Map] Deprecate Enumerable keys in `Map.drop/2`, `Map.split/2`, and `Map.take/2`
 
 #### Mix
 
