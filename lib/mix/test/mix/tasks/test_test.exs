@@ -297,36 +297,24 @@ defmodule Mix.Tasks.TestTest do
     end)
   end
 
-  describe "umbrella with file path" do
-    test "finds file in umbrella when root apps path specified" do
-      in_fixture("umbrella_test", fn ->
-        output = mix(["test", "apps/bar/test/bar_tests.exs"])
+  test "umbrella with file path" do
+    in_fixture("umbrella_test", fn ->
+      output = mix(["test", "apps/bar/test/bar_tests.exs"])
 
-        assert output =~ """
-               ==> bar
-               .
+      assert output =~ """
+             ==> bar
+             .
 
-               """
-      end)
-    end
+             """,
+             "failed to find file in umbrella when root apps path specified"
 
-    test "only runs recursive tests for apps containing specified file" do
-      in_fixture("umbrella_test", fn ->
-        output = mix(["test", "apps/bar/test/bar_tests.exs"])
+      refute output =~ """
+             ==> foo
+             .
 
-        assert output =~ """
-               ==> bar
-               .
-
-               """
-
-        refute output =~ """
-               ==> foo
-               .
-
-               """
-      end)
-    end
+             """,
+             "failed to only run recursive tests for apps containing specified file"
+    end)
   end
 
   defp receive_until_match(port, expected, acc) do
