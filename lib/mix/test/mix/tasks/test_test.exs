@@ -307,7 +307,11 @@ defmodule Mix.Tasks.TestTest do
 
              """
 
-      refute output =~ "==> foo"
+      refute output =~ """
+             ==> foo
+             .
+
+             """
 
       assert mix(["test", "apps/unknown_app/test"]) =~ """
              ==> bar
