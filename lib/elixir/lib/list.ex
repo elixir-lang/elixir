@@ -289,6 +289,8 @@ defmodule List do
   where the element at `position` in the tuple matches the
   given `key`.
 
+  If no matching tuple is found, `default` is returned.
+
   ## Examples
 
       iex> List.keyfind([a: 1, b: 2], :a, 0)
