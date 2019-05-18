@@ -244,7 +244,7 @@ defmodule Mix.Release do
         case :code.lib_dir(app) do
           {:error, :bad_name} -> Mix.raise("Could not find application #{inspect(app)}")
           path -> do_load_app(app, path, seen, otp_root, false)
-        end 
+        end
 
       [path] ->
         do_load_app(app, to_charlist(path), seen, otp_root, true)
