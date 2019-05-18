@@ -81,9 +81,8 @@ defmodule Mix.Release do
       |> Keyword.merge(overrides)
 
     {include_erts, opts} = Keyword.pop(opts, :include_erts, true)
-    {erts_source, erts_version} = erts_data(include_erts)
+    {erts_source, erts_lib_dir, erts_version} = erts_data(include_erts)
 
-    erts_lib_dir = :code.lib_dir()
     loaded_apps = apps |> Keyword.keys() |> load_apps(%{}, erts_lib_dir)
 
     # Make sure IEx is either an active part of the release or add it as none.
@@ -211,18 +210,19 @@ defmodule Mix.Release do
   end
 
   defp erts_data(false) do
-    {nil, :erlang.system_info(:version)}
+    {nil, :code.lib_dir(), :erlang.system_info(:version)}
   end
 
   defp erts_data(true) do
     version = :erlang.system_info(:version)
-    {:filename.join(:code.root_dir(), 'erts-#{version}'), version}
+    {:filename.join(:code.root_dir(), 'erts-#{version}'), :code.lib_dir(), version}
   end
 
   defp erts_data(erts_source) when is_binary(erts_source) do
     if File.exists?(erts_source) do
       [_, erts_version] = erts_source |> Path.basename() |> String.split("-")
-      {to_charlist(erts_source), to_charlist(erts_version)}
+      erts_lib_dir = erts_source |> Path.dirname() |> Path.join("lib") |> to_charlist()
+      {to_charlist(erts_source), erts_lib_dir, to_charlist(erts_version)}
     else
       Mix.raise("Could not find ERTS system at #{inspect(erts_source)}")
     end
