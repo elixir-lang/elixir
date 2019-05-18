@@ -432,18 +432,15 @@ defmodule Mix.Release do
   end
 
   defp build_variables(release) do
-    variables =
-      for {_, properties} <- release.applications,
-          not Keyword.fetch!(properties, :otp_app?),
-          uniq: true,
-          do: {'RELEASE_LIB', properties |> Keyword.fetch!(:path) |> :filename.dirname()}
-
-    [{'ERTS_LIB_DIR', erts_lib_dir(release.erts_source)} | variables]
+    for {_, properties} <- release.applications,
+        not Keyword.fetch!(properties, :otp_app?),
+        uniq: true,
+        do: {'RELEASE_LIB', properties |> Keyword.fetch!(:path) |> :filename.dirname()}
   end
 
   defp build_paths(release) do
     for {_, properties} <- release.applications,
-        uniq: true,
+        Keyword.fetch!(properties, :otp_app?),
         do: properties |> Keyword.fetch!(:path) |> Path.join("ebin") |> to_charlist()
   end
 
