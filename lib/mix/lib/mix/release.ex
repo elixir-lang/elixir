@@ -221,14 +221,11 @@ defmodule Mix.Release do
   defp erts_data(erts_source) when is_binary(erts_source) do
     if File.exists?(erts_source) do
       [_, erts_version] = erts_source |> Path.basename() |> String.split("-")
-      {to_charlist(erts_source), erts_lib_dir(erts_source), to_charlist(erts_version)}
+      erts_lib_dir = erts_source |> Path.dirname() |> Path.join("lib") |> to_charlist()
+      {to_charlist(erts_source), erts_lib_dir, to_charlist(erts_version)}
     else
       Mix.raise("Could not find ERTS system at #{inspect(erts_source)}")
     end
-  end
-
-  defp erts_lib_dir(erts_path) when is_binary(erts_path) or is_list(erts_path) do
-    erts_path |> Path.dirname() |> Path.join("lib") |> to_charlist
   end
 
   defp load_apps(apps, seen, otp_root) do
