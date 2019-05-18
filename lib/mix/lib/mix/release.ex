@@ -401,7 +401,14 @@ defmodule Mix.Release do
       File.write!(path <> ".rel", consultable("rel", rel_spec))
 
       sys_path = String.to_charlist(path)
-      sys_options = [:silent, :no_dot_erlang, :no_warn_sasl, variables: build_variables(release)]
+
+      sys_options = [
+        :silent,
+        :no_dot_erlang,
+        :no_warn_sasl,
+        variables: build_variables(release),
+        path: build_paths(release)
+      ]
 
       case :systools.make_script(sys_path, sys_options) do
         {:ok, _module, _warnings} ->
@@ -429,6 +436,12 @@ defmodule Mix.Release do
         not Keyword.fetch!(properties, :otp_app?),
         uniq: true,
         do: {'RELEASE_LIB', properties |> Keyword.fetch!(:path) |> :filename.dirname()}
+  end
+
+  defp build_paths(release) do
+    for {_, properties} <- release.applications,
+        Keyword.fetch!(properties, :otp_app?),
+        do: properties |> Keyword.fetch!(:path) |> Path.join("ebin") |> to_charlist()
   end
 
   defp build_release_spec(release, modes) do
