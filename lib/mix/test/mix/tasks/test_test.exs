@@ -314,6 +314,15 @@ defmodule Mix.Tasks.TestTest do
 
              """,
              "failed to only run recursive tests for apps containing specified file"
+
+      output_2 = mix(["test", "apps/unknown_app/test"])
+
+      assert output_2 =~ """
+             ==> bar
+             Paths given to "mix test" did not match any directory/file: apps/unknown_app/test
+             ==> foo
+             Paths given to "mix test" did not match any directory/file: apps/unknown_app/test
+             """
     end)
   end
 
