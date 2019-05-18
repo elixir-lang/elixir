@@ -305,19 +305,11 @@ defmodule Mix.Tasks.TestTest do
              ==> bar
              .
 
-             """,
-             "failed to find file in umbrella when root apps path specified"
+             """
 
-      refute output =~ """
-             ==> foo
-             .
+      refute output =~ "==> foo"
 
-             """,
-             "failed to only run recursive tests for apps containing specified file"
-
-      output_2 = mix(["test", "apps/unknown_app/test"])
-
-      assert output_2 =~ """
+      assert mix(["test", "apps/unknown_app/test"]) =~ """
              ==> bar
              Paths given to "mix test" did not match any directory/file: apps/unknown_app/test
              ==> foo
