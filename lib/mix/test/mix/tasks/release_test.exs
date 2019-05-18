@@ -98,8 +98,7 @@ defmodule Mix.Tasks.ReleaseTest do
         assert_received {:mix_shell, :info,
                          ["\nRelease created at _build/dev/rel/release_test!" <> _]}
 
-        assert_received {:mix_shell, :info,
-                         ["* skipping runtime configuration (config/releases.exs was not found)"]}
+        assert_received {:mix_shell, :info, ["* skipping runtime configuration" <> _]}
 
         # Assert structure
         assert root |> Path.join("erts-#{@erts_version}") |> File.exists?()
