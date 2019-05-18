@@ -275,6 +275,11 @@ defmodule ExUnit do
       prints each test case and test while running. Note that in trace mode test timeouts
       will be ignored as timeout is set to `:infinity`.
 
+    * `:test_location_relative_path` - the test location is the file:line information
+      printed by tests as a shortcut to run a given test. When this value is set,
+      the value is used as a prefix for the test itself. This is typically used by
+      Mix to properly set-up umbrella projects
+
   Any arbitrary configuration can also be passed to `configure/1` or `start/1`,
   and these options can then be used in places such as custom formatters. These
   other options will be ignored by ExUnit itself.

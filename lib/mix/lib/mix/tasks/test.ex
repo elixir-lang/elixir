@@ -343,22 +343,27 @@ defmodule Mix.Tasks.Test do
       {files_in_apps_path, files_not_in_apps_path} =
         Enum.split_with(files, &String.starts_with?(&1, "apps/"))
 
-      current_app_path = "apps/#{Mix.Project.config()[:app]}/"
+      app = Mix.Project.config()[:app]
+      current_app_path = "apps/#{app}/"
 
       files_in_current_app_path =
-        files_in_apps_path
-        |> Enum.filter(fn file ->
-          String.starts_with?(file, current_app_path) or
-            not File.exists?(Path.join("../..", file))
-        end)
-        |> Enum.map(&String.trim_leading(&1, current_app_path))
+        for file <- files_in_apps_path,
+            String.starts_with?(file, current_app_path) or not relative_app_file_exists?(file),
+            do: String.trim_leading(file, current_app_path)
 
-      if files_in_current_app_path == [] and files_in_apps_path != [] do
+      files = files_in_current_app_path ++ files_not_in_apps_path
+
+      if files == [] and files_in_apps_path != [] do
         :ok
       else
-        do_run(opts, args, files_in_current_app_path ++ files_not_in_apps_path)
+        do_run([test_location_relative_path: "apps/#{app}"] ++ opts, args, files)
       end
     end
+  end
+
+  defp relative_app_file_exists?(file) do
+    {file, _} = ExUnit.Filters.parse_path(file)
+    File.exists?(Path.join("../..", file))
   end
 
   defp do_run(opts, args, files) do
@@ -502,7 +507,8 @@ defmodule Mix.Tasks.Test do
     :colors,
     :slowest,
     :failures_manifest_file,
-    :only_test_ids
+    :only_test_ids,
+    :test_location_relative_path
   ]
 
   @doc false

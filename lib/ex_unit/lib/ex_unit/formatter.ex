@@ -379,7 +379,13 @@ defmodule ExUnit.Formatter do
   end
 
   defp with_location(tags) do
-    "#{Path.relative_to_cwd(tags[:file])}:#{tags[:line]}"
+    path = "#{Path.relative_to_cwd(tags[:file])}:#{tags[:line]}"
+
+    if prefix = Application.get_env(:ex_unit, :test_location_relative_path) do
+      Path.join(prefix, path)
+    else
+      path
+    end
   end
 
   defp failure_header([_], _), do: ""
