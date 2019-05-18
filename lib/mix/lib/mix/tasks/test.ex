@@ -146,9 +146,14 @@ defmodule Mix.Tasks.Test do
 
       mix test test/some/particular/file_test.exs
 
-  Tests in umbrella apps can specify the full path including `apps/my_app/`
-  in which case recursive tests for other child apps will be skipped completely.
+  Tests in umbrella projects can be run from the root by specifying
+  the full suite path, including `apps/my_app/test`, in which case
+  recursive tests for other child apps will be skipped completely:
 
+      # To run all tests for my_app from the umbrella root
+      mix test apps/my_app/test
+
+      # To run a given test file on my_app from the umbrella root
       mix test apps/my_app/test/some/particular/file_test.exs
 
   ## Command line options
@@ -332,7 +337,7 @@ defmodule Mix.Tasks.Test do
   def run(args) do
     {opts, files} = OptionParser.parse!(args, strict: @switches)
 
-    if !Mix.Task.recursing?() do
+    if not Mix.Task.recursing?() do
       do_run(opts, args, files)
     else
       {files_in_apps_path, files_not_in_apps_path} =
