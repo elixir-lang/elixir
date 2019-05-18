@@ -251,7 +251,7 @@ defmodule Mix.Release do
     end
   end
 
-  def do_load_app(app, path, seen, otp_root, otp_app?) do
+  defp do_load_app(app, path, seen, otp_root, otp_app?) do
     case :file.consult(Path.join(path, "ebin/#{app}.app")) do
       {:ok, terms} ->
         [{:application, ^app, properties}] = terms
