@@ -990,8 +990,7 @@ defmodule Mix.Tasks.Release do
         update_in(release.config_providers, &[{Config.Reader, init} | &1])
 
       release.config_providers == [] ->
-        msg = "runtime configuration (config/releases.exs was not found)"
-        Mix.shell().info([:yellow, "* skipping ", :reset, msg])
+        skipping("runtime configuration (config/releases.exs not found)")
         release
 
       true ->
@@ -1061,10 +1060,14 @@ defmodule Mix.Tasks.Release do
     """)
   end
 
-  defp info(release, command) do
+  defp info(release, message) do
     unless release.options[:quiet] do
-      Mix.shell().info(command)
+      Mix.shell().info(message)
     end
+  end
+
+  defp skipping(message) do
+    Mix.shell().info([:yellow, "* skipping ", :reset, message])
   end
 
   ## Copy operations
@@ -1104,19 +1107,21 @@ defmodule Mix.Tasks.Release do
       end
 
       for {filename, contents} <- clis do
-        path = Path.join(bin_path, filename)
-        File.write!(path, contents)
-        executable!(path)
+        target = Path.join(bin_path, filename)
+        File.write!(target, contents)
+        executable!(target)
       end
 
-      unless File.exists?(elixir_bin_path) do
-        Mix.raise("Could not find bin files from Elixir installation for #{os}")
-      end
+      for {filename, contents_fun} <- elixir_cli_for(os, release) do
+        source = Path.join(elixir_bin_path, filename)
 
-      for {filename, contents} <- elixir_cli_for(os, elixir_bin_path, release) do
-        path = Path.join(release.version_path, filename)
-        File.write!(path, contents)
-        executable!(path)
+        if File.regular?(source) do
+          target = Path.join(release.version_path, filename)
+          File.write!(target, contents_fun.(source))
+          executable!(target)
+        else
+          skipping("#{filename} for #{os} (bin/#{filename} not found in the Elixir installation)")
+        end
       end
     end
   end
@@ -1130,25 +1135,25 @@ defmodule Mix.Tasks.Release do
      [{"#{release.name}.bat", cli_bat_template(release: release)}]}
   end
 
-  defp elixir_cli_for(:unix, bin_path, release) do
+  defp elixir_cli_for(:unix, release) do
     [
       {"elixir",
-       Path.join(bin_path, "elixir")
-       |> File.read!()
-       |> String.replace(~s[ -pa "$SCRIPT_PATH"/../lib/*/ebin], "")
-       |> replace_erts_bin(release, ~s["$SCRIPT_PATH"/../../erts-#{release.erts_version}/bin/])},
-      {"iex", File.read!(Path.join(bin_path, "iex"))}
+       &(&1
+         |> File.read!()
+         |> String.replace(~s[ -pa "$SCRIPT_PATH"/../lib/*/ebin], "")
+         |> replace_erts_bin(release, ~s["$SCRIPT_PATH"/../../erts-#{release.erts_version}/bin/]))},
+      {"iex", &File.read!/1}
     ]
   end
 
-  defp elixir_cli_for(:windows, bin_path, release) do
+  defp elixir_cli_for(:windows, release) do
     [
       {"elixir.bat",
-       Path.join(bin_path, "elixir.bat")
-       |> File.read!()
-       |> String.replace(~s[goto expand_erl_libs], ~s[goto run])
-       |> replace_erts_bin(release, ~s[%~dp0\\..\\..\\erts-#{release.erts_version}\\bin\\])},
-      {"iex.bat", File.read!(Path.join(bin_path, "iex.bat"))}
+       &(&1
+         |> File.read!()
+         |> String.replace(~s[goto expand_erl_libs], ~s[goto run])
+         |> replace_erts_bin(release, ~s[%~dp0\\..\\..\\erts-#{release.erts_version}\\bin\\]))},
+      {"iex.bat", &File.read!/1}
     ]
   end
 
