@@ -1,7 +1,7 @@
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule ExUnit.FormatterTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
 
   import ExUnit.Formatter
   doctest ExUnit.Formatter
@@ -87,6 +87,19 @@ defmodule ExUnit.FormatterTest do
                 test/ex_unit/formatter_test.exs:1
                 ** (EXIT from #{inspect(self())}) 1
            """
+  end
+
+  test "formats test errors with test_location_relative_path" do
+    Application.put_env(:ex_unit, :test_location_relative_path, "apps/sample")
+    failure = [{:error, catch_error(raise "oops"), []}]
+
+    assert format_test_failure(test(), failure, 1, 80, &formatter/2) =~ """
+             1) world (Hello)
+                apps/sample/test/ex_unit/formatter_test.exs:1
+                ** (RuntimeError) oops
+           """
+  after
+    Application.delete_env(:ex_unit, :test_location_relative_path)
   end
 
   test "formats test errors with code snippets" do
