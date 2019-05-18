@@ -124,7 +124,7 @@ defmodule Mix.Tasks.TestTest do
   end
 
   test "--cover: reports the coverage of each app's modules in an umbrella" do
-    in_fixture("umbrella_cover", fn ->
+    in_fixture("umbrella_test", fn ->
       output = mix(["test", "--cover"])
 
       # For bar, we do regular --cover and also test protocols
@@ -294,6 +294,31 @@ defmodule Mix.Tasks.TestTest do
           end
         )
       end)
+    end)
+  end
+
+  test "umbrella with file path" do
+    in_fixture("umbrella_test", fn ->
+      output = mix(["test", "apps/bar/test/bar_tests.exs"])
+
+      assert output =~ """
+             ==> bar
+             .
+
+             """
+
+      refute output =~ """
+             ==> foo
+             .
+
+             """
+
+      assert mix(["test", "apps/unknown_app/test"]) =~ """
+             ==> bar
+             Paths given to "mix test" did not match any directory/file: apps/unknown_app/test
+             ==> foo
+             Paths given to "mix test" did not match any directory/file: apps/unknown_app/test
+             """
     end)
   end
 
