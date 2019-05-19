@@ -2813,9 +2813,7 @@ defmodule Enum do
 
   """
   @doc since: "1.4.0"
-  @spec zip([t]) :: t
-  @spec zip(t) :: t
-
+  @spec zip(enumerables) :: [tuple()] when enumerables: [t()] | t()
   def zip([]), do: []
 
   def zip(enumerables) do

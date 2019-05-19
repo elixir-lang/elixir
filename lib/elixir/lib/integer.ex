@@ -405,8 +405,7 @@ defmodule Integer do
 
   """
   @doc since: "1.5.0"
-  @spec gcd(0, 0) :: 0
-  @spec gcd(integer, integer) :: pos_integer
+  @spec gcd(integer, integer) :: non_neg_integer
   def gcd(integer1, integer2) when is_integer(integer1) and is_integer(integer2) do
     gcd_positive(abs(integer1), abs(integer2))
   end
