@@ -159,7 +159,7 @@ defmodule Kernel.ErrorsTest do
 
   test "heredoc start" do
     assert_eval_raise SyntaxError,
-                      "nofile:1: heredoc start must be followed by optional whitespace and a new line after \"\"\"",
+                      "nofile:1: heredoc allows only zero or more whitespace characters followed by a new line after \"\"\"",
                       '"""bar\n"""'
   end
 
