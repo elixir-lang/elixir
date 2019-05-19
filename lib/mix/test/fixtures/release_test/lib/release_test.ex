@@ -13,6 +13,7 @@ defmodule ReleaseTest do
       release_node: System.get_env("RELEASE_NODE"),
       release_vsn: System.get_env("RELEASE_VSN"),
       cookie_env: cookie,
+      mode: :code.get_mode(),
       node: node(),
       root_dir: :code.root_dir() |> to_string(),
       static_config: Application.fetch_env(:release_test, :static),

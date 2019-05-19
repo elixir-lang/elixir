@@ -129,6 +129,7 @@ defmodule Mix.Tasks.ReleaseTest do
         assert %{
                  app_dir: app_dir,
                  cookie_env: ^cookie,
+                 mode: :embedded,
                  node: release_node("release_test"),
                  protocols_consolidated?: true,
                  release_name: "release_test",
@@ -187,6 +188,7 @@ defmodule Mix.Tasks.ReleaseTest do
         open_port(Path.join(root, "bin/runtime_config"), ['start'])
 
         assert %{
+                 mode: :embedded,
                  node: release_node("runtime_config"),
                  protocols_consolidated?: true,
                  release_name: "runtime_config",
@@ -237,6 +239,7 @@ defmodule Mix.Tasks.ReleaseTest do
         assert %{
                  app_dir: app_dir,
                  cookie_env: "abcdefghijk",
+                 mode: :embedded,
                  node: release_node("demo"),
                  protocols_consolidated?: true,
                  release_name: "demo",
@@ -302,6 +305,7 @@ defmodule Mix.Tasks.ReleaseTest do
 
         assert %{
                  cookie_env: "abcdefghij",
+                 mode: :interactive,
                  node: :nonode@nohost,
                  protocols_consolidated?: true,
                  release_name: "eval",
@@ -330,6 +334,7 @@ defmodule Mix.Tasks.ReleaseTest do
         assert wait_until_evaled(Path.join(root, "RELEASE_BOOTED")) == %{
                  app_dir: Path.join(root, "lib/release_test-0.1.0"),
                  cookie_env: "abcdefghij",
+                 mode: :embedded,
                  node: :"permanent2@#{@hostname}",
                  protocols_consolidated?: true,
                  release_name: "permanent2",
