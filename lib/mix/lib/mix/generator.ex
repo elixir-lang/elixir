@@ -115,7 +115,7 @@ defmodule Mix.Generator do
   to override it. Returns true otherwise.
   """
   @doc since: "1.9.0"
-  @spec overwrite?(Path.t(), iodata) :: boolean
+  @spec overwrite?(Path.t()) :: boolean
   def overwrite?(path) do
     if File.exists?(path) do
       full = Path.expand(path)
