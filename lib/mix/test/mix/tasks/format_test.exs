@@ -518,4 +518,16 @@ defmodule Mix.Tasks.FormatTest do
       assert_received {:mix_shell, :error, ["mix format failed for file: a.ex"]}
     end)
   end
+
+  test "raises SyntaxError when parsing invalid stdin", context do
+    in_tmp(context.test, fn ->
+      assert_raise SyntaxError, ~r"stdin:1: syntax error before: '='", fn ->
+        capture_io("defmodule <%= module %>.Bar do end", fn ->
+          Mix.Tasks.Format.run(["-"])
+        end)
+      end
+
+      assert_received {:mix_shell, :error, ["mix format failed for stdin"]}
+    end)
+  end
 end
