@@ -452,8 +452,7 @@ defmodule URI do
 
   def parse(string) when is_binary(string) do
     # From https://tools.ietf.org/html/rfc3986#appendix-B
-    regex =
-      Regex.recompile!(~r{^(([a-z][a-z0-9\+\-\.]*):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?}i)
+    regex = ~r{^(([a-z][a-z0-9\+\-\.]*):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?}i
 
     parts = Regex.run(regex, string)
 
@@ -486,7 +485,7 @@ defmodule URI do
 
   # Split an authority into its userinfo, host and port parts.
   defp split_authority(string) do
-    regex = Regex.recompile!(~r/(^(.*)@)?(\[[a-zA-Z0-9:.]*\]|[^:]*)(:(\d*))?/)
+    regex = ~r/(^(.*)@)?(\[[a-zA-Z0-9:.]*\]|[^:]*)(:(\d*))?/
     components = Regex.run(regex, string || "")
 
     destructure [_, _, userinfo, host, _, port], components

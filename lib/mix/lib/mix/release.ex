@@ -68,7 +68,7 @@ defmodule Mix.Release do
   def from_config!(name, config, overrides) do
     {name, apps, opts} = find_release(name, config)
 
-    unless Atom.to_string(name) =~ Regex.recompile!(~r/^[a-z][a-z0-9_]*$/) do
+    unless Atom.to_string(name) =~ ~r/^[a-z][a-z0-9_]*$/ do
       Mix.raise(
         "Invalid release name. A release name must start with a lowercase ASCII letter, " <>
           "followed by lowercase ASCII letters, numbers, or underscores, got: #{inspect(name)}"
