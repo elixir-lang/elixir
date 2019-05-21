@@ -1887,7 +1887,7 @@ defmodule FileTest do
 
   test "invalid_cd!" do
     message =
-      ~r"\Acould not set current working directory to #{inspect(fixture_path("file.txt"))}: (not a directory|no such file or directory)"
+      ~r"\Acould not set current working directory to #{inspect(fixture_path("file.txt"))}: (not a directory|no such file or directory|I/O error)"
 
     assert_raise File.Error, message, fn ->
       File.cd!(fixture_path("file.txt"))
