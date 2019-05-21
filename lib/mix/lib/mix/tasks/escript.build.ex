@@ -367,9 +367,10 @@ defmodule Mix.Tasks.Escript.Build do
 
   defp main_body_for(:elixir) do
     quote do
+      load_config(@config)
+
       case :application.ensure_all_started(:elixir) do
         {:ok, _} ->
-          load_config(@config)
           start_app(@app)
           args = Enum.map(args, &List.to_string(&1))
           Kernel.CLI.run(fn _ -> @module.main(args) end)
