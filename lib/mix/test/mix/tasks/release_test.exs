@@ -144,9 +144,10 @@ defmodule Mix.Tasks.ReleaseTest do
                } = wait_until_evaled(Path.join(root, "RELEASE_BOOTED"))
 
         if match?({:win32, _}, :os.type()) do
-          assert String.ends_with?(app_dir, "_build/dev/rel/RELEAS~1/lib/release_test-0.1.0")
-          assert String.ends_with?(release_root, "_build\\dev\\rel\\RELEAS~1")
-          assert String.ends_with?(root_dir, "_build/dev/rel/RELEAS~1")
+          # `RELEAS~1` is the DOS path name (8 character) for the `release_test` directory
+          assert app_dir =~ ~r"_build/dev/rel/(release_test|RELEAS~1)/lib/release_test-0\.1\.0$"
+          assert release_root =~ ~r"_build\\dev\\rel\\(release_test|RELEAS~1)$"
+          assert root_dir =~ ~r"_build/dev/rel/(release_test|RELEAS~1)$"
           assert String.ends_with?(sys_config_env, "releases\\0.1.0\\sys")
           assert String.ends_with?(sys_config_init, "releases\\0.1.0\\sys")
         else
@@ -297,7 +298,7 @@ defmodule Mix.Tasks.ReleaseTest do
         assert String.trim_trailing(version) == "eval 0.1.0"
         refute File.exists?(Path.join(root, "RELEASE_BOOTED"))
 
-        {hello_world, 0} = System.cmd(script, ["eval", ~s[IO.puts :hello_world]])
+        {hello_world, 0} = System.cmd(script, ["eval", "IO.puts(:hello_world)"])
         assert String.trim_trailing(hello_world) == "hello_world"
         refute File.exists?(Path.join(root, "RELEASE_BOOTED"))
 
