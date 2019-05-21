@@ -525,15 +525,11 @@ defmodule IO.ANSI.Docs do
 
   defp escape_underlines_in_link(text) do
     # Regular expression adapted from https://tools.ietf.org/html/rfc3986#appendix-B
-    ~r{[a-z][a-z0-9\+\-\.]*://\S*}i
-    |> Regex.recompile!()
-    |> Regex.replace(text, &String.replace(&1, "_", "\\_"))
+    Regex.replace(~r{[a-z][a-z0-9\+\-\.]*://\S*}i, text, &String.replace(&1, "_", "\\_"))
   end
 
   defp remove_square_brackets_in_link(text) do
-    ~r{\[([^\]]*?)\]\((.*?)\)}
-    |> Regex.recompile!()
-    |> Regex.replace(text, "\\1 (\\2)")
+    Regex.replace(~r{\[([^\]]*?)\]\((.*?)\)}, text, "\\1 (\\2)")
   end
 
   # We have four entries: **, *, _ and `.

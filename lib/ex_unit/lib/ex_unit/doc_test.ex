@@ -414,7 +414,7 @@ defmodule ExUnit.DocTest do
         message = "Doctest did not compile, got: #{ex_message}"
 
         message =
-          if e.__struct__ == TokenMissingError and expr =~ Regex.recompile!(@opaque_type_regex) do
+          if e.__struct__ == TokenMissingError and expr =~ @opaque_type_regex do
             message <>
               """
               . If you are planning to assert on the result of an iex> expression \
