@@ -467,6 +467,11 @@ defmodule Mix.Tasks.Format do
     :ok
   end
 
+  defp check!({[{:exit, :stdin, exception, stacktrace} | _], _not_equivalent, _not_formatted}) do
+    Mix.shell().error("mix format failed for stdin")
+    reraise exception, stacktrace
+  end
+
   defp check!({[{:exit, file, exception, stacktrace} | _], _not_equivalent, _not_formatted}) do
     Mix.shell().error("mix format failed for file: #{Path.relative_to_cwd(file)}")
     reraise exception, stacktrace
