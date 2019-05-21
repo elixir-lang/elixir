@@ -415,8 +415,9 @@ defmodule IO do
   See `IO.getn/3` for a description of return values.
 
   """
-  @spec getn(chardata | String.Chars.t(), pos_integer) :: chardata | nodata
-  @spec getn(device, chardata | String.Chars.t()) :: chardata | nodata
+  @spec getn(prompt | device, count | prompt) :: chardata | nodata
+        when prompt: chardata | String.Chars.t(),
+             count: pos_integer
   def getn(prompt, count \\ 1)
 
   def getn(prompt, count) when is_integer(count) and count > 0 do
