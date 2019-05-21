@@ -4,9 +4,10 @@ defmodule EEx.Tokenizer do
   @type content :: IO.chardata()
   @type line :: non_neg_integer
   @type marker :: '=' | '/' | '|' | ''
+  @type trimmed? :: boolean
   @type token ::
           {:text, content}
-          | {:expr | :start_expr | :middle_expr | :end_expr, line, marker, content}
+          | {:expr | :start_expr | :middle_expr | :end_expr, line, marker, content, trimmed?}
 
   @spaces [?\s, ?\t]
   @closing_brackets ')]}'
@@ -17,10 +18,10 @@ defmodule EEx.Tokenizer do
   It returns {:ok, list} with the following tokens:
 
     * `{:text, content}`
-    * `{:expr, line, marker, content}`
-    * `{:start_expr, line, marker, content}`
-    * `{:middle_expr, line, marker, content}`
-    * `{:end_expr, line, marker, content}`
+    * `{:expr, line, marker, content, trimmed?}`
+    * `{:start_expr, line, marker, content, trimmed?}`
+    * `{:middle_expr, line, marker, content, trimmed?}`
+    * `{:end_expr, line, marker, content, trimmed?}`
 
   Or `{:error, line, error}` in case of errors.
   """
