@@ -333,13 +333,6 @@ defmodule Application do
     end
   end
 
-  @type app :: atom
-  @type key :: atom
-  @type value :: term
-  @type state :: term
-  @type start_type :: :normal | {:takeover, node} | {:failover, node}
-  @type restart_type :: :permanent | :transient | :temporary
-
   @application_keys [
     :description,
     :id,
@@ -354,6 +347,24 @@ defmodule Application do
     :start_phases
   ]
 
+  application_key_specs = fn ->
+    {:ok, ast} =
+      @application_keys
+      |> Enum.map(fn key -> ":#{key}" end)
+      |> Enum.join(" | ")
+      |> Code.string_to_quoted()
+
+    ast
+  end
+
+  @type app :: atom
+  @type key :: atom
+  @type application_key :: unquote(application_key_specs.())
+  @type value :: term
+  @type state :: term
+  @type start_type :: :normal | {:takeover, node} | {:failover, node}
+  @type restart_type :: :permanent | :transient | :temporary
+
   @doc """
   Returns the spec for `app`.
 
@@ -364,7 +375,7 @@ defmodule Application do
   Note the environment is not returned as it can be accessed via
   `fetch_env/2`. Returns `nil` if the application is not loaded.
   """
-  @spec spec(app) :: [{key, value}] | nil
+  @spec spec(app) :: [{application_key, value}] | nil
   def spec(app) when is_atom(app) do
     case :application.get_all_key(app) do
       {:ok, info} -> :lists.keydelete(:env, 1, info)
@@ -379,7 +390,7 @@ defmodule Application do
   specification parameter does not exist, this function
   will raise. Returns `nil` if the application is not loaded.
   """
-  @spec spec(app, key) :: value | nil
+  @spec spec(app, application_key) :: value | nil
   def spec(app, key) when is_atom(app) and key in @application_keys do
     case :application.get_key(app, key) do
       {:ok, value} -> value
