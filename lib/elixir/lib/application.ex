@@ -347,19 +347,11 @@ defmodule Application do
     :start_phases
   ]
 
-  application_key_specs = fn ->
-    {:ok, ast} =
-      @application_keys
-      |> Enum.map(fn key -> ":#{key}" end)
-      |> Enum.join(" | ")
-      |> Code.string_to_quoted()
-
-    ast
-  end
+  application_key_specs = Enum.reduce(@application_keys, &{:|, [], [&1, &2]})
 
   @type app :: atom
   @type key :: atom
-  @type application_key :: unquote(application_key_specs.())
+  @type application_key :: unquote(application_key_specs)
   @type value :: term
   @type state :: term
   @type start_type :: :normal | {:takeover, node} | {:failover, node}
