@@ -245,11 +245,11 @@ defmodule Mix.Tasks.Release.Init do
     popd
 
     if not defined RELEASE_NAME (set RELEASE_NAME=<%= @release.name %>)
-    if not defined RELEASE_VSN (for /f "tokens=1,2" %%K in (!RELEASE_ROOT!\releases\start_erl.data) do (set ERTS_VSN=%%K) && (set RELEASE_VSN=%%L))
+    if not defined RELEASE_VSN (for /f "tokens=1,2" %%K in ('type "!RELEASE_ROOT!\releases\start_erl.data"') do (set ERTS_VSN=%%K) && (set RELEASE_VSN=%%L))
     if not defined RELEASE_MODE (set RELEASE_MODE=embedded)
     set RELEASE_COMMAND=%~1
     set REL_VSN_DIR=!RELEASE_ROOT!\releases\!RELEASE_VSN!
-    call !REL_VSN_DIR!\env.bat
+    call "!REL_VSN_DIR!\env.bat"
 
     if not defined RELEASE_COOKIE (set /p RELEASE_COOKIE=<!RELEASE_ROOT!\releases\COOKIE)
     if not defined RELEASE_NODE (set RELEASE_NODE=!RELEASE_NAME!)
