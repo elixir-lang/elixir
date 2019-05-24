@@ -96,12 +96,11 @@ defmodule Logger.Config do
     # means this handler won't crash in case Logger
     # is not installed in the other node.
     :gen_event.notify({Logger, node(gl)}, event)
-    {:ok, state}
+    {:ok, update_counter(state, false)}
   end
 
   def handle_event(_event, state) do
-    state = update_counter(state, false)
-    {:ok, state}
+    {:ok, update_counter(state, false)}
   end
 
   def handle_call({:configure, options}, state) do
