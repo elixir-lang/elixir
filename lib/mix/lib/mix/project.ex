@@ -271,13 +271,31 @@ defmodule Mix.Project do
 
   defp umbrella_apps(nil, apps_path) do
     case File.ls(apps_path) do
-      {:ok, apps} -> Enum.map(apps, &String.to_atom/1)
-      {:error, _} -> []
+      {:ok, apps} ->
+        Enum.map(apps, fn app ->
+          resolve_umbrella_app_name(app, apps_path)
+        end)
+
+      {:error, _} ->
+        []
     end
   end
 
   defp umbrella_apps(apps, _apps_path) when is_list(apps) do
     apps
+  end
+
+  defp resolve_umbrella_app_name(app, apps_path) do
+    app_path = Path.join(apps_path, app)
+    mix_file = Path.join(app_path, "mix.exs")
+
+    if File.regular?(mix_file) do
+      Mix.Project.in_project(String.to_atom(app), app_path, fn _module ->
+        Mix.Project.config()[:app]
+      end)
+    else
+      String.to_atom(app)
+    end
   end
 
   defp to_apps_paths(apps, apps_path) do
