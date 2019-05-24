@@ -21,7 +21,8 @@ defmodule ExUnit.CLIFormatter do
       failure_counter: 0,
       skipped_counter: 0,
       excluded_counter: 0,
-      invalid_counter: 0
+      invalid_counter: 0,
+      condensed: Mix.Task.recursing?()
     }
 
     {:ok, config}
@@ -243,14 +244,21 @@ defmodule ExUnit.CLIFormatter do
   ## Printing
 
   defp print_suite(config, run_us, load_us) do
-    IO.write("\n\n")
-    IO.puts(format_time(run_us, load_us))
+    print_list =
+      []
+      |> prepend("\n")
+      |> prepend("\n")
+      |> prepend(format_time(run_us, load_us))
 
-    if config.slowest > 0 do
-      IO.write("\n")
-      IO.puts(format_slowest_total(config, run_us))
-      IO.puts(format_slowest_times(config))
-    end
+    print_list =
+      if config.slowest > 0 do
+        print_list
+        |> prepend("\n")
+        |> prepend(format_slowest_total(config, run_us))
+        |> prepend(format_slowest_times(config))
+      else
+        print_list
+      end
 
     # singular/plural
     test_type_counts = format_test_type_counts(config)
@@ -265,14 +273,37 @@ defmodule ExUnit.CLIFormatter do
         &(&1 <> ", " <> skipped("#{config.skipped_counter} skipped", config))
       )
 
-    cond do
-      config.failure_counter > 0 -> IO.puts(failure(message, config))
-      config.invalid_counter > 0 -> IO.puts(invalid(message, config))
-      true -> IO.puts(success(message, config))
+    status_fn =
+      cond do
+        config.failure_counter > 0 -> &failure/2
+        config.invalid_counter > 0 -> &invalid/2
+        true -> &success/2
+      end
+
+    print_list =
+      print_list
+      |> prepend("\n")
+      |> prepend(message)
+      |> prepend("\n")
+      |> prepend("Randomized with seed #{config.seed}")
+      |> Enum.reverse()
+
+    if config.condensed do
+      IO.write("\n")
+
+      print_list
+      |> Enum.reject(&(&1 == "\n"))
+      |> Enum.map(&status_fn.(&1, config))
+      |> Enum.intersperse(" - ")
+      |> Enum.each(&IO.write/1)
+    else
+      Enum.each(print_list, &IO.write(status_fn.(&1, config)))
     end
 
-    IO.puts("\nRandomized with seed #{config.seed}")
+    IO.write("\n")
   end
+
+  defp prepend(list, item), do: [item | list]
 
   defp if_true(value, false, _fun), do: value
   defp if_true(value, true, fun), do: fun.(value)

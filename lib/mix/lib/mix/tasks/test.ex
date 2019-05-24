@@ -402,7 +402,7 @@ defmodule Mix.Tasks.Test do
     # Start the app and configure ExUnit with command line options
     # before requiring test_helper.exs so that the configuration is
     # available in test_helper.exs
-    Mix.shell().print_app
+    Mix.shell().print_app(!Mix.Task.recursing?())
     app_start_args = if opts[:slowest], do: ["--preload-modules" | args], else: args
     Mix.Task.run("app.start", app_start_args)
 

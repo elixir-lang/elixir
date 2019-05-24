@@ -11,9 +11,13 @@ defmodule Mix.Shell.IO do
   Prints the current application to the shell if it
   was not printed yet.
   """
-  def print_app do
+  def print_app(newline \\ true) do
     if name = Mix.Shell.printable_app_name() do
-      IO.puts("==> #{name}")
+      if newline do
+        IO.puts("==> #{name}")
+      else
+        IO.write("==> #{name} ")
+      end
     end
 
     :ok
