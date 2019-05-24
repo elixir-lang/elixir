@@ -207,7 +207,7 @@ defmodule Stream do
 
   """
   @spec chunk_by(Enumerable.t(), (element -> any)) :: Enumerable.t()
-  def chunk_by(enum, fun) do
+  def chunk_by(enum, fun) when is_function(fun, 1) do
     R.chunk_by(&chunk_while/4, enum, fun)
   end
 
@@ -248,7 +248,8 @@ defmodule Stream do
           (acc -> {:cont, chunk, acc} | {:cont, acc})
         ) :: Enumerable.t()
         when chunk: any
-  def chunk_while(enum, acc, chunk_fun, after_fun) do
+  def chunk_while(enum, acc, chunk_fun, after_fun)
+      when is_function(chunk_fun, 2) and is_function(after_fun, 1) do
     lazy(
       enum,
       [acc | after_fun],
@@ -314,7 +315,7 @@ defmodule Stream do
 
   """
   @spec dedup_by(Enumerable.t(), (element -> term)) :: Enumerable.t()
-  def dedup_by(enum, fun) do
+  def dedup_by(enum, fun) when is_function(fun, 1) do
     lazy(enum, nil, fn f1 -> R.dedup(fun, f1) end)
   end
 
@@ -411,7 +412,7 @@ defmodule Stream do
 
   """
   @spec drop_while(Enumerable.t(), (element -> as_boolean(term))) :: Enumerable.t()
-  def drop_while(enum, fun) do
+  def drop_while(enum, fun) when is_function(fun, 1) do
     lazy(enum, true, fn f1 -> R.drop_while(fun, f1) end)
   end
 
@@ -433,7 +434,7 @@ defmodule Stream do
 
   """
   @spec each(Enumerable.t(), (element -> term)) :: Enumerable.t()
-  def each(enum, fun) do
+  def each(enum, fun) when is_function(fun, 1) do
     lazy(enum, fn f1 ->
       fn x, acc ->
         fun.(x)
@@ -460,7 +461,7 @@ defmodule Stream do
 
   """
   @spec flat_map(Enumerable.t(), (element -> Enumerable.t())) :: Enumerable.t()
-  def flat_map(enum, mapper) do
+  def flat_map(enum, mapper) when is_function(mapper, 1) do
     transform(enum, nil, fn val, nil -> {mapper.(val), nil} end)
   end
 
@@ -476,7 +477,7 @@ defmodule Stream do
 
   """
   @spec filter(Enumerable.t(), (element -> as_boolean(term))) :: Enumerable.t()
-  def filter(enum, fun) do
+  def filter(enum, fun) when is_function(fun, 1) do
     lazy(enum, fn f1 -> R.filter(fun, f1) end)
   end
 
@@ -505,7 +506,7 @@ defmodule Stream do
 
   """
   @spec interval(non_neg_integer) :: Enumerable.t()
-  def interval(n) do
+  def interval(n) when is_integer(n) and n >= 0 do
     unfold(0, fn count ->
       Process.sleep(n)
       {count, count + 1}
@@ -519,7 +520,7 @@ defmodule Stream do
   is delayed until the stream is executed. See `run/1` for an example.
   """
   @spec into(Enumerable.t(), Collectable.t(), (term -> term)) :: Enumerable.t()
-  def into(enum, collectable, transform \\ fn x -> x end) do
+  def into(enum, collectable, transform \\ fn x -> x end) when is_function(transform, 1) do
     &do_into(enum, collectable, transform, &1, &2)
   end
 
@@ -564,7 +565,7 @@ defmodule Stream do
 
   """
   @spec map(Enumerable.t(), (element -> any)) :: Enumerable.t()
-  def map(enum, fun) do
+  def map(enum, fun) when is_function(fun, 1) do
     lazy(enum, fn f1 -> R.map(fun, f1) end)
   end
 
@@ -593,13 +594,15 @@ defmodule Stream do
   """
   @doc since: "1.4.0"
   @spec map_every(Enumerable.t(), non_neg_integer, (element -> any)) :: Enumerable.t()
-  def map_every(enum, nth, fun)
+  def map_every(enum, nth, fun) when is_integer(nth) and nth >= 0 and is_function(fun, 1) do
+    map_every_after_guards(enum, nth, fun)
+  end
 
-  def map_every(enum, 1, fun), do: map(enum, fun)
-  def map_every(enum, 0, _fun), do: %Stream{enum: enum}
-  def map_every([], _nth, _fun), do: %Stream{enum: []}
+  defp map_every_after_guards(enum, 1, fun), do: map(enum, fun)
+  defp map_every_after_guards(enum, 0, _fun), do: %Stream{enum: enum}
+  defp map_every_after_guards([], _nth, _fun), do: %Stream{enum: []}
 
-  def map_every(enum, nth, fun) when is_integer(nth) and nth > 0 do
+  defp map_every_after_guards(enum, nth, fun) do
     lazy(enum, nth, fn f1 -> R.map_every(nth, fun, f1) end)
   end
 
@@ -615,7 +618,7 @@ defmodule Stream do
 
   """
   @spec reject(Enumerable.t(), (element -> as_boolean(term))) :: Enumerable.t()
-  def reject(enum, fun) do
+  def reject(enum, fun) when is_function(fun, 1) do
     lazy(enum, fn f1 -> R.reject(fun, f1) end)
   end
 
@@ -658,7 +661,7 @@ defmodule Stream do
 
   """
   @spec scan(Enumerable.t(), (element, acc -> any)) :: Enumerable.t()
-  def scan(enum, fun) do
+  def scan(enum, fun) when is_function(fun, 2) do
     lazy(enum, :first, fn f1 -> R.scan2(fun, f1) end)
   end
 
@@ -675,7 +678,7 @@ defmodule Stream do
 
   """
   @spec scan(Enumerable.t(), acc, (element, acc -> any)) :: Enumerable.t()
-  def scan(enum, acc, fun) do
+  def scan(enum, acc, fun) when is_function(fun, 2) do
     lazy(enum, acc, fn f1 -> R.scan3(fun, f1) end)
   end
 
@@ -705,14 +708,19 @@ defmodule Stream do
 
   """
   @spec take(Enumerable.t(), integer) :: Enumerable.t()
-  def take(_enum, 0), do: %Stream{enum: []}
-  def take([], _count), do: %Stream{enum: []}
+  def take(enum, count) when is_integer(count) do
+    take_after_guards(enum, count)
+  end
 
-  def take(enum, count) when is_integer(count) and count > 0 do
+  defp take_after_guards(_enum, 0), do: %Stream{enum: []}
+
+  defp take_after_guards([], _count), do: %Stream{enum: []}
+
+  defp take_after_guards(enum, count) when count > 0 do
     lazy(enum, count, fn f1 -> R.take(f1) end)
   end
 
-  def take(enum, count) when is_integer(count) and count < 0 do
+  defp take_after_guards(enum, count) when count < 0 do
     &Enumerable.reduce(Enum.take(enum, count), &1, &2)
   end
 
@@ -739,11 +747,15 @@ defmodule Stream do
 
   """
   @spec take_every(Enumerable.t(), non_neg_integer) :: Enumerable.t()
-  def take_every(enum, nth)
-  def take_every(_enum, 0), do: %Stream{enum: []}
-  def take_every([], _nth), do: %Stream{enum: []}
+  def take_every(enum, nth) when is_integer(nth) and nth >= 0 do
+    take_every_after_guards(enum, nth)
+  end
 
-  def take_every(enum, nth) when is_integer(nth) and nth > 0 do
+  defp take_every_after_guards(_enum, 0), do: %Stream{enum: []}
+
+  defp take_every_after_guards([], _nth), do: %Stream{enum: []}
+
+  defp take_every_after_guards(enum, nth) do
     lazy(enum, nth, fn f1 -> R.take_every(nth, f1) end)
   end
 
@@ -759,7 +771,7 @@ defmodule Stream do
 
   """
   @spec take_while(Enumerable.t(), (element -> as_boolean(term))) :: Enumerable.t()
-  def take_while(enum, fun) do
+  def take_while(enum, fun) when is_function(fun, 1) do
     lazy(enum, fn f1 -> R.take_while(fun, f1) end)
   end
 
@@ -776,7 +788,7 @@ defmodule Stream do
 
   """
   @spec timer(non_neg_integer) :: Enumerable.t()
-  def timer(n) do
+  def timer(n) when is_integer(n) and n >= 0 do
     take(interval(n), 1)
   end
 
@@ -810,7 +822,7 @@ defmodule Stream do
   @spec transform(Enumerable.t(), acc, fun) :: Enumerable.t()
         when fun: (element, acc -> {Enumerable.t(), acc} | {:halt, acc}),
              acc: any
-  def transform(enum, acc, reducer) do
+  def transform(enum, acc, reducer) when is_function(reducer, 2) do
     &do_transform(enum, fn -> acc end, reducer, &1, &2, nil)
   end
 
@@ -827,7 +839,8 @@ defmodule Stream do
   @spec transform(Enumerable.t(), (() -> acc), fun, (acc -> term)) :: Enumerable.t()
         when fun: (element, acc -> {Enumerable.t(), acc} | {:halt, acc}),
              acc: any
-  def transform(enum, start_fun, reducer, after_fun) do
+  def transform(enum, start_fun, reducer, after_fun)
+      when is_function(start_fun, 0) and is_function(reducer, 2) and is_function(after_fun, 1) do
     &do_transform(enum, start_fun, reducer, &1, &2, after_fun)
   end
 
@@ -1023,7 +1036,7 @@ defmodule Stream do
 
   """
   @spec uniq_by(Enumerable.t(), (element -> term)) :: Enumerable.t()
-  def uniq_by(enum, fun) do
+  def uniq_by(enum, fun) when is_function(fun, 1) do
     lazy(enum, %{}, fn f1 -> R.uniq_by(fun, f1) end)
   end
 
@@ -1045,7 +1058,7 @@ defmodule Stream do
 
   """
   @spec with_index(Enumerable.t(), integer) :: Enumerable.t()
-  def with_index(enum, offset \\ 0) do
+  def with_index(enum, offset \\ 0) when is_integer(offset) do
     lazy(enum, offset, fn f1 -> R.with_index(f1) end)
   end
 
@@ -1303,7 +1316,7 @@ defmodule Stream do
 
   """
   @spec iterate(element, (element -> element)) :: Enumerable.t()
-  def iterate(start_value, next_fun) do
+  def iterate(start_value, next_fun) when is_function(next_fun, 1) do
     unfold({:ok, start_value}, fn
       {:ok, value} ->
         {value, {:next, value}}
@@ -1326,7 +1339,7 @@ defmodule Stream do
 
   """
   @spec repeatedly((() -> element)) :: Enumerable.t()
-  def repeatedly(generator_fun) do
+  def repeatedly(generator_fun) when is_function(generator_fun, 0) do
     &do_repeatedly(generator_fun, &1, &2)
   end
 
@@ -1374,7 +1387,8 @@ defmodule Stream do
   """
   @spec resource((() -> acc), (acc -> {[element], acc} | {:halt, acc}), (acc -> term)) ::
           Enumerable.t()
-  def resource(start_fun, next_fun, after_fun) do
+  def resource(start_fun, next_fun, after_fun)
+      when is_function(start_fun, 0) and is_function(next_fun, 1) and is_function(after_fun, 1) do
     &do_resource(start_fun.(), next_fun, &1, &2, after_fun)
   end
 
@@ -1482,7 +1496,7 @@ defmodule Stream do
 
   """
   @spec unfold(acc, (acc -> {element, acc} | nil)) :: Enumerable.t()
-  def unfold(next_acc, next_fun) do
+  def unfold(next_acc, next_fun) when is_function(next_fun, 1) do
     &do_unfold(next_acc, next_fun, &1, &2)
   end
 
