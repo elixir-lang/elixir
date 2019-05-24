@@ -118,7 +118,7 @@ defmodule Mix.Dep do
     end
   end
 
-  defp load_and_cache(_config, _top, _bottom, env, target) do
+  defp load_and_cache(_config, top, top, env, target) do
     converge(env: env, target: target)
   end
 
