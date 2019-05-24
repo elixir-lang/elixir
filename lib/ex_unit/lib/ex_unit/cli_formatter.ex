@@ -13,7 +13,7 @@ defmodule ExUnit.CLIFormatter do
     config = %{
       seed: opts[:seed],
       trace: opts[:trace],
-      colors: Keyword.put_new(opts[:colors], :enabled, IO.ANSI.enabled?()),
+      colors: colors(opts),
       width: get_terminal_width(),
       slowest: opts[:slowest],
       test_counter: %{},
@@ -316,6 +316,14 @@ defmodule ExUnit.CLIFormatter do
     end
   end
 
+  defp colorize_doc(escape, doc, %{colors: colors}) do
+    if colors[:enabled] do
+      Inspect.Algebra.color(doc, escape, %Inspect.Opts{syntax_colors: colors})
+    else
+      doc
+    end
+  end
+
   defp success(msg, config) do
     colorize(:green, msg, config)
   end
@@ -340,15 +348,15 @@ defmodule ExUnit.CLIFormatter do
 
   defp formatter(:location_info, msg, config), do: colorize([:bright, :black], msg, config)
 
-  defp formatter(:diff_delete, msg, config), do: colorize(:red, msg, config)
+  defp formatter(:diff_delete, doc, config), do: colorize_doc(:diff_delete, doc, config)
 
-  defp formatter(:diff_delete_whitespace, msg, config),
-    do: colorize(IO.ANSI.color_background(2, 0, 0), msg, config)
+  defp formatter(:diff_delete_whitespace, doc, config),
+    do: colorize_doc(:diff_delete_whitespace, doc, config)
 
-  defp formatter(:diff_insert, msg, config), do: colorize(:green, msg, config)
+  defp formatter(:diff_insert, doc, config), do: colorize_doc(:diff_insert, doc, config)
 
-  defp formatter(:diff_insert_whitespace, msg, config),
-    do: colorize(IO.ANSI.color_background(0, 2, 0), msg, config)
+  defp formatter(:diff_insert_whitespace, doc, config),
+    do: colorize_doc(:diff_insert_whitespace, doc, config)
 
   defp formatter(:blame_diff, msg, %{colors: colors} = config) do
     if colors[:enabled] do
@@ -368,6 +376,19 @@ defmodule ExUnit.CLIFormatter do
       {:ok, width} -> max(40, width)
       _ -> 80
     end
+  end
+
+  @default_colors [
+    diff_delete: :red,
+    diff_delete_whitespace: IO.ANSI.color_background(2, 0, 0),
+    diff_insert: :green,
+    diff_insert_whitespace: IO.ANSI.color_background(0, 2, 0)
+  ]
+
+  defp colors(opts) do
+    @default_colors
+    |> Keyword.merge(opts[:colors])
+    |> Keyword.put_new(:enabled, IO.ANSI.enabled?())
   end
 
   defp print_logs(""), do: nil

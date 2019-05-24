@@ -10,7 +10,9 @@ defmodule ExUnit.AssertionError do
                message: @no_value,
                expr: @no_value,
                args: @no_value,
-               doctest: @no_value
+               doctest: @no_value,
+               context: nil,
+               pins: []
 
   @doc """
   Indicates no meaningful value for a field.
@@ -41,13 +43,6 @@ defmodule ExUnit.MultiError do
   end
 end
 
-defmodule ExUnit.Mailbox do
-  defstruct [:messages]
-
-  def new(messages), do: %__MODULE__{messages: messages}
-  def get_messages(%__MODULE__{messages: messages}), do: messages
-end
-
 defmodule ExUnit.Assertions do
   @moduledoc """
   This module contains a set of assertion functions that are
@@ -69,8 +64,6 @@ defmodule ExUnit.Assertions do
   other common cases such as checking a floating-point number
   or handling exceptions.
   """
-
-  alias ExUnit.Pattern
 
   @doc """
   Asserts its argument is a truthy value.
@@ -119,14 +112,6 @@ defmodule ExUnit.Assertions do
     vars = collect_vars_from_pattern(left)
     pins = collect_pins_from_pattern(left, Macro.Env.vars(__CALLER__))
 
-    pattern_vars =
-      vars
-      |> Enum.map(&Pattern.get_var/1)
-      |> Enum.uniq()
-      |> Enum.map(&{&1, :ex_unit_unbound_var})
-      |> Map.new()
-      |> Macro.escape()
-
     # If the match works, we need to check if the value
     # is not nil nor false. We need to rewrite the if
     # to avoid silly warnings though.
@@ -154,14 +139,15 @@ defmodule ExUnit.Assertions do
               unquote(vars)
 
             _ ->
-              left = unquote(escape_pattern(left))
-              pattern = Pattern.new(left, unquote(pins), unquote(pattern_vars))
+              left = unquote(Macro.escape(left))
 
               raise ExUnit.AssertionError,
-                left: pattern,
+                left: left,
                 right: right,
                 expr: expr,
-                message: "match (=) failed" <> ExUnit.Assertions.__pins__(unquote(pins))
+                message: "match (=) failed" <> ExUnit.Assertions.__pins__(unquote(pins)),
+                context: :match,
+                pins: unquote(pins)
           end
         end
       )
@@ -181,25 +167,17 @@ defmodule ExUnit.Assertions do
 
     left = expand_pattern(left, __CALLER__)
 
-    vars =
-      left
-      |> collect_vars_from_pattern()
-      |> Enum.map(&Pattern.get_var/1)
-      |> Enum.uniq()
-      |> Enum.map(&{&1, :ex_unit_unbound_var})
-      |> Map.new()
-      |> Macro.escape()
-
     quote do
       right = unquote(right)
-      left = unquote(escape_pattern(left))
-      pattern = Pattern.new(left, unquote(pins), unquote(vars))
+      left = unquote(Macro.escape(left))
 
       assert unquote(match?),
         right: right,
-        left: pattern,
+        left: left,
         expr: unquote(code),
-        message: "match (match?) failed" <> ExUnit.Assertions.__pins__(unquote(pins))
+        message: "match (match?) failed" <> ExUnit.Assertions.__pins__(unquote(pins)),
+        context: :match,
+        pins: unquote(pins)
     end
   end
 
@@ -252,27 +230,19 @@ defmodule ExUnit.Assertions do
 
     left = expand_pattern(left, __CALLER__)
 
-    vars =
-      left
-      |> collect_vars_from_pattern()
-      |> Enum.map(&Pattern.get_var/1)
-      |> Enum.uniq()
-      |> Enum.map(&{&1, :ex_unit_unbound_var})
-      |> Map.new()
-      |> Macro.escape()
-
     quote do
       right = unquote(right)
-      left = unquote(escape_pattern(left))
-      pattern = Pattern.new(left, unquote(pins), unquote(vars))
+      left = unquote(Macro.escape(left))
 
       refute unquote(match?),
         right: right,
-        left: pattern,
+        left: left,
         expr: unquote(code),
         message:
           "match (match?) succeeded, but should have failed" <>
-            ExUnit.Assertions.__pins__(unquote(pins))
+            ExUnit.Assertions.__pins__(unquote(pins)),
+        context: :match,
+        pins: unquote(pins)
     end
   end
 
@@ -369,10 +339,6 @@ defmodule ExUnit.Assertions do
 
   defp escape_quoted(kind, expr) do
     Macro.escape({kind, [], [expr]}, prune_metadata: true)
-  end
-
-  defp escape_pattern(pattern) do
-    Macro.escape(pattern)
   end
 
   defp extract_args({root, meta, [_ | _] = args} = expr, env) do
@@ -491,21 +457,12 @@ defmodule ExUnit.Assertions do
     binary = Macro.to_string(pattern)
 
     # Expand before extracting metadata
-    expanded_pattern = expand_pattern(pattern, caller)
-    vars = collect_vars_from_pattern(expanded_pattern)
-
-    pattern_vars =
-      vars
-      |> Enum.map(&Pattern.get_var/1)
-      |> Enum.uniq()
-      |> Enum.map(&{&1, :ex_unit_unbound_var})
-      |> Map.new()
-      |> Macro.escape()
-
-    pins = collect_pins_from_pattern(expanded_pattern, Macro.Env.vars(caller))
+    pattern = expand_pattern(pattern, caller)
+    vars = collect_vars_from_pattern(pattern)
+    pins = collect_pins_from_pattern(pattern, Macro.Env.vars(caller))
 
     pattern =
-      case expanded_pattern do
+      case pattern do
         {:when, meta, [left, right]} ->
           {:when, meta, [quote(do: unquote(left) = received), right]}
 
@@ -540,11 +497,7 @@ defmodule ExUnit.Assertions do
       end
 
     failure_message =
-      if failure_message do
-        quote do
-          {:flunk, unquote(failure_message)}
-        end
-      else
+      failure_message ||
         quote do
           ExUnit.Assertions.__timeout__(
             unquote(binary),
@@ -553,7 +506,6 @@ defmodule ExUnit.Assertions do
             timeout
           )
         end
-      end
 
     quote do
       timeout = unquote(timeout)
@@ -562,20 +514,7 @@ defmodule ExUnit.Assertions do
         receive do
           unquote(pattern) -> {received, unquote(vars)}
         after
-          timeout ->
-            case unquote(failure_message) do
-              {:flunk, msg} ->
-                flunk(msg)
-
-              {:pattern, messages, msg} ->
-                left = unquote(escape_pattern(expanded_pattern))
-                pattern = Pattern.new(left, unquote(pins), unquote(pattern_vars))
-
-                assert false,
-                  right: messages,
-                  left: pattern,
-                  message: msg
-            end
+          timeout -> flunk(unquote(failure_message))
         end
 
       received
@@ -596,34 +535,18 @@ defmodule ExUnit.Assertions do
     {:messages, messages} = Process.info(self(), :messages)
 
     if Enum.any?(messages, pattern_finder) do
-      {:flunk,
-       """
-       Found message matching #{binary} after #{timeout}ms.
+      """
+      Found message matching #{binary} after #{timeout}ms.
 
-       This means the message was delivered too close to the timeout value, you may want to either:
+      This means the message was delivered too close to the timeout value, you may want to either:
 
-         1. Give an increased timeout to `assert_receive/2`
-         2. Increase the default timeout to all `assert_receive` in your
-            test_helper.exs by setting ExUnit.configure(assert_receive_timeout: ...)
-       """}
+        1. Give an increased timeout to `assert_receive/2`
+        2. Increase the default timeout to all `assert_receive` in your
+           test_helper.exs by setting ExUnit.configure(assert_receive_timeout: ...)
+      """
     else
-      msg = "No message matching #{binary} after #{timeout}ms." <> __pins__(pins)
-      length = length(messages)
-      messages = Enum.take(messages, -@max_mailbox_length)
-
-      msg =
-        case length do
-          0 ->
-            msg <> "\nThe process mailbox is empty."
-
-          len when len > @max_mailbox_length ->
-            msg <> "\nShowing only last #{@max_mailbox_length} of #{length} messages."
-
-          _len ->
-            msg
-        end
-
-      {:pattern, ExUnit.Mailbox.new(messages), msg}
+      "No message matching #{binary} after #{timeout}ms." <>
+        __pins__(pins) <> format_mailbox(messages)
     end
   end
 
@@ -637,6 +560,28 @@ defmodule ExUnit.Assertions do
       |> Enum.map_join(@indent, fn {name, var} -> "#{name} = #{inspect(var)}" end)
 
     "\nThe following variables were pinned:" <> @indent <> content
+  end
+
+  defp format_mailbox(messages) do
+    length = length(messages)
+
+    mailbox =
+      messages
+      |> Enum.take(-@max_mailbox_length)
+      |> Enum.map_join(@indent, &inspect/1)
+
+    mailbox_message(length, @indent <> mailbox)
+  end
+
+  defp mailbox_message(0, _mailbox), do: "\nThe process mailbox is empty."
+
+  defp mailbox_message(length, mailbox) when length > 10 do
+    "\nProcess mailbox:" <>
+      mailbox <> "\nShowing only last #{@max_mailbox_length} of #{length} messages."
+  end
+
+  defp mailbox_message(_length, mailbox) do
+    "\nProcess mailbox:" <> mailbox
   end
 
   defp collect_pins_from_pattern(expr, vars) do
@@ -678,6 +623,9 @@ defmodule ExUnit.Assertions do
       {:_, _, context}, acc when is_atom(context) ->
         {:ok, acc}
 
+      {_, [{:expanded, expanded} | _], _}, acc ->
+        {[expanded], acc}
+
       {name, meta, context}, acc when is_atom(name) and is_atom(context) ->
         {:ok, [{name, [generated: true] ++ meta, context} | acc]}
 
@@ -687,20 +635,38 @@ defmodule ExUnit.Assertions do
     |> elem(1)
   end
 
-  defp expand_pattern({:when, meta, [left, right]}, caller) do
+  @doc false
+  def expand_pattern({:when, meta, [left, right]}, caller) do
     left = expand_pattern_except_vars(left, Macro.Env.to_match(caller))
     right = expand_pattern_except_vars(right, %{caller | context: :guard})
     {:when, meta, [left, right]}
   end
 
-  defp expand_pattern(expr, caller) do
+  def expand_pattern(expr, caller) do
     expand_pattern_except_vars(expr, Macro.Env.to_match(caller))
   end
 
   defp expand_pattern_except_vars(expr, caller) do
     Macro.prewalk(expr, fn
-      {var, _, context} = node when is_atom(var) and is_atom(context) -> node
-      other -> Macro.expand(other, caller)
+      {var, _, context} = node when is_atom(var) and is_atom(context) ->
+        node
+
+      {:%, meta, [struct, {:%{}, _, _} = map]} ->
+        expanded_struct = Macro.expand(struct, caller)
+        expanded_map = Macro.expand(map, caller)
+        {:%, meta, [expanded_struct, expanded_map]}
+
+      {name, _, args} = expr when is_atom(name) and is_list(args) ->
+        case Macro.expand(expr, caller) do
+          ^expr ->
+            expr
+
+          other ->
+            Macro.update_meta(expr, &Keyword.put(&1, :expanded, other))
+        end
+
+      other ->
+        Macro.expand(other, caller)
     end)
   end
 
