@@ -4,7 +4,7 @@ defmodule Config.Provider do
 
   Config providers are typically used during releases to load
   external configuration while the system boots. This is done
-  by starting the VM with the mininum amount of applications
+  by starting the VM with the minimum amount of applications
   running, then invoking all of the providers, and then
   restarting the system. This requires a mutable configuration
   file on disk, as the results of the providers are written to
