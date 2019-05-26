@@ -135,9 +135,9 @@ defmodule PathTest do
 
     assert Path.expand("~/file") == Path.join(home, "file")
     assert Path.expand("~/file", "whatever") == Path.join(home, "file")
-    assert Path.expand("file", Path.expand("~")) == Path.expand("~/file")
+    assert Path.expand("file", Path.expand("~")) == Path.join(home, "file")
     assert Path.expand("file", "~") == Path.join(home, "file")
-    assert Path.expand("~file") == Path.join(File.cwd!(), "file")
+    assert Path.expand("~file") == Path.join(File.cwd!(), "~file")
   end
 
   test "expand/1,2" do
