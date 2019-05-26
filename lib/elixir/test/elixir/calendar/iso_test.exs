@@ -35,11 +35,9 @@ defmodule Calendar.ISOTest do
     end
   end
 
-  describe "date_to_string/4" do
-    test "handles years > 9999" do
-      assert Calendar.ISO.date_to_string(10000, 1, 1, :basic) == "100000101"
-      assert Calendar.ISO.date_to_string(10000, 1, 1, :extended) == "10000-01-01"
-    end
+  test "date_to_string/4" do
+    assert Calendar.ISO.date_to_string(1000, 1, 1, :basic) == "10000101"
+    assert Calendar.ISO.date_to_string(1000, 1, 1, :extended) == "1000-01-01"
   end
 
   describe "naive_datetime_to_iso_days/7" do
@@ -48,7 +46,7 @@ defmodule Calendar.ISOTest do
         Calendar.ISO.naive_datetime_to_iso_days(2018, 2, 30, 0, 0, 0, 0)
       end
 
-      assert_raise ArgumentError, "invalid date: 2017-11--03", fn ->
+      assert_raise FunctionClauseError, fn ->
         Calendar.ISO.naive_datetime_to_iso_days(2017, 11, -3, 0, 0, 0, 0)
       end
     end
@@ -60,7 +58,7 @@ defmodule Calendar.ISOTest do
         Calendar.ISO.day_of_week(2018, 2, 30)
       end
 
-      assert_raise ArgumentError, "invalid date: 2017-11-00", fn ->
+      assert_raise FunctionClauseError, fn ->
         Calendar.ISO.day_of_week(2017, 11, 0)
       end
     end
@@ -72,7 +70,7 @@ defmodule Calendar.ISOTest do
         Calendar.ISO.day_of_era(2018, 2, 30)
       end
 
-      assert_raise ArgumentError, "invalid date: 2017-11-00", fn ->
+      assert_raise FunctionClauseError, fn ->
         Calendar.ISO.day_of_era(2017, 11, 0)
       end
     end
@@ -84,9 +82,28 @@ defmodule Calendar.ISOTest do
         Calendar.ISO.day_of_year(2018, 2, 30)
       end
 
-      assert_raise ArgumentError, "invalid date: 2017-11-00", fn ->
+      assert_raise FunctionClauseError, fn ->
         Calendar.ISO.day_of_year(2017, 11, 0)
       end
+    end
+  end
+
+  test "year_of_era/1" do
+    assert Calendar.ISO.year_of_era(-9999) == {10000, 0}
+    assert Calendar.ISO.year_of_era(-1) == {2, 0}
+    assert Calendar.ISO.year_of_era(0) == {1, 0}
+    assert Calendar.ISO.year_of_era(1) == {1, 1}
+    assert Calendar.ISO.year_of_era(1984) == {1984, 1}
+
+    random_positive_year = Enum.random(1..9999)
+    assert Calendar.ISO.year_of_era(random_positive_year) == {random_positive_year, 1}
+
+    assert_raise FunctionClauseError, fn ->
+      Calendar.ISO.year_of_era(10000)
+    end
+
+    assert_raise FunctionClauseError, fn ->
+      Calendar.ISO.year_of_era(-10000)
     end
   end
 
