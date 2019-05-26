@@ -34,7 +34,7 @@ Elixir does not allow the use of ZWJ or ZWNJ in identifiers and therefore does n
 
 ### Atoms
 
-Unicode Atoms in Elixir follow the identifier rule above with the following modifications:
+Unicode atoms in Elixir follow the identifier rule above with the following modifications:
 
   * `<Start>` includes the code point `_` (005F)
   * `<Continue>` includes the code point `@` (0040)
