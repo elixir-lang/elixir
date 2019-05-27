@@ -723,7 +723,7 @@ defmodule GenServer do
   This is either a plain PID or a value representing a registered name.
   See the "Name registration" section of this document for more information.
   """
-  @type server :: pid | name | {atom, node} | {:via, registry :: module(), key :: term()}
+  @type server :: pid | name | {atom, node}
 
   @typedoc """
   Tuple describing the client of a call request.
