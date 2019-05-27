@@ -721,9 +721,9 @@ defmodule GenServer do
   The server reference.
 
   This is either a plain PID or a value representing a registered name.
-  See the 'Name registration' section of this document for more information.
+  See the "Name registration" section of this document for more information.
   """
-  @type server :: pid | name | {atom, node} | {:via, registry :: atom(), key :: term()}
+  @type server :: pid | name | {atom, node} | {:via, registry :: module(), key :: term()}
 
   @typedoc """
   Tuple describing the client of a call request.
