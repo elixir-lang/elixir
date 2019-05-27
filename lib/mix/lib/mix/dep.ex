@@ -132,17 +132,6 @@ defmodule Mix.Dep do
     seen = populate_seen(MapSet.new(), [app])
     children = get_deps(deps, tl(Enum.uniq(get_children(deps, seen, [app]))))
 
-    if bottom.project()[:apps_path] do
-      umbrella_apps =
-        deps
-        |> Enum.filter(& &1.opts[:from_umbrella])
-        |> Enum.map(& &1.app)
-
-      app in umbrella_apps ||
-        raise "cannot load #{inspect(app)} app because the defined app name in mix.exs and the app directory name are different. " <>
-                "Please make sure both are equal, otherwise the application can't be started."
-    end
-
     top_level =
       for dep <- deps,
           dep.app == app,
