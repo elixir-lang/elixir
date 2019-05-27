@@ -717,8 +717,13 @@ defmodule GenServer do
   @typedoc "Debug options supported by the `start*` functions"
   @type debug :: [:trace | :log | :statistics | {:log_to_file, Path.t()}]
 
-  @typedoc "The server reference"
-  @type server :: pid | name | {atom, node}
+  @typedoc """
+  The server reference.
+
+  This is either a plain PID or a value representing a registered name.
+  See the "Name registration" section of this document for more information.
+  """
+  @type server :: pid | name | {atom, node} | {:via, registry :: module(), key :: term()}
 
   @typedoc """
   Tuple describing the client of a call request.
@@ -1021,6 +1026,9 @@ defmodule GenServer do
   the request. In case the `server` is on a node which is
   not yet connected to the caller one, the semantics differ
   depending on the used Erlang/OTP version.
+
+  `server` can be any of the values described in the "Name registration"
+  section of the documentation for this module.
 
   Before Erlang/OTP 21, the call is going to block until a
   connection happens. This was done to guarantee ordering.
