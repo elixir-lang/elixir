@@ -30,7 +30,7 @@
 
 1. Set `CANONICAL=` in /Makefile
 
-2. Update tables in "Compatibility and Deprecations"
+2. Update tables in /SECURITY.md and "Compatibility and Deprecations"
 
 3. Commit "Prepare vMAJOR.MINOR for release"
 
