@@ -45,7 +45,7 @@ defmodule Mix.UmbrellaTest do
         end
         """)
 
-        assert_raise Mix.Error, ~r/loaded from bar is named as :baz in mix.exs/, fn ->
+        assert_raise Mix.Error, ~r/^Umbrella app :baz is located at directory bar/, fn ->
           Mix.Task.run("deps")
         end
       end)

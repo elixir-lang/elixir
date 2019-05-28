@@ -302,9 +302,10 @@ defmodule Mix.Dep.Loader do
 
           if config[:app] != app do
             Mix.raise(
-              "Umbrella app loaded from #{Atom.to_string(app)} is named " <>
-                "as #{inspect(config[:app])} in mix.exs, but different names aren't allowed. " <>
-                "Please rename either app's directory name or app's name in mix.exs to be equal."
+              "Umbrella app #{inspect(config[:app])} is located at " <>
+                "directory #{Atom.to_string(app)}, and different names cause " <>
+                "a name mismatch that's not allowed. Please rename either " <>
+                "app's directory name or app's name in mix.exs to be equal."
             )
           end
 
