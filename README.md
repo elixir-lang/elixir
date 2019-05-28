@@ -10,11 +10,20 @@ and maintainable applications.
 For more about Elixir, installation and documentation,
 [check Elixir's website](https://elixir-lang.org/).
 
-## Announcements
+## Policies
 
-New releases are announced in the
-[announcements mailing list](https://groups.google.com/group/elixir-lang-ann).
-All security releases [will be tagged with `[security]`](https://groups.google.com/forum/#!searchin/elixir-lang-ann/%5Bsecurity%5D%7Csort:date).
+New releases are announced in the [announcement mailing list][8].
+You can subscribe by sending an email to elixir-lang-ann+subscribe@googlegroups.com and replying to the confirmation email.
+
+All security releases [will be tagged with `[security]`][10]. For more information, please read our [Security Policy][9].
+
+All interactions in our official communication channels follow our [Code of Conduct][1].
+
+## Bug reports
+
+For reporting bugs, [visit our issue tracker][2] and follow the steps
+for reporting a new issue. **Please disclose security vulnerabilities
+privately at elixir-security@googlegroups.com**.
 
 ## Compiling from source
 
@@ -38,9 +47,9 @@ If Elixir fails to build (specifically when pulling in a new version via
 `git`), be sure to remove any previous build artifacts by running
 `make clean`, then `make test`.
 
-If tests pass, you can Interactive Elixir by running `bin/iex` in your terminal.
+If tests pass, you can use Interactive Elixir by running `bin/iex` in your terminal.
 
-However, if tests fail, it is likely you have an outdated Erlang/OTP version
+However, if tests fail, it is likely that you have an outdated Erlang/OTP version
 (Elixir requires Erlang/OTP 20.0 or later). You can check your Erlang/OTP version
 by calling `erl` in the command line. You will see some information as follows:
 
@@ -49,12 +58,6 @@ by calling `erl` in the command line. You will see some information as follows:
 If you have properly set up your dependencies and tests still fail,
 you may want to open up a bug report, as explained next.
 
-## Bug reports
-
-For reporting bugs, [visit our issues tracker][2] and follow the steps
-for reporting a new issue. **Please disclose security vulnerabilities
-privately at elixir-security@googlegroups.com**.
-
 ## Proposing new features
 
 For proposing new features, please start a discussion in the
@@ -62,17 +65,14 @@ For proposing new features, please start a discussion in the
 to argue and explain why a feature is useful and how it will impact the
 codebase and the community.
 
-Once a proposal is accepted, it will be added to [the issues tracker][2].
-The issues tracker focuses on *actionable items* and it holds a list of
+Once a proposal is accepted, it will be added to [the issue tracker][2].
+The issue tracker focuses on *actionable items* and it holds a list of
 upcoming enhancements and pending bugs. All entries in the tracker are
 tagged for clarity and to ease collaboration.
 
 Features and bug fixes that have already been merged and will be included
-in the next release are marked as "closed" in the issues tracker and are
-added to the [CHANGELOG](CHANGELOG.md).
-
-Finally, remember all interactions in our official spaces follow our
-[Code of Conduct][1].
+in the next release are marked as "closed" in the issue tracker and are
+added to the [changelog][7].
 
 ## Contributing
 
@@ -80,20 +80,20 @@ We welcome everyone to contribute to Elixir. To do so, there are a few
 things you need to know about the code. First, Elixir code is divided
 in applications inside the `lib` folder:
 
-* `elixir` - Contains Elixir's kernel and stdlib
+* `elixir` - Elixir's kernel and standard library
 
-* `eex` - Template engine that allows you to embed Elixir
+* `eex` - EEx is the template engine that allows you to embed Elixir
 
-* `ex_unit` - Simple test framework that ships with Elixir
+* `ex_unit` - ExUnit is a simple test framework that ships with Elixir
 
-* `iex` - IEx, Elixir's interactive shell
+* `iex` - IEx stands for Interactive Elixir: Elixir's interactive shell
 
-* `logger` - The built-in logger
+* `logger` - Logger is the built-in logger
 
-* `mix` - Elixir's build tool
+* `mix` - Mix is Elixir's build tool
 
 You can run all tests in the root directory with `make test` and you can
-also run tests for a specific framework `make test_#{NAME}`, for example,
+also run tests for a specific framework `make test_#{APPLICATION}`, for example,
 `make test_ex_unit`. If you just changed something in the Elixir's standard
 library, you can run only that portion through `make test_stdlib`.
 
@@ -126,7 +126,7 @@ make clean_elixir compile
 Similarly, if you can't get Elixir to compile or the tests to pass after
 updating an existing checkout, run `make clean compile`. You can check
 [the official build status on Travis-CI](https://travis-ci.org/elixir-lang/elixir).
-More tasks can be found by reading the [Makefile](./Makefile).
+More tasks can be found by reading the [Makefile](Makefile).
 
 With tests running and passing, you are ready to contribute to Elixir and
 [send a pull request](https://help.github.com/articles/using-pull-requests/).
@@ -158,7 +158,8 @@ another team member can merge it.
 
 When the review finishes, your pull request will be squashed and merged
 into the repository. If you have carefully organized your commits and
-believe they should be merged without squashing, leave a comment.
+believe they should be merged without squashing, please mention it in
+a comment.
 
 ## Building documentation
 
@@ -186,16 +187,23 @@ the `doc` directory. If you are planning to contribute documentation,
 
   * [Elixir Documentation][6]
   * [Elixir Core Mailing list (development)][3]
-  * [Issues tracker][2]
+  * [Announcement mailing list][8]
   * [Code of Conduct][1]
+  * [Issue tracker][2]
+  * [Changelog][7]
+  * [Security Policy][9]
   * **[#elixir-lang][4]** on [Freenode][5] IRC
 
   [1]: CODE_OF_CONDUCT.md
   [2]: https://github.com/elixir-lang/elixir/issues
   [3]: https://groups.google.com/group/elixir-lang-core
   [4]: https://webchat.freenode.net/?channels=#elixir-lang
-  [5]: http://www.freenode.net
+  [5]: https://www.freenode.net
   [6]: https://elixir-lang.org/docs.html
+  [7]: CHANGELOG.md
+  [8]: https://groups.google.com/group/elixir-lang-ann
+  [9]: SECURITY.md
+  [10]: https://groups.google.com/forum/#!searchin/elixir-lang-ann/%5Bsecurity%5D%7Csort:date
 
 ## License
 
