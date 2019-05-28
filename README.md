@@ -10,13 +10,20 @@ and maintainable applications.
 For more about Elixir, installation and documentation,
 [check Elixir's website](https://elixir-lang.org/).
 
-## Announcements
+## Policies
 
-New releases are announced in the
-[announcement mailing list][8].
+New releases are announced in the [announcement mailing list][8].
 You can subscribe by sending an email to elixir-lang-ann+subscribe@googlegroups.com and replying to the confirmation email.
 
-All security releases [will be tagged with `[security]`][10]. For more information, please read our [Security Policy][9]
+All security releases [will be tagged with `[security]`][10]. For more information, please read our [Security Policy][9].
+
+All interactions in our official communication channels follow our [Code of Conduct][1].
+
+## Bug reports
+
+For reporting bugs, [visit our issue tracker][2] and follow the steps
+for reporting a new issue. **Please disclose security vulnerabilities
+privately at elixir-security@googlegroups.com**.
 
 ## Compiling from source
 
@@ -51,22 +58,6 @@ by calling `erl` in the command line. You will see some information as follows:
 If you have properly set up your dependencies and tests still fail,
 you may want to open up a bug report, as explained next.
 
-## Official communication channels
-
-All interactions in our official communication channels follow our [Code of Conduct][1]:
-
-* The [official GitHub projects](https://github.com/elixir-lang/) and code reviews.
-* The official elixir-lang mailing lists.
-* The **[#elixir-lang][4]** IRC channel on [Freenode][5].
-
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported by emailing: elixir-lang-conduct@googlegroups.com
-
-## Bug reports
-
-For reporting bugs, [visit our issue tracker][2] and follow the steps
-for reporting a new issue. **Please disclose security vulnerabilities
-privately at elixir-security@googlegroups.com**.
-
 ## Proposing new features
 
 For proposing new features, please start a discussion in the
@@ -89,7 +80,7 @@ We welcome everyone to contribute to Elixir. To do so, there are a few
 things you need to know about the code. First, Elixir code is divided
 in applications inside the `lib` folder:
 
-* `elixir` - Contains Elixir's kernel and standard library
+* `elixir` - Elixir's kernel and standard library
 
 * `eex` - EEx is the template engine that allows you to embed Elixir
 
