@@ -30,6 +30,28 @@ defmodule Mix.UmbrellaTest do
     end)
   end
 
+  test "umbrella app dir and the app name defined in mix.exs should be equal" do
+    in_fixture("umbrella_dep/deps/umbrella", fn ->
+      Mix.Project.in_project(:umbrella, ".", fn _ ->
+        File.write!("apps/bar/mix.exs", """
+        defmodule Bar.MixProject do
+          use Mix.Project
+
+          def project do
+            [app: :baz,
+             version: "0.1.0",
+             deps: []]
+          end
+        end
+        """)
+
+        assert_raise Mix.Error, ~r/^Umbrella app :baz is located at directory bar/, fn ->
+          Mix.Task.run("deps")
+        end
+      end)
+    end)
+  end
+
   test "compiles umbrella" do
     in_fixture("umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->

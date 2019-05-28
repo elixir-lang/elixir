@@ -287,7 +287,7 @@ defmodule Mix.Dep.Loader do
     end
   end
 
-  defp mix_dep(%Mix.Dep{opts: opts} = dep, nil) do
+  defp mix_dep(%Mix.Dep{app: app, opts: opts} = dep, nil) do
     Mix.Dep.in_dependency(dep, fn _ ->
       opts =
         if Mix.Project.umbrella?() do
@@ -298,6 +298,17 @@ defmodule Mix.Dep.Loader do
 
       child_opts =
         if opts[:from_umbrella] do
+          config = Mix.Project.config()
+
+          if config[:app] != app do
+            Mix.raise(
+              "Umbrella app #{inspect(config[:app])} is located at " <>
+                "directory #{Atom.to_string(app)}, and different names cause " <>
+                "a name mismatch that's not allowed. Please rename either " <>
+                "app's directory name or app's name in mix.exs to be equal."
+            )
+          end
+
           []
         else
           [env: Keyword.fetch!(opts, :env)]
