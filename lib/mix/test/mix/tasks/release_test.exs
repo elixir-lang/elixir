@@ -294,6 +294,11 @@ defmodule Mix.Tasks.ReleaseTest do
       config = [releases: [eval: [include_erts: false, cookie: "abcdefghij"]]]
 
       Mix.Project.in_project(:release_test, ".", config, fn _ ->
+        File.write!("config/releases.exs", """
+        import Config
+        config :release_test, :runtime, :was_set
+        """)
+
         root = Path.absname("_build/dev/rel/eval")
         Mix.Task.run("release")
 
@@ -318,7 +323,7 @@ defmodule Mix.Tasks.ReleaseTest do
                  release_root: root,
                  release_vsn: "0.1.0",
                  static_config: {:ok, :was_set},
-                 runtime_config: :error
+                 runtime_config: {:ok, :was_set}
                } = wait_until_evaled(Path.join(root, "RELEASE_BOOTED"))
       end)
     end)
