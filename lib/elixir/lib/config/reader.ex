@@ -21,7 +21,6 @@ defmodule Config.Reader do
 
   @impl true
   def load(config, path) do
-    {:ok, _} = Application.ensure_all_started(:elixir)
     merge(config, path |> Config.Provider.resolve_config_path!() |> read!())
   end
 
