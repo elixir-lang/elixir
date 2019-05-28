@@ -196,10 +196,10 @@ the `doc` directory. If you are planning to contribute documentation,
 
   * [Elixir Documentation][6]
   * [Elixir Core Mailing list (development)][3]
-  * [Issue tracker][2]
-  * [Code of Conduct][1]
-  * [Changelog][7]
   * [Announcement mailing list][8]
+  * [Code of Conduct][1]
+  * [Issue tracker][2]
+  * [Changelog][7]
   * [Security Policy][9]
   * **[#elixir-lang][4]** on [Freenode][5] IRC
 
