@@ -344,7 +344,15 @@ defmodule ExUnit.Callbacks do
           raise ArgumentError, "start_supervised/2 can only be invoked from the test process"
       end
 
-    Supervisor.start_child(sup, Supervisor.child_spec(child_spec_or_module, opts))
+    child_spec = Supervisor.child_spec(child_spec_or_module, opts)
+
+    case Supervisor.start_child(sup, child_spec) do
+      {:error, {:already_started, _pid}} ->
+        {:error, {:duplicate_child_name, child_spec.id}}
+
+      other ->
+        other
+    end
   end
 
   @doc """
@@ -367,9 +375,13 @@ defmodule ExUnit.Callbacks do
     end
   end
 
-  defp start_supervised_error({{:EXIT, reason}, _info}), do: Exception.format_exit(reason)
-  defp start_supervised_error({reason, _info}), do: Exception.format_exit(reason)
-  defp start_supervised_error(reason), do: Exception.format_exit(reason)
+  defp start_supervised_error({{:EXIT, reason}, info}) when is_tuple(info),
+    do: Exception.format_exit(reason)
+
+  defp start_supervised_error({reason, info}) when is_tuple(info),
+    do: Exception.format_exit(reason)
+
+  defp start_supervised_error(reason), do: Exception.format_exit({:start_spec, reason})
 
   @doc """
   Stops a child process started via `start_supervised/2`.
