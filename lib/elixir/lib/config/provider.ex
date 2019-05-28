@@ -142,6 +142,16 @@ defmodule Config.Provider do
 
   @doc false
   def boot(app, key, restart_fun \\ &System.restart/0) do
+    # The app with the config provider settings may not
+    # have been loaded at this point, so make sure we load
+    # its environment before querying it.
+    _ = :application.load(app)
+
+    # The config provider typically runs very early in the
+    # release process, so we need to make sure Elixir is started
+    # before we go around running Elixir code.
+    {:ok, _} = :application.ensure_all_started(:elixir)
+
     case :application.get_env(app, key) do
       {:ok, %Config.Provider{} = provider} ->
         path = resolve_config_path!(provider.config_path)
