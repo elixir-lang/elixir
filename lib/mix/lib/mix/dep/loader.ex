@@ -15,7 +15,7 @@ defmodule Mix.Dep.Loader do
   current environment, behaviour can be overridden via options.
   """
   def children() do
-    mix_children([]) ++ Mix.Dep.Umbrella.unloaded()
+    mix_children(Mix.Project.config(), []) ++ Mix.Dep.Umbrella.unloaded()
   end
 
   @doc """
@@ -289,6 +289,8 @@ defmodule Mix.Dep.Loader do
 
   defp mix_dep(%Mix.Dep{app: app, opts: opts} = dep, nil) do
     Mix.Dep.in_dependency(dep, fn _ ->
+      config = Mix.Project.config()
+
       opts =
         if Mix.Project.umbrella?() do
           Keyword.put_new(opts, :app, false)
@@ -298,14 +300,12 @@ defmodule Mix.Dep.Loader do
 
       child_opts =
         if opts[:from_umbrella] do
-          config = Mix.Project.config()
-
           if config[:app] != app do
             Mix.raise(
               "Umbrella app #{inspect(config[:app])} is located at " <>
-                "directory #{Atom.to_string(app)}, and different names cause " <>
-                "a name mismatch that's not allowed. Please rename either " <>
-                "app's directory name or app's name in mix.exs to be equal."
+                "directory #{app}. Mix requires the directory to match " <>
+                "the application name for umbrella apps. Please rename the " <>
+                "directory or change the application name in the mix.exs file."
             )
           end
 
@@ -314,7 +314,7 @@ defmodule Mix.Dep.Loader do
           [env: Keyword.fetch!(opts, :env)]
         end
 
-      deps = mix_children(child_opts) ++ Mix.Dep.Umbrella.unloaded()
+      deps = mix_children(config, child_opts) ++ Mix.Dep.Umbrella.unloaded()
       {%{dep | opts: opts}, deps}
     end)
   end
@@ -352,10 +352,10 @@ defmodule Mix.Dep.Loader do
     {dep, []}
   end
 
-  defp mix_children(opts) do
+  defp mix_children(config, opts) do
     from = Path.absname("mix.exs")
 
-    (Mix.Project.config()[:deps] || [])
+    (config[:deps] || [])
     |> Enum.map(&to_dep(&1, from))
     |> split_by_env_and_target({opts[:env], nil})
     |> elem(0)
