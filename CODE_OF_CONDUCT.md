@@ -39,11 +39,11 @@ If you participate in or contribute to the Elixir ecosystem in any way, you are 
 
 Explicit enforcement of the Code of Conduct applies to the official mediums operated by the Elixir project:
 
-* The official GitHub projects and code reviews.
+* The [official GitHub projects][1] and code reviews.
 * The official elixir-lang mailing lists.
-* The #elixir-lang IRC channel on Freenode.
+* The **[#elixir-lang][2]** IRC channel on [Freenode][3].
 
-Other Elixir activities (such as conferences, meetups, and other unofficial forums) are encouraged to adopt this Code of Conduct. Such groups must provide their own contact information.
+Other Elixir activities (such as conferences, meetups, and unofficial forums) are encouraged to adopt this Code of Conduct. Such groups must provide their own contact information.
 
 Project maintainers may remove, edit, or reject comments, commits, code, wiki edits, issues, and other contributions that are not aligned to this Code of Conduct.
 
@@ -54,3 +54,7 @@ Instances of abusive, harassing, or otherwise unacceptable behavior may be repor
 ## Acknowledgements
 
 This document was based on the Code of Conduct from the Go project with parts derived from Django's Code of Conduct, Rust's Code of Conduct and the Contributor Covenant.
+
+[1]: https://github.com/elixir-lang/
+[2]: https://webchat.freenode.net/?channels=#elixir-lang
+[3]: https://www.freenode.net
