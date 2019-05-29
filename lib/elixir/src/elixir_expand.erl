@@ -1157,7 +1157,7 @@ format_error({op_ambiguity, Name, Arg}) ->
   io_lib:format(Message, [Name, 'Elixir.Macro':to_string(Arg), Name]);
 format_error({invalid_clauses, Name}) ->
   Message =
-    "the function \"~ts\" cannot handle clauses with the -> operator because it is not macro. "
+    "the function \"~ts\" cannot handle clauses with the -> operator because it is not a macro. "
     "Please make sure you are invoking the proper name and that it is a macro",
   io_lib:format(Message, [Name]);
 format_error({invalid_alias_for_as, Reason, Value}) ->
