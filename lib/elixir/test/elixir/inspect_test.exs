@@ -679,4 +679,29 @@ defmodule Inspect.OthersTest do
     assert inspect(uri, opts) == "#URI<https://elixir-lang.org>"
     assert inspect([uri], opts) == "[#URI<https://elixir-lang.org>]"
   end
+
+  defmodule Nested do
+    defstruct nested: nil
+
+    defimpl Inspect do
+      import Inspect.Algebra
+
+      def inspect(%Nested{nested: nested}, opts) do
+        indent = Keyword.get(opts.custom_bag, :indent, 2)
+        level = Keyword.get(opts.custom_bag, :level, 1)
+
+        nested_str = Kernel.inspect(nested, level: level + 1, indent: indent + 2)
+
+        concat(
+          nest(line("#Nested[##{level}/#{indent}]<", nested_str), indent),
+          nest(line("", ">"), indent - 2)
+        )
+      end
+    end
+  end
+
+  test "custom_bag" do
+    assert inspect(%Nested{nested: %Nested{nested: 42}}) ==
+             "#Nested[#1/2]<\n  #Nested[#2/4]<\n    42\n  >\n>"
+  end
 end
