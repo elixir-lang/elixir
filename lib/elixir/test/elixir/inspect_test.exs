@@ -687,8 +687,8 @@ defmodule Inspect.OthersTest do
       import Inspect.Algebra
 
       def inspect(%Nested{nested: nested}, opts) do
-        indent = Keyword.get(opts.custom_bag, :indent, 2)
-        level = Keyword.get(opts.custom_bag, :level, 1)
+        indent = Keyword.get(opts.custom_options, :indent, 2)
+        level = Keyword.get(opts.custom_options, :level, 1)
 
         nested_str = Kernel.inspect(nested, level: level + 1, indent: indent + 2)
 
@@ -700,7 +700,7 @@ defmodule Inspect.OthersTest do
     end
   end
 
-  test "custom_bag" do
+  test "custom_options" do
     assert inspect(%Nested{nested: %Nested{nested: 42}}) ==
              "#Nested[#1/2]<\n  #Nested[#2/4]<\n    42\n  >\n>"
   end

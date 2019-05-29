@@ -57,7 +57,7 @@ defmodule Inspect.Opts do
     * `:inspect_fun` (since v1.9.0) - a function to build algebra documents,
       defaults to `Inspect.inspect/2`
 
-    * `:custom_bag` (since v1.9.0) - a keyword list storing custom user-defined
+    * `:custom_options` (since v1.9.0) - a keyword list storing custom user-defined
       options; useful when implementing a protocol for nested structures to pass
       the custom options through. All the non-default options passed to
       `Kernel.inspect/2` will be put into this bag.
@@ -76,7 +76,7 @@ defmodule Inspect.Opts do
             safe: true,
             syntax_colors: [],
             inspect_fun: &Inspect.inspect/2,
-            custom_bag: []
+            custom_options: []
 
   @type color_key :: atom
 
@@ -94,10 +94,10 @@ defmodule Inspect.Opts do
           safe: boolean,
           syntax_colors: [{color_key, IO.ANSI.ansidata()}],
           inspect_fun: (any, t -> Inspect.Algebra.t()),
-          custom_bag: [{atom, any()}]
+          custom_options: [{atom, any()}]
         }
 
-  def custom_bag(opts) do
+  def custom_options(opts) do
     Enum.reject(opts, fn
       {k, _}
       when k in [
