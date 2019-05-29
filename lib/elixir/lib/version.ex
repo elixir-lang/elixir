@@ -6,7 +6,7 @@ defmodule Version do
   generated after parsing via `Version.parse/1`.
 
   `Version` parsing and requirements follow
-  [SemVer 2.0 schema](http://semver.org/).
+  [SemVer 2.0 schema](https://semver.org/).
 
   ## Versions
 

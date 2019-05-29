@@ -51,7 +51,7 @@ defmodule String do
   Standard, but do not contain any of the locale specific behaviour.
 
   More information about graphemes can be found in the [Unicode
-  Standard Annex #29](http://www.unicode.org/reports/tr29/).
+  Standard Annex #29](https://www.unicode.org/reports/tr29/).
   The current Elixir version implements Extended Grapheme Cluster
   algorithm.
 
@@ -1623,7 +1623,7 @@ defmodule String do
   Cluster algorithm.
 
   The algorithm is outlined in the [Unicode Standard Annex #29,
-  Unicode Text Segmentation](http://www.unicode.org/reports/tr29/).
+  Unicode Text Segmentation](https://www.unicode.org/reports/tr29/).
 
   For details about code points and graphemes, see the `String` module documentation.
 
