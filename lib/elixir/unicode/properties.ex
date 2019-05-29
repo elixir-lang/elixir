@@ -30,7 +30,7 @@ end
 #    General_Category(C) = Nonspacing_Mark (Mn), Enclosing_Mark (Me), Format (Cf),
 #                          Modifier_Letter (Lm), or Modifier_Symbol (Sk).
 #
-# Word breaks are defined below based on TR29 (http://unicode.org/reports/tr29/).
+# Word breaks are defined below based on TR29 (https://unicode.org/reports/tr29/).
 # The categories are computed later.
 case_ignorable = [
   0x0027,

@@ -36,7 +36,7 @@ defmodule Float do
   To learn more about floating-point arithmetic visit:
 
     * [0.30000000000000004.com](http://0.30000000000000004.com/)
-    * [What Every Programmer Should Know About Floating-Point Arithmetic](http://floating-point-gui.de/)
+    * [What Every Programmer Should Know About Floating-Point Arithmetic](https://floating-point-gui.de/)
 
   """
 
@@ -305,7 +305,7 @@ defmodule Float do
         num = rounding(rounding, sign, num, div)
 
         # Convert back to float without loss
-        # http://www.exploringbinary.com/correct-decimal-to-floating-point-using-big-integers/
+        # https://www.exploringbinary.com/correct-decimal-to-floating-point-using-big-integers/
         den = power_of_10(precision)
         boundary = den <<< 52
 
