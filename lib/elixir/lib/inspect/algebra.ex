@@ -94,31 +94,24 @@ defmodule Inspect.Opts do
           safe: boolean,
           syntax_colors: [{color_key, IO.ANSI.ansidata()}],
           inspect_fun: (any, t -> Inspect.Algebra.t()),
-          custom_options: [{atom, any()}]
+          custom_options: keyword
         }
 
-  def custom_options(opts) do
-    Enum.reject(opts, fn
-      {k, _}
-      when k in [
-             :structs,
-             :binaries,
-             :charlists,
-             :char_lists,
-             :limit,
-             :printable_limit,
-             :width,
-             :base,
-             :pretty,
-             :safe,
-             :syntax_colors,
-             :inspect_fun
-           ] ->
-        true
-
-      _ ->
-        false
-    end)
+  def filter_custom_options(opts) do
+    Keyword.drop(opts, [
+      :structs,
+      :binaries,
+      :charlists,
+      :char_lists,
+      :limit,
+      :printable_limit,
+      :width,
+      :base,
+      :pretty,
+      :safe,
+      :syntax_colors,
+      :inspect_fun
+    ])
   end
 end
 
