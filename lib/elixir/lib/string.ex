@@ -1278,7 +1278,12 @@ defmodule String do
   Returns a new string created by replacing occurrences of `pattern` in
   `subject` with `replacement`.
 
+  The `subject` is always a string.
+
   The `pattern` may be a string, a regular expression, or a compiled pattern.
+
+  The `replacement` may be a string or a function that receives the matched
+  pattern and must return the replacement as a string or iodata.
 
   By default it replaces all occurrences but this behaviour can be controlled
   through the `:global` option; see the "Options" section below.
@@ -1289,12 +1294,6 @@ defmodule String do
       with `replacement`, otherwise only the first occurrence is
       replaced. Defaults to `true`
 
-    * `:insert_replaced` - (integer or list of integers) specifies the position
-      where to insert the replaced part inside the `replacement`. If any
-      position given in the `:insert_replaced` option is larger than the
-      replacement string, or is negative, an `ArgumentError` is raised. See the
-      examples below
-
   ## Examples
 
       iex> String.replace("a,b,c", ",", "-")
@@ -1302,6 +1301,12 @@ defmodule String do
 
       iex> String.replace("a,b,c", ",", "-", global: false)
       "a-b,c"
+
+  The pattern may also be a list of strings and the replacement may also
+  be a function that receives the matched patterns:
+
+      iex> String.replace("a,b,c", ["a", "c"], fn <<char>> -> <<char + 1>> end)
+      "b,b,d"
 
   When the pattern is a regular expression, one can give `\N` or
   `\g{N}` in the `replacement` string to access a specific capture in the
@@ -1315,25 +1320,11 @@ defmodule String do
   giving `\0`, one can inject the whole matched pattern in the replacement
   string.
 
-  When the pattern is a string, a developer can use the replaced part inside
-  the `replacement` by using the `:insert_replaced` option and specifying the
-  position(s) inside the `replacement` where the string pattern will be
-  inserted:
-
-      iex> String.replace("a,b,c", "b", "[]", insert_replaced: 1)
-      "a,[b],c"
-
-      iex> String.replace("a,b,c", ",", "[]", insert_replaced: 2)
-      "a[],b[],c"
-
-      iex> String.replace("a,b,c", ",", "[]", insert_replaced: [1, 1])
-      "a[,,]b[,,]c"
-
   A compiled pattern can also be given:
 
       iex> pattern = :binary.compile_pattern(",")
-      iex> String.replace("a,b,c", pattern, "[]", insert_replaced: 2)
-      "a[],b[],c"
+      iex> String.replace("a,b,c", pattern, "[]")
+      "a[]b[]c"
 
   When an empty string is provided as a `pattern`, the function will treat it as
   an implicit empty string between each grapheme and the string will be
@@ -1347,43 +1338,89 @@ defmodule String do
       "ELIXIR"
 
   """
-  @spec replace(t, pattern | Regex.t(), t, keyword) :: t
+  @spec replace(t, pattern | Regex.t(), t | (t -> t | iodata), keyword) :: t
   def replace(subject, pattern, replacement, options \\ [])
-  def replace(subject, "", "", _), do: subject
 
-  def replace(subject, "", replacement, options) do
+  def replace(subject, %{__struct__: Regex} = regex, replacement, options)
+      when is_binary(replacement) or is_function(replacement, 1) do
+    Regex.replace(regex, subject, replacement, options)
+  end
+
+  def replace(subject, "", "", _) when is_binary(subject) do
+    subject
+  end
+
+  def replace(subject, "", replacement, options)
+      when is_binary(subject) and is_binary(replacement) do
     if Keyword.get(options, :global, true) do
-      IO.iodata_to_binary([replacement | intersperse(subject, replacement)])
+      IO.iodata_to_binary([replacement | intersperse_bin(subject, replacement)])
     else
       replacement <> subject
     end
   end
 
-  def replace(subject, pattern, replacement, options) when is_binary(replacement) do
-    if Regex.regex?(pattern) do
-      Regex.replace(pattern, subject, replacement, global: options[:global])
+  def replace(subject, "", replacement, options)
+      when is_binary(subject) and is_function(replacement, 1) do
+    if Keyword.get(options, :global, true) do
+      IO.iodata_to_binary([replacement.("") | intersperse_fun(subject, replacement)])
     else
-      opts = translate_replace_options(options)
-      :binary.replace(subject, pattern, replacement, opts)
+      IO.iodata_to_binary([replacement.("") | subject])
     end
   end
 
-  defp intersperse(subject, replacement) do
+  def replace(subject, pattern, replacement, options) when is_binary(subject) do
+    if insert = Keyword.get(options, :insert_replaced) do
+      IO.warn(
+        "String.replace/4 with :insert_replaced option is deprecated. " <>
+          "Please use :binary.replace/4 instead or pass an anonymous function as replacement"
+      )
+
+      binary_options = if Keyword.get(options, :global) != false, do: [:global], else: []
+      :binary.replace(subject, pattern, replacement, [insert_replaced: insert] ++ binary_options)
+    else
+      matches =
+        if Keyword.get(options, :global, true) do
+          :binary.matches(subject, pattern)
+        else
+          case :binary.match(subject, pattern) do
+            :nomatch -> []
+            match -> [match]
+          end
+        end
+
+      IO.iodata_to_binary(do_replace(subject, matches, replacement, 0))
+    end
+  end
+
+  defp intersperse_bin(subject, replacement) do
     case next_grapheme(subject) do
-      {current, rest} -> [current, replacement | intersperse(rest, replacement)]
+      {current, rest} -> [current, replacement | intersperse_bin(rest, replacement)]
       nil -> []
     end
   end
 
-  defp translate_replace_options(options) do
-    global = if Keyword.get(options, :global) != false, do: [:global], else: []
+  defp intersperse_fun(subject, replacement) do
+    case next_grapheme(subject) do
+      {current, rest} -> [current, replacement.("") | intersperse_fun(rest, replacement)]
+      nil -> []
+    end
+  end
 
-    insert =
-      if insert = Keyword.get(options, :insert_replaced),
-        do: [{:insert_replaced, insert}],
-        else: []
+  defp do_replace(subject, [], _, n) do
+    [binary_part(subject, n, byte_size(subject) - n)]
+  end
 
-    global ++ insert
+  defp do_replace(subject, [{start, length} | matches], replacement, n) do
+    prefix = binary_part(subject, n, start - n)
+
+    middle =
+      if is_binary(replacement) do
+        replacement
+      else
+        replacement.(binary_part(subject, start, length))
+      end
+
+    [prefix, middle | do_replace(subject, matches, replacement, start + length)]
   end
 
   @doc ~S"""
