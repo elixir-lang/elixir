@@ -36,13 +36,13 @@ We have written extensive documentation on releases, so we recommend checking it
 
 ## Configuration overhaul
 
-A new `Config` module has been added to Elixir. The previous configuration API, `Mix.Config`, was part of the Mix build tool. But since releases provide runtime configuration and Mix is not included in releases, we ported the Config API to Elixir. In other words, `use Mix.Config` has been soft-deprecated in favor of `import Config`.
+A new `Config` module has been added to Elixir. The previous configuration API, `Mix.Config`, was part of the Mix build tool. But since releases provide runtime configuration and Mix is not included in releases, we ported the `Mix.Config` API to Elixir. In other words, `use Mix.Config` has been soft-deprecated in favor of `import Config`.
 
 Another important change related to configuration is that `mix new` will no longer generate a `config/config.exs`. [Relying on configuration is undesired for most libraries](https://hexdocs.pm/elixir/library-guidelines.html#avoid-application-configuration) and the generated config files pushed library authors in the wrong direction. Furthermore, `mix new --umbrella` will no longer generate a configuration for each child app, instead all configuration should be declared in the umbrella root. That's how it has always behaved, we are now making it explicit.
 
 ## Other enhancements
 
-There are many other enhancements. The Elixir CLI got a handful of new options in order to best support releases. Logger now computes its sync/async/discard thresholds in a decentralized fashion, reducing contention. `EEx` templates support more complex expressions than before. Finally, there is a new `~U` sigil for working with UTC DateTimes as well as new functions in the `File`, `Registry` and `System` modules.
+There are many other enhancements. The Elixir CLI got a handful of new options in order to best support releases. Logger now computes its sync/async/discard thresholds in a decentralized fashion, reducing contention. `EEx` templates support more complex expressions than before. Finally, there is a new `~U` sigil for working with UTC DateTimes as well as new functions in the `File`, `Registry`, and `System` modules.
 
 ## v1.9.0-dev
 
