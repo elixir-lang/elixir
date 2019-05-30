@@ -63,7 +63,7 @@ Elixir deprecations happen in 3 steps:
 
   1. The feature is soft-deprecated. It means both CHANGELOG and documentation must list the feature as deprecated but no warning is effectively emitted by running the code. There is no requirement to soft-deprecate a feature.
 
-  2. The feature is effectively deprecated by emitting warnings on usage. This is also known as hard-deprecation. In order to deprecate a feature, the proposed alternative MUST exist for AT LEAST THREE minor versions. For example, `Enum.uniq/2` was soft-deprecated in favor of `Enum.uniq_by/2` in Elixir v1.1. This means a deprecation warning may only be emitted by Elixir v1.3 or later.
+  2. The feature is effectively deprecated by emitting warnings on usage. This is also known as hard-deprecation. In order to deprecate a feature, the proposed alternative MUST exist for AT LEAST THREE minor versions. For example, `Enum.uniq/2` was soft-deprecated in favor of `Enum.uniq_by/2` in Elixir v1.1. This means a deprecation warning may only be emitted by Elixir v1.4 or later.
 
   3. The feature is removed. This can only happen on major releases. This means deprecated features in Elixir v1.x shall only be removed by Elixir v2.x.
 
