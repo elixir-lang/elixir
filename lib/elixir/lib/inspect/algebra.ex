@@ -59,8 +59,7 @@ defmodule Inspect.Opts do
 
     * `:custom_options` (since v1.9.0) - a keyword list storing custom user-defined
       options. Useful when implementing the `Inspect` protocol for nested structs
-      to pass the custom options through. All the non-default options passed to
-      `Kernel.inspect/2` will be put into this list.
+      to pass the custom options through.
 
   """
 
