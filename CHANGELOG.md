@@ -10,7 +10,7 @@ You can start a new project and assemble a release for it in 3 easy steps:
     $ cd my_app
     $ MIX_ENV=prod mix release
 
-A release will be assembled in `_build/prod/rel/my_app`. Inside the release, there will be a `bin/my_app` file which is the front-end to your system. It supports multiple commands, such as:
+A release will be assembled in `_build/prod/rel/my_app`. Inside the release, there will be a `bin/my_app` file which is the entry point to your system. It supports multiple commands, such as:
 
   * `bin/my_app start`, `bin/my_app start_iex`, `bin/my_app restart`, and `bin/my_app stop` - for general management of the release
 
@@ -59,7 +59,7 @@ There are many other enhancements. The Elixir CLI got a handful of new options i
   * [Code] Add `static_atom_encoder` option to `Code.string_to_quoted/2`
   * [Code] Support `:force_do_end_blocks` on `Code.format_string!/2` and `Code.format_file!/2`
   * [Code] Do not raise on deadlocks on `Code.ensure_compiled/1`
-   * [Config] Add `Config`, `Config.Reader`, and `Config.Provider` modules for working with configuration
+  * [Config] Add `Config`, `Config.Reader`, and `Config.Provider` modules for working with configuration
   * [File] Add `File.rename!/2`
   * [Inspect] Add `:inspect_fun` and `:custom_options` to `Inspect.Opts`
   * [Kernel] Add `~U` sigil for UTC date times
