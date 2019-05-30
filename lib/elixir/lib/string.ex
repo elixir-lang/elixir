@@ -1372,7 +1372,7 @@ defmodule String do
     if insert = Keyword.get(options, :insert_replaced) do
       IO.warn(
         "String.replace/4 with :insert_replaced option is deprecated. " <>
-          "Please :binary.replace/4 instead or pass an anonymous function as replacement"
+          "Please use :binary.replace/4 instead or pass an anonymous function as replacement"
       )
 
       binary_options = if Keyword.get(options, :global) != false, do: [:global], else: []
