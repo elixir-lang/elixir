@@ -539,15 +539,20 @@ defmodule Mix.Tasks.Release do
   and configuring the running system:
 
     * `config/config.exs` (and `config/prod.exs`) - provides build-time
-      application configuration
+      application configuration. Those are executed when the release is
+      assembled
 
-    * `config/releases.exs` - provides runtime application configuration
+    * `config/releases.exs` - provides runtime application configuration.
+      It is executed every time the release boots and is further extensible
+      via config providers
 
-    * `rel/vm.args.eex` - provides a static mechanism for configuring the
-      Erlang Virtual Machine and other runtime flags
+    * `rel/vm.args.eex` - a template file that is copied into every release
+      and provides static configuration of the Erlang Virtual Machine and
+      other runtime flags
 
-    * `rel/env.sh.eex` and `rel/env.bat.eex`- provides a dynamic mechanism
-      for setting up the VM, runtime flags, and environment variables
+    * `rel/env.sh.eex` and `rel/env.bat.eex` - a template file that is copied
+      into every release and is executed on every command to set up environment
+      variables, including VM specific env vars, and the general environment
 
   ## Directory structure
 

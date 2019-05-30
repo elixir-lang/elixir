@@ -1,5 +1,49 @@
 # Changelog for Elixir v1.9
 
+## Releases
+
+The main feature in Elixir v1.9 is the addition of releases. A release is a self-contained directory with your application code, all of its dependencies, plus the whole Erlang VM and runtime. Once a release is assembled, it can be packaged and deployed to a target, as long as the target runs on the same operating system (OS) distribution and version as the machine running the `mix release` command.
+
+You can start a new project and assemble a release for it in 3 easy steps:
+
+    $ mix new my_app
+    $ cd my_app
+    $ MIX_ENV=prod mix release
+
+A release will be assembled in `_build/prod/rel/my_app`. Inside the release, there will be a `bin/my_app` file which is the front-end to your system. It supports multiple commands, such as:
+
+  * `bin/my_app start`, `bin/my_app start_iex`, `bin/my_app restart`, and `bin/my_app stop` - for general management of the release
+
+  * `bin/my_app rpc COMMAND` and `bin/my_app remote` - for running commands on the running system or to connect to the running system
+
+  * `bin/my_app eval COMMAND` - to start a fresh system that runs a single command and then shuts down
+
+  * `bin/my_app daemon` and `bin/my_app daemon_iex` - to start the system as a daemon on Unix-like systems
+
+  * `bin/my_app install` - to install the system as a service on Windows machines
+
+Releases also provide built-in hooks for configuring almost every need of the production system:
+
+  * `config/config.exs` (and `config/prod.exs`) - provides build-time application configuration. Those are executed when the release is assembled
+
+  * `config/releases.exs` - provides runtime application configuration. It is executed every time the release boots and is further extensible via config providers
+
+  * `rel/vm.args.eex` - a template file that is copied into every release and provides static configuration of the Erlang Virtual Machine and other runtime flags
+
+  * `rel/env.sh.eex` and `rel/env.bat.eex` - a template file that is copied into every release and is executed on every command to set up environment variables, including VM specific env vars, and the general environment
+
+We have written extensive documentation on releases, so we recommend checking it out for more information.
+
+## Configuration overhaul
+
+A new `Config` module has been added to Elixir. The previous configuration API, `Mix.Config`, was part of the Mix build tool. But since releases provide runtime configuration and Mix is not included in releases, we ported the Config API to Elixir. In other words, `use Mix.Config` has been soft-deprecated in favor of `import Config`.
+
+Another important change related to configuration is that `mix new` will no longer generate a `config/config.exs`. [Relying on configuration is undesired for most libraries](https://hexdocs.pm/elixir/library-guidelines.html#avoid-application-configuration) and the generated config files pushed library authors in the wrong direction. Furthermore, `mix new --umbrella` will no longer generate a configuration for each child app, instead all configuration should be declared in the umbrella root. That's how it has always behaved, we are now making it explicit.
+
+## Other enhancements
+
+There are many other enhancements. The Elixir CLI got a handful of new options in order to best support releases. Logger now computes its sync/async/discard thresholds in a decentralized fashion, reducing contention. `EEx` templates support more complex expressions than before. Finally, there is a new `~U` sigil for working with UTC DateTimes as well as new functions in the `File`, `Registry` and `System` modules.
+
 ## v1.9.0-dev
 
 ### 1. Enhancements
@@ -17,7 +61,7 @@
   * [Code] Do not raise on deadlocks on `Code.ensure_compiled/1`
   * [Config] Add `Config`, `Config.Reader` and `Config.Provider` modules for working with configuration
   * [File] Add `File.rename!/2`
-  * [Inspect] Add `:inspect_fun` to `Inspect.Opts`
+  * [Inspect] Add `:inspect_fun` and `:custom_options` to `Inspect.Opts`
   * [Kernel] Add `~U` sigil for UTC date times
   * [Kernel] Optimize `&super/arity` and `&super(&1)`
   * [Kernel] Optimize generated code for `with` with a catch-all clause
@@ -26,6 +70,7 @@
   * [Protocol] Improve `Protocol.UndefinedError` messages to also include the type that was attempted to dispatch on
   * [Protocol] Optimize performance of dynamic dispatching for non-consolidated protocols
   * [Record] Include field names in generated type for records
+  * [Regex] Automatically recompile regexes
   * [Registry] Add `Registry.select/2`
   * [System] Add `System.restart/0`, `System.pid/0` and `System.no_halt/1`
   * [System] Add `System.get_env/2`, `System.fetch_env/1`, and `System.fetch_env!/1`
@@ -75,6 +120,7 @@
   * [Kernel] Keep order of elements when macro `in/2` is expanded with a literal list on the right-hand side
   * [Kernel] Print proper location on undefined function error from dynamically generated functions
   * [System] Make sure `:init.get_status/0` is set to `{:started, :started}` once the system starts
+  * [Path] Do not expand `~` in `Path.expand/2` when not followed by a path separator
   * [Protocol] Ensure `debug_info` is kept in protocols
   * [Regex] Ensure inspect returns valid `~r//` expressions when they are manually compiled with backslashes
   * [Registry] Fix ETS leak in `Registry.register/2` for already registered calls in unique registries while the process is still alive
@@ -82,15 +128,21 @@
 #### ExUnit
 
   * [ExUnit] Raise error if attempting to run single line tests on multiple files
+  * [ExUnit] Return proper error on duplicate child ids on `start_supervised`
 
 #### IEx
 
   * [IEx] Automatically shut down IEx if we receive EOF
 
+#### Logger
+
+  * [Logger] Don't discard Logger messages from other nodes as to leave a trail on both systems
+
 #### Mix
 
   * [mix compile] Ensure Erlang-based Mix compilers (erlang, leex, yecc) set valid position on diagnostics
   * [mix compile] Ensure compilation halts in an umbrella project if one of the siblings fail to compile
+  * [mix deps] Raise an error if the umbrella app's dir name and mix.exs app name don't match
   * [mix test] Do not consider modules that are no longer cover compiled when computing coverage report, which could lead to flawed reports
 
 ### 3. Soft-deprecations (no warnings emitted)
@@ -105,6 +157,7 @@
 
   * [CLI] Deprecate `--detached` option, use `--erl "-detached"` instead
   * [Map] Deprecate Enumerable keys in `Map.drop/2`, `Map.split/2`, and `Map.take/2`
+  * [String] The `:insert_replaced` option in `String.replace/4` has been deprecated. Instead you may pass a function as a replacement or use `:binary.replace/4` if you need to support earlier Elixir versions
 
 #### Mix
 
