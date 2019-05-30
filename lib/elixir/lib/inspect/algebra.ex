@@ -57,6 +57,10 @@ defmodule Inspect.Opts do
     * `:inspect_fun` (since v1.9.0) - a function to build algebra documents,
       defaults to `Inspect.inspect/2`
 
+    * `:custom_options` (since v1.9.0) - a keyword list storing custom user-defined
+      options. Useful when implementing the `Inspect` protocol for nested structs
+      to pass the custom options through.
+
   """
 
   # TODO: Remove :char_lists key on v2.0
@@ -71,7 +75,8 @@ defmodule Inspect.Opts do
             pretty: false,
             safe: true,
             syntax_colors: [],
-            inspect_fun: &Inspect.inspect/2
+            inspect_fun: &Inspect.inspect/2,
+            custom_options: []
 
   @type color_key :: atom
 
@@ -88,7 +93,8 @@ defmodule Inspect.Opts do
           pretty: boolean,
           safe: boolean,
           syntax_colors: [{color_key, IO.ANSI.ansidata()}],
-          inspect_fun: (any, t -> Inspect.Algebra.t())
+          inspect_fun: (any, t -> Inspect.Algebra.t()),
+          custom_options: keyword
         }
 end
 
