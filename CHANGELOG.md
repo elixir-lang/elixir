@@ -59,7 +59,7 @@ There are many other enhancements. The Elixir CLI got a handful of new options i
   * [Code] Add `static_atom_encoder` option to `Code.string_to_quoted/2`
   * [Code] Support `:force_do_end_blocks` on `Code.format_string!/2` and `Code.format_file!/2`
   * [Code] Do not raise on deadlocks on `Code.ensure_compiled/1`
-  * [Config] Add `Config`, `Config.Reader` and `Config.Provider` modules for working with configuration
+   * [Config] Add `Config`, `Config.Reader`, and `Config.Provider` modules for working with configuration
   * [File] Add `File.rename!/2`
   * [Inspect] Add `:inspect_fun` and `:custom_options` to `Inspect.Opts`
   * [Kernel] Add `~U` sigil for UTC date times
@@ -100,7 +100,7 @@ There are many other enhancements. The Elixir CLI got a handful of new options i
   * [mix new] No longer generate a `config/` directory for mix new
   * [mix release] Add support for releases
   * [mix release.init] Add templates for release configuration
-  * [mix test] Allow running tes\ for a given umbrella app from the umbrella root with `mix test apps/APP/test`. Test failures also include the `apps/APP` prefix in the test location
+  * [mix test] Allow running tests for a given umbrella app from the umbrella root with `mix test apps/APP/test`. Test failures also include the `apps/APP` prefix in the test location
 
 ### 2. Bug fixes
 
