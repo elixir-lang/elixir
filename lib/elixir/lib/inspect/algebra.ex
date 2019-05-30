@@ -58,9 +58,10 @@ defmodule Inspect.Opts do
       defaults to `Inspect.inspect/2`
 
     * `:custom_options` (since v1.9.0) - a keyword list storing custom user-defined
-      options; useful when implementing a protocol for nested structures to pass
-      the custom options through. All the non-default options passed to
-      `Kernel.inspect/2` will be put into this bag.
+      options. Useful when implementing the `Inspect` protocol for nested structs
+      to pass the custom options through. All the non-default options passed to
+      `Kernel.inspect/2` will be put into this list.
+      
   """
 
   # TODO: Remove :char_lists key on v2.0
