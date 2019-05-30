@@ -22,6 +22,20 @@ A release will be assembled in `_build/prod/rel/my_app`. Inside the release, the
 
   * `bin/my_app install` - to install the system as a service on Windows machines
 
+### Why releases?
+
+Releases allow developers to precompile and package all of their code and the runtime into a single unit. The benefits of releases are:
+
+  * Code preloading. The VM has two mechanisms for loading code: interactive and embedded. By default, it runs in the interactive mode which dynamically loads modules when they are used for the first time. The first time your application calls `Enum.map/2`, the VM will find the `Enum` module and load it. There’s a downside. When you start a new server in production, it may need to load many other modules, causing the first requests to have an unusual spike in response time. Releases run in embedded mode, which loads all available modules upfront, guaranteeing your system is ready to handle requests after booting.
+
+  * Configuration and customization. Releases give developers fine grained control over system configuration and the VM flags used to start the system.
+
+  * Self-contained. A release does not require the source code to be included in your production artifacts. All of the code is precompiled and packaged. Releases do not even require Erlang or Elixir in your servers, as it includes the Erlang VM and its runtime by default. Furthermore, both Erlang and Elixir standard libraries are stripped to bring only the parts you are actually using.
+
+  * Multiple releases. You can assemble different releases with different configuration per application or even with different applications altogether.
+
+### Hooks and Configuration
+
 Releases also provide built-in hooks for configuring almost every need of the production system:
 
   * `config/config.exs` (and `config/prod.exs`) - provides build-time application configuration. Those are executed when the release is assembled
