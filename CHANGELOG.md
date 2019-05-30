@@ -80,12 +80,12 @@ There are many other enhancements. The Elixir CLI got a handful of new options i
 
   * [ExUnit] Allow multiple `:exclude` on configuration/CLI
   * [ExUnit.DocTest] No longer wrap doctest errors in custom exceptions. They ended-up hiding more information than showing
-  * [ExUnit.DocTest] Display the actual doctest code when doctset fails
+  * [ExUnit.DocTest] Display the actual doctest code when doctest fails
 
 #### IEx
 
-  * [IEx.CLI] Copy ticktime from remote node on IEx --remsh
-  * [IEx.CLI] Automatically add a host on node given to --remsh
+  * [IEx.CLI] Copy ticktime from remote node on IEx `--remsh`
+  * [IEx.CLI] Automatically add a host on node given to `--remsh`
 
 #### Logger
 
@@ -100,7 +100,7 @@ There are many other enhancements. The Elixir CLI got a handful of new options i
   * [mix new] No longer generate a `config/` directory for mix new
   * [mix release] Add support for releases
   * [mix release.init] Add templates for release configuration
-  * [mix test] Allow running tests for a given umbrella app from the umbrella root with `mix test apps/APP/test`. Test failures also include the `apps/APP` prefix in the test location
+  * [mix test] Allow running tes\ for a given umbrella app from the umbrella root with `mix test apps/APP/test`. Test failures also include the `apps/APP` prefix in the test location
 
 ### 2. Bug fixes
 
