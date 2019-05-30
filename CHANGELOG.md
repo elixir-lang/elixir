@@ -2,9 +2,9 @@
 
 ## Releases
 
-The main feature in Elixir v1.9 is the addition of releases. A release is a self-contained directory with your application code, all of its dependencies, plus the whole Erlang VM and runtime. Once a release is assembled, it can be packaged and deployed to a target, as long as the target runs on the same operating system (OS) distribution and version as the machine running the `mix release` command.
+The main feature in Elixir v1.9 is the addition of releases. A release is a self-contained directory that consists of your application code, all of its dependencies, plus the whole Erlang Virtual Machine (VM) and runtime. Once a release is assembled, it can be packaged and deployed to a target as long as the target runs on the same operating system (OS) distribution and version as the machine running the `mix release` command.
 
-You can start a new project and assemble a release for it in 3 easy steps:
+You can start a new project and assemble a release for it in three easy steps:
 
     $ mix new my_app
     $ cd my_app
@@ -38,13 +38,13 @@ Releases allow developers to precompile and package all of their code and the ru
 
 Releases also provide built-in hooks for configuring almost every need of the production system:
 
-  * `config/config.exs` (and `config/prod.exs`) - provides build-time application configuration. Those are executed when the release is assembled
+  * `config/config.exs` (and `config/prod.exs`) - provides build-time application configuration, which are executed when the release is assembled
 
   * `config/releases.exs` - provides runtime application configuration. It is executed every time the release boots and is further extensible via config providers
 
   * `rel/vm.args.eex` - a template file that is copied into every release and provides static configuration of the Erlang Virtual Machine and other runtime flags
 
-  * `rel/env.sh.eex` and `rel/env.bat.eex` - a template file that is copied into every release and is executed on every command to set up environment variables, including VM specific env vars, and the general environment
+  * `rel/env.sh.eex` and `rel/env.bat.eex` - template files that are copied into every release and is executed on every command to set up environment variables, including specific ones to the VM, and the general environment
 
 We have written extensive documentation on releases, so we recommend checking it out for more information.
 
@@ -52,7 +52,7 @@ We have written extensive documentation on releases, so we recommend checking it
 
 A new `Config` module has been added to Elixir. The previous configuration API, `Mix.Config`, was part of the Mix build tool. But since releases provide runtime configuration and Mix is not included in releases, we ported the `Mix.Config` API to Elixir. In other words, `use Mix.Config` has been soft-deprecated in favor of `import Config`.
 
-Another important change related to configuration is that `mix new` will no longer generate a `config/config.exs`. [Relying on configuration is undesired for most libraries](https://hexdocs.pm/elixir/library-guidelines.html#avoid-application-configuration) and the generated config files pushed library authors in the wrong direction. Furthermore, `mix new --umbrella` will no longer generate a configuration for each child app, instead all configuration should be declared in the umbrella root. That's how it has always behaved, we are now making it explicit.
+Another important change related to configuration is that `mix new` will no longer generate a `config/config.exs` file. [Relying on configuration is undesired for most libraries](https://hexdocs.pm/elixir/library-guidelines.html#avoid-application-configuration) and the generated config files pushed library authors in the wrong direction. Furthermore, `mix new --umbrella` will no longer generate a configuration for each child app, instead all configuration should be declared in the umbrella root. That's how it has always behaved, we are now making it explicit.
 
 ## Other enhancements
 
