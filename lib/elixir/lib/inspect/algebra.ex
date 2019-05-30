@@ -101,7 +101,7 @@ defmodule Inspect.Opts do
   @doc """
   Filters out all the default options, returning the custom options only.
   """
-  @spec filter_custom_options(keyword()) :: keyword()
+  @spec filter_custom_options(opts) :: opts when opts: keyword()
   def filter_custom_options(opts) do
     Keyword.drop(opts, [
       :structs,
