@@ -61,7 +61,7 @@ defmodule Inspect.Opts do
       options. Useful when implementing the `Inspect` protocol for nested structs
       to pass the custom options through. All the non-default options passed to
       `Kernel.inspect/2` will be put into this list.
-      
+
   """
 
   # TODO: Remove :char_lists key on v2.0
@@ -98,6 +98,10 @@ defmodule Inspect.Opts do
           custom_options: keyword
         }
 
+  @doc """
+  Filters out all the default options, returning the custom options only.
+  """
+  @spec filter_custom_options(keyword()) :: keyword()
   def filter_custom_options(opts) do
     Keyword.drop(opts, [
       :structs,
