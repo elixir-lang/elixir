@@ -690,7 +690,8 @@ defmodule Inspect.OthersTest do
         indent = Keyword.get(opts.custom_options, :indent, 2)
         level = Keyword.get(opts.custom_options, :level, 1)
 
-        nested_str = Kernel.inspect(nested, level: level + 1, indent: indent + 2)
+        nested_str =
+          Kernel.inspect(nested, custom_options: [level: level + 1, indent: indent + 2])
 
         concat(
           nest(line("#Nested[##{level}/#{indent}]<", nested_str), indent),

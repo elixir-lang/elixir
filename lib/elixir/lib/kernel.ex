@@ -2055,8 +2055,7 @@ defmodule Kernel do
   """
   @spec inspect(Inspect.t(), keyword) :: String.t()
   def inspect(term, opts \\ []) when is_list(opts) do
-    custom_options = Inspect.Opts.filter_custom_options(opts)
-    opts = struct(Inspect.Opts, [{:custom_options, custom_options} | opts])
+    opts = struct(Inspect.Opts, opts)
 
     limit =
       case opts.pretty do

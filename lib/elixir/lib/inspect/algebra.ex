@@ -97,27 +97,6 @@ defmodule Inspect.Opts do
           inspect_fun: (any, t -> Inspect.Algebra.t()),
           custom_options: keyword
         }
-
-  @doc """
-  Filters out all the default options, returning the custom options only.
-  """
-  @spec filter_custom_options(opts) :: opts when opts: keyword()
-  def filter_custom_options(opts) do
-    Keyword.drop(opts, [
-      :structs,
-      :binaries,
-      :charlists,
-      :char_lists,
-      :limit,
-      :printable_limit,
-      :width,
-      :base,
-      :pretty,
-      :safe,
-      :syntax_colors,
-      :inspect_fun
-    ])
-  end
 end
 
 defmodule Inspect.Error do
