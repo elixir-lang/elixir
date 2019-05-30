@@ -142,7 +142,7 @@ There are many other enhancements. The Elixir CLI got a handful of new options i
 
   * [mix compile] Ensure Erlang-based Mix compilers (erlang, leex, yecc) set valid position on diagnostics
   * [mix compile] Ensure compilation halts in an umbrella project if one of the siblings fail to compile
-  * [mix deps] Raise an error if the umbrella app's dir name and mix.exs app name don't match
+  * [mix deps] Raise an error if the umbrella app's dir name and `mix.exs` app name don't match
   * [mix test] Do not consider modules that are no longer cover compiled when computing coverage report, which could lead to flawed reports
 
 ### 3. Soft-deprecations (no warnings emitted)
