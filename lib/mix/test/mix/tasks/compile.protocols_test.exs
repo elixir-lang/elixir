@@ -117,6 +117,34 @@ defmodule Mix.Tasks.Compile.ProtocolsTest do
     end)
   end
 
+  test "consolidated protocols keep relative path to their source" do
+    Mix.Project.push(MixTest.Case.Sample)
+
+    in_fixture("no_mixfile", fn ->
+      Mix.Tasks.Compile.Elixir.run([])
+      Mix.Tasks.Compile.Protocols.run([])
+
+      # Load consolidated
+      :code.add_patha('_build/dev/lib/sample/consolidated')
+      :code.purge(Enumerable)
+      :code.delete(Enumerable)
+
+      try do
+        Enumerable.impl_for!(:oops)
+      rescue
+        Protocol.UndefinedError ->
+          assert [{_, _, _, [file: 'lib/enum.ex'] ++ _} | _] = __STACKTRACE__
+      else
+        _ ->
+          flunk("Enum.map/2 should have failed")
+      after
+        :code.del_path('_build/dev/lib/sample/consolidated')
+        :code.purge(Enumerable)
+        :code.delete(Enumerable)
+      end
+    end)
+  end
+
   defp compile_elixir_and_protocols do
     Mix.Tasks.Compile.Elixir.run([])
     Mix.Tasks.Compile.Protocols.run([])
