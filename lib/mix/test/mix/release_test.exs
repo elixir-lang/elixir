@@ -110,6 +110,18 @@ defmodule Mix.ReleaseTest do
       end
     end
 
+    test "uses the latest version of an app if there are multiple versions", context do
+      in_tmp(context.test, fn ->
+        File.cp_r!(:code.root_dir(), ".", fn _, _ -> false end)
+        File.mkdir_p!("lib/compiler-1.0")
+        erts_source = Path.join(File.cwd!(), "erts-#{@erts_version}")
+
+        release = from_config!(nil, config(releases: [demo: [include_erts: erts_source]]), [])
+
+        assert release.applications.compiler[:vsn] != "1.0"
+      end)
+    end
+
     test "raises on unknown app" do
       assert_raise Mix.Error, "Could not find application :unknown", fn ->
         from_config!(nil, config(releases: [demo: [applications: [unknown: :none]]]), [])
@@ -537,7 +549,7 @@ defmodule Mix.ReleaseTest do
       assert File.exists?(Path.join(@release_lib, "runtime_tools-#{@runtime_tools_version}/priv"))
     end
 
-    test "does not copy OTP app if include_erts is  false" do
+    test "does not copy OTP app if include_erts is false" do
       release = release(include_erts: false, applications: [runtime_tools: :permanent])
       refute copy_app(release, :runtime_tools)
       refute File.exists?(Path.join(@release_lib, "runtime_tools-#{@runtime_tools_version}/ebin"))
