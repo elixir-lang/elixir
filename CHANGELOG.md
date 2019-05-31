@@ -30,7 +30,7 @@ Releases allow developers to precompile and package all of their code and the ru
 
   * Configuration and customization. Releases give developers fine grained control over system configuration and the VM flags used to start the system.
 
-  * Self-contained. A release does not require the source code to be included in your production artifacts. All of the code is precompiled and packaged. Releases do not even require Erlang or Elixir in your servers, as it includes the Erlang VM and its runtime by default. Furthermore, both Erlang and Elixir standard libraries are stripped to bring only the parts you are actually using.
+  * Self-contained. A release does not require the source code to be included in your production artifacts. All of the code is precompiled and packaged. Releases do not even require Erlang or Elixir in your servers, as they include the Erlang VM and its runtime by default. Furthermore, both Erlang and Elixir standard libraries are stripped to bring only the parts you are actually using.
 
   * Multiple releases. You can assemble different releases with different configuration per application or even with different applications altogether.
 
@@ -38,13 +38,13 @@ Releases allow developers to precompile and package all of their code and the ru
 
 Releases also provide built-in hooks for configuring almost every need of the production system:
 
-  * `config/config.exs` (and `config/prod.exs`) - provides build-time application configuration, which are executed when the release is assembled
+  * `config/config.exs` (and `config/prod.exs`) - provides build-time application configuration, which is executed when the release is assembled
 
   * `config/releases.exs` - provides runtime application configuration. It is executed every time the release boots and is further extensible via config providers
 
   * `rel/vm.args.eex` - a template file that is copied into every release and provides static configuration of the Erlang Virtual Machine and other runtime flags
 
-  * `rel/env.sh.eex` and `rel/env.bat.eex` - template files that are copied into every release and is executed on every command to set up environment variables, including specific ones to the VM, and the general environment
+  * `rel/env.sh.eex` and `rel/env.bat.eex` - template files that are copied into every release and executed on every command to set up environment variables, including ones specific to the VM, and the general environment
 
 We have written extensive documentation on releases, so we recommend checking it out for more information.
 
@@ -56,7 +56,7 @@ Another important change related to configuration is that `mix new` will no long
 
 ## Other enhancements
 
-There are many other enhancements. The Elixir CLI got a handful of new options in order to best support releases. Logger now computes its sync/async/discard thresholds in a decentralized fashion, reducing contention. `EEx` templates support more complex expressions than before. Finally, there is a new `~U` sigil for working with UTC DateTimes as well as new functions in the `File`, `Registry`, and `System` modules.
+There are many other enhancements. The Elixir CLI got a handful of new options in order to best support releases. `Logger` now computes its sync/async/discard thresholds in a decentralized fashion, reducing contention. `EEx` templates support more complex expressions than before. Finally, there is a new `~U` sigil for working with UTC DateTimes as well as new functions in the `File`, `Registry`, and `System` modules.
 
 ## v1.9.0-dev
 
@@ -142,7 +142,7 @@ There are many other enhancements. The Elixir CLI got a handful of new options i
 #### ExUnit
 
   * [ExUnit] Raise error if attempting to run single line tests on multiple files
-  * [ExUnit] Return proper error on duplicate child ids on `start_supervised`
+  * [ExUnit] Return proper error on duplicate child IDs on `start_supervised`
 
 #### IEx
 

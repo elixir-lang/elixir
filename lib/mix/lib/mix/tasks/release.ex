@@ -551,7 +551,7 @@ defmodule Mix.Tasks.Release do
       other runtime flags
 
     * `rel/env.sh.eex` and `rel/env.bat.eex` - template files that are copied
-      into every release and is executed on every command to set up environment
+      into every release and are executed on every command to set up environment
       variables, including specific ones to the VM, and the general environment
 
   ## Directory structure
