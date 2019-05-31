@@ -136,7 +136,7 @@ defmodule Mix.Tasks.Compile.ProtocolsTest do
           assert [{_, _, _, [file: 'lib/enum.ex'] ++ _} | _] = __STACKTRACE__
       else
         _ ->
-          flunk("Enum.map/2 should have failed")
+          flunk("Enumerable.impl_for!/1 should have failed")
       after
         :code.del_path('_build/dev/lib/sample/consolidated')
         :code.purge(Enumerable)
