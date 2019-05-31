@@ -2,7 +2,7 @@
 [{description, "elixir"},
  {vsn, '$will-be-replaced'},
  {modules, '$will-be-replaced'},
- {registered, [elixir_config, elixir_code_server]},
+ {registered, [elixir_sup, elixir_config, elixir_code_server]},
  {applications, [kernel,stdlib,compiler]},
  {mod, {elixir,[]}},
  {env, [{check_endianness, true}, {ansi_enabled, false}, {time_zone_database, 'Elixir.Calendar.UTCOnlyTimeZoneDatabase'}]}
