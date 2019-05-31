@@ -24,7 +24,7 @@ Writing code is only the first of many steps to publish a package. We strongly r
 
   * Choose a versioning schema. Elixir requires versions to be in the format `MAJOR.MINOR.PATCH` but the meaning of those numbers is up to you. Most projects choose [Semantic Versioning](https://semver.org/).
 
-  * Choose a [license](https://choosealicense.com/). The most common licenses in the Elixir community are the [MIT License](https://choosealicense.com/licenses/mit/) and the [Apache 2.0 License](https://choosealicense.com/licenses/apache-2.0/). The latter is also the one used by Elixir itself.
+  * Choose a [license](https://choosealicense.com/). The most common licenses in the Elixir community are the [MIT License](https://choosealicense.com/licenses/mit/) and the [Apache License 2.0](https://choosealicense.com/licenses/apache-2.0/). The latter is also the one used by Elixir itself.
 
   * Run the [code formatter](https://hexdocs.pm/mix/Mix.Tasks.Format.html). The code formatter formats your code according to a consistent style shared by your library and the whole community, making it easier for other developers to understand your code and contribute.
 
