@@ -109,6 +109,7 @@ compile(Line, Module, Block, Vars, E) ->
       module => Module,
       line => Line,
       file => File,
+      relative_file => elixir_utils:relative_to_cwd(File),
       attributes => Attributes,
       definitions => AllDefinitions,
       unreachable => Unreachable,
