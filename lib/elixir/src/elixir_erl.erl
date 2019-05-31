@@ -151,12 +151,12 @@ spawned_compile(Map, Set, _Bag, TranslatedTypespecs) ->
 
   load_form(Map, Prefix, Forms, TypeSpecs, Chunks).
 
-dynamic_form(#{module := Module, line := Line, file := File, attributes := Attributes,
+dynamic_form(#{module := Module, line := Line, relative_file := RelativeFile, attributes := Attributes,
                definitions := Definitions, unreachable := Unreachable, compile_opts := Opts} = Map) ->
   {Def, Defmacro, Macros, Exports, Functions} =
     split_definition(Definitions, Unreachable, [], [], [], [], {[], []}),
 
-  Location = {elixir_utils:characters_to_list(elixir_utils:relative_to_cwd(File)), Line},
+  Location = {elixir_utils:characters_to_list(RelativeFile), Line},
   Prefix = [{attribute, Line, file, Location},
             {attribute, Line, module, Module},
             {attribute, Line, compile, [no_auto_import | Opts]}],
