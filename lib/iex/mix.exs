@@ -11,7 +11,7 @@ defmodule IEx.MixProject do
 
   def application do
     [
-      registered: [IEx.Supervisor, IEx.Config],
+      registered: [IEx.Broker, IEx.Config, IEx.Pry, IEx.Supervisor],
       mod: {IEx.App, []},
       env: [
         colors: [],

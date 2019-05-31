@@ -11,7 +11,7 @@ defmodule ExUnit.MixProject do
 
   def application do
     [
-      registered: [ExUnit.Server],
+      registered: [ExUnit.CaptureServer, ExUnit.OnExitHandler, ExUnit.Server, ExUnit.Supervisor],
       mod: {ExUnit, []},
       env: [
         # Calculated on demand

@@ -11,7 +11,7 @@ defmodule Logger.MixProject do
 
   def application do
     [
-      registered: [Logger, Logger.Supervisor, Logger.Watcher],
+      registered: [Logger, Logger.BackendSupervisor, Logger.Supervisor, Logger.Watcher],
       mod: {Logger.App, []},
       env: [
         level: :debug,
