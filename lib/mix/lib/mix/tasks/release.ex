@@ -125,7 +125,7 @@ defmodule Mix.Tasks.Release do
 
   ### Daemon mode (Unix-like)
 
-  You can run the release in daemon mode written as a comment:
+  You can run the release in daemon mode with the command:
 
       bin/RELEASE_NAME daemon_iex
 
