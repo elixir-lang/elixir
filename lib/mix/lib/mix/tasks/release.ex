@@ -112,7 +112,7 @@ defmodule Mix.Tasks.Release do
   The `eval` command starts its own instance of the VM but without
   starting any of the applications in the release and without starting
   distribution. For example, if you need to do some prep work before
-  running the actual system, like updating your database, `eval` can
+  running the actual system, like migrating your database, `eval` can
   be a good fit. Just keep in mind any application you may use during
   eval has to be explicitly started.
 
@@ -122,6 +122,63 @@ defmodule Mix.Tasks.Release do
   started and be careful with the instructions you are executing.
   You can also use `remote` to connect a remote IEx session to the
   system.
+
+  As you operate your system, you may find yourself running some piece of code
+  as a one-off command quite often and re-typing the whole command every
+  time may become cumbersome and error prone. For example, suppose you need to
+  regularly migrate your database and occasionally build a report of currently
+  connected users. You may consider creating a module to group these tasks:
+
+      # lib/my_app/release_tasks.ex
+      defmodule MyApp.ReleaseTasks do
+        def migrate_db() do
+          # ...
+        end
+
+        def print_connected_users() do
+          for user <- connected_users() do
+            # IO.puts ...
+          end
+        end
+      end
+
+  Again, for migrating the database we'd probably use `eval` but to list
+  currently connected users we'd probably connect to a running system using
+  `rpc`:
+
+      bin/RELEASE_NAME eval "MyApp.ReleaseTasks.migrate_db()"
+      bin/RELEASE_NAME rpc "MyApp.ReleaseTasks.print_connected_users()"
+
+  Finally, you may still automate this further by creating standalone scripts
+  for these commands. You can do that by adjusting steps in your `mix.exs`
+  file:
+
+      releases: [
+        demo: [
+          steps: [:assemble, &create_release_scripts/1]
+        ]
+      ]
+
+      defp create_release_scripts(release) do
+        create_script(release, "eval", "migrate_db", "MyApp.ReleaseTasks.migrate_db()")
+        create_script(release, "rpc", "print_connected_users", "MyApp.ReleaseTasks.print_connected_users()")
+        release
+      end
+
+      defp create_script(release, kind, path, expr) do
+        %Mix.Release{name: release_name, path: release_path} = release
+        release_script_path = Path.join([release_path, "bin", to_string(release_name)])
+        script_path = Path.join([release_path, "bin", path])
+        File.write!(script_path, ~s{#\{release_script_path} #\{kind} "#\{expr}"})
+        File.chmod!(script_path, 0o755)
+      end
+
+  And now running the scripts is as simple as:
+
+      bin/migrate_db
+      bin/print_connected_users
+
+  See "Steps" section for more information about customizing release assembly.
 
   ### Daemon mode (Unix-like)
 
