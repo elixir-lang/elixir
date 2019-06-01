@@ -377,10 +377,18 @@ defmodule Mix.Tasks.Test do
     end
 
     unless System.get_env("MIX_ENV") || Mix.env() == :test do
-      Mix.raise(
-        "\"mix test\" is running in the \"#{Mix.env()}\" environment. If you are " <>
-          "running tests alongside another task, please set MIX_ENV explicitly"
-      )
+      Mix.raise("""
+      "mix test" is running in the \"#{Mix.env()}\" environment. If you are \
+      running tests from within another command, you can either:
+
+        1. set MIX_ENV explicitly:
+
+            MIX_ENV=test mix test.another
+
+        2. set the :preferred_cli_env for a command inside "def project" in your mix.exs:
+
+            preferred_cli_env: ["test.another": :test]
+      """)
     end
 
     Mix.Task.run("loadpaths", args)
