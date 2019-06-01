@@ -78,7 +78,7 @@ defmodule Mix.Tasks.Release do
 
     * Management scripts. Releases come with scripts to start, restart,
       connect to the running system remotely, execute RPC calls, run as
-      daemon, run as a Window server, and more.
+      daemon, run as a Windows service, and more.
 
   ## Running the release
 
