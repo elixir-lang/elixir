@@ -123,62 +123,34 @@ defmodule Mix.Tasks.Release do
   You can also use `remote` to connect a remote IEx session to the
   system.
 
+  #### Helper module
+
   As you operate your system, you may find yourself running some piece of code
-  as a one-off command quite often and re-typing the whole command every
-  time may become cumbersome and error prone. For example, suppose you need to
-  regularly migrate your database and occasionally build a report of currently
-  connected users. You may consider creating a module to group these tasks:
+  as a one-off command quite often. You may consider creating a module to group
+  these tasks:
 
       # lib/my_app/release_tasks.ex
       defmodule MyApp.ReleaseTasks do
-        def migrate_db() do
-          # ...
+        def eval_purge_stale_data() do
+          # Eval commands needs to start the app before
+          Application.ensure_all_started(:my_app)
+          # Code that purges stale data
+          ...
         end
 
-        def print_connected_users() do
-          for user <- connected_users() do
-            # IO.puts ...
-          end
+        def rpc_print_connected_users() do
+          # Code that print users connected to the current running system
+          ...
         end
       end
 
-  Again, for migrating the database we'd probably use `eval` but to list
-  currently connected users we'd probably connect to a running system using
-  `rpc`:
+  In the example above, we prefixed the function names with the command
+  name used to execute them, but that is entirely optional.
 
-      bin/RELEASE_NAME eval "MyApp.ReleaseTasks.migrate_db()"
-      bin/RELEASE_NAME rpc "MyApp.ReleaseTasks.print_connected_users()"
+  And to run them:
 
-  Finally, you may still automate this further by creating standalone scripts
-  for these commands. You can do that by adjusting steps in your `mix.exs`
-  file:
-
-      releases: [
-        demo: [
-          steps: [:assemble, &create_release_scripts/1]
-        ]
-      ]
-
-      defp create_release_scripts(release) do
-        create_script(release, "eval", "migrate_db", "MyApp.ReleaseTasks.migrate_db()")
-        create_script(release, "rpc", "print_connected_users", "MyApp.ReleaseTasks.print_connected_users()")
-        release
-      end
-
-      defp create_script(release, kind, path, expr) do
-        %Mix.Release{name: release_name, path: release_path} = release
-        release_script_path = Path.join([release_path, "bin", to_string(release_name)])
-        script_path = Path.join([release_path, "bin", path])
-        File.write!(script_path, ~s{#\{release_script_path} #\{kind} "#\{expr}"})
-        File.chmod!(script_path, 0o755)
-      end
-
-  And now running the scripts is as simple as:
-
-      bin/migrate_db
-      bin/print_connected_users
-
-  See "Steps" section for more information about customizing release assembly.
+      bin/RELEASE_NAME eval "MyApp.ReleaseTasks.eval_purge_stale_data()"
+      bin/RELEASE_NAME rpc "MyApp.ReleaseTasks.rpc_print_connected_users()"
 
   ### Daemon mode (Unix-like)
 
