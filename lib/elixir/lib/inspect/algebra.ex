@@ -13,7 +13,8 @@ defmodule Inspect.Opts do
       When `:as_binaries` all binaries will be printed in bit syntax.
 
       When the default `:infer`, the binary will be printed as a string if it
-      is printable, otherwise in bit syntax.
+      is printable, otherwise in bit syntax. See `String.printable?/1` to learn
+      when a string is printable.
 
     * `:charlists` - when `:as_charlists` all lists will be printed as charlists,
       non-printable elements will be escaped.
@@ -21,16 +22,20 @@ defmodule Inspect.Opts do
       When `:as_lists` all lists will be printed as lists.
 
       When the default `:infer`, the list will be printed as a charlist if it
-      is printable, otherwise as list.
+      is printable, otherwise as list. See `List.ascii_printable?/1` to learn
+      when a charlist is printable.
 
-    * `:limit` - limits the number of items that are printed for tuples,
+    * `:limit` - limits the number of items that are inspected for tuples,
       bitstrings, maps, lists and any other collection of items. It does not
-      apply to strings nor charlists and defaults to 50. If you don't want to limit
-      the number of items to a particular number, use `:infinity`.
+      apply to printable strings nor printable charlists and defaults to 50.
+      If you don't want to limit the number of items to a particular number,
+      use `:infinity`.
 
-    * `:printable_limit` - limits the number of bytes that are printed for strings
-      and charlists. Defaults to 4096. If you don't want to limit the number of items
-      to a particular number, use `:infinity`.
+    * `:printable_limit` - limits the number of characters that are inspected
+      on printable strings and printable charlists. You can use `String.printable?/1`
+      and `List.ascii_printable?/1` to check if a a given string or charlist is
+      printable. Defaults to 4096. If you don't want to limit the number of
+      characters to a particular number, use `:infinity`.
 
     * `:pretty` - if set to `true` enables pretty printing, defaults to `false`.
 
