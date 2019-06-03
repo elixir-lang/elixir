@@ -1,7 +1,7 @@
 PREFIX ?= /usr/local
 SHARE_PREFIX ?= $(PREFIX)/share
 MAN_PREFIX ?= $(SHARE_PREFIX)/man
-CANONICAL := master/ # master/ or vMAJOR.MINOR/
+CANONICAL := v1.9/ # master/ or vMAJOR.MINOR/
 ELIXIRC := bin/elixirc --verbose --ignore-module-conflict $(ELIXIRC_OPTS)
 ERLC := erlc -I lib/elixir/include $(ERLC_OPTS)
 ERL := erl -I lib/elixir/include -noshell -pa lib/elixir/ebin
