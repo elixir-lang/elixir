@@ -33,7 +33,7 @@ defmodule Inspect.Opts do
 
     * `:printable_limit` - limits the number of characters that are inspected
       on printable strings and printable charlists. You can use `String.printable?/1`
-      and `List.ascii_printable?/1` to check if a a given string or charlist is
+      and `List.ascii_printable?/1` to check if a given string or charlist is
       printable. Defaults to 4096. If you don't want to limit the number of
       characters to a particular number, use `:infinity`.
 
