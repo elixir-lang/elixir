@@ -495,10 +495,10 @@ defmodule StreamTest do
   test "interval/1" do
     stream = Stream.interval(10)
 
-    {time_µs, value} = :timer.tc(fn -> Enum.take(stream, 5) end)
+    {time_us, value} = :timer.tc(fn -> Enum.take(stream, 5) end)
 
     assert value == [0, 1, 2, 3, 4]
-    assert time_µs >= 50000
+    assert time_us >= 50000
   end
 
   test "into/2 and run/1" do
@@ -1055,14 +1055,14 @@ defmodule StreamTest do
   test "timer/1" do
     stream = Stream.timer(10)
 
-    {time_µs, value} = :timer.tc(fn -> Enum.to_list(stream) end)
+    {time_us, value} = :timer.tc(fn -> Enum.to_list(stream) end)
 
     assert value == [0]
     # We check for >= 5000 (us) instead of >= 10000 (us)
     # because the resolution on Windows system is not high
     # enough and we would get a difference of 9000 from
     # time to time. So a value halfway is good enough.
-    assert time_µs >= 5000
+    assert time_us >= 5000
   end
 
   test "unfold/2" do
