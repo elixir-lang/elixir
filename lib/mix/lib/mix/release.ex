@@ -246,7 +246,8 @@ defmodule Mix.Release do
           path -> do_load_app(app, path, seen, otp_root, false)
         end
 
-      [path] ->
+      paths ->
+        path = paths |> Enum.sort() |> List.last()
         do_load_app(app, to_charlist(path), seen, otp_root, true)
     end
   end
