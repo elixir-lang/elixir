@@ -112,7 +112,7 @@ defmodule Mix.Tasks.Release do
   The `eval` command starts its own instance of the VM but without
   starting any of the applications in the release and without starting
   distribution. For example, if you need to do some prep work before
-  running the actual system, like updating your database, `eval` can
+  running the actual system, like migrating your database, `eval` can
   be a good fit. Just keep in mind any application you may use during
   eval has to be explicitly started.
 
@@ -122,6 +122,35 @@ defmodule Mix.Tasks.Release do
   started and be careful with the instructions you are executing.
   You can also use `remote` to connect a remote IEx session to the
   system.
+
+  #### Helper module
+
+  As you operate your system, you may find yourself running some piece of code
+  as a one-off command quite often. You may consider creating a module to group
+  these tasks:
+
+      # lib/my_app/release_tasks.ex
+      defmodule MyApp.ReleaseTasks do
+        def eval_purge_stale_data() do
+          # Eval commands needs to start the app before
+          Application.ensure_all_started(:my_app)
+          # Code that purges stale data
+          ...
+        end
+
+        def rpc_print_connected_users() do
+          # Code that print users connected to the current running system
+          ...
+        end
+      end
+
+  In the example above, we prefixed the function names with the command
+  name used to execute them, but that is entirely optional.
+
+  And to run them:
+
+      bin/RELEASE_NAME eval "MyApp.ReleaseTasks.eval_purge_stale_data()"
+      bin/RELEASE_NAME rpc "MyApp.ReleaseTasks.rpc_print_connected_users()"
 
   ### Daemon mode (Unix-like)
 
