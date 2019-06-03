@@ -738,6 +738,14 @@ defmodule Kernel.ErrorsTest do
                         defmacrop bar, do: :ok
                       end
                       '''
+
+    assert_eval_raise CompileError,
+                      "nofile:2: cannot invoke macro bar/1 before its definition",
+                      '''
+                      defmodule Kernel.ErrorsTest.IncorrectMacroDispatch do
+                        defmacro bar(a) when is_atom(a), do: bar([a])
+                      end
+                      '''
   end
 
   test "macro captured before its definition" do
