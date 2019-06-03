@@ -33,10 +33,7 @@ defmodule Module.LocalsTracker do
   """
   def add_local({_set, bag}, from, to, meta, macro_dispatch?)
       when is_tuple(from) and is_tuple(to) and is_boolean(macro_dispatch?) do
-    if from != to do
-      put_edge(bag, {:local, from}, {to, get_line(meta), macro_dispatch?})
-    end
-
+    put_edge(bag, {:local, from}, {to, get_line(meta), macro_dispatch?})
     :ok
   end
 
@@ -114,16 +111,22 @@ defmodule Module.LocalsTracker do
     :lists.usort(undefined)
   end
 
-  defp undefined_local_error(set, local, macro_dispatch?) do
-    case :ets.lookup(set, {:def, local}) do
-      [] ->
-        :undefined_function
+  defp undefined_local_error(set, local, true) do
+    case :ets.member(set, {:def, local}) do
+      true -> false
+      false -> :undefined_function
+    end
+  end
 
-      [{_, kind, _, _, _, _}] when kind in @defmacros and not macro_dispatch? ->
+  defp undefined_local_error(set, local, false) do
+    try do
+      if :ets.lookup_element(set, {:def, local}, 2) in @defmacros do
         :incorrect_dispatch
-
-      _ ->
+      else
         false
+      end
+    catch
+      _, _ -> :undefined_function
     end
   end
 

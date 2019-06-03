@@ -25,8 +25,8 @@ yank(Tuple, Module) ->
 reattach(Tuple, Kind, Module, Function, Neighbours, Meta) ->
   if_tracker(Module, fun(Tracker) -> ?tracker:reattach(Tracker, Tuple, Kind, Function, Neighbours, Meta) end).
 
-record_local(Tuple, _Module, Function, _Meta, _IsMacroDispatch)
-  when Function == nil; Function == Tuple -> ok;
+record_local(_Tuple, _Module, nil, _Meta, _IsMacroDispatch) ->
+  ok;
 record_local(Tuple, Module, Function, Meta, IsMacroDispatch) ->
   if_tracker(Module, fun(Tracker) -> ?tracker:add_local(Tracker, Function, Tuple, Meta, IsMacroDispatch), ok end).
 
