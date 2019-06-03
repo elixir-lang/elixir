@@ -40,6 +40,6 @@
 
 2. Start new /CHANGELOG.md
 
-3. Update tables in "Compatibility and Deprecations"
+3. Update tables in /SECURITY.md in "Compatibility and Deprecations"
 
 4. Commit "Start vMAJOR.MINOR+1"
