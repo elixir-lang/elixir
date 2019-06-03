@@ -345,9 +345,9 @@ defmodule Module do
   ### Custom attributes
 
   In addition to the built-in attributes outlined above, custom attributes may
-  also be added. Custom attributes are expressed using the `@` operator followed
-  by a variable. The value given to the custom attribute must be a valid Elixir 
-  value:
+  also be added. Custom attributes are expressed using the `@/1` operator followed
+  by a valid variable name. The value given to the custom attribute must be a valid 
+  Elixir value:
 
       defmodule MyModule do
         @custom_attr [some: "stuff"]
