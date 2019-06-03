@@ -112,12 +112,27 @@ defmodule Mix.ReleaseTest do
 
     test "uses the latest version of an app if there are multiple versions", context do
       in_tmp(context.test, fn ->
-        File.cp_r!(:code.root_dir(), ".", fn _, _ -> false end)
-        File.mkdir_p!("lib/compiler-1.0")
-        erts_source = Path.join(File.cwd!(), "erts-#{@erts_version}")
+        test_erts_dir = Path.join(File.cwd!(), "erts-#{@erts_version}")
+        test_libs_dir = Path.join(File.cwd!(), "lib")
+        libs_dir = Path.join(:code.root_dir(), "lib")
+        libs = File.ls!(libs_dir)
 
-        release = from_config!(nil, config(releases: [demo: [include_erts: erts_source]]), [])
+        File.cp_r!(@erts_source, test_erts_dir)
 
+        for lib <- libs,
+            source_file <- Path.wildcard(Path.join([libs_dir, lib, "ebin", "*.app"])) do
+          target_dir = Path.join([test_libs_dir, lib, "ebin"])
+          target_file = Path.join(target_dir, Path.basename(source_file))
+
+          File.mkdir_p!(target_dir)
+          File.cp!(source_file, target_file)
+        end
+
+        File.mkdir_p!(Path.join("lib", "compiler-1.0"))
+
+        release = from_config!(nil, config(releases: [demo: [include_erts: test_erts_dir]]), [])
+
+        assert Path.dirname(release.applications.compiler[:path]) == test_libs_dir
         assert release.applications.compiler[:vsn] != "1.0"
       end)
     end
