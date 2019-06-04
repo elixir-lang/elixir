@@ -58,7 +58,7 @@ Another important change related to configuration is that `mix new` will no long
 
 There are many other enhancements. The Elixir CLI got a handful of new options in order to best support releases. `Logger` now computes its sync/async/discard thresholds in a decentralized fashion, reducing contention. `EEx` templates support more complex expressions than before. Finally, there is a new `~U` sigil for working with UTC DateTimes as well as new functions in the `File`, `Registry`, and `System` modules.
 
-## v1.9.0-dev
+## v1.9.0-rc.0 (2019-06-04)
 
 ### 1. Enhancements
 
