@@ -52,10 +52,10 @@ defmodule Logger do
     * `:info` - for information of any kind
     * `:warn` - for warnings
     * `:error` - for errors
-    
-  For example, `:info` takes precedence over `:debug`. If your log 
-  level is set to `:info`, `:info`, `:warn`, and `:error` will be 
-  printed to the console. If your log level is set to `:warn`, only 
+
+  For example, `:info` takes precedence over `:debug`. If your log
+  level is set to `:info`, `:info`, `:warn`, and `:error` will be
+  printed to the console. If your log level is set to `:warn`, only
   `:warn` and `:error` will be printed.
 
   ## Configuration
@@ -838,9 +838,19 @@ defmodule Logger do
     end)
   end
 
-  # TODO: Deprecate compile_time_purge_level on v1.9
   defp maybe_log(level, data, metadata, caller) do
-    min_level = Application.get_env(:logger, :compile_time_purge_level, :debug)
+    min_level =
+      if env_level = Application.get_env(:logger, :compile_time_purge_level) do
+        IO.warn(
+          ":compile_time_purge_level option for the :logger application is deprecated, " <>
+            "use :compile_time_purge_matching instead",
+          Macro.Env.stacktrace(caller)
+        )
+
+        env_level
+      else
+        :debug
+      end
 
     if Logger.Config.compare_levels(level, min_level) != :lt do
       macro_log(level, data, metadata, caller)

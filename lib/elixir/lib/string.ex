@@ -391,13 +391,13 @@ defmodule String do
   For example, take the grapheme "é" which is made of the characters
   "e" and the acute accent. The following will split the string into two parts:
 
-      iex> String.split(String.normalize("é", :nfd), "e")
+      iex> String.split(:unicode.characters_to_nfd_binary("é"), "e")
       ["", "́"]
 
   However, if "é" is represented by the single character "e with acute"
   accent, then it will split the string into just one part:
 
-      iex> String.split(String.normalize("é", :nfc), "e")
+      iex> String.split(:unicode.characters_to_nfc_binary("é"), "e")
       ["é"]
 
   """
@@ -607,34 +607,8 @@ defmodule String do
     normalize(string1, :nfd) == normalize(string2, :nfd)
   end
 
-  @doc """
-  Converts all characters in `string` to Unicode normalization
-  form identified by `form`.
-
-  ## Forms
-
-  The supported forms are:
-
-    * `:nfd` - Normalization Form Canonical Decomposition.
-      Characters are decomposed by canonical equivalence, and
-      multiple combining characters are arranged in a specific
-      order.
-
-    * `:nfc` - Normalization Form Canonical Composition.
-      Characters are decomposed and then recomposed by canonical equivalence.
-
-  ## Examples
-
-      iex> String.normalize("yêṩ", :nfd)
-      "yêṩ"
-
-      iex> String.normalize("leña", :nfc)
-      "leña"
-
-  """
-  # TODO: Fully deprecate it on v1.10
-  @doc deprecated:
-         "Use :unicode.characters_to_nfc_binary/1 or :unicode.characters_to_nfd_binary/1 instead"
+  @doc false
+  @deprecated "Use :unicode.characters_to_nfc_binary/1 or :unicode.characters_to_nfd_binary/1 instead"
   def normalize(string, form)
 
   def normalize(string, :nfd) do

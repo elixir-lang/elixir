@@ -589,8 +589,7 @@ defmodule Supervisor do
   ## Options
 
     * `:strategy` - the supervision strategy option. It can be either
-      `:one_for_one`, `:rest_for_one`, `:one_for_all`, or the deprecated
-      `:simple_one_for_one`.
+      `:one_for_one`, `:rest_for_one`, or `:one_for_all`
 
     * `:max_restarts` - the maximum number of restarts allowed in
       a time frame. Defaults to `3`.
@@ -603,12 +602,23 @@ defmodule Supervisor do
   description of the available strategies.
   """
   @doc since: "1.5.0"
-  # TODO: Warn if simple_one_for_one strategy is used on Elixir v1.10
   @spec init([:supervisor.child_spec() | {module, term} | module], [init_option]) :: {:ok, tuple}
   def init(children, options) when is_list(children) and is_list(options) do
-    unless strategy = options[:strategy] do
-      raise ArgumentError, "expected :strategy option to be given"
-    end
+    strategy =
+      case options[:strategy] do
+        nil ->
+          raise ArgumentError, "expected :strategy option to be given"
+
+        :simple_one_for_one ->
+          IO.warn(
+            ":simple_one_for_one strategy is deprecated, please use DynamicSupervisor instead"
+          )
+
+          :simple_one_for_one
+
+        other ->
+          other
+      end
 
     intensity = Keyword.get(options, :max_restarts, 3)
     period = Keyword.get(options, :max_seconds, 5)
@@ -815,14 +825,17 @@ defmodule Supervisor do
   returns `{:error, error}` where `error` is a term containing information about
   the error and child specification.
   """
-  @spec start_child(supervisor, :supervisor.child_spec() | {module, term} | module | [term]) ::
+  @spec start_child(supervisor, :supervisor.child_spec() | {module, term} | module) ::
           on_start_child
   def start_child(supervisor, {_, _, _, _, _, _} = child_spec) do
     call(supervisor, {:start_child, child_spec})
   end
 
-  # TODO: Deprecate this clause on Elixir v1.10
   def start_child(supervisor, args) when is_list(args) do
+    IO.warn(
+      "Supervisor.start_child/2 with a list of args is deprecated, please use DynamicSupervisor instead"
+    )
+
     call(supervisor, {:start_child, args})
   end
 
@@ -844,12 +857,14 @@ defmodule Supervisor do
   specification for the given child ID, this function returns
   `{:error, :not_found}`.
   """
-  @spec terminate_child(supervisor, term()) :: :ok | {:error, error}
-        when error: :not_found | :simple_one_for_one
+  @spec terminate_child(supervisor, term()) :: :ok | {:error, :not_found}
   def terminate_child(supervisor, child_id)
 
-  # TODO: Deprecate this clause on Elixir v1.10
   def terminate_child(supervisor, pid) when is_pid(pid) do
+    IO.warn(
+      "Supervisor.terminate_child/2 with a PID is deprecated, please use DynamicSupervisor instead"
+    )
+
     call(supervisor, {:terminate_child, pid})
   end
 
@@ -868,7 +883,7 @@ defmodule Supervisor do
   current process is running or being restarted.
   """
   @spec delete_child(supervisor, term()) :: :ok | {:error, error}
-        when error: :not_found | :simple_one_for_one | :running | :restarting
+        when error: :not_found | :running | :restarting
   def delete_child(supervisor, child_id) do
     call(supervisor, {:delete_child, child_id})
   end
@@ -896,7 +911,7 @@ defmodule Supervisor do
   or if it fails, this function returns `{:error, error}`.
   """
   @spec restart_child(supervisor, term()) :: {:ok, child} | {:ok, child, term} | {:error, error}
-        when error: :not_found | :simple_one_for_one | :running | :restarting | term
+        when error: :not_found | :running | :restarting | term
   def restart_child(supervisor, child_id) do
     call(supervisor, {:restart_child, child_id})
   end

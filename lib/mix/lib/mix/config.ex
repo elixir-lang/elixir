@@ -1,5 +1,5 @@
 defmodule Mix.Config do
-  # TODO: Convert them to hard deprecations.
+  # TODO: Convert them to hard deprecations on v1.12
 
   @moduledoc deprecated: "Use Config and Config.Reader instead"
   @moduledoc ~S"""

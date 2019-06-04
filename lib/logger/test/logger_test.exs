@@ -231,30 +231,6 @@ defmodule LoggerTest do
            end) =~ msg_with_meta("[error] hello")
   end
 
-  test "remove unused calls at compile time based on the level" do
-    Logger.configure(compile_time_purge_level: :info)
-
-    defmodule PurgeLevel do
-      def debug do
-        Logger.debug("hello")
-      end
-
-      def info do
-        Logger.info("hello")
-      end
-    end
-
-    assert capture_log(fn ->
-             assert PurgeLevel.debug() == :ok
-           end) == ""
-
-    assert capture_log(fn ->
-             assert PurgeLevel.info() == :ok
-           end) =~ msg("module=LoggerTest.PurgeLevel [info]  hello")
-  after
-    Logger.configure(compile_time_purge_level: :debug)
-  end
-
   test "remove unused calls at compile time based on matching metadata" do
     Logger.configure(
       compile_time_application: :sample_app,
@@ -306,25 +282,6 @@ defmodule LoggerTest do
   after
     Logger.configure(compile_time_application: nil)
     Logger.configure(compile_time_purge_matching: [])
-  end
-
-  test "unused variable warnings suppressed when we remove macros from the AST" do
-    Logger.configure(compile_time_purge_level: :info)
-
-    # This should not warn, even if the Logger call is purged from the AST.
-    assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
-             defmodule Unused do
-               require Logger
-
-               def hello(a, b, c) do
-                 Logger.debug(["a: ", inspect(a), ", b: ", inspect(b)], c: c)
-               end
-             end
-           end) == ""
-
-    assert LoggerTest.Unused.hello(1, 2, 3) == :ok
-  after
-    Logger.configure(compile_time_purge_level: :debug)
   end
 
   test "set application metadata at compile time" do
