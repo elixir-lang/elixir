@@ -34,7 +34,10 @@ defmodule Mix.Tasks.Compile.XrefTest do
       end)
 
       assert_no_warn(fn -> assert {:noop, [_]} = Mix.Tasks.Compile.Xref.run([]) end)
-      assert_warn_no_func(fn -> assert {:noop, [_]} = Mix.Tasks.Compile.Xref.run(["--all-warnings"]) end)
+
+      assert_warn_no_func(fn ->
+        assert {:noop, [_]} = Mix.Tasks.Compile.Xref.run(["--all-warnings"])
+      end)
     end)
   end
 
