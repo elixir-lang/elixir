@@ -24,6 +24,20 @@ defmodule Mix.Tasks.Compile.XrefTest do
     end)
   end
 
+  test "doesn't xref if not stale, unless all warnings" do
+    in_fixture("no_mixfile", fn ->
+      write_no_func()
+
+      assert_warn_no_func(fn ->
+        assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
+        assert {:noop, [_]} = Mix.Tasks.Compile.Xref.run([])
+      end)
+
+      assert_no_warn(fn -> assert {:noop, [_]} = Mix.Tasks.Compile.Xref.run([]) end)
+      assert_warn_no_func(fn -> assert {:noop, [_]} = Mix.Tasks.Compile.Xref.run(["--all-warnings"]) end)
+    end)
+  end
+
   test "xrefs if stale" do
     in_fixture("no_mixfile", fn ->
       write_no_func()

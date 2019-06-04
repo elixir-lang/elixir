@@ -23,13 +23,15 @@ defmodule Mix.Tasks.Compile.Xref do
 
     * `--force` - forces checking regardless of modification time
     * `--warnings-as-errors` - treats warnings as errors and returns a non-zero exit code
+    * `--all-warnings` - prints warnings even from files that do not need to be recompiled
 
   """
 
+  @switches [all_warnings: :boolean, force: :boolean, warnings_as_errors: :boolean]
+
   @impl true
   def run(args) do
-    {opts, _, _} =
-      OptionParser.parse(args, switches: [force: :boolean, warnings_as_errors: :boolean])
+    {opts, _, _} = OptionParser.parse(args, switches: @switches)
 
     Mix.Task.run("compile")
 
@@ -48,7 +50,8 @@ defmodule Mix.Tasks.Compile.Xref do
   end
 
   defp needs_xref?(opts) do
-    !!opts[:force] or Mix.Utils.stale?(E.manifests(), manifests())
+    # If all warnings is given, it is easier to check everything.
+    !!opts[:force] or !!opts[:all_warnings] or Mix.Utils.stale?(E.manifests(), manifests())
   end
 
   defp run_xref do
