@@ -152,7 +152,7 @@ defmodule Config do
 
   """
   @doc since: "1.9.0"
-  def config(root_key, key, opts) when is_atom(root_key) do
+  def config(root_key, key, opts) when is_atom(root_key) and is_atom(key) do
     get_config!()
     |> __merge__([{root_key, [{key, opts}]}])
     |> put_config()
