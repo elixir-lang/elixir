@@ -109,9 +109,6 @@ defmodule Supervisor.Spec do
   @moduledoc deprecated:
                "Use the new child specifications outlined in the Supervisor module instead"
 
-  # TODO: Deprecate all functions in this module on Elixir v1.9.
-  # Also deprecate entry in Supervisor.Default.
-
   @typedoc "Supported strategies"
   @type strategy :: :simple_one_for_one | :one_for_one | :one_for_all | :rest_for_one
 
@@ -169,6 +166,7 @@ defmodule Supervisor.Spec do
           max_restarts: non_neg_integer,
           max_seconds: pos_integer
         ) :: {:ok, tuple}
+  @deprecated "Use the new child specifications outlined in the Supervisor module instead"
   def supervise(children, options) do
     unless strategy = options[:strategy] do
       raise ArgumentError, "expected :strategy option to be given"
@@ -236,6 +234,7 @@ defmodule Supervisor.Spec do
           function: atom,
           modules: modules
         ) :: spec
+  @deprecated "Use the new child specifications outlined in the Supervisor module instead"
   def worker(module, args, options \\ []) do
     child(:worker, module, args, options)
   end
@@ -269,6 +268,7 @@ defmodule Supervisor.Spec do
           function: atom,
           modules: modules
         ) :: spec
+  @deprecated "Use the new child specifications outlined in the Supervisor module instead"
   def supervisor(module, args, options \\ []) do
     options = Keyword.put_new(options, :shutdown, :infinity)
     child(:supervisor, module, args, options)

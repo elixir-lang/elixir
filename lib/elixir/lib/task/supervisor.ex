@@ -78,14 +78,21 @@ defmodule Task.Supervisor do
   give them directly to `start_child` and `async`.
   """
   @spec start_link([option]) :: Supervisor.on_start()
-  # TODO: Deprecate passing restart and shutdown here on Elixir v1.10.
   def start_link(options \\ []) do
-    {restart, options} = Keyword.pop(options, :restart, :temporary)
-    {shutdown, options} = Keyword.pop(options, :shutdown, 5000)
+    {restart, options} = Keyword.pop(options, :restart)
+    {shutdown, options} = Keyword.pop(options, :shutdown)
+
+    if restart || shutdown do
+      IO.warn(
+        ":restart and :shutdown options in Task.Supervisor.start_link/1 " <>
+          "are deprecated. Please pass those options on start_child/3 instead"
+      )
+    end
 
     keys = [:max_children, :max_seconds, :max_restarts]
     {sup_opts, start_opts} = Keyword.split(options, keys)
-    DynamicSupervisor.start_link(__MODULE__, {{restart, shutdown}, sup_opts}, start_opts)
+    restart_and_shutdown = {restart || :temporary, shutdown || 5000}
+    DynamicSupervisor.start_link(__MODULE__, {restart_and_shutdown, sup_opts}, start_opts)
   end
 
   @doc false
@@ -417,8 +424,8 @@ defmodule Task.Supervisor do
 
   defp start_child_with_spec(supervisor, args, restart, shutdown) do
     # TODO: This only exists because we need to support reading restart/shutdown
-    # from two different places. Remove this and the associated clause in DynamicSupervisor
-    # on Elixir v2.0
+    # from two different places. Remove this, the init function and the associated
+    # clause in DynamicSupervisor on Elixir v2.0
     GenServer.call(supervisor, {:start_task, args, restart, shutdown}, :infinity)
   end
 

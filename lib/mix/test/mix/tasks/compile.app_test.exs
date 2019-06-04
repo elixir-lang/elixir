@@ -62,14 +62,14 @@ defmodule Mix.Tasks.Compile.AppTest do
 
     in_fixture("no_mixfile", fn ->
       Mix.Tasks.Compile.Elixir.run([])
-      assert Mix.Tasks.Compile.App.run([]) == :ok
+      assert Mix.Tasks.Compile.App.run([]) == {:ok, []}
 
       properties = parse_resource_file(:sample)
       assert properties[:vsn] == '0.1.0'
       assert properties[:modules] == [A, B]
       assert properties[:applications] == [:kernel, :stdlib, :elixir]
 
-      assert Mix.Tasks.Compile.App.run([]) == :noop
+      assert Mix.Tasks.Compile.App.run([]) == {:noop, []}
     end)
   end
 
@@ -203,14 +203,14 @@ defmodule Mix.Tasks.Compile.AppTest do
 
     in_fixture("no_mixfile", fn ->
       Mix.Tasks.Compile.Elixir.run([])
-      assert Mix.Tasks.Compile.App.run([]) == :ok
+      assert Mix.Tasks.Compile.App.run([]) == {:ok, []}
 
       properties = parse_resource_file(:sample)
       assert properties[:registered] == []
       assert properties[:description] == 'sample'
       assert properties[:applications] == [:kernel, :stdlib, :elixir]
 
-      assert Mix.Tasks.Compile.App.run([]) == :noop
+      assert Mix.Tasks.Compile.App.run([]) == {:noop, []}
     end)
   end
 

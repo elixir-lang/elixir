@@ -62,7 +62,7 @@ defmodule Mix.Tasks.Compile.Erlang do
     do_run(files, opts, project, source_paths)
   end
 
-  defp do_run([], _, _, _), do: :noop
+  defp do_run([], _, _, _), do: {:noop, []}
 
   defp do_run(files, opts, project, source_paths) do
     include_path = to_erl_file(project[:erlc_include_path])
