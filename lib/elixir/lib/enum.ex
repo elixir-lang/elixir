@@ -939,14 +939,14 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.find([2, 4, 6], fn x -> rem(x, 2) == 1 end)
-      nil
-
-      iex> Enum.find([2, 4, 6], 0, fn x -> rem(x, 2) == 1 end)
-      0
-
       iex> Enum.find([2, 3, 4], fn x -> rem(x, 2) == 1 end)
       3
+      
+      iex> Enum.find([2, 4, 6], fn x -> rem(x, 2) == 1 end)
+      nil
+      
+      iex> Enum.find([2, 4, 6], 0, fn x -> rem(x, 2) == 1 end)
+      0
 
   """
   @spec find(t, default, (element -> any)) :: element | default
