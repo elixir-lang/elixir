@@ -944,7 +944,6 @@ defmodule Enum do
       
       iex> Enum.find([2, 4, 6], fn x -> rem(x, 2) == 1 end)
       nil
-      
       iex> Enum.find([2, 4, 6], 0, fn x -> rem(x, 2) == 1 end)
       0
 
