@@ -33,7 +33,7 @@ defmodule Kernel.LexicalTracker do
 
   @doc false
   def stop(pid) do
-    :gen_server.cast(pid, :stop)
+    :gen_server.call(pid, :stop)
   end
 
   @doc false
@@ -146,6 +146,10 @@ defmodule Kernel.LexicalTracker do
     {:reply, :maps.get(key, cache), state}
   end
 
+  def handle_call(:stop, _from, state) do
+    {:stop, :normal, :ok, state}
+  end
+
   def handle_cast({:write_cache, key, value}, %{cache: cache} = state) do
     {:noreply, %{state | cache: :maps.put(key, value, cache)}}
   end
@@ -204,10 +208,6 @@ defmodule Kernel.LexicalTracker do
 
   def handle_cast({:add_alias, module, line, warn}, state) do
     {:noreply, %{state | directives: add_directive(state.directives, module, line, warn, :alias)}}
-  end
-
-  def handle_cast(:stop, state) do
-    {:stop, :normal, state}
   end
 
   @doc false
