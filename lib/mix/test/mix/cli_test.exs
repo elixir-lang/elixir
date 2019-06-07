@@ -143,7 +143,7 @@ defmodule Mix.CLITest do
     System.delete_env("MIX_EXS")
   end
 
-  test "target config defaults to the tasks's preferred cli target", context do
+  test "target config defaults to the user's preferred cli target", context do
     in_tmp(context.test, fn ->
       File.write!("custom.exs", """
       defmodule P do
