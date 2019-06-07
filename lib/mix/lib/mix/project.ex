@@ -67,8 +67,12 @@ defmodule Mix.Project do
     * `:preferred_cli_env` - a keyword list of `{task, env}` tuples where `task`
       is the task name as an atom (for example, `:"deps.get"`) and `env` is the
       preferred environment (for example, `:test`). This option overrides what
-      specified by the tasks with the `@preferred_cli_env` attribute (see the
+      is specified by the tasks with the `@preferred_cli_env` attribute (see the
       docs for `Mix.Task`). Defaults to `[]`.
+
+    * `:preferred_cli_target` - a keyword list of `{task, target}` tuples where
+      `task` is the task name as an atom (for example, `:test`) and `target`
+      is the preferred target (for example, `:host`). Defaults to `[]`.
 
   For more options, keep an eye on the documentation for single Mix tasks; good
   examples are the `Mix.Tasks.Compile` task and all the specific compiler tasks
