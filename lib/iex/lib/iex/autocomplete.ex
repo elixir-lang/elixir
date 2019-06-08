@@ -128,7 +128,7 @@ defmodule IEx.Autocomplete do
   defp expand_custom([?. | expr], server, fun) do
     case Code.string_to_quoted(reduce(expr)) do
       {:ok, atom} when is_atom(atom) ->
-        no()
+        expand_elixir_module_custom(atom, "", fun)
 
       {:ok, {:__aliases__, _, [h | _] = list}} when is_atom(h) ->
         case expand_alias(list, server) do
@@ -165,6 +165,9 @@ defmodule IEx.Autocomplete do
           :error ->
             no()
         end
+
+      {:ok, {{:., _, [module, type]}, _, []}} when is_atom(type) ->
+        expand_elixir_module_custom(module, Atom.to_string(type), fun)
 
       _ ->
         no()
@@ -440,15 +443,18 @@ defmodule IEx.Autocomplete do
   end
 
   defp get_module_types(mod) do
-    cond do
-      not ensure_loaded?(mod) ->
-        []
+    if ensure_loaded?(mod) do
+      case Code.Typespec.fetch_types(mod) do
+        {:ok, specs} ->
+          Enum.map(specs, fn {_kind, {name, _, args}} ->
+            {name, length(args)}
+          end)
 
-      docs = get_docs(mod, [:type]) ->
-        Enum.map(docs, &extract_name_and_arity/1)
-
-      true ->
-        exports(mod)
+        :error ->
+          []
+      end
+    else
+      []
     end
   end
 
