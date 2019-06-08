@@ -183,7 +183,7 @@ defmodule Mix.Tasks.Deps.Compile do
     lib_path = Path.join(config[:env_path], "lib/*/ebin")
 
     env = [{"REBAR_CONFIG", config_path}, {"TERM", "dumb"}]
-    cmd = "#{rebar_cmd(dep)} bare compile --paths #{inspect(lib_path)}"
+    cmd = "#{rebar_cmd(dep)} bare compile --paths=#{inspect(lib_path)}"
 
     File.mkdir_p!(dep_path)
     File.write!(config_path, rebar_config(dep))
