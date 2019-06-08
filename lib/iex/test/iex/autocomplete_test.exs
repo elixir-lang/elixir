@@ -65,6 +65,8 @@ defmodule IEx.AutocompleteTest do
     assert expand('t String.') == {:yes, '', ['codepoint/0', 'grapheme/0', 'pattern/0', 't/0']}
     assert expand('t String.grap') == {:yes, 'heme', []}
     assert expand('t  String.grap') == {:yes, 'heme', []}
+    assert {:yes, '', ['date_time/0' | _]} = expand('t :file.')
+    assert expand('t :file.n') == {:yes, 'ame', []}
   end
 
   test "Elixir callback completion" do
