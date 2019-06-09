@@ -445,10 +445,11 @@ defmodule IEx.Autocomplete do
   defp get_module_types(mod) do
     if ensure_loaded?(mod) do
       case Code.Typespec.fetch_types(mod) do
-        {:ok, specs} ->
-          Enum.map(specs, fn {_kind, {name, _, args}} ->
+        {:ok, types} ->
+          for {kind, {name, _, args}} <- types,
+              kind in [:type, :opaque] do
             {name, length(args)}
-          end)
+          end
 
         :error ->
           []
