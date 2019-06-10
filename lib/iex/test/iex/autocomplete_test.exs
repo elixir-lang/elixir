@@ -76,6 +76,7 @@ defmodule IEx.AutocompleteTest do
     assert expand('b Access.') == {:yes, '', ['fetch/2', 'get_and_update/3', 'pop/2']}
     assert expand('b GenServer.term') == {:yes, 'inate', []}
     assert expand('b   GenServer.term') == {:yes, 'inate', []}
+    assert expand('b :gen_server.handle_in') == {:yes, 'fo', []}
   end
 
   test "Elixir helper completion with parentheses" do

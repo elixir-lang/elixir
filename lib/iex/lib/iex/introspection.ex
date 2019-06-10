@@ -588,7 +588,7 @@ defmodule IEx.Introspection do
     end
   end
 
-  defp translate_callback_name_arity({name, arity}) do
+  def translate_callback_name_arity({name, arity}) do
     case Atom.to_string(name) do
       "MACRO-" <> macro_name -> {:macrocallback, String.to_atom(macro_name), arity - 1}
       _ -> {:callback, name, arity}
