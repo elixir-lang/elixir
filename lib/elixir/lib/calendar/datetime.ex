@@ -472,6 +472,32 @@ defmodule DateTime do
   end
 
   @doc """
+  Changes the time zone of a `DateTime` or raises on errors.
+
+  See `shift_zone/3` for more information.
+
+  ## Examples
+
+      iex> cph_datetime = DateTime.from_naive!(~N[2018-07-16 12:00:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
+      iex> DateTime.shift_zone!(cph_datetime, "America/Los_Angeles", FakeTimeZoneDatabase)
+      #DateTime<2018-07-16 03:00:00-07:00 PDT America/Los_Angeles>
+
+  """
+  @doc since: "1.10.0"
+  @spec shift_zone!(t, Calendar.time_zone(), Calendar.time_zone_database()) :: t
+  def shift_zone!(datetime, time_zone, time_zone_database \\ Calendar.get_time_zone_database()) do
+    case shift_zone(datetime, time_zone, time_zone_database) do
+      {:ok, datetime} ->
+        datetime
+
+      {:error, reason} ->
+        raise ArgumentError,
+              "cannot shift #{inspect(datetime)} to #{inspect(time_zone)} time zone" <>
+                ", reason: #{inspect(reason)}"
+    end
+  end
+
+  @doc """
   Returns the current datetime in the provided time zone.
 
   By default, it uses the default time_zone returned by
