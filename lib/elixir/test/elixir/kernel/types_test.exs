@@ -117,6 +117,12 @@ defmodule Kernel.TypesTest do
 
       assert quoted_clause([x] when is_binary(x) or is_atom(x)) ==
                {:ok, [{:union, [:binary, :atom]}]}
+
+      assert quoted_clause([x, x] when is_integer(x)) ==
+               {:ok, [:integer, :integer]}
+
+      assert quoted_clause([x] when is_binary(x) and is_integer(x)) ==
+               {:error, {:unable_unify, :integer, :binary}}
     end
   end
 end

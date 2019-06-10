@@ -142,7 +142,8 @@ defmodule Kernel.Types do
 
       with {:ok, args, guard_types} <- unzip_ok(union),
            [arg] <- Enum.uniq(args) do
-        unify_guard(arg, to_union(guard_types), context)
+        union = to_union(guard_types, context)
+        unify_guard(arg, union, context)
       else
         _ -> {:ok, context}
       end
@@ -352,9 +353,29 @@ defmodule Kernel.Types do
 
   defp subtype?(left, right, _context), do: left == right
 
-  defp to_union([]), do: raise("internal error")
-  defp to_union([type]), do: type
-  defp to_union(types) when is_list(types), do: {:union, types}
+  defp to_union([], _context) do
+    raise("internal error")
+  end
+
+  defp to_union(types, context) do
+    case unique_super_types(types, context) do
+      [type] -> type
+      types -> {:union, types}
+    end
+  end
+
+  defp unique_super_types([type | types], context) do
+    types =
+      types
+      |> Enum.reject(&(subtype?(type, &1, context) or subtype?(&1, type, context)))
+      |> unique_super_types(context)
+
+    [type | types]
+  end
+
+  defp unique_super_types([], _context) do
+    []
+  end
 
   def lift_types(type, context) do
     context =
