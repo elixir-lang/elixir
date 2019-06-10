@@ -1365,26 +1365,26 @@ defmodule Code.Formatter do
   ## Sigils
 
   defp maybe_sigil_to_algebra(fun, meta, args, state) do
-    case {Atom.to_string(fun), args} do
-      {<<"sigil_", name>>, [{:<<>>, _, entries}, modifiers]} ->
-        opening_terminator = Keyword.fetch!(meta, :terminator)
-        doc = <<?~, name, opening_terminator::binary>>
+    with <<"sigil_", name>> <- Atom.to_string(fun),
+         [{:<<>>, _, entries}, modifiers] when is_list(modifiers) <- args,
+         opening_terminator when not is_nil(opening_terminator) <- Keyword.get(meta, :terminator) do
+      doc = <<?~, name, opening_terminator::binary>>
 
-        if opening_terminator in [@double_heredoc, @single_heredoc] do
-          closing_terminator = concat(opening_terminator, List.to_string(modifiers))
+      if opening_terminator in [@double_heredoc, @single_heredoc] do
+        closing_terminator = concat(opening_terminator, List.to_string(modifiers))
 
-          {doc, state} =
-            entries
-            |> prepend_heredoc_line()
-            |> interpolation_to_algebra(:heredoc, state, doc, closing_terminator)
+        {doc, state} =
+          entries
+          |> prepend_heredoc_line()
+          |> interpolation_to_algebra(:heredoc, state, doc, closing_terminator)
 
-          {force_unfit(doc), state}
-        else
-          escape = closing_sigil_terminator(opening_terminator)
-          closing_terminator = concat(escape, List.to_string(modifiers))
-          interpolation_to_algebra(entries, escape, state, doc, closing_terminator)
-        end
-
+        {force_unfit(doc), state}
+      else
+        escape = closing_sigil_terminator(opening_terminator)
+        closing_terminator = concat(escape, List.to_string(modifiers))
+        interpolation_to_algebra(entries, escape, state, doc, closing_terminator)
+      end
+    else
       _ ->
         :error
     end
