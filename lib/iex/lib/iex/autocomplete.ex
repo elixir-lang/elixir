@@ -460,15 +460,20 @@ defmodule IEx.Autocomplete do
   end
 
   defp get_module_callbacks(mod) do
-    cond do
-      not ensure_loaded?(mod) ->
-        []
+    if ensure_loaded?(mod) do
+      case Code.Typespec.fetch_callbacks(mod) do
+        {:ok, callbacks} ->
+          for {name_arity, _} <- callbacks do
+            {_kind, name, arity} = IEx.Introspection.translate_callback_name_arity(name_arity)
 
-      docs = get_docs(mod, [:callback, :macrocallback]) ->
-        Enum.map(docs, &extract_name_and_arity/1)
+            {name, arity}
+          end
 
-      true ->
-        exports(mod)
+        :error ->
+          []
+      end
+    else
+      []
     end
   end
 
@@ -481,8 +486,6 @@ defmodule IEx.Autocomplete do
         nil
     end
   end
-
-  defp extract_name_and_arity({{_, name, arity}, _, _, _, _}), do: {name, arity}
 
   defp default_arg_functions_with_doc_false(docs) do
     for {{_, fun_name, arity}, _, _, :hidden, %{defaults: count}} <- docs,
