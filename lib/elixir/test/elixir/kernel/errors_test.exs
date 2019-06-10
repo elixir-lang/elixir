@@ -456,11 +456,11 @@ defmodule Kernel.ErrorsTest do
 
   test "struct errors" do
     assert_eval_raise CompileError,
-                      "nofile:1: BadStruct.__struct__/1 is undefined, cannot expand struct BadStruct",
+                      ~r"nofile:1: BadStruct.__struct__/1 is undefined, cannot expand struct BadStruct",
                       '%BadStruct{}'
 
     assert_eval_raise CompileError,
-                      "nofile:1: BadStruct.__struct__/0 is undefined, cannot expand struct BadStruct",
+                      ~r"nofile:1: BadStruct.__struct__/0 is undefined, cannot expand struct BadStruct",
                       '%BadStruct{} = %{}'
 
     bad_struct_type_error =

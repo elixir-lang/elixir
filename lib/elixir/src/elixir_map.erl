@@ -234,7 +234,11 @@ format_error({inaccessible_struct, Module}) ->
   io_lib:format(Message, [elixir_aliases:inspect(Module)]);
 format_error({undefined_struct, Module, Arity}) ->
   Name = elixir_aliases:inspect(Module),
-  io_lib:format("~ts.__struct__/~p is undefined, cannot expand struct ~ts", [Name, Arity, Name]);
+  io_lib:format(
+    "~ts.__struct__/~p is undefined, cannot expand struct ~ts. "
+    "Make sure the struct name is correct. If the struct name exists and is correct "
+    "but it still cannot be found, you likely have cyclic module usage in your code",
+    [Name, Arity, Name]);
 format_error({unknown_key_for_struct, Module, Key}) ->
   io_lib:format("unknown key ~ts for struct ~ts",
                 ['Elixir.Macro':to_string(Key), elixir_aliases:inspect(Module)]);
