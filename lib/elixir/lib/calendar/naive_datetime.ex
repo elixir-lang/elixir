@@ -953,8 +953,12 @@ defmodule NaiveDateTime do
       "~N[" <> formatted <> "]"
     end
 
-    def inspect(naive, opts) do
-      Inspect.Any.inspect(naive, opts)
+    def inspect(%{calendar: calendar} = naive_datetime, opts) do
+      if Code.ensure_loaded?(calendar) && function_exported?(calendar, :inspect, 2) do
+        calendar.inspect(naive_datetime, opts)
+      else
+        Inspect.Any.inspect(naive_datetime, opts)
+      end
     end
   end
 end

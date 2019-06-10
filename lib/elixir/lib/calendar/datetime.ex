@@ -1407,8 +1407,12 @@ defmodule DateTime do
       end
     end
 
-    def inspect(datetime, opts) do
-      Inspect.Any.inspect(datetime, opts)
+    def inspect(%{calendar: calendar} = datetime, opts) do
+      if Code.ensure_loaded?(calendar) && function_exported?(calendar, :inspect, 2) do
+        calendar.inspect(datetime, opts)
+      else
+        Inspect.Any.inspect(datetime, opts)
+      end
     end
   end
 end
