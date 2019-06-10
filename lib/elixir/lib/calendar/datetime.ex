@@ -515,9 +515,11 @@ defmodule DateTime do
       iex> {:ok, datetime} = DateTime.now("Etc/UTC")
       iex> datetime.time_zone
       "Etc/UTC"
+
       iex> DateTime.now("Europe/Copenhagen")
       {:error, :utc_only_time_zone_database}
-      iex> DateTime.now("not a real time zone name", FakeTimeZoneDatabase)
+
+      iex> DateTime.now("bad timezone", FakeTimeZoneDatabase)
       {:error, :time_zone_not_found}
 
   """
@@ -532,6 +534,38 @@ defmodule DateTime do
 
   def now(time_zone, time_zone_database) do
     shift_zone(utc_now(), time_zone, time_zone_database)
+  end
+
+  @doc """
+  Returns the current datetime in the provided time zone or raises on errors
+
+  See `now/2` for more information.
+
+  ## Examples
+
+      iex> datetime = DateTime.now!("Etc/UTC")
+      iex> datetime.time_zone
+      "Etc/UTC"
+
+      iex> DateTime.now!("Europe/Copenhagen")
+      ** (ArgumentError) cannot get current datetime in "Europe/Copenhagen" time zone, reason: :utc_only_time_zone_database
+
+      iex> DateTime.now!("bad timezone", FakeTimeZoneDatabase)
+      ** (ArgumentError) cannot get current datetime in "bad timezone" time zone, reason: :time_zone_not_found
+
+  """
+  @doc since: "1.10.0"
+  @spec now!(Calendar.time_zone(), Calendar.time_zone_database()) :: t
+  def now!(time_zone, time_zone_database \\ Calendar.get_time_zone_database()) do
+    case now(time_zone, time_zone_database) do
+      {:ok, datetime} ->
+        datetime
+
+      {:error, reason} ->
+        raise ArgumentError,
+              "cannot get current datetime in #{inspect(time_zone)} time zone, reason: " <>
+                inspect(reason)
+    end
   end
 
   @doc """
