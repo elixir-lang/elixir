@@ -412,10 +412,12 @@ defmodule DateTime do
 
   ## Examples
 
-      iex> cph_datetime = DateTime.from_naive!(~N[2018-07-16 12:00:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
-      iex> {:ok, pacific_datetime} = DateTime.shift_zone(cph_datetime, "America/Los_Angeles", FakeTimeZoneDatabase)
+      iex> {:ok, pacific_datetime} = DateTime.shift_zone(~U[2018-07-16 10:00:00Z], "America/Los_Angeles", FakeTimeZoneDatabase)
       iex> pacific_datetime
       #DateTime<2018-07-16 03:00:00-07:00 PDT America/Los_Angeles>
+
+      iex> DateTime.shift_zone(~U[2018-07-16 10:00:00Z], "bad timezone", FakeTimeZoneDatabase)
+      {:error, :time_zone_not_found}
 
   """
   @doc since: "1.8.0"
@@ -468,6 +470,34 @@ defmodule DateTime do
 
       {:error, _} = error ->
         error
+    end
+  end
+
+  @doc """
+  Changes the time zone of a `DateTime` or raises on errors.
+
+  See `shift_zone/3` for more information.
+
+  ## Examples
+
+      iex> DateTime.shift_zone!(~U[2018-07-16 10:00:00Z], "America/Los_Angeles", FakeTimeZoneDatabase)
+      #DateTime<2018-07-16 03:00:00-07:00 PDT America/Los_Angeles>
+
+      iex> DateTime.shift_zone!(~U[2018-07-16 10:00:00Z], "bad timezone", FakeTimeZoneDatabase)
+      ** (ArgumentError) cannot shift ~U[2018-07-16 10:00:00Z] to "bad timezone" time zone, reason: :time_zone_not_found
+
+  """
+  @doc since: "1.10.0"
+  @spec shift_zone!(t, Calendar.time_zone(), Calendar.time_zone_database()) :: t
+  def shift_zone!(datetime, time_zone, time_zone_database \\ Calendar.get_time_zone_database()) do
+    case shift_zone(datetime, time_zone, time_zone_database) do
+      {:ok, datetime} ->
+        datetime
+
+      {:error, reason} ->
+        raise ArgumentError,
+              "cannot shift #{inspect(datetime)} to #{inspect(time_zone)} time zone" <>
+                ", reason: #{inspect(reason)}"
     end
   end
 
