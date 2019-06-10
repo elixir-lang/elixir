@@ -116,6 +116,10 @@ defmodule Mix.Task.Compiler do
       {status, diagnostics} when status in [:ok, :noop, :error] and is_list(diagnostics) ->
         {status, diagnostics}
 
+      # Noop can come from tasks that have already run
+      :noop ->
+        {:noop, []}
+
       _ ->
         # TODO: Convert this to an error on v2.0
         Mix.shell().error(
