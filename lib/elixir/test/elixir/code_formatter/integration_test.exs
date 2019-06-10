@@ -461,6 +461,14 @@ defmodule Code.Formatter.IntegrationTest do
     """
   end
 
+  test "false positive sigil" do
+    assert_same """
+    def sigil_d(<<year::2-bytes, "-", month::2-bytes, "-", day::2-bytes>>, calendar) do
+      ymd(year, month, day, calendar)
+    end
+    """
+  end
+
   test "capture with operators" do
     assert_same """
     "this works" |> (&String.upcase/1) |> (&String.downcase/1)
