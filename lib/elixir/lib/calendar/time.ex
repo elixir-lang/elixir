@@ -693,12 +693,17 @@ defmodule Time do
   end
 
   defimpl Inspect do
-    def inspect(%{calendar: calendar} = time, opts) do
+    def inspect(
+          %{
+            hour: _hour,
+            minute: _minute,
+            second: _second,
+            microsecond: _microsecond,
+            calendar: calendar
+          } = time,
+          opts
+        ) do
       calendar.inspect(time, opts)
-    end
-
-    def inspect(time, opts) do
-      Inspect.Any.inspect(time, opts)
     end
   end
 end
