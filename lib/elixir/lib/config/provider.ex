@@ -220,9 +220,7 @@ defmodule Config.Provider do
   end
 
   defp write_config!(config, path) do
-    {date, time} = :erlang.localtime()
-    args = [date, time, config]
-    contents = :io_lib.format("%% coding: utf-8~n%% config generated at ~p ~p~n~p.~n", args)
+    contents = :io_lib.format("%% coding: utf-8~n~p.~n", [config])
 
     case File.write(path, contents) do
       :ok ->
