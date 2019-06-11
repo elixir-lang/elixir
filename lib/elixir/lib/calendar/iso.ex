@@ -726,24 +726,26 @@ defmodule Calendar.ISO do
           Calendar.date() | Calendar.time() | Calendar.datetime() | Calendar.naive_datetime(),
           Inspect.Opts.t()
         ) :: String.t()
+  def inspect(%Date{} = date, _) do
+    %{year: year, month: month, day: day} = date
+    "~D[" <> date_to_string(year, month, day) <> "]"
+  end
 
-  def inspect(
-        %{
-          year: year,
-          month: month,
-          day: day,
-          hour: hour,
-          minute: minute,
-          second: second,
-          microsecond: microsecond,
-          time_zone: time_zone,
-          zone_abbr: zone_abbr,
-          utc_offset: utc_offset,
-          std_offset: std_offset,
-          calendar: Calendar.ISO
-        } = datetime,
-        _opts
-      ) do
+  def inspect(%DateTime{} = datetime, _) do
+    %{
+      year: year,
+      month: month,
+      day: day,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: microsecond,
+      time_zone: time_zone,
+      zone_abbr: zone_abbr,
+      utc_offset: utc_offset,
+      std_offset: std_offset
+    } = datetime
+
     formatted =
       datetime_to_string(
         year,
@@ -768,39 +770,32 @@ defmodule Calendar.ISO do
     end
   end
 
-  def inspect(
-        %{
-          year: year,
-          month: month,
-          day: day,
-          hour: hour,
-          minute: minute,
-          second: second,
-          microsecond: microsecond,
-          calendar: Calendar.ISO
-        },
-        _opts
-      ) do
+  def inspect(%NaiveDateTime{} = naive_datetime, _) do
+    %{
+      year: year,
+      month: month,
+      day: day,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: microsecond
+    } = naive_datetime
+
     formatted = naive_datetime_to_string(year, month, day, hour, minute, second, microsecond)
 
     "~N[" <> formatted <> "]"
   end
 
-  def inspect(
-        %{
-          hour: hour,
-          minute: minute,
-          second: second,
-          microsecond: microsecond,
-          calendar: Calendar.ISO
-        },
-        _opts
-      ) do
-    "~T[" <> Calendar.ISO.time_to_string(hour, minute, second, microsecond) <> "]"
-  end
+  def inspect(%Time{} = time, _) do
+    %{
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: microsecond,
+      calendar: Calendar.ISO
+    } = time
 
-  def inspect(%{year: year, month: month, day: day, calendar: Calendar.ISO}, _) do
-    "~D[" <> date_to_string(year, month, day) <> "]"
+    "~T[" <> Calendar.ISO.time_to_string(hour, minute, second, microsecond) <> "]"
   end
 
   defp offset_to_string(0, 0, "Etc/UTC", _format), do: "Z"
