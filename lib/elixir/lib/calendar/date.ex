@@ -770,11 +770,7 @@ defmodule Date do
 
   defimpl Inspect do
     def inspect(%{calendar: calendar} = date, opts) do
-      if Code.ensure_loaded?(calendar) && function_exported?(calendar, :inspect, 2) do
-        calendar.inspect(date, opts)
-      else
-        Inspect.Any.inspect(date, opts)
-      end
+      calendar.inspect(date, opts)
     end
   end
 end

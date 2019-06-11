@@ -4,6 +4,10 @@ defmodule FakeCalendar do
   def naive_datetime_to_string(_, _, _, _, _, _, _), do: "boom"
   def datetime_to_string(_, _, _, _, _, _, _, _, _, _), do: "boom"
   def day_rollover_relative_to_midnight_utc, do: {123_456, 123_457}
+
+  def inspect(date_or_datetime, opts) do
+    Inspect.Any.inspect(date_or_datetime, opts)
+  end
 end
 
 defmodule FakeTimeZoneDatabase do
