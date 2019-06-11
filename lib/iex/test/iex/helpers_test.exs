@@ -831,6 +831,16 @@ defmodule IEx.HelpersTest do
       assert capture_io(fn -> t(URI.t()) end) == capture_io(fn -> t(URI.t() / 0) end)
     end
 
+    test "sorts types alphabetically" do
+      unsorted =
+        capture_io(fn -> t(Enum) end)
+        |> String.split("\n")
+        |> Enum.reject(&(&1 == ""))
+        |> Enum.map(&String.replace(&1, ~r/@(type|opaque) /, ""))
+
+      assert unsorted == Enum.sort(unsorted)
+    end
+
     test "prints type documentation" do
       content = """
       defmodule TypeSample do
