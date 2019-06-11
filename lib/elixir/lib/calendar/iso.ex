@@ -726,12 +726,12 @@ defmodule Calendar.ISO do
           Calendar.date() | Calendar.time() | Calendar.datetime() | Calendar.naive_datetime(),
           Inspect.Opts.t()
         ) :: String.t()
-  def inspect(%Date{} = date, _) do
+  def inspect(%Date{calendar: __MODULE__} = date, _) do
     %{year: year, month: month, day: day} = date
     "~D[" <> date_to_string(year, month, day) <> "]"
   end
 
-  def inspect(%DateTime{} = datetime, _) do
+  def inspect(%DateTime{calendar: __MODULE__} = datetime, _) do
     %{
       year: year,
       month: month,
@@ -770,7 +770,7 @@ defmodule Calendar.ISO do
     end
   end
 
-  def inspect(%NaiveDateTime{} = naive_datetime, _) do
+  def inspect(%NaiveDateTime{calendar: __MODULE__} = naive_datetime, _) do
     %{
       year: year,
       month: month,
@@ -786,7 +786,7 @@ defmodule Calendar.ISO do
     "~N[" <> formatted <> "]"
   end
 
-  def inspect(%Time{} = time, _) do
+  def inspect(%Time{calendar: __MODULE__} = time, _) do
     %{
       hour: hour,
       minute: minute,
