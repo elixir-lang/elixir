@@ -271,7 +271,7 @@ defmodule Calendar do
   The implementation must define inspect for `Date.t()`, `DateTime.t()` and
   `NaiveDateTime.t()` structs.
   """
-  @callback inspect(Time.t() | Date.t() | DateTime.t() | MaiveDateTime.t(), Inspect.Opts.t()) ::
+  @callback inspect(Time.t() | Date.t() | DateTime.t() | NaiveDateTime.t(), Inspect.Opts.t()) ::
               String.t()
 
   # General Helpers
