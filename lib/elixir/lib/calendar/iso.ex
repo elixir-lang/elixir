@@ -723,7 +723,7 @@ defmodule Calendar.ISO do
   @doc since: "1.10.0"
   @impl true
   @spec inspect(
-          Calendar.date() | Calendar.time() | Calendar.datetime() | Calendar.naive_datetime(),
+          Date.t() | Time.t() | DateTime.t() | NaiveDateTime.t(),
           Inspect.Opts.t()
         ) :: String.t()
   def inspect(%Date{calendar: __MODULE__} = date, _) do
