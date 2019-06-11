@@ -557,7 +557,7 @@ defmodule Kernel.Typespec do
     types =
       :lists.map(
         fn {field, _} -> {field, Keyword.get(fields, field, quote(do: term()))} end,
-        struct
+        :lists.sort(struct)
       )
 
     fun = fn {field, _} ->
