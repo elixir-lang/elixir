@@ -693,16 +693,8 @@ defmodule Time do
   end
 
   defimpl Inspect do
-    def inspect(%{calendar: Calendar.ISO} = time, _) do
-      %{
-        hour: hour,
-        minute: minute,
-        second: second,
-        microsecond: microsecond,
-        calendar: Calendar.ISO
-      } = time
-
-      "~T[" <> Calendar.ISO.time_to_string(hour, minute, second, microsecond) <> "]"
+    def inspect(%{calendar: calendar} = time, opts) do
+      calendar.inspect(time, opts)
     end
 
     def inspect(time, opts) do

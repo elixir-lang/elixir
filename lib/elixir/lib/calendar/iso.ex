@@ -717,13 +717,13 @@ defmodule Calendar.ISO do
 
   @doc """
   Implements the inspect protocol delegated from
-  `Date`, `DateTime` and `NaiveDateTime`.
+  `Date`, `Time`, `DateTime` and `NaiveDateTime`.
 
   """
   @doc since: "1.10.0"
   @impl true
   @spec inspect(
-          Calendar.date() | Calendar.datetime() | Calendar.naive_datetime(),
+          Calendar.date() | Calendar.time() | Calendar.datetime() | Calendar.naive_datetime(),
           Inspect.Opts.t()
         ) :: String.t()
   def inspect(%Date{} = date, _) do
@@ -784,6 +784,18 @@ defmodule Calendar.ISO do
     formatted = naive_datetime_to_string(year, month, day, hour, minute, second, microsecond)
 
     "~N[" <> formatted <> "]"
+  end
+
+  def inspect(%Time{} = time, _) do
+    %{
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: microsecond,
+      calendar: Calendar.ISO
+    } = time
+
+    "~T[" <> Calendar.ISO.time_to_string(hour, minute, second, microsecond) <> "]"
   end
 
   defp offset_to_string(0, 0, "Etc/UTC", _format), do: "Z"
