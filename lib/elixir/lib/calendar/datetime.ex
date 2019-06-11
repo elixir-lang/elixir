@@ -1368,45 +1368,6 @@ defmodule DateTime do
   end
 
   defimpl Inspect do
-    def inspect(%{calendar: Calendar.ISO} = datetime, _) do
-      %{
-        year: year,
-        month: month,
-        day: day,
-        hour: hour,
-        minute: minute,
-        second: second,
-        microsecond: microsecond,
-        time_zone: time_zone,
-        zone_abbr: zone_abbr,
-        utc_offset: utc_offset,
-        std_offset: std_offset
-      } = datetime
-
-      formatted =
-        Calendar.ISO.datetime_to_string(
-          year,
-          month,
-          day,
-          hour,
-          minute,
-          second,
-          microsecond,
-          time_zone,
-          zone_abbr,
-          utc_offset,
-          std_offset
-        )
-
-      case datetime do
-        %{utc_offset: 0, std_offset: 0, time_zone: "Etc/UTC"} ->
-          "~U[" <> formatted <> "]"
-
-        _ ->
-          "#DateTime<" <> formatted <> ">"
-      end
-    end
-
     def inspect(%{calendar: calendar} = datetime, opts) do
       if Code.ensure_loaded?(calendar) && function_exported?(calendar, :inspect, 2) do
         calendar.inspect(datetime, opts)

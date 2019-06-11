@@ -715,6 +715,77 @@ defmodule Calendar.ISO do
     {0, 1}
   end
 
+  @doc """
+  Implements the inspect protocol delegated from
+  `Date`, `DateTime` and `NaiveDateTime`.
+
+  """
+  @doc since: "1.10.0"
+  @impl true
+  @spec inspect(
+          Calendar.date() | Calendar.datetime() | Calendar.naive_datetime(),
+          Inspect.Opts.t()
+        ) :: String.t()
+  def inspect(%Date{} = date, _) do
+    %{year: year, month: month, day: day} = date
+    "~D[" <> date_to_string(year, month, day) <> "]"
+  end
+
+  def inspect(%DateTime{} = datetime, _) do
+    %{
+      year: year,
+      month: month,
+      day: day,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: microsecond,
+      time_zone: time_zone,
+      zone_abbr: zone_abbr,
+      utc_offset: utc_offset,
+      std_offset: std_offset
+    } = datetime
+
+    formatted =
+      datetime_to_string(
+        year,
+        month,
+        day,
+        hour,
+        minute,
+        second,
+        microsecond,
+        time_zone,
+        zone_abbr,
+        utc_offset,
+        std_offset
+      )
+
+    case datetime do
+      %{utc_offset: 0, std_offset: 0, time_zone: "Etc/UTC"} ->
+        "~U[" <> formatted <> "]"
+
+      _ ->
+        "#DateTime<" <> formatted <> ">"
+    end
+  end
+
+  def inspect(%NaiveDateTime{} = naive_datetime, _) do
+    %{
+      year: year,
+      month: month,
+      day: day,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: microsecond
+    } = naive_datetime
+
+    formatted = naive_datetime_to_string(year, month, day, hour, minute, second, microsecond)
+
+    "~N[" <> formatted <> "]"
+  end
+
   defp offset_to_string(0, 0, "Etc/UTC", _format), do: "Z"
 
   defp offset_to_string(utc, std, _zone, format) do

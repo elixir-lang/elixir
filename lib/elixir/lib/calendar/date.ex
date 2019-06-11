@@ -769,10 +769,6 @@ defmodule Date do
   end
 
   defimpl Inspect do
-    def inspect(%{calendar: Calendar.ISO, year: year, month: month, day: day}, _) do
-      "~D[" <> Calendar.ISO.date_to_string(year, month, day) <> "]"
-    end
-
     def inspect(%{calendar: calendar} = date, opts) do
       if Code.ensure_loaded?(calendar) && function_exported?(calendar, :inspect, 2) do
         calendar.inspect(date, opts)
