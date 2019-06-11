@@ -644,7 +644,9 @@ defmodule IEx.Introspection do
         types_not_found(inspect(module))
 
       {:ok, types} ->
-        Enum.each(types, &(&1 |> format_type() |> IO.puts()))
+        types
+        |> Enum.sort_by(fn {_, {name, _, args}} -> {name, length(args)} end)
+        |> Enum.each(&(&1 |> format_type() |> IO.puts()))
     end
 
     dont_display_result()
@@ -656,15 +658,19 @@ defmodule IEx.Introspection do
         no_beam(module)
 
       {:ok, types} ->
-        printed =
-          for {kind, {^type, _, args}} = typespec <- types,
-              kind != :typep do
-            type_doc(module, type, length(args), typespec)
-            |> print_typespec()
-          end
+        types
+        |> Enum.filter(&match?({kind, {^type, _, _}} when kind in [:type, :opaque], &1))
+        |> Enum.sort_by(fn {_, {name, _, args}} -> {name, length(args)} end)
+        |> case do
+          [] ->
+            types_not_found_or_private("#{inspect(module)}.#{type}")
 
-        if printed == [] do
-          types_not_found_or_private("#{inspect(module)}.#{type}")
+          types ->
+            Enum.map(types, fn {_, {_, _, args}} = typespec ->
+              module
+              |> type_doc(type, length(args), typespec)
+              |> print_typespec()
+            end)
         end
     end
 
@@ -677,16 +683,21 @@ defmodule IEx.Introspection do
         no_beam(module)
 
       {:ok, types} ->
-        printed =
-          for {kind, {^type, _, args}} = typespec <- types,
-              kind != :typep,
-              length(args) == arity do
-            type_doc(module, type, arity, typespec)
-            |> print_typespec()
-          end
+        types
+        |> Enum.find(
+          &match?(
+            {kind, {^type, _, args}} when kind in [:type, :opaque] and length(args) == arity,
+            &1
+          )
+        )
+        |> case do
+          nil ->
+            types_not_found_or_private("#{inspect(module)}.#{type}")
 
-        if printed == [] do
-          types_not_found_or_private("#{inspect(module)}.#{type}")
+          typespec ->
+            module
+            |> type_doc(type, arity, typespec)
+            |> print_typespec()
         end
     end
 
