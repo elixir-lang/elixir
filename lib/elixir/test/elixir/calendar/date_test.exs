@@ -19,6 +19,9 @@ defmodule DateTest do
 
     date = %{~D[2000-01-01] | calendar: FakeCalendar}
     assert inspect(date) == "%Date{calendar: FakeCalendar, day: 1, month: 1, year: 2000}"
+
+    date = %{~D[2000-01-01] | calendar: Calendar.Holocene}
+    assert inspect(date) == "2000-1-1 (HE)"
   end
 
   test "compare/2" do

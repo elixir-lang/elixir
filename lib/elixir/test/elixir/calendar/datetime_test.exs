@@ -28,6 +28,25 @@ defmodule DateTimeTest do
              "2000-02-29 23:00:07-02:30 BRM Brazil/Manaus"
   end
 
+  test "Kernel.inspect/1" do
+    datetime = %DateTime{
+      year: 2000,
+      month: 2,
+      day: 29,
+      zone_abbr: "BRM",
+      hour: 23,
+      minute: 0,
+      second: 7,
+      microsecond: {0, 0},
+      utc_offset: -12600,
+      std_offset: 3600,
+      time_zone: "Brazil/Manaus"
+    }
+
+    datetime = %{datetime | calendar: Calendar.Holocene}
+    assert inspect(datetime) == "2000-2-29 23:00:07 BRM (HE)"
+  end
+
   test "from_iso8601/1 handles positive and negative offsets" do
     assert DateTime.from_iso8601("2015-01-24T09:50:07-10:00") |> elem(1) ==
              %DateTime{

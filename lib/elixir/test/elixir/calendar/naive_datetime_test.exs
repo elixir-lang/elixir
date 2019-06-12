@@ -22,6 +22,9 @@ defmodule NaiveDateTimeTest do
     assert inspect(ndt) ==
              "%NaiveDateTime{calendar: FakeCalendar, day: 1, hour: 23, " <>
                "microsecond: {5000, 3}, minute: 0, month: 1, second: 7, year: 2000}"
+
+    ndt = %{~N[2000-01-01 23:00:07.005] | calendar: Calendar.Holocene}
+    assert inspect(ndt == "~N[-0100-12-31 23:00:07.005] (HE)")
   end
 
   test "compare/2" do

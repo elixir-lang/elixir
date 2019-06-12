@@ -936,25 +936,20 @@ defmodule NaiveDateTime do
   end
 
   defimpl Inspect do
-    def inspect(%{calendar: Calendar.ISO} = naive_datetime, _) do
-      %{
-        year: year,
-        month: month,
-        day: day,
-        hour: hour,
-        minute: minute,
-        second: second,
-        microsecond: microsecond
-      } = naive_datetime
-
-      formatted =
-        Calendar.ISO.naive_datetime_to_string(year, month, day, hour, minute, second, microsecond)
-
-      "~N[" <> formatted <> "]"
-    end
-
-    def inspect(naive, opts) do
-      Inspect.Any.inspect(naive, opts)
+    def inspect(
+          %{
+            calendar: calendar,
+            year: year,
+            month: month,
+            day: day,
+            hour: hour,
+            minute: minute,
+            second: second,
+            microsecond: microsecond
+          },
+          opts
+        ) do
+      calendar.inspect_naive_datetime(year, month, day, hour, minute, second, microsecond, opts)
     end
   end
 end

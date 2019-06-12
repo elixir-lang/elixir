@@ -265,6 +265,50 @@ defmodule Calendar do
   """
   @callback valid_time?(hour, minute, second, microsecond) :: boolean
 
+  @doc """
+  Implements inspect for a date.
+  """
+  @callback inspect_date(year, month, day, Inspect.Opts.t()) :: Inspect.Algebra.t()
+
+  @doc """
+  Implements inspect for a time.
+  """
+  @callback inspect_time(hour, minute, second, microsecond, Inspect.Opts.t()) ::
+              Inspect.Algebra.t()
+
+  @doc """
+  Implements inspect for a naive datetime.
+  """
+  @callback inspect_naive_datetime(
+              year,
+              month,
+              day,
+              hour,
+              minute,
+              second,
+              microsecond,
+              Inspect.Opts.t()
+            ) ::
+              Inspect.Algebra.t()
+
+  @doc """
+  Implements inspect for a datetime.
+  """
+  @callback inspect_datetime(
+              year,
+              month,
+              day,
+              hour,
+              minute,
+              second,
+              microsecond,
+              time_zone,
+              zone_abbr,
+              utc_offset,
+              std_offset,
+              Inspect.Opts.t()
+            ) :: Inspect.Algebra.t()
+
   # General Helpers
 
   @doc """
