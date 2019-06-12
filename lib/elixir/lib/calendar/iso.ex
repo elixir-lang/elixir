@@ -716,9 +716,7 @@ defmodule Calendar.ISO do
   end
 
   @doc """
-  Implements the inspect protocol for a date
-  delegated from `Date`.
-
+  Implements the `Inspect` protocol for `Date` in this calendar
   """
   @doc since: "1.10.0"
   @impl true
@@ -729,9 +727,7 @@ defmodule Calendar.ISO do
   end
 
   @doc """
-  Implements the inspect protocol for a datetime
-  delegated from `DateTime`.
-
+  Implements the `Inspect` protocol for `DateTime` in this calendar
   """
   @doc since: "1.10.0"
   @impl true
@@ -787,9 +783,7 @@ defmodule Calendar.ISO do
   end
 
   @doc """
-  Implements the inspect protocol for a naive
-  datetime delegated from `NaiveDateTime`.
-
+  Implements the `Inspect` protocol for `NaiveDateTime` in this calendar
   """
   @doc since: "1.10.0"
   @impl true
@@ -811,9 +805,7 @@ defmodule Calendar.ISO do
   end
 
   @doc """
-  Implements the inspect protocol for a time
-  delegated from `Time`.
-
+  Implements the `Inspect` protocol for `Time` in this calendar
   """
   @doc since: "1.10.0"
   @impl true
@@ -823,8 +815,7 @@ defmodule Calendar.ISO do
           Calendar.second(),
           Calendar.microsecond(),
           Inspect.Opts.t()
-        ) ::
-          Inspect.Algebra.t()
+        ) :: Inspect.Algebra.t()
   def inspect_time(
         hour,
         minute,
