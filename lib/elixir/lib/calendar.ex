@@ -291,7 +291,7 @@ defmodule Calendar do
               microsecond,
               Inspect.Opts.t()
             ) ::
-              String.t()
+              Inspect.Algebra.t()
 
   @doc """
   Implements inspect for a datetime.
