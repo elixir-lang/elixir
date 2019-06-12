@@ -723,7 +723,7 @@ defmodule Calendar.ISO do
   @doc since: "1.10.0"
   @impl true
   @spec inspect_date(Calendar.year(), Calendar.month(), Calendar.day(), Inspect.Opts.t()) ::
-          String.t()
+          Inspect.Algebra.t()
   def inspect_date(year, month, day, _) do
     "~D[" <> date_to_string(year, month, day) <> "]"
   end
