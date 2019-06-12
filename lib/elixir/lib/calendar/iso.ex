@@ -749,7 +749,7 @@ defmodule Calendar.ISO do
           Calendar.std_offset(),
           Inspect.Opts.t()
         ) ::
-          String.t()
+          Inspect.Algebra.t()
   def inspect_datetime(
         year,
         month,
