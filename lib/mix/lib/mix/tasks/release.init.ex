@@ -94,6 +94,8 @@ defmodule Mix.Tasks.Release.Init do
     export RELEASE_TMP="${RELEASE_TMP:-"$RELEASE_ROOT/tmp"}"
     export RELEASE_VM_ARGS="${RELEASE_VM_ARGS:-"$REL_VSN_DIR/vm.args"}"
     export RELEASE_DISTRIBUTION="${RELEASE_DISTRIBUTION:-"sname"}"
+    export RELEASE_BOOT_SCRIPT="${RELEASE_BOOT_SCRIPT:-"start"}"
+    export RELEASE_BOOT_SCRIPT_CLEAN="${RELEASE_BOOT_SCRIPT_CLEAN:-"start_clean"}"
 
     rand () {
       od -t xS -N 2 -A n /dev/urandom | tr -d " \n"
@@ -103,7 +105,7 @@ defmodule Mix.Tasks.Release.Init do
       exec "$REL_VSN_DIR/elixir" \
            --hidden --cookie "$RELEASE_COOKIE" \
            --$RELEASE_DISTRIBUTION "rpc-$(rand)-$RELEASE_NODE" \
-           --boot "$REL_VSN_DIR/start_clean" \
+           --boot "$REL_VSN_DIR/$RELEASE_BOOT_SCRIPT_CLEAN" \
            --boot-var RELEASE_LIB "$RELEASE_ROOT/lib" \
            --rpc-eval "$RELEASE_NODE" "$1"
     }
@@ -117,7 +119,7 @@ defmodule Mix.Tasks.Release.Init do
            --$RELEASE_DISTRIBUTION "$RELEASE_NODE" \
            --erl "-mode $RELEASE_MODE" \
            --erl-config "$RELEASE_SYS_CONFIG" \
-           --boot "$REL_VSN_DIR/start" \
+           --boot "$REL_VSN_DIR/$RELEASE_BOOT_SCRIPT" \
            --boot-var RELEASE_LIB "$RELEASE_ROOT/lib" \
            --vm-args "$RELEASE_VM_ARGS" "$@"
     }
@@ -164,7 +166,7 @@ defmodule Mix.Tasks.Release.Init do
         exec "$REL_VSN_DIR/elixir" \
            --cookie "$RELEASE_COOKIE" \
            --erl-config "$RELEASE_SYS_CONFIG" \
-           --boot "$REL_VSN_DIR/start_clean" \
+           --boot "$REL_VSN_DIR/$RELEASE_BOOT_SCRIPT_CLEAN" \
            --boot-var RELEASE_LIB "$RELEASE_ROOT/lib" \
            --vm-args "$RELEASE_VM_ARGS" --eval "$2"
         ;;
@@ -173,7 +175,7 @@ defmodule Mix.Tasks.Release.Init do
         exec "$REL_VSN_DIR/iex" \
              --werl --hidden --cookie "$RELEASE_COOKIE" \
              --$RELEASE_DISTRIBUTION "rem-$(rand)-$RELEASE_NODE" \
-             --boot "$REL_VSN_DIR/start_clean" \
+             --boot "$REL_VSN_DIR/$RELEASE_BOOT_SCRIPT_CLEAN" \
              --boot-var RELEASE_LIB "$RELEASE_ROOT/lib" \
              --remsh "$RELEASE_NODE"
         ;;
@@ -256,6 +258,8 @@ defmodule Mix.Tasks.Release.Init do
     if not defined RELEASE_TMP (set RELEASE_TMP=!RELEASE_ROOT!\tmp)
     if not defined RELEASE_VM_ARGS (set RELEASE_VM_ARGS=!REL_VSN_DIR!\vm.args)
     if not defined RELEASE_DISTRIBUTION (set RELEASE_DISTRIBUTION=sname)
+    if not defined RELEASE_BOOT_SCRIPT (set RELEASE_BOOT_SCRIPT=start)
+    if not defined RELEASE_BOOT_SCRIPT (set RELEASE_BOOT_SCRIPT_CLEAN=start_clean)
     set RELEASE_SYS_CONFIG=!REL_VSN_DIR!\sys
 
     if "%~1" == "start" (set "REL_EXEC=elixir" && set "REL_EXTRA=--no-halt" && set "REL_GOTO=start")
@@ -321,7 +325,7 @@ defmodule Mix.Tasks.Release.Init do
       --!RELEASE_DISTRIBUTION! "!RELEASE_NODE!" ^
       --erl "-mode !RELEASE_MODE!" ^
       --erl-config "!RELEASE_SYS_CONFIG!" ^
-      --boot "!REL_VSN_DIR!\start" ^
+      --boot "!REL_VSN_DIR!\!RELEASE_BOOT_SCRIPT!" ^
       --boot-var RELEASE_LIB "!RELEASE_ROOT!\lib" ^
       --vm-args "!RELEASE_VM_ARGS!"
     goto end
@@ -331,7 +335,7 @@ defmodule Mix.Tasks.Release.Init do
       --eval "%~2" ^
       --cookie "!RELEASE_COOKIE!" ^
       --erl-config "!RELEASE_SYS_CONFIG!" ^
-      --boot "!REL_VSN_DIR!\start_clean" ^
+      --boot "!REL_VSN_DIR!\!RELEASE_BOOT_SCRIPT_CLEAN!" ^
       --boot-var RELEASE_LIB "!RELEASE_ROOT!\lib" ^
       --vm-args "!RELEASE_VM_ARGS!"
     goto end
@@ -340,7 +344,7 @@ defmodule Mix.Tasks.Release.Init do
     "!REL_VSN_DIR!\iex.bat" ^
       --werl --hidden --cookie "!RELEASE_COOKIE!" ^
       --!RELEASE_DISTRIBUTION! "rem-!RANDOM!-!RELEASE_NODE!" ^
-      --boot "!REL_VSN_DIR!\start_clean" ^
+      --boot "!REL_VSN_DIR!\!RELEASE_BOOT_SCRIPT_CLEAN!" ^
       --boot-var RELEASE_LIB "!RELEASE_ROOT!\lib" ^
       --remsh "!RELEASE_NODE!"
     goto end
@@ -349,7 +353,7 @@ defmodule Mix.Tasks.Release.Init do
     "!REL_VSN_DIR!\elixir.bat" ^
       --hidden --cookie "!RELEASE_COOKIE!" ^
       --!RELEASE_DISTRIBUTION! "rpc-!RANDOM!-!RELEASE_NODE!" ^
-      --boot "!REL_VSN_DIR!\start_clean" ^
+      --boot "!REL_VSN_DIR!\!RELEASE_BOOT_SCRIPT_CLEAN!" ^
       --boot-var RELEASE_LIB "!RELEASE_ROOT!\lib" ^
       --rpc-eval "!RELEASE_NODE!" "!REL_RPC!"
     goto end
