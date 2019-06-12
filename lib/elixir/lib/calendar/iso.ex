@@ -816,13 +816,7 @@ defmodule Calendar.ISO do
           Calendar.microsecond(),
           Inspect.Opts.t()
         ) :: Inspect.Algebra.t()
-  def inspect_time(
-        hour,
-        minute,
-        second,
-        microsecond,
-        _opts
-      ) do
+  def inspect_time(hour, minute, second, microsecond, _opts) do
     "~T[" <> Calendar.ISO.time_to_string(hour, minute, second, microsecond) <> "]"
   end
 
