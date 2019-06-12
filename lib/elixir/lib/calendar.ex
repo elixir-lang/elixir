@@ -275,7 +275,7 @@ defmodule Calendar do
   Implements inspect for a time.
 
   """
-  @callback inspect_time(hour, minute, second, microsecond, Inspect.Opts.t()) :: String.t()
+  @callback inspect_time(hour, minute, second, microsecond, Inspect.Opts.t()) :: Inspect.Algebra.t()
 
   @doc """
   Implements inspect for a naive datetime.
