@@ -79,24 +79,25 @@ defmodule Calendar.Holocene do
   end
 
   @impl true
-  def inspect(%Date{year: year, month: month, day: day}, _opts) do
+  @spec inspect_date(Calendar.year(), Calendar.month(), Calendar.day(), Inspect.Opts.t()) ::
+          String.t()
+  def inspect_date(year, month, day, _) do
     date_to_string(year, month, day)
   end
 
-  def inspect(
-        %DateTime{
-          year: year,
-          month: month,
-          day: day,
-          hour: hour,
-          minute: minute,
-          second: second,
-          microsecond: microsecond,
-          time_zone: time_zone,
-          zone_abbr: zone_abbr,
-          utc_offset: utc_offset,
-          std_offset: std_offset
-        },
+  @impl true
+  def inspect_datetime(
+        year,
+        month,
+        day,
+        hour,
+        minute,
+        second,
+        microsecond,
+        time_zone,
+        zone_abbr,
+        utc_offset,
+        std_offset,
         _opts
       ) do
     datetime_to_string(
@@ -114,27 +115,20 @@ defmodule Calendar.Holocene do
     )
   end
 
-  def inspect(
-        %NaiveDateTime{
-          year: year,
-          month: month,
-          day: day,
-          hour: hour,
-          minute: minute,
-          second: second,
-          microsecond: microsecond
-        },
+  @impl true
+  def inspect_naive_datetime(year, month, day, hour, minute, second, microsecond, _opts) do
+    naive_datetime_to_string(year, month, day, hour, minute, second, microsecond)
+  end
+
+  @impl true
+  def inspect_time(
+        hour,
+        minute,
+        second,
+        microsecond,
         _opts
       ) do
-    naive_datetime_to_string(
-      year,
-      month,
-      day,
-      hour,
-      minute,
-      second,
-      microsecond
-    )
+    Calendar.ISO.time_to_string(hour, minute, second, microsecond)
   end
 
   @impl true

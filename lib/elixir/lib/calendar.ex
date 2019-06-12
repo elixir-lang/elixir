@@ -266,13 +266,51 @@ defmodule Calendar do
   @callback valid_time?(hour, minute, second, microsecond) :: boolean
 
   @doc """
-  Implements inspect for times, dates, datetimes, and "naive" datetimes.
+  Implements inspect for a date.
 
-  The implementation must define inspect for `Date.t()`, `DateTime.t()` and
-  `NaiveDateTime.t()` structs.
   """
-  @callback inspect(Time.t() | Date.t() | DateTime.t() | NaiveDateTime.t(), Inspect.Opts.t()) ::
+  @callback inspect_date(year, month, day, Inspect.Opts.t()) :: String.t()
+
+  @doc """
+  Implements inspect for a time.
+
+  """
+  @callback inspect_time(hour, minute, second, microsecond, Inspect.Opts.t()) :: String.t()
+
+  @doc """
+  Implements inspect for a naive datetime.
+
+  """
+  @callback inspect_naive_datetime(
+              year,
+              month,
+              day,
+              hour,
+              minute,
+              second,
+              microsecond,
+              Inspect.Opts.t()
+            ) ::
               String.t()
+
+  @doc """
+  Implements inspect for a datetime.
+
+  """
+  @callback inspect_datetime(
+              year,
+              month,
+              day,
+              hour,
+              minute,
+              second,
+              microsecond,
+              time_zone,
+              zone_abbr,
+              utc_offset,
+              std_offset,
+              Inspect.Opts.t()
+            ) :: String.t()
 
   # General Helpers
 

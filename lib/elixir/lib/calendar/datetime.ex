@@ -1369,7 +1369,34 @@ defmodule DateTime do
 
   defimpl Inspect do
     def inspect(%{calendar: calendar} = datetime, opts) do
-      calendar.inspect(datetime, opts)
+      %{
+        year: year,
+        month: month,
+        day: day,
+        hour: hour,
+        minute: minute,
+        second: second,
+        microsecond: microsecond,
+        time_zone: time_zone,
+        zone_abbr: zone_abbr,
+        utc_offset: utc_offset,
+        std_offset: std_offset
+      } = datetime
+
+      calendar.inspect_datetime(
+        year,
+        month,
+        day,
+        hour,
+        minute,
+        second,
+        microsecond,
+        time_zone,
+        zone_abbr,
+        utc_offset,
+        std_offset,
+        opts
+      )
     end
   end
 end

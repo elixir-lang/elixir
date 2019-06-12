@@ -716,36 +716,54 @@ defmodule Calendar.ISO do
   end
 
   @doc """
-  Implements the inspect protocol delegated from
-  `Date`, `Time`, `DateTime` and `NaiveDateTime`.
+  Implements the inspect protocol for a date
+  delegated from `Date`.
 
   """
   @doc since: "1.10.0"
   @impl true
-  @spec inspect(
-          Date.t() | Time.t() | DateTime.t() | NaiveDateTime.t(),
-          Inspect.Opts.t()
-        ) :: String.t()
-  def inspect(%Date{calendar: __MODULE__} = date, _) do
-    %{year: year, month: month, day: day} = date
+  @spec inspect_date(Calendar.year(), Calendar.month(), Calendar.day(), Inspect.Opts.t()) ::
+          String.t()
+  def inspect_date(year, month, day, _) do
     "~D[" <> date_to_string(year, month, day) <> "]"
   end
 
-  def inspect(%DateTime{calendar: __MODULE__} = datetime, _) do
-    %{
-      year: year,
-      month: month,
-      day: day,
-      hour: hour,
-      minute: minute,
-      second: second,
-      microsecond: microsecond,
-      time_zone: time_zone,
-      zone_abbr: zone_abbr,
-      utc_offset: utc_offset,
-      std_offset: std_offset
-    } = datetime
+  @doc """
+  Implements the inspect protocol for a datetime
+  delegated from `DateTime`.
 
+  """
+  @doc since: "1.10.0"
+  @impl true
+  @spec inspect_datetime(
+          Calendar.year(),
+          Calendar.month(),
+          Calendar.day(),
+          Calendar.hour(),
+          Calendar.minute(),
+          Calendar.second(),
+          Calendar.microsecond(),
+          Calendar.time_zone(),
+          Calendar.zone_abbr(),
+          Calendar.utc_offset(),
+          Calendar.std_offset(),
+          Inspect.Opts.t()
+        ) ::
+          String.t()
+  def inspect_datetime(
+        year,
+        month,
+        day,
+        hour,
+        minute,
+        second,
+        microsecond,
+        time_zone,
+        zone_abbr,
+        utc_offset,
+        std_offset,
+        _opts
+      ) do
     formatted =
       datetime_to_string(
         year,
@@ -761,40 +779,59 @@ defmodule Calendar.ISO do
         std_offset
       )
 
-    case datetime do
-      %{utc_offset: 0, std_offset: 0, time_zone: "Etc/UTC"} ->
-        "~U[" <> formatted <> "]"
-
-      _ ->
-        "#DateTime<" <> formatted <> ">"
+    if utc_offset == 0 && std_offset == 0 && time_zone == "Etc/UTC" do
+      "~U[" <> formatted <> "]"
+    else
+      "#DateTime<" <> formatted <> ">"
     end
   end
 
-  def inspect(%NaiveDateTime{calendar: __MODULE__} = naive_datetime, _) do
-    %{
-      year: year,
-      month: month,
-      day: day,
-      hour: hour,
-      minute: minute,
-      second: second,
-      microsecond: microsecond
-    } = naive_datetime
+  @doc """
+  Implements the inspect protocol for a naive
+  datetime delegated from `NaiveDateTime`.
 
+  """
+  @doc since: "1.10.0"
+  @impl true
+  @spec inspect_naive_datetime(
+          Calendar.year(),
+          Calendar.month(),
+          Calendar.day(),
+          Calendar.hour(),
+          Calendar.minute(),
+          Calendar.second(),
+          Calendar.microsecond(),
+          Inspect.Opts.t()
+        ) ::
+          String.t()
+  def inspect_naive_datetime(year, month, day, hour, minute, second, microsecond, _opts) do
     formatted = naive_datetime_to_string(year, month, day, hour, minute, second, microsecond)
 
     "~N[" <> formatted <> "]"
   end
 
-  def inspect(%Time{calendar: __MODULE__} = time, _) do
-    %{
-      hour: hour,
-      minute: minute,
-      second: second,
-      microsecond: microsecond,
-      calendar: Calendar.ISO
-    } = time
+  @doc """
+  Implements the inspect protocol for a time
+  delegated from `Time`.
 
+  """
+  @doc since: "1.10.0"
+  @impl true
+  @spec inspect_time(
+          Calendar.hour(),
+          Calendar.minute(),
+          Calendar.second(),
+          Calendar.microsecond(),
+          Inspect.Opts.t()
+        ) ::
+          String.t()
+  def inspect_time(
+        hour,
+        minute,
+        second,
+        microsecond,
+        _opts
+      ) do
     "~T[" <> Calendar.ISO.time_to_string(hour, minute, second, microsecond) <> "]"
   end
 

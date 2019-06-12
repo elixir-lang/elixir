@@ -769,8 +769,8 @@ defmodule Date do
   end
 
   defimpl Inspect do
-    def inspect(%{calendar: calendar} = date, opts) do
-      calendar.inspect(date, opts)
+    def inspect(%{calendar: calendar, year: year, month: month, day: day}, opts) do
+      calendar.inspect_date(year, month, day, opts)
     end
   end
 end
