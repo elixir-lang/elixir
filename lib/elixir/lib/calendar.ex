@@ -269,7 +269,7 @@ defmodule Calendar do
   Implements inspect for a date.
 
   """
-  @callback inspect_date(year, month, day, Inspect.Opts.t()) :: String.t()
+  @callback inspect_date(year, month, day, Inspect.Opts.t()) :: Inspect.Algebra.t()
 
   @doc """
   Implements inspect for a time.
