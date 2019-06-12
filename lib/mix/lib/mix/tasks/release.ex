@@ -667,6 +667,18 @@ defmodule Mix.Tasks.Release do
       not running on Erlang/OTP 22 or later, you must set `RELEASE_NODE`
       to `RELEASE_NAME@127.0.0.1` with an IP or a known host
 
+    * `RELEASE_BOOT_SCRIPT` - the name of the boot script to use when starting
+      the release. This script is used when running commands such as `start` and
+      `daemon`. The boot script is expected to be located at the
+      path `releases/RELEASE_VSN/RELEASE_BOOT_SCRIPT.boot`. Defaults to `start`
+
+    * `RELEASE_BOOT_SCRIPT_CLEAN` - the name of the boot script used when
+      starting the release clean, without your application or its dependencies.
+      This script is used by commands such as `eval`, `rpc`, and `remote`.
+      The boot script is expected to be located at the path
+      `releases/RELEASE_VSN/RELEASE_BOOT_SCRIPT_CLEAN.boot`. Defaults
+      to `start_clean`
+
   ## Umbrellas
 
   Releases are well integrated with umbrella projects, allowing you to
