@@ -803,7 +803,7 @@ defmodule Calendar.ISO do
           Calendar.microsecond(),
           Inspect.Opts.t()
         ) ::
-          String.t()
+          Inspect.Algebra.t()
   def inspect_naive_datetime(year, month, day, hour, minute, second, microsecond, _opts) do
     formatted = naive_datetime_to_string(year, month, day, hour, minute, second, microsecond)
 
