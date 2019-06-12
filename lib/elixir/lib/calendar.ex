@@ -310,7 +310,7 @@ defmodule Calendar do
               utc_offset,
               std_offset,
               Inspect.Opts.t()
-            ) :: String.t()
+            ) :: Inspect.Algebra.t()
 
   # General Helpers
 
