@@ -66,8 +66,8 @@ defmodule Mix.Tasks.Release.Init do
     #   export ELIXIR_ERL_OPTIONS="-heart"
     # fi
 
-    # Set the release to work across nodes. If using the long name format like the
-    # one below (my_app@127.0.0.1), you need to also uncomment the
+    # Set the release to work across nodes. If using the long name format like
+    # the one below (my_app@127.0.0.1), you need to also uncomment the
     # RELEASE_DISTRIBUTION variable below.
     # export RELEASE_DISTRIBUTION=name
     # export RELEASE_NODE=<%= @release.name %>@127.0.0.1
@@ -232,7 +232,9 @@ defmodule Mix.Tasks.Release.Init do
   def env_bat_text,
     do: ~S"""
     @echo off
-    rem Set the release to work across nodes
+    rem Set the release to work across nodes. If using the long name format like
+    rem the one below (my_app@127.0.0.1), you need to also uncomment the
+    rem RELEASE_DISTRIBUTION variable below.
     rem set RELEASE_DISTRIBUTION=name
     rem set RELEASE_NODE=<%= @release.name %>@127.0.0.1
     """
