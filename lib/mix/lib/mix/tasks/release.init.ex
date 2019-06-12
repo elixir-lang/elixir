@@ -66,7 +66,9 @@ defmodule Mix.Tasks.Release.Init do
     #   export ELIXIR_ERL_OPTIONS="-heart"
     # fi
 
-    # Set the release to work across nodes
+    # Set the release to work across nodes. If using a long name like the
+    # one below (my_app@127.0.0.1), you need to also uncomment the
+    # RELEASE_DISTRIBUTION variable below.
     # export RELEASE_DISTRIBUTION=name
     # export RELEASE_NODE=<%= @release.name %>@127.0.0.1
     """
