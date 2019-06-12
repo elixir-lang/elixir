@@ -4,6 +4,15 @@ defmodule FakeCalendar do
   def naive_datetime_to_string(_, _, _, _, _, _, _), do: "boom"
   def datetime_to_string(_, _, _, _, _, _, _, _, _, _), do: "boom"
   def day_rollover_relative_to_midnight_utc, do: {123_456, 123_457}
+
+  def inspect_date(_year, _month, _day, _) do
+    "%Date{calendar: FakeCalendar, day: 1, month: 1, year: 2000}"
+  end
+
+  def inspect_naive_datetime(_year, _month, _day, _hour, _minute, _second, _microsecond, _) do
+    "%NaiveDateTime{calendar: FakeCalendar, day: 1, hour: 23, " <>
+      "microsecond: {5000, 3}, minute: 0, month: 1, second: 7, year: 2000}"
+  end
 end
 
 defmodule FakeTimeZoneDatabase do

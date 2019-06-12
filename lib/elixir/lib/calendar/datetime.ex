@@ -1368,7 +1368,7 @@ defmodule DateTime do
   end
 
   defimpl Inspect do
-    def inspect(%{calendar: Calendar.ISO} = datetime, _) do
+    def inspect(%{calendar: calendar} = datetime, opts) do
       %{
         year: year,
         month: month,
@@ -1383,32 +1383,20 @@ defmodule DateTime do
         std_offset: std_offset
       } = datetime
 
-      formatted =
-        Calendar.ISO.datetime_to_string(
-          year,
-          month,
-          day,
-          hour,
-          minute,
-          second,
-          microsecond,
-          time_zone,
-          zone_abbr,
-          utc_offset,
-          std_offset
-        )
-
-      case datetime do
-        %{utc_offset: 0, std_offset: 0, time_zone: "Etc/UTC"} ->
-          "~U[" <> formatted <> "]"
-
-        _ ->
-          "#DateTime<" <> formatted <> ">"
-      end
-    end
-
-    def inspect(datetime, opts) do
-      Inspect.Any.inspect(datetime, opts)
+      calendar.inspect_datetime(
+        year,
+        month,
+        day,
+        hour,
+        minute,
+        second,
+        microsecond,
+        time_zone,
+        zone_abbr,
+        utc_offset,
+        std_offset,
+        opts
+      )
     end
   end
 end

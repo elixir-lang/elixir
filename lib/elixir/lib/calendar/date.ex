@@ -769,12 +769,8 @@ defmodule Date do
   end
 
   defimpl Inspect do
-    def inspect(%{calendar: Calendar.ISO, year: year, month: month, day: day}, _) do
-      "~D[" <> Calendar.ISO.date_to_string(year, month, day) <> "]"
-    end
-
-    def inspect(date, opts) do
-      Inspect.Any.inspect(date, opts)
+    def inspect(%{calendar: calendar, year: year, month: month, day: day}, opts) do
+      calendar.inspect_date(year, month, day, opts)
     end
   end
 end
