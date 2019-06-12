@@ -824,7 +824,7 @@ defmodule Calendar.ISO do
           Calendar.microsecond(),
           Inspect.Opts.t()
         ) ::
-          String.t()
+          Inspect.Algebra.t()
   def inspect_time(
         hour,
         minute,
