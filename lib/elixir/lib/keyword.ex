@@ -34,7 +34,7 @@ defmodule Keyword do
   of a keyword without quotes, Elixir will warn.
 
   Note that when keyword lists are passed as the last argument to a function,
-  if the short-hand syntax is used then the square brackets around the keyword list
+  if the short hand syntax is used then the square brackets around the keyword list
   can be omitted as well. For example, the following:
 
       String.split("1-0", "-", trim: true, parts: 2)
