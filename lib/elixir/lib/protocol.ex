@@ -463,14 +463,12 @@ defmodule Protocol do
         do: mod
   end
 
-  defp list_dir(path) when is_list(path) do
+  defp list_dir(path) do
     case :file.list_dir(path) do
       {:ok, files} -> files
       _ -> []
     end
   end
-
-  defp list_dir(path), do: list_dir(to_charlist(path))
 
   defp extract_from_file(path, file, prefix, callback) do
     if :lists.prefix(prefix, file) and :filename.extension(file) == '.beam' do
@@ -478,7 +476,7 @@ defmodule Protocol do
     end
   end
 
-  defp extract_from_beam(file, callback) do
+  defp extract_from_beam(file, callback) when is_list(file) do
     case :beam_lib.chunks(file, [:attributes]) do
       {:ok, {module, [attributes: attributes]}} ->
         callback.(module, attributes)
@@ -486,6 +484,10 @@ defmodule Protocol do
       _ ->
         nil
     end
+  end
+
+  defp extract_from_beam(file, callback) do
+    extract_from_beam(to_charlist(file), callback)
   end
 
   @doc """

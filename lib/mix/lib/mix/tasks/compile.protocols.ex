@@ -109,11 +109,19 @@ defmodule Mix.Tasks.Compile.Protocols do
   end
 
   defp consolidation_paths do
-    filter_otp(:code.get_path(), :code.lib_dir())
+    :code.get_path()
+    |> filter_otp(:code.lib_dir())
+    |> filter_duplicates()
   end
 
   defp filter_otp(paths, otp) do
-    Enum.filter(paths, &(not :lists.prefix(&1, otp)))
+    Enum.filter(paths, &(not :lists.prefix(otp, &1)))
+  end
+
+  defp filter_duplicates(paths) do
+    paths
+    |> Enum.map(&Path.expand/1)
+    |> Enum.uniq()
   end
 
   defp consolidate([], _paths, output, manifest, metadata, _opts) do
