@@ -79,8 +79,6 @@ defmodule Calendar.Holocene do
   end
 
   @impl true
-  @spec inspect_date(Calendar.year(), Calendar.month(), Calendar.day(), Inspect.Opts.t()) ::
-          String.t()
   def inspect_date(year, month, day, _) do
     date_to_string(year, month, day)
   end
