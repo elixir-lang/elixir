@@ -116,7 +116,7 @@ defmodule Macro do
           | number
           | binary
 
-  @typep input_expr :: {input_expr | atom, keyword, atom | [input]}
+  @typep input_expr :: {input_expr | atom, metadata, atom | [input]}
 
   @typedoc "The output of a macro"
   @type output ::
@@ -129,7 +129,10 @@ defmodule Macro do
           | captured_remote_function
           | pid
 
-  @typep output_expr :: {output_expr | atom, keyword, atom | [output]}
+  @typep output_expr :: {output_expr | atom, metadata, atom | [output]}
+
+  @typedoc "A keyword list of AST metadata"
+  @type metadata :: keyword
 
   @typedoc "A captured remote function in the format of &Mod.fun/arity"
   @type captured_remote_function :: fun
