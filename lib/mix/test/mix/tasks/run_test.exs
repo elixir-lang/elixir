@@ -5,8 +5,6 @@ defmodule Mix.Tasks.RunTest do
 
   import ExUnit.CaptureIO
 
-  @moduletag apps: [:sample]
-
   setup do
     Mix.Project.push(MixTest.Case.Sample)
   end

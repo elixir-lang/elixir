@@ -19,7 +19,6 @@ defmodule Mix.Tasks.App.StartTest do
     end
   end
 
-  @tag apps: [:app_start_sample]
   test "compiles and starts the project" do
     Mix.Project.push(AppStartSample)
 
@@ -50,7 +49,6 @@ defmodule Mix.Tasks.App.StartTest do
     end)
   end
 
-  @tag apps: [:app_start_sample, :app_loaded_sample]
   test "start checks for invalid configuration", context do
     Mix.Project.push(AppStartSample)
 
@@ -77,7 +75,6 @@ defmodule Mix.Tasks.App.StartTest do
     end)
   end
 
-  @tag apps: [:error]
   test "validates Elixir version requirement", context do
     Mix.ProjectStack.post_config(elixir: "~> ~> 0.8.1")
     Mix.Project.push(WrongElixirProject)
@@ -89,7 +86,6 @@ defmodule Mix.Tasks.App.StartTest do
     end)
   end
 
-  @tag apps: [:error]
   test "validates the Elixir version with requirement", context do
     Mix.Project.push(WrongElixirProject)
 
@@ -100,7 +96,6 @@ defmodule Mix.Tasks.App.StartTest do
     end)
   end
 
-  @tag apps: [:error]
   test "does not validate the Elixir version with requirement when disabled", context do
     Mix.Project.push(WrongElixirProject)
 
@@ -136,7 +131,6 @@ defmodule Mix.Tasks.App.StartTest do
     def start(_type, return), do: return
   end
 
-  @tag apps: [:return_sample]
   test "start points to report on error", context do
     Mix.Project.push(ReturnSample)
 
@@ -155,7 +149,6 @@ defmodule Mix.Tasks.App.StartTest do
     end)
   end
 
-  @tag apps: [:return_sample]
   test "start points to report on exception error", context do
     Mix.Project.push(ReturnSample)
 
@@ -177,7 +170,6 @@ defmodule Mix.Tasks.App.StartTest do
     end)
   end
 
-  @tag apps: [:return_sample]
   test "start points to report on bad return", context do
     Mix.Project.push(ReturnSample)
 
@@ -212,7 +204,6 @@ defmodule Mix.Tasks.App.StartTest do
     def start(_type, reason), do: exit(reason)
   end
 
-  @tag apps: [:exit_sample]
   test "start points to report on exit", context do
     Mix.Project.push(ExitSample)
 
@@ -230,7 +221,6 @@ defmodule Mix.Tasks.App.StartTest do
     end)
   end
 
-  @tag apps: [:exit_sample]
   test "start points to report on normal exit", context do
     Mix.Project.push(ExitSample)
 
