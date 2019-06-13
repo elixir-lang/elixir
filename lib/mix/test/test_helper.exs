@@ -2,6 +2,9 @@ Mix.start()
 Mix.shell(Mix.Shell.Process)
 Application.put_env(:mix, :colors, enabled: false)
 
+Logger.remove_backend(:console)
+Application.put_env(:logger, :backends, [])
+
 exclude = if match?({:win32, _}, :os.type()), do: [unix: true], else: [windows: true]
 ExUnit.start(trace: "--trace" in System.argv(), exclude: exclude)
 
@@ -32,12 +35,9 @@ defmodule MixTest.Case do
     end
   end
 
-  setup config do
-    if apps = config[:apps] do
-      Logger.remove_backend(:console)
-      Application.put_env(:logger, :backends, [])
-    end
+  @apps Enum.map(Application.loaded_applications(), &elem(&1, 0))
 
+  setup do
     on_exit(fn ->
       Application.start(:logger)
       Mix.env(:dev)
@@ -48,14 +48,9 @@ defmodule MixTest.Case do
       Mix.ProjectStack.clear_stack()
       delete_tmp_paths()
 
-      if apps do
-        for app <- apps do
-          Application.stop(app)
-          Application.unload(app)
-        end
-
-        Logger.add_backend(:console, flush: true)
-        Application.put_env(:logger, :backends, [:console])
+      for {app, _, _} <- Application.loaded_applications(), app not in @apps do
+        Application.stop(app)
+        Application.unload(app)
       end
     end)
 

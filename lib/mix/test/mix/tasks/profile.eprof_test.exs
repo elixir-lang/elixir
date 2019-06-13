@@ -4,10 +4,8 @@ defmodule Mix.Tasks.Profile.EprofTest do
   use MixTest.Case
 
   import ExUnit.CaptureIO
-
   alias Mix.Tasks.Profile.Eprof
 
-  @moduletag apps: [:sample]
   @expr "Enum.each(1..5, &String.Chars.Integer.to_string/1)"
 
   test "profiles evaluated expression", context do
