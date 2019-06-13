@@ -59,8 +59,9 @@ defmodule Config.Provider do
 
     * a binary representing an absolute path
 
-    * a tuple {:system, system_var, path} where the config is the
-      concatenation of the `system_var` with the given `path`
+    * a `{:system, system_var, path}` tuple where the config is the
+      concatenation of the environment variable `system_var` with
+      the given `path`
 
   """
   @type config_path :: {:system, binary(), binary()} | binary()
