@@ -369,10 +369,13 @@ do_quote_call(Left, Meta, Expr, Args, Q, E) ->
 
 do_quote_fa(Target, Meta, Args, F, A, Q, E) ->
   NewMeta =
-    case (keyfind(import_fa, Meta) == false) andalso
-         elixir_dispatch:find_import(Meta, F, A, E) of
-      false    -> Meta;
-      Receiver -> keystore(import_fa, Meta, {Receiver, Q#elixir_quote.context})
+    case elixir_dispatch:find_import(Meta, F, A, E) of
+      false -> Meta;
+      Receiver ->
+        lists:keystore(context, 1,
+          lists:keystore(import, 1, Meta, {import, Receiver}),
+          {context, Q#elixir_quote.context}
+        )
     end,
   do_quote_tuple(Target, NewMeta, Args, Q, E).
 
