@@ -380,6 +380,7 @@ expand({Name, Meta, Kind} = Var, E) when is_atom(Name), is_atom(Kind) ->
       end;
 
     _ ->
+      %% TODO: Remove this check on v2.0 as we can always raise undefined_var
       case lists:keyfind(var, 1, Meta) of
         {var, true} ->
           form_error(Meta, E, ?MODULE, {undefined_var_bang, Name, Kind});
