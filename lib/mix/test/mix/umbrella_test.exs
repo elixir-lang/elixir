@@ -3,8 +3,6 @@ Code.require_file("../test_helper.exs", __DIR__)
 defmodule Mix.UmbrellaTest do
   use MixTest.Case
 
-  @moduletag apps: [:foo, :bar]
-
   test "apps_paths" do
     in_fixture("umbrella_dep/deps/umbrella", fn ->
       assert Mix.Project.apps_paths() == nil

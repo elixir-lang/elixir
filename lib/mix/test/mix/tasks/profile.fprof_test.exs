@@ -4,9 +4,7 @@ defmodule Mix.Tasks.Profile.FprofTest do
   use MixTest.Case
 
   import ExUnit.CaptureIO
-
   alias Mix.Tasks.Profile.Fprof
-  @moduletag apps: [:sample]
 
   test "profiles evaluated expression", context do
     in_tmp(context.test, fn ->
