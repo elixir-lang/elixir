@@ -963,6 +963,7 @@ defmodule Code do
 
   For compiling many files concurrently, see `Kernel.ParallelCompiler.compile/2`.
   """
+  @doc since: "1.7.0"
   @spec compile_file(binary, nil | binary) :: [{module, binary}]
   def compile_file(file, relative_to \\ nil) when is_binary(file) do
     :elixir_compiler.file(find_file(file, relative_to), fn _, _ -> :ok end)
