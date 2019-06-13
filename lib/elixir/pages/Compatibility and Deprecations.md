@@ -79,8 +79,6 @@ Version | Deprecated feature                                  | Replaced by (ava
 [v1.10] | `:restart` and `:shutdown` on `Task.Supervisor.start_link/1` | `:restart` and `:shutdown` on `Task.Supervisor.start_child/3` (v1.6)
 [v1.10] | `Supervisor.Spec`                                   | The new child specs outlined in `Supervisor` (v1.5)
 [v1.10] | `:simple_one_for_one` strategy in Supervisor        | `DynamicSupervisor` (v1.6)
-[v1.10] | `Supervisor.start_child/2` with list arguments      | `DynamicSupervisor` (v1.6)
-[v1.10] | `Supervisor.terminate_child/2` with PID argument    | `DynamicSupervisor` (v1.6)
 [v1.10] | `String.normalize/2`                                | `:unicode.characters_to_nfc_binary/1` or `:unicode.characters_to_nfd_binary/1` (Erlang/OTP 20)
 [v1.10] | `Code.load_file/2`                                  | `Code.require_file/2` (v1.0) or `Code.compile_file/2` (v1.7)
 [v1.10] | `Code.unload_file/1`                                | `Code.unrequire_file/1` (v1.7)
