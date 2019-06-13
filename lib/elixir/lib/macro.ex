@@ -2,16 +2,62 @@ import Kernel, except: [to_string: 1]
 
 defmodule Macro do
   @moduledoc ~S"""
-  Conveniences for working with macros.
+  Macros are a compile-time construct that are invoked with Elixir's AST
+  as input and a superset of Elixir's AST as output.
+
+  Let's see a simple that shows the difference between functions and macros:
+
+      defmodule Example do
+        defmacro macro_inspect(value) do
+          IO.inspect(value)
+          value
+        end
+
+        def fun_inspect(value) do
+          IO.inpect(value)
+          value
+        end
+      end
+
+  Now let's give it a try:
+
+      import Example
+
+      macro_inspect(1)
+      #=> 1
+      #=> 1
+
+      fun_inspect(1)
+      #=> 1
+      #=> 1
+
+  So far they behave the same, as we are passing an integer as argument.
+  But what happens when we pass an expresion:
+
+      macro_inspect(1 + 2)
+      #=> {:+, [line: 3], [1, 2]}
+      #=> 3
+
+      fun_inspect(1 + 2)
+      #=> 3
+      #=> 3
+
+  The macro receives the representation of the code given as argument,
+  while a function receives the result of the code given as argument.
+  A macro must return a superset of the code representation. See
+  `t:input/0` and `t:output/0` for more information.
+
+  To learn more about Elixir's AST and how to build them programatically,
+  see `quote/2`.
 
   ## Custom Sigils
 
-  To create a custom sigil, define a function with the name
-  `sigil_{identifier}` that takes two arguments. The first argument will be
-  the string, the second will be a charlist containing any modifiers. If the
-  sigil is lower case (such as `sigil_x`) then the string argument will allow
-  interpolation. If the sigil is upper case (such as `sigil_X`) then the string
-  will not be interpolated.
+  Macros are also commonly used to implement cutsom sigils. To create a custom
+  sigil, define a function with the name `sigil_{identifier}` that takes two
+  arguments. The first argument will be the string, the second will be a charlist
+  containing any modifiers. If the sigil is lower case (such as `sigil_x`) then
+  the string argument will allow interpolation. If the sigil is upper case
+  (such as `sigil_X`) then the string will not be interpolated.
 
   Valid modifiers include only lower and upper case letters. Other characters
   will cause a syntax error.
@@ -59,13 +105,34 @@ defmodule Macro do
   alias Code.Identifier
 
   @typedoc "Abstract Syntax Tree (AST)"
-  @type t :: expr | literal
+  @type t :: input
 
-  @typedoc "Represents expressions in the AST"
-  @type expr :: {expr | atom, keyword, atom | [t]}
+  @typedoc "The inputs of a macro"
+  @type input ::
+          input_expr
+          | {input, input}
+          | [input]
+          | atom
+          | number
+          | binary
 
-  @typedoc "Represents literals in the AST"
-  @type literal :: atom | number | binary | fun | {t, t} | [t]
+  @typep input_expr :: {input_expr | atom, keyword, atom | [input]}
+
+  @typedoc "The output of a macro"
+  @type output ::
+          output_expr
+          | {output, output}
+          | [output]
+          | atom
+          | number
+          | binary
+          | captured_remote_function
+          | pid
+
+  @typep output_expr :: {output_expr | atom, keyword, atom | [output]}
+
+  @typedoc "A captured remote function in the format of &Mod.fun/arity"
+  @type captured_remote_function :: fun
 
   @doc """
   Breaks a pipeline expression into a list.
@@ -1350,8 +1417,7 @@ defmodule Macro do
   Returns `true` if the given quoted expression is an AST literal.
   """
   @doc since: "1.7.0"
-  @spec quoted_literal?(literal) :: true
-  @spec quoted_literal?(expr) :: false
+  @spec quoted_literal?(t) :: boolean
   def quoted_literal?(term)
 
   def quoted_literal?({left, right}), do: quoted_literal?(left) and quoted_literal?(right)
