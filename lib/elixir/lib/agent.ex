@@ -439,6 +439,15 @@ defmodule Agent do
 
   Note that `cast` returns `:ok` immediately, regardless of whether `agent` (or
   the node it should live on) exists.
+
+  ## Examples
+
+    iex> {:ok, pid} = Agent.start_link(fn -> 1 end)
+    iex> Agent.cast(pid, fn _ -> 2 end)
+    :ok
+    iex> Agent.get(pid, fn state -> state end)
+    2
+
   """
   @spec cast(agent, (state -> state)) :: :ok
   def cast(agent, fun) when is_function(fun, 1) do
