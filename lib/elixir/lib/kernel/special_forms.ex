@@ -798,7 +798,7 @@ defmodule Kernel.SpecialForms do
     * The first element of the tuple is always an atom or
       another tuple in the same representation.
 
-    * The second element of the tuple represents metadata.
+    * The second element of the tuple represents [metadata](t:Macro.metadata/0).
 
     * The third element of the tuple are the arguments for the
       function call. The third argument may be an atom, which is
