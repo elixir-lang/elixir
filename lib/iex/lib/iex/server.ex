@@ -38,6 +38,7 @@ defmodule IEx.Server do
 
   defp run_without_registration(opts) do
     Process.flag(:trap_exit, true)
+    Process.link(Process.group_leader())
 
     IO.puts(
       "Interactive Elixir (#{System.version()}) - press Ctrl+C to exit (type h() ENTER for help)"
@@ -124,16 +125,18 @@ defmodule IEx.Server do
         send(evaluator, {:eval, self(), code, state})
         wait_eval(state, evaluator, evaluator_ref)
 
-      {:input, ^input, {:error, :interrupted}} ->
-        io_error("** (EXIT) interrupted")
-        loop(%{state | cache: ''}, evaluator, evaluator_ref)
-
       {:input, ^input, :eof} ->
         case state.on_eof do
           :halt -> System.halt(0)
           :stop_evaluator -> stop_evaluator(evaluator, evaluator_ref)
         end
 
+      # Triggered by pressing "i" as the job control switch
+      {:input, ^input, {:error, :interrupted}} ->
+        io_error("** (EXIT) interrupted")
+        loop(%{state | cache: ''}, evaluator, evaluator_ref)
+
+      # Triggered when IO dies while waiting for input
       {:input, ^input, {:error, :terminated}} ->
         stop_evaluator(evaluator, evaluator_ref)
 
@@ -210,6 +213,21 @@ defmodule IEx.Server do
     Process.demonitor(evaluator_ref, [:flush])
     evaluator = start_evaluator([])
     loop(%{state | cache: ''}, evaluator, Process.monitor(evaluator))
+  end
+
+  defp handle_take_over(
+         {:EXIT, pid, reason},
+         state,
+         _evaluator,
+         _evaluator_ref,
+         _input,
+         callback
+       ) do
+    if pid == Process.group_leader() do
+      exit(reason)
+    else
+      callback.(state)
+    end
   end
 
   defp handle_take_over({:respawn, evaluator}, _state, evaluator, evaluator_ref, input, _callback) do
