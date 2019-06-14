@@ -138,7 +138,7 @@ defmodule Macro do
   and different parts of the compiler may use different keys. For example,
   the AST received by a macro will always include the `:line` annotation,
   while the AST emitted by `quote/2` only has the `:line` annotation if the
-  `line` argument was provided.
+  `:line` option is provided.
 
   The following metadata keys are public:
 
@@ -159,26 +159,18 @@ defmodule Macro do
     * `:line` - The line number of the AST node.
 
   The following metadata keys are private. Do not rely on them as they may change
-  or be fully removed in future versions of the language. They are often used by `quote/2` and
-  the compiler to provide features like hygiene, better error messages, etc.:
+  or be fully removed in future versions of the language. They are often used by
+  `quote/2` and the compiler to provide features like hygiene, better error
+  messages, etc.:
 
     * `:alias` - Used for alias hygiene
     * `:ambiguous_op` - Used for improved error messages in the compiler
     * `:import` - Used for import hygiene
     * `:var` - Used for improved error messages on undefined variables
 
-  The compiler uses some metadata keys internally and they're never exposed
-  to the user. Therefore, the following keys must be avoided to prevent conflicts:
-
-    * `:alignment`
-    * `:defined`
-    * `:origin`
-    * `:super`
-
   If you introduce custom keys into the AST metadata, please make sure to prefix
   them with the library/application name, so that they will not conflict with
   keys that could potentially be introduced by the compiler in the future.
-
   """
   @type metadata :: keyword
 
