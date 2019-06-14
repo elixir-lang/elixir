@@ -26,7 +26,8 @@
       Time,
       Tuple,
       URI,
-      Version
+      Version,
+      Version.Requirement
     ],
     "Collections & Enumerables": [
       Access,
