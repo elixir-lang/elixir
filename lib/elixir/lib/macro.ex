@@ -5,7 +5,7 @@ defmodule Macro do
   Macros are compile-time constructs that are invoked with Elixir's AST
   as input and a superset of Elixir's AST as output.
 
-  Let's see a sample that shows the difference between functions and macros:
+  Let's see a simple example that shows the difference between functions and macros:
 
       defmodule Example do
         defmacro macro_inspect(value) do
