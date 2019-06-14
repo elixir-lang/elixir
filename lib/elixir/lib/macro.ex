@@ -2,10 +2,10 @@ import Kernel, except: [to_string: 1]
 
 defmodule Macro do
   @moduledoc ~S"""
-  Macros are a compile-time construct that are invoked with Elixir's AST
+  Macros are compile-time constructs that are invoked with Elixir's AST
   as input and a superset of Elixir's AST as output.
 
-  Let's see a simple that shows the difference between functions and macros:
+  Let's see a simple example that shows the difference between functions and macros:
 
       defmodule Example do
         defmacro macro_inspect(value) do
@@ -47,12 +47,12 @@ defmodule Macro do
   A macro must return a superset of the code representation. See
   `t:input/0` and `t:output/0` for more information.
 
-  To learn more about Elixir's AST and how to build them programatically,
+  To learn more about Elixir's AST and how to build them programmatically,
   see `quote/2`.
 
   ## Custom Sigils
 
-  Macros are also commonly used to implement cutsom sigils. To create a custom
+  Macros are also commonly used to implement custom sigils. To create a custom
   sigil, define a function with the name `sigil_{identifier}` that takes two
   arguments. The first argument will be the string, the second will be a charlist
   containing any modifiers. If the sigil is lower case (such as `sigil_x`) then
