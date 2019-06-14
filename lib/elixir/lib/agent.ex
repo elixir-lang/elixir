@@ -442,11 +442,11 @@ defmodule Agent do
 
   ## Examples
 
-    iex> {:ok, pid} = Agent.start_link(fn -> 1 end)
+    iex> {:ok, pid} = Agent.start_link(fn -> 42 end)
     iex> Agent.cast(pid, fn x -> x * 2 end)
     :ok
     iex> Agent.get(pid, fn state -> state end)
-    2
+    84
 
   """
   @spec cast(agent, (state -> state)) :: :ok
