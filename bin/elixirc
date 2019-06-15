@@ -2,7 +2,8 @@
 set -e
 
 if [ $# -eq 0 ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
-  echo "Usage: $(basename "$0") [elixir switches] [compiler switches] [.ex files]
+  cat <<USAGE >&2
+Usage: $(basename "$0") [elixir switches] [compiler switches] [.ex files]
 
   -h, --help                Prints this message and exits
   -o                        The directory to output compiled files
@@ -16,7 +17,8 @@ if [ $# -eq 0 ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
 
 Options given after -- are passed down to the executed code.
 Options can be passed to the Erlang runtime using \$ELIXIR_ERL_OPTIONS.
-Options can be passed to the Erlang compiler using \$ERL_COMPILER_OPTIONS." >&2
+Options can be passed to the Erlang compiler using \$ERL_COMPILER_OPTIONS.
+USAGE
   exit 1
 fi
 
