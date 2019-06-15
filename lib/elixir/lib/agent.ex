@@ -443,7 +443,7 @@ defmodule Agent do
   ## Examples
 
       iex> {:ok, pid} = Agent.start_link(fn -> 42 end)
-      iex> Agent.update(pid, fn state -> state + 1 end)
+      iex> Agent.cast(pid, fn state -> state + 1 end)
       :ok
       iex> Agent.get(pid, fn state -> state end)
       43
