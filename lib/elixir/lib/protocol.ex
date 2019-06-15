@@ -163,15 +163,15 @@ defmodule Protocol do
 
       * `:consolidated?` - returns whether the protocol is consolidated
 
-      * `:functions` - returns keyword list of protocol functions and their arities
+      * `:functions` - returns a keyword list of protocol functions and their arities
 
       * `:impls` - if consolidated, returns `{:consolidated, modules}` with the list of modules
-         implementing the protocol, otherwise `:not_consolidated`
+        implementing the protocol, otherwise `:not_consolidated`
 
       * `:module` - the protocol module atom name
 
-    * `impl_for/1` - receives a structure and returns the module that
-      implements the protocol for the structure, `nil` otherwise
+    * `impl_for/1` - returns the module that implements the protocol for the given argument,
+      `nil` otherwise
 
     * `impl_for!/1` - same as above but raises an error if an implementation is
       not found
@@ -195,7 +195,7 @@ defmodule Protocol do
 
   In order to speed up dispatching in production environments, where
   all implementations are known up-front, Elixir provides a feature
-  called protocol consolidation. Consolidation directly links protocols
+  called *protocol consolidation*. Consolidation directly links protocols
   to their implementations in a way that invoking a function from a
   consolidated protocol is equivalent to invoking two remote functions.
 
@@ -230,9 +230,10 @@ defmodule Protocol do
   Although doing so is not recommended as it may affect your test suite
   performance.
 
-  Finally note all protocols are compiled with `debug_info` set to `true`,
-  regardless of the option set by `elixirc` compiler. The debug info is
-  used for consolidation and it may be removed after consolidation.
+  Finally, note all protocols are compiled with `debug_info` set to `true`,
+  regardless of the option set by the `elixirc` compiler. The debug info is
+  used for consolidation and it is removed after consolidation unless
+  globally set.
   """
 
   @doc false
