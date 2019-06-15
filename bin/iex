@@ -2,15 +2,17 @@
 set -e
 
 if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
-  echo "Usage: $(basename "$0") [options] [.exs file] [data]
+  cat <<USAGE >&2
+Usage: $(basename "$0") [options] [.exs file] [data]
 
 The following options are exclusive to IEx:
 
-  --dot-iex \"PATH\"    Overrides default .iex.exs file and uses path instead;
+  --dot-iex "PATH"    Overrides default .iex.exs file and uses path instead;
                       path can be empty, then no file will be loaded
   --remsh NAME        Connects to a node using a remote shell
 
-It accepts all other options listed by \"elixir --help\"." >&2
+It accepts all other options listed by "elixir --help".
+USAGE
   exit 1
 fi
 
