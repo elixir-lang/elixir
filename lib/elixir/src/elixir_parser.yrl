@@ -653,12 +653,12 @@ line_from_location({Line, _Column, _}) -> Line.
 is_eol({_, _, Eol}) -> is_integer(Eol) and (Eol > 0).
 
 end_meta(Token) ->
-  [{format, block}, {'end', meta_from_location(?location(Token))}].
+  [{format, block}, {closing, meta_from_location(?location(Token))}].
 
-meta_from_token_with_end(Begin, End) ->
+meta_from_token_with_closing(Begin, End) ->
   case ?formatter_metadata() of
     true ->
-      [{'end', meta_from_location(?location(End))} | meta_from_token(Begin)];
+      [{closing, meta_from_location(?location(End))} | meta_from_token(Begin)];
     false ->
       meta_from_token(Begin)
   end.
@@ -740,7 +740,7 @@ eol_pair(Left, Right) ->
     true ->
       [
         {eol, is_eol(?location(Left)) and is_eol(?location(Right))},
-        {'end', meta_from_location(?location(Right))}
+        {closing, meta_from_location(?location(Right))}
       ];
     false ->
       []
@@ -828,7 +828,7 @@ build_identifier({_, Location, Identifier}, Args) ->
 build_fn(Fn, Stab, End) ->
   case check_stab(Stab, none) of
     stab ->
-      Meta = eol_op(?location(Fn)) ++ meta_from_token_with_end(Fn, End),
+      Meta = eol_op(?location(Fn)) ++ meta_from_token_with_closing(Fn, End),
       {fn, Meta, collect_stab(Stab, [], [])};
     block ->
       return_error(meta_from_token(Fn), "expected anonymous functions to be defined with -> inside: ", "'fn'")
@@ -902,7 +902,7 @@ charlist_part({Begin, End, Tokens}) ->
   Form = string_tokens_parse(Tokens),
   Meta =
     case ?formatter_metadata() of
-      true -> [{'end', meta_from_location(End)} | meta_from_location(Begin)];
+      true -> [{closing, meta_from_location(End)} | meta_from_location(Begin)];
       false -> meta_from_location(Begin)
     end,
   {{'.', Meta, ['Elixir.Kernel', to_string]}, Meta, [Form]}.
@@ -915,7 +915,7 @@ string_part({Begin, End, Tokens}) ->
   Form = string_tokens_parse(Tokens),
   Meta =
     case ?formatter_metadata() of
-      true -> [{'end', meta_from_location(End)} | meta_from_location(Begin)];
+      true -> [{closing, meta_from_location(End)} | meta_from_location(Begin)];
       false -> meta_from_location(Begin)
     end,
   {'::', Meta, [{{'.', Meta, ['Elixir.Kernel', to_string]}, Meta, [Form]}, {binary, Meta, nil}]}.
@@ -943,7 +943,7 @@ build_stab(Stab) ->
 build_stab(Before, Stab, After) ->
   case build_stab(Stab) of
     {'__block__', Meta, Block} ->
-      {'__block__', Meta ++ meta_from_token_with_end(Before, After), Block};
+      {'__block__', Meta ++ meta_from_token_with_closing(Before, After), Block};
     Other ->
       Other
   end.
