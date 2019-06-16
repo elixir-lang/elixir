@@ -36,6 +36,21 @@ defmodule Mix.Tasks.ReleaseTest do
       end)
     end
 
+    test "rel with vm.args" do
+      in_fixture("release_test", fn ->
+        Mix.Project.in_project(:release_test, ".", fn _ ->
+          File.mkdir_p!("rel")
+          File.write!("rel/vm.args", "TEST")
+
+          root = Path.absname("_build/dev/rel/release_test")
+          Mix.Task.run("release")
+          assert_received {:mix_shell, :info, ["* assembling release_test-0.1.0 on MIX_ENV=dev"]}
+
+          assert root |> Path.join("releases/0.1.0/vm.args") |> File.read!() == "TEST"
+        end)
+      end)
+    end
+
     test "steps" do
       in_fixture("release_test", fn ->
         last_step = fn release ->

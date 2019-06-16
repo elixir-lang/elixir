@@ -1076,10 +1076,15 @@ defmodule Mix.Tasks.Release do
   end
 
   defp make_vm_args(release, path) do
-    if File.exists?("rel/vm.args.eex") do
-      copy_template("rel/vm.args.eex", path, [release: release], force: true)
-    else
-      File.write!(path, vm_args_template(release: release))
+    cond do
+      File.exists?("rel/vm.args.eex") ->
+        copy_template("rel/vm.args.eex", path, [release: release], force: true)
+
+      File.exists?("rel/vm.args") ->
+        copy_file("rel/vm.args", path, force: true)
+
+      true ->
+        File.write!(path, vm_args_template(release: release))
     end
 
     :ok
