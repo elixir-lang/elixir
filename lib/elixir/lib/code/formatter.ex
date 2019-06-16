@@ -1000,7 +1000,7 @@ defmodule Code.Formatter do
     fun = remote_fun_to_algebra(target, fun, length(args), state)
     remote_doc = target_doc |> concat(".") |> concat(string(fun))
 
-    if args == [] and not remote_target_is_a_module?(target) and not is_list(meta[:closing]) do
+    if args == [] and not remote_target_is_a_module?(target) and not meta?(meta, :closing) do
       {remote_doc, state}
     else
       {{call_doc, state}, wrap_in_parens?} =
@@ -1079,7 +1079,7 @@ defmodule Code.Formatter do
   defp local_to_algebra(fun, meta, args, context, state) when is_atom(fun) do
     skip_parens =
       cond do
-        is_list(meta[:closing]) -> :required
+        meta?(meta, :closing) -> :required
         local_without_parens?(fun, args, state) -> :skip_unless_many_args
         true -> :skip_if_do_end
       end
@@ -1268,7 +1268,7 @@ defmodule Code.Formatter do
   end
 
   defp do_end_blocks(meta, [{{:__block__, _, [:do]}, _} | rest] = blocks, state) do
-    if is_list(meta[:do]) or can_force_do_end_blocks?(rest, state) do
+    if meta?(meta, :do) or can_force_do_end_blocks?(rest, state) do
       blocks
       |> Enum.map(fn {{:__block__, meta, [key]}, value} -> {key, line(meta), value} end)
       |> do_end_blocks_with_range(end_line(meta))
@@ -2236,6 +2236,10 @@ defmodule Code.Formatter do
 
   defp eol?(meta) do
     Keyword.get(meta, :eol, false)
+  end
+
+  defp meta?(meta, key) do
+    is_list(meta[key])
   end
 
   defp line(meta) do
