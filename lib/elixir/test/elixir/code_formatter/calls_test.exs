@@ -523,8 +523,8 @@ defmodule Code.Formatter.CallsTest do
       end
       """
 
-      # Doesn't preserve this because only the beginning has a newline
-      assert_format "call(\nfoo, bar, baz)", "call(foo, bar, baz)"
+      # Doesn't preserve this because only the ending has a newline
+      assert_format "call(foo, bar, baz\n)", "call(foo, bar, baz)"
 
       # Doesn't preserve because there are no args
       bad = """
@@ -548,7 +548,6 @@ defmodule Code.Formatter.CallsTest do
       )
       """
 
-      # Doesn't preserve this because only the beginning has a newline
       assert_format bad, """
       call(%{
         key: :value
@@ -717,8 +716,8 @@ defmodule Code.Formatter.CallsTest do
       )
       """
 
-      # Doesn't preserve this because only the beginning has a newline
-      assert_format "Remote.call(\nfoo, bar, baz)", "Remote.call(foo, bar, baz)"
+      # Doesn't preserve this because only the ending has a newline
+      assert_format "Remote.call(foo, bar, baz\n)", "Remote.call(foo, bar, baz)"
 
       assert_same """
       Remote.call(
@@ -826,8 +825,8 @@ defmodule Code.Formatter.CallsTest do
       )
       """
 
-      # Doesn't preserve this because only the beginning has a newline
-      assert_format "call.(\nfoo, bar, baz)", "call.(foo, bar, baz)"
+      # Doesn't preserve this because only the ending has a newline
+      assert_format "call.(foo, bar, baz\n)", "call.(foo, bar, baz)"
     end
   end
 
@@ -1165,8 +1164,7 @@ defmodule Code.Formatter.CallsTest do
       }
       """
 
-      # Doesn't preserve this because only the beginning has a newline
-      assert_format "call.{\nfoo, bar, baz}", "call.{foo, bar, baz}"
+      assert_format "call.{foo, bar, baz\n}", "call.{foo, bar, baz}"
     end
   end
 

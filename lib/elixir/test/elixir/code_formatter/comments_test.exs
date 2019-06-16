@@ -885,7 +885,11 @@ defmodule Code.Formatter.CommentsTest do
 
       assert_format ambiguous, ~S"""
       # comment
-      [one, two, three]
+      [
+        one,
+        two,
+        three
+      ]
       """
     end
 
