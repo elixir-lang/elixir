@@ -665,7 +665,7 @@ defmodule Code do
       when non-existing atoms are found by the tokenizer.
       Defaults to `false`.
 
-    * `:pairing_metadata` - including metadata about `do/end` blocks,
+    * `:pairing_metadata` - when `true`, includes metadata about `do/end` blocks,
       end of line, and closing pairs. See `t:Macro.metadata/0`. Defaults
       to `false`
 

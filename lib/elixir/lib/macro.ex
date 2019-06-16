@@ -158,17 +158,17 @@ defmodule Macro do
 
   The following metadata keys are enabled by `Code.string_to_quoted/2`:
 
-    * `:column` - The column number of the AST node (when `:columns` is true)
-    * `:do` - contains metadata about do location in a function call with
+    * `:column` - the column number of the AST node (when `:columns` is true)
+    * `:do` - contains metadata about the `do` location in a function call with
       `do/end` blocks (when `:pairing_metadata` is true)
-    * `:end` - contains metadata about end location in a function call with
+    * `:end` - contains metadata about the `end` location in a function call with
       `do/end` blocks (when `:pairing_metadata` is true)
     * `:closing` - contains metadata about the closing pair, such as a `}`
       in a tuple or in a map, or such as the closing `)` in a function call
       with parens (when `:pairing_metadata` is true)
     * `:eol` - is set to true when the opening pair, such as `{` or `(`, are
       followed by the end of the line (when `:pairing_metadata` is true)
-    * `opening` - contains the opening for sigils as binaries (such as `"{"`,
+    * `:opening` - contains the opening for sigils as binaries (such as `"{"`,
       `"/"`, etc)
 
   The following metadata keys are private:
