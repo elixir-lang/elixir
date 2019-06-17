@@ -665,11 +665,15 @@ defmodule Code do
       when non-existing atoms are found by the tokenizer.
       Defaults to `false`.
 
-    * `:static_atom_encoder` - The static atom encoder function, see
-      "The `:static_atom_encoder` function" section below. This option
-      overrides the `:existing_atoms_only` behaviour for static atoms
-      but `:existing_atoms_only` is still used for dynamic atoms, such
-      as atoms with interpolations.
+    * `:pairing_metadata` - when `true`, includes metadata about `do/end` blocks,
+      end of line, and closing pairs. See `t:Macro.metadata/0`. Defaults
+      to `false`.
+
+    * `:static_atom_encoder` - the static atom encoder function, see
+      "The `:static_atom_encoder` function" section below. Note this
+      option overrides the `:existing_atoms_only` behaviour for static
+      atoms but `:existing_atoms_only` is still used for dynamic atoms,
+      such as atoms with interpolations.
 
     * `:warn_on_unnecessary_quotes` - when `false`, does not warn
       when atoms, keywords or calls have unnecessary quotes on

@@ -161,9 +161,9 @@ no_parens_expr -> no_parens_many_expr : '$1'.
 
 block_expr -> dot_call_identifier call_args_parens do_block : build_parens('$1', '$2', '$3').
 block_expr -> dot_call_identifier call_args_parens call_args_parens do_block : build_nested_parens('$1', '$2', '$3', '$4').
-block_expr -> dot_do_identifier do_block : build_no_parens('$1', '$2').
-block_expr -> dot_op_identifier call_args_no_parens_all do_block : build_no_parens('$1', '$2' ++ '$3').
-block_expr -> dot_identifier call_args_no_parens_all do_block : build_no_parens('$1', '$2' ++ '$3').
+block_expr -> dot_do_identifier do_block : build_no_parens_do_block('$1', [], '$2').
+block_expr -> dot_op_identifier call_args_no_parens_all do_block : build_no_parens_do_block('$1', '$2', '$3').
+block_expr -> dot_identifier call_args_no_parens_all do_block : build_no_parens_do_block('$1', '$2', '$3').
 
 matched_op_expr -> match_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> dual_op_eol matched_expr : {'$1', '$2'}.
@@ -265,14 +265,13 @@ access_expr -> atom_unsafe : build_quoted_atom('$1', false, []).
 access_expr -> dot_alias : '$1'.
 access_expr -> parens_call : '$1'.
 
-%% Augment integer literals with representation format if formatter_metadata option is true
 number -> int : handle_literal(number_value('$1'), '$1', [{original, ?exprs('$1')}]).
 number -> char : handle_literal(?exprs('$1'), '$1', [{original, number_value('$1')}]).
 number -> float : handle_literal(number_value('$1'), '$1', [{original, ?exprs('$1')}]).
 
 %% Also used by maps and structs
-parens_call -> dot_call_identifier call_args_parens : build_parens('$1', '$2', []).
-parens_call -> dot_call_identifier call_args_parens call_args_parens : build_nested_parens('$1', '$2', '$3', []).
+parens_call -> dot_call_identifier call_args_parens : build_parens('$1', '$2', {[], []}).
+parens_call -> dot_call_identifier call_args_parens call_args_parens : build_nested_parens('$1', '$2', '$3', {[], []}).
 
 bracket_arg -> open_bracket kw close_bracket : build_list('$1', '$2', '$3').
 bracket_arg -> open_bracket container_expr close_bracket : build_list('$1', '$2', '$3').
@@ -289,17 +288,13 @@ bracket_at_expr -> at_op_eol access_expr bracket_arg :
 %% Blocks
 
 do_block -> do_eoe 'end' :
-              [[{handle_literal(do, '$1', end_meta('$2')),
-                 {'__block__', [], []}}]].
+              {do_end_meta('$1', '$2'), [[{handle_literal(do, '$1'), {'__block__', [], []}}]]}.
 do_block -> do_eoe stab end_eoe :
-              [[{handle_literal(do, '$1', end_meta('$3')),
-                 build_stab('$2')}]].
+              {do_end_meta('$1', '$3'), [[{handle_literal(do, '$1'), build_stab('$2')}]]}.
 do_block -> do_eoe block_list 'end' :
-              [[{handle_literal(do, '$1', end_meta('$3')),
-                 {'__block__', [], []}} | '$2']].
+              {do_end_meta('$1', '$3'), [[{handle_literal(do, '$1'), {'__block__', [], []}} | '$2']]}.
 do_block -> do_eoe stab_eoe block_list 'end' :
-              [[{handle_literal(do, '$1', end_meta('$4')),
-                 build_stab('$2')} | '$3']].
+              {do_end_meta('$1', '$4'), [[{handle_literal(do, '$1'), build_stab('$2')} | '$3']]}.
 
 eoe -> eol : '$1'.
 eoe -> ';' : '$1'.
@@ -344,11 +339,9 @@ stab_op_eol_and_expr -> stab_op_eol expr : {'$1', '$2'}.
 stab_op_eol_and_expr -> stab_op_eol : warn_empty_stab_clause('$1'), {'$1', handle_literal(nil, '$1')}.
 
 block_item -> block_eoe stab_eoe :
-                {handle_literal(?exprs('$1'), '$1', [{format, block}]),
-                 build_stab('$2')}.
+                {handle_literal(?exprs('$1'), '$1'), build_stab('$2')}.
 block_item -> block_eoe :
-                {handle_literal(?exprs('$1'), '$1', [{format, block}]),
-                 {'__block__', [], []}}.
+                {handle_literal(?exprs('$1'), '$1'), {'__block__', [], []}}.
 
 block_list -> block_item : ['$1'].
 block_list -> block_item block_list : ['$1' | '$2'].
@@ -626,6 +619,7 @@ Erlang code.
 
 -define(file(), get(elixir_parser_file)).
 -define(columns(), get(elixir_parser_columns)).
+-define(pairing_metadata(), get(elixir_pairing_metadata)).
 -define(formatter_metadata(), get(elixir_formatter_metadata)).
 
 -define(id(Token), element(1, Token)).
@@ -652,11 +646,16 @@ meta_from_location({Line, Column, _}) ->
 line_from_location({Line, _Column, _}) -> Line.
 is_eol({_, _, Eol}) -> is_integer(Eol) and (Eol > 0).
 
-end_meta(Token) ->
-  [{format, block}, {closing, meta_from_location(?location(Token))}].
+do_end_meta(Do, End) ->
+  case ?pairing_metadata() of
+    true ->
+      [{do, meta_from_location(?location(Do))}, {'end', meta_from_location(?location(End))}];
+    false ->
+      []
+  end.
 
 meta_from_token_with_closing(Begin, End) ->
-  case ?formatter_metadata() of
+  case ?pairing_metadata() of
     true ->
       [{closing, meta_from_location(?location(End))} | meta_from_token(Begin)];
     false ->
@@ -736,10 +735,10 @@ build_block(Exprs) ->
 %% End of line and newlines
 
 eol_pair(Left, Right) ->
-  case ?formatter_metadata() of
+  case ?pairing_metadata() of
     true ->
       [
-        {eol, is_eol(?location(Left)) and is_eol(?location(Right))},
+        {eol, is_eol(?location(Left))},
         {closing, meta_from_location(?location(Right))}
       ];
     false ->
@@ -790,25 +789,21 @@ extract_identifier({Kind, _, Identifier}) when
 
 %% Identifiers
 
-build_nested_parens(Dot, Args1, {Extra, Args2}, Block) ->
-  Identifier = build_parens(Dot, Args1, []),
-  Meta = ?meta(Identifier),
-  {Identifier, Extra ++ Meta, append_non_empty(Args2, Block)}.
+build_nested_parens(Dot, Args1, {Args2Meta, Args2}, {BlockMeta, Block}) ->
+  Identifier = build_parens(Dot, Args1, {[], []}),
+  Meta = BlockMeta ++ Args2Meta ++ ?meta(Identifier),
+  {Identifier, Meta, append_non_empty(Args2, Block)}.
 
-build_parens(Expr, {[], Args}, Block) ->
-  build_identifier(Expr, append_non_empty(Args, Block));
-build_parens(Expr, {Extra, Args}, Block) ->
+build_parens(Expr, {ArgsMeta, Args}, {BlockMeta, Block}) ->
   {BuiltExpr, BuiltMeta, BuiltArgs} = build_identifier(Expr, append_non_empty(Args, Block)),
-  {BuiltExpr, Extra ++ BuiltMeta, BuiltArgs}.
+  {BuiltExpr, BlockMeta ++ ArgsMeta ++ BuiltMeta, BuiltArgs}.
+
+build_no_parens_do_block(Expr, Args, {BlockMeta, Block}) ->
+  {BuiltExpr, BuiltMeta, BuiltArgs} = build_no_parens(Expr, Args ++ Block),
+  {BuiltExpr, BlockMeta ++ BuiltMeta, BuiltArgs}.
 
 build_no_parens(Expr, Args) ->
-  case ?formatter_metadata() of
-    true ->
-      {BuiltExpr, BuiltMeta, BuiltArgs} = build_identifier(Expr, Args),
-      {BuiltExpr, [{no_parens, true} | BuiltMeta], BuiltArgs};
-    false ->
-      build_identifier(Expr, Args)
-  end.
+  build_identifier(Expr, Args).
 
 build_identifier({'.', Meta, _} = Dot, Args) ->
   FArgs = case Args of
@@ -842,14 +837,14 @@ build_access(Expr, {List, Location}) ->
 
 %% Interpolation aware
 
-build_sigil({sigil, Location, Sigil, Parts, Modifiers, Terminator}) ->
+build_sigil({sigil, Location, Sigil, Parts, Modifiers, Delimiter}) ->
   Meta = meta_from_location(Location),
-  MetaWithTerminator = case ?formatter_metadata() of
-    true -> [{terminator, Terminator} | Meta];
+  MetaWithDelimiter = case ?pairing_metadata() of
+    true -> [{delimiter, Delimiter} | Meta];
     false -> Meta
   end,
   {list_to_atom("sigil_" ++ [Sigil]),
-   MetaWithTerminator,
+   MetaWithDelimiter,
    [{'<<>>', Meta, string_parts(Parts)}, Modifiers]}.
 
 build_bin_heredoc({bin_heredoc, Location, Args}) ->

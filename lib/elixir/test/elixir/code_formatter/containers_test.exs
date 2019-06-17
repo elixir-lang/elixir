@@ -59,8 +59,8 @@ defmodule Code.Formatter.ContainersTest do
       }
       """
 
-      # Doesn't preserve this because only the beginning has a newline
-      assert_format "{\nfoo, bar, baz}", "{foo, bar, baz}"
+      # Doesn't preserve this because only the ending has a newline
+      assert_format "{foo, bar, baz\n}", "{foo, bar, baz}"
     end
 
     test "preserves user choice even when it fits with trailing comma" do
@@ -214,8 +214,8 @@ defmodule Code.Formatter.ContainersTest do
       ]
       """
 
-      # Doesn't preserve this because only the beginning has a newline
-      assert_format "[\nfoo, bar, baz]", "[foo, bar, baz]"
+      # Doesn't preserve this because only the ending has a newline
+      assert_format "[foo, bar, baz\n]", "[foo, bar, baz]"
     end
 
     test "preserves user choice even when it fits with trailing comma" do
@@ -304,8 +304,8 @@ defmodule Code.Formatter.ContainersTest do
       >>
       """
 
-      # Doesn't preserve this because only the beginning has a newline
-      assert_format "<<\nfoo, bar, baz>>", "<<foo, bar, baz>>"
+      # Doesn't preserve this because only the ending has a newline
+      assert_format "<<foo, bar, baz\n>>", "<<foo, bar, baz>>"
     end
 
     test "preserves user choice even when it fits with trailing comma" do
@@ -421,8 +421,8 @@ defmodule Code.Formatter.ContainersTest do
       }
       """
 
-      # Doesn't preserve this because only the beginning has a newline
-      assert_format "%{\nfoo: 1, bar: 2}", "%{foo: 1, bar: 2}"
+      # Doesn't preserve this because only the ending has a newline
+      assert_format "%{foo: 1, bar: 2\n}", "%{foo: 1, bar: 2}"
     end
 
     test "preserves user choice even when it fits with trailing comma" do
