@@ -669,7 +669,7 @@ defmodule Code do
       end of line, and closing pairs. See `t:Macro.metadata/0`. Defaults
       to `false`.
 
-     * `:static_atom_encoder` - the static atom encoder function, see
+    * `:static_atom_encoder` - the static atom encoder function, see
       "The `:static_atom_encoder` function" section below. Note this
       option overrides the `:existing_atoms_only` behaviour for static
       atoms but `:existing_atoms_only` is still used for dynamic atoms,
