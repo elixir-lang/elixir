@@ -1371,22 +1371,22 @@ defmodule Code.Formatter do
   defp maybe_sigil_to_algebra(fun, meta, args, state) do
     with <<"sigil_", name>> <- Atom.to_string(fun),
          [{:<<>>, _, entries}, modifiers] when is_list(modifiers) <- args,
-         opening_terminator when not is_nil(opening_terminator) <- meta[:opening] do
-      doc = <<?~, name, opening_terminator::binary>>
+         opening_delimiter when not is_nil(opening_delimiter) <- meta[:delimiter] do
+      doc = <<?~, name, opening_delimiter::binary>>
 
-      if opening_terminator in [@double_heredoc, @single_heredoc] do
-        closing_terminator = concat(opening_terminator, List.to_string(modifiers))
+      if opening_delimiter in [@double_heredoc, @single_heredoc] do
+        closing_delimiter = concat(opening_delimiter, List.to_string(modifiers))
 
         {doc, state} =
           entries
           |> prepend_heredoc_line()
-          |> interpolation_to_algebra(:heredoc, state, doc, closing_terminator)
+          |> interpolation_to_algebra(:heredoc, state, doc, closing_delimiter)
 
         {force_unfit(doc), state}
       else
-        escape = closing_sigil_terminator(opening_terminator)
-        closing_terminator = concat(escape, List.to_string(modifiers))
-        interpolation_to_algebra(entries, escape, state, doc, closing_terminator)
+        escape = closing_sigil_delimiter(opening_delimiter)
+        closing_delimiter = concat(escape, List.to_string(modifiers))
+        interpolation_to_algebra(entries, escape, state, doc, closing_delimiter)
       end
     else
       _ ->
@@ -1394,11 +1394,11 @@ defmodule Code.Formatter do
     end
   end
 
-  defp closing_sigil_terminator("("), do: ")"
-  defp closing_sigil_terminator("["), do: "]"
-  defp closing_sigil_terminator("{"), do: "}"
-  defp closing_sigil_terminator("<"), do: ">"
-  defp closing_sigil_terminator(other) when other in ["\"", "'", "|", "/"], do: other
+  defp closing_sigil_delimiter("("), do: ")"
+  defp closing_sigil_delimiter("["), do: "]"
+  defp closing_sigil_delimiter("{"), do: "}"
+  defp closing_sigil_delimiter("<"), do: ">"
+  defp closing_sigil_delimiter(other) when other in ["\"", "'", "|", "/"], do: other
 
   ## Bitstrings
 
@@ -2150,7 +2150,7 @@ defmodule Code.Formatter do
   end
 
   defp next_break_fits?({fun, meta, args}, _state) when is_atom(fun) and is_list(args) do
-    meta[:opening] in [@double_heredoc, @single_heredoc] and
+    meta[:delimiter] in [@double_heredoc, @single_heredoc] and
       fun |> Atom.to_string() |> String.starts_with?("sigil_")
   end
 

@@ -216,23 +216,23 @@ defmodule CodeTest do
   end
 
   describe "string_to_quoted/2 with :pairing_metadata" do
-    test "adds opening information to sigils" do
+    test "adds delimiter information to sigils" do
       string_to_quoted = &Code.string_to_quoted!(&1, pairing_metadata: true)
 
       assert string_to_quoted.("~r/foo/") ==
-               {:sigil_r, [opening: "/", line: 1], [{:<<>>, [line: 1], ["foo"]}, []]}
+               {:sigil_r, [delimiter: "/", line: 1], [{:<<>>, [line: 1], ["foo"]}, []]}
 
       assert string_to_quoted.("~r[foo]") ==
-               {:sigil_r, [opening: "[", line: 1], [{:<<>>, [line: 1], ["foo"]}, []]}
+               {:sigil_r, [delimiter: "[", line: 1], [{:<<>>, [line: 1], ["foo"]}, []]}
 
       assert string_to_quoted.("~r\"foo\"") ==
-               {:sigil_r, [opening: "\"", line: 1], [{:<<>>, [line: 1], ["foo"]}, []]}
+               {:sigil_r, [delimiter: "\"", line: 1], [{:<<>>, [line: 1], ["foo"]}, []]}
 
-      meta = [opening: "\"\"\"", line: 1]
+      meta = [delimiter: "\"\"\"", line: 1]
       args = {:sigil_S, meta, [{:<<>>, [line: 1], ["sigil heredoc\n"]}, []]}
       assert string_to_quoted.("~S\"\"\"\nsigil heredoc\n\"\"\"") == args
 
-      meta = [opening: "'''", line: 1]
+      meta = [delimiter: "'''", line: 1]
       args = {:sigil_S, meta, [{:<<>>, [line: 1], ["sigil heredoc\n"]}, []]}
       assert string_to_quoted.("~S'''\nsigil heredoc\n'''") == args
     end

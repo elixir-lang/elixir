@@ -837,14 +837,14 @@ build_access(Expr, {List, Location}) ->
 
 %% Interpolation aware
 
-build_sigil({sigil, Location, Sigil, Parts, Modifiers, Opening}) ->
+build_sigil({sigil, Location, Sigil, Parts, Modifiers, Delimiter}) ->
   Meta = meta_from_location(Location),
-  MetaWithTerminator = case ?pairing_metadata() of
-    true -> [{opening, Opening} | Meta];
+  MetaWithDelimiter = case ?pairing_metadata() of
+    true -> [{delimiter, Delimiter} | Meta];
     false -> Meta
   end,
   {list_to_atom("sigil_" ++ [Sigil]),
-   MetaWithTerminator,
+   MetaWithDelimiter,
    [{'<<>>', Meta, string_parts(Parts)}, Modifiers]}.
 
 build_bin_heredoc({bin_heredoc, Location, Args}) ->

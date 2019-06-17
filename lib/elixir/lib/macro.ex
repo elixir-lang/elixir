@@ -168,8 +168,8 @@ defmodule Macro do
       with parens (when `:pairing_metadata` is true)
     * `:eol` - is set to true when the opening pair, such as `{` or `(`, are
       followed by the end of the line (when `:pairing_metadata` is true)
-    * `:opening` - contains the opening for sigils as binaries (such as `"{"`,
-      `"/"`, etc)
+    * `:delimiter` - contains the opening delimiter for sigils as a string
+      (such as `"{"`, `"/"`, etc)
 
   The following metadata keys are private:
 
