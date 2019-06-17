@@ -89,7 +89,7 @@ grammar -> '$empty' : {'__block__', [], []}.
 
 % Note expressions are on reverse order
 expr_list -> expr : ['$1'].
-expr_list -> expr_list eoe expr : [annotate_newlines('$2', '$3') | '$1'].
+expr_list -> expr_list eoe expr : ['$3' | annotate_eoe('$2', '$1')].
 
 expr -> matched_expr : '$1'.
 expr -> no_parens_expr : '$1'.
@@ -301,7 +301,7 @@ eoe -> ';' : '$1'.
 eoe -> eol ';' : '$1'.
 
 fn_eoe -> 'fn' : '$1'.
-fn_eoe -> 'fn' eoe : next_is_eol('$1').
+fn_eoe -> 'fn' eoe : next_is_eol('$1', '$2').
 
 do_eoe -> 'do' : '$1'.
 do_eoe -> 'do' eoe : '$1'.
@@ -313,7 +313,7 @@ block_eoe -> block_identifier : '$1'.
 block_eoe -> block_identifier eoe : '$1'.
 
 stab -> stab_expr : ['$1'].
-stab -> stab eoe stab_expr : [annotate_newlines('$2', '$3') | '$1'].
+stab -> stab eoe stab_expr : ['$3' | annotate_eoe('$2', '$1')].
 
 stab_eoe -> stab : '$1'.
 stab_eoe -> stab eoe : '$1'.
@@ -349,24 +349,24 @@ block_list -> block_item block_list : ['$1' | '$2'].
 %% Helpers
 
 open_paren -> '('      : '$1'.
-open_paren -> '(' eol  : next_is_eol('$1').
+open_paren -> '(' eol  : next_is_eol('$1', '$2').
 close_paren -> ')'     : '$1'.
 close_paren -> eol ')' : '$2'.
 
 empty_paren -> open_paren ')' : '$1'.
 
 open_bracket  -> '['     : '$1'.
-open_bracket  -> '[' eol : next_is_eol('$1').
+open_bracket  -> '[' eol : next_is_eol('$1', '$2').
 close_bracket -> ']'     : '$1'.
 close_bracket -> eol ']' : '$2'.
 
 open_bit  -> '<<'     : '$1'.
-open_bit  -> '<<' eol : next_is_eol('$1').
+open_bit  -> '<<' eol : next_is_eol('$1', '$2').
 close_bit -> '>>'     : '$1'.
 close_bit -> eol '>>' : '$2'.
 
 open_curly  -> '{'     : '$1'.
-open_curly  -> '{' eol : next_is_eol('$1').
+open_curly  -> '{' eol : next_is_eol('$1', '$2').
 close_curly -> '}'     : '$1'.
 close_curly -> eol '}' : '$2'.
 
@@ -387,49 +387,49 @@ match_op_eol -> match_op : '$1'.
 match_op_eol -> match_op eol : '$1'.
 
 dual_op_eol -> dual_op : '$1'.
-dual_op_eol -> dual_op eol : next_is_eol('$1').
+dual_op_eol -> dual_op eol : next_is_eol('$1', '$2').
 
 mult_op_eol -> mult_op : '$1'.
-mult_op_eol -> mult_op eol : next_is_eol('$1').
+mult_op_eol -> mult_op eol : next_is_eol('$1', '$2').
 
 two_op_eol -> two_op : '$1'.
-two_op_eol -> two_op eol : next_is_eol('$1').
+two_op_eol -> two_op eol : next_is_eol('$1', '$2').
 
 three_op_eol -> three_op : '$1'.
-three_op_eol -> three_op eol : next_is_eol('$1').
+three_op_eol -> three_op eol : next_is_eol('$1', '$2').
 
 pipe_op_eol -> pipe_op : '$1'.
-pipe_op_eol -> pipe_op eol : next_is_eol('$1').
+pipe_op_eol -> pipe_op eol : next_is_eol('$1', '$2').
 
 and_op_eol -> and_op : '$1'.
-and_op_eol -> and_op eol : next_is_eol('$1').
+and_op_eol -> and_op eol : next_is_eol('$1', '$2').
 
 or_op_eol -> or_op : '$1'.
-or_op_eol -> or_op eol : next_is_eol('$1').
+or_op_eol -> or_op eol : next_is_eol('$1', '$2').
 
 in_op_eol -> in_op : '$1'.
-in_op_eol -> in_op eol : next_is_eol('$1').
+in_op_eol -> in_op eol : next_is_eol('$1', '$2').
 
 in_match_op_eol -> in_match_op : '$1'.
-in_match_op_eol -> in_match_op eol : next_is_eol('$1').
+in_match_op_eol -> in_match_op eol : next_is_eol('$1', '$2').
 
 type_op_eol -> type_op : '$1'.
-type_op_eol -> type_op eol : next_is_eol('$1').
+type_op_eol -> type_op eol : next_is_eol('$1', '$2').
 
 when_op_eol -> when_op : '$1'.
-when_op_eol -> when_op eol : next_is_eol('$1').
+when_op_eol -> when_op eol : next_is_eol('$1', '$2').
 
 stab_op_eol -> stab_op : '$1'.
-stab_op_eol -> stab_op eol : next_is_eol('$1').
+stab_op_eol -> stab_op eol : next_is_eol('$1', '$2').
 
 comp_op_eol -> comp_op : '$1'.
-comp_op_eol -> comp_op eol : next_is_eol('$1').
+comp_op_eol -> comp_op eol : next_is_eol('$1', '$2').
 
 rel_op_eol -> rel_op : '$1'.
-rel_op_eol -> rel_op eol : next_is_eol('$1').
+rel_op_eol -> rel_op eol : next_is_eol('$1', '$2').
 
 arrow_op_eol -> arrow_op : '$1'.
-arrow_op_eol -> arrow_op eol : next_is_eol('$1').
+arrow_op_eol -> arrow_op eol : next_is_eol('$1', '$2').
 
 % Dot operator
 
@@ -442,7 +442,7 @@ dot_identifier -> matched_expr dot_op identifier : build_dot('$2', '$1', '$3').
 dot_alias -> alias : build_alias('$1').
 dot_alias -> matched_expr dot_op alias : build_dot_alias('$2', '$1', '$3').
 dot_alias -> matched_expr dot_op open_curly '}' : build_dot_container('$2', '$1', [], []).
-dot_alias -> matched_expr dot_op open_curly container_args close_curly : build_dot_container('$2', '$1', '$4', eol_pair('$3', '$5')).
+dot_alias -> matched_expr dot_op open_curly container_args close_curly : build_dot_container('$2', '$1', '$4', newlines_pair('$3', '$5')).
 
 dot_op_identifier -> op_identifier : '$1'.
 dot_op_identifier -> matched_expr dot_op op_identifier : build_dot('$2', '$1', '$3').
@@ -510,19 +510,19 @@ call_args_parens_base -> call_args_parens_expr : ['$1'].
 call_args_parens_base -> call_args_parens_base ',' call_args_parens_expr : ['$3' | '$1'].
 
 call_args_parens -> open_paren ')' :
-                      {eol_pair('$1', '$2'), []}.
+                      {newlines_pair('$1', '$2'), []}.
 call_args_parens -> open_paren no_parens_expr close_paren :
-                      {eol_pair('$1', '$3'), ['$2']}.
+                      {newlines_pair('$1', '$3'), ['$2']}.
 call_args_parens -> open_paren kw_base close_paren :
-                      {eol_pair('$1', '$3'), [reverse('$2')]}.
+                      {newlines_pair('$1', '$3'), [reverse('$2')]}.
 call_args_parens -> open_paren kw_base ',' close_paren :
-                      warn_trailing_comma('$3'), {eol_pair('$1', '$4'), [reverse('$2')]}.
+                      warn_trailing_comma('$3'), {newlines_pair('$1', '$4'), [reverse('$2')]}.
 call_args_parens -> open_paren call_args_parens_base close_paren :
-                      {eol_pair('$1', '$3'), reverse('$2')}.
+                      {newlines_pair('$1', '$3'), reverse('$2')}.
 call_args_parens -> open_paren call_args_parens_base ',' kw_base close_paren :
-                      {eol_pair('$1', '$5'), reverse([reverse('$4') | '$2'])}.
+                      {newlines_pair('$1', '$5'), reverse([reverse('$4') | '$2'])}.
 call_args_parens -> open_paren call_args_parens_base ',' kw_base ',' close_paren :
-                      warn_trailing_comma('$5'), {eol_pair('$1', '$6'), reverse([reverse('$4') | '$2'])}.
+                      warn_trailing_comma('$5'), {newlines_pair('$1', '$6'), reverse([reverse('$4') | '$2'])}.
 
 % KV
 
@@ -619,8 +619,8 @@ Erlang code.
 
 -define(file(), get(elixir_parser_file)).
 -define(columns(), get(elixir_parser_columns)).
--define(pairing_metadata(), get(elixir_pairing_metadata)).
--define(formatter_metadata(), get(elixir_formatter_metadata)).
+-define(token_metadata(), get(elixir_token_metadata)).
+-define(wrap_literals(), get(elixir_wrap_literals)).
 
 -define(id(Token), element(1, Token)).
 -define(location(Token), element(2, Token)).
@@ -644,10 +644,9 @@ meta_from_location({Line, Column, _}) ->
   end.
 
 line_from_location({Line, _Column, _}) -> Line.
-is_eol({_, _, Eol}) -> is_integer(Eol) and (Eol > 0).
 
 do_end_meta(Do, End) ->
-  case ?pairing_metadata() of
+  case ?token_metadata() of
     true ->
       [{do, meta_from_location(?location(Do))}, {'end', meta_from_location(?location(End))}];
     false ->
@@ -655,7 +654,7 @@ do_end_meta(Do, End) ->
   end.
 
 meta_from_token_with_closing(Begin, End) ->
-  case ?pairing_metadata() of
+  case ?token_metadata() of
     true ->
       [{closing, meta_from_location(?location(End))} | meta_from_token(Begin)];
     false ->
@@ -671,7 +670,7 @@ handle_literal(Literal, Token) ->
   handle_literal(Literal, Token, []).
 
 handle_literal(Literal, Token, ExtraMeta) ->
-  case ?formatter_metadata() of
+  case ?wrap_literals() of
     true -> {'__block__', ExtraMeta ++ meta_from_token(Token), [Literal]};
     false -> Literal
   end.
@@ -692,34 +691,34 @@ build_op({_Kind, Location, 'in'}, {UOp, _, [Left]}, Right) when ?rearrange_uop(U
 build_op({_Kind, Location, 'not in'}, Left, Right) ->
   InMeta = meta_from_location(Location),
   NotMeta =
-    case ?formatter_metadata() of
+    case ?wrap_literals() of
       true -> [{operator, 'not in'} | InMeta];
       false -> InMeta
     end,
   {'not', NotMeta, [{'in', InMeta, [Left, Right]}]};
 build_op({_Kind, Location, Op}, Left, Right) ->
-  {Op, eol_op(Location) ++ meta_from_location(Location), [Left, Right]}.
+  {Op, newlines_op(Location) ++ meta_from_location(Location), [Left, Right]}.
 
 build_unary_op({_Kind, Location, Op}, Expr) ->
   {Op, meta_from_location(Location), [Expr]}.
 
 build_list(Left, Args, Right) ->
-  {handle_literal(Args, Left, eol_pair(Left, Right)), ?location(Left)}.
+  {handle_literal(Args, Left, newlines_pair(Left, Right)), ?location(Left)}.
 
 build_tuple(Left, [Arg1, Arg2], Right) ->
-  handle_literal({Arg1, Arg2}, Left, eol_pair(Left, Right));
+  handle_literal({Arg1, Arg2}, Left, newlines_pair(Left, Right));
 build_tuple(Left, Args, Right) ->
-  {'{}', eol_pair(Left, Right) ++ meta_from_token(Left), Args}.
+  {'{}', newlines_pair(Left, Right) ++ meta_from_token(Left), Args}.
 
 build_bit(Left, Args, Right) ->
-  {'<<>>', eol_pair(Left, Right) ++ meta_from_token(Left), Args}.
+  {'<<>>', newlines_pair(Left, Right) ++ meta_from_token(Left), Args}.
 
 build_map(Left, Args, Right) ->
-  {'%{}', eol_pair(Left, Right) ++ meta_from_token(Left), Args}.
+  {'%{}', newlines_pair(Left, Right) ++ meta_from_token(Left), Args}.
 
 build_map_update(Left, {Pipe, Struct, Map}, Right, Extra) ->
   Op = build_op(Pipe, Struct, append_non_empty(Map, Extra)),
-  {'%{}', eol_pair(Left, Right) ++ meta_from_token(Left), [Op]}.
+  {'%{}', newlines_pair(Left, Right) ++ meta_from_token(Left), [Op]}.
 
 %% Blocks
 
@@ -732,36 +731,52 @@ build_block([Expr]) ->
 build_block(Exprs) ->
   {'__block__', [], Exprs}.
 
-%% End of line and newlines
+%% Newlines
 
-eol_pair(Left, Right) ->
-  case ?pairing_metadata() of
+newlines_pair(Left, Right) ->
+  case ?token_metadata() of
     true ->
-      [
-        {eol, is_eol(?location(Left))},
-        {closing, meta_from_location(?location(Right))}
-      ];
+      newlines(?location(Left), [{closing, meta_from_location(?location(Right))}]);
     false ->
       []
   end.
 
-eol_op(Location) ->
-  case ?formatter_metadata() and is_eol(Location) of
-    true -> [{eol, true}];
+newlines_op(Location) ->
+  case ?token_metadata() of
+    true -> newlines(Location, []);
     false -> []
   end.
 
-next_is_eol(Token) ->
+next_is_eol(Token, {_, {_, _, Count}}) ->
   {Line, Column, _} = ?location(Token),
-  setelement(2, Token, {Line, Column, 1}).
+  setelement(2, Token, {Line, Column, Count}).
 
-annotate_newlines({_, {_, _, Count}}, {Left, Meta, Right}) when is_integer(Count), is_list(Meta) ->
-  case ?formatter_metadata() of
-    true -> {Left, [{newlines, Count} | Meta], Right};
-    false -> {Left, Meta, Right}
-  end;
-annotate_newlines(_, Expr) ->
-  Expr.
+newlines({_, _, Count}, Meta) when is_integer(Count) and (Count > 0) ->
+  [{newlines, Count} | Meta];
+newlines(_, Meta) ->
+  Meta.
+
+annotate_eoe(Token, Stack) ->
+  case ?token_metadata() of
+    true ->
+      case {Token, Stack} of
+        {{_, Location}, [{'->', StabMeta, [StabArgs, {Left, Meta, Right}]} | Rest]} when is_list(Meta) ->
+          [{'->', StabMeta, [StabArgs, {Left, [{end_of_expression, end_of_expression(Location)} | Meta], Right}]} | Rest];
+
+        {{_, Location}, [{Left, Meta, Right} | Rest]} when is_list(Meta) ->
+          [{Left, [{end_of_expression, end_of_expression(Location)} | Meta], Right} | Rest];
+
+        _ ->
+          Stack
+      end;
+    false ->
+      Stack
+  end.
+
+end_of_expression({_, _, Count} = Location) when is_integer(Count) ->
+  [{newlines, Count} | meta_from_location(Location)];
+end_of_expression(Location) ->
+  meta_from_location(Location).
 
 %% Dots
 
@@ -823,7 +838,7 @@ build_identifier({_, Location, Identifier}, Args) ->
 build_fn(Fn, Stab, End) ->
   case check_stab(Stab, none) of
     stab ->
-      Meta = eol_op(?location(Fn)) ++ meta_from_token_with_closing(Fn, End),
+      Meta = newlines_op(?location(Fn)) ++ meta_from_token_with_closing(Fn, End),
       {fn, Meta, collect_stab(Stab, [], [])};
     block ->
       return_error(meta_from_token(Fn), "expected anonymous functions to be defined with -> inside: ", "'fn'")
@@ -839,7 +854,7 @@ build_access(Expr, {List, Location}) ->
 
 build_sigil({sigil, Location, Sigil, Parts, Modifiers, Delimiter}) ->
   Meta = meta_from_location(Location),
-  MetaWithDelimiter = case ?pairing_metadata() of
+  MetaWithDelimiter = case ?token_metadata() of
     true -> [{delimiter, Delimiter} | Meta];
     false -> Meta
   end,
@@ -857,7 +872,7 @@ build_bin_string({bin_string, _Location, [H]} = Token, ExtraMeta) when is_binary
   handle_literal(H, Token, ExtraMeta);
 build_bin_string({bin_string, Location, Args}, ExtraMeta) ->
   Meta =
-    case ?formatter_metadata() of
+    case ?wrap_literals() of
       true -> ExtraMeta ++ meta_from_location(Location);
       false -> meta_from_location(Location)
     end,
@@ -868,7 +883,7 @@ build_list_string({list_string, _Location, [H]} = Token, ExtraMeta) when is_bina
 build_list_string({list_string, Location, Args}, ExtraMeta) ->
   Meta = meta_from_location(Location),
   MetaWithExtra =
-    case ?formatter_metadata() of
+    case ?wrap_literals() of
       true -> ExtraMeta ++ Meta;
       false -> Meta
     end,
@@ -880,7 +895,7 @@ build_quoted_atom({_, _Location, [H]} = Token, Safe, ExtraMeta) when is_binary(H
 build_quoted_atom({_, Location, Args}, Safe, ExtraMeta) ->
   Meta = meta_from_location(Location),
   MetaWithExtra =
-    case ?formatter_metadata() of
+    case ?wrap_literals() of
       true -> ExtraMeta ++ Meta;
       false -> Meta
     end,
@@ -896,7 +911,7 @@ charlist_part(Binary) when is_binary(Binary) ->
 charlist_part({Begin, End, Tokens}) ->
   Form = string_tokens_parse(Tokens),
   Meta =
-    case ?formatter_metadata() of
+    case ?wrap_literals() of
       true -> [{closing, meta_from_location(End)} | meta_from_location(Begin)];
       false -> meta_from_location(Begin)
     end,
@@ -909,7 +924,7 @@ string_part(Binary) when is_binary(Binary) ->
 string_part({Begin, End, Tokens}) ->
   Form = string_tokens_parse(Tokens),
   Meta =
-    case ?formatter_metadata() of
+    case ?wrap_literals() of
       true -> [{closing, meta_from_location(End)} | meta_from_location(Begin)];
       false -> meta_from_location(Begin)
     end,

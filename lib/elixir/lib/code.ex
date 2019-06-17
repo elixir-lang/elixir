@@ -665,9 +665,10 @@ defmodule Code do
       when non-existing atoms are found by the tokenizer.
       Defaults to `false`.
 
-    * `:pairing_metadata` - when `true`, includes metadata about `do/end` blocks,
-      end of line, and closing pairs. See `t:Macro.metadata/0`. Defaults
-      to `false`.
+    * `:token_metadata` - when `true`, includes token-related metadata
+      in the expression AST, such as metadata for `do` and `end` tokens,
+      for closing tokens, end of expressions, as well as delimiters for
+      sigils. See `t:Macro.metadata/0`. Defaults to `false`.
 
     * `:static_atom_encoder` - the static atom encoder function, see
       "The `:static_atom_encoder` function" section below. Note this

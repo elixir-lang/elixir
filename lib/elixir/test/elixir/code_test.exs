@@ -215,9 +215,72 @@ defmodule CodeTest do
     end
   end
 
-  describe "string_to_quoted/2 with :pairing_metadata" do
+  describe "string_to_quoted/2 with :token_metadata" do
+    test "adds end_of_expression information to blocks" do
+      file = """
+      one();two()
+      three()
+
+      four()
+
+
+      five()
+      """
+
+      args = [
+        {:one,
+         [
+           end_of_expression: [newlines: 0, line: 1, column: 6],
+           closing: [line: 1, column: 5],
+           line: 1,
+           column: 1
+         ], []},
+        {:two,
+         [
+           end_of_expression: [newlines: 1, line: 1, column: 12],
+           closing: [line: 1, column: 11],
+           line: 1,
+           column: 7
+         ], []},
+        {:three,
+         [
+           end_of_expression: [newlines: 2, line: 2, column: 8],
+           closing: [line: 2, column: 7],
+           line: 2,
+           column: 1
+         ], []},
+        {:four,
+         [
+           end_of_expression: [newlines: 3, line: 4, column: 7],
+           closing: [line: 4, column: 6],
+           line: 4,
+           column: 1
+         ], []},
+        {:five, [closing: [line: 7, column: 6], line: 7, column: 1], []}
+      ]
+
+      assert Code.string_to_quoted!(file, token_metadata: true, columns: true) ==
+               {:__block__, [], args}
+    end
+
+    test "adds pairing information" do
+      string_to_quoted = &Code.string_to_quoted!(&1, token_metadata: true)
+
+      assert string_to_quoted.("foo") == {:foo, [line: 1], nil}
+      assert string_to_quoted.("foo()") == {:foo, [closing: [line: 1], line: 1], []}
+
+      assert string_to_quoted.("foo(\n)") ==
+               {:foo, [newlines: 1, closing: [line: 2], line: 1], []}
+
+      assert string_to_quoted.("%{\n}") == {:%{}, [newlines: 1, closing: [line: 2], line: 1], []}
+
+      assert string_to_quoted.("foo(\n) do\nend") ==
+               {:foo, [do: [line: 2], end: [line: 3], newlines: 1, closing: [line: 2], line: 1],
+                [[do: {:__block__, [], []}]]}
+    end
+
     test "adds delimiter information to sigils" do
-      string_to_quoted = &Code.string_to_quoted!(&1, pairing_metadata: true)
+      string_to_quoted = &Code.string_to_quoted!(&1, token_metadata: true)
 
       assert string_to_quoted.("~r/foo/") ==
                {:sigil_r, [delimiter: "/", line: 1], [{:<<>>, [line: 1], ["foo"]}, []]}
@@ -236,81 +299,43 @@ defmodule CodeTest do
       args = {:sigil_S, meta, [{:<<>>, [line: 1], ["sigil heredoc\n"]}, []]}
       assert string_to_quoted.("~S'''\nsigil heredoc\n'''") == args
     end
-
-    test "adds pairing information" do
-      string_to_quoted = &Code.string_to_quoted!(&1, pairing_metadata: true)
-
-      assert string_to_quoted.("foo") == {:foo, [line: 1], nil}
-      assert string_to_quoted.("foo()") == {:foo, [eol: false, closing: [line: 1], line: 1], []}
-      assert string_to_quoted.("foo(\n)") == {:foo, [eol: true, closing: [line: 2], line: 1], []}
-      assert string_to_quoted.("%{\n}") == {:%{}, [eol: true, closing: [line: 2], line: 1], []}
-
-      assert string_to_quoted.("foo(\n) do\nend") ==
-               {:foo, [do: [line: 2], end: [line: 3], eol: true, closing: [line: 2], line: 1],
-                [[do: {:__block__, [], []}]]}
-    end
   end
 
-  describe "string_to_quoted/2 with :elixir_private_formatter_metadata" do
-    test "wraps literals in blocks" do
-      string_to_quoted = &Code.string_to_quoted!(&1, elixir_private_formatter_metadata: true)
+  test "string_to_quoted/2 with :elixir_private_wrap_literals wraps literals in blocks" do
+    string_to_quoted = &Code.string_to_quoted!(&1, elixir_private_wrap_literals: true)
 
-      assert string_to_quoted.(~s("one")) == {:__block__, [format: :string, line: 1], ["one"]}
-      assert string_to_quoted.("'one'") == {:__block__, [format: :charlist, line: 1], ['one']}
-      assert string_to_quoted.("?é") == {:__block__, [original: '?é', line: 1], [233]}
-      assert string_to_quoted.("0b10") == {:__block__, [original: '0b10', line: 1], [2]}
-      assert string_to_quoted.("12") == {:__block__, [original: '12', line: 1], [12]}
-      assert string_to_quoted.("0o123") == {:__block__, [original: '0o123', line: 1], [83]}
-      assert string_to_quoted.("0xEF") == {:__block__, [original: '0xEF', line: 1], [239]}
-      assert string_to_quoted.("12.3") == {:__block__, [original: '12.3', line: 1], [12.3]}
-      assert string_to_quoted.("nil") == {:__block__, [line: 1], [nil]}
-      assert string_to_quoted.(":one") == {:__block__, [line: 1], [:one]}
+    assert string_to_quoted.(~s("one")) == {:__block__, [format: :string, line: 1], ["one"]}
+    assert string_to_quoted.("'one'") == {:__block__, [format: :charlist, line: 1], ['one']}
+    assert string_to_quoted.("?é") == {:__block__, [original: '?é', line: 1], [233]}
+    assert string_to_quoted.("0b10") == {:__block__, [original: '0b10', line: 1], [2]}
+    assert string_to_quoted.("12") == {:__block__, [original: '12', line: 1], [12]}
+    assert string_to_quoted.("0o123") == {:__block__, [original: '0o123', line: 1], [83]}
+    assert string_to_quoted.("0xEF") == {:__block__, [original: '0xEF', line: 1], [239]}
+    assert string_to_quoted.("12.3") == {:__block__, [original: '12.3', line: 1], [12.3]}
+    assert string_to_quoted.("nil") == {:__block__, [line: 1], [nil]}
+    assert string_to_quoted.(":one") == {:__block__, [line: 1], [:one]}
 
-      args = [[{:__block__, [original: '1', line: 1], [1]}]]
+    args = [[{:__block__, [original: '1', line: 1], [1]}]]
 
-      assert string_to_quoted.("[1]") ==
-               {:__block__, [line: 1], args}
+    assert string_to_quoted.("[1]") ==
+             {:__block__, [line: 1], args}
 
-      args = [{{:__block__, [line: 1], [:ok]}, {:__block__, [line: 1], [:test]}}]
+    args = [{{:__block__, [line: 1], [:ok]}, {:__block__, [line: 1], [:test]}}]
 
-      assert string_to_quoted.("{:ok, :test}") ==
-               {:__block__, [line: 1], args}
+    assert string_to_quoted.("{:ok, :test}") ==
+             {:__block__, [line: 1], args}
 
-      assert string_to_quoted.(~s("""\nhello\n""")) ==
-               {:__block__, [format: :bin_heredoc, line: 1], ["hello\n"]}
+    assert string_to_quoted.(~s("""\nhello\n""")) ==
+             {:__block__, [format: :bin_heredoc, line: 1], ["hello\n"]}
 
-      assert string_to_quoted.("'''\nhello\n'''") ==
-               {:__block__, [format: :list_heredoc, line: 1], ['hello\n']}
+    assert string_to_quoted.("'''\nhello\n'''") ==
+             {:__block__, [format: :list_heredoc, line: 1], ['hello\n']}
 
-      left = {:__block__, [original: '1', line: 1, line: 1], [1]}
-      right = {:__block__, [format: :string, line: 1], ["hello"]}
-      args = [{:->, [line: 1], [[left], right]}]
+    left = {:__block__, [original: '1', line: 1, line: 1], [1]}
+    right = {:__block__, [format: :string, line: 1], ["hello"]}
+    args = [{:->, [line: 1], [[left], right]}]
 
-      assert string_to_quoted.(~s[fn (1) -> "hello" end]) == {:fn, [line: 1], args}
-    end
-
-    test "adds newlines information to blocks" do
-      file = """
-      one();two()
-      three()
-
-      four()
-
-
-      five()
-      """
-
-      args = [
-        {:one, [line: 1], []},
-        {:two, [newlines: 0, line: 1], []},
-        {:three, [newlines: 1, line: 2], []},
-        {:four, [newlines: 2, line: 4], []},
-        {:five, [newlines: 3, line: 7], []}
-      ]
-
-      assert Code.string_to_quoted!(file, elixir_private_formatter_metadata: true) ==
-               {:__block__, [], args}
-    end
+    assert string_to_quoted.(~s[fn (1) -> "hello" end]) == {:fn, [line: 1], args}
   end
 
   test "compile source" do
