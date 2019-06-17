@@ -473,6 +473,19 @@ defmodule Code.Formatter.IntegrationTest do
     """
   end
 
+  test "newline after stab" do
+    assert_same """
+    capture_io(":erl. mof*,,l", fn ->
+      assert :io.scan_erl_form('>') == {:ok, [{:":", 1}, {:atom, 1, :erl}, {:dot, 1}], 1}
+
+      expected_tokens = [{:atom, 1, :mof}, {:*, 1}, {:",", 1}, {:",", 1}, {:atom, 1, :l}]
+      assert :io.scan_erl_form('>') == {:ok, expected_tokens, 1}
+
+      assert :io.scan_erl_form('>') == {:eof, 1}
+    end)
+    """
+  end
+
   test "capture with operators" do
     assert_same """
     "this works" |> (&String.upcase/1) |> (&String.downcase/1)

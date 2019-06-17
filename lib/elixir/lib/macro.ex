@@ -158,18 +158,20 @@ defmodule Macro do
 
   The following metadata keys are enabled by `Code.string_to_quoted/2`:
 
-    * `:column` - the column number of the AST node (when `:columns` is true)
-    * `:do` - contains metadata about the `do` location in a function call with
-      `do/end` blocks (when `:pairing_metadata` is true)
-    * `:end` - contains metadata about the `end` location in a function call with
-      `do/end` blocks (when `:pairing_metadata` is true)
     * `:closing` - contains metadata about the closing pair, such as a `}`
       in a tuple or in a map, or such as the closing `)` in a function call
-      with parens (when `:pairing_metadata` is true)
-    * `:eol` - is set to true when the opening pair, such as `{` or `(`, are
-      followed by the end of the line (when `:pairing_metadata` is true)
+      with parens. The `:closing` does not delimit the end of expression if
+      there are `:do` and `:end` metadata  (when `:token_metadata` is true)
+    * `:column` - the column number of the AST node (when `:columns` is true)
     * `:delimiter` - contains the opening delimiter for sigils as a string
       (such as `"{"`, `"/"`, etc)
+    * `:do` - contains metadata about the `do` location in a function call with
+      `do/end` blocks (when `:token_metadata` is true)
+    * `:end` - contains metadata about the `end` location in a function call with
+      `do/end` blocks (when `:token_metadata` is true)
+    * `:end_of_expression` - denotes when the end of expression effectively
+      happens. Available for all expressions except the last one inside a
+      `__block__` (when `:token_metadata` is true)
 
   The following metadata keys are private:
 

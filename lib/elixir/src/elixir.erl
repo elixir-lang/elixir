@@ -332,8 +332,8 @@ tokens_to_quoted(Tokens, File, Opts) ->
   after
     erase(elixir_parser_file),
     erase(elixir_parser_columns),
-    erase(elixir_pairing_metadata),
-    erase(elixir_formatter_metadata)
+    erase(elixir_token_metadata),
+    erase(elixir_wrap_literals)
   end.
 
 parser_line({Line, _, _}) ->
@@ -361,10 +361,10 @@ to_binary(List) when is_list(List) -> elixir_utils:characters_to_binary(List);
 to_binary(Atom) when is_atom(Atom) -> atom_to_binary(Atom, utf8).
 
 handle_parsing_opts(File, Opts) ->
-  FormatterMetadata = lists:keyfind(elixir_private_formatter_metadata, 1, Opts) == {elixir_private_formatter_metadata, true},
-  PairingMetadata = lists:keyfind(pairing_metadata, 1, Opts) == {pairing_metadata, true},
+  FormatterMetadata = lists:keyfind(elixir_private_wrap_literals, 1, Opts) == {elixir_private_wrap_literals, true},
+  PairingMetadata = lists:keyfind(token_metadata, 1, Opts) == {token_metadata, true},
   Columns = lists:keyfind(columns, 1, Opts) == {columns, true},
   put(elixir_parser_file, File),
   put(elixir_parser_columns, Columns),
-  put(elixir_pairing_metadata, PairingMetadata),
-  put(elixir_formatter_metadata, FormatterMetadata).
+  put(elixir_token_metadata, PairingMetadata),
+  put(elixir_wrap_literals, FormatterMetadata).
