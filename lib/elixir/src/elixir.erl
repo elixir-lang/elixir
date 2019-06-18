@@ -361,10 +361,14 @@ to_binary(List) when is_list(List) -> elixir_utils:characters_to_binary(List);
 to_binary(Atom) when is_atom(Atom) -> atom_to_binary(Atom, utf8).
 
 handle_parsing_opts(File, Opts) ->
-  FormatterMetadata = lists:keyfind(elixir_private_wrap_literals, 1, Opts) == {elixir_private_wrap_literals, true},
-  PairingMetadata = lists:keyfind(token_metadata, 1, Opts) == {token_metadata, true},
+  LiteralEncoder =
+    case lists:keyfind(literal_encoder, 1, Opts) of
+      {literal_encoder, Fun} -> Fun;
+      false -> false
+    end,
+  TokenMetadata = lists:keyfind(token_metadata, 1, Opts) == {token_metadata, true},
   Columns = lists:keyfind(columns, 1, Opts) == {columns, true},
   put(elixir_parser_file, File),
   put(elixir_parser_columns, Columns),
-  put(elixir_token_metadata, PairingMetadata),
-  put(elixir_wrap_literals, FormatterMetadata).
+  put(elixir_token_metadata, TokenMetadata),
+  put(elixir_literal_encoder, LiteralEncoder).

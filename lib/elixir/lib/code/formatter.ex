@@ -206,7 +206,7 @@ defmodule Code.Formatter do
     ]
 
     parser_options = [
-      elixir_private_wrap_literals: true,
+      literal_encoder: &{:ok, {:__block__, &2, [&1]}},
       token_metadata: true
     ]
 
@@ -353,7 +353,7 @@ defmodule Code.Formatter do
       not interpolated?(entries) ->
         bitstring_to_algebra(meta, entries, state)
 
-      meta[:format] == :bin_heredoc ->
+      meta[:delimiter] == ~s["""] ->
         {doc, state} =
           entries
           |> prepend_heredoc_line()
@@ -375,7 +375,7 @@ defmodule Code.Formatter do
       not list_interpolated?(entries) ->
         remote_to_algebra(quoted, context, state)
 
-      meta[:format] == :list_heredoc ->
+      meta[:delimiter] == ~s['''] ->
         {doc, state} =
           entries
           |> prepend_heredoc_line()
@@ -433,12 +433,12 @@ defmodule Code.Formatter do
   end
 
   defp quoted_to_algebra({:__block__, meta, [list]}, _context, state) when is_list(list) do
-    case meta[:format] do
-      :list_heredoc ->
+    case meta[:delimiter] do
+      ~s['''] ->
         string = list |> List.to_string() |> escape_heredoc()
         {@single_heredoc |> concat(string) |> concat(@single_heredoc) |> force_unfit(), state}
 
-      :charlist ->
+      ~s['] ->
         string = list |> List.to_string() |> escape_string(@single_quote)
         {@single_quote |> concat(string) |> concat(@single_quote), state}
 
@@ -448,7 +448,7 @@ defmodule Code.Formatter do
   end
 
   defp quoted_to_algebra({:__block__, meta, [string]}, _context, state) when is_binary(string) do
-    if meta[:format] == :bin_heredoc do
+    if meta[:delimiter] == ~s["""] do
       string = escape_heredoc(string)
       {@double_heredoc |> concat(string) |> concat(@double_heredoc) |> force_unfit(), state}
     else
@@ -463,11 +463,11 @@ defmodule Code.Formatter do
 
   defp quoted_to_algebra({:__block__, meta, [integer]}, _context, state)
        when is_integer(integer) do
-    {integer_to_algebra(Keyword.fetch!(meta, :original)), state}
+    {integer_to_algebra(Keyword.fetch!(meta, :token)), state}
   end
 
   defp quoted_to_algebra({:__block__, meta, [float]}, _context, state) when is_float(float) do
-    {float_to_algebra(Keyword.fetch!(meta, :original)), state}
+    {float_to_algebra(Keyword.fetch!(meta, :token)), state}
   end
 
   defp quoted_to_algebra(
@@ -1544,43 +1544,40 @@ defmodule Code.Formatter do
 
   defp integer_to_algebra(text) do
     case text do
-      [?0, ?x | rest] ->
-        "0x" <> String.upcase(List.to_string(rest))
+      <<?0, ?x, rest::binary>> ->
+        "0x" <> String.upcase(rest)
 
-      [?0, base | _rest] = digits when base in [?b, ?o] ->
-        List.to_string(digits)
+      <<?0, base, _::binary>> = digits when base in [?b, ?o] ->
+        digits
 
-      [?? | _rest] = char ->
-        List.to_string(char)
+      <<??, _::binary>> = char ->
+        char
 
       decimal ->
-        List.to_string(insert_underscores(decimal))
+        insert_underscores(decimal)
     end
   end
 
   defp float_to_algebra(text) do
-    {int_part, [?. | decimal_part]} = Enum.split_while(text, &(&1 != ?.))
-
-    decimal_part =
-      decimal_part
-      |> List.to_string()
-      |> String.downcase()
-
-    List.to_string(insert_underscores(int_part)) <> "." <> decimal_part
+    [int_part, decimal_part] = :binary.split(text, ".")
+    decimal_part = String.downcase(decimal_part)
+    insert_underscores(int_part) <> "." <> decimal_part
   end
 
   defp insert_underscores(digits) do
     cond do
-      ?_ in digits ->
+      digits =~ "_" ->
         digits
 
-      length(digits) >= 6 ->
+      byte_size(digits) >= 6 ->
         digits
+        |> String.to_charlist()
         |> Enum.reverse()
         |> Enum.chunk_every(3)
         |> Enum.intersperse('_')
         |> List.flatten()
         |> Enum.reverse()
+        |> List.to_string()
 
       true ->
         digits
@@ -2119,12 +2116,12 @@ defmodule Code.Formatter do
   end
 
   defp next_break_fits?({:<<>>, meta, [_ | _] = entries}, state) do
-    meta[:format] == :bin_heredoc or
+    meta[:delimiter] == ~s["""] or
       (not interpolated?(entries) and eol_or_comments?(meta, state))
   end
 
   defp next_break_fits?({{:., _, [List, :to_charlist]}, meta, [[_ | _]]}, _state) do
-    meta[:format] == :list_heredoc
+    meta[:delimiter] == ~s[''']
   end
 
   defp next_break_fits?({{:., _, [_left, :{}]}, _, _}, _state) do
@@ -2132,11 +2129,11 @@ defmodule Code.Formatter do
   end
 
   defp next_break_fits?({:__block__, meta, [string]}, _state) when is_binary(string) do
-    meta[:format] == :bin_heredoc
+    meta[:delimiter] == ~s["""]
   end
 
   defp next_break_fits?({:__block__, meta, [list]}, _state) when is_list(list) do
-    meta[:format] != :charlist
+    meta[:delimeter] != ~s[']
   end
 
   defp next_break_fits?({form, _, [_ | _]}, _state) when form in [:fn, :%{}, :%] do
@@ -2208,25 +2205,17 @@ defmodule Code.Formatter do
     if force_args?(arg), do: force_unfit(doc), else: doc
   end
 
-  defp keyword?([{key, _} | list]) do
-    keyword_key?(key) and keyword?(list)
-  end
+  defp keyword?([{_, _} | list]), do: keyword?(list)
+  defp keyword?(rest), do: rest == []
 
-  defp keyword?(rest) do
-    rest == []
-  end
+  defp keyword_key?({:__block__, meta, [atom]}) when is_atom(atom),
+    do: meta[:delimiter] != ":"
 
-  defp keyword_key?({:__block__, meta, [_]}) do
-    meta[:format] == :keyword
-  end
+  defp keyword_key?({{:., _, [:erlang, :binary_to_atom]}, meta, [{:<<>>, _, _}, :utf8]}),
+    do: meta[:delimiter] != ":"
 
-  defp keyword_key?({{:., _, [:erlang, :binary_to_atom]}, _, [{:<<>>, meta, _}, :utf8]}) do
-    meta[:format] == :keyword
-  end
-
-  defp keyword_key?(_) do
-    false
-  end
+  defp keyword_key?(_),
+    do: false
 
   defp eol?(meta) do
     Keyword.get(meta, :newlines, 0) > 0

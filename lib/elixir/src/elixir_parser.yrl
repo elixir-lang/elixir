@@ -39,7 +39,7 @@ Terminals
   capture_op rel_op
   'true' 'false' 'nil' 'do' eol ';' ',' '.'
   '(' ')' '[' ']' '{' '}' '<<' '>>' '%{}' '%'
-  int float char
+  int flt char
   .
 
 Rootsymbol grammar.
@@ -253,21 +253,21 @@ access_expr -> tuple : '$1'.
 access_expr -> 'true' : handle_literal(?id('$1'), '$1').
 access_expr -> 'false' : handle_literal(?id('$1'), '$1').
 access_expr -> 'nil' : handle_literal(?id('$1'), '$1').
-access_expr -> bin_string : build_bin_string('$1', [{format, string}]).
-access_expr -> list_string : build_list_string('$1', [{format, charlist}]).
+access_expr -> bin_string : build_bin_string('$1', delimiter(<<$">>)).
+access_expr -> list_string : build_list_string('$1', delimiter(<<$'>>)).
 access_expr -> bin_heredoc : build_bin_heredoc('$1').
 access_expr -> list_heredoc : build_list_heredoc('$1').
 access_expr -> bit_string : '$1'.
 access_expr -> sigil : build_sigil('$1').
-access_expr -> atom : handle_literal(?exprs('$1'), '$1', []).
-access_expr -> atom_safe : build_quoted_atom('$1', true, []).
-access_expr -> atom_unsafe : build_quoted_atom('$1', false, []).
+access_expr -> atom : handle_literal(?exprs('$1'), '$1', delimiter(<<$:>>)).
+access_expr -> atom_safe : build_quoted_atom('$1', true, delimiter(<<$:>>)).
+access_expr -> atom_unsafe : build_quoted_atom('$1', false, delimiter(<<$:>>)).
 access_expr -> dot_alias : '$1'.
 access_expr -> parens_call : '$1'.
 
-number -> int : handle_literal(number_value('$1'), '$1', [{original, ?exprs('$1')}]).
-number -> char : handle_literal(?exprs('$1'), '$1', [{original, number_value('$1')}]).
-number -> float : handle_literal(number_value('$1'), '$1', [{original, ?exprs('$1')}]).
+number -> int : handle_number(number_value('$1'), '$1', ?exprs('$1')).
+number -> flt : handle_number(number_value('$1'), '$1', ?exprs('$1')).
+number -> char : handle_number(?exprs('$1'), '$1', number_value('$1')).
 
 %% Also used by maps and structs
 parens_call -> dot_call_identifier call_args_parens : build_parens('$1', '$2', {[], []}).
@@ -526,12 +526,12 @@ call_args_parens -> open_paren call_args_parens_base ',' kw_base ',' close_paren
 
 % KV
 
-kw_eol -> kw_identifier : handle_literal(?exprs('$1'), '$1', [{format, keyword}]).
-kw_eol -> kw_identifier eol : handle_literal(?exprs('$1'), '$1', [{format, keyword}]).
-kw_eol -> kw_identifier_safe : build_quoted_atom('$1', true, [{format, keyword}]).
-kw_eol -> kw_identifier_safe eol : build_quoted_atom('$1', true, [{format, keyword}]).
-kw_eol -> kw_identifier_unsafe : build_quoted_atom('$1', false, [{format, keyword}]).
-kw_eol -> kw_identifier_unsafe eol : build_quoted_atom('$1', false, [{format, keyword}]).
+kw_eol -> kw_identifier : handle_literal(?exprs('$1'), '$1').
+kw_eol -> kw_identifier eol : handle_literal(?exprs('$1'), '$1').
+kw_eol -> kw_identifier_safe : build_quoted_atom('$1', true, []).
+kw_eol -> kw_identifier_safe eol : build_quoted_atom('$1', true, []).
+kw_eol -> kw_identifier_unsafe : build_quoted_atom('$1', false, []).
+kw_eol -> kw_identifier_unsafe eol : build_quoted_atom('$1', false, []).
 
 kw_base -> kw_eol container_expr : [{'$1', '$2'}].
 kw_base -> kw_base ',' kw_eol container_expr : [{'$3', '$4'} | '$1'].
@@ -670,9 +670,24 @@ handle_literal(Literal, Token) ->
   handle_literal(Literal, Token, []).
 
 handle_literal(Literal, Token, ExtraMeta) ->
-  case ?wrap_literals() of
-    true -> {'__block__', ExtraMeta ++ meta_from_token(Token), [Literal]};
-    false -> Literal
+  case get(elixir_literal_encoder) of
+    false ->
+      Literal;
+
+    Fun ->
+      Meta = ExtraMeta ++ meta_from_token(Token),
+      case Fun(Literal, Meta) of
+        {ok, EncodedLiteral} ->
+          EncodedLiteral;
+        {error, Reason} ->
+          return_error(Meta, elixir_utils:characters_to_list(Reason) ++ [": "], "literal")
+      end
+  end.
+
+handle_number(Number, Token, Original) ->
+  case ?token_metadata() of
+    true -> handle_literal(Number, Token, [{token, elixir_utils:characters_to_binary(Original)}]);
+    false -> handle_literal(Number, Token, [])
   end.
 
 number_value({_, {_, _, Value}, _}) ->
@@ -691,7 +706,7 @@ build_op({_Kind, Location, 'in'}, {UOp, _, [Left]}, Right) when ?rearrange_uop(U
 build_op({_Kind, Location, 'not in'}, Left, Right) ->
   InMeta = meta_from_location(Location),
   NotMeta =
-    case ?wrap_literals() of
+    case ?token_metadata() of
       true -> [{operator, 'not in'} | InMeta];
       false -> InMeta
     end,
@@ -863,16 +878,16 @@ build_sigil({sigil, Location, Sigil, Parts, Modifiers, Delimiter}) ->
    [{'<<>>', Meta, string_parts(Parts)}, Modifiers]}.
 
 build_bin_heredoc({bin_heredoc, Location, Args}) ->
-  build_bin_string({bin_string, Location, Args}, [{format, bin_heredoc}]).
+  build_bin_string({bin_string, Location, Args}, delimiter(<<$", $", $">>)).
 
 build_list_heredoc({list_heredoc, Location, Args}) ->
-  build_list_string({list_string, Location, Args}, [{format, list_heredoc}]).
+  build_list_string({list_string, Location, Args}, delimiter(<<$', $', $'>>)).
 
 build_bin_string({bin_string, _Location, [H]} = Token, ExtraMeta) when is_binary(H) ->
   handle_literal(H, Token, ExtraMeta);
 build_bin_string({bin_string, Location, Args}, ExtraMeta) ->
   Meta =
-    case ?wrap_literals() of
+    case ?token_metadata() of
       true -> ExtraMeta ++ meta_from_location(Location);
       false -> meta_from_location(Location)
     end,
@@ -883,7 +898,7 @@ build_list_string({list_string, _Location, [H]} = Token, ExtraMeta) when is_bina
 build_list_string({list_string, Location, Args}, ExtraMeta) ->
   Meta = meta_from_location(Location),
   MetaWithExtra =
-    case ?wrap_literals() of
+    case ?token_metadata() of
       true -> ExtraMeta ++ Meta;
       false -> Meta
     end,
@@ -895,11 +910,11 @@ build_quoted_atom({_, _Location, [H]} = Token, Safe, ExtraMeta) when is_binary(H
 build_quoted_atom({_, Location, Args}, Safe, ExtraMeta) ->
   Meta = meta_from_location(Location),
   MetaWithExtra =
-    case ?wrap_literals() of
+    case ?token_metadata() of
       true -> ExtraMeta ++ Meta;
       false -> Meta
     end,
-  {{'.', Meta, [erlang, binary_to_atom_op(Safe)]}, Meta, [{'<<>>', MetaWithExtra, string_parts(Args)}, utf8]}.
+  {{'.', Meta, [erlang, binary_to_atom_op(Safe)]}, MetaWithExtra, [{'<<>>', Meta, string_parts(Args)}, utf8]}.
 
 binary_to_atom_op(true)  -> binary_to_existing_atom;
 binary_to_atom_op(false) -> binary_to_atom.
@@ -910,12 +925,13 @@ charlist_part(Binary) when is_binary(Binary) ->
   Binary;
 charlist_part({Begin, End, Tokens}) ->
   Form = string_tokens_parse(Tokens),
-  Meta =
-    case ?wrap_literals() of
-      true -> [{closing, meta_from_location(End)} | meta_from_location(Begin)];
-      false -> meta_from_location(Begin)
+  Meta = meta_from_location(Begin),
+  MetaWithExtra =
+    case ?token_metadata() of
+      true -> [{closing, meta_from_location(End)} | Meta];
+      false -> Meta
     end,
-  {{'.', Meta, ['Elixir.Kernel', to_string]}, Meta, [Form]}.
+  {{'.', Meta, ['Elixir.Kernel', to_string]}, MetaWithExtra, [Form]}.
 
 string_parts(Parts) ->
   [string_part(Part) || Part <- Parts].
@@ -923,17 +939,24 @@ string_part(Binary) when is_binary(Binary) ->
   Binary;
 string_part({Begin, End, Tokens}) ->
   Form = string_tokens_parse(Tokens),
-  Meta =
-    case ?wrap_literals() of
+  Meta = meta_from_location(Begin),
+  MetaWithExtra =
+    case ?token_metadata() of
       true -> [{closing, meta_from_location(End)} | meta_from_location(Begin)];
       false -> meta_from_location(Begin)
     end,
-  {'::', Meta, [{{'.', Meta, ['Elixir.Kernel', to_string]}, Meta, [Form]}, {binary, Meta, nil}]}.
+  {'::', Meta, [{{'.', Meta, ['Elixir.Kernel', to_string]}, MetaWithExtra, [Form]}, {binary, Meta, nil}]}.
 
 string_tokens_parse(Tokens) ->
   case parse(Tokens) of
     {ok, Forms} -> Forms;
     {error, _} = Error -> throw(Error)
+  end.
+
+delimiter(Delimiter) ->
+  case ?token_metadata() of
+    true -> [{delimiter, Delimiter}];
+    false -> []
   end.
 
 %% Keywords

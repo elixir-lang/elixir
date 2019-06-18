@@ -301,41 +301,58 @@ defmodule CodeTest do
     end
   end
 
-  test "string_to_quoted/2 with :elixir_private_wrap_literals wraps literals in blocks" do
-    string_to_quoted = &Code.string_to_quoted!(&1, elixir_private_wrap_literals: true)
+  describe "string_to_quoted/2 with :literal_encoder" do
+    test "wraps literals in blocks" do
+      opts = [literal_encoder: &{:ok, {:__block__, &2, [&1]}}, token_metadata: true]
+      string_to_quoted = &Code.string_to_quoted!(&1, opts)
 
-    assert string_to_quoted.(~s("one")) == {:__block__, [format: :string, line: 1], ["one"]}
-    assert string_to_quoted.("'one'") == {:__block__, [format: :charlist, line: 1], ['one']}
-    assert string_to_quoted.("?é") == {:__block__, [original: '?é', line: 1], [233]}
-    assert string_to_quoted.("0b10") == {:__block__, [original: '0b10', line: 1], [2]}
-    assert string_to_quoted.("12") == {:__block__, [original: '12', line: 1], [12]}
-    assert string_to_quoted.("0o123") == {:__block__, [original: '0o123', line: 1], [83]}
-    assert string_to_quoted.("0xEF") == {:__block__, [original: '0xEF', line: 1], [239]}
-    assert string_to_quoted.("12.3") == {:__block__, [original: '12.3', line: 1], [12.3]}
-    assert string_to_quoted.("nil") == {:__block__, [line: 1], [nil]}
-    assert string_to_quoted.(":one") == {:__block__, [line: 1], [:one]}
+      assert string_to_quoted.(~s("one")) == {:__block__, [delimiter: "\"", line: 1], ["one"]}
+      assert string_to_quoted.("'one'") == {:__block__, [delimiter: "'", line: 1], ['one']}
+      assert string_to_quoted.("?é") == {:__block__, [token: "?é", line: 1], [233]}
+      assert string_to_quoted.("0b10") == {:__block__, [token: "0b10", line: 1], [2]}
+      assert string_to_quoted.("12") == {:__block__, [token: "12", line: 1], [12]}
+      assert string_to_quoted.("0o123") == {:__block__, [token: "0o123", line: 1], [83]}
+      assert string_to_quoted.("0xEF") == {:__block__, [token: "0xEF", line: 1], [239]}
+      assert string_to_quoted.("12.3") == {:__block__, [token: "12.3", line: 1], [12.3]}
+      assert string_to_quoted.("nil") == {:__block__, [line: 1], [nil]}
+      assert string_to_quoted.(":one") == {:__block__, [delimiter: ":", line: 1], [:one]}
 
-    args = [[{:__block__, [original: '1', line: 1], [1]}]]
+      args = [[{:__block__, [token: "1", line: 1], [1]}]]
 
-    assert string_to_quoted.("[1]") ==
-             {:__block__, [line: 1], args}
+      assert string_to_quoted.("[1]") ==
+               {:__block__, [closing: [line: 1], line: 1], args}
 
-    args = [{{:__block__, [line: 1], [:ok]}, {:__block__, [line: 1], [:test]}}]
+      args = [
+        {{:__block__, [delimiter: ":", line: 1], [:ok]},
+         {:__block__, [delimiter: ":", line: 1], [:test]}}
+      ]
 
-    assert string_to_quoted.("{:ok, :test}") ==
-             {:__block__, [line: 1], args}
+      assert string_to_quoted.("{:ok, :test}") ==
+               {:__block__, [closing: [line: 1], line: 1], args}
 
-    assert string_to_quoted.(~s("""\nhello\n""")) ==
-             {:__block__, [format: :bin_heredoc, line: 1], ["hello\n"]}
+      assert string_to_quoted.(~s("""\nhello\n""")) ==
+               {:__block__, [delimiter: ~s["""], line: 1], ["hello\n"]}
 
-    assert string_to_quoted.("'''\nhello\n'''") ==
-             {:__block__, [format: :list_heredoc, line: 1], ['hello\n']}
+      assert string_to_quoted.("'''\nhello\n'''") ==
+               {:__block__, [delimiter: ~s['''], line: 1], ['hello\n']}
 
-    left = {:__block__, [original: '1', line: 1, line: 1], [1]}
-    right = {:__block__, [format: :string, line: 1], ["hello"]}
-    args = [{:->, [line: 1], [[left], right]}]
+      args = [
+        {:->, [line: 1],
+         [
+           [{:__block__, [token: "1", line: 1, closing: [line: 1], line: 1], [1]}],
+           {:__block__, [delimiter: "\"", line: 1], ["hello"]}
+         ]}
+      ]
 
-    assert string_to_quoted.(~s[fn (1) -> "hello" end]) == {:fn, [line: 1], args}
+      assert string_to_quoted.(~s[fn (1) -> "hello" end]) ==
+               {:fn, [closing: [line: 1], line: 1], args}
+    end
+
+    test "raises on bad literal" do
+      assert_raise SyntaxError, "nofile:1: oops: literal", fn ->
+        Code.string_to_quoted!(":one", literal_encoder: fn _, _ -> {:error, "oops"} end)
+      end
+    end
   end
 
   test "compile source" do

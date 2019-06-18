@@ -1027,6 +1027,12 @@ defmodule Kernel.ErrorsTest do
     assert_eval_raise SyntaxError, "nofile:1: syntax error before: ?す", ':ok ?す'
   end
 
+  test "numbers are printed correctly in syntax errors" do
+    assert_eval_raise SyntaxError, "nofile:1: syntax error before: \"12\"", ':ok 12'
+    assert_eval_raise SyntaxError, "nofile:1: syntax error before: \"0b1\"", ':ok 0b1'
+    assert_eval_raise SyntaxError, "nofile:1: syntax error before: \"12.3\"", ':ok 12.3'
+  end
+
   test "invalid \"fn do expr end\"" do
     assert_eval_raise SyntaxError,
                       "nofile:1: unexpected token: do. Anonymous functions are written as:\n\n    fn pattern -> expression end",
