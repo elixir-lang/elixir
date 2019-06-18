@@ -476,6 +476,8 @@ tokenize([$: | String] = Original, Line, Column, Scope, Tokens) ->
   end;
 
 % Integers and floats
+% We use int and flt otherwise elixir_parser won't format them
+% properly in case of errors.
 
 tokenize([H | T], Line, Column, Scope, Tokens) when ?is_digit(H) ->
   case tokenize_number(T, [H], 1, false) of
@@ -485,7 +487,7 @@ tokenize([H | T], Line, Column, Scope, Tokens) when ?is_digit(H) ->
       Token = {int, {Line, Column, Number}, Original},
       tokenize(Rest, Line, Column + Length, Scope, [Token | Tokens]);
     {Rest, Number, Original, Length} ->
-      Token = {float, {Line, Column, Number}, Original},
+      Token = {flt, {Line, Column, Number}, Original},
       tokenize(Rest, Line, Column + Length, Scope, [Token | Tokens])
   end;
 

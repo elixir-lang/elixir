@@ -644,7 +644,7 @@ defmodule Code do
     end
   end
 
-  @doc """
+  @doc ~S"""
   Converts the given string to its quoted form.
 
   Returns `{:ok, quoted_form}` if it succeeds,
@@ -670,8 +670,15 @@ defmodule Code do
       for closing tokens, end of expressions, as well as delimiters for
       sigils. See `t:Macro.metadata/0`. Defaults to `false`.
 
-    * `:static_atom_encoder` - the static atom encoder function, see
-      "The `:static_atom_encoder` function" section below. Note this
+    * `:literal_encoder` - how to encode literals in the AST. It must
+      be a function that receives two arguments, the literal and its
+      metadata, and it must return `{:ok, ast :: Macro.t}` or
+      `{:error, reason :: binary}`. If you return anything than the literal
+      itself as the `term`, then the AST is no longer valid. This option
+      may still useful for textual analysis of the source code.
+
+    * `:static_atoms_encoder` - the static atom encoder function, see
+      "The `:static_atoms_encoder` function" section below. Note this
       option overrides the `:existing_atoms_only` behaviour for static
       atoms but `:existing_atoms_only` is still used for dynamic atoms,
       such as atoms with interpolations.
@@ -686,9 +693,9 @@ defmodule Code do
   `Macro.to_string/2`, which converts a quoted form to a string/binary
   representation.
 
-  ## The `:static_atom_encoder` function
+  ## The `:static_atoms_encoder` function
 
-  When `static_atom_encoder: &my_encoder/2` is passed as an argument,
+  When `static_atoms_encoder: &my_encoder/2` is passed as an argument,
   `my_encoder/2` is called every time the tokenizer needs to create a
   "static" atom. Static atoms are atoms in the AST that function as
   aliases, remote calls, local calls, variable names, regular atoms
@@ -713,7 +720,7 @@ defmodule Code do
 
     * syntax keywords (`fn`, `do`, `else`, and so on)
 
-    * atoms containing interpolation (`:"\#{1 + 1} is two"`), as these
+    * atoms containing interpolation (`:"#{1 + 1} is two"`), as these
       atoms are constructed at runtime.
 
   """

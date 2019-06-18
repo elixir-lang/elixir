@@ -163,8 +163,8 @@ defmodule Macro do
       with parens. The `:closing` does not delimit the end of expression if
       there are `:do` and `:end` metadata  (when `:token_metadata` is true)
     * `:column` - the column number of the AST node (when `:columns` is true)
-    * `:delimiter` - contains the opening delimiter for sigils as a string
-      (such as `"{"`, `"/"`, etc)
+    * `:delimiter` - contains the opening delimiter for sigils, strings, atoms,
+      and charlists as a string (such as `"{"`, `"/"`, `":"`, etc)
     * `:do` - contains metadata about the `do` location in a function call with
       `do/end` blocks (when `:token_metadata` is true)
     * `:end` - contains metadata about the `end` location in a function call with
