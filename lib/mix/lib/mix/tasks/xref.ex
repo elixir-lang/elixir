@@ -2,7 +2,7 @@ defmodule Mix.Tasks.Xref do
   use Mix.Task
 
   import Mix.Compilers.Elixir,
-    only: [read_manifest: 2, source: 0, source: 1, source: 2, module: 1]
+    only: [read_manifest: 1, source: 0, source: 1, source: 2, module: 1]
 
   @shortdoc "Performs cross reference checks"
   @recursive true
@@ -218,7 +218,7 @@ defmodule Mix.Tasks.Xref do
   def calls(opts \\ []) do
     module_sources =
       for manifest <- manifests(opts),
-          manifest_data = read_manifest(manifest, ""),
+          manifest_data = read_manifest(manifest),
           module(module: module, sources: sources) <- manifest_data,
           source <- sources,
           source = Enum.find(manifest_data, &match?(source(source: ^source), &1)),
@@ -564,7 +564,7 @@ defmodule Mix.Tasks.Xref do
 
     module_sources =
       for manifest_path <- manifests(opts),
-          manifest_data = read_manifest(manifest_path, ""),
+          manifest_data = read_manifest(manifest_path),
           module(module: module, sources: sources) <- manifest_data,
           source <- sources,
           source = Enum.find(manifest_data, &match?(source(source: ^source), &1)),
@@ -743,7 +743,7 @@ defmodule Mix.Tasks.Xref do
 
   defp sources(opts) do
     for manifest <- manifests(opts),
-        source() = source <- read_manifest(manifest, ""),
+        source() = source <- read_manifest(manifest),
         do: source
   end
 

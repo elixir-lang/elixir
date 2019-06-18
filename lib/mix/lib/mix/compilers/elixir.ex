@@ -5,7 +5,7 @@ defmodule Mix.Compilers.Elixir do
 
   import Record
 
-  defrecord :module, [:module, :kind, :sources, :beam, :struct]
+  defrecord :module, [:module, :kind, :sources, :struct]
 
   defrecord :source,
     source: nil,
@@ -52,8 +52,8 @@ defmodule Mix.Compilers.Elixir do
         # A config, path dependency or manifest has changed, let's just compile everything
         all_paths = MapSet.to_list(all_paths)
 
-        for module(module: module, beam: beam) <- all_modules,
-            do: remove_and_purge(beam, module)
+        for module(module: module) <- all_modules,
+            do: remove_and_purge(beam_path(dest, module), module)
 
         sources_stats =
           for path <- all_paths,
@@ -94,7 +94,8 @@ defmodule Mix.Compilers.Elixir do
             all_sources,
             removed ++ changed,
             stale_local_deps,
-            stale_local_deps
+            stale_local_deps,
+            dest
           )
 
         {modules, structs, changed, sources_stats}
@@ -136,8 +137,8 @@ defmodule Mix.Compilers.Elixir do
   Removes compiled files for the given `manifest`.
   """
   def clean(manifest, compile_path) do
-    Enum.each(read_manifest(manifest, compile_path), fn
-      module(beam: beam) -> File.rm(beam)
+    Enum.each(read_manifest(manifest), fn
+      module(module: module) -> File.rm(beam_path(compile_path, module))
       _ -> :ok
     end)
   end
@@ -146,21 +147,21 @@ defmodule Mix.Compilers.Elixir do
   Returns protocols and implementations for the given `manifest`.
   """
   def protocols_and_impls(manifest, compile_path) do
-    for module(beam: beam, module: module, kind: kind) <- read_manifest(manifest, compile_path),
+    for module(module: module, kind: kind) <- read_manifest(manifest),
         match?(:protocol, kind) or match?({:impl, _}, kind),
-        do: {module, kind, beam}
+        do: {module, kind, beam_path(compile_path, module)}
   end
 
   @doc """
   Reads the manifest.
   """
-  def read_manifest(manifest, compile_path) do
+  def read_manifest(manifest) do
     try do
       manifest |> File.read!() |> :erlang.binary_to_term()
     rescue
       _ -> []
     else
-      [@manifest_vsn | data] -> expand_beam_paths(data, compile_path)
+      [@manifest_vsn | data] -> data
       _ -> []
     end
   end
@@ -179,7 +180,7 @@ defmodule Mix.Compilers.Elixir do
     verbose = opts[:verbose] || false
 
     compile_opts = [
-      each_cycle: &each_cycle/0,
+      each_cycle: fn -> each_cycle(dest) end,
       each_file: &each_file(&1, &2, cwd, verbose),
       each_module: &each_module(&1, &2, &3, cwd),
       each_long_compilation: &each_long_compilation(&1, cwd, long_compilation_threshold),
@@ -217,11 +218,11 @@ defmodule Mix.Compilers.Elixir do
     |> Code.compiler_options()
   end
 
-  defp each_cycle() do
+  defp each_cycle(compile_path) do
     {modules, _structs, sources, pending_modules, pending_structs} = get_compiler_info()
 
     {pending_modules, structs, changed} =
-      update_stale_entries(pending_modules, sources, [], %{}, pending_structs)
+      update_stale_entries(pending_modules, sources, [], %{}, pending_structs, compile_path)
 
     if changed == [] do
       []
@@ -278,7 +279,6 @@ defmodule Mix.Compilers.Elixir do
         module: module,
         kind: kind,
         sources: module_sources,
-        beam: Atom.to_string(module) <> ".beam",
         struct: struct
       )
 
@@ -386,14 +386,14 @@ defmodule Mix.Compilers.Elixir do
   # files that have changed. It then, recursively, figures out
   # all the files that changed (via the module dependencies) and
   # return the non-changed entries and the removed sources.
-  defp update_stale_entries(modules, _sources, [], stale_files, stale_structs)
+  defp update_stale_entries(modules, _sources, [], stale_files, stale_structs, _compile_path)
        when stale_files == %{} and stale_structs == %{} do
     {modules, %{}, []}
   end
 
-  defp update_stale_entries(modules, sources, changed, stale_files, stale_structs) do
+  defp update_stale_entries(modules, sources, changed, stale_files, stale_structs, compile_path) do
     changed = Enum.into(changed, %{}, &{&1, true})
-    reducer = &remove_stale_entry(&1, &2, sources, stale_structs)
+    reducer = &remove_stale_entry(&1, &2, sources, stale_structs, compile_path)
     remove_stale_entries(modules, %{}, changed, stale_files, reducer)
   end
 
@@ -408,8 +408,9 @@ defmodule Mix.Compilers.Elixir do
     end
   end
 
-  defp remove_stale_entry(entry, {rest, structs, changed, stale}, sources, stale_structs) do
-    module(module: module, beam: beam, sources: source_files, struct: struct) = entry
+  defp remove_stale_entry(entry, acc, sources, stale_structs, compile_path) do
+    module(module: module, sources: source_files, struct: struct) = entry
+    {rest, structs, changed, stale} = acc
 
     {compile_references, struct_references, runtime_references} =
       Enum.reduce(source_files, {[], [], []}, fn file, {compile_acc, struct_acc, runtime_acc} ->
@@ -428,7 +429,7 @@ defmodule Mix.Compilers.Elixir do
       # I need to be recompiled.
       has_any_key?(changed, source_files) or has_any_key?(stale, compile_references) or
           has_any_key?(stale_structs, struct_references) ->
-        remove_and_purge(beam, module)
+        remove_and_purge(beam_path(compile_path, module), module)
         changed = Enum.reduce(source_files, changed, &Map.put(&2, &1, true))
         {rest, Map.put(structs, module, struct), changed, Map.put(stale, module, true)}
 
@@ -511,11 +512,11 @@ defmodule Mix.Compilers.Elixir do
         {[], []}
     else
       [@manifest_vsn | data] ->
-        split_manifest(data, compile_path)
+        split_manifest(data)
 
       [v | data] when is_integer(v) ->
         for module <- data, is_record(module, :module) do
-          File.rm(Path.join(compile_path, module(module, :beam)))
+          File.rm(beam_path(compile_path, module(module, :module)))
           :code.purge(module(module, :module))
           :code.delete(module(module, :module))
         end
@@ -527,26 +528,13 @@ defmodule Mix.Compilers.Elixir do
     end
   end
 
-  defp split_manifest(data, compile_path) do
+  defp split_manifest(data) do
     Enum.reduce(data, {[], []}, fn
       module() = module, {modules, sources} ->
-        {[expand_beam_path(module, compile_path) | modules], sources}
+        {[module | modules], sources}
 
       source() = source, {modules, sources} ->
         {modules, [source | sources]}
-    end)
-  end
-
-  defp expand_beam_path(module(beam: beam) = module, compile_path) do
-    module(module, beam: Path.join(compile_path, beam))
-  end
-
-  defp expand_beam_paths(modules, ""), do: modules
-
-  defp expand_beam_paths(modules, compile_path) do
-    Enum.map(modules, fn
-      module() = module -> expand_beam_path(module, compile_path)
-      other -> other
     end)
   end
 
@@ -569,5 +557,9 @@ defmodule Mix.Compilers.Elixir do
     # so the current Elixir version, used to compile the files above,
     # is properly stored.
     Mix.Dep.ElixirSCM.update()
+  end
+
+  defp beam_path(compile_path, module) do
+    Path.join(compile_path, Atom.to_string(module) <> ".beam")
   end
 end
