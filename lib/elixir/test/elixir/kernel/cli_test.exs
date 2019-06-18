@@ -147,7 +147,7 @@ defmodule Kernel.CLI.CompileTest do
       output = elixirc(compilation_args)
 
       expected =
-        "(File.Error) could not write to #{inspect(context[:beam_file_path])}: permission denied"
+        "(File.Error) could not write to file #{inspect(context[:beam_file_path])}: permission denied"
 
       assert String.contains?(output, expected)
     end

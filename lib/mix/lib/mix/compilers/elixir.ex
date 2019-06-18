@@ -1,11 +1,11 @@
 defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
-  @manifest_vsn 2
+  @manifest_vsn 3
 
   import Record
 
-  defrecord :module, [:module, :kind, :sources, :beam, :binary, :struct]
+  defrecord :module, [:module, :kind, :sources, :beam, :struct]
 
   defrecord :source,
     source: nil,
@@ -116,7 +116,7 @@ defmodule Mix.Compilers.Elixir do
       # We need to return ok if stale_local_deps changed
       # because we want that to propagate to compile.protocols
       removed != [] or stale_local_deps != %{} ->
-        write_manifest(manifest, modules, sources, dest, timestamp)
+        write_manifest(manifest, modules, sources, timestamp)
         {:ok, warning_diagnostics(sources)}
 
       true ->
@@ -184,16 +184,16 @@ defmodule Mix.Compilers.Elixir do
       each_module: &each_module(&1, &2, &3, cwd),
       each_long_compilation: &each_long_compilation(&1, cwd, long_compilation_threshold),
       long_compilation_threshold: long_compilation_threshold,
-      dest: dest
+      file_timestamp: timestamp
     ]
 
     try do
-      Kernel.ParallelCompiler.compile(stale, compile_opts)
+      Kernel.ParallelCompiler.compile_to_path(stale, dest, compile_opts)
     else
       {:ok, _, warnings} ->
         {modules, _structs, sources, _pending_modules, _pending_structs} = get_compiler_info()
         sources = apply_warnings(sources, warnings)
-        write_manifest(manifest, modules, sources, dest, timestamp)
+        write_manifest(manifest, modules, sources, timestamp)
         {:ok, warning_diagnostics(sources)}
 
       {:error, errors, warnings} ->
@@ -237,7 +237,7 @@ defmodule Mix.Compilers.Elixir do
     end
   end
 
-  defp each_module(file, module, binary, cwd) do
+  defp each_module(file, module, _binary, cwd) do
     {modules, structs, sources, pending_modules, pending_structs} = get_compiler_info()
     kind = detect_kind(module)
     file = Path.relative_to(file, cwd)
@@ -278,9 +278,8 @@ defmodule Mix.Compilers.Elixir do
         module: module,
         kind: kind,
         sources: module_sources,
-        beam: nil,
-        struct: struct,
-        binary: binary
+        beam: Atom.to_string(module) <> ".beam",
+        struct: struct
       )
 
     modules = prepend_or_merge(modules, module, module(:module), module, existing_module?)
@@ -551,26 +550,13 @@ defmodule Mix.Compilers.Elixir do
     end)
   end
 
-  defp write_manifest(manifest, [], [], _compile_path, _timestamp) do
+  defp write_manifest(manifest, [], [], _timestamp) do
     File.rm(manifest)
     :ok
   end
 
-  defp write_manifest(manifest, modules, sources, compile_path, timestamp) do
+  defp write_manifest(manifest, modules, sources, timestamp) do
     File.mkdir_p!(Path.dirname(manifest))
-
-    modules =
-      for module(binary: binary, module: module) = entry <- modules do
-        beam = Atom.to_string(module) <> ".beam"
-
-        if binary do
-          beam_path = Path.join(compile_path, beam)
-          File.write!(beam_path, binary)
-          File.touch!(beam_path, timestamp)
-        end
-
-        module(entry, binary: nil, beam: beam)
-      end
 
     manifest_data =
       [@manifest_vsn | modules ++ sources]

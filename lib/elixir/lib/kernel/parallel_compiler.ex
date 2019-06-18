@@ -72,6 +72,8 @@ defmodule Kernel.ParallelCompiler do
       they are loaded into memory. If you want a file to actually be written to
       `dest`, use `compile_to_path/3` instead.
 
+    * `:file_timestamp` - the modification timestamp to give all BEAM files
+
   """
   @doc since: "1.6.0"
   def compile(files, options \\ []) when is_list(options) do
@@ -139,6 +141,7 @@ defmodule Kernel.ParallelCompiler do
         each_file: Keyword.get(options, :each_file, fn _, _ -> :ok end) |> each_file(),
         each_long_compilation: Keyword.get(options, :each_long_compilation, fn _file -> :ok end),
         each_module: Keyword.get(options, :each_module, fn _file, _module, _binary -> :ok end),
+        file_timestamp: Keyword.get(options, :file_timestamp),
         output: output,
         long_compilation_threshold: Keyword.get(options, :long_compilation_threshold, 15),
         schedulers: schedulers
@@ -218,25 +221,9 @@ defmodule Kernel.ParallelCompiler do
 
         try do
           case output do
-            {:compile, path} ->
-              :erlang.process_flag(:error_handler, Kernel.ErrorHandler)
-              :erlang.put(:elixir_compiler_dest, path)
-              :elixir_compiler.file_to_path(file, path, &each_file(&1, &2, parent))
-
-            :compile ->
-              :erlang.process_flag(:error_handler, Kernel.ErrorHandler)
-              :erlang.put(:elixir_compiler_dest, dest)
-              :elixir_compiler.file(file, &each_file(&1, &2, parent))
-
-            :require ->
-              case :elixir_code_server.call({:acquire, file}) do
-                :required ->
-                  send(parent, {:file_cancel, self()})
-
-                :proceed ->
-                  :elixir_compiler.file(file, &each_file(&1, &2, parent))
-                  :elixir_code_server.cast({:required, file})
-              end
+            {:compile, path} -> compile_file(file, path, parent)
+            :compile -> compile_file(file, dest, parent)
+            :require -> require_file(file, parent)
           end
         catch
           kind, reason ->
@@ -253,9 +240,11 @@ defmodule Kernel.ParallelCompiler do
 
   # No more queue, nothing waiting, this cycle is done
   defp spawn_workers([], 0, [], [], result, warnings, state) do
+    %{output: output, file_timestamp: file_timestamp} = state
+
     case state.each_cycle.() do
       [] ->
-        modules = for {{:module, mod}, _} <- result, do: mod
+        modules = write_module_binaries(output, file_timestamp, result)
         warnings = Enum.reverse(warnings)
         {:ok, modules, warnings}
 
@@ -311,6 +300,37 @@ defmodule Kernel.ParallelCompiler do
     wait_for_messages([], spawned, waiting, files, result, warnings, state)
   end
 
+  defp compile_file(file, path, parent) do
+    :erlang.process_flag(:error_handler, Kernel.ErrorHandler)
+    :erlang.put(:elixir_compiler_dest, path)
+    :elixir_compiler.file(file, &each_file(&1, &2, parent))
+  end
+
+  defp require_file(file, parent) do
+    case :elixir_code_server.call({:acquire, file}) do
+      :required ->
+        send(parent, {:file_cancel, self()})
+
+      :proceed ->
+        :elixir_compiler.file(file, &each_file(&1, &2, parent))
+        :elixir_code_server.cast({:required, file})
+    end
+  end
+
+  defp write_module_binaries({:compile, path}, timestamp, result) do
+    for {{:module, module}, binary} <- result do
+      full_path = Path.join(path, Atom.to_string(module) <> ".beam")
+      File.write!(full_path, binary)
+      if timestamp, do: File.touch!(full_path, timestamp)
+
+      module
+    end
+  end
+
+  defp write_module_binaries(_output, _timestamp, result) do
+    for {{:module, module}, _} <- result, do: module
+  end
+
   # The goal of this function is to find leaves in the dependency graph,
   # i.e. to find code that depends on code that we know is not being defined.
   defp without_definition(waiting, files) do
@@ -357,7 +377,7 @@ defmodule Kernel.ParallelCompiler do
               do: {ref, :found}
 
         cancel_waiting_timer(files, child)
-        result = Map.put(result, {:module, module}, true)
+        result = Map.put(result, {:module, module}, binary)
         spawn_workers(available ++ queue, spawned, waiting, files, result, warnings, state)
 
       # If we are simply requiring files, we do not add to waiting.
