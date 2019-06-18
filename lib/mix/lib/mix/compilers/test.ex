@@ -187,12 +187,15 @@ defmodule Mix.Compilers.Test do
     [elixir_manifest] = Mix.Tasks.Compile.Elixir.manifests()
 
     if Mix.Utils.stale?([elixir_manifest], [test_manifest]) do
+      compile_path = Mix.Project.compile_path()
+
       elixir_manifest_entries =
-        CE.read_manifest(elixir_manifest, Mix.Project.compile_path())
+        CE.read_manifest(elixir_manifest)
         |> Enum.group_by(&elem(&1, 0))
 
       stale_modules =
-        for CE.module(module: module, beam: beam) <- elixir_manifest_entries.module,
+        for CE.module(module: module) <- elixir_manifest_entries.module,
+            beam = Path.join(compile_path, Atom.to_string(module) <> ".beam"),
             Mix.Utils.stale?([beam], [test_manifest]),
             do: module,
             into: MapSet.new()
