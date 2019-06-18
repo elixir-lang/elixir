@@ -72,7 +72,7 @@ defmodule Kernel.ParallelCompiler do
       they are loaded into memory. If you want a file to actually be written to
       `dest`, use `compile_to_path/3` instead.
 
-    * `:file_timestamp` - the modification timestamp to give all BEAM files
+    * `:beam_timestamp` - the modification timestamp to give all BEAM files
 
   """
   @doc since: "1.6.0"
@@ -141,7 +141,7 @@ defmodule Kernel.ParallelCompiler do
         each_file: Keyword.get(options, :each_file, fn _, _ -> :ok end) |> each_file(),
         each_long_compilation: Keyword.get(options, :each_long_compilation, fn _file -> :ok end),
         each_module: Keyword.get(options, :each_module, fn _file, _module, _binary -> :ok end),
-        file_timestamp: Keyword.get(options, :file_timestamp),
+        beam_timestamp: Keyword.get(options, :beam_timestamp),
         output: output,
         long_compilation_threshold: Keyword.get(options, :long_compilation_threshold, 15),
         schedulers: schedulers
@@ -240,11 +240,11 @@ defmodule Kernel.ParallelCompiler do
 
   # No more queue, nothing waiting, this cycle is done
   defp spawn_workers([], 0, [], [], result, warnings, state) do
-    %{output: output, file_timestamp: file_timestamp} = state
+    %{output: output, beam_timestamp: beam_timestamp} = state
 
     case state.each_cycle.() do
       [] ->
-        modules = write_module_binaries(output, file_timestamp, result)
+        modules = write_module_binaries(output, beam_timestamp, result)
         warnings = Enum.reverse(warnings)
         {:ok, modules, warnings}
 
