@@ -515,10 +515,11 @@ defmodule Mix.Compilers.Elixir do
         split_manifest(data)
 
       [v | data] when is_integer(v) ->
-        for module <- data, is_record(module, :module) do
-          File.rm(beam_path(compile_path, module(module, :module)))
-          :code.purge(module(module, :module))
-          :code.delete(module(module, :module))
+        for module <- data, elem(module, 0) == :module do
+          module = elem(module, 1)
+          File.rm(beam_path(compile_path, module))
+          :code.purge(module)
+          :code.delete(module)
         end
 
         {[], []}
