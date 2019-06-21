@@ -382,10 +382,11 @@ translate_with_else(Meta, [], S) ->
   Var = {var, Ann, VarName},
   {{clause, Ann, [Var], [], [Var]}, SC};
 translate_with_else(Meta, [{else, [{'->', _, [[{Var, VarMeta, Kind}], Clause]}]}], S) when is_atom(Var), is_atom(Kind) ->
+  Ann = ?ann(?generated(Meta)),
   Ctx = elixir_utils:var_context(VarMeta, Kind),
   {ElseVarErl, SV} = elixir_erl_var:assign(Meta, Var, Ctx, S),
   {TranslatedClause, SC} = elixir_erl_pass:translate(Clause, SV),
-  {{clause, Meta, [ElseVarErl], [], [TranslatedClause]}, SC};
+  {{clause, Ann, [ElseVarErl], [], [TranslatedClause]}, SC};
 translate_with_else(Meta, [{else, Else}], S) ->
   Generated = ?generated(Meta),
   ElseVarEx = {else, Generated, ?var_context},
