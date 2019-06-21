@@ -4,8 +4,8 @@ defmodule Config do
 
   ## Example
 
-  This module is most commonly used to define application
-  configuration, typically in `config/config.exs`:
+  This module is most commonly used to define application configuration,
+  typically in `config/config.exs`:
 
       import Config
 
@@ -18,14 +18,20 @@ defmodule Config do
   `import Config` will import the functions `config/2`, `config/3`
   and `import_config/1` to help you manage your configuration.
 
-  Once Mix starts, it will automatically evaluate the configuration
-  file and persist it into `:some_app`'s application environment, which
-  can be accessed in as follows:
+  `config/2` and `config/3` are used to define key-value configuration
+  for a given application. Once Mix starts, it will automatically
+  evaluate the configuration file and persist the configuration above
+  into `:some_app`'s application environment, which can be accessed in
+  as follows:
 
       "value1" = Application.fetch_env!(:some_app, :key1)
 
-  See `Config.Reader` for evaluating and reading configuration
-  files.
+  Finally, the line `import_config "#{Mix.env()}.exs"` will import other
+  config files, based on the current Mix environment, such as
+  `config/dev.exs` and `config/test.exs`.
+
+  `Config` also provides a low-level API for evaluating and reading
+  configuration, under the `Config.Reader` module.
 
   **Important:** if you are writing a library to be used by other developers,
   it is generally recommended to avoid the application environment, as the
@@ -34,17 +40,16 @@ defmodule Config do
 
   ## Migrating from `use Mix.Config`
 
-  The `Config` module in Elixir was introduced in v1.9 as a
-  replacement to `Mix.Config`, which was specific to Mix and
-  has been deprecated.
+  The `Config` module in Elixir was introduced in v1.9 as a replacement to
+  `Mix.Config`, which was specific to Mix and has been deprecated.
 
-  You can leverage `Config` instead of `Mix.Config` in two steps.
-  The first step is to replace `use Mix.Config` at the top of
-  your config files by `import Config`.
+  You can leverage `Config` instead of `Mix.Config` in two steps. The first
+  step is to replace `use Mix.Config` at the top of your config files by
+  `import Config`.
 
-  The second is to make sure your `import_config/1` calls do
-  not have a wildcard character. If so, you need to perform
-  the wildcard lookup manually. For example, if you did:
+  The second is to make sure your `import_config/1` calls do not have a
+  wildcard character. If so, you need to perform the wildcard lookup
+  manually. For example, if you did:
 
       import_config "../apps/*/config/config.exs"
 
@@ -54,6 +59,15 @@ defmodule Config do
         import_config config
       end
 
+  ## config/releases.exs
+
+  If you are using releases, see `mix release`, there another configuration
+  file called `config/releases.exs`. While `config/config.exs` and friends
+  mentioned in the previous section are executed whenever you run a Mix
+  command, including when you assemble a release, `config/releases.exs` is
+  execute every time your production system boots. Since Mix is not available
+  in a production system, `config/releases.exs` must not use any of the
+  functions from Mix.
   """
 
   @config_key {__MODULE__, :config}
