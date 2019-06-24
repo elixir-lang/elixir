@@ -95,7 +95,7 @@ defmodule Mix.ReleaseTest do
     test "uses chosen release via the default_release" do
       release =
         from_config!(
-          :bar,
+          nil,
           config(
             default_release: :bar,
             releases: [foo: [version: "0.2.0"], bar: [version: "0.3.0"]]
