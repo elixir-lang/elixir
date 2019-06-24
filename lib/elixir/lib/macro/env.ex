@@ -85,7 +85,7 @@ defmodule Macro.Env do
           aliases: aliases,
           functions: functions,
           macros: macros,
-          macro_aliases: aliases,
+          macro_aliases: macro_aliases,
           context_modules: context_modules,
           vars: vars,
           unused_vars: unused_vars,
