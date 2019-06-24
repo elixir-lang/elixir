@@ -910,10 +910,14 @@ defmodule System do
   `convert_time_unit/3` accepts an additional time unit (other than the
   ones in the `t:time_unit/0` type) called `:native`. `:native` is the time
   unit used by the Erlang runtime system. It's determined when the runtime
-  starts and stays the same until the runtime is stopped. To determine what
-  the `:native` unit amounts to in a system, you can call this function to
-  convert 1 second to the `:native` time unit (i.e.,
-  `System.convert_time_unit(1, :second, :native)`).
+  starts and stays the same until the runtime is stopped, but could differ
+  the next time the runtime is started on the same machine. For this reason,
+  you should use this function to convert `:native` time units to a predictable
+  unit before you display them to humans.
+
+  To determine how many seconds the `:native` unit represents in your current
+  runtime, you can can call this function to convert 1 second to the `:native`
+  time unit: `System.convert_time_unit(1, :second, :native)`
   """
   @spec convert_time_unit(integer, time_unit | :native, time_unit | :native) :: integer
   def convert_time_unit(time, from_unit, to_unit) do
