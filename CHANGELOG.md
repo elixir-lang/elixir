@@ -58,7 +58,7 @@ Another important change related to configuration is that `mix new` will no long
 
 There are many other enhancements. The Elixir CLI got a handful of new options in order to best support releases. `Logger` now computes its sync/async/discard thresholds in a decentralized fashion, reducing contention. `EEx` templates support more complex expressions than before. Finally, there is a new `~U` sigil for working with UTC DateTimes as well as new functions in the `File`, `Registry`, and `System` modules.
 
-## v1.9.0-rc.0 (2019-06-04)
+## v1.9.0 (2019-06-24)
 
 ### 1. Enhancements
 
@@ -110,6 +110,7 @@ There are many other enhancements. The Elixir CLI got a handful of new options i
 
   * [Mix] Follow XDG base dir specification in Mix for temporary and configuration files
   * [Mix.Generator] Add `copy_file/3`, `copy_template/4`, and `overwite?/2`
+  * [Mix.Project] Add `preferred_cli_target` that works like `preferred_cli_env`
   * [mix archive.uninstall] Allow `mix archive.uninstall APP` to uninstall any installed version of APP
   * [mix new] No longer generate a `config/` directory for mix new
   * [mix release] Add support for releases
@@ -125,6 +126,7 @@ There are many other enhancements. The Elixir CLI got a handful of new options i
 #### Elixir
 
   * [Code] Quote `::` in `Code.format_string!/1` to avoid ambiguity
+  * [Code] Do not crash formatter on false positive sigils
   * [Enum] Ensure the first equal entry is returned by `Enum.min/2` and `Enum.max/2`
   * [Kernel] Improve error message when string interpolation is used in a guard
   * [Kernel] Properly merge and handle docs for callbacks with multiple clauses
@@ -157,6 +159,7 @@ There are many other enhancements. The Elixir CLI got a handful of new options i
   * [mix compile] Ensure Erlang-based Mix compilers (erlang, leex, yecc) set valid position on diagnostics
   * [mix compile] Ensure compilation halts in an umbrella project if one of the siblings fail to compile
   * [mix deps] Raise an error if the umbrella app's dir name and `mix.exs` app name don't match
+  * [mix deps.compile] Fix subcommand splitting bug in rebar3
   * [mix test] Do not consider modules that are no longer cover compiled when computing coverage report, which could lead to flawed reports
 
 ### 3. Soft-deprecations (no warnings emitted)
