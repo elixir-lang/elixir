@@ -158,10 +158,16 @@ defmodule Mix.Release do
         {name, opts}
 
       [_ | _] ->
-        Mix.raise(
-          "\"mix release\" was invoked without a name but there are multiple releases. " <>
-            "Please call \"mix release NAME\" or set :default_release in your project configuration"
-        )
+        case Keyword.get(config, :default_release) do
+          nil ->
+            Mix.raise(
+              "\"mix release\" was invoked without a name but there are multiple releases. " <>
+                "Please call \"mix release NAME\" or set :default_release in your project configuration"
+            )
+
+          name ->
+            lookup_release(name, config)
+        end
     end
   end
 
