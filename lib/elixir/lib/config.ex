@@ -61,7 +61,7 @@ defmodule Config do
 
   ## config/releases.exs
 
-  If you are using releases, see `mix release`, there another configuration
+  If you are using releases, see `mix release`, there is another configuration
   file called `config/releases.exs`. While `config/config.exs` and friends
   mentioned in the previous section are executed whenever you run a Mix
   command, including when you assemble a release, `config/releases.exs` is
