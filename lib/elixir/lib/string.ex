@@ -420,7 +420,7 @@ defmodule String do
     end
   end
 
-  def split(string, pattern, []) when is_tuple(pattern) or is_binary(string) do
+  def split(string, pattern, []) when is_binary(string) do
     :binary.split(string, pattern, [:global])
   end
 
