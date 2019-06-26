@@ -1,6 +1,6 @@
 defmodule Module.Checker do
   def verify(module_map, _binary) do
-    check_definitions(module_map.definitions, module_map)
+    check_definitions(Enum.reverse(module_map.definitions), module_map)
     collect_warnings()
   end
 
@@ -29,8 +29,11 @@ defmodule Module.Checker do
 
   defp put_file_meta(state, meta) do
     case Keyword.fetch(meta, :file) do
-      {:ok, file} -> Map.put(state, :file, file)
-      :error -> state
+      {:ok, {file, line}} ->
+        Map.merge(state, %{file: file, line: line})
+
+      :error ->
+        state
     end
   end
 
@@ -73,7 +76,7 @@ defmodule Module.Checker do
 
       # TODO: In the future we may want to warn for modules defined
       # in the local context
-      Keyword.get(meta, :context_module, false) ->
+      Keyword.get(meta, :context_module, false) and state.module != module ->
         :ok
 
       not Code.ensure_loaded?(module) ->
