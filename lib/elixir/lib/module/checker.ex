@@ -1,8 +1,10 @@
 defmodule Module.Checker do
   def verify(module_map, _binary) do
+    state = :maps.with([:module, :file, :compile_opts], module_map)
+
     module_map.definitions
     |> Enum.reverse()
-    |> check_definitions(module_map)
+    |> check_definitions(state)
     |> List.flatten()
   end
 
@@ -11,18 +13,14 @@ defmodule Module.Checker do
   end
 
   defp check_definition({def, _kind, meta, clauses}, state) do
-    state =
-      state
-      |> put_file_meta(meta)
-      |> Map.put(:function, def)
-
+    state = :maps.put(:function, def, put_file_meta(state, meta))
     Enum.map(clauses, &check_clause(&1, state))
   end
 
   defp put_file_meta(state, meta) do
     case Keyword.fetch(meta, :file) do
       {:ok, {file, line}} ->
-        Map.merge(state, %{file: file, line: line})
+        :maps.merge(state, %{file: file, line: line})
 
       :error ->
         state
