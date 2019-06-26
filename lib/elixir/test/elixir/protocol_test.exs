@@ -66,6 +66,8 @@ defmodule ProtocolTest do
     defstruct a: 0, b: 0
 
     defimpl Sample do
+      @compile {:no_warn_undefined, Unknown}
+
       def ok(struct) do
         Unknown.undefined(struct)
       end
@@ -109,6 +111,8 @@ defmodule ProtocolTest do
       sample.ok(:foo)
     end
   end
+
+  @compile {:no_warn_undefined, ProtocolTest.SampleDocsProto}
 
   test "protocol documentation and deprecated" do
     import PathHelpers
@@ -183,6 +187,8 @@ defmodule ProtocolTest do
     assert module.__impl__(:protocol) == Derivable
     assert module.__info__(:attributes)[:protocol_impl] == [protocol: Derivable, for: ImplStruct]
   end
+
+  @compile {:no_warn_undefined, ProtocolTest.Multi}
 
   test "defimpl with multiple for" do
     defprotocol Multi do

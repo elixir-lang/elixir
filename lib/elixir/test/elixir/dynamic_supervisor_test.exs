@@ -40,6 +40,8 @@ defmodule DynamicSupervisorTest do
   end
 
   describe "use/2" do
+    @compile {:no_warn_undefined, DynamicSupervisorTest.Custom}
+
     test "generates child_spec/1" do
       assert Simple.child_spec([:hello]) == %{
                id: Simple,

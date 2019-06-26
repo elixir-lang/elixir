@@ -43,6 +43,8 @@ defmodule SupervisorTest do
     end
   end
 
+  @compile {:no_warn_undefined, SupervisorTest.CustomSup}
+
   test "generates child_spec/1" do
     assert Stack.Sup.child_spec([:hello]) == %{
              id: Stack.Sup,

@@ -922,6 +922,8 @@ defmodule TypespecTest do
       assert [{:atom, _, :is_subtype}, [{:var, _, :y}, {:var, _, :x}]] = constraint_type
     end
 
+    @compile {:no_warn_undefined, TypespecTest.TypeModuleAttributes}
+
     test "@type, @opaque, and @typep as module attributes" do
       defmodule TypeModuleAttributes do
         @type type1 :: boolean
@@ -948,48 +950,44 @@ defmodule TypespecTest do
       end
 
       assert [
-               {:type, {:"::", _, [{:type1, _, _}, {:boolean, _, _}]},
-                {TypespecTest.TypeModuleAttributes, _}}
+               {:type, {:"::", _, [{:type1, _, _}, {:boolean, _, _}]}, {TypeModuleAttributes, _}}
              ] = TypeModuleAttributes.type1()
 
       assert [
-               {:type, {:"::", _, [{:type3, _, _}, {:pid, _, _}]},
-                {TypespecTest.TypeModuleAttributes, _}},
-               {:type, {:"::", _, [{:type2, _, _}, {:atom, _, _}]},
-                {TypespecTest.TypeModuleAttributes, _}},
-               {:type, {:"::", _, [{:type1, _, _}, {:boolean, _, _}]},
-                {TypespecTest.TypeModuleAttributes, _}}
+               {:type, {:"::", _, [{:type3, _, _}, {:pid, _, _}]}, {TypeModuleAttributes, _}},
+               {:type, {:"::", _, [{:type2, _, _}, {:atom, _, _}]}, {TypeModuleAttributes, _}},
+               {:type, {:"::", _, [{:type1, _, _}, {:boolean, _, _}]}, {TypeModuleAttributes, _}}
              ] = TypeModuleAttributes.type2()
 
       assert [
                {:opaque, {:"::", _, [{:opaque1, _, _}, {:boolean, _, _}]},
-                {TypespecTest.TypeModuleAttributes, _}}
+                {TypeModuleAttributes, _}}
              ] = TypeModuleAttributes.opaque1()
 
       assert [
-               {:opaque, {:"::", _, [{:opaque3, _, _}, {:pid, _, _}]},
-                {TypespecTest.TypeModuleAttributes, _}},
+               {:opaque, {:"::", _, [{:opaque3, _, _}, {:pid, _, _}]}, {TypeModuleAttributes, _}},
                {:opaque, {:"::", _, [{:opaque2, _, _}, {:atom, _, _}]},
-                {TypespecTest.TypeModuleAttributes, _}},
+                {TypeModuleAttributes, _}},
                {:opaque, {:"::", _, [{:opaque1, _, _}, {:boolean, _, _}]},
-                {TypespecTest.TypeModuleAttributes, _}}
+                {TypeModuleAttributes, _}}
              ] = TypeModuleAttributes.opaque2()
 
       assert [
                {:typep, {:"::", _, [{:typep1, _, _}, {:boolean, _, _}]},
-                {TypespecTest.TypeModuleAttributes, _}}
+                {TypeModuleAttributes, _}}
              ] = TypeModuleAttributes.typep1()
 
       assert [
-               {:typep, {:"::", _, [{:typep2, _, _}, {:atom, _, _}]},
-                {TypespecTest.TypeModuleAttributes, _}},
+               {:typep, {:"::", _, [{:typep2, _, _}, {:atom, _, _}]}, {TypeModuleAttributes, _}},
                {:typep, {:"::", _, [{:typep1, _, _}, {:boolean, _, _}]},
-                {TypespecTest.TypeModuleAttributes, _}}
+                {TypeModuleAttributes, _}}
              ] = TypeModuleAttributes.typep2()
     after
       :code.delete(TypeModuleAttributes)
       :code.purge(TypeModuleAttributes)
     end
+
+    @compile {:no_warn_undefined, TypespecTest.SpecModuleAttributes}
 
     test "@spec, @callback, and @macrocallback as module attributes" do
       defmodule SpecModuleAttributes do
@@ -1014,38 +1012,32 @@ defmodule TypespecTest do
       end
 
       assert [
-               {:spec, {:"::", _, [{:spec1, _, _}, {:boolean, _, _}]},
-                {TypespecTest.SpecModuleAttributes, _}}
+               {:spec, {:"::", _, [{:spec1, _, _}, {:boolean, _, _}]}, {SpecModuleAttributes, _}}
              ] = SpecModuleAttributes.spec1()
 
       assert [
-               {:spec, {:"::", _, [{:spec2, _, _}, {:atom, _, _}]},
-                {TypespecTest.SpecModuleAttributes, _}},
-               {:spec, {:"::", _, [{:spec1, _, _}, {:boolean, _, _}]},
-                {TypespecTest.SpecModuleAttributes, _}}
+               {:spec, {:"::", _, [{:spec2, _, _}, {:atom, _, _}]}, {SpecModuleAttributes, _}},
+               {:spec, {:"::", _, [{:spec1, _, _}, {:boolean, _, _}]}, {SpecModuleAttributes, _}}
              ] = SpecModuleAttributes.spec2()
 
       assert [
-               {:spec, {:"::", _, [{:spec3, _, _}, {:pid, _, _}]},
-                {TypespecTest.SpecModuleAttributes, _}},
-               {:spec, {:"::", _, [{:spec2, _, _}, {:atom, _, _}]},
-                {TypespecTest.SpecModuleAttributes, _}},
-               {:spec, {:"::", _, [{:spec1, _, _}, {:boolean, _, _}]},
-                {TypespecTest.SpecModuleAttributes, _}}
+               {:spec, {:"::", _, [{:spec3, _, _}, {:pid, _, _}]}, {SpecModuleAttributes, _}},
+               {:spec, {:"::", _, [{:spec2, _, _}, {:atom, _, _}]}, {SpecModuleAttributes, _}},
+               {:spec, {:"::", _, [{:spec1, _, _}, {:boolean, _, _}]}, {SpecModuleAttributes, _}}
              ] = SpecModuleAttributes.spec4()
 
       assert [
                {:callback, {:"::", _, [{:callback2, _, _}, {:boolean, _, _}]},
-                {TypespecTest.SpecModuleAttributes, _}},
+                {SpecModuleAttributes, _}},
                {:callback, {:"::", _, [{:callback1, _, _}, {:integer, _, _}]},
-                {TypespecTest.SpecModuleAttributes, _}}
+                {SpecModuleAttributes, _}}
              ] = SpecModuleAttributes.callback()
 
       assert [
                {:macrocallback, {:"::", _, [{:macrocallback2, _, _}, {:boolean, _, _}]},
-                {TypespecTest.SpecModuleAttributes, _}},
+                {SpecModuleAttributes, _}},
                {:macrocallback, {:"::", _, [{:macrocallback1, _, _}, {:integer, _, _}]},
-                {TypespecTest.SpecModuleAttributes, _}}
+                {SpecModuleAttributes, _}}
              ] = SpecModuleAttributes.macrocallback()
     after
       :code.delete(SpecModuleAttributes)

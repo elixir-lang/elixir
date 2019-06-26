@@ -13,19 +13,21 @@ defmodule AgentTest do
     assert {:ok, _} = Supervisor.start_link([{Agent, fn -> :ok end}], strategy: :one_for_one)
   end
 
+  @compile {:no_warn_undefined, [AgentTest.MyAgent, AgentTest.CustomAgent]}
+
   test "generates child_spec/1" do
     defmodule MyAgent do
       use Agent
+    end
+
+    defmodule CustomAgent do
+      use Agent, id: :id, restart: :temporary, shutdown: :infinity, start: {:foo, :bar, []}
     end
 
     assert MyAgent.child_spec([:hello]) == %{
              id: MyAgent,
              start: {MyAgent, :start_link, [[:hello]]}
            }
-
-    defmodule CustomAgent do
-      use Agent, id: :id, restart: :temporary, shutdown: :infinity, start: {:foo, :bar, []}
-    end
 
     assert CustomAgent.child_spec([:hello]) == %{
              id: :id,

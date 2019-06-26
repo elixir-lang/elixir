@@ -381,6 +381,8 @@ defmodule MapTest do
     end
   end
 
+  @compile {:no_warn_undefined, MapTest.LocalPoint}
+
   test "struct always expands context module" do
     Code.compiler_options(ignore_module_conflict: true)
 

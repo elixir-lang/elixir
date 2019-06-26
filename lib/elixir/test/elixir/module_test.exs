@@ -145,6 +145,8 @@ defmodule ModuleTest do
     end
   end
 
+  @compile {:no_warn_undefined, ModuleTest.OverridableWithBeforeCompile}
+
   test "may set overridable inside before_compile callback" do
     defmodule OverridableWithBeforeCompile do
       @before_compile ModuleTest
@@ -259,6 +261,8 @@ defmodule ModuleTest do
     assert {:module, :root_defmodule, _, _} = result
   end
 
+  @compile {:no_warn_undefined, ModuleTest.RawModule}
+
   test "does not leak alias from atom" do
     defmodule :"Elixir.ModuleTest.RawModule" do
       def hello, do: :world
@@ -269,6 +273,8 @@ defmodule ModuleTest do
     assert ModuleTest.RawModule.hello() == :world
   end
 
+  @compile {:no_warn_undefined, ModuleTest.NonAtomAlias}
+
   test "does not leak alias from non-atom alias" do
     defmodule __MODULE__.NonAtomAlias do
       def hello, do: :world
@@ -278,6 +284,8 @@ defmodule ModuleTest do
     refute __ENV__.aliases[Elixir.NonAtomAlias]
     assert Elixir.ModuleTest.NonAtomAlias.hello() == :world
   end
+
+  @compile {:no_warn_undefined, ModuleCreateSample}
 
   test "create" do
     contents =
@@ -299,6 +307,8 @@ defmodule ModuleTest do
       {:module, Elixir, _, _} = Module.create(Elixir, contents, __ENV__)
     end
   end
+
+  @compile {:no_warn_undefined, ModuleHygiene}
 
   test "create with aliases/var hygiene" do
     contents =
@@ -328,6 +338,8 @@ defmodule ModuleTest do
     funs = for {:function, _, name, arity, _} <- abstract_code, do: {name, arity}
     assert funs == [__info__: 1, baz: 1, foo: 1]
   end
+
+  @compile {:no_warn_undefined, ModuleCreateGenerated}
 
   test "create with generated true does not emit warnings" do
     contents =

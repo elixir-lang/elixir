@@ -14,6 +14,8 @@ defmodule Kernel.DeprecatedTest do
     end
   end
 
+  @compile {:no_warn_undefined, Kernel.DeprecatedTest.DefaultDeprecated}
+
   test "takes into account deprecated from defaults" do
     defmodule DefaultDeprecated do
       @deprecated "reason"
@@ -25,6 +27,8 @@ defmodule Kernel.DeprecatedTest do
              {{:foo, 1}, "reason"}
            ]
   end
+
+  @compile {:no_warn_undefined, Kernel.DeprecatedTest.SampleDeprecated}
 
   test "add deprecated to __info__ and beam chunks" do
     write_beam(

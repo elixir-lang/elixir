@@ -130,6 +130,7 @@ defmodule Mix.Tasks.Test do
 
   alias Mix.Compilers.Test, as: CT
 
+  @compile {:no_warn_undefined, [ExUnit, ExUnit.Filters]}
   @shortdoc "Runs a project's tests"
   @recursive true
   @preferred_cli_env :test

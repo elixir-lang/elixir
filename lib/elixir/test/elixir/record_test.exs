@@ -30,6 +30,8 @@ defmodule RecordTest do
     assert elem(namespace, 0) == :xmlNamespace
   end
 
+  @compile {:no_warn_undefined, RecordTest.StructExtract}
+
   test "extract/2 with defstruct" do
     defmodule StructExtract do
       defstruct Record.extract(:file_info, from_lib: "kernel/include/file.hrl")

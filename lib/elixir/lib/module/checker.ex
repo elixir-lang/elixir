@@ -79,10 +79,13 @@ defmodule Module.Checker do
   defp should_warn_undefined?(:erlang, :orelse, 2, _state), do: false
   defp should_warn_undefined?(:erlang, :andalso, 2, _state), do: false
 
-  defp should_warn_undefined?(_module, _fun, _arity, _state) do
-    # no_warn = Keyword.get(state.compile_opts, :no_warn_undefined, [])
-    # not Enum.any?(List.wrap(no_warn), &(&1 == module or &1 == {module, fun, arity}))
-    true
+  defp should_warn_undefined?(module, fun, arity, state) do
+    for(
+      {:no_warn_undefined, values} <- state.compile_opts,
+      value <- List.wrap(values),
+      value == module or value == {module, fun, arity},
+      do: :skip
+    ) == []
   end
 
   defp exports_for(module) do

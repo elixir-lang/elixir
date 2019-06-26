@@ -40,6 +40,8 @@ defmodule Mix.Tasks.App.Start do
 
   """
 
+  @compile {:no_warn_undefined, Logger.App}
+
   @switches [
     permanent: :boolean,
     temporary: :boolean,

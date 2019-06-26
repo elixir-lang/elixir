@@ -56,7 +56,8 @@ start(_Type, _Args) ->
     ignore_module_conflict => false,
     debug_info => true,
     warnings_as_errors => false,
-    relative_paths => true
+    relative_paths => true,
+    no_warn_undefined => []
   },
 
   {ok, [[Home] | _]} = init:get_argument(home),

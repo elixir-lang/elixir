@@ -9,6 +9,7 @@ defmodule Kernel.RaiseTest do
   defp opts, do: [message: "message"]
   defp struct, do: %RuntimeError{message: "message"}
 
+  @compile {:no_warn_undefined, DoNotExist}
   @trace [{:foo, :bar, 0, []}]
 
   test "raise message" do
@@ -360,6 +361,8 @@ defmodule Kernel.RaiseTest do
 
       assert result == "expected a function, got: :example"
     end
+
+    @compile {:no_warn_undefined, Kernel.RaiseTest.BadFunction.Missing}
 
     test "badfun error when the function is gone" do
       defmodule BadFunction.Missing do

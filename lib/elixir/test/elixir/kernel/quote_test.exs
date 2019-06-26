@@ -140,6 +140,8 @@ defmodule Kernel.QuoteTest do
     assert fun.(1, 2, 3) == :ok
   end
 
+  @compile {:no_warn_undefined, Kernel.QuoteTest.Hello}
+
   test "splice on definition" do
     defmodule Hello do
       def world([unquote_splicing(["foo", "bar"]) | rest]) do
@@ -295,7 +297,7 @@ defmodule Kernel.QuoteTest.ErrorsTest do
       RuntimeError ->
         mod = Kernel.QuoteTest.ErrorsTest
         file = __ENV__.file |> Path.relative_to_cwd() |> String.to_charlist()
-        assert [{^mod, :will_raise, 2, [file: ^file, line: 275]} | _] = __STACKTRACE__
+        assert [{^mod, :will_raise, 2, [file: ^file, line: 277]} | _] = __STACKTRACE__
     else
       _ -> flunk("expected failure")
     end
@@ -308,7 +310,7 @@ defmodule Kernel.QuoteTest.ErrorsTest do
       RuntimeError ->
         mod = Kernel.QuoteTest.ErrorsTest
         file = __ENV__.file |> Path.relative_to_cwd() |> String.to_charlist()
-        assert [{^mod, _, _, [file: ^file, line: 306]} | _] = __STACKTRACE__
+        assert [{^mod, _, _, [file: ^file, line: 308]} | _] = __STACKTRACE__
     else
       _ -> flunk("expected failure")
     end
@@ -395,6 +397,8 @@ defmodule Kernel.QuoteTest.VarHygieneTest do
             end) == 1
   end
 
+  @compile {:no_warn_undefined, Kernel.QuoteTest.VarHygieneTest.UseNestedQuote}
+
   test "nested quoted" do
     defmodule NestedQuote do
       defmacro __using__(_) do
@@ -414,6 +418,8 @@ defmodule Kernel.QuoteTest.VarHygieneTest do
 
     assert UseNestedQuote.test("foo") == "foo"
   end
+
+  @compile {:no_warn_undefined, Kernel.QuoteTest.VarHygieneTest.UseNestedBindQuoted}
 
   test "nested bind quoted" do
     defmodule NestedBindQuoted do

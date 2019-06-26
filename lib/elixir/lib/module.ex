@@ -346,7 +346,7 @@ defmodule Module do
 
   In addition to the built-in attributes outlined above, custom attributes may
   also be added. Custom attributes are expressed using the `@/1` operator followed
-  by a valid variable name. The value given to the custom attribute must be a valid 
+  by a valid variable name. The value given to the custom attribute must be a valid
   Elixir value:
 
       defmodule MyModule do
@@ -494,6 +494,10 @@ defmodule Module do
     * `@compile {:autoload, false}` - disables automatic loading of
       modules after compilation. Instead, the module will be loaded after
       it is dispatched to
+
+    * `@compile {:no_warn_undefined, Mod}` or
+      `@compile {:no_warn_undefined, {Mod, fun, arity}}` - does not warn if
+      the given module or the given `Mod.fun/arity` are not defined
 
   You can see a handful more options used by the Erlang compiler in
   the documentation for the [`:compile` module](http://www.erlang.org/doc/man/compile.html).

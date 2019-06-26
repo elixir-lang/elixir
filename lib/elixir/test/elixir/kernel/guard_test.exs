@@ -117,16 +117,16 @@ defmodule Kernel.GuardTest do
       end
     end
 
-    test "defguard defines a guard from inside another macro" do
-      defmodule UseGuardFromMacro do
-        use GuardFromMacro
+    defmodule UseGuardFromMacro do
+      use GuardFromMacro
 
-        def assert! do
-          assert is_even(0)
-          refute is_even(1)
-        end
+      def assert! do
+        assert is_even(0)
+        refute is_even(1)
       end
+    end
 
+    test "defguard defines a guard from inside another macro" do
       UseGuardFromMacro.assert!()
     end
 
