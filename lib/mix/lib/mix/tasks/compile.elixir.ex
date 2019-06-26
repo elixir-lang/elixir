@@ -68,7 +68,7 @@ defmodule Mix.Tasks.Compile.Elixir do
     force = opts[:force] || Mix.Utils.stale?(configs, [manifest])
 
     opts = Keyword.merge(project[:elixirc_options] || [], opts)
-    opts = opts ++ xref_exclude_to_no_warn_undefined(project)
+    opts = xref_exclude_opts(opts, project)
     Mix.Compilers.Elixir.compile(manifest, srcs, dest, [:ex], force, opts)
   end
 
@@ -83,13 +83,13 @@ defmodule Mix.Tasks.Compile.Elixir do
     Mix.Compilers.Elixir.clean(manifest(), dest)
   end
 
-  defp xref_exclude_to_no_warn_undefined(project) do
+  defp xref_exclude_opts(opts, project) do
     exclude = List.wrap(project[:xref][:exclude])
 
     if exclude == [] do
-      []
+      opts
     else
-      [{:no_warn_undefined, exclude}]
+      Keyword.update(opts, :no_warn_undefined, exclude, &(List.wrap(&1) ++ exclude))
     end
   end
 end
