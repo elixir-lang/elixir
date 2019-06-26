@@ -246,7 +246,7 @@ defmodule Kernel.ParallelCompiler do
       [] ->
         modules = write_module_binaries(output, beam_timestamp, result)
         warnings = Enum.reverse(warnings) ++ check_modules(modules)
-        {:ok, :lists.map(&elem(&1, 0), modules), warnings}
+        {:ok, Enum.map(modules, &elem(&1, 0)), warnings}
 
       more ->
         spawn_workers(more, 0, [], [], result, warnings, state)
@@ -335,12 +335,9 @@ defmodule Kernel.ParallelCompiler do
     if :elixir_config.get(:bootstrap) do
       []
     else
-      :lists.flatmap(
-        fn {_module, binary, module_map} ->
-          Module.Checker.verify(module_map, binary)
-        end,
-        modules
-      )
+      Enum.flat_map(modules, fn {_module, binary, module_map} ->
+        Module.Checker.verify(module_map, binary)
+      end)
     end
   end
 
