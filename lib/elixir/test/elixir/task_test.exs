@@ -35,8 +35,6 @@ defmodule TaskTest do
     assert {:ok, _} = Supervisor.start_link([{Task, fn -> :ok end}], strategy: :one_for_one)
   end
 
-  @compile {:no_warn_undefined, [TaskTest.MyTask, TaskTest.CustomTask]}
-
   test "generates child_spec/1" do
     defmodule MyTask do
       use Task

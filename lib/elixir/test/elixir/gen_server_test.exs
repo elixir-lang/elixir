@@ -40,8 +40,6 @@ defmodule GenServerTest do
     end
   end
 
-  @compile {:no_warn_undefined, GenServerTest.CustomStack}
-
   test "generates child_spec/1" do
     defmodule CustomStack do
       use GenServer, id: :id, restart: :temporary, shutdown: :infinity, start: {:foo, :bar, []}

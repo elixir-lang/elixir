@@ -4,7 +4,6 @@ defmodule KernelTest do
   use ExUnit.Case, async: true
 
   # For doctest
-  @compile {:no_warn_undefined, KernelTest.Foo}
 
   doctest Kernel
 

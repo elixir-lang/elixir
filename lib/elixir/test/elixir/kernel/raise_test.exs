@@ -362,8 +362,6 @@ defmodule Kernel.RaiseTest do
       assert result == "expected a function, got: :example"
     end
 
-    @compile {:no_warn_undefined, Kernel.RaiseTest.BadFunction.Missing}
-
     test "badfun error when the function is gone" do
       defmodule BadFunction.Missing do
         def fun, do: fn -> :ok end

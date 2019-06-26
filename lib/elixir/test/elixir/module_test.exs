@@ -145,8 +145,6 @@ defmodule ModuleTest do
     end
   end
 
-  @compile {:no_warn_undefined, ModuleTest.OverridableWithBeforeCompile}
-
   test "may set overridable inside before_compile callback" do
     defmodule OverridableWithBeforeCompile do
       @before_compile ModuleTest
@@ -261,8 +259,6 @@ defmodule ModuleTest do
     assert {:module, :root_defmodule, _, _} = result
   end
 
-  @compile {:no_warn_undefined, ModuleTest.RawModule}
-
   test "does not leak alias from atom" do
     defmodule :"Elixir.ModuleTest.RawModule" do
       def hello, do: :world
@@ -272,8 +268,6 @@ defmodule ModuleTest do
     refute __ENV__.aliases[Elixir.RawModule]
     assert ModuleTest.RawModule.hello() == :world
   end
-
-  @compile {:no_warn_undefined, ModuleTest.NonAtomAlias}
 
   test "does not leak alias from non-atom alias" do
     defmodule __MODULE__.NonAtomAlias do

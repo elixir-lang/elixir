@@ -63,6 +63,11 @@ defmodule Module.Checker do
       not should_warn_undefined?(module, fun, arity, state) ->
         :ok
 
+      # TODO: In the future we may want to warn for modules defined
+      # in the local context
+      Keyword.get(meta, :context_module, false) ->
+        :ok
+
       not Code.ensure_loaded?(module) ->
         warn(meta, state, {:undefined_module, module, fun, arity})
 

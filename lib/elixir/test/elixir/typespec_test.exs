@@ -922,8 +922,6 @@ defmodule TypespecTest do
       assert [{:atom, _, :is_subtype}, [{:var, _, :y}, {:var, _, :x}]] = constraint_type
     end
 
-    @compile {:no_warn_undefined, TypespecTest.TypeModuleAttributes}
-
     test "@type, @opaque, and @typep as module attributes" do
       defmodule TypeModuleAttributes do
         @type type1 :: boolean
@@ -986,8 +984,6 @@ defmodule TypespecTest do
       :code.delete(TypeModuleAttributes)
       :code.purge(TypeModuleAttributes)
     end
-
-    @compile {:no_warn_undefined, TypespecTest.SpecModuleAttributes}
 
     test "@spec, @callback, and @macrocallback as module attributes" do
       defmodule SpecModuleAttributes do
