@@ -245,8 +245,8 @@ defmodule Kernel.ParallelCompiler do
     case state.each_cycle.() do
       [] ->
         modules = write_module_binaries(output, beam_timestamp, result)
-        warnings = Enum.reverse(warnings)
-        {:ok, modules, warnings}
+        warnings = Enum.reverse(warnings) ++ check_modules(modules)
+        {:ok, :lists.map(&elem(&1, 0), modules), warnings}
 
       more ->
         spawn_workers(more, 0, [], [], result, warnings, state)
@@ -318,17 +318,30 @@ defmodule Kernel.ParallelCompiler do
   end
 
   defp write_module_binaries({:compile, path}, timestamp, result) do
-    for {{:module, module}, binary} <- result do
+    for {{:module, module}, {binary, map}} <- result do
       full_path = Path.join(path, Atom.to_string(module) <> ".beam")
       File.write!(full_path, binary)
       if timestamp, do: File.touch!(full_path, timestamp)
 
-      module
+      {module, binary, map}
     end
   end
 
   defp write_module_binaries(_output, _timestamp, result) do
-    for {{:module, module}, _} <- result, do: module
+    for {{:module, module}, {binary, map}} <- result, do: {module, binary, map}
+  end
+
+  defp check_modules(modules) do
+    if :elixir_config.get(:bootstrap) do
+      []
+    else
+      :lists.flatmap(
+        fn {_module, binary, module_map} ->
+          Module.Checker.verify(module_map, binary)
+        end,
+        modules
+      )
+    end
   end
 
   # The goal of this function is to find leaves in the dependency graph,
@@ -366,7 +379,7 @@ defmodule Kernel.ParallelCompiler do
         result = Map.put(result, {kind, module}, true)
         spawn_workers(available ++ queue, spawned, waiting, files, result, warnings, state)
 
-      {:module_available, child, ref, file, module, binary} ->
+      {:module_available, child, ref, file, module, binary, module_map} ->
         state.each_module.(file, module, binary)
 
         # Release the module loader which is waiting for an ack
@@ -377,7 +390,7 @@ defmodule Kernel.ParallelCompiler do
               do: {ref, :found}
 
         cancel_waiting_timer(files, child)
-        result = Map.put(result, {:module, module}, binary)
+        result = Map.put(result, {:module, module}, {binary, module_map})
         spawn_workers(available ++ queue, spawned, waiting, files, result, warnings, state)
 
       # If we are simply requiring files, we do not add to waiting.
