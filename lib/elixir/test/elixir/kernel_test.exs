@@ -3,8 +3,6 @@ Code.require_file("test_helper.exs", __DIR__)
 defmodule KernelTest do
   use ExUnit.Case, async: true
 
-  # For doctest
-
   doctest Kernel
 
   defp empty_list(), do: []

@@ -41,6 +41,11 @@ defmodule GenServerTest do
   end
 
   test "generates child_spec/1" do
+    assert Stack.child_spec([:hello]) == %{
+             id: Stack,
+             start: {Stack, :start_link, [[:hello]]}
+           }
+
     defmodule CustomStack do
       use GenServer, id: :id, restart: :temporary, shutdown: :infinity, start: {:foo, :bar, []}
 
@@ -48,11 +53,6 @@ defmodule GenServerTest do
         {:ok, args}
       end
     end
-
-    assert Stack.child_spec([:hello]) == %{
-             id: Stack,
-             start: {Stack, :start_link, [[:hello]]}
-           }
 
     assert CustomStack.child_spec([:hello]) == %{
              id: :id,

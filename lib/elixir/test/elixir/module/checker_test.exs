@@ -421,14 +421,15 @@ defmodule Module.CheckerTest do
     in_tmp(fn ->
       files = generate_files(files)
 
-      output = capture_io(:stderr, fn ->
-        {:ok, modules, _warnings} = Kernel.ParallelCompiler.compile(files)
+      output =
+        capture_io(:stderr, fn ->
+          {:ok, modules, _warnings} = Kernel.ParallelCompiler.compile(files)
 
-        Enum.each(modules, fn module ->
-          :code.purge(module)
-          :code.delete(module)
+          Enum.each(modules, fn module ->
+            :code.purge(module)
+            :code.delete(module)
+          end)
         end)
-      end)
 
       assert output == expected
     end)
@@ -438,14 +439,15 @@ defmodule Module.CheckerTest do
     in_tmp(fn ->
       files = generate_files(files)
 
-      output = capture_io(:stderr, fn ->
-        {:ok, modules, _warnings} = Kernel.ParallelCompiler.compile(files)
+      output =
+        capture_io(:stderr, fn ->
+          {:ok, modules, _warnings} = Kernel.ParallelCompiler.compile(files)
 
-        Enum.each(modules, fn module ->
-          :code.purge(module)
-          :code.delete(module)
+          Enum.each(modules, fn module ->
+            :code.purge(module)
+            :code.delete(module)
+          end)
         end)
-      end)
 
       assert output == ""
     end)

@@ -18,14 +18,14 @@ defmodule AgentTest do
       use Agent
     end
 
-    defmodule CustomAgent do
-      use Agent, id: :id, restart: :temporary, shutdown: :infinity, start: {:foo, :bar, []}
-    end
-
     assert MyAgent.child_spec([:hello]) == %{
              id: MyAgent,
              start: {MyAgent, :start_link, [[:hello]]}
            }
+
+    defmodule CustomAgent do
+      use Agent, id: :id, restart: :temporary, shutdown: :infinity, start: {:foo, :bar, []}
+    end
 
     assert CustomAgent.child_spec([:hello]) == %{
              id: :id,
