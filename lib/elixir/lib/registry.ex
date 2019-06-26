@@ -1019,7 +1019,7 @@ defmodule Registry do
 
   """
   @doc since: "1.4.0"
-  @spec put_meta(registry, meta_key, meta_value) :: :ok
+  @spec put_meta(registry, meta_key, meta_value) :: :ok | no_return
   def put_meta(registry, key, value) when is_atom(registry) and (is_atom(key) or is_tuple(key)) do
     try do
       :ets.insert(registry, {key, value})
