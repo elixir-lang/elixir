@@ -67,6 +67,7 @@ defmodule Module.Checker do
       Keyword.get(meta, :context_module, false) and state.module != module ->
         []
 
+      # TODO: Add no_autload
       not Code.ensure_loaded?(module) ->
         warn(meta, state, {:undefined_module, module, fun, arity})
 
@@ -79,6 +80,8 @@ defmodule Module.Checker do
     end
   end
 
+  # TODO: Do not warn inside guards
+  # TODO: Properly handle protocols
   defp should_warn_undefined?(_module, :__impl__, 1, _state), do: false
   defp should_warn_undefined?(:erlang, :orelse, 2, _state), do: false
   defp should_warn_undefined?(:erlang, :andalso, 2, _state), do: false
