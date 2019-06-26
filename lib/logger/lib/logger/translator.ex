@@ -332,6 +332,7 @@ defmodule Logger.Translator do
   defp sup_name({:global, name}), do: inspect(name)
   defp sup_name({:via, _mod, name}), do: inspect(name)
   defp sup_name({pid, mod}), do: [inspect(pid), " (", inspect(mod), ?)]
+  defp sup_name(unknown_name), do: inspect(unknown_name)
 
   defp sup_context(:start_error), do: "failed to start"
   defp sup_context(:child_terminated), do: "terminated"
