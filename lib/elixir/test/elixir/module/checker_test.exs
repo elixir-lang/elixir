@@ -417,6 +417,47 @@ defmodule Module.CheckerTest do
     assert_no_warnings(files)
   end
 
+  test "excludes no_warn_undefined" do
+    files = %{
+      "a.ex" => """
+      defmodule A do
+        @compile {:no_warn_undefined, [MissingModule, {MissingModule2, :func, 2}]}
+        @compile {:no_warn_undefined, {B, :func, 2}}
+
+        def a, do: MissingModule.func(1)
+        def b, do: MissingModule2.func(1, 2)
+        def c, do: MissingModule2.func(1)
+        def d, do: MissingModule3.func(1, 2)
+        def e, do: B.func(1)
+        def f, do: B.func(1, 2)
+        def g, do: B.func(1, 2, 3)
+      end
+      """,
+      "b.ex" => """
+      defmodule B do
+        def func(_), do: :ok
+      end
+      """
+    }
+
+    warning = """
+    warning: MissingModule2.func/1 is undefined (module MissingModule2 is not available or is yet to be defined)
+      a.ex:7: A.c/0
+
+    warning: MissingModule3.func/2 is undefined (module MissingModule3 is not available or is yet to be defined)
+      a.ex:8: A.d/0
+
+    warning: B.func/3 is undefined or private. Did you mean one of:
+
+          * func/1
+
+      a.ex:11: A.g/0
+
+    """
+
+    assert_warnings(files, warning)
+  end
+
   defp assert_warnings(files, expected) do
     in_tmp(fn ->
       files = generate_files(files)
