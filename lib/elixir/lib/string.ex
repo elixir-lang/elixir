@@ -420,15 +420,18 @@ defmodule String do
     end
   end
 
-  def split(string, pattern, []) when is_tuple(pattern) or is_binary(string) do
-    :binary.split(string, pattern, [:global])
-  end
-
   def split(string, pattern, options) when is_binary(string) do
     parts = Keyword.get(options, :parts, :infinity)
     trim = Keyword.get(options, :trim, false)
-    pattern = maybe_compile_pattern(pattern)
-    split_each(string, pattern, trim, parts_to_index(parts))
+
+    case {parts, trim} do
+      {:infinity, false} ->
+        :binary.split(string, pattern, [:global])
+
+      _ ->
+        pattern = maybe_compile_pattern(pattern)
+        split_each(string, pattern, trim, parts_to_index(parts))
+    end
   end
 
   defp parts_to_index(:infinity), do: 0
