@@ -11,7 +11,7 @@ defmodule Mix.Tasks.Xref do
   @moduledoc """
   Performs cross reference checks between modules.
 
-  The unreachable and deprecated checks below happen every time
+  The deprecated checks below happen every time
   your project is compiled via `mix compile.xref`. See
   `Mix.Tasks.Compile.Xref` for more information.
 
@@ -25,18 +25,6 @@ defmodule Mix.Tasks.Xref do
       mix xref MODE
 
   All available modes are discussed below.
-
-  ### unreachable
-
-  Prints all unreachable "file:line: module.function/arity" entries:
-
-      mix xref unreachable
-
-  The "file:line" represents the file and line a call to an unknown
-  "module.function/arity" is made.
-
-  The option `--abort-if-any` can be used for the command to fail if
-  unreachable calls exist.
 
   ## deprecated
 
@@ -170,9 +158,6 @@ defmodule Mix.Tasks.Xref do
       ["deprecated"] ->
         deprecated(opts)
 
-      ["unreachable"] ->
-        unreachable(opts)
-
       ["callers", callee] ->
         callers(callee, opts)
 
@@ -256,14 +241,6 @@ defmodule Mix.Tasks.Xref do
 
   ## Modes
 
-  defp unreachable(opts) do
-    source_warnings(excludes(), opts)
-    |> merge_entries(&(&1 in [:unknown_module, :unknown_function]))
-    |> sort_entries()
-    |> print_mfas()
-    |> return_ok_error_or_abort(:unreachable, opts)
-  end
-
   defp deprecated(opts) do
     source_warnings(excludes(), opts)
     |> merge_entries(&(&1 == :deprecated))
@@ -294,31 +271,29 @@ defmodule Mix.Tasks.Xref do
   defp source_warnings(excludes, opts) do
     sources = sources(opts)
 
-    exports_and_deprecated =
+    deprecated =
       Enum.reduce(sources, %{}, fn source, acc ->
         runtime = source(source, :runtime_dispatches)
         compile = source(source, :compile_dispatches)
 
-        acc = Enum.reduce(runtime, acc, &load_exports_and_deprecated_into_acc/2)
-        acc = Enum.reduce(compile, acc, &load_exports_and_deprecated_into_acc/2)
+        acc = Enum.reduce(runtime, acc, &load_deprecated_into_acc/2)
+        acc = Enum.reduce(compile, acc, &load_deprecated_into_acc/2)
         acc
       end)
 
     runtime_warnings =
       for source <- sources,
           {module, func_arity_locations} <- source(source, :runtime_dispatches),
-          {exports, deprecated} = exports_and_deprecated[module],
+          deprecated = deprecated[module],
           {{func, arity}, locations} <- func_arity_locations,
           not excluded?(excludes, module, func, arity),
-          warning =
-            unreachable_mfa(exports, module, func, arity) ||
-              deprecated_mfa(deprecated, module, func, arity),
+          warning = deprecated_mfa(deprecated, module, func, arity),
           do: {warning, absolute_locations(locations, source(source, :source))}
 
     compile_warnings =
       for source <- sources,
           {module, func_arity_locations} <- source(source, :compile_dispatches),
-          {_, deprecated} = exports_and_deprecated[module],
+          deprecated = deprecated[module],
           {{func, arity}, locations} <- func_arity_locations,
           not excluded?(excludes, module, func, arity),
           warning = deprecated_mfa(deprecated, module, func, arity),
@@ -327,30 +302,30 @@ defmodule Mix.Tasks.Xref do
     runtime_warnings ++ compile_warnings
   end
 
-  defp load_exports_and_deprecated_into_acc({module, _}, acc) do
+  defp load_deprecated_into_acc({module, _}, acc) do
     case acc do
       %{^module => _} -> acc
-      _ -> Map.put(acc, module, load_exports_and_deprecated(module))
+      _ -> Map.put(acc, module, load_deprecated(module))
     end
   end
 
-  defp load_exports_and_deprecated(module) do
+  defp load_deprecated(module) do
     if :code.is_loaded(module) do
       # If the module is loaded, we will use the faster function_exported?/3
       # check for exports and __info__/1 for deprecated
       if function_exported?(module, :__info__, 1) do
-        {module, load_deprecated_from_module(module)}
+        load_deprecated_from_module(module)
       else
-        {module, []}
+        []
       end
     else
       # Otherwise we get the information from :beam_lib to avoid loading modules
       with [_ | _] = file <- :code.which(module),
-           {:ok, {^module, [{:exports, exports}, {'ExDp', deprecated}]}} <-
-             :beam_lib.chunks(file, [:exports, 'ExDp'], [:allow_missing_chunks]) do
-        {exports, load_deprecated_from_chunk(deprecated)}
+           {:ok, {^module, [{'ExDp', deprecated}]}} <-
+             :beam_lib.chunks(file, ['ExDp'], [:allow_missing_chunks]) do
+        load_deprecated_from_chunk(deprecated)
       else
-        _ -> {:unknown_module, []}
+        _ -> []
       end
     end
   end
@@ -372,25 +347,6 @@ defmodule Mix.Tasks.Xref do
     end
   end
 
-  defp unreachable_mfa(exports, module, func, arity) do
-    cond do
-      skip_unreachable?(module, func, arity) ->
-        nil
-
-      exports == :unknown_module ->
-        {:unknown_module, module, func, arity, nil}
-
-      is_atom(exports) and not function_exported?(module, func, arity) ->
-        {:unknown_function, module, func, arity, nil}
-
-      is_list(exports) and {func, arity} not in exports ->
-        {:unknown_function, module, func, arity, exports}
-
-      true ->
-        nil
-    end
-  end
-
   defp deprecated_mfa(deprecated, module, func, arity) do
     case List.keyfind(deprecated, {func, arity}, 0) do
       {_, reason} ->
@@ -399,25 +355,6 @@ defmodule Mix.Tasks.Xref do
       nil ->
         nil
     end
-  end
-
-  @protocol_built_ins for {_, type} <- Protocol.__built_in__(), do: type
-
-  defp skip_unreachable?(:erlang, func, 2) when func in [:andalso, :orelse] do
-    true
-  end
-
-  defp skip_unreachable?(module, :__impl__, 1) do
-    {maybe_protocol, maybe_built_in} = module |> Module.split() |> Enum.split(-1)
-    maybe_protocol = Module.concat(maybe_protocol)
-    maybe_built_in = Module.concat(maybe_built_in)
-
-    maybe_built_in in @protocol_built_ins and Code.ensure_loaded?(maybe_protocol) and
-      function_exported?(maybe_protocol, :__protocol__, 1)
-  end
-
-  defp skip_unreachable?(_, _, _) do
-    false
   end
 
   defp excludes() do
@@ -459,23 +396,6 @@ defmodule Mix.Tasks.Xref do
       IO.write(:stderr, [prefix, message, ?\n, format_locations(locations), ?\n])
       {message, locations}
     end)
-  end
-
-  defp warning_message({:unknown_function, module, function, arity, exports}) do
-    [
-      "function ",
-      Exception.format_mfa(module, function, arity),
-      " is undefined or private",
-      UndefinedFunctionError.hint_for_loaded_module(module, function, arity, exports)
-    ]
-  end
-
-  defp warning_message({:unknown_module, module, function, arity, _}) do
-    [
-      "function ",
-      Exception.format_mfa(module, function, arity),
-      " is undefined (module #{inspect(module)} is not available)"
-    ]
   end
 
   defp warning_message({:deprecated, module, function, arity, reason}) do

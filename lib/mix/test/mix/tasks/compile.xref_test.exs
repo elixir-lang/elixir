@@ -12,30 +12,30 @@ defmodule Mix.Tasks.Compile.XrefTest do
 
   test "doesn't xref if not stale, unless forced" do
     in_fixture("no_mixfile", fn ->
-      write_no_func()
+      write_deprecated_func()
 
-      assert_warn_no_func(fn ->
+      assert_warn(fn ->
         assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
         assert {:noop, [_]} = Mix.Tasks.Compile.Xref.run([])
       end)
 
       assert_no_warn(fn -> assert {:noop, [_]} = Mix.Tasks.Compile.Xref.run([]) end)
-      assert_warn_no_func(fn -> assert {:noop, [_]} = Mix.Tasks.Compile.Xref.run(["--force"]) end)
+      assert_warn(fn -> assert {:noop, [_]} = Mix.Tasks.Compile.Xref.run(["--force"]) end)
     end)
   end
 
   test "doesn't xref if not stale, unless all warnings" do
     in_fixture("no_mixfile", fn ->
-      write_no_func()
+      write_deprecated_func()
 
-      assert_warn_no_func(fn ->
+      assert_warn(fn ->
         assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
         assert {:noop, [_]} = Mix.Tasks.Compile.Xref.run([])
       end)
 
       assert_no_warn(fn -> assert {:noop, [_]} = Mix.Tasks.Compile.Xref.run([]) end)
 
-      assert_warn_no_func(fn ->
+      assert_warn(fn ->
         assert {:noop, [_]} = Mix.Tasks.Compile.Xref.run(["--all-warnings"])
       end)
     end)
@@ -43,9 +43,9 @@ defmodule Mix.Tasks.Compile.XrefTest do
 
   test "xrefs if stale" do
     in_fixture("no_mixfile", fn ->
-      write_no_func()
+      write_deprecated_func()
 
-      assert_warn_no_func(fn ->
+      assert_warn(fn ->
         assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
         file = Path.absname("lib/a.ex")
 
@@ -54,7 +54,7 @@ defmodule Mix.Tasks.Compile.XrefTest do
         assert %Mix.Task.Compiler.Diagnostic{
                  compiler_name: "Xref",
                  file: ^file,
-                 message: "function B.no_func/0 is undefined or private",
+                 message: "B.deprecated_func/0 is deprecated. message",
                  position: 2,
                  severity: :warning
                } = diagnostic
@@ -66,15 +66,15 @@ defmodule Mix.Tasks.Compile.XrefTest do
 
       Mix.Task.reenable("xref")
 
-      assert_warn_no_func(fn -> assert {:noop, [_]} = Mix.Tasks.Compile.Xref.run([]) end)
+      assert_warn(fn -> assert {:noop, [_]} = Mix.Tasks.Compile.Xref.run([]) end)
     end)
   end
 
   test "exits if --warnings-as-errors" do
     in_fixture("no_mixfile", fn ->
-      write_no_func()
+      write_deprecated_func()
 
-      assert_warn_no_func(fn ->
+      assert_warn(fn ->
         assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
         assert {:error, [diagnostic]} = Mix.Tasks.Compile.Xref.run(["--warnings-as-errors"])
         assert %Mix.Task.Compiler.Diagnostic{severity: :error} = diagnostic
@@ -91,16 +91,23 @@ defmodule Mix.Tasks.Compile.XrefTest do
     end)
   end
 
-  defp write_no_func do
+  defp write_deprecated_func do
     File.write!("lib/a.ex", """
     defmodule A do
-      def a, do: B.no_func
+      def a, do: B.deprecated_func
+    end
+    """)
+
+    File.write!("lib/b.ex", """
+    defmodule B do
+      @deprecated "message"
+      def deprecated_func, do: :ok
     end
     """)
   end
 
-  defp assert_warn_no_func(fun) do
-    assert capture_io(:stderr, fun) =~ "no_func"
+  defp assert_warn(fun) do
+    assert capture_io(:stderr, fun) =~ "deprecated_func"
   end
 
   defp assert_no_warn(fun) do

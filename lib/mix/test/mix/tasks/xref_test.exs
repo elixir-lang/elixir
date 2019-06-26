@@ -160,126 +160,6 @@ defmodule Mix.Tasks.XrefTest do
     assert_no_warnings(files)
   end
 
-  test "warnings: reports missing functions" do
-    files = %{
-      "lib/a.ex" => """
-      defmodule A do
-        def a, do: A.no_func
-        def b, do: A.a()
-
-        @file "lib/external_source.ex"
-        def c, do: &A.no_func/1
-      end
-      """
-    }
-
-    warning = """
-    warning: function A.no_func/0 is undefined or private
-      lib/a.ex:2
-
-    warning: function A.no_func/1 is undefined or private
-      lib/external_source.ex:6
-
-    """
-
-    assert_warnings(files, warning)
-  end
-
-  test "warnings: reports missing functions respecting arity" do
-    files = %{
-      "lib/a.ex" => """
-      defmodule A do
-        def a, do: :ok
-        def b, do: A.a(1)
-
-        @file "lib/external_source.ex"
-        def c, do: A.b(1)
-      end
-      """
-    }
-
-    warning = """
-    warning: function A.a/1 is undefined or private. Did you mean one of:
-
-          * a/0
-
-      lib/a.ex:3
-
-    warning: function A.b/1 is undefined or private. Did you mean one of:
-
-          * b/0
-
-      lib/external_source.ex:6
-
-    """
-
-    assert_warnings(files, warning)
-  end
-
-  test "warnings: reports missing modules" do
-    files = %{
-      "lib/a.ex" => """
-      defmodule A do
-        def a, do: D.no_module
-
-        @file "lib/external_source.ex"
-        def c, do: E.no_module
-      end
-      """
-    }
-
-    warning = """
-    warning: function D.no_module/0 is undefined (module D is not available)
-      lib/a.ex:2
-
-    warning: function E.no_module/0 is undefined (module E is not available)
-      lib/external_source.ex:5
-
-    """
-
-    assert_warnings(files, warning)
-  end
-
-  test "warnings: reports missing captures" do
-    files = %{
-      "lib/a.ex" => """
-      defmodule A do
-        def a, do: &A.no_func/0
-
-        @file "lib/external_source.ex"
-        def c, do: &A.no_func/1
-      end
-      """
-    }
-
-    warning = """
-    warning: function A.no_func/0 is undefined or private
-      lib/a.ex:2
-
-    warning: function A.no_func/1 is undefined or private
-      lib/external_source.ex:5
-
-    """
-
-    assert_warnings(files, warning)
-  end
-
-  test "warnings: doesn't report missing funcs at compile time" do
-    files = %{
-      "lib/a.ex" => """
-        Enum.map([], fn _ -> BadReferencer.no_func4() end)
-
-        if function_exported?(List, :flatten, 1) do
-          List.flatten([1, 2, 3])
-        else
-          List.old_flatten([1, 2, 3])
-        end
-      """
-    }
-
-    assert_no_warnings(files)
-  end
-
   test "warnings: reports deprecated calls" do
     files = %{
       "lib/a.ex" => """
@@ -307,278 +187,6 @@ defmodule Mix.Tasks.XrefTest do
     assert_warnings(files, warning)
   end
 
-  test "warnings: protocols are checked, ignoring missing built-in impls" do
-    files = %{
-      "lib/a.ex" => """
-      defprotocol AProtocol do
-        def func(arg)
-      end
-
-      defmodule AImplementation do
-        defimpl AProtocol do
-          def func(_), do: B.no_func
-        end
-      end
-      """
-    }
-
-    warning = """
-    warning: function B.no_func/0 is undefined or private
-      lib/a.ex:7
-
-    """
-
-    assert_warnings(files, warning)
-  end
-
-  test "warnings: handles Erlang ops" do
-    files = %{
-      "lib/a.ex" => """
-      defmodule A do
-        def a(a, b), do: a and b
-        def b(a, b), do: a or b
-      end
-      """
-    }
-
-    assert_no_warnings(files)
-  end
-
-  test "warnings: handles Erlang modules" do
-    files = %{
-      "lib/a.ex" => """
-      defmodule A do
-        def a, do: :not_a_module.no_module
-        def b, do: :lists.no_func
-      end
-      """
-    }
-
-    warning = """
-    warning: function :lists.no_func/0 is undefined or private
-      lib/a.ex:3
-
-    warning: function :not_a_module.no_module/0 is undefined (module :not_a_module is not available)
-      lib/a.ex:2
-
-    """
-
-    assert_warnings(files, warning)
-  end
-
-  test "warnings: handles multiple modules in one file" do
-    files = %{
-      "lib/a.ex" => """
-      defmodule A do
-        def a, do: B.no_func
-        def b, do: B.a
-      end
-      """,
-      "lib/b.ex" => """
-      defmodule B do
-        def a, do: A.no_func
-        def b, do: A.b
-      end
-      """
-    }
-
-    warning = """
-    warning: function A.no_func/0 is undefined or private
-      lib/b.ex:2
-
-    warning: function B.no_func/0 is undefined or private
-      lib/a.ex:2
-
-    """
-
-    assert_warnings(files, warning)
-  end
-
-  test "warnings: doesn't load unloaded modules" do
-    files = %{
-      "lib/a.ex" => """
-      defmodule A do
-        @compile {:autoload, false}
-        @on_load :init
-        def init do
-          raise "oops"
-        end
-      end
-      """,
-      "lib/b.ex" => """
-      defmodule B do
-        def a, do: A.no_func
-        def b, do: A.init
-      end
-      """
-    }
-
-    warning = """
-    warning: function A.no_func/0 is undefined or private
-      lib/b.ex:2
-
-    """
-
-    assert_warnings(files, warning)
-  end
-
-  test "warnings: groups multiple warnings in one file" do
-    files = %{
-      "lib/a.ex" => """
-      defmodule A do
-        def a, do: A.no_func
-
-        @file "lib/external_source.ex"
-        def b, do: A2.no_func
-
-        def c, do: A.no_func
-        def d, do: A2.no_func
-      end
-      """
-    }
-
-    warning = """
-    warning: function A.no_func/0 is undefined or private
-    Found at 2 locations:
-      lib/a.ex:2
-      lib/a.ex:7
-
-    warning: function A2.no_func/0 is undefined (module A2 is not available)
-    Found at 2 locations:
-      lib/a.ex:8
-      lib/external_source.ex:5
-
-    """
-
-    assert_warnings(files, warning)
-  end
-
-  test "warnings: handles module body conditionals" do
-    files = %{
-      "lib/a.ex" => """
-      defmodule A do
-        if function_exported?(List, :flatten, 1) do
-          List.flatten([1, 2, 3])
-        else
-          List.old_flatten([1, 2, 3])
-        end
-
-        if function_exported?(List, :flatten, 1) do
-          def flatten(arg), do: List.flatten(arg)
-        else
-          def flatten(arg), do: List.old_flatten(arg)
-        end
-
-        if function_exported?(List, :flatten, 1) do
-          def flatten2(arg), do: List.old_flatten(arg)
-        else
-          def flatten2(arg), do: List.flatten(arg)
-        end
-      end
-      """
-    }
-
-    warning = """
-    warning: function List.old_flatten/1 is undefined or private. Did you mean one of:
-
-          * flatten/1
-          * flatten/2
-
-      lib/a.ex:15
-
-    """
-
-    assert_warnings(files, warning)
-  end
-
-  test "warnings: hints exclude deprecated functions" do
-    files = %{
-      "lib/a.ex" => """
-      defmodule A do
-        def to_charlist(a), do: a
-
-        @deprecated "Use String.to_charlist/1 instead"
-        def to_char_list(a), do: a
-
-        def c(a), do: A.to_list(a)
-      end
-      """
-    }
-
-    warning = """
-    warning: function A.to_list/1 is undefined or private. Did you mean one of:
-
-          * to_charlist/1
-
-      lib/a.ex:7
-
-    """
-
-    assert_warnings(files, warning)
-  end
-
-  test "warnings: imports" do
-    files = %{
-      "lib/a.ex" => """
-      defmodule A do
-        import Record
-
-        def a(a, b), do: extract(a, b)
-        def b(arg), do: is_record(arg)
-      end
-      """
-    }
-
-    assert_no_warnings(files)
-  end
-
-  test "warnings: aliases" do
-    files = %{
-      "lib/a.ex" => """
-      defmodule A do
-        alias Enum, as: E
-
-        def a(a, b), do: E.map2(a, b)
-        def b, do: &E.map2/2
-
-        @file "lib/external_source.ex"
-        def c do
-          alias Enum, as: EE
-          &EE.map2/2
-        end
-      end
-      """
-    }
-
-    warning = """
-    warning: function Enum.map2/2 is undefined or private. Did you mean one of:
-
-          * map/2
-
-    Found at 3 locations:
-      lib/a.ex:4
-      lib/a.ex:5
-      lib/external_source.ex:10
-
-    """
-
-    assert_warnings(files, warning)
-  end
-
-  test "warnings: requires" do
-    files = %{
-      "lib/a.ex" => """
-      defmodule A do
-        require Integer
-
-        def a(a), do: Integer.is_even(a)
-      end
-      """
-    }
-
-    assert_no_warnings(files)
-  end
-
   defp assert_warnings(files, expected) do
     in_fixture("no_mixfile", fn ->
       generate_files(files)
@@ -592,83 +200,6 @@ defmodule Mix.Tasks.XrefTest do
       generate_files(files)
       output = capture_io(:stderr, fn -> Mix.Task.run("compile.xref") end)
       assert output == ""
-    end)
-  end
-
-  ## Unreachable
-
-  test "unreachable: reports nothing with no references" do
-    in_fixture("no_mixfile", fn ->
-      File.write!("lib/a.ex", "defmodule A do end")
-
-      assert Mix.Task.run("xref", ["unreachable"]) == :ok
-    end)
-  end
-
-  test "unreachable: reports missing functions" do
-    code = """
-    defmodule A do
-      def a, do: A.no_func
-      def b, do: A.a()
-
-      @file "lib/external_source.ex"
-      def c, do: A.no_func
-    end
-    """
-
-    warning = """
-    Compiling 2 files (.ex)
-    Generated sample app
-    lib/a.ex:2: A.no_func/0
-    lib/external_source.ex:6: A.no_func/0
-    """
-
-    assert_unreachable(code, warning)
-  end
-
-  test "unreachable: reports missing entries from multiple Module.create" do
-    # This checks we pass the lexical tracker forward if it is still alive
-    code = """
-    Module.create(Module1, quote do
-      def foo, do: Unknown1.dep()
-    end, __ENV__)
-
-    Module.create(Module2, quote do
-      def foo, do: Unknown2.dep()
-    end, __ENV__)
-    """
-
-    warning = """
-    Compiling 2 files (.ex)
-    Generated sample app
-    lib/a.ex:3: Unknown1.dep/0
-    lib/a.ex:7: Unknown2.dep/0
-    """
-
-    assert_unreachable(code, warning)
-  end
-
-  test "unreachable: aborts if any" do
-    code = """
-    defmodule A do
-      def a, do: A.no_func
-    end
-    """
-
-    assert_raise Mix.Error, "mix xref unreachable failed: unreachable calls were found", fn ->
-      assert_unreachable(code, "NOT USED", ~w(--abort-if-any))
-    end
-  end
-
-  defp assert_unreachable(contents, expected, args \\ []) do
-    in_fixture("no_mixfile", fn ->
-      File.write!("lib/a.ex", contents)
-
-      capture_io(:stderr, fn ->
-        assert Mix.Task.run("xref", ["unreachable" | args]) == :error
-      end)
-
-      assert ^expected = receive_until_no_messages([])
     end)
   end
 
@@ -752,7 +283,7 @@ defmodule Mix.Tasks.XrefTest do
         [
           app: :sample,
           version: "0.1.0",
-          xref: [exclude: [MissingModule, {MissingModule2, :no_func, 2}]]
+          xref: [exclude: [DeprecatedModule, {DeprecatedModule2, :func, 2}]]
         ]
       end
     end
@@ -763,19 +294,35 @@ defmodule Mix.Tasks.XrefTest do
     files = %{
       "lib/a.ex" => """
       defmodule A do
-        def a, do: MissingModule.no_func(1)
-        def b, do: MissingModule2.no_func(1, 2)
-        def c, do: MissingModule2.no_func(1)
-        def d, do: MissingModule3.no_func(1, 2)
+        def a, do: DeprecatedModule.func(1)
+        def b, do: DeprecatedModule2.func(1, 2)
+        def c, do: DeprecatedModule2.func(1)
+        def d, do: DeprecatedModule3.func(1, 2)
+      end
+      """,
+      "lib/deprecated_modules.ex" => """
+      defmodule DeprecatedModule do
+        @deprecated "message"
+        def func(_), do: :ok
+      end
+      defmodule DeprecatedModule2 do
+        @deprecated "message"
+        def func(_), do: :ok
+        @deprecated "message"
+        def func(_, _), do: :ok
+      end
+      defmodule DeprecatedModule3 do
+        @deprecated "message"
+        def func(_, _), do: :ok
       end
       """
     }
 
     warning = """
-    warning: function MissingModule2.no_func/1 is undefined (module MissingModule2 is not available)
+    warning: DeprecatedModule2.func/1 is deprecated. message
       lib/a.ex:4
 
-    warning: function MissingModule3.no_func/2 is undefined (module MissingModule3 is not available)
+    warning: DeprecatedModule3.func/2 is deprecated. message
       lib/a.ex:5
 
     """
