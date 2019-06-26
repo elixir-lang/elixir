@@ -1,21 +1,13 @@
 defmodule Module.Checker do
   def verify(module_map, _binary) do
-    check_definitions(Enum.reverse(module_map.definitions), module_map)
-    collect_warnings()
-  end
-
-  defp collect_warnings() do
-    receive do
-      {:warning, file, line, message} ->
-        [{file, line, message} | collect_warnings()]
-    after
-      0 ->
-        []
-    end
+    module_map.definitions
+    |> Enum.reverse()
+    |> check_definitions(module_map)
+    |> List.flatten()
   end
 
   defp check_definitions(definitions, state) do
-    Enum.each(definitions, &check_definition(&1, state))
+    Enum.map(definitions, &check_definition(&1, state))
   end
 
   defp check_definition({def, _kind, meta, clauses}, state) do
@@ -24,7 +16,7 @@ defmodule Module.Checker do
       |> put_file_meta(meta)
       |> Map.put(:function, def)
 
-    Enum.each(clauses, &check_clause(&1, state))
+    Enum.map(clauses, &check_clause(&1, state))
   end
 
   defp put_file_meta(state, meta) do
@@ -52,32 +44,30 @@ defmodule Module.Checker do
   end
 
   defp check_body({left, _meta, right}, state) when is_list(right) do
-    check_body(right, state)
-    check_body(left, state)
+    [check_body(right, state), check_body(left, state)]
   end
 
   defp check_body({left, right}, state) do
-    check_body(right, state)
-    check_body(left, state)
+    [check_body(right, state), check_body(left, state)]
   end
 
   defp check_body(list, state) when is_list(list) do
-    Enum.each(list, &check_body(&1, state))
+    Enum.map(list, &check_body(&1, state))
   end
 
   defp check_body(_other, _state) do
-    :ok
+    []
   end
 
   defp check_remote(module, fun, arity, meta, state) do
     cond do
       not should_warn_undefined?(module, fun, arity, state) ->
-        :ok
+        []
 
       # TODO: In the future we may want to warn for modules defined
       # in the local context
       Keyword.get(meta, :context_module, false) and state.module != module ->
-        :ok
+        []
 
       not Code.ensure_loaded?(module) ->
         warn(meta, state, {:undefined_module, module, fun, arity})
@@ -87,7 +77,7 @@ defmodule Module.Checker do
         warn(meta, state, {:undefined_function, module, fun, arity, exports})
 
       true ->
-        :ok
+        []
     end
   end
 
@@ -113,7 +103,11 @@ defmodule Module.Checker do
   end
 
   defp warn(meta, env, message) do
-    :elixir_errors.form_warn(meta, env, __MODULE__, message)
+    {line, file, _warning, message} =
+      :elixir_errors.format_form_warn(meta, env, __MODULE__, message)
+
+    :elixir_errors.print_warning(message)
+    {file, line, message}
   end
 
   def format_error({:undefined_module, module, fun, arity}) do
