@@ -18,12 +18,20 @@ defmodule Module.Checker do
     Enum.each(definitions, &check_definition(&1, state))
   end
 
-  defp check_definition({def, _kind, _meta, clauses}, state) do
-    # Hack to make module_map look like env for :elixir_errors.form_warn/4
-    # TODO: put meta
-    state = Map.put(state, :function, def)
+  defp check_definition({def, _kind, meta, clauses}, state) do
+    state =
+      state
+      |> put_file_meta(meta)
+      |> Map.put(:function, def)
 
     Enum.each(clauses, &check_clause(&1, state))
+  end
+
+  defp put_file_meta(state, meta) do
+    case Keyword.fetch(meta, :file) do
+      {:ok, file} -> Map.put(state, :file, file)
+      :error -> state
+    end
   end
 
   defp check_clause({_meta, _args, _guards, body}, state) do
@@ -107,7 +115,6 @@ defmodule Module.Checker do
 
   def format_error({:undefined_module, module, fun, arity}) do
     [
-      "function ",
       Exception.format_mfa(module, fun, arity),
       " is undefined (module ",
       inspect(module),
@@ -117,7 +124,6 @@ defmodule Module.Checker do
 
   def format_error({:undefined_function, module, fun, arity, exports}) do
     [
-      "function ",
       Exception.format_mfa(module, fun, arity),
       " is undefined or private",
       UndefinedFunctionError.hint_for_loaded_module(module, fun, arity, exports)
