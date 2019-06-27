@@ -1,6 +1,11 @@
 defmodule Module.Checker do
   def verify(module_map, _binary) do
-    state = :maps.with([:module, :file, :compile_opts], module_map)
+    state = %{
+      file: module_map.file,
+      module: module_map.module,
+      compile_opts: module_map.compile_opts,
+      function: nil
+    }
 
     module_map.definitions
     |> Enum.reverse()
@@ -12,18 +17,15 @@ defmodule Module.Checker do
     Enum.map(definitions, &check_definition(&1, state))
   end
 
-  defp check_definition({def, _kind, meta, clauses}, state) do
-    state = :maps.put(:function, def, put_file_meta(state, meta))
+  defp check_definition({function, _kind, meta, clauses}, state) do
+    state = put_file_meta(%{state | function: function}, meta)
     Enum.map(clauses, &check_clause(&1, state))
   end
 
   defp put_file_meta(state, meta) do
     case Keyword.fetch(meta, :file) do
-      {:ok, {file, line}} ->
-        :maps.merge(state, %{file: file, line: line})
-
-      :error ->
-        state
+      {:ok, {file, _}} -> %{state | file: file}
+      :error -> state
     end
   end
 
@@ -67,7 +69,7 @@ defmodule Module.Checker do
       Keyword.get(meta, :context_module, false) and state.module != module ->
         []
 
-      # TODO: Add no_autload
+      # TODO: Add no_autoload
       not Code.ensure_loaded?(module) ->
         warn(meta, state, {:undefined_module, module, fun, arity})
 

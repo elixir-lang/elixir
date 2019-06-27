@@ -460,37 +460,26 @@ defmodule Module.CheckerTest do
 
   defp assert_warnings(files, expected) do
     in_tmp(fn ->
-      files = generate_files(files)
-
-      output =
-        capture_io(:stderr, fn ->
-          {:ok, modules, _warnings} = Kernel.ParallelCompiler.compile(files)
-
-          Enum.each(modules, fn module ->
-            :code.purge(module)
-            :code.delete(module)
-          end)
-        end)
-
-      assert output == expected
+      assert capture_compile(files) == expected
     end)
   end
 
   defp assert_no_warnings(files) do
     in_tmp(fn ->
-      files = generate_files(files)
+      assert capture_compile(files) == ""
+    end)
+  end
 
-      output =
-        capture_io(:stderr, fn ->
-          {:ok, modules, _warnings} = Kernel.ParallelCompiler.compile(files)
+  defp capture_compile(files) do
+    files = generate_files(files)
 
-          Enum.each(modules, fn module ->
-            :code.purge(module)
-            :code.delete(module)
-          end)
-        end)
+    capture_io(:stderr, fn ->
+      {:ok, modules, _warnings} = Kernel.ParallelCompiler.compile(files)
 
-      assert output == ""
+      Enum.each(modules, fn module ->
+        :code.purge(module)
+        :code.delete(module)
+      end)
     end)
   end
 
@@ -502,8 +491,7 @@ defmodule Module.CheckerTest do
   end
 
   defp in_tmp(fun) do
-    tmp = Path.expand("../../../tmp", __DIR__)
-    path = Path.join(tmp, Integer.to_string(System.unique_integer([:positive])))
+    path = PathHelpers.tmp_path(Integer.to_string(System.unique_integer([:positive])))
 
     File.rm_rf!(path)
     File.mkdir_p!(path)

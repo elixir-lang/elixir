@@ -83,6 +83,7 @@ defmodule Mix.Tasks.Compile.Elixir do
     Mix.Compilers.Elixir.clean(manifest(), dest)
   end
 
+  # TODO: Deprecate project[:xref][:exclude] in v1.11
   defp xref_exclude_opts(opts, project) do
     exclude = List.wrap(project[:xref][:exclude])
 

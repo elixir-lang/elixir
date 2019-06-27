@@ -266,7 +266,7 @@ defmodule Mix.Tasks.Xref do
     :ok
   end
 
-  ## Warnings (unreachable + deprecated)
+  ## Warnings deprecated
 
   defp source_warnings(excludes, opts) do
     sources = sources(opts)

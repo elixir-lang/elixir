@@ -909,6 +909,11 @@ defmodule Code do
     * `:warnings_as_errors` - causes compilation to fail when warnings are
       generated. Defaults to `false`.
 
+    * `:no_warn_undefined` - list of modules and `{Mod, fun, arity}` tuples
+      that will not emit warnings that the module or function does not exist
+      at compilation time. This can be useful when doing dynamic compilation.
+      Defaults to `[]`.
+
   It returns the new map of compiler options.
 
   ## Examples

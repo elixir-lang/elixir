@@ -38,24 +38,29 @@ form_warn(Meta, E, Module, Desc) ->
 format_form_warn(Meta, E, FormatModule, Desc) when is_list(Meta) ->
   GivenFile =
     case E of
-      #{file := File} -> File;
-      File when is_binary(File) -> File
+      #{file := ArgFile} -> ArgFile;
+      ArgFile when is_binary(ArgFile) -> ArgFile
     end,
 
   Warning = FormatModule:format_error(Desc),
-  {File2, Line} = meta_location(Meta, GivenFile),
+  {File, Line} = meta_location(Meta, GivenFile),
 
   Location =
     case E of
       #{function := {Name, Arity}, module := Module} ->
-        [file_format(Line, File2), ": ", 'Elixir.Exception':format_mfa(Module, Name, Arity)];
+        [file_format(Line, File), ": ", 'Elixir.Exception':format_mfa(Module, Name, Arity)];
       #{module := Module} when Module /= nil ->
-        [file_format(Line, File2), ": ", elixir_aliases:inspect(Module)];
+        [file_format(Line, File), ": ", elixir_aliases:inspect(Module)];
       _ ->
-        file_format(Line, File2)
+        file_format(Line, File)
     end,
 
-  {Line, File2, Warning, [Warning, "\n  ", Location, $\n]}.
+  {Line, File, Warning, [Warning, "\n  ", Location, $\n]}.
+
+-spec print_warning(unicode:chardata()) -> ok.
+print_warning(Message) ->
+  io:put_chars(standard_error, [warning_prefix(), Message, $\n]),
+  ok.
 
 %% Compilation error.
 
@@ -138,11 +143,6 @@ warning_prefix() ->
     {ok, true} -> <<"\e[33mwarning: \e[0m">>;
     _ -> <<"warning: ">>
   end.
-
--spec print_warning(unicode:chardata()) -> ok.
-print_warning(Message) ->
-  io:put_chars(standard_error, [warning_prefix(), Message, $\n]),
-  ok.
 
 send_warning(Line, File, Message) ->
   CompilerPid = get(elixir_compiler_pid),
