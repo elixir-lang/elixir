@@ -245,7 +245,7 @@ defmodule Kernel.ParallelCompiler do
     case state.each_cycle.() do
       [] ->
         modules = write_module_binaries(output, beam_timestamp, result)
-        warnings = Enum.reverse(warnings) ++ check_modules(modules)
+        warnings = Enum.reverse(warnings, check_modules(modules))
         {:ok, Enum.map(modules, &elem(&1, 0)), warnings}
 
       more ->
