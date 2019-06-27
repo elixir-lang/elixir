@@ -460,6 +460,15 @@ defmodule Agent do
   Same as `cast/2` but a module, function, and arguments are expected
   instead of an anonymous function. The state is added as first
   argument to the given list of arguments.
+
+  ## Examples
+  
+      iex> {:ok, pid} = Agent.start_link(fn -> 42 end)
+      iex> Agent.cast(pid, Kernel, :+, [12])
+      :ok
+      iex> Agent.get(pid, fn state -> state end)
+      54
+
   """
   @spec cast(agent, module, atom, [term]) :: :ok
   def cast(agent, module, fun, args) do
