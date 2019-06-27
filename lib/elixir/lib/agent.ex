@@ -424,6 +424,15 @@ defmodule Agent do
   Same as `update/3` but a module, function, and arguments are expected
   instead of an anonymous function. The state is added as first
   argument to the given list of arguments.
+
+  ## Examples
+
+      iex> {:ok, pid} = Agent.start_link(fn -> 42 end)
+      iex> Agent.update(pid, Kernel, :+, [12])
+      :ok
+      iex> Agent.get(pid, fn state -> state end)
+      54
+
   """
   @spec update(agent, module, atom, [term], timeout) :: :ok
   def update(agent, module, fun, args, timeout \\ 5000) do
