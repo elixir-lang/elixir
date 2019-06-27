@@ -280,50 +280,36 @@ defmodule Module.CheckerTest do
   #   assert_warnings(files, warning)
   # end
 
-  # test "groups multiple warnings in one file" do
-  #   files = %{
-  #     "a.ex" => """
-  #     defmodule A do
-  #       def a, do: A.no_func
-  #
-  #       @file "external_source.ex"
-  #       def b, do: A2.no_func
-  #
-  #       def c, do: A.no_func
-  #       def d, do: A2.no_func
-  #     end
-  #     """
-  #   }
-  #
-  #   """
-  #   warning: A.no_func/0 is undefined or private
-  #     a.ex:2: A.a/0
-  #
-  #   warning: A2.no_func/0 is undefined (module A2 is not available or is yet to be defined)
-  #     external_source.ex:5: A.b/0
-  #
-  #   warning: A.no_func/0 is undefined or private
-  #     a.ex:7: A.c/0
-  #
-  #   warning: A2.no_func/0 is undefined (module A2 is not available or is yet to be defined)
-  #     a.ex:8: A.d/0
-  #   """
-  #
-  #   warning = """
-  #   warning: A.no_func/0 is undefined or private
-  #   Found at 2 locations:
-  #     a.ex:2
-  #     a.ex:7
-  #
-  #   warning: A2.no_func/0 is undefined (module A2 is not available or is yet to be defined)
-  #   Found at 2 locations:
-  #     a.ex:8
-  #     external_source.ex:5
-  #
-  #   """
-  #
-  #   assert_warnings(files, warning)
-  # end
+  test "groups multiple warnings in one file" do
+    files = %{
+      "a.ex" => """
+      defmodule A do
+        def a, do: A.no_func
+
+        @file "external_source.ex"
+        def b, do: A2.no_func
+
+        def c, do: A.no_func
+        def d, do: A2.no_func
+      end
+      """
+    }
+
+    warning = """
+    warning: A2.no_func/0 is undefined (module A2 is not available or is yet to be defined)
+    Found at 2 locations:
+      a.ex:8: A.d/0
+      external_source.ex:5: A.b/0
+
+    warning: A.no_func/0 is undefined or private
+    Found at 2 locations:
+      a.ex:2: A.a/0
+      a.ex:7: A.c/0
+
+    """
+
+    assert_warnings(files, warning)
+  end
 
   test "protocols are checked, ignoring missing built-in impls" do
     files = %{

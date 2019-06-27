@@ -4,8 +4,8 @@
 %% Notice this is also called by the Erlang backend, so we also support
 %% the line number to be none (as it may happen in some erlang errors).
 -module(elixir_errors).
--export([compile_error/3, compile_error/4, form_error/4, form_warn/4, format_form_warn/4,
-         parse_error/4, erl_warn/3, io_warn/4, print_warning/1]).
+-export([compile_error/3, compile_error/4,
+         form_error/4, form_warn/4, parse_error/4, erl_warn/3, io_warn/4]).
 -include("elixir.hrl").
 
 %% Low-level warning, should be used only from Erlang passes.
@@ -30,19 +30,12 @@ form_error(Meta, File, Module, Desc) ->
   compile_error(Meta, File, Module:format_error(Desc)).
 
 -spec form_warn(list(), binary() | #{file := binary()}, module(), any()) -> ok.
-form_warn(Meta, E, Module, Desc) ->
-  {Line, File, Warning, Message} = format_form_warn(Meta, E, Module, Desc),
-  io_warn(Line, File, Warning, Message).
+form_warn(Meta, File, Module, Desc) when is_list(Meta), is_binary(File) ->
+  do_form_warn(Meta, File, #{}, Module:format_error(Desc));
+form_warn(Meta, #{file := File} = E, Module, Desc) when is_list(Meta) ->
+  do_form_warn(Meta, File, E, Module:format_error(Desc)).
 
--spec format_form_warn(list(), binary() | #{file := binary()}, module(), any()) -> {integer(), binary(), any(), unicode:chardata()}.
-format_form_warn(Meta, E, FormatModule, Desc) when is_list(Meta) ->
-  GivenFile =
-    case E of
-      #{file := ArgFile} -> ArgFile;
-      ArgFile when is_binary(ArgFile) -> ArgFile
-    end,
-
-  Warning = FormatModule:format_error(Desc),
+do_form_warn(Meta, GivenFile, E, Warning) ->
   {File, Line} = meta_location(Meta, GivenFile),
 
   Location =
@@ -51,16 +44,11 @@ format_form_warn(Meta, E, FormatModule, Desc) when is_list(Meta) ->
         [file_format(Line, File), ": ", 'Elixir.Exception':format_mfa(Module, Name, Arity)];
       #{module := Module} when Module /= nil ->
         [file_format(Line, File), ": ", elixir_aliases:inspect(Module)];
-      _ ->
+      #{} ->
         file_format(Line, File)
     end,
 
-  {Line, File, Warning, [Warning, "\n  ", Location, $\n]}.
-
--spec print_warning(unicode:chardata()) -> ok.
-print_warning(Message) ->
-  io:put_chars(standard_error, [warning_prefix(), Message, $\n]),
-  ok.
+  io_warn(Line, File, Warning, [Warning, "\n  ", Location, $\n]).
 
 %% Compilation error.
 
@@ -143,6 +131,10 @@ warning_prefix() ->
     {ok, true} -> <<"\e[33mwarning: \e[0m">>;
     _ -> <<"warning: ">>
   end.
+
+print_warning(Message) ->
+  io:put_chars(standard_error, [warning_prefix(), Message, $\n]),
+  ok.
 
 send_warning(Line, File, Message) ->
   CompilerPid = get(elixir_compiler_pid),
