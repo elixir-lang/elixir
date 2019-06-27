@@ -35,9 +35,9 @@ defmodule Module.Checker do
     check_body(body, state)
   end
 
-  defp check_body({:&, _, [{:/, _, [{{:., meta, [module, fun]}, _, []}, arity]}]}, state)
+  defp check_body({:&, meta, [{:/, _, [{{:., dot_meta, [module, fun]}, _, []}, arity]}]}, state)
        when is_atom(module) and is_atom(fun) do
-    check_remote(module, fun, arity, meta, state)
+    check_remote(module, fun, arity, meta ++ dot_meta, state)
   end
 
   defp check_body({{:., meta, [module, fun]}, _, args}, state)

@@ -71,63 +71,63 @@ defmodule Module.CheckerTest do
     assert_warnings(files, warning)
   end
 
-  # test "aliases" do
-  #   files = %{
-  #     "a.ex" => """
-  #     defmodule A do
-  #       alias Enum, as: E
-  #
-  #       def a(a, b), do: E.map2(a, b)
-  #       def b, do: &E.map2/2
-  #
-  #       @file "external_source.ex"
-  #       def c do
-  #         alias Enum, as: EE
-  #         &EE.map2/2
-  #       end
-  #     end
-  #     """
-  #   }
-  #
-  #   warning = """
-  #   warning: function Enum.map2/2 is undefined or private. Did you mean one of:
-  #
-  #         * map/2
-  #
-  #   Found at 3 locations:
-  #     a.ex:4
-  #     a.ex:5
-  #     external_source.ex:10
-  #
-  #   """
-  #
-  #   assert_warnings(files, warning)
-  # end
+  test "aliases" do
+    files = %{
+      "a.ex" => """
+      defmodule A do
+        alias Enum, as: E
 
-  # test "reports missing functions" do
-  #   files = %{
-  #     "a.ex" => """
-  #     defmodule A do
-  #       def a, do: A.no_func
-  #       def b, do: A.a()
-  #
-  #       @file "external_source.ex"
-  #       def c, do: &A.no_func/1
-  #     end
-  #     """
-  #   }
-  #
-  #   warning = """
-  #   warning: A.no_func/0 is undefined or private
-  #     a.ex:2: A.a/0
-  #
-  #   warning: A.no_func/1 is undefined or private
-  #     external_source.ex:6: A.c/0
-  #
-  #   """
-  #
-  #   assert_warnings(files, warning)
-  # end
+        def a(a, b), do: E.map2(a, b)
+        def b, do: &E.map2/2
+
+        @file "external_source.ex"
+        def c do
+          alias Enum, as: EE
+          &EE.map2/2
+        end
+      end
+      """
+    }
+
+    warning = """
+    warning: Enum.map2/2 is undefined or private. Did you mean one of:
+
+          * map/2
+
+    Found at 3 locations:
+      a.ex:4: A.a/2
+      a.ex:5: A.b/0
+      external_source.ex:10: A.c/0
+
+    """
+
+    assert_warnings(files, warning)
+  end
+
+  test "reports missing functions" do
+    files = %{
+      "a.ex" => """
+      defmodule A do
+        def a, do: A.no_func
+        def b, do: A.a()
+
+        @file "external_source.ex"
+        def c, do: &A.no_func/1
+      end
+      """
+    }
+
+    warning = """
+    warning: A.no_func/0 is undefined or private
+      a.ex:2: A.a/0
+
+    warning: A.no_func/1 is undefined or private
+      external_source.ex:6: A.c/0
+
+    """
+
+    assert_warnings(files, warning)
+  end
 
   test " reports missing functions respecting arity" do
     files = %{
@@ -184,29 +184,29 @@ defmodule Module.CheckerTest do
     assert_warnings(files, warning)
   end
 
-  # test "reports missing captures" do
-  #   files = %{
-  #     "a.ex" => """
-  #     defmodule A do
-  #       def a, do: &A.no_func/0
-  #
-  #       @file "external_source.ex"
-  #       def c, do: &A.no_func/1
-  #     end
-  #     """
-  #   }
-  #
-  #   warning = """
-  #   warning: A.no_func/0 is undefined or private
-  #     a.ex:2: A.a./0
-  #
-  #   warning: A.no_func/1 is undefined or private
-  #     external_source.ex:5: A.c/0
-  #
-  #   """
-  #
-  #   assert_warnings(files, warning)
-  # end
+  test "reports missing captures" do
+    files = %{
+      "a.ex" => """
+      defmodule A do
+        def a, do: &A.no_func/0
+
+        @file "external_source.ex"
+        def c, do: &A.no_func/1
+      end
+      """
+    }
+
+    warning = """
+    warning: A.no_func/0 is undefined or private
+      a.ex:2: A.a/0
+
+    warning: A.no_func/1 is undefined or private
+      external_source.ex:5: A.c/0
+
+    """
+
+    assert_warnings(files, warning)
+  end
 
   test "doesn't report missing funcs at compile time" do
     files = %{
@@ -273,7 +273,7 @@ defmodule Module.CheckerTest do
   #
   #   warning = """
   #   warning: function A.no_func/0 is undefined or private
-  #     b.ex:2
+  #     b.ex:2: B.a/0
   #
   #   """
   #
