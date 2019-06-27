@@ -35,24 +35,29 @@ defmodule Module.Checker do
     check_body(body, state)
   end
 
+  # &Mod.fun/arity
   defp check_body({:&, meta, [{:/, _, [{{:., dot_meta, [module, fun]}, _, []}, arity]}]}, state)
        when is_atom(module) and is_atom(fun) do
     check_remote(module, fun, arity, meta ++ dot_meta, state)
   end
 
+  # Mod.fun(...)
   defp check_body({{:., meta, [module, fun]}, _, args}, state)
        when is_atom(module) and is_atom(fun) do
     check_remote(module, fun, length(args), meta, state)
   end
 
+  # Function call
   defp check_body({left, _meta, right}, state) when is_list(right) do
     [check_body(right, state), check_body(left, state)]
   end
 
+  # {x, y}
   defp check_body({left, right}, state) do
     [check_body(right, state), check_body(left, state)]
   end
 
+  # [...]
   defp check_body(list, state) when is_list(list) do
     Enum.map(list, &check_body(&1, state))
   end
