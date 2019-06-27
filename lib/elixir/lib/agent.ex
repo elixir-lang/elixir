@@ -462,11 +462,12 @@ defmodule Agent do
   argument to the given list of arguments.
 
   ## Examples
+  
       iex> {:ok, pid} = Agent.start_link(fn -> 42 end)
-      iex> Agent.cast(pid, Integer, :gcd, [12])
+      iex> Agent.cast(pid, Kernel, :+, [12])
       :ok
       iex> Agent.get(pid, fn state -> state end)
-      6
+      54
 
   """
   @spec cast(agent, module, atom, [term]) :: :ok
