@@ -477,7 +477,7 @@ defmodule Module.CheckerTest do
   end
 
   defp in_tmp(fun) do
-    path = PathHelpers.tmp_path(Integer.to_string(System.unique_integer([:positive])))
+    path = PathHelpers.tmp_path("checker")
 
     File.rm_rf!(path)
     File.mkdir_p!(path)
