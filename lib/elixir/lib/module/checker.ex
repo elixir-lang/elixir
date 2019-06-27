@@ -177,13 +177,6 @@ defmodule Module.Checker do
   end
 
   defp print_warning(message) do
-    IO.puts(:stderr, [warning_prefix(), message])
-  end
-
-  defp warning_prefix() do
-    case :application.get_env(:elixir, :ansi_enabled) do
-      {:ok, true} -> "\e[33mwarning: \e[0m"
-      _ -> "warning: "
-    end
+    IO.puts(:stderr, [:elixir_errors.warning_prefix(), message])
   end
 end
