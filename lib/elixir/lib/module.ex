@@ -397,7 +397,7 @@ defmodule Module do
   Callbacks registered first will run last. Any overridable definition
   will be made concrete before the first callback runs. A definition may
   be made overridable again in another before compile callback and it
-  will be made concrete one last time after after all callbacks run.
+  will be made concrete one last time after all callbacks run.
 
   *Note*: unlike `@after_compile`, the callback function/macro must
   be placed in a separate module (because when the callback is invoked,
