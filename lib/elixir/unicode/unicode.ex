@@ -17,19 +17,22 @@ defmodule String.Unicode do
   regex = ~r/(?:^([0-9A-F]+)(?:\.\.([0-9A-F]+))?)\s+;\s(\w+)/m
 
   cluster =
-    Enum.reduce(File.stream!(cluster_path), %{}, fn line, acc ->
+    cluster_path
+    |> File.read!()
+    |> String.split("\n", trim: true)
+    |> Enum.reduce(%{}, fn line, acc ->
       case Regex.run(regex, line, capture: :all_but_first) do
         ["D800", "DFFF", _class] ->
           acc
 
         [first, "", class] ->
           codepoint = <<String.to_integer(first, 16)::utf8>>
-          Map.update(acc, class, [codepoint], &[<<String.to_integer(first, 16)::utf8>> | &1])
+          :maps.put(class, [codepoint | :maps.get(class, acc, [])], acc)
 
         [first, last, class] ->
           range = String.to_integer(first, 16)..String.to_integer(last, 16)
           codepoints = Enum.map(range, fn int -> <<int::utf8>> end)
-          Map.update(acc, class, codepoints, &(codepoints ++ &1))
+          :maps.put(class, codepoints ++ :maps.get(class, acc, []), acc)
 
         nil ->
           acc

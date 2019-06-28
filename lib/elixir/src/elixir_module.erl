@@ -121,7 +121,7 @@ compile(Line, Module, Block, Vars, E) ->
     warn_unused_attributes(File, DataSet, DataBag, PersistedAttributes),
     autoload_module(Module, Binary, CompileOpts, NE),
     eval_callbacks(Line, DataBag, after_compile, [NE, Binary], NE),
-    make_module_available(Module, Binary),
+    make_module_available(Module, Binary, ModuleMap),
     {module, Module, Binary, Result}
   catch
     ?WITH_STACKTRACE(error, undef, Stacktrace)
@@ -392,7 +392,7 @@ beam_location(#{module := Module}) ->
 
 %% Integration with elixir_compiler that makes the module available
 
-make_module_available(Module, Binary) ->
+make_module_available(Module, Binary, ModuleMap) ->
   case get(elixir_module_binaries) of
     Current when is_list(Current) ->
       put(elixir_module_binaries, [{Module, Binary} | Current]);
@@ -405,7 +405,7 @@ make_module_available(Module, Binary) ->
       ok;
     PID ->
       Ref = make_ref(),
-      PID ! {module_available, self(), Ref, get(elixir_compiler_file), Module, Binary},
+      PID ! {module_available, self(), Ref, get(elixir_compiler_file), Module, Binary, ModuleMap},
       receive {Ref, ack} -> ok end
   end.
 

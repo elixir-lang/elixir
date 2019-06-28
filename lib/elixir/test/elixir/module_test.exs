@@ -279,6 +279,8 @@ defmodule ModuleTest do
     assert Elixir.ModuleTest.NonAtomAlias.hello() == :world
   end
 
+  @compile {:no_warn_undefined, ModuleCreateSample}
+
   test "create" do
     contents =
       quote do
@@ -299,6 +301,8 @@ defmodule ModuleTest do
       {:module, Elixir, _, _} = Module.create(Elixir, contents, __ENV__)
     end
   end
+
+  @compile {:no_warn_undefined, ModuleHygiene}
 
   test "create with aliases/var hygiene" do
     contents =
@@ -328,6 +332,8 @@ defmodule ModuleTest do
     funs = for {:function, _, name, arity, _} <- abstract_code, do: {name, arity}
     assert funs == [__info__: 1, baz: 1, foo: 1]
   end
+
+  @compile {:no_warn_undefined, ModuleCreateGenerated}
 
   test "create with generated true does not emit warnings" do
     contents =

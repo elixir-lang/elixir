@@ -2,6 +2,7 @@ defmodule Mix.Tasks.Compile.All do
   use Mix.Task.Compiler
 
   @moduledoc false
+  @compile {:no_warn_undefined, Logger}
   @recursive true
 
   # This is an internal task used by "mix compile" which

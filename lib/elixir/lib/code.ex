@@ -30,13 +30,17 @@ defmodule Code do
   the result of evaluating the file rather than the modules it defines.
   """
 
-  @available_compiler_options [
+  @boolean_compiler_options [
     :docs,
     :debug_info,
     :ignore_module_conflict,
     :relative_paths,
     :warnings_as_errors
   ]
+
+  @list_compiler_options [:no_warn_undefined]
+
+  @available_compiler_options @boolean_compiler_options ++ @list_compiler_options
 
   @doc """
   Lists all required files.
@@ -905,6 +909,11 @@ defmodule Code do
     * `:warnings_as_errors` - causes compilation to fail when warnings are
       generated. Defaults to `false`.
 
+    * `:no_warn_undefined` - list of modules and `{Mod, fun, arity}` tuples
+      that will not emit warnings that the module or function does not exist
+      at compilation time. This can be useful when doing dynamic compilation.
+      Defaults to `[]`.
+
   It returns the new map of compiler options.
 
   ## Examples
@@ -917,9 +926,14 @@ defmodule Code do
   @spec compiler_options(Enumerable.t()) :: %{optional(atom) => boolean}
   def compiler_options(opts) do
     Enum.each(opts, fn
-      {key, value} when key in @available_compiler_options ->
+      {key, value} when key in @boolean_compiler_options ->
         if not is_boolean(value) do
           raise "compiler option #{inspect(key)} should be a boolean, got: #{inspect(value)}"
+        end
+
+      {key, value} when key in @list_compiler_options ->
+        if not is_list(value) do
+          raise "compiler option #{inspect(key)} should be a list, got: #{inspect(value)}"
         end
 
       {key, _} ->
