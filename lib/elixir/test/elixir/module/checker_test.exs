@@ -252,34 +252,6 @@ defmodule Module.CheckerTest do
     assert_warnings(files, warning)
   end
 
-  # test "doesn't load unloaded modules" do
-  #   files = %{
-  #     "a.ex" => """
-  #     defmodule A do
-  #       @compile {:autoload, false}
-  #       @on_load :init
-  #       def init do
-  #         raise "oops"
-  #       end
-  #     end
-  #     """,
-  #     "b.ex" => """
-  #     defmodule B do
-  #       def a, do: A.no_func
-  #       def b, do: A.init
-  #     end
-  #     """
-  #   }
-  #
-  #   warning = """
-  #   warning: function A.no_func/0 is undefined or private
-  #     b.ex:2: B.a/0
-  #
-  #   """
-  #
-  #   assert_warnings(files, warning)
-  # end
-
   test "groups multiple warnings in one file" do
     files = %{
       "a.ex" => """

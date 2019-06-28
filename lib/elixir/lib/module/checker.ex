@@ -76,7 +76,6 @@ defmodule Module.Checker do
       Keyword.get(meta, :context_module, false) and state.module != module ->
         []
 
-      # TODO: Add no_autoload
       not Code.ensure_loaded?(module) ->
         warn(meta, state, {:undefined_module, module, fun, arity})
 
