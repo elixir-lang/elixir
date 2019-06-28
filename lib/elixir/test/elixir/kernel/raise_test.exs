@@ -9,6 +9,7 @@ defmodule Kernel.RaiseTest do
   defp opts, do: [message: "message"]
   defp struct, do: %RuntimeError{message: "message"}
 
+  @compile {:no_warn_undefined, DoNotExist}
   @trace [{:foo, :bar, 0, []}]
 
   test "raise message" do

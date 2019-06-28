@@ -68,6 +68,7 @@ defmodule Mix.Tasks.Compile.Elixir do
     force = opts[:force] || Mix.Utils.stale?(configs, [manifest])
 
     opts = Keyword.merge(project[:elixirc_options] || [], opts)
+    opts = xref_exclude_opts(opts, project)
     Mix.Compilers.Elixir.compile(manifest, srcs, dest, [:ex], force, opts)
   end
 
@@ -80,5 +81,16 @@ defmodule Mix.Tasks.Compile.Elixir do
   def clean do
     dest = Mix.Project.compile_path()
     Mix.Compilers.Elixir.clean(manifest(), dest)
+  end
+
+  # TODO: Deprecate project[:xref][:exclude] in v1.11
+  defp xref_exclude_opts(opts, project) do
+    exclude = List.wrap(project[:xref][:exclude])
+
+    if exclude == [] do
+      opts
+    else
+      Keyword.update(opts, :no_warn_undefined, exclude, &(List.wrap(&1) ++ exclude))
+    end
   end
 end

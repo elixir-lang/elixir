@@ -56,7 +56,10 @@ cased_letter_categories = :binary.compile_pattern(["Ll", "Lt", "Lu"])
 case_ignorable_categories = :binary.compile_pattern(["Mn", "Me", "Cf", "Lm", "Sk"])
 
 {codes, cased_letters, case_ignorable, non_breakable, decompositions, combining_classes} =
-  Enum.reduce(File.stream!(data_path), acc, fn line, {cacc, lacc, iacc, wacc, dacc, kacc} ->
+  data_path
+  |> File.read!()
+  |> String.split("\n", trim: true)
+  |> Enum.reduce(acc, fn line, {cacc, lacc, iacc, wacc, dacc, kacc} ->
     [
       codepoint,
       _name,
@@ -74,8 +77,6 @@ case_ignorable_categories = :binary.compile_pattern(["Mn", "Me", "Cf", "Lm", "Sk
       lower,
       title
     ] = :binary.split(line, ";", [:global])
-
-    title = binary_part(title, 0, byte_size(title) - 1)
 
     cacc =
       if upper != "" or lower != "" or title != "" do
@@ -114,16 +115,16 @@ case_ignorable_categories = :binary.compile_pattern(["Mn", "Me", "Cf", "Lm", "Sk
             |> :binary.split(" ", [:global])
             |> Enum.map(&String.to_integer(&1, 16))
 
-          Map.put(dacc, String.to_integer(codepoint, 16), decomposition)
+          :maps.put(String.to_integer(codepoint, 16), decomposition, dacc)
 
         _ ->
           dacc
       end
 
     kacc =
-      case Integer.parse(class) do
-        {0, ""} -> kacc
-        {n, ""} -> Map.put(kacc, String.to_integer(codepoint, 16), n)
+      case String.to_integer(class) do
+        0 -> kacc
+        n -> :maps.put(String.to_integer(codepoint, 16), n, kacc)
       end
 
     {cacc, lacc, iacc, wacc, dacc, kacc}
@@ -135,10 +136,17 @@ defmodule String.Casing do
   special_path = Path.join(__DIR__, "SpecialCasing.txt")
 
   codes =
-    Enum.reduce(File.stream!(special_path), codes, fn line, acc ->
-      if String.starts_with?(line, ["#", "\n"]) do
+    special_path
+    |> File.read!()
+    |> String.split("\n", trim: true)
+    |> Enum.reduce(codes, fn
+      "", acc ->
         acc
-      else
+
+      "#" <> _, acc ->
+        acc
+
+      line, acc ->
         [codepoint, lower, title, upper, _] = :binary.split(line, "; ", [:global])
         key = to_binary.(codepoint)
 
@@ -148,7 +156,6 @@ defmodule String.Casing do
           acc,
           {key, to_binary.(upper), to_binary.(lower), to_binary.(title)}
         )
-      end
     end)
 
   # Downcase
@@ -268,7 +275,10 @@ defmodule String.Break do
   prop_path = Path.join(__DIR__, "PropList.txt")
 
   whitespace =
-    Enum.reduce(File.stream!(prop_path), [], fn line, acc ->
+    prop_path
+    |> File.read!()
+    |> String.split("\n")
+    |> Enum.reduce([], fn line, acc ->
       case :binary.split(line, ";") do
         [<<first::4-bytes, "..", last::4-bytes, _::binary>>, <<" White_Space", _::binary>>] ->
           first = String.to_integer(first, 16)

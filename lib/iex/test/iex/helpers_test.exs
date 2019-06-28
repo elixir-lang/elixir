@@ -5,6 +5,8 @@ defmodule IEx.HelpersTest do
 
   import IEx.Helpers
 
+  @compile {:no_warn_undefined, [:sample, Sample, Sample2]}
+
   describe "whereami" do
     test "is disabled by default" do
       assert capture_iex("whereami()") =~ "Pry session is not currently enabled"

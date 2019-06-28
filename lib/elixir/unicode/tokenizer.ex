@@ -4,7 +4,10 @@ defmodule String.Tokenizer do
   data_path = Path.join(__DIR__, "UnicodeData.txt")
 
   {letter_uptitlecase, start, continue, _} =
-    Enum.reduce(File.stream!(data_path), {[], [], [], nil}, fn line, acc ->
+    data_path
+    |> File.read!()
+    |> String.split("\n", trim: true)
+    |> Enum.reduce({[], [], [], nil}, fn line, acc ->
       {letter_uptitlecase, start, continue, first} = acc
       [codepoint, line] = :binary.split(line, ";")
       [name, line] = :binary.split(line, ";")
@@ -42,7 +45,10 @@ defmodule String.Tokenizer do
   prop_path = Path.join(__DIR__, "PropList.txt")
 
   {start, continue, patterns} =
-    Enum.reduce(File.stream!(prop_path), {start, continue, []}, fn line, acc ->
+    prop_path
+    |> File.read!()
+    |> String.split("\n", trim: true)
+    |> Enum.reduce({start, continue, []}, fn line, acc ->
       [codepoints | category] = :binary.split(line, ";")
 
       pos =

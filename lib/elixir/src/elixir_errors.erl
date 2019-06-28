@@ -4,7 +4,7 @@
 %% Notice this is also called by the Erlang backend, so we also support
 %% the line number to be none (as it may happen in some erlang errors).
 -module(elixir_errors).
--export([compile_error/3, compile_error/4,
+-export([compile_error/3, compile_error/4, warning_prefix/0,
          form_error/4, form_warn/4, parse_error/4, erl_warn/3, io_warn/4]).
 -include("elixir.hrl").
 
@@ -20,6 +20,13 @@ erl_warn(Line, File, Warning) when is_integer(Line), is_binary(File) ->
 io_warn(Line, File, LogMessage, PrintMessage) when is_integer(Line) or (Line == nil), is_binary(File) or (File == nil) ->
   send_warning(Line, File, LogMessage),
   print_warning(PrintMessage).
+
+-spec warning_prefix() -> binary().
+warning_prefix() ->
+  case application:get_env(elixir, ansi_enabled) of
+    {ok, true} -> <<"\e[33mwarning: \e[0m">>;
+    _ -> <<"warning: ">>
+  end.
 
 %% General forms handling.
 
@@ -125,12 +132,6 @@ parse_erl_term(Term) ->
   Parsed.
 
 %% Helpers
-
-warning_prefix() ->
-  case application:get_env(elixir, ansi_enabled) of
-    {ok, true} -> <<"\e[33mwarning: \e[0m">>;
-    _ -> <<"warning: ">>
-  end.
 
 print_warning(Message) ->
   io:put_chars(standard_error, [warning_prefix(), Message, $\n]),

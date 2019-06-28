@@ -66,6 +66,8 @@ defmodule ProtocolTest do
     defstruct a: 0, b: 0
 
     defimpl Sample do
+      @compile {:no_warn_undefined, Unknown}
+
       def ok(struct) do
         Unknown.undefined(struct)
       end

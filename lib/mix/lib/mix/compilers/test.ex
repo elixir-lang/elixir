@@ -11,6 +11,7 @@ defmodule Mix.Compilers.Test do
     runtime_references: [],
     external: []
 
+  @compile {:no_warn_undefined, ExUnit.Server}
   @stale_manifest "compile.test_stale"
   @manifest_vsn 1
 
