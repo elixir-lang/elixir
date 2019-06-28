@@ -1320,10 +1320,10 @@ defmodule Registry.Supervisor do
         key_partition = Registry.Partition.key_name(registry, i)
         pid_partition = Registry.Partition.pid_name(registry, i)
         arg = {kind, registry, i, partitions, key_partition, pid_partition, listeners}
-        worker(Registry.Partition, [pid_partition, arg], id: pid_partition)
+        Supervisor.child_spec({Registry.Partition, [pid_partition, arg]}, id: pid_partition)
       end
 
-    supervise(children, strategy: strategy_for_kind(kind))
+    Supervisor.init(children, strategy: strategy_for_kind(kind))
   end
 
   # Unique registries have their key partition hashed by key.
@@ -1369,7 +1369,7 @@ defmodule Registry.Partition do
   The process is only responsible for monitoring, demonitoring
   and cleaning up when monitored processes crash.
   """
-  def start_link(registry, arg) do
+  def start_link([registry, arg]) do
     GenServer.start_link(__MODULE__, arg, name: registry)
   end
 
