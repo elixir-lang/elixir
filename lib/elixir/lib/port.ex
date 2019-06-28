@@ -153,7 +153,9 @@ defmodule Port do
 
       # Clean up
       wait $pid1
+      ret=$?
       kill -KILL $pid2
+      exit $ret
 
   Note the program above hijacks stdin, so you won't be able to communicate
   with the underlying software via stdin (on the positive side, software that
