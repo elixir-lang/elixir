@@ -125,19 +125,40 @@ defmodule Port do
   terminated**.
 
   While most UNIX command line tools will exit once its communication channels
-  are closed, not all command line applications will do so. While we encourage
-  graceful termination by detecting if stdin/stdout has been closed, we do not
-  always have control over how third-party software terminates. In those cases,
-  you can wrap the application in a script that checks for stdin. Here is such
-  script in Bash:
+  are closed, not all command line applications will do so. You can easily check
+  this by starting the port and then shutting down the VM and inspecting your
+  operating system to see if the port process is still running.
 
-      #!/bin/bash
-      "$@" &
-      pid=$!
-      while read line ; do
-        :
-      done
-      kill -KILL $pid
+  While we encourage graceful termination by detecting if stdin/stdout has been
+  closed, we do not always have control over how third-party software terminates.
+  In those cases, you can wrap the application in a script that checks for stdin.
+  Here is such script in `sh`:
+
+      #!/bin/sh
+
+      # Start the program in the background
+      exec "$@" &
+      pid1=$!
+
+      # Silence warnings from here on
+      exec >/dev/null 2>&1
+
+      # Read from stdin in the background and
+      # kill running program when stdin closes
+      exec 0<&0 $(
+        while read; do :; done
+        kill -KILL $pid1
+      ) &
+      pid2=$!
+
+      # Clean up
+      wait $pid1
+      kill -KILL $pid1
+      kill -KILL $pid2
+
+  Note the program above hijacks stdin, so you won't be able to commmunicate
+  with the underlying software via stdin (on the positive side, software that
+  reads from stdin typically terminates when stdin closes).
 
   Now instead of:
 
