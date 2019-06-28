@@ -156,7 +156,7 @@ defmodule Port do
       kill -KILL $pid1
       kill -KILL $pid2
 
-  Note the program above hijacks stdin, so you won't be able to commmunicate
+  Note the program above hijacks stdin, so you won't be able to communicate
   with the underlying software via stdin (on the positive side, software that
   reads from stdin typically terminates when stdin closes).
 
