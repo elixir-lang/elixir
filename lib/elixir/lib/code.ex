@@ -38,7 +38,7 @@ defmodule Code do
     :warnings_as_errors
   ]
 
-  @list_compiler_options [:no_warn_undefined]
+  @list_compiler_options [:no_warn_undefined, :no_warn_deprecated]
 
   @available_compiler_options @boolean_compiler_options ++ @list_compiler_options
 
@@ -913,6 +913,10 @@ defmodule Code do
       that will not emit warnings that the module or function does not exist
       at compilation time. This can be useful when doing dynamic compilation.
       Defaults to `[]`.
+
+    * `:no_warn_deprecated` - list of modules and `{Mod, fun, arity}` tuples
+      that will not emit warnings that a function within the module or the
+      specific function is deprecated. Defaults to `[]`.
 
   It returns the new map of compiler options.
 

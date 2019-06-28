@@ -42,9 +42,9 @@ defmodule Module.Checker do
   end
 
   # Mod.fun(...)
-  defp check_body({{:., meta, [module, fun]}, _, args}, state)
+  defp check_body({{:., meta, [module, fun]}, call_meta, args}, state)
        when is_atom(module) and is_atom(fun) do
-    check_remote(module, fun, length(args), meta, state)
+    check_remote(module, fun, length(args), meta ++ call_meta, state)
   end
 
   # Function call
@@ -68,20 +68,20 @@ defmodule Module.Checker do
 
   defp check_remote(module, fun, arity, meta, state) do
     cond do
-      not warn_if_undefined?(module, fun, arity, state) ->
-        []
-
       # TODO: In the future we may want to warn for modules defined
       # in the local context
       Keyword.get(meta, :context_module, false) and state.module != module ->
         []
 
-      not Code.ensure_loaded?(module) ->
+      not Code.ensure_loaded?(module) and warn_undefined?(module, fun, arity, state) ->
         warn(meta, state, {:undefined_module, module, fun, arity})
 
-      not function_exported?(module, fun, arity) ->
+      not function_exported?(module, fun, arity) and warn_undefined?(module, fun, arity, state) ->
         exports = exports_for(module)
         warn(meta, state, {:undefined_function, module, fun, arity, exports})
+
+      (reason = deprecated(module, fun, arity)) && warn_deprecated?(module, fun, arity, state) ->
+        warn(meta, state, {:deprecated, module, fun, arity, reason})
 
       true ->
         []
@@ -90,17 +90,36 @@ defmodule Module.Checker do
 
   # TODO: Do not warn inside guards
   # TODO: Properly handle protocols
-  defp warn_if_undefined?(_module, :__impl__, 1, _state), do: false
-  defp warn_if_undefined?(:erlang, :orelse, 2, _state), do: false
-  defp warn_if_undefined?(:erlang, :andalso, 2, _state), do: false
+  defp warn_undefined?(_module, :__impl__, 1, _state), do: false
+  defp warn_undefined?(:erlang, :orelse, 2, _state), do: false
+  defp warn_undefined?(:erlang, :andalso, 2, _state), do: false
 
-  defp warn_if_undefined?(module, fun, arity, state) do
+  defp warn_undefined?(module, fun, arity, state) do
+    warn_compile_opts?(module, fun, arity, state.compile_opts, :no_warn_undefined)
+  end
+
+  defp warn_deprecated?(module, fun, arity, state) do
+    warn_compile_opts?(module, fun, arity, state.compile_opts, :no_warn_deprecated)
+  end
+
+  defp warn_compile_opts?(module, fun, arity, compile_opts, option) do
     for(
-      {:no_warn_undefined, values} <- state.compile_opts,
+      {^option, values} <- compile_opts,
       value <- List.wrap(values),
       value == module or value == {module, fun, arity},
       do: :skip
     ) == []
+  end
+
+  defp deprecated(module, fun, arity) do
+    if function_exported?(module, :__info__, 1) do
+      case List.keyfind(module.__info__(:deprecated), {fun, arity}, 0) do
+        {_key, reason} -> reason
+        nil -> nil
+      end
+    else
+      nil
+    end
   end
 
   defp exports_for(module) do
@@ -153,6 +172,14 @@ defmodule Module.Checker do
       Exception.format_mfa(module, fun, arity),
       " is undefined or private",
       UndefinedFunctionError.hint_for_loaded_module(module, fun, arity, exports)
+    ]
+  end
+
+  defp format_warning({:deprecated, module, function, arity, reason}) do
+    [
+      Exception.format_mfa(module, function, arity),
+      " is deprecated. ",
+      reason
     ]
   end
 
