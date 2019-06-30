@@ -347,23 +347,23 @@ defmodule Mix.Tasks.Release do
 
       All applications default to `:permanent`.
 
-      By default `:applications` include the current application and then we
-      proceed to include all applications the current application depends on
-      recursively. You can include new applications or change the mode of
+      By default `:applications` includes the current application and all
+      applications the current application depends on, recursively.
+      You can include new applications or change the mode of
       existing ones by listing them here. The order of the applications given
       in `:applications` will be preserved as much as possible, with only
-      `:kernel`, `:stdlib`, `:sasl` and `:elixir` listed before the given
+      `:kernel`, `:stdlib`, `:sasl`, and `:elixir` listed before the given
       application list.
 
       Releases assembled from an umbrella project require this configuration
       to be explicitly given.
 
     * `:strip_beams` - a boolean that controls if BEAM files should have their debug
-      information, documentation chunks and other non-essential metadata removed.
+      information, documentation chunks, and other non-essential metadata removed.
       Defaults to `true`.
 
     * `:cookie` - a string representing the Erlang Distribution cookie. If this
-      option is not set, a random cookie is  written to `releases/COOKIE` file
+      option is not set, a random cookie is  written to the `releases/COOKIE` file
       when the first release is assembled. At runtime, we will first attempt
       to fetch the cookie from the `RELEASE_COOKIE` environment variable and
       then we'll read the `releases/COOKIE` file.
@@ -379,18 +379,19 @@ defmodule Mix.Tasks.Release do
     * `:version` - the release version as a string. Defaults to the current
       application version.
 
-    * `:quiet` - a boolean that controls if releases should write to the standard
-      output its steps. Defaults to `false`.
+    * `:quiet` - a boolean that controls if releases should write steps to
+      the standard output. Defaults to `false`.
 
-    * `:include_erts` - a boolean indicating if the Erlang Runtime System (ERTS),
-      which includes the Erlang VM, should be included in the release. The default
-      is `true`, which is also the recommended value. It may also be a string as a
-      path to an existing ERTS installation or an anonymous function of zero arity
-      which should return any of the above.
+    * `:include_erts` - a boolean, string, or anonymous function of arity zero.
+      If a boolean, it indicates whether the Erlang Runtime System (ERTS), which
+      includes the Erlang VM, should be included in the release. The default is
+      `true`, which is also the recommended value. If a string, it represents
+      the path to an existing ERTS installation. If an anonymous function of
+      arity zero, it's a function that returns any of the above (boolean or string).
 
-      You may also set it to `false` if you desire to use the ERTS version installed
-      on the target. Note, however, the ERTS version on the target must have THE EXACT
-      VERSION as the ERTS version used when the release is assembled. Setting it to
+      You may also set this option to `false` if you desire to use the ERTS version installed
+      on the target. Note, however, that the ERTS version on the target must have **the
+      exact version** as the ERTS version used when the release is assembled. Setting it to
       `false` also disables hot code upgrades. Therefore, `:include_erts` should be
       set to `false` with caution and only if you are assembling the release on the
       same server that runs it.
@@ -427,7 +428,7 @@ defmodule Mix.Tasks.Release do
   Those files are regular EEx templates and they have a single assign,
   called `@release`, with the `Mix.Release` struct.
 
-  The `vm.args` may contain any of the VM flags accepted by the [`erl`
+  The `vm.args` file may contain any of the VM flags accepted by the [`erl`
   command](http://erlang.org/doc/man/erl.html).
 
   The `env.sh` and `env.bat` is used to set environment variables.
