@@ -92,7 +92,7 @@ defmodule ExUnit.DescribeTest do
   end
 
   test "when @describetag is used outside of a describe block" do
-    message = ~s(you can only set @describetag inside a "describe" block)
+    message = ~s(@describetag must be set inside describe/2 blocks)
 
     assert_raise RuntimeError, message, fn ->
       defmodule DescribetagOutsideOfDescribeBlock do

@@ -382,10 +382,6 @@ defmodule ExUnit.Case do
   """
   defmacro describe(message, do: block) do
     quote do
-      if Module.get_attribute(__MODULE__, :describetag) != [] do
-        raise "you can only set @describetag inside a \"describe\" block"
-      end
-
       ExUnit.Case.__describe__(__MODULE__, __ENV__.line, unquote(message))
 
       try do
