@@ -91,6 +91,21 @@ defmodule ExUnit.DescribeTest do
     end
   end
 
+  test "when @describetag is used outside of a describe block" do
+    message = ~s(you can only set @describetag inside a "describe" block)
+
+    assert_raise RuntimeError, message, fn ->
+      defmodule DescribetagOutsideOfDescribeBlock do
+        use ExUnit.Case
+
+        @describetag :integration
+
+        describe "some tests" do
+        end
+      end
+    end
+  end
+
   describe "test names" do
     test "merge describe information", context do
       assert context.test == :"test test names merge describe information"
