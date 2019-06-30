@@ -128,8 +128,9 @@ defmodule ExUnit.Case do
         end
       end
 
-  If you are setting a `@moduletag`, you must set that after your
-  call to `use ExUnit.Case` otherwise you will see compilation errors.
+  If you are setting a `@moduletag` or `@describetag` attribute, you must
+  set them after your call to `use ExUnit.Case` otherwise you will see
+  compilation errors.
 
   If the same key is set via `@tag`, the `@tag` value has higher
   precedence.
