@@ -211,6 +211,8 @@ defmodule ExUnit.Case do
 
   """
 
+  @type env :: Module.t() | Macro.Env.t()
+
   @reserved [:module, :file, :line, :test, :async, :registered, :describe]
 
   @doc false
@@ -237,7 +239,9 @@ defmodule ExUnit.Case do
           :tag,
           :describetag,
           :moduletag,
-          :ex_unit_registered,
+          :ex_unit_registered_test_attributes,
+          :ex_unit_registered_describe_attributes,
+          :ex_unit_registered_module_attributes,
           :ex_unit_used_describes
         ]
 
@@ -389,6 +393,10 @@ defmodule ExUnit.Case do
       after
         @ex_unit_describe nil
         Module.delete_attribute(__MODULE__, :describetag)
+
+        for attribute <- Module.get_attribute(__MODULE__, :ex_unit_registered_describe_attributes) do
+          Module.delete_attribute(__MODULE__, attribute)
+        end
       end
     end
   end
@@ -414,6 +422,12 @@ defmodule ExUnit.Case do
 
     if Module.get_attribute(module, :describetag) != [] do
       raise "@describetag must be set inside describe/2 blocks"
+    end
+
+    for attribute <- Module.get_attribute(module, :ex_unit_registered_describe_attributes),
+        value = Module.get_attribute(module, attribute),
+        value not in [[], nil] do
+      raise "@#{attribute} must be set inside describe/2 blocks"
     end
 
     Module.put_attribute(module, :ex_unit_describe, {line, message})
@@ -459,8 +473,18 @@ defmodule ExUnit.Case do
               "\"use ExUnit.Case\" in the current module"
     end
 
-    registered_attributes = Module.get_attribute(mod, :ex_unit_registered)
-    registered = Map.new(registered_attributes, &{&1, Module.get_attribute(mod, &1)})
+    registered_attribute_keys = [
+      :ex_unit_registered_module_attributes,
+      :ex_unit_registered_describe_attributes,
+      :ex_unit_registered_test_attributes
+    ]
+
+    registered =
+      for key <- registered_attribute_keys,
+          attribute <- Module.get_attribute(mod, key),
+          into: %{} do
+        {attribute, Module.get_attribute(mod, attribute)}
+      end
 
     tag = Module.delete_attribute(mod, :tag)
     async = Module.get_attribute(mod, :ex_unit_async)
@@ -496,9 +520,9 @@ defmodule ExUnit.Case do
     test = %ExUnit.Test{name: name, case: mod, tags: tags, module: mod}
     Module.put_attribute(mod, :ex_unit_tests, test)
 
-    Enum.each(registered_attributes, fn attribute ->
+    for attribute <- Module.get_attribute(mod, :ex_unit_registered_test_attributes) do
       Module.delete_attribute(mod, attribute)
-    end)
+    end
 
     name
   end
@@ -532,15 +556,109 @@ defmodule ExUnit.Case do
       end
 
   """
-  def register_attribute(env, name, opts \\ [])
-
-  def register_attribute(%{module: module}, name, opts) do
-    register_attribute(module, name, opts)
+  @spec register_attribute(env, name :: atom, opts :: keyword) :: :ok
+  def register_attribute(env, name, opts \\ []) do
+    do_register_attribute(:ex_unit_registered_test_attributes, env, name, opts)
   end
 
-  def register_attribute(mod, name, opts) when is_atom(mod) and is_atom(name) and is_list(opts) do
+  @doc """
+  Registers a new describe attribute to be used during `ExUnit.Case` tests.
+
+  The attribute values will be available through `context.registered`.
+  Registered values are cleared after each `ExUnit.Case.describe/2` similar
+  to `@describetag`.
+
+  `Module.register_attribute/3` is used to register the attribute,
+  this function takes the same options.
+
+  ## Examples
+
+      defmodule MyTest do
+        use ExUnit.Case
+
+        ExUnit.Case.register_describe_attribute(__MODULE__, :describe_fixtures, accumulate: true)
+
+        describe "using custom attribute" do
+          @describe_fixtures :user
+          @describe_fixtures {:post, insert: false}
+
+          test "has attribute", context do
+            assert context.registered.describe_fixtures == [{:post, insert: false}, :user]
+          end
+        end
+
+        describe "custom attributes are cleared per describe" do
+          test "doesn't have attributes", context do
+            assert context.registered.describe_fixtures == []
+          end
+        end
+      end
+
+  """
+  @spec register_describe_attribute(env, name :: atom, opts :: keyword) :: :ok
+  def register_describe_attribute(env, name, opts \\ []) do
+    do_register_attribute(:ex_unit_registered_describe_attributes, env, name, opts)
+  end
+
+  @doc """
+  Registers a new module attribute to be used during `ExUnit.Case` tests.
+
+  The attribute values will be available through `context.registered`.
+
+  `Module.register_attribute/3` is used to register the attribute,
+  this function takes the same options.
+
+  ## Examples
+
+      defmodule MyTest do
+        use ExUnit.Case
+
+        ExUnit.Case.register_module_attribute(__MODULE__, :module_fixtures, accumulate: true)
+
+        @module_fixtures :user
+        @module_fixtures {:post, insert: false}
+
+        test "using custom attribute", context do
+          assert context.registered.fixtures == [{:post, insert: false}, :user]
+        end
+
+        test "still using custom attribute", context do
+          assert context.registered.fixtures == [{:post, insert: false}, :user]
+        end
+      end
+
+  """
+  @spec register_module_attribute(env, name :: atom, opts :: keyword) :: :ok
+  def register_module_attribute(env, name, opts \\ []) do
+    do_register_attribute(:ex_unit_registered_module_attributes, env, name, opts)
+  end
+
+  defp do_register_attribute(type, %{module: module}, name, opts) do
+    do_register_attribute(type, module, name, opts)
+  end
+
+  defp do_register_attribute(type, mod, name, opts)
+       when is_atom(type) and is_atom(mod) and is_atom(name) and is_list(opts) do
+    validate_registered_attribute!(type, mod, name)
     Module.register_attribute(mod, name, opts)
-    Module.put_attribute(mod, :ex_unit_registered, name)
+    Module.put_attribute(mod, type, name)
+  end
+
+  defp validate_registered_attribute!(type, mod, name) do
+    registered_attribute_keys = [
+      :ex_unit_registered_module_attributes,
+      :ex_unit_registered_describe_attributes,
+      :ex_unit_registered_test_attributes
+    ]
+
+    for key <- registered_attribute_keys,
+        type != key && name in Module.get_attribute(mod, key) do
+      raise "cannot register attribute #{inspect(name)} multiple times"
+    end
+
+    if Module.get_attribute(mod, name) do
+      raise "you must set @#{name} after it has been registered"
+    end
   end
 
   defp validate_tags(tags) do
