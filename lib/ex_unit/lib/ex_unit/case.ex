@@ -424,12 +424,6 @@ defmodule ExUnit.Case do
       raise "@describetag must be set inside describe/2 blocks"
     end
 
-    for attribute <- Module.get_attribute(module, :ex_unit_registered_describe_attributes),
-        value = Module.get_attribute(module, attribute),
-        value not in [[], nil] do
-      raise "@#{attribute} must be set inside describe/2 blocks"
-    end
-
     Module.put_attribute(module, :ex_unit_describe, {line, message})
     Module.put_attribute(module, :ex_unit_used_describes, message)
     :ok

@@ -82,20 +82,6 @@ defmodule ExUnit.CaseTest do
     end
   end
 
-  test "raises when registered describe attribute used outside describe" do
-    message = "@describe_foo must be set inside describe/2 blocks"
-
-    assert_raise RuntimeError, message, fn ->
-      defmodule DescribeAttributeOutsideDescribeTest do
-        use ExUnit.Case
-        ExUnit.Case.register_describe_attribute(__MODULE__, :describe_foo)
-        @describe_foo true
-        describe "" do
-        end
-      end
-    end
-  end
-
   test "registered module attributes are in context", context do
     assert context.registered.module_foo == :hello
     assert context.registered.module_bar == [:world]
