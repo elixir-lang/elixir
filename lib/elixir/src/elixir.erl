@@ -57,8 +57,7 @@ start(_Type, _Args) ->
     debug_info => true,
     warnings_as_errors => false,
     relative_paths => true,
-    no_warn_undefined => [],
-    no_warn_deprecated => []
+    no_warn_undefined => []
   },
 
   {ok, [[Home] | _]} = init:get_argument(home),

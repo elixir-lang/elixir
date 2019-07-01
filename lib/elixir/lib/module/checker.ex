@@ -31,38 +31,44 @@ defmodule Module.Checker do
     end
   end
 
-  defp check_clause({_meta, _args, _guards, body}, state) do
-    check_body(body, state)
+  defp check_clause({_meta, args, _guards, body}, state) do
+    [check_expr(args, state), check_expr(body, state)]
   end
 
   # &Mod.fun/arity
-  defp check_body({:&, meta, [{:/, _, [{{:., dot_meta, [module, fun]}, _, []}, arity]}]}, state)
+  defp check_expr({:&, meta, [{:/, _, [{{:., _, [module, fun]}, _, []}, arity]}]}, state)
        when is_atom(module) and is_atom(fun) do
-    check_remote(module, fun, arity, meta ++ dot_meta, state)
+    check_remote(module, fun, arity, meta, state)
   end
 
   # Mod.fun(...)
-  defp check_body({{:., meta, [module, fun]}, call_meta, args}, state)
+  defp check_expr({{:., meta, [module, fun]}, _, args}, state)
        when is_atom(module) and is_atom(fun) do
-    check_remote(module, fun, length(args), meta ++ call_meta, state)
+    check_remote(module, fun, length(args), meta, state)
+  end
+
+  # %Module{...}
+  defp check_expr({:%, meta, [module, {:%{}, _meta, args}]}, state)
+       when is_atom(module) and is_list(args) do
+    [check_remote(module, :__struct__, 0, meta, state), check_expr(args, state)]
   end
 
   # Function call
-  defp check_body({left, _meta, right}, state) when is_list(right) do
-    [check_body(right, state), check_body(left, state)]
+  defp check_expr({left, _meta, right}, state) when is_list(right) do
+    [check_expr(right, state), check_expr(left, state)]
   end
 
   # {x, y}
-  defp check_body({left, right}, state) do
-    [check_body(right, state), check_body(left, state)]
+  defp check_expr({left, right}, state) do
+    [check_expr(right, state), check_expr(left, state)]
   end
 
   # [...]
-  defp check_body(list, state) when is_list(list) do
-    Enum.map(list, &check_body(&1, state))
+  defp check_expr(list, state) when is_list(list) do
+    Enum.map(list, &check_expr(&1, state))
   end
 
-  defp check_body(_other, _state) do
+  defp check_expr(_other, _state) do
     []
   end
 
@@ -80,7 +86,7 @@ defmodule Module.Checker do
         exports = exports_for(module)
         warn(meta, state, {:undefined_function, module, fun, arity, exports})
 
-      (reason = deprecated(module, fun, arity)) && warn_deprecated?(module, fun, arity, state) ->
+      reason = deprecated_reason(module, fun, arity) ->
         warn(meta, state, {:deprecated, module, fun, arity, reason})
 
       true ->
@@ -95,23 +101,15 @@ defmodule Module.Checker do
   defp warn_undefined?(:erlang, :andalso, 2, _state), do: false
 
   defp warn_undefined?(module, fun, arity, state) do
-    warn_compile_opts?(module, fun, arity, state.compile_opts, :no_warn_undefined)
-  end
-
-  defp warn_deprecated?(module, fun, arity, state) do
-    warn_compile_opts?(module, fun, arity, state.compile_opts, :no_warn_deprecated)
-  end
-
-  defp warn_compile_opts?(module, fun, arity, compile_opts, option) do
     for(
-      {^option, values} <- compile_opts,
+      {:no_warn_undefined, values} <- state.compile_opts,
       value <- List.wrap(values),
       value == module or value == {module, fun, arity},
       do: :skip
     ) == []
   end
 
-  defp deprecated(module, fun, arity) do
+  defp deprecated_reason(module, fun, arity) do
     if function_exported?(module, :__info__, 1) do
       case List.keyfind(module.__info__(:deprecated), {fun, arity}, 0) do
         {_key, reason} -> reason

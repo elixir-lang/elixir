@@ -419,7 +419,7 @@ defmodule Module.CheckerTest do
   end
 
   describe "deprecated" do
-    test "reports deprecated functions" do
+    test "reports functions" do
       files = %{
         "a.ex" => """
         defmodule A do
@@ -438,66 +438,34 @@ defmodule Module.CheckerTest do
       assert_warnings(files, warning)
     end
 
-    # test "reports deprecated structs" do
-    #   files = %{
-    #     "a.ex" => """
-    #     defmodule A do
-    #       @deprecated "oops"
-    #       defstruct [:x, :y]
-    #       def match(%A{}), do: :ok
-    #       def build(:ok), do: %A{}
-    #     end
-    #     """,
-    #     "b.ex" => """
-    #     defmodule B do
-    #       def match(%A{}), do: :ok
-    #       def build(:ok), do: %A{}
-    #     end
-    #     """
-    #   }
-    #
-    #   warning = """
-    #   """
-    #
-    #   assert_warnings(files, warning)
-    # end
-
-    test "excludes specified modules and MFAs" do
+    test "reports structs" do
       files = %{
         "a.ex" => """
         defmodule A do
-          @compile {:no_warn_deprecated, [DeprecatedModule, {DeprecatedModule2, :func, 2}]}
-
-          def a, do: DeprecatedModule.func(1)
-          def b, do: DeprecatedModule2.func(1, 2)
-          def c, do: DeprecatedModule2.func(1)
-          def d, do: DeprecatedModule3.func(1, 2)
+          @deprecated "oops"
+          defstruct [:x, :y]
+          def match(%A{}), do: :ok
+          def build(:ok), do: %A{}
         end
         """,
-        "deprecated_modules.ex" => """
-        defmodule DeprecatedModule do
-          @deprecated "message"
-          def func(_), do: :ok
-        end
-        defmodule DeprecatedModule2 do
-          @deprecated "message"
-          def func(_), do: :ok
-          @deprecated "message"
-          def func(_, _), do: :ok
-        end
-        defmodule DeprecatedModule3 do
-          @deprecated "message"
-          def func(_, _), do: :ok
+        "b.ex" => """
+        defmodule B do
+          def match(%A{}), do: :ok
+          def build(:ok), do: %A{}
         end
         """
       }
 
       warning = """
-      warning: DeprecatedModule2.func/1 is deprecated. message
-        a.ex:6: A.c/0
+      warning: A.__struct__/0 is deprecated. oops
+      Found at 2 locations:
+        a.ex:4: A.match/1
+        a.ex:5: A.build/1
 
-      warning: DeprecatedModule3.func/2 is deprecated. message
-        a.ex:7: A.d/0
+      warning: A.__struct__/0 is deprecated. oops
+      Found at 2 locations:
+        b.ex:2: B.match/1
+        b.ex:3: B.build/1
 
       """
 

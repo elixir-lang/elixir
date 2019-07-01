@@ -90,9 +90,7 @@ defmodule Mix.Tasks.Compile.Elixir do
     if exclude == [] do
       opts
     else
-      opts
-      |> Keyword.update(:no_warn_undefined, exclude, &(List.wrap(&1) ++ exclude))
-      |> Keyword.update(:no_warn_deprecated, exclude, &(List.wrap(&1) ++ exclude))
+      Keyword.update(opts, :no_warn_undefined, exclude, &(List.wrap(&1) ++ exclude))
     end
   end
 end
