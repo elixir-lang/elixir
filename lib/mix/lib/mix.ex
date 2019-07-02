@@ -335,7 +335,7 @@ defmodule Mix do
   """
   @spec compilers() :: [atom()]
   def compilers do
-    [:yecc, :leex, :erlang, :elixir, :xref, :app]
+    [:yecc, :leex, :erlang, :elixir, :app]
   end
 
   @doc """
