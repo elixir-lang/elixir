@@ -551,8 +551,11 @@ defmodule ExUnit.Case do
 
   """
   @spec register_attribute(env, name :: atom, opts :: keyword) :: :ok
-  def register_attribute(env, name, opts \\ []) when is_atom(name) and is_list(opts) do
-    register_attribute(:ex_unit_registered_test_attributes, env, name, opts)
+  def register_attribute(env, name, opts \\ [])
+  def register_attribute(%{module: mod}, name, opts), do: register_attribute(mod, name, opts)
+
+  def register_attribute(mod, name, opts) when is_atom(mod) and is_atom(name) and is_list(opts) do
+    register_attribute(:ex_unit_registered_test_attributes, mod, name, opts)
   end
 
   @doc """
@@ -590,8 +593,15 @@ defmodule ExUnit.Case do
 
   """
   @spec register_describe_attribute(env, name :: atom, opts :: keyword) :: :ok
-  def register_describe_attribute(env, name, opts \\ []) when is_atom(name) and is_list(opts) do
-    register_attribute(:ex_unit_registered_describe_attributes, env, name, opts)
+  def register_describe_attribute(env, name, opts \\ [])
+
+  def register_describe_attribute(%{module: mod}, name, opts) do
+    register_describe_attribute(mod, name, opts)
+  end
+
+  def register_describe_attribute(mod, name, opts)
+      when is_atom(mod) and is_atom(name) and is_list(opts) do
+    register_attribute(:ex_unit_registered_describe_attributes, mod, name, opts)
   end
 
   @doc """
@@ -623,8 +633,15 @@ defmodule ExUnit.Case do
 
   """
   @spec register_module_attribute(env, name :: atom, opts :: keyword) :: :ok
-  def register_module_attribute(env, name, opts \\ []) when is_atom(name) and is_list(opts) do
-    register_attribute(:ex_unit_registered_module_attributes, env, name, opts)
+  def register_module_attribute(env, name, opts \\ [])
+
+  def register_module_attribute(%{module: mod}, name, opts) do
+    register_module_attribute(mod, name, opts)
+  end
+
+  def register_module_attribute(mod, name, opts)
+      when is_atom(mod) and is_atom(name) and is_list(opts) do
+    register_attribute(:ex_unit_registered_module_attributes, mod, name, opts)
   end
 
   defp register_attribute(type, %{module: module}, name, opts) do
