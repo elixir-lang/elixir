@@ -75,6 +75,7 @@ defmodule Mix.Tasks.Compile.All do
   end
 
   defp compilers() do
-    Enum.reject(Mix.Tasks.Compile.compilers(), &(&1 == :xref))
+    # TODO: Deprecate :xref on v1.12
+    List.delete(Mix.Tasks.Compile.compilers(), :xref)
   end
 end
