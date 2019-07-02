@@ -284,17 +284,9 @@ format_error({ambiguous_call, {Mod1, Mod2, Name, Arity}}) ->
   io_lib:format("function ~ts/~B imported from both ~ts and ~ts, call is ambiguous",
     [Name, Arity, elixir_aliases:inspect(Mod1), elixir_aliases:inspect(Mod2)]);
 format_error({deprecated, Mod, '__using__', 1, Message}) ->
-  Warning = io_lib:format("use ~s is deprecated", [elixir_aliases:inspect(Mod)]),
-  deprecation_message(Warning, Message);
+  io_lib:format("use ~s is deprecated. ~s", [elixir_aliases:inspect(Mod), Message]);
 format_error({deprecated, Mod, Fun, Arity, Message}) ->
-  Warning = io_lib:format("~s.~s/~B is deprecated", [elixir_aliases:inspect(Mod), Fun, Arity]),
-  deprecation_message(Warning, Message).
-
-deprecation_message(Warning, Message) ->
-  case Message of
-    true -> Warning;
-    Message -> Warning ++ ". " ++ Message
-  end.
+  io_lib:format("~s.~s/~B is deprecated. ~s",[elixir_aliases:inspect(Mod), Fun, Arity, Message]).
 
 %% INTROSPECTION
 
