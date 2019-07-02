@@ -489,6 +489,31 @@ defmodule Module.CheckerTest do
 
       assert_warnings(files, warning)
     end
+
+    test "reports module body" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          @deprecated "oops"
+          def a, do: :ok
+        end
+        """,
+        "b.ex" => """
+        defmodule B do
+          require A
+          A.a()
+        end
+        """
+      }
+
+      warning = """
+      warning: A.a/0 is deprecated. oops
+        b.ex:3: B
+
+      """
+
+      assert_warnings(files, warning)
+    end
   end
 
   defp assert_warnings(files, expected) do
