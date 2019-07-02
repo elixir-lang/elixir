@@ -483,6 +483,37 @@ defmodule Kernel do
   end
 
   @doc """
+  Returns its argument.
+
+  ## Examples
+
+      identity(17)
+      #=> 17
+
+      identity(:ok)
+      #=> :ok
+
+      [1,2,3,nil, true, false, 1234] |> Enum.filter(&identity/1)
+      #=> [1, 2, 3, true, 1234]
+
+      'abcdaabccc' |> Enum.sort |> Enum.chunk_by(&identity/1)
+      #=> ['aaa', 'bb', 'cccc', 'd']
+
+      [1, 1, 2, 3, 3, 1, 1, 5, 5] |> Enum.chunk_by(&identity/1) |> Enum.map(&hd/1)
+      #=> [1, 2, 3, 1, 5]
+
+      Enum.group_by('abracadabra', &identity/1)
+      #=> %{97 => 'aaaaa', 98 => 'bb', 99 => 'c', 100 => 'd', 114 => 'rr'}
+
+      Enum.map([1, 2, 3, 4], &identity/1)
+      #=> [1, 2, 3, 4]
+  """
+  @spec identity(term) :: term
+  def identity(a) do
+    a
+  end
+
+  @doc """
   Returns the head of a list. Raises `ArgumentError` if the list is empty.
 
   It works with improper lists.
@@ -1773,7 +1804,7 @@ defmodule Kernel do
 
   defp wrap_concatenation(other, side, caller) do
     expanded = expand_concat_argument(other, side, caller)
-    {:"::", [], [expanded, {:binary, [], nil}]}
+    {:::, [], [expanded, {:binary, [], nil}]}
   end
 
   defp expand_concat_argument(arg, :left, %{context: :match} = caller) do
@@ -5277,7 +5308,7 @@ defmodule Kernel do
 
   defp unescape_list_tokens(tokens) do
     escape = fn
-      {:"::", _, [expr, _]} -> expr
+      {:::, _, [expr, _]} -> expr
       binary when is_binary(binary) -> :elixir_interpolation.unescape_chars(binary)
     end
 
