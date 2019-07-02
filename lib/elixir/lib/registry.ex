@@ -1320,6 +1320,7 @@ defmodule Registry.Supervisor do
         key_partition = Registry.Partition.key_name(registry, i)
         pid_partition = Registry.Partition.pid_name(registry, i)
         arg = {kind, registry, i, partitions, key_partition, pid_partition, listeners}
+
         %{
           id: pid_partition,
           start: {Registry.Partition, :start_link, [pid_partition, arg]}
