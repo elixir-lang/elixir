@@ -1320,7 +1320,10 @@ defmodule Registry.Supervisor do
         key_partition = Registry.Partition.key_name(registry, i)
         pid_partition = Registry.Partition.pid_name(registry, i)
         arg = {kind, registry, i, partitions, key_partition, pid_partition, listeners}
-        Supervisor.child_spec({Registry.Partition, [pid_partition, arg]}, id: pid_partition)
+        %{
+          id: pid_partition,
+          start: {Registry.Partition, :start_link, [pid_partition, arg]}
+        }
       end
 
     Supervisor.init(children, strategy: strategy_for_kind(kind))
@@ -1369,7 +1372,7 @@ defmodule Registry.Partition do
   The process is only responsible for monitoring, demonitoring
   and cleaning up when monitored processes crash.
   """
-  def start_link([registry, arg]) do
+  def start_link(registry, arg) do
     GenServer.start_link(__MODULE__, arg, name: registry)
   end
 
