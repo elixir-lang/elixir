@@ -248,7 +248,7 @@ defmodule Mix.Release do
 
       included != :maybe and properties[:included] != included ->
         if properties[:included] == :maybe do
-          put_in seen[app][:included], included
+          put_in(seen[app][:included], included)
         else
           Mix.raise(
             "#{inspect(app)} is listed both as a regular application and as an included application"
