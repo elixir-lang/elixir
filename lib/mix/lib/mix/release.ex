@@ -83,14 +83,14 @@ defmodule Mix.Release do
     {include_erts, opts} = Keyword.pop(opts, :include_erts, true)
     {erts_source, erts_lib_dir, erts_version} = erts_data(include_erts)
 
-    loaded_apps = apps |> Keyword.keys() |> load_apps(%{}, erts_lib_dir)
+    loaded_apps = apps |> Keyword.keys() |> load_apps(%{}, erts_lib_dir, :maybe)
 
     # Make sure IEx is either an active part of the release or add it as none.
     {loaded_apps, apps} =
       if Map.has_key?(loaded_apps, :iex) do
         {loaded_apps, apps}
       else
-        {load_apps([:iex], loaded_apps, erts_lib_dir), apps ++ [iex: :none]}
+        {load_apps([:iex], loaded_apps, erts_lib_dir, :maybe), apps ++ [iex: :none]}
       end
 
     start_boot = build_start_boot(loaded_apps, apps)
@@ -234,36 +234,62 @@ defmodule Mix.Release do
     end
   end
 
-  defp load_apps(apps, seen, otp_root) do
-    for app <- apps,
-        not Map.has_key?(seen, app),
-        reduce: seen do
-      seen -> load_app(app, seen, otp_root)
+  defp load_apps(apps, seen, otp_root, included) do
+    for app <- apps, reduce: seen do
+      seen ->
+        if reentrant_seen = reentrant(seen, app, included) do
+          reentrant_seen
+        else
+          load_app(app, seen, otp_root, included)
+        end
     end
   end
 
-  defp load_app(app, seen, otp_root) do
+  defp reentrant(seen, app, included) do
+    properties = seen[app]
+
+    cond do
+      is_nil(properties) ->
+        nil
+
+      included != :maybe and properties[:included] != included ->
+        if properties[:included] == :maybe do
+          put_in seen[app][:included], included
+        else
+          Mix.raise(
+            "#{inspect(app)} is listed both as a regular application and as an included application"
+          )
+        end
+
+      true ->
+        seen
+    end
+  end
+
+  defp load_app(app, seen, otp_root, included) do
     path = Path.join(otp_root, "#{app}-*")
 
     case Path.wildcard(path) do
       [] ->
         case :code.lib_dir(app) do
           {:error, :bad_name} -> Mix.raise("Could not find application #{inspect(app)}")
-          path -> do_load_app(app, path, seen, otp_root, false)
+          path -> do_load_app(app, path, seen, otp_root, false, included)
         end
 
       paths ->
         path = paths |> Enum.sort() |> List.last()
-        do_load_app(app, to_charlist(path), seen, otp_root, true)
+        do_load_app(app, to_charlist(path), seen, otp_root, true, included)
     end
   end
 
-  defp do_load_app(app, path, seen, otp_root, otp_app?) do
+  defp do_load_app(app, path, seen, otp_root, otp_app?, included) do
     case :file.consult(Path.join(path, "ebin/#{app}.app")) do
       {:ok, terms} ->
         [{:application, ^app, properties}] = terms
-        seen = Map.put(seen, app, [path: path, otp_app?: otp_app?] ++ properties)
-        load_apps(Keyword.get(properties, :applications, []), seen, otp_root)
+        value = [path: path, otp_app?: otp_app?, included: included] ++ properties
+        seen = Map.put(seen, app, value)
+        seen = load_apps(Keyword.get(properties, :applications, []), seen, otp_root, false)
+        load_apps(Keyword.get(properties, :included_applications, []), seen, otp_root, true)
 
       {:error, reason} ->
         Mix.raise("Could not load #{app}.app. Reason: #{inspect(reason)}")
@@ -273,10 +299,14 @@ defmodule Mix.Release do
   defp build_start_boot(all_apps, specified_apps) do
     specified_apps ++
       for(
-        {app, _props} <- all_apps,
+        {app, props} <- all_apps,
         not List.keymember?(specified_apps, app, 0),
-        do: {app, :permanent}
+        do: {app, default_mode(props)}
       )
+  end
+
+  defp default_mode(props) do
+    if props[:included] == true, do: :load, else: :permanent
   end
 
   defp build_start_clean_boot(boot) do
