@@ -4,35 +4,42 @@ defmodule Module.Checker do
       file: module_map.file,
       module: module_map.module,
       compile_opts: module_map.compile_opts,
-      function: nil
+      function: nil,
+      warnings: []
     }
 
     module_map.definitions
     |> check_definitions(state)
-    |> List.flatten()
+    |> Map.fetch!(:warnings)
     |> merge_warnings()
     |> sort_warnings()
     |> emit_warnings()
   end
 
   defp check_definitions(definitions, state) do
-    Enum.map(definitions, &check_definition(&1, state))
+    Enum.reduce(definitions, state, &check_definition/2)
   end
 
   defp check_definition({function, _kind, meta, clauses}, state) do
-    state = put_file_meta(%{state | function: function}, meta)
-    Enum.map(clauses, &check_clause(&1, state))
+    with_file_meta(%{state | function: function}, meta, fn state ->
+      Enum.reduce(clauses, state, &check_clause/2)
+    end)
   end
 
-  defp put_file_meta(state, meta) do
+  defp with_file_meta(%{file: original_file} = state, meta, fun) do
     case Keyword.fetch(meta, :file) do
-      {:ok, {file, _}} -> %{state | file: file}
-      :error -> state
+      {:ok, {meta_file, _}} ->
+        state = fun.(%{state | file: meta_file})
+        %{state | file: original_file}
+
+      :error ->
+        fun.(state)
     end
   end
 
   defp check_clause({_meta, args, _guards, body}, state) do
-    [check_expr(args, state), check_expr(body, state)]
+    state = check_expr(args, state)
+    check_expr(body, state)
   end
 
   # &Mod.fun/arity
@@ -50,26 +57,29 @@ defmodule Module.Checker do
   # %Module{...}
   defp check_expr({:%, meta, [module, {:%{}, _meta, args}]}, state)
        when is_atom(module) and is_list(args) do
-    [check_remote(module, :__struct__, 0, meta, state), check_expr(args, state)]
+    state = check_remote(module, :__struct__, 0, meta, state)
+    check_expr(args, state)
   end
 
   # Function call
   defp check_expr({left, _meta, right}, state) when is_list(right) do
-    [check_expr(right, state), check_expr(left, state)]
+    state = check_expr(right, state)
+    check_expr(left, state)
   end
 
   # {x, y}
   defp check_expr({left, right}, state) do
-    [check_expr(right, state), check_expr(left, state)]
+    state = check_expr(right, state)
+    check_expr(left, state)
   end
 
   # [...]
   defp check_expr(list, state) when is_list(list) do
-    Enum.map(list, &check_expr(&1, state))
+    Enum.reduce(list, state, &check_expr/2)
   end
 
-  defp check_expr(_other, _state) do
-    []
+  defp check_expr(_other, state) do
+    state
   end
 
   defp check_remote(module, fun, arity, meta, state) do
@@ -77,7 +87,7 @@ defmodule Module.Checker do
       # TODO: In the future we may want to warn for modules defined
       # in the local context
       Keyword.get(meta, :context_module, false) and state.module != module ->
-        []
+        state
 
       not Code.ensure_loaded?(module) and warn_undefined?(module, fun, arity, state) ->
         warn(meta, state, {:undefined_module, module, fun, arity})
@@ -90,7 +100,7 @@ defmodule Module.Checker do
         warn(meta, state, {:deprecated, module, fun, arity, reason})
 
       true ->
-        []
+        state
     end
   end
 
@@ -128,8 +138,10 @@ defmodule Module.Checker do
     end
   end
 
-  defp warn(meta, %{file: file, module: module, function: {fun, arity}}, warning) do
-    {warning, {file, meta[:line], {module, fun, arity}}}
+  defp warn(meta, state, warning) do
+    {fun, arity} = state.function
+    location = {state.file, meta[:line], {state.module, fun, arity}}
+    %{state | warnings: [{warning, location} | state.warnings]}
   end
 
   defp merge_warnings(warnings) do
