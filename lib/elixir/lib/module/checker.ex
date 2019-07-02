@@ -110,13 +110,13 @@ defmodule Module.Checker do
   end
 
   defp deprecated_reason(module, fun, arity) do
-    if function_exported?(module, :__info__, 1) do
-      case List.keyfind(module.__info__(:deprecated), {fun, arity}, 0) do
-        {_key, reason} -> reason
-        nil -> nil
-      end
+    with {^module, binary, _path} <- :code.get_object_code(module),
+         {:ok, {^module, [{'ExDp', chunk}]}} <- :beam_lib.chunks(binary, ['ExDp']),
+         {:elixir_deprecated_v1, deprecated} <- :erlang.binary_to_term(chunk),
+         {_key, reason} <- List.keyfind(deprecated, {fun, arity}, 0) do
+      reason
     else
-      nil
+      _ -> nil
     end
   end
 
