@@ -94,7 +94,7 @@ defmodule ExUnit.CaseTest do
   end
 
   test "raises when same name is registered twice" do
-    assert_raise RuntimeError, "cannot register attribute :foo multiple times", fn ->
+    assert_raise ArgumentError, "cannot register attribute :foo multiple times", fn ->
       defmodule AcrossLevelDoubleRegisterTest do
         use ExUnit.Case
         ExUnit.Case.register_attribute(__MODULE__, :foo)

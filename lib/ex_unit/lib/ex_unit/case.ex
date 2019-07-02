@@ -551,8 +551,8 @@ defmodule ExUnit.Case do
 
   """
   @spec register_attribute(env, name :: atom, opts :: keyword) :: :ok
-  def register_attribute(env, name, opts \\ []) do
-    do_register_attribute(:ex_unit_registered_test_attributes, env, name, opts)
+  def register_attribute(env, name, opts \\ []) when is_atom(name) and is_list(opts) do
+    register_attribute(:ex_unit_registered_test_attributes, env, name, opts)
   end
 
   @doc """
@@ -590,8 +590,8 @@ defmodule ExUnit.Case do
 
   """
   @spec register_describe_attribute(env, name :: atom, opts :: keyword) :: :ok
-  def register_describe_attribute(env, name, opts \\ []) do
-    do_register_attribute(:ex_unit_registered_describe_attributes, env, name, opts)
+  def register_describe_attribute(env, name, opts \\ []) when is_atom(name) and is_list(opts) do
+    register_attribute(:ex_unit_registered_describe_attributes, env, name, opts)
   end
 
   @doc """
@@ -623,16 +623,15 @@ defmodule ExUnit.Case do
 
   """
   @spec register_module_attribute(env, name :: atom, opts :: keyword) :: :ok
-  def register_module_attribute(env, name, opts \\ []) do
-    do_register_attribute(:ex_unit_registered_module_attributes, env, name, opts)
+  def register_module_attribute(env, name, opts \\ []) when is_atom(name) and is_list(opts) do
+    register_attribute(:ex_unit_registered_module_attributes, env, name, opts)
   end
 
-  defp do_register_attribute(type, %{module: module}, name, opts) do
-    do_register_attribute(type, module, name, opts)
+  defp register_attribute(type, %{module: module}, name, opts) do
+    register_attribute(type, module, name, opts)
   end
 
-  defp do_register_attribute(type, mod, name, opts)
-       when is_atom(type) and is_atom(mod) and is_atom(name) and is_list(opts) do
+  defp register_attribute(type, mod, name, opts) do
     validate_registered_attribute!(type, mod, name)
     Module.register_attribute(mod, name, opts)
     Module.put_attribute(mod, type, name)
@@ -646,8 +645,8 @@ defmodule ExUnit.Case do
     ]
 
     for key <- registered_attribute_keys,
-        type != key && name in Module.get_attribute(mod, key) do
-      raise "cannot register attribute #{inspect(name)} multiple times"
+        type != key and name in Module.get_attribute(mod, key) do
+      raise ArgumentError, "cannot register attribute #{inspect(name)} multiple times"
     end
 
     if Module.get_attribute(mod, name) do
