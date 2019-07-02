@@ -376,6 +376,24 @@ defmodule Module.CheckerTest do
       assert_no_warnings(files)
     end
 
+    test "do not warn for moduel defined in local context" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          def a() do
+            defmodule B do
+              def b(), do: :ok
+            end
+
+            B.b()
+          end
+        end
+        """
+      }
+
+      assert_no_warnings(files)
+    end
+
     test "excludes no_warn_undefined" do
       files = %{
         "a.ex" => """
@@ -489,7 +507,7 @@ defmodule Module.CheckerTest do
     files = generate_files(files)
 
     capture_io(:stderr, fn ->
-      {:ok, modules, _warnings} = Kernel.ParallelCompiler.compile(files)
+      {:ok, modules, _warnings} = Kernel.ParallelCompiler.compile_to_path(files, ".")
 
       Enum.each(modules, fn module ->
         :code.purge(module)
