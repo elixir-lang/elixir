@@ -22,7 +22,7 @@ defmodule Mix.Tasks.Compile.All do
     Mix.Project.build_structure()
 
     with_logger_app(fn ->
-      res = do_compile(Mix.Tasks.Compile.compilers(), args, :noop, [])
+      res = do_compile(compilers(), args, :noop, [])
       true = Code.prepend_path(Mix.Project.compile_path())
       res
     end)
@@ -72,5 +72,10 @@ defmodule Mix.Tasks.Compile.All do
 
   defp run_compiler(compiler, args) do
     Mix.Task.Compiler.normalize(Mix.Task.run("compile.#{compiler}", args), compiler)
+  end
+
+  defp compilers() do
+    # TODO: Deprecate :xref on v1.12
+    List.delete(Mix.Tasks.Compile.compilers(), :xref)
   end
 end

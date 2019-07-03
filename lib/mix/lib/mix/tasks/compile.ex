@@ -12,7 +12,7 @@ defmodule Mix.Tasks.Compile do
   ## Configuration
 
     * `:compilers` - compilers to run, defaults to `Mix.compilers/0`,
-      which are `[:yecc, :leex, :erlang, :elixir, :xref, :app]`.
+      which are `[:yecc, :leex, :erlang, :elixir, :app]`.
 
     * `:consolidate_protocols` - when `true`, runs protocol
       consolidation via the `compile.protocols` task. The default
