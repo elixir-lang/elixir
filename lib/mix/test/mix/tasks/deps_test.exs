@@ -308,6 +308,32 @@ defmodule Mix.Tasks.DepsTest do
     end)
   end
 
+  test "checks lock file has unused deps with --check-unused", context do
+    Mix.Project.push(DepsApp)
+
+    in_tmp(context.test, fn ->
+      Mix.Dep.Lock.write(%{whatever: "0.2.0", ok: "0.1.0"})
+      assert Mix.Dep.Lock.read() == %{whatever: "0.2.0", ok: "0.1.0"}
+      Mix.Tasks.Deps.Unlock.run(["--check-unused"])
+      assert Mix.Dep.Lock.read() == %{whatever: "0.2.0", ok: "0.1.0"}
+      error = "warning: unused dependencies in mix.lock file"
+      assert_received {:mix_shell, :error, [^error]}
+    end)
+  end
+
+  test "checks lock file has no unused deps with --check-unused", context do
+    Mix.Project.push(DepsApp)
+
+    in_tmp(context.test, fn ->
+      Mix.Dep.Lock.write(%{ok: "0.1.0"})
+      assert Mix.Dep.Lock.read() == %{ok: "0.1.0"}
+      Mix.Tasks.Deps.Unlock.run(["--check-unused"])
+      assert Mix.Dep.Lock.read() == %{ok: "0.1.0"}
+      error = "warning: unused dependencies in mix.lock file"
+      refute_received {:mix_shell, :error, [^error]}
+    end)
+  end
+
   test "unlocks unused deps", context do
     Mix.Project.push(DepsApp)
 
