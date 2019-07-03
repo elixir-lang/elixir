@@ -525,11 +525,10 @@ defmodule ExUnit.Case do
   Registers a new attribute to be used during `ExUnit.Case` tests.
 
   The attribute values will be available through `context.registered`.
-  Registered values are cleared after each `ExUnit.Case.test/3` similar
+  Registered values are cleared after each `test/3` similar
   to `@tag`.
 
-  `Module.register_attribute/3` is used to register the attribute,
-  this function takes the same options.
+  This function takes the same options as `Module.register_attribute/3`.
 
   ## Examples
 
@@ -562,11 +561,10 @@ defmodule ExUnit.Case do
   Registers a new describe attribute to be used during `ExUnit.Case` tests.
 
   The attribute values will be available through `context.registered`.
-  Registered values are cleared after each `ExUnit.Case.describe/2` similar
+  Registered values are cleared after each `describe/2` similar
   to `@describetag`.
 
-  `Module.register_attribute/3` is used to register the attribute,
-  this function takes the same options.
+  This function takes the same options as `Module.register_attribute/3`.
 
   ## Examples
 
@@ -609,8 +607,7 @@ defmodule ExUnit.Case do
 
   The attribute values will be available through `context.registered`.
 
-  `Module.register_attribute/3` is used to register the attribute,
-  this function takes the same options.
+  This function takes the same options as `Module.register_attribute/3`.
 
   ## Examples
 
@@ -642,10 +639,6 @@ defmodule ExUnit.Case do
   def register_module_attribute(mod, name, opts)
       when is_atom(mod) and is_atom(name) and is_list(opts) do
     register_attribute(:ex_unit_registered_module_attributes, mod, name, opts)
-  end
-
-  defp register_attribute(type, %{module: module}, name, opts) do
-    register_attribute(type, module, name, opts)
   end
 
   defp register_attribute(type, mod, name, opts) do
