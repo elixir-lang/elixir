@@ -35,7 +35,7 @@ defmodule Mix.Tasks.Deps.Unlock do
         unused_apps = Mix.Dep.Lock.read() |> Map.drop(apps)
 
         unless unused_apps == %{} do
-          Mix.shell().error("warning: unused dependencies in mix.lock file")
+          Mix.raise("warning: unused dependencies in mix.lock file")
         end
 
       opts[:unused] ->
