@@ -11,437 +11,509 @@ defmodule Module.CheckerTest do
     on_exit(fn -> Application.put_env(:elixir, :ansi_enabled, previous) end)
   end
 
-  test "handles Erlang modules" do
-    files = %{
-      "a.ex" => """
-      defmodule A do
-        def a, do: :not_a_module.no_module
-        def b, do: :lists.no_func
-      end
+  describe "undefined" do
+    test "handles Erlang modules" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          def a, do: :not_a_module.no_module
+          def b, do: :lists.no_func
+        end
+        """
+      }
+
+      warning = """
+      warning: :not_a_module.no_module/0 is undefined (module :not_a_module is not available or is yet to be defined)
+        a.ex:2: A.a/0
+
+      warning: :lists.no_func/0 is undefined or private
+        a.ex:3: A.b/0
+
       """
-    }
 
-    warning = """
-    warning: :not_a_module.no_module/0 is undefined (module :not_a_module is not available or is yet to be defined)
-      a.ex:2: A.a/0
+      assert_warnings(files, warning)
+    end
 
-    warning: :lists.no_func/0 is undefined or private
-      a.ex:3: A.b/0
+    test "handles module body conditionals" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          if function_exported?(List, :flatten, 1) do
+            List.flatten([1, 2, 3])
+          else
+            List.old_flatten([1, 2, 3])
+          end
 
-    """
+          if function_exported?(List, :flatten, 1) do
+            def flatten(arg), do: List.flatten(arg)
+          else
+            def flatten(arg), do: List.old_flatten(arg)
+          end
 
-    assert_warnings(files, warning)
-  end
+          if function_exported?(List, :flatten, 1) do
+            def flatten2(arg), do: List.old_flatten(arg)
+          else
+            def flatten2(arg), do: List.flatten(arg)
+          end
+        end
+        """
+      }
 
-  test "handles module body conditionals" do
-    files = %{
-      "a.ex" => """
-      defmodule A do
-        if function_exported?(List, :flatten, 1) do
-          List.flatten([1, 2, 3])
-        else
-          List.old_flatten([1, 2, 3])
+      warning = """
+      warning: List.old_flatten/1 is undefined or private. Did you mean one of:
+
+            * flatten/1
+            * flatten/2
+
+        a.ex:15: A.flatten2/1
+
+      """
+
+      assert_warnings(files, warning)
+    end
+
+    test "aliases" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          alias Enum, as: E
+
+          def a(a, b), do: E.map2(a, b)
+          def b, do: &E.map2/2
+
+          @file "external_source.ex"
+          def c do
+            alias Enum, as: EE
+            &EE.map2/2
+          end
+        end
+        """
+      }
+
+      warning = """
+      warning: Enum.map2/2 is undefined or private. Did you mean one of:
+
+            * map/2
+
+      Found at 3 locations:
+        a.ex:4: A.a/2
+        a.ex:5: A.b/0
+        external_source.ex:10: A.c/0
+
+      """
+
+      assert_warnings(files, warning)
+    end
+
+    test "reports missing functions" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          def a, do: A.no_func
+          def b, do: A.a()
+
+          @file "external_source.ex"
+          def c, do: &A.no_func/1
+        end
+        """
+      }
+
+      warning = """
+      warning: A.no_func/0 is undefined or private
+        a.ex:2: A.a/0
+
+      warning: A.no_func/1 is undefined or private
+        external_source.ex:6: A.c/0
+
+      """
+
+      assert_warnings(files, warning)
+    end
+
+    test " reports missing functions respecting arity" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          def a, do: :ok
+          def b, do: A.a(1)
+
+          @file "external_source.ex"
+          def c, do: A.b(1)
+        end
+        """
+      }
+
+      warning = """
+      warning: A.a/1 is undefined or private. Did you mean one of:
+
+            * a/0
+
+        a.ex:3: A.b/0
+
+      warning: A.b/1 is undefined or private. Did you mean one of:
+
+            * b/0
+
+        external_source.ex:6: A.c/0
+
+      """
+
+      assert_warnings(files, warning)
+    end
+
+    test "reports missing modules" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          def a, do: D.no_module
+
+          @file "external_source.ex"
+          def c, do: E.no_module
+        end
+        """
+      }
+
+      warning = """
+      warning: D.no_module/0 is undefined (module D is not available or is yet to be defined)
+        a.ex:2: A.a/0
+
+      warning: E.no_module/0 is undefined (module E is not available or is yet to be defined)
+        external_source.ex:5: A.c/0
+
+      """
+
+      assert_warnings(files, warning)
+    end
+
+    test "reports missing captures" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          def a, do: &A.no_func/0
+
+          @file "external_source.ex"
+          def c, do: &A.no_func/1
+        end
+        """
+      }
+
+      warning = """
+      warning: A.no_func/0 is undefined or private
+        a.ex:2: A.a/0
+
+      warning: A.no_func/1 is undefined or private
+        external_source.ex:5: A.c/0
+
+      """
+
+      assert_warnings(files, warning)
+    end
+
+    test "doesn't report missing funcs at compile time" do
+      files = %{
+        "a.ex" => """
+          Enum.map([], fn _ -> BadReferencer.no_func4() end)
+
+          if function_exported?(List, :flatten, 1) do
+            List.flatten([1, 2, 3])
+          else
+            List.old_flatten([1, 2, 3])
+          end
+        """
+      }
+
+      assert_no_warnings(files)
+    end
+
+    test "handles multiple modules in one file" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          def a, do: B.no_func
+          def b, do: B.a
+        end
+        """,
+        "b.ex" => """
+        defmodule B do
+          def a, do: A.no_func
+          def b, do: A.b
+        end
+        """
+      }
+
+      warning = """
+      warning: B.no_func/0 is undefined or private
+        a.ex:2: A.a/0
+
+      warning: A.no_func/0 is undefined or private
+        b.ex:2: B.a/0
+
+      """
+
+      assert_warnings(files, warning)
+    end
+
+    test "groups multiple warnings in one file" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          def a, do: A.no_func
+
+          @file "external_source.ex"
+          def b, do: A2.no_func
+
+          def c, do: A.no_func
+          def d, do: A2.no_func
+        end
+        """
+      }
+
+      warning = """
+      warning: A2.no_func/0 is undefined (module A2 is not available or is yet to be defined)
+      Found at 2 locations:
+        a.ex:8: A.d/0
+        external_source.ex:5: A.b/0
+
+      warning: A.no_func/0 is undefined or private
+      Found at 2 locations:
+        a.ex:2: A.a/0
+        a.ex:7: A.c/0
+
+      """
+
+      assert_warnings(files, warning)
+    end
+
+    test "protocols are checked, ignoring missing built-in impls" do
+      files = %{
+        "a.ex" => """
+        defprotocol AProtocol do
+          def func(arg)
         end
 
-        if function_exported?(List, :flatten, 1) do
-          def flatten(arg), do: List.flatten(arg)
-        else
-          def flatten(arg), do: List.old_flatten(arg)
+        defmodule AImplementation do
+          defimpl AProtocol do
+            def func(_), do: B.no_func
+          end
         end
+        """
+      }
 
-        if function_exported?(List, :flatten, 1) do
-          def flatten2(arg), do: List.old_flatten(arg)
-        else
-          def flatten2(arg), do: List.flatten(arg)
+      warning = """
+      warning: B.no_func/0 is undefined (module B is not available or is yet to be defined)
+        a.ex:7: AProtocol.AImplementation.func/1
+
+      """
+
+      assert_warnings(files, warning)
+    end
+
+    test "handles Erlang ops" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          def a(a, b), do: a and b
+          def b(a, b), do: a or b
         end
-      end
-      """
-    }
+        """
+      }
 
-    warning = """
-    warning: List.old_flatten/1 is undefined or private. Did you mean one of:
+      assert_no_warnings(files)
+    end
 
-          * flatten/1
-          * flatten/2
+    test "hints exclude deprecated functions" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          def to_charlist(a), do: a
 
-      a.ex:15: A.flatten2/1
+          @deprecated "Use String.to_charlist/1 instead"
+          def to_char_list(a), do: a
 
-    """
-
-    assert_warnings(files, warning)
-  end
-
-  test "aliases" do
-    files = %{
-      "a.ex" => """
-      defmodule A do
-        alias Enum, as: E
-
-        def a(a, b), do: E.map2(a, b)
-        def b, do: &E.map2/2
-
-        @file "external_source.ex"
-        def c do
-          alias Enum, as: EE
-          &EE.map2/2
+          def c(a), do: A.to_list(a)
         end
-      end
+        """
+      }
+
+      warning = """
+      warning: A.to_list/1 is undefined or private. Did you mean one of:
+
+            * to_charlist/1
+
+        a.ex:7: A.c/1
+
       """
-    }
 
-    warning = """
-    warning: Enum.map2/2 is undefined or private. Did you mean one of:
+      assert_warnings(files, warning)
+    end
 
-          * map/2
+    test "imports" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          import Record
 
-    Found at 3 locations:
-      a.ex:4: A.a/2
-      a.ex:5: A.b/0
-      external_source.ex:10: A.c/0
-
-    """
-
-    assert_warnings(files, warning)
-  end
-
-  test "reports missing functions" do
-    files = %{
-      "a.ex" => """
-      defmodule A do
-        def a, do: A.no_func
-        def b, do: A.a()
-
-        @file "external_source.ex"
-        def c, do: &A.no_func/1
-      end
-      """
-    }
-
-    warning = """
-    warning: A.no_func/0 is undefined or private
-      a.ex:2: A.a/0
-
-    warning: A.no_func/1 is undefined or private
-      external_source.ex:6: A.c/0
-
-    """
-
-    assert_warnings(files, warning)
-  end
-
-  test " reports missing functions respecting arity" do
-    files = %{
-      "a.ex" => """
-      defmodule A do
-        def a, do: :ok
-        def b, do: A.a(1)
-
-        @file "external_source.ex"
-        def c, do: A.b(1)
-      end
-      """
-    }
-
-    warning = """
-    warning: A.a/1 is undefined or private. Did you mean one of:
-
-          * a/0
-
-      a.ex:3: A.b/0
-
-    warning: A.b/1 is undefined or private. Did you mean one of:
-
-          * b/0
-
-      external_source.ex:6: A.c/0
-
-    """
-
-    assert_warnings(files, warning)
-  end
-
-  test "reports missing modules" do
-    files = %{
-      "a.ex" => """
-      defmodule A do
-        def a, do: D.no_module
-
-        @file "external_source.ex"
-        def c, do: E.no_module
-      end
-      """
-    }
-
-    warning = """
-    warning: D.no_module/0 is undefined (module D is not available or is yet to be defined)
-      a.ex:2: A.a/0
-
-    warning: E.no_module/0 is undefined (module E is not available or is yet to be defined)
-      external_source.ex:5: A.c/0
-
-    """
-
-    assert_warnings(files, warning)
-  end
-
-  test "reports missing captures" do
-    files = %{
-      "a.ex" => """
-      defmodule A do
-        def a, do: &A.no_func/0
-
-        @file "external_source.ex"
-        def c, do: &A.no_func/1
-      end
-      """
-    }
-
-    warning = """
-    warning: A.no_func/0 is undefined or private
-      a.ex:2: A.a/0
-
-    warning: A.no_func/1 is undefined or private
-      external_source.ex:5: A.c/0
-
-    """
-
-    assert_warnings(files, warning)
-  end
-
-  test "doesn't report missing funcs at compile time" do
-    files = %{
-      "a.ex" => """
-        Enum.map([], fn _ -> BadReferencer.no_func4() end)
-
-        if function_exported?(List, :flatten, 1) do
-          List.flatten([1, 2, 3])
-        else
-          List.old_flatten([1, 2, 3])
+          def a(a, b), do: extract(a, b)
+          def b(arg), do: is_record(arg)
         end
-      """
-    }
+        """
+      }
 
-    assert_no_warnings(files)
-  end
+      assert_no_warnings(files)
+    end
 
-  test "handles multiple modules in one file" do
-    files = %{
-      "a.ex" => """
-      defmodule A do
-        def a, do: B.no_func
-        def b, do: B.a
-      end
-      """,
-      "b.ex" => """
-      defmodule B do
-        def a, do: A.no_func
-        def b, do: A.b
-      end
-      """
-    }
+    test "requires" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          require Integer
 
-    warning = """
-    warning: B.no_func/0 is undefined or private
-      a.ex:2: A.a/0
-
-    warning: A.no_func/0 is undefined or private
-      b.ex:2: B.a/0
-
-    """
-
-    assert_warnings(files, warning)
-  end
-
-  # test "doesn't load unloaded modules" do
-  #   files = %{
-  #     "a.ex" => """
-  #     defmodule A do
-  #       @compile {:autoload, false}
-  #       @on_load :init
-  #       def init do
-  #         raise "oops"
-  #       end
-  #     end
-  #     """,
-  #     "b.ex" => """
-  #     defmodule B do
-  #       def a, do: A.no_func
-  #       def b, do: A.init
-  #     end
-  #     """
-  #   }
-  #
-  #   warning = """
-  #   warning: function A.no_func/0 is undefined or private
-  #     b.ex:2: B.a/0
-  #
-  #   """
-  #
-  #   assert_warnings(files, warning)
-  # end
-
-  test "groups multiple warnings in one file" do
-    files = %{
-      "a.ex" => """
-      defmodule A do
-        def a, do: A.no_func
-
-        @file "external_source.ex"
-        def b, do: A2.no_func
-
-        def c, do: A.no_func
-        def d, do: A2.no_func
-      end
-      """
-    }
-
-    warning = """
-    warning: A2.no_func/0 is undefined (module A2 is not available or is yet to be defined)
-    Found at 2 locations:
-      a.ex:8: A.d/0
-      external_source.ex:5: A.b/0
-
-    warning: A.no_func/0 is undefined or private
-    Found at 2 locations:
-      a.ex:2: A.a/0
-      a.ex:7: A.c/0
-
-    """
-
-    assert_warnings(files, warning)
-  end
-
-  test "protocols are checked, ignoring missing built-in impls" do
-    files = %{
-      "a.ex" => """
-      defprotocol AProtocol do
-        def func(arg)
-      end
-
-      defmodule AImplementation do
-        defimpl AProtocol do
-          def func(_), do: B.no_func
+          def a(a), do: Integer.is_even(a)
         end
-      end
+        """
+      }
+
+      assert_no_warnings(files)
+    end
+
+    test "do not warn for moduel defined in local context" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          def a() do
+            defmodule B do
+              def b(), do: :ok
+            end
+
+            B.b()
+          end
+        end
+        """
+      }
+
+      assert_no_warnings(files)
+    end
+
+    test "excludes no_warn_undefined" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          @compile {:no_warn_undefined, [MissingModule, {MissingModule2, :func, 2}]}
+          @compile {:no_warn_undefined, {B, :func, 2}}
+
+          def a, do: MissingModule.func(1)
+          def b, do: MissingModule2.func(1, 2)
+          def c, do: MissingModule2.func(1)
+          def d, do: MissingModule3.func(1, 2)
+          def e, do: B.func(1)
+          def f, do: B.func(1, 2)
+          def g, do: B.func(1, 2, 3)
+        end
+        """,
+        "b.ex" => """
+        defmodule B do
+          def func(_), do: :ok
+        end
+        """
+      }
+
+      warning = """
+      warning: MissingModule2.func/1 is undefined (module MissingModule2 is not available or is yet to be defined)
+        a.ex:7: A.c/0
+
+      warning: MissingModule3.func/2 is undefined (module MissingModule3 is not available or is yet to be defined)
+        a.ex:8: A.d/0
+
+      warning: B.func/3 is undefined or private. Did you mean one of:
+
+            * func/1
+
+        a.ex:11: A.g/0
+
       """
-    }
 
-    warning = """
-    warning: B.no_func/0 is undefined (module B is not available or is yet to be defined)
-      a.ex:7: AProtocol.AImplementation.func/1
-
-    """
-
-    assert_warnings(files, warning)
+      assert_warnings(files, warning)
+    end
   end
 
-  test "handles Erlang ops" do
-    files = %{
-      "a.ex" => """
-      defmodule A do
-        def a(a, b), do: a and b
-        def b(a, b), do: a or b
-      end
+  describe "deprecated" do
+    test "reports functions" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          @deprecated "oops"
+          def a, do: A.a
+        end
+        """
+      }
+
+      warning = """
+      warning: A.a/0 is deprecated. oops
+        a.ex:3: A.a/0
+
       """
-    }
 
-    assert_no_warnings(files)
-  end
+      assert_warnings(files, warning)
+    end
 
-  test "hints exclude deprecated functions" do
-    files = %{
-      "a.ex" => """
-      defmodule A do
-        def to_charlist(a), do: a
+    test "reports structs" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          @deprecated "oops"
+          defstruct [:x, :y]
+          def match(%A{}), do: :ok
+          def build(:ok), do: %A{}
+        end
+        """,
+        "b.ex" => """
+        defmodule B do
+          def match(%A{}), do: :ok
+          def build(:ok), do: %A{}
+        end
+        """
+      }
 
-        @deprecated "Use String.to_charlist/1 instead"
-        def to_char_list(a), do: a
+      warning = """
+      warning: A.__struct__/0 is deprecated. oops
+      Found at 2 locations:
+        a.ex:4: A.match/1
+        a.ex:5: A.build/1
 
-        def c(a), do: A.to_list(a)
-      end
+      warning: A.__struct__/0 is deprecated. oops
+      Found at 2 locations:
+        b.ex:2: B.match/1
+        b.ex:3: B.build/1
+
       """
-    }
 
-    warning = """
-    warning: A.to_list/1 is undefined or private. Did you mean one of:
+      assert_warnings(files, warning)
+    end
 
-          * to_charlist/1
+    test "reports module body" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          @deprecated "oops"
+          def a, do: :ok
+        end
+        """,
+        "b.ex" => """
+        defmodule B do
+          require A
+          A.a()
+        end
+        """
+      }
 
-      a.ex:7: A.c/1
+      warning = """
+      warning: A.a/0 is deprecated. oops
+        b.ex:3: B
 
-    """
-
-    assert_warnings(files, warning)
-  end
-
-  test "imports" do
-    files = %{
-      "a.ex" => """
-      defmodule A do
-        import Record
-
-        def a(a, b), do: extract(a, b)
-        def b(arg), do: is_record(arg)
-      end
       """
-    }
 
-    assert_no_warnings(files)
-  end
-
-  test "requires" do
-    files = %{
-      "a.ex" => """
-      defmodule A do
-        require Integer
-
-        def a(a), do: Integer.is_even(a)
-      end
-      """
-    }
-
-    assert_no_warnings(files)
-  end
-
-  test "excludes no_warn_undefined" do
-    files = %{
-      "a.ex" => """
-      defmodule A do
-        @compile {:no_warn_undefined, [MissingModule, {MissingModule2, :func, 2}]}
-        @compile {:no_warn_undefined, {B, :func, 2}}
-
-        def a, do: MissingModule.func(1)
-        def b, do: MissingModule2.func(1, 2)
-        def c, do: MissingModule2.func(1)
-        def d, do: MissingModule3.func(1, 2)
-        def e, do: B.func(1)
-        def f, do: B.func(1, 2)
-        def g, do: B.func(1, 2, 3)
-      end
-      """,
-      "b.ex" => """
-      defmodule B do
-        def func(_), do: :ok
-      end
-      """
-    }
-
-    warning = """
-    warning: MissingModule2.func/1 is undefined (module MissingModule2 is not available or is yet to be defined)
-      a.ex:7: A.c/0
-
-    warning: MissingModule3.func/2 is undefined (module MissingModule3 is not available or is yet to be defined)
-      a.ex:8: A.d/0
-
-    warning: B.func/3 is undefined or private. Did you mean one of:
-
-          * func/1
-
-      a.ex:11: A.g/0
-
-    """
-
-    assert_warnings(files, warning)
+      assert_warnings(files, warning)
+    end
   end
 
   defp assert_warnings(files, expected) do
@@ -460,7 +532,7 @@ defmodule Module.CheckerTest do
     files = generate_files(files)
 
     capture_io(:stderr, fn ->
-      {:ok, modules, _warnings} = Kernel.ParallelCompiler.compile(files)
+      {:ok, modules, _warnings} = Kernel.ParallelCompiler.compile_to_path(files, ".")
 
       Enum.each(modules, fn module ->
         :code.purge(module)

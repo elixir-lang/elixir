@@ -527,8 +527,8 @@ expand_fn_capture(Meta, Arg, E) ->
     {{remote, Remote, Fun, Arity}, EE} ->
       is_atom(Remote) andalso
         elixir_lexical:record_remote(Remote, Fun, Arity, ?key(E, function), ?line(Meta), ?key(E, lexical_tracker)),
-      DotMeta = attach_context_module(Remote, [], E),
-      {{'&', Meta, [{'/', [], [{{'.', DotMeta, [Remote, Fun]}, [], []}, Arity]}]}, EE};
+      AttachedMeta = attach_context_module(Remote, Meta, E),
+      {{'&', AttachedMeta, [{'/', [], [{{'.', [], [Remote, Fun]}, [], []}, Arity]}]}, EE};
     {{local, Fun, Arity}, #{function := nil}} ->
       form_error(Meta, E, ?MODULE, {undefined_local_capture, Fun, Arity});
     {{local, Fun, Arity}, EE} ->

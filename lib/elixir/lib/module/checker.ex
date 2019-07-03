@@ -4,104 +4,130 @@ defmodule Module.Checker do
       file: module_map.file,
       module: module_map.module,
       compile_opts: module_map.compile_opts,
-      function: nil
+      function: nil,
+      warnings: []
     }
 
     module_map.definitions
     |> check_definitions(state)
-    |> List.flatten()
+    |> Map.fetch!(:warnings)
     |> merge_warnings()
     |> sort_warnings()
     |> emit_warnings()
   end
 
   defp check_definitions(definitions, state) do
-    Enum.map(definitions, &check_definition(&1, state))
+    Enum.reduce(definitions, state, &check_definition/2)
   end
 
   defp check_definition({function, _kind, meta, clauses}, state) do
-    state = put_file_meta(%{state | function: function}, meta)
-    Enum.map(clauses, &check_clause(&1, state))
+    with_file_meta(%{state | function: function}, meta, fn state ->
+      Enum.reduce(clauses, state, &check_clause/2)
+    end)
   end
 
-  defp put_file_meta(state, meta) do
+  defp with_file_meta(%{file: original_file} = state, meta, fun) do
     case Keyword.fetch(meta, :file) do
-      {:ok, {file, _}} -> %{state | file: file}
-      :error -> state
+      {:ok, {meta_file, _}} ->
+        state = fun.(%{state | file: meta_file})
+        %{state | file: original_file}
+
+      :error ->
+        fun.(state)
     end
   end
 
-  defp check_clause({_meta, _args, _guards, body}, state) do
-    check_body(body, state)
+  defp check_clause({_meta, args, _guards, body}, state) do
+    state = check_expr(args, state)
+    check_expr(body, state)
   end
 
   # &Mod.fun/arity
-  defp check_body({:&, meta, [{:/, _, [{{:., dot_meta, [module, fun]}, _, []}, arity]}]}, state)
+  defp check_expr({:&, meta, [{:/, _, [{{:., _, [module, fun]}, _, []}, arity]}]}, state)
        when is_atom(module) and is_atom(fun) do
-    check_remote(module, fun, arity, meta ++ dot_meta, state)
+    check_remote(module, fun, arity, meta, state)
   end
 
   # Mod.fun(...)
-  defp check_body({{:., meta, [module, fun]}, _, args}, state)
+  defp check_expr({{:., meta, [module, fun]}, _, args}, state)
        when is_atom(module) and is_atom(fun) do
     check_remote(module, fun, length(args), meta, state)
   end
 
+  # %Module{...}
+  defp check_expr({:%, meta, [module, {:%{}, _meta, args}]}, state)
+       when is_atom(module) and is_list(args) do
+    state = check_remote(module, :__struct__, 0, meta, state)
+    check_expr(args, state)
+  end
+
   # Function call
-  defp check_body({left, _meta, right}, state) when is_list(right) do
-    [check_body(right, state), check_body(left, state)]
+  defp check_expr({left, _meta, right}, state) when is_list(right) do
+    state = check_expr(right, state)
+    check_expr(left, state)
   end
 
   # {x, y}
-  defp check_body({left, right}, state) do
-    [check_body(right, state), check_body(left, state)]
+  defp check_expr({left, right}, state) do
+    state = check_expr(right, state)
+    check_expr(left, state)
   end
 
   # [...]
-  defp check_body(list, state) when is_list(list) do
-    Enum.map(list, &check_body(&1, state))
+  defp check_expr(list, state) when is_list(list) do
+    Enum.reduce(list, state, &check_expr/2)
   end
 
-  defp check_body(_other, _state) do
-    []
+  defp check_expr(_other, state) do
+    state
   end
 
   defp check_remote(module, fun, arity, meta, state) do
     cond do
-      not warn_if_undefined?(module, fun, arity, state) ->
-        []
-
       # TODO: In the future we may want to warn for modules defined
       # in the local context
       Keyword.get(meta, :context_module, false) and state.module != module ->
-        []
+        state
 
-      # TODO: Add no_autoload
-      not Code.ensure_loaded?(module) ->
+      not Code.ensure_loaded?(module) and warn_undefined?(module, fun, arity, state) ->
         warn(meta, state, {:undefined_module, module, fun, arity})
 
-      not function_exported?(module, fun, arity) ->
+      not function_exported?(module, fun, arity) and warn_undefined?(module, fun, arity, state) ->
         exports = exports_for(module)
         warn(meta, state, {:undefined_function, module, fun, arity, exports})
 
+      reason = deprecated_reason(module, fun, arity) ->
+        warn(meta, state, {:deprecated, module, fun, arity, reason})
+
       true ->
-        []
+        state
     end
   end
 
   # TODO: Do not warn inside guards
   # TODO: Properly handle protocols
-  defp warn_if_undefined?(_module, :__impl__, 1, _state), do: false
-  defp warn_if_undefined?(:erlang, :orelse, 2, _state), do: false
-  defp warn_if_undefined?(:erlang, :andalso, 2, _state), do: false
+  defp warn_undefined?(_module, :__impl__, 1, _state), do: false
+  defp warn_undefined?(:erlang, :orelse, 2, _state), do: false
+  defp warn_undefined?(:erlang, :andalso, 2, _state), do: false
 
-  defp warn_if_undefined?(module, fun, arity, state) do
+  defp warn_undefined?(module, fun, arity, state) do
     for(
       {:no_warn_undefined, values} <- state.compile_opts,
       value <- List.wrap(values),
       value == module or value == {module, fun, arity},
       do: :skip
     ) == []
+  end
+
+  defp deprecated_reason(module, fun, arity) do
+    if function_exported?(module, :__info__, 1) do
+      case List.keyfind(module.__info__(:deprecated), {fun, arity}, 0) do
+        {_key, reason} -> reason
+        nil -> nil
+      end
+    else
+      nil
+    end
   end
 
   defp exports_for(module) do
@@ -112,8 +138,10 @@ defmodule Module.Checker do
     end
   end
 
-  defp warn(meta, %{file: file, module: module, function: {fun, arity}}, warning) do
-    {warning, {file, meta[:line], {module, fun, arity}}}
+  defp warn(meta, state, warning) do
+    {fun, arity} = state.function
+    location = {state.file, meta[:line], {state.module, fun, arity}}
+    %{state | warnings: [{warning, location} | state.warnings]}
   end
 
   defp merge_warnings(warnings) do
@@ -154,6 +182,14 @@ defmodule Module.Checker do
       Exception.format_mfa(module, fun, arity),
       " is undefined or private",
       UndefinedFunctionError.hint_for_loaded_module(module, fun, arity, exports)
+    ]
+  end
+
+  defp format_warning({:deprecated, module, function, arity, reason}) do
+    [
+      Exception.format_mfa(module, function, arity),
+      " is deprecated. ",
+      reason
     ]
   end
 

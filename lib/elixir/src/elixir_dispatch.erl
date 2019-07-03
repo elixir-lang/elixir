@@ -67,7 +67,7 @@ require_function(Meta, Receiver, Name, Arity, E) ->
   end.
 
 remote_function(Meta, Receiver, Name, Arity, E) ->
-  check_deprecation(Meta, Receiver, Name, Arity, E),
+  check_deprecated(Meta, Receiver, Name, Arity, E),
 
   case elixir_rewrite:inline(Receiver, Name, Arity) of
     {AR, AN} -> {remote, AR, AN, Arity};
@@ -143,7 +143,7 @@ do_expand_import(Meta, {Name, Arity} = Tuple, Args, Module, E, Result) ->
       elixir_locals:record_import(Tuple, Receiver, Module, ?key(E, function)),
       {ok, Receiver, Name, Args};
     {macro, Receiver} ->
-      check_deprecation(Meta, Receiver, Name, Arity, E),
+      check_deprecated(Meta, Receiver, Name, Arity, E),
       elixir_lexical:record_import(Receiver, Name, Arity, nil, ?line(Meta), ?key(E, lexical_tracker)),
       elixir_locals:record_import(Tuple, Receiver, Module, ?key(E, function)),
       {ok, Receiver, expand_macro_named(Meta, Receiver, Name, Arity, Args, E)};
@@ -162,7 +162,7 @@ do_expand_import(Meta, {Name, Arity} = Tuple, Args, Module, E, Result) ->
   end.
 
 expand_require(Meta, Receiver, {Name, Arity} = Tuple, Args, E) ->
-  check_deprecation(Meta, Receiver, Name, Arity, E),
+  check_deprecated(Meta, Receiver, Name, Arity, E),
   Required = (Receiver == ?key(E, module)) orelse required(Meta) orelse is_element(Receiver, ?key(E, requires)),
 
   case is_element(Tuple, get_macros(Receiver, Required)) of
@@ -282,7 +282,11 @@ format_error({macro_conflict, {Receiver, Name, Arity}}) ->
     [Name, Arity, elixir_aliases:inspect(Receiver), Name, Arity]);
 format_error({ambiguous_call, {Mod1, Mod2, Name, Arity}}) ->
   io_lib:format("function ~ts/~B imported from both ~ts and ~ts, call is ambiguous",
-    [Name, Arity, elixir_aliases:inspect(Mod1), elixir_aliases:inspect(Mod2)]).
+    [Name, Arity, elixir_aliases:inspect(Mod1), elixir_aliases:inspect(Mod2)]);
+format_error({deprecated, Mod, '__using__', 1, Message}) ->
+  io_lib:format("use ~s is deprecated. ~s", [elixir_aliases:inspect(Mod), Message]);
+format_error({deprecated, Mod, Fun, Arity, Message}) ->
+  io_lib:format("~s.~s/~B is deprecated. ~s",[elixir_aliases:inspect(Mod), Fun, Arity, Message]).
 
 %% INTROSPECTION
 
@@ -305,8 +309,9 @@ get_macros(Receiver, true) ->
     false -> []
   end.
 
-get_deprecations(Receiver) ->
-  get_info(Receiver, deprecated).
+%% Kernel deprecations are inlined.
+get_deprecations(?kernel) -> [];
+get_deprecations(Receiver) -> get_info(Receiver, deprecated).
 
 get_info(Receiver, Key) ->
   case erlang:function_exported(Receiver, '__info__', 1) of
@@ -334,15 +339,11 @@ elixir_imported_macros() ->
     error:undef -> []
   end.
 
-%% Inline common cases.
-check_deprecation(Meta, ?kernel, to_char_list, 1, E) ->
-  Message = "Kernel.to_char_list/1 is deprecated. Use Kernel.to_charlist/1 instead",
-  elixir_errors:erl_warn(?line(Meta), ?key(E, file), Message);
-check_deprecation(_, ?kernel, _, _, _) ->
+check_deprecated(_, erlang, _, _, _) ->
   ok;
-check_deprecation(_, erlang, _, _, _) ->
+check_deprecated(_, _, _, _, #{module := 'Elixir.HashDict'}) ->
   ok;
-check_deprecation(Meta, 'Elixir.System', stacktrace, 0, #{contextual_vars := Vars} = E) ->
+check_deprecated(Meta, 'Elixir.System', stacktrace, 0, #{contextual_vars := Vars} = E) ->
   case lists:member('__STACKTRACE__', Vars) of
     true ->
       ok;
@@ -354,32 +355,24 @@ check_deprecation(Meta, 'Elixir.System', stacktrace, 0, #{contextual_vars := Var
           "move System.stacktrace/0 inside a rescue/catch",
       elixir_errors:erl_warn(?line(Meta), ?key(E, file), Message)
   end;
-check_deprecation(Meta, Receiver, Name, Arity, E) ->
-  case (get(elixir_compiler_dest) == undefined) andalso
-         is_ensure_loaded(Receiver) andalso get_deprecations(Receiver) of
-    [_ | _] = Deprecations ->
-      case lists:keyfind({Name, Arity}, 1, Deprecations) of
-        {_, Message} ->
-          Warning = deprecation_message(Receiver, Name, Arity, Message),
-          elixir_errors:erl_warn(?line(Meta), ?key(E, file), Warning);
-        false ->
-          ok
+check_deprecated(Meta, Receiver, Name, Arity, E) ->
+  case (?key(E, function) == nil) andalso is_ensure_loaded(Receiver) of
+    true ->
+      case check_deprecated(Receiver, Name, Arity, get_deprecations(Receiver)) of
+        nil -> ok;
+        Other -> elixir_errors:form_warn(Meta, E, ?MODULE, Other)
       end;
-    _ ->
+
+    false ->
       ok
   end.
 
-deprecation_message(Receiver, '__using__', _Arity, Message) ->
-  Warning = io_lib:format("use ~s is deprecated", [elixir_aliases:inspect(Receiver)]),
-  deprecation_message(Warning, Message);
-
-deprecation_message(Receiver, Name, Arity, Message) ->
-  Warning = io_lib:format("~s.~s/~B is deprecated",
-                          [elixir_aliases:inspect(Receiver), Name, Arity]),
-  deprecation_message(Warning, Message).
-
-deprecation_message(Warning, Message) ->
-  case Message of
-    true -> Warning;
-    Message -> Warning ++ ". " ++ Message
-  end.
+check_deprecated(?kernel, to_char_list, 1, _) ->
+  {deprecated, ?kernel, to_char_list, 1, "Use Kernel.to_charlist/1 instead"};
+check_deprecated(Mod, Fun, Arity, [_ | _] = Deprecated) ->
+  case lists:keyfind({Fun, Arity}, 1, Deprecated) of
+    {_, Message} -> {deprecated, Mod, Fun, Arity, Message};
+    false -> nil
+  end;
+check_deprecated(_, _, _, _) ->
+  nil.
