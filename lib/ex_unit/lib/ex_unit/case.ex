@@ -549,7 +549,7 @@ defmodule ExUnit.Case do
       end
 
   """
-  @spec register_attribute(env, name :: atom, opts :: keyword) :: :ok
+  @spec register_attribute(env, atom, keyword) :: :ok
   def register_attribute(env, name, opts \\ [])
   def register_attribute(%{module: mod}, name, opts), do: register_attribute(mod, name, opts)
 
@@ -590,7 +590,7 @@ defmodule ExUnit.Case do
       end
 
   """
-  @spec register_describe_attribute(env, name :: atom, opts :: keyword) :: :ok
+  @spec register_describe_attribute(env, atom, keyword) :: :ok
   def register_describe_attribute(env, name, opts \\ [])
 
   def register_describe_attribute(%{module: mod}, name, opts) do
@@ -629,7 +629,7 @@ defmodule ExUnit.Case do
       end
 
   """
-  @spec register_module_attribute(env, name :: atom, opts :: keyword) :: :ok
+  @spec register_module_attribute(env, atom, keyword) :: :ok
   def register_module_attribute(env, name, opts \\ [])
 
   def register_module_attribute(%{module: mod}, name, opts) do
