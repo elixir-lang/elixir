@@ -44,6 +44,11 @@ defmodule String.Unicode do
     {2, rest}
   end
 
+  # Avoid unicode codepoint creation if possible
+  def next_grapheme_size(<<cp, rest::binary>>) when cp <= 0x007F do
+    next_extend_size(rest, 1, :other)
+  end
+
   # Break on control
   for codepoint <- cluster["CR"] ++ cluster["LF"] ++ cluster["Control"] do
     def next_grapheme_size(<<unquote(codepoint), rest::binary>>) do
@@ -96,7 +101,6 @@ defmodule String.Unicode do
   # Handle extended entries
   def next_grapheme_size(<<cp::utf8, rest::binary>>) do
     case cp do
-      x when x <= 0x007F -> next_extend_size(rest, 1, :other)
       x when x <= 0x07FF -> next_extend_size(rest, 2, :other)
       x when x <= 0xFFFF -> next_extend_size(rest, 3, :other)
       _ -> next_extend_size(rest, 4, :other)
