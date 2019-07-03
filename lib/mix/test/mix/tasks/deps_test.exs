@@ -322,7 +322,7 @@ defmodule Mix.Tasks.DepsTest do
 
       assert Mix.Dep.Lock.read() == %{whatever: "0.2.0", ok: "0.1.0"}
 
-      Mix.Dep.Lock.write(%{ok: "0.1.0"})
+      Mix.Tasks.Deps.Unlock.run(["--unused"])
       Mix.Tasks.Deps.Unlock.run(["--check-unused"])
       assert Mix.Dep.Lock.read() == %{ok: "0.1.0"}
     end)
