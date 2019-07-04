@@ -14,7 +14,7 @@ defmodule Mix.Tasks.Deps.Unlock do
     * `--filter` - unlocks only deps matching the given name
     * `--unused` - unlocks only unused dependencies (no longer mentioned
       in the `mix.exs` file)
-    * `--check-unused` - checks that the mix.lock file has no unused
+    * `--check-unused` - checks that the `mix.lock` file has no unused
       dependencies. This is useful in pre-commit hooks and CI scripts
       if you want to reject contributions with extra dependencies
 
