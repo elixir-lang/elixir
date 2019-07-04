@@ -135,6 +135,7 @@ There are many other enhancements. The Elixir CLI got a handful of new options i
   * [Kernel] Type variables starting with an underscore (`_foo`) should not raise compile error
   * [Kernel] Keep order of elements when macro `in/2` is expanded with a literal list on the right-hand side
   * [Kernel] Print proper location on undefined function error from dynamically generated functions
+  * [Kernel] **Potentially breaking** Do not leak aliases when nesting module definitions that are fully namespaced modules. If you defined `defmodule Elixir.Foo.Bar` inside `defmodule Foo`, previous Elixir versions would automatically define an alias, but fully namespaced modules such as `Elixir.Foo.Bar` should never define or require an alias. If you were accidentally relying on this broken behaviour, your code may no longer work
   * [System] Make sure `:init.get_status/0` is set to `{:started, :started}` once the system starts
   * [Path] Do not expand `~` in `Path.expand/2` when not followed by a path separator
   * [Protocol] Ensure `debug_info` is kept in protocols
