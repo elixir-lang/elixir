@@ -206,10 +206,9 @@ defmodule Module.Checker do
 
   defp format_location({file, line, {module, fun, arity}}) do
     file = Path.relative_to_cwd(file)
-    line = Integer.to_string(line)
+    line = if line, do: [Integer.to_string(line), ": "], else: []
     mfa = Exception.format_mfa(module, fun, arity)
-
-    ["  ", file, ?:, line, ": ", mfa, ?\n]
+    ["  ", file, ?:, line, mfa, ?\n]
   end
 
   defp print_warning(message) do
