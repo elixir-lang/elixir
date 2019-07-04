@@ -312,15 +312,21 @@ defmodule Mix.Tasks.DepsTest do
     Mix.Project.push(DepsApp)
 
     in_tmp(context.test, fn ->
-      Mix.Dep.Lock.write(%{whatever: "0.2.0", ok: "0.1.0"})
-      assert Mix.Dep.Lock.read() == %{whatever: "0.2.0", ok: "0.1.0"}
-      error = "Unused dependencies in mix.lock file: [:whatever]"
+      Mix.Dep.Lock.write(%{whatever: "0.2.0", something_else: "1.2.3", ok: "0.1.0"})
+      assert Mix.Dep.Lock.read() == %{whatever: "0.2.0", something_else: "1.2.3", ok: "0.1.0"}
+
+      error = """
+      Unused dependencies in mix.lock file:
+
+        * :something_else
+        * :whatever
+      """
 
       assert_raise Mix.Error, error, fn ->
         Mix.Tasks.Deps.Unlock.run(["--check-unused"])
       end
 
-      assert Mix.Dep.Lock.read() == %{whatever: "0.2.0", ok: "0.1.0"}
+      assert Mix.Dep.Lock.read() == %{whatever: "0.2.0", something_else: "1.2.3", ok: "0.1.0"}
 
       Mix.Tasks.Deps.Unlock.run(["--unused"])
       Mix.Tasks.Deps.Unlock.run(["--check-unused"])

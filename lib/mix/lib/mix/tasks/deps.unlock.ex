@@ -41,9 +41,11 @@ defmodule Mix.Tasks.Deps.Unlock do
           |> Enum.sort()
 
         unless unused_apps == [] do
-          Mix.raise(
-            "Unused dependencies in mix.lock file: #{inspect(unused_apps, limit: :infinity)}"
-          )
+          Mix.raise("""
+          Unused dependencies in mix.lock file:
+
+          #{Enum.map_join(unused_apps, "\n", fn app -> "  * #{inspect(app)}" end)}
+          """)
         end
 
       opts[:unused] ->
