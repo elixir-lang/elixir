@@ -114,7 +114,15 @@ defmodule Mix.Tasks.Release do
   distribution. For example, if you need to do some prep work before
   running the actual system, like migrating your database, `eval` can
   be a good fit. Just keep in mind any application you may use during
-  eval has to be explicitly started.
+  eval has to be explicitly loaded and/or started.
+
+  You can start an application by calling `Application.ensure_all_started/1`.
+  However, if for some reason you cannot start an application, maybe
+  cause it will run other services you do not want, you must at least
+  load the application by calling `Application.load/1`. If you don't
+  load the application, any attempt at reading its environment or
+  configuration may fail. Note that if you start an application,
+  it is automatically loaded before started.
 
   Another way to run commands is with `rpc`, which will connect to the
   system currently running and instruct it to execute the given
@@ -133,7 +141,9 @@ defmodule Mix.Tasks.Release do
       defmodule MyApp.ReleaseTasks do
         def eval_purge_stale_data() do
           # Eval commands needs to start the app before
+          # Or Application.load(:my_app) if you can't start it
           Application.ensure_all_started(:my_app)
+
           # Code that purges stale data
           ...
         end
@@ -444,11 +454,25 @@ defmodule Mix.Tasks.Release do
   to make sure the Erlang Distribution listens only on a given port
   known at runtime, you can set the following:
 
-      export ELIXIR_ERL_OPTIONS="-kernel inet_dist_listen_min $BEAM_PORT inet_dist_listen_max $BEAM_PORT"
+      case $RELEASE_COMMAND in
+        start*|daemon*)
+          ELIXIR_ERL_OPTIONS="-kernel inet_dist_listen_min $BEAM_PORT inet_dist_listen_max $BEAM_PORT"
+          export ELIXIR_ERL_OPTIONS
+          ;;
+        *)
+          ;;
+      esac
 
-  Or for Windows, in your `env.bat`:
+  Note we only set the port on start/daemon commands. If you also limit
+  the port on other commands, such as `rpc`, then you will be unable
+  to establish a remote connection as the port will already be in use
+  by the node.
 
-      set ELIXIR_ERL_OPTIONS="-kernel inet_dist_listen_min %BEAM_PORT% inet_dist_listen_max %BEAM_PORT%"
+  On Windows, your `env.bat` would look like this:
+
+      IF NOT %RELEASE_COMMAND:start=%==%RELEASE_COMMAND% (
+        set ELIXIR_ERL_OPTIONS="-kernel inet_dist_listen_min %BEAM_PORT% inet_dist_listen_max %BEAM_PORT%"
+      )
 
   ### Steps
 
