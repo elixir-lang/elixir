@@ -1,5 +1,37 @@
 defmodule Module.Checker do
-  def verify(module_map, _binary) do
+  def verify(module_map, binary) do
+    warnings = warnings(module_map)
+    binary = chunk(binary, module_map)
+    {binary, warnings}
+  end
+
+  defp chunk(binary, module_map) do
+    {:ok, _module, all_chunks} = :beam_lib.all_chunks(binary)
+    checker_chunk = build_chunk(module_map)
+    {:ok, binary} = :beam_lib.build_module([checker_chunk | all_chunks])
+    binary
+  end
+
+  defp build_chunk(module_map) do
+    map = %{
+      deprecated: :maps.from_list(module_map.deprecated),
+      exports: :maps.from_list(exports(module_map.definitions))
+    }
+
+    {'ExCk', :erlang.term_to_binary({:elixir_checker_v1, map})}
+  end
+
+  defp exports(definitions) do
+    Enum.flat_map(definitions, fn {function, kind, _meta, _clauses} ->
+      if kind in [:def, :defmacro] do
+        [{function, kind}]
+      else
+        []
+      end
+    end)
+  end
+
+  defp warnings(module_map) do
     state = %{
       file: module_map.file,
       module: module_map.module,
@@ -8,9 +40,11 @@ defmodule Module.Checker do
       warnings: []
     }
 
-    module_map.definitions
-    |> check_definitions(state)
-    |> Map.fetch!(:warnings)
+    state =
+      module_map.definitions
+      |> check_definitions(state)
+
+    state.warnings
     |> merge_warnings()
     |> sort_warnings()
     |> emit_warnings()

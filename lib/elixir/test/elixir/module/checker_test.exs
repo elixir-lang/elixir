@@ -11,6 +11,41 @@ defmodule Module.CheckerTest do
     on_exit(fn -> Application.put_env(:elixir, :ansi_enabled, previous) end)
   end
 
+  describe "ExCk chunk" do
+    test "writes exports" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          defp a, do: :ok
+          defmacrop b, do: a()
+          def c, do: b()
+          defmacro d, do: b()
+        end
+        """
+      }
+
+      modules = compile(files)
+      map = read_chunk(modules[A])
+      assert map.exports == %{{:c, 0} => :def, {:d, 0} => :defmacro}
+    end
+
+    test "writes deprecations" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          def a, do: :ok
+          @deprecated "oops"
+          def b, do: :ok
+        end
+        """
+      }
+
+      modules = compile(files)
+      map = read_chunk(modules[A])
+      assert map.deprecated == %{{:b, 0} => "oops"}
+    end
+  end
+
   describe "undefined" do
     test "handles Erlang modules" do
       files = %{
@@ -517,27 +552,35 @@ defmodule Module.CheckerTest do
   end
 
   defp assert_warnings(files, expected) do
-    in_tmp(fn ->
-      assert capture_compile(files) == expected
-    end)
+    assert capture_compile(files) == expected
   end
 
   defp assert_no_warnings(files) do
-    in_tmp(fn ->
-      assert capture_compile(files) == ""
-    end)
+    assert capture_compile(files) == ""
   end
 
   defp capture_compile(files) do
-    files = generate_files(files)
+    in_tmp(fn ->
+      paths = generate_files(files)
+      capture_io(:stderr, fn -> compile_files(paths) end)
+    end)
+  end
 
-    capture_io(:stderr, fn ->
-      {:ok, modules, _warnings} = Kernel.ParallelCompiler.compile_to_path(files, ".")
+  defp compile(files) do
+    in_tmp(fn ->
+      paths = generate_files(files)
+      compile_files(paths)
+    end)
+  end
 
-      Enum.each(modules, fn module ->
-        :code.purge(module)
-        :code.delete(module)
-      end)
+  defp compile_files(paths) do
+    {:ok, modules, _warnings} = Kernel.ParallelCompiler.compile_to_path(paths, ".")
+
+    Map.new(modules, fn module ->
+      {^module, binary, _filename} = :code.get_object_code(module)
+      :code.purge(module)
+      :code.delete(module)
+      {module, binary}
     end)
   end
 
@@ -546,6 +589,12 @@ defmodule Module.CheckerTest do
       File.write!(file, contents)
       file
     end
+  end
+
+  defp read_chunk(binary) do
+    assert {:ok, {_module, [{'ExCk', chunk}]}} = :beam_lib.chunks(binary, ['ExCk'])
+    assert {:elixir_checker_v1, map} = :erlang.binary_to_term(chunk)
+    map
   end
 
   defp in_tmp(fun) do

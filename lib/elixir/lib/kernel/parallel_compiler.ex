@@ -244,9 +244,10 @@ defmodule Kernel.ParallelCompiler do
 
     case state.each_cycle.() do
       [] ->
-        modules = write_module_binaries(output, beam_timestamp, result)
-        warnings = Enum.reverse(warnings, check_modules(modules))
-        {:ok, Enum.map(modules, &elem(&1, 0)), warnings}
+        {binaries, checker_warnings} = check_modules(result)
+        write_module_binaries(output, beam_timestamp, binaries)
+        warnings = Enum.reverse(warnings, checker_warnings)
+        {:ok, Enum.map(binaries, &elem(&1, 0)), warnings}
 
       more ->
         spawn_workers(more, 0, [], [], result, warnings, state)
@@ -318,27 +319,32 @@ defmodule Kernel.ParallelCompiler do
   end
 
   defp write_module_binaries({:compile, path}, timestamp, result) do
-    for {{:module, module}, {binary, map}} <- result do
+    Enum.each(result, fn {module, binary} ->
       full_path = Path.join(path, Atom.to_string(module) <> ".beam")
       File.write!(full_path, binary)
       if timestamp, do: File.touch!(full_path, timestamp)
-
-      {module, binary, map}
-    end
+    end)
   end
 
-  defp write_module_binaries(_output, _timestamp, result) do
-    for {{:module, module}, {binary, map}} <- result, do: {module, binary, map}
+  defp write_module_binaries(_output, _timestamp, _result) do
+    :ok
   end
 
-  defp check_modules(modules) do
-    if :elixir_config.get(:bootstrap) do
-      []
-    else
-      Enum.flat_map(modules, fn {_module, binary, module_map} ->
-        Module.Checker.verify(module_map, binary)
-      end)
-    end
+  defp check_modules(result) do
+    bootstrap? = :elixir_config.get(:bootstrap)
+
+    result =
+      for {{:module, module}, {binary, map}} <- result do
+        if bootstrap? do
+          {{module, binary}, []}
+        else
+          {binary, warnings} = Module.Checker.verify(map, binary)
+          {{module, binary}, warnings}
+        end
+      end
+
+    {binaries, warnings} = Enum.unzip(result)
+    {binaries, Enum.concat(warnings)}
   end
 
   # The goal of this function is to find leaves in the dependency graph,

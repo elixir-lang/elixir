@@ -26,7 +26,7 @@ defmodule Kernel.DeprecatedTest do
            ]
   end
 
-  test "add deprecated to __info__ and beam chunks" do
+  test "add deprecated to __info__" do
     write_beam(
       defmodule SampleDeprecated do
         @deprecated "Use SampleDeprecated.bar/0 instead"
@@ -41,10 +41,5 @@ defmodule Kernel.DeprecatedTest do
     ]
 
     assert SampleDeprecated.__info__(:deprecated) == deprecated
-
-    {SampleDeprecated, bin, _beam_path} = :code.get_object_code(SampleDeprecated)
-    {:ok, {SampleDeprecated, [{'ExDp', deprecated_bin}]}} = :beam_lib.chunks(bin, ['ExDp'])
-
-    assert :erlang.binary_to_term(deprecated_bin) == {:elixir_deprecated_v1, deprecated}
   end
 end
