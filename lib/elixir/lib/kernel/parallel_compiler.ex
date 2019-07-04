@@ -244,7 +244,7 @@ defmodule Kernel.ParallelCompiler do
 
     case state.each_cycle.() do
       [] ->
-        {binaries, checker_warnings} = check_modules(result)
+        {binaries, checker_warnings} = maybe_check_modules(result)
         write_module_binaries(output, beam_timestamp, binaries)
         warnings = Enum.reverse(warnings, checker_warnings)
         {:ok, Enum.map(binaries, &elem(&1, 0)), warnings}
@@ -330,21 +330,35 @@ defmodule Kernel.ParallelCompiler do
     :ok
   end
 
-  defp check_modules(result) do
-    bootstrap? = :elixir_config.get(:bootstrap)
+  defp maybe_check_modules(result) do
+    if :elixir_config.get(:bootstrap) do
+      binaries = for {{:module, module}, {binary, _map}} <- result, do: {module, binary}
+      {binaries, []}
+    else
+      check_modules(result)
+    end
+  end
 
-    result =
-      for {{:module, module}, {binary, map}} <- result do
-        if bootstrap? do
-          {{module, binary}, []}
-        else
-          {binary, warnings} = Module.Checker.verify(map, binary)
+  defp check_modules(result) do
+    all_maps = all_module_maps(result)
+    cache = Module.Checker.create_cache(all_maps)
+
+    try do
+      result  =
+        for {{:module, module}, {binary, map}} <- result do
+          {binary, warnings} = Module.Checker.verify(map, binary, cache)
           {{module, binary}, warnings}
         end
-      end
 
-    {binaries, warnings} = Enum.unzip(result)
-    {binaries, Enum.concat(warnings)}
+      {binaries, warnings} = Enum.unzip(result)
+      {binaries, Enum.concat(warnings)}
+    after
+      Module.Checker.delete_cache(cache)
+    end
+  end
+
+  defp all_module_maps(result) do
+    for {{:module, _module}, {_binary, map}} <- result, do: map
   end
 
   # The goal of this function is to find leaves in the dependency graph,

@@ -1,13 +1,144 @@
 defmodule Module.Checker do
-  def verify(module_map, binary) do
-    warnings = warnings(module_map)
+  @moduledoc false
+
+  defmodule Coordinator do
+    @moduledoc false
+
+    def create_cache(maps) do
+      ets = :ets.new(:checker_cache, [:set, :private])
+
+      Enum.each(maps, fn map ->
+        exports = definitions_to_exports(map.definitions)
+        deprecated = :maps.from_list(map.deprecated)
+        load_module(ets, map.module, exports, deprecated)
+      end)
+
+      ets
+    end
+
+    def delete_cache(ets) do
+      :ets.delete(ets)
+    end
+
+    def fetch_export(ets, module, fun, arity) do
+      if cache_module?(ets, module) do
+        case :ets.lookup(ets, {:export, {module, fun, arity}}) do
+          [{_key, kind, _reason}] -> {:ok, kind}
+          [] -> {:error, :function}
+        end
+      else
+        cond do
+          not Code.ensure_loaded?(module) -> {:error, :module}
+          function_exported?(module, fun, arity) -> {:ok, :def}
+          info?(module) and {fun, arity} in module.__info__(:macros) -> {:ok, :defmacro}
+          true -> {:error, :function}
+        end
+      end
+    end
+
+    def fetch_deprecated(ets, module, fun, arity) do
+      if cache_module?(ets, module) do
+        case :ets.lookup(ets, {:export, {module, fun, arity}}) do
+          [{_key, _kind, nil}] -> :error
+          [{_key, _kind, reason}] -> {:ok, reason}
+          [] -> :error
+        end
+      else
+        if Code.ensure_loaded?(module) and info?(module) and function_exported?(module, fun, arity) do
+          case List.keyfind(module.__info__(:deprecated), {fun, arity}, 0) do
+            nil -> :error
+            {_key, reason} -> {:ok, reason}
+          end
+        else
+          :error
+        end
+      end
+    end
+
+    def all_exports(ets, module) do
+      if cache_module?(ets, module) do
+        [{_key, exports}] = :ets.lookup(ets, {:all_exports, module})
+        exports
+      else
+        # This is only called after we get a deprecation notice
+        # so we can assume it's a loaded Elixir module
+        try do
+          module.__info__(:macros) ++ module.__info__(:functions)
+        rescue
+          _ -> module.module_info(:exports)
+        end
+      end
+    end
+
+    def definitions_to_exports(definitions) do
+      Enum.flat_map(definitions, fn {function, kind, _meta, _clauses} ->
+        if kind in [:def, :defmacro] do
+          [{function, kind}]
+        else
+          []
+        end
+      end)
+    end
+
+    defp cache_module?(ets, module) do
+      case :ets.lookup(ets, {:loaded, module}) do
+        [{_key, true}] -> true
+        [{_key, false}] -> load_chunk?(ets, module)
+        [] -> false
+      end
+    end
+
+    defp load_chunk?(ets, module) do
+      with {^module, binary, _filename} <- :code.get_object_code(module),
+           {:ok, chunk} <- get_chunk(binary),
+           {:elixir_checker_v1, map} <- :erlang.binary_to_term(chunk) do
+        load_module(ets, module, map.exports, map.deprecated)
+        true
+      else
+        _ ->
+          :ets.insert(ets, {module, false})
+          false
+      end
+    end
+
+    defp get_chunk(binary) do
+      case :beam_lib.chunks(binary, ['ExCk'], [:allow_missing_chunks]) do
+        {:ok, {_module, [{'ExCk', :missing_chunk}]}} -> :error
+        {:ok, {_module, [{'ExCk', chunk}]}} -> {:ok, chunk}
+        :error -> :error
+      end
+    end
+
+    defp load_module(ets, module, exports, deprecated) do
+      all_exports =
+        Enum.map(exports, fn {{fun, arity}, kind} ->
+          reason = :maps.get({fun, arity}, deprecated, nil)
+          :ets.insert(ets, {{:export, {module, fun, arity}}, kind, reason})
+
+          {fun, arity}
+        end)
+
+      :ets.insert(ets, {{:all_exports, module}, all_exports})
+      :ets.insert(ets, {{:loaded, module}, true})
+    end
+
+    defp info?(module) do
+      function_exported?(module, :__info__, 1)
+    end
+  end
+
+  def create_cache(maps), do: Coordinator.create_cache(maps)
+  def delete_cache(cache), do: Coordinator.delete_cache(cache)
+
+  def verify(module_map, binary, cache) do
+    warnings = warnings(module_map, cache)
     binary = chunk(binary, module_map)
     {binary, warnings}
   end
 
   defp chunk(binary, module_map) do
-    {:ok, _module, all_chunks} = :beam_lib.all_chunks(binary)
     checker_chunk = build_chunk(module_map)
+    {:ok, _module, all_chunks} = :beam_lib.all_chunks(binary)
     {:ok, binary} = :beam_lib.build_module([checker_chunk | all_chunks])
     binary
   end
@@ -15,24 +146,15 @@ defmodule Module.Checker do
   defp build_chunk(module_map) do
     map = %{
       deprecated: :maps.from_list(module_map.deprecated),
-      exports: :maps.from_list(exports(module_map.definitions))
+      exports: :maps.from_list(Coordinator.definitions_to_exports(module_map.definitions))
     }
 
     {'ExCk', :erlang.term_to_binary({:elixir_checker_v1, map})}
   end
 
-  defp exports(definitions) do
-    Enum.flat_map(definitions, fn {function, kind, _meta, _clauses} ->
-      if kind in [:def, :defmacro] do
-        [{function, kind}]
-      else
-        []
-      end
-    end)
-  end
-
-  defp warnings(module_map) do
+  defp warnings(module_map, cache) do
     state = %{
+      cache: cache,
       file: module_map.file,
       module: module_map.module,
       compile_opts: module_map.compile_opts,
@@ -117,59 +239,63 @@ defmodule Module.Checker do
   end
 
   defp check_remote(module, fun, arity, meta, state) do
-    cond do
-      # TODO: In the future we may want to warn for modules defined
-      # in the local context
-      Keyword.get(meta, :context_module, false) and state.module != module ->
-        state
+    # TODO: In the future we may want to warn for modules defined
+    # in the local context
+    if Keyword.get(meta, :context_module, false) and state.module != module do
+      state
+    else
+      check_export(module, fun, arity, meta, state)
+    end
+  end
 
-      not Code.ensure_loaded?(module) and warn_undefined?(module, fun, arity, state) ->
-        warn(meta, state, {:undefined_module, module, fun, arity})
+  defp check_export(module, fun, arity, meta, state) do
+    case Coordinator.fetch_export(state.cache, module, fun, arity) do
+      {:ok, _} ->
+        check_deprecated(module, fun, arity, meta, state)
 
-      not function_exported?(module, fun, arity) and warn_undefined?(module, fun, arity, state) ->
-        exports = exports_for(module)
-        warn(meta, state, {:undefined_function, module, fun, arity, exports})
+      {:error, :module} ->
+        if warn_undefined?(module, fun, arity, state) do
+          warn(meta, state, {:undefined_module, module, fun, arity})
+        else
+          state
+        end
 
-      reason = deprecated_reason(module, fun, arity) ->
+      {:error, :function} ->
+        if warn_undefined?(module, fun, arity, state) do
+          exports = Coordinator.all_exports(state.cache, module)
+          warn(meta, state, {:undefined_function, module, fun, arity, exports})
+        else
+          state
+        end
+    end
+  end
+
+  defp check_deprecated(module, fun, arity, meta, state) do
+    case Coordinator.fetch_deprecated(state.cache, module, fun, arity) do
+      {:ok, reason} ->
         warn(meta, state, {:deprecated, module, fun, arity, reason})
 
-      true ->
+      :error ->
         state
     end
   end
 
   # TODO: Do not warn inside guards
   # TODO: Properly handle protocols
+  # TODO: Properly handle __info__
   defp warn_undefined?(_module, :__impl__, 1, _state), do: false
+  defp warn_undefined?(_module, :__info__, 1, _state), do: false
   defp warn_undefined?(:erlang, :orelse, 2, _state), do: false
   defp warn_undefined?(:erlang, :andalso, 2, _state), do: false
 
   defp warn_undefined?(module, fun, arity, state) do
+    # TODO: Code.compiler_options[:no_warn_undefined]
     for(
       {:no_warn_undefined, values} <- state.compile_opts,
       value <- List.wrap(values),
       value == module or value == {module, fun, arity},
       do: :skip
     ) == []
-  end
-
-  defp deprecated_reason(module, fun, arity) do
-    if function_exported?(module, :__info__, 1) do
-      case List.keyfind(module.__info__(:deprecated), {fun, arity}, 0) do
-        {_key, reason} -> reason
-        nil -> nil
-      end
-    else
-      nil
-    end
-  end
-
-  defp exports_for(module) do
-    try do
-      module.__info__(:macros) ++ module.__info__(:functions)
-    rescue
-      _ -> module.module_info(:exports)
-    end
   end
 
   defp warn(meta, state, warning) do
