@@ -526,6 +526,9 @@ defmodule Application do
     :application.set_env(app, key, value, opts)
   end
 
+  # TODO: Remove this once we support Erlang/OTP 22+ exclusively.
+  @compile {:no_warn_undefined, {:application, :set_env, 2}}
+
   @doc """
   Puts the environment for multiple apps at the same time.
 
