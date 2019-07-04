@@ -31,12 +31,10 @@ defmodule Mix.ProjectTest do
     end
 
     test "considers MIX_BUILD_PATH" do
-      try do
-        System.put_env("MIX_BUILD_PATH", "_build")
-        assert Mix.Project.build_path() == Path.join(File.cwd!(), "_build/dev")
-      after
-        System.delete_env("MIX_BUILD_PATH")
-      end
+      System.put_env("MIX_BUILD_PATH", "_build")
+      assert Mix.Project.build_path() == Path.join(File.cwd!(), "_build/dev")
+    after
+      System.delete_env("MIX_BUILD_PATH")
     end
 
     test "considers the target" do
