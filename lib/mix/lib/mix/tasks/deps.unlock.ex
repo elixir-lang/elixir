@@ -11,12 +11,16 @@ defmodule Mix.Tasks.Deps.Unlock do
 
     * `dep1 dep2` - the name of dependencies to be unlocked
     * `--all` - unlocks all dependencies
+    * `--filter` - unlocks only deps matching the given name
     * `--unused` - unlocks only unused dependencies (no longer mentioned
       in the `mix.exs` file)
+    * `--check-unused` - checks that the `mix.lock` file has no unused
+      dependencies. This is useful in pre-commit hooks and CI scripts
+      if you want to reject contributions with extra dependencies
 
   """
 
-  @switches [all: :boolean, unused: :boolean, filter: :string]
+  @switches [all: :boolean, check_unused: :boolean, unused: :boolean, filter: :string]
 
   @impl true
   def run(args) do
@@ -26,6 +30,23 @@ defmodule Mix.Tasks.Deps.Unlock do
     cond do
       opts[:all] ->
         Mix.Dep.Lock.write(%{})
+
+      opts[:check_unused] ->
+        apps = Mix.Dep.load_on_environment([]) |> Enum.map(& &1.app)
+
+        unused_apps =
+          Mix.Dep.Lock.read()
+          |> Map.drop(apps)
+          |> Map.keys()
+          |> Enum.sort()
+
+        unless unused_apps == [] do
+          Mix.raise("""
+          Unused dependencies in mix.lock file:
+
+          #{Enum.map_join(unused_apps, "\n", fn app -> "  * #{inspect(app)}" end)}
+          """)
+        end
 
       opts[:unused] ->
         apps = Mix.Dep.load_on_environment([]) |> Enum.map(& &1.app)
