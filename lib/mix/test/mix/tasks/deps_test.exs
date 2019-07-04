@@ -314,7 +314,7 @@ defmodule Mix.Tasks.DepsTest do
     in_tmp(context.test, fn ->
       Mix.Dep.Lock.write(%{whatever: "0.2.0", ok: "0.1.0"})
       assert Mix.Dep.Lock.read() == %{whatever: "0.2.0", ok: "0.1.0"}
-      error = "warning: unused dependencies in mix.lock file"
+      error = "Unused dependencies in mix.lock file: [:whatever]"
 
       assert_raise Mix.Error, error, fn ->
         Mix.Tasks.Deps.Unlock.run(["--check-unused"])

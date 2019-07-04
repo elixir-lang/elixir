@@ -32,10 +32,17 @@ defmodule Mix.Tasks.Deps.Unlock do
 
       opts[:check_unused] ->
         apps = Mix.Dep.load_on_environment([]) |> Enum.map(& &1.app)
-        unused_apps = Mix.Dep.Lock.read() |> Map.drop(apps)
 
-        unless unused_apps == %{} do
-          Mix.raise("warning: unused dependencies in mix.lock file")
+        unused_apps =
+          Mix.Dep.Lock.read()
+          |> Map.drop(apps)
+          |> Map.keys()
+          |> Enum.sort()
+
+        unless unused_apps == [] do
+          Mix.raise(
+            "Unused dependencies in mix.lock file: #{inspect(unused_apps, limit: :infinity)}"
+          )
         end
 
       opts[:unused] ->
