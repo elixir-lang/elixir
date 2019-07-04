@@ -30,6 +30,15 @@ defmodule Mix.ProjectTest do
                Path.join(File.cwd!(), "_build/shared")
     end
 
+    test "considers MIX_BUILD_PATH" do
+      try do
+        System.put_env("MIX_BUILD_PATH", "_build")
+        assert Mix.Project.build_path() == Path.join(File.cwd!(), "_build/dev")
+      after
+        System.delete_env("MIX_BUILD_PATH")
+      end
+    end
+
     test "considers the target" do
       Mix.target(:rpi3)
 
