@@ -11,7 +11,7 @@
 
 defmodule String.Unicode do
   @moduledoc false
-  def version, do: {11, 0, 0}
+  def version, do: {12, 1, 0}
 
   cluster_path = Path.join(__DIR__, "GraphemeBreakProperty.txt")
   regex = ~r/(?:^([0-9A-F]+)(?:\.\.([0-9A-F]+))?)\s+;\s(\w+)/m
