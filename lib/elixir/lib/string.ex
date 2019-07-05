@@ -7,7 +7,7 @@ defmodule String do
   ## Code points and grapheme cluster
 
   The functions in this module act according to the Unicode
-  Standard, version 11.0.0.
+  Standard, version 12.1.0.
 
   As per the standard, a code point is a single Unicode Character,
   which may be represented by one or more bytes.

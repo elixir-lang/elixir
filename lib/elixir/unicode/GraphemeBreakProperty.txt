@@ -1,6 +1,6 @@
-# GraphemeBreakProperty-11.0.0.txt
-# Date: 2018-03-16, 20:34:02 GMT
-# © 2018 Unicode®, Inc.
+# GraphemeBreakProperty-12.1.0.txt
+# Date: 2019-03-10, 10:53:12 GMT
+# © 2019 Unicode®, Inc.
 # Unicode and the Unicode Logo are registered trademarks of Unicode, Inc. in the U.S. and other countries.
 # For terms of use, see http://www.unicode.org/terms_of_use.html
 #
@@ -27,10 +27,10 @@
 110CD         ; Prepend # Cf       KAITHI NUMBER SIGN ABOVE
 111C2..111C3  ; Prepend # Lo   [2] SHARADA SIGN JIHVAMULIYA..SHARADA SIGN UPADHMANIYA
 11A3A         ; Prepend # Lo       ZANABAZAR SQUARE CLUSTER-INITIAL LETTER RA
-11A86..11A89  ; Prepend # Lo   [4] SOYOMBO CLUSTER-INITIAL LETTER RA..SOYOMBO CLUSTER-INITIAL LETTER SA
+11A84..11A89  ; Prepend # Lo   [6] SOYOMBO SIGN JIHVAMULIYA..SOYOMBO CLUSTER-INITIAL LETTER SA
 11D46         ; Prepend # Lo       MASARAM GONDI REPHA
 
-# Total code points: 20
+# Total code points: 22
 
 # ================================================
 
@@ -61,10 +61,10 @@
 2060..2064    ; Control # Cf   [5] WORD JOINER..INVISIBLE PLUS
 2065          ; Control # Cn       <reserved-2065>
 2066..206F    ; Control # Cf  [10] LEFT-TO-RIGHT ISOLATE..NOMINAL DIGIT SHAPES
-D800..DFFF    ; Control # Cs [2048] <surrogate-D800>..<surrogate-DFFF>
 FEFF          ; Control # Cf       ZERO WIDTH NO-BREAK SPACE
 FFF0..FFF8    ; Control # Cn   [9] <reserved-FFF0>..<reserved-FFF8>
 FFF9..FFFB    ; Control # Cf   [3] INTERLINEAR ANNOTATION ANCHOR..INTERLINEAR ANNOTATION TERMINATOR
+13430..13438  ; Control # Cf   [9] EGYPTIAN HIEROGLYPH VERTICAL JOINER..EGYPTIAN HIEROGLYPH END SEGMENT
 1BCA0..1BCA3  ; Control # Cf   [4] SHORTHAND FORMAT LETTER OVERLAP..SHORTHAND FORMAT UP STEP
 1D173..1D17A  ; Control # Cf   [8] MUSICAL SYMBOL BEGIN BEAM..MUSICAL SYMBOL END PHRASE
 E0000         ; Control # Cn       <reserved-E0000>
@@ -73,7 +73,7 @@ E0002..E001F  ; Control # Cn  [30] <reserved-E0002>..<reserved-E001F>
 E0080..E00FF  ; Control # Cn [128] <reserved-E0080>..<reserved-E00FF>
 E01F0..E0FFF  ; Control # Cn [3600] <reserved-E01F0>..<reserved-E0FFF>
 
-# Total code points: 5925
+# Total code points: 3886
 
 # ================================================
 
@@ -178,8 +178,7 @@ E01F0..E0FFF  ; Control # Cn [3600] <reserved-E01F0>..<reserved-E0FFF>
 0E34..0E3A    ; Extend # Mn   [7] THAI CHARACTER SARA I..THAI CHARACTER PHINTHU
 0E47..0E4E    ; Extend # Mn   [8] THAI CHARACTER MAITAIKHU..THAI CHARACTER YAMAKKAN
 0EB1          ; Extend # Mn       LAO VOWEL SIGN MAI KAN
-0EB4..0EB9    ; Extend # Mn   [6] LAO VOWEL SIGN I..LAO VOWEL SIGN UU
-0EBB..0EBC    ; Extend # Mn   [2] LAO VOWEL SIGN MAI KON..LAO SEMIVOWEL SIGN LO
+0EB4..0EBC    ; Extend # Mn   [9] LAO VOWEL SIGN I..LAO SEMIVOWEL SIGN LO
 0EC8..0ECD    ; Extend # Mn   [6] LAO TONE MAI EK..LAO NIGGAHITA
 0F18..0F19    ; Extend # Mn   [2] TIBETAN ASTROLOGICAL SIGN -KHYUD PA..TIBETAN ASTROLOGICAL SIGN SDONG TSHUGS
 0F35          ; Extend # Mn       TIBETAN MARK NGAS BZUNG NYI ZLA
@@ -232,6 +231,7 @@ E01F0..E0FFF  ; Control # Cn [3600] <reserved-E01F0>..<reserved-E0FFF>
 1ABE          ; Extend # Me       COMBINING PARENTHESES OVERLAY
 1B00..1B03    ; Extend # Mn   [4] BALINESE SIGN ULU RICEM..BALINESE SIGN SURANG
 1B34          ; Extend # Mn       BALINESE SIGN REREKAN
+1B35          ; Extend # Mc       BALINESE VOWEL SIGN TEDUNG
 1B36..1B3A    ; Extend # Mn   [5] BALINESE VOWEL SIGN ULU..BALINESE VOWEL SIGN RA REPA
 1B3C          ; Extend # Mn       BALINESE VOWEL SIGN LA LENGA
 1B42          ; Extend # Mn       BALINESE VOWEL SIGN PEPET
@@ -283,7 +283,7 @@ A947..A951    ; Extend # Mn  [11] REJANG VOWEL SIGN I..REJANG CONSONANT SIGN R
 A980..A982    ; Extend # Mn   [3] JAVANESE SIGN PANYANGGA..JAVANESE SIGN LAYAR
 A9B3          ; Extend # Mn       JAVANESE SIGN CECAK TELU
 A9B6..A9B9    ; Extend # Mn   [4] JAVANESE VOWEL SIGN WULU..JAVANESE VOWEL SIGN SUKU MENDUT
-A9BC          ; Extend # Mn       JAVANESE VOWEL SIGN PEPET
+A9BC..A9BD    ; Extend # Mn   [2] JAVANESE VOWEL SIGN PEPET..JAVANESE CONSONANT SIGN KERET
 A9E5          ; Extend # Mn       MYANMAR SIGN SHAN SAW
 AA29..AA2E    ; Extend # Mn   [6] CHAM VOWEL SIGN AA..CHAM VOWEL SIGN OE
 AA31..AA32    ; Extend # Mn   [2] CHAM VOWEL SIGN AU..CHAM VOWEL SIGN UE
@@ -368,6 +368,9 @@ FF9E..FF9F    ; Extend # Lm   [2] HALFWIDTH KATAKANA VOICED SOUND MARK..HALFWIDT
 11727..1172B  ; Extend # Mn   [5] AHOM VOWEL SIGN AW..AHOM SIGN KILLER
 1182F..11837  ; Extend # Mn   [9] DOGRA VOWEL SIGN U..DOGRA SIGN ANUSVARA
 11839..1183A  ; Extend # Mn   [2] DOGRA SIGN VIRAMA..DOGRA SIGN NUKTA
+119D4..119D7  ; Extend # Mn   [4] NANDINAGARI VOWEL SIGN U..NANDINAGARI VOWEL SIGN VOCALIC RR
+119DA..119DB  ; Extend # Mn   [2] NANDINAGARI VOWEL SIGN E..NANDINAGARI VOWEL SIGN AI
+119E0         ; Extend # Mn       NANDINAGARI SIGN VIRAMA
 11A01..11A0A  ; Extend # Mn  [10] ZANABAZAR SQUARE VOWEL SIGN I..ZANABAZAR SQUARE VOWEL LENGTH MARK
 11A33..11A38  ; Extend # Mn   [6] ZANABAZAR SQUARE FINAL CONSONANT MARK..ZANABAZAR SQUARE SIGN ANUSVARA
 11A3B..11A3E  ; Extend # Mn   [4] ZANABAZAR SQUARE CLUSTER-FINAL LETTER YA..ZANABAZAR SQUARE CLUSTER-FINAL LETTER VA
@@ -394,6 +397,7 @@ FF9E..FF9F    ; Extend # Lm   [2] HALFWIDTH KATAKANA VOICED SOUND MARK..HALFWIDT
 11EF3..11EF4  ; Extend # Mn   [2] MAKASAR VOWEL SIGN I..MAKASAR VOWEL SIGN U
 16AF0..16AF4  ; Extend # Mn   [5] BASSA VAH COMBINING HIGH TONE..BASSA VAH COMBINING HIGH-LOW TONE
 16B30..16B36  ; Extend # Mn   [7] PAHAWH HMONG MARK CIM TUB..PAHAWH HMONG MARK CIM TAUM
+16F4F         ; Extend # Mn       MIAO SIGN CONSONANT MODIFIER BAR
 16F8F..16F92  ; Extend # Mn   [4] MIAO TONE RIGHT..MIAO TONE BELOW
 1BC9D..1BC9E  ; Extend # Mn   [2] DUPLOYAN THICK LETTER SELECTOR..DUPLOYAN DOUBLE MARK
 1D165         ; Extend # Mc       MUSICAL SYMBOL COMBINING STEM
@@ -414,13 +418,15 @@ FF9E..FF9F    ; Extend # Lm   [2] HALFWIDTH KATAKANA VOICED SOUND MARK..HALFWIDT
 1E01B..1E021  ; Extend # Mn   [7] COMBINING GLAGOLITIC LETTER SHTA..COMBINING GLAGOLITIC LETTER YATI
 1E023..1E024  ; Extend # Mn   [2] COMBINING GLAGOLITIC LETTER YU..COMBINING GLAGOLITIC LETTER SMALL YUS
 1E026..1E02A  ; Extend # Mn   [5] COMBINING GLAGOLITIC LETTER YO..COMBINING GLAGOLITIC LETTER FITA
+1E130..1E136  ; Extend # Mn   [7] NYIAKENG PUACHUE HMONG TONE-B..NYIAKENG PUACHUE HMONG TONE-D
+1E2EC..1E2EF  ; Extend # Mn   [4] WANCHO TONE TUP..WANCHO TONE KOINI
 1E8D0..1E8D6  ; Extend # Mn   [7] MENDE KIKAKUI COMBINING NUMBER TEENS..MENDE KIKAKUI COMBINING NUMBER MILLIONS
 1E944..1E94A  ; Extend # Mn   [7] ADLAM ALIF LENGTHENER..ADLAM NUKTA
 1F3FB..1F3FF  ; Extend # Sk   [5] EMOJI MODIFIER FITZPATRICK TYPE-1-2..EMOJI MODIFIER FITZPATRICK TYPE-6
 E0020..E007F  ; Extend # Cf  [96] TAG SPACE..CANCEL TAG
 E0100..E01EF  ; Extend # Mn [240] VARIATION SELECTOR-17..VARIATION SELECTOR-256
 
-# Total code points: 1948
+# Total code points: 1970
 
 # ================================================
 
@@ -489,7 +495,6 @@ E0100..E01EF  ; Extend # Mn [240] VARIATION SELECTOR-17..VARIATION SELECTOR-256
 1A57          ; SpacingMark # Mc       TAI THAM CONSONANT SIGN LA TANG LAI
 1A6D..1A72    ; SpacingMark # Mc   [6] TAI THAM VOWEL SIGN OY..TAI THAM VOWEL SIGN THAM AI
 1B04          ; SpacingMark # Mc       BALINESE SIGN BISAH
-1B35          ; SpacingMark # Mc       BALINESE VOWEL SIGN TEDUNG
 1B3B          ; SpacingMark # Mc       BALINESE VOWEL SIGN RA REPA TEDUNG
 1B3D..1B41    ; SpacingMark # Mc   [5] BALINESE VOWEL SIGN LA LENGA TEDUNG..BALINESE VOWEL SIGN TALING REPA TEDUNG
 1B43..1B44    ; SpacingMark # Mc   [2] BALINESE VOWEL SIGN PEPET TEDUNG..BALINESE ADEG ADEG
@@ -504,7 +509,6 @@ E0100..E01EF  ; Extend # Mn [240] VARIATION SELECTOR-17..VARIATION SELECTOR-256
 1C24..1C2B    ; SpacingMark # Mc   [8] LEPCHA SUBJOINED LETTER YA..LEPCHA VOWEL SIGN UU
 1C34..1C35    ; SpacingMark # Mc   [2] LEPCHA CONSONANT SIGN NYIN-DO..LEPCHA CONSONANT SIGN KANG
 1CE1          ; SpacingMark # Mc       VEDIC TONE ATHARVAVEDIC INDEPENDENT SVARITA
-1CF2..1CF3    ; SpacingMark # Mc   [2] VEDIC SIGN ARDHAVISARGA..VEDIC SIGN ROTATED ARDHAVISARGA
 1CF7          ; SpacingMark # Mc       VEDIC SIGN ATIKRAMA
 A823..A824    ; SpacingMark # Mc   [2] SYLOTI NAGRI VOWEL SIGN A..SYLOTI NAGRI VOWEL SIGN I
 A827          ; SpacingMark # Mc       SYLOTI NAGRI VOWEL SIGN OO
@@ -514,7 +518,7 @@ A952..A953    ; SpacingMark # Mc   [2] REJANG CONSONANT SIGN H..REJANG VIRAMA
 A983          ; SpacingMark # Mc       JAVANESE SIGN WIGNYAN
 A9B4..A9B5    ; SpacingMark # Mc   [2] JAVANESE VOWEL SIGN TARUNG..JAVANESE VOWEL SIGN TOLONG
 A9BA..A9BB    ; SpacingMark # Mc   [2] JAVANESE VOWEL SIGN TALING..JAVANESE VOWEL SIGN DIRGA MURE
-A9BD..A9C0    ; SpacingMark # Mc   [4] JAVANESE CONSONANT SIGN KERET..JAVANESE PANGKON
+A9BE..A9C0    ; SpacingMark # Mc   [3] JAVANESE CONSONANT SIGN PENGKAL..JAVANESE PANGKON
 AA2F..AA30    ; SpacingMark # Mc   [2] CHAM VOWEL SIGN O..CHAM VOWEL SIGN AI
 AA33..AA34    ; SpacingMark # Mc   [2] CHAM CONSONANT SIGN YA..CHAM CONSONANT SIGN RA
 AA4D          ; SpacingMark # Mc       CHAM CONSONANT SIGN FINAL H
@@ -566,6 +570,9 @@ ABEC          ; SpacingMark # Mc       MEETEI MAYEK LUM IYEK
 11726         ; SpacingMark # Mc       AHOM VOWEL SIGN E
 1182C..1182E  ; SpacingMark # Mc   [3] DOGRA VOWEL SIGN AA..DOGRA VOWEL SIGN II
 11838         ; SpacingMark # Mc       DOGRA SIGN VISARGA
+119D1..119D3  ; SpacingMark # Mc   [3] NANDINAGARI VOWEL SIGN AA..NANDINAGARI VOWEL SIGN II
+119DC..119DF  ; SpacingMark # Mc   [4] NANDINAGARI VOWEL SIGN O..NANDINAGARI SIGN VISARGA
+119E4         ; SpacingMark # Mc       NANDINAGARI VOWEL SIGN PRISHTHAMATRA E
 11A39         ; SpacingMark # Mc       ZANABAZAR SQUARE SIGN VISARGA
 11A57..11A58  ; SpacingMark # Mc   [2] SOYOMBO VOWEL SIGN AI..SOYOMBO VOWEL SIGN AU
 11A97         ; SpacingMark # Mc       SOYOMBO SIGN VISARGA
@@ -578,11 +585,11 @@ ABEC          ; SpacingMark # Mc       MEETEI MAYEK LUM IYEK
 11D93..11D94  ; SpacingMark # Mc   [2] GUNJALA GONDI VOWEL SIGN OO..GUNJALA GONDI VOWEL SIGN AU
 11D96         ; SpacingMark # Mc       GUNJALA GONDI SIGN VISARGA
 11EF5..11EF6  ; SpacingMark # Mc   [2] MAKASAR VOWEL SIGN E..MAKASAR VOWEL SIGN O
-16F51..16F7E  ; SpacingMark # Mc  [46] MIAO SIGN ASPIRATION..MIAO VOWEL SIGN NG
+16F51..16F87  ; SpacingMark # Mc  [55] MIAO SIGN ASPIRATION..MIAO VOWEL SIGN UI
 1D166         ; SpacingMark # Mc       MUSICAL SYMBOL COMBINING SPRECHGESANG STEM
 1D16D         ; SpacingMark # Mc       MUSICAL SYMBOL COMBINING AUGMENTATION DOT
 
-# Total code points: 362
+# Total code points: 375
 
 # ================================================
 
@@ -1420,13 +1427,13 @@ D789..D7A3    ; LVT # Lo  [27] HANGUL SYLLABLE HIG..HANGUL SYLLABLE HIH
 # Total code points: 1
 
 # emoji-data.txt
-# Date: 2018-02-07, 07:55:18 GMT
-# © 2018 Unicode®, Inc.
+# Date: 2019-01-15, 12:10:05 GMT
+# © 2019 Unicode®, Inc.
 # Unicode and the Unicode Logo are registered trademarks of Unicode, Inc. in the U.S. and other countries.
 # For terms of use, see http://www.unicode.org/terms_of_use.html
 #
 # Emoji Data for UTS #51
-# Version: 11.0
+# Version: 12.0
 #
 # For documentation and usage, see http://www.unicode.org/reports/tr51
 #
@@ -1435,6 +1442,8 @@ D789..D7A3    ; LVT # Lo  [27] HANGUL SYLLABLE HIG..HANGUL SYLLABLE HIH
 # Note: there is no guarantee as to the structure of whitespace or comments
 #
 # Characters and sequences are listed in code point order. Users should be shown a more natural order.
+# See the CLDR collation order for Emoji.
+
 00A9          ; Extended_Pictographic#  1.1  [1] (©️)       copyright
 00AE          ; Extended_Pictographic#  1.1  [1] (®️)       registered
 203C          ; Extended_Pictographic#  1.1  [1] (‼️)       double exclamation mark
@@ -1445,7 +1454,7 @@ D789..D7A3    ; LVT # Lo  [27] HANGUL SYLLABLE HIG..HANGUL SYLLABLE HIH
 21A9..21AA    ; Extended_Pictographic#  1.1  [2] (↩️..↪️)    right arrow curving left..left arrow curving right
 231A..231B    ; Extended_Pictographic#  1.1  [2] (⌚..⌛)    watch..hourglass done
 2328          ; Extended_Pictographic#  1.1  [1] (⌨️)       keyboard
-2388          ; Extended_Pictographic#  3.0  [1] (⎈️)       HELM SYMBOL
+2388          ; Extended_Pictographic#  3.0  [1] (⎈)       HELM SYMBOL
 23CF          ; Extended_Pictographic#  4.0  [1] (⏏️)       eject button
 23E9..23F3    ; Extended_Pictographic#  6.0 [11] (⏩..⏳)    fast-forward button..hourglass not done
 23F8..23FA    ; Extended_Pictographic#  7.0  [3] (⏸️..⏺️)    pause button..record button
@@ -1454,42 +1463,42 @@ D789..D7A3    ; LVT # Lo  [27] HANGUL SYLLABLE HIG..HANGUL SYLLABLE HIH
 25B6          ; Extended_Pictographic#  1.1  [1] (▶️)       play button
 25C0          ; Extended_Pictographic#  1.1  [1] (◀️)       reverse button
 25FB..25FE    ; Extended_Pictographic#  3.2  [4] (◻️..◾)    white medium square..black medium-small square
-2600..2605    ; Extended_Pictographic#  1.1  [6] (☀️..★️)    sun..BLACK STAR
-2607..2612    ; Extended_Pictographic#  1.1 [12] (☇️..☒️)    LIGHTNING..BALLOT BOX WITH X
+2600..2605    ; Extended_Pictographic#  1.1  [6] (☀️..★)    sun..BLACK STAR
+2607..2612    ; Extended_Pictographic#  1.1 [12] (☇..☒)    LIGHTNING..BALLOT BOX WITH X
 2614..2615    ; Extended_Pictographic#  4.0  [2] (☔..☕)    umbrella with rain drops..hot beverage
-2616..2617    ; Extended_Pictographic#  3.2  [2] (☖️..☗️)    WHITE SHOGI PIECE..BLACK SHOGI PIECE
+2616..2617    ; Extended_Pictographic#  3.2  [2] (☖..☗)    WHITE SHOGI PIECE..BLACK SHOGI PIECE
 2618          ; Extended_Pictographic#  4.1  [1] (☘️)       shamrock
-2619          ; Extended_Pictographic#  3.0  [1] (☙️)       REVERSED ROTATED FLORAL HEART BULLET
-261A..266F    ; Extended_Pictographic#  1.1 [86] (☚️..♯️)    BLACK LEFT POINTING INDEX..MUSIC SHARP SIGN
-2670..2671    ; Extended_Pictographic#  3.0  [2] (♰️..♱️)    WEST SYRIAC CROSS..EAST SYRIAC CROSS
-2672..267D    ; Extended_Pictographic#  3.2 [12] (♲️..♽️)    UNIVERSAL RECYCLING SYMBOL..PARTIALLY-RECYCLED PAPER SYMBOL
+2619          ; Extended_Pictographic#  3.0  [1] (☙)       REVERSED ROTATED FLORAL HEART BULLET
+261A..266F    ; Extended_Pictographic#  1.1 [86] (☚..♯)    BLACK LEFT POINTING INDEX..MUSIC SHARP SIGN
+2670..2671    ; Extended_Pictographic#  3.0  [2] (♰..♱)    WEST SYRIAC CROSS..EAST SYRIAC CROSS
+2672..267D    ; Extended_Pictographic#  3.2 [12] (♲..♽)    UNIVERSAL RECYCLING SYMBOL..PARTIALLY-RECYCLED PAPER SYMBOL
 267E..267F    ; Extended_Pictographic#  4.1  [2] (♾️..♿)    infinity..wheelchair symbol
-2680..2685    ; Extended_Pictographic#  3.2  [6] (⚀️..⚅️)    DIE FACE-1..DIE FACE-6
-2690..2691    ; Extended_Pictographic#  4.0  [2] (⚐️..⚑️)    WHITE FLAG..BLACK FLAG
+2680..2685    ; Extended_Pictographic#  3.2  [6] (⚀..⚅)    DIE FACE-1..DIE FACE-6
+2690..2691    ; Extended_Pictographic#  4.0  [2] (⚐..⚑)    WHITE FLAG..BLACK FLAG
 2692..269C    ; Extended_Pictographic#  4.1 [11] (⚒️..⚜️)    hammer and pick..fleur-de-lis
-269D          ; Extended_Pictographic#  5.1  [1] (⚝️)       OUTLINED WHITE STAR
-269E..269F    ; Extended_Pictographic#  5.2  [2] (⚞️..⚟️)    THREE LINES CONVERGING RIGHT..THREE LINES CONVERGING LEFT
+269D          ; Extended_Pictographic#  5.1  [1] (⚝)       OUTLINED WHITE STAR
+269E..269F    ; Extended_Pictographic#  5.2  [2] (⚞..⚟)    THREE LINES CONVERGING RIGHT..THREE LINES CONVERGING LEFT
 26A0..26A1    ; Extended_Pictographic#  4.0  [2] (⚠️..⚡)    warning..high voltage
-26A2..26B1    ; Extended_Pictographic#  4.1 [16] (⚢️..⚱️)    DOUBLED FEMALE SIGN..funeral urn
-26B2          ; Extended_Pictographic#  5.0  [1] (⚲️)       NEUTER
-26B3..26BC    ; Extended_Pictographic#  5.1 [10] (⚳️..⚼️)    CERES..SESQUIQUADRATE
-26BD..26BF    ; Extended_Pictographic#  5.2  [3] (⚽..⚿️)    soccer ball..SQUARED KEY
-26C0..26C3    ; Extended_Pictographic#  5.1  [4] (⛀️..⛃️)    WHITE DRAUGHTS MAN..BLACK DRAUGHTS KING
-26C4..26CD    ; Extended_Pictographic#  5.2 [10] (⛄..⛍️)    snowman without snow..DISABLED CAR
+26A2..26B1    ; Extended_Pictographic#  4.1 [16] (⚢..⚱️)    DOUBLED FEMALE SIGN..funeral urn
+26B2          ; Extended_Pictographic#  5.0  [1] (⚲)       NEUTER
+26B3..26BC    ; Extended_Pictographic#  5.1 [10] (⚳..⚼)    CERES..SESQUIQUADRATE
+26BD..26BF    ; Extended_Pictographic#  5.2  [3] (⚽..⚿)    soccer ball..SQUARED KEY
+26C0..26C3    ; Extended_Pictographic#  5.1  [4] (⛀..⛃)    WHITE DRAUGHTS MAN..BLACK DRAUGHTS KING
+26C4..26CD    ; Extended_Pictographic#  5.2 [10] (⛄..⛍)    snowman without snow..DISABLED CAR
 26CE          ; Extended_Pictographic#  6.0  [1] (⛎)       Ophiuchus
-26CF..26E1    ; Extended_Pictographic#  5.2 [19] (⛏️..⛡️)    pick..RESTRICTED LEFT ENTRY-2
-26E2          ; Extended_Pictographic#  6.0  [1] (⛢️)       ASTRONOMICAL SYMBOL FOR URANUS
-26E3          ; Extended_Pictographic#  5.2  [1] (⛣️)       HEAVY CIRCLE WITH STROKE AND TWO DOTS ABOVE
-26E4..26E7    ; Extended_Pictographic#  6.0  [4] (⛤️..⛧️)    PENTAGRAM..INVERTED PENTAGRAM
-26E8..26FF    ; Extended_Pictographic#  5.2 [24] (⛨️..⛿️)    BLACK CROSS ON SHIELD..WHITE FLAG WITH HORIZONTAL MIDDLE BLACK STRIPE
-2700          ; Extended_Pictographic#  7.0  [1] (✀️)       BLACK SAFETY SCISSORS
-2701..2704    ; Extended_Pictographic#  1.1  [4] (✁️..✄️)    UPPER BLADE SCISSORS..WHITE SCISSORS
-2705          ; Extended_Pictographic#  6.0  [1] (✅)       white heavy check mark
+26CF..26E1    ; Extended_Pictographic#  5.2 [19] (⛏️..⛡)    pick..RESTRICTED LEFT ENTRY-2
+26E2          ; Extended_Pictographic#  6.0  [1] (⛢)       ASTRONOMICAL SYMBOL FOR URANUS
+26E3          ; Extended_Pictographic#  5.2  [1] (⛣)       HEAVY CIRCLE WITH STROKE AND TWO DOTS ABOVE
+26E4..26E7    ; Extended_Pictographic#  6.0  [4] (⛤..⛧)    PENTAGRAM..INVERTED PENTAGRAM
+26E8..26FF    ; Extended_Pictographic#  5.2 [24] (⛨..⛿)    BLACK CROSS ON SHIELD..WHITE FLAG WITH HORIZONTAL MIDDLE BLACK STRIPE
+2700          ; Extended_Pictographic#  7.0  [1] (✀)       BLACK SAFETY SCISSORS
+2701..2704    ; Extended_Pictographic#  1.1  [4] (✁..✄)    UPPER BLADE SCISSORS..WHITE SCISSORS
+2705          ; Extended_Pictographic#  6.0  [1] (✅)       check mark button
 2708..2709    ; Extended_Pictographic#  1.1  [2] (✈️..✉️)    airplane..envelope
 270A..270B    ; Extended_Pictographic#  6.0  [2] (✊..✋)    raised fist..raised hand
 270C..2712    ; Extended_Pictographic#  1.1  [7] (✌️..✒️)    victory hand..black nib
-2714          ; Extended_Pictographic#  1.1  [1] (✔️)       heavy check mark
-2716          ; Extended_Pictographic#  1.1  [1] (✖️)       heavy multiplication x
+2714          ; Extended_Pictographic#  1.1  [1] (✔️)       check mark
+2716          ; Extended_Pictographic#  1.1  [1] (✖️)       multiplication sign
 271D          ; Extended_Pictographic#  1.1  [1] (✝️)       latin cross
 2721          ; Extended_Pictographic#  1.1  [1] (✡️)       star of David
 2728          ; Extended_Pictographic#  6.0  [1] (✨)       sparkles
@@ -1500,8 +1509,8 @@ D789..D7A3    ; LVT # Lo  [27] HANGUL SYLLABLE HIG..HANGUL SYLLABLE HIH
 274E          ; Extended_Pictographic#  6.0  [1] (❎)       cross mark button
 2753..2755    ; Extended_Pictographic#  6.0  [3] (❓..❕)    question mark..white exclamation mark
 2757          ; Extended_Pictographic#  5.2  [1] (❗)       exclamation mark
-2763..2767    ; Extended_Pictographic#  1.1  [5] (❣️..❧️)    heavy heart exclamation..ROTATED FLORAL HEART BULLET
-2795..2797    ; Extended_Pictographic#  6.0  [3] (➕..➗)    heavy plus sign..heavy division sign
+2763..2767    ; Extended_Pictographic#  1.1  [5] (❣️..❧)    heart exclamation..ROTATED FLORAL HEART BULLET
+2795..2797    ; Extended_Pictographic#  6.0  [3] (➕..➗)    plus sign..division sign
 27A1          ; Extended_Pictographic#  1.1  [1] (➡️)       right arrow
 27B0          ; Extended_Pictographic#  6.0  [1] (➰)       curly loop
 27BF          ; Extended_Pictographic#  6.0  [1] (➿)       double curly loop
@@ -1509,45 +1518,46 @@ D789..D7A3    ; LVT # Lo  [27] HANGUL SYLLABLE HIG..HANGUL SYLLABLE HIH
 2B05..2B07    ; Extended_Pictographic#  4.0  [3] (⬅️..⬇️)    left arrow..down arrow
 2B1B..2B1C    ; Extended_Pictographic#  5.1  [2] (⬛..⬜)    black large square..white large square
 2B50          ; Extended_Pictographic#  5.1  [1] (⭐)       star
-2B55          ; Extended_Pictographic#  5.2  [1] (⭕)       heavy large circle
+2B55          ; Extended_Pictographic#  5.2  [1] (⭕)       hollow red circle
 3030          ; Extended_Pictographic#  1.1  [1] (〰️)       wavy dash
 303D          ; Extended_Pictographic#  3.2  [1] (〽️)       part alternation mark
 3297          ; Extended_Pictographic#  1.1  [1] (㊗️)       Japanese “congratulations” button
 3299          ; Extended_Pictographic#  1.1  [1] (㊙️)       Japanese “secret” button
-1F000..1F02B  ; Extended_Pictographic#  5.1 [44] (🀀️..🀫️)    MAHJONG TILE EAST WIND..MAHJONG TILE BACK
-1F02C..1F02F  ; Extended_Pictographic#   NA  [4] (🀬️..🀯️)    <reserved-1F02C>..<reserved-1F02F>
-1F030..1F093  ; Extended_Pictographic#  5.1[100] (🀰️..🂓️)    DOMINO TILE HORIZONTAL BACK..DOMINO TILE VERTICAL-06-06
-1F094..1F09F  ; Extended_Pictographic#   NA [12] (🂔️..🂟️)    <reserved-1F094>..<reserved-1F09F>
-1F0A0..1F0AE  ; Extended_Pictographic#  6.0 [15] (🂠️..🂮️)    PLAYING CARD BACK..PLAYING CARD KING OF SPADES
-1F0AF..1F0B0  ; Extended_Pictographic#   NA  [2] (🂯️..🂰️)    <reserved-1F0AF>..<reserved-1F0B0>
-1F0B1..1F0BE  ; Extended_Pictographic#  6.0 [14] (🂱️..🂾️)    PLAYING CARD ACE OF HEARTS..PLAYING CARD KING OF HEARTS
-1F0BF         ; Extended_Pictographic#  7.0  [1] (🂿️)       PLAYING CARD RED JOKER
-1F0C0         ; Extended_Pictographic#   NA  [1] (🃀️)       <reserved-1F0C0>
-1F0C1..1F0CF  ; Extended_Pictographic#  6.0 [15] (🃁️..🃏)    PLAYING CARD ACE OF DIAMONDS..joker
-1F0D0         ; Extended_Pictographic#   NA  [1] (🃐️)       <reserved-1F0D0>
-1F0D1..1F0DF  ; Extended_Pictographic#  6.0 [15] (🃑️..🃟️)    PLAYING CARD ACE OF CLUBS..PLAYING CARD WHITE JOKER
-1F0E0..1F0F5  ; Extended_Pictographic#  7.0 [22] (🃠️..🃵️)    PLAYING CARD FOOL..PLAYING CARD TRUMP-21
-1F0F6..1F0FF  ; Extended_Pictographic#   NA [10] (🃶️..🃿️)    <reserved-1F0F6>..<reserved-1F0FF>
-1F10D..1F10F  ; Extended_Pictographic#   NA  [3] (🄍️..🄏️)    <reserved-1F10D>..<reserved-1F10F>
-1F12F         ; Extended_Pictographic# 11.0  [1] (🄯️)       COPYLEFT SYMBOL
-1F16C..1F16F  ; Extended_Pictographic#   NA  [4] (🅬️..🅯️)    <reserved-1F16C>..<reserved-1F16F>
+1F000..1F02B  ; Extended_Pictographic#  5.1 [44] (🀀..🀫)    MAHJONG TILE EAST WIND..MAHJONG TILE BACK
+1F02C..1F02F  ; Extended_Pictographic#   NA  [4] (🀬..🀯)    <reserved-1F02C>..<reserved-1F02F>
+1F030..1F093  ; Extended_Pictographic#  5.1[100] (🀰..🂓)    DOMINO TILE HORIZONTAL BACK..DOMINO TILE VERTICAL-06-06
+1F094..1F09F  ; Extended_Pictographic#   NA [12] (🂔..🂟)    <reserved-1F094>..<reserved-1F09F>
+1F0A0..1F0AE  ; Extended_Pictographic#  6.0 [15] (🂠..🂮)    PLAYING CARD BACK..PLAYING CARD KING OF SPADES
+1F0AF..1F0B0  ; Extended_Pictographic#   NA  [2] (🂯..🂰)    <reserved-1F0AF>..<reserved-1F0B0>
+1F0B1..1F0BE  ; Extended_Pictographic#  6.0 [14] (🂱..🂾)    PLAYING CARD ACE OF HEARTS..PLAYING CARD KING OF HEARTS
+1F0BF         ; Extended_Pictographic#  7.0  [1] (🂿)       PLAYING CARD RED JOKER
+1F0C0         ; Extended_Pictographic#   NA  [1] (🃀)       <reserved-1F0C0>
+1F0C1..1F0CF  ; Extended_Pictographic#  6.0 [15] (🃁..🃏)    PLAYING CARD ACE OF DIAMONDS..joker
+1F0D0         ; Extended_Pictographic#   NA  [1] (🃐)       <reserved-1F0D0>
+1F0D1..1F0DF  ; Extended_Pictographic#  6.0 [15] (🃑..🃟)    PLAYING CARD ACE OF CLUBS..PLAYING CARD WHITE JOKER
+1F0E0..1F0F5  ; Extended_Pictographic#  7.0 [22] (🃠..🃵)    PLAYING CARD FOOL..PLAYING CARD TRUMP-21
+1F0F6..1F0FF  ; Extended_Pictographic#   NA [10] (🃶..🃿)    <reserved-1F0F6>..<reserved-1F0FF>
+1F10D..1F10F  ; Extended_Pictographic#   NA  [3] (🄍..🄏)    <reserved-1F10D>..<reserved-1F10F>
+1F12F         ; Extended_Pictographic# 11.0  [1] (🄯)       COPYLEFT SYMBOL
+1F16C         ; Extended_Pictographic# 12.0  [1] (🅬)       RAISED MR SIGN
+1F16D..1F16F  ; Extended_Pictographic#   NA  [3] (🅭..🅯)    <reserved-1F16D>..<reserved-1F16F>
 1F170..1F171  ; Extended_Pictographic#  6.0  [2] (🅰️..🅱️)    A button (blood type)..B button (blood type)
 1F17E         ; Extended_Pictographic#  6.0  [1] (🅾️)       O button (blood type)
 1F17F         ; Extended_Pictographic#  5.2  [1] (🅿️)       P button
 1F18E         ; Extended_Pictographic#  6.0  [1] (🆎)       AB button (blood type)
 1F191..1F19A  ; Extended_Pictographic#  6.0 [10] (🆑..🆚)    CL button..VS button
-1F1AD..1F1E5  ; Extended_Pictographic#   NA [57] (🆭️..🇥️)    <reserved-1F1AD>..<reserved-1F1E5>
+1F1AD..1F1E5  ; Extended_Pictographic#   NA [57] (🆭..🇥)    <reserved-1F1AD>..<reserved-1F1E5>
 1F201..1F202  ; Extended_Pictographic#  6.0  [2] (🈁..🈂️)    Japanese “here” button..Japanese “service charge” button
-1F203..1F20F  ; Extended_Pictographic#   NA [13] (🈃️..🈏️)    <reserved-1F203>..<reserved-1F20F>
+1F203..1F20F  ; Extended_Pictographic#   NA [13] (🈃..🈏)    <reserved-1F203>..<reserved-1F20F>
 1F21A         ; Extended_Pictographic#  5.2  [1] (🈚)       Japanese “free of charge” button
 1F22F         ; Extended_Pictographic#  5.2  [1] (🈯)       Japanese “reserved” button
 1F232..1F23A  ; Extended_Pictographic#  6.0  [9] (🈲..🈺)    Japanese “prohibited” button..Japanese “open for business” button
-1F23C..1F23F  ; Extended_Pictographic#   NA  [4] (🈼️..🈿️)    <reserved-1F23C>..<reserved-1F23F>
-1F249..1F24F  ; Extended_Pictographic#   NA  [7] (🉉️..🉏️)    <reserved-1F249>..<reserved-1F24F>
+1F23C..1F23F  ; Extended_Pictographic#   NA  [4] (🈼..🈿)    <reserved-1F23C>..<reserved-1F23F>
+1F249..1F24F  ; Extended_Pictographic#   NA  [7] (🉉..🉏)    <reserved-1F249>..<reserved-1F24F>
 1F250..1F251  ; Extended_Pictographic#  6.0  [2] (🉐..🉑)    Japanese “bargain” button..Japanese “acceptable” button
-1F252..1F25F  ; Extended_Pictographic#   NA [14] (🉒️..🉟️)    <reserved-1F252>..<reserved-1F25F>
-1F260..1F265  ; Extended_Pictographic# 10.0  [6] (🉠️..🉥️)    ROUNDED SYMBOL FOR FU..ROUNDED SYMBOL FOR CAI
-1F266..1F2FF  ; Extended_Pictographic#   NA[154] (🉦️..🋿️)    <reserved-1F266>..<reserved-1F2FF>
+1F252..1F25F  ; Extended_Pictographic#   NA [14] (🉒..🉟)    <reserved-1F252>..<reserved-1F25F>
+1F260..1F265  ; Extended_Pictographic# 10.0  [6] (🉠..🉥)    ROUNDED SYMBOL FOR FU..ROUNDED SYMBOL FOR CAI
+1F266..1F2FF  ; Extended_Pictographic#   NA[154] (🉦..🋿)    <reserved-1F266>..<reserved-1F2FF>
 1F300..1F320  ; Extended_Pictographic#  6.0 [33] (🌀..🌠)    cyclone..shooting star
 1F321..1F32C  ; Extended_Pictographic#  7.0 [12] (🌡️..🌬️)    thermometer..wind face
 1F32D..1F32F  ; Extended_Pictographic#  8.0  [3] (🌭..🌯)    hot dog..burrito
@@ -1557,7 +1567,7 @@ D789..D7A3    ; LVT # Lo  [27] HANGUL SYLLABLE HIG..HANGUL SYLLABLE HIH
 1F37D         ; Extended_Pictographic#  7.0  [1] (🍽️)       fork and knife with plate
 1F37E..1F37F  ; Extended_Pictographic#  8.0  [2] (🍾..🍿)    bottle with popping cork..popcorn
 1F380..1F393  ; Extended_Pictographic#  6.0 [20] (🎀..🎓)    ribbon..graduation cap
-1F394..1F39F  ; Extended_Pictographic#  7.0 [12] (🎔️..🎟️)    HEART WITH TIP ON THE LEFT..admission tickets
+1F394..1F39F  ; Extended_Pictographic#  7.0 [12] (🎔..🎟️)    HEART WITH TIP ON THE LEFT..admission tickets
 1F3A0..1F3C4  ; Extended_Pictographic#  6.0 [37] (🎠..🏄)    carousel horse..person surfing
 1F3C5         ; Extended_Pictographic#  7.0  [1] (🏅)       sports medal
 1F3C6..1F3CA  ; Extended_Pictographic#  6.0  [5] (🏆..🏊)    trophy..person swimming
@@ -1565,7 +1575,7 @@ D789..D7A3    ; LVT # Lo  [27] HANGUL SYLLABLE HIG..HANGUL SYLLABLE HIH
 1F3CF..1F3D3  ; Extended_Pictographic#  8.0  [5] (🏏..🏓)    cricket game..ping pong
 1F3D4..1F3DF  ; Extended_Pictographic#  7.0 [12] (🏔️..🏟️)    snow-capped mountain..stadium
 1F3E0..1F3F0  ; Extended_Pictographic#  6.0 [17] (🏠..🏰)    house..castle
-1F3F1..1F3F7  ; Extended_Pictographic#  7.0  [7] (🏱️..🏷️)    WHITE PENNANT..label
+1F3F1..1F3F7  ; Extended_Pictographic#  7.0  [7] (🏱..🏷️)    WHITE PENNANT..label
 1F3F8..1F3FA  ; Extended_Pictographic#  8.0  [3] (🏸..🏺)    badminton..amphora
 1F400..1F43E  ; Extended_Pictographic#  6.0 [63] (🐀..🐾)    rat..paw prints
 1F43F         ; Extended_Pictographic#  7.0  [1] (🐿️)       chipmunk
@@ -1574,15 +1584,15 @@ D789..D7A3    ; LVT # Lo  [27] HANGUL SYLLABLE HIG..HANGUL SYLLABLE HIH
 1F442..1F4F7  ; Extended_Pictographic#  6.0[182] (👂..📷)    ear..camera
 1F4F8         ; Extended_Pictographic#  7.0  [1] (📸)       camera with flash
 1F4F9..1F4FC  ; Extended_Pictographic#  6.0  [4] (📹..📼)    video camera..videocassette
-1F4FD..1F4FE  ; Extended_Pictographic#  7.0  [2] (📽️..📾️)    film projector..PORTABLE STEREO
+1F4FD..1F4FE  ; Extended_Pictographic#  7.0  [2] (📽️..📾)    film projector..PORTABLE STEREO
 1F4FF         ; Extended_Pictographic#  8.0  [1] (📿)       prayer beads
 1F500..1F53D  ; Extended_Pictographic#  6.0 [62] (🔀..🔽)    shuffle tracks button..downwards button
-1F546..1F54A  ; Extended_Pictographic#  7.0  [5] (🕆️..🕊️)    WHITE LATIN CROSS..dove
-1F54B..1F54F  ; Extended_Pictographic#  8.0  [5] (🕋..🕏️)    kaaba..BOWL OF HYGIEIA
+1F546..1F54A  ; Extended_Pictographic#  7.0  [5] (🕆..🕊️)    WHITE LATIN CROSS..dove
+1F54B..1F54F  ; Extended_Pictographic#  8.0  [5] (🕋..🕏)    kaaba..BOWL OF HYGIEIA
 1F550..1F567  ; Extended_Pictographic#  6.0 [24] (🕐..🕧)    one o’clock..twelve-thirty
-1F568..1F579  ; Extended_Pictographic#  7.0 [18] (🕨️..🕹️)    RIGHT SPEAKER..joystick
+1F568..1F579  ; Extended_Pictographic#  7.0 [18] (🕨..🕹️)    RIGHT SPEAKER..joystick
 1F57A         ; Extended_Pictographic#  9.0  [1] (🕺)       man dancing
-1F57B..1F5A3  ; Extended_Pictographic#  7.0 [41] (🕻️..🖣️)    LEFT HAND TELEPHONE RECEIVER..BLACK DOWN POINTING BACKHAND INDEX
+1F57B..1F5A3  ; Extended_Pictographic#  7.0 [41] (🕻..🖣)    LEFT HAND TELEPHONE RECEIVER..BLACK DOWN POINTING BACKHAND INDEX
 1F5A4         ; Extended_Pictographic#  9.0  [1] (🖤)       black heart
 1F5A5..1F5FA  ; Extended_Pictographic#  7.0 [86] (🖥️..🗺️)    desktop computer..world map
 1F5FB..1F5FF  ; Extended_Pictographic#  6.0  [5] (🗻..🗿)    mount fuji..moai
@@ -1607,32 +1617,37 @@ D789..D7A3    ; LVT # Lo  [27] HANGUL SYLLABLE HIG..HANGUL SYLLABLE HIH
 1F62E..1F62F  ; Extended_Pictographic#  6.1  [2] (😮..😯)    face with open mouth..hushed face
 1F630..1F633  ; Extended_Pictographic#  6.0  [4] (😰..😳)    anxious face with sweat..flushed face
 1F634         ; Extended_Pictographic#  6.1  [1] (😴)       sleeping face
-1F635..1F640  ; Extended_Pictographic#  6.0 [12] (😵..🙀)    dizzy face..weary cat face
+1F635..1F640  ; Extended_Pictographic#  6.0 [12] (😵..🙀)    dizzy face..weary cat
 1F641..1F642  ; Extended_Pictographic#  7.0  [2] (🙁..🙂)    slightly frowning face..slightly smiling face
 1F643..1F644  ; Extended_Pictographic#  8.0  [2] (🙃..🙄)    upside-down face..face with rolling eyes
 1F645..1F64F  ; Extended_Pictographic#  6.0 [11] (🙅..🙏)    person gesturing NO..folded hands
 1F680..1F6C5  ; Extended_Pictographic#  6.0 [70] (🚀..🛅)    rocket..left luggage
-1F6C6..1F6CF  ; Extended_Pictographic#  7.0 [10] (🛆️..🛏️)    TRIANGLE WITH ROUNDED CORNERS..bed
+1F6C6..1F6CF  ; Extended_Pictographic#  7.0 [10] (🛆..🛏️)    TRIANGLE WITH ROUNDED CORNERS..bed
 1F6D0         ; Extended_Pictographic#  8.0  [1] (🛐)       place of worship
 1F6D1..1F6D2  ; Extended_Pictographic#  9.0  [2] (🛑..🛒)    stop sign..shopping cart
-1F6D3..1F6D4  ; Extended_Pictographic# 10.0  [2] (🛓️..🛔️)    STUPA..PAGODA
-1F6D5..1F6DF  ; Extended_Pictographic#   NA [11] (🛕️..🛟️)    <reserved-1F6D5>..<reserved-1F6DF>
+1F6D3..1F6D4  ; Extended_Pictographic# 10.0  [2] (🛓..🛔)    STUPA..PAGODA
+1F6D5         ; Extended_Pictographic# 12.0  [1] (🛕)       hindu temple
+1F6D6..1F6DF  ; Extended_Pictographic#   NA [10] (🛖..🛟)    <reserved-1F6D6>..<reserved-1F6DF>
 1F6E0..1F6EC  ; Extended_Pictographic#  7.0 [13] (🛠️..🛬)    hammer and wrench..airplane arrival
-1F6ED..1F6EF  ; Extended_Pictographic#   NA  [3] (🛭️..🛯️)    <reserved-1F6ED>..<reserved-1F6EF>
+1F6ED..1F6EF  ; Extended_Pictographic#   NA  [3] (🛭..🛯)    <reserved-1F6ED>..<reserved-1F6EF>
 1F6F0..1F6F3  ; Extended_Pictographic#  7.0  [4] (🛰️..🛳️)    satellite..passenger ship
 1F6F4..1F6F6  ; Extended_Pictographic#  9.0  [3] (🛴..🛶)    kick scooter..canoe
 1F6F7..1F6F8  ; Extended_Pictographic# 10.0  [2] (🛷..🛸)    sled..flying saucer
 1F6F9         ; Extended_Pictographic# 11.0  [1] (🛹)       skateboard
-1F6FA..1F6FF  ; Extended_Pictographic#   NA  [6] (🛺️..🛿️)    <reserved-1F6FA>..<reserved-1F6FF>
-1F774..1F77F  ; Extended_Pictographic#   NA [12] (🝴️..🝿️)    <reserved-1F774>..<reserved-1F77F>
-1F7D5..1F7D8  ; Extended_Pictographic# 11.0  [4] (🟕️..🟘️)    CIRCLED TRIANGLE..NEGATIVE CIRCLED SQUARE
-1F7D9..1F7FF  ; Extended_Pictographic#   NA [39] (🟙️..🟿️)    <reserved-1F7D9>..<reserved-1F7FF>
-1F80C..1F80F  ; Extended_Pictographic#   NA  [4] (🠌️..🠏️)    <reserved-1F80C>..<reserved-1F80F>
-1F848..1F84F  ; Extended_Pictographic#   NA  [8] (🡈️..🡏️)    <reserved-1F848>..<reserved-1F84F>
-1F85A..1F85F  ; Extended_Pictographic#   NA  [6] (🡚️..🡟️)    <reserved-1F85A>..<reserved-1F85F>
-1F888..1F88F  ; Extended_Pictographic#   NA  [8] (🢈️..🢏️)    <reserved-1F888>..<reserved-1F88F>
-1F8AE..1F8FF  ; Extended_Pictographic#   NA [82] (🢮️..🣿️)    <reserved-1F8AE>..<reserved-1F8FF>
-1F90C..1F90F  ; Extended_Pictographic#   NA  [4] (🤌️..🤏️)    <reserved-1F90C>..<reserved-1F90F>
+1F6FA         ; Extended_Pictographic# 12.0  [1] (🛺)       auto rickshaw
+1F6FB..1F6FF  ; Extended_Pictographic#   NA  [5] (🛻..🛿)    <reserved-1F6FB>..<reserved-1F6FF>
+1F774..1F77F  ; Extended_Pictographic#   NA [12] (🝴..🝿)    <reserved-1F774>..<reserved-1F77F>
+1F7D5..1F7D8  ; Extended_Pictographic# 11.0  [4] (🟕..🟘)    CIRCLED TRIANGLE..NEGATIVE CIRCLED SQUARE
+1F7D9..1F7DF  ; Extended_Pictographic#   NA  [7] (🟙..🟟)    <reserved-1F7D9>..<reserved-1F7DF>
+1F7E0..1F7EB  ; Extended_Pictographic# 12.0 [12] (🟠..🟫)    orange circle..brown square
+1F7EC..1F7FF  ; Extended_Pictographic#   NA [20] (🟬..🟿)    <reserved-1F7EC>..<reserved-1F7FF>
+1F80C..1F80F  ; Extended_Pictographic#   NA  [4] (🠌..🠏)    <reserved-1F80C>..<reserved-1F80F>
+1F848..1F84F  ; Extended_Pictographic#   NA  [8] (🡈..🡏)    <reserved-1F848>..<reserved-1F84F>
+1F85A..1F85F  ; Extended_Pictographic#   NA  [6] (🡚..🡟)    <reserved-1F85A>..<reserved-1F85F>
+1F888..1F88F  ; Extended_Pictographic#   NA  [8] (🢈..🢏)    <reserved-1F888>..<reserved-1F88F>
+1F8AE..1F8FF  ; Extended_Pictographic#   NA [82] (🢮..🣿)    <reserved-1F8AE>..<reserved-1F8FF>
+1F90C         ; Extended_Pictographic#   NA  [1] (🤌)       <reserved-1F90C>
+1F90D..1F90F  ; Extended_Pictographic# 12.0  [3] (🤍..🤏)    white heart..pinching hand
 1F910..1F918  ; Extended_Pictographic#  8.0  [9] (🤐..🤘)    zipper-mouth face..sign of the horns
 1F919..1F91E  ; Extended_Pictographic#  9.0  [6] (🤙..🤞)    call me hand..crossed fingers
 1F91F         ; Extended_Pictographic# 10.0  [1] (🤟)       love-you gesture
@@ -1642,36 +1657,51 @@ D789..D7A3    ; LVT # Lo  [27] HANGUL SYLLABLE HIG..HANGUL SYLLABLE HIH
 1F931..1F932  ; Extended_Pictographic# 10.0  [2] (🤱..🤲)    breast-feeding..palms up together
 1F933..1F93A  ; Extended_Pictographic#  9.0  [8] (🤳..🤺)    selfie..person fencing
 1F93C..1F93E  ; Extended_Pictographic#  9.0  [3] (🤼..🤾)    people wrestling..person playing handball
-1F93F         ; Extended_Pictographic#   NA  [1] (🤿️)       <reserved-1F93F>
+1F93F         ; Extended_Pictographic# 12.0  [1] (🤿)       diving mask
 1F940..1F945  ; Extended_Pictographic#  9.0  [6] (🥀..🥅)    wilted flower..goal net
 1F947..1F94B  ; Extended_Pictographic#  9.0  [5] (🥇..🥋)    1st place medal..martial arts uniform
 1F94C         ; Extended_Pictographic# 10.0  [1] (🥌)       curling stone
 1F94D..1F94F  ; Extended_Pictographic# 11.0  [3] (🥍..🥏)    lacrosse..flying disc
 1F950..1F95E  ; Extended_Pictographic#  9.0 [15] (🥐..🥞)    croissant..pancakes
 1F95F..1F96B  ; Extended_Pictographic# 10.0 [13] (🥟..🥫)    dumpling..canned food
-1F96C..1F970  ; Extended_Pictographic# 11.0  [5] (🥬..🥰)    leafy green..smiling face with 3 hearts
-1F971..1F972  ; Extended_Pictographic#   NA  [2] (🥱️..🥲️)    <reserved-1F971>..<reserved-1F972>
+1F96C..1F970  ; Extended_Pictographic# 11.0  [5] (🥬..🥰)    leafy green..smiling face with hearts
+1F971         ; Extended_Pictographic# 12.0  [1] (🥱)       yawning face
+1F972         ; Extended_Pictographic#   NA  [1] (🥲)       <reserved-1F972>
 1F973..1F976  ; Extended_Pictographic# 11.0  [4] (🥳..🥶)    partying face..cold face
-1F977..1F979  ; Extended_Pictographic#   NA  [3] (🥷️..🥹️)    <reserved-1F977>..<reserved-1F979>
+1F977..1F979  ; Extended_Pictographic#   NA  [3] (🥷..🥹)    <reserved-1F977>..<reserved-1F979>
 1F97A         ; Extended_Pictographic# 11.0  [1] (🥺)       pleading face
-1F97B         ; Extended_Pictographic#   NA  [1] (🥻️)       <reserved-1F97B>
-1F97C..1F97F  ; Extended_Pictographic# 11.0  [4] (🥼..🥿)    lab coat..woman’s flat shoe
-1F980..1F984  ; Extended_Pictographic#  8.0  [5] (🦀..🦄)    crab..unicorn face
+1F97B         ; Extended_Pictographic# 12.0  [1] (🥻)       sari
+1F97C..1F97F  ; Extended_Pictographic# 11.0  [4] (🥼..🥿)    lab coat..flat shoe
+1F980..1F984  ; Extended_Pictographic#  8.0  [5] (🦀..🦄)    crab..unicorn
 1F985..1F991  ; Extended_Pictographic#  9.0 [13] (🦅..🦑)    eagle..squid
 1F992..1F997  ; Extended_Pictographic# 10.0  [6] (🦒..🦗)    giraffe..cricket
 1F998..1F9A2  ; Extended_Pictographic# 11.0 [11] (🦘..🦢)    kangaroo..swan
-1F9A3..1F9AF  ; Extended_Pictographic#   NA [13] (🦣️..🦯️)    <reserved-1F9A3>..<reserved-1F9AF>
-1F9B0..1F9B9  ; Extended_Pictographic# 11.0 [10] (🦰..🦹)    red-haired..supervillain
-1F9BA..1F9BF  ; Extended_Pictographic#   NA  [6] (🦺️..🦿️)    <reserved-1F9BA>..<reserved-1F9BF>
+1F9A3..1F9A4  ; Extended_Pictographic#   NA  [2] (🦣..🦤)    <reserved-1F9A3>..<reserved-1F9A4>
+1F9A5..1F9AA  ; Extended_Pictographic# 12.0  [6] (🦥..🦪)    sloth..oyster
+1F9AB..1F9AD  ; Extended_Pictographic#   NA  [3] (🦫..🦭)    <reserved-1F9AB>..<reserved-1F9AD>
+1F9AE..1F9AF  ; Extended_Pictographic# 12.0  [2] (🦮..🦯)    guide dog..probing cane
+1F9B0..1F9B9  ; Extended_Pictographic# 11.0 [10] (🦰..🦹)    red hair..supervillain
+1F9BA..1F9BF  ; Extended_Pictographic# 12.0  [6] (🦺..🦿)    safety vest..mechanical leg
 1F9C0         ; Extended_Pictographic#  8.0  [1] (🧀)       cheese wedge
 1F9C1..1F9C2  ; Extended_Pictographic# 11.0  [2] (🧁..🧂)    cupcake..salt
-1F9C3..1F9CF  ; Extended_Pictographic#   NA [13] (🧃️..🧏️)    <reserved-1F9C3>..<reserved-1F9CF>
+1F9C3..1F9CA  ; Extended_Pictographic# 12.0  [8] (🧃..🧊)    beverage box..ice cube
+1F9CB..1F9CC  ; Extended_Pictographic#   NA  [2] (🧋..🧌)    <reserved-1F9CB>..<reserved-1F9CC>
+1F9CD..1F9CF  ; Extended_Pictographic# 12.0  [3] (🧍..🧏)    person standing..deaf person
 1F9D0..1F9E6  ; Extended_Pictographic# 10.0 [23] (🧐..🧦)    face with monocle..socks
 1F9E7..1F9FF  ; Extended_Pictographic# 11.0 [25] (🧧..🧿)    red envelope..nazar amulet
-1FA00..1FA5F  ; Extended_Pictographic#   NA [96] (🨀️..🩟️)    <reserved-1FA00>..<reserved-1FA5F>
-1FA60..1FA6D  ; Extended_Pictographic# 11.0 [14] (🩠️..🩭️)    XIANGQI RED GENERAL..XIANGQI BLACK SOLDIER
-1FA6E..1FFFD  ; Extended_Pictographic#   NA[1424] (🩮️..🿽️)   <reserved-1FA6E>..<reserved-1FFFD>
+1FA00..1FA53  ; Extended_Pictographic# 12.0 [84] (🨀..🩓)    NEUTRAL CHESS KING..BLACK CHESS KNIGHT-BISHOP
+1FA54..1FA5F  ; Extended_Pictographic#   NA [12] (🩔..🩟)    <reserved-1FA54>..<reserved-1FA5F>
+1FA60..1FA6D  ; Extended_Pictographic# 11.0 [14] (🩠..🩭)    XIANGQI RED GENERAL..XIANGQI BLACK SOLDIER
+1FA6E..1FA6F  ; Extended_Pictographic#   NA  [2] (🩮..🩯)    <reserved-1FA6E>..<reserved-1FA6F>
+1FA70..1FA73  ; Extended_Pictographic# 12.0  [4] (🩰..🩳)    ballet shoes..shorts
+1FA74..1FA77  ; Extended_Pictographic#   NA  [4] (🩴..🩷)    <reserved-1FA74>..<reserved-1FA77>
+1FA78..1FA7A  ; Extended_Pictographic# 12.0  [3] (🩸..🩺)    drop of blood..stethoscope
+1FA7B..1FA7F  ; Extended_Pictographic#   NA  [5] (🩻..🩿)    <reserved-1FA7B>..<reserved-1FA7F>
+1FA80..1FA82  ; Extended_Pictographic# 12.0  [3] (🪀..🪂)    yo-yo..parachute
+1FA83..1FA8F  ; Extended_Pictographic#   NA [13] (🪃..🪏)    <reserved-1FA83>..<reserved-1FA8F>
+1FA90..1FA95  ; Extended_Pictographic# 12.0  [6] (🪐..🪕)    ringed planet..banjo
+1FA96..1FFFD  ; Extended_Pictographic#   NA[1384] (🪖..🿽)   <reserved-1FA96>..<reserved-1FFFD>
 
 # Total elements: 3793
 
-# EOF
+#EOF
