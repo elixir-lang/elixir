@@ -1,10 +1,8 @@
 defmodule Keyword do
   @moduledoc """
-  A set of functions for working with keywords.
-
-  A keyword list is a list of two-element tuples where the first
-  element of the tuple is an atom and the second element
-  can be any value.
+  Keyword litss are list of two-element tuples, where the first
+  element of the tuple is an atom and the second element can be any
+  value, used mostly to work with optional values.
 
   For example, the following is a keyword list:
 
@@ -34,8 +32,8 @@ defmodule Keyword do
   of a keyword without quotes, Elixir will warn.
 
   Note that when keyword lists are passed as the last argument to a function,
-  if the shorthand syntax is used then the square brackets around the keyword list
-  can be omitted as well. For example, the following:
+  if the shorthand syntax is used then the square brackets around the keyword
+  list can be omitted as well. For example, the following:
 
       String.split("1-0", "-", trim: true, parts: 2)
 
@@ -45,7 +43,7 @@ defmodule Keyword do
 
   A keyword may have duplicated keys so it is not strictly
   a key-value store. However most of the functions in this module
-  behave exactly as a dictionary so they work similarly to
+  behave exactly as a key-value so they work similarly to
   the functions you would find in the `Map` module.
 
   For example, `Keyword.get/3` will get the first entry matching

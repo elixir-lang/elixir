@@ -1,19 +1,6 @@
 defmodule List do
   @moduledoc """
-  Functions that work on (linked) lists.
-
-  Many of the functions provided for lists, which implement
-  the `Enumerable` protocol, are found in the `Enum` module.
-
-  Additionally, the following functions and operators for lists are
-  found in `Kernel`:
-
-    * `++/2`
-    * `--/2`
-    * `hd/1`
-    * `tl/1`
-    * `in/2`
-    * `length/1`
+  Linked lists hold zero, one, or more elements in the choosen order.
 
   Lists in Elixir are specified between square brackets:
 
@@ -68,6 +55,17 @@ defmodule List do
   length of the list. For example `length/1` and `last/1` will run in linear
   time because they need to iterate through every element of the list, but
   `first/1` will run in constant time because it only needs the first element.
+
+  Lists also implement the `Enumerable` protocol, so many functions to work with
+  lists are found in the `Enum` module. Additionally, the following functions and
+  operators for lists are found in `Kernel`:
+
+    * `++/2`
+    * `--/2`
+    * `hd/1`
+    * `tl/1`
+    * `in/2`
+    * `length/1`
 
   ## Charlists
 

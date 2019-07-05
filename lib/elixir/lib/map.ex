@@ -1,15 +1,9 @@
 defmodule Map do
   @moduledoc """
-  A set of functions for working with maps.
+  Maps are the "go to" key-value data structure in Elixir.
 
-  Many functions for maps, which implement the `Enumerable` protocol,
-  are found in the `Enum` module. Additionally, the following functions
-  for maps are found in `Kernel`:
-
-    * `map_size/1`
-
-  Maps are the "go to" key-value data structure in Elixir. Maps can be created
-  with the `%{}` syntax, and key-value pairs can be expressed as `key => value`:
+  Maps can be created with the `%{}` syntax, and key-value pairs can be
+  expressed as `key => value`:
 
       iex> %{}
       %{}
@@ -97,6 +91,13 @@ defmodule Map do
   it performs better because lists have a linear time complexity. Some functions,
   such as `keys/1` and `values/1`, run in linear time because they need to get to every
   element in the map.
+
+  Maps also implement the `Enumerable` protocol, so many functions to work with maps
+  are found in the `Enum` module. Additionally, the following functions for maps are
+  found in `Kernel`:
+
+    * `map_size/1`
+
   """
 
   @type key :: any
