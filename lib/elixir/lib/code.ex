@@ -1135,7 +1135,7 @@ defmodule Code do
       # Module documentation of an existing module
       iex> {:docs_v1, _, :elixir, _, %{"en" => module_doc}, _, _} = Code.fetch_docs(Atom)
       iex> module_doc |> String.split("\n") |> Enum.at(0)
-      "Atoms are constants whose value are their own name."
+      "Atoms are constants whose values are their own name."
 
       # A module that doesn't exist
       iex> Code.fetch_docs(ModuleNotGood)
