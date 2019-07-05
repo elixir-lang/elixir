@@ -2,7 +2,7 @@ import Kernel, except: [length: 1]
 
 defmodule String do
   @moduledoc ~S"""
-  A String in Elixir is a UTF-8 encoded binary.
+  Strings in Elixir are UTF-8 encoded binaries.
 
   ## Code points and grapheme cluster
 
