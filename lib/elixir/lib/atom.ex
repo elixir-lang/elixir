@@ -1,6 +1,6 @@
 defmodule Atom do
   @moduledoc """
-  Atoms are constants whose value are their own name.
+  Atoms are constants whose values are their own name.
 
   They are often useful to enumerate over distinct values, such as:
 
