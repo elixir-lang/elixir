@@ -1,6 +1,9 @@
 defmodule Logger.App do
   @moduledoc false
 
+  # TODO: Remove this once we support Erlang/OTP 21+ exclusively.
+  @compile {:no_warn_undefined, :logger}
+
   use Application
 
   @doc false

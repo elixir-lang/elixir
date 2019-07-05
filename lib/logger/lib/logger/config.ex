@@ -1,6 +1,9 @@
 defmodule Logger.Config do
   @moduledoc false
 
+  # TODO Remove this once we support Erlang/OTP 22+ exclusively.
+  @compile {:no_warn_undefined, [:persistent_term, :counters]}
+
   @behaviour :gen_event
   @name __MODULE__
   @table __MODULE__
