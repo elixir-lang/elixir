@@ -344,7 +344,7 @@ defmodule Kernel.ParallelCompiler do
     cache = Module.Checker.create_cache(all_maps)
 
     try do
-      result  =
+      result =
         for {{:module, module}, {binary, map}} <- result do
           {binary, warnings} = Module.Checker.verify(map, binary, cache)
           {{module, binary}, warnings}

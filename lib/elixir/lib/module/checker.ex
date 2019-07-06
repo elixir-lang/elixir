@@ -4,70 +4,92 @@ defmodule Module.Checker do
   defmodule Coordinator do
     @moduledoc false
 
-    def create_cache(maps) do
-      ets = :ets.new(:checker_cache, [:set, :private])
+    def start_link(maps) do
+      ets = :ets.new(:checker_cache, [:set, :public])
 
       Enum.each(maps, fn map ->
         exports = definitions_to_exports(map.definitions)
         deprecated = :maps.from_list(map.deprecated)
-        load_module(ets, map.module, exports, deprecated)
+        cache_module(ets, map.module, exports, deprecated)
       end)
 
-      ets
+      {:ok, server} = :gen_server.start_link(__MODULE__, [], [])
+      {server, ets}
     end
 
-    def delete_cache(ets) do
+    def init([]) do
+      {:ok, %{waiting: %{}}}
+    end
+
+    def stop({server, ets}) do
       :ets.delete(ets)
+      :gen_server.stop(server)
     end
 
-    def fetch_export(ets, module, fun, arity) do
-      if cache_module?(ets, module) do
-        case :ets.lookup(ets, {:export, {module, fun, arity}}) do
-          [{_key, kind, _reason}] -> {:ok, kind}
-          [] -> {:error, :function}
-        end
-      else
-        cond do
-          not Code.ensure_loaded?(module) -> {:error, :module}
-          function_exported?(module, fun, arity) -> {:ok, :def}
-          info?(module) and {fun, arity} in module.__info__(:macros) -> {:ok, :defmacro}
-          true -> {:error, :function}
-        end
+    def handle_call({:lock, module}, from, %{waiting: waiting} = state) do
+      case :maps.get(module, waiting, nil) do
+        nil ->
+          waiting = :maps.put(module, [], waiting)
+          {:reply, true, %{state | waiting: waiting}}
+
+        froms ->
+          waiting = :maps.put(module, [from | froms], waiting)
+          {:noreply, %{state | waiting: waiting}}
       end
     end
 
-    def fetch_deprecated(ets, module, fun, arity) do
-      if cache_module?(ets, module) do
-        case :ets.lookup(ets, {:export, {module, fun, arity}}) do
-          [{_key, _kind, nil}] -> :error
-          [{_key, _kind, reason}] -> {:ok, reason}
-          [] -> :error
-        end
-      else
-        if Code.ensure_loaded?(module) and info?(module) and function_exported?(module, fun, arity) do
-          case List.keyfind(module.__info__(:deprecated), {fun, arity}, 0) do
-            nil -> :error
-            {_key, reason} -> {:ok, reason}
+    def handle_call({:unlock, module}, _from, %{waiting: waiting} = state) do
+      froms = :maps.get(module, waiting)
+      Enum.each(froms, &:gen_server.reply(&1, false))
+      waiting = :maps.remove(module, waiting)
+      {:reply, :ok, %{state | waiting: waiting}}
+    end
+
+    defp lock(server, module) do
+      :gen_server.call(server, {:lock, module}, :infinity)
+    end
+
+    defp unlock(server, module) do
+      :gen_server.call(server, {:unlock, module})
+    end
+
+    def preload_module({server, ets}, module) do
+      case :ets.lookup(ets, {:cached, module}) do
+        [{_key, _}] -> :ok
+        [] -> cache_module({server, ets}, module)
+      end
+    end
+
+    def fetch_export({_server, ets}, module, fun, arity) do
+      case :ets.lookup(ets, {:cached, module}) do
+        [{_key, true}] ->
+          case :ets.lookup(ets, {:export, {module, fun, arity}}) do
+            [{_key, kind, _reason}] -> {:ok, kind}
+            [] -> {:error, :function}
           end
-        else
-          :error
-        end
+
+        [{_key, false}] ->
+          {:error, :module}
       end
     end
 
-    def all_exports(ets, module) do
-      if cache_module?(ets, module) do
-        [{_key, exports}] = :ets.lookup(ets, {:all_exports, module})
-        exports
-      else
-        # This is only called after we get a deprecation notice
-        # so we can assume it's a loaded Elixir module
-        try do
-          module.__info__(:macros) ++ module.__info__(:functions)
-        rescue
-          _ -> module.module_info(:exports)
-        end
+    def fetch_deprecated({_server, ets}, module, fun, arity) do
+      # This is only called after we have checked undefined
+      # so we can assume the mfa exists
+      case :ets.lookup(ets, {:export, {module, fun, arity}}) do
+        [{_key, _kind, nil}] -> :error
+        [{_key, _kind, reason}] -> {:ok, reason}
       end
+    end
+
+    def all_exports({_server, ets}, module) do
+      # This is only called after we get a deprecation notice
+      # so we can assume it's a cached module
+      [{_key, exports}] = :ets.lookup(ets, {:all_exports, module})
+
+      exports
+      |> Enum.map(fn {function, _kind} -> function end)
+      |> Enum.sort()
     end
 
     def definitions_to_exports(definitions) do
@@ -80,24 +102,21 @@ defmodule Module.Checker do
       end)
     end
 
-    defp cache_module?(ets, module) do
-      case :ets.lookup(ets, {:loaded, module}) do
-        [{_key, true}] -> true
-        [{_key, false}] -> load_chunk?(ets, module)
-        [] -> false
+    defp cache_module({server, ets}, module) do
+      if lock(server, module) do
+        cache_from_chunk(ets, module) || cache_from_info(ets, module)
+        unlock(server, module)
       end
     end
 
-    defp load_chunk?(ets, module) do
+    defp cache_from_chunk(ets, module) do
       with {^module, binary, _filename} <- :code.get_object_code(module),
            {:ok, chunk} <- get_chunk(binary),
            {:elixir_checker_v1, map} <- :erlang.binary_to_term(chunk) do
-        load_module(ets, module, map.exports, map.deprecated)
+        cache_module(ets, module, map.exports, map.deprecated)
         true
       else
-        _ ->
-          :ets.insert(ets, {module, false})
-          false
+        _ -> false
       end
     end
 
@@ -109,26 +128,47 @@ defmodule Module.Checker do
       end
     end
 
-    defp load_module(ets, module, exports, deprecated) do
+    defp cache_from_info(ets, module) do
+      if Code.ensure_loaded?(module) do
+        exports = info_exports(module)
+        deprecated = info_deprecated(module)
+        cache_module(ets, module, exports, deprecated)
+      else
+        :ets.insert(ets, {{:cached, module}, false})
+      end
+    end
+
+    defp info_exports(module) do
+      :maps.from_list(
+        Enum.map(module.__info__(:macros), &{&1, :defmacro}) ++
+          Enum.map(module.__info__(:functions), &{&1, :def})
+      )
+    rescue
+      _ -> :maps.from_list(Enum.map(module.module_info(:exports), &{&1, :def}))
+    end
+
+    defp info_deprecated(module) do
+      :maps.from_list(module.__info__(:deprecated))
+    rescue
+      _ -> %{}
+    end
+
+    defp cache_module(ets, module, exports, deprecated) do
       all_exports =
         Enum.map(exports, fn {{fun, arity}, kind} ->
           reason = :maps.get({fun, arity}, deprecated, nil)
           :ets.insert(ets, {{:export, {module, fun, arity}}, kind, reason})
 
-          {fun, arity}
+          {{fun, arity}, kind}
         end)
 
       :ets.insert(ets, {{:all_exports, module}, all_exports})
-      :ets.insert(ets, {{:loaded, module}, true})
-    end
-
-    defp info?(module) do
-      function_exported?(module, :__info__, 1)
+      :ets.insert(ets, {{:cached, module}, true})
     end
   end
 
-  def create_cache(maps), do: Coordinator.create_cache(maps)
-  def delete_cache(cache), do: Coordinator.delete_cache(cache)
+  def create_cache(maps), do: Coordinator.start_link(maps)
+  def delete_cache(cache), do: Coordinator.stop(cache)
 
   def verify(module_map, binary, cache) do
     warnings = warnings(module_map, cache)
@@ -244,6 +284,7 @@ defmodule Module.Checker do
     if Keyword.get(meta, :context_module, false) and state.module != module do
       state
     else
+      Coordinator.preload_module(state.cache, module)
       check_export(module, fun, arity, meta, state)
     end
   end
