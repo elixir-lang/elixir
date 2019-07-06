@@ -240,11 +240,11 @@ defmodule Kernel.ParallelCompiler do
 
   # No more queue, nothing waiting, this cycle is done
   defp spawn_workers([], 0, [], [], result, warnings, state) do
-    %{output: output, beam_timestamp: beam_timestamp} = state
+    %{output: output, beam_timestamp: beam_timestamp, schedulers: schedulers} = state
 
     case state.each_cycle.() do
       [] ->
-        {binaries, checker_warnings} = maybe_check_modules(result)
+        {binaries, checker_warnings} = maybe_check_modules(result, schedulers)
         write_module_binaries(output, beam_timestamp, binaries)
         warnings = Enum.reverse(warnings, checker_warnings)
         {:ok, Enum.map(binaries, &elem(&1, 0)), warnings}
@@ -330,26 +330,21 @@ defmodule Kernel.ParallelCompiler do
     :ok
   end
 
-  defp maybe_check_modules(result) do
+  defp maybe_check_modules(result, schedulers) do
     if :elixir_config.get(:bootstrap) do
       binaries = for {{:module, module}, {binary, _map}} <- result, do: {module, binary}
       {binaries, []}
     else
-      check_modules(result)
+      check_modules(result, schedulers)
     end
   end
 
-  defp check_modules(result) do
+  defp check_modules(result, schedulers) do
     all_maps = all_module_maps(result)
     cache = Module.Checker.create_cache(all_maps)
 
     try do
-      result =
-        for {{:module, module}, {binary, map}} <- result do
-          {binary, warnings} = Module.Checker.verify(map, binary, cache)
-          {{module, binary}, warnings}
-        end
-
+      result = spawn_checkers(:maps.to_list(result), 0, schedulers, cache, [])
       {binaries, warnings} = Enum.unzip(result)
       {binaries, Enum.concat(warnings)}
     after
@@ -359,6 +354,37 @@ defmodule Kernel.ParallelCompiler do
 
   defp all_module_maps(result) do
     for {{:module, _module}, {_binary, map}} <- result, do: map
+  end
+
+  defp spawn_checkers([result | results], spawned, schedulers, cache, acc)
+       when spawned < schedulers do
+    case result do
+      {{:module, module}, {binary, map}} ->
+        parent = self()
+
+        :erlang.spawn_link(fn ->
+          {binary, warnings} = Module.Checker.verify(map, binary, cache)
+          send(parent, {__MODULE__, module, binary, warnings})
+        end)
+
+        spawn_checkers(results, spawned + 1, schedulers, cache, acc)
+
+      _ ->
+        spawn_checkers(results, spawned, schedulers, cache, acc)
+    end
+  end
+
+  defp spawn_checkers(results, spawned, schedulers, cache, acc)
+       when spawned == schedulers or (results == [] and spawned > 0) do
+    receive do
+      {__MODULE__, module, binary, warnings} ->
+        acc = [{{module, binary}, warnings} | acc]
+        spawn_checkers(results, spawned - 1, schedulers, cache, acc)
+    end
+  end
+
+  defp spawn_checkers([], 0, _schedulers, _cache, acc) do
+    acc
   end
 
   # The goal of this function is to find leaves in the dependency graph,

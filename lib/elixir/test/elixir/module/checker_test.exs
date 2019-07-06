@@ -509,20 +509,23 @@ defmodule Module.CheckerTest do
         """
       }
 
-      warning = """
-      warning: A.__struct__/0 is deprecated. oops
-      Found at 2 locations:
-        a.ex:4: A.match/1
-        a.ex:5: A.build/1
+      warnings = [
+        """
+        warning: A.__struct__/0 is deprecated. oops
+        Found at 2 locations:
+          a.ex:4: A.match/1
+          a.ex:5: A.build/1
+        """,
+        """
+        warning: A.__struct__/0 is deprecated. oops
+        Found at 2 locations:
+          b.ex:2: B.match/1
+          b.ex:3: B.build/1
 
-      warning: A.__struct__/0 is deprecated. oops
-      Found at 2 locations:
-        b.ex:2: B.match/1
-        b.ex:3: B.build/1
+        """
+      ]
 
-      """
-
-      assert_warnings(files, warning)
+      assert_warnings(files, warnings)
     end
 
     test "reports module body" do
@@ -551,8 +554,16 @@ defmodule Module.CheckerTest do
     end
   end
 
-  defp assert_warnings(files, expected) do
+  defp assert_warnings(files, expected) when is_binary(expected) do
     assert capture_compile(files) == expected
+  end
+
+  defp assert_warnings(files, expecteds) when is_list(expecteds) do
+    output = capture_compile(files)
+
+    Enum.each(expecteds, fn expected ->
+      assert output =~ expected
+    end)
   end
 
   defp assert_no_warnings(files) do
