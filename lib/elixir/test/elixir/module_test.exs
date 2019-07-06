@@ -45,6 +45,8 @@ defmodule ModuleTest do
 
   doctest Module
 
+  Module.register_attribute(__MODULE__, :register_unset_example, persist: true)
+  Module.register_attribute(__MODULE__, :register_empty_example, accumulate: true, persist: true)
   Module.register_attribute(__MODULE__, :register_example, accumulate: true, persist: true)
   @register_example :it_works
   @register_example :still_works
@@ -153,16 +155,21 @@ defmodule ModuleTest do
     assert OverridableWithBeforeCompile.constant() == 1
   end
 
-  ## Attributes
+  describe "__info__(:attributes)" do
+    test "reserved attributes" do
+      assert List.keyfind(ExUnit.Server.__info__(:attributes), :behaviour, 0) ==
+               {:behaviour, [GenServer]}
+    end
 
-  test "reserved attributes" do
-    assert List.keyfind(ExUnit.Server.__info__(:attributes), :behaviour, 0) ==
-             {:behaviour, [GenServer]}
-  end
+    test "registered attributes" do
+      assert Enum.filter(__MODULE__.__info__(:attributes), &match?({:register_example, _}, &1)) ==
+               [{:register_example, [:it_works]}, {:register_example, [:still_works]}]
+    end
 
-  test "registered attributes" do
-    assert Enum.filter(__MODULE__.__info__(:attributes), &match?({:register_example, _}, &1)) ==
-             [{:register_example, [:it_works]}, {:register_example, [:still_works]}]
+    test "registered attributes with no values are not present" do
+      refute List.keyfind(__MODULE__.__info__(:attributes), :register_unset_example, 0)
+      refute List.keyfind(__MODULE__.__info__(:attributes), :register_empty_example, 0)
+    end
   end
 
   @some_attribute [1]
@@ -465,6 +472,40 @@ defmodule ModuleTest do
     test "returns the passed default if the attribute does not exist" do
       in_module do
         assert Module.get_attribute(__MODULE__, :attribute, :default) == :default
+      end
+    end
+  end
+
+  describe "has_attribute?/2" do
+    test "returns true when attribute has been defined" do
+      in_module do
+        @foo 1
+        Module.register_attribute(__MODULE__, :bar, [])
+        Module.register_attribute(__MODULE__, :baz, accumulate: true)
+        Module.put_attribute(__MODULE__, :qux, 2)
+
+        # silence warning
+        _ = @foo
+
+        assert Module.has_attribute?(__MODULE__, :foo)
+        assert Module.has_attribute?(__MODULE__, :bar)
+        assert Module.has_attribute?(__MODULE__, :baz)
+        assert Module.has_attribute?(__MODULE__, :qux)
+      end
+    end
+
+    test "returns false when attribute has not been defined" do
+      in_module do
+        refute Module.has_attribute?(__MODULE__, :foo)
+      end
+    end
+
+    test "returns false when attribute has been deleted" do
+      in_module do
+        @foo 1
+        Module.delete_attribute(__MODULE__, :foo)
+
+        refute Module.has_attribute?(__MODULE__, :foo)
       end
     end
   end

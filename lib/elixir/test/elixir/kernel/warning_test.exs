@@ -1413,6 +1413,23 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
+  test "registered attribute with no use" do
+    content =
+      capture_err(fn ->
+        Code.eval_string("""
+        defmodule Sample do
+          Module.register_attribute(__MODULE__, :at, [])
+          @at "Something"
+        end
+        """)
+      end)
+
+    assert content =~ "module attribute @at was set but never used"
+    assert content =~ "nofile:3"
+  after
+    purge(Sample)
+  end
+
   test "typedoc with no type" do
     assert capture_err(fn ->
              Code.eval_string("""

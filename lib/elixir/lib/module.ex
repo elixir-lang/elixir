@@ -1232,6 +1232,40 @@ defmodule Module do
   end
 
   @doc """
+  Checks if the given attribute has been defined.
+
+  An attribute is defined if it has been registered with `register_attribute/3`
+  or assigned a value. If an attribute has been deleted with `delete_attribute/2`
+  it is no longer considered defined.
+
+  This function can only be used on modules that have not yet been compiled.
+
+  ## Examples
+
+      defmodule MyModule do
+        @value 1
+        Module.register_attribute(__MODULE__, :other_value)
+        Module.put_attribute(__MODULE__, :another_value, 1)
+
+        Module.has_attribute?(__MODULE__, :value) #=> true
+        Module.has_attribute?(__MODULE__, :other_value) #=> true
+        Module.has_attribute?(__MODULE__, :another_value) #=> true
+
+        Module.has_attribute?(__MODULE__, :undefined) #=> false
+
+        Module.delete_attribute(__MODULE__, :value)
+        Module.has_attribute?(__MODULE__, :value) #=> false
+      end
+  """
+  @spec has_attribute?(module, atom) :: boolean
+  def has_attribute?(module, key) when is_atom(module) and is_atom(key) do
+    assert_not_compiled!(__ENV__.function, module)
+    {set, _bag} = data_tables_for(module)
+
+    :ets.member(set, key)
+  end
+
+  @doc """
   Deletes the module attribute that matches the given key.
 
   It returns the deleted attribute value (or `nil` if nothing was set).
@@ -1308,6 +1342,9 @@ defmodule Module do
     if Keyword.get(options, :accumulate) do
       :ets.insert_new(set, {attribute, [], :accumulate}) ||
         :ets.update_element(set, attribute, {3, :accumulate})
+    else
+      :ets.insert_new(bag, {:attributes, attribute})
+      :ets.insert_new(set, {attribute, nil, :unset})
     end
 
     :ok
@@ -1775,7 +1812,7 @@ defmodule Module do
       [{_, _, :accumulate}] ->
         :lists.reverse(bag_lookup_element(bag, {:accumulate, key}, 2))
 
-      [{_, val, nil}] ->
+      [{_, val, line}] when line in [:unset, nil] ->
         val
 
       [{_, val, _}] ->
@@ -1864,8 +1901,11 @@ defmodule Module do
         :ets.insert(set, {key, value, line})
         :ets.insert(bag, {:attributes, key})
     else
-      :accumulate -> :ets.insert(bag, {{:accumulate, key}, value})
-      _ -> :ets.insert(set, {key, value, line})
+      :accumulate ->
+        :ets.insert(bag, {{:accumulate, key}, value})
+
+      _ ->
+        :ets.insert(set, {key, value, line})
     end
   end
 
