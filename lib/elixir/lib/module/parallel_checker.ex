@@ -1,6 +1,16 @@
 defmodule Module.ParallelChecker do
   @moduledoc false
 
+  @type cache() :: {pid(), :ets.tid()}
+  @type warning() :: term()
+  @type kind() :: :def | :defmacro
+
+  @doc """
+  Receives pairs of module maps and BEAM binaries. In parallel it verifies
+  the modules and adds the ExCk chunk to the binaries. Returns the updated
+  binaries and a list of warnings from the verification.
+  """
+  @spec verify([%{}], pos_integer()) :: {[{module(), binary()}], [warning()]}
   def verify(modules, schedulers) do
     ets = :ets.new(:checker_cache, [:set, :public, {:read_concurrency, true}])
     preload_cache(ets, modules)
@@ -15,6 +25,82 @@ defmodule Module.ParallelChecker do
       :ets.delete(ets)
       :gen_server.stop(server)
     end
+  end
+
+  @doc """
+  Preloads a module into the cache. Call this function before any other
+  cache lookups for the module.
+  """
+  @spec preload_module(cache(), module()) :: :ok
+  def preload_module({server, ets}, module) do
+    case :ets.lookup(ets, {:cached, module}) do
+      [{_key, _}] -> :ok
+      [] -> cache_module({server, ets}, module)
+    end
+  end
+
+  @doc """
+  Returns the export kind for the given MFA from the cache. If the module
+  does not exist return `{:error, :module}`, or if the function does not
+  exist return `{:error, :function}`.
+  """
+  @spec fetch_export(cache(), module(), atom(), arity()) ::
+          {:ok, kind()} | {:error, :function | :module}
+  def fetch_export({_server, ets}, module, fun, arity) do
+    case :ets.lookup(ets, {:cached, module}) do
+      [{_key, true}] ->
+        case :ets.lookup(ets, {:export, {module, fun, arity}}) do
+          [{_key, kind, _reason}] -> {:ok, kind}
+          [] -> {:error, :function}
+        end
+
+      [{_key, false}] ->
+        {:error, :module}
+    end
+  end
+
+  @doc """
+  Returns the deprecation reason for the given MFA from the cache or
+  `:error` if the MFA is not deprecated.
+  """
+  @spec fetch_deprecated(cache(), module(), atom(), arity()) :: {:ok, binary()} | :error
+  def fetch_deprecated({_server, ets}, module, fun, arity) do
+    # This is only called after we have checked undefined
+    # so we can assume the MFA exists
+    case :ets.lookup(ets, {:export, {module, fun, arity}}) do
+      [{_key, _kind, nil}] -> :error
+      [{_key, _kind, reason}] -> {:ok, reason}
+    end
+  end
+
+  @doc """
+  Returns all exported functions and macros for the given module from
+  the cache.
+  """
+  @spec all_exports(cache(), module()) :: [{atom(), arity()}]
+  def all_exports({_server, ets}, module) do
+    # This is only called after we get a deprecation notice
+    # so we can assume it's a cached module
+    [{_key, exports}] = :ets.lookup(ets, {:all_exports, module})
+
+    [{{:__info__, 1}, :def} | exports]
+    |> Enum.map(fn {function, _kind} -> function end)
+    |> Enum.sort()
+  end
+
+  @doc """
+  Collects all exported functions and macros from the module definition ASTs.
+  """
+  @spec definitions_to_exports([{atom(), arity(), term(), term()}]) ::
+          [{{atom(), arity()}, kind()}]
+  def definitions_to_exports(definitions) do
+    Enum.flat_map(definitions, fn {function, kind, _meta, _clauses} ->
+      if kind in [:def, :defmacro] do
+        [{function, kind}]
+      else
+        []
+      end
+    end)
   end
 
   def init([]) do
@@ -38,55 +124,6 @@ defmodule Module.ParallelChecker do
     Enum.each(froms, &:gen_server.reply(&1, false))
     waiting = :maps.remove(module, waiting)
     {:reply, :ok, %{state | waiting: waiting}}
-  end
-
-  def preload_module({server, ets}, module) do
-    case :ets.lookup(ets, {:cached, module}) do
-      [{_key, _}] -> :ok
-      [] -> cache_module({server, ets}, module)
-    end
-  end
-
-  def fetch_export({_server, ets}, module, fun, arity) do
-    case :ets.lookup(ets, {:cached, module}) do
-      [{_key, true}] ->
-        case :ets.lookup(ets, {:export, {module, fun, arity}}) do
-          [{_key, kind, _reason}] -> {:ok, kind}
-          [] -> {:error, :function}
-        end
-
-      [{_key, false}] ->
-        {:error, :module}
-    end
-  end
-
-  def fetch_deprecated({_server, ets}, module, fun, arity) do
-    # This is only called after we have checked undefined
-    # so we can assume the mfa exists
-    case :ets.lookup(ets, {:export, {module, fun, arity}}) do
-      [{_key, _kind, nil}] -> :error
-      [{_key, _kind, reason}] -> {:ok, reason}
-    end
-  end
-
-  def all_exports({_server, ets}, module) do
-    # This is only called after we get a deprecation notice
-    # so we can assume it's a cached module
-    [{_key, exports}] = :ets.lookup(ets, {:all_exports, module})
-
-    exports
-    |> Enum.map(fn {function, _kind} -> function end)
-    |> Enum.sort()
-  end
-
-  def definitions_to_exports(definitions) do
-    Enum.flat_map(definitions, fn {function, kind, _meta, _clauses} ->
-      if kind in [:def, :defmacro] do
-        [{function, kind}]
-      else
-        []
-      end
-    end)
   end
 
   defp preload_cache(ets, modules) do
