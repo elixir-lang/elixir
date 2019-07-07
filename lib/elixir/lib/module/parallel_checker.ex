@@ -11,18 +11,16 @@ defmodule Module.ParallelChecker do
   binaries and a list of warnings from the verification.
   """
   @spec verify([%{}], pos_integer()) :: {[{module(), binary()}], [warning()]}
+  def verify([], _schedulers) do
+    {[], []}
+  end
+
   def verify(modules, schedulers) do
-    ets = :ets.new(:checker_cache, [:set, :public, {:read_concurrency, true}])
-    preload_cache(ets, modules)
-    {:ok, server} = :gen_server.start_link(__MODULE__, [], [])
+    {:ok, server} = :gen_server.start_link(__MODULE__, [modules, schedulers], [])
 
     try do
-      # TODO: Move spawning inside gen_server
-      result = spawn(modules, 0, schedulers, {server, ets}, [])
-      {binaries, warnings} = Enum.unzip(result)
-      {binaries, Enum.concat(warnings)}
+      start_and_wait(server)
     after
-      :ets.delete(ets)
       :gen_server.stop(server)
     end
   end
@@ -103,18 +101,37 @@ defmodule Module.ParallelChecker do
     end)
   end
 
-  def init([]) do
-    {:ok, %{waiting: %{}}}
+  def init([modules, schedulers]) do
+    ets = :ets.new(:checker_cache, [:set, :public, {:read_concurrency, true}])
+    preload_cache(ets, modules)
+
+    state = %{
+      ets: ets,
+      waiting: %{},
+      reply_when_finished: nil,
+      modules: modules,
+      spawned: 0,
+      schedulers: schedulers,
+      binaries: [],
+      warnings: []
+    }
+
+    {:ok, state}
+  end
+
+  def handle_call(:start_and_wait, from, %{reply_when_finished: nil} = state) do
+    state = spawn_checkers(%{state | reply_when_finished: from})
+    {:noreply, state}
   end
 
   def handle_call({:lock, module}, from, %{waiting: waiting} = state) do
     case waiting do
       %{^module => froms} ->
-        waiting = :maps.put(module, [from | froms], waiting)
+        waiting = :maps.put(module, [from | froms], state.waiting)
         {:noreply, %{state | waiting: waiting}}
 
       %{} ->
-        waiting = :maps.put(module, [], waiting)
+        waiting = :maps.put(module, [], state.waiting)
         {:reply, true, %{state | waiting: waiting}}
     end
   end
@@ -126,12 +143,25 @@ defmodule Module.ParallelChecker do
     {:reply, :ok, %{state | waiting: waiting}}
   end
 
-  defp preload_cache(ets, modules) do
-    Enum.each(modules, fn {map, _binary} ->
-      exports = [{{:__info__, 1}, :def} | definitions_to_exports(map.definitions)]
-      deprecated = :maps.from_list(map.deprecated)
-      cache_module(ets, map.module, exports, deprecated)
-    end)
+  def handle_info({__MODULE__, module, binary, warnings}, state) do
+    state = %{
+      state
+      | binaries: [{module, binary} | state.binaries],
+        warnings: warnings ++ state.warnings,
+        spawned: state.spawned - 1
+    }
+
+    if state.spawned == 0 and state.modules == [] and !!state.reply_when_finished do
+      :gen_server.reply(state.reply_when_finished, {state.binaries, state.warnings})
+      {:noreply, state}
+    else
+      state = spawn_checkers(state)
+      {:noreply, state}
+    end
+  end
+
+  defp start_and_wait(server) do
+    :gen_server.call(server, :start_and_wait, :infinity)
   end
 
   defp lock(server, module) do
@@ -142,29 +172,33 @@ defmodule Module.ParallelChecker do
     :gen_server.call(server, {:unlock, module})
   end
 
-  defp spawn([{map, binary} | results], spawned, schedulers, cache, acc)
-       when spawned < schedulers do
-    parent = self()
+  defp preload_cache(ets, modules) do
+    Enum.each(modules, fn {map, _binary} ->
+      exports = [{{:__info__, 1}, :def} | definitions_to_exports(map.definitions)]
+      deprecated = :maps.from_list(map.deprecated)
+      cache_module(ets, map.module, exports, deprecated)
+    end)
+  end
 
-    :erlang.spawn_link(fn ->
-      {binary, warnings} = Module.Checker.verify(map, binary, cache)
+  defp spawn_checkers(%{modules: []} = state) do
+    state
+  end
+
+  defp spawn_checkers(%{spawned: spawned, schedulers: schedulers} = state)
+       when spawned >= schedulers do
+    state
+  end
+
+  defp spawn_checkers(%{modules: [{map, binary} | modules]} = state) do
+    parent = self()
+    ets = state.ets
+
+    spawn_link(fn ->
+      {binary, warnings} = Module.Checker.verify(map, binary, {parent, ets})
       send(parent, {__MODULE__, map.module, binary, warnings})
     end)
 
-    spawn(results, spawned + 1, schedulers, cache, acc)
-  end
-
-  defp spawn(results, spawned, schedulers, cache, acc)
-       when spawned == schedulers or (results == [] and spawned > 0) do
-    receive do
-      {__MODULE__, module, binary, warnings} ->
-        acc = [{{module, binary}, warnings} | acc]
-        spawn(results, spawned - 1, schedulers, cache, acc)
-    end
-  end
-
-  defp spawn([], 0, _schedulers, _cache, acc) do
-    acc
+    spawn_checkers(%{state | modules: modules, spawned: state.spawned + 1})
   end
 
   defp cache_module({server, ets}, module) do
