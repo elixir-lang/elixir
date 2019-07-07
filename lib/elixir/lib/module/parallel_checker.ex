@@ -2,7 +2,7 @@ defmodule Module.ParallelChecker do
   @moduledoc false
 
   def verify(modules, schedulers) do
-    ets = :ets.new(:checker_cache, [:set, :public])
+    ets = :ets.new(:checker_cache, [:set, :public, {:read_concurrency, true}])
     preload_cache(ets, modules)
     {:ok, server} = :gen_server.start_link(__MODULE__, [], [])
 
