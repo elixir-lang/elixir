@@ -22,14 +22,14 @@ defmodule Module.ParallelChecker do
   end
 
   def handle_call({:lock, module}, from, %{waiting: waiting} = state) do
-    case :maps.get(module, waiting, nil) do
-      nil ->
-        waiting = :maps.put(module, [], waiting)
-        {:reply, true, %{state | waiting: waiting}}
-
-      froms ->
+    case waiting do
+      %{^module => froms} ->
         waiting = :maps.put(module, [from | froms], waiting)
         {:noreply, %{state | waiting: waiting}}
+
+      %{} ->
+        waiting = :maps.put(module, [], waiting)
+        {:reply, true, %{state | waiting: waiting}}
     end
   end
 
