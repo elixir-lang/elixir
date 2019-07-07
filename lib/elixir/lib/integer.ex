@@ -233,7 +233,7 @@ defmodule Integer do
     raise ArgumentError, "invalid base #{inspect(base)}"
   end
 
-  def parse(binary, base) do
+  def parse(binary, base) when is_binary(binary) do
     case count_digits(binary, base) do
       0 ->
         :error
@@ -244,14 +244,14 @@ defmodule Integer do
     end
   end
 
-  defp count_digits(<<sign, rest::binary>>, base) when sign in '+-' do
+  defp count_digits(<<sign, rest::bits>>, base) when sign in '+-' do
     case count_digits_nosign(rest, base, 1) do
       1 -> 0
       count -> count
     end
   end
 
-  defp count_digits(<<rest::binary>>, base) do
+  defp count_digits(<<rest::bits>>, base) do
     count_digits_nosign(rest, base, 0)
   end
 
@@ -261,13 +261,13 @@ defmodule Integer do
       char <- chars do
     digit = char + diff
 
-    defp count_digits_nosign(<<unquote(char), rest::binary>>, base, count)
+    defp count_digits_nosign(<<unquote(char), rest::bits>>, base, count)
          when base > unquote(digit) do
       count_digits_nosign(rest, base, count + 1)
     end
   end
 
-  defp count_digits_nosign(<<_::binary>>, _, count), do: count
+  defp count_digits_nosign(<<_::bits>>, _, count), do: count
 
   # TODO: Remove Integer.to_string/1 once the minimum supported version is
   #       Erlang/OTP 22, since it is covered by the now BIF Integer.to_string/2.
