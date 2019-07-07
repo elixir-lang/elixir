@@ -149,6 +149,7 @@ bootstrap_main() ->
    <<"lib/elixir/lib/code/identifier.ex">>,
    <<"lib/elixir/lib/module/checker.ex">>,
    <<"lib/elixir/lib/module/locals_tracker.ex">>,
+   <<"lib/elixir/lib/module/parallel_checker.ex">>,
    <<"lib/elixir/lib/kernel/typespec.ex">>,
    <<"lib/elixir/lib/kernel/utils.ex">>,
    <<"lib/elixir/lib/exception.ex">>,

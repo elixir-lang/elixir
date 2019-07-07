@@ -335,56 +335,9 @@ defmodule Kernel.ParallelCompiler do
       binaries = for {{:module, module}, {binary, _map}} <- result, do: {module, binary}
       {binaries, []}
     else
-      check_modules(result, schedulers)
+      modules = for {{:module, _module}, {binary, map}} <- result, do: {map, binary}
+      Module.ParallelChecker.verify(modules, schedulers)
     end
-  end
-
-  defp check_modules(result, schedulers) do
-    all_maps = all_module_maps(result)
-    cache = Module.Checker.create_cache(all_maps)
-
-    try do
-      result = spawn_checkers(:maps.to_list(result), 0, schedulers, cache, [])
-      {binaries, warnings} = Enum.unzip(result)
-      {binaries, Enum.concat(warnings)}
-    after
-      Module.Checker.delete_cache(cache)
-    end
-  end
-
-  defp all_module_maps(result) do
-    for {{:module, _module}, {_binary, map}} <- result, do: map
-  end
-
-  defp spawn_checkers([result | results], spawned, schedulers, cache, acc)
-       when spawned < schedulers do
-    case result do
-      {{:module, module}, {binary, map}} ->
-        parent = self()
-
-        :erlang.spawn_link(fn ->
-          {binary, warnings} = Module.Checker.verify(map, binary, cache)
-          send(parent, {__MODULE__, module, binary, warnings})
-        end)
-
-        spawn_checkers(results, spawned + 1, schedulers, cache, acc)
-
-      _ ->
-        spawn_checkers(results, spawned, schedulers, cache, acc)
-    end
-  end
-
-  defp spawn_checkers(results, spawned, schedulers, cache, acc)
-       when spawned == schedulers or (results == [] and spawned > 0) do
-    receive do
-      {__MODULE__, module, binary, warnings} ->
-        acc = [{{module, binary}, warnings} | acc]
-        spawn_checkers(results, spawned - 1, schedulers, cache, acc)
-    end
-  end
-
-  defp spawn_checkers([], 0, _schedulers, _cache, acc) do
-    acc
   end
 
   # The goal of this function is to find leaves in the dependency graph,
