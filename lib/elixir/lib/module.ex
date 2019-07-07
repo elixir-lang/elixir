@@ -1812,11 +1812,11 @@ defmodule Module do
       [{_, _, :accumulate}] ->
         :lists.reverse(bag_lookup_element(bag, {:accumulate, key}, 2))
 
-      [{_, val, line}] when line in [:unset, nil] ->
+      [{_, val, line}] when is_integer(line) ->
+        :ets.update_element(set, key, {3, nil})
         val
 
       [{_, val, _}] ->
-        :ets.update_element(set, key, {3, nil})
         val
 
       [] when is_integer(line) ->
@@ -1901,11 +1901,8 @@ defmodule Module do
         :ets.insert(set, {key, value, line})
         :ets.insert(bag, {:attributes, key})
     else
-      :accumulate ->
-        :ets.insert(bag, {{:accumulate, key}, value})
-
-      _ ->
-        :ets.insert(set, {key, value, line})
+      :accumulate -> :ets.insert(bag, {{:accumulate, key}, value})
+      _ -> :ets.insert(set, {key, value, line})
     end
   end
 
