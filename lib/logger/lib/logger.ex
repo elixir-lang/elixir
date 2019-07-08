@@ -225,6 +225,7 @@ defmodule Logger do
 
   The initial backends are loaded via the `:backends` configuration,
   which must be set before the `:logger` application is started.
+  Backends can also be added dynamically through `add_backend/2`.
 
   ### Console backend
 
@@ -278,41 +279,6 @@ defmodule Logger do
         format: "\n$time $metadata[$level] $levelpad$message\n",
         metadata: [:user_id]
 
-  ## Metadata
-
-  In addition to the keys provided by the user via `Logger.metadata/1`,
-  the following extra keys are available to the `:metadata` list:
-
-    * `:application` - the current application
-
-    * `:module` - the current module
-
-    * `:function` - the current function
-
-    * `:file` - the current file
-
-    * `:line` - the current line
-
-    * `:pid` - the current process identifier
-
-    * `:crash_reason` - a two-element tuple with the throw/error/exit reason
-      as first argument and the stacktrace as second. A throw will always be
-      `{:nocatch, term}`. An error is always an `Exception` struct. All other
-      entries are exits. The console backend ignores this metadata by default
-      but it can be useful to other backends, such as the ones that report
-      errors to third-party services
-
-    * `:initial_call` - the initial call that started the process
-
-    * `:registered_name` - the process registered name as an atom
-
-  Note that all metadata is optional and may not always be available.
-  The `:module`, `:function`, `:line`, and similar metadata are automatically
-  included when using `Logger` macros. `Logger.bare_log/3` does not include
-  any metadata beyond the `:pid` by default. Other metadata, such as
-  `:crash_reason`, `:initial_call`, and `:registered_name` are extracted
-  from Erlang/OTP crash reports and available only in those cases.
-
   ### Custom formatting
 
   The console backend allows you to customize the format of your log messages
@@ -357,9 +323,45 @@ defmodule Logger do
     * the current timestamp: a term of type `t:Logger.Formatter.time/0`
     * the metadata: a keyword list
 
-  You can read more about formatting in `Logger.Formatter`.
+  You can read more about formatting in `Logger.Formatter`, especially if you
+  want to support custom formatting in a custom backend.
 
-  ### Custom backends
+  ## Metadata
+
+  In addition to the keys provided by the user via `Logger.metadata/1`,
+  the following extra keys are available to the `:metadata` list:
+
+    * `:application` - the current application
+
+    * `:module` - the current module
+
+    * `:function` - the current function
+
+    * `:file` - the current file
+
+    * `:line` - the current line
+
+    * `:pid` - the current process identifier
+
+    * `:crash_reason` - a two-element tuple with the throw/error/exit reason
+      as first argument and the stacktrace as second. A throw will always be
+      `{:nocatch, term}`. An error is always an `Exception` struct. All other
+      entries are exits. The console backend ignores this metadata by default
+      but it can be useful to other backends, such as the ones that report
+      errors to third-party services
+
+    * `:initial_call` - the initial call that started the process
+
+    * `:registered_name` - the process registered name as an atom
+
+  Note that all metadata is optional and may not always be available.
+  The `:module`, `:function`, `:line`, and similar metadata are automatically
+  included when using `Logger` macros. `Logger.bare_log/3` does not include
+  any metadata beyond the `:pid` by default. Other metadata, such as
+  `:crash_reason`, `:initial_call`, and `:registered_name` are extracted
+  from Erlang/OTP crash reports and available only in those cases.
+
+  ## Custom backends
 
   Any developer can create their own `Logger` backend.
   Since `Logger` is an event manager powered by `:gen_event`,
@@ -374,23 +376,27 @@ defmodule Logger do
   the `:backends` configuration into the `Logger` event manager. The event
   manager and all added event handlers are automatically supervised by `Logger`.
 
-  Once initialized, the handler should be designed to handle events
-  in the following format:
+  Note that if a backend fails to start by returning `{:error, :ignore}` from its
+  `init/1` callback, then it's not added to the backends but nothing fails. If a
+  backend fails to start by returning `{:error, reason}` from its `init/1` callback,
+  the `:logger` application will fail to start.
 
-      {level, group_leader, {Logger, message, timestamp, metadata}} | :flush
+  Once initialized, the handler should be designed to handle the following
+  events:
 
-  where:
+    * `{level, group_leader, {Logger, message, timestamp, metadata}}` where:
+      * `level` is one of `:debug`, `:info`, `:warn`, or `:error`, as previously
+        described
+      * `group_leader` is the group leader of the process which logged the message
+      * `{Logger, message, timestamp, metadata}` is a tuple containing information
+        about the logged message:
+        * the first element is always the atom `Logger`
+        * `message` is the actual message (as chardata)
+        * `timestamp` is the timestamp for when the message was logged, as a
+          `{{year, month, day}, {hour, minute, second, millisecond}}` tuple
+        * `metadata` is a keyword list of metadata used when logging the message
 
-    * `level` is one of `:debug`, `:info`, `:warn`, or `:error`, as previously
-      described
-    * `group_leader` is the group leader of the process which logged the message
-    * `{Logger, message, timestamp, metadata}` is a tuple containing information
-      about the logged message:
-      * the first element is always the atom `Logger`
-      * `message` is the actual message (as chardata)
-      * `timestamp` is the timestamp for when the message was logged, as a
-        `{{year, month, day}, {hour, minute, second, millisecond}}` tuple
-      * `metadata` is a keyword list of metadata used when logging the message
+    * `:flush`
 
   It is recommended that handlers ignore messages where
   the group leader is in a different node than the one where
@@ -412,7 +418,12 @@ defmodule Logger do
 
   where `options` is a keyword list. The result of the call is
   the result returned by `configure_backend/2`. The recommended
-  return value for successful configuration is `:ok`.
+  return value for successful configuration is `:ok`. For example
+
+      def handle_call({:configure, options}, state) do
+        new_state = reconfigure_state(state, options)
+        {:ok, :ok, new_state}
+      end
 
   It is recommended that backends support at least the following
   configuration options:
@@ -577,15 +588,36 @@ defmodule Logger do
   @doc """
   Adds a new backend.
 
+  Adding a backend calls the `init/1` function in that backend
+  with the name of the backend as its argument. For example,
+  calling
+
+      Logger.add_backend(MyBackend)
+
+  will call `MyBackend.init(MyBackend)` to initialize the new
+  backend. If the backend's `init/1` callback returns `{:ok, _}`,
+  then this function returns `{:ok, pid}`. If the handler returns
+  `{:error, :ignore}` from `init/1`, this function still returns
+  `{:ok, pid}` but the handler is not started. If the handler
+  returns `{:error, reason}` from `init/1`, this function returns
+  `{:error, {reason, info}}` where `info` is more information on
+  the backend that failed to start.
+
   Backends added by this function are not persisted. Therefore
   if the Logger application or supervision tree is restarted,
   the backend won't be available. If you need this guarantee,
-  then configure the backend via the application environment.
+  then configure the backend via the application environment:
+
+      config :logger, :backends, [MyBackend]
 
   ## Options
 
     * `:flush` - when `true`, guarantees all messages currently sent
       to `Logger` are processed before the backend is added
+
+  ## Examples
+
+      {:ok, _pid} = Logger.add_backend(MyBackend, flush: true)
 
   """
   @spec add_backend(backend, keyword) :: Supervisor.on_start_child()
