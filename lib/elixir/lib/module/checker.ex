@@ -39,9 +39,7 @@ defmodule Module.Checker do
       warnings: []
     }
 
-    state =
-      module_map.definitions
-      |> check_definitions(state)
+    state = check_definitions(module_map.definitions, state)
 
     state.warnings
     |> merge_warnings()

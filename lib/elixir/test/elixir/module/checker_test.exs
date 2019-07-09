@@ -546,11 +546,11 @@ defmodule Module.CheckerTest do
   end
 
   defp assert_warnings(files, expected) when is_binary(expected) do
-    assert capture_compile(files) == expected
+    assert capture_compile_warnings(files) == expected
   end
 
   defp assert_warnings(files, expecteds) when is_list(expecteds) do
-    output = capture_compile(files)
+    output = capture_compile_warnings(files)
 
     Enum.each(expecteds, fn expected ->
       assert output =~ expected
@@ -558,10 +558,10 @@ defmodule Module.CheckerTest do
   end
 
   defp assert_no_warnings(files) do
-    assert capture_compile(files) == ""
+    assert capture_compile_warnings(files) == ""
   end
 
-  defp capture_compile(files) do
+  defp capture_compile_warnings(files) do
     in_tmp(fn ->
       paths = generate_files(files)
       capture_io(:stderr, fn -> compile_files(paths) end)
