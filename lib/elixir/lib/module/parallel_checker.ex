@@ -137,7 +137,7 @@ defmodule Module.ParallelChecker do
         spawned: state.spawned - 1
     }
 
-    if state.spawned == 0 and state.modules == [] and not state.reply_when_finished do
+    if state.spawned == 0 and state.modules == [] do
       :gen_server.reply(state.reply_when_finished, {state.binaries, state.warnings})
       {:noreply, state}
     else
