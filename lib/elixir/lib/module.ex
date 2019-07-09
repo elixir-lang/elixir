@@ -1257,6 +1257,7 @@ defmodule Module do
         Module.has_attribute?(__MODULE__, :value) #=> false
       end
   """
+  @doc since: "1.10.0"
   @spec has_attribute?(module, atom) :: boolean
   def has_attribute?(module, key) when is_atom(module) and is_atom(key) do
     assert_not_compiled!(__ENV__.function, module)
