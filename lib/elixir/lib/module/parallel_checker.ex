@@ -38,36 +38,22 @@ defmodule Module.ParallelChecker do
   end
 
   @doc """
-  Returns the export kind for the given MFA from the cache. If the module
-  does not exist return `{:error, :module}`, or if the function does not
-  exist return `{:error, :function}`.
+  Returns the export kind and deprecation reason for the given MFA from
+  the cache. If the module does not exist return `{:error, :module}`,
+  or if the function does not exist return `{:error, :function}`.
   """
   @spec fetch_export(cache(), module(), atom(), arity()) ::
-          {:ok, kind()} | {:error, :function | :module}
+          {:ok, kind(), binary() | nil} | {:error, :function | :module}
   def fetch_export({_server, ets}, module, fun, arity) do
     case :ets.lookup(ets, {:cached, module}) do
       [{_key, true}] ->
         case :ets.lookup(ets, {:export, {module, fun, arity}}) do
-          [{_key, kind, _reason}] -> {:ok, kind}
+          [{_key, kind, reason}] -> {:ok, kind, reason}
           [] -> {:error, :function}
         end
 
       [{_key, false}] ->
         {:error, :module}
-    end
-  end
-
-  @doc """
-  Returns the deprecation reason for the given MFA from the cache or
-  `:error` if the MFA is not deprecated.
-  """
-  @spec fetch_deprecated(cache(), module(), atom(), arity()) :: {:ok, binary()} | :error
-  def fetch_deprecated({_server, ets}, module, fun, arity) do
-    # This is only called after we have checked undefined
-    # so we can assume the MFA exists
-    case :ets.lookup(ets, {:export, {module, fun, arity}}) do
-      [{_key, _kind, nil}] -> :error
-      [{_key, _kind, reason}] -> {:ok, reason}
     end
   end
 
@@ -176,7 +162,7 @@ defmodule Module.ParallelChecker do
     Enum.each(modules, fn {map, _binary} ->
       exports = [{{:__info__, 1}, :def} | definitions_to_exports(map.definitions)]
       deprecated = :maps.from_list(map.deprecated)
-      cache_module(ets, map.module, exports, deprecated)
+      cache_info(ets, map.module, exports, deprecated)
     end)
   end
 
@@ -212,8 +198,7 @@ defmodule Module.ParallelChecker do
     with {^module, binary, _filename} <- :code.get_object_code(module),
          {:ok, chunk} <- get_chunk(binary),
          {:elixir_checker_v1, map} <- :erlang.binary_to_term(chunk) do
-      exports = :maps.put({:__info__, 1}, :def, map.exports)
-      cache_module(ets, module, exports, map.deprecated)
+      cache_chunk_map(ets, module, map)
       true
     else
       _ -> false
@@ -232,17 +217,20 @@ defmodule Module.ParallelChecker do
     if Code.ensure_loaded?(module) do
       exports = info_exports(module)
       deprecated = info_deprecated(module)
-      cache_module(ets, module, exports, deprecated)
+      cache_info(ets, module, exports, deprecated)
     else
       :ets.insert(ets, {{:cached, module}, false})
     end
   end
 
   defp info_exports(module) do
-    :maps.from_list(
-      Enum.map(module.__info__(:macros), &{&1, :defmacro}) ++
-        Enum.map(module.__info__(:functions), &{&1, :def})
-    )
+    exports =
+      :maps.from_list(
+        Enum.map(module.__info__(:macros), &{&1, :defmacro}) ++
+          Enum.map(module.__info__(:functions), &{&1, :def})
+      )
+
+    :maps.put({:__info__, 1}, :def, exports)
   rescue
     _ -> :maps.from_list(Enum.map(module.module_info(:exports), &{&1, :def}))
   end
@@ -253,8 +241,8 @@ defmodule Module.ParallelChecker do
     _ -> %{}
   end
 
-  defp cache_module(ets, module, exports, deprecated) do
-    all_exports =
+  defp cache_info(ets, module, exports, deprecated) do
+    exports =
       Enum.map(exports, fn {{fun, arity}, kind} ->
         reason = :maps.get({fun, arity}, deprecated, nil)
         :ets.insert(ets, {{:export, {module, fun, arity}}, kind, reason})
@@ -262,7 +250,22 @@ defmodule Module.ParallelChecker do
         {{fun, arity}, kind}
       end)
 
-    :ets.insert(ets, {{:all_exports, module}, all_exports})
+    :ets.insert(ets, {{:all_exports, module}, exports})
+    :ets.insert(ets, {{:cached, module}, true})
+  end
+
+  defp cache_chunk_map(ets, module, exports) do
+    exports =
+      Enum.map(exports, fn {{fun, arity}, {kind, deprecated}} ->
+        :ets.insert(ets, {{:export, {module, fun, arity}}, kind, deprecated})
+
+        {{fun, arity}, kind}
+      end)
+
+    :ets.insert(ets, {{:export, {module, :__info__, 1}}, :def, nil})
+    exports = [{{:__info__, 1}, :def} | exports]
+
+    :ets.insert(ets, {{:all_exports, module}, exports})
     :ets.insert(ets, {{:cached, module}, true})
   end
 end

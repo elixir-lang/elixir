@@ -20,29 +20,20 @@ defmodule Module.CheckerTest do
           defmacrop b, do: a()
           def c, do: b()
           defmacro d, do: b()
-        end
-        """
-      }
-
-      modules = compile(files)
-      map = read_chunk(modules[A])
-      assert map.exports == %{{:c, 0} => :def, {:d, 0} => :defmacro}
-    end
-
-    test "writes deprecations" do
-      files = %{
-        "a.ex" => """
-        defmodule A do
-          def a, do: :ok
           @deprecated "oops"
-          def b, do: :ok
+          def e, do: :ok
         end
         """
       }
 
       modules = compile(files)
       map = read_chunk(modules[A])
-      assert map.deprecated == %{{:b, 0} => "oops"}
+
+      assert map == %{
+               {:c, 0} => {:def, nil},
+               {:d, 0} => {:defmacro, nil},
+               {:e, 0} => {:def, "oops"}
+             }
     end
   end
 

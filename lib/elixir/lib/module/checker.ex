@@ -17,12 +17,16 @@ defmodule Module.Checker do
   end
 
   defp build_chunk(module_map) do
-    map = %{
-      deprecated: :maps.from_list(module_map.deprecated),
-      exports: :maps.from_list(ParallelChecker.definitions_to_exports(module_map.definitions))
-    }
+    exports = ParallelChecker.definitions_to_exports(module_map.definitions)
+    deprecated = :maps.from_list(module_map.deprecated)
 
-    {'ExCk', :erlang.term_to_binary({:elixir_checker_v1, map})}
+    map =
+      Enum.map(exports, fn {function, kind} ->
+        reason = :maps.get(function, deprecated, nil)
+        {function, {kind, reason}}
+      end)
+
+    {'ExCk', :erlang.term_to_binary({:elixir_checker_v1, :maps.from_list(map)})}
   end
 
   defp warnings(module_map, cache) do
@@ -144,13 +148,11 @@ defmodule Module.Checker do
     end
   end
 
-  defp check_deprecated(module, fun, arity, meta, state) do
-    case ParallelChecker.fetch_deprecated(state.cache, module, fun, arity) do
-      {:ok, reason} ->
-        warn(meta, state, {:deprecated, module, fun, arity, reason})
-
-      :error ->
-        state
+  defp check_deprecated(module, fun, arity, reason, meta, state) do
+    if reason do
+      warn(meta, state, {:deprecated, module, fun, arity, reason})
+    else
+      state
     end
   end
 
