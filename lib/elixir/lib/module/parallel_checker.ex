@@ -197,8 +197,8 @@ defmodule Module.ParallelChecker do
   defp cache_from_chunk(ets, module) do
     with {^module, binary, _filename} <- :code.get_object_code(module),
          {:ok, chunk} <- get_chunk(binary),
-         {:elixir_checker_v1, map} <- :erlang.binary_to_term(chunk) do
-      cache_chunk_map(ets, module, map)
+         {:elixir_checker_v1, contents} <- :erlang.binary_to_term(chunk) do
+      cache_chunk(ets, module, contents)
       true
     else
       _ -> false
@@ -254,7 +254,7 @@ defmodule Module.ParallelChecker do
     :ets.insert(ets, {{:cached, module}, true})
   end
 
-  defp cache_chunk_map(ets, module, exports) do
+  defp cache_chunk(ets, module, exports) do
     exports =
       Enum.map(exports, fn {{fun, arity}, {kind, deprecated}} ->
         :ets.insert(ets, {{:export, {module, fun, arity}}, kind, deprecated})

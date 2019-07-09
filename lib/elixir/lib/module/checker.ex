@@ -20,13 +20,13 @@ defmodule Module.Checker do
     exports = ParallelChecker.definitions_to_exports(module_map.definitions)
     deprecated = :maps.from_list(module_map.deprecated)
 
-    map =
+    contents =
       Enum.map(exports, fn {function, kind} ->
         reason = :maps.get(function, deprecated, nil)
         {function, {kind, reason}}
       end)
 
-    {'ExCk', :erlang.term_to_binary({:elixir_checker_v1, :maps.from_list(map)})}
+    {'ExCk', :erlang.term_to_binary({:elixir_checker_v1, Enum.sort(contents)})}
   end
 
   defp warnings(module_map, cache) do
