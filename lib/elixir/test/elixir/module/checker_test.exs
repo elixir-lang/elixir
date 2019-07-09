@@ -267,16 +267,18 @@ defmodule Module.CheckerTest do
         """
       }
 
-      warning = """
-      warning: B.no_func/0 is undefined or private
-        a.ex:2: A.a/0
+      warnings = [
+        """
+        warning: B.no_func/0 is undefined or private
+          a.ex:2: A.a/0
+        """,
+        """
+        warning: A.no_func/0 is undefined or private
+          b.ex:2: B.a/0
+        """
+      ]
 
-      warning: A.no_func/0 is undefined or private
-        b.ex:2: B.a/0
-
-      """
-
-      assert_warnings(files, warning)
+      assert_warnings(files, warnings)
     end
 
     test "groups multiple warnings in one file" do
