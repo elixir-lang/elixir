@@ -590,6 +590,7 @@ defmodule ExUnit.Case do
       end
 
   """
+  @doc since: "1.10.0"
   @spec register_describe_attribute(env, atom, keyword) :: :ok
   def register_describe_attribute(env, name, opts \\ [])
 
@@ -629,6 +630,7 @@ defmodule ExUnit.Case do
       end
 
   """
+  @doc since: "1.10.0"
   @spec register_module_attribute(env, atom, keyword) :: :ok
   def register_module_attribute(env, name, opts \\ [])
 

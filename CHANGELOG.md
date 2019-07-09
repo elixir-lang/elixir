@@ -4,7 +4,25 @@
 
 ### 1. Enhancements
 
+#### Elixir
+
+  * [Code] Add `:token_metadata` and `:literal_encoder` support to `Code.string_to_quoted/2`
+  * [DateTime] Add `DateTime.now!/2` and `DateTime.shift_zone!/3`
+  * [String] Update to Unicode 12.1
+
+#### Mix
+
+  * [mix deps.unlock] Add `--check-unused` flag
+
 ### 2. Bug fixes
+
+#### IEx
+
+  * [IEx] Exit IEx session if the group leader exits
+
+#### Mix
+
+  * [Mix.Project] Make sure `MIX_BUILD_PATH` specifies only the `build_path` prefix and that env+target are still concatenated
 
 ### 3. Soft-deprecations (no warnings emitted)
 
