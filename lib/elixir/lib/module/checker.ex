@@ -34,7 +34,7 @@ defmodule Module.Checker do
       cache: cache,
       file: module_map.file,
       module: module_map.module,
-      compile_opts: module_map.compile_opts,
+      no_warn_undefined: no_warn_undefined(module_map),
       function: nil,
       warnings: []
     }
@@ -45,6 +45,14 @@ defmodule Module.Checker do
     |> merge_warnings()
     |> sort_warnings()
     |> emit_warnings()
+  end
+
+  defp no_warn_undefined(module_map) do
+    for(
+      {:no_warn_undefined, values} <- module_map.compile_opts,
+      value <- List.wrap(values),
+      do: value
+    ) ++ Code.compiler_options()[:no_warn_undefined]
   end
 
   defp check_definitions(definitions, state) do
@@ -165,13 +173,7 @@ defmodule Module.Checker do
   defp warn_undefined?(:erlang, :andalso, 2, _state), do: false
 
   defp warn_undefined?(module, fun, arity, state) do
-    # TODO: Code.compiler_options[:no_warn_undefined]
-    for(
-      {:no_warn_undefined, values} <- state.compile_opts,
-      value <- List.wrap(values),
-      value == module or value == {module, fun, arity},
-      do: :skip
-    ) == []
+    not Enum.any?(state.no_warn_undefined, &(&1 == module or &1 == {module, fun, arity}))
   end
 
   defp warn(meta, state, warning) do
