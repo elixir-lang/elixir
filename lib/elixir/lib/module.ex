@@ -1256,6 +1256,7 @@ defmodule Module do
         Module.delete_attribute(__MODULE__, :value)
         Module.has_attribute?(__MODULE__, :value) #=> false
       end
+
   """
   @doc since: "1.10.0"
   @spec has_attribute?(module, atom) :: boolean
