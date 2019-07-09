@@ -170,7 +170,7 @@ expand_require(Meta, Receiver, {Name, Arity} = Tuple, Args, E) ->
       elixir_lexical:record_remote(Receiver, Name, Arity, nil, ?line(Meta), ?key(E, lexical_tracker)),
       {ok, Receiver, expand_macro_named(Meta, Receiver, Name, Arity, Args, E)};
     true ->
-      Info = {unrequired_module, {Receiver, Name, length(Args), ?key(E, requires)}},
+      Info = {unrequired_module, {Receiver, Name, length(Args)}},
       elixir_errors:form_error(Meta, E, ?MODULE, Info);
     false ->
       error
@@ -272,7 +272,7 @@ prune_stacktrace([], _MFA, Info, _E) ->
 
 %% ERROR HANDLING
 
-format_error({unrequired_module, {Receiver, Name, Arity, _Required}}) ->
+format_error({unrequired_module, {Receiver, Name, Arity}}) ->
   Module = elixir_aliases:inspect(Receiver),
   io_lib:format("you must require ~ts before invoking the macro ~ts.~ts/~B",
     [Module, Module, Name, Arity]);

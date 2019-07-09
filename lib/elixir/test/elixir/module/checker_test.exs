@@ -402,7 +402,7 @@ defmodule Module.CheckerTest do
       assert_no_warnings(files)
     end
 
-    test "do not warn for moduel defined in local context" do
+    test "do not warn for module defined in local context" do
       files = %{
         "a.ex" => """
         defmodule A do
@@ -418,6 +418,28 @@ defmodule Module.CheckerTest do
       }
 
       assert_no_warnings(files)
+    end
+
+    test "warn for unrequired module" do
+      files = %{
+        "ab.ex" => """
+        defmodule A do
+          def a(), do: B.b()
+        end
+
+        defmodule B do
+          defmacro b(), do: :ok
+        end
+        """
+      }
+
+      warning = """
+      warning: you must require B before invoking the macro B.b/0
+        ab.ex:2: A.a/0
+
+      """
+
+      assert_warnings(files, warning)
     end
 
     test "excludes no_warn_undefined" do

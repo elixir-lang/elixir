@@ -126,8 +126,12 @@ defmodule Module.Checker do
 
   defp check_export(module, fun, arity, meta, state) do
     case ParallelChecker.fetch_export(state.cache, module, fun, arity) do
-      {:ok, _} ->
-        check_deprecated(module, fun, arity, meta, state)
+      {:ok, :def, reason} ->
+        check_deprecated(module, fun, arity, reason, meta, state)
+
+      {:ok, :defmacro, reason} ->
+        state = warn(meta, state, {:unrequired_module, module, fun, arity})
+        check_deprecated(module, fun, arity, reason, meta, state)
 
       {:error, :module} ->
         if warn_undefined?(module, fun, arity, state) do
@@ -217,11 +221,20 @@ defmodule Module.Checker do
     ]
   end
 
-  defp format_warning({:deprecated, module, function, arity, reason}) do
+  defp format_warning({:deprecated, module, fun, arity, reason}) do
     [
-      Exception.format_mfa(module, function, arity),
+      Exception.format_mfa(module, fun, arity),
       " is deprecated. ",
       reason
+    ]
+  end
+
+  defp format_warning({:unrequired_module, module, fun, arity}) do
+    [
+      "you must require ",
+      inspect(module),
+      " before invoking the macro ",
+      Exception.format_mfa(module, fun, arity)
     ]
   end
 
