@@ -3,30 +3,12 @@ Code.require_file("../test_helper.exs", __DIR__)
 path = Path.expand("../../ebin", __DIR__)
 File.mkdir_p!(path)
 
-compile = fn {:module, module, binary, _} ->
-  File.write!("#{path}/#{module}.beam", binary)
-end
+files = Path.wildcard(PathHelpers.fixture_path("consolidation/*"))
+Kernel.ParallelCompiler.compile_to_path(files, path)
 
 defmodule Protocol.ConsolidationTest do
   use ExUnit.Case, async: true
-
-  compile.(
-    defprotocol Sample do
-      @type t :: any
-      @doc "Ok"
-      @deprecated "Reason"
-      @spec ok(t) :: boolean
-      def ok(term)
-    end
-  )
-
-  compile.(
-    defprotocol WithAny do
-      @fallback_to_any true
-      @doc "Ok"
-      def ok(term)
-    end
-  )
+  alias Protocol.ConsolidationTest.{Sample, WithAny}
 
   defimpl WithAny, for: Map do
     def ok(map) do
@@ -129,12 +111,13 @@ defmodule Protocol.ConsolidationTest do
     assert {{:function, :ok, 1}, _, ["ok(term)"], %{"en" => "Ok"}, _} = ok_doc
   end
 
-  test "consolidation keeps deprecated" do
+  test "consolidation keeps chunks" do
     deprecated = [{{:ok, 1}, "Reason"}]
     assert deprecated == Sample.__info__(:deprecated)
 
-    {:ok, {Sample, [{'ExDp', deprecated_bin}]}} = :beam_lib.chunks(@sample_binary, ['ExDp'])
-    assert {:elixir_deprecated_v1, deprecated} == :erlang.binary_to_term(deprecated_bin)
+    {:ok, {Sample, [{'ExCk', check_bin}]}} = :beam_lib.chunks(@sample_binary, ['ExCk'])
+    assert {:elixir_checker_v1, exports} = :erlang.binary_to_term(check_bin)
+    assert {{:ok, 1}, {:def, "Reason"}} in exports
   end
 
   test "consolidation keeps source" do

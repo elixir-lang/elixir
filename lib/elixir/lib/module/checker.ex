@@ -1,6 +1,37 @@
 defmodule Module.Checker do
-  def verify(module_map, _binary) do
+  alias Module.ParallelChecker
+
+  @moduledoc false
+
+  def verify(module_map, binary, cache) do
+    warnings = warnings(module_map, cache)
+    binary = chunk(binary, module_map)
+    {binary, warnings}
+  end
+
+  defp chunk(binary, module_map) do
+    checker_chunk = build_chunk(module_map)
+    {:ok, _module, all_chunks} = :beam_lib.all_chunks(binary)
+    {:ok, binary} = :beam_lib.build_module([checker_chunk | all_chunks])
+    binary
+  end
+
+  defp build_chunk(module_map) do
+    exports = ParallelChecker.definitions_to_exports(module_map.definitions)
+    deprecated = :maps.from_list(module_map.deprecated)
+
+    contents =
+      Enum.map(exports, fn {function, kind} ->
+        reason = :maps.get(function, deprecated, nil)
+        {function, {kind, reason}}
+      end)
+
+    {'ExCk', :erlang.term_to_binary({:elixir_checker_v1, Enum.sort(contents)})}
+  end
+
+  defp warnings(module_map, cache) do
     state = %{
+      cache: cache,
       file: module_map.file,
       module: module_map.module,
       compile_opts: module_map.compile_opts,
@@ -8,9 +39,9 @@ defmodule Module.Checker do
       warnings: []
     }
 
-    module_map.definitions
-    |> check_definitions(state)
-    |> Map.fetch!(:warnings)
+    state = check_definitions(module_map.definitions, state)
+
+    state.warnings
     |> merge_warnings()
     |> sort_warnings()
     |> emit_warnings()
@@ -83,24 +114,47 @@ defmodule Module.Checker do
   end
 
   defp check_remote(module, fun, arity, meta, state) do
-    cond do
-      # TODO: In the future we may want to warn for modules defined
-      # in the local context
-      Keyword.get(meta, :context_module, false) and state.module != module ->
-        state
+    # TODO: In the future we may want to warn for modules defined
+    # in the local context
+    if Keyword.get(meta, :context_module, false) and state.module != module do
+      state
+    else
+      ParallelChecker.preload_module(state.cache, module)
+      check_export(module, fun, arity, meta, state)
+    end
+  end
 
-      not Code.ensure_loaded?(module) and warn_undefined?(module, fun, arity, state) ->
-        warn(meta, state, {:undefined_module, module, fun, arity})
+  defp check_export(module, fun, arity, meta, state) do
+    case ParallelChecker.fetch_export(state.cache, module, fun, arity) do
+      {:ok, :def, reason} ->
+        check_deprecated(module, fun, arity, reason, meta, state)
 
-      not function_exported?(module, fun, arity) and warn_undefined?(module, fun, arity, state) ->
-        exports = exports_for(module)
-        warn(meta, state, {:undefined_function, module, fun, arity, exports})
+      {:ok, :defmacro, reason} ->
+        state = warn(meta, state, {:unrequired_module, module, fun, arity})
+        check_deprecated(module, fun, arity, reason, meta, state)
 
-      reason = deprecated_reason(module, fun, arity) ->
-        warn(meta, state, {:deprecated, module, fun, arity, reason})
+      {:error, :module} ->
+        if warn_undefined?(module, fun, arity, state) do
+          warn(meta, state, {:undefined_module, module, fun, arity})
+        else
+          state
+        end
 
-      true ->
-        state
+      {:error, :function} ->
+        if warn_undefined?(module, fun, arity, state) do
+          exports = ParallelChecker.all_exports(state.cache, module)
+          warn(meta, state, {:undefined_function, module, fun, arity, exports})
+        else
+          state
+        end
+    end
+  end
+
+  defp check_deprecated(module, fun, arity, reason, meta, state) do
+    if reason do
+      warn(meta, state, {:deprecated, module, fun, arity, reason})
+    else
+      state
     end
   end
 
@@ -111,31 +165,13 @@ defmodule Module.Checker do
   defp warn_undefined?(:erlang, :andalso, 2, _state), do: false
 
   defp warn_undefined?(module, fun, arity, state) do
+    # TODO: Code.compiler_options[:no_warn_undefined]
     for(
       {:no_warn_undefined, values} <- state.compile_opts,
       value <- List.wrap(values),
       value == module or value == {module, fun, arity},
       do: :skip
     ) == []
-  end
-
-  defp deprecated_reason(module, fun, arity) do
-    if function_exported?(module, :__info__, 1) do
-      case List.keyfind(module.__info__(:deprecated), {fun, arity}, 0) do
-        {_key, reason} -> reason
-        nil -> nil
-      end
-    else
-      nil
-    end
-  end
-
-  defp exports_for(module) do
-    try do
-      module.__info__(:macros) ++ module.__info__(:functions)
-    rescue
-      _ -> module.module_info(:exports)
-    end
   end
 
   defp warn(meta, state, warning) do
@@ -185,11 +221,20 @@ defmodule Module.Checker do
     ]
   end
 
-  defp format_warning({:deprecated, module, function, arity, reason}) do
+  defp format_warning({:deprecated, module, fun, arity, reason}) do
     [
-      Exception.format_mfa(module, function, arity),
+      Exception.format_mfa(module, fun, arity),
       " is deprecated. ",
       reason
+    ]
+  end
+
+  defp format_warning({:unrequired_module, module, fun, arity}) do
+    [
+      "you must require ",
+      inspect(module),
+      " before invoking the macro ",
+      Exception.format_mfa(module, fun, arity)
     ]
   end
 

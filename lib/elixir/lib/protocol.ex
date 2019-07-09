@@ -532,13 +532,14 @@ defmodule Protocol do
   end
 
   defp beam_protocol(protocol) do
-    chunk_ids = [:debug_info, 'Docs', 'ExDp']
+    chunk_ids = [:debug_info, 'Docs', 'ExCk']
     opts = [:allow_missing_chunks]
 
     case :beam_lib.chunks(beam_file(protocol), chunk_ids, opts) do
       {:ok, {^protocol, [{:debug_info, debug_info} | chunks]}} ->
         {:debug_info_v1, _backend, {:elixir_v1, info, specs}} = debug_info
         %{attributes: attributes, definitions: definitions} = info
+        chunks = :lists.filter(fn {_name, value} -> value != :missing_chunk end, chunks)
         chunks = :lists.map(fn {name, value} -> {List.to_string(name), value} end, chunks)
 
         case attributes[:protocol] do

@@ -50,8 +50,9 @@ defmodule Kernel.ParallelCompilerTest do
         )
 
       assert capture_io(fn ->
-               assert {:ok, [BarParallel, FooParallel], []} =
-                        Kernel.ParallelCompiler.compile(fixtures)
+               assert {:ok, modules, []} = Kernel.ParallelCompiler.compile(fixtures)
+               assert BarParallel in modules
+               assert FooParallel in modules
              end) =~ "message_from_foo"
     after
       purge([FooParallel, BarParallel])
