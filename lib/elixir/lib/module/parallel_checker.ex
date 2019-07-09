@@ -224,13 +224,11 @@ defmodule Module.ParallelChecker do
   end
 
   defp info_exports(module) do
-    exports =
-      :maps.from_list(
+    :maps.from_list(
+      [{{:__info__, 1}, :def}] ++
         Enum.map(module.__info__(:macros), &{&1, :defmacro}) ++
-          Enum.map(module.__info__(:functions), &{&1, :def})
-      )
-
-    :maps.put({:__info__, 1}, :def, exports)
+        Enum.map(module.__info__(:functions), &{&1, :def})
+    )
   rescue
     _ -> :maps.from_list(Enum.map(module.module_info(:exports), &{&1, :def}))
   end
