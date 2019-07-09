@@ -350,8 +350,9 @@ attributes(DataSet, DataBag, PersistedAttributes) ->
 
 lookup_attribute(DataSet, DataBag, Key) when is_atom(Key) ->
   case ets:lookup(DataSet, Key) of
-    [{Key, _, accumulate}] -> bag_lookup_element(DataBag, {accumulate, Key}, 2);
-    [{Key, Value, _}] -> [Value];
+    [{_, _, accumulate}] -> bag_lookup_element(DataBag, {accumulate, Key}, 2);
+    [{_, _, unset}] -> [];
+    [{_, Value, _}] -> [Value];
     [] -> []
   end.
 
