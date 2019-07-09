@@ -669,13 +669,13 @@ defmodule Code do
       when non-existing atoms are found by the tokenizer.
       Defaults to `false`.
 
-    * `:token_metadata` - when `true`, includes token-related metadata
-      in the expression AST, such as metadata for `do` and `end` tokens,
-      for closing tokens, end of expressions, as well as delimiters for
-      sigils. See `t:Macro.metadata/0`. Defaults to `false`.
+    * `:token_metadata` (since v1.10.0) - when `true`, includes token-related
+      metadata in the expression AST, such as metadata for `do` and `end`
+      tokens, for closing tokens, end of expressions, as well as delimiters
+      for sigils. See `t:Macro.metadata/0`. Defaults to `false`.
 
-    * `:literal_encoder` - how to encode literals in the AST. It must
-      be a function that receives two arguments, the literal and its
+    * `:literal_encoder` (since v1.10.0) - how to encode literals in the AST.
+      It must be a function that receives two arguments, the literal and its
       metadata, and it must return `{:ok, ast :: Macro.t}` or
       `{:error, reason :: binary}`. If you return anything than the literal
       itself as the `term`, then the AST is no longer valid. This option
