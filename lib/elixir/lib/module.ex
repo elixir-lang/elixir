@@ -1815,7 +1815,7 @@ defmodule Module do
         :lists.reverse(bag_lookup_element(bag, {:accumulate, key}, 2))
 
       [{_, val, line}] when is_integer(line) ->
-        :ets.update_element(set, key, {3, nil})
+        :ets.update_element(set, key, {3, :used})
         val
 
       [{_, val, _}] ->
