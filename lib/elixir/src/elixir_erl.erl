@@ -12,10 +12,10 @@ debug_info(elixir_v1, _Module, none, _Opts) ->
 debug_info(elixir_v1, _Module, {elixir_v1, Map, _Specs}, _Opts) ->
   {ok, Map};
 debug_info(erlang_v1, _Module, {elixir_v1, Map, Specs}, _Opts) ->
-  {Prefix, Forms, _, _, _, _} = dynamic_form(Map),
+  {Prefix, Forms, _, _, _} = dynamic_form(Map),
   {ok, Prefix ++ Specs ++ Forms};
 debug_info(core_v1, _Module, {elixir_v1, Map, Specs}, Opts) ->
-  {Prefix, Forms, _, _, _, _} = dynamic_form(Map),
+  {Prefix, Forms, _, _, _} = dynamic_form(Map),
   #{compile_opts := CompileOpts} = Map,
   AllOpts = CompileOpts ++ Opts,
 
@@ -123,7 +123,7 @@ scope(_Meta) ->
 %% Static compilation hook, used in protocol consolidation
 
 consolidate(Map, TypeSpecs, Chunks) ->
-  {Prefix, Forms, _Def, _Defmacro, _Macros, _Deprecated} = dynamic_form(Map),
+  {Prefix, Forms, _Def, _Defmacro, _Macros} = dynamic_form(Map),
   load_form(Map, Prefix, Forms, TypeSpecs, Chunks).
 
 %% Dynamic compilation hook, used in regular compiler
@@ -141,18 +141,17 @@ compile(#{module := Module} = Map) ->
   elixir_erl_compiler:spawn(fun spawned_compile/4, [Map, Set, Bag, TranslatedTypespecs]).
 
 spawned_compile(Map, Set, _Bag, TranslatedTypespecs) ->
-  {Prefix, Forms, Def, Defmacro, Macros, Deprecated} = dynamic_form(Map),
+  {Prefix, Forms, Def, Defmacro, Macros} = dynamic_form(Map),
   {Types, Callbacks, TypeSpecs} = typespecs_form(Map, TranslatedTypespecs, Macros),
 
   #{module := Module, line := Line} = Map,
   DocsChunk = docs_chunk(Set, Module, Line, Def, Defmacro, Types, Callbacks),
-  DeprecatedChunk = deprecated_chunk(Deprecated),
-  Chunks = DocsChunk ++ DeprecatedChunk,
 
-  load_form(Map, Prefix, Forms, TypeSpecs, Chunks).
+  load_form(Map, Prefix, Forms, TypeSpecs, DocsChunk).
 
-dynamic_form(#{module := Module, line := Line, relative_file := RelativeFile, attributes := Attributes,
-               definitions := Definitions, unreachable := Unreachable, compile_opts := Opts} = Map) ->
+dynamic_form(#{module := Module, line := Line, relative_file := RelativeFile,
+               attributes := Attributes, definitions := Definitions, unreachable := Unreachable,
+               deprecated := Deprecated, compile_opts := Opts}) ->
   {Def, Defmacro, Macros, Exports, Functions} =
     split_definition(Definitions, Unreachable, [], [], [], [], {[], []}),
 
@@ -161,11 +160,9 @@ dynamic_form(#{module := Module, line := Line, relative_file := RelativeFile, at
             {attribute, Line, module, Module},
             {attribute, Line, compile, [no_auto_import | Opts]}],
 
-  %% deprecated is not available in old map versions.
-  Deprecated = maps:get(deprecated, Map, []),
   Forms0 = functions_form(Line, Module, Def, Defmacro, Exports, Functions, Deprecated),
   Forms1 = attributes_form(Line, Attributes, Forms0),
-  {Prefix, Forms1, Def, Defmacro, Macros, Deprecated}.
+  {Prefix, Forms1, Def, Defmacro, Macros}.
 
 % Definitions
 
@@ -485,10 +482,6 @@ docs_chunk(Set, Module, Line, Def, Defmacro, Types, Callbacks) ->
     false ->
       []
   end.
-
-deprecated_chunk(Deprecated) ->
-  ChunkData = term_to_binary({elixir_deprecated_v1, Deprecated}, [compressed]),
-  [{<<"ExDp">>, ChunkData}].
 
 doc_value(Doc) ->
   case Doc of

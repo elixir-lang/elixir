@@ -11,6 +11,32 @@ defmodule Module.CheckerTest do
     on_exit(fn -> Application.put_env(:elixir, :ansi_enabled, previous) end)
   end
 
+  describe "ExCk chunk" do
+    test "writes exports" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          defp a, do: :ok
+          defmacrop b, do: a()
+          def c, do: b()
+          defmacro d, do: b()
+          @deprecated "oops"
+          def e, do: :ok
+        end
+        """
+      }
+
+      modules = compile(files)
+      exports = read_chunk(modules[A])
+
+      assert exports == [
+               {{:c, 0}, {:def, nil}},
+               {{:d, 0}, {:defmacro, nil}},
+               {{:e, 0}, {:def, "oops"}}
+             ]
+    end
+  end
+
   describe "undefined" do
     test "handles Erlang modules" do
       files = %{
@@ -241,16 +267,18 @@ defmodule Module.CheckerTest do
         """
       }
 
-      warning = """
-      warning: B.no_func/0 is undefined or private
-        a.ex:2: A.a/0
+      warnings = [
+        """
+        warning: B.no_func/0 is undefined or private
+          a.ex:2: A.a/0
+        """,
+        """
+        warning: A.no_func/0 is undefined or private
+          b.ex:2: B.a/0
+        """
+      ]
 
-      warning: A.no_func/0 is undefined or private
-        b.ex:2: B.a/0
-
-      """
-
-      assert_warnings(files, warning)
+      assert_warnings(files, warnings)
     end
 
     test "groups multiple warnings in one file" do
@@ -376,7 +404,7 @@ defmodule Module.CheckerTest do
       assert_no_warnings(files)
     end
 
-    test "do not warn for moduel defined in local context" do
+    test "do not warn for module defined in local context" do
       files = %{
         "a.ex" => """
         defmodule A do
@@ -392,6 +420,28 @@ defmodule Module.CheckerTest do
       }
 
       assert_no_warnings(files)
+    end
+
+    test "warn for unrequired module" do
+      files = %{
+        "ab.ex" => """
+        defmodule A do
+          def a(), do: B.b()
+        end
+
+        defmodule B do
+          defmacro b(), do: :ok
+        end
+        """
+      }
+
+      warning = """
+      warning: you must require B before invoking the macro B.b/0
+        ab.ex:2: A.a/0
+
+      """
+
+      assert_warnings(files, warning)
     end
 
     test "excludes no_warn_undefined" do
@@ -474,20 +524,23 @@ defmodule Module.CheckerTest do
         """
       }
 
-      warning = """
-      warning: A.__struct__/0 is deprecated. oops
-      Found at 2 locations:
-        a.ex:4: A.match/1
-        a.ex:5: A.build/1
+      warnings = [
+        """
+        warning: A.__struct__/0 is deprecated. oops
+        Found at 2 locations:
+          a.ex:4: A.match/1
+          a.ex:5: A.build/1
+        """,
+        """
+        warning: A.__struct__/0 is deprecated. oops
+        Found at 2 locations:
+          b.ex:2: B.match/1
+          b.ex:3: B.build/1
 
-      warning: A.__struct__/0 is deprecated. oops
-      Found at 2 locations:
-        b.ex:2: B.match/1
-        b.ex:3: B.build/1
+        """
+      ]
 
-      """
-
-      assert_warnings(files, warning)
+      assert_warnings(files, warnings)
     end
 
     test "reports module body" do
@@ -516,28 +569,44 @@ defmodule Module.CheckerTest do
     end
   end
 
-  defp assert_warnings(files, expected) do
-    in_tmp(fn ->
-      assert capture_compile(files) == expected
+  defp assert_warnings(files, expected) when is_binary(expected) do
+    assert capture_compile_warnings(files) == expected
+  end
+
+  defp assert_warnings(files, expecteds) when is_list(expecteds) do
+    output = capture_compile_warnings(files)
+
+    Enum.each(expecteds, fn expected ->
+      assert output =~ expected
     end)
   end
 
   defp assert_no_warnings(files) do
+    assert capture_compile_warnings(files) == ""
+  end
+
+  defp capture_compile_warnings(files) do
     in_tmp(fn ->
-      assert capture_compile(files) == ""
+      paths = generate_files(files)
+      capture_io(:stderr, fn -> compile_files(paths) end)
     end)
   end
 
-  defp capture_compile(files) do
-    files = generate_files(files)
+  defp compile(files) do
+    in_tmp(fn ->
+      paths = generate_files(files)
+      compile_files(paths)
+    end)
+  end
 
-    capture_io(:stderr, fn ->
-      {:ok, modules, _warnings} = Kernel.ParallelCompiler.compile_to_path(files, ".")
+  defp compile_files(paths) do
+    {:ok, modules, _warnings} = Kernel.ParallelCompiler.compile_to_path(paths, ".")
 
-      Enum.each(modules, fn module ->
-        :code.purge(module)
-        :code.delete(module)
-      end)
+    Map.new(modules, fn module ->
+      {^module, binary, _filename} = :code.get_object_code(module)
+      :code.purge(module)
+      :code.delete(module)
+      {module, binary}
     end)
   end
 
@@ -546,6 +615,12 @@ defmodule Module.CheckerTest do
       File.write!(file, contents)
       file
     end
+  end
+
+  defp read_chunk(binary) do
+    assert {:ok, {_module, [{'ExCk', chunk}]}} = :beam_lib.chunks(binary, ['ExCk'])
+    assert {:elixir_checker_v1, map} = :erlang.binary_to_term(chunk)
+    map
   end
 
   defp in_tmp(fun) do
