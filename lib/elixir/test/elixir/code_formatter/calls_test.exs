@@ -450,6 +450,12 @@ defmodule Code.Formatter.CallsTest do
       assert_same "unquote(call)(one, two)"
 
       assert_same """
+      unquote(call)() do
+        :ok
+      end
+      """
+
+      assert_same """
       unquote(call)(one, two) do
         :ok
       end
@@ -666,6 +672,11 @@ defmodule Code.Formatter.CallsTest do
     test "call on call" do
       assert_same "foo.bar(call)()"
       assert_same "foo.bar(call)(one, two)"
+
+      assert_same """
+      foo.bar(call)() do
+      end
+      """
 
       assert_same """
       foo.bar(call)(one, two) do
