@@ -5,8 +5,9 @@ Application.put_env(:mix, :colors, enabled: false)
 Logger.remove_backend(:console)
 Application.put_env(:logger, :backends, [])
 
-exclude = if match?({:win32, _}, :os.type()), do: [unix: true], else: [windows: true]
-ExUnit.start(trace: "--trace" in System.argv(), exclude: exclude)
+os_exclude = if match?({:win32, _}, :os.type()), do: [unix: true], else: [windows: true]
+epmd_exclude = if match?({_, 0}, System.cmd("epmd", ["-daemon"])), do: [], else: [epmd: true]
+ExUnit.start(trace: "--trace" in System.argv(), exclude: epmd_exclude ++ os_exclude)
 
 unless {1, 7, 4} <= Mix.SCM.Git.git_version() do
   IO.puts(:stderr, "Skipping tests with git sparse checkouts...")

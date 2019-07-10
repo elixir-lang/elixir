@@ -265,6 +265,7 @@ defmodule Mix.Tasks.ReleaseTest do
     end)
   end
 
+  @tag :epmd
   test "executes rpc instructions" do
     in_fixture("release_test", fn ->
       config = [releases: [permanent1: [include_erts: false]]]
