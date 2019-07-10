@@ -33,27 +33,17 @@ defmodule Mix.Tasks.XrefTest do
     }
 
     output = [
-      %{callee: {A, :a, 0}, caller_module: A, file: "lib/a.ex", line: 2},
-      %{callee: {A, :a, 1}, caller_module: A, file: "lib/a.ex", line: 3},
-      %{callee: {B, :a, 0}, caller_module: A, file: "lib/a.ex", line: 4},
-      %{callee: {Kernel, :def, 2}, caller_module: A, file: "lib/a.ex", line: 4},
-      %{callee: {Kernel, :def, 2}, caller_module: A, file: "lib/a.ex", line: 3},
-      %{callee: {Kernel, :def, 2}, caller_module: A, file: "lib/a.ex", line: 2},
-      %{callee: {Kernel, :defmodule, 2}, caller_module: A, file: "lib/a.ex", line: 1},
-      %{
-        callee: {Kernel.LexicalTracker, :read_cache, 2},
-        caller_module: A,
-        file: "lib/a.ex",
-        line: 1
-      },
-      %{callee: {Kernel, :def, 2}, caller_module: B, file: "lib/b.ex", line: 2},
-      %{callee: {Kernel, :defmodule, 2}, caller_module: B, file: "lib/b.ex", line: 1},
-      %{
-        callee: {Kernel.LexicalTracker, :read_cache, 2},
-        caller_module: B,
-        file: "lib/b.ex",
-        line: 1
-      }
+      %{callee: {A, :a, 0}, file: "lib/a.ex", line: 2},
+      %{callee: {A, :a, 1}, file: "lib/a.ex", line: 3},
+      %{callee: {B, :a, 0}, file: "lib/a.ex", line: 4},
+      %{callee: {Kernel, :def, 2}, file: "lib/a.ex", line: 4},
+      %{callee: {Kernel, :def, 2}, file: "lib/a.ex", line: 3},
+      %{callee: {Kernel, :def, 2}, file: "lib/a.ex", line: 2},
+      %{callee: {Kernel, :defmodule, 2}, file: "lib/a.ex", line: 1},
+      %{callee: {Kernel.LexicalTracker, :read_cache, 2}, file: "lib/a.ex", line: 1},
+      %{callee: {Kernel, :def, 2}, file: "lib/b.ex", line: 2},
+      %{callee: {Kernel, :defmodule, 2}, file: "lib/b.ex", line: 1},
+      %{callee: {Kernel.LexicalTracker, :read_cache, 2}, file: "lib/b.ex", line: 1}
     ]
 
     assert_all_calls(files, output)
@@ -75,23 +65,13 @@ defmodule Mix.Tasks.XrefTest do
     }
 
     output = [
-      %{callee: {A, :a_macro, 0}, caller_module: B, file: "lib/b.ex", line: 3},
-      %{callee: {Kernel, :def, 2}, caller_module: B, file: "lib/b.ex", line: 3},
-      %{callee: {Kernel, :defmodule, 2}, caller_module: B, file: "lib/b.ex", line: 1},
-      %{
-        callee: {Kernel.LexicalTracker, :read_cache, 2},
-        line: 1,
-        caller_module: B,
-        file: "lib/b.ex"
-      },
-      %{callee: {Kernel, :defmacro, 2}, caller_module: A, file: "lib/a.ex", line: 2},
-      %{callee: {Kernel, :defmodule, 2}, caller_module: A, file: "lib/a.ex", line: 1},
-      %{
-        callee: {Kernel.LexicalTracker, :read_cache, 2},
-        line: 1,
-        caller_module: A,
-        file: "lib/a.ex"
-      }
+      %{callee: {A, :a_macro, 0}, file: "lib/b.ex", line: 3},
+      %{callee: {Kernel, :def, 2}, file: "lib/b.ex", line: 3},
+      %{callee: {Kernel, :defmodule, 2}, file: "lib/b.ex", line: 1},
+      %{callee: {Kernel.LexicalTracker, :read_cache, 2}, line: 1, file: "lib/b.ex"},
+      %{callee: {Kernel, :defmacro, 2}, file: "lib/a.ex", line: 2},
+      %{callee: {Kernel, :defmodule, 2}, file: "lib/a.ex", line: 1},
+      %{callee: {Kernel.LexicalTracker, :read_cache, 2}, line: 1, file: "lib/a.ex"}
     ]
 
     assert_all_calls(files, output)
@@ -119,25 +99,15 @@ defmodule Mix.Tasks.XrefTest do
     }
 
     output = [
-      %{callee: {A, :b, 1}, caller_module: B, file: "lib/b.ex", line: 3},
-      %{callee: {A, :a_macro, 1}, caller_module: B, file: "lib/b.ex", line: 3},
-      %{callee: {Kernel, :def, 2}, caller_module: B, file: "lib/b.ex", line: 3},
-      %{callee: {Kernel, :defmodule, 2}, caller_module: B, file: "lib/b.ex", line: 1},
-      %{
-        callee: {Kernel.LexicalTracker, :read_cache, 2},
-        caller_module: B,
-        file: "lib/b.ex",
-        line: 1
-      },
-      %{callee: {Kernel, :def, 2}, caller_module: A, file: "lib/a.ex", line: 8},
-      %{callee: {Kernel, :defmacro, 2}, caller_module: A, file: "lib/a.ex", line: 2},
-      %{callee: {Kernel, :defmodule, 2}, caller_module: A, file: "lib/a.ex", line: 1},
-      %{
-        callee: {Kernel.LexicalTracker, :read_cache, 2},
-        caller_module: A,
-        file: "lib/a.ex",
-        line: 1
-      }
+      %{callee: {A, :b, 1}, file: "lib/b.ex", line: 3},
+      %{callee: {A, :a_macro, 1}, file: "lib/b.ex", line: 3},
+      %{callee: {Kernel, :def, 2}, file: "lib/b.ex", line: 3},
+      %{callee: {Kernel, :defmodule, 2}, file: "lib/b.ex", line: 1},
+      %{callee: {Kernel.LexicalTracker, :read_cache, 2}, file: "lib/b.ex", line: 1},
+      %{callee: {Kernel, :def, 2}, file: "lib/a.ex", line: 8},
+      %{callee: {Kernel, :defmacro, 2}, file: "lib/a.ex", line: 2},
+      %{callee: {Kernel, :defmodule, 2}, file: "lib/a.ex", line: 1},
+      %{callee: {Kernel.LexicalTracker, :read_cache, 2}, file: "lib/a.ex", line: 1}
     ]
 
     assert_all_calls(files, output)

@@ -156,7 +156,6 @@ defmodule Mix.Tasks.Xref do
     * `:callee` - a tuple containing the module, function, and arity of the call
     * `:line` - an integer representing the line where the function is called
     * `:file` - a binary representing the file where the function is called
-    * `:caller_module` - the module where the function is called
 
   This function returns an empty list when used at the root of an umbrella
   project because there is no compile manifest to extract the function call
@@ -166,46 +165,31 @@ defmodule Mix.Tasks.Xref do
   @spec calls(keyword()) :: [
           %{
             callee: {module(), atom(), arity()},
-            caller_module: module(),
             line: integer(),
             file: String.t()
           }
         ]
   def calls(opts \\ []) do
-    module_sources =
-      for manifest <- manifests(opts),
-          manifest_data = read_manifest(manifest),
-          module(module: module, sources: sources) <- manifest_data,
-          source <- sources,
-          source = Enum.find(manifest_data, &match?(source(source: ^source), &1)),
-          do: {module, source}
-
-    Enum.flat_map(module_sources, fn {caller_module, source} ->
-      source(
-        runtime_dispatches: runtime_nested,
-        compile_dispatches: compile_nested,
-        source: rel_file
-      ) = source
-
-      runtime_function_calls =
-        dispatches_to_function_calls(caller_module, rel_file, runtime_nested)
-
-      compile_function_calls =
-        dispatches_to_function_calls(caller_module, rel_file, compile_nested)
-
-      runtime_function_calls ++ compile_function_calls
-    end)
+    for manifest <- manifests(opts),
+        source(
+          runtime_dispatches: runtime_nested,
+          compile_dispatches: compile_nested,
+          source: rel_file
+        ) <- read_manifest(manifest),
+        call <-
+          dispatches_to_function_calls(rel_file, runtime_nested) ++
+            dispatches_to_function_calls(rel_file, compile_nested),
+        do: call
   end
 
-  defp dispatches_to_function_calls(caller_module, file, dispatches) do
+  defp dispatches_to_function_calls(file, dispatches) do
     for {module, function_calls} <- dispatches,
         {{function, arity}, lines} <- function_calls,
         line <- lines do
       %{
         callee: {module, function, arity},
         file: file,
-        line: line,
-        caller_module: caller_module
+        line: line
       }
     end
   end
