@@ -67,7 +67,7 @@ defmodule Module.ParallelChecker do
     # so we can assume it's a cached module
     [{_key, exports}] = :ets.lookup(ets, {:all_exports, module})
 
-    [{{:__info__, 1}, :def} | exports]
+    exports
     |> Enum.map(fn {function, _kind} -> function end)
     |> Enum.sort()
   end
