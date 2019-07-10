@@ -1075,7 +1075,7 @@ defmodule Code.Formatter do
   defp local_to_algebra(fun, meta, args, context, state) when is_atom(fun) do
     skip_parens =
       cond do
-        not Keyword.get(meta, :no_parens, false) -> :required
+        not Keyword.get(meta, :no_parens, false) -> :skip_if_only_do_end
         local_without_parens?(fun, args, state) -> :skip_unless_many_args
         true -> :skip_if_do_end
       end
@@ -1093,9 +1093,10 @@ defmodule Code.Formatter do
     {doc, state}
   end
 
-  # parens may one of:
+  # parens may be one of:
   #
   #   * :skip_unless_many_args - skips parens unless we are the argument context
+  #   * :skip_if_only_do_end - skip parens if we are do-end and the only arg
   #   * :skip_if_do_end - skip parens if we are do-end
   #   * :required - never skip parens
   #
@@ -1111,11 +1112,16 @@ defmodule Code.Formatter do
 
     if blocks = do_end_blocks(last, state) do
       {call_doc, state} =
-        if rest == [] do
-          {" do", state}
-        else
-          no_parens? = parens != :required
-          call_args_to_algebra_no_blocks(meta, rest, no_parens?, list_to_keyword?, " do", state)
+        case rest do
+          [] when parens == :required ->
+            {"() do", state}
+
+          [] ->
+            {" do", state}
+
+          _ ->
+            no_parens? = parens not in [:required, :skip_if_only_do_end]
+            call_args_to_algebra_no_blocks(meta, rest, no_parens?, list_to_keyword?, " do", state)
         end
 
       {blocks_doc, state} = do_end_blocks_to_algebra(blocks, state)
