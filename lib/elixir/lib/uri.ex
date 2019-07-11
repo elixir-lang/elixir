@@ -272,7 +272,7 @@ defmodule URI do
   so-called unreserved characters, which have the same meaning both
   escaped and unescaped, won't be escaped by default.
 
-  See `encode_www_form` if you are interested in escaping reserved
+  See `encode_www_form/1` if you are interested in escaping reserved
   characters too.
 
   This function also accepts a `predicate` function as an optional
