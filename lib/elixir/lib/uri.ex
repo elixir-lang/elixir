@@ -251,7 +251,8 @@ defmodule URI do
   Checks if `character` is allowed unescaped in a URI.
 
   This is the default used by `URI.encode/2` where both
-  reserved and unreserved characters are kept unescaped.
+  [reserved](`char_reserved?/1`) and [unreserved characters](`char_unreserved?/1`)
+  are kept unescaped.
 
   ## Examples
 
@@ -278,7 +279,8 @@ defmodule URI do
   argument. If passed, this function will be called with each byte
   in `string` as its argument and should return a truthy value (anything other
   than `false` or `nil`) if the given byte should be left as is, or return a
-  falsy value (`false` or `nil`) if the character should be escaped.
+  falsy value (`false` or `nil`) if the character should be escaped. Defaults
+  to `URI.char_unescaped?/1`.
 
   ## Examples
 
