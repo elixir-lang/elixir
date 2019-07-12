@@ -483,26 +483,6 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns its argument.
-
-  ## Examples
-
-      iex> identity(17)
-      17
-
-      iex> identity(:ok)
-      :ok
-
-      iex> 'abcdaabccc' |> Enum.sort |> Enum.chunk_by(&identity/1)
-      ['aaa', 'bb', 'cccc', 'd']
-
-  """
-  @spec identity(a) :: a when a: var
-  def identity(a) do
-    a
-  end
-
-  @doc """
   Returns the head of a list. Raises `ArgumentError` if the list is empty.
 
   It works with improper lists.
