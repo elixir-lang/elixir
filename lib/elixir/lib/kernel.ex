@@ -497,7 +497,7 @@ defmodule Kernel do
       ['aaa', 'bb', 'cccc', 'd']
 
   """
-  @spec identity(term) :: term
+  @spec identity(a) :: a when a: var
   def identity(a) do
     a
   end
