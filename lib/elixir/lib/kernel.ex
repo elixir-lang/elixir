@@ -487,26 +487,15 @@ defmodule Kernel do
 
   ## Examples
 
-      identity(17)
-      #=> 17
+      iex> identity(17)
+      17
 
-      identity(:ok)
-      #=> :ok
+      iex> identity(:ok)
+      :ok
 
-      [1,2,3,nil, true, false, 1234] |> Enum.filter(&identity/1)
-      #=> [1, 2, 3, true, 1234]
+      iex> 'abcdaabccc' |> Enum.sort |> Enum.chunk_by(&identity/1)
+      ['aaa', 'bb', 'cccc', 'd']
 
-      'abcdaabccc' |> Enum.sort |> Enum.chunk_by(&identity/1)
-      #=> ['aaa', 'bb', 'cccc', 'd']
-
-      [1, 1, 2, 3, 3, 1, 1, 5, 5] |> Enum.chunk_by(&identity/1) |> Enum.map(&hd/1)
-      #=> [1, 2, 3, 1, 5]
-
-      Enum.group_by('abracadabra', &identity/1)
-      #=> %{97 => 'aaaaa', 98 => 'bb', 99 => 'c', 100 => 'd', 114 => 'rr'}
-
-      Enum.map([1, 2, 3, 4], &identity/1)
-      #=> [1, 2, 3, 4]
   """
   @spec identity(term) :: term
   def identity(a) do
