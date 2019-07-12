@@ -344,8 +344,8 @@ defmodule Kernel.SpecialForms do
                          13::size(8), 10::size(8), 26::size(8), 10::size(8)>>
         @jpg_signature <<255::size(8), 216::size(8)>>
 
-        def type(<<@png_signature, rest::binary>>), do: :png
-        def type(<<@jpg_signature, rest::binary>>), do: :jpg
+        def type(<<@png_signature, _rest::binary>>), do: :png
+        def type(<<@jpg_signature, _rest::binary>>), do: :jpg
         def type(_), do: :unknown
       end
 
