@@ -165,7 +165,7 @@ defmodule Mix.Tasks.Test do
     * `--failed` - runs only tests that failed the last time they ran
     * `--force` - forces compilation regardless of modification times
     * `--formatter` - sets the formatter module that will print the results.
-      Defaults to `ExUnit.CLIFormatter`
+      Defaults to ExUnit's built-in CLI formatter
     * `--include` - includes tests that match the filter
     * `--listen-on-stdin` - runs tests, and then listens on stdin. Receiving a newline will
       result in the tests being run again. Very useful when combined with `--stale` and
