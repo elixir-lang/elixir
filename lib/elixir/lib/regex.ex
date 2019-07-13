@@ -490,7 +490,8 @@ defmodule Regex do
       affect the splitting process.
 
     * `:include_captures` - when `true`, includes in the result the matches of
-      the regular expression. Defaults to `false`.
+      the regular expression. The matches are not counted towards the maximum
+      number of parts if combined with the `:parts` option. Defaults to `false`.
 
   ## Examples
 
