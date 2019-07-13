@@ -267,6 +267,18 @@ defmodule RegexTest do
 
     assert Regex.split(~r/a/, "abc", include_captures: true) == ["", "a", "bc"]
     assert Regex.split(~r/c/, "abc", include_captures: true) == ["ab", "c", ""]
+
+    assert Regex.split(~r/[Ei]/, "Elixir", include_captures: true, parts: 2) ==
+             ["", "E", "lixir"]
+
+    assert Regex.split(~r/[Ei]/, "Elixir", include_captures: true, parts: 3) ==
+             ["", "E", "l", "i", "xir"]
+
+    assert Regex.split(~r/[Ei]/, "Elixir", include_captures: true, parts: 2, trim: true) ==
+             ["E", "lixir"]
+
+    assert Regex.split(~r/[Ei]/, "Elixir", include_captures: true, parts: 3, trim: true) ==
+             ["E", "l", "i", "xir"]
   end
 
   test "replace/3,4" do
