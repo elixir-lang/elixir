@@ -1345,7 +1345,7 @@ defmodule Module do
       :ets.insert_new(set, {attribute, [], :accumulate}) ||
         :ets.update_element(set, attribute, {3, :accumulate})
     else
-      :ets.insert_new(bag, {:attributes, attribute})
+      :ets.insert_new(bag, {:warn_attributes, attribute})
       :ets.insert_new(set, {attribute, nil, :unset})
     end
 
@@ -1889,7 +1889,7 @@ defmodule Module do
     catch
       :error, :badarg ->
         :ets.insert(set, {:on_load, value, line})
-        :ets.insert(bag, {:attributes, :on_load})
+        :ets.insert(bag, {:warn_attributes, :on_load})
     else
       _ -> raise ArgumentError, "the @on_load attribute can only be set once per module"
     end
@@ -1901,7 +1901,7 @@ defmodule Module do
     catch
       :error, :badarg ->
         :ets.insert(set, {key, value, line})
-        :ets.insert(bag, {:attributes, key})
+        :ets.insert(bag, {:warn_attributes, key})
     else
       :accumulate -> :ets.insert(bag, {{:accumulate, key}, value})
       _ -> :ets.insert(set, {key, value, line})
