@@ -237,7 +237,7 @@ build(Line, File, Module) ->
   %% In the bag table we store:
   %%
   %% * {{accumulate, Attribute}, ...} (includes typespecs)
-  %% * {attributes, ...}
+  %% * {warn_attributes, ...}
   %% * {impls, ...}
   %% * {deprecated, ...}
   %% * {persisted_attributes, ...}
@@ -357,7 +357,7 @@ lookup_attribute(DataSet, DataBag, Key) when is_atom(Key) ->
   end.
 
 warn_unused_attributes(File, DataSet, DataBag, PersistedAttrs) ->
-  StoredAttrs = bag_lookup_element(DataBag, attributes, 2),
+  StoredAttrs = bag_lookup_element(DataBag, warn_attributes, 2),
   %% This is the same list as in Module.put_attribute
   %% without moduledoc which are never warned on.
   Attrs = [doc, typedoc, impl, deprecated | StoredAttrs -- PersistedAttrs],
