@@ -498,7 +498,7 @@ defmodule Mix.Tasks.Format do
   end
 
   defp to_bullet_list(files) do
-    Enum.map_join(files, "\n", &"  * #{&1}")
+    Enum.map_join(files, "\n", &"  * #{&1 |> to_string() |> Path.relative_to_cwd()}")
   end
 
   defp equivalent?(input, output) do
