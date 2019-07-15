@@ -1912,26 +1912,31 @@ defmodule Kernel do
   defmacro reraise(message, stacktrace) do
     # Try to figure out the type at compilation time
     # to avoid dead code and make Dialyzer happy.
-
     case Macro.expand(message, __CALLER__) do
       message when is_binary(message) ->
         quote do
-          :erlang.raise(:error, RuntimeError.exception(unquote(message)), unquote(stacktrace))
+          :erlang.error(
+            :erlang.raise(:error, RuntimeError.exception(unquote(message)), unquote(stacktrace))
+          )
         end
 
       {:<<>>, _, _} = message ->
         quote do
-          :erlang.raise(:error, RuntimeError.exception(unquote(message)), unquote(stacktrace))
+          :erlang.error(
+            :erlang.raise(:error, RuntimeError.exception(unquote(message)), unquote(stacktrace))
+          )
         end
 
       alias when is_atom(alias) ->
         quote do
-          :erlang.raise(:error, unquote(alias).exception([]), unquote(stacktrace))
+          :erlang.error(:erlang.raise(:error, unquote(alias).exception([]), unquote(stacktrace)))
         end
 
       message ->
         quote do
-          :erlang.raise(:error, Kernel.Utils.raise(unquote(message)), unquote(stacktrace))
+          :erlang.error(
+            :erlang.raise(:error, Kernel.Utils.raise(unquote(message)), unquote(stacktrace))
+          )
         end
     end
   end
