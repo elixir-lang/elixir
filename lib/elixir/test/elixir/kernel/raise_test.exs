@@ -134,6 +134,16 @@ defmodule Kernel.RaiseTest do
     end
   end
 
+  test "reraise with invalid stacktrace" do
+    try do
+      reraise %RuntimeError{message: "message"}, {:oops, @trace}
+    rescue
+      ArgumentError ->
+        {name, arity} = __ENV__.function
+        assert [{__MODULE__, ^name, ^arity, _} | _] = __STACKTRACE__
+    end
+  end
+
   describe "rescue" do
     test "runtime error" do
       result =
