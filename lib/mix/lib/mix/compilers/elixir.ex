@@ -265,7 +265,12 @@ defmodule Mix.Compilers.Elixir do
         nil -> {[file], false}
       end
 
-    {source, sources} = List.keytake(sources, file, source(:source))
+    {source, sources} =
+      List.keytake(sources, file, source(:source)) ||
+        Mix.raise(
+          "Could not find source for #{inspect(file)}. Make sure the :elixirc_paths configuration " <>
+            "is a list of relative paths to the current project or absolute paths to external directories"
+        )
 
     source =
       source(
