@@ -225,10 +225,10 @@ defmodule ExUnit.Case do
     quote do
       async = !!unquote(opts)[:async]
 
-      unless Module.get_attribute(__MODULE__, :ex_unit_tests) do
+      unless Module.has_attribute?(__MODULE__, :ex_unit_tests) do
         tag_check =
           [:moduletag, :describetag, :tag]
-          |> Enum.any?(&Module.get_attribute(__MODULE__, &1))
+          |> Enum.any?(&Module.has_attribute?(__MODULE__, &1))
 
         if tag_check do
           raise "you must set @tag, @describetag, and @moduletag after the call to \"use ExUnit.Case\""
@@ -460,9 +460,7 @@ defmodule ExUnit.Case do
   pluralization.
   """
   def register_test(%{module: mod, file: file, line: line}, test_type, name, tags) do
-    moduletag = Module.get_attribute(mod, :moduletag)
-
-    unless moduletag do
+    unless Module.has_attribute?(mod, :ex_unit_tests) do
       raise "cannot define #{test_type}. Please make sure you have invoked " <>
               "\"use ExUnit.Case\" in the current module"
     end
@@ -480,6 +478,7 @@ defmodule ExUnit.Case do
         {attribute, Module.get_attribute(mod, attribute)}
       end
 
+    moduletag = Module.get_attribute(mod, :moduletag)
     tag = Module.delete_attribute(mod, :tag)
     async = Module.get_attribute(mod, :ex_unit_async)
 
@@ -661,7 +660,7 @@ defmodule ExUnit.Case do
       raise ArgumentError, "cannot register attribute #{inspect(name)} multiple times"
     end
 
-    if Module.get_attribute(mod, name) do
+    if Module.has_attribute?(mod, name) do
       raise "you must set @#{name} after it has been registered"
     end
   end
