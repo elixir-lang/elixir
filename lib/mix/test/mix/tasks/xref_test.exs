@@ -16,212 +16,16 @@ defmodule Mix.Tasks.XrefTest do
     :ok
   end
 
-  test "calls: returns all function calls" do
-    files = %{
-      "lib/a.ex" => """
-      defmodule A do
-        def a, do: A.a()
-        def a(arg), do: A.a(arg)
-        def c, do: B.a()
-      end
-      """,
-      "lib/b.ex" => """
-      defmodule B do
-        def a, do: nil
-      end
-      """
-    }
-
-    output = [
-      %{callee: {A, :a, 0}, file: "lib/a.ex", line: 2},
-      %{callee: {A, :a, 1}, file: "lib/a.ex", line: 3},
-      %{callee: {B, :a, 0}, file: "lib/a.ex", line: 4},
-      %{callee: {Kernel, :def, 2}, file: "lib/a.ex", line: 4},
-      %{callee: {Kernel, :def, 2}, file: "lib/a.ex", line: 3},
-      %{callee: {Kernel, :def, 2}, file: "lib/a.ex", line: 2},
-      %{callee: {Kernel, :defmodule, 2}, file: "lib/a.ex", line: 1},
-      %{callee: {Kernel.LexicalTracker, :read_cache, 2}, file: "lib/a.ex", line: 1},
-      %{callee: {Kernel, :def, 2}, file: "lib/b.ex", line: 2},
-      %{callee: {Kernel, :defmodule, 2}, file: "lib/b.ex", line: 1},
-      %{callee: {Kernel.LexicalTracker, :read_cache, 2}, file: "lib/b.ex", line: 1}
-    ]
-
-    assert_all_calls(files, output)
-  end
-
-  test "calls: returns macro call" do
-    files = %{
-      "lib/a.ex" => """
-      defmodule A do
-        defmacro a_macro, do: :ok
-      end
-      """,
-      "lib/b.ex" => """
-      defmodule B do
-        require A
-        def a, do: A.a_macro()
-      end
-      """
-    }
-
-    output = [
-      %{callee: {A, :a_macro, 0}, file: "lib/b.ex", line: 3},
-      %{callee: {Kernel, :def, 2}, file: "lib/b.ex", line: 3},
-      %{callee: {Kernel, :defmodule, 2}, file: "lib/b.ex", line: 1},
-      %{callee: {Kernel.LexicalTracker, :read_cache, 2}, line: 1, file: "lib/b.ex"},
-      %{callee: {Kernel, :defmacro, 2}, file: "lib/a.ex", line: 2},
-      %{callee: {Kernel, :defmodule, 2}, file: "lib/a.ex", line: 1},
-      %{callee: {Kernel.LexicalTracker, :read_cache, 2}, line: 1, file: "lib/a.ex"}
-    ]
-
-    assert_all_calls(files, output)
-  end
-
-  test "calls: returns function call inside macro" do
-    files = %{
-      "lib/a.ex" => """
-      defmodule A do
-        defmacro a_macro(x) do
-          quote do
-            A.b(unquote(x))
-          end
-        end
-
-        def b(x), do: x
-      end
-      """,
-      "lib/b.ex" => """
-      defmodule B do
-        require A
-        def a, do: A.a_macro(1)
-      end
-      """
-    }
-
-    output = [
-      %{callee: {A, :b, 1}, file: "lib/b.ex", line: 3},
-      %{callee: {A, :a_macro, 1}, file: "lib/b.ex", line: 3},
-      %{callee: {Kernel, :def, 2}, file: "lib/b.ex", line: 3},
-      %{callee: {Kernel, :defmodule, 2}, file: "lib/b.ex", line: 1},
-      %{callee: {Kernel.LexicalTracker, :read_cache, 2}, file: "lib/b.ex", line: 1},
-      %{callee: {Kernel, :def, 2}, file: "lib/a.ex", line: 8},
-      %{callee: {Kernel, :defmacro, 2}, file: "lib/a.ex", line: 2},
-      %{callee: {Kernel, :defmodule, 2}, file: "lib/a.ex", line: 1},
-      %{callee: {Kernel.LexicalTracker, :read_cache, 2}, file: "lib/a.ex", line: 1}
-    ]
-
-    assert_all_calls(files, output)
-  end
-
-  defp assert_all_calls(files, expected) do
-    in_fixture("no_mixfile", fn ->
-      generate_files(files)
-
-      Mix.Task.run("compile")
-      assert Enum.sort(Mix.Tasks.Xref.calls()) == Enum.sort(expected)
-    end)
-  end
-
-  ## Callers
-
   test "callers: prints callers of specified Module" do
     files = %{
       "lib/a.ex" => """
       defmodule A do
-        def a, do: A.a()
-        def a(arg), do: A.a(arg)
-        def b, do: A.b()
-        def c, do: B.a()
-
-        @file "lib/external_source.ex"
-        def d, do: A.a()
-      end
-      """
-    }
-
-    output = """
-    Compiling 2 files (.ex)
-    Generated sample app
-    lib/a.ex:2: A.a/0
-    lib/external_source.ex:8: A.a/0
-    lib/a.ex:3: A.a/1
-    lib/a.ex:4: A.b/0
-    """
-
-    assert_callers("A", files, output)
-  end
-
-  test "callers: prints callers of specified Module.func" do
-    files = %{
-      "lib/a.ex" => """
-      defmodule A do
-        def a, do: A.a()
-        def a(arg), do: A.a(arg)
-        def b, do: A.b()
-        def c, do: B.a()
-
-        @file "lib/external_source.ex"
-        def d, do: A.a()
-      end
-      """
-    }
-
-    output = """
-    Compiling 2 files (.ex)
-    Generated sample app
-    lib/a.ex:2: A.a/0
-    lib/external_source.ex:8: A.a/0
-    lib/a.ex:3: A.a/1
-    """
-
-    assert_callers("A.a", files, output)
-  end
-
-  test "callers: prints callers of specified Module.func/arity" do
-    files = %{
-      "lib/a.ex" => """
-      defmodule A do
-        def a, do: A.a()
-        def a(arg), do: A.a(arg)
-        def b, do: A.b()
-        def c, do: B.a()
-
-        @file "lib/external_source.ex"
-        def d, do: A.a()
-      end
-      """
-    }
-
-    output = """
-    Compiling 2 files (.ex)
-    Generated sample app
-    lib/a.ex:2: A.a/0
-    lib/external_source.ex:8: A.a/0
-    """
-
-    assert_callers("A.a/0", files, output)
-  end
-
-  test "callers: lists compile calls and macros" do
-    files = %{
-      "lib/a.ex" => """
-      defmodule A do
-        defmacro a_macro, do: :ok
         def a, do: :ok
       end
       """,
       "lib/b.ex" => """
       defmodule B do
-        require A
-
-        A.a_macro()
-        A.a()
-
-        @file "lib/external_source.ex"
-        def b do
-          A.a_macro()
-          A.a()
-        end
+        def b, do: A.a()
       end
       """
     }
@@ -229,10 +33,7 @@ defmodule Mix.Tasks.XrefTest do
     output = """
     Compiling 2 files (.ex)
     Generated sample app
-    lib/b.ex:5: A.a/0
-    lib/external_source.ex:10: A.a/0
-    lib/b.ex:4: A.a_macro/0
-    lib/external_source.ex:9: A.a_macro/0
+    lib/b.ex (runtime)
     """
 
     assert_callers("A", files, output)
@@ -243,8 +44,6 @@ defmodule Mix.Tasks.XrefTest do
       "lib/a.ex" => """
       defmodule A do
         alias Enum, as: E
-
-        E.map([], &E.flatten/1)
 
         def a(a, b), do: E.map(a, b)
 
@@ -260,11 +59,7 @@ defmodule Mix.Tasks.XrefTest do
     output = """
     Compiling 2 files (.ex)
     Generated sample app
-    lib/a.ex:4: Enum.flatten/1
-    lib/external_source.ex:11: Enum.flatten/1
-    lib/a.ex:4: Enum.map/2
-    lib/a.ex:6: Enum.map/2
-    lib/external_source.ex:11: Enum.map/2
+    lib/a.ex (runtime)
     """
 
     assert_callers("Enum", files, output)
@@ -275,28 +70,13 @@ defmodule Mix.Tasks.XrefTest do
       "lib/a.ex" => ~S"""
       defmodule A do
         import Integer
-
         &is_even/1
-        &parse/1
-
-        _ = is_even(Enum.random([1]))
-        _ = parse("2")
-
-        def a(a), do: is_even(a)
-        def b(a), do: parse(a)
-        _ = is_even(Enum.random([1])); def c(a), do: is_even(a)
       end
       """,
       "lib/b.ex" => ~S"""
       defmodule B do
-        &Integer.parse/1
-
-        @file "lib/external_source.ex"
-        def a(a) do
-          import Integer
-          parse(1)
-          is_even(a)
-        end
+        import Integer
+        parse("1")
       end
       """
     }
@@ -304,16 +84,8 @@ defmodule Mix.Tasks.XrefTest do
     output = """
     Compiling 2 files (.ex)
     Generated sample app
-    lib/a.ex:4: Integer.is_even/1
-    lib/a.ex:7: Integer.is_even/1
-    lib/a.ex:10: Integer.is_even/1
-    lib/a.ex:12: Integer.is_even/1
-    lib/external_source.ex:8: Integer.is_even/1
-    lib/a.ex:5: Integer.parse/1
-    lib/a.ex:8: Integer.parse/1
-    lib/a.ex:11: Integer.parse/1
-    lib/b.ex:2: Integer.parse/1
-    lib/external_source.ex:7: Integer.parse/1
+    lib/a.ex (compile)
+    lib/b.ex (compile)
     """
 
     assert_callers("Integer", files, output)
@@ -331,8 +103,7 @@ defmodule Mix.Tasks.XrefTest do
 
   test "callers: gives nice error for quotable but invalid callers spec" do
     in_fixture("no_mixfile", fn ->
-      message =
-        "xref callers CALLEE expects Module, Module.function, or Module.function/arity, got: Module.func(arg)"
+      message = "xref callers MODULE expects a MODULE, got: Module.func(arg)"
 
       assert_raise Mix.Error, message, fn ->
         Mix.Task.run("xref", ["callers", "Module.func(arg)"])
@@ -342,8 +113,7 @@ defmodule Mix.Tasks.XrefTest do
 
   test "callers: gives nice error for unquotable callers spec" do
     in_fixture("no_mixfile", fn ->
-      message =
-        "xref callers CALLEE expects Module, Module.function, or Module.function/arity, got: %"
+      message = "xref callers MODULE expects a MODULE, got: %"
 
       assert_raise Mix.Error, message, fn ->
         Mix.Task.run("xref", ["callers", "%"])
@@ -655,10 +425,10 @@ defmodule Mix.Tasks.XrefTest do
                    * lib/foo.ex (1)
                  """
 
-          Mix.Tasks.Xref.run(["callers", "Foo.foo"])
+          Mix.Tasks.Xref.run(["callers", "Foo"])
 
           assert receive_until_no_messages([]) == """
-                 lib/bar.ex:3: Foo.foo/0
+                 lib/bar.ex (runtime)
                  """
         end)
       end)
@@ -672,12 +442,6 @@ defmodule Mix.Tasks.XrefTest do
       {:mix_shell, :info, [line]} -> receive_until_no_messages([acc, line | "\n"])
     after
       0 -> IO.iodata_to_binary(acc)
-    end
-  end
-
-  defp generate_files(files) do
-    for {file, contents} <- files do
-      File.write!(file, contents)
     end
   end
 end

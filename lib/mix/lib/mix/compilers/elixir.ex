@@ -1,7 +1,7 @@
 defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
-  @manifest_vsn 3
+  @manifest_vsn 4
 
   import Record
 
@@ -13,8 +13,6 @@ defmodule Mix.Compilers.Elixir do
     compile_references: [],
     struct_references: [],
     runtime_references: [],
-    compile_dispatches: [],
-    runtime_dispatches: [],
     external: [],
     warnings: [],
     modules: []
@@ -332,32 +330,20 @@ defmodule Mix.Compilers.Elixir do
     {compile_references, struct_references, runtime_references} =
       Kernel.LexicalTracker.remote_references(lexical)
 
-    {elixir_references, compile_references} =
-      Enum.split_with(compile_references, &match?("elixir_" <> _, Atom.to_string(&1)))
+    compile_references =
+      Enum.reject(compile_references, &match?("elixir_" <> _, Atom.to_string(&1)))
 
     source(modules: source_modules) = source
     compile_references = compile_references -- source_modules
     struct_references = struct_references -- source_modules
     runtime_references = runtime_references -- source_modules
-    {compile_dispatches, runtime_dispatches} = Kernel.LexicalTracker.remote_dispatches(lexical)
-
-    compile_dispatches =
-      compile_dispatches
-      |> Map.drop(elixir_references)
-      |> Enum.to_list()
-
-    runtime_dispatches =
-      runtime_dispatches
-      |> Enum.to_list()
 
     source =
       source(
         source,
         compile_references: compile_references,
         struct_references: struct_references,
-        runtime_references: runtime_references,
-        compile_dispatches: compile_dispatches,
-        runtime_dispatches: runtime_dispatches
+        runtime_references: runtime_references
       )
 
     put_compiler_info({modules, structs, [source | sources], pending_modules, pending_structs})

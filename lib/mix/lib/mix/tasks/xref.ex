@@ -24,12 +24,9 @@ defmodule Mix.Tasks.Xref do
 
   ### callers CALLEE
 
-  Prints all callers of the given `CALLEE`, which can be one of: `Module`,
-  `Module.function`, or `Module.function/arity`. Examples:
+  Prints all callers of the given `MODULE`. Example:
 
       mix xref callers MyMod
-      mix xref callers MyMod.fun
-      mix xref callers MyMod.fun/3
 
   ### graph
 
@@ -149,60 +146,29 @@ defmodule Mix.Tasks.Xref do
   end
 
   @doc """
-  Returns a list of information of all the function calls in the project.
+  Deprecated API to retrieve all the function calls in the project.
 
-  Each item in the list is a map with the following keys:
-
-    * `:callee` - a tuple containing the module, function, and arity of the call
-    * `:line` - an integer representing the line where the function is called
-    * `:file` - a binary representing the file where the function is called
-
-  This function returns an empty list when used at the root of an umbrella
-  project because there is no compile manifest to extract the function call
-  information from. To get the function calls of each child in an umbrella,
-  execute the function at the root of each individual application.
+  From Elixir v1.10, the xref pass is performed as the code is compiled,
+  therefore no information is kept during compilation.
   """
-  @spec calls(keyword()) :: [
-          %{
-            callee: {module(), atom(), arity()},
-            line: integer(),
-            file: String.t()
-          }
-        ]
-  def calls(opts \\ []) do
-    for manifest <- manifests(opts),
-        source(
-          runtime_dispatches: runtime_nested,
-          compile_dispatches: compile_nested,
-          source: rel_file
-        ) <- read_manifest(manifest),
-        call <-
-          dispatches_to_function_calls(rel_file, runtime_nested) ++
-            dispatches_to_function_calls(rel_file, compile_nested),
-        do: call
-  end
-
-  defp dispatches_to_function_calls(file, dispatches) do
-    for {module, function_calls} <- dispatches,
-        {{function, arity}, lines} <- function_calls,
-        line <- lines do
-      %{
-        callee: {module, function, arity},
-        file: file,
-        line: line
-      }
-    end
+  @deprecated "No alternative is available as xref is now done as the code is compiled"
+  def calls(_opts \\ []) do
+    []
   end
 
   ## Modes
 
   defp callers(callee, opts) do
-    callee
-    |> filter_for_callee()
-    |> source_callers(opts)
-    |> merge_entries(:all)
-    |> sort_entries()
-    |> print_calls()
+    module = parse_callee(callee)
+
+    file_callers =
+      for source <- sources(opts),
+          reference = reference(module, source),
+          do: {source(source, :source), reference}
+
+    for {file, type} <- Enum.sort(file_callers) do
+      Mix.shell().info([file, " (", type, ")"])
+    end
 
     :ok
   end
@@ -215,45 +181,19 @@ defmodule Mix.Tasks.Xref do
 
   ## Callers
 
-  defp source_callers(filter, opts) do
-    for source <- sources(opts),
-        file = source(source, :source),
-        {module, func_arity_locations} <- dispatches(source),
-        {{func, arity}, locations} <- func_arity_locations,
-        filter.({module, func, arity}),
-        do: {{module, func, arity}, absolute_locations(locations, file)}
-  end
-
-  defp print_calls(calls) do
-    Enum.each(calls, &print_call/1)
-    calls
-  end
-
-  defp print_call({{module, func, arity}, locations}) do
-    shell = Mix.shell()
-
-    for {file, line} <- locations do
-      shell.info([
-        Exception.format_file_line(file, line, " "),
-        Exception.format_mfa(module, func, arity)
-      ])
+  defp parse_callee(callee) do
+    case Mix.Utils.parse_mfa(callee) do
+      {:ok, [module]} -> module
+      _ -> Mix.raise("xref callers MODULE expects a MODULE, got: " <> callee)
     end
   end
 
-  defp filter_for_callee(callee) do
-    case Mix.Utils.parse_mfa(callee) do
-      {:ok, mfa_list} ->
-        mfa_list_length = length(mfa_list)
-
-        fn {module, function, arity} ->
-          mfa_list == Enum.take([module, function, arity], mfa_list_length)
-        end
-
-      :error ->
-        Mix.raise(
-          "xref callers CALLEE expects Module, Module.function, or Module.function/arity, " <>
-            "got: " <> callee
-        )
+  defp reference(module, source) do
+    cond do
+      module in source(source, :compile_references) -> "compile"
+      module in source(source, :struct_references) -> "struct"
+      module in source(source, :runtime_references) -> "runtime"
+      true -> nil
     end
   end
 
@@ -470,33 +410,5 @@ defmodule Mix.Tasks.Xref do
       end
 
     [Path.join(Mix.Project.manifest_path(), @manifest) | siblings]
-  end
-
-  defp merge_entries(entries, filter) do
-    Enum.reduce(entries, %{}, fn {type, locations}, merged_entries ->
-      if filter == :all or filter.(elem(type, 0)) do
-        locations = MapSet.new(locations)
-        Map.update(merged_entries, type, locations, &MapSet.union(&1, locations))
-      else
-        merged_entries
-      end
-    end)
-  end
-
-  defp sort_entries(entries) do
-    entries
-    |> Enum.map(fn {type, locations} -> {type, Enum.sort(locations)} end)
-    |> Enum.sort()
-  end
-
-  defp absolute_locations(locations, base) do
-    Enum.map(locations, &absolute_location(&1, base))
-  end
-
-  defp absolute_location({_, _} = location, _), do: location
-  defp absolute_location(line, base), do: {base, line}
-
-  defp dispatches(source) do
-    source(source, :runtime_dispatches) ++ source(source, :compile_dispatches)
   end
 end
