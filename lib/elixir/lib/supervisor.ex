@@ -306,7 +306,6 @@ defmodule Supervisor do
   following options:
 
     * `:id` - the child specification identifier, defaults to the current module
-    * `:start` - how to start the child process (defaults to calling `__MODULE__.start_link/1`)
     * `:restart` - when the supervisor should be restarted, defaults to `:permanent`
 
   The `@doc` annotation immediately preceding `use Supervisor` will be

@@ -97,7 +97,6 @@ defmodule Task do
   `child_spec/1` can be customized with the following options:
 
     * `:id` - the child specification identifier, defaults to the current module
-    * `:start` - how to start the child process (defaults to calling `__MODULE__.start_link/1`)
     * `:restart` - when the child should be restarted, defaults to `:temporary`
     * `:shutdown` - how to shut down the child, either immediately or by giving it time to shut down
 
