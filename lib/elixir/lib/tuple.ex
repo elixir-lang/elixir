@@ -31,8 +31,8 @@ defmodule Tuple do
 
   The functions in this module that add and remove elements from tuples are
   rarely used in practice, as they typically imply tuples are being used as
-  collections. To append to a tuple, it is preferable extract the elements from
-  the old tuple with pattern matching, and then create a new tuple:
+  collections. To append to a tuple, it is preferable to extract the elements
+  from the old tuple with pattern matching, and then create a new tuple:
 
       tuple = {:ok, :example}
 
@@ -42,6 +42,7 @@ defmodule Tuple do
       # Prefer
       {:ok, atom} = tuple
       result = {:ok, atom, %{}}
+
   """
 
   @doc """
