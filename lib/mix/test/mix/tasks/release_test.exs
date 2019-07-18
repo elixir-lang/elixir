@@ -412,7 +412,12 @@ defmodule Mix.Tasks.ReleaseTest do
   end
 
   defp wait_until_decoded(file) do
-    wait_until(fn -> File.exists?(file) && file |> File.read!() |> :erlang.binary_to_term() end)
+    wait_until(fn ->
+      case File.read(file) do
+        {:ok, bin} when byte_size(bin) > 0 -> :erlang.binary_to_term(bin)
+        _ -> nil
+      end
+    end)
   end
 
   defp wait_until(fun) do
