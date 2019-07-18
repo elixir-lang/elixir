@@ -218,9 +218,6 @@ defmodule Kernel.LexicalTracker do
     end
   end
 
-  defp location(nil, line), do: line
-  defp location(file, line), do: {file, line}
-
   defp add_import_dispatch(state, module, function, arity) do
     directives =
       add_dispatch(state.directives, module, :import)
