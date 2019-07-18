@@ -437,6 +437,14 @@ defmodule Mix.ReleaseTest do
       assert contents =~ "[{foo,[{bar,baz}]}]."
     end
 
+    test "writes sys_config with encoding" do
+      assert make_sys_config(release([]), [encoding: {:"£", "£", '£'}], "unused/runtime/path") ==
+               :ok
+
+      {:ok, contents} = :file.consult(@sys_config)
+      assert contents == [[encoding: {:"£", "£", '£'}]]
+    end
+
     test "writes the given sys_config with config providers" do
       release = release(config_providers: @providers)
       assert make_sys_config(release, [kernel: [key: :value]], "/foo/bar/bat") == :ok

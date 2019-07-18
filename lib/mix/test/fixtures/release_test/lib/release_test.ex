@@ -19,11 +19,12 @@ defmodule ReleaseTest do
       static_config: Application.fetch_env(:release_test, :static),
       runtime_config: Application.fetch_env(:release_test, :runtime),
       sys_config_init: to_string(sys_config),
-      sys_config_env: System.get_env("RELEASE_SYS_CONFIG")
+      sys_config_env: System.get_env("RELEASE_SYS_CONFIG"),
+      encoding: Application.get_env(:release_test, :encoding)
     }
 
     path = Path.join(System.get_env("RELEASE_ROOT"), "RELEASE_BOOTED")
-    File.write!(path, inspect(info))
+    File.write!(path, :erlang.term_to_binary(info))
 
     if System.get_env("RELEASE_NAME") =~ "permanent" do
       Supervisor.start_link([], strategy: :one_for_one)

@@ -18,7 +18,7 @@ defmodule Config.ProviderTest do
 
     File.rm_rf(@tmp_path)
     File.mkdir_p!(@tmp_path)
-    File.write!(@sys_config, :io_lib.format("~p.~n", [context[:sys_config] || []]))
+    File.write!(@sys_config, :io_lib.format("~tw.~n", [context[:sys_config] || []]), [:utf8])
 
     on_exit(fn ->
       Application.delete_env(@config_app, :config_providers)
@@ -50,14 +50,16 @@ defmodule Config.ProviderTest do
       assert config[@config_app] == [config_providers: :booted]
     end
 
-    test "writes extra config" do
-      init_and_assert_boot(extra_config: [my_app: [key: :old_value, sys_key: :sys_value]])
-      assert consult(@sys_config)[:my_app] == [sys_key: :sys_value, key: :value]
+    @tag sys_config: [my_app: [encoding: {:"£", "£", '£'}]]
+    test "writes sys_config with encoding" do
+      init_and_assert_boot()
+      config = consult(@sys_config)
+      assert config[:my_app][:encoding] == {:"£", "£", '£'}
     end
 
     @tag sys_config: [my_app: [key: :old_value, sys_key: :sys_value, extra_config: :old_value]]
-    test "overrides sys_config" do
-      init_and_assert_boot(extra_config: [my_app: [extra_config: :value]])
+    test "writes extra config with overrides" do
+      init_and_assert_boot(extra_config: [my_app: [key: :old_extra_value, extra_config: :value]])
 
       assert consult(@sys_config)[:my_app] ==
                [sys_key: :sys_value, extra_config: :value, key: :value]
