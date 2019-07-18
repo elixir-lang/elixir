@@ -147,10 +147,10 @@ defmodule Mix.Tasks.Xref do
         )
 
       # TODO: Remove on v2.0
-       ["unreachable"] ->
-         Mix.shell().error(
+      ["unreachable"] ->
+        Mix.shell().error(
           "The unreachable check has been moved to the compiler and has no effect now"
-         )
+        )
 
       _ ->
         Mix.raise("xref doesn't support this command. For more information run \"mix help xref\"")
