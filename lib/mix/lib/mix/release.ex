@@ -355,9 +355,9 @@ defmodule Mix.Release do
     path = Path.join(release.version_path, "sys.config")
 
     args = [runtime?, sys_config]
-    format = "%% coding: utf-8~n%% RUNTIME_CONFIG=~s~n~p.~n"
+    format = "%% coding: utf-8~n%% RUNTIME_CONFIG=~s~n~tw.~n"
     File.mkdir_p!(Path.dirname(path))
-    File.write!(path, :io_lib.format(format, args))
+    File.write!(path, :io_lib.format(format, args), [:utf8])
 
     case :file.consult(path) do
       {:ok, _} ->
@@ -442,7 +442,7 @@ defmodule Mix.Release do
           :ok | {:error, String.t()}
   def make_boot_script(release, path, modes, prepend_paths \\ []) do
     with {:ok, rel_spec} <- build_release_spec(release, modes) do
-      File.write!(path <> ".rel", consultable(rel_spec))
+      File.write!(path <> ".rel", consultable(rel_spec), [:utf8])
 
       sys_path = String.to_charlist(path)
 
@@ -465,7 +465,7 @@ defmodule Mix.Release do
             |> prepend_paths_to_script(prepend_paths)
 
           script = {:script, rel_info, instructions}
-          File.write!(script_path, consultable(script))
+          File.write!(script_path, consultable(script), [:utf8])
           :ok = :systools.script2boot(sys_path)
 
         {:error, module, info} ->
@@ -582,7 +582,7 @@ defmodule Mix.Release do
   end
 
   defp consultable(term) do
-    :io_lib.format("%% coding: utf-8~n~p.~n", [term])
+    :io_lib.format("%% coding: utf-8~n~tp.~n", [term])
   end
 
   @doc """

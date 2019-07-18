@@ -140,8 +140,9 @@ defmodule Mix.Tasks.ReleaseTest do
                  static_config: {:ok, :was_set},
                  runtime_config: :error,
                  sys_config_env: sys_config_env,
-                 sys_config_init: sys_config_init
-               } = wait_until_evaled(Path.join(root, "RELEASE_BOOTED"))
+                 sys_config_init: sys_config_init,
+                 encoding: {:"£", "£", '£'}
+               } = wait_until_decoded(Path.join(root, "RELEASE_BOOTED"))
 
         if match?({:win32, _}, :os.type()) do
           # `RELEAS~1` is the DOS path name (8 character) for the `release_test` directory
@@ -169,6 +170,7 @@ defmodule Mix.Tasks.ReleaseTest do
         File.write!("config/releases.exs", """
         import Config
         config :release_test, :runtime, :was_set
+        config :release_test, :encoding, {:runtime, :"£", "£", '£'}
         """)
 
         root = Path.absname("_build/dev/rel/runtime_config")
@@ -198,8 +200,9 @@ defmodule Mix.Tasks.ReleaseTest do
                  static_config: {:ok, :was_set},
                  runtime_config: {:ok, :was_set},
                  sys_config_env: sys_config_env,
-                 sys_config_init: sys_config_init
-               } = wait_until_evaled(Path.join(root, "RELEASE_BOOTED"))
+                 sys_config_init: sys_config_init,
+                 encoding: {:runtime, :"£", "£", '£'}
+               } = wait_until_decoded(Path.join(root, "RELEASE_BOOTED"))
 
         if match?({:win32, _}, :os.type()) do
           assert sys_config_env =~ "tmp\\runtime_config-0.1.0"
@@ -250,7 +253,7 @@ defmodule Mix.Tasks.ReleaseTest do
                  root_dir: root_dir,
                  static_config: {:ok, :was_set},
                  runtime_config: :error
-               } = wait_until_evaled(Path.join(root, "RELEASE_BOOTED"))
+               } = wait_until_decoded(Path.join(root, "RELEASE_BOOTED"))
 
         if match?({:win32, _}, :os.type()) do
           assert String.ends_with?(app_dir, "demo/lib/release_test-0.1.0")
@@ -276,7 +279,7 @@ defmodule Mix.Tasks.ReleaseTest do
         script = Path.join(root, "bin/permanent1")
 
         open_port(script, ['start'])
-        wait_until_evaled(Path.join(root, "RELEASE_BOOTED"))
+        wait_until_decoded(Path.join(root, "RELEASE_BOOTED"))
         assert System.cmd(script, ["rpc", "ReleaseTest.hello_world"]) == {"hello world\n", 0}
         assert System.cmd(script, ["stop"]) == {"", 0}
 
@@ -325,7 +328,7 @@ defmodule Mix.Tasks.ReleaseTest do
                  release_vsn: "0.1.0",
                  static_config: {:ok, :was_set},
                  runtime_config: {:ok, :was_set}
-               } = wait_until_evaled(Path.join(root, "RELEASE_BOOTED"))
+               } = wait_until_decoded(Path.join(root, "RELEASE_BOOTED"))
       end)
     end)
   end
@@ -342,22 +345,27 @@ defmodule Mix.Tasks.ReleaseTest do
         script = Path.join(root, "bin/permanent2")
         open_port(script, ['daemon_iex'])
 
-        assert wait_until_evaled(Path.join(root, "RELEASE_BOOTED")) == %{
-                 app_dir: Path.join(root, "lib/release_test-0.1.0"),
+        assert %{
+                 app_dir: app_dir,
                  cookie_env: "abcdefghij",
                  mode: :embedded,
-                 node: :"permanent2@#{@hostname}",
+                 node: release_node("permanent2"),
                  protocols_consolidated?: true,
                  release_name: "permanent2",
                  release_node: "permanent2",
-                 release_root: root,
+                 release_root: ^root,
                  release_vsn: "0.1.0",
-                 root_dir: :code.root_dir() |> to_string(),
+                 root_dir: root_dir,
                  static_config: {:ok, :was_set},
                  runtime_config: :error,
-                 sys_config_env: Path.join(root, "releases/0.1.0/sys"),
-                 sys_config_init: Path.join(root, "releases/0.1.0/sys")
-               }
+                 sys_config_env: sys_config_env,
+                 sys_config_init: sys_config_init
+               } = wait_until_decoded(Path.join(root, "RELEASE_BOOTED"))
+
+        assert app_dir == Path.join(root, "lib/release_test-0.1.0")
+        assert root_dir == :code.root_dir() |> to_string()
+        assert sys_config_env == Path.join(root, "releases/0.1.0/sys")
+        assert sys_config_init == Path.join(root, "releases/0.1.0/sys")
 
         assert wait_until(fn ->
                  File.read!(Path.join(root, "tmp/log/erlang.log.1")) =~
@@ -403,8 +411,8 @@ defmodule Mix.Tasks.ReleaseTest do
     Port.open({:spawn_executable, to_charlist(command)}, [:hide, args: args])
   end
 
-  defp wait_until_evaled(file) do
-    wait_until(fn -> File.exists?(file) && Code.eval_file(file) |> elem(0) end)
+  defp wait_until_decoded(file) do
+    wait_until(fn -> File.exists?(file) && file |> File.read!() |> :erlang.binary_to_term() end)
   end
 
   defp wait_until(fun) do
