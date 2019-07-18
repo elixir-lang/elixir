@@ -24,12 +24,9 @@ defmodule Mix.Tasks.Xref do
 
   ### callers CALLEE
 
-  Prints all callers of the given `CALLEE`, which can be one of: `Module`,
-  `Module.function`, or `Module.function/arity`. Examples:
+  Prints all callers of the given `MODULE`. Example:
 
       mix xref callers MyMod
-      mix xref callers MyMod.fun
-      mix xref callers MyMod.fun/3
 
   ### graph
 
@@ -143,25 +140,40 @@ defmodule Mix.Tasks.Xref do
       ["graph"] ->
         graph(opts)
 
+      # TODO: Remove on v2.0
+      ["deprecated"] ->
+        Mix.shell().error(
+          "The deprecated check has been moved to the compiler and has no effect now"
+        )
+
+      # TODO: Remove on v2.0
+      ["unreachable"] ->
+        Mix.shell().error(
+          "The unreachable check has been moved to the compiler and has no effect now"
+        )
+
       _ ->
         Mix.raise("xref doesn't support this command. For more information run \"mix help xref\"")
     end
   end
 
   @doc """
-  Returns a list of information of all the function calls in the project.
+  Returns a list of information of all the runtime function calls in the project.
 
   Each item in the list is a map with the following keys:
 
     * `:callee` - a tuple containing the module, function, and arity of the call
     * `:line` - an integer representing the line where the function is called
     * `:file` - a binary representing the file where the function is called
+    * `:caller_module` - the module where the function is called
 
   This function returns an empty list when used at the root of an umbrella
   project because there is no compile manifest to extract the function call
   information from. To get the function calls of each child in an umbrella,
   execute the function at the root of each individual application.
   """
+  # TODO: Remove on v2.0
+  @doc deprecated: "It will be removed in future releases"
   @spec calls(keyword()) :: [
           %{
             callee: {module(), atom(), arity()},
@@ -171,38 +183,116 @@ defmodule Mix.Tasks.Xref do
         ]
   def calls(opts \\ []) do
     for manifest <- manifests(opts),
-        source(
-          runtime_dispatches: runtime_nested,
-          compile_dispatches: compile_nested,
-          source: rel_file
-        ) <- read_manifest(manifest),
-        call <-
-          dispatches_to_function_calls(rel_file, runtime_nested) ++
-            dispatches_to_function_calls(rel_file, compile_nested),
+        source(source: source, modules: modules) <- read_manifest(manifest),
+        module <- modules,
+        call <- collect_calls(source, module),
         do: call
   end
 
-  defp dispatches_to_function_calls(file, dispatches) do
-    for {module, function_calls} <- dispatches,
-        {{function, arity}, lines} <- function_calls,
-        line <- lines do
-      %{
-        callee: {module, function, arity},
-        file: file,
-        line: line
-      }
+  defp collect_calls(source, module) do
+    with [_ | _] = path <- :code.which(module),
+         {:ok, {_, [debug_info: debug_info]}} <- :beam_lib.chunks(path, [:debug_info]),
+         {:debug_info_v1, backend, data} <- debug_info,
+         {:ok, %{definitions: defs}} <- backend.debug_info(:elixir_v1, module, data, []),
+         do: walk_definitions(module, source, defs)
+  end
+
+  defp walk_definitions(module, file, definitions) do
+    state = %{
+      file: file,
+      module: module,
+      calls: []
+    }
+
+    state = Enum.reduce(definitions, state, &walk_definition/2)
+    state.calls
+  end
+
+  defp walk_definition({_function, _kind, meta, clauses}, state) do
+    with_file_meta(state, meta, fn state ->
+      Enum.reduce(clauses, state, &walk_clause/2)
+    end)
+  end
+
+  defp with_file_meta(%{file: original_file} = state, meta, fun) do
+    case Keyword.fetch(meta, :file) do
+      {:ok, {meta_file, _}} ->
+        state = fun.(%{state | file: meta_file})
+        %{state | file: original_file}
+
+      :error ->
+        fun.(state)
     end
+  end
+
+  defp walk_clause({_meta, args, _guards, body}, state) do
+    state = walk_expr(args, state)
+    walk_expr(body, state)
+  end
+
+  # &Mod.fun/arity
+  defp walk_expr({:&, meta, [{:/, _, [{{:., _, [module, fun]}, _, []}, arity]}]}, state)
+       when is_atom(module) and is_atom(fun) do
+    add_call(module, fun, arity, meta, state)
+  end
+
+  # Mod.fun(...)
+  defp walk_expr({{:., meta, [module, fun]}, _, args}, state)
+       when is_atom(module) and is_atom(fun) do
+    add_call(module, fun, length(args), meta, state)
+  end
+
+  # %Module{...}
+  defp walk_expr({:%, meta, [module, {:%{}, _meta, args}]}, state)
+       when is_atom(module) and is_list(args) do
+    add_call(module, :__struct__, 0, meta, state)
+  end
+
+  # Function call
+  defp walk_expr({left, _meta, right}, state) when is_list(right) do
+    state = walk_expr(right, state)
+    walk_expr(left, state)
+  end
+
+  # {x, y}
+  defp walk_expr({left, right}, state) do
+    state = walk_expr(right, state)
+    walk_expr(left, state)
+  end
+
+  # [...]
+  defp walk_expr(list, state) when is_list(list) do
+    Enum.reduce(list, state, &walk_expr/2)
+  end
+
+  defp walk_expr(_other, state) do
+    state
+  end
+
+  defp add_call(module, fun, arity, meta, state) do
+    call = %{
+      callee: {module, fun, arity},
+      caller_module: state.module,
+      file: state.file,
+      line: meta[:line]
+    }
+
+    %{state | calls: [call | state.calls]}
   end
 
   ## Modes
 
   defp callers(callee, opts) do
-    callee
-    |> filter_for_callee()
-    |> source_callers(opts)
-    |> merge_entries(:all)
-    |> sort_entries()
-    |> print_calls()
+    module = parse_callee(callee)
+
+    file_callers =
+      for source <- sources(opts),
+          reference = reference(module, source),
+          do: {source(source, :source), reference}
+
+    for {file, type} <- Enum.sort(file_callers) do
+      Mix.shell().info([file, " (", type, ")"])
+    end
 
     :ok
   end
@@ -215,45 +305,19 @@ defmodule Mix.Tasks.Xref do
 
   ## Callers
 
-  defp source_callers(filter, opts) do
-    for source <- sources(opts),
-        file = source(source, :source),
-        {module, func_arity_locations} <- dispatches(source),
-        {{func, arity}, locations} <- func_arity_locations,
-        filter.({module, func, arity}),
-        do: {{module, func, arity}, absolute_locations(locations, file)}
-  end
-
-  defp print_calls(calls) do
-    Enum.each(calls, &print_call/1)
-    calls
-  end
-
-  defp print_call({{module, func, arity}, locations}) do
-    shell = Mix.shell()
-
-    for {file, line} <- locations do
-      shell.info([
-        Exception.format_file_line(file, line, " "),
-        Exception.format_mfa(module, func, arity)
-      ])
+  defp parse_callee(callee) do
+    case Mix.Utils.parse_mfa(callee) do
+      {:ok, [module]} -> module
+      _ -> Mix.raise("xref callers MODULE expects a MODULE, got: " <> callee)
     end
   end
 
-  defp filter_for_callee(callee) do
-    case Mix.Utils.parse_mfa(callee) do
-      {:ok, mfa_list} ->
-        mfa_list_length = length(mfa_list)
-
-        fn {module, function, arity} ->
-          mfa_list == Enum.take([module, function, arity], mfa_list_length)
-        end
-
-      :error ->
-        Mix.raise(
-          "xref callers CALLEE expects Module, Module.function, or Module.function/arity, " <>
-            "got: " <> callee
-        )
+  defp reference(module, source) do
+    cond do
+      module in source(source, :compile_references) -> "compile"
+      module in source(source, :struct_references) -> "struct"
+      module in source(source, :runtime_references) -> "runtime"
+      true -> nil
     end
   end
 
@@ -470,33 +534,5 @@ defmodule Mix.Tasks.Xref do
       end
 
     [Path.join(Mix.Project.manifest_path(), @manifest) | siblings]
-  end
-
-  defp merge_entries(entries, filter) do
-    Enum.reduce(entries, %{}, fn {type, locations}, merged_entries ->
-      if filter == :all or filter.(elem(type, 0)) do
-        locations = MapSet.new(locations)
-        Map.update(merged_entries, type, locations, &MapSet.union(&1, locations))
-      else
-        merged_entries
-      end
-    end)
-  end
-
-  defp sort_entries(entries) do
-    entries
-    |> Enum.map(fn {type, locations} -> {type, Enum.sort(locations)} end)
-    |> Enum.sort()
-  end
-
-  defp absolute_locations(locations, base) do
-    Enum.map(locations, &absolute_location(&1, base))
-  end
-
-  defp absolute_location({_, _} = location, _), do: location
-  defp absolute_location(line, base), do: {base, line}
-
-  defp dispatches(source) do
-    source(source, :runtime_dispatches) ++ source(source, :compile_dispatches)
   end
 end

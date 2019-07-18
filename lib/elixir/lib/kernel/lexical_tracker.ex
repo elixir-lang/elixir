@@ -16,13 +16,6 @@ defmodule Kernel.LexicalTracker do
     :gen_server.call(pid, :remote_references, @timeout)
   end
 
-  @doc """
-  Returns all remote dispatches in this lexical scope.
-  """
-  def remote_dispatches(pid) do
-    :gen_server.call(pid, :remote_dispatches, @timeout)
-  end
-
   # Internal API
 
   # Starts the tracker and returns its PID.
@@ -47,23 +40,18 @@ defmodule Kernel.LexicalTracker do
   end
 
   @doc false
-  def remote_reference(pid, module, mode) when is_atom(module) do
-    :gen_server.cast(pid, {:remote_reference, module, mode})
+  def remote_dispatch(pid, module, mode) when is_atom(module) do
+    :gen_server.cast(pid, {:remote_dispatch, module, mode})
   end
 
   @doc false
-  def remote_dispatch(pid, module, fa, line, mode) when is_atom(module) do
-    :gen_server.cast(pid, {:remote_dispatch, module, fa, line, mode})
+  def remote_struct(pid, module) when is_atom(module) do
+    :gen_server.cast(pid, {:remote_struct, module})
   end
 
   @doc false
-  def remote_struct(pid, module, line) when is_atom(module) do
-    :gen_server.cast(pid, {:remote_struct, module, line})
-  end
-
-  @doc false
-  def import_dispatch(pid, module, fa, line, mode) when is_atom(module) do
-    :gen_server.cast(pid, {:import_dispatch, module, fa, line, mode})
+  def import_dispatch(pid, module, fa) when is_atom(module) do
+    :gen_server.cast(pid, {:import_dispatch, module, fa})
   end
 
   @doc false
@@ -113,8 +101,6 @@ defmodule Kernel.LexicalTracker do
     state = %{
       directives: %{},
       references: %{},
-      compile: %{},
-      runtime: %{},
       structs: %{},
       cache: %{},
       file: nil
@@ -138,10 +124,6 @@ defmodule Kernel.LexicalTracker do
     {:reply, {compile, :maps.keys(state.structs), runtime}, state}
   end
 
-  def handle_call(:remote_dispatches, _from, state) do
-    {:reply, {state.compile, state.runtime}, state}
-  end
-
   def handle_call({:read_cache, key}, _from, %{cache: cache} = state) do
     {:reply, :maps.get(key, cache), state}
   end
@@ -154,27 +136,18 @@ defmodule Kernel.LexicalTracker do
     {:noreply, %{state | cache: :maps.put(key, value, cache)}}
   end
 
-  def handle_cast({:remote_reference, module, mode}, state) do
-    {:noreply, %{state | references: add_reference(state.references, module, mode)}}
-  end
-
-  def handle_cast({:remote_struct, module, line}, state) do
-    state = add_remote_dispatch(state, module, {:__struct__, 0}, line, :compile)
+  def handle_cast({:remote_struct, module}, state) do
     structs = :maps.put(module, true, state.structs)
     {:noreply, %{state | structs: structs}}
   end
 
-  def handle_cast({:remote_dispatch, module, fa, line, mode}, state) do
+  def handle_cast({:remote_dispatch, module, mode}, state) do
     references = add_reference(state.references, module, mode)
-    state = add_remote_dispatch(state, module, fa, line, mode)
     {:noreply, %{state | references: references}}
   end
 
-  def handle_cast({:import_dispatch, module, {function, arity} = fa, line, mode}, state) do
-    state =
-      state
-      |> add_import_dispatch(module, function, arity)
-      |> add_remote_dispatch(module, fa, line, mode)
+  def handle_cast({:import_dispatch, module, {function, arity}}, state) do
+    state = add_import_dispatch(state, module, function, arity)
 
     {:noreply, state}
   end
@@ -245,19 +218,6 @@ defmodule Kernel.LexicalTracker do
     end
   end
 
-  defp add_remote_dispatch(state, module, fa, line, mode) when is_atom(module) do
-    location = location(state.file, line)
-
-    map_update(mode, %{module => %{fa => [location]}}, state, fn mode_dispatches ->
-      map_update(module, %{fa => [location]}, mode_dispatches, fn module_dispatches ->
-        map_update(fa, [location], module_dispatches, &[location | List.delete(&1, location)])
-      end)
-    end)
-  end
-
-  defp location(nil, line), do: line
-  defp location(file, line), do: {file, line}
-
   defp add_import_dispatch(state, module, function, arity) do
     directives =
       add_dispatch(state.directives, module, :import)
@@ -280,12 +240,5 @@ defmodule Kernel.LexicalTracker do
 
   defp add_dispatch(directives, module_or_mfa, tag) do
     :maps.put({tag, module_or_mfa}, true, directives)
-  end
-
-  defp map_update(key, initial, map, fun) do
-    case :maps.find(key, map) do
-      {:ok, val} -> :maps.put(key, fun.(val), map)
-      :error -> :maps.put(key, initial, map)
-    end
   end
 end
