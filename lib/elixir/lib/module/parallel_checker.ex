@@ -89,6 +89,7 @@ defmodule Module.ParallelChecker do
 
   def init([modules, schedulers]) do
     ets = :ets.new(:checker_cache, [:set, :public, {:read_concurrency, true}])
+    modules = prepare_modules(modules)
     preload_cache(ets, modules)
 
     state = %{
@@ -158,8 +159,50 @@ defmodule Module.ParallelChecker do
     :gen_server.call(server, {:unlock, module})
   end
 
+  defp prepare_modules(modules) do
+    Enum.map(modules, fn {map, binary} ->
+      {:ok, _module, chunks} = :beam_lib.all_chunks(binary)
+      map = fill_missing_map_fields(map, chunks)
+      {map, chunks}
+    end)
+  end
+
+  defp fill_missing_map_fields(map, chunks) do
+    map
+    |> debug_info_to_map(chunks)
+    |> checker_chunk_to_map(chunks)
+  end
+
+  defp debug_info_to_map(%{definitions: nil, file: nil} = map, chunks) do
+    with {'Dbgi', debug_info} <- :lists.keyfind('Dbgi', 1, chunks),
+         {:debug_info_v1, backend, data} <- :erlang.binary_to_term(debug_info),
+         {:ok, info} <- backend.debug_info(:elixir_v1, map.module, data, []) do
+      %{map | definitions: info.definitions, file: info.relative_file}
+    else
+      _ -> %{map | definitions: []}
+    end
+  end
+
+  defp debug_info_to_map(map, _chunks) do
+    map
+  end
+
+  defp checker_chunk_to_map(%{deprecated: nil, compile_opts: nil} = map, chunks) do
+    with {'ExCk', checker_chunk} <- :lists.keyfind('ExCk', 1, chunks),
+         {:elixir_checker_v2, contents} <- :erlang.binary_to_term(checker_chunk) do
+      deprecated = Enum.map(contents.exports, fn {fun, {_kind, reason}} -> {fun, reason} end)
+      %{map | deprecated: deprecated, compile_opts: contents.compile_opts}
+    else
+      _ -> %{map | deprecated: [], compile_opts: []}
+    end
+  end
+
+  defp checker_chunk_to_map(map, _chunks) do
+    map
+  end
+
   defp preload_cache(ets, modules) do
-    Enum.each(modules, fn {map, _binary} ->
+    Enum.each(modules, fn {map, _chunks} ->
       exports = [{{:__info__, 1}, :def} | definitions_to_exports(map.definitions)]
       deprecated = :maps.from_list(map.deprecated)
       cache_info(ets, map.module, exports, deprecated)
@@ -175,12 +218,12 @@ defmodule Module.ParallelChecker do
     state
   end
 
-  defp spawn_checkers(%{modules: [{map, binary} | modules]} = state) do
+  defp spawn_checkers(%{modules: [{map, chunks} | modules]} = state) do
     parent = self()
     ets = state.ets
 
     spawn_link(fn ->
-      {binary, warnings} = Module.Checker.verify(map, binary, {parent, ets})
+      {binary, warnings} = Module.Checker.verify(map, chunks, {parent, ets})
       send(parent, {__MODULE__, map.module, binary, warnings})
     end)
 
@@ -197,8 +240,8 @@ defmodule Module.ParallelChecker do
   defp cache_from_chunk(ets, module) do
     with {^module, binary, _filename} <- :code.get_object_code(module),
          {:ok, chunk} <- get_chunk(binary),
-         {:elixir_checker_v1, contents} <- :erlang.binary_to_term(chunk) do
-      cache_chunk(ets, module, contents)
+         {:elixir_checker_v2, contents} <- :erlang.binary_to_term(chunk) do
+      cache_chunk(ets, module, contents.exports)
       true
     else
       _ -> false

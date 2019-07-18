@@ -3,43 +3,55 @@ defmodule Module.Checker do
 
   @moduledoc false
 
-  def verify(module_map, binary, cache) do
-    warnings = warnings(module_map, cache)
-    binary = chunk(binary, module_map)
+  def verify(map, chunks, cache) do
+    # TODO: Add ExCk chunk to state so that ParallelChecker does not
+    #       have to load from disk again
+
+    warnings = warnings(map, cache)
+    binary = add_chunk(chunks, map)
     {binary, warnings}
   end
 
-  defp chunk(binary, module_map) do
-    checker_chunk = build_chunk(module_map)
-    {:ok, _module, all_chunks} = :beam_lib.all_chunks(binary)
-    {:ok, binary} = :beam_lib.build_module([checker_chunk | all_chunks])
+  defp add_chunk(chunks, map) do
+    checker_chunk = build_chunk(map)
+    chunks = [checker_chunk | :lists.keydelete('ExCk', 1, chunks)]
+    {:ok, binary} = :beam_lib.build_module(chunks)
     binary
   end
 
-  defp build_chunk(module_map) do
-    exports = ParallelChecker.definitions_to_exports(module_map.definitions)
-    deprecated = :maps.from_list(module_map.deprecated)
+  defp build_chunk(map) do
+    exports = ParallelChecker.definitions_to_exports(map.definitions)
+    deprecated = :maps.from_list(map.deprecated)
 
-    contents =
+    exports =
       Enum.map(exports, fn {function, kind} ->
         reason = :maps.get(function, deprecated, nil)
         {function, {kind, reason}}
       end)
 
-    {'ExCk', :erlang.term_to_binary({:elixir_checker_v1, Enum.sort(contents)})}
+    contents = %{
+      exports: Enum.sort(exports),
+      compile_opts: filter_compile_opts(map.compile_opts)
+    }
+
+    {'ExCk', :erlang.term_to_binary({:elixir_checker_v2, contents})}
   end
 
-  defp warnings(module_map, cache) do
+  defp filter_compile_opts(opts) do
+    Enum.filter(opts, &match?({:no_warn_undefined, _}, &1))
+  end
+
+  defp warnings(map, cache) do
     state = %{
       cache: cache,
-      file: module_map.file,
-      module: module_map.module,
-      no_warn_undefined: no_warn_undefined(module_map),
+      file: map.file,
+      module: map.module,
+      no_warn_undefined: no_warn_undefined(map),
       function: nil,
       warnings: []
     }
 
-    state = check_definitions(module_map.definitions, state)
+    state = check_definitions(map.definitions, state)
 
     state.warnings
     |> merge_warnings()
@@ -47,9 +59,9 @@ defmodule Module.Checker do
     |> emit_warnings()
   end
 
-  defp no_warn_undefined(module_map) do
+  defp no_warn_undefined(map) do
     for(
-      {:no_warn_undefined, values} <- module_map.compile_opts,
+      {:no_warn_undefined, values} <- map.compile_opts,
       value <- List.wrap(values),
       do: value
     ) ++ Code.compiler_option(:no_warn_undefined)

@@ -27,9 +27,9 @@ defmodule Module.CheckerTest do
       }
 
       modules = compile(files)
-      exports = read_chunk(modules[A])
+      contents = read_chunk(modules[A])
 
-      assert exports == [
+      assert contents.exports == [
                {{:c, 0}, {:def, nil}},
                {{:d, 0}, {:defmacro, nil}},
                {{:e, 0}, {:def, "oops"}}
@@ -670,7 +670,7 @@ defmodule Module.CheckerTest do
 
   defp read_chunk(binary) do
     assert {:ok, {_module, [{'ExCk', chunk}]}} = :beam_lib.chunks(binary, ['ExCk'])
-    assert {:elixir_checker_v1, map} = :erlang.binary_to_term(chunk)
+    assert {:elixir_checker_v2, map} = :erlang.binary_to_term(chunk)
     map
   end
 
