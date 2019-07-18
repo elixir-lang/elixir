@@ -22,7 +22,7 @@ expand_struct(Meta, Left, {'%{}', MapMeta, MapArgs}, #{context := Context} = E) 
     true when is_atom(ELeft) ->
       %% We always record structs when they are expanded
       %% as they expect the reference at compile time.
-      elixir_lexical:record_struct(ELeft, ?line(Meta), ?key(E, lexical_tracker)),
+      elixir_lexical:record_struct(ELeft, ?key(E, lexical_tracker)),
 
       case extract_struct_assocs(Meta, ERight, E) of
         {expand, MapMeta, Assocs} when Context /= match -> %% Expand
