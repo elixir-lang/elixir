@@ -146,14 +146,124 @@ defmodule Mix.Tasks.Xref do
   end
 
   @doc """
-  Deprecated API to retrieve all the function calls in the project.
+  Returns a list of information of all the runtime function calls in the project.
 
-  From Elixir v1.10, the xref pass is performed as the code is compiled,
-  therefore no information is kept during compilation.
+  Each item in the list is a map with the following keys:
+
+    * `:callee` - a tuple containing the module, function, and arity of the call
+    * `:line` - an integer representing the line where the function is called
+    * `:file` - a binary representing the file where the function is called
+    * `:caller_module` - the module where the function is called
+
+  This function returns an empty list when used at the root of an umbrella
+  project because there is no compile manifest to extract the function call
+  information from. To get the function calls of each child in an umbrella,
+  execute the function at the root of each individual application.
   """
-  @deprecated "No alternative is available as xref is now done as the code is compiled"
-  def calls(_opts \\ []) do
-    []
+  @spec calls(keyword()) :: [
+          %{
+            callee: {module(), atom(), arity()},
+            line: integer(),
+            file: String.t()
+          }
+        ]
+  def calls(opts \\ []) do
+    for manifest <- manifests(opts),
+        source(source: source, modules: modules) <- read_manifest(manifest),
+        module <- modules,
+        call <- collect_calls(source, module),
+        do: call
+  end
+
+  defp collect_calls(source, module) do
+    with [_ | _] = path <- :code.which(module),
+         {:ok, {_, [debug_info: debug_info]}} <- :beam_lib.chunks(path, [:debug_info]),
+         {:debug_info_v1, backend, data} <- debug_info,
+         {:ok, %{definitions: defs}} <- backend.debug_info(:elixir_v1, module, data, []),
+         do: walk_definitions(module, source, defs)
+  end
+
+  defp walk_definitions(module, file, definitions) do
+    state = %{
+      file: file,
+      module: module,
+      calls: []
+    }
+
+    state = Enum.reduce(definitions, state, &walk_definition/2)
+    state.calls
+  end
+
+  defp walk_definition({_function, _kind, meta, clauses}, state) do
+    with_file_meta(state, meta, fn state ->
+      Enum.reduce(clauses, state, &walk_clause/2)
+    end)
+  end
+
+  defp with_file_meta(%{file: original_file} = state, meta, fun) do
+    case Keyword.fetch(meta, :file) do
+      {:ok, {meta_file, _}} ->
+        state = fun.(%{state | file: meta_file})
+        %{state | file: original_file}
+
+      :error ->
+        fun.(state)
+    end
+  end
+
+  defp walk_clause({_meta, args, _guards, body}, state) do
+    state = walk_expr(args, state)
+    walk_expr(body, state)
+  end
+
+  # &Mod.fun/arity
+  defp walk_expr({:&, meta, [{:/, _, [{{:., _, [module, fun]}, _, []}, arity]}]}, state)
+       when is_atom(module) and is_atom(fun) do
+    add_call(module, fun, arity, meta, state)
+  end
+
+  # Mod.fun(...)
+  defp walk_expr({{:., meta, [module, fun]}, _, args}, state)
+       when is_atom(module) and is_atom(fun) do
+    add_call(module, fun, length(args), meta, state)
+  end
+
+  # %Module{...}
+  defp walk_expr({:%, meta, [module, {:%{}, _meta, args}]}, state)
+       when is_atom(module) and is_list(args) do
+    add_call(module, :__struct__, 0, meta, state)
+  end
+
+  # Function call
+  defp walk_expr({left, _meta, right}, state) when is_list(right) do
+    state = walk_expr(right, state)
+    walk_expr(left, state)
+  end
+
+  # {x, y}
+  defp walk_expr({left, right}, state) do
+    state = walk_expr(right, state)
+    walk_expr(left, state)
+  end
+
+  # [...]
+  defp walk_expr(list, state) when is_list(list) do
+    Enum.reduce(list, state, &walk_expr/2)
+  end
+
+  defp walk_expr(_other, state) do
+    state
+  end
+
+  defp add_call(module, fun, arity, meta, state) do
+    call = %{
+      callee: {module, fun, arity},
+      caller_module: state.module,
+      file: state.file,
+      line: meta[:line]
+    }
+
+    %{state | calls: [call | state.calls]}
   end
 
   ## Modes
