@@ -64,33 +64,59 @@ defmodule Mix.TaskTest do
     Mix.debug(false)
   end
 
-  test "run/2 tries to load deps if task is missing", context do
-    in_tmp(context.test, fn ->
-      Mix.Project.push(SampleProject, "sample")
+  defmodule DepsApp do
+    def project do
+      [
+        app: :raw_sample,
+        version: "0.1.0",
+        deps: [
+          {:raw_repo, "0.1.0", path: "custom/raw_repo"}
+        ]
+      ]
+    end
+  end
 
-      {:module, _, bin, _} =
-        defmodule Elixir.Mix.Tasks.TaskHello do
-          use Mix.Task
-          def run(_), do: "Hello, World"
-        end
+  test "run/2 tries to load deps if task is missing" do
+    Mix.Project.push(DepsApp)
 
-      :code.purge(Mix.Tasks.TaskHello)
-      :code.delete(Mix.Tasks.TaskHello)
-
+    in_fixture("deps_status", fn ->
       assert_raise Mix.NoTaskError, fn ->
         Mix.Task.run("task_hello")
       end
 
-      # Clean up the tasks and copy it into deps
+      File.write!("custom/raw_repo/lib/task_hello.ex", """
+      defmodule Mix.Tasks.TaskHello do
+        use Mix.Task
+        def run(_), do: "Hello World v1"
+      end
+      """)
+
+      # Clean up the tasks and update task
       Mix.TasksServer.clear()
-      File.mkdir_p!("_build/dev/lib/sample/ebin")
-      File.write!("_build/dev/lib/sample/ebin/Elixir.Mix.Tasks.TaskHello.beam", bin)
 
       # Task was found from deps loadpaths
-      assert Mix.Task.run("task_hello") == "Hello, World"
+      assert Mix.Task.run("task_hello") == "Hello World v1"
 
       # The compile task should not have run yet
-      assert Mix.TasksServer.run({:task, "compile", Mix.Project.get()})
+      assert Mix.Task.run("compile") != :noop
+
+      # Clean up the tasks and update task
+      Mix.TasksServer.clear()
+
+      File.write!("custom/raw_repo/lib/task_hello.ex", """
+      defmodule Mix.Tasks.TaskHello do
+        use Mix.Task
+        def run(_), do: "Hello World v2"
+      end
+      """)
+
+      # Simulate starting a new invocation
+      purge([Mix.Tasks.TaskHello])
+      Code.delete_path("_build/dev/lib/raw_repo/ebin")
+      ensure_touched("custom/raw_repo/lib/task_hello.ex")
+
+      # Task is recompiled to v2
+      assert Mix.Task.run("task_hello") == "Hello World v2"
     end)
   end
 
