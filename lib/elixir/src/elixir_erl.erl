@@ -452,14 +452,14 @@ take_debug_opts(Opts) ->
   case proplists:get_value(debug_info, Opts) of
     true -> {true, proplists:delete(debug_info, Opts)};
     false -> {false, proplists:delete(debug_info, Opts)};
-    undefined -> {elixir_compiler:get_opt(debug_info), Opts}
+    undefined -> {elixir_config:get(debug_info), Opts}
   end.
 
 extra_chunks_opts([], Opts) -> Opts;
 extra_chunks_opts(Chunks, Opts) -> [{extra_chunks, Chunks} | Opts].
 
 docs_chunk(Set, Module, Line, Def, Defmacro, Types, Callbacks) ->
-  case elixir_compiler:get_opt(docs) of
+  case elixir_config:get(docs) of
     true ->
       {ModuleDocLine, ModuleDoc} = get_moduledoc(Line, Set),
       ModuleDocMeta = get_moduledoc_meta(Set),

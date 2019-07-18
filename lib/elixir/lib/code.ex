@@ -843,9 +843,27 @@ defmodule Code do
       #=> %{debug_info: true, docs: true, ...}
 
   """
-  @spec compiler_options() :: %{optional(atom) => boolean}
+  # TODO: Deprecate me on Elixir v1.12
+  @doc deprecated: "Use Code.compiler_option/1 instead"
   def compiler_options do
-    :elixir_config.get(:compiler_options)
+    for key <- @available_compiler_options, into: %{} do
+      {key, :elixir_config.get(key)}
+    end
+  end
+
+  @doc """
+  Returns the value of a given compiler option.
+
+  Check `compiler_options/1` for more information.
+
+  ## Examples
+
+      Code.compiler_option(:debug_info)
+      #=> true
+
+  """
+  def compiler_option(key) when key in @available_compiler_options do
+    :elixir_config.get(key)
   end
 
   @doc """
@@ -918,29 +936,31 @@ defmodule Code do
 
   ## Examples
 
-      Code.compiler_options(debug_info: true)
-      #=> %{debug_info: true, docs: true,
-      #=>   warnings_as_errors: false, ignore_module_conflict: false}
+      Code.compiler_options(debug_info: true, ...)
+      #=> %{debug_info: true, ...}
 
   """
   @spec compiler_options(Enumerable.t()) :: %{optional(atom) => boolean}
   def compiler_options(opts) do
-    Enum.each(opts, fn
-      {key, value} when key in @boolean_compiler_options ->
-        if not is_boolean(value) do
-          raise "compiler option #{inspect(key)} should be a boolean, got: #{inspect(value)}"
-        end
+    for {key, value} <- opts, into: %{} do
+      cond do
+        key in @boolean_compiler_options ->
+          if not is_boolean(value) do
+            raise "compiler option #{inspect(key)} should be a boolean, got: #{inspect(value)}"
+          end
 
-      {key, value} when key in @list_compiler_options ->
-        if not is_list(value) do
-          raise "compiler option #{inspect(key)} should be a list, got: #{inspect(value)}"
-        end
+        key in @list_compiler_options ->
+          if not is_list(value) do
+            raise "compiler option #{inspect(key)} should be a list, got: #{inspect(value)}"
+          end
 
-      {key, _} ->
-        raise "unknown compiler option: #{inspect(key)}"
-    end)
+        true ->
+          raise "unknown compiler option: #{inspect(key)}"
+      end
 
-    :elixir_config.update(:compiler_options, &Enum.into(opts, &1))
+      :elixir_config.put(key, value)
+      {key, value}
+    end
   end
 
   @doc """
