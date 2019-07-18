@@ -99,7 +99,7 @@ change_universal_time(Name, {{Y, M, D}, {H, Min, Sec}}=Time)
   file:write_file_info(Name, #file_info{mtime=Time}, [{time, universal}]).
 
 relative_to_cwd(Path) ->
-  try elixir_compiler:get_opt(relative_paths) of
+  try elixir_config:get(relative_paths) of
     true  -> 'Elixir.Path':relative_to_cwd(Path);
     false -> Path
   catch

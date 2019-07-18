@@ -205,7 +205,7 @@ check_module_availability(Line, File, Module) ->
     false -> ok
   end,
 
-  case elixir_compiler:get_opt(ignore_module_conflict) of
+  case elixir_config:get(ignore_module_conflict) of
     false ->
       case code:ensure_loaded(Module) of
         {module, _} ->

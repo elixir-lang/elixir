@@ -52,7 +52,7 @@ defmodule Module.Checker do
       {:no_warn_undefined, values} <- module_map.compile_opts,
       value <- List.wrap(values),
       do: value
-    ) ++ Code.compiler_options()[:no_warn_undefined]
+    ) ++ Code.compiler_option(:no_warn_undefined)
   end
 
   defp check_definitions(definitions, state) do

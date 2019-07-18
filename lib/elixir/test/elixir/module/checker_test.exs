@@ -486,7 +486,7 @@ defmodule Module.CheckerTest do
     end
 
     test "excludes global no_warn_undefined" do
-      compiler_options = Code.compiler_options()
+      no_warn_undefined = Code.compiler_option(:no_warn_undefined)
 
       try do
         Code.compiler_options(
@@ -532,7 +532,7 @@ defmodule Module.CheckerTest do
 
         assert_warnings(files, warning)
       after
-        Code.compiler_options(compiler_options)
+        Code.compiler_options(no_warn_undefined: no_warn_undefined)
       end
     end
   end

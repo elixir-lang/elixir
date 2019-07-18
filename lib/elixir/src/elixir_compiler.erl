@@ -1,15 +1,8 @@
 %% Elixir compiler front-end to the Erlang backend.
 -module(elixir_compiler).
--export([get_opt/1, string/3, quoted/3, bootstrap/0,
+-export([string/3, quoted/3, bootstrap/0,
          file/2, file_to_path/3, eval_forms/3]).
 -include("elixir.hrl").
-
-get_opt(Key) ->
-  Map = elixir_config:get(compiler_options),
-  case maps:find(Key, Map) of
-    {ok, Value} -> Value;
-    error -> false
-  end.
 
 string(Contents, File, Callback) ->
   Forms = elixir:'string_to_quoted!'(Contents, 1, File, []),
@@ -122,9 +115,10 @@ allows_fast_compilation(_) ->
 
 bootstrap() ->
   {ok, _} = application:ensure_all_started(elixir),
-  Update = fun(Old) -> maps:merge(Old, #{docs => false, relative_paths => false, ignore_module_conflict => true}) end,
-  _ = elixir_config:update(compiler_options, Update),
-  _ = elixir_config:put(bootstrap, true),
+  elixir_config:put(bootstrap, true),
+  elixir_config:put(docs, false),
+  elixir_config:put(relative_paths, false),
+  elixir_config:put(ignore_module_conflict, true),
   [bootstrap_file(File) || File <- bootstrap_main()].
 
 bootstrap_file(File) ->

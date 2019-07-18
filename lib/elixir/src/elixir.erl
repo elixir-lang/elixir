@@ -51,25 +51,25 @@ start(_Type, _Args) ->
     {{uri, <<"ldap">>}, 389}
   ],
 
-  CompilerOpts = #{
-    docs => true,
-    ignore_module_conflict => false,
-    debug_info => true,
-    warnings_as_errors => false,
-    relative_paths => true,
-    no_warn_undefined => []
-  },
-
   {ok, [[Home] | _]} = init:get_argument(home),
 
   Config = [
     {at_exit, []},
     {argv, []},
+    {no_halt, false},
+
+    %% Static options
     {bootstrap, false},
-    {compiler_options, CompilerOpts},
     {home, unicode:characters_to_binary(Home, Encoding, Encoding)},
     {identifier_tokenizer, Tokenizer},
-    {no_halt, false}
+
+    %% Compiler options
+    {docs, true},
+    {ignore_module_conflict, false},
+    {debug_info, true},
+    {warnings_as_errors, false},
+    {relative_paths, true},
+    {no_warn_undefined, []}
     | URIConfig
   ],
 
