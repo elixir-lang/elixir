@@ -8,6 +8,8 @@
 
   * [Code] Add `:token_metadata` and `:literal_encoder` support to `Code.string_to_quoted/2`
   * [DateTime] Add `DateTime.now!/2` and `DateTime.shift_zone!/3`
+  * [Module] Add `Module.has_attribute?/2`
+  * [Module] Add `@compile {:no_warn_undefined, mfa_or_module}` to turn off undefined function warnings
   * [String] Update to Unicode 12.1
 
 #### Mix
@@ -26,7 +28,22 @@
 
 ### 3. Soft-deprecations (no warnings emitted)
 
+#### Elixir
+
+  * [Code] `compiler_options/0` is deprecated in favor of `compiler_option/1`
+
+#### Mix
+
+  * [mix xref] `calls/0` is deprecated in favor of upcoming compiler tracer
+  * [mix xref] The `xref.exclude` option has been moved to `elixirc_options.no_warn_undefined` as the `xref` pass has been moved into the compiler
+
 ### 4. Hard-deprecations
+
+#### Mix
+
+  * [mix compile.xref] This check has been moved into the compiler and has no effect now
+  * [mix xref deprecations] This check has been moved into the compiler and has no effect now
+  * [mix xref unreachable] This check has been moved into the compiler and has no effect now
 
 #### Elixir
 
