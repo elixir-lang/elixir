@@ -143,13 +143,13 @@ defmodule Mix.Tasks.Xref do
       # TODO: Remove on v2.0
       ["deprecated"] ->
         Mix.shell().error(
-          "The deprecated check has been moved to the compiler and this task now does nothing"
+          "The deprecated check has been moved to the compiler and has no effect now"
         )
 
       # TODO: Remove on v2.0
        ["unreachable"] ->
          Mix.shell().error(
-          "The unreachable check has been moved to the compiler and this task now does nothing"
+          "The unreachable check has been moved to the compiler and has no effect now"
          )
 
       _ ->
@@ -173,7 +173,7 @@ defmodule Mix.Tasks.Xref do
   execute the function at the root of each individual application.
   """
   # TODO: Remove on v2.0
-  @doc deprecated: "It will be replaced with a new API in future releases"
+  @doc deprecated: "It will be removed in future releases"
   @spec calls(keyword()) :: [
           %{
             callee: {module(), atom(), arity()},
