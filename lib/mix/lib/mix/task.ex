@@ -305,13 +305,12 @@ defmodule Mix.Task do
     if Mix.debug?(), do: output_task_debug_info(task, args, proj)
 
     # 1. If the task is available, we run it.
-    # 2. Otherwise we load the dependencies without compiling them.
-    # 3. If still not available, we check and compile dependencies.
-    # 4. Finally, we compile the current project in hope it is available.
+    # 2. Otherwise we compile and load dependencies
+    # 3. Finally, we compile the current project in hope it is available.
     module =
-      get_task_or_run(proj, task, fn -> Mix.Task.run("deps.precompile") end) ||
-        get_task_or_run(proj, task, fn -> Mix.Task.run("deps.loadpaths") end) ||
-        get_task_or_run(proj, task, fn -> Mix.Project.compile([]) end) || get!(task)
+      get_task_or_run(proj, task, fn -> Mix.Task.run("deps.loadpaths") end) ||
+        get_task_or_run(proj, task, fn -> Mix.Project.compile([]) end) ||
+        get!(task)
 
     recursive = recursive(module)
 
