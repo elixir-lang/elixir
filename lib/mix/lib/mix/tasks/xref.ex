@@ -140,6 +140,18 @@ defmodule Mix.Tasks.Xref do
       ["graph"] ->
         graph(opts)
 
+      # TODO: Remove on v2.0
+      ["deprecated"] ->
+        Mix.shell().error(
+          "The deprecated check has been moved to the compiler and this task now does nothing"
+        )
+
+      # TODO: Remove on v2.0
+       ["unreachable"] ->
+         Mix.shell().error(
+          "The unreachable check has been moved to the compiler and this task now does nothing"
+         )
+
       _ ->
         Mix.raise("xref doesn't support this command. For more information run \"mix help xref\"")
     end
@@ -160,6 +172,8 @@ defmodule Mix.Tasks.Xref do
   information from. To get the function calls of each child in an umbrella,
   execute the function at the root of each individual application.
   """
+  # TODO: Remove on v2.0
+  @doc deprecated: "It will be replaced with a new API in future releases"
   @spec calls(keyword()) :: [
           %{
             callee: {module(), atom(), arity()},
