@@ -58,6 +58,30 @@ Another important change related to configuration is that `mix new` will no long
 
 There are many other enhancements. The Elixir CLI got a handful of new options in order to best support releases. `Logger` now computes its sync/async/discard thresholds in a decentralized fashion, reducing contention. `EEx` templates support more complex expressions than before. Finally, there is a new `~U` sigil for working with UTC DateTimes as well as new functions in the `File`, `Registry`, and `System` modules.
 
+## v1.9.1 (2019-07-18)
+
+### 1. Enhancements
+
+#### Mix
+
+  * [mix format] Print relative paths in `--check-formatted` output
+  * [mix release] Support included applications
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [Code] Fix formatter wrongly removing nested parens in nested calls
+
+#### Logger
+
+  * [Logger] Do not crash translator on poorly formatted supervisor names
+
+#### Mix
+
+  * [mix compile] Raise readable error for mismatched sources during compilation
+  * [mix release] Preserve UTF8 encoding in release config files
+
 ## v1.9.0 (2019-06-24)
 
 ### 1. Enhancements
