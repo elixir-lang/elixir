@@ -149,12 +149,11 @@ defmodule Record do
 
   ## Examples
 
-      iex> record = {User, "john", 27}
-      iex> Record.is_record(record)
-      true
-      iex> tuple = {}
-      iex> Record.is_record(tuple)
-      false
+      Record.is_record({User, "john", 27})
+      #=> true
+
+      Record.is_record({})
+      #=> false
 
   """
   defguard is_record(data)
