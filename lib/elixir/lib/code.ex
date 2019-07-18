@@ -862,6 +862,8 @@ defmodule Code do
       #=> true
 
   """
+  @doc since: "1.10.0"
+  @spec compiler_option(atom) :: term
   def compiler_option(key) when key in @available_compiler_options do
     :elixir_config.get(key)
   end
