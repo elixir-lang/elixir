@@ -4,9 +4,6 @@ defmodule Module.Checker do
   @moduledoc false
 
   def verify(map, chunks, cache) do
-    # TODO: Add ExCk chunk to state so that ParallelChecker does not
-    #       have to load from disk again
-
     warnings = warnings(map, cache)
     binary = add_chunk(chunks, map)
     {binary, warnings}
