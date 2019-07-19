@@ -359,7 +359,7 @@ defmodule Kernel.ParallelCompiler do
       map = %{
         module: module_map.module,
         file: module_map.file,
-        compile_opts: module_map.compile_opts,
+        no_warn_undefined: no_warn_undefined(module_map.compile_opts),
         definitions: module_map.definitions,
         deprecated: module_map.deprecated
       }
@@ -375,13 +375,21 @@ defmodule Kernel.ParallelCompiler do
       map = %{
         module: module,
         file: nil,
-        compile_opts: nil,
+        no_warn_undefined: nil,
         definitions: nil,
         deprecated: nil
       }
 
       {map, File.read!(path)}
     end
+  end
+
+  defp no_warn_undefined(compile_opts) do
+    for(
+      {:no_warn_undefined, values} <- compile_opts,
+      value <- List.wrap(values),
+      do: value
+    )
   end
 
   # The goal of this function is to find leaves in the dependency graph,

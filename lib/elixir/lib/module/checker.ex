@@ -28,22 +28,20 @@ defmodule Module.Checker do
 
     contents = %{
       exports: Enum.sort(exports),
-      compile_opts: filter_compile_opts(map.compile_opts)
+      no_warn_undefined: map.no_warn_undefined
     }
 
-  end
-
-  defp filter_compile_opts(opts) do
-    Enum.filter(opts, &match?({:no_warn_undefined, _}, &1))
     {'ExCk', :erlang.term_to_binary({:elixir_checker_v1, contents})}
   end
 
   defp warnings(map, cache) do
+    no_warn_undefined = map.no_warn_undefined ++ Code.compiler_option(:no_warn_undefined)
+
     state = %{
       cache: cache,
       file: map.file,
       module: map.module,
-      no_warn_undefined: no_warn_undefined(map),
+      no_warn_undefined: no_warn_undefined,
       function: nil,
       warnings: []
     }
@@ -54,14 +52,6 @@ defmodule Module.Checker do
     |> merge_warnings()
     |> sort_warnings()
     |> emit_warnings()
-  end
-
-  defp no_warn_undefined(map) do
-    for(
-      {:no_warn_undefined, values} <- map.compile_opts,
-      value <- List.wrap(values),
-      do: value
-    ) ++ Code.compiler_option(:no_warn_undefined)
   end
 
   defp check_definitions(definitions, state) do

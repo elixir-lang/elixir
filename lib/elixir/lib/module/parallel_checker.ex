@@ -187,11 +187,11 @@ defmodule Module.ParallelChecker do
     map
   end
 
-  defp checker_chunk_to_map(%{deprecated: nil, compile_opts: nil} = map, chunks) do
+  defp checker_chunk_to_map(%{deprecated: nil, no_warn_undefined: nil} = map, chunks) do
     with {'ExCk', checker_chunk} <- :lists.keyfind('ExCk', 1, chunks),
          {:elixir_checker_v1, contents} <- :erlang.binary_to_term(checker_chunk) do
       deprecated = Enum.map(contents.exports, fn {fun, {_kind, reason}} -> {fun, reason} end)
-      %{map | deprecated: deprecated, compile_opts: contents.compile_opts}
+      %{map | deprecated: deprecated, no_warn_undefined: contents.no_warn_undefined}
     else
       _ -> %{map | deprecated: [], compile_opts: []}
     end
