@@ -34,11 +34,11 @@ defmodule Module.Checker do
       compile_opts: filter_compile_opts(map.compile_opts)
     }
 
-    {'ExCk', :erlang.term_to_binary({:elixir_checker_v2, contents})}
   end
 
   defp filter_compile_opts(opts) do
     Enum.filter(opts, &match?({:no_warn_undefined, _}, &1))
+    {'ExCk', :erlang.term_to_binary({:elixir_checker_v1, contents})}
   end
 
   defp warnings(map, cache) do

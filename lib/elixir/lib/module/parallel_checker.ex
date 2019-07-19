@@ -189,7 +189,7 @@ defmodule Module.ParallelChecker do
 
   defp checker_chunk_to_map(%{deprecated: nil, compile_opts: nil} = map, chunks) do
     with {'ExCk', checker_chunk} <- :lists.keyfind('ExCk', 1, chunks),
-         {:elixir_checker_v2, contents} <- :erlang.binary_to_term(checker_chunk) do
+         {:elixir_checker_v1, contents} <- :erlang.binary_to_term(checker_chunk) do
       deprecated = Enum.map(contents.exports, fn {fun, {_kind, reason}} -> {fun, reason} end)
       %{map | deprecated: deprecated, compile_opts: contents.compile_opts}
     else
@@ -240,7 +240,7 @@ defmodule Module.ParallelChecker do
   defp cache_from_chunk(ets, module) do
     with {^module, binary, _filename} <- :code.get_object_code(module),
          {:ok, chunk} <- get_chunk(binary),
-         {:elixir_checker_v2, contents} <- :erlang.binary_to_term(chunk) do
+         {:elixir_checker_v1, contents} <- :erlang.binary_to_term(chunk) do
       cache_chunk(ets, module, contents.exports)
       true
     else
