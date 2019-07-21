@@ -18,23 +18,25 @@ defmodule Module.ParallelChecker do
   def verify(modules, schedulers) do
     modules = prepare_modules(modules)
     module_maps = Enum.map(modules, fn {map, _chunks} -> map end)
-    {:ok, server} = :gen_server.start_link(__MODULE__, [module_maps, self(), schedulers], [])
+    {:ok, _} = :gen_server.start_link(__MODULE__, [module_maps, self(), schedulers], [])
 
-    monitor = Process.monitor(server)
-    chunks = :maps.from_list(Enum.map(modules, fn {map, chunks} -> {map.module, chunks} end))
-    collect_results(server, monitor, chunks, [], [])
+    module_chunks =
+      :maps.from_list(Enum.map(modules, fn {map, chunks} -> {map.module, chunks} end))
+
+    collect_results(module_chunks, [], [])
   end
 
-  defp collect_results(server, monitor, chunks, binaries, warnings) do
-    receive do
-      {:DOWN, ^monitor, :process, ^server, :normal} ->
-        {binaries, warnings}
+  defp collect_results(module_chunks, binaries, warnings) when map_size(module_chunks) == 0 do
+    {binaries, warnings}
+  end
 
+  defp collect_results(module_chunks, binaries, warnings) do
+    receive do
       {__MODULE__, module, new_chunk, new_warnings} ->
-        existing_chunks = :maps.get(module, chunks)
+        {existing_chunks, module_chunks} = :maps.take(module, module_chunks)
         binaries = [{module, add_chunk(new_chunk, existing_chunks)} | binaries]
         warnings = new_warnings ++ warnings
-        collect_results(server, monitor, chunks, binaries, warnings)
+        collect_results(module_chunks, binaries, warnings)
     end
   end
 
