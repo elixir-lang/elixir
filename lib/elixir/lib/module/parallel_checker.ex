@@ -161,45 +161,47 @@ defmodule Module.ParallelChecker do
   end
 
   defp prepare_modules(modules) do
-    Enum.map(modules, fn {map, binary} ->
+    Enum.flat_map(modules, fn {map, binary} ->
       {:ok, _module, chunks} = :beam_lib.all_chunks(binary)
-      map = fill_missing_map_fields(map, chunks)
-      {map, chunks}
+
+      case fill_missing_map_fields(map, chunks) do
+        {:ok, map} -> [{map, chunks}]
+        :error -> []
+      end
     end)
   end
 
   defp fill_missing_map_fields(map, chunks) do
-    map
-    |> debug_info_to_map(chunks)
-    |> checker_chunk_to_map(chunks)
+    with {:ok, map} <- debug_info_to_map(map, chunks),
+         do: checker_chunk_to_map(map, chunks)
   end
 
   defp debug_info_to_map(%{definitions: nil, file: nil} = map, chunks) do
     with {'Dbgi', debug_info} <- :lists.keyfind('Dbgi', 1, chunks),
          {:debug_info_v1, backend, data} <- :erlang.binary_to_term(debug_info),
          {:ok, info} <- backend.debug_info(:elixir_v1, map.module, data, []) do
-      %{map | definitions: info.definitions, file: info.relative_file}
+      {:ok, %{map | definitions: info.definitions, file: info.relative_file}}
     else
-      _ -> %{map | definitions: []}
+      _ -> :error
     end
   end
 
   defp debug_info_to_map(map, _chunks) do
-    map
+    {:ok, map}
   end
 
   defp checker_chunk_to_map(%{deprecated: nil, no_warn_undefined: nil} = map, chunks) do
     with {'ExCk', checker_chunk} <- :lists.keyfind('ExCk', 1, chunks),
          {:elixir_checker_v1, contents} <- :erlang.binary_to_term(checker_chunk) do
       deprecated = Enum.map(contents.exports, fn {fun, {_kind, reason}} -> {fun, reason} end)
-      %{map | deprecated: deprecated, no_warn_undefined: contents.no_warn_undefined}
+      {:ok, %{map | deprecated: deprecated, no_warn_undefined: contents.no_warn_undefined}}
     else
-      _ -> %{map | deprecated: [], compile_opts: []}
+      _ -> :error
     end
   end
 
   defp checker_chunk_to_map(map, _chunks) do
-    map
+    {:ok, map}
   end
 
   defp preload_cache(ets, modules) do
