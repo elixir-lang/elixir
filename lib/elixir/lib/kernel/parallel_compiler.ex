@@ -344,17 +344,18 @@ defmodule Kernel.ParallelCompiler do
     :ok
   end
 
-  defp maybe_check_modules(result, dependent_modules, schedulers) do
+  defp maybe_check_modules(result, runtime_modules, schedulers) do
     if :elixir_config.get(:bootstrap) do
       binaries = for {{:module, module}, {binary, _map}} <- result, do: {module, binary}
       {binaries, []}
     else
-      modules = checker_changed_modules(result) ++ checker_dependent_modules(dependent_modules)
-      Module.ParallelChecker.verify(modules, schedulers)
+      compiled_modules = checker_compiled_modules(result)
+      runtime_modules = checker_runtime_modules(runtime_modules)
+      Module.ParallelChecker.verify(compiled_modules, runtime_modules, schedulers)
     end
   end
 
-  defp checker_changed_modules(result) do
+  defp checker_compiled_modules(result) do
     for {{:module, _module}, {binary, module_map}} <- result do
       map = %{
         module: module_map.module,
@@ -368,19 +369,11 @@ defmodule Kernel.ParallelCompiler do
     end
   end
 
-  defp checker_dependent_modules(modules) do
+  defp checker_runtime_modules(modules) do
     for module <- modules,
         path = :code.which(module),
         is_list(path) do
-      map = %{
-        module: module,
-        file: nil,
-        no_warn_undefined: nil,
-        definitions: nil,
-        deprecated: nil
-      }
-
-      {map, File.read!(path)}
+      {module, File.read!(path)}
     end
   end
 

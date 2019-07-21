@@ -3,8 +3,50 @@ defmodule Module.Checker do
 
   @moduledoc false
 
-  def verify(map, cache) do
-    {build_chunk(map), warnings(map, cache)}
+  def verify(module, cache) do
+    case prepare_module(module) do
+      {:ok, map} -> {:ok, build_chunk(map), warnings(map, cache)}
+      :error -> :error
+    end
+  end
+
+  defp prepare_module({_module, map}) when is_map(map) do
+    {:ok, map}
+  end
+
+  defp prepare_module({module, binary}) when is_binary(binary) do
+    with {:ok, debug_info} <- debug_info(binary),
+         {:ok, checker_info} <- checker_chunk(binary) do
+      {:ok,
+       %{module: module}
+       |> Map.merge(debug_info)
+       |> Map.merge(checker_info)}
+    end
+  end
+
+  defp get_chunk(binary, chunk_name) do
+    case :beam_lib.chunks(binary, [chunk_name], [:allow_missing_chunks]) do
+      {:ok, {_module, [{^chunk_name, :missing_chunk}]}} -> :error
+      {:ok, {_module, [{^chunk_name, chunk}]}} -> {:ok, chunk}
+      :error -> :error
+    end
+  end
+
+  defp debug_info(binary) do
+    case get_chunk(binary, :debug_info) do
+      {:ok, info} -> {:ok, %{definitions: info.definitions, file: info.relative_file}}
+      :error -> :error
+    end
+  end
+
+  defp checker_chunk(binary) do
+    with {:ok, chunk} <- get_chunk(binary, 'ExCk'),
+         {:elixir_checker_v1, contents} <- :erlang.binary_to_term(chunk) do
+      deprecated = Enum.map(contents.exports, fn {fun, {_kind, reason}} -> {fun, reason} end)
+      {:ok, %{deprecated: deprecated, no_warn_undefined: contents.no_warn_undefined}}
+    else
+      _ -> :error
+    end
   end
 
   defp build_chunk(map) do

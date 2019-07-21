@@ -10,39 +10,43 @@ defmodule Module.ParallelChecker do
   the modules and adds the ExCk chunk to the binaries. Returns the updated
   binaries and a list of warnings from the verification.
   """
-  @spec verify([%{}], pos_integer()) :: {[{module(), binary()}], [warning()]}
-  def verify([], _schedulers) do
-    {[], []}
+  @spec verify([{%{}, binary()}], [{module(), binary()}], pos_integer()) ::
+          {[{module(), binary()}], [warning()]}
+  def verify(compiled_modules, runtime_binaries, schedulers) do
+    compiled_maps = Enum.map(compiled_modules, fn {map, _binary} -> {map.module, map} end)
+    check_modules = compiled_maps ++ runtime_binaries
+
+    {:ok, server} = :gen_server.start_link(__MODULE__, [check_modules, self(), schedulers], [])
+    preload_cache(get_ets(server), check_modules)
+    start(server)
+
+    compiled_binaries = Enum.map(compiled_modules, fn {map, binary} -> {map.module, binary} end)
+    old_binaries = :maps.from_list(compiled_binaries ++ runtime_binaries)
+    collect_results(old_binaries, [], [])
   end
 
-  def verify(modules, schedulers) do
-    modules = prepare_modules(modules)
-    module_maps = Enum.map(modules, fn {map, _chunks} -> map end)
-    {:ok, _} = :gen_server.start_link(__MODULE__, [module_maps, self(), schedulers], [])
-
-    module_chunks =
-      :maps.from_list(Enum.map(modules, fn {map, chunks} -> {map.module, chunks} end))
-
-    collect_results(module_chunks, [], [])
-  end
-
-  defp collect_results(module_chunks, binaries, warnings) when map_size(module_chunks) == 0 do
+  defp collect_results(old_binaries, binaries, warnings) when map_size(old_binaries) == 0 do
     {binaries, warnings}
   end
 
-  defp collect_results(module_chunks, binaries, warnings) do
+  defp collect_results(old_binaries, binaries, warnings) do
     receive do
-      {__MODULE__, module, new_chunk, new_warnings} ->
-        {existing_chunks, module_chunks} = :maps.take(module, module_chunks)
-        binaries = [{module, add_chunk(new_chunk, existing_chunks)} | binaries]
+      {__MODULE__, module, chunk, new_warnings} ->
+        {binary, old_binaries} = :maps.take(module, old_binaries)
+        binaries = [{module, add_chunk(chunk, binary)} | binaries]
+
         warnings = new_warnings ++ warnings
-        collect_results(module_chunks, binaries, warnings)
+        collect_results(old_binaries, binaries, warnings)
     end
   end
 
-  defp add_chunk(new_chunk, existing_chunks) do
-    chunks = [new_chunk | :lists.keydelete('ExCk', 1, existing_chunks)]
-    {:ok, binary} = :beam_lib.build_module(chunks)
+  defp add_chunk(nil, binary) do
+    binary
+  end
+
+  defp add_chunk(chunk, binary) do
+    {:ok, _module, chunks} = :beam_lib.all_chunks(binary)
+    {:ok, binary} = :beam_lib.build_module([chunk | :lists.keydelete('ExCk', 1, chunks)])
     binary
   end
 
@@ -110,7 +114,6 @@ defmodule Module.ParallelChecker do
 
   def init([modules, send_results, schedulers]) do
     ets = :ets.new(:checker_cache, [:set, :public, {:read_concurrency, true}])
-    preload_cache(ets, modules)
 
     state = %{
       ets: ets,
@@ -121,7 +124,7 @@ defmodule Module.ParallelChecker do
       schedulers: schedulers
     }
 
-    {:ok, spawn_checkers(state)}
+    {:ok, state}
   end
 
   def handle_call({:lock, module}, from, %{waiting: waiting} = state) do
@@ -143,6 +146,18 @@ defmodule Module.ParallelChecker do
     {:reply, :ok, %{state | waiting: waiting}}
   end
 
+  def handle_call(:get_ets, _from, %{ets: ets} = state) do
+    {:reply, ets, state}
+  end
+
+  def handle_cast(:start, %{modules: []} = state) do
+    {:stop, :normal, state}
+  end
+
+  def handle_cast(:start, state) do
+    {:noreply, spawn_checkers(state)}
+  end
+
   def handle_info({__MODULE__, :done}, state) do
     state = %{state | spawned: state.spawned - 1}
 
@@ -162,55 +177,18 @@ defmodule Module.ParallelChecker do
     :gen_server.call(server, {:unlock, module})
   end
 
-  defp prepare_modules(modules) do
-    Enum.flat_map(modules, fn {map, binary} ->
-      {:ok, _module, chunks} = :beam_lib.all_chunks(binary)
-
-      case fill_missing_map_fields(map, chunks) do
-        {:ok, map} -> [{map, chunks}]
-        :error -> []
-      end
-    end)
+  defp get_ets(server) do
+    :gen_server.call(server, :get_ets)
   end
 
-  defp fill_missing_map_fields(map, chunks) do
-    with {:ok, map} <- debug_info_to_map(map, chunks),
-         do: checker_chunk_to_map(map, chunks)
-  end
-
-  defp debug_info_to_map(%{definitions: nil, file: nil} = map, chunks) do
-    with {'Dbgi', debug_info} <- :lists.keyfind('Dbgi', 1, chunks),
-         {:debug_info_v1, backend, data} <- :erlang.binary_to_term(debug_info),
-         {:ok, info} <- backend.debug_info(:elixir_v1, map.module, data, []) do
-      {:ok, %{map | definitions: info.definitions, file: info.relative_file}}
-    else
-      _ -> :error
-    end
-  end
-
-  defp debug_info_to_map(map, _chunks) do
-    {:ok, map}
-  end
-
-  defp checker_chunk_to_map(%{deprecated: nil, no_warn_undefined: nil} = map, chunks) do
-    with {'ExCk', checker_chunk} <- :lists.keyfind('ExCk', 1, chunks),
-         {:elixir_checker_v1, contents} <- :erlang.binary_to_term(checker_chunk) do
-      deprecated = Enum.map(contents.exports, fn {fun, {_kind, reason}} -> {fun, reason} end)
-      {:ok, %{map | deprecated: deprecated, no_warn_undefined: contents.no_warn_undefined}}
-    else
-      _ -> :error
-    end
-  end
-
-  defp checker_chunk_to_map(map, _chunks) do
-    {:ok, map}
+  defp start(server) do
+    :gen_server.cast(server, :start)
   end
 
   defp preload_cache(ets, modules) do
-    Enum.each(modules, fn map ->
-      exports = [{{:__info__, 1}, :def} | definitions_to_exports(map.definitions)]
-      deprecated = :maps.from_list(map.deprecated)
-      cache_info(ets, map.module, exports, deprecated)
+    Enum.each(modules, fn
+      {_module, map} when is_map(map) -> cache_from_module_map(ets, map)
+      {module, binary} when is_binary(binary) -> cache_from_chunk(ets, module, binary)
     end)
   end
 
@@ -223,14 +201,20 @@ defmodule Module.ParallelChecker do
     state
   end
 
-  defp spawn_checkers(%{modules: [map | modules]} = state) do
+  defp spawn_checkers(%{modules: [{module, _} = verify | modules]} = state) do
     parent = self()
     ets = state.ets
     send_results_pid = state.send_results
 
     spawn_link(fn ->
-      {chunk, warnings} = Module.Checker.verify(map, {parent, ets})
-      send(send_results_pid, {__MODULE__, map.module, chunk, warnings})
+      case Module.Checker.verify(verify, {parent, ets}) do
+        {:ok, chunk, warnings} ->
+          send(send_results_pid, {__MODULE__, module, chunk, warnings})
+
+        :error ->
+          send(send_results_pid, {__MODULE__, module, nil, []})
+      end
+
       send(parent, {__MODULE__, :done})
     end)
 
@@ -245,8 +229,14 @@ defmodule Module.ParallelChecker do
   end
 
   defp cache_from_chunk(ets, module) do
-    with {^module, binary, _filename} <- :code.get_object_code(module),
-         {:ok, chunk} <- get_chunk(binary),
+    case :code.get_object_code(module) do
+      {^module, binary, _filename} -> cache_from_chunk(ets, module, binary)
+      _other -> false
+    end
+  end
+
+  defp cache_from_chunk(ets, module, binary) do
+    with {:ok, chunk} <- get_chunk(binary),
          {:elixir_checker_v1, contents} <- :erlang.binary_to_term(chunk) do
       cache_chunk(ets, module, contents.exports)
       true
@@ -255,12 +245,10 @@ defmodule Module.ParallelChecker do
     end
   end
 
-  defp get_chunk(binary) do
-    case :beam_lib.chunks(binary, ['ExCk'], [:allow_missing_chunks]) do
-      {:ok, {_module, [{'ExCk', :missing_chunk}]}} -> :error
-      {:ok, {_module, [{'ExCk', chunk}]}} -> {:ok, chunk}
-      :error -> :error
-    end
+  defp cache_from_module_map(ets, map) do
+    exports = [{{:__info__, 1}, :def} | definitions_to_exports(map.definitions)]
+    deprecated = :maps.from_list(map.deprecated)
+    cache_info(ets, map.module, exports, deprecated)
   end
 
   defp cache_from_info(ets, module) do
@@ -270,6 +258,14 @@ defmodule Module.ParallelChecker do
       cache_info(ets, module, exports, deprecated)
     else
       :ets.insert(ets, {{:cached, module}, false})
+    end
+  end
+
+  defp get_chunk(binary) do
+    case :beam_lib.chunks(binary, ['ExCk'], [:allow_missing_chunks]) do
+      {:ok, {_module, [{'ExCk', :missing_chunk}]}} -> :error
+      {:ok, {_module, [{'ExCk', chunk}]}} -> {:ok, chunk}
+      :error -> :error
     end
   end
 
