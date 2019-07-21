@@ -18,9 +18,13 @@ defmodule Module.Checker do
     with {:ok, debug_info} <- debug_info(module, binary),
          {:ok, checker_info} <- checker_chunk(binary) do
       {:ok,
-       %{module: module}
-       |> Map.merge(debug_info)
-       |> Map.merge(checker_info)}
+       %{
+         module: module,
+         definitions: debug_info.definitions,
+         file: debug_info.file,
+         deprecated: checker_info.deprecated,
+         no_warn_undefined: checker_info.no_warn_undefined
+       }}
     end
   end
 
