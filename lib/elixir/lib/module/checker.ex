@@ -15,7 +15,7 @@ defmodule Module.Checker do
   end
 
   defp prepare_module({module, binary}) when is_binary(binary) do
-    with {:ok, debug_info} <- debug_info(binary),
+    with {:ok, debug_info} <- debug_info(module, binary),
          {:ok, checker_info} <- checker_chunk(binary) do
       {:ok,
        %{module: module}
@@ -32,10 +32,13 @@ defmodule Module.Checker do
     end
   end
 
-  defp debug_info(binary) do
-    case get_chunk(binary, :debug_info) do
-      {:ok, info} -> {:ok, %{definitions: info.definitions, file: info.relative_file}}
-      :error -> :error
+  defp debug_info(module, binary) do
+    with {:ok, chunk} <- get_chunk(binary, :debug_info),
+         {:debug_info_v1, backend, data} <- chunk,
+         {:ok, info} <- backend.debug_info(:elixir_v1, module, data, []) do
+      {:ok, %{definitions: info.definitions, file: info.relative_file}}
+    else
+      _ -> :error
     end
   end
 
