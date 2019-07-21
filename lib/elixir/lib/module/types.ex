@@ -1,74 +1,77 @@
-defmodule Kernel.Types do
+defmodule Module.Types do
   @moduledoc false
 
-  defguardp is_var(expr)
-            when is_tuple(expr) and
-                   tuple_size(expr) == 3 and
-                   is_atom(elem(expr, 0)) and
-                   is_atom(elem(expr, 2))
+  defmacrop is_var(expr) do
+    quote do
+      is_tuple(unquote(expr)) and
+        tuple_size(unquote(expr)) == 3 and
+        is_atom(elem(unquote(expr), 0)) and
+        is_atom(elem(unquote(expr), 2))
+    end
+  end
 
-  def infer_defs(_module, defs) do
+  def infer_defintions(defs) do
     Enum.map(defs, fn {name, kind, _meta, clauses} ->
       types =
-        Enum.map(clauses, fn {_meta, params, _guards, _body} ->
-          of_clause(params, context())
+        Enum.map(clauses, fn {_meta, params, guards, _body} ->
+          of_clause(params, guards)
         end)
 
       {name, kind, types}
     end)
-  rescue
-    e ->
-      case :code.ensure_loaded(Access) do
-        {:module, _} -> reraise(e, __STACKTRACE__)
-        {:error, _} -> {:error, :bootstrapping}
-      end
   end
 
-  def context(enum \\ []) do
-    context = %{vars: %{}, types: %{}, counter: 0}
-    Map.merge(context, Map.new(enum))
-  end
+  def of_clause(params, guards) do
+    context = context()
 
-  def of_clause({:when, _meta, [params, guard]}, context) do
     with {:ok, types, context} <- of_pattern_multi(params, context),
-         {:ok, context} <- of_guard(when_to_or(guard), context),
-         do: {:ok, types, context}
+         {:ok, context} <- of_guard(guards_to_or(guards), context),
+         {types, _context} = Enum.map_reduce(types, context, &lift_types/2),
+         do: {:ok, types}
   end
 
-  def of_clause(params, context) do
-    of_pattern_multi(params, context)
+  def of_pattern(pattern) do
+    context = context()
+
+    with {:ok, type, context} <- do_of_pattern(pattern, context),
+         {type, _context} = lift_types(type, context),
+         do: {:ok, type}
   end
 
-  def of_pattern_multi(patterns, pattern_types \\ [], context)
+  defp context() do
+    %{vars: %{}, types: %{}, counter: 0}
+  end
 
-  def of_pattern_multi([pattern | patterns], pattern_types, context) do
-    case of_pattern(pattern, context) do
+  defp of_pattern_multi(patterns, pattern_types \\ [], context)
+
+  defp of_pattern_multi([pattern | patterns], pattern_types, context) do
+    case do_of_pattern(pattern, context) do
       {:ok, type, context} -> of_pattern_multi(patterns, [type | pattern_types], context)
       {:error, reason} -> {:error, reason}
     end
   end
 
-  def of_pattern_multi([], pattern_types, context) do
+  defp of_pattern_multi([], pattern_types, context) do
     {:ok, Enum.reverse(pattern_types), context}
   end
 
-  def of_pattern(atom, context) when is_atom(atom) do
+  defp do_of_pattern(atom, context) when is_atom(atom) do
     {:ok, {:literal, atom}, context}
   end
 
-  def of_pattern(literal, context) when is_integer(literal) do
+  defp do_of_pattern(literal, context) when is_integer(literal) do
     {:ok, :integer, context}
   end
 
-  def of_pattern(literal, context) when is_float(literal) do
+  defp do_of_pattern(literal, context) when is_float(literal) do
     {:ok, :float, context}
   end
 
-  def of_pattern(literal, context) when is_binary(literal) do
+  defp do_of_pattern(literal, context) when is_binary(literal) do
     {:ok, :binary, context}
   end
 
-  def of_pattern({:<<>>, _meta, args}, context) do
+  defp do_of_pattern({:<<>>, _meta, args}, context) do
     # TODO: Add bitstring type
     case of_binary(args, context) do
       {:ok, context} -> {:ok, :binary, context}
@@ -76,56 +79,56 @@ defmodule Kernel.Types do
     end
   end
 
-  def of_pattern([{:|, _meta, [left_expr, right_expr]}], context) do
-    with {:ok, left, context} <- of_pattern(left_expr, context),
-         {:ok, right, context} <- of_pattern(right_expr, context),
+  defp do_of_pattern([{:|, _meta, [left_expr, right_expr]}], context) do
+    with {:ok, left, context} <- do_of_pattern(left_expr, context),
+         {:ok, right, context} <- do_of_pattern(right_expr, context),
          do: {:ok, {:cons, left, right}, context}
   end
 
-  def of_pattern([left_expr | right_expr], context) do
-    with {:ok, left, context} <- of_pattern(left_expr, context),
-         {:ok, right, context} <- of_pattern(right_expr, context),
+  defp do_of_pattern([left_expr | right_expr], context) do
+    with {:ok, left, context} <- do_of_pattern(left_expr, context),
+         {:ok, right, context} <- do_of_pattern(right_expr, context),
          do: {:ok, {:cons, left, right}, context}
   end
 
-  def of_pattern([], context) do
+  defp do_of_pattern([], context) do
     {:ok, :null, context}
   end
 
-  def of_pattern(var, context) when is_var(var) do
+  defp do_of_pattern(var, context) when is_var(var) do
     {type, context} = new_var(var_name(var), context)
     {:ok, type, context}
   end
 
-  def of_pattern({left, right}, context) do
-    of_pattern({:{}, [], [left, right]}, context)
+  defp do_of_pattern({left, right}, context) do
+    do_of_pattern({:{}, [], [left, right]}, context)
   end
 
-  def of_pattern({:{}, _meta, exprs}, context) do
+  defp do_of_pattern({:{}, _meta, exprs}, context) do
     case of_pattern_multi(exprs, context) do
       {:ok, types, context} -> {:ok, {:tuple, types}, context}
       {:error, reason} -> {:error, reason}
     end
   end
 
-  def of_pattern({:=, _meta, [left_expr, right_expr]}, context) do
-    with {:ok, left_type, context} <- of_pattern(left_expr, context),
-         {:ok, right_type, context} <- of_pattern(right_expr, context),
+  defp do_of_pattern({:=, _meta, [left_expr, right_expr]}, context) do
+    with {:ok, left_type, context} <- do_of_pattern(left_expr, context),
+         {:ok, right_type, context} <- do_of_pattern(right_expr, context),
          do: unify(left_type, right_type, context)
   end
 
-  def of_pattern(expr, _context) do
+  defp do_of_pattern(expr, _context) do
     {:error, {:unsupported_pattern, expr}}
   end
 
   # TODO: Remove this and let multiple when be treated as multiple clauses,
   #       meaning they will be intersection types
-  defp when_to_or({:when, meta, [guards, more_guards]}) do
-    {:or, meta, [when_to_or(guards), when_to_or(more_guards)]}
+  defp guards_to_or([]) do
+    []
   end
 
-  defp when_to_or(other) do
-    other
+  defp guards_to_or(guards) do
+    Enum.reduce(guards, fn guard, acc -> {:or, [], [guard, acc]} end)
   end
 
   defp flatten_binary_op(op, {op, _meta, [left, right]}) do
@@ -151,8 +154,8 @@ defmodule Kernel.Types do
   end
 
   defp unify_guard(arg, guard_type, context) do
-    # TODO: It is incorrect to use of_pattern/2 but it helps for simplicity now
-    with {:ok, arg_type, context} <- of_pattern(arg, context),
+    # TODO: It is incorrect to use do_of_pattern/2 but it helps for simplicity now
+    with {:ok, arg_type, context} <- do_of_pattern(arg, context),
          {:ok, _, context} <- unify(arg_type, guard_type, context),
          do: {:ok, context}
   end
@@ -177,13 +180,13 @@ defmodule Kernel.Types do
   }
 
   defp type_guard({guard, _meta, [arg]}) do
-    case Map.fetch(@type_guards, guard) do
+    case :maps.find(guard, @type_guards) do
       {:ok, type} -> {:ok, arg, type}
-      :error -> :error
+      :error -> {:error, :unknown_guard}
     end
   end
 
-  defp type_guard(_other), do: :error
+  defp type_guard(_other), do: {:error, :unknown_guard}
 
   defp of_binary([], context) do
     {:ok, context}
@@ -207,13 +210,13 @@ defmodule Kernel.Types do
         true -> :integer
       end
 
-    with {:ok, type, context} <- of_pattern(expr, context),
+    with {:ok, type, context} <- do_of_pattern(expr, context),
          {:ok, _type, context} <- unify(type, expected_type, context),
          do: of_binary(args, context)
   end
 
   defp of_binary([expr | args], context) do
-    case of_pattern(expr, context) do
+    case do_of_pattern(expr, context) do
       {:ok, type, context} when type in [:integer, :float, :binary] ->
         of_binary(args, context)
 
@@ -226,20 +229,29 @@ defmodule Kernel.Types do
   end
 
   defp unify({:var, left}, {:var, right}, context) do
-    case {Map.fetch(context.types, left), Map.fetch(context.types, right)} do
-      {{:ok, type}, :error} -> {:ok, type, put_in(context.types[right], type)}
-      {:error, {:ok, type}} -> {:ok, type, put_in(context.types[left], type)}
-      {_, {:ok, :unbound}} -> {:ok, {:var, left}, put_in(context.types[right], {:var, left})}
-      {{:ok, :unbound}, _} -> {:ok, {:var, right}, put_in(context.types[left], {:var, right})}
-      {{:ok, left_type}, {:ok, right_type}} -> unify(left_type, right_type, context)
+    case {:maps.find(left, context.types), :maps.find(right, context.types)} do
+      {{:ok, type}, :error} ->
+        {:ok, type, %{context | types: :maps.put(right, type, context.types)}}
+
+      {:error, {:ok, type}} ->
+        {:ok, type, %{context | types: :maps.put(left, type, context.types)}}
+
+      {_, {:ok, :unbound}} ->
+        {:ok, {:var, left}, %{context | types: :maps.put(right, {:var, left}, context.types)}}
+
+      {{:ok, :unbound}, _} ->
+        {:ok, {:var, right}, %{context | types: :maps.put(left, {:var, right}, context.types)}}
+
+      {{:ok, left_type}, {:ok, right_type}} ->
+        unify(left_type, right_type, context)
     end
   end
 
   defp unify(type, {:var, var}, context) do
-    case Map.fetch(context.types, var) do
-      :error -> add_var(var, type, context)
+    case :maps.find(var, context.types) do
       {:ok, :unbound} -> add_var(var, type, context)
       {:ok, var_type} -> unify(type, var_type, context)
+      :error -> add_var(var, type, context)
     end
   end
 
@@ -256,7 +268,7 @@ defmodule Kernel.Types do
   end
 
   defp add_var(var, type, context) do
-    context = put_in(context.types[var], type)
+    context = %{context | types: :maps.put(var, type, context.types)}
 
     if recursive_type?(type, [], context) do
       {:error, {:recursive_type, type}}
@@ -266,7 +278,7 @@ defmodule Kernel.Types do
   end
 
   defp recursive_type?({:var, var} = parent, parents, context) do
-    case Map.fetch(context.types, var) do
+    case :maps.find(var, context.types) do
       :error -> false
       {:ok, :unbound} -> false
       {:ok, type} -> type in parents or recursive_type?(type, [parent | parents], context)
@@ -303,14 +315,14 @@ defmodule Kernel.Types do
   end
 
   defp new_var(var_name, context) do
-    case Map.fetch(context.vars, var_name) do
+    case :maps.find(var_name, context.vars) do
       {:ok, type} ->
         {type, context}
 
       :error ->
         type = {:var, context.counter}
-        types = Map.put(context.types, context.counter, :unbound)
-        vars = Map.put(context.vars, var_name, type)
+        types = :maps.put(context.counter, :unbound, context.types)
+        vars = :maps.put(var_name, type, context.vars)
         context = %{context | vars: vars, types: types, counter: context.counter + 1}
         {type, context}
     end
@@ -320,10 +332,10 @@ defmodule Kernel.Types do
   defp var_name({name, _meta, _context}), do: name
 
   defp subtype?({:var, var}, type, context),
-    do: subtype?(Map.fetch!(context.types, var), type, context)
+    do: subtype?(:maps.get(var, context.types), type, context)
 
   defp subtype?(type, {:var, var}, context),
-    do: subtype?(type, Map.fetch!(context.types, var), context)
+    do: subtype?(type, :maps.get(var, context.types), context)
 
   defp subtype?({:literal, boolean}, :boolean, _context) when is_boolean(boolean), do: true
   defp subtype?({:literal, atom}, :atom, _context) when is_atom(atom), do: true
@@ -377,22 +389,26 @@ defmodule Kernel.Types do
     []
   end
 
-  def lift_types(type, context) do
-    context =
-      context
-      |> Map.put(:quantified_types, %{})
-      |> Map.put(:quantified_counter, 0)
+  defp lift_types(type, context) do
+    # TODO: All this needed?
+    context = %{
+      vars: context.vars,
+      types: context.types,
+      counter: context.counter,
+      quantified_types: %{},
+      quantified_counter: 0
+    }
 
     do_lift_types(type, context)
   end
 
   defp do_lift_types({:var, var}, context) do
-    case Map.fetch(context.quantified_types, var) do
+    case :maps.find(var, context.quantified_types) do
       {:ok, quantified_var} ->
         {{:var, quantified_var}, context}
 
       :error ->
-        case Map.fetch(context.types, var) do
+        case :maps.find(var, context.types) do
           {:ok, :unbound} ->
             new_quantified_var(var, context)
 
@@ -400,9 +416,9 @@ defmodule Kernel.Types do
             # Remove visited types to avoid infinite loops
             # then restore after we are done recursing on vars
             types = context.types
-            context = update_in(context.types, &Map.delete(&1, var))
+            context = %{context | types: :maps.remove(var, context.types)}
             {type, context} = do_lift_types(type, context)
-            {type, put_in(context.types, types)}
+            {type, %{context | types: types}}
 
           :error ->
             new_quantified_var(var, context)
@@ -432,7 +448,7 @@ defmodule Kernel.Types do
   end
 
   defp new_quantified_var(original_var, context) do
-    types = Map.put(context.quantified_types, original_var, context.quantified_counter)
+    types = :maps.put(original_var, context.quantified_counter, context.quantified_types)
     counter = context.quantified_counter + 1
     type = {:var, context.quantified_counter}
     context = %{context | quantified_types: types, quantified_counter: counter}
@@ -450,15 +466,6 @@ defmodule Kernel.Types do
   defp do_unzip_ok([{:error, reason} | _tail], _acc1, _acc2), do: {:error, reason}
 
   defp do_unzip_ok([], acc1, acc2), do: {:ok, Enum.reverse(acc1), Enum.reverse(acc2)}
-
-  defp do_map_ok([head | tail], acc, fun) do
-    case fun.(head) do
-      {:ok, elem} -> do_map_ok(tail, [elem | acc], fun)
-      {:error, reason} -> {:error, reason}
-    end
-  end
-
-  defp do_map_ok([], acc, _fun), do: {:ok, Enum.reverse(acc)}
 
   defp reduce_ok(list, acc, fun) do
     do_reduce_ok(list, acc, fun)

@@ -1,33 +1,23 @@
 Code.require_file("../test_helper.exs", __DIR__)
 
-defmodule Kernel.TypesTest do
+defmodule Module.TypesTest do
   use ExUnit.Case, async: true
-
-  import Kernel.Types, only: [context: 0]
 
   defmacrop quoted_pattern(expr) do
     quote do
-      case Kernel.Types.of_pattern(unquote(Macro.escape(expr)), context()) do
-        {:ok, type, context} ->
-          {type, _context} = Kernel.Types.lift_types(type, context)
-          {:ok, type}
-
-        {:error, reason} ->
-          {:error, reason}
-      end
+      Module.Types.of_pattern(unquote(Macro.escape(expr)))
     end
   end
 
   defmacrop quoted_clause(exprs) do
     quote do
-      case Kernel.Types.of_clause(unquote(Macro.escape(exprs)), context()) do
-        {:ok, types, context} ->
-          {types, _context} = Enum.map_reduce(types, context, &Kernel.Types.lift_types/2)
-          {:ok, types}
+      Module.Types.of_clause(unquote(Macro.escape(exprs)), [])
+    end
+  end
 
-        {:error, reason} ->
-          {:error, reason}
-      end
+  defmacrop quoted_clause(exprs, guards) do
+    quote do
+      Module.Types.of_clause(unquote(Macro.escape(exprs)), unquote(Macro.escape(guards)))
     end
   end
 
@@ -112,20 +102,19 @@ defmodule Kernel.TypesTest do
     end
 
     test "guards" do
-      assert quoted_clause([x] when is_binary(x)) == {:ok, [:binary]}
-      assert quoted_clause([x, y] when is_binary(x) and is_atom(y)) == {:ok, [:binary, :atom]}
+      assert quoted_clause([x], [is_binary(x)]) == {:ok, [:binary]}
+      assert quoted_clause([x, y], [is_binary(x) and is_atom(y)]) == {:ok, [:binary, :atom]}
 
-      assert quoted_clause([x] when is_binary(x) or is_atom(x)) ==
+      assert quoted_clause([x], [is_binary(x) or is_atom(x)]) ==
                {:ok, [{:union, [:binary, :atom]}]}
 
-      assert quoted_clause([x, x] when is_integer(x)) ==
-               {:ok, [:integer, :integer]}
+      assert quoted_clause([x, x], [is_integer(x)]) == {:ok, [:integer, :integer]}
 
-      assert quoted_clause([x, x = y, y = z] when is_atom(x)) == {:ok, [:atom, :atom, :atom]}
-      assert quoted_clause([x = y, y, y = z] when is_atom(y)) == {:ok, [:atom, :atom, :atom]}
-      assert quoted_clause([x = y, y = z, z] when is_atom(z)) == {:ok, [:atom, :atom, :atom]}
+      assert quoted_clause([x, x = y, y = z], [is_atom(x)]) == {:ok, [:atom, :atom, :atom]}
+      assert quoted_clause([x = y, y, y = z], [is_atom(y)]) == {:ok, [:atom, :atom, :atom]}
+      assert quoted_clause([x = y, y = z, z], [is_atom(z)]) == {:ok, [:atom, :atom, :atom]}
 
-      assert quoted_clause([x] when is_binary(x) and is_integer(x)) ==
+      assert quoted_clause([x], [is_binary(x) and is_integer(x)]) ==
                {:error, {:unable_unify, :integer, :binary}}
     end
   end

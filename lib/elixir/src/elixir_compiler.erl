@@ -148,6 +148,7 @@ bootstrap_main() ->
    <<"lib/elixir/lib/module/checker.ex">>,
    <<"lib/elixir/lib/module/locals_tracker.ex">>,
    <<"lib/elixir/lib/module/parallel_checker.ex">>,
+   <<"lib/elixir/lib/module/types.ex">>,
    <<"lib/elixir/lib/kernel/typespec.ex">>,
    <<"lib/elixir/lib/kernel/utils.ex">>,
    <<"lib/elixir/lib/exception.ex">>,
@@ -168,8 +169,7 @@ bootstrap_main() ->
    <<"lib/elixir/lib/kernel/cli.ex">>,
    <<"lib/elixir/lib/kernel/error_handler.ex">>,
    <<"lib/elixir/lib/kernel/parallel_compiler.ex">>,
-   <<"lib/elixir/lib/kernel/lexical_tracker.ex">>,
-   <<"lib/elixir/lib/kernel/types.ex">>].
+   <<"lib/elixir/lib/kernel/lexical_tracker.ex">>].
 
 binary_to_path({ModuleName, Binary}, CompilePath) ->
   Path = filename:join(CompilePath, atom_to_list(ModuleName) ++ ".beam"),
