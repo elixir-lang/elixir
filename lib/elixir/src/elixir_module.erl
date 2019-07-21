@@ -118,7 +118,6 @@ compile(Line, Module, Block, Vars, E) ->
       deprecated => get_deprecated(DataBag)
     },
 
-    infer_types(Module, AllDefinitions),
     Binary = elixir_erl:compile(ModuleMap),
     warn_unused_attributes(File, DataSet, DataBag, PersistedAttributes),
     autoload_module(Module, Binary, CompileOpts, NE),
@@ -344,12 +343,6 @@ expand_callback(Line, M, F, Args, E, Fun) ->
           erlang:raise(Kind, Reason, prune_stacktrace(Info, Stacktrace))
       end
   end.
-
-infer_types(Module, Definitions) ->
-    case code:ensure_loaded('Elixir.Kernel.Types') of
-        {module, _} -> 'Elixir.Kernel.Types':infer_defs(Module, Definitions);
-        {error, _} -> ok
-    end.
 
 %% Add attributes handling to the form
 
