@@ -5,8 +5,8 @@ defmodule Module.Checker do
 
   def verify(module, cache) do
     case prepare_module(module) do
-      {:ok, map} -> {:ok, build_chunk(map), warnings(map, cache)}
-      :error -> :error
+      {:ok, map} -> {build_chunk(map), warnings(map, cache)}
+      :error -> {nil, []}
     end
   end
 

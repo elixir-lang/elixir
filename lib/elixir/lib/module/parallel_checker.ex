@@ -207,14 +207,8 @@ defmodule Module.ParallelChecker do
     send_results_pid = state.send_results
 
     spawn_link(fn ->
-      case Module.Checker.verify(verify, {parent, ets}) do
-        {:ok, chunk, warnings} ->
-          send(send_results_pid, {__MODULE__, module, chunk, warnings})
-
-        :error ->
-          send(send_results_pid, {__MODULE__, module, nil, []})
-      end
-
+      {chunk, warnings} = Module.Checker.verify(verify, {parent, ets})
+      send(send_results_pid, {__MODULE__, module, chunk, warnings})
       send(parent, {__MODULE__, :done})
     end)
 
