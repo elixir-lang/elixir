@@ -308,21 +308,24 @@ defmodule StringIO do
     {chars, rest}
   end
 
-  defp get_chars(input, encoding, count) do
-    try do
-      case :file_io_server.count_and_find(input, count, encoding) do
-        {buf_count, split_pos} when buf_count < count or split_pos == :none ->
-          {input, ""}
-
-        {_buf_count, split_pos} ->
-          <<chars::binary-size(split_pos), rest::binary>> = input
-          {chars, rest}
-      end
-    catch
-      :exit, :invalid_unicode ->
-        {:error, :invalid_unicode}
+  defp get_chars(input, :unicode, count) do
+    with {:ok, count} <- split_at(input, count, 0) do
+      <<chars::binary-size(count), rest::binary>> = input
+      {chars, rest}
     end
   end
+
+  defp split_at(_, 0, acc),
+    do: {:ok, acc}
+
+  defp split_at(<<h::utf8, t::binary>>, count, acc),
+    do: split_at(t, count - 1, acc + byte_size(<<h::utf8>>))
+
+  defp split_at(<<_, _::binary>>, _count, _acc),
+    do: {:error, :invalid_unicode}
+
+  defp split_at(<<>>, _count, acc),
+    do: {:ok, acc}
 
   ## get_line
 
