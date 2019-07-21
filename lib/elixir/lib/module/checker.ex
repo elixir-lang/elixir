@@ -3,17 +3,8 @@ defmodule Module.Checker do
 
   @moduledoc false
 
-  def verify(map, chunks, cache) do
-    warnings = warnings(map, cache)
-    binary = add_chunk(chunks, map)
-    {binary, warnings}
-  end
-
-  defp add_chunk(chunks, map) do
-    checker_chunk = build_chunk(map)
-    chunks = [checker_chunk | :lists.keydelete('ExCk', 1, chunks)]
-    {:ok, binary} = :beam_lib.build_module(chunks)
-    binary
+  def verify(map, cache) do
+    {build_chunk(map), warnings(map, cache)}
   end
 
   defp build_chunk(map) do

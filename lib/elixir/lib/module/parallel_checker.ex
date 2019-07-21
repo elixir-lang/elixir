@@ -16,13 +16,32 @@ defmodule Module.ParallelChecker do
   end
 
   def verify(modules, schedulers) do
-    {:ok, server} = :gen_server.start_link(__MODULE__, [modules, schedulers], [])
+    modules = prepare_modules(modules)
+    module_maps = Enum.map(modules, fn {map, _chunks} -> map end)
+    {:ok, server} = :gen_server.start_link(__MODULE__, [module_maps, self(), schedulers], [])
 
-    try do
-      start_and_wait(server)
-    after
-      :gen_server.stop(server)
+    monitor = Process.monitor(server)
+    chunks = :maps.from_list(Enum.map(modules, fn {map, chunks} -> {map.module, chunks} end))
+    collect_results(server, monitor, chunks, [], [])
+  end
+
+  defp collect_results(server, monitor, chunks, binaries, warnings) do
+    receive do
+      {:DOWN, ^monitor, :process, ^server, :normal} ->
+        {binaries, warnings}
+
+      {__MODULE__, module, new_chunk, new_warnings} ->
+        existing_chunks = :maps.get(module, chunks)
+        binaries = [{module, add_chunk(new_chunk, existing_chunks)} | binaries]
+        warnings = new_warnings ++ warnings
+        collect_results(server, monitor, chunks, binaries, warnings)
     end
+  end
+
+  defp add_chunk(new_chunk, existing_chunks) do
+    chunks = [new_chunk | :lists.keydelete('ExCk', 1, existing_chunks)]
+    {:ok, binary} = :beam_lib.build_module(chunks)
+    binary
   end
 
   @doc """
@@ -87,28 +106,20 @@ defmodule Module.ParallelChecker do
     end)
   end
 
-  def init([modules, schedulers]) do
+  def init([modules, send_results, schedulers]) do
     ets = :ets.new(:checker_cache, [:set, :public, {:read_concurrency, true}])
-    modules = prepare_modules(modules)
     preload_cache(ets, modules)
 
     state = %{
       ets: ets,
       waiting: %{},
-      reply_when_finished: nil,
+      send_results: send_results,
       modules: modules,
       spawned: 0,
-      schedulers: schedulers,
-      binaries: [],
-      warnings: []
+      schedulers: schedulers
     }
 
-    {:ok, state}
-  end
-
-  def handle_call(:start_and_wait, from, %{reply_when_finished: nil} = state) do
-    state = spawn_checkers(%{state | reply_when_finished: from})
-    {:noreply, state}
+    {:ok, spawn_checkers(state)}
   end
 
   def handle_call({:lock, module}, from, %{waiting: waiting} = state) do
@@ -130,25 +141,15 @@ defmodule Module.ParallelChecker do
     {:reply, :ok, %{state | waiting: waiting}}
   end
 
-  def handle_info({__MODULE__, module, binary, warnings}, state) do
-    state = %{
-      state
-      | binaries: [{module, binary} | state.binaries],
-        warnings: warnings ++ state.warnings,
-        spawned: state.spawned - 1
-    }
+  def handle_info({__MODULE__, :done}, state) do
+    state = %{state | spawned: state.spawned - 1}
 
     if state.spawned == 0 and state.modules == [] do
-      :gen_server.reply(state.reply_when_finished, {state.binaries, state.warnings})
-      {:noreply, state}
+      {:stop, :normal, state}
     else
       state = spawn_checkers(state)
       {:noreply, state}
     end
-  end
-
-  defp start_and_wait(server) do
-    :gen_server.call(server, :start_and_wait, :infinity)
   end
 
   defp lock(server, module) do
@@ -202,7 +203,7 @@ defmodule Module.ParallelChecker do
   end
 
   defp preload_cache(ets, modules) do
-    Enum.each(modules, fn {map, _chunks} ->
+    Enum.each(modules, fn map ->
       exports = [{{:__info__, 1}, :def} | definitions_to_exports(map.definitions)]
       deprecated = :maps.from_list(map.deprecated)
       cache_info(ets, map.module, exports, deprecated)
@@ -218,13 +219,15 @@ defmodule Module.ParallelChecker do
     state
   end
 
-  defp spawn_checkers(%{modules: [{map, chunks} | modules]} = state) do
+  defp spawn_checkers(%{modules: [map | modules]} = state) do
     parent = self()
     ets = state.ets
+    send_results_pid = state.send_results
 
     spawn_link(fn ->
-      {binary, warnings} = Module.Checker.verify(map, chunks, {parent, ets})
-      send(parent, {__MODULE__, map.module, binary, warnings})
+      {chunk, warnings} = Module.Checker.verify(map, {parent, ets})
+      send(send_results_pid, {__MODULE__, map.module, chunk, warnings})
+      send(parent, {__MODULE__, :done})
     end)
 
     spawn_checkers(%{state | modules: modules, spawned: state.spawned + 1})
