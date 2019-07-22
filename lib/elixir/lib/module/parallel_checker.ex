@@ -230,7 +230,7 @@ defmodule Module.ParallelChecker do
   end
 
   defp cache_from_chunk(ets, module, binary) do
-    with {:ok, chunk} <- get_chunk(binary),
+    with {:ok, {_, [{'ExCk', chunk}]}} <- :beam_lib.chunks(binary, ['ExCk']),
          {:elixir_checker_v1, contents} <- :erlang.binary_to_term(chunk) do
       cache_chunk(ets, module, contents.exports)
       true
@@ -252,14 +252,6 @@ defmodule Module.ParallelChecker do
       cache_info(ets, module, exports, deprecated)
     else
       :ets.insert(ets, {{:cached, module}, false})
-    end
-  end
-
-  defp get_chunk(binary) do
-    case :beam_lib.chunks(binary, ['ExCk'], [:allow_missing_chunks]) do
-      {:ok, {_module, [{'ExCk', :missing_chunk}]}} -> :error
-      {:ok, {_module, [{'ExCk', chunk}]}} -> {:ok, chunk}
-      :error -> :error
     end
   end
 

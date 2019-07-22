@@ -28,16 +28,8 @@ defmodule Module.Checker do
     end
   end
 
-  defp get_chunk(binary, chunk_name) do
-    case :beam_lib.chunks(binary, [chunk_name], [:allow_missing_chunks]) do
-      {:ok, {_module, [{^chunk_name, :missing_chunk}]}} -> :error
-      {:ok, {_module, [{^chunk_name, chunk}]}} -> {:ok, chunk}
-      :error -> :error
-    end
-  end
-
   defp debug_info(module, binary) do
-    with {:ok, chunk} <- get_chunk(binary, :debug_info),
+    with {:ok, {_, [debug_info: chunk]}} <- :beam_lib.chunks(binary, [:debug_info]),
          {:debug_info_v1, backend, data} <- chunk,
          {:ok, info} <- backend.debug_info(:elixir_v1, module, data, []) do
       {:ok, %{definitions: info.definitions, file: info.relative_file}}
@@ -47,7 +39,7 @@ defmodule Module.Checker do
   end
 
   defp checker_chunk(binary) do
-    with {:ok, chunk} <- get_chunk(binary, 'ExCk'),
+    with {:ok, {_, [{'ExCk', chunk}]}} <- :beam_lib.chunks(binary, ['ExCk']),
          {:elixir_checker_v1, contents} <- :erlang.binary_to_term(chunk) do
       deprecated = Enum.map(contents.exports, fn {fun, {_kind, reason}} -> {fun, reason} end)
       {:ok, %{deprecated: deprecated, no_warn_undefined: contents.no_warn_undefined}}
