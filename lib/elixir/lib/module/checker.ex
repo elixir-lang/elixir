@@ -3,56 +3,87 @@ defmodule Module.Checker do
 
   @moduledoc false
 
-  def verify(module_map, binary, cache) do
-    warnings = warnings(module_map, cache)
-    binary = chunk(binary, module_map)
-    {binary, warnings}
+  def verify(module, cache) do
+    case prepare_module(module) do
+      {:ok, map} -> {build_chunk(map), warnings(map, cache)}
+      :error -> {nil, []}
+    end
   end
 
-  defp chunk(binary, module_map) do
-    checker_chunk = build_chunk(module_map)
-    {:ok, _module, all_chunks} = :beam_lib.all_chunks(binary)
-    {:ok, binary} = :beam_lib.build_module([checker_chunk | all_chunks])
-    binary
+  defp prepare_module({_module, map}) when is_map(map) do
+    {:ok, map}
   end
 
-  defp build_chunk(module_map) do
-    exports = ParallelChecker.definitions_to_exports(module_map.definitions)
-    deprecated = :maps.from_list(module_map.deprecated)
+  defp prepare_module({module, binary}) when is_binary(binary) do
+    with {:ok, debug_info} <- debug_info(module, binary),
+         {:ok, checker_info} <- checker_chunk(binary) do
+      {:ok,
+       %{
+         module: module,
+         definitions: debug_info.definitions,
+         file: debug_info.file,
+         deprecated: checker_info.deprecated,
+         no_warn_undefined: checker_info.no_warn_undefined
+       }}
+    end
+  end
 
-    contents =
+  defp debug_info(module, binary) do
+    with {:ok, {_, [debug_info: chunk]}} <- :beam_lib.chunks(binary, [:debug_info]),
+         {:debug_info_v1, backend, data} <- chunk,
+         {:ok, info} <- backend.debug_info(:elixir_v1, module, data, []) do
+      {:ok, %{definitions: info.definitions, file: info.relative_file}}
+    else
+      _ -> :error
+    end
+  end
+
+  defp checker_chunk(binary) do
+    with {:ok, {_, [{'ExCk', chunk}]}} <- :beam_lib.chunks(binary, ['ExCk']),
+         {:elixir_checker_v1, contents} <- :erlang.binary_to_term(chunk) do
+      deprecated = Enum.map(contents.exports, fn {fun, {_kind, reason}} -> {fun, reason} end)
+      {:ok, %{deprecated: deprecated, no_warn_undefined: contents.no_warn_undefined}}
+    else
+      _ -> :error
+    end
+  end
+
+  defp build_chunk(map) do
+    exports = ParallelChecker.definitions_to_exports(map.definitions)
+    deprecated = :maps.from_list(map.deprecated)
+
+    exports =
       Enum.map(exports, fn {function, kind} ->
         reason = :maps.get(function, deprecated, nil)
         {function, {kind, reason}}
       end)
 
-    {'ExCk', :erlang.term_to_binary({:elixir_checker_v1, Enum.sort(contents)})}
+    contents = %{
+      exports: Enum.sort(exports),
+      no_warn_undefined: map.no_warn_undefined
+    }
+
+    {'ExCk', :erlang.term_to_binary({:elixir_checker_v1, contents})}
   end
 
-  defp warnings(module_map, cache) do
+  defp warnings(map, cache) do
+    no_warn_undefined = map.no_warn_undefined ++ Code.compiler_option(:no_warn_undefined)
+
     state = %{
       cache: cache,
-      file: module_map.file,
-      module: module_map.module,
-      no_warn_undefined: no_warn_undefined(module_map),
+      file: map.file,
+      module: map.module,
+      no_warn_undefined: no_warn_undefined,
       function: nil,
       warnings: []
     }
 
-    state = check_definitions(module_map.definitions, state)
+    state = check_definitions(map.definitions, state)
 
     state.warnings
     |> merge_warnings()
     |> sort_warnings()
     |> emit_warnings()
-  end
-
-  defp no_warn_undefined(module_map) do
-    for(
-      {:no_warn_undefined, values} <- module_map.compile_opts,
-      value <- List.wrap(values),
-      do: value
-    ) ++ Code.compiler_option(:no_warn_undefined)
   end
 
   defp check_definitions(definitions, state) do

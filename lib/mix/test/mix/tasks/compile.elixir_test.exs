@@ -1,6 +1,7 @@
 Code.require_file("../../test_helper.exs", __DIR__)
 
 defmodule Mix.Tasks.Compile.ElixirTest do
+  import ExUnit.CaptureIO
   alias Mix.Task.Compiler.Diagnostic
   use MixTest.Case
 
@@ -86,8 +87,6 @@ defmodule Mix.Tasks.Compile.ElixirTest do
   end
 
   test "does not write BEAM files down on failures" do
-    import ExUnit.CaptureIO
-
     in_tmp("blank", fn ->
       File.mkdir_p!("lib")
       File.write!("lib/a.ex", "raise ~s(oops)")
@@ -450,13 +449,12 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       """)
 
       # First compilation should print unused variable warning
-      import ExUnit.CaptureIO
 
-      assert capture_io(:standard_error, fn ->
+      assert capture_io(:stderr, fn ->
                Mix.Tasks.Compile.Elixir.run([]) == :ok
              end) =~ "variable \"unused\" is unused"
 
-      assert capture_io(:standard_error, fn ->
+      assert capture_io(:stderr, fn ->
                Mix.Tasks.Compile.Elixir.run(["--all-warnings"])
              end) =~ "variable \"unused\" is unused"
 
@@ -467,7 +465,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       end
       """)
 
-      assert capture_io(:standard_error, fn ->
+      assert capture_io(:stderr, fn ->
                Mix.Tasks.Compile.Elixir.run(["--all-warnings"])
              end) == ""
     end)
@@ -490,7 +488,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
           "variable \"unused\" is unused (if the variable is not meant to be used, prefix it with an underscore)"
       }
 
-      ExUnit.CaptureIO.capture_io(:standard_error, fn ->
+      capture_io(:stderr, fn ->
         assert {:ok, [^diagnostic]} = Mix.Tasks.Compile.Elixir.run([])
       end)
 
@@ -512,7 +510,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
       file = Path.absname("lib/a.ex")
 
-      ExUnit.CaptureIO.capture_io(fn ->
+      capture_io(fn ->
         assert {:error, [diagnostic]} = Mix.Tasks.Compile.Elixir.run([])
 
         assert %Diagnostic{
@@ -540,7 +538,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       end
       """)
 
-      ExUnit.CaptureIO.capture_io(fn ->
+      capture_io(fn ->
         assert {:error, errors} = Mix.Tasks.Compile.Elixir.run([])
         errors = Enum.sort_by(errors, &Map.get(&1, :file))
 
@@ -552,6 +550,44 @@ defmodule Mix.Tasks.Compile.ElixirTest do
                  %Diagnostic{file: ^file_b, message: "deadlocked waiting on module A"}
                ] = errors
       end)
+    end)
+  end
+
+  test "verify runtime dependent modules that haven't been compiled" do
+    Mix.Project.pop()
+    Mix.Project.push(MixTest.Case.Sample)
+
+    in_fixture("no_mixfile", fn ->
+      File.write!("lib/a.ex", """
+      defmodule A do
+        def foo(), do: B.bar()
+      end
+      """)
+
+      File.write!("lib/b.ex", """
+      defmodule B do
+        def bar(), do: :ok
+      end
+      """)
+
+      assert capture_io(:stderr, fn ->
+               Mix.Tasks.Compile.Elixir.run(["--verbose"])
+             end) == ""
+
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+
+      File.write!("lib/b.ex", """
+      defmodule B do
+      end
+      """)
+
+      assert capture_io(:stderr, fn ->
+               Mix.Tasks.Compile.Elixir.run(["--verbose"])
+             end) =~ "B.bar/0 is undefined or private"
+
+      refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
     end)
   end
 end

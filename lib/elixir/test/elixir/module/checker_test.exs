@@ -27,9 +27,9 @@ defmodule Module.CheckerTest do
       }
 
       modules = compile(files)
-      exports = read_chunk(modules[A])
+      contents = read_chunk(modules[A])
 
-      assert exports == [
+      assert contents.exports == [
                {{:c, 0}, {:def, nil}},
                {{:d, 0}, {:defmacro, nil}},
                {{:e, 0}, {:def, "oops"}}

@@ -223,7 +223,7 @@ defmodule Mix.Compilers.Elixir do
       update_stale_entries(pending_modules, sources, [], %{}, pending_structs, compile_path)
 
     if changed == [] do
-      []
+      {:runtime, dependent_modules(sources, modules, pending_modules)}
     else
       modules =
         for module(sources: source_files) = module <- modules do
@@ -232,8 +232,33 @@ defmodule Mix.Compilers.Elixir do
 
       sources = update_stale_sources(sources, changed)
       put_compiler_info({modules, structs, sources, pending_modules, %{}})
-      changed
+      {:compile, changed}
     end
+  end
+
+  defp dependent_modules(sources, all_modules, pending_modules) do
+    changed_modules =
+      for module(module: module) = entry <- all_modules,
+          entry not in pending_modules,
+          into: %{},
+          do: {module, true}
+
+    Enum.flat_map(pending_modules, fn module(sources: source_files, module: module) ->
+      depending? =
+        Enum.any?(source_files, fn file ->
+          source(
+            compile_references: compile_refs,
+            struct_references: struct_refs,
+            runtime_references: runtime_refs
+          ) = List.keyfind(sources, file, source(:source))
+
+          has_any_key?(changed_modules, compile_refs) or
+            has_any_key?(changed_modules, struct_refs) or
+            has_any_key?(changed_modules, runtime_refs)
+        end)
+
+      if depending?, do: [module], else: []
+    end)
   end
 
   defp each_module(file, module, _binary, cwd) do
