@@ -209,6 +209,14 @@ defmodule Registry do
   @typedoc "A full match spec used when selecting objects in the registry"
   @type spec :: [{match_pattern, guards, body}]
 
+  @typedoc "Options used for child_spec/1 and start_link/1"
+  @type start_option ::
+          {:keys, keys}
+          | {:name, registry}
+          | {:partitions, pos_integer}
+          | {:listeners, [atom]}
+          | {:meta, [{meta_key, meta_value}]}
+
   ## Via callbacks
 
   @doc false
@@ -306,14 +314,7 @@ defmodule Registry do
 
   """
   @doc since: "1.5.0"
-  @spec start_link(
-          keys: keys,
-          name: registry,
-          partitions: pos_integer,
-          listeners: [atom],
-          meta: meta
-        ) :: {:ok, pid} | {:error, term}
-        when meta: [{meta_key, meta_value}]
+  @spec start_link([start_option]) :: {:ok, pid} | {:error, term}
   def start_link(options) do
     keys = Keyword.get(options, :keys)
 
@@ -375,10 +376,11 @@ defmodule Registry do
   See `Supervisor`.
   """
   @doc since: "1.5.0"
-  def child_spec(opts) do
+  @spec child_spec([start_option]) :: Supervisor.child_spec()
+  def child_spec(options) do
     %{
-      id: Keyword.get(opts, :name, Registry),
-      start: {Registry, :start_link, [opts]},
+      id: Keyword.get(options, :name, Registry),
+      start: {Registry, :start_link, [options]},
       type: :supervisor
     }
   end
