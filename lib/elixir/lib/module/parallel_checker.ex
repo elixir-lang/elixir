@@ -10,19 +10,44 @@ defmodule Module.ParallelChecker do
   the modules and adds the ExCk chunk to the binaries. Returns the updated
   binaries and a list of warnings from the verification.
   """
-  @spec verify([%{}], pos_integer()) :: {[{module(), binary()}], [warning()]}
-  def verify([], _schedulers) do
-    {[], []}
+  @spec verify([{%{}, binary()}], [{module(), binary()}], pos_integer()) ::
+          {[{module(), binary()}], [warning()]}
+  def verify(compiled_modules, runtime_binaries, schedulers) do
+    compiled_maps = Enum.map(compiled_modules, fn {map, _binary} -> {map.module, map} end)
+    check_modules = compiled_maps ++ runtime_binaries
+
+    {:ok, server} = :gen_server.start_link(__MODULE__, [check_modules, self(), schedulers], [])
+    preload_cache(get_ets(server), check_modules)
+    start(server)
+
+    compiled_binaries = Enum.map(compiled_modules, fn {map, binary} -> {map.module, binary} end)
+    old_binaries = :maps.from_list(compiled_binaries ++ runtime_binaries)
+    collect_results(old_binaries, [], [])
   end
 
-  def verify(modules, schedulers) do
-    {:ok, server} = :gen_server.start_link(__MODULE__, [modules, schedulers], [])
+  defp collect_results(old_binaries, binaries, warnings) when map_size(old_binaries) == 0 do
+    {binaries, warnings}
+  end
 
-    try do
-      start_and_wait(server)
-    after
-      :gen_server.stop(server)
+  defp collect_results(old_binaries, binaries, warnings) do
+    receive do
+      {__MODULE__, module, chunk, new_warnings} ->
+        {binary, old_binaries} = :maps.take(module, old_binaries)
+        binaries = [{module, add_chunk(chunk, binary)} | binaries]
+
+        warnings = new_warnings ++ warnings
+        collect_results(old_binaries, binaries, warnings)
     end
+  end
+
+  defp add_chunk(nil, binary) do
+    binary
+  end
+
+  defp add_chunk(chunk, binary) do
+    {:ok, _module, chunks} = :beam_lib.all_chunks(binary)
+    {:ok, binary} = :beam_lib.build_module([chunk | :lists.keydelete('ExCk', 1, chunks)])
+    binary
   end
 
   @doc """
@@ -87,27 +112,19 @@ defmodule Module.ParallelChecker do
     end)
   end
 
-  def init([modules, schedulers]) do
+  def init([modules, send_results, schedulers]) do
     ets = :ets.new(:checker_cache, [:set, :public, {:read_concurrency, true}])
-    preload_cache(ets, modules)
 
     state = %{
       ets: ets,
       waiting: %{},
-      reply_when_finished: nil,
+      send_results: send_results,
       modules: modules,
       spawned: 0,
-      schedulers: schedulers,
-      binaries: [],
-      warnings: []
+      schedulers: schedulers
     }
 
     {:ok, state}
-  end
-
-  def handle_call(:start_and_wait, from, %{reply_when_finished: nil} = state) do
-    state = spawn_checkers(%{state | reply_when_finished: from})
-    {:noreply, state}
   end
 
   def handle_call({:lock, module}, from, %{waiting: waiting} = state) do
@@ -129,25 +146,27 @@ defmodule Module.ParallelChecker do
     {:reply, :ok, %{state | waiting: waiting}}
   end
 
-  def handle_info({__MODULE__, module, binary, warnings}, state) do
-    state = %{
-      state
-      | binaries: [{module, binary} | state.binaries],
-        warnings: warnings ++ state.warnings,
-        spawned: state.spawned - 1
-    }
+  def handle_call(:get_ets, _from, %{ets: ets} = state) do
+    {:reply, ets, state}
+  end
+
+  def handle_cast(:start, %{modules: []} = state) do
+    {:stop, :normal, state}
+  end
+
+  def handle_cast(:start, state) do
+    {:noreply, spawn_checkers(state)}
+  end
+
+  def handle_info({__MODULE__, :done}, state) do
+    state = %{state | spawned: state.spawned - 1}
 
     if state.spawned == 0 and state.modules == [] do
-      :gen_server.reply(state.reply_when_finished, {state.binaries, state.warnings})
-      {:noreply, state}
+      {:stop, :normal, state}
     else
       state = spawn_checkers(state)
       {:noreply, state}
     end
-  end
-
-  defp start_and_wait(server) do
-    :gen_server.call(server, :start_and_wait, :infinity)
   end
 
   defp lock(server, module) do
@@ -158,11 +177,18 @@ defmodule Module.ParallelChecker do
     :gen_server.call(server, {:unlock, module})
   end
 
+  defp get_ets(server) do
+    :gen_server.call(server, :get_ets)
+  end
+
+  defp start(server) do
+    :gen_server.cast(server, :start)
+  end
+
   defp preload_cache(ets, modules) do
-    Enum.each(modules, fn {map, _binary} ->
-      exports = [{{:__info__, 1}, :def} | definitions_to_exports(map.definitions)]
-      deprecated = :maps.from_list(map.deprecated)
-      cache_info(ets, map.module, exports, deprecated)
+    Enum.each(modules, fn
+      {_module, map} when is_map(map) -> cache_from_module_map(ets, map)
+      {module, binary} when is_binary(binary) -> cache_from_chunk(ets, module, binary)
     end)
   end
 
@@ -175,13 +201,15 @@ defmodule Module.ParallelChecker do
     state
   end
 
-  defp spawn_checkers(%{modules: [{map, binary} | modules]} = state) do
+  defp spawn_checkers(%{modules: [{module, _} = verify | modules]} = state) do
     parent = self()
     ets = state.ets
+    send_results_pid = state.send_results
 
     spawn_link(fn ->
-      {binary, warnings} = Module.Checker.verify(map, binary, {parent, ets})
-      send(parent, {__MODULE__, map.module, binary, warnings})
+      {chunk, warnings} = Module.Checker.verify(verify, {parent, ets})
+      send(send_results_pid, {__MODULE__, module, chunk, warnings})
+      send(parent, {__MODULE__, :done})
     end)
 
     spawn_checkers(%{state | modules: modules, spawned: state.spawned + 1})
@@ -195,22 +223,26 @@ defmodule Module.ParallelChecker do
   end
 
   defp cache_from_chunk(ets, module) do
-    with {^module, binary, _filename} <- :code.get_object_code(module),
-         {:ok, chunk} <- get_chunk(binary),
+    case :code.get_object_code(module) do
+      {^module, binary, _filename} -> cache_from_chunk(ets, module, binary)
+      _other -> false
+    end
+  end
+
+  defp cache_from_chunk(ets, module, binary) do
+    with {:ok, {_, [{'ExCk', chunk}]}} <- :beam_lib.chunks(binary, ['ExCk']),
          {:elixir_checker_v1, contents} <- :erlang.binary_to_term(chunk) do
-      cache_chunk(ets, module, contents)
+      cache_chunk(ets, module, contents.exports)
       true
     else
       _ -> false
     end
   end
 
-  defp get_chunk(binary) do
-    case :beam_lib.chunks(binary, ['ExCk'], [:allow_missing_chunks]) do
-      {:ok, {_module, [{'ExCk', :missing_chunk}]}} -> :error
-      {:ok, {_module, [{'ExCk', chunk}]}} -> {:ok, chunk}
-      :error -> :error
-    end
+  defp cache_from_module_map(ets, map) do
+    exports = [{{:__info__, 1}, :def} | definitions_to_exports(map.definitions)]
+    deprecated = :maps.from_list(map.deprecated)
+    cache_info(ets, map.module, exports, deprecated)
   end
 
   defp cache_from_info(ets, module) do

@@ -62,7 +62,10 @@ defmodule Kernel.ParallelCompiler do
       the file, module and the module bytecode
 
     * `:each_cycle` - after the given files are compiled, invokes this function
-      that return a list with potentially more files to compile
+      that should return the following values:
+      * `{:compile, modules}` - to continue compilation with a list of further modules to compile
+      * `{:runtime, modules}` - to stop compilation and verify the list of modules because
+        dependent modules have changed
 
     * `:long_compilation_threshold` - the timeout (in seconds) after the
       `:each_long_compilation` callback is invoked; defaults to `15`
@@ -137,7 +140,7 @@ defmodule Kernel.ParallelCompiler do
     result =
       spawn_workers(files, 0, [], [], %{}, [], %{
         dest: Keyword.get(options, :dest),
-        each_cycle: Keyword.get(options, :each_cycle, fn -> [] end),
+        each_cycle: Keyword.get(options, :each_cycle, fn -> {:runtime, []} end),
         each_file: Keyword.get(options, :each_file, fn _, _ -> :ok end) |> each_file(),
         each_long_compilation: Keyword.get(options, :each_long_compilation, fn _file -> :ok end),
         each_module: Keyword.get(options, :each_module, fn _file, _module, _binary -> :ok end),
@@ -240,16 +243,14 @@ defmodule Kernel.ParallelCompiler do
 
   # No more queue, nothing waiting, this cycle is done
   defp spawn_workers([], 0, [], [], result, warnings, state) do
-    %{output: output, beam_timestamp: beam_timestamp, schedulers: schedulers} = state
+    case each_cycle_return(state.each_cycle.()) do
+      {:runtime, dependent_modules} ->
+        write_and_verify_modules(result, warnings, dependent_modules, state)
 
-    case state.each_cycle.() do
-      [] ->
-        {binaries, checker_warnings} = maybe_check_modules(result, schedulers)
-        write_module_binaries(output, beam_timestamp, binaries)
-        warnings = Enum.reverse(warnings, checker_warnings)
-        {:ok, Enum.map(binaries, &elem(&1, 0)), warnings}
+      {:compile, []} ->
+        write_and_verify_modules(result, warnings, [], state)
 
-      more ->
+      {:compile, more} ->
         spawn_workers(more, 0, [], [], result, warnings, state)
     end
   end
@@ -318,6 +319,19 @@ defmodule Kernel.ParallelCompiler do
     end
   end
 
+  # TODO: Deprecate on v1.12
+  defp each_cycle_return(modules) when is_list(modules), do: {:compile, modules}
+  defp each_cycle_return(other), do: other
+
+  defp write_and_verify_modules(result, warnings, dependent_modules, state) do
+    %{output: output, beam_timestamp: beam_timestamp, schedulers: schedulers} = state
+
+    {binaries, checker_warnings} = maybe_check_modules(result, dependent_modules, schedulers)
+    write_module_binaries(output, beam_timestamp, binaries)
+    warnings = Enum.reverse(warnings, checker_warnings)
+    {:ok, Enum.map(binaries, &elem(&1, 0)), warnings}
+  end
+
   defp write_module_binaries({:compile, path}, timestamp, result) do
     Enum.each(result, fn {module, binary} ->
       full_path = Path.join(path, Atom.to_string(module) <> ".beam")
@@ -330,14 +344,45 @@ defmodule Kernel.ParallelCompiler do
     :ok
   end
 
-  defp maybe_check_modules(result, schedulers) do
+  defp maybe_check_modules(result, runtime_modules, schedulers) do
     if :elixir_config.get(:bootstrap) do
       binaries = for {{:module, module}, {binary, _map}} <- result, do: {module, binary}
       {binaries, []}
     else
-      modules = for {{:module, _module}, {binary, map}} <- result, do: {map, binary}
-      Module.ParallelChecker.verify(modules, schedulers)
+      compiled_modules = checker_compiled_modules(result)
+      runtime_modules = checker_runtime_modules(runtime_modules)
+      Module.ParallelChecker.verify(compiled_modules, runtime_modules, schedulers)
     end
+  end
+
+  defp checker_compiled_modules(result) do
+    for {{:module, _module}, {binary, module_map}} <- result do
+      map = %{
+        module: module_map.module,
+        file: module_map.file,
+        no_warn_undefined: no_warn_undefined(module_map.compile_opts),
+        definitions: module_map.definitions,
+        deprecated: module_map.deprecated
+      }
+
+      {map, binary}
+    end
+  end
+
+  defp checker_runtime_modules(modules) do
+    for module <- modules,
+        path = :code.which(module),
+        is_list(path) do
+      {module, File.read!(path)}
+    end
+  end
+
+  defp no_warn_undefined(compile_opts) do
+    for(
+      {:no_warn_undefined, values} <- compile_opts,
+      value <- List.wrap(values),
+      do: value
+    )
   end
 
   # The goal of this function is to find leaves in the dependency graph,
