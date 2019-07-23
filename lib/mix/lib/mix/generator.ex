@@ -85,7 +85,7 @@ defmodule Mix.Generator do
   @doc ~S"""
   Evaluates and copy templates at `source` to `target`.
 
-  The template in `source` is evaluted with the given `assigns`.
+  The template in `source` is evaluated with the given `assigns`.
 
   If `target` already exists and the contents are not the same,
   it asks for user confirmation.

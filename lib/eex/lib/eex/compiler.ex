@@ -149,7 +149,7 @@ defmodule EEx.Compiler do
     {count, new_state}
   end
 
-  # Look middle expressions that immediatelly follow a start_expr
+  # Look middle expressions that immediately follow a start_expr
 
   defp look_ahead_middle(
          [{:text, text}, {:middle_expr, line, _, chars, _} | rest] = tokens,
