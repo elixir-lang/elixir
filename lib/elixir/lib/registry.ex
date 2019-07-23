@@ -209,7 +209,7 @@ defmodule Registry do
   @typedoc "A full match spec used when selecting objects in the registry"
   @type spec :: [{match_pattern, guards, body}]
 
-  @typedoc "Options used for child_spec/1 and start_link/1"
+  @typedoc "Options used for `child_spec/1` and `start_link/1`"
   @type start_option ::
           {:keys, keys}
           | {:name, registry}
