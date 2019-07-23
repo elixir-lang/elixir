@@ -796,8 +796,8 @@ defmodule MacroTest do
       Macro.pipe(Macro, quote(do: Env), 0)
     end
 
-    assert_raise ArgumentError, ~r"cannot pipe 1 into [] ++ []", fn ->
-      Macro.pipe(1, quote(do: [] ++ []), 0)
+    assert_raise ArgumentError, ~r"cannot pipe 1 into 2 && 3", fn ->
+      Macro.pipe(1, quote(do: 2 && 3), 0)
     end
 
     message = ~r"cannot pipe :foo into an anonymous function without calling"
