@@ -260,7 +260,6 @@ defmodule Agent do
       iex> {:ok, pid} = Agent.start_link(fn -> 42 end)
       iex> Agent.get(pid, fn state -> state end)
       42
-
       iex> {:error, {exception, _stacktrace}} = Agent.start(fn -> raise "oops" end)
       iex> exception
       %RuntimeError{message: "oops"}
