@@ -278,10 +278,10 @@ defmodule Macro do
 
   def pipe(expr, {op, line, args} = op_args, integer) when is_list(args) do
     cond do
-      is_atom(op) and Identifier.unary_op(op) != :error ->
+      is_atom(op) and Identifier.unary_op(op) != :error and length(args) == 1 ->
         raise ArgumentError,
               "cannot pipe #{to_string(expr)} into #{to_string(op_args)}, " <>
-                "piping into a unary operator is deprecated, please use the qualified name. " <>
+                "the #{to_string(op)} operator can only take two arguments. " <>
                 "For example, Kernel.+(5), instead of +5"
 
       is_atom(op) and Identifier.binary_op(op) != :error ->
