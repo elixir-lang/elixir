@@ -776,7 +776,7 @@ defmodule MacroTest do
       Macro.pipe(1, {:ok}, 0)
     end
 
-    assert_raise ArgumentError, ~r"cannot pipe 1 into 1 \+ 1", fn ->
+    assert_raise ArgumentError, ~r"cannot pipe 1 into 1 \+ 1, piping into a unary", fn ->
       Macro.pipe(1, quote(do: 1 + 1), 0) == quote(do: foo(1))
     end
 
