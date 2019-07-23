@@ -112,7 +112,7 @@ defmodule EExTest do
       assert_eval("foo ", "foo <%= if false do %>bar<% end %>")
     end
 
-    test "embedded code with do preceeded by bracket" do
+    test "embedded code with do preceded by bracket" do
       assert_eval("foo bar", "foo <%= if {true}do %>bar<% end %>")
       assert_eval("foo bar", "foo <%= if (true)do %>bar<% end %>")
       assert_eval("foo bar", "foo <%= if [true]do %>bar<% end %>")

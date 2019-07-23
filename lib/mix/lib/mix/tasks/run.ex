@@ -157,7 +157,7 @@ defmodule Mix.Tasks.Run do
         # TODO: Remove on v2.0.
         IO.warn(
           "the --config flag is deprecated. If you need to handle multiple configurations, " <>
-            "it is preferrable to dynamically import them in your config files"
+            "it is preferable to dynamically import them in your config files"
         )
 
         Mix.Task.run("loadconfig", [value])

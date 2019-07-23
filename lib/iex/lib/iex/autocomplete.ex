@@ -18,7 +18,7 @@ defmodule IEx.Autocomplete do
   The expansion logic.
 
   Some of the expansion has to be use the current shell
-  environemnt, which is found via the broker.
+  environment, which is found via the broker.
   """
   def expand(expr, server \\ IEx.Broker)
 
