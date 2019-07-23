@@ -789,7 +789,7 @@ defmodule MacroTest do
     end
 
     assert_raise ArgumentError, ~r"cannot pipe 1 into \+1", fn ->
-      Macro.pipe(1, quote(do: + 1), 0)
+      Macro.pipe(1, quote(do: +1), 0)
     end
 
     assert_raise ArgumentError, ~r"cannot pipe Macro into Env", fn ->
