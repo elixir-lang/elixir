@@ -36,18 +36,6 @@ defmodule IEx.Server do
     run_without_registration(opts)
   end
 
-  defp run_without_registration(opts) do
-    Process.flag(:trap_exit, true)
-    Process.link(Process.group_leader())
-
-    IO.puts(
-      "Interactive Elixir (#{System.version()}) - press Ctrl+C to exit (type h() ENTER for help)"
-    )
-
-    evaluator = start_evaluator(opts)
-    loop(iex_state(opts), evaluator, Process.monitor(evaluator))
-  end
-
   ## Private APIs
 
   # Starts IEx to run directly from the Erlang shell.
@@ -60,6 +48,7 @@ defmodule IEx.Server do
   @doc false
   @spec run_from_shell(keyword, {module, atom, [any]}) :: :ok
   def run_from_shell(opts, {m, f, a}) do
+    opts[:register] && IEx.Broker.register(self())
     Process.flag(:trap_exit, true)
     {pid, ref} = spawn_monitor(m, f, a)
     shell_loop(opts, pid, ref)
@@ -82,7 +71,22 @@ defmodule IEx.Server do
     end
   end
 
+  # Since we want to register only once, this function is the
+  # reentrant point for starting a new shell (instead of run/run_from_shell).
+  defp run_without_registration(opts) do
+    Process.flag(:trap_exit, true)
+    Process.link(Process.group_leader())
+
+    IO.puts(
+      "Interactive Elixir (#{System.version()}) - press Ctrl+C to exit (type h() ENTER for help)"
+    )
+
+    evaluator = start_evaluator(opts)
+    loop(iex_state(opts), evaluator, Process.monitor(evaluator))
+  end
+
   # Starts an evaluator using the provided options.
+  # Made public but undocumented for testing.
   @doc false
   @spec start_evaluator(keyword) :: pid
   def start_evaluator(opts) do

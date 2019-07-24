@@ -13,17 +13,12 @@ defmodule IEx.Broker do
   """
   @spec shell :: pid | nil
   def shell() do
-    # Locate top group leader, always registered as user
-    # can be implemented by group (normally) or user
-    # (if oldshell or noshell)
+    # Locate top group leader when using the "new shell".
     if user = Process.whereis(:user) do
       case :group.interfaces(user) do
         # Old or no shell
         [] ->
-          case :user.interfaces(user) do
-            [] -> nil
-            [shell: shell] -> shell
-          end
+          nil
 
         # Get current group from user_drv
         [user_drv: user_drv] ->
