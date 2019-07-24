@@ -276,13 +276,18 @@ defmodule Macro do
     {call, line, List.insert_at([], integer, expr)}
   end
 
+  def pipe(_expr, {op, _line, [arg]}, _integer) when op == :+ or op == :- do
+    raise ArgumentError,
+          "piping into a unary operator is not supported, please use the qualified name: " <>
+            "Kernel.#{op}(#{to_string(arg)}), instead of #{op}#{to_string(arg)}"
+  end
+
   def pipe(expr, {op, line, args} = op_args, integer) when is_list(args) do
     cond do
-      is_atom(op) and Identifier.unary_op(op) != :error and length(args) == 1 ->
+      is_atom(op) and Identifier.unary_op(op) != :error ->
         raise ArgumentError,
               "cannot pipe #{to_string(expr)} into #{to_string(op_args)}, " <>
-                "the #{to_string(op)} operator can only take two arguments. " <>
-                "For example, Kernel.+(5), instead of +5"
+                "the #{to_string(op)} operator can only take one argument"
 
       is_atom(op) and Identifier.binary_op(op) != :error ->
         raise ArgumentError,
