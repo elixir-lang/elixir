@@ -3407,18 +3407,6 @@ defmodule Kernel do
     [{h, _} | t] = Macro.unpipe({:|>, [], [left, right]})
 
     fun = fn {x, pos}, acc ->
-      case x do
-        {op, _, [_]} when op == :+ or op == :- ->
-          message =
-            <<"piping into a unary operator is deprecated, please use the ",
-              "qualified name. For example, Kernel.+(5), instead of +5">>
-
-          IO.warn(message, Macro.Env.stacktrace(__CALLER__))
-
-        _ ->
-          :ok
-      end
-
       Macro.pipe(acc, x, pos)
     end
 
