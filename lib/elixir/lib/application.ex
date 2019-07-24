@@ -208,12 +208,11 @@ defmodule Application do
   itself before your test runs. `mix run --no-halt` boots your current project and
   can be used to start a long running system. See `mix help run`.
 
-  Developers can also use tools like [Distillery](https://github.com/bitwalker/distillery)
-  that build **releases**. Releases are able to package all of your source code
-  as well as the Erlang VM into a single directory. Releases also give you explicit
-  control over how each application is started and in which order. They also provide
-  a more streamlined mechanism for starting and stopping systems, debugging, logging,
-  as well as system monitoring.
+  Developers can also use `mix release` to build **releases**. Releases are able to 
+  package all of your source code as well as the Erlang VM into a single  directory. 
+  Releases also give you explicit control over how each application is started and in
+  which order. They also provide   a more streamlined mechanism for starting and 
+  stopping systems, debugging, logging, as well as system monitoring.
 
   Finally, Elixir provides tools such as escripts and archives, which are
   different mechanisms for packaging your application. Those are typically used
