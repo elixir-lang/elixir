@@ -62,7 +62,7 @@ defmodule IEx.CLI do
 
       :application.set_env(:stdlib, :shell_prompt_func, {__MODULE__, :prompt})
       :user.start()
-      local_start()
+      IEx.start([register: true] ++ options(), {:elixir, :start_cli, []})
     end
   end
 
@@ -115,17 +115,13 @@ defmodule IEx.CLI do
     end
   end
 
-  def local_start do
-    IEx.start(options(), {:elixir, :start_cli, []})
-  end
-
   def remote_start(parent, ref) do
     send(parent, {:begin, ref, self()})
     receive do: ({:done, ^ref} -> :ok)
   end
 
   defp local_start_mfa do
-    {__MODULE__, :local_start, []}
+    {IEx, :start, [options(), {:elixir, :start_cli, []}]}
   end
 
   defp remote_start_mfa do
