@@ -61,7 +61,7 @@ defmodule Mix.Tasks.Escript.Build do
       Defaults to app name. Set it to `nil` if no application should
       be started.
 
-    * `:strip_beam` - if `true` strips BEAM code in the escript to remove chunks
+    * `:strip_beams` - if `true` strips BEAM code in the escript to remove chunks
       unnecessary at runtime, such as debug information and documentation.
       Defaults to `true`.
 
@@ -163,7 +163,17 @@ defmodule Mix.Tasks.Escript.Build do
     end
 
     app = Keyword.get(escript_opts, :app, project[:app])
-    strip_beam? = Keyword.get(escript_opts, :strip_beam, true)
+
+    # Need to keep :strip_beam option for backward compatibility so
+    # check for correct :strip_beams, then :strip_beam, then
+    # use default true if neither are present.
+    #
+    # TODO: Deprecate :strip_beam option
+    strip_beams? =
+      Keyword.get_lazy(escript_opts, :strip_beams, fn ->
+        Keyword.get(escript_opts, :strip_beam, true)
+      end)
+
     escript_mod = String.to_atom(Atom.to_string(app) <> "_escript")
 
     beam_paths =
@@ -173,7 +183,7 @@ defmodule Mix.Tasks.Escript.Build do
       |> Map.merge(consolidated_paths(project))
 
     tuples = gen_main(project, escript_mod, main, app, language) ++ read_beams(beam_paths)
-    tuples = if strip_beam?, do: strip_beams(tuples), else: tuples
+    tuples = if strip_beams?, do: strip_beams(tuples), else: tuples
 
     case :zip.create('mem', tuples, [:memory]) do
       {:ok, {'mem', zip}} ->

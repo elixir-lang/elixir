@@ -18,7 +18,7 @@ defmodule Mix.Tasks.EscriptTest do
       [
         app: :escript_test_with_debug_info,
         version: "0.0.1",
-        escript: [main_module: EscriptTest, strip_beam: false]
+        escript: [main_module: EscriptTest, strip_beams: false]
       ]
     end
   end
