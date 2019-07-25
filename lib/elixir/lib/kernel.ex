@@ -3905,7 +3905,7 @@ defmodule Kernel do
       end
 
     # We reimplement Macro.Env.vars/1 due to bootstrap concerns.
-    module_vars = module_vars(:maps.keys(env.current_vars), 0)
+    module_vars = module_vars(:maps.keys(elem(env.current_vars, 0)), 0)
 
     quote do
       unquote(with_alias)
