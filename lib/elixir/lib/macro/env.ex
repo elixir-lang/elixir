@@ -43,7 +43,6 @@ defmodule Macro.Env do
   relied on. To get a list of all variables, see `vars/1`:
 
     * `current_vars`
-    * `unused_vars`
     * `prematch_vars`
     * `contextual_vars`
 
@@ -69,9 +68,11 @@ defmodule Macro.Env do
   @typep vars :: [variable]
   @typep var_type :: :term
   @typep var_version :: non_neg_integer
-  @typep unused_vars :: %{optional({variable, var_version}) => non_neg_integer | false}
-  @typep current_vars :: %{optional(variable) => {var_version, var_type}}
-  @typep prematch_vars :: current_vars | :warn | :raise | :pin | :apply
+  @typep current_vars ::
+           {%{optional(variable) => {var_version, var_type}},
+            %{optional({variable, var_version}) => non_neg_integer | false}}
+  @typep prematch_vars ::
+           %{optional(variable) => {var_version, var_type}} | :warn | :raise | :pin | :apply
   @typep contextual_vars :: [atom]
 
   @type t :: %{
@@ -88,7 +89,6 @@ defmodule Macro.Env do
           macro_aliases: macro_aliases,
           context_modules: context_modules,
           vars: vars,
-          unused_vars: unused_vars,
           current_vars: current_vars,
           prematch_vars: prematch_vars,
           lexical_tracker: lexical_tracker,
@@ -111,8 +111,7 @@ defmodule Macro.Env do
       macro_aliases: [],
       context_modules: [],
       vars: [],
-      unused_vars: %{},
-      current_vars: %{},
+      current_vars: {%{}, %{}},
       prematch_vars: :warn,
       lexical_tracker: nil,
       contextual_vars: []
@@ -135,7 +134,7 @@ defmodule Macro.Env do
   @spec vars(t) :: [variable]
   def vars(env)
 
-  def vars(%{__struct__: Macro.Env, current_vars: current_vars}) do
+  def vars(%{__struct__: Macro.Env, current_vars: {current_vars, _}}) do
     Map.keys(current_vars)
   end
 
@@ -146,7 +145,7 @@ defmodule Macro.Env do
   @spec has_var?(t, variable) :: boolean()
   def has_var?(env, var)
 
-  def has_var?(%{__struct__: Macro.Env, current_vars: current_vars}, var) do
+  def has_var?(%{__struct__: Macro.Env, current_vars: {current_vars, _}}, var) do
     Map.has_key?(current_vars, var)
   end
 
@@ -169,7 +168,7 @@ defmodule Macro.Env do
     env
   end
 
-  def to_match(%{__struct__: Macro.Env, current_vars: vars} = env) do
+  def to_match(%{__struct__: Macro.Env, current_vars: {vars, _}} = env) do
     %{env | context: :match, prematch_vars: vars}
   end
 

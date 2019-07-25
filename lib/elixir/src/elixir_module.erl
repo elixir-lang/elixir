@@ -56,13 +56,13 @@ next_counter(Module) ->
 
 compile(Module, _Block, _Vars, #{line := Line, file := File}) when Module == nil; is_boolean(Module) ->
   elixir_errors:form_error([{line, Line}], File, ?MODULE, {invalid_module, Module});
-compile(Module, Block, Vars, #{line := Line} = Env) when is_atom(Module) ->
+compile(Module, Block, Vars, #{line := Line, current_vars := {Current, _}} = Env) when is_atom(Module) ->
   %% In case we are generating a module from inside a function,
   %% we get rid of the lexical tracker information as, at this
   %% point, the lexical tracker process is long gone.
   LexEnv = case ?key(Env, function) of
-    nil -> Env#{module := Module, unused_vars := #{}};
-    _   -> Env#{lexical_tracker := nil, function := nil, module := Module, unused_vars := #{}}
+    nil -> Env#{module := Module, current_vars := {Current, #{}}};
+    _   -> Env#{lexical_tracker := nil, function := nil, module := Module, current_vars := {Current, #{}}}
   end,
 
   case ?key(LexEnv, lexical_tracker) of

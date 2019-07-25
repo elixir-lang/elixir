@@ -9,7 +9,7 @@
 
 match(Fun, Expr, #{context := match} = E) ->
   Fun(Expr, E);
-match(Fun, Expr, #{context := Context, prematch_vars := Prematch, current_vars := Current} = E) ->
+match(Fun, Expr, #{context := Context, prematch_vars := Prematch, current_vars := {Current, _}} = E) ->
   {EExpr, EE} = Fun(Expr, E#{context := match, prematch_vars := Current}),
   {EExpr, EE#{context := Context, prematch_vars := Prematch}}.
 

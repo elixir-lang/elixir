@@ -409,11 +409,7 @@ end
 
 defimpl Inspect, for: Any do
   defmacro __deriving__(module, struct, options) do
-    fields =
-      struct
-      |> Map.drop([:__exception__, :__struct__])
-      |> Map.keys()
-
+    fields = Map.keys(struct) -- [:__exception__, :__struct__]
     only = Keyword.get(options, :only, fields)
     except = Keyword.get(options, :except, [])
 
@@ -469,3 +465,24 @@ defimpl Inspect, for: Any do
     container_doc(open, map, close, opts, &Inspect.List.keyword/2, separator: sep, break: :strict)
   end
 end
+
+require Protocol
+
+Protocol.derive(
+  Inspect,
+  Macro.Env,
+  only: [
+    :module,
+    :file,
+    :line,
+    :function,
+    :context,
+    :aliases,
+    :requires,
+    :functions,
+    :macros,
+    :macro_aliases,
+    :context_modules,
+    :lexical_tracker
+  ]
+)

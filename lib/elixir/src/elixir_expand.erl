@@ -310,17 +310,19 @@ expand({super, Meta, Args}, E) when is_list(Args) ->
 %% Vars
 
 expand({'^', Meta, [Arg]}, #{context := match} = E) ->
-  #{current_vars := Current, prematch_vars := Prematch} = E,
+  #{current_vars := {Current, Unused}, prematch_vars := Prematch} = E,
 
   %% We need to rollback to a no match context.
-  NoMatchE = E#{context := nil, current_vars := Prematch, prematch_vars := pin},
+  NoMatchE = E#{context := nil, current_vars := {Prematch, Unused}, prematch_vars := pin},
 
   case expand(Arg, NoMatchE) of
     {{Name, _, Kind} = Var, ExpandedE} when is_atom(Name), is_atom(Kind) ->
+      #{current_vars := {NewPrematch, NewUnused}} = ExpandedE,
+
       EA = ExpandedE#{
         context := match,
-        current_vars := Current,
-        prematch_vars := ?key(ExpandedE, current_vars)
+        current_vars := {Current, NewUnused},
+        prematch_vars := NewPrematch
       },
 
       {{'^', Meta, [Var]}, EA};
@@ -336,7 +338,7 @@ expand({'_', Meta, Kind}, E) when is_atom(Kind) ->
   form_error(Meta, E, ?MODULE, unbound_underscore);
 
 expand({Name, Meta, Kind} = Var, #{context := match} = E) when is_atom(Name), is_atom(Kind) ->
-  #{unused_vars := Unused, current_vars := Current, prematch_vars := Prematch} = E,
+  #{current_vars := {Current, Unused}, prematch_vars := Prematch} = E,
   Pair = {Name, elixir_utils:var_context(Meta, Kind)},
   PrematchVersion = var_version(Prematch, Pair),
 
@@ -346,25 +348,25 @@ expand({Name, Meta, Kind} = Var, #{context := match} = E) when is_atom(Name), is
       #{Pair := PrematchVersion} ->
         NewUnused = var_unused(Pair, Meta, PrematchVersion + 1, Unused),
         NewCurrent = Current#{Pair => PrematchVersion + 1},
-        E#{unused_vars := NewUnused, current_vars := NewCurrent};
+        E#{current_vars := {NewCurrent, NewUnused}};
 
       %% Variable was already overriden
       #{Pair := CurrentVersion} ->
         maybe_warn_underscored_var_repeat(Meta, Name, Kind, E),
         NewUnused = Unused#{{Pair, CurrentVersion} => false},
-        E#{unused_vars := NewUnused};
+        E#{current_vars := {Current, NewUnused}};
 
       %% Variable defined for the first time
       _ ->
         NewVars = ordsets:add_element(Pair, ?key(E, vars)),
         NewUnused = var_unused(Pair, Meta, 0, Unused),
         NewCurrent = Current#{Pair => 0},
-        E#{vars := NewVars, unused_vars := NewUnused, current_vars := NewCurrent}
+        E#{vars := NewVars, current_vars := {NewCurrent, NewUnused}}
     end,
 
   {Var, EE};
 expand({Name, Meta, Kind} = Var, E) when is_atom(Name), is_atom(Kind) ->
-  #{unused_vars := Unused, current_vars := Current} = E,
+  #{current_vars := {Current, Unused}} = E,
   Pair = {Name, elixir_utils:var_context(Meta, Kind)},
 
   case Current of
@@ -374,7 +376,7 @@ expand({Name, Meta, Kind} = Var, E) when is_atom(Name), is_atom(Kind) ->
 
       case Unused of
         #{UnusedKey := Entry} when Entry /= false ->
-          {Var, E#{unused_vars := Unused#{UnusedKey := false}}};
+          {Var, E#{current_vars := {Current, Unused#{UnusedKey := false}}}};
         _ ->
           {Var, E}
       end;
@@ -484,12 +486,12 @@ expand(Other, E) ->
 
 %% Helpers
 
-escape_env_entries(Meta, #{unused_vars := Unused, current_vars := Current} = Env0) ->
+escape_env_entries(Meta, #{current_vars := {Current, Unused}} = Env0) ->
   Env1 = case Env0 of
     #{function := nil} -> Env0;
     _ -> Env0#{lexical_tracker := nil}
   end,
-  Env2 = Env1#{unused_vars := escape_map(Unused), current_vars := escape_map(Current)},
+  Env2 = Env1#{current_vars := {escape_map(Current), escape_map(Unused)}},
   Env3 = elixir_env:linify({?line(Meta), Env2}),
   Env3.
 
@@ -754,7 +756,7 @@ assert_no_ambiguous_op(Name, Meta, [Arg], E) ->
     {ambiguous_op, Kind} ->
       Pair = {Name, Kind},
       case ?key(E, current_vars) of
-        #{Pair := _} ->
+        {#{Pair := _}, _} ->
           form_error(Meta, E, ?MODULE, {op_ambiguity, Name, Arg});
         _ ->
           ok
