@@ -420,17 +420,17 @@ defimpl Inspect, for: Any do
 
     inspect_module =
       if fields == only and except == [] do
-        quote(do: Inspect.Map)
+        Inspect.Map
       else
-        quote(do: Inspect.Any)
+        Inspect.Any
       end
 
     quote do
       defimpl Inspect, for: unquote(module) do
-        def inspect(struct, opts) do
-          map = Map.take(struct, unquote(filtered_fields))
-          name = Identifier.inspect_as_atom(unquote(module))
-          unquote(inspect_module).inspect(map, name, opts)
+        def inspect(var!(struct), var!(opts)) do
+          var!(map) = Map.take(var!(struct), unquote(filtered_fields))
+          var!(name) = Identifier.inspect_as_atom(unquote(module))
+          unquote(inspect_module).inspect(var!(map), var!(name), var!(opts))
         end
       end
     end
