@@ -156,9 +156,9 @@ if not !runMode! == "iex" (
   set beforeExtra=-noshell -s elixir start_cli !beforeExtra!
 )
 if defined useWerl (
-  start !ERTS_BIN!werl.exe !ext_libs! !ELIXIR_ERL_OPTIONS! !parsErlang! !beforeExtra! -extra !parsElixir!
+  start "" "!ERTS_BIN!werl.exe" !ext_libs! !ELIXIR_ERL_OPTIONS! !parsErlang! !beforeExtra! -extra !parsElixir!
 ) else (
-  !ERTS_BIN!erl.exe !ext_libs! !ELIXIR_ERL_OPTIONS! !parsErlang! !beforeExtra! -extra !parsElixir!
+  "!ERTS_BIN!erl.exe" !ext_libs! !ELIXIR_ERL_OPTIONS! !parsErlang! !beforeExtra! -extra !parsElixir!
 )
 :end
 endlocal
