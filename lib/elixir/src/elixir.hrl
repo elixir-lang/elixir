@@ -13,6 +13,7 @@
   backup_vars=nil,         %% a copy of vars to be used on ^var
   extra_guards=[],         %% extra guards from args expansion
   counter=#{},             %% a map counting the variables defined
+  expand_captures=false,   %% a boolean to control if captures should be expanded
   stacktrace=false         %% holds information about the stacktrace variable
 }).
 

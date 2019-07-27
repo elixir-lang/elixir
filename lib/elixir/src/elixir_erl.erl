@@ -1,7 +1,7 @@
 %% Compiler backend to Erlang.
 -module(elixir_erl).
 -export([elixir_to_erl/1, definition_to_anonymous/4, compile/1, consolidate/3,
-         get_ann/1, debug_info/4, scope/1, format_error/1]).
+         get_ann/1, debug_info/4, scope/2, format_error/1]).
 -include("elixir.hrl").
 -define(typespecs, 'Elixir.Kernel.Typespec').
 
@@ -48,7 +48,7 @@ get_ann([], Gen, Line) -> erl_anno:set_generated(Gen, Line).
 %% Converts an Elixir definition to an anonymous function.
 
 definition_to_anonymous(Module, Kind, Meta, Clauses) ->
-  ErlClauses = [translate_clause(Kind, Clause) || Clause <- Clauses],
+  ErlClauses = [translate_clause(Kind, Clause, true) || Clause <- Clauses],
   Fun = {'fun', ?ann(Meta), {clauses, ErlClauses}},
   LocalHandler = fun(LocalName, LocalArgs) -> invoke_local(Module, LocalName, LocalArgs) end,
   {value, Result, _Binding} = erl_eval:expr(Fun, [], {value, LocalHandler}),
@@ -117,8 +117,8 @@ elixir_to_erl_cons(T) -> elixir_to_erl(T).
 
 %% Returns a scope for translation.
 
-scope(_Meta) ->
-  #elixir_erl{}.
+scope(_Meta, ExpandCaptures) ->
+  #elixir_erl{expand_captures=ExpandCaptures}.
 
 %% Static compilation hook, used in protocol consolidation
 
@@ -217,15 +217,15 @@ add_definition(Meta, Body, {Head, Tail}) ->
   end.
 
 translate_definition(Kind, Meta, {Name, Arity}, Clauses) ->
-  ErlClauses = [translate_clause(Kind, Clause) || Clause <- Clauses],
+  ErlClauses = [translate_clause(Kind, Clause, false) || Clause <- Clauses],
 
   case is_macro(Kind) of
     true -> {function, ?ann(Meta), elixir_utils:macro_name(Name), Arity + 1, ErlClauses};
     false -> {function, ?ann(Meta), Name, Arity, ErlClauses}
   end.
 
-translate_clause(Kind, {Meta, Args, Guards, Body}) ->
-  S = scope(Meta),
+translate_clause(Kind, {Meta, Args, Guards, Body}, ExpandCaptures) ->
+  S = scope(Meta, ExpandCaptures),
 
   {TClause, TS} = elixir_erl_clauses:clause(Meta,
                     fun elixir_erl_pass:translate_args/2, Args, Body, Guards, S),
