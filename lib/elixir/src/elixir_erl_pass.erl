@@ -96,7 +96,15 @@ translate({'&', Meta, [{'/', _, [{{'.', _, [Remote, Fun]}, _, []}, Arity]}]}, S)
   {{'fun', Ann, {function, TRemote, TFun, TArity}}, SR};
 translate({'&', Meta, [{'/', _, [{Fun, _, Atom}, Arity]}]}, S)
     when is_atom(Fun), is_atom(Atom), is_integer(Arity) ->
-  {{'fun', ?ann(Meta), {function, Fun, Arity}}, S};
+  case S of
+    #elixir_erl{expand_captures=true} ->
+      Vars = [{list_to_atom("arg" ++ integer_to_list(Counter)), [], ?MODULE}
+              || Counter <- tl(lists:seq(0, Arity))],
+      translate({'fn', Meta, [{'->', Meta, [Vars, {Fun, Meta, Vars}]}]}, S);
+
+    #elixir_erl{expand_captures=false} ->
+      {{'fun', ?ann(Meta), {function, Fun, Arity}}, S}
+  end;
 
 translate({fn, Meta, Clauses}, S) ->
   Transformer = fun({'->', CMeta, [ArgsWithGuards, Expr]}, Acc) ->

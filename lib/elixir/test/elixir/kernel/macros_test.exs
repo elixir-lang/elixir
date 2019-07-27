@@ -34,6 +34,10 @@ defmodule Kernel.MacrosTest do
     quote(do: 1 + unquote(value))
   end
 
+  defmacro my_macro_with_capture(value) do
+    Enum.map(value, &by_two/1)
+  end
+
   test "require" do
     assert Kernel.MacrosTest.Nested.value() == 1
   end
@@ -42,7 +46,7 @@ defmodule Kernel.MacrosTest do
     assert Nested.value() == 1
   end
 
-  test "local but private macro" do
+  test "local with private macro" do
     assert my_private_macro() == 4
   end
 
@@ -52,6 +56,10 @@ defmodule Kernel.MacrosTest do
 
   test "local with local call" do
     assert my_macro_with_local(4) == 17
+  end
+
+  test "local with capture" do
+    assert my_macro_with_capture([1, 2, 3]) == [2, 4, 6]
   end
 
   test "macros cannot be called dynamically" do
