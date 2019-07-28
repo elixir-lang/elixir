@@ -35,6 +35,7 @@ defmodule DateTime do
   or by calling `Calendar.put_time_zone_database/1`:
 
       Calendar.put_time_zone_database(Tzdata.TimeZoneDatabase)
+
   """
 
   @enforce_keys [:year, :month, :day, :hour, :minute, :second] ++
