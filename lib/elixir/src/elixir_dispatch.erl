@@ -26,10 +26,10 @@ find_import(Meta, Name, Arity, E) ->
 
   case find_dispatch(Meta, Tuple, [], E) of
     {function, Receiver} ->
-      elixir_lexical:record_import(Receiver, Name, Arity, ?key(E, lexical_tracker)),
+      elixir_env:trace({imported_function, Meta, Receiver, Name, Arity}, E),
       Receiver;
     {macro, Receiver} ->
-      elixir_lexical:record_import(Receiver, Name, Arity, ?key(E, lexical_tracker)),
+      elixir_env:trace({imported_macro, Meta, Receiver, Name, Arity}, E),
       Receiver;
     _ ->
       false
@@ -41,7 +41,7 @@ import_function(Meta, Name, Arity, E) ->
   Tuple = {Name, Arity},
   case find_dispatch(Meta, Tuple, [], E) of
     {function, Receiver} ->
-      elixir_lexical:record_import(Receiver, Name, Arity, ?key(E, lexical_tracker)),
+      elixir_env:trace({imported_function, Meta, Receiver, Name, Arity}, E),
       elixir_locals:record_import(Tuple, Receiver, ?key(E, module), ?key(E, function)),
       remote_function(Meta, Receiver, Name, Arity, E);
     {macro, _Receiver} ->
@@ -50,10 +50,20 @@ import_function(Meta, Name, Arity, E) ->
       require_function(Meta, Receiver, Name, Arity, E);
     false ->
       case elixir_import:special_form(Name, Arity) of
-        true  -> false;
+        true ->
+          false;
         false ->
-          elixir_locals:record_local(Tuple, ?key(E, module), ?key(E, function), Meta, false),
-          {local, Name, Arity}
+          Function = ?key(E, function),
+
+          case (Function /= nil) andalso (Function /= Tuple) andalso
+                elixir_def:local_for(?key(E, module), Name, Arity, [defmacro, defmacrop]) of
+            false ->
+              elixir_env:trace({local_function, Meta, Name, Arity}, E),
+              elixir_locals:record_local(Tuple, ?key(E, module), ?key(E, function), Meta, false),
+              {local, Name, Arity};
+            _ ->
+              false
+          end
       end
   end.
 
@@ -62,7 +72,7 @@ require_function(Meta, Receiver, Name, Arity, E) ->
   case is_element({Name, Arity}, get_macros(Receiver, Required)) of
     true  -> false;
     false ->
-      elixir_lexical:record_remote(Receiver, ?key(E, function), ?key(E, lexical_tracker)),
+      elixir_env:trace({remote_function, Meta, Receiver, Name, Arity}, E),
       remote_function(Meta, Receiver, Name, Arity, E)
   end.
 
@@ -131,6 +141,7 @@ expand_import(Meta, {Name, Arity} = Tuple, Args, E, Extra, External) ->
 
         %% Dispatch to the local.
         _ ->
+          elixir_env:trace({local_macro, Meta, Name, Arity}, E),
           elixir_locals:record_local(Tuple, Module, Function, Meta, true),
           {ok, Module, expand_macro_fun(Meta, Local, Module, Name, Args, E)}
       end
@@ -139,12 +150,12 @@ expand_import(Meta, {Name, Arity} = Tuple, Args, E, Extra, External) ->
 do_expand_import(Meta, {Name, Arity} = Tuple, Args, Module, E, Result) ->
   case Result of
     {function, Receiver} ->
-      elixir_lexical:record_import(Receiver, Name, Arity, ?key(E, lexical_tracker)),
+      elixir_env:trace({imported_function, Meta, Receiver, Name, Arity}, E),
       elixir_locals:record_import(Tuple, Receiver, Module, ?key(E, function)),
       {ok, Receiver, Name, Args};
     {macro, Receiver} ->
       check_deprecated(Meta, Receiver, Name, Arity, E),
-      elixir_lexical:record_import(Receiver, Name, Arity, ?key(E, lexical_tracker)),
+      elixir_env:trace({imported_macro, Meta, Receiver, Name, Arity}, E),
       elixir_locals:record_import(Tuple, Receiver, Module, ?key(E, function)),
       {ok, Receiver, expand_macro_named(Meta, Receiver, Name, Arity, Args, E)};
     {import, Receiver} ->
@@ -167,7 +178,7 @@ expand_require(Meta, Receiver, {Name, Arity} = Tuple, Args, E) ->
 
   case is_element(Tuple, get_macros(Receiver, Required)) of
     true when Required ->
-      elixir_lexical:record_remote(Receiver, nil, ?key(E, lexical_tracker)),
+      elixir_env:trace({remote_macro, Meta, Receiver, Name, Arity}, E),
       {ok, Receiver, expand_macro_named(Meta, Receiver, Name, Arity, Args, E)};
     true ->
       Info = {unrequired_module, {Receiver, Name, length(Args)}},

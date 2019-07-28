@@ -5,7 +5,7 @@
 -include("elixir.hrl").
 
 string(Contents, File, Callback) ->
-  Forms = elixir:'string_to_quoted!'(Contents, 1, File, []),
+  Forms = elixir:'string_to_quoted!'(Contents, 1, File, elixir_config:get(parser_options)),
   quoted(Forms, File, Callback).
 
 quoted(Forms, File, Callback) ->
@@ -13,11 +13,13 @@ quoted(Forms, File, Callback) ->
 
   try
     put(elixir_module_binaries, []),
-    elixir_lexical:run(File, fun(Pid) ->
-      Env = elixir:env_for_eval([{line, 1}, {file, File}]),
-      eval_forms(Forms, [], Env#{lexical_tracker := Pid}),
+    Env = (elixir_env:new())#{line := 1, file := File, tracers := elixir_config:get(tracers)},
+
+    elixir_lexical:run(Env, fun(#{lexical_tracker := Pid} = LexicalEnv) ->
+      eval_forms(Forms, [], LexicalEnv),
       Callback(File, Pid)
     end),
+
     lists:reverse(get(elixir_module_binaries))
   after
     put(elixir_module_binaries, Previous)
@@ -119,6 +121,8 @@ bootstrap() ->
   elixir_config:put(docs, false),
   elixir_config:put(relative_paths, false),
   elixir_config:put(ignore_module_conflict, true),
+  elixir_config:put(tracers, []),
+  elixir_config:put(parser_options, []),
   [bootstrap_file(File) || File <- bootstrap_main()].
 
 bootstrap_file(File) ->

@@ -1352,10 +1352,10 @@ defmodule Macro do
     elem(do_expand_once(ast, env), 0)
   end
 
-  defp do_expand_once({:__aliases__, _, _} = original, env) do
-    case :elixir_aliases.expand(original, env.aliases, env.macro_aliases, env.lexical_tracker) do
+  defp do_expand_once({:__aliases__, meta, _} = original, env) do
+    case :elixir_aliases.expand(original, env) do
       receiver when is_atom(receiver) ->
-        :elixir_lexical.record_remote(receiver, env.function, env.lexical_tracker)
+        :elixir_env.trace({:remote_reference, meta, receiver}, env)
         {receiver, true}
 
       aliases ->
@@ -1364,7 +1364,7 @@ defmodule Macro do
         case :lists.all(&is_atom/1, aliases) do
           true ->
             receiver = :elixir_aliases.concat(aliases)
-            :elixir_lexical.record_remote(receiver, env.function, env.lexical_tracker)
+            :elixir_env.trace({:remote_reference, meta, receiver}, env)
             {receiver, true}
 
           false ->

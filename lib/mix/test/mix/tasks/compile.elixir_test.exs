@@ -10,6 +10,11 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     :ok
   end
 
+  def trace(event, _e) do
+    send(__MODULE__, event)
+    :ok
+  end
+
   @elixir_otp_version {System.version(), :erlang.system_info(:otp_release)}
 
   test "compiles a project without per environment build" do
@@ -38,6 +43,18 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
     end)
+  end
+
+  test "compiles a project with custom tracer" do
+    Process.register(self(), __MODULE__)
+
+    in_fixture("no_mixfile", fn ->
+      Mix.Tasks.Compile.Elixir.run(["--tracer", "Mix.Tasks.Compile.ElixirTest"])
+      assert_received {:remote_reference, _meta, A}
+      assert_received {:remote_reference, _meta, B}
+    end)
+  after
+    Code.put_compiler_option(:tracers, [])
   end
 
   test "recompiles project if Elixir version changed" do
@@ -449,7 +466,6 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       """)
 
       # First compilation should print unused variable warning
-
       assert capture_io(:stderr, fn ->
                Mix.Tasks.Compile.Elixir.run([]) == :ok
              end) =~ "variable \"unused\" is unused"

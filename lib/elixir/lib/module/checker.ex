@@ -67,7 +67,7 @@ defmodule Module.Checker do
   end
 
   defp warnings(map, cache) do
-    no_warn_undefined = map.no_warn_undefined ++ Code.compiler_option(:no_warn_undefined)
+    no_warn_undefined = map.no_warn_undefined ++ Code.get_compiler_option(:no_warn_undefined)
 
     state = %{
       cache: cache,

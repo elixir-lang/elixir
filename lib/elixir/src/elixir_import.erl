@@ -24,7 +24,7 @@ import(Meta, Ref, Opts, E) ->
         {Funs, Macs, Added1 or Added2}
     end,
 
-  record_warn(Meta, Ref, Opts, Added, E),
+  elixir_env:trace({import, [{imported, Added} | Meta], Ref, Opts}, E),
   {Functions, Macros}.
 
 import_functions(Meta, Ref, Opts, E) ->
@@ -43,22 +43,6 @@ import_macros(Force, Meta, Ref, Opts, E) ->
         []
     end
   end).
-
-record_warn(Meta, Ref, Opts, Added, E) ->
-  Warn =
-    case keyfind(warn, Opts) of
-      {warn, false} -> false;
-      {warn, true} -> true;
-      false -> not lists:keymember(context, 1, Meta)
-    end,
-
-  Only =
-    case keyfind(only, Opts) of
-      {only, List} when is_list(List) -> List;
-      _ -> []
-    end,
-
-  elixir_lexical:record_import(Ref, Only, ?line(Meta), Added and Warn, ?key(E, lexical_tracker)).
 
 %% Calculates the imports based on only and except
 

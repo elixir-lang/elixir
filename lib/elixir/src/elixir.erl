@@ -66,10 +66,12 @@ start(_Type, _Args) ->
     %% Compiler options
     {docs, true},
     {ignore_module_conflict, false},
+    {parser_options, []},
     {debug_info, true},
     {warnings_as_errors, false},
     {relative_paths, true},
-    {no_warn_undefined, []}
+    {no_warn_undefined, []},
+    {tracers, []}
     | URIConfig
   ],
 
@@ -168,11 +170,7 @@ start_cli() ->
 %% EVAL HOOKS
 
 env_for_eval(Opts) ->
-  env_for_eval((elixir_env:new())#{
-    requires := elixir_dispatch:default_requires(),
-    functions := elixir_dispatch:default_functions(),
-    macros := elixir_dispatch:default_macros()
-  }, Opts).
+  env_for_eval(elixir_env:new(), Opts).
 
 env_for_eval(Env, Opts) ->
   Line = case lists:keyfind(line, 1, Opts) of

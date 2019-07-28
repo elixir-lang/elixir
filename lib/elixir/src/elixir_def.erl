@@ -210,15 +210,7 @@ run_with_location_change(nil, E, Callback) ->
 run_with_location_change(File, #{file := File} = E, Callback) ->
   Callback(E);
 run_with_location_change(File, E, Callback) ->
-  EL = E#{file := File},
-  Tracker = ?key(E, lexical_tracker),
-
-  try
-    elixir_lexical:set_file(File, Tracker),
-    Callback(EL)
-  after
-    elixir_lexical:reset_file(Tracker)
-  end.
+  elixir_lexical:with_file(File, E, Callback).
 
 def_to_clauses(_Kind, Meta, Args, [], nil, E) ->
   check_args_for_function_head(Meta, Args, E),

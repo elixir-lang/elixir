@@ -19,7 +19,8 @@ defmodule Code do
 
     * `eval_file/2` - evaluates the file contents without tracking its name. It
       returns the result of the last expression in the file, instead of the modules
-      defined in it.
+      defined in it. Evaluated files do not trigger the Compilation Tracers described
+      in the next section.
 
   In a nutshell, the first must be used when you want to keep track of the files
   handled by the system, to avoid the same file from being compiled multiple
@@ -28,6 +29,61 @@ defmodule Code do
   `compile_file/2` must be used when you are interested in the modules defined in a
   file, without tracking. `eval_file/2` should be used when you are interested in
   the result of evaluating the file rather than the modules it defines.
+
+  ## Compilation tracers
+
+  Elixir supports compilation tracers, which allows modules to observe constructs
+  handled by the Elixir compiler when compiling files. A tracer is a module
+  that implements the `trace/2` function. The function receives the event name
+  as first argument and `Macro.Env` as second and it must return `:ok`. It is
+  very important for a tracer to do as little work as possible synchronously
+  and dispatch the bulk of the work to a separate process. **Slow tracers will
+  slow down compilation**.
+
+  You can configure your list of tracers via `put_compiler_option/2`. The
+  following events are available to tracers:
+
+    * `{:import, meta, module, opts}` - traced whenever `module` is imported.
+      `meta` is the import AST metadata and `opts` are the import options.
+
+    * `{:imported_function, meta, module, name, arity}` and
+      `{:imported_macro, meta, module, name, arity}` - traced whenever an
+      imported function or macro is invoked. `meta` is the call AST metadata,
+      `module` is the module the import is from, followed by the `name` and `arity`
+      of the imported function/macro.
+
+    * `{:alias, meta, alias, as, opts}` - traced whenever `alias` is aliased
+      to `as`. `meta` is the alias AST metadata and `opts` are the alias options.
+
+    * `{:alias_expansion, meta, as, alias}` traced whenever there is an alias
+      expension, i.e. when the user writes `as` which is expanded to `alias`.
+      `meta` is the alias expansion AST metadata.
+
+    * `{:require, meta, module, opts}` - traced whenever `module` is required.
+      `meta` is the require AST metadata and `opts` are the require options.
+
+    * `{:struct_expansion, meta, module}` - traced whenever `module`' struct
+      is expanded. `meta` is teh struct AST metadata.
+
+    * `{:remote_reference, meta, module}` - traced whenever there is a remote
+      reference to `module`, i.e. whenever the user writes `MyModule.Foo.Bar`
+      in the code, regardless if it is an alias or not.
+
+    * `{:remote_function, meta, module, name, arity}` and
+      `{:remote_macro, meta, module, name, arity}` - traced whenever a remote
+      function or macro is defined. `meta` is the call AST metadata, `module`
+      is the invoked module, followed by the `name` and `arity`.
+
+    * `{:local_function, meta, module, name, arity}` and
+      `{:local_macro, meta, module, name, arity}` - traced whenever a local
+      function or macro is defined. `meta` is the call AST metadata, `module`
+      is the invoked module, followed by the `name` and `arity`.
+
+  The `:tracers` compiler option can be combined with the `:parser_options`
+  compiler option to enrich the metadata of the traced events above.
+
+  New events may be added at any time in the future, therefore it is advised
+  for the `trace/2` function to have a "catch-all" clause.
   """
 
   @boolean_compiler_options [
@@ -38,7 +94,7 @@ defmodule Code do
     :warnings_as_errors
   ]
 
-  @list_compiler_options [:no_warn_undefined]
+  @list_compiler_options [:no_warn_undefined, :tracers, :parser_options]
 
   @available_compiler_options @boolean_compiler_options ++ @list_compiler_options
 
@@ -833,9 +889,10 @@ defmodule Code do
   end
 
   @doc """
-  Gets the compilation options from the code server.
+  Gets all compilation options from the code server.
 
-  Check `compiler_options/1` for more information.
+  To get invidual options, see `get_compiler_option/1`.
+  For a description of all options, see `put_compiler_option/2`.
 
   ## Examples
 
@@ -843,8 +900,7 @@ defmodule Code do
       #=> %{debug_info: true, docs: true, ...}
 
   """
-  # TODO: Deprecate me on Elixir v1.12
-  @doc deprecated: "Use Code.compiler_option/1 instead"
+  @spec compiler_options :: map
   def compiler_options do
     for key <- @available_compiler_options, into: %{} do
       {key, :elixir_config.get(key)}
@@ -852,26 +908,46 @@ defmodule Code do
   end
 
   @doc """
-  Returns the value of a given compiler option.
+  Stores all given compilation options.
 
-  Check `compiler_options/1` for more information.
+  To store invidual options, see `put_compiler_option/2`.
+  For a description of all options, see `put_compiler_option/2`.
 
   ## Examples
 
-      Code.compiler_option(:debug_info)
+      Code.compiler_options()
+      #=> %{debug_info: true, docs: true, ...}
+
+  """
+  @spec compiler_options(Enumerable.t()) :: %{optional(atom) => boolean}
+  def compiler_options(opts) do
+    for {key, value} <- opts, into: %{} do
+      put_compiler_option(key, value)
+      {key, value}
+    end
+  end
+
+  @doc """
+  Returns the value of a given compiler option.
+
+  For a description of all options, see `put_compiler_option/2`.
+
+  ## Examples
+
+      Code.get_compiler_option(:debug_info)
       #=> true
 
   """
   @doc since: "1.10.0"
-  @spec compiler_option(atom) :: term
-  def compiler_option(key) when key in @available_compiler_options do
+  @spec get_compiler_option(atom) :: term
+  def get_compiler_option(key) when key in @available_compiler_options do
     :elixir_config.get(key)
   end
 
   @doc """
-  Returns a list with the available compiler options.
+  Returns a list with all available compiler options.
 
-  See `compiler_options/1` for more information.
+  For a description of all options, see `put_compiler_option/2`.
 
   ## Examples
 
@@ -885,30 +961,9 @@ defmodule Code do
   end
 
   @doc """
-  Purge compiler modules.
+  Stores a compilation option.
 
-  The compiler utilizes temporary modules to compile code. For example,
-  `elixir_compiler_1`, `elixir_compiler_2`, etc. In case the compiled code
-  stores references to anonymous functions or similar, the Elixir compiler
-  may be unable to reclaim those modules, keeping an unnecessary amount of
-  code in memory and eventually leading to modules such as `elixir_compiler_12345`.
-
-  This function purges all modules currently kept by the compiler, allowing
-  old compiler module names to be reused. If there are any processes running
-  any code from such modules, they will be terminated too.
-
-  It returns `{:ok, number_of_modules_purged}`.
-  """
-  @doc since: "1.7.0"
-  @spec purge_compiler_modules() :: {:ok, non_neg_integer()}
-  def purge_compiler_modules() do
-    :elixir_code_server.call(:purge_compiler_modules)
-  end
-
-  @doc """
-  Sets compilation options.
-
-  These options are global since they are stored by Elixir's Code Server.
+  These options are global since they are stored by Elixir's code server.
 
   Available options are:
 
@@ -934,35 +989,76 @@ defmodule Code do
       at compilation time. This can be useful when doing dynamic compilation.
       Defaults to `[]`.
 
-  It returns the new map of compiler options.
+    * `:tracers` - a list of tracers to be used during compilation. See the
+      module docs for more information. Defaults to `[]`.
+
+    * `:parser_options` - a keyword list of options to be given to the parser
+      when compiling files. It accepts the same options as `string_to_quoted/2`
+      (except by the options that change the AST itself). This can be used in
+      combination with the tracer to retrieve localized information about
+      events happening duing compilation. Defaults to `[]`.
+
+  It always returns `:ok`. Raises an error for invalid options.
 
   ## Examples
 
-      Code.compiler_options(debug_info: true, ...)
-      #=> %{debug_info: true, ...}
+      Code.put_compiler_option(:debug_info, true)
+      #=> :ok
 
   """
-  @spec compiler_options(Enumerable.t()) :: %{optional(atom) => boolean}
-  def compiler_options(opts) do
-    for {key, value} <- opts, into: %{} do
-      cond do
-        key in @boolean_compiler_options ->
-          if not is_boolean(value) do
-            raise "compiler option #{inspect(key)} should be a boolean, got: #{inspect(value)}"
-          end
-
-        key in @list_compiler_options ->
-          if not is_list(value) do
-            raise "compiler option #{inspect(key)} should be a list, got: #{inspect(value)}"
-          end
-
-        true ->
-          raise "unknown compiler option: #{inspect(key)}"
-      end
-
-      :elixir_config.put(key, value)
-      {key, value}
+  @doc since: "v1.10.0"
+  @spec put_compiler_option(atom, term) :: :ok
+  def put_compiler_option(key, value) when key in @boolean_compiler_options do
+    if not is_boolean(value) do
+      raise "compiler option #{inspect(key)} should be a boolean, got: #{inspect(value)}"
     end
+
+    :elixir_config.put(key, value)
+    :ok
+  end
+
+  def put_compiler_option(key, value) when key in @list_compiler_options do
+    if not is_list(value) do
+      raise "compiler option #{inspect(key)} should be a list, got: #{inspect(value)}"
+    end
+
+    if key == :parser_options and not Keyword.keyword?(value) do
+      raise "compiler option #{inspect(key)} should be a keyword list, " <>
+              "got: #{inspect(value)}"
+    end
+
+    if key == :tracers and not Enum.all?(value, &is_atom/1) do
+      raise "compiler option #{inspect(key)} should be a list of atoms, " <>
+              "got: #{inspect(value)}"
+    end
+
+    :elixir_config.put(key, value)
+    :ok
+  end
+
+  def put_compiler_option(key, _value) do
+    raise "unknown compiler option: #{inspect(key)}"
+  end
+
+  @doc """
+  Purge compiler modules.
+
+  The compiler utilizes temporary modules to compile code. For example,
+  `elixir_compiler_1`, `elixir_compiler_2`, etc. In case the compiled code
+  stores references to anonymous functions or similar, the Elixir compiler
+  may be unable to reclaim those modules, keeping an unnecessary amount of
+  code in memory and eventually leading to modules such as `elixir_compiler_12345`.
+
+  This function purges all modules currently kept by the compiler, allowing
+  old compiler module names to be reused. If there are any processes running
+  any code from such modules, they will be terminated too.
+
+  It returns `{:ok, number_of_modules_purged}`.
+  """
+  @doc since: "1.7.0"
+  @spec purge_compiler_modules() :: {:ok, non_neg_integer()}
+  def purge_compiler_modules() do
+    :elixir_code_server.call(:purge_compiler_modules)
   end
 
   @doc """

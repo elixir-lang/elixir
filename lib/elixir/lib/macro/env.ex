@@ -36,15 +36,16 @@ defmodule Macro.Env do
     * `macros` - a list of macros imported from each module
     * `macro_aliases` - a list of aliases defined inside the current macro
     * `context_modules` - a list of modules defined in the current context
-    * `lexical_tracker` - PID of the lexical tracker which is responsible for
-      keeping user info
 
-  The following fields pertain to variable handling and must not be accessed or
-  relied on. To get a list of all variables, see `vars/1`:
+  The following fields are private to Elixir's macro expansion mechanism and
+  must not be accessed directly. See the functions in this module that exposes
+  the relevant information from the fields below whenever necessary:
 
     * `current_vars`
     * `prematch_vars`
     * `contextual_vars`
+    * `lexical_tracker`
+    * `tracers`
 
   The following fields are deprecated and must not be accessed or relied on:
 
@@ -74,6 +75,7 @@ defmodule Macro.Env do
   @typep prematch_vars ::
            %{optional(variable) => {var_version, var_type}} | :warn | :raise | :pin | :apply
   @typep contextual_vars :: [atom]
+  @typep tracers :: [module]
 
   @type t :: %{
           __struct__: __MODULE__,
@@ -92,7 +94,8 @@ defmodule Macro.Env do
           current_vars: current_vars,
           prematch_vars: prematch_vars,
           lexical_tracker: lexical_tracker,
-          contextual_vars: contextual_vars
+          contextual_vars: contextual_vars,
+          tracers: tracers
         }
 
   # TODO: Remove :vars field on v2.0
@@ -114,7 +117,8 @@ defmodule Macro.Env do
       current_vars: {%{}, %{}},
       prematch_vars: :warn,
       lexical_tracker: nil,
-      contextual_vars: []
+      contextual_vars: [],
+      tracers: []
     }
   end
 
