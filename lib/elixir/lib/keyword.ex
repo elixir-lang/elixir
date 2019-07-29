@@ -407,13 +407,12 @@ defmodule Keyword do
   """
   @spec get_values(t, key) :: [value]
   def get_values(keywords, key) when is_list(keywords) and is_atom(key) do
-    fun = fn
-      {^key, val} -> {true, val}
-      {_, _} -> false
-    end
-
-    :lists.filtermap(fun, keywords)
+    get_values(keywords, key, [])
   end
+
+  defp get_values([{key, value} | tail], key, values), do: get_values(tail, key, [value | values])
+  defp get_values([{_, _} | tail], key, values), do: get_values(tail, key, values)
+  defp get_values([], _key, values), do: :lists.reverse(values)
 
   @doc """
   Returns all keys from the keyword list.
@@ -451,24 +450,8 @@ defmodule Keyword do
     :lists.map(fn {_, v} -> v end, keywords)
   end
 
-  @doc """
-  Deletes the entries in the keyword list for a `key` with `value`.
-
-  If no `key` with `value` exists, returns the keyword list unchanged.
-
-  ## Examples
-
-      iex> Keyword.delete([a: 1, b: 2], :a, 1)
-      [b: 2]
-      iex> Keyword.delete([a: 1, b: 2, a: 3], :a, 3)
-      [a: 1, b: 2]
-      iex> Keyword.delete([a: 1], :a, 5)
-      [a: 1]
-      iex> Keyword.delete([a: 1], :b, 5)
-      [a: 1]
-
-  """
-  @spec delete(t, key, value) :: t
+  @doc false
+  @deprecated "Use Keyword.fetch/2 + Keyword.delete/2 instead"
   def delete(keywords, key, value) when is_list(keywords) and is_atom(key) do
     case :lists.keymember(key, 1, keywords) do
       true -> delete_key_value(keywords, key, value)
@@ -514,17 +497,9 @@ defmodule Keyword do
     end
   end
 
-  defp delete_key([{key, _} | tail], key) do
-    delete_key(tail, key)
-  end
-
-  defp delete_key([{_, _} = pair | tail], key) do
-    [pair | delete_key(tail, key)]
-  end
-
-  defp delete_key([], _key) do
-    []
-  end
+  defp delete_key([{key, _} | tail], key), do: delete_key(tail, key)
+  defp delete_key([{_, _} = pair | tail], key), do: [pair | delete_key(tail, key)]
+  defp delete_key([], _key), do: []
 
   @doc """
   Deletes the first entry in the keyword list for a specific `key`.
@@ -974,13 +949,45 @@ defmodule Keyword do
   @spec pop(t, key, value) :: {value, t}
   def pop(keywords, key, default \\ nil) when is_list(keywords) and is_atom(key) do
     case fetch(keywords, key) do
-      {:ok, value} ->
-        {value, delete(keywords, key)}
-
-      :error ->
-        {default, keywords}
+      {:ok, value} -> {value, delete(keywords, key)}
+      :error -> {default, keywords}
     end
   end
+
+  @doc """
+  Returns all values for `key` and removes all associated entries in the keyword list.
+
+  It returns a tuple where the first element is a list of values for `key` and the
+  second element is a keyword list with all entries associated with `key` removed.
+  If the `key` is not present in the keyword list, `{[], keyword_list}` is
+  returned.
+
+  If you don't want to remove all the entries associated with `key` use `pop_first/3`
+  instead, that function will remove only the first entry.
+
+  ## Examples
+
+      iex> Keyword.pop_values([a: 1], :a)
+      {[1], []}
+      iex> Keyword.pop_values([a: 1], :b)
+      {[], [a: 1]}
+      iex> Keyword.pop_values([a: 1, a: 2], :a)
+      {[1, 2], []}
+
+  """
+  @spec pop_values(t, key) :: {[value], t}
+  def pop_values(keywords, key) when is_list(keywords) and is_atom(key) do
+    pop_values(:lists.reverse(keywords), key, [], [])
+  end
+
+  defp pop_values([{key, value} | tail], key, values, acc),
+    do: pop_values(tail, key, [value | values], acc)
+
+  defp pop_values([{_, _} = pair | tail], key, values, acc),
+    do: pop_values(tail, key, values, [pair | acc])
+
+  defp pop_values([], _key, values, acc),
+    do: {values, acc}
 
   @doc """
   Lazily returns and removes all values associated with `key` in the keyword list.
