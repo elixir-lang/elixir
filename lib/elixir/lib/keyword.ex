@@ -975,6 +975,7 @@ defmodule Keyword do
       {[1, 2], []}
 
   """
+  @doc since: "1.10.0"
   @spec pop_values(t, key) :: {[value], t}
   def pop_values(keywords, key) when is_list(keywords) and is_atom(key) do
     pop_values(:lists.reverse(keywords), key, [], [])
