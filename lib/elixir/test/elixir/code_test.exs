@@ -68,7 +68,7 @@ defmodule CodeTest do
     test "raises streamlined argument errors" do
       assert_raise ArgumentError,
                    ~r"argument error while evaluating at line 1",
-                   fn -> Code.eval_string("a <> b", [a: :a, b: :b]) end
+                   fn -> Code.eval_string("a <> b", a: :a, b: :b) end
 
       assert_raise ArgumentError,
                    ~r"argument error while evaluating example.ex at line 1",
