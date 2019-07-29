@@ -637,6 +637,31 @@ defmodule Map do
   end
 
   @doc """
+  Returns and removes the value associated with `key` in `map` or raises
+  if `key` is not present.
+
+  Behaves the same as `pop/3` but raises if `key` is not present in `map`.
+
+  ## Examples
+
+      iex> Map.pop!(%{a: 1}, :a)
+      {1, %{}}
+      iex> Map.pop!(%{a: 1, b: 2}, :a)
+      {1, %{b: 2}}
+      iex> Map.pop!(%{a: 1}, :b)
+      ** (KeyError) key :b not found in: %{a: 1}
+
+  """
+  @doc since: "1.10.0"
+  @spec pop!(map, key) :: {value, map}
+  def pop!(map, key) do
+    case :maps.take(key, map) do
+      {_, _} = tuple -> tuple
+      :error -> raise KeyError, key: key, term: map
+    end
+  end
+
+  @doc """
   Lazily returns and removes the value associated with `key` in `map`.
 
   If `key` is present in `map` with value `value`, `{value, new_map}` is
