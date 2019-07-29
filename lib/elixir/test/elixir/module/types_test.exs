@@ -1,27 +1,52 @@
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Module.TypesTest do
+  alias Module.Types
   use ExUnit.Case, async: true
 
   defmacrop quoted_pattern(expr) do
     quote do
-      Module.Types.of_pattern(unquote(Macro.escape(expr)))
+      Types.of_pattern(unquote(Macro.escape(expr)), new_context())
+      |> lift_result()
     end
   end
 
   defmacrop quoted_clause(exprs) do
     quote do
-      Module.Types.of_clause(unquote(Macro.escape(exprs)), [])
+      Types.of_clause(unquote(Macro.escape(exprs)), [], new_context())
+      |> lift_result()
     end
   end
 
   defmacrop quoted_clause(exprs, guards) do
     quote do
-      Module.Types.of_clause(unquote(Macro.escape(exprs)), unquote(Macro.escape(guards)))
+      Types.of_clause(unquote(Macro.escape(exprs)), unquote(Macro.escape(guards)), new_context())
+      |> lift_result()
     end
   end
 
+  defp new_context() do
+    Types.context("types_test.ex", TypesTest, {:test, 0})
+  end
+
+  defp lift_result({:ok, types, context}) when is_list(types) do
+    {:ok, Types.lift_types(types, context)}
+  end
+
+  defp lift_result({:ok, type, context}) do
+    {:ok, Types.lift_type(type, context)}
+  end
+
+  defp lift_result(other) do
+    other
+  end
+
   describe "of_pattern/2" do
+    test "error location" do
+      assert {:error, {{:unable_unify, :integer, :binary}, location}} = quoted_pattern(<<123::binary>>)
+      assert location == {"types_test.ex", 46, {TypesTest, :test, 0}}
+    end
+
     test "literals" do
       assert quoted_pattern(true) == {:ok, {:literal, true}}
       assert quoted_pattern(false) == {:ok, {:literal, false}}
@@ -52,11 +77,10 @@ defmodule Module.TypesTest do
       assert quoted_pattern(<<123::integer>>) == {:ok, :binary}
       assert quoted_pattern(<<foo::integer>>) == {:ok, :binary}
 
-      assert quoted_pattern(<<123::binary>>) == {:error, {:unable_unify, :integer, :binary}}
-      assert quoted_pattern(<<"foo"::integer>>) == {:error, {:unable_unify, :binary, :integer}}
+      assert {:error, {{:unable_unify, :integer, :binary}, _}} = quoted_pattern(<<123::binary>>)
+      assert {:error, {{:unable_unify, :binary, :integer}, _}} = quoted_pattern(<<"foo"::integer>>)
 
-      assert quoted_pattern(<<foo::binary, foo::integer>>) ==
-               {:error, {:unable_unify, :integer, :binary}}
+      assert {:error, {{:unable_unify, :integer, :binary}, _}} = quoted_pattern(<<foo::binary, foo::integer>>)
     end
 
     test "variables" do
@@ -75,7 +99,7 @@ defmodule Module.TypesTest do
       assert quoted_pattern(x = 123 = y) == {:ok, :integer}
       assert quoted_pattern(123 = x = y) == {:ok, :integer}
 
-      assert quoted_pattern({x} = x) == {:error, {:recursive_type, {:tuple, [var: 0]}}}
+      assert {:error, {{:recursive_type, {:tuple, [var: 0]}}, _}} = quoted_pattern({x} = x)
     end
   end
 
@@ -98,7 +122,7 @@ defmodule Module.TypesTest do
       assert quoted_clause([x = y, y = z, z = :foo]) ==
                {:ok, [{:literal, :foo}, {:literal, :foo}, {:literal, :foo}]}
 
-      assert quoted_clause([{x} = y, {y} = x]) == {:error, {:recursive_type, {:tuple, [var: 1]}}}
+      assert {:error, {{:recursive_type, {:tuple, [var: 1]}}, _}} = quoted_clause([{x} = y, {y} = x])
     end
 
     test "guards" do
@@ -114,8 +138,9 @@ defmodule Module.TypesTest do
       assert quoted_clause([x = y, y, y = z], [is_atom(y)]) == {:ok, [:atom, :atom, :atom]}
       assert quoted_clause([x = y, y = z, z], [is_atom(z)]) == {:ok, [:atom, :atom, :atom]}
 
-      assert quoted_clause([x], [is_binary(x) and is_integer(x)]) ==
-               {:error, {:unable_unify, :integer, :binary}}
+      assert {:error, {{:unable_unify, :integer, :binary}, _}} =
+        quoted_clause([x], [is_binary(x) and is_integer(x)])
+
     end
   end
 end

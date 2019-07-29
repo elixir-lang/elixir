@@ -10,68 +10,76 @@ defmodule Module.Types do
     end
   end
 
-  def infer_defintions(defs) do
-    Enum.map(defs, fn {name, kind, _meta, clauses} ->
+  def infer_definitions(file, module, defs) do
+    Enum.map(defs, fn {function, _kind, _meta, clauses} ->
+      context = context(file, module, function)
+
       types =
-        Enum.map(clauses, fn {_meta, params, guards, _body} ->
-          of_clause(params, guards)
+        map_ok(clauses, fn {_meta, params, guards, _body} ->
+          of_clause(params, guards, context)
         end)
 
-      {name, kind, types}
+      {function, types}
     end)
   end
 
-  def of_clause(params, guards) do
-    context = context()
-
+  def of_clause(params, guards, context) do
     with {:ok, types, context} <- of_pattern_multi(params, context),
          {:ok, context} <- of_guard(guards_to_or(guards), context),
-         {types, _context} = Enum.map_reduce(types, context, &lift_types/2),
-         do: {:ok, types}
+         do: {:ok, types, context}
   end
 
-  def of_pattern(pattern) do
-    context = context()
-
-    with {:ok, type, context} <- do_of_pattern(pattern, context),
-         {type, _context} = lift_types(type, context),
-         do: {:ok, type}
+  def context(file, module, function) do
+    %{
+      file: file,
+      line: nil,
+      module: module,
+      function: function,
+      vars: %{},
+      types: %{},
+      counter: 0
+    }
   end
 
-  defp context() do
-    %{vars: %{}, types: %{}, counter: 0}
+  def lift_types(types, context) do
+    context = %{
+      types: context.types,
+      quantified_types: %{},
+      quantified_counter: 0
+    }
+
+    {types, _context} = Enum.map_reduce(types, context, &do_lift_type/2)
+    types
   end
 
-  defp of_pattern_multi(patterns, pattern_types \\ [], context)
+  def lift_type(type, context) do
+    context = %{
+      types: context.types,
+      quantified_types: %{},
+      quantified_counter: 0
+    }
 
-  defp of_pattern_multi([pattern | patterns], pattern_types, context) do
-    case do_of_pattern(pattern, context) do
-      {:ok, type, context} -> of_pattern_multi(patterns, [type | pattern_types], context)
-      {:error, reason} -> {:error, reason}
-    end
+    {type, _context} = do_lift_type(type, context)
+    type
   end
 
-  defp of_pattern_multi([], pattern_types, context) do
-    {:ok, Enum.reverse(pattern_types), context}
-  end
-
-  defp do_of_pattern(atom, context) when is_atom(atom) do
+  def of_pattern(atom, context) when is_atom(atom) do
     {:ok, {:literal, atom}, context}
   end
 
-  defp do_of_pattern(literal, context) when is_integer(literal) do
+  def of_pattern(literal, context) when is_integer(literal) do
     {:ok, :integer, context}
   end
 
-  defp do_of_pattern(literal, context) when is_float(literal) do
+  def of_pattern(literal, context) when is_float(literal) do
     {:ok, :float, context}
   end
 
-  defp do_of_pattern(literal, context) when is_binary(literal) do
+  def of_pattern(literal, context) when is_binary(literal) do
     {:ok, :binary, context}
   end
 
-  defp do_of_pattern({:<<>>, _meta, args}, context) do
+  def of_pattern({:<<>>, _meta, args}, context) do
     # TODO: Add bitstring type
     case of_binary(args, context) do
       {:ok, context} -> {:ok, :binary, context}
@@ -79,46 +87,55 @@ defmodule Module.Types do
     end
   end
 
-  defp do_of_pattern([{:|, _meta, [left_expr, right_expr]}], context) do
-    with {:ok, left, context} <- do_of_pattern(left_expr, context),
-         {:ok, right, context} <- do_of_pattern(right_expr, context),
+  def of_pattern([{:|, _meta, [left_expr, right_expr]}], context) do
+    with {:ok, left, context} <- of_pattern(left_expr, context),
+         {:ok, right, context} <- of_pattern(right_expr, context),
          do: {:ok, {:cons, left, right}, context}
   end
 
-  defp do_of_pattern([left_expr | right_expr], context) do
-    with {:ok, left, context} <- do_of_pattern(left_expr, context),
-         {:ok, right, context} <- do_of_pattern(right_expr, context),
+  def of_pattern([left_expr | right_expr], context) do
+    with {:ok, left, context} <- of_pattern(left_expr, context),
+         {:ok, right, context} <- of_pattern(right_expr, context),
          do: {:ok, {:cons, left, right}, context}
   end
 
-  defp do_of_pattern([], context) do
+  def of_pattern([], context) do
     {:ok, :null, context}
   end
 
-  defp do_of_pattern(var, context) when is_var(var) do
-    {type, context} = new_var(var_name(var), context)
+  def of_pattern(var, context) when is_var(var) do
+    {type, context} = new_var(var, context)
     {:ok, type, context}
   end
 
-  defp do_of_pattern({left, right}, context) do
-    do_of_pattern({:{}, [], [left, right]}, context)
+  def of_pattern({left, right}, context) do
+    of_pattern({:{}, [], [left, right]}, context)
   end
 
-  defp do_of_pattern({:{}, _meta, exprs}, context) do
+  def of_pattern({:{}, _meta, exprs}, context) do
     case of_pattern_multi(exprs, context) do
       {:ok, types, context} -> {:ok, {:tuple, types}, context}
       {:error, reason} -> {:error, reason}
     end
   end
 
-  defp do_of_pattern({:=, _meta, [left_expr, right_expr]}, context) do
-    with {:ok, left_type, context} <- do_of_pattern(left_expr, context),
-         {:ok, right_type, context} <- do_of_pattern(right_expr, context),
-         do: unify(left_type, right_type, context)
+  def of_pattern({:=, meta, [left_expr, right_expr]}, context) do
+    with {:ok, left_type, context} <- of_pattern(left_expr, context),
+         {:ok, right_type, context} <- of_pattern(right_expr, context),
+         do: unify(left_type, right_type, with_meta(meta, context))
   end
 
-  defp do_of_pattern(expr, _context) do
-    {:error, {:unsupported_pattern, expr}}
+  defp of_pattern_multi(patterns, pattern_types \\ [], context)
+
+  defp of_pattern_multi([pattern | patterns], pattern_types, context) do
+    case of_pattern(pattern, context) do
+      {:ok, type, context} -> of_pattern_multi(patterns, [type | pattern_types], context)
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp of_pattern_multi([], pattern_types, context) do
+    {:ok, Enum.reverse(pattern_types), context}
   end
 
   # TODO: Remove this and let multiple when be treated as multiple clauses,
@@ -146,7 +163,7 @@ defmodule Module.Types do
       with {:ok, args, guard_types} <- unzip_ok(union),
            [arg] <- Enum.uniq(args) do
         union = to_union(guard_types, context)
-        unify_guard(arg, union, context)
+        unify_guard(arg, union, with_meta(get_meta(guard), context))
       else
         _ -> {:ok, context}
       end
@@ -154,8 +171,8 @@ defmodule Module.Types do
   end
 
   defp unify_guard(arg, guard_type, context) do
-    # TODO: It is incorrect to use do_of_pattern/2 but it helps for simplicity now
-    with {:ok, arg_type, context} <- do_of_pattern(arg, context),
+    # TODO: It is incorrect to use of_pattern/2 but it helps for simplicity now
+    with {:ok, arg_type, context} <- of_pattern(arg, context),
          {:ok, _, context} <- unify(arg_type, guard_type, context),
          do: {:ok, context}
   end
@@ -192,7 +209,7 @@ defmodule Module.Types do
     {:ok, context}
   end
 
-  defp of_binary([{:"::", _meta, [expr, specifiers]} | args], context) do
+  defp of_binary([{:"::", meta, [expr, specifiers]} | args], context) do
     specifiers = List.flatten(collect_specifiers(specifiers))
 
     expected_type =
@@ -210,13 +227,13 @@ defmodule Module.Types do
         true -> :integer
       end
 
-    with {:ok, type, context} <- do_of_pattern(expr, context),
-         {:ok, _type, context} <- unify(type, expected_type, context),
+    with {:ok, type, context} <- of_pattern(expr, context),
+         {:ok, _type, context} <- unify(type, expected_type, with_meta(meta, context)),
          do: of_binary(args, context)
   end
 
   defp of_binary([expr | args], context) do
-    case do_of_pattern(expr, context) do
+    case of_pattern(expr, context) do
       {:ok, type, context} when type in [:integer, :float, :binary] ->
         of_binary(args, context)
 
@@ -263,7 +280,7 @@ defmodule Module.Types do
     cond do
       subtype?(left, right, context) -> {:ok, right, context}
       subtype?(right, left, context) -> {:ok, left, context}
-      true -> {:error, {:unable_unify, left, right}}
+      true -> error({:unable_unify, left, right}, context)
     end
   end
 
@@ -271,7 +288,7 @@ defmodule Module.Types do
     context = %{context | types: :maps.put(var, type, context.types)}
 
     if recursive_type?(type, [], context) do
-      {:error, {:recursive_type, type}}
+      error({:recursive_type, type}, context)
     else
       {:ok, type, context}
     end
@@ -306,30 +323,29 @@ defmodule Module.Types do
     [specifier]
   end
 
-  defp collect_specifiers(var) when is_var(var) do
-    [var_name(var)]
+  defp collect_specifiers({name, _meta, context}) when is_atom(name) and is_atom(context) do
+    [name]
   end
 
   defp collect_specifiers(_other) do
     []
   end
 
-  defp new_var(var_name, context) do
-    case :maps.find(var_name, context.vars) do
+  defp new_var(var, context) do
+    case :maps.find(var_name(var), context.vars) do
       {:ok, type} ->
         {type, context}
 
       :error ->
         type = {:var, context.counter}
+        vars = :maps.put(var_name(var), type, context.vars)
         types = :maps.put(context.counter, :unbound, context.types)
-        vars = :maps.put(var_name, type, context.vars)
         context = %{context | vars: vars, types: types, counter: context.counter + 1}
         {type, context}
     end
   end
 
-  # NOTE: Ignores the variable's context
-  defp var_name({name, _meta, _context}), do: name
+  defp var_name({name, _meta, context}), do: {name, context}
 
   defp subtype?({:var, var}, type, context),
     do: subtype?(:maps.get(var, context.types), type, context)
@@ -365,11 +381,7 @@ defmodule Module.Types do
 
   defp subtype?(left, right, _context), do: left == right
 
-  defp to_union([], _context) do
-    raise("internal error")
-  end
-
-  defp to_union(types, context) do
+  defp to_union(types, context) when types != [] do
     case unique_super_types(types, context) do
       [type] -> type
       types -> {:union, types}
@@ -389,20 +401,7 @@ defmodule Module.Types do
     []
   end
 
-  defp lift_types(type, context) do
-    # TODO: All this needed?
-    context = %{
-      vars: context.vars,
-      types: context.types,
-      counter: context.counter,
-      quantified_types: %{},
-      quantified_counter: 0
-    }
-
-    do_lift_types(type, context)
-  end
-
-  defp do_lift_types({:var, var}, context) do
+  defp do_lift_type({:var, var}, context) do
     case :maps.find(var, context.quantified_types) do
       {:ok, quantified_var} ->
         {{:var, quantified_var}, context}
@@ -417,7 +416,7 @@ defmodule Module.Types do
             # then restore after we are done recursing on vars
             types = context.types
             context = %{context | types: :maps.remove(var, context.types)}
-            {type, context} = do_lift_types(type, context)
+            {type, context} = do_lift_type(type, context)
             {type, %{context | types: types}}
 
           :error ->
@@ -426,24 +425,24 @@ defmodule Module.Types do
     end
   end
 
-  defp do_lift_types({:tuple, types}, context) do
-    {types, context} = Enum.map_reduce(types, context, &do_lift_types/2)
+  defp do_lift_type({:tuple, types}, context) do
+    {types, context} = Enum.map_reduce(types, context, &do_lift_type/2)
     {{:tuple, types}, context}
   end
 
-  defp do_lift_types({:cons, left, right}, context) do
-    {left, context} = do_lift_types(left, context)
-    {right, context} = do_lift_types(right, context)
+  defp do_lift_type({:cons, left, right}, context) do
+    {left, context} = do_lift_type(left, context)
+    {right, context} = do_lift_type(right, context)
     {{:cons, left, right}, context}
   end
 
-  defp do_lift_types({:fn, params, return}, context) do
-    {params, context} = Enum.map_reduce(params, context, &do_lift_types/2)
-    {return, context} = do_lift_types(return, context)
+  defp do_lift_type({:fn, params, return}, context) do
+    {params, context} = Enum.map_reduce(params, context, &do_lift_type/2)
+    {return, context} = do_lift_type(return, context)
     {{:fn, params, return}, context}
   end
 
-  defp do_lift_types(other, context) do
+  defp do_lift_type(other, context) do
     {other, context}
   end
 
@@ -453,6 +452,19 @@ defmodule Module.Types do
     type = {:var, context.quantified_counter}
     context = %{context | quantified_types: types, quantified_counter: counter}
     {type, context}
+  end
+
+  defp get_meta({_fun, meta, _args}) when is_list(meta), do: meta
+  defp get_meta(_other), do: []
+
+  defp with_meta(meta, context) do
+    %{context | line: meta[:line]}
+  end
+
+  defp error(reason, context) do
+    {fun, arity} = context.function
+    location = {context.file, context.line, {context.module, fun, arity}}
+    {:error, {reason, location}}
   end
 
   defp unzip_ok(list) do
@@ -466,6 +478,19 @@ defmodule Module.Types do
   defp do_unzip_ok([{:error, reason} | _tail], _acc1, _acc2), do: {:error, reason}
 
   defp do_unzip_ok([], acc1, acc2), do: {:ok, Enum.reverse(acc1), Enum.reverse(acc2)}
+
+  defp map_ok(list, fun) do
+    do_map_ok(list, [], fun)
+  end
+
+  defp do_map_ok([head | tail], acc, fun) do
+    case fun.(head, acc) do
+      {:ok, elem} -> do_map_ok(tail, [elem | acc], fun)
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp do_map_ok([], acc, _fun), do: {:ok, Enum.reverse(acc)}
 
   defp reduce_ok(list, acc, fun) do
     do_reduce_ok(list, acc, fun)
