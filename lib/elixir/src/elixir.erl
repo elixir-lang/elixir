@@ -5,7 +5,7 @@
 -export([start_cli/0,
   string_to_tokens/4, tokens_to_quoted/3, 'string_to_quoted!'/4,
   env_for_eval/1, env_for_eval/2, quoted_to_erl/2,
-  eval/2, eval/3, eval_forms/3, eval_forms/4, eval_quoted/3]).
+  eval_forms/3, eval_forms/4, eval_quoted/3]).
 -include("elixir.hrl").
 -define(system, 'Elixir.System').
 
@@ -233,18 +233,6 @@ env_for_eval(Env, Opts) ->
     macros := Macros, functions := Functions, lexical_tracker := LexicalTracker,
     requires := Requires, aliases := Aliases, line := Line
   }.
-
-%% String evaluation
-
-eval(String, Binding) ->
-  eval(String, Binding, []).
-
-eval(String, Binding, Opts) when is_list(Opts) ->
-  eval(String, Binding, env_for_eval(Opts));
-eval(String, Binding, #{line := Line, file := File} = E) when
-    is_list(String), is_list(Binding), is_integer(Line), is_binary(File) ->
-  Forms = 'string_to_quoted!'(String, Line, File, []),
-  eval_forms(Forms, Binding, E).
 
 %% Quoted evaluation
 

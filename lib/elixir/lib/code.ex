@@ -235,13 +235,18 @@ defmodule Code do
   def eval_string(string, binding \\ [], opts \\ [])
 
   def eval_string(string, binding, %Macro.Env{} = env) do
-    {value, binding, _env, _scope} = :elixir.eval(to_charlist(string), binding, Map.to_list(env))
-    {value, binding}
+    eval_string_with_error_handling(string, binding, Map.to_list(env))
   end
 
   def eval_string(string, binding, opts) when is_list(opts) do
     validate_eval_opts(opts)
-    {value, binding, _env, _scope} = :elixir.eval(to_charlist(string), binding, opts)
+    eval_string_with_error_handling(string, binding, opts)
+  end
+
+  defp eval_string_with_error_handling(string, binding, opts) do
+    %{line: line, file: file} = env = :elixir.env_for_eval(opts)
+    forms = :elixir.string_to_quoted!(to_charlist(string), line, file, [])
+    {value, binding, _env, _scope} = :elixir.eval_forms(forms, binding, env)
     {value, binding}
   end
 

@@ -101,7 +101,7 @@ defmodule Kernel.CLI do
   Function invoked across nodes for `--rpc-eval`.
   """
   def rpc_eval(expr) do
-    wrapper(fn -> :elixir.eval(to_charlist(expr), [], []) end)
+    wrapper(fn -> Code.eval_string(expr) end)
   catch
     kind, reason -> {kind, reason, __STACKTRACE__}
   end

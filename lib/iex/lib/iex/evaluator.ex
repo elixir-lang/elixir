@@ -143,7 +143,7 @@ defmodule IEx.Evaluator do
   defp loop_state(server, history, opts) do
     env = opts[:env] || :elixir.env_for_eval(file: "iex")
     env = %{env | prematch_vars: :apply}
-    {_, _, env, scope} = :elixir.eval('import IEx.Helpers', [], env)
+    {_, _, env, scope} = :elixir.eval_quoted(quote(do: import(IEx.Helpers)), [], env)
     stacktrace = opts[:stacktrace]
     binding = opts[:binding] || []
 
@@ -182,11 +182,11 @@ defmodule IEx.Evaluator do
   defp eval_dot_iex(state, path) do
     try do
       code = File.read!(path)
-      env = :elixir.env_for_eval(state.env, file: path, line: 1)
+      quoted = :elixir.string_to_quoted!(String.to_charlist(code), 1, path, [])
 
       # Evaluate the contents in the same environment server_loop will run in
-      {_result, binding, env, _scope} = :elixir.eval(String.to_charlist(code), state.binding, env)
-
+      env = :elixir.env_for_eval(state.env, file: path, line: 1)
+      {_result, binding, env, _scope} = :elixir.eval_forms(quoted, state.binding, env)
       %{state | binding: binding, env: :elixir.env_for_eval(env, file: "iex", line: 1)}
     catch
       kind, error ->
