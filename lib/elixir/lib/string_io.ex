@@ -169,7 +169,7 @@ defmodule StringIO do
   @impl true
   def init({string, options}) do
     capture_prompt = options[:capture_prompt] || false
-    {:ok, %{input: string, output: "", capture_prompt: capture_prompt}}
+    {:ok, %{encoding: :unicode, input: string, output: "", capture_prompt: capture_prompt}}
   end
 
   @impl true
@@ -245,12 +245,16 @@ defmodule StringIO do
     get_line(encoding, "", state)
   end
 
+  defp io_request({:setopts, [encoding: encoding]}, state) when encoding in [:latin1, :unicode] do
+    {:ok, %{state | encoding: encoding}}
+  end
+
   defp io_request({:setopts, _opts}, state) do
     {{:error, :enotsup}, state}
   end
 
   defp io_request(:getopts, state) do
-    {{:ok, [binary: true, encoding: :unicode]}, state}
+    {{:ok, [binary: true, encoding: state.encoding]}, state}
   end
 
   defp io_request({:get_geometry, :columns}, state) do
@@ -271,10 +275,10 @@ defmodule StringIO do
 
   ## put_chars
 
-  defp put_chars(encoding, chars, req, %{output: output} = state) do
-    case :unicode.characters_to_binary(chars, encoding, :unicode) do
+  defp put_chars(encoding, chars, req, state) do
+    case :unicode.characters_to_binary(chars, encoding, state.encoding) do
       string when is_binary(string) ->
-        {:ok, %{state | output: output <> string}}
+        {:ok, %{state | output: state.output <> string}}
 
       {_, _, _} ->
         {{:error, req}, state}
