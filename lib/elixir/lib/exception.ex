@@ -544,8 +544,17 @@ defmodule Exception do
   defp format_application(module) do
     # We cannot use Application due to bootstrap issues
     case :application.get_application(module) do
-      {:ok, app} -> "(" <> Atom.to_string(app) <> ") "
-      :undefined -> ""
+      {:ok, app} ->
+        case :application.get_key(app, :vsn) do
+          {:ok, vsn} when is_list(vsn) ->
+            "(" <> Atom.to_string(app) <> " " <> List.to_string(vsn) <> ") "
+
+          _ ->
+            "(" <> Atom.to_string(app) <> ") "
+        end
+
+      :undefined ->
+        ""
     end
   end
 

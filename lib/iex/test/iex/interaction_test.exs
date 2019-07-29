@@ -150,7 +150,7 @@ defmodule IEx.InteractionTest do
     assert content =~ "The following arguments were given to Access.fetch/2"
     assert content =~ ":foo"
     assert content =~ "def fetch(-%module{} = container-, key)"
-    assert content =~ ~r"\(elixir\) lib/access\.ex:\d+: Access\.fetch/2"
+    assert content =~ ~r"\(elixir #{System.version()}\) lib/access\.ex:\d+: Access\.fetch/2"
   end
 
   ## .iex file loading
