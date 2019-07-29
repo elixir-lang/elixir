@@ -687,15 +687,9 @@ defmodule Map do
   """
   @spec pop_lazy(map, key, (() -> value)) :: {value, map}
   def pop_lazy(map, key, fun) when is_function(fun, 0) do
-    case map do
-      %{^key => value} ->
-        {value, delete(map, key)}
-
-      %{} ->
-        {fun.(), map}
-
-      other ->
-        :erlang.error({:badmap, other}, [map, key, fun])
+    case :maps.take(key, map) do
+      {_, _} = tuple -> tuple
+      :error -> {fun.(), map}
     end
   end
 
