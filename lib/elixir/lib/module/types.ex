@@ -104,6 +104,13 @@ defmodule Module.Types do
     {:ok, :null, context}
   end
 
+  def of_pattern({:_, meta, atom}, context) when is_atom(atom) do
+    # Ensure wildcard pattern is given a unique variable name
+    var = {:_, meta, context.counter}
+    {type, context} = new_var(var, context)
+    {:ok, type, context}
+  end
+
   def of_pattern(var, context) when is_var(var) do
     {type, context} = new_var(var, context)
     {:ok, type, context}
@@ -126,15 +133,19 @@ defmodule Module.Types do
          do: unify(left_type, right_type, with_expr(expr, context))
   end
 
-  def format_type({:tuple, types})  do
+  def of_pattern(_other, context) do
+    {:ok, :dynamic, context}
+  end
+
+  def format_type({:tuple, types}) do
     "{#{Enum.map_join(types, ", ", &format_type/1)}}"
   end
 
-  def format_type({:cons, left, :null})  do
+  def format_type({:cons, left, :null}) do
     "[#{format_type(left)}]"
   end
 
-  def format_type({:cons, left, right})  do
+  def format_type({:cons, left, right}) do
     "[#{format_type(left)} | #{format_type(right)}]"
   end
 
@@ -498,7 +509,7 @@ defmodule Module.Types do
     {fun, arity} = context.function
     location = {context.file, context.line, {context.module, fun, arity}}
     reason = Tuple.insert_at(reason, 1, context.expr)
-    {:error, {reason, location}}
+    {:error, {reason, [location]}}
   end
 
   defp unzip_ok(list) do
@@ -519,8 +530,15 @@ defmodule Module.Types do
 
   defp do_map_ok([head | tail], acc, fun) do
     case fun.(head) do
-      {:ok, elem} -> do_map_ok(tail, [elem | acc], fun)
-      {:error, reason} -> {:error, reason}
+      {:ok, elem} ->
+        do_map_ok(tail, [elem | acc], fun)
+
+      result when elem(result, 0) == :ok ->
+        result = Tuple.delete_at(result, 0)
+        do_map_ok(tail, [result | acc], fun)
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
@@ -532,8 +550,15 @@ defmodule Module.Types do
 
   defp do_reduce_ok([head | tail], acc, fun) do
     case fun.(head, acc) do
-      {:ok, acc} -> do_reduce_ok(tail, acc, fun)
-      {:error, reason} -> {:error, reason}
+      {:ok, acc} ->
+        do_reduce_ok(tail, acc, fun)
+
+      result when elem(result, 0) == :ok ->
+        result = Tuple.delete_at(result, 0)
+        do_reduce_ok(tail, result, fun)
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 

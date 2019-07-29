@@ -78,9 +78,13 @@ defmodule Module.Checker do
     results = Module.Types.infer_definitions(map.file, map.module, map.definitions)
 
     Enum.reduce(results, {[], []}, fn
-      {function, {:ok, type, context}}, {types, warnings} ->
-        types = [{function, Types.lift_types(type, context)} | types]
-        {types, warnings}
+      {function, {:ok, type_and_context}}, {types, warnings} ->
+        type =
+          Enum.map(type_and_context, fn {type, context} ->
+            Module.Types.lift_types(type, context)
+          end)
+
+        {[{function, type} | types], warnings}
 
       {_function, {:error, reason}}, {types, warnings} ->
         {types, [reason | warnings]}
@@ -297,7 +301,7 @@ defmodule Module.Checker do
       Module.Types.format_type(left),
       " !~ ",
       Module.Types.format_type(right),
-      "in expression: ",
+      " in expression: ",
       Macro.to_string(expr)
     ]
   end
@@ -306,7 +310,7 @@ defmodule Module.Checker do
     [
       "function clause will never match, found recursive pattern type: ",
       Module.Types.format_type(type),
-      "in expression: ",
+      " in expression: ",
       Macro.to_string(expr)
     ]
   end

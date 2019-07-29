@@ -46,7 +46,7 @@ defmodule Module.TypesTest do
       assert {:error, {{:unable_unify, expr, :integer, :binary}, location}} =
                quoted_pattern(<<123::binary>>)
 
-      assert location == {"types_test.ex", 47, {TypesTest, :test, 0}}
+      assert location == [{"types_test.ex", 47, {TypesTest, :test, 0}}]
       assert {:"::", _, [123, {:binary, _, nil}]} = expr
     end
 
@@ -80,7 +80,11 @@ defmodule Module.TypesTest do
       assert quoted_pattern(<<123::integer>>) == {:ok, :binary}
       assert quoted_pattern(<<foo::integer>>) == {:ok, :binary}
 
-      assert {:error, {{:unable_unify, _, :integer, :binary}, _}} = quoted_pattern(<<123::binary>>)
+      assert quoted_pattern({<<foo::integer>>, foo}) == {:ok, {:tuple, [:binary, :integer]}}
+      assert quoted_pattern({<<foo::binary>>, foo}) == {:ok, {:tuple, [:binary, :binary]}}
+
+      assert {:error, {{:unable_unify, _, :integer, :binary}, _}} =
+               quoted_pattern(<<123::binary>>)
 
       assert {:error, {{:unable_unify, _, :binary, :integer}, _}} =
                quoted_pattern(<<"foo"::integer>>)
@@ -93,6 +97,9 @@ defmodule Module.TypesTest do
       assert quoted_pattern(foo) == {:ok, {:var, 0}}
       assert quoted_pattern({foo}) == {:ok, {:tuple, [{:var, 0}]}}
       assert quoted_pattern({foo, bar}) == {:ok, {:tuple, [{:var, 0}, {:var, 1}]}}
+
+      assert quoted_pattern(_) == {:ok, {:var, 0}}
+      assert quoted_pattern({_ = 123, _}) == {:ok, {:tuple, [:integer, {:var, 0}]}}
     end
 
     test "assignment" do
