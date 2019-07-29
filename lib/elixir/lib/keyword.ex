@@ -955,6 +955,32 @@ defmodule Keyword do
   end
 
   @doc """
+  Returns the first value for `key` and removes all associated antries in the keyword list,
+  raising if `key` is not present.
+
+  This function behaves like `pop/3`, but raises in cases the `key` is not present in the
+  given `keywords`.
+
+  ## Examples
+
+      iex> Keyword.pop!([a: 1], :a)
+      {1, []}
+      iex> Keyword.pop!([a: 1, a: 2], :a)
+      {1, []}
+      iex> Keyword.pop!([a: 1], :b)
+      ** (KeyError) key :b not found in: [a: 1]
+
+  """
+  @doc since: "1.10.0"
+  @spec pop!(t, key) :: {value, t}
+  def pop!(keywords, key) when is_list(keywords) and is_atom(key) do
+    case fetch(keywords, key) do
+      {:ok, value} -> {value, delete(keywords, key)}
+      :error -> raise KeyError, key: key, term: keywords
+    end
+  end
+
+  @doc """
   Returns all values for `key` and removes all associated entries in the keyword list.
 
   It returns a tuple where the first element is a list of values for `key` and the
