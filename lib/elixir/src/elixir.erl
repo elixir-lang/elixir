@@ -258,24 +258,57 @@ eval_forms(Tree, Binding, Env, Scope) ->
     {atom, _, Atom} ->
       {Atom, Binding, NewEnv, NewScope};
     _  ->
+      Exprs =
+        case Erl of
+          {block, _A, E} -> E;
+          _ -> [Erl]
+        end,
+
       % Below must be all one line for locations to be the same
       % when the stacktrace is extended to the full stacktrace.
-      {value, Value, NewBinding} =
-        try erl_eval:expr(Erl, ParsedBinding, none, none, none) catch ?WITH_STACKTRACE(Class, Exception, Stacktrace) erlang:raise(Class, Exception, get_stacktrace(Stacktrace)) end,
+      {value, Value, NewBinding} = recur_eval(Exprs, ParsedBinding, Env),
       {Value, elixir_erl_var:dump_binding(NewBinding, NewScope), NewEnv, NewScope}
   end.
 
-get_stacktrace(Stacktrace) ->
+recur_eval([Expr | Exprs], Binding, Env) ->
+  {value, Value, NewBinding} =
+    try erl_eval:expr(Expr, Binding, none, none, none) catch ?WITH_STACKTRACE(Class, Exception, Stacktrace) erlang:raise(Class, rewrite_exception(Exception, Stacktrace, Expr, Env), rewrite_stacktrace(Stacktrace)) end,
+
+  case Exprs of
+    [] -> {value, Value, NewBinding};
+    _ -> recur_eval(Exprs, NewBinding, Env)
+  end.
+
+rewrite_exception(badarg, [{Mod, _, _, _} | _], Erl, #{file := File}) when Mod == erl_eval; Mod == eval_bits ->
+  {Min, Max} =
+    erl_parse:fold_anno(fun(Anno, {Min, Max}) ->
+      case erl_anno:line(Anno) of
+        Line when Line > 0 -> {min(Min, Line), max(Max, Line)};
+        _ -> {Min, Max}
+      end
+    end, {999999, -999999}, Erl),
+
+  'Elixir.ArgumentError':exception(
+    erlang:iolist_to_binary(
+      ["argument error while evaluating", badarg_file(File), badarg_line(Min, Max)]
+    )
+  );
+rewrite_exception(Other, _, _, _) ->
+  Other.
+
+badarg_file(<<"nofile">>) -> "";
+badarg_file(Path) -> [$\s, 'Elixir.Path':relative_to_cwd(Path)].
+
+badarg_line(999999, -999999) -> [];
+badarg_line(Line, Line) -> [" at line ", integer_to_binary(Line)];
+badarg_line(Min, Max) -> [" between lines ", integer_to_binary(Min), " and ", integer_to_binary(Max)].
+
+rewrite_stacktrace(Stacktrace) ->
   % eval_eval and eval_bits can call :erlang.raise/3 without the full
   % stacktrace. When this occurs re-add the current stacktrace so that no
   % stack information is lost.
-  try
-    throw(stack)
-  catch
-    ?WITH_STACKTRACE(throw, stack, CurrentStack)
-      % Ignore stack item for current function.
-      merge_stacktrace(Stacktrace, tl(CurrentStack))
-  end.
+  {current_stacktrace, CurrentStack} = erlang:process_info(self(), current_stacktrace),
+  merge_stacktrace(Stacktrace, tl(CurrentStack)).
 
 % The stacktrace did not include the current stack, re-add it.
 merge_stacktrace([], CurrentStack) ->
