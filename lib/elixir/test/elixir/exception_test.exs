@@ -140,13 +140,10 @@ defmodule ExceptionTest do
 
   test "format_stacktrace_entry/1 with application" do
     assert Exception.format_stacktrace_entry({Exception, :bar, [], [file: 'file.ex']}) ==
-             "(elixir) file.ex: Exception.bar()"
+             "(elixir #{System.version()}) file.ex: Exception.bar()"
 
     assert Exception.format_stacktrace_entry({Exception, :bar, [], [file: 'file.ex', line: 10]}) ==
-             "(elixir) file.ex:10: Exception.bar()"
-
-    assert Exception.format_stacktrace_entry({:lists, :bar, [1, 2, 3], []}) ==
-             "(stdlib) :lists.bar(1, 2, 3)"
+             "(elixir #{System.version()}) file.ex:10: Exception.bar()"
   end
 
   test "format_stacktrace_entry/1 with fun" do

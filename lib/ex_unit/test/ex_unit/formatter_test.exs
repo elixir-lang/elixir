@@ -192,7 +192,7 @@ defmodule ExUnit.FormatterTest do
                     def fetch(%module{} = container, key)
            """
 
-    assert failure =~ ~r"\(elixir\) lib/access\.ex:\d+: Access\.fetch/2"
+    assert failure =~ ~r"\(elixir #{System.version()}\) lib/access\.ex:\d+: Access\.fetch/2"
   end
 
   test "formats setup_all errors" do

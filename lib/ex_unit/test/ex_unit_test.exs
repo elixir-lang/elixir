@@ -61,7 +61,7 @@ defmodule ExUnitTest do
 
     output = capture_io(fn -> ExUnit.run() end)
     assert output =~ "** (ExUnit.TimeoutError) test timed out after 10ms"
-    assert output =~ ~r"\(elixir\) lib/process\.ex:\d+: Process\.sleep/1"
+    assert output =~ ~r"\(elixir #{System.version()}\) lib/process\.ex:\d+: Process\.sleep/1"
   end
 
   test "supports configured timeout" do
