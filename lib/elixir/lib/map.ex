@@ -653,7 +653,7 @@ defmodule Map do
 
   """
   @doc since: "1.10.0"
-  @spec pop(map, key) :: {value, map}
+  @spec pop!(map, key) :: {value, map}
   def pop!(map, key) do
     case :maps.take(key, map) do
       {_, _} = tuple -> tuple
