@@ -5,8 +5,14 @@ defmodule Module.Checker do
 
   def verify(module, cache) do
     case prepare_module(module) do
-      {:ok, map} -> {build_chunk(map), warnings(map, cache)}
-      :error -> {nil, []}
+      {:ok, map} ->
+        undefined_and_deprecation_warnings = undefined_and_deprecation_warnings(map, cache)
+        {types, infer_warnings} = infer_definitions(map)
+        warnings = infer_warnings ++ undefined_and_deprecation_warnings
+        {build_chunk(map, types), emit_warnings(warnings)}
+
+      :error ->
+        {nil, []}
     end
   end
 
@@ -41,21 +47,23 @@ defmodule Module.Checker do
   defp checker_chunk(binary) do
     with {:ok, {_, [{'ExCk', chunk}]}} <- :beam_lib.chunks(binary, ['ExCk']),
          {:elixir_checker_v1, contents} <- :erlang.binary_to_term(chunk) do
-      deprecated = Enum.map(contents.exports, fn {fun, {_kind, reason}} -> {fun, reason} end)
+      deprecated = Enum.map(contents.exports, fn {fun, map} -> {fun, map.deprecated_reason} end)
       {:ok, %{deprecated: deprecated, no_warn_undefined: contents.no_warn_undefined}}
     else
       _ -> :error
     end
   end
 
-  defp build_chunk(map) do
+  defp build_chunk(map, types) do
     exports = ParallelChecker.definitions_to_exports(map.definitions)
     deprecated = :maps.from_list(map.deprecated)
+    types = :maps.from_list(types)
 
     exports =
       Enum.map(exports, fn {function, kind} ->
-        reason = :maps.get(function, deprecated, nil)
-        {function, {kind, reason}}
+        deprecated_reason = :maps.get(function, deprecated, nil)
+        type = :maps.get(function, types, nil)
+        {function, %{kind: kind, deprecated_reason: deprecated_reason, type: type}}
       end)
 
     contents = %{
@@ -66,7 +74,20 @@ defmodule Module.Checker do
     {'ExCk', :erlang.term_to_binary({:elixir_checker_v1, contents})}
   end
 
-  defp warnings(map, cache) do
+  defp infer_definitions(map) do
+    results = Module.Types.infer_definitions(map.file, map.module, map.definitions)
+
+    Enum.reduce(results, {[], []}, fn
+      {function, {:ok, type, context}}, {types, warnings} ->
+        types = [{function, Types.lift_types(type, context)} | types]
+        {types, warnings}
+
+      {_function, {:error, reason}}, {types, warnings} ->
+        {types, [reason | warnings]}
+    end)
+  end
+
+  defp undefined_and_deprecation_warnings(map, cache) do
     no_warn_undefined = map.no_warn_undefined ++ Code.get_compiler_option(:no_warn_undefined)
 
     state = %{
@@ -83,7 +104,6 @@ defmodule Module.Checker do
     state.warnings
     |> merge_warnings()
     |> sort_warnings()
-    |> emit_warnings()
   end
 
   defp check_definitions(definitions, state) do
@@ -268,6 +288,26 @@ defmodule Module.Checker do
       inspect(module),
       " before invoking the macro ",
       Exception.format_mfa(module, fun, arity)
+    ]
+  end
+
+  defp format_warning({:unable_unify, expr, left, right}) do
+    [
+      "function clause will never match, found incompatible pattern types: ",
+      Module.Types.format_type(left),
+      " !~ ",
+      Module.Types.format_type(right),
+      "in expression: ",
+      Macro.to_string(expr)
+    ]
+  end
+
+  defp format_warning({:recursive_type, expr, type}) do
+    [
+      "function clause will never match, found recursive pattern type: ",
+      Module.Types.format_type(type),
+      "in expression: ",
+      Macro.to_string(expr)
     ]
   end
 

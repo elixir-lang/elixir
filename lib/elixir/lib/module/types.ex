@@ -35,6 +35,7 @@ defmodule Module.Types do
       line: nil,
       module: module,
       function: function,
+      expr: nil,
       vars: %{},
       types: %{},
       counter: 0
@@ -119,10 +120,42 @@ defmodule Module.Types do
     end
   end
 
-  def of_pattern({:=, meta, [left_expr, right_expr]}, context) do
+  def of_pattern({:=, _meta, [left_expr, right_expr]} = expr, context) do
     with {:ok, left_type, context} <- of_pattern(left_expr, context),
          {:ok, right_type, context} <- of_pattern(right_expr, context),
-         do: unify(left_type, right_type, with_meta(meta, context))
+         do: unify(left_type, right_type, with_expr(expr, context))
+  end
+
+  def format_type({:tuple, types})  do
+    "{#{Enum.map_join(types, ", ", &format_type/1)}}"
+  end
+
+  def format_type({:cons, left, :null})  do
+    "[#{format_type(left)}]"
+  end
+
+  def format_type({:cons, left, right})  do
+    "[#{format_type(left)} | #{format_type(right)}]"
+  end
+
+  def format_type({:fn, [], return}) do
+    "fn(-> #{format_type(return)})"
+  end
+
+  def format_type({:fn, params, return}) do
+    "fn(#{Enum.map_join(params, ", ", &format_type/1)} -> #{format_type(return)})"
+  end
+
+  def format_type({:literal, literal}) do
+    inspect(literal)
+  end
+
+  def format_type(:null) do
+    "[]"
+  end
+
+  def format_type(atom) when is_atom(atom) do
+    "#{atom}()"
   end
 
   defp of_pattern_multi(patterns, pattern_types \\ [], context)
@@ -163,7 +196,7 @@ defmodule Module.Types do
       with {:ok, args, guard_types} <- unzip_ok(union),
            [arg] <- Enum.uniq(args) do
         union = to_union(guard_types, context)
-        unify_guard(arg, union, with_meta(get_meta(guard), context))
+        unify_guard(arg, union, with_expr(guard, context))
       else
         _ -> {:ok, context}
       end
@@ -209,7 +242,7 @@ defmodule Module.Types do
     {:ok, context}
   end
 
-  defp of_binary([{:"::", meta, [expr, specifiers]} | args], context) do
+  defp of_binary([{:"::", _meta, [expr, specifiers]} = full_expr | args], context) do
     specifiers = List.flatten(collect_specifiers(specifiers))
 
     expected_type =
@@ -228,7 +261,7 @@ defmodule Module.Types do
       end
 
     with {:ok, type, context} <- of_pattern(expr, context),
-         {:ok, _type, context} <- unify(type, expected_type, with_meta(meta, context)),
+         {:ok, _type, context} <- unify(type, expected_type, with_expr(full_expr, context)),
          do: of_binary(args, context)
   end
 
@@ -457,13 +490,14 @@ defmodule Module.Types do
   defp get_meta({_fun, meta, _args}) when is_list(meta), do: meta
   defp get_meta(_other), do: []
 
-  defp with_meta(meta, context) do
-    %{context | line: meta[:line]}
+  defp with_expr(expr, context) do
+    %{context | expr: expr, line: get_meta(expr)[:line]}
   end
 
   defp error(reason, context) do
     {fun, arity} = context.function
     location = {context.file, context.line, {context.module, fun, arity}}
+    reason = Tuple.insert_at(reason, 1, context.expr)
     {:error, {reason, location}}
   end
 
@@ -484,7 +518,7 @@ defmodule Module.Types do
   end
 
   defp do_map_ok([head | tail], acc, fun) do
-    case fun.(head, acc) do
+    case fun.(head) do
       {:ok, elem} -> do_map_ok(tail, [elem | acc], fun)
       {:error, reason} -> {:error, reason}
     end
