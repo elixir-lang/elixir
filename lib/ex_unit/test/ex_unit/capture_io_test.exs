@@ -86,6 +86,16 @@ defmodule ExUnit.CaptureIOTest do
            end) == "a"
   end
 
+  test "with fwrite" do
+    assert capture_io(fn ->
+             :io.fwrite(<<127, 128>>)
+           end) == <<127, 194, 128>>
+
+    assert capture_io([encoding: :latin1], fn ->
+             :io.fwrite(<<127, 128>>)
+           end) == <<127, 128>>
+  end
+
   test "with get chars" do
     assert capture_io(fn ->
              :io.get_chars(">", 3)

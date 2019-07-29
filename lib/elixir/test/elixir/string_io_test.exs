@@ -169,8 +169,7 @@ defmodule StringIOTest do
   end
 
   test "IO.binwrite with bytes and latin1 encoding" do
-    {:ok, pid} = StringIO.open("")
-    assert :io.setopts(pid, encoding: :latin1) == :ok
+    {:ok, pid} = StringIO.open("", encoding: :latin1)
     assert IO.binwrite(pid, <<127, 128>>) == :ok
     assert StringIO.contents(pid) == {"", <<127, 128>>}
   end
