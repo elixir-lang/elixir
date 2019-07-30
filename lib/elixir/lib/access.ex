@@ -237,6 +237,23 @@ defmodule Access do
   end
 
   @doc """
+  Same as `fetch/2` but returns the term directly,
+  or raises an `ArgumentError` exception if an error is returned.
+  """
+  @spec fetch!(container, term) :: term
+  def fetch!(container, key) do
+    case fetch(container, key) do
+      {:ok, value} ->
+        value
+
+      :error ->
+        raise ArgumentError,
+              "the Access call for: " <>
+                inspect(container) <> " was not able to find: " <> inspect(key)
+    end
+  end
+
+  @doc """
   Gets the value for the given key in a container (a map, keyword
   list, or struct that implements the `Access` behaviour).
 

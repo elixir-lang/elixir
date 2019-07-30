@@ -99,6 +99,22 @@ defmodule AccessTest do
     end
   end
 
+  describe "fetch!/2" do
+    assert Access.fetch!(%{foo: :bar}, :foo) == :bar
+
+    assert_raise ArgumentError,
+                 ~r/the Access calls for keywords expect the key to be an atom/,
+                 fn ->
+                   Access.fetch!([], "foo")
+                 end
+
+    assert_raise ArgumentError,
+                 ~r/the Access call for: nil was not able to find: \"foo\"/,
+                 fn ->
+                   Access.fetch!(nil, "foo")
+                 end
+  end
+
   describe "filter/1" do
     @test_list [1, 2, 3, 4, 5, 6]
 
