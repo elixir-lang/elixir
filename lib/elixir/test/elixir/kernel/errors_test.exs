@@ -163,6 +163,12 @@ defmodule Kernel.ErrorsTest do
                       '"""bar\n"""'
   end
 
+  test "heredoc with incomplete interpolation" do
+    assert_eval_raise TokenMissingError,
+                      "nofile:2: missing interpolation terminator: \"}\" (for heredoc starting at line 1)",
+                      '"""\n\#{\n"""'
+  end
+
   test "heredoc terminator" do
     assert_eval_raise TokenMissingError,
                       "nofile:2: missing terminator: \"\"\" (for heredoc starting at line 1)",
