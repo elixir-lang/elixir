@@ -16,7 +16,7 @@ extract(Line, Column, Raw, Interpol, String, Last) ->
 
 %% Terminators
 
-extract(Line, Column, _Scope, _Interpol, [], Buffer, Output, []) ->
+extract(Line, Column, _Scope, _Interpol, [], Buffer, Output, none) ->
   finish_extraction(Line, Column, Buffer, Output, []);
 
 extract(Line, Column, _Scope, _Interpol, [], _Buffer, _Output, Last) ->

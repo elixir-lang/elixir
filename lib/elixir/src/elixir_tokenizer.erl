@@ -854,7 +854,7 @@ collect_modifiers(Rest, Buffer) ->
 extract_heredoc_with_interpolation(Line, Column, Scope, Interpol, T, H) ->
   case extract_heredoc(Line, Column, T, H, Scope) of
     {ok, NewLine, NewColumn, Body, Rest} ->
-      case elixir_interpolation:extract(Line + 1, 1, Scope, Interpol, Body, 0) of
+      case elixir_interpolation:extract(Line + 1, 1, Scope, Interpol, Body, none) of
         {error, Reason} ->
           {error, interpolation_format(Reason, " (for heredoc starting at line ~B)", [Line])};
 
@@ -896,7 +896,7 @@ heredoc_error_message(badterminator, _Line, Terminator) ->
 %% Remove spaces from heredoc based on the position of the final quotes.
 
 remove_heredoc_spaces(Body, Spaces, Marker, Scope) ->
-  case trim_spaces(Body, [0], Spaces, false) of
+  case trim_spaces(Body, [], Spaces, false) of
     {Acc, false} ->
       Acc;
 
