@@ -55,7 +55,7 @@ defmodule Config do
 
   It has to be replaced by:
 
-      for config <- "apps/*/config/config.exs" |> Path.expand() |> Path.wildcard() do
+      for config <- "../apps/*/config/config.exs" |> Path.expand(__DIR__) |> Path.wildcard() do
         import_config config
       end
 
