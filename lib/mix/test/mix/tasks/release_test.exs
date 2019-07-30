@@ -281,10 +281,11 @@ defmodule Mix.Tasks.ReleaseTest do
         open_port(script, ['start'])
         wait_until_decoded(Path.join(root, "RELEASE_BOOTED"))
         assert System.cmd(script, ["rpc", "ReleaseTest.hello_world"]) == {"hello world\n", 0}
-        assert System.cmd(script, ["stop"]) == {"", 0}
 
         assert {pid, 0} = System.cmd(script, ["pid"])
         assert pid != "\n"
+
+        assert System.cmd(script, ["stop"]) == {"", 0}
       end)
     end)
   end
