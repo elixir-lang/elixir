@@ -237,8 +237,8 @@ defmodule Access do
   end
 
   @doc """
-  Same as `fetch/2` but returns the term directly,
-  or raises an `ArgumentError` exception if an error is returned.
+  Same as `fetch/2` but returns the value directly,
+  or raises a `KeyError` exception if `key` is not found.
 
   ## Examples
 
