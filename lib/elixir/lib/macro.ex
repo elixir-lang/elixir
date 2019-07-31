@@ -1391,17 +1391,9 @@ defmodule Macro do
     end
   end
 
-  # Expand possible macro import invocation
-  defp do_expand_once({atom, meta, context} = original, env)
+  defp do_expand_once({atom, meta, context} = original, _env)
        when is_atom(atom) and is_list(meta) and is_atom(context) do
-    if Macro.Env.has_var?(env, {atom, Keyword.get(meta, :counter, context)}) do
-      {original, false}
-    else
-      case do_expand_once({atom, meta, []}, env) do
-        {_, true} = exp -> exp
-        {_, false} -> {original, false}
-      end
-    end
+    {original, false}
   end
 
   defp do_expand_once({atom, meta, args} = original, env)
