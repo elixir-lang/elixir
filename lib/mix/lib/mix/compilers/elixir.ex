@@ -238,8 +238,8 @@ defmodule Mix.Compilers.Elixir do
 
   defp dependent_runtime_modules(sources, all_modules, pending_modules) do
     changed_modules =
-      for module <- all_modules,
-          module not in pending_modules,
+      for module(module: module) = entry <- all_modules,
+          entry not in pending_modules,
           into: %{},
           do: {module, true}
 
@@ -254,11 +254,11 @@ defmodule Mix.Compilers.Elixir do
             source(runtime_references: runtime_refs) =
               List.keyfind(sources, file, source(:source))
 
-            Enum.any?(changed, fn {module(module: module), true} -> module in runtime_refs end)
+            has_any_key?(changed, runtime_refs)
           end)
 
         if depending? do
-          {Map.put(new_dependent, module, true), not_dependent}
+          {Map.put(new_dependent, module(module, :module), true), not_dependent}
         else
           {new_dependent, [module | not_dependent]}
         end
@@ -267,7 +267,7 @@ defmodule Mix.Compilers.Elixir do
     if map_size(dependent) != map_size(new_dependent) do
       fixpoint_runtime_modules(sources, new_dependent, new_dependent, not_dependent)
     else
-      Enum.map(new_dependent, fn {module(module: module), true} -> module end)
+      Map.keys(new_dependent)
     end
   end
 
