@@ -242,7 +242,7 @@ defmodule Access do
 
   ## Examples
 
-      iex> Access.fetch(%{name: "meg", age: 26}, :name)
+      iex> Access.fetch!(%{name: "meg", age: 26}, :name)
       "meg"
 
   """
