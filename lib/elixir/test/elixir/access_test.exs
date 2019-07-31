@@ -108,8 +108,8 @@ defmodule AccessTest do
                    Access.fetch!([], "foo")
                  end
 
-    assert_raise ArgumentError,
-                 ~r/the Access call for: nil was not able to find: \"foo\"/,
+    assert_raise KeyError,
+                 ~r/key \"foo\" not found/,
                  fn ->
                    Access.fetch!(nil, "foo")
                  end

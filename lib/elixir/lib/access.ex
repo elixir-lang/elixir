@@ -239,6 +239,12 @@ defmodule Access do
   @doc """
   Same as `fetch/2` but returns the term directly,
   or raises an `ArgumentError` exception if an error is returned.
+
+  ## Examples
+
+      iex> Access.fetch(%{name: "meg", age: 26}, :name)
+      "meg"
+
   """
   @spec fetch!(container, term) :: term
   def fetch!(container, key) do
@@ -247,9 +253,7 @@ defmodule Access do
         value
 
       :error ->
-        raise ArgumentError,
-              "the Access call for: " <>
-                inspect(container) <> " was not able to find: " <> inspect(key)
+        raise(KeyError, key: key, term: container)
     end
   end
 
