@@ -223,7 +223,7 @@ defmodule Mix.Compilers.Elixir do
       update_stale_entries(pending_modules, sources, [], %{}, pending_structs, compile_path)
 
     if changed == [] do
-      {:runtime, dependent_modules(sources, modules, pending_modules)}
+      {:runtime, dependent_runtime_modules(sources, modules, pending_modules)}
     else
       modules =
         for module(sources: source_files) = module <- modules do
@@ -236,29 +236,39 @@ defmodule Mix.Compilers.Elixir do
     end
   end
 
-  defp dependent_modules(sources, all_modules, pending_modules) do
+  defp dependent_runtime_modules(sources, all_modules, pending_modules) do
     changed_modules =
-      for module(module: module) = entry <- all_modules,
-          entry not in pending_modules,
+      for module <- all_modules,
+          module not in pending_modules,
           into: %{},
           do: {module, true}
 
-    Enum.flat_map(pending_modules, fn module(sources: source_files, module: module) ->
-      depending? =
-        Enum.any?(source_files, fn file ->
-          source(
-            compile_references: compile_refs,
-            struct_references: struct_refs,
-            runtime_references: runtime_refs
-          ) = List.keyfind(sources, file, source(:source))
+    fixpoint_runtime_modules(sources, changed_modules, %{}, pending_modules)
+  end
 
-          has_any_key?(changed_modules, compile_refs) or
-            has_any_key?(changed_modules, struct_refs) or
-            has_any_key?(changed_modules, runtime_refs)
-        end)
+  defp fixpoint_runtime_modules(sources, changed, dependent, not_dependent) do
+    {new_dependent, not_dependent} =
+      Enum.reduce(not_dependent, {dependent, []}, fn module, {new_dependent, not_dependent} ->
+        depending? =
+          Enum.any?(module(module, :sources), fn file ->
+            source(runtime_references: runtime_refs) =
+              List.keyfind(sources, file, source(:source))
 
-      if depending?, do: [module], else: []
-    end)
+            Enum.any?(changed, fn {module(module: module), true} -> module in runtime_refs end)
+          end)
+
+        if depending? do
+          {Map.put(new_dependent, module, true), not_dependent}
+        else
+          {new_dependent, [module | not_dependent]}
+        end
+      end)
+
+    if map_size(dependent) != map_size(new_dependent) do
+      fixpoint_runtime_modules(sources, new_dependent, new_dependent, not_dependent)
+    else
+      Enum.map(new_dependent, fn {module(module: module), true} -> module end)
+    end
   end
 
   defp each_module(file, module, _binary, cwd) do
