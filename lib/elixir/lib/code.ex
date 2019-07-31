@@ -63,7 +63,7 @@ defmodule Code do
       `meta` is the require AST metadata and `opts` are the require options.
 
     * `{:struct_expansion, meta, module}` - traced whenever `module`' struct
-      is expanded. `meta` is teh struct AST metadata.
+      is expanded. `meta` is the struct AST metadata.
 
     * `{:remote_reference, meta, module}` - traced whenever there is a remote
       reference to `module`, i.e. whenever the user writes `MyModule.Foo.Bar`
