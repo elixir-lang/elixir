@@ -249,11 +249,8 @@ defmodule Access do
   @spec fetch!(container, term) :: term
   def fetch!(container, key) do
     case fetch(container, key) do
-      {:ok, value} ->
-        value
-
-      :error ->
-        raise(KeyError, key: key, term: container)
+      {:ok, value} -> value
+      :error -> raise(KeyError, key: key, term: container)
     end
   end
 
