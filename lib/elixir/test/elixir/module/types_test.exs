@@ -75,6 +75,15 @@ defmodule Module.TypesTest do
       assert quoted_pattern({:a, 123}) == {:ok, {:tuple, [{:literal, :a}, :integer]}}
     end
 
+    test "map" do
+      assert quoted_pattern(%{}) == {:ok, {:map, []}}
+      assert quoted_pattern(%{a: :b}) == {:ok, {:map, [{{:literal, :a}, {:literal, :b}}]}}
+      assert quoted_pattern(%{123 => a}) == {:ok, {:map, [{:integer, {:var, 0}}]}}
+
+      assert {:error, {{:unable_unify, _, {:literal, :foo}, :integer}, _}} =
+               quoted_pattern(%{a: a = 123, b: a = :foo})
+    end
+
     test "binary" do
       assert quoted_pattern(<<"foo"::binary>>) == {:ok, :binary}
       assert quoted_pattern(<<123::integer>>) == {:ok, :binary}
@@ -98,8 +107,8 @@ defmodule Module.TypesTest do
       assert quoted_pattern({foo}) == {:ok, {:tuple, [{:var, 0}]}}
       assert quoted_pattern({foo, bar}) == {:ok, {:tuple, [{:var, 0}, {:var, 1}]}}
 
-      assert quoted_pattern(_) == {:ok, {:var, 0}}
-      assert quoted_pattern({_ = 123, _}) == {:ok, {:tuple, [:integer, {:var, 0}]}}
+      assert quoted_pattern(_) == {:ok, :dynamic}
+      assert quoted_pattern({_ = 123, _}) == {:ok, {:tuple, [:integer, :dynamic]}}
     end
 
     test "assignment" do
@@ -148,12 +157,45 @@ defmodule Module.TypesTest do
 
       assert quoted_clause([x, x], [is_integer(x)]) == {:ok, [:integer, :integer]}
 
+      assert quoted_clause([x = 123], [is_integer(x)]) == {:ok, [:integer]}
+      assert quoted_clause([x], [is_boolean(x) or is_atom(x)]) == {:ok, [:atom]}
+      assert quoted_clause([x], [is_atom(x) or is_boolean(x)]) == {:ok, [:atom]}
+      assert quoted_clause([x], [is_boolean(x) and is_atom(x)]) == {:ok, [:boolean]}
+      assert quoted_clause([x], [is_atom(x) and is_boolean(x)]) == {:ok, [:boolean]}
+
       assert quoted_clause([x, x = y, y = z], [is_atom(x)]) == {:ok, [:atom, :atom, :atom]}
       assert quoted_clause([x = y, y, y = z], [is_atom(y)]) == {:ok, [:atom, :atom, :atom]}
       assert quoted_clause([x = y, y = z, z], [is_atom(z)]) == {:ok, [:atom, :atom, :atom]}
 
       assert {:error, {{:unable_unify, _, :integer, :binary}, _}} =
                quoted_clause([x], [is_binary(x) and is_integer(x)])
+    end
+
+    test "map" do
+      assert quoted_clause([%{true: false} = foo, %{} = foo]) ==
+               {:ok,
+                [
+                  {:map, [{{:literal, true}, {:literal, false}}]},
+                  {:map, [{{:literal, true}, {:literal, false}}]}
+                ]}
+
+      assert quoted_clause([%{true: bool}], [is_boolean(bool)]) ==
+               {:ok,
+                [
+                  {:map, [{{:literal, true}, :boolean}]}
+                ]}
+
+      assert quoted_clause([%{true: true} = foo, %{false: false} = foo]) ==
+               {:ok,
+                [
+                  {:map,
+                   [{{:literal, false}, {:literal, false}}, {{:literal, true}, {:literal, true}}]},
+                  {:map,
+                   [{{:literal, false}, {:literal, false}}, {{:literal, true}, {:literal, true}}]}
+                ]}
+
+      assert {:error, {{:unable_unify, _, {:literal, true}, {:literal, false}}, _}} =
+               quoted_clause([%{true: false} = foo, %{true: true} = foo])
     end
   end
 
@@ -165,7 +207,7 @@ defmodule Module.TypesTest do
     assert Types.format_type({:cons, :binary, :binary}) == "[binary() | binary()]"
     assert Types.format_type({:tuple, []}) == "{}"
     assert Types.format_type({:tuple, [:integer]}) == "{integer()}"
-    assert Types.format_type({:fn, [], :integer}) == "fn(-> integer())"
-    assert Types.format_type({:fn, [:binary], :integer}) == "fn(binary() -> integer())"
+    # assert Types.format_type({:fn, [], :integer}) == "fn(-> integer())"
+    # assert Types.format_type({:fn, [:binary], :integer}) == "fn(binary() -> integer())"
   end
 end

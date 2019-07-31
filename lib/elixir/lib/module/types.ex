@@ -24,7 +24,7 @@ defmodule Module.Types do
   end
 
   def of_clause(params, guards, context) do
-    with {:ok, types, context} <- of_pattern_multi(params, context),
+    with {:ok, types, context} <- map_reduce_ok(params, context, &of_pattern/2),
          {:ok, context} <- of_guard(guards_to_or(guards), context),
          do: {:ok, types, context}
   end
@@ -104,11 +104,8 @@ defmodule Module.Types do
     {:ok, :null, context}
   end
 
-  def of_pattern({:_, meta, atom}, context) when is_atom(atom) do
-    # Ensure wildcard pattern is given a unique variable name
-    var = {:_, meta, context.counter}
-    {type, context} = new_var(var, context)
-    {:ok, type, context}
+  def of_pattern({:_, _meta, atom}, context) when is_atom(atom) do
+    {:ok, :dynamic, context}
   end
 
   def of_pattern(var, context) when is_var(var) do
@@ -121,7 +118,7 @@ defmodule Module.Types do
   end
 
   def of_pattern({:{}, _meta, exprs}, context) do
-    case of_pattern_multi(exprs, context) do
+    case map_reduce_ok(exprs, context, &of_pattern/2) do
       {:ok, types, context} -> {:ok, {:tuple, types}, context}
       {:error, reason} -> {:error, reason}
     end
@@ -133,8 +130,22 @@ defmodule Module.Types do
          do: unify(left_type, right_type, with_expr(expr, context))
   end
 
-  def of_pattern(_other, context) do
-    {:ok, :dynamic, context}
+  def of_pattern({:%{}, _meta, args}, context) do
+    result =
+      map_reduce_ok(args, context, fn {key, value}, context ->
+        with {:ok, key_type, context} <- of_pattern(key, context),
+             {:ok, value_type, context} <- of_pattern(value, context),
+             do: {:ok, {key_type, value_type}, context}
+      end)
+
+    case result do
+      {:ok, pairs, context} -> {:ok, {:map, pairs}, context}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  def of_pattern({:%, _meta, _args}, context) do
+    {:ok, {:map, []}, context}
   end
 
   def format_type({:tuple, types}) do
@@ -149,13 +160,13 @@ defmodule Module.Types do
     "[#{format_type(left)} | #{format_type(right)}]"
   end
 
-  def format_type({:fn, [], return}) do
-    "fn(-> #{format_type(return)})"
-  end
-
-  def format_type({:fn, params, return}) do
-    "fn(#{Enum.map_join(params, ", ", &format_type/1)} -> #{format_type(return)})"
-  end
+  # def format_type({:fn, [], return}) do
+  #   "fn(-> #{format_type(return)})"
+  # end
+  #
+  # def format_type({:fn, params, return}) do
+  #   "fn(#{Enum.map_join(params, ", ", &format_type/1)} -> #{format_type(return)})"
+  # end
 
   def format_type({:literal, literal}) do
     inspect(literal)
@@ -167,19 +178,6 @@ defmodule Module.Types do
 
   def format_type(atom) when is_atom(atom) do
     "#{atom}()"
-  end
-
-  defp of_pattern_multi(patterns, pattern_types \\ [], context)
-
-  defp of_pattern_multi([pattern | patterns], pattern_types, context) do
-    case of_pattern(pattern, context) do
-      {:ok, type, context} -> of_pattern_multi(patterns, [type | pattern_types], context)
-      {:error, reason} -> {:error, reason}
-    end
-  end
-
-  defp of_pattern_multi([], pattern_types, context) do
-    {:ok, Enum.reverse(pattern_types), context}
   end
 
   # TODO: Remove this and let multiple when be treated as multiple clauses,
@@ -205,9 +203,9 @@ defmodule Module.Types do
       union = Enum.map(flatten_binary_op(:or, guard), &type_guard/1)
 
       with {:ok, args, guard_types} <- unzip_ok(union),
-           [arg] <- Enum.uniq(args) do
+           [_arg] <- Enum.uniq(Enum.map(args, &remove_meta/1)) do
         union = to_union(guard_types, context)
-        unify_guard(arg, union, with_expr(guard, context))
+        unify_guard(hd(args), union, with_expr(guard, context))
       else
         _ -> {:ok, context}
       end
@@ -226,7 +224,7 @@ defmodule Module.Types do
   # */2 +/1 +/2 -/1 -/2 //2
   # abs/2 ceil/1 floor/1 round/1 trunc/1
   # elem/2 hd/1 in/2 length/1 map_size/1 tl/1 tuple_size/1
-  # is_function/1 is_function/2 is_list/1 is_map/1 is_number/1 is_pid/1 is_port/1 is_reference/1 is_tuple/1
+  # is_function/1 is_function/2 is_list/1 is_number/1 is_pid/1 is_port/1 is_reference/1 is_tuple/1
   # node/1 self/1
   # binary_part/3 bit_size/1 byte_size/1 div/2 rem/2 node/0
 
@@ -235,8 +233,10 @@ defmodule Module.Types do
     is_binary: :binary,
     # TODO: Add bitstring type
     is_bitstring: :binary,
+    is_boolean: :boolean,
     is_float: :float,
     is_integer: :integer,
+    is_map: {:map, []},
     is_nil: {:literal, nil}
   }
 
@@ -292,10 +292,10 @@ defmodule Module.Types do
   defp unify({:var, left}, {:var, right}, context) do
     case {:maps.find(left, context.types), :maps.find(right, context.types)} do
       {{:ok, type}, :error} ->
-        {:ok, type, %{context | types: :maps.put(right, type, context.types)}}
+        {:ok, {:var, left}, %{context | types: :maps.put(right, type, context.types)}}
 
       {:error, {:ok, type}} ->
-        {:ok, type, %{context | types: :maps.put(left, type, context.types)}}
+        {:ok, {:var, right}, %{context | types: :maps.put(left, type, context.types)}}
 
       {_, {:ok, :unbound}} ->
         {:ok, {:var, left}, %{context | types: :maps.put(right, {:var, left}, context.types)}}
@@ -304,15 +304,34 @@ defmodule Module.Types do
         {:ok, {:var, right}, %{context | types: :maps.put(left, {:var, right}, context.types)}}
 
       {{:ok, left_type}, {:ok, right_type}} ->
-        unify(left_type, right_type, context)
+        case unify(left_type, right_type, context) do
+          {:ok, type, context} ->
+            types = :maps.put(left, type, context.types)
+            types = :maps.put(right, type, types)
+            {:ok, {:var, left}, %{context | types: types}}
+
+          {:error, reason} ->
+            {:error, reason}
+        end
     end
   end
 
   defp unify(type, {:var, var}, context) do
     case :maps.find(var, context.types) do
-      {:ok, :unbound} -> add_var(var, type, context)
-      {:ok, var_type} -> unify(type, var_type, context)
-      :error -> add_var(var, type, context)
+      {:ok, :unbound} ->
+        add_var(var, type, context)
+
+      :error ->
+        add_var(var, type, context)
+
+      {:ok, var_type} ->
+        case unify(type, var_type, context) do
+          {:ok, var_type, context} ->
+            {:ok, {:var, var}, %{context | types: :maps.put(var, var_type, context.types)}}
+
+          {:error, reason} ->
+            {:error, reason}
+        end
     end
   end
 
@@ -320,10 +339,73 @@ defmodule Module.Types do
     unify(type, {:var, var}, context)
   end
 
+  defp unify({:tuple, lefts}, {:tuple, rights}, context)
+       when length(lefts) == length(rights) do
+    result =
+      map_reduce_ok(Enum.zip(lefts, rights), context, fn {left, right}, context ->
+        unify(left, right, context)
+      end)
+
+    case result do
+      {:ok, types, context} -> {:ok, {:tuple, types}, context}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp unify({:cons, left_left, left_right}, {:cons, right_left, right_right}, context) do
+    with {:ok, left, context} <- unify(left_left, right_left, context),
+         {:ok, right, context} <- unify(left_right, right_right, context),
+         do: {:ok, {:cons, left, right}, context}
+  end
+
+  defp unify({:map, left_pairs}, {:map, right_pairs}, context) do
+    # Since maps in patterns only support literal keys we can do
+    # exact type match without subtype checking
+
+    unique_right_pairs =
+      Enum.reject(right_pairs, fn {key, _value} ->
+        :lists.keyfind(key, 1, left_pairs)
+      end)
+
+    unique_pairs = left_pairs ++ unique_right_pairs
+
+    result =
+      map_reduce_ok(unique_pairs, context, fn {left_key, left_value}, context ->
+        case :lists.keyfind(left_key, 1, right_pairs) do
+          {^left_key, right_value} ->
+            case unify(left_value, right_value, context) do
+              {:ok, value, context} -> {:ok, {left_key, value}, context}
+              {:error, reason} -> {:error, reason}
+            end
+
+          false ->
+            {:ok, {left_key, left_value}, context}
+        end
+      end)
+
+    case result do
+      {:ok, pairs, context} -> {:ok, {:map, pairs}, context}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp unify(:dynamic, right, context) do
+    {:ok, right, context}
+  end
+
+  defp unify(left, :dynamic, context) do
+    {:ok, left, context}
+  end
+
   defp unify(left, right, context) do
+    # IO.puts("")
+    # IO.inspect(left)
+    # IO.inspect(right)
+    # IO.inspect(context)
+
     cond do
-      subtype?(left, right, context) -> {:ok, right, context}
-      subtype?(right, left, context) -> {:ok, left, context}
+      subtype?(left, right, context) -> {:ok, left, context}
+      subtype?(right, left, context) -> {:ok, right, context}
       true -> error({:unable_unify, left, right}, context)
     end
   end
@@ -334,7 +416,7 @@ defmodule Module.Types do
     if recursive_type?(type, [], context) do
       error({:recursive_type, type}, context)
     else
-      {:ok, type, context}
+      {:ok, {:var, var}, context}
     end
   end
 
@@ -353,6 +435,13 @@ defmodule Module.Types do
 
   defp recursive_type?({:tuple, types} = parent, parents, context) do
     Enum.any?(types, &recursive_type?(&1, [parent | parents], context))
+  end
+
+  defp recursive_type?({:map, pairs} = parent, parents, context) do
+    Enum.any?(pairs, fn {key, value} ->
+      recursive_type?(key, [parent | parents], context) or
+        recursive_type?(value, [parent | parents], context)
+    end)
   end
 
   defp recursive_type?(_other, _parents, _context) do
@@ -391,26 +480,19 @@ defmodule Module.Types do
 
   defp var_name({name, _meta, context}), do: {name, context}
 
-  defp subtype?({:var, var}, type, context),
-    do: subtype?(:maps.get(var, context.types), type, context)
-
-  defp subtype?(type, {:var, var}, context),
-    do: subtype?(type, :maps.get(var, context.types), context)
+  # NOTE: Are these needed?
+  # defp subtype?({:var, var}, type, context),
+  #   do: subtype?(:maps.get(var, context.types), type, context)
+  #
+  # defp subtype?(type, {:var, var}, context),
+  #   do: subtype?(type, :maps.get(var, context.types), context)
 
   defp subtype?({:literal, boolean}, :boolean, _context) when is_boolean(boolean), do: true
   defp subtype?({:literal, atom}, :atom, _context) when is_atom(atom), do: true
   defp subtype?(:boolean, :atom, _context), do: true
   defp subtype?({:tuple, _}, :tuple, _context), do: true
 
-  defp subtype?({:tuple, lefts}, {:tuple, rights}, context)
-       when length(lefts) == length(rights) do
-    Enum.all?(Enum.zip(lefts, rights), fn {left, right} -> subtype?(left, right, context) end)
-  end
-
-  defp subtype?({:tuple, _lefts}, {:tuple, _rights}, _context) do
-    false
-  end
-
+  # NOTE: Lift unions to unify/3?
   defp subtype?({:union, left_types}, {:union, _} = right_union, context) do
     Enum.all?(left_types, &subtype?(&1, right_union, context))
   end
@@ -419,26 +501,27 @@ defmodule Module.Types do
     Enum.any?(right_types, &subtype?(left, &1, context))
   end
 
-  defp subtype?(:dynamic, _right, _context), do: true
-
-  defp subtype?(_left, :dynamic, _context), do: true
-
   defp subtype?(left, right, _context), do: left == right
 
-  defp to_union(types, context) when types != [] do
-    case unique_super_types(types, context) do
-      [type] -> type
-      types -> {:union, types}
+  def to_union(types, context) when types != [] do
+    if :dynamic in types do
+      :dynamic
+    else
+      case unique_super_types(types, context) do
+        [type] -> type
+        types -> {:union, types}
+      end
     end
   end
 
   defp unique_super_types([type | types], context) do
-    types =
-      types
-      |> Enum.reject(&(subtype?(type, &1, context) or subtype?(&1, type, context)))
-      |> unique_super_types(context)
+    types = Enum.reject(types, &subtype?(&1, type, context))
 
-    [type | types]
+    if Enum.any?(types, &subtype?(type, &1, context)) do
+      unique_super_types(types, context)
+    else
+      [type | unique_super_types(types, context)]
+    end
   end
 
   defp unique_super_types([], _context) do
@@ -474,17 +557,28 @@ defmodule Module.Types do
     {{:tuple, types}, context}
   end
 
+  defp do_lift_type({:map, pairs}, context) do
+    {pairs, context} =
+      Enum.map_reduce(pairs, context, fn {key, value}, context ->
+        {key, context} = do_lift_type(key, context)
+        {value, context} = do_lift_type(value, context)
+        {{key, value}, context}
+      end)
+
+    {{:map, pairs}, context}
+  end
+
   defp do_lift_type({:cons, left, right}, context) do
     {left, context} = do_lift_type(left, context)
     {right, context} = do_lift_type(right, context)
     {{:cons, left, right}, context}
   end
 
-  defp do_lift_type({:fn, params, return}, context) do
-    {params, context} = Enum.map_reduce(params, context, &do_lift_type/2)
-    {return, context} = do_lift_type(return, context)
-    {{:fn, params, return}, context}
-  end
+  # defp do_lift_type({:fn, params, return}, context) do
+  #   {params, context} = Enum.map_reduce(params, context, &do_lift_type/2)
+  #   {return, context} = do_lift_type(return, context)
+  #   {{:fn, params, return}, context}
+  # end
 
   defp do_lift_type(other, context) do
     {other, context}
@@ -497,6 +591,9 @@ defmodule Module.Types do
     context = %{context | quantified_types: types, quantified_counter: counter}
     {type, context}
   end
+
+  defp remove_meta({fun, meta, args}) when is_list(meta), do: {fun, [], args}
+  defp remove_meta(other), do: other
 
   defp get_meta({_fun, meta, _args}) when is_list(meta), do: meta
   defp get_meta(_other), do: []
@@ -563,4 +660,20 @@ defmodule Module.Types do
   end
 
   defp do_reduce_ok([], acc, _fun), do: {:ok, acc}
+
+  defp map_reduce_ok(list, acc, fun) do
+    do_map_reduce_ok(list, {[], acc}, fun)
+  end
+
+  defp do_map_reduce_ok([head | tail], {list, acc}, fun) do
+    case fun.(head, acc) do
+      {:ok, elem, acc} ->
+        do_map_reduce_ok(tail, {[elem | list], acc}, fun)
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp do_map_reduce_ok([], {list, acc}, _fun), do: {:ok, Enum.reverse(list), acc}
 end
