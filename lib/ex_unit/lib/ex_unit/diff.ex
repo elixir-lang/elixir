@@ -36,7 +36,7 @@ defmodule ExUnit.Diff do
     compare_quoted(left, right, %{pins: Map.new(pins), context: :match, current_vars: %{}})
   end
 
-  defp compare_quoted({:_, _, _} = left, right, env) do
+  defp compare_quoted({:_, _, context} = left, right, env) when is_atom(context) do
     diff_right = escape(right)
     diff = %__MODULE__{equivalent?: true, left: left, right: diff_right}
     {diff, env}
@@ -769,53 +769,7 @@ defmodule ExUnit.Diff do
   end
 
   defp diff_string?(left, right) do
-    length_left = String.length(left)
-    length_right = String.length(right)
-
-    case max(length_left, length_right) do
-      0 -> false
-      other -> bag_distance(left, right) / other <= 0.6
-    end
-  end
-
-  # The algorithm is outlined in the
-  # "String Matching with Metric Trees Using an Approximate Distance"
-  # paper by Ilaria Bartolini, Paolo Ciaccia, and Marco Patella.
-  defp bag_distance(left, right) do
-    bag_left = string_to_bag(left)
-    bag_right = string_to_bag(right)
-
-    diff_left = bag_difference(bag_left, bag_right)
-    diff_right = bag_difference(bag_right, bag_left)
-
-    max(diff_left, diff_right)
-  end
-
-  defp string_to_bag(string) do
-    string_to_bag(string, %{}, &(&1 + 1))
-  end
-
-  defp string_to_bag(string, bag, fun) do
-    case String.next_grapheme(string) do
-      {char, rest} ->
-        bag = Map.update(bag, char, 1, fun)
-        string_to_bag(rest, bag, fun)
-
-      nil ->
-        bag
-    end
-  end
-
-  defp bag_difference(bag_left, bag_right) do
-    Enum.reduce(bag_left, 0, fn {char, count_a}, sum ->
-      case Map.fetch(bag_right, char) do
-        {:ok, count_b} ->
-          sum + max(count_a - count_b, 0)
-
-        :error ->
-          sum + count_a
-      end
-    end)
+    String.bag_distance(left, right) > 0.4
   end
 
   defp parse_string({:<>, _, [literal, rest]}) do
