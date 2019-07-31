@@ -237,6 +237,24 @@ defmodule Access do
   end
 
   @doc """
+  Same as `fetch/2` but returns the value directly,
+  or raises a `KeyError` exception if `key` is not found.
+
+  ## Examples
+
+      iex> Access.fetch!(%{name: "meg", age: 26}, :name)
+      "meg"
+
+  """
+  @spec fetch!(container, term) :: term
+  def fetch!(container, key) do
+    case fetch(container, key) do
+      {:ok, value} -> value
+      :error -> raise(KeyError, key: key, term: container)
+    end
+  end
+
+  @doc """
   Gets the value for the given key in a container (a map, keyword
   list, or struct that implements the `Access` behaviour).
 
