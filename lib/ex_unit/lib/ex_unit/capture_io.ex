@@ -37,12 +37,18 @@ defmodule ExUnit.CaptureIO do
   However, the capturing of any other named device, such as `:stderr`,
   happens globally and requires `async: false`.
 
-  When capturing `:stdio`, if the `:capture_prompt` option is `false`,
-  prompts (specified as arguments to `IO.get*` functions) are not
-  captured.
-
   A developer can set a string as an input. The default input
   is an empty string (which is equivalent to `:eof`).
+
+  ## Options
+
+    * `:capture_prompt` - When capturing `:stdio`, if set to `false`,
+      prompts (specified as arguments to `IO.get*` functions) are not
+      captured. Defaults to `true`. For IO devices other than `:stdio`,
+      the option is ignored.
+
+    * `:encoding` (since v1.10.0) - encoding of the IO device. Allowed
+      values are `:unicode` (default) and `:latin1`.
 
   ## Examples
 
@@ -111,10 +117,11 @@ defmodule ExUnit.CaptureIO do
 
   defp do_capture_io(:standard_io, options, fun) do
     prompt_config = Keyword.get(options, :capture_prompt, true)
+    encoding = Keyword.get(options, :encoding, :unicode)
     input = Keyword.get(options, :input, "")
 
     original_gl = Process.group_leader()
-    {:ok, capture_gl} = StringIO.open(input, capture_prompt: prompt_config)
+    {:ok, capture_gl} = StringIO.open(input, capture_prompt: prompt_config, encoding: encoding)
 
     try do
       Process.group_leader(self(), capture_gl)
@@ -126,7 +133,8 @@ defmodule ExUnit.CaptureIO do
 
   defp do_capture_io(device, options, fun) do
     input = Keyword.get(options, :input, "")
-    {:ok, string_io} = StringIO.open(input)
+    encoding = Keyword.get(options, :encoding, :unicode)
+    {:ok, string_io} = StringIO.open(input, encoding: encoding)
 
     case ExUnit.CaptureServer.device_capture_on(device, string_io) do
       {:ok, ref} ->

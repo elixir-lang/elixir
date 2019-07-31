@@ -21,13 +21,18 @@ defmodule StringIO do
   `string` will be the initial input of the newly created
   device.
 
-  If the `:capture_prompt` option is set to `true`,
-  prompts (specified as arguments to `IO.get*` functions)
-  are captured in the output.
-
   The device will be created and sent to the function given.
   When the function returns, the device will be closed. The final
   result will be a tuple with `:ok` and the result of the function.
+
+  ## Options
+
+    * `:capture_prompt` - if set to `true`, prompts (specified as
+      arguments to `IO.get*` functions) are captured in the output.
+      Defaults to `false`.
+
+    * `:encoding` (since v1.10.0) - encoding of the IO device. Allowed
+      values are `:unicode` (default) and `:latin1`.
 
   ## Examples
 
@@ -169,7 +174,8 @@ defmodule StringIO do
   @impl true
   def init({string, options}) do
     capture_prompt = options[:capture_prompt] || false
-    {:ok, %{input: string, output: "", capture_prompt: capture_prompt}}
+    encoding = options[:encoding] || :unicode
+    {:ok, %{encoding: encoding, input: string, output: "", capture_prompt: capture_prompt}}
   end
 
   @impl true
@@ -245,12 +251,16 @@ defmodule StringIO do
     get_line(encoding, "", state)
   end
 
+  defp io_request({:setopts, [encoding: encoding]}, state) when encoding in [:latin1, :unicode] do
+    {:ok, %{state | encoding: encoding}}
+  end
+
   defp io_request({:setopts, _opts}, state) do
     {{:error, :enotsup}, state}
   end
 
   defp io_request(:getopts, state) do
-    {{:ok, [binary: true, encoding: :unicode]}, state}
+    {{:ok, [binary: true, encoding: state.encoding]}, state}
   end
 
   defp io_request({:get_geometry, :columns}, state) do
@@ -271,10 +281,10 @@ defmodule StringIO do
 
   ## put_chars
 
-  defp put_chars(encoding, chars, req, %{output: output} = state) do
-    case :unicode.characters_to_binary(chars, encoding, :unicode) do
+  defp put_chars(encoding, chars, req, state) do
+    case :unicode.characters_to_binary(chars, encoding, state.encoding) do
       string when is_binary(string) ->
-        {:ok, %{state | output: output <> string}}
+        {:ok, %{state | output: state.output <> string}}
 
       {_, _, _} ->
         {{:error, req}, state}
