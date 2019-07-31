@@ -2,11 +2,43 @@ defmodule Function do
   @moduledoc """
   A set of functions for working with functions.
 
-  There are two types of captured functions: **external** and **local**.
-  External functions are functions residing in modules that are captured
-  with `&/1`, such as `&String.length/1`. Local functions are anonymous functions
-  defined with `fn/1` or with the capture operator `&/1` using `&1`, `&2`,
-  and so on as replacements.
+  Anonymous functions are typically created by using `fn`:
+
+      iex> add = fn a, b -> a + b end
+      iex> add.(1, 2)
+      3
+
+  It is also possible to capture module functions and pass them around
+  as if they were anonymous functions by using the capture operator `&/1`:
+
+      iex> add = &Kernel.+/2
+      iex> add.(1, 2)
+      3
+
+      iex> length = &String.length/1
+      iex> length.("hello")
+      5
+
+  It is also possible to capture a definition in the current module by
+  skipping the module prefix, such as `&my_fun/2`.
+
+  The capture operator can also be used to create anonymous functions
+  that expect at least one argument:
+
+      iex> add = &(&1 + &2)
+      iex> add.(1, 2)
+      3
+
+  In such cases, using the capture operator is no different than using `fn`.
+
+  We say that functions that point to definitions residing in modules, such
+  as `&String.length/1`, are **external** functions. All other functions are
+  **local** and they are always bound to the file or module that defined them.
+
+  Besides the functions in this module to work with functions, `Kernel` also
+  has an `apply/2` function that invokes a function with a dynamic number of
+  arguments, as well as `is_function/1` and `is_function/2`, to check
+  respectively if a given value is a function or a function of a given arity.
   """
 
   @type information ::
