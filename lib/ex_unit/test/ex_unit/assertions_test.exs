@@ -185,6 +185,19 @@ defmodule ExUnit.AssertionsTest do
     end
   end
 
+  test "assert match? with guards" do
+    true = assert match?(tuple when is_tuple(tuple), Value.tuple())
+
+    try do
+      "This should never be tested" = assert match?(tuple when not is_tuple(tuple), error(true))
+    rescue
+      error in [ExUnit.AssertionError] ->
+        "match (match?) failed" = error.message
+        "assert(match?(tuple when not(is_tuple(tuple)), error(true)))" = Macro.to_string(error.expr)
+        "{:error, true}" = Macro.to_string(error.right)
+    end
+  end
+
   test "refute match?" do
     false = refute match?({1, 1}, Value.tuple())
 
