@@ -193,7 +193,10 @@ defmodule ExUnit.AssertionsTest do
     rescue
       error in [ExUnit.AssertionError] ->
         "match (match?) failed" = error.message
-        "assert(match?(tuple when not(is_tuple(tuple)), error(true)))" = Macro.to_string(error.expr)
+
+        "assert(match?(tuple when not(is_tuple(tuple)), error(true)))" =
+          Macro.to_string(error.expr)
+
         "{:error, true}" = Macro.to_string(error.right)
     end
   end
