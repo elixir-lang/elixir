@@ -161,8 +161,9 @@ defmodule ExUnit.Assertions do
   defmacro assert({:match?, meta, [left, right]} = assertion) do
     code = escape_quoted(:assert, assertion)
     match? = {:match?, meta, [left, Macro.var(:right, __MODULE__)]}
-    pins = collect_pins_from_pattern(left, Macro.Env.vars(__CALLER__))
+
     left = expand_pattern(left, __CALLER__)
+    pins = collect_pins_from_pattern(left, Macro.Env.vars(__CALLER__))
 
     quote do
       right = unquote(right)
@@ -222,9 +223,9 @@ defmodule ExUnit.Assertions do
   defmacro refute({:match?, meta, [left, right]} = assertion) do
     code = escape_quoted(:refute, assertion)
     match? = {:match?, meta, [left, Macro.var(:right, __MODULE__)]}
-    pins = collect_pins_from_pattern(left, Macro.Env.vars(__CALLER__))
 
     left = expand_pattern(left, __CALLER__)
+    pins = collect_pins_from_pattern(left, Macro.Env.vars(__CALLER__))
 
     quote do
       right = unquote(right)
@@ -643,9 +644,6 @@ defmodule ExUnit.Assertions do
 
   defp expand_pattern_except_vars(expr, caller) do
     Macro.prewalk(expr, fn
-      {var, _, context} = node when is_atom(var) and is_atom(context) ->
-        node
-
       {:__aliases__, _, _} = expr ->
         Macro.expand(expr, caller)
 

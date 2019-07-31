@@ -178,17 +178,9 @@ defmodule MacroTest do
       assert Macro.expand_once(quote(do: __ENV__.unknown), env) == quote(do: __ENV__.unknown)
     end
 
-    defmacro local_macro() do
-      :local_macro
-    end
+    defmacro local_macro(), do: raise("ignored")
 
-    test "local macro" do
-      assert Macro.expand_once(quote(do: local_macro), __ENV__) == :local_macro
-    end
-
-    test "checks vars" do
-      local_macro = 1
-      assert local_macro == 1
+    test "vars" do
       expr = {:local_macro, [], nil}
       assert Macro.expand_once(expr, __ENV__) == expr
     end
