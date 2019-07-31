@@ -107,7 +107,7 @@ defmodule ExUnit.Assertions do
   defmacro assert({:=, _, [left, right]} = assertion) do
     code = escape_quoted(:assert, assertion)
 
-    left = expand_pattern(left, __CALLER__)
+    left = __expand_pattern__(left, __CALLER__)
     vars = collect_vars_from_pattern(left)
     pins = collect_pins_from_pattern(left, Macro.Env.vars(__CALLER__))
 
@@ -162,7 +162,7 @@ defmodule ExUnit.Assertions do
     code = escape_quoted(:assert, assertion)
     match? = {:match?, meta, [left, Macro.var(:right, __MODULE__)]}
 
-    left = expand_pattern(left, __CALLER__)
+    left = __expand_pattern__(left, __CALLER__)
     pins = collect_pins_from_pattern(left, Macro.Env.vars(__CALLER__))
 
     quote do
@@ -224,7 +224,7 @@ defmodule ExUnit.Assertions do
     code = escape_quoted(:refute, assertion)
     match? = {:match?, meta, [left, Macro.var(:right, __MODULE__)]}
 
-    left = expand_pattern(left, __CALLER__)
+    left = __expand_pattern__(left, __CALLER__)
     pins = collect_pins_from_pattern(left, Macro.Env.vars(__CALLER__))
 
     quote do
@@ -453,7 +453,7 @@ defmodule ExUnit.Assertions do
     binary = Macro.to_string(pattern)
 
     # Expand before extracting metadata
-    pattern = expand_pattern(pattern, caller)
+    pattern = __expand_pattern__(pattern, caller)
     vars = collect_vars_from_pattern(pattern)
     pins = collect_pins_from_pattern(pattern, Macro.Env.vars(caller))
 
@@ -632,17 +632,17 @@ defmodule ExUnit.Assertions do
   end
 
   @doc false
-  def expand_pattern({:when, meta, [left, right]}, caller) do
-    left = expand_pattern_except_vars(left, Macro.Env.to_match(caller))
-    right = expand_pattern_except_vars(right, %{caller | context: :guard})
+  def __expand_pattern__({:when, meta, [left, right]}, caller) do
+    left = prewalk_expand_pattern(left, Macro.Env.to_match(caller))
+    right = prewalk_expand_pattern(right, %{caller | context: :guard})
     {:when, meta, [left, right]}
   end
 
-  def expand_pattern(expr, caller) do
-    expand_pattern_except_vars(expr, Macro.Env.to_match(caller))
+  def __expand_pattern__(expr, caller) do
+    prewalk_expand_pattern(expr, Macro.Env.to_match(caller))
   end
 
-  defp expand_pattern_except_vars(expr, caller) do
+  defp prewalk_expand_pattern(expr, caller) do
     Macro.prewalk(expr, fn
       {:__aliases__, _, _} = expr ->
         Macro.expand(expr, caller)

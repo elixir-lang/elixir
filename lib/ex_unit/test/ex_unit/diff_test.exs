@@ -40,7 +40,7 @@ defmodule ExUnit.DiffTest do
   defmacrop assert_diff(expr, expected_binding, pins \\ [])
 
   defmacrop assert_diff({:=, _, [left, right]}, expected_binding, pins) do
-    left = Assertions.expand_pattern(left, __CALLER__) |> Macro.escape()
+    left = Assertions.__expand_pattern__(left, __CALLER__) |> Macro.escape()
 
     quote do
       assert_diff(
@@ -61,7 +61,7 @@ defmodule ExUnit.DiffTest do
   defmacrop refute_diff(expr, expected_left, expected_right, pins \\ [])
 
   defmacrop refute_diff({:=, _, [left, right]}, expected_left, expected_right, pins) do
-    left = Assertions.expand_pattern(left, __CALLER__) |> Macro.escape()
+    left = Assertions.__expand_pattern__(left, __CALLER__) |> Macro.escape()
 
     quote do
       refute_diff(
@@ -87,6 +87,7 @@ defmodule ExUnit.DiffTest do
   end
 
   test "atoms" do
+    assert_diff(:a = :a, [])
     assert_diff(:a = :a, [])
     assert_diff(:"$a" = :"$a", [])
 
