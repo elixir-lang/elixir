@@ -104,15 +104,11 @@ defmodule AccessTest do
 
     assert_raise ArgumentError,
                  ~r/the Access calls for keywords expect the key to be an atom/,
-                 fn ->
-                   Access.fetch!([], "foo")
-                 end
+                 fn -> Access.fetch!([], "foo") end
 
     assert_raise KeyError,
                  ~r/key \"foo\" not found/,
-                 fn ->
-                   Access.fetch!(nil, "foo")
-                 end
+                 fn -> Access.fetch!(nil, "foo") end
   end
 
   describe "filter/1" do
