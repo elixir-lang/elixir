@@ -32,7 +32,7 @@ defmodule StringIO do
       Defaults to `false`.
 
     * `:encoding` (since v1.10.0) - encoding of the IO device. Allowed
-    values are `:unicode` (default) and `:latin1`.
+      values are `:unicode` (default) and `:latin1`.
 
   ## Examples
 
