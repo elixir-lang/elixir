@@ -73,7 +73,7 @@ defmodule Agent do
   at least initially, or small enough to be sent to the client cheaply. Another
   factor is whether the data needs to be processed atomically: getting the
   state and calling `do_something_expensive(state)` outside of the agent means
-  that the agent's state can be updated in the meantime. This is especially
+  that the agent's state can be updated in the meantime. This is specially
   important when updating the state as computing the new state in the client rather
   than in the server can lead to race conditions if multiple clients are trying
   to update the same state to different values.
