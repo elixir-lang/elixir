@@ -135,7 +135,7 @@ defmodule Agent do
 
   ## Name registration
 
-  An agent is bound to the same name registration rules as GenServers.
+  An agent is bound to the same name registration rules as `GenServer`s.
   Read more about it in the `GenServer` documentation.
 
   ## A word on distributed agents
