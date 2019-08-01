@@ -560,34 +560,54 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     in_fixture("no_mixfile", fn ->
       File.write!("lib/a.ex", """
       defmodule A do
-        def foo(), do: B.bar()
+        def foo(), do: :ok
       end
       """)
 
       File.write!("lib/b.ex", """
       defmodule B do
-        def bar(), do: :ok
+        def foo(), do: A.foo()
       end
       """)
 
-      assert capture_io(:stderr, fn ->
-               Mix.Tasks.Compile.Elixir.run(["--verbose"])
-             end) == ""
+      File.write!("lib/c.ex", """
+      defmodule C do
+        def foo(), do: B.foo()
+        def bar(), do: B.bar()
+      end
+      """)
+
+      output =
+        capture_io(:stderr, fn ->
+          Mix.Tasks.Compile.Elixir.run(["--verbose"])
+        end)
+
+      refute output =~ "A.foo/0 is undefined or private"
+      assert output =~ "B.bar/0 is undefined or private"
 
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/c.ex"]}
 
-      File.write!("lib/b.ex", """
-      defmodule B do
+      File.write!("lib/a.ex", """
+      defmodule A do
       end
       """)
 
-      assert capture_io(:stderr, fn ->
-               Mix.Tasks.Compile.Elixir.run(["--verbose"])
-             end) =~ "B.bar/0 is undefined or private"
+      output =
+        capture_io(:stderr, fn ->
+          Mix.Tasks.Compile.Elixir.run(["--verbose"])
+        end)
 
-      refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
-      assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+      # Check B due to direct dependency on A
+      # Check C due to transient dependency on A
+      assert output =~ "A.foo/0 is undefined or private"
+      assert output =~ "B.bar/0 is undefined or private"
+
+      # Ensure only A was recompiled
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+      refute_received {:mix_shell, :info, ["Compiled lib/c.ex"]}
     end)
   end
 end
