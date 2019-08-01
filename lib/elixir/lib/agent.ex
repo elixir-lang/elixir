@@ -53,8 +53,7 @@ defmodule Agent do
   `GenServer`s). In particular, the functions passed as arguments to the calls to
   `Agent` functions are invoked inside the agent (the server). This distinction
   is important because you may want to avoid expensive operations inside the
-  agent, as they will effectively block the agent until the request is
-  fulfilled.
+  agent, as they will block the agent until the request is fulfilled.
 
   Consider these two examples:
 
@@ -74,8 +73,8 @@ defmodule Agent do
   at least initially, or small enough to be sent to the client cheaply. Another
   factor is whether the data needs to be processed atomically: getting the
   state and calling `do_something_expensive(state)` outside of the agent means
-  that the agent's state can be updated in the meantime. This is specially
-  important in case of updates as computing the new state in the client rather
+  that the agent's state can be updated in the meantime. This is especially
+  important when updating the state as computing the new state in the client rather
   than in the server can lead to race conditions if multiple clients are trying
   to update the same state to different values.
 
