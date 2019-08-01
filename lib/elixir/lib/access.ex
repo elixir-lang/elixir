@@ -246,6 +246,7 @@ defmodule Access do
       "meg"
 
   """
+  @doc since: "1.10.0"
   @spec fetch!(container, term) :: term
   def fetch!(container, key) do
     case fetch(container, key) do
