@@ -176,7 +176,7 @@ defmodule Function do
       iex> Function.identity("Hello world!")
       "Hello world!"
 
-      iex> 'abcdaabccc' |> Enum.sort |> Enum.chunk_by(&Function.identity/1)
+      iex> 'abcdaabccc' |> Enum.sort() |> Enum.chunk_by(&Function.identity/1)
       ['aaa', 'bb', 'cccc', 'd']
 
       iex> Enum.group_by('abracadabra', &Function.identity/1)
