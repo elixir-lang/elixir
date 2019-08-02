@@ -71,7 +71,7 @@ defmodule Code do
 
     * `{:remote_function, meta, module, name, arity}` and
       `{:remote_macro, meta, module, name, arity}` - traced whenever a remote
-      function or macro is defined. `meta` is the call AST metadata, `module`
+      function or macro is referenced. `meta` is the call AST metadata, `module`
       is the invoked module, followed by the `name` and `arity`.
 
     * `{:local_function, meta, module, name, arity}` and
