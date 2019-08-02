@@ -989,7 +989,7 @@ defmodule Code do
       at compilation time. This can be useful when doing dynamic compilation.
       Defaults to `[]`.
 
-    * `:tracers` - a list of tracers to be used during compilation. See the
+    * `:tracers` - a list of tracers (modules) to be used during compilation. See the
       module docs for more information. Defaults to `[]`.
 
     * `:parser_options` - a keyword list of options to be given to the parser
