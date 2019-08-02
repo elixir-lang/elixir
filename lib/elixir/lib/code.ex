@@ -984,19 +984,19 @@ defmodule Code do
     * `:warnings_as_errors` - causes compilation to fail when warnings are
       generated. Defaults to `false`.
 
-    * `:no_warn_undefined` - list of modules and `{Mod, fun, arity}` tuples
-      that will not emit warnings that the module or function does not exist
+    * `:no_warn_undefined` (since v1.10.0) - list of modules and `{Mod, fun, arity}`
+      tuples that will not emit warnings that the module or function does not exist
       at compilation time. This can be useful when doing dynamic compilation.
       Defaults to `[]`.
 
-    * `:tracers` - a list of tracers (modules) to be used during compilation. See the
-      module docs for more information. Defaults to `[]`.
+    * `:tracers` (since v1.10.0) - a list of tracers (modules) to be used during
+      compilation. See the module docs for more information. Defaults to `[]`.
 
-    * `:parser_options` - a keyword list of options to be given to the parser
-      when compiling files. It accepts the same options as `string_to_quoted/2`
-      (except by the options that change the AST itself). This can be used in
-      combination with the tracer to retrieve localized information about
-      events happening during compilation. Defaults to `[]`.
+    * `:parser_options` (since v1.10.0) - a keyword list of options to be given
+      to the parser when compiling files. It accepts the same options as
+      `string_to_quoted/2` (except by the options that change the AST itself).
+      This can be used in combination with the tracer to retrieve localized
+      information about events happening during compilation. Defaults to `[]`.
 
   It always returns `:ok`. Raises an error for invalid options.
 
