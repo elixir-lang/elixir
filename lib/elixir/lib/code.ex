@@ -1028,7 +1028,7 @@ defmodule Code do
     end
 
     if key == :tracers and not Enum.all?(value, &is_atom/1) do
-      raise "compiler option #{inspect(key)} should be a list of atoms, " <>
+      raise "compiler option #{inspect(key)} should be a list of modules, " <>
               "got: #{inspect(value)}"
     end
 
