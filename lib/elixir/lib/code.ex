@@ -996,7 +996,7 @@ defmodule Code do
       when compiling files. It accepts the same options as `string_to_quoted/2`
       (except by the options that change the AST itself). This can be used in
       combination with the tracer to retrieve localized information about
-      events happening duing compilation. Defaults to `[]`.
+      events happening during compilation. Defaults to `[]`.
 
   It always returns `:ok`. Raises an error for invalid options.
 
