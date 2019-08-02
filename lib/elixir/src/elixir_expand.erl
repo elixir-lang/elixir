@@ -957,7 +957,7 @@ expand_without_aliases_report(Other, E) ->
 expand_aliases({'__aliases__', Meta, _} = Alias, E, Report) ->
   case elixir_aliases:expand(Alias, E) of
     Receiver when is_atom(Receiver) ->
-      Report andalso elixir_env:trace({remote_reference, Meta, Receiver}, E),
+      Report andalso elixir_env:trace({alias_reference, Meta, Receiver}, E),
       {Receiver, E};
 
     Aliases ->
@@ -966,7 +966,7 @@ expand_aliases({'__aliases__', Meta, _} = Alias, E, Report) ->
       case lists:all(fun is_atom/1, EAliases) of
         true ->
           Receiver = elixir_aliases:concat(EAliases),
-          Report andalso elixir_env:trace({remote_reference, Meta, Receiver}, E),
+          Report andalso elixir_env:trace({alias_reference, Meta, Receiver}, E),
           {Receiver, EA};
         false ->
           form_error(Meta, E, ?MODULE, {invalid_alias, Alias})

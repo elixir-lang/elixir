@@ -20,12 +20,12 @@ defmodule Kernel.TracersTest do
     end)
   end
 
-  test "traces remote references" do
+  test "traces alias references" do
     compile_string("""
     Foo
     """)
 
-    assert_receive {:remote_reference, meta, Foo}
+    assert_receive {:alias_reference, meta, Foo}
     assert meta[:line] == 1
     assert meta[:column] == 1
   end

@@ -50,8 +50,8 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
     in_fixture("no_mixfile", fn ->
       Mix.Tasks.Compile.Elixir.run(["--tracer", "Mix.Tasks.Compile.ElixirTest"])
-      assert_received {:remote_reference, _meta, A}
-      assert_received {:remote_reference, _meta, B}
+      assert_received {:alias_reference, _meta, A}
+      assert_received {:alias_reference, _meta, B}
     end)
   after
     Code.put_compiler_option(:tracers, [])

@@ -353,7 +353,7 @@ defmodule Mix.Compilers.Elixir do
     {source, sources} = List.keytake(sources, file, source(:source))
 
     {compile_references, struct_references, runtime_references} =
-      Kernel.LexicalTracker.remote_references(lexical)
+      Kernel.LexicalTracker.alias_references(lexical)
 
     compile_references =
       Enum.reject(compile_references, &match?("elixir_" <> _, Atom.to_string(&1)))

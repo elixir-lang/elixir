@@ -49,7 +49,7 @@ trace({require, _Meta, Module, _Opts}, #{lexical_tracker := Pid}) ->
 trace({struct_expansion, _Meta, Module}, #{lexical_tracker := Pid}) ->
   ?tracker:remote_struct(Pid, Module),
   ok;
-trace({remote_reference, _Meta, Module}, #{lexical_tracker := Pid} = E) ->
+trace({alias_reference, _Meta, Module}, #{lexical_tracker := Pid} = E) ->
   ?tracker:remote_dispatch(Pid, Module, mode(E)),
   ok;
 trace({remote_function, _Meta, Module, _Function, _Arity}, #{lexical_tracker := Pid} = E) ->

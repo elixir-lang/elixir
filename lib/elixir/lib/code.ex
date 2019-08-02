@@ -56,18 +56,18 @@ defmodule Code do
       to `as`. `meta` is the alias AST metadata and `opts` are the alias options.
 
     * `{:alias_expansion, meta, as, alias}` traced whenever there is an alias
-      expansion, i.e. when the user writes `as` which is expanded to `alias`.
-      `meta` is the alias expansion AST metadata.
+      expansion for a previously defined `alias`, i.e. when the user writes `as`
+      which is expanded to `alias`. `meta` is the alias expansion AST metadata.
+
+    * `{:alias_reference, meta, module}` - traced whenever there is an alias
+      in the code, i.e. whenever the user writes `MyModule.Foo.Bar` in the code,
+      regardless if it was expanded or not.
 
     * `{:require, meta, module, opts}` - traced whenever `module` is required.
       `meta` is the require AST metadata and `opts` are the require options.
 
     * `{:struct_expansion, meta, module}` - traced whenever `module`' struct
       is expanded. `meta` is the struct AST metadata.
-
-    * `{:remote_reference, meta, module}` - traced whenever there is a remote
-      reference to `module`, i.e. whenever the user writes `MyModule.Foo.Bar`
-      in the code, regardless if it is an alias or not.
 
     * `{:remote_function, meta, module, name, arity}` and
       `{:remote_macro, meta, module, name, arity}` - traced whenever a remote
