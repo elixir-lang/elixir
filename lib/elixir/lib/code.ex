@@ -19,7 +19,7 @@ defmodule Code do
 
     * `eval_file/2` - evaluates the file contents without tracking its name. It
       returns the result of the last expression in the file, instead of the modules
-      defined in it. Evaluated files do not trigger the Compilation Tracers described
+      defined in it. Evaluated files do not trigger the compilation tracers described
       in the next section.
 
   In a nutshell, the first must be used when you want to keep track of the files
