@@ -1006,7 +1006,7 @@ defmodule Code do
       #=> :ok
 
   """
-  @doc since: "v1.10.0"
+  @doc since: "1.10.0"
   @spec put_compiler_option(atom, term) :: :ok
   def put_compiler_option(key, value) when key in @boolean_compiler_options do
     if not is_boolean(value) do
