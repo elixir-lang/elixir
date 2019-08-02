@@ -27,7 +27,7 @@ defmodule Mix.Tasks.Compile.Elixir do
     * `--long-compilation-threshold N` - sets the "long compilation" threshold
       (in seconds) to `N` (see the docs for `Kernel.ParallelCompiler.compile/2`)
     * `--all-warnings` - prints warnings even from files that do not need to be recompiled
-    * `--tracer` - adds a compiler tracer in addition to any specified in the `mix.exs`
+    * `--tracer` - adds a compiler tracer in addition to any specified in the `mix.exs`file
 
   ## Configuration
 
