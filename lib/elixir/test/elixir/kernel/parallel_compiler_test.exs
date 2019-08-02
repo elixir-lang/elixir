@@ -265,7 +265,7 @@ defmodule Kernel.ParallelCompilerTest do
     end
 
     test "supports warnings as errors" do
-      warnings_as_errors = Code.compiler_option(:warnings_as_errors)
+      warnings_as_errors = Code.get_compiler_option(:warnings_as_errors)
 
       [fixture] =
         write_tmp(
@@ -408,7 +408,7 @@ defmodule Kernel.ParallelCompilerTest do
     end
 
     test "supports warnings as errors" do
-      warnings_as_errors = Code.compiler_option(:warnings_as_errors)
+      warnings_as_errors = Code.get_compiler_option(:warnings_as_errors)
 
       [fixture] =
         write_tmp(

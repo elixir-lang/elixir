@@ -8,7 +8,7 @@ defmodule CodeTest do
 
   def genmodule(name) do
     defmodule name do
-      Kernel.LexicalTracker.remote_references(__ENV__.lexical_tracker)
+      Kernel.LexicalTracker.alias_references(__ENV__.lexical_tracker)
     end
   end
 
@@ -406,17 +406,17 @@ defmodule CodeTest do
     refute Code.ensure_compiled?(Code.NoFile)
   end
 
-  test "compiler_options/1 validates options" do
+  test "put_compiler_option/2 validates options" do
     message = "unknown compiler option: :not_a_valid_option"
 
     assert_raise RuntimeError, message, fn ->
-      Code.compiler_options(not_a_valid_option: :foo)
+      Code.put_compiler_option(:not_a_valid_option, :foo)
     end
 
     message = "compiler option :debug_info should be a boolean, got: :not_a_boolean"
 
     assert_raise RuntimeError, message, fn ->
-      Code.compiler_options(debug_info: :not_a_boolean)
+      Code.put_compiler_option(:debug_info, :not_a_boolean)
     end
   end
 end

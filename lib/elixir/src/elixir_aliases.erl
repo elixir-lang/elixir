@@ -1,6 +1,6 @@
 -module(elixir_aliases).
 -export([inspect/1, last/1, concat/1, safe_concat/1, format_error/1,
-         ensure_loaded/3, expand/4, store/7]).
+         ensure_loaded/3, expand/2, store/5]).
 -include("elixir.hrl").
 
 inspect(Atom) when is_atom(Atom) ->
@@ -10,12 +10,11 @@ inspect(Atom) when is_atom(Atom) ->
   end.
 
 %% Store an alias in the given scope
-store(Meta, New, New, _TOpts, Aliases, MacroAliases, _Lexical) ->
+store(Meta, New, New, _TOpts, #{aliases := Aliases, macro_aliases := MacroAliases}) ->
   {remove_alias(New, Aliases), remove_macro_alias(Meta, New, MacroAliases)};
-store(Meta, New, Old, TOpts, Aliases, MacroAliases, Lexical) ->
-  record_warn(Meta, New, TOpts, Lexical),
-  {store_alias(New, Old, Aliases),
-    store_macro_alias(Meta, New, Old, MacroAliases)}.
+store(Meta, New, Old, TOpts, #{aliases := Aliases, macro_aliases := MacroAliases} = E) ->
+  elixir_env:trace({alias, Meta, Old, New, TOpts}, E),
+  {store_alias(New, Old, Aliases), store_macro_alias(Meta, New, Old, MacroAliases)}.
 
 store_alias(New, Old, Aliases) ->
   lists:keystore(New, 1, Aliases, {New, Old}).
@@ -39,32 +38,23 @@ remove_macro_alias(Meta, Atom, Aliases) ->
       Aliases
   end.
 
-record_warn(Meta, Ref, Opts, Lexical) ->
-  Warn =
-    case lists:keyfind(warn, 1, Opts) of
-      {warn, false} -> false;
-      {warn, true} -> true;
-      false -> not lists:keymember(context, 1, Meta)
-    end,
-  elixir_lexical:record_alias(Ref, ?line(Meta), Warn, Lexical).
-
 %% Expand an alias. It returns an atom (meaning that there
 %% was an expansion) or a list of atoms.
 
-expand({'__aliases__', _Meta, ['Elixir' | _] = List}, _Aliases, _MacroAliases, _LexicalTracker) ->
+expand({'__aliases__', _Meta, ['Elixir' | _] = List}, _E) ->
   concat(List);
 
-expand({'__aliases__', Meta, _} = Alias, Aliases, MacroAliases, LexicalTracker) ->
+expand({'__aliases__', Meta, _} = Alias, #{aliases := Aliases, macro_aliases := MacroAliases} = E) ->
   case lists:keyfind(alias, 1, Meta) of
     {alias, false} ->
-      expand(Alias, MacroAliases, LexicalTracker);
+      expand(Alias, MacroAliases, E);
     {alias, Atom} when is_atom(Atom) ->
       Atom;
     false ->
-      expand(Alias, Aliases, LexicalTracker)
+      expand(Alias, Aliases, E)
   end.
 
-expand({'__aliases__', Meta, [H | T]}, Aliases, LexicalTracker) when is_atom(H) ->
+expand({'__aliases__', Meta, [H | T]}, Aliases, E) when is_atom(H) ->
   Lookup  = list_to_atom("Elixir." ++ atom_to_list(H)),
   Counter = case lists:keyfind(counter, 1, Meta) of
     {counter, C} -> C;
@@ -73,14 +63,14 @@ expand({'__aliases__', Meta, [H | T]}, Aliases, LexicalTracker) when is_atom(H) 
   case lookup(Lookup, Aliases, Counter) of
     Lookup -> [H | T];
     Atom ->
-      elixir_lexical:record_alias(Lookup, LexicalTracker),
+      elixir_env:trace({alias_expansion, Meta, Lookup, Atom}, E),
       case T of
         [] -> Atom;
         _  -> concat([Atom | T])
       end
   end;
 
-expand({'__aliases__', _Meta, List}, _Aliases, _LexicalTracker) ->
+expand({'__aliases__', _Meta, List}, _Aliases, _E) ->
   List.
 
 %% Ensure a module is loaded before its usage.

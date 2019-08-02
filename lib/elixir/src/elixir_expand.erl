@@ -528,7 +528,7 @@ expand_fn_capture(Meta, Arg, E) ->
   case elixir_fn:capture(Meta, Arg, E) of
     {{remote, Remote, Fun, Arity}, EE} ->
       is_atom(Remote) andalso
-        elixir_lexical:record_remote(Remote, ?key(E, function), ?key(E, lexical_tracker)),
+        elixir_env:trace({remote_function, Meta, Remote, Fun, Arity}, E),
       AttachedMeta = attach_context_module(Remote, Meta, E),
       {{'&', AttachedMeta, [{'/', [], [{{'.', [], [Remote, Fun]}, [], []}, Arity]}]}, EE};
     {{local, Fun, Arity}, #{function := nil}} ->
@@ -788,7 +788,8 @@ expand_local(Meta, Name, Args, #{context := Context} = E) when Context == match;
   form_error(Meta, E, ?MODULE, {invalid_local_invocation, Context, {Name, Meta, Args}});
 expand_local(Meta, Name, Args, #{module := Module, function := Function} = E) ->
   assert_no_clauses(Name, Meta, Args, E),
-
+  Arity = length(Args),
+  elixir_env:trace({local_function, Meta, Name, Arity}, E),
   elixir_locals:record_local({Name, length(Args)}, Module, Function, Meta, false),
   {EArgs, EA} = expand_args(Args, E),
   {{Name, Meta, EArgs}, EA}.
@@ -797,10 +798,11 @@ expand_local(Meta, Name, Args, #{module := Module, function := Function} = E) ->
 
 expand_remote(Receiver, DotMeta, Right, Meta, Args, #{context := Context} = E, EL) when is_atom(Receiver) or is_tuple(Receiver) ->
   assert_no_clauses(Right, Meta, Args, E),
+  AttachedDotMeta = attach_context_module(Receiver, DotMeta, E),
 
   is_atom(Receiver) andalso
-    elixir_lexical:record_remote(Receiver, ?key(E, function), ?key(E, lexical_tracker)),
-  AttachedDotMeta = attach_context_module(Receiver, DotMeta, E),
+    elixir_env:trace({remote_function, DotMeta, Receiver, Right, length(Args)}, E),
+
   {EArgs, EA} = expand_args(Args, E),
   case rewrite(Context, Receiver, AttachedDotMeta, Right, Meta, EArgs) of
     {ok, Rewritten} ->
@@ -905,9 +907,7 @@ no_alias_expansion(Other) ->
   Other.
 
 expand_require(Meta, Ref, Opts, E) ->
-  %% We always record requires when they are defined
-  %% as they expect the reference at compile time.
-  elixir_lexical:record_remote(Ref, nil, ?key(E, lexical_tracker)),
+  elixir_env:trace({require, Meta, Ref, Opts}, E),
   RE = E#{requires := ordsets:add_element(Ref, ?key(E, requires))},
   expand_alias(Meta, false, Ref, Opts, RE).
 
@@ -923,9 +923,7 @@ expand_alias(Meta, IncludeByDefault, Ref, Opts, #{context_modules := Context} = 
       false -> Context
     end,
 
-  {Aliases, MacroAliases} = elixir_aliases:store(Meta, New, Ref, Opts, ?key(E, aliases),
-                                ?key(E, macro_aliases), ?key(E, lexical_tracker)),
-
+  {Aliases, MacroAliases} = elixir_aliases:store(Meta, New, Ref, Opts, E),
   E#{aliases := Aliases, macro_aliases := MacroAliases, context_modules := NewContext}.
 
 expand_as({as, nil}, _Meta, _IncludeByDefault, Ref, _E) ->
@@ -957,19 +955,18 @@ expand_without_aliases_report(Other, E) ->
   expand(Other, E).
 
 expand_aliases({'__aliases__', Meta, _} = Alias, E, Report) ->
-  case elixir_aliases:expand(Alias, ?key(E, aliases), ?key(E, macro_aliases), ?key(E, lexical_tracker)) of
+  case elixir_aliases:expand(Alias, E) of
     Receiver when is_atom(Receiver) ->
-      Report andalso
-        elixir_lexical:record_remote(Receiver, ?key(E, function), ?key(E, lexical_tracker)),
+      Report andalso elixir_env:trace({alias_reference, Meta, Receiver}, E),
       {Receiver, E};
+
     Aliases ->
       {EAliases, EA} = expand_args(Aliases, E),
 
       case lists:all(fun is_atom/1, EAliases) of
         true ->
           Receiver = elixir_aliases:concat(EAliases),
-          Report andalso
-            elixir_lexical:record_remote(Receiver, ?key(E, function), ?key(E, lexical_tracker)),
+          Report andalso elixir_env:trace({alias_reference, Meta, Receiver}, E),
           {Receiver, EA};
         false ->
           form_error(Meta, E, ?MODULE, {invalid_alias, Alias})
