@@ -17,6 +17,7 @@ defmodule Mix.Tasks.Compile.Elixir do
 
   ## Command line options
 
+    * `--verbose` - prints each file being compiled
     * `--force` - forces compilation regardless of modification times
     * `--docs` (`--no-docs`) - attaches (or not) documentation to compiled modules
     * `--debug-info` (`--no-debug-info`) - attaches (or not) debug info to compiled modules
@@ -26,6 +27,7 @@ defmodule Mix.Tasks.Compile.Elixir do
     * `--long-compilation-threshold N` - sets the "long compilation" threshold
       (in seconds) to `N` (see the docs for `Kernel.ParallelCompiler.compile/2`)
     * `--all-warnings` - prints warnings even from files that do not need to be recompiled
+    * `--tracer` - adds a compiler tracer in addition to any specified in the `mix.exs`file
 
   ## Configuration
 
@@ -33,10 +35,9 @@ defmodule Mix.Tasks.Compile.Elixir do
       Defaults to `["lib"]`.
 
     * `:elixirc_options` - compilation options that apply to Elixir's compiler.
-      They are the same as the command line options listed above. They must be specified
-      as atoms and use underscores instead of dashes (for example, `:debug_info`). These
-      options can always be overridden from the command line and they have the same defaults
-      as their command line counterparts, as documented above.
+      See `Code.put_compiler_option/2` for a complete list of options. These
+      options are often overridable from the command line using the switches
+      above.
 
   """
 
@@ -48,7 +49,8 @@ defmodule Mix.Tasks.Compile.Elixir do
     debug_info: :boolean,
     verbose: :boolean,
     long_compilation_threshold: :integer,
-    all_warnings: :boolean
+    all_warnings: :boolean,
+    tracer: :keep
   ]
 
   @impl true
@@ -67,14 +69,17 @@ defmodule Mix.Tasks.Compile.Elixir do
     configs = [Mix.Project.config_mtime() | Mix.Tasks.Compile.Erlang.manifests()]
     force = opts[:force] || Mix.Utils.stale?(configs, [manifest])
 
-    opts = Keyword.merge(project[:elixirc_options] || [], opts)
-    opts = xref_exclude_opts(opts, project)
+    opts =
+      (project[:elixirc_options] || [])
+      |> Keyword.merge(opts)
+      |> xref_exclude_opts(project)
+      |> merge_tracers()
+
     Mix.Compilers.Elixir.compile(manifest, srcs, dest, [:ex], force, opts)
   end
 
   @impl true
   def manifests, do: [manifest()]
-
   defp manifest, do: Path.join(Mix.Project.manifest_path(), @manifest)
 
   @impl true
@@ -83,7 +88,7 @@ defmodule Mix.Tasks.Compile.Elixir do
     Mix.Compilers.Elixir.clean(manifest(), dest)
   end
 
-  # TODO: Deprecate project[:xref][:exclude] in v1.11
+  # TODO: Deprecate project[:xref][:exclude] in v1.14
   defp xref_exclude_opts(opts, project) do
     exclude = List.wrap(project[:xref][:exclude])
 
@@ -91,6 +96,17 @@ defmodule Mix.Tasks.Compile.Elixir do
       opts
     else
       Keyword.update(opts, :no_warn_undefined, exclude, &(List.wrap(&1) ++ exclude))
+    end
+  end
+
+  defp merge_tracers(opts) do
+    case Keyword.pop_values(opts, :tracer) do
+      {[], opts} ->
+        opts
+
+      {tracers, opts} ->
+        tracers = Enum.map(tracers, &Module.concat([&1]))
+        Keyword.update(opts, :tracers, tracers, &(tracers ++ &1))
     end
   end
 end

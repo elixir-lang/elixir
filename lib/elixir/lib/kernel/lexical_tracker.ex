@@ -12,8 +12,8 @@ defmodule Kernel.LexicalTracker do
   @doc """
   Returns all remotes referenced in this lexical scope.
   """
-  def remote_references(pid) do
-    :gen_server.call(pid, :remote_references, @timeout)
+  def alias_references(pid) do
+    :gen_server.call(pid, :alias_references, @timeout)
   end
 
   # Internal API
@@ -119,7 +119,7 @@ defmodule Kernel.LexicalTracker do
     {:reply, Enum.sort(directives), state}
   end
 
-  def handle_call(:remote_references, _from, state) do
+  def handle_call(:alias_references, _from, state) do
     {compile, runtime} = partition(:maps.to_list(state.references), [], [])
     {:reply, {compile, :maps.keys(state.structs), runtime}, state}
   end

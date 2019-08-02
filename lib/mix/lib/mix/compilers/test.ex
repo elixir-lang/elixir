@@ -263,7 +263,7 @@ defmodule Mix.Compilers.Test do
       {source, sources} = List.keytake(sources, file, source(:source))
 
       {compile_references, struct_references, runtime_references} =
-        Kernel.LexicalTracker.remote_references(lexical)
+        Kernel.LexicalTracker.alias_references(lexical)
 
       source =
         source(

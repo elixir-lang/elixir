@@ -4,27 +4,34 @@
   new/0, linify/1, with_vars/2, reset_vars/1,
   env_to_scope/1, env_to_scope_with_vars/2,
   check_unused_vars/1, merge_and_check_unused_vars/2,
-  mergea/2, mergev/2, format_error/1
+  trace/2, mergea/2, mergev/2, format_error/1
 ]).
 
 new() ->
-  #{'__struct__' => 'Elixir.Macro.Env',
-    module => nil,                         %% the current module
-    file => <<"nofile">>,                  %% the current filename
-    line => 1,                             %% the current line
-    function => nil,                       %% the current function
-    context => nil,                        %% can be match, guard or nil
-    requires => [],                        %% a set with modules required
-    aliases => [],                         %% a list of aliases by new -> old names
-    functions => [],                       %% a list with functions imported from module
-    macros => [],                          %% a list with macros imported from module
-    macro_aliases => [],                   %% keep aliases defined inside a macro
-    context_modules => [],                 %% modules defined in the current context
-    vars => [],                            %% a set of defined variables
-    current_vars => {#{}, #{}},            %% a tuple with maps of current and unused variables
-    prematch_vars => warn,                 %% behaviour outside and inside matches
-    lexical_tracker => nil,                %% holds the lexical tracker PID
-    contextual_vars => []}.                %% holds available contextual variables
+  #{
+    '__struct__' => 'Elixir.Macro.Env',
+    module => nil,                                    %% the current module
+    file => <<"nofile">>,                             %% the current filename
+    line => 1,                                        %% the current line
+    function => nil,                                  %% the current function
+    context => nil,                                   %% can be match, guard or nil
+    aliases => [],                                    %% a list of aliases by new -> old names
+    requires => elixir_dispatch:default_requires(),   %% a set with modules required
+    functions => elixir_dispatch:default_functions(), %% a list with functions imported from module
+    macros => elixir_dispatch:default_macros(),       %% a list with macros imported from module
+    macro_aliases => [],                              %% keep aliases defined inside a macro
+    context_modules => [],                            %% modules defined in the current context
+    vars => [],                                       %% a set of defined variables
+    current_vars => {#{}, #{}},                       %% a tuple with maps of current and unused variables
+    prematch_vars => warn,                            %% behaviour outside and inside matches
+    lexical_tracker => nil,                           %% holds the lexical tracker PID
+    contextual_vars => [],                            %% holds available contextual variables
+    tracers => []                                     %% holds the available compilation tracers
+  }.
+
+trace(Event, #{tracers := Tracers} = E) ->
+  [ok = Tracer:trace(Event, E) || Tracer <- Tracers],
+  ok.
 
 linify({Line, Env}) ->
   Env#{line := Line};

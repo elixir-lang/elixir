@@ -482,10 +482,10 @@ defmodule Module do
   below:
 
     * `@compile :debug_info` - includes `:debug_info` regardless of the
-      corresponding setting in `Code.compiler_options/1`
+      corresponding setting in `Code.put_compiler_option/2`
 
     * `@compile {:debug_info, false}` - disables `:debug_info` regardless
-      of the corresponding setting in `Code.compiler_options/1`
+      of the corresponding setting in `Code.put_compiler_option/2`
 
     * `@compile {:inline, some_fun: 2, other_fun: 3}` - inlines the given
       name/arity pairs. Inlining is applied locally, calls from another
@@ -1537,7 +1537,7 @@ defmodule Module do
     :ok
   end
 
-  defp check_behaviours(%{lexical_tracker: pid} = env, behaviours) do
+  defp check_behaviours(env, behaviours) do
     Enum.reduce(behaviours, %{}, fn behaviour, acc ->
       cond do
         not is_atom(behaviour) ->
@@ -1562,7 +1562,7 @@ defmodule Module do
           acc
 
         true ->
-          :elixir_lexical.record_remote(behaviour, nil, pid)
+          :elixir_env.trace({:require, [], behaviour, []}, env)
           optional_callbacks = behaviour_info(behaviour, :optional_callbacks)
           callbacks = behaviour_info(behaviour, :callbacks)
           Enum.reduce(callbacks, acc, &add_callback(&1, behaviour, env, optional_callbacks, &2))
