@@ -329,6 +329,14 @@ defmodule Access do
 
   The returned value is a two-element tuple with the "get" value returned by
   `fun` and a new container with the updated value under `key`.
+
+  ## Examples
+
+      iex> Access.get_and_update([a: 1], :a, fn current_value ->
+      ...>   {current_value, "new value!"}
+      ...> end)
+      {1, [a: "new value!"]}
+
   """
   @spec get_and_update(data, key, (value -> {get_value, value} | :pop)) :: {get_value, data}
         when get_value: var, data: container
