@@ -56,7 +56,7 @@ defmodule Code do
       to `as`. `meta` is the alias AST metadata and `opts` are the alias options.
 
     * `{:alias_expansion, meta, as, alias}` traced whenever there is an alias
-      expension, i.e. when the user writes `as` which is expanded to `alias`.
+      expansion, i.e. when the user writes `as` which is expanded to `alias`.
       `meta` is the alias expansion AST metadata.
 
     * `{:require, meta, module, opts}` - traced whenever `module` is required.
