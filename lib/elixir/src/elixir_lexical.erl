@@ -27,30 +27,16 @@ run(#{tracers := Tracers} = E, Callback) ->
 trace({import, Meta, Module, Opts}, #{lexical_tracker := Pid}) ->
   {imported, Imported} = lists:keyfind(imported, 1, Meta),
 
-  Warn =
-    case lists:keyfind(warn, 1, Opts) of
-      {warn, false} -> false;
-      {warn, true} -> true;
-      false -> not lists:keymember(context, 1, Meta)
-    end,
-
   Only =
     case lists:keyfind(only, 1, Opts) of
       {only, List} when is_list(List) -> List;
       _ -> []
     end,
 
-  ?tracker:add_import(Pid, Module, Only, ?line(Meta), Imported and Warn),
+  ?tracker:add_import(Pid, Module, Only, ?line(Meta), Imported and should_warn(Meta, Opts)),
   ok;
-trace({alias, Meta, _Old, New, Opts}, #{lexical_tracker := Pid}) ->
-  Warn =
-    case lists:keyfind(warn, 1, Opts) of
-      {warn, false} -> false;
-      {warn, true} -> true;
-      false -> not lists:keymember(context, 1, Meta)
-    end,
-
-  ?tracker:add_alias(Pid, New, ?line(Meta), Warn),
+trace({alias, Meta, _Old, New, Opts}, #{lexical_tracker := Pid}) ->  
+  ?tracker:add_alias(Pid, New, ?line(Meta), should_warn(Meta, Opts)),
   ok;
 trace({alias_expansion, _Meta, Lookup, _Result}, #{lexical_tracker := Pid}) ->
   ?tracker:alias_dispatch(Pid, Lookup),
@@ -83,6 +69,13 @@ trace(_, _) ->
 
 mode(#{function := nil}) -> compile;
 mode(#{}) -> runtime.
+
+should_warn(Meta, Opts) ->
+  case lists:keyfind(warn, 1, Opts) of
+    {warn, false} -> false;
+    {warn, true} -> true;
+    false -> not lists:keymember(context, 1, Meta)
+  end.
 
 %% EXTERNAL SOURCES
 
