@@ -168,7 +168,8 @@ defmodule Function do
   def info(fun, item), do: :erlang.fun_info(fun, item)
 
   @doc """
-  Returns its input value, which can be useful as a default argument for transformation functions.
+  Returns its input value, which can be given as an anonymous function
+  to transformation functions.
 
   ## Examples
 
@@ -178,17 +179,11 @@ defmodule Function do
       iex> 'abcdaabccc' |> Enum.sort |> Enum.chunk_by(&Function.identity/1)
       ['aaa', 'bb', 'cccc', 'd']
 
-      iex> [1, 1, 2, 3, 3, 1, 1, 5, 5] |> Enum.chunk_by(&Function.identity/1) |> Enum.map(&hd/1)
-      [1, 2, 3, 1, 5]
-
       iex> Enum.group_by('abracadabra', &Function.identity/1)
       %{97 => 'aaaaa', 98 => 'bb', 99 => 'c', 100 => 'd', 114 => 'rr'}
 
       iex> Enum.map([1, 2, 3, 4], &Function.identity/1)
       [1, 2, 3, 4]
-
-      iex> [1,2,3,nil, true, false, 1234] |> Enum.filter(&Function.identity/1)
-      [1, 2, 3, true, 1234]
 
   """
   @doc since: "1.10.0"
