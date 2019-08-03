@@ -333,9 +333,9 @@ defmodule Access do
   ## Examples
 
       iex> Access.get_and_update([a: 1], :a, fn current_value ->
-      ...>   {current_value, "new value!"}
+      ...>   {current_value, current_value + 1}
       ...> end)
-      {1, [a: "new value!"]}
+      {1, [a: 2]}
 
   """
   @spec get_and_update(data, key, (value -> {get_value, value} | :pop)) :: {get_value, data}
