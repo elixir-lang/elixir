@@ -1141,7 +1141,15 @@ defmodule Macro do
   defp call_to_string_with_args(target, args, fun) do
     target = call_to_string(target, fun)
     args = args_to_string(args, fun)
-    target <> "(" <> args <> ")"
+    format_call(target, args)
+  end
+
+  defp format_call(target, args) do
+    case target do
+      "defmodule" -> target <> " " <> args
+      "def" -> target <> " " <> args
+      _ -> target <> "(" <> args <> ")"
+    end
   end
 
   defp call_to_string_for_atom(atom) do

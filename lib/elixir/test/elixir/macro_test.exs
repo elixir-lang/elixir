@@ -554,8 +554,8 @@ defmodule MacroTest do
         end
 
       expected = """
-      defmodule(Foo) do
-        def(foo) do
+      defmodule Foo do
+        def foo do
           1 + 1
         end
       end
