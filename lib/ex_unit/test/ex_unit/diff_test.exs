@@ -643,6 +643,21 @@ defmodule ExUnit.DiffTest do
     refute_diff(pin_x() = 2, "-pin_x()-", "+2+", pins)
   end
 
+  test "guards" do
+    assert_diff((x when x == 0) = 0, x: 0)
+    assert_diff((x when x == 0 and is_integer(x)) = 0, x: 0)
+    assert_diff((x when x == 0 or x == 1) = 0, x: 0)
+    assert_diff((x when x == 0 when x == 1) = 0, x: 0)
+    assert_diff((x when one() == 1) = 0, x: 0)
+
+    refute_diff((x when x == 1) = 0, "x when -x == 1-", "0")
+    refute_diff((x when x == 0 and x == 1) = 0, "x when x == 0 and -x == 1-", "0")
+    refute_diff((x when x == 1 and x == 2) = 0, "x when -x == 1- and -x == 2-", "0")
+    refute_diff((x when x == 1 or x == 2) = 0, "x when -x == 1- or -x == 2-", "0")
+    refute_diff((x when x == 1 when x == 2) = 0, "x when -x == 1- when -x == 2-", "0")
+    refute_diff((x when x in [1, 2]) = 0, "x when -x in [1, 2]-", "0")
+  end
+
   test "charlists" do
     refute_diff(
       'fox hops over \'the dog' = 'fox jumps over the lazy cat',
