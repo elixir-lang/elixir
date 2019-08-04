@@ -76,6 +76,12 @@ defmodule EEx do
         This will never appear
       <% end %>
 
+  To escape eex in eex use `<%% content %>`. For example:
+
+      <%%= x + 3 %>
+
+  Will be rendered as `<%= x + 3 %>`
+
   Notice that different engines may have different rules
   for each tag. Other tags may be added in future versions.
 
