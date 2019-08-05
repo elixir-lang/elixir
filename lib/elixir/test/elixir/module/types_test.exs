@@ -43,11 +43,14 @@ defmodule Module.TypesTest do
 
   describe "of_pattern/2" do
     test "error location" do
-      assert {:error, {{:unable_unify, expr, :integer, :binary}, location}} =
-               quoted_pattern(<<123::binary>>)
+      assert {:error, {{:unable_unify, {expr, traces}, :binary, :integer}, location}} =
+               quoted_pattern(<<foo::integer, foo::binary>>)
 
       assert location == [{"types_test.ex", 47, {TypesTest, :test, 0}}]
-      assert {:"::", _, [123, {:binary, _, nil}]} = expr
+      assert {:"::", _, [{:foo, _, nil}, {:binary, _, nil}]} = expr
+
+      assert [{{:foo, _, nil}, [{:integer, {:"::", _, [{:foo, _, nil}, {:integer, _, nil}]}}]}] =
+               traces
     end
 
     test "literals" do

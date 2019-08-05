@@ -261,6 +261,10 @@ defmodule Module.Checker do
     end)
   end
 
+  def test({:error, {{:unable_unify, {expr, traces}, left, right}, _locations}}) do
+    IO.puts(format_warning({:unable_unify, {expr, traces}, left, right}))
+  end
+
   defp format_warning({:undefined_module, module, fun, arity}) do
     [
       Exception.format_mfa(module, fun, arity),
@@ -295,24 +299,49 @@ defmodule Module.Checker do
     ]
   end
 
-  defp format_warning({:unable_unify, expr, left, right}) do
+  defp format_warning({:unable_unify, {expr, traces}, left, right}) do
     [
-      "function clause will never match, found incompatible pattern types: ",
+      "function clause will never match, found incompatible types:\n\n    ",
       Module.Types.format_type(left),
       " !~ ",
       Module.Types.format_type(right),
-      " in expression: ",
+      "\n\nin expression:\n\n    ",
       Macro.to_string(expr)
-    ]
+    ] ++ format_traces(traces)
   end
 
-  defp format_warning({:recursive_type, expr, type}) do
+  defp format_warning({:recursive_type, {expr, traces}, type}) do
     [
-      "function clause will never match, found recursive pattern type: ",
+      "function clause will never match, found recursive type:\n\n    ",
       Module.Types.format_type(type),
-      " in expression: ",
+      "\n\nin expression:\n\n    ",
       Macro.to_string(expr)
-    ]
+    ] ++ format_traces(traces)
+  end
+
+  defp format_traces([]) do
+    []
+  end
+
+  defp format_traces(traces) do
+    format =
+      Enum.flat_map(traces, fn
+        {var, [{type, expr} | _traces]} ->
+          [
+            "    ",
+            Macro.to_string(var),
+            " :: ",
+            Module.Types.format_type(type),
+            " (from: ",
+            Macro.to_string(expr),
+            ")\n"
+          ]
+
+        {_var, []} ->
+          []
+      end)
+
+    ["\n\nwith variables:\n\n" | format]
   end
 
   defp format_locations([location]) do

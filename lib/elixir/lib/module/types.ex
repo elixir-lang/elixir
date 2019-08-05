@@ -38,6 +38,7 @@ defmodule Module.Types do
       expr: nil,
       vars: %{},
       types: %{},
+      traces: %{},
       counter: 0
     }
   end
@@ -292,23 +293,23 @@ defmodule Module.Types do
   defp unify({:var, left}, {:var, right}, context) do
     case {:maps.find(left, context.types), :maps.find(right, context.types)} do
       {{:ok, type}, :error} ->
-        {:ok, {:var, left}, %{context | types: :maps.put(right, type, context.types)}}
+        {:ok, {:var, left}, refine_var(right, type, context)}
 
       {:error, {:ok, type}} ->
-        {:ok, {:var, right}, %{context | types: :maps.put(left, type, context.types)}}
+        {:ok, {:var, right}, refine_var(left, type, context)}
 
       {_, {:ok, :unbound}} ->
-        {:ok, {:var, left}, %{context | types: :maps.put(right, {:var, left}, context.types)}}
+        {:ok, {:var, left}, refine_var(right, {:var, left}, context)}
 
       {{:ok, :unbound}, _} ->
-        {:ok, {:var, right}, %{context | types: :maps.put(left, {:var, right}, context.types)}}
+        {:ok, {:var, right}, refine_var(left, {:var, right}, context)}
 
       {{:ok, left_type}, {:ok, right_type}} ->
         case unify(left_type, right_type, context) do
           {:ok, type, context} ->
-            types = :maps.put(left, type, context.types)
-            types = :maps.put(right, type, types)
-            {:ok, {:var, left}, %{context | types: types}}
+            context = refine_var(left, type, context)
+            context = refine_var(right, type, context)
+            {:ok, {:var, left}, context}
 
           {:error, reason} ->
             {:error, reason}
@@ -327,7 +328,7 @@ defmodule Module.Types do
       {:ok, var_type} ->
         case unify(type, var_type, context) do
           {:ok, var_type, context} ->
-            {:ok, {:var, var}, %{context | types: :maps.put(var, var_type, context.types)}}
+            {:ok, {:var, var}, refine_var(var, var_type, context)}
 
           {:error, reason} ->
             {:error, reason}
@@ -398,11 +399,6 @@ defmodule Module.Types do
   end
 
   defp unify(left, right, context) do
-    # IO.puts("")
-    # IO.inspect(left)
-    # IO.inspect(right)
-    # IO.inspect(context)
-
     cond do
       subtype?(left, right, context) -> {:ok, left, context}
       subtype?(right, left, context) -> {:ok, right, context}
@@ -410,8 +406,26 @@ defmodule Module.Types do
     end
   end
 
+  defp new_var(var, context) do
+    case :maps.find(var_name(var), context.vars) do
+      {:ok, type} ->
+        {type, context}
+
+      :error ->
+        type = {:var, context.counter}
+        vars = :maps.put(var_name(var), type, context.vars)
+        types = :maps.put(context.counter, :unbound, context.types)
+        traces = :maps.put(context.counter, [], context.traces)
+        counter = context.counter + 1
+        context = %{context | vars: vars, types: types, traces: traces, counter: counter}
+        {type, context}
+    end
+  end
+
   defp add_var(var, type, context) do
-    context = %{context | types: :maps.put(var, type, context.types)}
+    types = :maps.put(var, type, context.types)
+    traces = :maps.put(var, [{type, context.expr}], context.traces)
+    context = %{context | types: types, traces: traces}
 
     if recursive_type?(type, [], context) do
       error({:recursive_type, type}, context)
@@ -419,6 +433,15 @@ defmodule Module.Types do
       {:ok, {:var, var}, context}
     end
   end
+
+  defp refine_var(var, type, context) do
+    # TODO: Include location?
+    types = :maps.put(var, type, context.types)
+    traces = :maps.update_with(var, &[{type, context.expr} | &1], context.traces)
+    %{context | types: types, traces: traces}
+  end
+
+  defp var_name({name, _meta, context}), do: {name, context}
 
   defp recursive_type?({:var, var} = parent, parents, context) do
     case :maps.find(var, context.types) do
@@ -463,22 +486,6 @@ defmodule Module.Types do
   defp collect_specifiers(_other) do
     []
   end
-
-  defp new_var(var, context) do
-    case :maps.find(var_name(var), context.vars) do
-      {:ok, type} ->
-        {type, context}
-
-      :error ->
-        type = {:var, context.counter}
-        vars = :maps.put(var_name(var), type, context.vars)
-        types = :maps.put(context.counter, :unbound, context.types)
-        context = %{context | vars: vars, types: types, counter: context.counter + 1}
-        {type, context}
-    end
-  end
-
-  defp var_name({name, _meta, context}), do: {name, context}
 
   # NOTE: Are these needed?
   # defp subtype?({:var, var}, type, context),
@@ -605,8 +612,46 @@ defmodule Module.Types do
   defp error(reason, context) do
     {fun, arity} = context.function
     location = {context.file, context.line, {context.module, fun, arity}}
-    reason = Tuple.insert_at(reason, 1, context.expr)
+    traces = var_traces(context.expr, context)
+    reason = Tuple.insert_at(reason, 1, {context.expr, traces})
     {:error, {reason, [location]}}
+  end
+
+  defp var_traces(expr, context) do
+    Enum.flat_map(collect_vars(expr, []), fn var ->
+      case :maps.find(var_name(var), context.vars) do
+        {:ok, {:var, index}} ->
+          trace = :maps.get(index, context.traces)
+          [{var, trace}]
+
+        :error ->
+          []
+      end
+    end)
+  end
+
+  defp collect_vars({:"::", _meta, [left, _right]}, vars) do
+    collect_vars(left, vars)
+  end
+
+  defp collect_vars({name, _meta, context} = var, vars) when is_atom(name) and is_atom(context) do
+    [var | vars]
+  end
+
+  defp collect_vars({left, _meta, right}, vars) do
+    collect_vars(right, collect_vars(left, vars))
+  end
+
+  defp collect_vars({left, right}, vars) do
+    collect_vars(right, collect_vars(left, vars))
+  end
+
+  defp collect_vars(list, vars) when is_list(list) do
+    Enum.reduce(list, vars, &collect_vars/2)
+  end
+
+  defp collect_vars(_other, vars) do
+    vars
   end
 
   defp unzip_ok(list) do

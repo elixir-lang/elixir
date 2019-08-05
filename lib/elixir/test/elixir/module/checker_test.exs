@@ -30,9 +30,9 @@ defmodule Module.CheckerTest do
       contents = read_chunk(modules[A])
 
       assert contents.exports == [
-               {{:c, 0}, {:def, nil}},
-               {{:d, 0}, {:defmacro, nil}},
-               {{:e, 0}, {:def, "oops"}}
+               {{:c, 0}, %{deprecated_reason: nil, kind: :def, type: [[]]}},
+               {{:d, 0}, %{deprecated_reason: nil, kind: :defmacro, type: [[]]}},
+               {{:e, 0}, %{deprecated_reason: "oops", kind: :def, type: [[]]}}
              ]
     end
   end
@@ -613,6 +613,37 @@ defmodule Module.CheckerTest do
       warning = """
       warning: A.a/0 is deprecated. oops
         b.ex:3: B
+
+      """
+
+      assert_warnings(files, warning)
+    end
+  end
+
+  describe "function header inference" do
+    test "warns on unification failure" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          def a(<<var::integer, var::binary>>), do: var
+        end
+        """
+      }
+
+      warning = """
+      warning: function clause will never match, found incompatible types:
+
+          binary() !~ integer()
+
+      in expression:
+
+          var :: binary()
+
+      with variables:
+
+          var :: integer() (from: var :: integer())
+
+        a.ex:2: A.a/1
 
       """
 
