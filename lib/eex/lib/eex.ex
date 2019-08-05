@@ -80,7 +80,7 @@ defmodule EEx do
 
       <%%= x + 3 %>
 
-  Will be rendered as `<%= x + 3 %>`
+  will be rendered as `<%= x + 3 %>`.
 
   Notice that different engines may have different rules
   for each tag. Other tags may be added in future versions.
