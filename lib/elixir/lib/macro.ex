@@ -780,6 +780,10 @@ defmodule Macro do
     fun.(ast, "defmacro " <> to_string({macro_name, context, args}, fun) <> " do\nend")
   end
 
+  def to_string({:defmodule, _, [{module_name, context, args} | _rest]} = ast, fun) do
+    fun.(ast, "defmodule " <> to_string({module_name, context, args}, fun) <> " do\nend")
+  end
+
   # Bits containers
   def to_string({:<<>>, _, parts} = ast, fun) do
     if interpolated?(ast) do
@@ -1146,15 +1150,7 @@ defmodule Macro do
   defp call_to_string_with_args(target, args, fun) do
     target = call_to_string(target, fun)
     args = args_to_string(args, fun)
-    format_call(target, args)
-  end
-
-  defp format_call(target, args) do
-    case target do
-      "defmodule" -> target <> " " <> args
-      "def" -> target <> " " <> args
-      _ -> target <> "(" <> args <> ")"
-    end
+    target <> "(" <> args <> ")"
   end
 
   defp call_to_string_for_atom(atom) do
