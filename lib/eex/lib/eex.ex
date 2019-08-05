@@ -76,7 +76,7 @@ defmodule EEx do
         This will never appear
       <% end %>
 
-  To escape eex in eex use `<%% content %>`. For example:
+  To escape an EEx expression in EEx use `<%% content %>`. For example:
 
       <%%= x + 3 %>
 
