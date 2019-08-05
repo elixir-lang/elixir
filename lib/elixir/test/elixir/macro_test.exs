@@ -274,6 +274,32 @@ defmodule MacroTest do
       assert Macro.to_string(quote(do: foo([1, 2, 3]))) == "foo([1, 2, 3])"
     end
 
+    test "macro definition" do
+      assert Macro.to_string(
+               quote(
+                 do:
+                   defmacro no_op_macro_with_zero_args() do
+                   end
+               )
+             ) == "defmacro no_op_macro_with_zero_args() do\nend"
+
+      assert Macro.to_string(
+               quote(
+                 do:
+                   defmacro no_op_macro_with_one_args(_arg_1) do
+                   end
+               )
+             ) == "defmacro no_op_macro_with_one_args(_arg_1) do\nend"
+
+      assert Macro.to_string(
+               quote(
+                 do:
+                   defmacro no_op_macro_with_two_args(_arg_1, _arg_2) do
+                   end
+               )
+             ) == "defmacro no_op_macro_with_two_args(_arg_1, _arg_2) do\nend"
+    end
+
     test "remote call" do
       assert Macro.to_string(quote(do: foo.bar(1, 2, 3))) == "foo.bar(1, 2, 3)"
       assert Macro.to_string(quote(do: foo.bar([1, 2, 3]))) == "foo.bar([1, 2, 3])"
@@ -554,8 +580,8 @@ defmodule MacroTest do
         end
 
       expected = """
-      defmodule(Foo) do
-        def(foo) do
+      defmodule Foo do
+        def foo do
           1 + 1
         end
       end
