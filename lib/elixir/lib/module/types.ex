@@ -291,20 +291,16 @@ defmodule Module.Types do
   end
 
   defp unify({:var, left}, {:var, right}, context) do
-    case {:maps.find(left, context.types), :maps.find(right, context.types)} do
-      {{:ok, type}, :error} ->
-        {:ok, {:var, left}, refine_var(right, type, context)}
+    case {:maps.get(left, context.types), :maps.get(right, context.types)} do
+      {_, :unbound} ->
+        context = refine_var(right, {:var, left}, context)
+        {:ok, {:var, right}, context}
 
-      {:error, {:ok, type}} ->
-        {:ok, {:var, right}, refine_var(left, type, context)}
+      {:unbound, _} ->
+        context = refine_var(left, {:var, right}, context)
+        {:ok, {:var, left}, context}
 
-      {_, {:ok, :unbound}} ->
-        {:ok, {:var, left}, refine_var(right, {:var, left}, context)}
-
-      {{:ok, :unbound}, _} ->
-        {:ok, {:var, right}, refine_var(left, {:var, right}, context)}
-
-      {{:ok, left_type}, {:ok, right_type}} ->
+      {left_type, right_type} ->
         case unify(left_type, right_type, context) do
           {:ok, type, context} ->
             context = refine_var(left, type, context)
@@ -318,17 +314,21 @@ defmodule Module.Types do
   end
 
   defp unify(type, {:var, var}, context) do
-    case :maps.find(var, context.types) do
-      {:ok, :unbound} ->
-        add_var(var, type, context)
+    case :maps.get(var, context.types) do
+      :unbound ->
+        context = refine_var(var, type, context)
 
-      :error ->
-        add_var(var, type, context)
+        if recursive_type?(type, [], context) do
+          error({:recursive_type, type}, context)
+        else
+          {:ok, {:var, var}, context}
+        end
 
-      {:ok, var_type} ->
+      var_type ->
         case unify(type, var_type, context) do
           {:ok, var_type, context} ->
-            {:ok, {:var, var}, refine_var(var, var_type, context)}
+            context = refine_var(var, var_type, context)
+            {:ok, {:var, var}, context}
 
           {:error, reason} ->
             {:error, reason}
@@ -419,18 +419,6 @@ defmodule Module.Types do
         counter = context.counter + 1
         context = %{context | vars: vars, types: types, traces: traces, counter: counter}
         {type, context}
-    end
-  end
-
-  defp add_var(var, type, context) do
-    types = :maps.put(var, type, context.types)
-    traces = :maps.put(var, [{type, context.expr}], context.traces)
-    context = %{context | types: types, traces: traces}
-
-    if recursive_type?(type, [], context) do
-      error({:recursive_type, type}, context)
-    else
-      {:ok, {:var, var}, context}
     end
   end
 
