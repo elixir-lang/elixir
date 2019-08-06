@@ -299,24 +299,29 @@ defmodule Module.Checker do
     ]
   end
 
-  defp format_warning({:unable_unify, {expr, traces}, left, right}) do
+  defp format_warning({:unable_unify, left, right, expr, traces}) do
     [
       "function clause will never match, found incompatible types:\n\n    ",
       Module.Types.format_type(left),
       " !~ ",
       Module.Types.format_type(right),
-      "\n\nin expression:\n\n    ",
-      Macro.to_string(expr)
-    ] ++ format_traces(traces)
+      "\n\n",
+      format_expr(expr),
+      format_traces(traces),
+      "Type conflict found at"
+    ]
   end
 
-  defp format_warning({:recursive_type, {expr, traces}, type}) do
+  defp format_expr(nil) do
+    []
+  end
+
+  defp format_expr(expr) do
     [
-      "function clause will never match, found recursive type:\n\n    ",
-      Module.Types.format_type(type),
-      "\n\nin expression:\n\n    ",
-      Macro.to_string(expr)
-    ] ++ format_traces(traces)
+      "in expression:\n\n    ",
+      Macro.to_string(expr),
+      "\n\n"
+    ]
   end
 
   defp format_traces([]) do
@@ -324,24 +329,20 @@ defmodule Module.Checker do
   end
 
   defp format_traces(traces) do
-    format =
-      Enum.flat_map(traces, fn
-        {var, [{type, expr} | _traces]} ->
-          [
-            "    ",
-            Macro.to_string(var),
-            " :: ",
-            Module.Types.format_type(type),
-            " (from: ",
-            Macro.to_string(expr),
-            ")\n"
-          ]
-
-        {_var, []} ->
-          []
-      end)
-
-    ["\n\nwith variables:\n\n" | format]
+    Enum.map(traces, fn
+      {var, {type, expr, location}} ->
+        [
+          "where \"",
+          Macro.to_string(var),
+          "\" was given the type ",
+          Module.Types.format_type(type),
+          " in:\n\n    # ",
+          format_location(location),
+          "    ",
+          Macro.to_string(expr),
+          "\n\n"
+        ]
+    end)
   end
 
   defp format_locations([location]) do
@@ -353,6 +354,12 @@ defmodule Module.Checker do
       "Found at #{length(locations)} locations:\n",
       Enum.map(locations, &format_location/1)
     ]
+  end
+
+  defp format_location({file, line}) do
+    file = Path.relative_to_cwd(file)
+    line = if line, do: [Integer.to_string(line)], else: []
+    [file, ?:, line, ?\n]
   end
 
   defp format_location({file, line, {module, fun, arity}}) do

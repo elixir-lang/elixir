@@ -43,14 +43,24 @@ defmodule Module.TypesTest do
 
   describe "of_pattern/2" do
     test "error location" do
-      assert {:error, {{:unable_unify, {expr, traces}, :binary, :integer}, location}} =
+      assert {:error, {{:unable_unify, :binary, :integer, expr, traces}, location}} =
                quoted_pattern(<<foo::integer, foo::binary>>)
 
       assert location == [{"types_test.ex", 47, {TypesTest, :test, 0}}]
-      assert {:"::", _, [{:foo, _, nil}, {:binary, _, nil}]} = expr
 
-      assert [{{:foo, _, nil}, [{:integer, {:"::", _, [{:foo, _, nil}, {:integer, _, nil}]}}]}] =
-               traces
+      assert {:<<>>, _,
+              [
+                {:"::", _, [{:foo, _, nil}, {:integer, _, nil}]},
+                {:"::", _, [{:foo, _, nil}, {:binary, _, nil}]}
+              ]} = expr
+
+      assert [
+               {{:foo, _, nil},
+                {:binary, {:"::", _, [{:foo, _, nil}, {:binary, _, nil}]}, {"types_test.ex", 47}}},
+               {{:foo, _, nil},
+                {:integer, {:"::", _, [{:foo, _, nil}, {:integer, _, nil}]},
+                 {"types_test.ex", 47}}}
+             ] = traces
     end
 
     test "literals" do
@@ -83,7 +93,7 @@ defmodule Module.TypesTest do
       assert quoted_pattern(%{a: :b}) == {:ok, {:map, [{{:literal, :a}, {:literal, :b}}]}}
       assert quoted_pattern(%{123 => a}) == {:ok, {:map, [{:integer, {:var, 0}}]}}
 
-      assert {:error, {{:unable_unify, _, {:literal, :foo}, :integer}, _}} =
+      assert {:error, {{:unable_unify, {:literal, :foo}, :integer, _, _}, _}} =
                quoted_pattern(%{a: a = 123, b: a = :foo})
     end
 
@@ -95,13 +105,13 @@ defmodule Module.TypesTest do
       assert quoted_pattern({<<foo::integer>>, foo}) == {:ok, {:tuple, [:binary, :integer]}}
       assert quoted_pattern({<<foo::binary>>, foo}) == {:ok, {:tuple, [:binary, :binary]}}
 
-      assert {:error, {{:unable_unify, _, :integer, :binary}, _}} =
+      assert {:error, {{:unable_unify, :integer, :binary, _, _}, _}} =
                quoted_pattern(<<123::binary>>)
 
-      assert {:error, {{:unable_unify, _, :binary, :integer}, _}} =
+      assert {:error, {{:unable_unify, :binary, :integer, _, _}, _}} =
                quoted_pattern(<<"foo"::integer>>)
 
-      assert {:error, {{:unable_unify, _, :integer, :binary}, _}} =
+      assert {:error, {{:unable_unify, :integer, :binary, _, _}, _}} =
                quoted_pattern(<<foo::binary, foo::integer>>)
     end
 
@@ -124,7 +134,8 @@ defmodule Module.TypesTest do
       assert quoted_pattern(x = 123 = y) == {:ok, :integer}
       assert quoted_pattern(123 = x = y) == {:ok, :integer}
 
-      assert {:error, {{:recursive_type, _, {:tuple, [var: 0]}}, _}} = quoted_pattern({x} = x)
+      assert {:error, {{:unable_unify, {:tuple, [var: 0]}, {:var, 0}, _, _}, _}} =
+               quoted_pattern({x} = x)
     end
   end
 
@@ -147,31 +158,46 @@ defmodule Module.TypesTest do
       assert quoted_clause([x = y, y = z, z = :foo]) ==
                {:ok, [{:literal, :foo}, {:literal, :foo}, {:literal, :foo}]}
 
-      assert {:error, {{:recursive_type, _, {:tuple, [var: 1]}}, _}} =
+      assert {:error, {{:unable_unify, {:tuple, [var: 1]}, {:var, 0}, _, _}, _}} =
                quoted_clause([{x} = y, {y} = x])
     end
 
     test "guards" do
-      assert quoted_clause([x], [is_binary(x)]) == {:ok, [:binary]}
-      assert quoted_clause([x, y], [is_binary(x) and is_atom(y)]) == {:ok, [:binary, :atom]}
+      assert quoted_clause([x], [:erlang.is_binary(x)]) == {:ok, [:binary]}
 
-      assert quoted_clause([x], [is_binary(x) or is_atom(x)]) ==
+      assert quoted_clause([x, y], [:erlang.andalso(:erlang.is_binary(x), :erlang.is_atom(y))]) ==
+               {:ok, [:binary, :atom]}
+
+      assert quoted_clause([x], [:erlang.orelse(:erlang.is_binary(x), :erlang.is_atom(x))]) ==
                {:ok, [{:union, [:binary, :atom]}]}
 
-      assert quoted_clause([x, x], [is_integer(x)]) == {:ok, [:integer, :integer]}
+      assert quoted_clause([x, x], [:erlang.is_integer(x)]) == {:ok, [:integer, :integer]}
 
-      assert quoted_clause([x = 123], [is_integer(x)]) == {:ok, [:integer]}
-      assert quoted_clause([x], [is_boolean(x) or is_atom(x)]) == {:ok, [:atom]}
-      assert quoted_clause([x], [is_atom(x) or is_boolean(x)]) == {:ok, [:atom]}
-      assert quoted_clause([x], [is_boolean(x) and is_atom(x)]) == {:ok, [:boolean]}
-      assert quoted_clause([x], [is_atom(x) and is_boolean(x)]) == {:ok, [:boolean]}
+      assert quoted_clause([x = 123], [:erlang.is_integer(x)]) == {:ok, [:integer]}
 
-      assert quoted_clause([x, x = y, y = z], [is_atom(x)]) == {:ok, [:atom, :atom, :atom]}
-      assert quoted_clause([x = y, y, y = z], [is_atom(y)]) == {:ok, [:atom, :atom, :atom]}
-      assert quoted_clause([x = y, y = z, z], [is_atom(z)]) == {:ok, [:atom, :atom, :atom]}
+      assert quoted_clause([x], [:erlang.orelse(:erlang.is_boolean(x), :erlang.is_atom(x))]) ==
+               {:ok, [:atom]}
 
-      assert {:error, {{:unable_unify, _, :integer, :binary}, _}} =
-               quoted_clause([x], [is_binary(x) and is_integer(x)])
+      assert quoted_clause([x], [:erlang.orelse(:erlang.is_atom(x), :erlang.is_boolean(x))]) ==
+               {:ok, [:atom]}
+
+      assert quoted_clause([x], [:erlang.andalso(:erlang.is_boolean(x), :erlang.is_atom(x))]) ==
+               {:ok, [:boolean]}
+
+      assert quoted_clause([x], [:erlang.andalso(:erlang.is_atom(x), :erlang.is_boolean(x))]) ==
+               {:ok, [:boolean]}
+
+      assert quoted_clause([x, x = y, y = z], [:erlang.is_atom(x)]) ==
+               {:ok, [:atom, :atom, :atom]}
+
+      assert quoted_clause([x = y, y, y = z], [:erlang.is_atom(y)]) ==
+               {:ok, [:atom, :atom, :atom]}
+
+      assert quoted_clause([x = y, y = z, z], [:erlang.is_atom(z)]) ==
+               {:ok, [:atom, :atom, :atom]}
+
+      assert {:error, {{:unable_unify, :integer, :binary, _, _}, _}} =
+               quoted_clause([x], [:erlang.andalso(:erlang.is_binary(x), :erlang.is_integer(x))])
     end
 
     test "map" do
@@ -182,7 +208,7 @@ defmodule Module.TypesTest do
                   {:map, [{{:literal, true}, {:literal, false}}]}
                 ]}
 
-      assert quoted_clause([%{true: bool}], [is_boolean(bool)]) ==
+      assert quoted_clause([%{true: bool}], [:erlang.is_boolean(bool)]) ==
                {:ok,
                 [
                   {:map, [{{:literal, true}, :boolean}]}
@@ -197,7 +223,7 @@ defmodule Module.TypesTest do
                    [{{:literal, false}, {:literal, false}}, {{:literal, true}, {:literal, true}}]}
                 ]}
 
-      assert {:error, {{:unable_unify, _, {:literal, true}, {:literal, false}}, _}} =
+      assert {:error, {{:unable_unify, {:literal, true}, {:literal, false}, _, _}, _}} =
                quoted_clause([%{true: false} = foo, %{true: true} = foo])
     end
   end

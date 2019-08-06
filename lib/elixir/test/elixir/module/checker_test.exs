@@ -621,7 +621,39 @@ defmodule Module.CheckerTest do
   end
 
   describe "function header inference" do
-    test "warns on unification failure" do
+    test "warns on literals" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          def a(var = 123, var = "abc"), do: var
+        end
+        """
+      }
+
+      warning = """
+      warning: function clause will never match, found incompatible types:
+
+          binary() !~ integer()
+
+      where "var" was given the type binary() in:
+
+          # a.ex:2
+          var = "abc"
+
+      where "var" was given the type integer() in:
+
+          # a.ex:2
+          var = 123
+
+      Type conflict found at
+        a.ex:2: A.a/2
+
+      """
+
+      assert_warnings(files, warning)
+    end
+
+    test "warns on binary patterns" do
       files = %{
         "a.ex" => """
         defmodule A do
@@ -637,12 +669,86 @@ defmodule Module.CheckerTest do
 
       in expression:
 
+          <<var::integer(), var::binary()>>
+
+      where "var" was given the type binary() in:
+
+          # a.ex:2
           var :: binary()
 
-      with variables:
+      where "var" was given the type integer() in:
 
-          var :: integer() (from: var :: integer())
+          # a.ex:2
+          var :: integer()
 
+      Type conflict found at
+        a.ex:2: A.a/1
+
+      """
+
+      assert_warnings(files, warning)
+    end
+
+    test "warns on recursive patterns" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          def a({var} = var), do: var
+        end
+        """
+      }
+
+      warning = """
+      warning: function clause will never match, found incompatible types:
+
+          {var0} !~ var0
+
+      in expression:
+
+          {var} = var
+
+      where "var" was given the type {var0} in:
+
+          # a.ex:2
+          {var} = var
+
+      Type conflict found at
+        a.ex:2: A.a/1
+
+      """
+
+      assert_warnings(files, warning)
+    end
+
+    test "warns on guards" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          def a(var) when is_integer(var) and is_binary(var), do: var
+        end
+        """
+      }
+
+      warning = """
+      warning: function clause will never match, found incompatible types:
+
+          binary() !~ integer()
+
+      in expression:
+
+          :erlang.andalso(:erlang.is_integer(var), :erlang.is_binary(var))
+
+      where "var" was given the type binary() in:
+
+          # a.ex:2
+          :erlang.is_binary(var)
+
+      where "var" was given the type integer() in:
+
+          # a.ex:2
+          :erlang.is_integer(var)
+
+      Type conflict found at
         a.ex:2: A.a/1
 
       """

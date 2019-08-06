@@ -32,13 +32,14 @@ defmodule Module.Types do
   def context(file, module, function) do
     %{
       file: file,
-      line: nil,
       module: module,
       function: function,
-      expr: nil,
       vars: %{},
+      types_to_vars: %{},
       types: %{},
       traces: %{},
+      unify_stack: [],
+      expr_stack: [],
       counter: 0
     }
   end
@@ -81,24 +82,29 @@ defmodule Module.Types do
     {:ok, :binary, context}
   end
 
-  def of_pattern({:<<>>, _meta, args}, context) do
-    # TODO: Add bitstring type
-    case of_binary(args, context) do
-      {:ok, context} -> {:ok, :binary, context}
-      {:error, reason} -> {:error, reason}
-    end
+  def of_pattern({:<<>>, _meta, args} = expr, context) do
+    expr_stack(expr, context, fn context ->
+      case reduce_ok(args, context, &of_binary/2) do
+        {:ok, context} -> {:ok, :binary, context}
+        {:error, reason} -> {:error, reason}
+      end
+    end)
   end
 
-  def of_pattern([{:|, _meta, [left_expr, right_expr]}], context) do
-    with {:ok, left, context} <- of_pattern(left_expr, context),
-         {:ok, right, context} <- of_pattern(right_expr, context),
-         do: {:ok, {:cons, left, right}, context}
+  def of_pattern([{:|, _meta, [left_expr, right_expr]}] = expr, context) do
+    expr_stack(expr, context, fn context ->
+      with {:ok, left, context} <- of_pattern(left_expr, context),
+           {:ok, right, context} <- of_pattern(right_expr, context),
+           do: {:ok, {:cons, left, right}, context}
+    end)
   end
 
-  def of_pattern([left_expr | right_expr], context) do
-    with {:ok, left, context} <- of_pattern(left_expr, context),
-         {:ok, right, context} <- of_pattern(right_expr, context),
-         do: {:ok, {:cons, left, right}, context}
+  def of_pattern([left_expr | right_expr] = expr, context) do
+    expr_stack(expr, context, fn context ->
+      with {:ok, left, context} <- of_pattern(left_expr, context),
+           {:ok, right, context} <- of_pattern(right_expr, context),
+           do: {:ok, {:cons, left, right}, context}
+    end)
   end
 
   def of_pattern([], context) do
@@ -118,25 +124,31 @@ defmodule Module.Types do
     of_pattern({:{}, [], [left, right]}, context)
   end
 
-  def of_pattern({:{}, _meta, exprs}, context) do
-    case map_reduce_ok(exprs, context, &of_pattern/2) do
-      {:ok, types, context} -> {:ok, {:tuple, types}, context}
-      {:error, reason} -> {:error, reason}
-    end
+  def of_pattern({:{}, _meta, exprs} = expr, context) do
+    expr_stack(expr, context, fn context ->
+      case map_reduce_ok(exprs, context, &of_pattern/2) do
+        {:ok, types, context} -> {:ok, {:tuple, types}, context}
+        {:error, reason} -> {:error, reason}
+      end
+    end)
   end
 
   def of_pattern({:=, _meta, [left_expr, right_expr]} = expr, context) do
-    with {:ok, left_type, context} <- of_pattern(left_expr, context),
-         {:ok, right_type, context} <- of_pattern(right_expr, context),
-         do: unify(left_type, right_type, with_expr(expr, context))
+    expr_stack(expr, context, fn context ->
+      with {:ok, left_type, context} <- of_pattern(left_expr, context),
+           {:ok, right_type, context} <- of_pattern(right_expr, context),
+           do: unify(left_type, right_type, context)
+    end)
   end
 
-  def of_pattern({:%{}, _meta, args}, context) do
+  def of_pattern({:%{}, _meta, args} = expr, context) do
     result =
-      map_reduce_ok(args, context, fn {key, value}, context ->
-        with {:ok, key_type, context} <- of_pattern(key, context),
-             {:ok, value_type, context} <- of_pattern(value, context),
-             do: {:ok, {key_type, value_type}, context}
+      expr_stack(expr, context, fn context ->
+        map_reduce_ok(args, context, fn {key, value}, context ->
+          with {:ok, key_type, context} <- of_pattern(key, context),
+               {:ok, value_type, context} <- of_pattern(value, context),
+               do: {:ok, {key_type, value_type}, context}
+        end)
       end)
 
     case result do
@@ -181,6 +193,10 @@ defmodule Module.Types do
     "#{atom}()"
   end
 
+  def format_type({:var, index}) do
+    "var#{index}"
+  end
+
   # TODO: Remove this and let multiple when be treated as multiple clauses,
   #       meaning they will be intersection types
   defp guards_to_or([]) do
@@ -188,11 +204,15 @@ defmodule Module.Types do
   end
 
   defp guards_to_or(guards) do
-    Enum.reduce(guards, fn guard, acc -> {:or, [], [guard, acc]} end)
+    Enum.reduce(guards, fn guard, acc -> {{:., [], [:erlang, :orelse]}, [], [guard, acc]} end)
   end
 
-  defp flatten_binary_op(op, {op, _meta, [left, right]}) do
-    flatten_binary_op(op, left) ++ flatten_binary_op(op, right)
+  defp flatten_binary_op(:and, {{:., _, [:erlang, :andalso]}, _, [left, right]}) do
+    flatten_binary_op(:and, left) ++ flatten_binary_op(:and, right)
+  end
+
+  defp flatten_binary_op(:or, {{:., _, [:erlang, :orelse]}, _, [left, right]}) do
+    flatten_binary_op(:or, left) ++ flatten_binary_op(:or, right)
   end
 
   defp flatten_binary_op(_op, other) do
@@ -200,24 +220,32 @@ defmodule Module.Types do
   end
 
   def of_guard(guard, context) do
-    reduce_ok(flatten_binary_op(:and, guard), context, fn guard, context ->
-      union = Enum.map(flatten_binary_op(:or, guard), &type_guard/1)
+    expr_stack(guard, context, fn context ->
+      reduce_ok(flatten_binary_op(:and, guard), context, fn guard, context ->
+        union = Enum.map(flatten_binary_op(:or, guard), &type_guard/1)
 
-      with {:ok, args, guard_types} <- unzip_ok(union),
-           [_arg] <- Enum.uniq(Enum.map(args, &remove_meta/1)) do
-        union = to_union(guard_types, context)
-        unify_guard(hd(args), union, with_expr(guard, context))
-      else
-        _ -> {:ok, context}
-      end
+        with {:ok, args, guard_types} <- unzip_ok(union),
+             [_arg] <- Enum.uniq(Enum.map(args, &remove_meta/1)) do
+          expr_stack(guard, context, fn context ->
+            union = to_union(guard_types, context)
+            unify_guard(hd(args), union, context)
+          end)
+        else
+          _ -> {:ok, context}
+        end
+      end)
     end)
   end
 
-  defp unify_guard(arg, guard_type, context) do
+  defp unify_guard(arg, guard_type, context) when is_var(arg) do
     # TODO: It is incorrect to use of_pattern/2 but it helps for simplicity now
     with {:ok, arg_type, context} <- of_pattern(arg, context),
          {:ok, _, context} <- unify(arg_type, guard_type, context),
          do: {:ok, context}
+  end
+
+  defp unify_guard(_arg, _guard_type, context) do
+    {:ok, context}
   end
 
   # Unimplemented guards:
@@ -232,16 +260,14 @@ defmodule Module.Types do
   @type_guards %{
     is_atom: :atom,
     is_binary: :binary,
-    # TODO: Add bitstring type
     is_bitstring: :binary,
     is_boolean: :boolean,
     is_float: :float,
     is_integer: :integer,
-    is_map: {:map, []},
-    is_nil: {:literal, nil}
+    is_map: {:map, []}
   }
 
-  defp type_guard({guard, _meta, [arg]}) do
+  defp type_guard({{:., _, [:erlang, guard]}, _, [arg]}) do
     case :maps.find(guard, @type_guards) do
       {:ok, type} -> {:ok, arg, type}
       :error -> {:error, :unknown_guard}
@@ -250,11 +276,7 @@ defmodule Module.Types do
 
   defp type_guard(_other), do: {:error, :unknown_guard}
 
-  defp of_binary([], context) do
-    {:ok, context}
-  end
-
-  defp of_binary([{:"::", _meta, [expr, specifiers]} = full_expr | args], context) do
+  defp of_binary({:"::", _meta, [expr, specifiers]} = full_expr, context) do
     specifiers = List.flatten(collect_specifiers(specifiers))
 
     expected_type =
@@ -272,15 +294,17 @@ defmodule Module.Types do
         true -> :integer
       end
 
-    with {:ok, type, context} <- of_pattern(expr, context),
-         {:ok, _type, context} <- unify(type, expected_type, with_expr(full_expr, context)),
-         do: of_binary(args, context)
+    expr_stack(full_expr, context, fn context ->
+      with {:ok, type, context} <- of_pattern(expr, context),
+           {:ok, _type, context} <- unify(type, expected_type, context),
+           do: {:ok, context}
+    end)
   end
 
-  defp of_binary([expr | args], context) do
+  defp of_binary(expr, context) do
     case of_pattern(expr, context) do
       {:ok, type, context} when type in [:integer, :float, :binary] ->
-        of_binary(args, context)
+        {:ok, context}
 
       {:ok, type, _context} ->
         {:error, {:invalid_binary_type, type}}
@@ -290,41 +314,63 @@ defmodule Module.Types do
     end
   end
 
-  defp unify({:var, left}, {:var, right}, context) do
-    case {:maps.get(left, context.types), :maps.get(right, context.types)} do
-      {_, :unbound} ->
-        context = refine_var(right, {:var, left}, context)
-        {:ok, {:var, right}, context}
+  defp expr_stack(expr, context, fun) do
+    expr_stack = context.expr_stack
 
-      {:unbound, _} ->
-        context = refine_var(left, {:var, right}, context)
-        {:ok, {:var, left}, context}
-
-      {left_type, right_type} ->
-        case unify(left_type, right_type, context) do
-          {:ok, type, context} ->
-            context = refine_var(left, type, context)
-            context = refine_var(right, type, context)
-            {:ok, {:var, left}, context}
-
-          {:error, reason} ->
-            {:error, reason}
-        end
+    case fun.(%{context | expr_stack: [expr | context.expr_stack]}) do
+      {:ok, context} -> {:ok, %{context | expr_stack: expr_stack}}
+      {:ok, type, context} -> {:ok, type, %{context | expr_stack: expr_stack}}
+      {:error, reason} -> {:error, reason}
     end
   end
 
+  # TODO: Is this needed?
+  # defp unify(same, same, context) do
+  #   {:ok, same, context}
+  # end
+
+  # TODO: Is this needed?
+  # defp unify({:var, left}, {:var, right}, context) do
+  #   case {:maps.get(left, context.types), :maps.get(right, context.types)} do
+  #     {_, :unbound} ->
+  #       context = refine_var(right, {:var, left}, context)
+  #       {:ok, {:var, right}, context}
+  #
+  #     {:unbound, _} ->
+  #       context = refine_var(left, {:var, right}, context)
+  #       {:ok, {:var, left}, context}
+  #
+  #     {left_type, right_type} ->
+  #       context = push_unify_stack([{:var, left}, {:var, right}], context)
+  #
+  #       case unify(left_type, right_type, context) do
+  #         {:ok, type, context} ->
+  #           context = refine_var(left, type, context)
+  #           context = refine_var(right, type, context)
+  #           {:ok, {:var, left}, context}
+  #
+  #         {:error, reason} ->
+  #           {:error, reason}
+  #       end
+  #   end
+  # end
+
   defp unify(type, {:var, var}, context) do
+    context = push_unify_stack([{:var, var}], context)
+
     case :maps.get(var, context.types) do
       :unbound ->
         context = refine_var(var, type, context)
 
         if recursive_type?(type, [], context) do
-          error({:recursive_type, type}, context)
+          error({:unable_unify, type, {:var, var}}, context)
         else
           {:ok, {:var, var}, context}
         end
 
       var_type ->
+        context = refine_var(var, type, context)
+
         case unify(type, var_type, context) do
           {:ok, var_type, context} ->
             context = refine_var(var, var_type, context)
@@ -406,6 +452,10 @@ defmodule Module.Types do
     end
   end
 
+  defp push_unify_stack(stack, context) do
+    %{context | unify_stack: stack ++ context.unify_stack}
+  end
+
   defp new_var(var, context) do
     case :maps.find(var_name(var), context.vars) do
       {:ok, type} ->
@@ -414,28 +464,45 @@ defmodule Module.Types do
       :error ->
         type = {:var, context.counter}
         vars = :maps.put(var_name(var), type, context.vars)
+        types_to_vars = :maps.put(type, var, context.types_to_vars)
         types = :maps.put(context.counter, :unbound, context.types)
         traces = :maps.put(context.counter, [], context.traces)
         counter = context.counter + 1
-        context = %{context | vars: vars, types: types, traces: traces, counter: counter}
+
+        context = %{
+          context
+          | vars: vars,
+            types_to_vars: types_to_vars,
+            types: types,
+            traces: traces,
+            counter: counter
+        }
+
         {type, context}
     end
   end
 
   defp refine_var(var, type, context) do
-    # TODO: Include location?
     types = :maps.put(var, type, context.types)
-    traces = :maps.update_with(var, &[{type, context.expr} | &1], context.traces)
+    line = get_meta(hd(context.expr_stack))[:line]
+    trace = {type, context.expr_stack, {context.file, line}}
+    traces = :maps.update_with(var, &[trace | &1], context.traces)
     %{context | types: types, traces: traces}
   end
 
   defp var_name({name, _meta, context}), do: {name, context}
 
   defp recursive_type?({:var, var} = parent, parents, context) do
-    case :maps.find(var, context.types) do
-      :error -> false
-      {:ok, :unbound} -> false
-      {:ok, type} -> type in parents or recursive_type?(type, [parent | parents], context)
+    case :maps.get(var, context.types) do
+      :unbound ->
+        false
+
+      type ->
+        if type in parents do
+          not Enum.all?(parents, &match?({:var, _}, &1))
+        else
+          recursive_type?(type, [parent | parents], context)
+        end
     end
   end
 
@@ -593,53 +660,50 @@ defmodule Module.Types do
   defp get_meta({_fun, meta, _args}) when is_list(meta), do: meta
   defp get_meta(_other), do: []
 
-  defp with_expr(expr, context) do
-    %{context | expr: expr, line: get_meta(expr)[:line]}
-  end
-
-  defp error(reason, context) do
+  defp error({:unable_unify, left, right}, context) do
     {fun, arity} = context.function
-    location = {context.file, context.line, {context.module, fun, arity}}
-    traces = var_traces(context.expr, context)
-    reason = Tuple.insert_at(reason, 1, {context.expr, traces})
-    {:error, {reason, [location]}}
+    line = get_meta(hd(context.expr_stack))[:line]
+    location = {context.file, line, {context.module, fun, arity}}
+    traces = type_traces(context)
+    common_expr = common_super_expr(traces)
+    traces = simplify_traces(traces)
+    {:error, {{:unable_unify, left, right, common_expr, traces}, [location]}}
   end
 
-  defp var_traces(expr, context) do
-    Enum.flat_map(collect_vars(expr, []), fn var ->
-      case :maps.find(var_name(var), context.vars) do
-        {:ok, {:var, index}} ->
-          trace = :maps.get(index, context.traces)
-          [{var, trace}]
+  defp type_traces(context) do
+    stack = Enum.uniq(context.unify_stack)
 
-        :error ->
+    Enum.flat_map(stack, fn {:var, var_index} = type_var ->
+      case :maps.find(var_index, context.traces) do
+        {:ok, traces} ->
+          expr_var = :maps.get(type_var, context.types_to_vars)
+          Enum.map(traces, &{expr_var, &1})
+
+        _other ->
           []
       end
     end)
   end
 
-  defp collect_vars({:"::", _meta, [left, _right]}, vars) do
-    collect_vars(left, vars)
+  defp simplify_traces(traces) do
+    Enum.map(traces, fn {var, {type, expr_stack, location}} ->
+      {var, {type, hd(expr_stack), location}}
+    end)
   end
 
-  defp collect_vars({name, _meta, context} = var, vars) when is_atom(name) and is_atom(context) do
-    [var | vars]
+  defp common_super_expr([]) do
+    nil
   end
 
-  defp collect_vars({left, _meta, right}, vars) do
-    collect_vars(right, collect_vars(left, vars))
-  end
+  defp common_super_expr([{_var, {_type, expr_stack, _location}} | traces]) do
+    Enum.find_value(expr_stack, fn expr ->
+      common? =
+        Enum.all?(traces, fn {_var, {_type, expr_stack, _location}} -> expr in expr_stack end)
 
-  defp collect_vars({left, right}, vars) do
-    collect_vars(right, collect_vars(left, vars))
-  end
-
-  defp collect_vars(list, vars) when is_list(list) do
-    Enum.reduce(list, vars, &collect_vars/2)
-  end
-
-  defp collect_vars(_other, vars) do
-    vars
+      if common? do
+        expr
+      end
+    end)
   end
 
   defp unzip_ok(list) do
