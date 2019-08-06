@@ -193,21 +193,66 @@ defmodule ExUnit.Diff do
   # Tuples
 
   defp compare_tuple({:{}, _, left_list}, right, %{context: :match} = env) do
-    compare_tuple_items(left_list, right, env)
+    compare_tuple_items(left_list, Tuple.to_list(right), env)
   end
 
   defp compare_tuple(left, right, env) do
-    compare_tuple_items(Tuple.to_list(left), right, env)
+    compare_tuple_items(Tuple.to_list(left), Tuple.to_list(right), env)
   end
 
-  defp compare_tuple_items(list_left, right, env) do
-    list_right = Tuple.to_list(right)
+  defp compare_tuple_items(list_left, list_right, env) do
+    {compared, non_compared_left, non_compared_right, post_env} =
+      compare_tuple_items_by_index(list_left, list_right, env)
 
-    {diff, list_post_env} = myers_difference_list(list_left, list_right, env)
-    diff_left = {:{}, [], diff.left}
-    diff_right = {:{}, [], diff.right}
+    remaining_diff = compare_tuple_remaining_items(non_compared_left, non_compared_right)
 
-    {%{diff | left: diff_left, right: diff_right}, list_post_env}
+    {build_tuple_result(compared, remaining_diff), post_env}
+  end
+
+  defp compare_tuple_items_by_index(list_left, list_right, env) do
+    {compared, non_compared_left, non_compared_right, post_env} =
+      Enum.reduce(list_left, {[], [], list_right, env}, fn
+        item, {compared, non_compared, [next | continue], acc_env} ->
+          {diff, diff_post_env} = compare_quoted(item, next, acc_env)
+          {[diff | compared], non_compared, continue, diff_post_env}
+
+        item, {compared, non_compared, [], acc_env} ->
+          {compared, [item | non_compared], [], acc_env}
+      end)
+
+    {
+      Enum.reverse(compared),
+      Enum.reverse(non_compared_left),
+      Enum.reverse(non_compared_right),
+      post_env
+    }
+  end
+
+  defp compare_tuple_remaining_items([], []) do
+    %__MODULE__{
+      equivalent?: true,
+      left: {:{}, [], []},
+      right: {:{}, [], []}
+    }
+  end
+
+  defp compare_tuple_remaining_items(left, right) do
+    left = Enum.map(left, &update_diff_meta(&1, true))
+    right = Enum.map(right, &update_diff_meta(&1, true))
+
+    diff_left = {:{}, [], left}
+    diff_right = {:{}, [], right}
+
+    %__MODULE__{equivalent?: false, left: diff_left, right: diff_right}
+  end
+
+  defp build_tuple_result([], remaining_diff) do
+    remaining_diff
+  end
+
+  defp build_tuple_result([head | tail], remaining_diff) do
+    tail_result = build_tuple_result(tail, remaining_diff)
+    prepend_diff(head, tail_result)
   end
 
   # Lists

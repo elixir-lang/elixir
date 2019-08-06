@@ -370,6 +370,8 @@ defmodule ExUnit.DiffTest do
     refute_diff({:a} = {:a, :b}, "{:a}", "{:a, +:b+}")
     refute_diff({:a, :b} = {:a}, "{:a, -:b-}", "{:a}")
 
+    refute_diff({:ok, value} = {:error, :fatal}, "{-:ok-, value}", "{+:error+, :fatal}")
+
     refute_diff({:a, :b} = :a, "-{:a, :b}-", "+:a+")
   end
 
@@ -656,8 +658,8 @@ defmodule ExUnit.DiffTest do
 
     refute_diff(
       {ref1, ref2} == {ref2, ref1},
-      "{-#{inspect_ref1}-, #{inspect_ref2}}",
-      "{#{inspect_ref2}, +#{inspect_ref1}+}"
+      "{-#{inspect_ref1}-, -#{inspect_ref2}-}",
+      "{+#{inspect_ref2}+, +#{inspect_ref1}+}"
     )
 
     refute_diff(
@@ -693,11 +695,7 @@ defmodule ExUnit.DiffTest do
     refute_diff(pid == :a, "-#{inspect_pid}-", "+:a+")
     refute_diff({pid, pid} == :a, "-{#{inspect_pid}, #{inspect_pid}}", "+:a+")
 
-    refute_diff(
-      {pid, :a} == {:a, pid},
-      "{-#{inspect_pid}-, :a}",
-      "{:a, +#{inspect_pid}+}"
-    )
+    refute_diff({pid, :a} == {:a, pid}, "{-#{inspect_pid}-, -:a-}", "{+:a+, +#{inspect_pid}+}")
 
     refute_diff(%{pid => pid} == :a, "-%{#{inspect_pid} => #{inspect_pid}}", "+:a+")
 
@@ -718,11 +716,7 @@ defmodule ExUnit.DiffTest do
     refute_diff(identity == :a, "-#{inspect}-", "+:a+")
     refute_diff({identity, identity} == :a, "-{#{inspect}, #{inspect}}", "+:a+")
 
-    refute_diff(
-      {identity, :a} == {:a, identity},
-      "{-#{inspect}-, :a}",
-      "{:a, +#{inspect}+}"
-    )
+    refute_diff({identity, :a} == {:a, identity}, "{-#{inspect}-, -:a-}", "{+:a+, +#{inspect}+}")
 
     refute_diff(%{identity => identity} == :a, "-%{#{inspect} => #{inspect}}", "+:a+")
 
