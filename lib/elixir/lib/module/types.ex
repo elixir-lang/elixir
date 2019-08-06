@@ -330,7 +330,7 @@ defmodule Module.Types do
         end
 
       var_type ->
-        context = refine_var(var, type, context)
+        context = trace_var(var, type, context)
 
         case unify(type, var_type, context) do
           {:ok, var_type, context} ->
@@ -449,6 +449,13 @@ defmodule Module.Types do
     trace = {type, context.expr_stack, {context.file, line}}
     traces = :maps.update_with(var, &[trace | &1], context.traces)
     %{context | types: types, traces: traces}
+  end
+
+  defp trace_var(var, type, context) do
+    line = get_meta(hd(context.expr_stack))[:line]
+    trace = {type, context.expr_stack, {context.file, line}}
+    traces = :maps.update_with(var, &[trace | &1], context.traces)
+    %{context | traces: traces}
   end
 
   defp var_name({name, _meta, context}), do: {name, context}
@@ -634,10 +641,28 @@ defmodule Module.Types do
   end
 
   defp simplify_traces(traces) do
-    Enum.map(traces, fn {var, {type, expr_stack, location}} ->
-      {var, {type, hd(expr_stack), location}}
+    Enum.flat_map(traces, fn {var, {type, [expr | _], location}} ->
+      if expr_in_expr?(var, expr) do
+        [{var, {type, expr, location}}]
+      else
+        []
+      end
     end)
   end
+
+  defp expr_in_expr?({fun, _, args}, {fun, _, args}), do: true
+  defp expr_in_expr?(expr, expr), do: true
+
+  defp expr_in_expr?(expr, {fun, _, args}),
+    do: expr_in_expr?(expr, fun) or expr_in_expr?(expr, args)
+
+  defp expr_in_expr?(expr, {left, right}),
+    do: expr_in_expr?(expr, left) or expr_in_expr?(expr, right)
+
+  defp expr_in_expr?(expr, list) when is_list(list),
+    do: Enum.any?(list, &expr_in_expr?(expr, &1))
+
+  defp expr_in_expr?(_expr, _other), do: false
 
   defp common_super_expr([]) do
     nil
