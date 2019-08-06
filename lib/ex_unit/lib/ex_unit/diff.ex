@@ -1052,12 +1052,18 @@ defmodule ExUnit.Diff do
     docs =
       list
       |> Enum.map(&item_to_algebra.(&1, diff_wrapper))
-      |> Algebra.fold_doc(&Algebra.flex_glue(&1, ", ", &2))
+      |> Algebra.fold_doc(&join_docs/2)
       |> Algebra.nest(1)
 
     [open, docs, close]
     |> Algebra.concat()
     |> Algebra.group()
+  end
+
+  defp join_docs(doc1, doc2) do
+    doc1
+    |> Algebra.concat(",")
+    |> Algebra.flex_glue(doc2)
   end
 
   defp struct_to_algebra(quoted, diff_wrapper) do
