@@ -736,17 +736,17 @@ defmodule Module.CheckerTest do
 
       in expression:
 
-          :erlang.andalso(:erlang.is_integer(var), :erlang.is_binary(var))
+          is_integer(var) and is_binary(var)
 
       where "var" was given the type binary() in:
 
           # a.ex:2
-          :erlang.is_binary(var)
+          is_binary(var)
 
       where "var" was given the type integer() in:
 
           # a.ex:2
-          :erlang.is_integer(var)
+          is_integer(var)
 
       Type conflict found at
         a.ex:2: A.a/1

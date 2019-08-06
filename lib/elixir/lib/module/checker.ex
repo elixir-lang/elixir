@@ -319,7 +319,7 @@ defmodule Module.Checker do
   defp format_expr(expr) do
     [
       "in expression:\n\n    ",
-      Macro.to_string(expr),
+      expr_to_string(expr),
       "\n\n"
     ]
   end
@@ -339,7 +339,7 @@ defmodule Module.Checker do
           " in:\n\n    # ",
           format_location(location),
           "    ",
-          Macro.to_string(expr),
+          expr_to_string(expr),
           "\n\n"
         ]
     end)
@@ -368,6 +368,42 @@ defmodule Module.Checker do
     mfa = Exception.format_mfa(module, fun, arity)
     ["  ", file, ?:, line, mfa, ?\n]
   end
+
+  defp expr_to_string(expr) do
+    expr
+    |> rewrite_guard()
+    |> Macro.to_string()
+  end
+
+
+  defp rewrite_guard(guard) do
+    Macro.prewalk(guard, fn
+      {{:., _, [:erlang, :element]}, _, [{{:., _, [:erlang, :+]}, _, [int, 1]}, arg]} ->
+        {:elem, [], [arg, int]}
+
+      {{:., _, [:erlang, :element]}, _, [int, arg]} when is_integer(int) ->
+        {:elem, [], [arg, int - 1]}
+
+      {:., _, [:erlang, call]} ->
+        rewrite_guard_call(call)
+
+      other ->
+        other
+    end)
+  end
+
+  defp rewrite_guard_call(:orelse), do: :or
+  defp rewrite_guard_call(:andalso), do: :and
+  defp rewrite_guard_call(:"=<"), do: :<=
+  defp rewrite_guard_call(:"/="), do: :!=
+  defp rewrite_guard_call(:"=:="), do: :===
+  defp rewrite_guard_call(:"=/="), do: :!==
+
+  defp rewrite_guard_call(op) when op in [:band, :bor, :bnot, :bsl, :bsr, :bxor],
+    do: {:., [], [Bitwise, op]}
+
+  defp rewrite_guard_call(op) when op in [:xor, :element, :size], do: {:., [], [:erlang, op]}
+  defp rewrite_guard_call(op), do: op
 
   defp print_warning(message) do
     IO.puts(:stderr, [:elixir_errors.warning_prefix(), message])
