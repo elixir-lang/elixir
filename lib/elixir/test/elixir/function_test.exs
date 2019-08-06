@@ -74,4 +74,10 @@ defmodule FunctionTest do
       assert {:arity, 1} = info(f, :arity)
     end
   end
+
+  describe "identity/1" do
+    test "returns whatever it gets passed" do
+      assert :hello = Function.identity(:hello)
+    end
+  end
 end
