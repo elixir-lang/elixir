@@ -863,7 +863,7 @@ defmodule Mix.Tasks.Release do
       end
 
   Now you can proceed to list this process in the `.appup` file and
-  hot code upgrade it. This is one of the many steps one necessary
+  hot code upgrade it. This is one of the many steps necessary
   to perform hot code upgrades and it must be taken into account by
   every process and application being upgraded in the system.
   The [`.appup` cookbook](http://erlang.org/doc/design_principles/appup_cookbook.html)
