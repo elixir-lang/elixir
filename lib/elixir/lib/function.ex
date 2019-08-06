@@ -168,7 +168,7 @@ defmodule Function do
   def info(fun, item), do: :erlang.fun_info(fun, item)
 
   @doc """
-  Returns its input `value`, which can be given as an anonymous function
+  Returns its input `value`. This function can be passed as an anonymous function
   to transformation functions.
 
   ## Examples
