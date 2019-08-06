@@ -236,7 +236,5 @@ defmodule Module.TypesTest do
     assert Types.format_type({:cons, :binary, :binary}) == "[binary() | binary()]"
     assert Types.format_type({:tuple, []}) == "{}"
     assert Types.format_type({:tuple, [:integer]}) == "{integer()}"
-    # assert Types.format_type({:fn, [], :integer}) == "fn(-> integer())"
-    # assert Types.format_type({:fn, [:binary], :integer}) == "fn(binary() -> integer())"
   end
 end

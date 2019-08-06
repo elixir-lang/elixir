@@ -173,14 +173,6 @@ defmodule Module.Types do
     "[#{format_type(left)} | #{format_type(right)}]"
   end
 
-  # def format_type({:fn, [], return}) do
-  #   "fn(-> #{format_type(return)})"
-  # end
-  #
-  # def format_type({:fn, params, return}) do
-  #   "fn(#{Enum.map_join(params, ", ", &format_type/1)} -> #{format_type(return)})"
-  # end
-
   def format_type({:literal, literal}) do
     inspect(literal)
   end
@@ -323,37 +315,6 @@ defmodule Module.Types do
       {:error, reason} -> {:error, reason}
     end
   end
-
-  # TODO: Is this needed?
-  # defp unify(same, same, context) do
-  #   {:ok, same, context}
-  # end
-
-  # TODO: Is this needed?
-  # defp unify({:var, left}, {:var, right}, context) do
-  #   case {:maps.get(left, context.types), :maps.get(right, context.types)} do
-  #     {_, :unbound} ->
-  #       context = refine_var(right, {:var, left}, context)
-  #       {:ok, {:var, right}, context}
-  #
-  #     {:unbound, _} ->
-  #       context = refine_var(left, {:var, right}, context)
-  #       {:ok, {:var, left}, context}
-  #
-  #     {left_type, right_type} ->
-  #       context = push_unify_stack([{:var, left}, {:var, right}], context)
-  #
-  #       case unify(left_type, right_type, context) do
-  #         {:ok, type, context} ->
-  #           context = refine_var(left, type, context)
-  #           context = refine_var(right, type, context)
-  #           {:ok, {:var, left}, context}
-  #
-  #         {:error, reason} ->
-  #           {:error, reason}
-  #       end
-  #   end
-  # end
 
   defp unify(type, {:var, var}, context) do
     context = push_unify_stack([{:var, var}], context)
@@ -542,13 +503,6 @@ defmodule Module.Types do
     []
   end
 
-  # NOTE: Are these needed?
-  # defp subtype?({:var, var}, type, context),
-  #   do: subtype?(:maps.get(var, context.types), type, context)
-  #
-  # defp subtype?(type, {:var, var}, context),
-  #   do: subtype?(type, :maps.get(var, context.types), context)
-
   defp subtype?({:literal, boolean}, :boolean, _context) when is_boolean(boolean), do: true
   defp subtype?({:literal, atom}, :atom, _context) when is_atom(atom), do: true
   defp subtype?(:boolean, :atom, _context), do: true
@@ -635,12 +589,6 @@ defmodule Module.Types do
     {right, context} = do_lift_type(right, context)
     {{:cons, left, right}, context}
   end
-
-  # defp do_lift_type({:fn, params, return}, context) do
-  #   {params, context} = Enum.map_reduce(params, context, &do_lift_type/2)
-  #   {return, context} = do_lift_type(return, context)
-  #   {{:fn, params, return}, context}
-  # end
 
   defp do_lift_type(other, context) do
     {other, context}
