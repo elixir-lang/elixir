@@ -11,16 +11,28 @@ defmodule Module.Types do
   end
 
   def infer_definitions(file, module, defs) do
-    Enum.map(defs, fn {function, _kind, _meta, clauses} ->
+    Enum.map(defs, fn {{fun, _arity} = function, kind, meta, clauses} ->
       context = context(file, module, function)
 
       types =
         map_ok(clauses, fn {_meta, params, guards, _body} ->
-          of_clause(params, guards, context)
+          def_expr = {kind, meta, [guards_to_expr(guards, {fun, [], params})]}
+
+          expr_stack(def_expr, context, fn context ->
+            of_clause(params, guards, context)
+          end)
         end)
 
       {function, types}
     end)
+  end
+
+  defp guards_to_expr([], left) do
+    left
+  end
+
+  defp guards_to_expr([guard | guards], left) do
+    guards_to_expr(guards, {:when, [], [left, guard]})
   end
 
   def of_clause(params, guards, context) do
@@ -479,10 +491,7 @@ defmodule Module.Types do
 
   defp refine_var(var, type, context) do
     types = :maps.put(var, type, context.types)
-    line = get_meta(hd(context.expr_stack))[:line]
-    trace = {type, context.expr_stack, {context.file, line}}
-    traces = :maps.update_with(var, &[trace | &1], context.traces)
-    %{context | types: types, traces: traces}
+    trace_var(var, type, %{context | types: types})
   end
 
   defp trace_var(var, type, context) do
@@ -638,6 +647,7 @@ defmodule Module.Types do
   defp new_quantified_var(original_var, context) do
     types = :maps.put(original_var, context.quantified_counter, context.quantified_types)
     counter = context.quantified_counter + 1
+
     type = {:var, context.quantified_counter}
     context = %{context | quantified_types: types, quantified_counter: counter}
     {type, context}
@@ -653,9 +663,11 @@ defmodule Module.Types do
     {fun, arity} = context.function
     line = get_meta(hd(context.expr_stack))[:line]
     location = {context.file, line, {context.module, fun, arity}}
+
     traces = type_traces(context)
     common_expr = common_super_expr(traces)
     traces = simplify_traces(traces, context)
+
     {:error, {{:unable_unify, left, right, common_expr, traces}, [location]}}
   end
 

@@ -631,9 +631,13 @@ defmodule Module.CheckerTest do
       }
 
       warning = """
-      warning: function clause will never match, found incompatible types:
+      warning: function clause will never match, found incompatibility:
 
           binary() !~ integer()
+
+      in expression:
+
+          def(a(var = 123, var = "abc"))
 
       where "var" was given the type binary() in:
 
@@ -645,7 +649,7 @@ defmodule Module.CheckerTest do
           # a.ex:2
           var = 123
 
-      Type conflict found at
+      Conflict found at
         a.ex:2: A.a/2
 
       """
@@ -663,7 +667,7 @@ defmodule Module.CheckerTest do
       }
 
       warning = """
-      warning: function clause will never match, found incompatible types:
+      warning: function clause will never match, found incompatibility:
 
           binary() !~ integer()
 
@@ -681,7 +685,7 @@ defmodule Module.CheckerTest do
           # a.ex:2
           var :: integer()
 
-      Type conflict found at
+      Conflict found at
         a.ex:2: A.a/1
 
       """
@@ -699,7 +703,7 @@ defmodule Module.CheckerTest do
       }
 
       warning = """
-      warning: function clause will never match, found incompatible types:
+      warning: function clause will never match, found incompatibility:
 
           {var0} !~ var0
 
@@ -712,7 +716,7 @@ defmodule Module.CheckerTest do
           # a.ex:2
           {var} = var
 
-      Type conflict found at
+      Conflict found at
         a.ex:2: A.a/1
 
       """
@@ -730,7 +734,7 @@ defmodule Module.CheckerTest do
       }
 
       warning = """
-      warning: function clause will never match, found incompatible types:
+      warning: function clause will never match, found incompatibility:
 
           binary() !~ integer()
 
@@ -748,7 +752,7 @@ defmodule Module.CheckerTest do
           # a.ex:2
           is_integer(var)
 
-      Type conflict found at
+      Conflict found at
         a.ex:2: A.a/1
 
       """
@@ -766,9 +770,13 @@ defmodule Module.CheckerTest do
       }
 
       warning = """
-      warning: function clause will never match, found incompatible types:
+      warning: function clause will never match, found incompatibility:
 
           binary() !~ integer()
+
+      in expression:
+
+          def(a(x = y) when is_integer(x) and is_binary(y))
 
       where "x" was given the type integer() in:
 
@@ -785,7 +793,7 @@ defmodule Module.CheckerTest do
           # a.ex:2
           x = y
 
-      Type conflict found at
+      Conflict found at
         a.ex:2: A.a/1
 
       """

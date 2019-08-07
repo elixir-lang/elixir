@@ -301,14 +301,14 @@ defmodule Module.Checker do
 
   defp format_warning({:unable_unify, left, right, expr, traces}) do
     [
-      "function clause will never match, found incompatible types:\n\n    ",
+      "function clause will never match, found incompatibility:\n\n    ",
       Module.Types.format_type(left),
       " !~ ",
       Module.Types.format_type(right),
       "\n\n",
       format_expr(expr),
       format_traces(traces),
-      "Type conflict found at"
+      "Conflict found at"
     ]
   end
 
