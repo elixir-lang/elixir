@@ -15,6 +15,11 @@ defmodule Node do
 
   This functionality starts the `:net_kernel` and other
   related processes.
+
+  ## Examples
+
+      iex> {:ok, pid} = Node.start(:example, :shortnames, 15000)
+
   """
   @spec start(node, :longnames | :shortnames, non_neg_integer) :: {:ok, pid} | {:error, term}
   def start(name, type \\ :longnames, tick_time \\ 15000) do
