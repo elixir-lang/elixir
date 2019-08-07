@@ -2514,9 +2514,13 @@ defmodule Enum do
   end
 
   def take(enumerable, amount) when is_integer(amount) and amount < 0 do
-    {count, fun} = slice_count_and_fun(enumerable)
-    first = Kernel.max(amount + count, 0)
-    fun.(first, count - first)
+    size = count(enumerable)
+
+    if amount * -1 > size do
+      take(enumerable, size)
+    else
+      drop(enumerable, size + amount)
+    end
   end
 
   @doc """
