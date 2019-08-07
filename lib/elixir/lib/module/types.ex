@@ -92,6 +92,8 @@ defmodule Module.Types do
     type
   end
 
+  ## INFERENCE
+
   @doc false
   # :atom
   def of_pattern(atom, context) when is_atom(atom) do
@@ -202,37 +204,6 @@ defmodule Module.Types do
     {:ok, {:map, []}, context}
   end
 
-  @doc """
-  Formats an inferred type.
-  """
-  def format_type({:tuple, types}) do
-    "{#{Enum.map_join(types, ", ", &format_type/1)}}"
-  end
-
-  def format_type({:cons, left, :null}) do
-    "[#{format_type(left)}]"
-  end
-
-  def format_type({:cons, left, right}) do
-    "[#{format_type(left)} | #{format_type(right)}]"
-  end
-
-  def format_type({:literal, literal}) do
-    inspect(literal)
-  end
-
-  def format_type(:null) do
-    "[]"
-  end
-
-  def format_type(atom) when is_atom(atom) do
-    "#{atom}()"
-  end
-
-  def format_type({:var, index}) do
-    "var#{index}"
-  end
-
   defp of_guard(guard, context) do
     expr_stack(guard, context, fn context ->
       # Flatten `foo and bar` to list of type constraints
@@ -323,7 +294,6 @@ defmodule Module.Types do
       cond do
         :integer in specifiers -> :integer
         :float in specifiers -> :float
-        # TODO: Add bitstring type
         :bits in specifiers -> :binary
         :bitstring in specifiers -> :binary
         :bytes in specifiers -> :binary
@@ -366,6 +336,8 @@ defmodule Module.Types do
       {:error, reason} -> {:error, reason}
     end
   end
+
+  ## UNIFICATION
 
   defp start_unify(left, right, context) do
     case unify(left, right, context) do
@@ -654,6 +626,8 @@ defmodule Module.Types do
     guards_to_expr(guards, {:when, [], [left, guard]})
   end
 
+  ## VARIABLE QUANTIFICATION
+
   # Lift type variable to its infered types from the context
   defp do_lift_type({:var, var}, context) do
     case :maps.find(var, context.quantified_types) do
@@ -714,11 +688,7 @@ defmodule Module.Types do
     {type, context}
   end
 
-  defp remove_meta({fun, meta, args}) when is_list(meta), do: {fun, [], args}
-  defp remove_meta(other), do: other
-
-  defp get_meta({_fun, meta, _args}) when is_list(meta), do: meta
-  defp get_meta(_other), do: []
+  ## ERROR GENERATION
 
   # Collect relevant information from context and traces to report error
   defp error({:unable_unify, left, right}, context) do
@@ -730,7 +700,7 @@ defmodule Module.Types do
     common_expr = common_super_expr(traces)
     traces = simplify_traces(traces, context)
 
-    {:error, {{:unable_unify, left, right, common_expr, traces}, [location]}}
+    {:error, {__MODULE__, {:unable_unify, left, right, common_expr, traces}, [location]}}
   end
 
   # Collect relevant traces from context.traces using context.unify_stack
@@ -779,6 +749,145 @@ defmodule Module.Types do
       end
     end)
   end
+
+  ## ERROR FORMATTING
+
+  def format_warning({:unable_unify, left, right, expr, traces}) do
+    [
+      "function clause will never match, found incompatibility:\n\n    ",
+      format_type(left),
+      " !~ ",
+      format_type(right),
+      "\n\n",
+      format_expr(expr),
+      format_traces(traces),
+      "Conflict found at"
+    ]
+  end
+
+  defp format_expr(nil) do
+    []
+  end
+
+  defp format_expr(expr) do
+    [
+      "in expression:\n\n    ",
+      expr_to_string(expr),
+      "\n\n"
+    ]
+  end
+
+  defp format_traces([]) do
+    []
+  end
+
+  defp format_traces(traces) do
+    Enum.map(traces, fn
+      {var, {:type, type, expr, location}} ->
+        [
+          "where \"",
+          Macro.to_string(var),
+          "\" was given the type ",
+          Module.Types.format_type(type),
+          " in:\n\n    # ",
+          format_location(location),
+          "    ",
+          expr_to_string(expr),
+          "\n\n"
+        ]
+
+      {var1, {:var, var2, expr, location}} ->
+        [
+          "where \"",
+          Macro.to_string(var1),
+          "\" was given the same type as \"",
+          Macro.to_string(var2),
+          "\" in:\n\n    # ",
+          format_location(location),
+          "    ",
+          expr_to_string(expr),
+          "\n\n"
+        ]
+    end)
+  end
+
+  defp format_location({file, line}) do
+    file = Path.relative_to_cwd(file)
+    line = if line, do: [Integer.to_string(line)], else: []
+    [file, ?:, line, ?\n]
+  end
+
+  @doc false
+  def format_type({:tuple, types}) do
+    "{#{Enum.map_join(types, ", ", &format_type/1)}}"
+  end
+
+  def format_type({:cons, left, :null}) do
+    "[#{format_type(left)}]"
+  end
+
+  def format_type({:cons, left, right}) do
+    "[#{format_type(left)} | #{format_type(right)}]"
+  end
+
+  def format_type({:literal, literal}) do
+    inspect(literal)
+  end
+
+  def format_type(:null) do
+    "[]"
+  end
+
+  def format_type(atom) when is_atom(atom) do
+    "#{atom}()"
+  end
+
+  def format_type({:var, index}) do
+    "var#{index}"
+  end
+
+  defp expr_to_string(expr) do
+    expr
+    |> rewrite_guard()
+    |> Macro.to_string()
+  end
+
+  defp rewrite_guard(guard) do
+    Macro.prewalk(guard, fn
+      {{:., _, [:erlang, :element]}, _, [{{:., _, [:erlang, :+]}, _, [int, 1]}, arg]} ->
+        {:elem, [], [arg, int]}
+
+      {{:., _, [:erlang, :element]}, _, [int, arg]} when is_integer(int) ->
+        {:elem, [], [arg, int - 1]}
+
+      {:., _, [:erlang, call]} ->
+        rewrite_guard_call(call)
+
+      other ->
+        other
+    end)
+  end
+
+  defp rewrite_guard_call(:orelse), do: :or
+  defp rewrite_guard_call(:andalso), do: :and
+  defp rewrite_guard_call(:"=<"), do: :<=
+  defp rewrite_guard_call(:"/="), do: :!=
+  defp rewrite_guard_call(:"=:="), do: :===
+  defp rewrite_guard_call(:"=/="), do: :!==
+
+  defp rewrite_guard_call(op) when op in [:band, :bor, :bnot, :bsl, :bsr, :bxor],
+    do: {:., [], [Bitwise, op]}
+
+  defp rewrite_guard_call(op) when op in [:xor, :element, :size], do: {:., [], [:erlang, op]}
+  defp rewrite_guard_call(op), do: op
+
+  ## HELPERS
+
+  defp remove_meta({fun, meta, args}) when is_list(meta), do: {fun, [], args}
+  defp remove_meta(other), do: other
+
+  defp get_meta({_fun, meta, _args}) when is_list(meta), do: meta
+  defp get_meta(_other), do: []
 
   defp unzip_ok(list) do
     do_unzip_ok(list, [], [])

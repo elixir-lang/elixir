@@ -234,25 +234,25 @@ defmodule Module.Checker do
   defp warn(meta, state, warning) do
     {fun, arity} = state.function
     location = {state.file, meta[:line], {state.module, fun, arity}}
-    %{state | warnings: [{warning, location} | state.warnings]}
+    %{state | warnings: [{__MODULE__, warning, location} | state.warnings]}
   end
 
   defp merge_warnings(warnings) do
-    Enum.reduce(warnings, %{}, fn {warning, location}, acc ->
+    Enum.reduce(warnings, %{}, fn {module, warning, location}, acc ->
       locations = MapSet.new([location])
-      Map.update(acc, warning, locations, &MapSet.put(&1, location))
+      Map.update(acc, {module, warning}, locations, &MapSet.put(&1, location))
     end)
   end
 
   defp sort_warnings(warnings) do
     warnings
-    |> Enum.map(fn {warning, locations} -> {warning, Enum.sort(locations)} end)
+    |> Enum.map(fn {{module, warning}, locations} -> {module, warning, Enum.sort(locations)} end)
     |> Enum.sort()
   end
 
   defp emit_warnings(warnings) do
-    Enum.flat_map(warnings, fn {warning, locations} ->
-      message = format_warning(warning)
+    Enum.flat_map(warnings, fn {module, warning, locations} ->
+      message = module.format_warning(warning)
       print_warning([message, ?\n, format_locations(locations)])
 
       Enum.map(locations, fn {file, line, _mfa} ->
@@ -261,11 +261,7 @@ defmodule Module.Checker do
     end)
   end
 
-  def test({:error, {{:unable_unify, {expr, traces}, left, right}, _locations}}) do
-    IO.puts(format_warning({:unable_unify, {expr, traces}, left, right}))
-  end
-
-  defp format_warning({:undefined_module, module, fun, arity}) do
+  def format_warning({:undefined_module, module, fun, arity}) do
     [
       Exception.format_mfa(module, fun, arity),
       " is undefined (module ",
@@ -274,7 +270,7 @@ defmodule Module.Checker do
     ]
   end
 
-  defp format_warning({:undefined_function, module, fun, arity, exports}) do
+  def format_warning({:undefined_function, module, fun, arity, exports}) do
     [
       Exception.format_mfa(module, fun, arity),
       " is undefined or private",
@@ -282,7 +278,7 @@ defmodule Module.Checker do
     ]
   end
 
-  defp format_warning({:deprecated, module, fun, arity, reason}) do
+  def format_warning({:deprecated, module, fun, arity, reason}) do
     [
       Exception.format_mfa(module, fun, arity),
       " is deprecated. ",
@@ -290,72 +286,13 @@ defmodule Module.Checker do
     ]
   end
 
-  defp format_warning({:unrequired_module, module, fun, arity}) do
+  def format_warning({:unrequired_module, module, fun, arity}) do
     [
       "you must require ",
       inspect(module),
       " before invoking the macro ",
       Exception.format_mfa(module, fun, arity)
     ]
-  end
-
-  defp format_warning({:unable_unify, left, right, expr, traces}) do
-    [
-      "function clause will never match, found incompatibility:\n\n    ",
-      Module.Types.format_type(left),
-      " !~ ",
-      Module.Types.format_type(right),
-      "\n\n",
-      format_expr(expr),
-      format_traces(traces),
-      "Conflict found at"
-    ]
-  end
-
-  defp format_expr(nil) do
-    []
-  end
-
-  defp format_expr(expr) do
-    [
-      "in expression:\n\n    ",
-      expr_to_string(expr),
-      "\n\n"
-    ]
-  end
-
-  defp format_traces([]) do
-    []
-  end
-
-  defp format_traces(traces) do
-    Enum.map(traces, fn
-      {var, {:type, type, expr, location}} ->
-        [
-          "where \"",
-          Macro.to_string(var),
-          "\" was given the type ",
-          Module.Types.format_type(type),
-          " in:\n\n    # ",
-          format_location(location),
-          "    ",
-          expr_to_string(expr),
-          "\n\n"
-        ]
-
-      {var1, {:var, var2, expr, location}} ->
-        [
-          "where \"",
-          Macro.to_string(var1),
-          "\" was given the same type as \"",
-          Macro.to_string(var2),
-          "\" in:\n\n    # ",
-          format_location(location),
-          "    ",
-          expr_to_string(expr),
-          "\n\n"
-        ]
-    end)
   end
 
   defp format_locations([location]) do
@@ -369,53 +306,12 @@ defmodule Module.Checker do
     ]
   end
 
-  defp format_location({file, line}) do
-    file = Path.relative_to_cwd(file)
-    line = if line, do: [Integer.to_string(line)], else: []
-    [file, ?:, line, ?\n]
-  end
-
   defp format_location({file, line, {module, fun, arity}}) do
     file = Path.relative_to_cwd(file)
     line = if line, do: [Integer.to_string(line), ": "], else: []
     mfa = Exception.format_mfa(module, fun, arity)
     ["  ", file, ?:, line, mfa, ?\n]
   end
-
-  defp expr_to_string(expr) do
-    expr
-    |> rewrite_guard()
-    |> Macro.to_string()
-  end
-
-  defp rewrite_guard(guard) do
-    Macro.prewalk(guard, fn
-      {{:., _, [:erlang, :element]}, _, [{{:., _, [:erlang, :+]}, _, [int, 1]}, arg]} ->
-        {:elem, [], [arg, int]}
-
-      {{:., _, [:erlang, :element]}, _, [int, arg]} when is_integer(int) ->
-        {:elem, [], [arg, int - 1]}
-
-      {:., _, [:erlang, call]} ->
-        rewrite_guard_call(call)
-
-      other ->
-        other
-    end)
-  end
-
-  defp rewrite_guard_call(:orelse), do: :or
-  defp rewrite_guard_call(:andalso), do: :and
-  defp rewrite_guard_call(:"=<"), do: :<=
-  defp rewrite_guard_call(:"/="), do: :!=
-  defp rewrite_guard_call(:"=:="), do: :===
-  defp rewrite_guard_call(:"=/="), do: :!==
-
-  defp rewrite_guard_call(op) when op in [:band, :bor, :bnot, :bsl, :bsr, :bxor],
-    do: {:., [], [Bitwise, op]}
-
-  defp rewrite_guard_call(op) when op in [:xor, :element, :size], do: {:., [], [:erlang, op]}
-  defp rewrite_guard_call(op), do: op
 
   defp print_warning(message) do
     IO.puts(:stderr, [:elixir_errors.warning_prefix(), message])

@@ -37,8 +37,8 @@ defmodule Module.TypesTest do
     {:ok, Types.lift_type(type, context)}
   end
 
-  defp lift_result(other) do
-    other
+  defp lift_result({:error, {Types, reason, location}}) do
+    {:error, {reason, location}}
   end
 
   describe "of_pattern/2" do
