@@ -755,6 +755,43 @@ defmodule Module.CheckerTest do
 
       assert_warnings(files, warning)
     end
+
+    test "warns on guards with multiple variables" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          def a(x = y) when is_integer(x) and is_binary(y), do: {x, y}
+        end
+        """
+      }
+
+      warning = """
+      warning: function clause will never match, found incompatible types:
+
+          binary() !~ integer()
+
+      where "x" was given the type integer() in:
+
+          # a.ex:2
+          is_integer(x)
+
+      where "y" was given the type binary() in:
+
+          # a.ex:2
+          is_binary(y)
+
+      where "y" was given the same type as "x" in:
+
+          # a.ex:2
+          x = y
+
+      Type conflict found at
+        a.ex:2: A.a/1
+
+      """
+
+      assert_warnings(files, warning)
+    end
   end
 
   defp assert_warnings(files, expected) when is_binary(expected) do

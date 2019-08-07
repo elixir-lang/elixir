@@ -330,13 +330,26 @@ defmodule Module.Checker do
 
   defp format_traces(traces) do
     Enum.map(traces, fn
-      {var, {type, expr, location}} ->
+      {var, {:type, type, expr, location}} ->
         [
           "where \"",
           Macro.to_string(var),
           "\" was given the type ",
           Module.Types.format_type(type),
           " in:\n\n    # ",
+          format_location(location),
+          "    ",
+          expr_to_string(expr),
+          "\n\n"
+        ]
+
+      {var1, {:var, var2, expr, location}} ->
+        [
+          "where \"",
+          Macro.to_string(var1),
+          "\" was given the same type as \"",
+          Macro.to_string(var2),
+          "\" in:\n\n    # ",
           format_location(location),
           "    ",
           expr_to_string(expr),
@@ -374,7 +387,6 @@ defmodule Module.Checker do
     |> rewrite_guard()
     |> Macro.to_string()
   end
-
 
   defp rewrite_guard(guard) do
     Macro.prewalk(guard, fn

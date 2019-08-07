@@ -56,9 +56,10 @@ defmodule Module.TypesTest do
 
       assert [
                {{:foo, _, nil},
-                {:binary, {:"::", _, [{:foo, _, nil}, {:binary, _, nil}]}, {"types_test.ex", 47}}},
+                {:type, :binary, {:"::", _, [{:foo, _, nil}, {:binary, _, nil}]},
+                 {"types_test.ex", 47}}},
                {{:foo, _, nil},
-                {:integer, {:"::", _, [{:foo, _, nil}, {:integer, _, nil}]},
+                {:type, :integer, {:"::", _, [{:foo, _, nil}, {:integer, _, nil}]},
                  {"types_test.ex", 47}}}
              ] = traces
     end

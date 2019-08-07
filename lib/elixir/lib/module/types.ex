@@ -137,7 +137,7 @@ defmodule Module.Types do
     expr_stack(expr, context, fn context ->
       with {:ok, left_type, context} <- of_pattern(left_expr, context),
            {:ok, right_type, context} <- of_pattern(right_expr, context),
-           do: unify(left_type, right_type, context)
+           do: start_unify(left_type, right_type, context)
     end)
   end
 
@@ -232,7 +232,7 @@ defmodule Module.Types do
   defp unify_guard(arg, guard_type, context) when is_var(arg) do
     # TODO: It is incorrect to use of_pattern/2 but it helps for simplicity now
     with {:ok, arg_type, context} <- of_pattern(arg, context),
-         {:ok, _, context} <- unify(arg_type, guard_type, context),
+         {:ok, _, context} <- start_unify(arg_type, guard_type, context),
          do: {:ok, context}
   end
 
@@ -288,7 +288,7 @@ defmodule Module.Types do
 
     expr_stack(full_expr, context, fn context ->
       with {:ok, type, context} <- of_pattern(expr, context),
-           {:ok, _type, context} <- unify(type, expected_type, context),
+           {:ok, _type, context} <- start_unify(type, expected_type, context),
            do: {:ok, context}
     end)
   end
@@ -316,12 +316,18 @@ defmodule Module.Types do
     end
   end
 
-  defp unify(type, {:var, var}, context) do
-    context = push_unify_stack([{:var, var}], context)
+  defp start_unify(left, right, context) do
+    case unify(left, right, context) do
+      {:ok, type, context} -> {:ok, type, %{context | unify_stack: []}}
+      {:error, reason} -> {:error, reason}
+    end
+  end
 
+  defp unify(type, {:var, var}, context) do
     case :maps.get(var, context.types) do
       :unbound ->
         context = refine_var(var, type, context)
+        context = push_unify_stack(var, context)
 
         if recursive_type?(type, [], context) do
           error({:unable_unify, type, {:var, var}}, context)
@@ -330,7 +336,14 @@ defmodule Module.Types do
         end
 
       var_type ->
-        context = trace_var(var, type, context)
+        context =
+          if variable_expanded?(var, context) do
+            context
+          else
+            trace_var(var, type, context)
+          end
+
+        context = push_unify_stack(var, context)
 
         case unify(type, var_type, context) do
           {:ok, var_type, context} ->
@@ -367,8 +380,8 @@ defmodule Module.Types do
   end
 
   defp unify({:map, left_pairs}, {:map, right_pairs}, context) do
-    # Since maps in patterns only support literal keys we can do
-    # exact type match without subtype checking
+    # Since maps in patterns only support literal keys (excluding maps)
+    # we can do exact type match without subtype checking
 
     unique_right_pairs =
       Enum.reject(right_pairs, fn {key, _value} ->
@@ -413,8 +426,29 @@ defmodule Module.Types do
     end
   end
 
-  defp push_unify_stack(stack, context) do
-    %{context | unify_stack: stack ++ context.unify_stack}
+  def variable_expanded?(var, context) do
+    Enum.any?(context.unify_stack, &variable_same?(var, &1, context))
+  end
+
+  def variable_same?(same, same, _context) do
+    true
+  end
+
+  def variable_same?(left, right, context) do
+    case :maps.find(left, context.types) do
+      {:ok, {:var, new_left}} ->
+        variable_same?(new_left, right, context)
+
+      _ ->
+        case :maps.find(right, context.types) do
+          {:ok, {:var, new_right}} -> variable_same?(left, new_right, context)
+          :error -> false
+        end
+    end
+  end
+
+  defp push_unify_stack(var, context) do
+    %{context | unify_stack: [var | context.unify_stack]}
   end
 
   defp new_var(var, context) do
@@ -425,7 +459,7 @@ defmodule Module.Types do
       :error ->
         type = {:var, context.counter}
         vars = :maps.put(var_name(var), type, context.vars)
-        types_to_vars = :maps.put(type, var, context.types_to_vars)
+        types_to_vars = :maps.put(context.counter, var, context.types_to_vars)
         types = :maps.put(context.counter, :unbound, context.types)
         traces = :maps.put(context.counter, [], context.traces)
         counter = context.counter + 1
@@ -621,17 +655,17 @@ defmodule Module.Types do
     location = {context.file, line, {context.module, fun, arity}}
     traces = type_traces(context)
     common_expr = common_super_expr(traces)
-    traces = simplify_traces(traces)
+    traces = simplify_traces(traces, context)
     {:error, {{:unable_unify, left, right, common_expr, traces}, [location]}}
   end
 
   defp type_traces(context) do
     stack = Enum.uniq(context.unify_stack)
 
-    Enum.flat_map(stack, fn {:var, var_index} = type_var ->
+    Enum.flat_map(stack, fn var_index ->
       case :maps.find(var_index, context.traces) do
         {:ok, traces} ->
-          expr_var = :maps.get(type_var, context.types_to_vars)
+          expr_var = :maps.get(var_index, context.types_to_vars)
           Enum.map(traces, &{expr_var, &1})
 
         _other ->
@@ -640,29 +674,18 @@ defmodule Module.Types do
     end)
   end
 
-  defp simplify_traces(traces) do
+  defp simplify_traces(traces, context) do
     Enum.flat_map(traces, fn {var, {type, [expr | _], location}} ->
-      if expr_in_expr?(var, expr) do
-        [{var, {type, expr, location}}]
-      else
-        []
+      case type do
+        {:var, var_index} ->
+          var2 = :maps.get(var_index, context.types_to_vars)
+          [{var, {:var, var2, expr, location}}]
+
+        _ ->
+          [{var, {:type, type, expr, location}}]
       end
     end)
   end
-
-  defp expr_in_expr?({fun, _, args}, {fun, _, args}), do: true
-  defp expr_in_expr?(expr, expr), do: true
-
-  defp expr_in_expr?(expr, {fun, _, args}),
-    do: expr_in_expr?(expr, fun) or expr_in_expr?(expr, args)
-
-  defp expr_in_expr?(expr, {left, right}),
-    do: expr_in_expr?(expr, left) or expr_in_expr?(expr, right)
-
-  defp expr_in_expr?(expr, list) when is_list(list),
-    do: Enum.any?(list, &expr_in_expr?(expr, &1))
-
-  defp expr_in_expr?(_expr, _other), do: false
 
   defp common_super_expr([]) do
     nil
