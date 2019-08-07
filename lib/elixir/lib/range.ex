@@ -50,8 +50,8 @@ defmodule Range do
 
   ## Examples
 
-    iex> Range.new(-100,100)
-    100..100
+      iex> Range.new(-100, 100)
+      -100..100
 
   """
   @spec new(integer, integer) :: t
