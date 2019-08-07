@@ -17,8 +17,7 @@ defmodule Node do
   related processes.
 
   ## Examples
-      Note: the erlang `empd daemen` may need to be running before
-      this example is tried with `epmd -daemon`
+      Note: You may need to run `epmd -daemon` before trying this example
       iex> {:ok, pid} = Node.start(:example, :shortnames, 15000)
 
   """
