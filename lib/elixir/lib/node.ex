@@ -13,12 +13,22 @@ defmodule Node do
   @doc """
   Turns a non-distributed node into a distributed node.
 
-  This functionality starts the `:net_kernel` and other
-  related processes.
+  This functionality starts the `:net_kernel` and other related
+  processes.
+
+  This function is rarely invoked in practice. Instead, nodes are
+  named and started via the command line by using the `--sname` and
+  `--name` flags. If you need to use this function to dynamically
+  name a node, please make sure the `epmd` operating system process
+  is running by calling `epmd -daemon`.
+
+  Invoking this function when the distribution has already been started,
+  either via the command line interface or dynamically, will return an
+  error.
 
   ## Examples
-      Note: You may need to run `epmd -daemon` before trying this example
-      iex> {:ok, pid} = Node.start(:example, :shortnames, 15000)
+
+      {:ok, pid} = Node.start(:example, :shortnames, 15000)
 
   """
   @spec start(node, :longnames | :shortnames, non_neg_integer) :: {:ok, pid} | {:error, term}
