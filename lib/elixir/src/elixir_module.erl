@@ -121,8 +121,9 @@ compile(Line, Module, Block, Vars, E) ->
     Binary = elixir_erl:compile(ModuleMap),
     warn_unused_attributes(File, DataSet, DataBag, PersistedAttributes),
     autoload_module(Module, Binary, CompileOpts, NE),
-    eval_callbacks(Line, DataBag, after_compile, [NE, Binary], NE),
     make_module_available(Module, Binary, ModuleMap),
+    elixir_code_server:call({undefmodule, Ref}),
+    eval_callbacks(Line, DataBag, after_compile, [NE, Binary], NE),
     {module, Module, Binary, Result}
   catch
     ?WITH_STACKTRACE(error, undef, Stacktrace)

@@ -440,7 +440,7 @@ defmodule ExUnit.Case do
 
   @doc false
   def __after_compile__(%{module: module}, _) do
-    if Module.get_attribute(module, :ex_unit_async) do
+    if Module.__info__(:attributes)[:ex_unit_async] do
       ExUnit.Server.add_async_module(module)
     else
       ExUnit.Server.add_sync_module(module)

@@ -77,6 +77,23 @@ defmodule ModuleTest do
     end
   end
 
+  test "module is not opened in after_callback" do
+    contents =
+      quote do
+        @after_compile __MODULE__
+
+        def __after_compile__(%Macro.Env{module: module} = env, bin) when is_binary(bin) do
+          Module.put_attribute(module, :foo, 42)
+        end
+      end
+
+    assert_raise ArgumentError,
+                 "could not call Module.__put_attribute__/4 because the module ModuleTest.Raise is already compiled",
+                 fn ->
+                   Module.create(ModuleTest.Raise, contents, __ENV__)
+                 end
+  end
+
   test "in memory modules are tagged as so" do
     assert :code.which(__MODULE__) == ''
   end
