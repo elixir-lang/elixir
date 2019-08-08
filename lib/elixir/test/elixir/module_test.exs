@@ -77,12 +77,12 @@ defmodule ModuleTest do
     end
   end
 
-  test "module is not opened in after_callback" do
+  test "module is not opened in __after_compile__/2 callback" do
     contents =
       quote do
         @after_compile __MODULE__
 
-        def __after_compile__(%Macro.Env{module: module} = env, bin) when is_binary(bin) do
+        def __after_compile__(%Macro.Env{module: module}, bin) when is_binary(bin) do
           Module.put_attribute(module, :foo, 42)
         end
       end
