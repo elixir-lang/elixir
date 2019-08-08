@@ -47,6 +47,12 @@ defmodule Range do
 
   @doc """
   Creates a new range.
+
+  ## Examples
+
+      iex> Range.new(-100, 100)
+      -100..100
+
   """
   @spec new(integer, integer) :: t
   def new(first, last) when is_integer(first) and is_integer(last) do
