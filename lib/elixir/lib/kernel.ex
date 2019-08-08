@@ -2073,7 +2073,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Creates and updates structs.
+  Creates and updates a struct.
 
   The `struct` argument may be an atom (which defines `defstruct`)
   or a `struct` itself. The second argument is any `Enumerable` that
