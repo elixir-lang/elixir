@@ -9,8 +9,7 @@
   required=#{},
   mod_pool={[], [], 0},
   mod_ets=#{},
-  compilation_status=#{},
-  mod_opened=#{}
+  compilation_status=#{}
 }).
 
 call(Args) ->
@@ -27,7 +26,6 @@ start_link() ->
 init(ok) ->
   %% The table where we store module definitions
   _ = ets:new(elixir_modules, [set, protected, named_table, {read_concurrency, true}]),
-  _ = ets:new(elixir_opened_modules, [set, protected, named_table, {read_concurrency, true}]),
   {ok, #elixir_code_server{}}.
 
 handle_call({defmodule, Module, Pid, Tuple}, _From, Config) ->
@@ -132,7 +130,7 @@ handle_cast(Request, Config) ->
   {stop, {badcast, Request}, Config}.
 
 handle_info({'DOWN', Ref, process, _Pid, _Reason}, Config) ->
-  {noreply, undefmodule(Ref, unopenmodule(Ref, Config))};
+  {noreply, undefmodule(Ref, Config)};
 
 handle_info(_Msg, Config) ->
   {noreply, Config}.
@@ -146,12 +144,11 @@ code_change(_Old, Config, _Extra) ->
 compiler_module(I) ->
   list_to_atom("elixir_compiler_" ++ integer_to_list(I)).
 
-defmodule(Pid, Tuple, #elixir_code_server{mod_ets=ModEts, mod_opened=ModOpened} = Config) ->
+defmodule(Pid, Tuple, #elixir_code_server{mod_ets=ModEts} = Config) ->
   ets:insert(elixir_modules, Tuple),
-  ets:insert(elixir_opened_modules, Tuple),
   Ref = erlang:monitor(process, Pid),
   Mod = erlang:element(1, Tuple),
-  {Ref, Config#elixir_code_server{mod_opened=maps:put(Ref, Mod, ModOpened),mod_ets=maps:put(Ref, Mod, ModEts)}}.
+  {Ref, Config#elixir_code_server{mod_ets=maps:put(Ref, Mod, ModEts)}}.
 
 undefmodule(Ref, #elixir_code_server{mod_ets=ModEts} = Config) ->
   case maps:find(Ref, ModEts) of
@@ -162,11 +159,11 @@ undefmodule(Ref, #elixir_code_server{mod_ets=ModEts} = Config) ->
       Config
   end.
 
-unopenmodule(Ref, #elixir_code_server{mod_opened=ModOpened} = Config) ->
-  case maps:find(Ref, ModOpened) of
+unopenmodule(Ref, #elixir_code_server{mod_ets=ModEts} = Config) ->
+  case maps:find(Ref, ModEts) of
     {ok, Mod} ->
-      ets:delete(elixir_opened_modules, Mod),
-      Config#elixir_code_server{mod_opened=maps:remove(Ref, ModOpened)};
+      ets:update_element(elixir_modules, Mod, {5, false}),
+      Config;
     error ->
       Config
   end.

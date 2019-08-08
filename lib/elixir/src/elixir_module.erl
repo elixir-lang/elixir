@@ -30,7 +30,7 @@ is_open(Module) ->
   ets:member(elixir_modules, Module).
 
 is_not_closing(Module) ->
-  ets:member(elixir_opened_modules, Module).
+  ets:lookup_element(elixir_modules, Module, 5).
 
 delete_definition_attributes(#{module := Module}, _, _, _, _, _) ->
   {DataSet, _} = data_tables(Module),
@@ -294,13 +294,13 @@ build(Line, File, Module) ->
   Tables = {DataSet, DataBag},
   elixir_def:setup(Tables),
   elixir_locals:setup(Tables),
-  Tuple = {Module, Tables, Line, File},
+  Tuple = {Module, Tables, Line, File, true},
 
   Ref =
     case elixir_code_server:call({defmodule, Module, self(), Tuple}) of
       {ok, ModuleRef} ->
         ModuleRef;
-      {error, {Module, _, OldLine, OldFile}} ->
+      {error, {Module, _, OldLine, OldFile, _}} ->
         ets:delete(DataSet),
         ets:delete(DataBag),
         Error = {module_in_definition, Module, OldFile, OldLine},
