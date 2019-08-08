@@ -2501,6 +2501,17 @@ defmodule Enum do
     take_list(enumerable, amount)
   end
 
+  def take(enumerable, amount)
+      when is_list(enumerable) and is_integer(amount) and amount < 0 do
+    count = length(enumerable)
+
+    if amount * -1 > count do
+      enumerable
+    else
+      drop_list(enumerable, count + amount)
+    end
+  end
+
   def take(enumerable, amount) when is_integer(amount) and amount > 0 do
     {_, {res, _}} =
       Enumerable.reduce(enumerable, {:cont, {[], amount}}, fn entry, {list, n} ->
@@ -2514,13 +2525,9 @@ defmodule Enum do
   end
 
   def take(enumerable, amount) when is_integer(amount) and amount < 0 do
-    size = count(enumerable)
-
-    if amount * -1 > size do
-      take(enumerable, size)
-    else
-      drop(enumerable, size + amount)
-    end
+    {count, fun} = slice_count_and_fun(enumerable)
+    first = Kernel.max(count + amount, 0)
+    fun.(first, count-first)
   end
 
   @doc """
