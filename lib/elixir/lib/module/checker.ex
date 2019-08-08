@@ -5,8 +5,14 @@ defmodule Module.Checker do
 
   def verify(module, cache) do
     case prepare_module(module) do
-      {:ok, map} -> {build_chunk(map), warnings(map, cache)}
-      :error -> {nil, []}
+      {:ok, map} ->
+        undefined_and_deprecation_warnings = undefined_and_deprecation_warnings(map, cache)
+        {types, infer_warnings} = infer_definitions(map)
+        warnings = infer_warnings ++ undefined_and_deprecation_warnings
+        {build_chunk(map, types), emit_warnings(warnings)}
+
+      :error ->
+        {nil, []}
     end
   end
 
@@ -41,21 +47,23 @@ defmodule Module.Checker do
   defp checker_chunk(binary) do
     with {:ok, {_, [{'ExCk', chunk}]}} <- :beam_lib.chunks(binary, ['ExCk']),
          {:elixir_checker_v1, contents} <- :erlang.binary_to_term(chunk) do
-      deprecated = Enum.map(contents.exports, fn {fun, {_kind, reason}} -> {fun, reason} end)
+      deprecated = Enum.map(contents.exports, fn {fun, map} -> {fun, map.deprecated_reason} end)
       {:ok, %{deprecated: deprecated, no_warn_undefined: contents.no_warn_undefined}}
     else
       _ -> :error
     end
   end
 
-  defp build_chunk(map) do
+  defp build_chunk(map, types) do
     exports = ParallelChecker.definitions_to_exports(map.definitions)
     deprecated = :maps.from_list(map.deprecated)
+    types = :maps.from_list(types)
 
     exports =
       Enum.map(exports, fn {function, kind} ->
-        reason = :maps.get(function, deprecated, nil)
-        {function, {kind, reason}}
+        deprecated_reason = :maps.get(function, deprecated, nil)
+        type = :maps.get(function, types, nil)
+        {function, %{kind: kind, deprecated_reason: deprecated_reason, type: type}}
       end)
 
     contents = %{
@@ -66,7 +74,24 @@ defmodule Module.Checker do
     {'ExCk', :erlang.term_to_binary({:elixir_checker_v1, contents})}
   end
 
-  defp warnings(map, cache) do
+  defp infer_definitions(map) do
+    results = Module.Types.infer_definitions(map.file, map.module, map.definitions)
+
+    Enum.reduce(results, {[], []}, fn
+      {function, {:ok, type_and_context}}, {types, warnings} ->
+        type =
+          Enum.map(type_and_context, fn {type, context} ->
+            Module.Types.lift_types(type, context)
+          end)
+
+        {[{function, type} | types], warnings}
+
+      {_function, {:error, reason}}, {types, warnings} ->
+        {types, [reason | warnings]}
+    end)
+  end
+
+  defp undefined_and_deprecation_warnings(map, cache) do
     no_warn_undefined = map.no_warn_undefined ++ Code.get_compiler_option(:no_warn_undefined)
 
     state = %{
@@ -83,7 +108,6 @@ defmodule Module.Checker do
     state.warnings
     |> merge_warnings()
     |> sort_warnings()
-    |> emit_warnings()
   end
 
   defp check_definitions(definitions, state) do
@@ -210,25 +234,25 @@ defmodule Module.Checker do
   defp warn(meta, state, warning) do
     {fun, arity} = state.function
     location = {state.file, meta[:line], {state.module, fun, arity}}
-    %{state | warnings: [{warning, location} | state.warnings]}
+    %{state | warnings: [{__MODULE__, warning, location} | state.warnings]}
   end
 
   defp merge_warnings(warnings) do
-    Enum.reduce(warnings, %{}, fn {warning, location}, acc ->
+    Enum.reduce(warnings, %{}, fn {module, warning, location}, acc ->
       locations = MapSet.new([location])
-      Map.update(acc, warning, locations, &MapSet.put(&1, location))
+      Map.update(acc, {module, warning}, locations, &MapSet.put(&1, location))
     end)
   end
 
   defp sort_warnings(warnings) do
     warnings
-    |> Enum.map(fn {warning, locations} -> {warning, Enum.sort(locations)} end)
+    |> Enum.map(fn {{module, warning}, locations} -> {module, warning, Enum.sort(locations)} end)
     |> Enum.sort()
   end
 
   defp emit_warnings(warnings) do
-    Enum.flat_map(warnings, fn {warning, locations} ->
-      message = format_warning(warning)
+    Enum.flat_map(warnings, fn {module, warning, locations} ->
+      message = module.format_warning(warning)
       print_warning([message, ?\n, format_locations(locations)])
 
       Enum.map(locations, fn {file, line, _mfa} ->
@@ -237,7 +261,7 @@ defmodule Module.Checker do
     end)
   end
 
-  defp format_warning({:undefined_module, module, fun, arity}) do
+  def format_warning({:undefined_module, module, fun, arity}) do
     [
       Exception.format_mfa(module, fun, arity),
       " is undefined (module ",
@@ -246,7 +270,7 @@ defmodule Module.Checker do
     ]
   end
 
-  defp format_warning({:undefined_function, module, fun, arity, exports}) do
+  def format_warning({:undefined_function, module, fun, arity, exports}) do
     [
       Exception.format_mfa(module, fun, arity),
       " is undefined or private",
@@ -254,7 +278,7 @@ defmodule Module.Checker do
     ]
   end
 
-  defp format_warning({:deprecated, module, fun, arity, reason}) do
+  def format_warning({:deprecated, module, fun, arity, reason}) do
     [
       Exception.format_mfa(module, fun, arity),
       " is deprecated. ",
@@ -262,7 +286,7 @@ defmodule Module.Checker do
     ]
   end
 
-  defp format_warning({:unrequired_module, module, fun, arity}) do
+  def format_warning({:unrequired_module, module, fun, arity}) do
     [
       "you must require ",
       inspect(module),
