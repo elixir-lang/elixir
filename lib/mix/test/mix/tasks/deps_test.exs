@@ -191,6 +191,18 @@ defmodule Mix.Tasks.DepsTest do
     end)
   end
 
+  test "doesn't compile any umbrella apps if --skip-umbrella-children given" do
+    in_fixture("umbrella_dep/deps/umbrella", fn ->
+      Mix.Project.in_project(:umbrella, ".", fn _ ->
+        refute File.exists?("_build/dev/lib/foo/ebin")
+        refute File.exists?("_build/dev/lib/bar/ebin")
+        Mix.Tasks.Deps.Compile.run(["--skip-umbrella-children"])
+        refute File.exists?("_build/dev/lib/foo/ebin")
+        refute File.exists?("_build/dev/lib/bar/ebin")
+      end)
+    end)
+  end
+
   ## deps.loadpaths
 
   test "checks list of dependencies and their status with success" do

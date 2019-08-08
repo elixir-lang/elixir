@@ -29,9 +29,12 @@ defmodule Mix.Tasks.Deps.Compile do
   date. This is to allow parts of the dependency tree to be
   recompiled without propagating those changes upstream. To ensure
   `b` is included in the compilation step, pass `--include-children`.
+
+  If you want to exclude umbrella applications from building pass
+  `--skip-umbrella-children`.
   """
 
-  @switches [include_children: :boolean, force: :boolean]
+  @switches [include_children: :boolean, force: :boolean, skip_umbrella_children: :boolean]
 
   @impl true
   def run(args) do
@@ -58,11 +61,14 @@ defmodule Mix.Tasks.Deps.Compile do
   def compile(deps, options \\ []) do
     shell = Mix.shell()
     config = Mix.Project.deps_config()
+    skip_umbrella_children = Keyword.get(options, :skip_umbrella_children)
 
     Mix.Task.run("deps.precompile")
 
     compiled =
-      Enum.map(deps, fn %Mix.Dep{app: app, status: status, opts: opts, scm: scm} = dep ->
+      deps
+      |> reject_umbrella_children(skip_umbrella_children)
+      |> Enum.map(fn %Mix.Dep{app: app, status: status, opts: opts, scm: scm} = dep ->
         check_unavailable!(app, status)
         maybe_clean(dep, options)
 
@@ -309,5 +315,14 @@ defmodule Mix.Tasks.Deps.Compile do
 
   defp makefile_win?(%Mix.Dep{opts: opts}) do
     File.regular?(Path.join(opts[:dest], "Makefile.win"))
+  end
+
+  defp reject_umbrella_children(deps, true) do
+    deps
+    |> Enum.reject(fn %{opts: opts} -> Keyword.get(opts, :from_umbrella) == true end)
+  end
+
+  defp reject_umbrella_children(deps, _) do
+    deps
   end
 end
