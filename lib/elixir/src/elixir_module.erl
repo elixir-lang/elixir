@@ -1,5 +1,5 @@
 -module(elixir_module).
--export([file/1, data_tables/1, is_open/1, delete_definition_attributes/6,
+-export([file/1, data_tables/1, is_open/1, is_not_closing/1, delete_definition_attributes/6,
          compile/4, expand_callback/6, format_error/1, compiler_modules/0,
          write_cache/3, read_cache/2, next_counter/1]).
 -include("elixir.hrl").
@@ -28,6 +28,9 @@ data_tables(Module) ->
 
 is_open(Module) ->
   ets:member(elixir_modules, Module).
+
+is_not_closing(Module) ->
+  ets:member(elixir_opened_modules, Module).
 
 delete_definition_attributes(#{module := Module}, _, _, _, _, _) ->
   {DataSet, _} = data_tables(Module),
@@ -119,10 +122,10 @@ compile(Line, Module, Block, Vars, E) ->
     },
 
     Binary = elixir_erl:compile(ModuleMap),
+    elixir_code_server:call({unopenmodule, Ref}),
     warn_unused_attributes(File, DataSet, DataBag, PersistedAttributes),
     autoload_module(Module, Binary, CompileOpts, NE),
     make_module_available(Module, Binary, ModuleMap),
-    elixir_code_server:call({undefmodule, Ref}),
     eval_callbacks(Line, DataBag, after_compile, [NE, Binary], NE),
     {module, Module, Binary, Result}
   catch

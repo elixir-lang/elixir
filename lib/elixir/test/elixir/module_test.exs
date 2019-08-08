@@ -77,7 +77,7 @@ defmodule ModuleTest do
     end
   end
 
-  test "module is not opened in __after_compile__/2 callback" do
+  test "module raises on write access attempts from __after_compile__/2" do
     contents =
       quote do
         @after_compile __MODULE__
@@ -92,6 +92,21 @@ defmodule ModuleTest do
                  fn ->
                    Module.create(ModuleTest.Raise, contents, __ENV__)
                  end
+  end
+
+  test "module supports read access to module from __after_compile__/2" do
+    contents =
+      quote do
+        @after_compile __MODULE__
+
+        @foo 42
+
+        def __after_compile__(%Macro.Env{module: module}, bin) when is_binary(bin) do
+          Module.get_attribute(module, :foo)
+        end
+      end
+
+    Module.create(ModuleTest.NoRaise, contents, __ENV__)
   end
 
   test "in memory modules are tagged as so" do
