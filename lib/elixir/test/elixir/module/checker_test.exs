@@ -30,9 +30,9 @@ defmodule Module.CheckerTest do
       contents = read_chunk(modules[A])
 
       assert contents.exports == [
-               {{:c, 0}, {:def, nil}},
-               {{:d, 0}, {:defmacro, nil}},
-               {{:e, 0}, {:def, "oops"}}
+               {{:c, 0}, %{deprecated_reason: nil, kind: :def, type: [[]]}},
+               {{:d, 0}, %{deprecated_reason: nil, kind: :defmacro, type: [[]]}},
+               {{:e, 0}, %{deprecated_reason: "oops", kind: :def, type: [[]]}}
              ]
     end
   end
@@ -613,6 +613,188 @@ defmodule Module.CheckerTest do
       warning = """
       warning: A.a/0 is deprecated. oops
         b.ex:3: B
+
+      """
+
+      assert_warnings(files, warning)
+    end
+  end
+
+  describe "function header inference" do
+    test "warns on literals" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          def a(var = 123, var = "abc"), do: var
+        end
+        """
+      }
+
+      warning = """
+      warning: function clause will never match, found incompatibility:
+
+          binary() !~ integer()
+
+      in expression:
+
+          def(a(var = 123, var = "abc"))
+
+      where "var" was given the type binary() in:
+
+          # a.ex:2
+          var = "abc"
+
+      where "var" was given the type integer() in:
+
+          # a.ex:2
+          var = 123
+
+      Conflict found at
+        a.ex:2: A.a/2
+
+      """
+
+      assert_warnings(files, warning)
+    end
+
+    test "warns on binary patterns" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          def a(<<var::integer, var::binary>>), do: var
+        end
+        """
+      }
+
+      warning = """
+      warning: function clause will never match, found incompatibility:
+
+          binary() !~ integer()
+
+      in expression:
+
+          <<var::integer(), var::binary()>>
+
+      where "var" was given the type binary() in:
+
+          # a.ex:2
+          var :: binary()
+
+      where "var" was given the type integer() in:
+
+          # a.ex:2
+          var :: integer()
+
+      Conflict found at
+        a.ex:2: A.a/1
+
+      """
+
+      assert_warnings(files, warning)
+    end
+
+    test "warns on recursive patterns" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          def a({var} = var), do: var
+        end
+        """
+      }
+
+      warning = """
+      warning: function clause will never match, found incompatibility:
+
+          {var0} !~ var0
+
+      in expression:
+
+          {var} = var
+
+      where "var" was given the type {var0} in:
+
+          # a.ex:2
+          {var} = var
+
+      Conflict found at
+        a.ex:2: A.a/1
+
+      """
+
+      assert_warnings(files, warning)
+    end
+
+    test "warns on guards" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          def a(var) when is_integer(var) and is_binary(var), do: var
+        end
+        """
+      }
+
+      warning = """
+      warning: function clause will never match, found incompatibility:
+
+          binary() !~ integer()
+
+      in expression:
+
+          is_integer(var) and is_binary(var)
+
+      where "var" was given the type binary() in:
+
+          # a.ex:2
+          is_binary(var)
+
+      where "var" was given the type integer() in:
+
+          # a.ex:2
+          is_integer(var)
+
+      Conflict found at
+        a.ex:2: A.a/1
+
+      """
+
+      assert_warnings(files, warning)
+    end
+
+    test "warns on guards with multiple variables" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          def a(x = y) when is_integer(x) and is_binary(y), do: {x, y}
+        end
+        """
+      }
+
+      warning = """
+      warning: function clause will never match, found incompatibility:
+
+          binary() !~ integer()
+
+      in expression:
+
+          def(a(x = y) when is_integer(x) and is_binary(y))
+
+      where "x" was given the type integer() in:
+
+          # a.ex:2
+          is_integer(x)
+
+      where "y" was given the type binary() in:
+
+          # a.ex:2
+          is_binary(y)
+
+      where "y" was given the same type as "x" in:
+
+          # a.ex:2
+          x = y
+
+      Conflict found at
+        a.ex:2: A.a/1
 
       """
 

@@ -286,8 +286,8 @@ defmodule Module.ParallelChecker do
 
   defp cache_chunk(ets, module, exports) do
     exports =
-      Enum.map(exports, fn {{fun, arity}, {kind, deprecated}} ->
-        :ets.insert(ets, {{:export, {module, fun, arity}}, kind, deprecated})
+      Enum.map(exports, fn {{fun, arity}, %{kind: kind, deprecated_reason: reason}} ->
+        :ets.insert(ets, {{:export, {module, fun, arity}}, kind, reason})
 
         {{fun, arity}, kind}
       end)
