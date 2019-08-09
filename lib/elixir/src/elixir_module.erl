@@ -1,5 +1,5 @@
 -module(elixir_module).
--export([file/1, data_tables/1, is_open/1, delete_definition_attributes/6,
+-export([file/1, data_tables/1, is_open/1, is_not_closing/1, delete_definition_attributes/6,
          compile/4, expand_callback/6, format_error/1, compiler_modules/0,
          write_cache/3, read_cache/2, next_counter/1]).
 -include("elixir.hrl").
@@ -28,6 +28,9 @@ data_tables(Module) ->
 
 is_open(Module) ->
   ets:member(elixir_modules, Module).
+
+is_not_closing(Module) ->
+  ets:lookup_element(elixir_modules, Module, 5).
 
 delete_definition_attributes(#{module := Module}, _, _, _, _, _) ->
   {DataSet, _} = data_tables(Module),
@@ -119,10 +122,11 @@ compile(Line, Module, Block, Vars, E) ->
     },
 
     Binary = elixir_erl:compile(ModuleMap),
+    elixir_code_server:call({unopenmodule, Ref}),
     warn_unused_attributes(File, DataSet, DataBag, PersistedAttributes),
     autoload_module(Module, Binary, CompileOpts, NE),
-    eval_callbacks(Line, DataBag, after_compile, [NE, Binary], NE),
     make_module_available(Module, Binary, ModuleMap),
+    eval_callbacks(Line, DataBag, after_compile, [NE, Binary], NE),
     {module, Module, Binary, Result}
   catch
     ?WITH_STACKTRACE(error, undef, Stacktrace)
@@ -290,13 +294,13 @@ build(Line, File, Module) ->
   Tables = {DataSet, DataBag},
   elixir_def:setup(Tables),
   elixir_locals:setup(Tables),
-  Tuple = {Module, Tables, Line, File},
+  Tuple = {Module, Tables, Line, File, true},
 
   Ref =
     case elixir_code_server:call({defmodule, Module, self(), Tuple}) of
       {ok, ModuleRef} ->
         ModuleRef;
-      {error, {Module, _, OldLine, OldFile}} ->
+      {error, {Module, _, OldLine, OldFile, _}} ->
         ets:delete(DataSet),
         ets:delete(DataBag),
         Error = {module_in_definition, Module, OldFile, OldLine},

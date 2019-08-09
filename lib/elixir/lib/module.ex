@@ -549,6 +549,11 @@ defmodule Module do
     :elixir_module.is_open(module)
   end
 
+  @spec not_closing?(module) :: boolean
+  defp not_closing?(module) when is_atom(module) do
+    :elixir_module.is_not_closing(module)
+  end
+
   @doc """
   Evaluates the quoted contents in the given module's context.
 
@@ -607,7 +612,7 @@ defmodule Module do
 
   def eval_quoted(module, quoted, binding, opts)
       when is_atom(module) and is_list(binding) and is_list(opts) do
-    assert_not_compiled!(__ENV__.function, module)
+    assert_not_closing!(__ENV__.function, module)
     :elixir_def.reset_last(module)
 
     {value, binding, _env, _scope} =
@@ -1070,7 +1075,7 @@ defmodule Module do
   """
   @spec make_overridable(module, [definition]) :: :ok
   def make_overridable(module, tuples) when is_atom(module) and is_list(tuples) do
-    assert_not_compiled!(__ENV__.function, module)
+    assert_not_closing!(__ENV__.function, module)
 
     func = fn
       {function_name, arity} = tuple
@@ -1282,7 +1287,7 @@ defmodule Module do
   """
   @spec delete_attribute(module, atom) :: term
   def delete_attribute(module, key) when is_atom(module) and is_atom(key) do
-    assert_not_compiled!(__ENV__.function, module)
+    assert_not_closing!(__ENV__.function, module)
     {set, bag} = data_tables_for(module)
 
     case :ets.lookup(set, key) do
@@ -1334,7 +1339,7 @@ defmodule Module do
   @spec register_attribute(module, atom, [{:accumulate, boolean}, {:persist, boolean}]) :: :ok
   def register_attribute(module, attribute, options)
       when is_atom(module) and is_atom(attribute) and is_list(options) do
-    assert_not_compiled!(__ENV__.function, module)
+    assert_not_closing!(__ENV__.function, module)
     {set, bag} = data_tables_for(module)
 
     if Keyword.get(options, :persist) do
@@ -1839,7 +1844,7 @@ defmodule Module do
   # Used internally by Kernel's @.
   # This function is private and must be used only internally.
   def __put_attribute__(module, key, value, line) when is_atom(key) do
-    assert_not_compiled!(__ENV__.function, module)
+    assert_not_closing!(__ENV__.function, module)
     {set, bag} = data_tables_for(module)
     value = preprocess_attribute(key, value)
     put_attribute(module, key, value, line, set, bag)
@@ -2080,6 +2085,12 @@ defmodule Module do
 
   defp assert_not_compiled!(function_name_arity, module, extra_msg \\ "") do
     open?(module) ||
+      raise ArgumentError,
+            assert_not_compiled_message(function_name_arity, module, extra_msg)
+  end
+
+  defp assert_not_closing!(function_name_arity, module, extra_msg \\ "") do
+    (open?(module) and not_closing?(module)) ||
       raise ArgumentError,
             assert_not_compiled_message(function_name_arity, module, extra_msg)
   end
