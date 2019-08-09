@@ -1,5 +1,5 @@
 -module(elixir_module).
--export([file/1, data_tables/1, is_open/1, is_not_closing/1, delete_definition_attributes/6,
+-export([file/1, data_tables/1, is_open/1, mode/1, delete_definition_attributes/6,
          compile/4, expand_callback/6, format_error/1, compiler_modules/0,
          write_cache/3, read_cache/2, next_counter/1]).
 -include("elixir.hrl").
@@ -29,8 +29,15 @@ data_tables(Module) ->
 is_open(Module) ->
   ets:member(elixir_modules, Module).
 
-is_not_closing(Module) ->
-  ets:lookup_element(elixir_modules, Module, 5).
+mode(Module) ->
+  try ets:lookup_element(elixir_modules, Module, 5) of
+    Mode -> Mode
+  catch
+    _:badarg -> closed
+  end.
+
+make_readonly(Module) ->
+  ets:update_element(elixir_modules, Module, {5, readonly}).
 
 delete_definition_attributes(#{module := Module}, _, _, _, _, _) ->
   {DataSet, _} = data_tables(Module),
@@ -99,6 +106,7 @@ compile(Line, Module, Block, Vars, E) ->
     %% We stop tracking locals here to avoid race conditions in case after_load
     %% evaluates code in a separate process that may write to locals table.
     elixir_locals:stop({DataSet, DataBag}),
+    make_readonly(Module),
 
     (not elixir_config:get(bootstrap)) andalso
      'Elixir.Module':check_behaviours_and_impls(E, DataSet, DataBag, AllDefinitions),
@@ -122,11 +130,10 @@ compile(Line, Module, Block, Vars, E) ->
     },
 
     Binary = elixir_erl:compile(ModuleMap),
-    elixir_code_server:call({unopenmodule, Ref}),
     warn_unused_attributes(File, DataSet, DataBag, PersistedAttributes),
     autoload_module(Module, Binary, CompileOpts, NE),
-    make_module_available(Module, Binary, ModuleMap),
     eval_callbacks(Line, DataBag, after_compile, [NE, Binary], NE),
+    make_module_available(Module, Binary, ModuleMap),
     {module, Module, Binary, Result}
   catch
     ?WITH_STACKTRACE(error, undef, Stacktrace)
@@ -294,7 +301,7 @@ build(Line, File, Module) ->
   Tables = {DataSet, DataBag},
   elixir_def:setup(Tables),
   elixir_locals:setup(Tables),
-  Tuple = {Module, Tables, Line, File, true},
+  Tuple = {Module, Tables, Line, File, all},
 
   Ref =
     case elixir_code_server:call({defmodule, Module, self(), Tuple}) of

@@ -25,7 +25,7 @@ start_link() ->
 
 init(ok) ->
   %% The table where we store module definitions
-  _ = ets:new(elixir_modules, [set, protected, named_table, {read_concurrency, true}]),
+  _ = ets:new(elixir_modules, [set, public, named_table, {read_concurrency, true}]),
   {ok, #elixir_code_server{}}.
 
 handle_call({defmodule, Module, Pid, Tuple}, _From, Config) ->
@@ -39,9 +39,6 @@ handle_call({defmodule, Module, Pid, Tuple}, _From, Config) ->
 
 handle_call({undefmodule, Ref}, _From, Config) ->
   {reply, ok, undefmodule(Ref, Config)};
-
-handle_call({unopenmodule, Ref}, _From, Config) ->
-  {reply, ok, unopenmodule(Ref, Config)};
 
 handle_call({acquire, Path}, From, Config) ->
   Current = Config#elixir_code_server.required,
@@ -155,15 +152,6 @@ undefmodule(Ref, #elixir_code_server{mod_ets=ModEts} = Config) ->
     {ok, Mod} ->
       ets:delete(elixir_modules, Mod),
       Config#elixir_code_server{mod_ets=maps:remove(Ref, ModEts)};
-    error ->
-      Config
-  end.
-
-unopenmodule(Ref, #elixir_code_server{mod_ets=ModEts} = Config) ->
-  case maps:find(Ref, ModEts) of
-    {ok, Mod} ->
-      ets:update_element(elixir_modules, Mod, {5, false}),
-      Config;
     error ->
       Config
   end.
