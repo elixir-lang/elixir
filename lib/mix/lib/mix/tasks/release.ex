@@ -386,8 +386,10 @@ defmodule Mix.Tasks.Release do
     * `:path` - the path the release should be installed to.
       Defaults to `"_build/MIX_ENV/rel/RELEASE_NAME"`.
 
-    * `:version` - the release version as a string. Defaults to the current
-      application version.
+    * `:version` - the release version as a string or `{:from_app, app_name}`.
+      Defaults to the current application version. The `{:from_app, app_name}` format
+      can be used to easily reference the application version from another application.
+      This is particularly useful in umbrella applications.
 
     * `:quiet` - a boolean that controls if releases should write to the standard
       output its steps. Defaults to `false`.

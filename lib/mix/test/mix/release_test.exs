@@ -50,6 +50,21 @@ defmodule Mix.ReleaseTest do
       assert release.options[:quiet]
     end
 
+    test "allows specifying the version from an application" do
+      overrides = [version: {:from_app, :elixir}]
+      release = from_config!(nil, config(), overrides)
+
+      assert release.version == to_string(Application.spec(:elixir, :vsn))
+    end
+
+    test "raises when :from_app is used with an app that doesn't exist" do
+      overrides = [version: {:from_app, :not_valid}]
+
+      assert_raise Mix.Error,
+                   ~r"Could not find version for :not_valid, please make sure the application exists",
+                   fn -> from_config!(nil, config(), overrides) end
+    end
+
     test "includes applications" do
       release = from_config!(nil, config(), [])
       assert release.applications.mix[:path] == to_charlist(Application.app_dir(:mix))
