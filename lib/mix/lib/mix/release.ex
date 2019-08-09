@@ -8,7 +8,7 @@ defmodule Mix.Release do
 
     * `:name` - the name of the release as an atom
     * `:version` - the version of the release as a string or
-       `{:from_app, app_name}
+       `{:from_app, app_name}`
     * `:path` - the path to the release root
     * `:version_path` - the path to the release version inside the release
     * `:applications` - a map of application with their definitions
