@@ -77,7 +77,7 @@ defmodule ModuleTest do
     end
   end
 
-  test "module raises on write access attempts from __after_compile__/2" do
+  test "raises on write access attempts from __after_compile__/2" do
     contents =
       quote do
         @after_compile __MODULE__
@@ -88,13 +88,13 @@ defmodule ModuleTest do
       end
 
     assert_raise ArgumentError,
-                 "could not call Module.__put_attribute__/4 because the module ModuleTest.Raise is already compiled",
+                 "could not call Module.__put_attribute__/4 because the module ModuleTest.Raise is in read-only mode (@after_compile)",
                  fn ->
                    Module.create(ModuleTest.Raise, contents, __ENV__)
                  end
   end
 
-  test "module supports read access to module from __after_compile__/2" do
+  test "supports read access to module from __after_compile__/2" do
     contents =
       quote do
         @after_compile __MODULE__
