@@ -531,11 +531,10 @@ defmodule ExUnit.Assertions do
   @doc false
   def __timeout__(pattern, code, pins, pattern_finder, timeout) do
     {:messages, messages} = Process.info(self(), :messages)
-    binary = Macro.to_string(pattern)
 
     if Enum.any?(messages, pattern_finder) do
       """
-      Found message matching #{binary} after #{timeout}ms.
+      Found message matching #{Macro.to_string(pattern)} after #{timeout}ms.
 
       This means the message was delivered too close to the timeout value, you may want to either:
 
