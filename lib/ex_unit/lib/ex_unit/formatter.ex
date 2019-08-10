@@ -147,8 +147,7 @@ defmodule ExUnit.Formatter do
     {left, right} =
       format_sides(struct.left, struct.right, struct.context, formatter, inspect, side_width)
 
-    mailbox =
-      format_mailbox(struct.mailbox, struct.expr, struct.context, formatter, inspect, side_width)
+    mailbox = format_mailbox(struct.mailbox, struct.context, formatter, inspect, side_width)
 
     [
       note: if_value(struct.message, &format_message(&1, formatter)),
@@ -316,24 +315,23 @@ defmodule ExUnit.Formatter do
     |> Algebra.format(width)
   end
 
-  defp format_mailbox(@no_value, _, _, _, _, _) do
+  defp format_mailbox(@no_value, _, _, _, _) do
     @no_value
   end
 
-  defp format_mailbox(messages, {_, _, [pattern]}, context, formatter, inspect, width) do
+  defp format_mailbox({pattern, messages}, context, formatter, inspect, width) do
     formatted_mailbox =
       for message <- messages do
-        {left, right} = format_sides(pattern, message, context, formatter, inspect, width)
+        {left, right} = format_sides(pattern, message, context, formatter, inspect, width - 2)
 
-        formatted_item =
-          [pattern: left, value: right]
-          |> format_meta(formatter, 9)
-          |> make_into_lines(@counter_padding <> "  ")
-
-        ["\n", formatted_item]
+        [pattern: left, value: right]
+        |> format_meta(formatter, 9)
+        |> Enum.map(&["\n  ", @counter_padding, &1])
       end
 
-    IO.iodata_to_binary(formatted_mailbox)
+    formatted_mailbox
+    |> Enum.join("\n")
+    |> IO.iodata_to_binary()
   end
 
   defp format_sides(@no_value, @no_value, _, _, _, _) do

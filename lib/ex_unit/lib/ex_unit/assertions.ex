@@ -546,6 +546,12 @@ defmodule ExUnit.Assertions do
     else
       {message, mailbox} = format_mailbox(messages)
 
+      mailbox =
+        case mailbox do
+          [] -> ExUnit.AssertionError.no_value()
+          _ -> {pattern, mailbox}
+        end
+
       raise ExUnit.AssertionError,
         mailbox: mailbox,
         expr: code,
