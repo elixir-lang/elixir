@@ -331,12 +331,13 @@ defmodule ExUnit.AssertionsTest do
     rescue
       error in [ExUnit.AssertionError] ->
         """
-        No message matching {:status, ^status} after 0ms.
+        Assertion failed, no matching message after 0ms
         The following variables were pinned:
           status = :valid
-        Process mailbox:
-          {:status, :invalid}\
+        Showing 1 of 1 message in the mailbox\
         """ = error.message
+
+        [{:status, :invalid}] = error.mailbox
     end
   end
 
@@ -349,12 +350,13 @@ defmodule ExUnit.AssertionsTest do
     rescue
       error in [ExUnit.AssertionError] ->
         """
-        No message matching {:status, ^status, ^status} after 0ms.
+        Assertion failed, no matching message after 0ms
         The following variables were pinned:
           status = :valid
-        Process mailbox:
-          {:status, :invalid, :invalid}\
+        Showing 1 of 1 message in the mailbox\
         """ = error.message
+
+        [{:status, :invalid, :invalid}] = error.mailbox
     end
   end
 
@@ -368,13 +370,14 @@ defmodule ExUnit.AssertionsTest do
     rescue
       error in [ExUnit.AssertionError] ->
         """
-        No message matching {:status, ^status, ^other_status} after 0ms.
+        Assertion failed, no matching message after 0ms
         The following variables were pinned:
           status = :valid
           other_status = :invalid
-        Process mailbox:
-          {:status, :invalid, :invalid}\
+        Showing 1 of 1 message in the mailbox\
         """ = error.message
+
+        [{:status, :invalid, :invalid}] = error.mailbox
     end
   end
 
@@ -383,7 +386,10 @@ defmodule ExUnit.AssertionsTest do
       "This should never be tested" = assert_received :hello
     rescue
       error in [ExUnit.AssertionError] ->
-        "No message matching :hello after 0ms.\nThe process mailbox is empty." = error.message
+        "Assertion failed, no matching message after 0ms\nThe process mailbox is empty." =
+          error.message
+
+        [] = error.mailbox
     end
   end
 
@@ -395,10 +401,11 @@ defmodule ExUnit.AssertionsTest do
     rescue
       error in [ExUnit.AssertionError] ->
         """
-        No message matching :hello after 0ms.
-        Process mailbox:
-          {:message, :not_expected, :at_all}\
+        Assertion failed, no matching message after 0ms
+        Showing 1 of 1 message in the mailbox\
         """ = error.message
+
+        [{:message, :not_expected, :at_all}] = error.mailbox
     end
   end
 
@@ -410,20 +417,22 @@ defmodule ExUnit.AssertionsTest do
     rescue
       error in [ExUnit.AssertionError] ->
         """
-        No message matching x when x == :hello after 0ms.
-        Process mailbox:
-          {:message, 2}
-          {:message, 3}
-          {:message, 4}
-          {:message, 5}
-          {:message, 6}
-          {:message, 7}
-          {:message, 8}
-          {:message, 9}
-          {:message, 10}
-          {:message, 11}
-        Showing only last 10 of 11 messages.\
+        Assertion failed, no matching message after 0ms
+        Showing 10 of 11 messages in the mailbox\
         """ = error.message
+
+        [
+          {:message, 2},
+          {:message, 3},
+          {:message, 4},
+          {:message, 5},
+          {:message, 6},
+          {:message, 7},
+          {:message, 8},
+          {:message, 9},
+          {:message, 10},
+          {:message, 11}
+        ] = error.mailbox
     end
   end
 

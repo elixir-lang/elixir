@@ -153,4 +153,12 @@ defmodule Difference do
       assert {_, 1} = {1, 2}
     end
   end
+
+  describe "receive" do
+    test "more than 10 messages in the mailbox" do
+      for i <- 1..11, do: send(self(), {:message, i})
+
+      assert_received x when x == :hello
+    end
+  end
 end

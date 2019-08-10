@@ -138,11 +138,17 @@ defmodule ExUnit.Formatter do
     format_assertion_error(%{}, struct, [], :infinity, fn _, msg -> msg end, "")
   end
 
-  def format_assertion_error(test, struct, stack, width, formatter, counter_padding) do
+  defp format_assertion_error(test, struct, stack, width, formatter, counter_padding) do
     label_padding_size = if has_value?(struct.right), do: 7, else: 6
     padding_size = label_padding_size + byte_size(@counter_padding)
     inspect = &inspect_multiline(&1, padding_size, width)
-    {left, right} = format_sides(struct, formatter, inspect, padding_size, width)
+    side_width = if width == :infinity, do: width, else: width - padding_size
+
+    {left, right} =
+      format_sides(struct.left, struct.right, struct.context, formatter, inspect, side_width)
+
+    mailbox =
+      format_mailbox(struct.mailbox, struct.expr, struct.context, formatter, inspect, side_width)
 
     [
       note: if_value(struct.message, &format_message(&1, formatter)),
@@ -151,7 +157,8 @@ defmodule ExUnit.Formatter do
       code: unless_value(struct.expr, fn -> get_code(test, stack) || @no_value end),
       arguments: if_value(struct.args, &format_args(&1, width)),
       left: left,
-      right: right
+      right: right,
+      mailbox: mailbox
     ]
     |> format_meta(formatter, counter_padding, label_padding_size)
     |> IO.iodata_to_binary()
@@ -309,10 +316,31 @@ defmodule ExUnit.Formatter do
     |> Algebra.format(width)
   end
 
-  defp format_sides(struct, formatter, inspect, padding_size, width) do
-    %{left: left, right: right, context: context} = struct
-    width = if width == :infinity, do: width, else: width - padding_size
+  defp format_mailbox(@no_value, _, _, _, _, _) do
+    @no_value
+  end
 
+  defp format_mailbox(messages, {_, _, [pattern]}, context, formatter, inspect, width) do
+    formatted_mailbox =
+      for message <- messages do
+        {left, right} = format_sides(pattern, message, context, formatter, inspect, width)
+
+        formatted_item =
+          [pattern: left, value: right]
+          |> format_meta(formatter, 9)
+          |> make_into_lines(@counter_padding <> "  ")
+
+        ["\n", formatted_item]
+      end
+
+    IO.iodata_to_binary(formatted_mailbox)
+  end
+
+  defp format_sides(@no_value, @no_value, _, _, _, _) do
+    {@no_value, @no_value}
+  end
+
+  defp format_sides(left, right, context, formatter, inspect, width) do
     case format_diff(left, right, context, formatter) do
       {result, _env} ->
         left =

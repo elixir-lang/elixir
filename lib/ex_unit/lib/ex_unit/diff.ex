@@ -216,7 +216,7 @@ defmodule ExUnit.Diff do
     {diff, equivalent?}
   end
 
-  defp diff_guard_clause(quoted, bindings)  do
+  defp diff_guard_clause(quoted, bindings) do
     expanded =
       Macro.prewalk(quoted, fn
         {_, [{:expanded, expanded} | _], _} -> expanded
@@ -984,7 +984,8 @@ defmodule ExUnit.Diff do
     container_to_algebra("[", list, "]", diff_wrapper, select_list_item_algebra(list))
   end
 
-  defp safe_to_algebra({op, _, [left, right]}, diff_wrapper) when op in [:<>, :++, :|, :when, :and, :or] do
+  defp safe_to_algebra({op, _, [left, right]}, diff_wrapper)
+       when op in [:<>, :++, :|, :when, :and, :or] do
     to_algebra(left, diff_wrapper)
     |> Algebra.concat(" #{op} ")
     |> Algebra.concat(to_algebra(right, diff_wrapper))
