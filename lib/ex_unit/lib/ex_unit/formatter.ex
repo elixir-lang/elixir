@@ -356,12 +356,12 @@ defmodule ExUnit.Formatter do
         {left, right}
 
       nil ->
-        {if_value(left, inspect), if_value(right, inspect)}
+        {inspect.(left), inspect.(right)}
     end
   end
 
   defp format_diff(left, right, context, formatter) do
-    if has_value?(left) and has_value?(right) and formatter.(:diff_enabled?, false) do
+    if formatter.(:diff_enabled?, false) do
       find_diff(left, right, context)
     end
   end
