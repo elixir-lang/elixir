@@ -517,6 +517,7 @@ defmodule Path do
     do_join(left, right, os_type) |> remove_dir_sep(os_type)
   end
 
+  defp do_join(left, "/", os_type), do: remove_dir_sep(left, os_type)
   defp do_join("", right, os_type), do: relative(right, os_type)
   defp do_join("/", right, os_type), do: "/" <> relative(right, os_type)
 
