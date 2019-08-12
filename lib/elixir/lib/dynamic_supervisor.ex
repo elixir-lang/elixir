@@ -154,7 +154,7 @@ defmodule DynamicSupervisor do
   @typedoc "Options used by the `start*` functions"
   @type options :: [option, ...]
 
-  @typedoc "Options given to `start_link/2` and `init/1`"
+  @typedoc "Options given to `start_link/1` and `init/1`"
   @type init_option ::
           {:strategy, strategy()}
           | {:max_restarts, non_neg_integer()}
@@ -473,7 +473,7 @@ defmodule DynamicSupervisor do
   module-based supervisors. See the "Module-based supervisors" section
   in the module documentation for more information.
 
-  The `options` received by this function are also supported by `start_link/2`.
+  The `options` received by this function are also supported by `start_link/1`.
 
   This function returns a tuple containing the supervisor options.
 
