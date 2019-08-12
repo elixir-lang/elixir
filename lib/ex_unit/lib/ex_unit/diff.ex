@@ -201,7 +201,7 @@ defmodule ExUnit.Diff do
     diff = %__MODULE__{
       diff_expression
       | left: {:when, [], [diff_expression.left, diff_clause]},
-        equivalent?: diff_expression.equivalent? && clause_equivalent?
+        equivalent?: diff_expression.equivalent? and clause_equivalent?
     }
 
     {diff, post_env}
@@ -211,7 +211,7 @@ defmodule ExUnit.Diff do
     {diff_clause1, clause1_equivalent?} = diff_guard_clause(clause1, bindings)
     {diff_clause2, clause2_equivalent?} = diff_guard_clause(clause2, bindings)
 
-    equivalent? = clause1_equivalent? || clause2_equivalent?
+    equivalent? = clause1_equivalent? or clause2_equivalent?
     diff = {op, [], [diff_clause1, diff_clause2]}
     {diff, equivalent?}
   end
