@@ -86,7 +86,8 @@ defmodule Regex do
 
     * `:none` - does not return matching subpatterns at all
 
-    * `:all_names` - captures all names in the Regex
+    * `:all_names` - captures all named subpattern matches in the Regex as a list
+      ordered **alphabetically** by the names of the subpatterns
 
     * `list(binary)` - a list of named captures to capture
 
