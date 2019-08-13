@@ -36,6 +36,35 @@ defmodule Mix.Tasks.ReleaseTest do
       end)
     end
 
+    test "tar" do
+      in_fixture("release_test", fn ->
+        config = [releases: [demo: [steps: [:assemble, :tar]]]]
+
+        Mix.Project.in_project(:release_test, ".", config, fn _ ->
+          Mix.Task.run("release")
+          root = Path.absname("_build/#{Mix.env()}/rel/demo")
+          message = "* building #{root}/demo.tar.gz"
+          assert_received {:mix_shell, :info, [^message]}
+          assert root |> Path.join("releases/0.1.0/demo.tar.gz") |> File.exists?()
+
+          {:ok, files} =
+            root
+            |> Path.join("releases/0.1.0/demo.tar.gz")
+            |> String.to_charlist()
+            |> :erl_tar.table([:compressed])
+
+          files = Enum.map(files, &to_string/1)
+
+          assert "bin/demo" in files
+          assert "releases/0.1.0/sys.config" in files
+          assert "releases/0.1.0/vm.args" in files
+          assert "releases/COOKIE" in files
+          assert "releases/start_erl.data" in files
+          assert "lib/release_test-0.1.0/priv/hello" in files
+        end)
+      end)
+    end
+
     test "steps" do
       in_fixture("release_test", fn ->
         last_step = fn release ->
