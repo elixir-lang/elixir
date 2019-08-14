@@ -339,6 +339,22 @@ defmodule Map do
   end
 
   @doc """
+  Filters the `map`, i.e. returns only those key-value pairs
+  for which `fun` returns a truthy value.
+
+  ## Examples
+
+      iex> Map.filter(%{x: 1, y: 2, z: 3}, fn(k, v) -> is_atom(k) && rem(v, 2) == 0 end)
+      %{y: 2}
+
+  """
+  @doc since: "1.10.0"
+  @spec filter(map, (key, value -> as_boolean(term))) :: map
+  def filter(map, fun) when is_function(fun, 2) do
+    :maps.filter(fun, map)
+  end
+
+  @doc """
   Evaluates `fun` and puts the result under `key`
   in `map` unless `key` is already present.
 
