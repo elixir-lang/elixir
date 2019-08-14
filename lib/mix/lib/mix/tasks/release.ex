@@ -1020,9 +1020,21 @@ defmodule Mix.Tasks.Release do
     out_path = Path.join(release.path, tar_filename)
     info(release, [:green, "* building ", :reset, out_path])
 
+    lib_dirs =
+      Enum.reduce(release.applications, [], fn {name, app_config}, acc ->
+        vsn = Keyword.fetch!(app_config, :vsn)
+        [Path.join("lib", "#{name}-#{vsn}") | acc]
+      end)
+
+    release_files =
+      Path.join(release.path, "releases")
+      |> File.ls!()
+      |> Enum.filter(&(!File.dir?(Path.join([release.path, "releases", &1]))))
+      |> Enum.map(&Path.join("releases", &1))
+
     dirs =
-      ["bin", "lib", Path.join("releases", release.version), "erts-#{release.erts_version}"] ++
-        [Path.join("releases", "COOKIE"), Path.join("releases", "start_erl.data")]
+      ["bin", Path.join("releases", release.version), "erts-#{release.erts_version}"] ++
+        lib_dirs ++ release_files
 
     files =
       Enum.map(dirs, &{String.to_charlist(&1), String.to_charlist(Path.join(release.path, &1))})
