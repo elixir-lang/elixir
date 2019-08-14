@@ -10,11 +10,11 @@
 'MACRO-@'(Caller, Tree) ->
   unless_loaded('MACRO-@', [Caller, Tree], fun() -> nil end).
 
-'MACRO-def'(Caller, Call) -> 'MACRO-def'(Caller, Call, nil).
+'MACRO-def'(Caller, Call) -> 'MACRO-def'(Caller, Call, []).
 'MACRO-def'(Caller, Call, Expr) -> define(Caller, def, Call, Expr).
 'MACRO-defp'(Caller, Call, Expr) -> define(Caller, defp, Call, Expr).
 
-'MACRO-defmacro'(Caller, Call) -> 'MACRO-defmacro'(Caller, Call, nil).
+'MACRO-defmacro'(Caller, Call) -> 'MACRO-defmacro'(Caller, Call, []).
 'MACRO-defmacro'(Caller, Call, Expr) -> define(Caller, defmacro, Call, Expr).
 'MACRO-defmacrop'(Caller, Call, Expr) -> define(Caller, defmacrop, Call, Expr).
 
