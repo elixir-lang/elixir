@@ -382,7 +382,7 @@ defmodule IEx.HelpersTest do
         "* def left == right\n\n  @spec term() == term() :: boolean()\n\nguard: true\n\nReturns `true` if the two terms are equal.\n\n"
 
       def_h =
-        "* defmacro def(call, expr \\\\ nil)\n\nDefines a function with the given name and body."
+        "* defmacro def(call, expr \\\\ [])\n\nDefines a function with the given name and body."
 
       assert capture_io(fn -> h(IEx.Helpers.pwd() / 0) end) =~ pwd_h
       assert capture_io(fn -> h(IEx.Helpers.c() / 2) end) =~ c_h
