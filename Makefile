@@ -18,6 +18,7 @@ GIT_REVISION = $(strip $(shell git rev-parse HEAD 2> /dev/null ))
 GIT_TAG = $(strip $(shell head="$(call GIT_REVISION)"; git tag --points-at $$head 2> /dev/null | tail -1) )
 SOURCE_DATE_EPOCH_PATH = lib/elixir/tmp/ebin_reproducible
 SOURCE_DATE_EPOCH_FILE = $(SOURCE_DATE_EPOCH_PATH)/SOURCE_DATE_EPOCH
+ELIXIR_TEST_FILE = "test/**/*_test.exs"
 
 .PHONY: install compile erlang elixir unicode app build_plt clean_plt dialyze test check_reproducible clean clean_residual_files install_man clean_man docs Docs.zip Precompiled.zip zips
 .NOTPARALLEL: compile
@@ -45,7 +46,7 @@ lib/$(1)/ebin/Elixir.$(2).beam: $(wildcard lib/$(1)/lib/*.ex) $(wildcard lib/$(1
 
 test_$(1): compile $(1)
 	@ echo "==> $(1) (ex_unit)"
-	$(Q) cd lib/$(1) && ../../bin/elixir -r "test/test_helper.exs" -pr "test/**/*_test.exs";
+	$(Q) cd lib/$(1) && ../../bin/elixir -r "test/test_helper.exs" -pr $(ELIXIR_TEST_FILE);
 endef
 
 define WRITE_SOURCE_DATE_EPOCH
