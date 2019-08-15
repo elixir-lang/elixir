@@ -1027,10 +1027,9 @@ defmodule Mix.Tasks.Release do
       end)
 
     release_files =
-      Path.join(release.path, "releases")
-      |> File.ls!()
-      |> Enum.filter(&(!File.dir?(Path.join([release.path, "releases", &1]))))
-      |> Enum.map(&Path.join("releases", &1))
+      for basename <- File.ls!(Path.join(release.path, "releases")),
+          not File.dir?(Path.join([release.path, "releases", basename])),
+          do: Path.join("releases", basename)
 
     dirs =
       ["bin", Path.join("releases", release.version), "erts-#{release.erts_version}"] ++
