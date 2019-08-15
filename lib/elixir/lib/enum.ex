@@ -941,7 +941,7 @@ defmodule Enum do
 
       iex> Enum.find([2, 3, 4], fn x -> rem(x, 2) == 1 end)
       3
-      
+
       iex> Enum.find([2, 4, 6], fn x -> rem(x, 2) == 1 end)
       nil
       iex> Enum.find([2, 4, 6], 0, fn x -> rem(x, 2) == 1 end)
@@ -3355,13 +3355,8 @@ defimpl Enumerable, for: Map do
   end
 
   def reduce(map, acc, fun) do
-    reduce_list(:maps.to_list(map), acc, fun)
+    Enumerable.List.reduce(:maps.to_list(map), acc, fun)
   end
-
-  defp reduce_list(_list, {:halt, acc}, _fun), do: {:halted, acc}
-  defp reduce_list(list, {:suspend, acc}, fun), do: {:suspended, acc, &reduce_list(list, &1, fun)}
-  defp reduce_list([], {:cont, acc}, _fun), do: {:done, acc}
-  defp reduce_list([head | tail], {:cont, acc}, fun), do: reduce_list(tail, fun.(head, acc), fun)
 end
 
 defimpl Enumerable, for: Function do
