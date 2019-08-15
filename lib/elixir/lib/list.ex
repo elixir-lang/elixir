@@ -99,7 +99,7 @@ defmodule List do
   You can use the `IEx.Helpers.i/1` helper to get a condensed rundown on
   charlists in iex when you encounter them:
 
-      iex> i 'abc'
+      > i 'abc'
       Term
         'abc'
       Data type
