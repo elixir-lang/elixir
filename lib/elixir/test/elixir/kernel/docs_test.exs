@@ -5,6 +5,15 @@ defmodule Kernel.DocsTest do
 
   import PathHelpers
 
+  defmacro wrong_doc_baz do
+    quote do
+      @doc "Wrong doc"
+      @doc since: "1.2"
+      def baz(_arg)
+      def baz(arg), do: arg + 1
+    end
+  end
+
   test "attributes format" do
     defmodule DocAttributes do
       @moduledoc "Module doc"
@@ -192,13 +201,11 @@ defmodule Kernel.DocsTest do
           @doc "Multiple function head doc"
           @deprecated "something else"
           def bar(_arg)
-          def bar(_arg)
           def bar(arg), do: arg + 1
 
-          @doc "Wrong doc"
-          @doc since: "1.2"
-          def baz(_arg)
-          def baz(arg), do: arg + 1
+          require Kernel.DocsTest
+          Kernel.DocsTest.wrong_doc_baz()
+
           @doc "Multiple function head and docs"
           @doc since: "1.2.3"
           def baz(_arg)

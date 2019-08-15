@@ -679,7 +679,7 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
-  test "empty clause" do
+  test "empty function head" do
     assert capture_err(fn ->
              Code.eval_string("""
              defmodule Sample1 do
@@ -689,6 +689,30 @@ defmodule Kernel.WarningTest do
            end) =~ "implementation not provided for predefined def hello/0"
   after
     purge(Sample1)
+  end
+
+  test "late function heads" do
+    assert capture_err(fn ->
+             Code.eval_string("""
+             defmodule Sample1 do
+               use Task
+               @doc "hello"
+               def child_spec(opts)
+             end
+             """)
+           end) =~ ""
+
+    assert capture_err(fn ->
+             Code.eval_string("""
+             defmodule Sample2 do
+               def child_spec(spec), do: spec
+               @doc "hello"
+               def child_spec(opts)
+             end
+             """)
+           end) =~ ""
+  after
+    purge([Sample1, Sample2])
   end
 
   test "used import via alias" do
@@ -781,23 +805,14 @@ defmodule Kernel.WarningTest do
 
     assert capture_err(fn ->
              Code.eval_string(~S"""
-             defmodule Sample1 do
+             defmodule Sample do
                def hello(arg \\ 0), do: arg
                def hello(arg), do: arg
              end
              """)
            end) =~ message
-
-    assert capture_err(fn ->
-             Code.eval_string(~S"""
-               defmodule Sample2 do
-                 def hello(arg \\ 0), do: arg
-                 def hello(_arg)
-               end
-             """)
-           end) == ""
   after
-    purge([Sample1, Sample2])
+    purge(Sample)
   end
 
   test "unused with local with overridable" do

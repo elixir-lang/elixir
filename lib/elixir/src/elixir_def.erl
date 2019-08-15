@@ -247,9 +247,9 @@ store_definition(Check, Kind, Meta, Name, Arity, File, Module, Defaults, Clauses
     case ets:lookup(Set, {def, Tuple}) of
       [{_, StoredKind, StoredMeta, StoredFile, StoredCheck, {StoredDefaults, LastHasBody, LastDefaults}}] ->
         check_valid_kind(Meta, File, Name, Arity, Kind, StoredKind),
-        (Check and StoredCheck) andalso
-          check_valid_clause(Meta, File, Name, Arity, Kind, Set, StoredMeta, StoredFile),
         check_valid_defaults(Meta, File, Name, Arity, Kind, Defaults, StoredDefaults, LastDefaults, HasBody, LastHasBody),
+        (Check and StoredCheck) andalso
+          check_valid_clause(Meta, File, Name, Arity, Kind, Set, StoredMeta, StoredFile, Clauses),
 
         {max(Defaults, StoredDefaults), StoredMeta};
       [] ->
@@ -309,10 +309,15 @@ check_valid_kind(Meta, File, Name, Arity, Kind, StoredKind) ->
   elixir_errors:form_error(Meta, File, ?MODULE,
     {changed_kind, {Name, Arity, StoredKind, Kind}}).
 
-check_valid_clause(Meta, File, Name, Arity, Kind, Set, StoredMeta, StoredFile) ->
+check_valid_clause(Meta, File, Name, Arity, Kind, Set, StoredMeta, StoredFile, Clauses) ->
   case ets:lookup_element(Set, ?last_def, 2) of
-    none -> ok;
-    {Name, Arity} -> ok;
+    none ->
+      ok;
+    {Name, Arity} when Clauses == [] ->
+      elixir_errors:form_warn(Meta, File, ?MODULE,
+        {late_function_head, {Kind, Name, Arity}});
+    {Name, Arity} ->
+      ok;
     {Name, _} ->
       Relative = elixir_utils:relative_to_cwd(StoredFile),
       elixir_errors:form_warn(Meta, File, ?MODULE,
@@ -433,6 +438,18 @@ format_error({ungrouped_name, {Kind, Name, Arity, OrigLine, OrigFile}}) ->
 format_error({ungrouped_arity, {Kind, Name, Arity, OrigLine, OrigFile}}) ->
   io_lib:format("clauses with the same name and arity (number of arguments) should be grouped together, \"~ts ~ts/~B\" was previously defined (~ts:~B)",
     [Kind, Name, Arity, OrigFile, OrigLine]);
+
+format_error({late_function_head, {Kind, Name, Arity}}) ->
+  io_lib:format("function head for ~ts ~ts/~B must come at the top of its direct implementation. Instead of:\n"
+    "\n"
+    "    def add(a, b), do: a + b\n"
+    "    def add(a, b)\n"
+    "\n"
+    "one should write:\n"
+    "\n"
+    "    def add(a, b)\n"
+    "    def add(a, b), do: a + b\n",
+    [Kind, Name, Arity]);
 
 format_error({changed_kind, {Name, Arity, Previous, Current}}) ->
   io_lib:format("~ts ~ts/~B already defined as ~ts", [Current, Name, Arity, Previous]);
