@@ -97,7 +97,7 @@ defmodule List do
       [1097, 1098, 1099]
 
   You can use the `IEx.Helpers.i/1` helper to get a condensed rundown on
-  charlists in iex when you encounter them:
+  charlists in IEx when you encounter them:
 
       > i 'abc'
       Term
