@@ -695,24 +695,32 @@ defmodule Kernel.WarningTest do
     assert capture_err(fn ->
              Code.eval_string("""
              defmodule Sample1 do
-               use Task
+               defmacro __using__(_) do
+                 quote do
+                   def add(a, b), do: a + b
+                 end
+               end
+             end
+
+             defmodule Sample2 do
+               use Sample1
                @doc "hello"
-               def child_spec(opts)
+               def add(a, b)
              end
              """)
-           end) =~ ""
+           end) == ""
 
     assert capture_err(fn ->
              Code.eval_string("""
-             defmodule Sample2 do
-               def child_spec(spec), do: spec
+             defmodule Sample3 do
+               def add(a, b), do: a + b
                @doc "hello"
-               def child_spec(opts)
+               def add(a, b)
              end
              """)
-           end) =~ ""
+           end) =~ "function head for def add/2 must come at the top of its direct implementation"
   after
-    purge([Sample1, Sample2])
+    purge([Sample1, Sample2, Sample3])
   end
 
   test "used import via alias" do
