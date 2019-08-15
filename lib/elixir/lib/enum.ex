@@ -3075,7 +3075,7 @@ defmodule Enum do
   end
 
   defp slice_any(list, start, amount) when is_list(list) do
-    Enumerable.List.slice(list, start, amount)
+    list |> drop_list(start) |> take_list(amount)
   end
 
   defp slice_any(enumerable, start, amount) do
@@ -3108,7 +3108,8 @@ defmodule Enum do
   end
 
   defp slice_count_and_fun(enumerable) when is_list(enumerable) do
-    {length(enumerable), &Enumerable.List.slice(enumerable, &1, &2)}
+    length = length(enumerable)
+    {length, &Enumerable.List.slice(enumerable, &1, &2, length)}
   end
 
   defp slice_count_and_fun(enumerable) do
@@ -3122,7 +3123,7 @@ defmodule Enum do
             {:cont, {[elem | acc], count + 1}}
           end)
 
-        {count, &Enumerable.List.slice(:lists.reverse(list), &1, &2)}
+        {count, &Enumerable.List.slice(:lists.reverse(list), &1, &2, count)}
     end
   end
 
@@ -3324,10 +3325,16 @@ defimpl Enumerable, for: List do
   def reduce([head | tail], {:cont, acc}, fun), do: reduce(tail, fun.(head, acc), fun)
 
   @doc false
-  def slice([], _start, _count), do: []
-  def slice(_list, _start, 0), do: []
-  def slice([head | tail], 0, count), do: [head | slice(tail, 0, count - 1)]
-  def slice([_head | tail], start, count), do: slice(tail, start - 1, count)
+  def slice([], _start, _count, _size), do: []
+  def slice(_list, _start, 0, _size), do: []
+  def slice(list, start, count, count), do: list |> drop(start)
+  def slice(list, start, count, _size), do: list |> drop(start) |> take(count)
+
+  defp drop(list, 0), do: list
+  defp drop([_ | tail], count), do: drop(tail, count - 1)
+
+  defp take(_list, 0), do: []
+  defp take([head | tail], count), do: [head | take(tail, count - 1)]
 end
 
 defimpl Enumerable, for: Map do
@@ -3344,7 +3351,8 @@ defimpl Enumerable, for: Map do
   end
 
   def slice(map) do
-    {:ok, map_size(map), &Enumerable.List.slice(:maps.to_list(map), &1, &2)}
+    size = map_size(map)
+    {:ok, size, &Enumerable.List.slice(:maps.to_list(map), &1, &2, size)}
   end
 
   def reduce(map, acc, fun) do
