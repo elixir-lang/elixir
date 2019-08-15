@@ -494,9 +494,7 @@ defmodule Mix.Tasks.Release do
   will receive a `Mix.Release` struct and must return the same or
   an updated `Mix.Release` struct. It is also possible to build a tarball
   of the release by passing the `:tar` step anywhere after `:assemble`.
-  The tarball is created in `_build/MIX_ENV/rel/RELEASE_NAME/releases/RELEASE_VSN/RELEASE_NAME.tar.gz`
-
-
+  The tarball is created in `_build/MIX_ENV/rel/RELEASE_NAME-RELEASE_VSN.tar.gz`
 
   See `Mix.Release` for more documentation on the struct and which
   fields can be modified. Note that `:steps` field itself can be
@@ -1016,8 +1014,8 @@ defmodule Mix.Tasks.Release do
   end
 
   defp make_tar(release) do
-    tar_filename = "#{release.name}.tar.gz"
-    out_path = Path.join(release.path, tar_filename)
+    tar_filename = "#{release.name}-#{release.version}.tar.gz"
+    out_path = Path.join([release.path, "..", "..", tar_filename]) |> Path.expand()
     info(release, [:green, "* building ", :reset, out_path])
 
     lib_dirs =
@@ -1038,8 +1036,8 @@ defmodule Mix.Tasks.Release do
     files =
       Enum.map(dirs, &{String.to_charlist(&1), String.to_charlist(Path.join(release.path, &1))})
 
+    File.rm(out_path)
     :ok = :erl_tar.create(String.to_charlist(out_path), files, [:dereference, :compressed])
-    :ok = File.rename(out_path, Path.join(release.version_path, tar_filename))
     release
   end
 

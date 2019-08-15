@@ -52,15 +52,12 @@ defmodule Mix.Tasks.ReleaseTest do
           File.touch(Path.join(ignored_release_path, "ignored"))
 
           Mix.Task.run("release")
-          message = "* building #{root}/demo.tar.gz"
+          tar_path = Path.expand(Path.join([root, "..", "..", "demo-0.1.0.tar.gz"]))
+          message = "* building #{tar_path}"
           assert_received {:mix_shell, :info, [^message]}
-          assert root |> Path.join("releases/0.1.0/demo.tar.gz") |> File.exists?()
+          assert File.exists?(tar_path)
 
-          {:ok, files} =
-            root
-            |> Path.join("releases/0.1.0/demo.tar.gz")
-            |> String.to_charlist()
-            |> :erl_tar.table([:compressed])
+          {:ok, files} = String.to_charlist(tar_path) |> :erl_tar.table([:compressed])
 
           files = Enum.map(files, &to_string/1)
           files_with_versions = File.ls!(Path.join(root, "lib"))
