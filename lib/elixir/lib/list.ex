@@ -88,6 +88,34 @@ defmodule List do
       iex> 'abc'
       'abc'
 
+  Even though the representation changed the raw data does remain a list of
+  numbers, which can be handled as such:
+
+      iex> inspect('abc', charlists: :as_list)
+      "[97, 98, 99]"
+      iex> Enum.map('abc', fn num -> 1000 + num end)
+      [1097, 1098, 1099]
+
+  You can use the `IEx.Helpers.i/1` helper to get a condensed rundown on
+  charlists in iex when you encounter them:
+
+      iex> i 'abc'
+      Term
+        'abc'
+      Data type
+        List
+      Description
+        This is a list of integers that is printed as a sequence of characters
+        delimited by single quotes because all the integers in it represent printable
+        ASCII characters. Conventionally, a list of Unicode code points is known as a
+        charlist and a list of ASCII characters is a subset of it.
+      Raw representation
+        [97, 98, 99]
+      Reference modules
+        List
+      Implemented protocols
+        Collectable, Enumerable, IEx.Info, Inspect, List.Chars, String.Chars
+
   The rationale behind this behaviour is to better support
   Erlang libraries which may return text as charlists
   instead of Elixir strings. One example of such functions
