@@ -118,8 +118,9 @@ defmodule List do
 
   The rationale behind this behaviour is to better support
   Erlang libraries which may return text as charlists
-  instead of Elixir strings. One example of such functions
-  is `Application.loaded_applications/0`:
+  instead of Elixir strings. In Erlang charlists are the default
+  way of handling strings, while in Elixir it's binaries. One
+  example of such functions is `Application.loaded_applications/0`:
 
       Application.loaded_applications()
       #=>  [
