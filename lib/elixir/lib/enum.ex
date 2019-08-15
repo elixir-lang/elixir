@@ -3327,7 +3327,7 @@ defimpl Enumerable, for: List do
   @doc false
   def slice([], _start, _count, _size), do: []
   def slice(_list, _start, 0, _size), do: []
-  def slice(list, start, count, count), do: list |> drop(start)
+  def slice(list, start, count, size) when start + count == size, do: list |> drop(start)
   def slice(list, start, count, _size), do: list |> drop(start) |> take(count)
 
   defp drop(list, 0), do: list
