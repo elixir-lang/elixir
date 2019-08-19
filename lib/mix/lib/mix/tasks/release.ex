@@ -491,7 +491,9 @@ defmodule Mix.Tasks.Release do
   can pass anonymous functions before and after the `:assemble` to
   customize your release assembling pipeline. Those anonymous functions
   will receive a `Mix.Release` struct and must return the same or
-  an updated `Mix.Release` struct.
+  an updated `Mix.Release` struct. It is also possible to build a tarball
+  of the release by passing the `:tar` step anywhere after `:assemble`.
+  The tarball is created in `_build/MIX_ENV/rel/RELEASE_NAME-RELEASE_VSN.tar.gz`
 
   See `Mix.Release` for more documentation on the struct and which
   fields can be modified. Note that `:steps` field itself can be
@@ -953,6 +955,10 @@ defmodule Mix.Tasks.Release do
     end
   end
 
+  defp run_steps(%{steps: [:tar | steps]} = release) do
+    %{release | steps: steps} |> make_tar() |> run_steps()
+  end
+
   defp run_steps(%{steps: [:assemble | steps]} = release) do
     %{release | steps: steps} |> assemble() |> run_steps()
   end
@@ -1003,6 +1009,34 @@ defmodule Mix.Tasks.Release do
     |> Task.async_stream(&copy(&1, release), ordered: false, timeout: :infinity)
     |> Stream.run()
 
+    release
+  end
+
+  defp make_tar(release) do
+    tar_filename = "#{release.name}-#{release.version}.tar.gz"
+    out_path = Path.join([release.path, "..", "..", tar_filename]) |> Path.expand()
+    info(release, [:green, "* building ", :reset, out_path])
+
+    lib_dirs =
+      Enum.reduce(release.applications, [], fn {name, app_config}, acc ->
+        vsn = Keyword.fetch!(app_config, :vsn)
+        [Path.join("lib", "#{name}-#{vsn}") | acc]
+      end)
+
+    release_files =
+      for basename <- File.ls!(Path.join(release.path, "releases")),
+          not File.dir?(Path.join([release.path, "releases", basename])),
+          do: Path.join("releases", basename)
+
+    dirs =
+      ["bin", Path.join("releases", release.version), "erts-#{release.erts_version}"] ++
+        lib_dirs ++ release_files
+
+    files =
+      Enum.map(dirs, &{String.to_charlist(&1), String.to_charlist(Path.join(release.path, &1))})
+
+    File.rm(out_path)
+    :ok = :erl_tar.create(String.to_charlist(out_path), files, [:dereference, :compressed])
     release
   end
 

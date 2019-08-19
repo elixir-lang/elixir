@@ -25,7 +25,8 @@ defmodule Mix.Release do
       and `term` is the value given to it on `c:Config.Provider.init/1`
     * `:options` - a keyword list with all other user supplied release options
     * `:steps` - a list of functions that receive the release and returns a release.
-      Must also contain the atom `:assemble` which is the internal assembling step
+      Must also contain the atom `:assemble` which is the internal assembling step.
+      May also contain the atom `:tar` to create a tarball of the release.
 
   """
   defstruct [
@@ -329,12 +330,14 @@ defmodule Mix.Release do
   end
 
   defp validate_steps!(steps) do
-    if not is_list(steps) or Enum.any?(steps, &(&1 != :assemble and not is_function(&1, 1))) do
+    valid_atoms = [:assemble, :tar]
+
+    if not is_list(steps) or Enum.any?(steps, &(&1 not in valid_atoms and not is_function(&1, 1))) do
       Mix.raise("""
         The :steps option must be a list of:
 
         * anonymous function that receives one argument
-        * the atom :assemble
+        * the atom :assemble or :tar
 
       Got: #{inspect(steps)}
       """)
@@ -342,6 +345,14 @@ defmodule Mix.Release do
 
     if Enum.count(steps, &(&1 == :assemble)) != 1 do
       Mix.raise("The :steps option must contain the atom :assemble once, got: #{inspect(steps)}")
+    end
+
+    if :assemble in Enum.drop_while(steps, &(&1 != :tar)) do
+      Mix.raise("The :tar step must come after :assemble")
+    end
+
+    if Enum.count(steps, &(&1 == :tar)) > 1 do
+      Mix.raise("The :steps option can only contain the atom :tar once")
     end
 
     :ok

@@ -36,6 +36,49 @@ defmodule Mix.Tasks.ReleaseTest do
       end)
     end
 
+    test "tar" do
+      in_fixture("release_test", fn ->
+        config = [releases: [demo: [steps: [:assemble, :tar]]]]
+
+        Mix.Project.in_project(:release_test, ".", config, fn _ ->
+          root = Path.absname("_build/#{Mix.env()}/rel/demo")
+
+          ignored_app_path = Path.join([root, "lib", "ignored_app-0.1.0", "ebin"])
+          File.mkdir_p!(ignored_app_path)
+          File.touch(Path.join(ignored_app_path, "ignored_app.app"))
+
+          ignored_release_path = Path.join([root, "releases", "ignored_dir"])
+          File.mkdir_p!(ignored_release_path)
+          File.touch(Path.join(ignored_release_path, "ignored"))
+
+          Mix.Task.run("release")
+          tar_path = Path.expand(Path.join([root, "..", "..", "demo-0.1.0.tar.gz"]))
+          message = "* building #{tar_path}"
+          assert_received {:mix_shell, :info, [^message]}
+          assert File.exists?(tar_path)
+
+          {:ok, files} = String.to_charlist(tar_path) |> :erl_tar.table([:compressed])
+
+          files = Enum.map(files, &to_string/1)
+          files_with_versions = File.ls!(Path.join(root, "lib"))
+
+          assert "bin/demo" in files
+          assert "releases/0.1.0/sys.config" in files
+          assert "releases/0.1.0/vm.args" in files
+          assert "releases/COOKIE" in files
+          assert "releases/start_erl.data" in files
+
+          for dir <- files_with_versions -- ["ignored_app-0.1.0"] do
+            [name | _] = String.split(dir, "-")
+            assert "lib/#{dir}/ebin/#{name}.app" in files
+          end
+
+          refute "lib/ignored_app-0.1.0/ebin/ignored_app.app" in files
+          refute "releases/ignored_dir/ignored" in files
+        end)
+      end)
+    end
+
     test "steps" do
       in_fixture("release_test", fn ->
         last_step = fn release ->
