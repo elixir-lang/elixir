@@ -7,24 +7,43 @@
 #### Elixir
 
   * [Code] Add `:token_metadata` and `:literal_encoder` support to `Code.string_to_quoted/2`
+  * [Code] Add compiler tracing to lift events done by the compiler
   * [DateTime] Add `DateTime.now!/2` and `DateTime.shift_zone!/3`
+  * [Exception] Add version alonside app names in stacktraces
+  * [Function] Add `Function.identity/1`
+  * [Kernel] Warn when function head comes immediately after the implementation instead of before the implementation
+  * [Keyword] Add `Keyword.pop!/2` and `Keyword.pop_values/2`
+  * [Map] Add `Map.pop!/2`
   * [Module] Add `Module.has_attribute?/2`
   * [Module] Add `@compile {:no_warn_undefined, mfa_or_module}` to turn off undefined function warnings
   * [String] Update to Unicode 12.1
+  * [StringIO] Add `:encoding` option to StringIO and optimize `get_chars` operation
+
+#### ExUnit
+
+  * [ExUnit.Assertions] Support diffs in pattern matching and in `assert_receive`
 
 #### Mix
 
-  * [mix deps.unlock] Add `--check-unused` flag
+  * [mix deps.compile] Add `--skip-umbrella-apps` flag. The new flag does not compile umbrella apps. This is useful for building caches in CD/CI pipelines.
+  * [mix deps.unlock] Add `--check-unused` flag. The new flag raises if there are any unused dependencies in the lock file.
+  * [mix release] Allow `{:from_app, app_name}` as a version for releases
 
 ### 2. Bug fixes
+
+#### Elixir
+
+  * [Module] Raise instead of silently failing when performing a write during after-compile
 
 #### IEx
 
   * [IEx] Exit IEx session if the group leader exits
+  * [IEx] Allow `pry` to be used in non-tty terminals
 
 #### Mix
 
   * [Mix.Project] Make sure `MIX_BUILD_PATH` specifies only the `build_path` prefix and that env+target are still concatenated
+  * [Mix.Task] Always recompile before running tasks from dependencies
 
 ### 3. Soft-deprecations (no warnings emitted)
 
