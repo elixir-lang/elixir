@@ -184,6 +184,14 @@ defmodule Mix.ReleaseTest do
                    fn -> release(steps: [:assemble, :assemble]) end
 
       assert_raise Mix.Error,
+                   ~r"The :tar step must come after :assemble",
+                   fn -> release(steps: [:tar, :assemble]) end
+
+      assert_raise Mix.Error,
+                   ~r"The :steps option can only contain the atom :tar once",
+                   fn -> release(steps: [:assemble, :tar, :tar]) end
+
+      assert_raise Mix.Error,
                    ~r"The :steps option must be",
                    fn -> release(steps: [:foo]) end
     end
