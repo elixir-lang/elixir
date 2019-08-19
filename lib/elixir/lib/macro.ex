@@ -1478,18 +1478,43 @@ defmodule Macro do
   def operator?(name, arity) when is_atom(name) and is_integer(arity), do: false
 
   @doc """
-  Returns `true` if the given quoted expression is an AST literal.
+  Returns `true` if the given quoted expression represents a quoted literal.
+
+  Atoms, numbers, and functions are always literals. Binaries, lists, tuples,
+  maps, and structs are only literals if all of their terms are also literals.
+
+  ## Examples
+
+      iex> Macro.quoted_literal?(quote(do: "foo"))
+      true
+      iex> Macro.quoted_literal?(quote(do: {"foo", 1}))
+      true
+      iex> Macro.quoted_literal?(quote(do: %{foo: "bar"}))
+      true
+      iex> Macro.quoted_literal?(quote(do: %URI{path: "/"}))
+      true
+      iex> Macro.quoted_literal?(quote(do: URI.parse("/")))
+      false
+      iex> Macro.quoted_literal?(quote(do: {foo, var}))
+      false
+
   """
   @doc since: "1.7.0"
   @spec quoted_literal?(t) :: boolean
   def quoted_literal?(term)
 
+  def quoted_literal?({:__aliases__, _, args}),
+    do: quoted_literal?(args)
+
+  def quoted_literal?({:%, _, [left, right]}),
+    do: quoted_literal?(left) and quoted_literal?(right)
+
+  def quoted_literal?({:%{}, _, args}), do: quoted_literal?(args)
   def quoted_literal?({left, right}), do: quoted_literal?(left) and quoted_literal?(right)
   def quoted_literal?(list) when is_list(list), do: Enum.all?(list, &quoted_literal?/1)
 
-  def quoted_literal?(term) do
-    is_atom(term) or is_number(term) or is_binary(term) or is_function(term)
-  end
+  def quoted_literal?(term),
+    do: is_atom(term) or is_number(term) or is_binary(term) or is_function(term)
 
   @doc """
   Receives an AST node and expands it until it can no longer

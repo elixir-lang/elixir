@@ -671,65 +671,50 @@ defmodule ExUnit.Diff do
 
   # Structs
 
-  defp compare_struct({:%, _, [struct1, left_map]}, %struct2{} = right, env) do
-    compare_struct(left_map, Map.from_struct(right), struct1, struct2, env)
-  end
-
   defp compare_struct({:%, _, [struct1, left_map]}, right, env) do
-    compare_struct(left_map, right, struct1, nil, env)
+    compare_quoted_struct(left_map, struct1, right, env)
   end
 
-  defp compare_struct({:%{}, _, [{:__struct__, struct1} | left_items]}, %struct2{} = right, env) do
-    compare_struct({:%{}, [], left_items}, right, struct1, struct2, env)
-  end
-
-  defp compare_struct(%struct1{} = left, %struct2{} = right, env) do
-    compare_struct(left, right, struct1, struct2, env)
-  end
-
-  defp compare_struct(%struct1{} = left, right, env) do
-    compare_struct(left, right, struct1, nil, env)
-  end
-
-  defp compare_struct(left, %struct2{} = right, env) do
-    compare_map(left, right, nil, struct2, env)
+  defp compare_struct({:%{}, meta, [{:__struct__, struct1} | left_items]}, right, env) do
+    compare_quoted_struct({:%{}, meta, left_items}, struct1, right, env)
   end
 
   defp compare_struct(left, right, env) do
-    compare_map(left, right, nil, nil, env)
+    compare_struct(
+      left,
+      Map.from_struct(left),
+      right,
+      maybe_struct(left),
+      maybe_struct(right),
+      env
+    )
   end
 
-  defp compare_struct(%{} = left, right, struct1, struct2, env) do
-    if Inspect.impl_for(left) not in [Inspect.Any, Inspect.Map] do
-      inspect_left = inspect(left)
+  defp compare_struct(%{} = value, left, right, struct1, struct2, env) do
+    if Inspect.impl_for(value) not in [Inspect.Any, Inspect.Map] do
+      inspect_left = inspect(value)
       inspect_right = inspect(right)
 
       if inspect_left != inspect_right do
         compare_string(inspect_left, inspect_right, ?\", env)
       else
-        compare_map(Map.from_struct(left), right, struct1, struct2, env)
+        compare_map(left, right, struct1, struct2, env)
       end
     else
-      compare_map(Map.from_struct(left), right, struct1, struct2, env)
+      compare_map(left, right, struct1, struct2, env)
     end
   end
 
-  defp compare_struct(left_map, right, struct1, struct2, env) do
-    try do
-      pid = self()
-
-      ExUnit.CaptureIO.capture_io(:stderr, fn ->
-        {items, _} = Code.eval_quoted(left_map)
-        send(pid, {:struct, struct(struct1, items)})
-      end)
-
-      receive do
-        {:struct, left} -> compare_struct(left, right, struct1, struct2, env)
-      end
-    rescue
-      _ -> compare_map(left_map, right, struct1, struct2, env)
+  defp compare_quoted_struct({:%{}, _, kw} = map, struct, right, env) do
+    if Macro.quoted_literal?(kw) do
+      compare_struct(struct(struct, kw), map, right, struct, maybe_struct(right), env)
+    else
+      compare_map(map, right, struct, maybe_struct(right), env)
     end
   end
+
+  defp maybe_struct(%name{}), do: name
+  defp maybe_struct(_), do: nil
 
   defp build_struct_result(nil, nil) do
     %__MODULE__{equivalent?: true}
