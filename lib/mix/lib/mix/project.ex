@@ -376,7 +376,8 @@ defmodule Mix.Project do
   """
   @spec deps_path(keyword) :: Path.t()
   def deps_path(config \\ config()) do
-    Path.expand(config[:deps_path])
+    dir = System.get_env("MIX_DEPS_PATH") || config[:deps_path]
+    Path.expand(dir)
   end
 
   @doc """

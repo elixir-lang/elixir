@@ -235,6 +235,7 @@ defmodule Mix do
 
     * `MIX_ARCHIVES` - specifies the directory into which the archives should be installed
     * `MIX_BUILD_PATH` - sets the project `Mix.Project.build_path/0` config
+    * `MIX_DEPS_PATH` - sets the project `Mix.Project.deps_path/0` config
     * `MIX_DEBUG` - outputs debug information about each task before running it
     * `MIX_ENV` - specifies which environment should be used. See [Environments](#module-environments)
     * `MIX_TARGET` - specifies which target should be used. See [Targets](#module-targets)

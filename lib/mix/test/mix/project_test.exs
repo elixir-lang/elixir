@@ -37,6 +37,13 @@ defmodule Mix.ProjectTest do
       System.delete_env("MIX_BUILD_PATH")
     end
 
+    test "considers MIX_DEPS_PATH" do
+      System.put_env("MIX_DEPS_PATH", "test_deps_path")
+      assert Mix.Project.deps_path() == Path.join(File.cwd!(), "test_deps_path")
+    after
+      System.delete_env("MIX_DEPS_PATH")
+    end
+
     test "considers the target" do
       Mix.target(:rpi3)
 
