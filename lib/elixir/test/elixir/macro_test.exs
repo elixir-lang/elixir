@@ -939,6 +939,8 @@ defmodule MacroTest do
   test "quoted_literal?/1" do
     assert Macro.quoted_literal?(quote(do: "foo"))
     assert Macro.quoted_literal?(quote(do: {"foo", 1}))
+    assert Macro.quoted_literal?(quote(do: %{foo: "bar"}))
+    assert Macro.quoted_literal?(quote(do: %URI{path: "/"}))
     refute Macro.quoted_literal?(quote(do: {"foo", var}))
   end
 

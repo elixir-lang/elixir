@@ -7,7 +7,7 @@ defmodule ExUnit.DiffTest do
   alias ExUnit.{Assertions, Diff}
 
   defmodule User do
-    defstruct [:age]
+    defstruct [:name, :age]
   end
 
   defmodule Person do
@@ -451,7 +451,7 @@ defmodule ExUnit.DiffTest do
     refute_diff(
       %User{age: 16} = %User{age: 21},
       "%ExUnit.DiffTest.User{age: 1-6-}",
-      "%ExUnit.DiffTest.User{age: +2+1}"
+      "%ExUnit.DiffTest.User{age: +2+1, name: nil}"
     )
 
     refute_diff(
@@ -475,18 +475,17 @@ defmodule ExUnit.DiffTest do
     refute_diff(
       %{age: 16, __struct__: Person} = %User{age: 16},
       "%-ExUnit.DiffTest.Person-{age: 16}",
-      "%+ExUnit.DiffTest.User+{age: 16}"
+      "%+ExUnit.DiffTest.User+{age: 16, name: nil}"
     )
 
-    pins = [tweety_one: 21]
-
-    assert_diff(%User{age: ^tweety_one} = %User{age: 21}, [], pins)
+    pins = [twenty_one: 21]
+    assert_diff(%User{age: ^twenty_one} = %User{age: 21}, [], pins)
     assert_diff(%User{age: age} = %User{age: 21}, [age: 21], pins)
 
     refute_diff(
-      %User{^tweety_one => 21} = %User{age: 21},
-      "%ExUnit.DiffTest.User{-^tweety_one => 21-}",
-      "%ExUnit.DiffTest.User{age: 21}",
+      %User{^twenty_one => 21} = %User{age: 21},
+      "%ExUnit.DiffTest.User{-^twenty_one => 21-}",
+      "%ExUnit.DiffTest.User{age: 21, name: nil}",
       pins
     )
 
@@ -495,23 +494,23 @@ defmodule ExUnit.DiffTest do
 
   test "structs outside of match context" do
     assert_diff(%User{age: 16} == %User{age: 16}, [])
-    assert_diff(%{age: 16, __struct__: User} == %User{age: 16}, [])
+    assert_diff(%{age: 16, __struct__: User, name: nil} == %User{age: 16}, [])
 
     refute_diff(
       %User{age: 16} == %{age: 16},
-      "%-ExUnit.DiffTest.User-{age: 16}",
+      "%-ExUnit.DiffTest.User-{age: 16, -name: nil-}",
       "%{age: 16}"
     )
 
     refute_diff(
       %User{age: 16} == %User{age: 21},
-      "%ExUnit.DiffTest.User{age: 1-6-}",
-      "%ExUnit.DiffTest.User{age: +2+1}"
+      "%ExUnit.DiffTest.User{age: 1-6-, name: nil}",
+      "%ExUnit.DiffTest.User{age: +2+1, name: nil}"
     )
 
     refute_diff(
       %User{age: 16} == %Person{age: 21},
-      "%-ExUnit.DiffTest.User-{age: 1-6-}",
+      "%-ExUnit.DiffTest.User-{age: 1-6-, -name: nil-}",
       "%+ExUnit.DiffTest.Person+{age: +2+1}"
     )
   end
