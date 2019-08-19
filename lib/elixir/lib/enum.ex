@@ -1296,7 +1296,7 @@ defmodule Enum do
       "1 = 2 = 3"
 
   """
-  @spec join(t, String.t()) :: String.t()
+  @spec join(t, String.Chars.t()) :: String.t()
   def join(enumerable, joiner \\ "")
 
   def join(enumerable, joiner) when is_binary(joiner) do
@@ -1398,7 +1398,7 @@ defmodule Enum do
       "2 = 4 = 6"
 
   """
-  @spec map_join(t, String.t(), (element -> String.Chars.t())) :: String.t()
+  @spec map_join(t, String.Chars.t(), (element -> String.Chars.t())) :: String.t()
   def map_join(enumerable, joiner \\ "", mapper)
 
   def map_join(enumerable, joiner, mapper) when is_binary(joiner) do
