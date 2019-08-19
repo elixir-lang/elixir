@@ -6,6 +6,12 @@ defmodule List.Chars.AtomTest do
   test "basic" do
     assert to_charlist(:foo) == 'foo'
   end
+
+  test "true false nil" do
+    assert to_charlist(false) == 'false'
+    assert to_charlist(true) == 'true'
+    assert to_charlist(nil) == ''
+  end
 end
 
 defmodule List.Chars.BitStringTest do
