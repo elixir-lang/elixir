@@ -153,8 +153,8 @@ defmodule ExUnit.Formatter do
       left: left,
       right: right
     ]
-    |> format_meta(formatter, label_padding_size)
-    |> make_into_lines(counter_padding)
+    |> format_meta(formatter, counter_padding, label_padding_size)
+    |> IO.iodata_to_binary()
   end
 
   @doc false
@@ -236,9 +236,9 @@ defmodule ExUnit.Formatter do
 
   defp blame_match(_, string, _formatter), do: string
 
-  defp format_meta(fields, formatter, padding_size) do
+  defp format_meta(fields, formatter, padding, padding_size) do
     for {label, value} <- fields, has_value?(value) do
-      format_label(label, formatter, padding_size) <> value
+      [padding, format_label(label, formatter, padding_size), value, "\n"]
     end
   end
 
@@ -283,7 +283,7 @@ defmodule ExUnit.Formatter do
         """
       end
 
-    "\n" <> IO.iodata_to_binary(entries)
+    ["\n" | entries]
   end
 
   defp code_multiline(expr, padding_size) when is_binary(expr) do
@@ -300,15 +300,13 @@ defmodule ExUnit.Formatter do
   end
 
   defp inspect_multiline(expr, padding_size, width) do
-    padding = String.duplicate(" ", padding_size)
     width = if width == :infinity, do: width, else: width - padding_size
 
-    inspect(expr, pretty: true, width: width)
-    |> String.replace("\n", "\n" <> padding)
-  end
-
-  defp make_into_lines(reasons, padding) do
-    padding <> Enum.join(reasons, "\n" <> padding) <> "\n"
+    expr
+    |> Algebra.to_doc(%Inspect.Opts{width: width})
+    |> Algebra.group()
+    |> Algebra.nest(padding_size)
+    |> Algebra.format(width)
   end
 
   defp format_sides(struct, formatter, inspect, padding_size, width) do
@@ -320,14 +318,14 @@ defmodule ExUnit.Formatter do
         left =
           result.left
           |> Diff.to_algebra(&colorize_diff_delete(&1, formatter))
+          |> Algebra.nest(padding_size)
           |> Algebra.format(width)
-          |> IO.iodata_to_binary()
 
         right =
           result.right
           |> Diff.to_algebra(&colorize_diff_insert(&1, formatter))
+          |> Algebra.nest(padding_size)
           |> Algebra.format(width)
-          |> IO.iodata_to_binary()
 
         {left, right}
 
