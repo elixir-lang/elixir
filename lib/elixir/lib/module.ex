@@ -137,7 +137,7 @@ defmodule Module do
       end
 
   The Mix compiler automatically looks for calls to deprecated modules
-  and emit warnings during compilation, computed via `mix xref warnings`.
+  and emit warnings during compilation, computed via `mix xref deprecated`.
 
   Using the `@deprecated` attribute will also be reflected in the
   documentation of the given function and macro. You can choose between
