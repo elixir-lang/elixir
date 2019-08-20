@@ -149,8 +149,14 @@ defmodule Protocol.ConsolidationTest do
     assert Inspect in protos
   end
 
-  test "consolidation extracts implementations" do
+  test "consolidation extracts implementations with charlist path" do
     protos = Protocol.extract_impls(Enumerable, [:code.lib_dir(:elixir, :ebin)])
+    assert List in protos
+    assert Function in protos
+  end
+
+  test "consolidation extracts implementations with binary path" do
+    protos = Protocol.extract_impls(Enumerable, [Application.app_dir(:elixir, "ebin")])
     assert List in protos
     assert Function in protos
   end
