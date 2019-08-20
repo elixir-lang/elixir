@@ -332,6 +332,14 @@ defmodule ExUnit.DiffTest do
     )
   end
 
+  test "lists outside of match context" do
+    refute_diff(
+      [:a, {:|, [], [:b, :c]}] == [:a, :b | :c],
+      "[:a, -{:|, [], [:b, :c]}-]",
+      "[:a, +:b+ | +:c+]"
+    )
+  end
+
   test "keyword lists" do
     assert_diff([file: "nofile", line: 1] = [file: "nofile", line: 1], [])
 
@@ -371,7 +379,6 @@ defmodule ExUnit.DiffTest do
     refute_diff({:a, :b} = {:a}, "{:a, -:b-}", "{:a}")
 
     refute_diff({:ok, value} = {:error, :fatal}, "{-:ok-, value}", "{+:error+, :fatal}")
-
     refute_diff({:a, :b} = :a, "-{:a, :b}-", "+:a+")
   end
 
@@ -383,6 +390,7 @@ defmodule ExUnit.DiffTest do
 
     refute_diff({:{}, [], [:a]} == {:a}, "{-:{}-, -[]-, -[:a]-}", "{+:a+}")
     refute_diff({:{}, [], [:a]} == :a, "-{:{}, [], [:a]}-", "+:a+")
+    refute_diff({:a, :b, :c} == {:a, :b, :x}, "{:a, :b, -:c-}", "{:a, :b, +:x+}")
   end
 
   test "maps" do
@@ -736,6 +744,7 @@ defmodule ExUnit.DiffTest do
 
   defp refute_diff(left, right, expected_left, expected_right, context) do
     {diff, _env} = Diff.compute(left, right, context)
+    assert diff.equivalent? == false
 
     diff_left =
       diff.left
@@ -758,7 +767,7 @@ defmodule ExUnit.DiffTest do
     {diff, env} = Diff.compute(left, right, context)
     env_binding = for {{name, _}, value} <- env.current_vars, do: {name, value}
 
-    assert diff.equivalent?
+    assert diff.equivalent? == true
     assert env_binding == expected_binding
   end
 

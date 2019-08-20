@@ -28,118 +28,149 @@ defmodule ExUnit.Diff do
   value. The `context` should be `{:match, pins}` for pattern matching and
   `expr` for any other case.
   """
-  def compute(left, right, :expr) do
-    compare_quoted(left, right, %{pins: %{}, context: nil, current_vars: %{}})
+  def compute(left, right, context) do
+    diff(left, right, context_to_env(context))
   end
 
-  def compute(left, right, {:match, pins}) do
-    compare_quoted(left, right, %{pins: Map.new(pins), context: :match, current_vars: %{}})
-  end
+  defp context_to_env(:expr),
+    do: %{pins: %{}, context: nil, current_vars: %{}}
 
-  defp compare_quoted({:_, _, context} = left, right, env) when is_atom(context) do
+  defp context_to_env({:match, pins}),
+    do: %{pins: Map.new(pins), context: :match, current_vars: %{}}
+
+  # Main entry point for recursive diff
+
+  defp diff(left, right, %{context: :match} = env), do: diff_quoted(left, right, env)
+  defp diff(left, right, env), do: diff_value(left, right, env)
+
+  # diff quoted
+
+  defp diff_quoted({:_, _, context} = left, right, env) when is_atom(context) do
     diff_right = escape(right)
     diff = %__MODULE__{equivalent?: true, left: left, right: diff_right}
     {diff, env}
   end
 
-  defp compare_quoted({:^, _, [{name, _, context}]} = left, right, env)
+  defp diff_quoted({:^, _, [{name, _, context}]} = left, right, env)
        when is_atom(name) and is_atom(context) do
-    compare_pin(left, right, env)
+    diff_pin(left, right, env)
   end
 
-  defp compare_quoted({name, _, context} = left, right, env)
+  defp diff_quoted({name, _, context} = left, right, env)
        when is_atom(name) and is_atom(context) do
-    compare_var(left, right, env)
+    diff_var(left, right, env)
   end
 
-  defp compare_quoted({:-, _, [number]}, right, env)
-       when is_number(number) and is_number(right) do
-    compare_quoted(-number, right, env)
+  defp diff_quoted({:-, _, [number]}, right, env) when is_number(number) do
+    diff_quoted(-number, right, env)
   end
 
-  defp compare_quoted({:+, _, [number]}, right, env)
-       when is_number(number) and is_number(right) do
-    compare_quoted(number, right, env)
+  defp diff_quoted({:+, _, [number]}, right, env) when is_number(number) do
+    diff_quoted(number, right, env)
   end
 
-  defp compare_quoted(literal, literal, env)
-       when is_atom(literal) or is_number(literal) or is_reference(literal) or
-              is_pid(literal) or is_function(literal) do
-    diff = %__MODULE__{equivalent?: true, left: literal, right: literal}
-    {diff, env}
+  defp diff_quoted({:++, _, _} = left, right, env) when is_list(right) do
+    diff_maybe_improper_list(left, right, env)
   end
 
-  defp compare_quoted(left, right, env) when is_number(left) and is_number(right) do
-    compare_number(left, right, env)
+  defp diff_quoted({:{}, _, left}, right, env) when is_tuple(right) do
+    diff_tuple(left, Tuple.to_list(right), env)
   end
 
-  defp compare_quoted({:++, _, _} = left, right, env) when is_list(right) do
-    compare_maybe_improper_list(left, right, env)
+  defp diff_quoted({_, _} = left, right, env) when is_tuple(right) do
+    diff_tuple(Tuple.to_list(left), Tuple.to_list(right), env)
   end
 
-  defp compare_quoted(left, right, env) when is_list(left) and is_list(right) do
-    compare_maybe_list(left, right, env)
+  defp diff_quoted({:%, _, [struct, {:%{}, _, kw}]}, %{} = right, env)
+       when is_atom(struct) and is_list(kw) do
+    diff_quoted_struct(kw, struct, right, env)
   end
 
-  defp compare_quoted({:{}, _, _} = left, right, env) when is_tuple(right) do
-    compare_tuple(left, right, env)
+  defp diff_quoted({:%{}, _, [{:__struct__, struct} | kw]}, %{} = right, env)
+       when is_atom(struct) do
+    diff_quoted_struct(kw, struct, right, env)
   end
 
-  defp compare_quoted({_, _} = left, right, env) when is_tuple(right) do
-    compare_tuple(left, right, env)
+  defp diff_quoted({:%{}, _, items} = left, %struct{} = right, env) when is_list(items) do
+    diff_map(left, right, nil, struct, env)
   end
 
-  defp compare_quoted(left, right, %{context: nil} = env)
-       when is_tuple(left) and is_tuple(right) do
-    compare_tuple(left, right, env)
+  defp diff_quoted({:%{}, _, items} = left, %{} = right, env) when is_list(items) do
+    diff_map(left, right, nil, nil, env)
   end
 
-  defp compare_quoted({:%, _, [_, {:%{}, _, items}]} = left, %{} = right, env)
-       when is_list(items) do
-    compare_struct(left, right, env)
+  defp diff_quoted({:<>, _, _} = left, right, env) when is_binary(right) do
+    diff_string_concat(left, right, env)
   end
 
-  defp compare_quoted({:%{}, _, [{:__struct__, _} | _]} = left, %{} = right, env) do
-    compare_struct(left, right, env)
-  end
-
-  defp compare_quoted({:%{}, _, items} = left, %struct{} = right, env) when is_list(items) do
-    compare_map(left, right, nil, struct, env)
-  end
-
-  defp compare_quoted({:%{}, _, items} = left, %{} = right, env) when is_list(items) do
-    compare_map(left, right, nil, nil, env)
-  end
-
-  defp compare_quoted(%_{} = left, %{} = right, env) do
-    compare_struct(left, right, env)
-  end
-
-  defp compare_quoted(%{} = left, %{} = right, env) do
-    compare_map(left, right, nil, nil, env)
-  end
-
-  defp compare_quoted(left, right, env) when is_binary(left) and is_binary(right) do
-    compare_string(left, right, ?\", env)
-  end
-
-  defp compare_quoted({:<>, _, _} = left, right, env) when is_binary(right) do
-    compare_string_concat(left, right, env)
-  end
-
-  defp compare_quoted({_, [{:expanded, expanded} | _], _} = left, right, env) do
+  defp diff_quoted({_, [{:expanded, expanded} | _], _} = left, right, env) do
     macro = Macro.update_meta(left, &Keyword.delete(&1, :expanded))
-    compare_macro(macro, expanded, right, env)
+    diff_macro(macro, expanded, right, env)
   end
 
-  defp compare_quoted(left, right, %{context: :match} = env) do
+  defp diff_quoted(left, right, env) when is_list(left) and is_list(right) do
+    diff_maybe_list(left, right, env)
+  end
+
+  defp diff_quoted(left, right, env)
+       when is_atom(left) or is_number(left) or is_reference(left) or
+              is_pid(left) or is_function(left) or is_binary(left) do
+    diff_value(left, right, env)
+  end
+
+  defp diff_quoted(left, right, %{context: :match} = env) do
     diff_left = update_diff_meta(left, true)
     diff_right = escape(right) |> update_diff_meta(true)
     diff = %__MODULE__{equivalent?: false, left: diff_left, right: diff_right}
     {diff, env}
   end
 
-  defp compare_quoted(left, right, env) do
+  ## diff_value
+
+  defp diff_value(literal, literal, env)
+       when is_atom(literal) or is_number(literal) or is_reference(literal) or
+              is_pid(literal) or is_function(literal) do
+    {%__MODULE__{equivalent?: true, left: literal, right: literal}, env}
+  end
+
+  defp diff_value(left, right, env) when is_number(left) and is_number(right) do
+    diff_number(left, right, env)
+  end
+
+  defp diff_value(left, right, env) when is_list(left) and is_list(right) do
+    diff_maybe_list(left, right, env)
+  end
+
+  defp diff_value(left, right, env) when is_tuple(left) and is_tuple(right) do
+    diff_tuple(Tuple.to_list(left), Tuple.to_list(right), env)
+  end
+
+  defp diff_value(%left_struct{} = left, %right_struct{} = right, env) do
+    diff_struct(
+      left,
+      Map.from_struct(left),
+      right,
+      left_struct,
+      right_struct,
+      env
+    )
+  end
+
+  defp diff_value(%{} = left, %{} = right, env) do
+    diff_map(
+      Map.delete(left, :__struct__),
+      Map.delete(right, :__struct__),
+      maybe_struct(left),
+      maybe_struct(right),
+      env
+    )
+  end
+
+  defp diff_value(left, right, env) when is_binary(left) and is_binary(right) do
+    diff_string(left, right, ?\", env)
+  end
+
+  defp diff_value(left, right, env) do
     diff_left = escape(left) |> update_diff_meta(true)
     diff_right = escape(right) |> update_diff_meta(true)
     diff = %__MODULE__{equivalent?: false, left: diff_left, right: diff_right}
@@ -148,18 +179,17 @@ defmodule ExUnit.Diff do
 
   # Macros
 
-  defp compare_macro(macro, expanded, right, env) do
-    {diff, post_env} = compare_quoted(expanded, right, env)
-
+  defp diff_macro(macro, expanded, right, env) do
+    {diff, post_env} = diff(expanded, right, env)
     diff_left = update_diff_meta(macro, !diff.equivalent?)
     {%{diff | left: diff_left}, post_env}
   end
 
   # Pins
 
-  defp compare_pin({:^, _, [{name, _, _}]} = pin, right, %{pins: pins} = env) do
+  defp diff_pin({:^, _, [{name, _, _}]} = pin, right, %{pins: pins} = env) do
     %{^name => pin_value} = pins
-    {diff, post_env} = compare_quoted(pin_value, right, env)
+    {diff, post_env} = diff(pin_value, right, env)
 
     diff_left = update_diff_meta(pin, !diff.equivalent?)
     {%{diff | left: diff_left}, post_env}
@@ -167,7 +197,7 @@ defmodule ExUnit.Diff do
 
   # Vars
 
-  defp compare_var({name, meta, context} = left, right, env) do
+  defp diff_var({name, meta, context} = left, right, env) do
     identifier = {name, meta[:counter] || context}
 
     case env.current_vars do
@@ -192,28 +222,19 @@ defmodule ExUnit.Diff do
 
   # Tuples
 
-  defp compare_tuple({:{}, _, left_list}, right, %{context: :match} = env) do
-    compare_tuple_items(left_list, Tuple.to_list(right), env)
-  end
-
-  defp compare_tuple(left, right, env) do
-    compare_tuple_items(Tuple.to_list(left), Tuple.to_list(right), env)
-  end
-
-  defp compare_tuple_items(list_left, list_right, env) do
+  defp diff_tuple(list_left, list_right, env) do
     {compared, non_compared_left, non_compared_right, post_env} =
-      compare_tuple_items_by_index(list_left, list_right, env)
+      diff_tuple_by_index(list_left, list_right, env)
 
-    remaining_diff = compare_tuple_remaining_items(non_compared_left, non_compared_right)
-
+    remaining_diff = diff_tuple_remaining(non_compared_left, non_compared_right)
     {build_tuple_result(compared, remaining_diff), post_env}
   end
 
-  defp compare_tuple_items_by_index(list_left, list_right, env) do
+  defp diff_tuple_by_index(list_left, list_right, env) do
     {compared, non_compared_left, non_compared_right, post_env} =
       Enum.reduce(list_left, {[], [], list_right, env}, fn
         item, {compared, non_compared, [next | continue], acc_env} ->
-          {diff, diff_post_env} = compare_quoted(item, next, acc_env)
+          {diff, diff_post_env} = diff(item, next, acc_env)
           {[diff | compared], non_compared, continue, diff_post_env}
 
         item, {compared, non_compared, [], acc_env} ->
@@ -228,7 +249,7 @@ defmodule ExUnit.Diff do
     }
   end
 
-  defp compare_tuple_remaining_items([], []) do
+  defp diff_tuple_remaining([], []) do
     %__MODULE__{
       equivalent?: true,
       left: {:{}, [], []},
@@ -236,7 +257,7 @@ defmodule ExUnit.Diff do
     }
   end
 
-  defp compare_tuple_remaining_items(left, right) do
+  defp diff_tuple_remaining(left, right) do
     left = Enum.map(left, &update_diff_meta(&1, true))
     right = Enum.map(right, &update_diff_meta(&1, true))
 
@@ -257,11 +278,11 @@ defmodule ExUnit.Diff do
 
   # Lists
 
-  defp compare_maybe_list(left, right, env) do
+  defp diff_maybe_list(left, right, env) do
     if List.ascii_printable?(left) and List.ascii_printable?(right) do
-      compare_string(List.to_string(left), List.to_string(right), ?', env)
+      diff_string(List.to_string(left), List.to_string(right), ?', env)
     else
-      compare_maybe_improper_list(left, right, env)
+      diff_maybe_improper_list(left, right, env)
     end
   end
 
@@ -269,9 +290,9 @@ defmodule ExUnit.Diff do
   # adding them back in the end. When the `left` contains a improper element
   # it will extract forcefully a improper element on the `right` for matching
   # purposes.
-  defp compare_maybe_improper_list(left, right, env) do
-    {parsed_left, improper_left, operators_left, length_left} = parse_list(left, 0)
-    {parsed_right, improper_right, operators_right, _} = parse_list(right, 0)
+  defp diff_maybe_improper_list(left, right, env) do
+    {parsed_left, improper_left, operators_left, length_left} = parse_list(left, 0, env.context)
+    {parsed_right, improper_right, operators_right, _} = parse_list(right, 0, nil)
 
     {parsed_right, improper_right, split?} =
       split_list(parsed_right, length_left, improper_right, improper_left)
@@ -279,7 +300,7 @@ defmodule ExUnit.Diff do
     {parsed_diff, parsed_post_env} = myers_difference_list(parsed_left, parsed_right, env)
 
     {improper_diff, improper_post_env, improper_diff?} =
-      compare_improper(improper_left, improper_right, parsed_post_env, split?)
+      diff_improper(improper_left, improper_right, parsed_post_env, split?)
 
     diff =
       merge_diff(parsed_diff, improper_diff, fn left1, left2, right1, right2 ->
@@ -298,36 +319,36 @@ defmodule ExUnit.Diff do
     {diff, improper_post_env}
   end
 
-  defp compare_improper({:element, left}, {:element, right}, env, split?) do
-    {diff, post_env} = compare_quoted(left, right, env)
+  defp diff_improper({:element, left}, {:element, right}, env, split?) do
+    {diff, post_env} = diff(left, right, env)
     {diff, post_env, split?}
   end
 
-  defp compare_improper({:element, left}, :empty, env, _split?) do
+  defp diff_improper({:element, left}, :empty, env, _split?) do
     diff_left = update_diff_meta(left, true)
     diff = %__MODULE__{equivalent?: false, left: diff_left}
     {diff, env, true}
   end
 
-  defp compare_improper(:empty, {:element, right}, env, _split?) do
+  defp diff_improper(:empty, {:element, right}, env, _split?) do
     diff_right = escape(right) |> update_diff_meta(true)
     diff = %__MODULE__{equivalent?: false, right: diff_right}
     {diff, env, true}
   end
 
-  defp compare_improper(:empty, :empty, env, _split?) do
+  defp diff_improper(:empty, :empty, env, _split?) do
     diff = %__MODULE__{equivalent?: true}
     {diff, env, false}
   end
 
-  defp parse_list([], _index) do
+  defp parse_list([], _index, _context) do
     {[], :empty, nil, 0}
   end
 
-  defp parse_list({:++, _, [left, right]}, _index) do
-    {parsed_left, :empty, operators_left, length_left} = parse_list(left, 0)
+  defp parse_list({:++, _, [left, right]}, _index, :match) do
+    {parsed_left, :empty, operators_left, length_left} = parse_list(left, 0, :match)
 
-    case parse_list(right, 0) do
+    case parse_list(right, 0, :match) do
       {:improper, improper} ->
         operators = {:++, length_left, [operators_left]}
         {parsed_left, {:element, improper}, operators, length_left}
@@ -339,8 +360,8 @@ defmodule ExUnit.Diff do
     end
   end
 
-  defp parse_list([{:|, _, [head, tail]}], index) do
-    case parse_list(tail, 0) do
+  defp parse_list([{:|, _, [head, tail]}], index, :match) do
+    case parse_list(tail, 0, :match) do
       {:improper, improper} ->
         operator = {:|, index, []}
         {[head], {:element, improper}, operator, 1}
@@ -351,8 +372,8 @@ defmodule ExUnit.Diff do
     end
   end
 
-  defp parse_list([head | tail], index) do
-    case parse_list(tail, index + 1) do
+  defp parse_list([head | tail], index, context) do
+    case parse_list(tail, index + 1, context) do
       {:improper, improper} ->
         operator = {:|, index, []}
         {[head], {:element, improper}, operator, 1}
@@ -362,7 +383,7 @@ defmodule ExUnit.Diff do
     end
   end
 
-  defp parse_list(element, _index) do
+  defp parse_list(element, _index, _) do
     {:improper, element}
   end
 
@@ -498,7 +519,7 @@ defmodule ExUnit.Diff do
   end
 
   defp follow_snake({y, [elem1 | rest1], [elem2 | rest2], {edit1, edit2, env}} = path) do
-    {diff, post_env} = compare_quoted(elem1, elem2, env)
+    {diff, post_env} = diff(elem1, elem2, env)
 
     if diff.equivalent? do
       new_edit1 = [{:eq, diff.left} | edit1]
@@ -524,7 +545,7 @@ defmodule ExUnit.Diff do
   end
 
   defp list_script_to_result([{:del, elem1} | rest1], [{:ins, elem2} | rest2], env) do
-    {elem_diff, elem_post_env} = compare_quoted(elem1, elem2, env)
+    {elem_diff, elem_post_env} = diff(elem1, elem2, env)
     {rest_diff, rest_post_env} = list_script_to_result(rest1, rest2, elem_post_env)
 
     {prepend_diff(elem_diff, rest_diff), rest_post_env}
@@ -557,21 +578,21 @@ defmodule ExUnit.Diff do
 
   # Maps
 
-  defp compare_map(%{} = left, right, struct1, struct2, env) do
-    compare_map_items(left, right, struct1, struct2, env)
+  defp diff_map(%{} = left, right, struct1, struct2, env) do
+    diff_map_items(left, right, struct1, struct2, env)
   end
 
-  defp compare_map({:%{}, _, items}, right, struct1, struct2, env) do
-    compare_map_items(items, right, struct1, struct2, env)
+  defp diff_map({:%{}, _, items}, right, struct1, struct2, env) do
+    diff_map_items(items, right, struct1, struct2, env)
   end
 
   # Compare items based on the keys of `left_items` and add the `:diff` meta to
   # the element that it wasn't able to compare.
-  defp compare_map_items(left_items, right, struct1, struct2, env) do
+  defp diff_map_items(left_items, right, struct1, struct2, env) do
     {non_comparable_by_key, remaining, compared, struct1, by_key_post_env} =
-      compare_map_items_by_key(left_items, right, struct1, env)
+      diff_map_items_by_key(left_items, right, struct1, env)
 
-    remaining_diff = compare_map_remaining_pairs(non_comparable_by_key, remaining, env)
+    remaining_diff = diff_map_remaining_pairs(non_comparable_by_key, remaining, env)
 
     struct_diff = build_struct_result(struct1, struct2)
     map_diff = build_map_result(compared, remaining_diff)
@@ -579,7 +600,7 @@ defmodule ExUnit.Diff do
     {prepend_diff(struct_diff, map_diff), by_key_post_env}
   end
 
-  defp compare_map_items_by_key(items, right, defined_struct, env) do
+  defp diff_map_items_by_key(items, right, defined_struct, env) do
     {non_comparable, remaining, compared, items_struct, post_env} =
       Enum.reduce(items, {[], right, [], nil, env}, fn
         {:__struct__, name}, acc ->
@@ -593,7 +614,7 @@ defmodule ExUnit.Diff do
               {[item | non_comparable], remaining, [nil | compared], struct, acc_env}
 
             {popped, new_remaining} ->
-              {diff, diff_post_env} = compare_map_pair(item, {literal_key, popped}, acc_env)
+              {diff, diff_post_env} = diff_map_pair(item, {literal_key, popped}, acc_env)
               {non_comparable, new_remaining, [diff | compared], struct, diff_post_env}
           end
       end)
@@ -611,8 +632,8 @@ defmodule ExUnit.Diff do
     {non_comparable, remaining, compared, defined_struct, post_env}
   end
 
-  defp compare_map_pair({key1, value1}, {key2, value2}, env) do
-    {diff, post_env} = compare_quoted(value1, value2, env)
+  defp diff_map_pair({key1, value1}, {key2, value2}, env) do
+    {diff, post_env} = diff(value1, value2, env)
     diff_left = {key1, diff.left}
     diff_right = {key2, diff.right}
 
@@ -631,7 +652,7 @@ defmodule ExUnit.Diff do
   # Can't compare using `myers_difference_list` because if key and value are
   # equivalent, it gives strange results. It just mark them as different
   # depending on the context, if `:match` only left side, otherwise both sides.
-  defp compare_map_remaining_pairs(remaining, right, env) do
+  defp diff_map_remaining_pairs(remaining, right, env) do
     list_left = Enum.map(remaining, &update_diff_meta(&1, true))
 
     list_right =
@@ -671,45 +692,30 @@ defmodule ExUnit.Diff do
 
   # Structs
 
-  defp compare_struct({:%, _, [struct1, left_map]}, right, env) do
-    compare_quoted_struct(left_map, struct1, right, env)
+  defp diff_quoted_struct(kw, struct1, %struct2{} = right, env) do
+    if Macro.quoted_literal?(kw) do
+      diff_struct(struct(struct1, kw), Map.new(kw), right, struct1, struct2, env)
+    else
+      diff_map(Map.new(kw), right, struct1, struct2, env)
+    end
   end
 
-  defp compare_struct({:%{}, meta, [{:__struct__, struct1} | left_items]}, right, env) do
-    compare_quoted_struct({:%{}, meta, left_items}, struct1, right, env)
+  defp diff_quoted_struct(kw, struct1, right, env) do
+    diff_map(Map.new(kw), right, struct1, nil, env)
   end
 
-  defp compare_struct(left, right, env) do
-    compare_struct(
-      left,
-      Map.from_struct(left),
-      right,
-      maybe_struct(left),
-      maybe_struct(right),
-      env
-    )
-  end
-
-  defp compare_struct(%{} = value, left, right, struct1, struct2, env) do
+  defp diff_struct(%{} = value, left, right, struct1, struct2, env) do
     if Inspect.impl_for(value) not in [Inspect.Any, Inspect.Map] do
       inspect_left = inspect(value)
       inspect_right = inspect(right)
 
       if inspect_left != inspect_right do
-        compare_string(inspect_left, inspect_right, ?\", env)
+        diff_string(inspect_left, inspect_right, ?\", env)
       else
-        compare_map(left, right, struct1, struct2, env)
+        diff_map(left, right, struct1, struct2, env)
       end
     else
-      compare_map(left, right, struct1, struct2, env)
-    end
-  end
-
-  defp compare_quoted_struct({:%{}, _, kw} = map, struct, right, env) do
-    if Macro.quoted_literal?(kw) do
-      compare_struct(struct(struct, kw), map, right, struct, maybe_struct(right), env)
-    else
-      compare_map(map, right, struct, maybe_struct(right), env)
+      diff_map(left, right, struct1, struct2, env)
     end
   end
 
@@ -738,12 +744,12 @@ defmodule ExUnit.Diff do
   defp build_struct_result(struct1, struct2) do
     diff_left = update_diff_meta({:__struct__, struct1}, true)
     diff_right = update_diff_meta({:__struct__, struct2}, true)
-    %__MODULE__{equivalent?: true, left: diff_left, right: diff_right}
+    %__MODULE__{equivalent?: false, left: diff_left, right: diff_right}
   end
 
   # Strings
 
-  defp compare_string(left, right, delimiter, env) do
+  defp diff_string(left, right, delimiter, env) do
     diff =
       cond do
         diff_string?(left, right) ->
@@ -767,25 +773,25 @@ defmodule ExUnit.Diff do
   # Concat all the literals on `left` and split `right` based on the size of
   # that, comparing them and the remaining AST from `left` and the remaining
   # string from `right`.
-  defp compare_string_concat(left, right, env) do
+  defp diff_string_concat(left, right, env) do
     {parsed_left, quoted, indexes, parsed_left_length} = parse_string(left)
 
-    compare_string_concat(parsed_left, quoted, indexes, parsed_left_length, right, env)
+    diff_string_concat(parsed_left, quoted, indexes, parsed_left_length, right, env)
   end
 
-  defp compare_string_concat(left, nil, indexes, _left_length, right, env) do
-    {parsed_diff, parsed_post_env} = compare_string(left, right, ?\", env)
+  defp diff_string_concat(left, nil, indexes, _left_length, right, env) do
+    {parsed_diff, parsed_post_env} = diff_string(left, right, ?\", env)
     left_diff = rebuild_concat_string(parsed_diff.left, nil, indexes)
 
     diff = %__MODULE__{parsed_diff | left: left_diff}
     {diff, parsed_post_env}
   end
 
-  defp compare_string_concat(left, quoted, indexes, left_length, right, env) do
+  defp diff_string_concat(left, quoted, indexes, left_length, right, env) do
     {parsed_right, continue_right} = String.split_at(right, left_length)
 
-    {parsed_diff, parsed_post_env} = compare_string(left, parsed_right, ?\", env)
-    {quoted_diff, quoted_post_env} = compare_quoted(quoted, continue_right, parsed_post_env)
+    {parsed_diff, parsed_post_env} = diff_string(left, parsed_right, ?\", env)
+    {quoted_diff, quoted_post_env} = diff(quoted, continue_right, parsed_post_env)
 
     diff =
       merge_diff(parsed_diff, quoted_diff, fn left1, left2, right1, right2 ->
@@ -905,8 +911,8 @@ defmodule ExUnit.Diff do
 
   # Numbers
 
-  defp compare_number(left, right, env) do
-    {diff, post_env} = compare_string(inspect(left), inspect(right), ?\", env)
+  defp diff_number(left, right, env) do
+    {diff, post_env} = diff_string(inspect(left), inspect(right), ?\", env)
     diff_left = remove_diff_container_meta(diff.left)
     diff_right = remove_diff_container_meta(diff.right)
     {%{diff | left: diff_left, right: diff_right}, post_env}
@@ -1061,13 +1067,11 @@ defmodule ExUnit.Diff do
 
   defp select_list_item_algebra(list) do
     short? = Enum.all?(list, &keyword?/1)
-
     if short?, do: &keyword_to_algebra/2, else: &to_algebra/2
   end
 
   defp select_map_item_to_algebra(list) do
     short? = Enum.all?(list, &keyword?/1)
-
     if short?, do: &keyword_to_algebra/2, else: &map_item_to_algebra/2
   end
 
@@ -1080,35 +1084,12 @@ defmodule ExUnit.Diff do
 
   # Diff helpers
 
-  defp escape([head | tail]) when is_list(tail) do
-    [escape(head) | escape(tail)]
-  end
-
-  defp escape([head | tail]) do
-    [{:|, [], [escape(head), escape(tail)]}]
-  end
-
-  defp escape({a, b}) do
-    {escape(a), escape(b)}
-  end
-
-  defp escape(tuple) when is_tuple(tuple) do
-    list = Tuple.to_list(tuple)
-    {:{}, [], escape(list)}
-  end
-
-  defp escape(%_{} = struct) do
-    {:%{}, [], Map.to_list(struct) |> escape()}
-  end
-
-  defp escape(%{} = map) do
-    list = Map.to_list(map)
-    {:%{}, [], escape(list)}
-  end
-
-  defp escape(other) do
-    other
-  end
+  defp escape([head | tail]) when is_list(tail), do: [escape(head) | escape(tail)]
+  defp escape([head | tail]), do: [{:|, [], [escape(head), escape(tail)]}]
+  defp escape({a, b}), do: {escape(a), escape(b)}
+  defp escape(tuple) when is_tuple(tuple), do: {:{}, [], tuple |> Tuple.to_list() |> escape()}
+  defp escape(%{} = map), do: {:%{}, [], map |> Map.to_list() |> escape()}
+  defp escape(other), do: other
 
   defp merge_diff(%__MODULE__{} = result1, %__MODULE__{} = result2, fun) do
     {left, right} = fun.(result1.left, result2.left, result1.right, result2.right)
