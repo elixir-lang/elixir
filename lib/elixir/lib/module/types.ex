@@ -86,6 +86,26 @@ defmodule Module.Types do
     type
   end
 
+  ## GUARDS
+
+  # TODO: Remove this and let multiple when be treated as multiple clauses,
+  #       meaning they will be intersection types
+  defp guards_to_or([]) do
+    []
+  end
+
+  defp guards_to_or(guards) do
+    Enum.reduce(guards, fn guard, acc -> {{:., [], [:erlang, :orelse]}, [], [guard, acc]} end)
+  end
+
+  defp guards_to_expr([], left) do
+    left
+  end
+
+  defp guards_to_expr([guard | guards], left) do
+    guards_to_expr(guards, {:when, [], [left, guard]})
+  end
+
   ## VARIABLE QUANTIFICATION
 
   # Lift type variable to its infered types from the context
@@ -146,24 +166,6 @@ defmodule Module.Types do
     type = {:var, context.quantified_counter}
     context = %{context | quantified_types: types, quantified_counter: counter}
     {type, context}
-  end
-
-  # TODO: Remove this and let multiple when be treated as multiple clauses,
-  #       meaning they will be intersection types
-  defp guards_to_or([]) do
-    []
-  end
-
-  defp guards_to_or(guards) do
-    Enum.reduce(guards, fn guard, acc -> {{:., [], [:erlang, :orelse]}, [], [guard, acc]} end)
-  end
-
-  defp guards_to_expr([], left) do
-    left
-  end
-
-  defp guards_to_expr([guard | guards], left) do
-    guards_to_expr(guards, {:when, [], [left, guard]})
   end
 
   ## ERROR FORMATTING
@@ -246,6 +248,16 @@ defmodule Module.Types do
     "[#{format_type(left)} | #{format_type(right)}]"
   end
 
+  def format_type({:map, pairs}) do
+    case List.keytake(pairs, :__struct__, 0) do
+      {{:__struct__, struct}, pairs} ->
+        "%#{inspect(struct)}{#{format_map_pairs(pairs)}}"
+
+      nil ->
+        "%{#{format_map_pairs(pairs)}}"
+    end
+  end
+
   def format_type({:literal, literal}) do
     inspect(literal)
   end
@@ -260,6 +272,12 @@ defmodule Module.Types do
 
   def format_type({:var, index}) do
     "var#{index}"
+  end
+
+  defp format_map_pairs(pairs) do
+    Enum.map_join(pairs, ", ", fn {left, right} ->
+      "#{format_type(left)} => #{format_type(right)}"
+    end)
   end
 
   defp expr_to_string(expr) do

@@ -26,10 +26,6 @@ defmodule Module.TypesTest do
     {:ok, Types.lift_types(types, context)}
   end
 
-  # defp lift_result({:ok, type, context}) do
-  #   {:ok, Types.lift_type(type, context)}
-  # end
-
   defp lift_result({:error, {Types, reason, location}}) do
     {:error, {reason, location}}
   end
@@ -131,5 +127,11 @@ defmodule Module.TypesTest do
     assert Types.format_type({:cons, :binary, :binary}) == "[binary() | binary()]"
     assert Types.format_type({:tuple, []}) == "{}"
     assert Types.format_type({:tuple, [:integer]}) == "{integer()}"
+    assert Types.format_type({:map, []}) == "%{}"
+    assert Types.format_type({:map, [{:integer, :atom}]}) == "%{integer() => atom()}"
+    assert Types.format_type({:map, [{:__struct__, Struct}]}) == "%Struct{}"
+
+    assert Types.format_type({:map, [{:__struct__, Struct}, {:integer, :atom}]}) ==
+             "%Struct{integer() => atom()}"
   end
 end

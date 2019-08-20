@@ -117,6 +117,7 @@ defmodule Module.Types.Infer do
     end
   end
 
+  # TODO: structs
   def of_pattern({:%, _meta, _args}, context) do
     {:ok, {:map, []}, context}
   end
@@ -382,7 +383,7 @@ defmodule Module.Types.Infer do
       _ ->
         case :maps.find(right, context.types) do
           {:ok, {:var, new_right}} -> variable_same?(left, new_right, context)
-          :error -> false
+          _ -> false
         end
     end
   end
@@ -391,7 +392,7 @@ defmodule Module.Types.Infer do
     %{context | unify_stack: [var | context.unify_stack]}
   end
 
-  defp new_var(var, context) do
+  def new_var(var, context) do
     case :maps.find(var_name(var), context.vars) do
       {:ok, type} ->
         {type, context}
@@ -434,7 +435,7 @@ defmodule Module.Types.Infer do
   # Check if a variable is recursive and incompatible with itself
   # Bad: `{var} = var`
   # Good: `x = y; y = z; z = x`
-  def recursive_type?({:var, var} = parent, parents, context) do
+  defp recursive_type?({:var, var} = parent, parents, context) do
     case :maps.get(var, context.types) do
       :unbound ->
         false
@@ -448,23 +449,23 @@ defmodule Module.Types.Infer do
     end
   end
 
-  def recursive_type?({:cons, left, right} = parent, parents, context) do
+  defp recursive_type?({:cons, left, right} = parent, parents, context) do
     recursive_type?(left, [parent | parents], context) or
       recursive_type?(right, [parent | parents], context)
   end
 
-  def recursive_type?({:tuple, types} = parent, parents, context) do
+  defp recursive_type?({:tuple, types} = parent, parents, context) do
     Enum.any?(types, &recursive_type?(&1, [parent | parents], context))
   end
 
-  def recursive_type?({:map, pairs} = parent, parents, context) do
+  defp recursive_type?({:map, pairs} = parent, parents, context) do
     Enum.any?(pairs, fn {key, value} ->
       recursive_type?(key, [parent | parents], context) or
         recursive_type?(value, [parent | parents], context)
     end)
   end
 
-  def recursive_type?(_other, _parents, _context) do
+  defp recursive_type?(_other, _parents, _context) do
     false
   end
 
@@ -486,12 +487,9 @@ defmodule Module.Types.Infer do
 
   def to_union(types, context) when types != [] do
     if :dynamic in types do
+      # NOTE: Or filter away dynamic()?
       :dynamic
     else
-      # Filter subtypes
-      # `boolean() | atom()` => `atom()`
-      # `:foo | atom()` => `atom()`
-      # Does not unify `true | false` => `boolean()`
       case unique_super_types(types, context) do
         [type] -> type
         types -> {:union, types}
@@ -499,6 +497,10 @@ defmodule Module.Types.Infer do
     end
   end
 
+  # Filter subtypes
+  # `boolean() | atom()` => `atom()`
+  # `:foo | atom()` => `atom()`
+  # Does not unify `true | false` => `boolean()`
   defp unique_super_types([type | types], context) do
     types = Enum.reject(types, &subtype?(&1, type, context))
 
@@ -516,7 +518,7 @@ defmodule Module.Types.Infer do
   # Collect relevant information from context and traces to report error
   defp error({:unable_unify, left, right}, context) do
     {fun, arity} = context.function
-    line = get_meta(Enum.at(context.expr_stack, 0))[:line]
+    line = get_meta(hd(context.expr_stack))[:line]
     location = {context.file, line, {context.module, fun, arity}}
 
     traces = type_traces(context)
