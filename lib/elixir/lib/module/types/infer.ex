@@ -220,7 +220,7 @@ defmodule Module.Types.Infer do
   # */2 +/1 +/2 -/1 -/2 //2
   # abs/2 ceil/1 floor/1 round/1 trunc/1
   # elem/2 hd/1 in/2 length/1 map_size/1 tl/1 tuple_size/1
-  # is_function/1 is_function/2 is_list/1 is_number/1 is_pid/1 is_port/1 is_reference/1 is_tuple/1
+  # is_function/2
   # node/1 self/1
   # binary_part/3 bit_size/1 byte_size/1 div/2 rem/2 node/0
 
@@ -230,8 +230,15 @@ defmodule Module.Types.Infer do
     is_bitstring: :binary,
     is_boolean: :boolean,
     is_float: :float,
+    is_function: :fun,
     is_integer: :integer,
-    is_map: {:map, []}
+    is_list: {:cons, :dynamic, :dynamic},
+    is_map: {:map, []},
+    is_number: {:union, [:float, :integer]},
+    is_pid: :pid,
+    is_port: :port,
+    is_reference: :reference,
+    is_tuple: :tuple
   }
 
   defp type_guard({{:., _, [:erlang, guard]}, _, [arg]}) do
