@@ -85,9 +85,8 @@ defmodule Module.Types.InferTest do
       assert quoted_pattern(%{a: :b}) == {:ok, {:map, [{{:literal, :a}, {:literal, :b}}]}}
       assert quoted_pattern(%{123 => a}) == {:ok, {:map, [{:integer, {:var, 0}}]}}
 
-      # TODO
-      # assert quoted_pattern(%{123 => :foo, 456 => :bar}) ==
-      #          {:ok, {:map, [{:integer, {:union, [{:literal, :foo}, {:literal, :bar}]}}]}}
+      assert quoted_pattern(%{123 => :foo, 456 => :bar}) ==
+               {:ok, {:map, [{:integer, {:union, [{:literal, :bar}, {:literal, :foo}]}}]}}
 
       assert {:error, {{:unable_unify, {:literal, :foo}, :integer, _, _}, _}} =
                quoted_pattern(%{a: a = 123, b: a = :foo})
@@ -102,30 +101,29 @@ defmodule Module.Types.InferTest do
                {:ok,
                 {:map,
                  [
-                   {{:literal, :bar}, :integer},
+                   {{:literal, :foo}, {:literal, :atom}},
                    {{:literal, :baz}, {:map, []}},
-                   {{:literal, :foo}, {:literal, :atom}}
+                   {{:literal, :bar}, :integer}
                  ]}}
 
-      # TODO
-      # assert quoted_pattern(%:"Elixir.Module.Types.InferTest.Struct"{foo: 123, bar: :atom}) ==
-      #          {:ok,
-      #           {:map,
-      #            [
-      #              {{:literal, :bar}, {:literal, :atom}},
-      #              {{:literal, :baz}, {:map, []}},
-      #              {{:literal, :foo}, :integer}
-      #            ]}}
+      assert quoted_pattern(%:"Elixir.Module.Types.InferTest.Struct"{foo: 123, bar: :atom}) ==
+               {:ok,
+                {:map,
+                 [
+                   {{:literal, :baz}, {:map, []}},
+                   {{:literal, :bar}, {:union, [:integer, {:literal, :atom}]}},
+                   {{:literal, :foo}, {:union, [{:literal, :atom}, :integer]}}
+                 ]}}
     end
 
     test "struct var" do
       assert quoted_pattern(%var{}) == {:ok, {:map, [{{:literal, :__struct__}, :atom}]}}
 
       assert quoted_pattern(%var{foo: 123}) ==
-               {:ok, {:map, [{{:literal, :__struct__}, :atom}, {{:literal, :foo}, :integer}]}}
+               {:ok, {:map, [{{:literal, :foo}, :integer}, {{:literal, :__struct__}, :atom}]}}
 
       assert quoted_pattern(%var{foo: var}) ==
-               {:ok, {:map, [{{:literal, :__struct__}, :atom}, {{:literal, :foo}, :atom}]}}
+               {:ok, {:map, [{{:literal, :foo}, :atom}, {{:literal, :__struct__}, :atom}]}}
     end
 
     test "binary" do

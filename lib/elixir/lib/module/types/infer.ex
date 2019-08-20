@@ -104,27 +104,20 @@ defmodule Module.Types.Infer do
 
   # %{...}
   def of_pattern({:%{}, _meta, args} = expr, context) do
-    # TODO: Create unions when types for keys overlap, the pattern:
-    #       `%{1 => :foo, 2 => :bar}`
-    #       should create the type:
-    #       `%{integer() => :foo | :bar}`
-
     case expr_stack(expr, context, &of_pairs(args, &1)) do
-      {:ok, pairs, context} -> {:ok, {:map, pairs}, context}
+      {:ok, pairs, context} -> {:ok, {:map, pairs_to_unions(pairs, context)}, context}
       {:error, reason} -> {:error, reason}
     end
   end
 
   # %var{...}
   def of_pattern({:%, _meta1, [var, {:%{}, _meta2, args}]} = expr, context) when is_var(var) do
-    # TODO: Create unions when types for keys overlap, see above
-
     expr_stack(expr, context, fn context ->
       with {:ok, pairs, context} <- of_pairs(args, context),
            {var_type, context} = new_var(var, context),
            {:ok, _, context} <- unify(var_type, :atom, context) do
         pairs = [{{:literal, :__struct__}, var_type} | pairs]
-        {:ok, {:map, pairs}, context}
+        {:ok, {:map, pairs_to_unions(pairs, context)}, context}
       end
     end)
   end
@@ -132,16 +125,18 @@ defmodule Module.Types.Infer do
   # %Struct{...}
   def of_pattern({:%, _meta1, [module, {:%{}, _meta2, args}]} = expr, context)
       when is_atom(module) do
-    # TODO: Create unions when types for keys overlap, see above
-
     struct_pairs =
       Enum.map(:maps.remove(:__struct__, module.__struct__()), fn {key, value} ->
         {term_to_type(key), term_to_type(value)}
       end)
 
     case expr_stack(expr, context, &of_pairs(args, &1)) do
-      {:ok, pattern_pairs, context} -> {:ok, {:map, pattern_pairs ++ struct_pairs}, context}
-      {:error, reason} -> {:error, reason}
+      {:ok, pattern_pairs, context} ->
+        pairs = pairs_to_unions(pattern_pairs ++ struct_pairs, context)
+        {:ok, {:map, pairs}, context}
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
@@ -150,6 +145,25 @@ defmodule Module.Types.Infer do
       with {:ok, key_type, context} <- of_pattern(key, context),
            {:ok, value_type, context} <- of_pattern(value, context),
            do: {:ok, {key_type, value_type}, context}
+    end)
+  end
+
+  defp pairs_to_unions(pairs, context) do
+    # Maps only allow simple literal keys in patterns and
+    # term_to_type/1 does not return supertypes so we do
+    # not have to do subtype checking
+
+    Enum.reduce(pairs, [], fn {key, value}, pairs ->
+      case :lists.keyfind(key, 1, pairs) do
+        {^key, {:union, union}} ->
+          :lists.keystore(key, 1, pairs, {key, to_union([value | union], context)})
+
+        {^key, original_value} ->
+          :lists.keystore(key, 1, pairs, {key, to_union([value, original_value], context)})
+
+        false ->
+          [{key, value} | pairs]
+      end
     end)
   end
 
