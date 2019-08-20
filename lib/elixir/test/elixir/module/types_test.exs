@@ -117,6 +117,14 @@ defmodule Module.TypesTest do
       assert {:error, {{:unable_unify, {:literal, true}, {:literal, false}, _, _}, _}} =
                quoted_clause([%{true: false} = foo, %{true: true} = foo])
     end
+
+    test "struct var guard" do
+      assert quoted_clause([%var{}], [:erlang.is_atom(var)]) ==
+               {:ok, [{:map, [{{:literal, :__struct__}, :atom}]}]}
+
+      assert {:error, {{:unable_unify, :integer, :atom, _, _}, _}} =
+               quoted_clause([%var{}], [:erlang.is_integer(var)])
+    end
   end
 
   test "format_type/1" do

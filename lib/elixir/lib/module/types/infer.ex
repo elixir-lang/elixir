@@ -12,6 +12,8 @@ defmodule Module.Types.Infer do
     end
   end
 
+  ## PATTERNS
+
   # :atom
   def of_pattern(atom, context) when is_atom(atom) do
     {:ok, {:literal, atom}, context}
@@ -102,25 +104,69 @@ defmodule Module.Types.Infer do
 
   # %{...}
   def of_pattern({:%{}, _meta, args} = expr, context) do
-    result =
-      expr_stack(expr, context, fn context ->
-        map_reduce_ok(args, context, fn {key, value}, context ->
-          with {:ok, key_type, context} <- of_pattern(key, context),
-               {:ok, value_type, context} <- of_pattern(value, context),
-               do: {:ok, {key_type, value_type}, context}
-        end)
-      end)
+    # TODO: Create unions when types for keys overlap, the pattern:
+    #       `%{1 => :foo, 2 => :bar}`
+    #       should create the type:
+    #       `%{integer() => :foo | :bar}`
 
-    case result do
+    case expr_stack(expr, context, &of_pairs(args, &1)) do
       {:ok, pairs, context} -> {:ok, {:map, pairs}, context}
       {:error, reason} -> {:error, reason}
     end
   end
 
-  # TODO: structs
-  def of_pattern({:%, _meta, _args}, context) do
-    {:ok, {:map, []}, context}
+  # %var{...}
+  def of_pattern({:%, _meta1, [var, {:%{}, _meta2, args}]} = expr, context) when is_var(var) do
+    # TODO: Create unions when types for keys overlap, see above
+
+    expr_stack(expr, context, fn context ->
+      with {:ok, pairs, context} <- of_pairs(args, context),
+           {var_type, context} = new_var(var, context),
+           {:ok, _, context} <- unify(var_type, :atom, context) do
+        pairs = [{{:literal, :__struct__}, var_type} | pairs]
+        {:ok, {:map, pairs}, context}
+      end
+    end)
   end
+
+  # %Struct{...}
+  def of_pattern({:%, _meta1, [module, {:%{}, _meta2, args}]} = expr, context)
+      when is_atom(module) do
+    # TODO: Create unions when types for keys overlap, see above
+
+    struct_pairs =
+      Enum.map(:maps.remove(:__struct__, module.__struct__()), fn {key, value} ->
+        {term_to_type(key), term_to_type(value)}
+      end)
+
+    case expr_stack(expr, context, &of_pairs(args, &1)) do
+      {:ok, pattern_pairs, context} -> {:ok, {:map, pattern_pairs ++ struct_pairs}, context}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp of_pairs(pairs, context) do
+    map_reduce_ok(pairs, context, fn {key, value}, context ->
+      with {:ok, key_type, context} <- of_pattern(key, context),
+           {:ok, value_type, context} <- of_pattern(value, context),
+           do: {:ok, {key_type, value_type}, context}
+    end)
+  end
+
+  def term_to_type(term) when is_atom(term), do: {:literal, term}
+  def term_to_type(term) when is_bitstring(term), do: :binary
+  def term_to_type(term) when is_float(term), do: :float
+  def term_to_type(term) when is_function(term), do: :fun
+  def term_to_type(term) when is_integer(term), do: :integer
+  def term_to_type(term) when is_pid(term), do: :pid
+  def term_to_type(term) when is_port(term), do: :port
+  def term_to_type(term) when is_reference(term), do: :reference
+  # NOTE: We may want to go into more detail for higher order types
+  def term_to_type(term) when is_list(term), do: {:cons, :dynamic, :dynamic}
+  def term_to_type(term) when is_map(term), do: {:map, []}
+  def term_to_type(term) when is_tuple(term), do: :tuple
+
+  ## GUARDS
 
   def of_guard(guard, context) do
     expr_stack(guard, context, fn context ->
@@ -193,6 +239,8 @@ defmodule Module.Types.Infer do
   end
 
   defp type_guard(_other), do: {:error, :unknown_guard}
+
+  ## BINARY PATTERNS
 
   # binary-pattern :: specifier
   defp of_binary({:"::", _meta, [expr, specifiers]} = full_expr, context) do

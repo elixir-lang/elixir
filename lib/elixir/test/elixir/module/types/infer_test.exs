@@ -85,8 +85,47 @@ defmodule Module.Types.InferTest do
       assert quoted_pattern(%{a: :b}) == {:ok, {:map, [{{:literal, :a}, {:literal, :b}}]}}
       assert quoted_pattern(%{123 => a}) == {:ok, {:map, [{:integer, {:var, 0}}]}}
 
+      # TODO
+      # assert quoted_pattern(%{123 => :foo, 456 => :bar}) ==
+      #          {:ok, {:map, [{:integer, {:union, [{:literal, :foo}, {:literal, :bar}]}}]}}
+
       assert {:error, {{:unable_unify, {:literal, :foo}, :integer, _, _}, _}} =
                quoted_pattern(%{a: a = 123, b: a = :foo})
+    end
+
+    test "struct" do
+      defmodule :"Elixir.Module.Types.InferTest.Struct" do
+        defstruct foo: :atom, bar: 123, baz: %{}
+      end
+
+      assert quoted_pattern(%:"Elixir.Module.Types.InferTest.Struct"{}) ==
+               {:ok,
+                {:map,
+                 [
+                   {{:literal, :bar}, :integer},
+                   {{:literal, :baz}, {:map, []}},
+                   {{:literal, :foo}, {:literal, :atom}}
+                 ]}}
+
+      # TODO
+      # assert quoted_pattern(%:"Elixir.Module.Types.InferTest.Struct"{foo: 123, bar: :atom}) ==
+      #          {:ok,
+      #           {:map,
+      #            [
+      #              {{:literal, :bar}, {:literal, :atom}},
+      #              {{:literal, :baz}, {:map, []}},
+      #              {{:literal, :foo}, :integer}
+      #            ]}}
+    end
+
+    test "struct var" do
+      assert quoted_pattern(%var{}) == {:ok, {:map, [{{:literal, :__struct__}, :atom}]}}
+
+      assert quoted_pattern(%var{foo: 123}) ==
+               {:ok, {:map, [{{:literal, :__struct__}, :atom}, {{:literal, :foo}, :integer}]}}
+
+      assert quoted_pattern(%var{foo: var}) ==
+               {:ok, {:map, [{{:literal, :__struct__}, :atom}, {{:literal, :foo}, :atom}]}}
     end
 
     test "binary" do
@@ -365,5 +404,13 @@ defmodule Module.Types.InferTest do
              {:tuple, [:integer]}
 
     # assert to_union([{:tuple, [:boolean]}, {:tuple, [:atom]}], new_context()) == {:tuple, [:atom]}
+  end
+
+  test "term_to_type/1" do
+    assert term_to_type(true) == {:literal, true}
+    assert term_to_type(:foo) == {:literal, :foo}
+    assert term_to_type(%{}) == {:map, []}
+    assert term_to_type({}) == :tuple
+    assert term_to_type(make_ref()) == :reference
   end
 end
