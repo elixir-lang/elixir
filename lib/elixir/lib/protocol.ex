@@ -459,6 +459,7 @@ defmodule Protocol do
 
   defp extract_matching_by_attribute(paths, prefix, callback) do
     for path <- paths,
+        path = to_charlist(path),
         file <- list_dir(path),
         mod = extract_from_file(path, file, prefix, callback),
         do: mod
@@ -470,8 +471,6 @@ defmodule Protocol do
       _ -> []
     end
   end
-
-  defp list_dir(path), do: list_dir(to_charlist(path))
 
   defp extract_from_file(path, file, prefix, callback) do
     if :lists.prefix(prefix, file) and :filename.extension(file) == '.beam' do
