@@ -943,7 +943,9 @@ defmodule ExUnit.Diff do
   end
 
   defp safe_to_algebra({op, _, [left, right]}, diff_wrapper) when op in [:<>, :++, :|] do
-    binary_op_to_algebra(left, " #{op} ", right, diff_wrapper)
+    to_algebra(left, diff_wrapper)
+    |> Algebra.concat(" #{op} ")
+    |> Algebra.concat(to_algebra(right, diff_wrapper))
   end
 
   defp safe_to_algebra({:{}, _, args}, diff_wrapper) do
@@ -997,12 +999,9 @@ defmodule ExUnit.Diff do
   end
 
   defp safe_keyword_to_algebra({key, value}, diff_wrapper) do
-    key_doc = key_to_algebra(key, diff_wrapper)
-    value_doc = to_algebra(value, diff_wrapper) |> Algebra.nest(:cursor)
-
-    key_doc
-    |> Algebra.glue(" ", value_doc)
-    |> Algebra.group()
+    key_to_algebra(key, diff_wrapper)
+    |> Algebra.concat(" ")
+    |> Algebra.concat(to_algebra(value, diff_wrapper))
   end
 
   defp key_to_algebra(quoted, diff_wrapper) do
@@ -1022,21 +1021,9 @@ defmodule ExUnit.Diff do
   end
 
   defp safe_map_item_to_algebra({key, value}, diff_wrapper) do
-    key_doc = to_algebra(key, diff_wrapper)
-    value_doc = to_algebra(value, diff_wrapper) |> Algebra.nest(:cursor)
-
-    key_doc
-    |> Algebra.glue(" => ", value_doc)
-    |> Algebra.group()
-  end
-
-  defp binary_op_to_algebra(left, op, right, diff_wrapper) do
-    left_doc = to_algebra(left, diff_wrapper)
-    right_doc = to_algebra(right, diff_wrapper) |> Algebra.nest(:cursor)
-
-    left_doc
-    |> Algebra.glue(op, right_doc)
-    |> Algebra.group()
+    to_algebra(key, diff_wrapper)
+    |> Algebra.concat(" => ")
+    |> Algebra.concat(to_algebra(value, diff_wrapper))
   end
 
   defp container_to_algebra(open, list, close, diff_wrapper, item_to_algebra) do
@@ -1044,17 +1031,18 @@ defmodule ExUnit.Diff do
       list
       |> Enum.map(&item_to_algebra.(&1, diff_wrapper))
       |> Algebra.fold_doc(&join_docs/2)
-      |> Algebra.nest(1)
 
-    [open, docs, close]
-    |> Algebra.concat()
+    open
+    |> Algebra.glue("", docs)
+    |> Algebra.nest(2)
+    |> Algebra.glue("", close)
     |> Algebra.group()
   end
 
   defp join_docs(doc1, doc2) do
     doc1
     |> Algebra.concat(",")
-    |> Algebra.flex_glue(doc2)
+    |> Algebra.glue(doc2)
   end
 
   defp struct_to_algebra(quoted, diff_wrapper) do
