@@ -204,11 +204,13 @@ defmodule Module.Types.Infer do
     [other]
   end
 
-  defp unify_guard(arg, guard_type, context) when is_var(arg) do
-    # TODO: It is incorrect to use of_pattern/2 but it helps for simplicity now
-    with {:ok, arg_type, context} <- of_pattern(arg, context),
-         {:ok, _, context} <- unify(arg_type, guard_type, context),
-         do: {:ok, context}
+  defp unify_guard(var, guard_type, context) when is_var(var) do
+    {var_type, context} = new_var(var, context)
+
+    case unify(var_type, guard_type, context) do
+      {:ok, _, context} -> {:ok, context}
+      {:error, reason} -> {:error, reason}
+    end
   end
 
   defp unify_guard(_arg, _guard_type, context) do
