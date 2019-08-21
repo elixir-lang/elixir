@@ -20,7 +20,7 @@ defmodule Module.Types.Infer do
   """
   # :atom
   def of_pattern(atom, context) when is_atom(atom) do
-    {:ok, {:literal, atom}, context}
+    {:ok, {:atom, atom}, context}
   end
 
   # 12
@@ -120,7 +120,7 @@ defmodule Module.Types.Infer do
       with {:ok, pairs, context} <- of_pairs(args, context),
            {var_type, context} = new_var(var, context),
            {:ok, _, context} <- unify(var_type, :atom, context) do
-        pairs = [{{:literal, :__struct__}, var_type} | pairs]
+        pairs = [{{:atom, :__struct__}, var_type} | pairs]
         {:ok, {:map, pairs}, context}
       end
     end)
@@ -131,7 +131,7 @@ defmodule Module.Types.Infer do
       when is_atom(module) do
     case expr_stack(expr, context, &of_pairs(args, &1)) do
       {:ok, pairs, context} ->
-        pairs = [{{:literal, :__struct__}, module} | pairs]
+        pairs = [{{:atom, :__struct__}, {:atom, module}} | pairs]
         {:ok, {:map, pairs}, context}
 
       {:error, reason} ->
@@ -532,8 +532,8 @@ defmodule Module.Types.Infer do
   Checks if the first argument is a subtype of the second argument.
   Only checks for simple and concrete types.
   """
-  def subtype?({:literal, boolean}, :boolean, _context) when is_boolean(boolean), do: true
-  def subtype?({:literal, atom}, :atom, _context) when is_atom(atom), do: true
+  def subtype?({:atom, boolean}, :boolean, _context) when is_boolean(boolean), do: true
+  def subtype?({:atom, atom}, :atom, _context) when is_atom(atom), do: true
   def subtype?(:boolean, :atom, _context), do: true
   def subtype?({:tuple, _}, :tuple, _context), do: true
 

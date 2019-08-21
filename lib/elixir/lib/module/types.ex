@@ -258,7 +258,7 @@ defmodule Module.Types do
     end
   end
 
-  def format_type({:literal, literal}) do
+  def format_type({:atom, literal}) do
     inspect(literal)
   end
 
