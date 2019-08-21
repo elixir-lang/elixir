@@ -66,8 +66,8 @@ defmodule Module.Types do
   def lift_types(types, context) do
     context = %{
       types: context.types,
-      quantified_types: %{},
-      quantified_counter: 0
+      lifted_types: %{},
+      lifted_counter: 0
     }
 
     {types, _context} = Enum.map_reduce(types, context, &do_lift_type/2)
@@ -78,8 +78,8 @@ defmodule Module.Types do
   def lift_type(type, context) do
     context = %{
       types: context.types,
-      quantified_types: %{},
-      quantified_counter: 0
+      lifted_types: %{},
+      lifted_counter: 0
     }
 
     {type, _context} = do_lift_type(type, context)
@@ -106,18 +106,18 @@ defmodule Module.Types do
     guards_to_expr(guards, {:when, [], [left, guard]})
   end
 
-  ## VARIABLE QUANTIFICATION
+  ## VARIABLE LIFTING
 
-  # Lift type variable to its infered types from the context
+  # Lift type variable to its infered (hopefully concrete) types from the context
   defp do_lift_type({:var, var}, context) do
-    case :maps.find(var, context.quantified_types) do
-      {:ok, quantified_var} ->
-        {{:var, quantified_var}, context}
+    case :maps.find(var, context.lifted_types) do
+      {:ok, lifted_var} ->
+        {{:var, lifted_var}, context}
 
       :error ->
         case :maps.find(var, context.types) do
           {:ok, :unbound} ->
-            new_quantified_var(var, context)
+            new_lifted_var(var, context)
 
           {:ok, type} ->
             # Remove visited types to avoid infinite loops
@@ -128,7 +128,7 @@ defmodule Module.Types do
             {type, %{context | types: types}}
 
           :error ->
-            new_quantified_var(var, context)
+            new_lifted_var(var, context)
         end
     end
   end
@@ -159,12 +159,12 @@ defmodule Module.Types do
     {other, context}
   end
 
-  defp new_quantified_var(original_var, context) do
-    types = :maps.put(original_var, context.quantified_counter, context.quantified_types)
-    counter = context.quantified_counter + 1
+  defp new_lifted_var(original_var, context) do
+    types = :maps.put(original_var, context.lifted_counter, context.lifted_types)
+    counter = context.lifted_counter + 1
 
-    type = {:var, context.quantified_counter}
-    context = %{context | quantified_types: types, quantified_counter: counter}
+    type = {:var, context.lifted_counter}
+    context = %{context | lifted_types: types, lifted_counter: counter}
     {type, context}
   end
 
