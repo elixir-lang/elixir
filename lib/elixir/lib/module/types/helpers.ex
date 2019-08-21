@@ -1,8 +1,12 @@
 defmodule Module.Types.Helpers do
   @moduledoc false
 
-  # Push expr to stack inside fun and pop after fun
-  # The expression stack is used for
+  @doc """
+  Push expr to stack inside fun and pop after fun.
+
+  The expression stack is used to give the context where a type variable
+  was refined when show a type conflict error.
+  """
   def expr_stack(expr, context, fun) do
     expr_stack = context.expr_stack
 
@@ -13,6 +17,10 @@ defmodule Module.Types.Helpers do
     end
   end
 
+  @doc """
+  Like `Enum.reduce/3` but only continues while `fun` returns `{:ok, acc}`
+  and stops on `{:error, reason}`.
+  """
   def reduce_ok(list, acc, fun) do
     do_reduce_ok(list, acc, fun)
   end
@@ -33,6 +41,10 @@ defmodule Module.Types.Helpers do
 
   defp do_reduce_ok([], acc, _fun), do: {:ok, acc}
 
+  @doc """
+  Like `Enum.unzip/1` but only continues while `fun` returns `{:ok, elem1, elem2}`
+  and stops on `{:error, reason}`.
+  """
   def unzip_ok(list) do
     do_unzip_ok(list, [], [])
   end
@@ -45,6 +57,10 @@ defmodule Module.Types.Helpers do
 
   defp do_unzip_ok([], acc1, acc2), do: {:ok, Enum.reverse(acc1), Enum.reverse(acc2)}
 
+  @doc """
+  Like `Enum.map/2` but only continues while `fun` returns `{:ok, elem}`
+  and stops on `{:error, reason}`.
+  """
   def map_ok(list, fun) do
     do_map_ok(list, [], fun)
   end
@@ -65,6 +81,10 @@ defmodule Module.Types.Helpers do
 
   defp do_map_ok([], acc, _fun), do: {:ok, Enum.reverse(acc)}
 
+  @doc """
+  Like `Enum.map_reduce/3` but only continues while `fun` returns `{:ok, elem, acc}`
+  and stops on `{:error, reason}`.
+  """
   def map_reduce_ok(list, acc, fun) do
     do_map_reduce_ok(list, {[], acc}, fun)
   end

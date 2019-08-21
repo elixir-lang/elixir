@@ -14,6 +14,10 @@ defmodule Module.Types.Infer do
 
   ## PATTERNS
 
+  @doc """
+  Return the type and typing context of a pattern expression or an error
+  in case of a typing conflict.
+  """
   # :atom
   def of_pattern(atom, context) when is_atom(atom) do
     {:ok, {:literal, atom}, context}
@@ -163,6 +167,10 @@ defmodule Module.Types.Infer do
 
   ## GUARDS
 
+  @doc """
+  Refines the type variables in the typing context using type check guards
+  such as `is_integer/1`.
+  """
   def of_guard(guard, context) do
     expr_stack(guard, context, fn context ->
       # Flatten `foo and bar` to list of type constraints
@@ -296,6 +304,10 @@ defmodule Module.Types.Infer do
 
   ## UNIFICATION
 
+  @doc """
+  Unifies two types and returns the unified type and an updated typing context
+  or an error in case of a typing conflict.
+  """
   def unify(left, right, context) do
     case do_unify(left, right, context) do
       {:ok, type, context} -> {:ok, type, %{context | unify_stack: []}}
@@ -435,6 +447,10 @@ defmodule Module.Types.Infer do
     %{context | unify_stack: [var | context.unify_stack]}
   end
 
+  @doc """
+  Adds a variable to the typing context and returns its type variables.
+  If the variable has already been added, return the existing type variable.
+  """
   def new_var(var, context) do
     case :maps.find(var_name(var), context.vars) do
       {:ok, type} ->
@@ -512,6 +528,10 @@ defmodule Module.Types.Infer do
     false
   end
 
+  @doc """
+  Checks if the first argument is a subtype of the second argument.
+  Only checks for simple and concrete types.
+  """
   def subtype?({:literal, boolean}, :boolean, _context) when is_boolean(boolean), do: true
   def subtype?({:literal, atom}, :atom, _context) when is_atom(atom), do: true
   def subtype?(:boolean, :atom, _context), do: true
@@ -528,6 +548,11 @@ defmodule Module.Types.Infer do
 
   def subtype?(left, right, _context), do: left == right
 
+  @doc """
+  Returns a "simplified" union using `subtype?/3` to remove redundant
+  types. Due to limitations in `subtype?/3` some overlapping types
+  may still be included.
+  """
   def to_union(types, context) when types != [] do
     if :dynamic in types do
       :dynamic
