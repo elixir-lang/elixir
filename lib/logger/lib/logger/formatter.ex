@@ -173,6 +173,7 @@ defmodule Logger.Formatter do
 
   defp output(other, _, _, _, _), do: other
 
+  defp levelpad(:trace), do: ""
   defp levelpad(:debug), do: ""
   defp levelpad(:info), do: " "
   defp levelpad(:warn), do: " "

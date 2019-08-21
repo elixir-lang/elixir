@@ -48,6 +48,7 @@ defmodule Logger do
 
   The supported levels, ordered by precedence, are:
 
+    * `:trace` - for logging any messages, too verbose for other levels
     * `:debug` - for debug-related messages
     * `:info` - for information of any kind
     * `:warn` - for warnings
@@ -262,6 +263,8 @@ defmodule Logger do
     * `:enabled` - boolean value that allows for switching the
       coloring on and off. Defaults to: `IO.ANSI.enabled?/0`
 
+    * `:trace` - color for trace messages. Defaults to: `:green`
+
     * `:debug` - color for debug messages. Defaults to: `:cyan`
 
     * `:info` - color for info messages. Defaults to: `:normal`
@@ -439,9 +442,9 @@ defmodule Logger do
 
   @type backend :: :gen_event.handler()
   @type message :: IO.chardata() | String.Chars.t()
-  @type level :: :error | :info | :warn | :debug
+  @type level :: :error | :info | :warn | :debug | :trace
   @type metadata :: keyword()
-  @levels [:error, :info, :warn, :debug]
+  @levels [:error, :info, :warn, :debug, :trace]
 
   @metadata :logger_metadata
   @compile {:inline, __metadata__: 0}
@@ -799,6 +802,22 @@ defmodule Logger do
   end
 
   @doc """
+  Logs a trace message.
+
+  Returns `:ok` or an `{:error, reason}` tuple.
+
+  ## Examples
+
+      Logger.trace("hello?")
+      Logger.trace(fn -> "dynamically calculated trace" end)
+      Logger.trace(fn -> {"dynamically calculated trace", [additional: :metadata]} end)
+
+  """
+  defmacro trace(chardata_or_fun, metadata \\ []) do
+    maybe_log(:trace, chardata_or_fun, metadata, __CALLER__)
+  end
+
+  @doc """
   Logs a message with the given `level`.
 
   Returns `:ok` or an `{:error, reason}` tuple.
@@ -881,7 +900,7 @@ defmodule Logger do
 
         env_level
       else
-        :debug
+        :trace
       end
 
     if Logger.Config.compare_levels(level, min_level) != :lt do

@@ -145,6 +145,11 @@ defmodule Logger.Backends.ConsoleTest do
 
     assert capture_log(fn -> Logger.error("hello") end) ==
              IO.ANSI.cyan() <> "hello" <> IO.ANSI.reset()
+
+    Logger.configure_backend(:console, colors: [trace: :cyan])
+
+    assert capture_log(:trace, fn -> Logger.error("hello") end) ==
+             IO.ANSI.cyan() <> "hello" <> IO.ANSI.reset()
   end
 
   test "uses colors from metadata" do

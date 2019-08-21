@@ -162,25 +162,49 @@ defmodule LoggerTest do
   end
 
   test "compare_levels/2" do
+    assert Logger.compare_levels(:trace, :trace) == :eq
+    assert Logger.compare_levels(:trace, :debug) == :lt
+    assert Logger.compare_levels(:trace, :info) == :lt
+    assert Logger.compare_levels(:trace, :warn) == :lt
+    assert Logger.compare_levels(:trace, :error) == :lt
+
+    assert Logger.compare_levels(:debug, :trace) == :gt
     assert Logger.compare_levels(:debug, :debug) == :eq
     assert Logger.compare_levels(:debug, :info) == :lt
     assert Logger.compare_levels(:debug, :warn) == :lt
     assert Logger.compare_levels(:debug, :error) == :lt
 
+    assert Logger.compare_levels(:info, :trace) == :gt
     assert Logger.compare_levels(:info, :debug) == :gt
     assert Logger.compare_levels(:info, :info) == :eq
     assert Logger.compare_levels(:info, :warn) == :lt
     assert Logger.compare_levels(:info, :error) == :lt
 
+    assert Logger.compare_levels(:warn, :trace) == :gt
     assert Logger.compare_levels(:warn, :debug) == :gt
     assert Logger.compare_levels(:warn, :info) == :gt
     assert Logger.compare_levels(:warn, :warn) == :eq
     assert Logger.compare_levels(:warn, :error) == :lt
 
+    assert Logger.compare_levels(:error, :trace) == :gt
     assert Logger.compare_levels(:error, :debug) == :gt
     assert Logger.compare_levels(:error, :info) == :gt
     assert Logger.compare_levels(:error, :warn) == :gt
     assert Logger.compare_levels(:error, :error) == :eq
+  end
+
+  test "trace/2" do
+    assert capture_log(:trace, fn ->
+             assert Logger.trace("hello", []) == :ok
+           end) =~ msg_with_meta("[trace] hello")
+
+    assert capture_log(:info, fn ->
+             assert Logger.trace("hello", []) == :ok
+           end) == ""
+
+    assert capture_log(:info, fn ->
+             assert Logger.trace(raise("not invoked"), []) == :ok
+           end) == ""
   end
 
   test "debug/2" do

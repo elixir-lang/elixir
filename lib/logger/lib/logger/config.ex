@@ -35,10 +35,11 @@ defmodule Logger.Config do
     if level_to_number(left) > level_to_number(right), do: :gt, else: :lt
   end
 
-  defp level_to_number(:debug), do: 0
-  defp level_to_number(:info), do: 1
-  defp level_to_number(:warn), do: 2
-  defp level_to_number(:error), do: 3
+  defp level_to_number(:trace), do: 0
+  defp level_to_number(:debug), do: 1
+  defp level_to_number(:info), do: 2
+  defp level_to_number(:warn), do: 3
+  defp level_to_number(:error), do: 4
 
   def translation_data do
     read_data!(@data_key)
