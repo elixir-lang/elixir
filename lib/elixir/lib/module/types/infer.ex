@@ -117,7 +117,7 @@ defmodule Module.Types.Infer do
            {var_type, context} = new_var(var, context),
            {:ok, _, context} <- unify(var_type, :atom, context) do
         pairs = [{{:literal, :__struct__}, var_type} | pairs]
-        {:ok, {:map, pairs_to_unions(pairs, context)}, context}
+        {:ok, {:map, pairs}, context}
       end
     end)
   end
@@ -125,14 +125,9 @@ defmodule Module.Types.Infer do
   # %Struct{...}
   def of_pattern({:%, _meta1, [module, {:%{}, _meta2, args}]} = expr, context)
       when is_atom(module) do
-    struct_pairs =
-      Enum.map(:maps.remove(:__struct__, module.__struct__()), fn {key, value} ->
-        {term_to_type(key), term_to_type(value)}
-      end)
-
     case expr_stack(expr, context, &of_pairs(args, &1)) do
-      {:ok, pattern_pairs, context} ->
-        pairs = pairs_to_unions(pattern_pairs ++ struct_pairs, context)
+      {:ok, pairs, context} ->
+        pairs = [{{:literal, :__struct__}, module} | pairs]
         {:ok, {:map, pairs}, context}
 
       {:error, reason} ->
@@ -149,9 +144,8 @@ defmodule Module.Types.Infer do
   end
 
   defp pairs_to_unions(pairs, context) do
-    # Maps only allow simple literal keys in patterns and
-    # term_to_type/1 does not return supertypes so we do
-    # not have to do subtype checking
+    # Maps only allow simple literal keys in patterns so
+    # we do not have to do subtype checking
 
     Enum.reduce(pairs, [], fn {key, value}, pairs ->
       case :lists.keyfind(key, 1, pairs) do
@@ -166,19 +160,6 @@ defmodule Module.Types.Infer do
       end
     end)
   end
-
-  def term_to_type(term) when is_atom(term), do: {:literal, term}
-  def term_to_type(term) when is_bitstring(term), do: :binary
-  def term_to_type(term) when is_float(term), do: :float
-  def term_to_type(term) when is_function(term), do: :fun
-  def term_to_type(term) when is_integer(term), do: :integer
-  def term_to_type(term) when is_pid(term), do: :pid
-  def term_to_type(term) when is_port(term), do: :port
-  def term_to_type(term) when is_reference(term), do: :reference
-  # NOTE: We may want to go into more detail for higher order types
-  def term_to_type(term) when is_list(term), do: {:cons, :dynamic, :dynamic}
-  def term_to_type(term) when is_map(term), do: {:map, []}
-  def term_to_type(term) when is_tuple(term), do: :tuple
 
   ## GUARDS
 
@@ -549,7 +530,6 @@ defmodule Module.Types.Infer do
 
   def to_union(types, context) when types != [] do
     if :dynamic in types do
-      # NOTE: Or filter away dynamic()?
       :dynamic
     else
       case unique_super_types(types, context) do
