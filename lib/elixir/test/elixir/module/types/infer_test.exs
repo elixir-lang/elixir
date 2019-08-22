@@ -56,9 +56,9 @@ defmodule Module.Types.InferTest do
     end
 
     test "literal" do
-      assert quoted_pattern(true) == {:ok, {:literal, true}}
-      assert quoted_pattern(false) == {:ok, {:literal, false}}
-      assert quoted_pattern(:foo) == {:ok, {:literal, :foo}}
+      assert quoted_pattern(true) == {:ok, {:atom, true}}
+      assert quoted_pattern(false) == {:ok, {:atom, false}}
+      assert quoted_pattern(:foo) == {:ok, {:atom, :foo}}
       assert quoted_pattern(0) == {:ok, :integer}
       assert quoted_pattern(0.0) == {:ok, :float}
       assert quoted_pattern("foo") == {:ok, :binary}
@@ -76,26 +76,60 @@ defmodule Module.Types.InferTest do
 
     test "tuple" do
       assert quoted_pattern({}) == {:ok, {:tuple, []}}
-      assert quoted_pattern({:a}) == {:ok, {:tuple, [{:literal, :a}]}}
-      assert quoted_pattern({:a, 123}) == {:ok, {:tuple, [{:literal, :a}, :integer]}}
+      assert quoted_pattern({:a}) == {:ok, {:tuple, [{:atom, :a}]}}
+      assert quoted_pattern({:a, 123}) == {:ok, {:tuple, [{:atom, :a}, :integer]}}
     end
 
     test "map" do
       assert quoted_pattern(%{}) == {:ok, {:map, []}}
-      assert quoted_pattern(%{a: :b}) == {:ok, {:map, [{{:literal, :a}, {:literal, :b}}]}}
+      assert quoted_pattern(%{a: :b}) == {:ok, {:map, [{{:atom, :a}, {:atom, :b}}]}}
       assert quoted_pattern(%{123 => a}) == {:ok, {:map, [{:integer, {:var, 0}}]}}
 
-      assert {:error, {{:unable_unify, {:literal, :foo}, :integer, _, _}, _}} =
+      assert quoted_pattern(%{123 => :foo, 456 => :bar}) ==
+               {:ok, {:map, [{:integer, {:union, [{:atom, :bar}, {:atom, :foo}]}}]}}
+
+      assert {:error, {{:unable_unify, {:atom, :foo}, :integer, _, _}, _}} =
                quoted_pattern(%{a: a = 123, b: a = :foo})
+    end
+
+    test "struct" do
+      defmodule :"Elixir.Module.Types.InferTest.Struct" do
+        defstruct foo: :atom, bar: 123, baz: %{}
+      end
+
+      assert quoted_pattern(%:"Elixir.Module.Types.InferTest.Struct"{}) ==
+               {:ok, {:map, [{{:atom, :__struct__}, {:atom, Module.Types.InferTest.Struct}}]}}
+
+      assert quoted_pattern(%:"Elixir.Module.Types.InferTest.Struct"{foo: 123, bar: :atom}) ==
+               {:ok,
+                {:map,
+                 [
+                   {{:atom, :__struct__}, {:atom, Module.Types.InferTest.Struct}},
+                   {{:atom, :foo}, :integer},
+                   {{:atom, :bar}, {:atom, :atom}}
+                 ]}}
+    end
+
+    test "struct var" do
+      assert quoted_pattern(%var{}) == {:ok, {:map, [{{:atom, :__struct__}, :atom}]}}
+
+      assert quoted_pattern(%var{foo: 123}) ==
+               {:ok, {:map, [{{:atom, :__struct__}, :atom}, {{:atom, :foo}, :integer}]}}
+
+      assert quoted_pattern(%var{foo: var}) ==
+               {:ok, {:map, [{{:atom, :__struct__}, :atom}, {{:atom, :foo}, :atom}]}}
     end
 
     test "binary" do
       assert quoted_pattern(<<"foo"::binary>>) == {:ok, :binary}
       assert quoted_pattern(<<123::integer>>) == {:ok, :binary}
       assert quoted_pattern(<<foo::integer>>) == {:ok, :binary}
+      assert quoted_pattern(<<123::utf8>>) == {:ok, :binary}
+      assert quoted_pattern(<<"foo"::utf8>>) == {:ok, :binary}
 
       assert quoted_pattern({<<foo::integer>>, foo}) == {:ok, {:tuple, [:binary, :integer]}}
       assert quoted_pattern({<<foo::binary>>, foo}) == {:ok, {:tuple, [:binary, :binary]}}
+      assert quoted_pattern({<<foo::utf8>>, foo}) == {:ok, {:tuple, [:binary, :integer]}}
 
       assert {:error, {{:unable_unify, :integer, :binary, _, _}, _}} =
                quoted_pattern(<<123::binary>>)
@@ -133,10 +167,10 @@ defmodule Module.Types.InferTest do
 
   describe "unify/3" do
     test "literal" do
-      assert unify_lift({:literal, :foo}, {:literal, :foo}) == {:ok, {:literal, :foo}}
+      assert unify_lift({:atom, :foo}, {:atom, :foo}) == {:ok, {:atom, :foo}}
 
-      assert {:error, {{:unable_unify, {:literal, :foo}, {:literal, :bar}, _, _}, _}} =
-               unify_lift({:literal, :foo}, {:literal, :bar})
+      assert {:error, {{:unable_unify, {:atom, :foo}, {:atom, :bar}, _, _}, _}} =
+               unify_lift({:atom, :foo}, {:atom, :bar})
     end
 
     test "type" do
@@ -152,10 +186,10 @@ defmodule Module.Types.InferTest do
     test "subtype" do
       assert unify_lift(:boolean, :atom) == {:ok, :boolean}
       assert unify_lift(:atom, :boolean) == {:ok, :boolean}
-      assert unify_lift(:boolean, {:literal, true}) == {:ok, {:literal, true}}
-      assert unify_lift({:literal, true}, :boolean) == {:ok, {:literal, true}}
-      assert unify_lift(:atom, {:literal, true}) == {:ok, {:literal, true}}
-      assert unify_lift({:literal, true}, :atom) == {:ok, {:literal, true}}
+      assert unify_lift(:boolean, {:atom, true}) == {:ok, {:atom, true}}
+      assert unify_lift({:atom, true}, :boolean) == {:ok, {:atom, true}}
+      assert unify_lift(:atom, {:atom, true}) == {:ok, {:atom, true}}
+      assert unify_lift({:atom, true}, :atom) == {:ok, {:atom, true}}
     end
 
     test "tuple" do
@@ -200,15 +234,15 @@ defmodule Module.Types.InferTest do
                {:ok, {:map, [{:integer, :atom}, {:atom, :integer}]}}
 
       assert unify_lift(
-               {:map, [{{:literal, :foo}, :boolean}]},
-               {:map, [{{:literal, :foo}, :atom}]}
+               {:map, [{{:atom, :foo}, :boolean}]},
+               {:map, [{{:atom, :foo}, :atom}]}
              ) ==
-               {:ok, {:map, [{{:literal, :foo}, :boolean}]}}
+               {:ok, {:map, [{{:atom, :foo}, :boolean}]}}
 
       assert {:error, {{:unable_unify, :integer, :atom, _, _}, _}} =
                unify_lift(
-                 {:map, [{{:literal, :foo}, :integer}]},
-                 {:map, [{{:literal, :foo}, :atom}]}
+                 {:map, [{{:atom, :foo}, :integer}]},
+                 {:map, [{{:atom, :foo}, :atom}]}
                )
     end
 
@@ -230,8 +264,8 @@ defmodule Module.Types.InferTest do
     end
 
     test "dynamic" do
-      assert unify_lift({:literal, :foo}, :dynamic) == {:ok, {:literal, :foo}}
-      assert unify_lift(:dynamic, {:literal, :foo}) == {:ok, {:literal, :foo}}
+      assert unify_lift({:atom, :foo}, :dynamic) == {:ok, {:atom, :foo}}
+      assert unify_lift(:dynamic, {:atom, :foo}) == {:ok, {:atom, :foo}}
       assert unify_lift(:integer, :dynamic) == {:ok, :integer}
       assert unify_lift(:dynamic, :integer) == {:ok, :integer}
     end
@@ -325,15 +359,15 @@ defmodule Module.Types.InferTest do
   end
 
   test "subtype?/3" do
-    assert subtype?({:literal, :foo}, :atom, new_context())
-    assert subtype?({:literal, true}, :boolean, new_context())
-    assert subtype?({:literal, true}, :atom, new_context())
+    assert subtype?({:atom, :foo}, :atom, new_context())
+    assert subtype?({:atom, true}, :boolean, new_context())
+    assert subtype?({:atom, true}, :atom, new_context())
     assert subtype?(:boolean, :atom, new_context())
 
     refute subtype?(:integer, :binary, new_context())
-    refute subtype?(:atom, {:literal, :foo}, new_context())
-    refute subtype?(:boolean, {:literal, true}, new_context())
-    refute subtype?(:atom, {:literal, true}, new_context())
+    refute subtype?(:atom, {:atom, :foo}, new_context())
+    refute subtype?(:boolean, {:atom, true}, new_context())
+    refute subtype?(:atom, {:atom, true}, new_context())
     refute subtype?(:atom, :boolean, new_context())
   end
 
@@ -341,29 +375,18 @@ defmodule Module.Types.InferTest do
     assert to_union([:atom], new_context()) == :atom
     assert to_union([:integer, :integer], new_context()) == :integer
     assert to_union([:boolean, :atom], new_context()) == :atom
-    assert to_union([{:literal, :foo}, :boolean, :atom], new_context()) == :atom
+    assert to_union([{:atom, :foo}, :boolean, :atom], new_context()) == :atom
 
     assert to_union([:binary, :atom], new_context()) == {:union, [:binary, :atom]}
     assert to_union([:atom, :binary, :atom], new_context()) == {:union, [:atom, :binary]}
 
-    assert to_union([{:literal, :foo}, :binary, :atom], new_context()) ==
+    assert to_union([{:atom, :foo}, :binary, :atom], new_context()) ==
              {:union, [:binary, :atom]}
 
     assert {{:var, 0}, var_context} = new_var({:foo, [], nil}, new_context())
     assert to_union([{:var, 0}], var_context) == {:var, 0}
 
-    # TODO: Add missing tests that uses variables and higher rank types.
-    #       We may have to change, to_union to use unify, check the return
-    #       type and throw away the returned context instead of using subtype?
-    #       since subtype? is incomplete when it comes to variables and higher
-    #       rank types.
-
-    # assert {:ok, {:var, _}, context} = unify({:var, 0}, :integer, var_context)
-    # assert to_union([{:var, 0}, :integer], context) == :integer
-
     assert to_union([{:tuple, [:integer]}, {:tuple, [:integer]}], new_context()) ==
              {:tuple, [:integer]}
-
-    # assert to_union([{:tuple, [:boolean]}, {:tuple, [:atom]}], new_context()) == {:tuple, [:atom]}
   end
 end
