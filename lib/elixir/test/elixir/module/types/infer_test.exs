@@ -386,18 +386,7 @@ defmodule Module.Types.InferTest do
     assert {{:var, 0}, var_context} = new_var({:foo, [], nil}, new_context())
     assert to_union([{:var, 0}], var_context) == {:var, 0}
 
-    # TODO: Add missing tests that uses variables and higher rank types.
-    #       We may have to change, to_union to use unify, check the return
-    #       type and throw away the returned context instead of using subtype?
-    #       since subtype? is incomplete when it comes to variables and higher
-    #       rank types.
-
-    # assert {:ok, {:var, _}, context} = unify({:var, 0}, :integer, var_context)
-    # assert to_union([{:var, 0}, :integer], context) == :integer
-
     assert to_union([{:tuple, [:integer]}, {:tuple, [:integer]}], new_context()) ==
              {:tuple, [:integer]}
-
-    # assert to_union([{:tuple, [:boolean]}, {:tuple, [:atom]}], new_context()) == {:tuple, [:atom]}
   end
 end

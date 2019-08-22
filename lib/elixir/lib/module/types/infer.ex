@@ -559,9 +559,12 @@ defmodule Module.Types.Infer do
   def subtype?(left, right, _context), do: left == right
 
   @doc """
-  Returns a "simplified" union using `subtype?/3` to remove redundant
-  types. Due to limitations in `subtype?/3` some overlapping types
-  may still be included.
+  Returns a "simplified" union using `subtype?/3` to remove redundant types.
+
+  Due to limitations in `subtype?/3` some overlapping types may still be
+  included. For example unions with overlapping non-concrete types such as
+  `{boolean()} | {atom()}` will not be merged or types with variables that
+  are distinct but equivalent such as `a | b when a ~ b`.
   """
   def to_union(types, context) when types != [] do
     if :dynamic in types do
