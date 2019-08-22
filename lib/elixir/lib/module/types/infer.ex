@@ -264,9 +264,15 @@ defmodule Module.Types.Infer do
       end
 
     expr_stack(full_expr, context, fn context ->
-      with {:ok, type, context} <- of_pattern(expr, context),
-           {:ok, _type, context} <- unify(type, expected_type, context),
-           do: {:ok, context}
+      # Special case utf specifiers with binary literals since they allow
+      # both integer and binary literals but variables are always integer
+      if is_binary(expr) and utf_specifier?(specifiers) do
+        {:ok, context}
+      else
+        with {:ok, type, context} <- of_pattern(expr, context),
+             {:ok, _type, context} <- unify(type, expected_type, context),
+             do: {:ok, context}
+      end
     end)
   end
 
@@ -282,6 +288,10 @@ defmodule Module.Types.Infer do
       {:error, reason} ->
         {:error, reason}
     end
+  end
+
+  defp utf_specifier?(specifiers) do
+    :utf8 in specifiers or :utf16 in specifiers or :utf32 in specifiers
   end
 
   # Collect binary type specifiers,

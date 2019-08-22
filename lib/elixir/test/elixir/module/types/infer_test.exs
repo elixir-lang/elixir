@@ -124,9 +124,12 @@ defmodule Module.Types.InferTest do
       assert quoted_pattern(<<"foo"::binary>>) == {:ok, :binary}
       assert quoted_pattern(<<123::integer>>) == {:ok, :binary}
       assert quoted_pattern(<<foo::integer>>) == {:ok, :binary}
+      assert quoted_pattern(<<123::utf8>>) == {:ok, :binary}
+      assert quoted_pattern(<<"foo"::utf8>>) == {:ok, :binary}
 
       assert quoted_pattern({<<foo::integer>>, foo}) == {:ok, {:tuple, [:binary, :integer]}}
       assert quoted_pattern({<<foo::binary>>, foo}) == {:ok, {:tuple, [:binary, :binary]}}
+      assert quoted_pattern({<<foo::utf8>>, foo}) == {:ok, {:tuple, [:binary, :integer]}}
 
       assert {:error, {{:unable_unify, :integer, :binary, _, _}, _}} =
                quoted_pattern(<<123::binary>>)
