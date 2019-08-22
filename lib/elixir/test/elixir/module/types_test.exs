@@ -32,7 +32,7 @@ defmodule Module.TypesTest do
 
   describe "of_clause/2" do
     test "various" do
-      assert quoted_clause([true]) == {:ok, [{:literal, true}]}
+      assert quoted_clause([true]) == {:ok, [{:atom, true}]}
       assert quoted_clause([foo]) == {:ok, [{:var, 0}]}
     end
 
@@ -41,13 +41,13 @@ defmodule Module.TypesTest do
       assert quoted_clause([x = y, y = x]) == {:ok, [{:var, 0}, {:var, 0}]}
 
       assert quoted_clause([x = :foo, x = y, y = z]) ==
-               {:ok, [{:literal, :foo}, {:literal, :foo}, {:literal, :foo}]}
+               {:ok, [{:atom, :foo}, {:atom, :foo}, {:atom, :foo}]}
 
       assert quoted_clause([x = y, y = :foo, y = z]) ==
-               {:ok, [{:literal, :foo}, {:literal, :foo}, {:literal, :foo}]}
+               {:ok, [{:atom, :foo}, {:atom, :foo}, {:atom, :foo}]}
 
       assert quoted_clause([x = y, y = z, z = :foo]) ==
-               {:ok, [{:literal, :foo}, {:literal, :foo}, {:literal, :foo}]}
+               {:ok, [{:atom, :foo}, {:atom, :foo}, {:atom, :foo}]}
 
       assert {:error, {{:unable_unify, {:tuple, [var: 1]}, {:var, 0}, _, _}, _}} =
                quoted_clause([{x} = y, {y} = x])
@@ -95,34 +95,40 @@ defmodule Module.TypesTest do
       assert quoted_clause([%{true: false} = foo, %{} = foo]) ==
                {:ok,
                 [
-                  {:map, [{{:literal, true}, {:literal, false}}]},
-                  {:map, [{{:literal, true}, {:literal, false}}]}
+                  {:map, [{{:atom, true}, {:atom, false}}]},
+                  {:map, [{{:atom, true}, {:atom, false}}]}
                 ]}
 
       assert quoted_clause([%{true: bool}], [:erlang.is_boolean(bool)]) ==
                {:ok,
                 [
-                  {:map, [{{:literal, true}, :boolean}]}
+                  {:map, [{{:atom, true}, :boolean}]}
                 ]}
 
       assert quoted_clause([%{true: true} = foo, %{false: false} = foo]) ==
                {:ok,
                 [
-                  {:map,
-                   [{{:literal, false}, {:literal, false}}, {{:literal, true}, {:literal, true}}]},
-                  {:map,
-                   [{{:literal, false}, {:literal, false}}, {{:literal, true}, {:literal, true}}]}
+                  {:map, [{{:atom, false}, {:atom, false}}, {{:atom, true}, {:atom, true}}]},
+                  {:map, [{{:atom, false}, {:atom, false}}, {{:atom, true}, {:atom, true}}]}
                 ]}
 
-      assert {:error, {{:unable_unify, {:literal, true}, {:literal, false}, _, _}, _}} =
+      assert {:error, {{:unable_unify, {:atom, true}, {:atom, false}, _, _}, _}} =
                quoted_clause([%{true: false} = foo, %{true: true} = foo])
+    end
+
+    test "struct var guard" do
+      assert quoted_clause([%var{}], [:erlang.is_atom(var)]) ==
+               {:ok, [{:map, [{{:atom, :__struct__}, :atom}]}]}
+
+      assert {:error, {{:unable_unify, :integer, :atom, _, _}, _}} =
+               quoted_clause([%var{}], [:erlang.is_integer(var)])
     end
   end
 
   test "format_type/1" do
     assert Types.format_type(:binary) == "binary()"
-    assert Types.format_type({:literal, true}) == "true"
-    assert Types.format_type({:literal, :atom}) == ":atom"
+    assert Types.format_type({:atom, true}) == "true"
+    assert Types.format_type({:atom, :atom}) == ":atom"
     assert Types.format_type({:cons, :binary, :null}) == "[binary()]"
     assert Types.format_type({:cons, :binary, :binary}) == "[binary() | binary()]"
     assert Types.format_type({:tuple, []}) == "{}"

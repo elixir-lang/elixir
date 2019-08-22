@@ -12,9 +12,15 @@ defmodule Module.Types.Infer do
     end
   end
 
+  ## PATTERNS
+
+  @doc """
+  Return the type and typing context of a pattern expression or an error
+  in case of a typing conflict.
+  """
   # :atom
   def of_pattern(atom, context) when is_atom(atom) do
-    {:ok, {:literal, atom}, context}
+    {:ok, {:atom, atom}, context}
   end
 
   # 12
@@ -102,26 +108,69 @@ defmodule Module.Types.Infer do
 
   # %{...}
   def of_pattern({:%{}, _meta, args} = expr, context) do
-    result =
-      expr_stack(expr, context, fn context ->
-        map_reduce_ok(args, context, fn {key, value}, context ->
-          with {:ok, key_type, context} <- of_pattern(key, context),
-               {:ok, value_type, context} <- of_pattern(value, context),
-               do: {:ok, {key_type, value_type}, context}
-        end)
-      end)
-
-    case result do
-      {:ok, pairs, context} -> {:ok, {:map, pairs}, context}
+    case expr_stack(expr, context, &of_pairs(args, &1)) do
+      {:ok, pairs, context} -> {:ok, {:map, pairs_to_unions(pairs, context)}, context}
       {:error, reason} -> {:error, reason}
     end
   end
 
-  # TODO: structs
-  def of_pattern({:%, _meta, _args}, context) do
-    {:ok, {:map, []}, context}
+  # %var{...}
+  def of_pattern({:%, _meta1, [var, {:%{}, _meta2, args}]} = expr, context) when is_var(var) do
+    expr_stack(expr, context, fn context ->
+      with {:ok, pairs, context} <- of_pairs(args, context),
+           {var_type, context} = new_var(var, context),
+           {:ok, _, context} <- unify(var_type, :atom, context) do
+        pairs = [{{:atom, :__struct__}, var_type} | pairs]
+        {:ok, {:map, pairs}, context}
+      end
+    end)
   end
 
+  # %Struct{...}
+  def of_pattern({:%, _meta1, [module, {:%{}, _meta2, args}]} = expr, context)
+      when is_atom(module) do
+    case expr_stack(expr, context, &of_pairs(args, &1)) do
+      {:ok, pairs, context} ->
+        pairs = [{{:atom, :__struct__}, {:atom, module}} | pairs]
+        {:ok, {:map, pairs}, context}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp of_pairs(pairs, context) do
+    map_reduce_ok(pairs, context, fn {key, value}, context ->
+      with {:ok, key_type, context} <- of_pattern(key, context),
+           {:ok, value_type, context} <- of_pattern(value, context),
+           do: {:ok, {key_type, value_type}, context}
+    end)
+  end
+
+  defp pairs_to_unions(pairs, context) do
+    # Maps only allow simple literal keys in patterns so
+    # we do not have to do subtype checking
+
+    Enum.reduce(pairs, [], fn {key, value}, pairs ->
+      case :lists.keyfind(key, 1, pairs) do
+        {^key, {:union, union}} ->
+          :lists.keystore(key, 1, pairs, {key, to_union([value | union], context)})
+
+        {^key, original_value} ->
+          :lists.keystore(key, 1, pairs, {key, to_union([value, original_value], context)})
+
+        false ->
+          [{key, value} | pairs]
+      end
+    end)
+  end
+
+  ## GUARDS
+
+  @doc """
+  Refines the type variables in the typing context using type check guards
+  such as `is_integer/1`.
+  """
   def of_guard(guard, context) do
     expr_stack(guard, context, fn context ->
       # Flatten `foo and bar` to list of type constraints
@@ -194,6 +243,8 @@ defmodule Module.Types.Infer do
 
   defp type_guard(_other), do: {:error, :unknown_guard}
 
+  ## BINARY PATTERNS
+
   # binary-pattern :: specifier
   defp of_binary({:"::", _meta, [expr, specifiers]} = full_expr, context) do
     specifiers = List.flatten(collect_specifiers(specifiers))
@@ -213,9 +264,15 @@ defmodule Module.Types.Infer do
       end
 
     expr_stack(full_expr, context, fn context ->
-      with {:ok, type, context} <- of_pattern(expr, context),
-           {:ok, _type, context} <- unify(type, expected_type, context),
-           do: {:ok, context}
+      # Special case utf specifiers with binary literals since they allow
+      # both integer and binary literals but variables are always integer
+      if is_binary(expr) and utf_specifier?(specifiers) do
+        {:ok, context}
+      else
+        with {:ok, type, context} <- of_pattern(expr, context),
+             {:ok, _type, context} <- unify(type, expected_type, context),
+             do: {:ok, context}
+      end
     end)
   end
 
@@ -231,6 +288,10 @@ defmodule Module.Types.Infer do
       {:error, reason} ->
         {:error, reason}
     end
+  end
+
+  defp utf_specifier?(specifiers) do
+    :utf8 in specifiers or :utf16 in specifiers or :utf32 in specifiers
   end
 
   # Collect binary type specifiers,
@@ -253,6 +314,10 @@ defmodule Module.Types.Infer do
 
   ## UNIFICATION
 
+  @doc """
+  Unifies two types and returns the unified type and an updated typing context
+  or an error in case of a typing conflict.
+  """
   def unify(left, right, context) do
     case do_unify(left, right, context) do
       {:ok, type, context} -> {:ok, type, %{context | unify_stack: []}}
@@ -392,6 +457,10 @@ defmodule Module.Types.Infer do
     %{context | unify_stack: [var | context.unify_stack]}
   end
 
+  @doc """
+  Adds a variable to the typing context and returns its type variables.
+  If the variable has already been added, return the existing type variable.
+  """
   def new_var(var, context) do
     case :maps.find(var_name(var), context.vars) do
       {:ok, type} ->
@@ -469,8 +538,12 @@ defmodule Module.Types.Infer do
     false
   end
 
-  def subtype?({:literal, boolean}, :boolean, _context) when is_boolean(boolean), do: true
-  def subtype?({:literal, atom}, :atom, _context) when is_atom(atom), do: true
+  @doc """
+  Checks if the first argument is a subtype of the second argument.
+  Only checks for simple and concrete types.
+  """
+  def subtype?({:atom, boolean}, :boolean, _context) when is_boolean(boolean), do: true
+  def subtype?({:atom, atom}, :atom, _context) when is_atom(atom), do: true
   def subtype?(:boolean, :atom, _context), do: true
   def subtype?({:tuple, _}, :tuple, _context), do: true
 
@@ -485,9 +558,16 @@ defmodule Module.Types.Infer do
 
   def subtype?(left, right, _context), do: left == right
 
+  @doc """
+  Returns a "simplified" union using `subtype?/3` to remove redundant types.
+
+  Due to limitations in `subtype?/3` some overlapping types may still be
+  included. For example unions with overlapping non-concrete types such as
+  `{boolean()} | {atom()}` will not be merged or types with variables that
+  are distinct but equivalent such as `a | b when a ~ b`.
+  """
   def to_union(types, context) when types != [] do
     if :dynamic in types do
-      # NOTE: Or filter away dynamic()?
       :dynamic
     else
       case unique_super_types(types, context) do
