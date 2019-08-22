@@ -541,11 +541,18 @@ defmodule Mix.Compilers.Elixir do
         split_manifest(data)
 
       [v | data] when is_integer(v) ->
-        for module <- data, elem(module, 0) == :module do
-          module = elem(module, 1)
-          File.rm(beam_path(compile_path, module))
-          :code.purge(module)
-          :code.delete(module)
+        try do
+          for module <- data, elem(module, 0) == :module do
+            module = elem(module, 1)
+            File.rm(beam_path(compile_path, module))
+            :code.purge(module)
+            :code.delete(module)
+          end
+        rescue
+          _ ->
+            Mix.raise(
+              "Cannot clean-up stale manifest, please run \"mix clean --deps\" manually before proceeding"
+            )
         end
 
         {[], []}
