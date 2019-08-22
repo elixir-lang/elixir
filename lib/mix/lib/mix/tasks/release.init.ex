@@ -378,8 +378,8 @@ defmodule Mix.Tasks.Release.Init do
     )
 
     !ERLSRV! add !RELEASE_NAME!_!RELEASE_NAME! ^
-      -name "!RELEASE_NODE!" ^
-      -args "-setcookie !RELEASE_COOKIE! -config !RELEASE_SYS_CONFIG! -mode !RELEASE_MODE! -boot !REL_VSN_DIR!\start -boot_var RELEASE_LIB !RELEASE_ROOT!\lib -args_file !REL_VSN_DIR!\vm.args -sname !RELEASE_NODE!"
+      -!RELEASE_DISTRIBUTION! "!RELEASE_NODE!" ^
+      -args "-setcookie !RELEASE_COOKIE! -config !RELEASE_SYS_CONFIG! -mode !RELEASE_MODE! -boot !REL_VSN_DIR!\start -boot_var RELEASE_LIB !RELEASE_ROOT!\lib -args_file !REL_VSN_DIR!\vm.args"
 
     if %ERRORLEVEL% EQU 0 (
       echo Service installed but not started. From now on, it must be started and stopped by erlsrv:
