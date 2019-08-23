@@ -24,7 +24,7 @@ defmodule ExUnit.Diff do
   @doc """
   Returns the diff between `left` and `right` and env after the comparison.
 
-  The `left` side can be a literal or an AST, the `right` should be always a
+  The `left` side can be a literal or an AST, the `right` should always be a
   value. The `context` should be `{:match, pins}` for pattern matching and
   `expr` for any other case.
   """
