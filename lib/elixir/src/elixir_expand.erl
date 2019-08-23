@@ -977,7 +977,7 @@ expand_aliases({'__aliases__', Meta, _} = Alias, E, Report) ->
 
 expand_for({'<-', Meta, [Left, Right]}, E) ->
   {ERight, ER} = expand(Right, E),
-  {[ELeft], EL}  = elixir_clauses:head([Left], E),
+  {[ELeft], EL} = elixir_clauses:head([Left], E),
   {{'<-', Meta, [ELeft, ERight]}, elixir_env:mergev(EL, ER)};
 expand_for({'<<>>', Meta, Args} = X, E) when is_list(Args) ->
   case elixir_utils:split_last(Args) of

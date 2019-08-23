@@ -666,6 +666,12 @@ defmodule Kernel.ErrorsTest do
     end
   end
 
+  test "invalid case clauses" do
+    assert_eval_raise CompileError,
+                      "nofile:1: expected one arg for :do clauses (->) in \"case\"",
+                      'case nil do 0, z when not is_nil(z) -> z end'
+  end
+
   test "invalid fn args" do
     assert_eval_raise TokenMissingError,
                       "nofile:1: missing terminator: end (for \"fn\" starting at line 1)",
