@@ -5153,12 +5153,14 @@ defmodule Kernel do
   defmacro sigil_w(term, modifiers)
 
   defmacro sigil_w({:<<>>, _meta, [string]}, modifiers) when is_binary(string) do
-    split_words(:elixir_interpolation.unescape_chars(string), modifiers)
+    stacktrace = Macro.Env.stacktrace(__CALLER__)
+    split_words(:elixir_interpolation.unescape_chars(string), modifiers, stacktrace)
   end
 
   defmacro sigil_w({:<<>>, meta, pieces}, modifiers) do
+    stacktrace = Macro.Env.stacktrace(__CALLER__)
     binary = {:<<>>, meta, unescape_tokens(pieces)}
-    split_words(binary, modifiers)
+    split_words(binary, modifiers, stacktrace)
   end
 
   @doc ~S"""
@@ -5182,14 +5184,15 @@ defmodule Kernel do
   defmacro sigil_W(term, modifiers)
 
   defmacro sigil_W({:<<>>, _meta, [string]}, modifiers) when is_binary(string) do
-    split_words(string, modifiers)
+    stacktrace = Macro.Env.stacktrace(__CALLER__)
+    split_words(string, modifiers, stacktrace)
   end
 
-  defp split_words(string, []) do
-    split_words(string, [?s])
+  defp split_words(string, [], stacktrace) do
+    split_words(string, [?s], stacktrace)
   end
 
-  defp split_words(string, [mod])
+  defp split_words(string, [mod], stacktrace)
        when mod == ?s or mod == ?a or mod == ?c do
     case is_binary(string) do
       true ->
@@ -5198,7 +5201,10 @@ defmodule Kernel do
         :lists.foreach(
           fn part ->
             if :binary.last(part) == ?, do
-              IO.warn("item \"#{part}\" in word list has a trailing comma; was this intentional?")
+              IO.warn(
+                "item \"#{part}\" in word list has a trailing comma; was this intentional?",
+                stacktrace
+              )
             end
           end,
           parts
@@ -5219,7 +5225,8 @@ defmodule Kernel do
               fn part ->
                 if :binary.last(part) == ?, do
                   IO.warn(
-                    "item \"#{part}\" in word list has a trailing comma; was this intentional?"
+                    "item \"#{part}\" in word list has a trailing comma; was this intentional?",
+                    unquote(Macro.escape(stacktrace))
                   )
                 end
               end,
@@ -5237,7 +5244,7 @@ defmodule Kernel do
     end
   end
 
-  defp split_words(_string, _mods) do
+  defp split_words(_string, _mods, _stacktrace) do
     raise ArgumentError, "modifier must be one of: s, a, c"
   end
 
