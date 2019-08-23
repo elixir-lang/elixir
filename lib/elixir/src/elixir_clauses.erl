@@ -73,7 +73,7 @@ warn_zero_length_guard(_, _) ->
   lists:mapfoldl(fun(X, Acc) -> expand_case(Meta, X, Acc) end, E, Opts).
 
 expand_case(Meta, {'do', _} = Do, E) ->
-  Fun = expand_one(Meta, 'case', 'do', fun head/2),
+  Fun = expand_head(Meta, 'case', 'do'),
   expand_clauses(Meta, 'case', Fun, Do, E);
 expand_case(Meta, {Key, _}, E) ->
   form_error(Meta, E, ?MODULE, {unexpected_option, 'case', Key}).
@@ -113,7 +113,7 @@ expand_cond(Meta, {Key, _}, E) ->
 expand_receive(_Meta, {'do', {'__block__', _, []}} = Do, E) ->
   {Do, E};
 expand_receive(Meta, {'do', _} = Do, E) ->
-  Fun = expand_one(Meta, 'receive', 'do', fun head/2),
+  Fun = expand_head(Meta, 'receive', 'do'),
   expand_clauses(Meta, 'receive', Fun, Do, E);
 expand_receive(Meta, {'after', [_]} = After, E) ->
   Fun = expand_one(Meta, 'receive', 'after', fun elixir_expand:expand_args/2),
@@ -173,7 +173,7 @@ expand_with_else(Meta, Opts, E, HasMatch) ->
         HasMatch -> ok;
         true -> form_warn(Meta, ?key(E, file), ?MODULE, unmatchable_else_in_with)
       end,
-      Fun = expand_one(Meta, 'with', 'else', fun head/2),
+      Fun = expand_head(Meta, 'with', 'else'),
       {EPair, EE} = expand_clauses(Meta, 'with', Fun, Pair, E),
       {[EPair], RestOpts, EE};
     false ->
@@ -214,7 +214,7 @@ expand_try(_Meta, {'after', Expr}, E) ->
   {EExpr, EE} = elixir_expand:expand(Expr, E),
   {{'after', EExpr}, elixir_env:merge_and_check_unused_vars(E, EE)};
 expand_try(Meta, {'else', _} = Else, E) ->
-  Fun = expand_one(Meta, 'try', 'else', fun head/2),
+  Fun = expand_head(Meta, 'try', 'else'),
   expand_clauses(Meta, 'try', Fun, Else, E);
 expand_try(Meta, {'catch', _} = Catch, E) ->
   expand_clauses_with_stacktrace(Meta, fun expand_catch/3, Catch, E);
@@ -282,6 +282,16 @@ normalize_rescue(Other) ->
   is_list(Other) andalso lists:all(fun is_atom/1, Other) andalso Other.
 
 %% Expansion helpers
+
+expand_head(Meta, Kind, Key) ->
+  fun
+    ([{'when', _, [_, _, _ | _]}], E) ->
+      form_error(Meta, E, ?MODULE, {wrong_number_of_args_for_clause, "one arg", Kind, Key});
+    ([_] = Args, E) ->
+      head(Args, E);
+    (_, E) ->
+      form_error(Meta, E, ?MODULE, {wrong_number_of_args_for_clause, "one arg", Kind, Key})
+  end.
 
 %% Returns a function that expands arguments
 %% considering we have at maximum one entry.
