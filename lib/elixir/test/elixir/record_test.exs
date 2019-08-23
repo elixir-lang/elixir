@@ -78,7 +78,7 @@ defmodule RecordTest do
   def record_in_guard?(term, kind) when Record.is_record(term, kind), do: true
   def record_in_guard?(_, _), do: false
 
-  test "is_record/1/2 (in guard)" do
+  test "is_record/1,2 (in guard)" do
     assert record_in_guard?({User, "john", 27})
     refute record_in_guard?({"user", "john", 27})
 

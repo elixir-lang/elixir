@@ -835,7 +835,7 @@ defmodule KernelTest do
       assert_raise KeyError, fn -> pop_in(users.bob[:age]) end
     end
 
-    test "pop_in/1/2 with nils" do
+    test "pop_in/1,2 with nils" do
       users = %{"john" => nil, "meg" => %{age: 23}}
       assert pop_in(users["john"][:age]) == {nil, %{"meg" => %{age: 23}}}
       assert pop_in(users, ["john", :age]) == {nil, %{"meg" => %{age: 23}}}

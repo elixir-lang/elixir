@@ -21,7 +21,7 @@ defmodule CodeTest do
 
   Code.eval_quoted(contents, [], file: "sample.ex", line: 13)
 
-  describe "eval_string/1-3" do
+  describe "eval_string/1,2,3" do
     test "correctly evaluates a string of code" do
       assert Code.eval_string("1 + 2") == {3, []}
       assert Code.eval_string("two = 1 + 1") == {2, [two: 2]}
