@@ -5220,20 +5220,6 @@ defmodule Kernel do
         parts =
           quote do
             parts = String.split(unquote(string))
-
-            :lists.foreach(
-              fn part ->
-                if :binary.last(part) == ?, do
-                  IO.warn(
-                    "item \"#{part}\" in word list has a trailing comma; was this intentional?",
-                    unquote(Macro.escape(stacktrace))
-                  )
-                end
-              end,
-              parts
-            )
-
-            parts
           end
 
         case mod do

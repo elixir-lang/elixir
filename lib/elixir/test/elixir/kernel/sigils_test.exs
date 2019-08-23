@@ -38,6 +38,30 @@ defmodule Kernel.SigilsTest.Macros do
   end
 end
 
+defmodule Kernel.SigilsTest.Runtime_ws do
+  def run, do: :this_stub_will_be_replaced_below
+end
+
+defmodule Kernel.SigilsTest.Runtime_wa do
+  def run, do: :this_stub_will_be_replaced_below
+end
+
+defmodule Kernel.SigilsTest.Runtime_wc do
+  def run, do: :this_stub_will_be_replaced_below
+end
+
+defmodule Kernel.SigilsTest.Runtime_Ws do
+  def run, do: :this_stub_will_be_replaced_below
+end
+
+defmodule Kernel.SigilsTest.Runtime_Wa do
+  def run, do: :this_stub_will_be_replaced_below
+end
+
+defmodule Kernel.SigilsTest.Runtime_Wc do
+  def run, do: :this_stub_will_be_replaced_below
+end
+
 defmodule Kernel.SigilsTest do
   use ExUnit.Case, async: true
 
@@ -163,24 +187,72 @@ bar) in ["foo\\\nbar", "foo\\\r\nbar"]
     assert ~W(Foo.Bar.Baz)a == [:"Foo.Bar.Baz"]
   end
 
-  test "sigil w/W warns on trailing comma" do
-    assert capture_err(fn -> Code.eval_string("~w(foo, bar baz)s") end) =~
+  test "sigil w/W warns on trailing comma at compile time, not runtime" do
+    assert capture_err(fn ->
+             Code.compile_string("""
+             defmodule Kernel.SigilsTest.Runtime_ws do
+               def run, do: ~w(foo, bar baz)s
+             end
+             """)
+           end) =~
              "item \"foo,\" in word list has a trailing comma; was this intentional?"
 
-    assert capture_err(fn -> Code.eval_string("~w(foo, bar baz)a") end) =~
+    assert capture_err(fn -> Kernel.SigilsTest.Runtime_ws.run() end) == ""
+
+    assert capture_err(fn ->
+             Code.compile_string("""
+             defmodule Kernel.SigilsTest.Runtime_wa do
+               def run, do: ~w(foo, bar baz)s
+             end
+             """)
+           end) =~
              "item \"foo,\" in word list has a trailing comma; was this intentional?"
 
-    assert capture_err(fn -> Code.eval_string("~w(foo, bar baz)c") end) =~
+    assert capture_err(fn -> Kernel.SigilsTest.Runtime_wa.run() end) == ""
+
+    assert capture_err(fn ->
+             Code.compile_string("""
+             defmodule Kernel.SigilsTest.Runtime_wc do
+               def run, do: ~w(foo, bar baz)s
+             end
+             """)
+           end) =~
              "item \"foo,\" in word list has a trailing comma; was this intentional?"
 
-    assert capture_err(fn -> Code.eval_string("~W(foo bar, baz)s") end) =~
-             "item \"bar,\" in word list has a trailing comma; was this intentional?"
+    assert capture_err(fn -> Kernel.SigilsTest.Runtime_wc.run() end) == ""
 
-    assert capture_err(fn -> Code.eval_string("~W(foo bar, baz)a") end) =~
-             "item \"bar,\" in word list has a trailing comma; was this intentional?"
+    assert capture_err(fn ->
+             Code.compile_string("""
+             defmodule Kernel.SigilsTest.Runtime_Ws do
+               def run, do: ~w(foo, bar baz)s
+             end
+             """)
+           end) =~
+             "item \"foo,\" in word list has a trailing comma; was this intentional?"
 
-    assert capture_err(fn -> Code.eval_string("~W(foo bar, baz)c") end) =~
-             "item \"bar,\" in word list has a trailing comma; was this intentional?"
+    assert capture_err(fn -> Kernel.SigilsTest.Runtime_Ws.run() end) == ""
+
+    assert capture_err(fn ->
+             Code.compile_string("""
+             defmodule Kernel.SigilsTest.Runtime_Wa do
+               def run, do: ~w(foo, bar baz)s
+             end
+             """)
+           end) =~
+             "item \"foo,\" in word list has a trailing comma; was this intentional?"
+
+    assert capture_err(fn -> Kernel.SigilsTest.Runtime_Wa.run() end) == ""
+
+    assert capture_err(fn ->
+             Code.compile_string("""
+             defmodule Kernel.SigilsTest.Runtime_Wc do
+               def run, do: ~w(foo, bar baz)s
+             end
+             """)
+           end) =~
+             "item \"foo,\" in word list has a trailing comma; was this intentional?"
+
+    assert capture_err(fn -> Kernel.SigilsTest.Runtime_Wc.run() end) == ""
   end
 
   test "sigil w/W warns on trailing comma inside macro" do
