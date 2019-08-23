@@ -5195,6 +5195,15 @@ defmodule Kernel do
       true ->
         parts = String.split(string)
 
+        :lists.foreach(
+          fn part ->
+            if :binary.last(part) == ?, do
+              IO.warn("item \"#{part}\" in word list has a trailing comma; was this intentional?")
+            end
+          end,
+          parts
+        )
+
         case mod do
           ?s -> parts
           ?a -> :lists.map(&String.to_atom/1, parts)
@@ -5202,7 +5211,23 @@ defmodule Kernel do
         end
 
       false ->
-        parts = quote(do: String.split(unquote(string)))
+        parts =
+          quote do
+            parts = String.split(unquote(string))
+
+            :lists.foreach(
+              fn part ->
+                if :binary.last(part) == ?, do
+                  IO.warn(
+                    "item \"#{part}\" in word list has a trailing comma; was this intentional?"
+                  )
+                end
+              end,
+              parts
+            )
+
+            parts
+          end
 
         case mod do
           ?s -> parts

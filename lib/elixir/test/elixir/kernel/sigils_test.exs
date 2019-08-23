@@ -1,7 +1,49 @@
 Code.require_file("../test_helper.exs", __DIR__)
 
+defmodule Kernel.SigilsTest.Macros do
+  defmacro sigil_ws_macro do
+    quote do
+      ~w(foo, bar baz)s
+    end
+  end
+
+  defmacro sigil_Ws_macro do
+    quote do
+      ~W(foo bar, baz)s
+    end
+  end
+
+  defmacro sigil_wc_macro do
+    quote do
+      ~w(foo, bar baz)c
+    end
+  end
+
+  defmacro sigil_Wc_macro do
+    quote do
+      ~W(foo bar, baz)c
+    end
+  end
+
+  defmacro sigil_wa_macro do
+    quote do
+      ~w(foo, bar baz)a
+    end
+  end
+
+  defmacro sigil_Wa_macro do
+    quote do
+      ~W(foo bar, baz)a
+    end
+  end
+end
+
 defmodule Kernel.SigilsTest do
   use ExUnit.Case, async: true
+
+  defp capture_err(fun) do
+    ExUnit.CaptureIO.capture_io(:stderr, fun)
+  end
 
   test "sigil s" do
     assert ~s(foo) == "foo"
@@ -119,6 +161,76 @@ bar) in ["foo\\\nbar", "foo\\\r\nbar"]
 
     assert ~W(Foo #{Bar})a == [:Foo, :"\#{Bar}"]
     assert ~W(Foo.Bar.Baz)a == [:"Foo.Bar.Baz"]
+  end
+
+  test "sigil w/W warns on trailing comma" do
+    assert capture_err(fn -> Code.eval_string("~w(foo, bar baz)s") end) =~
+             "item \"foo,\" in word list has a trailing comma; was this intentional?"
+
+    assert capture_err(fn -> Code.eval_string("~w(foo, bar baz)a") end) =~
+             "item \"foo,\" in word list has a trailing comma; was this intentional?"
+
+    assert capture_err(fn -> Code.eval_string("~w(foo, bar baz)c") end) =~
+             "item \"foo,\" in word list has a trailing comma; was this intentional?"
+
+    assert capture_err(fn -> Code.eval_string("~W(foo bar, baz)s") end) =~
+             "item \"bar,\" in word list has a trailing comma; was this intentional?"
+
+    assert capture_err(fn -> Code.eval_string("~W(foo bar, baz)a") end) =~
+             "item \"bar,\" in word list has a trailing comma; was this intentional?"
+
+    assert capture_err(fn -> Code.eval_string("~W(foo bar, baz)c") end) =~
+             "item \"bar,\" in word list has a trailing comma; was this intentional?"
+  end
+
+  test "sigil w/W warns on trailing comma inside macro" do
+    assert capture_err(fn ->
+             Code.compile_string("""
+             require Kernel.SigilsTest.Macros
+             Kernel.SigilsTest.Macros.sigil_ws_macro()
+             """)
+           end) =~
+             "item \"foo,\" in word list has a trailing comma; was this intentional?"
+
+    assert capture_err(fn ->
+             Code.compile_string("""
+             require Kernel.SigilsTest.Macros
+             Kernel.SigilsTest.Macros.sigil_wa_macro()
+             """)
+           end) =~
+             "item \"foo,\" in word list has a trailing comma; was this intentional?"
+
+    assert capture_err(fn ->
+             Code.compile_string("""
+             require Kernel.SigilsTest.Macros
+             Kernel.SigilsTest.Macros.sigil_wc_macro()
+             """)
+           end) =~
+             "item \"foo,\" in word list has a trailing comma; was this intentional?"
+
+    assert capture_err(fn ->
+             Code.compile_string("""
+             require Kernel.SigilsTest.Macros
+             Kernel.SigilsTest.Macros.sigil_Ws_macro()
+             """)
+           end) =~
+             "item \"bar,\" in word list has a trailing comma; was this intentional?"
+
+    assert capture_err(fn ->
+             Code.compile_string("""
+             require Kernel.SigilsTest.Macros
+             Kernel.SigilsTest.Macros.sigil_Wa_macro()
+             """)
+           end) =~
+             "item \"bar,\" in word list has a trailing comma; was this intentional?"
+
+    assert capture_err(fn ->
+             Code.compile_string("""
+             require Kernel.SigilsTest.Macros
+             Kernel.SigilsTest.Macros.sigil_Wc_macro()
+             """)
+           end) =~
+             "item \"bar,\" in word list has a trailing comma; was this intentional?"
   end
 
   test "sigils matching" do
