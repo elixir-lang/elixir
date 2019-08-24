@@ -5198,17 +5198,15 @@ defmodule Kernel do
       true ->
         parts = String.split(string)
 
-        :lists.foreach(
-          fn part ->
-            if :binary.last(part) == ?, do
-              IO.warn(
-                "item \"#{part}\" in word list has a trailing comma; was this intentional?",
-                stacktrace
-              )
-            end
-          end,
-          parts
-        )
+        parts_with_trailing_comma = :lists.filter(&(:binary.last(&1) == ?,), parts)
+
+        if parts_with_trailing_comma != [] do
+          IO.warn(
+            "The sigils ~w/~W do not allow trailing commas at the end of each word. " <>
+              "If the comma is necessary, define a regular list with [...], otherwise remove the comma.",
+            stacktrace
+          )
+        end
 
         case mod do
           ?s -> parts

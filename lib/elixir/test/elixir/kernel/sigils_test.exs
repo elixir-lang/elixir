@@ -195,7 +195,7 @@ bar) in ["foo\\\nbar", "foo\\\r\nbar"]
              end
              """)
            end) =~
-             "item \"foo,\" in word list has a trailing comma; was this intentional?"
+             "The sigils ~w/~W do not allow trailing commas"
 
     assert capture_err(fn -> Kernel.SigilsTest.Runtime_ws.run() end) == ""
 
@@ -206,7 +206,7 @@ bar) in ["foo\\\nbar", "foo\\\r\nbar"]
              end
              """)
            end) =~
-             "item \"foo,\" in word list has a trailing comma; was this intentional?"
+             "The sigils ~w/~W do not allow trailing commas"
 
     assert capture_err(fn -> Kernel.SigilsTest.Runtime_wa.run() end) == ""
 
@@ -217,7 +217,7 @@ bar) in ["foo\\\nbar", "foo\\\r\nbar"]
              end
              """)
            end) =~
-             "item \"foo,\" in word list has a trailing comma; was this intentional?"
+             "The sigils ~w/~W do not allow trailing commas"
 
     assert capture_err(fn -> Kernel.SigilsTest.Runtime_wc.run() end) == ""
 
@@ -228,7 +228,7 @@ bar) in ["foo\\\nbar", "foo\\\r\nbar"]
              end
              """)
            end) =~
-             "item \"foo,\" in word list has a trailing comma; was this intentional?"
+             "The sigils ~w/~W do not allow trailing commas"
 
     assert capture_err(fn -> Kernel.SigilsTest.Runtime_Ws.run() end) == ""
 
@@ -239,7 +239,7 @@ bar) in ["foo\\\nbar", "foo\\\r\nbar"]
              end
              """)
            end) =~
-             "item \"foo,\" in word list has a trailing comma; was this intentional?"
+             "The sigils ~w/~W do not allow trailing commas"
 
     assert capture_err(fn -> Kernel.SigilsTest.Runtime_Wa.run() end) == ""
 
@@ -250,7 +250,7 @@ bar) in ["foo\\\nbar", "foo\\\r\nbar"]
              end
              """)
            end) =~
-             "item \"foo,\" in word list has a trailing comma; was this intentional?"
+             "The sigils ~w/~W do not allow trailing commas"
 
     assert capture_err(fn -> Kernel.SigilsTest.Runtime_Wc.run() end) == ""
   end
@@ -262,7 +262,7 @@ bar) in ["foo\\\nbar", "foo\\\r\nbar"]
              Kernel.SigilsTest.Macros.sigil_ws_macro()
              """)
            end) =~
-             "item \"foo,\" in word list has a trailing comma; was this intentional?"
+             "The sigils ~w/~W do not allow trailing commas"
 
     assert capture_err(fn ->
              Code.compile_string("""
@@ -270,7 +270,7 @@ bar) in ["foo\\\nbar", "foo\\\r\nbar"]
              Kernel.SigilsTest.Macros.sigil_wa_macro()
              """)
            end) =~
-             "item \"foo,\" in word list has a trailing comma; was this intentional?"
+             "The sigils ~w/~W do not allow trailing commas"
 
     assert capture_err(fn ->
              Code.compile_string("""
@@ -278,7 +278,7 @@ bar) in ["foo\\\nbar", "foo\\\r\nbar"]
              Kernel.SigilsTest.Macros.sigil_wc_macro()
              """)
            end) =~
-             "item \"foo,\" in word list has a trailing comma; was this intentional?"
+             "The sigils ~w/~W do not allow trailing commas"
 
     assert capture_err(fn ->
              Code.compile_string("""
@@ -286,7 +286,7 @@ bar) in ["foo\\\nbar", "foo\\\r\nbar"]
              Kernel.SigilsTest.Macros.sigil_Ws_macro()
              """)
            end) =~
-             "item \"bar,\" in word list has a trailing comma; was this intentional?"
+             "The sigils ~w/~W do not allow trailing commas"
 
     assert capture_err(fn ->
              Code.compile_string("""
@@ -294,7 +294,7 @@ bar) in ["foo\\\nbar", "foo\\\r\nbar"]
              Kernel.SigilsTest.Macros.sigil_Wa_macro()
              """)
            end) =~
-             "item \"bar,\" in word list has a trailing comma; was this intentional?"
+             "The sigils ~w/~W do not allow trailing commas"
 
     assert capture_err(fn ->
              Code.compile_string("""
@@ -302,7 +302,7 @@ bar) in ["foo\\\nbar", "foo\\\r\nbar"]
              Kernel.SigilsTest.Macros.sigil_Wc_macro()
              """)
            end) =~
-             "item \"bar,\" in word list has a trailing comma; was this intentional?"
+             "The sigils ~w/~W do not allow trailing commas"
   end
 
   test "sigils matching" do
