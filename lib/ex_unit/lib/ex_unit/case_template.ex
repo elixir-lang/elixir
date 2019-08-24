@@ -1,12 +1,13 @@
 defmodule ExUnit.CaseTemplate do
   @moduledoc """
-  This module allows a developer to define a test case
-  template to be used throughout their tests. This is useful
-  when there are a set of functions that should be shared
-  between tests or a set of setup callbacks.
+  Defines a module template to be used throughout your test suite.
 
-  By using this module, the callbacks and assertions
-  available for regular test cases will also be available.
+  This is useful when there are a set of setup callbacks or a set
+  of functions that should be shared between test modules.
+
+  Once a case template is used, the regular functionality in
+  `ExUnit.Case` plus the functionality defined in the template
+  will become available.
 
   ## Example
 

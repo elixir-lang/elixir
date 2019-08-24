@@ -155,7 +155,7 @@ defmodule ExUnit.Case do
     * `:timeout` - customizes the test timeout in milliseconds (defaults to 60000).
       Accepts `:infinity` as a timeout value.
 
-  The `:test_type` tag is automatically set by ExUnit, but is _not_ reserved.
+  The `:test_type` tag is automatically set by ExUnit, but is **not** reserved.
   This tag is available for users to customize if they desire.
 
   ## Filters
