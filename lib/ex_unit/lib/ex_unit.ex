@@ -113,13 +113,13 @@ defmodule ExUnit do
 
   defmodule TestModule do
     @moduledoc """
-    A struct that keeps information about the test case.
+    A struct that keeps information about the test module.
 
     It is received by formatters and contains the following fields:
 
-      * `:name`  - the test case name
+      * `:name`  - the test module name
       * `:state` - the test error state (see `t:ExUnit.state/0`)
-      * `:tests` - all tests for this case
+      * `:tests` - all tests in this module
 
     """
     defstruct [:name, :state, tests: []]
