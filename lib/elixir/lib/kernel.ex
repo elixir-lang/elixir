@@ -5215,10 +5215,7 @@ defmodule Kernel do
         end
 
       false ->
-        parts =
-          quote do
-            parts = String.split(unquote(string))
-          end
+        parts = quote(do: String.split(unquote(string)))
 
         case mod do
           ?s -> parts
