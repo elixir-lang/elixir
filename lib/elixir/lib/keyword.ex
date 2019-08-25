@@ -621,8 +621,10 @@ defmodule Keyword do
 
   ## Examples
 
-      iex> Keyword.replace!([a: 1, b: 2, a: 4], :a, 3)
-      [a: 3, b: 2]
+      iex> Keyword.replace!([a: 1, b: 2, a: 3], :a, :new)
+      [a: :new, b: 2]
+      iex> Keyword.replace!([a: 1, b: 2, c: 3, b: 4], :b, :new)
+      [a: 1, b: :new, c: 3]
 
       iex> Keyword.replace!([a: 1], :b, 2)
       ** (KeyError) key :b not found in: [a: 1]
@@ -631,10 +633,19 @@ defmodule Keyword do
   @doc since: "1.5.0"
   @spec replace!(t, key, value) :: t
   def replace!(keywords, key, value) when is_list(keywords) and is_atom(key) do
-    case :lists.keyfind(key, 1, keywords) do
-      {^key, _} -> [{key, value} | delete(keywords, key)]
-      false -> raise KeyError, key: key, term: keywords
-    end
+    replace!(keywords, key, value, keywords)
+  end
+
+  defp replace!([{key, _} | keywords], key, value, _original) do
+    [{key, value} | delete(keywords, key)]
+  end
+
+  defp replace!([{_, _} = e | keywords], key, value, original) do
+    [e | replace!(keywords, key, value, original)]
+  end
+
+  defp replace!([], key, _value, original) when is_atom(key) do
+    raise(KeyError, key: key, term: original)
   end
 
   @doc """
@@ -794,10 +805,10 @@ defmodule Keyword do
 
   ## Examples
 
-      iex> Keyword.update!([a: 1], :a, &(&1 * 2))
-      [a: 2]
-      iex> Keyword.update!([a: 1, a: 2], :a, &(&1 * 2))
-      [a: 2]
+      iex> Keyword.update!([a: 1, b: 2, a: 3], :a, &(&1 * 2))
+      [a: 2, b: 2]
+      iex> Keyword.update!([a: 1, b: 2, c: 3], :b, &(&1 * 2))
+      [a: 1, b: 4, c: 3]
 
       iex> Keyword.update!([a: 1], :b, &(&1 * 2))
       ** (KeyError) key :b not found in: [a: 1]
@@ -809,16 +820,16 @@ defmodule Keyword do
     update!(keywords, key, fun, keywords)
   end
 
-  defp update!([{key, value} | keywords], key, fun, _dict) do
+  defp update!([{key, value} | keywords], key, fun, _original) do
     [{key, fun.(value)} | delete(keywords, key)]
   end
 
-  defp update!([{_, _} = e | keywords], key, fun, dict) do
-    [e | update!(keywords, key, fun, dict)]
+  defp update!([{_, _} = e | keywords], key, fun, original) do
+    [e | update!(keywords, key, fun, original)]
   end
 
-  defp update!([], key, _fun, dict) when is_atom(key) do
-    raise(KeyError, key: key, term: dict)
+  defp update!([], key, _fun, original) when is_atom(key) do
+    raise(KeyError, key: key, term: original)
   end
 
   @doc """

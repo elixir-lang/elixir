@@ -46,6 +46,16 @@ defmodule KeywordTest do
     end
   end
 
+  test "update!" do
+    assert Keyword.update!([a: 1, b: 2, a: 3], :a, &(&1 * 2)) == [a: 2, b: 2]
+    assert Keyword.update!([a: 1, b: 2, c: 3], :b, &(&1 * 2)) == [a: 1, b: 4, c: 3]
+  end
+
+  test "replace!" do
+    assert Keyword.replace!([a: 1, b: 2, a: 3], :a, :new) == [a: :new, b: 2]
+    assert Keyword.replace!([a: 1, b: 2, c: 3, b: 4], :b, :new) == [a: 1, b: :new, c: 3]
+  end
+
   test "merge/2" do
     assert Keyword.merge([a: 1, b: 2], c: 11, d: 12) == [a: 1, b: 2, c: 11, d: 12]
     assert Keyword.merge([], c: 11, d: 12) == [c: 11, d: 12]
