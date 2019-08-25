@@ -9,7 +9,7 @@ This document covers all of Elixir syntax constructs as a reference and then dis
 These are the reserved words in the Elixir language. They are detailed throughout this guide but summed up here for convenience:
 
   * `true`, `false`, `nil` - used as atoms
-  * `when`, `and`, `or`, `not`, `in` - used as operators
+  * `when`, `and`, `or`, `xor`, `not`, `in` - used as operators
   * `fn` - used for anonymous function definitions
   * `do`, `end`, `catch`, `rescue`, `after`, `else` - used in do/end blocks
 
