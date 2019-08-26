@@ -264,10 +264,10 @@ The `@callback` and `@optional_callback` attributes are used to create a `behavi
 
 For example, for the `MyBehaviour` module defined in `Optional callbacks` above:
 
-    > MyBehaviour.behaviour_info(:callbacks)
-    [vital_fun: 0, "MACRO-non_vital_macro": 2, non_vital_fun: 0]
-    > MyBehaviour.behaviour_info(:optional_callbacks)
-    ["MACRO-non_vital_macro": 2, non_vital_fun: 0]
+    MyBehaviour.behaviour_info(:callbacks)
+    #=> [vital_fun: 0, "MACRO-non_vital_macro": 2, non_vital_fun: 0]
+    MyBehaviour.behaviour_info(:optional_callbacks)
+    #=> ["MACRO-non_vital_macro": 2, non_vital_fun: 0]
 
 When using `iex`, the `IEx.Helpers.b/1` helper is also available.
 
