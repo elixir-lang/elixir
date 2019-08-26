@@ -56,6 +56,9 @@ defmodule Module do
   If the behaviour changes or `URI.HTTP` does not implement
   one of the callbacks, a warning will be raised.
 
+  For detailed documentation, see the
+  [behaviour typespec documentation](typespecs.html#behaviours).
+
   ### `@impl`
 
   To aid in the correct implementation of behaviours, you may optionally declare
