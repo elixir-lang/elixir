@@ -262,7 +262,7 @@ Elixir's standard library contains a few frequently used behaviours such as `Gen
 
 The `@callback` and `@optional_callback` attributes are used to create a `behaviour_info/1` function available on the defining module. This function can be used to retrieve the callbacks and optional callbacks defined by that module.
 
-For example, for the `MyBehaviour` module defined in `Optional callbacks` above:
+For example, for the `MyBehaviour` module defined in "Optional callbacks" above:
 
     MyBehaviour.behaviour_info(:callbacks)
     #=> [vital_fun: 0, "MACRO-non_vital_macro": 2, non_vital_fun: 0]
