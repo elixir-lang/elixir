@@ -258,6 +258,19 @@ If a callback module that implements a given behaviour doesn't export all the fu
 
 Elixir's standard library contains a few frequently used behaviours such as `GenServer`, `Supervisor`, and `Application`.
 
+### Inspecting behaviours
+
+The `@callback` and `@optional_callback` attributes are used to create a `behaviour_info/1` function available on the defining module. This function can be used to retrieve the callbacks and optional callbacks defined by that module.
+
+For example, for the `MyBehaviour` module defined in "Optional callbacks" above:
+
+    MyBehaviour.behaviour_info(:callbacks)
+    #=> [vital_fun: 0, "MACRO-non_vital_macro": 2, non_vital_fun: 0]
+    MyBehaviour.behaviour_info(:optional_callbacks)
+    #=> ["MACRO-non_vital_macro": 2, non_vital_fun: 0]
+
+When using `iex`, the `IEx.Helpers.b/1` helper is also available.
+
 ## The `string()` type
 
 Elixir discourages the use of the `string()` type. The `string()` type refers to Erlang strings, which are known as "charlists" in Elixir. They do not refer to Elixir strings, which are UTF-8 encoded binaries. To avoid confusion, if you attempt to use the type `string()`, Elixir will emit a warning. You should use `charlist()`, `nonempty_charlist()`, `binary()` or `String.t()` accordingly, or any of the several literal representations for these types.
