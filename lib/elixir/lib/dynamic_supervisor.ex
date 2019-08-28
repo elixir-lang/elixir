@@ -139,6 +139,13 @@ defmodule DynamicSupervisor do
   """
   @callback init(init_arg :: term) :: {:ok, sup_flags()} | :ignore
 
+  @doc """
+  Callback invoked when the child of the dynamic supervisor gets restarted.
+
+  Developers typically use it to track `pid`s of the dynamically created children.
+  """
+  @callback handle_child_restart(old_pid :: pid(), new_pid :: pid()) :: any()
+
   @typedoc "The supervisor flags returned on init"
   @type sup_flags() :: %{
           strategy: strategy(),
@@ -229,7 +236,10 @@ defmodule DynamicSupervisor do
         Supervisor.child_spec(default, unquote(Macro.escape(opts)))
       end
 
-      defoverridable child_spec: 1
+      @impl true
+      def handle_child_restart(_old_pid, _new_pid), do: :ok
+
+      defoverridable child_spec: 1, handle_child_restart: 2
     end
   end
 
@@ -545,7 +555,11 @@ defmodule DynamicSupervisor do
             is_tuple(name) -> name
           end
 
-        state = %DynamicSupervisor{mod: mod, args: init_arg, name: name}
+        state = %DynamicSupervisor{
+          mod: mod,
+          args: init_arg,
+          name: name
+        }
 
         case init(state, flags) do
           {:ok, state} -> {:ok, state}
@@ -970,22 +984,31 @@ defmodule DynamicSupervisor do
 
     case start_child(m, f, extra ++ args) do
       {:ok, pid, _} ->
+        maybe_callback_child_restart(state.mod, current_pid, pid)
         state = delete_child(current_pid, state)
         {:ok, save_child(pid, mfa, restart, shutdown, type, modules, state)}
 
       {:ok, pid} ->
+        maybe_callback_child_restart(state.mod, current_pid, pid)
         state = delete_child(current_pid, state)
         {:ok, save_child(pid, mfa, restart, shutdown, type, modules, state)}
 
       :ignore ->
+        maybe_callback_child_restart(state.mod, current_pid, :ignore)
         {:ok, delete_child(current_pid, state)}
 
       {:error, reason} ->
         report_error(:start_error, reason, {:restarting, current_pid}, child, state)
+        maybe_callback_child_restart(state.mod, current_pid, {:error, reason})
         state = put_in(state.children[current_pid], {:restarting, child})
         {:try_again, state}
     end
   end
+
+  defp maybe_callback_child_restart(nil, _, _), do: :ok
+
+  defp maybe_callback_child_restart(implementation, old_pid, new_pid),
+    do: implementation.handle_child_restart(old_pid, new_pid)
 
   defp report_error(error, reason, pid, child, %{name: name, extra_arguments: extra}) do
     :error_logger.error_report(

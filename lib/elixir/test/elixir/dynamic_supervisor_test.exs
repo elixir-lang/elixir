@@ -139,6 +139,46 @@ defmodule DynamicSupervisorTest do
       {:ok, pid} = DynamicSupervisor.start_link(strategy: :one_for_one)
       assert :supervisor.get_callback_module(pid) == Supervisor.Default
     end
+
+    test "calls back the implementation on child restart" do
+      "#PID" <> pid = inspect(self())
+      pid = String.to_charlist(pid)
+
+      with_impl_ast =
+        quote do
+          use DynamicSupervisor
+
+          @test_pid unquote(pid)
+
+          def start_link(init_arg),
+            do: DynamicSupervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
+
+          @impl true
+          def init(_init_arg),
+            do: DynamicSupervisor.init(strategy: :one_for_one)
+
+          @impl true
+          def handle_child_restart(old_pid, new_pid) do
+            send(
+              :erlang.list_to_pid(@test_pid),
+              {:pid_changed, inspect({old_pid, new_pid})}
+            )
+          end
+        end
+
+      Module.create(WithImpl, with_impl_ast, __ENV__)
+
+      {:ok, ds} = WithImpl.start_link(self())
+      {:ok, old_pid} = DynamicSupervisor.start_child(WithImpl, {Agent, fn -> %{} end})
+      Process.exit(old_pid, :kill)
+
+      assert_receive {:pid_changed, pids}
+
+      [{_, new_pid, _, _}] = DynamicSupervisor.which_children(ds)
+      assert inspect({old_pid, new_pid}) == pids
+
+      Process.exit(ds, :normal)
+    end
   end
 
   ## Code change

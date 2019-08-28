@@ -483,4 +483,8 @@ defmodule Task.Supervisor do
       end
     end)
   end
+
+  @impl true
+  @doc false
+  def handle_child_restart(_old_pid, _new_pid), do: :ok
 end
