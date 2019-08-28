@@ -555,11 +555,7 @@ defmodule DynamicSupervisor do
             is_tuple(name) -> name
           end
 
-        state = %DynamicSupervisor{
-          mod: mod,
-          args: init_arg,
-          name: name
-        }
+        state = %DynamicSupervisor{mod: mod, args: init_arg, name: name}
 
         case init(state, flags) do
           {:ok, state} -> {:ok, state}
