@@ -39,29 +39,29 @@ In the example above, we show how guards can be used in function clauses. There 
 
   * function clauses:
 
-  ```elixir
-  def foo(term) when is_integer(term), do: term
-  def foo(term) when is_float(term), do: round(term)
-  ```
+    ```elixir
+    def foo(term) when is_integer(term), do: term
+    def foo(term) when is_float(term), do: round(term)
+    ```
 
   * [`case`](`case/2`) expressions:
 
-  ```elixir
-  case x do
-    1 -> :one
-    2 -> :two
-    n when is_integer(n) and n > 2 -> :larger_than_two
-  end
-  ```
+    ```elixir
+    case x do
+      1 -> :one
+      2 -> :two
+      n when is_integer(n) and n > 2 -> :larger_than_two
+    end
+    ```
 
   * anonymous functions ([`fn`](`fn/1`)s):
 
-  ```elixir
-  larger_than_two? = fn
-    n when is_integer(n) and n > 2 -> true
-    n when is_integer(n) -> false
-  end
-  ```
+    ```elixir
+    larger_than_two? = fn
+      n when is_integer(n) and n > 2 -> true
+      n when is_integer(n) -> false
+    end
+    ```
 
   * custom guards can also be defined with `defguard/1` and `defguardp/1`.
     A custom guard is always defined based on existing guards.
