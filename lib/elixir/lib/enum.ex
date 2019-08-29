@@ -471,7 +471,7 @@ defmodule Enum do
   Chunks the `enumerable` with fine grained control when every chunk is emitted.
 
   `chunk_fun` receives the current element and the accumulator and
-  must return `{:cont, element, acc}` to emit the given chunk and
+  must return `{:cont, chunk, acc}` to emit the given chunk and
   continue with accumulator or `{:cont, acc}` to not emit any chunk
   and continue with the return accumulator.
 
