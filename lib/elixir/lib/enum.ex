@@ -476,7 +476,7 @@ defmodule Enum do
   and continue with the return accumulator.
 
   `after_fun` is invoked when iteration is done and must also return
-  `{:cont, element, acc}` or `{:cont, acc}`.
+  `{:cont, chunk, acc}` or `{:cont, acc}`.
 
   Returns a list of lists.
 
