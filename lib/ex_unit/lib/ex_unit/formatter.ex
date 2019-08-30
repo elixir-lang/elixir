@@ -308,10 +308,6 @@ defmodule ExUnit.Formatter do
     |> Algebra.format(width)
   end
 
-  defp format_context(%{left: @no_value, right: @no_value}, _, _, _, _) do
-    []
-  end
-
   defp format_context(%{context: {:mailbox, _pins, []}}, _, _, _, _) do
     []
   end
