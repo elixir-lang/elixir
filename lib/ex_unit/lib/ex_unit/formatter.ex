@@ -312,6 +312,10 @@ defmodule ExUnit.Formatter do
     []
   end
 
+  defp format_context(%{context: {:mailbox, _pins, []}}, _, _, _) do
+    []
+  end
+
   defp format_context(
          %{left: left, context: {:mailbox, pins, mailbox}},
          formatter,
