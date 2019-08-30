@@ -532,15 +532,17 @@ defmodule ExUnit.Assertions do
     {:messages, messages} = Process.info(self(), :messages)
 
     if Enum.any?(messages, pattern_finder) do
-      """
-      Found message matching #{Macro.to_string(pattern)} after #{timeout}ms.
+      raise ExUnit.AssertionError,
+        expr: code,
+        message: """
+        Found message matching #{Macro.to_string(pattern)} after #{timeout}ms.
 
-      This means the message was delivered too close to the timeout value, you may want to either:
+        This means the message was delivered too close to the timeout value, you may want to either:
 
-        1. Give an increased timeout to `assert_receive/2`
-        2. Increase the default timeout to all `assert_receive` in your
-           test_helper.exs by setting ExUnit.configure(assert_receive_timeout: ...)
-      """
+          1. Give an increased timeout to `assert_receive/2`
+          2. Increase the default timeout to all `assert_receive` in your
+             test_helper.exs by setting ExUnit.configure(assert_receive_timeout: ...)
+        """
     else
       {message, mailbox} = format_mailbox(messages)
 
