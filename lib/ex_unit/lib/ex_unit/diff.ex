@@ -211,7 +211,12 @@ defmodule ExUnit.Diff do
     {diff_clause1, clause1_equivalent?} = diff_guard_clause(clause1, bindings)
     {diff_clause2, clause2_equivalent?} = diff_guard_clause(clause2, bindings)
 
-    equivalent? = clause1_equivalent? or clause2_equivalent?
+    equivalent? =
+      case op do
+        :and -> clause1_equivalent? and clause2_equivalent?
+        _other -> clause1_equivalent? or clause2_equivalent?
+      end
+
     diff = {op, [], [diff_clause1, diff_clause2]}
     {diff, equivalent?}
   end
