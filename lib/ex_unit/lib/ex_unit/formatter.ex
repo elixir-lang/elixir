@@ -53,6 +53,7 @@ defmodule ExUnit.Formatter do
   alias Inspect.Algebra
 
   @counter_padding "     "
+  @mailbox_label_padding @counter_padding <> "  "
   @no_value ExUnit.AssertionError.no_value()
 
   @doc """
@@ -142,7 +143,6 @@ defmodule ExUnit.Formatter do
     label_padding_size = if has_value?(struct.right), do: 7, else: 6
     padding_size = label_padding_size + byte_size(@counter_padding)
     inspect = &inspect_multiline(&1, padding_size, width)
-    content_width = if width == :infinity, do: width, else: width - padding_size
 
     [
       {:note, if_value(struct.message, &format_message(&1, formatter))},
@@ -150,7 +150,7 @@ defmodule ExUnit.Formatter do
       {:code, if_value(struct.expr, &code_multiline(&1, padding_size))},
       {:code, unless_value(struct.expr, fn -> get_code(test, stack) || @no_value end)},
       {:arguments, if_value(struct.args, &format_args(&1, width))}
-      | format_context(struct, formatter, inspect, content_width)
+      | format_context(struct, formatter, inspect, padding_size, width)
     ]
     |> format_meta(formatter, counter_padding, label_padding_size)
     |> IO.iodata_to_binary()
@@ -308,11 +308,11 @@ defmodule ExUnit.Formatter do
     |> Algebra.format(width)
   end
 
-  defp format_context(%{left: @no_value, right: @no_value}, _, _, _) do
+  defp format_context(%{left: @no_value, right: @no_value}, _, _, _, _) do
     []
   end
 
-  defp format_context(%{context: {:mailbox, _pins, []}}, _, _, _) do
+  defp format_context(%{context: {:mailbox, _pins, []}}, _, _, _, _) do
     []
   end
 
@@ -320,40 +320,64 @@ defmodule ExUnit.Formatter do
          %{left: left, context: {:mailbox, pins, mailbox}},
          formatter,
          inspect,
+         padding_size,
          width
        ) do
     formatted_mailbox =
       for message <- mailbox do
         {pattern, value} =
-          format_sides(left, message, {:match, pins}, formatter, inspect, width - 2)
+          format_sides(
+            left,
+            message,
+            {:match, pins},
+            formatter,
+            inspect,
+            padding_size + 2,
+            width - 2
+          )
 
-        [pattern: pattern, value: value]
-        |> format_meta(formatter, 9)
-        |> Enum.map(&["\n  ", @counter_padding, &1])
+        [
+          "\n",
+          @mailbox_label_padding,
+          format_label(:pattern, formatter, 9),
+          pattern,
+          "\n",
+          @mailbox_label_padding,
+          format_label(:value, formatter, 9),
+          value
+        ]
       end
 
-    [mailbox: Enum.join(formatted_mailbox, "\n") |> IO.iodata_to_binary()]
+    [mailbox: formatted_mailbox]
   end
 
-  defp format_context(%{left: left, right: right, context: context}, formatter, inspect, width) do
-    {left, right} = format_sides(left, right, context, formatter, inspect, width)
+  defp format_context(
+         %{left: left, right: right, context: context},
+         formatter,
+         inspect,
+         padding_size,
+         width
+       ) do
+    {left, right} = format_sides(left, right, context, formatter, inspect, padding_size, width)
     [left: left, right: right]
   end
 
-  defp format_sides(left, right, context, formatter, inspect, width) do
+  defp format_sides(left, right, context, formatter, inspect, padding_size, width) do
+    content_width = if width == :infinity, do: width, else: width - padding_size
+
     case format_diff(left, right, context, formatter) do
       {result, _env} ->
         left =
           result.left
           |> Diff.to_algebra(&colorize_diff_delete(&1, formatter))
           |> Algebra.nest(padding_size)
-          |> Algebra.format(width)
+          |> Algebra.format(content_width)
 
         right =
           result.right
           |> Diff.to_algebra(&colorize_diff_insert(&1, formatter))
           |> Algebra.nest(padding_size)
-          |> Algebra.format(width)
+          |> Algebra.format(content_width)
 
         {left, right}
 
