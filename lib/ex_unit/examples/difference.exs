@@ -183,4 +183,8 @@ defmodule Difference do
       assert_received one()
     end
   end
+
+  test "only one side with metadata" do
+    assert "one" != "one"
+  end
 end
