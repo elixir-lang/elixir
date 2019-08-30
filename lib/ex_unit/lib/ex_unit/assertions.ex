@@ -7,7 +7,6 @@ defmodule ExUnit.AssertionError do
 
   defexception left: @no_value,
                right: @no_value,
-               mailbox: @no_value,
                message: @no_value,
                expr: @no_value,
                args: @no_value,
@@ -545,19 +544,13 @@ defmodule ExUnit.Assertions do
     else
       {message, mailbox} = format_mailbox(messages)
 
-      mailbox =
-        case mailbox do
-          [] -> ExUnit.AssertionError.no_value()
-          _ -> {pattern, mailbox}
-        end
-
       raise ExUnit.AssertionError,
-        mailbox: mailbox,
+        left: pattern,
         expr: code,
         message:
           "Assertion failed, no matching message after #{timeout}ms" <>
             ExUnit.Assertions.__pins__(pins) <> message,
-        context: {:match, pins}
+        context: {:mailbox, pins, mailbox}
     end
   end
 

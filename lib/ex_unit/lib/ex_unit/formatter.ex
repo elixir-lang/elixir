@@ -142,22 +142,15 @@ defmodule ExUnit.Formatter do
     label_padding_size = if has_value?(struct.right), do: 7, else: 6
     padding_size = label_padding_size + byte_size(@counter_padding)
     inspect = &inspect_multiline(&1, padding_size, width)
-    side_width = if width == :infinity, do: width, else: width - padding_size
-
-    {left, right} =
-      format_sides(struct.left, struct.right, struct.context, formatter, inspect, side_width)
-
-    mailbox = format_mailbox(struct.mailbox, struct.context, formatter, inspect, side_width)
+    content_width = if width == :infinity, do: width, else: width - padding_size
 
     [
-      note: if_value(struct.message, &format_message(&1, formatter)),
-      doctest: if_value(struct.doctest, &code_multiline(&1, 2 + byte_size(@counter_padding))),
-      code: if_value(struct.expr, &code_multiline(&1, padding_size)),
-      code: unless_value(struct.expr, fn -> get_code(test, stack) || @no_value end),
-      arguments: if_value(struct.args, &format_args(&1, width)),
-      left: left,
-      right: right,
-      mailbox: mailbox
+      {:note, if_value(struct.message, &format_message(&1, formatter))},
+      {:doctest, if_value(struct.doctest, &code_multiline(&1, 2 + byte_size(@counter_padding)))},
+      {:code, if_value(struct.expr, &code_multiline(&1, padding_size))},
+      {:code, unless_value(struct.expr, fn -> get_code(test, stack) || @no_value end)},
+      {:arguments, if_value(struct.args, &format_args(&1, width))}
+      | format_context(struct, formatter, inspect, content_width)
     ]
     |> format_meta(formatter, counter_padding, label_padding_size)
     |> IO.iodata_to_binary()
@@ -315,27 +308,32 @@ defmodule ExUnit.Formatter do
     |> Algebra.format(width)
   end
 
-  defp format_mailbox(@no_value, _, _, _, _) do
-    @no_value
+  defp format_context(%{left: @no_value, right: @no_value}, _, _, _) do
+    []
   end
 
-  defp format_mailbox({pattern, messages}, context, formatter, inspect, width) do
+  defp format_context(
+         %{left: left, context: {:mailbox, pins, mailbox}},
+         formatter,
+         inspect,
+         width
+       ) do
     formatted_mailbox =
-      for message <- messages do
-        {left, right} = format_sides(pattern, message, context, formatter, inspect, width - 2)
+      for message <- mailbox do
+        {pattern, value} =
+          format_sides(left, message, {:match, pins}, formatter, inspect, width - 2)
 
-        [pattern: left, value: right]
+        [pattern: pattern, value: value]
         |> format_meta(formatter, 9)
         |> Enum.map(&["\n  ", @counter_padding, &1])
       end
 
-    formatted_mailbox
-    |> Enum.join("\n")
-    |> IO.iodata_to_binary()
+    [mailbox: Enum.join(formatted_mailbox, "\n") |> IO.iodata_to_binary()]
   end
 
-  defp format_sides(@no_value, @no_value, _, _, _, _) do
-    {@no_value, @no_value}
+  defp format_context(%{left: left, right: right, context: context}, formatter, inspect, width) do
+    {left, right} = format_sides(left, right, context, formatter, inspect, width)
+    [left: left, right: right]
   end
 
   defp format_sides(left, right, context, formatter, inspect, width) do
