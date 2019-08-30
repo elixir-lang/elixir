@@ -437,8 +437,6 @@ defmodule ExUnit.Assertions do
       send(self(), :bye)
       assert_received :hello, "Oh No!"
       ** (ExUnit.AssertionError) Oh No!
-      Process mailbox:
-        :bye
 
   You can also match against specific patterns:
 
@@ -906,8 +904,6 @@ defmodule ExUnit.Assertions do
       send(self(), :hello)
       refute_received :hello, "Oh No!"
       ** (ExUnit.AssertionError) Oh No!
-      Process mailbox:
-        :bye
 
   """
   defmacro refute_received(pattern, failure_message \\ nil) do
