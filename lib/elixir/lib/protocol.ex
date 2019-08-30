@@ -187,6 +187,22 @@ defmodule Protocol do
       iex> Enumerable.impl_for(42)
       nil
 
+  In addition, every protocol implementation module contains the `__impl__/1` function. The
+  function takes one of the following atoms:
+
+      * `:for` - returns the module responsible for the data structure of the protocol implementation
+
+      * `:protocol` - returns the protocol module for which this implementation is provided
+
+  For example, the module implementing the `Enumerable` protocol for lists is `Enumerable.List`.
+  Therefore, we can invoke `__impl__/1` on this module:
+
+      iex(1)> Enumerable.List.__impl__(:for)
+      List
+
+      iex(2)> Enumerable.List.__impl__(:protocol)
+      Enumerable
+
   ## Consolidation
 
   In order to cope with code loading in development, protocols in
