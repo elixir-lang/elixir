@@ -544,6 +544,9 @@ defmodule ExUnit.Assertions do
     else
       {message, mailbox} = format_mailbox(messages)
 
+      # The error contains a special `context` that will be transformed
+      # into `{:match, pins}` by the formatter to execute a diff for each
+      # message in the `mailbox`
       raise ExUnit.AssertionError,
         left: pattern,
         expr: code,
