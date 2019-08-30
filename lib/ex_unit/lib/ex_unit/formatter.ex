@@ -348,7 +348,7 @@ defmodule ExUnit.Formatter do
         ]
       end
 
-    [mailbox: formatted_mailbox]
+    [mailbox: Enum.join(formatted_mailbox, "\n")]
   end
 
   defp format_context(
