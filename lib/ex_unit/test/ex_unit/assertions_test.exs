@@ -337,8 +337,8 @@ defmodule ExUnit.AssertionsTest do
         Showing 1 of 1 message in the mailbox\
         """ = error.message
 
-        {pattern, [{:status, :invalid}]} = error.mailbox
-        "{:status, ^status}" = Macro.to_string(pattern)
+        "assert_received({:status, ^status})" = Macro.to_string(error.expr)
+        "{:status, ^status}" = Macro.to_string(error.left)
     end
   end
 
@@ -357,8 +357,8 @@ defmodule ExUnit.AssertionsTest do
         Showing 1 of 1 message in the mailbox\
         """ = error.message
 
-        {pattern, [{:status, :invalid, :invalid}]} = error.mailbox
-        "{:status, ^status, ^status}" = Macro.to_string(pattern)
+        "assert_received({:status, ^status, ^status})" = Macro.to_string(error.expr)
+        "{:status, ^status, ^status}" = Macro.to_string(error.left)
     end
   end
 
@@ -379,8 +379,8 @@ defmodule ExUnit.AssertionsTest do
         Showing 1 of 1 message in the mailbox\
         """ = error.message
 
-        {pattern, [{:status, :invalid, :invalid}]} = error.mailbox
-        "{:status, ^status, ^other_status}" = Macro.to_string(pattern)
+        "assert_received({:status, ^status, ^other_status})" = Macro.to_string(error.expr)
+        "{:status, ^status, ^other_status}" = Macro.to_string(error.left)
     end
   end
 
@@ -392,7 +392,7 @@ defmodule ExUnit.AssertionsTest do
         "Assertion failed, no matching message after 0ms\nThe process mailbox is empty." =
           error.message
 
-        :ex_unit_no_meaningful_value = error.mailbox
+        "assert_received(:hello)" = Macro.to_string(error.expr)
     end
   end
 
@@ -408,8 +408,8 @@ defmodule ExUnit.AssertionsTest do
         Showing 1 of 1 message in the mailbox\
         """ = error.message
 
-        {pattern, [{:message, :not_expected, :at_all}]} = error.mailbox
-        ":hello" = Macro.to_string(pattern)
+        "assert_received(:hello)" = Macro.to_string(error.expr)
+        ":hello" = Macro.to_string(error.left)
     end
   end
 
@@ -425,21 +425,8 @@ defmodule ExUnit.AssertionsTest do
         Showing 10 of 11 messages in the mailbox\
         """ = error.message
 
-        {pattern,
-         [
-           {:message, 2},
-           {:message, 3},
-           {:message, 4},
-           {:message, 5},
-           {:message, 6},
-           {:message, 7},
-           {:message, 8},
-           {:message, 9},
-           {:message, 10},
-           {:message, 11}
-         ]} = error.mailbox
-
-        "x when x == :hello" = Macro.to_string(pattern)
+        "assert_received(x when x == :hello)" = Macro.to_string(error.expr)
+        "x when x == :hello" = Macro.to_string(error.left)
     end
   end
 
