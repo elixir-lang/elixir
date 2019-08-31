@@ -153,4 +153,38 @@ defmodule Difference do
       assert {_, 1} = {1, 2}
     end
   end
+
+  describe "receive" do
+    test "no messages in the mailbox" do
+      assert_received x when x == :hello
+    end
+
+    test "only 1 message in the mailbox" do
+      send(self(), {:message, 1})
+
+      assert_received x when x == :hello
+    end
+
+    test "more than 1 messages in the mailbox" do
+      for i <- 1..2, do: send(self(), {:message, i})
+
+      assert_received x when x == :hello
+    end
+
+    test "more than 10 messages in the mailbox" do
+      for i <- 1..11, do: send(self(), {:message, i})
+
+      assert_received x when x == :hello
+    end
+
+    test "macro" do
+      send(self(), 12)
+
+      assert_received one()
+    end
+  end
+
+  test "only one side with metadata" do
+    assert "one" != "one"
+  end
 end
