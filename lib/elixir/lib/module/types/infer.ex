@@ -272,7 +272,7 @@ defmodule Module.Types.Infer do
   """
   def of_guard({{:., _, [:erlang, :andalso]}, _, [left, right]} = expr, stack, context) do
     stack = push_expr_stack(expr, stack)
-    reset_types = Enum.into(context.types, %{}, fn {key, _value} -> {key, :unbound} end)
+    reset_types = :maps.from_list(Enum.map(context.types, fn {var, _} -> {var, :unbound} end))
     fresh_context = %{context | types: reset_types}
 
     with {:ok, left_type, left_context} <- of_guard(left, stack, fresh_context),
