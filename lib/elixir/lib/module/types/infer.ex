@@ -242,6 +242,14 @@ defmodule Module.Types.Infer do
     {:rem, 2} => {[:integer, :integer], :integer},
     {:node, 0} => {[], :atom},
     {:self, 0} => {[], :pid},
+    {:bnot, 1} => {[:integer], :integer},
+    {:band, 2} => {[:integer, :integer], :integer},
+    {:bor, 2} => {[:integer, :integer], :integer},
+    {:bxor, 2} => {[:integer, :integer], :integer},
+    {:bsl, 2} => {[:integer, :integer], :integer},
+    {:bsr, 2} => {[:integer, :integer], :integer},
+    # TODO?
+    {:xor, 2} => {[:boolean, :boolean], :boolean},
     # {:andalso, 2} => {[:boolean, :boolean], :boolean},
     # {:orelse, 2} => {[:boolean, :boolean], :boolean},
     # TODO
