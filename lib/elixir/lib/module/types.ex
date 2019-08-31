@@ -2,7 +2,7 @@ defmodule Module.Types do
   @moduledoc false
 
   import Module.Types.Helpers
-  import Module.Types.Infer, only: [of_guard: 2, of_pattern: 2]
+  alias Module.Types.Infer
 
   @doc """
   Infer function definitions' types.
@@ -10,14 +10,14 @@ defmodule Module.Types do
   def infer_definitions(file, module, defs) do
     Enum.map(defs, fn {{fun, _arity} = function, kind, meta, clauses} ->
       context = context(file, module, function)
+      stack = stack()
 
       types =
         map_ok(clauses, fn {_meta, params, guards, _body} ->
           def_expr = {kind, meta, [guards_to_expr(guards, {fun, [], params})]}
 
-          expr_stack(def_expr, context, fn context ->
-            of_clause(params, guards, context)
-          end)
+          stack = push_expr_stack(def_expr, stack)
+          of_clause(params, guards, stack, context)
         end)
 
       {function, types}
@@ -25,9 +25,12 @@ defmodule Module.Types do
   end
 
   @doc false
-  def of_clause(params, guards, context) do
-    with {:ok, types, context} <- map_reduce_ok(params, context, &of_pattern/2),
-         {:ok, context} <- of_guard(guards_to_or(guards), context),
+  def of_clause(params, guards, stack, context) do
+    with {:ok, types, context} <-
+           map_reduce_ok(params, context, &Infer.of_pattern(&1, stack, &2)),
+         context = %{context | current_types: %{}, current_traces: %{}},
+         # TODO: Check that of_guard/3 returns a boolean
+         {:ok, _, context} <- Infer.of_guard(guards_to_or(guards), stack, context),
          do: {:ok, types, context}
   end
 
@@ -49,14 +52,25 @@ defmodule Module.Types do
       # Trace of all variables that have been refined to a type,
       # including the type they were refined to, why, and where
       traces: %{},
+      # Counter to give type variables unique names
+      counter: 0,
+      # DEV
+      current_types: %{},
+      current_traces: %{},
+      current_type_asserts: %{},
+      trace: true
+    }
+  end
+
+  @doc false
+  def stack() do
+    %{
       # Stack of variables we have refined during unification,
       # used for creating relevant traces
       unify_stack: [],
       # Stack of expression we have recursed through during inference,
       # used for tracing
-      expr_stack: [],
-      # Counter to give type variables unique names
-      counter: 0
+      expr_stack: []
     }
   end
 
@@ -149,10 +163,9 @@ defmodule Module.Types do
     {{:map, pairs}, context}
   end
 
-  defp do_lift_type({:cons, left, right}, context) do
-    {left, context} = do_lift_type(left, context)
-    {right, context} = do_lift_type(right, context)
-    {{:cons, left, right}, context}
+  defp do_lift_type({:list, type}, context) do
+    {type, context} = do_lift_type(type, context)
+    {{:list, type}, context}
   end
 
   defp do_lift_type(other, context) do
@@ -236,16 +249,16 @@ defmodule Module.Types do
   end
 
   @doc false
+  def format_type({:union, types}) do
+    "{#{Enum.map_join(types, " | ", &format_type/1)}}"
+  end
+
   def format_type({:tuple, types}) do
     "{#{Enum.map_join(types, ", ", &format_type/1)}}"
   end
 
-  def format_type({:cons, left, :null}) do
-    "[#{format_type(left)}]"
-  end
-
-  def format_type({:cons, left, right}) do
-    "[#{format_type(left)} | #{format_type(right)}]"
+  def format_type({:list, type}) do
+    "[#{format_type(type)}]"
   end
 
   def format_type({:map, pairs}) do
@@ -260,10 +273,6 @@ defmodule Module.Types do
 
   def format_type({:atom, literal}) do
     inspect(literal)
-  end
-
-  def format_type(:null) do
-    "[]"
   end
 
   def format_type(atom) when is_atom(atom) do

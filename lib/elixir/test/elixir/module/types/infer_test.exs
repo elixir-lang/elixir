@@ -7,21 +7,29 @@ defmodule Module.Types.InferTest do
 
   defmacrop quoted_pattern(expr) do
     quote do
-      of_pattern(unquote(Macro.escape(expr)), new_context())
+      of_pattern(unquote(Macro.escape(expr)), new_stack(), new_context())
       |> lift_result()
     end
   end
 
   defp unify_lift(left, right, context \\ new_context()) do
-    unify(left, right, context)
+    unify(left, right, new_stack(), context)
     |> lift_result()
   end
 
   defp new_context() do
+    Types.context("types_test.ex", TypesTest, {:test, 0})
+  end
+
+  defp new_stack() do
     %{
-      Types.context("types_test.ex", TypesTest, {:test, 0})
+      Types.stack()
       | expr_stack: [{:foo, [], nil}]
     }
+  end
+
+  defp unify(left, right, context) do
+    unify(left, right, new_stack(), context)
   end
 
   defp lift_result({:ok, type, context}) do
@@ -37,7 +45,7 @@ defmodule Module.Types.InferTest do
       assert {:error, {{:unable_unify, :binary, :integer, expr, traces}, location}} =
                quoted_pattern(<<foo::integer, foo::binary>>)
 
-      assert location == [{"types_test.ex", 38, {TypesTest, :test, 0}}]
+      assert location == [{"types_test.ex", 46, {TypesTest, :test, 0}}]
 
       assert {:<<>>, _,
               [
@@ -48,10 +56,10 @@ defmodule Module.Types.InferTest do
       assert [
                {{:foo, _, nil},
                 {:type, :binary, {:"::", _, [{:foo, _, nil}, {:binary, _, nil}]},
-                 {"types_test.ex", 38}}},
+                 {"types_test.ex", 46}}},
                {{:foo, _, nil},
                 {:type, :integer, {:"::", _, [{:foo, _, nil}, {:integer, _, nil}]},
-                 {"types_test.ex", 38}}}
+                 {"types_test.ex", 46}}}
              ] = traces
     end
 
@@ -65,13 +73,17 @@ defmodule Module.Types.InferTest do
     end
 
     test "list" do
-      assert quoted_pattern([]) == {:ok, :null}
-      assert quoted_pattern([123]) == {:ok, {:cons, :integer, :null}}
-      assert quoted_pattern([123 | []]) == {:ok, {:cons, :integer, :null}}
-      assert quoted_pattern([123 | 456]) == {:ok, {:cons, :integer, :integer}}
+      assert quoted_pattern([]) == {:ok, {:list, :dynamic}}
+      assert quoted_pattern([123]) == {:ok, {:list, :integer}}
+      assert quoted_pattern([123, 456]) == {:ok, {:list, :integer}}
+      assert quoted_pattern([123 | []]) == {:ok, {:list, :integer}}
+      assert quoted_pattern([123, "foo"]) == {:ok, {:list, {:union, [:integer, :binary]}}}
+      assert quoted_pattern([123 | ["foo"]]) == {:ok, {:list, {:union, [:integer, :binary]}}}
 
-      assert quoted_pattern([123, 456 | 789]) ==
-               {:ok, {:cons, :integer, {:cons, :integer, :integer}}}
+      # TODO: improper list?
+      assert quoted_pattern([123 | 456]) == {:ok, {:list, :integer}}
+      assert quoted_pattern([123, 456 | 789]) == {:ok, {:list, :integer}}
+      assert quoted_pattern([123 | "foo"]) == {:ok, {:list, {:union, [:integer, :binary]}}}
     end
 
     test "tuple" do
@@ -204,18 +216,11 @@ defmodule Module.Types.InferTest do
                unify_lift({:tuple, [:integer]}, {:tuple, [:atom]})
     end
 
-    test "cons" do
-      assert unify_lift({:cons, :integer, :integer}, {:cons, :integer, :integer}) ==
-               {:ok, {:cons, :integer, :integer}}
-
-      assert unify_lift({:cons, :boolean, :atom}, {:cons, :atom, :boolean}) ==
-               {:ok, {:cons, :boolean, :boolean}}
+    test "list" do
+      assert unify_lift({:list, :integer}, {:list, :integer}) == {:ok, {:list, :integer}}
 
       assert {:error, {{:unable_unify, :atom, :integer, _, _}, _}} =
-               unify_lift({:cons, :integer, :atom}, {:cons, :integer, :integer})
-
-      assert {:error, {{:unable_unify, :atom, :integer, _, _}, _}} =
-               unify_lift({:cons, :atom, :integer}, {:cons, :integer, :integer})
+               unify_lift({:list, :atom}, {:list, :integer})
     end
 
     test "map" do
@@ -388,5 +393,8 @@ defmodule Module.Types.InferTest do
 
     assert to_union([{:tuple, [:integer]}, {:tuple, [:integer]}], new_context()) ==
              {:tuple, [:integer]}
+  end
+
+  describe "of_guard/2" do
   end
 end
