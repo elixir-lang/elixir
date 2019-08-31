@@ -416,7 +416,8 @@ defmodule ExUnit.Assertions do
              timeout \\ Application.fetch_env!(:ex_unit, :assert_receive_timeout),
              failure_message \\ nil
            ) do
-    assert_receive(pattern, timeout, failure_message, __CALLER__)
+    code = escape_quoted(:assert_receive, pattern)
+    assert_receive(pattern, timeout, failure_message, __CALLER__, code)
   end
 
   @doc """
@@ -436,8 +437,6 @@ defmodule ExUnit.Assertions do
       send(self(), :bye)
       assert_received :hello, "Oh No!"
       ** (ExUnit.AssertionError) Oh No!
-      Process mailbox:
-        :bye
 
   You can also match against specific patterns:
 
@@ -446,19 +445,18 @@ defmodule ExUnit.Assertions do
 
   """
   defmacro assert_received(pattern, failure_message \\ nil) do
-    assert_receive(pattern, 0, failure_message, __CALLER__)
+    code = escape_quoted(:assert_received, pattern)
+    assert_receive(pattern, 0, failure_message, __CALLER__, code)
   end
 
-  defp assert_receive(pattern, timeout, failure_message, caller) do
-    binary = Macro.to_string(pattern)
-
+  defp assert_receive(pattern, timeout, failure_message, caller, code) do
     # Expand before extracting metadata
-    pattern = __expand_pattern__(pattern, caller)
-    vars = collect_vars_from_pattern(pattern)
-    pins = collect_pins_from_pattern(pattern, Macro.Env.vars(caller))
+    expanded_pattern = __expand_pattern__(pattern, caller)
+    vars = collect_vars_from_pattern(expanded_pattern)
+    pins = collect_pins_from_pattern(expanded_pattern, Macro.Env.vars(caller))
 
     pattern =
-      case pattern do
+      case expanded_pattern do
         {:when, meta, [left, right]} ->
           {:when, meta, [quote(do: unquote(left) = received), right]}
 
@@ -496,7 +494,8 @@ defmodule ExUnit.Assertions do
       failure_message ||
         quote do
           ExUnit.Assertions.__timeout__(
-            unquote(binary),
+            unquote(Macro.escape(expanded_pattern)),
+            unquote(code),
             unquote(pins),
             unquote(pattern_finder),
             timeout
@@ -527,22 +526,34 @@ defmodule ExUnit.Assertions do
     do: raise(ArgumentError, "timeout must be a non-negative integer, got: #{inspect(timeout)}")
 
   @doc false
-  def __timeout__(binary, pins, pattern_finder, timeout) do
+  def __timeout__(pattern, code, pins, pattern_finder, timeout) do
     {:messages, messages} = Process.info(self(), :messages)
 
     if Enum.any?(messages, pattern_finder) do
-      """
-      Found message matching #{binary} after #{timeout}ms.
+      raise ExUnit.AssertionError,
+        expr: code,
+        message: """
+        Found message matching #{Macro.to_string(pattern)} after #{timeout}ms.
 
-      This means the message was delivered too close to the timeout value, you may want to either:
+        This means the message was delivered too close to the timeout value, you may want to either:
 
-        1. Give an increased timeout to `assert_receive/2`
-        2. Increase the default timeout to all `assert_receive` in your
-           test_helper.exs by setting ExUnit.configure(assert_receive_timeout: ...)
-      """
+          1. Give an increased timeout to `assert_receive/2`
+          2. Increase the default timeout to all `assert_receive` in your
+             test_helper.exs by setting ExUnit.configure(assert_receive_timeout: ...)
+        """
     else
-      "No message matching #{binary} after #{timeout}ms." <>
-        __pins__(pins) <> format_mailbox(messages)
+      {message, mailbox} = format_mailbox(messages)
+
+      # The error contains a special `context` that will be transformed
+      # into `{:match, pins}` by the formatter to execute a diff for each
+      # message in the `mailbox`
+      raise ExUnit.AssertionError,
+        left: pattern,
+        expr: code,
+        message:
+          "Assertion failed, no matching message after #{timeout}ms" <>
+            ExUnit.Assertions.__pins__(pins) <> message,
+        context: {:mailbox, pins, mailbox}
     end
   end
 
@@ -560,24 +571,23 @@ defmodule ExUnit.Assertions do
 
   defp format_mailbox(messages) do
     length = length(messages)
+    mailbox = Enum.take(messages, -@max_mailbox_length)
 
-    mailbox =
-      messages
-      |> Enum.take(-@max_mailbox_length)
-      |> Enum.map_join(@indent, &inspect/1)
-
-    mailbox_message(length, @indent <> mailbox)
+    {mailbox_message(length), mailbox}
   end
 
-  defp mailbox_message(0, _mailbox), do: "\nThe process mailbox is empty."
+  defp mailbox_message(0), do: "\nThe process mailbox is empty."
 
-  defp mailbox_message(length, mailbox) when length > 10 do
-    "\nProcess mailbox:" <>
-      mailbox <> "\nShowing only last #{@max_mailbox_length} of #{length} messages."
+  defp mailbox_message(1) do
+    "\nShowing 1 of 1 message in the mailbox"
   end
 
-  defp mailbox_message(_length, mailbox) do
-    "\nProcess mailbox:" <> mailbox
+  defp mailbox_message(length) when length > @max_mailbox_length do
+    "\nShowing #{@max_mailbox_length} of #{length} messages in the mailbox"
+  end
+
+  defp mailbox_message(length) do
+    "\nShowing #{length} of #{length} messages in the mailbox"
   end
 
   defp collect_pins_from_pattern(expr, vars) do
@@ -897,8 +907,6 @@ defmodule ExUnit.Assertions do
       send(self(), :hello)
       refute_received :hello, "Oh No!"
       ** (ExUnit.AssertionError) Oh No!
-      Process mailbox:
-        :bye
 
   """
   defmacro refute_received(pattern, failure_message \\ nil) do

@@ -103,6 +103,10 @@ defmodule ExUnit.Diff do
     diff_string_concat(left, right, env)
   end
 
+  defp diff_quoted({:when, _, [_, _]} = left, right, env) do
+    diff_guard(left, right, env)
+  end
+
   defp diff_quoted({_, [{:expanded, expanded} | _], _} = left, right, env) do
     macro = Macro.update_meta(left, &Keyword.delete(&1, :expanded))
     diff_macro(macro, expanded, right, env)
@@ -183,6 +187,49 @@ defmodule ExUnit.Diff do
     {diff, post_env} = diff(expanded, right, env)
     diff_left = update_diff_meta(macro, !diff.equivalent?)
     {%{diff | left: diff_left}, post_env}
+  end
+
+  # Guards
+
+  defp diff_guard({:when, _, [expression, clause]}, right, env) do
+    {diff_expression, post_env} = diff_quoted(expression, right, env)
+
+    vars = Map.merge(post_env.pins, post_env.current_vars)
+    bindings = for {{name, _context}, value} <- vars, do: {name, value}
+    {diff_clause, clause_equivalent?} = diff_guard_clause(clause, bindings)
+
+    diff = %__MODULE__{
+      diff_expression
+      | left: {:when, [], [diff_expression.left, diff_clause]},
+        equivalent?: diff_expression.equivalent? and clause_equivalent?
+    }
+
+    {diff, post_env}
+  end
+
+  defp diff_guard_clause({op, _, [clause1, clause2]}, bindings) when op in [:when, :or, :and] do
+    {diff_clause1, clause1_equivalent?} = diff_guard_clause(clause1, bindings)
+    {diff_clause2, clause2_equivalent?} = diff_guard_clause(clause2, bindings)
+
+    equivalent? =
+      case op do
+        :and -> clause1_equivalent? and clause2_equivalent?
+        _other -> clause1_equivalent? or clause2_equivalent?
+      end
+
+    diff = {op, [], [diff_clause1, diff_clause2]}
+    {diff, equivalent?}
+  end
+
+  defp diff_guard_clause(quoted, bindings) do
+    expanded =
+      Macro.prewalk(quoted, fn
+        {_, [{:expanded, expanded} | _], _} -> expanded
+        other -> other
+      end)
+
+    {equivalent?, _bindings} = Code.eval_quoted(expanded, bindings)
+    {update_diff_meta(quoted, !equivalent?), equivalent?}
   end
 
   # Pins
@@ -942,7 +989,8 @@ defmodule ExUnit.Diff do
     container_to_algebra("[", list, "]", diff_wrapper, select_list_item_algebra(list))
   end
 
-  defp safe_to_algebra({op, _, [left, right]}, diff_wrapper) when op in [:<>, :++, :|] do
+  defp safe_to_algebra({op, _, [left, right]}, diff_wrapper)
+       when op in [:<>, :++, :|, :when, :and, :or] do
     to_algebra(left, diff_wrapper)
     |> Algebra.concat(" #{op} ")
     |> Algebra.concat(to_algebra(right, diff_wrapper))
