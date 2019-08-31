@@ -145,13 +145,13 @@ defmodule ExUnit.Formatter do
     inspect = &inspect_multiline(&1, padding_size, width)
 
     [
-      {:note, if_value(struct.message, &format_message(&1, formatter))},
-      {:doctest, if_value(struct.doctest, &code_multiline(&1, 2 + byte_size(@counter_padding)))},
-      {:code, if_value(struct.expr, &code_multiline(&1, padding_size))},
-      {:code, unless_value(struct.expr, fn -> get_code(test, stack) || @no_value end)},
-      {:arguments, if_value(struct.args, &format_args(&1, width))}
-      | format_context(struct, formatter, inspect, padding_size, width)
+      note: if_value(struct.message, &format_message(&1, formatter)),
+      doctest: if_value(struct.doctest, &code_multiline(&1, 2 + byte_size(@counter_padding))),
+      code: if_value(struct.expr, &code_multiline(&1, padding_size)),
+      code: unless_value(struct.expr, fn -> get_code(test, stack) || @no_value end),
+      arguments: if_value(struct.args, &format_args(&1, width))
     ]
+    |> Kernel.++(format_context(struct, formatter, inspect, padding_size, width))
     |> format_meta(formatter, counter_padding, label_padding_size)
     |> IO.iodata_to_binary()
   end
