@@ -20,13 +20,15 @@ expand_struct(Meta, Left, {'%{}', MapMeta, MapArgs}, #{context := Context} = E) 
 
   case validate_struct(ELeft, Context) of
     true when is_atom(ELeft) ->
-      elixir_env:trace({struct_expansion, Meta, ELeft}, E),
-
       case extract_struct_assocs(Meta, ERight, E) of
         {expand, MapMeta, Assocs} when Context /= match -> %% Expand
           Struct = load_struct(Meta, ELeft, [Assocs], EE),
           assert_struct_keys(Meta, ELeft, Struct, Assocs, EE),
-          Keys = ['__struct__'] ++ [K || {K, _} <- Assocs],
+
+          AssocKeys = [K || {K, _} <- Assocs],
+          elixir_env:trace({struct_expansion, Meta, ELeft, AssocKeys}, E),
+
+          Keys = ['__struct__'] ++ AssocKeys,
           WithoutKeys = maps:to_list(maps:without(Keys, Struct)),
           StructAssocs = elixir_quote:escape(WithoutKeys, default, false),
           {{'%', Meta, [ELeft, {'%{}', MapMeta, StructAssocs ++ Assocs}]}, EE};
@@ -34,6 +36,8 @@ expand_struct(Meta, Left, {'%{}', MapMeta, MapArgs}, #{context := Context} = E) 
         {_, _, Assocs} -> %% Update or match
           Struct = load_struct(Meta, ELeft, [], EE),
           assert_struct_keys(Meta, ELeft, Struct, Assocs, EE),
+          AssocKeys = [K || {K, _} <- Assocs],
+          elixir_env:trace({struct_expansion, Meta, ELeft, AssocKeys}, E),
           {{'%', Meta, [ELeft, ERight]}, EE}
       end;
 

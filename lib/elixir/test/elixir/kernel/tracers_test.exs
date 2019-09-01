@@ -76,10 +76,10 @@ defmodule Kernel.TracersTest do
 
   test "traces structs" do
     compile_string("""
-    %URI{}
+    %URI{path: "/"}
     """)
 
-    assert_receive {:struct_expansion, meta, URI}
+    assert_receive {:struct_expansion, meta, URI, [:path]}
     assert meta[:line] == 1
     assert meta[:column] == 1
   end

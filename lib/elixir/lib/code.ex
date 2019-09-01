@@ -66,8 +66,9 @@ defmodule Code do
     * `{:require, meta, module, opts}` - traced whenever `module` is required.
       `meta` is the require AST metadata and `opts` are the require options.
 
-    * `{:struct_expansion, meta, module}` - traced whenever `module`'s struct
-      is expanded. `meta` is the struct AST metadata.
+    * `{:struct_expansion, meta, module, keys}` - traced whenever `module`'s struct
+      is expanded. `meta` is the struct AST metadata and `keys` are the keys being
+      used by expansion
 
     * `{:remote_function, meta, module, name, arity}` and
       `{:remote_macro, meta, module, name, arity}` - traced whenever a remote

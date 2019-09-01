@@ -46,7 +46,7 @@ trace({require, _Meta, Module, _Opts}, #{lexical_tracker := Pid}) ->
   %% as they expect the reference at compile time.
   ?tracker:remote_dispatch(Pid, Module, compile),
   ok;
-trace({struct_expansion, _Meta, Module}, #{lexical_tracker := Pid}) ->
+trace({struct_expansion, _Meta, Module, _Keys}, #{lexical_tracker := Pid}) ->
   ?tracker:remote_struct(Pid, Module),
   ok;
 trace({alias_reference, _Meta, Module}, #{lexical_tracker := Pid} = E) ->
