@@ -22,9 +22,10 @@ defmodule Mix.Tasks.Compile.All do
     Mix.Project.build_structure()
 
     with_logger_app(fn ->
-      res = do_compile(compilers(), args, :noop, [])
+      {status, diagnostic} = do_compile(compilers(), args, :noop, [])
+      for fun <- Mix.ProjectStack.pop_after_compile(), do: fun.(status)
       true = Code.prepend_path(Mix.Project.compile_path())
-      res
+      {status, diagnostic}
     end)
   end
 
