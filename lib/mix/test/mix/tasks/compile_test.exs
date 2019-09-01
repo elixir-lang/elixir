@@ -98,37 +98,6 @@ defmodule Mix.Tasks.CompileTest do
     end)
   end
 
-  test "compiles a project with multiple compilers and a syntax error in an Erlang file" do
-    in_fixture("no_mixfile", fn ->
-      import ExUnit.CaptureIO
-
-      file = Path.absname("src/a.erl")
-      File.mkdir!("src")
-
-      File.write!(file, """
-      -module(b).
-      def b(), do: b
-      """)
-
-      assert File.regular?(file)
-
-      capture_io(fn ->
-        assert {:error, [diagnostic]} = Mix.Task.run("compile", ["--force", "--return-errors"])
-
-        assert %Mix.Task.Compiler.Diagnostic{
-                 compiler_name: "erl_parse",
-                 file: ^file,
-                 message: "syntax error before: b",
-                 position: 2,
-                 severity: :error
-               } = diagnostic
-      end)
-
-      refute File.regular?("ebin/Elixir.A.beam")
-      refute File.regular?("ebin/Elixir.B.beam")
-    end)
-  end
-
   test "adds Logger application metadata" do
     import ExUnit.CaptureLog
 
@@ -174,6 +143,37 @@ defmodule Mix.Tasks.CompileTest do
     end)
   end
 
+  test "returns syntax error from an Erlang file when --return-errors is set" do
+    in_fixture("no_mixfile", fn ->
+      import ExUnit.CaptureIO
+
+      file = Path.absname("src/a.erl")
+      File.mkdir!("src")
+
+      File.write!(file, """
+      -module(b).
+      def b(), do: b
+      """)
+
+      assert File.regular?(file)
+
+      capture_io(fn ->
+        assert {:error, [diagnostic]} = Mix.Task.run("compile", ["--force", "--return-errors"])
+
+        assert %Mix.Task.Compiler.Diagnostic{
+                 compiler_name: "erl_parse",
+                 file: ^file,
+                 message: "syntax error before: b",
+                 position: 2,
+                 severity: :error
+               } = diagnostic
+      end)
+
+      refute File.regular?("ebin/Elixir.A.beam")
+      refute File.regular?("ebin/Elixir.B.beam")
+    end)
+  end
+
   test "skip protocol consolidation when --no-protocol-consolidation" do
     in_fixture("no_mixfile", fn ->
       File.rm("_build/dev/lib/sample/.mix/compile.protocols")
@@ -194,7 +194,26 @@ defmodule Mix.Tasks.CompileTest do
     Application.delete_env(:erl_config_app, :value)
   end
 
-  test "compiles a project with wrong path" do
+  test "runs after_compile callback once" do
+    in_fixture("no_mixfile", fn ->
+      callback = fn status -> send(self(), {:status, status}) end
+
+      assert Mix.Task.Compiler.after_compile(callback) == :ok
+      assert Mix.Task.rerun("compile", []) == {:ok, []}
+      assert_received {:status, :ok}
+
+      Mix.Task.clear()
+      assert Mix.Task.rerun("compile", []) == {:noop, []}
+      refute_received {:status, :noop}
+
+      Mix.Task.clear()
+      assert Mix.Task.Compiler.after_compile(callback) == :ok
+      assert Mix.Task.run("compile", []) == {:noop, []}
+      assert_received {:status, :noop}
+    end)
+  end
+
+  test "does not crash on a project with bad path" do
     Mix.Project.pop()
     Mix.Project.push(WrongPath)
 

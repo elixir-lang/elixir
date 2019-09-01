@@ -64,7 +64,8 @@ defmodule Mix.ProjectStack do
         io_done: io_done?,
         config_apps: [],
         config_files: [file],
-        config_mtime: nil
+        config_mtime: nil,
+        after_compile: []
       }
 
       cond do
@@ -133,6 +134,29 @@ defmodule Mix.ProjectStack do
     get(fn
       %{stack: [h | _]} -> h.config_files
       %{stack: []} -> []
+    end)
+  end
+
+  @spec prepend_after_compile(fun) :: :ok
+  def prepend_after_compile(fun) do
+    cast(fn
+      %{stack: [h | t]} = state ->
+        h = update_in(h.after_compile, &[fun | &1])
+        %{state | stack: [h | t]}
+
+      %{stack: []} = state ->
+        state
+    end)
+  end
+
+  @spec pop_after_compile() :: [fun]
+  def pop_after_compile() do
+    get_and_update(fn
+      %{stack: [h | t]} = state ->
+        {h.after_compile, %{state | stack: [%{h | after_compile: []} | t]}}
+
+      %{stack: []} = state ->
+        {[], state}
     end)
   end
 

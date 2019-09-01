@@ -97,6 +97,17 @@ defmodule Mix.Task.Compiler do
 
   @optional_callbacks clean: 0, manifests: 0
 
+  @doc """
+  Adds a callback that runs after compilation.
+
+  The callback is invoked after all compilers run for
+  the given project. It receives the atom `:ok`, `:noop`,
+  or `:error`, which signals the build status.
+  """
+  def after_compile(fun) when is_function(fun, 1) do
+    Mix.ProjectStack.prepend_after_compile(fun)
+  end
+
   @doc false
   defmacro __using__(_opts) do
     quote do
