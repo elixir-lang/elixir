@@ -100,7 +100,7 @@ defmodule Module.TypesTest do
                quoted_clause([x], [:erlang.andalso(:erlang.is_binary(x), :erlang.is_integer(x))])
     end
 
-    test "more guards" do
+    test "failing guards" do
       assert {:error, {{:unable_unify, :atom, :tuple, _, _}, _}} =
                quoted_clause([x], [:erlang.andalso(:erlang.is_tuple(x), :erlang.is_atom(x))])
 
@@ -123,6 +123,16 @@ defmodule Module.TypesTest do
 
       assert quoted_clause([x, y], [:erlang.orelse(:erlang.element(1, x), :erlang.is_atom(y))]) ==
                {:ok, [:tuple, {:var, 0}]}
+    end
+
+    test "inverse guards" do
+      # def test_is_odd_in_guards(atom) when is_atom(atom) and not Integer.is_odd(atom), do: :atom
+      # assert quoted_clause([x], [:erlang.not(:erlang.is_tuple(x))])
+      # assert quoted_clause([x], [:erlang.andalso(:erlang.not(:erlang.is_tuple(x), :erlang.not(:erlang.is_list(x))])
+      # assert quoted_clause([x], [:erlang.orelse(:erlang.not(:erlang.is_tuple(x), :erlang.not(:erlang.is_list(x))])
+      # assert quoted_clause([x], [:erlang.not(:erlang.orelse(:erlang.is_tuple(x), :erlang.is_list(x))])
+      # assert quoted_clause([x], [:erlang.not(:erlang.andalso(:erlang.is_tuple(x), :erlang.is_list(x))])
+      # :erlang.andalso(:erlang.is_integer(x), :erlang.not(:erlang.is_binary(y)))
     end
 
     test "map" do

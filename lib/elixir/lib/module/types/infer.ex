@@ -310,8 +310,8 @@ defmodule Module.Types.Infer do
          {:ok, context} <- unify_call(param_types, arg_types, stack, context) do
       case arg_types do
         [{:var, index} | _] when guard in @type_guards ->
-          current_type_asserts = :maps.put(index, true, context.current_type_asserts)
-          {:ok, return_type, %{context | current_type_asserts: current_type_asserts}}
+          current_type_guards = :maps.put(index, true, context.current_type_guards)
+          {:ok, return_type, %{context | current_type_guards: current_type_guards}}
 
         _ ->
           {:ok, return_type, context}
@@ -352,14 +352,22 @@ defmodule Module.Types.Infer do
     traces =
       :maps.fold(
         fn index, new_traces, traces ->
-          original_traces = :maps.get(index, traces, [])
-          :maps.put(index, new_traces ++ original_traces, traces)
+          :maps.update_with(index, &(new_traces ++ &1), new_traces, traces)
         end,
         context.traces,
         new_traces
       )
 
-    context = %{context | traces: traces}
+    current_traces =
+      :maps.fold(
+        fn index, new_traces, traces ->
+          :maps.update_with(index, &(new_traces ++ &1), new_traces, traces)
+        end,
+        context.current_traces,
+        new_traces
+      )
+
+    context = %{context | current_traces: current_traces, traces: traces}
 
     reduce_ok(:maps.to_list(new_types), context, fn
       {_index, :unbound}, context ->
@@ -394,7 +402,7 @@ defmodule Module.Types.Infer do
         {[{index, left_type}], [{index, right_type}]} ->
           # Only include right side if left side is from type guard such as is_list(x),
           # do not refine in case of length(x)
-          if :maps.get(index, left.current_type_asserts, false) do
+          if :maps.get(index, left.current_type_guards, false) do
             refine_var(index, to_union([left_type, right_type], context), stack, context)
           else
             refine_var(index, left_type, stack, context)
@@ -402,7 +410,7 @@ defmodule Module.Types.Infer do
 
         {left_types, _right_types} ->
           Enum.reduce(left_types, context, fn {index, left_type}, context ->
-            if :maps.get(index, left.current_type_asserts, false) do
+            if :maps.get(index, left.current_type_guards, false) do
               context
             else
               refine_var(index, left_type, stack, context)

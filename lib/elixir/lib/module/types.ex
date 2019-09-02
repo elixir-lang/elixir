@@ -57,7 +57,7 @@ defmodule Module.Types do
       # DEV
       current_types: %{},
       current_traces: %{},
-      current_type_asserts: %{},
+      current_type_guards: %{},
       trace: true
     }
   end
