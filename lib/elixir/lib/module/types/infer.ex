@@ -280,8 +280,7 @@ defmodule Module.Types.Infer do
   """
   def of_guard({{:., _, [:erlang, :andalso]}, _, [left, right]} = expr, stack, context) do
     stack = push_expr_stack(expr, stack)
-    reset_types = :maps.from_list(Enum.map(context.types, fn {var, _} -> {var, :unbound} end))
-    fresh_context = %{context | types: reset_types}
+    fresh_context = fresh_context(context)
 
     with {:ok, left_type, left_context} <- of_guard(left, stack, fresh_context),
          {:ok, right_type, right_context} <- of_guard(right, stack, fresh_context),
@@ -293,9 +292,10 @@ defmodule Module.Types.Infer do
 
   def of_guard({{:., _, [:erlang, :orelse]}, _, [left, right]} = expr, stack, context) do
     stack = push_expr_stack(expr, stack)
+    fresh_context = fresh_context(context)
 
-    with {:ok, left_type, left_context} <- of_guard(left, stack, context),
-         {:ok, right_type, right_context} <- of_guard(right, stack, context),
+    with {:ok, left_type, left_context} <- of_guard(left, stack, fresh_context),
+         {:ok, right_type, right_context} <- of_guard(right, stack, fresh_context),
          {:ok, context} <- merge_context_or(context, stack, left_context, right_context),
          {:ok, _, context} <- unify(left_type, :boolean, stack, context),
          {:ok, _, context} <- unify(right_type, :boolean, stack, context),
@@ -310,8 +310,8 @@ defmodule Module.Types.Infer do
          {:ok, context} <- unify_call(param_types, arg_types, stack, context) do
       case arg_types do
         [{:var, index} | _] when guard in @type_guards ->
-          current_type_guards = :maps.put(index, true, context.current_type_guards)
-          {:ok, return_type, %{context | current_type_guards: current_type_guards}}
+          type_guards = :maps.put(index, true, context.type_guards)
+          {:ok, return_type, %{context | type_guards: type_guards}}
 
         _ ->
           {:ok, return_type, context}
@@ -328,6 +328,12 @@ defmodule Module.Types.Infer do
     {:ok, :dynamic, context}
   end
 
+  defp fresh_context(context) do
+    types = :maps.from_list(Enum.map(context.types, fn {var, _} -> {var, :unbound} end))
+    traces = :maps.from_list(Enum.map(context.traces, fn {var, _} -> {var, []} end))
+    %{context | types: types, traces: traces}
+  end
+
   defp unify_call(params, args, stack, context) do
     reduce_ok(Enum.zip(params, args), context, fn {param, arg}, context ->
       case unify(param, arg, stack, context) do
@@ -342,32 +348,14 @@ defmodule Module.Types.Infer do
   # has been introduced in left or right.
   defp merge_context_and(context, stack, left, right) do
     with {:ok, context} <-
-           unify_new_types(context, stack, left.current_types, left.current_traces),
+           unify_new_types(context, stack, left.types, left.traces),
          {:ok, context} <-
-           unify_new_types(context, stack, right.current_types, right.current_traces),
+           unify_new_types(context, stack, right.types, right.traces),
          do: {:ok, context}
   end
 
   defp unify_new_types(context, stack, new_types, new_traces) do
-    traces =
-      :maps.fold(
-        fn index, new_traces, traces ->
-          :maps.update_with(index, &(new_traces ++ &1), new_traces, traces)
-        end,
-        context.traces,
-        new_traces
-      )
-
-    current_traces =
-      :maps.fold(
-        fn index, new_traces, traces ->
-          :maps.update_with(index, &(new_traces ++ &1), new_traces, traces)
-        end,
-        context.current_traces,
-        new_traces
-      )
-
-    context = %{context | current_traces: current_traces, traces: traces}
+    context = merge_traces(context, new_traces)
 
     reduce_ok(:maps.to_list(new_types), context, fn
       {_index, :unbound}, context ->
@@ -384,6 +372,19 @@ defmodule Module.Types.Infer do
     end)
   end
 
+  defp merge_traces(context, new_traces) do
+    traces =
+      :maps.fold(
+        fn index, new_traces, traces ->
+          :maps.update_with(index, &(new_traces ++ &1), new_traces, traces)
+        end,
+        context.traces,
+        new_traces
+      )
+
+    %{context | traces: traces}
+  end
+
   # This code should only be called in the guard context.
   # It is working under the assumption that no new type
   # has been introduced in left or right.
@@ -392,7 +393,7 @@ defmodule Module.Types.Infer do
     #       and accept any context
 
     context =
-      case {:maps.to_list(left.current_types), :maps.to_list(right.current_types)} do
+      case {:maps.to_list(left.types), :maps.to_list(right.types)} do
         {[{index, :unbound}], [{index, type}]} ->
           refine_var(index, type, stack, context)
 
@@ -402,7 +403,7 @@ defmodule Module.Types.Infer do
         {[{index, left_type}], [{index, right_type}]} ->
           # Only include right side if left side is from type guard such as is_list(x),
           # do not refine in case of length(x)
-          if :maps.get(index, left.current_type_guards, false) do
+          if :maps.get(index, left.type_guards, false) do
             refine_var(index, to_union([left_type, right_type], context), stack, context)
           else
             refine_var(index, left_type, stack, context)
@@ -410,7 +411,7 @@ defmodule Module.Types.Infer do
 
         {left_types, _right_types} ->
           Enum.reduce(left_types, context, fn {index, left_type}, context ->
-            if :maps.get(index, left.current_type_guards, false) do
+            if :maps.get(index, left.type_guards, false) do
               context
             else
               refine_var(index, left_type, stack, context)
@@ -649,7 +650,6 @@ defmodule Module.Types.Infer do
         types_to_vars = :maps.put(context.counter, var, context.types_to_vars)
         types = :maps.put(context.counter, :unbound, context.types)
         traces = :maps.put(context.counter, [], context.traces)
-        current_types = :maps.put(context.counter, :unbound, context.current_types)
 
         context = %{
           context
@@ -657,7 +657,6 @@ defmodule Module.Types.Infer do
             types_to_vars: types_to_vars,
             types: types,
             traces: traces,
-            current_types: current_types,
             counter: context.counter + 1
         }
 
@@ -667,8 +666,7 @@ defmodule Module.Types.Infer do
 
   defp refine_var(var, type, stack, context) do
     types = :maps.put(var, type, context.types)
-    current_types = :maps.put(var, type, context.current_types)
-    context = %{context | types: types, current_types: current_types}
+    context = %{context | types: types}
     trace_var(var, type, stack, context)
   end
 
@@ -676,8 +674,7 @@ defmodule Module.Types.Infer do
     line = get_meta(hd(stack.expr_stack))[:line]
     trace = {type, stack.expr_stack, {context.file, line}}
     traces = :maps.update_with(var, &[trace | &1], context.traces)
-    current_traces = :maps.update_with(var, &[trace | &1], [trace], context.current_traces)
-    %{context | traces: traces, current_traces: current_traces}
+    %{context | traces: traces}
   end
 
   defp trace_var(_var, _type, _stack, %{trace: false} = context) do

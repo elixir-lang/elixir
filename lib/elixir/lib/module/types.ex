@@ -28,7 +28,6 @@ defmodule Module.Types do
   def of_clause(params, guards, stack, context) do
     with {:ok, types, context} <-
            map_reduce_ok(params, context, &Infer.of_pattern(&1, stack, &2)),
-         context = %{context | current_types: %{}, current_traces: %{}},
          # TODO: Check that of_guard/3 returns a boolean
          {:ok, _, context} <- Infer.of_guard(guards_to_or(guards), stack, context),
          do: {:ok, types, context}
@@ -55,9 +54,7 @@ defmodule Module.Types do
       # Counter to give type variables unique names
       counter: 0,
       # DEV
-      current_types: %{},
-      current_traces: %{},
-      current_type_guards: %{},
+      type_guards: %{},
       trace: true
     }
   end
@@ -250,7 +247,7 @@ defmodule Module.Types do
 
   @doc false
   def format_type({:union, types}) do
-    "{#{Enum.map_join(types, " | ", &format_type/1)}}"
+    "#{Enum.map_join(types, " | ", &format_type/1)}"
   end
 
   def format_type({:tuple, types}) do
