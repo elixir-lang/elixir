@@ -548,15 +548,21 @@ defmodule Mix.Tasks.Release do
       available inside releases
 
   If a `config/releases.exs` exists, it will be copied to your release
-  and executed as soon the system starts. Once the configuration is loaded,
+  and executed early in the boot process, when only Elixir and Erlang's
+  main applications have been started. Once the configuration is loaded,
   the Erlang system will be restarted (within the same Operating System
   process) and the new configuration will take place.
 
-  Therefore, for runtime configuration to work properly, it needs to be
-  able to persist the newly computed configuration to disk. The computed
-  config file will be written to "tmp" directory inside the release every
-  time the system boots. You can configure the "tmp" directory by setting
-  the `RELEASE_TMP` environment variable, either explicitly or inside your
+  You can change the path to the runtime configuration file by setting
+  `:runtime_config_path`. This path is resolved at build time as the
+  given configuration file is always copied to inside the release.
+
+  Finally, in order for runtime configuration to work properly (as well
+  as any other "Config provider" as defined next), it needs to be able
+  to persist the newly computed configuration to disk. The computed config
+  file will be written to "tmp" directory inside the release every time
+  the system boots. You can configure the "tmp" directory by setting the
+  `RELEASE_TMP` environment variable, either explicitly or inside your
   `releases/RELEASE_VSN/env.sh` (or `env.bat` on Windows).
 
   ### Config providers
@@ -567,11 +573,8 @@ defmodule Mix.Tasks.Release do
   can be achieved with config providers. See the `Config.Provider` for more
   information and a simple example.
 
-  The following options can be set inside your releases key in your mix.exs
+  The following options can be set inside your releases key in your `mix.exs`
   to control how runtime configuration and config providers work:
-
-    * `:runtime_config_path` - the path to your runtime configuration file.
-      Defaults to `config/releases.exs`.
 
     * `:start_distribution_during_config` - on Erlang/OTP 22+, releases
       only start the Erlang VM distribution features after the config files
