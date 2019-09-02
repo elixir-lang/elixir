@@ -4,11 +4,24 @@ defmodule Config.Reader do
 
   ## As a provider
 
-  `Config.Reader` can also be used as a `Config.Provider`.
-  When used as a provider, it expects a single argument:
-  which the configuration path (as outlined in
-  `t:Config.Provider.config_path/0`) for the configuration
-  to be read and loaded during the system boot.
+  `Config.Reader` can also be used as a `Config.Provider`. When used
+  as a provider, it expects a single argument: the configuration path
+  (as outlined in `t:Config.Provider.config_path/0`) for the file to
+  be read and loaded during the system boot.
+
+  For example, if you expect the target system to have a config file
+  in an absolute path, you can configure your `mix release` as:
+
+      config_providers: [{Config.Reader, "/etc/config.json"}]
+
+  Or if you want to read a custom path inside the release:
+
+      config_provider: [{Config.Reader, {:system, "RELEASE_ROOT", "/config.exs"}}]
+
+  Note by default Mix releases supports runtime configuration via
+  a `config/releases.exs`. If a `config/releases.exs` exists in your
+  application, it is automatically copied inside the release and
+  automatically set as a config provider.
   """
 
   @behaviour Config.Provider
