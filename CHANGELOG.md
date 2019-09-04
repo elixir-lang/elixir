@@ -9,7 +9,7 @@
   * [Code] Add `:token_metadata` and `:literal_encoder` support to `Code.string_to_quoted/2`
   * [Code] Add compiler tracing to lift events done by the compiler
   * [DateTime] Add `DateTime.now!/2` and `DateTime.shift_zone!/3`
-  * [Exception] Add version alonside app names in stacktraces
+  * [Exception] Add version alongside app names in stacktraces
   * [Function] Add `Function.identity/1`
   * [Kernel] Warn when function head comes immediately after the implementation instead of before the implementation
   * [Keyword] Add `Keyword.pop!/2` and `Keyword.pop_values/2`
