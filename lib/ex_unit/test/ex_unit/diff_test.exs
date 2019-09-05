@@ -529,6 +529,18 @@ defmodule ExUnit.DiffTest do
       ~s/-~D"2017-10-01"-/,
       "~D[2017-10-0+2+]"
     )
+
+    refute_diff(
+      "2017-10-01" = ~D[2017-10-02],
+      ~s/-"2017-10-01"-/,
+      "+~D[2017-10-02]+"
+    )
+
+    refute_diff(
+      ~D[2017-10-02] = "2017-10-01",
+      ~s/-~D"2017-10-02"-/,
+      ~s/+"2017-10-01"+/
+    )
   end
 
   test "structs with inspect outside match context" do
@@ -536,6 +548,18 @@ defmodule ExUnit.DiffTest do
       ~D[2017-10-01] == ~D[2017-10-02],
       "~D[2017-10-0-1-]",
       "~D[2017-10-0+2+]"
+    )
+
+    refute_diff(
+      "2017-10-01" == ~D[2017-10-02],
+      ~s/-"2017-10-01"-/,
+      "+~D[2017-10-02]+"
+    )
+
+    refute_diff(
+      ~D[2017-10-02] == "2017-10-01",
+      ~s/-~D[2017-10-02]-/,
+      ~s/+"2017-10-01"+/
     )
   end
 
@@ -702,7 +726,7 @@ defmodule ExUnit.DiffTest do
 
     refute_diff(
       %Opaque{data: ref1} == :a,
-      "-%ExUnit.DiffTest.Opaque{data: #{inspect_ref1}}",
+      "-#Opaque<???>-",
       "+:a+"
     )
   end
@@ -718,12 +742,11 @@ defmodule ExUnit.DiffTest do
     refute_diff({pid, pid} == :a, "-{#{inspect_pid}, #{inspect_pid}}", "+:a+")
 
     refute_diff({pid, :a} == {:a, pid}, "{-#{inspect_pid}-, -:a-}", "{+:a+, +#{inspect_pid}+}")
-
     refute_diff(%{pid => pid} == :a, "-%{#{inspect_pid} => #{inspect_pid}}", "+:a+")
 
     refute_diff(
       %Opaque{data: pid} == :a,
-      "-%ExUnit.DiffTest.Opaque{data: #{inspect_pid}}",
+      "-#Opaque<???>-",
       "+:a+"
     )
   end
@@ -744,7 +767,7 @@ defmodule ExUnit.DiffTest do
 
     refute_diff(
       %Opaque{data: identity} == :a,
-      "-%ExUnit.DiffTest.Opaque{data: #{inspect}}",
+      "-#Opaque<???>-",
       "+:a+"
     )
   end
