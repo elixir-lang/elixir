@@ -478,7 +478,7 @@ defmodule ExUnit.Diff do
   defp find_diff(envelope, max, paths) do
     case each_diagonal(-envelope, envelope, paths, []) do
       {:done, {edit1, edit2, env}} ->
-        list_script_to_result(Enum.reverse(edit1), Enum.reverse(edit2), env)
+        list_script_to_diff(Enum.reverse(edit1), Enum.reverse(edit2), true, [], [], env)
 
       {:next, paths} ->
         find_diff(envelope + 1, max, paths)
@@ -553,41 +553,48 @@ defmodule ExUnit.Diff do
     {:cont, path}
   end
 
-  defp list_script_to_result([], [], env) do
-    diff = %__MODULE__{equivalent?: true, left: [], right: []}
+  defp list_script_to_diff([], [], equivalent?, left, right, env) do
+    diff = %__MODULE__{
+      equivalent?: equivalent?,
+      left: Enum.reverse(left),
+      right: Enum.reverse(right)
+    }
+
     {diff, env}
   end
 
-  defp list_script_to_result([{:del, elem1} | rest1], [{:ins, elem2} | rest2], env) do
-    {elem_diff, elem_post_env} = diff(elem1, elem2, env)
-    {rest_diff, rest_post_env} = list_script_to_result(rest1, rest2, elem_post_env)
-
-    {prepend_diff(elem_diff, rest_diff), rest_post_env}
+  defp list_script_to_diff(
+         [{:del, elem1} | rest1],
+         [{:ins, elem2} | rest2],
+         equivalent?,
+         left,
+         right,
+         env
+       ) do
+    {diff, env} = diff(elem1, elem2, env)
+    equivalent? = equivalent? and diff.equivalent?
+    list_script_to_diff(rest1, rest2, equivalent?, [diff.left | left], [diff.right | right], env)
   end
 
-  defp list_script_to_result([{:del, elem1} | rest1], list2, env) do
+  defp list_script_to_diff([{:del, elem1} | rest1], rest2, _, left, right, env) do
     diff_left = update_diff_meta(elem1, true)
-
-    elem_diff = %__MODULE__{equivalent?: false, left: diff_left}
-    {rest_diff, rest_post_env} = list_script_to_result(rest1, list2, env)
-
-    {prepend_diff(elem_diff, rest_diff), rest_post_env}
+    list_script_to_diff(rest1, rest2, false, [diff_left | left], right, env)
   end
 
-  defp list_script_to_result(list1, [{:ins, elem2} | rest2], env) do
+  defp list_script_to_diff(rest1, [{:ins, elem2} | rest2], _, left, right, env) do
     diff_right = escape(elem2) |> update_diff_meta(true)
-
-    elem_diff = %__MODULE__{equivalent?: false, right: diff_right}
-    {rest_diff, rest_post_env} = list_script_to_result(list1, rest2, env)
-
-    {prepend_diff(elem_diff, rest_diff), rest_post_env}
+    list_script_to_diff(rest1, rest2, false, left, [diff_right | right], env)
   end
 
-  defp list_script_to_result([{:eq, elem1} | rest1], [{:eq, elem2} | rest2], env) do
-    elem_diff = %__MODULE__{equivalent?: true, left: elem1, right: elem2}
-    {rest_diff, rest_post_env} = list_script_to_result(rest1, rest2, env)
-
-    {prepend_diff(elem_diff, rest_diff), rest_post_env}
+  defp list_script_to_diff(
+         [{:eq, elem1} | rest1],
+         [{:eq, elem2} | rest2],
+         equivalent?,
+         left,
+         right,
+         env
+       ) do
+    list_script_to_diff(rest1, rest2, equivalent?, [elem1 | left], [elem2 | right], env)
   end
 
   # Maps
@@ -1042,24 +1049,6 @@ defmodule ExUnit.Diff do
       right: right
     }
   end
-
-  defp prepend_diff(%__MODULE__{} = head_result, %__MODULE__{} = tail_result) do
-    merge_diff(head_result, tail_result, fn pattern1, pattern2, value1, value2 ->
-      {prepend_result(pattern1, pattern2), prepend_result(value1, value2)}
-    end)
-  end
-
-  defp prepend_result(nil, quoted) do
-    quoted
-  end
-
-  defp prepend_result(item, quoted) do
-    {extracted, diff_meta?} = extract_diff_meta(quoted)
-    safe_prepend_result(item, extracted) |> update_diff_meta(diff_meta?)
-  end
-
-  defp safe_prepend_result(item, {type, meta, list}), do: {type, meta, [item | list]}
-  defp safe_prepend_result(item, list), do: [item | list]
 
   defp update_diff_meta({left, meta, right}, false),
     do: {left, Keyword.delete(meta, :diff), right}
