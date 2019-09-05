@@ -270,57 +270,23 @@ defmodule ExUnit.Diff do
   # Tuples
 
   defp diff_tuple(list_left, list_right, env) do
-    {compared, non_compared_left, non_compared_right, post_env} =
-      diff_tuple_by_index(list_left, list_right, env)
-
-    remaining_diff = diff_tuple_remaining(non_compared_left, non_compared_right)
-    {build_tuple_result(compared, remaining_diff), post_env}
+    diff_tuple(list_left, list_right, true, [], [], env)
   end
 
-  defp diff_tuple_by_index(list_left, list_right, env) do
-    {compared, non_compared_left, non_compared_right, post_env} =
-      Enum.reduce(list_left, {[], [], list_right, env}, fn
-        item, {compared, non_compared, [next | continue], acc_env} ->
-          {diff, diff_post_env} = diff(item, next, acc_env)
-          {[diff | compared], non_compared, continue, diff_post_env}
-
-        item, {compared, non_compared, [], acc_env} ->
-          {compared, [item | non_compared], [], acc_env}
-      end)
-
-    {
-      Enum.reverse(compared),
-      Enum.reverse(non_compared_left),
-      Enum.reverse(non_compared_right),
-      post_env
-    }
+  defp diff_tuple([left | tleft], [right | tright], acc_equivalent?, acc_left, acc_right, env) do
+    {diff, env} = diff(left, right, env)
+    {equivalent?, left, right} = unpack_diff(diff)
+    acc_equivalent? = acc_equivalent? and equivalent?
+    diff_tuple(tleft, tright, acc_equivalent?, [left | acc_left], [right | acc_right], env)
   end
 
-  defp diff_tuple_remaining([], []) do
-    %__MODULE__{
-      equivalent?: true,
-      left: {:{}, [], []},
-      right: {:{}, [], []}
-    }
-  end
-
-  defp diff_tuple_remaining(left, right) do
-    left = Enum.map(left, &update_diff_meta(&1, true))
-    right = Enum.map(right, &update_diff_meta(&1, true))
-
-    diff_left = {:{}, [], left}
-    diff_right = {:{}, [], right}
-
-    %__MODULE__{equivalent?: false, left: diff_left, right: diff_right}
-  end
-
-  defp build_tuple_result([], remaining_diff) do
-    remaining_diff
-  end
-
-  defp build_tuple_result([head | tail], remaining_diff) do
-    tail_result = build_tuple_result(tail, remaining_diff)
-    prepend_diff(head, tail_result)
+  defp diff_tuple(remaining_left, remaining_right, acc_equivalent?, acc_left, acc_right, env) do
+    remaining_left = Enum.map(remaining_left, &update_diff_meta(&1, true))
+    remaining_right = Enum.map(remaining_right, &update_diff_meta(&1, true))
+    equivalent? = acc_equivalent? and remaining_left == [] and remaining_right == []
+    diff_left = {:{}, [], Enum.reverse(acc_left, remaining_left)}
+    diff_right = {:{}, [], Enum.reverse(acc_right, remaining_right)}
+    {%__MODULE__{equivalent?: equivalent?, left: diff_left, right: diff_right}, env}
   end
 
   # Lists
@@ -496,8 +462,8 @@ defmodule ExUnit.Diff do
   defp rebuild_split_lists(left, right) do
     updated_right =
       case extract_diff_meta(right) do
-        {list, true} -> Enum.map(list, &update_diff_meta(&1, true))
-        {list, false} -> list
+        {list, true} -> Enum.map(unescape(list), &update_diff_meta(&1, true))
+        {list, false} -> unescape(list)
       end
 
     left ++ updated_right
@@ -769,29 +735,15 @@ defmodule ExUnit.Diff do
   defp maybe_struct(%name{}), do: name
   defp maybe_struct(_), do: nil
 
-  defp build_struct_result(nil, nil) do
-    %__MODULE__{equivalent?: true}
-  end
-
-  defp build_struct_result(struct1, nil) do
-    diff_left = update_diff_meta({:__struct__, struct1}, true)
-    %__MODULE__{equivalent?: true, left: diff_left}
-  end
-
-  defp build_struct_result(nil, struct2) do
-    diff_right = update_diff_meta({:__struct__, struct2}, true)
-    %__MODULE__{equivalent?: true, right: diff_right}
-  end
-
-  defp build_struct_result(struct, struct) do
-    struct_pair = {:__struct__, struct}
-    %__MODULE__{equivalent?: true, left: struct_pair, right: struct_pair}
+  defp build_struct_result(struct, struct) when not is_nil(struct) do
+    %__MODULE__{equivalent?: true, left: {:__struct__, struct}, right: {:__struct__, struct}}
   end
 
   defp build_struct_result(struct1, struct2) do
-    diff_left = update_diff_meta({:__struct__, struct1}, true)
-    diff_right = update_diff_meta({:__struct__, struct2}, true)
-    %__MODULE__{equivalent?: false, left: diff_left, right: diff_right}
+    maybe_struct1 = struct1 && {:__struct__, update_diff_meta(struct1, true)}
+    maybe_struct2 = struct2 && {:__struct__, update_diff_meta(struct2, true)}
+    equivalent? = is_nil(struct1) or is_nil(struct2)
+    %__MODULE__{equivalent?: equivalent?, left: maybe_struct1, right: maybe_struct2}
   end
 
   # Strings
@@ -1007,8 +959,7 @@ defmodule ExUnit.Diff do
   defp safe_to_algebra({:%{}, _, [head | tail]}, diff_wrapper) do
     {struct, list} =
       case extract_diff_meta(head) do
-        {{:__struct__, name}, true} -> {update_diff_meta(name, true), tail}
-        {{:__struct__, name}, false} -> {name, tail}
+        {{:__struct__, name}, _} -> {name, tail}
         _other -> {nil, [head | tail]}
       end
 
@@ -1024,6 +975,10 @@ defmodule ExUnit.Diff do
 
   defp safe_to_algebra({_, _, _} = quoted, _diff_wrapper) do
     Macro.to_string(quoted)
+  end
+
+  defp safe_to_algebra({escaped}, _diff_wrapper) do
+    inspect(escaped)
   end
 
   defp safe_to_algebra(literal, _diff_wrapper) do
@@ -1120,12 +1075,16 @@ defmodule ExUnit.Diff do
 
   # Diff helpers
 
-  defp escape([head | tail]) when is_list(tail), do: [escape(head) | escape(tail)]
-  defp escape([head | tail]), do: [{:|, [], [escape(head), escape(tail)]}]
-  defp escape({a, b}), do: {escape(a), escape(b)}
-  defp escape(tuple) when is_tuple(tuple), do: {:{}, [], tuple |> Tuple.to_list() |> escape()}
-  defp escape(%{} = map), do: {:%{}, [], map |> Map.to_list() |> escape()}
+  # We escape it by wrapaping it in one element tuple which is not valid AST
+  defp escape(other) when is_list(other) or is_tuple(other), do: {other}
   defp escape(other), do: other
+
+  defp unescape({other}), do: other
+  defp unescape(other), do: other
+
+  defp unpack_diff(%__MODULE__{equivalent?: equivalent?, left: left, right: right}) do
+    {equivalent?, left, right}
+  end
 
   defp merge_diff(%__MODULE__{} = result1, %__MODULE__{} = result2, fun) do
     {left, right} = fun.(result1.left, result2.left, result1.right, result2.right)
@@ -1170,7 +1129,6 @@ defmodule ExUnit.Diff do
 
   defp prepend_result(item, quoted) do
     {extracted, diff_meta?} = extract_diff_meta(quoted)
-
     safe_prepend_result(item, extracted) |> update_diff_meta(diff_meta?)
   end
 
@@ -1217,6 +1175,6 @@ defmodule ExUnit.Diff do
 
   def key_is_atom?(quoted) do
     {key, _} = extract_diff_meta(quoted)
-    :erlang.is_atom(key)
+    is_atom(key)
   end
 end
