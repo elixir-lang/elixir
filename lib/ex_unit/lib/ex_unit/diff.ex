@@ -92,7 +92,7 @@ defmodule ExUnit.Diff do
   end
 
   defp diff_quoted({:%{}, _, items} = left, %struct{} = right, env) when is_list(items) do
-    diff_map(left, right, nil, struct, env)
+    diff_map(left, Map.delete(right, :__struct__), nil, struct, env)
   end
 
   defp diff_quoted({:%{}, _, items} = left, %{} = right, env) when is_list(items) do
@@ -275,9 +275,10 @@ defmodule ExUnit.Diff do
 
   defp diff_tuple([left | tleft], [right | tright], acc_equivalent?, acc_left, acc_right, env) do
     {diff, env} = diff(left, right, env)
-    {equivalent?, left, right} = unpack_diff(diff)
-    acc_equivalent? = acc_equivalent? and equivalent?
-    diff_tuple(tleft, tright, acc_equivalent?, [left | acc_left], [right | acc_right], env)
+    acc_equivalent? = acc_equivalent? and diff.equivalent?
+    acc_left = [diff.left | acc_left]
+    acc_right = [diff.right | acc_right]
+    diff_tuple(tleft, tright, acc_equivalent?, acc_left, acc_right, env)
   end
 
   defp diff_tuple(remaining_left, remaining_right, acc_equivalent?, acc_left, acc_right, env) do
@@ -592,7 +593,7 @@ defmodule ExUnit.Diff do
   # Maps
 
   defp diff_map(%{} = left, right, struct1, struct2, env) do
-    diff_map_items(left, right, struct1, struct2, env)
+    diff_map_items(Map.to_list(left), right, struct1, struct2, env)
   end
 
   defp diff_map({:%{}, _, items}, right, struct1, struct2, env) do
@@ -602,55 +603,48 @@ defmodule ExUnit.Diff do
   # Compare items based on the keys of `left_items` and add the `:diff` meta to
   # the element that it wasn't able to compare.
   defp diff_map_items(left_items, right, struct1, struct2, env) do
-    {non_comparable_by_key, remaining, compared, struct1, by_key_post_env} =
-      diff_map_items_by_key(left_items, right, struct1, env)
+    {struct1, left_items} = Keyword.pop(left_items, :__struct__, struct1)
+    {equivalent?, left, right, env} = diff_map_by_key(left_items, right, env)
 
-    remaining_diff = diff_map_remaining_pairs(non_comparable_by_key, remaining, env)
+    {equivalent?, left, right} =
+      build_struct_result(equivalent?, left, right, struct1, struct2, env)
 
-    struct_diff = build_struct_result(struct1, struct2)
-    map_diff = build_map_result(compared, remaining_diff)
-
-    {prepend_diff(struct_diff, map_diff), by_key_post_env}
+    {%__MODULE__{equivalent?: equivalent?, left: {:%{}, [], left}, right: {:%{}, [], right}}, env}
   end
 
-  defp diff_map_items_by_key(items, right, defined_struct, env) do
-    {non_comparable, remaining, compared, items_struct, post_env} =
-      Enum.reduce(items, {[], right, [], nil, env}, fn
-        {:__struct__, name}, acc ->
-          put_elem(acc, 3, name)
+  defp diff_map_by_key(items, right, env) do
+    {acc_equivalent?, acc_left, acc_right, pending_left, pending_right, env} =
+      Enum.reduce(items, {true, [], [], [], right, env}, fn
+        {left_key, left_value},
+        {acc_equivalent?, acc_left, acc_right, pending_left, pending_right, env} ->
+          right_key = literal_key(left_key, env)
 
-        {key, _} = item, {non_comparable, remaining, compared, struct, acc_env} ->
-          literal_key = literal_key(key, env)
+          case pending_right do
+            %{^right_key => right_value} ->
+              pending_right = Map.delete(pending_right, right_key)
+              {diff, env} = diff(left_value, right_value, env)
+              acc_equivalent? = acc_equivalent? and diff.equivalent?
+              acc_left = [{left_key, diff.left} | acc_left]
+              acc_right = [{right_key, diff.right} | acc_right]
+              {acc_equivalent?, acc_left, acc_right, pending_left, pending_right, env}
 
-          case Map.pop(remaining, literal_key) do
-            {nil, ^remaining} ->
-              {[item | non_comparable], remaining, [nil | compared], struct, acc_env}
-
-            {popped, new_remaining} ->
-              {diff, diff_post_env} = diff_map_pair(item, {literal_key, popped}, acc_env)
-              {non_comparable, new_remaining, [diff | compared], struct, diff_post_env}
+            %{} ->
+              mismatch = update_diff_meta({left_key, left_value}, true)
+              {false, acc_left, acc_right, [mismatch | pending_left], pending_right, env}
           end
       end)
 
-    non_comparable = Enum.reverse(non_comparable)
-    remaining = Map.delete(remaining, :__struct__)
-    compared = Enum.reverse(compared)
-
-    defined_struct =
-      case defined_struct || items_struct do
-        {_, [{:expanded, name} | _], _} -> name
-        other -> other
+    {pending_right, equivalent?} =
+      if env.context == :match do
+        {Map.to_list(pending_right), acc_equivalent?}
+      else
+        pending_right = Enum.map(pending_right, &update_diff_meta(&1, true))
+        {pending_right, acc_equivalent? and pending_right == []}
       end
 
-    {non_comparable, remaining, compared, defined_struct, post_env}
-  end
-
-  defp diff_map_pair({key1, value1}, {key2, value2}, env) do
-    {diff, post_env} = diff(value1, value2, env)
-    diff_left = {key1, diff.left}
-    diff_right = {key2, diff.right}
-
-    {%{diff | left: diff_left, right: diff_right}, post_env}
+    left = Enum.reverse(acc_left) ++ pending_left
+    right = Enum.reverse(acc_right) ++ pending_right
+    {equivalent?, left, right, env}
   end
 
   defp literal_key({:^, _, [{name, _, _}]}, %{pins: pins}) do
@@ -662,54 +656,13 @@ defmodule ExUnit.Diff do
     literal
   end
 
-  # Can't compare using `myers_difference_list` because if key and value are
-  # equivalent, it gives strange results. It just mark them as different
-  # depending on the context, if `:match` only left side, otherwise both sides.
-  defp diff_map_remaining_pairs(remaining, right, env) do
-    list_left = Enum.map(remaining, &update_diff_meta(&1, true))
-
-    list_right =
-      if env.context == :match do
-        Map.to_list(right)
-      else
-        Enum.map(right, &update_diff_meta(&1, true))
-      end
-
-    diff_left = {:%{}, [], list_left}
-    diff_right = {:%{}, [], list_right}
-
-    equivalent? =
-      if env.context == :match do
-        remaining == []
-      else
-        remaining == [] && right == %{}
-      end
-
-    %__MODULE__{equivalent?: equivalent?, left: diff_left, right: diff_right}
-  end
-
-  defp build_map_result([], remaining_diff) do
-    remaining_diff
-  end
-
-  defp build_map_result([nil | tail], remaining_diff) do
-    {popped, new_remaining_diff} = pop_diff(remaining_diff)
-    tail_result = build_map_result(tail, new_remaining_diff)
-    prepend_diff(popped, tail_result)
-  end
-
-  defp build_map_result([head | tail], remaining_diff) do
-    tail_result = build_map_result(tail, remaining_diff)
-    prepend_diff(head, tail_result)
-  end
-
   # Structs
 
   defp diff_quoted_struct(kw, struct1, %struct2{} = right, env) do
     if Macro.quoted_literal?(kw) do
       diff_struct(struct(struct1, kw), Map.new(kw), right, struct1, struct2, env)
     else
-      diff_map(Map.new(kw), right, struct1, struct2, env)
+      diff_map(Map.new(kw), Map.delete(right, :__struct__), struct1, struct2, env)
     end
   end
 
@@ -725,25 +678,32 @@ defmodule ExUnit.Diff do
       if inspect_left != inspect_right do
         diff_string(inspect_left, inspect_right, ?\", env)
       else
-        diff_map(left, right, struct1, struct2, env)
+        diff_map(left, Map.delete(right, :__struct__), struct1, struct2, env)
       end
     else
-      diff_map(left, right, struct1, struct2, env)
+      diff_map(left, Map.delete(right, :__struct__), struct1, struct2, env)
     end
   end
 
   defp maybe_struct(%name{}), do: name
   defp maybe_struct(_), do: nil
 
-  defp build_struct_result(struct, struct) when not is_nil(struct) do
-    %__MODULE__{equivalent?: true, left: {:__struct__, struct}, right: {:__struct__, struct}}
+  defp build_struct_result(equivalent?, left, right, nil, nil, _env) do
+    {equivalent?, left, right}
   end
 
-  defp build_struct_result(struct1, struct2) do
-    maybe_struct1 = struct1 && {:__struct__, update_diff_meta(struct1, true)}
-    maybe_struct2 = struct2 && {:__struct__, update_diff_meta(struct2, true)}
-    equivalent? = is_nil(struct1) or is_nil(struct2)
-    %__MODULE__{equivalent?: equivalent?, left: maybe_struct1, right: maybe_struct2}
+  defp build_struct_result(equivalent?, left, right, struct, struct, _env) do
+    {equivalent?, [{:__struct__, struct} | left], [{:__struct__, struct} | right]}
+  end
+
+  defp build_struct_result(equivalent?, left, right, nil, struct, %{context: :match}) do
+    {equivalent?, left, [{:__struct__, struct} | right]}
+  end
+
+  defp build_struct_result(_equivalent?, left, right, struct1, struct2, _env) do
+    left = if struct1, do: [{:__struct__, update_diff_meta(struct1, true)} | left], else: left
+    right = if struct2, do: [{:__struct__, update_diff_meta(struct2, true)} | right], else: right
+    {false, left, right}
   end
 
   # Strings
@@ -756,6 +716,7 @@ defmodule ExUnit.Diff do
           {escaped_right, _} = Code.Identifier.escape(right, delimiter)
           left = IO.iodata_to_binary(escaped_left)
           right = IO.iodata_to_binary(escaped_right)
+
           String.myers_difference(left, right)
           |> string_script_to_diff(delimiter, true, [], [])
 
@@ -1072,10 +1033,6 @@ defmodule ExUnit.Diff do
   defp unescape({other}), do: other
   defp unescape(other), do: other
 
-  defp unpack_diff(%__MODULE__{equivalent?: equivalent?, left: left, right: right}) do
-    {equivalent?, left, right}
-  end
-
   defp merge_diff(%__MODULE__{} = result1, %__MODULE__{} = result2, fun) do
     {left, right} = fun.(result1.left, result2.left, result1.right, result2.right)
 
@@ -1092,27 +1049,6 @@ defmodule ExUnit.Diff do
     end)
   end
 
-  defp pop_diff(%__MODULE__{} = diff) do
-    {popped_left, remaining_left} = pop_result(diff.left)
-    {popped_right, remaining_right} = pop_result(diff.right)
-
-    remaining_diff = %{diff | left: remaining_left, right: remaining_right}
-
-    case {popped_left, popped_right} do
-      {:empty, :empty} ->
-        {nil, remaining_diff}
-
-      {{:element, elem1}, :empty} ->
-        {%{diff | left: elem1, right: nil}, remaining_diff}
-
-      {:empty, {:element, elem2}} ->
-        {%{diff | left: nil, right: elem2}, remaining_diff}
-
-      {{:element, elem1}, {:element, elem2}} ->
-        {%{diff | left: elem1, right: elem2}, remaining_diff}
-    end
-  end
-
   defp prepend_result(nil, quoted) do
     quoted
   end
@@ -1124,19 +1060,6 @@ defmodule ExUnit.Diff do
 
   defp safe_prepend_result(item, {type, meta, list}), do: {type, meta, [item | list]}
   defp safe_prepend_result(item, list), do: [item | list]
-
-  defp pop_result(quoted) do
-    {extracted, _diff_meta?} = extract_diff_meta(quoted)
-    safe_pop_result(extracted)
-  end
-
-  defp safe_pop_result({_, _, []} = quoted) do
-    {:empty, quoted}
-  end
-
-  defp safe_pop_result({left, meta, [head | tail]}) do
-    {{:element, head}, {left, meta, tail}}
-  end
 
   defp update_diff_meta({left, meta, right}, false),
     do: {left, Keyword.delete(meta, :diff), right}
