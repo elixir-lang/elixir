@@ -405,7 +405,7 @@ defmodule ExUnit.DiffTest do
     refute_diff(%{a: 1, b: 2} = %{a: 1, b: 12}, "%{a: 1, b: 2}", "%{a: 1, b: +1+2}")
     refute_diff(%{a: 1, b: 2} = %{a: 1, c: 2}, "%{a: 1, -b: 2-}", "%{a: 1, c: 2}")
     refute_diff(%{a: 1, b: 2, c: 3} = %{a: 1, b: 12}, "%{a: 1, b: 2, -c: 3-}", "%{a: 1, b: +1+2}")
-    refute_diff(%{a: 1, b: 2, c: 3} = %{a: 1, c: 2}, "%{a: 1, -b: 2-, c: -3-}", "%{a: 1, c: +2+}")
+    refute_diff(%{a: 1, b: 2, c: 3} = %{a: 1, c: 2}, "%{a: 1, c: -3-, -b: 2-}", "%{a: 1, c: +2+}")
     refute_diff(%{a: 1} = %{a: 2, b: 2, c: 3}, "%{a: -1-}", "%{a: +2+, b: 2, c: 3}")
 
     refute_diff(
@@ -453,7 +453,6 @@ defmodule ExUnit.DiffTest do
 
   test "structs" do
     assert_diff(%User{age: 16} = %User{age: 16}, [])
-    assert_diff(%User{age: 16} = %{age: 16}, [])
     assert_diff(%{age: 16, __struct__: User} = %User{age: 16}, [])
 
     refute_diff(
@@ -472,6 +471,12 @@ defmodule ExUnit.DiffTest do
       %User{age: 16} = %Person{age: 21},
       "%-ExUnit.DiffTest.User-{age: 1-6-}",
       "%+ExUnit.DiffTest.Person+{age: +2+1}"
+    )
+
+    refute_diff(
+      %User{age: 16} = %{age: 16},
+      "%-ExUnit.DiffTest.User-{age: 16}",
+      "%{age: 16}"
     )
 
     refute_diff(
