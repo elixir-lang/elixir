@@ -756,14 +756,14 @@ defmodule ExUnit.Diff do
           {escaped_right, _} = Code.Identifier.escape(right, delimiter)
           left = IO.iodata_to_binary(escaped_left)
           right = IO.iodata_to_binary(escaped_right)
-
-          String.myers_difference(left, right) |> string_script_to_diff(delimiter)
+          String.myers_difference(left, right)
+          |> string_script_to_diff(delimiter, true, [], [])
 
         left == right ->
-          string_script_to_diff([eq: left], delimiter)
+          string_script_to_diff([eq: left], delimiter, true, [], [])
 
         true ->
-          string_script_to_diff([del: left, ins: right], delimiter)
+          string_script_to_diff([del: left, ins: right], delimiter, true, [], [])
       end
 
     {diff, env}
@@ -876,36 +876,22 @@ defmodule ExUnit.Diff do
     end
   end
 
-  defp string_script_to_diff([], delimiter) do
-    container = {:__block__, [diff_container: delimiter], []}
-    %__MODULE__{equivalent?: true, left: container, right: container}
+  defp string_script_to_diff([], delimiter, equivalent?, left, right) do
+    left = {:__block__, [diff_container: delimiter], Enum.reverse(left)}
+    right = {:__block__, [diff_container: delimiter], Enum.reverse(right)}
+    %__MODULE__{equivalent?: equivalent?, left: left, right: right}
   end
 
-  defp string_script_to_diff([{:eq, string} | tail], delimiter) do
-    head_diff = %__MODULE__{equivalent?: true, left: string, right: string}
-    tail_diff = string_script_to_diff(tail, delimiter)
-
-    prepend_diff(head_diff, tail_diff)
+  defp string_script_to_diff([{:eq, string} | tail], delimiter, equivalent?, left, right) do
+    string_script_to_diff(tail, delimiter, equivalent?, [string | left], [string | right])
   end
 
-  defp string_script_to_diff([{:del, string} | tail], delimiter) do
-    left = update_diff_meta(string, true)
-    head_diff = %__MODULE__{equivalent?: false, left: left, right: nil}
-    tail_diff = string_script_to_diff(tail, delimiter)
-
-    prepend_diff(head_diff, tail_diff)
+  defp string_script_to_diff([{:del, string} | tail], delimiter, _equivalent?, left, right) do
+    string_script_to_diff(tail, delimiter, false, [update_diff_meta(string, true) | left], right)
   end
 
-  defp string_script_to_diff([{:ins, string} | tail], delimiter) do
-    right = update_diff_meta(string, true)
-    head_diff = %__MODULE__{equivalent?: false, left: nil, right: right}
-    tail_diff = string_script_to_diff(tail, delimiter)
-
-    prepend_diff(head_diff, tail_diff)
-  end
-
-  defp remove_diff_container_meta({:__block__, meta, list}) do
-    {:__block__, Keyword.delete(meta, :diff_container), list}
+  defp string_script_to_diff([{:ins, string} | tail], delimiter, _equivalent?, left, right) do
+    string_script_to_diff(tail, delimiter, false, left, [update_diff_meta(string, true) | right])
   end
 
   # Numbers
@@ -915,6 +901,10 @@ defmodule ExUnit.Diff do
     diff_left = remove_diff_container_meta(diff.left)
     diff_right = remove_diff_container_meta(diff.right)
     {%{diff | left: diff_left, right: diff_right}, post_env}
+  end
+
+  defp remove_diff_container_meta({:__block__, meta, list}) do
+    {:__block__, Keyword.delete(meta, :diff_container), list}
   end
 
   # Algebra

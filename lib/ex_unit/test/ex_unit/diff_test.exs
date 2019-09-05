@@ -784,20 +784,10 @@ defmodule ExUnit.DiffTest do
     {diff, _env} = Diff.compute(left, right, context)
     assert diff.equivalent? == false
 
-    diff_left =
-      diff.left
-      |> Diff.to_algebra(&diff_wrapper(&1, "-"))
-      |> Algebra.format(:infinity)
-      |> IO.iodata_to_binary()
-
+    diff_left = to_diff(diff.left, "-")
     assert diff_left =~ expected_left
 
-    diff_right =
-      diff.right
-      |> Diff.to_algebra(&diff_wrapper(&1, "+"))
-      |> Algebra.format(:infinity)
-      |> IO.iodata_to_binary()
-
+    diff_right = to_diff(diff.right, "+")
     assert diff_right =~ expected_right
   end
 
@@ -807,6 +797,13 @@ defmodule ExUnit.DiffTest do
 
     assert diff.equivalent? == true
     assert env_binding == expected_binding
+  end
+
+  defp to_diff(side, sign) do
+    side
+    |> Diff.to_algebra(&diff_wrapper(&1, sign))
+    |> Algebra.format(:infinity)
+    |> IO.iodata_to_binary()
   end
 
   defp diff_wrapper(doc, side) do
