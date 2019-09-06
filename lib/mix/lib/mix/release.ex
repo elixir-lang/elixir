@@ -428,7 +428,7 @@ defmodule Mix.Release do
     end
   end
 
-  defp random_cookie, do: Base.url_encode64(:crypto.strong_rand_bytes(40))
+  defp random_cookie, do: Base.encode32(:crypto.strong_rand_bytes(32))
 
   @doc """
   Makes the start_erl.data file with the
