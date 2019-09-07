@@ -328,8 +328,8 @@ defmodule ExUnit.Formatter do
             {:match, pins},
             formatter,
             inspect,
-            padding_size + 2,
-            width - 2
+            padding_size + 5,
+            width - 5
           )
 
         [
