@@ -488,10 +488,7 @@ defmodule Logger do
   def metadata() do
     case :logger.get_process_metadata() do
       :undefined -> []
-      map when is_map(map) ->
-        map
-        |> Map.drop([:pid, :gl, :time, :mfa, :file, :line, :domain, :report_cb])
-        |> Map.to_list()
+      map when is_map(map) -> Map.to_list(map)
     end
   end
 
