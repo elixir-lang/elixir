@@ -76,6 +76,8 @@ defmodule Mix.CLI do
     try do
       ensure_no_slashes(name)
       Mix.Task.run("loadconfig")
+      # Restart Logger so it uses the configuration of the project.
+      restart_logger()
       Mix.Task.run(name, args)
     rescue
       # We only rescue exceptions in the Mix namespace, all
@@ -88,6 +90,13 @@ defmodule Mix.CLI do
         else
           reraise exception, __STACKTRACE__
         end
+    end
+  end
+
+  defp restart_logger do
+    if Process.whereis(Logger) do
+      Logger.App.stop()
+      :ok = Logger.App.start()
     end
   end
 
