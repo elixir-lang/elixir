@@ -69,23 +69,12 @@ defmodule Mix.Tasks.App.Start do
       end
     end
 
-    # Stop Logger when starting the application as it is
-    # up to the application to decide if it should be restarted
-    # or not.
-    #
-    # Mix should not depend directly on Logger so check that it's loaded.
-    logger = Process.whereis(Logger)
+    unless "--no-start" in args do
+      # Stop Logger if the application does not depend on it.
+      #
+      # Mix should not depend directly on Logger, that's why we first check if it's loaded.
+      if not logger_configured?() && Process.whereis(Logger), do: Logger.App.stop()
 
-    if logger do
-      Logger.App.stop()
-    end
-
-    if "--no-start" in args do
-      # Start Logger again if the application won't be starting it
-      if logger do
-        :ok = Logger.App.start()
-      end
-    else
       start(Mix.Project.config(), opts)
 
       # If there is a build path, we will let the application
@@ -188,6 +177,10 @@ defmodule Mix.Tasks.App.Start do
     end
 
     :ok
+  end
+
+  defp logger_configured? do
+    Enum.member?(Mix.ProjectStack.config_apps(), :logger)
   end
 
   defp load_protocol(file) do

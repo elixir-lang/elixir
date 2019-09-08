@@ -94,6 +94,7 @@ defmodule Mix.CLI do
   end
 
   defp restart_logger do
+    # Mix should not depend directly on Logger, that's why we first check if it's loaded.
     if Process.whereis(Logger) do
       Logger.App.stop()
       :ok = Logger.App.start()
