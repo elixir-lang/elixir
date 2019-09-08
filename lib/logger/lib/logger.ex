@@ -443,16 +443,12 @@ defmodule Logger do
 
   @type backend :: :gen_event.handler()
   @type message :: IO.chardata() | String.Chars.t()
-  @type level :: :error | :info | :warn | :debug
+  @type level :: :logger.level() | :warn
   @type metadata :: keyword()
-  @levels [:error, :info, :warn, :debug]
+  @levels [:emergency, :alert, :critical, :error, :warning, :notice, :info, :debug]
 
-  @metadata :logger_metadata
-  @compile {:inline, __metadata__: 0}
-
-  defp __metadata__ do
-    Process.get(@metadata) || {true, []}
-  end
+  @metadata :logger_enabled
+  @compile {:inline, enabled?: 1}
 
   @doc """
   Alters the current process metadata according the given keyword list.
@@ -508,7 +504,7 @@ defmodule Logger do
   """
   @spec enable(pid) :: :ok
   def enable(pid) when pid == self() do
-    Process.put(@metadata, {true, []})
+    Process.put(@metadata, true)
     :ok
   end
 
@@ -519,8 +515,20 @@ defmodule Logger do
   """
   @spec disable(pid) :: :ok
   def disable(pid) when pid == self() do
-    Process.put(@metadata, {false, []})
+    Process.put(@metadata, false)
     :ok
+  end
+
+  @doc """
+  Returns whether the logging is enabled for given process.
+
+  Currently the only accepted PID is `self()`.
+  """
+  def enabled?(pid) when pid == self() do
+    case Process.get(@metadata) do
+      nil -> true
+      other -> other
+    end
   end
 
   @doc """
@@ -695,28 +703,19 @@ defmodule Logger do
           :ok | {:error, :noproc} | {:error, term}
   def bare_log(level, chardata_or_fun, metadata \\ []) do
     case __should_log__(level) do
-      :error -> :ok
-      info -> __do_log__(info, chardata_or_fun, metadata)
+      false -> :ok
+      true -> __do_log__(level, chardata_or_fun, Map.new(metadata))
     end
   end
 
   @doc false
   def __should_log__(level) when level in @levels do
-    case __metadata__() do
-      {true, _} ->
-        case Logger.Config.log_data(level) do
-          {:discard, _config} -> :error
-          {mode, config} -> {level, mode, config, metadata()}
-        end
-
-      {false, _} ->
-        :error
-    end
+    enabled?(self()) and not match?({:discard, _}, Logger.Config.log_data(level))
   end
 
   @doc false
-  def __do_log__({level, _mode, _config, _pdict}, fun, metadata)
-      when is_list(metadata) and is_function(fun, 0) do
+  def __do_log__(level, fun, metadata)
+      when is_function(fun, 0) do
     level =
       case level do
         :warn -> :warning
@@ -734,21 +733,29 @@ defmodule Logger do
     end
   end
 
-  def __do_log__({level, _, _, _}, atom, metadata) when is_list(metadata) and is_atom(atom) do
+  def __do_log__(level, atom, metadata) when is_atom(atom) do
     level =
       case level do
-        :warn -> :warning
+        :warn ->
+          bare_log(:warning, "`:warn` level is deprecated, you should use `:warning`")
+
+          :warning
         level -> level
       end
+
     :logger.log(level, Atom.to_string(atom), Map.new(metadata))
   end
 
-  def __do_log__({level, _, _, _}, chardata, metadata) when is_list(metadata) and (is_binary(chardata) or is_list(chardata)) do
+  def __do_log__(level, chardata, metadata) when is_binary(chardata) or is_list(chardata) do
     level =
       case level do
-        :warn -> :warning
+        :warn ->
+          bare_log(:warning, "`:warn` level is deprecated, you should use `:warning`")
+
+          :warning
         level -> level
       end
+
     :logger.log(level, chardata, Map.new(metadata))
   end
 
@@ -764,8 +771,26 @@ defmodule Logger do
       Logger.warn(fn -> {"dynamically calculated warning", [additional: :metadata]} end)
 
   """
+  # TODO: Deprecate it in favour of `warning/1-2` macro
   defmacro warn(chardata_or_fun, metadata \\ []) do
-    maybe_log(:warn, chardata_or_fun, metadata, __CALLER__)
+    maybe_log(:warning, chardata_or_fun, metadata, __CALLER__)
+  end
+
+
+  @doc """
+  Logs a warning message.
+
+  Returns `:ok` or an `{:error, reason}` tuple.
+
+  ## Examples
+
+      Logger.warning("knob turned too far to the right")
+      Logger.warning(fn -> "dynamically calculated warning" end)
+      Logger.warning(fn -> {"dynamically calculated warning", [additional: :metadata]} end)
+
+  """
+  defmacro warning(chardata_or_fun, metadata \\ []) do
+    maybe_log(:warning, chardata_or_fun, metadata, __CALLER__)
   end
 
   @doc """
@@ -831,20 +856,23 @@ defmodule Logger do
   end
 
   defp macro_log(level, data, metadata, caller) do
-    %{module: module, function: fun, file: file, line: line} = caller
+    %{module: module, function: {fun, arity}, file: file, line: line} = caller
 
     caller =
-      compile_time_application_and_file(file) ++
-        [module: module, function: form_fa(fun), line: line]
+      file
+      |> compile_time_application_and_file()
+      |> Map.merge(%{mfa: {module, fun, arity}, line: line})
 
     {compile_metadata, quoted_metadata} =
       if Keyword.keyword?(metadata) do
-        metadata = Keyword.merge(caller, metadata)
-        {metadata, metadata}
+        metadata = Map.new(metadata)
+        metadata = Map.merge(caller, metadata)
+
+        {metadata, Macro.escape(metadata)}
       else
-        {[],
+        {%{},
          quote do
-           Keyword.merge(unquote(caller), unquote(metadata))
+           Map.merge(unquote(Macro.escape(caller)), Map.new(unquote(metadata)))
          end}
       end
 
@@ -855,8 +883,8 @@ defmodule Logger do
     else
       quote do
         case Logger.__should_log__(unquote(level)) do
-          :error -> :ok
-          info -> Logger.__do_log__(info, unquote(data), unquote(quoted_metadata))
+          false -> :ok
+          true -> Logger.__do_log__(unquote(level), unquote(data), unquote(quoted_metadata))
         end
       end
     end
@@ -864,9 +892,9 @@ defmodule Logger do
 
   defp compile_time_application_and_file(file) do
     if app = Application.get_env(:logger, :compile_time_application) do
-      [application: app, file: Path.relative_to_cwd(file)]
+      %{application: app, file: Path.relative_to_cwd(file)}
     else
-      [file: file]
+      %{file: file}
     end
   end
 
@@ -879,7 +907,7 @@ defmodule Logger do
           Logger.Config.compare_levels(level, min_level) == :lt
 
         {k, v} when is_atom(k) ->
-          Keyword.fetch(compile_metadata, k) == {:ok, v}
+          Map.fetch(compile_metadata, k) == {:ok, v}
 
         _ ->
           raise "expected :compile_time_purge_matching to be a list of keyword lists, " <>
@@ -917,10 +945,4 @@ defmodule Logger do
       :ok
     end
   end
-
-  defp form_fa({name, arity}) do
-    Atom.to_string(name) <> "/" <> Integer.to_string(arity)
-  end
-
-  defp form_fa(nil), do: nil
 end

@@ -12,12 +12,9 @@ defmodule Logger.ErlangHandler do
 
   def filter do
     {fn (%{level: level} = log, _extra) ->
-      level = erlang_level_to_elixir_level(level)
-
       case Logger.__should_log__(level) do
-        {level, _mode, _config, _pdict} ->
-          %{log | level: level}
-        :error -> :stop
+        true -> %{log | level: level}
+        false -> :stop
       end
     end, nil}
   end
@@ -34,7 +31,9 @@ defmodule Logger.ErlangHandler do
     :ok
   end
 
-  def log(%{level: level, msg: msg, meta: erl_meta}, _config) do
+  def log(%{level: erl_level, msg: msg, meta: erl_meta}, _config) do
+    level = erlang_level_to_elixir_level(erl_level)
+
     case Logger.Config.log_data(level) do
       {:discard, _config} -> :ok
       {mode, config} ->
@@ -175,6 +174,13 @@ defmodule Logger.ErlangHandler do
   defp notify(:sync, msg), do: :gen_event.sync_notify(Logger, msg)
   defp notify(:async, msg), do: :gen_event.notify(Logger, msg)
 
-  defp truncate(data, n) when is_list(data) or is_binary(data), do: Logger.Utils.truncate(data, n)
+  defp truncate(data, n) when is_list(data) do
+    Logger.Utils.truncate(data, n)
+  rescue
+    msg in ArgumentError ->
+      Exception.message(msg)
+  end
+
+  defp truncate(data, n) when is_binary(data), do: Logger.Utils.truncate(data, n)
   defp truncate(data, n), do: Logger.Utils.truncate(to_string(data), n)
 end

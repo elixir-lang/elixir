@@ -29,16 +29,12 @@ defmodule Logger.Config do
     level
   end
 
-  def compare_levels(level, level), do: :eq
-
   def compare_levels(left, right) do
-    if level_to_number(left) > level_to_number(right), do: :gt, else: :lt
+    :logger.compare_levels(normalise(left), normalise(right))
   end
 
-  defp level_to_number(:debug), do: 0
-  defp level_to_number(:info), do: 1
-  defp level_to_number(:warn), do: 2
-  defp level_to_number(:error), do: 3
+  defp normalise(:warn), do: :warning
+  defp normalise(level), do: level
 
   def translation_data do
     read_data!(@data_key)
