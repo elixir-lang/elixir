@@ -96,7 +96,12 @@ defmodule Logger.App do
   end
 
   defp add_elixir_handler(sasl_reports?) do
-    config = %{level: :debug, config: %{sasl_reports?: sasl_reports?}}
+    config = %{
+      level: :debug,
+      sasl_reports?: sasl_reports?,
+      filters: [elixir: Logger.ErlangHandler.filter()]
+    }
+
     :logger.add_handler(Logger, Logger.ErlangHandler, config)
   end
 

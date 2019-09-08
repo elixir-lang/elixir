@@ -463,24 +463,22 @@ defmodule Logger do
   """
   @spec metadata(metadata) :: :ok
   def metadata(keyword) do
-    {enabled?, metadata} = __metadata__()
-    Process.put(@metadata, {enabled?, into_metadata(keyword, metadata)})
+    case :logger.get_process_metadata() do
+      :undefined ->
+        :logger.set_process_metadata(filter_out_nils(keyword))
+
+      map when is_map(map) ->
+        merged = Map.merge(map, Map.new(keyword))
+        metadata = filter_out_nils(merged)
+
+        :logger.set_process_metadata(metadata)
+    end
+
     :ok
   end
 
-  defp into_metadata([], metadata), do: metadata
-  defp into_metadata(keyword, metadata), do: into_metadata(keyword, [], metadata)
-
-  defp into_metadata([{key, nil} | keyword], prepend, metadata) do
-    into_metadata(keyword, prepend, :lists.keydelete(key, 1, metadata))
-  end
-
-  defp into_metadata([{key, _} = pair | keyword], prepend, metadata) do
-    into_metadata(keyword, [pair | prepend], :lists.keydelete(key, 1, metadata))
-  end
-
-  defp into_metadata([], prepend, metadata) do
-    prepend ++ metadata
+  defp filter_out_nils(enumerable) do
+    for {_k, v} = elem <- enumerable, v != nil, into: %{}, do: elem
   end
 
   @doc """
@@ -488,7 +486,13 @@ defmodule Logger do
   """
   @spec metadata() :: metadata
   def metadata() do
-    __metadata__() |> elem(1)
+    case :logger.get_process_metadata() do
+      :undefined -> []
+      map when is_map(map) ->
+        map
+        |> Map.drop([:pid, :gl, :time, :mfa, :file, :line, :domain, :report_cb])
+        |> Map.to_list()
+    end
   end
 
   @doc """
@@ -496,8 +500,7 @@ defmodule Logger do
   """
   @spec reset_metadata(metadata) :: :ok
   def reset_metadata(keywords \\ []) do
-    {enabled?, _metadata} = __metadata__()
-    Process.put(@metadata, {enabled?, []})
+    :logger.set_process_metadata(%{})
     metadata(keywords)
   end
 
@@ -508,7 +511,7 @@ defmodule Logger do
   """
   @spec enable(pid) :: :ok
   def enable(pid) when pid == self() do
-    Process.put(@metadata, {true, metadata()})
+    Process.put(@metadata, {true, []})
     :ok
   end
 
@@ -519,7 +522,7 @@ defmodule Logger do
   """
   @spec disable(pid) :: :ok
   def disable(pid) when pid == self() do
-    Process.put(@metadata, {false, metadata()})
+    Process.put(@metadata, {false, []})
     :ok
   end
 
@@ -703,10 +706,10 @@ defmodule Logger do
   @doc false
   def __should_log__(level) when level in @levels do
     case __metadata__() do
-      {true, pdict} ->
+      {true, _} ->
         case Logger.Config.log_data(level) do
           {:discard, _config} -> :error
-          {mode, config} -> {level, mode, config, pdict}
+          {mode, config} -> {level, mode, config, metadata()}
         end
 
       {false, _} ->
@@ -715,27 +718,41 @@ defmodule Logger do
   end
 
   @doc false
-  def __do_log__({level, mode, config, pdict}, chardata_or_fun, metadata)
-      when is_list(metadata) do
-    %{utc_log: utc_log?, truncate: truncate} = config
-    metadata = [pid: self()] ++ into_metadata(metadata, pdict)
+  def __do_log__({level, _mode, _config, _pdict}, fun, metadata)
+      when is_list(metadata) and is_function(fun, 0) do
+    level =
+      case level do
+        :warn -> :warning
+        level -> level
+      end
+    metadata = Map.new(metadata)
 
-    case normalize_message(chardata_or_fun, metadata) do
-      {message, metadata} ->
-        tuple = {Logger, truncate(message, truncate), Logger.Utils.timestamp(utc_log?), metadata}
+    case fun.() do
+      :skip -> :ok
 
-        try do
-          notify(mode, {level, Process.group_leader(), tuple})
-          :ok
-        rescue
-          ArgumentError -> {:error, :noproc}
-        catch
-          :exit, reason -> {:error, reason}
-        end
-
-      :skip ->
-        :ok
+      {msg, meta} ->
+        :logger.log(level, msg, Map.merge(metadata, Map.new(meta)))
+      msg when is_binary(msg) ->
+        :logger.log(level, msg, metadata)
     end
+  end
+
+  def __do_log__({level, _, _, _}, atom, metadata) when is_list(metadata) and is_atom(atom) do
+    level =
+      case level do
+        :warn -> :warning
+        level -> level
+      end
+    :logger.log(level, Atom.to_string(atom), Map.new(metadata))
+  end
+
+  def __do_log__({level, _, _, _}, chardata, metadata) when is_list(metadata) and (is_binary(chardata) or is_list(chardata)) do
+    level =
+      case level do
+        :warn -> :warning
+        level -> level
+      end
+    :logger.log(level, chardata, Map.new(metadata))
   end
 
   @doc """
@@ -904,27 +921,9 @@ defmodule Logger do
     end
   end
 
-  defp normalize_message(fun, metadata) when is_function(fun, 0) do
-    case fun.() do
-      {message, fun_metadata} -> {message, into_metadata(fun_metadata, metadata)}
-      :skip -> :skip
-      message -> {message, metadata}
-    end
-  end
-
-  defp normalize_message(message, metadata) do
-    {message, metadata}
-  end
-
-  defp truncate(data, n) when is_list(data) or is_binary(data), do: Logger.Utils.truncate(data, n)
-  defp truncate(data, n), do: Logger.Utils.truncate(to_string(data), n)
-
   defp form_fa({name, arity}) do
     Atom.to_string(name) <> "/" <> Integer.to_string(arity)
   end
 
   defp form_fa(nil), do: nil
-
-  defp notify(:sync, msg), do: :gen_event.sync_notify(Logger, msg)
-  defp notify(:async, msg), do: :gen_event.notify(Logger, msg)
 end

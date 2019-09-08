@@ -1,6 +1,27 @@
 defmodule Logger.ErlangHandler do
   @moduledoc false
 
+  @doc false
+  def child_spec(_) do
+    %{
+      id: :gen_event,
+      start: {:gen_event, :start_link, [{:local, Logger}]},
+      modules: :dynamic
+    }
+  end
+
+  def filter do
+    {fn (%{level: level} = log, _extra) ->
+      level = erlang_level_to_elixir_level(level)
+
+      case Logger.__should_log__(level) do
+        {level, _mode, _config, _pdict} ->
+          %{log | level: level}
+        :error -> :stop
+      end
+    end, nil}
+  end
+
   @doc """
   Hook required by `:logger`.
   """
@@ -14,36 +35,55 @@ defmodule Logger.ErlangHandler do
   end
 
   def log(%{level: level, msg: msg, meta: erl_meta}, _config) do
-    level = erlang_level_to_elixir_level(level)
+    case Logger.Config.log_data(level) do
+      {:discard, _config} -> :ok
+      {mode, config} ->
+        %{utc_log: utc_log?, truncate: truncate} = config
 
-    Logger.bare_log(level, fn ->
-      try do
-        meta = extract_metadata(erl_meta)
+        {erl_meta, rest} = Map.split(erl_meta, ~w[pid gl time mfa file line domain report_cb]a)
+        meta = extract_metadata(erl_meta, Map.to_list(rest))
 
-        case msg do
-          {:string, string} ->
-            {string, meta}
+        translated =
+          try do
+            case msg do
+              {:string, string} ->
+                {string, meta}
 
-          {:report, %{label: label, report: report} = complete} when map_size(complete) == 2 ->
-            translate(level, :report, {label, report}, meta, erl_meta)
+              {:report, %{label: label, report: report} = complete} when map_size(complete) == 2 ->
+                translate(level, :report, {label, report}, meta, erl_meta)
 
-          {:report, %{label: {:error_logger, _}, format: format, args: args}} ->
-            translate(level, :format, {format, args}, meta, erl_meta)
+              {:report, %{label: {:error_logger, _}, format: format, args: args}} ->
+                translate(level, :format, {format, args}, meta, erl_meta)
 
-          {:report, report} ->
-            translate(level, :report, {:logger, report}, meta, erl_meta)
+              {:report, report} ->
+                translate(level, :report, {:logger, report}, meta, erl_meta)
 
-          {format, args} ->
-            translate(level, :format, {format, args}, meta, erl_meta)
+              {format, args} ->
+                translate(level, :format, {format, args}, meta, erl_meta)
+            end
+          rescue
+            e ->
+              {[
+                "Failure while translating Erlang's logger event\n",
+                Exception.format(:error, e, __STACKTRACE__)
+              ], meta}
+          end
+
+        case translated do
+          :skip -> :ok
+          {message, metadata} ->
+            tuple = {Logger, truncate(message, truncate), Logger.Utils.timestamp(utc_log?), metadata}
+
+            try do
+              notify(mode, {level, erl_meta.gl, tuple})
+              :ok
+            rescue
+              ArgumentError -> {:error, :noproc}
+            catch
+              :exit, reason -> {:error, reason}
+            end
         end
-      rescue
-        e ->
-          [
-            "Failure while translating Erlang's logger event\n",
-            Exception.format(:error, e, __STACKTRACE__)
-          ]
-      end
-    end)
+    end
   end
 
   defp erlang_level_to_elixir_level(:emergency), do: :error
@@ -55,8 +95,8 @@ defmodule Logger.ErlangHandler do
   defp erlang_level_to_elixir_level(:info), do: :info
   defp erlang_level_to_elixir_level(:debug), do: :debug
 
-  defp extract_metadata(map) do
-    metadata = []
+  defp extract_metadata(map, metadata) do
+    metadata = for {_k, v} = elem <- metadata, v != nil, do: elem
 
     metadata =
       case map do
@@ -66,7 +106,7 @@ defmodule Logger.ErlangHandler do
 
     metadata =
       case map do
-        %{file: file, line: line} -> [file: List.to_string(file), line: line] ++ metadata
+        %{file: file, line: line} -> [file: to_string(file), line: line] ++ metadata
         _ -> metadata
       end
 
@@ -78,7 +118,7 @@ defmodule Logger.ErlangHandler do
 
     metadata
   rescue
-    _ -> []
+    _ -> metadata
   end
 
   defp form_fa(fun, arity) do
@@ -131,4 +171,10 @@ defmodule Logger.ErlangHandler do
   defp translate_fallback(:report, {_type, data}, _meta, _truncate) do
     Kernel.inspect(data)
   end
+
+  defp notify(:sync, msg), do: :gen_event.sync_notify(Logger, msg)
+  defp notify(:async, msg), do: :gen_event.notify(Logger, msg)
+
+  defp truncate(data, n) when is_list(data) or is_binary(data), do: Logger.Utils.truncate(data, n)
+  defp truncate(data, n), do: Logger.Utils.truncate(to_string(data), n)
 end

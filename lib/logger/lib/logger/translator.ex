@@ -389,7 +389,8 @@ defmodule Logger.Translator do
       {false, _} ->
         :skip
 
-      {true, user_metadata} ->
+      {true, _user_metadata} ->
+        user_metadata = Keyword.get(dictionary, :"$logger_metadata$", %{}) |> Map.to_list()
         msg =
           ["Process ", crash_name(pid, name), " terminating", format(kind, reason, stack)] ++
             [crash_info(min_level, extra ++ crashed, [?\n]), crash_linked(min_level, linked)]

@@ -92,7 +92,8 @@ defmodule Logger.Backends.ConsoleTest do
     assert log =~ "line=#{line + 1}"
     assert log =~ "module=#{inspect(mod)}"
     assert log =~ "function=#{name}/#{arity}"
-    assert log =~ "dynamic_metadata=5 user_id=11"
+    assert log =~ "dynamic_metadata=5"
+    assert log =~ "user_id=11"
   end
 
   test "provides metadata defaults" do
