@@ -6,6 +6,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Send email
+      # Source: https://github.com/elixir-lang/elixir-ci
       uses: docker://fertapric/elixir-ci-email:latest
       env:
         APP_NAME: Cirrus CI
