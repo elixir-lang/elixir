@@ -104,8 +104,8 @@ defmodule Mix.Tasks.App.StartTest do
     end)
   end
 
-  test "start does nothing if app is nil" do
-    assert Mix.Tasks.App.Start.start([app: nil], []) == :ok
+  test "start does nothing if no apps are given" do
+    assert Mix.Tasks.App.Start.start([], :temporary) == :ok
   end
 
   test "allows type to be configured" do
@@ -144,7 +144,7 @@ defmodule Mix.Tasks.App.StartTest do
           "returned an error: :bye"
 
       assert_raise Mix.Error, message, fn ->
-        Mix.Tasks.App.Start.start([app: :return_sample], [])
+        Mix.Tasks.App.Start.start([:return_sample], :temporary)
       end
     end)
   end
@@ -165,7 +165,7 @@ defmodule Mix.Tasks.App.StartTest do
           "        Mix.Tasks.App.StartTest.ReturnApp.start/2"
 
       assert_raise Mix.Error, message, fn ->
-        Mix.Tasks.App.Start.start([app: :return_sample], [])
+        Mix.Tasks.App.Start.start([:return_sample], :temporary)
       end
     end)
   end
@@ -183,7 +183,7 @@ defmodule Mix.Tasks.App.StartTest do
           "returned a bad value: :bad"
 
       assert_raise Mix.Error, message, fn ->
-        Mix.Tasks.App.Start.start([app: :return_sample], [])
+        Mix.Tasks.App.Start.start([:return_sample], :temporary)
       end
     end)
   end
@@ -216,7 +216,7 @@ defmodule Mix.Tasks.App.StartTest do
           "Mix.Tasks.App.StartTest.ExitApp.start(:normal, :bye)\n" <> "    ** (EXIT) :bye"
 
       assert_raise Mix.Error, message, fn ->
-        Mix.Tasks.App.Start.start([app: :exit_sample], [])
+        Mix.Tasks.App.Start.start([:exit_sample], :temporary)
       end
     end)
   end
@@ -233,7 +233,7 @@ defmodule Mix.Tasks.App.StartTest do
           "Mix.Tasks.App.StartTest.ExitApp.start(:normal, :normal)\n" <> "    ** (EXIT) normal"
 
       assert_raise Mix.Error, message, fn ->
-        Mix.Tasks.App.Start.start([app: :exit_sample], [])
+        Mix.Tasks.App.Start.start([:exit_sample], :temporary)
       end
     end)
   end

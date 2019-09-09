@@ -70,12 +70,13 @@ defmodule Mix.Tasks.App.Start do
     end
 
     unless "--no-start" in args do
+      apps = apps(config)
       # Stop Logger if the application does not depend on it.
       #
       # Mix should not depend directly on Logger, that's why we first check if it's loaded.
-      if not logger_configured?() && Process.whereis(Logger), do: Logger.App.stop()
+      if not logger_dependency?(apps) && Process.whereis(Logger), do: Logger.App.stop()
 
-      start(Mix.Project.config(), opts)
+      start(apps, type(config, opts))
 
       # If there is a build path, we will let the application
       # that owns the build path do the actual check
@@ -89,22 +90,22 @@ defmodule Mix.Tasks.App.Start do
   end
 
   @doc false
-  def start(config, opts) do
-    apps =
-      cond do
-        Mix.Project.umbrella?(config) ->
-          for %Mix.Dep{app: app} <- Mix.Dep.Umbrella.cached(), do: app
-
-        app = config[:app] ->
-          [app]
-
-        true ->
-          []
-      end
-
-    type = type(config, opts)
+  def start(apps, type) do
     Enum.each(apps, &ensure_all_started(&1, type))
     :ok
+  end
+
+  defp apps(config) do
+    cond do
+      Mix.Project.umbrella?(config) ->
+        for %Mix.Dep{app: app} <- Mix.Dep.Umbrella.cached(), do: app
+
+      app = config[:app] ->
+        [app]
+
+      true ->
+        []
+    end
   end
 
   defp ensure_all_started(app, type) do
@@ -179,8 +180,30 @@ defmodule Mix.Tasks.App.Start do
     :ok
   end
 
-  defp logger_configured? do
-    Enum.member?(Mix.ProjectStack.config_apps(), :logger)
+  defp logger_dependency?(apps), do: logger_dependency?(apps, [])
+
+  defp logger_dependency?([], _checked_apps) do
+    false
+  end
+
+  defp logger_dependency?([app | apps], checked_apps) do
+    deps =
+      List.wrap(Application.spec(app, :applications)) ++
+        List.wrap(Application.spec(app, :included_applications))
+
+    case deps do
+      [] ->
+        logger_dependency?(apps, [app | checked_apps])
+
+      _ ->
+        if :logger in deps do
+          true
+        else
+          checked_apps = [app | checked_apps]
+          new_apps = (deps -- apps) -- checked_apps
+          logger_dependency?(apps ++ new_apps, checked_apps)
+        end
+    end
   end
 
   defp load_protocol(file) do
