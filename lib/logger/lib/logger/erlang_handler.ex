@@ -13,13 +13,15 @@ defmodule Logger.ErlangHandler do
   @doc """
   Hook required by `:logger`.
   """
-  def log(%{level: erl_level, msg: msg, meta: erl_meta}, _config) do
+  def log(%{level: erl_level, msg: msg, meta: erl_meta}, config) do
     level = erlang_level_to_elixir_level(erl_level)
 
     case Logger.Config.log_data(level) do
-      {:discard, _config} -> :ok
-      {mode, config} ->
-        %{utc_log: utc_log?, truncate: truncate} = config
+      {:discard, _config} ->
+        :ok
+
+      {mode, _config} ->
+        %{utc_log: utc_log?, truncate: truncate} = config.config
 
         {erl_meta, rest} = Map.split(erl_meta, ~w[pid gl time mfa file line domain report_cb]a)
         meta = extract_metadata(erl_meta, Map.to_list(rest))
@@ -81,8 +83,13 @@ defmodule Logger.ErlangHandler do
 
     metadata =
       case map do
-        %{mfa: {mod, fun, arity}} -> [module: mod, function: form_fa(fun, arity)] ++ metadata
-        _ -> metadata
+        %{mfa: {mod, fun, arity}} ->
+          metadata
+          |> Keyword.put_new(:module, mod)
+          |> Keyword.put_new(:function, form_fa(fun, arity))
+
+        _ ->
+          metadata
       end
 
     metadata =
