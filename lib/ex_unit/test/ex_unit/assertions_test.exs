@@ -29,6 +29,13 @@ defmodule ExUnit.AssertionsTest do
     end
   end
 
+  defmacrop assert_ok_with_pin_from_quoted_var(arg) do
+    quote do
+      kind = :ok
+      assert {^kind, value} = unquote(arg)
+    end
+  end
+
   require Record
   Record.defrecordp(:vec, x: 0, y: 0, z: 0)
 
@@ -36,6 +43,15 @@ defmodule ExUnit.AssertionsTest do
 
   test "assert inside macro" do
     assert_ok(42)
+  end
+
+  test "assert inside macro with pins" do
+    try do
+      assert_ok_with_pin_from_quoted_var({:error, :oops})
+    rescue
+      error in [ExUnit.AssertionError] ->
+        "match (=) failed" = error.message
+    end
   end
 
   test "assert with truthy value" do
