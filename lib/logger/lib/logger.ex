@@ -858,40 +858,50 @@ defmodule Logger do
     caller =
       file
       |> compile_time_application_and_file()
-      |> Map.merge(%{mfa: {module, fun, arity}, line: line})
+      |> Keyword.merge(mfa: {module, fun, arity}, line: line)
 
     {compile_metadata, quoted_metadata} =
       if Keyword.keyword?(metadata) do
-        metadata = Map.new(metadata)
-        metadata = Map.merge(caller, metadata)
+        metadata = Keyword.merge(caller, metadata)
+        quoted = Keyword.update!(metadata, :mfa, &Macro.escape/1)
 
-        {metadata, Macro.escape(metadata)}
+        {Map.new(metadata), quote(do: %{unquote_splicing(quoted)})}
       else
+        quoted = Keyword.update!(caller, :mfa, &Macro.escape/1)
+
         {%{},
          quote do
-           Map.merge(unquote(Macro.escape(caller)), Map.new(unquote(metadata)))
+           Map.merge(%{unquote_splicing(quoted)}, Map.new(unquote(metadata)))
          end}
       end
 
     compile_level = if is_atom(level), do: level, else: :error
 
-    if compile_time_purge_matching?(compile_level, compile_metadata) do
+    legacy = add_legacy_fields(compile_metadata, module, fun, arity)
+
+    if compile_time_purge_matching?(compile_level, legacy) do
       no_log(data, quoted_metadata)
     else
       quote do
         case Logger.__should_log__(unquote(level)) do
-          false -> :ok
-          true -> Logger.__do_log__(unquote(level), unquote(data), unquote(quoted_metadata))
+          nil -> :ok
+          level -> Logger.__do_log__(level, unquote(data), unquote(quoted_metadata))
         end
       end
     end
   end
 
+  defp add_legacy_fields(metadata, m, f, a) do
+    metadata
+    |> Map.put_new(:module, m)
+    |> Map.put_new(:function, "#{f}/#{a}")
+  end
+
   defp compile_time_application_and_file(file) do
     if app = Application.get_env(:logger, :compile_time_application) do
-      %{application: app, file: Path.relative_to_cwd(file)}
+      [application: app, file: Path.relative_to_cwd(file)]
     else
-      %{file: file}
+      [file: file]
     end
   end
 
