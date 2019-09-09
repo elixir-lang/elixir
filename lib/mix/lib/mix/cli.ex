@@ -96,7 +96,7 @@ defmodule Mix.CLI do
   end
 
   defp logger_configured? do
-    Enum.member?(Mix.ProjectStack.config_apps(), :logger)
+    :logger in Mix.ProjectStack.config_apps()
   end
 
   defp restart_logger do
