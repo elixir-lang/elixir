@@ -4,11 +4,12 @@ defmodule Logger.ErlangHandler do
   @doc """
   Hook required by `:logger`.
   """
-  def log(%{meta: %{domain: [:otp, :sasl | _]}}, %{sasl_reports?: false}) do
+  @spec log(:logger.log_event(), :logger.handler_config()) :: any()
+  def log(%{meta: %{domain: [:otp, :sasl | _]}}, %{config: %{sasl_reports?: false}}) do
     :ok
   end
 
-  def log(%{meta: %{domain: [:supervisor_report]}}, %{sasl_reports?: false}) do
+  def log(%{meta: %{domain: [:supervisor_report]}}, %{config: %{sasl_reports?: false}}) do
     :ok
   end
 
