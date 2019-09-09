@@ -1,73 +1,7 @@
 Code.require_file("../test_helper.exs", __DIR__)
 
-defmodule Kernel.SigilsTest.Macros do
-  defmacro sigil_ws_macro do
-    quote do
-      ~w(foo, bar baz)s
-    end
-  end
-
-  defmacro sigil_Ws_macro do
-    quote do
-      ~W(foo bar, baz)s
-    end
-  end
-
-  defmacro sigil_wc_macro do
-    quote do
-      ~w(foo, bar baz)c
-    end
-  end
-
-  defmacro sigil_Wc_macro do
-    quote do
-      ~W(foo bar, baz)c
-    end
-  end
-
-  defmacro sigil_wa_macro do
-    quote do
-      ~w(foo, bar baz)a
-    end
-  end
-
-  defmacro sigil_Wa_macro do
-    quote do
-      ~W(foo bar, baz)a
-    end
-  end
-end
-
-defmodule Kernel.SigilsTest.Runtime_ws do
-  def run, do: :this_stub_will_be_replaced_below
-end
-
-defmodule Kernel.SigilsTest.Runtime_wa do
-  def run, do: :this_stub_will_be_replaced_below
-end
-
-defmodule Kernel.SigilsTest.Runtime_wc do
-  def run, do: :this_stub_will_be_replaced_below
-end
-
-defmodule Kernel.SigilsTest.Runtime_Ws do
-  def run, do: :this_stub_will_be_replaced_below
-end
-
-defmodule Kernel.SigilsTest.Runtime_Wa do
-  def run, do: :this_stub_will_be_replaced_below
-end
-
-defmodule Kernel.SigilsTest.Runtime_Wc do
-  def run, do: :this_stub_will_be_replaced_below
-end
-
 defmodule Kernel.SigilsTest do
   use ExUnit.Case, async: true
-
-  defp capture_err(fun) do
-    ExUnit.CaptureIO.capture_io(:stderr, fun)
-  end
 
   test "sigil s" do
     assert ~s(foo) == "foo"
@@ -185,31 +119,6 @@ bar) in ["foo\\\nbar", "foo\\\r\nbar"]
 
     assert ~W(Foo #{Bar})a == [:Foo, :"\#{Bar}"]
     assert ~W(Foo.Bar.Baz)a == [:"Foo.Bar.Baz"]
-  end
-
-  @compile {:no_warn_undefined, Kernel.SigilsTest.TrailingComma}
-
-  test "sigil w/W warns on trailing comma at compile time, not runtime" do
-    for sigil <- ~w(w W),
-        modifier <- ~w(a s c) do
-      assert capture_err(fn ->
-               Code.compile_string("""
-               defmodule Kernel.SigilsTest.TrailingComma do
-                 def run, do: ~#{sigil}(foo, bar baz)#{modifier}
-               end
-               """)
-             end) =~
-               "The sigils ~w/~W do not allow trailing commas"
-
-      assert capture_err(fn -> Kernel.SigilsTest.TrailingComma.run() end) == ""
-
-      purge(Kernel.SigilsTest.TrailingComma)
-    end
-  end
-
-  defp purge(module) do
-    :code.purge(module)
-    :code.delete(module)
   end
 
   test "sigils matching" do

@@ -1754,6 +1754,28 @@ defmodule Kernel.WarningTest do
     purge([Sample])
   end
 
+  @compile {:no_warn_undefined, Kernel.WarningTest.WSigilTrailingComma}
+
+  test "sigil w/W warns on trailing comma at compile time, not runtime" do
+    for sigil <- ~w(w W),
+        modifier <- ~w(a s c) do
+      output =
+        capture_err(fn ->
+          Code.compile_string("""
+          defmodule Kernel.WarningTest.WSigilTrailingComma do
+            def run, do: ~#{sigil}(foo, bar baz)#{modifier}
+          end
+          """)
+        end)
+
+      assert output =~ "The sigils ~w/~W do not allow trailing commas"
+
+      assert capture_err(fn -> Kernel.WarningTest.WSigilTrailingComma.run() end) == ""
+
+      purge(Kernel.WarningTest.WSigilTrailingComma)
+    end
+  end
+
   defp purge(list) when is_list(list) do
     Enum.each(list, &purge/1)
   end
