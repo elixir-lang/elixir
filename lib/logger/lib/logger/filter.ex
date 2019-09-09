@@ -2,7 +2,7 @@ defmodule Logger.Filter do
   @moduledoc false
 
   @doc """
-  Filter out SASL reports if `sasl_enabled?` is `true`
+  Filter out SASL reports if `sasl_enabled?` is `false`
   """
   def sasl(sasl_enabled?) do
     filter =
