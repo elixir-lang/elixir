@@ -373,7 +373,7 @@ defmodule Module do
   When just a module is provided, the function is assumed to be
   `__after_compile__/2`.
 
-  Callbacks registered first will run last.
+  Callbacks will run in the order they are registered.
 
   #### Example
 
