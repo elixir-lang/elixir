@@ -443,9 +443,11 @@ defmodule Logger do
 
   @type backend :: :gen_event.handler()
   @type message :: IO.chardata() | String.Chars.t()
-  @type level :: :logger.level() | :warn
+  # TODO: change it to `:logger.level() | :warn`
+  @type level :: :error | :warning | :warn | :info | :debug
   @type metadata :: keyword()
-  @levels [:emergency, :alert, :critical, :error, :warning, :notice, :info, :debug]
+  # TODO: change it to `[:emergency, :alert, :critical, :error, :warning, :notice, :info, :debug]`
+  @levels [:error, :warning, :warn, :info, :debug]
 
   @metadata :logger_enabled
   @compile {:inline, enabled?: 1}
@@ -703,59 +705,54 @@ defmodule Logger do
           :ok | {:error, :noproc} | {:error, term}
   def bare_log(level, chardata_or_fun, metadata \\ []) do
     case __should_log__(level) do
-      false -> :ok
-      true -> __do_log__(level, chardata_or_fun, Map.new(metadata))
+      nil -> :ok
+      level -> __do_log__(level, chardata_or_fun, Map.new(metadata))
     end
   end
 
   @doc false
+  def __should_log__(:warn) do
+    # TODO: Uncomment this
+    # bare_log(:warning, "`:warn` level is deprecated, you should use `:warning`")
+
+    __should_log__(:warning)
+  end
+
   def __should_log__(level) when level in @levels do
-    enabled?(self()) and not match?({:discard, _}, Logger.Config.log_data(level))
+    if enabled?(self()) and not match?({:discard, _}, Logger.Config.log_data(level)) do
+      level
+    end
   end
 
   @doc false
+  def __do_log__(:warn, chardata_or_fun, metadata) do
+    __do_log__(:warning, chardata_or_fun, metadata)
+  end
+
   def __do_log__(level, fun, metadata)
       when is_function(fun, 0) do
-    level =
-      case level do
-        :warn -> :warning
-        level -> level
-      end
     metadata = Map.new(metadata)
 
     case fun.() do
-      :skip -> :ok
+      :skip ->
+        :ok
 
       {msg, meta} ->
         :logger.log(level, msg, Map.merge(metadata, Map.new(meta)))
+
       msg when is_binary(msg) ->
         :logger.log(level, msg, metadata)
     end
   end
 
+  # TODO: Remove that in Elixir 2.0
   def __do_log__(level, atom, metadata) when is_atom(atom) do
-    level =
-      case level do
-        :warn ->
-          bare_log(:warning, "`:warn` level is deprecated, you should use `:warning`")
-
-          :warning
-        level -> level
-      end
-
+    # TODO: Uncomment this
+    # bare_log(:warning, "Passed atom #{inspect(atom)} to the Logger, this is deprecated")
     :logger.log(level, Atom.to_string(atom), Map.new(metadata))
   end
 
   def __do_log__(level, chardata, metadata) when is_binary(chardata) or is_list(chardata) do
-    level =
-      case level do
-        :warn ->
-          bare_log(:warning, "`:warn` level is deprecated, you should use `:warning`")
-
-          :warning
-        level -> level
-      end
-
     :logger.log(level, chardata, Map.new(metadata))
   end
 
