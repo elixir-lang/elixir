@@ -234,11 +234,12 @@ defmodule ExUnit.Diff do
 
   # Pins
 
-  defp diff_pin({:^, _, [{name, _, _}]} = pin, right, %{pins: pins} = env) do
-    %{^name => pin_value} = pins
+  defp diff_pin({:^, _, [var]} = pin, right, %{pins: pins} = env) do
+    identifier = var_context(var)
+    %{^identifier => pin_value} = pins
     {diff, post_env} = diff(pin_value, right, env)
 
-    diff_left = update_diff_meta(pin, !diff.equivalent?)
+    diff_left = update_diff_meta(pin, not diff.equivalent?)
     {%{diff | left: diff_left}, post_env}
   end
 
@@ -654,8 +655,9 @@ defmodule ExUnit.Diff do
     {equivalent?, left, right, env}
   end
 
-  defp literal_key({:^, _, [{name, _, _}]}, %{pins: pins}) do
-    %{^name => pin_value} = pins
+  defp literal_key({:^, _, [var]}, %{pins: pins}) do
+    identifier = var_context(var)
+    %{^identifier => pin_value} = pins
     pin_value
   end
 
@@ -1075,8 +1077,12 @@ defmodule ExUnit.Diff do
   defp safe_keyword?({:{}, _meta, [key, _value]}), do: key_is_atom?(key)
   defp safe_keyword?(_other), do: false
 
-  def key_is_atom?(quoted) do
+  defp key_is_atom?(quoted) do
     {key, _} = extract_diff_meta(quoted)
     is_atom(key)
+  end
+
+  defp var_context({name, meta, context}) do
+    {name, meta[:counter] || context}
   end
 end

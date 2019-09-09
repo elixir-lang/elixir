@@ -100,8 +100,7 @@ defmodule ExUnit.DiffTest do
     refute_diff(:bar = 42, "-:bar-", "+42+")
     refute_diff(42 = :bar, "-42-", "+:bar+")
 
-    pins = [a: :a, b: :b]
-
+    pins = %{{:a, nil} => :a, {:b, nil} => :b}
     assert_diff(x = :a, [x: :a], pins)
     assert_diff(^a = :a, [], pins)
     assert_diff(^b = :b, [], pins)
@@ -117,22 +116,16 @@ defmodule ExUnit.DiffTest do
     assert_diff(+123 = 123, [])
 
     refute_diff(12 = 13, "1-2-", "1+3+")
-
     refute_diff(12345 = 123, "123-45-", "123")
     refute_diff(123 = 12345, "123", "123+45+")
-
     refute_diff(12345 = 345, "-12-345", "345")
     refute_diff(345 = 12345, "345", "+12+345")
-
     refute_diff(123 = -123, "123", "+-+123")
     refute_diff(-123 = 123, "---123", "123")
-
     refute_diff(491_512_235 = 490_512_035, "49-1-512-2-35", "49+0+512+0+35")
 
     assert_diff(0xF = 15, [])
-
     refute_diff(0xF = 16, "1-5-", "1+6+")
-
     refute_diff(123 = :a, "-123-", "+:a+")
   end
 
@@ -143,16 +136,12 @@ defmodule ExUnit.DiffTest do
     assert_diff(+123.0 = 123.0, [])
 
     refute_diff(1.2 = 1.3, "1.-2-", "1.+3+")
-
     refute_diff(12.345 = 12.3, "12.3-45-", "12.3")
     refute_diff(12.3 = 12.345, "12.3", "12.3+45+")
-
     refute_diff(123.45 = 3.45, "-12-3.45", "3.45")
     refute_diff(3.45 = 123.45, "3.45", "+12+3.45")
-
     refute_diff(1.23 = -1.23, "1.23", "+-+1.23")
     refute_diff(-1.23 = 1.23, "---1.23", "1.23")
-
     refute_diff(123.0 = :a, "-123.0-", "+:a+")
     refute_diff(123.0 = 123_512_235, "-123.0-", "+123512235+")
   end
@@ -192,7 +181,7 @@ defmodule ExUnit.DiffTest do
     refute_diff([:a, [:c, :b]] = [:a, [:b, :c]], "[:a, [-:c-, :b]]", "[:a, [:b, +:c+]]")
     refute_diff(:a = [:a, [:b, :c]], "-:a-", "+[:a, [:b, :c]]+")
 
-    pins = [a: :a, b: :b, list_ab: [:a, :b]]
+    pins = %{{:a, nil} => :a, {:b, nil} => :b, {:list_ab, nil} => [:a, :b]}
 
     assert_diff(x = [], [x: []], pins)
     assert_diff(x = [:a, :b], [x: [:a, :b]], pins)
@@ -286,8 +275,7 @@ defmodule ExUnit.DiffTest do
       "[:a, [+:x+, :c], :d, :e]"
     )
 
-    pins = [list_bc: [:b, :c]]
-
+    pins = %{{:list_bc, nil} => [:b, :c]}
     assert_diff([:a | x] = [:a, :b], [x: [:b]], pins)
     assert_diff([:a | x] = [:a, :b, :c], [x: [:b, :c]], pins)
     assert_diff([:a | ^list_bc] = [:a, :b, :c], [], pins)
@@ -420,8 +408,7 @@ defmodule ExUnit.DiffTest do
       "%{1 => :a, :b => 2}"
     )
 
-    pins = [a: :a, b: :b]
-
+    pins = %{{:a, nil} => :a, {:b, nil} => :b}
     assert_diff(%{^a => 1} = %{a: 1}, [], pins)
     assert_diff(%{^a => x} = %{a: 1}, [x: 1], pins)
 
@@ -491,7 +478,7 @@ defmodule ExUnit.DiffTest do
       "%+ExUnit.DiffTest.User+{age: 16, name: nil}"
     )
 
-    pins = [twenty_one: 21]
+    pins = %{{:twenty_one, nil} => 21}
     assert_diff(%User{age: ^twenty_one} = %User{age: 21}, [], pins)
     assert_diff(%User{age: age} = %User{age: 21}, [age: 21], pins)
 
@@ -631,7 +618,7 @@ defmodule ExUnit.DiffTest do
       ~s/"fox hops over the dog"/
     )
 
-    pins = [x: " over the dog"]
+    pins = %{{:x, nil} => " over the dog"}
 
     assert_diff("fox hops" <> x = "fox hops over the dog", x: " over the dog")
     assert_diff("fox hops " <> "over " <> x = "fox hops over the dog", x: "the dog")
@@ -667,7 +654,7 @@ defmodule ExUnit.DiffTest do
     refute_diff(one() = 2, "-one()-", "+2+")
     refute_diff(tuple(x, x) = {1, 2}, "-tuple(x, x)-", "{1, +2+}")
 
-    pins = [x: 1]
+    pins = %{{:x, nil} => 1}
     assert_diff(pin_x() = 1, [], pins)
     refute_diff(pin_x() = 2, "-pin_x()-", "+2+", pins)
   end

@@ -558,15 +558,18 @@ defmodule ExUnit.Assertions do
   end
 
   @doc false
-  def __pins__([]), do: ""
-
   def __pins__(pins) do
-    content =
-      pins
-      |> Enum.reverse()
-      |> Enum.map_join(@indent, fn {name, var} -> "#{name} = #{inspect(var)}" end)
+    pins
+    |> Enum.filter(fn {{_, ctx}, _} -> ctx == nil end)
+    |> Enum.reverse()
+    |> Enum.map_join(@indent, fn {{name, _}, var} -> "#{name} = #{inspect(var)}" end)
+    |> case do
+      "" ->
+        ""
 
-    "\nThe following variables were pinned:" <> @indent <> content
+      pinned ->
+        "\nThe following variables were pinned:" <> @indent <> pinned
+    end
   end
 
   defp format_mailbox(messages) do
@@ -592,10 +595,12 @@ defmodule ExUnit.Assertions do
 
   defp collect_pins_from_pattern(expr, vars) do
     {_, pins} =
-      Macro.prewalk(expr, [], fn
-        {:^, _, [{name, _, nil} = var]}, acc ->
-          if {name, nil} in vars do
-            {:ok, [{name, var} | acc]}
+      Macro.prewalk(expr, %{}, fn
+        {:^, _, [var]}, acc ->
+          identifier = var_context(var)
+
+          if identifier in vars do
+            {:ok, Map.put(acc, var_context(var), var)}
           else
             {:ok, acc}
           end
@@ -604,7 +609,11 @@ defmodule ExUnit.Assertions do
           {form, acc}
       end)
 
-    Enum.uniq_by(pins, &elem(&1, 0))
+    Enum.to_list(pins)
+  end
+
+  defp var_context({name, meta, context}) do
+    {name, meta[:counter] || context}
   end
 
   defp collect_vars_from_pattern({:when, _, [left, right]}) do
