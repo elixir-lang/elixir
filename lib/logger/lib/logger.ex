@@ -729,10 +729,7 @@ defmodule Logger do
     __do_log__(:warning, chardata_or_fun, metadata)
   end
 
-  def __do_log__(level, fun, metadata)
-      when is_function(fun, 0) do
-    metadata = Map.new(metadata)
-
+  def __do_log__(level, fun, metadata) when is_function(fun, 0) and is_map(metadata) do
     case fun.() do
       :skip ->
         :ok
@@ -746,14 +743,14 @@ defmodule Logger do
   end
 
   # TODO: Remove that in Elixir 2.0
-  def __do_log__(level, atom, metadata) when is_atom(atom) do
+  def __do_log__(level, atom, metadata) when is_atom(atom) and is_map(metadata) do
     # TODO: Uncomment this
     # bare_log(:warning, "Passed atom #{inspect(atom)} to the Logger, this is deprecated")
-    :logger.log(level, Atom.to_string(atom), Map.new(metadata))
+    :logger.log(level, Atom.to_string(atom), metadata)
   end
 
-  def __do_log__(level, chardata, metadata) when is_binary(chardata) or is_list(chardata) do
-    :logger.log(level, chardata, Map.new(metadata))
+  def __do_log__(level, chardata, metadata) when (is_binary(chardata) or is_list(chardata)) and is_map(metadata) do
+    :logger.log(level, chardata, metadata)
   end
 
   @doc """
