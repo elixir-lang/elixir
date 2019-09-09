@@ -187,72 +187,29 @@ bar) in ["foo\\\nbar", "foo\\\r\nbar"]
     assert ~W(Foo.Bar.Baz)a == [:"Foo.Bar.Baz"]
   end
 
+  @compile {:no_warn_undefined, Kernel.SigilsTest.TrailingComma}
+
   test "sigil w/W warns on trailing comma at compile time, not runtime" do
-    assert capture_err(fn ->
-             Code.compile_string("""
-             defmodule Kernel.SigilsTest.Runtime_ws do
-               def run, do: ~w(foo, bar baz)s
-             end
-             """)
-           end) =~
-             "The sigils ~w/~W do not allow trailing commas"
+    for sigil <- ~w(w W),
+        modifier <- ~w(a s c) do
+      assert capture_err(fn ->
+               Code.compile_string("""
+               defmodule Kernel.SigilsTest.TrailingComma do
+                 def run, do: ~#{sigil}(foo, bar baz)#{modifier}
+               end
+               """)
+             end) =~
+               "The sigils ~w/~W do not allow trailing commas"
 
-    assert capture_err(fn -> Kernel.SigilsTest.Runtime_ws.run() end) == ""
+      assert capture_err(fn -> Kernel.SigilsTest.TrailingComma.run() end) == ""
 
-    assert capture_err(fn ->
-             Code.compile_string("""
-             defmodule Kernel.SigilsTest.Runtime_wa do
-               def run, do: ~w(foo, bar baz)s
-             end
-             """)
-           end) =~
-             "The sigils ~w/~W do not allow trailing commas"
+      purge(Kernel.SigilsTest.TrailingComma)
+    end
+  end
 
-    assert capture_err(fn -> Kernel.SigilsTest.Runtime_wa.run() end) == ""
-
-    assert capture_err(fn ->
-             Code.compile_string("""
-             defmodule Kernel.SigilsTest.Runtime_wc do
-               def run, do: ~w(foo, bar baz)s
-             end
-             """)
-           end) =~
-             "The sigils ~w/~W do not allow trailing commas"
-
-    assert capture_err(fn -> Kernel.SigilsTest.Runtime_wc.run() end) == ""
-
-    assert capture_err(fn ->
-             Code.compile_string("""
-             defmodule Kernel.SigilsTest.Runtime_Ws do
-               def run, do: ~w(foo, bar baz)s
-             end
-             """)
-           end) =~
-             "The sigils ~w/~W do not allow trailing commas"
-
-    assert capture_err(fn -> Kernel.SigilsTest.Runtime_Ws.run() end) == ""
-
-    assert capture_err(fn ->
-             Code.compile_string("""
-             defmodule Kernel.SigilsTest.Runtime_Wa do
-               def run, do: ~w(foo, bar baz)s
-             end
-             """)
-           end) =~
-             "The sigils ~w/~W do not allow trailing commas"
-
-    assert capture_err(fn -> Kernel.SigilsTest.Runtime_Wa.run() end) == ""
-
-    assert capture_err(fn ->
-             Code.compile_string("""
-             defmodule Kernel.SigilsTest.Runtime_Wc do
-               def run, do: ~w(foo, bar baz)s
-             end
-             """)
-           end) =~
-             "The sigils ~w/~W do not allow trailing commas"
-
-    assert capture_err(fn -> Kernel.SigilsTest.Runtime_Wc.run() end) == ""
+  defp purge(module) do
+    :code.purge(module)
+    :code.delete(module)
   end
 
   test "sigil w/W warns on trailing comma inside macro" do
