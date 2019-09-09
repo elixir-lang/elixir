@@ -1,4 +1,4 @@
-defmodule Logger.ErlangHandler do
+defmodule Logger.LegacyHandler do
   @moduledoc false
 
   @doc false
@@ -32,7 +32,8 @@ defmodule Logger.ErlangHandler do
               {:string, string} ->
                 {string, meta}
 
-              {:report, %{label: label, report: report} = complete} when map_size(complete) == 2 ->
+              {:report, %{label: label, report: report} = complete}
+              when map_size(complete) == 2 ->
                 translate(level, :report, {label, report}, meta, erl_meta)
 
               {:report, %{label: {:error_logger, _}, format: format, args: args}} ->
@@ -47,15 +48,19 @@ defmodule Logger.ErlangHandler do
           rescue
             e ->
               {[
-                "Failure while translating Erlang's logger event\n",
-                Exception.format(:error, e, __STACKTRACE__)
-              ], meta}
+                 "Failure while translating Erlang's logger event\n",
+                 Exception.format(:error, e, __STACKTRACE__)
+               ], meta}
           end
 
         case translated do
-          :skip -> :ok
+          :skip ->
+            :ok
+
           {message, metadata} ->
-            tuple = {Logger, truncate(message, truncate), Logger.Utils.timestamp(utc_log?), metadata}
+            # TODO: Use `time` field of `erl_metadata` for timestamp
+            tuple =
+              {Logger, truncate(message, truncate), Logger.Utils.timestamp(utc_log?), metadata}
 
             try do
               notify(mode, {level, erl_meta.gl, tuple})

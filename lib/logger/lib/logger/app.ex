@@ -1,25 +1,22 @@
 defmodule Logger.App do
   @moduledoc false
 
-  # TODO: Remove this once we support Erlang/OTP 21+ exclusively.
-  @compile {:no_warn_undefined, :logger}
-
   use Application
 
   @doc false
   def start(_type, _args) do
+    # TODO: Deprecate this and make it false by defaut unless there are
+    # registered custom backends
     otp_reports? = Application.get_env(:logger, :handle_otp_reports)
+    # TODO: This probably should be changed to true, as right now there is no
+    # other logger for sasl_reports
     sasl_reports? = Application.get_env(:logger, :handle_sasl_reports)
     start_options = Application.get_env(:logger, :start_options)
 
     config = Logger.Config.new()
 
     children = [
-      %{
-        id: :gen_event,
-        start: {:gen_event, :start_link, [{:local, Logger}, start_options]},
-        modules: :dynamic
-      },
+      Logger.LegacyHandler,
       {Logger.Watcher, {Logger, Logger.Config, config}},
       Logger.BackendSupervisor
     ]
@@ -84,12 +81,12 @@ defmodule Logger.App do
       level: :all,
       config: data,
       filters: [
-        sasl: Logger.Filter.sasl(sasl_reports?),
-        process_disabled: Logger.Filter.process_disabled()
+        sasl: Logger.Filter.sasl(sasl_reports?)
       ]
     }
 
-    :logger.add_handler(Logger, Logger.ErlangHandler, config)
+    :logger.add_primary_filter(:process_disabled, Logger.Filter.process_disabled())
+    :logger.add_handler(Logger, Logger.LegacyHandler, config)
   end
 
   defp delete_erlang_handler() do
