@@ -595,7 +595,6 @@ defmodule Logger do
   """
   @spec flush :: :ok
   def flush do
-    _ = Process.whereis(:error_logger) && :gen_event.which_handlers(:error_logger)
     :gen_event.sync_notify(Logger, :flush)
   end
 
@@ -770,7 +769,6 @@ defmodule Logger do
     maybe_log(:warning, chardata_or_fun, metadata, __CALLER__)
   end
 
-
   @doc """
   Logs a warning message.
 
@@ -911,6 +909,7 @@ defmodule Logger do
           Logger.Config.compare_levels(level, min_level) == :lt
 
         {k, v} when is_atom(k) ->
+          # TODO: Warn on matching on `:module` and `:function` fields
           Map.fetch(compile_metadata, k) == {:ok, v}
 
         _ ->
