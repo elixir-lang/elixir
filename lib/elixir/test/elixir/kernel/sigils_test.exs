@@ -212,56 +212,6 @@ bar) in ["foo\\\nbar", "foo\\\r\nbar"]
     :code.delete(module)
   end
 
-  test "sigil w/W warns on trailing comma inside macro" do
-    assert capture_err(fn ->
-             Code.compile_string("""
-             require Kernel.SigilsTest.Macros
-             Kernel.SigilsTest.Macros.sigil_ws_macro()
-             """)
-           end) =~
-             "The sigils ~w/~W do not allow trailing commas"
-
-    assert capture_err(fn ->
-             Code.compile_string("""
-             require Kernel.SigilsTest.Macros
-             Kernel.SigilsTest.Macros.sigil_wa_macro()
-             """)
-           end) =~
-             "The sigils ~w/~W do not allow trailing commas"
-
-    assert capture_err(fn ->
-             Code.compile_string("""
-             require Kernel.SigilsTest.Macros
-             Kernel.SigilsTest.Macros.sigil_wc_macro()
-             """)
-           end) =~
-             "The sigils ~w/~W do not allow trailing commas"
-
-    assert capture_err(fn ->
-             Code.compile_string("""
-             require Kernel.SigilsTest.Macros
-             Kernel.SigilsTest.Macros.sigil_Ws_macro()
-             """)
-           end) =~
-             "The sigils ~w/~W do not allow trailing commas"
-
-    assert capture_err(fn ->
-             Code.compile_string("""
-             require Kernel.SigilsTest.Macros
-             Kernel.SigilsTest.Macros.sigil_Wa_macro()
-             """)
-           end) =~
-             "The sigils ~w/~W do not allow trailing commas"
-
-    assert capture_err(fn ->
-             Code.compile_string("""
-             require Kernel.SigilsTest.Macros
-             Kernel.SigilsTest.Macros.sigil_Wc_macro()
-             """)
-           end) =~
-             "The sigils ~w/~W do not allow trailing commas"
-  end
-
   test "sigils matching" do
     assert ~s(f\(oo) == "f(oo"
     assert ~s(fo\)o) == "fo)o"
