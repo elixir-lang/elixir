@@ -75,10 +75,18 @@ defmodule Logger.App do
   end
 
   defp add_elixir_handler(sasl_reports?) do
+    data = %{
+      utc_log: Application.fetch_env!(:logger, :utc_log),
+      truncate: Application.fetch_env!(:logger, :truncate)
+    }
+
     config = %{
-      level: :debug,
-      sasl_reports?: sasl_reports?,
-      filters: [elixir: Logger.ErlangHandler.filter()]
+      level: :all,
+      config: data,
+      filters: [
+        sasl: Logger.Filter.sasl(sasl_reports?),
+        process_disabled: Logger.Filter.process_disabled()
+      ]
     }
 
     :logger.add_handler(Logger, Logger.ErlangHandler, config)

@@ -271,6 +271,13 @@ defmodule Logger.Config do
       thresholds: {counter, sync_threshold, discard_threshold}
     }
 
+    with {:ok, config} <- :logger.get_handler_config(Logger) do
+      old = Map.get(config, :config, %{})
+      :logger.update_handler_config(Logger, :config, Map.merge(old, data))
+    end
+
+    :logger.update_handler_config(Logger, :level, data.level)
+
     update_data(@data_key, data)
     {counter, :log, discard_threshold, discard_period}
   end

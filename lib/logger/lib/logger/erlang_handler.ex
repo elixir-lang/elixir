@@ -10,27 +10,9 @@ defmodule Logger.ErlangHandler do
     }
   end
 
-  def filter do
-    {fn (%{level: level} = log, _extra) ->
-      case Logger.__should_log__(level) do
-        true -> %{log | level: level}
-        false -> :stop
-      end
-    end, nil}
-  end
-
   @doc """
   Hook required by `:logger`.
   """
-  @spec log(:logger.log_event(), :logger.handler_config()) :: any()
-  def log(%{meta: %{domain: [:otp, :sasl | _]}}, %{config: %{sasl_reports?: false}}) do
-    :ok
-  end
-
-  def log(%{meta: %{domain: [:supervisor_report]}}, %{config: %{sasl_reports?: false}}) do
-    :ok
-  end
-
   def log(%{level: erl_level, msg: msg, meta: erl_meta}, _config) do
     level = erlang_level_to_elixir_level(erl_level)
 
