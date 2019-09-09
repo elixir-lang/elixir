@@ -188,21 +188,20 @@ defmodule Mix.Tasks.App.Start do
 
   defp logger_dependency?([app | apps], checked_apps) do
     deps =
-      List.wrap(Application.spec(app, :applications)) ++
-        List.wrap(Application.spec(app, :included_applications))
+      List.wrap(Application.spec(app, :included_applications)) ++
+        List.wrap(Application.spec(app, :applications))
 
-    case deps do
-      [] ->
+    cond do
+      deps == [] ->
         logger_dependency?(apps, [app | checked_apps])
 
-      _ ->
-        if :logger in deps do
-          true
-        else
-          checked_apps = [app | checked_apps]
-          new_apps = (deps -- apps) -- checked_apps
-          logger_dependency?(apps ++ new_apps, checked_apps)
-        end
+      :logger in deps ->
+        true
+
+      true ->
+        checked_apps = [app | checked_apps]
+        new_apps = (deps -- apps) -- checked_apps
+        logger_dependency?(apps ++ new_apps, checked_apps)
     end
   end
 
