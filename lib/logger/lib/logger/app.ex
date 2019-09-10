@@ -71,10 +71,23 @@ defmodule Logger.App do
     end
   end
 
-  defp add_elixir_handler(sasl_reports?) do
+  defp add_elixir_handler(sasl_reports?, counter) do
+    sync_threshold = Application.fetch_env!(:logger, :sync_threshold)
+    discard_threshold = Application.fetch_env!(:logger, :discard_threshold)
+
+    level =
+      case Application.fetch_env!(:logger, :level) do
+        :warn -> :warning
+        other -> other
+      end
+
     data = %{
+      level: level,
       utc_log: Application.fetch_env!(:logger, :utc_log),
-      truncate: Application.fetch_env!(:logger, :truncate)
+      truncate: Application.fetch_env!(:logger, :truncate),
+      translators: Application.fetch_env!(:logger, :translators),
+      thresholds: {sync_threshold, discard_threshold},
+      counter: counter
     }
 
     config = %{
@@ -87,6 +100,8 @@ defmodule Logger.App do
 
     :logger.add_primary_filter(:process_disabled, Logger.Filter.process_disabled())
     :logger.add_handler(Logger, Logger.LegacyHandler, config)
+
+    :logger.set_primary_config(:level, level)
   end
 
   defp delete_erlang_handler() do
