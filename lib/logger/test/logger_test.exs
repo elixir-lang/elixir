@@ -384,11 +384,9 @@ defmodule LoggerTest do
     assert Application.get_env(:logger, :discard_threshold) == 10_000
     assert Application.get_env(:logger, :translator_inspect_opts) == [limit: 3]
 
-    {_, log_data} = Logger.Config.log_data(:debug)
+    assert {:ok, %{config: log_data}} = :logger.get_handler_config(Logger)
     assert log_data.utc_log == true
-
-    translation_data = Logger.Config.translation_data()
-    assert translation_data.truncate == 4048
+    assert log_data.truncate == 4048
   after
     Logger.configure(sync_threshold: 20)
     Logger.configure(truncate: 8096)

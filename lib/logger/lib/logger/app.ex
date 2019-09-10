@@ -21,16 +21,19 @@ defmodule Logger.App do
       Logger.BackendSupervisor
     ]
 
+    handlers =
+      if otp_reports? do
+        add_elixir_handler(sasl_reports?, config)
+
+        delete_erlang_handler()
+      end
+
     case Supervisor.start_link(children, strategy: :rest_for_one, name: Logger.Supervisor) do
       {:ok, sup} ->
-        if otp_reports? do
-          add_elixir_handler(sasl_reports?)
-          delete_erlang_handler()
-        end
-
-        {:ok, sup, config}
+        {:ok, sup, {config, handlers}}
 
       {:error, _} = error ->
+        IO.inspect(error)
         Logger.Config.delete(config)
         error
     end
@@ -42,10 +45,10 @@ defmodule Logger.App do
   end
 
   @doc false
-  def stop(config) do
+  def stop({config, handlers}) do
     _ = :logger.remove_handler(Logger)
 
-    add_handlers(Logger.Config.deleted_handlers())
+    add_handlers(handlers)
     Logger.Config.delete(config)
   end
 
@@ -58,17 +61,8 @@ defmodule Logger.App do
   Stops the application without sending messages to error logger.
   """
   def stop() do
-    try do
-      Logger.Config.deleted_handlers([])
-    catch
-      :exit, {:noproc, _} ->
-        {:error, {:not_started, :logger}}
-    else
-      deleted_handlers ->
-        result = Application.stop(:logger)
-        add_handlers(deleted_handlers)
-        result
-    end
+    result = Application.stop(:logger)
+    result
   end
 
   defp add_elixir_handler(sasl_reports?, counter) do
@@ -111,10 +105,10 @@ defmodule Logger.App do
       :logger.update_primary_config(%{level: :debug})
       primary_config = {:primary, %{level: level}}
       handler_config = {:default, module, config}
-      [] = Logger.Config.deleted_handlers([primary_config, handler_config])
-      :ok
+
+      [primary_config, handler_config]
     else
-      _ -> :ok
+      _ -> []
     end
   end
 
