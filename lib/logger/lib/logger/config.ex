@@ -29,6 +29,12 @@ defmodule Logger.Config do
     level
   end
 
+  def compare_levels(level, level), do: :eq
+  def compare_levels(:all, _), do: :gt
+  def compare_levels(_, :all), do: :lt
+  def compare_levels(:none, _), do: :lt
+  def compare_levels(_, :none), do: :gt
+
   def compare_levels(left, right) do
     :logger.compare_levels(normalise(left), normalise(right))
   end
