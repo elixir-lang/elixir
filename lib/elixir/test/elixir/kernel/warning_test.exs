@@ -1754,6 +1754,22 @@ defmodule Kernel.WarningTest do
     purge([Sample])
   end
 
+  test "sigil w/W warns on trailing comma at macro expansion time" do
+    for sigil <- ~w(w W),
+        modifier <- ~w(a s c) do
+      output =
+        capture_err(fn ->
+          {:ok, ast} =
+            "~#{sigil}(foo, bar baz)#{modifier}"
+            |> Code.string_to_quoted()
+
+          Macro.expand(ast, __ENV__)
+        end)
+
+      assert output =~ "the sigils ~w/~W do not allow trailing commas"
+    end
+  end
+
   defp purge(list) when is_list(list) do
     Enum.each(list, &purge/1)
   end
