@@ -18,13 +18,15 @@ defmodule Logger.Config do
     sync_threshold = Application.fetch_env!(:logger, :sync_threshold)
     discard_threshold = Application.fetch_env!(:logger, :discard_threshold)
     level = Application.fetch_env!(:logger, :level)
+    sasl_reports? = Application.get_env(:logger, :handle_sasl_reports)
 
     %{
       level: level,
       utc_log: Application.fetch_env!(:logger, :utc_log),
       truncate: Application.fetch_env!(:logger, :truncate),
       translators: Application.fetch_env!(:logger, :translators),
-      thresholds: {sync_threshold, discard_threshold}
+      thresholds: {sync_threshold, discard_threshold},
+      sasl: sasl_reports?
     }
   end
 
@@ -182,7 +184,7 @@ defmodule Logger.Config do
     {:ok, %{config: data}} = :logger.get_handler_config(Logger)
     translators = fun.(data.translators)
     Application.put_env(:logger, :translators, translators)
-    :logger.set_handler_config(Logger, :config, %{data | translators: translators})
+    :ok = :logger.set_handler_config(Logger, :config, %{data | translators: translators})
   end
 
   defp compute_data({counter, _mode, _discard_threshold, _discard_period}) do
@@ -198,8 +200,8 @@ defmodule Logger.Config do
       thresholds: {sync_threshold, discard_threshold}
     }
 
-    :logger.update_handler_config(Logger, :config, data)
-    :logger.set_primary_config(:level, normalise(data.level))
+    :ok = :logger.update_handler_config(Logger, :config, data)
+    :ok = :logger.set_primary_config(:level, normalise(data.level))
 
     {counter, :log, discard_threshold, discard_period}
   end

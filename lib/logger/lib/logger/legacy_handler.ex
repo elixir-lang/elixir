@@ -16,7 +16,10 @@ defmodule Logger.LegacyHandler do
   def adding_handler(%{config: data} = config) do
     # TODO: When using counters exclusively then this line can be changed to use
     # `Map.put/2` instead as we will not need to pass ETS table
-    new_data = Map.put_new_lazy(data, :counter, &Logger.Config.new/0)
+    new_data =
+      Logger.Config.default_config()
+      |> Map.merge(data || %{})
+      |> Map.put_new_lazy(:counter, &Logger.Config.new/0)
 
     {:ok, %{config | config: new_data}}
   end
@@ -60,6 +63,14 @@ defmodule Logger.LegacyHandler do
   @doc """
   Hook required by `:logger`.
   """
+  def log(%{meta: %{domain: [:otp, :sasl | _]}}, %{config: %{sasl: false}}) do
+    :ok
+  end
+
+  def log(%{meta: %{domain: [:supervisor_report | _]}}, %{config: %{sasl: false}}) do
+    :ok
+  end
+
   def log(%{level: erl_level, msg: msg, meta: erl_meta}, %{id: _id, config: config}) do
     level = erlang_level_to_elixir_level(erl_level)
     %{utc_log: utc_log?, truncate: truncate, level: erl_min_level} = config

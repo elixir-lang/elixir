@@ -46,8 +46,11 @@ defmodule Logger.App do
   @doc false
   def stop({config, handlers}) do
     _ = :logger.remove_handler(Logger)
+    _ = :logger.remove_primary_filter(:process_disabled)
 
     add_handlers(handlers)
+
+    # TODO: This will not be needed once we are OTP 22+
     Logger.Config.delete(config)
   end
 
@@ -60,49 +63,33 @@ defmodule Logger.App do
   Stops the application without sending messages to error logger.
   """
   def stop() do
-    primary_config = :logger.get_primary_config()
-    :logger.update_primary_config(%{level: :none})
+    :ok = :logger.update_primary_config(%{level: :none})
 
-    result = Application.stop(:logger)
-
-    :logger.set_primary_config(primary_config)
-
-    result
+    Application.stop(:logger)
   end
 
-  defp add_elixir_handler(sasl_reports?, counter) do
-    sync_threshold = Application.fetch_env!(:logger, :sync_threshold)
-    discard_threshold = Application.fetch_env!(:logger, :discard_threshold)
-
+  defp add_elixir_handler(counter) do
     level =
       case Application.fetch_env!(:logger, :level) do
         :warn -> :warning
         other -> other
       end
 
-    data = %{
-      level: level,
-      utc_log: Application.fetch_env!(:logger, :utc_log),
-      truncate: Application.fetch_env!(:logger, :truncate),
-      translators: Application.fetch_env!(:logger, :translators),
-      thresholds: {sync_threshold, discard_threshold},
-      counter: counter
-    }
+    # TODO: This will not be needed once we are OTP 22+
+    data = %{counter: counter}
 
     config = %{
       level: :all,
       config: data,
-      filters: [
-        sasl: Logger.Filter.sasl(sasl_reports?)
-      ]
+      filters: []
     }
 
     primary_config = :logger.get_primary_config()
 
-    :logger.add_primary_filter(:process_disabled, Logger.Filter.process_disabled())
-    :logger.add_handler(Logger, Logger.LegacyHandler, config)
+    :ok = :logger.add_primary_filter(:process_disabled, Logger.Filter.process_disabled())
+    :ok = :logger.add_handler(Logger, Logger.LegacyHandler, config)
 
-    :logger.set_primary_config(:level, level)
+    :ok = :logger.set_primary_config(:level, level)
 
     primary_config
   end
@@ -125,7 +112,7 @@ defmodule Logger.App do
           :logger.add_handler(handler, module, config)
 
         {:primary, config} ->
-          :logger.update_primary_config(config)
+          :logger.set_primary_config(config)
       end
     end
 
