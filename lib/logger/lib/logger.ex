@@ -734,7 +734,7 @@ defmodule Logger do
         :ok
 
       {msg, meta} ->
-        :logger.log(level, msg, Map.merge(metadata, Map.new(meta)))
+        :logger.log(level, msg, Enum.into(meta, metadata))
 
       msg when is_binary(msg) ->
         :logger.log(level, msg, metadata)
