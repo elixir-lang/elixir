@@ -715,7 +715,9 @@ defmodule Logger do
   end
 
   def __should_log__(level) when level in @levels do
-    if enabled?(self()) and not match?({:discard, _}, Logger.Config.log_data(level)) do
+    %{level: primary_level} = :logger.get_primary_config()
+
+    if enabled?(self()) and compare_levels(level, primary_level) != :lt do
       level
     end
   end
