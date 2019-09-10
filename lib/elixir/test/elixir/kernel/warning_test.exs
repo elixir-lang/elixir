@@ -1766,7 +1766,7 @@ defmodule Kernel.WarningTest do
           Macro.expand(ast, __ENV__)
         end)
 
-      assert output =~ "The sigils ~w/~W do not allow trailing commas"
+      assert output =~ "the sigils ~w/~W do not allow trailing commas"
     end
   end
 

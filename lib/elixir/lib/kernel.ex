@@ -5201,7 +5201,7 @@ defmodule Kernel do
           stacktrace = Macro.Env.stacktrace(caller)
 
           IO.warn(
-            "The sigils ~w/~W do not allow trailing commas at the end of each word. " <>
+            "the sigils ~w/~W do not allow trailing commas at the end of each word. " <>
               "If the comma is necessary, define a regular list with [...], otherwise remove the comma.",
             stacktrace
           )
