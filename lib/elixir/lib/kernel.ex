@@ -5153,12 +5153,12 @@ defmodule Kernel do
   defmacro sigil_w(term, modifiers)
 
   defmacro sigil_w({:<<>>, _meta, [string]}, modifiers) when is_binary(string) do
-    split_words(:elixir_interpolation.unescape_chars(string), modifiers)
+    split_words(:elixir_interpolation.unescape_chars(string), modifiers, __CALLER__)
   end
 
   defmacro sigil_w({:<<>>, meta, pieces}, modifiers) do
     binary = {:<<>>, meta, unescape_tokens(pieces)}
-    split_words(binary, modifiers)
+    split_words(binary, modifiers, __CALLER__)
   end
 
   @doc ~S"""
@@ -5182,18 +5182,30 @@ defmodule Kernel do
   defmacro sigil_W(term, modifiers)
 
   defmacro sigil_W({:<<>>, _meta, [string]}, modifiers) when is_binary(string) do
-    split_words(string, modifiers)
+    split_words(string, modifiers, __CALLER__)
   end
 
-  defp split_words(string, []) do
-    split_words(string, [?s])
+  defp split_words(string, [], caller) do
+    split_words(string, [?s], caller)
   end
 
-  defp split_words(string, [mod])
+  defp split_words(string, [mod], caller)
        when mod == ?s or mod == ?a or mod == ?c do
     case is_binary(string) do
       true ->
         parts = String.split(string)
+
+        parts_with_trailing_comma = :lists.filter(&(:binary.last(&1) == ?,), parts)
+
+        if parts_with_trailing_comma != [] do
+          stacktrace = Macro.Env.stacktrace(caller)
+
+          IO.warn(
+            "the sigils ~w/~W do not allow trailing commas at the end of each word. " <>
+              "If the comma is necessary, define a regular list with [...], otherwise remove the comma.",
+            stacktrace
+          )
+        end
 
         case mod do
           ?s -> parts
@@ -5212,7 +5224,7 @@ defmodule Kernel do
     end
   end
 
-  defp split_words(_string, _mods) do
+  defp split_words(_string, _mods, _caller) do
     raise ArgumentError, "modifier must be one of: s, a, c"
   end
 
