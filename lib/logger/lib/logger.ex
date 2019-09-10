@@ -866,7 +866,7 @@ defmodule Logger do
 
         {%{},
          quote do
-           Map.merge(%{unquote_splicing(quoted)}, Map.new(unquote(metadata)))
+           Enum.into(unquote(metadata), %{unquote_splicing(quoted)})
          end}
       end
 
