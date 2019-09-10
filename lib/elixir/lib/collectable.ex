@@ -37,7 +37,7 @@ defprotocol Collectable do
       iex> collector_fun.(updated_acc, :done)
       #MapSet<[1, 2, 3]>
 
-  To show how the protocol can be implemented, we can take again a look at the
+  To show how the protocol can be implemented, we can again look at the
   implementation for `MapSet`. In this implementation "collecting" elements
   simply means inserting them in the set through `MapSet.put/2`.
 
