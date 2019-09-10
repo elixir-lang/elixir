@@ -56,7 +56,7 @@ defmodule Logger.BackendSupervisor do
 
     spec = %{
       id: handler,
-      start: {Logger.Watcher, :start_link, [{Logger, handler, backend}]},
+      start: {Logger.Watcher, :start_link, [{handler, backend}]},
       restart: :transient
     }
 

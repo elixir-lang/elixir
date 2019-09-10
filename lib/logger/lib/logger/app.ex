@@ -17,7 +17,7 @@ defmodule Logger.App do
 
     children = [
       Logger.LegacyHandler,
-      {Logger.Watcher, {Logger, Logger.Config, config}},
+      {Logger.Watcher, {Logger.Config, config}},
       Logger.BackendSupervisor
     ]
 
