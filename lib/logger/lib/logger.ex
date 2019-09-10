@@ -527,10 +527,7 @@ defmodule Logger do
   Currently the only accepted PID is `self()`.
   """
   def enabled?(pid) when pid == self() do
-    case Process.get(@metadata) do
-      nil -> true
-      other -> other
-    end
+    Process.get(@metadata, true)
   end
 
   @doc """
