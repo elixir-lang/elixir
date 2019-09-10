@@ -872,9 +872,7 @@ defmodule Logger do
 
     compile_level = if is_atom(level), do: level, else: :error
 
-    legacy = add_legacy_fields(compile_metadata, module, fun, arity)
-
-    if compile_time_purge_matching?(compile_level, legacy) do
+    if compile_time_purge_matching?(compile_level, compile_metadata) do
       no_log(data, quoted_metadata)
     else
       quote do
@@ -884,12 +882,6 @@ defmodule Logger do
         end
       end
     end
-  end
-
-  defp add_legacy_fields(metadata, m, f, a) do
-    metadata
-    |> Map.put_new(:module, m)
-    |> Map.put_new(:function, "#{f}/#{a}")
   end
 
   defp compile_time_application_and_file(file) do
@@ -907,6 +899,15 @@ defmodule Logger do
       Enum.all?(filter, fn
         {:level_lower_than, min_level} ->
           Logger.Config.compare_levels(level, min_level) == :lt
+
+        {:module, module} ->
+          match?({:ok, {^module, _, _}}, Map.fetch(compile_metadata, :mfa))
+
+        {:function, func} ->
+          case Map.fetch(compile_metadata, :mfa) do
+            {:ok, {_, f, a}} -> "#{f}/#{a}" == func
+            _ -> false
+          end
 
         {k, v} when is_atom(k) ->
           # TODO: Warn on matching on `:module` and `:function` fields
