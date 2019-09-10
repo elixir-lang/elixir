@@ -740,15 +740,16 @@ defmodule Logger do
     end
   end
 
-  # TODO: Remove that in Elixir 2.0
-  def __do_log__(level, atom, metadata) when is_atom(atom) and is_map(metadata) do
-    # TODO: Uncomment this
-    # bare_log(:warning, "Passed atom #{inspect(atom)} to the Logger, this is deprecated")
-    :logger.log(level, Atom.to_string(atom), metadata)
+  def __do_log__(level, chardata, metadata)
+      when (is_binary(chardata) or is_list(chardata)) and is_map(metadata) do
+    :logger.log(level, chardata, metadata)
   end
 
-  def __do_log__(level, chardata, metadata) when (is_binary(chardata) or is_list(chardata)) and is_map(metadata) do
-    :logger.log(level, chardata, metadata)
+  # # TODO: Remove that in Elixir 2.0
+  def __do_log__(level, atom, metadata) do
+    # TODO: Uncomment this
+    # bare_log(:warning, "Passed #{inspect(atom)} which is not binary() nor iolist() to the Logger, this is deprecated")
+    :logger.log(level, Atom.to_string(atom), metadata)
   end
 
   @doc """
