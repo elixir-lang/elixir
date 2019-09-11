@@ -1,18 +1,12 @@
 defmodule Logger.App do
   @moduledoc false
 
+  require Logger
+
   use Application
 
   @doc false
   def start(_type, _args) do
-    # TODO: Deprecate this and make it false by defaut unless there are
-    # registered custom backends
-    otp_reports? = Application.get_env(:logger, :handle_otp_reports)
-    # TODO: This probably should be changed to true, as right now there is no
-    # other logger for sasl_reports
-    sasl_reports? = Application.get_env(:logger, :handle_sasl_reports)
-    start_options = Application.get_env(:logger, :start_options)
-
     config = Logger.Config.new()
 
     children = [
@@ -21,20 +15,33 @@ defmodule Logger.App do
       Logger.BackendSupervisor
     ]
 
-    handlers =
-      if otp_reports? do
-        primary_config = add_elixir_handler(sasl_reports?, config)
-
-        [primary_config | delete_erlang_handler()]
+    primary_config = add_elixir_handler(config)
+    default_handlers =
+      if Application.get_env(:logger, :remove_default_handlers) do
+        delete_erlang_handler()
+      else
+        []
       end
 
+    handlers = [primary_config | default_handlers]
+
     case Supervisor.start_link(children, strategy: :rest_for_one, name: Logger.Supervisor) do
+      # No deprecations before this point
       {:ok, sup} ->
+        deprecations()
+
         {:ok, sup, {config, handlers}}
 
       {:error, _} = error ->
+        # TODO: This will not be needed once we are OTP 22+
         Logger.Config.delete(config)
         error
+    end
+  end
+
+  defp deprecations do
+    if not Application.get_env(:logger, :handle_otp_reports) do
+      Logger.warn(":handle_otp_repors configuration option is deprecated and is always set to true")
     end
   end
 

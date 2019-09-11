@@ -178,10 +178,6 @@ defmodule Logger do
   Erlang's logging functionalities. All the configurations below must
   be set before the `:logger` application starts.
 
-    * `:handle_otp_reports` - redirects OTP reports to `Logger` so
-      they are formatted in Elixir terms. This effectively disables
-      Erlang standard logger. Defaults to `true`.
-
     * `:handle_sasl_reports` - redirects supervisor, crash and
       progress reports to `Logger` so they are formatted in Elixir
       terms. Your application must guarantee `:sasl` is started before
@@ -189,26 +185,10 @@ defmodule Logger do
       in Erlang syntax until the Logger application kicks in.
       Defaults to `false`.
 
-  From Erlang/OTP 21, `:handle_sasl_reports` only has an effect if
-  `:handle_otp_reports` is true.
-
-  The following configurations apply only for Erlang/OTP 20 and earlier:
-
-    * `:discard_threshold_for_error_logger` - if `:error_logger` has more than
-      `discard_threshold` messages in its inbox, messages will be dropped
-      until the message queue goes down to `discard_threshold * 0.75`
-      entries. The threshold will be checked once again after 10% of threshold
-      messages are processed, to avoid messages from being constantly dropped.
-      For example, if the threshold is 500 (the default) and the inbox has
-      600 messages, 225 messages will dropped, bringing the inbox down to
-      375 (0.75 * threshold) entries and 50 (0.1 * threshold) messages will
-      be processed before the threshold is checked once again.
-
   For example, to configure `Logger` to redirect all Erlang messages using a
   `config/config.exs` file:
 
       config :logger,
-        handle_otp_reports: true,
         handle_sasl_reports: true
 
   Furthermore, `Logger` allows messages sent by Erlang to be translated
