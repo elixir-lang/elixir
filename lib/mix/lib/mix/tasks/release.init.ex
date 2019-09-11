@@ -134,7 +134,7 @@ defmodule Mix.Tasks.Release.Init do
       if grep -q "RUNTIME_CONFIG=true" "$REL_VSN_DIR/sys.config"; then
         RELEASE_SYS_CONFIG="$RELEASE_TMP/$RELEASE_NAME-$RELEASE_VSN-$(date +%Y%m%d%H%M%S)-$(rand).runtime"
 
-        (mkdir -p "$RELEASE_TMP" && cp "$REL_VSN_DIR/sys.config" "$RELEASE_SYS_CONFIG.config") || (
+        (mkdir -p "$RELEASE_TMP" && cp "$REL_VSN_DIR/sys.config" "$RELEASE_SYS_CONFIG.config" && chmod +w "$RELEASE_SYS_CONFIG.config") || (
           echo "ERROR: Cannot start release because it could not write $RELEASE_SYS_CONFIG.config" >&2
           exit 1
         )

@@ -230,6 +230,11 @@ defmodule Mix.Tasks.ReleaseTest do
                |> Path.join("releases/0.1.0/sys.config")
                |> File.read!() =~ "RUNTIME_CONFIG=true"
 
+        # Make sys.config read-only and it should still boot
+        assert root
+               |> Path.join("releases/0.1.0/sys.config")
+               |> File.chmod(0o555) == :ok
+
         # Assert runtime
         open_port(Path.join(root, "bin/runtime_config"), ['start'])
 
