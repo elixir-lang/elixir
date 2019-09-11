@@ -15,9 +15,11 @@ defmodule Logger.App do
       Logger.BackendSupervisor
     ]
 
-    primary_config = add_elixir_handler(config)
+    otp_reports? = Application.fetch_env!(:logger, :handle_otp_reports)
+
+    primary_config = add_elixir_handler(otp_reports?, config)
     default_handlers =
-      if Application.get_env(:logger, :remove_default_handlers) do
+      if otp_reports? do
         delete_erlang_handler()
       else
         []
@@ -40,9 +42,10 @@ defmodule Logger.App do
   end
 
   defp deprecations do
-    if not Application.get_env(:logger, :handle_otp_reports) do
-      Logger.warn(":handle_otp_repors configuration option is deprecated and is always set to true")
-    end
+    # TODO: Uncomment this
+    # if not Application.get_env(:logger, :handle_otp_reports) do
+    #   Logger.warn("handle_otp_repors: false is deprecated")
+    # end
   end
 
   @doc false
@@ -75,7 +78,7 @@ defmodule Logger.App do
     Application.stop(:logger)
   end
 
-  defp add_elixir_handler(counter) do
+  defp add_elixir_handler(otp_reports?, counter) do
     level =
       case Application.fetch_env!(:logger, :level) do
         :warn -> :warning
@@ -88,7 +91,14 @@ defmodule Logger.App do
     config = %{
       level: :all,
       config: data,
-      filters: []
+      filter_default: :log,
+      filters: if not otp_reports? do
+        [
+          filter_elixir: {&Logger.Filter.elixir_domain/2, :ignore}
+        ]
+      else
+        []
+      end
     }
 
     primary_config = :logger.get_primary_config()

@@ -18,7 +18,7 @@ defmodule Logger.Config do
     sync_threshold = Application.fetch_env!(:logger, :sync_threshold)
     discard_threshold = Application.fetch_env!(:logger, :discard_threshold)
     level = Application.fetch_env!(:logger, :level)
-    sasl_reports? = Application.get_env(:logger, :handle_sasl_reports)
+    sasl_reports? = Application.fetch_env!(:logger, :handle_sasl_reports)
 
     %{
       level: level,

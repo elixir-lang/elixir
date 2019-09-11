@@ -1,6 +1,17 @@
 defmodule Logger.Filter do
   @moduledoc false
 
+  def elixir_domain(%{meta: meta}, action) when action in [:stop, :ignore] do
+    case meta do
+      %{domain: [:elixir | _]} -> action
+      _ -> inverse_action(action)
+    end
+  end
+
+  def elixir_domain(log_event, extra) do
+    :erlang.error({:badarg, [log_event, extra]})
+  end
+
   @doc """
   Filter out logs if current process opted out of log reports
   """
@@ -13,4 +24,7 @@ defmodule Logger.Filter do
        end
      end, nil}
   end
+
+  defp inverse_action(:ignore), do: :stop
+  defp inverse_action(:stop), do: :ignore
 end

@@ -443,16 +443,14 @@ defmodule Logger do
   def metadata(keyword) do
     case :logger.get_process_metadata() do
       :undefined ->
-        :logger.set_process_metadata(filter_out_nils(keyword))
+        :ok = :logger.set_process_metadata(filter_out_nils(keyword))
 
       map when is_map(map) ->
         merged = Map.merge(map, Map.new(keyword))
         metadata = filter_out_nils(merged)
 
-        :logger.set_process_metadata(metadata)
+        :ok = :logger.set_process_metadata(metadata)
     end
-
-    :ok
   end
 
   defp filter_out_nils(enumerable) do
@@ -475,7 +473,7 @@ defmodule Logger do
   """
   @spec reset_metadata(metadata) :: :ok
   def reset_metadata(keywords \\ []) do
-    :logger.set_process_metadata(%{})
+    :ok = :logger.set_process_metadata(%{})
     metadata(keywords)
   end
 
@@ -714,24 +712,30 @@ defmodule Logger do
         :ok
 
       {msg, meta} ->
-        :logger.log(level, msg, Enum.into(meta, metadata))
+        :logger.log(level, msg, Enum.into(meta, add_elixir_domain(metadata)))
 
       msg when is_binary(msg) ->
-        :logger.log(level, msg, metadata)
+        :logger.log(level, msg, add_elixir_domain(metadata))
     end
   end
 
   def __do_log__(level, chardata, metadata)
       when (is_binary(chardata) or is_list(chardata)) and is_map(metadata) do
-    :logger.log(level, chardata, metadata)
+    :logger.log(level, chardata, add_elixir_domain(metadata))
   end
 
   # # TODO: Remove that in Elixir 2.0
   def __do_log__(level, atom, metadata) do
     # TODO: Uncomment this
     # bare_log(:warning, "Passed #{inspect(atom)} which is not binary() nor iolist() to the Logger, this is deprecated")
-    :logger.log(level, Atom.to_string(atom), metadata)
+    :logger.log(level, Atom.to_string(atom), add_elixir_domain(metadata))
   end
+
+  defp add_elixir_domain(%{domain: domain} = metadata) when is_list(domain) do
+    %{metadata | domain: [:elixir | domain]}
+  end
+
+  defp add_elixir_domain(metadata), do: Map.put(metadata, :domain, [:elixir])
 
   @doc """
   Logs a warning message.
