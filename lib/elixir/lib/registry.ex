@@ -198,7 +198,7 @@ defmodule Registry do
   @type match_pattern :: atom | term
 
   @typedoc "A guard to be evaluated when matching on objects in a registry"
-  @type guard :: {atom | term}
+  @type guard :: atom | tuple
 
   @typedoc "A list of guards to be evaluated when matching on objects in a registry"
   @type guards :: [guard] | []
