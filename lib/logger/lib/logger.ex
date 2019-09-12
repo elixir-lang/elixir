@@ -446,7 +446,7 @@ defmodule Logger do
         :ok = :logger.set_process_metadata(filter_out_nils(keyword))
 
       map when is_map(map) ->
-        merged = Map.merge(map, Map.new(keyword))
+        merged = Enum.into(keyword, map)
         metadata = filter_out_nils(merged)
 
         :ok = :logger.set_process_metadata(metadata)
