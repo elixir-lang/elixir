@@ -201,7 +201,7 @@ defmodule Registry do
   @type guard :: atom | tuple
 
   @typedoc "A list of guards to be evaluated when matching on objects in a registry"
-  @type guards :: [guard] | []
+  @type guards :: [guard]
 
   @typedoc "A pattern used to representing the output format part of a match spec"
   @type body :: [atom | tuple]
