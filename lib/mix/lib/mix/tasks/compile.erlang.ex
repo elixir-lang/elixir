@@ -74,7 +74,7 @@ defmodule Mix.Tasks.Compile.Erlang do
       Mix.raise(":erlc_options should be a list of options, got: #{inspect(erlc_options)}")
     end
 
-    erlc_options = erlc_options ++ [:return, :report, outdir: compile_path, i: include_path]
+    erlc_options = erlc_options ++ [:debug_info, :return, :report, outdir: compile_path, i: include_path]
 
     erlc_options =
       Enum.map(erlc_options, fn
