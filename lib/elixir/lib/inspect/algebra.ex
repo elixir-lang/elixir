@@ -8,10 +8,11 @@ defmodule Inspect.Opts do
       defaults to `:decimal`. When inspecting binaries any `:base` other than
       `:decimal` implies `binaries: :as_binaries`.
 
-    * `:binaries` - when `:as_strings` all binaries will be printed as strings,
-      non-printable bytes will be escaped.
+    * `:binaries` - when `:as_binaries` all binaries will be printed in bit
+      syntax.
 
-      When `:as_binaries` all binaries will be printed in bit syntax.
+      When `:as_strings` all binaries will be printed as strings, non-printable
+      bytes will be escaped.
 
       When the default `:infer`, the binary will be printed as a string if it
       is printable, otherwise in bit syntax. See `String.printable?/1` to learn
@@ -58,7 +59,7 @@ defmodule Inspect.Opts do
     * `:syntax_colors` - when set to a keyword list of colors the output is
       colorized. The keys are types and the values are the colors to use for
       each type (for example, `[number: :red, atom: :blue]`). Types can include
-      `:number`, `:atom`, `regex`, `:tuple`, `:map`, `:list`, and `:reset`.
+      `:atom`, `:list`, `:map`, `:number`, `:regex`, `:reset` and `:tuple`.
       Colors can be any `t:IO.ANSI.ansidata/0` as accepted by `IO.ANSI.format/1`.
 
     * `:width` - defaults to 80 characters, used when pretty is `true` or when
