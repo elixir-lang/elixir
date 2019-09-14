@@ -174,4 +174,18 @@ defmodule Mix.Tasks.Compile.ErlangTest do
       assert output == ""
     end)
   end
+
+  @tag erlc_options: [{:warnings_as_errors, true}]
+  test "adds :debug_info to erlc_options by default" do
+    in_fixture("compile_erlang", fn ->
+      Mix.Tasks.Compile.Erlang.run([])
+
+      binary = File.read!("_build/dev/lib/sample/ebin/b.beam")
+
+      {:ok, {module, [debug_info: {:debug_info_v1, backend, data}]}} =
+        :beam_lib.chunks(binary, [:debug_info])
+
+      assert backend.debug_info(:elixir_v1, module, data, []) != {:error, :missing}
+    end)
+  end
 end
