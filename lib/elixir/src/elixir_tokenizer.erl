@@ -13,103 +13,103 @@
 -define(is_downcase(S), (S >= $a andalso S =< $z)).
 
 %% Others
--define(is_quote(S), (S == $" orelse S == $')).
--define(is_sigil(S), ((S == $/) orelse (S == $<) orelse (S == $") orelse (S == $') orelse
-                      (S == $[) orelse (S == $() orelse (S == ${) orelse (S == $|))).
+-define(is_quote(S), (S =:= $" orelse S =:= $')).
+-define(is_sigil(S), (S =:= $/ orelse S =:= $< orelse S =:= $" orelse S =:= $' orelse
+                      S =:= $[ orelse S =:= $( orelse S =:= ${ orelse S =:= $|)).
 
 %% Spaces
--define(is_horizontal_space(S), ((S == $\s) orelse (S == $\t))).
--define(is_vertical_space(S), ((S == $\r) orelse (S == $\n))).
+-define(is_horizontal_space(S), (S =:= $\s orelse S =:= $\t)).
+-define(is_vertical_space(S), (S =:= $\r orelse S =:= $\n)).
 -define(is_space(S), (?is_horizontal_space(S) orelse ?is_vertical_space(S))).
 
 %% Operators
 -define(at_op(T),
-  T == $@).
+  T =:= $@).
 
 -define(capture_op(T),
-  T == $&).
+  T =:= $&).
 
 -define(unary_op(T),
-  T == $!;
-  T == $^).
+  T =:= $!;
+  T =:= $^).
 
 -define(unary_op3(T1, T2, T3),
-  T1 == $~, T2 == $~, T3 == $~).
+  T1 =:= $~, T2 =:= $~, T3 =:= $~).
 
 -define(list_op(T1, T2),
-  T1 == $+, T2 == $+;
-  T1 == $-, T2 == $-).
+  T1 =:= $+, T2 =:= $+;
+  T1 =:= $-, T2 =:= $-).
 
 -define(two_op(T1, T2),
-  T1 == $<, T2 == $>;
-  T1 == $., T2 == $.).
+  T1 =:= $<, T2 =:= $>;
+  T1 =:= $., T2 =:= $.).
 
 -define(three_op(T1, T2, T3),
-  T1 == $^, T2 == $^, T3 == $^).
+  T1 =:= $^, T2 =:= $^, T3 =:= $^).
 
 -define(mult_op(T),
-  T == $* orelse T == $/).
+  T =:= $* orelse T =:= $/).
 
 -define(dual_op(T),
-  T == $+ orelse T == $-).
+  T =:= $+ orelse T =:= $-).
 
 -define(arrow_op3(T1, T2, T3),
-  T1 == $<, T2 == $<, T3 == $<;
-  T1 == $>, T2 == $>, T3 == $>;
-  T1 == $~, T2 == $>, T3 == $>;
-  T1 == $<, T2 == $<, T3 == $~;
-  T1 == $<, T2 == $~, T3 == $>;
-  T1 == $<, T2 == $|, T3 == $>).
+  T1 =:= $<, T2 =:= $<, T3 =:= $<;
+  T1 =:= $>, T2 =:= $>, T3 =:= $>;
+  T1 =:= $~, T2 =:= $>, T3 =:= $>;
+  T1 =:= $<, T2 =:= $<, T3 =:= $~;
+  T1 =:= $<, T2 =:= $~, T3 =:= $>;
+  T1 =:= $<, T2 =:= $|, T3 =:= $>).
 
 -define(arrow_op(T1, T2),
-  T1 == $|, T2 == $>;
-  T1 == $~, T2 == $>;
-  T1 == $<, T2 == $~).
+  T1 =:= $|, T2 =:= $>;
+  T1 =:= $~, T2 =:= $>;
+  T1 =:= $<, T2 =:= $~).
 
 -define(rel_op(T),
-  T == $<;
-  T == $>).
+  T =:= $<;
+  T =:= $>).
 
 -define(rel_op2(T1, T2),
-  T1 == $<, T2 == $=;
-  T1 == $>, T2 == $=).
+  T1 =:= $<, T2 =:= $=;
+  T1 =:= $>, T2 =:= $=).
 
 -define(comp_op2(T1, T2),
-  T1 == $=, T2 == $=;
-  T1 == $=, T2 == $~;
-  T1 == $!, T2 == $=).
+  T1 =:= $=, T2 =:= $=;
+  T1 =:= $=, T2 =:= $~;
+  T1 =:= $!, T2 =:= $=).
 
 -define(comp_op3(T1, T2, T3),
-  T1 == $=, T2 == $=, T3 == $=;
-  T1 == $!, T2 == $=, T3 == $=).
+  T1 =:= $=, T2 =:= $=, T3 =:= $=;
+  T1 =:= $!, T2 =:= $=, T3 =:= $=).
 
 -define(and_op(T1, T2),
-  T1 == $&, T2 == $&).
+  T1 =:= $&, T2 =:= $&).
 
 -define(or_op(T1, T2),
-  T1 == $|, T2 == $|).
+  T1 =:= $|, T2 =:= $|).
 
 -define(and_op3(T1, T2, T3),
-  T1 == $&, T2 == $&, T3 == $&).
+  T1 =:= $&, T2 =:= $&, T3 =:= $&).
 
 -define(or_op3(T1, T2, T3),
-  T1 == $|, T2 == $|, T3 == $|).
+  T1 =:= $|, T2 =:= $|, T3 =:= $|).
 
 -define(match_op(T),
-  T == $=).
+  T =:= $=).
 
 -define(in_match_op(T1, T2),
-  T1 == $<, T2 == $-;
-  T1 == $\\, T2 == $\\).
+  T1 =:= $<, T2 =:= $-;
+  T1 =:= $\\, T2 =:= $\\).
 
 -define(stab_op(T1, T2),
-  T1 == $-, T2 == $>).
+  T1 =:= $-, T2 =:= $>).
 
 -define(type_op(T1, T2),
-  T1 == $:, T2 == $:).
+  T1 =:= $:, T2 =:= $:).
 
 -define(pipe_op(T),
-  T == $|).
+  T =:= $|).
 
 tokenize(String, Line, Column, #elixir_tokenizer{} = Scope) ->
   tokenize(String, Line, Column, Scope, []);
@@ -302,7 +302,7 @@ tokenize([$:, T1, T2 | Rest], Line, Column, Scope, Tokens) when
 % ## Single Token Operators
 tokenize([$:, T | Rest], Line, Column, Scope, Tokens) when
     ?at_op(T); ?unary_op(T); ?capture_op(T); ?dual_op(T); ?mult_op(T);
-    ?rel_op(T); ?match_op(T); ?pipe_op(T); T == $. ->
+    ?rel_op(T); ?match_op(T); ?pipe_op(T); T =:= $. ->
   Token = {atom, {Line, Column, nil}, list_to_atom([T])},
   tokenize(Rest, Line, Column + 2, Scope, [Token | Tokens]);
 
@@ -352,11 +352,11 @@ tokenize([$>, $> | Rest], Line, Column, Scope, Tokens) ->
   Token = {'>>', {Line, Column, previous_was_eol(Tokens)}},
   handle_terminator(Rest, Line, Column + 2, Scope, Token, Tokens);
 
-tokenize([T | Rest], Line, Column, Scope, Tokens) when T == $(; T == ${; T == $[ ->
+tokenize([T | Rest], Line, Column, Scope, Tokens) when T =:= $(; T =:= ${; T =:= $[ ->
   Token = {list_to_atom([T]), {Line, Column, nil}},
   handle_terminator(Rest, Line, Column + 1, Scope, Token, Tokens);
 
-tokenize([T | Rest], Line, Column, Scope, Tokens) when T == $); T == $}; T == $] ->
+tokenize([T | Rest], Line, Column, Scope, Tokens) when T =:= $); T =:= $}; T =:= $] ->
   Token = {list_to_atom([T]), {Line, Column, previous_was_eol(Tokens)}},
   handle_terminator(Rest, Line, Column + 1, Scope, Token, Tokens);
 
@@ -555,7 +555,7 @@ tokenize(String, Line, Column, Scope, Tokens) ->
           Token = {kw_identifier, {Line, Column, nil}, Atom},
           tokenize(T, Line, Column + Length + 1, Scope, [Token | Tokens]);
 
-        [$: | T] when hd(T) /= $: ->
+        [$: | T] when hd(T) =/= $: ->
           AtomName = atom_to_list(Atom) ++ [$:],
           Reason = {Line, Column, "keyword argument must be followed by space after: ", AtomName},
           {error, Reason, String, Tokens};
@@ -782,8 +782,8 @@ handle_call_identifier(Rest, Line, Column, DotInfo, Length, Op, Scope, Tokens) -
 handle_space_sensitive_tokens([Sign, NotMarker | T], Line, Column, Scope, [{Identifier, _, _} = H | Tokens]) when
     ?dual_op(Sign),
     not(?is_space(NotMarker)),
-    NotMarker /= $(, NotMarker /= $[, NotMarker /= $<, NotMarker /= ${,                  %% containers
-    NotMarker /= $%, NotMarker /= $+, NotMarker /= $-, NotMarker /= $/, NotMarker /= $>, %% operators
+    NotMarker =/= $(, NotMarker =/= $[, NotMarker =/= $<, NotMarker =/= ${,                  %% containers
+    NotMarker =/= $%, NotMarker =/= $+, NotMarker =/= $-, NotMarker =/= $/, NotMarker =/= $>, %% operators
     Identifier == identifier ->
   Rest = [NotMarker | T],
   DualOpToken = {dual_op, {Line, Column, nil}, list_to_atom([Sign])},
@@ -1008,12 +1008,12 @@ tokenize_number([$_, H | T], Acc, Length, Bool) when ?is_digit(H) ->
 
 %% Check if we have e- followed by numbers (valid only for floats);
 tokenize_number([E, S, H | T], Acc, Length, true)
-    when (E == $E) or (E == $e), ?is_digit(H), S == $+ orelse S == $- ->
+    when (E =:= $E) or (E =:= $e), ?is_digit(H), S =:= $+ orelse S =:= $- ->
   tokenize_number(T, [H, S, E | Acc], Length + 3, true);
 
 %% Check if we have e followed by numbers (valid only for floats);
 tokenize_number([E, H | T], Acc, Length, true)
-    when (E == $E) or (E == $e), ?is_digit(H) ->
+    when (E =:= $E) or (E =:= $e), ?is_digit(H) ->
   tokenize_number(T, [H, E | Acc], Length + 2, true);
 
 %% Finally just numbers.
@@ -1092,7 +1092,7 @@ preserve_comments(Line, Column, Tokens, Comment, Rest, Scope) ->
 tokenize([H | T]) when ?is_upcase(H) ->
   {Acc, Rest, Length, Special} = tokenize_continue(T, [H], 1, []),
   {alias, lists:reverse(Acc), Rest, Length, true, Special};
-tokenize([H | T]) when ?is_downcase(H); H == $_ ->
+tokenize([H | T]) when ?is_downcase(H); H =:= $_ ->
   {Acc, Rest, Length, Special} = tokenize_continue(T, [H], 1, []),
   {identifier, lists:reverse(Acc), Rest, Length, true, Special};
 tokenize(_List) ->
@@ -1104,7 +1104,7 @@ tokenize_continue([$! | T], Acc, Length, Special) ->
   {[$! | Acc], T, Length + 1, [$! | Special]};
 tokenize_continue([$? | T], Acc, Length, Special) ->
   {[$? | Acc], T, Length + 1, [$? | Special]};
-tokenize_continue([H | T], Acc, Length, Special) when ?is_upcase(H); ?is_downcase(H); ?is_digit(H); H == $_ ->
+tokenize_continue([H | T], Acc, Length, Special) when ?is_upcase(H); ?is_downcase(H); ?is_digit(H); H =:= $_ ->
   tokenize_continue(T, [H | Acc], Length + 1, Special);
 tokenize_continue(Rest, Acc, Length, Special) ->
   {Acc, Rest, Length, Special}.
@@ -1429,7 +1429,7 @@ maybe_warn_for_ambiguous_bang_before_equals(Kind, Atom, [$= | _], Scope, Line) -
     end,
 
   case lists:last(Identifier) of
-    Last when Last == $!; Last == $? ->
+    Last when Last =:= $!; Last =:= $? ->
       Msg = io_lib:format("found ~ts \"~ts\", ending with \"~ts\", followed by =. "
                           "It is unclear if you mean \"~ts ~ts=\" or \"~ts =\". Please add "
                           "a space before or after ~ts to remove the ambiguity",
