@@ -70,37 +70,37 @@ defmodule Inspect.Opts do
   """
 
   # TODO: Remove :char_lists key on v2.0
-  defstruct structs: true,
+  defstruct base: :decimal,
             binaries: :infer,
-            charlists: :infer,
             char_lists: :infer,
-            limit: 50,
-            printable_limit: 4096,
-            width: 80,
-            base: :decimal,
-            pretty: false,
-            safe: true,
-            syntax_colors: [],
+            charlists: :infer,
+            custom_options: [],
             inspect_fun: &Inspect.inspect/2,
-            custom_options: []
+            limit: 50,
+            pretty: false,
+            printable_limit: 4096,
+            safe: true,
+            structs: true,
+            syntax_colors: [],
+            width: 80
 
   @type color_key :: atom
 
   # TODO: Remove :char_lists key and :as_char_lists value on v2.0
   @type t :: %__MODULE__{
-          structs: boolean,
-          binaries: :infer | :as_binaries | :as_strings,
-          charlists: :infer | :as_lists | :as_charlists,
-          char_lists: :infer | :as_lists | :as_char_lists,
-          limit: pos_integer | :infinity,
-          printable_limit: pos_integer | :infinity,
-          width: pos_integer | :infinity,
           base: :decimal | :binary | :hex | :octal,
-          pretty: boolean,
-          safe: boolean,
-          syntax_colors: [{color_key, IO.ANSI.ansidata()}],
+          binaries: :infer | :as_binaries | :as_strings,
+          char_lists: :infer | :as_lists | :as_char_lists,
+          charlists: :infer | :as_lists | :as_charlists,
+          custom_options: keyword,
           inspect_fun: (any, t -> Inspect.Algebra.t()),
-          custom_options: keyword
+          limit: pos_integer | :infinity,
+          pretty: boolean,
+          printable_limit: pos_integer | :infinity,
+          safe: boolean,
+          structs: boolean,
+          syntax_colors: [{color_key, IO.ANSI.ansidata()}],
+          width: pos_integer | :infinity
         }
 end
 
@@ -192,17 +192,17 @@ defmodule Inspect.Algebra do
 
   @type t ::
           binary
-          | :doc_nil
           | :doc_line
-          | doc_string
-          | doc_cons
-          | doc_nest
+          | :doc_nil
           | doc_break
-          | doc_group
-          | doc_color
-          | doc_force
-          | doc_fits
           | doc_collapse
+          | doc_color
+          | doc_cons
+          | doc_fits
+          | doc_force
+          | doc_group
+          | doc_nest
+          | doc_string
 
   @typep doc_string :: {:doc_string, t, non_neg_integer}
   defmacrop doc_string(string, length) do
@@ -250,15 +250,15 @@ defmodule Inspect.Algebra do
   end
 
   @docs [
-    :doc_string,
-    :doc_cons,
-    :doc_nest,
     :doc_break,
-    :doc_group,
+    :doc_collapse,
     :doc_color,
-    :doc_force,
+    :doc_cons,
     :doc_fits,
-    :doc_collapse
+    :doc_force,
+    :doc_group,
+    :doc_nest,
+    :doc_string
   ]
 
   defguard is_doc(doc)
