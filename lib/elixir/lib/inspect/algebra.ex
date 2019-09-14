@@ -4,8 +4,9 @@ defmodule Inspect.Opts do
 
   The following fields are available:
 
-    * `:structs` - when `false`, structs are not formatted by the inspect
-      protocol, they are instead printed as maps, defaults to `true`.
+    * `:base` - prints integers as `:binary`, `:octal`, `:decimal`, or `:hex`,
+      defaults to `:decimal`. When inspecting binaries any `:base` other than
+      `:decimal` implies `binaries: :as_binaries`.
 
     * `:binaries` - when `:as_strings` all binaries will be printed as strings,
       non-printable bytes will be escaped.
@@ -25,11 +26,20 @@ defmodule Inspect.Opts do
       is printable, otherwise as list. See `List.ascii_printable?/1` to learn
       when a charlist is printable.
 
+    * `:custom_options` (since v1.9.0) - a keyword list storing custom user-defined
+      options. Useful when implementing the `Inspect` protocol for nested structs
+      to pass the custom options through.
+
+    * `:inspect_fun` (since v1.9.0) - a function to build algebra documents,
+      defaults to `Inspect.inspect/2`
+
     * `:limit` - limits the number of items that are inspected for tuples,
       bitstrings, maps, lists and any other collection of items. It does not
       apply to printable strings nor printable charlists and defaults to 50.
       If you don't want to limit the number of items to a particular number,
       use `:infinity`.
+
+    * `:pretty` - if set to `true` enables pretty printing, defaults to `false`.
 
     * `:printable_limit` - limits the number of characters that are inspected
       on printable strings and printable charlists. You can use `String.printable?/1`
@@ -37,21 +47,13 @@ defmodule Inspect.Opts do
       printable. Defaults to 4096. If you don't want to limit the number of
       characters to a particular number, use `:infinity`.
 
-    * `:pretty` - if set to `true` enables pretty printing, defaults to `false`.
-
-    * `:width` - defaults to 80 characters, used when pretty is `true` or when
-      printing to IO devices. Set to 0 to force each item to be printed on its
-      own line. If you don't want to limit the number of items to a particular
-      number, use `:infinity`.
-
-    * `:base` - prints integers as `:binary`, `:octal`, `:decimal`, or `:hex`,
-      defaults to `:decimal`. When inspecting binaries any `:base` other than
-      `:decimal` implies `binaries: :as_binaries`.
-
     * `:safe` - when `false`, failures while inspecting structs will be raised
       as errors instead of being wrapped in the `Inspect.Error` exception. This
       is useful when debugging failures and crashes for custom inspect
       implementations.
+
+    * `:structs` - when `false`, structs are not formatted by the inspect
+      protocol, they are instead printed as maps, defaults to `true`.
 
     * `:syntax_colors` - when set to a keyword list of colors the output is
       colorized. The keys are types and the values are the colors to use for
@@ -59,12 +61,10 @@ defmodule Inspect.Opts do
       `:number`, `:atom`, `regex`, `:tuple`, `:map`, `:list`, and `:reset`.
       Colors can be any `t:IO.ANSI.ansidata/0` as accepted by `IO.ANSI.format/1`.
 
-    * `:inspect_fun` (since v1.9.0) - a function to build algebra documents,
-      defaults to `Inspect.inspect/2`
-
-    * `:custom_options` (since v1.9.0) - a keyword list storing custom user-defined
-      options. Useful when implementing the `Inspect` protocol for nested structs
-      to pass the custom options through.
+    * `:width` - defaults to 80 characters, used when pretty is `true` or when
+      printing to IO devices. Set to 0 to force each item to be printed on its
+      own line. If you don't want to limit the number of items to a particular
+      number, use `:infinity`.
 
   """
 
