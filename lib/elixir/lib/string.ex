@@ -4,6 +4,68 @@ defmodule String do
   @moduledoc ~S"""
   Strings in Elixir are UTF-8 encoded binaries.
 
+  Strings in Elixir are a sequence of Unicode characters,
+  typically written between double quoted strings, such
+  as `"hello"` and `"héllò"`.
+
+  In case a string must have a double-quote in itself,
+  the double quotes must be escaped with a backslash,
+  for example: `"this is a string with \"double quotes\"".
+
+  You can concatenate two strings with the `<>/2` operator:
+
+      iex> "hello" <> " " <> "world"
+      "hello world"
+
+  ## Interpolation
+
+  Strings in Elixir also support interpolation. This allows
+  you to place some value in the middle of a string by using
+  the `#{}` syntax:
+
+      iex> name = "joe"
+      iex> "hello #{name}"
+      "hello joe"
+
+  Any Elixir expression is valid inside the interpolation.
+  If a string is given, the string is interpolated as is.
+  If any other value is given, Elixir will attempt to convert
+  it to a string using the `String.Chars` protocol. This
+  allows, for example, to output an integer from the interpolation:
+
+      iex> "2 + 2 = #{2 + 2}"
+      "2 + 2 = 4"
+
+  In case the value you want to interpolate cannot be
+  converted to a string, because it doesn't have an human
+  textual representation, a protocol error will be raised.
+
+  ## Escape characters
+
+  Besides allowing double-quotes to be escaped with a backslash,
+  strings also support the following escape characters:
+
+    * `\a` - Bell
+    * `\b` - Backspace
+    * `\t` - Horizontal tab
+    * `\n` - Line feed (New lines)
+    * `\v` - Vertical tab
+    * `\f` - Form feed
+    * `\r` - Carriage return
+    * `\e` - Command Escape
+    * `\#` - Returns the `#` character itself, skipping interpolation
+    * `\xNN` - A byte represented by the hexadecimal `NN`
+    * `\uNNNN` - A Unicode code point represented by `NNNN`
+
+  Note it is generally not advised to use `\xNN` in Elixir
+  strings, as introducing an invalid byte sequence would
+  make the string invalid. If you have to introduce a
+  character by its hexdecimal representation, it is best
+  to work with Unicode Codepoints, such as `\uNNNN`. In fact,
+  understanding Unicode Codepoints can be essential when doing
+  low-level manipulations of string, so let's explore them in
+  detail next.
+
   ## Code points and grapheme cluster
 
   The functions in this module act according to the Unicode
@@ -12,15 +74,13 @@ defmodule String do
   As per the standard, a code point is a single Unicode Character,
   which may be represented by one or more bytes.
 
-  For example, the code point "é" is two bytes:
-
-      iex> byte_size("é")
-      2
-
-  However, this module returns the proper length:
+  For example, although the code point "é" is a single character,
+  its underlying representation uses two bytes:
 
       iex> String.length("é")
       1
+      iex> byte_size("é")
+      2
 
   Furthermore, this module also presents the concept of grapheme cluster
   (from now on referenced as graphemes). Graphemes can consist of multiple
@@ -49,11 +109,8 @@ defmodule String do
 
   In general, the functions in this module rely on the Unicode
   Standard, but do not contain any of the locale specific behaviour.
-
   More information about graphemes can be found in the [Unicode
   Standard Annex #29](https://www.unicode.org/reports/tr29/).
-  The current Elixir version implements Extended Grapheme Cluster
-  algorithm.
 
   For converting a binary to a different encoding and for Unicode
   normalization mechanisms, see Erlang's `:unicode` module.
@@ -160,8 +217,15 @@ defmodule String do
   As we have seen above, code points can be inserted into
   a string by their hexadecimal code:
 
-      "ol\u0061\u0301" #=>
+      iex> "ol\u00E1"
       "olá"
+
+  Finally, to convert a String into a list of integers
+  codepoints, usually known as "char lists", you can call
+  `Strig.to_charlist`:
+
+      iex> String.to_charlist("olá")
+      [111, 108, 225]
 
   ## Self-synchronization
 
@@ -180,7 +244,7 @@ defmodule String do
   responsible to check the validity of the encoding. `String.chunk/2`
   can be used for breaking a string into valid and invalid parts.
 
-  ## Patterns
+  ## Compile binary patterns
 
   Many functions in this module work with patterns. For example,
   `String.split/2` can split a string into multiple strings given
