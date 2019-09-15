@@ -158,6 +158,7 @@ defmodule ModuleTest do
     assert [{:foo, _, _}, {:bar, _, _}] = args
     assert [] = guards
     assert [do: {:+, _, [{:foo, _, nil}, {:bar, _, nil}]}] = expr
+    assert Module.defines?(env.module, {:hello, 2})
   end
 
   test "executes on definition callback" do
