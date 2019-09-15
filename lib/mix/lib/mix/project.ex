@@ -729,7 +729,7 @@ defmodule Mix.Project do
       elixirc_paths: ["lib"],
       erlc_paths: ["src"],
       erlc_include_path: "include",
-      erlc_options: [:debug_info],
+      erlc_options: [],
       lockfile: "mix.lock",
       preferred_cli_env: [],
       start_permanent: false

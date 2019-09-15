@@ -41,14 +41,19 @@ defmodule Mix.Tasks.Compile.Erlang do
       Defaults to `"include"`.
 
     * `:erlc_options` - compilation options that apply to Erlang's
-      compiler. Defaults to `[:debug_info]`.
+      compiler. Defaults to `[]`.
 
       For a complete list of options, see `:compile.file/2`.
 
-  For example, to configure the `erlc_options` for your Erlang project you
-  may run:
+  ### Important notice
 
-      erlc_options: [:debug_info, {:i, 'path/to/include'}]
+  The following options are always added to `:erlc_options` when running the compiler:
+
+      [:debug_info, :return, :report, outdir: compile_path, i: include_path]
+
+  You can set any of those options like this to override them:
+
+      erlc_options: [debug_info: false, return: false, i: my_includes]
 
   """
 
