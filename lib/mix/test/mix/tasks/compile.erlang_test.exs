@@ -185,7 +185,7 @@ defmodule Mix.Tasks.Compile.ErlangTest do
       {:ok, {module, [debug_info: {:debug_info_v1, backend, data}]}} =
         :beam_lib.chunks(binary, [:debug_info])
 
-      assert backend.debug_info(:elixir_v1, module, data, []) != {:error, :missing}
+      assert backend.debug_info(:erlang_v1, module, data, []) != {:error, :missing}
     end)
   end
 end
