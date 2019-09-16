@@ -2258,7 +2258,8 @@ defmodule Enum do
   @doc """
   Sorts the `enumerable` according to Erlang's term ordering.
 
-  Uses the merge sort algorithm.
+  This function uses the merge sort algorithm. Do not use this
+  function to sort structs, see `sort/2` for more information.
 
   ## Examples
 
@@ -2298,6 +2299,37 @@ defmodule Enum do
 
       iex> Enum.sort(["some", "kind", "of", "monster"], &(byte_size(&1) < byte_size(&2)))
       ["of", "kind", "some", "monster"]
+
+  ## Sorting structs
+
+  Do not use `</2`, `<=/2`, `>/2`, `>=/2` and friends when sorting structs.
+  That's because the built-in operators above perform structural comparison
+  and not a semantic one. Imagine we sort the following list of dates:
+
+      iex> dates = [~D[2019-01-01], ~D[2020-03-02], ~D[2019-06-06]]
+      iex> Enum.sort(dates)
+      [~D[2019-01-01], ~D[2020-03-02], ~D[2019-06-06]]
+
+  Notice the returned result is incorrect, because `sort/1` by default uses
+  `<=/2`, which will compare their structure. When comparing structures, the
+  fields are compared in alphabetical order, which means the dates above will
+  be compared by `day`, `month` and then `year`, which is the opposite of what
+  we want.
+
+  For this reason, most structs provide a "compare" function, such as
+  `Date.compare/2`, which receives two structs and returns `:lt` (less than),
+  `:eq` (equal), and `:gt (greather than). For example, to sort dates
+  increasingly, one would do:
+
+      iex> dates = [~D[2019-01-01], ~D[2020-03-02], ~D[2019-06-06]]
+      iex> Enum.sort(dates, &Date.compare(&1, &2) != :gt)
+      [~D[2019-01-01], ~D[2019-06-06], ~D[2020-03-02]]
+
+  Or in decreasing order:
+
+      iex> dates = [~D[2019-01-01], ~D[2020-03-02], ~D[2019-06-06]]
+      iex> Enum.sort(dates, &Date.compare(&1, &2) != :lt)
+      [~D[2020-03-02], ~D[2019-06-06], ~D[2019-01-01]]
 
   """
   @spec sort(t, (element, element -> boolean)) :: list
