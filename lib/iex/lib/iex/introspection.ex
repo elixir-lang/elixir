@@ -455,16 +455,16 @@ defmodule IEx.Introspection do
   end
 
   defp print_fun(mod, {{kind, fun, arity}, _line, signature, doc, metadata}, spec) do
-    if callback_module = doc == :none and callback_module(mod, fun, arity) do
-      filter = &match?({_, ^fun, ^arity}, elem(&1, 0))
-
-      case get_callback_docs(callback_module, filter) do
-        {:ok, callback_docs} -> Enum.each(callback_docs, &print_typespec/1)
-        _ -> nil
+    doc =
+      if callback_module = doc == :none and callback_module(mod, fun, arity) do
+        %{
+          "en" => "Callback implementation for `c:#{inspect(callback_module)}.#{fun}/#{arity}`."
+        }
+      else
+        doc
       end
-    else
-      print_doc("#{kind_to_def(kind)} #{Enum.join(signature, " ")}", spec, doc, metadata)
-    end
+
+    print_doc("#{kind_to_def(kind)} #{Enum.join(signature, " ")}", spec, doc, metadata)
   end
 
   defp kind_to_def(:function), do: :def

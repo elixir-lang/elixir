@@ -467,20 +467,27 @@ defmodule IEx.HelpersTest do
       behaviour = """
       defmodule MyBehaviour do
         @doc "Docs for MyBehaviour.first"
+
         @callback first(integer) :: integer
         @callback second(integer) :: integer
         @callback second(integer, integer) :: integer
+        @macrocallback third() :: any
       end
       """
 
       impl = """
       defmodule Impl do
         @behaviour MyBehaviour
+
         def first(0), do: 0
+
         @doc "Docs for Impl.second/1"
         def second(0), do: 0
+
         @doc "Docs for Impl.second/2"
         def second(0, 0), do: 0
+
+        defmacro third(), do: nil
       end
       """
 
@@ -490,7 +497,7 @@ defmodule IEx.HelpersTest do
         assert c(files, ".") |> Enum.sort() == [Impl, MyBehaviour]
 
         assert capture_io(fn -> h(Impl.first() / 1) end) ==
-                 "@callback first(integer()) :: integer()\n\nDocs for MyBehaviour.first\n"
+                 "* def first(int)\n\nCallback implementation for `c:MyBehaviour.first/1`.\n"
 
         assert capture_io(fn -> h(Impl.second() / 1) end) ==
                  "* def second(int)\n\nDocs for Impl.second/1\n"
@@ -499,10 +506,13 @@ defmodule IEx.HelpersTest do
                  "* def second(int1, int2)\n\nDocs for Impl.second/2\n"
 
         assert capture_io(fn -> h(Impl.first()) end) ==
-                 "@callback first(integer()) :: integer()\n\nDocs for MyBehaviour.first\n"
+                 "* def first(int)\n\nCallback implementation for `c:MyBehaviour.first/1`.\n"
 
         assert capture_io(fn -> h(Impl.second()) end) ==
                  "* def second(int)\n\nDocs for Impl.second/1\n* def second(int1, int2)\n\nDocs for Impl.second/2\n"
+
+        assert capture_io(fn -> h(Impl.third() / 0) end) ==
+                 "* defmacro third()\n\nCallback implementation for `c:MyBehaviour.third/0`.\n"
 
         assert capture_io(fn -> h(MyBehaviour.first()) end) == """
                No documentation for function MyBehaviour.first was found, but there is a callback with the same name.
@@ -516,6 +526,11 @@ defmodule IEx.HelpersTest do
 
         assert capture_io(fn -> h(MyBehaviour.second() / 3) end) ==
                  "No documentation for MyBehaviour.second/3 was found\n"
+
+        assert capture_io(fn -> h(MyBehaviour.third() / 0) end) == """
+               No documentation for function MyBehaviour.third/0 was found, but there is a callback with the same name.
+               You can view callback documentation with the b/1 helper.\n
+               """
       end)
     after
       cleanup_modules([Impl, MyBehaviour])
