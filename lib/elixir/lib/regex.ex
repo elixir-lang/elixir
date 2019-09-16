@@ -135,9 +135,9 @@ defmodule Regex do
   archives, and escripts) and, when running in production, the code must either
   be compiled on the target (via `mix compile` or similar) or released on the
   host (via `mix releases` or similar) with a matching OTP, OS and architecture
-  as as the target.
+  as the target.
 
-  If you know you are running on a different system that the current one and
+  If you know you are running on a different system than the current one and
   you are doing multiple matches with the regex, you can manually invoke
   `Regex.recompile/1` or `Regex.recompile!/1` to perform a runtime version
   check and recompile the regex if necessary.
