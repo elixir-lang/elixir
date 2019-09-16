@@ -45,15 +45,10 @@ defmodule Mix.Tasks.Compile.Erlang do
 
       For a complete list of options, see `:compile.file/2`.
 
-  ### Important notice
+      The option `:debug_info` is always added to the end of it. You can
+      disable that using:
 
-  The following options are always added to `:erlc_options` when running the compiler:
-
-      [:debug_info, :return, :report, outdir: compile_path, i: include_path]
-
-  You can set any of those options like this to override them:
-
-      erlc_options: [debug_info: false, return: false, i: my_includes]
+          erlc_options: [debug_info: false]
 
   """
 

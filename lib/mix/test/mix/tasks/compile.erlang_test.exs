@@ -182,10 +182,10 @@ defmodule Mix.Tasks.Compile.ErlangTest do
 
       binary = File.read!("_build/dev/lib/sample/ebin/b.beam")
 
-      {:ok, {module, [debug_info: {:debug_info_v1, backend, data}]}} =
+      {:ok, {_, [debug_info: {:debug_info_v1, _, {debug_info, _}}]}} =
         :beam_lib.chunks(binary, [:debug_info])
 
-      assert backend.debug_info(:erlang_v1, module, data, []) != {:error, :missing}
+      assert debug_info != :none
     end)
   end
 end
