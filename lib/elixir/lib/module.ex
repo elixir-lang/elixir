@@ -439,10 +439,6 @@ defmodule Module do
     * the list of quoted guards
     * the quoted function body
 
-  Note the hook receives the quoted arguments and it is invoked before
-  the function is stored in the module. So `Module.defines?/2` will return
-  `false` for the first clause of every function.
-
   If the function/macro being defined has multiple clauses, the hook will
   be called for each clause.
 
