@@ -1818,20 +1818,20 @@ defmodule Enum do
       # Although not necessary, let's seed the random algorithm
       iex> :rand.seed(:exsplus, {101, 102, 103})
       iex> Enum.random([1, 2, 3])
-      2
-      iex> Enum.random([1, 2, 3])
       1
+      iex> Enum.random([1, 2, 3])
+      3
       iex> Enum.random(1..1_000)
-      776
+      556
 
   """
   @spec random(t) :: element
   def random(enumerable)
 
   def random(enumerable) when is_list(enumerable) do
-    case take_random(enumerable, 1) do
-      [] -> raise Enum.EmptyError
-      [elem] -> elem
+    case length(enumerable) do
+      0 -> raise Enum.EmptyError
+      length -> enumerable |> drop_list(random_integer(0, length - 1)) |> hd()
     end
   end
 
@@ -1892,14 +1892,12 @@ defmodule Enum do
   end
 
   def reduce(enumerable, fun) do
-    result =
-      Enumerable.reduce(enumerable, {:cont, :first}, fn
-        x, :first -> {:cont, {:acc, x}}
-        x, {:acc, acc} -> {:cont, {:acc, fun.(x, acc)}}
-      end)
-      |> elem(1)
-
-    case result do
+    Enumerable.reduce(enumerable, {:cont, :first}, fn
+      x, {:acc, acc} -> {:cont, {:acc, fun.(x, acc)}}
+      x, :first -> {:cont, {:acc, x}}
+    end)
+    |> elem(1)
+    |> case do
       :first -> raise Enum.EmptyError
       {:acc, acc} -> acc
     end
@@ -2606,28 +2604,29 @@ defmodule Enum do
   def take_random(enumerable, count)
   def take_random(_enumerable, 0), do: []
 
-  def take_random(enumerable, count) when is_integer(count) and count > 128 do
-    reducer = fn elem, {idx, sample} ->
-      jdx = random_integer(0, idx)
+  def take_random([], _), do: []
+  def take_random([h | t], 1), do: take_random_list_one(t, h, 1)
 
-      cond do
-        idx < count ->
-          value = Map.get(sample, jdx)
-          {idx + 1, Map.put(sample, idx, value) |> Map.put(jdx, elem)}
+  def take_random(enumerable, 1) do
+    enumerable
+    |> reduce([], fn
+      x, [current | index] ->
+        if :rand.uniform(index + 1) == 1 do
+          [x | index + 1]
+        else
+          [current | index + 1]
+        end
 
-        jdx < count ->
-          {idx + 1, Map.put(sample, jdx, elem)}
-
-        true ->
-          {idx + 1, sample}
-      end
+      x, [] ->
+        [x | 1]
+    end)
+    |> case do
+      [] -> []
+      [current | _index] -> [current]
     end
-
-    {size, sample} = reduce(enumerable, {0, %{}}, reducer)
-    take_random(sample, Kernel.min(count, size), [])
   end
 
-  def take_random(enumerable, count) when is_integer(count) and count > 0 do
+  def take_random(enumerable, count) when is_integer(count) and count in 0..128 do
     sample = Tuple.duplicate(nil, count)
 
     reducer = fn elem, {idx, sample} ->
@@ -2650,12 +2649,43 @@ defmodule Enum do
     sample |> Tuple.to_list() |> take(Kernel.min(count, size))
   end
 
+  def take_random(enumerable, count) when is_integer(count) and count >= 0 do
+    reducer = fn elem, {idx, sample} ->
+      jdx = random_integer(0, idx)
+
+      cond do
+        idx < count ->
+          value = Map.get(sample, jdx)
+          {idx + 1, Map.put(sample, idx, value) |> Map.put(jdx, elem)}
+
+        jdx < count ->
+          {idx + 1, Map.put(sample, jdx, elem)}
+
+        true ->
+          {idx + 1, sample}
+      end
+    end
+
+    {size, sample} = reduce(enumerable, {0, %{}}, reducer)
+    take_random(sample, Kernel.min(count, size), [])
+  end
+
   defp take_random(_sample, 0, acc), do: acc
 
   defp take_random(sample, position, acc) do
     position = position - 1
     take_random(sample, position, [Map.get(sample, position) | acc])
   end
+
+  defp take_random_list_one([h | t], current, index) do
+    if :rand.uniform(index + 1) == 1 do
+      take_random_list_one(t, h, index + 1)
+    else
+      take_random_list_one(t, current, index + 1)
+    end
+  end
+
+  defp take_random_list_one([], current, _), do: [current]
 
   @doc """
   Takes the elements from the beginning of the `enumerable` while `fun` returns
