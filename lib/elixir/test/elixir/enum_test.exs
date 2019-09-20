@@ -534,15 +534,18 @@ defmodule EnumTest do
     seed1 = {1406, 407_414, 139_258}
     seed2 = {1306, 421_106, 567_597}
     :rand.seed(:exsplus, seed1)
+    assert Enum.random([1, 2]) == 1
     assert Enum.random([1, 2]) == 2
-    assert Enum.random([1, 2, 3]) == 1
+    :rand.seed(:exsplus, seed1)
+    assert Enum.random([1, 2]) == 1
+    assert Enum.random([1, 2, 3]) == 2
     assert Enum.random([1, 2, 3, 4]) == 1
     assert Enum.random([1, 2, 3, 4, 5]) == 2
     :rand.seed(:exsplus, seed2)
-    assert Enum.random([1, 2]) == 2
+    assert Enum.random([1, 2]) == 1
     assert Enum.random([1, 2, 3]) == 3
     assert Enum.random([1, 2, 3, 4]) == 2
-    assert Enum.random([1, 2, 3, 4, 5]) == 3
+    assert Enum.random([1, 2, 3, 4, 5]) == 4
   end
 
   test "reduce/2" do
@@ -1453,15 +1456,22 @@ defmodule EnumTest.Range do
     seed2 = {1406, 421_106, 567_597}
     :rand.seed(:exsplus, seed1)
     assert Enum.take_random(1..3, 1) == [2]
-    assert Enum.take_random(1..3, 2) == [3, 1]
-    assert Enum.take_random(1..3, 3) == [1, 3, 2]
+    :rand.seed(:exsplus, seed1)
+    assert Enum.take_random(1..3, 2) == [2, 3]
+    :rand.seed(:exsplus, seed1)
+    assert Enum.take_random(1..3, 3) == [2, 3, 1]
+    :rand.seed(:exsplus, seed1)
     assert Enum.take_random(1..3, 4) == [2, 3, 1]
-    assert Enum.take_random(3..1, 1) == [3]
+    :rand.seed(:exsplus, seed1)
+    assert Enum.take_random(3..1, 1) == [2]
     :rand.seed(:exsplus, seed2)
     assert Enum.take_random(1..3, 1) == [3]
-    assert Enum.take_random(1..3, 2) == [1, 2]
-    assert Enum.take_random(1..3, 3) == [1, 2, 3]
-    assert Enum.take_random(1..3, 4) == [2, 1, 3]
+    :rand.seed(:exsplus, seed2)
+    assert Enum.take_random(1..3, 2) == [3, 2]
+    :rand.seed(:exsplus, seed2)
+    assert Enum.take_random(1..3, 3) == [3, 2, 1]
+    :rand.seed(:exsplus, seed2)
+    assert Enum.take_random(1..3, 4) == [3, 2, 1]
 
     # make sure optimizations don't change fixed seeded tests
     :rand.seed(:exsplus, {101, 102, 103})
@@ -1549,14 +1559,20 @@ defmodule EnumTest.Map do
     seed2 = {1406, 421_106, 567_597}
     :rand.seed(:exsplus, seed1)
     assert Enum.take_random(map, 1) == [b: 2]
-    assert Enum.take_random(map, 2) == [c: 3, a: 1]
-    assert Enum.take_random(map, 3) == [a: 1, c: 3, b: 2]
+    :rand.seed(:exsplus, seed1)
+    assert Enum.take_random(map, 2) == [b: 2, c: 3]
+    :rand.seed(:exsplus, seed1)
+    assert Enum.take_random(map, 3) == [b: 2, c: 3, a: 1]
+    :rand.seed(:exsplus, seed1)
     assert Enum.take_random(map, 4) == [b: 2, c: 3, a: 1]
     :rand.seed(:exsplus, seed2)
     assert Enum.take_random(map, 1) == [c: 3]
-    assert Enum.take_random(map, 2) == [a: 1, b: 2]
-    assert Enum.take_random(map, 3) == [a: 1, b: 2, c: 3]
-    assert Enum.take_random(map, 4) == [b: 2, a: 1, c: 3]
+    :rand.seed(:exsplus, seed2)
+    assert Enum.take_random(map, 2) == [c: 3, b: 2]
+    :rand.seed(:exsplus, seed2)
+    assert Enum.take_random(map, 3) == [c: 3, b: 2, a: 1]
+    :rand.seed(:exsplus, seed2)
+    assert Enum.take_random(map, 4) == [c: 3, b: 2, a: 1]
   end
 
   test "reverse/1" do
