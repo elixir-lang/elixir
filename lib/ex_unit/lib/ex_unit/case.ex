@@ -223,7 +223,26 @@ defmodule ExUnit.Case do
     end
 
     quote do
-      async = !!unquote(opts)[:async]
+      @ex_unit_default_opts [async: true]
+
+      old_opts = Module.get_attribute(__MODULE__, :ex_unit_opts)
+      new_opts = Keyword.merge(@ex_unit_default_opts, unquote(opts) || [])
+
+      if old_opts && old_opts != new_opts do
+        message = """
+        ExUnit.Case was already used on this module #{inspect(__MODULE__)} \
+        with the options `#{inspect(@ex_unit_opts)}`.
+
+        Please make sure to set the right options on the first `use ExUnit.Case`, \
+        as they are not overriden by any subsequent calls.
+        """
+
+        IO.warn(message, Macro.Env.stacktrace(__ENV__))
+      else
+        Module.put_attribute(__MODULE__, :ex_unit_opts, new_opts)
+      end
+
+      async = @ex_unit_opts[:async]
 
       unless Module.has_attribute?(__MODULE__, :ex_unit_tests) do
         tag_check =

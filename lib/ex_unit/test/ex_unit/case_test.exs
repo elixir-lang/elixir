@@ -3,6 +3,8 @@ Code.require_file("../test_helper.exs", __DIR__)
 defmodule ExUnit.CaseTest do
   use ExUnit.Case, async: true
 
+  import ExUnit.CaptureIO
+
   ExUnit.Case.register_attribute(__MODULE__, :foo)
   ExUnit.Case.register_attribute(__MODULE__, :bar, accumulate: true)
   ExUnit.Case.register_attribute(__MODULE__, :baz)
@@ -111,5 +113,30 @@ defmodule ExUnit.CaseTest do
         ExUnit.Case.register_attribute(__MODULE__, :foo, accumulate: true)
       end
     end
+  end
+
+  test "warns for using it twice with different options" do
+    assert capture_io(:stderr, fn ->
+        defmodule WarnsUsedTwice do
+          use ExUnit.Case
+          use ExUnit.Case, async: true
+        end
+      end) == ""
+
+    stderr =
+      capture_io(:stderr, fn ->
+        defmodule WarnsUsedTwice do
+          use ExUnit.Case
+          use ExUnit.Case, async: false
+        end
+      end)
+
+    assert stderr =~ """
+           ExUnit.Case was already used on this module ExUnit.CaseTest.WarnsUsedTwice \
+           with the options `[async: true]`.
+
+           Please make sure to set the right options on the first `use ExUnit.Case`, \
+           as they are not overriden by any subsequent calls.
+           """
   end
 end
