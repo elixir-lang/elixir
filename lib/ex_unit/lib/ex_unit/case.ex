@@ -223,10 +223,8 @@ defmodule ExUnit.Case do
     end
 
     quote do
-      @ex_unit_default_opts [async: true]
-
       old_opts = Module.get_attribute(__MODULE__, :ex_unit_opts)
-      new_opts = Keyword.merge(@ex_unit_default_opts, unquote(opts) || [])
+      new_opts = Keyword.merge([async: true], unquote(opts) || [])
 
       if old_opts && old_opts != new_opts do
         message = """
