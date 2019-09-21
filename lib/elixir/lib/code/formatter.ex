@@ -2177,7 +2177,8 @@ defmodule Code.Formatter do
   defp last_arg_to_keyword({:__block__, meta, [[_ | _] = arg]} = block, true, comments) do
     if keyword?(arg) do
       block_line = line(meta)
-      {{_, [{:line, first_line} | _], _}, _} = hd(arg)
+      {{_, arg_meta, _}, _} = hd(arg)
+      first_line = line(arg_meta)
 
       comment_before_first_line? =
         Enum.any?(comments, fn {comment_line, _, _} ->
