@@ -123,20 +123,11 @@ defmodule ExUnit.CaseTest do
              end
            end) == ""
 
-    stderr =
-      capture_io(:stderr, fn ->
-        defmodule WarnsUsedTwice do
-          use ExUnit.Case
-          use ExUnit.Case, async: false
-        end
-      end)
-
-    assert stderr =~ """
-           ExUnit.Case was already used on this module ExUnit.CaseTest.WarnsUsedTwice \
-           with the options `[async: true]`.
-
-           Please make sure to set the right options on the first `use ExUnit.Case`, \
-           as they are not overriden by any subsequent calls.
-           """
+    assert capture_io(:stderr, fn ->
+             defmodule WarnsUsedTwice do
+               use ExUnit.Case
+               use ExUnit.Case, async: false
+             end
+           end) =~ "ExUnit.Case was already"
   end
 end
