@@ -2180,15 +2180,12 @@ defmodule Code.Formatter do
       {{_, arg_meta, _}, _} = hd(arg)
       first_line = line(arg_meta)
 
-      comment_before_first_line? =
-        Enum.any?(comments, fn {comment_line, _, _} ->
-          block_line < comment_line && comment_line <= first_line
-        end)
+      case Enum.drop_while(comments, fn {line, _, _} -> line <= block_line end) do
+        [{line, _, _} | _] when line <= first_line ->
+          {false, block}
 
-      if comment_before_first_line? do
-        {false, block}
-      else
-        {true, arg}
+        _ ->
+          {true, arg}
       end
     else
       {false, block}
