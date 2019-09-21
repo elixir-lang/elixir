@@ -117,11 +117,11 @@ defmodule ExUnit.CaseTest do
 
   test "warns for using it twice with different options" do
     assert capture_io(:stderr, fn ->
-        defmodule WarnsUsedTwice do
-          use ExUnit.Case
-          use ExUnit.Case, async: true
-        end
-      end) == ""
+             defmodule WarnsUsedTwice do
+               use ExUnit.Case
+               use ExUnit.Case, async: true
+             end
+           end) == ""
 
     stderr =
       capture_io(:stderr, fn ->
