@@ -223,25 +223,6 @@ defmodule ExUnit.Case do
     end
 
     quote do
-      old_opts = Module.get_attribute(__MODULE__, :ex_unit_opts)
-      new_opts = Keyword.merge([async: true], unquote(opts) || [])
-
-      if old_opts && old_opts != new_opts do
-        message = """
-        ExUnit.Case was already used on this module #{inspect(__MODULE__)} \
-        with the options `#{inspect(@ex_unit_opts)}`.
-
-        Please make sure to set the right options on the first `use ExUnit.Case`, \
-        as they are not overriden by any subsequent calls.
-        """
-
-        IO.warn(message, Macro.Env.stacktrace(__ENV__))
-      else
-        Module.put_attribute(__MODULE__, :ex_unit_opts, new_opts)
-      end
-
-      async = @ex_unit_opts[:async]
-
       unless Module.has_attribute?(__MODULE__, :ex_unit_tests) do
         tag_check =
           [:moduletag, :describetag, :tag]
@@ -266,9 +247,15 @@ defmodule ExUnit.Case do
 
         @before_compile ExUnit.Case
         @after_compile ExUnit.Case
-        @ex_unit_async async
+        @ex_unit_async false
         @ex_unit_describe nil
         use ExUnit.Callbacks
+      end
+
+      async = unquote(opts)[:async]
+
+      if is_boolean(async) do
+        @ex_unit_async async
       end
 
       import ExUnit.Callbacks

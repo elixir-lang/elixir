@@ -3,8 +3,6 @@ Code.require_file("../test_helper.exs", __DIR__)
 defmodule ExUnit.CaseTest do
   use ExUnit.Case, async: true
 
-  import ExUnit.CaptureIO
-
   ExUnit.Case.register_attribute(__MODULE__, :foo)
   ExUnit.Case.register_attribute(__MODULE__, :bar, accumulate: true)
   ExUnit.Case.register_attribute(__MODULE__, :baz)
@@ -114,20 +112,40 @@ defmodule ExUnit.CaseTest do
       end
     end
   end
+end
 
-  test "warns for using it twice with different options" do
-    assert capture_io(:stderr, fn ->
-             defmodule WarnsUsedTwice do
-               use ExUnit.Case
-               use ExUnit.Case, async: true
-             end
-           end) == ""
+defmodule ExUnit.DoubleCaseTest1 do
+  use ExUnit.Case, async: true
+  use ExUnit.Case
 
-    assert capture_io(:stderr, fn ->
-             defmodule WarnsUsedTwice do
-               use ExUnit.Case
-               use ExUnit.Case, async: false
-             end
-           end) =~ "ExUnit.Case was already"
+  test "async must be true", context do
+    assert context.async
+  end
+end
+
+defmodule ExUnit.DoubleCaseTest2 do
+  use ExUnit.Case, async: false
+  use ExUnit.Case
+
+  test "async must be false", context do
+    refute context.async
+  end
+end
+
+defmodule ExUnit.DoubleCaseTest3 do
+  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
+
+  test "async must be false", context do
+    refute context.async
+  end
+end
+
+defmodule ExUnit.DoubleCaseTest4 do
+  use ExUnit.Case
+  use ExUnit.Case, async: true
+
+  test "async must be true", context do
+    assert context.async
   end
 end
