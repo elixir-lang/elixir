@@ -1041,7 +1041,7 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Similar to `import_file` but only imports the file it if it is available.
+  Similar to `import_file` but only imports the file if it is available.
 
   By default, `import_file/1` fails when the given file does not exist.
   However, since `import_file/1` is expanded at compile-time, it's not
