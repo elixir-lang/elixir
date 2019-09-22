@@ -1264,7 +1264,7 @@ defmodule Code.Formatter.CommentsTest do
   end
 
   describe "defstruct" do
-    test "has first field comments" do
+    test "with first field comments" do
       bad = ~S"""
       defmodule Foo do
         # defstruct
@@ -1296,7 +1296,39 @@ defmodule Code.Formatter.CommentsTest do
       assert_format bad, good
     end
 
-    test "no first field comment" do
+    test "with first field comments and defstruct has the parens" do
+      bad = ~S"""
+      defmodule Foo do
+        # defstruct
+        defstruct([ # foo
+          # 1. one
+          one: 1, # 2. one
+          # 1. two
+          # 2. two
+          two: 2
+        ])
+      end
+      """
+
+      good = ~S"""
+      defmodule Foo do
+        # defstruct
+        # foo
+        defstruct(
+          # 1. one
+          # 2. one
+          one: 1,
+          # 1. two
+          # 2. two
+          two: 2
+        )
+      end
+      """
+
+      assert_format bad, good
+    end
+
+    test "without first field comments" do
       bad = ~S"""
       defmodule Foo do
         # defstruct
@@ -1321,7 +1353,7 @@ defmodule Code.Formatter.CommentsTest do
       assert_format bad, good
     end
 
-    test "without comment" do
+    test "without field comments" do
       bad = ~S"""
       defmodule Foo do
         # defstruct
@@ -1341,7 +1373,6 @@ defmodule Code.Formatter.CommentsTest do
       """
 
       assert_format bad, good
-      assert_same good
     end
 
     test "without square brackets" do
