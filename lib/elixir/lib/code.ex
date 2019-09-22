@@ -978,7 +978,7 @@ defmodule Code do
 
     * `:debug_info` - when `true`, retain debug information in the compiled
       module. This allows a developer to reconstruct the original source
-      code. Defaults to `false`.
+      code. Defaults to `true`.
 
     * `:ignore_module_conflict` - when `true`, override modules that were
       already defined without raising errors. Defaults to `false`.
