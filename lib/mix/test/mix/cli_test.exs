@@ -67,6 +67,45 @@ defmodule Mix.CLITest do
     end)
   end
 
+  test "runs the task using the Logger configuration of the project", context do
+    in_tmp(context.test, fn ->
+      File.mkdir_p!("lib")
+
+      File.write!("mix.exs", """
+      defmodule MyProject do
+        use Mix.Project
+
+        def project do
+          [app: :my_project, version: "0.0.1"]
+        end
+      end
+      """)
+
+      File.mkdir_p!("config")
+
+      File.write!("config/config.exs", """
+      import Config
+
+      config :logger, :console, format: "TEST[$level] $message\n"
+      """)
+
+      File.write!("lib/hello.ex", """
+      defmodule Mix.Tasks.LogHello do
+        use Mix.Task
+
+        require Logger
+
+        def run(_) do
+          Logger.info("HELLO")
+        end
+      end
+      """)
+
+      contents = mix(~w[log_hello])
+      assert contents =~ "TEST[info] HELLO\n"
+    end)
+  end
+
   test "no task error", context do
     in_tmp(context.test, fn ->
       contents = mix(~w[no_task])

@@ -1,6 +1,8 @@
 defmodule Mix.CLI do
   @moduledoc false
 
+  @compile {:no_warn_undefined, Logger.App}
+
   @doc """
   Runs Mix according to the command line arguments.
   """
@@ -76,6 +78,8 @@ defmodule Mix.CLI do
     try do
       ensure_no_slashes(name)
       Mix.Task.run("loadconfig")
+      # Restart Logger so it uses the configuration of the project.
+      if logger_configured?(), do: restart_logger()
       Mix.Task.run(name, args)
     rescue
       # We only rescue exceptions in the Mix namespace, all
@@ -88,6 +92,18 @@ defmodule Mix.CLI do
         else
           reraise exception, __STACKTRACE__
         end
+    end
+  end
+
+  defp logger_configured? do
+    :logger in Mix.ProjectStack.config_apps()
+  end
+
+  defp restart_logger do
+    # Mix should not depend directly on Logger, that's why we first check if it's loaded.
+    if Process.whereis(Logger) do
+      Logger.App.stop()
+      :ok = Logger.App.start()
     end
   end
 
