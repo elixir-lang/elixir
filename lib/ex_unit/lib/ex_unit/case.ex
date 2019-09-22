@@ -223,8 +223,6 @@ defmodule ExUnit.Case do
     end
 
     quote do
-      async = !!unquote(opts)[:async]
-
       unless Module.has_attribute?(__MODULE__, :ex_unit_tests) do
         tag_check =
           [:moduletag, :describetag, :tag]
@@ -249,9 +247,15 @@ defmodule ExUnit.Case do
 
         @before_compile ExUnit.Case
         @after_compile ExUnit.Case
-        @ex_unit_async async
+        @ex_unit_async false
         @ex_unit_describe nil
         use ExUnit.Callbacks
+      end
+
+      async = unquote(opts)[:async]
+
+      if is_boolean(async) do
+        @ex_unit_async async
       end
 
       import ExUnit.Callbacks
