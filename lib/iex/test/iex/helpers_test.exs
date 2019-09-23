@@ -1000,6 +1000,18 @@ defmodule IEx.HelpersTest do
     test "does not raise if file is missing and using import_file_if_available" do
       assert "nil" == capture_iex("import_file_if_available \"nonexistent\"")
     end
+
+    test "circular imports" do
+      dot_1 = "import_file \"dot-iex-2\""
+      dot_2 = "import_file \"dot-iex-1\""
+
+      with_file(["dot-iex-1", "dot-iex-2"], [dot_1, dot_2], fn ->
+        capture_io(:stderr, fn ->
+          assert capture_iex("import_file \"dot-iex-2\"") =~
+                   "dot-iex-2 was already imported, circular file imports are not allowed"
+        end)
+      end)
+    end
   end
 
   describe "import_if_available" do
