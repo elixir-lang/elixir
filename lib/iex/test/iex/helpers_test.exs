@@ -978,10 +978,7 @@ defmodule IEx.HelpersTest do
       dot_1 = "variable = :hello\nimport IO"
 
       with_file(["dot-iex", "dot-iex-1"], [dot, dot_1], fn ->
-        capture_io(:stderr, fn ->
-          assert "** (CompileError) iex:1: undefined function parent/0" <> _ =
-                   capture_iex("parent")
-        end)
+        assert "** (CompileError) iex:1: undefined function parent/0" <> _ = capture_iex("parent")
 
         assert "** (CompileError) iex:1: undefined function puts/1" <> _ =
                  capture_iex("puts \"hi\"")
@@ -1006,10 +1003,8 @@ defmodule IEx.HelpersTest do
       dot_2 = "import_file \"dot-iex-1\""
 
       with_file(["dot-iex-1", "dot-iex-2"], [dot_1, dot_2], fn ->
-        capture_io(:stderr, fn ->
-          assert capture_iex("import_file \"dot-iex-2\"") =~
-                   "dot-iex-2 was already imported, circular file imports are not allowed"
-        end)
+        assert capture_iex("import_file \"dot-iex-2\"") =~
+                 "dot-iex-2 was already imported, circular file imports are not allowed"
       end)
     end
   end
