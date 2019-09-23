@@ -669,6 +669,7 @@ defmodule ExUnit.Diff do
 
   defp diff_quoted_struct(kw, struct1, %struct2{} = right, env) do
     if Macro.quoted_literal?(kw) do
+      {kw, []} = Code.eval_quoted(kw, [])
       diff_struct(struct(struct1, kw), Map.new(kw), right, struct1, struct2, env)
     else
       diff_map(Map.new(kw), Map.delete(right, :__struct__), struct1, struct2, env)
@@ -685,7 +686,7 @@ defmodule ExUnit.Diff do
       inspect_right = inspect(right)
 
       if inspect_left != inspect_right do
-        diff_string(inspect_left, inspect_right, ?\", env)
+        diff_string(inspect_left, inspect_right, :none, env)
       else
         diff_map(left, Map.delete(right, :__struct__), struct1, struct2, env)
       end
@@ -846,9 +847,15 @@ defmodule ExUnit.Diff do
     end
   end
 
+  defp block_diff_container(contents, :none),
+    do: {:__block__, [], contents}
+
+  defp block_diff_container(contents, container),
+    do: {:__block__, [diff_container: container], contents}
+
   defp string_script_to_diff([], delimiter, equivalent?, left, right) do
-    left = {:__block__, [diff_container: delimiter], Enum.reverse(left)}
-    right = {:__block__, [diff_container: delimiter], Enum.reverse(right)}
+    left = block_diff_container(Enum.reverse(left), delimiter)
+    right = block_diff_container(Enum.reverse(right), delimiter)
     %__MODULE__{equivalent?: equivalent?, left: left, right: right}
   end
 
@@ -867,14 +874,7 @@ defmodule ExUnit.Diff do
   # Numbers
 
   defp diff_number(left, right, env) do
-    {diff, post_env} = diff_string(inspect(left), inspect(right), ?\", env)
-    diff_left = remove_diff_container_meta(diff.left)
-    diff_right = remove_diff_container_meta(diff.right)
-    {%{diff | left: diff_left, right: diff_right}, post_env}
-  end
-
-  defp remove_diff_container_meta({:__block__, meta, list}) do
-    {:__block__, Keyword.delete(meta, :diff_container), list}
+    diff_string(inspect(left), inspect(right), :none, env)
   end
 
   # Algebra
@@ -1056,7 +1056,7 @@ defmodule ExUnit.Diff do
     do: {left, Keyword.delete(meta, :diff), right}
 
   defp update_diff_meta({left, meta, right}, true),
-    do: {left, [{:diff, true} | Keyword.delete(meta, :diff)], right}
+    do: {left, Keyword.put(meta, :diff, true), right}
 
   defp update_diff_meta(literal, false),
     do: literal
