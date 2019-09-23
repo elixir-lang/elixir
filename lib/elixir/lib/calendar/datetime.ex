@@ -1157,7 +1157,7 @@ defmodule DateTime do
 
   @doc """
   Returns the given datetime with the microsecond field truncated to the given
-  precision (`:microsecond`, `millisecond` or `:second`).
+  precision (`:microsecond`, `:millisecond` or `:second`).
 
   The given datetime is returned unchanged if it already has lower precision than
   the given precision.
