@@ -266,25 +266,26 @@ defmodule Date do
   def from_iso8601(string, calendar \\ Calendar.ISO)
 
   def from_iso8601(<<?-, rest::binary>>, calendar) do
-    with {:ok, %{year: year} = date} <- raw_from_iso8601(rest, calendar) do
-      {:ok, %{date | year: -year}}
+    with {year, month, day} <- raw_from_iso8601(rest),
+         {:ok, date} <- new(-year, month, day, Calendar.ISO) do
+      convert(date, calendar)
     end
   end
 
   def from_iso8601(<<rest::binary>>, calendar) do
-    raw_from_iso8601(rest, calendar)
+    with {year, month, day} <- raw_from_iso8601(rest),
+         {:ok, date} <- new(year, month, day, Calendar.ISO) do
+      convert(date, calendar)
+    end
   end
 
   [match_date, guard_date, read_date] = Calendar.ISO.__match_date__()
 
-  defp raw_from_iso8601(string, calendar) do
+  @doc false
+  def raw_from_iso8601(string) do
     with unquote(match_date) <- string,
          true <- unquote(guard_date) do
-      {year, month, day} = unquote(read_date)
-
-      with {:ok, date} <- new(year, month, day, Calendar.ISO) do
-        convert(date, calendar)
-      end
+      unquote(read_date)
     else
       _ -> {:error, :invalid_format}
     end
@@ -311,8 +312,13 @@ defmodule Date do
         value
 
       {:error, reason} ->
-        raise ArgumentError, "cannot parse #{inspect(string)} as date, reason: #{inspect(reason)}"
+        raise ArgumentError, parse_error(string, reason)
     end
+  end
+
+  @doc false
+  def parse_error(string, reason) do
+    "cannot parse #{inspect(string)} as date, reason: #{inspect(reason)}"
   end
 
   @doc """

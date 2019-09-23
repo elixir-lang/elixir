@@ -4,6 +4,8 @@ Code.require_file("fakes.exs", __DIR__)
 
 defmodule DateTest do
   use ExUnit.Case, async: true
+  alias Calendar.Holocene
+
   doctest Date
 
   test "to_string/1" do
@@ -21,7 +23,7 @@ defmodule DateTest do
     assert inspect(date) == "%Date{calendar: FakeCalendar, day: 1, month: 1, year: 2000}"
 
     date = %{~D[2000-01-01] | calendar: Calendar.Holocene}
-    assert inspect(date) == "2000-1-1 (HE)"
+    assert inspect(date) == "2000-01-01 Calendar.Holocene"
   end
 
   test "compare/2" do
@@ -103,4 +105,14 @@ defmodule DateTest do
     assert Date.diff(date1, date2) == -13
     assert Date.diff(date2, date1) == 13
   end
+
+  test "sigil_D for a calendar other than Calendar.ISO" do
+    assert %Date{year: 10001, month: 1, day: 1, calendar: Calendar.Holocene} ==
+             ~D[10001-01-01 Calendar.Holocene]
+  end
+
+  # test "sigil_D for an aliased calendar other than Calendar.ISO" do
+  #   assert %Date{year: 10001, month: 1, day: 1, calendar: Calendar.Holocene} ==
+  #            ~D[10001-01-01 Holocene]
+  # end
 end

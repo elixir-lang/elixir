@@ -44,7 +44,7 @@ defmodule DateTimeTest do
     }
 
     datetime = %{datetime | calendar: Calendar.Holocene}
-    assert inspect(datetime) == "2000-2-29 23:00:07 BRM (HE)"
+    assert inspect(datetime) == "2000-02-29 23:00:07 BRM Calendar.Holocene"
   end
 
   test "from_iso8601/1 handles positive and negative offsets" do

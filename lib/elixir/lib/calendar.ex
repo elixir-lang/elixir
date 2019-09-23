@@ -309,6 +309,11 @@ defmodule Calendar do
               Inspect.Opts.t()
             ) :: Inspect.Algebra.t()
 
+  @doc """
+  Implements date string parsing in support of `Kernel.sigil_D/2~
+  """
+  @callback parse_date!(String.t()) :: {year(), month(), day()} | no_return()
+
   # General Helpers
 
   @doc """
@@ -360,5 +365,29 @@ defmodule Calendar do
   @spec get_time_zone_database() :: time_zone_database()
   def get_time_zone_database() do
     Application.get_env(:elixir, :time_zone_database, Calendar.UTCOnlyTimeZoneDatabase)
+  end
+
+  @doc false
+  def split_date_time_string(string, caller) do
+    parts = String.split(string, " ", trim: true)
+
+    case List.last(parts) do
+      <<c::utf8, _rest::binary>> = calendar when c in ?A..?Z ->
+        calendar =
+          Module.concat(
+            [calendar]
+            |> Macro.expand(caller)
+          )
+
+        string =
+          parts
+          |> Enum.slice(0..-2)
+          |> Enum.join(" ")
+
+        {string, calendar}
+
+      _other ->
+        {string, Calendar.ISO}
+    end
   end
 end

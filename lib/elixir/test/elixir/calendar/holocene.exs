@@ -24,12 +24,12 @@ defmodule Calendar.Holocene do
 
   @impl true
   def date_to_string(year, month, day) do
-    "#{year}-#{month}-#{day} (HE)"
+    "#{year}-#{pad(month)}-#{pad(day)} #{inspect(__MODULE__)}"
   end
 
   @impl true
   def naive_datetime_to_string(year, month, day, hour, minute, second, microsecond) do
-    "#{year}-#{month}-#{day}" <>
+    "#{year}-#{pad(month)}-#{pad(day)}" <>
       Calendar.ISO.time_to_string(hour, minute, second, microsecond) <> " (HE)"
   end
 
@@ -47,9 +47,13 @@ defmodule Calendar.Holocene do
         _utc_offset,
         _std_offset
       ) do
-    "#{year}-#{month}-#{day} " <>
-      Calendar.ISO.time_to_string(hour, minute, second, microsecond) <> " #{zone_abbr} (HE)"
+    "#{year}-#{pad(month)}-#{pad(day)} " <>
+      Calendar.ISO.time_to_string(hour, minute, second, microsecond) <>
+      " #{zone_abbr} Calendar.Holocene"
   end
+
+  defp pad(unit) when unit < 10, do: "0#{unit}"
+  defp pad(unit), do: unit
 
   @impl true
   defdelegate time_to_string(hour, minute, second, microsecond), to: Calendar.ISO
@@ -127,6 +131,45 @@ defmodule Calendar.Holocene do
         _opts
       ) do
     Calendar.ISO.time_to_string(hour, minute, second, microsecond)
+  end
+
+  @doc """
+  Implements date parsing in support of `Kernel.sigil_D/2` for
+  this calendar
+  """
+  @doc since: "1.10.0"
+  @impl true
+  @spec parse_date!(String.t()) ::
+          {
+            Calendar.year(),
+            Calendar.month(),
+            Calendar.day()
+          }
+          | {:error, atom()}
+
+  def parse_date!(<<?-, rest::binary>>) do
+    {year, month, day} = parse_date!(rest)
+    {-year, month, day}
+  end
+
+  def parse_date!(<<rest::binary>>) do
+    case raw_from_string(rest) do
+      {_year, _month, _day} = raw_date ->
+        raw_date
+
+      {:error, reason} ->
+        raise ArgumentError, Date.parse_error(rest, reason)
+    end
+  end
+
+  def raw_from_string(string) do
+    case String.split(string, "-") do
+      [year, month, day] ->
+        {String.to_integer(year), String.to_integer(month), String.to_integer(day)}
+
+      _ ->
+        {:error, :invalid_format}
+    end
   end
 
   @impl true

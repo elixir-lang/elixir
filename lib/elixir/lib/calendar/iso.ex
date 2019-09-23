@@ -820,6 +820,35 @@ defmodule Calendar.ISO do
     "~T[" <> Calendar.ISO.time_to_string(hour, minute, second, microsecond) <> "]"
   end
 
+  @doc """
+  Implements date parsing in support of `Kernel.sigil_D/2` for
+  this calendar
+  """
+  @doc since: "1.10.0"
+  @impl true
+  @spec parse_date!(String.t()) ::
+          {
+            Calendar.year(),
+            Calendar.month(),
+            Calendar.day()
+          }
+          | no_return()
+
+  def parse_date!(<<?-, rest::binary>>) do
+    {year, month, day} = parse_date!(rest)
+    {-year, month, day}
+  end
+
+  def parse_date!(<<rest::binary>>) do
+    case Date.raw_from_iso8601(rest) do
+      {_year, _month, _day} = raw_date ->
+        raw_date
+
+      {:error, reason} ->
+        raise ArgumentError, Date.parse_error(rest, reason)
+    end
+  end
+
   defp offset_to_string(0, 0, "Etc/UTC", _format), do: "Z"
 
   defp offset_to_string(utc, std, _zone, format) do

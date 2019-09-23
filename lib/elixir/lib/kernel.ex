@@ -5035,7 +5035,10 @@ defmodule Kernel do
   defmacro sigil_D(date_string, modifiers)
 
   defmacro sigil_D({:<<>>, _, [string]}, []) do
-    Macro.escape(Date.from_iso8601!(string))
+    {string, calendar} = Calendar.split_date_time_string(string, __CALLER__)
+    {year, month, day} = calendar.parse_date!(string)
+    {:ok, date} = Date.new(year, month, day, calendar)
+    Macro.escape(date)
   end
 
   @doc ~S"""
