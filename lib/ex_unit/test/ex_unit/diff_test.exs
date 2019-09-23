@@ -18,9 +18,11 @@ defmodule ExUnit.DiffTest do
     defstruct [:data]
 
     defimpl Inspect do
-      def inspect(_, _) do
-        "#Opaque<???>"
-      end
+      def inspect(%{data: data}, _) when is_tuple(data) or is_map(data),
+        do: "#Opaque<data: #{inspect(data)}>"
+
+      def inspect(_, _),
+        do: "#Opaque<???>"
     end
   end
 
@@ -555,11 +557,31 @@ defmodule ExUnit.DiffTest do
     )
   end
 
-  test "structs without inspect difference" do
+  test "structs with inspect difference" do
+    refute_diff(
+      %Opaque{data: 1} = %Opaque{data: 2},
+      "%ExUnit.DiffTest.Opaque{data: -1-}",
+      "%ExUnit.DiffTest.Opaque{data: +2+}"
+    )
+
+    refute_diff(
+      %Opaque{data: %{hello: :world}} = %Opaque{data: %{hello: "world"}},
+      "#Opaque<data: %{hello: -:-world}>",
+      "#Opaque<data: %{hello: +\"+world+\"+}>"
+    )
+  end
+
+  test "structs without inspect difference outside match" do
     refute_diff(
       %Opaque{data: 1} == %Opaque{data: 2},
       "%ExUnit.DiffTest.Opaque{data: -1-}",
       "%ExUnit.DiffTest.Opaque{data: +2+}"
+    )
+
+    refute_diff(
+      %Opaque{data: %{hello: :world}} == %Opaque{data: %{hello: "world"}},
+      "#Opaque<data: %{hello: -:-world}>",
+      "#Opaque<data: %{hello: +\"+world+\"+}>"
     )
   end
 
