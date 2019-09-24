@@ -775,20 +775,10 @@ defmodule DateTime do
       std_offset: std_offset
     } = datetime
 
-    Calendar.ISO.datetime_to_iso8601(
-      year,
-      month,
-      day,
-      hour,
-      minute,
-      second,
-      microsecond,
-      time_zone,
-      zone_abbr,
-      utc_offset,
-      std_offset,
-      format
-    )
+    Calendar.ISO.date_to_string(year, month, day, format) <>
+      "T" <>
+      Calendar.ISO.time_to_string(hour, minute, second, microsecond, format) <>
+      Calendar.ISO.offset_to_string(utc_offset, std_offset, time_zone, format)
   end
 
   def to_iso8601(%{calendar: _} = datetime, format) when format in [:extended, :basic] do

@@ -899,6 +899,28 @@ defmodule Calendar.ISO do
       zone_to_string(utc_offset, std_offset, zone_abbr, time_zone)
   end
 
+  @doc false
+  def offset_to_string(0, 0, "Etc/UTC", _format), do: "Z"
+
+  def offset_to_string(utc, std, _zone, format) do
+    total = utc + std
+    second = abs(total)
+    minute = second |> rem(3600) |> div(60)
+    hour = div(second, 3600)
+    format_offset(total, hour, minute, format)
+  end
+
+  defp format_offset(total, hour, minute, :extended) do
+    sign(total) <> zero_pad(hour, 2) <> ":" <> zero_pad(minute, 2)
+  end
+
+  defp format_offset(total, hour, minute, :basic) do
+    sign(total) <> zero_pad(hour, 2) <> zero_pad(minute, 2)
+  end
+
+  defp zone_to_string(_, _, _, "Etc/UTC"), do: ""
+  defp zone_to_string(_, _, abbr, zone), do: " " <> abbr <> " " <> zone
+
   @doc """
   Determines if the date given is valid according to the proleptic Gregorian calendar.
 
@@ -958,27 +980,6 @@ defmodule Calendar.ISO do
     {0, 1}
   end
 
-  defp offset_to_string(0, 0, "Etc/UTC", _format), do: "Z"
-
-  defp offset_to_string(utc, std, _zone, format) do
-    total = utc + std
-    second = abs(total)
-    minute = second |> rem(3600) |> div(60)
-    hour = div(second, 3600)
-    format_offset(total, hour, minute, format)
-  end
-
-  defp format_offset(total, hour, minute, :extended) do
-    sign(total) <> zero_pad(hour, 2) <> ":" <> zero_pad(minute, 2)
-  end
-
-  defp format_offset(total, hour, minute, :basic) do
-    sign(total) <> zero_pad(hour, 2) <> zero_pad(minute, 2)
-  end
-
-  defp zone_to_string(_, _, _, "Etc/UTC"), do: ""
-  defp zone_to_string(_, _, abbr, zone), do: " " <> abbr <> " " <> zone
-
   defp sign(total) when total < 0, do: "-"
   defp sign(_), do: "+"
 
@@ -1018,42 +1019,6 @@ defmodule Calendar.ISO do
       100_000 -> 5
       _ -> 6
     end
-  end
-
-  @doc false
-  def naive_datetime_to_iso8601(
-        year,
-        month,
-        day,
-        hour,
-        minute,
-        second,
-        microsecond,
-        format \\ :extended
-      ) do
-    date_to_string(year, month, day, format) <>
-      "T" <> time_to_string(hour, minute, second, microsecond, format)
-  end
-
-  @doc false
-  def datetime_to_iso8601(
-        year,
-        month,
-        day,
-        hour,
-        minute,
-        second,
-        microsecond,
-        time_zone,
-        _zone_abbr,
-        utc_offset,
-        std_offset,
-        format \\ :extended
-      ) do
-    date_to_string(year, month, day, format) <>
-      "T" <>
-      time_to_string(hour, minute, second, microsecond, format) <>
-      offset_to_string(utc_offset, std_offset, time_zone, format)
   end
 
   defp parse_microsecond("." <> rest) do

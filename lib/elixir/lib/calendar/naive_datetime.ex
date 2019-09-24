@@ -626,16 +626,8 @@ defmodule NaiveDateTime do
       microsecond: microsecond
     } = naive_datetime
 
-    Calendar.ISO.naive_datetime_to_iso8601(
-      year,
-      month,
-      day,
-      hour,
-      minute,
-      second,
-      microsecond,
-      format
-    )
+    Calendar.ISO.date_to_string(year, month, day, format) <>
+      "T" <> Calendar.ISO.time_to_string(hour, minute, second, microsecond, format)
   end
 
   def to_iso8601(%{calendar: _} = naive_datetime, format) when format in [:basic, :extended] do
