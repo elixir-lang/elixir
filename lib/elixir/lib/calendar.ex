@@ -291,11 +291,11 @@ defmodule Calendar do
               | {:error, atom}
 
   @doc """
-  Parses the string representation for a UTC datetime returned by
+  Parses the string representation for a datetime returned by
   `c:datetime_to_string/11` into a datetime-tuple.
 
-  The effective `Datetime` created by the result of this function
-  will be in UTC with the given `utc_offset`.
+  The returned datetime must be in UTC. The original `utc_offset`
+  it was written in must be returned in the result.
   """
   @callback parse_utc_datetime(String.t()) ::
               {:ok, {year, month, day, hour, minute, second, microsecond}, utc_offset}

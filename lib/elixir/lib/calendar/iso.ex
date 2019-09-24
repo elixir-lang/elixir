@@ -251,16 +251,16 @@ defmodule Calendar.ISO do
       {:ok, {2015, 1, 23, 23, 50, 7, {0, 0}}, 0}
 
       iex> Calendar.ISO.parse_utc_datetime("2015-01-23T23:50:07.123+02:30")
-      {:ok, {2015, 1, 23, 23, 50, 7, {123000, 3}}, 9000}
+      {:ok, {2015, 1, 23, 21, 20, 7, {123000, 3}}, 9000}
 
       iex> Calendar.ISO.parse_utc_datetime("2015-01-23T23:50:07,123+02:30")
-      {:ok, {2015, 1, 23, 23, 50, 7, {123000, 3}}, 9000}
+      {:ok, {2015, 1, 23, 21, 20, 7, {123000, 3}}, 9000}
 
       iex> Calendar.ISO.parse_utc_datetime("-2015-01-23T23:50:07Z")
       {:ok, {-2015, 1, 23, 23, 50, 7, {0, 0}}, 0}
 
       iex> Calendar.ISO.parse_utc_datetime("-2015-01-23T23:50:07,123+02:30")
-      {:ok, {-2015, 1, 23, 23, 50, 7, {123000, 3}}, 9000}
+      {:ok, {-2015, 1, 23, 21, 20, 7, {123000, 3}}, 9000}
 
       iex> Calendar.ISO.parse_utc_datetime("2015-01-23P23:50:07")
       {:error, :invalid_format}
@@ -298,10 +298,25 @@ defmodule Calendar.ISO do
         not valid_time?(hour, minute, second, microsecond) ->
           {:error, :invalid_time}
 
+        offset == 0 ->
+          {:ok, {year, month, day, hour, minute, second, microsecond}, offset}
+
         is_nil(offset) ->
           {:error, :missing_offset}
 
         true ->
+          day_fraction = time_to_day_fraction(hour, minute, second, {0, 0})
+
+          {{year, month, day}, {hour, minute, second, _}} =
+            case add_day_fraction_to_iso_days({0, day_fraction}, -offset, 86400) do
+              {0, day_fraction} ->
+                {{year, month, day}, time_from_day_fraction(day_fraction)}
+
+              {extra_days, day_fraction} ->
+                base_days = date_to_iso_days(year, month, day)
+                {date_from_iso_days(base_days + extra_days), time_from_day_fraction(day_fraction)}
+            end
+
           {:ok, {year, month, day, hour, minute, second, microsecond}, offset}
       end
     else

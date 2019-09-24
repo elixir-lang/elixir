@@ -844,50 +844,19 @@ defmodule DateTime do
   def from_iso8601(string, calendar \\ Calendar.ISO) do
     with {:ok, {year, month, day, hour, minute, second, microsecond}, offset} <-
            Calendar.ISO.parse_utc_datetime(string) do
-      datetime =
-        if offset == 0 do
-          %DateTime{
-            year: year,
-            month: month,
-            day: day,
-            hour: hour,
-            minute: minute,
-            second: second,
-            microsecond: microsecond,
-            std_offset: 0,
-            utc_offset: 0,
-            zone_abbr: "UTC",
-            time_zone: "Etc/UTC"
-          }
-        else
-          day_fraction = Calendar.ISO.time_to_day_fraction(hour, minute, second, {0, 0})
-
-          {{year, month, day}, {hour, minute, second, _}} =
-            case apply_tz_offset({0, day_fraction}, offset) do
-              {0, day_fraction} ->
-                {{year, month, day}, Calendar.ISO.time_from_day_fraction(day_fraction)}
-
-              {extra_days, day_fraction} ->
-                base_days = Calendar.ISO.date_to_iso_days(year, month, day)
-
-                {Calendar.ISO.date_from_iso_days(base_days + extra_days),
-                 Calendar.ISO.time_from_day_fraction(day_fraction)}
-            end
-
-          %DateTime{
-            year: year,
-            month: month,
-            day: day,
-            hour: hour,
-            minute: minute,
-            second: second,
-            microsecond: microsecond,
-            std_offset: 0,
-            utc_offset: 0,
-            zone_abbr: "UTC",
-            time_zone: "Etc/UTC"
-          }
-        end
+      datetime = %DateTime{
+        year: year,
+        month: month,
+        day: day,
+        hour: hour,
+        minute: minute,
+        second: second,
+        microsecond: microsecond,
+        std_offset: 0,
+        utc_offset: 0,
+        zone_abbr: "UTC",
+        time_zone: "Etc/UTC"
+      }
 
       with {:ok, converted} <- convert(datetime, calendar) do
         {:ok, converted, offset}
