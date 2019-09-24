@@ -265,7 +265,6 @@ defmodule Calendar do
   """
   @callback valid_time?(hour, minute, second, microsecond) :: boolean
 
-
   @doc """
   Parses the string representation for a time returned by `c:time_to_string/4`
   into a time-tuple.
