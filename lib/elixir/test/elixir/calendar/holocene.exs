@@ -47,7 +47,7 @@ defmodule Calendar.Holocene do
         _utc_offset,
         _std_offset
       ) do
-    "#{year}-#{month}-#{day} " <>
+    "#{year}-#{month}-#{day}" <>
       Calendar.ISO.time_to_string(hour, minute, second, microsecond) <> " #{zone_abbr} (HE)"
   end
 
@@ -76,57 +76,6 @@ defmodule Calendar.Holocene do
       second,
       microsecond
     )
-  end
-
-  @impl true
-  def inspect_date(year, month, day, _) do
-    date_to_string(year, month, day)
-  end
-
-  @impl true
-  def inspect_datetime(
-        year,
-        month,
-        day,
-        hour,
-        minute,
-        second,
-        microsecond,
-        time_zone,
-        zone_abbr,
-        utc_offset,
-        std_offset,
-        _opts
-      ) do
-    datetime_to_string(
-      year,
-      month,
-      day,
-      hour,
-      minute,
-      second,
-      microsecond,
-      time_zone,
-      zone_abbr,
-      utc_offset,
-      std_offset
-    )
-  end
-
-  @impl true
-  def inspect_naive_datetime(year, month, day, hour, minute, second, microsecond, _opts) do
-    naive_datetime_to_string(year, month, day, hour, minute, second, microsecond)
-  end
-
-  @impl true
-  def inspect_time(
-        hour,
-        minute,
-        second,
-        microsecond,
-        _opts
-      ) do
-    Calendar.ISO.time_to_string(hour, minute, second, microsecond)
   end
 
   @impl true
