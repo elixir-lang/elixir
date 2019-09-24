@@ -186,7 +186,9 @@ defmodule IEx.Evaluator do
 
       # Evaluate the contents in the same environment server_loop will run in
       env = :elixir.env_for_eval(state.env, file: path, line: 1)
+      Process.put(:iex_imported_paths, MapSet.new([path]))
       {_result, binding, env, _scope} = :elixir.eval_forms(quoted, state.binding, env)
+      # Process.delete(:iex_imported_paths)
       %{state | binding: binding, env: :elixir.env_for_eval(env, file: "iex", line: 1)}
     catch
       kind, error ->
@@ -255,8 +257,6 @@ defmodule IEx.Evaluator do
   defp handle_eval({:ok, forms}, code, line, iex_state, state) do
     {result, binding, env, scope} =
       :elixir.eval_forms(forms, state.binding, state.env, state.scope)
-
-    Process.delete(:iex_imported_paths)
 
     unless result == IEx.dont_display_result() do
       io_inspect(result)

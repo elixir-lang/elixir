@@ -1003,7 +1003,7 @@ defmodule IEx.HelpersTest do
       dot_2 = "import_file \"dot-iex-1\""
 
       with_file(["dot-iex-1", "dot-iex-2"], [dot_1, dot_2], fn ->
-        assert capture_iex("import_file \"dot-iex-2\"") =~
+        assert capture_iex("", [], dot_iex_path: "dot-iex-1") =~
                  "dot-iex-2 was already imported, circular file imports are not allowed"
       end)
     end
