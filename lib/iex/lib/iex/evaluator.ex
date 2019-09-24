@@ -188,7 +188,6 @@ defmodule IEx.Evaluator do
       env = :elixir.env_for_eval(state.env, file: path, line: 1)
       Process.put(:iex_imported_paths, MapSet.new([path]))
       {_result, binding, env, _scope} = :elixir.eval_forms(quoted, state.binding, env)
-      # Process.delete(:iex_imported_paths)
       %{state | binding: binding, env: :elixir.env_for_eval(env, file: "iex", line: 1)}
     catch
       kind, error ->
