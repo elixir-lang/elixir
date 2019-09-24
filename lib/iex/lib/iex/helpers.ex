@@ -1068,14 +1068,15 @@ defmodule IEx.Helpers do
     path = Path.expand(path)
 
     if not optional? or File.exists?(path) do
-      imported_paths = Process.get({__MODULE__, :imported_paths}, MapSet.new())
+      imported_paths = Process.get(:iex_imported_paths, MapSet.new())
 
       if path in imported_paths do
+        Process.delete(:iex_imported_paths)
         message = "path #{path} was already imported, circular file imports are not allowed"
         raise ArgumentError, message
       end
 
-      Process.put({__MODULE__, :imported_paths}, MapSet.put(imported_paths, path))
+      Process.put(:iex_imported_paths, MapSet.put(imported_paths, path))
       path |> File.read!() |> Code.string_to_quoted!(file: path)
     end
   end

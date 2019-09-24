@@ -256,6 +256,8 @@ defmodule IEx.Evaluator do
     {result, binding, env, scope} =
       :elixir.eval_forms(forms, state.binding, state.env, state.scope)
 
+    Process.delete(:iex_imported_paths)
+
     unless result == IEx.dont_display_result() do
       io_inspect(result)
     end
