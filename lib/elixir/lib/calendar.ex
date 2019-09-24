@@ -284,6 +284,8 @@ defmodule Calendar do
   @doc """
   Parses the string representation for a naive datetime returned by
   `c:naive_datetime_to_string/7` into a naive-datetime-tuple.
+
+  The given string may contain a timezone offset but it is ignored.
   """
   @callback parse_naive_datetime(String.t()) ::
               {:ok, {year, month, day, hour, minute, second, microsecond}}
