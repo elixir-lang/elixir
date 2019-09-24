@@ -109,9 +109,16 @@ defmodule Calendar.Holocene do
   defdelegate day_of_era(year, month, day), to: Calendar.ISO
 
   @impl true
-  def valid_date?(year, month, day) do
-    :calendar.valid_date(year, month, day)
-  end
+  defdelegate parse_date(string), to: Calendar.ISO
+
+  @impl true
+  defdelegate parse_naive_datetime(string), to: Calendar.ISO
+
+  @impl true
+  defdelegate parse_utc_datetime(string), to: Calendar.ISO
+
+  @impl true
+  defdelegate valid_date?(year, month, day), to: Calendar.ISO
 
   @impl true
   defdelegate valid_time?(hour, minute, second, microsecond), to: Calendar.ISO

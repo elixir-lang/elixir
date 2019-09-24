@@ -213,30 +213,12 @@ defmodule Time do
 
   """
   @spec from_iso8601(String.t(), Calendar.calendar()) :: {:ok, t} | {:error, atom}
-  def from_iso8601(string, calendar \\ Calendar.ISO)
-
-  def from_iso8601(<<?T, rest::binary>>, calendar) do
-    raw_from_iso8601(rest, calendar)
-  end
-
-  def from_iso8601(<<rest::binary>>, calendar) do
-    raw_from_iso8601(rest, calendar)
-  end
-
-  [match_time, guard_time, read_time] = Calendar.ISO.__match_time__()
-
-  defp raw_from_iso8601(string, calendar) do
-    with <<unquote(match_time), rest::binary>> <- string,
-         true <- unquote(guard_time),
-         {microsec, rest} <- Calendar.ISO.parse_microsecond(rest),
-         {_offset, ""} <- Calendar.ISO.parse_offset(rest) do
-      {hour, min, sec} = unquote(read_time)
-
-      with {:ok, utc_time} <- new(hour, min, sec, microsec, Calendar.ISO) do
-        convert(utc_time, calendar)
-      end
-    else
-      _ -> {:error, :invalid_format}
+  def from_iso8601(string, calendar \\ Calendar.ISO) do
+    with {:ok, {hour, minute, second, microsecond}} <- Calendar.ISO.parse_time(string) do
+      convert(
+        %Time{hour: hour, minute: minute, second: second, microsecond: microsecond},
+        calendar
+      )
     end
   end
 

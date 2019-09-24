@@ -851,39 +851,12 @@ defmodule DateTime do
   @doc since: "1.4.0"
   @spec from_iso8601(String.t(), Calendar.calendar()) ::
           {:ok, t, Calendar.utc_offset()} | {:error, atom}
-  def from_iso8601(string, calendar \\ Calendar.ISO)
-
-  def from_iso8601(<<?-, rest::binary>>, calendar) do
-    raw_from_iso8601(rest, calendar, true)
-  end
-
-  def from_iso8601(<<rest::binary>>, calendar) do
-    raw_from_iso8601(rest, calendar, false)
-  end
-
-  @sep [?\s, ?T]
-  [match_date, guard_date, read_date] = Calendar.ISO.__match_date__()
-  [match_time, guard_time, read_time] = Calendar.ISO.__match_time__()
-
-  defp raw_from_iso8601(string, calendar, is_year_negative) do
-    with <<unquote(match_date), sep, unquote(match_time), rest::binary>> <- string,
-         true <- unquote(guard_date) and sep in @sep and unquote(guard_time),
-         {microsecond, rest} <- Calendar.ISO.parse_microsecond(rest),
-         {offset, ""} <- Calendar.ISO.parse_offset(rest) do
-      {year, month, day} = unquote(read_date)
-      {hour, minute, second} = unquote(read_time)
-      year = if is_year_negative, do: -year, else: year
-
-      cond do
-        not calendar.valid_date?(year, month, day) ->
-          {:error, :invalid_date}
-
-        not calendar.valid_time?(hour, minute, second, microsecond) ->
-          {:error, :invalid_time}
-
-        offset == 0 ->
-          datetime = %DateTime{
-            calendar: calendar,
+  def from_iso8601(string, calendar \\ Calendar.ISO) do
+    with {:ok, {year, month, day, hour, minute, second, microsecond}, offset} <-
+           Calendar.ISO.parse_utc_datetime(string) do
+      datetime =
+        if offset == 0 do
+          %DateTime{
             year: year,
             month: month,
             day: day,
@@ -896,13 +869,7 @@ defmodule DateTime do
             zone_abbr: "UTC",
             time_zone: "Etc/UTC"
           }
-
-          {:ok, datetime, 0}
-
-        is_nil(offset) ->
-          {:error, :missing_offset}
-
-        true ->
+        else
           day_fraction = Calendar.ISO.time_to_day_fraction(hour, minute, second, {0, 0})
 
           {{year, month, day}, {hour, minute, second, _}} =
@@ -917,8 +884,7 @@ defmodule DateTime do
                  Calendar.ISO.time_from_day_fraction(day_fraction)}
             end
 
-          datetime = %DateTime{
-            calendar: calendar,
+          %DateTime{
             year: year,
             month: month,
             day: day,
@@ -931,11 +897,11 @@ defmodule DateTime do
             zone_abbr: "UTC",
             time_zone: "Etc/UTC"
           }
+        end
 
-          {:ok, datetime, offset}
+      with {:ok, converted} <- convert(datetime, calendar) do
+        {:ok, converted, offset}
       end
-    else
-      _ -> {:error, :invalid_format}
     end
   end
 

@@ -32,9 +32,9 @@ defmodule Calendar.ISO do
   @microseconds_per_second 1_000_000
   @parts_per_day @seconds_per_day * @microseconds_per_second
 
+  @sep [?\s, ?T]
   @days_per_nonleap_year 365
   @days_per_leap_year 366
-
   @months_in_year 12
 
   # The ISO epoch starts, in this implementation,
@@ -42,8 +42,7 @@ defmodule Calendar.ISO do
   # on ~D[0001-01-01] which is 366 days later.
   @iso_epoch 366
 
-  @doc false
-  def __match_date__ do
+  [match_date, guard_date, read_date] =
     quote do
       [
         <<y1, y2, y3, y4, ?-, m1, m2, ?-, d1, d2>>,
@@ -57,10 +56,8 @@ defmodule Calendar.ISO do
         }
       ]
     end
-  end
 
-  @doc false
-  def __match_time__ do
+  [match_time, guard_time, read_time] =
     quote do
       [
         <<h1, h2, ?:, i1, i2, ?:, s1, s2>>,
@@ -72,6 +69,214 @@ defmodule Calendar.ISO do
           (s1 - ?0) * 10 + (s2 - ?0)
         }
       ]
+    end
+
+  @doc false
+  def parse_time("T" <> string) when is_binary(string),
+    do: do_parse_time(string)
+
+  def parse_time(string) when is_binary(string),
+    do: do_parse_time(string)
+
+  defp do_parse_time(string) do
+    with <<unquote(match_time), rest::binary>> <- string,
+         true <- unquote(guard_time),
+         {microsecond, rest} <- parse_microsecond(rest),
+         {_offset, ""} <- parse_offset(rest) do
+      {hour, minute, second} = unquote(read_time)
+
+      if valid_time?(hour, minute, second, microsecond) do
+        {:ok, {hour, minute, second, microsecond}}
+      else
+        {:error, :invalid_time}
+      end
+    else
+      _ -> {:error, :invalid_format}
+    end
+  end
+
+  @doc """
+  Parses a date string.
+
+  ## Examples
+
+      iex> Calendar.ISO.parse_date("2015-01-23")
+      {:ok, {2015, 1, 23}}
+      iex> Calendar.ISO.parse_date("-2015-01-23")
+      {:ok, {-2015, 1, 23}}
+      iex> Calendar.ISO.parse_date("2015:01:23")
+      {:error, :invalid_format}
+      iex> Calendar.ISO.parse_date("2015-01-32")
+      {:error, :invalid_date}
+
+  """
+  @doc since: "1.10.0"
+  @impl true
+  def parse_date("-" <> string) when is_binary(string),
+    do: parse_date(string, -1)
+
+  def parse_date(string) when is_binary(string),
+    do: parse_date(string, 1)
+
+  defp parse_date(string, multiplier) do
+    with unquote(match_date) <- string, true <- unquote(guard_date) do
+      {year, month, day} = unquote(read_date)
+      year = multiplier * year
+
+      if valid_date?(year, month, day) do
+        {:ok, {year, month, day}}
+      else
+        {:error, :invalid_date}
+      end
+    else
+      _ ->
+        {:error, :invalid_format}
+    end
+  end
+
+  @doc """
+  Parses a naive datetime string.
+
+  ## Examples
+
+      iex> Calendar.ISO.parse_naive_datetime("2015-01-23 23:50:07")
+      {:ok, {2015, 1, 23, 23, 50, 7, {0, 0}}}
+      iex> Calendar.ISO.parse_naive_datetime("2015-01-23T23:50:07")
+      {:ok, {2015, 1, 23, 23, 50, 7, {0, 0}}}
+      iex> Calendar.ISO.parse_naive_datetime("2015-01-23T23:50:07Z")
+      {:ok, {2015, 1, 23, 23, 50, 7, {0, 0}}}
+
+      iex> Calendar.ISO.parse_naive_datetime("2015-01-23 23:50:07.0")
+      {:ok, {2015, 1, 23, 23, 50, 7, {0, 1}}}
+      iex> Calendar.ISO.parse_naive_datetime("2015-01-23 23:50:07,0123456")
+      {:ok, {2015, 1, 23, 23, 50, 7, {12345, 6}}}
+      iex> Calendar.ISO.parse_naive_datetime("2015-01-23 23:50:07.0123456")
+      {:ok, {2015, 1, 23, 23, 50, 7, {12345, 6}}}
+      iex> Calendar.ISO.parse_naive_datetime("2015-01-23T23:50:07.123Z")
+      {:ok, {2015, 1, 23, 23, 50, 7, {123000, 3}}}
+
+      iex> Calendar.ISO.parse_naive_datetime("2015-01-23P23:50:07")
+      {:error, :invalid_format}
+      iex> Calendar.ISO.parse_naive_datetime("2015:01:23 23-50-07")
+      {:error, :invalid_format}
+      iex> Calendar.ISO.parse_naive_datetime("2015-01-23 23:50:07A")
+      {:error, :invalid_format}
+      iex> Calendar.ISO.parse_naive_datetime("2015-01-23 23:50:61")
+      {:error, :invalid_time}
+      iex> Calendar.ISO.parse_naive_datetime("2015-01-32 23:50:07")
+      {:error, :invalid_date}
+
+      iex> Calendar.ISO.parse_naive_datetime("2015-01-23T23:50:07.123+02:30")
+      {:ok, {2015, 1, 23, 23, 50, 7, {123000, 3}}}
+      iex> Calendar.ISO.parse_naive_datetime("2015-01-23T23:50:07.123+00:00")
+      {:ok, {2015, 1, 23, 23, 50, 7, {123000, 3}}}
+      iex> Calendar.ISO.parse_naive_datetime("2015-01-23T23:50:07.123-02:30")
+      {:ok, {2015, 1, 23, 23, 50, 7, {123000, 3}}}
+      iex> Calendar.ISO.parse_naive_datetime("2015-01-23T23:50:07.123-00:00")
+      {:error, :invalid_format}
+      iex> Calendar.ISO.parse_naive_datetime("2015-01-23T23:50:07.123-00:60")
+      {:error, :invalid_format}
+      iex> Calendar.ISO.parse_naive_datetime("2015-01-23T23:50:07.123-24:00")
+      {:error, :invalid_format}
+
+  """
+  @doc since: "1.10.0"
+  @impl true
+  def parse_naive_datetime("-" <> string) when is_binary(string),
+    do: parse_naive_datetime(string, -1)
+
+  def parse_naive_datetime(string) when is_binary(string),
+    do: parse_naive_datetime(string, 1)
+
+  defp parse_naive_datetime(string, multiplier) do
+    with <<unquote(match_date), sep, unquote(match_time), rest::binary>> <- string,
+         true <- unquote(guard_date) and sep in @sep and unquote(guard_time),
+         {microsecond, rest} <- parse_microsecond(rest),
+         {_offset, ""} <- parse_offset(rest) do
+      {year, month, day} = unquote(read_date)
+      {hour, minute, second} = unquote(read_time)
+      year = multiplier * year
+
+      cond do
+        not valid_date?(year, month, day) ->
+          {:error, :invalid_date}
+
+        not valid_time?(hour, minute, second, microsecond) ->
+          {:error, :invalid_time}
+
+        true ->
+          {:ok, {year, month, day, hour, minute, second, microsecond}}
+      end
+    else
+      _ -> {:error, :invalid_format}
+    end
+  end
+
+  @doc """
+  Parses a UTC datetime string.
+
+  ## Examples
+
+      iex> Calendar.ISO.parse_utc_datetime("2015-01-23T23:50:07Z")
+      {:ok, {2015, 1, 23, 23, 50, 7, {0, 0}}, 0}
+
+      iex> Calendar.ISO.parse_utc_datetime("2015-01-23T23:50:07.123+02:30")
+      {:ok, {2015, 1, 23, 23, 50, 7, {123000, 3}}, 9000}
+
+      iex> Calendar.ISO.parse_utc_datetime("2015-01-23T23:50:07,123+02:30")
+      {:ok, {2015, 1, 23, 23, 50, 7, {123000, 3}}, 9000}
+
+      iex> Calendar.ISO.parse_utc_datetime("-2015-01-23T23:50:07Z")
+      {:ok, {-2015, 1, 23, 23, 50, 7, {0, 0}}, 0}
+
+      iex> Calendar.ISO.parse_utc_datetime("-2015-01-23T23:50:07,123+02:30")
+      {:ok, {-2015, 1, 23, 23, 50, 7, {123000, 3}}, 9000}
+
+      iex> Calendar.ISO.parse_utc_datetime("2015-01-23P23:50:07")
+      {:error, :invalid_format}
+      iex> Calendar.ISO.parse_utc_datetime("2015-01-23T23:50:07")
+      {:error, :missing_offset}
+      iex> Calendar.ISO.parse_utc_datetime("2015-01-23 23:50:61")
+      {:error, :invalid_time}
+      iex> Calendar.ISO.parse_utc_datetime("2015-01-32 23:50:07")
+      {:error, :invalid_date}
+      iex> Calendar.ISO.parse_utc_datetime("2015-01-23T23:50:07.123-00:00")
+      {:error, :invalid_format}
+
+  """
+  @doc since: "1.10.0"
+  @impl true
+  def parse_utc_datetime("-" <> string) when is_binary(string),
+    do: parse_utc_datetime(string, -1)
+
+  def parse_utc_datetime(string) when is_binary(string),
+    do: parse_utc_datetime(string, 1)
+
+  defp parse_utc_datetime(string, multiplier) do
+    with <<unquote(match_date), sep, unquote(match_time), rest::binary>> <- string,
+         true <- unquote(guard_date) and sep in @sep and unquote(guard_time),
+         {microsecond, rest} <- parse_microsecond(rest),
+         {offset, ""} <- parse_offset(rest) do
+      {year, month, day} = unquote(read_date)
+      {hour, minute, second} = unquote(read_time)
+      year = multiplier * year
+
+      cond do
+        not valid_date?(year, month, day) ->
+          {:error, :invalid_date}
+
+        not valid_time?(hour, minute, second, microsecond) ->
+          {:error, :invalid_time}
+
+        is_nil(offset) ->
+          {:error, :missing_offset}
+
+        true ->
+          {:ok, {year, month, day, hour, minute, second, microsecond}, offset}
+      end
+    else
+      _ ->
+        {:error, :invalid_format}
     end
   end
 
@@ -601,6 +806,14 @@ defmodule Calendar.ISO do
 
   ## Examples
 
+      iex> time_zone = "Etc/UTC"
+      iex> Calendar.ISO.datetime_to_string(2017, 8, 1, 1, 2, 3, {4, 5}, time_zone, "UTC", 0, 0)
+      "2017-08-01 01:02:03.00000Z"
+      iex> Calendar.ISO.datetime_to_string(2017, 8, 1, 1, 2, 3, {4, 5}, time_zone, "UTC", 3600, 0)
+      "2017-08-01 01:02:03.00000+01:00"
+      iex> Calendar.ISO.datetime_to_string(2017, 8, 1, 1, 2, 3, {4, 5}, time_zone, "UTC", 3600, 3600)
+      "2017-08-01 01:02:03.00000+02:00"
+
       iex> time_zone = "Europe/Berlin"
       iex> Calendar.ISO.datetime_to_string(2017, 8, 1, 1, 2, 3, {4, 5}, time_zone, "CET", 3600, 0)
       "2017-08-01 01:02:03.00000+01:00 CET Europe/Berlin"
@@ -733,7 +946,7 @@ defmodule Calendar.ISO do
     sign(total) <> zero_pad(hour, 2) <> zero_pad(minute, 2)
   end
 
-  defp zone_to_string(0, 0, _abbr, "Etc/UTC"), do: ""
+  defp zone_to_string(_, _, _, "Etc/UTC"), do: ""
   defp zone_to_string(_, _, abbr, zone), do: " " <> abbr <> " " <> zone
 
   defp sign(total) when total < 0, do: "-"
@@ -813,8 +1026,7 @@ defmodule Calendar.ISO do
       offset_to_string(utc_offset, std_offset, time_zone, format)
   end
 
-  @doc false
-  def parse_microsecond("." <> rest) do
+  defp parse_microsecond("." <> rest) do
     case parse_microsecond(rest, 0, "") do
       {"", 0, _} ->
         :error
@@ -828,11 +1040,11 @@ defmodule Calendar.ISO do
     end
   end
 
-  def parse_microsecond("," <> rest) do
+  defp parse_microsecond("," <> rest) do
     parse_microsecond("." <> rest)
   end
 
-  def parse_microsecond(rest) do
+  defp parse_microsecond(rest) do
     {{0, 0}, rest}
   end
 
@@ -841,26 +1053,25 @@ defmodule Calendar.ISO do
 
   defp parse_microsecond(rest, precision, acc), do: {acc, precision, rest}
 
-  @doc false
-  def parse_offset(""), do: {nil, ""}
-  def parse_offset("Z"), do: {0, ""}
-  def parse_offset("-00:00"), do: :error
+  defp parse_offset(""), do: {nil, ""}
+  defp parse_offset("Z"), do: {0, ""}
+  defp parse_offset("-00:00"), do: :error
 
-  def parse_offset(<<?+, hour::2-bytes, ?:, min::2-bytes, rest::binary>>),
+  defp parse_offset(<<?+, hour::2-bytes, ?:, min::2-bytes, rest::binary>>),
     do: parse_offset(1, hour, min, rest)
 
-  def parse_offset(<<?-, hour::2-bytes, ?:, min::2-bytes, rest::binary>>),
+  defp parse_offset(<<?-, hour::2-bytes, ?:, min::2-bytes, rest::binary>>),
     do: parse_offset(-1, hour, min, rest)
 
-  def parse_offset(<<?+, hour::2-bytes, min::2-bytes, rest::binary>>),
+  defp parse_offset(<<?+, hour::2-bytes, min::2-bytes, rest::binary>>),
     do: parse_offset(1, hour, min, rest)
 
-  def parse_offset(<<?-, hour::2-bytes, min::2-bytes, rest::binary>>),
+  defp parse_offset(<<?-, hour::2-bytes, min::2-bytes, rest::binary>>),
     do: parse_offset(-1, hour, min, rest)
 
-  def parse_offset(<<?+, hour::2-bytes, rest::binary>>), do: parse_offset(1, hour, "00", rest)
-  def parse_offset(<<?-, hour::2-bytes, rest::binary>>), do: parse_offset(-1, hour, "00", rest)
-  def parse_offset(_), do: :error
+  defp parse_offset(<<?+, hour::2-bytes, rest::binary>>), do: parse_offset(1, hour, "00", rest)
+  defp parse_offset(<<?-, hour::2-bytes, rest::binary>>), do: parse_offset(-1, hour, "00", rest)
+  defp parse_offset(_), do: :error
 
   defp parse_offset(sign, hour, min, rest) do
     with {hour, ""} when hour < 24 <- Integer.parse(hour),
