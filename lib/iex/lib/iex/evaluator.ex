@@ -194,6 +194,8 @@ defmodule IEx.Evaluator do
         io_result("Error while evaluating: #{path}")
         print_error(kind, error, __STACKTRACE__)
         state
+    after
+      Process.delete(:iex_imported_paths)
     end
   end
 

@@ -1070,7 +1070,6 @@ defmodule IEx.Helpers do
     if not optional? or File.exists?(path) do
       if imported_paths = Process.get(:iex_imported_paths) do
         if path in imported_paths do
-          Process.delete(:iex_imported_paths)
           message = "path #{path} was already imported, circular file imports are not allowed"
           raise ArgumentError, message
         end
