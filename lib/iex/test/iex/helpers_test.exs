@@ -978,7 +978,10 @@ defmodule IEx.HelpersTest do
       dot_1 = "variable = :hello\nimport IO"
 
       with_file(["dot-iex", "dot-iex-1"], [dot, dot_1], fn ->
-        assert "** (CompileError) iex:1: undefined function parent/0" <> _ = capture_iex("parent")
+        capture_io(:stderr, fn ->
+          assert "** (CompileError) iex:1: undefined function parent/0" <> _ =
+                   capture_iex("parent")
+        end)
 
         assert "** (CompileError) iex:1: undefined function puts/1" <> _ =
                  capture_iex("puts \"hi\"")
