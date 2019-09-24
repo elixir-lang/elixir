@@ -109,6 +109,9 @@ defmodule Calendar.Holocene do
   defdelegate day_of_era(year, month, day), to: Calendar.ISO
 
   @impl true
+  defdelegate parse_time(string), to: Calendar.ISO
+
+  @impl true
   defdelegate parse_date(string), to: Calendar.ISO
 
   @impl true

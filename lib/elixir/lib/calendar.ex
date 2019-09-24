@@ -265,6 +265,15 @@ defmodule Calendar do
   """
   @callback valid_time?(hour, minute, second, microsecond) :: boolean
 
+
+  @doc """
+  Parses the string representation for a time returned by `c:time_to_string/4`
+  into a time-tuple.
+  """
+  @callback parse_time(String.t()) ::
+              {:ok, {hour, minute, second, microsecond}}
+              | {:error, atom}
+
   @doc """
   Parses the string representation for a date returned by `c:date_to_string/3`
   into a date-tuple.

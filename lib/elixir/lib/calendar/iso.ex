@@ -71,7 +71,37 @@ defmodule Calendar.ISO do
       ]
     end
 
-  @doc false
+  @doc """
+  Parses a time string.
+
+  ## Examples
+
+      iex> Calendar.ISO.parse_time("23:50:07")
+      {:ok, {23, 50, 7, {0, 0}}}
+      iex> Calendar.ISO.parse_time("23:50:07Z")
+      {:ok, {23, 50, 7, {0, 0}}}
+      iex> Calendar.ISO.parse_time("T23:50:07Z")
+      {:ok, {23, 50, 7, {0, 0}}}
+
+      iex> Calendar.ISO.parse_time("23:50:07,0123456")
+      {:ok, {23, 50, 7, {12345, 6}}}
+      iex> Calendar.ISO.parse_time("23:50:07.0123456")
+      {:ok, {23, 50, 7, {12345, 6}}}
+      iex> Calendar.ISO.parse_time("23:50:07.123Z")
+      {:ok, {23, 50, 7, {123000, 3}}}
+
+      iex> Calendar.ISO.parse_time("2015:01:23 23-50-07")
+      {:error, :invalid_format}
+      iex> Calendar.ISO.parse_time("23:50:07A")
+      {:error, :invalid_format}
+      iex> Calendar.ISO.parse_time("23:50:07.")
+      {:error, :invalid_format}
+      iex> Calendar.ISO.parse_time("23:50:61")
+      {:error, :invalid_time}
+
+  """
+  @doc since: "1.10.0"
+  @impl true
   def parse_time("T" <> string) when is_binary(string),
     do: do_parse_time(string)
 
