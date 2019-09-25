@@ -13,6 +13,9 @@ defmodule DateTest do
     assert ~D[2000-01-01 Calendar.Holocene] ==
              %Date{calendar: Calendar.Holocene, year: 2000, month: 1, day: 1}
 
+    assert ~D[10001-01-01 Calendar.Holocene] ==
+             %Date{calendar: Calendar.Holocene, year: 10001, month: 1, day: 1}
+
     assert_raise ArgumentError,
                  ~s/cannot parse "2000-50-50" as Date for Calendar.ISO, reason: :invalid_date/,
                  fn -> Code.eval_string("~D[2000-50-50]") end
@@ -46,6 +49,12 @@ defmodule DateTest do
 
     date = %{~D[2000-01-01] | calendar: FakeCalendar}
     assert inspect(date) == "~D[1/1/2000 FakeCalendar]"
+  end
+
+  test "inspect/1 roundtrip to to_string/1" do
+    test_string = "~D[2000-01-01 Calendar.Holocene]"
+    {date, []} = Code.eval_string(test_string)
+    assert inspect(date) == test_string
   end
 
   test "compare/2" do
