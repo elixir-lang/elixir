@@ -5021,6 +5021,21 @@ defmodule Kernel do
   @doc ~S"""
   Handles the sigil `~D` for dates.
 
+  By default, this sigil uses the built-in `Calendar.ISO`, which
+  requires dates to be written in the ISO8601 format:
+
+      ~D[yyyy-mm-dd]
+
+  such as:
+
+      ~D[2015-01-13]
+
+  If you are using alternative calendars, any representation can
+  be used as long as you follow the representation by a single space
+  and the calendar name:
+
+      ~D[SOME-REPRESENTATION My.Alternative.Calendar]
+
   The lower case `~d` variant does not exist as interpolation
   and escape characters are not useful for date sigils.
 
@@ -5041,6 +5056,23 @@ defmodule Kernel do
 
   @doc ~S"""
   Handles the sigil `~T` for times.
+
+  By default, this sigil uses the built-in `Calendar.ISO`, which
+  requires times to be written in the ISO8601 format:
+
+      ~T[hh:mm:ss]
+      ~T[hh:mm:ss.ssssss]
+
+  such as:
+
+      ~T[13:00:07]
+      ~T[13:00:07.123]
+
+  If you are using alternative calendars, any representation can
+  be used as long as you follow the representation by a single space
+  and the calendar name:
+
+      ~T[SOME-REPRESENTATION My.Alternative.Calendar]
 
   The lower case `~t` variant does not exist as interpolation
   and escape characters are not useful for time sigils.
@@ -5073,10 +5105,29 @@ defmodule Kernel do
   @doc ~S"""
   Handles the sigil `~N` for naive date times.
 
+  By default, this sigil uses the built-in `Calendar.ISO`, which
+  requires naive datetimes to be written in the ISO8601 format:
+
+      ~N[yyyy-mm-dd hh:mm:ss]
+      ~N[yyyy-mm-dd hh:mm:ss.ssssss]
+      ~N[yyyy-mm-ddThh:mm:ss.ssssss]
+
+  such as:
+
+      ~N[2015-01-13 13:00:07]
+      ~N[2015-01-13T13:00:07.123]
+
+  If you are using alternative calendars, any representation can
+  be used as long as you follow the representation by a single space
+  and the calendar name:
+
+      ~N[SOME-REPRESENTATION My.Alternative.Calendar]
+
   The lower case `~n` variant does not exist as interpolation
   and escape characters are not useful for date time sigils.
 
-  More information on naive date times can be found in the `NaiveDateTime` module.
+  More information on naive date times can be found in the
+  `NaiveDateTime` module.
 
   ## Examples
 
@@ -5107,11 +5158,29 @@ defmodule Kernel do
   @doc ~S"""
   Handles the sigil `~U` to create a UTC `DateTime`.
 
+  By default, this sigil uses the built-in `Calendar.ISO`, which
+  requires naive datetimes to be written in the ISO8601 format:
+
+      ~U[yyyy-mm-dd hh:mm:ssZ]
+      ~U[yyyy-mm-dd hh:mm:ss.ssssssZ]
+      ~U[yyyy-mm-ddThh:mm:ss.ssssss+00:00]
+
+  such as:
+
+      ~U[2015-01-13 13:00:07Z]
+      ~U[2015-01-13T13:00:07.123+00:00]
+
+  If you are using alternative calendars, any representation can
+  be used as long as you follow the representation by a single space
+  and the calendar name:
+
+      ~U[SOME-REPRESENTATION My.Alternative.Calendar]
+
+  The given `datetime_string` must include "Z" or "00:00" offset
+  which marks it as UTC, otherwise an error is raised.
+
   The lower case `~u` variant does not exist as interpolation
   and escape characters are not useful for date time sigils.
-
-  The given `datetime_string` must include "Z" or "00:00" offset which marks it
-  as UTC, otherwise an error is raised.
 
   More information on date times can be found in the `DateTime` module.
 
