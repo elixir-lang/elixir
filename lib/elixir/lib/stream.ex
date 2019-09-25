@@ -793,7 +793,7 @@ defmodule Stream do
   end
 
   @doc """
-  Transforms an existing stream.
+  Transforms shape an existing stream.
 
   It expects an accumulator and a function that receives each stream element
   and an accumulator, and must return a tuple containing a new stream
@@ -803,6 +803,8 @@ defmodule Stream do
   Note: this function is similar to `Enum.flat_map_reduce/3` except the
   latter returns both the flat list and accumulator, while this one returns
   only the stream.
+
+  Original elements of the stream will not be modified.
 
   ## Examples
 
