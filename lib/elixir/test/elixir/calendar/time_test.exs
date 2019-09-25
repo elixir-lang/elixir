@@ -40,7 +40,7 @@ defmodule TimeTest do
     assert Time.to_string(%{time | calendar: FakeCalendar}) == "23::0::7"
   end
 
-  test "Kernel.inspect/1" do
+  test "inspect/1" do
     assert inspect(~T[23:00:07.005]) == "~T[23:00:07.005]"
 
     time = %{~T[23:00:07.005] | calendar: FakeCalendar}

@@ -136,6 +136,33 @@ defmodule DateTimeTest do
              "29/2/2000F23::0::7 Brazil/Manaus BRM -12600 3600"
   end
 
+  test "inspect/1" do
+    utc_datetime = ~U[2000-01-01 23:00:07.005Z]
+    assert inspect(utc_datetime) == "~U[2000-01-01 23:00:07.005Z]"
+
+    assert inspect(%{utc_datetime | calendar: FakeCalendar}) ==
+             "~U[1/1/2000F23::0::7 Etc/UTC UTC 0 0 FakeCalendar]"
+
+    datetime = %DateTime{
+      year: 2000,
+      month: 2,
+      day: 29,
+      zone_abbr: "BRM",
+      hour: 23,
+      minute: 0,
+      second: 7,
+      microsecond: {0, 0},
+      utc_offset: -12600,
+      std_offset: 3600,
+      time_zone: "Brazil/Manaus"
+    }
+
+    assert inspect(datetime) == "#DateTime<2000-02-29 23:00:07-02:30 BRM Brazil/Manaus>"
+
+    assert inspect(%{datetime | calendar: FakeCalendar}) ==
+             "#DateTime<29/2/2000F23::0::7 Brazil/Manaus BRM -12600 3600 FakeCalendar>"
+  end
+
   test "from_iso8601/1 handles positive and negative offsets" do
     assert DateTime.from_iso8601("2015-01-24T09:50:07-10:00") |> elem(1) ==
              %DateTime{

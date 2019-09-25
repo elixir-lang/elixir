@@ -770,7 +770,6 @@ defmodule DateTime do
       second: second,
       microsecond: microsecond,
       time_zone: time_zone,
-      zone_abbr: zone_abbr,
       utc_offset: utc_offset,
       std_offset: std_offset
     } = datetime

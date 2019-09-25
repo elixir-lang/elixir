@@ -92,7 +92,7 @@ defmodule NaiveDateTimeTest do
     assert to_string(ndt) == "1/1/2000F23::0::7"
   end
 
-  test "Kernel.inspect/1" do
+  test "inspect/1" do
     assert inspect(~N[2000-01-01 23:00:07.005]) == "~N[2000-01-01 23:00:07.005]"
     assert inspect(~N[-0100-12-31 23:00:07.005]) == "~N[-0100-12-31 23:00:07.005]"
 

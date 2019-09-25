@@ -40,7 +40,7 @@ defmodule DateTest do
     assert Date.to_string(%{date | calendar: FakeCalendar}) == "1/1/2000"
   end
 
-  test "Kernel.inspect/1" do
+  test "inspect/1" do
     assert inspect(~D[2000-01-01]) == "~D[2000-01-01]"
     assert inspect(~D[-0100-12-31]) == "~D[-0100-12-31]"
 
