@@ -914,7 +914,7 @@ defmodule NaiveDateTime do
   end
 
   defimpl Inspect do
-    def inspect(%{calendar: Calendar.ISO} = naive_datetime, _) do
+    def inspect(naive_datetime, _) do
       %{
         year: year,
         month: month,
@@ -922,17 +922,17 @@ defmodule NaiveDateTime do
         hour: hour,
         minute: minute,
         second: second,
-        microsecond: microsecond
+        microsecond: microsecond,
+        calendar: calendar
       } = naive_datetime
 
       formatted =
-        Calendar.ISO.naive_datetime_to_string(year, month, day, hour, minute, second, microsecond)
+        calendar.naive_datetime_to_string(year, month, day, hour, minute, second, microsecond)
 
-      "~N[" <> formatted <> "]"
+      "~N[" <> formatted <> suffix(calendar) <> "]"
     end
 
-    def inspect(naive, opts) do
-      Inspect.Any.inspect(naive, opts)
-    end
+    defp suffix(Calendar.ISO), do: ""
+    defp suffix(calendar), do: " " <> inspect(calendar)
   end
 end

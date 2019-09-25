@@ -6,6 +6,108 @@ defmodule DateTimeTest do
   use ExUnit.Case
   doctest DateTime
 
+  test "sigil_U" do
+    assert ~U[2000-01-01T12:34:56Z] ==
+             %DateTime{
+               calendar: Calendar.ISO,
+               year: 2000,
+               month: 1,
+               day: 1,
+               hour: 12,
+               minute: 34,
+               second: 56,
+               std_offset: 0,
+               utc_offset: 0,
+               time_zone: "Etc/UTC",
+               zone_abbr: "UTC"
+             }
+
+    assert ~U[2000-01-01T12:34:56+00:00 Calendar.Holocene] ==
+             %DateTime{
+               calendar: Calendar.Holocene,
+               year: 2000,
+               month: 1,
+               day: 1,
+               hour: 12,
+               minute: 34,
+               second: 56,
+               std_offset: 0,
+               utc_offset: 0,
+               time_zone: "Etc/UTC",
+               zone_abbr: "UTC"
+             }
+
+    assert ~U[2000-01-01 12:34:56+00:00] ==
+             %DateTime{
+               calendar: Calendar.ISO,
+               year: 2000,
+               month: 1,
+               day: 1,
+               hour: 12,
+               minute: 34,
+               second: 56,
+               std_offset: 0,
+               utc_offset: 0,
+               time_zone: "Etc/UTC",
+               zone_abbr: "UTC"
+             }
+
+    assert ~U[2000-01-01 12:34:56Z Calendar.Holocene] ==
+             %DateTime{
+               calendar: Calendar.Holocene,
+               year: 2000,
+               month: 1,
+               day: 1,
+               hour: 12,
+               minute: 34,
+               second: 56,
+               std_offset: 0,
+               utc_offset: 0,
+               time_zone: "Etc/UTC",
+               zone_abbr: "UTC"
+             }
+
+    assert_raise ArgumentError,
+                 ~s/cannot parse "2001-50-50T12:34:56Z" as UTC DateTime for Calendar.ISO, reason: :invalid_date/,
+                 fn -> Code.eval_string("~U[2001-50-50T12:34:56Z]") end
+
+    assert_raise ArgumentError,
+                 ~s/cannot parse "2001-01-01T12:34:65Z" as UTC DateTime for Calendar.ISO, reason: :invalid_time/,
+                 fn -> Code.eval_string("~U[2001-01-01T12:34:65Z]") end
+
+    assert_raise ArgumentError,
+                 ~s/cannot parse "2001-01-01T12:34:56\+01:00" as UTC DateTime for Calendar.ISO, reason: :non_utc_offset/,
+                 fn -> Code.eval_string("~U[2001-01-01T12:34:56+01:00]") end
+
+    assert_raise ArgumentError,
+                 ~s/cannot parse "2001-01-01 12:34:56Z notalias" as UTC DateTime for Calendar.ISO, reason: :invalid_format/,
+                 fn -> Code.eval_string("~U[2001-01-01 12:34:56Z notalias]") end
+
+    assert_raise ArgumentError,
+                 ~s/cannot parse "2001-01-01T12:34:56Z notalias" as UTC DateTime for Calendar.ISO, reason: :invalid_format/,
+                 fn -> Code.eval_string("~U[2001-01-01T12:34:56Z notalias]") end
+
+    assert_raise ArgumentError,
+                 ~s/cannot parse "2001-50-50T12:34:56Z" as UTC DateTime for Calendar.Holocene, reason: :invalid_date/,
+                 fn -> Code.eval_string("~U[2001-50-50T12:34:56Z Calendar.Holocene]") end
+
+    assert_raise ArgumentError,
+                 ~s/cannot parse "2001-01-01T12:34:65Z" as UTC DateTime for Calendar.Holocene, reason: :invalid_time/,
+                 fn -> Code.eval_string("~U[2001-01-01T12:34:65Z Calendar.Holocene]") end
+
+    assert_raise ArgumentError,
+                 ~s/cannot parse "2001-01-01T12:34:56+01:00 Calendar.Holocene" as UTC DateTime for Calendar.Holocene, reason: :non_utc_offset/,
+                 fn -> Code.eval_string("~U[2001-01-01T12:34:56+01:00 Calendar.Holocene]") end
+
+    assert_raise UndefinedFunctionError, fn ->
+      Code.eval_string("~U[2001-01-01 12:34:56 UnknownCalendar]")
+    end
+
+    assert_raise UndefinedFunctionError, fn ->
+      Code.eval_string("~U[2001-01-01T12:34:56 UnknownCalendar]")
+    end
+  end
+
   test "to_string/1" do
     datetime = %DateTime{
       year: 2000,
@@ -26,6 +128,12 @@ defmodule DateTimeTest do
 
     assert DateTime.to_string(Map.from_struct(datetime)) ==
              "2000-02-29 23:00:07-02:30 BRM Brazil/Manaus"
+
+    assert to_string(%{datetime | calendar: FakeCalendar}) ==
+             "29/2/2000F23::0::7 Brazil/Manaus BRM -12600 3600"
+
+    assert DateTime.to_string(%{datetime | calendar: FakeCalendar}) ==
+             "29/2/2000F23::0::7 Brazil/Manaus BRM -12600 3600"
   end
 
   test "from_iso8601/1 handles positive and negative offsets" do

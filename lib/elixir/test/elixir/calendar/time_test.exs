@@ -6,12 +6,45 @@ defmodule TimeTest do
   use ExUnit.Case, async: true
   doctest Time
 
+  test "sigil_T" do
+    assert ~T[12:34:56] ==
+             %Time{calendar: Calendar.ISO, hour: 12, minute: 34, second: 56}
+
+    assert ~T[12:34:56 Calendar.Holocene] ==
+             %Time{calendar: Calendar.Holocene, hour: 12, minute: 34, second: 56}
+
+    assert_raise ArgumentError,
+                 ~s/cannot parse "12:34:65" as Time for Calendar.ISO, reason: :invalid_time/,
+                 fn -> Code.eval_string("~T[12:34:65]") end
+
+    assert_raise ArgumentError,
+                 ~s/cannot parse "12:34:56 notalias" as Time for Calendar.ISO, reason: :invalid_format/,
+                 fn -> Code.eval_string("~T[12:34:56 notalias]") end
+
+    assert_raise ArgumentError,
+                 ~s/cannot parse "12:34:65" as Time for Calendar.Holocene, reason: :invalid_time/,
+                 fn -> Code.eval_string("~T[12:34:65 Calendar.Holocene]") end
+
+    assert_raise UndefinedFunctionError, fn ->
+      Code.eval_string("~T[12:34:56 UnknownCalendar]")
+    end
+  end
+
   test "to_string/1" do
-    assert to_string(~T[23:00:07.005]) == "23:00:07.005"
+    time = ~T[23:00:07.005]
+    assert to_string(time) == "23:00:07.005"
+    assert Time.to_string(time) == "23:00:07.005"
+    assert Time.to_string(Map.from_struct(time)) == "23:00:07.005"
+
+    assert to_string(%{time | calendar: FakeCalendar}) == "23::0::7"
+    assert Time.to_string(%{time | calendar: FakeCalendar}) == "23::0::7"
   end
 
   test "Kernel.inspect/1" do
     assert inspect(~T[23:00:07.005]) == "~T[23:00:07.005]"
+
+    time = %{~T[23:00:07.005] | calendar: FakeCalendar}
+    assert inspect(time) == "~T[23::0::7 FakeCalendar]"
   end
 
   test "compare/2" do

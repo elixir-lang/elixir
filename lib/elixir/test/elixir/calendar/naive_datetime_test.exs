@@ -6,11 +6,90 @@ defmodule NaiveDateTimeTest do
   use ExUnit.Case, async: true
   doctest NaiveDateTime
 
+  test "sigil_N" do
+    assert ~N[2000-01-01T12:34:56] ==
+             %NaiveDateTime{
+               calendar: Calendar.ISO,
+               year: 2000,
+               month: 1,
+               day: 1,
+               hour: 12,
+               minute: 34,
+               second: 56
+             }
+
+    assert ~N[2000-01-01T12:34:56 Calendar.Holocene] ==
+             %NaiveDateTime{
+               calendar: Calendar.Holocene,
+               year: 2000,
+               month: 1,
+               day: 1,
+               hour: 12,
+               minute: 34,
+               second: 56
+             }
+
+    assert ~N[2000-01-01 12:34:56] ==
+             %NaiveDateTime{
+               calendar: Calendar.ISO,
+               year: 2000,
+               month: 1,
+               day: 1,
+               hour: 12,
+               minute: 34,
+               second: 56
+             }
+
+    assert ~N[2000-01-01 12:34:56 Calendar.Holocene] ==
+             %NaiveDateTime{
+               calendar: Calendar.Holocene,
+               year: 2000,
+               month: 1,
+               day: 1,
+               hour: 12,
+               minute: 34,
+               second: 56
+             }
+
+    assert_raise ArgumentError,
+                 ~s/cannot parse "2001-50-50T12:34:56" as NaiveDateTime for Calendar.ISO, reason: :invalid_date/,
+                 fn -> Code.eval_string("~N[2001-50-50T12:34:56]") end
+
+    assert_raise ArgumentError,
+                 ~s/cannot parse "2001-01-01T12:34:65" as NaiveDateTime for Calendar.ISO, reason: :invalid_time/,
+                 fn -> Code.eval_string("~N[2001-01-01T12:34:65]") end
+
+    assert_raise ArgumentError,
+                 ~s/cannot parse "2001-01-01 12:34:56 notalias" as NaiveDateTime for Calendar.ISO, reason: :invalid_format/,
+                 fn -> Code.eval_string("~N[2001-01-01 12:34:56 notalias]") end
+
+    assert_raise ArgumentError,
+                 ~s/cannot parse "2001-01-01T12:34:56 notalias" as NaiveDateTime for Calendar.ISO, reason: :invalid_format/,
+                 fn -> Code.eval_string("~N[2001-01-01T12:34:56 notalias]") end
+
+    assert_raise ArgumentError,
+                 ~s/cannot parse "2001-50-50T12:34:56" as NaiveDateTime for Calendar.Holocene, reason: :invalid_date/,
+                 fn -> Code.eval_string("~N[2001-50-50T12:34:56 Calendar.Holocene]") end
+
+    assert_raise ArgumentError,
+                 ~s/cannot parse "2001-01-01T12:34:65" as NaiveDateTime for Calendar.Holocene, reason: :invalid_time/,
+                 fn -> Code.eval_string("~N[2001-01-01T12:34:65 Calendar.Holocene]") end
+
+    assert_raise UndefinedFunctionError, fn ->
+      Code.eval_string("~N[2001-01-01 12:34:56 UnknownCalendar]")
+    end
+
+    assert_raise UndefinedFunctionError, fn ->
+      Code.eval_string("~N[2001-01-01T12:34:56 UnknownCalendar]")
+    end
+  end
+
   test "to_string/1" do
     assert to_string(~N[2000-01-01 23:00:07.005]) == "2000-01-01 23:00:07.005"
+    assert NaiveDateTime.to_string(~N[2000-01-01 23:00:07.005]) == "2000-01-01 23:00:07.005"
 
     ndt = %{~N[2000-01-01 23:00:07.005] | calendar: FakeCalendar}
-    assert to_string(ndt) == "boom"
+    assert to_string(ndt) == "1/1/2000F23::0::7"
   end
 
   test "Kernel.inspect/1" do
@@ -18,10 +97,7 @@ defmodule NaiveDateTimeTest do
     assert inspect(~N[-0100-12-31 23:00:07.005]) == "~N[-0100-12-31 23:00:07.005]"
 
     ndt = %{~N[2000-01-01 23:00:07.005] | calendar: FakeCalendar}
-
-    assert inspect(ndt) ==
-             "%NaiveDateTime{calendar: FakeCalendar, day: 1, hour: 23, " <>
-               "microsecond: {5000, 3}, minute: 0, month: 1, second: 7, year: 2000}"
+    assert inspect(ndt) == "~N[1/1/2000F23::0::7 FakeCalendar]"
   end
 
   test "compare/2" do
