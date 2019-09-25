@@ -447,36 +447,31 @@ defmodule Logger do
   @compile {:inline, __metadata__: 0}
 
   defp __metadata__ do
-    Process.get(@metadata) || {true, []}
+    Process.get(@metadata, true)
   end
 
   @doc """
   Alters the current process metadata according the given keyword list.
-
   This function will merge the given keyword list into the existing metadata,
   with the exception of setting a key to `nil`, which will remove that key
   from the metadata.
   """
   @spec metadata(metadata) :: :ok
   def metadata(keyword) do
-    {enabled?, metadata} = __metadata__()
-    Process.put(@metadata, {enabled?, into_metadata(keyword, metadata)})
-    :ok
+    case :logger.get_process_metadata() do
+      :undefined ->
+        :ok = :logger.set_process_metadata(filter_out_nils(keyword))
+
+      map when is_map(map) ->
+        merged = Enum.into(keyword, map)
+        metadata = filter_out_nils(merged)
+
+        :ok = :logger.set_process_metadata(metadata)
+    end
   end
 
-  defp into_metadata([], metadata), do: metadata
-  defp into_metadata(keyword, metadata), do: into_metadata(keyword, [], metadata)
-
-  defp into_metadata([{key, nil} | keyword], prepend, metadata) do
-    into_metadata(keyword, prepend, :lists.keydelete(key, 1, metadata))
-  end
-
-  defp into_metadata([{key, _} = pair | keyword], prepend, metadata) do
-    into_metadata(keyword, [pair | prepend], :lists.keydelete(key, 1, metadata))
-  end
-
-  defp into_metadata([], prepend, metadata) do
-    prepend ++ metadata
+  defp filter_out_nils(enumerable) do
+    for {_k, v} = elem <- enumerable, v != nil, into: %{}, do: elem
   end
 
   @doc """
@@ -484,7 +479,10 @@ defmodule Logger do
   """
   @spec metadata() :: metadata
   def metadata() do
-    __metadata__() |> elem(1)
+    case :logger.get_process_metadata() do
+      :undefined -> []
+      map when is_map(map) -> Map.to_list(map)
+    end
   end
 
   @doc """
@@ -492,8 +490,7 @@ defmodule Logger do
   """
   @spec reset_metadata(metadata) :: :ok
   def reset_metadata(keywords \\ []) do
-    {enabled?, _metadata} = __metadata__()
-    Process.put(@metadata, {enabled?, []})
+    :ok = :logger.set_process_metadata(%{})
     metadata(keywords)
   end
 
@@ -504,7 +501,7 @@ defmodule Logger do
   """
   @spec enable(pid) :: :ok
   def enable(pid) when pid == self() do
-    Process.put(@metadata, {true, metadata()})
+    Process.put(@metadata, true)
     :ok
   end
 
@@ -515,7 +512,7 @@ defmodule Logger do
   """
   @spec disable(pid) :: :ok
   def disable(pid) when pid == self() do
-    Process.put(@metadata, {false, metadata()})
+    Process.put(@metadata, false)
     :ok
   end
 
@@ -698,22 +695,36 @@ defmodule Logger do
 
   @doc false
   def __should_log__(level) when level in @levels do
-    case __metadata__() do
-      {true, pdict} ->
-        case Logger.Config.log_data(level) do
-          {:discard, _config} -> :error
-          {mode, config} -> {level, mode, config, pdict}
-        end
-
-      {false, _} ->
-        :error
+    if __metadata__() do
+      case Logger.Config.log_data(level) do
+        {:discard, _config} -> :error
+        {mode, config} -> {level, mode, config, metadata()}
+      end
+    else
+      :error
     end
+  end
+
+  defp into_metadata([], metadata), do: metadata
+  defp into_metadata(keyword, metadata), do: into_metadata(keyword, [], metadata)
+
+  defp into_metadata([{key, nil} | keyword], prepend, metadata) do
+    into_metadata(keyword, prepend, :lists.keydelete(key, 1, metadata))
+  end
+
+  defp into_metadata([{key, _} = pair | keyword], prepend, metadata) do
+    into_metadata(keyword, [pair | prepend], :lists.keydelete(key, 1, metadata))
+  end
+
+  defp into_metadata([], prepend, metadata) do
+    prepend ++ metadata
   end
 
   @doc false
   def __do_log__({level, mode, config, pdict}, chardata_or_fun, metadata)
       when is_list(metadata) do
     %{utc_log: utc_log?, truncate: truncate} = config
+
     metadata = [pid: self()] ++ into_metadata(metadata, pdict)
 
     case normalize_message(chardata_or_fun, metadata) do
