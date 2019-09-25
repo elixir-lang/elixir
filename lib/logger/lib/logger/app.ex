@@ -18,6 +18,7 @@ defmodule Logger.App do
     otp_reports? = Application.fetch_env!(:logger, :handle_otp_reports)
 
     primary_config = add_elixir_handler(otp_reports?, config)
+
     default_handlers =
       if otp_reports? do
         delete_erlang_handler()
@@ -92,13 +93,14 @@ defmodule Logger.App do
       level: :all,
       config: data,
       filter_default: :log,
-      filters: if not otp_reports? do
-        [
-          filter_elixir: {&Logger.Filter.elixir_domain/2, :ignore}
-        ]
-      else
-        []
-      end
+      filters:
+        if not otp_reports? do
+          [
+            filter_elixir: {&Logger.Filter.elixir_domain/2, :ignore}
+          ]
+        else
+          []
+        end
     }
 
     primary_config = :logger.get_primary_config()
