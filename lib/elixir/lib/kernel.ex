@@ -5153,7 +5153,8 @@ defmodule Kernel do
 
   defp parse_with_calendar!(string, fun, context) do
     {calendar, string} = extract_calendar(string)
-    {calendar |> apply(fun, [string]) |> maybe_raise!(calendar, context, string), calendar}
+    result = apply(calendar, fun, [string])
+    {maybe_raise!(result, calendar, context, string), calendar}
   end
 
   defp extract_calendar(string) do
