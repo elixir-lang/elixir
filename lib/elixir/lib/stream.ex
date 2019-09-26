@@ -809,13 +809,13 @@ defmodule Stream do
   many of the functions defined in this module. For example, we can implement
   `Stream.take(enum, n)` as follows:
 
-      iex> enum = 1..100
+      iex> enum = 1001..9999
       iex> n = 3
       iex> stream = Stream.transform(enum, 0, fn i, acc ->
       ...>   if acc < n, do: {[i], acc + 1}, else: {:halt, acc}
       ...> end)
       iex> Enum.to_list(stream)
-      [1, 2, 3]
+      [1001, 1002, 1003]
 
   """
   @spec transform(Enumerable.t(), acc, fun) :: Enumerable.t()
