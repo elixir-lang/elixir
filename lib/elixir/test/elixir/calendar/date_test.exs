@@ -10,8 +10,8 @@ defmodule DateTest do
     assert ~D[2000-01-01] ==
              %Date{calendar: Calendar.ISO, year: 2000, month: 1, day: 1}
 
-    assert ~D[2000-01-01 Calendar.Holocene] ==
-             %Date{calendar: Calendar.Holocene, year: 2000, month: 1, day: 1}
+    assert ~D[20001-01-01 Calendar.Holocene] ==
+             %Date{calendar: Calendar.Holocene, year: 20001, month: 1, day: 1}
 
     assert_raise ArgumentError,
                  ~s/cannot parse "2000-50-50" as Date for Calendar.ISO, reason: :invalid_date/,
@@ -22,8 +22,8 @@ defmodule DateTest do
                  fn -> Code.eval_string("~D[2000-50-50 notalias]") end
 
     assert_raise ArgumentError,
-                 ~s/cannot parse "2000-50-50" as Date for Calendar.Holocene, reason: :invalid_date/,
-                 fn -> Code.eval_string("~D[2000-50-50 Calendar.Holocene]") end
+                 ~s/cannot parse "20001-50-50" as Date for Calendar.Holocene, reason: :invalid_date/,
+                 fn -> Code.eval_string("~D[20001-50-50 Calendar.Holocene]") end
 
     assert_raise UndefinedFunctionError, fn ->
       Code.eval_string("~D[2000-01-01 UnknownCalendar]")
