@@ -793,18 +793,15 @@ defmodule Stream do
   end
 
   @doc """
-  Transforms shape an existing stream.
+  Transforms an existing stream.
 
   It expects an accumulator and a function that receives each stream element
-  and an accumulator, and must return a tuple containing a new stream
-  (often a list) with the new accumulator or a tuple with `:halt` as first
-  element and the accumulator as second.
+  and an accumulator. It must return a tuple, where the first element is a new
+  stream (often a list) or the atom `:halt`, and the second element is the
+  accumulator to be used by the next element, if any, in both cases.
 
-  Note: this function is similar to `Enum.flat_map_reduce/3` except the
-  latter returns both the flat list and accumulator, while this one returns
-  only the stream.
-
-  Original elements of the stream will not be modified.
+  Note: this function is equivalent to `Enum.flat_map_reduce/3`, except this
+  function does not return the accumulator once the stream is procecssed.
 
   ## Examples
 
