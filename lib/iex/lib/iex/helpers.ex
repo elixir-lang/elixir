@@ -1070,8 +1070,7 @@ defmodule IEx.Helpers do
     if not optional? or File.exists?(path) do
       if imported_paths = Process.get(:iex_imported_paths) do
         if path in imported_paths do
-          message = "path #{path} was already imported, circular file imports are not allowed"
-          IO.warn(message, [])
+          IO.warn("path #{path} was already imported, skipping circular file imports", [])
         else
           Process.put(:iex_imported_paths, MapSet.put(imported_paths, path))
           path |> File.read!() |> Code.string_to_quoted!(file: path)
