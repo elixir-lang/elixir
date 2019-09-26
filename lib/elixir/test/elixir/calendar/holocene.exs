@@ -80,8 +80,7 @@ defmodule Calendar.Holocene do
   end
 
   defp zero_pad(val, count) when val >= 0 do
-    num = Integer.to_string(val)
-    :binary.copy("0", max(count - byte_size(num), 0)) <> num
+    String.pad_leading("#{val}", count, ["0"])
   end
 
   defp zero_pad(val, count) do
