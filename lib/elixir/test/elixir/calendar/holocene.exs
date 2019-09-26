@@ -104,16 +104,8 @@ defmodule Calendar.Holocene do
   end
 
   @impl true
-  def valid_date?(year, month, day) when year >= 10_000 do
-    Calendar.ISO.valid_date?(year - 10_000, month, day)
-  end
-
-  def valid_date?(year, month, day) when year <= -10_000 do
-    Calendar.ISO.valid_date?(year + 10_000, month, day)
-  end
-
   def valid_date?(year, month, day) do
-    Calendar.ISO.valid_date?(year, month, day)
+    :calendar.valid_date(year, month, day)
   end
 
   @impl true
