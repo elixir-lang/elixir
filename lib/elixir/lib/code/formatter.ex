@@ -1145,7 +1145,7 @@ defmodule Code.Formatter do
 
   defp call_args_to_algebra_no_blocks(meta, args, skip_parens?, list_to_keyword?, extra, state) do
     {left, right} = split_last(args)
-    {keyword?, right} = last_arg_to_keyword(right, list_to_keyword?)
+    {keyword?, right} = last_arg_to_keyword(right, list_to_keyword?, skip_parens?, state.comments)
 
     context =
       if left == [] and not keyword? do
@@ -2169,17 +2169,41 @@ defmodule Code.Formatter do
   end
 
   # A literal list is a keyword or (... -> ...)
-  defp last_arg_to_keyword([_ | _] = arg, _list_to_keyword?) do
+  defp last_arg_to_keyword([_ | _] = arg, _list_to_keyword?, _skip_parens?, _comments) do
     {keyword?(arg), arg}
   end
 
   # This is a list of tuples, it can be converted to keywords.
-  defp last_arg_to_keyword({:__block__, _, [[_ | _] = arg]} = block, true) do
-    if keyword?(arg), do: {true, arg}, else: {false, block}
+  defp last_arg_to_keyword(
+         {:__block__, meta, [[_ | _] = arg]} = block,
+         true,
+         skip_parens?,
+         comments
+       ) do
+    cond do
+      not keyword?(arg) ->
+        {false, block}
+
+      skip_parens? ->
+        block_line = line(meta)
+        {{_, arg_meta, _}, _} = hd(arg)
+        first_line = line(arg_meta)
+
+        case Enum.drop_while(comments, fn {line, _, _} -> line <= block_line end) do
+          [{line, _, _} | _] when line <= first_line ->
+            {false, block}
+
+          _ ->
+            {true, arg}
+        end
+
+      true ->
+        {true, arg}
+    end
   end
 
   # Otherwise we don't have a keyword.
-  defp last_arg_to_keyword(arg, _list_to_keyword?) do
+  defp last_arg_to_keyword(arg, _list_to_keyword?, _skip_parens?, _comments) do
     {false, arg}
   end
 
