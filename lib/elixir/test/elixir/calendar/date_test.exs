@@ -48,12 +48,6 @@ defmodule DateTest do
     assert inspect(date) == "~D[1/1/2000 FakeCalendar]"
   end
 
-  test "inspect/1 roundtrip to to_string/1" do
-    test_string = "~D[20001-01-01 Calendar.Holocene]"
-    {date, []} = Code.eval_string(test_string)
-    assert inspect(date) == test_string
-  end
-
   test "compare/2" do
     date1 = ~D[-0001-12-30]
     date2 = ~D[-0001-12-31]
