@@ -801,7 +801,7 @@ defmodule Stream do
   accumulator to be used by the next element, if any, in both cases.
 
   Note: this function is equivalent to `Enum.flat_map_reduce/3`, except this
-  function does not return the accumulator once the stream is procecssed.
+  function does not return the accumulator once the stream is processed.
 
   ## Examples
 
