@@ -711,8 +711,116 @@ defmodule ArgumentError do
     {%{exception | message: message}, stacktrace}
   end
 
+  def blame(
+        %{message: "argument error"} = exception,
+        [{:ets, fun, args, _} | _] = stacktrace
+      ) do
+    {%{exception | message: blame_ets(fun, args)}, stacktrace}
+  end
+
   def blame(exception, stacktrace) do
     {exception, stacktrace}
+  end
+
+  defp blame_ets(:insert, [table, record]) do
+    with false <- ets_table_missing?(table),
+         false <- ets_record_too_small?(table, record),
+         false <- ets_table_write_protected?(table) do
+      "argument error calling :ets.insert/2"
+    end
+  end
+
+  defp blame_ets(:insert_new, [table, record]) do
+    with false <- ets_table_missing?(table),
+         false <- ets_record_too_small?(table, record),
+         false <- ets_table_write_protected?(table) do
+      "argument error calling :ets.insert_new/2"
+    end
+  end
+
+  defp blame_ets(:lookup, [table, _key]) do
+    with false <- ets_table_missing?(table),
+         false <- ets_table_read_protected?(table) do
+      "argument error calling :ets.lookup/2"
+    end
+  end
+
+  defp blame_ets(:lookup_element, [table, key, pos]) do
+    with false <- ets_table_missing?(table),
+         false <- ets_table_read_protected?(table),
+         false <- ets_record_missing?(table, key),
+         false <- ets_position_out_of_bounds?(table, key, pos) do
+      "argument error calling :ets.lookup_element/3"
+    end
+  end
+
+  defp blame_ets(fun, args) do
+    "argument error calling :ets fun: #{inspect(fun)} args: #{inspect(args)}"
+  end
+
+  defp ets_table_missing?(table) do
+    case :ets.info(table) do
+      :undefined -> "ets table not found: #{inspect(table)}"
+      _ -> false
+    end
+  end
+
+  defp ets_record_too_small?(table, record) do
+    keypos = :ets.info(table)[:keypos]
+    record_size = tuple_size(record)
+
+    if keypos > record_size do
+      "record too small: record is size #{record_size} but the key position for #{inspect(table)} is #{
+        keypos
+      }"
+    else
+      false
+    end
+  end
+
+  defp ets_table_write_protected?(table) do
+    info = :ets.info(table)
+
+    if info[:protection] == :public or info[:owner] == self() do
+      false
+    else
+      "attempted to write to the #{inspect(info[:protection])} table #{inspect(table)} from a process other than the owner"
+    end
+  end
+
+  defp ets_table_read_protected?(table) do
+    info = :ets.info(table)
+
+    if info[:protection] in [:public, :protected] or info[:owner] == self() do
+      false
+    else
+      "attempted to read from the #{inspect(info[:protection])} table #{inspect(table)} from a process other than the owner"
+    end
+  end
+
+  defp ets_record_missing?(table, key) do
+    table
+    |> :ets.lookup(key)
+    |> case do
+      [] -> "record with key #{inspect(key)} not found in table #{inspect(table)}"
+      _ -> false
+    end
+  end
+
+  defp ets_position_out_of_bounds?(table, key, pos) do
+    table
+    |> :ets.lookup(key)
+    |> ets_check_position(pos)
+  end
+
+  defp ets_check_position([], _), do: false
+
+  defp ets_check_position([hd | tl], pos) do
+    if tuple_size(hd) < pos do
+      "an element in the result set is smaller than the specified position"
+    else
+      ets_check_position(tl, pos)
+    end
   end
 end
 

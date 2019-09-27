@@ -674,6 +674,106 @@ defmodule ExceptionTest do
     end
   end
 
+  describe "blaming ets" do
+    @table_types [:set, :ordered_set, :bag, :duplicate_bag]
+
+    setup do
+      {:ok, %{table_name: generate_ets_table_name()}}
+    end
+
+    test "annotates table not found", %{table_name: table_name} do
+      expected_message = "ets table not found: #{inspect(table_name)}"
+      assert expected_message == blame_message(table_name, &:ets.insert(&1, {:a, :b}))
+      assert expected_message == blame_message(table_name, &:ets.insert_new(&1, {:a, :b}))
+      assert expected_message == blame_message(table_name, &:ets.lookup(&1, :a))
+      assert expected_message == blame_message(table_name, &:ets.lookup_element(&1, :a, 1))
+    end
+
+    Enum.map(@table_types, fn table_type ->
+      test "annotates write protected table - #{table_type}", %{table_name: table_name} do
+        table_name_2 = generate_ets_table_name()
+        parent = self()
+
+        spawn_link(fn ->
+          :ets.new(table_name, [:named_table, :private, unquote(table_type)])
+          :ets.new(table_name_2, [:named_table, :protected, unquote(table_type)])
+          send(parent, :created)
+          :timer.sleep(:infinity)
+        end)
+
+        receive do
+          :created -> :ok
+        end
+
+        expected_message_1 =
+          "attempted to write to the :private table #{inspect(table_name)} from a process other than the owner"
+
+        expected_message_2 =
+          "attempted to write to the :protected table #{inspect(table_name_2)} from a process other than the owner"
+
+        assert expected_message_1 == blame_message(table_name, &:ets.insert(&1, {:a, :b}))
+        assert expected_message_2 == blame_message(table_name_2, &:ets.insert(&1, {:a, :b}))
+        assert expected_message_1 == blame_message(table_name, &:ets.insert_new(&1, {:a, :b}))
+        assert expected_message_2 == blame_message(table_name_2, &:ets.insert_new(&1, {:a, :b}))
+      end
+    end)
+
+    Enum.map(@table_types, fn table_type ->
+      test "annotates read protected table - #{table_type}", %{table_name: table_name} do
+        parent = self()
+
+        spawn_link(fn ->
+          :ets.new(table_name, [:named_table, :private, unquote(table_type)])
+          send(parent, :created)
+          :timer.sleep(:infinity)
+        end)
+
+        receive do
+          :created -> :ok
+        end
+
+        expected_message_1 =
+          "attempted to read from the :private table #{inspect(table_name)} from a process other than the owner"
+
+        assert expected_message_1 == blame_message(table_name, &:ets.lookup(&1, :a))
+        assert expected_message_1 == blame_message(table_name, &:ets.lookup_element(&1, :a, 1))
+      end
+    end)
+
+    Enum.map(@table_types, fn table_type ->
+      test "annotates record size too small - #{table_type}", %{table_name: table_name} do
+        :ets.new(table_name, [{:keypos, 3}, :named_table, unquote(table_type)])
+
+        expected_message =
+          "record too small: record is size 2 but the key position for #{inspect(table_name)} is 3"
+
+        assert expected_message == blame_message(table_name, &:ets.insert(&1, {:a, :b}))
+        assert expected_message == blame_message(table_name, &:ets.insert_new(&1, {:a, :b}))
+      end
+    end)
+
+    Enum.map(@table_types, fn table_type ->
+      test "annotates record missing - #{table_type}", %{table_name: table_name} do
+        :ets.new(table_name, [:named_table, unquote(table_type)])
+        expected_message = "record with key :a not found in table #{inspect(table_name)}"
+        assert expected_message == blame_message(table_name, &:ets.lookup_element(&1, :a, 1))
+      end
+    end)
+
+    Enum.map(@table_types, fn table_type ->
+      test "annotates position out of bounds - #{table_type}", %{table_name: table_name} do
+        :ets.new(table_name, [:named_table, unquote(table_type)])
+        :ets.insert(table_name, {:a})
+        expected_message = "an element in the result set is smaller than the specified position"
+        assert expected_message == blame_message(table_name, &:ets.lookup_element(&1, :a, 2))
+      end
+    end)
+
+    defp generate_ets_table_name do
+      String.to_atom("ets_blame_test_table_#{System.unique_integer([:positive])}")
+    end
+  end
+
   ## Exception messages
 
   describe "exception messages" do
