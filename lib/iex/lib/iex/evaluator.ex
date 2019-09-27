@@ -186,6 +186,7 @@ defmodule IEx.Evaluator do
 
       # Evaluate the contents in the same environment server_loop will run in
       env = :elixir.env_for_eval(state.env, file: path, line: 1)
+      Process.put(:iex_imported_paths, MapSet.new([path]))
       {_result, binding, env, _scope} = :elixir.eval_forms(quoted, state.binding, env)
       %{state | binding: binding, env: :elixir.env_for_eval(env, file: "iex", line: 1)}
     catch
@@ -193,6 +194,8 @@ defmodule IEx.Evaluator do
         io_result("Error while evaluating: #{path}")
         print_error(kind, error, __STACKTRACE__)
         state
+    after
+      Process.delete(:iex_imported_paths)
     end
   end
 
