@@ -123,9 +123,9 @@ defmodule Supervisor do
        should be restarted (see the "Restart values" section below).
        This key is optional and defaults to `:permanent`.
 
-    * `:shutdown` - an atom that defines how a child process should be
-      terminated (see the "Shutdown values" section below). This key
-      is optional and defaults to `5000` if the type is `:worker` or
+    * `:shutdown` - an integer or atom that defines how a child process should
+      be terminated (see the "Shutdown values" section below). This key
+      is optional and defaults to `5_000` if the type is `:worker` or
       `:infinity` if the type is `:supervisor`.
 
     * `:type` - specifies that the child process is a `:worker` or a
