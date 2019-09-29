@@ -118,7 +118,7 @@ defmodule Mix.Tasks.Release do
 
   You can start an application by calling `Application.ensure_all_started/1`.
   However, if for some reason you cannot start an application, maybe
-  cause it will run other services you do not want, you must at least
+  because it will run other services you do not want, you must at least
   load the application by calling `Application.load/1`. If you don't
   load the application, any attempt at reading its environment or
   configuration may fail. Note that if you start an application,
