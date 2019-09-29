@@ -3251,7 +3251,7 @@ defmodule Kernel do
 
   @doc """
   Provides a short-circuit operator that evaluates and returns
-  the second expression only if the first one evaluates to to a truthy value
+  the second expression only if the first one evaluates to a truthy value
   (neither `false` nor `nil`). Returns the first expression
   otherwise.
 
