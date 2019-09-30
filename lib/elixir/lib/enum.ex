@@ -1148,6 +1148,27 @@ defmodule Enum do
   end
 
   @doc """
+  creates a new map with keys as unique elements from enumerable,
+  and set values as the count of every element
+
+  The order of elements within each list is preserved from the `enumerable`.
+
+  ## Examples
+
+      iex> Enum.tally(~w{ant buffalo ant ant buffalo dingo})
+      %{"ant" => 3, "buffalo" => 2, "dingo" => 1}
+
+      iex> Enum.tally(~w{aa aA bb cc}, fn x -> String.downcase(x) end)
+      %{"aa" => 2, "bb" => 1, "cc" => 1}
+  """
+  @spec tally(t, (element -> any)) :: map
+  def tally(enumerable, func \\ fn x -> x end) do
+    group_by(enumerable, func)
+    |> map(fn {key, val} -> {key, count(val)} end)
+    |> Map.new()
+  end
+
+  @doc """
   Intersperses `element` between each element of the enumeration.
 
   ## Examples

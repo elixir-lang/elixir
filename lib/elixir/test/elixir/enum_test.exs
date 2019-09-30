@@ -279,6 +279,16 @@ defmodule EnumTest do
     assert Enum.group_by([1, 2, 3], &rem(&1, 2)) == %{0 => [2], 1 => [1, 3]}
   end
 
+  test "tally/2" do
+    assert Enum.tally(~w{a a a b c c}) == %{"a" => 3, "b" => 1, "c" => 2}
+
+    assert Enum.tally(~w{aa aA bb cc}, fn x -> String.downcase(x) end) == %{
+             "aa" => 2,
+             "bb" => 1,
+             "cc" => 1
+           }
+  end
+
   test "intersperse/2" do
     assert Enum.intersperse([], true) == []
     assert Enum.intersperse([1], true) == [1]
