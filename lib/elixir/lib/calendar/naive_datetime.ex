@@ -534,35 +534,21 @@ defmodule NaiveDateTime do
 
   """
   @spec from_iso8601(String.t(), Calendar.calendar()) :: {:ok, t} | {:error, atom}
-  def from_iso8601(string, calendar \\ Calendar.ISO)
-
-  def from_iso8601(<<?-, rest::binary>>, calendar) do
-    with {:ok, %{year: year} = naive_datetime} <- raw_from_iso8601(rest, calendar) do
-      {:ok, %{naive_datetime | year: -year}}
-    end
-  end
-
-  def from_iso8601(<<rest::binary>>, calendar) do
-    raw_from_iso8601(rest, calendar)
-  end
-
-  @sep [?\s, ?T]
-  [match_date, guard_date, read_date] = Calendar.ISO.__match_date__()
-  [match_time, guard_time, read_time] = Calendar.ISO.__match_time__()
-
-  defp raw_from_iso8601(string, calendar) do
-    with <<unquote(match_date), sep, unquote(match_time), rest::binary>> <- string,
-         true <- unquote(guard_date) and sep in @sep and unquote(guard_time),
-         {microsec, rest} <- Calendar.ISO.parse_microsecond(rest),
-         {_offset, ""} <- Calendar.ISO.parse_offset(rest) do
-      {year, month, day} = unquote(read_date)
-      {hour, min, sec} = unquote(read_time)
-
-      with {:ok, iso_naive_dt} <- new(year, month, day, hour, min, sec, microsec, Calendar.ISO) do
-        convert(iso_naive_dt, calendar)
-      end
-    else
-      _ -> {:error, :invalid_format}
+  def from_iso8601(string, calendar \\ Calendar.ISO) do
+    with {:ok, {year, month, day, hour, minute, second, microsecond}} <-
+           Calendar.ISO.parse_naive_datetime(string) do
+      convert(
+        %NaiveDateTime{
+          year: year,
+          month: month,
+          day: day,
+          hour: hour,
+          minute: minute,
+          second: second,
+          microsecond: microsecond
+        },
+        calendar
+      )
     end
   end
 
@@ -640,16 +626,8 @@ defmodule NaiveDateTime do
       microsecond: microsecond
     } = naive_datetime
 
-    Calendar.ISO.naive_datetime_to_iso8601(
-      year,
-      month,
-      day,
-      hour,
-      minute,
-      second,
-      microsecond,
-      format
-    )
+    Calendar.ISO.date_to_string(year, month, day, format) <>
+      "T" <> Calendar.ISO.time_to_string(hour, minute, second, microsecond, format)
   end
 
   def to_iso8601(%{calendar: _} = naive_datetime, format) when format in [:basic, :extended] do
@@ -936,7 +914,7 @@ defmodule NaiveDateTime do
   end
 
   defimpl Inspect do
-    def inspect(%{calendar: Calendar.ISO} = naive_datetime, _) do
+    def inspect(naive_datetime, _) do
       %{
         year: year,
         month: month,
@@ -944,17 +922,17 @@ defmodule NaiveDateTime do
         hour: hour,
         minute: minute,
         second: second,
-        microsecond: microsecond
+        microsecond: microsecond,
+        calendar: calendar
       } = naive_datetime
 
       formatted =
-        Calendar.ISO.naive_datetime_to_string(year, month, day, hour, minute, second, microsecond)
+        calendar.naive_datetime_to_string(year, month, day, hour, minute, second, microsecond)
 
-      "~N[" <> formatted <> "]"
+      "~N[" <> formatted <> suffix(calendar) <> "]"
     end
 
-    def inspect(naive, opts) do
-      Inspect.Any.inspect(naive, opts)
-    end
+    defp suffix(Calendar.ISO), do: ""
+    defp suffix(calendar), do: " " <> inspect(calendar)
   end
 end
