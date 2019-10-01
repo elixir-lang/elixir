@@ -5021,6 +5021,21 @@ defmodule Kernel do
   @doc ~S"""
   Handles the sigil `~D` for dates.
 
+  By default, this sigil uses the built-in `Calendar.ISO`, which
+  requires dates to be written in the ISO8601 format:
+
+      ~D[yyyy-mm-dd]
+
+  such as:
+
+      ~D[2015-01-13]
+
+  If you are using alternative calendars, any representation can
+  be used as long as you follow the representation by a single space
+  and the calendar name:
+
+      ~D[SOME-REPRESENTATION My.Alternative.Calendar]
+
   The lower case `~d` variant does not exist as interpolation
   and escape characters are not useful for date sigils.
 
@@ -5035,11 +5050,29 @@ defmodule Kernel do
   defmacro sigil_D(date_string, modifiers)
 
   defmacro sigil_D({:<<>>, _, [string]}, []) do
-    Macro.escape(Date.from_iso8601!(string))
+    {{:ok, {year, month, day}}, calendar} = parse_with_calendar!(string, :parse_date, "Date")
+    to_calendar_struct(Date, calendar: calendar, year: year, month: month, day: day)
   end
 
   @doc ~S"""
   Handles the sigil `~T` for times.
+
+  By default, this sigil uses the built-in `Calendar.ISO`, which
+  requires times to be written in the ISO8601 format:
+
+      ~T[hh:mm:ss]
+      ~T[hh:mm:ss.ssssss]
+
+  such as:
+
+      ~T[13:00:07]
+      ~T[13:00:07.123]
+
+  If you are using alternative calendars, any representation can
+  be used as long as you follow the representation by a single space
+  and the calendar name:
+
+      ~T[SOME-REPRESENTATION My.Alternative.Calendar]
 
   The lower case `~t` variant does not exist as interpolation
   and escape characters are not useful for time sigils.
@@ -5057,16 +5090,44 @@ defmodule Kernel do
   defmacro sigil_T(time_string, modifiers)
 
   defmacro sigil_T({:<<>>, _, [string]}, []) do
-    Macro.escape(Time.from_iso8601!(string))
+    {{:ok, {hour, minute, second, microsecond}}, calendar} =
+      parse_with_calendar!(string, :parse_time, "Time")
+
+    to_calendar_struct(Time,
+      calendar: calendar,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: microsecond
+    )
   end
 
   @doc ~S"""
   Handles the sigil `~N` for naive date times.
 
+  By default, this sigil uses the built-in `Calendar.ISO`, which
+  requires naive date times to be written in the ISO8601 format:
+
+      ~N[yyyy-mm-dd hh:mm:ss]
+      ~N[yyyy-mm-dd hh:mm:ss.ssssss]
+      ~N[yyyy-mm-ddThh:mm:ss.ssssss]
+
+  such as:
+
+      ~N[2015-01-13 13:00:07]
+      ~N[2015-01-13T13:00:07.123]
+
+  If you are using alternative calendars, any representation can
+  be used as long as you follow the representation by a single space
+  and the calendar name:
+
+      ~N[SOME-REPRESENTATION My.Alternative.Calendar]
+
   The lower case `~n` variant does not exist as interpolation
   and escape characters are not useful for date time sigils.
 
-  More information on naive date times can be found in the `NaiveDateTime` module.
+  More information on naive date times can be found in the
+  `NaiveDateTime` module.
 
   ## Examples
 
@@ -5079,17 +5140,47 @@ defmodule Kernel do
   defmacro sigil_N(naive_datetime_string, modifiers)
 
   defmacro sigil_N({:<<>>, _, [string]}, []) do
-    Macro.escape(NaiveDateTime.from_iso8601!(string))
+    {{:ok, {year, month, day, hour, minute, second, microsecond}}, calendar} =
+      parse_with_calendar!(string, :parse_naive_datetime, "NaiveDateTime")
+
+    to_calendar_struct(NaiveDateTime,
+      calendar: calendar,
+      year: year,
+      month: month,
+      day: day,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: microsecond
+    )
   end
 
   @doc ~S"""
   Handles the sigil `~U` to create a UTC `DateTime`.
 
+  By default, this sigil uses the built-in `Calendar.ISO`, which
+  requires UTC date times to be written in the ISO8601 format:
+
+      ~U[yyyy-mm-dd hh:mm:ssZ]
+      ~U[yyyy-mm-dd hh:mm:ss.ssssssZ]
+      ~U[yyyy-mm-ddThh:mm:ss.ssssss+00:00]
+
+  such as:
+
+      ~U[2015-01-13 13:00:07Z]
+      ~U[2015-01-13T13:00:07.123+00:00]
+
+  If you are using alternative calendars, any representation can
+  be used as long as you follow the representation by a single space
+  and the calendar name:
+
+      ~U[SOME-REPRESENTATION My.Alternative.Calendar]
+
+  The given `datetime_string` must include "Z" or "00:00" offset
+  which marks it as UTC, otherwise an error is raised.
+
   The lower case `~u` variant does not exist as interpolation
   and escape characters are not useful for date time sigils.
-
-  The given `datetime_string` must include "Z" or "00:00" offset which marks it
-  as UTC, otherwise an error is raised.
 
   More information on date times can be found in the `DateTime` module.
 
@@ -5105,21 +5196,64 @@ defmodule Kernel do
   defmacro sigil_U(datetime_string, modifiers)
 
   defmacro sigil_U({:<<>>, _, [string]}, []) do
-    Macro.escape(datetime_from_utc_iso8601!(string))
+    {{:ok, {year, month, day, hour, minute, second, microsecond}, offset}, calendar} =
+      parse_with_calendar!(string, :parse_utc_datetime, "UTC DateTime")
+
+    if offset != 0 do
+      raise ArgumentError,
+            "cannot parse #{inspect(string)} as UTC DateTime for #{inspect(calendar)}, reason: :non_utc_offset"
+    end
+
+    to_calendar_struct(DateTime,
+      calendar: calendar,
+      year: year,
+      month: month,
+      day: day,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: microsecond,
+      time_zone: "Etc/UTC",
+      zone_abbr: "UTC",
+      utc_offset: 0,
+      std_offset: 0
+    )
   end
 
-  defp datetime_from_utc_iso8601!(string) do
-    case DateTime.from_iso8601(string) do
-      {:ok, utc_datetime, 0} ->
-        utc_datetime
+  defp parse_with_calendar!(string, fun, context) do
+    {calendar, string} = extract_calendar(string)
+    result = apply(calendar, fun, [string])
+    {maybe_raise!(result, calendar, context, string), calendar}
+  end
 
-      {:ok, _datetime, _offset} ->
-        raise ArgumentError,
-              "cannot parse #{inspect(string)} as UTC datetime, reason: :non_utc_offset"
+  defp extract_calendar(string) do
+    case :binary.split(string, " ", [:global]) do
+      [_] -> {Calendar.ISO, string}
+      parts -> maybe_atomize_calendar(List.last(parts), string)
+    end
+  end
 
-      {:error, reason} ->
-        raise ArgumentError,
-              "cannot parse #{inspect(string)} as UTC datetime, reason: #{inspect(reason)}"
+  defp maybe_atomize_calendar(<<alias, _::binary>> = last_part, string)
+       when alias >= ?A and alias <= ?Z do
+    string = binary_part(string, 0, byte_size(string) - byte_size(last_part) - 1)
+    {String.to_atom("Elixir." <> last_part), string}
+  end
+
+  defp maybe_atomize_calendar(_last_part, string) do
+    {Calendar.ISO, string}
+  end
+
+  defp maybe_raise!({:error, reason}, calendar, type, string) do
+    raise ArgumentError,
+          "cannot parse #{inspect(string)} as #{type} for #{inspect(calendar)}, " <>
+            "reason: #{inspect(reason)}"
+  end
+
+  defp maybe_raise!(other, _calendar, _type, _string), do: other
+
+  defp to_calendar_struct(type, fields) do
+    quote do
+      %{unquote_splicing([__struct__: type] ++ fields)}
     end
   end
 

@@ -265,6 +265,43 @@ defmodule Calendar do
   """
   @callback valid_time?(hour, minute, second, microsecond) :: boolean
 
+  @doc """
+  Parses the string representation for a time returned by `c:time_to_string/4`
+  into a time-tuple.
+  """
+  @callback parse_time(String.t()) ::
+              {:ok, {hour, minute, second, microsecond}}
+              | {:error, atom}
+
+  @doc """
+  Parses the string representation for a date returned by `c:date_to_string/3`
+  into a date-tuple.
+  """
+  @callback parse_date(String.t()) ::
+              {:ok, {year, month, day}}
+              | {:error, atom}
+
+  @doc """
+  Parses the string representation for a naive datetime returned by
+  `c:naive_datetime_to_string/7` into a naive-datetime-tuple.
+
+  The given string may contain a timezone offset but it is ignored.
+  """
+  @callback parse_naive_datetime(String.t()) ::
+              {:ok, {year, month, day, hour, minute, second, microsecond}}
+              | {:error, atom}
+
+  @doc """
+  Parses the string representation for a datetime returned by
+  `c:datetime_to_string/11` into a datetime-tuple.
+
+  The returned datetime must be in UTC. The original `utc_offset`
+  it was written in must be returned in the result.
+  """
+  @callback parse_utc_datetime(String.t()) ::
+              {:ok, {year, month, day, hour, minute, second, microsecond}, utc_offset}
+              | {:error, atom}
+
   # General Helpers
 
   @doc """

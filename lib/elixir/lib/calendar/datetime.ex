@@ -770,25 +770,14 @@ defmodule DateTime do
       second: second,
       microsecond: microsecond,
       time_zone: time_zone,
-      zone_abbr: zone_abbr,
       utc_offset: utc_offset,
       std_offset: std_offset
     } = datetime
 
-    Calendar.ISO.datetime_to_iso8601(
-      year,
-      month,
-      day,
-      hour,
-      minute,
-      second,
-      microsecond,
-      time_zone,
-      zone_abbr,
-      utc_offset,
-      std_offset,
-      format
-    )
+    Calendar.ISO.date_to_string(year, month, day, format) <>
+      "T" <>
+      Calendar.ISO.time_to_string(hour, minute, second, microsecond, format) <>
+      Calendar.ISO.offset_to_string(utc_offset, std_offset, time_zone, format)
   end
 
   def to_iso8601(%{calendar: _} = datetime, format) when format in [:extended, :basic] do
@@ -851,91 +840,26 @@ defmodule DateTime do
   @doc since: "1.4.0"
   @spec from_iso8601(String.t(), Calendar.calendar()) ::
           {:ok, t, Calendar.utc_offset()} | {:error, atom}
-  def from_iso8601(string, calendar \\ Calendar.ISO)
+  def from_iso8601(string, calendar \\ Calendar.ISO) do
+    with {:ok, {year, month, day, hour, minute, second, microsecond}, offset} <-
+           Calendar.ISO.parse_utc_datetime(string) do
+      datetime = %DateTime{
+        year: year,
+        month: month,
+        day: day,
+        hour: hour,
+        minute: minute,
+        second: second,
+        microsecond: microsecond,
+        std_offset: 0,
+        utc_offset: 0,
+        zone_abbr: "UTC",
+        time_zone: "Etc/UTC"
+      }
 
-  def from_iso8601(<<?-, rest::binary>>, calendar) do
-    raw_from_iso8601(rest, calendar, true)
-  end
-
-  def from_iso8601(<<rest::binary>>, calendar) do
-    raw_from_iso8601(rest, calendar, false)
-  end
-
-  @sep [?\s, ?T]
-  [match_date, guard_date, read_date] = Calendar.ISO.__match_date__()
-  [match_time, guard_time, read_time] = Calendar.ISO.__match_time__()
-
-  defp raw_from_iso8601(string, calendar, is_year_negative) do
-    with <<unquote(match_date), sep, unquote(match_time), rest::binary>> <- string,
-         true <- unquote(guard_date) and sep in @sep and unquote(guard_time),
-         {microsecond, rest} <- Calendar.ISO.parse_microsecond(rest),
-         {offset, ""} <- Calendar.ISO.parse_offset(rest) do
-      {year, month, day} = unquote(read_date)
-      {hour, minute, second} = unquote(read_time)
-      year = if is_year_negative, do: -year, else: year
-
-      cond do
-        not calendar.valid_date?(year, month, day) ->
-          {:error, :invalid_date}
-
-        not calendar.valid_time?(hour, minute, second, microsecond) ->
-          {:error, :invalid_time}
-
-        offset == 0 ->
-          datetime = %DateTime{
-            calendar: calendar,
-            year: year,
-            month: month,
-            day: day,
-            hour: hour,
-            minute: minute,
-            second: second,
-            microsecond: microsecond,
-            std_offset: 0,
-            utc_offset: 0,
-            zone_abbr: "UTC",
-            time_zone: "Etc/UTC"
-          }
-
-          {:ok, datetime, 0}
-
-        is_nil(offset) ->
-          {:error, :missing_offset}
-
-        true ->
-          day_fraction = Calendar.ISO.time_to_day_fraction(hour, minute, second, {0, 0})
-
-          {{year, month, day}, {hour, minute, second, _}} =
-            case apply_tz_offset({0, day_fraction}, offset) do
-              {0, day_fraction} ->
-                {{year, month, day}, Calendar.ISO.time_from_day_fraction(day_fraction)}
-
-              {extra_days, day_fraction} ->
-                base_days = Calendar.ISO.date_to_iso_days(year, month, day)
-
-                {Calendar.ISO.date_from_iso_days(base_days + extra_days),
-                 Calendar.ISO.time_from_day_fraction(day_fraction)}
-            end
-
-          datetime = %DateTime{
-            calendar: calendar,
-            year: year,
-            month: month,
-            day: day,
-            hour: hour,
-            minute: minute,
-            second: second,
-            microsecond: microsecond,
-            std_offset: 0,
-            utc_offset: 0,
-            zone_abbr: "UTC",
-            time_zone: "Etc/UTC"
-          }
-
-          {:ok, datetime, offset}
+      with {:ok, converted} <- convert(datetime, calendar) do
+        {:ok, converted, offset}
       end
-    else
-      _ -> {:error, :invalid_format}
     end
   end
 
@@ -1373,7 +1297,7 @@ defmodule DateTime do
   end
 
   defimpl Inspect do
-    def inspect(%{calendar: Calendar.ISO} = datetime, _) do
+    def inspect(datetime, _) do
       %{
         year: year,
         month: month,
@@ -1385,11 +1309,12 @@ defmodule DateTime do
         time_zone: time_zone,
         zone_abbr: zone_abbr,
         utc_offset: utc_offset,
-        std_offset: std_offset
+        std_offset: std_offset,
+        calendar: calendar
       } = datetime
 
       formatted =
-        Calendar.ISO.datetime_to_string(
+        calendar.datetime_to_string(
           year,
           month,
           day,
@@ -1405,15 +1330,14 @@ defmodule DateTime do
 
       case datetime do
         %{utc_offset: 0, std_offset: 0, time_zone: "Etc/UTC"} ->
-          "~U[" <> formatted <> "]"
+          "~U[" <> formatted <> suffix(calendar) <> "]"
 
         _ ->
-          "#DateTime<" <> formatted <> ">"
+          "#DateTime<" <> formatted <> suffix(calendar) <> ">"
       end
     end
 
-    def inspect(datetime, opts) do
-      Inspect.Any.inspect(datetime, opts)
-    end
+    defp suffix(Calendar.ISO), do: ""
+    defp suffix(calendar), do: " " <> inspect(calendar)
   end
 end
