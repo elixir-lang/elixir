@@ -5106,7 +5106,7 @@ defmodule Kernel do
   Handles the sigil `~N` for naive date times.
 
   By default, this sigil uses the built-in `Calendar.ISO`, which
-  requires naive datetimes to be written in the ISO8601 format:
+  requires naive date times to be written in the ISO8601 format:
 
       ~N[yyyy-mm-dd hh:mm:ss]
       ~N[yyyy-mm-dd hh:mm:ss.ssssss]
@@ -5159,7 +5159,7 @@ defmodule Kernel do
   Handles the sigil `~U` to create a UTC `DateTime`.
 
   By default, this sigil uses the built-in `Calendar.ISO`, which
-  requires naive datetimes to be written in the ISO8601 format:
+  requires UTC date times to be written in the ISO8601 format:
 
       ~U[yyyy-mm-dd hh:mm:ssZ]
       ~U[yyyy-mm-dd hh:mm:ss.ssssssZ]
