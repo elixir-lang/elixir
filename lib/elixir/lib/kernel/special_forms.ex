@@ -1752,13 +1752,17 @@ defmodule Kernel.SpecialForms do
 
       value = 7
 
-      case result do
-        :ok -> value = value + 1
-        :error -> value = value - 1
+      case lucky? do
+        false -> value = 13
+        true -> true
       end
 
       value
       #=> 7
+
+  In the example above, `value` is going to be `7` regardless of the value of
+  `lucky?`. The variable `value` bound in the clause and the variable `value`
+  bound in the outer context are two entirely separate variables.
 
   If you want to pattern match against an existing variable,
   you need to use the `^/1` operator:
