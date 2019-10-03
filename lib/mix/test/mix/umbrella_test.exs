@@ -28,6 +28,21 @@ defmodule Mix.UmbrellaTest do
     end)
   end
 
+  test "apps_paths list with selection" do
+    in_fixture("umbrella_dep/deps/umbrella", fn ->
+      Mix.Project.in_project(
+        :umbrella,
+        ".",
+        [apps: [:foo, :foobar], apps_path: ["apps", "alt_apps"]],
+        fn _ ->
+          File.mkdir_p!("apps/errors")
+          File.write!("apps/errors/mix.exs", "raise :oops")
+          assert Mix.Project.apps_paths() == %{foobar: "alt_apps/foobar", foo: "apps/foo"}
+        end
+      )
+    end)
+  end
+
   test "umbrella app dir and the app name defined in mix.exs should be equal" do
     in_fixture("umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->

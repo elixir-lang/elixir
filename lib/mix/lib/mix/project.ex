@@ -267,50 +267,96 @@ defmodule Mix.Project do
       if cache = Mix.ProjectStack.read_cache(key) do
         cache
       else
-        cache = config[:apps] |> umbrella_apps(apps_path) |> to_apps_paths(apps_path)
+        apps_paths = List.wrap(apps_path)
+        cache = config[:apps] |> umbrella_apps(apps_paths) |> to_apps_paths(apps_paths)
+
         Mix.ProjectStack.write_cache(key, cache)
       end
     end
   end
 
-  defp umbrella_apps(nil, apps_path) do
-    case File.ls(apps_path) do
-      {:ok, apps} -> Enum.map(apps, &String.to_atom/1)
-      {:error, _} -> []
+  defp umbrella_apps(nil, apps_paths) do
+    potential_app_paths = Enum.map(apps_paths, fn path -> File.ls(path) end)
+
+    Enum.all?(potential_app_paths, fn
+      {:ok, _} -> true
+      {:error, _} -> false
+    end)
+    |> if do
+      Enum.flat_map(potential_app_paths, fn {:ok, app_names} ->
+        Enum.map(app_names, &String.to_atom/1)
+      end)
+    else
+      []
     end
   end
 
-  defp umbrella_apps(apps, _apps_path) when is_list(apps) do
+  defp umbrella_apps(apps, _apps_paths) do
     apps
   end
 
-  defp to_apps_paths(apps, apps_path) do
+  defp to_apps_paths(apps, apps_paths) do
     for app <- apps,
-        path = path_with_mix_exs_otherwise_warn(app, apps_path),
+        path = path_with_mix_exs_otherwise_warn(app, apps_paths),
         do: {app, path},
         into: %{}
   end
 
-  defp path_with_mix_exs_otherwise_warn(app, apps_path) do
-    path = Path.join(apps_path, Atom.to_string(app))
+  defp path_with_mix_exs_otherwise_warn(app, apps_paths) do
+    paths_to_check = for path <- apps_paths, do: Path.join(path, Atom.to_string(app))
 
-    cond do
-      File.regular?(Path.join(path, "mix.exs")) ->
-        path
+    valid_paths =
+      Enum.filter(paths_to_check, fn path ->
+        # Mix file found
+        if File.regular?(Path.join(path, "mix.exs")) do
+          true
+          # Could be a directory or a stray file, doesn't matter at this point
+        else
+          false
+        end
+      end)
 
-      File.dir?(path) ->
-        Mix.shell().error(
-          "warning: path #{inspect(Path.relative_to_cwd(path))} is a directory but " <>
-            "it has no mix.exs. Mix won't consider this directory as part of your " <>
-            "umbrella application. Please add a \"mix.exs\" or set the \":apps\" key " <>
-            "in your umbrella configuration with all relevant apps names as atoms"
+    case length(valid_paths) do
+      0 ->
+        Enum.each(paths_to_check, fn path ->
+          if File.dir?(path) do
+            Mix.shell().error(
+              "warning: path #{inspect(Path.relative_to_cwd(path))} is a directory but " <>
+                "it has no mix.exs. Mix won't consider this directory as part of your " <>
+                "umbrella application. Please add a \"mix.exs\" or set the \":apps\" key " <>
+                "in your umbrella configuration with all relevant apps names as atoms"
+            )
+          end
+        end)
+
+        nil
+
+      1 ->
+        List.first(valid_paths)
+
+      _ ->
+        clashing_paths = Enum.join(valid_paths, ", ")
+
+        Mix.raise(
+          "The same application has been found at multiple paths: #{inspect(clashing_paths)}"
         )
+    end
 
-        nil
+    if length(valid_paths) == 0 do
+      Enum.each(paths_to_check, fn path ->
+        if File.dir?(path) do
+          Mix.shell().error(
+            "warning: path #{inspect(Path.relative_to_cwd(path))} is a directory but " <>
+              "it has no mix.exs. Mix won't consider this directory as part of your " <>
+              "umbrella application. Please add a \"mix.exs\" or set the \":apps\" key " <>
+              "in your umbrella configuration with all relevant apps names as atoms"
+          )
+        end
+      end)
 
-      true ->
-        # If it is a stray file, we just ignore it.
-        nil
+      nil
+    else
+      List.first(valid_paths)
     end
   end
 
