@@ -32,11 +32,10 @@ defprotocol Inspect do
       end
 
   The [`concat/1`](`Inspect.Algebra.concat/1`) function comes from `Inspect.Algebra` and it
-  concatenates algebra documents together. In the example above,
-  it is concatenating the string `"MapSet<"` (all strings are
-  valid algebra documents that keep their formatting when pretty
-  printed), the document returned by `Inspect.Algebra.to_doc/2` and the
-  other string `">"`.
+  concatenates algebra documents together. In the example above it is 
+  concatenating the string `"MapSet<"`, the document returned by 
+  `Inspect.Algebra.to_doc/2`, and the final string `">"`. All strings are 
+  valid algebra documents that keep their formatting when pretty printed.
 
   Since regular strings are valid entities in an algebra document,
   an implementation of the `Inspect` protocol may simply return a
