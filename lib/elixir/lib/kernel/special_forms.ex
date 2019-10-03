@@ -1737,8 +1737,7 @@ defmodule Kernel.SpecialForms do
 
   ## Variable handling
 
-  Notice that variables bound in a clause "head" do not leak to the
-  outer context:
+  Notice that variables bound in a clause do not leak to the outer context:
 
       case data do
         {:ok, value} -> value
@@ -1748,8 +1747,8 @@ defmodule Kernel.SpecialForms do
       value
       #=> unbound variable value
 
-  However, variables explicitly bound in the clause "body" are
-  accessible from the outer context:
+  When binding variables with the same names as variables in the outer context,
+  the variables in the outer context are not affected.
 
       value = 7
 
@@ -1759,12 +1758,11 @@ defmodule Kernel.SpecialForms do
       end
 
       value
-      #=> 7 or 13
+      #=> 7
 
-  In the example above, `value` is going to be `7` or `13` depending on
-  the value of `lucky?`. In case `value` has no previous value before
-  case, clauses that do not explicitly bind a value have the variable
-  bound to `nil`.
+  In the example above, `value` is going to be `7` regardless of the value of
+  `lucky?`. The variable `value` bound in the clause and the variable `value`
+  bound in the outer context are two entirely separate variables.
 
   If you want to pattern match against an existing variable,
   you need to use the `^/1` operator:
