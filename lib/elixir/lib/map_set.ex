@@ -200,16 +200,10 @@ defmodule MapSet do
     |> none_in?(map2)
   end
 
-  defp none_in?([], _) do
-    true
-  end
+  @compile {:inline, [none_in?: 2]}
 
-  defp none_in?([key | rest], map2) do
-    case map2 do
-      %{^key => _} -> false
-      _ -> none_in?(rest, map2)
-    end
-  end
+  defp none_in?([], _), do: true
+  defp none_in?([key | rest], map2), do: not :erlang.is_map_key(key, map2) and none_in?(rest, map2)
 
   @doc """
   Checks if two sets are equal.
