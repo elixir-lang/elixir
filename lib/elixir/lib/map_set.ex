@@ -203,8 +203,6 @@ defmodule MapSet do
     |> none_in?(map2)
   end
 
-  @compile {:inline, [none_in?: 2]}
-
   defp none_in?(:none, _), do: true
 
   defp none_in?({key, _val, iter}, map2) do
@@ -316,8 +314,6 @@ defmodule MapSet do
   def subset?(%MapSet{map: map1}, %MapSet{map: map2}) do
     map_size(map1) <= map_size(map2) and all_in?(map1, map2)
   end
-
-  @compile {:inline, [all_in?: 2]}
 
   defp all_in?(:none, _), do: true
 
