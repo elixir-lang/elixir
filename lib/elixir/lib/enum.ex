@@ -2320,13 +2320,13 @@ defmodule Enum do
   increasingly, one would do:
 
       iex> dates = [~D[2019-01-01], ~D[2020-03-02], ~D[2019-06-06]]
-      iex> Enum.sort(dates, &Date.compare(&1, &2) != :gt)
+      iex> Enum.sort(dates, &(Date.compare(&1, &2) != :gt))
       [~D[2019-01-01], ~D[2019-06-06], ~D[2020-03-02]]
 
   Or in decreasing order:
 
       iex> dates = [~D[2019-01-01], ~D[2020-03-02], ~D[2019-06-06]]
-      iex> Enum.sort(dates, &Date.compare(&1, &2) != :lt)
+      iex> Enum.sort(dates, &(Date.compare(&1, &2) != :lt))
       [~D[2020-03-02], ~D[2019-06-06], ~D[2019-01-01]]
 
   """
