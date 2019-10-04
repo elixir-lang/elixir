@@ -679,7 +679,7 @@ defmodule RuntimeError do
 end
 
 defmodule ArgumentError do
-  defexception message: "argument error"
+  defexception message: "argument error", source_pid: nil
 
   @impl true
   def blame(
@@ -712,49 +712,49 @@ defmodule ArgumentError do
   end
 
   def blame(
-        %{message: "argument error"} = exception,
+        %{message: "argument error", source_pid: source_pid} = exception,
         [{:ets, fun, args, _} | _] = stacktrace
       ) do
-    {%{exception | message: blame_ets(fun, args)}, stacktrace}
+    {%{exception | message: blame_ets(fun, args, source_pid)}, stacktrace}
   end
 
   def blame(exception, stacktrace) do
     {exception, stacktrace}
   end
 
-  defp blame_ets(:insert, [table, record]) do
+  defp blame_ets(:insert, [table, record], source_pid) do
     with false <- ets_table_missing?(table),
          false <- ets_record_too_small?(table, record),
-         false <- ets_table_write_protected?(table) do
+         false <- ets_table_write_protected?(table, source_pid) do
       "argument error calling :ets.insert/2"
     end
   end
 
-  defp blame_ets(:insert_new, [table, record]) do
+  defp blame_ets(:insert_new, [table, record], source_pid) do
     with false <- ets_table_missing?(table),
          false <- ets_record_too_small?(table, record),
-         false <- ets_table_write_protected?(table) do
+         false <- ets_table_write_protected?(table, source_pid) do
       "argument error calling :ets.insert_new/2"
     end
   end
 
-  defp blame_ets(:lookup, [table, _key]) do
+  defp blame_ets(:lookup, [table, _key], source_pid) do
     with false <- ets_table_missing?(table),
-         false <- ets_table_read_protected?(table) do
+         false <- ets_table_read_protected?(table, source_pid) do
       "argument error calling :ets.lookup/2"
     end
   end
 
-  defp blame_ets(:lookup_element, [table, key, pos]) do
+  defp blame_ets(:lookup_element, [table, key, pos], source_pid) do
     with false <- ets_table_missing?(table),
-         false <- ets_table_read_protected?(table),
+         false <- ets_table_read_protected?(table, source_pid),
          false <- ets_record_missing?(table, key),
          false <- ets_position_out_of_bounds?(table, key, pos) do
       "argument error calling :ets.lookup_element/3"
     end
   end
 
-  defp blame_ets(fun, args) do
+  defp blame_ets(fun, args, _source_pid) do
     "argument error calling :ets fun: #{inspect(fun)} args: #{inspect(args)}"
   end
 
@@ -778,20 +778,20 @@ defmodule ArgumentError do
     end
   end
 
-  defp ets_table_write_protected?(table) do
+  defp ets_table_write_protected?(table, source_pid) do
     info = :ets.info(table)
 
-    if info[:protection] == :public or info[:owner] == self() do
+    if info[:protection] == :public or info[:owner] == source_pid do
       false
     else
       "attempted to write to the #{inspect(info[:protection])} table #{inspect(table)} from a process other than the owner"
     end
   end
 
-  defp ets_table_read_protected?(table) do
+  defp ets_table_read_protected?(table, source_pid) do
     info = :ets.info(table)
 
-    if info[:protection] in [:public, :protected] or info[:owner] == self() do
+    if info[:protection] in [:public, :protected] or info[:owner] == source_pid do
       false
     else
       "attempted to read from the #{inspect(info[:protection])} table #{inspect(table)} from a process other than the owner"
@@ -1476,7 +1476,7 @@ defmodule ErlangError do
 
   @doc false
   def normalize(:badarg, _stacktrace) do
-    %ArgumentError{}
+    %ArgumentError{source_pid: self()}
   end
 
   def normalize(:badarith, _stacktrace) do
