@@ -174,9 +174,10 @@ defmodule MapSet do
   defp filter_not_in([], _map2, acc), do: :maps.from_list(acc)
 
   defp filter_not_in([key | rest], map2, acc) do
-    case map2 do
-      %{^key => _} -> filter_not_in(rest, map2, acc)
-      _ -> filter_not_in(rest, map2, [{key, @dummy_value} | acc])
+    if :erlang.is_map_key(key, map2) do
+      filter_not_in(rest, map2, acc)
+    else
+      filter_not_in(rest, map2, [{key, @dummy_value} | acc])
     end
   end
 
@@ -260,7 +261,7 @@ defmodule MapSet do
   """
   @spec member?(t, value) :: boolean
   def member?(%MapSet{map: map}, value) do
-    match?(%{^value => _}, map)
+    :erlang.is_map_key(value, map)
   end
 
   @doc """
@@ -320,7 +321,7 @@ defmodule MapSet do
   defp map_subset?([], _), do: true
 
   defp map_subset?([key | rest], map2) do
-    match?(%{^key => _}, map2) and map_subset?(rest, map2)
+    :erlang.is_map_key(key, map2) and map_subset?(rest, map2)
   end
 
   @doc """
