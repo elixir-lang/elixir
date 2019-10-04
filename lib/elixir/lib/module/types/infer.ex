@@ -188,7 +188,19 @@ defmodule Module.Types.Infer do
 
   ## GUARDS
 
-  # atom() | binary() | float() | fun() | integer() | list(a) | map() | pid() | port() | reference() | tuple()
+  @top_union [
+    :atom,
+    :binary,
+    :float,
+    :fun,
+    :integer,
+    {:list, :dynamic},
+    {:map, []},
+    :pid,
+    :port,
+    :reference,
+    :tuple
+  ]
 
   # TODO: Some guards can be changed to interesection types or higher order types
 
@@ -229,7 +241,6 @@ defmodule Module.Types.Infer do
     {:trunc, 1} => {[:number], :integer},
     {:element, 2} => {[:integer, :tuple], :dynamic},
     {:hd, 1} => {[{:list, :dynamic}], :dynamic},
-    {:in, 2} => {[:dynamic, {:list, :dynamic}], :boolean},
     {:length, 1} => {[{:list, :dynamic}], :integer},
     {:map_size, 1} => {[{:map, []}], :integer},
     {:tl, 1} => {[{:list, :dynamic}], :dynamic},
@@ -248,12 +259,10 @@ defmodule Module.Types.Infer do
     {:bxor, 2} => {[:integer, :integer], :integer},
     {:bsl, 2} => {[:integer, :integer], :integer},
     {:bsr, 2} => {[:integer, :integer], :integer},
-    # TODO?
-    {:xor, 2} => {[:boolean, :boolean], :boolean},
-    # {:andalso, 2} => {[:boolean, :boolean], :boolean},
-    # {:orelse, 2} => {[:boolean, :boolean], :boolean},
-    # TODO
-    {:not, 1} => {[:boolean], :boolean}
+    {:xor, 2} => {[:boolean, :boolean], :boolean}
+    # {:andalso, 2} => {[:boolean, :boolean], :boolean}
+    # {:orelse, 2} => {[:boolean, :boolean], :boolean}
+    # {:not, 1} => {[:boolean], :boolean}
   }
 
   @type_guards [
@@ -302,20 +311,42 @@ defmodule Module.Types.Infer do
          do: {:ok, :boolean, context}
   end
 
+  def of_guard({{:., _, [:erlang, :not]}, _, [arg]} = expr, stack, context) do
+    stack = push_expr_stack(expr, stack)
+    fresh_context = fresh_context(context)
+
+    with {:ok, type, arg_context} <- of_guard(arg, stack, fresh_context),
+         arg_context = invert_types(stack, arg_context),
+         {:ok, context} <- unify_new_types(context, stack, arg_context),
+         {:ok, _, context} <- unify(type, :boolean, stack, context),
+         do: {:ok, :boolean, context}
+  end
+
   def of_guard({{:., _, [:erlang, guard]}, _, args} = expr, stack, context) do
     stack = push_expr_stack(expr, stack)
     {param_types, return_type} = :maps.get({guard, length(args)}, @guards)
+    type_guard? = guard in @type_guards
 
-    with {:ok, arg_types, context} <- map_reduce_ok(args, context, &of_guard(&1, stack, &2)),
-         {:ok, context} <- unify_call(param_types, arg_types, stack, context) do
-      case arg_types do
-        [{:var, index} | _] when guard in @type_guards ->
-          type_guards = :maps.put(index, true, context.type_guards)
-          {:ok, return_type, %{context | type_guards: type_guards}}
+    # Only check type guards in the context of and/or/not,
+    # a type guard in the context of is_tuple(x) > :foo
+    # should not affect the inference of x
+    if not type_guard? or stack.type_guards_enabled? do
+      arg_stack = %{stack | type_guards_enabled?: type_guard?}
 
-        _ ->
-          {:ok, return_type, context}
+      with {:ok, arg_types, context} <-
+             map_reduce_ok(args, context, &of_guard(&1, arg_stack, &2)),
+           {:ok, context} <- unify_call(param_types, arg_types, stack, context) do
+        case arg_types do
+          [{:var, index} | _] when type_guard? ->
+            type_guards = :maps.put(index, true, context.type_guards)
+            {:ok, return_type, %{context | type_guards: type_guards}}
+
+          _ ->
+            {:ok, return_type, context}
+        end
       end
+    else
+      {:ok, return_type, context}
     end
   end
 
@@ -324,8 +355,9 @@ defmodule Module.Types.Infer do
     {:ok, type, context}
   end
 
-  def of_guard(_other, _stack, context) do
-    {:ok, :dynamic, context}
+  def of_guard(expr, stack, context) do
+    # Fall back to of_pattern/3 for literals
+    of_pattern(expr, stack, context)
   end
 
   defp fresh_context(context) do
@@ -347,17 +379,16 @@ defmodule Module.Types.Infer do
   # It is working under the assumption that no new type
   # has been introduced in left or right.
   defp merge_context_and(context, stack, left, right) do
-    with {:ok, context} <-
-           unify_new_types(context, stack, left.types, left.traces),
-         {:ok, context} <-
-           unify_new_types(context, stack, right.types, right.traces),
+    with {:ok, context} <- unify_new_types(context, stack, left),
+         {:ok, context} <- unify_new_types(context, stack, right),
          do: {:ok, context}
   end
 
-  defp unify_new_types(context, stack, new_types, new_traces) do
-    context = merge_traces(context, new_traces)
+  defp unify_new_types(context, stack, new_context) do
+    context = merge_traces(context, new_context)
+    context = merge_type_guards(context, new_context)
 
-    reduce_ok(:maps.to_list(new_types), context, fn
+    reduce_ok(:maps.to_list(new_context.types), context, fn
       {_index, :unbound}, context ->
         {:ok, context}
 
@@ -372,17 +403,30 @@ defmodule Module.Types.Infer do
     end)
   end
 
-  defp merge_traces(context, new_traces) do
+  defp merge_traces(context, new_context) do
     traces =
       :maps.fold(
         fn index, new_traces, traces ->
           :maps.update_with(index, &(new_traces ++ &1), new_traces, traces)
         end,
         context.traces,
-        new_traces
+        new_context.traces
       )
 
     %{context | traces: traces}
+  end
+
+  defp merge_type_guards(context, new_context) do
+    type_guards =
+      :maps.fold(
+        fn index, guarded?, type_guards ->
+          :maps.update_with(index, &(guarded? or &1), guarded?, type_guards)
+        end,
+        context.type_guards,
+        new_context.type_guards
+      )
+
+    %{context | type_guards: type_guards}
   end
 
   # This code should only be called in the guard context.
@@ -420,6 +464,42 @@ defmodule Module.Types.Infer do
       end
 
     {:ok, context}
+  end
+
+  defp invert_types(stack, context) do
+    Enum.reduce(context.types, context, fn {index, type}, context ->
+      if :maps.get(index, context.type_guards, false) do
+        refine_var(index, invert_type(type, context), stack, context)
+      else
+        context
+      end
+    end)
+  end
+
+  defp invert_type({:union, _} = union, context) do
+    union =
+      Enum.flat_map(@top_union, fn top_type ->
+        if subtype?(top_type, union, context) do
+          []
+        else
+          [top_type]
+        end
+      end)
+
+    to_union(union, context)
+  end
+
+  defp invert_type(type, context) do
+    union =
+      Enum.flat_map(@top_union, fn top_type ->
+        if subtype?(type, top_type, context) do
+          []
+        else
+          [top_type]
+        end
+      end)
+
+    to_union(union, context)
   end
 
   # binary-pattern :: specifier
@@ -749,16 +829,23 @@ defmodule Module.Types.Infer do
   `{boolean()} | {atom()}` will not be merged or types with variables that
   are distinct but equivalent such as `a | b when a ~ b`.
   """
-  # TODO: Unnest unions
+  # TODO: Translate union of all top types to dynamic()
   def to_union(types, context) when types != [] do
     if :dynamic in types do
       :dynamic
     else
-      case unique_super_types(types, context) do
+      case unique_super_types(flatten_union(types), context) do
         [type] -> type
         types -> {:union, types}
       end
     end
+  end
+
+  defp flatten_union(types) do
+    Enum.flat_map(types, fn
+      {:union, types} -> flatten_union(types)
+      type -> [type]
+    end)
   end
 
   # Filter subtypes

@@ -53,8 +53,11 @@ defmodule Module.Types do
       traces: %{},
       # Counter to give type variables unique names
       counter: 0,
-      # DEV
+      # Track if a variable was infered from a type guard function such is_tuple/1
+      # or a guard function that fails such as elem/2
       type_guards: %{},
+      # When false do not add a trace when a type variable is refined,
+      # useful when merging contexts where the variables already have traces
       trace: true
     }
   end
@@ -67,7 +70,10 @@ defmodule Module.Types do
       unify_stack: [],
       # Stack of expression we have recursed through during inference,
       # used for tracing
-      expr_stack: []
+      expr_stack: [],
+      # Track if we are in a context where type guard functions should
+      # affect inference
+      type_guards_enabled?: true
     }
   end
 

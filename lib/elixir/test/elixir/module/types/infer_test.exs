@@ -363,6 +363,9 @@ defmodule Module.Types.InferTest do
     end
   end
 
+  describe "of_guard/2" do
+  end
+
   test "subtype?/3" do
     assert subtype?({:atom, :foo}, :atom, new_context())
     assert subtype?({:atom, true}, :boolean, new_context())
@@ -393,8 +396,5 @@ defmodule Module.Types.InferTest do
 
     assert to_union([{:tuple, [:integer]}, {:tuple, [:integer]}], new_context()) ==
              {:tuple, [:integer]}
-  end
-
-  describe "of_guard/2" do
   end
 end
