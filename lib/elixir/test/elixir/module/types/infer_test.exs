@@ -12,6 +12,12 @@ defmodule Module.Types.InferTest do
     end
   end
 
+  defmacrop quoted_guard(guards, context) do
+    quote do
+      of_guard(unquote(Macro.escape(guards)), new_stack(), unquote(context))
+    end
+  end
+
   defp unify_lift(left, right, context \\ new_context()) do
     unify(left, right, new_stack(), context)
     |> lift_result()
@@ -45,7 +51,7 @@ defmodule Module.Types.InferTest do
       assert {:error, {{:unable_unify, :binary, :integer, expr, traces}, location}} =
                quoted_pattern(<<foo::integer, foo::binary>>)
 
-      assert location == [{"types_test.ex", 46, {TypesTest, :test, 0}}]
+      assert location == [{"types_test.ex", 52, {TypesTest, :test, 0}}]
 
       assert {:<<>>, _,
               [
@@ -56,10 +62,10 @@ defmodule Module.Types.InferTest do
       assert [
                {{:foo, _, nil},
                 {:type, :binary, {:"::", _, [{:foo, _, nil}, {:binary, _, nil}]},
-                 {"types_test.ex", 46}}},
+                 {"types_test.ex", 52}}},
                {{:foo, _, nil},
                 {:type, :integer, {:"::", _, [{:foo, _, nil}, {:integer, _, nil}]},
-                 {"types_test.ex", 46}}}
+                 {"types_test.ex", 52}}}
              ] = traces
     end
 
@@ -363,7 +369,20 @@ defmodule Module.Types.InferTest do
     end
   end
 
-  describe "of_guard/2" do
+  test "of_guard/2" do
+    assert {{:var, 0}, var_context} = new_var({:x, [], nil}, new_context())
+
+    assert {:ok, :boolean, context} = quoted_guard(:erlang.is_tuple(x), var_context)
+    assert Types.lift_type({:var, 0}, context) == :tuple
+
+    assert {:ok, :dynamic, context} = quoted_guard(:erlang.element(0, x), var_context)
+    assert Types.lift_type({:var, 0}, context) == :tuple
+
+    assert {:error, {_, {:unable_unify, :boolean, :tuple, _, _}, _}} =
+             quoted_guard(
+               :erlang.andalso(:erlang.is_tuple(x), :erlang.is_boolean(x)),
+               var_context
+             )
   end
 
   test "subtype?/3" do

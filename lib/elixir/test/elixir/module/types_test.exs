@@ -148,6 +148,13 @@ defmodule Module.TypesTest do
              ]) ==
                {:ok, [{:union, [{:list, :dynamic}, :tuple]}]}
 
+      assert quoted_clause([x], [
+               :erlang.orelse(
+                 :erlang.andalso(:erlang.==(:erlang.length(x), 0), :erlang.is_list(x)),
+                 :erlang.andalso(:erlang.element(1, x), :erlang.is_tuple(x))
+               )
+             ]) == {:ok, [{:list, :dynamic}]}
+
       assert quoted_clause([x, y], [:erlang.andalso(:erlang.element(1, x), :erlang.is_atom(y))]) ==
                {:ok, [:tuple, :atom]}
 
@@ -181,6 +188,18 @@ defmodule Module.TypesTest do
                 ]}
 
       assert quoted_clause([x], [:erlang.not(:erlang.not(:erlang.is_tuple(x)))]) ==
+               {:ok, [:tuple]}
+
+      assert quoted_clause([x], [:erlang.not(:erlang.element(0, x))]) ==
+               {:ok, [:tuple]}
+
+      assert quoted_clause([x], [
+               :erlang.not(:erlang.andalso(:erlang.is_tuple(x), :erlang.element(0, x)))
+             ]) == {:ok, [{:var, 0}]}
+
+      assert quoted_clause([x], [
+               :erlang.not(:erlang.andalso(:erlang.element(0, x), :erlang.is_tuple(x)))
+             ]) ==
                {:ok, [:tuple]}
 
       # TODO: Requires lifting unions to unification
