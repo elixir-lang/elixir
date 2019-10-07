@@ -337,13 +337,13 @@ defmodule Mix.ReleaseTest do
               [
                 {:release, {'demo', '0.1.0'}, {:erts, @erts_version},
                  [
-                   {:kernel, _, :permanent},
-                   {:stdlib, _, :permanent},
+                   {:compiler, _, :permanent},
                    {:elixir, @elixir_version, :permanent},
-                   {:sasl, _, :permanent},
-                   {:mix, @elixir_version, :permanent},
                    {:iex, @elixir_version, :none},
-                   {:compiler, _, :permanent}
+                   {:kernel, _, :permanent},
+                   {:mix, @elixir_version, :permanent},
+                   {:sasl, _, :permanent},
+                   {:stdlib, _, :permanent}
                  ]}
               ]} = :file.consult(@boot_script_path <> ".rel")
 
