@@ -223,27 +223,25 @@ defmodule Module.TypesTest do
       #          ]
       #        }
 
-      # TODO: Requires subunion checking
-      # assert quoted_clause([x], [
-      #          :erlang.not(:erlang.orelse(:erlang.is_tuple(x), :erlang.is_list(x)))
-      #        ]) == {
-      #          :ok,
-      #          [
-      #            {:union,
-      #             [
-      #               :atom,
-      #               :binary,
-      #               :float,
-      #               :fun,
-      #               :integer,
-      #               {:list, :dynamic},
-      #               {:map, []},
-      #               :pid,
-      #               :port,
-      #               :reference
-      #             ]}
-      #          ]
-      #        }
+      assert quoted_clause([x], [
+               :erlang.not(:erlang.orelse(:erlang.is_tuple(x), :erlang.is_list(x)))
+             ]) == {
+               :ok,
+               [
+                 {:union,
+                  [
+                    :atom,
+                    :binary,
+                    :float,
+                    :fun,
+                    :integer,
+                    {:map, []},
+                    :pid,
+                    :port,
+                    :reference
+                  ]}
+               ]
+             }
 
       assert quoted_clause([x], [
                :erlang.orelse(:erlang.not(:erlang.is_tuple(x)), :erlang.not(:erlang.is_list(x)))

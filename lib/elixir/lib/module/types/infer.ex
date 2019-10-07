@@ -400,9 +400,6 @@ defmodule Module.Types.Infer do
     end)
   end
 
-  # This code should only be called in the guard context.
-  # It is working under the assumption that no new type
-  # has been introduced in left or right.
   defp merge_context_and(context, stack, left, right) do
     guard_sources =
       merge_guard_sources(left.guard_sources, right.guard_sources, &and_guard_sources/2)
@@ -476,9 +473,6 @@ defmodule Module.Types.Infer do
     %{context | traces: traces}
   end
 
-  # This code should only be called in the guard context.
-  # It is working under the assumption that no new type
-  # has been introduced in left or right.
   defp merge_context_or(context, stack, left, right) do
     context =
       case {:maps.to_list(left.types), :maps.to_list(right.types)} do
@@ -491,23 +485,46 @@ defmodule Module.Types.Infer do
         {[{index, left_type}], [{index, right_type}]} ->
           # Only include right side if left side is from type guard such as is_list(x),
           # do not refine in case of length(x)
-          # TODO: Might be wrong
-          guard_sources = :maps.get(index, left.guard_sources, [])
+          left_guard_sources = :maps.get(index, left.guard_sources, [])
 
-          if :guarded in guard_sources or :guarded_fail in guard_sources do
-            refine_var(index, to_union([left_type, right_type], context), stack, context)
-          else
+          if :fail in left_guard_sources do
+            guard_sources = :maps.put(index, [:fail], context.guard_sources)
+            context = %{context | guard_sources: guard_sources}
             refine_var(index, left_type, stack, context)
+          else
+            right_guard_sources = :maps.get(index, right.guard_sources, [])
+            new_guard_sources = %{index => left_guard_sources ++ right_guard_sources}
+
+            guard_sources =
+              merge_guard_sources(
+                context.guard_sources,
+                new_guard_sources,
+                &join_guard_sources/2
+              )
+
+            context = %{context | guard_sources: guard_sources}
+            refine_var(index, to_union([left_type, right_type], context), stack, context)
           end
 
         {left_types, _right_types} ->
           Enum.reduce(left_types, context, fn {index, left_type}, context ->
-            guard_sources = :maps.get(index, left.guard_sources, [])
+            left_guard_sources = :maps.get(index, left.guard_sources, [])
 
-            if :guarded in guard_sources or :guarded_fail in guard_sources do
-              context
-            else
+            if :fail in left_guard_sources do
+              right_guard_sources = :maps.get(index, right.guard_sources, [])
+              new_guard_sources = %{index => left_guard_sources ++ right_guard_sources}
+
+              guard_sources =
+                merge_guard_sources(
+                  context.guard_sources,
+                  new_guard_sources,
+                  &join_guard_sources/2
+                )
+
+              context = %{context | guard_sources: guard_sources}
               refine_var(index, left_type, stack, context)
+            else
+              context
             end
           end)
       end
