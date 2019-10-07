@@ -529,7 +529,9 @@ defmodule Mix.Release do
         build_app_for_release(app, mode, properties)
       end
 
-    {:ok, {:release, {to_charlist(name), to_charlist(version)}, {:erts, erts_version}, rel_apps}}
+    {:ok,
+     {:release, {to_charlist(name), to_charlist(version)}, {:erts, erts_version},
+      Enum.sort(rel_apps)}}
   catch
     {:error, message} -> {:error, message}
   end
