@@ -322,13 +322,7 @@ defmodule Module.Types.Infer do
          arg_context = invert_types(stack, arg_context),
          {:ok, context} <- unify_new_types(context, stack, arg_context),
          {:ok, _, context} <- unify(type, :boolean, stack, context) do
-      guard_sources =
-        merge_guard_sources(
-          context.guard_sources,
-          arg_context.guard_sources,
-          &join_guard_sources/2
-        )
-
+      guard_sources = merge_guard_sources([context.guard_sources, arg_context.guard_sources])
       {:ok, :boolean, %{context | guard_sources: guard_sources}}
     end
   end
@@ -401,14 +395,10 @@ defmodule Module.Types.Infer do
   end
 
   defp merge_context_and(context, stack, left, right) do
-    guard_sources =
-      merge_guard_sources(left.guard_sources, right.guard_sources, &and_guard_sources/2)
-
     with {:ok, context} <- unify_new_types(context, stack, left),
          {:ok, context} <- unify_new_types(context, stack, right) do
-      guard_sources =
-        merge_guard_sources(context.guard_sources, guard_sources, &join_guard_sources/2)
-
+      guard_sources = and_guard_sources(left.guard_sources, right.guard_sources)
+      guard_sources = merge_guard_sources([context.guard_sources, guard_sources])
       {:ok, %{context | guard_sources: guard_sources}}
     end
   end
@@ -431,17 +421,19 @@ defmodule Module.Types.Infer do
     end)
   end
 
-  defp merge_guard_sources(left, right, fun) do
-    :maps.fold(
-      fn index, sources, guard_sources ->
-        :maps.update_with(index, &fun.(sources, &1), sources, guard_sources)
-      end,
-      right,
-      left
-    )
+  defp merge_guard_sources(sources) do
+    Enum.reduce(sources, fn left, right ->
+      :maps.fold(
+        fn index, sources, guard_sources ->
+          :maps.update_with(index, &join_guard_source(sources, &1), sources, guard_sources)
+        end,
+        right,
+        left
+      )
+    end)
   end
 
-  defp join_guard_sources(left, right) do
+  defp join_guard_source(left, right) do
     sources = left ++ right
 
     cond do
@@ -453,10 +445,22 @@ defmodule Module.Types.Infer do
   end
 
   defp and_guard_sources(left, right) do
+    :maps.fold(
+      fn index, sources, guard_sources ->
+        :maps.update_with(index, &and_guard_source(sources, &1), sources, guard_sources)
+      end,
+      right,
+      left
+    )
+  end
+
+  defp and_guard_source(left, right) do
+    # When the failing guard function wont fail due to type check function before it,
+    # for example: is_list(x) and length(x)
     if :guarded in left and :fail in right do
       [:guarded_fail]
     else
-      join_guard_sources(left, right)
+      join_guard_source(left, right)
     end
   end
 
@@ -492,16 +496,7 @@ defmodule Module.Types.Infer do
             context = %{context | guard_sources: guard_sources}
             refine_var(index, left_type, stack, context)
           else
-            right_guard_sources = :maps.get(index, right.guard_sources, [])
-            new_guard_sources = %{index => left_guard_sources ++ right_guard_sources}
-
-            guard_sources =
-              merge_guard_sources(
-                context.guard_sources,
-                new_guard_sources,
-                &join_guard_sources/2
-              )
-
+            guard_sources = merge_guard_sources([context.guard_sources, left.guard_sources, right.guard_sources])
             context = %{context | guard_sources: guard_sources}
             refine_var(index, to_union([left_type, right_type], context), stack, context)
           end
@@ -511,16 +506,7 @@ defmodule Module.Types.Infer do
             left_guard_sources = :maps.get(index, left.guard_sources, [])
 
             if :fail in left_guard_sources do
-              right_guard_sources = :maps.get(index, right.guard_sources, [])
-              new_guard_sources = %{index => left_guard_sources ++ right_guard_sources}
-
-              guard_sources =
-                merge_guard_sources(
-                  context.guard_sources,
-                  new_guard_sources,
-                  &join_guard_sources/2
-                )
-
+              guard_sources = merge_guard_sources([context.guard_sources, left.guard_sources, right.guard_sources])
               context = %{context | guard_sources: guard_sources}
               refine_var(index, left_type, stack, context)
             else
