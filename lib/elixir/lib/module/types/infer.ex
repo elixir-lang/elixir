@@ -496,7 +496,13 @@ defmodule Module.Types.Infer do
             context = %{context | guard_sources: guard_sources}
             refine_var(index, left_type, stack, context)
           else
-            guard_sources = merge_guard_sources([context.guard_sources, left.guard_sources, right.guard_sources])
+            guard_sources =
+              merge_guard_sources([
+                context.guard_sources,
+                left.guard_sources,
+                right.guard_sources
+              ])
+
             context = %{context | guard_sources: guard_sources}
             refine_var(index, to_union([left_type, right_type], context), stack, context)
           end
@@ -506,7 +512,13 @@ defmodule Module.Types.Infer do
             left_guard_sources = :maps.get(index, left.guard_sources, [])
 
             if :fail in left_guard_sources do
-              guard_sources = merge_guard_sources([context.guard_sources, left.guard_sources, right.guard_sources])
+              guard_sources =
+                merge_guard_sources([
+                  context.guard_sources,
+                  left.guard_sources,
+                  right.guard_sources
+                ])
+
               context = %{context | guard_sources: guard_sources}
               refine_var(index, left_type, stack, context)
             else
