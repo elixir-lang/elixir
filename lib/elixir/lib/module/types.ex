@@ -130,12 +130,12 @@ defmodule Module.Types do
 
   # Lift type variable to its infered (hopefully concrete) types from the context
   defp do_lift_type({:var, var}, context) do
-    case :maps.find(var, context.lifted_types) do
+    case Map.fetch(context.lifted_types, var) do
       {:ok, lifted_var} ->
         {{:var, lifted_var}, context}
 
       :error ->
-        case :maps.find(var, context.types) do
+        case Map.fetch(context.types, var) do
           {:ok, :unbound} ->
             new_lifted_var(var, context)
 
@@ -143,7 +143,7 @@ defmodule Module.Types do
             # Remove visited types to avoid infinite loops
             # then restore after we are done recursing on vars
             types = context.types
-            context = %{context | types: :maps.remove(var, context.types)}
+            context = %{context | types: Map.delete(context.types, var)}
             {type, context} = do_lift_type(type, context)
             {type, %{context | types: types}}
 
@@ -179,7 +179,7 @@ defmodule Module.Types do
   end
 
   defp new_lifted_var(original_var, context) do
-    types = :maps.put(original_var, context.lifted_counter, context.lifted_types)
+    types = Map.put(context.lifted_types, original_var, context.lifted_counter)
     counter = context.lifted_counter + 1
 
     type = {:var, context.lifted_counter}

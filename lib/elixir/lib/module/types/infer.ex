@@ -345,7 +345,7 @@ defmodule Module.Types.Infer do
           case arg_types do
             [{:var, index} | rest_arg_types] when type_guard? ->
               guard_sources =
-                :maps.update_with(index, &[:guarded | &1], [:guarded], context.guard_sources)
+                Map.update(context.guard_sources, index, [:guarded], &[:guarded | &1])
 
               {rest_arg_types, guard_sources}
 
@@ -356,7 +356,7 @@ defmodule Module.Types.Infer do
         guard_sources =
           Enum.reduce(arg_types, guard_sources, fn
             {:var, index}, guard_sources ->
-              :maps.update_with(index, &[:fail | &1], [:fail], guard_sources)
+              Map.update(guard_sources, index, [:fail], &[:fail | &1])
 
             _, guard_sources ->
               guard_sources
@@ -370,7 +370,7 @@ defmodule Module.Types.Infer do
   end
 
   def of_guard(var, _stack, context) when is_var(var) do
-    type = :maps.get(var_name(var), context.vars)
+    type = Map.fetch!(context.vars, var_name(var))
     {:ok, type, context}
   end
 
@@ -380,8 +380,8 @@ defmodule Module.Types.Infer do
   end
 
   defp fresh_context(context) do
-    types = :maps.from_list(Enum.map(context.types, fn {var, _} -> {var, :unbound} end))
-    traces = :maps.from_list(Enum.map(context.traces, fn {var, _} -> {var, []} end))
+    types = Map.new(context.types, fn {var, _} -> {var, :unbound} end)
+    traces = Map.new(context.traces, fn {var, _} -> {var, []} end)
     %{context | types: types, traces: traces}
   end
 
@@ -406,7 +406,7 @@ defmodule Module.Types.Infer do
   defp unify_new_types(context, stack, new_context) do
     context = merge_traces(context, new_context)
 
-    reduce_ok(:maps.to_list(new_context.types), context, fn
+    reduce_ok(Map.to_list(new_context.types), context, fn
       {_index, :unbound}, context ->
         {:ok, context}
 
@@ -423,13 +423,7 @@ defmodule Module.Types.Infer do
 
   defp merge_guard_sources(sources) do
     Enum.reduce(sources, fn left, right ->
-      :maps.fold(
-        fn index, sources, guard_sources ->
-          :maps.update_with(index, &join_guard_source(sources, &1), sources, guard_sources)
-        end,
-        right,
-        left
-      )
+      Map.merge(left, right, fn _index, left, right -> join_guard_source(left, right) end)
     end)
   end
 
@@ -445,23 +439,15 @@ defmodule Module.Types.Infer do
   end
 
   defp and_guard_sources(left, right) do
-    :maps.fold(
-      fn index, sources, guard_sources ->
-        :maps.update_with(index, &and_guard_source(sources, &1), sources, guard_sources)
-      end,
-      right,
-      left
-    )
-  end
-
-  defp and_guard_source(left, right) do
-    # When the failing guard function wont fail due to type check function before it,
-    # for example: is_list(x) and length(x)
-    if :guarded in left and :fail in right do
-      [:guarded_fail]
-    else
-      join_guard_source(left, right)
-    end
+    Map.merge(left, right, fn _index, left, right ->
+      # When the failing guard function wont fail due to type check function before it,
+      # for example: is_list(x) and length(x)
+      if :guarded in left and :fail in right do
+        [:guarded_fail]
+      else
+        join_guard_source(left, right)
+      end
+    end)
   end
 
   defp merge_traces(context, new_context) do
@@ -479,7 +465,7 @@ defmodule Module.Types.Infer do
 
   defp merge_context_or(context, stack, left, right) do
     context =
-      case {:maps.to_list(left.types), :maps.to_list(right.types)} do
+      case {Map.to_list(left.types), Map.to_list(right.types)} do
         {[{index, :unbound}], [{index, type}]} ->
           refine_var(index, type, stack, context)
 
@@ -489,10 +475,10 @@ defmodule Module.Types.Infer do
         {[{index, left_type}], [{index, right_type}]} ->
           # Only include right side if left side is from type guard such as is_list(x),
           # do not refine in case of length(x)
-          left_guard_sources = :maps.get(index, left.guard_sources, [])
+          left_guard_sources = Map.get(left.guard_sources, index, [])
 
           if :fail in left_guard_sources do
-            guard_sources = :maps.put(index, [:fail], context.guard_sources)
+            guard_sources = Map.put(context.guard_sources, index, [:fail])
             context = %{context | guard_sources: guard_sources}
             refine_var(index, left_type, stack, context)
           else
@@ -509,7 +495,7 @@ defmodule Module.Types.Infer do
 
         {left_types, _right_types} ->
           Enum.reduce(left_types, context, fn {index, left_type}, context ->
-            left_guard_sources = :maps.get(index, left.guard_sources, [])
+            left_guard_sources = Map.get(left.guard_sources, index, [])
 
             if :fail in left_guard_sources do
               guard_sources =
@@ -532,7 +518,7 @@ defmodule Module.Types.Infer do
 
   defp invert_types(stack, context) do
     Enum.reduce(context.types, context, fn {index, type}, context ->
-      sources = :maps.get(index, context.guard_sources, [])
+      sources = Map.get(context.guard_sources, index, [])
 
       cond do
         :guarded_fail in sources ->
@@ -541,7 +527,7 @@ defmodule Module.Types.Infer do
         :guarded in sources ->
           # Remove traces from inside `not(...)` when we invert the type
           # to avoid confusing error messages
-          context = %{context | traces: :maps.put(index, [], context.traces)}
+          context = %{context | traces: Map.put(context.traces, index, [])}
           refine_var(index, invert_type(type, context), stack, context)
 
         true ->
@@ -657,7 +643,7 @@ defmodule Module.Types.Infer do
   end
 
   defp do_unify(type, {:var, var}, stack, context) do
-    case :maps.get(var, context.types) do
+    case Map.fetch!(context.types, var) do
       :unbound ->
         context = refine_var(var, type, stack, context)
         stack = push_unify_stack(var, stack)
@@ -773,12 +759,12 @@ defmodule Module.Types.Infer do
   end
 
   defp variable_same?(left, right, context) do
-    case :maps.find(left, context.types) do
+    case Map.fetch(context.types, left) do
       {:ok, {:var, new_left}} ->
         variable_same?(new_left, right, context)
 
       _ ->
-        case :maps.find(right, context.types) do
+        case Map.fetch(context.types, right) do
           {:ok, {:var, new_right}} -> variable_same?(left, new_right, context)
           _ -> false
         end
@@ -794,16 +780,16 @@ defmodule Module.Types.Infer do
   If the variable has already been added, return the existing type variable.
   """
   def new_var(var, context) do
-    case :maps.find(var_name(var), context.vars) do
+    case Map.fetch(context.vars, var_name(var)) do
       {:ok, type} ->
         {type, context}
 
       :error ->
         type = {:var, context.counter}
-        vars = :maps.put(var_name(var), type, context.vars)
-        types_to_vars = :maps.put(context.counter, var, context.types_to_vars)
-        types = :maps.put(context.counter, :unbound, context.types)
-        traces = :maps.put(context.counter, [], context.traces)
+        vars = Map.put(context.vars, var_name(var), type)
+        types_to_vars = Map.put(context.types_to_vars, context.counter, var)
+        types = Map.put(context.types, context.counter, :unbound)
+        traces = Map.put(context.traces, context.counter, [])
 
         context = %{
           context
@@ -819,21 +805,21 @@ defmodule Module.Types.Infer do
   end
 
   defp refine_var(var, type, stack, context) do
-    types = :maps.put(var, type, context.types)
+    types = Map.put(context.types, var, type)
     context = %{context | types: types}
     trace_var(var, type, stack, context)
   end
 
   defp remove_var(var, context) do
-    types = :maps.remove(var, context.types)
-    traces = :maps.remove(var, context.traces)
+    types = Map.delete(context.types, var)
+    traces = Map.delete(context.traces, var)
     %{context | types: types, traces: traces}
   end
 
   defp trace_var(var, type, %{trace: true, expr_stack: expr_stack} = _stack, context) do
     line = get_meta(hd(expr_stack))[:line]
     trace = {type, expr_stack, {context.file, line}}
-    traces = :maps.update_with(var, &[trace | &1], context.traces)
+    traces = Map.update!(context.traces, var, &[trace | &1])
     %{context | traces: traces}
   end
 
@@ -847,7 +833,7 @@ defmodule Module.Types.Infer do
   # Bad: `{var} = var`
   # Good: `x = y; y = z; z = x`
   defp recursive_type?({:var, var} = parent, parents, context) do
-    case :maps.get(var, context.types) do
+    case Map.fetch!(context.types, var) do
       :unbound ->
         false
 
@@ -964,9 +950,9 @@ defmodule Module.Types.Infer do
     stack = Enum.uniq(stack.unify_stack)
 
     Enum.flat_map(stack, fn var_index ->
-      case :maps.find(var_index, context.traces) do
+      case Map.fetch(context.traces, var_index) do
         {:ok, traces} ->
-          expr_var = :maps.get(var_index, context.types_to_vars)
+          expr_var = Map.fetch!(context.types_to_vars, var_index)
           Enum.map(traces, &{expr_var, &1})
 
         _other ->
@@ -981,7 +967,7 @@ defmodule Module.Types.Infer do
     Enum.flat_map(traces, fn {var, {type, [expr | _], location}} ->
       case type do
         {:var, var_index} ->
-          var2 = :maps.get(var_index, context.types_to_vars)
+          var2 = Map.fetch!(context.types_to_vars, var_index)
           [{var, {:var, var2, expr, location}}]
 
         _ ->
@@ -1010,7 +996,7 @@ defmodule Module.Types.Infer do
   defp get_meta(_other), do: []
 
   defp guard_signature(name, arity) do
-    :maps.get({name, arity}, @guard_functions)
+    Map.fetch!(@guard_functions, {name, arity})
   end
 
   defp type_guard?(name) do
