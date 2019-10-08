@@ -227,13 +227,13 @@ defmodule Mix.ReleaseTest do
       release = release([])
 
       assert release.boot_scripts.start == [
-               kernel: :permanent,
-               stdlib: :permanent,
+               compiler: :permanent,
                elixir: :permanent,
-               sasl: :permanent,
-               mix: :permanent,
                iex: :none,
-               compiler: :permanent
+               kernel: :permanent,
+               mix: :permanent,
+               sasl: :permanent,
+               stdlib: :permanent
              ]
     end
 
@@ -242,28 +242,28 @@ defmodule Mix.ReleaseTest do
       release = release(applications: [eex: :permanent])
 
       assert release.boot_scripts.start == [
-               kernel: :permanent,
-               stdlib: :permanent,
-               elixir: :permanent,
-               sasl: :permanent,
+               compiler: :permanent,
                eex: :permanent,
-               mix: :permanent,
+               elixir: :permanent,
                iex: :none,
-               compiler: :permanent
+               kernel: :permanent,
+               mix: :permanent,
+               sasl: :permanent,
+               stdlib: :permanent
              ]
 
       # Unless explicitly given
       release = release(applications: [mix: :permanent, eex: :permanent])
 
       assert release.boot_scripts.start == [
-               kernel: :permanent,
-               stdlib: :permanent,
-               elixir: :permanent,
-               sasl: :permanent,
-               mix: :permanent,
+               compiler: :permanent,
                eex: :permanent,
+               elixir: :permanent,
                iex: :none,
-               compiler: :permanent
+               kernel: :permanent,
+               mix: :permanent,
+               sasl: :permanent,
+               stdlib: :permanent
              ]
     end
 
@@ -279,13 +279,13 @@ defmodule Mix.ReleaseTest do
       release = release([])
 
       assert release.boot_scripts.start_clean == [
-               kernel: :permanent,
-               stdlib: :permanent,
+               compiler: :none,
                elixir: :none,
-               sasl: :none,
-               mix: :none,
                iex: :none,
-               compiler: :none
+               kernel: :permanent,
+               mix: :none,
+               sasl: :none,
+               stdlib: :permanent
              ]
     end
   end
@@ -417,7 +417,7 @@ defmodule Mix.ReleaseTest do
       {:error, message} = make_boot_script(release, @boot_script_path, release.boot_scripts.start)
 
       assert message =~
-               "Application :stdlib has mode :permanent but it depends on :kernel which is set to :load"
+               "Application :compiler has mode :permanent but it depends on :kernel which is set to :load"
 
       release = release(applications: [elixir: :none])
       {:error, message} = make_boot_script(release, @boot_script_path, release.boot_scripts.start)

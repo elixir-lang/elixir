@@ -317,12 +317,14 @@ defmodule Mix.Release do
   end
 
   defp build_start_boot(all_apps, specified_apps) do
-    specified_apps ++
-      for(
-        {app, props} <- all_apps,
-        not List.keymember?(specified_apps, app, 0),
-        do: {app, default_mode(props)}
-      )
+    Enum.sort(
+      specified_apps ++
+        for(
+          {app, props} <- all_apps,
+          not List.keymember?(specified_apps, app, 0),
+          do: {app, default_mode(props)}
+        )
+    )
   end
 
   defp default_mode(props) do
@@ -529,9 +531,7 @@ defmodule Mix.Release do
         build_app_for_release(app, mode, properties)
       end
 
-    {:ok,
-     {:release, {to_charlist(name), to_charlist(version)}, {:erts, erts_version},
-      Enum.sort(rel_apps)}}
+    {:ok, {:release, {to_charlist(name), to_charlist(version)}, {:erts, erts_version}, rel_apps}}
   catch
     {:error, message} -> {:error, message}
   end
