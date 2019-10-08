@@ -14,8 +14,19 @@ defmodule Module.Types.InferTest do
 
   defmacrop quoted_guard(guards, context) do
     quote do
-      of_guard(unquote(Macro.escape(guards)), new_stack(), unquote(context))
+      of_guard(unquote(Macro.escape(expand_guards(guards))), new_stack(), unquote(context))
     end
+  end
+
+  defp expand_guards(guards) do
+    fun =
+      quote do
+        fn var!(x) when unquote(guards) -> var!(x) end
+      end
+
+    {ast, _env} = :elixir_expand.expand(fun, __ENV__)
+    {:fn, _, [{:->, _, [[{:when, _, [_, guards]}], _]}]} = ast
+    guards
   end
 
   defp unify_lift(left, right, context \\ new_context()) do
@@ -51,7 +62,7 @@ defmodule Module.Types.InferTest do
       assert {:error, {{:unable_unify, :binary, :integer, expr, traces}, location}} =
                quoted_pattern(<<foo::integer, foo::binary>>)
 
-      assert location == [{"types_test.ex", 52, {TypesTest, :test, 0}}]
+      assert location == [{"types_test.ex", 63, {TypesTest, :test, 0}}]
 
       assert {:<<>>, _,
               [
@@ -62,10 +73,10 @@ defmodule Module.Types.InferTest do
       assert [
                {{:foo, _, nil},
                 {:type, :binary, {:"::", _, [{:foo, _, nil}, {:binary, _, nil}]},
-                 {"types_test.ex", 52}}},
+                 {"types_test.ex", 63}}},
                {{:foo, _, nil},
                 {:type, :integer, {:"::", _, [{:foo, _, nil}, {:integer, _, nil}]},
-                 {"types_test.ex", 52}}}
+                 {"types_test.ex", 63}}}
              ] = traces
     end
 
@@ -372,17 +383,14 @@ defmodule Module.Types.InferTest do
   test "of_guard/2" do
     assert {{:var, 0}, var_context} = new_var({:x, [], nil}, new_context())
 
-    assert {:ok, :boolean, context} = quoted_guard(:erlang.is_tuple(x), var_context)
+    assert {:ok, :boolean, context} = quoted_guard(is_tuple(x), var_context)
     assert Types.lift_type({:var, 0}, context) == :tuple
 
-    assert {:ok, :dynamic, context} = quoted_guard(:erlang.element(0, x), var_context)
+    assert {:ok, :dynamic, context} = quoted_guard(elem(x, 0), var_context)
     assert Types.lift_type({:var, 0}, context) == :tuple
 
     assert {:error, {_, {:unable_unify, :boolean, :tuple, _, _}, _}} =
-             quoted_guard(
-               :erlang.andalso(:erlang.is_tuple(x), :erlang.is_boolean(x)),
-               var_context
-             )
+             quoted_guard(is_tuple(x) and is_boolean(x), var_context)
   end
 
   test "subtype?/3" do
