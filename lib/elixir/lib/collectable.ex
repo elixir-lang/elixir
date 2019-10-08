@@ -143,7 +143,7 @@ end
 defimpl Collectable, for: Map do
   def into(original) do
     fun = fn
-      map, {:cont, {k, v}} -> :maps.put(k, v, map)
+      map, {:cont, {k, v}} -> Map.put(map, k, v)
       map, :done -> map
       _, :halt -> :ok
     end

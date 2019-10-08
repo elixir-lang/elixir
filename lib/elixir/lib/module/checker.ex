@@ -56,13 +56,13 @@ defmodule Module.Checker do
 
   defp build_chunk(map, types) do
     exports = ParallelChecker.definitions_to_exports(map.definitions)
-    deprecated = :maps.from_list(map.deprecated)
-    types = :maps.from_list(types)
+    deprecated = Map.new(map.deprecated)
+    types = Map.new(types)
 
     exports =
       Enum.map(exports, fn {function, kind} ->
-        deprecated_reason = :maps.get(function, deprecated, nil)
-        type = :maps.get(function, types, nil)
+        deprecated_reason = Map.get(deprecated, function)
+        type = Map.get(types, function)
         {function, %{kind: kind, deprecated_reason: deprecated_reason, type: type}}
       end)
 
