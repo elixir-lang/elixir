@@ -27,13 +27,16 @@ defmodule Module.TypesTest do
   defp expand_guards(exprs, guards) do
     {_, vars} =
       Macro.prewalk(exprs, [], fn
-        {name, _, context} = var, vars when is_atom(name) and is_atom(context) -> {var, [var | vars]}
-        other, vars -> {other, vars}
+        {name, _, context} = var, vars when is_atom(name) and is_atom(context) ->
+          {var, [var | vars]}
+
+        other, vars ->
+          {other, vars}
       end)
 
     fun =
       quote do
-        fn(unquote(vars)) when unquote(guards) -> unquote(vars) end
+        fn unquote(vars) when unquote(guards) -> unquote(vars) end
       end
 
     {ast, _env} = :elixir_expand.expand(fun, __ENV__)

@@ -21,7 +21,7 @@ defmodule Module.Types.InferTest do
   defp expand_guards(guards) do
     fun =
       quote do
-        fn(var!(x)) when unquote(guards) -> var!(x) end
+        fn var!(x) when unquote(guards) -> var!(x) end
       end
 
     {ast, _env} = :elixir_expand.expand(fun, __ENV__)
