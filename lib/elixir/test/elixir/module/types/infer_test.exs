@@ -19,11 +19,14 @@ defmodule Module.Types.InferTest do
   end
 
   defp expand_guards(guards) do
-    x = nil
-    _ = x
+    fun =
+      quote do
+        fn(var!(x)) when unquote(guards) -> var!(x) end
+      end
 
-    {ast, _env} = :elixir_expand.expand(guards, %{__ENV__ | context: :guard})
-    ast
+    {ast, _env} = :elixir_expand.expand(fun, __ENV__)
+    {:fn, _, [{:->, _, [[{:when, _, [_, guards]}], _]}]} = ast
+    guards
   end
 
   defp unify_lift(left, right, context \\ new_context()) do
@@ -59,7 +62,7 @@ defmodule Module.Types.InferTest do
       assert {:error, {{:unable_unify, :binary, :integer, expr, traces}, location}} =
                quoted_pattern(<<foo::integer, foo::binary>>)
 
-      assert location == [{"types_test.ex", 60, {TypesTest, :test, 0}}]
+      assert location == [{"types_test.ex", 63, {TypesTest, :test, 0}}]
 
       assert {:<<>>, _,
               [
@@ -70,10 +73,10 @@ defmodule Module.Types.InferTest do
       assert [
                {{:foo, _, nil},
                 {:type, :binary, {:"::", _, [{:foo, _, nil}, {:binary, _, nil}]},
-                 {"types_test.ex", 60}}},
+                 {"types_test.ex", 63}}},
                {{:foo, _, nil},
                 {:type, :integer, {:"::", _, [{:foo, _, nil}, {:integer, _, nil}]},
-                 {"types_test.ex", 60}}}
+                 {"types_test.ex", 63}}}
              ] = traces
     end
 

@@ -16,7 +16,7 @@ defmodule Module.TypesTest do
     quote do
       Types.of_clause(
         unquote(Macro.escape(exprs)),
-        unquote(Macro.escape(expand_guards(guards))),
+        unquote(Macro.escape(expand_guards(exprs, guards))),
         new_stack(),
         new_context()
       )
@@ -24,16 +24,21 @@ defmodule Module.TypesTest do
     end
   end
 
-  defp expand_guards(guards) do
-    x = nil
-    y = nil
-    z = nil
-    bool = nil
-    var = nil
-    _ = [x, y, z, bool, var]
+  defp expand_guards(exprs, guards) do
+    {_, vars} =
+      Macro.prewalk(exprs, [], fn
+        {name, _, context} = var, vars when is_atom(name) and is_atom(context) -> {var, [var | vars]}
+        other, vars -> {other, vars}
+      end)
 
-    {ast, _env} = :elixir_expand.expand(guards, %{__ENV__ | context: :guard})
-    ast
+    fun =
+      quote do
+        fn(unquote(vars)) when unquote(guards) -> unquote(vars) end
+      end
+
+    {ast, _env} = :elixir_expand.expand(fun, __ENV__)
+    {:fn, _, [{:->, _, [[{:when, _, [_, guards]}], _]}]} = ast
+    guards
   end
 
   defp new_context() do
