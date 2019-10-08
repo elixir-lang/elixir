@@ -6,20 +6,29 @@ defmodule Module.TypesTest do
 
   defmacrop quoted_clause(exprs) do
     quote do
-      Types.of_clause(unquote(Macro.escape(exprs)), [], new_context())
+      Types.of_clause(unquote(Macro.escape(exprs)), [], new_stack(), new_context())
       |> lift_result()
     end
   end
 
   defmacrop quoted_clause(exprs, guards) do
     quote do
-      Types.of_clause(unquote(Macro.escape(exprs)), unquote(Macro.escape(guards)), new_context())
+      Types.of_clause(
+        unquote(Macro.escape(exprs)),
+        unquote(Macro.escape(guards)),
+        new_stack(),
+        new_context()
+      )
       |> lift_result()
     end
   end
 
   defp new_context() do
     Types.context("types_test.ex", TypesTest, {:test, 0})
+  end
+
+  defp new_stack() do
+    Types.stack()
   end
 
   defp lift_result({:ok, types, context}) when is_list(types) do
@@ -72,11 +81,16 @@ defmodule Module.TypesTest do
       assert quoted_clause([x], [:erlang.orelse(:erlang.is_atom(x), :erlang.is_boolean(x))]) ==
                {:ok, [:atom]}
 
+      assert quoted_clause([x], [:erlang.orelse(:erlang.is_tuple(x), :erlang.is_atom(x))]) ==
+               {:ok, [{:union, [:tuple, :atom]}]}
+
       assert quoted_clause([x], [:erlang.andalso(:erlang.is_boolean(x), :erlang.is_atom(x))]) ==
                {:ok, [:boolean]}
 
       assert quoted_clause([x], [:erlang.andalso(:erlang.is_atom(x), :erlang.is_boolean(x))]) ==
                {:ok, [:boolean]}
+
+      assert quoted_clause([x], [:erlang.>(:erlang.is_atom(x), :foo)]) == {:ok, [var: 0]}
 
       assert quoted_clause([x, x = y, y = z], [:erlang.is_atom(x)]) ==
                {:ok, [:atom, :atom, :atom]}
@@ -89,6 +103,206 @@ defmodule Module.TypesTest do
 
       assert {:error, {{:unable_unify, :integer, :binary, _, _}, _}} =
                quoted_clause([x], [:erlang.andalso(:erlang.is_binary(x), :erlang.is_integer(x))])
+
+      assert {:error, {{:unable_unify, :atom, :tuple, _, _}, _}} =
+               quoted_clause([x], [:erlang.andalso(:erlang.is_tuple(x), :erlang.is_atom(x))])
+
+      assert {:error, {{:unable_unify, :tuple, :boolean, _, _}, _}} =
+               quoted_clause([x], [:erlang.is_tuple(:erlang.is_atom(x))])
+    end
+
+    test "failing guard functions" do
+      assert quoted_clause([x], [:erlang.length([])]) == {:ok, [{:var, 0}]}
+
+      assert {:error, {{:unable_unify, {:list, :dynamic}, {:atom, :foo}, _, _}, _}} =
+               quoted_clause([x], [:erlang.length(:foo)])
+
+      assert {:error, {{:unable_unify, {:list, :dynamic}, :boolean, _, _}, _}} =
+               quoted_clause([x], [:erlang.length(:erlang.is_tuple(x))])
+
+      assert {:error, {{:unable_unify, :tuple, :boolean, _, _}, _}} =
+               quoted_clause([x], [:erlang.element(0, :erlang.is_tuple(x))])
+
+      assert {:error, {{:unable_unify, :integer, :boolean, _, _}, _}} =
+               quoted_clause([x], [:erlang.element(:erlang.is_tuple(x), {})])
+
+      assert quoted_clause([x], [:erlang.element(1, {})]) == {:ok, [var: 0]}
+
+      assert quoted_clause([x], [:erlang.==(:erlang.element(1, x), :foo)]) == {:ok, [:tuple]}
+
+      assert quoted_clause([x], [
+               :erlang.andalso(:erlang.is_tuple(x), :erlang.element(1, x))
+             ]) ==
+               {:ok, [:tuple]}
+
+      assert quoted_clause([x], [
+               :erlang.orelse(:erlang.==(:erlang.length(x), 0), :erlang.element(1, x))
+             ]) ==
+               {:ok, [{:list, :dynamic}]}
+
+      assert quoted_clause([x], [
+               :erlang.orelse(
+                 :erlang.andalso(:erlang.is_list(x), :erlang.==(:erlang.length(x), 0)),
+                 :erlang.andalso(:erlang.is_tuple(x), :erlang.element(1, x))
+               )
+             ]) ==
+               {:ok, [{:union, [{:list, :dynamic}, :tuple]}]}
+
+      assert quoted_clause([x], [
+               :erlang.orelse(
+                 :erlang.andalso(:erlang.==(:erlang.length(x), 0), :erlang.is_list(x)),
+                 :erlang.andalso(:erlang.element(1, x), :erlang.is_tuple(x))
+               )
+             ]) == {:ok, [{:list, :dynamic}]}
+
+      assert quoted_clause([x, y], [:erlang.andalso(:erlang.element(1, x), :erlang.is_atom(y))]) ==
+               {:ok, [:tuple, :atom]}
+
+      assert quoted_clause([x], [:erlang.orelse(:erlang.element(1, x), :erlang.is_atom(x))]) ==
+               {:ok, [:tuple]}
+
+      assert quoted_clause([x, y], [:erlang.orelse(:erlang.element(1, x), :erlang.is_atom(y))]) ==
+               {:ok, [:tuple, {:var, 0}]}
+
+      assert {:error, {{:unable_unify, :atom, :tuple, _, _}, _}} =
+               quoted_clause([x], [:erlang.andalso(:erlang.element(1, x), :erlang.is_atom(x))])
+    end
+
+    test "inverse guards" do
+      assert quoted_clause([x], [:erlang.not(:erlang.is_tuple(x))]) ==
+               {:ok,
+                [
+                  {:union,
+                   [
+                     :atom,
+                     :binary,
+                     :float,
+                     :fun,
+                     :integer,
+                     {:list, :dynamic},
+                     {:map, []},
+                     :pid,
+                     :port,
+                     :reference
+                   ]}
+                ]}
+
+      assert quoted_clause([x], [:erlang.not(:erlang.not(:erlang.is_tuple(x)))]) ==
+               {:ok, [:tuple]}
+
+      assert quoted_clause([x], [:erlang.not(:erlang.element(0, x))]) ==
+               {:ok, [:tuple]}
+
+      assert quoted_clause([x], [
+               :erlang.not(:erlang.andalso(:erlang.is_tuple(x), :erlang.element(0, x)))
+             ]) == {:ok, [{:var, 0}]}
+
+      assert quoted_clause([x], [
+               :erlang.not(:erlang.andalso(:erlang.element(0, x), :erlang.is_tuple(x)))
+             ]) ==
+               {:ok, [:tuple]}
+
+      # TODO: Requires lifting unions to unification
+      # assert quoted_clause([x], [
+      #          :erlang.andalso(:erlang.not(:erlang.is_tuple(x)), :erlang.not(:erlang.is_list(x)))
+      #        ]) == {
+      #          :ok,
+      #          [
+      #            {:union,
+      #             [
+      #               :atom,
+      #               :binary,
+      #               :float,
+      #               :fun,
+      #               :integer,
+      #               {:map, []},
+      #               :pid,
+      #               :port,
+      #               :reference
+      #             ]}
+      #          ]
+      #        }
+
+      assert quoted_clause([x], [
+               :erlang.not(:erlang.orelse(:erlang.is_tuple(x), :erlang.is_list(x)))
+             ]) == {
+               :ok,
+               [
+                 {:union,
+                  [
+                    :atom,
+                    :binary,
+                    :float,
+                    :fun,
+                    :integer,
+                    {:map, []},
+                    :pid,
+                    :port,
+                    :reference
+                  ]}
+               ]
+             }
+
+      assert quoted_clause([x], [
+               :erlang.orelse(:erlang.not(:erlang.is_tuple(x)), :erlang.not(:erlang.is_list(x)))
+             ]) == {
+               :ok,
+               [
+                 {:union,
+                  [
+                    :atom,
+                    :binary,
+                    :float,
+                    :fun,
+                    :integer,
+                    {:list, :dynamic},
+                    {:map, []},
+                    :pid,
+                    :port,
+                    :reference,
+                    :tuple
+                  ]}
+               ]
+             }
+
+      assert quoted_clause([x], [
+               :erlang.andalso(:erlang.is_integer(x), :erlang.not(:erlang.is_binary(x)))
+             ]) == {:ok, [:integer]}
+
+      assert quoted_clause([x, y], [
+               :erlang.andalso(:erlang.is_integer(x), :erlang.not(:erlang.is_binary(y)))
+             ]) ==
+               {:ok,
+                [
+                  :integer,
+                  {:union,
+                   [
+                     :atom,
+                     :float,
+                     :fun,
+                     :integer,
+                     {:list, :dynamic},
+                     {:map, []},
+                     :pid,
+                     :port,
+                     :reference,
+                     :tuple
+                   ]}
+                ]}
+
+      assert quoted_clause([x], [
+               :erlang.andalso(
+                 :erlang.is_atom(x),
+                 :erlang.not(
+                   :erlang.andalso(:erlang.is_integer(x), :erlang.==(:erlang.band(x, 1), 1))
+                 )
+               )
+             ]) == {:ok, [:atom]}
+
+      assert {:error, {{:unable_unify, {:list, :dynamic}, :tuple, _, _}, _}} =
+               quoted_clause([x], [
+                 :erlang.not(:erlang.andalso(:erlang.is_tuple(x), :erlang.is_list(x)))
+               ])
     end
 
     test "map" do
@@ -129,8 +343,7 @@ defmodule Module.TypesTest do
     assert Types.format_type(:binary) == "binary()"
     assert Types.format_type({:atom, true}) == "true"
     assert Types.format_type({:atom, :atom}) == ":atom"
-    assert Types.format_type({:cons, :binary, :null}) == "[binary()]"
-    assert Types.format_type({:cons, :binary, :binary}) == "[binary() | binary()]"
+    assert Types.format_type({:list, :binary}) == "[binary()]"
     assert Types.format_type({:tuple, []}) == "{}"
     assert Types.format_type({:tuple, [:integer]}) == "{integer()}"
     assert Types.format_type({:map, []}) == "%{}"
