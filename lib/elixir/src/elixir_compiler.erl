@@ -157,6 +157,7 @@ bootstrap_main() ->
    <<"lib/elixir/lib/protocol.ex">>,
    <<"lib/elixir/lib/stream/reducers.ex">>,
    <<"lib/elixir/lib/enum.ex">>,
+   <<"lib/elixir/lib/map.ex">>,
    <<"lib/elixir/lib/inspect/algebra.ex">>,
    <<"lib/elixir/lib/inspect.ex">>,
    <<"lib/elixir/lib/access.ex">>,
