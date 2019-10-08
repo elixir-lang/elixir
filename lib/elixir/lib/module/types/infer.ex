@@ -204,7 +204,7 @@ defmodule Module.Types.Infer do
 
   # TODO: Some guards can be changed to interesection types or higher order types
 
-  @guards %{
+  @guard_functions %{
     {:is_atom, 1} => {[:atom], :boolean},
     {:is_binary, 1} => {[:binary], :boolean},
     {:is_bitstring, 1} => {[:binary], :boolean},
@@ -329,8 +329,8 @@ defmodule Module.Types.Infer do
 
   def of_guard({{:., _, [:erlang, guard]}, _, args} = expr, stack, context) do
     stack = push_expr_stack(expr, stack)
-    {param_types, return_type} = :maps.get({guard, length(args)}, @guards)
-    type_guard? = guard in @type_guards
+    {param_types, return_type} = guard_signature(guard, length(args))
+    type_guard? = type_guard?(guard)
 
     # Only check type guards in the context of and/or/not,
     # a type guard in the context of is_tuple(x) > :foo
@@ -1008,4 +1008,12 @@ defmodule Module.Types.Infer do
 
   defp get_meta({_fun, meta, _args}) when is_list(meta), do: meta
   defp get_meta(_other), do: []
+
+  defp guard_signature(name, arity) do
+    :maps.get({name, arity}, @guard_functions)
+  end
+
+  defp type_guard?(name) do
+    name in @type_guards
+  end
 end
