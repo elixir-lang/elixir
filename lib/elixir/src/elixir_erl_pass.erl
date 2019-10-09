@@ -69,7 +69,7 @@ translate({'__CALLER__', Meta, Atom}, S) when is_atom(Atom) ->
 translate({'__STACKTRACE__', Meta, Atom}, S = #elixir_erl{stacktrace={Var, _}}) when is_atom(Atom) ->
   {{var, ?ann(Meta), Var}, S#elixir_erl{stacktrace={Var, true}}};
 
-translate({'super', Meta, Args}, S) ->
+translate({'super', Meta, Args}, S) when is_list(Args) ->
   %% In the expanded AST, super is used to invoke a function
   %% in the current module originated from a default clause
   %% or a super call.

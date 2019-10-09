@@ -254,6 +254,11 @@ defmodule Kernel.OverridableTest do
     assert Overridable.capture_super_macro(5) == [1, 2, 3, 4, 5, 1, 2, 3, 4, 5]
   end
 
+  test "super as a variable" do
+    super = :ok
+    assert super == :ok
+  end
+
   test "overridable with many clauses" do
     assert Overridable.many_clauses(0) == 11
     assert Overridable.many_clauses(1) == 13
