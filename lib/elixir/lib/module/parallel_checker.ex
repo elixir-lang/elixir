@@ -12,10 +12,11 @@ defmodule Module.ParallelChecker do
   """
   @spec verify([{%{}, binary()}], [{module(), binary()}], pos_integer()) ::
           {[{module(), binary()}], [warning()]}
-  def verify(compiled_modules, runtime_binaries, schedulers) do
+  def verify(compiled_modules, runtime_binaries, schedulers \\ nil) do
     compiled_maps = Enum.map(compiled_modules, fn {map, _binary} -> {map.module, map} end)
     check_modules = compiled_maps ++ runtime_binaries
 
+    schedulers = schedulers || max(:erlang.system_info(:schedulers_online), 2)
     {:ok, server} = :gen_server.start_link(__MODULE__, [check_modules, self(), schedulers], [])
     preload_cache(get_ets(server), check_modules)
     start(server)

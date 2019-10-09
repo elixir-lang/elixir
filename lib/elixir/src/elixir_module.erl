@@ -409,7 +409,7 @@ beam_location(#{module := Module}) ->
 make_module_available(Module, Binary, ModuleMap) ->
   case get(elixir_module_binaries) of
     Current when is_list(Current) ->
-      put(elixir_module_binaries, [{Module, Binary} | Current]);
+      put(elixir_module_binaries, [{Module, ModuleMap, Binary} | Current]);
     _ ->
       ok
   end,

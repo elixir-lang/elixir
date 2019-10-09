@@ -16,8 +16,15 @@ defmodule Module.Checker do
     end
   end
 
-  defp prepare_module({_module, map}) when is_map(map) do
-    {:ok, map}
+  defp prepare_module({module, module_map}) when is_map(module_map) do
+    {:ok,
+     %{
+       module: module,
+       file: module_map.file,
+       no_warn_undefined: no_warn_undefined(module_map.compile_opts),
+       definitions: module_map.definitions,
+       deprecated: module_map.deprecated
+     }}
   end
 
   defp prepare_module({module, binary}) when is_binary(binary) do
@@ -32,6 +39,14 @@ defmodule Module.Checker do
          no_warn_undefined: checker_info.no_warn_undefined
        }}
     end
+  end
+
+  defp no_warn_undefined(compile_opts) do
+    for(
+      {:no_warn_undefined, values} <- compile_opts,
+      value <- List.wrap(values),
+      do: value
+    )
   end
 
   defp debug_info(module, binary) do
