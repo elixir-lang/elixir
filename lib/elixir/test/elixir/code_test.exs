@@ -117,6 +117,15 @@ defmodule CodeTest do
     Code.unrequire_files([fixture_path("code_sample.exs")])
   end
 
+  test "require_file/1 checker warning" do
+    output =
+      ExUnit.CaptureIO.capture_io(:stderr, fn ->
+        Code.require_file(fixture_path("checker_warning.exs"))
+      end)
+
+    assert output =~ "function clause will never match"
+  end
+
   describe "string_to_quoted/2" do
     test "converts strings to quoted expressions" do
       assert Code.string_to_quoted("1 + 2") == {:ok, {:+, [line: 1], [1, 2]}}
