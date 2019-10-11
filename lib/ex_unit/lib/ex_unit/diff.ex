@@ -336,7 +336,7 @@ defmodule ExUnit.Diff do
   end
 
   defp diff_improper([], right, env) when is_list(right) do
-    equivalent? = (right == [])
+    equivalent? = right == []
     right = right |> escape() |> update_diff_meta(not equivalent?)
     {%__MODULE__{equivalent?: equivalent?, right: right, left: []}, env}
   end
@@ -363,7 +363,7 @@ defmodule ExUnit.Diff do
         # Outer was escaped, move diffs and escape inside
         list
         |> unescape()
-        |> rebuild_maybe_improper(left, & &1 |> escape() |> update_diff_meta(diff?))
+        |> rebuild_maybe_improper(left, &(&1 |> escape() |> update_diff_meta(diff?)))
     end
   end
 
