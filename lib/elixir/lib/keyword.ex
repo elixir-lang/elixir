@@ -48,7 +48,7 @@ defmodule Keyword do
 
   For example, `Keyword.get/3` will get the first entry matching
   the given key, regardless if duplicated entries exist.
-  Similarly, `Keyword.put/3` ensures all
+  Similarly, `Keyword.put/3` and `Keyword.delete/3` ensure all
   duplicated entries for a given key are removed when invoked.
   Note that operations that require keys to be found in the keyword
   list (like `Keyword.get/3`) need to traverse the list in order
