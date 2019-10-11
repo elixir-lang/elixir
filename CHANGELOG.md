@@ -58,6 +58,28 @@ Another important change related to configuration is that `mix new` will no long
 
 There are many other enhancements. The Elixir CLI got a handful of new options in order to best support releases. `Logger` now computes its sync/async/discard thresholds in a decentralized fashion, reducing contention. `EEx` templates support more complex expressions than before. Finally, there is a new `~U` sigil for working with UTC DateTimes as well as new functions in the `File`, `Registry`, and `System` modules.
 
+## v1.9.2 (2019-10-12)
+
+### 1. Enhancements
+
+#### Mix
+
+  * [mix release] Allow `{:from_app, app_name}` as a version for releases
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [Kernel] Ensure compilation works for a variable named `super`
+  * [Kernel] Ensure capture operator of a local function expands correctly inside a macro
+  * [Regex] Ensure dynamic recompilation of regexes considers options. This fixes an issue where parsing the protocol in `URI.parse/1` seemingly looked case sensitive when running Elixir precompiled on another machine
+
+#### Mix
+
+  * [mix release] Use `Base.encode32` when generating cookie to avoid unsafe chars
+  * [mix release] Fix `install` command on Windows
+  * [mix release] Quote executable path on Windows to ensure it works on directories with spaces
+
 ## v1.9.1 (2019-07-18)
 
 ### 1. Enhancements
