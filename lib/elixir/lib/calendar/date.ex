@@ -452,6 +452,55 @@ defmodule Date do
   end
 
   @doc """
+  Sorts the mapped results of the `enumerable` from the earliest date to the latest date.
+
+  This function maps each element of the `enumerable` using the `mapper` function. The
+  returned value from the mapper function should be a `Date` struct. If no mapper
+  function is given, the `enumerable` elements are sorted from the earliest
+  date to the latest date.
+
+  ## Examples
+      iex> date_list = [~N[2000-02-29 09:00:00], ~D[2000-03-29], ~D[2000-02-29]]
+      iex> Date.earliest(date_list)
+      [~N[2000-02-29 09:00:00], ~D[2000-02-29], ~D[2000-03-29]]
+
+      iex> map_list = [%{d: ~D[2000-03-29]}, %{d: ~D[2000-02-29]}]
+      iex> Date.earliest(map_list, &(&1.d))
+      [%{d: ~D[2000-02-29]}, %{d: ~D[2000-03-29]}]
+
+  """
+  @spec earliest(Enum.t(), (any() -> Calendar.date())) :: list()
+  def earliest(enumerable, mapper \\ fn x -> x end) do
+    Enum.sort_by(enumerable, mapper, fn x, y ->
+      :gt != compare(x, y)
+    end)
+  end
+
+  @doc """
+  Sorts the mapped results of the `enumerable` from the latest date to the earliest date.
+
+  This function maps each element of the `enumerable` using the `mapper` function. The
+  returned value from the mapper function should be a `Date` struct. If no mapper
+  function is given, the `enumerable` elements are sorted from the latest
+  date to the earliest date.
+
+  ## Examples
+      iex> date_list = [~N[2000-02-29 09:00:00], ~D[2000-02-29], ~D[2000-03-29]]
+      iex> Date.latest(date_list)
+      [~D[2000-03-29], ~N[2000-02-29 09:00:00],  ~D[2000-02-29]]
+
+      iex> map_list = [%{d: ~D[2000-03-29]}, %{d: ~D[2000-02-29]}]
+      iex> Date.latest(map_list, &(&1.d))
+      [%{d: ~D[2000-03-29]}, %{d: ~D[2000-02-29]}]
+  """
+  @spec latest(Enum.t(), (any() -> Calendar.date())) :: list()
+  def latest(enumerable, mapper \\ fn x -> x end) do
+    Enum.sort_by(enumerable, mapper, fn x, y ->
+      :lt != compare(x, y)
+    end)
+  end
+
+  @doc """
   Converts the given `date` from its calendar to the given `calendar`.
 
   Returns `{:ok, date}` if the calendars are compatible,

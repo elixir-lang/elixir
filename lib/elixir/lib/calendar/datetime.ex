@@ -974,6 +974,55 @@ defmodule DateTime do
   end
 
   @doc """
+  Sorts the mapped results of the `enumerable` from the earliest time to the latest time.
+
+  This function maps each element of the `enumerable` using the `mapper` function. The
+  returned value from the mapper function should be a `DateTime` struct. If no mapper
+  function is given, the `enumerable` elements are sorted from the earliest
+  time to the latest time.
+
+  ## Examples
+      iex> date_list = [~U[2000-03-29 23:00:07Z], ~U[2000-02-29 23:00:07Z]]
+      iex> DateTime.earliest(date_list)
+      [~U[2000-02-29 23:00:07Z], ~U[2000-03-29 23:00:07Z]]
+
+      iex> map_list = [%{t: ~U[2000-03-29 23:00:07Z]}, %{t: ~U[2000-02-29 23:00:07Z]}]
+      iex> DateTime.earliest(map_list, &(&1.t))
+      [%{t: ~U[2000-02-29 23:00:07Z]}, %{t: ~U[2000-03-29 23:00:07Z]}]
+
+  """
+  @spec earliest(Enum.t(), (any() -> Calendar.datetime())) :: list()
+  def earliest(enumerable, mapper \\ fn x -> x end) do
+    Enum.sort_by(enumerable, mapper, fn x, y ->
+      :gt != compare(x, y)
+    end)
+  end
+
+  @doc """
+  Sorts the mapped results of the `enumerable` from the latest time to the earliest time.
+
+  This function maps each element of the `enumerable` using the `mapper` function. The
+  returned value from the mapper function should be a `DateTime` struct. If no mapper
+  function is given, the `enumerable` elements are sorted from the latest
+  time to the earliest time.
+
+  ## Examples
+      iex> date_list = [~U[2000-02-29 23:00:07Z], ~U[2000-03-29 23:00:07Z]]
+      iex> DateTime.latest(date_list)
+      [~U[2000-03-29 23:00:07Z], ~U[2000-02-29 23:00:07Z]]
+
+      iex> map_list = [%{t: ~U[2000-02-29 23:00:07Z]}, %{t: ~U[2000-03-29 23:00:07Z]}]
+      iex> DateTime.latest(map_list, &(&1.t))
+      [%{t: ~U[2000-03-29 23:00:07Z]}, %{t: ~U[2000-02-29 23:00:07Z]}]
+  """
+  @spec latest(Enum.t(), (any() -> Calendar.datetime())) :: list()
+  def latest(enumerable, mapper \\ fn x -> x end) do
+    Enum.sort_by(enumerable, mapper, fn x, y ->
+      :lt != compare(x, y)
+    end)
+  end
+
+  @doc """
   Subtracts `datetime2` from `datetime1`.
 
   The answer can be returned in any `unit` available from `t:System.time_unit/0`.

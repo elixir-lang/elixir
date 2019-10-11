@@ -465,6 +465,55 @@ defmodule Time do
   end
 
   @doc """
+  Sorts the mapped results of the `enumerable` from the earliest time to the latest time.
+
+  This function maps each element of the `enumerable` using the `mapper` function. The
+  returned value from the mapper function should be a `Time` struct. If no mapper
+  function is given, the `enumerable` elements are sorted from the earliest
+  time to the latest time.
+
+  ## Examples
+      iex> time_list = [~N[2000-02-29 09:00:00], ~T[08:00:00], ~T[09:00:00]]
+      iex> Time.earliest(time_list)
+      [~T[08:00:00], ~N[2000-02-29 09:00:00], ~T[09:00:00]]
+
+      iex> map_list = [%{t: ~T[09:00:00]}, %{t: ~T[08:00:00]}]
+      iex> Time.earliest(map_list, &(&1.t))
+      [%{t: ~T[08:00:00]}, %{t: ~T[09:00:00]}]
+
+  """
+  @spec earliest(Enum.t(), (any() -> Calendar.time())) :: list()
+  def earliest(enumerable, mapper \\ fn x -> x end) do
+    Enum.sort_by(enumerable, mapper, fn x, y ->
+      :gt != compare(x, y)
+    end)
+  end
+
+  @doc """
+  Sorts the mapped results of the `enumerable` from the latest time to the earliest time.
+
+  This function maps each element of the `enumerable` using the `mapper` function. The
+  returned value from the mapper function should be a `Time` struct. If no mapper
+  function is given, the `enumerable` elements are sorted from the latest
+  time to the earliest time.
+
+  ## Examples
+      iex> time_list = [~N[2000-02-29 09:00:00], ~T[08:00:00], ~T[09:00:00]]
+      iex> Time.latest(time_list)
+      [~N[2000-02-29 09:00:00], ~T[09:00:00], ~T[08:00:00]]
+
+      iex> map_list = [%{t: ~T[08:00:00]}, %{t: ~T[09:00:00]}]
+      iex> Time.latest(map_list, &(&1.t))
+      [%{t: ~T[09:00:00]}, %{t: ~T[08:00:00]}]
+  """
+  @spec latest(Enum.t(), (any() -> Calendar.time())) :: list()
+  def latest(enumerable, mapper \\ fn x -> x end) do
+    Enum.sort_by(enumerable, mapper, fn x, y ->
+      :lt != compare(x, y)
+    end)
+  end
+
+  @doc """
   Converts given `time` to a different calendar.
 
   Returns `{:ok, time}` if the conversion was successful,

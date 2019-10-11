@@ -770,6 +770,55 @@ defmodule NaiveDateTime do
   end
 
   @doc """
+  Sorts the mapped results of the `enumerable` from the earliest time to the latest time.
+
+  This function maps each element of the `enumerable` using the `mapper` function. The
+  returned value from the mapper function should be a `NaiveDateTime` struct. If no mapper
+  function is given, the `enumerable` elements are sorted from the earliest
+  time to the latest time.
+
+  ## Examples
+      iex> date_list = [~N[2000-02-29 23:00:07], ~N[2000-03-29 23:00:07], ~U[2000-02-29 23:00:07Z]]
+      iex> NaiveDateTime.earliest(date_list)
+      [~N[2000-02-29 23:00:07], ~U[2000-02-29 23:00:07Z], ~N[2000-03-29 23:00:07]]
+
+      iex> map_list = [%{t: ~N[2000-03-29 23:00:07]}, %{t: ~N[2000-02-29 23:00:07]}]
+      iex> NaiveDateTime.earliest(map_list, &(&1.t))
+      [%{t: ~N[2000-02-29 23:00:07]}, %{t: ~N[2000-03-29 23:00:07]}]
+
+  """
+  @spec earliest(Enum.t(), (any() -> Calendar.naive_datetime())) :: list()
+  def earliest(enumerable, mapper \\ fn x -> x end) do
+    Enum.sort_by(enumerable, mapper, fn x, y ->
+      :gt != compare(x, y)
+    end)
+  end
+
+  @doc """
+  Sorts the mapped results of the `enumerable` from the latest time to the earliest time.
+
+  This function maps each element of the `enumerable` using the `mapper` function. The
+  returned value from the mapper function should be a `NaiveDateTime` struct. If no mapper
+  function is given, the `enumerable` elements are sorted from the latest
+  time to the earliest time.
+
+  ## Examples
+      iex> date_list = [~N[2000-02-29 23:00:07], ~N[2000-03-29 23:00:07], ~U[2000-02-29 23:00:07Z]]
+      iex> NaiveDateTime.latest(date_list)
+      [~N[2000-03-29 23:00:07], ~N[2000-02-29 23:00:07], ~U[2000-02-29 23:00:07Z]]
+
+      iex> map_list = [%{t: ~N[2000-02-29 23:00:07]}, %{t: ~N[2000-03-29 23:00:07]}]
+      iex> NaiveDateTime.latest(map_list, &(&1.t))
+      [%{t: ~N[2000-03-29 23:00:07]}, %{t: ~N[2000-02-29 23:00:07]}]
+  """
+  @spec latest(Enum.t(), (any() -> Calendar.naive_datetime())) :: list()
+  def latest(enumerable, mapper \\ fn x -> x end) do
+    Enum.sort_by(enumerable, mapper, fn x, y ->
+      :lt != compare(x, y)
+    end)
+  end
+
+  @doc """
   Converts the given `naive_datetime` from one calendar to another.
 
   If it is not possible to convert unambiguously between the calendars
