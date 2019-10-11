@@ -2316,7 +2316,7 @@ defmodule Enum do
 
   For this reason, most structs provide a "compare" function, such as
   `Date.compare/2`, which receives two structs and returns `:lt` (less than),
-  `:eq` (equal), and `:gt (greather than). For example, to sort dates
+  `:eq` (equal), and `:gt` (greather than). For example, to sort dates
   increasingly, one would do:
 
       iex> dates = [~D[2019-01-01], ~D[2020-03-02], ~D[2019-06-06]]
