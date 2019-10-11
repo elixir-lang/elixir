@@ -283,8 +283,11 @@ defmodule ExUnit.Diff do
   end
 
   defp diff_tuple(remaining_left, remaining_right, acc_equivalent?, acc_left, acc_right, env) do
-    remaining_left = Enum.map(remaining_left, &update_diff_meta(&1, true))
-    remaining_right = Enum.map(remaining_right, &update_diff_meta(&1, true))
+    remaining_left =
+      Enum.map(remaining_left, &(&1 |> maybe_escape(env) |> update_diff_meta(true)))
+
+    remaining_right = Enum.map(remaining_right, &(&1 |> escape() |> update_diff_meta(true)))
+
     equivalent? = acc_equivalent? and remaining_left == [] and remaining_right == []
     diff_left = {:{}, [], Enum.reverse(acc_left, remaining_left)}
     diff_right = {:{}, [], Enum.reverse(acc_right, remaining_right)}
@@ -301,72 +304,89 @@ defmodule ExUnit.Diff do
     end
   end
 
-  # Compare two lists, removing all the operators (`|` and `++`) before and
-  # adding them back in the end. When the `left` contains a improper element
-  # it will extract forcefully a improper element on the `right` for matching
-  # purposes.
+  # Compare two lists, removing all the operators (`|` and `++`) from the left
+  # side before and adding them back in the end. Improper lists on the left side
+  # are handled as quoted expressions. Improper lists on the right side are
+  # handled as runtime improper lists.
   defp diff_maybe_improper_list(left, right, env) do
-    {parsed_left, improper_left, operators_left, length_left} = parse_list(left, 0, env.context)
-    {parsed_right, improper_right, operators_right, _} = parse_list(right, 0, nil)
+    {parsed_left, improper_left, operators_left, length_left} =
+      split_left_list(left, 0, env.context)
 
-    {parsed_right, improper_right, split?} =
-      split_list(parsed_right, length_left, improper_right, improper_left)
-
+    {parsed_right, improper_right} = split_right_list(right, length_left, [])
     {parsed_diff, parsed_post_env} = myers_difference_list(parsed_left, parsed_right, env)
 
-    {improper_diff, improper_post_env, improper_diff?} =
-      diff_improper(improper_left, improper_right, parsed_post_env, split?)
+    {improper_diff, improper_post_env} =
+      diff_improper(improper_left, improper_right, parsed_post_env)
 
     diff =
       merge_diff(parsed_diff, improper_diff, fn left1, left2, right1, right2 ->
-        left = rebuild_list(left1, left2, operators_left, improper_diff?)
-
-        right =
-          if split? do
-            rebuild_split_lists(right1, right2)
-          else
-            rebuild_list(right1, right2, operators_right, improper_diff?)
+        improper_left =
+          cond do
+            improper_left != [] -> {:improper, left2}
+            improper_right != [] -> :tail
+            true -> :nothing
           end
 
+        left = rebuild_left_list(left1, improper_left, operators_left, env)
+        right = rebuild_right_list(right1, right2)
         {left, right}
       end)
 
     {diff, improper_post_env}
   end
 
-  defp diff_improper({:element, left}, {:element, right}, env, split?) do
-    {diff, post_env} = diff(left, right, env)
-    {diff, post_env, split?}
+  defp diff_improper([], right, env) when is_list(right) do
+    equivalent? = (right == [])
+    right = right |> escape() |> update_diff_meta(not equivalent?)
+    {%__MODULE__{equivalent?: equivalent?, right: right, left: []}, env}
   end
 
-  defp diff_improper({:element, left}, :empty, env, _split?) do
-    diff_left = update_diff_meta(left, true)
-    diff = %__MODULE__{equivalent?: false, left: diff_left}
-    {diff, env, true}
+  defp diff_improper(left, right, env) do
+    diff(left, right, env)
   end
 
-  defp diff_improper(:empty, {:element, right}, env, _split?) do
-    diff_right = escape(right) |> update_diff_meta(true)
-    diff = %__MODULE__{equivalent?: false, right: diff_right}
-    {diff, env, true}
+  defp split_right_list([head | tail], length, acc) when length > 0,
+    do: split_right_list(tail, length - 1, [head | acc])
+
+  defp split_right_list(rest, _length, acc),
+    do: {Enum.reverse(acc), rest}
+
+  defp rebuild_right_list(left, right) do
+    left = Enum.reverse(left)
+
+    case extract_diff_meta(right) do
+      {[_ | _] = list, _diff?} ->
+        # Inner was escaped, diffs are inside
+        rebuild_maybe_improper(list, left, & &1)
+
+      {list, diff?} ->
+        # Outer was escaped, move diffs and escape inside
+        list
+        |> unescape()
+        |> rebuild_maybe_improper(left, & &1 |> escape() |> update_diff_meta(diff?))
+    end
   end
 
-  defp diff_improper(:empty, :empty, env, _split?) do
-    diff = %__MODULE__{equivalent?: true}
-    {diff, env, false}
+  defp rebuild_maybe_improper([head | tail], acc, fun),
+    do: rebuild_maybe_improper(tail, [fun.(head) | acc], fun)
+
+  defp rebuild_maybe_improper([], acc, _fun),
+    do: Enum.reverse(acc)
+
+  defp rebuild_maybe_improper(other, [prev | acc], fun),
+    do: Enum.reverse([{:|, [], [prev, fun.(other)]} | acc])
+
+  defp split_left_list([], _index, _context) do
+    {[], [], nil, 0}
   end
 
-  defp parse_list([], _index, _context) do
-    {[], :empty, nil, 0}
-  end
+  defp split_left_list({:++, _, [left, right]}, _index, :match) do
+    {parsed_left, [], operators_left, length_left} = split_left_list(left, 0, :match)
 
-  defp parse_list({:++, _, [left, right]}, _index, :match) do
-    {parsed_left, :empty, operators_left, length_left} = parse_list(left, 0, :match)
-
-    case parse_list(right, 0, :match) do
+    case split_left_list(right, 0, :match) do
       {:improper, improper} ->
-        operators = {:++, length_left, [operators_left]}
-        {parsed_left, {:element, improper}, operators, length_left}
+        operators = {:++, length_left, [operators_left, nil]}
+        {parsed_left, improper, operators, length_left}
 
       {parsed_right, improper_right, operators_right, length_right} ->
         operators = {:++, length_left, [operators_left, operators_right]}
@@ -375,11 +395,11 @@ defmodule ExUnit.Diff do
     end
   end
 
-  defp parse_list([{:|, _, [head, tail]}], index, :match) do
-    case parse_list(tail, 0, :match) do
+  defp split_left_list([{:|, _, [head, tail]}], index, :match) do
+    case split_left_list(tail, 0, :match) do
       {:improper, improper} ->
-        operator = {:|, index, []}
-        {[head], {:element, improper}, operator, 1}
+        operator = {:|, index, [nil]}
+        {[head], improper, operator, 1}
 
       {parsed_tail, improper_tail, operators_tail, length_tail} ->
         operators = {:|, index, [operators_tail]}
@@ -387,88 +407,45 @@ defmodule ExUnit.Diff do
     end
   end
 
-  defp parse_list([head | tail], index, context) do
-    case parse_list(tail, index + 1, context) do
+  defp split_left_list([head | tail], index, context) do
+    case split_left_list(tail, index + 1, context) do
       {:improper, improper} ->
-        operator = {:|, index, []}
-        {[head], {:element, improper}, operator, 1}
+        operator = {:|, index, [nil]}
+        {[head], improper, operator, 1}
 
       {parsed_tail, improper_tail, operators_tail, length_tail} ->
         {[head | parsed_tail], improper_tail, operators_tail, length_tail + 1}
     end
   end
 
-  defp parse_list(element, _index, _) do
+  defp split_left_list(element, _index, _) do
     {:improper, element}
   end
 
-  defp rebuild_list(list, _improper = nil, _operators = nil, _improper_diff?) do
-    list
-  end
+  defp rebuild_left_list([], {:improper, improper}, _operators = nil, _env), do: improper
+  defp rebuild_left_list(list, _, _operators = nil, _env), do: list
 
-  defp rebuild_list(list, improper, {:|, index, []}, _improper_diff?) do
-    {left, [head]} = Enum.split(list, index)
-
-    left ++ [{:|, [], [head, improper]}]
-  end
-
-  defp rebuild_list(list, improper, {:|, index, [operators]}, improper_diff?) do
+  defp rebuild_left_list(list, :tail, {:|, index, [operators]}, env) do
     {left, [head | tail]} = Enum.split(list, index)
-
-    rebuilt_tail = rebuild_list(tail, improper, operators, improper_diff?)
-
-    rebuilt_tail =
-      if is_nil(operators) do
-        update_diff_meta(rebuilt_tail, improper_diff?)
-      else
-        rebuilt_tail
-      end
-
+    rebuilt_tail = rebuild_left_list(tail, :nothing, operators, env)
+    rebuilt_tail = rebuilt_tail |> update_diff_meta(true)
     left ++ [{:|, [], [head, rebuilt_tail]}]
   end
 
-  defp rebuild_list(list, improper, {:++, _index, [operators]}, _improper_diff?) do
-    rebuilt_list = rebuild_list(list, nil, operators, false)
-
-    {:++, [], [rebuilt_list, improper]}
+  defp rebuild_left_list(list, improper, {:|, index, [operators]}, env) do
+    {left, [head | tail]} = Enum.split(list, index)
+    rebuilt_tail = rebuild_left_list(tail, improper, operators, env)
+    left ++ [{:|, [], [head, rebuilt_tail]}]
   end
 
-  defp rebuild_list(list, improper, {:++, index, operators}, improper_diff?) do
+  defp rebuild_left_list(list, improper, {:++, index, operators}, env) do
     [operators_left, operators_right] = operators
     {left, right} = Enum.split(list, index)
 
-    rebuilt_left = rebuild_list(left, nil, operators_left, false)
-    rebuilt_right = rebuild_list(right, improper, operators_right, improper_diff?)
-
-    rebuilt_right =
-      if is_nil(operators) do
-        update_diff_meta(rebuilt_right, improper_diff?)
-      else
-        rebuilt_right
-      end
+    rebuilt_left = rebuild_left_list(left, :nothing, operators_left, env)
+    rebuilt_right = rebuild_left_list(right, improper, operators_right, env)
 
     {:++, [], [rebuilt_left, rebuilt_right]}
-  end
-
-  defp split_list(list, index, :empty, {:element, _element}) do
-    case Enum.split(list, index) do
-      {left, []} -> {left, :empty, false}
-      {left, right} -> {left, {:element, right}, true}
-    end
-  end
-
-  defp split_list(list, _index, improper, _improper_left) do
-    {list, improper, false}
-  end
-
-  defp rebuild_split_lists(left, right) do
-    updated_right =
-      case extract_diff_meta(right) do
-        {list, true} -> Enum.map(unescape(list), &update_diff_meta(&1, true))
-        {list, false} -> unescape(list)
-      end
-
-    left ++ updated_right
   end
 
   defp myers_difference_list(left, right, env) do
@@ -578,12 +555,12 @@ defmodule ExUnit.Diff do
   end
 
   defp list_script_to_diff([{:del, elem1} | rest1], rest2, _, left, right, env) do
-    diff_left = update_diff_meta(elem1, true)
+    diff_left = elem1 |> maybe_escape(env) |> update_diff_meta(true)
     list_script_to_diff(rest1, rest2, false, [diff_left | left], right, env)
   end
 
   defp list_script_to_diff(rest1, [{:ins, elem2} | rest2], _, left, right, env) do
-    diff_right = escape(elem2) |> update_diff_meta(true)
+    diff_right = elem2 |> escape() |> update_diff_meta(true)
     list_script_to_diff(rest1, rest2, false, left, [diff_right | right], env)
   end
 
@@ -1035,7 +1012,11 @@ defmodule ExUnit.Diff do
 
   # Diff helpers
 
-  # We escape it by wrapaping it in one element tuple which is not valid AST
+  # The left side is only escaped if it is a value
+  defp maybe_escape(other, %{context: :match}), do: other
+  defp maybe_escape(other, _env), do: escape(other)
+
+  # We escape it by wrapping it in one element tuple which is not valid AST
   defp escape(other) when is_list(other) or is_tuple(other), do: {other}
   defp escape(other), do: other
 
@@ -1052,10 +1033,10 @@ defmodule ExUnit.Diff do
     }
   end
 
-  defp update_diff_meta({left, meta, right}, false),
+  defp update_diff_meta({left, meta, right}, false) when is_list(meta),
     do: {left, Keyword.delete(meta, :diff), right}
 
-  defp update_diff_meta({left, meta, right}, true),
+  defp update_diff_meta({left, meta, right}, true) when is_list(meta),
     do: {left, Keyword.put(meta, :diff, true), right}
 
   defp update_diff_meta(literal, false),

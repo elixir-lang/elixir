@@ -213,6 +213,7 @@ defmodule ExUnit.DiffTest do
     )
 
     refute_diff([:a, :b] = :a, "-[:a, :b]-", "+:a+")
+    refute_diff([:foo] = [:foo, {:a, :b, :c}], "[:foo]", "[:foo, +{:a, :b, :c}+]")
   end
 
   test "improper lists" do
@@ -232,7 +233,7 @@ defmodule ExUnit.DiffTest do
       "[:a, +:b+, :c | +:d+]"
     )
 
-    refute_diff([:a | :d] = [:a, :b, :c | :d], "[:a | :d]", "[:a, +:b+, +:c+ | :d]")
+    refute_diff([:a | :d] = [:a, :b, :c | :d], "[:a | -:d-]", "[:a, +:b+, +:c+ | +:d+]")
 
     refute_diff(
       [[:a | :x], :x | :d] = [[:a | :b], :c | :d],
@@ -261,7 +262,7 @@ defmodule ExUnit.DiffTest do
     )
 
     refute_diff([:a, :b | [:c]] = [:a, :b], "[:a, :b | [-:c-]]", "[:a, :b]")
-    refute_diff([:a, :b | []] = [:a, :b, :c], "[:a, :b | []]", "[:a, :b, +:c+]")
+    refute_diff([:a, :b | []] = [:a, :b, :c], "[:a, :b | -[]-]", "[:a, :b, +:c+]")
     refute_diff([:a, :b | [:c, :d]] = [:a, :b, :c], "[:a, :b | [:c, -:d-]]", "[:a, :b, :c]")
     refute_diff([:a, :b | [:c, :d]] = [:a], "[:a, -:b- | [-:c-, -:d-]]", "[:a]")
 
@@ -277,11 +278,12 @@ defmodule ExUnit.DiffTest do
       "[:a, [+:x+, :c], :d, :e]"
     )
 
-    pins = %{{:list_bc, nil} => [:b, :c]}
-    assert_diff([:a | x] = [:a, :b], [x: [:b]], pins)
-    assert_diff([:a | x] = [:a, :b, :c], [x: [:b, :c]], pins)
-    assert_diff([:a | ^list_bc] = [:a, :b, :c], [], pins)
+    assert_diff([:a | x] = [:a, :b], x: [:b])
+    assert_diff([:a | x] = [:a, :b, :c], x: [:b, :c])
+    assert_diff([:a | x] = [:a, :b | :c], x: [:b | :c])
 
+    pins = %{{:list_bc, nil} => [:b, :c]}
+    assert_diff([:a | ^list_bc] = [:a, :b, :c], [], pins)
     refute_diff([:a | ^list_bc] = [:x, :x, :c], "[-:a- | -^list_bc-]", "[+:x+, +:x+, :c]", pins)
     refute_diff([:a | ^list_bc] = [:a, :x, :c], "[:a | -^list_bc-]", "[:a, +:x+, :c]", pins)
   end
@@ -309,7 +311,7 @@ defmodule ExUnit.DiffTest do
     refute_diff([:a | :b] = [:a, :b], "[:a | -:b-]", "[:a, +:b+]")
     refute_diff([:a, :b] = [:a | :b], "[:a, -:b-]", "[:a | +:b+]")
     refute_diff([:a | [:b]] = [:a | :b], "[:a | -[:b]-]", "[:a | +:b+]")
-    refute_diff([:a | [:b | [:c]]] = [:a | :c], "[:a | [-:b- | -[:c]-]]", "[:a | +:c+]")
+    refute_diff([:a | [:b | [:c]]] = [:a | :c], "[:a | -[:b | [:c]]-]", "[:a | +:c+]")
     refute_diff([:a | :b] = [:a, :b, :c], "[:a | -:b-]", "[:a, +:b+, +:c+]")
     refute_diff([:a, :b, :c] = [:a | :b], "[:a, -:b-, -:c-]", "[:a | +:b+]")
 
@@ -328,6 +330,14 @@ defmodule ExUnit.DiffTest do
       "[:a, -{:|, [], [:b, :c]}-]",
       "[:a, +:b+ | +:c+]"
     )
+
+    refute_diff([:foo] == [:foo, {:a, :b, :c}], "[:foo]", "[:foo, +{:a, :b, :c}+]")
+    refute_diff([:foo, {:a, :b, :c}] == [:foo], "[:foo, -{:a, :b, :c}-]", "[:foo]")
+
+    refute_diff([:foo] == [:foo | {:a, :b, :c}], "[:foo]", "[:foo | +{:a, :b, :c}+]")
+    refute_diff([:foo | {:a, :b, :c}] == [:foo], "[:foo | -{:a, :b, :c}-]", "[:foo]")
+    refute_diff([:foo] == [{:a, :b, :c} | :foo], "[-:foo-]", "[+{:a, :b, :c}+ | +:foo+]")
+    refute_diff([{:a, :b, :c} | :foo] == [:foo], "[-{:a, :b, :c}- | -:foo-]", "[+:foo+]")
   end
 
   test "keyword lists" do
@@ -370,6 +380,8 @@ defmodule ExUnit.DiffTest do
 
     refute_diff({:ok, value} = {:error, :fatal}, "{-:ok-, value}", "{+:error+, :fatal}")
     refute_diff({:a, :b} = :a, "-{:a, :b}-", "+:a+")
+
+    refute_diff({:foo} = {:foo, {:a, :b, :c}}, "{:foo}", "{:foo, +{:a, :b, :c}+}")
   end
 
   test "tuples outside of match context" do
@@ -381,6 +393,9 @@ defmodule ExUnit.DiffTest do
     refute_diff({:{}, [], [:a]} == {:a}, "{-:{}-, -[]-, -[:a]-}", "{+:a+}")
     refute_diff({:{}, [], [:a]} == :a, "-{:{}, [], [:a]}-", "+:a+")
     refute_diff({:a, :b, :c} == {:a, :b, :x}, "{:a, :b, -:c-}", "{:a, :b, +:x+}")
+
+    refute_diff({:foo} == {:foo, {:a, :b, :c}}, "{:foo}", "{:foo, +{:a, :b, :c}+}")
+    refute_diff({:foo, {:a, :b, :c}} == {:foo}, "{:foo, -{:a, :b, :c}-}", "{:foo}")
   end
 
   test "maps" do
