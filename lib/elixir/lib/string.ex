@@ -10,7 +10,7 @@ defmodule String do
 
   In case a string must have a double-quote in itself,
   the double quotes must be escaped with a backslash,
-  for example: `"this is a string with \"double quotes\"".
+  for example: `"this is a string with \"double quotes\""`.
 
   You can concatenate two strings with the `<>/2` operator:
 
