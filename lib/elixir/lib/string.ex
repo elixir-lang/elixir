@@ -1381,36 +1381,38 @@ defmodule String do
   """
   @spec replace(t, pattern | Regex.t(), t | (t -> t | iodata), keyword) :: t
   def replace(subject, pattern, replacement, options \\ [])
+      when is_binary(subject) and
+             (is_binary(replacement) or is_function(replacement, 1)) and
+             is_list(options) do
+    replace_guarded(subject, pattern, replacement, options)
+  end
 
-  def replace(subject, %{__struct__: Regex} = regex, replacement, options)
-      when is_binary(replacement) or is_function(replacement, 1) do
+  defp replace_guarded(subject, %{__struct__: Regex} = regex, replacement, options) do
     Regex.replace(regex, subject, replacement, options)
   end
 
-  def replace(subject, "", "", _) when is_binary(subject) do
+  defp replace_guarded(subject, "", "", _) do
     subject
   end
 
-  def replace(subject, "", replacement, options)
-      when is_binary(subject) and is_binary(replacement) do
+  defp replace_guarded(subject, "", replacement_binary, options)
+       when is_binary(replacement_binary) do
     if Keyword.get(options, :global, true) do
-      IO.iodata_to_binary([replacement | intersperse_bin(subject, replacement)])
+      IO.iodata_to_binary([replacement_binary | intersperse_bin(subject, replacement_binary)])
     else
-      replacement <> subject
+      replacement_binary <> subject
     end
   end
 
-  def replace(subject, "", replacement, options)
-      when is_binary(subject) and is_function(replacement, 1) do
+  defp replace_guarded(subject, "", replacement_fun, options) do
     if Keyword.get(options, :global, true) do
-      IO.iodata_to_binary([replacement.("") | intersperse_fun(subject, replacement)])
+      IO.iodata_to_binary([replacement_fun.("") | intersperse_fun(subject, replacement_fun)])
     else
-      IO.iodata_to_binary([replacement.("") | subject])
+      IO.iodata_to_binary([replacement_fun.("") | subject])
     end
   end
 
-  def replace(subject, pattern, replacement, options)
-      when is_binary(subject) and is_list(options) do
+  defp replace_guarded(subject, pattern, replacement, options) do
     if insert = Keyword.get(options, :insert_replaced) do
       IO.warn(
         "String.replace/4 with :insert_replaced option is deprecated. " <>
