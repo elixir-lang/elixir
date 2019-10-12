@@ -1409,7 +1409,8 @@ defmodule String do
     end
   end
 
-  def replace(subject, pattern, replacement, options) when is_binary(subject) and is_list(options) do
+  def replace(subject, pattern, replacement, options)
+      when is_binary(subject) and is_list(options) do
     if insert = Keyword.get(options, :insert_replaced) do
       IO.warn(
         "String.replace/4 with :insert_replaced option is deprecated. " <>
