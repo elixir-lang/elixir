@@ -446,6 +446,14 @@ defmodule StringTest do
     end
   end
 
+  describe "replace/4" do
+    test "with incorrect params" do
+      assert_raise FunctionClauseError, "no function clause matching in String.replace/4", fn ->
+        String.replace("a,b,c", "a,b,c", ",", "")
+      end
+    end
+  end
+
   test "duplicate/2" do
     assert String.duplicate("abc", 0) == ""
     assert String.duplicate("abc", 1) == "abc"
