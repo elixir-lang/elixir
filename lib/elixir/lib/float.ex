@@ -516,4 +516,11 @@ defmodule Float do
   defp expand_compact([{:compact, true} | t]), do: [:compact | expand_compact(t)]
   defp expand_compact([h | t]), do: [h | expand_compact(t)]
   defp expand_compact([]), do: []
+
+  @spec truncate(float, integer) :: float
+  def truncate(number, decimal_places) do
+    [head, last] = number |> Float.to_string() |> String.split(".")
+    sliced = String.slice(last, 0, decimal_places)
+    (head <> "." <> sliced) |> String.to_float()
+  end
 end

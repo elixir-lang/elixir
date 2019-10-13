@@ -1112,16 +1112,6 @@ defmodule KernelTest do
     end
   end
 
-  test "trunc/2" do
-    assert 2.11 = trunc(2.11, 2)
-    assert 2.11 = trunc(2.112029090909091e-5, 2)
-    assert 12.11 = trunc(12.11, 2)
-    assert 120.11 = trunc(120.11, 2)
-    assert 1200.11 = trunc(1200.11, 2)
-    assert 120.0 = trunc(120.00, 2)
-    assert 12.345 = trunc(12.3457654, 3)
-  end
-
   defp purge(module) do
     :code.delete(module)
     :code.purge(module)
