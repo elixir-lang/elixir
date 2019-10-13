@@ -6,9 +6,12 @@
 
 #### Elixir
 
+  * [Calendar] Allow custom calendar representations in calendar sigils
+  * [Calendar] Add `c:Calendar.parse_time/1`, `c:Calendar.parse_date/1`, `c:Calendar.parse_naive_datetime/1` and `Calendar.parse_utc_datetime/1` callbacks to calendar behaviour
   * [Code] Add `:token_metadata` and `:literal_encoder` support to `Code.string_to_quoted/2`
   * [Code] Add compiler tracing to lift events done by the compiler
   * [DateTime] Add `DateTime.now!/2` and `DateTime.shift_zone!/3`
+  * [Enum] Speed up getting one random element from enumerables
   * [Exception] Add version alongside app names in stacktraces
   * [Function] Add `Function.identity/1`
   * [Kernel] Warn when function head comes immediately after the implementation instead of before the implementation
@@ -25,15 +28,22 @@
 
 #### Mix
 
-  * [mix deps.compile] Add `--skip-umbrella-apps` flag. The new flag does not compile umbrella apps. This is useful for building caches in CD/CI pipelines.
-  * [mix deps.unlock] Add `--check-unused` flag. The new flag raises if there are any unused dependencies in the lock file.
+  * [mix deps.compile] Add `--skip-umbrella-apps` flag. The new flag does not compile umbrella apps. This is useful for building caches in CD/CI pipelines
+  * [mix deps.unlock] Add `--check-unused` flag. The new flag raises if there are any unused dependencies in the lock file
   * [mix release] Allow `{:from_app, app_name}` as a version for releases
+  * [Mix.Project] Add `MIX_DEPS_PATH` environment variable for setting `:deps_path`
+  * [Mix.Task] Add `Mix.Task.Compiler.after_compile/1` callback, to simplify compilers that may need to run something before and after compilation
+
+#### IEx
+
+  * [IEx] Warn on circular file imports when loading default `.iex.exs`
 
 ### 2. Bug fixes
 
 #### Elixir
 
-  * [Module] Raise instead of silently failing when performing a write during after-compile
+  * [Keyword] Ensure keyword replace and update preserve order
+  * [Module] Raise instead of silently failing when performing a write module operation during after-compile
 
 #### IEx
 
@@ -44,6 +54,7 @@
 
   * [Mix.Project] Make sure `MIX_BUILD_PATH` specifies only the `build_path` prefix and that env+target are still concatenated
   * [Mix.Task] Always recompile before running tasks from dependencies
+  * [Mix.Task] Ensure project's Logger config is used when running Mix tasks
 
 ### 3. Soft-deprecations (no warnings emitted)
 
@@ -53,7 +64,7 @@
 
 #### Mix
 
-  * [mix xref] `calls/0` is deprecated in favor of upcoming compiler tracer
+  * [mix xref] `calls/0` is deprecated in favor of compiler tracer
   * [mix xref] The `xref.exclude` option has been moved to `elixirc_options.no_warn_undefined` as the `xref` pass has been moved into the compiler
 
 ### 4. Hard-deprecations
