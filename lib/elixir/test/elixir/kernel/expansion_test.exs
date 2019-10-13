@@ -815,6 +815,10 @@ defmodule Kernel.ExpansionTest do
       assert_raise CompileError, ~r"expected -> clauses for :else in \"with\"", fn ->
         expand(quote(do: with(_ <- true, do: :ok, else: :error)))
       end
+
+      assert_raise CompileError, ~r"expected -> clauses for :else in \"with\"", fn ->
+        expand(quote(do: with(_ <- true, do: :ok, else: [])))
+      end
     end
 
     test "fails for invalid options" do
@@ -1853,6 +1857,19 @@ defmodule Kernel.ExpansionTest do
         expand(code)
       end
 
+      assert_raise CompileError, ~r"expected -> clauses for :rescue in \"try\"", fn ->
+        code =
+          quote do
+            try do
+              e
+            rescue
+              []
+            end
+          end
+
+        expand(code)
+      end
+
       assert_raise CompileError, ~r"expected -> clauses for :catch in \"try\"", fn ->
         code =
           quote do
@@ -1873,6 +1890,19 @@ defmodule Kernel.ExpansionTest do
               e
             catch
               [:not, :clauses]
+            end
+          end
+
+        expand(code)
+      end
+
+      assert_raise CompileError, ~r"expected -> clauses for :catch in \"try\"", fn ->
+        code =
+          quote do
+            try do
+              e
+            catch
+              []
             end
           end
 
@@ -1903,6 +1933,21 @@ defmodule Kernel.ExpansionTest do
               _ -> :ok
             else
               [:not, :clauses]
+            end
+          end
+
+        expand(code)
+      end
+
+      assert_raise CompileError, ~r"expected -> clauses for :else in \"try\"", fn ->
+        code =
+          quote do
+            try do
+              e
+            catch
+              _ -> :ok
+            else
+              []
             end
           end
 
