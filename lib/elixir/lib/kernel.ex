@@ -1159,6 +1159,15 @@ defmodule Kernel do
     :erlang.trunc(number)
   end
 
+  @spec trunc(float, integer) :: float
+  def trunc(number, decimal_places) do
+    [head, last] = value |> Float.to_string() |> String.split(".")
+
+    sliced = String.slice(last, 0, decimal_places)
+
+    (head <> "." <> sliced) |> String.to_float()
+  end
+
   @doc """
   Returns the size of a tuple.
 
