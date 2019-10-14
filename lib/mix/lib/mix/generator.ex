@@ -12,7 +12,7 @@ defmodule Mix.Generator do
   ## Options
 
     * `:force` - forces creation without a shell prompt
-    * `:quiet` - do not log command output
+    * `:quiet` - does not log command output
 
   ## Examples
 
@@ -42,7 +42,7 @@ defmodule Mix.Generator do
 
   ## Options
 
-    * `:quiet` - do not log command output
+    * `:quiet` - does not log command output
 
   ## Examples
 
@@ -67,7 +67,7 @@ defmodule Mix.Generator do
   ## Options
 
     * `:force` - forces copying without a shell prompt
-    * `:quiet` - do not log command output
+    * `:quiet` - does not log command output
 
   ## Examples
 
@@ -93,7 +93,7 @@ defmodule Mix.Generator do
   ## Options
 
     * `:force` - forces copying without a shell prompt
-    * `:quiet` - do not log command output
+    * `:quiet` - does not log command output
 
   ## Examples
 
