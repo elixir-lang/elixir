@@ -898,7 +898,7 @@ defmodule Mix.Tasks.Release do
     * `--no-compile` - does not compile before assembling the release
     * `--overwrite` - if there is an existing release version, overwrite it
     * `--path` - the path of the release
-    * `--quiet` - do not write progress to the standard output
+    * `--quiet` - does not write progress to the standard output
     * `--version` - the version of the release
 
   """
