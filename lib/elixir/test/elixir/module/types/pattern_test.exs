@@ -1,8 +1,8 @@
 Code.require_file("../../test_helper.exs", __DIR__)
 
-defmodule Module.Types.InferTest do
+defmodule Module.Types.PatternTest do
   use ExUnit.Case, async: true
-  import Module.Types.Infer
+  import Module.Types.Pattern
   alias Module.Types
 
   defmacrop quoted_pattern(patterns) do
@@ -63,12 +63,12 @@ defmodule Module.Types.InferTest do
   end
 
   defp new_context() do
-    Types.context("types_test.ex", TypesTest, {:test, 0})
+    Types.head_context("types_test.ex", TypesTest, {:test, 0})
   end
 
   defp new_stack() do
     %{
-      Types.stack()
+      Types.head_stack()
       | expr_stack: [{:foo, [], nil}]
     }
   end

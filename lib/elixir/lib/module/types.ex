@@ -2,39 +2,79 @@ defmodule Module.Types do
   @moduledoc false
 
   import Module.Types.Helpers
-  alias Module.Types.Infer
+  alias Module.Types.{Expr, Pattern}
 
   @doc """
   Infer function definitions' types.
   """
   def infer_definitions(file, module, defs) do
+    signatures_and_bodies = infer_signatures(file, module, defs)
+    infer_bodies(signatures_and_bodies)
+  end
+
+  defp infer_signatures(file, module, defs) do
     Enum.map(defs, fn {{fun, _arity} = function, kind, meta, clauses} ->
-      context = context(file, module, function)
-      stack = stack()
+      stack = head_stack()
+      context = head_context(file, module, function)
 
-      types =
-        map_ok(clauses, fn {_meta, params, guards, _body} ->
+      signature_and_body =
+        Enum.map(clauses, fn {_meta, params, guards, body} ->
           def_expr = {kind, meta, [guards_to_expr(guards, {fun, [], params})]}
-
           stack = push_expr_stack(def_expr, stack)
-          of_clause(params, guards, stack, context)
+
+          case of_head(params, guards, stack, context) do
+            {:ok, signature, context} -> {:ok, {signature, context, body}}
+            {:error, reason} -> {:error, reason}
+          end
         end)
 
-      {function, types}
+      {function, oks_or_errors(signature_and_body)}
+    end)
+  end
+
+  defp infer_bodies(signatures_and_bodies) do
+    signatures =
+      Enum.flat_map(signatures_and_bodies, fn
+        {function, {:ok, clauses}} ->
+          signatures = Enum.map(clauses, fn {signature, _context, _body} -> signature end)
+          [{function, signatures}]
+
+        {_function, {:error, _reason}} ->
+          []
+      end)
+      |> Map.new()
+
+    Enum.map(signatures_and_bodies, fn
+      {function, {:ok, clauses}} ->
+        signatures =
+          Enum.map(clauses, fn {signature, head_context, body} ->
+            stack = body_stack()
+            context = body_context(head_context, signatures)
+
+            case Expr.of_expr(body, stack, context) do
+              {:ok, _type, _context} -> {:ok, signature}
+              {:error, reason} -> {:error, reason}
+            end
+          end)
+
+        {function, oks_or_errors(signatures)}
+
+      {function, {:error, reason}} ->
+        {function, {:error, reason}}
     end)
   end
 
   @doc false
-  def of_clause(params, guards, stack, context) do
+  def of_head(params, guards, stack, context) do
     with {:ok, types, context} <-
-           map_reduce_ok(params, context, &Infer.of_pattern(&1, stack, &2)),
+           map_reduce_ok(params, context, &Pattern.of_pattern(&1, stack, &2)),
          # TODO: Check that of_guard/3 returns a boolean
-         {:ok, _, context} <- Infer.of_guard(guards_to_or(guards), stack, context),
-         do: {:ok, types, context}
+         {:ok, _, context} <- Pattern.of_guard(guards_to_or(guards), stack, context),
+         do: {:ok, lift_types(types, context), context}
   end
 
   @doc false
-  def context(file, module, function) do
+  def head_context(file, module, function) do
     %{
       # File of module
       file: file,
@@ -63,7 +103,7 @@ defmodule Module.Types do
   end
 
   @doc false
-  def stack() do
+  def head_stack() do
     %{
       # Stack of variables we have refined during unification,
       # used for creating relevant traces
@@ -77,6 +117,45 @@ defmodule Module.Types do
       # Track if we are in a context where type guard functions should
       # affect inference
       type_guards_enabled?: true
+    }
+  end
+
+  @doc false
+  def body_context(head_context, signatures) do
+    %{
+      # File of module
+      file: head_context.file,
+      # Module of definitions
+      module: head_context.module,
+      # Current function
+      function: head_context.function,
+      # Expression variable to type variable
+      vars: head_context.vars,
+      # Type variable to expression variable
+      types_to_vars: head_context.types_to_vars,
+      # Type variable to type
+      types: head_context.types,
+      # Trace of all variables that have been refined to a type,
+      # including the type they were refined to, why, and where
+      traces: head_context.traces,
+      # Counter to give type variables unique names
+      counter: head_context.counter,
+      local_funs: signatures
+    }
+  end
+
+  @doc false
+  def body_stack() do
+    %{
+      # Stack of variables we have refined during unification,
+      # used for creating relevant traces
+      unify_stack: [],
+      # Stack of expression we have recursed through during inference,
+      # used for tracing
+      expr_stack: [],
+      # When false do not add a trace when a type variable is refined,
+      # useful when merging contexts where the variables already have traces
+      trace: true
     }
   end
 
