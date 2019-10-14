@@ -2573,7 +2573,7 @@ defmodule Kernel do
       get_and_update_in(struct.foo.bar, &{&1, &1 + 1})
 
   Note that in order for this macro to work, the complete path must always
-  be visible by this macro. See the Paths section below.
+  be visible by this macro. See the "Paths" section below.
 
   ## Examples
 

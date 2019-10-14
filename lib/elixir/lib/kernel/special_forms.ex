@@ -832,7 +832,7 @@ defmodule Kernel.SpecialForms do
     * `:line` - sets the quoted expressions to have the given line.
 
     * `:location` - when set to `:keep`, keeps the current line and file from
-      quote. Read the Stacktrace information section below for more information.
+      quote. Read the "Stacktrace information" section below for more information.
 
     * `:unquote` - when `false`, disables unquoting. This means any `unquote`
       call will be kept as is in the AST, instead of replaced by the `unquote`
