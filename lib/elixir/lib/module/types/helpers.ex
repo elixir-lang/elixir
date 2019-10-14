@@ -2,6 +2,18 @@ defmodule Module.Types.Helpers do
   @moduledoc false
 
   @doc """
+  Guard function to check if an AST node is a variable.
+  """
+  defmacro is_var(expr) do
+    quote do
+      is_tuple(unquote(expr)) and
+        tuple_size(unquote(expr)) == 3 and
+        is_atom(elem(unquote(expr), 0)) and
+        is_atom(elem(unquote(expr), 2))
+    end
+  end
+
+  @doc """
   Push expression to stack.
 
   The expression stack is used to give the context where a type variable
@@ -94,4 +106,11 @@ defmodule Module.Types.Helpers do
   end
 
   defp do_map_reduce_ok([], {list, acc}, _fun), do: {:ok, Enum.reverse(list), acc}
+
+  def oks_or_errors(list) do
+    case Enum.split_with(list, &match?({:ok, _}, &1)) do
+      {oks, []} -> {:ok, Enum.map(oks, fn {:ok, ok} -> ok end)}
+      {_oks, errors} -> {:error, Enum.map(errors, fn {:error, error} -> error end)}
+    end
+  end
 end

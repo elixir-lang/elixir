@@ -93,16 +93,11 @@ defmodule Module.Checker do
     results = Module.Types.infer_definitions(map.file, map.module, map.definitions)
 
     Enum.reduce(results, {[], []}, fn
-      {function, {:ok, type_and_context}}, {types, warnings} ->
-        type =
-          Enum.map(type_and_context, fn {type, context} ->
-            Module.Types.lift_types(type, context)
-          end)
+      {function, {:ok, signature}}, {signatures, warnings} ->
+        {[{function, signature} | signatures], warnings}
 
-        {[{function, type} | types], warnings}
-
-      {_function, {:error, reason}}, {types, warnings} ->
-        {types, [reason | warnings]}
+      {_function, {:error, reasons}}, {signatures, warnings} ->
+        {signatures, reasons ++ warnings}
     end)
   end
 
