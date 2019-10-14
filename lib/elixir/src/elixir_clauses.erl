@@ -308,7 +308,7 @@ expand_clauses(Meta, Kind, Fun, Clauses, E) ->
   NewKind = origin(Meta, Kind),
   expand_clauses_origin(Meta, NewKind, Fun, Clauses, E).
 
-expand_clauses_origin(Meta, Kind, Fun, {Key, [_ | _] = Clauses}, E) when is_list(Clauses) ->
+expand_clauses_origin(Meta, Kind, Fun, {Key, [_ | _] = Clauses}, E) ->
   Transformer = fun(Clause, Acc) ->
     {EClause, EAcc} = clause(Meta, {Kind, Key}, Fun, Clause, Acc),
     {EClause, elixir_env:merge_and_check_unused_vars(Acc, EAcc)}
