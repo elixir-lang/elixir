@@ -300,7 +300,7 @@ defmodule Registry do
 
   The registry requires the following keys:
 
-    * `:keys` - choose if keys are `:unique` or `:duplicate`
+    * `:keys` - chooses if keys are `:unique` or `:duplicate`
     * `:name` - the name of the registry and its tables
 
   The following keys are optional:

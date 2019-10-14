@@ -294,7 +294,7 @@ defmodule Regex do
 
   ## Options
 
-    * `:return` - set to `:index` to return byte index and match length.
+    * `:return` - when set to `:index`, returns byte index and match length.
       Defaults to `:binary`.
     * `:capture` - what to capture in the result. Check the moduledoc for `Regex`
       to see the possible capture values.
@@ -330,7 +330,7 @@ defmodule Regex do
 
   ## Options
 
-    * `:return` - set to `:index` to return byte index and match length.
+    * `:return` - when set to `:index`, returns byte index and match length.
       Defaults to `:binary`.
 
   ## Examples
@@ -423,7 +423,7 @@ defmodule Regex do
 
   ## Options
 
-    * `:return` - set to `:index` to return byte index and match length.
+    * `:return` - when set to `:index`, returns byte index and match length.
       Defaults to `:binary`.
     * `:capture` - what to capture in the result. Check the moduledoc for `Regex`
       to see the possible capture values.
