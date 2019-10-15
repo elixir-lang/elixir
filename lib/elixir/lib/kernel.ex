@@ -2840,6 +2840,10 @@ defmodule Kernel do
     end
   end
 
+  defp underscored_binding?({:=, _line_info, [lhs, rhs]}) do
+    underscored_binding?(lhs) and underscored_binding?(rhs)
+  end
+
   defp underscored_binding?({binding, _line_info, nil}) when is_atom(binding) do
     hd(Atom.to_charlist(binding)) == ?_
   end
