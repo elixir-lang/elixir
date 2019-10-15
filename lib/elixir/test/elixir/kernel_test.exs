@@ -81,6 +81,7 @@ defmodule KernelTest do
     end
   end
 
+  # Note we use `==` in assertions so `assert` does not rewrite `match?/2`.
   test "match?/2" do
     a = List.first([0])
     assert match?(b when b > a, 1) == true
@@ -88,6 +89,9 @@ defmodule KernelTest do
 
     assert match?(b when b > a, -1) == false
     assert binding() == [a: 0]
+
+    # Does not warn on underscored variables
+    assert match?(_unused, a) == true
   end
 
   def exported?, do: not_exported?()
