@@ -2823,16 +2823,28 @@ defmodule Kernel do
 
   """
   defmacro match?(pattern, expr) do
-    quote do
-      case unquote(expr) do
-        unquote(pattern) ->
-          true
+    case underscored_binding?(pattern) do
+      true ->
+        true
 
-        _ ->
-          false
-      end
+      false ->
+        quote do
+          case unquote(expr) do
+            unquote(pattern) ->
+              true
+
+            _ ->
+              false
+          end
+        end
     end
   end
+
+  defp underscored_binding?({binding, _line_info, nil}) when is_atom(binding) do
+    hd(Atom.to_charlist(binding)) == ?_
+  end
+
+  defp underscored_binding?(_ast), do: false
 
   @doc """
   Reads and writes attributes of the current module.
