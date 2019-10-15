@@ -122,9 +122,7 @@ defmodule RecordTest do
     record = user(_: :_, name: "meg")
     assert user(record, :name) == "meg"
     assert user(record, :age) == :_
-
     assert match?(user(_: _), user())
-    refute match?(user(_: "other"), user())
   end
 
   Record.defrecord(

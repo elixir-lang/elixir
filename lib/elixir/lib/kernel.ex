@@ -2786,9 +2786,6 @@ defmodule Kernel do
       iex> match?(1, 1)
       true
 
-      iex> match?(1, 2)
-      false
-
       iex> match?({1, _}, {1, 2})
       true
 
@@ -2823,15 +2820,17 @@ defmodule Kernel do
 
   """
   defmacro match?(pattern, expr) do
-    quote do
-      case unquote(expr) do
-        unquote(pattern) ->
-          true
-
-        _ ->
-          false
+    success =
+      quote do
+        unquote(pattern) -> true
       end
-    end
+
+    failure =
+      quote generated: true do
+        _ -> false
+      end
+
+    {:case, [], [expr, [do: success ++ failure]]}
   end
 
   @doc """
