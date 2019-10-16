@@ -961,7 +961,6 @@ defmodule Inspect.Algebra do
   defp fits?(w, k, b?, [{i, m, doc_group(x, _)} | t]),
     do: fits?(w, k, b?, [{i, m, x} | {:tail, b?, t}])
 
-  @spec format(integer | :infinity, integer, [{integer, mode, t}]) :: [binary]
   defp format(_, _, []), do: []
   defp format(w, k, [{_, _, :doc_nil} | t]), do: format(w, k, t)
   defp format(w, _, [{i, _, :doc_line} | t]), do: [indent(i) | format(w, i, t)]

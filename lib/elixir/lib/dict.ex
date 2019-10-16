@@ -433,7 +433,6 @@ defmodule Dict do
     target(dict).to_list(dict)
   end
 
-  @spec unsupported_dict(t) :: no_return
   defp unsupported_dict(dict) do
     raise ArgumentError, "unsupported dict: #{inspect(dict)}"
   end
