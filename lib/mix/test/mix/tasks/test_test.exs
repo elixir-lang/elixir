@@ -277,6 +277,20 @@ defmodule Mix.Tasks.TestTest do
       end)
     end
 
+    test "raises when no test runs even with Mix.shell() change" do
+      in_fixture("test_stale", fn ->
+        File.write!("test/test_helper.exs", """
+        Mix.shell(Mix.Shell.Process)
+        ExUnit.start()
+        """)
+
+        assert_run_output(
+          ["--only", "unknown"],
+          "The --only option was given to \"mix test\" but no test was executed"
+        )
+      end)
+    end
+
     test "raises an exception if line numbers are given with multiple files" do
       in_fixture("test_stale", fn ->
         assert_run_output(
