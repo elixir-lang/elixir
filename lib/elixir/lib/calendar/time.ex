@@ -505,7 +505,10 @@ defmodule Time do
     {:ok, time}
   end
 
-  def convert(%{microsecond: {_, precision}} = time, calendar) do
+  def convert(
+        %{hour: _, minute: _, second: _, microsecond: {_, precision}} = time,
+        calendar
+      ) do
     {hour, minute, second, {microsecond, _}} =
       time
       |> to_day_fraction()
@@ -520,6 +523,18 @@ defmodule Time do
     }
 
     {:ok, time}
+  end
+
+  def convert(
+        %{
+          hour: _,
+          minute: _,
+          second: _,
+          microsecond: _
+        },
+        _calendar
+      ) do
+    {:error, :unrecognized_time_format}
   end
 
   @doc """
