@@ -105,7 +105,7 @@ defmodule MapSet do
   end
 
   defp new_from_list([], acc) do
-    :maps.from_list(acc)
+    Map.new(acc)
   end
 
   defp new_from_list([element | rest], acc) do
@@ -113,7 +113,7 @@ defmodule MapSet do
   end
 
   defp new_from_list_transform([], _fun, acc) do
-    :maps.from_list(acc)
+    Map.new(acc)
   end
 
   defp new_from_list_transform([element | rest], fun, acc) do
@@ -172,7 +172,7 @@ defmodule MapSet do
     %{map_set | map: Map.drop(map1, Map.keys(map2))}
   end
 
-  defp filter_not_in(:none, _map2, acc), do: :maps.from_list(acc)
+  defp filter_not_in(:none, _map2, acc), do: Map.new(acc)
 
   defp filter_not_in({key, _val, iter}, map2, acc) do
     if :erlang.is_map_key(key, map2) do

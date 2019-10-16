@@ -157,6 +157,7 @@ bootstrap_main() ->
    <<"lib/elixir/lib/protocol.ex">>,
    <<"lib/elixir/lib/stream/reducers.ex">>,
    <<"lib/elixir/lib/enum.ex">>,
+   <<"lib/elixir/lib/map.ex">>,
    <<"lib/elixir/lib/inspect/algebra.ex">>,
    <<"lib/elixir/lib/inspect.ex">>,
    <<"lib/elixir/lib/access.ex">>,
@@ -173,7 +174,7 @@ bootstrap_main() ->
    <<"lib/elixir/lib/kernel/parallel_compiler.ex">>,
    <<"lib/elixir/lib/kernel/lexical_tracker.ex">>].
 
-binary_to_path({ModuleName, Binary}, CompilePath) ->
+binary_to_path({ModuleName, _ModuleMap, Binary}, CompilePath) ->
   Path = filename:join(CompilePath, atom_to_list(ModuleName) ++ ".beam"),
   case file:write_file(Path, Binary) of
     ok -> Path;

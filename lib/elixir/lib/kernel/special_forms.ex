@@ -820,6 +820,20 @@ defmodule Kernel.SpecialForms do
 
   ## Options
 
+    * `:bind_quoted` - passes a binding to the macro. Whenever a binding is
+      given, `unquote/1` is automatically disabled.
+
+    * `:context` - sets the resolution context.
+
+    * `:generated` - marks the given chunk as generated so it does not emit warnings.
+      Currently it only works on special forms (for example, you can annotate a `case`
+      but not an `if`).
+
+    * `:line` - sets the quoted expressions to have the given line.
+
+    * `:location` - when set to `:keep`, keeps the current line and file from
+      quote. Read the "Stacktrace information" section below for more information.
+
     * `:unquote` - when `false`, disables unquoting. This means any `unquote`
       call will be kept as is in the AST, instead of replaced by the `unquote`
       arguments. For example:
@@ -833,21 +847,6 @@ defmodule Kernel.SpecialForms do
           ...>   unquote("hello")
           ...> end
           {:unquote, [], ["hello"]}
-
-    * `:location` - when set to `:keep`, keeps the current line and file from
-      quote. Read the Stacktrace information section below for more
-      information.
-
-    * `:line` - sets the quoted expressions to have the given line.
-
-    * `:generated` - marks the given chunk as generated so it does not emit warnings.
-      Currently it only works on special forms (for example, you can annotate a `case`
-      but not an `if`).
-
-    * `:context` - sets the resolution context.
-
-    * `:bind_quoted` - passes a binding to the macro. Whenever a binding is
-      given, `unquote/1` is automatically disabled.
 
   ## Quote and macros
 

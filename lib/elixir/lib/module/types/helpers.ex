@@ -2,19 +2,13 @@ defmodule Module.Types.Helpers do
   @moduledoc false
 
   @doc """
-  Push expr to stack inside fun and pop after fun.
+  Push expression to stack.
 
   The expression stack is used to give the context where a type variable
   was refined when show a type conflict error.
   """
-  def expr_stack(expr, context, fun) do
-    expr_stack = context.expr_stack
-
-    case fun.(%{context | expr_stack: [expr | context.expr_stack]}) do
-      {:ok, context} -> {:ok, %{context | expr_stack: expr_stack}}
-      {:ok, type, context} -> {:ok, type, %{context | expr_stack: expr_stack}}
-      {:error, reason} -> {:error, reason}
-    end
+  def push_expr_stack(expr, stack) do
+    %{stack | expr_stack: [expr | stack.expr_stack]}
   end
 
   @doc """

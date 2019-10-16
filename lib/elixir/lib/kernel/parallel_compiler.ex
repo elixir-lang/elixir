@@ -357,15 +357,7 @@ defmodule Kernel.ParallelCompiler do
 
   defp checker_compiled_modules(result) do
     for {{:module, _module}, {binary, module_map}} <- result do
-      map = %{
-        module: module_map.module,
-        file: module_map.file,
-        no_warn_undefined: no_warn_undefined(module_map.compile_opts),
-        definitions: module_map.definitions,
-        deprecated: module_map.deprecated
-      }
-
-      {map, binary}
+      {module_map, binary}
     end
   end
 
@@ -375,14 +367,6 @@ defmodule Kernel.ParallelCompiler do
         is_list(path) do
       {module, File.read!(path)}
     end
-  end
-
-  defp no_warn_undefined(compile_opts) do
-    for(
-      {:no_warn_undefined, values} <- compile_opts,
-      value <- List.wrap(values),
-      do: value
-    )
   end
 
   # The goal of this function is to find leaves in the dependency graph,

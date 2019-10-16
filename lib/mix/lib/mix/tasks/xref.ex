@@ -11,7 +11,7 @@ defmodule Mix.Tasks.Xref do
   @moduledoc """
   Prints cross reference information between modules.
 
-  This task is automatically reenabled, so you can print informatio
+  This task is automatically reenabled, so you can print information
   multiple times in the same Mix invocation.
 
   ## Xref modes
@@ -96,14 +96,6 @@ defmodule Mix.Tasks.Xref do
     * `--no-archives-check` - does not check archives
 
     * `--no-elixir-version-check` - does not check the Elixir version from mix.exs
-
-  ## Configuration
-
-  All configuration for Xref should be placed under the key `:xref`.
-
-    * `:exclude` - a list of modules and `{module, function, arity}`
-      tuples to ignore when checking cross references. For example:
-      `[MissingModule, {MissingModule2, :missing_func, 2}]`
 
   """
 

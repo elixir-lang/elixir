@@ -59,7 +59,8 @@ defmodule Inspect.Opts do
     * `:syntax_colors` - when set to a keyword list of colors the output is
       colorized. The keys are types and the values are the colors to use for
       each type (for example, `[number: :red, atom: :blue]`). Types can include
-      `:atom`, `:list`, `:map`, `:number`, `:regex`, `:reset`, and `:tuple`.
+      `:atom`, `:binary`, `:boolean`, `:list`, `:map`, `:number`, `:regex`,
+      `:string`, and `:tuple`. Custom data types may provide their own options.
       Colors can be any `t:IO.ANSI.ansidata/0` as accepted by `IO.ANSI.format/1`.
 
     * `:width` - defaults to 80 characters, used when pretty is `true` or when

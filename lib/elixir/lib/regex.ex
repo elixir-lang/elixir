@@ -294,7 +294,7 @@ defmodule Regex do
 
   ## Options
 
-    * `:return` - set to `:index` to return byte index and match length.
+    * `:return` - when set to `:index`, returns byte index and match length.
       Defaults to `:binary`.
     * `:capture` - what to capture in the result. Check the moduledoc for `Regex`
       to see the possible capture values.
@@ -330,7 +330,7 @@ defmodule Regex do
 
   ## Options
 
-    * `:return` - set to `:index` to return byte index and match length.
+    * `:return` - when set to `:index`, returns byte index and match length.
       Defaults to `:binary`.
 
   ## Examples
@@ -423,7 +423,7 @@ defmodule Regex do
 
   ## Options
 
-    * `:return` - set to `:index` to return byte index and match length.
+    * `:return` - when set to `:index`, returns byte index and match length.
       Defaults to `:binary`.
     * `:capture` - what to capture in the result. Check the moduledoc for `Regex`
       to see the possible capture values.
@@ -462,13 +462,13 @@ defmodule Regex do
   end
 
   defp safe_run(
-         %Regex{re_pattern: compiled, source: source, re_version: version},
+         %Regex{re_pattern: compiled, source: source, re_version: version, opts: compile_opts},
          string,
          options
        ) do
     case version() do
       ^version -> :re.run(string, compiled, options)
-      _ -> :re.run(string, source, options)
+      _ -> :re.run(string, source, translate_options(compile_opts, options))
     end
   end
 

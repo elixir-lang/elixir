@@ -266,14 +266,11 @@ defmodule ExUnit.Case do
   end
 
   @doc """
-  Defines a test with a string.
+  Defines a test with `message`.
 
-  Provides a convenient macro that allows a test to be
-  defined with a string. This macro automatically inserts
-  the atom `:ok` as the last line of the test. That said,
-  a passing test always returns `:ok`, but, more importantly,
-  it forces Elixir to not tail call optimize the test and
-  therefore avoids hiding lines from the backtrace.
+  The test may also define a `var`, which will pattern match
+  on the test context. For more information on contexts, see
+  `ExUnit.Callbacks`.
 
   ## Examples
 

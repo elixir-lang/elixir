@@ -12,16 +12,17 @@ defmodule Module.ParallelChecker do
   """
   @spec verify([{%{}, binary()}], [{module(), binary()}], pos_integer()) ::
           {[{module(), binary()}], [warning()]}
-  def verify(compiled_modules, runtime_binaries, schedulers) do
+  def verify(compiled_modules, runtime_binaries, schedulers \\ nil) do
     compiled_maps = Enum.map(compiled_modules, fn {map, _binary} -> {map.module, map} end)
     check_modules = compiled_maps ++ runtime_binaries
 
+    schedulers = schedulers || max(:erlang.system_info(:schedulers_online), 2)
     {:ok, server} = :gen_server.start_link(__MODULE__, [check_modules, self(), schedulers], [])
     preload_cache(get_ets(server), check_modules)
     start(server)
 
     compiled_binaries = Enum.map(compiled_modules, fn {map, binary} -> {map.module, binary} end)
-    old_binaries = :maps.from_list(compiled_binaries ++ runtime_binaries)
+    old_binaries = Map.new(compiled_binaries ++ runtime_binaries)
     collect_results(old_binaries, [], [])
   end
 
@@ -32,7 +33,7 @@ defmodule Module.ParallelChecker do
   defp collect_results(old_binaries, binaries, warnings) do
     receive do
       {__MODULE__, module, chunk, new_warnings} ->
-        {binary, old_binaries} = :maps.take(module, old_binaries)
+        {binary, old_binaries} = Map.pop(old_binaries, module)
         binaries = [{module, add_chunk(chunk, binary)} | binaries]
 
         warnings = new_warnings ++ warnings
@@ -130,19 +131,19 @@ defmodule Module.ParallelChecker do
   def handle_call({:lock, module}, from, %{waiting: waiting} = state) do
     case waiting do
       %{^module => froms} ->
-        waiting = :maps.put(module, [from | froms], state.waiting)
+        waiting = Map.put(state.waiting, module, [from | froms])
         {:noreply, %{state | waiting: waiting}}
 
       %{} ->
-        waiting = :maps.put(module, [], state.waiting)
+        waiting = Map.put(state.waiting, module, [])
         {:reply, true, %{state | waiting: waiting}}
     end
   end
 
   def handle_call({:unlock, module}, _from, %{waiting: waiting} = state) do
-    froms = :maps.get(module, waiting)
+    froms = Map.fetch!(waiting, module)
     Enum.each(froms, &:gen_server.reply(&1, false))
-    waiting = :maps.remove(module, waiting)
+    waiting = Map.delete(waiting, module)
     {:reply, :ok, %{state | waiting: waiting}}
   end
 
@@ -241,7 +242,7 @@ defmodule Module.ParallelChecker do
 
   defp cache_from_module_map(ets, map) do
     exports = [{{:__info__, 1}, :def} | definitions_to_exports(map.definitions)]
-    deprecated = :maps.from_list(map.deprecated)
+    deprecated = Map.new(map.deprecated)
     cache_info(ets, map.module, exports, deprecated)
   end
 
@@ -256,17 +257,17 @@ defmodule Module.ParallelChecker do
   end
 
   defp info_exports(module) do
-    :maps.from_list(
+    Map.new(
       [{{:__info__, 1}, :def}] ++
         Enum.map(module.__info__(:macros), &{&1, :defmacro}) ++
         Enum.map(module.__info__(:functions), &{&1, :def})
     )
   rescue
-    _ -> :maps.from_list(Enum.map(module.module_info(:exports), &{&1, :def}))
+    _ -> Map.new(Enum.map(module.module_info(:exports), &{&1, :def}))
   end
 
   defp info_deprecated(module) do
-    :maps.from_list(module.__info__(:deprecated))
+    Map.new(module.__info__(:deprecated))
   rescue
     _ -> %{}
   end
@@ -274,7 +275,7 @@ defmodule Module.ParallelChecker do
   defp cache_info(ets, module, exports, deprecated) do
     exports =
       Enum.map(exports, fn {{fun, arity}, kind} ->
-        reason = :maps.get({fun, arity}, deprecated, nil)
+        reason = Map.get(deprecated, {fun, arity})
         :ets.insert(ets, {{:export, {module, fun, arity}}, kind, reason})
 
         {{fun, arity}, kind}

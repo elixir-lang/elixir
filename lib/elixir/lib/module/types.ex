@@ -2,7 +2,7 @@ defmodule Module.Types do
   @moduledoc false
 
   import Module.Types.Helpers
-  import Module.Types.Infer, only: [of_guard: 2, of_pattern: 2]
+  alias Module.Types.Infer
 
   @doc """
   Infer function definitions' types.
@@ -10,14 +10,14 @@ defmodule Module.Types do
   def infer_definitions(file, module, defs) do
     Enum.map(defs, fn {{fun, _arity} = function, kind, meta, clauses} ->
       context = context(file, module, function)
+      stack = stack()
 
       types =
         map_ok(clauses, fn {_meta, params, guards, _body} ->
           def_expr = {kind, meta, [guards_to_expr(guards, {fun, [], params})]}
 
-          expr_stack(def_expr, context, fn context ->
-            of_clause(params, guards, context)
-          end)
+          stack = push_expr_stack(def_expr, stack)
+          of_clause(params, guards, stack, context)
         end)
 
       {function, types}
@@ -25,9 +25,11 @@ defmodule Module.Types do
   end
 
   @doc false
-  def of_clause(params, guards, context) do
-    with {:ok, types, context} <- map_reduce_ok(params, context, &of_pattern/2),
-         {:ok, context} <- of_guard(guards_to_or(guards), context),
+  def of_clause(params, guards, stack, context) do
+    with {:ok, types, context} <-
+           map_reduce_ok(params, context, &Infer.of_pattern(&1, stack, &2)),
+         # TODO: Check that of_guard/3 returns a boolean
+         {:ok, _, context} <- Infer.of_guard(guards_to_or(guards), stack, context),
          do: {:ok, types, context}
   end
 
@@ -49,14 +51,32 @@ defmodule Module.Types do
       # Trace of all variables that have been refined to a type,
       # including the type they were refined to, why, and where
       traces: %{},
+      # Counter to give type variables unique names
+      counter: 0,
+      # Track if a variable was infered from a type guard function such is_tuple/1
+      # or a guard function that fails such as elem/2, possible values are:
+      # `:guarded` when `is_tuple(x)`
+      # `:fail` when `elem(x, 0)`
+      # `:guarded_fail` when `is_tuple and elem(x, 0)`
+      guard_sources: %{}
+    }
+  end
+
+  @doc false
+  def stack() do
+    %{
       # Stack of variables we have refined during unification,
       # used for creating relevant traces
       unify_stack: [],
       # Stack of expression we have recursed through during inference,
       # used for tracing
       expr_stack: [],
-      # Counter to give type variables unique names
-      counter: 0
+      # When false do not add a trace when a type variable is refined,
+      # useful when merging contexts where the variables already have traces
+      trace: true,
+      # Track if we are in a context where type guard functions should
+      # affect inference
+      type_guards_enabled?: true
     }
   end
 
@@ -110,12 +130,12 @@ defmodule Module.Types do
 
   # Lift type variable to its infered (hopefully concrete) types from the context
   defp do_lift_type({:var, var}, context) do
-    case :maps.find(var, context.lifted_types) do
+    case Map.fetch(context.lifted_types, var) do
       {:ok, lifted_var} ->
         {{:var, lifted_var}, context}
 
       :error ->
-        case :maps.find(var, context.types) do
+        case Map.fetch(context.types, var) do
           {:ok, :unbound} ->
             new_lifted_var(var, context)
 
@@ -123,7 +143,7 @@ defmodule Module.Types do
             # Remove visited types to avoid infinite loops
             # then restore after we are done recursing on vars
             types = context.types
-            context = %{context | types: :maps.remove(var, context.types)}
+            context = %{context | types: Map.delete(context.types, var)}
             {type, context} = do_lift_type(type, context)
             {type, %{context | types: types}}
 
@@ -149,10 +169,9 @@ defmodule Module.Types do
     {{:map, pairs}, context}
   end
 
-  defp do_lift_type({:cons, left, right}, context) do
-    {left, context} = do_lift_type(left, context)
-    {right, context} = do_lift_type(right, context)
-    {{:cons, left, right}, context}
+  defp do_lift_type({:list, type}, context) do
+    {type, context} = do_lift_type(type, context)
+    {{:list, type}, context}
   end
 
   defp do_lift_type(other, context) do
@@ -160,7 +179,7 @@ defmodule Module.Types do
   end
 
   defp new_lifted_var(original_var, context) do
-    types = :maps.put(original_var, context.lifted_counter, context.lifted_types)
+    types = Map.put(context.lifted_types, original_var, context.lifted_counter)
     counter = context.lifted_counter + 1
 
     type = {:var, context.lifted_counter}
@@ -236,16 +255,16 @@ defmodule Module.Types do
   end
 
   @doc false
+  def format_type({:union, types}) do
+    "#{Enum.map_join(types, " | ", &format_type/1)}"
+  end
+
   def format_type({:tuple, types}) do
     "{#{Enum.map_join(types, ", ", &format_type/1)}}"
   end
 
-  def format_type({:cons, left, :null}) do
-    "[#{format_type(left)}]"
-  end
-
-  def format_type({:cons, left, right}) do
-    "[#{format_type(left)} | #{format_type(right)}]"
+  def format_type({:list, type}) do
+    "[#{format_type(type)}]"
   end
 
   def format_type({:map, pairs}) do
@@ -260,10 +279,6 @@ defmodule Module.Types do
 
   def format_type({:atom, literal}) do
     inspect(literal)
-  end
-
-  def format_type(:null) do
-    "[]"
   end
 
   def format_type(atom) when is_atom(atom) do

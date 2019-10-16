@@ -120,12 +120,12 @@ defmodule Kernel.LexicalTracker do
   end
 
   def handle_call(:alias_references, _from, state) do
-    {compile, runtime} = partition(:maps.to_list(state.references), [], [])
-    {:reply, {compile, :maps.keys(state.structs), runtime}, state}
+    {compile, runtime} = partition(Map.to_list(state.references), [], [])
+    {:reply, {compile, Map.keys(state.structs), runtime}, state}
   end
 
   def handle_call({:read_cache, key}, _from, %{cache: cache} = state) do
-    {:reply, :maps.get(key, cache), state}
+    {:reply, Map.get(cache, key), state}
   end
 
   def handle_call(:stop, _from, state) do
@@ -133,11 +133,11 @@ defmodule Kernel.LexicalTracker do
   end
 
   def handle_cast({:write_cache, key, value}, %{cache: cache} = state) do
-    {:noreply, %{state | cache: :maps.put(key, value, cache)}}
+    {:noreply, %{state | cache: Map.put(cache, key, value)}}
   end
 
   def handle_cast({:remote_struct, module}, state) do
-    structs = :maps.put(module, true, state.structs)
+    structs = Map.put(state.structs, module, true)
     {:noreply, %{state | structs: structs}}
   end
 
@@ -168,7 +168,7 @@ defmodule Kernel.LexicalTracker do
     directives =
       state.directives
       |> Enum.reject(&match?({{:import, {^module, _, _}}, _}, &1))
-      |> :maps.from_list()
+      |> Map.new()
       |> add_directive(module, line, warn, :import)
 
     directives =
@@ -209,12 +209,12 @@ defmodule Kernel.LexicalTracker do
   # Callbacks helpers
 
   defp add_reference(references, module, :compile) when is_atom(module),
-    do: :maps.put(module, :compile, references)
+    do: Map.put(references, module, :compile)
 
   defp add_reference(references, module, :runtime) when is_atom(module) do
-    case :maps.find(module, references) do
+    case Map.fetch(references, module) do
       {:ok, _} -> references
-      :error -> :maps.put(module, :runtime, references)
+      :error -> Map.put(references, module, :runtime)
     end
   end
 
@@ -235,10 +235,10 @@ defmodule Kernel.LexicalTracker do
   # If the value is true, it was imported/aliased and used
   defp add_directive(directives, module_or_mfa, line, warn, tag) do
     marker = if warn, do: line, else: true
-    :maps.put({tag, module_or_mfa}, marker, directives)
+    Map.put(directives, {tag, module_or_mfa}, marker)
   end
 
   defp add_dispatch(directives, module_or_mfa, tag) do
-    :maps.put({tag, module_or_mfa}, true, directives)
+    Map.put(directives, {tag, module_or_mfa}, true)
   end
 end
