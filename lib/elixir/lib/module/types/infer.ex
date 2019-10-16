@@ -65,6 +65,34 @@ defmodule Module.Types.Infer do
     {:ok, {:list, :dynamic}, context}
   end
 
+  # left ++ right
+  def of_pattern({:++, _meta, [left_expr, right_expr]} = expr, stack, context) do
+    stack = push_expr_stack(expr, stack)
+
+    case of_pattern(left_expr, stack, context) do
+      {:ok, {:list, left}, context} ->
+        case of_pattern(right_expr, stack, context) do
+          {:ok, {:list, :dynamic}, context} ->
+            {:ok, {:list, left}, context}
+
+          {:ok, {:list, right}, context} ->
+            {:ok, {:list, to_union([left, right], context)}, context}
+
+          {:ok, :dynamic, context} ->
+            {:ok, {:list, left}, context}
+
+          {:ok, right, context} ->
+            {:ok, {:list, to_union([left, right], context)}, context}
+
+          {:error, reason} ->
+            {:error, reason}
+        end
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
   # _
   def of_pattern({:_, _meta, atom}, _stack, context) when is_atom(atom) do
     {:ok, :dynamic, context}
