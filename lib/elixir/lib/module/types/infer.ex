@@ -827,7 +827,14 @@ defmodule Module.Types.Infer do
     context
   end
 
-  defp var_name({name, _meta, context}), do: {name, context}
+  defp var_name({name, meta, context}), do: {name, var_context(meta, context)}
+
+  defp var_context(meta, context) do
+    case :lists.keyfind(:counter, 1, meta) do
+      {:counter, counter} -> counter
+      false -> context
+    end
+  end
 
   # Check if a variable is recursive and incompatible with itself
   # Bad: `{var} = var`
