@@ -669,7 +669,7 @@ defmodule Calendar.ISO do
 
   """
   @doc since: "1.8.0"
-  @spec year_of_era(year) :: {year, era :: 0..1}
+  @spec year_of_era(year) :: {pos_integer(), era :: 0..1}
   @impl true
   def year_of_era(year) when is_integer(year) and year > 0 do
     {year, 1}
