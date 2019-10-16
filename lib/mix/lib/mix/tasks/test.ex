@@ -181,6 +181,9 @@ defmodule Mix.Tasks.Test do
     * `--no-elixir-version-check` - does not check the Elixir version from `mix.exs`
     * `--no-start` - does not start applications after compilation
     * `--only` - runs only tests that match the filter
+    * `--partitions` - sets the amount of partitions to split tests in. This option
+      requires the `MIX_TEST_PARTITION` environment variable to be set. See the
+      "OS Processes Partitioning" section for more information
     * `--preload-modules` - preloads all modules defined in applications
     * `--raise` - raises if the test suite failed
     * `--seed` - seeds the random number generator used to randomize the order of tests;
@@ -189,12 +192,26 @@ defmodule Mix.Tasks.Test do
       Automatically sets `--trace` and `--preload-modules`
     * `--stale` - runs only tests which reference modules that changed since the
       last time tests were ran with `--stale`. You can read more about this option
-      in the "Stale" section below
+      in the "The --stale option" section below
     * `--timeout` - sets the timeout for the tests
     * `--trace` - runs tests with detailed reporting. Automatically sets `--max-cases` to `1`.
       Note that in trace mode test timeouts will be ignored as timeout is set to `:infinity`
 
-  See `ExUnit.configure/1` for more information on configuration options.
+  ## Configuration
+
+  These configurations can be set in the `def project` section of your `mix.exs:
+
+    * `:test_paths` - list of paths containing test files. Defaults to
+      `["test"]` if the `test` directory exists; otherwise, it defaults to `[]`.
+      It is expected that all test paths contain a `test_helper.exs` file
+
+    * `:test_pattern` - a pattern to load test files. Defaults to `*_test.exs`
+
+    * `:warn_test_pattern` - a pattern to match potentially misnamed test files
+      and display a warning. Defaults to `*_test.ex`
+
+    * `:test_coverage` - a set of options to be passed down to the coverage
+      mechanism
 
   ## Filters
 
@@ -251,20 +268,6 @@ defmodule Mix.Tasks.Test do
   If a given line starts a `describe` block, that line filter runs all tests in it.
   Otherwise, it runs the closest test on or before the given line number.
 
-  ## Configuration
-
-    * `:test_paths` - list of paths containing test files. Defaults to
-      `["test"]` if the `test` directory exists; otherwise, it defaults to `[]`.
-      It is expected that all test paths contain a `test_helper.exs` file
-
-    * `:test_pattern` - a pattern to load test files. Defaults to `*_test.exs`
-
-    * `:warn_test_pattern` - a pattern to match potentially misnamed test files
-      and display a warning. Defaults to `*_test.ex`
-
-    * `:test_coverage` - a set of options to be passed down to the coverage
-      mechanism
-
   ## Coverage
 
   The `:test_coverage` configuration accepts the following options:
@@ -293,9 +296,35 @@ defmodule Mix.Tasks.Test do
   It must return either `nil` or an anonymous function of zero arity that will
   be run after the test suite is done.
 
-  ## "Stale"
+  ## OS Processes Partitioning
 
-  The `--stale` command line option attempts to run only those test files which
+  While ExUnit supports the ability to run tests concurrently within the same
+  Elixir instance, it is not always possible to run all tests concurrently. For
+  example, some tests may rely on global resources.
+
+  For this reason, `mix test` all supports partitioning the test files across
+  different Elixir instances. This is done by setting the `--partitions` option
+  to an integer, with the number of partitions, and setting the `MIX_TEST_PARTITION`
+  environment variable to control which test partition that particular instance
+  is running. This can be also be useful if you want to distribute testing across
+  multiple machines.
+
+  For example, to split a test suite into 4 partitions and run them, you would
+  use the following commands:
+
+      MIX_TEST_PARTITION=1 mix test --partitions 4
+      MIX_TEST_PARTITION=2 mix test --partitions 4
+      MIX_TEST_PARTITION=3 mix test --partitions 4
+      MIX_TEST_PARTITION=4 mix test --partitions 4
+
+  The test files are sorted and distributed in a round-robin fashion. Note the
+  partition itself is given as an environment variable so it can be accessed in
+  configuration files and test scripts. For example, it can be used to setup a
+  different database instance per partition in `config/test.exs`.
+
+  ## The --stale option
+
+  The `--stale` command line option attempts to run only the test files which
   reference modules that have changed since the last time you ran this task with
   `--stale`.
 
@@ -304,6 +333,9 @@ defmodule Mix.Tasks.Test do
   references (and any modules those modules reference, recursively) were modified
   since the last run with `--stale`. A test file is also marked "stale" if it has
   been changed since the last run with `--stale`.
+
+  The `--stale` option is extremely useful for software iteration, allowing you to
+  run only the relevant tests as you perform changes to the codebase.
   """
 
   @switches [
@@ -329,6 +361,7 @@ defmodule Mix.Tasks.Test do
     listen_on_stdin: :boolean,
     formatter: :keep,
     slowest: :integer,
+    partitions: :integer,
     preload_modules: :boolean
   ]
 
@@ -441,6 +474,7 @@ defmodule Mix.Tasks.Test do
       test_files
       |> Mix.Utils.extract_files(test_pattern)
       |> filter_to_allowed_files(allowed_files)
+      |> filter_by_partition(opts)
 
     display_warn_test_pattern(test_files, test_pattern, matched_test_files, warn_test_pattern)
 
@@ -640,6 +674,33 @@ defmodule Mix.Tasks.Test do
 
   defp filter_to_allowed_files(matched_test_files, %MapSet{} = allowed_files) do
     Enum.filter(matched_test_files, &MapSet.member?(allowed_files, Path.expand(&1)))
+  end
+
+  defp filter_by_partition(files, opts) do
+    if total = opts[:partitions] do
+      partition = System.get_env("MIX_TEST_PARTITION")
+
+      case partition && Integer.parse(partition) do
+        {partition, ""} when partition in 1..total ->
+          partition = partition - 1
+
+          # We sort the files because Path.wildcard does not guarantee
+          # ordering, so different OSes could return a different order,
+          # meaning run across OSes on different partitions could run
+          # duplicate files.
+          for {file, index} <- Enum.with_index(Enum.sort(files)),
+              rem(index, total) == partition,
+              do: file
+
+        _ ->
+          Mix.raise(
+            "The MIX_TEST_PARTITION environment variable must be set to an integer between " <>
+              "1..#{total} when the --partitions option is set, got: #{inspect(partition)}"
+          )
+      end
+    else
+      files
+    end
   end
 
   defp color_opts(opts) do
