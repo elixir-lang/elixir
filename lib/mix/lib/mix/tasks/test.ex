@@ -421,8 +421,10 @@ defmodule Mix.Tasks.Test do
       {:error, {:already_loaded, :ex_unit}} -> :ok
     end
 
-    # Then configure ExUnit again so that command line options
-    # override test_helper.exs
+    # The test helper may change the Mix.shell(), so let's make sure to revert it later
+    shell = Mix.shell()
+
+    # Configure ExUnit now and then again so the task options override test_helper.exs
     {ex_unit_opts, allowed_files} = process_ex_unit_opts(opts)
     ExUnit.configure(ex_unit_opts)
 
@@ -442,11 +444,12 @@ defmodule Mix.Tasks.Test do
 
     display_warn_test_pattern(test_files, test_pattern, matched_test_files, warn_test_pattern)
 
-    case CT.require_and_run(matched_test_files, test_paths, opts) do
+    results = CT.require_and_run(matched_test_files, test_paths, opts)
+    Mix.shell(shell)
+
+    case results do
       {:ok, %{excluded: excluded, failures: failures, total: total}} ->
         cover && cover.()
-
-        option_only_present? = Keyword.has_key?(opts, :only)
 
         cond do
           failures > 0 and opts[:raise] ->
@@ -455,7 +458,7 @@ defmodule Mix.Tasks.Test do
           failures > 0 ->
             System.at_exit(fn _ -> exit({:shutdown, 1}) end)
 
-          excluded == total and option_only_present? ->
+          excluded == total and Keyword.has_key?(opts, :only) ->
             message = "The --only option was given to \"mix test\" but no test was executed"
             raise_or_error_at_exit(message, opts)
 
@@ -541,7 +544,13 @@ defmodule Mix.Tasks.Test do
   end
 
   defp merge_helper_opts(opts) do
+    # The only options that are additive from app env are the excludes
     merge_opts(opts, :exclude)
+  end
+
+  defp merge_opts(opts, key) do
+    value = List.wrap(Application.get_env(:ex_unit, key, []))
+    Keyword.update(opts, key, value, &Enum.uniq(&1 ++ value))
   end
 
   defp default_opts(opts) do
@@ -641,11 +650,6 @@ defmodule Mix.Tasks.Test do
       :error ->
         opts
     end
-  end
-
-  defp merge_opts(opts, key) do
-    value = List.wrap(Application.get_env(:ex_unit, key, []))
-    Keyword.update(opts, key, value, &Enum.uniq(&1 ++ value))
   end
 
   defp require_test_helper(dir) do
