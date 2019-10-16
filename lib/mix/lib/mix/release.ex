@@ -335,7 +335,6 @@ defmodule Mix.Release do
     for({app, _mode} <- boot, do: {app, :none})
     |> Keyword.put(:stdlib, :permanent)
     |> Keyword.put(:kernel, :permanent)
-    |> Enum.sort()
   end
 
   defp validate_steps!(steps) do
