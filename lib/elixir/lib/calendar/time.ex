@@ -481,7 +481,7 @@ defmodule Time do
 
   """
   @doc since: "1.5.0"
-  @spec convert(Calendar.time(), Calendar.calendar()) :: {:ok, t} | {:error, atom}
+  @spec convert(Calendar.time(), Calendar.calendar()) :: {:ok, t}
 
   # Keep it multiline for proper function clause errors.
   def convert(
