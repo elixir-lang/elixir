@@ -613,7 +613,7 @@ defmodule Code do
   the latter.
   """
   @doc since: "1.6.0"
-  @spec format_string!(binary, keyword) :: iodata
+  @spec format_string!(binary, keyword) :: [binary]
   def format_string!(string, opts \\ []) when is_binary(string) and is_list(opts) do
     line_length = Keyword.get(opts, :line_length, 98)
     algebra = Code.Formatter.to_algebra!(string, opts)
@@ -630,8 +630,7 @@ defmodule Code do
   @spec format_file!(binary, keyword) :: iodata
   def format_file!(file, opts \\ []) when is_binary(file) and is_list(opts) do
     string = File.read!(file)
-    formatted = format_string!(string, [file: file, line: 1] ++ opts)
-    [formatted, ?\n]
+    format_string!(string, [file: file, line: 1] ++ opts) ++ [?\n]
   end
 
   @doc """
