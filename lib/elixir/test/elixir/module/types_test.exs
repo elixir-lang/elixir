@@ -66,6 +66,30 @@ defmodule Module.TypesTest do
       assert quoted_clause([foo]) == {:ok, [{:var, 0}]}
     end
 
+    test "variable" do
+      assert quoted_clause([a]) == {:ok, [{:var, 0}]}
+      assert quoted_clause([a, b]) == {:ok, [{:var, 0}, {:var, 1}]}
+      assert quoted_clause([a, a]) == {:ok, [{:var, 0}, {:var, 0}]}
+      assert quoted_clause([a, a]) == {:ok, [{:var, 0}, {:var, 0}]}
+
+      assert lift_result(
+               Types.of_clause([{:a, [], :foo}, {:a, [], :foo}], [], new_stack(), new_context())
+             ) == {:ok, [{:var, 0}, {:var, 0}]}
+
+      assert lift_result(
+               Types.of_clause([{:a, [], :foo}, {:a, [], :bar}], [], new_stack(), new_context())
+             ) == {:ok, [{:var, 0}, {:var, 1}]}
+
+      assert lift_result(
+               Types.of_clause(
+                 [{:a, [counter: 0], :foo}, {:a, [counter: 1], :foo}],
+                 [],
+                 new_stack(),
+                 new_context()
+               )
+             ) == {:ok, [{:var, 0}, {:var, 1}]}
+    end
+
     test "assignment" do
       assert quoted_clause([x = y, x = y]) == {:ok, [{:var, 0}, {:var, 0}]}
       assert quoted_clause([x = y, y = x]) == {:ok, [{:var, 0}, {:var, 0}]}
