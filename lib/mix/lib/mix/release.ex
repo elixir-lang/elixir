@@ -317,14 +317,14 @@ defmodule Mix.Release do
   end
 
   defp build_start_boot(all_apps, specified_apps) do
-    Enum.sort(
-      specified_apps ++
+    specified_apps ++
+      Enum.sort(
         for(
           {app, props} <- all_apps,
           not List.keymember?(specified_apps, app, 0),
           do: {app, default_mode(props)}
         )
-    )
+      )
   end
 
   defp default_mode(props) do
