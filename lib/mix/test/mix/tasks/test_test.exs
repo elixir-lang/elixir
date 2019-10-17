@@ -268,6 +268,35 @@ defmodule Mix.Tasks.TestTest do
     end
   end
 
+  describe "--partitions" do
+    test "splits tests into partitions" do
+      in_fixture("test_stale", fn ->
+        assert mix(["test", "--partitions", "3"], [{"MIX_TEST_PARTITION", "1"}]) =~
+                 "1 test, 0 failures"
+
+        assert mix(["test", "--partitions", "3"], [{"MIX_TEST_PARTITION", "2"}]) =~
+                 "1 test, 0 failures"
+
+        assert mix(["test", "--partitions", "3"], [{"MIX_TEST_PARTITION", "3"}]) =~
+                 "There are no tests to run"
+      end)
+    end
+
+    test "raises when no partition is given even with Mix.shell() change" do
+      in_fixture("test_stale", fn ->
+        File.write!("test/test_helper.exs", """
+        Mix.shell(Mix.Shell.Process)
+        ExUnit.start()
+        """)
+
+        assert_run_output(
+          ["--partitions", "4"],
+          "The MIX_TEST_PARTITION environment variable must be set"
+        )
+      end)
+    end
+  end
+
   describe "logs and errors" do
     test "logs test absence for a project with no test paths" do
       in_fixture("test_stale", fn ->
