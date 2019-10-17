@@ -199,7 +199,7 @@ defmodule Mix.Tasks.Test do
 
   ## Configuration
 
-  These configurations can be set in the `def project` section of your `mix.exs:
+  These configurations can be set in the `def project` section of your `mix.exs`:
 
     * `:test_paths` - list of paths containing test files. Defaults to
       `["test"]` if the `test` directory exists; otherwise, it defaults to `[]`.
