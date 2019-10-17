@@ -718,7 +718,10 @@ defmodule Mix.Tasks.Test do
     if File.exists?(file) do
       Code.require_file(file)
     else
-      raise_with_shell(shell, "Cannot run tests because test helper file #{inspect(file)} does not exist")
+      raise_with_shell(
+        shell,
+        "Cannot run tests because test helper file #{inspect(file)} does not exist"
+      )
     end
   end
 
