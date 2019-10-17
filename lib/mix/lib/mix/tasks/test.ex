@@ -454,7 +454,7 @@ defmodule Mix.Tasks.Test do
       {:error, {:already_loaded, :ex_unit}} -> :ok
     end
 
-    # The test helper may change the Mix.shell(), so let's make sure to revert it later
+    # The test helper may change the Mix.shell(), so revert it whenever we raise and after suite
     shell = Mix.shell()
 
     # Configure ExUnit now and then again so the task options override test_helper.exs
@@ -462,11 +462,11 @@ defmodule Mix.Tasks.Test do
     ExUnit.configure(ex_unit_opts)
 
     test_paths = project[:test_paths] || default_test_paths()
-    Enum.each(test_paths, &require_test_helper(&1))
+    Enum.each(test_paths, &require_test_helper(shell, &1))
     ExUnit.configure(merge_helper_opts(ex_unit_opts))
 
     # Finally parse, require and load the files
-    test_files = parse_files(files, test_paths)
+    test_files = parse_files(files, shell, test_paths)
     test_pattern = project[:test_pattern] || "*_test.exs"
     warn_test_pattern = project[:warn_test_pattern] || "*_test.ex"
 
@@ -474,27 +474,25 @@ defmodule Mix.Tasks.Test do
       test_files
       |> Mix.Utils.extract_files(test_pattern)
       |> filter_to_allowed_files(allowed_files)
-      |> filter_by_partition(opts)
+      |> filter_by_partition(shell, opts)
 
     display_warn_test_pattern(test_files, test_pattern, matched_test_files, warn_test_pattern)
 
-    results = CT.require_and_run(matched_test_files, test_paths, opts)
-    Mix.shell(shell)
-
-    case results do
+    case CT.require_and_run(matched_test_files, test_paths, opts) do
       {:ok, %{excluded: excluded, failures: failures, total: total}} ->
+        Mix.shell(shell)
         cover && cover.()
 
         cond do
           failures > 0 and opts[:raise] ->
-            Mix.raise("\"mix test\" failed")
+            raise_with_shell(shell, "\"mix test\" failed")
 
           failures > 0 ->
             System.at_exit(fn _ -> exit({:shutdown, 1}) end)
 
           excluded == total and Keyword.has_key?(opts, :only) ->
             message = "The --only option was given to \"mix test\" but no test was executed"
-            raise_or_error_at_exit(message, opts)
+            raise_or_error_at_exit(shell, message, opts)
 
           true ->
             :ok
@@ -510,17 +508,22 @@ defmodule Mix.Tasks.Test do
 
           true ->
             message = "Paths given to \"mix test\" did not match any directory/file: "
-            raise_or_error_at_exit(message <> Enum.join(files, ", "), opts)
+            raise_or_error_at_exit(shell, message <> Enum.join(files, ", "), opts)
         end
 
         :ok
     end
   end
 
-  defp raise_or_error_at_exit(message, opts) do
+  defp raise_with_shell(shell, message) do
+    Mix.shell(shell)
+    Mix.raise(message)
+  end
+
+  defp raise_or_error_at_exit(shell, message, opts) do
     cond do
       opts[:raise] ->
-        Mix.raise(message)
+        raise_with_shell(shell, message)
 
       Mix.Task.recursing?() ->
         Mix.shell().info(message)
@@ -559,10 +562,7 @@ defmodule Mix.Tasks.Test do
 
   @doc false
   def process_ex_unit_opts(opts) do
-    {opts, allowed_files} =
-      opts
-      |> manifest_opts()
-      |> failed_opts()
+    {opts, allowed_files} = manifest_opts(opts)
 
     opts =
       opts
@@ -593,11 +593,11 @@ defmodule Mix.Tasks.Test do
     [autorun: false] ++ opts
   end
 
-  defp parse_files([], test_paths) do
+  defp parse_files([], _shell, test_paths) do
     test_paths
   end
 
-  defp parse_files([single_file], _test_paths) do
+  defp parse_files([single_file], _shell, _test_paths) do
     # Check if the single file path matches test/path/to_test.exs:123. If it does,
     # apply "--only line:123" and trim the trailing :123 part.
     {single_file, opts} = ExUnit.Filters.parse_path(single_file)
@@ -605,9 +605,9 @@ defmodule Mix.Tasks.Test do
     [single_file]
   end
 
-  defp parse_files(files, _test_paths) do
+  defp parse_files(files, shell, _test_paths) do
     if Enum.any?(files, &match?({_, [_ | _]}, ExUnit.Filters.parse_path(&1))) do
-      Mix.raise("Line numbers can only be used when running a single test file")
+      raise_with_shell(shell, "Line numbers can only be used when running a single test file")
     else
       files
     end
@@ -654,16 +654,14 @@ defmodule Mix.Tasks.Test do
 
   defp manifest_opts(opts) do
     manifest_file = Path.join(Mix.Project.manifest_path(), @manifest_file_name)
-    Keyword.put(opts, :failures_manifest_file, manifest_file)
-  end
+    opts = Keyword.put(opts, :failures_manifest_file, manifest_file)
 
-  defp failed_opts(opts) do
     if opts[:failed] do
       if opts[:stale] do
         Mix.raise("Combining --failed and --stale is not supported.")
       end
 
-      {allowed_files, failed_ids} = ExUnit.Filters.failure_info(opts[:failures_manifest_file])
+      {allowed_files, failed_ids} = ExUnit.Filters.failure_info(manifest_file)
       {Keyword.put(opts, :only_test_ids, failed_ids), allowed_files}
     else
       {opts, nil}
@@ -676,7 +674,7 @@ defmodule Mix.Tasks.Test do
     Enum.filter(matched_test_files, &MapSet.member?(allowed_files, Path.expand(&1)))
   end
 
-  defp filter_by_partition(files, opts) do
+  defp filter_by_partition(files, shell, opts) do
     if total = opts[:partitions] do
       partition = System.get_env("MIX_TEST_PARTITION")
 
@@ -693,7 +691,8 @@ defmodule Mix.Tasks.Test do
               do: file
 
         _ ->
-          Mix.raise(
+          raise_with_shell(
+            shell,
             "The MIX_TEST_PARTITION environment variable must be set to an integer between " <>
               "1..#{total} when the --partitions option is set, got: #{inspect(partition)}"
           )
@@ -713,13 +712,13 @@ defmodule Mix.Tasks.Test do
     end
   end
 
-  defp require_test_helper(dir) do
+  defp require_test_helper(shell, dir) do
     file = Path.join(dir, "test_helper.exs")
 
     if File.exists?(file) do
       Code.require_file(file)
     else
-      Mix.raise("Cannot run tests because test helper file #{inspect(file)} does not exist")
+      raise_with_shell(shell, "Cannot run tests because test helper file #{inspect(file)} does not exist")
     end
   end
 

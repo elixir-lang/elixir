@@ -281,6 +281,20 @@ defmodule Mix.Tasks.TestTest do
                  "There are no tests to run"
       end)
     end
+
+    test "raises when no partition is given even with Mix.shell() change" do
+      in_fixture("test_stale", fn ->
+        File.write!("test/test_helper.exs", """
+        Mix.shell(Mix.Shell.Process)
+        ExUnit.start()
+        """)
+
+        assert_run_output(
+          ["--partitions", "4"],
+          "The MIX_TEST_PARTITION environment variable must be set"
+        )
+      end)
+    end
   end
 
   describe "logs and errors" do
