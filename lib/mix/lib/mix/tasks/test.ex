@@ -181,6 +181,9 @@ defmodule Mix.Tasks.Test do
     * `--no-elixir-version-check` - does not check the Elixir version from `mix.exs`
     * `--no-start` - does not start applications after compilation
     * `--only` - runs only tests that match the filter
+    * `--partitions` - sets the amount of partitions to split tests in. This option
+      requires the `MIX_TEST_PARTITION` environment variable to be set. See the
+      "OS Processes Partitioning" section for more information
     * `--preload-modules` - preloads all modules defined in applications
     * `--raise` - raises if the test suite failed
     * `--seed` - seeds the random number generator used to randomize the order of tests;
@@ -189,12 +192,26 @@ defmodule Mix.Tasks.Test do
       Automatically sets `--trace` and `--preload-modules`
     * `--stale` - runs only tests which reference modules that changed since the
       last time tests were ran with `--stale`. You can read more about this option
-      in the "Stale" section below
+      in the "The --stale option" section below
     * `--timeout` - sets the timeout for the tests
     * `--trace` - runs tests with detailed reporting. Automatically sets `--max-cases` to `1`.
       Note that in trace mode test timeouts will be ignored as timeout is set to `:infinity`
 
-  See `ExUnit.configure/1` for more information on configuration options.
+  ## Configuration
+
+  These configurations can be set in the `def project` section of your `mix.exs`:
+
+    * `:test_paths` - list of paths containing test files. Defaults to
+      `["test"]` if the `test` directory exists; otherwise, it defaults to `[]`.
+      It is expected that all test paths contain a `test_helper.exs` file
+
+    * `:test_pattern` - a pattern to load test files. Defaults to `*_test.exs`
+
+    * `:warn_test_pattern` - a pattern to match potentially misnamed test files
+      and display a warning. Defaults to `*_test.ex`
+
+    * `:test_coverage` - a set of options to be passed down to the coverage
+      mechanism
 
   ## Filters
 
@@ -251,20 +268,6 @@ defmodule Mix.Tasks.Test do
   If a given line starts a `describe` block, that line filter runs all tests in it.
   Otherwise, it runs the closest test on or before the given line number.
 
-  ## Configuration
-
-    * `:test_paths` - list of paths containing test files. Defaults to
-      `["test"]` if the `test` directory exists; otherwise, it defaults to `[]`.
-      It is expected that all test paths contain a `test_helper.exs` file
-
-    * `:test_pattern` - a pattern to load test files. Defaults to `*_test.exs`
-
-    * `:warn_test_pattern` - a pattern to match potentially misnamed test files
-      and display a warning. Defaults to `*_test.ex`
-
-    * `:test_coverage` - a set of options to be passed down to the coverage
-      mechanism
-
   ## Coverage
 
   The `:test_coverage` configuration accepts the following options:
@@ -293,9 +296,35 @@ defmodule Mix.Tasks.Test do
   It must return either `nil` or an anonymous function of zero arity that will
   be run after the test suite is done.
 
-  ## "Stale"
+  ## OS Processes Partitioning
 
-  The `--stale` command line option attempts to run only those test files which
+  While ExUnit supports the ability to run tests concurrently within the same
+  Elixir instance, it is not always possible to run all tests concurrently. For
+  example, some tests may rely on global resources.
+
+  For this reason, `mix test` supports partitioning the test files across
+  different Elixir instances. This is done by setting the `--partitions` option
+  to an integer, with the number of partitions, and setting the `MIX_TEST_PARTITION`
+  environment variable to control which test partition that particular instance
+  is running. This can also be useful if you want to distribute testing across
+  multiple machines.
+
+  For example, to split a test suite into 4 partitions and run them, you would
+  use the following commands:
+
+      MIX_TEST_PARTITION=1 mix test --partitions 4
+      MIX_TEST_PARTITION=2 mix test --partitions 4
+      MIX_TEST_PARTITION=3 mix test --partitions 4
+      MIX_TEST_PARTITION=4 mix test --partitions 4
+
+  The test files are sorted and distributed in a round-robin fashion. Note the
+  partition itself is given as an environment variable so it can be accessed in
+  configuration files and test scripts. For example, it can be used to setup a
+  different database instance per partition in `config/test.exs`.
+
+  ## The --stale option
+
+  The `--stale` command line option attempts to run only the test files which
   reference modules that have changed since the last time you ran this task with
   `--stale`.
 
@@ -304,6 +333,9 @@ defmodule Mix.Tasks.Test do
   references (and any modules those modules reference, recursively) were modified
   since the last run with `--stale`. A test file is also marked "stale" if it has
   been changed since the last run with `--stale`.
+
+  The `--stale` option is extremely useful for software iteration, allowing you to
+  run only the relevant tests as you perform changes to the codebase.
   """
 
   @switches [
@@ -329,6 +361,7 @@ defmodule Mix.Tasks.Test do
     listen_on_stdin: :boolean,
     formatter: :keep,
     slowest: :integer,
+    partitions: :integer,
     preload_modules: :boolean
   ]
 
@@ -421,7 +454,7 @@ defmodule Mix.Tasks.Test do
       {:error, {:already_loaded, :ex_unit}} -> :ok
     end
 
-    # The test helper may change the Mix.shell(), so let's make sure to revert it later
+    # The test helper may change the Mix.shell(), so revert it whenever we raise and after suite
     shell = Mix.shell()
 
     # Configure ExUnit now and then again so the task options override test_helper.exs
@@ -429,11 +462,11 @@ defmodule Mix.Tasks.Test do
     ExUnit.configure(ex_unit_opts)
 
     test_paths = project[:test_paths] || default_test_paths()
-    Enum.each(test_paths, &require_test_helper(&1))
+    Enum.each(test_paths, &require_test_helper(shell, &1))
     ExUnit.configure(merge_helper_opts(ex_unit_opts))
 
     # Finally parse, require and load the files
-    test_files = parse_files(files, test_paths)
+    test_files = parse_files(files, shell, test_paths)
     test_pattern = project[:test_pattern] || "*_test.exs"
     warn_test_pattern = project[:warn_test_pattern] || "*_test.ex"
 
@@ -441,26 +474,25 @@ defmodule Mix.Tasks.Test do
       test_files
       |> Mix.Utils.extract_files(test_pattern)
       |> filter_to_allowed_files(allowed_files)
+      |> filter_by_partition(shell, opts)
 
     display_warn_test_pattern(test_files, test_pattern, matched_test_files, warn_test_pattern)
 
-    results = CT.require_and_run(matched_test_files, test_paths, opts)
-    Mix.shell(shell)
-
-    case results do
+    case CT.require_and_run(matched_test_files, test_paths, opts) do
       {:ok, %{excluded: excluded, failures: failures, total: total}} ->
+        Mix.shell(shell)
         cover && cover.()
 
         cond do
           failures > 0 and opts[:raise] ->
-            Mix.raise("\"mix test\" failed")
+            raise_with_shell(shell, "\"mix test\" failed")
 
           failures > 0 ->
             System.at_exit(fn _ -> exit({:shutdown, 1}) end)
 
           excluded == total and Keyword.has_key?(opts, :only) ->
             message = "The --only option was given to \"mix test\" but no test was executed"
-            raise_or_error_at_exit(message, opts)
+            raise_or_error_at_exit(shell, message, opts)
 
           true ->
             :ok
@@ -476,17 +508,22 @@ defmodule Mix.Tasks.Test do
 
           true ->
             message = "Paths given to \"mix test\" did not match any directory/file: "
-            raise_or_error_at_exit(message <> Enum.join(files, ", "), opts)
+            raise_or_error_at_exit(shell, message <> Enum.join(files, ", "), opts)
         end
 
         :ok
     end
   end
 
-  defp raise_or_error_at_exit(message, opts) do
+  defp raise_with_shell(shell, message) do
+    Mix.shell(shell)
+    Mix.raise(message)
+  end
+
+  defp raise_or_error_at_exit(shell, message, opts) do
     cond do
       opts[:raise] ->
-        Mix.raise(message)
+        raise_with_shell(shell, message)
 
       Mix.Task.recursing?() ->
         Mix.shell().info(message)
@@ -525,10 +562,7 @@ defmodule Mix.Tasks.Test do
 
   @doc false
   def process_ex_unit_opts(opts) do
-    {opts, allowed_files} =
-      opts
-      |> manifest_opts()
-      |> failed_opts()
+    {opts, allowed_files} = manifest_opts(opts)
 
     opts =
       opts
@@ -559,11 +593,11 @@ defmodule Mix.Tasks.Test do
     [autorun: false] ++ opts
   end
 
-  defp parse_files([], test_paths) do
+  defp parse_files([], _shell, test_paths) do
     test_paths
   end
 
-  defp parse_files([single_file], _test_paths) do
+  defp parse_files([single_file], _shell, _test_paths) do
     # Check if the single file path matches test/path/to_test.exs:123. If it does,
     # apply "--only line:123" and trim the trailing :123 part.
     {single_file, opts} = ExUnit.Filters.parse_path(single_file)
@@ -571,9 +605,9 @@ defmodule Mix.Tasks.Test do
     [single_file]
   end
 
-  defp parse_files(files, _test_paths) do
+  defp parse_files(files, shell, _test_paths) do
     if Enum.any?(files, &match?({_, [_ | _]}, ExUnit.Filters.parse_path(&1))) do
-      Mix.raise("Line numbers can only be used when running a single test file")
+      raise_with_shell(shell, "Line numbers can only be used when running a single test file")
     else
       files
     end
@@ -620,16 +654,14 @@ defmodule Mix.Tasks.Test do
 
   defp manifest_opts(opts) do
     manifest_file = Path.join(Mix.Project.manifest_path(), @manifest_file_name)
-    Keyword.put(opts, :failures_manifest_file, manifest_file)
-  end
+    opts = Keyword.put(opts, :failures_manifest_file, manifest_file)
 
-  defp failed_opts(opts) do
     if opts[:failed] do
       if opts[:stale] do
         Mix.raise("Combining --failed and --stale is not supported.")
       end
 
-      {allowed_files, failed_ids} = ExUnit.Filters.failure_info(opts[:failures_manifest_file])
+      {allowed_files, failed_ids} = ExUnit.Filters.failure_info(manifest_file)
       {Keyword.put(opts, :only_test_ids, failed_ids), allowed_files}
     else
       {opts, nil}
@@ -642,6 +674,34 @@ defmodule Mix.Tasks.Test do
     Enum.filter(matched_test_files, &MapSet.member?(allowed_files, Path.expand(&1)))
   end
 
+  defp filter_by_partition(files, shell, opts) do
+    if total = opts[:partitions] do
+      partition = System.get_env("MIX_TEST_PARTITION")
+
+      case partition && Integer.parse(partition) do
+        {partition, ""} when partition in 1..total ->
+          partition = partition - 1
+
+          # We sort the files because Path.wildcard does not guarantee
+          # ordering, so different OSes could return a different order,
+          # meaning run across OSes on different partitions could run
+          # duplicate files.
+          for {file, index} <- Enum.with_index(Enum.sort(files)),
+              rem(index, total) == partition,
+              do: file
+
+        _ ->
+          raise_with_shell(
+            shell,
+            "The MIX_TEST_PARTITION environment variable must be set to an integer between " <>
+              "1..#{total} when the --partitions option is set, got: #{inspect(partition)}"
+          )
+      end
+    else
+      files
+    end
+  end
+
   defp color_opts(opts) do
     case Keyword.fetch(opts, :color) do
       {:ok, enabled?} ->
@@ -652,13 +712,16 @@ defmodule Mix.Tasks.Test do
     end
   end
 
-  defp require_test_helper(dir) do
+  defp require_test_helper(shell, dir) do
     file = Path.join(dir, "test_helper.exs")
 
     if File.exists?(file) do
       Code.require_file(file)
     else
-      Mix.raise("Cannot run tests because test helper file #{inspect(file)} does not exist")
+      raise_with_shell(
+        shell,
+        "Cannot run tests because test helper file #{inspect(file)} does not exist"
+      )
     end
   end
 
