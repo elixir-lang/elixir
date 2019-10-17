@@ -91,8 +91,11 @@ defmodule Module.Types.InferTest do
 
     test "list" do
       assert quoted_pattern([]) == {:ok, {:list, :dynamic}}
+      assert quoted_pattern([_]) == {:ok, {:list, :dynamic}}
       assert quoted_pattern([123]) == {:ok, {:list, :integer}}
       assert quoted_pattern([123, 456]) == {:ok, {:list, :integer}}
+      assert quoted_pattern([123, _]) == {:ok, {:list, :dynamic}}
+      assert quoted_pattern([_, 456]) == {:ok, {:list, :dynamic}}
       assert quoted_pattern([123 | []]) == {:ok, {:list, :integer}}
       assert quoted_pattern([123, "foo"]) == {:ok, {:list, {:union, [:integer, :binary]}}}
       assert quoted_pattern([123 | ["foo"]]) == {:ok, {:list, {:union, [:integer, :binary]}}}
@@ -101,6 +104,15 @@ defmodule Module.Types.InferTest do
       assert quoted_pattern([123 | 456]) == {:ok, {:list, :integer}}
       assert quoted_pattern([123, 456 | 789]) == {:ok, {:list, :integer}}
       assert quoted_pattern([123 | "foo"]) == {:ok, {:list, {:union, [:integer, :binary]}}}
+      assert quoted_pattern([123 | _]) == {:ok, {:list, :dynamic}}
+      assert quoted_pattern([_ | [456]]) == {:ok, {:list, :dynamic}}
+      assert quoted_pattern([_ | _]) == {:ok, {:list, :dynamic}}
+
+      assert quoted_pattern([] ++ []) == {:ok, {:list, :dynamic}}
+      assert quoted_pattern([] ++ _) == {:ok, {:list, :dynamic}}
+      assert quoted_pattern([123] ++ [456]) == {:ok, {:list, :integer}}
+      assert quoted_pattern([123] ++ _) == {:ok, {:list, :dynamic}}
+      assert quoted_pattern([123] ++ ["foo"]) == {:ok, {:list, {:union, [:integer, :binary]}}}
     end
 
     test "tuple" do
