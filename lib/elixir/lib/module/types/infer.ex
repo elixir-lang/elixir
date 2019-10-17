@@ -48,21 +48,47 @@ defmodule Module.Types.Infer do
     end
   end
 
-  # [left | right]
-  def of_pattern([{:|, _meta, [left_expr, right_expr]}] = expr, stack, context) do
+  # left | []
+  def of_pattern({:|, _meta, [left_expr, []]} = expr, stack, context) do
     stack = push_expr_stack(expr, stack)
-    of_cons(left_expr, right_expr, stack, context)
+    of_pattern(left_expr, stack, context)
   end
 
-  # [left, right]
-  def of_pattern([left_expr | right_expr] = expr, stack, context) do
+  # left | right
+  def of_pattern({:|, _meta, [left_expr, right_expr]} = expr, stack, context) do
     stack = push_expr_stack(expr, stack)
-    of_cons(left_expr, right_expr, stack, context)
+
+    case of_pattern(left_expr, stack, context) do
+      {:ok, left, context} ->
+        case of_pattern(right_expr, stack, context) do
+          {:ok, {:list, right}, context} ->
+            {:ok, to_union([left, right], context), context}
+
+          {:ok, right, context} ->
+            {:ok, to_union([left, right], context), context}
+
+          {:error, reason} ->
+            {:error, reason}
+        end
+
+      {:error, reason} ->
+        {:error, reason}
+    end
   end
 
   # []
   def of_pattern([], _stack, context) do
     {:ok, {:list, :dynamic}, context}
+  end
+
+  # [expr, ...]
+  def of_pattern(exprs, stack, context) when is_list(exprs) do
+    stack = push_expr_stack(exprs, stack)
+
+    case map_reduce_ok(exprs, context, &of_pattern(&1, stack, &2)) do
+      {:ok, types, context} -> {:ok, {:list, to_union(types, context)}, context}
+      {:error, reason} -> {:error, reason}
+    end
   end
 
   # left ++ right
@@ -72,14 +98,8 @@ defmodule Module.Types.Infer do
     case of_pattern(left_expr, stack, context) do
       {:ok, {:list, left}, context} ->
         case of_pattern(right_expr, stack, context) do
-          {:ok, {:list, :dynamic}, context} ->
-            {:ok, {:list, left}, context}
-
           {:ok, {:list, right}, context} ->
             {:ok, {:list, to_union([left, right], context)}, context}
-
-          {:ok, :dynamic, context} ->
-            {:ok, {:list, left}, context}
 
           {:ok, right, context} ->
             {:ok, {:list, to_union([left, right], context)}, context}
@@ -160,28 +180,6 @@ defmodule Module.Types.Infer do
       {:ok, pairs, context} ->
         pairs = [{{:atom, :__struct__}, {:atom, module}} | pairs]
         {:ok, {:map, pairs}, context}
-
-      {:error, reason} ->
-        {:error, reason}
-    end
-  end
-
-  defp of_cons(left_expr, right_expr, stack, context) do
-    case of_pattern(left_expr, stack, context) do
-      {:ok, left, context} ->
-        case of_pattern(right_expr, stack, context) do
-          {:ok, {:list, :dynamic}, context} ->
-            {:ok, {:list, left}, context}
-
-          {:ok, {:list, right}, context} ->
-            {:ok, {:list, to_union([left, right], context)}, context}
-
-          {:ok, right, context} ->
-            {:ok, {:list, to_union([left, right], context)}, context}
-
-          {:error, reason} ->
-            {:error, reason}
-        end
 
       {:error, reason} ->
         {:error, reason}
