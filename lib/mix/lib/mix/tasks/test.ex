@@ -302,11 +302,11 @@ defmodule Mix.Tasks.Test do
   Elixir instance, it is not always possible to run all tests concurrently. For
   example, some tests may rely on global resources.
 
-  For this reason, `mix test` all supports partitioning the test files across
+  For this reason, `mix test` supports partitioning the test files across
   different Elixir instances. This is done by setting the `--partitions` option
   to an integer, with the number of partitions, and setting the `MIX_TEST_PARTITION`
   environment variable to control which test partition that particular instance
-  is running. This can be also be useful if you want to distribute testing across
+  is running. This can also be useful if you want to distribute testing across
   multiple machines.
 
   For example, to split a test suite into 4 partitions and run them, you would
