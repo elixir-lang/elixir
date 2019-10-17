@@ -211,7 +211,7 @@ defmodule ExUnit.Case do
 
   """
 
-  @type env :: Module.t() | Macro.Env.t()
+  @type env :: module() | Macro.Env.t()
 
   @reserved [:module, :file, :line, :test, :async, :registered, :describe]
 
