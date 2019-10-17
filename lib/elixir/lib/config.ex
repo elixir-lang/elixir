@@ -196,7 +196,7 @@ defmodule Config do
   end
 
   @doc false
-  @spec __import__!(Path.t()) :: keyword()
+  @spec __import__!(Path.t()) :: {term, binding :: list}
   def __import__!(file) when is_binary(file) do
     current_files = get_files!()
 
