@@ -1102,11 +1102,8 @@ defmodule Enum do
   end
 
   @doc """
-  creates a new map with keys as unique elements given by `key_fun`.
-  and set values as the count of every element.
-
-  The order of elements within each list is preserved from the `enumerable`.
-  However, like all maps, the resulting map is unordered.
+  Returns a map with keys as unique elements given by `key_fun` and values
+  as the count of every element.
 
   ## Examples
 
