@@ -86,7 +86,7 @@ defmodule Code do
   New events may be added at any time in the future, therefore it is advised
   for the `trace/2` function to have a "catch-all" clause.
 
-  Below is example tracer that prints all remote function invocations:
+  Below is an example tracer that prints all remote function invocations:
 
       defmodule MyTracer do
         def trace({:remote_function, _meta, module, name, arity}, env) do
