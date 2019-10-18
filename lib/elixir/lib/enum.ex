@@ -1453,19 +1453,19 @@ defmodule Enum do
   Returns the maximal element in the `enumerable` according
   to Erlang's term ordering.
 
-  If multiple elements are considered maximal, the first one that was found
-  is returned.
+  By default, the comparison is done with the `>=` sorter function.
+  If multiple elements are considered maximal, the first one that
+  was found is returned. If you want the last element considered
+  maximal to be returned, the sorter function should not return true
+  for equal elements.
 
-  Calls the provided `empty_fallback` function and returns its value if
-  `enumerable` is empty. The default `empty_fallback` raises `Enum.EmptyError`.
+  If the enumerable is empty, the provided `empty_fallback` is called.
+  The default `empty_fallback` raises `Enum.EmptyError`.
 
   ## Examples
 
       iex> Enum.max([1, 2, 3])
       3
-
-      iex> Enum.max([], fn -> 0 end)
-      0
 
   The fact this function uses Erlang's term ordering means that the comparison
   is structural and not semantic. For example:
@@ -1473,31 +1473,54 @@ defmodule Enum do
       iex> Enum.max([~D[2017-03-31], ~D[2017-04-01]])
       ~D[2017-03-31]
 
-  In the example above, `max/1` returned March 31st instead of April 1st
-  because the structural comparison compares the day before the year. This
-  can be addressed by using `max_by/3` and by relying on structures where
-  the most significant digits come first. In this particular case, we can
-  use `Date.to_erl/1` to get a tuple representation with year, month and day
-  fields:
+  In the example above, `max/2` returned April 1st instead of March 31st
+  because the structural comparison compares the day before the year.
+  For this reason, most structs provide a "compare" function, such as
+  `Date.compare/2`, which receives two structs and returns `:lt` (less than),
+  `:eq` (equal), and `:gt` (greather than). If you pass a module as the
+  sorting function, Elixir will automatically use the `compare/2` function
+  of said module:
 
-      iex> Enum.max_by([~D[2017-03-31], ~D[2017-04-01]], &Date.to_erl/1)
+      iex> Enum.max([~D[2017-03-31], ~D[2017-04-01]], Date)
       ~D[2017-04-01]
 
-  For selecting a maximum value out of two consider using `Kernel.max/2`.
+  Finally, if you don't want to raise on empty enumerables, you can pass
+  the empty callback:
+
+      iex> Enum.max([], &>=/2, fn -> 0 end)
+      0
 
   """
-  @spec max(t, (() -> empty_result)) :: element | empty_result when empty_result: any
-  def max(enumerable, empty_fallback \\ fn -> raise Enum.EmptyError end)
-      when is_function(empty_fallback, 0) do
-    aggregate(enumerable, &Kernel.max/2, empty_fallback)
+  @spec max(t, (element, element -> boolean) | module(), (() -> empty_result)) ::
+          element | empty_result
+        when empty_result: any
+  def max(enumerable, sorter \\ &>=/2, empty_fallback \\ fn -> raise Enum.EmptyError end) do
+    {sorter, empty_fallback} = max_sort_fun(sorter, empty_fallback)
+    aggregate(enumerable, sorter, empty_fallback)
   end
+
+  # TODO: Deprecate me on 1.14
+  defp max_sort_fun(empty_fallback, default_empty_callback)
+       when is_function(empty_fallback, 0) and is_function(default_empty_callback, 0),
+       do: {&>=/2, empty_fallback}
+
+  defp max_sort_fun(sorter, empty_callback)
+       when is_function(sorter, 2) and is_function(empty_callback, 0),
+       do: {sorter, empty_callback}
+
+  defp max_sort_fun(module, empty_callback)
+       when is_atom(module) and is_function(empty_callback, 0),
+       do: {&(module.compare(&1, &2) != :lt), empty_callback}
 
   @doc """
   Returns the maximal element in the `enumerable` as calculated
-  by the given function.
+  by the given `fun`.
 
-  If multiple elements are considered maximal, the first one that was found
-  is returned.
+  By default, the comparison is done with the `>=` sorter function.
+  If multiple elements are considered maximal, the first one that
+  was found is returned. If you want the last element considered
+  maximal to be returned, the sorter function should not return true
+  for equal elements.
 
   Calls the provided `empty_fallback` function and returns its value if
   `enumerable` is empty. The default `empty_fallback` raises `Enum.EmptyError`.
@@ -1510,19 +1533,44 @@ defmodule Enum do
       iex> Enum.max_by(["a", "aa", "aaa", "b", "bbb"], &String.length/1)
       "aaa"
 
+  The fact this function uses Erlang's term ordering means that the
+  comparison is structural and not semantic. Therefore, if you want
+  to compare structs, most structs provide a "compare" function, such as
+  `Date.compare/2`, which receives two structs and returns `:lt` (less than),
+  `:eq` (equal), and `:gt` (greather than). If you pass a module as the
+  sorting function, Elixir will automatically use the `compare/2` function
+  of said module:
+
+      iex> users = [
+      ...>   %{name: "Ellis", birthday: ~D[1943-05-11]},
+      ...>   %{name: "Lovelace", birthday: ~D[1815-12-10]},
+      ...>   %{name: "Turing", birthday: ~D[1912-06-23]}
+      ...> ]
+      iex> Enum.max_by(users, &(&1.birthday), Date)
+      %{name: "Ellis", birthday: ~D[1943-05-11]}
+
+  Finally, if you don't want to raise on empty enumerables, you can pass
+  the empty callback:
+
       iex> Enum.max_by([], &String.length/1, fn -> nil end)
       nil
 
   """
-  @spec max_by(t, (element -> any), (() -> empty_result)) :: element | empty_result
+  @spec max_by(
+          t,
+          (element -> any),
+          (element, element -> boolean) | module(),
+          (() -> empty_result)
+        ) :: element | empty_result
         when empty_result: any
-  def max_by(enumerable, fun, empty_fallback \\ fn -> raise Enum.EmptyError end)
-      when is_function(fun, 1) and is_function(empty_fallback, 0) do
+  def max_by(enumerable, fun, sorter \\ &>=/2, empty_fallback \\ fn -> raise Enum.EmptyError end)
+      when is_function(fun, 1) do
+    {sorter, empty_fallback} = max_sort_fun(sorter, empty_fallback)
     first_fun = &{&1, fun.(&1)}
 
     reduce_fun = fn entry, {_, fun_max} = old ->
       fun_entry = fun.(entry)
-      if(fun_entry > fun_max, do: {entry, fun_entry}, else: old)
+      if(sorter.(fun_max, fun_entry), do: old, else: {entry, fun_entry})
     end
 
     case reduce_by(enumerable, first_fun, reduce_fun) do
@@ -1575,19 +1623,19 @@ defmodule Enum do
   Returns the minimal element in the `enumerable` according
   to Erlang's term ordering.
 
-  If multiple elements are considered minimal, the first one that was found
-  is returned.
+  By default, the comparison is done with the `<=` sorter function.
+  If multiple elements are considered minimal, the first one that
+  was found is returned. If you want the last element considered
+  minimal to be returned, the sorter function should not return true
+  for equal elements.
 
-  Calls the provided `empty_fallback` function and returns its value if
-  `enumerable` is empty. The default `empty_fallback` raises `Enum.EmptyError`.
+  If the enumerable is empty, the provided `empty_fallback` is called.
+  The default `empty_fallback` raises `Enum.EmptyError`.
 
   ## Examples
 
       iex> Enum.min([1, 2, 3])
       1
-
-      iex> Enum.min([], fn -> 0 end)
-      0
 
   The fact this function uses Erlang's term ordering means that the comparison
   is structural and not semantic. For example:
@@ -1595,31 +1643,54 @@ defmodule Enum do
       iex> Enum.min([~D[2017-03-31], ~D[2017-04-01]])
       ~D[2017-04-01]
 
-  In the example above, `min/1` returned April 1st instead of March 31st
-  because the structural comparison compares the day before the year. This
-  can be addressed by using `min_by/3` and by relying on structures where
-  the most significant digits come first. In this particular case, we can
-  use `Date.to_erl/1` to get a tuple representation with year, month and day
-  fields:
+  In the example above, `min/2` returned April 1st instead of March 31st
+  because the structural comparison compares the day before the year.
+  For this reason, most structs provide a "compare" function, such as
+  `Date.compare/2`, which receives two structs and returns `:lt` (less than),
+  `:eq` (equal), and `:gt` (greather than). If you pass a module as the
+  sorting function, Elixir will automatically use the `compare/2` function
+  of said module:
 
-      iex> Enum.min_by([~D[2017-03-31], ~D[2017-04-01]], &Date.to_erl/1)
+      iex> Enum.min([~D[2017-03-31], ~D[2017-04-01]], Date)
       ~D[2017-03-31]
 
-  For selecting a minimal value out of two consider using `Kernel.min/2`.
+  Finally, if you don't want to raise on empty enumerables, you can pass
+  the empty callback:
+
+      iex> Enum.min([], &<=/2, fn -> 0 end)
+      0
 
   """
-  @spec min(t, (() -> empty_result)) :: element | empty_result when empty_result: any
-  def min(enumerable, empty_fallback \\ fn -> raise Enum.EmptyError end)
-      when is_function(empty_fallback, 0) do
-    aggregate(enumerable, &Kernel.min/2, empty_fallback)
+  @spec min(t, (element, element -> boolean) | module(), (() -> empty_result)) ::
+          element | empty_result
+        when empty_result: any
+  def min(enumerable, sorter \\ &<=/2, empty_fallback \\ fn -> raise Enum.EmptyError end) do
+    {sorter, empty_fallback} = min_sort_fun(sorter, empty_fallback)
+    aggregate(enumerable, sorter, empty_fallback)
   end
+
+  # TODO: Deprecate me on 1.14
+  defp min_sort_fun(empty_fallback, default_empty_callback)
+       when is_function(empty_fallback, 0) and is_function(default_empty_callback, 0),
+       do: {&<=/2, empty_fallback}
+
+  defp min_sort_fun(sorter, empty_callback)
+       when is_function(sorter, 2) and is_function(empty_callback, 0),
+       do: {sorter, empty_callback}
+
+  defp min_sort_fun(module, empty_callback)
+       when is_atom(module) and is_function(empty_callback, 0),
+       do: {&(module.compare(&1, &2) != :gt), empty_callback}
 
   @doc """
   Returns the minimal element in the `enumerable` as calculated
-  by the given function.
+  by the given `fun`.
 
-  If multiple elements are considered minimal, the first one that was found
-  is returned.
+  By default, the comparison is done with the `<=` sorter function.
+  If multiple elements are considered minimal, the first one that
+  was found is returned. If you want the last element considered
+  minimal to be returned, the sorter function should not return true
+  for equal elements.
 
   Calls the provided `empty_fallback` function and returns its value if
   `enumerable` is empty. The default `empty_fallback` raises `Enum.EmptyError`.
@@ -1632,19 +1703,39 @@ defmodule Enum do
       iex> Enum.min_by(["a", "aa", "aaa", "b", "bbb"], &String.length/1)
       "a"
 
+  The fact this function uses Erlang's term ordering means that the
+  comparison is structural and not semantic. Therefore, if you want
+  to compare structs, most structs provide a "compare" function, such as
+  `Date.compare/2`, which receives two structs and returns `:lt` (less than),
+  `:eq` (equal), and `:gt` (greather than). If you pass a module as the
+  sorting function, Elixir will automatically use the `compare/2` function
+  of said module:
+
+      iex> users = [
+      ...>   %{name: "Ellis", birthday: ~D[1943-05-11]},
+      ...>   %{name: "Lovelace", birthday: ~D[1815-12-10]},
+      ...>   %{name: "Turing", birthday: ~D[1912-06-23]}
+      ...> ]
+      iex> Enum.min_by(users, &(&1.birthday), Date)
+      %{name: "Lovelace", birthday: ~D[1815-12-10]}
+
+  Finally, if you don't want to raise on empty enumerables, you can pass
+  the empty callback:
+
       iex> Enum.min_by([], &String.length/1, fn -> nil end)
       nil
 
   """
   @spec min_by(t, (element -> any), (() -> empty_result)) :: element | empty_result
         when empty_result: any
-  def min_by(enumerable, fun, empty_fallback \\ fn -> raise Enum.EmptyError end)
-      when is_function(fun, 1) and is_function(empty_fallback, 0) do
+  def min_by(enumerable, fun, sorter \\ &<=/2, empty_fallback \\ fn -> raise Enum.EmptyError end)
+      when is_function(fun, 1) do
+    {sorter, empty_fallback} = min_sort_fun(sorter, empty_fallback)
     first_fun = &{&1, fun.(&1)}
 
     reduce_fun = fn entry, {_, fun_min} = old ->
       fun_entry = fun.(entry)
-      if(fun_entry < fun_min, do: {entry, fun_entry}, else: old)
+      if(sorter.(fun_min, fun_entry), do: old, else: {entry, fun_entry})
     end
 
     case reduce_by(enumerable, first_fun, reduce_fun) do
@@ -2900,7 +2991,10 @@ defmodule Enum do
   end
 
   defp aggregate(first..last, fun, _empty) do
-    fun.(first, last)
+    case fun.(first, last) do
+      true -> first
+      false -> last
+    end
   end
 
   defp aggregate(enumerable, fun, empty) do
@@ -2908,8 +3002,14 @@ defmodule Enum do
 
     enumerable
     |> reduce(ref, fn
-      element, ^ref -> element
-      element, acc -> fun.(acc, element)
+      element, ^ref ->
+        element
+
+      element, acc ->
+        case fun.(acc, element) do
+          true -> acc
+          false -> element
+        end
     end)
     |> case do
       ^ref -> empty.()
@@ -2917,7 +3017,16 @@ defmodule Enum do
     end
   end
 
-  defp aggregate_list([head | tail], acc, fun), do: aggregate_list(tail, fun.(acc, head), fun)
+  defp aggregate_list([head | tail], acc, fun) do
+    acc =
+      case fun.(acc, head) do
+        true -> acc
+        false -> head
+      end
+
+    aggregate_list(tail, acc, fun)
+  end
+
   defp aggregate_list([], acc, _fun), do: acc
 
   defp reduce_by([head | tail], first, fun) do
