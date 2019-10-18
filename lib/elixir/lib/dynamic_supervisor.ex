@@ -11,8 +11,8 @@ defmodule DynamicSupervisor do
 
   ## Examples
 
-  A dynamic supervisor is started with no children, under a :one_for_one
-  supervision strategy (the only strategy currently supported) and a name:
+  A dynamic supervisor is started with no children, a supervision strategy
+  (the only strategy currently supported is `:one_for_one`) and a name:
 
       children = [
         {DynamicSupervisor, strategy: :one_for_one, name: MyApp.DynamicSupervisor}
