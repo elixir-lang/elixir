@@ -274,6 +274,11 @@ defmodule EnumTest do
     assert Enum.flat_map_reduce([1, 2, 3], 0, &{[&1, &2], &1 + &2}) == {[1, 0, 2, 1, 3, 3], 6}
   end
 
+  test "frequencies_by/2" do
+    assert Enum.frequencies_by(~w{a a a b c c}) == %{"a" => 3, "b" => 1, "c" => 2}
+    assert Enum.frequencies_by([12, 7, 6, 5, 1], &Integer.mod(&1, 2)) == %{0 => 2, 1 => 3}
+  end
+
   test "group_by/3" do
     assert Enum.group_by([], fn _ -> raise "oops" end) == %{}
     assert Enum.group_by([1, 2, 3], &rem(&1, 2)) == %{0 => [2], 1 => [1, 3]}

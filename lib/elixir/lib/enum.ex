@@ -1102,6 +1102,33 @@ defmodule Enum do
   end
 
   @doc """
+  creates a new map with keys as unique elements given by `key_fun`.
+  and set values as the count of every element.
+
+  The order of elements within each list is preserved from the `enumerable`.
+  However, like all maps, the resulting map is unordered.
+
+  ## Examples
+
+      iex> Enum.frequencies_by(~w{ant buffalo ant ant buffalo dingo})
+      %{"ant" => 3, "buffalo" => 2, "dingo" => 1}
+    
+      iex> Enum.frequencies_by(~w{aa aA bb cc}, &String.downcase/1)
+      %{"aa" => 2, "bb" => 1, "cc" => 1}
+    
+      iex> Enum.frequencies_by(~w{aaa aA bbb cc c}, &String.length/1)
+      %{3 => 2, 2 => 2, 1 => 1}
+
+  """
+  @spec frequencies_by(t, (element -> any)) :: map
+  def frequencies_by(enumerable, key_fun \\ fn x -> x end) when is_function(key_fun) do
+    reduce(enumerable, %{}, fn entry, acc ->
+      key = key_fun.(entry)
+      Map.update(acc, key, 1, &(&1 + 1))
+    end)
+  end
+
+  @doc """
   Splits the `enumerable` into groups based on `key_fun`.
 
   The result is a map where each key is given by `key_fun`
