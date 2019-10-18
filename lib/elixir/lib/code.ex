@@ -1,5 +1,5 @@
 defmodule Code do
-  @moduledoc """
+  @moduledoc ~S"""
   Utilities for managing code compilation, code evaluation, and code loading.
 
   This module complements Erlang's [`:code` module](http://www.erlang.org/doc/man/code.html)
@@ -85,6 +85,19 @@ defmodule Code do
 
   New events may be added at any time in the future, therefore it is advised
   for the `trace/2` function to have a "catch-all" clause.
+
+  Below is an example tracer that prints all remote function invocations:
+
+      defmodule MyTracer do
+        def trace({:remote_function, _meta, module, name, arity}, env) do
+          IO.puts "#{env.file}:#{env.line} #{inspect(module)}.#{name}/#{arity}"
+          :ok
+        end
+
+        def trace(_event, _env) do
+          :ok
+        end
+      end
   """
 
   @boolean_compiler_options [
