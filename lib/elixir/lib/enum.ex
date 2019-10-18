@@ -2278,7 +2278,8 @@ defmodule Enum do
   Sorts the `enumerable` by the given function.
 
   This function uses the merge sort algorithm. The given function should compare
-  two arguments, and return `true` if the first argument precedes the second one.
+  two arguments, and return `true` if the first argument is **less than or equal to**
+  the second one.
 
   ## Examples
 
@@ -2316,43 +2317,49 @@ defmodule Enum do
 
   For this reason, most structs provide a "compare" function, such as
   `Date.compare/2`, which receives two structs and returns `:lt` (less than),
-  `:eq` (equal), and `:gt` (greather than). For example, to sort dates
-  increasingly, one would do:
+  `:eq` (equal), and `:gt` (greather than). If you pass a module as the
+  sorting function, Elixir will automatically use the `compare` function
+  of said module:
 
       iex> dates = [~D[2019-01-01], ~D[2020-03-02], ~D[2019-06-06]]
-      iex> Enum.sort(dates, &(Date.compare(&1, &2) != :gt))
+      iex> Enum.sort(dates, Date)
       [~D[2019-01-01], ~D[2019-06-06], ~D[2020-03-02]]
 
-  Or in decreasing order:
+  To retrieve all dates in decreasing order, use `sort_reverse/2`:
 
       iex> dates = [~D[2019-01-01], ~D[2020-03-02], ~D[2019-06-06]]
-      iex> Enum.sort(dates, &(Date.compare(&1, &2) != :lt))
+      iex> Enum.sort_reverse(dates, Date)
       [~D[2020-03-02], ~D[2019-06-06], ~D[2019-01-01]]
 
   """
   @spec sort(t, (element, element -> boolean)) :: list
   def sort(enumerable, fun) when is_list(enumerable) do
-    :lists.sort(fun, enumerable)
+    :lists.sort(to_sort_fun(fun), enumerable)
   end
 
   def sort(enumerable, fun) do
+    fun = to_sort_fun(fun)
+
     reduce(enumerable, [], &sort_reducer(&1, &2, fun))
     |> sort_terminator(fun)
   end
+
+  defp to_sort_fun(sorter) when is_function(sorter, 2), do: sorter
+  defp to_sort_fun(module) when is_atom(module), do: &(module.compare(&1, &2) != :gt)
 
   @doc """
   Sorts the mapped results of the `enumerable` according to the provided `sorter`
   function.
 
-  This function maps each element of the `enumerable` using the provided `mapper`
-  function. The enumerable is then sorted by the mapped elements
-  using the `sorter` function, which defaults to `Kernel.<=/2`.
+  This function maps each element of the `enumerable` using the
+  provided `mapper` function. The enumerable is then sorted by
+  the mapped elements using the `sorter` function, which defaults
+  to `Kernel.<=/2`.
 
   `sort_by/3` differs from `sort/2` in that it only calculates the
   comparison value for each element in the enumerable once instead of
-  once for each element in each comparison.
-  If the same function is being called on both elements, it's also more
-  compact to use `sort_by/3`.
+  once for each element in each comparison. If the same function is
+  being called on both elements, it's more effiicient to use `sort_by/3`.
 
   ## Examples
 
@@ -2372,16 +2379,197 @@ defmodule Enum do
       iex> Enum.sort_by(["some", "kind", "of", "monster"], &{byte_size(&1), String.first(&1)})
       ["of", "kind", "some", "monster"]
 
+  Similar to `sort/2`, avoid using the default sorted to sort structs,
+  as by default it performs structural comparison instead of a semantic one.
+  In such cases, you shall pass a sorting function as third element or
+  any module that implements a `compare` function. For example, to sort
+  users by their birthday:
+
+      iex> users = [
+      ...>   %{name: "Ellis", birthday: ~D[1943-05-11]},
+      ...>   %{name: "Lovelace", birthday: ~D[1815-12-10]},
+      ...>   %{name: "Turing", birthday: ~D[1912-06-23]}
+      ...> ]
+      iex> Enum.sort_by(users, &(&1.birthday), Date)
+      [
+        %{name: "Lovelace", birthday: ~D[1815-12-10]},
+        %{name: "Turing", birthday: ~D[1912-06-23]},
+        %{name: "Ellis", birthday: ~D[1943-05-11]}
+      ]
+
+  Use `sort_reverse_by/3` if you want to sort by in reverse.
   """
-  @spec sort_by(t, (element -> mapped_element), (mapped_element, mapped_element -> boolean)) ::
+  @spec sort_by(
+          t,
+          (element -> mapped_element),
+          (mapped_element, mapped_element -> boolean) | module()
+        ) ::
           list
         when mapped_element: element
-
   def sort_by(enumerable, mapper, sorter \\ &<=/2) do
     enumerable
     |> map(&{&1, mapper.(&1)})
-    |> sort(&sorter.(elem(&1, 1), elem(&2, 1)))
+    |> sort(to_sort_by_fun(sorter))
     |> map(&elem(&1, 0))
+  end
+
+  defp to_sort_by_fun(sorter) when is_function(sorter, 2) do
+    &sorter.(elem(&1, 1), elem(&2, 1))
+  end
+
+  defp to_sort_by_fun(module) when is_atom(module) do
+    &(module.compare(elem(&1, 1), elem(&2, 1)) != :gt)
+  end
+
+  @doc """
+  Sorts and then reverses the `enumerable` according to Erlang's
+  term ordering.
+
+  In other words, sorts in descending order.
+
+  This function uses the merge sort algorithm. Do not use this function
+  to sort structs, see `sort_reverse/2` for more information.
+
+  ## Examples
+
+      iex> Enum.sort_reverse([2, 3, 1])
+      [3, 2, 1]
+
+  """
+  @spec sort_reverse(t) :: list
+  def sort_reverse(enumerable) do
+    sort(enumerable, &(&1 >= &2))
+  end
+
+  @doc """
+  Sorts and then reverses the `enumerable` by the given function.
+
+  This function uses the merge sort algorithm. The given function should compare
+  two arguments, and return `true` if the first argument is **less than** the
+  second one.
+
+  ## Examples
+
+      iex> Enum.sort_reverse([1, 2, 3], &(&1 < &2))
+      [3, 2, 1]
+
+  The sorting algorithm will be stable as long as the given function
+  returns `false` for values considered equal:
+
+      iex> Enum.sort_reverse(["some", "kind", "of", "monster"], &(byte_size(&1) < byte_size(&2)))
+      ["monster", "some", "kind", "of"]
+
+  If the function returns `true` for equal values, the sorting is not
+  stable and the order of equal terms may be shuffled. For example:
+
+      iex> Enum.sort_reverse(["some", "kind", "of", "monster"], &(byte_size(&1) <= byte_size(&2)))
+      ["monster", "kind", "some", "of"]
+
+  ## Sorting structs
+
+  Do not use `</2`, `<=/2`, `>/2`, `>=/2` and friends when sorting structs.
+  That's because the built-in operators above perform structural comparison
+  and not a semantic one. Imagine we sort the following list of dates:
+
+      iex> dates = [~D[2019-01-01], ~D[2020-03-02], ~D[2019-06-06]]
+      iex> Enum.sort_reverse(dates)
+      [~D[2019-06-06], ~D[2020-03-02], ~D[2019-01-01]]
+
+  Notice the returned result is incorrect, because `sort/1` by default uses
+  `<=/2`, which will compare their structure. When comparing structures, the
+  fields are compared in alphabetical order, which means the dates above will
+  be compared by `day`, `month` and then `year`, which is the opposite of what
+  we want.
+
+  For this reason, most structs provide a "compare" function, such as
+  `Date.compare/2`, which receives two structs and returns `:lt` (less than),
+  `:eq` (equal), and `:gt` (greather than). If you pass a module as the
+  sorting function, Elixir will automatically use the `compare` function
+  of said module:
+
+      iex> dates = [~D[2019-01-01], ~D[2020-03-02], ~D[2019-06-06]]
+      iex> Enum.sort_reverse(dates, Date)
+      [~D[2020-03-02], ~D[2019-06-06], ~D[2019-01-01]]
+
+  """
+  @spec sort_reverse(t, (element, element -> boolean)) :: list
+  def sort_reverse(enumerable, fun) do
+    sort(enumerable, to_sort_reverse_fun(fun))
+  end
+
+  defp to_sort_reverse_fun(sorter) when is_function(sorter, 2) do
+    &(not sorter.(&1, &2))
+  end
+
+  defp to_sort_reverse_fun(module) when is_atom(module) do
+    &(module.compare(&1, &2) != :lt)
+  end
+
+  @doc """
+  Sorts the mapped results of the `enumerable` according to the provided `sorter`
+  function.
+
+  This function maps each element of the `enumerable` using the
+  provided `mapper` function. The enumerable is then sorted by
+  the mapped elements using the `sorter` function, which defaults
+  to `Kernel.<=/2`.
+
+  `sort_by/3` differs from `sort/2` in that it only calculates the
+  comparison value for each element in the enumerable once instead of
+  once for each element in each comparison. If the same function is
+  being called on both elements, it's more effiicient to use `sort_by/3`.
+
+  ## Examples
+
+  Using the default `sorter` of `</2`:
+
+      iex> Enum.sort_reverse_by(["some", "kind", "of", "monster"], &byte_size/1)
+      ["monster", "some", "kind", "of"]
+
+  Sorting by multiple properties - first by size, then by first letter
+  (this takes advantage of the fact that tuples are compared element-by-element):
+
+      iex> Enum.sort_reverse_by(["some", "kind", "of", "monster"], &{byte_size(&1), String.first(&1)})
+      ["monster", "some",  "kind", "of"]
+
+  Similar to `sort_reverse/2`, avoid using the default sorted to sort structs,
+  as by default it performs structural comparison instead of a semantic one.
+  In such cases, you shall pass a sorting function as third element or
+  any module that implements a `compare` function. For example, to sort
+  users by their birthday:
+
+      iex> users = [
+      ...>   %{name: "Ellis", birthday: ~D[1943-05-11]},
+      ...>   %{name: "Lovelace", birthday: ~D[1815-12-10]},
+      ...>   %{name: "Turing", birthday: ~D[1912-06-23]}
+      ...> ]
+      iex> Enum.sort_reverse_by(users, &(&1.birthday), Date)
+      [
+        %{name: "Ellis", birthday: ~D[1943-05-11]},
+        %{name: "Turing", birthday: ~D[1912-06-23]},
+        %{name: "Lovelace", birthday: ~D[1815-12-10]}
+      ]
+  """
+  @spec sort_reverse_by(
+          t,
+          (element -> mapped_element),
+          (mapped_element, mapped_element -> boolean) | module()
+        ) ::
+          list
+        when mapped_element: element
+  def sort_reverse_by(enumerable, mapper, sorter \\ &</2) do
+    enumerable
+    |> map(&{&1, mapper.(&1)})
+    |> sort(to_sort_reverse_by_fun(sorter))
+    |> map(&elem(&1, 0))
+  end
+
+  defp to_sort_reverse_by_fun(sorter) when is_function(sorter, 2) do
+    &(not sorter.(elem(&1, 1), elem(&2, 1)))
+  end
+
+  defp to_sort_reverse_by_fun(module) when is_atom(module) do
+    &(module.compare(elem(&1, 1), elem(&2, 1)) != :lt)
   end
 
   @doc """
