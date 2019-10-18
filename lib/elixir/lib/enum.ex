@@ -1566,17 +1566,7 @@ defmodule Enum do
   def max_by(enumerable, fun, sorter \\ &>=/2, empty_fallback \\ fn -> raise Enum.EmptyError end)
       when is_function(fun, 1) do
     {sorter, empty_fallback} = max_sort_fun(sorter, empty_fallback)
-    first_fun = &{&1, fun.(&1)}
-
-    reduce_fun = fn entry, {_, fun_max} = old ->
-      fun_entry = fun.(entry)
-      if(sorter.(fun_max, fun_entry), do: old, else: {entry, fun_entry})
-    end
-
-    case reduce_by(enumerable, first_fun, reduce_fun) do
-      :empty -> empty_fallback.()
-      {entry, _} -> entry
-    end
+    aggregate_by(enumerable, fun, sorter, empty_fallback)
   end
 
   @doc """
@@ -1731,17 +1721,7 @@ defmodule Enum do
   def min_by(enumerable, fun, sorter \\ &<=/2, empty_fallback \\ fn -> raise Enum.EmptyError end)
       when is_function(fun, 1) do
     {sorter, empty_fallback} = min_sort_fun(sorter, empty_fallback)
-    first_fun = &{&1, fun.(&1)}
-
-    reduce_fun = fn entry, {_, fun_min} = old ->
-      fun_entry = fun.(entry)
-      if(sorter.(fun_min, fun_entry), do: old, else: {entry, fun_entry})
-    end
-
-    case reduce_by(enumerable, first_fun, reduce_fun) do
-      :empty -> empty_fallback.()
-      {entry, _} -> entry
-    end
+    aggregate_by(enumerable, fun, sorter, empty_fallback)
   end
 
   @doc """
@@ -1772,15 +1752,15 @@ defmodule Enum do
   end
 
   def min_max(enumerable, empty_fallback) when is_function(empty_fallback, 0) do
-    first_fun = &{&1, &1}
+    first_fun = &[&1 | &1]
 
-    reduce_fun = fn entry, {min, max} ->
-      {Kernel.min(min, entry), Kernel.max(max, entry)}
+    reduce_fun = fn entry, [min | max] ->
+      [Kernel.min(min, entry) | Kernel.max(max, entry)]
     end
 
     case reduce_by(enumerable, first_fun, reduce_fun) do
       :empty -> empty_fallback.()
-      entry -> entry
+      [min | max] -> {min, max}
     end
   end
 
@@ -1812,18 +1792,18 @@ defmodule Enum do
       when is_function(fun, 1) and is_function(empty_fallback, 0) do
     first_fun = fn entry ->
       fun_entry = fun.(entry)
-      {{entry, entry}, {fun_entry, fun_entry}}
+      {entry, entry, fun_entry, fun_entry}
     end
 
-    reduce_fun = fn entry, {{prev_min, prev_max}, {fun_min, fun_max}} = acc ->
+    reduce_fun = fn entry, {prev_min, prev_max, fun_min, fun_max} = acc ->
       fun_entry = fun.(entry)
 
       cond do
         fun_entry < fun_min ->
-          {{entry, prev_max}, {fun_entry, fun_max}}
+          {entry, prev_max, fun_entry, fun_max}
 
         fun_entry > fun_max ->
-          {{prev_min, entry}, {fun_min, fun_entry}}
+          {prev_min, entry, fun_min, fun_entry}
 
         true ->
           acc
@@ -1832,7 +1812,7 @@ defmodule Enum do
 
     case reduce_by(enumerable, first_fun, reduce_fun) do
       :empty -> empty_fallback.()
-      {entry, _} -> entry
+      {min, max, _, _} -> {min, max}
     end
   end
 
@@ -2976,8 +2956,7 @@ defmodule Enum do
 
   ## Helpers
 
-  @compile {:inline,
-            aggregate: 3, entry_to_string: 1, reduce: 3, reduce_by: 3, reduce_enumerable: 3}
+  @compile {:inline, entry_to_string: 1, reduce: 3, reduce_by: 3, reduce_enumerable: 3}
 
   defp entry_to_string(entry) when is_binary(entry), do: entry
   defp entry_to_string(entry), do: String.Chars.to_string(entry)
@@ -3029,6 +3008,24 @@ defmodule Enum do
 
   defp aggregate_list([], acc, _fun), do: acc
 
+  defp aggregate_by(enumerable, fun, sorter, empty_fallback) do
+    first_fun = &[&1 | fun.(&1)]
+
+    reduce_fun = fn entry, [_ | fun_ref] = old ->
+      fun_entry = fun.(entry)
+
+      case sorter.(fun_ref, fun_entry) do
+        true -> old
+        false -> [entry | fun_entry]
+      end
+    end
+
+    case reduce_by(enumerable, first_fun, reduce_fun) do
+      :empty -> empty_fallback.()
+      [entry | _] -> entry
+    end
+  end
+
   defp reduce_by([head | tail], first, fun) do
     :lists.foldl(fun, first.(head), tail)
   end
@@ -3039,8 +3036,8 @@ defmodule Enum do
 
   defp reduce_by(enumerable, first, fun) do
     reduce(enumerable, :empty, fn
-      element, {_, _} = acc -> fun.(element, acc)
       element, :empty -> first.(element)
+      element, acc -> fun.(element, acc)
     end)
   end
 
