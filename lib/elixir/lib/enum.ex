@@ -2278,7 +2278,8 @@ defmodule Enum do
   Sorts the `enumerable` by the given function.
 
   This function uses the merge sort algorithm. The given function should compare
-  two arguments, and return `true` if the first argument precedes the second one.
+  two arguments, and return `true` if the first argument is **less than or equal to**
+  the second one.
 
   ## Examples
 
@@ -2298,6 +2299,16 @@ defmodule Enum do
       iex> Enum.sort(["some", "kind", "of", "monster"], &(byte_size(&1) < byte_size(&2)))
       ["of", "kind", "some", "monster"]
 
+  ## Ascending and descending
+
+  `sort/2` allows a developer to pass `:asc` or `:desc` as the sorting
+  function, which is a convenience for `<=/2` and `>=/2` respectively.
+
+      iex> Enum.sort([2, 3, 1], :asc)
+      [1, 2, 3]
+      iex> Enum.sort([2, 3, 1], :desc)
+      [3, 2, 1]
+
   ## Sorting structs
 
   Do not use `</2`, `<=/2`, `>/2`, `>=/2` and friends when sorting structs.
@@ -2316,43 +2327,60 @@ defmodule Enum do
 
   For this reason, most structs provide a "compare" function, such as
   `Date.compare/2`, which receives two structs and returns `:lt` (less than),
-  `:eq` (equal), and `:gt` (greather than). For example, to sort dates
-  increasingly, one would do:
+  `:eq` (equal), and `:gt` (greather than). If you pass a module as the
+  sorting function, Elixir will automatically use the `compare` function
+  of said module:
 
       iex> dates = [~D[2019-01-01], ~D[2020-03-02], ~D[2019-06-06]]
-      iex> Enum.sort(dates, &(Date.compare(&1, &2) != :gt))
+      iex> Enum.sort(dates, Date)
       [~D[2019-01-01], ~D[2019-06-06], ~D[2020-03-02]]
 
-  Or in decreasing order:
+  To retrieve all dates in descending order, you can wrap the module in
+  a tuple with `:asc` or `:desc` as first argument:
 
       iex> dates = [~D[2019-01-01], ~D[2020-03-02], ~D[2019-06-06]]
-      iex> Enum.sort(dates, &(Date.compare(&1, &2) != :lt))
+      iex> Enum.sort(dates, {:asc, Date})
+      [~D[2019-01-01], ~D[2019-06-06], ~D[2020-03-02]]
+      iex> dates = [~D[2019-01-01], ~D[2020-03-02], ~D[2019-06-06]]
+      iex> Enum.sort(dates, {:desc, Date})
       [~D[2020-03-02], ~D[2019-06-06], ~D[2019-01-01]]
 
   """
-  @spec sort(t, (element, element -> boolean)) :: list
+  @spec sort(
+          t,
+          (element, element -> boolean) | :asc | :desc | module() | {:asc | :desc, module()}
+        ) :: list
   def sort(enumerable, fun) when is_list(enumerable) do
-    :lists.sort(fun, enumerable)
+    :lists.sort(to_sort_fun(fun), enumerable)
   end
 
   def sort(enumerable, fun) do
+    fun = to_sort_fun(fun)
+
     reduce(enumerable, [], &sort_reducer(&1, &2, fun))
     |> sort_terminator(fun)
   end
+
+  defp to_sort_fun(sorter) when is_function(sorter, 2), do: sorter
+  defp to_sort_fun(:asc), do: &<=/2
+  defp to_sort_fun(:desc), do: &>=/2
+  defp to_sort_fun(module) when is_atom(module), do: &(module.compare(&1, &2) != :gt)
+  defp to_sort_fun({:asc, module}) when is_atom(module), do: &(module.compare(&1, &2) != :gt)
+  defp to_sort_fun({:desc, module}) when is_atom(module), do: &(module.compare(&1, &2) != :lt)
 
   @doc """
   Sorts the mapped results of the `enumerable` according to the provided `sorter`
   function.
 
-  This function maps each element of the `enumerable` using the provided `mapper`
-  function. The enumerable is then sorted by the mapped elements
-  using the `sorter` function, which defaults to `Kernel.<=/2`.
+  This function maps each element of the `enumerable` using the
+  provided `mapper` function. The enumerable is then sorted by
+  the mapped elements using the `sorter` function, which defaults
+  to `Kernel.<=/2`.
 
   `sort_by/3` differs from `sort/2` in that it only calculates the
   comparison value for each element in the enumerable once instead of
-  once for each element in each comparison.
-  If the same function is being called on both elements, it's also more
-  compact to use `sort_by/3`.
+  once for each element in each comparison. If the same function is
+  being called on both elements, it's more effiicient to use `sort_by/3`.
 
   ## Examples
 
@@ -2361,28 +2389,78 @@ defmodule Enum do
       iex> Enum.sort_by(["some", "kind", "of", "monster"], &byte_size/1)
       ["of", "some", "kind", "monster"]
 
-  Using a custom `sorter` to override the order:
-
-      iex> Enum.sort_by(["some", "kind", "of", "monster"], &byte_size/1, &>=/2)
-      ["monster", "some", "kind", "of"]
-
   Sorting by multiple properties - first by size, then by first letter
   (this takes advantage of the fact that tuples are compared element-by-element):
 
       iex> Enum.sort_by(["some", "kind", "of", "monster"], &{byte_size(&1), String.first(&1)})
       ["of", "kind", "some", "monster"]
 
+  Similar to `sort/2`, you can pass a custom sorter:
+
+      iex> Enum.sort_by(["some", "kind", "of", "monster"], &byte_size/1, &>=/2)
+      ["monster", "some", "kind", "of"]
+
+  Or use `:asc` and `:desc`:
+
+      iex> Enum.sort_by(["some", "kind", "of", "monster"], &byte_size/1, :desc)
+      ["monster", "some", "kind", "of"]
+
+  As in `sort/2`, avoid using the default sorted to sort structs, as by default
+  it performs structural comparison instead of a semantic one. In such cases,
+  you shall pass a sorting function as third element or any module that implements
+  a `compare` function. For example, to sort users by their birthday in both
+  ascending and descending order respectivelly:
+
+      iex> users = [
+      ...>   %{name: "Ellis", birthday: ~D[1943-05-11]},
+      ...>   %{name: "Lovelace", birthday: ~D[1815-12-10]},
+      ...>   %{name: "Turing", birthday: ~D[1912-06-23]}
+      ...> ]
+      iex> Enum.sort_by(users, &(&1.birthday), Date)
+      [
+        %{name: "Lovelace", birthday: ~D[1815-12-10]},
+        %{name: "Turing", birthday: ~D[1912-06-23]},
+        %{name: "Ellis", birthday: ~D[1943-05-11]}
+      ]
+      iex> Enum.sort_by(users, &(&1.birthday), {:desc, Date})
+      [
+        %{name: "Ellis", birthday: ~D[1943-05-11]},
+        %{name: "Turing", birthday: ~D[1912-06-23]},
+        %{name: "Lovelace", birthday: ~D[1815-12-10]}
+      ]
+
   """
-  @spec sort_by(t, (element -> mapped_element), (mapped_element, mapped_element -> boolean)) ::
+  @spec sort_by(
+          t,
+          (element -> mapped_element),
+          (element, element -> boolean) | :asc | :desc | module() | {:asc | :desc, module()}
+        ) ::
           list
         when mapped_element: element
-
   def sort_by(enumerable, mapper, sorter \\ &<=/2) do
     enumerable
     |> map(&{&1, mapper.(&1)})
-    |> sort(&sorter.(elem(&1, 1), elem(&2, 1)))
+    |> sort(to_sort_by_fun(sorter))
     |> map(&elem(&1, 0))
   end
+
+  defp to_sort_by_fun(sorter) when is_function(sorter, 2),
+    do: &sorter.(elem(&1, 1), elem(&2, 1))
+
+  defp to_sort_by_fun(:asc),
+    do: &(elem(&1, 1) <= elem(&2, 1))
+
+  defp to_sort_by_fun(:desc),
+    do: &(elem(&1, 1) >= elem(&2, 1))
+
+  defp to_sort_by_fun(module) when is_atom(module),
+    do: &(module.compare(elem(&1, 1), elem(&2, 1)) != :gt)
+
+  defp to_sort_by_fun({:asc, module}) when is_atom(module),
+    do: &(module.compare(elem(&1, 1), elem(&2, 1)) != :gt)
+
+  defp to_sort_by_fun({:desc, module}) when is_atom(module),
+    do: &(module.compare(elem(&1, 1), elem(&2, 1)) != :lt)
 
   @doc """
   Splits the `enumerable` into two enumerables, leaving `count`
