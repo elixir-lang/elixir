@@ -680,27 +680,133 @@ defmodule EnumTest do
   end
 
   test "sort/2" do
-    assert Enum.sort([5, 3, 2, 4, 1], &(&1 > &2)) == [5, 4, 3, 2, 1]
+    assert Enum.sort([5, 3, 2, 4, 1], &(&1 >= &2)) == [5, 4, 3, 2, 1]
+  end
+
+  test "sort/2 with module" do
+    assert Enum.sort([~D[2020-01-01], ~D[2018-01-01], ~D[2019-01-01]], Date) ==
+             [~D[2018-01-01], ~D[2019-01-01], ~D[2020-01-01]]
   end
 
   test "sort_by/3" do
     collection = [
       [other_data: 1, sorted_data: 5],
-      [other_data: 3, sorted_data: 4],
+      [other_data: 2, sorted_data: 4],
       [other_data: 4, sorted_data: 3],
       [other_data: 2, sorted_data: 2],
-      [other_data: 5, sorted_data: 1]
+      [other_data: 3, sorted_data: 1]
     ]
 
     assert Enum.sort_by(collection, & &1[:sorted_data]) == [
-             [other_data: 5, sorted_data: 1],
+             [other_data: 3, sorted_data: 1],
              [other_data: 2, sorted_data: 2],
              [other_data: 4, sorted_data: 3],
-             [other_data: 3, sorted_data: 4],
+             [other_data: 2, sorted_data: 4],
              [other_data: 1, sorted_data: 5]
            ]
 
     assert Enum.sort_by(collection, & &1[:sorted_data], &>=/2) == collection
+
+    assert Enum.sort_by(collection, & &1[:other_data]) == [
+             [other_data: 1, sorted_data: 5],
+             [other_data: 2, sorted_data: 4],
+             [other_data: 2, sorted_data: 2],
+             [other_data: 3, sorted_data: 1],
+             [other_data: 4, sorted_data: 3]
+           ]
+
+    assert Enum.sort_by(collection, & &1[:other_data], &</2) == [
+             [other_data: 1, sorted_data: 5],
+             [other_data: 2, sorted_data: 2],
+             [other_data: 2, sorted_data: 4],
+             [other_data: 3, sorted_data: 1],
+             [other_data: 4, sorted_data: 3]
+           ]
+  end
+
+  test "sort_by/3 with module" do
+    collection = [
+      [other_data: 1, sorted_data: ~D[2010-01-05]],
+      [other_data: 2, sorted_data: ~D[2010-01-04]],
+      [other_data: 4, sorted_data: ~D[2010-01-03]],
+      [other_data: 2, sorted_data: ~D[2010-01-02]],
+      [other_data: 3, sorted_data: ~D[2010-01-01]]
+    ]
+
+    assert Enum.sort_by(collection, & &1[:sorted_data], Date) == [
+             [other_data: 3, sorted_data: ~D[2010-01-01]],
+             [other_data: 2, sorted_data: ~D[2010-01-02]],
+             [other_data: 4, sorted_data: ~D[2010-01-03]],
+             [other_data: 2, sorted_data: ~D[2010-01-04]],
+             [other_data: 1, sorted_data: ~D[2010-01-05]]
+           ]
+  end
+
+  test "sort_reverse/1" do
+    assert Enum.sort_reverse([1, 2, 3, 4, 5]) == [5, 4, 3, 2, 1]
+  end
+
+  test "sort_reverse/2" do
+    assert Enum.sort_reverse([5, 3, 2, 4, 1], &(&1 < &2)) == [5, 4, 3, 2, 1]
+  end
+
+  test "sort_reverse/2 with module" do
+    assert Enum.sort_reverse([~D[2020-01-01], ~D[2018-01-01], ~D[2019-01-01]], Date) ==
+             [~D[2020-01-01], ~D[2019-01-01], ~D[2018-01-01]]
+  end
+
+  test "sort_reverse_by/3" do
+    collection = [
+      [other_data: 1, sorted_data: 5],
+      [other_data: 2, sorted_data: 4],
+      [other_data: 4, sorted_data: 3],
+      [other_data: 2, sorted_data: 2],
+      [other_data: 3, sorted_data: 1]
+    ]
+
+    assert Enum.sort_reverse_by(collection, & &1[:sorted_data]) == collection
+
+    assert Enum.sort_reverse_by(collection, & &1[:sorted_data], &>/2) == [
+             [other_data: 3, sorted_data: 1],
+             [other_data: 2, sorted_data: 2],
+             [other_data: 4, sorted_data: 3],
+             [other_data: 2, sorted_data: 4],
+             [other_data: 1, sorted_data: 5]
+           ]
+
+    assert Enum.sort_reverse_by(collection, & &1[:other_data]) == [
+             [other_data: 4, sorted_data: 3],
+             [other_data: 3, sorted_data: 1],
+             [other_data: 2, sorted_data: 4],
+             [other_data: 2, sorted_data: 2],
+             [other_data: 1, sorted_data: 5]
+           ]
+
+    assert Enum.sort_reverse_by(collection, & &1[:other_data], &<=/2) == [
+             [other_data: 4, sorted_data: 3],
+             [other_data: 3, sorted_data: 1],
+             [other_data: 2, sorted_data: 2],
+             [other_data: 2, sorted_data: 4],
+             [other_data: 1, sorted_data: 5]
+           ]
+  end
+
+  test "sort_reverse_by/3 with module" do
+    collection = [
+      [other_data: 3, sorted_data: ~D[2010-01-01]],
+      [other_data: 2, sorted_data: ~D[2010-01-02]],
+      [other_data: 4, sorted_data: ~D[2010-01-03]],
+      [other_data: 2, sorted_data: ~D[2010-01-04]],
+      [other_data: 1, sorted_data: ~D[2010-01-05]]
+    ]
+
+    assert Enum.sort_reverse_by(collection, & &1[:sorted_data], Date) == [
+             [other_data: 1, sorted_data: ~D[2010-01-05]],
+             [other_data: 2, sorted_data: ~D[2010-01-04]],
+             [other_data: 4, sorted_data: ~D[2010-01-03]],
+             [other_data: 2, sorted_data: ~D[2010-01-02]],
+             [other_data: 3, sorted_data: ~D[2010-01-01]]
+           ]
   end
 
   test "split/2" do
@@ -1383,6 +1489,22 @@ defmodule EnumTest.Range do
 
   test "sort_by/2" do
     assert Enum.sort_by(3..1, & &1) == [1, 2, 3]
+  end
+
+  test "sort_reverse/1" do
+    assert Enum.sort_reverse(3..1) == [3, 2, 1]
+    assert Enum.sort_reverse(2..1) == [2, 1]
+    assert Enum.sort_reverse(1..1) == [1]
+  end
+
+  test "sort_reverse/2" do
+    assert Enum.sort_reverse(3..1, &(&1 > &2)) == [1, 2, 3]
+    assert Enum.sort_reverse(2..1, &(&1 > &2)) == [1, 2]
+    assert Enum.sort_reverse(1..1, &(&1 > &2)) == [1]
+  end
+
+  test "sort_reverse_by/2" do
+    assert Enum.sort_reverse_by(3..1, & &1) == [3, 2, 1]
   end
 
   test "split/2" do
