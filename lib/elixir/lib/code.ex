@@ -785,8 +785,8 @@ defmodule Code do
   `{:ok, token :: term} | {:error, reason :: binary}`.
 
   The encoder function is supposed to create an atom from the given
-  string. It is required to return either `{:ok, term}`, where term is
-  an atom. It is possible to return something else than an atom,
+  string. To produce a valid AST, it is required to return `{:ok, term}`,
+  where term is an atom. It is possible to return something other than an atom,
   however, in that case the AST is no longer "valid" in that it cannot
   be used to compile or evaluate Elixir code. A use case for this is
   if you want to use the Elixir parser in a user-facing situation, but
