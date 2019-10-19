@@ -280,7 +280,7 @@ defmodule EnumTest do
   end
 
   test "frequencies_by/2" do
-    assert Enum.frequencies_by(~w{a a a b c c}) == %{"a" => 3, "b" => 1, "c" => 2}
+    assert Enum.frequencies_by([], fn _ -> raise "oops" end) == %{}
     assert Enum.frequencies_by([12, 7, 6, 5, 1], &Integer.mod(&1, 2)) == %{0 => 2, 1 => 3}
   end
 

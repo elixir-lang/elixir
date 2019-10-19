@@ -1132,7 +1132,7 @@ defmodule Enum do
 
   """
   @spec frequencies_by(t, (element -> any)) :: map
-  def frequencies_by(enumerable, key_fun \\ fn x -> x end) when is_function(key_fun) do
+  def frequencies_by(enumerable, key_fun) when is_function(key_fun) do
     reduce(enumerable, %{}, fn entry, acc ->
       key = key_fun.(entry)
       Map.update(acc, key, 1, &(&1 + 1))
