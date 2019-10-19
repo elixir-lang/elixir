@@ -1102,6 +1102,46 @@ defmodule Enum do
   end
 
   @doc """
+  Returns a map with keys as unique elements of `enumerable` and values
+  as the count of every element.
+
+  ## Examples
+
+      iex> Enum.frequencies(~w{ant buffalo ant ant buffalo dingo})
+      %{"ant" => 3, "buffalo" => 2, "dingo" => 1}
+      
+  """
+  @doc since: "1.10.0"
+  @spec frequencies(t) :: map
+  def frequencies(enumerable) do
+    reduce(enumerable, %{}, fn key, acc ->
+      Map.update(acc, key, 1, &(&1 + 1))
+    end)
+  end
+
+  @doc """
+  Returns a map with keys as unique elements given by `key_fun` and values
+  as the count of every element.
+
+  ## Examples
+    
+      iex> Enum.frequencies_by(~w{aa aA bb cc}, &String.downcase/1)
+      %{"aa" => 2, "bb" => 1, "cc" => 1}
+    
+      iex> Enum.frequencies_by(~w{aaa aA bbb cc c}, &String.length/1)
+      %{3 => 2, 2 => 2, 1 => 1}
+
+  """
+  @doc since: "1.10.0"
+  @spec frequencies_by(t, (element -> any)) :: map
+  def frequencies_by(enumerable, key_fun) when is_function(key_fun) do
+    reduce(enumerable, %{}, fn entry, acc ->
+      key = key_fun.(entry)
+      Map.update(acc, key, 1, &(&1 + 1))
+    end)
+  end
+
+  @doc """
   Splits the `enumerable` into groups based on `key_fun`.
 
   The result is a map where each key is given by `key_fun`
