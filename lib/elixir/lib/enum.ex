@@ -2436,6 +2436,7 @@ defmodule Enum do
       [3, 2, 1]
 
   """
+  @doc since: "1.10.0"
   @spec sort_reverse(t) :: list
   def sort_reverse(enumerable) do
     sort(enumerable, &(&1 >= &2))
@@ -2492,6 +2493,7 @@ defmodule Enum do
       [~D[2020-03-02], ~D[2019-06-06], ~D[2019-01-01]]
 
   """
+  @doc since: "1.10.0"
   @spec sort_reverse(t, (element, element -> boolean)) :: list
   def sort_reverse(enumerable, fun) do
     sort(enumerable, to_sort_reverse_fun(fun))
@@ -2550,6 +2552,7 @@ defmodule Enum do
         %{name: "Lovelace", birthday: ~D[1815-12-10]}
       ]
   """
+  @doc since: "1.10.0"
   @spec sort_reverse_by(
           t,
           (element -> mapped_element),
