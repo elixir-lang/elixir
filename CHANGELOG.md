@@ -7,7 +7,7 @@
 #### Elixir
 
   * [Calendar] Allow custom calendar representations in calendar sigils
-  * [Calendar] Add `c:Calendar.parse_time/1`, `c:Calendar.parse_date/1`, `c:Calendar.parse_naive_datetime/1` and `Calendar.parse_utc_datetime/1` callbacks to calendar behaviour
+  * [Calendar] Add `c:Calendar.parse_time/1`, `c:Calendar.parse_date/1`, `c:Calendar.parse_naive_datetime/1` and `c:Calendar.parse_utc_datetime/1` callbacks to calendar behaviour
   * [Code] Add `:token_metadata` and `:literal_encoder` support to `Code.string_to_quoted/2`
   * [Code] Add compiler tracing to lift events done by the compiler
   * [DateTime] Add `DateTime.now!/2` and `DateTime.shift_zone!/3`
