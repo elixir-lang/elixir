@@ -1102,13 +1102,27 @@ defmodule Enum do
   end
 
   @doc """
-  Returns a map with keys as unique elements given by `key_fun` and values
+  Returns a map with keys as unique elements of `enumerable` and values
   as the count of every element.
 
   ## Examples
 
-      iex> Enum.frequencies_by(~w{ant buffalo ant ant buffalo dingo})
+      iex> Enum.frequencies(~w{ant buffalo ant ant buffalo dingo})
       %{"ant" => 3, "buffalo" => 2, "dingo" => 1}
+      
+  """
+  @spec frequencies(t) :: map
+  def frequencies(enumerable) do
+    reduce(enumerable, %{}, fn key, acc ->
+      Map.update(acc, key, 1, &(&1 + 1))
+    end)
+  end
+
+  @doc """
+  Returns a map with keys as unique elements given by `key_fun` and values
+  as the count of every element.
+
+  ## Examples
     
       iex> Enum.frequencies_by(~w{aa aA bb cc}, &String.downcase/1)
       %{"aa" => 2, "bb" => 1, "cc" => 1}
