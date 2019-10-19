@@ -269,6 +269,7 @@ defmodule Calendar do
   Parses the string representation for a time returned by `c:time_to_string/4`
   into a time-tuple.
   """
+  @doc since: "1.10.0"
   @callback parse_time(String.t()) ::
               {:ok, {hour, minute, second, microsecond}}
               | {:error, atom}
@@ -277,6 +278,7 @@ defmodule Calendar do
   Parses the string representation for a date returned by `c:date_to_string/3`
   into a date-tuple.
   """
+  @doc since: "1.10.0"
   @callback parse_date(String.t()) ::
               {:ok, {year, month, day}}
               | {:error, atom}
@@ -287,6 +289,7 @@ defmodule Calendar do
 
   The given string may contain a timezone offset but it is ignored.
   """
+  @doc since: "1.10.0"
   @callback parse_naive_datetime(String.t()) ::
               {:ok, {year, month, day, hour, minute, second, microsecond}}
               | {:error, atom}
@@ -298,6 +301,7 @@ defmodule Calendar do
   The returned datetime must be in UTC. The original `utc_offset`
   it was written in must be returned in the result.
   """
+  @doc since: "1.10.0"
   @callback parse_utc_datetime(String.t()) ::
               {:ok, {year, month, day, hour, minute, second, microsecond}, utc_offset}
               | {:error, atom}
