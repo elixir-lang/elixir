@@ -1111,6 +1111,7 @@ defmodule Enum do
       %{"ant" => 3, "buffalo" => 2, "dingo" => 1}
       
   """
+  @doc since: "1.10.0"
   @spec frequencies(t) :: map
   def frequencies(enumerable) do
     reduce(enumerable, %{}, fn key, acc ->
@@ -1131,6 +1132,7 @@ defmodule Enum do
       %{3 => 2, 2 => 2, 1 => 1}
 
   """
+  @doc since: "1.10.0"
   @spec frequencies_by(t, (element -> any)) :: map
   def frequencies_by(enumerable, key_fun) when is_function(key_fun) do
     reduce(enumerable, %{}, fn entry, acc ->
