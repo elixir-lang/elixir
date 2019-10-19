@@ -83,20 +83,15 @@ defmodule ExUnit.Diff do
 
   defp diff_quoted({:%, _, [struct, {:%{}, _, kw}]}, %{} = right, env)
        when is_atom(struct) and is_list(kw) do
-    diff_quoted_struct(kw, struct, right, env)
+    diff_quoted_struct([__struct__: struct] ++ kw, struct, right, env)
   end
 
-  defp diff_quoted({:%{}, _, [{:__struct__, struct} | kw]}, %{} = right, env)
-       when is_atom(struct) do
-    diff_quoted_struct(kw, struct, right, env)
-  end
-
-  defp diff_quoted({:%{}, _, items} = left, %struct{} = right, env) when is_list(items) do
-    diff_map(left, Map.delete(right, :__struct__), nil, struct, env)
-  end
-
-  defp diff_quoted({:%{}, _, items} = left, %{} = right, env) when is_list(items) do
-    diff_map(left, right, nil, nil, env)
+  defp diff_quoted({:%{}, _, items}, %{} = right, env) when is_list(items) do
+    if struct = items[:__struct__] do
+      diff_quoted_struct(items, struct, right, env)
+    else
+      diff_map(items, right, nil, maybe_struct(right), env)
+    end
   end
 
   defp diff_quoted({:<>, _, _} = left, right, env) when is_binary(right) do
@@ -152,7 +147,7 @@ defmodule ExUnit.Diff do
   defp diff_value(%left_struct{} = left, %right_struct{} = right, env) do
     diff_struct(
       left,
-      Map.from_struct(left),
+      Map.to_list(left),
       right,
       left_struct,
       right_struct,
@@ -161,13 +156,7 @@ defmodule ExUnit.Diff do
   end
 
   defp diff_value(%{} = left, %{} = right, env) do
-    diff_map(
-      Map.delete(left, :__struct__),
-      Map.delete(right, :__struct__),
-      maybe_struct(left),
-      maybe_struct(right),
-      env
-    )
+    diff_map(Map.to_list(left), right, maybe_struct(left), maybe_struct(right), env)
   end
 
   defp diff_value(left, right, env) when is_binary(left) and is_binary(right) do
@@ -577,24 +566,13 @@ defmodule ExUnit.Diff do
 
   # Maps
 
-  defp diff_map(%{} = left, right, struct1, struct2, env) do
-    diff_map_items(Map.to_list(left), right, struct1, struct2, env)
-  end
-
-  defp diff_map({:%{}, _, items}, right, struct1, struct2, env) do
-    diff_map_items(items, right, struct1, struct2, env)
-  end
-
   # Compare items based on the keys of `left_items` and add the `:diff` meta to
   # the element that it wasn't able to compare.
-  defp diff_map_items(left_items, right, struct1, struct2, env) do
-    {struct1, left_items} = Keyword.pop(left_items, :__struct__, struct1)
+  defp diff_map(left_items, right, struct1, struct2, env) do
     {equivalent?, left, right, env} = diff_map_by_key(left_items, right, env)
-
-    {equivalent?, left, right} =
-      build_struct_result(equivalent?, left, right, struct1, struct2, env)
-
-    {%__MODULE__{equivalent?: equivalent?, left: {:%{}, [], left}, right: {:%{}, [], right}}, env}
+    left = build_map_or_struct(left, struct1)
+    right = build_map_or_struct(right, struct2)
+    {%__MODULE__{equivalent?: equivalent?, left: left, right: right}, env}
   end
 
   defp diff_map_by_key(items, right, env) do
@@ -621,14 +599,14 @@ defmodule ExUnit.Diff do
 
     {pending_right, equivalent?} =
       if env.context == :match do
-        {Map.to_list(pending_right), acc_equivalent?}
+        {pending_right, acc_equivalent?}
       else
         pending_right = Enum.map(pending_right, &update_diff_meta(&1, true))
         {pending_right, acc_equivalent? and pending_right == []}
       end
 
-    left = Enum.reverse(acc_left) ++ pending_left
-    right = Enum.reverse(acc_right) ++ pending_right
+    left = Enum.sort(acc_left) ++ Enum.sort(pending_left)
+    right = Enum.sort(acc_right) ++ Enum.sort(pending_right)
     {equivalent?, left, right, env}
   end
 
@@ -644,54 +622,84 @@ defmodule ExUnit.Diff do
 
   # Structs
 
-  defp diff_quoted_struct(kw, struct1, %struct2{} = right, env) do
-    if Macro.quoted_literal?(kw) do
-      {kw, []} = Code.eval_quoted(kw, [])
-      diff_struct(struct(struct1, kw), Map.new(kw), right, struct1, struct2, env)
+  defp diff_quoted_struct(kw, struct1, right, env) do
+    with %_{} = left <- load_struct(struct1),
+         kw when not is_nil(kw) <- struct_keyword_to_map(left, kw) do
+      diff_quoted_struct(struct!(left, kw), kw, right, struct1, env)
     else
-      diff_map(Map.new(kw), Map.delete(right, :__struct__), struct1, struct2, env)
+      _ ->
+        diff_map(kw, right, nil, maybe_struct(right), env)
     end
   end
 
-  defp diff_quoted_struct(kw, struct1, right, env) do
-    diff_map(Map.new(kw), right, struct1, nil, env)
+  defp diff_quoted_struct(left, kw, %struct2{} = right, struct1, env) do
+    diff_struct(left, kw, right, struct1, struct2, env)
   end
 
-  defp diff_struct(%{} = value, left, right, struct1, struct2, env) do
-    if Inspect.impl_for(value) not in [Inspect.Any, Inspect.Map] do
-      inspect_left = inspect(value)
+  defp diff_quoted_struct(_left, kw, right, struct1, env) do
+    diff_map(kw, right, struct1, nil, env)
+  end
+
+  defp diff_struct(left, kw, right, struct1, struct2, env) do
+    if Inspect.impl_for(left) not in [Inspect.Any, Inspect.Map] do
+      inspect_left = inspect(left)
       inspect_right = inspect(right)
 
       if inspect_left != inspect_right do
         diff_string(inspect_left, inspect_right, :none, env)
       else
-        diff_map(left, Map.delete(right, :__struct__), struct1, struct2, env)
+        # If they are equivalent, still use their inspected form
+        case diff_map(kw, right, struct1, struct2, env) do
+          {%{equivalent?: true}, ctx} ->
+            left = block_diff_container([inspect_left], :none)
+            right = block_diff_container([inspect_right], :none)
+            {%__MODULE__{equivalent?: true, left: left, right: right}, ctx}
+
+          diff_ctx ->
+            diff_ctx
+        end
       end
     else
-      diff_map(left, Map.delete(right, :__struct__), struct1, struct2, env)
+      diff_map(kw, right, struct1, struct2, env)
+    end
+  end
+
+  defp load_struct(struct) do
+    if Code.ensure_loaded?(struct) and function_exported?(struct, :__struct__, 0) do
+      struct.__struct__
+    end
+  end
+
+  defp struct_keyword_to_map(struct, kw) do
+    if Macro.quoted_literal?(kw) do
+      {kw, []} = Code.eval_quoted(kw, [])
+
+      if Enum.all?(kw, fn {k, _} -> Map.has_key?(struct, k) end) do
+        kw
+      end
     end
   end
 
   defp maybe_struct(%name{}), do: name
   defp maybe_struct(_), do: nil
 
-  defp build_struct_result(equivalent?, left, right, nil, nil, _env) do
-    {equivalent?, left, right}
+  defp build_map_or_struct(items, nil) do
+    {:%{}, [], items}
   end
 
-  defp build_struct_result(equivalent?, left, right, struct, struct, _env) do
-    {equivalent?, [{:__struct__, struct} | left], [{:__struct__, struct} | right]}
+  defp build_map_or_struct(items, _struct) do
+    {struct, items} = pop_struct(items, [])
+    {:%, [], [struct, {:%{}, [], items}]}
   end
 
-  defp build_struct_result(equivalent?, left, right, nil, struct, %{context: :match}) do
-    {equivalent?, left, [{:__struct__, struct} | right]}
-  end
+  defp pop_struct([{:__block__, meta, [{:__struct__, struct}]} | tail], acc),
+    do: {{:__block__, meta, [struct]}, Enum.reverse(acc, tail)}
 
-  defp build_struct_result(_equivalent?, left, right, struct1, struct2, _env) do
-    left = if struct1, do: [{:__struct__, update_diff_meta(struct1, true)} | left], else: left
-    right = if struct2, do: [{:__struct__, update_diff_meta(struct2, true)} | right], else: right
-    {false, left, right}
-  end
+  defp pop_struct([{:__struct__, struct} | tail], acc),
+    do: {struct, Enum.reverse(acc, tail)}
+
+  defp pop_struct([head | rest], acc),
+    do: pop_struct(rest, [head | acc])
 
   # Strings
 
@@ -736,7 +744,6 @@ defmodule ExUnit.Diff do
 
   defp diff_string_concat(left, quoted, indexes, left_length, right, env) do
     {parsed_right, continue_right} = String.split_at(right, left_length)
-
     {parsed_diff, parsed_post_env} = diff_string(left, parsed_right, ?\", env)
     {quoted_diff, quoted_post_env} = diff(quoted, continue_right, parsed_post_env)
 
@@ -893,21 +900,13 @@ defmodule ExUnit.Diff do
     container_to_algebra("{", [a, b], "}", diff_wrapper, &to_algebra/2)
   end
 
-  defp safe_to_algebra({:%{}, _, [head | tail]}, diff_wrapper) do
-    {struct, list} =
-      case extract_diff_meta(head) do
-        {{:__struct__, name}, _} -> {name, tail}
-        _other -> {nil, [head | tail]}
-      end
-
-    open =
-      if struct do
-        Algebra.concat(["%", struct_to_algebra(struct, diff_wrapper), "{"])
-      else
-        "%{"
-      end
-
+  defp safe_to_algebra({:%, _, [struct, {:%{}, _, list}]}, diff_wrapper) do
+    open = Algebra.concat(["%", struct_to_algebra(struct, diff_wrapper), "{"])
     container_to_algebra(open, list, "}", diff_wrapper, select_map_item_to_algebra(list))
+  end
+
+  defp safe_to_algebra({:%{}, _, list}, diff_wrapper) do
+    container_to_algebra("%{", list, "}", diff_wrapper, select_map_item_to_algebra(list))
   end
 
   defp safe_to_algebra({_, _, _} = quoted, _diff_wrapper) do

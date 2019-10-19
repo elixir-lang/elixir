@@ -88,6 +88,36 @@ defmodule ExUnit.DiffTest do
     end
   end
 
+  defp refute_diff(left, right, expected_left, expected_right, context) do
+    {diff, _env} = Diff.compute(left, right, context)
+    assert diff.equivalent? == false
+
+    diff_left = to_diff(diff.left, "-")
+    assert diff_left =~ expected_left
+
+    diff_right = to_diff(diff.right, "+")
+    assert diff_right =~ expected_right
+  end
+
+  defp assert_diff(left, right, expected_binding, context) do
+    {diff, env} = Diff.compute(left, right, context)
+    env_binding = for {{name, _}, value} <- env.current_vars, do: {name, value}
+
+    assert diff.equivalent? == true
+    assert env_binding == expected_binding
+  end
+
+  defp to_diff(side, sign) do
+    side
+    |> Diff.to_algebra(&diff_wrapper(&1, sign))
+    |> Algebra.format(:infinity)
+    |> IO.iodata_to_binary()
+  end
+
+  defp diff_wrapper(doc, side) do
+    Algebra.concat([side, doc, side])
+  end
+
   test "atoms" do
     assert_diff(:a = :a, [])
     assert_diff(:a = :a, [])
@@ -498,14 +528,6 @@ defmodule ExUnit.DiffTest do
     pins = %{{:twenty_one, nil} => 21}
     assert_diff(%User{age: ^twenty_one} = %User{age: 21}, [], pins)
     assert_diff(%User{age: age} = %User{age: 21}, [age: 21], pins)
-
-    refute_diff(
-      %User{^twenty_one => 21} = %User{age: 21},
-      "%ExUnit.DiffTest.User{-^twenty_one => 21-}",
-      "%ExUnit.DiffTest.User{age: 21, name: nil}",
-      pins
-    )
-
     refute_diff(%User{age: 21} = :a, "-%ExUnit.DiffTest.User{age: 21}-", "+:a+", pins)
   end
 
@@ -597,6 +619,28 @@ defmodule ExUnit.DiffTest do
       %Opaque{data: %{hello: :world}} == %Opaque{data: %{hello: "world"}},
       "#Opaque<data: %{hello: -:-world}>",
       "#Opaque<data: %{hello: +\"+world+\"+}>"
+    )
+  end
+
+  test "structs with inspect in a list" do
+    refute_diff(
+      Enum.sort([~D[2019-03-31], ~D[2019-04-01]]) == [~D[2019-03-31], ~D[2019-04-01]],
+      "[-~D[2019-04-01]-, ~D[2019-03-31]]",
+      "[~D[2019-03-31], +~D[2019-04-01]+]"
+    )
+  end
+
+  test "invalid structs" do
+    refute_diff(
+      %{__struct__: Unknown} = %{},
+      "%{-__struct__: Unknown-}",
+      "%{}"
+    )
+
+    refute_diff(
+      %{__struct__: Date, unknown: :field} = %{},
+      "%{-__struct__: Date-, -unknown: :field-}",
+      "%{}"
     )
   end
 
@@ -807,35 +851,5 @@ defmodule ExUnit.DiffTest do
       "-<<147, 1, 2, 31>>-",
       "+<<193, 1, 31>>+"
     )
-  end
-
-  defp refute_diff(left, right, expected_left, expected_right, context) do
-    {diff, _env} = Diff.compute(left, right, context)
-    assert diff.equivalent? == false
-
-    diff_left = to_diff(diff.left, "-")
-    assert diff_left =~ expected_left
-
-    diff_right = to_diff(diff.right, "+")
-    assert diff_right =~ expected_right
-  end
-
-  defp assert_diff(left, right, expected_binding, context) do
-    {diff, env} = Diff.compute(left, right, context)
-    env_binding = for {{name, _}, value} <- env.current_vars, do: {name, value}
-
-    assert diff.equivalent? == true
-    assert env_binding == expected_binding
-  end
-
-  defp to_diff(side, sign) do
-    side
-    |> Diff.to_algebra(&diff_wrapper(&1, sign))
-    |> Algebra.format(:infinity)
-    |> IO.iodata_to_binary()
-  end
-
-  defp diff_wrapper(doc, side) do
-    Algebra.concat([side, doc, side])
   end
 end
