@@ -378,13 +378,24 @@ defmodule EnumTest do
     end
   end
 
-  test "max/2" do
-    assert Enum.max([1], fn -> nil end) == 1
-    assert Enum.max([1, 2, 3], fn -> nil end) == 3
-    assert Enum.max([1, [], :a, {}], fn -> nil end) == []
-    assert Enum.max([], fn -> :empty_value end) == :empty_value
-    assert Enum.max(%{}, fn -> :empty_value end) == :empty_value
-    assert_runs_enumeration_only_once(&Enum.max(&1, fn -> nil end))
+  test "max/2 with stable sorting" do
+    assert Enum.max([1, 1.0], &>=/2) === 1
+    assert Enum.max([1.0, 1], &>=/2) === 1.0
+    assert Enum.max([1, 1.0], &>/2) === 1.0
+    assert Enum.max([1.0, 1], &>/2) === 1
+  end
+
+  test "max/2 with module" do
+    assert Enum.max([~D[2019-01-01], ~D[2020-01-01]], Date) === ~D[2020-01-01]
+  end
+
+  test "max/3" do
+    assert Enum.max([1], &>=/2, fn -> nil end) == 1
+    assert Enum.max([1, 2, 3], &>=/2, fn -> nil end) == 3
+    assert Enum.max([1, [], :a, {}], &>=/2, fn -> nil end) == []
+    assert Enum.max([], &>=/2, fn -> :empty_value end) == :empty_value
+    assert Enum.max(%{}, &>=/2, fn -> :empty_value end) == :empty_value
+    assert_runs_enumeration_only_once(&Enum.max(&1, fn a, b -> a >= b end, fn -> nil end))
   end
 
   test "max_by/2" do
@@ -402,12 +413,34 @@ defmodule EnumTest do
     end
   end
 
-  test "max_by/3" do
-    assert Enum.max_by(["a", "aa", "aaa"], fn x -> String.length(x) end, fn -> nil end) == "aaa"
-    assert Enum.max_by([], fn x -> String.length(x) end, fn -> :empty_value end) == :empty_value
-    assert Enum.max_by(%{}, & &1, fn -> :empty_value end) == :empty_value
-    assert Enum.max_by(%{}, & &1, fn -> {:a, :tuple} end) == {:a, :tuple}
-    assert_runs_enumeration_only_once(&Enum.max_by(&1, fn e -> e end, fn -> nil end))
+  test "max_by/3 with stable sorting" do
+    assert Enum.max_by([1, 1.0], & &1, &>=/2) === 1
+    assert Enum.max_by([1.0, 1], & &1, &>=/2) === 1.0
+    assert Enum.max_by([1, 1.0], & &1, &>/2) === 1.0
+    assert Enum.max_by([1.0, 1], & &1, &>/2) === 1
+  end
+
+  test "max_by/3 with module" do
+    users = [%{id: 1, date: ~D[2019-01-01]}, %{id: 2, date: ~D[2020-01-01]}]
+    assert Enum.max_by(users, & &1.date, Date).id == 2
+
+    users = [%{id: 1, date: ~D[2020-01-01]}, %{id: 2, date: ~D[2020-01-01]}]
+    assert Enum.max_by(users, & &1.date, Date).id == 1
+  end
+
+  test "max_by/4" do
+    assert Enum.max_by(["a", "aa", "aaa"], fn x -> String.length(x) end, &>=/2, fn -> nil end) ==
+             "aaa"
+
+    assert Enum.max_by([], fn x -> String.length(x) end, &>=/2, fn -> :empty_value end) ==
+             :empty_value
+
+    assert Enum.max_by(%{}, & &1, &>=/2, fn -> :empty_value end) == :empty_value
+    assert Enum.max_by(%{}, & &1, &>=/2, fn -> {:a, :tuple} end) == {:a, :tuple}
+
+    assert_runs_enumeration_only_once(
+      &Enum.max_by(&1, fn e -> e end, fn a, b -> a >= b end, fn -> nil end)
+    )
   end
 
   test "member?/2" do
@@ -429,13 +462,24 @@ defmodule EnumTest do
     end
   end
 
-  test "min/2" do
-    assert Enum.min([1], fn -> nil end) == 1
-    assert Enum.min([1, 2, 3], fn -> nil end) == 1
-    assert Enum.min([[], :a, {}], fn -> nil end) == :a
-    assert Enum.min([], fn -> :empty_value end) == :empty_value
-    assert Enum.min(%{}, fn -> :empty_value end) == :empty_value
-    assert_runs_enumeration_only_once(&Enum.min(&1, fn -> nil end))
+  test "min/2 with stable sorting" do
+    assert Enum.min([1, 1.0], &<=/2) === 1
+    assert Enum.min([1.0, 1], &<=/2) === 1.0
+    assert Enum.min([1, 1.0], &</2) === 1.0
+    assert Enum.min([1.0, 1], &</2) === 1
+  end
+
+  test "min/2 with module" do
+    assert Enum.min([~D[2019-01-01], ~D[2020-01-01]], Date) === ~D[2019-01-01]
+  end
+
+  test "min/3" do
+    assert Enum.min([1], &<=/2, fn -> nil end) == 1
+    assert Enum.min([1, 2, 3], &<=/2, fn -> nil end) == 1
+    assert Enum.min([[], :a, {}], &<=/2, fn -> nil end) == :a
+    assert Enum.min([], &<=/2, fn -> :empty_value end) == :empty_value
+    assert Enum.min(%{}, &<=/2, fn -> :empty_value end) == :empty_value
+    assert_runs_enumeration_only_once(&Enum.min(&1, fn a, b -> a <= b end, fn -> nil end))
   end
 
   test "min_by/2" do
@@ -453,12 +497,34 @@ defmodule EnumTest do
     end
   end
 
-  test "min_by/3" do
-    assert Enum.min_by(["a", "aa", "aaa"], fn x -> String.length(x) end, fn -> nil end) == "a"
-    assert Enum.min_by([], fn x -> String.length(x) end, fn -> :empty_value end) == :empty_value
-    assert Enum.min_by(%{}, & &1, fn -> :empty_value end) == :empty_value
-    assert Enum.min_by(%{}, & &1, fn -> {:a, :tuple} end) == {:a, :tuple}
-    assert_runs_enumeration_only_once(&Enum.min_by(&1, fn e -> e end, fn -> nil end))
+  test "min_by/3 with stable sorting" do
+    assert Enum.min_by([1, 1.0], & &1, &<=/2) === 1
+    assert Enum.min_by([1.0, 1], & &1, &<=/2) === 1.0
+    assert Enum.min_by([1, 1.0], & &1, &</2) === 1.0
+    assert Enum.min_by([1.0, 1], & &1, &</2) === 1
+  end
+
+  test "min_by/3 with module" do
+    users = [%{id: 1, date: ~D[2019-01-01]}, %{id: 2, date: ~D[2020-01-01]}]
+    assert Enum.min_by(users, & &1.date, Date).id == 1
+
+    users = [%{id: 1, date: ~D[2020-01-01]}, %{id: 2, date: ~D[2020-01-01]}]
+    assert Enum.min_by(users, & &1.date, Date).id == 1
+  end
+
+  test "min_by/4" do
+    assert Enum.min_by(["a", "aa", "aaa"], fn x -> String.length(x) end, &<=/2, fn -> nil end) ==
+             "a"
+
+    assert Enum.min_by([], fn x -> String.length(x) end, &<=/2, fn -> :empty_value end) ==
+             :empty_value
+
+    assert Enum.min_by(%{}, & &1, &<=/2, fn -> :empty_value end) == :empty_value
+    assert Enum.min_by(%{}, & &1, &<=/2, fn -> {:a, :tuple} end) == {:a, :tuple}
+
+    assert_runs_enumeration_only_once(
+      &Enum.min_by(&1, fn e -> e end, fn a, b -> a <= b end, fn -> nil end)
+    )
   end
 
   test "min_max/1" do
