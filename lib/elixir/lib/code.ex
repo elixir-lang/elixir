@@ -100,6 +100,14 @@ defmodule Code do
       end
   """
 
+  @typedoc """
+  A list with all variable bindings.
+
+  The binding keys are usually atoms, but they may be a tuple for variables
+  defined in a different context.
+  """
+  @type binding :: [{atom() | tuple(), any}]
+
   @boolean_compiler_options [
     :docs,
     :debug_info,
@@ -237,7 +245,7 @@ defmodule Code do
   @doc """
   Evaluates the contents given by `string`.
 
-  The `binding` argument is a keyword list of variable bindings.
+  The `binding` argument is a list of variable bindings.
   The `opts` argument is a keyword list of environment options.
 
   **Warning**: `string` can be any Elixir code and will be executed with
@@ -278,8 +286,8 @@ defmodule Code do
   where `value` is the value returned from evaluating `string`.
   If an error occurs while evaluating `string` an exception will be raised.
 
-  `binding` is a keyword list with the value of all variable bindings
-  after evaluating `string`. The binding key is usually an atom, but it
+  `binding` is a list with all variable bindings
+  after evaluating `string`. The binding keys are usually atoms, but they
   may be a tuple for variables defined in a different context.
 
   ## Examples
@@ -301,7 +309,7 @@ defmodule Code do
       {3, [a: 1, b: 2]}
 
   """
-  @spec eval_string(List.Chars.t(), list, Macro.Env.t() | keyword) :: {term, binding :: list}
+  @spec eval_string(List.Chars.t(), binding, Macro.Env.t() | keyword) :: {term, binding}
   def eval_string(string, binding \\ [], opts \\ [])
 
   def eval_string(string, binding, %Macro.Env{} = env) do
@@ -655,7 +663,7 @@ defmodule Code do
   Macro arguments are typically transformed by unquoting them into the
   returned quoted expressions (instead of evaluated).
 
-  See `eval_string/3` for a description of bindings and options.
+  See `eval_string/3` for a description of `binding` and options.
 
   ## Examples
 
@@ -671,7 +679,7 @@ defmodule Code do
       {3, [a: 1, b: 2]}
 
   """
-  @spec eval_quoted(Macro.t(), list, Macro.Env.t() | keyword) :: {term, binding :: list}
+  @spec eval_quoted(Macro.t(), binding, Macro.Env.t() | keyword) :: {term, binding}
   def eval_quoted(quoted, binding \\ [], opts \\ [])
 
   def eval_quoted(quoted, binding, %Macro.Env{} = env) do
@@ -842,9 +850,9 @@ defmodule Code do
 
   While `require_file/2` and `compile_file/2` return the loaded modules and their
   bytecode, `eval_file/2` simply evaluates the file contents and returns the
-  evaluation result and its bindings (exactly the same return value as `eval_string/3`).
+  evaluation result and its binding (exactly the same return value as `eval_string/3`).
   """
-  @spec eval_file(binary, nil | binary) :: {term, binding :: list}
+  @spec eval_file(binary, nil | binary) :: {term, binding}
   def eval_file(file, relative_to \\ nil) when is_binary(file) do
     file = find_file(file, relative_to)
     eval_string(File.read!(file), [], file: file, line: 1)
