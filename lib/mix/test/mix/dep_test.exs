@@ -69,7 +69,7 @@ defmodule Mix.DepTest do
     end)
   end
 
-  test "extracts all dependencies paths from the given project" do
+  test "extracts all dependencies paths/scms from the given project" do
     Mix.Project.push(DepsApp)
 
     in_fixture("deps_status", fn ->
@@ -77,6 +77,11 @@ defmodule Mix.DepTest do
       assert map_size(paths) == 6
       assert paths[:ok] =~ "deps/ok"
       assert paths[:uncloned] =~ "deps/uncloned"
+
+      paths = Mix.Project.deps_scms()
+      assert map_size(paths) == 6
+      assert paths[:ok] == Mix.SCM.Path
+      assert paths[:uncloned] == Mix.SCM.Git
     end)
   end
 
