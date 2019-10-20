@@ -90,10 +90,10 @@ defmodule Code do
   @typedoc """
   A list with all variable bindings.
 
-  The binding key is usually an atom, but it may be a tuple for variables
+  The binding keys are usually atoms, but they may be a tuple for variables
   defined in a different context.
   """
-  @type bindings :: [{atom() | tuple(), any}]
+  @type binding :: [{atom() | tuple(), any}]
 
   @boolean_compiler_options [
     :docs,
@@ -232,7 +232,7 @@ defmodule Code do
   @doc """
   Evaluates the contents given by `string`.
 
-  The `bindings` argument is a list of variable bindings.
+  The `binding` argument is a list of variable bindings.
   The `opts` argument is a keyword list of environment options.
 
   **Warning**: `string` can be any Elixir code and will be executed with
@@ -269,12 +269,12 @@ defmodule Code do
   `:macros` will no longer auto-import `Kernel` macros like `Kernel.if/2`,
   `Kernel.SpecialForms.case/2`, and so on.
 
-  Returns a tuple of the form `{value, bindings}`,
+  Returns a tuple of the form `{value, binding}`,
   where `value` is the value returned from evaluating `string`.
   If an error occurs while evaluating `string` an exception will be raised.
 
-  `bindings` is a list with all variable bindings
-  after evaluating `string`. The binding key is usually an atom, but it
+  `binding` is a list with all variable bindings
+  after evaluating `string`. The binding keys are usually atoms, but they
   may be a tuple for variables defined in a different context.
 
   ## Examples
@@ -296,23 +296,23 @@ defmodule Code do
       {3, [a: 1, b: 2]}
 
   """
-  @spec eval_string(List.Chars.t(), bindings, Macro.Env.t() | keyword) :: {term, bindings}
-  def eval_string(string, bindings \\ [], opts \\ [])
+  @spec eval_string(List.Chars.t(), binding, Macro.Env.t() | keyword) :: {term, binding}
+  def eval_string(string, binding \\ [], opts \\ [])
 
-  def eval_string(string, bindings, %Macro.Env{} = env) do
-    eval_string_with_error_handling(string, bindings, Map.to_list(env))
+  def eval_string(string, binding, %Macro.Env{} = env) do
+    eval_string_with_error_handling(string, binding, Map.to_list(env))
   end
 
-  def eval_string(string, bindings, opts) when is_list(opts) do
+  def eval_string(string, binding, opts) when is_list(opts) do
     validate_eval_opts(opts)
-    eval_string_with_error_handling(string, bindings, opts)
+    eval_string_with_error_handling(string, binding, opts)
   end
 
-  defp eval_string_with_error_handling(string, bindings, opts) do
+  defp eval_string_with_error_handling(string, binding, opts) do
     %{line: line, file: file} = env = :elixir.env_for_eval(opts)
     forms = :elixir.string_to_quoted!(to_charlist(string), line, file, [])
-    {value, bindings, _env, _scope} = :elixir.eval_forms(forms, bindings, env)
-    {value, bindings}
+    {value, binding, _env, _scope} = :elixir.eval_forms(forms, binding, env)
+    {value, binding}
   end
 
   @doc ~S"""
@@ -650,7 +650,7 @@ defmodule Code do
   Macro arguments are typically transformed by unquoting them into the
   returned quoted expressions (instead of evaluated).
 
-  See `eval_string/3` for a description of bindings and options.
+  See `eval_string/3` for a description of `binding` and options.
 
   ## Examples
 
@@ -666,18 +666,18 @@ defmodule Code do
       {3, [a: 1, b: 2]}
 
   """
-  @spec eval_quoted(Macro.t(), bindings, Macro.Env.t() | keyword) :: {term, bindings}
-  def eval_quoted(quoted, bindings \\ [], opts \\ [])
+  @spec eval_quoted(Macro.t(), binding, Macro.Env.t() | keyword) :: {term, binding}
+  def eval_quoted(quoted, binding \\ [], opts \\ [])
 
-  def eval_quoted(quoted, bindings, %Macro.Env{} = env) do
-    {value, bindings, _env, _scope} = :elixir.eval_quoted(quoted, bindings, Map.to_list(env))
-    {value, bindings}
+  def eval_quoted(quoted, binding, %Macro.Env{} = env) do
+    {value, binding, _env, _scope} = :elixir.eval_quoted(quoted, binding, Map.to_list(env))
+    {value, binding}
   end
 
-  def eval_quoted(quoted, bindings, opts) when is_list(opts) do
+  def eval_quoted(quoted, binding, opts) when is_list(opts) do
     validate_eval_opts(opts)
-    {value, bindings, _env, _scope} = :elixir.eval_quoted(quoted, bindings, opts)
-    {value, bindings}
+    {value, binding, _env, _scope} = :elixir.eval_quoted(quoted, binding, opts)
+    {value, binding}
   end
 
   defp validate_eval_opts(opts) do
@@ -837,9 +837,9 @@ defmodule Code do
 
   While `require_file/2` and `compile_file/2` return the loaded modules and their
   bytecode, `eval_file/2` simply evaluates the file contents and returns the
-  evaluation result and its bindings (exactly the same return value as `eval_string/3`).
+  evaluation result and its binding (exactly the same return value as `eval_string/3`).
   """
-  @spec eval_file(binary, nil | binary) :: {term, bindings}
+  @spec eval_file(binary, nil | binary) :: {term, binding}
   def eval_file(file, relative_to \\ nil) when is_binary(file) do
     file = find_file(file, relative_to)
     eval_string(File.read!(file), [], file: file, line: 1)
