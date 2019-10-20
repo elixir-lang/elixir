@@ -607,9 +607,10 @@ defmodule IEx do
     end
   end
 
-  def __break__!({:/, _, [call, arity]} = ast, stops, env) when is_integer(arity) do
+  def __break__!({:/, _, [call, arity]} = ast, stops, env)
+      when arity in 0..255 and is_integer(stops) and stops >= 0 do
     with {module, fun, []} <- Macro.decompose_call(call),
-         module when is_atom(module) <- Macro.expand(module, env) do
+         module when is_atom(module) and is_atom(fun) <- Macro.expand(module, env) do
       IEx.Pry.break!(module, fun, arity, stops)
     else
       _ ->
@@ -766,9 +767,8 @@ defmodule IEx do
 
   """
   @doc since: "1.5.0"
-  def break!(module, function, arity, stops \\ 1) when is_integer(arity) do
-    IEx.Pry.break!(module, function, arity, stops)
-  end
+  @spec break!(module, atom, arity, non_neg_integer) :: IEx.Pry.id()
+  defdelegate break!(module, function, arity, stops), to: IEx.Pry
 
   ## Callbacks
 

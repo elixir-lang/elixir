@@ -156,10 +156,10 @@ defmodule IEx.Pry do
   @doc """
   Sets up a breakpoint on the given module/function/arity.
   """
-  @spec break(module, function, arity, pos_integer) :: {:ok, id()} | {:error, break_error()}
+  @spec break(module, atom, arity, non_neg_integer) :: {:ok, id()} | {:error, break_error()}
   def break(module, function, arity, breaks \\ 1)
-      when is_atom(module) and is_atom(function) and is_integer(arity) and arity >= 0 and
-             is_integer(breaks) and breaks > 0 do
+      when is_atom(module) and is_atom(function) and arity in 0..255 and
+             is_integer(breaks) and breaks >= 0 do
     break_call(module, function, arity, quote(do: _), breaks)
   end
 
@@ -168,11 +168,11 @@ defmodule IEx.Pry do
 
   It requires an `env` to be given to make the expansion of the guards.
   """
-  @spec break(module, function, [Macro.t()], Macro.t(), Macro.Env.t(), pos_integer) ::
+  @spec break(module, atom, [Macro.t()], Macro.t(), Macro.Env.t(), non_neg_integer) ::
           {:ok, id()} | {:error, break_error()}
   def break(module, function, args, guard, env, breaks \\ 1)
       when is_atom(module) and is_atom(function) and is_list(args) and is_integer(breaks) and
-             breaks > 0 do
+             breaks >= 0 do
     condition = build_args_guard_condition(args, guard, env)
     break_call(module, function, length(args), condition, breaks)
   end
@@ -184,7 +184,7 @@ defmodule IEx.Pry do
   @doc """
   Raising variant of `break/4`.
   """
-  @spec break!(module, function, arity, pos_integer) :: id()
+  @spec break!(module, atom, arity, non_neg_integer) :: id()
   def break!(module, function, arity, breaks \\ 1) do
     break_call!(module, function, arity, quote(do: _), breaks)
   end
@@ -192,10 +192,10 @@ defmodule IEx.Pry do
   @doc """
   Raising variant of `break/6`.
   """
-  @spec break!(module, function, [Macro.t()], Macro.t(), Macro.Env.t(), pos_integer) :: id()
+  @spec break!(module, atom, [Macro.t()], Macro.t(), Macro.Env.t(), non_neg_integer) :: id()
   def break!(module, function, args, guard, env, breaks \\ 1)
       when is_atom(module) and is_atom(function) and is_list(args) and is_integer(breaks) and
-             breaks > 0 do
+             breaks >= 0 do
     condition = build_args_guard_condition(args, guard, env)
     break_call!(module, function, length(args), condition, breaks)
   end
@@ -256,13 +256,13 @@ defmodule IEx.Pry do
   end
 
   @doc """
-  Resets the breaks for the given module, function and arity.
+  Resets the breaks for the given `module`, `function` and `arity`.
 
-  If the module is not instrumented or if the given function
+  If the `module` is not instrumented or if the given `function`
   does not have a breakpoint, it is a no-op and it returns
   `:not_found`. Otherwise it returns `:ok`.
   """
-  @spec reset_break(module, function, arity) :: :ok | :not_found
+  @spec reset_break(module, atom, arity) :: :ok | :not_found
   def reset_break(module, function, arity) do
     GenServer.call(@server, {:reset_break, {:_, module, {function, arity}, :_, :_}}, @timeout)
   end
