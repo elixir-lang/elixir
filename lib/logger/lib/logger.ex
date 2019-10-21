@@ -97,6 +97,10 @@ defmodule Logger do
       if you want to purge log calls from a dependency, the dependency must be
       recompiled.
 
+    * `:start_options` - passes start options to Logger's main process, such
+      as `:spawn_opt` and `:hibernate_after`. See `t:GenServer.option` for
+      more information.
+
   For example, to configure the `:backends` and purge all calls that happen
   at compile time with level lower than `:info` in a `config/config.exs` file:
 
