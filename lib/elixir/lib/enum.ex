@@ -2454,11 +2454,11 @@ defmodule Enum do
 
   """
   @spec split(t, integer) :: {list, list}
-  def split(enumerable, count) when is_list(enumerable) and count >= 0 do
+  def split(enumerable, count) when is_list(enumerable) and is_integer(count) and count >= 0 do
     split_list(enumerable, count, [])
   end
 
-  def split(enumerable, count) when count >= 0 do
+  def split(enumerable, count) when is_integer(count) and count >= 0 do
     {_, list1, list2} =
       reduce(enumerable, {count, [], []}, fn entry, {counter, acc1, acc2} ->
         if counter > 0 do
@@ -2471,7 +2471,7 @@ defmodule Enum do
     {:lists.reverse(list1), :lists.reverse(list2)}
   end
 
-  def split(enumerable, count) when count < 0 do
+  def split(enumerable, count) when is_integer(count) and count < 0 do
     split_reverse_list(reverse(enumerable), -count, [])
   end
 
@@ -3337,7 +3337,7 @@ defmodule Enum do
     split_list(tail, counter - 1, [head | acc])
   end
 
-  defp split_list(list, counter, acc) when counter == 0 do
+  defp split_list(list, 0, acc) do
     {:lists.reverse(acc), list}
   end
 
