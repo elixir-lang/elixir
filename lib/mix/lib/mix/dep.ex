@@ -63,7 +63,7 @@ defmodule Mix.Dep do
             system_env: []
 
   @type t :: %__MODULE__{
-          scm: module,
+          scm: Mix.SCM.t(),
           app: atom,
           requirement: String.t() | Regex.t() | nil,
           status: atom,
