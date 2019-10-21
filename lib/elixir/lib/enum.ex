@@ -2328,7 +2328,7 @@ defmodule Enum do
   For this reason, most structs provide a "compare" function, such as
   `Date.compare/2`, which receives two structs and returns `:lt` (less than),
   `:eq` (equal), and `:gt` (greather than). If you pass a module as the
-  sorting function, Elixir will automatically use the `compare` function
+  sorting function, Elixir will automatically use the `compare/2` function
   of said module:
 
       iex> dates = [~D[2019-01-01], ~D[2020-03-02], ~D[2019-06-06]]
@@ -2336,7 +2336,7 @@ defmodule Enum do
       [~D[2019-01-01], ~D[2019-06-06], ~D[2020-03-02]]
 
   To retrieve all dates in descending order, you can wrap the module in
-  a tuple with `:asc` or `:desc` as first argument:
+  a tuple with `:asc` or `:desc` as first element:
 
       iex> dates = [~D[2019-01-01], ~D[2020-03-02], ~D[2019-06-06]]
       iex> Enum.sort(dates, {:asc, Date})
@@ -2380,7 +2380,7 @@ defmodule Enum do
   `sort_by/3` differs from `sort/2` in that it only calculates the
   comparison value for each element in the enumerable once instead of
   once for each element in each comparison. If the same function is
-  being called on both elements, it's more effiicient to use `sort_by/3`.
+  being called on both elements, it's more efficient to use `sort_by/3`.
 
   ## Examples
 
@@ -2405,11 +2405,11 @@ defmodule Enum do
       iex> Enum.sort_by(["some", "kind", "of", "monster"], &byte_size/1, :desc)
       ["monster", "some", "kind", "of"]
 
-  As in `sort/2`, avoid using the default sorted to sort structs, as by default
+  As in `sort/2`, avoid using the default sorting function to sort structs, as by default
   it performs structural comparison instead of a semantic one. In such cases,
   you shall pass a sorting function as third element or any module that implements
-  a `compare` function. For example, to sort users by their birthday in both
-  ascending and descending order respectivelly:
+  a `compare/2` function. For example, to sort users by their birthday in both
+  ascending and descending order respectively:
 
       iex> users = [
       ...>   %{name: "Ellis", birthday: ~D[1943-05-11]},
