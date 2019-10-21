@@ -158,7 +158,7 @@ expand({quote, Meta, [Opts, Do]}, E) when is_list(Do) ->
     {context, Ctx} when is_atom(Ctx) and (Ctx /= nil) ->
       Ctx;
     {context, Ctx} ->
-      form_error(Meta, E, ?MODULE, {invalid_context_opt_for_quote, Ctx});
+      form_error(Meta, E, ?MODULE, {invalid_context_for_quote, Ctx});
     false ->
       case ?key(E, module) of
         nil -> 'Elixir';
@@ -182,8 +182,14 @@ expand({quote, Meta, [Opts, Do]}, E) when is_list(Do) ->
   end,
 
   {Binding, DefaultUnquote} = case lists:keyfind(bind_quoted, 1, EOpts) of
-    {bind_quoted, BQ} -> {BQ, false};
-    false -> {nil, true}
+    {bind_quoted, BQ} ->
+      case is_list(BQ) andalso
+            lists:all(fun({Key, _}) when is_atom(Key) -> true; (_) -> false end, BQ) of
+        true -> {BQ, false};
+        false -> form_error(Meta, E, ?MODULE, {invalid_bind_quoted_for_quote, BQ})
+      end;
+    false ->
+      {nil, true}
   end,
 
   Unquote = case lists:keyfind(unquote, 1, EOpts) of
@@ -1120,9 +1126,12 @@ format_error({expected_compile_time_module, Kind, GivenTerm}) ->
 format_error({unquote_outside_quote, Unquote}) ->
   %% Unquote can be "unquote" or "unquote_splicing".
   io_lib:format("~p called outside quote", [Unquote]);
-format_error({invalid_context_opt_for_quote, Context}) ->
+format_error({invalid_context_for_quote, Context}) ->
   io_lib:format("invalid :context for quote, expected non-nil compile time atom or alias, got: ~ts",
                 ['Elixir.Macro':to_string(Context)]);
+format_error({invalid_bind_quoted_for_quote, BQ}) ->
+  io_lib:format("invalid :bind_quoted for quote, expected a keyword list of variable names, got: ~ts",
+                ['Elixir.Macro':to_string(BQ)]);
 format_error(wrong_number_of_args_for_super) ->
   "super must be called with the same number of arguments as the current definition";
 format_error({invalid_arg_for_pin, Arg}) ->
