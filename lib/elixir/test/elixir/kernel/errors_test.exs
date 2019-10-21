@@ -40,6 +40,10 @@ defmodule Kernel.ErrorsTest do
     assert_eval_raise SyntaxError, "nofile:1: reserved token: __block__", '__block__'
   end
 
+  test "invalid alias terminator" do
+    assert_eval_raise SyntaxError, ~r"nofile:1: unexpected \( after alias Foo", 'Foo()'
+  end
+
   test "invalid __CALLER__" do
     assert_eval_raise CompileError,
                       "nofile:1: __CALLER__ is available only inside defmacro and defmacrop",
