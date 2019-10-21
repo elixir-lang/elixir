@@ -27,6 +27,11 @@ defmodule Task.SupervisorTest do
     assert Process.whereis(config.test)
   end
 
+  test "start with spawn_opt" do
+    {:ok, pid} = Task.Supervisor.start_link(spawn_opt: [priority: :high])
+    assert Process.info(pid, :priority) == {:priority, :high}
+  end
+
   test "multiple supervisors can be supervised and identified with simple child spec" do
     {:ok, _} = Registry.start_link(keys: :unique, name: TaskSup.Registry)
 

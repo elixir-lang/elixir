@@ -500,10 +500,7 @@ defmodule Supervisor do
   @type name :: atom | {:global, term} | {:via, module, term}
 
   @typedoc "Option values used by the `start*` functions"
-  @type option :: {:name, name} | init_option()
-
-  @typedoc "Options used by the `start*` functions"
-  @type options :: [option, ...]
+  @type option :: {:name, name}
 
   @typedoc "The supervisor reference"
   @type supervisor :: pid | name | {atom, node}
@@ -557,7 +554,7 @@ defmodule Supervisor do
   process and exits not only on crashes but also if the parent process exits
   with `:normal` reason.
   """
-  @spec start_link([:supervisor.child_spec() | {module, term} | module], options) ::
+  @spec start_link([:supervisor.child_spec() | {module, term} | module], [option | init_option]) ::
           {:ok, pid} | {:error, {:already_started, pid} | {:shutdown, term} | term}
   def start_link(children, options) when is_list(children) do
     {sup_opts, start_opts} = Keyword.split(options, [:strategy, :max_seconds, :max_restarts])
@@ -771,7 +768,7 @@ defmodule Supervisor do
   # It is important to keep the 2-arity spec because it is a catch
   # all to start_link(children, options).
   @spec start_link(module, term) :: on_start
-  @spec start_link(module, term, GenServer.options()) :: on_start
+  @spec start_link(module, term, [option]) :: on_start
   def start_link(module, init_arg, options \\ []) when is_list(options) do
     case Keyword.get(options, :name) do
       nil ->

@@ -124,6 +124,13 @@ defmodule DynamicSupervisorTest do
       assert DynamicSupervisor.stop(__MODULE__) == :ok
     end
 
+    test "with spawn_opt" do
+      {:ok, pid} =
+        DynamicSupervisor.start_link(strategy: :one_for_one, spawn_opt: [priority: :high])
+
+      assert Process.info(pid, :priority) == {:priority, :high}
+    end
+
     test "sets initial call to the same as a regular supervisor" do
       {:ok, pid} = Supervisor.start_link([], strategy: :one_for_one)
       assert :proc_lib.initial_call(pid) == {:supervisor, Supervisor.Default, [:Argument__1]}

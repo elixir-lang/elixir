@@ -148,10 +148,7 @@ defmodule DynamicSupervisor do
         }
 
   @typedoc "Option values used by the `start*` functions"
-  @type option :: {:name, Supervisor.name()} | init_option()
-
-  @typedoc "Options used by the `start*` functions"
-  @type options :: [option, ...]
+  @type option :: GenServer.option()
 
   @typedoc "Options given to `start_link/1` and `init/1`"
   @type init_option ::
@@ -254,7 +251,7 @@ defmodule DynamicSupervisor do
   with `:normal` reason.
   """
   @doc since: "1.6.0"
-  @spec start_link(options) :: Supervisor.on_start()
+  @spec start_link([option | init_option]) :: Supervisor.on_start()
   def start_link(options) when is_list(options) do
     keys = [:extra_arguments, :max_children, :max_seconds, :max_restarts, :strategy]
     {sup_opts, start_opts} = Keyword.split(options, keys)
@@ -280,7 +277,7 @@ defmodule DynamicSupervisor do
   section in the `GenServer` module docs.
   """
   @doc since: "1.6.0"
-  @spec start_link(module, term, GenServer.options()) :: Supervisor.on_start()
+  @spec start_link(module, term, [option]) :: Supervisor.on_start()
   def start_link(mod, init_arg, opts \\ []) do
     GenServer.start_link(__MODULE__, {mod, init_arg, opts[:name]}, opts)
   end
