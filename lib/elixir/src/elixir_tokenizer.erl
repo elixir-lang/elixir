@@ -1203,26 +1203,38 @@ interpolation_format({_, _, _, _} = Reason, _Extension, _Args) ->
 
 %% Terminators
 
+handle_terminator(Rest, Line, Column, _, {'(', _}, [{alias, _, Alias} | Tokens]) ->
+  Reason =
+    io_lib:format(
+      "unexpected ( after alias ~ts. Function names and identifiers in Elixir "
+      "start with lowercase characters or underscore. For example:\n\n"
+      "    hello_world()\n"
+      "    _starting_with_underscore()\n"
+      "    numb3rs_are_allowed()\n"
+      "    may_finish_with_question_mark?()\n"
+      "    may_finish_with_exclamation_mark!()\n"
+      "Unexpected token: ",
+      [Alias]
+    ),
+
+  {error, {Line, Column, Reason, ["("]}, atom_to_list(Alias) ++ [$( | Rest], Tokens};
+handle_terminator(Rest, Line, Column, Scope, Token, Tokens) when
+    Scope#elixir_tokenizer.check_terminators == false ->
+  tokenize(Rest, Line, Column, Scope, [Token | Tokens]);
 handle_terminator(Rest, Line, Column, Scope, Token, Tokens) ->
-  case handle_terminator(Token, Scope) of
+  #elixir_tokenizer{terminators=Terminators} = Scope,
+
+  case check_terminator(Token, Terminators, Scope) of
     {error, Reason} ->
       {error, Reason, atom_to_list(element(1, Token)) ++ Rest, Tokens};
-    New ->
+    {ok, New} ->
       tokenize(Rest, Line, Column, New, [Token | Tokens])
-  end.
-
-handle_terminator(_, #elixir_tokenizer{check_terminators=false} = Scope) ->
-  Scope;
-handle_terminator(Token, #elixir_tokenizer{terminators=Terminators} = Scope) ->
-  case check_terminator(Token, Terminators, Scope) of
-    {error, _} = Error -> Error;
-    NewScope -> NewScope
   end.
 
 check_terminator({Start, {Line, _, _}}, Terminators, Scope)
     when Start == '('; Start == '['; Start == '{'; Start == '<<' ->
   Indentation = Scope#elixir_tokenizer.indentation,
-  Scope#elixir_tokenizer{terminators=[{Start, Line, Indentation} | Terminators]};
+  {ok, Scope#elixir_tokenizer{terminators=[{Start, Line, Indentation} | Terminators]}};
 
 check_terminator({Start, {Line, _, _}}, Terminators, Scope) when Start == 'fn'; Start == 'do' ->
   Indentation = Scope#elixir_tokenizer.indentation,
@@ -1237,7 +1249,7 @@ check_terminator({Start, {Line, _, _}}, Terminators, Scope) when Start == 'fn'; 
         Scope
     end,
 
-  NewScope#elixir_tokenizer{terminators=[{Start, Line, Indentation} | Terminators]};
+  {ok, NewScope#elixir_tokenizer{terminators=[{Start, Line, Indentation} | Terminators]}};
 
 check_terminator({'end', {EndLine, _, _}}, [{'do', _, Indentation} | Terminators], Scope) ->
   NewScope =
@@ -1251,7 +1263,7 @@ check_terminator({'end', {EndLine, _, _}}, [{'do', _, Indentation} | Terminators
         Scope
     end,
 
-  NewScope#elixir_tokenizer{terminators=Terminators};
+  {ok, NewScope#elixir_tokenizer{terminators=Terminators}};
 
 check_terminator({End, _}, [{Start, _, _} | Terminators], Scope)
     when Start == 'fn', End == 'end';
@@ -1259,7 +1271,7 @@ check_terminator({End, _}, [{Start, _, _} | Terminators], Scope)
          Start == '[',  End == ']';
          Start == '{',  End == '}';
          Start == '<<', End == '>>' ->
-  Scope#elixir_tokenizer{terminators=Terminators};
+  {ok, Scope#elixir_tokenizer{terminators=Terminators}};
 
 check_terminator({End, {EndLine, EndColumn, _}}, [{Start, StartLine, _} | _], Scope)
     when End == 'end'; End == ')'; End == ']'; End == '}'; End == '>>' ->
@@ -1288,7 +1300,7 @@ check_terminator({End, {Line, Column, _}}, [], _Scope)
   {error, {Line, Column, "unexpected token: ", atom_to_list(End)}};
 
 check_terminator(_, _, Scope) ->
-  Scope.
+  {ok, Scope}.
 
 missing_terminator_hint(Start, End, #elixir_tokenizer{mismatch_hints=Hints}) ->
   case lists:keyfind(Start, 1, Hints) of
