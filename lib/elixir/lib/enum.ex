@@ -2278,8 +2278,8 @@ defmodule Enum do
   Sorts the `enumerable` by the given function.
 
   This function uses the merge sort algorithm. The given function should compare
-  two arguments, and return `true` if the first argument is **less than or equal to**
-  the second one.
+  two arguments, and return `true` if the first argument precedes or is in the
+  same place as the second one.
 
   ## Examples
 
