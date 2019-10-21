@@ -383,6 +383,8 @@ defmodule Mix.Project do
   @doc """
   Returns the SCMs of all dependencies as a map.
 
+  See `Mix.SCM` module documentation to learn more about SCMs.
+
   ## Options
 
     * `:depth` - only returns dependencies to the depth level,
@@ -397,7 +399,7 @@ defmodule Mix.Project do
 
   """
   @doc since: "1.10.0"
-  @spec deps_scms(keyword) :: %{optional(atom) => module()}
+  @spec deps_scms(keyword) :: %{optional(atom) => Mix.SCM.t()}
   def deps_scms(opts \\ []) do
     traverse_deps(opts, fn %{scm: scm} -> scm end)
   end
