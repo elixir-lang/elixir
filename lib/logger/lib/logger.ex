@@ -99,7 +99,7 @@ defmodule Logger do
 
     * `:start_options` - passes start options to Logger's main process, such
       as `:spawn_opt` and `:hibernate_after`. All options in `t:GenServer.option`
-      are accepted, except by `:name`.
+      are accepted, except `:name`.
 
   For example, to configure the `:backends` and purge all calls that happen
   at compile time with level lower than `:info` in a `config/config.exs` file:
