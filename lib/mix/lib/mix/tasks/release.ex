@@ -514,7 +514,7 @@ defmodule Mix.Tasks.Release do
 
   Whenever you invoke a `mix` command, Mix loads the configuration
   in `config/config.exs`, if said file exists. It is common for the
-  `config/config.exs` file itself import other configuration based
+  `config/config.exs` file itself to import other configuration based
   on the current `MIX_ENV`, such as `config/dev.exs`, `config/test.exs`,
   and `config/prod.exs`. We say that this configuration is a build-time
   configuration as it is evaluated whenever you compile your code or
