@@ -3337,7 +3337,7 @@ defmodule Enum do
     split_list(tail, counter - 1, [head | acc])
   end
 
-  defp split_list(list, 0, acc) do
+  defp split_list(list, counter, acc) when counter == 0 do
     {:lists.reverse(acc), list}
   end
 
