@@ -26,7 +26,7 @@ defmodule Task.Supervisor do
 
   @typedoc "Option values used by `start_link`"
   @type option ::
-          Supervisor.option()
+          DynamicSupervisor.option()
           | {:restart, :supervisor.restart()}
           | {:shutdown, :supervisor.shutdown()}
 
@@ -426,6 +426,8 @@ defmodule Task.Supervisor do
     # TODO: This only exists because we need to support reading restart/shutdown
     # from two different places. Remove this, the init function and the associated
     # clause in DynamicSupervisor on Elixir v2.0
+    # TODO: Once we do this, we can also make it so the task arguments are never
+    # sent to the supervisor if the restart is temporary
     GenServer.call(supervisor, {:start_task, args, restart, shutdown}, :infinity)
   end
 

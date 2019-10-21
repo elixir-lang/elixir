@@ -51,6 +51,11 @@ defmodule AgentTest do
     wait_until_dead(pid)
   end
 
+  test "start_link/2 with spawn_opt" do
+    {:ok, pid} = Agent.start_link(fn -> 0 end, spawn_opt: [priority: :high])
+    assert Process.info(pid, :priority) == {:priority, :high}
+  end
+
   test "start/2 workflow with registered name and module functions" do
     {:ok, pid} = Agent.start(Map, :new, [], name: :agent)
     assert Process.info(pid, :registered_name) == {:registered_name, :agent}
