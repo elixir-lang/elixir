@@ -4,7 +4,7 @@ defmodule Mix.SCM do
   behaviour required by any source code manager (SCM) used by Mix.
   """
 
-  @doc """
+  @typedoc """
   A module implementing the `Mix.SCM` behaviour.
   """
   @type t :: module
