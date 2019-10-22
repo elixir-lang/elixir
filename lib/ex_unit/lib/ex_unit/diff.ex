@@ -632,8 +632,8 @@ defmodule ExUnit.Diff do
 
     if left && Enum.all?(kw, fn {k, _} -> Map.has_key?(left, k) end) do
       if Macro.quoted_literal?(kw) do
-        {kw, []} = Code.eval_quoted(kw, [])
-        diff_quoted_struct(struct!(left, kw), kw, right, struct1, env)
+        {eval_kw, []} = Code.eval_quoted(kw, [])
+        diff_quoted_struct(struct!(left, eval_kw), kw, right, struct1, env)
       else
         diff_map(kw, right, struct1, maybe_struct(right), env)
       end
