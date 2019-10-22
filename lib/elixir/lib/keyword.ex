@@ -692,24 +692,31 @@ defmodule Keyword do
   @spec merge(t, t) :: t
   def merge(keywords1, keywords2)
 
-  def merge(keywords1, []) when is_list(keywords1), do: keywords1
-  def merge([], keywords2) when is_list(keywords2), do: keywords2
+  def merge(keywords1, []) when is_list(keywords1), do: keyword_or_raise(keywords1, "first")
+  def merge([], keywords2) when is_list(keywords2), do: keyword_or_raise(keywords2, "second")
 
   def merge(keywords1, keywords2) when is_list(keywords1) and is_list(keywords2) do
-    if keyword?(keywords2) do
-      fun = fn
-        {key, _value} when is_atom(key) ->
-          not has_key?(keywords2, key)
+    keywords2 = keyword_or_raise(keywords2, "second")
 
-        _ ->
-          raise ArgumentError,
-                "expected a keyword list as the first argument, got: #{inspect(keywords1)}"
-      end
+    fun = fn
+      {key, _value} when is_atom(key) ->
+        not has_key?(keywords2, key)
 
-      :lists.filter(fun, keywords1) ++ keywords2
+      _ ->
+        raise ArgumentError,
+              "expected a keyword list as the first argument, got: #{inspect(keywords1)}"
+    end
+
+    :lists.filter(fun, keywords1) ++ keywords2
+  end
+
+  @spec keyword_or_raise(t, binary()) :: t
+  defp keyword_or_raise(kw, which_arg) when is_list(kw) do
+    if keyword?(kw) do
+      kw
     else
       raise ArgumentError,
-            "expected a keyword list as the second argument, got: #{inspect(keywords2)}"
+            "expected a keyword list as the #{which_arg} argument, got: #{inspect(kw)}"
     end
   end
 

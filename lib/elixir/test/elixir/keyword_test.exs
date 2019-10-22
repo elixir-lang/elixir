@@ -64,6 +64,10 @@ defmodule KeywordTest do
     message = "expected a keyword list as the first argument, got: [1, 2]"
 
     assert_raise ArgumentError, message, fn ->
+      Keyword.merge([1, 2], [])
+    end
+
+    assert_raise ArgumentError, message, fn ->
       Keyword.merge([1, 2], c: 11, d: 12)
     end
 
