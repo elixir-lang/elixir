@@ -172,6 +172,7 @@ defmodule Mix.Tasks.ReleaseTest do
         assert %{
                  app_dir: app_dir,
                  cookie_env: ^cookie,
+                 encoding: {:"£", "£", '£'},
                  mode: :embedded,
                  node: release_node("release_test"),
                  protocols_consolidated?: true,
@@ -180,11 +181,10 @@ defmodule Mix.Tasks.ReleaseTest do
                  release_root: release_root,
                  release_vsn: "0.1.0",
                  root_dir: root_dir,
-                 static_config: {:ok, :was_set},
                  runtime_config: :error,
+                 static_config: {:ok, :was_set},
                  sys_config_env: sys_config_env,
-                 sys_config_init: sys_config_init,
-                 encoding: {:"£", "£", '£'}
+                 sys_config_init: sys_config_init
                } = wait_until_decoded(Path.join(root, "RELEASE_BOOTED"))
 
         if match?({:win32, _}, :os.type()) do
@@ -239,17 +239,17 @@ defmodule Mix.Tasks.ReleaseTest do
         open_port(Path.join(root, "bin/runtime_config"), ['start'])
 
         assert %{
+                 encoding: {:runtime, :"£", "£", '£'},
                  mode: :embedded,
                  node: release_node("runtime_config"),
                  protocols_consolidated?: true,
                  release_name: "runtime_config",
                  release_node: "runtime_config",
                  release_vsn: "0.1.0",
-                 static_config: {:ok, :was_set},
                  runtime_config: {:ok, :was_set},
+                 static_config: {:ok, :was_set},
                  sys_config_env: sys_config_env,
-                 sys_config_init: sys_config_init,
-                 encoding: {:runtime, :"£", "£", '£'}
+                 sys_config_init: sys_config_init
                } = wait_until_decoded(Path.join(root, "RELEASE_BOOTED"))
 
         if match?({:win32, _}, :os.type()) do
@@ -299,8 +299,8 @@ defmodule Mix.Tasks.ReleaseTest do
                  release_root: release_root,
                  release_vsn: "0.2.0",
                  root_dir: root_dir,
-                 static_config: {:ok, :was_set},
-                 runtime_config: :error
+                 runtime_config: :error,
+                 static_config: {:ok, :was_set}
                } = wait_until_decoded(Path.join(root, "RELEASE_BOOTED"))
 
         if match?({:win32, _}, :os.type()) do
@@ -375,8 +375,8 @@ defmodule Mix.Tasks.ReleaseTest do
                  release_node: "eval",
                  release_root: root,
                  release_vsn: "0.1.0",
-                 static_config: {:ok, :was_set},
-                 runtime_config: {:ok, :was_set}
+                 runtime_config: {:ok, :was_set},
+                 static_config: {:ok, :was_set}
                } = wait_until_decoded(Path.join(root, "RELEASE_BOOTED"))
       end)
     end)
@@ -405,8 +405,8 @@ defmodule Mix.Tasks.ReleaseTest do
                  release_root: ^root,
                  release_vsn: "0.1.0",
                  root_dir: root_dir,
-                 static_config: {:ok, :was_set},
                  runtime_config: :error,
+                 static_config: {:ok, :was_set},
                  sys_config_env: sys_config_env,
                  sys_config_init: sys_config_init
                } = wait_until_decoded(Path.join(root, "RELEASE_BOOTED"))

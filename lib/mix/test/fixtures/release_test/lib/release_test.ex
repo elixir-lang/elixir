@@ -6,21 +6,21 @@ defmodule ReleaseTest do
     {:ok, [[sys_config]]} = :init.get_argument(:config)
 
     info = %{
-      protocols_consolidated?: Protocol.consolidated?(Enumerable),
       app_dir: Application.app_dir(:release_test),
-      release_root: System.get_env("RELEASE_ROOT"),
-      release_name: System.get_env("RELEASE_NAME"),
-      release_node: System.get_env("RELEASE_NODE"),
-      release_vsn: System.get_env("RELEASE_VSN"),
       cookie_env: cookie,
+      encoding: Application.get_env(:release_test, :encoding),
       mode: :code.get_mode(),
       node: node(),
+      protocols_consolidated?: Protocol.consolidated?(Enumerable),
+      release_name: System.get_env("RELEASE_NAME"),
+      release_node: System.get_env("RELEASE_NODE"),
+      release_root: System.get_env("RELEASE_ROOT"),
+      release_vsn: System.get_env("RELEASE_VSN"),
       root_dir: :code.root_dir() |> to_string(),
-      static_config: Application.fetch_env(:release_test, :static),
       runtime_config: Application.fetch_env(:release_test, :runtime),
-      sys_config_init: to_string(sys_config),
+      static_config: Application.fetch_env(:release_test, :static),
       sys_config_env: System.get_env("RELEASE_SYS_CONFIG"),
-      encoding: Application.get_env(:release_test, :encoding)
+      sys_config_init: to_string(sys_config)
     }
 
     path = Path.join(System.get_env("RELEASE_ROOT"), "RELEASE_BOOTED")

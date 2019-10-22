@@ -26,7 +26,7 @@ defmodule IEx.Config do
   end
 
   def started?() do
-    Process.whereis(@agent) !== nil
+    Process.whereis(@agent) != nil
   end
 
   def history_size() do
