@@ -587,26 +587,31 @@ defmodule ExUnit.Diff do
               pending_right = Map.delete(pending_right, right_key)
               {diff, env} = diff(left_value, right_value, env)
               acc_equivalent? = acc_equivalent? and diff.equivalent?
-              acc_left = [{left_key, diff.left} | acc_left]
-              acc_right = [{right_key, diff.right} | acc_right]
+              acc_left = [{maybe_escape(left_key, env), diff.left} | acc_left]
+              acc_right = [{escape(right_key), diff.right} | acc_right]
               {acc_equivalent?, acc_left, acc_right, pending_left, pending_right, env}
 
             %{} ->
-              mismatch = update_diff_meta({left_key, left_value}, true)
-              {false, acc_left, acc_right, [mismatch | pending_left], pending_right, env}
+              pair = {maybe_escape(left_key, env), maybe_escape(left_value, env)}
+              pair_diff= update_diff_meta(pair, true)
+              {false, acc_left, acc_right, [pair_diff | pending_left], pending_right, env}
           end
       end)
 
+    # It may be a struct, so make sure we convert it to a list before calling Enum
+    pending_right = Map.to_list(pending_right)
+
     {pending_right, equivalent?} =
       if env.context == :match do
-        {pending_right, acc_equivalent?}
+        {Enum.map(pending_right, &escape_pair/1), acc_equivalent?}
       else
-        pending_right = Enum.map(pending_right, &update_diff_meta(&1, true))
+        pending_right = Enum.map(pending_right, & &1 |> escape_pair() |> update_diff_meta(true))
         {pending_right, acc_equivalent? and pending_right == []}
       end
 
     left = Enum.sort(acc_left) ++ Enum.sort(pending_left)
     right = Enum.sort(acc_right) ++ Enum.sort(pending_right)
+
     {equivalent?, left, right, env}
   end
 
@@ -623,12 +628,17 @@ defmodule ExUnit.Diff do
   # Structs
 
   defp diff_quoted_struct(kw, struct1, right, env) do
-    with %_{} = left <- load_struct(struct1),
-         kw when not is_nil(kw) <- struct_keyword_to_map(left, kw) do
-      diff_quoted_struct(struct!(left, kw), kw, right, struct1, env)
+    left = load_struct(struct1)
+
+    if left && Enum.all?(kw, fn {k, _} -> Map.has_key?(left, k) end) do
+      if Macro.quoted_literal?(kw) do
+        {kw, []} = Code.eval_quoted(kw, [])
+        diff_quoted_struct(struct!(left, kw), kw, right, struct1, env)
+      else
+        diff_map(kw, right, struct1, maybe_struct(right), env)
+      end
     else
-      _ ->
-        diff_map(kw, right, nil, maybe_struct(right), env)
+      diff_map(kw, right, nil, maybe_struct(right), env)
     end
   end
 
@@ -667,16 +677,6 @@ defmodule ExUnit.Diff do
   defp load_struct(struct) do
     if Code.ensure_loaded?(struct) and function_exported?(struct, :__struct__, 0) do
       struct.__struct__
-    end
-  end
-
-  defp struct_keyword_to_map(struct, kw) do
-    if Macro.quoted_literal?(kw) do
-      {kw, []} = Code.eval_quoted(kw, [])
-
-      if Enum.all?(kw, fn {k, _} -> Map.has_key?(struct, k) end) do
-        kw
-      end
     end
   end
 
@@ -1018,6 +1018,8 @@ defmodule ExUnit.Diff do
   # We escape it by wrapping it in one element tuple which is not valid AST
   defp escape(other) when is_list(other) or is_tuple(other), do: {other}
   defp escape(other), do: other
+
+  defp escape_pair({key, value}), do: {escape(key), escape(value)}
 
   defp unescape({other}), do: other
   defp unescape(other), do: other

@@ -1489,6 +1489,8 @@ defmodule Macro do
       true
       iex> Macro.quoted_literal?(quote(do: {"foo", 1}))
       true
+      iex> Macro.quoted_literal?(quote(do: {"foo", 1, :baz}))
+      true
       iex> Macro.quoted_literal?(quote(do: %{foo: "bar"}))
       true
       iex> Macro.quoted_literal?(quote(do: %URI{path: "/"}))
@@ -1510,6 +1512,7 @@ defmodule Macro do
     do: quoted_literal?(left) and quoted_literal?(right)
 
   def quoted_literal?({:%{}, _, args}), do: quoted_literal?(args)
+  def quoted_literal?({:{}, _, args}), do: quoted_literal?(args)
   def quoted_literal?({left, right}), do: quoted_literal?(left) and quoted_literal?(right)
   def quoted_literal?(list) when is_list(list), do: Enum.all?(list, &quoted_literal?/1)
 

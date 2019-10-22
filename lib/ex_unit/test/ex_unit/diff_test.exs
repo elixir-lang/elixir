@@ -644,6 +644,50 @@ defmodule ExUnit.DiffTest do
     )
   end
 
+  test "maps and structs with escaped values" do
+    refute_diff(
+      %User{age: {1, 2, 3}} = %User{age: {1, 2, 4}},
+      "%ExUnit.DiffTest.User{age: {1, 2, -3-}}",
+      "%ExUnit.DiffTest.User{age: {1, 2, +4+}, name: nil}"
+    )
+
+    refute_diff(
+      %User{age: {1, 2, 3}, name: name} = %User{age: {1, 2, 4}},
+      "%ExUnit.DiffTest.User{age: {1, 2, -3-}, name: name}",
+      "%ExUnit.DiffTest.User{age: {1, 2, +4+}, name: nil}"
+    )
+
+    refute_diff(
+      %User{name: :foo} = %User{name: :bar, age: {1, 2, 3}},
+      "%ExUnit.DiffTest.User{name: -:foo-}",
+      "%ExUnit.DiffTest.User{name: +:bar+, age: {1, 2, 3}}"
+    )
+
+    refute_diff(
+      %User{age: {1, 2, 3}} == %User{age: {1, 2, 4}},
+      "%ExUnit.DiffTest.User{age: {1, 2, -3-}, name: nil}",
+      "%ExUnit.DiffTest.User{age: {1, 2, +4+}, name: nil}"
+    )
+
+    refute_diff(
+      %User{age: {1, 2, 4}} == %User{age: {1, 2, 3}},
+      "%ExUnit.DiffTest.User{age: {1, 2, -4-}, name: nil}",
+      "%ExUnit.DiffTest.User{age: {1, 2, +3+}, name: nil}"
+    )
+
+    refute_diff(
+      %{name: :foo} == %{name: :foo, age: {1, 2, 3}},
+      "%{name: :foo}",
+      "%{name: :foo, +age: {1, 2, 3}+}"
+    )
+
+    refute_diff(
+      %{name: :foo, age: {1, 2, 3}} == %{name: :foo},
+      "%{name: :foo, -age: {1, 2, 3}-}",
+      "%{name: :foo}"
+    )
+  end
+
   test "strings" do
     assert_diff("" = "", [])
     assert_diff("fox hops over the dog" = "fox hops over the dog", [])
