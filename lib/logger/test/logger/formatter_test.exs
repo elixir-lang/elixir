@@ -77,6 +77,14 @@ defmodule Logger.FormatterTest do
              "2014-12-30 12:06:30.100"
   end
 
+  test "format discards callers/ancestors/crash_reason" do
+    compiled = compile("$metadata $message")
+    metadata = [callers: :discard, ancestors: :discard, crash_reason: :discard, foo: :bar]
+
+    assert format(compiled, :error, "hello", nil, metadata) ==
+             [["foo", 61, "bar", 32], " ", "hello"]
+  end
+
   test "padding takes account of length of level" do
     compiled = compile("[$level] $levelpad $message")
     assert format(compiled, :error, "hello", nil, []) == ["[", "error", "] ", "", " ", "hello"]

@@ -158,25 +158,27 @@ defmodule Logger.Formatter do
   defp output(:time, _, _, {_date, time}, _), do: format_time(time)
   defp output(:level, level, _, _, _), do: Atom.to_string(level)
   defp output(:node, _, _, _, _), do: Atom.to_string(node())
-
   defp output(:metadata, _, _, _, []), do: ""
-
-  defp output(:metadata, _, _, _, meta) do
-    Enum.map(meta, fn {key, val} ->
-      [to_string(key), ?=, metadata(key, val), ?\s]
-    end)
-  end
-
-  defp output(:levelpad, level, _, _, _) do
-    levelpad(level)
-  end
-
+  defp output(:metadata, _, _, _, meta), do: metadata(meta)
+  defp output(:levelpad, level, _, _, _), do: levelpad(level)
   defp output(other, _, _, _, _), do: other
 
   defp levelpad(:debug), do: ""
   defp levelpad(:info), do: " "
   defp levelpad(:warn), do: " "
   defp levelpad(:error), do: ""
+
+  defp metadata([{:crash_reason, _} | metadata]), do: metadata(metadata)
+  defp metadata([{:ancestors, _} | metadata]), do: metadata(metadata)
+  defp metadata([{:callers, _} | metadata]), do: metadata(metadata)
+
+  defp metadata([{key, value} | metadata]) do
+    [to_string(key), ?=, metadata(key, value), ?\s | metadata(metadata)]
+  end
+
+  defp metadata([]) do
+    []
+  end
 
   defp metadata(:initial_call, {mod, fun, arity})
        when is_atom(mod) and is_atom(fun) and is_integer(arity) do
