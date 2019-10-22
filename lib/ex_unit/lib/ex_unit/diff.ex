@@ -593,7 +593,7 @@ defmodule ExUnit.Diff do
 
             %{} ->
               pair = {maybe_escape(left_key, env), maybe_escape(left_value, env)}
-              pair_diff= update_diff_meta(pair, true)
+              pair_diff = update_diff_meta(pair, true)
               {false, acc_left, acc_right, [pair_diff | pending_left], pending_right, env}
           end
       end)
@@ -605,7 +605,7 @@ defmodule ExUnit.Diff do
       if env.context == :match do
         {Enum.map(pending_right, &escape_pair/1), acc_equivalent?}
       else
-        pending_right = Enum.map(pending_right, & &1 |> escape_pair() |> update_diff_meta(true))
+        pending_right = Enum.map(pending_right, &(&1 |> escape_pair() |> update_diff_meta(true)))
         {pending_right, acc_equivalent? and pending_right == []}
       end
 
