@@ -857,6 +857,8 @@ defmodule List do
 
   Inlined by the compiler.
 
+  The base needs to be between `2` and `36`.
+
   ## Examples
 
       iex> List.to_integer('3FF', 16)
