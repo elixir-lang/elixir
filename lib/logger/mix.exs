@@ -28,7 +28,8 @@ defmodule Logger.MixProject do
         compile_time_purge_matching: [],
         compile_time_application: nil,
         translator_inspect_opts: [],
-        console: []
+        console: [],
+        start_options: []
       ]
     ]
   end

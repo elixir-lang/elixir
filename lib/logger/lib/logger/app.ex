@@ -10,6 +10,7 @@ defmodule Logger.App do
   def start(_type, _args) do
     otp_reports? = Application.get_env(:logger, :handle_otp_reports)
     sasl_reports? = Application.get_env(:logger, :handle_sasl_reports)
+    start_options = Application.get_env(:logger, :start_options)
 
     otp_children =
       if otp_logger?() do
@@ -25,7 +26,7 @@ defmodule Logger.App do
     children = [
       %{
         id: :gen_event,
-        start: {:gen_event, :start_link, [{:local, Logger}]},
+        start: {:gen_event, :start_link, [{:local, Logger}, start_options]},
         modules: :dynamic
       },
       {Logger.Watcher, {Logger, Logger.Config, config}},
