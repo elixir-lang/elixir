@@ -709,6 +709,18 @@ defmodule ExUnit.DiffTest do
     refute_diff("foo" = :a, ~s/-"foo"-/, "+:a+")
   end
 
+  test "strings outside match context" do
+    assert_diff("" == "", [])
+    assert_diff("fox hops over the dog" == "fox hops over the dog", [])
+    refute_diff("fox" == "foo", "fo-x-", "fo+o+")
+
+    refute_diff(
+      "{\"foo\":1,\"barbaz\":[1,2,3]}" == "4",
+      ~s/"-{\\\"foo\\\":1,\\\"barbaz\\\":[1,2,3]}-"/,
+      ~s/"+4+"/
+    )
+  end
+
   test "concat operator" do
     assert_diff("fox hops" <> " over the dog" = "fox hops over the dog", [])
     assert_diff("fox hops " <> "over " <> "the dog" = "fox hops over the dog", [])
