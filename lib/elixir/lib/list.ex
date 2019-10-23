@@ -857,7 +857,7 @@ defmodule List do
 
   Inlined by the compiler.
 
-  The base needs to be between 2 and 36.
+  The base needs to be between `2` and `36`.
 
   ## Examples
 
