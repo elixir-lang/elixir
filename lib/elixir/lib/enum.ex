@@ -1500,17 +1500,17 @@ defmodule Enum do
   end
 
   # TODO: Deprecate me on 1.14
-  defp max_sort_fun(empty_fallback, default_empty_callback)
-       when is_function(empty_fallback, 0) and is_function(default_empty_callback, 0),
+  defp max_sort_fun(empty_fallback, default_empty_fallback)
+       when is_function(empty_fallback, 0) and is_function(default_empty_fallback, 0),
        do: {&>=/2, empty_fallback}
 
-  defp max_sort_fun(sorter, empty_callback)
-       when is_function(sorter, 2) and is_function(empty_callback, 0),
-       do: {sorter, empty_callback}
+  defp max_sort_fun(sorter, empty_fallback)
+       when is_function(sorter, 2) and is_function(empty_fallback, 0),
+       do: {sorter, empty_fallback}
 
-  defp max_sort_fun(module, empty_callback)
-       when is_atom(module) and is_function(empty_callback, 0),
-       do: {&(module.compare(&1, &2) != :lt), empty_callback}
+  defp max_sort_fun(module, empty_fallback)
+       when is_atom(module) and is_function(empty_fallback, 0),
+       do: {&(module.compare(&1, &2) != :lt), empty_fallback}
 
   @doc """
   Returns the maximal element in the `enumerable` as calculated
@@ -1660,17 +1660,17 @@ defmodule Enum do
   end
 
   # TODO: Deprecate me on 1.14
-  defp min_sort_fun(empty_fallback, default_empty_callback)
-       when is_function(empty_fallback, 0) and is_function(default_empty_callback, 0),
+  defp min_sort_fun(empty_fallback, default_empty_fallback)
+       when is_function(empty_fallback, 0) and is_function(default_empty_fallback, 0),
        do: {&<=/2, empty_fallback}
 
-  defp min_sort_fun(sorter, empty_callback)
-       when is_function(sorter, 2) and is_function(empty_callback, 0),
-       do: {sorter, empty_callback}
+  defp min_sort_fun(sorter, empty_fallback)
+       when is_function(sorter, 2) and is_function(empty_fallback, 0),
+       do: {sorter, empty_fallback}
 
-  defp min_sort_fun(module, empty_callback)
-       when is_atom(module) and is_function(empty_callback, 0),
-       do: {&(module.compare(&1, &2) != :gt), empty_callback}
+  defp min_sort_fun(module, empty_fallback)
+       when is_atom(module) and is_function(empty_fallback, 0),
+       do: {&(module.compare(&1, &2) != :gt), empty_fallback}
 
   @doc """
   Returns the minimal element in the `enumerable` as calculated
