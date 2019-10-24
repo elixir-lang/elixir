@@ -1,7 +1,8 @@
 defmodule Logger.LegacyHandler do
   @moduledoc false
 
-  @counter_pos 1
+  alias Logger.Counter
+
   @internal_keys [:counter]
 
   @doc false
@@ -130,6 +131,9 @@ defmodule Logger.LegacyHandler do
             end
         end
     end
+  rescue
+    e ->
+      IO.inspect({e, __STACKTRACE__}, label: :error)
   end
 
   defp erlang_level_to_elixir_level(:emergency), do: :error
@@ -242,20 +246,12 @@ defmodule Logger.LegacyHandler do
       thresholds: {sync, discard}
     } = config
 
-    value = bump_counter(counter)
+    value = Counter.bump(counter)
 
     cond do
       value >= discard -> :discard
       value >= sync -> :sync
       true -> :async
     end
-  end
-
-  defp bump_counter({:ets, counter}),
-    do: :ets.update_counter(counter, @counter_pos, {2, 1})
-
-  defp bump_counter({:counters, counter}) do
-    :counters.add(counter, @counter_pos, 1)
-    :counters.get(counter, @counter_pos)
   end
 end

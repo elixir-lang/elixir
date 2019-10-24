@@ -10,8 +10,8 @@ defmodule Logger.Watcher do
   This is useful when there is a need to start a handler
   outside of the handler supervision tree.
   """
-  def start_link(triplet) do
-    GenServer.start_link(__MODULE__, triplet)
+  def start_link(tuple) do
+    GenServer.start_link(__MODULE__, tuple)
   end
 
   ## Callbacks

@@ -1,14 +1,12 @@
 defmodule Logger.Config do
   @moduledoc false
 
-  # TODO Remove this once we support Erlang/OTP 22+ exclusively.
-  @compile {:no_warn_undefined, [:persistent_term, :counters]}
-
   @behaviour :gen_event
   @name __MODULE__
   @table __MODULE__
-  @counter_pos 1
   @update_counter_message {__MODULE__, :update_counter}
+
+  alias Logger.Counter
 
   def configure(options) do
     :gen_event.call(Logger, @name, {:configure, options})
@@ -58,15 +56,7 @@ defmodule Logger.Config do
   defp normalise(level), do: level
 
   # TODO: Use counters exclusively when we require Erlang/OTP 22+.
-  def new() do
-    if Code.ensure_loaded?(:counters) do
-      {:counters, :counters.new(1, [:atomics])}
-    else
-      table = :ets.new(@table.Counter, [:public])
-      :ets.insert(table, [{@counter_pos, 0}])
-      {:ets, table}
-    end
-  end
+  def new(), do: Logger.Counter.new()
 
   def delete({:ets, counter}), do: :ets.delete(counter)
   def delete({:counters, _}), do: :ok
@@ -133,9 +123,9 @@ defmodule Logger.Config do
     # deliver the message yet. Those bumps will be lost. At the same time,
     # we are careful to read the counter first here, so if the counter is
     # bumped after we read from it, those bumps won't be lost.
-    total = read_counter(counter)
+    total = Counter.read(counter)
     {:message_queue_len, length} = Process.info(self(), :message_queue_len)
-    add_counter(counter, length - total)
+    Counter.add(counter, length - total)
 
     # In case we are logging but we reached the threshold, we log that we
     # started discarding messages. This can only be reverted by the periodic
@@ -166,17 +156,6 @@ defmodule Logger.Config do
   defp schedule_update_counter({_, _, _, discard_period}) do
     Process.send_after(self(), @update_counter_message, discard_period)
   end
-
-  ## Counter Helpers
-
-  defp read_counter({:ets, counter}), do: :ets.lookup_element(counter, @counter_pos, 2)
-  defp read_counter({:counters, counter}), do: :counters.get(counter, @counter_pos)
-
-  defp add_counter({:ets, counter}, value),
-    do: :ets.update_counter(counter, @counter_pos, {2, value})
-
-  defp add_counter({:counters, counter}, value),
-    do: :counters.add(counter, @counter_pos, value)
 
   ## Data helpers
 

@@ -29,10 +29,7 @@ defmodule Logger.App do
     handlers = [primary_config | default_handlers]
 
     case Supervisor.start_link(children, strategy: :rest_for_one, name: Logger.Supervisor) do
-      # No deprecations before this point
       {:ok, sup} ->
-        deprecations()
-
         {:ok, sup, {config, handlers}}
 
       {:error, _} = error ->
@@ -40,13 +37,6 @@ defmodule Logger.App do
         Logger.Config.delete(config)
         error
     end
-  end
-
-  defp deprecations do
-    # TODO: Uncomment this
-    # if not Application.get_env(:logger, :handle_otp_reports) do
-    #   Logger.warn("handle_otp_repors: false is deprecated")
-    # end
   end
 
   @doc false
