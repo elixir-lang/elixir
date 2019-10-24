@@ -6,10 +6,10 @@ defmodule Logger.LegacyHandler do
   @internal_keys [:counter]
 
   @doc false
-  def child_spec(_) do
+  def child_spec(start_options) do
     %{
       id: :gen_event,
-      start: {:gen_event, :start_link, [{:local, Logger}]},
+      start: {:gen_event, :start_link, [{:local, Logger}, start_options]},
       modules: :dynamic
     }
   end

@@ -3,7 +3,6 @@ defmodule Logger.Config do
 
   @behaviour :gen_event
   @name __MODULE__
-  @table __MODULE__
   @update_counter_message {__MODULE__, :update_counter}
 
   alias Logger.Counter
@@ -56,10 +55,9 @@ defmodule Logger.Config do
   defp normalise(level), do: level
 
   # TODO: Use counters exclusively when we require Erlang/OTP 22+.
-  def new(), do: Logger.Counter.new()
+  defdelegate new, to: Logger.Counter
 
-  def delete({:ets, counter}), do: :ets.delete(counter)
-  def delete({:counters, _}), do: :ok
+  defdelegate delete(counter), to: Logger.Counter
 
   ## Callbacks
 

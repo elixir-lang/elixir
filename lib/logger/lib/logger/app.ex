@@ -7,15 +7,16 @@ defmodule Logger.App do
 
   @doc false
   def start(_type, _args) do
+    start_options = Application.get_env(:logger, :start_options)
+    otp_reports? = Application.fetch_env!(:logger, :handle_otp_reports)
+
     config = Logger.Config.new()
 
     children = [
-      Logger.LegacyHandler,
+      {Logger.LegacyHandler, start_options},
       {Logger.Watcher, {Logger.Config, config}},
       Logger.BackendSupervisor
     ]
-
-    otp_reports? = Application.fetch_env!(:logger, :handle_otp_reports)
 
     primary_config = add_elixir_handler(otp_reports?, config)
 
