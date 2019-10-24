@@ -1115,7 +1115,10 @@ defmodule Enum do
   @spec frequencies(t) :: map
   def frequencies(enumerable) do
     reduce(enumerable, %{}, fn key, acc ->
-      Map.update(acc, key, 1, &(&1 + 1))
+      case acc do
+        %{^key => value} -> %{acc | key => value + 1}
+        %{} -> Map.put(acc, key, 1)
+      end
     end)
   end
 
@@ -1137,7 +1140,11 @@ defmodule Enum do
   def frequencies_by(enumerable, key_fun) when is_function(key_fun) do
     reduce(enumerable, %{}, fn entry, acc ->
       key = key_fun.(entry)
-      Map.update(acc, key, 1, &(&1 + 1))
+
+      case acc do
+        %{^key => value} -> %{acc | key => value + 1}
+        %{} -> Map.put(acc, key, 1)
+      end
     end)
   end
 
