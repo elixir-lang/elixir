@@ -704,14 +704,14 @@ defmodule ExUnit.Diff do
   # Strings
 
   defp diff_string(left, right, delimiter, env) do
+    {escaped_left, _} = Code.Identifier.escape(left, delimiter)
+    {escaped_right, _} = Code.Identifier.escape(right, delimiter)
+    left = IO.iodata_to_binary(escaped_left)
+    right = IO.iodata_to_binary(escaped_right)
+
     diff =
       cond do
         diff_string?(left, right) ->
-          {escaped_left, _} = Code.Identifier.escape(left, delimiter)
-          {escaped_right, _} = Code.Identifier.escape(right, delimiter)
-          left = IO.iodata_to_binary(escaped_left)
-          right = IO.iodata_to_binary(escaped_right)
-
           String.myers_difference(left, right)
           |> string_script_to_diff(delimiter, true, [], [])
 
