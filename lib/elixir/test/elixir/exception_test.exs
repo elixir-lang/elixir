@@ -448,8 +448,8 @@ defmodule ExceptionTest do
                    * map/2
                    * max/1
                    * max/2
+                   * max/3
                    * min/1
-                   * min/2
              """
 
       assert blame_message(:erlang, & &1.gt_cookie()) == """
