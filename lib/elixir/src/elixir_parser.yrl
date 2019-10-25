@@ -620,7 +620,6 @@ Erlang code.
 -define(file(), get(elixir_parser_file)).
 -define(columns(), get(elixir_parser_columns)).
 -define(token_metadata(), get(elixir_token_metadata)).
--define(wrap_literals(), get(elixir_wrap_literals)).
 
 -define(id(Token), element(1, Token)).
 -define(location(Token), element(2, Token)).

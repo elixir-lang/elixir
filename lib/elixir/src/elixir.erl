@@ -353,7 +353,7 @@ tokens_to_quoted(Tokens, File, Opts) ->
     erase(elixir_parser_file),
     erase(elixir_parser_columns),
     erase(elixir_token_metadata),
-    erase(elixir_wrap_literals)
+    erase(elixir_literal_encoder)
   end.
 
 parser_line({Line, _, _}) ->
