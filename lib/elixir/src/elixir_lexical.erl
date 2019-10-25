@@ -23,7 +23,8 @@ run(#{tracers := Tracers} = E, ExecutionCallback, AfterExecutionCallback) ->
       end;
 
     true ->
-      ExecutionCallback(E)
+      ExecutionCallback(E),
+      AfterExecutionCallback(E)
   end.
 
 trace({import, Meta, Module, Opts}, #{lexical_tracker := Pid}) ->
