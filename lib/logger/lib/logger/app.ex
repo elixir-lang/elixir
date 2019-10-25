@@ -96,7 +96,7 @@ defmodule Logger.App do
 
     primary_config = :logger.get_primary_config()
 
-    :ok = :logger.add_primary_filter(:process_disabled, Logger.Filter.process_disabled())
+    :ok = :logger.add_primary_filter(:process_disabled, {&Logger.Filter.process_disabled/2, []})
     :ok = :logger.add_handler(Logger, Logger.LegacyHandler, config)
 
     :ok = :logger.set_primary_config(:level, level)
