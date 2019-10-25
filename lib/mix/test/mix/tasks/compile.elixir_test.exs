@@ -514,6 +514,34 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   end
 
+  test "returns warning diagnostics for unused imports" do
+    in_fixture("no_mixfile", fn ->
+      File.write!("lib/a.ex", """
+      defmodule A do
+        import B
+      end
+      """)
+
+      File.write!("lib/b.ex", """
+      defmodule B do
+        def foo, do: :ok
+      end
+      """)
+
+      diagnostic = %Diagnostic{
+        file: Path.absname("lib/a.ex"),
+        severity: :warning,
+        position: 2,
+        compiler_name: "Elixir",
+        message: "unused import B"
+      }
+
+      capture_io(:stderr, fn ->
+        assert {:ok, [^diagnostic]} = Mix.Tasks.Compile.Elixir.run([])
+      end)
+    end)
+  end
+
   test "returns error diagnostics", context do
     in_tmp(context.test, fn ->
       File.mkdir_p!("lib")
