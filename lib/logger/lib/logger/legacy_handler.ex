@@ -136,7 +136,12 @@ defmodule Logger.LegacyHandler do
     end
   rescue
     e ->
-      IO.inspect({e, __STACKTRACE__}, label: :error)
+      :logger.error(
+        fn ->
+          "Unhandled error in Elixir's Logger handler.\n#{inspect(e)}"
+        end,
+        []
+      )
   end
 
   defp erlang_level_to_elixir_level(:emergency), do: :error
