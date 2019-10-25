@@ -177,7 +177,7 @@ defmodule Logger.Config do
       thresholds: {sync_threshold, discard_threshold}
     }
 
-    :ok = :logger.update_handler_config(Logger, :config, data)
+    :ok = :logger.update_handler_config(Logger, %{config: data})
     :ok = :logger.set_primary_config(:level, normalise(data.level))
 
     {counter, :log, discard_threshold, discard_period}

@@ -25,6 +25,9 @@ defmodule Logger.LegacyHandler do
     {:ok, %{config | config: new_data}}
   end
 
+  # TODO: Remove when we will support OTP 22+
+  def changing_config(current, new), do: changing_config(:update, current, new)
+
   def changing_config(
         op,
         %{id: id, module: module, config: old_data, filters: filters},
