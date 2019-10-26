@@ -25,6 +25,16 @@ defmodule IOTest do
     assert File.close(file) == :ok
   end
 
+  test "read empty file" do
+    {:ok, file} = File.open(Path.expand('fixtures/cp_mode', __DIR__), [])
+    assert IO.read(file, :all) == ""
+    assert File.close(file) == :ok
+
+    {:ok, file} = File.open(Path.expand('fixtures/cp_mode', __DIR__), [:charlist])
+    assert IO.read(file, :all) == ''
+    assert File.close(file) == :ok
+  end
+
   test "binread" do
     {:ok, file} = File.open(Path.expand('fixtures/utf8.txt', __DIR__))
     assert "Русский" == IO.binread(file, 14)
