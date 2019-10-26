@@ -78,9 +78,11 @@ compile(Module, Block, Vars, #{line := Line, current_vars := {Current, _}} = Env
 
   case MaybeLexEnv of
     #{lexical_tracker := nil} ->
-      elixir_lexical:run(MaybeLexEnv, fun(LexEnv) ->
-        compile(Line, Module, Block, Vars, LexEnv)
-      end);
+      elixir_lexical:run(
+        MaybeLexEnv,
+        fun(LexEnv) -> compile(Line, Module, Block, Vars, LexEnv) end,
+        fun(_LexEnv) -> ok end
+      );
     _ ->
       compile(Line, Module, Block, Vars, MaybeLexEnv)
   end;

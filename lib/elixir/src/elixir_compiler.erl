@@ -15,10 +15,11 @@ quoted(Forms, File, Callback) ->
     put(elixir_module_binaries, []),
     Env = (elixir_env:new())#{line := 1, file := File, tracers := elixir_config:get(tracers)},
 
-    elixir_lexical:run(Env, fun(#{lexical_tracker := Pid} = LexicalEnv) ->
-      eval_forms(Forms, [], LexicalEnv),
-      Callback(File, Pid)
-    end),
+    elixir_lexical:run(
+      Env,
+      fun (LexicalEnv) -> eval_forms(Forms, [], LexicalEnv) end,
+      fun (#{lexical_tracker := Pid}) -> Callback(File, Pid) end
+    ),
 
     lists:reverse(get(elixir_module_binaries))
   after
