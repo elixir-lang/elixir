@@ -19,6 +19,12 @@ defmodule IOTest do
     assert File.close(file) == :ok
   end
 
+  test "read all charlist" do
+    {:ok, file} = File.open(Path.expand('fixtures/multiline_file.txt', __DIR__), [:charlist])
+    assert 'this is the first line\nthis is the second line\n' == IO.read(file, :all)
+    assert File.close(file) == :ok
+  end
+
   test "binread" do
     {:ok, file} = File.open(Path.expand('fixtures/utf8.txt', __DIR__))
     assert "Русский" == IO.binread(file, 14)
