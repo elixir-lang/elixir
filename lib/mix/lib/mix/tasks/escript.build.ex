@@ -47,7 +47,9 @@ defmodule Mix.Tasks.Escript.Build do
 
     * `:main_module` - the module to be invoked once the escript starts.
       The module must contain a function named `main/1` that will receive the
-      command line arguments as binaries.
+      command line arguments. By default the arguments are given as a list of
+      binaries, but if project is configured with `language: :erlang` it will
+      be a list of charlists.
 
   The remaining options can be specified to further customize the escript:
 
