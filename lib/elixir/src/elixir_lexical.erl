@@ -1,19 +1,21 @@
 %% Module responsible for tracking lexical information.
 -module(elixir_lexical).
--export([run/2, with_file/3, trace/2, format_error/1]).
+-export([run/3, with_file/3, trace/2, format_error/1]).
 -include("elixir.hrl").
 
 -define(tracker, 'Elixir.Kernel.LexicalTracker').
 
-run(#{tracers := Tracers} = E, Callback) ->
+run(#{tracers := Tracers} = E, ExecutionCallback, AfterExecutionCallback) ->
   case elixir_config:get(bootstrap) of
     false ->
       {ok, Pid} = ?tracker:start_link(),
+      LexEnv = E#{lexical_tracker := Pid, tracers := [?MODULE | Tracers]},
 
-      try Callback(E#{lexical_tracker := Pid, tracers := [?MODULE | Tracers]}) of
+      try ExecutionCallback(LexEnv) of
         Res ->
-          warn_unused_aliases(Pid, E),
-          warn_unused_imports(Pid, E),
+          warn_unused_aliases(Pid, LexEnv),
+          warn_unused_imports(Pid, LexEnv),
+          AfterExecutionCallback(LexEnv),
           Res
       after
         unlink(Pid),
@@ -21,7 +23,8 @@ run(#{tracers := Tracers} = E, Callback) ->
       end;
 
     true ->
-      Callback(E)
+      ExecutionCallback(E),
+      AfterExecutionCallback(E)
   end.
 
 trace({import, Meta, Module, Opts}, #{lexical_tracker := Pid}) ->
@@ -35,7 +38,7 @@ trace({import, Meta, Module, Opts}, #{lexical_tracker := Pid}) ->
 
   ?tracker:add_import(Pid, Module, Only, ?line(Meta), Imported and should_warn(Meta, Opts)),
   ok;
-trace({alias, Meta, _Old, New, Opts}, #{lexical_tracker := Pid}) ->  
+trace({alias, Meta, _Old, New, Opts}, #{lexical_tracker := Pid}) ->
   ?tracker:add_alias(Pid, New, ?line(Meta), should_warn(Meta, Opts)),
   ok;
 trace({alias_expansion, _Meta, Lookup, _Result}, #{lexical_tracker := Pid}) ->
