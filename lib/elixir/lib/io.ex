@@ -147,6 +147,12 @@ defmodule IO do
   @spec read(device, :all | :line | non_neg_integer) :: chardata | nodata
   def read(device \\ :stdio, line_or_chars)
 
+  def read(device, :all) when is_pid(device) do
+    is_binary = Keyword.get(:io.getopts(device), :binary, true)
+    acc = if is_binary, do: "", else: ''
+    do_read_all(map_dev(device), acc)
+  end
+
   def read(device, :all) do
     do_read_all(map_dev(device), "")
   end
@@ -162,6 +168,7 @@ defmodule IO do
   defp do_read_all(mapped_dev, acc) do
     case :io.get_line(mapped_dev, "") do
       line when is_binary(line) -> do_read_all(mapped_dev, acc <> line)
+      line when is_list(line) -> do_read_all(mapped_dev, acc ++ line)
       :eof -> acc
       other -> other
     end

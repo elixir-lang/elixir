@@ -203,7 +203,7 @@ defmodule StringIO do
 
   defp io_request(from, reply_as, req, state) do
     {reply, state} = io_request(req, state)
-    io_reply(from, reply_as, to_reply(reply))
+    io_reply(from, reply_as, reply)
     state
   end
 
@@ -260,7 +260,7 @@ defmodule StringIO do
   end
 
   defp io_request(:getopts, state) do
-    {{:ok, [binary: true, encoding: state.encoding]}, state}
+    {[binary: true, encoding: state.encoding], state}
   end
 
   defp io_request({:get_geometry, :columns}, state) do
@@ -458,7 +458,4 @@ defmodule StringIO do
   defp io_reply(from, reply_as, reply) do
     send(from, {:io_reply, reply_as, reply})
   end
-
-  defp to_reply(list) when is_list(list), do: IO.chardata_to_string(list)
-  defp to_reply(other), do: other
 end

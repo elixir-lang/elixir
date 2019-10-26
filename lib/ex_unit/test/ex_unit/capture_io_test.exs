@@ -279,7 +279,7 @@ defmodule ExUnit.CaptureIOTest do
 
   test "with getopts" do
     assert capture_io(fn ->
-             assert :io.getopts() == {:ok, [binary: true, encoding: :unicode]}
+             assert :io.getopts() == [binary: true, encoding: :unicode]
            end) == ""
   end
 
