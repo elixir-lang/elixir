@@ -13,8 +13,8 @@ run(#{tracers := Tracers} = E, ExecutionCallback, AfterExecutionCallback) ->
 
       try ExecutionCallback(LexEnv) of
         Res ->
-          warn_unused_aliases(Pid, E),
-          warn_unused_imports(Pid, E),
+          warn_unused_aliases(Pid, LexEnv),
+          warn_unused_imports(Pid, LexEnv),
           AfterExecutionCallback(LexEnv),
           Res
       after
