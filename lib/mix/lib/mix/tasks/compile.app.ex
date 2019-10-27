@@ -362,10 +362,9 @@ defmodule Mix.Tasks.Compile.App do
   end
 
   defp language_app(config) do
-    case Keyword.fetch(config, :language) do
-      {:ok, :elixir} -> [:elixir]
-      {:ok, :erlang} -> []
-      :error -> [:elixir]
+    case Keyword.get(config, :language, :elixir) do
+      :elixir -> [:elixir]
+      :erlang -> []
     end
   end
 end
