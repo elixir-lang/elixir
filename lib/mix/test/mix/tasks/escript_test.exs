@@ -65,6 +65,16 @@ defmodule Mix.Tasks.EscriptTest do
     end
   end
 
+  defmodule EscriptErlangMainModule do
+    def project do
+      [
+        app: :escript_test_erlang_main_module,
+        version: "0.0.1",
+        escript: [main_module: :escript_test]
+      ]
+    end
+  end
+
   defmodule EscriptWithUnknownMainModule do
     def project do
       [
@@ -206,7 +216,24 @@ defmodule Mix.Tasks.EscriptTest do
       message = "Generated escript escript_test_erlang_with_deps with MIX_ENV=dev"
       assert_received {:mix_shell, :info, [^message]}
 
-      assert System.cmd("escript", ["escript_test_erlang_with_deps"]) == {"Erlang value", 0}
+      assert System.cmd("escript", ["escript_test_erlang_with_deps", "arg1", "arg2"]) ==
+               {~s(["arg1","arg2"]), 0}
+    end)
+  after
+    purge([Ok.MixProject])
+  end
+
+  test "generate escript with Erlang main module" do
+    Mix.Project.push(EscriptErlangMainModule)
+
+    in_fixture("escript_test", fn ->
+      Mix.Tasks.Escript.Build.run([])
+
+      message = "Generated escript escript_test_erlang_main_module with MIX_ENV=dev"
+      assert_received {:mix_shell, :info, [^message]}
+
+      assert System.cmd("escript", ["escript_test_erlang_main_module", "arg1", "arg2"]) ==
+               {~s([<<"arg1">>,<<"arg2">>]), 0}
     end)
   after
     purge([Ok.MixProject])

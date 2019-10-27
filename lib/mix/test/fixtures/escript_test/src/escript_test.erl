@@ -6,6 +6,5 @@
 start() ->
     ok = application:start(escript_test).
 
-main(_Args) ->
-    {ok, Val} = application:get_env(escript_test, erl_val),
-    io:put_chars(Val).
+main(Args) ->
+    io:format("~p", [Args]).
