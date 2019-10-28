@@ -94,7 +94,7 @@ defmodule Kernel.Utils do
     fields = :lists.map(mapper, fields)
     enforce_keys = List.wrap(Module.get_attribute(module, :enforce_keys))
 
-  # TODO: Make it raise on v2.0
+    # TODO: Make it raise on v2.0
     :lists.keysort(1, fields)
     |> warn_on_duplicate_struct_key()
 
