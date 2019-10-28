@@ -96,7 +96,7 @@ defmodule Kernel.Utils do
 
   # TODO: Make it raise on v2.0
     :lists.keysort(1, fields)
-    |> warn_on_duplicate_struct_key(nil)
+    |> warn_on_duplicate_struct_key()
 
     foreach = fn
       key when is_atom(key) ->
@@ -112,17 +112,17 @@ defmodule Kernel.Utils do
     {struct, enforce_keys, Module.get_attribute(module, :derive)}
   end
 
-  defp warn_on_duplicate_struct_key([], _) do
-    nil
+  defp warn_on_duplicate_struct_key([]) do
+    :ok
   end
 
-  defp warn_on_duplicate_struct_key([{key, _} | rest], key) do
-    IO.warn(~s(duplicate key #{inspect(key)} found in struct))
-    warn_on_duplicate_struct_key(rest, key)
+  defp warn_on_duplicate_struct_key([{key, _} | [{key, _} | _] = rest]) do
+    IO.warn("duplicate key #{inspect(key)} found in struct")
+    warn_on_duplicate_struct_key(rest)
   end
 
-  defp warn_on_duplicate_struct_key([{key, _} | rest], _) do
-    warn_on_duplicate_struct_key(rest, key)
+  defp warn_on_duplicate_struct_key([_ | rest]) do
+    warn_on_duplicate_struct_key(rest)
   end
 
   @doc """
