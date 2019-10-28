@@ -1355,6 +1355,11 @@ defmodule EnumTest.Range do
     end
   end
 
+  test "map_intersperse/3" do
+    assert Enum.map_intersperse(1..1, :a, &(&1 * 2)) == [2]
+    assert Enum.map_intersperse(1..3, :a, &(&1 * 2)) == [2, :a, 4, :a, 6]
+  end
+
   test "map_join/3" do
     assert Enum.map_join(1..0, " = ", &(&1 * 2)) == "2 = 0"
     assert Enum.map_join(1..3, " = ", &(&1 * 2)) == "2 = 4 = 6"
@@ -1809,6 +1814,14 @@ defmodule EnumTest.Map do
 
     assert Stream.take(map, 3) |> Enum.fetch(3) == :error
     assert Stream.take(map, 5) |> Enum.fetch(4) == {:ok, {:e, 5}}
+  end
+
+  test "map_intersperse/3" do
+    assert Enum.map_intersperse(%{}, :a, & &1) == []
+    assert Enum.map_intersperse(%{foo: :bar}, :a, & &1) == [{:foo, :bar}]
+
+    assert Enum.map_intersperse(%{foo: :bar, baz: :bat}, :a, & &1) ==
+             [{:baz, :bat}, :a, {:foo, :bar}]
   end
 
   test "slice/2" do

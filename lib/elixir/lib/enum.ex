@@ -1436,9 +1436,15 @@ defmodule Enum do
   """
   @doc since: "1.10.0"
   @spec map_intersperse(t, element(), (element -> any())) :: list()
+  def map_intersperse(enumerable, separator, mapper)
+
+  def map_intersperse(enumerable, separator, mapper) when is_list(enumerable) do
+    map_intersperse_list(enumerable, separator, mapper)
+  end
+
   def map_intersperse(enumerable, separator, mapper) do
     reduced =
-      Enum.reduce(enumerable, :first, fn
+      reduce(enumerable, :first, fn
         entry, :first -> [mapper.(entry)]
         entry, acc -> [mapper.(entry), separator | acc]
       end)
@@ -1470,20 +1476,10 @@ defmodule Enum do
 
   """
   @spec map_join(t, String.t(), (element -> String.Chars.t())) :: String.t()
-  def map_join(enumerable, joiner \\ "", mapper)
-
-  def map_join(enumerable, joiner, mapper) when is_binary(joiner) do
-    reduced =
-      reduce(enumerable, :first, fn
-        entry, :first -> entry_to_string(mapper.(entry))
-        entry, acc -> [acc, joiner | entry_to_string(mapper.(entry))]
-      end)
-
-    if reduced == :first do
-      ""
-    else
-      IO.iodata_to_binary(reduced)
-    end
+  def map_join(enumerable, joiner \\ "", mapper) when is_binary(joiner) do
+    enumerable
+    |> map_intersperse(joiner, &entry_to_string(mapper.(&1)))
+    |> IO.iodata_to_binary()
   end
 
   @doc """
@@ -3316,6 +3312,17 @@ defmodule Enum do
   defp flat_map_list([], _fun) do
     []
   end
+
+  ## map_intersperse
+
+  defp map_intersperse_list([], _, _),
+    do: []
+
+  defp map_intersperse_list([last], _, mapper),
+    do: [mapper.(last)]
+
+  defp map_intersperse_list([head | rest], separator, mapper),
+    do: [mapper.(head), separator | map_intersperse_list(rest, separator, mapper)]
 
   ## reduce
 
