@@ -94,6 +94,10 @@ defmodule Kernel.Utils do
     fields = :lists.map(mapper, fields)
     enforce_keys = List.wrap(Module.get_attribute(module, :enforce_keys))
 
+  # TODO: Make it raise on v2.0
+    :lists.keysort(1, fields)
+    |> warn_on_duplicate_struct_key(nil)
+
     foreach = fn
       key when is_atom(key) ->
         :ok
@@ -106,6 +110,19 @@ defmodule Kernel.Utils do
 
     struct = :maps.put(:__struct__, module, :maps.from_list(fields))
     {struct, enforce_keys, Module.get_attribute(module, :derive)}
+  end
+
+  defp warn_on_duplicate_struct_key([], _) do
+    nil
+  end
+
+  defp warn_on_duplicate_struct_key([{key, _} | rest], key) do
+    IO.warn(~s(duplicate key #{inspect(key)} found in struct))
+    warn_on_duplicate_struct_key(rest, key)
+  end
+
+  defp warn_on_duplicate_struct_key([{key, _} | rest], _) do
+    warn_on_duplicate_struct_key(rest, key)
   end
 
   @doc """
