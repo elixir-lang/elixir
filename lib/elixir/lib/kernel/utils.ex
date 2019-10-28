@@ -95,8 +95,7 @@ defmodule Kernel.Utils do
     enforce_keys = List.wrap(Module.get_attribute(module, :enforce_keys))
 
     # TODO: Make it raise on v2.0
-    :lists.keysort(1, fields)
-    |> warn_on_duplicate_struct_key()
+    warn_on_duplicate_struct_key(:lists.keysort(1, fields))
 
     foreach = fn
       key when is_atom(key) ->
