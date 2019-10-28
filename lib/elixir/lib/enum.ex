@@ -1427,6 +1427,30 @@ defmodule Enum do
   end
 
   @doc """
+  Maps and intersperses the given enumerable in one pass.
+
+  ## Examples
+
+      iex> Enum.map_intersperse([1, 2, 3], :a, &(&1 * 2))
+      [2, :a, 4, :a, 6]
+  """
+  @doc since: "1.10.0"
+  @spec map_intersperse(t, element(), (element -> any())) :: list()
+  def map_intersperse(enumerable, separator, mapper) do
+    reduced =
+      Enum.reduce(enumerable, :first, fn
+        entry, :first -> [mapper.(entry)]
+        entry, acc -> [mapper.(entry), separator | acc]
+      end)
+
+    if reduced == :first do
+      []
+    else
+      :lists.reverse(reduced)
+    end
+  end
+
+  @doc """
   Maps and joins the given `enumerable` in one pass.
 
   `joiner` can be either a binary or a list and the result will be of
