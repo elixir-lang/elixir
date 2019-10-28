@@ -1,17 +1,21 @@
 %% Handle code related to args, guard and -> matching for case,
 %% fn, receive and friends. try is handled in elixir_try.
 -module(elixir_clauses).
--export([match/3, clause/5, def/2, head/2,
+-export([match/4, clause/5, def/2, head/2, head/3,
          'case'/3, 'receive'/3, 'try'/3, 'cond'/3, with/3,
          format_error/1]).
 -import(elixir_errors, [form_error/4, form_warn/4]).
 -include("elixir.hrl").
 
-match(Fun, Expr, #{context := match} = E) ->
+match(Fun, Expr, E, #{context := match}) ->
   Fun(Expr, E);
-match(Fun, Expr, #{context := Context, prematch_vars := Prematch, current_vars := {Current, _}} = E) ->
-  {EExpr, EE} = Fun(Expr, E#{context := match, prematch_vars := Current}),
-  {EExpr, EE#{context := Context, prematch_vars := Prematch}}.
+match(Fun, Expr, #{current_vars := CU} = AfterE, BeforeE) ->
+  #{context := Context, prematch_vars := Prematch, current_vars := {Current, _}} = BeforeE,
+
+  {EExpr, #{current_vars := NewCU}} =
+    Fun(Expr, BeforeE#{context := match, prematch_vars := Current, current_vars := CU}),
+
+  {EExpr, AfterE#{context := Context, prematch_vars := Prematch, current_vars := NewCU}}.
 
 def({Meta, Args, Guards, Body}, E) ->
   {EArgs, EA}   = elixir_expand:expand(Args, E#{context := match, prematch_vars := #{}}),
@@ -29,13 +33,21 @@ clause(_Meta, _Kind, Fun, {'->', Meta, [Left, Right]}, E) ->
 clause(Meta, Kind, _Fun, _, E) ->
   form_error(Meta, E, ?MODULE, {bad_or_missing_clauses, Kind}).
 
-head([{'when', Meta, [_ | _] = All}], E) ->
-  {Args, Guard} = elixir_utils:split_last(All),
-  {EArgs, EA}   = match(fun elixir_expand:expand_args/2, Args, E),
-  {EGuard, EG}  = guard(Guard, EA#{context := guard}),
-  {[{'when', Meta, EArgs ++ [EGuard]}], EG#{context := ?key(E, context)}};
 head(Args, E) ->
-  match(fun elixir_expand:expand_args/2, Args, E).
+  head(Args, E, E).
+head([{'when', Meta, [_ | _] = All}], AfterE, BeforeE) ->
+  {Args, Guard} = elixir_utils:split_last(All),
+
+  {{EArgs, EGuard}, EG} =
+    match(fun(ok, EM) ->
+      {EArgs, EA} = elixir_expand:expand_args(Args, EM),
+      {EGuard, EG} = guard(Guard, EA#{context := guard, prematch_vars := ?key(BeforeE, prematch_vars)}),
+      {{EArgs, EGuard}, EG}
+    end, ok, AfterE, BeforeE),
+
+  {[{'when', Meta, EArgs ++ [EGuard]}], EG};
+head(Args, AfterE, BeforeE) ->
+  match(fun elixir_expand:expand_args/2, Args, AfterE, BeforeE).
 
 guard({'when', Meta, [Left, Right]}, E) ->
   {ELeft, EL}  = guard(Left, E),
@@ -151,8 +163,8 @@ expand_with({'<-', Meta, [{Name, _, Ctx}, _] = Args}, Acc) when is_atom(Name), i
   expand_with({'=', Meta, Args}, Acc);
 expand_with({'<-', Meta, [Left, Right]}, {E, _HasMatch}) ->
   {ERight, ER} = elixir_expand:expand(Right, E),
-  {[ELeft], EL}  = head([Left], E),
-  {{'<-', Meta, [ELeft, ERight]}, {elixir_env:mergev(EL, ER), true}};
+  {[ELeft], EL}  = head([Left], ER, E),
+  {{'<-', Meta, [ELeft, ERight]}, {EL, true}};
 expand_with(Expr, {E, HasMatch}) ->
   {EExpr, EE} = elixir_expand:expand(Expr, E),
   {EExpr, {EE, HasMatch}}.
@@ -250,7 +262,7 @@ expand_rescue(Meta, _, E) ->
 
 %% rescue var
 expand_rescue({Name, _, Atom} = Var, E) when is_atom(Name), is_atom(Atom) ->
-  match(fun elixir_expand:expand/2, Var, E);
+  match(fun elixir_expand:expand/2, Var, E, E);
 
 %% rescue var in _ => rescue var
 expand_rescue({in, _, [{Name, _, VarContext} = Var, {'_', _, UnderscoreContext}]}, E)
@@ -259,7 +271,7 @@ expand_rescue({in, _, [{Name, _, VarContext} = Var, {'_', _, UnderscoreContext}]
 
 %% rescue var in [Exprs]
 expand_rescue({in, Meta, [Left, Right]}, E) ->
-  {ELeft, EL}  = match(fun elixir_expand:expand/2, Left, E),
+  {ELeft, EL}  = match(fun elixir_expand:expand/2, Left, E, E),
   {ERight, ER} = elixir_expand:expand(Right, EL),
 
   case ELeft of
