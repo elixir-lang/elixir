@@ -361,6 +361,12 @@ defmodule EnumTest do
              [1001, 2, 3, 4, 5, 6, 7, 8, 9, 10]
   end
 
+  test "map_intersperse/3" do
+    assert Enum.map_intersperse([], :a, &(&1 * 2)) == []
+    assert Enum.map_intersperse([1], :a, &(&1 * 2)) == [2]
+    assert Enum.map_intersperse([1, 2, 3], :a, &(&1 * 2)) == [2, :a, 4, :a, 6]
+  end
+
   test "map_join/3" do
     assert Enum.map_join([], " = ", &(&1 * 2)) == ""
     assert Enum.map_join([1, 2, 3], " = ", &(&1 * 2)) == "2 = 4 = 6"
