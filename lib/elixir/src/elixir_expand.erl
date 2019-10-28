@@ -8,9 +8,9 @@
 expand({'=', Meta, [Left, Right]}, E) ->
   assert_no_guard_scope(Meta, "=", E),
   {ERight, ER} = expand(Right, E),
-  {ELeft, EL} = elixir_clauses:match(fun expand/2, Left, E),
+  {ELeft, EL} = elixir_clauses:match(fun expand/2, Left, ER, E),
   refute_parallel_bitstring_match(ELeft, ERight, E, ?key(E, context) == match),
-  {{'=', Meta, [ELeft, ERight]}, elixir_env:mergev(EL, ER)};
+  {{'=', Meta, [ELeft, ERight]}, EL};
 
 %% Literal operators
 
@@ -983,16 +983,16 @@ expand_aliases({'__aliases__', Meta, _} = Alias, E, Report) ->
 
 expand_for({'<-', Meta, [Left, Right]}, E) ->
   {ERight, ER} = expand(Right, E),
-  {[ELeft], EL} = elixir_clauses:head([Left], E),
-  {{'<-', Meta, [ELeft, ERight]}, elixir_env:mergev(EL, ER)};
+  {[ELeft], EL} = elixir_clauses:head([Left], ER, E),
+  {{'<-', Meta, [ELeft, ERight]}, EL};
 expand_for({'<<>>', Meta, Args} = X, E) when is_list(Args) ->
   case elixir_utils:split_last(Args) of
     {LeftStart, {'<-', OpMeta, [LeftEnd, Right]}} ->
       {ERight, ER} = expand(Right, E),
       {ELeft, EL} = elixir_clauses:match(fun(BArg, BE) ->
         elixir_bitstring:expand(Meta, BArg, BE, true)
-      end, LeftStart ++ [LeftEnd], E),
-      {{'<<>>', [], [{'<-', OpMeta, [ELeft, ERight]}]}, elixir_env:mergev(EL, ER)};
+      end, LeftStart ++ [LeftEnd], ER, E),
+      {{'<<>>', [], [{'<-', OpMeta, [ELeft, ERight]}]}, EL};
     _ ->
       expand(X, E)
   end;
