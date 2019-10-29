@@ -1,7 +1,8 @@
 %% Convenience functions used to manipulate scope and its variables.
 -module(elixir_erl_var).
 -export([translate/4, build/2, assign/4,
-  load_binding/2, dump_binding/2, mergev/2, mergec/2
+  load_binding/2, dump_binding/2, discard_vars/2,
+  reset_read/2, prepare_write/1, close_write/2
 ]).
 -include("elixir.hrl").
 
@@ -12,7 +13,7 @@ translate(Meta, Name, Kind, S) ->
 
   Current =
     case S#elixir_erl.vars of
-      #{Tuple := {_, VarC}} -> VarC;
+      {#{Tuple := {_, VarC}}, _} -> VarC;
       _ -> nil
     end,
 
@@ -34,7 +35,7 @@ translate(Meta, Name, Kind, S) ->
       {{var, ?ann(Meta), Current}, S}
   end.
 
-assign(Meta, Name, Kind, S) ->
+assign(Meta, Name, Kind, #elixir_erl{vars={Read, Write}} = S) ->
   Tuple = {Name, Kind},
 
   {NewVar, Counter, NS} =
@@ -43,8 +44,9 @@ assign(Meta, Name, Kind, S) ->
       true -> build(Name, S)
     end,
 
-  FS = NS#elixir_erl{vars=(S#elixir_erl.vars)#{Tuple => {Counter, NewVar}}},
-  {{var, ?ann(Meta), NewVar}, FS}.
+  NewRead = Read#{Tuple => {Counter, NewVar}},
+  NewWrite = (Write /= false) andalso Write#{Tuple => {Counter, NewVar}},
+  {{var, ?ann(Meta), NewVar}, NS#elixir_erl{vars={NewRead, NewWrite}}}.
 
 build(Key, #elixir_erl{counter=Counter} = S) ->
   Cnt =
@@ -58,25 +60,23 @@ build(Key, #elixir_erl{counter=Counter} = S) ->
 
 %% SCOPE MERGING
 
-%% Receives two scopes and return a new scope based on
-%% the second with their variables merged.
+%% Receives two scopes and return the first scope discarding its vars.
+discard_vars(S, #elixir_erl{vars=Vars}) ->
+  S#elixir_erl{vars=Vars}.
 
-mergev(#elixir_erl{vars=V1}, #elixir_erl{vars=V2} = S2) ->
-  if
-    V1 =/= V2 -> S2#elixir_erl{vars=merge_vars(V1, V2)};
-    true -> S2
-  end.
+reset_read(#elixir_erl{vars={_, Write}} = S, #elixir_erl{vars={Read, _}}) ->
+  S#elixir_erl{vars={Read, Write}}.
 
-%% Receives two scopes and return the first scope with
-%% counters and flags from the later.
+prepare_write(#elixir_erl{vars={Read, _}} = S) ->
+  S#elixir_erl{vars={Read, Read}}.
 
-mergec(S1, S2) ->
-  S1#elixir_erl{
-    counter=S2#elixir_erl.counter,
-    caller=S2#elixir_erl.caller,
-    stacktrace=S2#elixir_erl.stacktrace
-  }.
+close_write(#elixir_erl{vars={_Read, Write}} = S, #elixir_erl{vars={_, false}}) ->
+  S#elixir_erl{vars={Write, false}};
+close_write(#elixir_erl{vars={_Read, Write}} = S, #elixir_erl{vars={_, UpperWrite}}) ->
+  S#elixir_erl{vars={Write, merge_vars(UpperWrite, Write)}}.
 
+merge_vars(V, V) ->
+  V;
 merge_vars(V1, V2) ->
   maps:fold(fun(K, M2, Acc) ->
     case Acc of
@@ -90,7 +90,7 @@ merge_vars(V1, V2) ->
 load_binding(Binding, Scope) ->
   {NewBinding, NewKeys, NewVars, NewCounter} = load_binding(Binding, [], [], #{}, 0),
   {NewBinding, NewKeys, Scope#elixir_erl{
-    vars=NewVars,
+    vars={NewVars, false},
     counter=#{'_' => NewCounter}
   }}.
 
@@ -107,7 +107,7 @@ load_binding([{Key, Value} | T], Binding, Keys, Vars, Counter) ->
 load_binding([], Binding, Keys, Vars, Counter) ->
   {Binding, Keys, Vars, Counter}.
 
-dump_binding(Binding, #elixir_erl{vars=Vars}) ->
+dump_binding(Binding, #elixir_erl{vars={Read, _}}) ->
   maps:fold(fun
     ({Var, Kind} = Key, {_, InternalName}, Acc) when is_atom(Kind) ->
       Actual = case Kind of
@@ -123,4 +123,4 @@ dump_binding(Binding, #elixir_erl{vars=Vars}) ->
       orddict:store(Actual, Value, Acc);
     (_, _, Acc) ->
       Acc
-  end, [], Vars).
+  end, [], Read).

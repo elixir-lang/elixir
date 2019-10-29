@@ -12,7 +12,7 @@ clauses(_Meta, Args, S) ->
 
 reduce_clauses([H | T], Acc, OldStack, SAcc, S) ->
   {TH, TS} = each_clause(H, SAcc),
-  reduce_clauses(T, TH ++ Acc, OldStack, elixir_erl_var:mergec(S, TS), S);
+  reduce_clauses(T, TH ++ Acc, OldStack, elixir_erl_var:discard_vars(TS, S), S);
 reduce_clauses([], Acc, OldStack, SAcc, _S) ->
   {lists:reverse(Acc), SAcc#elixir_erl{stacktrace = OldStack}}.
 

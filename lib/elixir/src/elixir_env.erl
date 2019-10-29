@@ -51,7 +51,8 @@ env_to_scope(#{context := Context}) ->
 env_to_scope_with_vars(Env, Vars) ->
   Map = maps:from_list(Vars),
   (env_to_scope(Env))#elixir_erl{
-    vars=Map, counter=#{'_' => map_size(Map)}
+    vars={Map, false},
+    counter=#{'_' => map_size(Map)}
   }.
 
 reset_vars(Env) ->
