@@ -285,7 +285,7 @@ defmodule Kernel.Typespec do
       if is_atom(args) do
         []
       else
-        for(arg <- args, do: variable(arg))
+        :lists.map(&variable/1, args)
       end
 
     vars = :lists.filter(&match?({:var, _, _}, &1), args)
