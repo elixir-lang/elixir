@@ -38,14 +38,14 @@ defmodule Macro.Env do
     * `requires` - the list of required modules
 
   The following fields are private to Elixir's macro expansion mechanism and
-  must not be accessed directly. See the functions in this module that exposes
-  the relevant information from the fields below whenever necessary:
+  must not be accessed directly:
 
     * `contextual_vars`
     * `current_vars`
     * `lexical_tracker`
     * `prematch_vars`
     * `tracers`
+    * `unused_vars`
 
   The following fields are deprecated and must not be accessed or relied on:
 
@@ -69,7 +69,9 @@ defmodule Macro.Env do
   @typep contextual_vars :: [atom]
   @typep current_vars ::
            {%{optional(variable) => {var_version, var_type}},
-            %{optional({variable, var_version}) => non_neg_integer | false}}
+            %{optional(variable) => {var_version, var_type}} | false}
+  @typep unused_vars ::
+           %{optional({variable, var_version}) => non_neg_integer | false}
   @typep prematch_vars ::
            %{optional(variable) => {var_version, var_type}} | :warn | :raise | :pin | :apply
   @typep tracers :: [module]
@@ -93,6 +95,7 @@ defmodule Macro.Env do
           macros: macros,
           module: atom,
           prematch_vars: prematch_vars,
+          unused_vars: unused_vars,
           requires: requires,
           tracers: tracers,
           vars: vars
@@ -118,6 +121,7 @@ defmodule Macro.Env do
       prematch_vars: :warn,
       requires: [],
       tracers: [],
+      unused_vars: %{},
       vars: []
     }
   end
@@ -138,8 +142,8 @@ defmodule Macro.Env do
   @spec vars(t) :: [variable]
   def vars(env)
 
-  def vars(%{__struct__: Macro.Env, current_vars: {current_vars, _}}) do
-    Map.keys(current_vars)
+  def vars(%{__struct__: Macro.Env, current_vars: {read, _}}) do
+    Map.keys(read)
   end
 
   @doc """
@@ -149,8 +153,8 @@ defmodule Macro.Env do
   @spec has_var?(t, variable) :: boolean()
   def has_var?(env, var)
 
-  def has_var?(%{__struct__: Macro.Env, current_vars: {current_vars, _}}, var) do
-    Map.has_key?(current_vars, var)
+  def has_var?(%{__struct__: Macro.Env, current_vars: {read, _}}, var) do
+    Map.has_key?(read, var)
   end
 
   @doc """
@@ -172,8 +176,8 @@ defmodule Macro.Env do
     env
   end
 
-  def to_match(%{__struct__: Macro.Env, current_vars: {vars, _}} = env) do
-    %{env | context: :match, prematch_vars: vars}
+  def to_match(%{__struct__: Macro.Env, current_vars: {read, _}} = env) do
+    %{env | context: :match, prematch_vars: read}
   end
 
   @doc """

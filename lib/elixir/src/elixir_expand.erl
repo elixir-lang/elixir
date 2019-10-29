@@ -119,13 +119,15 @@ expand({'__CALLER__', Meta, Atom} = Caller, E) when is_atom(Atom) ->
 expand({'__STACKTRACE__', Meta, Atom} = Stacktrace, E) when is_atom(Atom) ->
   assert_contextual_var(Meta, '__STACKTRACE__', E, stacktrace_not_allowed),
   {Stacktrace, E};
+expand({'__ENV__', Meta, Atom}, #{context := match} = E) when is_atom(Atom) ->
+  form_error(Meta, E, ?MODULE, env_not_allowed);
 expand({'__ENV__', Meta, Atom}, E) when is_atom(Atom) ->
-  {escape_map(escape_env_entries(Meta, E)), E};
+  {maybe_escape_map(escape_env_entries(Meta, E)), E};
 expand({{'.', DotMeta, [{'__ENV__', Meta, Atom}, Field]}, CallMeta, []}, E) when is_atom(Atom), is_atom(Field) ->
   Env = escape_env_entries(Meta, E),
   case maps:is_key(Field, Env) of
     true  -> {maps:get(Field, Env), E};
-    false -> {{{'.', DotMeta, [escape_map(Env), Field]}, CallMeta, []}, E}
+    false -> {{{'.', DotMeta, [maybe_escape_map(Env), Field]}, CallMeta, []}, E}
   end;
 
 %% Quote
@@ -316,22 +318,14 @@ expand({super, Meta, Args}, E) when is_list(Args) ->
 %% Vars
 
 expand({'^', Meta, [Arg]}, #{context := match} = E) ->
-  #{current_vars := {Current, Unused}, prematch_vars := Prematch} = E,
+  #{current_vars := {_ReadCurrent, WriteCurrent}, prematch_vars := Prematch} = E,
 
   %% We need to rollback to a no match context.
-  NoMatchE = E#{context := nil, current_vars := {Prematch, Unused}, prematch_vars := pin},
+  NoMatchE = E#{context := nil, current_vars := {Prematch, WriteCurrent}, prematch_vars := pin},
 
   case expand(Arg, NoMatchE) of
-    {{Name, _, Kind} = Var, ExpandedE} when is_atom(Name), is_atom(Kind) ->
-      #{current_vars := {NewPrematch, NewUnused}} = ExpandedE,
-
-      EA = ExpandedE#{
-        context := match,
-        current_vars := {Current, NewUnused},
-        prematch_vars := NewPrematch
-      },
-
-      {{'^', Meta, [Var]}, EA};
+    {{Name, _, Kind} = Var, #{unused_vars := Unused}} when is_atom(Name), is_atom(Kind) ->
+      {{'^', Meta, [Var]}, E#{unused_vars := Unused}};
     _ ->
       form_error(Meta, E, ?MODULE, {invalid_arg_for_pin, Arg})
   end;
@@ -344,38 +338,40 @@ expand({'_', Meta, Kind}, E) when is_atom(Kind) ->
   form_error(Meta, E, ?MODULE, unbound_underscore);
 
 expand({Name, Meta, Kind} = Var, #{context := match} = E) when is_atom(Name), is_atom(Kind) ->
-  #{current_vars := {Current, Unused}, prematch_vars := Prematch} = E,
+  #{current_vars := {ReadCurrent, WriteCurrent}, unused_vars := Unused, prematch_vars := Prematch} = E,
   Pair = {Name, elixir_utils:var_context(Meta, Kind)},
   PrematchVersion = var_version(Prematch, Pair),
 
   EE =
-    case Current of
+    case ReadCurrent of
       %% Variable is being overridden now
       #{Pair := PrematchVersion} ->
         NewUnused = var_unused(Pair, Meta, PrematchVersion + 1, Unused),
-        NewCurrent = Current#{Pair => PrematchVersion + 1},
-        E#{current_vars := {NewCurrent, NewUnused}};
+        NewReadCurrent = ReadCurrent#{Pair => PrematchVersion + 1},
+        NewWriteCurrent = WriteCurrent andalso WriteCurrent#{Pair => PrematchVersion + 1},
+        E#{current_vars := {NewReadCurrent, NewWriteCurrent}, unused_vars := NewUnused};
 
       %% Variable was already overriden
       #{Pair := CurrentVersion} ->
         maybe_warn_underscored_var_repeat(Meta, Name, Kind, E),
         NewUnused = Unused#{{Pair, CurrentVersion} => false},
-        E#{current_vars := {Current, NewUnused}};
+        E#{unused_vars := NewUnused};
 
       %% Variable defined for the first time
       _ ->
         NewVars = ordsets:add_element(Pair, ?key(E, vars)),
         NewUnused = var_unused(Pair, Meta, 0, Unused),
-        NewCurrent = Current#{Pair => 0},
-        E#{vars := NewVars, current_vars := {NewCurrent, NewUnused}}
+        NewReadCurrent = ReadCurrent#{Pair => 0},
+        NewWriteCurrent = WriteCurrent andalso WriteCurrent#{Pair => 0},
+        E#{vars := NewVars, current_vars := {NewReadCurrent, NewWriteCurrent}, unused_vars := NewUnused}
     end,
 
   {Var, EE};
 expand({Name, Meta, Kind} = Var, E) when is_atom(Name), is_atom(Kind) ->
-  #{current_vars := {Current, Unused}} = E,
+  #{current_vars := {ReadCurrent, _WriteCurrent}, unused_vars := Unused} = E,
   Pair = {Name, elixir_utils:var_context(Meta, Kind)},
 
-  case Current of
+  case ReadCurrent of
     #{Pair := Version} ->
       maybe_warn_underscored_var_access(Meta, Name, Kind, E),
       UnusedKey = {Pair, Version},
@@ -384,7 +380,7 @@ expand({Name, Meta, Kind} = Var, E) when is_atom(Name), is_atom(Kind) ->
         #{UnusedKey := false} ->
           {Var, E};
         _ ->
-          {Var, E#{current_vars := {Current, Unused#{UnusedKey => false}}}}
+          {Var, E#{unused_vars := Unused#{UnusedKey => false}}}
       end;
 
     _ ->
@@ -492,17 +488,18 @@ expand(Other, E) ->
 
 %% Helpers
 
-escape_env_entries(Meta, #{current_vars := {Current, Unused}} = Env0) ->
+escape_env_entries(Meta, #{current_vars := {Read, Write}, unused_vars := Unused} = Env0) ->
   Env1 = case Env0 of
     #{function := nil} -> Env0;
     _ -> Env0#{lexical_tracker := nil}
   end,
-  Env2 = Env1#{current_vars := {escape_map(Current), escape_map(Unused)}},
+  Current = {maybe_escape_map(Read), maybe_escape_map(Write)},
+  Env2 = Env1#{current_vars := Current, unused_vars := maybe_escape_map(Unused)},
   Env3 = elixir_env:linify({?line(Meta), Env2}),
   Env3.
 
-escape_map(Map) ->
-  {'%{}', [], maps:to_list(Map)}.
+maybe_escape_map(#{} = Map) -> {'%{}', [], maps:to_list(Map)};
+maybe_escape_map(Other) -> Other.
 
 expand_multi_alias_call(Kind, Meta, Base, Refs, Opts, E) ->
   {BaseRef, EB} = expand_without_aliases_report(Base, E),
@@ -1256,6 +1253,8 @@ format_error({nested_comparison, CompExpr}) ->
                 "You wrote: ~ts", [String]);
 format_error({undefined_local_capture, Fun, Arity}) ->
   io_lib:format("undefined function ~ts/~B", [Fun, Arity]);
+format_error(env_not_allowed) ->
+  "__ENV__ is not allowed inside a match";
 format_error(caller_not_allowed) ->
   "__CALLER__ is available only inside defmacro and defmacrop";
 format_error(stacktrace_not_allowed) ->
