@@ -73,17 +73,7 @@ prepare_write(#elixir_erl{vars={Read, _}} = S) ->
 close_write(#elixir_erl{vars={_Read, Write}} = S, #elixir_erl{vars={_, false}}) ->
   S#elixir_erl{vars={Write, false}};
 close_write(#elixir_erl{vars={_Read, Write}} = S, #elixir_erl{vars={_, UpperWrite}}) ->
-  S#elixir_erl{vars={Write, merge_vars(UpperWrite, Write)}}.
-
-merge_vars(V, V) ->
-  V;
-merge_vars(V1, V2) ->
-  maps:fold(fun(K, M2, Acc) ->
-    case Acc of
-      #{K := M1} when M1 >= M2 -> Acc;
-      _ -> Acc#{K => M2}
-    end
-  end, V1, V2).
+  S#elixir_erl{vars={Write, maps:merge(UpperWrite, Write)}}.
 
 %% BINDINGS
 
