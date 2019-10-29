@@ -2,6 +2,7 @@ Code.require_file("test_helper.exs", __DIR__)
 
 defmodule RecordTest do
   use ExUnit.Case, async: true
+  import ExUnit.CaptureIO
 
   require Record
   doctest Record
@@ -260,6 +261,15 @@ defmodule RecordTest do
         defrecord :r, [:a]
       end
     end
+  end
+
+  test "duplicate keys" do
+    assert capture_io(:stderr, fn ->
+             defmodule DuplicateKeys do
+               import Record
+               defrecord :r, [:a, :a]
+             end
+           end) =~ "duplicate key :a found in record"
   end
 
   test "macro and record with the same name defined" do
