@@ -1782,7 +1782,7 @@ defmodule Kernel.WarningTest do
     purge(TestMod)
   end
 
-  test "duplicate keys" do
+  test "defrecord warns with duplicate keys" do
     assert capture_err(fn ->
              Code.eval_string("""
              defmodule TestMod do
