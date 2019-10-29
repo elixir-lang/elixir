@@ -2898,7 +2898,7 @@ defmodule Kernel do
 
       # Typespecs attributes are currently special cased by the compiler
       name == :typedoc and not bootstrapped?(Kernel.Typespec) ->
-        nil
+        :ok
 
       is_list(args) and typespec?(name) ->
         case bootstrapped?(Kernel.Typespec) do
