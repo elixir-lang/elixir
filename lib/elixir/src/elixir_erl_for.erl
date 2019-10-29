@@ -21,7 +21,7 @@ translate_reduce(Meta, Cases, Expr, Reduce, S) ->
     ({'case', CaseAnn, _, CaseBlock}, InnerAcc) -> {'case', CaseAnn, InnerAcc, CaseBlock}
   end,
 
-  SF = elixir_erl_var:mergec(SR, SE),
+  SF = elixir_erl_var:discard_vars(SE, SR),
   {build_reduce(Ann, TCases, InnerFun, TExpr, TReduce, false, SF), SF}.
 
 translate_into(Meta, Cases, Expr, Opts, Return, S) ->
@@ -38,7 +38,7 @@ translate_into(Meta, Cases, Expr, Opts, Return, S) ->
 
   {TCases, SC} = translate_gen(Meta, Cases, [], SI),
   {TExpr, SE}  = elixir_erl_pass:translate(wrap_expr_if_unused(Expr, TInto), SC),
-  SF = elixir_erl_var:mergec(SI, SE),
+  SF = elixir_erl_var:discard_vars(SE, SI),
 
   case inline_or_into(TInto) of
     inline -> build_inline(Ann, TCases, TExpr, TInto, TUniq, SF);
