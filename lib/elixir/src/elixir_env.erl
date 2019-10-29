@@ -57,44 +57,25 @@ reset_vars(Env) ->
 
 %% SCOPE MERGING
 
-%% Receives two scopes and return a new scope based on the second
-%% with their variables merged.
+%% Receives two scopes and returns a new scope based
+%% on the second with their variables merged.
 %% Unrolled for performance reasons.
-mergev(#{current_vars := {C1, U1}}, #{current_vars := {C2, U2}} = E2) ->
+mergev(#{current_vars := {C1, _}}, #{current_vars := {C2, U2}} = E2) ->
   if
     C1 =/= C2 ->
-      if
-        U1 =/= U2 ->
-          C = merge_vars(C1, C2),
-          E2#{vars := maps:keys(C), current_vars := {C, merge_vars(U1, U2)}};
-        true ->
-          C = merge_vars(C1, C2),
-          E2#{vars := maps:keys(C), current_vars := {C, U2}}
-      end;
-
-    U1 =/= U2 ->
-      E2#{current_vars := {C2, merge_vars(U1, U2)}};
-
+      C = merge_vars(C1, C2),
+      E2#{vars := maps:keys(C), current_vars := {C, U2}};
     true ->
       E2
   end.
 
-%% Receives two scopes and return the later scope
-%% keeping the variables from the first (imports
-%% and everything else are passed forward).
-%% Unrolled for performance reasons.
-mergea(#{current_vars := {C1, U1}, vars := V1},
+%% Receives two scopes and returns a new scope based
+%% on the second with the variables from the first.
+mergea(#{current_vars := {C1, _}, vars := V1},
        #{current_vars := {C2, U2}} = E2) ->
   if
     C1 =/= C2 ->
-      if
-        U1 =/= U2 ->
-          E2#{vars := V1, current_vars := {C1, U1}};
-        true ->
-          E2#{vars := V1, current_vars := {C1, U2}}
-      end;
-    U1 =/= U2 ->
-      E2#{current_vars := {C2, U1}};
+      E2#{vars := V1, current_vars := {C1, U2}};
     true ->
       E2
   end.

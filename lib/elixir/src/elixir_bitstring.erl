@@ -45,8 +45,8 @@ expand(BitstrMeta, Fun, [{'::', Meta, [Left, Right]} | T], Acc, E, OriginalE, Al
       %% no assigns, vars are kept separately
       {EC2, EV2} -> {EC2, elixir_env:mergev(EV2, ES)};
 
-      %% copy only vars on top
-      _ -> elixir_env:mergea(ES, EL)
+      %% restart EL state
+      _ -> ES#{context := match, prematch_vars := ?key(EL, prematch_vars)}
     end,
 
   EAcc =

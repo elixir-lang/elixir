@@ -810,7 +810,7 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, #{context := Context} = E, E
   is_atom(Receiver) andalso
     elixir_env:trace({remote_function, DotMeta, Receiver, Right, length(Args)}, E),
 
-  {EArgs, EA} = expand_args(Args, E),
+  {EArgs, EA} = expand_args(Args, elixir_env:mergea(E, EL)),
   case rewrite(Context, Receiver, AttachedDotMeta, Right, Meta, EArgs) of
     {ok, Rewritten} ->
       maybe_warn_comparison(Rewritten, Args, E),
