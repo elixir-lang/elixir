@@ -56,6 +56,11 @@ defmodule Kernel.BinaryTest do
     assert ?\ゆ == 12422
   end
 
+  test "size outside match" do
+    x = 16
+    assert <<0::size(x)>> == <<0, 0>>
+  end
+
   test "string concatenation as match" do
     "foo" <> x = "foobar"
     assert x == "bar"
