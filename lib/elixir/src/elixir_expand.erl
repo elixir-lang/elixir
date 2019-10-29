@@ -287,7 +287,7 @@ expand({for, Meta, [_ | _] = Args}, E) ->
         form_error(Meta, E, ?MODULE, {missing_option, for, [do]})
     end,
 
-  {EOpts, EO} = expand(Opts, E),
+  {EOpts, EO} = expand(Opts, elixir_env:reset_unused_vars(E)),
   {ECases, EC} = lists:mapfoldl(fun expand_for/2, EO, Cases),
   assert_generator_start(Meta, ECases, E),
 
@@ -381,10 +381,10 @@ expand({Name, Meta, Kind} = Var, E) when is_atom(Name), is_atom(Kind) ->
       UnusedKey = {Pair, Version},
 
       case Unused of
-        #{UnusedKey := Entry} when Entry /= false ->
-          {Var, E#{current_vars := {Current, Unused#{UnusedKey := false}}}};
+        #{UnusedKey := false} ->
+          {Var, E};
         _ ->
-          {Var, E}
+          {Var, E#{current_vars := {Current, Unused#{UnusedKey => false}}}}
       end;
 
     _ ->
@@ -743,7 +743,8 @@ expand_for_do_block(Meta, Clauses, E, {reduce, _}) ->
   Transformer = fun({_, _, [Left, _Right]} = Clause, Acc) ->
     case Left of
       [_] ->
-        {EClause, EAcc} = elixir_clauses:clause(Meta, fn, fun elixir_clauses:head/2, Clause, Acc),
+        EReset = elixir_env:reset_unused_vars(Acc),
+        {EClause, EAcc} = elixir_clauses:clause(Meta, fn, fun elixir_clauses:head/2, Clause, EReset),
         {EClause, elixir_env:merge_and_check_unused_vars(Acc, EAcc)};
       _ ->
         form_error(Meta, E, ?MODULE, for_with_reduce_bad_block)

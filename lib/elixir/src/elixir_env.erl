@@ -3,7 +3,8 @@
 -export([
   new/0, linify/1, with_vars/2, reset_vars/1,
   env_to_scope/1, env_to_scope_with_vars/2,
-  check_unused_vars/1, merge_and_check_unused_vars/2,
+  reset_unused_vars/1, check_unused_vars/1,
+  merge_and_check_unused_vars/2,
   trace/2, mergea/2, mergev/2, format_error/1
 ]).
 
@@ -109,51 +110,42 @@ merge_vars(V1, V2) ->
 
 %% UNUSED VARS
 
+reset_unused_vars(#{current_vars := {Current, _}} = E) ->
+  E#{current_vars := {Current, #{}}}.
+
 check_unused_vars(#{current_vars := {_, Unused}} = E) ->
   [elixir_errors:form_warn([{line, Line}], E, ?MODULE, {unused_var, Name}) ||
     {{{Name, _}, _}, Line} <- maps:to_list(Unused), Line /= false, not_underscored(Name)],
   E.
 
 merge_and_check_unused_vars(#{current_vars := {C, Unused}} = E, #{current_vars := {_, ClauseUnused}}) ->
-  E#{current_vars := {C, merge_and_check_unused_vars(Unused, ClauseUnused, E)}}.
+  E#{current_vars := {C, merge_and_check_unused_vars(C, Unused, ClauseUnused, E)}}.
 
-merge_and_check_unused_vars(Unused, ClauseUnused, E) ->
-  maps:fold(fun(Key, ClauseValue, Acc) ->
-    case ClauseValue of
-      %% The variable was used...
-      false ->
-        case Acc of
-          %% So we propagate if it was not yet used
-          #{Key := Value} when Value /= false ->
-            Acc#{Key := false};
+merge_and_check_unused_vars(Current, Unused, ClauseUnused, E) ->
+  maps:fold(fun({Var, Count} = Key, ClauseValue, Acc) ->
+    case Current of
+      %% The parent knows it, so we have to propagate up.
+      #{Var := CurrentCount} when Count =< CurrentCount ->
+        Acc#{Key => ClauseValue};
 
-          %% Otherwise we don't know it or it was already used
-          _ ->
-            Acc
-        end;
+      %% The parent doesn't know it and we didn't use it
+      #{} when ClauseValue /= false ->
+        {{Name, _}, _} = Key,
 
-      %% The variable was not used...
-      _ ->
-        case Acc of
-          %% If we know it, there is nothing to propagate
-          #{Key := _} ->
-            Acc;
+        case not_underscored(Name) of
+          true ->
+            Warn = {unused_var, Name},
+            elixir_errors:form_warn([{line, ClauseValue}], E, ?MODULE, Warn);
 
-          %% Otherwise we must warn
-          _ ->
-            {{Name, _}, _} = Key,
+          false ->
+            ok
+        end,
 
-            case not_underscored(Name) of
-              true ->
-                Warn = {unused_var, Name},
-                elixir_errors:form_warn([{line, ClauseValue}], E, ?MODULE, Warn);
+        Acc;
 
-              false ->
-                ok
-            end,
-
-            Acc
-        end
+      %% The parent doesn't know it and we used it
+      #{} ->
+        Acc
     end
   end, Unused, ClauseUnused).
 

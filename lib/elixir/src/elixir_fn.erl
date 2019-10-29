@@ -11,7 +11,8 @@ expand(Meta, Clauses, E) when is_list(Clauses) ->
       true ->
         form_error(Meta, E, ?MODULE, defaults_in_args);
       false ->
-        {EClause, EAcc} = elixir_clauses:clause(Meta, fn, fun elixir_clauses:head/2, Clause, Acc),
+        EReset = elixir_env:reset_unused_vars(Acc),
+        {EClause, EAcc} = elixir_clauses:clause(Meta, fn, fun elixir_clauses:head/2, Clause, EReset),
         {EClause, elixir_env:merge_and_check_unused_vars(Acc, EAcc)}
     end
   end,

@@ -146,7 +146,8 @@ with(Meta, Args, E) ->
         {Args, []}
     end,
 
-  {EExprs, {E1, HasMatch}} = lists:mapfoldl(fun expand_with/2, {E, false}, Exprs),
+  E0 = elixir_env:reset_unused_vars(E),
+  {EExprs, {E1, HasMatch}} = lists:mapfoldl(fun expand_with/2, {E0, false}, Exprs),
   {EDo, Opts1, E2} = expand_with_do(Meta, Opts0, E, E1),
   {EOpts, Opts2, E3} = expand_with_else(Meta, Opts1, E2, HasMatch),
 
@@ -220,10 +221,10 @@ expand_with_else(Meta, Opts, E, HasMatch) ->
   lists:mapfoldl(fun(X, Acc) -> expand_try(Meta, X, Acc) end, E, Opts).
 
 expand_try(_Meta, {'do', Expr}, E) ->
-  {EExpr, EE} = elixir_expand:expand(Expr, E),
+  {EExpr, EE} = elixir_expand:expand(Expr, elixir_env:reset_unused_vars(E)),
   {{'do', EExpr}, elixir_env:merge_and_check_unused_vars(E, EE)};
 expand_try(_Meta, {'after', Expr}, E) ->
-  {EExpr, EE} = elixir_expand:expand(Expr, E),
+  {EExpr, EE} = elixir_expand:expand(Expr, elixir_env:reset_unused_vars(E)),
   {{'after', EExpr}, elixir_env:merge_and_check_unused_vars(E, EE)};
 expand_try(Meta, {'else', _} = Else, E) ->
   Fun = expand_head(Meta, 'try', 'else'),
@@ -322,7 +323,7 @@ expand_clauses(Meta, Kind, Fun, Clauses, E) ->
 
 expand_clauses_origin(Meta, Kind, Fun, {Key, [_ | _] = Clauses}, E) ->
   Transformer = fun(Clause, Acc) ->
-    {EClause, EAcc} = clause(Meta, {Kind, Key}, Fun, Clause, Acc),
+    {EClause, EAcc} = clause(Meta, {Kind, Key}, Fun, Clause, elixir_env:reset_unused_vars(Acc)),
     {EClause, elixir_env:merge_and_check_unused_vars(Acc, EAcc)}
   end,
   {Values, EE} = lists:mapfoldl(Transformer, E, Clauses),
