@@ -9,13 +9,30 @@
 
 match(Fun, Expr, E, #{context := match}) ->
   Fun(Expr, E);
-match(Fun, Expr, #{current_vars := CU} = AfterE, BeforeE) ->
-  #{context := Context, prematch_vars := Prematch, current_vars := {Current, _}} = BeforeE,
+match(Fun, Expr, #{current_vars := Current, unused_vars := Unused} = AfterE, BeforeE) ->
+  #{
+    context := Context,
+    prematch_vars := Prematch,
+    current_vars := {Read, _}
+  } = BeforeE,
 
-  {EExpr, #{current_vars := NewCU}} =
-    Fun(Expr, BeforeE#{context := match, prematch_vars := Current, current_vars := CU}),
+  CallE = BeforeE#{
+    context := match,
+    prematch_vars := Read,
+    current_vars := Current,
+    unused_vars := Unused
+  },
 
-  {EExpr, AfterE#{context := Context, prematch_vars := Prematch, current_vars := NewCU}}.
+  {EExpr, #{current_vars := NewCurrent, unused_vars := NewUnused}} = Fun(Expr, CallE),
+
+  EndE = AfterE#{
+    context := Context,
+    prematch_vars := Prematch,
+    current_vars := NewCurrent,
+    unused_vars := NewUnused
+  },
+
+  {EExpr, EndE}.
 
 def({Meta, Args, Guards, Body}, E) ->
   {EArgs, EA}   = elixir_expand:expand(Args, E#{context := match, prematch_vars := #{}}),

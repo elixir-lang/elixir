@@ -23,11 +23,12 @@ new() ->
     macro_aliases => [],                              %% keep aliases defined inside a macro
     context_modules => [],                            %% modules defined in the current context
     vars => [],                                       %% a set of defined variables
-    current_vars => {#{}, #{}},                       %% a tuple with maps of current and unused variables
-    prematch_vars => warn,                            %% behaviour outside and inside matches
-    lexical_tracker => nil,                           %% holds the lexical tracker PID
-    contextual_vars => [],                            %% holds available contextual variables
-    tracers => []                                     %% holds the available compilation tracers
+    current_vars => {#{}, false},                     %% a tuple with maps of read and optional write current vars
+    unused_vars => #{},                               %% a map of unused vars
+    prematch_vars => warn,                            %% controls behaviour outside and inside matches
+    lexical_tracker => nil,                           %% lexical tracker PID
+    contextual_vars => [],                            %% available contextual variables
+    tracers => []                                     %% available compilation tracers
   }.
 
 trace(Event, #{tracers := Tracers} = E) ->
@@ -40,8 +41,8 @@ linify(#{} = Env) ->
   Env.
 
 with_vars(Env, Vars) ->
-  CurrentVars = maps:from_list([{Var, 0} || Var <- Vars]),
-  Env#{vars := Vars, current_vars := {CurrentVars, #{}}}.
+  Read = maps:from_list([{Var, 0} || Var <- Vars]),
+  Env#{vars := Vars, current_vars := {Read, false}, unused_vars := #{}}.
 
 env_to_scope(#{context := Context}) ->
   #elixir_erl{context=Context}.
@@ -53,7 +54,7 @@ env_to_scope_with_vars(Env, Vars) ->
   }.
 
 reset_vars(Env) ->
-  Env#{vars := [], current_vars := {#{}, #{}}}.
+  Env#{vars := [], current_vars := {#{}, false}, unused_vars := #{}}.
 
 %% SCOPE MERGING
 
@@ -91,16 +92,17 @@ merge_vars(V1, V2) ->
 
 %% UNUSED VARS
 
-reset_unused_vars(#{current_vars := {Current, _}} = E) ->
-  E#{current_vars := {Current, #{}}}.
+reset_unused_vars(E) ->
+  E#{unused_vars := #{}}.
 
-check_unused_vars(#{current_vars := {_, Unused}} = E) ->
+check_unused_vars(#{unused_vars := Unused} = E) ->
   [elixir_errors:form_warn([{line, Line}], E, ?MODULE, {unused_var, Name}) ||
     {{{Name, _}, _}, Line} <- maps:to_list(Unused), Line /= false, not_underscored(Name)],
   E.
 
-merge_and_check_unused_vars(#{current_vars := {C, Unused}} = E, #{current_vars := {_, ClauseUnused}}) ->
-  E#{current_vars := {C, merge_and_check_unused_vars(C, Unused, ClauseUnused, E)}}.
+merge_and_check_unused_vars(E, #{unused_vars := ClauseUnused}) ->
+  #{current_vars := {Read, _}, unused_vars := Unused} = E,
+  E#{unused_vars := merge_and_check_unused_vars(Read, Unused, ClauseUnused, E)}.
 
 merge_and_check_unused_vars(Current, Unused, ClauseUnused, E) ->
   maps:fold(fun({Var, Count} = Key, ClauseValue, Acc) ->

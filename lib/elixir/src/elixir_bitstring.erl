@@ -283,8 +283,8 @@ is_valid_spec_arg_var(Var, E, #{context := match} = OriginalE) ->
 is_valid_spec_arg_var(_Var, _E, _OriginalE) ->
   true.
 
-is_var(Var, #{current_vars := {Current, _}}) ->
-  maps:is_key(Var, Current).
+is_var(Var, #{current_vars := {Read, _}}) ->
+  maps:is_key(Var, Read).
 
 validate_size_required(Meta, true, default, Type, default, E) when Type == binary; Type == bitstring ->
   form_error(Meta, E, ?MODULE, unsized_binary);
