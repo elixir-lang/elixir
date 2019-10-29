@@ -348,7 +348,7 @@ expand({Name, Meta, Kind} = Var, #{context := match} = E) when is_atom(Name), is
       #{Pair := PrematchVersion} ->
         NewUnused = var_unused(Pair, Meta, PrematchVersion + 1, Unused),
         NewReadCurrent = ReadCurrent#{Pair => PrematchVersion + 1},
-        NewWriteCurrent = WriteCurrent andalso WriteCurrent#{Pair => PrematchVersion + 1},
+        NewWriteCurrent = (WriteCurrent /= false) andalso WriteCurrent#{Pair => PrematchVersion + 1},
         E#{current_vars := {NewReadCurrent, NewWriteCurrent}, unused_vars := NewUnused};
 
       %% Variable was already overriden
@@ -362,7 +362,7 @@ expand({Name, Meta, Kind} = Var, #{context := match} = E) when is_atom(Name), is
         NewVars = ordsets:add_element(Pair, ?key(E, vars)),
         NewUnused = var_unused(Pair, Meta, 0, Unused),
         NewReadCurrent = ReadCurrent#{Pair => 0},
-        NewWriteCurrent = WriteCurrent andalso WriteCurrent#{Pair => 0},
+        NewWriteCurrent = (WriteCurrent /= false) andalso WriteCurrent#{Pair => 0},
         E#{vars := NewVars, current_vars := {NewReadCurrent, NewWriteCurrent}, unused_vars := NewUnused}
     end,
 
@@ -421,7 +421,7 @@ expand({Atom, Meta, Args}, E) when is_atom(Atom), is_list(Meta), is_list(Args) -
 
 expand({{'.', DotMeta, [Left, Right]}, Meta, Args}, E)
     when (is_tuple(Left) orelse is_atom(Left)), is_atom(Right), is_list(Meta), is_list(Args) ->
-  {ELeft, EL} = expand(Left, E),
+  {ELeft, EL} = expand(Left, elixir_env:prepare_write(E)),
 
   elixir_dispatch:dispatch_require(Meta, ELeft, Right, Args, EL, fun(AR, AF, AA) ->
     expand_remote(AR, DotMeta, AF, Meta, AA, E, EL)
@@ -431,13 +431,13 @@ expand({{'.', DotMeta, [Left, Right]}, Meta, Args}, E)
 
 expand({{'.', DotMeta, [Expr]}, Meta, Args}, E) when is_list(Args) ->
   assert_no_match_or_guard_scope(Meta, "anonymous call", E),
-  {EExpr, EE} = expand(Expr, E),
-  if
-    is_atom(EExpr) ->
+
+  case expand_args([Expr | Args], E) of
+    {[EExpr | _], _} when is_atom(EExpr) ->
       form_error(Meta, E, ?MODULE, {invalid_function_call, EExpr});
-    true ->
-      {EArgs, EA} = expand_args(Args, elixir_env:mergea(E, EE)),
-      {{{'.', DotMeta, [EExpr]}, Meta, EArgs}, elixir_env:mergev(EE, EA)}
+
+    {[EExpr | EArgs], EA} ->
+      {{{'.', DotMeta, [EExpr]}, Meta, EArgs}, EA}
   end;
 
 %% Invalid calls
@@ -458,8 +458,8 @@ expand(List, #{context := match} = E) when is_list(List) ->
   expand_list(List, fun expand/2, E, []);
 
 expand(List, E) when is_list(List) ->
-  {EArgs, {EC, EV}} = expand_list(List, fun expand_arg/2, {E, E}, []),
-  {EArgs, elixir_env:mergea(EV, EC)};
+  {EArgs, {EE, _}} = expand_list(List, fun expand_arg/2, {elixir_env:prepare_write(E), E}, []),
+  {EArgs, elixir_env:close_write(EE, E)};
 
 expand(Function, E) when is_function(Function) ->
   case (erlang:fun_info(Function, type) == {type, external}) andalso
@@ -606,9 +606,9 @@ is_useless_building(_, _, _) ->
 %% However, lexical information is.
 expand_arg(Arg, Acc) when is_number(Arg); is_atom(Arg); is_binary(Arg); is_pid(Arg) ->
   {Arg, Acc};
-expand_arg(Arg, {Acc1, Acc2}) ->
-  {EArg, EAcc} = expand(Arg, Acc1),
-  {EArg, {elixir_env:mergea(Acc1, EAcc), elixir_env:mergev(Acc2, EAcc)}}.
+expand_arg(Arg, {Acc, E}) ->
+  {EArg, EAcc} = expand(Arg, elixir_env:reset_read(Acc, E)),
+  {EArg, {EAcc, E}}.
 
 expand_args([Arg], E) ->
   {EArg, EE} = expand(Arg, E),
@@ -616,8 +616,8 @@ expand_args([Arg], E) ->
 expand_args(Args, #{context := match} = E) ->
   lists:mapfoldl(fun expand/2, E, Args);
 expand_args(Args, E) ->
-  {EArgs, {_EC, EV}} = lists:mapfoldl(fun expand_arg/2, {E, E}, Args),
-  {EArgs, EV}.
+  {EArgs, {EA, _}} = lists:mapfoldl(fun expand_arg/2, {elixir_env:prepare_write(E), E}, Args),
+  {EArgs, elixir_env:close_write(EA, E)}.
 
 %% Match/var helpers
 
@@ -807,11 +807,12 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, #{context := Context} = E, E
   is_atom(Receiver) andalso
     elixir_env:trace({remote_function, DotMeta, Receiver, Right, length(Args)}, E),
 
-  {EArgs, EA} = expand_args(Args, elixir_env:mergea(E, EL)),
+  {EArgs, {EA, _}} = lists:mapfoldl(fun expand_arg/2, {EL, E}, Args),
+
   case rewrite(Context, Receiver, AttachedDotMeta, Right, Meta, EArgs) of
     {ok, Rewritten} ->
       maybe_warn_comparison(Rewritten, Args, E),
-      {Rewritten, elixir_env:mergev(EL, EA)};
+      {Rewritten, elixir_env:close_write(EA, E)};
     {error, Error} ->
       form_error(Meta, E, elixir_rewrite, Error)
   end;

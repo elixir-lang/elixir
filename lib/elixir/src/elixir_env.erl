@@ -5,7 +5,8 @@
   env_to_scope/1, env_to_scope_with_vars/2,
   reset_unused_vars/1, check_unused_vars/1,
   merge_and_check_unused_vars/2,
-  trace/2, mergea/2, mergev/2, format_error/1
+  trace/2, format_error/1,
+  reset_read/2, prepare_write/1, close_write/2
 ]).
 
 new() ->
@@ -58,29 +59,19 @@ reset_vars(Env) ->
 
 %% SCOPE MERGING
 
-%% Receives two scopes and returns a new scope based
-%% on the second with their variables merged.
-%% Unrolled for performance reasons.
-mergev(#{current_vars := {C1, _}}, #{current_vars := {C2, U2}} = E2) ->
-  if
-    C1 =/= C2 ->
-      C = merge_vars(C1, C2),
-      E2#{vars := maps:keys(C), current_vars := {C, U2}};
-    true ->
-      E2
-  end.
+reset_read(#{current_vars := {_, Write}} = E, #{current_vars := {Read, _}}) ->
+  E#{current_vars := {Read, Write}}.
 
-%% Receives two scopes and returns a new scope based
-%% on the second with the variables from the first.
-mergea(#{current_vars := {C1, _}, vars := V1},
-       #{current_vars := {C2, U2}} = E2) ->
-  if
-    C1 =/= C2 ->
-      E2#{vars := V1, current_vars := {C1, U2}};
-    true ->
-      E2
-  end.
+prepare_write(#{current_vars := {Read, _}} = E) ->
+  E#{current_vars := {Read, Read}}.
 
+close_write(#{current_vars := {_Read, Write}} = E, #{current_vars := {_, false}}) ->
+  E#{current_vars := {Write, false}};
+close_write(#{current_vars := {_Read, Write}} = E, #{current_vars := {_, UpperWrite}}) ->
+  E#{current_vars := {Write, merge_vars(UpperWrite, Write)}}.
+
+merge_vars(V, V) ->
+  V;
 merge_vars(V1, V2) ->
   maps:fold(fun(K, M2, Acc) ->
     case Acc of
@@ -88,7 +79,6 @@ merge_vars(V1, V2) ->
       _ -> Acc#{K => M2}
     end
   end, V1, V2).
-
 
 %% UNUSED VARS
 

@@ -16,9 +16,10 @@ expand(Meta, Args, E, RequireSize) ->
           form_error(Meta, EE, ?MODULE, {nested_match, Match})
       end;
     _ ->
-      {EArgs, Alignment, {_EC, EV}} =
-        expand(Meta, fun elixir_expand:expand_arg/2, Args, [], {E, E}, E, 0, RequireSize),
-      {{'<<>>', [{alignment, Alignment} | Meta], EArgs}, EV}
+      PairE = {elixir_env:prepare_write(E), E},
+      {EArgs, Alignment, {EA, _}} =
+        expand(Meta, fun elixir_expand:expand_arg/2, Args, [], PairE, E, 0, RequireSize),
+      {{'<<>>', [{alignment, Alignment} | Meta], EArgs}, elixir_env:close_write(EA, E)}
   end.
 
 expand(_BitstrMeta, _Fun, [], Acc, E, _OriginalE, Alignment, _RequireSize) ->
@@ -31,7 +32,7 @@ expand(BitstrMeta, Fun, [{'::', Meta, [Left, Right]} | T], Acc, E, OriginalE, Al
   {EM, MatchSize} =
     case EL of
       %% expand_arg, no assigns
-      {EC1, _} -> {EC1, false};
+      {EC1, EV1} -> {elixir_env:reset_read(EC1, EV1), false};
 
       %% expand, revert assigns
       _ -> {EL#{context := nil, prematch_vars := raise}, T /= []}
@@ -43,7 +44,7 @@ expand(BitstrMeta, Fun, [{'::', Meta, [Left, Right]} | T], Acc, E, OriginalE, Al
   EE =
     case EL of
       %% no assigns, vars are kept separately
-      {EC2, EV2} -> {EC2, elixir_env:mergev(EV2, ES)};
+      {_EC2, EV2} -> {ES, EV2};
 
       %% restart EL state
       _ -> ES#{context := match, prematch_vars := ?key(EL, prematch_vars)}
