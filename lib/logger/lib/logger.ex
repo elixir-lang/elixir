@@ -427,12 +427,15 @@ defmodule Logger do
   and how to process the existing options.
   """
 
+  # TODO: Change it to `:logger.level()`
+  @type level :: :error | :warn | :info | :debug
   @type backend :: :gen_event.handler()
   @type message :: IO.chardata() | String.Chars.t()
-  # TODO: change it to `:logger.level()`
-  @type level :: :error | :warning | :warn | :info | :debug
   @type metadata :: keyword()
+
   # TODO: change it to `[:emergency, :alert, :critical, :error, :warning, :notice, :info, :debug]`
+  # Note we currently allow :warning through Logger.log(...)
+  # but we will only expose it in future versions.
   @levels [:error, :warning, :warn, :info, :debug]
 
   @metadata :logger_enabled
@@ -522,7 +525,12 @@ defmodule Logger do
   The `Logger` level can be changed via `configure/1`.
   """
   @spec level() :: level
-  defdelegate level(), to: Logger.Config
+  def level() do
+    case :logger.get_primary_config() do
+      %{level: :warning} -> :warn
+      %{level: level} -> level
+    end
+  end
 
   @doc """
   Compares log levels.
@@ -543,7 +551,13 @@ defmodule Logger do
 
   """
   @spec compare_levels(level, level) :: :lt | :eq | :gt
-  defdelegate compare_levels(left, right), to: Logger.Config
+  def compare_levels(left, right) do
+    :logger.compare_levels(normalize(left), normalize(right))
+  end
+
+  # TODO: Deprecate :warn
+  defp normalize(:warn), do: :warning
+  defp normalize(level), do: level
 
   @doc """
   Configures the logger.
@@ -566,7 +580,14 @@ defmodule Logger do
   ]
   @spec configure(keyword) :: :ok
   def configure(options) do
-    Logger.Config.configure(Keyword.take(options, @valid_options))
+    options = Keyword.take(options, @valid_options)
+
+    # We serialize the writes
+    Logger.Config.configure(options)
+
+    # Then we can read from the writes
+    Logger.LegacyHandler.load_log_level()
+    :ok = :logger.set_handler_config(Logger, %{config: %{}})
   end
 
   @doc """
@@ -869,7 +890,7 @@ defmodule Logger do
     Enum.any?(matching, fn filter ->
       Enum.all?(filter, fn
         {:level_lower_than, min_level} ->
-          Logger.Config.compare_levels(level, min_level) == :lt
+          compare_levels(level, min_level) == :lt
 
         {:module, module} ->
           match?({:ok, {^module, _, _}}, Map.fetch(compile_metadata, :mfa))
@@ -905,7 +926,7 @@ defmodule Logger do
         :debug
       end
 
-    if Logger.Config.compare_levels(level, min_level) != :lt do
+    if compare_levels(level, min_level) != :lt do
       macro_log(level, data, metadata, caller)
     else
       no_log(data, metadata)

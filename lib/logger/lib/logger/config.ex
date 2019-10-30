@@ -35,25 +35,6 @@ defmodule Logger.Config do
     update_translators(&List.delete(&1, translator))
   end
 
-  def level do
-    %{level: level} = :logger.get_primary_config()
-
-    level
-  end
-
-  def compare_levels(level, level), do: :eq
-  def compare_levels(:all, _), do: :gt
-  def compare_levels(_, :all), do: :lt
-  def compare_levels(:none, _), do: :lt
-  def compare_levels(_, :none), do: :gt
-
-  def compare_levels(left, right) do
-    :logger.compare_levels(normalize(left), normalize(right))
-  end
-
-  defp normalize(:warn), do: :warning
-  defp normalize(level), do: level
-
   # TODO: Use counters exclusively when we require Erlang/OTP 22+.
   defdelegate new, to: Logger.Counter
 
@@ -62,13 +43,14 @@ defmodule Logger.Config do
   ## Callbacks
 
   def init(counter) do
-    state =
-      {counter, :log, Application.fetch_env!(:logger, :discard_threshold),
-       Application.fetch_env!(:logger, :discard_threshold_periodic_check)}
-
-    compute_data(state)
+    state = load_state(counter)
     state = update_counter(state, false)
     {:ok, state}
+  end
+
+  defp load_state(counter) do
+    {counter, :log, Application.fetch_env!(:logger, :discard_threshold),
+     Application.fetch_env!(:logger, :discard_threshold_periodic_check)}
   end
 
   def handle_event({_type, gl, _msg} = event, state) when node(gl) != node() do
@@ -83,12 +65,12 @@ defmodule Logger.Config do
     {:ok, update_counter(state, false)}
   end
 
-  def handle_call({:configure, options}, state) do
+  def handle_call({:configure, options}, {counter, _, _, _}) do
     Enum.each(options, fn {key, value} ->
       Application.put_env(:logger, key, value)
     end)
 
-    {:ok, :ok, compute_data(state)}
+    {:ok, :ok, load_state(counter)}
   end
 
   def handle_info(@update_counter_message, state) do
@@ -162,24 +144,5 @@ defmodule Logger.Config do
     translators = fun.(data.translators)
     Application.put_env(:logger, :translators, translators)
     :ok = :logger.set_handler_config(Logger, :config, %{data | translators: translators})
-  end
-
-  defp compute_data({counter, _mode, _discard_threshold, _discard_period}) do
-    sync_threshold = Application.fetch_env!(:logger, :sync_threshold)
-    discard_threshold = Application.fetch_env!(:logger, :discard_threshold)
-    discard_period = Application.fetch_env!(:logger, :discard_threshold_periodic_check)
-
-    data = %{
-      level: Application.fetch_env!(:logger, :level),
-      utc_log: Application.fetch_env!(:logger, :utc_log),
-      truncate: Application.fetch_env!(:logger, :truncate),
-      translators: Application.fetch_env!(:logger, :translators),
-      thresholds: {sync_threshold, discard_threshold}
-    }
-
-    :ok = :logger.update_handler_config(Logger, %{config: data})
-    :ok = :logger.set_primary_config(:level, normalize(data.level))
-
-    {counter, :log, discard_threshold, discard_period}
   end
 end

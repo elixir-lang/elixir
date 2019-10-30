@@ -88,6 +88,17 @@ defmodule LoggerTest do
 
   test "level/0" do
     assert Logger.level() == :debug
+
+    Logger.configure(level: :info)
+    assert Logger.level() == :info
+
+    Logger.configure(level: :warn)
+    assert Logger.level() == :warn
+
+    Logger.configure(level: :error)
+    assert Logger.level() == :error
+  after
+    Logger.configure(level: :debug)
   end
 
   test "process metadata" do

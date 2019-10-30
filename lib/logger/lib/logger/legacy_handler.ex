@@ -5,6 +5,17 @@ defmodule Logger.LegacyHandler do
 
   @internal_keys [:counter]
 
+  def load_log_level do
+    # TODO: Deprecate if level is warning.
+    # TODO: Consider deprecating logger.level altogether in favor of kernel.logger_level.
+    level = case Application.fetch_env!(:logger, :level) do
+      :warn -> :warning
+      level -> level
+    end
+
+    :ok = :logger.set_primary_config(:level, level)
+  end
+
   @doc false
   def child_spec(start_options) do
     %{
@@ -30,11 +41,9 @@ defmodule Logger.LegacyHandler do
 
   def changing_config(
         op,
-        %{id: id, module: module, config: old_data, filters: filters},
+        %{id: id, module: module, config: %{counter: counter} = old_data, filters: filters},
         %{config: new_data} = new_config
       ) do
-    {counter, old_data} = Map.pop(old_data, :counter)
-
     old_data =
       case op do
         :set -> Logger.Config.default_config()
@@ -42,9 +51,12 @@ defmodule Logger.LegacyHandler do
       end
 
     data =
-      old_data
-      |> Map.merge(new_data)
-      |> Map.put(:counter, counter)
+      Enum.reduce(new_data, old_data, fn {k, v}, acc ->
+        case acc do
+          %{^k => _} -> %{acc | k => v}
+          %{} -> acc
+        end
+      end)
 
     config =
       %{
@@ -57,7 +69,7 @@ defmodule Logger.LegacyHandler do
       }
       |> Map.merge(new_config)
 
-    {:ok, Map.put(config, :config, data)}
+    {:ok, Map.put(config, :config, Map.put(data, :counter, counter))}
   end
 
   def filter_config(%{config: data} = config) do

@@ -57,8 +57,8 @@ defmodule Logger.App do
   end
 
   @doc false
-  def config_change(_changed, _new, _removed) do
-    Logger.Config.configure([])
+  def config_change(changed, _new, _removed) do
+    Logger.configure(changed)
   end
 
   @doc """
@@ -69,14 +69,6 @@ defmodule Logger.App do
   end
 
   defp add_elixir_handler(otp_reports?, counter) do
-    # TODO: Deprecate this is future releases, probably whole `logger.level`
-    # option and suggest users to use `kernel.logger_level` instead
-    level =
-      case Application.fetch_env!(:logger, :level) do
-        :warn -> :warning
-        other -> other
-      end
-
     # TODO: This will not be needed once we are OTP 22+
     data = %{counter: counter}
 
@@ -96,10 +88,9 @@ defmodule Logger.App do
 
     primary_config = :logger.get_primary_config()
 
+    Logger.LegacyHandler.load_log_level()
     :ok = :logger.add_primary_filter(:process_disabled, {&Logger.Filter.process_disabled/2, []})
     :ok = :logger.add_handler(Logger, Logger.LegacyHandler, config)
-
-    :ok = :logger.set_primary_config(:level, level)
 
     primary_config
   end
