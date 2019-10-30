@@ -725,10 +725,9 @@ defmodule Logger do
   end
 
   # # TODO: Remove that in Elixir 2.0
-  def __do_log__(level, atom, metadata) do
-    # TODO: Uncomment this
-    # bare_log(:warning, "Passed #{inspect(atom)} which is not binary() nor iolist() to the Logger, this is deprecated")
-    :logger.log(level, Atom.to_string(atom), add_elixir_domain(metadata))
+  def __do_log__(level, other, metadata) do
+    IO.warn("Passing #{inspect(other)} to Logger is deprecated, expected a binary or an iolist")
+    :logger.log(level, to_string(other), add_elixir_domain(metadata))
   end
 
   defp add_elixir_domain(%{domain: domain} = metadata) when is_list(domain) do
