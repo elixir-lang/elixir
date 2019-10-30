@@ -708,23 +708,17 @@ defmodule Logger do
   @spec bare_log(level, message | (() -> message | {message, keyword}), keyword) ::
           :ok | {:error, :noproc} | {:error, term}
   def bare_log(level, chardata_or_fun, metadata \\ []) do
-    case __should_log__(level) do
+    case __should_log__(level, nil) do
       nil -> :ok
       level -> __do_log__(level, chardata_or_fun, Map.new(metadata))
     end
   end
 
   @doc false
-  def __should_log__(:warn) do
-    # TODO: Deprecate this one we fully migrate to Erlang levels.
-    # IO.warn("`:warn` level is deprecated, you should use `:warning`")
-    __should_log__(:warning)
-  end
+  def __should_log__(level, module) when level in @levels do
+    level = normalize(level)
 
-  def __should_log__(level) when level in @levels do
-    %{level: primary_level} = :logger.get_primary_config()
-
-    if enabled?(self()) and compare_levels(level, primary_level) != :lt do
+    if enabled?(self()) and :logger.allow(level, module) do
       level
     end
   end
@@ -745,13 +739,13 @@ defmodule Logger do
 
   def __do_log__(level, chardata, metadata)
       when (is_binary(chardata) or is_list(chardata)) and is_map(metadata) do
-    :logger.log(level, chardata, add_elixir_domain(metadata))
+    :logger.macro_log(%{}, level, chardata, add_elixir_domain(metadata))
   end
 
   # # TODO: Remove that in Elixir 2.0
   def __do_log__(level, other, metadata) do
     IO.warn("passing #{inspect(other)} to Logger is deprecated, expected a binary or an iolist")
-    :logger.log(level, to_string(other), add_elixir_domain(metadata))
+    :logger.macro_log(%{}, level, to_string(other), add_elixir_domain(metadata))
   end
 
   defp add_elixir_domain(%{domain: domain} = metadata) when is_list(domain) do
@@ -863,7 +857,7 @@ defmodule Logger do
       no_log(data, quoted_metadata)
     else
       quote do
-        case Logger.__should_log__(unquote(level)) do
+        case Logger.__should_log__(unquote(level), __MODULE__) do
           nil -> :ok
           level -> Logger.__do_log__(level, unquote(data), unquote(quoted_metadata))
         end
