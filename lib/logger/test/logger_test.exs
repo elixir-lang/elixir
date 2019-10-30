@@ -146,6 +146,14 @@ defmodule LoggerTest do
            end) =~ msg("module=Function [info]  ok")
   end
 
+  test "function can return iolist" do
+    fun = fn -> ["ok", ?:, 'example']  end
+
+    assert capture_log(fn ->
+             assert Logger.bare_log(:info, fun, application: nil, module: FunctionTest) == :ok
+           end) =~ msg("module=FunctionTest [info]  ok:example")
+  end
+
   test "enable/1 and disable/1" do
     assert Logger.metadata([]) == :ok
 
