@@ -13,7 +13,7 @@ defmodule Logger.Counter do
     if Code.ensure_loaded?(:counters) do
       {:counters, :counters.new(1, [:atomics])}
     else
-      table = :ets.new(@table.Counter, [:public])
+      table = :ets.new(@table, [:public])
       :ets.insert(table, [{@pos, 0}])
       {:ets, table}
     end
