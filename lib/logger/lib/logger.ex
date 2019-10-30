@@ -17,9 +17,7 @@ defmodule Logger do
       when under stress.
 
     * Plugs into Erlang's [`:logger`](http://erlang.org/doc/man/logger.html)
-      (from Erlang/OTP 21) to convert terms to Elixir syntax or wraps
-      Erlang's [`:error_logger`](http://erlang.org/doc/man/error_logger.html)
-      in earlier Erlang/OTP versions to prevent it from overflowing.
+      (from Erlang/OTP 21) to convert terms to Elixir syntax.
 
   Logging is useful for tracking when an event of interest happens in your
   system. For example, it may be helpful to log whenever a user is deleted.
@@ -705,8 +703,7 @@ defmodule Logger do
   anonymous functions to `bare_log/3` and they will only be evaluated
   if there is something to be logged.
   """
-  @spec bare_log(level, message | (() -> message | {message, keyword}), keyword) ::
-          :ok | {:error, :noproc} | {:error, term}
+  @spec bare_log(level, message | (() -> message | {message, keyword}), keyword) :: :ok
   def bare_log(level, chardata_or_fun, metadata \\ []) do
     case __should_log__(level, nil) do
       nil -> :ok
@@ -754,7 +751,7 @@ defmodule Logger do
   @doc """
   Logs a warning message.
 
-  Returns `:ok` or an `{:error, reason}` tuple.
+  Returns `:ok`.
 
   ## Examples
 
@@ -771,7 +768,7 @@ defmodule Logger do
   @doc """
   Logs an info message.
 
-  Returns `:ok` or an `{:error, reason}` tuple.
+  Returns `:ok`.
 
   ## Examples
 
@@ -787,7 +784,7 @@ defmodule Logger do
   @doc """
   Logs an error message.
 
-  Returns `:ok` or an `{:error, reason}` tuple.
+  Returns `:ok`.
 
   ## Examples
 
@@ -803,7 +800,7 @@ defmodule Logger do
   @doc """
   Logs a debug message.
 
-  Returns `:ok` or an `{:error, reason}` tuple.
+  Returns `:ok`.
 
   ## Examples
 
@@ -819,7 +816,7 @@ defmodule Logger do
   @doc """
   Logs a message with the given `level`.
 
-  Returns `:ok` or an `{:error, reason}` tuple.
+  Returns `:ok`.
 
   The macros `debug/2`, `warn/2`, `info/2`, and `error/2` are
   preferred over this macro as they can automatically eliminate
