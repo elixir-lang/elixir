@@ -9,10 +9,11 @@ defmodule Logger.LegacyHandler do
   def load_log_level do
     # TODO: Deprecate if level is warning.
     # PENDING: Fallback to kernel.logger_level if logger level is not set.
-    level = case Application.fetch_env!(:logger, :level) do
-      :warn -> :warning
-      level -> level
-    end
+    level =
+      case Application.fetch_env!(:logger, :level) do
+        :warn -> :warning
+        level -> level
+      end
 
     :ok = :logger.set_primary_config(:level, level)
   end
