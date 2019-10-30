@@ -172,23 +172,29 @@ defmodule Logger do
         level: :warn,
         truncate: 4096
 
-  ### Error logger configuration
+  ### Erlang/OTP integration
 
   The following configuration applies to `Logger`'s wrapper around
   Erlang's logging functionalities. All the configurations below must
   be set before the `:logger` application starts.
+
+    * `:handle_otp_reports` - redirects OTP reports to `Logger` so
+      they are formatted in Elixir terms. This effectively disables
+      Erlang standard logger. Defaults to `true`.
 
     * `:handle_sasl_reports` - redirects supervisor, crash and
       progress reports to `Logger` so they are formatted in Elixir
       terms. Your application must guarantee `:sasl` is started before
       `:logger`. This means you may see some initial reports written
       in Erlang syntax until the Logger application kicks in.
-      Defaults to `false`.
+      Defaults to `false`. This option only has an effect if
+      `:handle_otp_reports` is true.
 
   For example, to configure `Logger` to redirect all Erlang messages using a
   `config/config.exs` file:
 
       config :logger,
+        handle_otp_reports: true,
         handle_sasl_reports: true
 
   Furthermore, `Logger` allows messages sent by Erlang to be translated
@@ -423,7 +429,7 @@ defmodule Logger do
 
   @type backend :: :gen_event.handler()
   @type message :: IO.chardata() | String.Chars.t()
-  # TODO: change it to `:logger.level() | :warn`
+  # TODO: change it to `:logger.level()`
   @type level :: :error | :warning | :warn | :info | :debug
   @type metadata :: keyword()
   # TODO: change it to `[:emergency, :alert, :critical, :error, :warning, :notice, :info, :debug]`
@@ -443,18 +449,17 @@ defmodule Logger do
   def metadata(keyword) do
     case :logger.get_process_metadata() do
       :undefined ->
-        :ok = :logger.set_process_metadata(filter_out_nils(keyword))
+        reset_metadata(keyword)
 
       map when is_map(map) ->
-        merged = Enum.into(keyword, map)
-        metadata = filter_out_nils(merged)
+        metadata =
+          Enum.reduce(keyword, map, fn
+            {k, nil}, acc -> Map.delete(acc, k)
+            {k, v}, acc -> Map.put(acc, k, v)
+          end)
 
         :ok = :logger.set_process_metadata(metadata)
     end
-  end
-
-  defp filter_out_nils(enumerable) do
-    for {_k, v} = elem <- enumerable, v != nil, into: %{}, do: elem
   end
 
   @doc """
@@ -472,9 +477,12 @@ defmodule Logger do
   Resets the current process metadata to the given keyword list.
   """
   @spec reset_metadata(metadata) :: :ok
-  def reset_metadata(keywords \\ []) do
-    :ok = :logger.set_process_metadata(%{})
-    metadata(keywords)
+  def reset_metadata(keyword \\ []) do
+    :ok = :logger.set_process_metadata(filter_out_nils(keyword))
+  end
+
+  defp filter_out_nils(keyword) do
+    for {_k, v} = elem <- keyword, v != nil, into: %{}, do: elem
   end
 
   @doc """
