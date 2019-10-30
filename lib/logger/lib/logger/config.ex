@@ -132,6 +132,7 @@ defmodule Logger.Config do
     {:ok, %{config: data}} = :logger.get_handler_config(Logger)
     translators = fun.(data.translators)
     Application.put_env(:logger, :translators, translators)
-    :ok = :logger.update_handler_config(Logger, :config, %{translators: translators})
+    # TODO: Use update_handler_config on Erlang/OTP 22+.
+    :ok = :logger.set_handler_config(Logger, :config, %{data | translators: translators})
   end
 end
