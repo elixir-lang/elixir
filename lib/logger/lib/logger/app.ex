@@ -57,8 +57,8 @@ defmodule Logger.App do
   end
 
   @doc false
-  def config_change(changed, _new, _removed) do
-    Logger.configure(changed)
+  def config_change(_changed, _new, _removed) do
+    Logger.configure([])
   end
 
   @doc """
