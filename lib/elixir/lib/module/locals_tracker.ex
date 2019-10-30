@@ -105,36 +105,28 @@ defmodule Module.LocalsTracker do
     undefined =
       for {pair, _, meta, _} <- all_defined,
           {local, line, macro_dispatch?} <- out_neighbours(bag, {:local, pair}),
-          error = undefined_local_error({set, bag}, local, macro_dispatch?),
+          error = undefined_local_error(set, local, macro_dispatch?),
           do: {build_meta(line, meta), local, error}
 
     :lists.usort(undefined)
   end
 
-  defp undefined_local_error({set, _bag}, local, true) do
+  defp undefined_local_error(set, local, true) do
     case :ets.member(set, {:def, local}) do
       true -> false
       false -> :undefined_function
     end
   end
 
-  defp undefined_local_error({set, bag}, local, false) do
+  defp undefined_local_error(set, local, false) do
     try do
       if :ets.lookup_element(set, {:def, local}, 2) in @defmacros do
         :incorrect_dispatch
       else
-        bodiless_local_error(bag, local)
+        false
       end
     catch
       _, _ -> :undefined_function
-    end
-  end
-
-  defp bodiless_local_error(bag, local) do
-    if :ets.member(bag, {:clauses, local}) do
-      false
-    else
-      :bodiless_function
     end
   end
 
