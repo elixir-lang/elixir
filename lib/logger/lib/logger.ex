@@ -701,11 +701,6 @@ defmodule Logger do
     end
   end
 
-  @doc false
-  def __do_log__(:warn, chardata_or_fun, metadata) do
-    __do_log__(:warning, chardata_or_fun, metadata)
-  end
-
   def __do_log__(level, fun, metadata) when is_function(fun, 0) and is_map(metadata) do
     case fun.() do
       :skip ->
