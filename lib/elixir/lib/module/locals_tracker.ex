@@ -119,17 +119,22 @@ defmodule Module.LocalsTracker do
   end
 
   defp undefined_local_error({set, bag}, local, false) do
-    case :ets.lookup(set, {:def, local}) do
-      [] -> :undefined_function
-      [{_, kind, _, _, _, _}] when kind in @defmacros -> :incorrect_dispatch
-      _other -> bodiless_local_error(bag, local)
+    try do
+      if :ets.lookup_element(set, {:def, local}, 2) in @defmacros do
+        :incorrect_dispatch
+      else
+        bodiless_local_error(bag, local)
+      end
+    catch
+      _, _ -> :undefined_function
     end
   end
 
   defp bodiless_local_error(bag, local) do
-    case :ets.lookup(bag, {:clauses, local}) do
-      [] -> :bodiless_function
-      _other -> false
+    if :ets.member(bag, {:clauses, local}) do
+      false
+    else
+      :bodiless_function
     end
   end
 
