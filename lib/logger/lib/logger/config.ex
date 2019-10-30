@@ -12,11 +12,11 @@ defmodule Logger.Config do
   end
 
   def add_translator(translator) do
-    update_translators(fn t -> [translator | List.delete(t, translator)] end)
+    :gen_event.call(Logger, @name, {:add_translator, translator})
   end
 
   def remove_translator(translator) do
-    update_translators(&List.delete(&1, translator))
+    :gen_event.call(Logger, @name, {:remove_translator, translator})
   end
 
   ## Callbacks
@@ -50,6 +50,16 @@ defmodule Logger.Config do
     end)
 
     {:ok, :ok, load_state(counter)}
+  end
+
+  def handle_call({:add_translator, translator}, state) do
+    update_translators(fn t -> [translator | List.delete(t, translator)] end)
+    {:ok, :ok, state}
+  end
+
+  def handle_call({:remove_translator, translator}, state) do
+    update_translators(&List.delete(&1, translator))
+    {:ok, :ok, state}
   end
 
   def handle_info(@update_counter_message, state) do
