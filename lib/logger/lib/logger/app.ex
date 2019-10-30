@@ -9,11 +9,14 @@ defmodule Logger.App do
   def start(_type, _args) do
     start_options = Application.get_env(:logger, :start_options)
     otp_reports? = Application.fetch_env!(:logger, :handle_otp_reports)
-
-    config = Logger.Config.new()
+    config = Logger.Counter.new()
 
     children = [
-      {Logger.LegacyHandler, start_options},
+      %{
+        id: :gen_event,
+        start: {:gen_event, :start_link, [{:local, Logger}, start_options]},
+        modules: :dynamic
+      },
       {Logger.Watcher, {Logger.Config, config}},
       Logger.BackendSupervisor
     ]
@@ -34,8 +37,7 @@ defmodule Logger.App do
         {:ok, sup, {config, handlers}}
 
       {:error, _} = error ->
-        # TODO: This will not be needed once we are OTP 22+
-        Logger.Config.delete(config)
+        Logger.Counter.delete(config)
         error
     end
   end
@@ -51,9 +53,7 @@ defmodule Logger.App do
     _ = :logger.remove_primary_filter(:process_disabled)
 
     add_handlers(handlers)
-
-    # TODO: This will not be needed once we are OTP 22+
-    Logger.Config.delete(config)
+    Logger.Counter.delete(config)
   end
 
   @doc false
@@ -69,29 +69,22 @@ defmodule Logger.App do
   end
 
   defp add_elixir_handler(otp_reports?, counter) do
-    # TODO: This will not be needed once we are OTP 22+
-    data = %{counter: counter}
-
     config = %{
       level: :all,
-      config: data,
+      config: %{counter: counter},
       filter_default: :log,
       filters:
         if not otp_reports? do
-          [
-            filter_elixir: {&Logger.Filter.elixir_domain/2, :ignore}
-          ]
+          [filter_elixir: {&Logger.Filter.elixir_domain/2, :ignore}]
         else
           []
         end
     }
 
     primary_config = :logger.get_primary_config()
-
     Logger.LegacyHandler.load_log_level()
     :ok = :logger.add_primary_filter(:process_disabled, {&Logger.Filter.process_disabled/2, []})
     :ok = :logger.add_handler(Logger, Logger.LegacyHandler, config)
-
     primary_config
   end
 

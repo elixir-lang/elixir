@@ -1,13 +1,14 @@
 defmodule Logger.LegacyHandler do
   @moduledoc false
-
   alias Logger.Counter
 
   @internal_keys [:counter]
 
+  ## API used by other Logger modules
+
   def load_log_level do
     # TODO: Deprecate if level is warning.
-    # TODO: Consider deprecating logger.level altogether in favor of kernel.logger_level.
+    # PENDING: Fallback to kernel.logger_level if logger level is not set.
     level = case Application.fetch_env!(:logger, :level) do
       :warn -> :warning
       level -> level
@@ -16,24 +17,10 @@ defmodule Logger.LegacyHandler do
     :ok = :logger.set_primary_config(:level, level)
   end
 
-  @doc false
-  def child_spec(start_options) do
-    %{
-      id: :gen_event,
-      start: {:gen_event, :start_link, [{:local, Logger}, start_options]},
-      modules: :dynamic
-    }
-  end
+  ## Config management
 
-  def adding_handler(%{config: data} = config) do
-    # TODO: When using counters exclusively then this line can be changed to use
-    # `Map.put/2` instead as we will not need to pass ETS table
-    new_data =
-      Logger.Config.default_config()
-      |> Map.merge(data || %{})
-      |> Map.put_new_lazy(:counter, &Logger.Config.new/0)
-
-    {:ok, %{config | config: new_data}}
+  def adding_handler(config) do
+    {:ok, update_in(config.config, &Map.merge(default_config(), &1))}
   end
 
   # TODO: Remove when we will support OTP 22+
@@ -46,7 +33,7 @@ defmodule Logger.LegacyHandler do
       ) do
     old_data =
       case op do
-        :set -> Logger.Config.default_config()
+        :set -> default_config()
         :update -> old_data
       end
 
@@ -76,9 +63,24 @@ defmodule Logger.LegacyHandler do
     %{config | config: Map.drop(data, @internal_keys)}
   end
 
-  @doc """
-  Hook required by `:logger`.
-  """
+  defp default_config do
+    sync_threshold = Application.fetch_env!(:logger, :sync_threshold)
+    discard_threshold = Application.fetch_env!(:logger, :discard_threshold)
+    level = Application.fetch_env!(:logger, :level)
+    sasl_reports? = Application.fetch_env!(:logger, :handle_sasl_reports)
+
+    %{
+      level: level,
+      utc_log: Application.fetch_env!(:logger, :utc_log),
+      truncate: Application.fetch_env!(:logger, :truncate),
+      translators: Application.fetch_env!(:logger, :translators),
+      thresholds: {sync_threshold, discard_threshold},
+      sasl: sasl_reports?
+    }
+  end
+
+  ## Main logging API
+
   def log(%{meta: %{domain: [:otp, :sasl | _]}}, %{config: %{sasl: false}}) do
     :ok
   end

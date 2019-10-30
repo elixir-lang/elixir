@@ -28,11 +28,8 @@ defmodule Logger.Counter do
   def read({:counters, counter}), do: :counters.get(counter, @pos)
 
   @spec add(t(), integer()) :: :ok
-  def add({:ets, counter}, value),
-    do: :ets.update_counter(counter, @pos, {2, value})
-
-  def add({:counters, counter}, value),
-    do: :counters.add(counter, @pos, value)
+  def add({:ets, counter}, value), do: :ets.update_counter(counter, @pos, {2, value})
+  def add({:counters, counter}, value), do: :counters.add(counter, @pos, value)
 
   @spec bump(t()) :: integer()
   def bump({:ets, counter}),

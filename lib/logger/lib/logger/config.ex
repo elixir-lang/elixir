@@ -11,22 +11,6 @@ defmodule Logger.Config do
     :gen_event.call(Logger, @name, {:configure, options})
   end
 
-  def default_config do
-    sync_threshold = Application.fetch_env!(:logger, :sync_threshold)
-    discard_threshold = Application.fetch_env!(:logger, :discard_threshold)
-    level = Application.fetch_env!(:logger, :level)
-    sasl_reports? = Application.fetch_env!(:logger, :handle_sasl_reports)
-
-    %{
-      level: level,
-      utc_log: Application.fetch_env!(:logger, :utc_log),
-      truncate: Application.fetch_env!(:logger, :truncate),
-      translators: Application.fetch_env!(:logger, :translators),
-      thresholds: {sync_threshold, discard_threshold},
-      sasl: sasl_reports?
-    }
-  end
-
   def add_translator(translator) do
     update_translators(fn t -> [translator | List.delete(t, translator)] end)
   end
@@ -34,11 +18,6 @@ defmodule Logger.Config do
   def remove_translator(translator) do
     update_translators(&List.delete(&1, translator))
   end
-
-  # TODO: Use counters exclusively when we require Erlang/OTP 22+.
-  defdelegate new, to: Logger.Counter
-
-  defdelegate delete(counter), to: Logger.Counter
 
   ## Callbacks
 
