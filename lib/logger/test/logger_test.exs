@@ -162,14 +162,6 @@ defmodule LoggerTest do
                assert Logger.bare_log(:info, fun, application: nil, module: FunctionTest) == :ok
              end) =~ msg("module=FunctionTest [info]  ok:example")
     end
-
-    test "supports skip" do
-      fun = fn -> :skip end
-
-      assert capture_log(fn ->
-               assert Logger.bare_log(:info, fun, application: nil, module: FunctionTest) == :ok
-             end) == ""
-    end
   end
 
   test "enable/1 and disable/1" do
