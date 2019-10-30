@@ -822,22 +822,17 @@ defmodule Logger do
     %{module: module, function: {fun, arity}, file: file, line: line} = caller
 
     caller =
-      file
-      |> compile_time_application_and_file()
-      |> Keyword.merge(mfa: {module, fun, arity}, line: line)
+      compile_time_application_and_file(file) ++
+        [mfa: {module, fun, arity}, line: line]
 
     {compile_metadata, quoted_metadata} =
       if Keyword.keyword?(metadata) do
         metadata = Keyword.merge(caller, metadata)
-        quoted = Keyword.update!(metadata, :mfa, &Macro.escape/1)
-
-        {Map.new(metadata), quote(do: %{unquote_splicing(quoted)})}
+        {Map.new(metadata), escape_metadata(metadata)}
       else
-        quoted = Keyword.update!(caller, :mfa, &Macro.escape/1)
-
         {%{},
          quote do
-           Enum.into(unquote(metadata), %{unquote_splicing(quoted)})
+           Enum.into(unquote(metadata), unquote(escape_metadata(caller)))
          end}
       end
 
@@ -853,6 +848,11 @@ defmodule Logger do
         end
       end
     end
+  end
+
+  defp escape_metadata(metadata) do
+     metadata = Keyword.update!(metadata, :mfa, &Macro.escape/1)
+     {:%{}, [], metadata}
   end
 
   defp compile_time_application_and_file(file) do
@@ -881,7 +881,7 @@ defmodule Logger do
           end
 
         {k, v} when is_atom(k) ->
-          # TODO: Warn on matching on `:module` and `:function` fields
+          # TODO: Warn on matching on `:function` fields
           Map.fetch(compile_metadata, k) == {:ok, v}
 
         _ ->
