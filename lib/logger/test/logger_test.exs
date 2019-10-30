@@ -146,12 +146,30 @@ defmodule LoggerTest do
            end) =~ msg("module=Function [info]  ok")
   end
 
-  test "function can return iolist" do
-    fun = fn -> ["ok", ?:, 'example']  end
+  describe "log with function" do
+    test "supports iolist" do
+      fun = fn -> ["ok", ?:, 'example'] end
 
-    assert capture_log(fn ->
-             assert Logger.bare_log(:info, fun, application: nil, module: FunctionTest) == :ok
-           end) =~ msg("module=FunctionTest [info]  ok:example")
+      assert capture_log(fn ->
+               assert Logger.bare_log(:info, fun, application: nil, module: FunctionTest) == :ok
+             end) =~ msg("module=FunctionTest [info]  ok:example")
+    end
+
+    test "supports binaries" do
+      fun = fn -> "ok:example" end
+
+      assert capture_log(fn ->
+               assert Logger.bare_log(:info, fun, application: nil, module: FunctionTest) == :ok
+             end) =~ msg("module=FunctionTest [info]  ok:example")
+    end
+
+    test "supports skip" do
+      fun = fn -> :skip end
+
+      assert capture_log(fn ->
+               assert Logger.bare_log(:info, fun, application: nil, module: FunctionTest) == :ok
+             end) == ""
+    end
   end
 
   test "enable/1 and disable/1" do
