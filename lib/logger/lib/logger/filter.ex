@@ -11,10 +11,6 @@ defmodule Logger.Filter do
     end
   end
 
-  def elixir_domain(log_event, extra) do
-    :erlang.error({:badarg, [log_event, extra]})
-  end
-
   @doc """
   Filter out logs if current process opted out of log reports
   """
