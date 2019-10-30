@@ -851,8 +851,8 @@ defmodule Logger do
   end
 
   defp escape_metadata(metadata) do
-     metadata = Keyword.update!(metadata, :mfa, &Macro.escape/1)
-     {:%{}, [], metadata}
+    metadata = Keyword.update!(metadata, :mfa, &Macro.escape/1)
+    {:%{}, [], metadata}
   end
 
   defp compile_time_application_and_file(file) do
