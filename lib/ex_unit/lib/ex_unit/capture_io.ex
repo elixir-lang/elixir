@@ -40,6 +40,18 @@ defmodule ExUnit.CaptureIO do
   A developer can set a string as an input. The default input
   is an empty string (which is equivalent to `:eof`).
 
+  ## IO devices
+
+  You may capture the IO from any registered IO device. The device name given
+  must be an atom representing the name of a registered process. In addition,
+  Elixir provides two shortcuts:
+
+    * `:stdio` - a shortcut for `:standard_io`, which maps to
+      the current `Process.group_leader/0` in Erlang
+
+    * `:stderr` - a shortcut for the named process `:standard_error`
+      provided in Erlang
+
   ## Options
 
     * `:capture_prompt` - When capturing `:stdio`, if set to `false`,
@@ -56,6 +68,9 @@ defmodule ExUnit.CaptureIO do
       true
 
       iex> capture_io(:stderr, fn -> IO.write(:stderr, "john") end) == "john"
+      true
+
+      iex> capture_io(:standard_error, fn -> IO.write(:stderr, "john") end) == "john"
       true
 
       iex> capture_io("this is input", fn ->
@@ -85,27 +100,33 @@ defmodule ExUnit.CaptureIO do
       assert_received {:block_result, 42}
 
   """
+  @spec capture_io((() -> any())) :: String.t()
   def capture_io(fun) when is_function(fun, 0) do
     capture_io(:stdio, [], fun)
   end
 
+  @spec capture_io(atom(), (() -> any())) :: String.t()
   def capture_io(device, fun) when is_atom(device) and is_function(fun, 0) do
     capture_io(device, [], fun)
   end
 
+  @spec capture_io(String.t(), (() -> any())) :: String.t()
   def capture_io(input, fun) when is_binary(input) and is_function(fun, 0) do
     capture_io(:stdio, [input: input], fun)
   end
 
+  @spec capture_io(list(), (() -> any())) :: String.t()
   def capture_io(options, fun) when is_list(options) and is_function(fun, 0) do
     capture_io(:stdio, options, fun)
   end
 
+  @spec capture_io(atom(), String.t(), (() -> any())) :: String.t()
   def capture_io(device, input, fun)
       when is_atom(device) and is_binary(input) and is_function(fun, 0) do
     capture_io(device, [input: input], fun)
   end
 
+  @spec capture_io(atom(), list(), (() -> any())) :: String.t()
   def capture_io(device, options, fun)
       when is_atom(device) and is_list(options) and is_function(fun, 0) do
     do_capture_io(map_dev(device), options, fun)
