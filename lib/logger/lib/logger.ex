@@ -492,7 +492,7 @@ defmodule Logger do
   """
   @spec enable(pid) :: :ok
   def enable(pid) when pid == self() do
-    Process.put(@metadata, true)
+    Process.delete(@metadata)
     :ok
   end
 
