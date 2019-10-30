@@ -48,11 +48,11 @@ defmodule Logger.Config do
   def compare_levels(_, :none), do: :gt
 
   def compare_levels(left, right) do
-    :logger.compare_levels(normalise(left), normalise(right))
+    :logger.compare_levels(normalize(left), normalize(right))
   end
 
-  defp normalise(:warn), do: :warning
-  defp normalise(level), do: level
+  defp normalize(:warn), do: :warning
+  defp normalize(level), do: level
 
   # TODO: Use counters exclusively when we require Erlang/OTP 22+.
   defdelegate new, to: Logger.Counter
@@ -178,7 +178,7 @@ defmodule Logger.Config do
     }
 
     :ok = :logger.update_handler_config(Logger, %{config: data})
-    :ok = :logger.set_primary_config(:level, normalise(data.level))
+    :ok = :logger.set_primary_config(:level, normalize(data.level))
 
     {counter, :log, discard_threshold, discard_period}
   end
