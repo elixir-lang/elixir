@@ -71,6 +71,8 @@ defmodule Logger.App do
   end
 
   defp add_elixir_handler(otp_reports?, counter) do
+    # TODO: Deprecate this is future releases, probably whole `logger.level`
+    # option and suggest users to use `kernel.logger_level` instead
     level =
       case Application.fetch_env!(:logger, :level) do
         :warn -> :warning
