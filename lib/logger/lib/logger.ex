@@ -695,9 +695,8 @@ defmodule Logger do
 
   @doc false
   def __should_log__(:warn) do
-    # TODO: Uncomment this
-    # bare_log(:warning, "`:warn` level is deprecated, you should use `:warning`")
-
+    # TODO: Deprecate this one we fully migrate to Erlang levels.
+    # IO.warn("`:warn` level is deprecated, you should use `:warning`")
     __should_log__(:warning)
   end
 
@@ -709,6 +708,7 @@ defmodule Logger do
     end
   end
 
+  @doc false
   def __do_log__(level, fun, metadata) when is_function(fun, 0) and is_map(metadata) do
     case fun.() do
       :skip ->
@@ -753,22 +753,6 @@ defmodule Logger do
   """
   # TODO: Deprecate it in favour of `warning/1-2` macro
   defmacro warn(chardata_or_fun, metadata \\ []) do
-    maybe_log(:warning, chardata_or_fun, metadata, __CALLER__)
-  end
-
-  @doc """
-  Logs a warning message.
-
-  Returns `:ok` or an `{:error, reason}` tuple.
-
-  ## Examples
-
-      Logger.warning("knob turned too far to the right")
-      Logger.warning(fn -> "dynamically calculated warning" end)
-      Logger.warning(fn -> {"dynamically calculated warning", [additional: :metadata]} end)
-
-  """
-  defmacro warning(chardata_or_fun, metadata \\ []) do
     maybe_log(:warning, chardata_or_fun, metadata, __CALLER__)
   end
 
