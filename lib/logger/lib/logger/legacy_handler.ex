@@ -29,7 +29,7 @@ defmodule Logger.LegacyHandler do
 
   def changing_config(
         op,
-        %{id: id, module: module, config: %{counter: counter} = old_data, filters: filters},
+        %{config: %{counter: counter} = old_data} = old_config,
         %{config: new_data} = new_config
       ) do
     old_data =
@@ -46,17 +46,7 @@ defmodule Logger.LegacyHandler do
         end
       end)
 
-    config =
-      %{
-        id: id,
-        module: module,
-        level: :all,
-        filter_default: :log,
-        formatter: {:logger_formatter, %{}},
-        filters: filters
-      }
-      |> Map.merge(new_config)
-
+    config = Map.merge(old_config, new_config)
     {:ok, Map.put(config, :config, Map.put(data, :counter, counter))}
   end
 
