@@ -1774,10 +1774,23 @@ defmodule Kernel.WarningTest do
     assert capture_err(fn ->
              Code.eval_string("""
              defmodule TestMod do
-               defstruct [:foo, :foo, :bar]
+               defstruct [:foo, :bar, foo: 1]
              end
              """)
            end) =~ "duplicate key :foo found in struct"
+  after
+    purge(TestMod)
+  end
+
+  test "defrecord warns with duplicate keys" do
+    assert capture_err(fn ->
+             Code.eval_string("""
+             defmodule TestMod do
+               import Record
+               defrecord :r, [:foo, :bar, foo: 1]
+             end
+             """)
+           end) =~ "duplicate key :foo found in record"
   after
     purge(TestMod)
   end
