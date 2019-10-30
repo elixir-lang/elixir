@@ -459,4 +459,23 @@ defmodule LoggerTest do
       Logger.configure(level: :debug)
     end
   end
+
+  describe "OTP integration" do
+    test "changes level in both" do
+      assert :logger.get_primary_config().level == :debug
+      Logger.configure(level: :error)
+      assert :logger.get_primary_config().level == :error
+    after
+      Logger.configure(level: :debug)
+    end
+
+    test "supports module level" do
+      :logger.set_module_level(__MODULE__, :none)
+      assert capture_log(fn -> Logger.info("hello") end) == ""
+      :logger.set_module_level(__MODULE__, :all)
+      assert capture_log(fn -> Logger.info("hello") end) =~ "hello"
+    after
+      :logger.unset_module_level(__MODULE__)
+    end
+  end
 end
