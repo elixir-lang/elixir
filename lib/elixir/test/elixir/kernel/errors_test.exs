@@ -433,6 +433,20 @@ defmodule Kernel.ErrorsTest do
     assert_eval_raise CompileError, "nofile:1: undefined function call/2", 'call foo, do: :foo'
   end
 
+  test "bodiless local function" do
+    ExUnit.CaptureIO.capture_io(:stderr, fn ->
+      assert_eval_raise CompileError,
+                        "nofile:2: cannot invoke function bar/0 without implementation",
+                        '''
+                        defmodule Kernel.ErrorsTest.BodilessLocalFunction do
+                          def foo, do: bar()
+
+                          defp bar
+                        end
+                        '''
+    end)
+  end
+
   test "literal on map and struct" do
     assert_eval_raise SyntaxError, "nofile:1: syntax error before: '}'", '%{:a}'
     assert_eval_raise SyntaxError, "nofile:1: syntax error before: '}'", '%{{:a, :b}}'

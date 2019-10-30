@@ -133,4 +133,7 @@ format_error({undefined_function, {F, A}}) ->
   io_lib:format("undefined function ~ts/~B", [F, A]);
 
 format_error({incorrect_dispatch, {F, A}}) ->
-  io_lib:format("cannot invoke macro ~ts/~B before its definition", [F, A]).
+  io_lib:format("cannot invoke macro ~ts/~B before its definition", [F, A]);
+
+format_error({bodiless_function, {F, A}}) ->
+  io_lib:format("cannot invoke function ~ts/~B without implementation", [F, A]).
