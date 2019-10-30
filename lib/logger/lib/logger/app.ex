@@ -65,8 +65,6 @@ defmodule Logger.App do
   Stops the application without sending messages to error logger.
   """
   def stop() do
-    :ok = :logger.update_primary_config(%{level: :none})
-
     Application.stop(:logger)
   end
 
