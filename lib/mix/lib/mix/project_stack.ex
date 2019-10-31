@@ -63,7 +63,7 @@ defmodule Mix.ProjectStack do
         recursing?: false,
         io_done: io_done?,
         config_apps: [],
-        config_files: [file],
+        config_files: [file] ++ peek_config_files(config[:inherit_parent_config_files], stack),
         config_mtime: nil,
         after_compile: []
       }
@@ -77,6 +77,9 @@ defmodule Mix.ProjectStack do
       end
     end)
   end
+
+  defp peek_config_files(true, [%{config_files: files} | _]), do: files
+  defp peek_config_files(_, _), do: []
 
   @spec loaded_config([atom], [binary()]) :: :ok
   def loaded_config(apps, files) do
@@ -277,7 +280,7 @@ defmodule Mix.ProjectStack do
   defp find_project_named(name, stack) do
     name &&
       Enum.find_value(stack, fn
-        %{name: n, file: file} when n === name -> file
+        %{name: n, file: file} when n == name -> file
         %{} -> nil
       end)
   end

@@ -427,7 +427,7 @@ defmodule Mix.Task do
     config = Mix.Project.deps_config() |> Keyword.delete(:deps_path)
 
     for %Mix.Dep{app: app, opts: opts} <- Mix.Dep.Umbrella.cached() do
-      Mix.Project.in_project(app, opts[:path], config, fun)
+      Mix.Project.in_project(app, opts[:path], [inherit_parent_config_files: true] ++ config, fun)
     end
   end
 

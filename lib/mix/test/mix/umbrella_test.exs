@@ -94,6 +94,23 @@ defmodule Mix.UmbrellaTest do
     end)
   end
 
+  test "recompiles umbrella on conffig hange" do
+    in_fixture("umbrella_dep/deps/umbrella", fn ->
+      Mix.Project.in_project(:umbrella, ".", fn _ ->
+        Mix.Task.run("compile", [])
+        bar = File.stat!("_build/dev/lib/bar/ebin/Elixir.Bar.beam").mtime
+        foo = File.stat!("_build/dev/lib/foo/ebin/Elixir.Foo.beam").mtime
+
+        ensure_touched("mix.exs")
+
+        Mix.Task.clear()
+        Mix.Task.run("compile", [])
+        assert File.stat!("_build/dev/lib/bar/ebin/Elixir.Bar.beam").mtime > bar
+        assert File.stat!("_build/dev/lib/foo/ebin/Elixir.Foo.beam").mtime > foo
+      end)
+    end)
+  end
+
   test "recursively compiles umbrella with protocol consolidation" do
     in_fixture("umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
