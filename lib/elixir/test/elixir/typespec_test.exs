@@ -94,6 +94,12 @@ defmodule TypespecTest do
           def foo(var1, var2), do: {var1, var2}
         end
       end
+
+      assert_raise CompileError, ~r"type foo/0 undefined", fn ->
+        test_module do
+          @type omg :: __MODULE__.foo()
+        end
+      end
     end
 
     test "redefined type" do
