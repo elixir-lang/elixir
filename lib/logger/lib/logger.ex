@@ -828,11 +828,15 @@ defmodule Logger do
   end
 
   defp macro_log(level, data, metadata, caller) do
-    %{module: module, function: {fun, arity}, file: file, line: line} = caller
-
     caller =
-      compile_time_application_and_file(file) ++
-        [mfa: {module, fun, arity}, line: line]
+      compile_time_application_and_file(caller) ++
+        case caller do
+          %{module: module, function: {fun, arity}, line: line} ->
+            [mfa: {module, fun, arity}, line: line]
+
+          _ ->
+            []
+        end
 
     {compile_metadata, quoted_metadata} =
       if Keyword.keyword?(metadata) do
@@ -860,11 +864,19 @@ defmodule Logger do
   end
 
   defp escape_metadata(metadata) do
-    metadata = Keyword.update!(metadata, :mfa, &Macro.escape/1)
+    metadata = update(metadata, :mfa, &Macro.escape/1)
     {:%{}, [], metadata}
   end
 
-  defp compile_time_application_and_file(file) do
+  defp update([], _key, _fun), do: []
+
+  defp update([{key, val} | rest], key, fun) do
+    [{key, fun.(val)}] ++ Keyword.delete(rest, key)
+  end
+
+  defp update([x | rest], key, fun), do: [x | update(rest, key, fun)]
+
+  defp compile_time_application_and_file(%{file: file}) do
     if app = Application.get_env(:logger, :compile_time_application) do
       [application: app, file: Path.relative_to_cwd(file)]
     else
