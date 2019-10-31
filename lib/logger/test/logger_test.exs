@@ -477,5 +477,14 @@ defmodule LoggerTest do
     after
       :logger.unset_module_level(__MODULE__)
     end
+
+    test "metadata is synchronised" do
+      Logger.metadata(foo: "bar")
+
+      assert Map.new(Logger.metadata()) == :logger.get_process_metadata()
+      :logger.set_process_metadata(%{bar: "foo"})
+
+      assert Map.new(Logger.metadata()) == :logger.get_process_metadata()
+    end
   end
 end

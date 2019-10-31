@@ -57,11 +57,9 @@ defmodule Logger.LegacyHandler do
   defp default_config do
     sync_threshold = Application.fetch_env!(:logger, :sync_threshold)
     discard_threshold = Application.fetch_env!(:logger, :discard_threshold)
-    level = Application.fetch_env!(:logger, :level)
     sasl_reports? = Application.fetch_env!(:logger, :handle_sasl_reports)
 
     %{
-      level: level,
       utc_log: Application.fetch_env!(:logger, :utc_log),
       truncate: Application.fetch_env!(:logger, :truncate),
       translators: Application.fetch_env!(:logger, :translators),
@@ -72,81 +70,76 @@ defmodule Logger.LegacyHandler do
 
   ## Main logging API
 
-  def log(%{meta: %{domain: [:otp, :sasl | _]}}, %{config: %{sasl: false}}) do
-    :ok
-  end
+  def log(%{meta: %{domain: [:otp, :sasl | _]}}, %{config: %{sasl: false}}), do: :ok
+  def log(%{meta: %{domain: [:supervisor_report | _]}}, %{config: %{sasl: false}}), do: :ok
 
-  def log(%{meta: %{domain: [:supervisor_report | _]}}, %{config: %{sasl: false}}) do
-    :ok
-  end
-
-  def log(%{level: erl_level, msg: msg, meta: erl_meta}, %{id: _id, config: config}) do
-    level = erlang_level_to_elixir_level(erl_level)
-    %{utc_log: utc_log?, truncate: truncate, level: erl_min_level} = config
-    min_level = erlang_level_to_elixir_level(erl_min_level)
-
+  def log(%{level: erl_level, msg: msg, meta: erl_meta}, %{config: config}) do
     case threshold(config) do
       :discard ->
         :ok
 
       mode ->
+        level = erlang_level_to_elixir_level(erl_level)
         {erl_meta, rest} = Map.split(erl_meta, ~w[pid gl time mfa file line domain report_cb]a)
-        meta = extract_metadata(erl_meta, Map.to_list(rest))
+        metadata = extract_metadata(erl_meta, Map.to_list(rest))
 
-        translated =
-          try do
-            case msg do
-              {:string, string} ->
-                {string, meta}
-
-              {:report, %{label: label, report: report} = complete}
-              when map_size(complete) == 2 ->
-                translate(level, :report, {label, report}, meta, erl_meta, config, min_level)
-
-              {:report, %{label: {:error_logger, _}, format: format, args: args}} ->
-                translate(level, :format, {format, args}, meta, erl_meta, config, min_level)
-
-              {:report, report} ->
-                translate(level, :report, {:logger, report}, meta, erl_meta, config, min_level)
-
-              {format, args} ->
-                translate(level, :format, {format, args}, meta, erl_meta, config, min_level)
-            end
-          rescue
-            e ->
-              {[
-                 "Failure while translating Erlang's logger event\n",
-                 Exception.format(:error, e, __STACKTRACE__)
-               ], meta}
-          end
-
-        case translated do
+        case do_log(level, msg, erl_meta, metadata, config) do
           :skip ->
             :ok
 
-          {message, metadata} ->
-            # TODO: Use `time` field of `erl_metadata` for timestamp
-            tuple =
-              {Logger, truncate(message, truncate), Logger.Utils.timestamp(utc_log?), metadata}
+          {:ok, {message, metadata}} ->
+            %{truncate: truncate, utc_log: utc_log?} = config
 
-            try do
-              notify(mode, {level, erl_meta.gl, tuple})
-              :ok
-            rescue
-              ArgumentError -> {:error, :noproc}
-            catch
-              :exit, reason -> {:error, reason}
-            end
+            # TODO: Use `time` field of `erl_metadata` for timestamp
+            event = {
+              level,
+              erl_meta.gl,
+              {Logger, truncate(message, truncate), Logger.Utils.timestamp(utc_log?), metadata}
+            }
+
+            notify(mode, event)
         end
     end
   rescue
-    e ->
-      :logger.error(
-        fn ->
-          "Unhandled error in Elixir's Logger handler.\n#{inspect(e)}"
-        end,
-        []
-      )
+    ArgumentError -> {:error, :noproc}
+  catch
+    :exit, reason -> {:error, reason}
+  end
+
+  defp do_log(_level, {:string, message}, _erl_meta, metadata, _config) do
+    {:ok, {message, metadata}}
+  end
+
+  defp do_log(level, msg, erl_meta, meta, config) do
+    %{level: erl_min_level} = :logger.get_primary_config()
+    min_level = erlang_level_to_elixir_level(erl_min_level)
+
+    translated =
+      try do
+        case msg do
+          {:report, %{label: label, report: report} = complete}
+          when map_size(complete) == 2 ->
+            translate(level, :report, {label, report}, meta, erl_meta, config, min_level)
+
+          {:report, %{label: {:error_logger, _}, format: format, args: args}} ->
+            translate(level, :format, {format, args}, meta, erl_meta, config, min_level)
+
+          {:report, report} ->
+            translate(level, :report, {:logger, report}, meta, erl_meta, config, min_level)
+
+          {format, args} ->
+            translate(level, :format, {format, args}, meta, erl_meta, config, min_level)
+        end
+      rescue
+        e ->
+          {[
+             "Failure while translating Erlang's logger event\n",
+             Exception.format(:error, e, __STACKTRACE__)
+           ], meta}
+      end
+
+    with {message, metadata} <- translated,
+         do: {:ok, {message, metadata}}
   end
 
   defp erlang_level_to_elixir_level(:emergency), do: :error
