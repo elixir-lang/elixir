@@ -725,14 +725,19 @@ defmodule Kernel.Typespec do
     # aliases in typespecs as compile time dependencies.
     remote = Macro.expand(remote, %{caller | function: {:typespec, 0}})
 
-    unless is_atom(remote) do
-      compile_error(caller, "invalid remote in typespec: #{Macro.to_string(orig)}")
-    end
+    cond do
+      not is_atom(remote) ->
+        compile_error(caller, "invalid remote in typespec: #{Macro.to_string(orig)}")
 
-    {remote_spec, state} = typespec(remote, vars, caller, state)
-    {name_spec, state} = typespec(name, vars, caller, state)
-    type = {remote_spec, meta, name_spec, args}
-    remote_type(type, vars, caller, state)
+      remote == caller.module ->
+        typespec({name, meta, args}, vars, caller, state)
+
+      true ->
+        {remote_spec, state} = typespec(remote, vars, caller, state)
+        {name_spec, state} = typespec(name, vars, caller, state)
+        type = {remote_spec, meta, name_spec, args}
+        remote_type(type, vars, caller, state)
+    end
   end
 
   # Handle tuples
@@ -828,7 +833,10 @@ defmodule Kernel.Typespec do
       false ->
         if state.undefined_type_error_enabled? and
              not Map.has_key?(state.defined_type_pairs, {name, arity}) do
-          compile_error(caller, "type #{name}/#{arity} undefined")
+          compile_error(
+            caller,
+            "type #{name}/#{arity} undefined (no such type in #{inspect(caller.module)})"
+          )
         end
 
         state =
