@@ -254,9 +254,12 @@ defmodule Mix.Dep do
     # mix.exs file can be different than the actual name and we
     # choose to respect the one in the mix.exs
     config =
-      Keyword.merge(Mix.Project.deps_config(), config)
+      Mix.Project.deps_config()
+      |> Keyword.merge(config)
       |> Keyword.put(:app_path, opts[:build])
       |> Keyword.put(:build_scm, scm)
+
+    config = Keyword.take(opts, [:inherit_parent_config_files]) ++ config
 
     env = opts[:env] || :prod
     old_env = Mix.env()
