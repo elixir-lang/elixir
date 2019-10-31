@@ -15,7 +15,15 @@ defmodule Mix.Dep.Umbrella do
       for {app, path} <- apps_paths do
         dest_path = Path.expand(path)
         build_path = Path.join([build, "lib", Atom.to_string(app)])
-        opts = [path: path, dest: dest_path, from_umbrella: true, env: env, build: build_path, inherit_parent_config_files: true]
+
+        opts = [
+          path: path,
+          dest: dest_path,
+          from_umbrella: true,
+          env: env,
+          build: build_path,
+          inherit_parent_config_files: true
+        ]
 
         %Mix.Dep{
           scm: Mix.SCM.Path,
