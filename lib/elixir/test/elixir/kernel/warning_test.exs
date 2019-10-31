@@ -662,18 +662,6 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
-  test "empty function head" do
-    assert capture_err(fn ->
-             Code.eval_string("""
-             defmodule Sample1 do
-               def hello
-             end
-             """)
-           end) =~ "implementation not provided for predefined def hello/0"
-  after
-    purge(Sample1)
-  end
-
   test "late function heads" do
     assert capture_err(fn ->
              Code.eval_string("""
@@ -1629,18 +1617,6 @@ defmodule Kernel.WarningTest do
              end
              """)
            end) =~ "this clause cannot match because a previous clause at line 2 always matches"
-  after
-    purge(Sample)
-  end
-
-  test "defguard needs an implementation" do
-    assert capture_err(fn ->
-             Code.eval_string("""
-             defmodule Sample do
-               defguard foo(bar)
-             end
-             """)
-           end) =~ "implementation not provided for predefined defmacro foo/1"
   after
     purge(Sample)
   end

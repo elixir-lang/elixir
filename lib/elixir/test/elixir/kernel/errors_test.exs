@@ -433,6 +433,26 @@ defmodule Kernel.ErrorsTest do
     assert_eval_raise CompileError, "nofile:1: undefined function call/2", 'call foo, do: :foo'
   end
 
+  test "function without definition" do
+    assert_eval_raise CompileError,
+                      "nofile:2: implementation not provided for predefined def foo/0",
+                      '''
+                      defmodule Kernel.ErrorsTest.FunctionWithoutDefition do
+                        def foo
+                      end
+                      '''
+  end
+
+  test "guard without definition" do
+    assert_eval_raise CompileError,
+                      "nofile:2: implementation not provided for predefined defmacro foo/1",
+                      '''
+                      defmodule Kernel.ErrorsTest.GuardWithoutDefition do
+                        defguard foo(bar)
+                      end
+                      '''
+  end
+
   test "literal on map and struct" do
     assert_eval_raise SyntaxError, "nofile:1: syntax error before: '}'", '%{:a}'
     assert_eval_raise SyntaxError, "nofile:1: syntax error before: '}'", '%{{:a, :b}}'
