@@ -794,7 +794,7 @@ expand_local(Meta, Name, Args, #{module := Module, function := Function} = E) ->
   assert_no_clauses(Name, Meta, Args, E),
   Arity = length(Args),
   elixir_env:trace({local_function, Meta, Name, Arity}, E),
-  elixir_locals:record_local({Name, length(Args)}, Module, Function, Meta, false),
+  elixir_locals:record_local({Name, Arity}, Module, Function, Meta, false),
   {EArgs, EA} = expand_args(Args, E),
   {{Name, Meta, EArgs}, EA}.
 
