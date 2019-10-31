@@ -292,6 +292,9 @@ defmodule Mix.Tasks.New do
   # Ignore package tarball (built via "mix hex.build").
   <%= @app %>-*.tar
   <% end %>
+
+  # Ignore language server generated files
+  .elixir_ls
   """)
 
   embed_template(:mix_exs, """
