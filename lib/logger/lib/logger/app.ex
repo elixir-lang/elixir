@@ -1,27 +1,15 @@
 defmodule Logger.App do
   @moduledoc false
 
-  # TODO: Remove this once we support Erlang/OTP 21+ exclusively.
-  @compile {:no_warn_undefined, :logger}
+  require Logger
 
   use Application
 
   @doc false
   def start(_type, _args) do
-    otp_reports? = Application.get_env(:logger, :handle_otp_reports)
-    sasl_reports? = Application.get_env(:logger, :handle_sasl_reports)
     start_options = Application.get_env(:logger, :start_options)
-
-    otp_children =
-      if otp_logger?() do
-        []
-      else
-        threshold = Application.get_env(:logger, :discard_threshold_for_error_logger)
-        arg = {:error_logger, Logger.ErrorHandler, {otp_reports?, sasl_reports?, threshold}}
-        [%{id: Logger.ErrorHandler, start: {Logger.Watcher, :start_link, [arg]}}]
-      end
-
-    config = Logger.Config.new()
+    otp_reports? = Application.fetch_env!(:logger, :handle_otp_reports)
+    config = Logger.Counter.new()
 
     children = [
       %{
@@ -29,26 +17,27 @@ defmodule Logger.App do
         start: {:gen_event, :start_link, [{:local, Logger}, start_options]},
         modules: :dynamic
       },
-      {Logger.Watcher, {Logger, Logger.Config, config}},
+      {Logger.Watcher, {Logger.Config, config}},
       Logger.BackendSupervisor
-      | otp_children
     ]
+
+    primary_config = add_elixir_handler(otp_reports?, config)
+
+    default_handlers =
+      if otp_reports? do
+        delete_erlang_handler()
+      else
+        []
+      end
+
+    handlers = [primary_config | default_handlers]
 
     case Supervisor.start_link(children, strategy: :rest_for_one, name: Logger.Supervisor) do
       {:ok, sup} ->
-        if otp_logger?() do
-          if otp_reports? do
-            add_elixir_handler(sasl_reports?)
-            delete_erlang_handler()
-          end
-        else
-          delete_old_handlers(otp_reports?, sasl_reports?)
-        end
-
-        {:ok, sup, config}
+        {:ok, sup, {config, handlers}}
 
       {:error, _} = error ->
-        Logger.Config.delete(config)
+        Logger.Counter.delete(config)
         error
     end
   end
@@ -59,69 +48,81 @@ defmodule Logger.App do
   end
 
   @doc false
-  def stop(config) do
-    if otp_logger?() do
-      _ = :logger.remove_handler(Logger)
-    end
+  def stop({config, handlers}) do
+    _ = :logger.remove_handler(Logger)
+    _ = :logger.remove_primary_filter(:process_disabled)
 
-    add_handlers(Logger.Config.deleted_handlers())
-    Logger.Config.delete(config)
+    add_handlers(handlers)
+    Logger.Counter.delete(config)
   end
 
   @doc false
-  def config_change(_changed, _new, _removed) do
-    Logger.Config.configure([])
+  def config_change(changed, _new, _removed) do
+    Logger.configure(changed)
   end
 
   @doc """
   Stops the application without sending messages to error logger.
   """
   def stop() do
-    try do
-      Logger.Config.deleted_handlers([])
-    catch
-      :exit, {:noproc, _} ->
-        {:error, {:not_started, :logger}}
-    else
-      deleted_handlers ->
-        result = Application.stop(:logger)
-        add_handlers(deleted_handlers)
-        result
+    Application.stop(:logger)
+  end
+
+  defp add_elixir_handler(otp_reports?, counter) do
+    config = %{
+      level: :all,
+      config: %{counter: counter},
+      filter_default: :log,
+      filters:
+        if not otp_reports? do
+          [filter_elixir: {&Logger.Filter.elixir_domain/2, :ignore}]
+        else
+          []
+        end
+    }
+
+    %{level: erl_level} = primary_config = :logger.get_primary_config()
+
+    # Elixir's logger level is no longer set by default.
+    #
+    # If it is set, it always has higher precedence, but we warn
+    # in case of mismatches.
+    #
+    # If it is not set, we revert Erlang's kernel to debug, if it
+    # has its default value, otherwise we keep it as is.
+    case Application.fetch_env(:logger, :level) do
+      {:ok, level} ->
+        if erl_level != :notice and erl_level != level do
+          IO.warn(
+            "the level for Erlang's logger was set to #{inspect(erl_level)}, " <>
+              "but Elixir's logger was set to #{inspect(level)}. " <>
+              "Elixir's logger value will take higher precedence"
+          )
+        end
+
+        :ok = :logger.set_primary_config(:level, level)
+
+      :error when erl_level == :notice ->
+        :ok = :logger.set_primary_config(:level, :debug)
+
+      :error ->
+        :ok
     end
-  end
 
-  # TODO: Remove conditional error_logger code once we require Erlang/OTP 21+.
-  defp otp_logger? do
-    is_pid(Process.whereis(:logger))
-  end
-
-  defp add_elixir_handler(sasl_reports?) do
-    config = %{level: :debug, config: %{sasl_reports?: sasl_reports?}}
-    :logger.add_handler(Logger, Logger.ErlangHandler, config)
+    :ok = :logger.add_primary_filter(:process_disabled, {&Logger.Filter.process_disabled/2, []})
+    :ok = :logger.add_handler(Logger, Logger.Handler, config)
+    primary_config
   end
 
   defp delete_erlang_handler() do
     with {:ok, %{module: module} = config} <- :logger.get_handler_config(:default),
          :ok <- :logger.remove_handler(:default) do
-      %{level: level} = :logger.get_primary_config()
-      :logger.update_primary_config(%{level: :debug})
-      primary_config = {:primary, %{level: level}}
       handler_config = {:default, module, config}
-      [] = Logger.Config.deleted_handlers([primary_config, handler_config])
-      :ok
+
+      [handler_config]
     else
-      _ -> :ok
+      _ -> []
     end
-  end
-
-  defp delete_old_handlers(otp_reports?, sasl_reports?) do
-    deleted =
-      for {tty, true} <- [error_logger_tty_h: otp_reports?, sasl_report_tty_h: sasl_reports?],
-          :error_logger.delete_report_handler(tty) != {:error, :module_not_found},
-          do: tty
-
-    [] = Logger.Config.deleted_handlers(deleted)
-    :ok
   end
 
   defp add_handlers(handlers) do
@@ -131,10 +132,7 @@ defmodule Logger.App do
           :logger.add_handler(handler, module, config)
 
         {:primary, config} ->
-          :logger.update_primary_config(config)
-
-        handler ->
-          :error_logger.add_report_handler(handler)
+          :logger.set_primary_config(config)
       end
     end
 

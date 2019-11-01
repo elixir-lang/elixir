@@ -16,10 +16,8 @@ defmodule Logger do
       performant when required but also apply backpressure
       when under stress.
 
-    * Plugs into Erlang's [`:logger`](http://erlang.org/doc/man/logger.html)
-      (from Erlang/OTP 21) to convert terms to Elixir syntax or wraps
-      Erlang's [`:error_logger`](http://erlang.org/doc/man/error_logger.html)
-      in earlier Erlang/OTP versions to prevent it from overflowing.
+    * Integrates with Erlang's [`:logger`](http://erlang.org/doc/man/logger.html)
+      to convert terms to Elixir syntax.
 
   Logging is useful for tracking when an event of interest happens in your
   system. For example, it may be helpful to log whenever a user is deleted.
@@ -92,10 +90,14 @@ defmodule Logger do
       level lower than this option will be completely removed at compile time,
       accruing no overhead at runtime. This configuration expects a list of
       keyword lists. Each keyword list contains a metadata key and the matching
-      value that should be purged. A special key named `:level_lower_than` can
-      be used to purge all messages with a lower logger level. Remember that
-      if you want to purge log calls from a dependency, the dependency must be
-      recompiled.
+      value that should be purged. Some special keys are supported:
+
+        * `:level_lower_than` - purges all messages with a lower logger level
+        * `:module` - purges all messages with the matching module
+        * `:function` - purges all messages with the "function/arity"
+
+      Remember that if you want to purge log calls from a dependency, the
+      dependency must be recompiled.
 
     * `:start_options` - passes start options to Logger's main process, such
       as `:spawn_opt` and `:hibernate_after`. All options in `t:GenServer.option`
@@ -172,11 +174,14 @@ defmodule Logger do
         level: :warn,
         truncate: 4096
 
-  ### Error logger configuration
+  ### Erlang/OTP integration
 
-  The following configuration applies to `Logger`'s wrapper around
-  Erlang's logging functionalities. All the configurations below must
-  be set before the `:logger` application starts.
+  From Elixir v1.10, Elixir's Logger is fully integrated with Erlang's
+  logger. This means setting the level in Elixir's Logger changes
+  Erlang's Logge and vice-versa.
+
+  Elixir also supports formatting Erlang reports using Elixir syntax.
+  This can be controlled with two configurations:
 
     * `:handle_otp_reports` - redirects OTP reports to `Logger` so
       they are formatted in Elixir terms. This effectively disables
@@ -187,22 +192,8 @@ defmodule Logger do
       terms. Your application must guarantee `:sasl` is started before
       `:logger`. This means you may see some initial reports written
       in Erlang syntax until the Logger application kicks in.
-      Defaults to `false`.
-
-  From Erlang/OTP 21, `:handle_sasl_reports` only has an effect if
-  `:handle_otp_reports` is true.
-
-  The following configurations apply only for Erlang/OTP 20 and earlier:
-
-    * `:discard_threshold_for_error_logger` - if `:error_logger` has more than
-      `discard_threshold` messages in its inbox, messages will be dropped
-      until the message queue goes down to `discard_threshold * 0.75`
-      entries. The threshold will be checked once again after 10% of threshold
-      messages are processed, to avoid messages from being constantly dropped.
-      For example, if the threshold is 500 (the default) and the inbox has
-      600 messages, 225 messages will dropped, bringing the inbox down to
-      375 (0.75 * threshold) entries and 50 (0.1 * threshold) messages will
-      be processed before the threshold is checked once again.
+      Defaults to `false`. This option only has an effect if
+      `:handle_otp_reports` is true.
 
   For example, to configure `Logger` to redirect all Erlang messages using a
   `config/config.exs` file:
@@ -337,9 +328,7 @@ defmodule Logger do
 
     * `:application` - the current application
 
-    * `:module` - the current module
-
-    * `:function` - the current function
+    * `:mfa` - the current module, function and arity
 
     * `:file` - the current file
 
@@ -358,12 +347,16 @@ defmodule Logger do
 
     * `:registered_name` - the process registered name as an atom
 
+    * `:domain` - a list of domains for the logged message. For example,
+      all Elixir reports default to `[:elixir]`. Erlang reports may start
+      with `[:otp]` or `[:sasl]`
+
   Note that all metadata is optional and may not always be available.
-  The `:module`, `:function`, `:line`, and similar metadata are automatically
+  The `:mfa`, `:file`, `:line`, and similar metadata are automatically
   included when using `Logger` macros. `Logger.bare_log/3` does not include
   any metadata beyond the `:pid` by default. Other metadata, such as
   `:crash_reason`, `:initial_call`, and `:registered_name` are extracted
-  from Erlang/OTP crash reports and available only in those cases.
+  from Erlang/OTP reports and available only in those cases.
 
   ## Custom backends
 
@@ -441,18 +434,17 @@ defmodule Logger do
   and how to process the existing options.
   """
 
+  # TODO: Change it to `:logger.level()`
+  @type level :: :error | :warn | :info | :debug
   @type backend :: :gen_event.handler()
   @type message :: IO.chardata() | String.Chars.t()
-  @type level :: :error | :info | :warn | :debug
   @type metadata :: keyword()
-  @levels [:error, :info, :warn, :debug]
 
-  @metadata :logger_metadata
-  @compile {:inline, __metadata__: 0}
+  # TODO: change it to `[:emergency, :alert, :critical, :error, :warning, :notice, :info, :debug]`
+  @levels [:error, :warn, :info, :debug]
 
-  defp __metadata__ do
-    Process.get(@metadata) || {true, []}
-  end
+  @metadata :logger_enabled
+  @compile {:inline, enabled?: 1}
 
   @doc """
   Alters the current process metadata according the given keyword list.
@@ -463,24 +455,19 @@ defmodule Logger do
   """
   @spec metadata(metadata) :: :ok
   def metadata(keyword) do
-    {enabled?, metadata} = __metadata__()
-    Process.put(@metadata, {enabled?, into_metadata(keyword, metadata)})
-    :ok
-  end
+    case :logger.get_process_metadata() do
+      :undefined ->
+        reset_metadata(keyword)
 
-  defp into_metadata([], metadata), do: metadata
-  defp into_metadata(keyword, metadata), do: into_metadata(keyword, [], metadata)
+      map when is_map(map) ->
+        metadata =
+          Enum.reduce(keyword, map, fn
+            {k, nil}, acc -> Map.delete(acc, k)
+            {k, v}, acc -> Map.put(acc, k, v)
+          end)
 
-  defp into_metadata([{key, nil} | keyword], prepend, metadata) do
-    into_metadata(keyword, prepend, :lists.keydelete(key, 1, metadata))
-  end
-
-  defp into_metadata([{key, _} = pair | keyword], prepend, metadata) do
-    into_metadata(keyword, [pair | prepend], :lists.keydelete(key, 1, metadata))
-  end
-
-  defp into_metadata([], prepend, metadata) do
-    prepend ++ metadata
+        :ok = :logger.set_process_metadata(metadata)
+    end
   end
 
   @doc """
@@ -488,17 +475,22 @@ defmodule Logger do
   """
   @spec metadata() :: metadata
   def metadata() do
-    __metadata__() |> elem(1)
+    case :logger.get_process_metadata() do
+      :undefined -> []
+      map when is_map(map) -> Map.to_list(map)
+    end
   end
 
   @doc """
   Resets the current process metadata to the given keyword list.
   """
   @spec reset_metadata(metadata) :: :ok
-  def reset_metadata(keywords \\ []) do
-    {enabled?, _metadata} = __metadata__()
-    Process.put(@metadata, {enabled?, []})
-    metadata(keywords)
+  def reset_metadata(keyword \\ []) do
+    :ok = :logger.set_process_metadata(filter_out_nils(keyword))
+  end
+
+  defp filter_out_nils(keyword) do
+    for {_k, v} = elem <- keyword, v != nil, into: %{}, do: elem
   end
 
   @doc """
@@ -508,7 +500,7 @@ defmodule Logger do
   """
   @spec enable(pid) :: :ok
   def enable(pid) when pid == self() do
-    Process.put(@metadata, {true, metadata()})
+    Process.delete(@metadata)
     :ok
   end
 
@@ -519,8 +511,17 @@ defmodule Logger do
   """
   @spec disable(pid) :: :ok
   def disable(pid) when pid == self() do
-    Process.put(@metadata, {false, metadata()})
+    Process.put(@metadata, false)
     :ok
+  end
+
+  @doc """
+  Returns whether the logging is enabled for given process.
+
+  Currently the only accepted PID is `self()`.
+  """
+  def enabled?(pid) when pid == self() do
+    Process.get(@metadata, true)
   end
 
   @doc """
@@ -528,8 +529,23 @@ defmodule Logger do
 
   The `Logger` level can be changed via `configure/1`.
   """
-  @spec level() :: level
-  defdelegate level(), to: Logger.Config
+  @spec level() :: level()
+  def level() do
+    %{level: level} = :logger.get_primary_config()
+    erlang_level_to_elixir_level(level)
+  end
+
+  # TODO: Remove this mapping once we allow all levels on Logger
+  defp erlang_level_to_elixir_level(:none), do: :error
+  defp erlang_level_to_elixir_level(:emergency), do: :error
+  defp erlang_level_to_elixir_level(:alert), do: :error
+  defp erlang_level_to_elixir_level(:critical), do: :error
+  defp erlang_level_to_elixir_level(:error), do: :error
+  defp erlang_level_to_elixir_level(:warning), do: :warn
+  defp erlang_level_to_elixir_level(:notice), do: :info
+  defp erlang_level_to_elixir_level(:info), do: :info
+  defp erlang_level_to_elixir_level(:debug), do: :debug
+  defp erlang_level_to_elixir_level(:all), do: :debug
 
   @doc """
   Compares log levels.
@@ -550,7 +566,13 @@ defmodule Logger do
 
   """
   @spec compare_levels(level, level) :: :lt | :eq | :gt
-  defdelegate compare_levels(left, right), to: Logger.Config
+  def compare_levels(left, right) do
+    :logger.compare_levels(normalize(left), normalize(right))
+  end
+
+  # TODO: Deprecate :warn
+  defp normalize(:warn), do: :warning
+  defp normalize(level), do: level
 
   @doc """
   Configures the logger.
@@ -573,7 +595,13 @@ defmodule Logger do
   ]
   @spec configure(keyword) :: :ok
   def configure(options) do
-    Logger.Config.configure(Keyword.take(options, @valid_options))
+    options = Keyword.take(options, @valid_options)
+
+    # We serialize the writes
+    Logger.Config.configure(options)
+
+    # Then we can read from the writes
+    :ok = :logger.set_handler_config(Logger, %{config: %{}})
   end
 
   @doc """
@@ -585,7 +613,6 @@ defmodule Logger do
   """
   @spec flush :: :ok
   def flush do
-    _ = Process.whereis(:error_logger) && :gen_event.which_handlers(:error_logger)
     :gen_event.sync_notify(Logger, :flush)
   end
 
@@ -691,57 +718,55 @@ defmodule Logger do
   anonymous functions to `bare_log/3` and they will only be evaluated
   if there is something to be logged.
   """
-  @spec bare_log(level, message | (() -> message | {message, keyword}), keyword) ::
-          :ok | {:error, :noproc} | {:error, term}
+  @spec bare_log(level, message | (() -> message | {message, keyword}), keyword) :: :ok
   def bare_log(level, chardata_or_fun, metadata \\ []) do
-    case __should_log__(level) do
-      :error -> :ok
-      info -> __do_log__(info, chardata_or_fun, metadata)
+    case __should_log__(level, nil) do
+      nil -> :ok
+      level -> __do_log__(level, chardata_or_fun, Map.new(metadata))
     end
   end
 
   @doc false
-  def __should_log__(level) when level in @levels do
-    case __metadata__() do
-      {true, pdict} ->
-        case Logger.Config.log_data(level) do
-          {:discard, _config} -> :error
-          {mode, config} -> {level, mode, config, pdict}
-        end
+  def __should_log__(level, module) when level in @levels do
+    level = normalize(level)
 
-      {false, _} ->
-        :error
+    if enabled?(self()) and :logger.allow(level, module) do
+      level
     end
   end
 
   @doc false
-  def __do_log__({level, mode, config, pdict}, chardata_or_fun, metadata)
-      when is_list(metadata) do
-    %{utc_log: utc_log?, truncate: truncate} = config
-    metadata = [pid: self()] ++ into_metadata(metadata, pdict)
+  def __do_log__(level, fun, metadata) when is_function(fun, 0) and is_map(metadata) do
+    case fun.() do
+      {msg, meta} ->
+        :logger.macro_log(%{}, level, msg, Enum.into(meta, add_elixir_domain(metadata)))
 
-    case normalize_message(chardata_or_fun, metadata) do
-      {message, metadata} ->
-        tuple = {Logger, truncate(message, truncate), Logger.Utils.timestamp(utc_log?), metadata}
-
-        try do
-          notify(mode, {level, Process.group_leader(), tuple})
-          :ok
-        rescue
-          ArgumentError -> {:error, :noproc}
-        catch
-          :exit, reason -> {:error, reason}
-        end
-
-      :skip ->
-        :ok
+      msg when is_binary(msg) or is_list(msg) ->
+        :logger.macro_log(%{}, level, msg, add_elixir_domain(metadata))
     end
   end
+
+  def __do_log__(level, chardata, metadata)
+      when (is_binary(chardata) or is_list(chardata)) and is_map(metadata) do
+    :logger.macro_log(%{}, level, chardata, add_elixir_domain(metadata))
+  end
+
+  # # TODO: Remove that in Elixir 2.0
+  def __do_log__(level, other, metadata) do
+    IO.warn("passing #{inspect(other)} to Logger is deprecated, expected a binary or an iolist")
+    :logger.macro_log(%{}, level, to_string(other), add_elixir_domain(metadata))
+  end
+
+  defp add_elixir_domain(%{domain: domain} = metadata) when is_list(domain) do
+    %{metadata | domain: [:elixir | domain]}
+  end
+
+  defp add_elixir_domain(metadata), do: Map.put(metadata, :domain, [:elixir])
 
   @doc """
   Logs a warning message.
 
-  Returns `:ok` or an `{:error, reason}` tuple.
+  Returns `:ok`.
 
   ## Examples
 
@@ -750,6 +775,7 @@ defmodule Logger do
       Logger.warn(fn -> {"dynamically calculated warning", [additional: :metadata]} end)
 
   """
+  # TODO: Deprecate it in favour of `warning/1-2` macro
   defmacro warn(chardata_or_fun, metadata \\ []) do
     maybe_log(:warn, chardata_or_fun, metadata, __CALLER__)
   end
@@ -757,7 +783,7 @@ defmodule Logger do
   @doc """
   Logs an info message.
 
-  Returns `:ok` or an `{:error, reason}` tuple.
+  Returns `:ok`.
 
   ## Examples
 
@@ -773,7 +799,7 @@ defmodule Logger do
   @doc """
   Logs an error message.
 
-  Returns `:ok` or an `{:error, reason}` tuple.
+  Returns `:ok`.
 
   ## Examples
 
@@ -789,7 +815,7 @@ defmodule Logger do
   @doc """
   Logs a debug message.
 
-  Returns `:ok` or an `{:error, reason}` tuple.
+  Returns `:ok`.
 
   ## Examples
 
@@ -805,7 +831,7 @@ defmodule Logger do
   @doc """
   Logs a message with the given `level`.
 
-  Returns `:ok` or an `{:error, reason}` tuple.
+  Returns `:ok`.
 
   The macros `debug/2`, `warn/2`, `info/2`, and `error/2` are
   preferred over this macro as they can automatically eliminate
@@ -817,20 +843,24 @@ defmodule Logger do
   end
 
   defp macro_log(level, data, metadata, caller) do
-    %{module: module, function: fun, file: file, line: line} = caller
-
     caller =
-      compile_time_application_and_file(file) ++
-        [module: module, function: form_fa(fun), line: line]
+      compile_time_application_and_file(caller) ++
+        case caller do
+          %{module: module, function: {fun, arity}, line: line} ->
+            [mfa: {module, fun, arity}, line: line]
+
+          _ ->
+            []
+        end
 
     {compile_metadata, quoted_metadata} =
       if Keyword.keyword?(metadata) do
         metadata = Keyword.merge(caller, metadata)
-        {metadata, metadata}
+        {Map.new(metadata), escape_metadata(metadata)}
       else
-        {[],
+        {%{},
          quote do
-           Keyword.merge(unquote(caller), unquote(metadata))
+           Enum.into(unquote(metadata), unquote(escape_metadata(caller)))
          end}
       end
 
@@ -840,19 +870,29 @@ defmodule Logger do
       no_log(data, quoted_metadata)
     else
       quote do
-        case Logger.__should_log__(unquote(level)) do
-          :error -> :ok
-          info -> Logger.__do_log__(info, unquote(data), unquote(quoted_metadata))
+        case Logger.__should_log__(unquote(level), __MODULE__) do
+          nil -> :ok
+          level -> Logger.__do_log__(level, unquote(data), unquote(quoted_metadata))
         end
       end
     end
   end
 
-  defp compile_time_application_and_file(file) do
+  defp escape_metadata(metadata) do
+    {_, metadata} =
+      Keyword.get_and_update(metadata, :mfa, fn
+        nil -> :pop
+        mfa -> {mfa, Macro.escape(mfa)}
+      end)
+
+    {:%{}, [], metadata}
+  end
+
+  defp compile_time_application_and_file(%{file: file}) do
     if app = Application.get_env(:logger, :compile_time_application) do
-      [application: app, file: Path.relative_to_cwd(file)]
+      [application: app, file: file |> Path.relative_to_cwd() |> String.to_charlist()]
     else
-      [file: file]
+      [file: String.to_charlist(file)]
     end
   end
 
@@ -862,10 +902,19 @@ defmodule Logger do
     Enum.any?(matching, fn filter ->
       Enum.all?(filter, fn
         {:level_lower_than, min_level} ->
-          Logger.Config.compare_levels(level, min_level) == :lt
+          compare_levels(level, min_level) == :lt
+
+        {:module, module} ->
+          match?({:ok, {^module, _, _}}, Map.fetch(compile_metadata, :mfa))
+
+        {:function, func} ->
+          case Map.fetch(compile_metadata, :mfa) do
+            {:ok, {_, f, a}} -> "#{f}/#{a}" == func
+            _ -> false
+          end
 
         {k, v} when is_atom(k) ->
-          Keyword.fetch(compile_metadata, k) == {:ok, v}
+          Map.fetch(compile_metadata, k) == {:ok, v}
 
         _ ->
           raise "expected :compile_time_purge_matching to be a list of keyword lists, " <>
@@ -888,7 +937,7 @@ defmodule Logger do
         :debug
       end
 
-    if Logger.Config.compare_levels(level, min_level) != :lt do
+    if compare_levels(level, min_level) != :lt do
       macro_log(level, data, metadata, caller)
     else
       no_log(data, metadata)
@@ -903,28 +952,4 @@ defmodule Logger do
       :ok
     end
   end
-
-  defp normalize_message(fun, metadata) when is_function(fun, 0) do
-    case fun.() do
-      {message, fun_metadata} -> {message, into_metadata(fun_metadata, metadata)}
-      :skip -> :skip
-      message -> {message, metadata}
-    end
-  end
-
-  defp normalize_message(message, metadata) do
-    {message, metadata}
-  end
-
-  defp truncate(data, n) when is_list(data) or is_binary(data), do: Logger.Utils.truncate(data, n)
-  defp truncate(data, n), do: Logger.Utils.truncate(to_string(data), n)
-
-  defp form_fa({name, arity}) do
-    Atom.to_string(name) <> "/" <> Integer.to_string(arity)
-  end
-
-  defp form_fa(nil), do: nil
-
-  defp notify(:sync, msg), do: :gen_event.sync_notify(Logger, msg)
-  defp notify(:async, msg), do: :gen_event.notify(Logger, msg)
 end

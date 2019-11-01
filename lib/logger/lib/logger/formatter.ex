@@ -168,9 +168,13 @@ defmodule Logger.Formatter do
   defp levelpad(:warn), do: " "
   defp levelpad(:error), do: ""
 
+  defp metadata([{:report_cb, _} | metadata]), do: metadata(metadata)
+  defp metadata([{:time, _} | metadata]), do: metadata(metadata)
+  defp metadata([{:gl, _} | metadata]), do: metadata(metadata)
   defp metadata([{:crash_reason, _} | metadata]), do: metadata(metadata)
   defp metadata([{:ancestors, _} | metadata]), do: metadata(metadata)
   defp metadata([{:callers, _} | metadata]), do: metadata(metadata)
+  defp metadata([{_, nil} | metadata]), do: metadata(metadata)
 
   defp metadata([{key, value} | metadata]) do
     [to_string(key), ?=, metadata(key, value), ?\s | metadata(metadata)]
@@ -178,6 +182,15 @@ defmodule Logger.Formatter do
 
   defp metadata([]) do
     []
+  end
+
+  defp metadata(:domain, [head | tail]) when is_atom(head) do
+    Enum.map_intersperse([head | tail], ?., &Atom.to_string/1)
+  end
+
+  defp metadata(:mfa, {mod, fun, arity})
+       when is_atom(mod) and is_atom(fun) and is_integer(arity) do
+    Exception.format_mfa(mod, fun, arity)
   end
 
   defp metadata(:initial_call, {mod, fun, arity})

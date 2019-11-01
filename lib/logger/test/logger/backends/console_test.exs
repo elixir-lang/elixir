@@ -58,16 +58,33 @@ defmodule Logger.Backends.ConsoleTest do
     assert capture_log(fn -> Logger.debug("hello") end) =~ "user_id=13 hello"
   end
 
+  test "logs initial_call as metadata" do
+    Logger.configure_backend(:console, format: "$metadata$message", metadata: [:initial_call])
+
+    assert capture_log(fn -> Logger.debug("hello", initial_call: {Foo, :bar, 3}) end) =~
+             "initial_call=Foo.bar/3 hello"
+  end
+
+  test "logs domain as metadata" do
+    Logger.configure_backend(:console, format: "$metadata$message", metadata: [:domain])
+
+    assert capture_log(fn -> Logger.debug("hello", domain: [:foobar]) end) =~
+             "domain=elixir.foobar hello"
+  end
+
+  test "logs mfa as metadata" do
+    Logger.configure_backend(:console, format: "$metadata$message", metadata: [:mfa])
+    {function, arity} = __ENV__.function
+    mfa = Exception.format_mfa(__MODULE__, function, arity)
+
+    assert capture_log(fn -> Logger.debug("hello") end) =~
+             "mfa=#{mfa} hello"
+  end
+
   test "ignores crash_reason metadata when configured with metadata: :all" do
     Logger.configure_backend(:console, format: "$metadata$message", metadata: :all)
     Logger.metadata(crash_reason: {%RuntimeError{message: "oops"}, []})
     assert capture_log(fn -> Logger.debug("hello") end) =~ "hello"
-  end
-
-  test "logs initial_call as metadata" do
-    Logger.configure_backend(:console, format: "$metadata$message", metadata: [:initial_call])
-    Logger.metadata(initial_call: {Foo, :bar, 3})
-    assert capture_log(fn -> Logger.debug("hello") end) =~ "initial_call=Foo.bar/3 hello"
   end
 
   test "configures formatter to {module, function} tuple" do
@@ -92,7 +109,8 @@ defmodule Logger.Backends.ConsoleTest do
     assert log =~ "line=#{line + 1}"
     assert log =~ "module=#{inspect(mod)}"
     assert log =~ "function=#{name}/#{arity}"
-    assert log =~ "dynamic_metadata=5 user_id=11"
+    assert log =~ "dynamic_metadata=5"
+    assert log =~ "user_id=11"
   end
 
   test "provides metadata defaults" do

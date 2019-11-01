@@ -74,7 +74,6 @@ defmodule ExUnit.CaptureLog do
     {:ok, string_io} = StringIO.open("")
 
     try do
-      _ = Process.whereis(:error_logger) && :gen_event.which_handlers(:error_logger)
       :ok = add_capture(string_io, opts)
       ref = ExUnit.CaptureServer.log_capture_on(self())
 
