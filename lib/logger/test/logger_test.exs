@@ -393,6 +393,17 @@ defmodule LoggerTest do
     Application.start(:logger)
   end
 
+  test "starts the application with warn level will set primary level to warning" do
+    Logger.App.stop()
+    Application.put_env(:logger, :level, :warn)
+    Application.start(:logger)
+    assert %{level: :warning} = :logger.get_primary_config()
+  after
+    Application.put_env(:logger, :level, :debug)
+    Logger.App.stop()
+    Application.start(:logger)
+  end
+
   test "configure/1 sets options" do
     Logger.configure(sync_threshold: 10)
     Logger.configure(truncate: 4048)
