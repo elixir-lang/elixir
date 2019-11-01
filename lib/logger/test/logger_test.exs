@@ -402,6 +402,7 @@ defmodule LoggerTest do
   after
     Application.delete_env(:logger, :level)
     Logger.App.stop()
+    :logger.set_primary_config(:level, :debug)
     Application.start(:logger)
   end
 
