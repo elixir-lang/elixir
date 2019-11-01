@@ -600,7 +600,6 @@ defmodule Logger do
   """
   @spec flush :: :ok
   def flush do
-    _ = Process.whereis(:error_logger) && :gen_event.which_handlers(:error_logger)
     :gen_event.sync_notify(Logger, :flush)
   end
 
