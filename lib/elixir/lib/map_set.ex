@@ -151,9 +151,8 @@ defmodule MapSet do
   @spec difference(t(val1), t(val2)) :: t(val1) when val1: value, val2: value
   def difference(map_set1, map_set2)
 
-  # If the first set is less than twice the size of the second map,
-  # it is fastest to re-accumulate elements in the first set that are not
-  # present in the second set.
+  # If the first set is less than twice the size of the second map, it is fastest
+  # to re-accumulate elements in the first set that are not present in the second set.
   def difference(%MapSet{map: map1}, %MapSet{map: map2})
       when map_size(map1) < map_size(map2) * 2 do
     map =
