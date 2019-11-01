@@ -54,6 +54,11 @@ defmodule Logger.App do
 
     add_handlers(handlers)
     Logger.Counter.delete(config)
+
+    :logger.add_primary_filter(
+      :silence_otp,
+      {&Logger.Filter.silence_once/2, {:silence_otp, :logger}}
+    )
   end
 
   @doc false

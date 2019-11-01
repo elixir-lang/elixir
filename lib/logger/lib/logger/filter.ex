@@ -22,6 +22,18 @@ defmodule Logger.Filter do
     end
   end
 
+  @doc false
+  def silence_once(%{msg: {:report, message}, meta: %{domain: [:otp | _]}}, {name, app}) do
+    with %{report: report} <- message,
+         {:ok, ^app} <- Keyword.fetch(report, :application) do
+      :logger.remove_primary_filter(name)
+
+      :stop
+    else
+      _ -> :ignore
+    end
+  end
+
   defp inverse_action(:ignore), do: :stop
   defp inverse_action(:stop), do: :ignore
 end
