@@ -212,52 +212,54 @@ defmodule LoggerTest do
     assert Logger.compare_levels(:error, :error) == :eq
   end
 
-  test "debug/2" do
-    assert capture_log(fn ->
-             assert Logger.debug("hello", []) == :ok
-           end) =~ msg_with_meta("[debug] hello")
+  describe "levels" do
+    test "debug/2" do
+      assert capture_log(fn ->
+               assert Logger.debug("hello", []) == :ok
+             end) =~ msg_with_meta("[debug] hello")
 
-    assert capture_log(:info, fn ->
-             assert Logger.debug("hello", []) == :ok
-           end) == ""
+      assert capture_log(:info, fn ->
+               assert Logger.debug("hello", []) == :ok
+             end) == ""
 
-    assert capture_log(:info, fn ->
-             assert Logger.debug(raise("not invoked"), []) == :ok
-           end) == ""
-  end
+      assert capture_log(:info, fn ->
+               assert Logger.debug(raise("not invoked"), []) == :ok
+             end) == ""
+    end
 
-  test "info/2" do
-    assert capture_log(fn ->
-             assert Logger.info("hello", []) == :ok
-           end) =~ msg_with_meta("[info]  hello")
+    test "info/2" do
+      assert capture_log(fn ->
+               assert Logger.info("hello", []) == :ok
+             end) =~ msg_with_meta("[info]  hello")
 
-    assert capture_log(:warn, fn ->
-             assert Logger.info("hello", []) == :ok
-           end) == ""
+      assert capture_log(:warn, fn ->
+               assert Logger.info("hello", []) == :ok
+             end) == ""
 
-    assert capture_log(:warn, fn ->
-             assert Logger.info(raise("not invoked"), []) == :ok
-           end) == ""
-  end
+      assert capture_log(:warn, fn ->
+               assert Logger.info(raise("not invoked"), []) == :ok
+             end) == ""
+    end
 
-  test "warn/2" do
-    assert capture_log(fn ->
-             assert Logger.warn("hello", []) == :ok
-           end) =~ msg_with_meta("[warn]  hello")
+    test "warn/2" do
+      assert capture_log(fn ->
+               assert Logger.warn("hello", []) == :ok
+             end) =~ msg_with_meta("[warn]  hello")
 
-    assert capture_log(:error, fn ->
-             assert Logger.warn("hello", []) == :ok
-           end) == ""
+      assert capture_log(:error, fn ->
+               assert Logger.warn("hello", []) == :ok
+             end) == ""
 
-    assert capture_log(:error, fn ->
-             assert Logger.warn(raise("not invoked"), []) == :ok
-           end) == ""
-  end
+      assert capture_log(:error, fn ->
+               assert Logger.warn(raise("not invoked"), []) == :ok
+             end) == ""
+    end
 
-  test "error/2" do
-    assert capture_log(fn ->
-             assert Logger.error("hello", []) == :ok
-           end) =~ msg_with_meta("[error] hello")
+    test "error/2" do
+      assert capture_log(fn ->
+               assert Logger.error("hello", []) == :ok
+             end) =~ msg_with_meta("[error] hello")
+    end
   end
 
   test "remove unused calls at compile time based on matching metadata" do
