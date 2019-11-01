@@ -12,7 +12,7 @@ spawn(Fun, Args) ->
       try apply(Fun, Args) of
         Result -> exit({ok, Result})
       catch
-        ?WITH_STACKTRACE(Kind, Reason, Stack)
+        Kind:Reason:Stack ->
           exit({Kind, Reason, Stack})
       end
     end),

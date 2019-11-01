@@ -196,7 +196,7 @@ expand_macro_fun(Meta, Fun, Receiver, Name, Args, E) ->
   try
     apply(Fun, [EArg | Args])
   catch
-    ?WITH_STACKTRACE(Kind, Reason, Stacktrace)
+    Kind:Reason:Stacktrace ->
       Arity = length(Args),
       MFA  = {Receiver, elixir_utils:macro_name(Name), Arity+1},
       Info = [{Receiver, Name, Arity, [{file, "expanding macro"}]}, caller(Line, E)],
@@ -218,7 +218,7 @@ expand_quoted(Meta, Receiver, Name, Arity, Quoted, E) ->
       elixir_quote:linify_with_context_counter(Line, {Receiver, Next}, Quoted),
       E)
   catch
-    ?WITH_STACKTRACE(Kind, Reason, Stacktrace)
+    Kind:Reason:Stacktrace ->
       MFA  = {Receiver, elixir_utils:macro_name(Name), Arity+1},
       Info = [{Receiver, Name, Arity, [{file, "expanding macro"}]}, caller(Line, E)],
       erlang:raise(Kind, Reason, prune_stacktrace(Stacktrace, MFA, Info, error))

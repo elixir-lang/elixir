@@ -132,7 +132,7 @@ bootstrap_file(File) ->
     _ = [binary_to_path(X, "lib/elixir/ebin") || X <- Lists],
     io:format("Compiled ~ts~n", [File])
   catch
-    ?WITH_STACKTRACE(Kind, Reason, Stacktrace)
+    Kind:Reason:Stacktrace ->
       io:format("~p: ~p~nstacktrace: ~p~n", [Kind, Reason, Stacktrace]),
       erlang:halt(1)
   end.

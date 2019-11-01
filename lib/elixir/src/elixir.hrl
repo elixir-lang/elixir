@@ -42,13 +42,6 @@
   warn_on_unnecessary_quotes=true
 }).
 
-%% TODO: Remove this once we support Erlang/OTP 21+ exclusively.
--ifdef(OTP_RELEASE). %% defined on OTP 21+
--define(WITH_STACKTRACE(K, R, S), K:R:S ->).
--else.
--define(WITH_STACKTRACE(K, R, S), K:R -> S = erlang:get_stacktrace(),).
--endif.
-
 %% TODO: Remove this once we support Erlang/OTP 22+ exclusively.
 %% See https://github.com/erlang/otp/pull/1972
 -ifdef(OTP_RELEASE).
