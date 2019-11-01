@@ -65,7 +65,7 @@ defmodule Logger.Handler do
         :ok
 
       mode ->
-        level = erlang_level_to_elixir_level(erl_level)
+        level = Logger.Config.erlang_level_to_elixir_level(erl_level)
 
         case do_log(level, msg, metadata, config) do
           :skip ->
@@ -96,7 +96,7 @@ defmodule Logger.Handler do
 
   defp do_log(level, msg, metadata, config) do
     %{level: erl_min_level} = :logger.get_primary_config()
-    min_level = erlang_level_to_elixir_level(erl_min_level)
+    min_level = Logger.Config.erlang_level_to_elixir_level(erl_min_level)
 
     try do
       case msg do
@@ -121,18 +121,6 @@ defmodule Logger.Handler do
          ], metadata}
     end
   end
-
-  # TODO: Remove this mapping once we allow all levels on Logger
-  defp erlang_level_to_elixir_level(:none), do: :error
-  defp erlang_level_to_elixir_level(:emergency), do: :error
-  defp erlang_level_to_elixir_level(:alert), do: :error
-  defp erlang_level_to_elixir_level(:critical), do: :error
-  defp erlang_level_to_elixir_level(:error), do: :error
-  defp erlang_level_to_elixir_level(:warning), do: :warn
-  defp erlang_level_to_elixir_level(:notice), do: :info
-  defp erlang_level_to_elixir_level(:info), do: :info
-  defp erlang_level_to_elixir_level(:debug), do: :debug
-  defp erlang_level_to_elixir_level(:all), do: :debug
 
   defp notify(:sync, msg), do: :gen_event.sync_notify(Logger, msg)
   defp notify(:async, msg), do: :gen_event.notify(Logger, msg)
