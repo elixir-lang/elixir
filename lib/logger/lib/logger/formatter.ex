@@ -185,10 +185,7 @@ defmodule Logger.Formatter do
   end
 
   defp metadata(:domain, [head | tail]) when is_atom(head) do
-    # TODO: Use map_intersperse once rebased
-    tail
-    |> Enum.reduce([Atom.to_string(head)], &[Atom.to_string(&1), ?. | &2])
-    |> Enum.reverse()
+    Enum.map_intersperse([head | tail], ?., &Atom.to_string/1)
   end
 
   defp metadata(:mfa, {mod, fun, arity})
