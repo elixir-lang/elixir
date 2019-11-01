@@ -90,10 +90,14 @@ defmodule Logger do
       level lower than this option will be completely removed at compile time,
       accruing no overhead at runtime. This configuration expects a list of
       keyword lists. Each keyword list contains a metadata key and the matching
-      value that should be purged. A special key named `:level_lower_than` can
-      be used to purge all messages with a lower logger level. Remember that
-      if you want to purge log calls from a dependency, the dependency must be
-      recompiled.
+      value that should be purged. Some special keys are supported:
+
+        * `:level_lower_than` - purges all messages with a lower logger level
+        * `:module` - purges all messages with the matching module
+        * `:function` - purges all messages with the "function/arity"
+
+      Remember that if you want to purge log calls from a dependency, the
+      dependency must be recompiled.
 
     * `:start_options` - passes start options to Logger's main process, such
       as `:spawn_opt` and `:hibernate_after`. All options in `t:GenServer.option`
@@ -324,9 +328,7 @@ defmodule Logger do
 
     * `:application` - the current application
 
-    * `:module` - the current module
-
-    * `:function` - the current function
+    * `:mfa` - the current module, function and arity
 
     * `:file` - the current file
 
@@ -345,12 +347,16 @@ defmodule Logger do
 
     * `:registered_name` - the process registered name as an atom
 
+    * `:domain` - a list of domains for the logged message. For example,
+      all Elixir reports default to `[:elixir]`. Erlang reports may start
+      with `[:otp]` or `[:sasl]`
+
   Note that all metadata is optional and may not always be available.
-  The `:module`, `:function`, `:line`, and similar metadata are automatically
+  The `:mfa`, `:file`, `:line`, and similar metadata are automatically
   included when using `Logger` macros. `Logger.bare_log/3` does not include
   any metadata beyond the `:pid` by default. Other metadata, such as
   `:crash_reason`, `:initial_call`, and `:registered_name` are extracted
-  from Erlang/OTP crash reports and available only in those cases.
+  from Erlang/OTP reports and available only in those cases.
 
   ## Custom backends
 
@@ -866,23 +872,20 @@ defmodule Logger do
   end
 
   defp escape_metadata(metadata) do
-    metadata = update(metadata, :mfa, &Macro.escape/1)
+    {_, metadata} =
+      Keyword.get_and_update(metadata, :mfa, fn
+        nil -> :pop
+        mfa -> {mfa, Macro.escape(mfa)}
+      end)
+
     {:%{}, [], metadata}
   end
 
-  defp update([], _key, _fun), do: []
-
-  defp update([{key, val} | rest], key, fun) do
-    [{key, fun.(val)}] ++ Keyword.delete(rest, key)
-  end
-
-  defp update([x | rest], key, fun), do: [x | update(rest, key, fun)]
-
   defp compile_time_application_and_file(%{file: file}) do
     if app = Application.get_env(:logger, :compile_time_application) do
-      [application: app, file: Path.relative_to_cwd(file)]
+      [application: app, file: file |> Path.relative_to_cwd() |> String.to_charlist()]
     else
-      [file: file]
+      [file: String.to_charlist(file)]
     end
   end
 
@@ -904,7 +907,6 @@ defmodule Logger do
           end
 
         {k, v} when is_atom(k) ->
-          # TODO: Warn on matching on `:function` fields
           Map.fetch(compile_metadata, k) == {:ok, v}
 
         _ ->

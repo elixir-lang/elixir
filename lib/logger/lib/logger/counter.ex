@@ -3,7 +3,7 @@ defmodule Logger.Counter do
   @pos 1
 
   # TODO Remove this once we support Erlang/OTP 22+ exclusively.
-  @compile {:no_warn_undefined, [:persistent_term, :counters]}
+  @compile {:no_warn_undefined, [:counters]}
 
   @type type() :: :ets | :counters
   @type t() :: {type(), :ets.tid() | :counters.counters_ref()}
