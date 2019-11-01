@@ -16,8 +16,8 @@ defmodule Logger do
       performant when required but also apply backpressure
       when under stress.
 
-    * Plugs into Erlang's [`:logger`](http://erlang.org/doc/man/logger.html)
-      (from Erlang/OTP 21) to convert terms to Elixir syntax.
+    * Integrates with Erlang's [`:logger`](http://erlang.org/doc/man/logger.html)
+      to convert terms to Elixir syntax.
 
   Logging is useful for tracking when an event of interest happens in your
   system. For example, it may be helpful to log whenever a user is deleted.
@@ -172,9 +172,12 @@ defmodule Logger do
 
   ### Erlang/OTP integration
 
-  The following configuration applies to `Logger`'s wrapper around
-  Erlang's logging functionalities. All the configurations below must
-  be set before the `:logger` application starts.
+  From Elixir v1.10, Elixir's Logger is fully integrated with Erlang's
+  logger. This means setting the level in Elixir's Logger changes
+  Erlang's Logge and vice-versa.
+
+  Elixir also supports formatting Erlang reports using Elixir syntax.
+  This can be controlled with two configurations:
 
     * `:handle_otp_reports` - redirects OTP reports to `Logger` so
       they are formatted in Elixir terms. This effectively disables
