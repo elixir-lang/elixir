@@ -78,12 +78,14 @@ defmodule Logger.TranslatorTest do
     Application.put_env(:logger, :backends, [Logger.TestBackend | backends])
     Application.put_env(:logger, :handle_sasl_reports, true)
 
-    # Restart the app but change the level before to avoid warnings
-    level = Logger.level()
-    Logger.configure(level: :error)
+    # Shutdown the application
     Logger.App.stop()
+
+    # And start it without warnings
+    Application.put_env(:logger, :level, :error)
     Application.start(:logger)
-    Logger.configure(level: level)
+    Application.delete_env(:logger, :level)
+    Logger.configure(level: :debug)
 
     on_exit(fn ->
       Application.put_env(:logger, :backends, backends)
