@@ -31,7 +31,7 @@
 # 4. Finally, in some other circumstances, printing messages may become
 #    borked. This can be verified with:
 #
-#      $ iex -e ':error_logger.info_msg("foo~nbar", [])'
+#      $ iex -e ":logger.info('foo~nbar', [])"
 #
 # By the time those instructions have been written, all tests above pass.
 defmodule IEx.CLI do

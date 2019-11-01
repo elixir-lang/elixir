@@ -100,7 +100,7 @@ defmodule Logger.App do
           )
         end
 
-        :ok = :logger.set_primary_config(:level, level)
+        :ok = :logger.set_primary_config(:level, translate_level(level))
 
       :error when erl_level == :notice ->
         :ok = :logger.set_primary_config(:level, :debug)
@@ -113,6 +113,10 @@ defmodule Logger.App do
     :ok = :logger.add_handler(Logger, Logger.Handler, config)
     primary_config
   end
+
+  # TODO:Warn on deprecated level
+  defp translate_level(:warn), do: :warning
+  defp translate_level(other), do: other
 
   defp delete_erlang_handler() do
     with {:ok, %{module: module} = config} <- :logger.get_handler_config(:default),
