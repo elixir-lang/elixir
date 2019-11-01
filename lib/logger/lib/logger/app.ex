@@ -21,19 +21,18 @@ defmodule Logger.App do
       Logger.BackendSupervisor
     ]
 
-    primary_config = add_elixir_handler(otp_reports?, config)
-
-    default_handlers =
-      if otp_reports? do
-        delete_erlang_handler()
-      else
-        []
-      end
-
-    handlers = [{:primary, primary_config} | default_handlers]
-
     case Supervisor.start_link(children, strategy: :rest_for_one, name: Logger.Supervisor) do
       {:ok, sup} ->
+        primary_config = add_elixir_handler(otp_reports?, config)
+
+        default_handlers =
+          if otp_reports? do
+            delete_erlang_handler()
+          else
+            []
+          end
+
+        handlers = [{:primary, primary_config} | default_handlers]
         {:ok, sup, {config, handlers}}
 
       {:error, _} = error ->
@@ -56,8 +55,8 @@ defmodule Logger.App do
     Logger.Counter.delete(config)
 
     :logger.add_primary_filter(
-      :silence_otp,
-      {&Logger.Filter.silence_once/2, {:silence_otp, :logger}}
+      :silence_logger_exit,
+      {&Logger.Filter.silence_logger_exit/2, []}
     )
   end
 
@@ -80,7 +79,7 @@ defmodule Logger.App do
       filter_default: :log,
       filters:
         if not otp_reports? do
-          [filter_elixir: {&Logger.Filter.elixir_domain/2, :ignore}]
+          [filter_elixir_domain: {&Logger.Filter.filter_elixir_domain/2, []}]
         else
           []
         end

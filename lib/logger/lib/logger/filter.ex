@@ -2,17 +2,17 @@ defmodule Logger.Filter do
   @moduledoc false
 
   @doc """
-  Filter messages logged via `Logger` module when not logging OTP reports
+  Filter messages logged via `Logger` module when not logging OTP reports.
   """
-  def elixir_domain(%{meta: meta}, action) when action in [:stop, :ignore] do
+  def filter_elixir_domain(%{meta: meta}, _extra) do
     case meta do
-      %{domain: [:elixir | _]} -> action
-      _ -> inverse_action(action)
+      %{domain: [:elixir | _]} -> :ignore
+      _ -> :stop
     end
   end
 
   @doc """
-  Filter out logs if current process opted out of log reports
+  Filter out logs if current process opted out of log reports.
   """
   def process_disabled(_log, _extra) do
     if Logger.enabled?(self()) do
@@ -22,18 +22,24 @@ defmodule Logger.Filter do
     end
   end
 
-  @doc false
-  def silence_once(%{msg: {:report, message}, meta: %{domain: [:otp | _]}}, {name, app}) do
-    with %{report: report} <- message,
-         {:ok, ^app} <- Keyword.fetch(report, :application) do
-      :logger.remove_primary_filter(name)
-
-      :stop
-    else
-      _ -> :ignore
-    end
+  @doc """
+  A filter that waits until Logger exits and then removes itself.
+  """
+  def silence_logger_exit(
+        %{
+          msg:
+            {:report,
+             %{
+               label: {:application_controller, :exit},
+               report: [application: :logger, exited: :stopped] ++ _
+             }}
+        },
+        _extra
+      ) do
+    :stop
   end
 
-  defp inverse_action(:ignore), do: :stop
-  defp inverse_action(:stop), do: :ignore
+  def silence_logger_exit(_message, _extra) do
+    :ignore
+  end
 end
