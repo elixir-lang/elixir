@@ -1,4 +1,4 @@
-defmodule Logger.ErlangHandlerTest do
+defmodule Logger.HandlerTest do
   use Logger.Case
   @moduletag :logger
 

@@ -296,7 +296,7 @@ defmodule IEx do
   results in:
 
       $ iex
-      Erlang/OTP 20 [...]
+      Erlang/OTP 21 [...]
 
       hello world
       Interactive Elixir - press Ctrl+C to exit (type h() ENTER for help)
@@ -320,7 +320,7 @@ defmodule IEx do
   Now run the shell:
 
       $ iex
-      Erlang/OTP 20 [...]
+      Erlang/OTP 21 [...]
 
       Interactive Elixir - press Ctrl+C to exit (type h() ENTER for help)
       iex(1)> [1, 2, 3, 4, 5]

@@ -88,6 +88,17 @@ defmodule LoggerTest do
 
   test "level/0" do
     assert Logger.level() == :debug
+
+    Logger.configure(level: :info)
+    assert Logger.level() == :info
+
+    Logger.configure(level: :warn)
+    assert Logger.level() == :warn
+
+    Logger.configure(level: :error)
+    assert Logger.level() == :error
+  after
+    Logger.configure(level: :debug)
   end
 
   test "process metadata" do
@@ -133,6 +144,24 @@ defmodule LoggerTest do
     assert capture_log(fn ->
              assert Logger.bare_log(:info, fun, application: nil, module: LoggerTest) == :ok
            end) =~ msg("module=Function [info]  ok")
+  end
+
+  describe "log with function" do
+    test "supports iolist" do
+      fun = fn -> ["ok", ?:, 'example'] end
+
+      assert capture_log(fn ->
+               assert Logger.bare_log(:info, fun, application: nil, module: FunctionTest) == :ok
+             end) =~ msg("module=FunctionTest [info]  ok:example")
+    end
+
+    test "supports binaries" do
+      fun = fn -> "ok:example" end
+
+      assert capture_log(fn ->
+               assert Logger.bare_log(:info, fun, application: nil, module: FunctionTest) == :ok
+             end) =~ msg("module=FunctionTest [info]  ok:example")
+    end
   end
 
   test "enable/1 and disable/1" do
@@ -319,19 +348,12 @@ defmodule LoggerTest do
     Logger.configure(truncate: 8096)
   end
 
-  test "log/2 with to_string/1 conversion" do
-    Logger.configure(truncate: 4)
-    assert capture_log(fn -> Logger.log(:debug, :hello) end) =~ "hell (truncated)"
-  after
-    Logger.configure(truncate: 8096)
-  end
-
   test "log/2 does not fails when the logger is off" do
     logger = Process.whereis(Logger)
     Process.unregister(Logger)
 
     try do
-      assert Logger.log(:debug, "hello") == {:error, :noproc}
+      assert Logger.log(:debug, "hello") == :ok
     after
       Process.register(logger, Logger)
     end
@@ -341,21 +363,6 @@ defmodule LoggerTest do
     assert capture_log(fn ->
              assert Logger.log(:debug, "he" <> <<185>> <> "lo") == :ok
            end) =~ "he�lo"
-  end
-
-  test "logging something that is not a binary or chardata fails right away" do
-    assert_raise Protocol.UndefinedError,
-                 "protocol String.Chars not implemented for %{} of type Map",
-                 fn -> Logger.log(:debug, %{}) end
-
-    message =
-      "cannot truncate chardata because it contains something that is not valid chardata: %{}"
-
-    # Something that looks like chardata but then inside isn't still raises an error, but a
-    # different one.
-    assert_raise ArgumentError, message, fn ->
-      Logger.log(:debug, [%{}])
-    end
   end
 
   test "stops the application silently" do
@@ -399,11 +406,9 @@ defmodule LoggerTest do
     assert Application.get_env(:logger, :discard_threshold) == 10_000
     assert Application.get_env(:logger, :translator_inspect_opts) == [limit: 3]
 
-    {_, log_data} = Logger.Config.log_data(:debug)
+    assert {:ok, %{config: log_data}} = :logger.get_handler_config(Logger)
     assert log_data.utc_log == true
-
-    translation_data = Logger.Config.translation_data()
-    assert translation_data.truncate == 4048
+    assert log_data.truncate == 4048
   after
     Logger.configure(sync_threshold: 20)
     Logger.configure(truncate: 8096)
@@ -447,11 +452,51 @@ defmodule LoggerTest do
     :ok = Logger.configure(level: :debug)
 
     try do
-      Application.put_env(:logger, :level, :error)
       assert Logger.App.config_change([level: :error], [], []) === :ok
       assert Logger.level() === :error
     after
       Logger.configure(level: :debug)
+    end
+  end
+
+  describe "OTP integration" do
+    test "changes level in both" do
+      assert :logger.get_primary_config().level == :debug
+      Logger.configure(level: :error)
+      assert :logger.get_primary_config().level == :error
+    after
+      Logger.configure(level: :debug)
+    end
+
+    test "supports module level" do
+      :logger.set_module_level(__MODULE__, :none)
+      assert capture_log(fn -> Logger.info("hello") end) == ""
+      :logger.set_module_level(__MODULE__, :all)
+      assert capture_log(fn -> Logger.info("hello") end) =~ "hello"
+    after
+      :logger.unset_module_level(__MODULE__)
+    end
+
+    test "maps erlang levels" do
+      :logger.set_primary_config(:level, :notice)
+      assert capture_log(fn -> Logger.info("hello") end) =~ "hello"
+
+      :logger.set_primary_config(:level, :notice)
+      assert Logger.level() == :info
+
+      :logger.set_primary_config(:level, :emergency)
+      assert Logger.level() == :error
+    after
+      Logger.configure(level: :debug)
+    end
+
+    test "metadata is synchronised" do
+      Logger.metadata(foo: "bar")
+
+      assert Map.new(Logger.metadata()) == :logger.get_process_metadata()
+      :logger.set_process_metadata(%{bar: "foo"})
+
+      assert Map.new(Logger.metadata()) == :logger.get_process_metadata()
     end
   end
 end
