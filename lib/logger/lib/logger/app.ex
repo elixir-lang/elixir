@@ -81,10 +81,17 @@ defmodule Logger.App do
         end
     }
 
-    primary_config = :logger.get_primary_config()
-    Logger.LegacyHandler.load_log_level()
+    %{level: level} = primary_config = :logger.get_primary_config()
+
+    if level != :notice and Application.fetch_env!(:logger, :level) != level do
+      IO.warn "the level for Erlang's logger was set to #{inspect(level)}, " <>
+                "but Elixir's logger was set to #{inspect(Application.fetch_env!(:logger, :level))}. " <>
+                "Elixir's logger value will take higher precedence"
+    end
+
+    Logger.Config.load_log_level()
     :ok = :logger.add_primary_filter(:process_disabled, {&Logger.Filter.process_disabled/2, []})
-    :ok = :logger.add_handler(Logger, Logger.LegacyHandler, config)
+    :ok = :logger.add_handler(Logger, Logger.Handler, config)
     primary_config
   end
 

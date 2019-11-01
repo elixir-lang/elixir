@@ -593,7 +593,7 @@ defmodule Logger do
     Logger.Config.configure(options)
 
     # Then we can read from the writes
-    Logger.LegacyHandler.load_log_level()
+    Logger.Config.load_log_level()
     :ok = :logger.set_handler_config(Logger, %{config: %{}})
   end
 

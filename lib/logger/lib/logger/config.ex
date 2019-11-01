@@ -7,6 +7,16 @@ defmodule Logger.Config do
 
   alias Logger.Counter
 
+  def load_log_level do
+    level =
+      case Application.fetch_env!(:logger, :level) do
+        :warn -> :warning
+        level -> level
+      end
+
+    :ok = :logger.set_primary_config(:level, level)
+  end
+
   def configure(options) do
     :gen_event.call(Logger, @name, {:configure, options})
   end
