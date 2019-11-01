@@ -7,16 +7,6 @@ defmodule Logger.Config do
 
   alias Logger.Counter
 
-  def load_log_level do
-    level =
-      case Application.fetch_env!(:logger, :level) do
-        :warn -> :warning
-        level -> level
-      end
-
-    :ok = :logger.set_primary_config(:level, level)
-  end
-
   def configure(options) do
     :gen_event.call(Logger, @name, {:configure, options})
   end
@@ -55,8 +45,16 @@ defmodule Logger.Config do
   end
 
   def handle_call({:configure, options}, {counter, _, _, _}) do
-    Enum.each(options, fn {key, value} ->
-      Application.put_env(:logger, key, value)
+    Enum.each(options, fn
+      # TODO: Warn on deprecated level
+      {:level, :warn} ->
+        :ok = :logger.set_primary_config(:level, :warning)
+
+      {:level, level} ->
+        :ok = :logger.set_primary_config(:level, level)
+
+      {key, value} ->
+        Application.put_env(:logger, key, value)
     end)
 
     {:ok, :ok, load_state(counter)}

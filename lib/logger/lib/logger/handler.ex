@@ -75,7 +75,6 @@ defmodule Logger.Handler do
             metadata = erlang_metadata_to_elixir_metadata(metadata)
             %{truncate: truncate, utc_log: utc_log?} = config
 
-            # TODO: Use `time` field of `erl_metadata` for timestamp
             event = {
               level,
               gl,
@@ -165,7 +164,9 @@ defmodule Logger.Handler do
 
   ## Metadata helpers
 
-  # TODO: We should only do this for legacy handlers
+  # TODO: We should only do this for legacy handlers.
+  # The new handlers should accept all metadata as is
+  # and receive the system time unit rather than tuples.
   defp erlang_metadata_to_elixir_metadata(metadata) do
     metadata =
       case metadata do

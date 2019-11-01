@@ -57,8 +57,8 @@ defmodule Logger.App do
   end
 
   @doc false
-  def config_change(_changed, _new, _removed) do
-    Logger.configure([])
+  def config_change(changed, _new, _removed) do
+    Logger.configure(changed)
   end
 
   @doc """
@@ -81,15 +81,34 @@ defmodule Logger.App do
         end
     }
 
-    %{level: level} = primary_config = :logger.get_primary_config()
+    %{level: erl_level} = primary_config = :logger.get_primary_config()
 
-    if level != :notice and Application.fetch_env!(:logger, :level) != level do
-      IO.warn "the level for Erlang's logger was set to #{inspect(level)}, " <>
-                "but Elixir's logger was set to #{inspect(Application.fetch_env!(:logger, :level))}. " <>
-                "Elixir's logger value will take higher precedence"
+    # Elixir's logger level is no longer set by default.
+    #
+    # If it is set, it always has higher precedence, but we warn
+    # in case of mismatches.
+    #
+    # If it is not set, we revert Erlang's kernel to debug, if it
+    # has its default value, otherwise we keep it as is.
+    case Application.fetch_env(:logger, :level) do
+      {:ok, level} ->
+        if erl_level != :notice and erl_level != level do
+          IO.warn(
+            "the level for Erlang's logger was set to #{inspect(erl_level)}, " <>
+              "but Elixir's logger was set to #{inspect(level)}. " <>
+              "Elixir's logger value will take higher precedence"
+          )
+        end
+
+        :ok = :logger.set_primary_config(:level, level)
+
+      :error when erl_level == :notice ->
+        :ok = :logger.set_primary_config(:level, :debug)
+
+      :error ->
+        :ok
     end
 
-    Logger.Config.load_log_level()
     :ok = :logger.add_primary_filter(:process_disabled, {&Logger.Filter.process_disabled/2, []})
     :ok = :logger.add_handler(Logger, Logger.Handler, config)
     primary_config
