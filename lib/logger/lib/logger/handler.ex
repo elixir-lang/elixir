@@ -4,6 +4,24 @@ defmodule Logger.Handler do
 
   @internal_keys [:counter]
 
+  ## Conversions
+
+  # TODO: Remove this mapping once we support all of Erlang types
+  def erlang_level_to_elixir_level(:none), do: :error
+  def erlang_level_to_elixir_level(:emergency), do: :error
+  def erlang_level_to_elixir_level(:alert), do: :error
+  def erlang_level_to_elixir_level(:critical), do: :error
+  def erlang_level_to_elixir_level(:error), do: :error
+  def erlang_level_to_elixir_level(:warning), do: :warn
+  def erlang_level_to_elixir_level(:notice), do: :info
+  def erlang_level_to_elixir_level(:info), do: :info
+  def erlang_level_to_elixir_level(:debug), do: :debug
+  def erlang_level_to_elixir_level(:all), do: :debug
+
+  # TODO: Warn on deprecated level
+  def elixir_level_to_erlang_level(:warn), do: :warning
+  def elixir_level_to_erlang_level(other), do: other
+
   ## Config management
 
   def adding_handler(config) do
@@ -65,7 +83,7 @@ defmodule Logger.Handler do
         :ok
 
       mode ->
-        level = Logger.Config.erlang_level_to_elixir_level(erl_level)
+        level = erlang_level_to_elixir_level(erl_level)
 
         case do_log(level, msg, metadata, config) do
           :skip ->
@@ -96,7 +114,7 @@ defmodule Logger.Handler do
 
   defp do_log(level, msg, metadata, config) do
     %{level: erl_min_level} = :logger.get_primary_config()
-    min_level = Logger.Config.erlang_level_to_elixir_level(erl_min_level)
+    min_level = erlang_level_to_elixir_level(erl_min_level)
 
     try do
       case msg do

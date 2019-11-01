@@ -395,7 +395,7 @@ defmodule LoggerTest do
 
   test "starts the application with warn level" do
     Logger.App.stop()
-    :logger.set_primary_config(:level, :notice)
+    assert %{level: :notice} = :logger.get_primary_config()
     Application.put_env(:logger, :level, :warn)
     Application.start(:logger)
     assert %{level: :warning} = :logger.get_primary_config()
