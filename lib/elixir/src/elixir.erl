@@ -270,7 +270,7 @@ eval_forms(Tree, Binding, Env, Scope) ->
 
 recur_eval([Expr | Exprs], Binding, Env) ->
   {value, Value, NewBinding} =
-    try erl_eval:expr(Expr, Binding, none, none, none) catch ?WITH_STACKTRACE(Class, Exception, Stacktrace) erlang:raise(Class, rewrite_exception(Exception, Stacktrace, Expr, Env), rewrite_stacktrace(Stacktrace)) end,
+    try erl_eval:expr(Expr, Binding, none, none, none) catch Class:Exception:Stacktrace -> erlang:raise(Class, rewrite_exception(Exception, Stacktrace, Expr, Env), rewrite_stacktrace(Stacktrace)) end,
 
   case Exprs of
     [] -> {value, Value, NewBinding};
