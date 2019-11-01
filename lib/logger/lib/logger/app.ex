@@ -30,7 +30,7 @@ defmodule Logger.App do
         []
       end
 
-    handlers = [primary_config | default_handlers]
+    handlers = [{:primary, primary_config} | default_handlers]
 
     case Supervisor.start_link(children, strategy: :rest_for_one, name: Logger.Supervisor) do
       {:ok, sup} ->
@@ -91,19 +91,21 @@ defmodule Logger.App do
     # If it is not set, we revert Erlang's kernel to debug, if it
     # has its default value, otherwise we keep it as is.
     case Application.fetch_env(:logger, :level) do
-      {:ok, level} ->
+      {:ok, app_level} ->
+        level = Logger.Handler.elixir_level_to_erlang_level(app_level)
+
         if erl_level != :notice and erl_level != level do
           IO.warn(
             "the level for Erlang's logger was set to #{inspect(erl_level)}, " <>
-              "but Elixir's logger was set to #{inspect(level)}. " <>
+              "but Elixir's logger was set to #{inspect(app_level)}. " <>
               "Elixir's logger value will take higher precedence"
           )
         end
 
-        Logger.Config.set_level(level)
+        :ok = :logger.set_primary_config(:level, level)
 
       :error when erl_level == :notice ->
-        Logger.Config.set_level(:debug)
+        :ok = :logger.set_primary_config(:level, :debug)
 
       :error ->
         :ok

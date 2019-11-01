@@ -529,20 +529,8 @@ defmodule Logger do
   @spec level() :: level()
   def level() do
     %{level: level} = :logger.get_primary_config()
-    erlang_level_to_elixir_level(level)
+    Logger.Handler.erlang_level_to_elixir_level(level)
   end
-
-  # TODO: Remove this mapping once we allow all levels on Logger
-  defp erlang_level_to_elixir_level(:none), do: :error
-  defp erlang_level_to_elixir_level(:emergency), do: :error
-  defp erlang_level_to_elixir_level(:alert), do: :error
-  defp erlang_level_to_elixir_level(:critical), do: :error
-  defp erlang_level_to_elixir_level(:error), do: :error
-  defp erlang_level_to_elixir_level(:warning), do: :warn
-  defp erlang_level_to_elixir_level(:notice), do: :info
-  defp erlang_level_to_elixir_level(:info), do: :info
-  defp erlang_level_to_elixir_level(:debug), do: :debug
-  defp erlang_level_to_elixir_level(:all), do: :debug
 
   @doc """
   Compares log levels.
@@ -565,8 +553,8 @@ defmodule Logger do
   @spec compare_levels(level, level) :: :lt | :eq | :gt
   def compare_levels(left, right) do
     :logger.compare_levels(
-      Logger.Config.elixir_level_to_erlang_level(left),
-      Logger.Config.elixir_level_to_erlang_level(right)
+      Logger.Handler.elixir_level_to_erlang_level(left),
+      Logger.Handler.elixir_level_to_erlang_level(right)
     )
   end
 
@@ -724,7 +712,7 @@ defmodule Logger do
 
   @doc false
   def __should_log__(level, module) when level in @levels do
-    level = Logger.Config.elixir_level_to_erlang_level(level)
+    level = Logger.Handler.elixir_level_to_erlang_level(level)
 
     if enabled?(self()) and :logger.allow(level, module) do
       level
