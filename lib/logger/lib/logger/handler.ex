@@ -124,6 +124,7 @@ defmodule Logger.Handler do
   end
 
   # TODO: Remove this mapping once we allow all levels on Logger
+  defp erlang_level_to_elixir_level(:none), do: :error
   defp erlang_level_to_elixir_level(:emergency), do: :error
   defp erlang_level_to_elixir_level(:alert), do: :error
   defp erlang_level_to_elixir_level(:critical), do: :error

@@ -478,6 +478,19 @@ defmodule LoggerTest do
       :logger.unset_module_level(__MODULE__)
     end
 
+    test "maps erlang levels" do
+      :logger.set_primary_config(:level, :notice)
+      assert capture_log(fn -> Logger.info("hello") end) =~ "hello"
+
+      :logger.set_primary_config(:level, :notice)
+      assert Logger.level == :info
+
+      :logger.set_primary_config(:level, :emergency)
+      assert Logger.level == :error
+    after
+      Logger.configure(level: :debug)
+    end
+
     test "metadata is synchronised" do
       Logger.metadata(foo: "bar")
 

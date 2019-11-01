@@ -441,9 +441,7 @@ defmodule Logger do
   @type metadata :: keyword()
 
   # TODO: change it to `[:emergency, :alert, :critical, :error, :warning, :notice, :info, :debug]`
-  # Note we currently allow :warning through Logger.log(...)
-  # but we will only expose it in future versions.
-  @levels [:error, :warning, :warn, :info, :debug]
+  @levels [:error, :warn, :info, :debug]
 
   @metadata :logger_enabled
   @compile {:inline, enabled?: 1}
@@ -531,13 +529,23 @@ defmodule Logger do
 
   The `Logger` level can be changed via `configure/1`.
   """
-  @spec level() :: level
+  @spec level() :: level()
   def level() do
-    case :logger.get_primary_config() do
-      %{level: :warning} -> :warn
-      %{level: level} -> level
-    end
+    %{level: level} = :logger.get_primary_config()
+    erlang_level_to_elixir_level(level)
   end
+
+  # TODO: Remove this mapping once we allow all levels on Logger
+  defp erlang_level_to_elixir_level(:none), do: :error
+  defp erlang_level_to_elixir_level(:emergency), do: :error
+  defp erlang_level_to_elixir_level(:alert), do: :error
+  defp erlang_level_to_elixir_level(:critical), do: :error
+  defp erlang_level_to_elixir_level(:error), do: :error
+  defp erlang_level_to_elixir_level(:warning), do: :warn
+  defp erlang_level_to_elixir_level(:notice), do: :info
+  defp erlang_level_to_elixir_level(:info), do: :info
+  defp erlang_level_to_elixir_level(:debug), do: :debug
+  defp erlang_level_to_elixir_level(:all), do: :debug
 
   @doc """
   Compares log levels.
@@ -770,7 +778,7 @@ defmodule Logger do
   """
   # TODO: Deprecate it in favour of `warning/1-2` macro
   defmacro warn(chardata_or_fun, metadata \\ []) do
-    maybe_log(:warning, chardata_or_fun, metadata, __CALLER__)
+    maybe_log(:warn, chardata_or_fun, metadata, __CALLER__)
   end
 
   @doc """
