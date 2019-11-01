@@ -482,10 +482,10 @@ defmodule LoggerTest do
       assert capture_log(fn -> Logger.info("hello") end) =~ "hello"
 
       :logger.set_primary_config(:level, :notice)
-      assert Logger.level == :info
+      assert Logger.level() == :info
 
       :logger.set_primary_config(:level, :emergency)
-      assert Logger.level == :error
+      assert Logger.level() == :error
     after
       Logger.configure(level: :debug)
     end
