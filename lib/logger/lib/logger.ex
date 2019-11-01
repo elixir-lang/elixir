@@ -434,13 +434,10 @@ defmodule Logger do
   and how to process the existing options.
   """
 
-  # TODO: Change it to `:logger.level()`
   @type level :: :error | :warn | :info | :debug
   @type backend :: :gen_event.handler()
   @type message :: IO.chardata() | String.Chars.t()
   @type metadata :: keyword()
-
-  # TODO: change it to `[:emergency, :alert, :critical, :error, :warning, :notice, :info, :debug]`
   @levels [:error, :warn, :info, :debug]
 
   @metadata :logger_enabled
@@ -567,12 +564,11 @@ defmodule Logger do
   """
   @spec compare_levels(level, level) :: :lt | :eq | :gt
   def compare_levels(left, right) do
-    :logger.compare_levels(normalize(left), normalize(right))
+    :logger.compare_levels(
+      Logger.Config.elixir_level_to_erlang_level(left),
+      Logger.Config.elixir_level_to_erlang_level(right)
+    )
   end
-
-  # TODO: Deprecate :warn
-  defp normalize(:warn), do: :warning
-  defp normalize(level), do: level
 
   @doc """
   Configures the logger.
@@ -728,7 +724,7 @@ defmodule Logger do
 
   @doc false
   def __should_log__(level, module) when level in @levels do
-    level = normalize(level)
+    level = Logger.Config.elixir_level_to_erlang_level(level)
 
     if enabled?(self()) and :logger.allow(level, module) do
       level

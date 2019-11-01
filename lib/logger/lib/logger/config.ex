@@ -7,6 +7,26 @@ defmodule Logger.Config do
 
   alias Logger.Counter
 
+  def set_level(level) do
+    :ok = :logger.set_primary_config(:level, elixir_level_to_erlang_level(level))
+  end
+
+  # TODO: Remove this mapping once we support all of Erlang types
+  def erlang_level_to_elixir_level(:none), do: :error
+  def erlang_level_to_elixir_level(:emergency), do: :error
+  def erlang_level_to_elixir_level(:alert), do: :error
+  def erlang_level_to_elixir_level(:critical), do: :error
+  def erlang_level_to_elixir_level(:error), do: :error
+  def erlang_level_to_elixir_level(:warning), do: :warn
+  def erlang_level_to_elixir_level(:notice), do: :info
+  def erlang_level_to_elixir_level(:info), do: :info
+  def erlang_level_to_elixir_level(:debug), do: :debug
+  def erlang_level_to_elixir_level(:all), do: :debug
+
+  # TODO: Warn on deprecated level
+  def elixir_level_to_erlang_level(:warn), do: :warning
+  def elixir_level_to_erlang_level(other), do: other
+
   def configure(options) do
     :gen_event.call(Logger, @name, {:configure, options})
   end
@@ -46,15 +66,8 @@ defmodule Logger.Config do
 
   def handle_call({:configure, options}, {counter, _, _, _}) do
     Enum.each(options, fn
-      # TODO: Warn on deprecated level
-      {:level, :warn} ->
-        :ok = :logger.set_primary_config(:level, :warning)
-
-      {:level, level} ->
-        :ok = :logger.set_primary_config(:level, level)
-
-      {key, value} ->
-        Application.put_env(:logger, key, value)
+      {:level, level} -> set_level(level)
+      {key, value} -> Application.put_env(:logger, key, value)
     end)
 
     {:ok, :ok, load_state(counter)}
