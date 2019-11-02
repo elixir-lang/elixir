@@ -192,10 +192,6 @@ rewrite(Receiver, DotMeta, Right, Meta, Args) ->
 
 rewrite(?atom, to_string, [Arg]) ->
   {erlang, atom_to_binary, [Arg, utf8]};
-rewrite(?enum, into, [Arg, {'%{}', _, []}]) ->
-  {?map, new, [Arg]};
-rewrite(?enum, into, [Arg, {'%{}', _, []}, Fun]) ->
-  {?map, new, [Arg, Fun]};
 rewrite(?kernel, elem, [Tuple, Index]) ->
   {erlang, element, [increment(Index), Tuple]};
 rewrite(?kernel, put_elem, [Tuple, Index, Value]) ->
