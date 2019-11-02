@@ -590,7 +590,7 @@ defmodule Module.Types.Infer do
 
   # binary-pattern :: specifier
   defp of_binary({:"::", _meta, [expr, specifiers]} = full_expr, stack, context) do
-    {expected_type, utf?} = collect_binary_type(specifiers) || raise "missing binary specifier"
+    {expected_type, utf?} = collect_binary_type(specifiers) || {:integer, false}
     stack = push_expr_stack(full_expr, stack)
 
     # Special case utf specifiers with binary literals since they allow
