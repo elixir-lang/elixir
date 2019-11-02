@@ -623,15 +623,15 @@ defmodule Module.Types.Infer do
   defp collect_binary_type({:-, _meta, [left, right]}),
     do: collect_binary_type(left) || collect_binary_type(right)
 
-  defp collect_binary_type({:integer, _, ctx}) when is_atom(ctx), do: {:integer, false}
-  defp collect_binary_type({:float, _, ctx}) when is_atom(ctx), do: {:float, false}
-  defp collect_binary_type({:bits, _, ctx}) when is_atom(ctx), do: {:binary, false}
-  defp collect_binary_type({:bitstring, _, ctx}) when is_atom(ctx), do: {:binary, false}
-  defp collect_binary_type({:bytes, _, ctx}) when is_atom(ctx), do: {:binary, false}
-  defp collect_binary_type({:binary, _, ctx}) when is_atom(ctx), do: {:binary, false}
-  defp collect_binary_type({:utf8, _, ctx}) when is_atom(ctx), do: {:integer, true}
-  defp collect_binary_type({:utf16, _, ctx}) when is_atom(ctx), do: {:integer, true}
-  defp collect_binary_type({:utf32, _, ctx}) when is_atom(ctx), do: {:integer, true}
+  defp collect_binary_type({:integer, _, _}), do: {:integer, false}
+  defp collect_binary_type({:float, _, _}), do: {:float, false}
+  defp collect_binary_type({:bits, _, _}), do: {:binary, false}
+  defp collect_binary_type({:bitstring, _, _}), do: {:binary, false}
+  defp collect_binary_type({:bytes, _, _}), do: {:binary, false}
+  defp collect_binary_type({:binary, _, _}), do: {:binary, false}
+  defp collect_binary_type({:utf8, _, _}), do: {:integer, true}
+  defp collect_binary_type({:utf16, _, _}), do: {:integer, true}
+  defp collect_binary_type({:utf32, _, _}), do: {:integer, true}
   defp collect_binary_type(_), do: nil
 
   ## UNIFICATION
