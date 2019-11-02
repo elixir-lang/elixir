@@ -741,7 +741,18 @@ defmodule DynamicSupervisor do
   end
 
   def handle_info(msg, state) do
-    :error_logger.error_msg('DynamicSupervisor received unexpected message: ~p~n', [msg])
+    :logger.error(
+      %{
+        label: {DynamicSupervisor, :unexpected_msg},
+        msg: msg
+      },
+      %{
+        domain: [:otp, :elixir],
+        error_logger: %{tag: :error_msg},
+        report_cb: &__MODULE__.format_report/1
+      }
+    )
+
     {:noreply, state}
   end
 
@@ -984,12 +995,22 @@ defmodule DynamicSupervisor do
   end
 
   defp report_error(error, reason, pid, child, %{name: name, extra_arguments: extra}) do
-    :error_logger.error_report(
-      :supervisor_report,
-      supervisor: name,
-      errorContext: error,
-      reason: reason,
-      offender: extract_child(pid, child, extra)
+    :logger.error(
+      %{
+        label: {:supervisor, error},
+        report: [
+          {:supervisor, name},
+          {:errorContext, error},
+          {:reason, reason},
+          {:offender, extract_child(pid, child, extra)}
+        ]
+      },
+      %{
+        domain: [:otp, :sasl],
+        report_cb: &:logger.format_otp_report/1,
+        logger_formatter: %{title: "SUPERVISOR REPORT"},
+        error_logger: %{tag: :error_report, type: :supervisor_report}
+      }
     )
   end
 
@@ -1019,5 +1040,13 @@ defmodule DynamicSupervisor do
 
   defp call(supervisor, req) do
     GenServer.call(supervisor, req, :infinity)
+  end
+
+  @doc false
+  def format_report(%{
+        label: {__MODULE__, :unexpected_msg},
+        msg: msg
+      }) do
+    {'DynamicSupervisor received unexpected message: ~p~n', [msg]}
   end
 end
