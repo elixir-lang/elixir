@@ -164,9 +164,10 @@ defmodule Module.Types.InferTest do
     test "binary" do
       assert quoted_pattern(<<"foo"::binary>>) == {:ok, :binary}
       assert quoted_pattern(<<123::integer>>) == {:ok, :binary}
+      assert quoted_pattern(<<foo::little>>) == {:ok, :binary}
       assert quoted_pattern(<<foo::integer>>) == {:ok, :binary}
       assert quoted_pattern(<<foo::integer-little>>) == {:ok, :binary}
-      assert quoted_pattern(<<foo::little-integer>>) == {:ok, :binary}
+      assert quoted_pattern(<<foo::little-integer-little>>) == {:ok, :binary}
       assert quoted_pattern(<<123::utf8>>) == {:ok, :binary}
       assert quoted_pattern(<<"foo"::utf8>>) == {:ok, :binary}
 
