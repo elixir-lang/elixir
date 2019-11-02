@@ -590,27 +590,12 @@ defmodule Module.Types.Infer do
 
   # binary-pattern :: specifier
   defp of_binary({:"::", _meta, [expr, specifiers]} = full_expr, stack, context) do
-    specifiers = List.flatten(collect_specifiers(specifiers))
-
-    expected_type =
-      cond do
-        :integer in specifiers -> :integer
-        :float in specifiers -> :float
-        :bits in specifiers -> :binary
-        :bitstring in specifiers -> :binary
-        :bytes in specifiers -> :binary
-        :binary in specifiers -> :binary
-        :utf8 in specifiers -> :integer
-        :utf16 in specifiers -> :integer
-        :utf32 in specifiers -> :integer
-        true -> :integer
-      end
-
+    {expected_type, utf?} = collect_binary_type(specifiers) || raise "missing binary specifier"
     stack = push_expr_stack(full_expr, stack)
 
     # Special case utf specifiers with binary literals since they allow
     # both integer and binary literals but variables are always integer
-    if is_binary(expr) and utf_specifier?(specifiers) do
+    if is_binary(expr) and utf? do
       {:ok, context}
     else
       with {:ok, type, context} <- of_pattern(expr, stack, context),
@@ -633,27 +618,21 @@ defmodule Module.Types.Infer do
     end
   end
 
-  defp utf_specifier?(specifiers) do
-    :utf8 in specifiers or :utf16 in specifiers or :utf32 in specifiers
-  end
-
   # Collect binary type specifiers,
   # from `<<pattern::integer-size(10)>>` collect `integer`
-  defp collect_specifiers({:-, _meta, [left, right]}) do
-    [collect_specifiers(left), collect_specifiers(right)]
-  end
+  defp collect_binary_type({:-, _meta, [left, right]}),
+    do: collect_binary_type(left) || collect_binary_type(right)
 
-  defp collect_specifiers({specifier, _meta, []}) do
-    [specifier]
-  end
-
-  defp collect_specifiers({name, _meta, context}) when is_atom(name) and is_atom(context) do
-    [name]
-  end
-
-  defp collect_specifiers(_other) do
-    []
-  end
+  defp collect_binary_type({:integer, _, ctx}) when is_atom(ctx), do: {:integer, false}
+  defp collect_binary_type({:float, _, ctx}) when is_atom(ctx), do: {:float, false}
+  defp collect_binary_type({:bits, _, ctx}) when is_atom(ctx), do: {:binary, false}
+  defp collect_binary_type({:bitstring, _, ctx}) when is_atom(ctx), do: {:binary, false}
+  defp collect_binary_type({:bytes, _, ctx}) when is_atom(ctx), do: {:binary, false}
+  defp collect_binary_type({:binary, _, ctx}) when is_atom(ctx), do: {:binary, false}
+  defp collect_binary_type({:utf8, _, ctx}) when is_atom(ctx), do: {:integer, true}
+  defp collect_binary_type({:utf16, _, ctx}) when is_atom(ctx), do: {:integer, true}
+  defp collect_binary_type({:utf32, _, ctx}) when is_atom(ctx), do: {:integer, true}
+  defp collect_binary_type(_), do: nil
 
   ## UNIFICATION
 
