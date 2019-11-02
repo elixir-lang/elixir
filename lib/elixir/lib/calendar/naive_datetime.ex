@@ -118,6 +118,53 @@ defmodule NaiveDateTime do
   end
 
   @doc """
+  Returns the "local time" for the machine the Elixir program is running on.
+
+  WARNING: This function can cause insidious bugs. It depends on the time zone
+  configuration at run time. This can changed and be set to a time zone that has
+  daylight saving jumps (spring forward or fall back).
+
+  This function can be used to display what the time is right now for the time
+  zone configuration that the machine happens to have. An example would be a
+  desktop program displaying a clock to the user. For any other uses it is
+  probably a bad idea to use this function.
+
+  For most cases, use `DateTime.now/2` or `DateTime.utc_now/1` instead.
+
+  Does not include fractional seconds.
+
+  ## Examples
+
+      iex> naive_datetime = NaiveDateTime.local_now()
+      iex> naive_datetime.year >= 2019
+      true
+
+  """
+  @doc since: "1.10.0"
+  @spec local_now(Calendar.calendar()) :: t
+  def local_now(calendar \\ Calendar.ISO)
+
+  def local_now(Calendar.ISO) do
+    {{year, month, day}, {hour, minute, second}} = :erlang.localtime()
+    {:ok, ndt} = NaiveDateTime.new(year, month, day, hour, minute, second)
+    ndt
+  end
+
+  def local_now(calendar) do
+    naive_datetime = local_now()
+
+    case convert(naive_datetime, calendar) do
+      {:ok, value} ->
+        value
+
+      {:error, :incompatible_calendars} ->
+        raise ArgumentError,
+              "cannot get local_now in target calendar #{inspect(calendar)}, " <>
+                "reason: cannot convert from Calendar.ISO to #{inspect(calendar)}."
+    end
+  end
+
+  @doc """
   Builds a new ISO naive datetime.
 
   Expects all values to be integers. Returns `{:ok, naive_datetime}`

@@ -265,6 +265,27 @@ defmodule NaiveDateTimeTest do
     end
   end
 
+  describe "local_now/1" do
+    test "localutc_now/1" do
+      naive_datetime = NaiveDateTime.local_now()
+      assert naive_datetime.year >= 2018
+    end
+
+    test "local_now/1 alternative calendar" do
+      naive_datetime = NaiveDateTime.local_now(Calendar.Holocene)
+      assert naive_datetime.calendar == Calendar.Holocene
+      assert naive_datetime.year >= 12018
+    end
+
+    test "local_now/1 incompatible calendar" do
+      assert_raise ArgumentError,
+                   "cannot get local_now in target calendar FakeCalendar, reason: cannot convert from Calendar.ISO to FakeCalendar.",
+                   fn ->
+                     NaiveDateTime.local_now(FakeCalendar)
+                   end
+    end
+  end
+
   describe "to_date/2" do
     test "downcasting" do
       dt = %DateTime{
