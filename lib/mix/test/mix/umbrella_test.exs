@@ -94,7 +94,7 @@ defmodule Mix.UmbrellaTest do
     end)
   end
 
-  test "recompiles umbrella on conffig hange" do
+  test "recompiles umbrella on config change" do
     in_fixture("umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
         Mix.Task.run("compile", [])
