@@ -2199,6 +2199,58 @@ defmodule Kernel do
   end
 
   @doc """
+  Returns true if `term` is a structure; otherwise returns `false`.
+
+  Allowed in guard tests.
+  """
+  @doc guard: true
+  defmacro is_struct(term) do
+    case __CALLER__.context do
+      nil ->
+        quote do
+          case unquote(term) do
+            %_{} -> true
+            _ -> false
+          end
+        end
+
+      :match ->
+        invalid_match!(:is_struct)
+
+      :guard ->
+        quote(do: is_map(unquote(term)) and is_atom(:erlang.map_get(:__struct__, unquote(term))))
+    end
+  end
+
+  @doc """
+  Returns true if `term` is a structure; otherwise returns `false`.
+
+  Allowed in guard tests.
+  """
+  @doc guard: true
+  defmacro is_struct(term, struct) do
+    case __CALLER__.context do
+      nil ->
+        quote bind_quoted: [term: term, struct: struct] do
+          case term do
+            %^struct{} when is_atom(struct) -> true
+            _ -> false
+          end
+        end
+
+      :match ->
+        invalid_match!(:is_struct)
+
+      :guard ->
+        quote do
+          is_map(unquote(term)) and
+            is_atom(unquote(struct)) and
+            :erlang.map_get(:__struct__, unquote(term)) == unquote(struct)
+        end
+    end
+  end
+
+  @doc """
   Gets a value from a nested structure.
 
   Uses the `Access` module to traverse the structures

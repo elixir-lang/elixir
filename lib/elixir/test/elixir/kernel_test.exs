@@ -247,6 +247,39 @@ defmodule KernelTest do
     assert_raise BadBooleanError, fn -> 0 or 1 end
   end
 
+  defp check_struct(arg) when is_struct(arg, Date), do: :struct_date
+  defp check_struct(arg) when is_struct(arg), do: :struct
+  defp check_struct(_arg), do: :unknown
+
+  defp check_struct_or_list(arg) when is_struct(arg) or is_list(arg), do: :ok
+  defp check_struct_or_list(_arg), do: :error
+
+  test "is_struct/1" do
+    assert is_struct(%{}) == false
+    assert is_struct(%{}) == false
+    assert is_struct(%Macro.Env{}) == true
+    assert is_struct([]) == false
+    assert is_struct(%{__struct__: "foo"}) == false
+    assert check_struct(%Macro.Env{}) == :struct
+    assert check_struct([]) == :unknown
+    assert check_struct(%{}) == :unknown
+  end
+
+  test "is_struct/2" do
+    assert is_struct(%{}, Macro.Env) == false
+    assert is_struct(%Macro.Env{}, Macro.Env) == true
+    assert is_struct(%Macro.Env{}, DateTime) == false
+    assert is_struct([], Macro.Env) == false
+    assert is_struct(%{__struct__: :foo}, :foo) == true
+    assert check_struct(~D[2015-03-12]) == :struct_date
+  end
+
+  test "is_struct/1 and other match works" do
+    assert check_struct_or_list(%Macro.Env{}) == :ok
+    assert check_struct_or_list([]) == :ok
+    assert check_struct_or_list(10) == :error
+  end
+
   test "if/2 boolean optimization does not leak variables during expansion" do
     if false do
       :ok

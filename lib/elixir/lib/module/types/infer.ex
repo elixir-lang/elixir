@@ -246,6 +246,7 @@ defmodule Module.Types.Infer do
     {:is_port, 1} => {[:port], :boolean},
     {:is_reference, 1} => {[:reference], :boolean},
     {:is_tuple, 1} => {[:tuple], :boolean},
+    {:map_get, 2} => {[:dynamic, {:map, []}], :dynamic},
     {:<, 2} => {[:dynamic, :dynamic], :boolean},
     {:"=<", 2} => {[:dynamic, :dynamic], :boolean},
     {:>, 2} => {[:dynamic, :dynamic], :boolean},

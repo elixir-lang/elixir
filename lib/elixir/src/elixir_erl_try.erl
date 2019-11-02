@@ -137,25 +137,11 @@ rescue_guards(Meta, Var, Aliases, S) ->
   {[{Match, ElixirGuards} | ErlangParts], ErlangAliases, CS}.
 
 maybe_add_stacktrace(Line, Kind, Expr, Guards, Body, #elixir_erl{stacktrace = {Var, true}}) ->
-  case supports_stacktrace() of
-    true ->
-      Match = {tuple, Line, [Kind, Expr, {var, Line, Var}]},
-      {clause, Line, [Match], Guards, Body};
-    false ->
-      Match = {tuple, Line, [Kind, Expr, {var, Line, '_'}]},
-      Stack = {match, Line, {var, Line, Var}, ?remote(Line, erlang, get_stacktrace, [])},
-      {clause, Line, [Match], Guards, [Stack | Body]}
-  end;
+  Match = {tuple, Line, [Kind, Expr, {var, Line, Var}]},
+  {clause, Line, [Match], Guards, Body};
 maybe_add_stacktrace(Line, Kind, Expr, Guards, Body, _) ->
   Match = {tuple, Line, [Kind, Expr, {var, Line, '_'}]},
   {clause, Line, [Match], Guards, Body}.
-
-%% TODO: Remove this check once we support Erlang/OTP 21+ exclusively.
-supports_stacktrace() ->
-  case erlang:system_info(otp_release) of
-    "20" -> false;
-    _ -> true
-  end.
 
 %% Rescue each atom name considering their Erlang or Elixir matches.
 %% Matching of variables is done with Erlang exceptions is done in
