@@ -44,12 +44,8 @@
 
 %% TODO: Remove this once we support Erlang/OTP 22+ exclusively.
 %% See https://github.com/erlang/otp/pull/1972
--ifdef(OTP_RELEASE).
-  -if(?OTP_RELEASE >= 22).
-    -define(NO_SPAWN_COMPILER_PROCESS, no_spawn_compiler_process).
-  -elif(?OTP_RELEASE >= 21).
-    -define(NO_SPAWN_COMPILER_PROCESS, dialyzer, no_spawn_compiler_process).
-  -endif.
--else.
+-if(?OTP_RELEASE >= 22).
+  -define(NO_SPAWN_COMPILER_PROCESS, no_spawn_compiler_process).
+-elif(?OTP_RELEASE >= 21).
   -define(NO_SPAWN_COMPILER_PROCESS, dialyzer, no_spawn_compiler_process).
 -endif.
