@@ -301,9 +301,8 @@ format_error({deprecated, Mod, Fun, Arity, Message}) ->
 
 %% INTROSPECTION
 
-%% TODO: Do not rely on erlang:module_loaded/1 on Erlang/OTP 21+.
 is_ensure_loaded(Receiver) ->
-  erlang:module_loaded(Receiver) orelse (code:ensure_loaded(Receiver) == {module, Receiver}).
+  code:ensure_loaded(Receiver) == {module, Receiver}.
 
 %% Do not try to get macros from Erlang. Speeds up compilation a bit.
 get_macros(erlang, _) -> [];

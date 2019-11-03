@@ -79,22 +79,34 @@ defmodule Logger.Translator do
     {:ok, ["Application ", Atom.to_string(app), " exited: " | Application.format_error(reason)]}
   end
 
-  def translate(_min_level, :error, :format, message) do
+  def translate(
+        _min_level,
+        :error,
+        :report,
+        {{Task.Supervisor, :terminating},
+         %{
+           name: name,
+           starter: starter,
+           function: function,
+           args: args,
+           reason: reason
+         }}
+      ) do
     opts = Application.get_env(:logger, :translator_inspect_opts)
 
+    {formatted, reason} = format_reason(reason)
+    metadata = [crash_reason: reason] ++ registered_name(name)
+
+    msg =
+      ["Task #{inspect(name)} started from #{inspect(starter)} terminating"] ++
+        [formatted, "\nFunction: #{inspect(function, opts)}"] ++
+        ["\n    Args: #{inspect(args, opts)}"]
+
+    {:ok, msg, metadata}
+  end
+
+  def translate(_min_level, :error, :format, message) do
     case message do
-      # TODO: Remove this once tasks are migrated to Logger
-      {'** Task ' ++ _, [name, starter, function, args, reason]} ->
-        {formatted, reason} = format_reason(reason)
-        metadata = [crash_reason: reason] ++ registered_name(name)
-
-        msg =
-          ["Task #{inspect(name)} started from #{inspect(starter)} terminating"] ++
-            [formatted, "\nFunction: #{inspect(function, opts)}"] ++
-            ["\n    Args: #{inspect(args, opts)}"]
-
-        {:ok, msg, metadata}
-
       {'Error in process ' ++ _, [pid, node, {reason, stack}]} ->
         reason = Exception.normalize(:error, reason, stack)
 

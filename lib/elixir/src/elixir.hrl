@@ -14,7 +14,7 @@
   extra_guards=[],         %% extra guards from args expansion
   counter=#{},             %% a map counting the variables defined
   expand_captures=false,   %% a boolean to control if captures should be expanded
-  stacktrace=false         %% holds information about the stacktrace variable
+  stacktrace=nil           %% holds information about the stacktrace variable
 }).
 
 -record(elixir_quote, {
@@ -44,12 +44,8 @@
 
 %% TODO: Remove this once we support Erlang/OTP 22+ exclusively.
 %% See https://github.com/erlang/otp/pull/1972
--ifdef(OTP_RELEASE).
-  -if(?OTP_RELEASE >= 22).
-    -define(NO_SPAWN_COMPILER_PROCESS, no_spawn_compiler_process).
-  -elif(?OTP_RELEASE >= 21).
-    -define(NO_SPAWN_COMPILER_PROCESS, dialyzer, no_spawn_compiler_process).
-  -endif.
+-if(?OTP_RELEASE >= 22).
+  -define(NO_SPAWN_COMPILER_PROCESS, no_spawn_compiler_process).
 -else.
   -define(NO_SPAWN_COMPILER_PROCESS, dialyzer, no_spawn_compiler_process).
 -endif.

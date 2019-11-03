@@ -96,7 +96,26 @@ defmodule Task.Supervised do
         :erlang.raise(:exit, value, __STACKTRACE__)
 
       kind, value ->
-        log(owner, mfa, {log_value(kind, value), __STACKTRACE__})
+        {fun, args} = get_running(mfa)
+
+        :logger.error(
+          %{
+            label: {Task.Supervisor, :terminating},
+            report: %{
+              name: get_from(owner),
+              starter: self(),
+              function: fun,
+              args: args,
+              reason: {log_value(kind, value), __STACKTRACE__}
+            }
+          },
+          %{
+            domain: [:otp, :elixir],
+            error_logger: %{tag: :error_msg},
+            report_cb: &__MODULE__.format_report/1
+          }
+        )
+
         :erlang.raise(kind, value, __STACKTRACE__)
     end
   end
@@ -104,16 +123,24 @@ defmodule Task.Supervised do
   defp log_value(:throw, value), do: {:nocatch, value}
   defp log_value(_, value), do: value
 
-  defp log(owner, mfa, reason) do
-    {fun, args} = get_running(mfa)
-
+  @doc false
+  def format_report(%{
+        label: {Task.Supervisor, :terminating},
+        report: %{
+          name: name,
+          starter: starter,
+          function: fun,
+          args: args,
+          reason: reason
+        }
+      }) do
     message =
       '** Task ~p terminating~n' ++
         '** Started from ~p~n' ++
         '** When function  == ~p~n' ++
         '**      arguments == ~p~n' ++ '** Reason for termination == ~n' ++ '** ~p~n'
 
-    :error_logger.format(message, [self(), get_from(owner), fun, args, get_reason(reason)])
+    {message, [starter, name, fun, args, get_reason(reason)]}
   end
 
   defp get_from({node, pid_or_name, _pid}) when node == node(), do: pid_or_name
