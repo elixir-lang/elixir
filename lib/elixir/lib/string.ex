@@ -2294,7 +2294,7 @@ defmodule String do
   Passing a string that does not represent an integer leads to an error:
 
       String.to_integer("invalid data")
-      #=> ** (ArgumentError) argument error
+      ** (ArgumentError) argument error
 
   """
   @spec to_integer(String.t()) :: integer
@@ -2336,7 +2336,7 @@ defmodule String do
       3.0
 
       String.to_float("3")
-      #=> ** (ArgumentError) argument error
+      ** (ArgumentError) argument error
 
   """
   @spec to_float(String.t()) :: float

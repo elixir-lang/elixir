@@ -393,7 +393,7 @@ defmodule Kernel do
       #=> -49
 
       div(100, 0)
-      #=> ** (ArithmeticError) bad argument in arithmetic expression
+      ** (ArithmeticError) bad argument in arithmetic expression
 
   """
   @doc guard: true
@@ -495,7 +495,7 @@ defmodule Kernel do
       #=> 1
 
       hd([])
-      #=> ** (ArgumentError) argument error
+      ** (ArgumentError) argument error
 
       hd([1 | 2])
       #=> 1
@@ -1116,7 +1116,7 @@ defmodule Kernel do
       #=> [2, 3, :go]
 
       tl([])
-      #=> ** (ArgumentError) argument error
+      ** (ArgumentError) argument error
 
       tl([:one])
       #=> []
@@ -1297,7 +1297,7 @@ defmodule Kernel do
       #=> 5.0
 
       7 / 0
-      #=> ** (ArithmeticError) bad argument in arithmetic expression
+      ** (ArithmeticError) bad argument in arithmetic expression
 
   """
   @doc guard: true
@@ -1578,10 +1578,10 @@ defmodule Kernel do
       #=> :bar
 
       elem({}, 0)
-      #=> ** (ArgumentError) argument error
+      ** (ArgumentError) argument error
 
       elem({:foo, :bar}, 2)
-      #=> ** (ArgumentError) argument error
+      ** (ArgumentError) argument error
 
   """
   @doc guard: true
@@ -3889,7 +3889,7 @@ defmodule Kernel do
       defmodule Any do
         # code
       end
-      #=> ** (CompileError) iex:1: module Any is reserved and cannot be defined
+      ** (CompileError) iex:1: module Any is reserved and cannot be defined
 
   Elixir reserves the following module names: `Elixir`, `Any`, `BitString`,
   `PID`, and `Reference`.
@@ -4127,7 +4127,7 @@ defmodule Kernel do
       #=> 3
 
       Foo.sum(1, 2)
-      #=> ** (UndefinedFunctionError) undefined function Foo.sum/2
+      ** (UndefinedFunctionError) undefined function Foo.sum/2
 
   """
   defmacro defp(call, expr \\ []) do
