@@ -20,7 +20,7 @@
 
 9. Publish new zips with `make zips`, upload `Precompiled.zip` and `Docs.zip` to GitHub Releases, and include SHAs+CHANGELOG
 
-10. Add the release to `elixir.csv` (all releases) and `_data/elixir-versions.yml` (except for RCs) files in `elixir-lang/elixir-lang.github.com`
+10. Add the release to `elixir.csv` (all releases), update `erlang.csv` to the precompiled OTP version, and `_data/elixir-versions.yml` (except for RCs) files in `elixir-lang/elixir-lang.github.com`
 
 11. Send an e-mail to elixir-lang-ann@googlegroups.com with title "Elixir vVERSION released". The body should be a link to the Release page on GitHub and the checksums. If it is a security release, prefix the title with the `[security]` tag
 
