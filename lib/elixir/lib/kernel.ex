@@ -4876,16 +4876,24 @@ defmodule Kernel do
   @doc ~S"""
   Handles the sigil `~S` for strings.
 
-  It simply returns a string without escaping characters and without
-  interpolations.
+  It returns a string without interpolations and without escape
+  characters, except for the escaping of the closing sigil character
+  itself.
 
   ## Examples
 
       iex> ~S(foo)
       "foo"
-
       iex> ~S(f#{o}o)
       "f\#{o}o"
+      iex> ~S(\o/)
+      "\\o/"
+
+  However, if you want to re-use the sigil character itself on
+  the string, you need to escape it:
+
+      iex> ~S((\))
+      "()"
 
   """
   defmacro sigil_S(term, modifiers)
@@ -4922,8 +4930,9 @@ defmodule Kernel do
   @doc ~S"""
   Handles the sigil `~C` for charlists.
 
-  It simply returns a charlist without escaping characters and without
-  interpolations.
+  It returns a charlist without interpolations and without escape
+  characters, except for the escaping of the closing sigil character
+  itself.
 
   ## Examples
 
@@ -5003,8 +5012,10 @@ defmodule Kernel do
   @doc ~S"""
   Handles the sigil `~R` for regular expressions.
 
-  It returns a regular expression pattern without escaping
-  nor interpreting interpolations.
+  It returns a regular expression pattern without interpolations and
+  without escape characters. Note it still supports escape of Regex
+  tokens (such as escaping `+` or `?`) and it also requires you to
+  escape the closing sigil character itself if it appears on the Regex.
 
   More information on regexes can be found in the `Regex` module.
 
@@ -5301,8 +5312,9 @@ defmodule Kernel do
   @doc ~S"""
   Handles the sigil `~W` for list of words.
 
-  It returns a list of "words" split by whitespace without escaping nor
-  interpreting interpolations.
+  It returns a list of "words" split by whitespace without interpolations
+  and without escape characters, except for the escaping of the closing
+  sigil character itself.
 
   ## Modifiers
 
