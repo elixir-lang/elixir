@@ -75,6 +75,7 @@ The first column is the version the feature was hard deprecated. The second colu
 
 Version | Deprecated feature                                  | Replaced by (available since)
 :-------| :-------------------------------------------------- | :---------------------------------------------------------------
+[v1.10] | Passing non-chardata to `Logger.log/2`              | Explicitly convert to string with `to_string` (v1.0)
 [v1.10] | `:compile_time_purge_level` in Logger app environment | `:compile_time_purge_matching` in Logger app environment (v1.7)
 [v1.10] | `:restart` and `:shutdown` on `Task.Supervisor.start_link/1` | `:restart` and `:shutdown` on `Task.Supervisor.start_child/3` (v1.6)
 [v1.10] | `Supervisor.Spec`                                   | The new child specs outlined in `Supervisor` (v1.5)
