@@ -167,6 +167,10 @@ defmodule EnumTest do
     assert Enum.drop([1, 2, 3], -2) == [1]
     assert Enum.drop([1, 2, 3], -4) == []
     assert Enum.drop([], 3) == []
+
+    assert_raise FunctionClauseError, fn ->
+      Enum.drop([1, 2, 3], 0.0)
+    end
   end
 
   test "drop_every/2" do
@@ -917,6 +921,10 @@ defmodule EnumTest do
     assert Enum.split([1, 2, 3], -2) == {[1], [2, 3]}
     assert Enum.split([1, 2, 3], -3) == {[], [1, 2, 3]}
     assert Enum.split([1, 2, 3], -10) == {[], [1, 2, 3]}
+
+    assert_raise FunctionClauseError, fn ->
+      Enum.split([1, 2, 3], 0.0)
+    end
   end
 
   test "split_while/2" do
@@ -958,6 +966,10 @@ defmodule EnumTest do
     assert Enum.take([1, 2, 3], -2) == [2, 3]
     assert Enum.take([1, 2, 3], -4) == [1, 2, 3]
     assert Enum.take([], 3) == []
+
+    assert_raise FunctionClauseError, fn ->
+      Enum.take([1, 2, 3], 0.0)
+    end
   end
 
   test "take_every/2" do
