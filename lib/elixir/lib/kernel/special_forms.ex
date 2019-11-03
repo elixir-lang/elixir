@@ -3,14 +3,20 @@ defmodule Kernel.SpecialForms do
   Special forms are the basic building blocks of Elixir, and therefore
   cannot be overridden by the developer.
 
-  We define them in this module. Some of these forms are lexical (like
+  The `Kernel.SpecialForms` module consists solely of macros that can be
+  invoked anywhere in Elixir code without the use of the
+  `Kernel.SpecialForms.` prefix. This is possible because they all have
+  been automatically imported, in the same fashion as the functions and
+  macros from the `Kernel` module.
+
+  These building blocks are defined in this module. Some of these special forms are lexical (like
   `alias/2`, `case/2`, etc.). The macros `{}/1` and `<<>>/1` are also special
   forms used to define tuple and binary data structures respectively.
 
   This module also documents macros that return information about Elixir's
   compilation environment, such as (`__ENV__/0`, `__MODULE__/0`, `__DIR__/0` and `__CALLER__/0`).
 
-  Finally, it also documents two special forms, `__block__/1` and
+  Additionally, it documents two special forms, `__block__/1` and
   `__aliases__/1`, which are not intended to be called directly by the
   developer but they appear in quoted contents since they are essential
   in Elixir's constructs.
