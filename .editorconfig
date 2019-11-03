@@ -9,7 +9,7 @@ charset = utf-8
 indent_style = space
 indent_size = 2
 
-[*.erl]
+[*.{erl,hrl}]
 indent_style = space
 indent_size = 2
 
