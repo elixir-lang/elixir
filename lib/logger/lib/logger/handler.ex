@@ -236,7 +236,7 @@ defmodule Logger.Handler do
 
     opts = %{
       depth: translator_opts.limit,
-      chars_limit: :infinity,
+      chars_limit: translator_opts.printable_limit,
       single_line: false
     }
 
