@@ -2250,7 +2250,7 @@ defmodule Kernel do
       #=> false
 
       is_struct(1..2, "Range")
-      #=> ** (ArgumentError) invalid struct_type attribute. It expected a module or an atom, got: "Range"
+      ** (ArgumentError) invalid struct_type attribute. It expected a module or an atom, got: "Range"
 
   """
   @doc since: "1.10.0", guard: true
