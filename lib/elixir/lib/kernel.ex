@@ -2203,7 +2203,7 @@ defmodule Kernel do
 
   Allowed in guard tests.
   """
-  @doc guard: true
+  @doc since: "1.10.0", guard: true
   defmacro is_struct(term) do
     case __CALLER__.context do
       nil ->
