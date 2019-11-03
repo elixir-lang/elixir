@@ -46,6 +46,6 @@
 %% See https://github.com/erlang/otp/pull/1972
 -if(?OTP_RELEASE >= 22).
   -define(NO_SPAWN_COMPILER_PROCESS, no_spawn_compiler_process).
--elif(?OTP_RELEASE >= 21).
+-else.
   -define(NO_SPAWN_COMPILER_PROCESS, dialyzer, no_spawn_compiler_process).
 -endif.
