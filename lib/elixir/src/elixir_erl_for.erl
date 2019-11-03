@@ -175,24 +175,12 @@ build_into(Ann, Clauses, Expr, Into, Uniq, S) ->
 
   {{block, Ann, [MatchExpr, TryExpr]}, SD}.
 
-%% TODO: Remove this check once we support Erlang/OTP 21+ exclusively.
 stacktrace_clause(Ann, Fun, Acc, Kind, Reason, Stack) ->
-  case erlang:system_info(otp_release) of
-    "20" ->
-      {clause, Ann,
-        [{tuple, Ann, [Kind, Reason, {var, Ann, '_'}]}],
-        [],
-        [{match, Ann, Stack, ?remote(Ann, erlang, get_stacktrace, [])},
-         {call, Ann, Fun, [Acc, {atom, Ann, halt}]},
-         ?remote(Ann, erlang, raise, [Kind, Reason, Stack])]};
-
-    _ ->
-      {clause, Ann,
-        [{tuple, Ann, [Kind, Reason, Stack]}],
-        [],
-        [{call, Ann, Fun, [Acc, {atom, Ann, halt}]},
-         ?remote(Ann, erlang, raise, [Kind, Reason, Stack])]}
-  end.
+  {clause, Ann,
+    [{tuple, Ann, [Kind, Reason, Stack]}],
+    [],
+    [{call, Ann, Fun, [Acc, {atom, Ann, halt}]},
+     ?remote(Ann, erlang, raise, [Kind, Reason, Stack])]}.
 
 %% Helpers
 
