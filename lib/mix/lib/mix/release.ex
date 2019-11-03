@@ -318,10 +318,12 @@ defmodule Mix.Release do
 
   defp build_start_boot(all_apps, specified_apps) do
     specified_apps ++
-      for(
-        {app, props} <- all_apps,
-        not List.keymember?(specified_apps, app, 0),
-        do: {app, default_mode(props)}
+      Enum.sort(
+        for(
+          {app, props} <- all_apps,
+          not List.keymember?(specified_apps, app, 0),
+          do: {app, default_mode(props)}
+        )
       )
   end
 
