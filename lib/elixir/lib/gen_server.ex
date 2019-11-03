@@ -785,8 +785,22 @@ defmodule GenServer do
             {_, name} -> name
           end
 
-        pattern = '~p ~p received unexpected message in handle_info/2: ~p~n'
-        :error_logger.error_msg(pattern, [__MODULE__, proc, msg])
+        :logger.error(
+          %{
+            label: {GenServer, :no_handle_info},
+            report: %{
+              module: __MODULE__,
+              message: msg,
+              name: proc
+            }
+          },
+          %{
+            domain: [:otp, :elixir],
+            error_logger: %{tag: :error_msg},
+            report_cb: &GenServer.format_report/1
+          }
+        )
+
         {:noreply, state}
       end
 
@@ -1204,5 +1218,13 @@ defmodule GenServer do
 
   def whereis({name, node} = server) when is_atom(name) and is_atom(node) do
     server
+  end
+
+  @doc false
+  def format_report(%{
+        label: {GenServer, :no_handle_info},
+        report: %{module: mod, message: msg, name: proc}
+      }) do
+    {'~p ~p received unexpected message in handle_info/2: ~p~n', [mod, proc, msg]}
   end
 end
