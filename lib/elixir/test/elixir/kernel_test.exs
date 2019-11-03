@@ -257,7 +257,6 @@ defmodule KernelTest do
     assert is_struct(%{}) == false
     assert is_struct([]) == false
     assert is_struct(%Macro.Env{}) == true
-    assert is_struct([]) == false
     assert is_struct(%{__struct__: "foo"}) == false
     assert check_struct(%Macro.Env{}) == true
     assert check_struct(%{__struct__: "foo"}) == false
