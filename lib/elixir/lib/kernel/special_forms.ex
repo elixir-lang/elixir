@@ -947,7 +947,7 @@ defmodule Kernel.SpecialForms do
       import Math
       squared(5)
       x
-      #=> ** (CompileError) undefined variable x or undefined function x/0
+      ** (CompileError) undefined variable x or undefined function x/0
 
   We can see that `x` did not leak to the user context. This happens
   because Elixir macros are hygienic, a topic we will discuss at length
@@ -1012,7 +1012,7 @@ defmodule Kernel.SpecialForms do
 
       Hygiene.write()
       Hygiene.read()
-      #=> ** (RuntimeError) undefined variable a or undefined function a/0
+      ** (RuntimeError) undefined variable a or undefined function a/0
 
   For such, you can explicitly pass the current module scope as
   argument:
@@ -1103,7 +1103,7 @@ defmodule Kernel.SpecialForms do
 
         require Hygiene
         Hygiene.no_interference()
-        #=> ** (UndefinedFunctionError) ...
+        ** (UndefinedFunctionError) ...
 
         Hygiene.interference()
         #=> "world"
@@ -1190,8 +1190,8 @@ defmodule Kernel.SpecialForms do
 
       require Sample
       Sample.add(:one, :two)
-      #=> ** (ArithmeticError) bad argument in arithmetic expression
-      #=>     adder.ex:5: Sample.add/2
+      ** (ArithmeticError) bad argument in arithmetic expression
+          adder.ex:5: Sample.add/2
 
   When using `location: :keep` and invalid arguments are given to
   `Sample.add/2`, the stacktrace information will point to the file
@@ -1512,7 +1512,7 @@ defmodule Kernel.SpecialForms do
   non-matched value:
 
       with :foo = :bar, do: :ok
-      #=> ** (MatchError) no match of right hand side value: :bar
+      ** (MatchError) no match of right hand side value: :bar
 
   As with any other function or macro call in Elixir, explicit parens can
   also be used around the arguments before the `do`/`end` block:

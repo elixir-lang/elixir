@@ -240,8 +240,8 @@ defmodule Record do
   functions for defaults.
 
       Record.defrecord(:my_rec, Record.extract(...))
-      #=> ** (ArgumentError) invalid value for record field fun_field,
-      #=>   cannot escape #Function<12.90072148/2 in :erl_eval.expr/5>.
+      ** (ArgumentError) invalid value for record field fun_field,
+          cannot escape #Function<12.90072148/2 in :erl_eval.expr/5>.
 
   To work around this error, redefine the field with your own &M.f/a function,
   like so:
