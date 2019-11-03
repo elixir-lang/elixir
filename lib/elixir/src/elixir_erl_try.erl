@@ -1,6 +1,8 @@
 -module(elixir_erl_try).
 -export([clauses/3]).
 -include("elixir.hrl").
+-define(REQUIRES_STACKTRACE,
+        ['Elixir.FunctionClauseError', 'Elixir.UndefinedFunctionError', 'Elixir.KeyError']).
 
 clauses(_Meta, Args, S) ->
   Catch = elixir_erl_clauses:get_clauses('catch', Args, 'catch'),
@@ -51,7 +53,7 @@ normalize_rescue(Meta, Var, Pattern, Expr, ErlangAliases) ->
   Stacktrace =
     case lists:member('Elixir.ErlangError', ErlangAliases) of
       true ->
-        dynamic_normalize(Meta, Var, normalize_with_stacktrace());
+        dynamic_normalize(Meta, Var, ?REQUIRES_STACKTRACE);
 
       false ->
         case lists:splitwith(fun is_normalized_with_stacktrace/1, ErlangAliases) of
@@ -80,9 +82,6 @@ dynamic_normalize(Meta, Var, [H | T]) ->
     ]}]
   ]}.
 
-normalize_with_stacktrace() ->
-  ['Elixir.FunctionClauseError', 'Elixir.UndefinedFunctionError', 'Elixir.KeyError'].
-
 erl_rescue_stacktrace_for(_Meta, _Var, 'Elixir.ErlangError') ->
   %% ErlangError is a "meta" exception, we should never expand it here.
   error(badarg);
@@ -93,7 +92,7 @@ erl_rescue_stacktrace_for(Meta, Var, Module) ->
   erl_rescue_guard_for(Meta, Var, Module).
 
 is_normalized_with_stacktrace(Module) ->
-  lists:member(Module, normalize_with_stacktrace()).
+  lists:member(Module, ?REQUIRES_STACKTRACE).
 
 %% Helpers
 
@@ -229,17 +228,13 @@ erl_rescue_guard_for(Meta, Var, 'Elixir.ArgumentError') ->
                  erl_record_compare(Meta, Var, badarg)));
 
 erl_rescue_guard_for(Meta, Var, 'Elixir.ErlangError') ->
-  {erl(Meta, 'not'), Meta, [erl_and(
-                              Meta,
-                              {erl(Meta, is_map), Meta, [Var]},
-                              erl_and(
-                                Meta,
-                                {erl(Meta, is_map_key), Meta, ['__exception__', Var]},
-                                {erl(Meta, '=='), Meta,
-                                 [{erl(Meta, map_get), Meta, ['__exception', Var]},
-                                  true]}
-                               )
-                             )]};
+  Condition =
+    erl_and(
+      Meta,
+      {erl(Meta, is_map), Meta, [Var]},
+      {erl(Meta, is_map_key), Meta, ['__exception__', Var]}
+    ),
+  {erl(Meta, 'not'), Meta, [Condition]};
 
 erl_rescue_guard_for(_, _, _) ->
   false.
