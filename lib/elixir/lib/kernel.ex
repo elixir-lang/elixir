@@ -2885,7 +2885,8 @@ defmodule Kernel do
 
       defmodule MyServer do
         @my_data 13
-        IO.inspect(@my_data) #=> 13
+        IO.inspect(@my_data)
+        #=> 13
       end
 
   Unlike Erlang, such attributes are not stored in the module by default since
@@ -4269,7 +4270,7 @@ defmodule Kernel do
         defstruct name: nil, age: 10 + 11
       end
 
-      MyProtocol.call(john) #=> works
+      MyProtocol.call(john) # it works!
 
   For each protocol in the `@derive` list, Elixir will assert the protocol has
   been implemented for `Any`. If the `Any` implementation defines a
