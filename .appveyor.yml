@@ -7,6 +7,7 @@ install:
 shallow_clone: true
 
 build_script:
+  - cmd: erl -noshell -eval 'io:format("~p~n", [erlang:system_info(otp_release)])' -s erlang halt
   - cmd: C:\MinGW\msys\1.0\bin\make
   - cmd: rmdir /s /q .git
 test_script:
