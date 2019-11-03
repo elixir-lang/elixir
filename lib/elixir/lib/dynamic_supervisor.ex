@@ -751,7 +751,7 @@ defmodule DynamicSupervisor do
       %{
         domain: [:otp, :elixir],
         error_logger: %{tag: :error_msg},
-        report_cb: &format_report/1
+        report_cb: &__MODULE__.format_report/1
       }
     )
 
@@ -1044,10 +1044,11 @@ defmodule DynamicSupervisor do
     GenServer.call(supervisor, req, :infinity)
   end
 
-  defp format_report(%{
-         label: {__MODULE__, :unexpected_msg},
-         report: %{msg: msg}
-       }) do
+  @doc false
+  def format_report(%{
+        label: {__MODULE__, :unexpected_msg},
+        report: %{msg: msg}
+      }) do
     {'DynamicSupervisor received unexpected message: ~p~n', [msg]}
   end
 end

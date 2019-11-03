@@ -1221,8 +1221,6 @@ defmodule GenServer do
   end
 
   @doc false
-  # TODO: support 2nd argument with maximum length and depth of the displayed
-  # message
   def format_report(%{
         label: {GenServer, :no_handle_info},
         report: %{module: mod, message: msg, name: proc}
