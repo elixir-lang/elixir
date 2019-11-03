@@ -7,14 +7,14 @@ clauses(_Meta, Args, S) ->
   Rescue = elixir_erl_clauses:get_clauses(rescue, Args, rescue),
   {StackName, _Counter, SV} = elixir_erl_var:build('__STACKTRACE__', S),
   OldStack = SV#elixir_erl.stacktrace,
-  SS = SV#elixir_erl{stacktrace={StackName,false}},
+  SS = SV#elixir_erl{stacktrace=StackName},
   reduce_clauses(Rescue ++ Catch, [], OldStack, SS, SS).
 
 reduce_clauses([H | T], Acc, OldStack, SAcc, S) ->
   {TH, TS} = each_clause(H, SAcc),
   reduce_clauses(T, TH ++ Acc, OldStack, elixir_erl_var:discard_vars(TS, S), S);
 reduce_clauses([], Acc, OldStack, SAcc, _S) ->
-  {lists:reverse(Acc), SAcc#elixir_erl{stacktrace = OldStack}}.
+  {lists:reverse(Acc), SAcc#elixir_erl{stacktrace=OldStack}}.
 
 each_clause({'catch', Meta, Raw, Expr}, S) ->
   {Args, Guards} = elixir_utils:extract_splat_guards(Raw),
@@ -28,7 +28,7 @@ each_clause({'catch', Meta, Raw, Expr}, S) ->
   {{clause, Line, [TKind, TMatches], TGuards, TBody}, TS} =
     elixir_erl_clauses:clause(Meta, fun elixir_erl_pass:translate_args/2, Match, Expr, Guards, S),
 
-  {[maybe_add_stacktrace(Line, TKind, TMatches, TGuards, TBody, TS)], TS};
+  {[build_clause(Line, TKind, TMatches, TGuards, TBody, TS)], TS};
 
 each_clause({rescue, Meta, [{in, _, [Left, Right]}], Expr}, S) ->
   {TempName, _, CS} = elixir_erl_var:build('_', S),
@@ -106,7 +106,7 @@ build_rescue(Meta, Parts, Body, S) ->
   TClauses =
     [begin
        TGuards = elixir_erl_clauses:guards(Guards, [], TS),
-       maybe_add_stacktrace(Line, {atom, Line, error}, TMatch, TGuards, TBody, TS)
+       build_clause(Line, {atom, Line, error}, TMatch, TGuards, TBody, TS)
      end || {TMatch, {_, Guards}} <- lists:zip(TMatches, Parts)],
 
   {TClauses, TS}.
@@ -136,11 +136,8 @@ rescue_guards(Meta, Var, Aliases, S) ->
   ElixirGuards = [{erl(Meta, '=='), Meta, [StructVar, Alias]} || Alias <- Aliases],
   {[{Match, ElixirGuards} | ErlangParts], ErlangAliases, CS}.
 
-maybe_add_stacktrace(Line, Kind, Expr, Guards, Body, #elixir_erl{stacktrace = {Var, true}}) ->
+build_clause(Line, Kind, Expr, Guards, Body, #elixir_erl{stacktrace=Var}) ->
   Match = {tuple, Line, [Kind, Expr, {var, Line, Var}]},
-  {clause, Line, [Match], Guards, Body};
-maybe_add_stacktrace(Line, Kind, Expr, Guards, Body, _) ->
-  Match = {tuple, Line, [Kind, Expr, {var, Line, '_'}]},
   {clause, Line, [Match], Guards, Body}.
 
 %% Rescue each atom name considering their Erlang or Elixir matches.
