@@ -2,6 +2,8 @@
 
 ## v1.10.0-dev
 
+Elixir v1.10 requires Erlang/OTP 21+.
+
 ### 1. Enhancements
 
 #### Elixir
@@ -12,13 +14,20 @@
   * [Code] Add compiler tracing to lift events done by the compiler
   * [DateTime] Add `DateTime.now!/2` and `DateTime.shift_zone!/3`
   * [Enum] Speed up getting one random element from enumerables
+  * [Enum] Add `Enum.frequencies/1`, `Enum.frequencies_by/2`, and `Enum.map_intersperse/2`
+  * [Enum] Allow a sorting function on `Enum.min/max/min_by/max_by`
+  * [Enum] Add `asc/desc` and `compare/1` support to `Enum.sort/2`
   * [Exception] Add version alongside app names in stacktraces
   * [Function] Add `Function.identity/1`
+  * [Kernel] Add `Kernel.is_struct/1`
   * [Kernel] Warn when function head comes immediately after the implementation instead of before the implementation
+  * [Kernel] Warn if duplicate key is found in struct declaration
   * [Keyword] Add `Keyword.pop!/2` and `Keyword.pop_values/2`
   * [Map] Add `Map.pop!/2`
+  * [MapSet] Optimize multiple operations
   * [Module] Add `Module.has_attribute?/2`
   * [Module] Add `@compile {:no_warn_undefined, mfa_or_module}` to turn off undefined function warnings
+  * [Record] Warn if duplicate key is found in record declaration
   * [String] Update to Unicode 12.1
   * [StringIO] Add `:encoding` option to StringIO and optimize `get_chars` operation
 
@@ -26,12 +35,19 @@
 
   * [ExUnit.Assertions] Support diffs in pattern matching and in `assert_receive`
 
+#### Logger
+
+  * [Logger] Allow `start_options` to be configured on Logger's GenEvent
+  * [Logger] Integrate Elixir's Logger with Erlang/OTP 21+'s logger. This means setting up the logger level in Elixir will automatically change the logger level for Erlang and vice-versa
+
 #### Mix
 
   * [mix deps.compile] Add `--skip-umbrella-apps` flag. The new flag does not compile umbrella apps. This is useful for building caches in CD/CI pipelines
   * [mix deps.unlock] Add `--check-unused` flag. The new flag raises if there are any unused dependencies in the lock file
   * [mix release] Allow `{:from_app, app_name}` as a version for releases
+  * [mix test] Add support for simple round-robin test partitioning across multiple machines
   * [Mix.Project] Add `MIX_DEPS_PATH` environment variable for setting `:deps_path`
+  * [Mix.Project] Add `Mix.Project.deps_scms/1` that returns deps with their SCMs
   * [Mix.Task] Add `Mix.Task.Compiler.after_compile/1` callback, to simplify compilers that may need to run something before and after compilation
 
 #### IEx
@@ -42,6 +58,7 @@
 
 #### Elixir
 
+  * [Kernel] Raise error on functions/guards without implementation
   * [Keyword] Ensure keyword replace and update preserve order
   * [Module] Raise instead of silently failing when performing a write module operation during after-compile
 
@@ -53,6 +70,7 @@
 #### Mix
 
   * [Mix.Project] Make sure `MIX_BUILD_PATH` specifies only the `build_path` prefix and that env+target are still concatenated
+  * [Mix.Project] Recompile umbrella children when config files change and `mix compile` is called from the umbrella root
   * [Mix.Task] Always recompile before running tasks from dependencies
   * [Mix.Task] Ensure project's Logger config is used when running Mix tasks
 
@@ -86,6 +104,7 @@
 #### Logger
 
   * [Logger] `:compile_time_purge_level` application environment configuration has been deprecated in favor of the more general `:compile_time_purge_matching` config
+  * [Logger] Deprecate logging non-chardata values
 
 ## v1.9
 
