@@ -106,4 +106,47 @@ defmodule Logger.HandlerTest do
     assert capture_log(fn -> :logger.info('ok') end) =~ "[info]  ok"
     assert capture_log(fn -> :logger.debug('ok') end) =~ "[debug] ok"
   end
+
+  test "calls report_cb/1 when supplied" do
+    report = %{foo: "bar"}
+
+    assert capture_log(fn -> :logger.error(report, %{report_cb: &format_report/1}) end) =~
+             ~S([error] %{foo: "bar"})
+
+    assert_received {:format, ^report}
+  end
+
+  test "calls report_cb/2 when supplied" do
+    report = %{foo: "bar"}
+
+    assert capture_log(fn -> :logger.error(report, %{report_cb: &format_report/2}) end) =~
+             ~S([error] %{foo: "bar"})
+
+    assert_received {:format, ^report, opts} when is_map(opts)
+    assert %{chars_limit: _} = opts
+    assert %{depth: _} = opts
+    assert %{single_line: false} = opts
+
+    Application.put_env(:logger, :translator_inspect_opts, limit: 10, printable_limit: 1000)
+
+    assert capture_log(fn -> :logger.error(report, %{report_cb: &format_report/2}) end) =~
+             ~S([error] %{foo: "bar"})
+
+    assert_received {:format, ^report, opts} when is_map(opts)
+    assert %{chars_limit: 1000} = opts
+    assert %{depth: 10} = opts
+    assert %{single_line: false} = opts
+  end
+
+  defp format_report(report) do
+    send(self(), {:format, report})
+
+    {'~p', [report]}
+  end
+
+  defp format_report(report, opts) do
+    send(self(), {:format, report, opts})
+
+    {'~p', [report]}
+  end
 end

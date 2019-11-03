@@ -225,8 +225,23 @@ defmodule Logger.Handler do
     :none
   end
 
-  defp translate_fallback(:report, {:logger, data}, %{report_cb: callback} = meta, truncate) do
+  defp translate_fallback(:report, {:logger, data}, %{report_cb: callback} = meta, truncate)
+       when is_function(callback, 1) do
     translate_fallback(:format, callback.(data), meta, truncate)
+  end
+
+  defp translate_fallback(:report, {:logger, data}, %{report_cb: callback} = meta, truncate)
+       when is_function(callback, 2) do
+    translator_opts =
+      struct(Inspect.Opts, Application.fetch_env!(:logger, :translator_inspect_opts))
+
+    opts = %{
+      depth: translator_opts.limit,
+      chars_limit: translator_opts.printable_limit,
+      single_line: false
+    }
+
+    translate_fallback(:format, callback.(data, opts), meta, truncate)
   end
 
   defp translate_fallback(:format, {format, args}, _meta, truncate) do
