@@ -585,7 +585,7 @@ defmodule File do
       File.touch!("/tmp/a.txt", {{2018, 1, 30}, {13, 59, 59}})
       #=> :ok
       File.touch!("/fakedir/b.txt", {{2018, 1, 30}, {13, 59, 59}})
-      #=> ** (File.Error) could not touch "/fakedir/b.txt": no such file or directory
+      ** (File.Error) could not touch "/fakedir/b.txt": no such file or directory
 
       File.touch!("/tmp/a.txt", 1544519753)
 

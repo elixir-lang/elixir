@@ -583,7 +583,7 @@ defmodule Process do
       send(:test, :hello)
       #=> :hello
       send(:wrong_name, :hello)
-      #=> ** (ArgumentError) argument error
+      ** (ArgumentError) argument error
 
   """
   @spec register(pid | port, atom) :: true
@@ -620,7 +620,7 @@ defmodule Process do
       Process.unregister(:test)
       #=> true
       Process.unregister(:wrong_name)
-      #=> ** (ArgumentError) argument error
+      ** (ArgumentError) argument error
 
   """
   @spec unregister(atom) :: true
