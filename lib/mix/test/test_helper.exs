@@ -136,7 +136,6 @@ defmodule MixTest.Case do
     File.touch!(file)
 
     unless File.stat!(file).mtime > current do
-      Process.sleep(1000)
       ensure_touched(file, current)
     end
   end
