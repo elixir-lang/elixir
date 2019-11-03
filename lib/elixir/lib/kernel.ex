@@ -2218,7 +2218,10 @@ defmodule Kernel do
         invalid_match!(:is_struct)
 
       :guard ->
-        quote(do: is_map(unquote(term)) and is_atom(:erlang.map_get(:__struct__, unquote(term))))
+        quote do
+          is_map(unquote(term)) and :erlang.is_map_key(:__struct__, unquote(term)) and
+            is_atom(:erlang.map_get(:__struct__, unquote(term)))
+        end
     end
   end
 

@@ -250,8 +250,8 @@ defmodule KernelTest do
   defp check_struct(arg) when is_struct(arg), do: true
   defp check_struct(_arg), do: false
 
-  defp check_struct_or_list(arg) when is_struct(arg) or is_list(arg), do: true
-  defp check_struct_or_list(_arg), do: false
+  defp check_struct_or_map(arg) when is_struct(arg) or is_map(arg), do: true
+  defp check_struct_or_map(_arg), do: false
 
   test "is_struct/1" do
     assert is_struct(%{}) == false
@@ -266,9 +266,9 @@ defmodule KernelTest do
   end
 
   test "is_struct/1 and other match works" do
-    assert check_struct_or_list(%Macro.Env{}) == true
-    assert check_struct_or_list([]) == true
-    assert check_struct_or_list(10) == false
+    assert check_struct_or_map(%Macro.Env{}) == true
+    assert check_struct_or_map(%{}) == true
+    assert check_struct_or_map(10) == false
   end
 
   test "if/2 boolean optimization does not leak variables during expansion" do
