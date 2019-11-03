@@ -247,6 +247,30 @@ defmodule KernelTest do
     assert_raise BadBooleanError, fn -> 0 or 1 end
   end
 
+  defp check_struct(arg) when is_struct(arg), do: true
+  defp check_struct(_arg), do: false
+
+  defp check_struct_or_map(arg) when is_struct(arg) or is_map(arg), do: true
+  defp check_struct_or_map(_arg), do: false
+
+  test "is_struct/1" do
+    assert is_struct(%{}) == false
+    assert is_struct([]) == false
+    assert is_struct(%Macro.Env{}) == true
+    assert is_struct([]) == false
+    assert is_struct(%{__struct__: "foo"}) == false
+    assert check_struct(%Macro.Env{}) == true
+    assert check_struct(%{__struct__: "foo"}) == false
+    assert check_struct([]) == false
+    assert check_struct(%{}) == false
+  end
+
+  test "is_struct/1 and other match works" do
+    assert check_struct_or_map(%Macro.Env{}) == true
+    assert check_struct_or_map(%{}) == true
+    assert check_struct_or_map(10) == false
+  end
+
   test "if/2 boolean optimization does not leak variables during expansion" do
     if false do
       :ok
