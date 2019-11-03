@@ -9,7 +9,6 @@ shallow_clone: true
 build_script:
   - cmd: set PATH=C:\ProgramData\chocolatey\bin;%PATH%
   - cmd: C:\MinGW\msys\1.0\bin\make
-  - cmd: rmdir /s /q .git
 test_script:
   - cmd: C:\MinGW\msys\1.0\bin\make --keep-going test_windows
 
