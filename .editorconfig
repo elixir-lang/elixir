@@ -1,0 +1,17 @@
+root = true
+
+[*]
+end_of_line = true
+insert_final_newline = true
+charset = utf-8
+
+[*.{ex,exs}]
+indent_style = space
+indent_size = 2
+
+[*.erl]
+indent_style = space
+indent_size = 2
+
+[Makefile]
+indent_style = tab
