@@ -17,9 +17,9 @@ defmodule Kernel do
     * macros for control-flow and defining new functionality (modules, functions, and so on)
     * guard checks for augmenting pattern matching
 
-  You can use `Kernel` functions/macros without the `Kernel` prefix anywhere in
-  Elixir code as all its functions and macros are automatically imported. For
-  example, in IEx:
+  You can invoke `Kernel` functions and macros anywhere in Elixir code
+  without the use of the `Kernel.` prefix since they have all been
+  automatically imported. For example, in IEx, you can call:
 
       iex> is_number(13)
       true
