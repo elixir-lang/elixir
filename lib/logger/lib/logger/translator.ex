@@ -83,7 +83,7 @@ defmodule Logger.Translator do
         _min_level,
         :error,
         :report,
-        {{Task, :terminating},
+        {{Task.Supervisor, :terminating},
          %{
            name: name,
            starter: starter,

@@ -100,7 +100,7 @@ defmodule Task.Supervised do
 
         :logger.error(
           %{
-            label: {Task, :terminating},
+            label: {Task.Supervisor, :terminating},
             report: %{
               name: get_from(owner),
               starter: self(),
@@ -112,7 +112,7 @@ defmodule Task.Supervised do
           %{
             domain: [:otp, :elixir],
             error_logger: %{tag: :error_msg},
-            report_cb: &__MODULE__.format_report/2
+            report_cb: &format_report/1
           }
         )
 
@@ -124,16 +124,16 @@ defmodule Task.Supervised do
   defp log_value(_, value), do: value
 
   @doc false
-  def format_report(%{
-        label: {Task, :terminating},
-        report: %{
-          name: name,
-          starter: starter,
-          function: fun,
-          args: args,
-          reason: reason
-        }
-      }) do
+  defp format_report(%{
+         label: {Task.Supervisor, :terminating},
+         report: %{
+           name: name,
+           starter: starter,
+           function: fun,
+           args: args,
+           reason: reason
+         }
+       }) do
     message =
       '** Task ~p terminating~n' ++
         '** Started from ~p~n' ++

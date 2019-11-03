@@ -788,14 +788,16 @@ defmodule GenServer do
         :logger.error(
           %{
             label: {GenServer, :no_handle_info},
-            module: __MODULE__,
-            message: msg,
-            name: proc
+            report: %{
+              module: __MODULE__,
+              message: msg,
+              name: proc
+            }
           },
           %{
             domain: [:otp, :elixir],
             error_logger: %{tag: :error_msg},
-            report_cb: &GenServer.format_log/1
+            report_cb: &GenServer.format_report/1
           }
         )
 
@@ -1221,7 +1223,10 @@ defmodule GenServer do
   @doc false
   # TODO: support 2nd argument with maximum length and depth of the displayed
   # message
-  def format_log(%{label: {GenServer, :no_handle_info}, module: mod, message: msg, name: proc}) do
+  def format_report(%{
+        label: {GenServer, :no_handle_info},
+        report: %{module: mod, message: msg, name: proc}
+      }) do
     {'~p ~p received unexpected message in handle_info/2: ~p~n', [mod, proc, msg]}
   end
 end
