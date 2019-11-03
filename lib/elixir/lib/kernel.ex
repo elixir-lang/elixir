@@ -2202,6 +2202,15 @@ defmodule Kernel do
   Returns true if `term` is a struct; otherwise returns `false`.
 
   Allowed in guard tests.
+
+  ## Examples
+
+      iex> is_struct(URI.parse("/"))
+      true
+
+      iex> is_struct(%{})
+      false
+
   """
   @doc since: "1.10.0", guard: true
   defmacro is_struct(term) do
