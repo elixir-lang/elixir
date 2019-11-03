@@ -228,7 +228,7 @@ defmodule Module.Types.Infer do
     :tuple
   ]
 
-  # TODO: Some guards can be changed to interesection types or higher order types
+  # TODO: Some guards can be changed to intersection types or higher order types
 
   @guard_functions %{
     {:is_atom, 1} => {[:atom], :boolean},
