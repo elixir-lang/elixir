@@ -253,6 +253,11 @@ defmodule KernelTest do
   defp struct_or_map?(arg) when is_struct(arg) or is_map(arg), do: true
   defp struct_or_map?(_arg), do: false
 
+  defp struct_or_map?(arg, struct_type) when is_struct(arg, struct_type) or is_map(arg),
+    do: true
+
+  defp struct_or_map?(_arg, _struct_type), do: false
+
   test "is_struct/1" do
     assert is_struct(%{}) == false
     assert is_struct([]) == false
@@ -268,6 +273,27 @@ defmodule KernelTest do
     assert struct_or_map?(%Macro.Env{}) == true
     assert struct_or_map?(%{}) == true
     assert struct_or_map?(10) == false
+  end
+
+  test "is_struct/2" do
+    assert is_struct(%{}, Macro.Env) == false
+    assert is_struct([], Macro.Env) == false
+    assert is_struct(%Macro.Env{}, Macro.Env) == true
+    assert is_struct(%Macro.Env{}, DateTime) == false
+    assert is_struct(%{}, Macro.Env) == false
+    assert is_struct([], Macro.Env) == false
+    assert is_struct(%{__struct__: :foo}, :foo) == true
+    assert is_struct(%{__struct__: "foo"}, :foo) == false
+
+    assert_raise ArgumentError,
+                 "invalid struct_type attribute. It expected a module or an atom, got: \"foo\"",
+                 fn ->
+                   is_struct(%{__struct__: :foo}, "foo")
+                 end
+
+    assert struct_or_map?(%{foo: :bar}, Foo) == true
+    assert struct_or_map?(%{foo: :bar}, "Foo") == true
+    assert struct_or_map?(42, Foo) == false
   end
 
   test "if/2 boolean optimization does not leak variables during expansion" do

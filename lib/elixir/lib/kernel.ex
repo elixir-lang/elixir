@@ -2235,6 +2235,73 @@ defmodule Kernel do
   end
 
   @doc """
+  Returns true if `term` is a stuct of the `struct_type`; otherwise returns `false`.
+
+  `struct_type` is expected to be a module or an atom; otherwise it raises `ArgumentError`.
+
+  Allowed in guard tests.
+
+  ## Examples
+
+      is_struct(1..2, Range)
+      #=> true
+
+      is_struct(1..2, Date)
+      #=> false
+
+      is_struct(1..2, "Range")
+      #=> ** (ArgumentError) invalid struct_type attribute. It expected a module or an atom, got: "Range"
+
+  """
+  @doc since: "1.10.0", guard: true
+  defmacro is_struct(term, struct_type) do
+    case __CALLER__.context do
+      nil ->
+        quote do
+          __is_struct__(unquote(term), unquote(struct_type), unquote(Macro.escape(__CALLER__)))
+        end
+
+      :guard ->
+        quote do
+          is_map(unquote(term)) and
+            :erlang.is_map_key(:__struct__, unquote(term)) and
+            is_atom(:erlang.map_get(:__struct__, unquote(term))) and
+            :erlang.map_get(:__struct__, unquote(term)) == unquote(struct_type)
+        end
+
+      :match ->
+        invalid_match!(:is_struct)
+    end
+  end
+
+  @doc false
+  # Used internally by is_struct/2.
+  # This function is private and must only be used internally.
+  def __is_struct__(term, struct_type, _caller) when is_atom(struct_type) do
+    case term do
+      %^struct_type{} -> true
+      _ -> false
+    end
+  end
+
+  def __is_struct__(_term, struct_type, caller) do
+    try do
+      raise :no_op
+    rescue
+      _ ->
+        message =
+          "invalid struct_type attribute. It expected a module or an atom, got: #{
+            inspect(struct_type)
+          }"
+
+        [_, _ | rest] = __STACKTRACE__
+        stacktrace = [{Kernel, :is_struct, 2, [file: caller.file, line: caller.line]} | rest]
+
+        :erlang.error(:erlang.raise(:error, ArgumentError.exception(message), stacktrace))
+    end
+  end
+
+  @doc """
   Gets a value from a nested structure.
 
   Uses the `Access` module to traverse the structures
