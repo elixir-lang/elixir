@@ -2199,7 +2199,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if `term` is a structure; otherwise returns `false`.
+  Returns true if `term` is a struct; otherwise returns `false`.
 
   Allowed in guard tests.
   """
