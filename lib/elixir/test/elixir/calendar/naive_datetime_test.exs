@@ -253,7 +253,7 @@ defmodule NaiveDateTimeTest do
   end
 
   describe "utc_now/1" do
-    test "utc_now/1 with default (ISO) calendar" do
+    test "utc_now/1 with default calendar (ISO)" do
       naive_datetime = NaiveDateTime.utc_now()
       assert naive_datetime.year >= 2019
     end
@@ -266,7 +266,7 @@ defmodule NaiveDateTimeTest do
   end
 
   describe "local_now/1" do
-    test "localutc_now/1" do
+    test "local_now/1 with default calendar (ISO)" do
       naive_datetime = NaiveDateTime.local_now()
       assert naive_datetime.year >= 2018
     end
