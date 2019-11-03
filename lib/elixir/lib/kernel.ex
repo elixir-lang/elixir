@@ -2205,7 +2205,7 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> is_struct(%Macro.Env{})
+      iex> is_struct(URI.parse("/"))
       true
 
       iex> is_struct(%{})
