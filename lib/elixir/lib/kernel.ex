@@ -702,6 +702,19 @@ defmodule Kernel do
   end
 
   @doc """
+  Returns `true` if `key` is a key in `map`; otherwise returns `false`.
+
+  It raises `BadMapError` if the first element is not a map.
+
+  Allowed in guard tests. Inlined by the compiler.
+  """
+  @doc guard: true, since: "1.10.0"
+  @spec is_map_key(map, term) :: boolean
+  def is_map_key(map, key) do
+    :erlang.is_map_key(key, map)
+  end
+
+  @doc """
   Returns the length of `list`.
 
   Allowed in guard tests. Inlined by the compiler.
