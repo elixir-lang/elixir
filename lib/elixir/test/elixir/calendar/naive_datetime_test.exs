@@ -279,7 +279,7 @@ defmodule NaiveDateTimeTest do
 
     test "local_now/1 incompatible calendar" do
       assert_raise ArgumentError,
-                   "cannot get local_now in target calendar FakeCalendar, reason: cannot convert from Calendar.ISO to FakeCalendar.",
+                   ~s(cannot get "local now" in target calendar FakeCalendar, reason: cannot convert from Calendar.ISO to FakeCalendar.),
                    fn ->
                      NaiveDateTime.local_now(FakeCalendar)
                    end
