@@ -159,7 +159,7 @@ defmodule NaiveDateTime do
 
       {:error, :incompatible_calendars} ->
         raise ArgumentError,
-              "cannot get local_now in target calendar #{inspect(calendar)}, " <>
+              ~s(cannot get "local now" in target calendar #{inspect(calendar)}, ) <>
                 "reason: cannot convert from Calendar.ISO to #{inspect(calendar)}."
     end
   end
