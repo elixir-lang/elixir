@@ -88,6 +88,29 @@ parse_error(Line, File, <<"syntax error before: ">>, <<"eol">>) ->
   raise(Line, File, 'Elixir.SyntaxError',
         <<"unexpectedly reached end of line. The current expression is invalid or incomplete">>);
 
+
+%% Show a nicer message for keywords pt1 (Erlang keywords show up wrapped in single quotes)
+parse_error(Line, File, <<"syntax error before: ">>, Keyword)
+    when Keyword == <<"'not'">>;
+         Keyword == <<"'and'">>;
+         Keyword == <<"'or'">>;
+         Keyword == <<"'when'">>;
+         Keyword == <<"'after'">>;
+         Keyword == <<"'catch'">>;
+         Keyword == <<"'end'">> ->
+  raise_keyword(Line, File, binary_part(Keyword, 1, byte_size(Keyword) - 2));
+
+%% Show a nicer message for keywords pt2 (Elixir keywords show up as is)
+parse_error(Line, File, <<"syntax error before: ">>, Keyword)
+    when Keyword == <<"fn">>;
+         Keyword == <<"else">>;
+         Keyword == <<"rescue">>;
+         Keyword == <<"true">>;
+         Keyword == <<"false">>;
+         Keyword == <<"nil">>;
+         Keyword == <<"in">> ->
+  raise_keyword(Line, File, Keyword);
+
 %% Produce a human-readable message for errors before a sigil
 parse_error(Line, File, <<"syntax error before: ">>, <<"{sigil,", _Rest/binary>> = Full) ->
   {sigil, _, Sigil, [Content | _], _, _} = parse_erl_term(Full),
@@ -125,11 +148,16 @@ parse_error(Line, File, Error, Token) when is_binary(Error), is_binary(Token) ->
   Message = <<Error/binary, Token/binary >>,
   raise(Line, File, 'Elixir.SyntaxError', Message).
 
-%% Helper to parse terms which have been converted to binaries
 parse_erl_term(Term) ->
   {ok, Tokens, _} = erl_scan:string(binary_to_list(Term)),
   {ok, Parsed} = erl_parse:parse_term(Tokens ++ [{dot, 1}]),
   Parsed.
+
+raise_keyword(Line, File, Keyword) ->
+  raise(Line, File, 'Elixir.SyntaxError',
+        <<"syntax error before: ", Keyword/binary, ". \"", Keyword/binary, "\" is a "
+          "keyword in Elixir and therefore its usage is limited. For instance, it can't "
+          "be used as a variable or be defined nor invoked as a regular function">>).
 
 %% Helpers
 
