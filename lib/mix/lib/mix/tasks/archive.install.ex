@@ -78,7 +78,6 @@ defmodule Mix.Tasks.Archive.Install do
   end
 
   def check_install_spec({:url, url} = _install_spec, _opts) do
-    Mix.Utils.warn_install_over_http_deprecated("archive.install", url)
     check_extname(url)
   end
 

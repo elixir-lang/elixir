@@ -120,9 +120,27 @@ defmodule Mix.Local.Installer do
 
               #{src}
 
-          Please download the contents above manually to your current directory and run:
+          Please download the file above to your current directory and run:
 
               mix #{task(module)} ./#{basename}
+
+          You can download it either with your browser or via the command line.
+
+          On Unix (Linux, MacOS X):
+
+              $ wget #{src}
+
+          or
+
+              $ curl -o #{basename} #{src}
+
+          Windows (Win7 or later):
+
+              > powershell -Command "Invoke-WebRequest #{src} -OutFile #{basename}"
+
+          or
+
+              > powershell -Command "(New-Object Net.WebClient).DownloadFile('#{src}', '#{basename}')"
           """)
       end
 

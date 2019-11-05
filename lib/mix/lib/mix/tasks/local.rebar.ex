@@ -29,7 +29,7 @@ defmodule Mix.Tasks.Local.Rebar do
 
     * `rebar3 PATH` - specifies a path for `rebar3`
 
-    * `--sha512` - checks the archive matches the given SHA-512 checksum
+    * `--sha512` - checks the rebar script matches the given SHA-512 checksum
 
     * `--force` - forces installation without a shell prompt; primarily
       intended for automation in build systems like `make`
@@ -68,8 +68,6 @@ defmodule Mix.Tasks.Local.Rebar do
   defp install_from_path(manager, path, opts) do
     local = Mix.Rebar.local_rebar_path(manager)
 
-    if file_url?(path), do: warn_install_over_http_deprecated(manager, path)
-
     if opts[:force] || Mix.Generator.overwrite?(local) do
       case Mix.Utils.read_path(path, opts) do
         {:ok, binary} ->
@@ -102,10 +100,6 @@ defmodule Mix.Tasks.Local.Rebar do
     true
   end
 
-  defp file_url?(url_or_path) do
-    URI.parse(url_or_path).scheme in ["http", "https"]
-  end
-
   defp install_from_s3(manager, list_url, escript_url, opts) do
     hex_mirror = Mix.Hex.mirror()
     list_url = hex_mirror <> list_url
@@ -119,38 +113,5 @@ defmodule Mix.Tasks.Local.Rebar do
       |> String.replace("[REBAR_VERSION]", rebar_version)
 
     install_from_path(manager, url, Keyword.put(opts, :sha512, sha512))
-  end
-
-  defp warn_install_over_http_deprecated(manager, url) do
-    shell = Mix.shell()
-    basename = Path.basename(url)
-
-    shell.error("""
-    Warning: the use of HTTP/HTTPS URLs with `mix local.rebar` is deprecated")
-
-    Run `mix help local.rebar` for details on installing #{manager} from Hex's CDN.
-    Alternatively you can fetch the file using an external HTTP client and then
-    install it locally:
-
-    Unix (Linux, MacOS X):
-
-        $ wget #{url}
-        $ mix local.rebar #{manager} #{basename}
-
-    or
-
-        $ curl -o #{basename} #{url}
-        $ mix local.rebar #{manager} #{basename}
-
-    Windows (Win7 or later):
-
-        > powershell -Command "Invoke-WebRequest #{url} -OutFile #{basename}"
-        > mix local.rebar #{manager} #{basename}
-
-    or
-
-        > powershell -Command "(New-Object Net.WebClient).DownloadFile('#{url}', '#{basename}')"
-        > mix local.rebar #{manager} #{basename}
-    """)
   end
 end
