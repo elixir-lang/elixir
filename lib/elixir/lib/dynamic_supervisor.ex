@@ -286,7 +286,7 @@ defmodule DynamicSupervisor do
   Dynamically adds a child specification to `supervisor` and starts that child.
 
   `child_spec` should be a valid child specification as detailed in the
-  "child_spec/1" section of the documentation for `Supervisor`. The child
+  "Child specification" section of the documentation for `Supervisor`. The child
   process will be started as defined in the child specification.
 
   If the child process start function returns `{:ok, child}` or `{:ok, child,
@@ -306,7 +306,13 @@ defmodule DynamicSupervisor do
   this function returns `{:error, :max_children}`.
   """
   @doc since: "1.6.0"
-  @spec start_child(Supervisor.supervisor(), Supervisor.child_spec() | {module, term} | module) ::
+  @spec start_child(
+          Supervisor.supervisor(),
+          Supervisor.child_spec()
+          | {module, term}
+          | module
+          | (old_erlang_child_spec :: :supervisor.child_spec())
+        ) ::
           on_start_child()
   def start_child(supervisor, {_, _, _, _, _, _} = child_spec) do
     validate_and_start_child(supervisor, child_spec)
