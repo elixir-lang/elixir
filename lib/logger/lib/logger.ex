@@ -517,6 +517,8 @@ defmodule Logger do
 
   Currently the only accepted PID is `self()`.
   """
+  @doc since: "1.10.0"
+  @spec enabled?(pid) :: boolean
   def enabled?(pid) when pid == self() do
     Process.get(@metadata, true)
   end

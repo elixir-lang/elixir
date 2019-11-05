@@ -1,4 +1,6 @@
 defmodule Logger.Counter do
+  @moduledoc false
+
   @table __MODULE__
   @pos 1
 
