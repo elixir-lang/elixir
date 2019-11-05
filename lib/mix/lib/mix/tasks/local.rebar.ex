@@ -48,9 +48,11 @@ defmodule Mix.Tasks.Local.Rebar do
 
     case argv do
       ["rebar", path | _] ->
+        if file_url?(path), do: warn_install_over_http_deprecated(:rebar, path)
         install_from_path(:rebar, path, opts)
 
       ["rebar3", path | _] ->
+        if file_url?(path), do: warn_install_over_http_deprecated(:rebar3, path)
         install_from_path(:rebar3, path, opts)
 
       [] ->
@@ -67,8 +69,6 @@ defmodule Mix.Tasks.Local.Rebar do
 
   defp install_from_path(manager, path, opts) do
     local = Mix.Rebar.local_rebar_path(manager)
-
-    if file_url?(path), do: warn_install_over_http_deprecated(manager, path)
 
     if opts[:force] || Mix.Generator.overwrite?(local) do
       case Mix.Utils.read_path(path, opts) do
