@@ -186,7 +186,7 @@ defmodule System do
     * `:build` - the Elixir version, short Git revision hash and
       Erlang/OTP release it was compiled with
     * `:date` - a string representation of the ISO8601 date and time it was built
-    * `:opt_release` - OTP release it was compiled with
+    * `:otp_release` - OTP release it was compiled with
     * `:revision` - short Git revision hash. If Git was not available at building
       time, it is set to `""`
     * `:version` - the Elixir version
