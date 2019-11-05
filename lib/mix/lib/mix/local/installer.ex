@@ -122,7 +122,7 @@ defmodule Mix.Local.Installer do
 
           Please download the file above to your current directory and run:
 
-              mix #{task(module)} ./#{basename}
+              $ mix #{task(module)} ./#{basename}
 
           You can download it either with your browser or via the command line.
 
