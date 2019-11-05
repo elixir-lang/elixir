@@ -111,12 +111,12 @@ defmodule Time do
           Calendar.hour(),
           Calendar.minute(),
           Calendar.second(),
-          Calendar.microsecond() | 0..999_999,
+          Calendar.microsecond() | non_neg_integer(),
           Calendar.calendar()
         ) :: {:ok, t} | {:error, atom}
   def new(hour, minute, second, microsecond \\ {0, 0}, calendar \\ Calendar.ISO)
 
-  def new(hour, minute, second, microsecond, calendar) when microsecond in 0..999_999 do
+  def new(hour, minute, second, microsecond, calendar) when is_integer(microsecond) and microsecond >= 0 do
     new(hour, minute, second, {microsecond, 6}, calendar)
   end
 

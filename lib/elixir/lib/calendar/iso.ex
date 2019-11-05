@@ -99,11 +99,7 @@ defmodule Calendar.ISO do
   defguardp is_hour(hour) when is_integer(hour) and hour >= 0
   defguardp is_minute(minute) when is_integer(minute) and minute >= 0
   defguardp is_second(second) when is_integer(second) and second >= 0
-
-  defguardp is_microsecond(microsecond)
-            when is_tuple(microsecond) and elem(microsecond, 0) in 0..999_999 and
-                   elem(microsecond, 1) in 0..6
-
+  defguardp is_microsecond(microsecond) when tuple_size(microsecond) == 2
   defguardp is_time_zone(term) when is_binary(term)
   defguardp is_zone_abbr(term) when is_binary(term)
   defguardp is_utc_offset(offset) when is_integer(offset)
@@ -500,7 +496,7 @@ defmodule Calendar.ISO do
     719_528
   end
 
-  def date_to_iso_days(year, month, day) when is_year(year) do
+  def date_to_iso_days(year, month, day) when is_year(year) and is_month(month) and is_day(day) do
     ensure_day_in_month!(year, month, day)
 
     days_in_previous_years(year) + days_before_month(month) + leap_day_offset(year, month) + day -
@@ -630,9 +626,9 @@ defmodule Calendar.ISO do
   @doc since: "1.4.0"
   @spec day_of_week(year, month, day) :: day_of_week
   @impl true
-  def day_of_week(year, month, day)
-      when is_year(year) and is_month(month) and is_day(day) do
-    iso_days_to_day_of_week(date_to_iso_days(year, month, day))
+  def day_of_week(year, month, day) do
+    date_to_iso_days(year, month, day)
+    |> iso_days_to_day_of_week()
   end
 
   defp iso_days_to_day_of_week(iso_days) do
@@ -708,8 +704,7 @@ defmodule Calendar.ISO do
 
   """
   @doc since: "1.8.0"
-  @spec year_of_era(year) :: {year, ce} when year: 1..9999
-  @spec year_of_era(year :: -9999..0) :: {1..10000, bce}
+  @spec year_of_era(year) :: {1..10000, era}
   @impl true
   def year_of_era(year) when is_year_CE(year) do
     {year, 1}
@@ -739,14 +734,12 @@ defmodule Calendar.ISO do
   @doc since: "1.8.0"
   @spec day_of_era(year, month, day) :: {day, era}
   @impl true
-  def day_of_era(year, month, day)
-      when is_year_CE(year) and is_month(month) and is_day(day) do
+  def day_of_era(year, month, day) when is_year_CE(year) do
     day = date_to_iso_days(year, month, day) - @iso_epoch + 1
     {day, 1}
   end
 
-  def day_of_era(year, month, day)
-      when is_year_BCE(year) and is_month(month) and is_day(day) do
+  def day_of_era(year, month, day) when is_year_BCE(year) do
     day = abs(date_to_iso_days(year, month, day) - @iso_epoch)
     {day, 0}
   end
@@ -884,10 +877,7 @@ defmodule Calendar.ISO do
         second,
         microsecond,
         format \\ :extended
-      )
-      when is_year(year) and is_month(month) and is_day(day) and is_hour(hour) and
-             is_minute(minute) and is_second(second) and is_microsecond(microsecond) and
-             format in [:basic, :extended] do
+      ) do
     date_to_string(year, month, day, format) <>
       " " <> time_to_string(hour, minute, second, microsecond, format)
   end
@@ -956,11 +946,8 @@ defmodule Calendar.ISO do
         std_offset,
         format \\ :extended
       )
-      when is_year(year) and is_month(month) and is_day(day) and is_hour(hour) and
-             is_minute(minute) and is_second(second) and is_microsecond(microsecond) and
-             is_time_zone(time_zone) and is_zone_abbr(zone_abbr) and is_utc_offset(utc_offset) and
-             is_std_offset(std_offset) and
-             format in [:basic, :extended] do
+      when is_time_zone(time_zone) and is_zone_abbr(zone_abbr) and is_utc_offset(utc_offset) and
+             is_std_offset(std_offset) do
     date_to_string(year, month, day, format) <>
       " " <>
       time_to_string(hour, minute, second, microsecond, format) <>
