@@ -1007,12 +1007,9 @@ defmodule Calendar.ISO do
   """
   @doc since: "1.5.0"
   @impl true
-  @spec valid_date?(year :: integer, month :: integer, day :: integer) :: boolean
-  def valid_date?(year, month, day)
-      when is_integer(year) and is_integer(month) and is_integer(day) do
-    year >= -9999 and year <= 9999 and
-      month >= 1 and month <= 12 and
-      day >= 1 and day <= days_in_month(year, month)
+  @spec valid_date?(year, month, day) :: boolean
+  def valid_date?(year, month, day) when is_year(year) and is_month(month) and is_day(day) do
+    day <= days_in_month(year, month)
   end
 
   @doc """
