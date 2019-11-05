@@ -194,10 +194,8 @@ defmodule NaiveDateTime do
       {:error, :invalid_time}
       iex> NaiveDateTime.new(2000, 1, 1, 23, 59, 60, 999_999)
       {:error, :invalid_time}
-
-      # Invalid microsecond (out of the valid range)
       iex> NaiveDateTime.new(2000, 1, 1, 23, 59, 59, 1_000_000)
-      ** (FunctionClauseError) no function clause matching in NaiveDateTime.new/8
+      {:error, :invalid_time}
 
       iex> NaiveDateTime.new(2000, 1, 1, 23, 59, 59, {0, 1}, Calendar.ISO)
       {:ok, ~N[2000-01-01 23:59:59.0]}
@@ -210,33 +208,17 @@ defmodule NaiveDateTime do
           Calendar.hour(),
           Calendar.minute(),
           Calendar.second(),
-          Calendar.microsecond() | 0..999_999,
+          Calendar.microsecond(),
           Calendar.calendar()
         ) :: {:ok, t} | {:error, atom}
   def new(year, month, day, hour, minute, second, microsecond \\ {0, 0}, calendar \\ Calendar.ISO)
 
   def new(year, month, day, hour, minute, second, microsecond, calendar)
-      when microsecond in 0..999_999 do
+      when is_integer(microsecond) do
     new(year, month, day, hour, minute, second, {microsecond, 6}, calendar)
   end
 
-  def new(
-        year,
-        month,
-        day,
-        hour,
-        minute,
-        second,
-        {microsecond_value, microsecond_precision} = microsecond,
-        calendar
-      )
-      when is_integer(year) and year >= 0 and
-             is_integer(minute) and minute >= 0 and
-             is_integer(second) and second >= 0 and
-             is_integer(hour) and hour >= 0 and
-             is_integer(minute) and minute >= 0 and
-             is_integer(second) and second >= 0 and
-             microsecond_value in 0..999_999 and microsecond_precision in 0..6 do
+  def new(year, month, day, hour, minute, second, microsecond, calendar) do
     cond do
       not calendar.valid_date?(year, month, day) ->
         {:error, :invalid_date}

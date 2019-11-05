@@ -98,46 +98,37 @@ defmodule Time do
       {:error, :invalid_time}
       iex> Time.new(23, 59, 60, 999_999)
       {:error, :invalid_time}
-
-      # Invalid microsecond
       iex> Time.new(23, 59, 59, 1_000_000)
-      ** (FunctionClauseError) no function clause matching in Time.new/5
+      {:error, :invalid_time}
 
-      iex> Time.new(23, 59, 59, {999_999, 10})
-      ** (FunctionClauseError) no function clause matching in Time.new/5
+      # Invalid precision
+      Time.new(23, 59, 59, {999_999, 10})
+      {:error, :invalid_time}
 
   """
   @spec new(
           Calendar.hour(),
           Calendar.minute(),
           Calendar.second(),
-          Calendar.microsecond() | non_neg_integer(),
+          Calendar.microsecond() | integer,
           Calendar.calendar()
         ) :: {:ok, t} | {:error, atom}
   def new(hour, minute, second, microsecond \\ {0, 0}, calendar \\ Calendar.ISO)
 
-  def new(hour, minute, second, microsecond, calendar) when is_integer(microsecond) and microsecond >= 0 do
+  def new(hour, minute, second, microsecond, calendar) when is_integer(microsecond) do
     new(hour, minute, second, {microsecond, 6}, calendar)
   end
 
-  def new(
-        hour,
-        minute,
-        second,
-        {microsecond_value, microsecond_precision} = microsecond,
-        calendar
-      )
-      when is_integer(hour) and hour >= 0 and
-             is_integer(minute) and minute >= 0 and
-             is_integer(second) and second >= 0 and
-             microsecond_value in 0..999_999 and microsecond_precision in 0..6 do
-    case calendar.valid_time?(hour, minute, second, {microsecond_value, microsecond_precision}) do
+  def new(hour, minute, second, {microsecond, precision}, calendar)
+      when is_integer(hour) and is_integer(minute) and is_integer(second) and
+             is_integer(microsecond) and is_integer(precision) do
+    case calendar.valid_time?(hour, minute, second, {microsecond, precision}) do
       true ->
         time = %Time{
           hour: hour,
           minute: minute,
           second: second,
-          microsecond: microsecond,
+          microsecond: {microsecond, precision},
           calendar: calendar
         }
 
