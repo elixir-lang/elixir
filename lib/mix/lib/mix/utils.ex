@@ -507,7 +507,7 @@ defmodule Mix.Utils do
   ## Options
 
     * `:sha512` - checks against the given SHA-512 checksum. Returns
-      `{:checksum, message}` in case it fails
+      `{:checksum, message}` in case it fails. Required for URLs
 
     * `:timeout` - times out the request after the given milliseconds.
       Returns `{:remote, timeout_message}` if it fails. Defaults to 60
@@ -523,7 +523,13 @@ defmodule Mix.Utils do
   def read_path(path, opts \\ []) do
     cond do
       url?(path) ->
-        task = Task.async(fn -> read_httpc(path) |> checksum(opts) end)
+        task = Task.async(fn ->
+          with :ok <- require_checksum(opts),
+               {:ok, binary} <- read_httpc(path) do
+            checksum(binary, opts)
+          end
+        end)
+
         timeout = Keyword.get(opts, :timeout, 60_000)
 
         case Task.yield(task, timeout) || Task.shutdown(task, :brutal_kill) do
@@ -532,7 +538,9 @@ defmodule Mix.Utils do
         end
 
       file?(path) ->
-        read_file(path) |> checksum(opts)
+        with {:ok, binary} <- read_file(path) do
+          checksum(binary, opts)
+        end
 
       true ->
         :badpath
@@ -541,8 +549,16 @@ defmodule Mix.Utils do
 
   @checksums [:sha512]
 
-  defp checksum({:ok, binary} = return, opts) do
-    Enum.find_value(@checksums, return, fn hash ->
+  defp require_checksum(opts) do
+    if Keyword.take(opts, @checksums) != [] do
+      :ok
+    else
+      {:checksum, "fetching from URIs require a checksum to be given"}
+    end
+  end
+
+  defp checksum(binary, opts) do
+    Enum.find_value(@checksums, {:ok, binary}, fn hash ->
       with expected when expected != nil <- opts[hash],
            actual when actual != expected <- hexhash(binary, hash) do
         message = """
@@ -557,10 +573,6 @@ defmodule Mix.Utils do
         _ -> nil
       end
     end)
-  end
-
-  defp checksum({_, _} = error, _opts) do
-    error
   end
 
   defp hexhash(binary, hash) do
@@ -675,39 +687,5 @@ defmodule Mix.Utils do
     pass = String.to_charlist(pass || "")
 
     [proxy_auth: {user, pass}]
-  end
-
-  def warn_install_over_http_deprecated(task_name, url) do
-    basename = Path.basename(url)
-
-    shell = Mix.shell()
-
-    shell.error("""
-    Warning: the use of HTTP/HTTPS URLs with `mix #{task_name}` is deprecated
-
-    Run `mix help #{task_name}` for details on the available alternatives, using
-    hex, git or github. Alternatively you can fetch the file using an external HTTP
-    client and then install it locally:
-
-    Unix (Linux, MacOS X):
-
-        $ wget #{url}
-        $ mix #{task_name} #{basename}
-
-    or
-
-        $ curl -o #{basename} #{url}
-        $ mix #{task_name} #{basename}
-
-    Windows (Win7 or later):
-
-        > powershell -Command "Invoke-WebRequest #{url} -OutFile #{basename}"
-        > mix #{task_name} #{basename}
-
-    or
-
-        > powershell -Command "(New-Object Net.WebClient).DownloadFile('#{url}', '#{basename}')"
-        > mix #{task_name} #{basename}
-    """)
   end
 end
