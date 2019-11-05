@@ -122,25 +122,25 @@ defmodule Mix.Local.Installer do
 
           Please download the file above to your current directory and run:
 
-              $ mix #{task(module)} ./#{basename}
+              mix #{task(module)} ./#{basename}
 
           You can download it either with your browser or via the command line.
 
           On Unix (Linux, MacOS X):
 
-              $ wget #{src}
+              wget #{src}
 
           or
 
-              $ curl -o #{basename} #{src}
+              curl -o #{basename} #{src}
 
           Windows (Win7 or later):
 
-              > powershell -Command "Invoke-WebRequest #{src} -OutFile #{basename}"
+              powershell -Command "Invoke-WebRequest #{src} -OutFile #{basename}"
 
           or
 
-              > powershell -Command "(New-Object Net.WebClient).DownloadFile('#{src}', '#{basename}')"
+              powershell -Command "(New-Object Net.WebClient).DownloadFile('#{src}', '#{basename}')"
           """)
       end
 

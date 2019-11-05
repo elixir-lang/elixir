@@ -92,7 +92,7 @@ defmodule Mix.Tasks.Local.Rebar do
 
           Please download the file above manually to your current directory and run:
 
-              $ mix local.rebar #{manager} ./#{Path.basename(local)}
+              mix local.rebar #{manager} ./#{Path.basename(local)}
           """)
       end
     end

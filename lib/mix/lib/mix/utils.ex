@@ -523,12 +523,13 @@ defmodule Mix.Utils do
   def read_path(path, opts \\ []) do
     cond do
       url?(path) ->
-        task = Task.async(fn ->
-          with :ok <- require_checksum(opts),
-               {:ok, binary} <- read_httpc(path) do
-            checksum(binary, opts)
-          end
-        end)
+        task =
+          Task.async(fn ->
+            with :ok <- require_checksum(opts),
+                 {:ok, binary} <- read_httpc(path) do
+              checksum(binary, opts)
+            end
+          end)
 
         timeout = Keyword.get(opts, :timeout, 60_000)
 
