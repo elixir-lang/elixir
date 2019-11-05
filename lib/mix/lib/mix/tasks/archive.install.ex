@@ -77,8 +77,11 @@ defmodule Mix.Tasks.Archive.Install do
     check_extname(path)
   end
 
-  def check_install_spec({:url, url} = _install_spec, _opts) do
-    Mix.Utils.warn_install_over_http_deprecated("archive.install", url)
+  def check_install_spec({:url, url} = _install_spec, opts) do
+    unless opts[:sha512] do
+      Mix.Utils.warn_install_over_http_deprecated("archive.install", url)
+    end
+
     check_extname(url)
   end
 

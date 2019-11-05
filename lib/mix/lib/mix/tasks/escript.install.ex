@@ -75,8 +75,11 @@ defmodule Mix.Tasks.Escript.Install do
   end
 
   @impl true
-  def check_install_spec({:url, url} = _install_spec, _opts) do
-    Mix.Utils.warn_install_over_http_deprecated("escript.install", url)
+  def check_install_spec({:url, url} = _install_spec, opts) do
+    unless opts[:sha512] do
+      Mix.Utils.warn_install_over_http_deprecated("escript.install", url)
+    end
+
     :ok
   end
 

@@ -58,6 +58,14 @@ Another important change related to configuration is that `mix new` will no long
 
 There are many other enhancements. The Elixir CLI got a handful of new options in order to best support releases. `Logger` now computes its sync/async/discard thresholds in a decentralized fashion, reducing contention. `EEx` templates support more complex expressions than before. Finally, there is a new `~U` sigil for working with UTC DateTimes as well as new functions in the `File`, `Registry`, and `System` modules.
 
+## v1.9.4 (2019-11-05)
+
+### 1. Bug fixes
+
+#### Mix
+
+  * [mix local.hex] Remove invalid deprecation warning on `mix local.hex` command
+
 ## v1.9.3 (2019-11-05)
 
 Note this release deprecates the use of URLs on `mix archive.install`, `mix escript.install`, and `mix local.rebar`. Support for passing URLs to said commands will be fully removed on Elixir v1.10, as they are unsafe. Thanks to Bram Verburg for the report and for providing a fix.
