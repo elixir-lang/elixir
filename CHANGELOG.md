@@ -58,6 +58,61 @@ Another important change related to configuration is that `mix new` will no long
 
 There are many other enhancements. The Elixir CLI got a handful of new options in order to best support releases. `Logger` now computes its sync/async/discard thresholds in a decentralized fashion, reducing contention. `EEx` templates support more complex expressions than before. Finally, there is a new `~U` sigil for working with UTC DateTimes as well as new functions in the `File`, `Registry`, and `System` modules.
 
+## v1.9.3 (2019-11-05)
+
+Note this release deprecates the use of URLs on `mix archive.install`, `mix escript.install`, and `mix local.rebar`. Support for passing URLs to said commands will be fully removed on Elixir v1.10, as they are unsafe. Thanks to Bram Verburg for the report and for providing a fix.
+
+The alternative is straight-forward: you can simply download the artifact via the command line and then invoke the command with a file system path. For example, instead of:
+
+    $ mix archive.install https://example.org/installer.ez
+
+You can execute on Unix (Linux, MacOS X):
+
+    $ wget https://example.org/installer.ez
+    $ mix archive.install installer.ez
+
+or
+
+    $ curl -o installer.ez https://example.org/installer.ez
+    $ mix archive.install installer.ez
+
+On Windows (Win7 or later):
+
+    > powershell -Command "Invoke-WebRequest https://example.org/installer.ez -OutFile installer.ez"
+    > mix archive.install installer.ez
+
+or
+
+    > powershell -Command "(New-Object Net.WebClient).DownloadFile('https://example.org/installer.ez', 'installer.ez')"
+    > mix archive.install installer.ez
+
+Note that, if you are a library author, consider providing installable escripts and archives through Hex, such as Phoenix:
+
+    $ mix archive.install hex phx_new
+
+Installations through Hex are always safe and they come with version management and all other benefits from Hex too.
+
+### 1. Enhancements
+
+#### Mix
+
+  * [mix release] Add :tar option for releases to create a tarball
+
+### 2. Bug fixes
+
+#### Mix
+
+  * [mix release] Use `default_release` option when name is not given
+  * [mix release] Make release's boot script contents deterministic
+
+### 3. Deprecations
+
+#### Mix
+
+  * [mix archive.install] Warn when installing from URI
+  * [mix escript.install] Warn when installing from URI
+  * [mix local.rebar] Warn when installing from URI
+
 ## v1.9.2 (2019-10-12)
 
 ### 1. Enhancements
