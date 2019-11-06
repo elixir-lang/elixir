@@ -152,7 +152,9 @@ defmodule Kernel do
       end
 
   The clause above will only be invoked if the user's age is more than
-  or equal to 16. A more complete introduction to guards is available
+  or equal to 16. Guards also support joining multiple conditions with
+  `and` and `or`. The whole guard is true if all guard expressions will
+  evaluate to `true`. A more complete introduction to guards is available
   [in the Guards page](guards.html).
 
   ## Inlining
