@@ -5,11 +5,61 @@ defmodule KernelTest do
 
   doctest Kernel
 
-  defp empty_list(), do: []
+  def id(arg), do: arg
+  def id(arg1, arg2), do: {arg1, arg2}
+  def empty_list(), do: []
+  def empty_map, do: %{}
+
+  defp purge(module) do
+    :code.delete(module)
+    :code.purge(module)
+  end
 
   defp assert_eval_raise(error, msg, string) do
     assert_raise error, msg, fn ->
       Code.eval_string(string)
+    end
+  end
+
+  describe "=/2" do
+    test "can be reassigned" do
+      var = 1
+      id(var)
+      var = 2
+      assert var == 2
+    end
+
+    test "can be reassigned inside a list" do
+      _ = [var = 1, 2, 3]
+      id(var)
+      _ = [var = 2, 3, 4]
+      assert var == 2
+    end
+
+    test "can be reassigned inside a keyword list" do
+      _ = [a: var = 1, b: 2]
+      id(var)
+      _ = [b: var = 2, c: 3]
+      assert var == 2
+    end
+
+    test "can be reassigned inside a call" do
+      id(var = 1)
+      id(var)
+      id(var = 2)
+      assert var == 2
+    end
+
+    test "can be reassigned inside a multi-arg call" do
+      id(:arg, var = 1)
+      id(:arg, var)
+      id(:arg, var = 2)
+      assert var == 2
+
+      id(:arg, a: 1, b: var = 2)
+      id(:arg, var)
+      id(:arg, b: 2, c: var = 3)
+      assert var == 3
     end
   end
 
@@ -894,8 +944,6 @@ defmodule KernelTest do
       end
     end
 
-    def empty_map, do: %{}
-
     def by_index(index) do
       fn
         _, nil, next ->
@@ -1152,10 +1200,5 @@ defmodule KernelTest do
     assert_raise ArgumentError, ~r"reason: :non_utc_offset", fn ->
       Code.eval_string(~s{~U[2015-01-13 13:00:07+00:30]})
     end
-  end
-
-  defp purge(module) do
-    :code.delete(module)
-    :code.purge(module)
   end
 end
