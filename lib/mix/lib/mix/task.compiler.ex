@@ -104,6 +104,7 @@ defmodule Mix.Task.Compiler do
   the given project. It receives the atom `:ok`, `:noop`,
   or `:error`, which signals the build status.
   """
+  @doc since: "1.10.0"
   def after_compile(fun) when is_function(fun, 1) do
     Mix.ProjectStack.prepend_after_compile(fun)
   end

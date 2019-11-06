@@ -123,10 +123,10 @@ defmodule Mix.Local do
   Used to install both Rebar and Hex from S3.
   """
   def find_matching_versions_from_signed_csv!(name, path) do
-    csv = read_path!(name, path)
+    csv = read_unsafe_path!(name, path)
 
     signature =
-      read_path!(name, path <> ".signed")
+      read_unsafe_path!(name, path <> ".signed")
       |> String.replace("\n", "")
       |> Base.decode64!()
 
@@ -145,8 +145,8 @@ defmodule Mix.Local do
     end
   end
 
-  defp read_path!(name, path) do
-    case Mix.Utils.read_path(path) do
+  defp read_unsafe_path!(name, path) do
+    case Mix.Utils.read_path(path, unsafe_uri: true) do
       {:ok, contents} ->
         contents
 

@@ -293,7 +293,7 @@ defmodule ExUnit.AssertionsTest do
       error in [ExUnit.AssertionError] ->
         true =
           error.message =~ "Found message matching :hello after 100ms" or
-            error.message =~ "No message matching :hello after 100ms"
+            error.message =~ "no matching message after 0ms"
     end
   end
 

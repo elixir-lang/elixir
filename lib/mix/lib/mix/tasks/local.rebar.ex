@@ -25,11 +25,11 @@ defmodule Mix.Tasks.Local.Rebar do
 
   ## Command line options
 
-    * `rebar PATH` - specifies a path or URL for `rebar`
+    * `rebar PATH` - specifies a path for `rebar`
 
-    * `rebar3 PATH` - specifies a path or URL for `rebar3`
+    * `rebar3 PATH` - specifies a path for `rebar3`
 
-    * `--sha512` - checks the archive matches the given SHA-512 checksum
+    * `--sha512` - checks the rebar script matches the given SHA-512 checksum
 
     * `--force` - forces installation without a shell prompt; primarily
       intended for automation in build systems like `make`
@@ -77,7 +77,7 @@ defmodule Mix.Tasks.Local.Rebar do
           Mix.shell().info([:green, "* creating ", :reset, Path.relative_to_cwd(local)])
 
         :badpath ->
-          Mix.raise("Expected #{inspect(path)} to be a URL or a local file path")
+          Mix.raise("Expected #{inspect(path)} to be a local file path")
 
         {:local, message} ->
           Mix.raise(message)

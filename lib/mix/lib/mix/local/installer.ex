@@ -107,7 +107,7 @@ defmodule Mix.Local.Installer do
           module.install(basename, binary, previous_files)
 
         :badpath ->
-          Mix.raise("Expected #{inspect(src)} to be a URL or a local file path")
+          Mix.raise("Expected #{inspect(src)} to be a local file path")
 
         {:local, message} ->
           Mix.raise(message)
@@ -120,9 +120,27 @@ defmodule Mix.Local.Installer do
 
               #{src}
 
-          Please download the contents above manually to your current directory and run:
+          Please download the file above to your current directory and run:
 
               mix #{task(module)} ./#{basename}
+
+          You can download it either with your browser or via the command line.
+
+          On Unix (Linux, MacOS X):
+
+              wget #{src}
+
+          or
+
+              curl -o #{basename} #{src}
+
+          Windows (Win7 or later):
+
+              powershell -Command "Invoke-WebRequest #{src} -OutFile #{basename}"
+
+          or
+
+              powershell -Command "(New-Object Net.WebClient).DownloadFile('#{src}', '#{basename}')"
           """)
       end
 
@@ -164,7 +182,7 @@ defmodule Mix.Local.Installer do
     cond do
       local_path?(url_or_path) -> {:local, url_or_path}
       file_url?(url_or_path) -> {:url, url_or_path}
-      true -> {:error, "Expected #{inspect(url_or_path)} to be a URL or a local file path"}
+      true -> {:error, "Expected #{inspect(url_or_path)} to be a local file path"}
     end
   end
 

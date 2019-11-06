@@ -12,12 +12,11 @@ defmodule Mix.Tasks.Escript.Install do
 
       mix do escript.build, escript.install
 
-  If an argument is provided, it should be a local path or a URL to a prebuilt escript,
+  If an argument is provided, it should be a local path to a prebuilt escript,
   a Git repository, a GitHub repository, or a Hex package.
 
       mix escript.install escript
       mix escript.install path/to/escript
-      mix escript.install https://example.com/my_escript
       mix escript.install git https://path/to/git/repo
       mix escript.install git https://path/to/git/repo branch git_branch
       mix escript.install git https://path/to/git/repo tag git_tag
@@ -40,7 +39,7 @@ defmodule Mix.Tasks.Escript.Install do
   ## Command line options
 
     * `--sha512` - checks the escript matches the given SHA-512 checksum. Only
-      applies to installations via URL or local path
+      applies to installations via a local path
 
     * `--force` - forces installation without a shell prompt; primarily
       intended for automation in build systems like Make
@@ -53,9 +52,6 @@ defmodule Mix.Tasks.Escript.Install do
 
     * `--organization` - specifies an organization to use if fetching the package
       from a private Hex repository
-
-    * `--timeout` - sets a request timeout in milliseconds for fetching
-      archives from URLs. Default is 60 seconds
 
   """
 
@@ -79,6 +75,10 @@ defmodule Mix.Tasks.Escript.Install do
   end
 
   @impl true
+  def check_install_spec({:url, _}, _opts) do
+    :ok
+  end
+
   def check_install_spec(_, _), do: :ok
 
   @impl true

@@ -108,8 +108,8 @@ defmodule Supervisor do
   The child specification describes how the supervisor starts, shuts down,
   and restarts child processes.
 
-  The child specification contains 6 keys. The first two are required,
-  and the remaining ones are optional:
+  The child specification is a map which contains 6 elements. The first two keys
+  in the following list are required, and the remaining ones are optional:
 
     * `:id` - any term used to identify the child specification
       internally by the supervisor; defaults to the given module.
@@ -131,8 +131,8 @@ defmodule Supervisor do
     * `:type` - specifies that the child process is a `:worker` or a
       `:supervisor`. This key is optional and defaults to `:worker`.
 
-  There is a sixth key, `:modules`, that is rarely changed. It is set
-  automatically based on the value in `:start`.
+  There is a sixth key, `:modules`, which is optional and is rarely changed.
+  It is set automatically based on the `:start` value.
 
   Let's understand what the `:shutdown` and `:restart` options control.
 

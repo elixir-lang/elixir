@@ -1060,6 +1060,21 @@ defmodule KernelTest do
     end
   end
 
+  test "is_map_key/2" do
+    assert is_map_key(Map.new([]), :a) == false
+    assert is_map_key(Map.new(b: 1), :a) == false
+    assert is_map_key(Map.new(a: 1), :a) == true
+
+    assert_raise BadMapError, fn ->
+      is_map_key(empty_list(), :a)
+    end
+
+    case Map.new(a: 1) do
+      map when is_map_key(map, :a) -> true
+      _ -> flunk("invalid guard")
+    end
+  end
+
   test "tl/1" do
     assert tl([:one]) == []
     assert tl([1, 2, 3]) == [2, 3]

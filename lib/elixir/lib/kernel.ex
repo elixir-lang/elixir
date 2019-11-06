@@ -152,7 +152,9 @@ defmodule Kernel do
       end
 
   The clause above will only be invoked if the user's age is more than
-  or equal to 16. A more complete introduction to guards is available
+  or equal to 16. Guards also support joining multiple conditions with
+  `and` and `or`. The whole guard is true if all guard expressions will
+  evaluate to `true`. A more complete introduction to guards is available
   [in the Guards page](guards.html).
 
   ## Inlining
@@ -699,6 +701,19 @@ defmodule Kernel do
   @spec is_map(term) :: boolean
   def is_map(term) do
     :erlang.is_map(term)
+  end
+
+  @doc """
+  Returns `true` if `key` is a key in `map`; otherwise returns `false`.
+
+  It raises `BadMapError` if the first element is not a map.
+
+  Allowed in guard tests. Inlined by the compiler.
+  """
+  @doc guard: true, since: "1.10.0"
+  @spec is_map_key(map, term) :: boolean
+  def is_map_key(map, key) do
+    :erlang.is_map_key(key, map)
   end
 
   @doc """

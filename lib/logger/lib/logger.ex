@@ -517,6 +517,8 @@ defmodule Logger do
 
   Currently the only accepted PID is `self()`.
   """
+  @doc since: "1.10.0"
+  @spec enabled?(pid) :: boolean
   def enabled?(pid) when pid == self() do
     Process.get(@metadata, true)
   end
@@ -755,8 +757,6 @@ defmodule Logger do
   ## Examples
 
       Logger.warn("knob turned too far to the right")
-      Logger.warn(fn -> "dynamically calculated warning" end)
-      Logger.warn(fn -> {"dynamically calculated warning", [additional: :metadata]} end)
 
   """
   # TODO: Deprecate it in favour of `warning/1-2` macro
@@ -772,8 +772,6 @@ defmodule Logger do
   ## Examples
 
       Logger.info("mission accomplished")
-      Logger.info(fn -> "dynamically calculated info" end)
-      Logger.info(fn -> {"dynamically calculated info", [additional: :metadata]} end)
 
   """
   defmacro info(chardata_or_fun, metadata \\ []) do
@@ -788,8 +786,6 @@ defmodule Logger do
   ## Examples
 
       Logger.error("oops")
-      Logger.error(fn -> "dynamically calculated error" end)
-      Logger.error(fn -> {"dynamically calculated error", [additional: :metadata]} end)
 
   """
   defmacro error(chardata_or_fun, metadata \\ []) do
@@ -804,8 +800,6 @@ defmodule Logger do
   ## Examples
 
       Logger.debug("hello?")
-      Logger.debug(fn -> "dynamically calculated debug" end)
-      Logger.debug(fn -> {"dynamically calculated debug", [additional: :metadata]} end)
 
   """
   defmacro debug(chardata_or_fun, metadata \\ []) do

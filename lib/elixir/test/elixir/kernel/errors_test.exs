@@ -253,7 +253,13 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "syntax error" do
-    assert_eval_raise SyntaxError, "nofile:1: syntax error before: '.'", '+.foo'
+    assert_eval_raise SyntaxError,
+                      "nofile:1: syntax error before: '.'",
+                      '+.foo'
+
+    assert_eval_raise SyntaxError,
+                      ~r"nofile:1: syntax error before: after. \"after\" is a keyword",
+                      'after = 1'
   end
 
   test "syntax error before sigil" do

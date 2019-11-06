@@ -79,11 +79,6 @@ defmodule Mix.Tasks.ArchiveTest do
       archive = tmp_path("userhome/.mix/archives/archive-0.1.0/archive-0.1.0/ebin")
       assert to_charlist(archive) in :code.get_path()
 
-      # Try to override it with URL
-      send(self(), {:mix_shell_input, :yes?, false})
-      Mix.Tasks.Archive.Install.run(["https://example.com/archive-0.1.0?hello.ez"])
-      assert_received {:mix_shell, :yes?, ["Found existing entry: " <> _]}
-
       # Loading the archive should emit warning again
       Mix.Local.append_archives()
       assert_received {:mix_shell, :error, [^version_error]}
@@ -116,7 +111,7 @@ defmodule Mix.Tasks.ArchiveTest do
   end
 
   test "archive install missing file" do
-    message = ~r[Expected "./unlikely-to-exist-0.1.0.ez" to be a URL or a local file path]
+    message = ~r[Expected "./unlikely-to-exist-0.1.0.ez" to be a local file path]
 
     assert_raise Mix.Error, message, fn ->
       Mix.Tasks.Archive.Install.run(["./unlikely-to-exist-0.1.0.ez"])
