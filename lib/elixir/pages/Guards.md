@@ -29,7 +29,7 @@ def empty_map?(map) when map_size(map) == 0, do: true
 def empty_map?(map) when is_map(map), do: false
 ```
 
-Guards start with the `when` keyword, which is followed by a boolean expression, that must return `true` or `false` (we will define the grammar of guards more formally later on).
+Guards start with the `when` keyword and are followed by one or more of the guard expressions defined above. Guard expressions must evaluate to `true` or `false`.
 
 Writing the `empty_map?/1` function by only using pattern matching would not be possible (as pattern matching on `%{}` would match *every* map, not empty maps).
 
