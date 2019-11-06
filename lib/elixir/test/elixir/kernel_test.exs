@@ -61,6 +61,20 @@ defmodule KernelTest do
       id(:arg, b: 2, c: var = 3)
       assert var == 3
     end
+
+    test "++/2 works in matches" do
+      [1, 2] ++ var = [1, 2]
+      assert var == []
+
+      [1, 2] ++ var = [1, 2, 3]
+      assert var == [3]
+
+      'ab' ++ var = 'abc'
+      assert var == 'c'
+
+      [:a, :b] ++ var = [:a, :b, :c]
+      assert var == [:c]
+    end
   end
 
   test "=~/2" do
