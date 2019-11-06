@@ -832,7 +832,6 @@ defmodule Calendar.ISO do
   @spec date_to_string(year, month, day, :basic | :extended) :: String.t()
   @impl true
   def date_to_string(year, month, day, format \\ :extended)
-      # when is_year(year) and is_month(month) and is_day(day) and format in [:basic, :extended] do
       when is_integer(year) and is_integer(month) and is_integer(day) and
              format in [:basic, :extended] do
     date_to_string_guarded(year, month, day, format)
