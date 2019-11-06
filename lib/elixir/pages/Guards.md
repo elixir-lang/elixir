@@ -64,13 +64,13 @@ In the example above, we show how guards can be used in function clauses. There 
     ```
 
   * custom guards can also be defined with `defguard/1` and `defguardp/1`.
-    A custom guard is can only be defined based on existing guards.
+    A custom guard can only be defined based on existing guards.
 
 Other constructs that support guards are [`for`](`for/1`), [`with`](`with/1`), [`try/rescue/catch/else`](`try/1`), and `match?/2`.
 
 ## Failing guards
 
-A function clause will only be executed if and only if its guard expression evaluate to `true`. If any other value is returned, the function clause will be skipped. In particular, guards have no concept of "truthy" or "falsey".
+A function clause will only be executed if and only if its guard expression evaluates to `true`. If any other value is returned, the function clause will be skipped. In particular, guards have no concept of "truthy" or "falsey".
 
 For example, imagine a function that checks that the head of a list is not `nil`:
 
@@ -82,7 +82,7 @@ not_nil_head?(["some_value", "another_value"])
 #=> false
 ```
 
-Even though the list `head` is not `nil`, the first clause for `not_nil_head?` fails, triggering the second clause which returns `false`. To make the guard behave correctly, you must ensure that the guard evaluates to `true`, like so:
+Even though the head of the list is not `nil`, the first clause for `not_nil_head?/1` fails, triggering the second clause which returns `false`. To make the guard behave correctly, you must ensure that the guard evaluates to `true`, like so:
 
 ```elixir
 def not_nil_head?(term) when head != nil, do: true
