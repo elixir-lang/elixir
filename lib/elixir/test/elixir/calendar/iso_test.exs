@@ -46,7 +46,7 @@ defmodule Calendar.ISOTest do
         Calendar.ISO.naive_datetime_to_iso_days(2018, 2, 30, 0, 0, 0, 0)
       end
 
-      assert_raise FunctionClauseError, fn ->
+      assert_raise ArgumentError, "invalid date: 2017-11--03", fn ->
         Calendar.ISO.naive_datetime_to_iso_days(2017, 11, -3, 0, 0, 0, 0)
       end
     end
@@ -58,7 +58,7 @@ defmodule Calendar.ISOTest do
         Calendar.ISO.day_of_week(2018, 2, 30)
       end
 
-      assert_raise FunctionClauseError, fn ->
+      assert_raise ArgumentError, "invalid date: 2017-11-00", fn ->
         Calendar.ISO.day_of_week(2017, 11, 0)
       end
     end
@@ -70,7 +70,7 @@ defmodule Calendar.ISOTest do
         Calendar.ISO.day_of_era(2018, 2, 30)
       end
 
-      assert_raise FunctionClauseError, fn ->
+      assert_raise ArgumentError, "invalid date: 2017-11-00", fn ->
         Calendar.ISO.day_of_era(2017, 11, 0)
       end
     end
@@ -82,7 +82,7 @@ defmodule Calendar.ISOTest do
         Calendar.ISO.day_of_year(2018, 2, 30)
       end
 
-      assert_raise FunctionClauseError, fn ->
+      assert_raise ArgumentError, "invalid date: 2017-11-00", fn ->
         Calendar.ISO.day_of_year(2017, 11, 0)
       end
     end
