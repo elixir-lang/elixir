@@ -18,7 +18,7 @@ You can find the built-in list of guards [in the `Kernel` module](Kernel.html#gu
 
 The module `Bitwise` also includes a handful of [Erlang bitwise operations as guards](Bitwise.html#guards).
 
-Macros constructed out of any combination of the above guards are also valid guards - for example, `Integer.is_even/1`. The whole guard is true if all guard expressions will evaluate to `true`.
+Macros constructed out of any combination of the above guards are also valid guards - for example, `Integer.is_even/1`. For more information, see the "Defining custom guard expressions" section shown below.
 
 ## Why guards
 
@@ -29,7 +29,7 @@ def empty_map?(map) when map_size(map) == 0, do: true
 def empty_map?(map) when is_map(map), do: false
 ```
 
-Guards start with the `when` keyword, which is followed by a boolean expression (we will define the grammar of guards more formally later on).
+Guards start with the `when` keyword and are followed by one or more of the guard expressions defined above. Guard expressions must evaluate to `true` or `false`.
 
 Writing the `empty_map?/1` function by only using pattern matching would not be possible (as pattern matching on `%{}` would match *every* map, not empty maps).
 
@@ -70,11 +70,36 @@ Other constructs are [`for`](`for/1`), [`with`](`with/1`), [`try/rescue/catch/el
 
 ## Failing guards
 
-In guards, when functions would normally raise exceptions, they cause the guard to fail instead.
-For example, the `length/1` function only works with lists. If we use it with anything else, a runtime error is raised:
+The whole guard is true if and only if all guard expressions evaluate to `true`. If any other value is returned, the guard fails. In particular, guards have no concept of "truthy" or "falsey".
+
+For example, imagine a function that checks that the head of a list is not `nil`:
 
 ```elixir
-iex> length("hello")
+def not_nil_head?([head | _]) when head, do: true
+def not_nil_head?(_), do: false
+
+not_nil_head?(["some_value", "another_value"])
+#=> false
+```
+
+Even though the list `head` is not `nil`, the first clause for `not_nil_head?` fails, triggering the second clause which returns `false`. To make the guard behave correctly, you must ensure that the guard evaluates to `true`, like so:
+
+```elixir
+def not_nil_head?(term) when head != nil, do: true
+def not_nil_head?(_), do: false
+
+not_nil_head?(["some_value", "another_value"])
+#=> true
+```
+
+## Errors in guards
+
+In guards, when functions would normally raise exceptions, they cause the guard to fail instead.
+
+For example, the `tuple_size/1` function only works with tuples. If we use it with anything else, an argument error is raised:
+
+```elixir
+iex> tuple_size("hello")
 ** (ArgumentError) argument error
 ```
 
@@ -82,15 +107,15 @@ However, when used in guards, the corresponding clause simply fails to match:
 
 ```elixir
 iex> case "hello" do
-...>   something when length(something) > 0 ->
-...>     :length_worked
+...>   something when tuple_size(something) == 2 ->
+...>     :worked
 ...>   _anything_else ->
-...>     :length_failed
+...>     :failed
 ...> end
-:length_failed
+:worked
 ```
 
-In many cases, we can take advantage of this. In the code above, we used `length/1` to both check that the given thing is a list *and* check some properties of its length (instead of using `is_list(something) and length(something) > 0`).
+In many cases, we can take advantage of this. In the code above, we used `tuple_size/1` to both check that the given value is a tuple *and* check its size (instead of using `is_tuple(something) and tuple_size(something) == 2`).
 
 ## Defining custom guard expressions
 
