@@ -41,8 +41,8 @@ In the example above, we show how guards can be used in function clauses. There 
   * function clauses:
 
     ```elixir
-    def type(term) when is_integer(term), do: term
-    def type(term) when is_float(term), do: round(term)
+    def type(term) when is_integer(term), do: :integer
+    def type(term) when is_float(term), do: :float
     ```
 
   * [`case`](`case/2`) expressions:
