@@ -41,8 +41,8 @@ In the example above, we show how guards can be used in function clauses. There 
   * function clauses:
 
     ```elixir
-    def format(term) when is_integer(term), do: term
-    def format(term) when is_float(term), do: round(term)
+    def type(term) when is_integer(term), do: term
+    def type(term) when is_float(term), do: round(term)
     ```
 
   * [`case`](`case/2`) expressions:
@@ -71,7 +71,7 @@ Other constructs that support guards are [`for`](`for/1`), [`with`](`with/1`), [
 
 ## Failing guards
 
-As mentioned before, a function clause will be executed if and only if its guard expression evaluates to `true`. If any other value is returned, the function clause will be skipped. In particular, guards have no concept of "truthy" or "falsey". In a nutshell, when it comes to guards, *it's `true` or nothing*.
+A function clause will be executed if and only if its guard expression evaluates to `true`. If any other value is returned, the function clause will be skipped. In particular, guards have no concept of "truthy" or "falsey".
 
 For example, imagine a function that checks that the head of a list is not `nil`:
 
@@ -83,7 +83,7 @@ not_nil_head?(["some_value", "another_value"])
 #=> false
 ```
 
-Even though the head of the list is not `nil`, the first clause for `not_nil_head?/1` fails because the expression is evaluated to `"some_value"` and not to `true` as guards are expected to return, therefore triggering the second clause which returns `false`. To make the guard behave correctly, you must ensure that the guard evaluates to `true`, like so:
+Even though the head of the list is not `nil`, the first clause for `not_nil_head?/1` fails because the expression does not evaluate to `true`, but to `"some_value"`, therefore triggering the second clause which returns `false`. To make the guard behave correctly, you must ensure that the guard evaluates to `true`, like so:
 
 ```elixir
 def not_nil_head?(term) when head != nil, do: true
@@ -118,7 +118,7 @@ iex> case "hello" do
 
 In many cases, we can take advantage of this. In the code above, we used `tuple_size/1` to both check that the given value is a tuple *and* check its size (instead of using `is_tuple(something) and tuple_size(something) == 2`).
 
-Since `tuple_size/1` will make the whole guard fail if it is not given a tuple, we recommend to call type-check functions (such as `is_tuple/1`) before, provided your guard has multiple conditions. Additionally, this practice brings the benefit that when writing guard-safe macros, they will return `false` instead of raising an exception when used outside guards.
+Since `tuple_size/1` will make the whole guard fail if it is not given a tuple, we recommend to call type-check functions (such as `is_tuple/1`) before, provided your guard has multiple conditions. Additionally, this practice brings the benefit that when writing guard macros, they will return `false` instead of raising an exception when used outside guards.
 
 Alternatively your function clause can use multiple guards as shown in the following section.
 
@@ -188,9 +188,9 @@ Check.empty?({})
 
 ## Defining custom guard expressions
 
-As mentioned before, only the functions and operators listed in this page are allowed in guards. However, we can take advantage of macros to write custom guards that can simplify our programs or make them more domain-specific. At the end of the day, what matters is that the *output* of the macros is boiled down to a combination of allowed expressions.
+As mentioned before, only the expressions listed in this page are allowed in guards. However, we can take advantage of macros to write custom guards that can simplify our programs or make them more domain-specific. At the end of the day, what matters is that the *output* of the macros boils down to a combination of allowed expressions.
 
-Let's look at a quick case study: we want to check whether a function argument is an even or an odd integer. With pattern matching this is impossible because there is an infinite number of integers, and therefore we can't pattern match on every single one of them. So, let's focus on checking for even numbers since checking for the odd ones is almost identical.
+Let's look at a quick case study: we want to check whether a function argument is an even or an odd integer. With pattern matching this is impossible because there is an infinite number of integers, and therefore we can't pattern match on every single one of them. We will just focus on checking for even numbers since checking for the odd ones is almost identical.
 
 Such a guard would look like this:
 
@@ -200,7 +200,7 @@ def my_function(number) when is_integer(number) and rem(number, 2) == 0 do
 end
 ```
 
-It would be repetitive to write every time we need this check, so, as mentioned at the beginning of this section, we can abstract this away using a macro. Remember that defining a function that performs this check wouldn't work because we can't use custom functions in guards. Instead you can use `defguard/1` and `defguardp/1` to create guard-safe macros. Here's an example how:
+It would be repetitive to write every time we need this check, so, as mentioned at the beginning of this section, we can abstract this away using a macro. Remember that defining a function that performs this check wouldn't work because we can't use custom functions in guards. Instead you can use `defguard/1` and `defguardp/1` to create guard macros. Here's an example how:
 
 ```elixir
 defmodule MyInteger do
@@ -218,4 +218,4 @@ def my_function(number) when is_even(number) do
 end
 ```
 
-While it's possible to create custom guards with macros, it's recommended to define them using `defguard/1` and `defguardp/1` which perform additional compile-time checks and optimizations.
+While it's possible to create custom guards with macros, it's recommended to define them using `defguard/1` and `defguardp/1` which perform additional compile-time checks.
