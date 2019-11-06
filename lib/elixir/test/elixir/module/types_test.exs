@@ -5,16 +5,16 @@ defmodule Module.TypesTest do
   import Bitwise, warn: false
   alias Module.Types
 
-  defmacrop quoted_clause(patterns) do
+  defmacrop quoted_head(patterns) do
     quote do
       {patterns, true} = unquote(Macro.escape(expand_head(patterns, true)))
 
       Types.of_head(patterns, [], new_stack(), new_context())
-      |> lift_result()
+      |> maybe_error()
     end
   end
 
-  defmacrop quoted_clause(patterns, guards) do
+  defmacrop quoted_head(patterns, guards) do
     quote do
       {patterns, guards} = unquote(Macro.escape(expand_head(patterns, guards)))
 
@@ -67,35 +67,32 @@ defmodule Module.TypesTest do
     {:error, {reason, location}}
   end
 
-  describe "of_clause/2" do
+  describe "of_head/4" do
     test "various" do
       assert quoted_head([true]) == {:ok, [{:atom, true}]}
       assert quoted_head([foo]) == {:ok, [{:var, 0}]}
     end
 
     test "variable" do
-      assert quoted_clause([a]) == {:ok, [{:var, 0}]}
-      assert quoted_clause([a, b]) == {:ok, [{:var, 0}, {:var, 1}]}
-      assert quoted_clause([a, a]) == {:ok, [{:var, 0}, {:var, 0}]}
-      assert quoted_clause([a, a]) == {:ok, [{:var, 0}, {:var, 0}]}
+      assert quoted_head([a]) == {:ok, [{:var, 0}]}
+      assert quoted_head([a, b]) == {:ok, [{:var, 0}, {:var, 1}]}
+      assert quoted_head([a, a]) == {:ok, [{:var, 0}, {:var, 0}]}
 
-      assert lift_result(
-               Types.of_clause(
+      assert {:ok, [{:var, 0}, {:var, 0}], _} =
+               Types.of_head(
                  [{:a, [version: 0], :foo}, {:a, [version: 0], :foo}],
                  [],
                  new_stack(),
                  new_context()
                )
-             ) == {:ok, [{:var, 0}, {:var, 0}]}
 
-      assert lift_result(
-               Types.of_clause(
+      assert {:ok, [{:var, 0}, {:var, 1}], _} =
+               Types.of_head(
                  [{:a, [version: 0], :foo}, {:a, [version: 1], :foo}],
                  [],
                  new_stack(),
                  new_context()
                )
-             ) == {:ok, [{:var, 0}, {:var, 1}]}
     end
 
     test "assignment" do

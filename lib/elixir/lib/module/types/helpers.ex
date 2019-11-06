@@ -14,6 +14,11 @@ defmodule Module.Types.Helpers do
   end
 
   @doc """
+  Returns unique identifier for the current assignment of the variable.
+  """
+  def var_name({name, meta, _context}), do: {name, Keyword.fetch!(meta, :version)}
+
+  @doc """
   Push expression to stack.
 
   The expression stack is used to give the context where a type variable
@@ -107,6 +112,11 @@ defmodule Module.Types.Helpers do
 
   defp do_map_reduce_ok([], {list, acc}, _fun), do: {:ok, Enum.reverse(list), acc}
 
+  @doc """
+  Given a list of `[{:ok, term()} | {:error, term()}]` it returns a list of
+  errors `{:error, [term()]}` in case of at least one error or `{:ok, [term()]}`
+  if there are no errors.
+  """
   def oks_or_errors(list) do
     case Enum.split_with(list, &match?({:ok, _}, &1)) do
       {oks, []} -> {:ok, Enum.map(oks, fn {:ok, ok} -> ok end)}
