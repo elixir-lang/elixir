@@ -82,7 +82,7 @@ not_nil_head?(["some_value", "another_value"])
 #=> false
 ```
 
-Even though the list `head` is not `nil`, `not_nil_head?` returns false. To make the guard behave correctly, you must ensure that the guard evaluates to `true`, like so:
+Even though the list `head` is not `nil`, the first clause for `not_nil_head?` fails, triggering the second clause which returns `false`. To make the guard behave correctly, you must ensure that the guard evaluates to `true`, like so:
 
 ```elixir
 def not_nil_head?(term) when head != nil, do: true
@@ -96,7 +96,7 @@ not_nil_head?(["some_value", "another_value"])
 
 In guards, when functions would normally raise exceptions, they cause the guard to fail instead.
 
-For example, the `tuple_size/1` function only works with tuple. If we use it with anything else, an argument error is raised:
+For example, the `tuple_size/1` function only works with tuples. If we use it with anything else, an argument error is raised:
 
 ```elixir
 iex> tuple_size("hello")
