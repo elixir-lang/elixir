@@ -72,7 +72,7 @@ Other constructs are [`for`](`for/1`), [`with`](`with/1`), [`try/rescue/catch/el
 
 The whole guard is true if and only if all guard expressions evaluate to `true`. If any other value is returned, the guard fails. In particular, guards have no concept of "truthy" or "falsey".
 
-For example, imagine a function that checks that the head of a list is not nil:
+For example, imagine a function that checks that the head of a list is not `nil`:
 
 ```elixir
 def not_nil_head?([head | _]) when head, do: true
