@@ -118,9 +118,7 @@ iex> case "hello" do
 
 In many cases, we can take advantage of this. In the code above, we used `tuple_size/1` to both check that the given value is a tuple *and* check its size (instead of using `is_tuple(something) and tuple_size(something) == 2`).
 
-Since `tuple_size/1` will make the whole guard fail if it is not given a tuple, we recommend to call type-check functions (such as `is_tuple/1`) before, provided your guard has multiple conditions. Additionally, this practice brings the benefit that when writing guard macros, they will return `false` instead of raising an exception when used outside guards.
-
-Alternatively your function clause can use multiple guards as shown in the following section.
+However, if your guard has multiple conditions, such as checking for tuples or maps, it is best to call type-check functions like `is_tuple/1` before `tuple_size/1`, otherwise the whole guard will fail if a tuple is not given. Alternatively your function clause can use multiple guards as shown in the following section.
 
 ## Multiple guards in the same clause
 
@@ -164,9 +162,7 @@ Check.empty?({})
 #=> false # true was expected!
 ```
 
-This could be corrected by ensuring that no exception is raised, either via type checks like `is_map(val) and map_size(val) == 0`, or by checking equality instead, like `val == %{}`.
-
-It could also be corrected by using multiple guards, so that if an exception causes one guard to fail, the next one is still evaluated.
+This could be corrected by ensuring that no exception is raised, either via type checks like `is_map(val) and map_size(val) == 0`, or by using multiple guards, so that if an exception causes one guard to fail, the next one is evaluated.
 
 ```elixir
 defmodule Check do
