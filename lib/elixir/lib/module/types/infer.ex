@@ -1,0 +1,373 @@
+defmodule Module.Types.Infer do
+  @moduledoc false
+
+  import Module.Types.Helpers
+
+  @doc """
+  Unifies two types and returns the unified type and an updated typing context
+  or an error in case of a typing conflict.
+  """
+  def unify(left, right, stack, context) do
+    case do_unify(left, right, stack, context) do
+      {:ok, type, context} -> {:ok, type, context}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp do_unify(type, {:var, var}, stack, context) do
+    case Map.fetch!(context.types, var) do
+      :unbound ->
+        context = refine_var(var, type, stack, context)
+        stack = push_unify_stack(var, stack)
+
+        if recursive_type?(type, [], context) do
+          error({:unable_unify, type, {:var, var}}, stack, context)
+        else
+          {:ok, {:var, var}, context}
+        end
+
+      var_type ->
+        # Only add trace if the variable wasn't already "expanded"
+        context =
+          if variable_expanded?(var, stack, context) do
+            context
+          else
+            trace_var(var, type, stack, context)
+          end
+
+        stack = push_unify_stack(var, stack)
+
+        case do_unify(type, var_type, stack, context) do
+          {:ok, var_type, context} ->
+            context = refine_var(var, var_type, stack, context)
+            {:ok, {:var, var}, context}
+
+          {:error, reason} ->
+            {:error, reason}
+        end
+    end
+  end
+
+  defp do_unify({:var, var}, type, stack, context) do
+    do_unify(type, {:var, var}, stack, context)
+  end
+
+  defp do_unify({:tuple, lefts}, {:tuple, rights}, stack, context)
+       when length(lefts) == length(rights) do
+    result =
+      map_reduce_ok(Enum.zip(lefts, rights), context, fn {left, right}, context ->
+        do_unify(left, right, stack, context)
+      end)
+
+    case result do
+      {:ok, types, context} -> {:ok, {:tuple, types}, context}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp do_unify({:list, left}, {:list, right}, stack, context) do
+    case do_unify(left, right, stack, context) do
+      {:ok, type, context} -> {:ok, {:list, type}, context}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp do_unify({:map, left_pairs}, {:map, right_pairs}, stack, context) do
+    # Since maps in patterns only support literal keys (excluding maps)
+    # we can do exact type match without subtype checking
+
+    unique_right_pairs =
+      Enum.reject(right_pairs, fn {key, _value} ->
+        :lists.keyfind(key, 1, left_pairs)
+      end)
+
+    unique_pairs = left_pairs ++ unique_right_pairs
+
+    # Build union of all unique key-value pairs between the maps
+    result =
+      map_reduce_ok(unique_pairs, context, fn {left_key, left_value}, context ->
+        case :lists.keyfind(left_key, 1, right_pairs) do
+          {^left_key, right_value} ->
+            case do_unify(left_value, right_value, stack, context) do
+              {:ok, value, context} -> {:ok, {left_key, value}, context}
+              {:error, reason} -> {:error, reason}
+            end
+
+          false ->
+            {:ok, {left_key, left_value}, context}
+        end
+      end)
+
+    case result do
+      {:ok, pairs, context} -> {:ok, {:map, pairs}, context}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp do_unify(:dynamic, right, _stack, context) do
+    {:ok, right, context}
+  end
+
+  defp do_unify(left, :dynamic, _stack, context) do
+    {:ok, left, context}
+  end
+
+  defp do_unify(left, right, stack, context) do
+    cond do
+      subtype?(left, right, context) -> {:ok, left, context}
+      subtype?(right, left, context) -> {:ok, right, context}
+      true -> error({:unable_unify, left, right}, stack, context)
+    end
+  end
+
+  # Check unify stack to see if variable was already expanded
+  defp variable_expanded?(var, stack, context) do
+    Enum.any?(stack.unify_stack, &variable_same?(var, &1, context))
+  end
+
+  # Find if two variables are the same or point to the other
+  defp variable_same?(same, same, _context) do
+    true
+  end
+
+  defp variable_same?(left, right, context) do
+    case Map.fetch(context.types, left) do
+      {:ok, {:var, new_left}} ->
+        variable_same?(new_left, right, context)
+
+      _ ->
+        case Map.fetch(context.types, right) do
+          {:ok, {:var, new_right}} -> variable_same?(left, new_right, context)
+          _ -> false
+        end
+    end
+  end
+
+  defp push_unify_stack(var, stack) do
+    %{stack | unify_stack: [var | stack.unify_stack]}
+  end
+
+  @doc """
+  Adds a variable to the typing context and returns its type variables.
+  If the variable has already been added, return the existing type variable.
+  """
+  def new_var(var, context) do
+    case Map.fetch(context.vars, var_name(var)) do
+      {:ok, type} ->
+        {type, context}
+
+      :error ->
+        type = {:var, context.counter}
+        vars = Map.put(context.vars, var_name(var), type)
+        types_to_vars = Map.put(context.types_to_vars, context.counter, var)
+        types = Map.put(context.types, context.counter, :unbound)
+        traces = Map.put(context.traces, context.counter, [])
+
+        context = %{
+          context
+          | vars: vars,
+            types_to_vars: types_to_vars,
+            types: types,
+            traces: traces,
+            counter: context.counter + 1
+        }
+
+        {type, context}
+    end
+  end
+
+  @doc """
+  Set the type for a variable and add trace.
+  """
+  def refine_var(var, type, stack, context) do
+    types = Map.put(context.types, var, type)
+    context = %{context | types: types}
+    trace_var(var, type, stack, context)
+  end
+
+  @doc """
+  Remove type variable and all its traces.
+  """
+  def remove_var(var, context) do
+    types = Map.delete(context.types, var)
+    traces = Map.delete(context.traces, var)
+    %{context | types: types, traces: traces}
+  end
+
+  defp trace_var(var, type, %{trace: true, expr_stack: expr_stack} = _stack, context) do
+    line = get_meta(hd(expr_stack))[:line]
+    trace = {type, expr_stack, {context.file, line}}
+    traces = Map.update!(context.traces, var, &[trace | &1])
+    %{context | traces: traces}
+  end
+
+  defp trace_var(_var, _type, %{trace: false} = _stack, context) do
+    context
+  end
+
+  # Check if a variable is recursive and incompatible with itself
+  # Bad: `{var} = var`
+  # Good: `x = y; y = z; z = x`
+  defp recursive_type?({:var, var} = parent, parents, context) do
+    case Map.fetch!(context.types, var) do
+      :unbound ->
+        false
+
+      type ->
+        if type in parents do
+          not Enum.all?(parents, &match?({:var, _}, &1))
+        else
+          recursive_type?(type, [parent | parents], context)
+        end
+    end
+  end
+
+  defp recursive_type?({:list, type} = parent, parents, context) do
+    recursive_type?(type, [parent | parents], context)
+  end
+
+  defp recursive_type?({:tuple, types} = parent, parents, context) do
+    Enum.any?(types, &recursive_type?(&1, [parent | parents], context))
+  end
+
+  defp recursive_type?({:map, pairs} = parent, parents, context) do
+    Enum.any?(pairs, fn {key, value} ->
+      recursive_type?(key, [parent | parents], context) or
+        recursive_type?(value, [parent | parents], context)
+    end)
+  end
+
+  defp recursive_type?(_other, _parents, _context) do
+    false
+  end
+
+  @doc """
+  Checks if the first argument is a subtype of the second argument.
+  Only checks for simple and concrete types.
+  """
+  def subtype?({:atom, boolean}, :boolean, _context) when is_boolean(boolean), do: true
+  def subtype?({:atom, atom}, :atom, _context) when is_atom(atom), do: true
+  def subtype?(:boolean, :atom, _context), do: true
+  def subtype?(:float, :number, _context), do: true
+  def subtype?(:integer, :number, _context), do: true
+  def subtype?({:tuple, _}, :tuple, _context), do: true
+
+  # TODO: Lift unions to unify/3?
+  def subtype?({:union, left_types}, {:union, _} = right_union, context) do
+    Enum.all?(left_types, &subtype?(&1, right_union, context))
+  end
+
+  def subtype?(left, {:union, right_types}, context) do
+    Enum.any?(right_types, &subtype?(left, &1, context))
+  end
+
+  def subtype?(left, right, _context), do: left == right
+
+  @doc """
+  Returns a "simplified" union using `subtype?/3` to remove redundant types.
+
+  Due to limitations in `subtype?/3` some overlapping types may still be
+  included. For example unions with overlapping non-concrete types such as
+  `{boolean()} | {atom()}` will not be merged or types with variables that
+  are distinct but equivalent such as `a | b when a ~ b`.
+  """
+  # TODO: Translate union of all top types to dynamic()
+  def to_union(types, context) when types != [] do
+    if :dynamic in types do
+      :dynamic
+    else
+      case unique_super_types(flatten_union(types), context) do
+        [type] -> type
+        types -> {:union, types}
+      end
+    end
+  end
+
+  defp flatten_union(types) do
+    Enum.flat_map(types, fn
+      {:union, types} -> flatten_union(types)
+      type -> [type]
+    end)
+  end
+
+  # Filter subtypes
+  # `boolean() | atom()` => `atom()`
+  # `:foo | atom()` => `atom()`
+  # Does not unify `true | false` => `boolean()`
+  defp unique_super_types([type | types], context) do
+    types = Enum.reject(types, &subtype?(&1, type, context))
+
+    if Enum.any?(types, &subtype?(type, &1, context)) do
+      unique_super_types(types, context)
+    else
+      [type | unique_super_types(types, context)]
+    end
+  end
+
+  defp unique_super_types([], _context) do
+    []
+  end
+
+  # Collect relevant information from context and traces to report error
+  defp error({:unable_unify, left, right}, stack, context) do
+    {fun, arity} = context.function
+    line = get_meta(hd(stack.expr_stack))[:line]
+    location = {context.file, line, {context.module, fun, arity}}
+
+    traces = type_traces(stack, context)
+    common_expr = common_super_expr(traces) || hd(stack.expr_stack)
+    traces = simplify_traces(traces, context)
+
+    {:error, {Module.Types, {:unable_unify, left, right, common_expr, traces}, [location]}}
+  end
+
+  # Collect relevant traces from context.traces using stack.unify_stack
+  defp type_traces(stack, context) do
+    stack = Enum.uniq(stack.unify_stack)
+
+    Enum.flat_map(stack, fn var_index ->
+      case Map.fetch(context.traces, var_index) do
+        {:ok, traces} ->
+          expr_var = Map.fetch!(context.types_to_vars, var_index)
+          Enum.map(traces, &{expr_var, &1})
+
+        _other ->
+          []
+      end
+    end)
+  end
+
+  # Only use last expr from trace and tag if trace is for
+  # a concrete type or type variable
+  defp simplify_traces(traces, context) do
+    Enum.flat_map(traces, fn {var, {type, [expr | _], location}} ->
+      case type do
+        {:var, var_index} ->
+          var2 = Map.fetch!(context.types_to_vars, var_index)
+          [{var, {:var, var2, expr, location}}]
+
+        _ ->
+          [{var, {:type, type, expr, location}}]
+      end
+    end)
+  end
+
+  # Find first common super expression among all traces
+  defp common_super_expr([]) do
+    nil
+  end
+
+  defp common_super_expr([{_var, {_type, expr_stack, _location}} | traces]) do
+    Enum.find_value(expr_stack, fn expr ->
+      common? =
+        Enum.all?(traces, fn {_var, {_type, expr_stack, _location}} -> expr in expr_stack end)
+
+      if common? do
+        expr
+      end
+    end)
+  end
+
+  defp get_meta({_fun, meta, _args}) when is_list(meta), do: meta
+  defp get_meta(_other), do: []
+end
