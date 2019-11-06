@@ -122,7 +122,7 @@ defmodule Calendar do
   for any other time zone.
 
   Other time zone databases (including ones provided by packages)
-  can be configure as default either via configuration:
+  can be configured as default either via configuration:
 
       config :elixir, :time_zone_database, CustomTimeZoneDatabase
 
