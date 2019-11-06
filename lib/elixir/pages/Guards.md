@@ -18,7 +18,7 @@ You can find the built-in list of guards [in the `Kernel` module](Kernel.html#gu
 
 The module `Bitwise` also includes a handful of [Erlang bitwise operations as guards](Bitwise.html#guards).
 
-Macros constructed out of any combination of the above guards are also valid guards - for example, `Integer.is_even/1`. For more information, see the "Defining custom guard expressions" section shown below.
+Macros constructed out of any combination of the above guards are also valid guards - for example, `Integer.is_even/1`. The whole guard is true if all guard expressions will evaluate to `true`.
 
 ## Why guards
 
