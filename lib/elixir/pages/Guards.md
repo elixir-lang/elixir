@@ -18,6 +18,26 @@ You can find the built-in list of guards [in the `Kernel` module](Kernel.html#gu
 
 The module `Bitwise` also includes a handful of [Erlang bitwise operations as guards](Bitwise.html#guards).
 
+Guards have no concept of "truthy" or "falsey", but instead rely only on strict boolean comparison. If all guards in a clause do not evaluate to the literal boolean value `true`, then the guard will not pass. For example, the following will always return false, even if called with a tuple:
+
+```elixir
+def is_a_tuple?(term) when tuple_size(term), do: true
+def is_a_tuple?(_), do: false
+
+is_a_tuple?({:ok, 1})
+#=> false
+```
+
+To make that guard function correctly you must ensure that the guard evaluates to `true`, like so:
+
+```elixir
+def is_a_tuple?(term) when tuple_size(term) >= 0, do: true
+def is_a_tuple?(_), do: false
+
+is_a_tuple?({:ok, 1})
+#=> true
+```
+
 Macros constructed out of any combination of the above guards are also valid guards - for example, `Integer.is_even/1`. For more information, see the "Defining custom guard expressions" section shown below.
 
 ## Why guards
