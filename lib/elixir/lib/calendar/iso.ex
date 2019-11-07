@@ -31,6 +31,8 @@ defmodule Calendar.ISO do
   @type ce :: 1
 
   @typedoc """
+  The calendar era.
+
   The ISO calendar has two eras:
   * [CE](`t:ce/0`) - which starts in year `1` and is defined as era `1`.
   * [BCE](`t:bce/0`) - for those years less than `1` and is defined as era `0`.
