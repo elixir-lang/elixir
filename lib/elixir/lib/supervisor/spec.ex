@@ -234,7 +234,8 @@ defmodule Supervisor.Spec do
           function: atom,
           modules: modules
         ) :: spec
-  @deprecated "Use the new child specifications outlined in the Supervisor module instead"
+  # TODO: Deprecate on v1.11
+  # @deprecated "Use the new child specifications outlined in the Supervisor module instead"
   def worker(module, args, options \\ []) do
     child(:worker, module, args, options)
   end
@@ -268,7 +269,8 @@ defmodule Supervisor.Spec do
           function: atom,
           modules: modules
         ) :: spec
-  @deprecated "Use the new child specifications outlined in the Supervisor module instead"
+  # TODO: Deprecate on v1.11
+  # @deprecated "Use the new child specifications outlined in the Supervisor module instead"
   def supervisor(module, args, options \\ []) do
     options = Keyword.put_new(options, :shutdown, :infinity)
     child(:supervisor, module, args, options)
