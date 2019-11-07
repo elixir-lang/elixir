@@ -368,12 +368,7 @@ defmodule Supervisor do
   In the above, process termination refers to unsuccessful termination, which
   is determined by the `:restart` option.
 
-  There is also a deprecated strategy called `:simple_one_for_one` which
-  has been replaced by the `DynamicSupervisor`. The `:simple_one_for_one`
-  supervisor was similar to `:one_for_one` but suits better when dynamically
-  attaching children. Many functions in this module behaved slightly
-  differently when this strategy was used. See the `DynamicSupervisor` module
-  for more information and migration strategies.
+  To dynamically supervise children, see `DynamicSupervisor`.
 
   ### Name registration
 
