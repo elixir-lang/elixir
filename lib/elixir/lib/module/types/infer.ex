@@ -315,7 +315,7 @@ defmodule Module.Types.Infer do
   ]
 
   @doc """
-  Refines the type variables in the typing context using type check guards
+  Refines the type variables in the typing context using type-check guards
   such as `is_integer/1`.
   """
   def of_guard({{:., _, [:erlang, :andalso]}, _, [left, right]} = expr, stack, context) do
@@ -468,7 +468,7 @@ defmodule Module.Types.Infer do
 
   defp and_guard_sources(left, right) do
     Map.merge(left, right, fn _index, left, right ->
-      # When the failing guard function wont fail due to type check function before it,
+      # When the failing guard function wont fail due to type-check function before it,
       # for example: is_list(x) and length(x)
       if :guarded in left and :fail in right do
         [:guarded_fail]
