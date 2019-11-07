@@ -789,11 +789,11 @@ defmodule Calendar.ISO do
     time_to_string_guarded(hour, minute, second, microsecond, format)
   end
 
-  def time_to_string_guarded(hour, minute, second, {_, 0}, format) do
+  defp time_to_string_guarded(hour, minute, second, {_, 0}, format) do
     time_to_string_format(hour, minute, second, format)
   end
 
-  def time_to_string_guarded(hour, minute, second, {microsecond, precision}, format) do
+  defp time_to_string_guarded(hour, minute, second, {microsecond, precision}, format) do
     time_to_string_format(hour, minute, second, format) <>
       "." <> (microsecond |> zero_pad(6) |> binary_part(0, precision))
   end
@@ -837,11 +837,11 @@ defmodule Calendar.ISO do
     date_to_string_guarded(year, month, day, format)
   end
 
-  def date_to_string_guarded(year, month, day, :extended) do
+  defp date_to_string_guarded(year, month, day, :extended) do
     zero_pad(year, 4) <> "-" <> zero_pad(month, 2) <> "-" <> zero_pad(day, 2)
   end
 
-  def date_to_string_guarded(year, month, day, :basic) do
+  defp date_to_string_guarded(year, month, day, :basic) do
     zero_pad(year, 4) <> zero_pad(month, 2) <> zero_pad(day, 2)
   end
 
