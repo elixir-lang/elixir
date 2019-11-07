@@ -412,6 +412,21 @@ defmodule ExUnit.Callbacks do
     end
   end
 
+  @doc """
+  Same as `stop_supervised/1` but raises if it cannot be stopped.
+  """
+  @doc since: "1.10.0"
+  @spec stop_supervised!(id :: term()) :: :ok
+  def stop_supervised!(id) do
+    case stop_supervised(id) do
+      :ok ->
+        :ok
+
+      {:error, :not_found} ->
+        raise "could not stop child ID #{inspect(id)} because it was not found"
+    end
+  end
+
   ## Helpers
 
   @reserved [:case, :file, :line, :test, :async, :registered, :describe]
