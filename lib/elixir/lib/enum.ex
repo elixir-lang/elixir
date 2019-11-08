@@ -408,7 +408,7 @@ defmodule Enum do
   @doc false
   @deprecated "Use Enum.chunk_every/3 instead"
   def chunk(enum, n, step) do
-    chunk_every(enum, n, step, nil)
+    chunk_every(enum, n, step, :discard)
   end
 
   @doc false

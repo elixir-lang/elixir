@@ -47,6 +47,16 @@ defmodule EnumTest do
     assert Enum.at([2, 4, 6], -4) == nil
   end
 
+  test "chunk/3" do
+    enum = Enum
+    assert enum.chunk(1..5, 2, 1) == Enum.chunk_every(1..5, 2, 1, :discard)
+  end
+
+  test "chunk/4" do
+    enum = Enum
+    assert enum.chunk(1..5, 2, 1, nil) == Enum.chunk_every(1..5, 2, 1, :discard)
+  end
+
   test "chunk_every/2" do
     assert Enum.chunk_every([1, 2, 3, 4, 5], 2) == [[1, 2], [3, 4], [5]]
   end
