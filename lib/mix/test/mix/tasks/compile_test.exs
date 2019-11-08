@@ -98,6 +98,9 @@ defmodule Mix.Tasks.CompileTest do
     end)
   end
 
+  # A.info/0 is loaded dynamically
+  @compile {:no_warn_undefined, {A, :info, 0}}
+
   test "adds Logger application metadata" do
     import ExUnit.CaptureLog
 

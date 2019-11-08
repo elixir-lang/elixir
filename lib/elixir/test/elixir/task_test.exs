@@ -220,6 +220,8 @@ defmodule TaskTest do
       assert {{%RuntimeError{}, _}, {Task, :await, [^task, 5000]}} = catch_exit(Task.await(task))
     end
 
+    @compile {:no_warn_undefined, :module_does_not_exist}
+
     test "exits on task undef module error" do
       Process.flag(:trap_exit, true)
       task = Task.async(&:module_does_not_exist.undef/0)
@@ -228,6 +230,8 @@ defmodule TaskTest do
       assert {:undef, [{:module_does_not_exist, :undef, _, _} | _]} = exit_status
       assert {Task, :await, [^task, 5000]} = mfa
     end
+
+    @compile {:no_warn_undefined, {TaskTest, :undef, 0}}
 
     test "exits on task undef function error" do
       Process.flag(:trap_exit, true)
