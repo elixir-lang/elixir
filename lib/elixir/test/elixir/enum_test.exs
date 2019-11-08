@@ -342,7 +342,7 @@ defmodule EnumTest do
     assert Enum.map_every([], 2, fn x -> x * 2 end) == []
     assert Enum.map_every([1, 2], 2, fn x -> x * 2 end) == [2, 2]
 
-    assert Enum.map_every([1, 2, 3], 0, fn _x -> raise :i_should_have_never_been_invoked end) ==
+    assert Enum.map_every([1, 2, 3], 0, fn _x -> raise "should not be invoked" end) ==
              [1, 2, 3]
 
     assert Enum.map_every(1..3, 1, fn x -> x * 2 end) == [2, 4, 6]

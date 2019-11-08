@@ -3,6 +3,9 @@ Code.require_file("../test_helper.exs", __DIR__)
 defmodule Mix.RebarTest do
   use MixTest.Case
 
+  # rebar_dep and git_rebar are loaded dynamically
+  @compile {:no_warn_undefined, [:rebar_dep, :git_rebar]}
+
   defmodule RebarAsDep do
     def project do
       [

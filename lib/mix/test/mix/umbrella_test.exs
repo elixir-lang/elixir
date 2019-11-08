@@ -279,6 +279,9 @@ defmodule Mix.UmbrellaTest do
     end)
   end
 
+  # Bar.bar is loaded dynamically
+  @compile {:no_warn_undefined, {Bar, :bar, 0}}
+
   test "compile for umbrella as dependency" do
     in_fixture("umbrella_dep", fn ->
       Mix.Project.in_project(:umbrella_dep, ".", fn _ ->

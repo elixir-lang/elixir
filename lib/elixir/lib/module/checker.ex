@@ -160,7 +160,8 @@ defmodule Module.Checker do
   # Mod.fun(...)
   defp check_expr({{:., meta, [module, fun]}, _, args}, state)
        when is_atom(module) and is_atom(fun) do
-    check_remote(module, fun, length(args), meta, state)
+    state = check_remote(module, fun, length(args), meta, state)
+    check_expr(args, state)
   end
 
   # %Module{...}

@@ -134,6 +134,8 @@ defmodule ProtocolTest do
     assert [{{:ok, 1}, "Reason"}] = deprecated
   end
 
+  @compile {:no_warn_undefined, WithAll}
+
   test "protocol keeps underlying UndefinedFunctionError" do
     assert_raise UndefinedFunctionError, fn ->
       WithAll.ok(%ImplStruct{})
