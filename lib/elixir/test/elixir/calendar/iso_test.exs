@@ -36,6 +36,14 @@ defmodule Calendar.ISOTest do
   end
 
   describe "date_to_string/4" do
+    test "regular use" do
+      assert Calendar.ISO.date_to_string(1000, 1, 1, :basic) == "10000101"
+      assert Calendar.ISO.date_to_string(1000, 1, 1, :extended) == "1000-01-01"
+
+      assert Calendar.ISO.date_to_string(-123, 1, 1, :basic) == "-01230101"
+      assert Calendar.ISO.date_to_string(-123, 1, 1, :extended) == "-0123-01-01"
+    end
+
     test "handles years > 9999" do
       assert Calendar.ISO.date_to_string(10000, 1, 1, :basic) == "100000101"
       assert Calendar.ISO.date_to_string(10000, 1, 1, :extended) == "10000-01-01"
@@ -87,6 +95,25 @@ defmodule Calendar.ISOTest do
       assert_raise ArgumentError, "invalid date: 2017-11-00", fn ->
         Calendar.ISO.day_of_year(2017, 11, 0)
       end
+    end
+  end
+
+  test "year_of_era/1" do
+    assert Calendar.ISO.year_of_era(-9999) == {10000, 0}
+    assert Calendar.ISO.year_of_era(-1) == {2, 0}
+    assert Calendar.ISO.year_of_era(0) == {1, 0}
+    assert Calendar.ISO.year_of_era(1) == {1, 1}
+    assert Calendar.ISO.year_of_era(1984) == {1984, 1}
+
+    random_positive_year = Enum.random(1..9999)
+    assert Calendar.ISO.year_of_era(random_positive_year) == {random_positive_year, 1}
+
+    assert_raise FunctionClauseError, fn ->
+      Calendar.ISO.year_of_era(10000)
+    end
+
+    assert_raise FunctionClauseError, fn ->
+      Calendar.ISO.year_of_era(-10000)
     end
   end
 

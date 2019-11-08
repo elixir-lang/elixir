@@ -208,7 +208,7 @@ defmodule NaiveDateTime do
           Calendar.hour(),
           Calendar.minute(),
           Calendar.second(),
-          Calendar.microsecond(),
+          Calendar.microsecond() | non_neg_integer,
           Calendar.calendar()
         ) :: {:ok, t} | {:error, atom}
   def new(year, month, day, hour, minute, second, microsecond \\ {0, 0}, calendar \\ Calendar.ISO)

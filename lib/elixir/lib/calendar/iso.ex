@@ -20,9 +20,32 @@ defmodule Calendar.ISO do
   unix_end = 315_569_519_999_999_999 - @unix_epoch * 1_000_000
   @unix_range_microseconds unix_start..unix_end
 
+  @typedoc """
+  "Before the Current Era" or "Before the Common Era" (BCE), for those years less than `1`.
+  """
+  @type bce :: 0
+
+  @typedoc """
+  The "Current Era" or the "Common Era" (CE) which starts in year `1`.
+  """
+  @type ce :: 1
+
+  @typedoc """
+  The calendar era.
+
+  The ISO calendar has two eras:
+  * [CE](`t:ce/0`) - which starts in year `1` and is defined as era `1`.
+  * [BCE](`t:bce/0`) - for those years less than `1` and is defined as era `0`.
+  """
+  @type era :: bce | ce
   @type year :: -9999..9999
   @type month :: 1..12
   @type day :: 1..31
+
+  @typedoc """
+  Integer that represents the day of the week, where 1 is Monday and 7 is Sunday.
+  """
+  @type day_of_week :: 1..7
 
   @seconds_per_minute 60
   @seconds_per_hour 60 * 60
@@ -35,7 +58,6 @@ defmodule Calendar.ISO do
   @sep [?\s, ?T]
   @days_per_nonleap_year 365
   @days_per_leap_year 366
-  @months_in_year 12
 
   # The ISO epoch starts, in this implementation,
   # with ~D[0000-01-01]. Era "1" starts
@@ -70,6 +92,23 @@ defmodule Calendar.ISO do
         }
       ]
     end
+
+  defguardp is_year(year) when year in -9999..9999
+  defguardp is_year_BCE(year) when year in -9999..0
+  defguardp is_year_CE(year) when year in 1..9999
+  defguardp is_month(month) when month in 1..12
+  defguardp is_day(day) when day in 1..31
+  defguardp is_hour(hour) when hour in 0..23
+  defguardp is_minute(minute) when minute in 0..59
+  defguardp is_second(second) when second in 0..59
+
+  defguardp is_microsecond(microsecond, precision)
+            when microsecond in 0..999_999 and precision in 0..6
+
+  defguardp is_time_zone(term) when is_binary(term)
+  defguardp is_zone_abbr(term) when is_binary(term)
+  defguardp is_utc_offset(offset) when is_integer(offset)
+  defguardp is_std_offset(offset) when is_integer(offset)
 
   @doc """
   Parses a time string.
@@ -462,7 +501,7 @@ defmodule Calendar.ISO do
     719_528
   end
 
-  def date_to_iso_days(year, month, day) when year in -9999..9999 do
+  def date_to_iso_days(year, month, day) do
     ensure_day_in_month!(year, month, day)
 
     days_in_previous_years(year) + days_before_month(month) + leap_day_offset(year, month) + day -
@@ -513,14 +552,16 @@ defmodule Calendar.ISO do
   @doc since: "1.4.0"
   @spec days_in_month(year, month) :: 28..31
   @impl true
-  def days_in_month(year, month)
+  def days_in_month(year, month) when is_year(year) and is_month(month) do
+    days_in_month_guarded(year, month)
+  end
 
-  def days_in_month(year, 2) do
+  defp days_in_month_guarded(year, 2) do
     if leap_year?(year), do: 29, else: 28
   end
 
-  def days_in_month(_, month) when month in [4, 6, 9, 11], do: 30
-  def days_in_month(_, month) when month in 1..12, do: 31
+  defp days_in_month_guarded(_, month) when month in [4, 6, 9, 11], do: 30
+  defp days_in_month_guarded(_, _), do: 31
 
   @doc """
   Returns how many months there are in the given year.
@@ -534,8 +575,8 @@ defmodule Calendar.ISO do
   @doc since: "1.7.0"
   @impl true
   @spec months_in_year(year) :: 12
-  def months_in_year(_year) do
-    @months_in_year
+  def months_in_year(year) when is_year(year) do
+    12
   end
 
   @doc """
@@ -558,7 +599,7 @@ defmodule Calendar.ISO do
   @doc since: "1.3.0"
   @spec leap_year?(year) :: boolean()
   @impl true
-  def leap_year?(year) when is_integer(year) do
+  def leap_year?(year) when is_year(year) do
     rem(year, 4) === 0 and (rem(year, 100) !== 0 or rem(year, 400) === 0)
   end
 
@@ -588,11 +629,11 @@ defmodule Calendar.ISO do
 
   """
   @doc since: "1.4.0"
-  @spec day_of_week(year, month, day) :: 1..7
+  @spec day_of_week(year, month, day) :: day_of_week
   @impl true
-  def day_of_week(year, month, day)
-      when is_integer(year) and is_integer(month) and is_integer(day) do
-    iso_days_to_day_of_week(date_to_iso_days(year, month, day))
+  def day_of_week(year, month, day) do
+    date_to_iso_days(year, month, day)
+    |> iso_days_to_day_of_week()
   end
 
   defp iso_days_to_day_of_week(iso_days) do
@@ -617,8 +658,7 @@ defmodule Calendar.ISO do
   @doc since: "1.8.0"
   @spec day_of_year(year, month, day) :: 1..366
   @impl true
-  def day_of_year(year, month, day)
-      when is_integer(year) and is_integer(month) and is_integer(day) do
+  def day_of_year(year, month, day) do
     ensure_day_in_month!(year, month, day)
     days_before_month(month) + leap_day_offset(year, month) + day
   end
@@ -644,17 +684,16 @@ defmodule Calendar.ISO do
   @spec quarter_of_year(year, month, day) :: 1..4
   @impl true
   def quarter_of_year(year, month, day)
-      when is_integer(year) and is_integer(month) and is_integer(day) do
+      when is_year(year) and is_month(month) and is_day(day) do
     div(month - 1, 3) + 1
   end
 
   @doc """
   Calculates the year and era from the given `year`.
 
-  The ISO calendar has two eras: the current era which
-  starts in year 1 and is defined as era "1". And a
-  second era for those years less than 1 defined as
-  era "0".
+  The ISO calendar has two eras: the "current era" (CE) which
+  starts in year `1` and is defined as era `1`. And "before the current
+  era" (BCE) for those years less than `1`, defined as era `0`.
 
   ## Examples
 
@@ -669,13 +708,13 @@ defmodule Calendar.ISO do
 
   """
   @doc since: "1.8.0"
-  @spec year_of_era(year) :: {pos_integer(), era :: 0..1}
+  @spec year_of_era(year) :: {1..10000, era}
   @impl true
-  def year_of_era(year) when is_integer(year) and year > 0 do
+  def year_of_era(year) when is_year_CE(year) do
     {year, 1}
   end
 
-  def year_of_era(year) when is_integer(year) and year < 1 do
+  def year_of_era(year) when is_year_BCE(year) do
     {abs(year) + 1, 0}
   end
 
@@ -697,16 +736,14 @@ defmodule Calendar.ISO do
 
   """
   @doc since: "1.8.0"
-  @spec day_of_era(year, month, day) :: {day :: pos_integer(), era :: 0..1}
+  @spec day_of_era(year, month, day) :: {day, era}
   @impl true
-  def day_of_era(year, month, day)
-      when is_integer(year) and is_integer(month) and is_integer(day) and year > 0 do
+  def day_of_era(year, month, day) when is_year_CE(year) do
     day = date_to_iso_days(year, month, day) - @iso_epoch + 1
     {day, 1}
   end
 
-  def day_of_era(year, month, day)
-      when is_integer(year) and is_integer(month) and is_integer(day) and year < 1 do
+  def day_of_era(year, month, day) when is_year_BCE(year) do
     day = abs(date_to_iso_days(year, month, day) - @iso_epoch)
     {day, 0}
   end
@@ -742,14 +779,23 @@ defmodule Calendar.ISO do
           Calendar.microsecond(),
           :basic | :extended
         ) :: String.t()
-  def time_to_string(hour, minute, second, microsecond, format \\ :extended)
+  def time_to_string(
+        hour,
+        minute,
+        second,
+        {ms_value, ms_precision} = microsecond,
+        format \\ :extended
+      )
+      when is_hour(hour) and is_minute(minute) and is_second(second) and
+             is_microsecond(ms_value, ms_precision) and format in [:basic, :extended] do
+    time_to_string_guarded(hour, minute, second, microsecond, format)
+  end
 
-  def time_to_string(hour, minute, second, {_, 0}, format) when format in [:basic, :extended] do
+  defp time_to_string_guarded(hour, minute, second, {_, 0}, format) do
     time_to_string_format(hour, minute, second, format)
   end
 
-  def time_to_string(hour, minute, second, {microsecond, precision}, format)
-      when format in [:basic, :extended] do
+  defp time_to_string_guarded(hour, minute, second, {microsecond, precision}, format) do
     time_to_string_format(hour, minute, second, format) <>
       "." <> (microsecond |> zero_pad(6) |> binary_part(0, precision))
   end
@@ -788,12 +834,16 @@ defmodule Calendar.ISO do
   @spec date_to_string(year, month, day, :basic | :extended) :: String.t()
   @impl true
   def date_to_string(year, month, day, format \\ :extended)
+      when is_integer(year) and is_integer(month) and is_integer(day) and
+             format in [:basic, :extended] do
+    date_to_string_guarded(year, month, day, format)
+  end
 
-  def date_to_string(year, month, day, :extended) do
+  defp date_to_string_guarded(year, month, day, :extended) do
     zero_pad(year, 4) <> "-" <> zero_pad(month, 2) <> "-" <> zero_pad(day, 2)
   end
 
-  def date_to_string(year, month, day, :basic) do
+  defp date_to_string_guarded(year, month, day, :basic) do
     zero_pad(year, 4) <> zero_pad(month, 2) <> zero_pad(day, 2)
   end
 
@@ -836,8 +886,7 @@ defmodule Calendar.ISO do
         second,
         microsecond,
         format \\ :extended
-      )
-      when format in [:basic, :extended] do
+      ) do
     date_to_string(year, month, day, format) <>
       " " <> time_to_string(hour, minute, second, microsecond, format)
   end
@@ -906,7 +955,8 @@ defmodule Calendar.ISO do
         std_offset,
         format \\ :extended
       )
-      when format in [:basic, :extended] do
+      when is_time_zone(time_zone) and is_zone_abbr(zone_abbr) and is_utc_offset(utc_offset) and
+             is_std_offset(std_offset) do
     date_to_string(year, month, day, format) <>
       " " <>
       time_to_string(hour, minute, second, microsecond, format) <>
@@ -954,9 +1004,9 @@ defmodule Calendar.ISO do
   @doc since: "1.5.0"
   @impl true
   @spec valid_date?(year, month, day) :: boolean
-  def valid_date?(year, month, day) do
-    month in 1..12 and year in -9999..9999 and
-      (is_integer(day) and day >= 1 and day <= days_in_month(year, month))
+  def valid_date?(year, month, day)
+      when is_integer(year) and is_integer(month) and is_integer(day) do
+    is_year(year) and is_month(month) and day in 1..days_in_month(year, month)
   end
 
   @doc """
@@ -980,9 +1030,11 @@ defmodule Calendar.ISO do
   @impl true
   @spec valid_time?(Calendar.hour(), Calendar.minute(), Calendar.second(), Calendar.microsecond()) ::
           boolean
-  def valid_time?(hour, minute, second, {microsecond, precision}) do
-    hour in 0..23 and minute in 0..59 and second in 0..59 and microsecond in 0..999_999 and
-      precision in 0..6
+  def valid_time?(hour, minute, second, {ms_value, ms_precision} = _microsecond)
+      when is_integer(hour) and is_integer(minute) and is_integer(second) and is_integer(ms_value) and
+             is_integer(ms_value) do
+    is_hour(hour) and is_minute(minute) and is_second(second) and
+      is_microsecond(ms_value, ms_precision)
   end
 
   @doc """
@@ -1258,7 +1310,7 @@ defmodule Calendar.ISO do
     {hour, minute, second}
   end
 
-  defp ensure_day_in_month!(year, month, day) do
+  defp ensure_day_in_month!(year, month, day) when is_integer(day) do
     if day < 1 or day > days_in_month(year, month) do
       raise ArgumentError, "invalid date: #{date_to_string(year, month, day)}"
     end
