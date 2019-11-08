@@ -50,7 +50,7 @@ defmodule EnumTest do
   test "chunk/3" do
     enum = Enum
     enumerable = [1, 2, 3, 4, 5]
-    assert enum.chunk(enumerable, 2, 1) == enum.chunk(enumerable, 2, 1, :discard)
+    assert enum.chunk(enumerable, 2, 1) == Enum.chunk_every(enumerable, 2, 1, :discard)
   end
 
   test "chunk/4" do
