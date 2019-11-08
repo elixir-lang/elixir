@@ -2,6 +2,7 @@ Code.require_file("test_helper.exs", __DIR__)
 
 defmodule EnumTest do
   use ExUnit.Case, async: true
+  import ExUnit.CaptureIO
   doctest Enum
 
   defp assert_runs_enumeration_only_once(enum_fun) do
@@ -45,6 +46,14 @@ defmodule EnumTest do
     assert Enum.at([2, 4, 6], 4, :none) == :none
     assert Enum.at([2, 4, 6], -2) == 4
     assert Enum.at([2, 4, 6], -4) == nil
+  end
+
+  test "chunk/3" do
+    enumerable = [1, 2, 3, 4, 5]
+
+    capture_io(fn ->
+      assert Enum.chunk(enumerable, 2, 1) == Enum.chunk(enumerable, 2, 1, :discard)
+    end)
   end
 
   test "chunk_every/2" do
