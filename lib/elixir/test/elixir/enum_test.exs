@@ -56,6 +56,15 @@ defmodule EnumTest do
     end)
   end
 
+  test "chunk/4" do
+    enumerable = [1, 2, 3, 4, 5]
+
+    capture_io(fn ->
+      assert Enum.chunk(enumerable, 2, 1, :discard) == [[1, 2], [2, 3], [3, 4], [4, 5]]
+      assert Enum.chunk(enumerable, 2, 1, nil) == Enum.chunk(enumerable, 2, 1, :discard)
+    end)
+  end
+
   test "chunk_every/2" do
     assert Enum.chunk_every([1, 2, 3, 4, 5], 2) == [[1, 2], [3, 4], [5]]
   end
