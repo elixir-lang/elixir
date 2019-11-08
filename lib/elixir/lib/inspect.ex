@@ -389,7 +389,7 @@ end
 
 defimpl Inspect, for: PID do
   def inspect(pid, _opts) do
-    "#PID" <> IO.iodata_to_binary(:erlang.pid_to_list(pid))
+    "~PID" <> IO.iodata_to_binary(:erlang.pid_to_list(pid))
   end
 end
 

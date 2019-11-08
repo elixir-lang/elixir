@@ -1,4 +1,8 @@
 defmodule URI do
+  defmacro __sigil__({:<<>>, _, [string]}, []) do
+    Macro.escape(URI.parse(string))
+  end
+
   @moduledoc """
   Utilities for working with URIs.
 

@@ -5,6 +5,10 @@ defmodule URITest do
 
   doctest URI
 
+  test "sigil" do
+    assert %URI{host: "elixir-lang.org"} = ~URI"https://elixir-lang.org"
+  end
+
   test "encode/1,2" do
     assert URI.encode("4_test.is-s~") == "4_test.is-s~"
 

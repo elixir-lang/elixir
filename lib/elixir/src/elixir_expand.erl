@@ -27,6 +27,11 @@ expand({'%', Meta, [Left, Right]}, E) ->
 expand({'<<>>', Meta, Args}, E) ->
   elixir_bitstring:expand(Meta, Args, E, false);
 
+expand({'module_sigil', Meta, [Module, String, Modifiers]}, E) ->
+  Alias = {'__aliases__', [{alias, false}], [Module]},
+  RE = E#{requires := ordsets:add_element(Module, ?key(E, requires))},
+  expand({{'.', Meta, [Alias, '__sigil__']}, [], [{'<<>>', Meta, String}, Modifiers]}, RE);
+
 expand({'->', Meta, _Args}, E) ->
   form_error(Meta, E, ?MODULE, unhandled_arrow_op);
 

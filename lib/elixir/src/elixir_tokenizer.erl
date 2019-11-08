@@ -213,6 +213,32 @@ tokenize([$~, S, H | T] = Original, Line, Column, Scope, Tokens) when ?is_sigil(
       interpolation_error(Reason, Original, Tokens, " (for sigil ~ts starting at line ~B)", [Sigil, Line])
   end;
 
+tokenize([$~, A, B | C] = Original, Line, Column, Scope, Tokens) when ?is_upcase(A) andalso
+                                                                          (?is_upcase(B) orelse
+                                                                          ?is_downcase(B)) ->
+  {S, [H | T]} = lists:splitwith(fun(X) -> X /= $[ andalso
+                                           X /= ${ andalso
+                                           X /= $( andalso
+                                           X /= $" andalso
+                                           X /= $' andalso
+                                           X /= $< andalso
+                                           X /= $| andalso
+                                           X /= $/
+                                 end, [A, B | C]),
+  case elixir_interpolation:extract(Line, Column + 3, Scope, false, T, sigil_terminator(H)) of
+    {NewLine, NewColumn, Parts, Rest} ->
+      {Final, Modifiers} = collect_modifiers(Rest, []),
+      Token = {module_sigil, {Line, Column, nil}, S, tokens_to_binary(Parts), Modifiers, <<H>>},
+      NewColumnWithModifiers = NewColumn + length(Modifiers),
+      tokenize(Final, NewLine, NewColumnWithModifiers, Scope, [Token | Tokens]);
+
+    {error, Reason} ->
+      Sigil = [$~ | S] ++ [H],
+      interpolation_error(Reason, Original, Tokens, " (for sigil ~ts starting at line ~B)",
+                          [Sigil, Line])
+  end;
+
+
 tokenize([$~, S, H | _] = Original, Line, Column, _Scope, Tokens) when ?is_upcase(S) orelse ?is_downcase(S) ->
   MessageString =
     "\"~ts\" (column ~p, code point U+~4.16.0B). The available delimiters are: "

@@ -31,7 +31,7 @@ Terminals
   identifier kw_identifier kw_identifier_safe kw_identifier_unsafe bracket_identifier
   paren_identifier do_identifier block_identifier
   fn 'end' alias
-  atom atom_safe atom_unsafe bin_string list_string sigil
+  atom atom_safe atom_unsafe bin_string list_string sigil module_sigil
   bin_heredoc list_heredoc
   dot_call_op op_identifier
   comp_op at_op unary_op and_op or_op arrow_op match_op in_op in_match_op
@@ -259,6 +259,7 @@ access_expr -> bin_heredoc : build_bin_heredoc('$1').
 access_expr -> list_heredoc : build_list_heredoc('$1').
 access_expr -> bit_string : '$1'.
 access_expr -> sigil : build_sigil('$1').
+access_expr -> module_sigil : build_module_sigil('$1').
 access_expr -> atom : handle_literal(?exprs('$1'), '$1', delimiter(<<$:>>)).
 access_expr -> atom_safe : build_quoted_atom('$1', true, delimiter(<<$:>>)).
 access_expr -> atom_unsafe : build_quoted_atom('$1', false, delimiter(<<$:>>)).
@@ -875,6 +876,11 @@ build_sigil({sigil, Location, Sigil, Parts, Modifiers, Delimiter}) ->
   {list_to_atom("sigil_" ++ [Sigil]),
    MetaWithDelimiter,
    [{'<<>>', Meta, string_parts(Parts)}, Modifiers]}.
+
+%% TODO: handle delimiter
+build_module_sigil({module_sigil, Location, Sigil, Parts, Modifiers, _Delimiter}) ->
+  Meta = meta_from_location(Location),
+  {module_sigil, Meta, [list_to_atom("Elixir." ++ Sigil), string_parts(Parts), Modifiers]}.
 
 build_bin_heredoc({bin_heredoc, Location, Args}) ->
   build_bin_string({bin_string, Location, Args}, delimiter(<<$", $", $">>)).

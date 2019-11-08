@@ -216,7 +216,7 @@ compile_undef(Module, Fun, Arity, Stack) ->
 %% Handle reserved modules and duplicates.
 
 check_module_availability(Line, File, Module) ->
-  Reserved = ['Elixir.Any', 'Elixir.BitString', 'Elixir.PID',
+  Reserved = ['Elixir.Any', 'Elixir.BitString',
               'Elixir.Reference', 'Elixir.Elixir', 'Elixir'],
 
   case lists:member(Module, Reserved) of
