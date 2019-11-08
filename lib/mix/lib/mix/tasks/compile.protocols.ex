@@ -128,7 +128,7 @@ defmodule Mix.Tasks.Compile.Protocols do
     protocols
     |> Enum.uniq()
     |> Enum.map(&Task.async(fn -> consolidate(&1, paths, output, opts) end))
-    |> Enum.map(&Task.await(&1, 30000))
+    |> Enum.map(&Task.await(&1, :infinity))
 
     write_manifest(manifest, metadata)
     :ok
