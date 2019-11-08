@@ -125,10 +125,12 @@ defmodule Mix.Tasks.Compile.Protocols do
   defp consolidate(protocols, paths, output, manifest, metadata, opts) do
     File.mkdir_p!(output)
 
+    consolidate_protocols_timeout = Application.get_env(:mix, :consolidate_protocols_timeout, 30000)
+
     protocols
     |> Enum.uniq()
     |> Enum.map(&Task.async(fn -> consolidate(&1, paths, output, opts) end))
-    |> Enum.map(&Task.await(&1, 30000))
+    |> Enum.map(&Task.await(&1, consolidate_protocols_timeout))
 
     write_manifest(manifest, metadata)
     :ok
