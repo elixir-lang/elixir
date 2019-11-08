@@ -105,8 +105,26 @@ defmodule Logger.Translator do
     {:ok, msg, metadata}
   end
 
-  def translate(_min_level, :error, :format, message) do
+  def translate(min_level, :error, :format, message) do
     case message do
+      # This is no longer emitted by Erlang/OTP but it may be
+      # manually emitted by libraries like connection.
+      {'** Generic server ' ++ _, [name, last, state, reason | client]} ->
+        opts = Application.get_env(:logger, :translator_inspect_opts)
+        {formatted, reason} = format_reason(reason)
+        metadata = [crash_reason: reason] ++ registered_name(name)
+
+        msg =
+          ["GenServer #{inspect(name)} terminating", formatted] ++
+            ["\nLast message#{format_from(client)}: #{inspect(last, opts)}"]
+
+        if min_level == :debug do
+          msg = [msg, "\nState: #{inspect(state, opts)}" | format_client(client)]
+          {:ok, msg, metadata}
+        else
+          {:ok, msg, metadata}
+        end
+
       {'Error in process ' ++ _, [pid, node, {reason, stack}]} ->
         reason = Exception.normalize(:error, reason, stack)
 
@@ -568,6 +586,25 @@ defmodule Logger.Translator do
   defp exit_reason(:throw, value, stack), do: {{:nocatch, value}, stack}
 
   ## Deprecated helpers
+
+  defp format_from([]), do: ""
+  defp format_from([from]), do: " (from #{inspect(from)})"
+  defp format_from([from, stacktrace]) when is_list(stacktrace), do: " (from #{inspect(from)})"
+
+  defp format_from([from, node_name]) when is_atom(node_name),
+    do: " (from #{inspect(from)} on #{inspect(node_name)})"
+
+  defp format_client([from]) do
+    "\nClient #{inspect(from)} is dead"
+  end
+
+  defp format_client([from, stacktrace]) when is_list(stacktrace) do
+    ["\nClient #{inspect(from)} is alive\n" | format_stacktrace(stacktrace)]
+  end
+
+  defp format_client(_) do
+    []
+  end
 
   defp format_undef(mod, fun, arity, undef, stacktrace) do
     opts = [module: mod, function: fun, arity: arity, reason: undef]
