@@ -38,7 +38,7 @@ defmodule ExUnit.CaptureIO do
   happens globally and requires `async: false`.
 
   A developer can set a string as an input. The default input
-  is an empty string (which is equivalent to `:eof`).
+  is an empty string.
 
   ## IO devices
 
@@ -54,10 +54,9 @@ defmodule ExUnit.CaptureIO do
 
   ## Options
 
-    * `:capture_prompt` - When capturing `:stdio`, if set to `false`,
-      prompts (specified as arguments to `IO.get*` functions) are not
-      captured. Defaults to `true`. For IO devices other than `:stdio`,
-      the option is ignored.
+    * `:capture_prompt` - Define if prompts (specified as arguments to
+      `IO.get*` functions) should be captured. Defaults to `true`. For
+      IO devices other than `:stdio`, the option is ignored.
 
     * `:encoding` (since v1.10.0) - encoding of the IO device. Allowed
       values are `:unicode` (default) and `:latin1`.
@@ -115,7 +114,7 @@ defmodule ExUnit.CaptureIO do
     capture_io(:stdio, [input: input], fun)
   end
 
-  @spec capture_io(list(), (() -> any())) :: String.t()
+  @spec capture_io(keyword(), (() -> any())) :: String.t()
   def capture_io(options, fun) when is_list(options) and is_function(fun, 0) do
     capture_io(:stdio, options, fun)
   end
@@ -126,7 +125,7 @@ defmodule ExUnit.CaptureIO do
     capture_io(device, [input: input], fun)
   end
 
-  @spec capture_io(atom(), list(), (() -> any())) :: String.t()
+  @spec capture_io(atom(), keyword(), (() -> any())) :: String.t()
   def capture_io(device, options, fun)
       when is_atom(device) and is_list(options) and is_function(fun, 0) do
     do_capture_io(map_dev(device), options, fun)
