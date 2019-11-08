@@ -834,12 +834,12 @@ build_no_parens_do_block(Expr, Args, {BlockMeta, Block}) ->
 build_no_parens(Expr, Args) ->
   build_identifier(Expr, Args).
 
+build_identifier({'.', Meta, _} = Dot, nil) ->
+  %% TODO: We should emit a different AST for this in the future
+  {Dot, [{no_parens, true} | Meta], []};
+
 build_identifier({'.', Meta, _} = Dot, Args) ->
-  FArgs = case Args of
-    nil -> [];
-    _ -> Args
-  end,
-  {Dot, Meta, FArgs};
+  {Dot, Meta, Args};
 
 build_identifier({op_identifier, Location, Identifier}, [Arg]) ->
   {Identifier, [{ambiguous_op, nil} | meta_from_location(Location)], [Arg]};

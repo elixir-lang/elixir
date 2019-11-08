@@ -27,6 +27,12 @@ defmodule Kernel.QuoteTest do
     assert quote(line: line, do: bar(1, 2, 3)) == {:bar, [line: 26], [1, 2, 3]}
   end
 
+  test "operator precedence" do
+    assert {:+, _, [{:+, _, [1, _]}, 1]} = quote(do: 1 + Foo.l() + 1)
+    assert {:+, _, [{:+, _, [1, _]}, 1]} = quote(do: 1 + Foo.l() + 1)
+    assert {:+, _, [1, {_, _, [{:+, _, [1]}]}]} = quote(do: 1 + Foo.l(+1))
+  end
+
   test "generated" do
     assert quote(generated: true, do: bar(1)) == {:bar, [generated: true], [1]}
   end
@@ -46,7 +52,7 @@ defmodule Kernel.QuoteTest do
                 end
               end)
 
-    assert quote(do: foo.unquote(:bar)) == quote(do: foo.bar)
+    assert quote(do: foo.unquote(:bar)) == quote(do: foo.bar())
     assert quote(do: foo.unquote(:bar)(1)) == quote(do: foo.bar(1))
 
     assert (quote do
@@ -60,7 +66,7 @@ defmodule Kernel.QuoteTest do
                 end
               end)
 
-    assert quote(do: foo.unquote({:bar, [], nil})) == quote(do: foo.bar)
+    assert quote(do: foo.unquote({:bar, [], nil})) == quote(do: foo.bar())
     assert quote(do: foo.unquote({:bar, [], [1, 2]})) == quote(do: foo.bar(1, 2))
 
     assert Code.eval_quoted(quote(do: Foo.unquote(Bar))) == {Elixir.Foo.Bar, []}
@@ -295,7 +301,7 @@ defmodule Kernel.QuoteTest.ErrorsTest do
       RuntimeError ->
         mod = Kernel.QuoteTest.ErrorsTest
         file = __ENV__.file |> Path.relative_to_cwd() |> String.to_charlist()
-        assert [{^mod, :will_raise, 2, [file: ^file, line: 275]} | _] = __STACKTRACE__
+        assert [{^mod, :will_raise, 2, [file: ^file, line: 281]} | _] = __STACKTRACE__
     else
       _ -> flunk("expected failure")
     end
@@ -308,7 +314,7 @@ defmodule Kernel.QuoteTest.ErrorsTest do
       RuntimeError ->
         mod = Kernel.QuoteTest.ErrorsTest
         file = __ENV__.file |> Path.relative_to_cwd() |> String.to_charlist()
-        assert [{^mod, _, _, [file: ^file, line: 306]} | _] = __STACKTRACE__
+        assert [{^mod, _, _, [file: ^file, line: 312]} | _] = __STACKTRACE__
     else
       _ -> flunk("expected failure")
     end

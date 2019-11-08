@@ -5,7 +5,6 @@
   control_test,
   function_test,
   match_test,
-  module_test,
   operators_test,
   string_test,
   tokenizer_test

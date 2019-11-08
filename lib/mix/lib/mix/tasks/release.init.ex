@@ -195,11 +195,11 @@ defmodule Mix.Tasks.Release.Init do
         ;;
 
       restart|stop)
-        rpc "System.$1"
+        rpc "System.$1()"
         ;;
 
       pid)
-        rpc "IO.puts System.pid"
+        rpc "IO.puts System.pid()"
         ;;
 
       version)
@@ -298,7 +298,7 @@ defmodule Mix.Tasks.Release.Init do
     if "%~1" == "remote" (goto remote)
     if "%~1" == "version" (goto version)
     if "%~1" == "stop" (set "REL_RPC=System.stop()" && goto rpc)
-    if "%~1" == "restart" (set "REL_RPC=System.stop()" && goto rpc)
+    if "%~1" == "restart" (set "REL_RPC=System.restart()" && goto rpc)
     if "%~1" == "pid" (set "REL_RPC=IO.puts(System.pid())" && goto rpc)
     if "%~1" == "rpc" (
       if "%~2" == "" (

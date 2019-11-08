@@ -756,7 +756,7 @@ defmodule Kernel.ErrorsTest do
                       '''
                       defmodule Kernel.ErrorsTest.PrivateMacro do
                         defmacrop foo, do: 1
-                        defmacro bar, do: __MODULE__.foo
+                        defmacro bar, do: __MODULE__.foo()
                         defmacro baz, do: bar()
                       end
                       '''

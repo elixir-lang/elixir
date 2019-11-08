@@ -320,7 +320,7 @@ defmodule Mix.UmbrellaTest do
 
           def project do
             # Ensure we have the proper environment
-            :dev = Mix.env
+            :dev = Mix.env()
 
             [app: :foo,
              version: "0.1.0",
@@ -335,7 +335,7 @@ defmodule Mix.UmbrellaTest do
 
           def project do
             # Ensure we have the proper environment
-            :dev = Mix.env
+            :dev = Mix.env()
 
             [app: :bar,
              version: "0.1.0",
@@ -360,7 +360,7 @@ defmodule Mix.UmbrellaTest do
           def project do
             [app: :bar,
              version: "0.1.0",
-             aliases: ["compile.all": fn _ -> Mix.shell.info "no compile bar" end]]
+             aliases: ["compile.all": fn _ -> Mix.shell().info "no compile bar" end]]
           end
         end
         """)
@@ -414,7 +414,7 @@ defmodule Mix.UmbrellaTest do
         # Add runtime dependency
         File.write!("lib/bar.ex", """
         defmodule Bar do
-          def bar, do: Foo.foo
+          def bar, do: Foo.foo()
         end
         """)
 
@@ -430,7 +430,7 @@ defmodule Mix.UmbrellaTest do
         Mix.Task.run("compile", ["--verbose"])
 
         # Add compile time dependency
-        File.write!("lib/bar.ex", "defmodule Bar, do: Foo.foo")
+        File.write!("lib/bar.ex", "defmodule Bar, do: Foo.foo()")
 
         assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
         assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}

@@ -42,8 +42,8 @@ defmodule Module.CheckerTest do
       files = %{
         "a.ex" => """
         defmodule A do
-          def a, do: :not_a_module.no_module
-          def b, do: :lists.no_func
+          def a, do: :not_a_module.no_module()
+          def b, do: :lists.no_func()
         end
         """
       }
@@ -135,7 +135,7 @@ defmodule Module.CheckerTest do
       files = %{
         "a.ex" => """
         defmodule A do
-          def a, do: A.no_func
+          def a, do: A.no_func()
           def b, do: A.a()
 
           @file "external_source.ex"
@@ -191,10 +191,10 @@ defmodule Module.CheckerTest do
       files = %{
         "a.ex" => """
         defmodule A do
-          def a, do: D.no_module
+          def a, do: D.no_module()
 
           @file "external_source.ex"
-          def c, do: E.no_module
+          def c, do: E.no_module()
         end
         """
       }
@@ -255,14 +255,14 @@ defmodule Module.CheckerTest do
       files = %{
         "a.ex" => """
         defmodule A do
-          def a, do: B.no_func
-          def b, do: B.a
+          def a, do: B.no_func()
+          def b, do: B.a()
         end
         """,
         "b.ex" => """
         defmodule B do
-          def a, do: A.no_func
-          def b, do: A.b
+          def a, do: A.no_func()
+          def b, do: A.b()
         end
         """
       }
@@ -285,13 +285,13 @@ defmodule Module.CheckerTest do
       files = %{
         "a.ex" => """
         defmodule A do
-          def a, do: A.no_func
+          def a, do: A.no_func()
 
           @file "external_source.ex"
-          def b, do: A2.no_func
+          def b, do: A2.no_func()
 
-          def c, do: A.no_func
-          def d, do: A2.no_func
+          def c, do: A.no_func()
+          def d, do: A2.no_func()
         end
         """
       }
@@ -321,7 +321,7 @@ defmodule Module.CheckerTest do
 
         defmodule AImplementation do
           defimpl AProtocol do
-            def func(_), do: B.no_func
+            def func(_), do: B.no_func()
           end
         end
         """
@@ -543,7 +543,7 @@ defmodule Module.CheckerTest do
         "a.ex" => """
         defmodule A do
           @deprecated "oops"
-          def a, do: A.a
+          def a, do: A.a()
         end
         """
       }

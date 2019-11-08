@@ -43,7 +43,7 @@ defmodule Mix.CLITest do
 
         def run(_) do
           IO.puts(Mix.Project.get!().hello_world())
-          Mix.shell.info("This won't appear")
+          Mix.shell().info("This won't appear")
           Mix.raise("oops")
         end
       end
@@ -147,7 +147,7 @@ defmodule Mix.CLITest do
       System.put_env("MIX_ENV", "prod")
       System.put_env("MIX_EXS", "custom.exs")
 
-      output = mix(["run", "-e", "IO.inspect {Mix.env, System.argv}", "--", "1", "2", "3"])
+      output = mix(["run", "-e", "IO.inspect {Mix.env(), System.argv()}", "--", "1", "2", "3"])
       assert output =~ ~s({:prod, ["1", "2", "3"]})
     end)
   after
@@ -168,7 +168,7 @@ defmodule Mix.CLITest do
         @preferred_cli_env :prod
 
         def run(args) do
-          IO.inspect {Mix.env, args}
+          IO.inspect {Mix.env(), args}
         end
       end
       """)

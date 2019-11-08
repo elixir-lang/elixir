@@ -1683,7 +1683,7 @@ defmodule Kernel.SpecialForms do
   unambiguously identified by the operator `:.`. For example:
 
       iex> quote do
-      ...>   Foo.bar
+      ...>   Foo.bar()
       ...> end
       {{:., [], [{:__aliases__, [alias: false], [:Foo]}, :bar]}, [], []}
 

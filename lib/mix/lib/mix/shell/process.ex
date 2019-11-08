@@ -5,7 +5,7 @@ defmodule Mix.Shell.Process do
   This module provides a Mix shell implementation that uses
   the current process mailbox for communication instead of IO.
 
-  As an example, when `Mix.shell.info("hello")` is called,
+  As an example, when `Mix.shell().info("hello")` is called,
   the following message will be sent to the calling process:
 
       {:mix_shell, :info, ["hello"]}

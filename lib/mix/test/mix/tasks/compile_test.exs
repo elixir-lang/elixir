@@ -56,7 +56,7 @@ defmodule Mix.Tasks.CompileTest do
       File.mkdir_p!("lib")
 
       File.write!("lib/a.ex", """
-      root = File.cwd!
+      root = File.cwd!()
       File.cd!("lib", fn ->
         %{ok: path} = Mix.Project.deps_paths()
 

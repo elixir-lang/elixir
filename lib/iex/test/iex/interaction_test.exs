@@ -69,7 +69,7 @@ defmodule IEx.InteractionTest do
     defmodule Sample do
       def foo, do: bar()
       def bar, do: 13
-    end && Sample.foo
+    end && Sample.foo()
     """
 
     assert capture_iex(input) =~ "13"
@@ -87,7 +87,7 @@ defmodule IEx.InteractionTest do
     test "color" do
       opts = [colors: [enabled: true, eval_result: [:red]]]
       assert capture_iex("1 + 2", opts) == "\e[31m3\e[0m"
-      assert capture_iex("IO.ANSI.blue", opts) == "\e[31m\e[32m\"\\e[34m\"\e[0m\e[31m\e[0m"
+      assert capture_iex("IO.ANSI.blue()", opts) == "\e[31m\e[32m\"\\e[34m\"\e[0m\e[31m\e[0m"
 
       assert capture_iex("{:ok}", opts) ==
                "\e[31m\e[39m{\e[0m\e[31m\e[36m:ok\e[0m\e[31m\e[39m}\e[0m\e[31m\e[0m"
