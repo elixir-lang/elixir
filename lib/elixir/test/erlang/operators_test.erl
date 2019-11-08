@@ -76,15 +76,6 @@ operators_variables_precedence_test() ->
   {30, _} = eval("a = 10\nb= 20\na+b"),
   {30, _} = eval("a = 10\nb= 20\na + b").
 
-operators_variables_precedence_on_namespaces_test() ->
-  F = fun() ->
-    eval("defmodule Foo do; def l, do: 1; end; defmodule Bar do; def l(_x), do: 1; end"),
-    {3, []} = eval("1 + Foo.l + 1"),
-    {3, []} = eval("1 + Foo.l+1"),
-    {2, []} = eval("1 + Bar.l +1")
-  end,
-  test_helper:run_and_remove(F, ['Elixir.Foo', 'Elixir.Bar']).
-
 add_add_op_test() ->
   {[1, 2, 3, 4], []} = eval("[1, 2] ++ [3, 4]").
 

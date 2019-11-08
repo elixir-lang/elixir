@@ -30,10 +30,10 @@ defmodule Mix.Tasks.RunTest do
     git_repo = fixture_path("git_repo/lib/git_repo.ex")
 
     in_tmp(context.test, fn ->
-      Mix.Tasks.Run.run(["-r", git_repo, "-e", "send self(), {:hello, GitRepo.hello}"])
+      Mix.Tasks.Run.run(["-r", git_repo, "-e", "send self(), {:hello, GitRepo.hello()}"])
       assert_received {:hello, "World"}
 
-      Mix.Tasks.Run.run(["-pr", git_repo, "-e", "send self(), {:hello, GitRepo.hello}"])
+      Mix.Tasks.Run.run(["-pr", git_repo, "-e", "send self(), {:hello, GitRepo.hello()}"])
       assert_received {:hello, "World"}
     end)
   after
@@ -42,7 +42,7 @@ defmodule Mix.Tasks.RunTest do
 
   test "does not start applications on --no-start", context do
     in_tmp(context.test, fn ->
-      expr = "send self(), {:apps, Application.started_applications}"
+      expr = "send self(), {:apps, Application.started_applications()}"
       Mix.Tasks.Run.run(["--no-start", "-e", expr])
 
       assert_received {:apps, apps}
@@ -84,7 +84,7 @@ defmodule Mix.Tasks.RunTest do
   test "run rewrites System.argv", context do
     in_tmp(context.test, fn ->
       file = "argv.exs"
-      expr = "send self(), {:argv, System.argv}"
+      expr = "send self(), {:argv, System.argv()}"
 
       File.write!(file, expr)
 

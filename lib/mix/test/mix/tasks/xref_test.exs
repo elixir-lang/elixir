@@ -393,7 +393,7 @@ defmodule Mix.Tasks.XrefTest do
           @behaviour :"Elixir.A.Behaviour"
 
           def foo do
-            A.foo
+            A.foo()
           end
         end
         """)
@@ -416,7 +416,7 @@ defmodule Mix.Tasks.XrefTest do
         File.write!("lib/a.ex", """
         defmodule A do
           def a do
-            B.a
+            B.a()
           end
 
           def b, do: :ok
@@ -426,8 +426,8 @@ defmodule Mix.Tasks.XrefTest do
         File.write!("lib/b.ex", """
         defmodule B do
           def a do
-            A.a
-            B.a
+            A.a()
+            B.a()
           end
         end
         """)
@@ -439,7 +439,7 @@ defmodule Mix.Tasks.XrefTest do
 
         File.write!("lib/d.ex", """
         defmodule :d do
-          A.b
+          A.b()
         end
         """)
 
@@ -464,7 +464,7 @@ defmodule Mix.Tasks.XrefTest do
           File.write!("lib/bar.ex", """
           defmodule Bar do
             def bar do
-              Foo.foo
+              Foo.foo()
             end
           end
           """)

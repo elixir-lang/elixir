@@ -52,13 +52,13 @@ defmodule ExUnit.DocTestTest.GoodModule do
   def multiline_exception_test, do: :ok
 
   @doc """
-  iex> Enum.into([:a, :b, :c], MapSet.new)
+  iex> Enum.into([:a, :b, :c], MapSet.new())
   #MapSet<[:a, :b, :c]>
   """
   def inspect1_test, do: :ok
 
   @doc """
-  iex> x = Enum.into([:a, :b, :c], MapSet.new)
+  iex> x = Enum.into([:a, :b, :c], MapSet.new())
   ...> x
   #MapSet<[:a, :b, :c]>
   """
@@ -150,7 +150,7 @@ defmodule ExUnit.DocTestTest.Invalid do
       iex> :oops
       #MapSet<[]>
 
-      iex> Hello.world
+      iex> Hello.world()
       :world
 
       iex> raise "oops"

@@ -599,6 +599,8 @@ defmodule ExUnit.AssertionsTest do
     "test error" = error.message
   end
 
+  @compile {:no_warn_undefined, Not.Defined}
+
   test "assert raise with some other error" do
     "This should never be tested" =
       assert_raise ArgumentError, fn -> Not.Defined.function(1, 2, 3) end

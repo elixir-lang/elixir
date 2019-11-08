@@ -25,7 +25,7 @@ defmodule IEx.ServerTest do
     end
 
     test "inside evaluator itself" do
-      assert capture_iex("require IEx; IEx.pry") =~ "Break reached"
+      assert capture_iex("require IEx; IEx.pry()") =~ "Break reached"
     end
 
     test "outside of the evaluator with acceptance", config do

@@ -423,6 +423,15 @@ expand({{'.', DotMeta, [Left, Right]}, Meta, Args}, E)
     when (is_tuple(Left) orelse is_atom(Left)), is_atom(Right), is_list(Meta), is_list(Args) ->
   {ELeft, EL} = expand(Left, elixir_env:prepare_write(E)),
 
+  %% TODO: Emit this warning on v1.11
+  %% case is_atom(ELeft) andalso (Args == []) andalso
+  %%       (lists:keyfind(no_parens, 1, Meta) == {no_parens, true}) of
+  %%   true ->
+  %%     elixir_errors:form_warn(DotMeta, E, ?MODULE, {no_parens_nullary_remote, ELeft, Right});
+  %%   false ->
+  %%     ok
+  %% end,
+
   elixir_dispatch:dispatch_require(Meta, ELeft, Right, Args, EL, fun(AR, AF, AA) ->
     expand_remote(AR, DotMeta, AF, Meta, AA, E, EL)
   end);
@@ -1263,6 +1272,10 @@ format_error(stacktrace_not_allowed) ->
 format_error({unknown_variable, Name}) ->
   io_lib:format("variable \"~ts\" does not exist and is being expanded to \"~ts()\","
                 " please use parentheses to remove the ambiguity or change the variable name", [Name, Name]);
+format_error({no_parens_nullary_remote, Remote, Fun}) ->
+  io_lib:format("missing parenthesis on call to ~ts.~ts/0. "
+                "parenthesis are always required on function calls without arguments",
+                [elixir_aliases:inspect(Remote), Fun]);
 format_error({super_in_genserver, {Name, Arity}}) ->
   io_lib:format("calling super for GenServer callback ~ts/~B is deprecated", [Name, Arity]);
 format_error({parallel_bitstring_match, Expr}) ->

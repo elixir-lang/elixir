@@ -99,7 +99,7 @@ defmodule Mix.Tasks.Profile.CprofTest do
              end) =~ "Warmup..."
 
       refute capture_io(fn ->
-               Cprof.run(["-e", "Enum.each(1..5, fn(_) -> MapSet.new end)", "--no-warmup"])
+               Cprof.run(["-e", "Enum.each(1..5, fn(_) -> MapSet.new() end)", "--no-warmup"])
              end) =~ "Warmup..."
     end)
   end

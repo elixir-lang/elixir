@@ -9,7 +9,7 @@ defmodule Mix.Tasks.Profile.FprofTest do
   test "profiles evaluated expression", context do
     in_tmp(context.test, fn ->
       assert capture_io(fn ->
-               Fprof.run(["-e", "Enum.each(1..5, fn(_) -> MapSet.new end)"])
+               Fprof.run(["-e", "Enum.each(1..5, fn(_) -> MapSet.new() end)"])
              end) =~ ~r(MapSet\.new/0 *5 *\d+\.\d{3} *\d+\.\d{3})
     end)
   end
@@ -19,7 +19,7 @@ defmodule Mix.Tasks.Profile.FprofTest do
       profile_script_name = "profile_script.ex"
 
       File.write!(profile_script_name, """
-      Enum.each(1..5, fn(_) -> MapSet.new end)
+      Enum.each(1..5, fn(_) -> MapSet.new() end)
       """)
 
       assert capture_io(fn ->
@@ -31,14 +31,16 @@ defmodule Mix.Tasks.Profile.FprofTest do
   test "expands callers", context do
     in_tmp(context.test, fn ->
       assert capture_io(fn ->
-               Fprof.run(["-e", "Enum.each(1..5, fn(_) -> MapSet.new end)", "--callers"])
+               Fprof.run(["-e", "Enum.each(1..5, fn(_) -> MapSet.new() end)", "--callers"])
              end) =~ ~r(MapSet\.new/0 *5 *\d+\.\d{3} *\d+\.\d{3} +<--)
     end)
   end
 
   test "expands processes", context do
     in_tmp(context.test, fn ->
-      expr = "spawn(fn -> Process.sleep(:infinity) end); Enum.each(1..5, fn(_) -> MapSet.new end)"
+      expr =
+        "spawn(fn -> Process.sleep(:infinity) end); Enum.each(1..5, fn(_) -> MapSet.new() end)"
+
       output = capture_io(fn -> Fprof.run(["-e", expr, "--details"]) end)
       assert output =~ ~r(#{:erlang.pid_to_list(self())} +\d+ +\d+\.\d{3})
       assert output =~ ~r(spawned by #{:erlang.pid_to_list(self())})
@@ -49,12 +51,12 @@ defmodule Mix.Tasks.Profile.FprofTest do
 
   test "sort options", context do
     in_tmp(context.test, fn ->
-      expr = "Enum.each(1..5, fn(_) -> MapSet.new end)"
+      expr = "Enum.each(1..5, fn(_) -> MapSet.new() end)"
 
       assert capture_io(fn -> Fprof.run(["-e", expr, "--sort", "acc"]) end) =~
                ~r(MapSet\.new/0 *5 *\d+\.\d{3} *\d+\.\d{3})
 
-      expr = "Enum.each(1..5, fn(_) -> MapSet.new end)"
+      expr = "Enum.each(1..5, fn(_) -> MapSet.new() end)"
 
       assert capture_io(fn -> Fprof.run(["-e", expr, "--sort", "own"]) end) =~
                ~r(MapSet\.new/0 *5 *\d+\.\d{3} *\d+\.\d{3})
@@ -88,11 +90,11 @@ defmodule Mix.Tasks.Profile.FprofTest do
   test "warmup", context do
     in_tmp(context.test, fn ->
       assert capture_io(fn ->
-               Fprof.run(["-e", "Enum.each(1..5, fn(_) -> MapSet.new end)"])
+               Fprof.run(["-e", "Enum.each(1..5, fn(_) -> MapSet.new() end)"])
              end) =~ "Warmup..."
 
       refute capture_io(fn ->
-               Fprof.run(["-e", "Enum.each(1..5, fn(_) -> MapSet.new end)", "--no-warmup"])
+               Fprof.run(["-e", "Enum.each(1..5, fn(_) -> MapSet.new() end)", "--no-warmup"])
              end) =~ "Warmup..."
     end)
   end

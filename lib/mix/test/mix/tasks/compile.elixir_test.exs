@@ -183,7 +183,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
   test "compiles dependent changed modules" do
     in_fixture("no_mixfile", fn ->
-      File.write!("lib/a.ex", "defmodule A, do: B.module_info")
+      File.write!("lib/a.ex", "defmodule A, do: B.module_info()")
 
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
@@ -203,7 +203,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
   test "compiles dependent changed modules even on removal" do
     in_fixture("no_mixfile", fn ->
-      File.write!("lib/a.ex", "defmodule A, do: B.module_info")
+      File.write!("lib/a.ex", "defmodule A, do: B.module_info()")
 
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}

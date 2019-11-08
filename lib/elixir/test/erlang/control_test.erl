@@ -36,7 +36,7 @@ multi_line_if_test() ->
 % Try
 
 try_test() ->
-  {2, _} = eval("try do\n:foo.bar\ncatch\n:error, :undef -> 2\nend").
+  {2, _} = eval("try do\n:foo.bar()\ncatch\n:error, :undef -> 2\nend").
 
 try_else_test() ->
   {true, _} = eval("try do\n1\nelse 2 -> false\n1 -> true\nrescue\nErlangError -> nil\nend"),
@@ -144,13 +144,13 @@ andand_test() ->
     {nil, _} = eval("true && nil"),
     {nil, _} = eval("nil && true"),
     {false, _} = eval("false && nil"),
-    {true, _} = eval("Bar.foo && Bar.foo"),
-    {false, _} = eval("Bar.foo && Bar.bar"),
-    {true, _} = eval("Bar.foo && Bar.baz 1"),
-    {false, _} = eval("Bar.foo && Bar.baz 2"),
+    {true, _} = eval("Bar.foo() && Bar.foo()"),
+    {false, _} = eval("Bar.foo() && Bar.bar()"),
+    {true, _} = eval("Bar.foo() && Bar.baz 1"),
+    {false, _} = eval("Bar.foo() && Bar.baz 2"),
     {true, _} = eval("1 == 1 && 2 < 3"),
-    {3, _} = eval("Bar.foo && 1 + 2"),
-    {false, _} = eval("Bar.bar && :erlang.error(:bad)"),
+    {3, _} = eval("Bar.foo() && 1 + 2"),
+    {false, _} = eval("Bar.bar() && :erlang.error(:bad)"),
     {2, _} = eval("1 && 2"),
     {nil, _} = eval("nil && 2")
   end,
@@ -170,14 +170,14 @@ oror_test() ->
     {false, _} = eval("nil || false"),
     {nil, _} = eval("false || nil"),
     {true, _} = eval("false || nil || true"),
-    {true, _} = eval("Bar.foo || Bar.foo"),
-    {true, _} = eval("Bar.foo || Bar.bar"),
-    {false, _} = eval("Bar.bar || Bar.bar"),
-    {true, _} = eval("Bar.bar || Bar.baz 1"),
-    {false, _} = eval("Bar.bar || Bar.baz 2"),
+    {true, _} = eval("Bar.foo() || Bar.foo()"),
+    {true, _} = eval("Bar.foo() || Bar.bar()"),
+    {false, _} = eval("Bar.bar() || Bar.bar()"),
+    {true, _} = eval("Bar.bar() || Bar.baz 1"),
+    {false, _} = eval("Bar.bar() || Bar.baz 2"),
     {false, _} = eval("1 == 2 || 2 > 3"),
-    {3, _} = eval("Bar.bar || 1 + 2"),
-    {true, _} = eval("Bar.foo || :erlang.error(:bad)"),
+    {3, _} = eval("Bar.bar() || 1 + 2"),
+    {true, _} = eval("Bar.foo() || :erlang.error(:bad)"),
     {1, _} = eval("1 || 2"),
     {2, _} = eval("nil || 2"),
     {true, _} = eval("false && false || true")

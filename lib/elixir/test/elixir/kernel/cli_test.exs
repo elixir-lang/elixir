@@ -27,7 +27,10 @@ defmodule Kernel.CLITest do
 
   test "properly parses paths" do
     root = fixture_path("../../..") |> to_charlist
-    args = '-pa "#{root}/*" -pz "#{root}/lib/*" -e "IO.inspect(:code.get_path, limit: :infinity)"'
+
+    args =
+      '-pa "#{root}/*" -pz "#{root}/lib/*" -e "IO.inspect(:code.get_path(), limit: :infinity)"'
+
     list = elixir(args)
     {path, _} = Code.eval_string(list, [])
 
