@@ -16,16 +16,30 @@ defmodule Calendar do
   calendars may have a different number of days per month, months per year and so on.
   """
 
+  @type era :: non_neg_integer
   @type year :: integer
   @type month :: pos_integer
   @type day :: pos_integer
   @type week :: pos_integer
-  @type day_of_week :: pos_integer
-  @type era :: non_neg_integer
 
   @type hour :: non_neg_integer
   @type minute :: non_neg_integer
   @type second :: non_neg_integer
+
+  @typedoc """
+  Microseconds with stored precision.
+
+  The precision represents the number of digits that must be used when
+  representing the microseconds to external format. If the precision is 0,
+  it means microseconds must be skipped.
+  """
+  @type microsecond :: {non_neg_integer, non_neg_integer}
+
+  @type day_of_era :: {pos_integer, era}
+  @type day_of_week :: pos_integer
+  @type day_of_year :: pos_integer
+  @type quarter_of_year :: pos_integer
+  @type year_of_era :: {year, era}
 
   @typedoc """
   The internal time format is used when converting between calendars.
@@ -44,15 +58,6 @@ defmodule Calendar do
   known as midnight 1 January BC 1 of the proleptic Gregorian calendar).
   """
   @type iso_days :: {days :: integer, day_fraction}
-
-  @typedoc """
-  Microseconds with stored precision.
-
-  The precision represents the number of digits that must be used when
-  representing the microseconds to external format. If the precision is 0,
-  it means microseconds must be skipped.
-  """
-  @type microsecond :: {non_neg_integer, non_neg_integer}
 
   @typedoc "A calendar implementation"
   @type calendar :: module
@@ -160,22 +165,22 @@ defmodule Calendar do
   @doc """
   Calculates the day of the year from the given `year`, `month`, and `day`.
   """
-  @callback day_of_year(year, month, day) :: pos_integer()
+  @callback day_of_year(year, month, day) :: day_of_year()
 
   @doc """
   Calculates the quarter of the year from the given `year`, `month`, and `day`.
   """
-  @callback quarter_of_year(year, month, day) :: pos_integer()
+  @callback quarter_of_year(year, month, day) :: quarter_of_year()
 
   @doc """
   Calculates the year and era from the given `year`.
   """
-  @callback year_of_era(year) :: {year, era}
+  @callback year_of_era(year) :: year_of_era()
 
   @doc """
   Calculates the day and era from the given `year`, `month`, and `day`.
   """
-  @callback day_of_era(year, month, day) :: {non_neg_integer(), era}
+  @callback day_of_era(year, month, day) :: day_of_era()
 
   @doc """
   Converts the date into a string according to the calendar.
