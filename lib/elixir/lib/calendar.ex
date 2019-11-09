@@ -20,7 +20,7 @@ defmodule Calendar do
   @type month :: pos_integer
   @type day :: pos_integer
   @type week :: pos_integer
-  @type day_of_week :: non_neg_integer
+  @type day_of_week :: pos_integer
   @type era :: non_neg_integer
 
   @type hour :: non_neg_integer
@@ -160,12 +160,12 @@ defmodule Calendar do
   @doc """
   Calculates the day of the year from the given `year`, `month`, and `day`.
   """
-  @callback day_of_year(year, month, day) :: non_neg_integer()
+  @callback day_of_year(year, month, day) :: pos_integer()
 
   @doc """
   Calculates the quarter of the year from the given `year`, `month`, and `day`.
   """
-  @callback quarter_of_year(year, month, day) :: non_neg_integer()
+  @callback quarter_of_year(year, month, day) :: pos_integer()
 
   @doc """
   Calculates the year and era from the given `year`.
