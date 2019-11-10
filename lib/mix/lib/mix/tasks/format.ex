@@ -64,8 +64,8 @@ defmodule Mix.Tasks.Format do
     * `--dry-run` - does not save files after formatting.
 
     * `--dot-formatter` - path to the file with formatter configuration.
-      Defaults to `.formatter.exs` if one is available. See the "`.formatter.exs`"
-      section for more information.
+      Defaults to `.formatter.exs` if one is available. See the "Formatting options"
+      section above for more information.
 
   If any of the `--check-*` options are given and a check fails, the formatted
   contents won't be written to disk nor printed to standard output.
