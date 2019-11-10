@@ -151,10 +151,10 @@ defmodule Module.TypesTest do
       assert quoted_head([x = y, y = z, z], [is_atom(z)]) ==
                {:ok, [:atom, :atom, :atom]}
 
-      assert {:error, {{:unable_unify, :integer, :binary, _, _}, _}} =
+      assert {:error, {{:unable_unify, :binary, :integer, _, _}, _}} =
                quoted_head([x], [is_binary(x) and is_integer(x)])
 
-      assert {:error, {{:unable_unify, :atom, :tuple, _, _}, _}} =
+      assert {:error, {{:unable_unify, :tuple, :atom, _, _}, _}} =
                quoted_head([x], [is_tuple(x) and is_atom(x)])
 
       assert {:error, {{:unable_unify, :tuple, :boolean, _, _}, _}} =
@@ -199,7 +199,7 @@ defmodule Module.TypesTest do
 
       assert quoted_head([x, y], [elem(x, 1) or is_atom(y)]) == {:ok, [:tuple, {:var, 0}]}
 
-      assert {:error, {{:unable_unify, :atom, :tuple, _, _}, _}} =
+      assert {:error, {{:unable_unify, :tuple, :atom, _, _}, _}} =
                quoted_head([x], [elem(x, 1) and is_atom(x)])
     end
 
@@ -311,7 +311,7 @@ defmodule Module.TypesTest do
       assert quoted_head([x], [is_atom(x) and not (is_integer(x) and band(x, 1) == 1)]) ==
                {:ok, [:atom]}
 
-      assert {:error, {{:unable_unify, {:list, :dynamic}, :tuple, _, _}, _}} =
+      assert {:error, {{:unable_unify, :tuple, {:list, :dynamic}, _, _}, _}} =
                quoted_head([x], [
                  not (is_tuple(x) and is_list(x))
                ])

@@ -105,9 +105,6 @@ defmodule Module.Types do
   @doc false
   def head_stack() do
     %{
-      # Stack of variables we have refined during unification,
-      # used for creating relevant traces
-      unify_stack: [],
       # Stack of expression we have recursed through during inference,
       # used for tracing
       expr_stack: [],
@@ -116,7 +113,10 @@ defmodule Module.Types do
       trace: true,
       # Track if we are in a context where type guard functions should
       # affect inference
-      type_guards_enabled?: true
+      type_guards_enabled?: true,
+      # Context used to determine if unification is bi-directional, :expr
+      # is directional, :pattern is bi-directional
+      context: :pattern
     }
   end
 
@@ -140,6 +140,7 @@ defmodule Module.Types do
       traces: head_context.traces,
       # Counter to give type variables unique names
       counter: head_context.counter,
+      # Local function signatures from the current module
       local_funs: signatures
     }
   end
@@ -147,15 +148,15 @@ defmodule Module.Types do
   @doc false
   def body_stack() do
     %{
-      # Stack of variables we have refined during unification,
-      # used for creating relevant traces
-      unify_stack: [],
       # Stack of expression we have recursed through during inference,
       # used for tracing
       expr_stack: [],
       # When false do not add a trace when a type variable is refined,
       # useful when merging contexts where the variables already have traces
-      trace: true
+      trace: true,
+      # Context used to determine if unification is bi-directional, :expr
+      # is directional, :pattern is bi-directional
+      context: :expr
     }
   end
 

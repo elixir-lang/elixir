@@ -633,7 +633,7 @@ defmodule Module.CheckerTest do
       warning = """
       warning: function clause will never match, found incompatibility:
 
-          binary() !~ integer()
+          integer() !~ binary()
 
       in expression:
 
@@ -669,7 +669,7 @@ defmodule Module.CheckerTest do
       warning = """
       warning: function clause will never match, found incompatibility:
 
-          binary() !~ integer()
+          integer() !~ binary()
 
       in expression:
 
@@ -736,7 +736,7 @@ defmodule Module.CheckerTest do
       warning = """
       warning: function clause will never match, found incompatibility:
 
-          binary() !~ integer()
+          integer() !~ binary()
 
       in expression:
 
@@ -772,7 +772,7 @@ defmodule Module.CheckerTest do
       warning = """
       warning: function clause will never match, found incompatibility:
 
-          binary() !~ integer()
+          integer() !~ binary()
 
       in expression:
 
@@ -783,15 +783,15 @@ defmodule Module.CheckerTest do
           # a.ex:2
           is_integer(x)
 
+      where "x" was given the same type as "y" in:
+
+          # a.ex:2
+          x = y
+
       where "y" was given the type binary() in:
 
           # a.ex:2
           is_binary(y)
-
-      where "y" was given the same type as "x" in:
-
-          # a.ex:2
-          x = y
 
       Conflict found at
         a.ex:2: A.a/1

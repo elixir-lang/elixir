@@ -83,7 +83,7 @@ defmodule Module.Types.PatternTest do
 
   describe "of_pattern/3" do
     test "error location" do
-      assert {:error, {{:unable_unify, :binary, :integer, expr, traces}, location}} =
+      assert {:error, {{:unable_unify, :integer, :binary, expr, traces}, location}} =
                quoted_pattern(<<foo::integer, foo::binary>>)
 
       assert location == [{"types_test.ex", 87, {TypesTest, :test, 0}}]
@@ -153,7 +153,7 @@ defmodule Module.Types.PatternTest do
       assert quoted_pattern(%{123 => :foo, 456 => :bar}) ==
                {:ok, {:map, [{:integer, {:union, [{:atom, :bar}, {:atom, :foo}]}}]}}
 
-      assert {:error, {{:unable_unify, {:atom, :foo}, :integer, _, _}, _}} =
+      assert {:error, {{:unable_unify, :integer, {:atom, :foo}, _, _}, _}} =
                quoted_pattern(%{a: a = 123, b: a = :foo})
     end
 
@@ -196,7 +196,7 @@ defmodule Module.Types.PatternTest do
       assert quoted_pattern({<<foo::binary>>, foo}) == {:ok, {:tuple, [:binary, :binary]}}
       assert quoted_pattern({<<foo::utf8>>, foo}) == {:ok, {:tuple, [:binary, :integer]}}
 
-      assert {:error, {{:unable_unify, :integer, :binary, _, _}, _}} =
+      assert {:error, {{:unable_unify, :binary, :integer, _, _}, _}} =
                quoted_pattern(<<foo::binary-0, foo::integer>>)
     end
 
@@ -233,7 +233,7 @@ defmodule Module.Types.PatternTest do
     assert {:ok, :dynamic, context} = quoted_guard(elem(x, 0), var_context)
     assert Types.lift_type({:var, 0}, context) == :tuple
 
-    assert {:error, {_, {:unable_unify, :boolean, :tuple, _, _}, _}} =
+    assert {:error, {_, {:unable_unify, :tuple, :boolean, _, _}, _}} =
              quoted_guard(is_tuple(x) and is_boolean(x), var_context)
   end
 end
