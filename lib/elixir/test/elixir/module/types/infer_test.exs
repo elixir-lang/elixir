@@ -156,13 +156,13 @@ defmodule Module.Types.InferTest do
       assert {:ok, {:var, 0}, context} = unify({:var, 0}, :integer, var_context)
       assert {:ok, {:var, 1}, context} = unify({:var, 1}, :binary, context)
 
-      assert {:error, {{:unable_unify, :binary, :integer, _, _}, _}} =
+      assert {:error, {{:unable_unify, :integer, :binary, _, _}, _}} =
                unify_lift({:var, 0}, {:var, 1}, context)
 
       assert {:ok, {:var, 0}, context} = unify({:var, 0}, :integer, var_context)
       assert {:ok, {:var, 1}, context} = unify({:var, 1}, :binary, context)
 
-      assert {:error, {{:unable_unify, :integer, :binary, _, _}, _}} =
+      assert {:error, {{:unable_unify, :binary, :integer, _, _}, _}} =
                unify_lift({:var, 1}, {:var, 0}, context)
     end
 
@@ -188,7 +188,7 @@ defmodule Module.Types.InferTest do
       assert {:ok, {:var, 0}, context} = unify({:var, 0}, :integer, var_context)
       assert {:ok, {:var, 1}, context} = unify({:var, 1}, :binary, context)
 
-      assert {:error, {{:unable_unify, :binary, :integer, _, _}, _}} =
+      assert {:error, {{:unable_unify, :integer, :binary, _, _}, _}} =
                unify_lift({:tuple, [{:var, 0}]}, {:tuple, [{:var, 1}]}, context)
     end
 
@@ -208,13 +208,13 @@ defmodule Module.Types.InferTest do
 
       assert {:ok, {:var, _}, context} = unify({:var, 0}, {:var, 1}, var_context)
 
-      assert {:error, {{:unable_unify, {:tuple, [var: 0]}, {:var, 0}, _, _}, _}} =
+      assert {:error, {{:unable_unify, {:var, 1}, {:tuple, [{:var, 0}]}, _, _}, _}} =
                unify_lift({:var, 1}, {:tuple, [{:var, 0}]}, context)
 
       assert {:ok, {:var, _}, context} = unify({:var, 0}, {:var, 1}, var_context)
       assert {:ok, {:var, _}, context} = unify({:var, 1}, {:var, 2}, context)
 
-      assert {:error, {{:unable_unify, {:tuple, [var: 0]}, {:var, 0}, _, _}, _}} =
+      assert {:error, {{:unable_unify, {:var, 2}, {:tuple, [{:var, 0}]}, _, _}, _}} =
                unify_lift({:var, 2}, {:tuple, [{:var, 0}]}, context)
     end
   end
