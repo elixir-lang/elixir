@@ -527,6 +527,7 @@ defmodule Mix.ReleaseTest do
                ~s|ROOTDIR="$(dirname "$(dirname "$BINDIR")")"|
 
       refute File.exists?(Path.join(destination, "bin/erl.ini"))
+      refute File.exists?(Path.join(destination, "doc"))
     end
 
     test "does not copy when include_erts is false" do
