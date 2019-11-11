@@ -630,7 +630,12 @@ defmodule Mix.Release do
   def copy_erts(release) do
     destination = Path.join(release.path, "erts-#{release.erts_version}")
     File.mkdir_p!(destination)
-    File.cp_r!(release.erts_source, destination, fn _, _ -> false end)
+
+    for dir <- ~w(bin include lib src) do
+      source = Path.join(release.erts_source, dir)
+      target = Path.join(destination, dir)
+      File.cp_r!(source, target, fn _, _ -> false end)
+    end
 
     _ = File.rm(Path.join(destination, "bin/erl"))
     _ = File.rm(Path.join(destination, "bin/erl.ini"))
