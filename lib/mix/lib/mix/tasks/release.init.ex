@@ -387,7 +387,7 @@ defmodule Mix.Tasks.Release.Init do
 
     :rpc
     if "!RELEASE_DISTRIBUTION!" == "none" (
-      set RELEASE_DISTRIBUTION_FLAG=""
+      set RELEASE_DISTRIBUTION_FLAG=
     ) else (
       set RELEASE_DISTRIBUTION_FLAG=--!RELEASE_DISTRIBUTION! "rpc-!RANDOM!-!RELEASE_NODE!"
     )
