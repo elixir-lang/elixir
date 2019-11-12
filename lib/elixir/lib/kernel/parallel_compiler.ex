@@ -150,7 +150,7 @@ defmodule Kernel.ParallelCompiler do
         beam_timestamp: Keyword.get(options, :beam_timestamp),
         long_compilation_threshold: Keyword.get(options, :long_compilation_threshold, 15),
         profile: Keyword.get(options, :profile),
-        cycle_start: System.monotonic_time(:millisecond),
+        cycle_start: System.monotonic_time(),
         module_counter: 0,
         output: output,
         schedulers: schedulers
@@ -330,9 +330,15 @@ defmodule Kernel.ParallelCompiler do
   defp cycle_timing(result, %{profile: :time} = state) do
     %{cycle_start: cycle_start, module_counter: module_counter} = state
     num_modules = count_modules(result)
-    now = System.monotonic_time(:millisecond)
-    time = now - cycle_start
-    IO.puts("Finished compilation cycle of #{num_modules - module_counter} modules in #{time}ms")
+    diff_modules = num_modules - module_counter
+    now = System.monotonic_time()
+    time = System.convert_time_unit(now - cycle_start, :native, :millisecond)
+
+    IO.puts(
+      :stderr,
+      "[profile] Finished compilation cycle of #{diff_modules} modules in #{time}ms"
+    )
+
     %{state | cycle_start: now, module_counter: num_modules}
   end
 
@@ -378,10 +384,8 @@ defmodule Kernel.ParallelCompiler do
     else
       compiled_modules = checker_compiled_modules(result)
       runtime_modules = checker_runtime_modules(runtime_modules)
-      num_modules = length(compiled_modules) + length(runtime_modules)
-      message = "Finished group pass check of #{num_modules} modules in ${time}ms"
 
-      maybe_profile(profile, message, fn ->
+      profile_checker(profile, compiled_modules, runtime_modules, fn ->
         Module.ParallelChecker.verify(compiled_modules, runtime_modules, schedulers)
       end)
     end
@@ -401,13 +405,15 @@ defmodule Kernel.ParallelCompiler do
     end
   end
 
-  defp maybe_profile(_profile = :time, message, fun) do
+  defp profile_checker(_profile = :time, compiled_modules, runtime_modules, fun) do
     {time, result} = :timer.tc(fun)
-    IO.puts(String.replace(message, "${time}", Integer.to_string(div(time, 1000))))
+    time = div(time, 1000)
+    num_modules = length(compiled_modules) + length(runtime_modules)
+    IO.puts(:stderr, "[profile] Finished group pass check of #{num_modules} modules in #{time}ms")
     result
   end
 
-  defp maybe_profile(_profile = nil, _message, fun) do
+  defp profile_checker(_profile = nil, _compiled_modules, _runtime_modules, fun) do
     fun.()
   end
 
