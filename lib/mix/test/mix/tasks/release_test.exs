@@ -263,6 +263,27 @@ defmodule Mix.Tasks.ReleaseTest do
     end)
   end
 
+  test "assembles a bootable release without distribution" do
+    in_fixture("release_test", fn ->
+      config = [releases: [no_dist: []]]
+
+      Mix.Project.in_project(:release_test, ".", config, fn _ ->
+        root = Path.absname("_build/dev/rel/no_dist")
+        Mix.Task.run("release", ["no_dist"])
+        open_port(Path.join(root, "bin/no_dist"), ['start'], [{'RELEASE_DISTRIBUTION', 'none'}])
+
+        assert %{
+                 mode: :embedded,
+                 node: :nonode@nohost,
+                 protocols_consolidated?: true,
+                 release_name: "no_dist",
+                 release_node: "no_dist",
+                 release_vsn: "0.1.0"
+               } = wait_until_decoded(Path.join(root, "RELEASE_BOOTED"))
+      end)
+    end)
+  end
+
   test "assembles a release without ERTS and with custom options" do
     in_fixture("release_test", fn ->
       config = [releases: [demo: [include_erts: false, cookie: "abcdefghijk"]]]
@@ -456,8 +477,8 @@ defmodule Mix.Tasks.ReleaseTest do
     end)
   end
 
-  defp open_port(command, args) do
-    Port.open({:spawn_executable, to_charlist(command)}, [:hide, args: args])
+  defp open_port(command, args, env \\ []) do
+    Port.open({:spawn_executable, to_charlist(command)}, [:hide, args: args, env: env])
   end
 
   defp wait_until_decoded(file) do
