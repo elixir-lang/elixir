@@ -50,7 +50,6 @@ The notation to represent the union of types is the pipe `|`. For example, the t
           | pid()                   # process identifier
           | port()                  # port identifier
           | reference()
-          | struct()                # any struct
           | tuple()                 # tuple of any size
 
                                     ## Numbers
