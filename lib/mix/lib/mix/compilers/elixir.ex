@@ -183,6 +183,7 @@ defmodule Mix.Compilers.Elixir do
       each_module: &each_module(&1, &2, &3, cwd),
       each_long_compilation: &each_long_compilation(&1, cwd, long_compilation_threshold),
       long_compilation_threshold: long_compilation_threshold,
+      profile: opts[:profile],
       beam_timestamp: timestamp
     ]
 

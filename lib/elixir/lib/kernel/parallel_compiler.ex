@@ -70,6 +70,9 @@ defmodule Kernel.ParallelCompiler do
     * `:long_compilation_threshold` - the timeout (in seconds) after the
       `:each_long_compilation` callback is invoked; defaults to `15`
 
+    * `:profile` - if set to `:time` measure the compilation time of each compilation cycle
+       and group pass checker
+
     * `:dest` - the destination directory for the BEAM files. When using `compile/2`,
       this information is only used to properly annotate the BEAM files before
       they are loaded into memory. If you want a file to actually be written to
@@ -145,8 +148,11 @@ defmodule Kernel.ParallelCompiler do
         each_long_compilation: Keyword.get(options, :each_long_compilation, fn _file -> :ok end),
         each_module: Keyword.get(options, :each_module, fn _file, _module, _binary -> :ok end),
         beam_timestamp: Keyword.get(options, :beam_timestamp),
-        output: output,
         long_compilation_threshold: Keyword.get(options, :long_compilation_threshold, 15),
+        profile: Keyword.get(options, :profile),
+        cycle_start: System.monotonic_time(:millisecond),
+        module_counter: 0,
+        output: output,
         schedulers: schedulers
       })
 
@@ -243,6 +249,8 @@ defmodule Kernel.ParallelCompiler do
 
   # No more queue, nothing waiting, this cycle is done
   defp spawn_workers([], 0, [], [], result, warnings, state) do
+    state = cycle_timing(result, state)
+
     case each_cycle_return(state.each_cycle.()) do
       {:runtime, dependent_modules} ->
         write_and_verify_modules(result, warnings, dependent_modules, state)
@@ -319,14 +327,31 @@ defmodule Kernel.ParallelCompiler do
     end
   end
 
+  defp cycle_timing(result, %{profile: :time} = state) do
+    %{cycle_start: cycle_start, module_counter: module_counter} = state
+    num_modules = count_modules(result)
+    now = System.monotonic_time(:millisecond)
+    time = now - cycle_start
+    IO.puts("Finished compilation cycle of #{num_modules - module_counter} modules in #{time}ms")
+    %{state | cycle_start: now, module_counter: num_modules}
+  end
+
+  defp cycle_timing(_result, %{profile: nil} = state) do
+    state
+  end
+
+  defp count_modules(result) do
+    Enum.count(result, &match?({{:module, _}, _}, &1))
+  end
+
   # TODO: Deprecate on v1.12
   defp each_cycle_return(modules) when is_list(modules), do: {:compile, modules}
   defp each_cycle_return(other), do: other
 
   defp write_and_verify_modules(result, warnings, dependent_modules, state) do
-    %{output: output, beam_timestamp: beam_timestamp, schedulers: schedulers} = state
+    %{output: output, beam_timestamp: beam_timestamp} = state
 
-    {binaries, checker_warnings} = maybe_check_modules(result, dependent_modules, schedulers)
+    {binaries, checker_warnings} = maybe_check_modules(result, dependent_modules, state)
     write_module_binaries(output, beam_timestamp, binaries)
     warnings = Enum.reverse(warnings, checker_warnings)
     {:ok, Enum.map(binaries, &elem(&1, 0)), warnings}
@@ -344,14 +369,21 @@ defmodule Kernel.ParallelCompiler do
     :ok
   end
 
-  defp maybe_check_modules(result, runtime_modules, schedulers) do
+  defp maybe_check_modules(result, runtime_modules, state) do
+    %{schedulers: schedulers, profile: profile} = state
+
     if :elixir_config.get(:bootstrap) do
       binaries = for {{:module, module}, {binary, _map}} <- result, do: {module, binary}
       {binaries, []}
     else
       compiled_modules = checker_compiled_modules(result)
       runtime_modules = checker_runtime_modules(runtime_modules)
-      Module.ParallelChecker.verify(compiled_modules, runtime_modules, schedulers)
+      num_modules = length(compiled_modules) + length(runtime_modules)
+      message = "Finished group pass check of #{num_modules} modules in ${time}ms"
+
+      maybe_profile(profile, message, fn ->
+        Module.ParallelChecker.verify(compiled_modules, runtime_modules, schedulers)
+      end)
     end
   end
 
@@ -367,6 +399,16 @@ defmodule Kernel.ParallelCompiler do
         is_list(path) do
       {module, File.read!(path)}
     end
+  end
+
+  defp maybe_profile(_profile = :time, message, fun) do
+    {time, result} = :timer.tc(fun)
+    IO.puts(String.replace(message, "${time}", Integer.to_string(div(time, 1000))))
+    result
+  end
+
+  defp maybe_profile(_profile = nil, _message, fun) do
+    fun.()
   end
 
   # The goal of this function is to find leaves in the dependency graph,
