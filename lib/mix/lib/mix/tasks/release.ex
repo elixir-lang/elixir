@@ -680,7 +680,8 @@ defmodule Mix.Tasks.Release do
       in `releases/COOKIE`. It can be set to a custom value
 
     * `RELEASE_NODE` - the release node name, in the format `name@host`.
-      It can be set to a custom value
+      It can be set to a custom value. The name part must be made only
+      of letters, digits, underscores, and hyphens
 
     * `RELEASE_VM_ARGS` - the location of the vm.args file. It can be set
       to a custom path
@@ -694,7 +695,8 @@ defmodule Mix.Tasks.Release do
       start/daemon/install commands
 
     * `RELEASE_DISTRIBUTION` - how do we want to run the distribution.
-      Using `name` (long names) or `sname` (short names). Defaults to
+      Maybe be `name` (long names), `sname` (short names) or `none`
+      (distribution is not started automatically). Defaults to
       `sname` which allows access only within the current system.
       `name` allows external connections. If `name` is used and you are
       not running on Erlang/OTP 22 or later, you must set `RELEASE_NODE`
