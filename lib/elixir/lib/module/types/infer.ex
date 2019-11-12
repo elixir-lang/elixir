@@ -158,6 +158,25 @@ defmodule Module.Types.Infer do
     end
   end
 
+  # %_{...}
+  def of_pattern(
+        {:%, _meta1, [{:_, _meta2, var_context}, {:%{}, _meta3, args}]} = expr,
+        stack,
+        context
+      )
+      when is_atom(var_context) do
+    stack = push_expr_stack(expr, stack)
+
+    case of_pairs(args, stack, context) do
+      {:ok, pairs, context} ->
+        pairs = [{{:atom, :__struct__}, :atom} | pairs]
+        {:ok, {:map, pairs}, context}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
   # %var{...}
   def of_pattern({:%, _meta1, [var, {:%{}, _meta2, args}]} = expr, stack, context)
       when is_var(var) do
@@ -834,14 +853,7 @@ defmodule Module.Types.Infer do
     context
   end
 
-  defp var_name({name, meta, context}), do: {name, var_context(meta, context)}
-
-  defp var_context(meta, context) do
-    case :lists.keyfind(:counter, 1, meta) do
-      {:counter, counter} -> counter
-      false -> context
-    end
-  end
+  defp var_name({name, meta, _context}), do: {name, Keyword.fetch!(meta, :version)}
 
   # Check if a variable is recursive and incompatible with itself
   # Bad: `{var} = var`
