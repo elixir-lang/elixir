@@ -337,37 +337,38 @@ expand({'_', _Meta, Kind} = Var, #{context := match} = E) when is_atom(Kind) ->
 expand({'_', Meta, Kind}, E) when is_atom(Kind) ->
   form_error(Meta, E, ?MODULE, unbound_underscore);
 
-expand({Name, Meta, Kind} = Var, #{context := match} = E) when is_atom(Name), is_atom(Kind) ->
+expand({Name, Meta, Kind}, #{context := match} = E) when is_atom(Name), is_atom(Kind) ->
   #{current_vars := {ReadCurrent, WriteCurrent}, unused_vars := Unused, prematch_vars := Prematch} = E,
   Pair = {Name, elixir_utils:var_context(Meta, Kind)},
   PrematchVersion = var_version(Prematch, Pair),
 
-  EE =
-    case ReadCurrent of
-      %% Variable is being overridden now
-      #{Pair := PrematchVersion} ->
-        NewUnused = var_unused(Pair, Meta, PrematchVersion + 1, Unused),
-        NewReadCurrent = ReadCurrent#{Pair => PrematchVersion + 1},
-        NewWriteCurrent = (WriteCurrent /= false) andalso WriteCurrent#{Pair => PrematchVersion + 1},
-        E#{current_vars := {NewReadCurrent, NewWriteCurrent}, unused_vars := NewUnused};
+  case ReadCurrent of
+    %% Variable is being overridden now
+    #{Pair := PrematchVersion} ->
+      NewUnused = var_unused(Pair, Meta, PrematchVersion + 1, Unused),
+      NewReadCurrent = ReadCurrent#{Pair => PrematchVersion + 1},
+      NewWriteCurrent = (WriteCurrent /= false) andalso WriteCurrent#{Pair => PrematchVersion + 1},
+      Var = {Name, [{version, PrematchVersion + 1} | Meta], Kind},
+      {Var, E#{current_vars := {NewReadCurrent, NewWriteCurrent}, unused_vars := NewUnused}};
 
-      %% Variable was already overriden
-      #{Pair := CurrentVersion} ->
-        maybe_warn_underscored_var_repeat(Meta, Name, Kind, E),
-        NewUnused = Unused#{{Pair, CurrentVersion} => false},
-        E#{unused_vars := NewUnused};
+    %% Variable was already overriden
+    #{Pair := CurrentVersion} ->
+      maybe_warn_underscored_var_repeat(Meta, Name, Kind, E),
+      NewUnused = Unused#{{Pair, CurrentVersion} => false},
+      Var = {Name, [{version, CurrentVersion} | Meta], Kind},
+      {Var, E#{unused_vars := NewUnused}};
 
-      %% Variable defined for the first time
-      _ ->
-        NewVars = ordsets:add_element(Pair, ?key(E, vars)),
-        NewUnused = var_unused(Pair, Meta, 0, Unused),
-        NewReadCurrent = ReadCurrent#{Pair => 0},
-        NewWriteCurrent = (WriteCurrent /= false) andalso WriteCurrent#{Pair => 0},
-        E#{vars := NewVars, current_vars := {NewReadCurrent, NewWriteCurrent}, unused_vars := NewUnused}
-    end,
+    %% Variable defined for the first time
+    _ ->
+      NewVars = ordsets:add_element(Pair, ?key(E, vars)),
+      NewUnused = var_unused(Pair, Meta, 0, Unused),
+      NewReadCurrent = ReadCurrent#{Pair => 0},
+      NewWriteCurrent = (WriteCurrent /= false) andalso WriteCurrent#{Pair => 0},
+      Var = {Name, [{version, 0} | Meta], Kind},
+      {Var, E#{vars := NewVars, current_vars := {NewReadCurrent, NewWriteCurrent}, unused_vars := NewUnused}}
+  end;
 
-  {Var, EE};
-expand({Name, Meta, Kind} = Var, E) when is_atom(Name), is_atom(Kind) ->
+expand({Name, Meta, Kind}, E) when is_atom(Name), is_atom(Kind) ->
   #{current_vars := {ReadCurrent, _WriteCurrent}, unused_vars := Unused} = E,
   Pair = {Name, elixir_utils:var_context(Meta, Kind)},
 
@@ -375,6 +376,7 @@ expand({Name, Meta, Kind} = Var, E) when is_atom(Name), is_atom(Kind) ->
     #{Pair := Version} ->
       maybe_warn_underscored_var_access(Meta, Name, Kind, E),
       UnusedKey = {Pair, Version},
+      Var = {Name, [{version, Version} | Meta], Kind},
 
       case Unused of
         #{UnusedKey := false} ->
