@@ -695,7 +695,7 @@ defmodule Mix.Tasks.Release do
       start/daemon/install commands
 
     * `RELEASE_DISTRIBUTION` - how do we want to run the distribution.
-      Maybe be `name` (long names), `sname` (short names) or `none`
+      May be `name` (long names), `sname` (short names) or `none`
       (distribution is not started automatically). Defaults to
       `sname` which allows access only within the current system.
       `name` allows external connections. If `name` is used and you are
