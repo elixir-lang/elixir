@@ -5,9 +5,11 @@ defmodule Module.Types.InferTest do
   import Module.Types.Infer
   alias Module.Types
 
-  defmacrop quoted_pattern(expr) do
+  defmacrop quoted_pattern(patterns) do
     quote do
-      of_pattern(unquote(Macro.escape(expr)), new_stack(), new_context())
+      patterns = unquote(Macro.escape(expand_head(patterns)))
+
+      of_pattern(patterns, new_stack(), new_context())
       |> lift_result()
     end
   end
@@ -16,6 +18,32 @@ defmodule Module.Types.InferTest do
     quote do
       of_guard(unquote(Macro.escape(expand_guards(guards))), new_stack(), unquote(context))
     end
+  end
+
+  defp expand_head(patterns) do
+    {_, vars} =
+      Macro.prewalk(patterns, [], fn
+        {:_, _, context} = var, vars when is_atom(context) ->
+          {var, vars}
+
+        {:"::", _, [left, _right]}, vars ->
+          {{:"::", [], [left, nil]}, vars}
+
+        {name, _, context} = var, vars when is_atom(name) and is_atom(context) ->
+          {var, [var | vars]}
+
+        other, vars ->
+          {other, vars}
+      end)
+
+    fun =
+      quote do
+        fn unquote(patterns) -> unquote(vars) end
+      end
+
+    {ast, _env} = :elixir_expand.expand(fun, __ENV__)
+    {:fn, _, [{:->, _, [[patterns], _]}]} = ast
+    patterns
   end
 
   defp expand_guards(guards) do
@@ -57,26 +85,30 @@ defmodule Module.Types.InferTest do
     {:error, {reason, location}}
   end
 
+  defmodule :"Elixir.Module.Types.InferTest.Struct" do
+    defstruct foo: :atom, bar: 123, baz: %{}
+  end
+
   describe "of_pattern/2" do
     test "error location" do
       assert {:error, {{:unable_unify, :binary, :integer, expr, traces}, location}} =
                quoted_pattern(<<foo::integer, foo::binary>>)
 
-      assert location == [{"types_test.ex", 63, {TypesTest, :test, 0}}]
+      assert location == [{"types_test.ex", 95, {TypesTest, :test, 0}}]
 
       assert {:<<>>, _,
               [
-                {:"::", _, [{:foo, _, nil}, {:integer, _, nil}]},
-                {:"::", _, [{:foo, _, nil}, {:binary, _, nil}]}
+                {:"::", _, [{:foo, _, nil}, {:integer, _, _}]},
+                {:"::", _, [{:foo, _, nil}, {:binary, _, _}]}
               ]} = expr
 
       assert [
                {{:foo, _, nil},
-                {:type, :binary, {:"::", _, [{:foo, _, nil}, {:binary, _, nil}]},
-                 {"types_test.ex", 63}}},
+                {:type, :binary, {:"::", _, [{:foo, _, nil}, {:binary, _, _}]},
+                 {"types_test.ex", 95}}},
                {{:foo, _, nil},
-                {:type, :integer, {:"::", _, [{:foo, _, nil}, {:integer, _, nil}]},
-                 {"types_test.ex", 63}}}
+                {:type, :integer, {:"::", _, [{:foo, _, nil}, {:integer, _, _}]},
+                 {"types_test.ex", 95}}}
              ] = traces
     end
 
@@ -109,7 +141,7 @@ defmodule Module.Types.InferTest do
       assert quoted_pattern([_ | _]) == {:ok, {:list, :dynamic}}
 
       assert quoted_pattern([] ++ []) == {:ok, {:list, :dynamic}}
-      assert quoted_pattern([] ++ _) == {:ok, {:list, :dynamic}}
+      assert quoted_pattern([_] ++ _) == {:ok, {:list, :dynamic}}
       assert quoted_pattern([123] ++ [456]) == {:ok, {:list, :integer}}
       assert quoted_pattern([123] ++ _) == {:ok, {:list, :dynamic}}
       assert quoted_pattern([123] ++ ["foo"]) == {:ok, {:list, {:union, [:integer, :binary]}}}
@@ -134,10 +166,6 @@ defmodule Module.Types.InferTest do
     end
 
     test "struct" do
-      defmodule :"Elixir.Module.Types.InferTest.Struct" do
-        defstruct foo: :atom, bar: 123, baz: %{}
-      end
-
       assert quoted_pattern(%:"Elixir.Module.Types.InferTest.Struct"{}) ==
                {:ok, {:map, [{{:atom, :__struct__}, {:atom, Module.Types.InferTest.Struct}}]}}
 
@@ -177,13 +205,7 @@ defmodule Module.Types.InferTest do
       assert quoted_pattern({<<foo::utf8>>, foo}) == {:ok, {:tuple, [:binary, :integer]}}
 
       assert {:error, {{:unable_unify, :integer, :binary, _, _}, _}} =
-               quoted_pattern(<<123::binary>>)
-
-      assert {:error, {{:unable_unify, :binary, :integer, _, _}, _}} =
-               quoted_pattern(<<"foo"::integer>>)
-
-      assert {:error, {{:unable_unify, :integer, :binary, _, _}, _}} =
-               quoted_pattern(<<foo::binary, foo::integer>>)
+               quoted_pattern(<<foo::binary-0, foo::integer>>)
     end
 
     test "variables" do
@@ -309,8 +331,8 @@ defmodule Module.Types.InferTest do
     end
 
     test "vars" do
-      assert {{:var, 0}, var_context} = new_var({:foo, [], nil}, new_context())
-      assert {{:var, 1}, var_context} = new_var({:bar, [], nil}, var_context)
+      assert {{:var, 0}, var_context} = new_var({:foo, [version: 0], nil}, new_context())
+      assert {{:var, 1}, var_context} = new_var({:bar, [version: 0], nil}, var_context)
 
       assert {:ok, {:var, 0}, context} = unify({:var, 0}, :integer, var_context)
       assert Types.lift_type({:var, 0}, context) == :integer
@@ -344,8 +366,8 @@ defmodule Module.Types.InferTest do
     end
 
     test "vars inside tuples" do
-      assert {{:var, 0}, var_context} = new_var({:foo, [], nil}, new_context())
-      assert {{:var, 1}, var_context} = new_var({:bar, [], nil}, var_context)
+      assert {{:var, 0}, var_context} = new_var({:foo, [version: 0], nil}, new_context())
+      assert {{:var, 1}, var_context} = new_var({:bar, [version: 0], nil}, var_context)
 
       assert {:ok, {:tuple, [{:var, 0}]}, context} =
                unify({:tuple, [{:var, 0}]}, {:tuple, [:integer]}, var_context)
@@ -372,9 +394,9 @@ defmodule Module.Types.InferTest do
     # TODO: Vars inside unions
 
     test "recursive type" do
-      assert {{:var, 0}, var_context} = new_var({:foo, [], nil}, new_context())
-      assert {{:var, 1}, var_context} = new_var({:bar, [], nil}, var_context)
-      assert {{:var, 2}, var_context} = new_var({:baz, [], nil}, var_context)
+      assert {{:var, 0}, var_context} = new_var({:foo, [version: 0], nil}, new_context())
+      assert {{:var, 1}, var_context} = new_var({:bar, [version: 0], nil}, var_context)
+      assert {{:var, 2}, var_context} = new_var({:baz, [version: 0], nil}, var_context)
 
       assert {:ok, {:var, _}, context} = unify({:var, 0}, {:var, 1}, var_context)
       assert {:ok, {:var, _}, context} = unify({:var, 1}, {:var, 0}, context)
@@ -397,7 +419,7 @@ defmodule Module.Types.InferTest do
   end
 
   test "of_guard/2" do
-    assert {{:var, 0}, var_context} = new_var({:x, [], nil}, new_context())
+    assert {{:var, 0}, var_context} = new_var({:x, [version: 0], nil}, new_context())
 
     assert {:ok, :boolean, context} = quoted_guard(is_tuple(x), var_context)
     assert Types.lift_type({:var, 0}, context) == :tuple
@@ -434,7 +456,7 @@ defmodule Module.Types.InferTest do
     assert to_union([{:atom, :foo}, :binary, :atom], new_context()) ==
              {:union, [:binary, :atom]}
 
-    assert {{:var, 0}, var_context} = new_var({:foo, [], nil}, new_context())
+    assert {{:var, 0}, var_context} = new_var({:foo, [version: 0], nil}, new_context())
     assert to_union([{:var, 0}], var_context) == {:var, 0}
 
     assert to_union([{:tuple, [:integer]}, {:tuple, [:integer]}], new_context()) ==
