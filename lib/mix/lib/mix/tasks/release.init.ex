@@ -72,7 +72,7 @@ defmodule Mix.Tasks.Release.Init do
 
     # Set the release to work across nodes. If using the long name format like
     # the one below (my_app@127.0.0.1), you need to also uncomment the
-    # RELEASE_DISTRIBUTION variable below.
+    # RELEASE_DISTRIBUTION variable below. Set it to "none" to disable distribution.
     # export RELEASE_DISTRIBUTION=name
     # export RELEASE_NODE=<%= @release.name %>@127.0.0.1
     """
@@ -107,10 +107,26 @@ defmodule Mix.Tasks.Release.Init do
       od -t xS -N 2 -A n /dev/urandom | tr -d " \n"
     }
 
+    release_distribution () {
+      case $RELEASE_DISTRIBUTION in
+        none)
+          ;;
+
+        name | sname)
+          echo "--$RELEASE_DISTRIBUTION $1"
+          ;;
+
+        *)
+          echo "ERROR: Expected sname, name, or none in RELEASE_DISTRIBUTION, got: $RELEASE_DISTRIBUTION" >&2
+          exit 1
+          ;;
+      esac
+    }
+
     rpc () {
       exec "$REL_VSN_DIR/elixir" \
            --hidden --cookie "$RELEASE_COOKIE" \
-           --$RELEASE_DISTRIBUTION "rpc-$(rand)-$RELEASE_NODE" \
+           $(release_distribution "rpc-$(rand)-$RELEASE_NODE") \
            --boot "$REL_VSN_DIR/$RELEASE_BOOT_SCRIPT_CLEAN" \
            --boot-var RELEASE_LIB "$RELEASE_ROOT/lib" \
            --rpc-eval "$RELEASE_NODE" "$1"
@@ -122,7 +138,7 @@ defmodule Mix.Tasks.Release.Init do
       shift
       exec "$REL_VSN_DIR/$REL_EXEC" \
            --cookie "$RELEASE_COOKIE" \
-           --$RELEASE_DISTRIBUTION "$RELEASE_NODE" \
+           $(release_distribution "$RELEASE_NODE") \
            --erl "-mode $RELEASE_MODE" \
            --erl-config "$RELEASE_SYS_CONFIG" \
            --boot "$REL_VSN_DIR/$RELEASE_BOOT_SCRIPT" \
@@ -180,7 +196,7 @@ defmodule Mix.Tasks.Release.Init do
       remote)
         exec "$REL_VSN_DIR/iex" \
              --werl --hidden --cookie "$RELEASE_COOKIE" \
-             --$RELEASE_DISTRIBUTION "rem-$(rand)-$RELEASE_NODE" \
+             $(release_distribution "rem-$(rand)-$RELEASE_NODE") \
              --boot "$REL_VSN_DIR/$RELEASE_BOOT_SCRIPT_CLEAN" \
              --boot-var RELEASE_LIB "$RELEASE_ROOT/lib" \
              --remsh "$RELEASE_NODE"
@@ -238,7 +254,7 @@ defmodule Mix.Tasks.Release.Init do
     @echo off
     rem Set the release to work across nodes. If using the long name format like
     rem the one below (my_app@127.0.0.1), you need to also uncomment the
-    rem RELEASE_DISTRIBUTION variable below.
+    rem RELEASE_DISTRIBUTION variable below. Set it to "none" to disable distribution.
     rem set RELEASE_DISTRIBUTION=name
     rem set RELEASE_NODE=<%= @release.name %>@127.0.0.1
     """
@@ -328,9 +344,15 @@ defmodule Mix.Tasks.Release.Init do
     goto end
 
     :start
+    if "!RELEASE_DISTRIBUTION!" == "none" (
+      set RELEASE_DISTRIBUTION_FLAG=""
+    ) else (
+      set RELEASE_DISTRIBUTION_FLAG=--!RELEASE_DISTRIBUTION! "!RELEASE_NODE!"
+    )
+
     "!REL_VSN_DIR!\!REL_EXEC!.bat" !REL_EXTRA! ^
       --cookie "!RELEASE_COOKIE!" ^
-      --!RELEASE_DISTRIBUTION! "!RELEASE_NODE!" ^
+      !RELEASE_DISTRIBUTION_FLAG! ^
       --erl "-mode !RELEASE_MODE!" ^
       --erl-config "!RELEASE_SYS_CONFIG!" ^
       --boot "!REL_VSN_DIR!\!RELEASE_BOOT_SCRIPT!" ^
@@ -349,18 +371,30 @@ defmodule Mix.Tasks.Release.Init do
     goto end
 
     :remote
+    if "!RELEASE_DISTRIBUTION!" == "none" (
+      set RELEASE_DISTRIBUTION_FLAG=""
+    ) else (
+      set RELEASE_DISTRIBUTION_FLAG=--!RELEASE_DISTRIBUTION! "rem-!RANDOM!-!RELEASE_NODE!"
+    )
+
     "!REL_VSN_DIR!\iex.bat" ^
       --werl --hidden --cookie "!RELEASE_COOKIE!" ^
-      --!RELEASE_DISTRIBUTION! "rem-!RANDOM!-!RELEASE_NODE!" ^
+      !RELEASE_DISTRIBUTION_FLAG! ^
       --boot "!REL_VSN_DIR!\!RELEASE_BOOT_SCRIPT_CLEAN!" ^
       --boot-var RELEASE_LIB "!RELEASE_ROOT!\lib" ^
       --remsh "!RELEASE_NODE!"
     goto end
 
     :rpc
+    if "!RELEASE_DISTRIBUTION!" == "none" (
+      set RELEASE_DISTRIBUTION_FLAG=
+    ) else (
+      set RELEASE_DISTRIBUTION_FLAG=--!RELEASE_DISTRIBUTION! "rpc-!RANDOM!-!RELEASE_NODE!"
+    )
+
     "!REL_VSN_DIR!\elixir.bat" ^
       --hidden --cookie "!RELEASE_COOKIE!" ^
-      --!RELEASE_DISTRIBUTION! "rpc-!RANDOM!-!RELEASE_NODE!" ^
+      !RELEASE_DISTRIBUTION_FLAG! ^
       --boot "!REL_VSN_DIR!\!RELEASE_BOOT_SCRIPT_CLEAN!" ^
       --boot-var RELEASE_LIB "!RELEASE_ROOT!\lib" ^
       --rpc-eval "!RELEASE_NODE!" "!REL_RPC!"
@@ -375,6 +409,11 @@ defmodule Mix.Tasks.Release.Init do
       set ERLSRV=!RELEASE_ROOT!\erts-!ERTS_VSN!\bin\erlsrv.exe
     ) else (
       set ERLSRV=erlsrv.exe
+    )
+
+    if "!RELEASE_DISTRIBUTION!" == "none" (
+      echo ERROR: RELEASE_DISTRIBUTION is required in install command
+      goto end
     )
 
     !ERLSRV! add !RELEASE_NAME!_!RELEASE_NAME! ^
