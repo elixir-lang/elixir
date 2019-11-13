@@ -372,7 +372,7 @@ defmodule Mix.Tasks.Release.Init do
 
     :remote
     if "!RELEASE_DISTRIBUTION!" == "none" (
-      set RELEASE_DISTRIBUTION_FLAG=""
+      set RELEASE_DISTRIBUTION_FLAG=
     ) else (
       set RELEASE_DISTRIBUTION_FLAG=--!RELEASE_DISTRIBUTION! "rem-!RANDOM!-!RELEASE_NODE!"
     )
