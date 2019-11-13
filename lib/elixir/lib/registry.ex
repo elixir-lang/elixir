@@ -929,13 +929,13 @@ defmodule Registry do
     counter = System.unique_integer()
     true = :ets.insert(pid_ets, {self, key, key_ets, counter})
 
-    case register_key(kind, pid_server, key_ets, key, {key, {self, value}}) do
-      {:ok, _} = ok ->
+    case register_key(kind, key_ets, key, {key, {self, value}}) do
+      :ok ->
         for listener <- listeners do
           Kernel.send(listener, {:register, registry, key, self, value})
         end
 
-        ok
+        {:ok, pid_server}
 
       {:error, {:already_registered, ^self}} = error ->
         true = :ets.delete_object(pid_ets, {self, key, key_ets, counter})
@@ -948,14 +948,14 @@ defmodule Registry do
     end
   end
 
-  defp register_key(:duplicate, pid_server, key_ets, _key, entry) do
+  defp register_key(:duplicate, key_ets, _key, entry) do
     true = :ets.insert(key_ets, entry)
-    {:ok, pid_server}
+    :ok
   end
 
-  defp register_key(:unique, pid_server, key_ets, key, entry) do
+  defp register_key(:unique, key_ets, key, entry) do
     if :ets.insert_new(key_ets, entry) do
-      {:ok, pid_server}
+      :ok
     else
       # Notice we have to call register_key recursively
       # because we are always at odds of a race condition.
@@ -965,11 +965,11 @@ defmodule Registry do
             {:error, {:already_registered, pid}}
           else
             :ets.delete_object(key_ets, current)
-            register_key(:unique, pid_server, key_ets, key, entry)
+            register_key(:unique, key_ets, key, entry)
           end
 
         [] ->
-          register_key(:unique, pid_server, key_ets, key, entry)
+          register_key(:unique, key_ets, key, entry)
       end
     end
   end
