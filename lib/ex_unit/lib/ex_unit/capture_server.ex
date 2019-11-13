@@ -42,40 +42,44 @@ defmodule ExUnit.CaptureServer do
     {:ok, state}
   end
 
-  def handle_call({:device_capture_on, name, encoding, input}, _from, %{devices: devices} = config) do
-    {:ok, pid} = StringIO.open(input, encoding: encoding)
-
+  def handle_call(
+        {:device_capture_on, name, encoding, input},
+        _from,
+        %{devices: devices} = config
+      ) do
     if Map.has_key?(devices, name) do
-      orig_pid = Process.whereis(name)
-      try do
-        Process.unregister(name)
-      rescue
-        ArgumentError ->
-          nil
-      end
-      Process.register(pid, name)
-      ref = Process.monitor(pid)
-      devices = Map.put(devices, ref, {orig_pid, name})
+      ref = make_ref()
+      device = Map.get(devices, name)
+      {_, output} = StringIO.contents(device.pid)
+      refs = [{ref, byte_size(output)} | device.refs]
+      devices = Map.put(devices, name, %{device | refs: refs})
       {:reply, {:ok, ref}, %{config | devices: devices}}
     else
-      orig_pid = Process.whereis(name)
       try do
+        ref = make_ref()
+        {:ok, pid} = StringIO.open(input, encoding: encoding)
+        _ = Process.monitor(pid)
+
+        orig_pid = Process.whereis(name)
         Process.unregister(name)
+        Process.register(pid, name)
+
+        devices = Map.put(devices, name, %{orig_pid: orig_pid, pid: pid, refs: [{ref, 0}]})
+        {:reply, {:ok, ref}, %{config | devices: devices}}
       rescue
         ArgumentError ->
-          nil
+          {:reply, {:error, :no_device}, config}
       end
-      Process.register(pid, name)
-      ref = Process.monitor(pid)
-      devices = Map.put(devices, ref, {orig_pid, name})
-      devices = Map.put(devices, :pid, pid)
-      {:reply, {:ok, ref}, %{config | devices: devices}}
     end
   end
 
-  def handle_call({:device_output, _ref}, _from, %{devices: %{pid: pid}} = config) do
-    {_, output} = StringIO.contents(pid)
-    {:reply, output, config}
+  def handle_call({:device_output, ref}, _from, %{devices: devices} = config) do
+    {_, device} = device_by_ref(devices, ref)
+    {_, output} = StringIO.contents(device.pid)
+    total = byte_size(output)
+    offset = offset_by_ref(device, ref)
+    output_size = total - offset
+    {:reply, binary_part(output, offset, output_size), config}
   end
 
   def handle_call({:device_capture_off, ref}, _from, config) do
@@ -108,25 +112,29 @@ defmodule ExUnit.CaptureServer do
   end
 
   defp release_device(ref, %{devices: devices} = config) do
-    try do
-      StringIO.close(devices.pid)
-    rescue
-      _ ->
-        nil
-    end
+    case device_by_ref(devices, ref) do
+      {name, device_info} ->
+        case Enum.reject(device_info.refs, &refs_equal?(&1, ref)) do
+          [] ->
+            try do
+              try do
+                Process.unregister(name)
+              after
+                Process.register(device_info.orig_pid, name)
+                StringIO.close(device_info.pid)
+              end
+            rescue
+              ArgumentError ->
+                nil
+            end
 
-    case Map.get(devices, ref) do
-      {pid, name} ->
-        try do
-          Process.unregister(name)
-        rescue
-          ArgumentError ->
-            nil
+            %{config | devices: Map.delete(devices, name)}
+
+          refs ->
+            device_info = %{device_info | refs: refs}
+            devices = Map.put(devices, name, device_info)
+            %{config | devices: devices}
         end
-        Process.register(pid, name)
-        devices = Map.delete(devices, ref)
-        devices = Map.delete(devices, :pid)
-        %{config | devices: devices}
 
       _ ->
         config
@@ -149,4 +157,18 @@ defmodule ExUnit.CaptureServer do
       Logger.add_backend(:console, flush: true)
     end
   end
+
+  defp device_by_ref(devices, ref) do
+    Enum.find(devices, fn {_, device} -> offset_by_ref(device, ref) end)
+  end
+
+  defp offset_by_ref(device, ref) do
+    case Enum.find(device.refs, &refs_equal?(&1, ref)) do
+      {_, offset} -> offset
+      _ -> nil
+    end
+  end
+
+  defp refs_equal?({ref, _}, ref), do: true
+  defp refs_equal?(_, _), do: false
 end

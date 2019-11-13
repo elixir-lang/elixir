@@ -1,7 +1,7 @@
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule ExUnit.CaptureIOTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   defmodule GetUntil do
     def until_new_line(_, :eof, _) do
@@ -84,6 +84,36 @@ defmodule ExUnit.CaptureIOTest do
     assert capture_io(:stderr, fn ->
              :io.put_chars(:standard_error, "a")
            end) == "a"
+  end
+
+  test "async capture_io works with put chars to stderr" do
+    me = self()
+
+    Enum.each(1..6, fn num ->
+      spawn(fn ->
+        captured =
+          capture_io(:stderr, fn ->
+            :io.put_chars(:standard_error, "#{num}\n")
+            Process.sleep(10)
+            :io.put_chars(:standard_error, "#{num + 10}\n")
+          end)
+
+        send(me, captured)
+      end)
+
+      Process.sleep(1)
+    end)
+
+    expected = [
+      {~r/^1\n/, ~r/11\n/},
+      {~r/^2\n/, ~r/12\n/},
+      {~r/^3\n/, ~r/13\n/},
+      {~r/^4\n/, ~r/14\n/},
+      {~r/^5\n/, ~r/15\n/},
+      {~r/^6\n/, ~r/16\n/}
+    ]
+
+    assert_received_regex(expected)
   end
 
   test "with fwrite" do
@@ -342,6 +372,31 @@ defmodule ExUnit.CaptureIOTest do
 
     receive do
       {:io_reply, ^pid, res} -> res
+    end
+  end
+
+  defp assert_received_regex([]), do: :ok
+
+  defp assert_received_regex(regexes) do
+    receive do
+      output ->
+        index =
+          Enum.find_index(regexes, fn {first, second} ->
+            output =~ first and output =~ second
+          end)
+
+        case index do
+          nil ->
+            raise "Cound not find match for #{inspect(output)} in #{inspect(regexes)}"
+
+          _ ->
+            regexes
+            |> List.delete_at(index)
+            |> assert_received_regex()
+        end
+    after
+      100 ->
+        raise "Expected to receive message but did not"
     end
   end
 end
