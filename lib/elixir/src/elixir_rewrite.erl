@@ -6,6 +6,7 @@
 %% Convenience variables
 
 -define(atom, 'Elixir.Atom').
+-define(bitwise, 'Elixir.Bitwise').
 -define(enum, 'Elixir.Enum').
 -define(function, 'Elixir.Function').
 -define(integer, 'Elixir.Integer').
@@ -50,6 +51,13 @@ erl_to_ex(Mod, Fun, Args) ->
 inline(Mod, Fun, Arity) -> inner_inline(ex_to_erl, Mod, Fun, Arity).
 
 ?inline(?atom, to_charlist, 1, erlang, atom_to_list);
+
+?inline(?bitwise, 'bnot', 1, erlang, 'bnot');
+?inline(?bitwise, 'band', 2, erlang, 'band');
+?inline(?bitwise, 'bor', 2, erlang, 'bor');
+?inline(?bitwise, 'bxor', 2, erlang, 'bxor');
+?inline(?bitwise, 'bsl', 2, erlang, 'bsl');
+?inline(?bitwise, 'bsr', 2, erlang, 'bsr');
 
 ?inline(?function, capture, 3, erlang, make_fun);
 ?inline(?function, info, 1, erlang, fun_info);
@@ -194,6 +202,14 @@ inline(Mod, Fun, Arity) -> inner_inline(ex_to_erl, Mod, Fun, Arity).
 
 ?inline(?tuple, append, 2, erlang, append_element);
 ?inline(?tuple, to_list, 1, erlang, tuple_to_list);
+
+% Defined without macro to avoid conflict with Bitwise named operators
+inner_inline(ex_to_erl, ?bitwise, '~~~', 1) -> {erlang, 'bnot'};
+inner_inline(ex_to_erl, ?bitwise, '&&&', 2) -> {erlang, 'band'};
+inner_inline(ex_to_erl, ?bitwise, '|||', 2) -> {erlang, 'bor'};
+inner_inline(ex_to_erl, ?bitwise, '^^^', 2) -> {erlang, 'bxor'};
+inner_inline(ex_to_erl, ?bitwise, '<<<', 2) -> {erlang, 'bsl'};
+inner_inline(ex_to_erl, ?bitwise, '>>>', 2) -> {erlang, 'bsr'};
 
 % Defined without macro to avoid conflict with Process.demonitor
 inner_inline(ex_to_erl, ?port, demonitor, 1) -> {erlang, demonitor};

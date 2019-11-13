@@ -67,8 +67,8 @@ defmodule Bitwise do
 
   """
   @doc guard: true
-  defmacro bnot(expr) do
-    quote(do: :erlang.bnot(unquote(expr)))
+  def bnot(expr) do
+    :erlang.bnot(expr)
   end
 
   @doc """
@@ -81,8 +81,8 @@ defmodule Bitwise do
 
   """
   @doc guard: true
-  defmacro ~~~expr do
-    quote(do: :erlang.bnot(unquote(expr)))
+  def ~~~expr do
+    :erlang.bnot(expr)
   end
 
   @doc """
@@ -93,8 +93,8 @@ defmodule Bitwise do
 
   """
   @doc guard: true
-  defmacro band(left, right) do
-    quote(do: :erlang.band(unquote(left), unquote(right)))
+  def band(left, right) do
+    :erlang.band(left, right)
   end
 
   @doc """
@@ -105,8 +105,8 @@ defmodule Bitwise do
 
   """
   @doc guard: true
-  defmacro left &&& right do
-    quote(do: :erlang.band(unquote(left), unquote(right)))
+  def left &&& right do
+    :erlang.band(left, right)
   end
 
   @doc """
@@ -117,8 +117,8 @@ defmodule Bitwise do
 
   """
   @doc guard: true
-  defmacro bor(left, right) do
-    quote(do: :erlang.bor(unquote(left), unquote(right)))
+  def bor(left, right) do
+    :erlang.bor(left, right)
   end
 
   @doc """
@@ -129,8 +129,8 @@ defmodule Bitwise do
 
   """
   @doc guard: true
-  defmacro left ||| right do
-    quote(do: :erlang.bor(unquote(left), unquote(right)))
+  def left ||| right do
+    :erlang.bor(left, right)
   end
 
   @doc """
@@ -141,8 +141,8 @@ defmodule Bitwise do
 
   """
   @doc guard: true
-  defmacro bxor(left, right) do
-    quote(do: :erlang.bxor(unquote(left), unquote(right)))
+  def bxor(left, right) do
+    :erlang.bxor(left, right)
   end
 
   @doc """
@@ -153,8 +153,8 @@ defmodule Bitwise do
 
   """
   @doc guard: true
-  defmacro left ^^^ right do
-    quote(do: :erlang.bxor(unquote(left), unquote(right)))
+  def left ^^^ right do
+    :erlang.bxor(left, right)
   end
 
   @doc """
@@ -171,8 +171,8 @@ defmodule Bitwise do
 
   """
   @doc guard: true
-  defmacro bsl(left, right) do
-    quote(do: :erlang.bsl(unquote(left), unquote(right)))
+  def bsl(left, right) do
+    :erlang.bsl(left, right)
   end
 
   @doc """
@@ -189,8 +189,8 @@ defmodule Bitwise do
 
   """
   @doc guard: true
-  defmacro left <<< right do
-    quote(do: :erlang.bsl(unquote(left), unquote(right)))
+  def left <<< right do
+    :erlang.bsl(left, right)
   end
 
   @doc """
@@ -207,8 +207,8 @@ defmodule Bitwise do
 
   """
   @doc guard: true
-  defmacro bsr(left, right) do
-    quote(do: :erlang.bsr(unquote(left), unquote(right)))
+  def bsr(left, right) do
+    :erlang.bsr(left, right)
   end
 
   @doc """
@@ -225,7 +225,7 @@ defmodule Bitwise do
 
   """
   @doc guard: true
-  defmacro left >>> right do
-    quote(do: :erlang.bsr(unquote(left), unquote(right)))
+  def left >>> right do
+    :erlang.bsr(left, right)
   end
 end

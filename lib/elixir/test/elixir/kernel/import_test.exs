@@ -112,10 +112,10 @@ defmodule Kernel.ImportTest do
     defmacro bor(x, _), do: x
   end
 
-  import Bitwise, only: :macros
+  import Bitwise, only: :functions
 
   test "conflicting imports with only and except" do
-    import Bitwise, only: :macros, except: [bnot: 1]
+    import Bitwise, only: :functions, except: [bnot: 1]
     import MessedBitwise, only: [bnot: 1]
     assert bnot(0) == 0
     assert bor(0, 1) == 1
