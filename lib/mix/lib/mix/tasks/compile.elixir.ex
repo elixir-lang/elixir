@@ -26,6 +26,7 @@ defmodule Mix.Tasks.Compile.Elixir do
       return a non-zero exit code
     * `--long-compilation-threshold N` - sets the "long compilation" threshold
       (in seconds) to `N` (see the docs for `Kernel.ParallelCompiler.compile/2`)
+    * `--profile` - if set to `time`, outputs timing information of compilation steps
     * `--all-warnings` - prints warnings even from files that do not need to be recompiled
     * `--tracer` - adds a compiler tracer in addition to any specified in the `mix.exs` file
 
@@ -49,6 +50,7 @@ defmodule Mix.Tasks.Compile.Elixir do
     debug_info: :boolean,
     verbose: :boolean,
     long_compilation_threshold: :integer,
+    profile: :string,
     all_warnings: :boolean,
     tracer: :keep
   ]
@@ -74,6 +76,7 @@ defmodule Mix.Tasks.Compile.Elixir do
       |> Keyword.merge(opts)
       |> xref_exclude_opts(project)
       |> merge_tracers()
+      |> profile_opts()
 
     Mix.Compilers.Elixir.compile(manifest, srcs, dest, [:ex], force, opts)
   end
@@ -107,6 +110,14 @@ defmodule Mix.Tasks.Compile.Elixir do
       {tracers, opts} ->
         tracers = Enum.map(tracers, &Module.concat([&1]))
         Keyword.update(opts, :tracers, tracers, &(tracers ++ &1))
+    end
+  end
+
+  defp profile_opts(opts) do
+    case Keyword.fetch(opts, :profile) do
+      {:ok, "time"} -> Keyword.put(opts, :profile, :time)
+      {:ok, _} -> Keyword.delete(opts, :profile)
+      :error -> opts
     end
   end
 end
