@@ -5,18 +5,22 @@ defmodule Module.TypesTest do
   import Bitwise, warn: false
   alias Module.Types
 
-  defmacrop quoted_clause(exprs) do
+  defmacrop quoted_clause(patterns) do
     quote do
-      Types.of_clause(unquote(Macro.escape(exprs)), [], new_stack(), new_context())
+      {patterns, true} = unquote(Macro.escape(expand_head(patterns, true)))
+
+      Types.of_clause(patterns, [], new_stack(), new_context())
       |> lift_result()
     end
   end
 
-  defmacrop quoted_clause(exprs, guards) do
+  defmacrop quoted_clause(patterns, guards) do
     quote do
+      {patterns, guards} = unquote(Macro.escape(expand_head(patterns, guards)))
+
       Types.of_clause(
-        unquote(Macro.escape(exprs)),
-        unquote(Macro.escape(expand_guards(exprs, guards))),
+        patterns,
+        guards,
         new_stack(),
         new_context()
       )
@@ -24,9 +28,12 @@ defmodule Module.TypesTest do
     end
   end
 
-  defp expand_guards(exprs, guards) do
+  defp expand_head(patterns, guards) do
     {_, vars} =
-      Macro.prewalk(exprs, [], fn
+      Macro.prewalk(patterns, [], fn
+        {:_, _, context} = var, vars when is_atom(context) ->
+          {var, vars}
+
         {name, _, context} = var, vars when is_atom(name) and is_atom(context) ->
           {var, [var | vars]}
 
@@ -36,12 +43,12 @@ defmodule Module.TypesTest do
 
     fun =
       quote do
-        fn unquote(vars) when unquote(guards) -> unquote(vars) end
+        fn unquote(patterns) when unquote(guards) -> unquote(vars) end
       end
 
     {ast, _env} = :elixir_expand.expand(fun, __ENV__)
-    {:fn, _, [{:->, _, [[{:when, _, [_, guards]}], _]}]} = ast
-    guards
+    {:fn, _, [{:->, _, [[{:when, _, [patterns, guards]}], _]}]} = ast
+    {patterns, guards}
   end
 
   defp new_context() do
@@ -73,16 +80,17 @@ defmodule Module.TypesTest do
       assert quoted_clause([a, a]) == {:ok, [{:var, 0}, {:var, 0}]}
 
       assert lift_result(
-               Types.of_clause([{:a, [], :foo}, {:a, [], :foo}], [], new_stack(), new_context())
+               Types.of_clause(
+                 [{:a, [version: 0], :foo}, {:a, [version: 0], :foo}],
+                 [],
+                 new_stack(),
+                 new_context()
+               )
              ) == {:ok, [{:var, 0}, {:var, 0}]}
 
       assert lift_result(
-               Types.of_clause([{:a, [], :foo}, {:a, [], :bar}], [], new_stack(), new_context())
-             ) == {:ok, [{:var, 0}, {:var, 1}]}
-
-      assert lift_result(
                Types.of_clause(
-                 [{:a, [counter: 0], :foo}, {:a, [counter: 1], :foo}],
+                 [{:a, [version: 0], :foo}, {:a, [version: 1], :foo}],
                  [],
                  new_stack(),
                  new_context()
