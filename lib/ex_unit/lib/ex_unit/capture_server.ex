@@ -10,8 +10,12 @@ defmodule ExUnit.CaptureServer do
     GenServer.start_link(__MODULE__, :ok, name: @name)
   end
 
-  def device_capture_on(device, pid) do
-    GenServer.call(@name, {:device_capture_on, device, pid}, @timeout)
+  def device_capture_on(device, encoding, input) do
+    GenServer.call(@name, {:device_capture_on, device, encoding, input}, @timeout)
+  end
+
+  def device_output(ref) do
+    GenServer.call(@name, {:device_output, ref}, @timeout)
   end
 
   def device_capture_off(ref) do
@@ -30,7 +34,7 @@ defmodule ExUnit.CaptureServer do
 
   def init(:ok) do
     state = %{
-      devices: {%{}, %{}},
+      devices: %{},
       log_captures: %{},
       log_status: nil
     }
@@ -38,20 +42,40 @@ defmodule ExUnit.CaptureServer do
     {:ok, state}
   end
 
-  def handle_call({:device_capture_on, name, pid}, _from, config) do
-    {names, refs} = config.devices
+  def handle_call({:device_capture_on, name, encoding, input}, _from, %{devices: devices} = config) do
+    {:ok, pid} = StringIO.open(input, encoding: encoding)
 
-    if Map.has_key?(names, name) do
-      {:reply, {:error, :already_captured}, config}
-    else
+    if Map.has_key?(devices, name) do
       orig_pid = Process.whereis(name)
-      Process.unregister(name)
+      try do
+        Process.unregister(name)
+      rescue
+        ArgumentError ->
+          nil
+      end
       Process.register(pid, name)
       ref = Process.monitor(pid)
-      refs = Map.put(refs, ref, {name, orig_pid})
-      names = Map.put(names, name, true)
-      {:reply, {:ok, ref}, %{config | devices: {names, refs}}}
+      devices = Map.put(devices, ref, {orig_pid, name})
+      {:reply, {:ok, ref}, %{config | devices: devices}}
+    else
+      orig_pid = Process.whereis(name)
+      try do
+        Process.unregister(name)
+      rescue
+        ArgumentError ->
+          nil
+      end
+      Process.register(pid, name)
+      ref = Process.monitor(pid)
+      devices = Map.put(devices, ref, {orig_pid, name})
+      devices = Map.put(devices, :pid, pid)
+      {:reply, {:ok, ref}, %{config | devices: devices}}
     end
+  end
+
+  def handle_call({:device_output, _ref}, _from, %{devices: %{pid: pid}} = config) do
+    {_, output} = StringIO.contents(pid)
+    {:reply, output, config}
   end
 
   def handle_call({:device_capture_off, ref}, _from, config) do
@@ -83,25 +107,28 @@ defmodule ExUnit.CaptureServer do
     {:noreply, config}
   end
 
-  defp release_device(ref, %{devices: {names, refs}} = config) do
-    case Map.pop(refs, ref) do
-      {{name, pid}, refs} ->
-        names = Map.delete(names, name)
-        Process.demonitor(ref, [:flush])
+  defp release_device(ref, %{devices: devices} = config) do
+    try do
+      StringIO.close(devices.pid)
+    rescue
+      _ ->
+        nil
+    end
 
+    case Map.get(devices, ref) do
+      {pid, name} ->
         try do
-          try do
-            Process.unregister(name)
-          after
-            Process.register(pid, name)
-          end
+          Process.unregister(name)
         rescue
-          ArgumentError -> nil
+          ArgumentError ->
+            nil
         end
+        Process.register(pid, name)
+        devices = Map.delete(devices, ref)
+        devices = Map.delete(devices, :pid)
+        %{config | devices: devices}
 
-        %{config | devices: {names, refs}}
-
-      {nil, _refs} ->
+      _ ->
         config
     end
   end

@@ -154,23 +154,18 @@ defmodule ExUnit.CaptureIO do
   defp do_capture_io(device, options, fun) do
     input = Keyword.get(options, :input, "")
     encoding = Keyword.get(options, :encoding, :unicode)
-    {:ok, string_io} = StringIO.open(input, encoding: encoding)
 
-    case ExUnit.CaptureServer.device_capture_on(device, string_io) do
+    case ExUnit.CaptureServer.device_capture_on(device, encoding, input) do
       {:ok, ref} ->
         try do
-          do_capture_io(string_io, fun)
+          fun.()
+          ExUnit.CaptureServer.device_output(ref)
         after
           ExUnit.CaptureServer.device_capture_off(ref)
         end
 
       {:error, :no_device} ->
-        _ = StringIO.close(string_io)
         raise "could not find IO device registered at #{inspect(device)}"
-
-      {:error, :already_captured} ->
-        _ = StringIO.close(string_io)
-        raise "IO device registered at #{inspect(device)} is already captured"
     end
   end
 

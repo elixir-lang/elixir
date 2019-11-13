@@ -325,29 +325,6 @@ defmodule ExUnit.CaptureIOTest do
     end)
   end
 
-  test "device re-registering" do
-    parent = self()
-
-    pid =
-      spawn(fn ->
-        capture_io(:stderr, fn ->
-          send(parent, :ready)
-          Process.sleep(:infinity)
-        end)
-      end)
-
-    assert_receive :ready
-
-    # Kill the process and make sure the capture server receives the down
-    :erlang.trace(Process.whereis(ExUnit.CaptureServer), true, [:receive, tracer: self()])
-    Process.exit(pid, :shutdown)
-    assert_receive {:trace, _, :receive, {:DOWN, _, _, _, :shutdown}}, 1000
-
-    assert capture_io(:stderr, fn -> :ok end)
-  after
-    :erlang.trace(Process.whereis(ExUnit.CaptureServer), false, [:receive, tracer: self()])
-  end
-
   test "with assert inside" do
     try do
       capture_io(fn ->
@@ -357,19 +334,6 @@ defmodule ExUnit.CaptureIOTest do
       error in [ExUnit.AssertionError] ->
         assert error.message == "Expected truthy, got false"
     end
-  end
-
-  test "capture :stderr by two processes" do
-    spawn(fn -> capture_io(:stderr, fn -> Process.sleep(100) end) end)
-    Process.sleep(10)
-
-    expected_message = "IO device registered at :standard_error is already captured"
-
-    assert_raise RuntimeError, expected_message, fn ->
-      capture_io(:stderr, fn -> nil end)
-    end
-
-    Process.sleep(100)
   end
 
   defp send_and_receive_io(req) do
