@@ -1,8 +1,8 @@
 defmodule Bitwise do
   @moduledoc """
-  A set of macros that perform calculations on bits.
+  A set of functions that perform calculations on bits.
 
-  The macros in this module come in two flavors: named or
+  The functions in this module come in two flavors: named or
   operators. For example:
 
       iex> use Bitwise
@@ -26,7 +26,7 @@ defmodule Bitwise do
   When invoked with no options, `use Bitwise` is equivalent
   to `import Bitwise`.
 
-  All bitwise macros can be used in guards:
+  All bitwise functions can be used in guards:
 
       iex> use Bitwise
       iex> odd? = fn
@@ -36,6 +36,7 @@ defmodule Bitwise do
       iex> odd?.(1)
       true
 
+  All functions in this module are inlined by the compiler.
   """
 
   @doc false
