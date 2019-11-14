@@ -2,14 +2,26 @@ defmodule MapSet do
   @moduledoc """
   Functions that work on sets.
 
-  `MapSet` is the "go to" set data structure in Elixir. A set can be constructed
-  using `MapSet.new/0`:
+  A set is a data structure that can contain unique elements of any kind,
+  without any particular order. `MapSet` is the "go to" set data structure in Elixir.
+
+  A set can be constructed using `MapSet.new/0`:
 
       iex> MapSet.new()
       #MapSet<[]>
 
-  A set can contain any kind of elements, and elements in a set don't have to be
-  of the same type. By definition, sets can't contain duplicate elements: when
+  Elements in a set don't have to be of the same type and they can be
+  populated from an [enumerable](`t:Enumerable.t/0`) using `MapSet.new/1`:
+
+      iex> MapSet.new([1, :two, {"three"}])
+      #MapSet<[1, :two, {"three"}]>
+
+  Elements can be inserted using `MapSet.put/2`:
+
+      iex> MapSet.new([2]) |> MapSet.put(4) |> MapSet.put(0)
+      #MapSet<[0, 2, 4]>
+
+  By definition, sets can't contain duplicate elements: when
   inserting an element in a set where it's already present, the insertion is
   simply a no-op.
 
