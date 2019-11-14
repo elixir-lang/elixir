@@ -47,10 +47,10 @@ defmodule ExUnit.CaptureServer do
   end
 
   def handle_call({:device_output, name, ref}, _from, config) do
-    device = config.devices[name]
+    device = Map.fetch!(config.devices, name)
     {_, output} = StringIO.contents(device.pid)
     total = byte_size(output)
-    offset = device.refs[ref]
+    offset = Map.fetch!(device.refs, ref)
     output_size = total - offset
     {:reply, binary_part(output, offset, output_size), config}
   end
@@ -109,6 +109,7 @@ defmodule ExUnit.CaptureServer do
 
     try do
       Process.unregister(name)
+      Process.register(pid, name)
     rescue
       ArgumentError ->
         {:reply, {:error, :no_device}, config}
@@ -117,23 +118,16 @@ defmodule ExUnit.CaptureServer do
         ref = Process.monitor(caller)
         device = %{original_pid: original_pid, pid: pid, refs: %{ref => 0}, encoding: encoding}
         {:reply, {:ok, ref}, put_in(config.devices[name], device)}
-    after
-      try do
-        Process.register(pid, name)
-      rescue
-        ArgumentError ->
-          nil
-      end
     end
   end
 
   defp release_device(ref, %{devices: devices} = config) do
-    case device_by_ref(devices, ref) do
-      {name, device_info} ->
-        case Enum.reject(device_info.refs, &refs_equal?(&1, ref)) do
+    case Enum.find(devices, fn {_, device} -> device.refs[ref] end) do
+      {name, device} ->
+        case Enum.reject(device.refs, &(elem(&1, 0) == ref)) do
           [] ->
-            revert_device_to_original_pid(name, device_info.original_pid)
-            shut_down_string_io(device_info.pid)
+            revert_device_to_original_pid(name, device.original_pid)
+            close_string_io(device.pid)
             %{config | devices: Map.delete(devices, name)}
 
           refs ->
@@ -153,7 +147,7 @@ defmodule ExUnit.CaptureServer do
     Process.register(pid, name)
   end
 
-  defp shut_down_string_io(pid) do
+  defp close_string_io(pid) do
     StringIO.close(pid)
   rescue
     ArgumentError -> nil
@@ -175,18 +169,4 @@ defmodule ExUnit.CaptureServer do
       Logger.add_backend(:console, flush: true)
     end
   end
-
-  defp device_by_ref(devices, ref) do
-    Enum.find(devices, fn {_, device} -> offset_by_ref(device, ref) end)
-  end
-
-  defp offset_by_ref(device, ref) do
-    case Enum.find(device.refs, &refs_equal?(&1, ref)) do
-      {_, offset} -> offset
-      _ -> nil
-    end
-  end
-
-  defp refs_equal?({ref, _}, ref), do: true
-  defp refs_equal?(_, _), do: false
 end
