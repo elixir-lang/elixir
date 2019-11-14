@@ -60,6 +60,8 @@ defmodule Bitwise do
   @doc """
   Calculates the bitwise NOT of its argument.
 
+  Allowed in guard tests. Inlined by the compiler.
+
       iex> bnot(2)
       -3
       iex> bnot(2) &&& 3
@@ -73,6 +75,8 @@ defmodule Bitwise do
 
   @doc """
   Prefix (unary) operator; calculates the bitwise NOT of its argument.
+
+  Allowed in guard tests. Inlined by the compiler.
 
       iex> ~~~2
       -3
@@ -88,6 +92,8 @@ defmodule Bitwise do
   @doc """
   Calculates the bitwise AND of its arguments.
 
+  Allowed in guard tests. Inlined by the compiler.
+
       iex> band(9, 3)
       1
 
@@ -99,6 +105,8 @@ defmodule Bitwise do
 
   @doc """
   Infix operator; calculates the bitwise AND of its arguments.
+
+  Allowed in guard tests. Inlined by the compiler.
 
       iex> 9 &&& 3
       1
@@ -112,6 +120,8 @@ defmodule Bitwise do
   @doc """
   Calculates the bitwise OR of its arguments.
 
+  Allowed in guard tests. Inlined by the compiler.
+
       iex> bor(9, 3)
       11
 
@@ -123,6 +133,8 @@ defmodule Bitwise do
 
   @doc """
   Infix operator; calculates the bitwise OR of its arguments.
+
+  Allowed in guard tests. Inlined by the compiler.
 
       iex> 9 ||| 3
       11
@@ -136,6 +148,8 @@ defmodule Bitwise do
   @doc """
   Calculates the bitwise XOR of its arguments.
 
+  Allowed in guard tests. Inlined by the compiler.
+
       iex> bxor(9, 3)
       10
 
@@ -148,6 +162,8 @@ defmodule Bitwise do
   @doc """
   Infix operator; calculates the bitwise XOR of its arguments.
 
+  Allowed in guard tests. Inlined by the compiler.
+
       iex> 9 ^^^ 3
       10
 
@@ -159,6 +175,8 @@ defmodule Bitwise do
 
   @doc """
   Calculates the result of an arithmetic left bitshift.
+
+  Allowed in guard tests. Inlined by the compiler.
 
       iex> bsl(1, 2)
       4
@@ -178,6 +196,8 @@ defmodule Bitwise do
   @doc """
   Infix operator; calculates the result of an arithmetic left bitshift.
 
+  Allowed in guard tests. Inlined by the compiler.
+
       iex> 1 <<< 2
       4
       iex> 1 <<< -2
@@ -196,6 +216,8 @@ defmodule Bitwise do
   @doc """
   Calculates the result of an arithmetic right bitshift.
 
+  Allowed in guard tests. Inlined by the compiler.
+
       iex> bsr(1, 2)
       0
       iex> bsr(1, -2)
@@ -213,6 +235,8 @@ defmodule Bitwise do
 
   @doc """
   Infix operator; calculates the result of an arithmetic right bitshift.
+
+  Allowed in guard tests. Inlined by the compiler.
 
       iex> 1 >>> 2
       0
