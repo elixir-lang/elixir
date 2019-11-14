@@ -133,10 +133,10 @@ defmodule ExUnit.CaptureIOTest do
       end)
     end)
 
-    assert_receive "Attempted to change the encoding already set for the captured named device `:standard_error`\nCurrently set as: :latin1\nGiven: :unicode" <>
+    assert_receive "attempted to change the encoding for a currently captured device :standard_error.\n\nCurrently set as: :latin1\nGiven: :unicode" <>
                      _
 
-    refute_receive "Attempted to change the encoding already set for the captured named device `:standard_error`\nCurrently set as: :unicode\nGiven: :latin1" <>
+    refute_receive "attempted to change the encoding for a currently captured device :standard_error.\n\nCurrently set as: :unicode\nGiven: :latin1" <>
                      _
   end
 
@@ -148,7 +148,7 @@ defmodule ExUnit.CaptureIOTest do
         try do
           capture_io(:stderr, [input: input], fn ->
             :io.put_chars(:standard_error, "a")
-            Process.sleep(3)
+            Process.sleep(5)
           end)
         rescue
           e in [ArgumentError] ->
@@ -157,17 +157,18 @@ defmodule ExUnit.CaptureIOTest do
       end)
     end)
 
-    assert_receive "Attempted to give an input \"second\" for a currently captured named device `:standard_error`"
+    assert_receive "attempted to give an input \"second\" for a currently captured device :standard_error. If you need to give an input to a captured device, you cannot run your test asynchronously"
 
-    refute_receive "Attempted to give an input \"\" for a currently captured named device `:standard_error`"
+    refute_receive "attempted to give an input \"\" for a currently captured device :standard_error" <>
+                     _
   end
 
-  test "CaptureServer monitors calling processes" do
+  test "CaptureServer monitors calling processes and releases the capture on exit" do
     parent = self()
 
     pid =
       spawn(fn ->
-        capture_io(:stderr, fn ->
+        capture_io(:stderr, [input: "a"], fn ->
           send(parent, :ready)
           Process.sleep(:infinity)
         end)
@@ -175,14 +176,10 @@ defmodule ExUnit.CaptureIOTest do
 
     assert_receive :ready
 
-    # Kill the process and make sure the capture server receives the down	
-    :erlang.trace(Process.whereis(ExUnit.CaptureServer), true, [:receive, tracer: self()])
+    # Kill the process and make sure the caputre is released
     Process.exit(pid, :shutdown)
-    assert_receive {:trace, _, :receive, {:DOWN, _, _, _, :shutdown}}, 1000
 
-    assert capture_io(:stderr, fn -> :ok end)
-  after
-    :erlang.trace(Process.whereis(ExUnit.CaptureServer), false, [:receive, tracer: self()])
+    assert capture_io(:stderr, [input: "b"], fn -> :ok end)
   end
 
   test "with fwrite" do

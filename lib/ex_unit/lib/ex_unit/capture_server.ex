@@ -14,8 +14,8 @@ defmodule ExUnit.CaptureServer do
     GenServer.call(@name, {:device_capture_on, name, encoding, input}, @timeout)
   end
 
-  def device_output(ref) do
-    GenServer.call(@name, {:device_output, ref}, @timeout)
+  def device_output(name, ref) do
+    GenServer.call(@name, {:device_output, name, ref}, @timeout)
   end
 
   def device_capture_off(ref) do
@@ -46,16 +46,17 @@ defmodule ExUnit.CaptureServer do
     capture_device(name, encoding, input, config, caller)
   end
 
-  def handle_call({:device_output, ref}, _from, %{devices: devices} = config) do
-    {_, device} = device_by_ref(devices, ref)
+  def handle_call({:device_output, name, ref}, _from, config) do
+    device = config.devices[name]
     {_, output} = StringIO.contents(device.pid)
     total = byte_size(output)
-    offset = offset_by_ref(device, ref)
+    offset = device.refs[ref]
     output_size = total - offset
     {:reply, binary_part(output, offset, output_size), config}
   end
 
   def handle_call({:device_capture_off, ref}, _from, config) do
+    Process.demonitor(ref, [:flush])
     config = release_device(ref, config)
     {:reply, :ok, config}
   end
@@ -86,13 +87,11 @@ defmodule ExUnit.CaptureServer do
 
   defp capture_device(name, encoding, "", %{devices: devices} = config, caller)
        when is_map_key(devices, name) do
-    case Map.get(devices, name) do
+    case Map.fetch!(devices, name) do
       %{encoding: ^encoding} = device ->
         {_, output} = StringIO.contents(device.pid)
         ref = Process.monitor(caller)
-        refs = [{ref, byte_size(output)} | device.refs]
-        devices = %{devices | name => %{device | refs: refs}}
-        {:reply, {:ok, ref}, %{config | devices: devices}}
+        {:reply, {:ok, ref}, put_in(config.devices[name].refs[ref], byte_size(output))}
 
       %{encoding: other_encoding} ->
         {:reply, {:error, {:changed_encoding, other_encoding}}, config}
@@ -104,22 +103,28 @@ defmodule ExUnit.CaptureServer do
     {:reply, {:error, :input_on_already_captured_device}, config}
   end
 
-  defp capture_device(name, encoding, input, %{devices: devices} = config, caller) do
+  defp capture_device(name, encoding, input, config, caller) do
     {:ok, pid} = StringIO.open(input, encoding: encoding)
-    orig_pid = Process.whereis(name)
+    original_pid = Process.whereis(name)
 
-    Process.unregister(name)
-    Process.register(pid, name)
-
-    _ = Process.monitor(pid)
-    ref = Process.monitor(caller)
-
-    device = %{orig_pid: orig_pid, pid: pid, refs: [{ref, 0}], encoding: encoding}
-    devices = Map.put(devices, name, device)
-    {:reply, {:ok, ref}, %{config | devices: devices}}
-  rescue
-    ArgumentError ->
-      {:reply, {:error, :no_device}, config}
+    try do
+      Process.unregister(name)
+    rescue
+      ArgumentError ->
+        {:reply, {:error, :no_device}, config}
+    else
+      _ ->
+        ref = Process.monitor(caller)
+        device = %{original_pid: original_pid, pid: pid, refs: %{ref => 0}, encoding: encoding}
+        {:reply, {:ok, ref}, put_in(config.devices[name], device)}
+    after
+      try do
+        Process.register(pid, name)
+      rescue
+        ArgumentError ->
+          nil
+      end
+    end
   end
 
   defp release_device(ref, %{devices: devices} = config) do
@@ -127,30 +132,31 @@ defmodule ExUnit.CaptureServer do
       {name, device_info} ->
         case Enum.reject(device_info.refs, &refs_equal?(&1, ref)) do
           [] ->
-            try do
-              try do
-                Process.unregister(name)
-              after
-                Process.register(device_info.orig_pid, name)
-                StringIO.close(device_info.pid)
-                Process.demonitor(ref)
-              end
-            rescue
-              ArgumentError ->
-                nil
-            end
-
+            revert_device_to_original_pid(name, device_info.original_pid)
+            shut_down_string_io(device_info.pid)
             %{config | devices: Map.delete(devices, name)}
 
           refs ->
-            device_info = %{device_info | refs: refs}
-            devices = Map.put(devices, name, device_info)
-            %{config | devices: devices}
+            put_in(config.devices[name].refs, Map.new(refs))
         end
 
       _ ->
         config
     end
+  end
+
+  defp revert_device_to_original_pid(name, pid) do
+    Process.unregister(name)
+  rescue
+    ArgumentError -> nil
+  after
+    Process.register(pid, name)
+  end
+
+  defp shut_down_string_io(pid) do
+    StringIO.close(pid)
+  rescue
+    ArgumentError -> nil
   end
 
   defp remove_log_capture(ref, %{log_captures: refs} = config) do

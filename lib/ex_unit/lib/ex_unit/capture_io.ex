@@ -159,7 +159,7 @@ defmodule ExUnit.CaptureIO do
       {:ok, ref} ->
         try do
           fun.()
-          ExUnit.CaptureServer.device_output(ref)
+          ExUnit.CaptureServer.device_output(device, ref)
         after
           ExUnit.CaptureServer.device_capture_off(ref)
         end
