@@ -100,7 +100,7 @@ defmodule ExUnit.CaptureServer do
   end
 
   defp capture_device(name, _, _, %{devices: devices} = config, _)
-       when :erlang.is_map_key(name, devices) do
+       when is_map_key(devices, name) do
     {:reply, {:error, :input_on_already_captured_device}, config}
   end
 
