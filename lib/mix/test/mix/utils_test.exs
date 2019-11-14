@@ -116,8 +116,11 @@ defmodule Mix.UtilsTest do
 
   # 10.0.0.0 is a non-routable address
   test "read_path timeouts requests" do
-    assert {:remote, "request timed out after 0ms"} =
-             Mix.Utils.read_path("http://10.0.0.0/", timeout: 0)
+    # If the request finishes for a reason, it will fail due to the checksum.
+    case Mix.Utils.read_path("http://10.0.0.0/", timeout: 0) do
+      {:remote, "request timed out after 0ms"} -> :ok
+      {:checksum, "fetching from URIs require a checksum to be given"} -> :ok
+    end
   end
 
   describe "mix_home/0" do
