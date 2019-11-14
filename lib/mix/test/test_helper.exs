@@ -6,7 +6,7 @@ Logger.remove_backend(:console)
 Application.put_env(:logger, :backends, [])
 
 os_exclude = if match?({:win32, _}, :os.type()), do: [unix: true], else: [windows: true]
-epmd_exclude = if match?({_, 0}, System.cmd("epmd", ["-daemon"])), do: [], else: [epmd: true]
+epmd_exclude = if match?({:win32, _}, :os.type()), do: [epmd: true], else: []
 ExUnit.start(trace: "--trace" in System.argv(), exclude: epmd_exclude ++ os_exclude)
 
 unless {1, 7, 4} <= Mix.SCM.Git.git_version() do
