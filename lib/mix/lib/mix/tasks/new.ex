@@ -409,7 +409,7 @@ defmodule Mix.Tasks.New do
   embed_template(:lib, """
   defmodule <%= @mod %> do
     @moduledoc \"""
-    Documentation for <%= @mod %>.
+    Documentation for `<%= @mod %>`.
     \"""
 
     @doc \"""
