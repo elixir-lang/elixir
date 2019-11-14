@@ -7,7 +7,7 @@ files = Path.wildcard(PathHelpers.fixture_path("consolidation/*"))
 Kernel.ParallelCompiler.compile_to_path(files, path)
 
 defmodule Protocol.ConsolidationTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
   alias Protocol.ConsolidationTest.{Sample, WithAny}
 
   defimpl WithAny, for: Map do
@@ -70,8 +70,8 @@ defmodule Protocol.ConsolidationTest do
 
     assert output =~ ~r"the .+WithAny protocol has already been consolidated"
   after
-    :code.purge(WithAny.Atom)
-    :code.delete(WithAny.Atom)
+    :code.purge(WithAny.Integer)
+    :code.delete(WithAny.Integer)
   end
 
   test "consolidated implementations without any" do
