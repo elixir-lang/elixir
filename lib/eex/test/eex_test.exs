@@ -44,7 +44,7 @@ defmodule Clause do
 end
 
 defmodule EExTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
 
   doctest EEx
   doctest EEx.Engine

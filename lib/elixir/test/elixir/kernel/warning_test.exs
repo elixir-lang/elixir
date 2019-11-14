@@ -1771,6 +1771,15 @@ defmodule Kernel.WarningTest do
     purge(TestMod)
   end
 
+  test "Code.require_file/1 checker warning" do
+    output =
+      capture_err(fn ->
+        Code.require_file(PathHelpers.fixture_path("checker_warning.exs"))
+      end)
+
+    assert output =~ "function clause will never match"
+  end
+
   defp purge(list) when is_list(list) do
     Enum.each(list, &purge/1)
   end
