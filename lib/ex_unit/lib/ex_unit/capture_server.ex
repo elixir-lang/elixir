@@ -10,8 +10,8 @@ defmodule ExUnit.CaptureServer do
     GenServer.start_link(__MODULE__, :ok, name: @name)
   end
 
-  def device_capture_on(device, encoding, input) do
-    GenServer.call(@name, {:device_capture_on, device, encoding, input}, @timeout)
+  def device_capture_on(name, encoding, input) do
+    GenServer.call(@name, {:device_capture_on, name, encoding, input}, @timeout)
   end
 
   def device_output(ref) do
@@ -42,35 +42,8 @@ defmodule ExUnit.CaptureServer do
     {:ok, state}
   end
 
-  def handle_call(
-        {:device_capture_on, name, encoding, input},
-        _from,
-        %{devices: devices} = config
-      ) do
-    if Map.has_key?(devices, name) do
-      ref = make_ref()
-      device = Map.get(devices, name)
-      {_, output} = StringIO.contents(device.pid)
-      refs = [{ref, byte_size(output)} | device.refs]
-      devices = Map.put(devices, name, %{device | refs: refs})
-      {:reply, {:ok, ref}, %{config | devices: devices}}
-    else
-      try do
-        ref = make_ref()
-        {:ok, pid} = StringIO.open(input, encoding: encoding)
-        _ = Process.monitor(pid)
-
-        orig_pid = Process.whereis(name)
-        Process.unregister(name)
-        Process.register(pid, name)
-
-        devices = Map.put(devices, name, %{orig_pid: orig_pid, pid: pid, refs: [{ref, 0}]})
-        {:reply, {:ok, ref}, %{config | devices: devices}}
-      rescue
-        ArgumentError ->
-          {:reply, {:error, :no_device}, config}
-      end
-    end
+  def handle_call({:device_capture_on, name, encoding, input}, {caller, _}, config) do
+    capture_device(name, encoding, input, config, caller)
   end
 
   def handle_call({:device_output, ref}, _from, %{devices: devices} = config) do
@@ -111,6 +84,44 @@ defmodule ExUnit.CaptureServer do
     {:noreply, config}
   end
 
+  defp capture_device(name, encoding, "", %{devices: devices} = config, caller)
+       when :erlang.is_map_key(name, devices) do
+    case Map.get(devices, name) do
+      %{encoding: ^encoding} = device ->
+        {_, output} = StringIO.contents(device.pid)
+        ref = Process.monitor(caller)
+        refs = [{ref, byte_size(output)} | device.refs]
+        devices = %{devices | name => %{device | refs: refs}}
+        {:reply, {:ok, ref}, %{config | devices: devices}}
+
+      %{encoding: other_encoding} ->
+        {:reply, {:error, {:changed_encoding, other_encoding}}, config}
+    end
+  end
+
+  defp capture_device(name, _, _, %{devices: devices} = config, _)
+       when :erlang.is_map_key(name, devices) do
+    {:reply, {:error, :input_on_already_captured_device}, config}
+  end
+
+  defp capture_device(name, encoding, input, %{devices: devices} = config, caller) do
+    {:ok, pid} = StringIO.open(input, encoding: encoding)
+    orig_pid = Process.whereis(name)
+
+    Process.unregister(name)
+    Process.register(pid, name)
+
+    _ = Process.monitor(pid)
+    ref = Process.monitor(caller)
+
+    device = %{orig_pid: orig_pid, pid: pid, refs: [{ref, 0}], encoding: encoding}
+    devices = Map.put(devices, name, device)
+    {:reply, {:ok, ref}, %{config | devices: devices}}
+  rescue
+    ArgumentError ->
+      {:reply, {:error, :no_device}, config}
+  end
+
   defp release_device(ref, %{devices: devices} = config) do
     case device_by_ref(devices, ref) do
       {name, device_info} ->
@@ -122,6 +133,7 @@ defmodule ExUnit.CaptureServer do
               after
                 Process.register(device_info.orig_pid, name)
                 StringIO.close(device_info.pid)
+                Process.demonitor(ref)
               end
             rescue
               ArgumentError ->

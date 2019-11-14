@@ -166,6 +166,24 @@ defmodule ExUnit.CaptureIO do
 
       {:error, :no_device} ->
         raise "could not find IO device registered at #{inspect(device)}"
+
+      {:error, {:changed_encoding, current_encoding}} ->
+        raise ArgumentError, """
+        Attempted to change the encoding already set for the captured named device `#{
+          inspect(device)
+        }`
+        Currently set as: #{inspect(current_encoding)}
+        Given: #{inspect(encoding)}
+
+        If you need to use multiple encodings on a captured named device, you cannot
+        run your test asynchronously.
+        """
+
+      {:error, :input_on_already_captured_device} ->
+        raise ArgumentError,
+              "Attempted to give an input #{inspect(input)} for a currently captured named device `#{
+                inspect(device)
+              }`"
     end
   end
 
