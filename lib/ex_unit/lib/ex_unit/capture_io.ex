@@ -35,10 +35,20 @@ defmodule ExUnit.CaptureIO do
   process and therefore can be done concurrently.
 
   However, the capturing of any other named device, such as `:stderr`,
-  happens globally and requires `async: false`.
+  happens globally and persists until the function has ended. While this means
+  it is safe to run your tests with `async: true` in many cases, captured output
+  may include output from a different test and care must be taken when using
+  `capture_io` with a named process asynchronously.
 
-  A developer can set a string as an input. The default input
-  is an empty string.
+  A developer can set a string as an input. The default input is an empty
+  string. If capturing a named device asynchronously, an input can only be given
+  to the first capture. Any further capture that is given to a capture on that
+  device will raise an exception and would indicate that the test should be run
+  synchronously.
+
+  Similarly, once a capture on a named device has begun, the encoding on that
+  device cannot be changed in a subsequent concurrent capture. An error will
+  be raised in this case.
 
   ## IO devices
 
