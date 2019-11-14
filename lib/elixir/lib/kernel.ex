@@ -130,11 +130,12 @@ defmodule Kernel do
     * [Compatibility and Deprecations](compatibility-and-deprecations.html) - lists
       compatibility between every Elixir version and Erlang/OTP, release schema;
       lists all deprecated functions, when they were deprecated and alternatives
-    * [Guards](guards.html) - an introduction to guards and extensions
     * [Library Guidelines](library-guidelines.html) - general guidelines, anti-patterns,
       and rules for those writing libraries
     * [Naming Conventions](naming-conventions.html) - naming conventions for Elixir code
     * [Operators](operators.html) - lists all Elixir operators and their precedence
+    * [Patterns and Guards](patterns-and-guards.html) - an introduction to patterns,
+      guards, and extensions
     * [Syntax Reference](syntax-reference.html) - the language syntax reference
     * [Typespecs](typespecs.html)- types and function specifications, including list of types
     * [Unicode Syntax](unicode-syntax.html) - outlines Elixir support for Unicode
@@ -155,7 +156,7 @@ defmodule Kernel do
   or equal to 16. Guards also support joining multiple conditions with
   `and` and `or`. The whole guard is true if all guard expressions will
   evaluate to `true`. A more complete introduction to guards is available
-  [in the Guards page](guards.html).
+  [in the "Patterns and Guards" page](patterns-and-guards.html).
 
   ## Inlining
 
@@ -5453,7 +5454,7 @@ defmodule Kernel do
       :guard ->
         raise ArgumentError,
               "invalid expression in guard, #{exp} is not allowed in guards. " <>
-                "To learn more about guards, visit: https://hexdocs.pm/elixir/guards.html"
+                "To learn more about guards, visit: https://hexdocs.pm/elixir/patterns-and-guards.html"
 
       _ ->
         :ok

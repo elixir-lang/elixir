@@ -1165,7 +1165,7 @@ format_error(underscore_in_cond) ->
 format_error({invalid_expr_in_guard, Kind}) ->
   Message =
     "invalid expression in guard, ~ts is not allowed in guards. To learn more about "
-    "guards, visit: https://hexdocs.pm/elixir/guards.html",
+    "guards, visit: https://hexdocs.pm/elixir/patterns-and-guards.html",
   io_lib:format(Message, [Kind]);
 format_error({invalid_pattern_in_match, Kind}) ->
   io_lib:format("invalid pattern in match, ~ts is not allowed in matches", [Kind]);
