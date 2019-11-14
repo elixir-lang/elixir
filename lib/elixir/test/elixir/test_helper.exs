@@ -84,7 +84,7 @@ defmodule CodeFormatterHelpers do
 end
 
 assert_timeout = String.to_integer(System.get_env("ELIXIR_ASSERT_TIMEOUT") || "500")
-epmd_exclude = if match?({_, 0}, System.cmd("epmd", ["-daemon"])), do: [], else: [epmd: true]
+epmd_exclude = if match?({:win32, _}, :os.type()), do: [epmd: true], else: []
 os_exclude = if PathHelpers.windows?(), do: [unix: true], else: [windows: true]
 
 ExUnit.start(
