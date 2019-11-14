@@ -196,6 +196,8 @@ defmodule Mix.Tasks.Test do
     * `--timeout` - sets the timeout for the tests
     * `--trace` - runs tests with detailed reporting. Automatically sets `--max-cases` to `1`.
       Note that in trace mode test timeouts will be ignored as timeout is set to `:infinity`
+    * `--warnings-as-errors` - treats warnings in the current project and tests as errors and
+      return a non-zero exit code
 
   ## Configuration
 
@@ -362,6 +364,7 @@ defmodule Mix.Tasks.Test do
     formatter: :keep,
     slowest: :integer,
     partitions: :integer,
+    warnings_as_errors: :boolean,
     preload_modules: :boolean
   ]
 
@@ -424,6 +427,11 @@ defmodule Mix.Tasks.Test do
             preferred_cli_env: ["test.another": :test]
       """)
     end
+
+    # Apply valid compiler options
+    opts
+    |> Keyword.take(Code.available_compiler_options())
+    |> Code.compiler_options()
 
     Mix.Task.run("loadpaths", args)
 

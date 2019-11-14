@@ -297,6 +297,26 @@ defmodule Mix.Tasks.TestTest do
     end
   end
 
+  describe "--warnings-as-errors" do
+    test "makes the test compilation fail" do
+      in_fixture("test_warning", fn ->
+        output = mix(["test"])
+        assert output =~ "warning: variable \"a\" is unused"
+        assert output =~ "1 test, 0 failures"
+
+        refute output =~
+                 "Compilation failed due to warnings while using the --warnings-as-errors option"
+
+        output = mix(["test", "--warnings-as-errors"])
+        assert output =~ "warning: variable \"a\" is unused"
+        refute output =~ "1 test, 0 failures"
+
+        assert output =~
+                 "Compilation failed due to warnings while using the --warnings-as-errors option"
+      end)
+    end
+  end
+
   describe "logs and errors" do
     test "logs test absence for a project with no test paths" do
       in_fixture("test_stale", fn ->
