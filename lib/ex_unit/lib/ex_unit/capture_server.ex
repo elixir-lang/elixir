@@ -85,7 +85,7 @@ defmodule ExUnit.CaptureServer do
   end
 
   defp capture_device(name, encoding, "", %{devices: devices} = config, caller)
-       when :erlang.is_map_key(name, devices) do
+       when is_map_key(devices, name) do
     case Map.get(devices, name) do
       %{encoding: ^encoding} = device ->
         {_, output} = StringIO.contents(device.pid)
