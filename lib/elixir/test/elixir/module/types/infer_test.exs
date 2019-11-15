@@ -133,7 +133,7 @@ defmodule Module.Types.InferTest do
 
     test "vars" do
       assert {{:var, 0}, var_context} = new_var({:foo, [version: 0], nil}, new_context())
-      assert {{:var, 1}, var_context} = new_var({:bar, [version: 0], nil}, var_context)
+      assert {{:var, 1}, var_context} = new_var({:bar, [version: 1], nil}, var_context)
 
       assert {:ok, {:var, 0}, context} = unify({:var, 0}, :integer, var_context)
       assert Types.lift_type({:var, 0}, context) == :integer
@@ -168,7 +168,7 @@ defmodule Module.Types.InferTest do
 
     test "vars inside tuples" do
       assert {{:var, 0}, var_context} = new_var({:foo, [version: 0], nil}, new_context())
-      assert {{:var, 1}, var_context} = new_var({:bar, [version: 0], nil}, var_context)
+      assert {{:var, 1}, var_context} = new_var({:bar, [version: 1], nil}, var_context)
 
       assert {:ok, {:tuple, [{:var, 0}]}, context} =
                unify({:tuple, [{:var, 0}]}, {:tuple, [:integer]}, var_context)
@@ -196,8 +196,8 @@ defmodule Module.Types.InferTest do
 
     test "recursive type" do
       assert {{:var, 0}, var_context} = new_var({:foo, [version: 0], nil}, new_context())
-      assert {{:var, 1}, var_context} = new_var({:bar, [version: 0], nil}, var_context)
-      assert {{:var, 2}, var_context} = new_var({:baz, [version: 0], nil}, var_context)
+      assert {{:var, 1}, var_context} = new_var({:bar, [version: 1], nil}, var_context)
+      assert {{:var, 2}, var_context} = new_var({:baz, [version: 2], nil}, var_context)
 
       assert {:ok, {:var, _}, context} = unify({:var, 0}, {:var, 1}, var_context)
       assert {:ok, {:var, _}, context} = unify({:var, 1}, {:var, 0}, context)
