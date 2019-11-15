@@ -3946,6 +3946,7 @@ defmodule Kernel do
         result
       end
 
+    # TODO: Store the env in the cache too
     escaped =
       case env do
         %{function: nil, lexical_tracker: pid} when is_pid(pid) ->
@@ -3956,8 +3957,7 @@ defmodule Kernel do
           :elixir_quote.escape(block, :default, false)
       end
 
-    # We reimplement Macro.Env.vars/1 due to bootstrap concerns.
-    module_vars = module_vars(:maps.keys(elem(env.current_vars, 0)), 0)
+    module_vars = :lists.map(&module_var/1, :maps.keys(elem(env.current_vars, 0)))
 
     quote do
       unquote(with_alias)
@@ -3992,22 +3992,8 @@ defmodule Kernel do
     {module, module, nil}
   end
 
-  # quote vars to be injected into the module definition
-  defp module_vars([{key, kind} | vars], counter) do
-    var =
-      case is_atom(kind) do
-        true -> {key, [generated: true], kind}
-        false -> {key, [counter: kind, generated: true], nil}
-      end
-
-    under = String.to_atom(<<"_@", :erlang.integer_to_binary(counter)::binary>>)
-    args = [key, kind, under, var]
-    [{:{}, [], args} | module_vars(vars, counter + 1)]
-  end
-
-  defp module_vars([], _counter) do
-    []
-  end
+  defp module_var({name, kind}) when is_atom(kind), do: {name, [generated: true], kind}
+  defp module_var({name, kind}), do: {name, [counter: kind, generated: true], nil}
 
   @doc ~S"""
   Defines a function with the given name and body.

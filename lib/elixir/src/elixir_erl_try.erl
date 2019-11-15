@@ -7,14 +7,14 @@
 clauses(_Meta, Args, S) ->
   Catch = elixir_erl_clauses:get_clauses('catch', Args, 'catch'),
   Rescue = elixir_erl_clauses:get_clauses(rescue, Args, rescue),
-  {StackName, _Counter, SV} = elixir_erl_var:build('__STACKTRACE__', S),
+  {StackName, SV} = elixir_erl_var:build('__STACKTRACE__', S),
   OldStack = SV#elixir_erl.stacktrace,
   SS = SV#elixir_erl{stacktrace=StackName},
   reduce_clauses(Rescue ++ Catch, [], OldStack, SS, SS).
 
 reduce_clauses([H | T], Acc, OldStack, SAcc, S) ->
   {TH, TS} = each_clause(H, SAcc),
-  reduce_clauses(T, [TH | Acc], OldStack, elixir_erl_var:discard_vars(TS, S), S);
+  reduce_clauses(T, [TH | Acc], OldStack, TS, S);
 reduce_clauses([], Acc, OldStack, SAcc, _S) ->
   {lists:reverse(Acc), SAcc#elixir_erl{stacktrace=OldStack}}.
 
@@ -33,15 +33,13 @@ each_clause({'catch', Meta, Raw, Expr}, S) ->
   build_clause(Line, TKind, TMatches, TGuards, TBody, TS);
 
 each_clause({rescue, Meta, [{in, _, [Left, Right]}], Expr}, S) ->
-  {TempName, _, CS} = elixir_erl_var:build('_', S),
-  TempVar = {TempName, Meta, ?var_context},
+  {TempVar, _, CS} = elixir_erl_var:assign(Meta, S),
   {Guards, ErlangAliases} = rescue_guards(Meta, TempVar, Right),
   Body = normalize_rescue(Meta, TempVar, Left, Expr, ErlangAliases),
   build_rescue(Meta, TempVar, Guards, Body, CS);
 
 each_clause({rescue, Meta, [{VarName, _, Context} = Left], Expr}, S) when is_atom(VarName), is_atom(Context) ->
-  {TempName, _, CS} = elixir_erl_var:build('_', S),
-  TempVar = {TempName, Meta, ?var_context},
+  {TempVar, _, CS} = elixir_erl_var:assign(Meta, S),
   Body = normalize_rescue(Meta, TempVar, Left, Expr, ['Elixir.ErlangError']),
   build_rescue(Meta, TempVar, [], Body, CS).
 
@@ -77,7 +75,7 @@ dynamic_normalize(Meta, Var, [H | T]) ->
   {'case', Generated, [
     Var,
     [{do, [
-      {'->', Generated, [[{'when', Generated, [Var, Guards]}], {'__STACKTRACE__', Generated, nil}]},
+      {'->', Generated, [[{'when', Generated, [{'_', Generated, nil}, Guards]}], {'__STACKTRACE__', Generated, nil}]},
       {'->', Generated, [[{'_', Generated, nil}], []]}
     ]}]
   ]}.

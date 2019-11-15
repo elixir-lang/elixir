@@ -40,29 +40,27 @@ file_to_path(File, Dest, Callback) when is_binary(File), is_binary(Dest) ->
 %% It may end-up evaluating the code if it is deemed a
 %% more efficient strategy depending on the code snippet.
 
-eval_forms(Forms, Vars, E) ->
+eval_forms(Forms, Args, E) ->
   case (?key(E, module) == nil) andalso allows_fast_compilation(Forms) of
     true  ->
-      Binding = [{Key, Value} || {_Name, _Kind, Key, Value} <- Vars],
-      {Result, _Binding, EE, _S} = elixir:eval_forms(Forms, Binding, E),
+      {Result, _Binding, EE} = elixir:eval_forms(Forms, [], E),
       {Result, EE};
     false ->
-      compile(Forms, Vars, E)
+      compile(Forms, Args, E)
   end.
 
-compile(Quoted, Vars, E) ->
-  Args = list_to_tuple([V || {_, _, _, V} <- Vars]),
+compile(Quoted, ArgsList, E) ->
+  Args = list_to_tuple(ArgsList),
   {Expanded, EE} = elixir_expand:expand(Quoted, E),
   elixir_env:check_unused_vars(EE),
 
   {Module, Fun, Purgeable} =
-    elixir_erl_compiler:spawn(fun spawned_compile/3, [Expanded, Vars, E]),
+    elixir_erl_compiler:spawn(fun spawned_compile/2, [Expanded, E]),
 
   {dispatch(Module, Fun, Args, Purgeable), EE}.
 
-spawned_compile(ExExprs, Vars, #{line := Line, file := File} = E) ->
-  Dict = [{{Name, Kind}, {0, Value}} || {Name, Kind, Value, _} <- Vars],
-  S = elixir_env:env_to_scope_with_vars(E, Dict),
+spawned_compile(ExExprs, #{line := Line, file := File} = E) ->
+  {Vars, S} = elixir_env:env_to_scope(E),
   {ErlExprs, _} = elixir_erl_pass:translate(ExExprs, S),
 
   Module = retrieve_compiler_module(),
@@ -84,7 +82,7 @@ code_fun(nil) -> '__FILE__';
 code_fun(_)   -> '__MODULE__'.
 
 code_mod(Fun, Expr, Line, File, Module, Vars) when is_binary(File), is_integer(Line) ->
-  Tuple    = {tuple, Line, [{var, Line, K} || {_, _, K, _} <- Vars]},
+  Tuple = {tuple, Line, [{var, Line, Var} || {_, Var} <- Vars]},
   Relative = elixir_utils:relative_to_cwd(File),
 
   [{attribute, Line, file, {elixir_utils:characters_to_list(Relative), 1}},

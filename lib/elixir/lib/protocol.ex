@@ -636,14 +636,14 @@ defmodule Protocol do
   end
 
   defp built_in_clause_for(mod, guard, protocol, meta, line) do
-    x = quote(line: line, do: x)
+    x = {:x, [line: line, version: -1], __MODULE__}
     guard = quote(line: line, do: :erlang.unquote(guard)(unquote(x)))
     body = load_impl(protocol, mod)
     {meta, [x], [guard], body}
   end
 
   defp struct_clause_for(meta, line) do
-    x = quote(line: line, do: x)
+    x = {:x, [line: line, version: -1], __MODULE__}
     head = quote(line: line, do: %{__struct__: unquote(x)})
     guard = quote(line: line, do: :erlang.is_atom(unquote(x)))
     body = quote(line: line, do: struct_impl_for(unquote(x)))

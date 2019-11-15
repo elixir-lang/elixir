@@ -2,7 +2,7 @@
 -include("elixir.hrl").
 -export([
   new/0, linify/1, with_vars/2, reset_vars/1,
-  env_to_scope/1, env_to_scope_with_vars/2,
+  env_to_scope/1,
   reset_unused_vars/1, check_unused_vars/1,
   merge_and_check_unused_vars/2,
   trace/2, format_error/1,
@@ -47,15 +47,18 @@ with_vars(Env, Vars) ->
   Read = maps:from_list(VarVersions),
   Env#{vars := Vars, current_vars := {Read, false}, unused_vars := {#{}, NumVars}}.
 
-env_to_scope(#{context := Context}) ->
-  #elixir_erl{context=Context}.
+env_to_scope(#{context := Context, current_vars := {Read, _}}) ->
+  {VarsList, _Counter} = lists:mapfoldl(fun to_scope_var/2, 0, maps:values(Read)),
+  VarsMap = maps:from_list(VarsList),
+  Scope = #elixir_erl{
+    context=Context,
+    var_names=VarsMap,
+    counter=#{'_' => map_size(VarsMap)}
+  },
+  {VarsList, Scope}.
 
-env_to_scope_with_vars(Env, Vars) ->
-  Map = maps:from_list(Vars),
-  (env_to_scope(Env))#elixir_erl{
-    vars={Map, false},
-    counter=#{'_' => map_size(Map)}
-  }.
+to_scope_var(Version, Counter) ->
+  {{Version, list_to_atom("_@" ++ integer_to_list(Counter))}, Counter + 1}.
 
 reset_vars(Env) ->
   Env#{vars := [], current_vars := {#{}, false}, unused_vars := {#{}, 0}}.
@@ -90,7 +93,7 @@ reset_unused_vars(#{unused_vars := {_Unused, Version}} = E) ->
 
 check_unused_vars(#{unused_vars := {Unused, _Version}} = E) ->
   [elixir_errors:form_warn([{line, Line}], E, ?MODULE, {unused_var, Name}) ||
-    {{{Name, _}, _}, Line} <- maps:to_list(Unused), Line /= false, not_underscored(Name)],
+    {{Name, _}, Line} <- maps:to_list(Unused), Line /= false, not_underscored(Name)],
   E.
 
 merge_and_check_unused_vars(E, #{unused_vars := {ClauseUnused, Version}}) ->
@@ -98,7 +101,9 @@ merge_and_check_unused_vars(E, #{unused_vars := {ClauseUnused, Version}}) ->
   E#{unused_vars := {merge_and_check_unused_vars(Read, Unused, ClauseUnused, E), Version}}.
 
 merge_and_check_unused_vars(Current, Unused, ClauseUnused, E) ->
-  maps:fold(fun({Var, Count} = Key, ClauseValue, Acc) ->
+  maps:fold(fun({Name, Count} = Key, ClauseValue, Acc) ->
+    Var = {Name, nil},
+
     case Current of
       %% The parent knows it, so we have to propagate up.
       #{Var := CurrentCount} when Count =< CurrentCount ->
@@ -106,8 +111,6 @@ merge_and_check_unused_vars(Current, Unused, ClauseUnused, E) ->
 
       %% The parent doesn't know it and we didn't use it
       #{} when ClauseValue /= false ->
-        {{Name, _}, _} = Key,
-
         case not_underscored(Name) of
           true ->
             Warn = {unused_var, Name},

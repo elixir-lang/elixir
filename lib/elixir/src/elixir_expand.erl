@@ -318,7 +318,7 @@ expand({super, Meta, Args}, E) when is_list(Args) ->
 %% Vars
 
 expand({'^', Meta, [Arg]}, #{context := match} = E) ->
-  #{current_vars := {_ReadCurrent, WriteCurrent}, prematch_vars := Prematch} = E,
+  #{current_vars := {_ReadCurrent, WriteCurrent}, prematch_vars := {Prematch, _}} = E,
 
   %% We need to rollback to a no match context.
   NoMatchE = E#{context := nil, current_vars := {Prematch, WriteCurrent}, prematch_vars := pin},
@@ -338,25 +338,29 @@ expand({'_', Meta, Kind}, E) when is_atom(Kind) ->
   form_error(Meta, E, ?MODULE, unbound_underscore);
 
 expand({Name, Meta, Kind}, #{context := match} = E) when is_atom(Name), is_atom(Kind) ->
-  #{current_vars := {ReadCurrent, WriteCurrent}, unused_vars := {Unused, Version}, prematch_vars := Prematch} = E,
+  #{
+    current_vars := {ReadCurrent, WriteCurrent},
+    unused_vars := {Unused, Version},
+    prematch_vars := {_, PrematchVersion}
+  } = E,
+
   Pair = {Name, elixir_utils:var_context(Meta, Kind)},
-  PrematchVersion = var_version(Prematch, Pair),
 
   case ReadCurrent of
+    %% Variable was already overriden
+    #{Pair := VarVersion} when VarVersion >= PrematchVersion ->
+      maybe_warn_underscored_var_repeat(Meta, Name, Kind, E),
+      NewUnused = var_used(Pair, VarVersion, Unused),
+      Var = {Name, [{version, VarVersion} | Meta], Kind},
+      {Var, E#{unused_vars := {NewUnused, Version}}};
+
     %% Variable is being overridden now
-    #{Pair := PrematchVersion} ->
+    #{Pair := _} ->
       NewUnused = var_unused(Pair, Meta, Version, Unused),
       NewReadCurrent = ReadCurrent#{Pair => Version},
       NewWriteCurrent = (WriteCurrent /= false) andalso WriteCurrent#{Pair => Version},
       Var = {Name, [{version, Version} | Meta], Kind},
       {Var, E#{current_vars := {NewReadCurrent, NewWriteCurrent}, unused_vars := {NewUnused, Version + 1}}};
-
-    %% Variable was already overriden
-    #{Pair := CurrentVersion} ->
-      maybe_warn_underscored_var_repeat(Meta, Name, Kind, E),
-      NewUnused = Unused#{{Pair, CurrentVersion} => false},
-      Var = {Name, [{version, CurrentVersion} | Meta], Kind},
-      {Var, E#{unused_vars := {NewUnused, Version}}};
 
     %% Variable defined for the first time
     _ ->
@@ -375,15 +379,8 @@ expand({Name, Meta, Kind}, E) when is_atom(Name), is_atom(Kind) ->
   case ReadCurrent of
     #{Pair := PairVersion} ->
       maybe_warn_underscored_var_access(Meta, Name, Kind, E),
-      UnusedKey = {Pair, PairVersion},
       Var = {Name, [{version, PairVersion} | Meta], Kind},
-
-      case Unused of
-        #{UnusedKey := false} ->
-          {Var, E};
-        _ ->
-          {Var, E#{unused_vars := {Unused#{UnusedKey => false}, Version}}}
-      end;
+      {Var, E#{unused_vars := {var_used(Pair, PairVersion, Unused), Version}}};
 
     _ ->
       %% TODO: Remove this check on v2.0 as we can always raise undefined_var
@@ -632,16 +629,16 @@ expand_args(Args, E) ->
 
 %% Match/var helpers
 
-var_unused({_Name, Kind} = Pair, Meta, Version, Unused) ->
+var_unused({Name, Kind}, Meta, Version, Unused) ->
   case (Kind == nil) andalso should_warn(Meta) of
-    true -> Unused#{{Pair, Version} => ?line(Meta)};
+    true -> Unused#{{Name, Version} => ?line(Meta)};
     false -> Unused
   end.
 
-var_version(Map, Pair) ->
-  case Map of
-    #{Pair := Version} -> Version;
-    _ -> -1
+var_used({Name, Kind}, Version, Unused) ->
+  case Kind of
+    nil -> Unused#{{Name, Version} => false};
+    _ -> Unused
   end.
 
 maybe_warn_underscored_var_repeat(Meta, Name, Kind, E) ->

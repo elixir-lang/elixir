@@ -610,7 +610,7 @@ defmodule Module do
     assert_not_compiled!(__ENV__.function, module)
     :elixir_def.reset_last(module)
 
-    {value, binding, _env, _scope} =
+    {value, binding, _env} =
       :elixir.eval_quoted(quoted, binding, Keyword.put(opts, :module, module))
 
     {value, binding}

@@ -324,7 +324,7 @@ defmodule Code do
   defp eval_string_with_error_handling(string, binding, opts) do
     %{line: line, file: file} = env = :elixir.env_for_eval(opts)
     forms = :elixir.string_to_quoted!(to_charlist(string), line, file, [])
-    {value, binding, _env, _scope} = :elixir.eval_forms(forms, binding, env)
+    {value, binding, _env} = :elixir.eval_forms(forms, binding, env)
     {value, binding}
   end
 
@@ -683,13 +683,13 @@ defmodule Code do
   def eval_quoted(quoted, binding \\ [], opts \\ [])
 
   def eval_quoted(quoted, binding, %Macro.Env{} = env) do
-    {value, binding, _env, _scope} = :elixir.eval_quoted(quoted, binding, Map.to_list(env))
+    {value, binding, _env} = :elixir.eval_quoted(quoted, binding, Map.to_list(env))
     {value, binding}
   end
 
   def eval_quoted(quoted, binding, opts) when is_list(opts) do
     validate_eval_opts(opts)
-    {value, binding, _env, _scope} = :elixir.eval_quoted(quoted, binding, opts)
+    {value, binding, _env} = :elixir.eval_quoted(quoted, binding, opts)
     {value, binding}
   end
 

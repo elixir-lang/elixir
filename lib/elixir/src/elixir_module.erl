@@ -66,14 +66,18 @@ next_counter(Module) ->
 
 compile(Module, _Block, _Vars, #{line := Line, file := File}) when Module == nil; is_boolean(Module) ->
   elixir_errors:form_error([{line, Line}], File, ?MODULE, {invalid_module, Module});
-compile(Module, Block, Vars, #{line := Line, current_vars := {Read, _}} = Env) when is_atom(Module) ->
+compile(Module, Block, Vars, Env) when is_atom(Module) ->
+  #{line := Line, current_vars := {Read, _}, function := Function} = Env,
+
   %% In case we are generating a module from inside a function,
   %% we get rid of the lexical tracker information as, at this
   %% point, the lexical tracker process is long gone.
+  ResetEnv = elixir_env:reset_unused_vars(Env),
+
   MaybeLexEnv =
-    case ?key(Env, function) of
-      nil -> Env#{module := Module, current_vars := {Read, false}, unused_vars := {#{}, 0}};
-      _   -> Env#{lexical_tracker := nil, function := nil, module := Module, current_vars := {Read, false}, unused_vars := {#{}, 0}}
+    case Function of
+      nil -> ResetEnv#{module := Module, current_vars := {Read, false}};
+      _   -> ResetEnv#{lexical_tracker := nil, function := nil, module := Module, current_vars := {Read, false}}
     end,
 
   case MaybeLexEnv of
@@ -349,7 +353,7 @@ expand_callback(Line, M, F, Args, E, Fun) ->
       ET;
     true ->
       try
-        {_Value, _Binding, EF, _S} = elixir:eval_forms(EE, [], ET),
+        {_Value, _Binding, EF} = elixir:eval_forms(EE, [], ET),
         EF
       catch
         Kind:Reason:Stacktrace ->

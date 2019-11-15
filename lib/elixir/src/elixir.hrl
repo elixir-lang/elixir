@@ -9,8 +9,7 @@
   context=nil,             %% can be match, guards or nil
   extra=nil,               %% extra information about the context, like pin_guard and map_key
   caller=false,            %% when true, it means caller was invoked
-  vars={#{}, false},       %% maps of defined variables and their alias
-  backup_vars=nil,         %% a copy of vars to be used on ^var
+  var_names=#{},           %% maps of defined variables and their alias
   extra_guards=[],         %% extra guards from args expansion
   counter=#{},             %% a map counting the variables defined
   expand_captures=false,   %% a boolean to control if captures should be expanded

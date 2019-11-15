@@ -274,7 +274,7 @@ validate_spec_arg(_Meta, _Key, _Value, _E, _OriginalE) ->
 
 is_valid_spec_arg_var(Var, E, #{context := match} = OriginalE) ->
   case OriginalE of
-    #{prematch_vars := #{Var := _}} -> true;
+    #{prematch_vars := {#{Var := _}, _}} -> true;
     _ -> is_var(Var, E) andalso not is_var(Var, OriginalE)
   end;
 is_valid_spec_arg_var(_Var, _E, _OriginalE) ->
