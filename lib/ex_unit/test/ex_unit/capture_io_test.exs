@@ -89,17 +89,16 @@ defmodule ExUnit.CaptureIOTest do
   test "async capture_io works with put chars to stderr" do
     parent = self()
 
-    pids =
+    [pid1, pid2, pid3] =
       for num <- 1..3 do
         pid =
-          spawn(fn ->
+          spawn_link(fn ->
             captured =
               capture_io(:stderr, fn ->
                 :io.put_chars(:standard_error, "before:#{num}\n")
                 send(parent, {self(), :logged})
                 assert_receive :continue
                 :io.put_chars(:standard_error, "after:#{num}\n")
-                send(parent, {self(), :done})
               end)
 
             send(parent, captured)
@@ -109,80 +108,76 @@ defmodule ExUnit.CaptureIOTest do
         pid
       end
 
-    for pid <- Enum.reverse(pids) do
-      send(pid, :continue)
-      assert_receive {^pid, :done}
-    end
-
-    assert_receive "before:1\nbefore:2\nbefore:3\nafter:3\nafter:2\nafter:1\n"
-    assert_receive "before:2\nbefore:3\nafter:3\nafter:2\n"
+    send(pid3, :continue)
     assert_receive "before:3\nafter:3\n"
+
+    send(pid2, :continue)
+    assert_receive "before:2\nbefore:3\nafter:3\nafter:2\n"
+
+    send(pid1, :continue)
+    assert_receive "before:1\nbefore:2\nbefore:3\nafter:3\nafter:2\nafter:1\n"
   end
 
   test "raises when async capturing a named device with a different encoding than the first" do
     parent = self()
 
-    [pid0, _pid1, pid2] =
-      for encoding <- [:latin1, :unicode, :latin1] do
-        spawn(fn ->
-          try do
-            capture_io(:stderr, [encoding: encoding], fn ->
-              :io.put_chars(:standard_error, "a")
-              send(parent, {self(), :logged})
-              assert_receive :continue
-            end)
-          rescue
-            e in [ArgumentError] ->
-              send(parent, e.message)
-          end
-        end)
-      end
+    pid =
+      spawn_link(fn ->
+        output =
+          capture_io(:stderr, [encoding: :latin1], fn ->
+            :io.put_chars(:standard_error, "a")
+            send(parent, {self(), :logged})
+            assert_receive :continue
+          end)
 
-    for pid <- [pid2, pid0] do
-      assert_receive {^pid, :logged}
-      send(pid, :continue)
-    end
+        send(parent, output)
+      end)
 
-    assert_receive "attempted to change the encoding for a currently captured device :standard_error.\n\nCurrently set as: :latin1\nGiven: :unicode" <>
-                     _
+    assert_receive {^pid, :logged}
+
+    assert_raise ArgumentError,
+                 ~r"attempted to change the encoding for a currently captured device :standard_error",
+                 fn ->
+                   capture_io(:stderr, [encoding: :unicode], fn ->
+                     :io.put_chars(:standard_error, "b")
+                   end)
+                 end
+
+    assert capture_io(:stderr, [encoding: :latin1], fn ->
+             :io.put_chars(:standard_error, "c")
+           end) == "c"
+
+    send(pid, :continue)
+    assert_receive "ac"
   end
 
   test "raises when async capturing a named device with an input given to an already captured device" do
     parent = self()
 
     pid =
-      spawn(fn ->
+      spawn_link(fn ->
         capture_io(:stderr, [input: "first"], fn ->
-          :io.put_chars(:standard_error, "a")
-          send(parent, {:logged, self()})
-          assert_receive(:continue)
+          send(parent, {self(), :logged})
+          Process.sleep(:infinity)
         end)
       end)
 
-    assert_receive {:logged, ^pid}
+    assert_receive {^pid, :logged}
 
     message =
       "attempted multiple captures on device :standard_error with input. If you need to give an input to a captured device, you cannot run your test asynchronously"
 
-    try do
+    assert_raise ArgumentError, message, fn ->
       capture_io(:stderr, [input: "second"], fn ->
         :io.put_chars(:standard_error, "b")
       end)
-    rescue
-      e in ArgumentError ->
-        assert Exception.message(e) =~ message
     end
 
-    try do
+    assert_raise ArgumentError, message, fn ->
       capture_io(:stderr, [input: ""], fn ->
         :io.put_chars(:standard_error, "b")
       end)
-    rescue
-      e in ArgumentError ->
-        assert Exception.message(e) =~ message
     end
-
-    send(pid, :continue)
   end
 
   test "monitors calling processes and releases the capture on exit" do
