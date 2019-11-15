@@ -122,16 +122,16 @@ defmodule ExUnit.CaptureServer do
   end
 
   defp release_device(ref, %{devices: devices} = config) do
-    case Enum.find(devices, fn {_, device} -> device.refs[ref] end) do
+    case Enum.find(devices, fn {_, device} -> Map.has_key?(device.refs, ref) end) do
       {name, device} ->
-        case Enum.reject(device.refs, &(elem(&1, 0) == ref)) do
-          [] ->
+        case Map.delete(device.refs, ref) do
+          refs when map_size(refs) == 0 ->
             revert_device_to_original_pid(name, device.original_pid)
             close_string_io(device.pid)
             %{config | devices: Map.delete(devices, name)}
 
           refs ->
-            put_in(config.devices[name].refs, Map.new(refs))
+            put_in(config.devices[name].refs, refs)
         end
 
       _ ->

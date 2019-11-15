@@ -184,7 +184,7 @@ defmodule ExUnit.Diff do
     {diff_expression, post_env} = diff_quoted(expression, right, env)
 
     bindings = Map.merge(post_env.pins, post_env.current_vars)
-    {diff_clause, clause_equivalent?} = diff_guard_clause(clause, bindings)
+    {diff_clause, clause_equivalent?} = diff_guard_clause(clause, Map.to_list(bindings))
 
     diff = %__MODULE__{
       diff_expression
