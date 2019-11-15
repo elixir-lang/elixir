@@ -287,4 +287,42 @@ defmodule RecordTest do
       end
     end
   end
+
+  describe "warnings" do
+    import ExUnit.CaptureIO
+
+    test "warns on bad record update input" do
+      assert capture_io(:stderr, fn ->
+               defmodule RecordSample do
+                 require Record
+                 Record.defrecord(:user, __MODULE__, name: "john", age: 25)
+
+                 def fun do
+                   user(user(), _: :_, name: "meg")
+                 end
+               end
+             end) =~
+               "updating a record with a default (:_) is equivalent to creating a new record"
+    after
+      purge(RecordSample)
+    end
+
+    test "defrecord warns with duplicate keys" do
+      assert capture_io(:stderr, fn ->
+               Code.eval_string("""
+               defmodule RecordSample do
+                 import Record
+                 defrecord :r, [:foo, :bar, foo: 1]
+               end
+               """)
+             end) =~ "duplicate key :foo found in record"
+    after
+      purge(RecordSample)
+    end
+
+    defp purge(module) when is_atom(module) do
+      :code.delete(module)
+      :code.purge(module)
+    end
+  end
 end

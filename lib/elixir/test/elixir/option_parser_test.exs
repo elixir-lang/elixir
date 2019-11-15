@@ -374,7 +374,7 @@ defmodule OptionParserTest do
 end
 
 defmodule OptionsParserDeprecationsTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
 
   @warning ~r[not passing the :switches or :strict option to OptionParser is deprecated]
 

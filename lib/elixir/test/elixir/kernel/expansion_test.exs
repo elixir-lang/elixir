@@ -6,7 +6,7 @@ defmodule Kernel.ExpansionTarget do
 end
 
 defmodule Kernel.ExpansionTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
 
   describe "__block__" do
     test "expands to nil when empty" do

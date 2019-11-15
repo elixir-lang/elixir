@@ -105,6 +105,15 @@ defmodule CodeTest do
     refute fixture_path("code_sample.exs") in Code.required_files()
   end
 
+  test "compile_file/1 also emits checker warnings" do
+    output =
+      ExUnit.CaptureIO.capture_io(:stderr, fn ->
+        Code.compile_file(PathHelpers.fixture_path("checker_warning.exs"))
+      end)
+
+    assert output =~ "function clause will never match"
+  end
+
   test "require_file/1" do
     assert Code.require_file(fixture_path("code_sample.exs")) == []
     assert fixture_path("code_sample.exs") in Code.required_files()

@@ -797,11 +797,11 @@ defmodule ExUnit.DiffTest do
   end
 
   test "guards" do
-    assert_diff((x when x == 0) = 0, [x: 0])
-    assert_diff((x when x == 0 and is_integer(x)) = 0, [x: 0])
-    assert_diff((x when x == 0 or x == 1) = 0, [x: 0])
-    assert_diff((x when x == 0 when x == 1) = 0, [x: 0])
-    assert_diff((x when one() == 1) = 0, [x: 0])
+    assert_diff((x when x == 0) = 0, x: 0)
+    assert_diff((x when x == 0 and is_integer(x)) = 0, x: 0)
+    assert_diff((x when x == 0 or x == 1) = 0, x: 0)
+    assert_diff((x when x == 0 when x == 1) = 0, x: 0)
+    assert_diff((x when one() == 1) = 0, x: 0)
 
     refute_diff((x when x == 1) = 0, "x when -x == 1-", "0")
     refute_diff((x when x == 0 and x == 1) = 0, "x when x == 0 and -x == 1-", "0")

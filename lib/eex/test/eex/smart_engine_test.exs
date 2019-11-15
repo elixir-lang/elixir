@@ -1,8 +1,7 @@
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule EEx.SmartEngineTest do
-  # TODO: Make this async: true once capture_io is removed
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test "evaluates simple string" do
     assert_eval("foo bar", "foo bar")

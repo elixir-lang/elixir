@@ -1715,21 +1715,6 @@ defmodule Kernel.WarningTest do
     assert message =~ "\"else\" shouldn't be used as the only clause in \"try\""
   end
 
-  test "warns on bad record update input" do
-    assert capture_err(fn ->
-             defmodule Sample do
-               require Record
-               Record.defrecord(:user, __MODULE__, name: "john", age: 25)
-
-               def fun do
-                 user(user(), _: :_, name: "meg")
-               end
-             end
-           end) =~ "updating a record with a default (:_) is equivalent to creating a new record"
-  after
-    purge([Sample])
-  end
-
   test "sigil w/W warns on trailing comma at macro expansion time" do
     for sigil <- ~w(w W),
         modifier <- ~w(a s c) do
@@ -1756,28 +1741,6 @@ defmodule Kernel.WarningTest do
            end) =~ "duplicate key :foo found in struct"
   after
     purge(TestMod)
-  end
-
-  test "defrecord warns with duplicate keys" do
-    assert capture_err(fn ->
-             Code.eval_string("""
-             defmodule TestMod do
-               import Record
-               defrecord :r, [:foo, :bar, foo: 1]
-             end
-             """)
-           end) =~ "duplicate key :foo found in record"
-  after
-    purge(TestMod)
-  end
-
-  test "Code.require_file/1 checker warning" do
-    output =
-      capture_err(fn ->
-        Code.require_file(PathHelpers.fixture_path("checker_warning.exs"))
-      end)
-
-    assert output =~ "function clause will never match"
   end
 
   defp purge(list) when is_list(list) do
