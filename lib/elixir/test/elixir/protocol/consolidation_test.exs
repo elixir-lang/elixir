@@ -7,7 +7,7 @@ files = Path.wildcard(PathHelpers.fixture_path("consolidation/*"))
 Kernel.ParallelCompiler.compile_to_path(files, path)
 
 defmodule Protocol.ConsolidationTest do
-  use ExUnit.Case
+  use ExUnit.Case, asnyc: true
   alias Protocol.ConsolidationTest.{Sample, WithAny}
 
   defimpl WithAny, for: Map do

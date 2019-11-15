@@ -90,24 +90,24 @@ defmodule ExUnit.CaptureIOTest do
     parent = self()
 
     pids =
-    for num <- 1..3 do
-      pid =
-      spawn(fn ->
-        captured =
-          capture_io(:stderr, fn ->
-            :io.put_chars(:standard_error, "before:#{num}\n")
-            send(parent, {self(), :logged})
-            assert_receive :continue
-            :io.put_chars(:standard_error, "after:#{num}\n")
-            send(parent, {self(), :done})
+      for num <- 1..3 do
+        pid =
+          spawn(fn ->
+            captured =
+              capture_io(:stderr, fn ->
+                :io.put_chars(:standard_error, "before:#{num}\n")
+                send(parent, {self(), :logged})
+                assert_receive :continue
+                :io.put_chars(:standard_error, "after:#{num}\n")
+                send(parent, {self(), :done})
+              end)
+
+            send(parent, captured)
           end)
 
-        send(parent, captured)
-      end)
-
-      assert_receive {^pid, :logged}
-      pid
-    end
+        assert_receive {^pid, :logged}
+        pid
+      end
 
     for pid <- Enum.reverse(pids) do
       send(pid, :continue)
@@ -161,25 +161,26 @@ defmodule ExUnit.CaptureIOTest do
 
     assert_receive {:logged, ^pid}
 
-    message = "attempted multiple captures on device :standard_error with input. If you need to give an input to a captured device, you cannot run your test asynchronously"
+    message =
+      "attempted multiple captures on device :standard_error with input. If you need to give an input to a captured device, you cannot run your test asynchronously"
 
-      try do
-        capture_io(:stderr, [input: "second"], fn ->
-          :io.put_chars(:standard_error, "b")
-        end)
-      rescue
-        e in ArgumentError ->
-          assert Exception.message(e) =~ message
-      end
+    try do
+      capture_io(:stderr, [input: "second"], fn ->
+        :io.put_chars(:standard_error, "b")
+      end)
+    rescue
+      e in ArgumentError ->
+        assert Exception.message(e) =~ message
+    end
 
-      try do
-        capture_io(:stderr, [input: ""], fn ->
-          :io.put_chars(:standard_error, "b")
-        end)
-      rescue
-        e in ArgumentError ->
-          assert Exception.message(e) =~ message
-      end
+    try do
+      capture_io(:stderr, [input: ""], fn ->
+        :io.put_chars(:standard_error, "b")
+      end)
+    rescue
+      e in ArgumentError ->
+        assert Exception.message(e) =~ message
+    end
 
     send(pid, :continue)
   end
