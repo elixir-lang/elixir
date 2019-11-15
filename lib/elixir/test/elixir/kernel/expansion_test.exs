@@ -8,6 +8,75 @@ end
 defmodule Kernel.ExpansionTest do
   use ExUnit.Case, async: true
 
+  defmacrop var_ver(var, version) do
+    quote do
+      {unquote(var), [version: unquote(version)], __MODULE__}
+    end
+  end
+
+  test "tracks variable version" do
+    assert {:__block__, _, [{:=, _, [var_ver(:x, 0), 0]}, {:=, _, [_, var_ver(:x, 0)]}]} =
+             expand_with_version(
+               quote do
+                 x = 0
+                 _ = x
+               end
+             )
+
+    assert {:__block__, _,
+            [
+              {:=, _, [var_ver(:x, 0), 0]},
+              {:=, _, [_, var_ver(:x, 0)]},
+              {:=, _, [var_ver(:x, 1), 1]},
+              {:=, _, [_, var_ver(:x, 1)]}
+            ]} =
+             expand_with_version(
+               quote do
+                 x = 0
+                 _ = x
+                 x = 1
+                 _ = x
+               end
+             )
+
+    assert {:__block__, _,
+            [
+              {:=, _, [var_ver(:x, 0), 0]},
+              {:fn, _, [{:->, _, [[var_ver(:x, 1)], {:=, _, [var_ver(:x, 2), 2]}]}]},
+              {:=, _, [_, var_ver(:x, 0)]},
+              {:=, _, [var_ver(:x, 3), 3]}
+            ]} =
+             expand_with_version(
+               quote do
+                 x = 0
+                 fn x -> x = 2 end
+                 _ = x
+                 x = 3
+               end
+             )
+
+    assert {:__block__, _,
+            [
+              {:=, _, [var_ver(:x, 0), 0]},
+              {:case, _, [:foo, [do: [{:->, _, [[var_ver(:x, 1)], var_ver(:x, 1)]}]]]},
+              {:=, _, [_, var_ver(:x, 0)]},
+              {:=, _, [var_ver(:x, 2), 2]}
+            ]} =
+             expand_with_version(
+               quote do
+                 x = 0
+                 case(:foo, do: (x -> x))
+                 _ = x
+                 x = 2
+               end
+             )
+  end
+
+  defp expand_with_version(expr) do
+    env = :elixir_env.reset_vars(__ENV__)
+    elem(:elixir_expand.expand(expr, env), 0)
+  end
+
   describe "__block__" do
     test "expands to nil when empty" do
       assert expand(quote(do: unquote(:__block__)())) == nil
@@ -2430,7 +2499,7 @@ defmodule Kernel.ExpansionTest do
       expand(quote(do: unquote({1, 2, 3})))
     end
 
-    assert_raise CompileError, ~r"invalid quoted expression: #Function<", fn ->
+    assert_raise CompileError, ~r"invalid quoted expression: #Function\<", fn ->
       expand(quote(do: unquote({:sample, fn -> nil end})))
     end
 

@@ -71,7 +71,7 @@ defmodule Macro.Env do
            {%{optional(variable) => {var_version, var_type}},
             %{optional(variable) => {var_version, var_type}} | false}
   @typep unused_vars ::
-           %{optional({variable, var_version}) => non_neg_integer | false}
+           {%{optional({variable, var_version}) => non_neg_integer | false}, non_neg_integer}
   @typep prematch_vars ::
            %{optional(variable) => {var_version, var_type}} | :warn | :raise | :pin | :apply
   @typep tracers :: [module]
@@ -121,7 +121,7 @@ defmodule Macro.Env do
       prematch_vars: :warn,
       requires: [],
       tracers: [],
-      unused_vars: %{},
+      unused_vars: {%{}, 0},
       vars: []
     }
   end

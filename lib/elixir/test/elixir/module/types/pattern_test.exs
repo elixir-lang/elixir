@@ -8,20 +8,23 @@ defmodule Module.Types.PatternTest do
 
   defmacrop quoted_pattern(patterns) do
     quote do
-      patterns = unquote(Macro.escape(expand_head(patterns)))
+      {patterns, true} = unquote(Macro.escape(expand_head(patterns, true)))
 
       of_pattern(patterns, new_stack(), new_context())
       |> lift_result()
     end
   end
 
-  defmacrop quoted_guard(guards, context) do
+  defmacrop quoted_guard(vars, guards) do
     quote do
-      of_guard(unquote(Macro.escape(expand_guards(guards))), new_stack(), unquote(context))
+      {vars, guards} = unquote(Macro.escape(expand_head(vars, guards)))
+      context = Enum.reduce(vars, new_context(), &(new_var(&1, &2) |> elem(1)))
+
+      of_guard(guards, new_stack(), context)
     end
   end
 
-  defp expand_head(patterns) do
+  defp expand_head(patterns, guards) do
     {_, vars} =
       Macro.prewalk(patterns, [], fn
         {:_, _, context} = var, vars when is_atom(context) ->
@@ -39,23 +42,12 @@ defmodule Module.Types.PatternTest do
 
     fun =
       quote do
-        fn unquote(patterns) -> unquote(vars) end
+        fn unquote(patterns) when unquote(guards) -> unquote(vars) end
       end
 
     {ast, _env} = :elixir_expand.expand(fun, __ENV__)
-    {:fn, _, [{:->, _, [[patterns], _]}]} = ast
-    patterns
-  end
-
-  defp expand_guards(guards) do
-    fun =
-      quote do
-        fn var!(x) when unquote(guards) -> var!(x) end
-      end
-
-    {ast, _env} = :elixir_expand.expand(fun, __ENV__)
-    {:fn, _, [{:->, _, [[{:when, _, [_, guards]}], _]}]} = ast
-    guards
+    {:fn, _, [{:->, _, [[{:when, _, [patterns, guards]}], _]}]} = ast
+    {patterns, guards}
   end
 
   defp new_context() do
@@ -83,10 +75,12 @@ defmodule Module.Types.PatternTest do
 
   describe "of_pattern/3" do
     test "error location" do
+      line = __ENV__.line + 3
+
       assert {:error, {{:unable_unify, :integer, :binary, expr, traces}, location}} =
                quoted_pattern(<<foo::integer, foo::binary>>)
 
-      assert location == [{"types_test.ex", 87, {TypesTest, :test, 0}}]
+      assert location == [{"types_test.ex", line, {TypesTest, :test, 0}}]
 
       assert {:<<>>, _,
               [
@@ -97,10 +91,10 @@ defmodule Module.Types.PatternTest do
       assert [
                {{:foo, _, nil},
                 {:type, :binary, {:"::", _, [{:foo, _, nil}, {:binary, _, _}]},
-                 {"types_test.ex", 87}}},
+                 {"types_test.ex", ^line}}},
                {{:foo, _, nil},
                 {:type, :integer, {:"::", _, [{:foo, _, nil}, {:integer, _, _}]},
-                 {"types_test.ex", 87}}}
+                 {"types_test.ex", ^line}}}
              ] = traces
     end
 
@@ -225,15 +219,13 @@ defmodule Module.Types.PatternTest do
   end
 
   test "of_guard/2" do
-    assert {{:var, 0}, var_context} = new_var({:x, [version: 0], nil}, new_context())
-
-    assert {:ok, :boolean, context} = quoted_guard(is_tuple(x), var_context)
+    assert {:ok, :boolean, context} = quoted_guard([x], is_tuple(x))
     assert Types.lift_type({:var, 0}, context) == :tuple
 
-    assert {:ok, :dynamic, context} = quoted_guard(elem(x, 0), var_context)
+    assert {:ok, :dynamic, context} = quoted_guard([x], elem(x, 0))
     assert Types.lift_type({:var, 0}, context) == :tuple
 
     assert {:error, {_, {:unable_unify, :tuple, :boolean, _, _}, _}} =
-             quoted_guard(is_tuple(x) and is_boolean(x), var_context)
+             quoted_guard([x], is_tuple(x) and is_boolean(x))
   end
 end
