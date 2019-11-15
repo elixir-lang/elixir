@@ -183,8 +183,7 @@ defmodule ExUnit.Diff do
   defp diff_guard({:when, _, [expression, clause]}, right, env) do
     {diff_expression, post_env} = diff_quoted(expression, right, env)
 
-    vars = Map.merge(post_env.pins, post_env.current_vars)
-    bindings = for {{name, _context}, value} <- vars, do: {name, value}
+    bindings = Map.merge(post_env.pins, post_env.current_vars)
     {diff_clause, clause_equivalent?} = diff_guard_clause(clause, bindings)
 
     diff = %__MODULE__{
