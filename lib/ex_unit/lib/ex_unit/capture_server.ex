@@ -85,9 +85,12 @@ defmodule ExUnit.CaptureServer do
     {:noreply, config}
   end
 
-  defp capture_device(name, encoding, "", %{devices: devices} = config, caller)
+  defp capture_device(name, encoding, input, %{devices: devices} = config, caller)
        when is_map_key(devices, name) do
     case Map.fetch!(devices, name) do
+      %{input?: input?} when input? or input != "" ->
+        {:reply, {:error, :input_on_already_captured_device}, config}
+
       %{encoding: ^encoding} = device ->
         {_, output} = StringIO.contents(device.pid)
         ref = Process.monitor(caller)
@@ -96,11 +99,6 @@ defmodule ExUnit.CaptureServer do
       %{encoding: other_encoding} ->
         {:reply, {:error, {:changed_encoding, other_encoding}}, config}
     end
-  end
-
-  defp capture_device(name, _, _, %{devices: devices} = config, _)
-       when is_map_key(devices, name) do
-    {:reply, {:error, :input_on_already_captured_device}, config}
   end
 
   defp capture_device(name, encoding, input, config, caller) do
@@ -116,7 +114,15 @@ defmodule ExUnit.CaptureServer do
     else
       _ ->
         ref = Process.monitor(caller)
-        device = %{original_pid: original_pid, pid: pid, refs: %{ref => 0}, encoding: encoding}
+
+        device = %{
+          original_pid: original_pid,
+          pid: pid,
+          refs: %{ref => 0},
+          encoding: encoding,
+          input?: input != ""
+        }
+
         {:reply, {:ok, ref}, put_in(config.devices[name], device)}
     end
   end

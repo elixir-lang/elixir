@@ -87,97 +87,101 @@ defmodule ExUnit.CaptureIOTest do
   end
 
   test "async capture_io works with put chars to stderr" do
-    me = self()
+    parent = self()
 
-    1..6
-    |> Enum.map(fn num ->
+    pids =
+    for num <- 1..3 do
+      pid =
       spawn(fn ->
         captured =
           capture_io(:stderr, fn ->
-            :io.put_chars(:standard_error, "#{num}\n")
-            :io.put_chars(:standard_error, "#{num + 10}\n")
-            assert_receive(:continue)
+            :io.put_chars(:standard_error, "before:#{num}\n")
+            send(parent, {self(), :logged})
+            assert_receive :continue
+            :io.put_chars(:standard_error, "after:#{num}\n")
+            send(parent, {self(), :done})
           end)
 
-        send(me, captured)
+        send(parent, captured)
       end)
-    end)
-    |> Enum.reverse()
-    |> Enum.each(&send(&1, :continue))
 
-    1..6
-    |> Enum.to_list()
-    |> assert_received_all()
+      assert_receive {^pid, :logged}
+      pid
+    end
+
+    for pid <- Enum.reverse(pids) do
+      send(pid, :continue)
+      assert_receive {^pid, :done}
+    end
+
+    assert_receive "before:1\nbefore:2\nbefore:3\nafter:3\nafter:2\nafter:1\n"
+    assert_receive "before:2\nbefore:3\nafter:3\nafter:2\n"
+    assert_receive "before:3\nafter:3\n"
   end
 
   test "raises when async capturing a named device with a different encoding than the first" do
-    me = self()
+    parent = self()
 
     [pid0, _pid1, pid2] =
-      Enum.map([:latin1, :unicode, :latin1], fn encoding ->
+      for encoding <- [:latin1, :unicode, :latin1] do
         spawn(fn ->
           try do
             capture_io(:stderr, [encoding: encoding], fn ->
               :io.put_chars(:standard_error, "a")
-              send(me, {self(), :logged})
+              send(parent, {self(), :logged})
               assert_receive :continue
             end)
           rescue
             e in [ArgumentError] ->
-              send(me, e.message)
+              send(parent, e.message)
           end
         end)
-      end)
+      end
 
-    Enum.each([pid2, pid0], fn pid ->
-      assert_receive({^pid, :logged})
+    for pid <- [pid2, pid0] do
+      assert_receive {^pid, :logged}
       send(pid, :continue)
-    end)
+    end
 
     assert_receive "attempted to change the encoding for a currently captured device :standard_error.\n\nCurrently set as: :latin1\nGiven: :unicode" <>
                      _
   end
 
   test "raises when async capturing a named device with an input given to an already captured device" do
-    me = self()
+    parent = self()
 
-    first =
+    pid =
       spawn(fn ->
         capture_io(:stderr, [input: "first"], fn ->
           :io.put_chars(:standard_error, "a")
-          send(me, {:logged, self()})
+          send(parent, {:logged, self()})
           assert_receive(:continue)
         end)
       end)
 
-    assert_receive {:logged, ^first}
+    assert_receive {:logged, ^pid}
 
-    spawn(fn ->
+    message = "attempted multiple captures on device :standard_error with input. If you need to give an input to a captured device, you cannot run your test asynchronously"
+
       try do
         capture_io(:stderr, [input: "second"], fn ->
           :io.put_chars(:standard_error, "b")
         end)
       rescue
-        e in [ArgumentError] ->
-          send(me, e.message)
+        e in ArgumentError ->
+          assert Exception.message(e) =~ message
       end
-    end)
 
-    third =
-      spawn(fn ->
+      try do
         capture_io(:stderr, [input: ""], fn ->
-          :io.put_chars(:standard_error, "c")
-          send(me, {:logged, self()})
-          assert_receive(:continue)
+          :io.put_chars(:standard_error, "b")
         end)
-      end)
+      rescue
+        e in ArgumentError ->
+          assert Exception.message(e) =~ message
+      end
 
-    assert_receive {:logged, ^third}
-
-    send(third, :continue)
-    send(first, :continue)
-
-    assert_receive "attempted to give an input \"second\" for a currently captured device :standard_error. If you need to give an input to a captured device, you cannot run your test asynchronously"
+    send(pid, :continue)
   end
 
   test "monitors calling processes and releases the capture on exit" do
@@ -195,7 +199,7 @@ defmodule ExUnit.CaptureIOTest do
 
     ref = Process.monitor(pid)
 
-    # Kill the process and make sure the caputre is released
+    # Kill the process and make sure the capture is released
     Process.exit(pid, :shutdown)
 
     # Make sure the process has exited before we try and start a new capture
@@ -460,31 +464,6 @@ defmodule ExUnit.CaptureIOTest do
 
     receive do
       {:io_reply, ^pid, res} -> res
-    end
-  end
-
-  defp assert_received_all([]), do: :ok
-
-  defp assert_received_all(numbers) do
-    receive do
-      output ->
-        index =
-          Enum.find_index(numbers, fn number ->
-            output =~ "#{number}" and output =~ "#{number + 10}"
-          end)
-
-        case index do
-          nil ->
-            raise "Cound not find match for #{inspect(output)} in #{inspect(numbers)}"
-
-          _ ->
-            numbers
-            |> List.delete_at(index)
-            |> assert_received_all()
-        end
-    after
-      100 ->
-        raise "Expected to receive message but did not"
     end
   end
 end

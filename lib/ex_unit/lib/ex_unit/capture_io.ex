@@ -190,9 +190,8 @@ defmodule ExUnit.CaptureIO do
 
       {:error, :input_on_already_captured_device} ->
         raise ArgumentError,
-              "attempted to give an input #{inspect(input)} for a currently captured device " <>
-                "#{inspect(device)}. If you need to give an input to a captured device, " <>
-                "you cannot run your test asynchronously"
+              "attempted multiple captures on device #{inspect(device)} with input. " <>
+                "If you need to give an input to a captured device, you cannot run your test asynchronously"
     end
   end
 
