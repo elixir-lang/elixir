@@ -338,51 +338,51 @@ expand({'_', Meta, Kind}, E) when is_atom(Kind) ->
   form_error(Meta, E, ?MODULE, unbound_underscore);
 
 expand({Name, Meta, Kind}, #{context := match} = E) when is_atom(Name), is_atom(Kind) ->
-  #{current_vars := {ReadCurrent, WriteCurrent}, unused_vars := Unused, prematch_vars := Prematch} = E,
+  #{current_vars := {ReadCurrent, WriteCurrent}, unused_vars := {Unused, Version}, prematch_vars := Prematch} = E,
   Pair = {Name, elixir_utils:var_context(Meta, Kind)},
   PrematchVersion = var_version(Prematch, Pair),
 
   case ReadCurrent of
     %% Variable is being overridden now
     #{Pair := PrematchVersion} ->
-      NewUnused = var_unused(Pair, Meta, PrematchVersion + 1, Unused),
-      NewReadCurrent = ReadCurrent#{Pair => PrematchVersion + 1},
-      NewWriteCurrent = (WriteCurrent /= false) andalso WriteCurrent#{Pair => PrematchVersion + 1},
-      Var = {Name, [{version, PrematchVersion + 1} | Meta], Kind},
-      {Var, E#{current_vars := {NewReadCurrent, NewWriteCurrent}, unused_vars := NewUnused}};
+      NewUnused = var_unused(Pair, Meta, Version, Unused),
+      NewReadCurrent = ReadCurrent#{Pair => Version},
+      NewWriteCurrent = (WriteCurrent /= false) andalso WriteCurrent#{Pair => Version},
+      Var = {Name, [{version, Version} | Meta], Kind},
+      {Var, E#{current_vars := {NewReadCurrent, NewWriteCurrent}, unused_vars := {NewUnused, Version + 1}}};
 
     %% Variable was already overriden
     #{Pair := CurrentVersion} ->
       maybe_warn_underscored_var_repeat(Meta, Name, Kind, E),
       NewUnused = Unused#{{Pair, CurrentVersion} => false},
       Var = {Name, [{version, CurrentVersion} | Meta], Kind},
-      {Var, E#{unused_vars := NewUnused}};
+      {Var, E#{unused_vars := {NewUnused, Version}}};
 
     %% Variable defined for the first time
     _ ->
       NewVars = ordsets:add_element(Pair, ?key(E, vars)),
-      NewUnused = var_unused(Pair, Meta, 0, Unused),
-      NewReadCurrent = ReadCurrent#{Pair => 0},
-      NewWriteCurrent = (WriteCurrent /= false) andalso WriteCurrent#{Pair => 0},
-      Var = {Name, [{version, 0} | Meta], Kind},
-      {Var, E#{vars := NewVars, current_vars := {NewReadCurrent, NewWriteCurrent}, unused_vars := NewUnused}}
+      NewUnused = var_unused(Pair, Meta, Version, Unused),
+      NewReadCurrent = ReadCurrent#{Pair => Version},
+      NewWriteCurrent = (WriteCurrent /= false) andalso WriteCurrent#{Pair => Version},
+      Var = {Name, [{version, Version} | Meta], Kind},
+      {Var, E#{vars := NewVars, current_vars := {NewReadCurrent, NewWriteCurrent}, unused_vars := {NewUnused, Version + 1}}}
   end;
 
 expand({Name, Meta, Kind}, E) when is_atom(Name), is_atom(Kind) ->
-  #{current_vars := {ReadCurrent, _WriteCurrent}, unused_vars := Unused} = E,
+  #{current_vars := {ReadCurrent, _WriteCurrent}, unused_vars := {Unused, Version}} = E,
   Pair = {Name, elixir_utils:var_context(Meta, Kind)},
 
   case ReadCurrent of
-    #{Pair := Version} ->
+    #{Pair := PairVersion} ->
       maybe_warn_underscored_var_access(Meta, Name, Kind, E),
-      UnusedKey = {Pair, Version},
-      Var = {Name, [{version, Version} | Meta], Kind},
+      UnusedKey = {Pair, PairVersion},
+      Var = {Name, [{version, PairVersion} | Meta], Kind},
 
       case Unused of
         #{UnusedKey := false} ->
           {Var, E};
         _ ->
-          {Var, E#{unused_vars := Unused#{UnusedKey => false}}}
+          {Var, E#{unused_vars := {Unused#{UnusedKey => false}, Version}}}
       end;
 
     _ ->
@@ -499,13 +499,13 @@ expand(Other, E) ->
 
 %% Helpers
 
-escape_env_entries(Meta, #{current_vars := {Read, Write}, unused_vars := Unused} = Env0) ->
+escape_env_entries(Meta, #{current_vars := {Read, Write}, unused_vars := {Unused, Version}} = Env0) ->
   Env1 = case Env0 of
     #{function := nil} -> Env0;
     _ -> Env0#{lexical_tracker := nil}
   end,
   Current = {maybe_escape_map(Read), maybe_escape_map(Write)},
-  Env2 = Env1#{current_vars := Current, unused_vars := maybe_escape_map(Unused)},
+  Env2 = Env1#{current_vars := Current, unused_vars := {maybe_escape_map(Unused), Version}},
   Env3 = elixir_env:linify({?line(Meta), Env2}),
   Env3.
 

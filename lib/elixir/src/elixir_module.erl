@@ -72,8 +72,8 @@ compile(Module, Block, Vars, #{line := Line, current_vars := {Read, _}} = Env) w
   %% point, the lexical tracker process is long gone.
   MaybeLexEnv =
     case ?key(Env, function) of
-      nil -> Env#{module := Module, current_vars := {Read, false}, unused_vars := #{}};
-      _   -> Env#{lexical_tracker := nil, function := nil, module := Module, current_vars := {Read, false}, unused_vars := #{}}
+      nil -> Env#{module := Module, current_vars := {Read, false}, unused_vars := {#{}, 0}};
+      _   -> Env#{lexical_tracker := nil, function := nil, module := Module, current_vars := {Read, false}, unused_vars := {#{}, 0}}
     end,
 
   case MaybeLexEnv of

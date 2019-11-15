@@ -16,7 +16,7 @@ defmodule Module.Types.Helpers do
   @doc """
   Returns unique identifier for the current assignment of the variable.
   """
-  def var_name({name, meta, _context}), do: {name, Keyword.fetch!(meta, :version)}
+  def var_name({_name, meta, _context}), do: Keyword.fetch!(meta, :version)
 
   @doc """
   Push expression to stack.
