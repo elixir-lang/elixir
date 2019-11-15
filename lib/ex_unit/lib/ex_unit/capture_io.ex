@@ -12,15 +12,6 @@ defmodule ExUnit.CaptureIO do
         test "example" do
           assert capture_io(fn -> IO.puts("a") end) == "a\n"
         end
-
-        test "checking the return value and the IO output" do
-          fun = fn ->
-            assert Enum.each(["some", "example"], &IO.puts(&1)) == :ok
-          end
-
-          assert capture_io(fun) == "some\nexample\n"
-          # tip: or use only: "capture_io(fun)" to silence the IO output (so only assert the return value)
-        end
       end
 
   """
@@ -155,7 +146,7 @@ defmodule ExUnit.CaptureIO do
 
     try do
       Process.group_leader(self(), capture_gl)
-      do_capture_io(capture_gl, fun)
+      do_capture_gl(capture_gl, fun)
     after
       Process.group_leader(self(), original_gl)
     end
@@ -195,7 +186,7 @@ defmodule ExUnit.CaptureIO do
     end
   end
 
-  defp do_capture_io(string_io, fun) do
+  defp do_capture_gl(string_io, fun) do
     try do
       fun.()
     catch
