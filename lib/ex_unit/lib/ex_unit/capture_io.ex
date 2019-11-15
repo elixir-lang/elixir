@@ -35,10 +35,20 @@ defmodule ExUnit.CaptureIO do
   process and therefore can be done concurrently.
 
   However, the capturing of any other named device, such as `:stderr`,
-  happens globally and requires `async: false`.
+  happens globally and persists until the function has ended. While this means
+  it is safe to run your tests with `async: true` in many cases, captured output
+  may include output from a different test and care must be taken when using
+  `capture_io` with a named process asynchronously.
 
-  A developer can set a string as an input. The default input
-  is an empty string.
+  A developer can set a string as an input. The default input is an empty
+  string. If capturing a named device asynchronously, an input can only be given
+  to the first capture. Any further capture that is given to a capture on that
+  device will raise an exception and would indicate that the test should be run
+  synchronously.
+
+  Similarly, once a capture on a named device has begun, the encoding on that
+  device cannot be changed in a subsequent concurrent capture. An error will
+  be raised in this case.
 
   ## IO devices
 
@@ -154,23 +164,35 @@ defmodule ExUnit.CaptureIO do
   defp do_capture_io(device, options, fun) do
     input = Keyword.get(options, :input, "")
     encoding = Keyword.get(options, :encoding, :unicode)
-    {:ok, string_io} = StringIO.open(input, encoding: encoding)
 
-    case ExUnit.CaptureServer.device_capture_on(device, string_io) do
+    case ExUnit.CaptureServer.device_capture_on(device, encoding, input) do
       {:ok, ref} ->
         try do
-          do_capture_io(string_io, fun)
+          fun.()
+          ExUnit.CaptureServer.device_output(device, ref)
         after
           ExUnit.CaptureServer.device_capture_off(ref)
         end
 
       {:error, :no_device} ->
-        _ = StringIO.close(string_io)
         raise "could not find IO device registered at #{inspect(device)}"
 
-      {:error, :already_captured} ->
-        _ = StringIO.close(string_io)
-        raise "IO device registered at #{inspect(device)} is already captured"
+      {:error, {:changed_encoding, current_encoding}} ->
+        raise ArgumentError, """
+        attempted to change the encoding for a currently captured device #{inspect(device)}.
+
+        Currently set as: #{inspect(current_encoding)}
+        Given: #{inspect(encoding)}
+
+        If you need to use multiple encodings on a captured device, you cannot \
+        run your test asynchronously
+        """
+
+      {:error, :input_on_already_captured_device} ->
+        raise ArgumentError,
+              "attempted to give an input #{inspect(input)} for a currently captured device " <>
+                "#{inspect(device)}. If you need to give an input to a captured device, " <>
+                "you cannot run your test asynchronously"
     end
   end
 

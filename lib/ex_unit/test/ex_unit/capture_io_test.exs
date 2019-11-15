@@ -86,6 +86,124 @@ defmodule ExUnit.CaptureIOTest do
            end) == "a"
   end
 
+  test "async capture_io works with put chars to stderr" do
+    me = self()
+
+    1..6
+    |> Enum.map(fn num ->
+      spawn(fn ->
+        captured =
+          capture_io(:stderr, fn ->
+            :io.put_chars(:standard_error, "#{num}\n")
+            :io.put_chars(:standard_error, "#{num + 10}\n")
+            assert_receive(:continue)
+          end)
+
+        send(me, captured)
+      end)
+    end)
+    |> Enum.reverse()
+    |> Enum.each(&send(&1, :continue))
+
+    1..6
+    |> Enum.to_list()
+    |> assert_received_all()
+  end
+
+  test "raises when async capturing a named device with a different encoding than the first" do
+    me = self()
+
+    [pid0, _pid1, pid2] =
+      Enum.map([:latin1, :unicode, :latin1], fn encoding ->
+        spawn(fn ->
+          try do
+            capture_io(:stderr, [encoding: encoding], fn ->
+              :io.put_chars(:standard_error, "a")
+              send(me, {self(), :logged})
+              assert_receive :continue
+            end)
+          rescue
+            e in [ArgumentError] ->
+              send(me, e.message)
+          end
+        end)
+      end)
+
+    Enum.each([pid2, pid0], fn pid ->
+      assert_receive({^pid, :logged})
+      send(pid, :continue)
+    end)
+
+    assert_receive "attempted to change the encoding for a currently captured device :standard_error.\n\nCurrently set as: :latin1\nGiven: :unicode" <>
+                     _
+  end
+
+  test "raises when async capturing a named device with an input given to an already captured device" do
+    me = self()
+
+    first =
+      spawn(fn ->
+        capture_io(:stderr, [input: "first"], fn ->
+          :io.put_chars(:standard_error, "a")
+          send(me, {:logged, self()})
+          assert_receive(:continue)
+        end)
+      end)
+
+    assert_receive {:logged, ^first}
+
+    spawn(fn ->
+      try do
+        capture_io(:stderr, [input: "second"], fn ->
+          :io.put_chars(:standard_error, "b")
+        end)
+      rescue
+        e in [ArgumentError] ->
+          send(me, e.message)
+      end
+    end)
+
+    third =
+      spawn(fn ->
+        capture_io(:stderr, [input: ""], fn ->
+          :io.put_chars(:standard_error, "c")
+          send(me, {:logged, self()})
+          assert_receive(:continue)
+        end)
+      end)
+
+    assert_receive {:logged, ^third}
+
+    send(third, :continue)
+    send(first, :continue)
+
+    assert_receive "attempted to give an input \"second\" for a currently captured device :standard_error. If you need to give an input to a captured device, you cannot run your test asynchronously"
+  end
+
+  test "monitors calling processes and releases the capture on exit" do
+    parent = self()
+
+    pid =
+      spawn(fn ->
+        capture_io(:stderr, [input: "a"], fn ->
+          send(parent, :ready)
+          Process.sleep(:infinity)
+        end)
+      end)
+
+    assert_receive :ready
+
+    ref = Process.monitor(pid)
+
+    # Kill the process and make sure the caputre is released
+    Process.exit(pid, :shutdown)
+
+    # Make sure the process has exited before we try and start a new capture
+    assert_receive {:DOWN, ^ref, _, _, _}
+
+    assert capture_io(:stderr, [input: "b"], fn -> :ok end)
+  end
+
   test "with fwrite" do
     assert capture_io(fn ->
              :io.fwrite(<<127, 128>>)
@@ -325,29 +443,6 @@ defmodule ExUnit.CaptureIOTest do
     end)
   end
 
-  test "device re-registering" do
-    parent = self()
-
-    pid =
-      spawn(fn ->
-        capture_io(:stderr, fn ->
-          send(parent, :ready)
-          Process.sleep(:infinity)
-        end)
-      end)
-
-    assert_receive :ready
-
-    # Kill the process and make sure the capture server receives the down
-    :erlang.trace(Process.whereis(ExUnit.CaptureServer), true, [:receive, tracer: self()])
-    Process.exit(pid, :shutdown)
-    assert_receive {:trace, _, :receive, {:DOWN, _, _, _, :shutdown}}, 1000
-
-    assert capture_io(:stderr, fn -> :ok end)
-  after
-    :erlang.trace(Process.whereis(ExUnit.CaptureServer), false, [:receive, tracer: self()])
-  end
-
   test "with assert inside" do
     try do
       capture_io(fn ->
@@ -359,25 +454,37 @@ defmodule ExUnit.CaptureIOTest do
     end
   end
 
-  test "capture :stderr by two processes" do
-    spawn(fn -> capture_io(:stderr, fn -> Process.sleep(100) end) end)
-    Process.sleep(10)
-
-    expected_message = "IO device registered at :standard_error is already captured"
-
-    assert_raise RuntimeError, expected_message, fn ->
-      capture_io(:stderr, fn -> nil end)
-    end
-
-    Process.sleep(100)
-  end
-
   defp send_and_receive_io(req) do
     pid = self()
     send(:erlang.group_leader(), {:io_request, pid, pid, req})
 
     receive do
       {:io_reply, ^pid, res} -> res
+    end
+  end
+
+  defp assert_received_all([]), do: :ok
+
+  defp assert_received_all(numbers) do
+    receive do
+      output ->
+        index =
+          Enum.find_index(numbers, fn number ->
+            output =~ "#{number}" and output =~ "#{number + 10}"
+          end)
+
+        case index do
+          nil ->
+            raise "Cound not find match for #{inspect(output)} in #{inspect(numbers)}"
+
+          _ ->
+            numbers
+            |> List.delete_at(index)
+            |> assert_received_all()
+        end
+    after
+      100 ->
+        raise "Expected to receive message but did not"
     end
   end
 end
