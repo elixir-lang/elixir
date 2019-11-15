@@ -9,7 +9,7 @@
 
 match(Fun, Expr, E, #{context := match}) ->
   Fun(Expr, E);
-match(Fun, Expr, #{current_vars := Current, unused_vars := Unused} = AfterE, BeforeE) ->
+match(Fun, Expr, #{current_vars := Current, unused_vars := {_, Counter} = Unused} = AfterE, BeforeE) ->
   #{
     context := Context,
     prematch_vars := Prematch,
@@ -18,7 +18,7 @@ match(Fun, Expr, #{current_vars := Current, unused_vars := Unused} = AfterE, Bef
 
   CallE = BeforeE#{
     context := match,
-    prematch_vars := Read,
+    prematch_vars := {Read, Counter},
     current_vars := Current,
     unused_vars := Unused
   },
@@ -35,7 +35,7 @@ match(Fun, Expr, #{current_vars := Current, unused_vars := Unused} = AfterE, Bef
   {EExpr, EndE}.
 
 def({Meta, Args, Guards, Body}, E) ->
-  {EArgs, EA}   = elixir_expand:expand(Args, E#{context := match, prematch_vars := #{}}),
+  {EArgs, EA}   = elixir_expand:expand(Args, E#{context := match, prematch_vars := {#{}, 0}}),
   {EGuards, EG} = guard(Guards, EA#{context := guard, prematch_vars := warn}),
   {EBody, EB}   = elixir_expand:expand(Body, EG#{context := nil}),
   elixir_env:check_unused_vars(EB),

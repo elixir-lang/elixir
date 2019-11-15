@@ -5,7 +5,7 @@
 -export([start_cli/0,
   string_to_tokens/4, tokens_to_quoted/3, 'string_to_quoted!'/4,
   env_for_eval/1, env_for_eval/2, quoted_to_erl/2,
-  eval_forms/3, eval_forms/4, eval_quoted/3]).
+  eval_forms/3, eval_quoted/3]).
 -include("elixir.hrl").
 -define(system, 'Elixir.System').
 
@@ -239,37 +239,41 @@ eval_quoted(Tree, Binding, Opts) when is_list(Opts) ->
 eval_quoted(Tree, Binding, #{line := Line} = E) ->
   eval_forms(elixir_quote:linify(Line, line, Tree), Binding, E).
 
-%% Handle forms evaluation. The main difference to
-%% eval_quoted is that it does not linify the given
-%% args.
-
 eval_forms(Tree, Binding, Opts) when is_list(Opts) ->
   eval_forms(Tree, Binding, env_for_eval(Opts));
-eval_forms(Tree, Binding, E) ->
-  eval_forms(Tree, Binding, E, elixir_env:env_to_scope(E)).
-eval_forms(Tree, Binding, Env, Scope) ->
-  {ParsedBinding, ParsedVars, ParsedScope} = elixir_erl_var:load_binding(Binding, Scope),
-  ParsedEnv = elixir_env:with_vars(Env, ParsedVars),
-  {Erl, NewEnv, NewScope} = quoted_to_erl(Tree, ParsedEnv, ParsedScope),
+eval_forms(Tree, RawBinding, OE) ->
+  {Vars, Binding} = normalize_binding(RawBinding, [], []),
+  E = elixir_env:with_vars(OE, Vars),
+  {_, S} = elixir_env:env_to_scope(E),
+  {Erl, NewE, NewS} = quoted_to_erl(Tree, E, S),
 
   case Erl of
     {atom, _, Atom} ->
-      {Atom, Binding, NewEnv, NewScope};
+      {Atom, Binding, NewE};
+
     _  ->
       Exprs =
         case Erl of
-          {block, _A, E} -> E;
+          {block, _, BlockExprs} -> BlockExprs;
           _ -> [Erl]
         end,
 
-      % Below must be all one line for locations to be the same
-      % when the stacktrace is extended to the full stacktrace.
-      {value, Value, NewBinding} = recur_eval(Exprs, ParsedBinding, Env),
-      {Value, elixir_erl_var:dump_binding(NewBinding, NewScope), NewEnv, NewScope}
+      ErlBinding = elixir_erl_var:load_binding(Binding, E, S),
+      {value, Value, NewBinding} = recur_eval(Exprs, ErlBinding, NewE),
+      {Value, elixir_erl_var:dump_binding(NewBinding, NewE, NewS), NewE}
   end.
+
+normalize_binding([{Key, Value} | Binding], Vars, Acc) when is_atom(Key) ->
+  normalize_binding(Binding, [{Key, nil} | Vars], [{{Key, nil}, Value} | Acc]);
+normalize_binding([{Pair, Value} | Binding], Vars, Acc) ->
+  normalize_binding(Binding, [Pair | Vars], [{Pair, Value} | Acc]);
+normalize_binding([], Vars, Acc) ->
+  {Vars, Acc}.
 
 recur_eval([Expr | Exprs], Binding, Env) ->
   {value, Value, NewBinding} =
+    % Below must be all one line for locations to be the same
+    % when the stacktrace is extended to the full stacktrace.
     try erl_eval:expr(Expr, Binding, none, none, none) catch Class:Exception:Stacktrace -> erlang:raise(Class, rewrite_exception(Exception, Stacktrace, Expr, Env), rewrite_stacktrace(Stacktrace)) end,
 
   case Exprs of
@@ -319,8 +323,9 @@ merge_stacktrace([StackItem | Stacktrace], CurrentStack) ->
 
 %% Converts a quoted expression to Erlang abstract format
 
-quoted_to_erl(Quoted, Env) ->
-  quoted_to_erl(Quoted, Env, elixir_env:env_to_scope(Env)).
+quoted_to_erl(Quoted, E) ->
+  {_, S} = elixir_env:env_to_scope(E),
+  quoted_to_erl(Quoted, E, S).
 
 quoted_to_erl(Quoted, Env, Scope) ->
   {Expanded, NewEnv} = elixir_expand:expand(Quoted, Env),

@@ -491,9 +491,12 @@ defmodule IEx.Pry do
       end)
 
     # Have an extra binding per argument for case matching.
-    case_vars = Macro.generate_arguments(length(args), __MODULE__)
-    case_head = {:{}, [], case_vars}
+    case_vars =
+      for id <- tl(Enum.to_list(0..length(args))) do
+        {String.to_atom("arg" <> Integer.to_string(id)), [version: -id], __MODULE__}
+      end
 
+    case_head = {:{}, [], case_vars}
     update_op = Macro.escape({5, -1, -1, -1})
 
     # Generate the take_over condition with the ETS lookup.

@@ -16,9 +16,9 @@ get_clauses(Key, Keyword, As) ->
 
 %% Translate matches
 
-match(Fun, Args, #elixir_erl{context=Context, backup_vars=BackupVars, vars={Read, _}} = S) when Context =/= match ->
-  {Result, NewS} = match(Fun, Args, S#elixir_erl{context=match, backup_vars=Read}),
-  {Result, NewS#elixir_erl{context=Context, backup_vars=BackupVars}};
+match(Fun, Args, #elixir_erl{context=Context} = S) when Context =/= match ->
+  {Result, NewS} = match(Fun, Args, S#elixir_erl{context=match}),
+  {Result, NewS#elixir_erl{context=Context}};
 match(Fun, Args, S) ->
   Fun(Args, S).
 
@@ -49,11 +49,7 @@ clauses([], S) ->
   {[], S};
 
 clauses(Clauses, S) ->
-  Transformer = fun(X, SAcc) ->
-    {TX, TS} = each_clause(X, SAcc),
-    {TX, elixir_erl_var:discard_vars(TS, S)}
-  end,
-  lists:mapfoldl(Transformer, S, Clauses).
+  lists:mapfoldl(fun each_clause/2, S, Clauses).
 
 each_clause({match, Meta, [Condition], Expr}, S) ->
   {Arg, Guards} = elixir_utils:extract_guards(Condition),

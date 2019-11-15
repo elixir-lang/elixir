@@ -71,9 +71,13 @@ defmodule Macro.Env do
            {%{optional(variable) => {var_version, var_type}},
             %{optional(variable) => {var_version, var_type}} | false}
   @typep unused_vars ::
-           {%{optional({variable, var_version}) => non_neg_integer | false}, non_neg_integer}
+           {%{optional({atom, var_version}) => non_neg_integer | false}, non_neg_integer}
   @typep prematch_vars ::
-           %{optional(variable) => {var_version, var_type}} | :warn | :raise | :pin | :apply
+           {%{optional(variable) => {var_version, var_type}}, non_neg_integer}
+           | :warn
+           | :raise
+           | :pin
+           | :apply
   @typep tracers :: [module]
   @typep var_type :: :term
   @typep var_version :: non_neg_integer
@@ -176,8 +180,8 @@ defmodule Macro.Env do
     env
   end
 
-  def to_match(%{__struct__: Macro.Env, current_vars: {read, _}} = env) do
-    %{env | context: :match, prematch_vars: read}
+  def to_match(%{__struct__: Macro.Env, current_vars: {read, _}, unused_vars: {_, counter}} = env) do
+    %{env | context: :match, prematch_vars: {read, counter}}
   end
 
   @doc """

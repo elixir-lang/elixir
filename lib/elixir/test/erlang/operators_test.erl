@@ -2,7 +2,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 eval(Content) ->
-  {Value, Binding, _, _} =
+  {Value, Binding, _} =
     elixir:eval_forms(elixir:'string_to_quoted!'(Content, 1, <<"nofile">>, []), [], []),
   {Value, Binding}.
 
