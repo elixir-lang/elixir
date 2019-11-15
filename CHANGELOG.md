@@ -34,6 +34,7 @@ Elixir v1.10 requires Erlang/OTP 21+.
 #### ExUnit
 
   * [ExUnit.Assertions] Support diffs in pattern matching and in `assert_receive`
+  * [ExUnit.CaptureIO] Supports capturing named devices in asynchronous tests
 
 #### Logger
 
