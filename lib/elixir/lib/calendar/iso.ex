@@ -736,7 +736,7 @@ defmodule Calendar.ISO do
 
   """
   @doc since: "1.8.0"
-  @spec day_of_era(year, month, day) :: {day, era}
+  @spec day_of_era(year, month, day) :: Calendar.day_of_era()
   @impl true
   def day_of_era(year, month, day) when is_year_CE(year) do
     day = date_to_iso_days(year, month, day) - @iso_epoch + 1
