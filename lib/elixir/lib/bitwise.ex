@@ -70,6 +70,7 @@ defmodule Bitwise do
 
   """
   @doc guard: true
+  @spec bnot(integer) :: integer
   def bnot(expr) do
     :erlang.bnot(expr)
   end
@@ -86,6 +87,7 @@ defmodule Bitwise do
 
   """
   @doc guard: true
+  @spec ~~~integer :: integer
   def ~~~expr do
     :erlang.bnot(expr)
   end
@@ -100,6 +102,7 @@ defmodule Bitwise do
 
   """
   @doc guard: true
+  @spec band(integer, integer) :: integer
   def band(left, right) do
     :erlang.band(left, right)
   end
@@ -114,6 +117,7 @@ defmodule Bitwise do
 
   """
   @doc guard: true
+  @spec integer &&& integer :: integer
   def left &&& right do
     :erlang.band(left, right)
   end
@@ -128,6 +132,7 @@ defmodule Bitwise do
 
   """
   @doc guard: true
+  @spec bor(integer, integer) :: integer
   def bor(left, right) do
     :erlang.bor(left, right)
   end
@@ -142,6 +147,7 @@ defmodule Bitwise do
 
   """
   @doc guard: true
+  @spec integer ||| integer :: integer
   def left ||| right do
     :erlang.bor(left, right)
   end
@@ -156,6 +162,7 @@ defmodule Bitwise do
 
   """
   @doc guard: true
+  @spec bxor(integer, integer) :: integer
   def bxor(left, right) do
     :erlang.bxor(left, right)
   end
@@ -170,6 +177,7 @@ defmodule Bitwise do
 
   """
   @doc guard: true
+  @spec integer ^^^ integer :: integer
   def left ^^^ right do
     :erlang.bxor(left, right)
   end
@@ -190,6 +198,7 @@ defmodule Bitwise do
 
   """
   @doc guard: true
+  @spec bsl(integer, integer) :: integer
   def bsl(left, right) do
     :erlang.bsl(left, right)
   end
@@ -210,6 +219,7 @@ defmodule Bitwise do
 
   """
   @doc guard: true
+  @spec integer <<< integer :: integer
   def left <<< right do
     :erlang.bsl(left, right)
   end
@@ -230,6 +240,7 @@ defmodule Bitwise do
 
   """
   @doc guard: true
+  @spec bsr(integer, integer) :: integer
   def bsr(left, right) do
     :erlang.bsr(left, right)
   end
@@ -250,6 +261,7 @@ defmodule Bitwise do
 
   """
   @doc guard: true
+  @spec integer >>> integer :: integer
   def left >>> right do
     :erlang.bsr(left, right)
   end
