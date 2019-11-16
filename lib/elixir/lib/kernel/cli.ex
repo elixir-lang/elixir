@@ -12,7 +12,8 @@ defmodule Kernel.CLI do
     errors: [],
     pa: [],
     pz: [],
-    verbose_compile: false
+    verbose_compile: false,
+    profile: nil
   }
 
   @doc """
@@ -356,6 +357,12 @@ defmodule Kernel.CLI do
     parse_compiler(t, %{config | verbose_compile: true})
   end
 
+  # Private compiler options
+
+  defp parse_compiler(["--profile", "time" | t], config) do
+    parse_compiler(t, %{config | profile: :time})
+  end
+
   defp parse_compiler([h | t] = list, config) do
     case h do
       "-" <> _ ->
@@ -489,12 +496,21 @@ defmodule Kernel.CLI do
         wrapper(fn ->
           Code.compiler_options(config.compiler_options)
 
-          opts =
+          verbose_opts =
             if config.verbose_compile do
               [each_long_compilation: &IO.puts("Compiling #{&1} (it's taking more than 15s)")]
             else
               []
             end
+
+          profile_opts =
+            if config.profile do
+              [profile: config.profile]
+            else
+              []
+            end
+
+          opts = verbose_opts ++ profile_opts
 
           case Kernel.ParallelCompiler.compile_to_path(files, config.output, opts) do
             {:ok, _, _} -> :ok
