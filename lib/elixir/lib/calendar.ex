@@ -23,6 +23,11 @@ defmodule Calendar do
   @type day_of_week :: non_neg_integer
   @type era :: non_neg_integer
 
+  @typedoc """
+  A tuple representing the `day` and the `era`.
+  """
+  @type day_of_era :: {day :: non_neg_integer(), era}
+
   @type hour :: non_neg_integer
   @type minute :: non_neg_integer
   @type second :: non_neg_integer
@@ -175,7 +180,7 @@ defmodule Calendar do
   @doc """
   Calculates the day and era from the given `year`, `month`, and `day`.
   """
-  @callback day_of_era(year, month, day) :: {non_neg_integer(), era}
+  @callback day_of_era(year, month, day) :: day_of_era()
 
   @doc """
   Converts the date into a string according to the calendar.
