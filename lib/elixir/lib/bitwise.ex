@@ -2,6 +2,9 @@ defmodule Bitwise do
   @moduledoc """
   A set of functions that perform calculations on bits.
 
+  All bitwise functions work only on integers; otherwise an
+  `ArithmeticError` is raised.
+
   The functions in this module come in two flavors: named or
   operators. For example:
 
@@ -28,9 +31,8 @@ defmodule Bitwise do
 
   All bitwise functions can be used in guards:
 
-      iex> use Bitwise
       iex> odd? = fn
-      ...>   int when band(int, 1) == 1 -> true
+      ...>   int when Bitwise.band(int, 1) == 1 -> true
       ...>   _ -> false
       ...> end
       iex> odd?.(1)
@@ -63,8 +65,11 @@ defmodule Bitwise do
 
   Allowed in guard tests. Inlined by the compiler.
 
+  ## Examples
+
       iex> bnot(2)
       -3
+
       iex> bnot(2) &&& 3
       1
 
@@ -79,8 +84,11 @@ defmodule Bitwise do
 
   Allowed in guard tests. Inlined by the compiler.
 
+  ## Examples
+
       iex> ~~~2
       -3
+
       iex> ~~~2 &&& 3
       1
 
@@ -94,6 +102,8 @@ defmodule Bitwise do
   Calculates the bitwise AND of its arguments.
 
   Allowed in guard tests. Inlined by the compiler.
+
+  ## Examples
 
       iex> band(9, 3)
       1
@@ -109,6 +119,8 @@ defmodule Bitwise do
 
   Allowed in guard tests. Inlined by the compiler.
 
+  ## Examples
+
       iex> 9 &&& 3
       1
 
@@ -122,6 +134,8 @@ defmodule Bitwise do
   Calculates the bitwise OR of its arguments.
 
   Allowed in guard tests. Inlined by the compiler.
+
+  ## Examples
 
       iex> bor(9, 3)
       11
@@ -137,6 +151,8 @@ defmodule Bitwise do
 
   Allowed in guard tests. Inlined by the compiler.
 
+  ## Examples
+
       iex> 9 ||| 3
       11
 
@@ -150,6 +166,8 @@ defmodule Bitwise do
   Calculates the bitwise XOR of its arguments.
 
   Allowed in guard tests. Inlined by the compiler.
+
+  ## Examples
 
       iex> bxor(9, 3)
       10
@@ -165,6 +183,8 @@ defmodule Bitwise do
 
   Allowed in guard tests. Inlined by the compiler.
 
+  ## Examples
+
       iex> 9 ^^^ 3
       10
 
@@ -179,12 +199,17 @@ defmodule Bitwise do
 
   Allowed in guard tests. Inlined by the compiler.
 
+  ## Examples
+
       iex> bsl(1, 2)
       4
+
       iex> bsl(1, -2)
       0
+
       iex> bsl(-1, 2)
       -4
+
       iex> bsl(-1, -2)
       -1
 
@@ -199,12 +224,17 @@ defmodule Bitwise do
 
   Allowed in guard tests. Inlined by the compiler.
 
+  ## Examples
+
       iex> 1 <<< 2
       4
+
       iex> 1 <<< -2
       0
+
       iex> -1 <<< 2
       -4
+
       iex> -1 <<< -2
       -1
 
@@ -219,12 +249,17 @@ defmodule Bitwise do
 
   Allowed in guard tests. Inlined by the compiler.
 
+  ## Examples
+
       iex> bsr(1, 2)
       0
+
       iex> bsr(1, -2)
       4
+
       iex> bsr(-1, 2)
       -1
+
       iex> bsr(-1, -2)
       -4
 
@@ -239,12 +274,17 @@ defmodule Bitwise do
 
   Allowed in guard tests. Inlined by the compiler.
 
+  ## Examples
+
       iex> 1 >>> 2
       0
+
       iex> 1 >>> -2
       4
+
       iex> -1 >>> 2
       -1
+
       iex> -1 >>> -2
       -4
 
