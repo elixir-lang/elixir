@@ -3946,7 +3946,6 @@ defmodule Kernel do
         result
       end
 
-    # TODO: Store the env in the cache too
     escaped =
       case env do
         %{function: nil, lexical_tracker: pid} when is_pid(pid) ->
