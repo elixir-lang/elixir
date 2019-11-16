@@ -41,11 +41,18 @@ defmodule Calendar.ISO do
   @type year :: -9999..9999
   @type month :: 1..12
   @type day :: 1..31
+  @type hour :: 0..23
+  @type minute :: 0..59
+  @type second :: 0..59
 
   @typedoc """
   Integer that represents the day of the week, where 1 is Monday and 7 is Sunday.
   """
   @type day_of_week :: 1..7
+
+  @type day_of_year :: 1..366
+  @type quarter_of_year :: 1..4
+  @type year_of_era :: {1..10000, era}
 
   @seconds_per_minute 60
   @seconds_per_hour 60 * 60
@@ -468,7 +475,7 @@ defmodule Calendar.ISO do
   @doc since: "1.5.0"
   @impl true
   @spec time_from_day_fraction(Calendar.day_fraction()) ::
-          {Calendar.hour(), Calendar.minute(), Calendar.second(), Calendar.microsecond()}
+          {hour(), minute(), second(), Calendar.microsecond()}
   def time_from_day_fraction({0, _}) do
     {0, 0, 0, {0, 6}}
   end
@@ -629,7 +636,7 @@ defmodule Calendar.ISO do
 
   """
   @doc since: "1.4.0"
-  @spec day_of_week(year, month, day) :: day_of_week
+  @spec day_of_week(year, month, day) :: day_of_week()
   @impl true
   def day_of_week(year, month, day) do
     date_to_iso_days(year, month, day)
@@ -656,7 +663,7 @@ defmodule Calendar.ISO do
 
   """
   @doc since: "1.8.0"
-  @spec day_of_year(year, month, day) :: 1..366
+  @spec day_of_year(year, month, day) :: day_of_year()
   @impl true
   def day_of_year(year, month, day) do
     ensure_day_in_month!(year, month, day)
@@ -681,7 +688,7 @@ defmodule Calendar.ISO do
 
   """
   @doc since: "1.8.0"
-  @spec quarter_of_year(year, month, day) :: 1..4
+  @spec quarter_of_year(year, month, day) :: quarter_of_year()
   @impl true
   def quarter_of_year(year, month, day)
       when is_year(year) and is_month(month) and is_day(day) do
