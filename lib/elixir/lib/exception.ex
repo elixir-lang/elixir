@@ -1126,10 +1126,20 @@ defmodule FunctionClauseError do
           |> Enum.take(10)
           |> Enum.map(format_clause_fun)
 
+        clauses_not_shown = length(clauses) - 10
+
+        more_clauses =
+          cond do
+            clauses_not_shown == 1 -> ["    ...\n    (#{clauses_not_shown} clause not shown)\n"]
+            clauses_not_shown > 1 -> ["    ...\n    (#{clauses_not_shown} clauses not shown)\n"]
+            true -> []
+          end
+
         [
           "\nAttempted function clauses (showing #{length(top_10)} out of #{length(clauses)}):",
           "\n\n",
-          top_10
+          top_10,
+          more_clauses
         ]
       else
         ""
