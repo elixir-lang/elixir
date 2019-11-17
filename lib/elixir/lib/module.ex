@@ -1126,7 +1126,7 @@ defmodule Module do
     behaviour_definitions = bag_lookup_element(bag, {:accumulate, :behaviour}, 2)
 
     cond do
-      not Code.ensure_compiled?(behaviour) ->
+      Code.ensure_compiled(behaviour) != {:module, behaviour} ->
         {:error, "it was not defined"}
 
       not function_exported?(behaviour, :behaviour_info, 1) ->
@@ -1547,7 +1547,7 @@ defmodule Module do
           IO.warn(message, Macro.Env.stacktrace(env))
           acc
 
-        not Code.ensure_compiled?(behaviour) ->
+        Code.ensure_compiled(behaviour) != {:module, behaviour} ->
           message =
             "@behaviour #{inspect(behaviour)} does not exist (in module #{inspect(env.module)})"
 

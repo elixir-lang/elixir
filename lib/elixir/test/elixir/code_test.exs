@@ -410,9 +410,9 @@ defmodule CodeTest do
     refute Code.ensure_loaded?(Code.NoFile)
   end
 
-  test "ensure_compiled?/1" do
-    assert Code.ensure_compiled?(__MODULE__)
-    refute Code.ensure_compiled?(Code.NoFile)
+  test "ensure_compiled/1" do
+    assert Code.ensure_compiled(__MODULE__) == {:module, __MODULE__}
+    assert Code.ensure_compiled(Code.NoFile) == {:error, :nofile}
   end
 
   test "put_compiler_option/2 validates options" do

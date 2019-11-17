@@ -1254,14 +1254,8 @@ defmodule Code do
     end
   end
 
-  @doc """
-  Ensures the given module is compiled and loaded.
-
-  Similar to `ensure_compiled/1`, but returns `true` if the module
-  is already loaded or was successfully loaded and compiled.
-  Returns `false` otherwise.
-  """
-  @spec ensure_compiled?(module) :: boolean
+  @doc false
+  @deprecated "Use Code.ensure_compiled/1 instead (see the proper disclaimers in its docs)"
   def ensure_compiled?(module) when is_atom(module) do
     match?({:module, ^module}, ensure_compiled(module))
   end

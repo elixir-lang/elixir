@@ -88,16 +88,11 @@ Elixir v1.10 requires Erlang/OTP 21+.
 
 ### 4. Hard-deprecations
 
-#### Mix
-
-  * [mix compile.xref] This check has been moved into the compiler and has no effect now
-  * [mix xref deprecations] This check has been moved into the compiler and has no effect now
-  * [mix xref unreachable] This check has been moved into the compiler and has no effect now
-
 #### Elixir
 
   * [Code] `Code.load_file/2` has been deprecated in favor of `Code.require_file/2` or `Code.compile_file/2`
   * [Code] `Code.loaded_files/0` and `Code.unload_file/1`  have been deprecated in favor of `Code.required_files/0` and `Code.unrequire_file/1` respectively
+  * [Code] `Code.ensure_compiled?/1` is deprecated in favor of `Code.ensure_compiled/1`
   * [String] `String.normalize/2` has been deprecated in favor of `:unicode.characters_to_nfc_binary/1` or `:unicode.characters_to_nfd_binary/1` which ship as part of Erlang/OTP 20+
   * [Supervisor] `Supervisor.Spec.supervise/2` has been deprecated in favor of the new Supervisor child specification
   * [Supervisor] The `:simple_one_for_one` strategy in `Supervisor` has been deprecated in favor of `DynamicSupervisor`
@@ -106,6 +101,12 @@ Elixir v1.10 requires Erlang/OTP 21+.
 
   * [Logger] `:compile_time_purge_level` application environment configuration has been deprecated in favor of the more general `:compile_time_purge_matching` config
   * [Logger] Deprecate logging non-chardata values
+
+#### Mix
+
+  * [mix compile.xref] This check has been moved into the compiler and has no effect now
+  * [mix xref deprecations] This check has been moved into the compiler and has no effect now
+  * [mix xref unreachable] This check has been moved into the compiler and has no effect now
 
 ## v1.9
 
