@@ -267,21 +267,16 @@ defmodule Mix.Tasks.Release do
   containing NIFs (natively-implemented functions) which may expect to
   dynamically link to libraries they use.
 
-  These system packages are typically managed using the system package manager,
-  but if necessary, you can also bundle the compiled object files in the release,
+  Of course, some OSes and package managers can differ between versions,
+  so if your goal is to have full compatibility between host and target,
+  it is best to ensure the OS and system package manager have the same
+  versions on host and target. This may even be a requirement in some
+  systems, especially so with package managers that try to create fully
+  reproducible environments (Nix, Guix).
+
+  Alternatively, you can also bundle the compiled object files in the release,
   as long as they were compiled for the same target. If doing so, you need to
   update `LD_LIBRARY_PATH` with the paths containing the bundled objects.
-  
-  Often the package manager itself has to match between the host and the target.
-  There can be differences in the build process of Elixir between package
-  managers and you can end up with cases where Elixir built with a certain
-  package manager depends on a certain file system layout. If you then use it
-  to create a release, the release will effectively have the same dependency.
-  This is especially apparent with package managers that avoid linking to global
-  executables (such as `/bin/sh`), instead tying Elixir to specific package
-  versions, installed at deterministic unique paths. In such cases, it is
-  best to use the same package manager on the target and install the same
-  Elixir version as on the host.
 
   Currently, there is no official way to cross-compile a release from one
   target triple to another, due to the complexities involved in the process.
