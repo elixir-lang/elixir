@@ -1107,46 +1107,45 @@ defmodule FunctionClauseError do
 
     mfa = Exception.format_mfa(module, function, arity)
 
-    formatted_args =
-      args
-      |> Enum.with_index(1)
-      |> Enum.map(fn {arg, i} ->
-        ["\n    # ", Integer.to_string(i), "\n    ", pad(inspect_fun.(arg)), "\n"]
-      end)
+    format_clause_fun = fn {args, guards} ->
+      code = Enum.reduce(guards, {function, [], args}, &{:when, [], [&2, &1]})
+      "    #{kind} " <> Macro.to_string(code, ast_fun) <> "\n"
+    end
 
-    formatted_clauses =
-      if clauses do
-        format_clause_fun = fn {args, guards} ->
-          code = Enum.reduce(guards, {function, [], args}, &{:when, [], [&2, &1]})
-          "    #{kind} " <> Macro.to_string(code, ast_fun) <> "\n"
-        end
-
-        top_10 =
-          clauses
-          |> Enum.take(10)
-          |> Enum.map(format_clause_fun)
-
-        clauses_not_shown = length(clauses) - 10
-
-        more_clauses =
-          cond do
-            clauses_not_shown == 1 -> ["    ...\n    (#{clauses_not_shown} clause not shown)\n"]
-            clauses_not_shown > 1 -> ["    ...\n    (#{clauses_not_shown} clauses not shown)\n"]
-            true -> []
-          end
-
-        [
-          "\nAttempted function clauses (showing #{length(top_10)} out of #{length(clauses)}):",
-          "\n\n",
-          top_10,
-          more_clauses
-        ]
-      else
-        ""
-      end
-
-    "\n\nThe following arguments were given to #{mfa}:\n#{formatted_args}#{formatted_clauses}"
+    "\n\nThe following arguments were given to #{mfa}:\n" <>
+      "#{format_args(args, inspect_fun)}" <>
+      "#{format_clauses(clauses, format_clause_fun)}"
   end
+
+  defp format_args(args, inspect_fun) do
+    args
+    |> Enum.with_index(1)
+    |> Enum.map(fn {arg, i} ->
+      [pad("\n# "), Integer.to_string(i), pad("\n"), pad(inspect_fun.(arg)), "\n"]
+    end)
+  end
+
+  defp format_clauses(clauses, format_clause_fun, limit \\ 10)
+  defp format_clauses(nil, _, _), do: ""
+  defp format_clauses([], _, _), do: ""
+
+  defp format_clauses(clauses, format_clause_fun, limit) do
+    top_clauses =
+      clauses
+      |> Enum.take(limit)
+      |> Enum.map(format_clause_fun)
+
+    [
+      "\nAttempted function clauses (showing #{length(top_clauses)} out of #{length(clauses)}):",
+      "\n\n",
+      top_clauses,
+      non_visible_clauses(length(clauses) - limit)
+    ]
+  end
+
+  defp non_visible_clauses(n) when n <= 0, do: []
+  defp non_visible_clauses(1), do: ["    ...\n    (1 clause not shown)\n"]
+  defp non_visible_clauses(n), do: ["    ...\n    (#{n} clauses not shown)\n"]
 
   defp pad(string) do
     String.replace(string, "\n", "\n    ")
