@@ -76,6 +76,8 @@ defmodule Mix.Tasks.App.Start do
       # Mix should not depend directly on Logger, that's why we first check if it's loaded.
       if not logger_dependency?(apps) && Process.whereis(Logger), do: Logger.App.stop()
 
+      :logger.add_handlers(:kernel)
+
       start(apps, type(config, opts))
 
       # If there is a build path, we will let the application
