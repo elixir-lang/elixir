@@ -84,6 +84,7 @@ Version | Deprecated feature                                  | Replaced by (ava
 [v1.10] | `Code.load_file/2`                                  | `Code.require_file/2` (v1.0) or `Code.compile_file/2` (v1.7)
 [v1.10] | `Code.unload_file/1`                                | `Code.unrequire_file/1` (v1.7)
 [v1.10] | `Code.loaded_files/0`                               | `Code.required_files/0` (v1.7)
+[v1.10] | `Code.ensure_compiled?/1`                           | `Code.ensure_compiled/1` (v1.0)
 [v1.9]  | Passing `:insert_replaced` to `String.replace/4`    | Use `:binary.replace/4` (v1.0)
 [v1.9]  | Enumerable keys in `Map.drop/2`, `Map.split/2`, and `Map.take/2` | Call `Enum.to_list/1` on the second argument before hand (v1.0)
 [v1.9]  | `Mix.Project.load_paths/1`                          | `Mix.Project.compile_path/1` (v1.0)

@@ -284,7 +284,7 @@ defmodule Kernel.ParallelCompiler do
     # There is potentially a deadlock. We will release modules with
     # the following order:
     #
-    #   1. Code.ensure_compiled?/1 checks (deadlock = soft)
+    #   1. Code.ensure_compiled/1 checks (deadlock = soft)
     #   2. Struct checks (deadlock = hard)
     #   3. Modules without a known definition
     #   4. Code invocation (deadlock = raise)
