@@ -46,6 +46,15 @@ defmodule Calendar.ISO do
   @type second :: 0..59
 
   @typedoc """
+  Microseconds with stored precision.
+
+  The precision represents the number of digits that must be used when
+  representing the microseconds to external format. If the precision is 0,
+  it means microseconds must be skipped.
+  """
+  @type microsecond :: {0..999_999, 0..6}
+
+  @typedoc """
   Integer that represents the day of the week, where 1 is Monday and 7 is Sunday.
   """
   @type day_of_week :: 1..7
@@ -475,7 +484,7 @@ defmodule Calendar.ISO do
   @doc since: "1.5.0"
   @impl true
   @spec time_from_day_fraction(Calendar.day_fraction()) ::
-          {hour(), minute(), second(), Calendar.microsecond()}
+          {hour(), minute(), second(), microsecond()}
   def time_from_day_fraction({0, _}) do
     {0, 0, 0, {0, 6}}
   end
