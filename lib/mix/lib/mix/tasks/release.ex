@@ -267,8 +267,14 @@ defmodule Mix.Tasks.Release do
   containing NIFs (natively-implemented functions) which may expect to
   dynamically link to libraries they use.
 
-  These system packages are typically managed using the system package manager,
-  but if necessary, you can also bundle the compiled object files in the release,
+  Of course, some OSes and package managers can differ between versions,
+  so if your goal is to have full compatibility between host and target,
+  it is best to ensure the OS and system package manager have the same
+  versions on host and target. This may even be a requirement in some
+  systems, especially so with package managers that try to create fully
+  reproducible environments (Nix, Guix).
+
+  Alternatively, you can also bundle the compiled object files in the release,
   as long as they were compiled for the same target. If doing so, you need to
   update `LD_LIBRARY_PATH` with the paths containing the bundled objects.
 
