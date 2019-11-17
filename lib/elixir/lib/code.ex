@@ -1223,8 +1223,16 @@ defmodule Code do
   Ensures the given module is compiled and loaded.
 
   If the module is already loaded, it works as no-op. If the module was
-  not loaded yet, it checks if it needs to be compiled first and then
-  tries to load it.
+  not compiled yet, `ensure_compiled/1` halts the compilation of the caller
+  until the module given to `ensure_compiled/1` becomes available or
+  all files for the current project have been compiled. If compilation
+  finishes and the module is not available, an error tuple is returned.
+
+  Given this function halts compilation, use it carefully. In particular,
+  avoid using it to guess which modules are in the system. Overuse of this
+  function can also lead to deadlocks, where two modules check at the same time
+  if the other is compiled. This returns a specific unavailable error code,
+  where we cannot successfully verify a module is available or not.
 
   If it succeeds in loading the module, it returns `{:module, module}`.
   If not, returns `{:error, reason}` with the error reason.
