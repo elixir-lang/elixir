@@ -771,6 +771,40 @@ defmodule ExceptionTest do
              """
     end
 
+    test "FunctionClauseError with blame and more than 10 clauses" do
+      {exception, _} =
+        Exception.blame(:error, :function_clause, [
+          {Macro, :to_string, [:invalid, :invalid], []}
+        ])
+
+      assert message(exception) =~ """
+             no function clause matching in Macro.to_string/2
+
+             The following arguments were given to Macro.to_string/2:
+
+                 # 1
+                 :invalid
+
+                 # 2
+                 :invalid
+
+             Attempted function clauses (showing 10 out of 24):
+
+                 def to_string(-{var, _, context} = ast-, fun) when -is_atom(var)- and -is_atom(context)-
+                 def to_string(-{:__aliases__, _, refs} = ast-, fun)
+                 def to_string(-{:__block__, _, [expr]} = ast-, fun)
+                 def to_string(-{:__block__, _, _} = ast-, fun)
+                 def to_string(-{:<<>>, _, parts} = ast-, fun)
+                 def to_string(-{:{}, _, args} = ast-, fun)
+                 def to_string(-{:%{}, _, args} = ast-, fun)
+                 def to_string(-{:%, _, [struct_name, map]} = ast-, fun)
+                 def to_string(-{:fn, _, [{:->, _, [_, tuple]}] = arrow} = ast-, fun) when -not(is_tuple(tuple))- or -elem(tuple, 0) != :__block__-
+                 def to_string(-{:fn, _, [{:->, _, _}] = block} = ast-, fun)
+                 ...
+                 (14 clauses not shown)
+             """
+    end
+
     test "ErlangError" do
       assert %ErlangError{original: :sample} |> message == "Erlang error: :sample"
     end
