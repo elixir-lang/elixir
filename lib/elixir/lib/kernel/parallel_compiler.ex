@@ -429,7 +429,7 @@ defmodule Kernel.ParallelCompiler do
   end
 
   defp deadlocked(waiting, type) do
-    nillify_empty(for {_, _, ref, _, _, ^type} <- waiting, do: {ref, :not_found})
+    nillify_empty(for {_, _, ref, _, _, ^type} <- waiting, do: {ref, :deadlock})
   end
 
   defp nillify_empty([]), do: nil

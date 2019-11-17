@@ -1230,20 +1230,24 @@ defmodule Code do
   If not, returns `{:error, reason}` with the error reason.
 
   If the module being checked is currently in a compiler deadlock,
-  this functions returns `{:error, :nofile}`.
+  this function returns `{:error, :unavailable}`. Unavailable doesn't
+  necessarily mean the module doesn't exist, just that it is not currently
+  available, but it (or may not) become available in the future.
 
   Check `ensure_loaded/1` for more information on module loading
   and when to use `ensure_loaded/1` or `ensure_compiled/1`.
   """
   @spec ensure_compiled(module) ::
-          {:module, module} | {:error, :embedded | :badfile | :nofile | :on_load_failure}
+          {:module, module}
+          | {:error, :embedded | :badfile | :nofile | :on_load_failure | :unavailable}
   def ensure_compiled(module) when is_atom(module) do
     case :code.ensure_loaded(module) do
       {:error, :nofile} = error ->
         if is_pid(:erlang.get(:elixir_compiler_pid)) do
           case Kernel.ErrorHandler.ensure_compiled(module, :module, :soft) do
             :found -> {:module, module}
-            :not_found -> error
+            :deadlock -> {:error, :unavailable}
+            :not_found -> {:error, :nofile}
           end
         else
           error
