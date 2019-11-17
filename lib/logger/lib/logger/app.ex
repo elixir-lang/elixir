@@ -25,6 +25,8 @@ defmodule Logger.App do
       {:ok, sup} ->
         primary_config = add_elixir_handler(otp_reports?, config)
 
+        :logger.add_handlers(:logger)
+
         default_handlers =
           if otp_reports? do
             delete_erlang_handler()
