@@ -1062,6 +1062,8 @@ end
 defmodule FunctionClauseError do
   defexception [:module, :function, :arity, :kind, :args, :clauses]
 
+  @clause_limit 10
+
   @impl true
   def message(exception) do
     case exception do
@@ -1114,7 +1116,7 @@ defmodule FunctionClauseError do
 
     "\n\nThe following arguments were given to #{mfa}:\n" <>
       "#{format_args(args, inspect_fun)}" <>
-      "#{format_clauses(clauses, format_clause_fun)}"
+      "#{format_clauses(clauses, format_clause_fun, @clause_limit)}"
   end
 
   defp format_args(args, inspect_fun) do
@@ -1125,7 +1127,7 @@ defmodule FunctionClauseError do
     end)
   end
 
-  defp format_clauses(clauses, format_clause_fun, limit \\ 10)
+  defp format_clauses(clauses, format_clause_fun, limit)
   defp format_clauses(nil, _, _), do: ""
   defp format_clauses([], _, _), do: ""
 
