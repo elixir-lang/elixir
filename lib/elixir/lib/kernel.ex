@@ -3995,7 +3995,7 @@ defmodule Kernel do
   defp module_var({name, kind}), do: {name, [counter: kind, generated: true], nil}
 
   @doc ~S"""
-  Defines a function with the given name and body.
+  Defines a public function with the given name and body.
 
   ## Examples
 
@@ -4137,7 +4137,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Defines a macro with the given name and body.
+  Defines a public macro with the given name and body.
 
   Macros must be defined before its usage.
 
