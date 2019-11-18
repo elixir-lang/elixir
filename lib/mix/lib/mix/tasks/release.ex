@@ -227,7 +227,7 @@ defmodule Mix.Tasks.Release do
       remote       Connects to the running system via a remote shell
       restart      Restarts the running system via a remote command
       stop         Stops the running system via a remote command
-      pid          Prints the OS PID of the running system via a remote command
+      pid          Prints the operating system PID of the running system via a remote command
       version      Prints the release name and version to be booted
 
   ## Deployments
@@ -244,7 +244,7 @@ defmodule Mix.Tasks.Release do
   the following must be the same between the host and the target:
 
     * Target architecture (e.g. x86_64 vs ARM)
-    * Target Vendor+OS (e.g. Windows, Linux, Darwin/macOS)
+    * Target vendor + operating system  (e.g. Windows, Linux, Darwin/macOS)
     * Target ABI (e.g. musl, gnu)
 
   This is often represented in the form of target triples, e.g.
@@ -267,9 +267,9 @@ defmodule Mix.Tasks.Release do
   containing NIFs (natively-implemented functions) which may expect to
   dynamically link to libraries they use.
 
-  Of course, some OSes and package managers can differ between versions,
+  Of course, some operating systems and package managers can differ between versions,
   so if your goal is to have full compatibility between host and target,
-  it is best to ensure the OS and system package manager have the same
+  it is best to ensure the operating system and system package manager have the same
   versions on host and target. This may even be a requirement in some
   systems, especially so with package managers that try to create fully
   reproducible environments (Nix, Guix).

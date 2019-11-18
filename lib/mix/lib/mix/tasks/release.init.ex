@@ -236,7 +236,7 @@ defmodule Mix.Tasks.Release.Init do
         remote         Connects to the running system via a remote shell
         restart        Restarts the running system via a remote command
         stop           Stops the running system via a remote command
-        pid            Prints the OS PID of the running system via a remote command
+        pid            Prints the operating system PID of the running system via a remote command
         version        Prints the release name and version to be booted
     " >&2
 
@@ -337,7 +337,7 @@ defmodule Mix.Tasks.Release.Init do
     echo    remote       Connects to the running system via a remote shell
     echo    restart      Restarts the running system via a remote command
     echo    stop         Stops the running system via a remote command
-    echo    pid          Prints the OS PID of the running system via a remote command
+    echo    pid          Prints the operating system PID of the running system via a remote command
     echo    version      Prints the release name and version to be booted
     echo.
     if not "%~1" == "" (echo ERROR: Unknown command %~1)
