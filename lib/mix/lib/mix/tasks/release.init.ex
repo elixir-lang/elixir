@@ -73,6 +73,7 @@ defmodule Mix.Tasks.Release.Init do
     # Set the release to work across nodes. If using the long name format like
     # the one below (my_app@127.0.0.1), you need to also uncomment the
     # RELEASE_DISTRIBUTION variable below. Set it to "none" to disable distribution.
+    # Take note that RELEASE_DISTRIBUTION must be one of "name", "sname" or "none".
     # export RELEASE_DISTRIBUTION=name
     # export RELEASE_NODE=<%= @release.name %>@127.0.0.1
     """
@@ -254,7 +255,8 @@ defmodule Mix.Tasks.Release.Init do
     @echo off
     rem Set the release to work across nodes. If using the long name format like
     rem the one below (my_app@127.0.0.1), you need to also uncomment the
-    rem RELEASE_DISTRIBUTION variable below. Set it to "none" to disable distribution.
+    rem RELEASE_DISTRIBUTION variable below.
+    rem Take note that RELEASE_DISTRIBUTION must be one of "name", "sname" or "none".
     rem set RELEASE_DISTRIBUTION=name
     rem set RELEASE_NODE=<%= @release.name %>@127.0.0.1
     """
