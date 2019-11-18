@@ -134,8 +134,8 @@ defmodule Regex do
   shared during development is compiled on the target (such as dependencies,
   archives, and escripts) and, when running in production, the code must either
   be compiled on the target (via `mix compile` or similar) or released on the
-  host (via `mix releases` or similar) with a matching OTP, operating system and architecture
-  as the target.
+  host (via `mix releases` or similar) with a matching OTP, operating system
+  and architecture as the target.
 
   If you know you are running on a different system than the current one and
   you are doing multiple matches with the regex, you can manually invoke
