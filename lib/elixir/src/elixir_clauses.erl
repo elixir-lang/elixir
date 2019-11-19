@@ -275,7 +275,7 @@ expand_rescue(Meta, [Arg], E) ->
       form_error(Meta, E, ?MODULE, invalid_rescue_clause)
   end;
 expand_rescue(Meta, _, E) ->
-  Error = {wrong_number_of_args_for_clause, "one arg", origin(Meta, 'try'), 'rescue'},
+  Error = {wrong_number_of_args_for_clause, "one argument", origin(Meta, 'try'), 'rescue'},
   form_error(Meta, E, ?MODULE, Error).
 
 %% rescue var
@@ -316,11 +316,11 @@ normalize_rescue(Other) ->
 expand_head(Meta, Kind, Key) ->
   fun
     ([{'when', _, [_, _, _ | _]}], E) ->
-      form_error(Meta, E, ?MODULE, {wrong_number_of_args_for_clause, "one arg", Kind, Key});
+      form_error(Meta, E, ?MODULE, {wrong_number_of_args_for_clause, "one argument", Kind, Key});
     ([_] = Args, E) ->
       head(Args, E);
     (_, E) ->
-      form_error(Meta, E, ?MODULE, {wrong_number_of_args_for_clause, "one arg", Kind, Key})
+      form_error(Meta, E, ?MODULE, {wrong_number_of_args_for_clause, "one argument", Kind, Key})
   end.
 
 %% Returns a function that expands arguments
@@ -330,7 +330,7 @@ expand_one(Meta, Kind, Key, Fun) ->
     ([_] = Args, E) ->
       Fun(Args, E);
     (_, E) ->
-      form_error(Meta, E, ?MODULE, {wrong_number_of_args_for_clause, "one arg", Kind, Key})
+      form_error(Meta, E, ?MODULE, {wrong_number_of_args_for_clause, "one argument", Kind, Key})
   end.
 
 %% Expands all -> pairs in a given key but do not keep the overall vars.

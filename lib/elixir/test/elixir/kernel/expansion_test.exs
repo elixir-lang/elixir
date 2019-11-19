@@ -1201,16 +1201,18 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "expects one argument in clauses" do
-      assert_raise CompileError, ~r"expected one arg for :do clauses \(->\) in \"cond\"", fn ->
-        code =
-          quote do
-            cond do
-              _, _ -> :ok
-            end
-          end
+      assert_raise CompileError,
+                   ~r"expected one argument for :do clauses \(->\) in \"cond\"",
+                   fn ->
+                     code =
+                       quote do
+                         cond do
+                           _, _ -> :ok
+                         end
+                       end
 
-        expand(code)
-      end
+                     expand(code)
+                   end
     end
 
     test "raises for invalid arguments" do
@@ -1384,16 +1386,18 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "expects exactly one argument in clauses" do
-      assert_raise CompileError, ~r"expected one arg for :do clauses \(->\) in \"case\"", fn ->
-        code =
-          quote do
-            case e do
-              _, _ -> :ok
-            end
-          end
+      assert_raise CompileError,
+                   ~r"expected one argument for :do clauses \(->\) in \"case\"",
+                   fn ->
+                     code =
+                       quote do
+                         case e do
+                           _, _ -> :ok
+                         end
+                       end
 
-        expand(code)
-      end
+                     expand(code)
+                   end
     end
 
     test "fails with invalid arguments" do
@@ -1596,18 +1600,20 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "expects on argument for do/after clauses" do
-      assert_raise CompileError, ~r"expected one arg for :do clauses \(->\) in \"receive\"", fn ->
-        code =
-          quote do
-            receive do
-              _, _ -> :ok
-            end
-          end
+      assert_raise CompileError,
+                   ~r"expected one argument for :do clauses \(->\) in \"receive\"",
+                   fn ->
+                     code =
+                       quote do
+                         receive do
+                           _, _ -> :ok
+                         end
+                       end
 
-        expand(code)
-      end
+                     expand(code)
+                   end
 
-      message = ~r"expected one arg for :after clauses \(->\) in \"receive\""
+      message = ~r"expected one argument for :after clauses \(->\) in \"receive\""
 
       assert_raise CompileError, message, fn ->
         code =
@@ -1863,18 +1869,20 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "expects exactly one argument in rescue clauses" do
-      assert_raise CompileError, ~r"expected one arg for :rescue clauses \(->\) in \"try\"", fn ->
-        code =
-          quote do
-            try do
-              x
-            rescue
-              _, _ -> :ok
-            end
-          end
+      assert_raise CompileError,
+                   ~r"expected one argument for :rescue clauses \(->\) in \"try\"",
+                   fn ->
+                     code =
+                       quote do
+                         try do
+                           x
+                         rescue
+                           _, _ -> :ok
+                         end
+                       end
 
-        expand(code)
-      end
+                     expand(code)
+                   end
     end
 
     test "expects an alias, a variable, or \"var in [alias]\" as the argument of rescue clauses" do

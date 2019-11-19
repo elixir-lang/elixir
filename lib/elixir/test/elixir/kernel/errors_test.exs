@@ -698,7 +698,7 @@ defmodule Kernel.ErrorsTest do
 
   test "invalid case clauses" do
     assert_eval_raise CompileError,
-                      "nofile:1: expected one arg for :do clauses (->) in \"case\"",
+                      "nofile:1: expected one argument for :do clauses (->) in \"case\"",
                       'case nil do 0, z when not is_nil(z) -> z end'
   end
 

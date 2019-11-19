@@ -50,7 +50,7 @@ defmodule KernelTest do
       assert var == 2
     end
 
-    test "can be reassigned inside a multi-arg call" do
+    test "can be reassigned inside a multi-argument call" do
       id(:arg, var = 1)
       id(:arg, var)
       id(:arg, var = 2)
