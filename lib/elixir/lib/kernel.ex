@@ -3845,11 +3845,17 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> defmodule Foo do
-      ...>   def bar, do: :baz
-      ...> end
-      iex> Foo.bar()
-      :baz
+      defmodule Number do
+        def one, do: 1
+        def two, do: 2
+      end
+      #=> {:module, Number, <<70, 79, 82, ...>>, {:two, 0}}
+
+      Number.one()
+      #=> 1
+
+      Number.two()
+      #=> 2
 
   ## Nesting
 
