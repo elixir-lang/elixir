@@ -23,7 +23,7 @@ defmodule File.Stat do
     * `mtime` - the last time the file was written.
 
     * `ctime` - the interpretation of this time field depends on the operating
-      system. On Unix, it is the last time the file or the inode was changed.
+      system. On Unix-like operating systems, it is the last time the file or the inode was changed.
       In Windows, it is the time of creation.
 
     * `mode` - the file permissions.
@@ -35,17 +35,17 @@ defmodule File.Stat do
       In Windows, the number indicates a drive as follows: 0 means A:, 1 means
       B:, and so on.
 
-    * `minor_device` - only valid for character devices on Unix. In all other
+    * `minor_device` - only valid for character devices on Unix-like systems. In all other
       cases, this field is zero.
 
-    * `inode` - gives the inode number. On non-Unix file systems, this field
+    * `inode` - gives the inode number. On non-Unix-like file systems, this field
       will be zero.
 
-    * `uid` - indicates the owner of the file. Will be zero for non-Unix file
+    * `uid` - indicates the owner of the file. Will be zero for non-Unix-like file
       systems.
 
     * `gid` - indicates the group that owns the file. Will be zero for
-      non-Unix file systems.
+      non-Unix-like file systems.
 
   The time type returned in `atime`, `mtime`, and `ctime` is dependent on the
   time type set in options. `{:time, type}` where type can be `:local`,
