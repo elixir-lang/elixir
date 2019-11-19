@@ -29,7 +29,7 @@ defmodule Mix.Tasks.Local.Rebar do
 
     * `rebar3 PATH` - specifies a path for `rebar3`
 
-    * `--sha512` - checks the rebar script matches the given SHA-512 checksum
+    * `--sha512` - checks the Rebar script matches the given SHA-512 checksum
 
     * `--force` - forces installation without a shell prompt; primarily
       intended for automation in build systems like `make`

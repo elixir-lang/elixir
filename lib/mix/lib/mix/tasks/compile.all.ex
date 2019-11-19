@@ -15,7 +15,7 @@ defmodule Mix.Tasks.Compile.All do
 
     # Make sure Mix.Dep is cached to avoid loading dependencies
     # during compilation. It is likely this will be invoked anyway,
-    # as both elixir and app compilers rely on it.
+    # as both Elixir and app compilers rely on it.
     Mix.Dep.cached()
 
     # Build the project structure so we can write down compiled files.

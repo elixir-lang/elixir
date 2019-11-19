@@ -51,7 +51,7 @@ defmodule String.Unicode do
     end
   end
 
-  # Avoid unicode codepoint creation if possible
+  # Avoid Unicode codepoint creation if possible
   def next_grapheme_size(<<cp, rest::binary>>) when cp <= 0x007F do
     next_extend_size(rest, 1, :other)
   end

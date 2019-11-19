@@ -9,7 +9,7 @@ defmodule Mix.Tasks.ReleaseTest do
   defmacrop release_node(name), do: :"#{name}@#{@hostname}"
 
   describe "customize" do
-    test "rel with eex" do
+    test "rel with EEx" do
       in_fixture("release_test", fn ->
         Mix.Project.in_project(:release_test, ".", fn _ ->
           File.mkdir_p!("rel")

@@ -715,7 +715,7 @@ defmodule Protocol do
           nil
         end
 
-      # Disable dialyzer checks - before and after consolidation
+      # Disable Dialyzer checks - before and after consolidation
       # the types could be more strict
       @dialyzer {:nowarn_function, __protocol__: 1, impl_for: 1, impl_for!: 1}
 

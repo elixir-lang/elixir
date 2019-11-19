@@ -661,7 +661,7 @@ defmodule Kernel.Typespec do
         :elixir_errors.erl_warn(caller.line, caller.file, message)
 
         # This may be generating an invalid typespec but we need to generate it
-        # to avoid breaking existing code that was valid but only broke dialyzer
+        # to avoid breaking existing code that was valid but only broke Dialyzer
         {right, state} = typespec(expr, vars, caller, state)
         {{:ann_type, line(meta), [{:var, line(var_meta), var_name}, right]}, state}
 
@@ -680,7 +680,7 @@ defmodule Kernel.Typespec do
     :elixir_errors.erl_warn(caller.line, caller.file, message)
 
     # This may be generating an invalid typespec but we need to generate it
-    # to avoid breaking existing code that was valid but only broke dialyzer
+    # to avoid breaking existing code that was valid but only broke Dialyzer
     state = %{state | undefined_type_error_enabled?: false}
     {left, state} = typespec(left, vars, caller, state)
     state = %{state | undefined_type_error_enabled?: true}

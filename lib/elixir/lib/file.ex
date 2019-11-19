@@ -1310,7 +1310,7 @@ defmodule File do
 
   The allowed modes:
 
-    * `:binary` - opens the file in binary mode, disabling special handling of unicode sequences
+    * `:binary` - opens the file in binary mode, disabling special handling of Unicode sequences
       (default mode).
 
     * `:read` - the file, which must exist, is opened for reading.
