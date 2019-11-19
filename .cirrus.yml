@@ -43,17 +43,17 @@ test_task:
     - make test
     - dialyzer -pa lib/elixir/ebin --build_plt --output_plt elixir.plt --apps lib/elixir/ebin/elixir.beam lib/elixir/ebin/Elixir.Kernel.beam
 
-    # Check for reproducible builds only in the latest OTP release
-    - if [ -n "$CHECK_REPRODUCIBLE" ]; then make check_reproducible; fi
+  check_for_reproducible_builds_script:
+    only_if: $CHECK_REPRODUCIBLE == "true"
+    - make check_reproducible
 
-    # Check for POSIX compliant shell scripts
-    - if [ -n "$CHECK_POSIX_COMPLIANT" ]; then
-        apt update;
-        apt install -y shellcheck;
-        shellcheck -e SC2039,2086 bin/elixir && echo "bin/elixir is POSIX compliant";
-        shellcheck bin/elixirc && echo "bin/elixirc is POSIX compliant";
-        shellcheck bin/iex && echo "bin/iex is POSIX compliant";
-      fi
+  check_for_posix_compliant_script:
+    only_if: $CHECK_POSIX_COMPLIANT == "true"
+    - apt update
+    - apt install -y shellcheck
+    - shellcheck -e SC2039,2086 bin/elixir && echo "bin/elixir is POSIX compliant"
+    - shellcheck bin/elixirc && echo "bin/elixirc is POSIX compliant"
+    - shellcheck bin/iex && echo "bin/iex is POSIX compliant"
 
 test_windows_task:
   windows_container:
