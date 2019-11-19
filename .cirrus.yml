@@ -24,9 +24,11 @@ test_task:
     - env:
         OTP_RELEASE: maint
       allow_failures: true
+      skip_notifications: true
     - env:
         OTP_RELEASE: master
       allow_failures: true
+      skip_notifications: true
 
   install_script:
     - wget -O otp.tar.gz https://repo.hex.pm/builds/otp/ubuntu-14.04/${OTP_RELEASE}.tar.gz
