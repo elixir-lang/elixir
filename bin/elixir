@@ -206,7 +206,7 @@ SCRIPT_PATH=$(dirname "$SELF")
 if [ "$OSTYPE" = "cygwin" ]; then SCRIPT_PATH=$(cygpath -m "$SCRIPT_PATH"); fi
 if [ "$MODE" != "iex" ]; then ERL="-noshell -s elixir start_cli $ERL"; fi
 
-if [ "$OS" != "Windows_NT" ] && [ -n "$NO_COLOR" ]; then
+if [ "$OS" != "Windows_NT" ] && [ -z "$NO_COLOR" ]; then
   if test -t 1 -a -t 2; then ERL="-elixir ansi_enabled true $ERL"; fi
 fi
 
