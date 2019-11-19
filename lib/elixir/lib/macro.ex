@@ -164,7 +164,7 @@ defmodule Macro do
       there are `:do` and `:end` metadata  (when `:token_metadata` is true)
     * `:column` - the column number of the AST node (when `:columns` is true)
     * `:delimiter` - contains the opening delimiter for sigils, strings, atoms,
-      and charlists as a string (such as `"{"`, `"/"`, `":"`, etc)
+      and charlists as a string (such as `"{"`, `"/"`, `":"`, etc.)
     * `:do` - contains metadata about the `do` location in a function call with
       `do/end` blocks (when `:token_metadata` is true)
     * `:end` - contains metadata about the `end` location in a function call with
