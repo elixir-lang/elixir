@@ -1223,27 +1223,39 @@ defmodule Code do
   Ensures the given module is compiled and loaded.
 
   If the module is already loaded, it works as no-op. If the module was
-  not loaded yet, it checks if it needs to be compiled first and then
-  tries to load it.
+  not compiled yet, `ensure_compiled/1` halts the compilation of the caller
+  until the module given to `ensure_compiled/1` becomes available or
+  all files for the current project have been compiled. If compilation
+  finishes and the module is not available, an error tuple is returned.
+
+  Given this function halts compilation, use it carefully. In particular,
+  avoid using it to guess which modules are in the system. Overuse of this
+  function can also lead to deadlocks, where two modules check at the same time
+  if the other is compiled. This returns a specific unavailable error code,
+  where we cannot successfully verify a module is available or not.
 
   If it succeeds in loading the module, it returns `{:module, module}`.
   If not, returns `{:error, reason}` with the error reason.
 
   If the module being checked is currently in a compiler deadlock,
-  this functions returns `{:error, :nofile}`.
+  this function returns `{:error, :unavailable}`. Unavailable doesn't
+  necessarily mean the module doesn't exist, just that it is not currently
+  available, but it (or may not) become available in the future.
 
   Check `ensure_loaded/1` for more information on module loading
   and when to use `ensure_loaded/1` or `ensure_compiled/1`.
   """
   @spec ensure_compiled(module) ::
-          {:module, module} | {:error, :embedded | :badfile | :nofile | :on_load_failure}
+          {:module, module}
+          | {:error, :embedded | :badfile | :nofile | :on_load_failure | :unavailable}
   def ensure_compiled(module) when is_atom(module) do
     case :code.ensure_loaded(module) do
       {:error, :nofile} = error ->
         if is_pid(:erlang.get(:elixir_compiler_pid)) do
           case Kernel.ErrorHandler.ensure_compiled(module, :module, :soft) do
             :found -> {:module, module}
-            :not_found -> error
+            :deadlock -> {:error, :unavailable}
+            :not_found -> {:error, :nofile}
           end
         else
           error
