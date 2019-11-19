@@ -99,10 +99,10 @@ Version | Deprecated feature                                  | Replaced by (ava
 [v1.8]  | `Kernel.ParallelRequire.files/2`                    | `Kernel.ParallelCompiler.require/2` (v1.6)
 [v1.8]  | Returning `{:ok, contents}` or `:error` from `Mix.Compilers.Erlang.compile/6`'s callback | Return `{:ok, contents, warnings}` or `{:error, errors, warnings}` (v1.6)
 [v1.8]  | `System.cwd/0` and `System.cwd!/0`                  | `File.cwd/0` and `File.cwd!/0` (v1.0)
-[v1.7]  | [`not left in right`](`Kernel.in/2`)                | [`left not in right`](`Kernel.in/2`) (v1.5)
 [v1.7]  | `Code.get_docs/2`                                   | `Code.fetch_docs/1` (v1.7)
 [v1.7]  | `Enum.chunk/2,3,4`                                  | `Enum.chunk_every/2` and [`Enum.chunk_every/3,4`](`Enum.chunk_every/4`) (v1.5)
 [v1.7]  | Calling `super/1` in`GenServer` callbacks           | Implenting the behaviour explicitly without calling `super/1` (v1.0)
+[v1.7]  | [`not left in right`](`Kernel.in/2`)                | [`left not in right`](`Kernel.in/2`) (v1.5)
 [v1.7]  | `Registry.start_link/3`                             | `Registry.start_link/1` (v1.5)
 [v1.7]  | `Stream.chunk/2,3,4`                                | `Stream.chunk_every/2` and [`Stream.chunk_every/3,4`](`Stream.chunk_every/4`) (v1.5)
 [v1.6]  | `Enum.partition/2`                                  | `Enum.split_with/2` (v1.4)
@@ -113,7 +113,6 @@ Version | Deprecated feature                                  | Replaced by (ava
 [v1.6]  | `Range.range?/1`                                    | Pattern match on [`_.._`](`Kernel.../2`) (v1.0)
 [v1.5]  | `()` to mean `nil`                                  | `nil` (v1.0)
 [v1.5]  | `char_list/0` type                                  | `t:charlist/0` type (v1.3)
-[v1.5]  | `to_char_list/1`                                    | `to_charlist/1` (v1.3)
 [v1.5]  | `Atom.to_char_list/1`                               | `Atom.to_charlist/1` (v1.3)
 [v1.5]  | `Enum.filter_map/3`                                 | `Enum.filter/2` + `Enum.map/2` or [`for`](`Kernel.SpecialForms.for/1`) comprehensions (v1.0)
 [v1.5]  | `Float.to_char_list/1`                              | `Float.to_charlist/1` (v1.3)
@@ -122,6 +121,7 @@ Version | Deprecated feature                                  | Replaced by (ava
 [v1.5]  | `:as_char_lists` value in `t:Inspect.Opts.t/0` type | `:as_charlists` value (v1.3)
 [v1.5]  | `:char_lists` key in `t:Inspect.Opts.t/0` type      | `:charlists` key (v1.3)
 [v1.5]  | `Integer.to_char_list/1,2`                          | `Integer.to_charlist/1` and `Integer.to_charlist/2` (v1.3)
+[v1.5]  | `Kernel.to_char_list/1`                             | `Kernel.to_charlist/1` (v1.3)
 [v1.5]  | `List.Chars.to_char_list/1`                         | `List.Chars.to_charlist/1` (v1.3)
 [v1.5]  | `@compile {:parse_transform, _}` in `Module`        | *None*
 [v1.5]  | `Stream.filter_map/3`                               | `Stream.filter/2` + `Stream.map/2` (v1.0)
@@ -147,8 +147,8 @@ Version | Deprecated feature                                  | Replaced by (ava
 [v1.4]  | `Set` module                                        | `MapSet` (v1.1)
 [v1.4]  | `Stream.uniq/2`                                     | `Stream.uniq_by/2` (v1.2)
 [v1.3]  | `\x{X*}` inside strings/sigils/charlists            | `\uXXXX` or `\u{X*}` (v1.1)
-[v1.3]  | `:append_first` option in `defdelegate/2`           | Define the function explicitly (v1.0)
 [v1.3]  | `Dict` module                                       | `Keyword` (v1.0) or `Map` (v1.2)
+[v1.3]  | `:append_first` option in `Kernel.defdelegate/2`    | Define the function explicitly (v1.0)
 [v1.3]  | Map/dictionary as 2nd argument in `Enum.group_by/3` | `Enum.reduce/3` (v1.0)
 [v1.3]  | `Keyword.size/1`                                    | `Kernel.length/1` (v1.0)
 [v1.3]  | `Map.size/1`                                        | `Kernel.map_size/1` (v1.0)
@@ -159,8 +159,8 @@ Version | Deprecated feature                                  | Replaced by (ava
 [v1.3]  | Non-map as 2nd argument in `URI.decode_query/2`     | Use a map (v1.0)
 [v1.2]  | `Dict` behaviour                                    | `MapSet` data structure (v1.1)
 [v1.1]  | `?\xHEX`                                            | `0xHEX` (v1.0)
-[v1.1]  | `as: true \| false` in `alias/2` and `require/2`    | *None*
 [v1.1]  | `Access` protocol                                   | `Access` behaviour (v1.1)
+[v1.1]  | `as: true \| false` in `alias/2` and `require/2`    | *None*
 
 [v1.1]: https://github.com/elixir-lang/elixir/blob/v1.1/CHANGELOG.md#4-deprecations
 [v1.2]: https://github.com/elixir-lang/elixir/blob/v1.2/CHANGELOG.md#changelog-for-elixir-v12
