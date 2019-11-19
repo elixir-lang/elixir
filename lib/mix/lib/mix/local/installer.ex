@@ -126,7 +126,7 @@ defmodule Mix.Local.Installer do
 
           You can download it either with your browser or via the command line.
 
-          On Unix (Linux, MacOS X):
+          On Unix-like operating systems (Linux, macOS):
 
               wget #{src}
 
@@ -134,7 +134,7 @@ defmodule Mix.Local.Installer do
 
               curl -o #{basename} #{src}
 
-          Windows (Win7 or later):
+          On Windows / PowerShell (Windows 7 or later):
 
               powershell -Command "Invoke-WebRequest #{src} -OutFile #{basename}"
 
