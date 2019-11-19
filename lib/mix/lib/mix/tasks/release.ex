@@ -500,7 +500,7 @@ defmodule Mix.Tasks.Release do
   will receive a `Mix.Release` struct and must return the same or
   an updated `Mix.Release` struct. It is also possible to build a tarball
   of the release by passing the `:tar` step anywhere after `:assemble`.
-  The tarball is created in `_build/MIX_ENV/rel/RELEASE_NAME-RELEASE_VSN.tar.gz`
+  The tarball is created in `_build/MIX_ENV/RELEASE_NAME-RELEASE_VSN.tar.gz`
 
   See `Mix.Release` for more documentation on the struct and which
   fields can be modified. Note that `:steps` field itself can be
