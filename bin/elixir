@@ -66,7 +66,7 @@ readlink_f () {
   fi
 }
 
-# Stores static erlang arguments and --erl (which is passed as is)
+# Stores static Erlang arguments and --erl (which is passed as is)
 ERL=""
 
 # Stores erl arguments preserving spaces/quotes (mimics an array)

@@ -176,7 +176,7 @@ defmodule ExceptionTest do
     assert Exception.format_mfa(Foo, :..., 1) == "Foo.\"...\"/1"
   end
 
-  test "format_mfa/3 with unicode" do
+  test "format_mfa/3 with Unicode" do
     assert Exception.format_mfa(Foo, :olá, [1, 2]) == "Foo.olá(1, 2)"
     assert Exception.format_mfa(Foo, :Olá, [1, 2]) == "Foo.\"Olá\"(1, 2)"
     assert Exception.format_mfa(Foo, :Ólá, [1, 2]) == "Foo.\"Ólá\"(1, 2)"

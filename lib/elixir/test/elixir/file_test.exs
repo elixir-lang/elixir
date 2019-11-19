@@ -1915,7 +1915,7 @@ defmodule FileTest do
     end
   end
 
-  test "touch with erlang timestamp" do
+  test "touch with Erlang timestamp" do
     fixture = tmp_path("tmp_erlang_touch.txt")
 
     try do

@@ -208,7 +208,7 @@ defmodule Kernel.RaiseTest do
       assert result
     end
 
-    test "argument error from erlang" do
+    test "argument error from Erlang" do
       result =
         try do
           :erlang.error(:badarg)
@@ -219,7 +219,7 @@ defmodule Kernel.RaiseTest do
       assert result
     end
 
-    test "argument error from elixir" do
+    test "argument error from Elixir" do
       result =
         try do
           raise ArgumentError, ""
