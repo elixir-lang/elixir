@@ -43,7 +43,7 @@ defmodule Kernel.AliasTest do
     def sample, do: 1
   end
 
-  test "nested elixir alias" do
+  test "nested Elixir alias" do
     assert Kernel.AliasTest.Elixir.sample() == 1
   end
 

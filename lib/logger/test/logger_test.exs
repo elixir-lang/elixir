@@ -361,7 +361,7 @@ defmodule LoggerTest do
     end
   end
 
-  test "log/2 prunes bad unicode chars" do
+  test "log/2 prunes bad Unicode chars" do
     assert capture_log(fn ->
              assert Logger.log(:debug, "he" <> <<185>> <> "lo") == :ok
            end) =~ "he�lo"
@@ -491,7 +491,7 @@ defmodule LoggerTest do
       :logger.unset_module_level(__MODULE__)
     end
 
-    test "maps erlang levels" do
+    test "maps Erlang levels" do
       :logger.set_primary_config(:level, :notice)
       assert capture_log(fn -> Logger.info("hello") end) =~ "hello"
 

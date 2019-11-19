@@ -90,7 +90,7 @@ defmodule Inspect.AtomTest do
     assert inspect(:hello, opts) == ":hello"
   end
 
-  test "unicode" do
+  test "Unicode" do
     assert inspect(:olá) == ":olá"
     assert inspect(:Olá) == ":Olá"
     assert inspect(:Ólá) == ":Ólá"
