@@ -1,8 +1,6 @@
 ![Elixir](https://github.com/elixir-lang/elixir-lang.github.com/raw/master/images/logo/logo.png)
 =========
-[![Travis build](https://secure.travis-ci.org/elixir-lang/elixir.svg?branch=master
-"Build Status")](https://travis-ci.org/elixir-lang/elixir)
-[![Windows build](https://ci.appveyor.com/api/projects/status/macwuxq7aiiv61g1?svg=true)](https://ci.appveyor.com/project/josevalim/elixir)
+[![Build status](https://api.cirrus-ci.com/github/elixir-lang/elixir.svg?branch=master)](https://cirrus-ci.com/github/elixir-lang/elixir)
 
 Elixir is a dynamic, functional language designed for building scalable
 and maintainable applications.
@@ -125,7 +123,7 @@ make clean_elixir compile
 
 Similarly, if you can't get Elixir to compile or the tests to pass after
 updating an existing checkout, run `make clean compile`. You can check
-[the official build status on Travis-CI](https://travis-ci.org/elixir-lang/elixir).
+[the official build status on Cirrus CI](https://cirrus-ci.com/github/elixir-lang/elixir).
 More tasks can be found by reading the [Makefile](Makefile).
 
 With tests running and passing, you are ready to contribute to Elixir and
