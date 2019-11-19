@@ -697,8 +697,8 @@ defmodule NaiveDateTime do
       iex> NaiveDateTime.to_erl(~N[2000-01-01 13:30:15])
       {{2000, 1, 1}, {13, 30, 15}}
 
-  This function can also be used to convert a DateTime to a erl format
-  without the time zone information:
+  This function can also be used to convert a DateTime to an Erlang
+  datetime tuple without the time zone information:
 
       iex> dt = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "CET",
       ...>                hour: 23, minute: 0, second: 7, microsecond: {0, 0},
