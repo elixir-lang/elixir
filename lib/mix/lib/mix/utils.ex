@@ -44,7 +44,7 @@ defmodule Mix.Utils do
   Gets all paths defined in the MIX_PATH env variable.
 
   `MIX_PATH` may contain multiple paths. If on Windows, those
-  paths should be separated by `;`, if on Unix systems, use `:`.
+  paths should be separated by `;`, if on Unix-like systems, use `:`.
   """
   def mix_paths do
     if path = System.get_env("MIX_PATH") do

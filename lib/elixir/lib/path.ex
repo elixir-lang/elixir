@@ -20,7 +20,7 @@ defmodule Path do
 
   ## Examples
 
-  ### Unix
+  ### Unix-like operating systems
 
       Path.absname("foo")
       #=> "/usr/local/foo"
@@ -188,7 +188,7 @@ defmodule Path do
 
   ## Examples
 
-  ### Unix
+  ### Unix-like operating systems
 
       Path.type("/")                #=> :absolute
       Path.type("/usr/local/bin")   #=> :absolute
@@ -216,7 +216,7 @@ defmodule Path do
 
   ## Examples
 
-  ### Unix
+  ### Unix-like operating systems
 
       Path.relative("/usr/local/bin")   #=> "usr/local/bin"
       Path.relative("usr/local/bin")    #=> "usr/local/bin"
@@ -560,7 +560,7 @@ defmodule Path do
   """
   @spec split(t) :: [binary]
 
-  # Work around a bug in Erlang on UNIX
+  # Work around a bug in Erlang on Unix-like operating systems
   def split(""), do: []
 
   def split(path) do

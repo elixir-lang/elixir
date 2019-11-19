@@ -335,7 +335,7 @@ defmodule System do
     1. the directory named by the TMPDIR environment variable
     2. the directory named by the TEMP environment variable
     3. the directory named by the TMP environment variable
-    4. `C:\TMP` on Windows or `/tmp` on Unix
+    4. `C:\TMP` on Windows or `/tmp` on Unix-like operating systems
     5. as a last resort, the current working directory
 
   Returns `nil` if none of the above are writable.
@@ -411,8 +411,8 @@ defmodule System do
   Locates an executable on the system.
 
   This function looks up an executable program given
-  its name using the environment variable PATH on Unix
-  and Windows. It also considers the proper executable
+  its name using the environment variable PATH on Windows and Unix-like
+  operating systems. It also considers the proper executable
   extension for each operating system, so for Windows it will try to
   lookup files with `.com`, `.cmd` or similar extensions.
   """
@@ -634,7 +634,7 @@ defmodule System do
   Returns the operating system PID for the current Erlang runtime system instance.
 
   Returns a string containing the (usually) numerical identifier for a process.
-  On UNIX, this is typically the return value of the `getpid()` system call.
+  On Unix-like operating systems, this is typically the return value of the `getpid()` system call.
   On Windows, the process ID as returned by the `GetCurrentProcessId()` system
   call is used.
 

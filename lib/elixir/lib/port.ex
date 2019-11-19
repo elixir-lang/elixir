@@ -20,7 +20,7 @@ defmodule Port do
       :ok
 
   In the example above, we have created a new port that executes the
-  program `cat`. `cat` is a program available on UNIX systems that
+  program `cat`. `cat` is a program available on Unix-like operating systems that
   receives data from multiple inputs and concatenates them in the output.
 
   After the port was created, we sent it two commands in the form of
@@ -124,7 +124,7 @@ defmodule Port do
   will have its stdin and stdout channels closed but **it won't be automatically
   terminated**.
 
-  While most UNIX command line tools will exit once its communication channels
+  While most Unix command line tools will exit once its communication channels
   are closed, not all command line applications will do so. You can easily check
   this by starting the port and then shutting down the VM and inspecting your
   operating system to see if the port process is still running.
