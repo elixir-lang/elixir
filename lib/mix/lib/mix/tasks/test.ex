@@ -183,7 +183,7 @@ defmodule Mix.Tasks.Test do
     * `--only` - runs only tests that match the filter
     * `--partitions` - sets the amount of partitions to split tests in. This option
       requires the `MIX_TEST_PARTITION` environment variable to be set. See the
-      "Operating system processes partitioning" section for more information
+      "Operating system process partitioning" section for more information
     * `--preload-modules` - preloads all modules defined in applications
     * `--raise` - raises if the test suite failed
     * `--seed` - seeds the random number generator used to randomize the order of tests;
