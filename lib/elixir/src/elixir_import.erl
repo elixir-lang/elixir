@@ -190,7 +190,7 @@ intersection([H | T], All) ->
 
 intersection([], _All) -> [].
 
-%% Internal funs that are never imported etc.
+%% Internal funs that are never imported, and the like
 
 remove_underscored(List) ->
   lists:filter(fun({Name, _}) ->

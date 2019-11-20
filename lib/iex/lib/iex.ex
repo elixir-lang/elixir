@@ -381,7 +381,7 @@ defmodule IEx do
       IEx.configure(colors: [syntax_colors: [atom: :red]])
 
   Configuration for most built-in data types are supported: `:atom`,
-  `:string`, `:binary`, `:list`, `:number`, `:boolean`, `:nil`, etc.
+  `:string`, `:binary`, `:list`, `:number`, `:boolean`, `:nil`, and others.
   The default is:
 
       [number: :magenta, atom: :cyan, string: :green,

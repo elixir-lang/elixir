@@ -173,7 +173,7 @@ If the sigil letter is in uppercase, no interpolation is allowed in the sigil, o
 ~S/f#{"o"}o/
 ```
 
-Sigils are useful to encode text with their own escaping rules, such as regular expressions, datetimes, etc.
+Sigils are useful to encode text with their own escaping rules, such as regular expressions, datetimes, and others.
 
 ## The Elixir AST
 

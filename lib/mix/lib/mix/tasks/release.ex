@@ -664,7 +664,7 @@ defmodule Mix.Tasks.Release do
       variable is always computed and it cannot be set to a custom value
 
     * `RELEASE_COMMAND` - the command given to the release, such as `"start"`,
-      `"remote"`, `"eval"`, etc. This is typically accessed inside `env.sh`
+      `"remote"`, `"eval"`, and so on. This is typically accessed inside `env.sh`
       and `env.bat` to set different environment variables under different
       conditions. Note, however, that `RELEASE_COMMAND` has not been
       validated by the time `env.sh` and `env.bat` are called, so it may

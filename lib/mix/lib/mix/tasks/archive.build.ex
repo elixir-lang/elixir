@@ -16,7 +16,7 @@ defmodule Mix.Tasks.Archive.Build do
   dependencies, as those would conflict with any dependency in a
   Mix project after the archive is installed. In general, we recommend
   the usage of archives to be limited for extensions of Mix, such
-  as custom SCMs, package managers, etc. For general scripts to be
+  as custom SCMs, package managers, and the like. For general scripts to be
   distributed to developers, please see `mix escript.build`.
 
   The archive will be created in the current directory (which is

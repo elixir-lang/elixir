@@ -82,7 +82,7 @@ defmodule Logger do
     * `:compile_time_application` - sets the `:application` metadata value
       to the configured value at compilation time. This configuration is
       usually only useful for build tools to automatically add the
-      application to the metadata for `Logger.debug/2`, `Logger.info/2`, etc.
+      application to the metadata for `Logger.debug/2`, `Logger.info/2`, and similar
       style of calls.
 
     * `:compile_time_purge_matching` - purges *at compilation time* all calls

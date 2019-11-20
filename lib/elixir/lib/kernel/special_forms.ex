@@ -9,8 +9,8 @@ defmodule Kernel.SpecialForms do
   been automatically imported, in the same fashion as the functions and
   macros from the `Kernel` module.
 
-  These building blocks are defined in this module. Some of these special forms are lexical (like
-  `alias/2`, `case/2`, etc.). The macros `{}/1` and `<<>>/1` are also special
+  These building blocks are defined in this module. Some of these special forms are lexical (such as
+  `alias/2` and `case/2`). The macros `{}/1` and `<<>>/1` are also special
   forms used to define tuple and binary data structures respectively.
 
   This module also documents macros that return information about Elixir's
