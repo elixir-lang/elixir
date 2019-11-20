@@ -1383,6 +1383,21 @@ defmodule Stream do
         fn file -> File.close(file) end
       )
 
+      iex> Stream.resource(
+      ...>  fn ->
+      ...>    {:ok, pid} = StringIO.open("string")
+      ...>    pid
+      ...>  end,
+      ...>  fn pid ->
+      ...>    case IO.getn(pid, "", 1) do
+      ...>      :eof -> {:halt, pid}
+      ...>      char -> {[char], pid}
+      ...>    end
+      ...>  end,
+      ...>  fn pid -> StringIO.close(pid) end
+      ...> ) |> Enum.to_list()
+      ["s", "t", "r", "i", "n", "g"]
+
   """
   @spec resource((() -> acc), (acc -> {[element], acc} | {:halt, acc}), (acc -> term)) ::
           Enumerable.t()
