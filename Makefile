@@ -236,6 +236,7 @@ zips: Precompiled.zip Docs.zip
 
 #==> Test tasks
 
+# If you modify this task, please update .cirrus.yml accordinly
 test: test_formatted test_erlang test_elixir
 
 test_windows: test test_taskkill
