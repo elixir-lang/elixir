@@ -182,7 +182,7 @@ defmodule Macro do
 
   Do not rely on them as they may change or be fully removed in future versions
   of the language. They are often used by `quote/2` and the compiler to provide
-  features like hygiene, better error messages, et cetera.
+  features like hygiene, better error messages, and so forth.
 
   If you introduce custom keys into the AST metadata, please make sure to prefix
   them with the name of your library or application, so that they will not conflict
