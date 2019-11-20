@@ -11,7 +11,7 @@ defmodule Mix.Tasks.Profile.Fprof do
 
   Before running the code, it invokes the `app.start` task which compiles
   and loads your project. Then the target expression is profiled, together
-  with all processes which are spawned by it. Other processes (e.g. those
+  with all processes which are spawned by it. Other processes (for example, those
   residing in the OTP application supervision tree) are not profiled.
 
   To profile the code, you can use syntax similar to the `mix run` task:

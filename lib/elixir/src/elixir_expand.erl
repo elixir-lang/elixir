@@ -1257,7 +1257,7 @@ format_error({nested_comparison, CompExpr}) ->
                 "is equivalent to\n\n"
                 "     (x < y) < z\n\n"
                 "which ultimately compares z with the boolean result of (x < y). "
-                "Instead, consider joining together each comparison segment with an \"and\", e.g.\n\n"
+                "Instead, consider joining together each comparison segment with an \"and\", for example,\n\n"
                 "     x < y and y < z\n\n"
                 "You wrote: ~ts", [String]);
 format_error({undefined_local_capture, Fun, Arity}) ->

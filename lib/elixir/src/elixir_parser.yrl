@@ -103,17 +103,17 @@ expr -> unmatched_expr : '$1'.
 %% problematic they are:
 %%
 %% (a) no_parens_one: a call with one unproblematic argument
-%% (e.g. `f a` or `f g a` and similar) (includes unary operators)
+%% (for example, `f a` or `f g a` and similar) (includes unary operators)
 %%
-%% (b) no_parens_many: a call with several arguments (e.g. `f a, b`)
+%% (b) no_parens_many: a call with several arguments (for example, `f a, b`)
 %%
 %% (c) no_parens_one_ambig: a call with one argument which is
-%% itself a no_parens_many or no_parens_one_ambig (e.g. `f g a, b`
-%% or `f g h a, b` and similar)
+%% itself a no_parens_many or no_parens_one_ambig (for example, `f g a, b`,
+%% `f g h a, b` and similar)
 %%
 %% Note, in particular, that no_parens_one_ambig expressions are
 %% ambiguous and are interpreted such that the outer function has
-%% arity 1 (e.g. `f g a, b` is interpreted as `f(g(a, b))` rather
+%% arity 1 (for istance, `f g a, b` is interpreted as `f(g(a, b))` rather
 %% than `f(g(a), b)`). Hence the name, no_parens_one_ambig.
 %%
 %% The distinction is required because we can't, for example, have

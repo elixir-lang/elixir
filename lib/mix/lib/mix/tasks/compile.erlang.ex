@@ -92,7 +92,7 @@ defmodule Mix.Tasks.Compile.Erlang do
       |> Enum.map(&annotate_target(&1, compile_path, opts[:force]))
 
     Mix.Compilers.Erlang.compile(manifest(), tuples, opts, fn input, _output ->
-      # We're purging the module because a previous compiler (e.g. Phoenix)
+      # We're purging the module because a previous compiler (for example, Phoenix)
       # might have already loaded the previous version of it.
       module = input |> Path.basename(".erl") |> String.to_atom()
       :code.purge(module)

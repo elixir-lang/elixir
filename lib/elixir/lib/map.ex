@@ -343,8 +343,8 @@ defmodule Map do
   in `map` unless `key` is already present.
 
   This function is useful in case you want to compute the value to put under
-  `key` only if `key` is not already present (e.g., the value is expensive to
-  calculate or generally difficult to setup and teardown again).
+  `key` only if `key` is not already present, as for example, when the value is expensive to
+  calculate or generally difficult to setup and teardown again.
 
   ## Examples
 

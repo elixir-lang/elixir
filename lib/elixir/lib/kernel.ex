@@ -1326,7 +1326,7 @@ defmodule Kernel do
   Concatenates a proper list and a term, returning a list.
 
   The complexity of `a ++ b` is proportional to `length(a)`, so avoid repeatedly
-  appending to lists of arbitrary length, e.g. `list ++ [element]`.
+  appending to lists of arbitrary length, for example, `list ++ [element]`.
   Instead, consider prepending via `[element | rest]` and then reversing.
 
   If the `right` operand is not a proper list, it returns an improper list.

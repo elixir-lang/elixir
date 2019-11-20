@@ -74,7 +74,7 @@ defmodule URI do
   Encodes an enumerable into a query string.
 
   Takes an enumerable that enumerates as a list of two-element
-  tuples (e.g., a map or a keyword list) and returns a string
+  tuples (for instance, a map or a keyword list) and returns a string
   in the form of `key1=value1&key2=value2...` where keys and
   values are URL encoded as per `encode_www_form/1`.
 
