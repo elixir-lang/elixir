@@ -142,7 +142,7 @@ defmodule Config.Provider do
   end
 
   @doc false
-  def boot(app, key, restart_fun \\ &System.restart/0) do
+  def boot(app, key, restart_fun \\ &restart_and_sleep/0) do
     # The app with the config provider settings may not
     # have been loaded at this point, so make sure we load
     # its environment before querying it.
@@ -175,6 +175,11 @@ defmodule Config.Provider do
       _ ->
         :skip
     end
+  end
+
+  defp restart_and_sleep do
+    :init.restart()
+    Process.sleep(:infinity)
   end
 
   defp booted_key(%{prune_after_boot: true}, path), do: {:booted, path}
