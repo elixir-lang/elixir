@@ -243,7 +243,7 @@ defmodule Mix.Tasks.Release do
   To deploy straight from a host to a separate target without cross-compilation,
   the following must be the same between the host and the target:
 
-    * Target architecture (for example, x86_64, or ARM)
+    * Target architecture (for example, x86_64 or ARM)
     * Target vendor + operating system  (for example, Windows, Linux, or Darwin/macOS)
     * Target ABI (for example, musl or gnu)
 
