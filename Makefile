@@ -26,10 +26,10 @@ SOURCE_DATE_EPOCH_FILE = $(SOURCE_DATE_EPOCH_PATH)/SOURCE_DATE_EPOCH
 
 define CHECK_ERLANG_RELEASE
 	erl -noshell -eval '{V,_} = string:to_integer(erlang:system_info(otp_release)), io:fwrite("~s", [is_integer(V) and (V >= 21)])' -s erlang halt | grep -q '^true'; \
-		if [ $$? != 0 ]; then \
-		  echo "At least Erlang/OTP 21.0 is required to build Elixir"; \
-		  exit 1; \
-		fi
+	  if [ $$? != 0 ]; then \
+	    echo "At least Erlang/OTP 21.0 is required to build Elixir"; \
+	    exit 1; \
+	  fi
 endef
 
 define APP_TEMPLATE
@@ -53,7 +53,8 @@ $(shell mkdir -p $(SOURCE_DATE_EPOCH_PATH) && bin/elixir -e \
   'IO.puts System.build_info()[:date] \
    |> DateTime.from_iso8601() \
    |> elem(1) \
-   |> DateTime.to_unix()' > $(SOURCE_DATE_EPOCH_FILE))
+   |> DateTime.to_unix()' > $(SOURCE_DATE_EPOCH_FILE)\
+)
 endef
 
 define READ_SOURCE_DATE_EPOCH
@@ -86,9 +87,9 @@ elixir: stdlib lib/eex/ebin/Elixir.EEx.beam mix ex_unit logger eex iex
 stdlib: $(KERNEL) VERSION
 $(KERNEL): lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex lib/elixir/lib/*/*/*.ex
 	$(Q) if [ ! -f $(KERNEL) ]; then \
-		echo "==> bootstrap (compile)"; \
-		$(ERL) -s elixir_compiler bootstrap -s erlang halt; \
-	fi
+	        echo "==> bootstrap (compile)"; \
+	        $(ERL) -s elixir_compiler bootstrap -s erlang halt; \
+	     fi
 	$(Q) $(MAKE) unicode
 	@ echo "==> elixir (compile)";
 	$(Q) cd lib/elixir && ../../$(ELIXIRC) "lib/**/*.ex" -o ebin;
@@ -114,16 +115,16 @@ $(eval $(call APP_TEMPLATE,iex,IEx))
 install: compile
 	@ echo "==> elixir (install)"
 	$(Q) for dir in lib/*; do \
-		rm -rf $(DESTDIR)$(PREFIX)/$(LIBDIR)/elixir/$$dir/ebin; \
-		$(INSTALL_DIR) "$(DESTDIR)$(PREFIX)/$(LIBDIR)/elixir/$$dir/ebin"; \
-		$(INSTALL_DATA) $$dir/ebin/* "$(DESTDIR)$(PREFIX)/$(LIBDIR)/elixir/$$dir/ebin"; \
-	done
+	       rm -rf $(DESTDIR)$(PREFIX)/$(LIBDIR)/elixir/$$dir/ebin; \
+	       $(INSTALL_DIR) "$(DESTDIR)$(PREFIX)/$(LIBDIR)/elixir/$$dir/ebin"; \
+	       $(INSTALL_DATA) $$dir/ebin/* "$(DESTDIR)$(PREFIX)/$(LIBDIR)/elixir/$$dir/ebin"; \
+	     done
 	$(Q) $(INSTALL_DIR) "$(DESTDIR)$(PREFIX)/$(LIBDIR)/elixir/bin"
 	$(Q) $(INSTALL_PROGRAM) $(filter-out %.ps1, $(filter-out %.bat, $(wildcard bin/*))) "$(DESTDIR)$(PREFIX)/$(LIBDIR)/elixir/bin"
 	$(Q) $(INSTALL_DIR) "$(DESTDIR)$(PREFIX)/$(BINDIR)"
 	$(Q) for file in "$(DESTDIR)$(PREFIX)"/$(LIBDIR)/elixir/bin/*; do \
-		ln -sf "../$(LIBDIR)/elixir/bin/$${file##*/}" "$(DESTDIR)$(PREFIX)/$(BINDIR)/"; \
-	done
+	       ln -sf "../$(LIBDIR)/elixir/bin/$${file##*/}" "$(DESTDIR)$(PREFIX)/$(BINDIR)/"; \
+	     done
 	$(MAKE) install_man
 
 check_reproducible: compile
@@ -250,10 +251,10 @@ TEST_ERLS = $(addprefix $(TEST_EBIN)/, $(addsuffix .beam, $(basename $(notdir $(
 
 test_formatted: compile
 	$(Q) if [ "$(OS)" = "Windows_NT" ]; then \
-		cmd //C call ./bin/mix.bat format --check-formatted; \
-	else \
-		bin/elixir bin/mix format --check-formatted; \
-	fi
+	       cmd //C call ./bin/mix.bat format --check-formatted; \
+	     else \
+	       bin/elixir bin/mix format --check-formatted; \
+	     fi
 
 test_erlang: compile $(TEST_ERLS)
 	@ echo "==> elixir (eunit)"
@@ -270,10 +271,10 @@ test_stdlib: compile
 	@ echo "==> elixir (ex_unit)"
 	$(Q) exec epmd & exit
 	$(Q) if [ "$(OS)" = "Windows_NT" ]; then \
-		cd lib/elixir && cmd //C call ../../bin/elixir.bat -r "test/elixir/test_helper.exs" -pr "test/elixir/**/*_test.exs"; \
-	else \
-		cd lib/elixir && ../../bin/elixir -r "test/elixir/test_helper.exs" -pr "test/elixir/**/*_test.exs"; \
-	fi
+	       cd lib/elixir && cmd //C call ../../bin/elixir.bat -r "test/elixir/test_helper.exs" -pr "test/elixir/**/*_test.exs"; \
+	     else \
+	       cd lib/elixir && ../../bin/elixir -r "test/elixir/test_helper.exs" -pr "test/elixir/**/*_test.exs"; \
+	     fi
 
 #==> Dialyzer tasks
 
