@@ -130,6 +130,7 @@ check_reproducible: compile
 	$(Q) echo "==> Checking for reproducible builds..."
 	$(Q) rm -rf lib/*/tmp/ebin_reproducible/
 	$(call WRITE_SOURCE_DATE_EPOCH)
+	$(Q) echo "Moving compiled files to a temporary folder..."
 	$(Q) mkdir -p lib/elixir/tmp/ebin_reproducible/ \
 	              lib/eex/tmp/ebin_reproducible/ \
 	              lib/iex/tmp/ebin_reproducible/ \
@@ -140,6 +141,7 @@ check_reproducible: compile
 	$(Q) mv lib/iex/ebin/* lib/iex/tmp/ebin_reproducible/
 	$(Q) mv lib/logger/ebin/* lib/logger/tmp/ebin_reproducible/
 	$(Q) mv lib/mix/ebin/* lib/mix/tmp/ebin_reproducible/
+	$(Q) echo "Compiling again in order to compare files..."
 	SOURCE_DATE_EPOCH=$(call READ_SOURCE_DATE_EPOCH) $(MAKE) compile
 	$(Q) echo "Diffing..."
 	$(Q) diff -r lib/elixir/ebin/ lib/elixir/tmp/ebin_reproducible/
