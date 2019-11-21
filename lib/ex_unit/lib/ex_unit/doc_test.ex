@@ -292,8 +292,9 @@ defmodule ExUnit.DocTest do
   end
 
   defp test_case_content(expr, {:test, expected}, location, stack, formatted) do
-    expr_ast = string_to_quoted(location, stack, expr)
-    expected_ast = string_to_quoted(location, stack, expected)
+    doctest = "\n" <> formatted <> "\n" <> expected
+    expr_ast = string_to_quoted(location, stack, expr, doctest)
+    expected_ast = string_to_quoted(location, stack, expected, doctest)
     last_expr_ast = last_expr(expr_ast)
 
     quote do
@@ -304,7 +305,7 @@ defmodule ExUnit.DocTest do
           :ok
 
         actual ->
-          doctest = unquote("\n" <> formatted <> "\n" <> expected)
+          doctest = unquote(doctest)
 
           expr =
             "#{unquote(Macro.to_string(last_expr_ast))} === #{unquote(String.trim(expected))}"
@@ -323,8 +324,9 @@ defmodule ExUnit.DocTest do
   end
 
   defp test_case_content(expr, {:inspect, expected}, location, stack, formatted) do
-    expr_ast = string_to_quoted(location, stack, expr)
-    expected_ast = string_to_quoted(location, stack, expected)
+    doctest = "\n" <> formatted <> "\n" <> expected
+    expr_ast = string_to_quoted(location, stack, expr, doctest)
+    expected_ast = string_to_quoted(location, stack, expected, doctest)
     last_expr_ast = last_expr(expr_ast)
 
     quote do
@@ -335,7 +337,7 @@ defmodule ExUnit.DocTest do
           :ok
 
         actual ->
-          doctest = unquote("\n" <> formatted <> "\n" <> expected)
+          doctest = unquote(doctest)
 
           expr =
             "inspect(#{unquote(Macro.to_string(last_expr_ast))}) === " <>
@@ -355,15 +357,14 @@ defmodule ExUnit.DocTest do
   end
 
   defp test_case_content(expr, {:error, exception, message}, location, stack, formatted) do
-    expr_ast = string_to_quoted(location, stack, expr)
+    doctest = "\n" <> formatted <> "\n** (#{inspect(exception)}) #{inspect(message)}"
+    expr_ast = string_to_quoted(location, stack, expr, doctest)
 
     quote do
       stack = unquote(stack)
-      expected_exception = inspect(unquote(exception))
-
-      doctest =
-        unquote("\n" <> formatted <> "\n") <>
-          "** (#{expected_exception}) #{inspect(unquote(message))}"
+      exception = unquote(exception)
+      doctest = unquote(doctest)
+      message = unquote(message)
 
       try do
         unquote(expr_ast)
@@ -374,14 +375,14 @@ defmodule ExUnit.DocTest do
 
           message =
             cond do
-              actual_exception != unquote(exception) ->
-                "Doctest failed: expected exception #{expected_exception} but got " <>
+              actual_exception != exception ->
+                "Doctest failed: expected exception #{inspect(exception)} but got " <>
                   "#{inspect(actual_exception)} with message #{inspect(actual_message)}"
 
-              actual_message != unquote(message) ->
+              actual_message != message ->
                 "Doctest failed: wrong message for #{inspect(actual_exception)}\n" <>
                   "expected:\n" <>
-                  "  #{inspect(unquote(message))}\n" <>
+                  "  #{inspect(message)}\n" <>
                   "actual:\n" <> "  #{inspect(actual_message)}"
 
               true ->
@@ -394,7 +395,7 @@ defmodule ExUnit.DocTest do
       else
         _ ->
           message =
-            "Doctest failed: expected exception #{expected_exception} but nothing was raised"
+            "Doctest failed: expected exception #{inspect(exception)} but nothing was raised"
 
           error = [message: message, doctest: doctest]
           reraise ExUnit.AssertionError, error, stack
@@ -405,7 +406,7 @@ defmodule ExUnit.DocTest do
   defp test_import(_mod, false), do: []
   defp test_import(mod, _), do: [quote(do: import(unquote(mod)))]
 
-  defp string_to_quoted(location, stack, expr) do
+  defp string_to_quoted(location, stack, expr, doctest) do
     try do
       Code.string_to_quoted!(expr, location)
     rescue
@@ -427,8 +428,8 @@ defmodule ExUnit.DocTest do
           end
 
         opts =
-          if String.valid?(expr) do
-            [message: message, expr: String.trim(expr)]
+          if String.valid?(doctest) do
+            [message: message, doctest: doctest]
           else
             [message: message]
           end

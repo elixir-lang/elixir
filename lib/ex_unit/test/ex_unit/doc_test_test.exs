@@ -462,7 +462,9 @@ defmodule ExUnit.DocTestTest do
              1) doctest module ExUnit.DocTestTest.Invalid (1) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
                 Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:138: syntax error before: '*'
-                code: 1 + * 1
+                doctest:
+                  iex> 1 + * 1
+                  1
                 stacktrace:
                   test/ex_unit/doc_test_test.exs:138: ExUnit.DocTestTest.Invalid (module)
            """
@@ -551,7 +553,9 @@ defmodule ExUnit.DocTestTest do
              8) doctest ExUnit.DocTestTest.Invalid.a/0 (8) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
                 Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:165: syntax error before: '*'
-                code: 1 + * 1
+                doctest:
+                  iex> 1 + * 1
+                  1
                 stacktrace:
                   test/ex_unit/doc_test_test.exs:165: ExUnit.DocTestTest.Invalid (module)
            """
@@ -560,8 +564,10 @@ defmodule ExUnit.DocTestTest do
              9) doctest ExUnit.DocTestTest.Invalid.dedented_past_fence/0 (9) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
                 Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:195: unexpected token: "`" (column 5, code point U+0060)
-                code: 3
-                          ```
+                doctest:
+                  iex> 1 + 2
+                  3
+                      ```
                 stacktrace:
                   test/ex_unit/doc_test_test.exs:194: ExUnit.DocTestTest.Invalid (module)
            """
@@ -570,8 +576,10 @@ defmodule ExUnit.DocTestTest do
             10) doctest ExUnit.DocTestTest.Invalid.indented_not_enough/0 (10) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
                 Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:179: unexpected token: "`" (column 1, code point U+0060)
-                code: 3
-                      `
+                doctest:
+                  iex> 1 + 2
+                  3
+                  `
                 stacktrace:
                   test/ex_unit/doc_test_test.exs:178: ExUnit.DocTestTest.Invalid (module)
            """
@@ -580,8 +588,10 @@ defmodule ExUnit.DocTestTest do
             11) doctest ExUnit.DocTestTest.Invalid.indented_too_much/0 (11) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
                 Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:187: unexpected token: "`" (column 3, code point U+0060)
-                code: 3
-                        ```
+                doctest:
+                  iex> 1 + 2
+                  3
+                    ```
                 stacktrace:
                   test/ex_unit/doc_test_test.exs:186: ExUnit.DocTestTest.Invalid (module)
            """
@@ -598,7 +608,9 @@ defmodule ExUnit.DocTestTest do
             13) doctest ExUnit.DocTestTest.Invalid.misplaced_opaque_type/0 (13) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
                 Doctest did not compile, got: (TokenMissingError) test/ex_unit/doc_test_test.exs:207: missing terminator: } (for "{" starting at line 207). If you are planning to assert on the result of an iex> expression which contains a value inspected as #Name<...>, please make sure the inspected value is placed at the beginning of the expression; otherwise Elixir will treat it as a comment due to the leading sign #.
-                code: {:ok, #MapSet<[1, 2, 3]>}
+                doctest:
+                  iex> {:ok, MapSet.new([1, 2, 3])}
+                  {:ok, #MapSet<[1, 2, 3]>}
                 stacktrace:
                   test/ex_unit/doc_test_test.exs:207: ExUnit.DocTestTest.Invalid (module)
            """
@@ -607,7 +619,9 @@ defmodule ExUnit.DocTestTest do
             14) doctest ExUnit.DocTestTest.Invalid.b/0 (14) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
                 Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:171: syntax error before: '*'
-                code: 1 + * 1
+                doctest:
+                  iex> 1 + * 1
+                  1
                 stacktrace:
                   test/ex_unit/doc_test_test.exs:171: ExUnit.DocTestTest.Invalid (module)
            """
