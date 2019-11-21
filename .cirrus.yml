@@ -52,7 +52,7 @@ test_linux_task:
 
   test_formatted_script:
     - make test_formatted &&
-      echo "All Elixir source code files found to be properly formatted."
+      echo "All Elixir source code files are properly formatted."
 
   dialyzer_script: dialyzer -pa lib/elixir/ebin --build_plt --output_plt elixir.plt --apps lib/elixir/ebin/elixir.beam lib/elixir/ebin/Elixir.Kernel.beam
 
@@ -104,7 +104,7 @@ test_windows_task:
 
   test_formatted_script:
     - make test_formatted &&
-      echo "All Elixir source code files found to be properly formatted."
+      echo "All Elixir source code files are properly formatted."
 
   test_erlang_script: make --keep-going test_erlang
 
