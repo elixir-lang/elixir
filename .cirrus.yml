@@ -3,7 +3,7 @@ env:
   LANG: C.UTF-8
 
 test_linux_task:
-  name: Test (Linux - Ubuntu 14.04) / ${OTP_RELEASE}
+  name: Linux, ${OTP_RELEASE}, Ubuntu 14.04
 
   container:
     image: buildpack-deps:trusty
@@ -83,18 +83,22 @@ test_linux_task:
     fi
 
 test_windows_task:
-  name: Test (Windows Server 2019)
+  name: Windows, OTP-${OTP_RELEASE}, Windows Server 2019
+
+  matrix:
+    - env:
+        OTP_RELEASE: 22.0
+        OS_VERSION: 2019
+
+    - env:
+        OTP_RELEASE: 21.0.1
+        OS_VERSION: 2019
 
   windows_container:
+    image: fertapric/elixir-ci:otp-win64-${OTP_RELEASE}
+    os_version: ${OS_VERSION}
     cpu: 8
     memory: 1500Mi
-
-    matrix:
-      - image: fertapric/elixir-ci:otp-win64-22.0
-        os_version: 2019
-
-      - image: fertapric/elixir-ci:otp-win64-21.0.1
-        os_version: 2019
 
   install_script:
     - rmdir /s /q .git
