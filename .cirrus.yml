@@ -12,15 +12,15 @@ test_linux_task:
     memory: 1500Mi
 
   env:
-    PATH: "${CIRRUS_WORKING_DIR}/otp/bin:${PATH}"
     ELIXIRC_OPTS: "--warnings-as-errors"
     ERLC_OPTS: "+warning_as_errors"
+    PATH: "${CIRRUS_WORKING_DIR}/otp/bin:${PATH}"
 
   matrix:
     - env:
         OTP_RELEASE: OTP-22.1
-        CHECK_REPRODUCIBLE: true
         CHECK_POSIX_COMPLIANT: true
+        CHECK_REPRODUCIBLE: true
         TEST_FORMATTED: true
     - env:
         OTP_RELEASE: OTP-22.0
