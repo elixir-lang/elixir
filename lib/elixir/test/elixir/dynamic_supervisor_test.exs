@@ -524,9 +524,11 @@ defmodule DynamicSupervisorTest do
     test "terminates children with infinity shutdown and abnormal reason" do
       Process.flag(:trap_exit, true)
       {:ok, sup} = DynamicSupervisor.start_link(strategy: :one_for_one)
+      parent = self()
 
       fun = fn ->
         Process.flag(:trap_exit, true)
+        send(parent, :ready)
         receive(do: (_ -> exit({:shutdown, :oops})))
       end
 
@@ -535,10 +537,15 @@ defmodule DynamicSupervisorTest do
       assert {:ok, child2} = DynamicSupervisor.start_child(sup, child)
       assert {:ok, child3} = DynamicSupervisor.start_child(sup, child)
 
+      assert_receive :ready
+      assert_receive :ready
+      assert_receive :ready
+
       Process.monitor(child1)
       Process.monitor(child2)
       Process.monitor(child3)
       assert_kill(sup, :shutdown)
+
       assert_receive {:DOWN, _, :process, ^child1, {:shutdown, :oops}}
       assert_receive {:DOWN, _, :process, ^child2, {:shutdown, :oops}}
       assert_receive {:DOWN, _, :process, ^child3, {:shutdown, :oops}}
