@@ -148,6 +148,7 @@ check_reproducible: compile
 	$(Q) diff -r lib/logger/ebin/ lib/logger/tmp/ebin_reproducible/
 	$(Q) diff -r lib/mix/ebin/ lib/mix/tmp/ebin_reproducible/
 	$(Q) echo "Builds are reproducible"
+	$(Q) rm -rf lib/*/tmp/ebin_reproducible/
 
 clean:
 	rm -rf ebin
