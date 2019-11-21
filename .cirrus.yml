@@ -107,5 +107,5 @@ test_windows_task:
   info_script:
     - bin/elixir --version
 
-  test_script:
-    - make --keep-going test_erlang test_elixir
+  test_erlang_script: make --keep-going test_erlang
+  test_elixir_script: make --keep-going test_elixir
