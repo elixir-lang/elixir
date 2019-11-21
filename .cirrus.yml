@@ -1,6 +1,7 @@
 env:
   ELIXIR_ASSERT_TIMEOUT: 2000
   LANG: C.UTF-8
+  CIRRUS_CLONE_DEPTH: 1
 
 test_linux_task:
   name: Linux, ${OTP_RELEASE}, Ubuntu 14.04
