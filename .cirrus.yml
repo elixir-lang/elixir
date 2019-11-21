@@ -48,8 +48,7 @@ test_linux_task:
     - rm -rf .git
     - make compile
 
-  info_script:
-    - bin/elixir --version
+  info_script: bin/elixir --version
 
   test_formatted_script: |
     if [ -n "$TEST_FORMATTED" ]; then
@@ -104,8 +103,8 @@ test_windows_task:
     - rmdir /s /q .git
     - make compile
 
-  info_script:
-    - bin/elixir --version
+  info_script: bin/elixir --version
 
   test_erlang_script: make --keep-going test_erlang
+
   test_elixir_script: make --keep-going test_elixir
