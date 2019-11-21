@@ -19,7 +19,7 @@ GIT_TAG = $(strip $(shell head="$(call GIT_REVISION)"; git tag --points-at $$hea
 SOURCE_DATE_EPOCH_PATH = lib/elixir/tmp/ebin_reproducible
 SOURCE_DATE_EPOCH_FILE = $(SOURCE_DATE_EPOCH_PATH)/SOURCE_DATE_EPOCH
 
-.PHONY: install compile erlang elixir unicode app build_plt clean_plt dialyze test check_reproducible clean clean_residual_files install_man clean_man docs Docs.zip Precompiled.zip zips
+.PHONY: install compile erlang elixir unicode app build_plt clean_plt dialyze test check_reproducible clean clean_residual_files install_man clean_man docs clean_docs Docs.zip Precompiled.zip zips
 .NOTPARALLEL: compile
 
 #==> Functions
@@ -169,43 +169,52 @@ clean_residual_files:
 	rm -f erl_crash.dump
 	$(Q) $(MAKE) clean_man
 
+clean_docs:
+	$(call CLEAN_DOCS,elixir)
+	$(call CLEAN_DOCS,eex)
+	$(call CLEAN_DOCS,ex_unit)
+	$(call CLEAN_DOCS,iex)
+	$(call CLEAN_DOCS,logger)
+	$(call CLEAN_DOCS,mix)
+
 #==> Documentation tasks
 
 LOGO_PATH = $(shell test -f ../docs/logo.png && echo "--logo ../docs/logo.png")
 SOURCE_REF = $(shell tag="$(call GIT_TAG)" revision="$(call GIT_REVISION)"; echo "$${tag:-$$revision}\c")
 DOCS_FORMAT = html
+CLEAN_DOCS = rm -rf doc/elixir doc/$(1)
 COMPILE_DOCS = bin/elixir ../ex_doc/bin/ex_doc "$(1)" "$(VERSION)" "lib/$(2)/ebin" -m "$(3)" -u "https://github.com/elixir-lang/elixir" --source-ref "$(call SOURCE_REF)" $(call LOGO_PATH) -o doc/$(2) -n https://hexdocs.pm/$(2)/$(CANONICAL) -p https://elixir-lang.org/docs.html -f "$(DOCS_FORMAT)" $(4)
 
 docs: compile ../ex_doc/bin/ex_doc docs_elixir docs_eex docs_mix docs_iex docs_ex_unit docs_logger
 
 docs_elixir: compile ../ex_doc/bin/ex_doc
 	@ echo "==> ex_doc (elixir)"
-	$(Q) rm -rf doc/elixir
+	$(Q) $(call CLEAN_DOCS,elixir)
 	$(call COMPILE_DOCS,Elixir,elixir,Kernel,-c lib/elixir/docs.exs)
 
 docs_eex: compile ../ex_doc/bin/ex_doc
 	@ echo "==> ex_doc (eex)"
-	$(Q) rm -rf doc/eex
+	$(Q) $(call CLEAN_DOCS,eex)
 	$(call COMPILE_DOCS,EEx,eex,EEx)
 
 docs_mix: compile ../ex_doc/bin/ex_doc
 	@ echo "==> ex_doc (mix)"
-	$(Q) rm -rf doc/mix
+	$(Q) $(call CLEAN_DOCS,mix)
 	$(call COMPILE_DOCS,Mix,mix,Mix)
 
 docs_iex: compile ../ex_doc/bin/ex_doc
 	@ echo "==> ex_doc (iex)"
-	$(Q) rm -rf doc/iex
+	$(Q) $(call CLEAN_DOCS,iex)
 	$(call COMPILE_DOCS,IEx,iex,IEx)
 
 docs_ex_unit: compile ../ex_doc/bin/ex_doc
 	@ echo "==> ex_doc (ex_unit)"
-	$(Q) rm -rf doc/ex_unit
+	$(Q) $(call CLEAN_DOCS,ex_unit)
 	$(call COMPILE_DOCS,ExUnit,ex_unit,ExUnit)
 
 docs_logger: compile ../ex_doc/bin/ex_doc
 	@ echo "==> ex_doc (logger)"
-	$(Q) rm -rf doc/logger
+	$(Q) $(call CLEAN_DOCS,logger)
 	$(call COMPILE_DOCS,Logger,logger,Logger)
 
 ../ex_doc/bin/ex_doc:
