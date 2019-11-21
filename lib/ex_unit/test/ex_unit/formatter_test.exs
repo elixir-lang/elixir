@@ -223,9 +223,7 @@ defmodule ExUnit.FormatterTest do
              1) Hello: failure on setup_all callback, all tests have been invalidated
                 Assertion with == failed
                 code:  assert [1, 2, 3] == [4, 5, 6]
-                left:  [1,
-                        2,
-                        3]
+                left:  [1, 2, 3]
                 right: [4,
                         5,
                         6]
