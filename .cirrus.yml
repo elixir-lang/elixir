@@ -21,7 +21,6 @@ test_linux_task:
         OTP_RELEASE: OTP-22.1
         CHECK_POSIX_COMPLIANT: true
         CHECK_REPRODUCIBLE: true
-        TEST_FORMATTED: true
     - env:
         OTP_RELEASE: OTP-22.0
     - env:
@@ -51,12 +50,9 @@ test_linux_task:
 
   build_info_script: bin/elixir --version
 
-  test_formatted_script: |
-    if [ -n "$TEST_FORMATTED" ]; then
-      make test_formatted && echo "All files found to be properly formatted."
-    else
-      echo "The format of the Elixir code is only checked in the last stable Erlang/OTP version."
-    fi
+  test_formatted_script:
+    - make test_formatted && \
+      echo "All files found to be properly formatted."
 
   dialyzer_script: dialyzer -pa lib/elixir/ebin --build_plt --output_plt elixir.plt --apps lib/elixir/ebin/elixir.beam lib/elixir/ebin/Elixir.Kernel.beam
 
