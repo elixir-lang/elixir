@@ -55,7 +55,7 @@ test_linux_task:
     if [ -n "$TEST_FORMATTED" ]; then
       make test_formatted && echo "All files found to be properly formatted."
     else
-      echo "No need for this test in this Erlang/OTP version."
+      echo "The format of the Elixir code is only checked in the last stable Erlang/OTP version."
     fi
 
   dialyzer_script: dialyzer -pa lib/elixir/ebin --build_plt --output_plt elixir.plt --apps lib/elixir/ebin/elixir.beam lib/elixir/ebin/Elixir.Kernel.beam
@@ -72,14 +72,14 @@ test_linux_task:
       shellcheck bin/elixirc && echo "bin/elixirc is POSIX compliant"
       shellcheck bin/iex && echo "bin/iex is POSIX compliant"
     else
-      echo "No need for this check in this Erlang/OTP version."
+      echo "The format of the shell scripts is only checked in the last stable Erlang/OTP version."
     fi
 
   check_reproducible_script: |
     if [ -n "$CHECK_REPRODUCIBLE" ]; then
       make check_reproducible
     else
-      echo "No need for this check in this Erlang/OTP version."
+      echo "The format reproducibility of the build is only checked in the last stable Erlang/OTP version."
     fi
 
 test_windows_task:
