@@ -124,7 +124,7 @@ defmodule Mix.Dep do
 
   defp load_and_cache(config, _top, bottom, _env, _target) do
     {_, deps} =
-      Mix.ProjectStack.read_cache({:cached_deps, bottom}) ||
+      Mix.State.read_cache({:cached_deps, bottom}) ||
         raise "cannot retrieve dependencies information because dependencies were not loaded. " <>
                 "Please invoke one of \"deps.loadpaths\", \"loadpaths\", or \"compile\" Mix task"
 
@@ -153,14 +153,14 @@ defmodule Mix.Dep do
   end
 
   defp read_cached_deps(project, env_target) do
-    case Mix.ProjectStack.read_cache({:cached_deps, project}) do
+    case Mix.State.read_cache({:cached_deps, project}) do
       {^env_target, deps} -> deps
       _ -> nil
     end
   end
 
   defp write_cached_deps(project, env_target, deps) do
-    Mix.ProjectStack.write_cache({:cached_deps, project}, {env_target, deps})
+    Mix.State.write_cache({:cached_deps, project}, {env_target, deps})
     deps
   end
 
@@ -170,7 +170,7 @@ defmodule Mix.Dep do
   def clear_cached() do
     if project = Mix.Project.get() do
       key = {:cached_deps, project}
-      Mix.ProjectStack.delete_cache(key)
+      Mix.State.delete_cache(key)
     end
   end
 

@@ -1,10 +1,12 @@
 defmodule Mix.TasksServer do
   @moduledoc false
+  @name __MODULE__
+  @timeout 30000
 
   use Agent
 
   def start_link(_opts) do
-    Agent.start_link(fn -> %{} end, name: __MODULE__)
+    Agent.start_link(fn -> %{} end, name: @name)
   end
 
   def clear() do
@@ -26,10 +28,10 @@ defmodule Mix.TasksServer do
   end
 
   defp get_and_update(fun) do
-    Agent.get_and_update(__MODULE__, fun, 30000)
+    Agent.get_and_update(@name, fun, @timeout)
   end
 
   defp update(fun) do
-    Agent.update(__MODULE__, fun, 30000)
+    Agent.update(@name, fun, @timeout)
   end
 end
