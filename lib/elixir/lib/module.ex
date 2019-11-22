@@ -482,10 +482,10 @@ defmodule Module do
   below:
 
     * `@compile :debug_info` - includes `:debug_info` regardless of the
-      corresponding setting in `Code.put_compiler_option/2`
+      corresponding setting in `Code.get_compiler_option/1`
 
     * `@compile {:debug_info, false}` - disables `:debug_info` regardless
-      of the corresponding setting in `Code.put_compiler_option/2`
+      of the corresponding setting in `Code.get_compiler_option/1`
 
     * `@compile {:inline, some_fun: 2, other_fun: 3}` - inlines the given
       name/arity pairs. Inlining is applied locally, calls from another
