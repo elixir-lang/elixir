@@ -10,4 +10,4 @@ main([Source, Target, Version]) ->
   Props = lists:keyreplace(vsn, 1, Props1, {vsn, Version}),
   AppDef = io_lib:format("~tp.~n", [{application, Name, Props}]),
   ok = file:write_file(Target, AppDef),
-  io:format("Generated ~ts.app~n", [Name]).
+  io:format("Generated ~ts app~n", [Name]).
