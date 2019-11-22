@@ -170,7 +170,7 @@ defmodule Mix.Tasks.Compile.App do
 
       Mix.Project.ensure_structure()
       File.write!(target, IO.chardata_to_string(contents))
-      Mix.shell().info("Generated #{app} app")
+      Mix.shell().info("Generated #{app}.app")
       {:ok, []}
     else
       {:noop, []}

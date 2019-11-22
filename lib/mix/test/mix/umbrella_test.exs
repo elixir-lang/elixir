@@ -63,10 +63,10 @@ defmodule Mix.UmbrellaTest do
         Mix.Task.run("compile", ["--verbose"])
 
         assert_received {:mix_shell, :info, ["==> bar"]}
-        assert_received {:mix_shell, :info, ["Generated bar app"]}
+        assert_received {:mix_shell, :info, ["Generated bar.app"]}
         assert File.regular?("_build/dev/lib/bar/ebin/Elixir.Bar.beam")
         assert_received {:mix_shell, :info, ["==> foo"]}
-        assert_received {:mix_shell, :info, ["Generated foo app"]}
+        assert_received {:mix_shell, :info, ["Generated foo.app"]}
         assert File.regular?("_build/dev/lib/foo/ebin/Elixir.Foo.beam")
 
         # Ensure foo was loaded and in the same env as Mix.env
@@ -83,8 +83,8 @@ defmodule Mix.UmbrellaTest do
     in_fixture("umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
         Mix.Task.run("compile", ["--verbose"])
-        assert_received {:mix_shell, :info, ["Generated bar app"]}
-        assert_received {:mix_shell, :info, ["Generated foo app"]}
+        assert_received {:mix_shell, :info, ["Generated bar.app"]}
+        assert_received {:mix_shell, :info, ["Generated foo.app"]}
         assert File.regular?("_build/dev/consolidated/Elixir.Enumerable.beam")
         purge([Enumerable])
 
@@ -125,8 +125,8 @@ defmodule Mix.UmbrellaTest do
         end
 
         Mix.Task.run("umbrella.recur")
-        assert_received {:mix_shell, :info, ["Generated bar app"]}
-        assert_received {:mix_shell, :info, ["Generated foo app"]}
+        assert_received {:mix_shell, :info, ["Generated bar.app"]}
+        assert_received {:mix_shell, :info, ["Generated foo.app"]}
         assert File.regular?("_build/dev/consolidated/Elixir.Enumerable.beam")
         purge([Enumerable])
 
@@ -381,8 +381,8 @@ defmodule Mix.UmbrellaTest do
           assert catch_exit(Mix.Task.run("compile", ["--verbose"]))
         end)
 
-        refute_received {:mix_shell, :info, ["Generated foo app"]}
-        refute_received {:mix_shell, :info, ["Generated bar app"]}
+        refute_received {:mix_shell, :info, ["Generated foo.app"]}
+        refute_received {:mix_shell, :info, ["Generated bar.app"]}
         refute Code.ensure_loaded?(Bar)
       end)
     end)
@@ -392,8 +392,8 @@ defmodule Mix.UmbrellaTest do
     in_fixture("umbrella_dep/deps/umbrella/apps", fn ->
       Mix.Project.in_project(:bar, "bar", fn _ ->
         Mix.Task.run("compile", ["--verbose"])
-        assert_received {:mix_shell, :info, ["Generated foo app"]}
-        assert_received {:mix_shell, :info, ["Generated bar app"]}
+        assert_received {:mix_shell, :info, ["Generated foo.app"]}
+        assert_received {:mix_shell, :info, ["Generated bar.app"]}
         assert File.regular?("_build/dev/lib/foo/ebin/Elixir.Foo.beam")
         assert File.regular?("_build/dev/lib/bar/ebin/Elixir.Bar.beam")
 

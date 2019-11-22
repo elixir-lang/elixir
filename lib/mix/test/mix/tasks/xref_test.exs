@@ -96,7 +96,7 @@ defmodule Mix.Tasks.XrefTest do
 
       output = """
       Compiling 2 files (.ex)
-      Generated sample app
+      Generated sample.app
       lib/b.ex (runtime)
       """
 
@@ -122,7 +122,7 @@ defmodule Mix.Tasks.XrefTest do
 
       output = """
       Compiling 2 files (.ex)
-      Generated sample app
+      Generated sample.app
       lib/a.ex (runtime)
       """
 
@@ -147,7 +147,7 @@ defmodule Mix.Tasks.XrefTest do
 
       output = """
       Compiling 2 files (.ex)
-      Generated sample app
+      Generated sample.app
       lib/a.ex (compile)
       lib/b.ex (compile)
       """
@@ -445,7 +445,7 @@ defmodule Mix.Tasks.XrefTest do
 
         assert Mix.Task.run("xref", opts ++ ["graph"]) == :ok
 
-        assert "Compiling 4 files (.ex)\nGenerated sample app\n" <> result =
+        assert "Compiling 4 files (.ex)\nGenerated sample.app\n" <> result =
                  receive_until_no_messages([])
 
         assert normalize_graph_output(result) == normalize_graph_output(expected)
