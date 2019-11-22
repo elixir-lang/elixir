@@ -944,7 +944,7 @@ defmodule System do
   time and the Erlang VM system time.
 
   The result is returned in the given time unit `unit`. The returned
-  offset, added to an Erlang monotonic time (e.g., obtained with
+  offset, added to an Erlang monotonic time (for instance, one obtained with
   `monotonic_time/1`), gives the Erlang system time that corresponds
   to that monotonic time.
   """

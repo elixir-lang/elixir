@@ -48,7 +48,7 @@ defmodule ExUnit.CaptureLog do
 
   However, `capture_log` does not guarantee to capture log messages
   originated from processes spawned using a low level `Kernel` spawn
-  function (e.g. `Kernel.spawn/1`) and such processes exit with an
+  function (for example, `Kernel.spawn/1`) and such processes exit with an
   exception or a throw. Therefore, prefer using a `Task`, or other OTP
   process, will send explicit logs before its exit or monitor signals
   and will not cause VM generated log messages.

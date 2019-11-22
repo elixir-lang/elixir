@@ -264,7 +264,7 @@ defmodule Macro do
   end
 
   # {:fn, _, _} is what we get when we pipe into an anonymous function without
-  # calling it, e.g., `:foo |> (fn x -> x end)`.
+  # calling it, for example, `:foo |> (fn x -> x end)`.
   def pipe(expr, {:fn, _, _}, _integer) do
     raise ArgumentError,
           "cannot pipe #{to_string(expr)} into an anonymous function without" <>

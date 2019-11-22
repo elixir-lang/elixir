@@ -62,10 +62,10 @@ defmodule Calendar do
   @typedoc "A calendar implementation"
   @type calendar :: module
 
-  @typedoc "The time zone ID according to the IANA tz database (e.g. Europe/Zurich)"
+  @typedoc "The time zone ID according to the IANA tz database (for example, Europe/Zurich)"
   @type time_zone :: String.t()
 
-  @typedoc "The time zone abbreviation (e.g. CET or CEST or BST etc.)"
+  @typedoc "The time zone abbreviation (for example, CET or CEST or BST etc.)"
   @type zone_abbr :: String.t()
 
   @typedoc "The time zone UTC offset in seconds"
