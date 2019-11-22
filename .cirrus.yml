@@ -11,7 +11,7 @@ test_linux_task:
   container:
     image: buildpack-deps:trusty
     cpu: 8
-    memory: 1500Mi
+    memory: 1536Mi
 
   env:
     PATH: "${CIRRUS_WORKING_DIR}/otp/bin:${PATH}"
@@ -93,8 +93,8 @@ test_windows_task:
   windows_container:
     image: fertapric/elixir-ci:otp-win64-${OTP_RELEASE}
     os_version: ${OS_VERSION}
-    cpu: 8
-    memory: 1500Mi
+    cpu: 4
+    memory: 3840Mi
 
   install_script:
     - rmdir /s /q .git
