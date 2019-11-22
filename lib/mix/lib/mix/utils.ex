@@ -41,27 +41,6 @@ defmodule Mix.Utils do
   end
 
   @doc """
-  Gets all paths defined in the MIX_PATH env variable.
-
-  `MIX_PATH` may contain multiple paths. If on Windows, those
-  paths should be separated by `;`, if on Unix-like systems, use `:`.
-  """
-  def mix_paths do
-    if path = System.get_env("MIX_PATH") do
-      String.split(path, path_separator())
-    else
-      []
-    end
-  end
-
-  defp path_separator do
-    case :os.type() do
-      {:win32, _} -> ";"
-      {:unix, _} -> ":"
-    end
-  end
-
-  @doc """
   Parses a string into module, function and arity.
 
   It returns `{:ok, mfa_list}`, where a `mfa_list` is

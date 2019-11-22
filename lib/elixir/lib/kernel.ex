@@ -4474,11 +4474,11 @@ defmodule Kernel do
         end
       end
 
-      # TODO: Change the implementation on v2.0 to simply call Kernel.struct!/2
       # Calls to Kernel functions must be fully-qualified to ensure
       # reproducible builds; otherwise, this macro will generate ASTs
       # with different metadata (:import, :context) depending on if
       # it is the bootstrapped version or not.
+      # TODO: Change the implementation on v2.0 to simply call Kernel.struct!/2
       @impl true
       def exception(args) when Kernel.is_list(args) do
         struct = __struct__()

@@ -350,7 +350,7 @@ defmodule Kernel.ParallelCompiler do
     Enum.count(result, &match?({{:module, _}, _}, &1))
   end
 
-  # TODO: Deprecate on v1.12
+  # TODO: Deprecate on v1.14
   defp each_cycle_return(modules) when is_list(modules), do: {:compile, modules}
   defp each_cycle_return(other), do: other
 

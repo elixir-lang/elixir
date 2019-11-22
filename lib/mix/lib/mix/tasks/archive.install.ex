@@ -107,7 +107,7 @@ defmodule Mix.Tasks.Archive.Install do
 
   @impl true
   def install(basename, contents, previous) do
-    ez_path = Path.join(Mix.Local.path_for(:archive), basename)
+    ez_path = Path.join(Mix.path_for(:archives), basename)
     dir_dest = resolve_destination(ez_path, contents)
 
     remove_previous_versions(previous)
@@ -124,7 +124,7 @@ defmodule Mix.Tasks.Archive.Install do
 
   @impl true
   def build(_install_spec, _opts) do
-    src = Mix.Local.name_for(:archive, Mix.Project.config())
+    src = Mix.Local.name_for(:archives, Mix.Project.config())
     previous = find_previous_versions(src)
 
     Enum.each(previous, fn path ->
@@ -149,7 +149,7 @@ defmodule Mix.Tasks.Archive.Install do
   end
 
   defp archives(name) do
-    Mix.Local.path_for(:archive)
+    Mix.path_for(:archives)
     |> Path.join(name)
     |> Path.wildcard()
   end

@@ -14,7 +14,7 @@ defmodule Mix.Tasks.Escript do
 
   @impl true
   def run(_) do
-    escripts_path = Mix.Local.path_for(:escript)
+    escripts_path = Mix.path_for(:escripts)
 
     escripts_path
     |> list_dir()
@@ -52,6 +52,6 @@ defmodule Mix.Tasks.Escript do
 
   defp print(items) do
     Enum.each(items, fn item -> Mix.shell().info(["* ", item]) end)
-    Mix.shell().info("Escripts installed at: #{Mix.Local.path_for(:escript)}")
+    Mix.shell().info("Escripts installed at: #{Mix.path_for(:escripts)}")
   end
 end

@@ -19,8 +19,7 @@ defmodule Mix.Tasks.Escript.Uninstall do
 
   @impl true
   def run(argv) do
-    if path =
-         Mix.Local.Installer.uninstall(Mix.Local.path_for(:escript), "escript", argv, @switches) do
+    if path = Mix.Local.Installer.uninstall(Mix.path_for(:escripts), "escript", argv, @switches) do
       File.rm(path <> ".bat")
     end
   end

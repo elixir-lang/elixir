@@ -18,7 +18,7 @@ defmodule Mix.Tasks.Archive do
 
   @impl true
   def run(_) do
-    Mix.Local.path_for(:archive)
+    Mix.path_for(:archives)
     |> Path.join("*")
     |> Path.wildcard()
     |> Enum.map(&Path.basename/1)
@@ -31,6 +31,6 @@ defmodule Mix.Tasks.Archive do
 
   defp print(items) do
     Enum.each(items, fn item -> Mix.shell().info(["* ", item]) end)
-    Mix.shell().info("Archives installed at: #{Mix.Local.path_for(:archive)}")
+    Mix.shell().info("Archives installed at: #{Mix.path_for(:archives)}")
   end
 end
