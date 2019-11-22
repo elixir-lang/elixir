@@ -156,6 +156,7 @@ clean:
 	$(Q) $(MAKE) clean_residual_files
 
 clean_elixir:
+	$(Q) rm -f lib/*/ebin/*.app
 	$(Q) rm -f lib/*/ebin/Elixir.*.beam
 
 clean_residual_files:
