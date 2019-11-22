@@ -264,11 +264,11 @@ defmodule Mix.Project do
     if apps_path = config[:apps_path] do
       key = {:apps_paths, Mix.Project.get!()}
 
-      if cache = Mix.ProjectStack.read_cache(key) do
+      if cache = Mix.State.read_cache(key) do
         cache
       else
         cache = config[:apps] |> umbrella_apps(apps_path) |> to_apps_paths(apps_path)
-        Mix.ProjectStack.write_cache(key, cache)
+        Mix.State.write_cache(key, cache)
       end
     end
   end
@@ -711,7 +711,7 @@ defmodule Mix.Project do
   defp load_project(app, post_config) do
     Mix.ProjectStack.post_config(post_config)
 
-    if cached = Mix.ProjectStack.read_cache({:app, app}) do
+    if cached = Mix.State.read_cache({:app, app}) do
       {project, file} = cached
       push(project, file, app)
       project
@@ -736,7 +736,7 @@ defmodule Mix.Project do
           {nil, "nofile"}
         end
 
-      Mix.ProjectStack.write_cache({:app, app}, {new_proj, file})
+      Mix.State.write_cache({:app, app}, {new_proj, file})
       new_proj
     end
   end

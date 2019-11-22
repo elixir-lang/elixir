@@ -256,7 +256,7 @@ defmodule Mix.Tasks.DepsTest do
 
       # Remove the deps but set build_path, deps won't be pruned, but load paths are
       Mix.ProjectStack.post_config(deps: [], build_path: "_build")
-      Mix.ProjectStack.clear_cache()
+      Mix.State.clear_cache()
       Mix.Project.pop()
       Mix.Project.push(SuccessfulDepsApp)
 
@@ -267,7 +267,7 @@ defmodule Mix.Tasks.DepsTest do
 
       # Remove the deps without build_path, deps will be pruned
       Mix.ProjectStack.post_config(deps: [])
-      Mix.ProjectStack.clear_cache()
+      Mix.State.clear_cache()
       Mix.Project.pop()
       Mix.Project.push(SuccessfulDepsApp)
 
@@ -295,7 +295,7 @@ defmodule Mix.Tasks.DepsTest do
 
       # Remove the deps without build_path
       Mix.ProjectStack.post_config(deps: [])
-      Mix.ProjectStack.clear_cache()
+      Mix.State.clear_cache()
       Mix.Project.pop()
       Mix.Project.push(SuccessfulDepsApp)
       Code.delete_path("_build/dev/lib/ok/ebin")

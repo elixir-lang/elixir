@@ -398,7 +398,7 @@ defmodule Mix.Tasks.DepsGitTest do
       assert File.read!("mix.lock") =~ first
 
       Mix.Task.clear()
-      Mix.ProjectStack.clear_cache()
+      Mix.State.clear_cache()
       purge([DepsOnGitRepo.MixProject])
 
       Mix.Tasks.Deps.Update.run(["deps_on_git_repo"])
