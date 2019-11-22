@@ -6,8 +6,6 @@ env:
   LANG: C.UTF-8
 
 test_linux_task:
-  name: Linux, ${OTP_RELEASE}, Ubuntu 14.04
-
   container:
     image: buildpack-deps:trusty
     cpu: 8
@@ -17,28 +15,33 @@ test_linux_task:
     PATH: "${CIRRUS_WORKING_DIR}/otp/bin:${PATH}"
 
   matrix:
-    - env:
-        OTP_RELEASE: OTP-22.1
-        CHECK_POSIX_COMPLIANT: true
-        CHECK_REPRODUCIBLE: true
-    - env:
-        OTP_RELEASE: OTP-22.0
-    - env:
-        OTP_RELEASE: OTP-21.3.8
-    - env:
-        OTP_RELEASE: OTP-21.2
-    - env:
-        OTP_RELEASE: OTP-21.1
-    - env:
-        OTP_RELEASE: OTP-21.0
-    - env:
-        OTP_RELEASE: maint
-      allow_failures: true
-      skip_notifications: true
-    - env:
-        OTP_RELEASE: master
-      allow_failures: true
-      skip_notifications: true
+    - name: Linux, Ubuntu 14.04
+      matrix:
+        - env:
+            OTP_RELEASE: OTP-22.1
+            CHECK_POSIX_COMPLIANT: true
+            CHECK_REPRODUCIBLE: true
+        - env:
+            OTP_RELEASE: OTP-22.0
+        - env:
+            OTP_RELEASE: OTP-21.3.8
+        - env:
+            OTP_RELEASE: OTP-21.2
+        - env:
+            OTP_RELEASE: OTP-21.1
+        - env:
+            OTP_RELEASE: OTP-21.0
+    - name: Linux Nightly, Ubuntu 14.04
+      depends_on: Linux, Ubuntu 14.04
+      matrix:
+        - env:
+            OTP_RELEASE: maint
+          allow_failures: true
+          skip_notifications: true
+        - env:
+            OTP_RELEASE: master
+          allow_failures: true
+          skip_notifications: true
 
   install_script:
     - wget -O otp.tar.gz https://repo.hex.pm/builds/otp/ubuntu-14.04/${OTP_RELEASE}.tar.gz
@@ -79,7 +82,7 @@ test_linux_task:
     fi
 
 test_windows_task:
-  name: Windows, OTP-${OTP_RELEASE}, Windows Server 2019
+  name: Windows, Windows Server 2019
 
   matrix:
     - env:
