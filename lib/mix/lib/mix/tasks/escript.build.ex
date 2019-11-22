@@ -136,7 +136,7 @@ defmodule Mix.Tasks.Escript.Build do
 
   defp escriptize(project, language) do
     escript_opts = project[:escript] || []
-    script_name = Mix.Local.name_for(:escript, project)
+    script_name = Mix.Local.name_for(:escripts, project)
     filename = escript_opts[:path] || script_name
     main = escript_opts[:main_module]
 
@@ -170,7 +170,7 @@ defmodule Mix.Tasks.Escript.Build do
     # check for correct :strip_beams, then :strip_beam, then
     # use default true if neither are present.
     #
-    # TODO: Deprecate :strip_beam option
+    # TODO: Deprecate :strip_beam option on v1.13
     strip_beams? =
       Keyword.get_lazy(escript_opts, :strip_beams, fn ->
         Keyword.get(escript_opts, :strip_beam, true)

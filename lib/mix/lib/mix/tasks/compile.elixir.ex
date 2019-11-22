@@ -75,7 +75,7 @@ defmodule Mix.Tasks.Compile.Elixir do
       (project[:elixirc_options] || [])
       |> Keyword.merge(opts)
       |> xref_exclude_opts(project)
-      |> merge_tracers()
+      |> tracers_opts()
       |> profile_opts()
 
     Mix.Compilers.Elixir.compile(manifest, srcs, dest, [:ex], force, opts)
@@ -102,7 +102,7 @@ defmodule Mix.Tasks.Compile.Elixir do
     end
   end
 
-  defp merge_tracers(opts) do
+  defp tracers_opts(opts) do
     case Keyword.pop_values(opts, :tracer) do
       {[], opts} ->
         opts

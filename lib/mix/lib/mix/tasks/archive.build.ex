@@ -92,7 +92,7 @@ defmodule Mix.Tasks.Archive.Build do
           output
 
         project_config[:app] ->
-          Mix.Local.name_for(:archive, project_config)
+          Mix.Local.name_for(:archives, project_config)
 
         true ->
           Mix.raise("Cannot create archive without output file, please pass -o as an option")

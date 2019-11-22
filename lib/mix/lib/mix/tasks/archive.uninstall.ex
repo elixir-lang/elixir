@@ -19,6 +19,6 @@ defmodule Mix.Tasks.Archive.Uninstall do
 
   @impl true
   def run(argv) do
-    Mix.Local.Installer.uninstall(Mix.Local.path_for(:archive), "archive", argv, @switches)
+    Mix.Local.Installer.uninstall(Mix.path_for(:archives), "archive", argv, @switches)
   end
 end

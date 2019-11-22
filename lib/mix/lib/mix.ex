@@ -389,4 +389,17 @@ defmodule Mix do
   def raise(message) when is_binary(message) do
     Kernel.raise(Mix.Error, mix: true, message: message)
   end
+
+  @doc """
+  The path for local archives or escripts.
+  """
+  @doc since: "1.10.0"
+  @spec path_for(:archives | :escripts) :: String.t()
+  def path_for(:archives) do
+    System.get_env("MIX_ARCHIVES") || Path.join(Mix.Utils.mix_home(), "archives")
+  end
+
+  def path_for(:escripts) do
+    Path.join(Mix.Utils.mix_home(), "escripts")
+  end
 end

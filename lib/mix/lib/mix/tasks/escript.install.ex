@@ -114,13 +114,13 @@ defmodule Mix.Tasks.Escript.Install do
   @impl true
   def build(_spec, _opts) do
     Mix.Task.run("escript.build", [])
-    Mix.Local.name_for(:escript, Mix.Project.config())
+    Mix.Local.name_for(:escripts, Mix.Project.config())
   end
 
   # Helpers
 
   defp destination(basename) do
-    Path.join(Mix.Local.path_for(:escript), basename)
+    Path.join(Mix.path_for(:escripts), basename)
   end
 
   defp write_bat!(path, {:win32, _}) do
