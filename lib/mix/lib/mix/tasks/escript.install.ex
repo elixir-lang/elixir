@@ -160,7 +160,7 @@ defmodule Mix.Tasks.Escript.Install do
       # PATH is misconfigured
       current_executable != dst ->
         Mix.shell().error(
-          "\nwarning: you must append #{inspect(Mix.Local.path_for(:escript))} " <>
+          "\nwarning: you must append #{inspect(Mix.path_for(:escripts))} " <>
             "to your PATH if you want to invoke escripts by name\n"
         )
 
