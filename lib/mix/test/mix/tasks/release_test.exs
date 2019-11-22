@@ -67,6 +67,8 @@ defmodule Mix.Tasks.ReleaseTest do
           assert "releases/0.1.0/vm.args" in files
           assert "releases/COOKIE" in files
           assert "releases/start_erl.data" in files
+          assert Enum.any?(files, &(&1 =~ "erts"))
+          assert Enum.any?(files, &(&1 =~ "stdlib"))
 
           for dir <- files_with_versions -- ["ignored_app-0.1.0"] do
             [name | _] = String.split(dir, "-")
@@ -75,6 +77,29 @@ defmodule Mix.Tasks.ReleaseTest do
 
           refute "lib/ignored_app-0.1.0/ebin/ignored_app.app" in files
           refute "releases/ignored_dir/ignored" in files
+        end)
+      end)
+    end
+
+    test "tar without ERTS" do
+      in_fixture("release_test", fn ->
+        config = [releases: [demo: [include_erts: false, steps: [:assemble, :tar]]]]
+
+        Mix.Project.in_project(:release_test, ".", config, fn _ ->
+          root = Path.absname("_build/#{Mix.env()}/rel/demo")
+
+          Mix.Task.run("release")
+          tar_path = Path.expand(Path.join([root, "..", "..", "demo-0.1.0.tar.gz"]))
+          message = "* building #{tar_path}"
+          assert_received {:mix_shell, :info, [^message]}
+          assert File.exists?(tar_path)
+
+          {:ok, files} = String.to_charlist(tar_path) |> :erl_tar.table([:compressed])
+          files = Enum.map(files, &to_string/1)
+
+          assert "bin/demo" in files
+          refute Enum.any?(files, &(&1 =~ "erts"))
+          refute Enum.any?(files, &(&1 =~ "stdlib"))
         end)
       end)
     end
