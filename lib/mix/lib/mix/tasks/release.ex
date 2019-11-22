@@ -1046,7 +1046,9 @@ defmodule Mix.Tasks.Release do
         lib_dirs ++ release_files
 
     files =
-      Enum.map(dirs, &{String.to_charlist(&1), String.to_charlist(Path.join(release.path, &1))})
+      dirs
+      |> Enum.filter(&File.exists?(Path.join(release.path, &1)))
+      |> Enum.map(&{String.to_charlist(&1), String.to_charlist(Path.join(release.path, &1))})
 
     File.rm(out_path)
     :ok = :erl_tar.create(String.to_charlist(out_path), files, [:dereference, :compressed])
