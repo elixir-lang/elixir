@@ -1,7 +1,9 @@
 env:
-  ELIXIR_ASSERT_TIMEOUT: 2000
-  LANG: C.UTF-8
   CIRRUS_CLONE_DEPTH: 1
+  ELIXIR_ASSERT_TIMEOUT: 2000
+  ELIXIRC_OPTS: "--warnings-as-errors"
+  ERLC_OPTS: "+warning_as_errors"
+  LANG: C.UTF-8
 
 test_linux_task:
   name: Linux, ${OTP_RELEASE}, Ubuntu 14.04
@@ -12,8 +14,6 @@ test_linux_task:
     memory: 1500Mi
 
   env:
-    ELIXIRC_OPTS: "--warnings-as-errors"
-    ERLC_OPTS: "+warning_as_errors"
     PATH: "${CIRRUS_WORKING_DIR}/otp/bin:${PATH}"
 
   matrix:
