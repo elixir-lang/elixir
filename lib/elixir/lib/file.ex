@@ -1612,7 +1612,7 @@ defmodule File do
   in raw mode for performance reasons. Therefore, Elixir **will** open
   streams in `:raw` mode with the `:read_ahead` option unless an encoding
   is specified. This means any data streamed into the file must be
-  converted to `t:iodata/0` type. If you pass e.g. `[encoding: :utf8]`
+  converted to `t:iodata/0` type. If you pass, for example, `[encoding: :utf8]`
   or `[encoding: {:utf16, :little}]` in the modes parameter,
   the underlying stream will use `IO.write/2` and the `String.Chars` protocol
   to convert the data. See `IO.binwrite/2` and `IO.write/2` .

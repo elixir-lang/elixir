@@ -252,7 +252,7 @@ defmodule Application do
       application specification key `:start_phases` is not `:undefined`.
 
   `start_args` are the arguments passed to the application in the `:mod`
-  specification key (e.g., `mod: {MyApp, [:my_args]}`).
+  specification key (for example, `mod: {MyApp, [:my_args]}`).
 
   This function should either return `{:ok, pid}` or `{:ok, pid, state}` if
   startup is successful. `pid` should be the PID of the top supervisor. `state`

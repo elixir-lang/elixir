@@ -134,7 +134,7 @@ parse_error(Line, File, {ErrorPrefix, ErrorSuffix}, Token) when is_binary(ErrorP
   Message = <<ErrorPrefix/binary, Token/binary, ErrorSuffix/binary >>,
   raise(Line, File, 'Elixir.SyntaxError', Message);
 
-%% Misplaced char tokens (e.g., {char, _, 97}) are translated by Erlang into
+%% Misplaced char tokens (for example, {char, _, 97}) are translated by Erlang into
 %% the char literal (i.e., the token in the previous example becomes $a),
 %% because {char, _, _} is a valid Erlang token for an Erlang char literal. We
 %% want to represent that token as ?a in the error, according to the Elixir

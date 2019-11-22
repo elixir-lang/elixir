@@ -673,11 +673,11 @@ defmodule Code.Formatter do
 
   # There are five kinds of operators.
   #
-  #   1. no space binary operators, e.g. 1..2
-  #   2. no newline binary operators, e.g. left in right
-  #   3. strict newlines before a left precedent operator, e.g. foo |> bar |> baz
-  #   4. strict newlines before a right precedent operator, e.g. foo when bar when baz
-  #   5. flex newlines after the operator, e.g. foo ++ bar ++ baz
+  #   1. no space binary operators, for example,  1..2
+  #   2. no newline binary operators, for example, left in right
+  #   3. strict newlines before a left precedent operator, for example, foo |> bar |> baz
+  #   4. strict newlines before a right precedent operator, for example, foo when bar when baz
+  #   5. flex newlines after the operator, for example, foo ++ bar ++ baz
   #
   # Cases 1, 2 and 5 are handled fairly easily by relying on the
   # operator precedence and making sure nesting is applied only once.
