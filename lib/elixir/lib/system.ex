@@ -312,7 +312,9 @@ defmodule System do
   """
   @spec user_home() :: String.t() | nil
   def user_home do
-    :elixir_config.get(:home)
+    {:ok, [[home] | _]} = :init.get_argument(:home)
+    encoding = :file.native_name_encoding()
+    :unicode.characters_to_binary(home, encoding, encoding)
   end
 
   @doc """
