@@ -508,10 +508,32 @@ defmodule URI do
 
   ## Examples
 
-      iex> URI.to_string(URI.parse("http://google.com"))
+      iex> uri = URI.parse("http://google.com")
+      %URI{
+        authority: "google.com",
+        fragment: nil,
+        host: "google.com",
+        path: nil,
+        port: 80,
+        query: nil,
+        scheme: "http",
+        userinfo: nil
+      }
+      iex> URI.to_string(uri)
       "http://google.com"
 
-      iex> URI.to_string(%URI{scheme: "foo", host: "bar.baz"})
+      iex> uri = URI.parse("foo://bar.baz")
+      %URI{
+        authority: "bar.baz",
+        fragment: nil,
+        host: "bar.baz",
+        path: nil,
+        port: nil,
+        query: nil,
+        scheme: "foo",
+        userinfo: nil
+      }
+      iex> URI.to_string(uri)
       "foo://bar.baz"
 
   Note that when creating this string representation, the `:authority` value will be
