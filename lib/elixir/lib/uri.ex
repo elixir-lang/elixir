@@ -234,7 +234,7 @@ defmodule URI do
   the following characters are unreserved:
 
     * Alphanumeric characters: `A-Z`, `a-z`, `0-9`
-    * `~`, `_`, `-`
+    * `~`, `_`, `-`, `.`
 
   ## Examples
 
