@@ -348,11 +348,11 @@ defmodule URITest do
              "//user:password@google.com/"
 
     assert_raise ArgumentError,
-                 ~r":path in URI must be nil or an absolute path if host or authority are given",
+                 ~r":path in URI must be nil or an absolute path if :host or :authority are given",
                  fn -> %URI{authority: "foo.com", path: "hello/123"} |> URI.to_string() end
 
     assert_raise ArgumentError,
-                 ~r":path in URI must be nil or an absolute path if host or authority are given",
+                 ~r":path in URI must be nil or an absolute path if :host or :authority are given",
                  fn -> %URI{host: "foo.com", path: "hello/123"} |> URI.to_string() end
   end
 
