@@ -628,7 +628,7 @@ end
 defimpl String.Chars, for: URI do
   def to_string(%{host: host, authority: authority, path: path} = uri)
       when (host != nil or authority != nil) and is_binary(path) and
-             binary_part(path, 0, 1) != "/" do
+             path != "" and binary_part(path, 0, 1) != "/" do
     raise ArgumentError,
           ":path in URI must be nil or an absolute path if :host or :authority are given, " <>
             "got: #{inspect(uri)}"
