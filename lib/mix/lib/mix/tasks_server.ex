@@ -9,29 +9,23 @@ defmodule Mix.TasksServer do
     Agent.start_link(fn -> %{} end, name: @name)
   end
 
-  def clear() do
-    update(fn _ -> %{} end)
-  end
-
   def run(tuple) do
-    get_and_update(fn set ->
-      {not Map.has_key?(set, tuple), Map.put(set, tuple, true)}
-    end)
+    Agent.get_and_update(
+      @name,
+      fn set -> {not Map.has_key?(set, tuple), Map.put(set, tuple, true)} end,
+      @timeout
+    )
   end
 
   def put(tuple) do
-    update(&Map.put(&1, tuple, true))
+    Agent.update(@name, &Map.put(&1, tuple, true), @timeout)
   end
 
   def delete_many(many) do
-    update(&Map.drop(&1, many))
+    Agent.update(@name, &Map.drop(&1, many), @timeout)
   end
 
-  defp get_and_update(fun) do
-    Agent.get_and_update(@name, fun, @timeout)
-  end
-
-  defp update(fun) do
-    Agent.update(@name, fun, @timeout)
+  def clear() do
+    Agent.update(@name, fn _ -> %{} end, @timeout)
   end
 end
