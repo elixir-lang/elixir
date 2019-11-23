@@ -342,9 +342,18 @@ defmodule URITest do
     assert to_string(URI.parse("http://[2001:db8::]")) == "http://[2001:db8::]"
 
     assert URI.to_string(URI.parse("http://google.com")) == "http://google.com"
+    assert URI.to_string(URI.parse("gid:hello/123")) == "gid:hello/123"
 
     assert URI.to_string(URI.parse("//user:password@google.com/")) ==
              "//user:password@google.com/"
+
+    assert_raise ArgumentError,
+                 ~r":path in URI must be nil or an absolute path if :host or :authority are given",
+                 fn -> %URI{authority: "foo.com", path: "hello/123"} |> URI.to_string() end
+
+    assert_raise ArgumentError,
+                 ~r":path in URI must be nil or an absolute path if :host or :authority are given",
+                 fn -> %URI{host: "foo.com", path: "hello/123"} |> URI.to_string() end
   end
 
   test "merge/2" do
