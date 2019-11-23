@@ -56,6 +56,49 @@ defmodule Logger do
   printed to the console. If your log level is set to `:warn`, only
   `:warn` and `:error` will be printed.
 
+  ## Metadata
+
+  Whenever a message is logged, additional information can be given
+  via metadata. Each log operation, such as `Logger.info/3`, allows
+  metadata to be given as argument.
+
+  Furthermore, metadata can be set per process with `Logger.metadata/1`.
+
+  Some metadata, however, is always added automatically by Logger
+  whenever possible. Those are:
+
+    * `:application` - the current application
+
+    * `:mfa` - the current module, function and arity
+
+    * `:file` - the current file
+
+    * `:line` - the current line
+
+    * `:pid` - the current process identifier
+
+    * `:initial_call` - the initial call that started the process
+
+    * `:registered_name` - the process registered name as an atom
+
+    * `:domain` - a list of domains for the logged message. For example,
+      all Elixir reports default to `[:elixir]`. Erlang reports may start
+      with `[:otp]` or `[:sasl]`
+
+    * `:crash_reason` - a two-element tuple with the throw/error/exit reason
+      as first argument and the stacktrace as second. A throw will always be
+      `{:nocatch, term}`. An error is always an `Exception` struct. All other
+      entries are exits. The console backend ignores this metadata by default
+      but it can be useful to other backends, such as the ones that report
+      errors to third-party services
+
+  Note that all metadata is optional and may not always be available.
+  The `:mfa`, `:file`, `:line`, and similar metadata are automatically
+  included when using `Logger` macros. `Logger.bare_log/3` does not include
+  any metadata beyond the `:pid` by default. Other metadata, such as
+  `:crash_reason`, `:initial_call`, and `:registered_name` are available
+  only inside behaviours such as GenServer, Supervisor, and others.
+
   ## Configuration
 
   `Logger` supports a wide range of configurations.
@@ -81,9 +124,7 @@ defmodule Logger do
 
     * `:compile_time_application` - sets the `:application` metadata value
       to the configured value at compilation time. This configuration is
-      usually only useful for build tools to automatically add the
-      application to the metadata for `Logger.debug/2`, `Logger.info/2`, etc.
-      style of calls.
+      automatically set by Mix and made available as metadata when logging.
 
     * `:compile_time_purge_matching` - purges *at compilation time* all calls
       that match the given conditions. This means that `Logger` calls with
@@ -177,8 +218,8 @@ defmodule Logger do
   ### Erlang/OTP integration
 
   From Elixir v1.10, Elixir's Logger is fully integrated with Erlang's
-  logger. This means setting the level in Elixir's Logger changes
-  Erlang's Logge and vice-versa.
+  logger. They share the same `Logger.level/0`, any metadata set with
+  `Logger.metadata/1` applies to both, and so on.
 
   Elixir also supports formatting Erlang reports using Elixir syntax.
   This can be controlled with two configurations:
@@ -224,8 +265,8 @@ defmodule Logger do
 
   ### Console backend
 
-  The console backend logs messages by printing them to the console. It supports
-  the following options:
+  The console backend logs messages by printing them to the console.
+  It supports the following options:
 
     * `:level` - the level to be logged by this backend.
       Note that messages are filtered by the general
@@ -276,18 +317,19 @@ defmodule Logger do
 
   ### Custom formatting
 
-  The console backend allows you to customize the format of your log messages
-  with the `:format` option.
+  The console backend allows you to customize the format of your
+  log messages with the `:format` option.
 
-  You may set `:format` to either a string or a `{module, function}` tuple if
-  you wish to provide your own format function. Here is an example of how to
-  configure the `:console` backend in a `config/config.exs` file:
+  You may set `:format` to either a string or a `{module, function}`
+  tuple if you wish to provide your own format function. Here is an
+  example of how to configure the `:console` backend in a
+  `config/config.exs` file:
 
       config :logger, :console,
         format: {MyConsoleLogger, :format}
 
-  And here is an example of how you can define `MyConsoleLogger.format/4` from the
-  above configuration:
+  And here is an example of how you can define `MyConsoleLogger.format/4`
+  from the above configuration:
 
       defmodule MyConsoleLogger do
         def format(level, message, timestamp, metadata) do
@@ -295,10 +337,10 @@ defmodule Logger do
         end
       end
 
-  It is extremely important that **the formatting function does not fail**, as
-  it will bring that particular logger instance down, causing your system to
-  temporarily lose messages. If necessary, wrap the function in a `rescue` and
-  log a default message instead:
+  It is extremely important that **the formatting function does
+  not fail**, as it will bring that particular logger instance down,
+  causing your system to temporarily lose messages. If necessary,
+  wrap the function in a `rescue` and log a default message instead:
 
       defmodule MyConsoleLogger do
         def format(level, message, timestamp, metadata) do
@@ -311,75 +353,37 @@ defmodule Logger do
   The `{module, function}` will be invoked with four arguments:
 
     * the log level: an atom
-    * the message: this is usually chardata, but in some cases it may not be.
-      Since the formatting function should *never* fail, you need to prepare for
-      the message being anything (and do something like the `rescue` in the example
-      above)
+    * the message: this is usually chardata, but in some cases it
+      may contain invalid data. Since the formatting function should
+      *never* fail, you need to prepare for the message being anything
     * the current timestamp: a term of type `t:Logger.Formatter.time/0`
     * the metadata: a keyword list
 
-  You can read more about formatting in `Logger.Formatter`, especially if you
-  want to support custom formatting in a custom backend.
+  You can read more about formatting in `Logger.Formatter`, especially
+  if you want to support custom formatting in a custom backend.
 
-  ## Metadata
+  ### Custom backends
 
-  In addition to the keys provided by the user via `Logger.metadata/1`,
-  the following extra keys are available to the `:metadata` list:
-
-    * `:application` - the current application
-
-    * `:mfa` - the current module, function and arity
-
-    * `:file` - the current file
-
-    * `:line` - the current line
-
-    * `:pid` - the current process identifier
-
-    * `:crash_reason` - a two-element tuple with the throw/error/exit reason
-      as first argument and the stacktrace as second. A throw will always be
-      `{:nocatch, term}`. An error is always an `Exception` struct. All other
-      entries are exits. The console backend ignores this metadata by default
-      but it can be useful to other backends, such as the ones that report
-      errors to third-party services
-
-    * `:initial_call` - the initial call that started the process
-
-    * `:registered_name` - the process registered name as an atom
-
-    * `:domain` - a list of domains for the logged message. For example,
-      all Elixir reports default to `[:elixir]`. Erlang reports may start
-      with `[:otp]` or `[:sasl]`
-
-  Note that all metadata is optional and may not always be available.
-  The `:mfa`, `:file`, `:line`, and similar metadata are automatically
-  included when using `Logger` macros. `Logger.bare_log/3` does not include
-  any metadata beyond the `:pid` by default. Other metadata, such as
-  `:crash_reason`, `:initial_call`, and `:registered_name` are extracted
-  from Erlang/OTP reports and available only in those cases.
-
-  ## Custom backends
-
-  Any developer can create their own `Logger` backend.
-  Since `Logger` is an event manager powered by `:gen_event`,
-  writing a new backend is a matter of creating an event
-  handler, as described in the [`:gen_event`](http://erlang.org/doc/man/gen_event.html)
-  documentation.
+  Any developer can create their own `Logger` backend. Since `Logger`
+  is an event manager powered by `:gen_event`, writing a new backend
+  is a matter of creating an event handler, as described in the
+  [`:gen_event`](http://erlang.org/doc/man/gen_event.html) documentation.
 
   From now on, we will be using the term "event handler" to refer
   to your custom backend, as we head into implementation details.
 
-  Once the `:logger` application starts, it installs all event handlers listed under
-  the `:backends` configuration into the `Logger` event manager. The event
-  manager and all added event handlers are automatically supervised by `Logger`.
+  Once the `:logger` application starts, it installs all event handlers
+  listed under the `:backends` configuration into the `Logger` event
+  manager. The event manager and all added event handlers are automatically
+  supervised by `Logger`.
 
-  Note that if a backend fails to start by returning `{:error, :ignore}` from its
-  `init/1` callback, then it's not added to the backends but nothing fails. If a
-  backend fails to start by returning `{:error, reason}` from its `init/1` callback,
-  the `:logger` application will fail to start.
+  Note that if a backend fails to start by returning `{:error, :ignore}`
+  from its `init/1` callback, then it's not added to the backends but
+  nothing fails. If a backend fails to start by returning `{:error, reason}`
+  from its `init/1` callback, the `:logger` application will fail to start.
 
-  Once initialized, the handler should be designed to handle the following
-  events:
+  Once initialized, the handler should be designed to handle the
+  following events:
 
     * `{level, group_leader, {Logger, message, timestamp, metadata}}` where:
       * `level` is one of `:debug`, `:info`, `:warn`, or `:error`, as previously
@@ -395,43 +399,87 @@ defmodule Logger do
 
     * `:flush`
 
-  It is recommended that handlers ignore messages where
-  the group leader is in a different node than the one where
-  the handler is installed. For example:
+  It is recommended that handlers ignore messages where the group
+  leader is in a different node than the one where the handler is
+  installed. For example:
 
       def handle_event({_level, gl, {Logger, _, _, _}}, state)
           when node(gl) != node() do
         {:ok, state}
       end
 
-  In the case of the event `:flush` handlers should flush any pending data. This
-  event is triggered by `flush/0`.
+  In the case of the event `:flush` handlers should flush any pending
+  data. This event is triggered by `Logger.flush/0`.
 
-  Furthermore, backends can be configured via the
-  `configure_backend/2` function which requires event handlers
-  to handle calls of the following format:
+  Furthermore, backends can be configured via the `configure_backend/2`
+  function which requires event handlers to handle calls of the
+  following format:
 
       {:configure, options}
 
-  where `options` is a keyword list. The result of the call is
-  the result returned by `configure_backend/2`. The recommended
-  return value for successful configuration is `:ok`. For example
+  where `options` is a keyword list. The result of the call is the result
+  returned by `configure_backend/2`. The recommended return value for
+  successful configuration is `:ok`. For example:
 
       def handle_call({:configure, options}, state) do
         new_state = reconfigure_state(state, options)
         {:ok, :ok, new_state}
       end
 
-  It is recommended that backends support at least the following
-  configuration options:
+  It is recommended that backends support at least the following configuration
+  options:
 
     * `:level` - the logging level for that backend
     * `:format` - the logging format for that backend
     * `:metadata` - the metadata to include in that backend
 
-  Check the implementation for `Logger.Backends.Console`, for
-  examples on how to handle the recommendations in this section
-  and how to process the existing options.
+  Check `Logger.Backends.Console`'s implementation for examples on how
+  to handle the recommendations in this section and how to process the
+  existing options.
+
+  ### Erlang/OTP handlers
+
+  While Elixir Logger provides backends, Erlang/OTP logger provides handlers.
+  Conceptually, they represent the same concept, which is the ability to
+  integrate into the logging system to handle each logged message/event.
+
+  However, implementation-wise, they have the following differences:
+
+    * Elixir backends run in a separate process which comes with overload
+      protection. However, because this process is a single GenEvent, any
+      long running action should be avoided, as it can lead to bottlenecks
+      in the system
+
+    * Erlang handlers run in the same process as the process logging the
+      message/event. This gives developers more flexibility but they should
+      avoid perform any long running action in such handlers, as it may
+      slow down the action being executed considerably. At the moment, there
+      is no built-in overload protection for Erlang handlers, so it is your
+      responsibility to implement it
+
+  The good news is that developers can use third-party implementations for
+  both Elixir backends and Erlang handlers.
+
+  Elixir backends can be configured directly in your config/config.exs:
+
+      config :logger, backends: [ACustomBackend]
+
+  Erlang/OTP handlers must be listed under your own application:
+
+      config :my_app, :logger,
+        [:handler, :name_of_the_handler, ACustomHandler, configuration = %{}]
+
+  And then explicitly attached in your `c:Application.start/2` callback:
+
+      :logger.add_handlers(:my_app)
+
+  Note we do not recommend configuring Erlang/OTP's logger directly under
+  the `:kernel` application in your `config/config.exs` like this:
+
+      config :kernel, :logger, ...
+
+  This is because by the time Elixir starts, Erlang's kernel has already
+  been started, which makes it impossible to configure it.
   """
 
   @type level :: :error | :warn | :info | :debug
