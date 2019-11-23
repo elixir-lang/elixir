@@ -287,18 +287,27 @@ defmodule Mix.Task do
     proj = Mix.Project.get()
     alias = Mix.Project.config()[:aliases][String.to_atom(task)]
 
-    cond do
-      alias && Mix.TasksServer.run({:alias, task, proj}) ->
-        res = run_alias(List.wrap(alias), args, :ok)
-        Mix.TasksServer.put({:task, task, proj})
-        res
+    result =
+      cond do
+        alias && Mix.TasksServer.run({:alias, task, proj}) ->
+          res = run_alias(List.wrap(alias), args, :ok)
+          Mix.TasksServer.put({:task, task, proj})
+          res
 
-      Mix.TasksServer.run({:task, task, proj}) ->
-        run_task(proj, task, args)
+        Mix.TasksServer.run({:task, task, proj}) ->
+          run_task(proj, task, args)
 
-      true ->
-        :noop
+        true ->
+          :noop
+      end
+
+    {opts, _, _} = OptionParser.parse(args, strict: [halt: :boolean])
+
+    if task == "run" and not Keyword.get(opts, :halt, true) do
+      Process.sleep(:infinity)
     end
+
+    result
   end
 
   defp run_task(proj, task, args) do
@@ -309,8 +318,7 @@ defmodule Mix.Task do
     # 3. Finally, we compile the current project in hope it is available.
     module =
       get_task_or_run(proj, task, fn -> Mix.Task.run("deps.loadpaths") end) ||
-        get_task_or_run(proj, task, fn -> Mix.Project.compile([]) end) ||
-        get!(task)
+        get_task_or_run(proj, task, fn -> Mix.Project.compile([]) end) || get!(task)
 
     recursive = recursive(module)
 
