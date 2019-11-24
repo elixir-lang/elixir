@@ -39,9 +39,15 @@ defmodule Config.Provider do
         end
       end
 
-  Then when specifying your release, you can specify the provider:
+  Then when specifying your release, you can specify the provider in
+  the release configuration:
 
-      config_providers: [{JSONConfigProvider, "/etc/config.json"}]
+      releases: [
+        demo: [
+          # ...,
+          config_providers: [{JSONConfigProvider, "/etc/config.json"}]
+        ]
+      ]
 
   Now once the system boots, it will invoke the provider early in
   the boot process, save the merged configuration to the disk, and
