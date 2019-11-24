@@ -529,6 +529,8 @@ defmodule System do
 
   For more information, see `:os.getpid/0`.
   """
+  # TODO: deprecate permanently on v1.13
+  @doc deprecated: "Use System.pid/0 instead"
   @spec get_pid() :: binary
   def get_pid, do: IO.iodata_to_binary(:os.getpid())
 
