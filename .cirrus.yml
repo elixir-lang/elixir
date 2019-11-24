@@ -4,9 +4,11 @@ env:
   ELIXIRC_OPTS: "--warnings-as-errors"
   ERLC_OPTS: "+warning_as_errors"
   LANG: C.UTF-8
+  THE_CIRRUS_BRANCH: $CIRRUS_BRANCH
+  # CIRRUS_BRANCH: ${CIRRUS_BRANCH}
 
 test_linux_task:
-  name: Linux, ${OTP_RELEASE}, Ubuntu 14.04
+  name: ${CIRRUS_BRANCH}, Linux, ${OTP_RELEASE}, Ubuntu 14.04
 
   container:
     image: buildpack-deps:trusty
@@ -15,6 +17,8 @@ test_linux_task:
 
   env:
     PATH: "${CIRRUS_WORKING_DIR}/otp/bin:${PATH}"
+
+  # auto_cancellation: $CIRRUS_BRANCH != 'master' && $CIRRUS_BRANCH !=~ 'release/.*'
 
   matrix:
     - env:
