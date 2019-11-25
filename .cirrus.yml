@@ -5,9 +5,8 @@ env:
   ERLC_OPTS: "+warning_as_errors"
   LANG: C.UTF-8
 
-test_linux_task:
-  name: Linux, ${OTP_RELEASE}, Ubuntu 14.04
 
+test_linux_task:
   container:
     image: buildpack-deps:trusty
     cpu: 8
@@ -17,28 +16,33 @@ test_linux_task:
     PATH: "${CIRRUS_WORKING_DIR}/otp/bin:${PATH}"
 
   matrix:
-    - env:
-        OTP_RELEASE: OTP-22.1
-        CHECK_POSIX_COMPLIANT: true
-        CHECK_REPRODUCIBLE: true
-    - env:
-        OTP_RELEASE: OTP-22.0
-    - env:
-        OTP_RELEASE: OTP-21.3.8
-    - env:
-        OTP_RELEASE: OTP-21.2
-    - env:
-        OTP_RELEASE: OTP-21.1
-    - env:
-        OTP_RELEASE: OTP-21.0
-    - env:
-        OTP_RELEASE: maint
+    - name: Linux, ${OTP_RELEASE}, Ubuntu 14.04
+      matrix:
+        - env:
+            OTP_RELEASE: OTP-22.1
+            CHECK_POSIX_COMPLIANT: true
+            CHECK_REPRODUCIBLE: true
+        - env:
+            OTP_RELEASE: OTP-22.1
+        - env:
+            OTP_RELEASE: OTP-22.0
+        - env:
+            OTP_RELEASE: OTP-21.3.8
+        - env:
+            OTP_RELEASE: OTP-21.2
+        - env:
+            OTP_RELEASE: OTP-21.1
+        - env:
+            OTP_RELEASE: OTP-21.0
+
+    - name: Linux, OTP-${OTP_RELEASE}, development, Ubuntu 14.04
       allow_failures: true
       skip_notifications: true
-    - env:
-        OTP_RELEASE: master
-      allow_failures: true
-      skip_notifications: true
+      matrix:
+        - env:
+            OTP_RELEASE: master
+        - env:
+            OTP_RELEASE: maint
 
   install_script:
     - wget -O otp.tar.gz https://repo.hex.pm/builds/otp/ubuntu-14.04/${OTP_RELEASE}.tar.gz
@@ -77,6 +81,7 @@ test_linux_task:
     else
       echo "The format reproducibility of the build is only checked in the last stable Erlang/OTP version."
     fi
+
 
 test_windows_task:
   name: Windows, OTP-${OTP_RELEASE}, Windows Server 2019
