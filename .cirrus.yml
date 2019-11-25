@@ -35,7 +35,7 @@ test_linux_task:
         - env:
             OTP_RELEASE: OTP-21.0
 
-    - name: Linux, OTP-${OTP_RELEASE}, developement, Ubuntu 14.04
+    - name: Linux, OTP-${OTP_RELEASE}, development, Ubuntu 14.04
       allow_failures: true
       skip_notifications: true
       matrix:
