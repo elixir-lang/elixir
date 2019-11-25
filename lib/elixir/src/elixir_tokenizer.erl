@@ -960,7 +960,7 @@ extract_heredoc_body(Line, Column, Marker, Rest, Buffer) ->
   end.
 
 %% Extract a line from the heredoc prepending its contents to a buffer.
-%% Allow lazy escaping (e.g. \""")
+%% Allow lazy escaping (for example, \""")
 
 extract_heredoc_line(Marker, [$\\, $\\ | T], Buffer) ->
   extract_heredoc_line(Marker, T, [$\\, $\\ | Buffer]);

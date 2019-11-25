@@ -243,11 +243,11 @@ defmodule Mix.Tasks.Release do
   To deploy straight from a host to a separate target without cross-compilation,
   the following must be the same between the host and the target:
 
-    * Target architecture (e.g. x86_64 vs ARM)
-    * Target vendor + operating system  (e.g. Windows, Linux, Darwin/macOS)
-    * Target ABI (e.g. musl, gnu)
+    * Target architecture (for example, x86_64 or ARM)
+    * Target vendor + operating system  (for example, Windows, Linux, or Darwin/macOS)
+    * Target ABI (for example, musl or gnu)
 
-  This is often represented in the form of target triples, e.g.
+  This is often represented in the form of target triples, for example,
   `x86_64-unknown-linux-gnu`, `x86_64-unknown-linux-musl`, `x86_64-apple-darwin`.
 
   So to be more precise, to deploy straight from a host to a separate target,
@@ -1046,7 +1046,9 @@ defmodule Mix.Tasks.Release do
         lib_dirs ++ release_files
 
     files =
-      Enum.map(dirs, &{String.to_charlist(&1), String.to_charlist(Path.join(release.path, &1))})
+      dirs
+      |> Enum.filter(&File.exists?(Path.join(release.path, &1)))
+      |> Enum.map(&{String.to_charlist(&1), String.to_charlist(Path.join(release.path, &1))})
 
     File.rm(out_path)
     :ok = :erl_tar.create(String.to_charlist(out_path), files, [:dereference, :compressed])

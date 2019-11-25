@@ -312,7 +312,9 @@ defmodule System do
   """
   @spec user_home() :: String.t() | nil
   def user_home do
-    :elixir_config.get(:home)
+    {:ok, [[home] | _]} = :init.get_argument(:home)
+    encoding = :file.native_name_encoding()
+    :unicode.characters_to_binary(home, encoding, encoding)
   end
 
   @doc """
@@ -527,6 +529,8 @@ defmodule System do
 
   For more information, see `:os.getpid/0`.
   """
+  # TODO: deprecate permanently on v1.13
+  @doc deprecated: "Use System.pid/0 instead"
   @spec get_pid() :: binary
   def get_pid, do: IO.iodata_to_binary(:os.getpid())
 
@@ -944,7 +948,7 @@ defmodule System do
   time and the Erlang VM system time.
 
   The result is returned in the given time unit `unit`. The returned
-  offset, added to an Erlang monotonic time (e.g., obtained with
+  offset, added to an Erlang monotonic time (for instance, one obtained with
   `monotonic_time/1`), gives the Erlang system time that corresponds
   to that monotonic time.
   """

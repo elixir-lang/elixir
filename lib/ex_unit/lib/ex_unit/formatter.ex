@@ -142,16 +142,20 @@ defmodule ExUnit.Formatter do
   defp format_assertion_error(test, struct, stack, width, formatter, counter_padding) do
     label_padding_size = if has_value?(struct.right), do: 7, else: 6
     padding_size = label_padding_size + byte_size(@counter_padding)
-    inspect = &inspect_multiline(&1, padding_size, width)
+
+    code_multiline =
+      if struct.doctest != @no_value,
+        do: &pad_multiline(&1, padding_size),
+        else: &code_multiline(&1, padding_size)
 
     [
       note: if_value(struct.message, &format_message(&1, formatter)),
-      doctest: if_value(struct.doctest, &code_multiline(&1, 2 + byte_size(@counter_padding))),
-      code: if_value(struct.expr, &code_multiline(&1, padding_size)),
+      doctest: if_value(struct.doctest, &pad_multiline(&1, 2 + byte_size(@counter_padding))),
+      code: if_value(struct.expr, code_multiline),
       code: unless_value(struct.expr, fn -> get_code(test, stack) || @no_value end),
       arguments: if_value(struct.args, &format_args(&1, width))
     ]
-    |> Kernel.++(format_context(struct, formatter, inspect, padding_size, width))
+    |> Kernel.++(format_context(struct, formatter, padding_size, width))
     |> format_meta(formatter, counter_padding, label_padding_size)
     |> IO.iodata_to_binary()
   end
@@ -285,17 +289,12 @@ defmodule ExUnit.Formatter do
     ["\n" | entries]
   end
 
-  defp code_multiline(expr, padding_size) when is_binary(expr) do
-    padding = String.duplicate(" ", padding_size)
-    String.replace(expr, "\n", "\n" <> padding)
-  end
-
   defp code_multiline({fun, _, [expr]}, padding_size) when is_atom(fun) do
-    code_multiline(Atom.to_string(fun) <> " " <> Macro.to_string(expr), padding_size)
+    pad_multiline(Atom.to_string(fun) <> " " <> Macro.to_string(expr), padding_size)
   end
 
   defp code_multiline(expr, padding_size) do
-    code_multiline(Macro.to_string(expr), padding_size)
+    pad_multiline(Macro.to_string(expr), padding_size)
   end
 
   defp inspect_multiline(expr, padding_size, width) do
@@ -308,14 +307,13 @@ defmodule ExUnit.Formatter do
     |> Algebra.format(width)
   end
 
-  defp format_context(%{context: {:mailbox, _pins, []}}, _, _, _, _) do
+  defp format_context(%{context: {:mailbox, _pins, []}}, _, _, _) do
     []
   end
 
   defp format_context(
          %{left: left, context: {:mailbox, pins, mailbox}},
          formatter,
-         inspect,
          padding_size,
          width
        ) do
@@ -327,7 +325,6 @@ defmodule ExUnit.Formatter do
             message,
             {:match, pins},
             formatter,
-            inspect,
             padding_size + 5,
             width - 5
           )
@@ -350,15 +347,15 @@ defmodule ExUnit.Formatter do
   defp format_context(
          %{left: left, right: right, context: context},
          formatter,
-         inspect,
          padding_size,
          width
        ) do
-    {left, right} = format_sides(left, right, context, formatter, inspect, padding_size, width)
+    {left, right} = format_sides(left, right, context, formatter, padding_size, width)
     [left: left, right: right]
   end
 
-  defp format_sides(left, right, context, formatter, inspect, padding_size, width) do
+  defp format_sides(left, right, context, formatter, padding_size, width) do
+    inspect = &inspect_multiline(&1, padding_size, width)
     content_width = if width == :infinity, do: width, else: width - padding_size
 
     case format_diff(left, right, context, formatter) do
@@ -377,8 +374,11 @@ defmodule ExUnit.Formatter do
 
         {left, right}
 
-      nil ->
+      nil when formatter == :expr ->
         {if_value(left, inspect), if_value(right, inspect)}
+
+      nil ->
+        {if_value(left, &code_multiline(&1, padding_size)), if_value(right, inspect)}
     end
   end
 
@@ -472,7 +472,12 @@ defmodule ExUnit.Formatter do
   defp test_location(msg, formatter), do: test_location(formatter.(:location_info, msg), nil)
 
   defp pad(msg) do
-    "     " <> String.replace(msg, "\n", "\n     ") <> "\n"
+    "     " <> pad_multiline(msg, 5) <> "\n"
+  end
+
+  defp pad_multiline(expr, padding_size) when is_binary(expr) do
+    padding = String.duplicate(" ", padding_size)
+    String.replace(expr, "\n", "\n" <> padding)
   end
 
   defp error_info(msg, nil), do: pad(msg)

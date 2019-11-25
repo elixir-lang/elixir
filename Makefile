@@ -132,11 +132,13 @@ check_reproducible: compile
 	$(call WRITE_SOURCE_DATE_EPOCH)
 	$(Q) mkdir -p lib/elixir/tmp/ebin_reproducible/ \
 	              lib/eex/tmp/ebin_reproducible/ \
+	              lib/ex_unit/tmp/ebin_reproducible/ \
 	              lib/iex/tmp/ebin_reproducible/ \
 	              lib/logger/tmp/ebin_reproducible/ \
 	              lib/mix/tmp/ebin_reproducible/
 	$(Q) mv lib/elixir/ebin/* lib/elixir/tmp/ebin_reproducible/
 	$(Q) mv lib/eex/ebin/* lib/eex/tmp/ebin_reproducible/
+	$(Q) mv lib/ex_unit/ebin/* lib/ex_unit/tmp/ebin_reproducible/
 	$(Q) mv lib/iex/ebin/* lib/iex/tmp/ebin_reproducible/
 	$(Q) mv lib/logger/ebin/* lib/logger/tmp/ebin_reproducible/
 	$(Q) mv lib/mix/ebin/* lib/mix/tmp/ebin_reproducible/
@@ -144,6 +146,7 @@ check_reproducible: compile
 	$(Q) echo "Diffing..."
 	$(Q) diff -r lib/elixir/ebin/ lib/elixir/tmp/ebin_reproducible/
 	$(Q) diff -r lib/eex/ebin/ lib/eex/tmp/ebin_reproducible/
+	$(Q) diff -r lib/ex_unit/ebin/ lib/ex_unit/tmp/ebin_reproducible/
 	$(Q) diff -r lib/iex/ebin/ lib/iex/tmp/ebin_reproducible/
 	$(Q) diff -r lib/logger/ebin/ lib/logger/tmp/ebin_reproducible/
 	$(Q) diff -r lib/mix/ebin/ lib/mix/tmp/ebin_reproducible/
@@ -236,6 +239,7 @@ zips: Precompiled.zip Docs.zip
 
 #==> Test tasks
 
+# If you modify this task, please update .cirrus.yml accordingly
 test: test_formatted test_erlang test_elixir
 
 test_windows: test test_taskkill

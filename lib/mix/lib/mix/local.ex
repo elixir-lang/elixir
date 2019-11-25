@@ -3,27 +3,25 @@ defmodule Mix.Local do
 
   @public_keys_html "https://repo.hex.pm/installs/public_keys.html"
 
-  @type item :: :archive | :escript
-
   @doc """
   Returns the name for an archive or an escript, based on the project config.
 
   ## Examples
 
-      iex> Mix.Local.name_for(:archive, app: "foo", version: "0.1.0")
+      iex> Mix.Local.name_for(:archives, app: "foo", version: "0.1.0")
       "foo-0.1.0.ez"
 
-      iex> Mix.Local.name_for(:escript, escript: [name: "foo"])
+      iex> Mix.Local.name_for(:escripts, escript: [name: "foo"])
       "foo"
 
   """
-  @spec name_for(item, keyword) :: String.t()
-  def name_for(:archive, project) do
+  @spec name_for(:archives | :escripts, keyword) :: String.t()
+  def name_for(:archives, project) do
     version = if version = project[:version], do: "-#{version}"
     "#{project[:app]}#{version}.ez"
   end
 
-  def name_for(:escript, project) do
+  def name_for(:escripts, project) do
     case get_in(project, [:escript, :name]) do
       nil -> project[:app]
       name -> name
@@ -31,32 +29,44 @@ defmodule Mix.Local do
     |> to_string()
   end
 
-  @doc """
-  The path for local archives or escripts.
-  """
-  @spec path_for(item) :: String.t()
-  def path_for(:archive) do
-    System.get_env("MIX_ARCHIVES") || Path.join(Mix.Utils.mix_home(), "archives")
-  end
-
-  def path_for(:escript) do
-    Path.join(Mix.Utils.mix_home(), "escripts")
-  end
+  # TODO: Remove me on Elixir v1.13.
+  # It is private API but we deprecated it to be "nice"
+  @deprecated "Use Mix.path_for/1 instead"
+  def path_for(:archive), do: Mix.path_for(:archives)
+  def path_for(:escript), do: Mix.path_for(:escripts)
 
   @doc """
   Appends archives paths into Erlang code path.
   """
   def append_archives do
-    archives = archives_ebins()
-    Enum.each(archives, &check_elixir_version_in_ebin/1)
-    Enum.each(archives, &Code.append_path/1)
+    for archive <- archives_ebins() do
+      check_elixir_version_in_ebin(archive)
+      Code.append_path(archive)
+    end
+
+    :ok
   end
 
   @doc """
   Appends Mix paths into Erlang code path.
   """
   def append_paths do
-    Enum.each(Mix.Utils.mix_paths(), &Code.append_path(&1))
+    Enum.each(mix_paths(), &Code.append_path(&1))
+  end
+
+  defp mix_paths do
+    if path = System.get_env("MIX_PATH") do
+      String.split(path, path_separator())
+    else
+      []
+    end
+  end
+
+  defp path_separator do
+    case :os.type() do
+      {:win32, _} -> ";"
+      {:unix, _} -> ":"
+    end
   end
 
   @doc """
@@ -83,7 +93,7 @@ defmodule Mix.Local do
   end
 
   defp archives_ebins do
-    path = path_for(:archive)
+    path = Mix.path_for(:archives)
 
     case File.ls(path) do
       {:ok, entries} -> Enum.map(entries, &archive_ebin(Path.join(path, &1)))

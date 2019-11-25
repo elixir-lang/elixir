@@ -1,6 +1,7 @@
 defmodule Mix.State do
   @moduledoc false
   @name __MODULE__
+  @timeout 30_000
 
   use Agent
 
@@ -13,27 +14,56 @@ defmodule Mix.State do
       shell: Mix.Shell.IO,
       env: String.to_atom(System.get_env("MIX_ENV") || "dev"),
       target: String.to_atom(System.get_env("MIX_TARGET") || "host"),
-      scm: [Mix.SCM.Git, Mix.SCM.Path]
+      scm: [Mix.SCM.Git, Mix.SCM.Path],
+      cache: :ets.new(@name, [:public, :set, :named_table, read_concurrency: true])
     }
   end
 
   def fetch(key) do
-    Agent.get(@name, Map, :fetch, [key])
+    Agent.get(@name, Map, :fetch, [key], @timeout)
   end
 
   def get(key, default \\ nil) do
-    Agent.get(@name, Map, :get, [key, default])
+    Agent.get(@name, Map, :get, [key, default], @timeout)
   end
 
   def put(key, value) do
-    Agent.update(@name, Map, :put, [key, value])
+    Agent.update(@name, Map, :put, [key, value], @timeout)
   end
 
-  def prepend(key, value) do
-    Agent.update(@name, Map, :update, [key, [value], &[value | List.delete(&1, value)]])
+  def prepend_scm(value) do
+    Agent.update(
+      @name,
+      fn state -> update_in(state.scm, &[value | List.delete(&1, value)]) end,
+      @timeout
+    )
   end
 
-  def append(key, value) do
-    Agent.update(@name, Map, :update, [key, [value], &(List.delete(&1, value) ++ [value])])
+  def append_scm(value) do
+    Agent.update(
+      @name,
+      fn state -> update_in(state.scm, &(List.delete(&1, value) ++ [value])) end,
+      @timeout
+    )
+  end
+
+  def read_cache(key) do
+    case :ets.lookup(@name, key) do
+      [{^key, value}] -> value
+      [] -> nil
+    end
+  end
+
+  def write_cache(key, value) do
+    :ets.insert(@name, {key, value})
+    value
+  end
+
+  def delete_cache(key) do
+    :ets.delete(@name, key)
+  end
+
+  def clear_cache do
+    :ets.delete_all_objects(@name)
   end
 end

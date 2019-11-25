@@ -46,7 +46,7 @@ defmodule Mix.Dep.Umbrella do
   def cached do
     if project = Mix.Project.get() do
       key = {:umbrella_deps, Mix.env(), project}
-      Mix.ProjectStack.read_cache(key) || Mix.ProjectStack.write_cache(key, loaded())
+      Mix.State.read_cache(key) || Mix.State.write_cache(key, loaded())
     else
       loaded()
     end

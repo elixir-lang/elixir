@@ -74,7 +74,7 @@ defmodule URI do
   Encodes an enumerable into a query string.
 
   Takes an enumerable that enumerates as a list of two-element
-  tuples (e.g., a map or a keyword list) and returns a string
+  tuples (for instance, a map or a keyword list) and returns a string
   in the form of `key1=value1&key2=value2...` where keys and
   values are URL encoded as per `encode_www_form/1`.
 
@@ -234,7 +234,7 @@ defmodule URI do
   the following characters are unreserved:
 
     * Alphanumeric characters: `A-Z`, `a-z`, `0-9`
-    * `~`, `_`, `-`
+    * `~`, `_`, `-`, `.`
 
   ## Examples
 
@@ -508,10 +508,12 @@ defmodule URI do
 
   ## Examples
 
-      iex> URI.to_string(URI.parse("http://google.com"))
+      iex> uri = URI.parse("http://google.com")
+      iex> URI.to_string(uri)
       "http://google.com"
 
-      iex> URI.to_string(%URI{scheme: "foo", host: "bar.baz"})
+      iex> uri = URI.parse("foo://bar.baz")
+      iex> URI.to_string(uri)
       "foo://bar.baz"
 
   Note that when creating this string representation, the `:authority` value will be
@@ -626,6 +628,14 @@ defmodule URI do
 end
 
 defimpl String.Chars, for: URI do
+  def to_string(%{host: host, authority: authority, path: path} = uri)
+      when (host != nil or authority != nil) and is_binary(path) and
+             path != "" and binary_part(path, 0, 1) != "/" do
+    raise ArgumentError,
+          ":path in URI must be nil or an absolute path if :host or :authority are given, " <>
+            "got: #{inspect(uri)}"
+  end
+
   def to_string(%{scheme: scheme, port: port, path: path, query: query, fragment: fragment} = uri) do
     uri =
       case scheme && URI.default_port(scheme) do

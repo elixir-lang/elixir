@@ -65,7 +65,7 @@ The version without `!` is preferred when you want to handle different outcomes 
       {:error, reason} -> # handle the error caused by `reason`
     end
 
-However, if you expect the outcome to always to be successful (e.g. if you expect the file always to exist), the bang variation can be more convenient and will raise a more helpful error message (than a failed pattern match) on failure.
+However, if you expect the outcome to always to be successful (for instance, if you expect the file always to exist), the bang variation can be more convenient and will raise a more helpful error message (than a failed pattern match) on failure.
 
 More examples of paired functions: `Base.decode16/2` and `Base.decode16!/2`, `File.cwd/0` and `File.cwd!/0`.
 

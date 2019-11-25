@@ -31,426 +31,433 @@ defmodule ExUnit.CaptureIOTest do
   import ExUnit.CaptureIO
   doctest ExUnit.CaptureIO, import: true
 
-  test "no leakage on failures" do
-    group_leader = Process.group_leader()
+  describe "I/O protocol" do
+    test "with put chars" do
+      assert capture_io(fn ->
+               :io.put_chars("")
+             end) == ""
 
-    test = self()
+      assert capture_io(fn ->
+               :io.put_chars("a")
+               :io.put_chars("b")
+             end) == "ab"
 
-    assert_raise ArgumentError, fn ->
+      assert capture_io(fn ->
+               :io.put_chars("josé")
+             end) == "josé"
+
+      assert capture_io(fn ->
+               spawn(fn -> :io.put_chars("a") end)
+               Process.sleep(10)
+             end) == "a"
+
+      assert capture_io(fn ->
+               assert :io.put_chars("a") == :ok
+             end)
+    end
+
+    test "with fwrite" do
+      assert capture_io(fn ->
+               :io.fwrite(<<127, 128>>)
+             end) == <<127, 194, 128>>
+
+      assert capture_io([encoding: :latin1], fn ->
+               :io.fwrite(<<127, 128>>)
+             end) == <<127, 128>>
+    end
+
+    test "with get chars" do
+      assert capture_io(fn ->
+               :io.get_chars(">", 3)
+             end) == ">"
+
+      assert capture_io([capture_prompt: false], fn ->
+               :io.get_chars(">", 3)
+             end) == ""
+
       capture_io(fn ->
-        send(test, {:string_io, Process.group_leader()})
-        raise ArgumentError
+        assert :io.get_chars(">", 3) == :eof
+      end)
+
+      capture_io("", fn ->
+        assert :io.get_chars(">", 3) == :eof
+      end)
+
+      capture_io("abc\ndef", fn ->
+        assert :io.get_chars(">", 3) == "abc"
+        assert :io.get_chars(">", 5) == "\ndef"
+        assert :io.get_chars(">", 7) == :eof
+      end)
+
+      capture_io("あいう", fn ->
+        assert :io.get_chars(">", 2) == "あい"
+        assert :io.get_chars(">", 1) == "う"
+        assert :io.get_chars(">", 1) == :eof
       end)
     end
 
-    receive do
-      {:string_io, pid} ->
-        ref = Process.monitor(pid)
-        assert_receive {:DOWN, ^ref, _, _, _}
+    test "with get line" do
+      assert capture_io(fn ->
+               :io.get_line(">")
+             end) == ">"
+
+      assert capture_io([capture_prompt: false], fn ->
+               :io.get_line(">")
+             end) == ""
+
+      capture_io(fn ->
+        assert :io.get_line(">") == :eof
+      end)
+
+      capture_io("", fn ->
+        assert :io.get_line(">") == :eof
+      end)
+
+      capture_io("\n", fn ->
+        assert :io.get_line(">") == "\n"
+        assert :io.get_line(">") == :eof
+      end)
+
+      capture_io("a", fn ->
+        assert :io.get_line(">") == "a"
+        assert :io.get_line(">") == :eof
+      end)
+
+      capture_io("a\n", fn ->
+        assert :io.get_line(">") == "a\n"
+        assert :io.get_line(">") == :eof
+      end)
+
+      capture_io("a\nb", fn ->
+        assert :io.get_line(">") == "a\n"
+        assert :io.get_line(">") == "b"
+        assert :io.get_line(">") == :eof
+      end)
+
+      capture_io("あい\nう", fn ->
+        assert :io.get_line(">") == "あい\n"
+        assert :io.get_line(">") == "う"
+        assert :io.get_line(">") == :eof
+      end)
     end
 
-    assert Process.group_leader() == group_leader
+    test "with get password" do
+      capture_io(fn ->
+        assert :io.get_password() == :eof
+      end)
+
+      capture_io("", fn ->
+        assert :io.get_password() == :eof
+      end)
+
+      capture_io("abc", fn ->
+        assert :io.get_password() == "abc"
+        assert :io.get_password() == :eof
+      end)
+
+      capture_io("abc\n", fn ->
+        assert :io.get_password() == "abc\n"
+        assert :io.get_password() == :eof
+      end)
+
+      capture_io("\n", fn ->
+        assert :io.get_password() == "\n"
+        assert :io.get_password() == :eof
+      end)
+
+      capture_io("a\nb", fn ->
+        assert :io.get_password() == "a\n"
+        assert :io.get_password() == "b"
+        assert :io.get_password() == :eof
+      end)
+
+      capture_io("あい\nう", fn ->
+        assert :io.get_password() == "あい\n"
+        assert :io.get_password() == "う"
+        assert :io.get_password() == :eof
+      end)
+    end
+
+    test "with get until" do
+      assert capture_io(fn ->
+               :io.scan_erl_form('>')
+             end) == ">"
+
+      assert capture_io("1.\n", fn ->
+               :io.scan_erl_form('>')
+             end) == ">"
+
+      assert capture_io("1\n.\n", fn ->
+               :io.scan_erl_form('>')
+             end) == ">>"
+
+      assert capture_io([capture_prompt: false], fn ->
+               :io.scan_erl_form('>')
+             end) == ""
+
+      capture_io(fn ->
+        assert :io.scan_erl_form('>') == {:eof, 1}
+      end)
+
+      capture_io("1", fn ->
+        assert :io.scan_erl_form('>') == {:ok, [{:integer, 1, 1}], 1}
+        assert :io.scan_erl_form('>') == {:eof, 1}
+      end)
+
+      capture_io("1\n.", fn ->
+        assert :io.scan_erl_form('>') == {:ok, [{:integer, 1, 1}, {:dot, 2}], 2}
+        assert :io.scan_erl_form('>') == {:eof, 1}
+      end)
+
+      capture_io("1.\n.", fn ->
+        assert :io.scan_erl_form('>') == {:ok, [{:integer, 1, 1}, {:dot, 1}], 2}
+        assert :io.scan_erl_form('>') == {:ok, [dot: 1], 1}
+        assert :io.scan_erl_form('>') == {:eof, 1}
+      end)
+
+      capture_io("\"a", fn ->
+        assert :io.scan_erl_form('>') == {:error, {1, :erl_scan, {:string, 34, 'a'}}, 1}
+        assert :io.scan_erl_form('>') == {:eof, 1}
+      end)
+
+      capture_io("\"a\n\"", fn ->
+        assert :io.scan_erl_form('>') == {:ok, [{:string, 1, 'a\n'}], 2}
+        assert :io.scan_erl_form('>') == {:eof, 1}
+      end)
+
+      capture_io(":erl. mof*,,l", fn ->
+        assert :io.scan_erl_form('>') == {:ok, [{:":", 1}, {:atom, 1, :erl}, {:dot, 1}], 1}
+
+        expected_tokens = [{:atom, 1, :mof}, {:*, 1}, {:",", 1}, {:",", 1}, {:atom, 1, :l}]
+        assert :io.scan_erl_form('>') == {:ok, expected_tokens, 1}
+
+        assert :io.scan_erl_form('>') == {:eof, 1}
+      end)
+
+      capture_io("a\nb\nc", fn ->
+        assert GetUntil.get_line() == "a\n"
+        assert GetUntil.get_line() == "b\n"
+        assert GetUntil.get_line() == :eof
+      end)
+    end
+
+    test "with setopts" do
+      assert capture_io(fn ->
+               assert :io.setopts({:encoding, :latin1}) == {:error, :enotsup}
+             end) == ""
+    end
+
+    test "with getopts" do
+      assert capture_io(fn ->
+               assert :io.getopts() == [binary: true, encoding: :unicode]
+             end) == ""
+    end
+
+    test "with columns" do
+      assert capture_io(fn ->
+               :io.columns()
+             end) == ""
+
+      capture_io(fn ->
+        assert :io.columns() == {:error, :enotsup}
+      end)
+    end
+
+    test "with rows" do
+      assert capture_io(fn ->
+               :io.rows()
+             end) == ""
+
+      capture_io(fn ->
+        assert :io.rows() == {:error, :enotsup}
+      end)
+    end
+
+    test "with multiple requests" do
+      requests = [{:put_chars, :unicode, "a"}, {:put_chars, :unicode, "b"}]
+
+      assert capture_io(fn ->
+               send_and_receive_io({:requests, requests})
+             end) == "ab"
+
+      capture_io(fn ->
+        assert send_and_receive_io({:requests, requests}) == :ok
+      end)
+    end
+
+    test "with unknown request" do
+      assert capture_io(fn ->
+               send_and_receive_io(:unknown)
+             end) == ""
+
+      capture_io(fn ->
+        assert send_and_receive_io(:unknown) == {:error, :request}
+      end)
+    end
   end
 
-  test "with no output" do
-    assert capture_io(fn -> nil end) == ""
-  end
+  describe "stdin" do
+    test "double capture from the same process" do
+      assert capture_io(fn ->
+               IO.puts("hello")
+               assert capture_io(fn -> IO.puts("middle") end) == "middle\n"
+               IO.puts("world")
+             end) == "hello\nworld\n"
+    end
 
-  test "with put chars" do
-    assert capture_io(fn ->
-             :io.put_chars("")
-           end) == ""
+    test "no leakage on failures" do
+      group_leader = Process.group_leader()
 
-    assert capture_io(fn ->
-             :io.put_chars("a")
-             :io.put_chars("b")
-           end) == "ab"
+      test = self()
 
-    assert capture_io(fn ->
-             :io.put_chars("josé")
-           end) == "josé"
-
-    assert capture_io(fn ->
-             spawn(fn -> :io.put_chars("a") end)
-             Process.sleep(10)
-           end) == "a"
-
-    assert capture_io(fn ->
-             assert :io.put_chars("a") == :ok
-           end)
-  end
-
-  test "with put chars to stderr" do
-    assert capture_io(:stderr, fn ->
-             :io.put_chars(:standard_error, "a")
-           end) == "a"
-  end
-
-  test "async capture_io works with put chars to stderr" do
-    parent = self()
-
-    [pid1, pid2, pid3] =
-      for num <- 1..3 do
-        pid =
-          spawn_link(fn ->
-            captured =
-              capture_io(:stderr, fn ->
-                :io.put_chars(:standard_error, "before:#{num}\n")
-                send(parent, {self(), :logged})
-                assert_receive :continue
-                :io.put_chars(:standard_error, "after:#{num}\n")
-              end)
-
-            send(parent, captured)
-          end)
-
-        assert_receive {^pid, :logged}
-        pid
+      assert_raise ArgumentError, fn ->
+        capture_io(fn ->
+          send(test, {:string_io, Process.group_leader()})
+          raise ArgumentError
+        end)
       end
 
-    send(pid3, :continue)
-    assert_receive "before:3\nafter:3\n"
+      receive do
+        {:string_io, pid} ->
+          ref = Process.monitor(pid)
+          assert_receive {:DOWN, ^ref, _, _, _}
+      end
 
-    send(pid2, :continue)
-    assert_receive "before:2\nbefore:3\nafter:3\nafter:2\n"
-
-    send(pid1, :continue)
-    assert_receive "before:1\nbefore:2\nbefore:3\nafter:3\nafter:2\nafter:1\n"
+      assert Process.group_leader() == group_leader
+    end
   end
 
-  test "raises when async capturing a named device with a different encoding than the first" do
-    parent = self()
+  describe "stderr" do
+    test "supports writes" do
+      assert capture_io(:stderr, fn ->
+               :io.put_chars(:standard_error, "a")
+             end) == "a"
+    end
 
-    pid =
-      spawn_link(fn ->
-        output =
-          capture_io(:stderr, [encoding: :latin1], fn ->
-            :io.put_chars(:standard_error, "a")
+    test "double capture from the same process" do
+      assert capture_io(:stderr, fn ->
+               IO.puts(:stderr, "hello")
+               assert capture_io(:stderr, fn -> IO.puts(:stderr, "middle") end) == "middle\n"
+               IO.puts(:stderr, "world")
+             end) == "hello\nmiddle\nworld\n"
+    end
+
+    test "supports async capture_io" do
+      parent = self()
+
+      [pid1, pid2, pid3] =
+        for num <- 1..3 do
+          pid =
+            spawn_link(fn ->
+              captured =
+                capture_io(:stderr, fn ->
+                  :io.put_chars(:standard_error, "before:#{num}\n")
+                  send(parent, {self(), :logged})
+                  assert_receive :continue
+                  :io.put_chars(:standard_error, "after:#{num}\n")
+                end)
+
+              send(parent, captured)
+            end)
+
+          assert_receive {^pid, :logged}
+          pid
+        end
+
+      send(pid3, :continue)
+      assert_receive "before:3\nafter:3\n"
+
+      send(pid2, :continue)
+      assert_receive "before:2\nbefore:3\nafter:3\nafter:2\n"
+
+      send(pid1, :continue)
+      assert_receive "before:1\nbefore:2\nbefore:3\nafter:3\nafter:2\nafter:1\n"
+    end
+
+    test "raises when async capturing a named device with a different encoding than the first" do
+      parent = self()
+
+      pid =
+        spawn_link(fn ->
+          output =
+            capture_io(:stderr, [encoding: :latin1], fn ->
+              :io.put_chars(:standard_error, "a")
+              send(parent, {self(), :logged})
+              assert_receive :continue
+            end)
+
+          send(parent, output)
+        end)
+
+      assert_receive {^pid, :logged}
+
+      assert_raise ArgumentError,
+                   ~r"attempted to change the encoding for a currently captured device :standard_error",
+                   fn ->
+                     capture_io(:stderr, [encoding: :unicode], fn ->
+                       :io.put_chars(:standard_error, "b")
+                     end)
+                   end
+
+      assert capture_io(:stderr, [encoding: :latin1], fn ->
+               :io.put_chars(:standard_error, "c")
+             end) == "c"
+
+      send(pid, :continue)
+      assert_receive "ac"
+    end
+
+    test "raises when async capturing a named device with an input given to an already captured device" do
+      parent = self()
+
+      pid =
+        spawn_link(fn ->
+          capture_io(:stderr, [input: "first"], fn ->
             send(parent, {self(), :logged})
-            assert_receive :continue
+            Process.sleep(:infinity)
           end)
-
-        send(parent, output)
-      end)
-
-    assert_receive {^pid, :logged}
-
-    assert_raise ArgumentError,
-                 ~r"attempted to change the encoding for a currently captured device :standard_error",
-                 fn ->
-                   capture_io(:stderr, [encoding: :unicode], fn ->
-                     :io.put_chars(:standard_error, "b")
-                   end)
-                 end
-
-    assert capture_io(:stderr, [encoding: :latin1], fn ->
-             :io.put_chars(:standard_error, "c")
-           end) == "c"
-
-    send(pid, :continue)
-    assert_receive "ac"
-  end
-
-  test "raises when async capturing a named device with an input given to an already captured device" do
-    parent = self()
-
-    pid =
-      spawn_link(fn ->
-        capture_io(:stderr, [input: "first"], fn ->
-          send(parent, {self(), :logged})
-          Process.sleep(:infinity)
         end)
-      end)
 
-    assert_receive {^pid, :logged}
+      assert_receive {^pid, :logged}
 
-    message =
-      "attempted multiple captures on device :standard_error with input. If you need to give an input to a captured device, you cannot run your test asynchronously"
+      message =
+        "attempted multiple captures on device :standard_error with input. If you need to give an input to a captured device, you cannot run your test asynchronously"
 
-    assert_raise ArgumentError, message, fn ->
-      capture_io(:stderr, [input: "second"], fn ->
-        :io.put_chars(:standard_error, "b")
-      end)
+      assert_raise ArgumentError, message, fn ->
+        capture_io(:stderr, [input: "second"], fn ->
+          :io.put_chars(:standard_error, "b")
+        end)
+      end
+
+      assert_raise ArgumentError, message, fn ->
+        capture_io(:stderr, [input: ""], fn ->
+          :io.put_chars(:standard_error, "b")
+        end)
+      end
     end
 
-    assert_raise ArgumentError, message, fn ->
-      capture_io(:stderr, [input: ""], fn ->
-        :io.put_chars(:standard_error, "b")
-      end)
-    end
-  end
+    test "no leakage on failures" do
+      parent = self()
 
-  test "monitors calling processes and releases the capture on exit" do
-    parent = self()
-
-    pid =
-      spawn(fn ->
-        capture_io(:stderr, [input: "a"], fn ->
-          send(parent, :ready)
-          Process.sleep(:infinity)
+      pid =
+        spawn(fn ->
+          capture_io(:stderr, [input: "a"], fn ->
+            send(parent, :ready)
+            Process.sleep(:infinity)
+          end)
         end)
-      end)
 
-    assert_receive :ready
+      assert_receive :ready
 
-    ref = Process.monitor(pid)
+      ref = Process.monitor(pid)
 
-    # Kill the process and make sure the capture is released
-    Process.exit(pid, :shutdown)
+      # Kill the process and make sure the capture is released
+      Process.exit(pid, :shutdown)
 
-    # Make sure the process has exited before we try and start a new capture
-    assert_receive {:DOWN, ^ref, _, _, _}
+      # Make sure the process has exited before we try and start a new capture
+      assert_receive {:DOWN, ^ref, _, _, _}
 
-    assert capture_io(:stderr, [input: "b"], fn -> :ok end)
-  end
-
-  test "with fwrite" do
-    assert capture_io(fn ->
-             :io.fwrite(<<127, 128>>)
-           end) == <<127, 194, 128>>
-
-    assert capture_io([encoding: :latin1], fn ->
-             :io.fwrite(<<127, 128>>)
-           end) == <<127, 128>>
-  end
-
-  test "with get chars" do
-    assert capture_io(fn ->
-             :io.get_chars(">", 3)
-           end) == ">"
-
-    assert capture_io([capture_prompt: false], fn ->
-             :io.get_chars(">", 3)
-           end) == ""
-
-    capture_io(fn ->
-      assert :io.get_chars(">", 3) == :eof
-    end)
-
-    capture_io("", fn ->
-      assert :io.get_chars(">", 3) == :eof
-    end)
-
-    capture_io("abc\ndef", fn ->
-      assert :io.get_chars(">", 3) == "abc"
-      assert :io.get_chars(">", 5) == "\ndef"
-      assert :io.get_chars(">", 7) == :eof
-    end)
-
-    capture_io("あいう", fn ->
-      assert :io.get_chars(">", 2) == "あい"
-      assert :io.get_chars(">", 1) == "う"
-      assert :io.get_chars(">", 1) == :eof
-    end)
-  end
-
-  test "with get line" do
-    assert capture_io(fn ->
-             :io.get_line(">")
-           end) == ">"
-
-    assert capture_io([capture_prompt: false], fn ->
-             :io.get_line(">")
-           end) == ""
-
-    capture_io(fn ->
-      assert :io.get_line(">") == :eof
-    end)
-
-    capture_io("", fn ->
-      assert :io.get_line(">") == :eof
-    end)
-
-    capture_io("\n", fn ->
-      assert :io.get_line(">") == "\n"
-      assert :io.get_line(">") == :eof
-    end)
-
-    capture_io("a", fn ->
-      assert :io.get_line(">") == "a"
-      assert :io.get_line(">") == :eof
-    end)
-
-    capture_io("a\n", fn ->
-      assert :io.get_line(">") == "a\n"
-      assert :io.get_line(">") == :eof
-    end)
-
-    capture_io("a\nb", fn ->
-      assert :io.get_line(">") == "a\n"
-      assert :io.get_line(">") == "b"
-      assert :io.get_line(">") == :eof
-    end)
-
-    capture_io("あい\nう", fn ->
-      assert :io.get_line(">") == "あい\n"
-      assert :io.get_line(">") == "う"
-      assert :io.get_line(">") == :eof
-    end)
-  end
-
-  test "with get password" do
-    capture_io(fn ->
-      assert :io.get_password() == :eof
-    end)
-
-    capture_io("", fn ->
-      assert :io.get_password() == :eof
-    end)
-
-    capture_io("abc", fn ->
-      assert :io.get_password() == "abc"
-      assert :io.get_password() == :eof
-    end)
-
-    capture_io("abc\n", fn ->
-      assert :io.get_password() == "abc\n"
-      assert :io.get_password() == :eof
-    end)
-
-    capture_io("\n", fn ->
-      assert :io.get_password() == "\n"
-      assert :io.get_password() == :eof
-    end)
-
-    capture_io("a\nb", fn ->
-      assert :io.get_password() == "a\n"
-      assert :io.get_password() == "b"
-      assert :io.get_password() == :eof
-    end)
-
-    capture_io("あい\nう", fn ->
-      assert :io.get_password() == "あい\n"
-      assert :io.get_password() == "う"
-      assert :io.get_password() == :eof
-    end)
-  end
-
-  test "with get until" do
-    assert capture_io(fn ->
-             :io.scan_erl_form('>')
-           end) == ">"
-
-    assert capture_io("1.\n", fn ->
-             :io.scan_erl_form('>')
-           end) == ">"
-
-    assert capture_io("1\n.\n", fn ->
-             :io.scan_erl_form('>')
-           end) == ">>"
-
-    assert capture_io([capture_prompt: false], fn ->
-             :io.scan_erl_form('>')
-           end) == ""
-
-    capture_io(fn ->
-      assert :io.scan_erl_form('>') == {:eof, 1}
-    end)
-
-    capture_io("1", fn ->
-      assert :io.scan_erl_form('>') == {:ok, [{:integer, 1, 1}], 1}
-      assert :io.scan_erl_form('>') == {:eof, 1}
-    end)
-
-    capture_io("1\n.", fn ->
-      assert :io.scan_erl_form('>') == {:ok, [{:integer, 1, 1}, {:dot, 2}], 2}
-      assert :io.scan_erl_form('>') == {:eof, 1}
-    end)
-
-    capture_io("1.\n.", fn ->
-      assert :io.scan_erl_form('>') == {:ok, [{:integer, 1, 1}, {:dot, 1}], 2}
-      assert :io.scan_erl_form('>') == {:ok, [dot: 1], 1}
-      assert :io.scan_erl_form('>') == {:eof, 1}
-    end)
-
-    capture_io("\"a", fn ->
-      assert :io.scan_erl_form('>') == {:error, {1, :erl_scan, {:string, 34, 'a'}}, 1}
-      assert :io.scan_erl_form('>') == {:eof, 1}
-    end)
-
-    capture_io("\"a\n\"", fn ->
-      assert :io.scan_erl_form('>') == {:ok, [{:string, 1, 'a\n'}], 2}
-      assert :io.scan_erl_form('>') == {:eof, 1}
-    end)
-
-    capture_io(":erl. mof*,,l", fn ->
-      assert :io.scan_erl_form('>') == {:ok, [{:":", 1}, {:atom, 1, :erl}, {:dot, 1}], 1}
-
-      expected_tokens = [{:atom, 1, :mof}, {:*, 1}, {:",", 1}, {:",", 1}, {:atom, 1, :l}]
-      assert :io.scan_erl_form('>') == {:ok, expected_tokens, 1}
-
-      assert :io.scan_erl_form('>') == {:eof, 1}
-    end)
-
-    capture_io("a\nb\nc", fn ->
-      assert GetUntil.get_line() == "a\n"
-      assert GetUntil.get_line() == "b\n"
-      assert GetUntil.get_line() == :eof
-    end)
-  end
-
-  test "with setopts" do
-    assert capture_io(fn ->
-             assert :io.setopts({:encoding, :latin1}) == {:error, :enotsup}
-           end) == ""
-  end
-
-  test "with getopts" do
-    assert capture_io(fn ->
-             assert :io.getopts() == [binary: true, encoding: :unicode]
-           end) == ""
-  end
-
-  test "with columns" do
-    assert capture_io(fn ->
-             :io.columns()
-           end) == ""
-
-    capture_io(fn ->
-      assert :io.columns() == {:error, :enotsup}
-    end)
-  end
-
-  test "with rows" do
-    assert capture_io(fn ->
-             :io.rows()
-           end) == ""
-
-    capture_io(fn ->
-      assert :io.rows() == {:error, :enotsup}
-    end)
-  end
-
-  test "with multiple IO requests" do
-    requests = [{:put_chars, :unicode, "a"}, {:put_chars, :unicode, "b"}]
-
-    assert capture_io(fn ->
-             send_and_receive_io({:requests, requests})
-           end) == "ab"
-
-    capture_io(fn ->
-      assert send_and_receive_io({:requests, requests}) == :ok
-    end)
-  end
-
-  test "with unknown IO request" do
-    assert capture_io(fn ->
-             send_and_receive_io(:unknown)
-           end) == ""
-
-    capture_io(fn ->
-      assert send_and_receive_io(:unknown) == {:error, :request}
-    end)
-  end
-
-  test "with assert inside" do
-    try do
-      capture_io(fn ->
-        assert false
-      end)
-    rescue
-      error in [ExUnit.AssertionError] ->
-        assert error.message == "Expected truthy, got false"
+      assert capture_io(:stderr, [input: "b"], fn -> :ok end)
     end
   end
 

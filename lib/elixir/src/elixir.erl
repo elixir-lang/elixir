@@ -26,11 +26,9 @@
 
 start(_Type, _Args) ->
   _ = parse_otp_release(),
-  Encoding = file:native_name_encoding(),
-
   preload_common_modules(),
   set_stdio_and_stderr_to_binary_and_maybe_utf8(),
-  check_file_encoding(Encoding),
+  check_file_encoding(file:native_name_encoding()),
 
   case application:get_env(elixir, check_endianness, true) of
     true  -> check_endianness();
@@ -51,16 +49,14 @@ start(_Type, _Args) ->
     {{uri, <<"ldap">>}, 389}
   ],
 
-  {ok, [[Home] | _]} = init:get_argument(home),
-
   Config = [
+    %% ARGV options
     {at_exit, []},
     {argv, []},
     {no_halt, false},
 
     %% Static options
     {bootstrap, false},
-    {home, unicode:characters_to_binary(Home, Encoding, Encoding)},
     {identifier_tokenizer, Tokenizer},
 
     %% Compiler options
