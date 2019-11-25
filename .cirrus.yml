@@ -15,7 +15,6 @@ test_linux_task:
   env:
     PATH: "${CIRRUS_WORKING_DIR}/otp/bin:${PATH}"
 
-
   # don't cancel the task execution if it's master or a release branch
   auto_cancellation: $CIRRUS_BRANCH != 'master' && $CIRRUS_BRANCH !=~ 'v\d+\.\d+.*'
 
