@@ -20,6 +20,7 @@ test_linux_task:
 
   matrix:
     - name: Linux, ${OTP_RELEASE}, Ubuntu 14.04
+      alias: Linux Stable
       matrix:
         - env:
             CHECK_POSIX_COMPLIANT: true
@@ -37,8 +38,11 @@ test_linux_task:
             OTP_RELEASE: OTP-21.0
 
     - name: Linux, OTP-${OTP_RELEASE}, development, Ubuntu 14.04
+      alias: Linux Development
       allow_failures: true
       skip_notifications: true
+      depends_on:
+        - Linux Stable
       matrix:
         - env:
             OTP_RELEASE: master
@@ -86,6 +90,7 @@ test_linux_task:
 
 test_windows_task:
   name: Windows, OTP-${OTP_RELEASE}, Windows Server 2019
+  alias: Windows Stable
 
   # don't cancel the task execution if it's master or a release branch
   auto_cancellation: $CIRRUS_BRANCH != 'master' && $CIRRUS_BRANCH !=~ 'v\d+\.\d+.*'
