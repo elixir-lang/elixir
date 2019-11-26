@@ -127,10 +127,10 @@ install: compile
 	$(MAKE) install_man
 
 check_reproducible: compile
-	$(Q) echo "==> Checking for reproducible builds..."
-	$(Q) rm -rf lib/*/tmp/ebin_reproducible/
+	echo "==> Checking for reproducible builds..."
+	rm -rf lib/*/tmp/ebin_reproducible/
 	$(call WRITE_SOURCE_DATE_EPOCH)
-	$(Q) mkdir -p lib/elixir/tmp/ebin_reproducible/ \
+	mkdir -p lib/elixir/tmp/ebin_reproducible/ \
 	              lib/eex/tmp/ebin_reproducible/ \
 	              lib/ex_unit/tmp/ebin_reproducible/ \
 	              lib/iex/tmp/ebin_reproducible/ \
@@ -143,14 +143,32 @@ check_reproducible: compile
 	$(Q) mv lib/logger/ebin/* lib/logger/tmp/ebin_reproducible/
 	$(Q) mv lib/mix/ebin/* lib/mix/tmp/ebin_reproducible/
 	SOURCE_DATE_EPOCH=$(call READ_SOURCE_DATE_EPOCH) $(MAKE) compile
-	$(Q) echo "Diffing..."
-	$(Q) diff -r lib/elixir/ebin/ lib/elixir/tmp/ebin_reproducible/
-	$(Q) diff -r lib/eex/ebin/ lib/eex/tmp/ebin_reproducible/
-	$(Q) diff -r lib/ex_unit/ebin/ lib/ex_unit/tmp/ebin_reproducible/
-	$(Q) diff -r lib/iex/ebin/ lib/iex/tmp/ebin_reproducible/
-	$(Q) diff -r lib/logger/ebin/ lib/logger/tmp/ebin_reproducible/
-	$(Q) diff -r lib/mix/ebin/ lib/mix/tmp/ebin_reproducible/
-	$(Q) echo "Builds are reproducible"
+	echo "Diffing..."
+	$(Q) $(call CHECK_REPRODUCIBLE_DIFF)
+
+define DIFF_R
+	if [ "$(OS)" = "Windows_NT" ]; then \
+		cmd //C diff -r "$(1)" "$(2)"; \
+	else \
+		diff -r "$(1)" "$(2)"; \
+	fi
+endef
+
+define CHECK_REPRODUCIBLE_DIFF
+	DIFF_STATUS=0; \
+	$(call DIFF_R,lib/elixir/ebin,lib/elixir/tmp/ebin_reproducible) || DIFF_STATUS=1; \
+	$(call DIFF_R,lib/eex/ebin,lib/eex/tmp/ebin_reproducible) || DIFF_STATUS=1; \
+	$(call DIFF_R,lib/ex_unit/ebin,lib/ex_unit/tmp/ebin_reproducible) || DIFF_STATUS=1; \
+	$(call DIFF_R,lib/iex/ebin,lib/iex/tmp/ebin_reproducible) || DIFF_STATUS=1; \
+	$(call DIFF_R,lib/logger/ebin,lib/logger/tmp/ebin_reproducible) || DIFF_STATUS=1; \
+	$(call DIFF_R,lib/mix/ebin,lib/mix/tmp/ebin_reproducible) || DIFF_STATUS=1; \
+	if [ $$DIFF_STATUS == 0 ]; then \
+		echo "Builds are reproducible"; \
+	else \
+		echo "ERROR: Builds are not reproducible"; \
+		exit $$DIFF_STATUS; \
+	fi
+endef
 
 clean:
 	rm -rf ebin
