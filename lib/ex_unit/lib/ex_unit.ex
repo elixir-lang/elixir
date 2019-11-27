@@ -254,9 +254,6 @@ defmodule ExUnit do
       is reached. All tests within a module that fail when using the `setup_all/1,2` callbacks
       are counted as failures. Defaults to `:infinity`;
 
-    * `:module_load_timeout` - the timeout to be used when loading a test module in milliseconds,
-      defaults to `60_000`;
-
     * `:only_test_ids` - a list of `{module_name, test_name}` tuples that limits
       what tests get run;
 

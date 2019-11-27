@@ -21,7 +21,6 @@ defmodule ExUnit.MixProject do
         assert_receive_timeout: 100,
         autorun: true,
         capture_log: false,
-        module_load_timeout: 60000,
         colors: [],
         exclude: [],
         formatters: [ExUnit.CLIFormatter],
