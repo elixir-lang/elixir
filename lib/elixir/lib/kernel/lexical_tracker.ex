@@ -6,7 +6,7 @@
 # any of the `GenServer.Behaviour` conveniences.
 defmodule Kernel.LexicalTracker do
   @moduledoc false
-  @timeout 30000
+  @timeout :infinity
   @behaviour :gen_server
 
   @doc """

@@ -3,7 +3,7 @@ defmodule Mix.ProjectStack do
 
   use GenServer
   @name __MODULE__
-  @timeout 30000
+  @timeout :infinity
 
   @typep file :: binary
   @typep config :: keyword

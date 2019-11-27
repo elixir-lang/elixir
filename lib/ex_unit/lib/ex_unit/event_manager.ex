@@ -1,6 +1,6 @@
 defmodule ExUnit.EventManager do
   @moduledoc false
-  @timeout 30000
+  @timeout :infinity
 
   @typep manager :: {supervisor_manager :: pid, event_manager :: pid}
 

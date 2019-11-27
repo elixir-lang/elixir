@@ -1,7 +1,7 @@
 defmodule ExUnit.CaptureServer do
   @moduledoc false
   @compile {:no_warn_undefined, Logger}
-  @timeout 30000
+  @timeout :infinity
   @name __MODULE__
 
   use GenServer
