@@ -2,7 +2,7 @@ env:
   CIRRUS_CLONE_DEPTH: 1
   ELIXIR_ASSERT_TIMEOUT: 2000
   ELIXIRC_OPTS: "--warnings-as-errors"
-  ERLC_OPTS: "+warning_as_errors"
+  ERLC_OPTS: "+warnings_as_errors"
   LANG: C.UTF-8
 
 
