@@ -159,6 +159,8 @@ defmodule ExUnit.DocTestTest.Invalid do
       iex> raise "oops"
       ** (RuntimeError) hello
 
+      iex> %{a: _} = Map.put(%{b: :c}, :d, :e)
+
   """
 
   @doc """
@@ -550,6 +552,19 @@ defmodule ExUnit.DocTestTest do
            """
 
     assert output =~ """
+             8) doctest module ExUnit.DocTestTest.Invalid (8) (ExUnit.DocTestTest.ActuallyCompiled)
+             test/ex_unit/doc_test_test.exs:#{doctest_line}
+             match (=) failed
+             doctest:
+               iex> %{a: _} = Map.put(%{b: :c}, :d, :e)
+             left:  %{a: _}
+             right: %{b: :c, d: :e}
+
+             stacktrace:
+               test/ex_unit/doc_test_test.exs:162: ExUnit.DocTestTest.Invalid (module)
+           """
+
+    assert output =~ """
              8) doctest ExUnit.DocTestTest.Invalid.a/0 (8) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
                 Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:165: syntax error before: '*'
@@ -625,6 +640,8 @@ defmodule ExUnit.DocTestTest do
                 stacktrace:
                   test/ex_unit/doc_test_test.exs:171: ExUnit.DocTestTest.Invalid (module)
            """
+
+
   end
 
   test "IEx prefix contains a number" do

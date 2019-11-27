@@ -403,6 +403,33 @@ defmodule ExUnit.DocTest do
     end
   end
 
+  defp test_case_content(expr, :match, location, stack, formatted) do
+    doctest = "\n" <> formatted
+    {:=, context, [pattern_ast, expr_ast]} = string_to_quoted(location, stack, expr, doctest)
+
+    quote do
+      try do
+        assert unquote({:=, context, [pattern_ast, expr_ast]})
+      rescue
+        e ->
+          doctest = unquote(doctest)
+
+          expr =
+            "#{unquote(Macro.to_string(pattern_ast))} = #{unquote(Macro.to_string(expr_ast))}"
+
+          error = [
+            doctest: doctest,
+            message: e.message,
+            left: {:%{}, [], [a: {:_, [], nil}]},
+            right: e.right,
+            context: e.context
+          ]
+
+          reraise ExUnit.AssertionError, error, unquote(stack)
+      end
+    end
+  end
+
   defp test_import(_mod, false), do: []
   defp test_import(mod, _), do: [quote(do: import(unquote(mod)))]
 
@@ -527,9 +554,6 @@ defmodule ExUnit.DocTest do
     stripped_line = strip_indent(line, indent)
 
     case String.trim_leading(line) do
-      "" ->
-        raise_incomplete_doctest(line_no, module)
-
       ^stripped_line ->
         :ok
 
@@ -812,6 +836,9 @@ defmodule ExUnit.DocTest do
 
   defp tag_expected(string) do
     case string do
+      "" ->
+        :match
+
       "** (" <> error ->
         [mod, message] = :binary.split(error, ")")
         {:error, Module.concat([mod]), String.trim_leading(message)}
