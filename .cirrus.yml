@@ -15,6 +15,9 @@ test_linux_task:
   env:
     PATH: "${CIRRUS_WORKING_DIR}/otp/bin:${PATH}"
 
+  # don't cancel the task execution if it's master or a release branch
+  auto_cancellation: $CIRRUS_BRANCH != 'master' && $CIRRUS_BRANCH !=~ 'v\d+\.\d+.*'
+
   matrix:
     - name: Linux, ${OTP_RELEASE}, Ubuntu 14.04
       matrix:
@@ -85,6 +88,9 @@ test_linux_task:
 
 test_windows_task:
   name: Windows, OTP-${OTP_RELEASE}, Windows Server 2019
+
+  # don't cancel the task execution if it's master or a release branch
+  auto_cancellation: $CIRRUS_BRANCH != 'master' && $CIRRUS_BRANCH !=~ 'v\d+\.\d+.*'
 
   matrix:
     - env:
