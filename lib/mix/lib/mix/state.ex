@@ -1,7 +1,7 @@
 defmodule Mix.State do
   @moduledoc false
   @name __MODULE__
-  @timeout 30_000
+  @timeout :infinity
 
   use Agent
 

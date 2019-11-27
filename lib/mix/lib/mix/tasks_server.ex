@@ -1,7 +1,7 @@
 defmodule Mix.TasksServer do
   @moduledoc false
   @name __MODULE__
-  @timeout 30000
+  @timeout :infinity
 
   use Agent
 

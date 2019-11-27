@@ -4,7 +4,7 @@
   handle_info/2, terminate/2, code_change/3]).
 -behaviour(gen_server).
 
--define(timeout, 30000).
+-define(timeout, infinity).
 -record(elixir_code_server, {
   required=#{},
   mod_pool={[], [], 0},
