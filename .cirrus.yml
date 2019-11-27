@@ -26,8 +26,6 @@ test_linux_task:
             CHECK_REPRODUCIBLE: true
             OTP_RELEASE: OTP-22.1
         - env:
-            OTP_RELEASE: OTP-22.1
-        - env:
             OTP_RELEASE: OTP-22.0
         - env:
             OTP_RELEASE: OTP-21.3.8
