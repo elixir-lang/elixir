@@ -461,6 +461,7 @@ defmodule Application do
 
   See `get_compile_env_listeners/0` for more information.
   """
+  @doc since: "1.10.0"
   @spec put_compile_env_listener(pid) :: :ok
   def put_compile_env_listener(pid) when is_pid(pid) do
     :elixir_config.update(:compile_env_listeners, &[pid | &1])
@@ -472,6 +473,7 @@ defmodule Application do
 
   See `get_compile_env_listeners/0` for more information.
   """
+  @doc since: "1.10.0"
   @spec delete_compile_env_listener(pid) :: :ok
   def delete_compile_env_listener(pid) when is_pid(pid) do
     :elixir_config.update(:compile_env_listeners, &List.delete(&1, pid))
@@ -520,6 +522,8 @@ defmodule Application do
   Giving a path is useful to let Elixir know that only certain paths
   in a large configuration are compile time dependent.
   """
+  @doc since: "1.10.0"
+  @spec compile_env(app, key, value) :: value
   def compile_env(app, key_or_path, default \\ nil) when is_atom(app) do
     case fetch_compile_env(app, key_or_path) do
       {:ok, value} -> value
@@ -533,6 +537,8 @@ defmodule Application do
   This is the same as `compile_env/3` but it raises an
   ArgumentError if the configuration is ot available.
   """
+  @doc since: "1.10.0"
+  @spec compile_env!(app, key) :: value
   def compile_env!(app, key_or_path) when is_atom(app) do
     case fetch_compile_env(app, key_or_path) do
       {:ok, value} ->
@@ -569,6 +575,7 @@ defmodule Application do
 
   An error is raised if a mismatch is found.
   """
+  @doc since: "1.10.0"
   @spec validate_compile_env!([compile_env_notification()]) :: :ok
   def validate_compile_env!(compile_env) do
     Enum.each(compile_env, fn {app, [key | path], compile_return} ->
