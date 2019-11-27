@@ -67,7 +67,8 @@ start(_Type, _Args) ->
     {warnings_as_errors, false},
     {relative_paths, true},
     {no_warn_undefined, []},
-    {tracers, []}
+    {tracers, []},
+    {compile_env_listeners, []}
     | URIConfig
   ],
 

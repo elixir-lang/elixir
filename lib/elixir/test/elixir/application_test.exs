@@ -10,13 +10,13 @@ defmodule ApplicationTest do
       Application.fetch_env!(:unknown, :unknown)
     end
 
+    assert_raise ArgumentError, ~r/because configuration at :unknown was not set/, fn ->
+      Application.fetch_env!(:elixir, :unknown)
+    end
+
     assert Application.get_env(:elixir, :unknown) == nil
     assert Application.get_env(:elixir, :unknown, :default) == :default
     assert Application.fetch_env(:elixir, :unknown) == :error
-
-    assert_raise ArgumentError, ~r/because configuration :unknown was not set/, fn ->
-      Application.fetch_env!(:elixir, :unknown)
-    end
 
     assert Application.put_env(:elixir, :unknown, :known) == :ok
     assert Application.fetch_env(:elixir, :unknown) == {:ok, :known}
@@ -26,6 +26,89 @@ defmodule ApplicationTest do
 
     assert Application.delete_env(:elixir, :unknown) == :ok
     assert Application.get_env(:elixir, :unknown, :default) == :default
+  after
+    Application.delete_env(:elixir, :unknown)
+  end
+
+  test "compile environment" do
+    Application.put_compile_env_listener(self())
+
+    assert_raise ArgumentError, ~r/because the application was not loaded\/started/, fn ->
+      Application.compile_env!(:unknown, :unknown)
+    end
+
+    assert_received {:compile_env, {:unknown, [:unknown], :error}}
+
+    assert_raise ArgumentError, ~r/because configuration at :unknown was not set/, fn ->
+      Application.compile_env!(:elixir, :unknown)
+    end
+
+    assert_received {:compile_env, {:elixir, [:unknown], :error}}
+
+    assert Application.compile_env(:elixir, :unknown) == nil
+    assert_received {:compile_env, {:elixir, [:unknown], :error}}
+
+    assert Application.compile_env(:elixir, :unknown, :default) == :default
+    assert_received {:compile_env, {:elixir, [:unknown], :error}}
+
+    assert Application.put_env(:elixir, :unknown, nested: [key: :value]) == :ok
+
+    assert Application.compile_env(:elixir, :unknown, :default) == [nested: [key: :value]]
+    assert_received {:compile_env, {:elixir, [:unknown], {:ok, [nested: [key: :value]]}}}
+
+    assert Application.compile_env(:elixir, :unknown) == [nested: [key: :value]]
+    assert_received {:compile_env, {:elixir, [:unknown], {:ok, [nested: [key: :value]]}}}
+
+    assert Application.compile_env!(:elixir, :unknown) == [nested: [key: :value]]
+    assert_received {:compile_env, {:elixir, [:unknown], {:ok, [nested: [key: :value]]}}}
+
+    assert Application.compile_env(:elixir, [:unknown, :nested]) == [key: :value]
+    assert_received {:compile_env, {:elixir, [:unknown, :nested], {:ok, [key: :value]}}}
+
+    assert Application.compile_env!(:elixir, [:unknown, :nested]) == [key: :value]
+    assert_received {:compile_env, {:elixir, [:unknown, :nested], {:ok, [key: :value]}}}
+
+    assert Application.compile_env(:elixir, [:unknown, :nested, :key]) == :value
+    assert_received {:compile_env, {:elixir, [:unknown, :nested, :key], {:ok, :value}}}
+
+    assert Application.compile_env!(:elixir, [:unknown, :nested, :key]) == :value
+    assert_received {:compile_env, {:elixir, [:unknown, :nested, :key], {:ok, :value}}}
+
+    assert Application.compile_env(:elixir, [:unknown, :unknown, :key], :default) == :default
+    assert_received {:compile_env, {:elixir, [:unknown, :unknown, :key], :error}}
+
+    assert Application.compile_env(:elixir, [:unknown, :nested, :unkown], :default) == :default
+    assert_received {:compile_env, {:elixir, [:unknown, :nested, :unkown], :error}}
+  after
+    Application.delete_env(:elixir, :unknown)
+    Application.delete_compile_env_listener(self())
+  end
+
+  test "validate_compile_env!" do
+    Application.validate_compile_env!([{:elixir, [:unknown], :error}])
+
+    Application.put_env(:elixir, :unknown, nested: [key: :value])
+    Application.validate_compile_env!([{:elixir, [:unknown], {:ok, [nested: [key: :value]]}}])
+    Application.validate_compile_env!([{:elixir, [:unknown, :nested], {:ok, [key: :value]}}])
+    Application.validate_compile_env!([{:elixir, [:unknown, :nested, :key], {:ok, :value}}])
+    Application.validate_compile_env!([{:elixir, [:unknown, :nested, :unknown], :error}])
+
+    assert_raise RuntimeError, ~r"Compile time value was not set", fn ->
+      Application.validate_compile_env!([{:elixir, [:unknown, :nested], :error}])
+    end
+
+    assert_raise RuntimeError, ~r"Compile time value was set to: :another", fn ->
+      Application.validate_compile_env!([{:elixir, [:unknown, :nested, :key], {:ok, :another}}])
+    end
+
+    assert_raise RuntimeError,
+                 ~r"could not read compile env at \[:unknown, :nested, :key, :too_deep\]",
+                 fn ->
+                   keys = [:unknown, :nested, :key, :too_deep]
+                   Application.validate_compile_env!([{:elixir, keys, :error}])
+                 end
+  after
+    Application.delete_env(:elixir, :unknown)
   end
 
   test "loaded and started applications" do

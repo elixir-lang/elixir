@@ -105,6 +105,14 @@ defmodule Mix.ProjectStack do
     end)
   end
 
+  @spec compile_env() :: [{[term], term}]
+  def compile_env() do
+    get_stack(fn
+      [h | _] -> h.compile_env
+      [] -> []
+    end)
+  end
+
   @spec prepend_after_compiler(atom, fun) :: :ok
   def prepend_after_compiler(name, fun) do
     update_stack(fn
@@ -203,6 +211,7 @@ defmodule Mix.ProjectStack do
           config_apps: [],
           config_files: [file] ++ peek_config_files(config[:inherit_parent_config_files], stack),
           config_mtime: nil,
+          compile_env: [],
           after_compiler: %{}
         }
 
@@ -264,5 +273,16 @@ defmodule Mix.ProjectStack do
   def handle_call({:update_state, fun}, _from, state) do
     {reply, state} = fun.(state)
     {:reply, reply, state}
+  end
+
+  @impl true
+  def handle_info({:compile_env, {app, path, return}}, {stack, post_config}) do
+    with [%{config: config, compile_env: compile_env} = project | stack] <- stack,
+         ^app <- config[:app] do
+      project = %{project | compile_env: [{path, return} | compile_env]}
+      {:noreply, {[project | stack], post_config}}
+    else
+      _ -> {:noreply, {stack, post_config}}
+    end
   end
 end

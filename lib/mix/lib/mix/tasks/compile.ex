@@ -144,8 +144,10 @@ defmodule Mix.Tasks.Compile do
   @doc """
   Returns all compilers.
   """
-  def compilers do
-    Mix.Project.config()[:compilers] || Mix.compilers()
+  # TODO: Deprecate :xref on v1.12
+  def compilers(config \\ Mix.Project.config()) do
+    compilers = config[:compilers] || Mix.compilers()
+    List.delete(compilers, :xref)
   end
 
   @impl true
