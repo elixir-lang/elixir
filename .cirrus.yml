@@ -22,9 +22,9 @@ test_linux_task:
     - name: Linux, ${OTP_RELEASE}, Ubuntu 14.04
       matrix:
         - env:
-            OTP_RELEASE: OTP-22.1
             CHECK_POSIX_COMPLIANT: true
             CHECK_REPRODUCIBLE: true
+            OTP_RELEASE: OTP-22.1
         - env:
             OTP_RELEASE: OTP-22.1
         - env:
@@ -94,12 +94,12 @@ test_windows_task:
 
   matrix:
     - env:
-        OTP_RELEASE: 22.0
         OS_VERSION: 2019
+        OTP_RELEASE: 22.0
 
     - env:
-        OTP_RELEASE: 21.0.1
         OS_VERSION: 2019
+        OTP_RELEASE: 21.0.1
 
   windows_container:
     image: fertapric/elixir-ci:otp-win64-${OTP_RELEASE}
