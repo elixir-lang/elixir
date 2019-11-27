@@ -568,69 +568,6 @@ defmodule Application do
     return
   end
 
-  @doc """
-  Validates the given compile env entries against the loaded application environment.
-
-  It expects a list of entries in the format sent to compile env listeners,
-  as defined in `t:compile_env_notification/0`.
-
-  An error is raised if a mismatch is found.
-  """
-  @doc since: "1.10.0"
-  @spec validate_compile_env!([compile_env_notification()]) :: :ok
-  def validate_compile_env!(compile_env) do
-    Enum.each(compile_env, fn {app, [key | path], compile_return} ->
-      try do
-        traverse_env(fetch_env(app, key), path)
-      rescue
-        e ->
-          raise """
-          could not read compile env at #{inspect([key | path])} for application #{inspect(app)}:
-
-          #{Exception.format(:error, e, __STACKTRACE__)}
-
-          Expected it to match the compile time value of #{return_to_text(compile_return)}.
-
-          #{compile_env_tips(app)}
-          """
-      else
-        ^compile_return ->
-          :ok
-
-        runtime_return ->
-          raise """
-          the application #{inspect(app)} has a different value set at #{inspect([key | path])} \
-          during runtime compared to compile time. Since this application environment entry was \
-          marked as compile time, this difference can lead to different behaviour than expected:
-
-            * Compile time value #{return_to_text(compile_return)}
-            * Runtime value #{return_to_text(runtime_return)}
-
-          #{compile_env_tips(app)}
-          """
-      end
-    end)
-
-    :ok
-  end
-
-  defp compile_env_tips(app),
-    do: """
-    To fix this error, you might:
-
-      * Make the runtime value match the compile time one
-
-      * Recompile your project. If the misconfigured application is a dependency, \
-        you may need to run "mix deps.compile #{app} --force"
-
-      * Alternatively, you can disable this check. If you are using releases, you can \
-        set :validate_compile_env to false in your release configuration. If you are \
-        using Mix to start your system, you can pass the --no-validate-compile-env flag
-    """
-
-  defp return_to_text({:ok, value}), do: "was set to: #{inspect(value)}"
-  defp return_to_text(:error), do: "was not set"
-
   defp traverse_env(return, []), do: return
   defp traverse_env(:error, _paths), do: :error
   defp traverse_env({:ok, value}, [key | keys]), do: traverse_env(Access.fetch(value, key), keys)

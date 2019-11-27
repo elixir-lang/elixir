@@ -157,7 +157,7 @@ defmodule Mix.Tasks.App.Start do
                 with :ok <- :application.load(application_data) do
                   if compile_env = validate_compile_env? && properties[:compile_env] do
                     compile_env = for {path, return} <- compile_env, do: {app, path, return}
-                    Application.validate_compile_env!(compile_env)
+                    Config.Provider.validate_compile_env!(compile_env)
                   end
 
                   :application.start(app, type)

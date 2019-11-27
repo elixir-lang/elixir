@@ -84,33 +84,6 @@ defmodule ApplicationTest do
     Application.delete_compile_env_listener(self())
   end
 
-  test "validate_compile_env!" do
-    Application.validate_compile_env!([{:elixir, [:unknown], :error}])
-
-    Application.put_env(:elixir, :unknown, nested: [key: :value])
-    Application.validate_compile_env!([{:elixir, [:unknown], {:ok, [nested: [key: :value]]}}])
-    Application.validate_compile_env!([{:elixir, [:unknown, :nested], {:ok, [key: :value]}}])
-    Application.validate_compile_env!([{:elixir, [:unknown, :nested, :key], {:ok, :value}}])
-    Application.validate_compile_env!([{:elixir, [:unknown, :nested, :unknown], :error}])
-
-    assert_raise RuntimeError, ~r"Compile time value was not set", fn ->
-      Application.validate_compile_env!([{:elixir, [:unknown, :nested], :error}])
-    end
-
-    assert_raise RuntimeError, ~r"Compile time value was set to: :another", fn ->
-      Application.validate_compile_env!([{:elixir, [:unknown, :nested, :key], {:ok, :another}}])
-    end
-
-    assert_raise RuntimeError,
-                 ~r"could not read compile env at \[:unknown, :nested, :key, :too_deep\]",
-                 fn ->
-                   keys = [:unknown, :nested, :key, :too_deep]
-                   Application.validate_compile_env!([{:elixir, keys, :error}])
-                 end
-  after
-    Application.delete_env(:elixir, :unknown)
-  end
-
   test "loaded and started applications" do
     started = Application.started_applications()
     assert is_list(started)
