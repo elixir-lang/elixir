@@ -71,7 +71,7 @@ defmodule Application do
   This approach, however, has one big limitation: if the redis host is set
   dynamically, for example through `System.get_env/2` or only when booting
   the application, the code won't be recompiled. This can lead into situations
-  where the configuration the code was compield with is different from the
+  where the configuration the code was compiled with is different from the
   code running, which can be cumbersome to debug.
 
   Therefore, whenever reading the environment at compilation time, we
@@ -444,7 +444,7 @@ defmodule Application do
 
   A compile env listener is a process that receives a message in the shape of
   `{:compile_env, compile_env_notification}`, with `compile_env_notification`
-  given by the the type `t:compile_env_notification/0`, every time `compile_env/3`
+  given by the type `t:compile_env_notification/0`, every time `compile_env/3`
   or `compile_env!/2` is called.
 
   Listeners can be added with `put_compile_env_listener/1` and removed
@@ -536,7 +536,7 @@ defmodule Application do
   Reads the application environment at compilation time or raises.
 
   This is the same as `compile_env/3` but it raises an
-  ArgumentError if the configuration is ot available.
+  ArgumentError if the configuration is not available.
   """
   @doc since: "1.10.0"
   @spec compile_env!(app, key) :: value
