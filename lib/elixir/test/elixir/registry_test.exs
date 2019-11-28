@@ -543,7 +543,7 @@ defmodule RegistryTest do
         assert Registry.keys(registry, self()) == []
       end
 
-      test "unregistes with no entries", %{registry: registry} do
+      test "unregisters with no entries", %{registry: registry} do
         assert Registry.unregister(registry, "hello") == :ok
       end
 
