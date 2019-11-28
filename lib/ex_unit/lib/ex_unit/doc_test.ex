@@ -405,22 +405,24 @@ defmodule ExUnit.DocTest do
 
   defp test_case_content(expr, :match, location, stack, formatted) do
     doctest = "\n" <> formatted
-    {:=, context, [pattern_ast, expr_ast]} = string_to_quoted(location, stack, expr, doctest)
+
+    full_ast = string_to_quoted(location, stack, expr, doctest)
+    {:=, _, [pattern_ast, expr_ast]} = last_expr(full_ast)
 
     quote do
       try do
-        assert unquote({:=, context, [pattern_ast, expr_ast]})
+        assert unquote(full_ast)
       rescue
         e ->
           doctest = unquote(doctest)
 
-          expr =
-            "#{unquote(Macro.to_string(pattern_ast))} = #{unquote(Macro.to_string(expr_ast))}"
+          #expr =
+            #"#{unquote(Macro.to_string(pattern_ast))} = #{unquote(Macro.to_string(expr_ast))}"
 
           error = [
             doctest: doctest,
             message: e.message,
-            left: {:%{}, [], [a: {:_, [], nil}]},
+            left: e.left,
             right: e.right,
             context: e.context
           ]
@@ -554,6 +556,12 @@ defmodule ExUnit.DocTest do
     stripped_line = strip_indent(line, indent)
 
     case String.trim_leading(line) do
+      "" ->
+        [{previous_line, _} | _] = adjusted_lines
+        if not String.contains?(previous_line, " = ") do
+          raise_incomplete_doctest(line_no, module)
+        end
+
       ^stripped_line ->
         :ok
 

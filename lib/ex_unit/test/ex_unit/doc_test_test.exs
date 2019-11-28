@@ -159,8 +159,6 @@ defmodule ExUnit.DocTestTest.Invalid do
       iex> raise "oops"
       ** (RuntimeError) hello
 
-      iex> %{a: _} = Map.put(%{b: :c}, :d, :e)
-
   """
 
   @doc """
@@ -401,6 +399,57 @@ defmodule ExUnit.DocTestTest.Haiku do
 end
 |> write_beam
 
+defmodule ExUnit.DocTestTest.PatternMatching do
+  @moduledoc """
+  The doctests below test failures so we can assert on the failure messages.
+
+    iex> {1, 2} = {1, 3}
+
+    iex> tuple = {1, 3}
+    iex> {1, 2} = tuple
+
+    iex> "Hello, world" = "Hello world"
+
+    iex> "Hello, " <> _ = "Hello world"
+
+    iex> [:a | _] = [:b, :a]
+
+    iex> atom = :a
+    iex> [^atom | _] = [:b, :a]
+
+    iex> %{a: :b} = %{a: :c}
+
+    iex> %{a: _} = %{a: :c, d: :e}
+
+    iex> %{year: 2001} = ~D[2000-01-01]
+
+  """
+
+  @doc """
+    iex> {1, 2, :three} = tuple()
+
+    iex> {1, _, _} = tuple()
+
+    iex> tuple = tuple()
+    iex> tuple
+    {1, 2, :three}
+
+    iex> {_, _, three} = tuple()
+    iex> three
+    :three
+
+    iex> num = 1
+    iex> num = num + 1
+    iex> {_, ^num, :three} = tuple()
+
+  """
+  def tuple(), do: {1, 2, :three}
+
+  @doc """
+  """
+end
+|> write_beam
+
 defmodule ExUnit.DocTestTest do
   use ExUnit.Case
 
@@ -419,6 +468,7 @@ defmodule ExUnit.DocTestTest do
   doctest ExUnit.DocTestTest.IndentationHeredocs
   doctest ExUnit.DocTestTest.FencedHeredocs
   doctest ExUnit.DocTestTest.Haiku
+  doctest ExUnit.DocTestTest.PatternMatching, only: [tuple: 0], import: true
 
   import ExUnit.CaptureIO
 
@@ -551,18 +601,6 @@ defmodule ExUnit.DocTestTest do
                   test/ex_unit/doc_test_test.exs:159: ExUnit.DocTestTest.Invalid (module)
            """
 
-    assert output =~ """
-             8) doctest module ExUnit.DocTestTest.Invalid (8) (ExUnit.DocTestTest.ActuallyCompiled)
-             test/ex_unit/doc_test_test.exs:#{doctest_line}
-             match (=) failed
-             doctest:
-               iex> %{a: _} = Map.put(%{b: :c}, :d, :e)
-             left:  %{a: _}
-             right: %{b: :c, d: :e}
-
-             stacktrace:
-               test/ex_unit/doc_test_test.exs:162: ExUnit.DocTestTest.Invalid (module)
-           """
 
     assert output =~ """
              8) doctest ExUnit.DocTestTest.Invalid.a/0 (8) (ExUnit.DocTestTest.ActuallyCompiled)
@@ -640,8 +678,20 @@ defmodule ExUnit.DocTestTest do
                 stacktrace:
                   test/ex_unit/doc_test_test.exs:171: ExUnit.DocTestTest.Invalid (module)
            """
+  end
 
+  @tag :skip
+  test "pattern matching assertions in doctests" do
+    defmodule ActuallyCompiled do
+      use ExUnit.Case
+      doctest ExUnit.DocTestTest.PatternMatching
+    end
 
+    _doctest_line = __ENV__.line - 3
+
+    ExUnit.configure(seed: 0, colors: [enabled: false])
+    ExUnit.Server.modules_loaded()
+    _output = capture_io(fn -> ExUnit.run() end)
   end
 
   test "IEx prefix contains a number" do
