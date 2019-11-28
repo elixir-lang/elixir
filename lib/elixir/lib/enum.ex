@@ -1953,9 +1953,10 @@ defmodule Enum do
 
   ## Examples
 
-  The examples below use the `exrop` pseudorandom algorithm since it's
-  the default from OTP 20, however if you are using OTP 22 or above then
-  `exsss` is the default algorithm.
+  The examples below use the `:exrop` pseudorandom algorithm since it's
+  the default from Erlang/OTP 20, however if you are using Erlang/OTP 22
+  or above then `:exsss` is the default algorithm. If you are using `:exsplus`,
+  then please update, as this algorithm is deprecated since Erlang/OTP 20.
 
       # Although not necessary, let's seed the random algorithm
       iex> :rand.seed(:exrop, {101, 102, 103})
@@ -2271,9 +2272,10 @@ defmodule Enum do
 
   ## Examples
 
-  The examples below use the `exrop` pseudorandom algorithm since it's
-  the default from OTP 20, however if you are using OTP 22 or above then
-  `exsss` is the default algorithm.
+  The examples below use the `:exrop` pseudorandom algorithm since it's
+  the default from Erlang/OTP 20, however if you are using Erlang/OTP 22
+  or above then `:exsss` is the default algorithm. If you are using `:exsplus`,
+  then please update, as this algorithm is deprecated since Erlang/OTP 20.
 
       # Although not necessary, let's seed the random algorithm
       iex> :rand.seed(:exrop, {1, 2, 3})
