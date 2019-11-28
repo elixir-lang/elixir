@@ -298,6 +298,18 @@ defmodule ExUnit.Formatter do
     code_multiline(Macro.to_string(expr), padding_size)
   end
 
+  defp inspect_multiline({op, context, args} = ast, padding_size, width)
+       when is_atom(op) and is_list(context) and is_list(args) do
+    case Macro.validate(ast) do
+      :ok ->
+        {literal, _} = Code.eval_quoted(ast)
+        inspect_multiline(literal, padding_size, width)
+
+      _ ->
+        inspect_multiline(ast, padding_size, width)
+    end
+  end
+
   defp inspect_multiline(expr, padding_size, width) do
     width = if width == :infinity, do: width, else: width - padding_size
 
