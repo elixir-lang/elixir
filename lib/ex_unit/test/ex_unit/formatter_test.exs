@@ -204,6 +204,18 @@ defmodule ExUnit.FormatterTest do
            """
   end
 
+  test "formats matches correctly" do
+    failure = [{:error, catch_assertion(assert %{a: :b} = %{a: :c}), []}]
+
+    assert format_test_all_failure(test_module(), failure, 1, :infinity, &formatter/2) =~ """
+             1) Hello: failure on setup_all callback, all tests have been invalidated
+                match (=) failed
+                code:  assert %{a: :b} = %{a: :c}
+                left:  %{a: :b}
+                right: %{a: :c}
+           """
+  end
+
   test "formats assertions with operators with no limit" do
     failure = [{:error, catch_assertion(assert [1, 2, 3] == [4, 5, 6]), []}]
 
