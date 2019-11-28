@@ -2268,6 +2268,9 @@ defmodule Enum do
   the random value. Check its documentation for setting a
   different random algorithm or a different seed.
 
+  We use the `exrop` pseudorandom algorithm here since it's the default from OTP 20,
+  however if you are using OTP 22 or above then `exsss` is the default algorithm.
+
   ## Examples
 
       # Although not necessary, let's seed the random algorithm
