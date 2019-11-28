@@ -291,7 +291,7 @@ end
 
 defmodule ExUnit.DocTestTest.Incomplete do
   @doc ~S'''
-      iex> 1 + 2
+      iex> fn -> %{} = %{a: :b} end
 
   '''
   def test_fun, do: :ok
@@ -403,7 +403,7 @@ defmodule ExUnit.DocTestTest.PatternMatching do
   @moduledoc """
   The doctests below test failures so we can assert on the failure messages.
 
-    iex> {1, 2} = {1, 3}
+    iex> {1, 2}={1, 3}
 
     iex> tuple = {1, 3}
     iex> {1, 2} = tuple
@@ -417,11 +417,9 @@ defmodule ExUnit.DocTestTest.PatternMatching do
     iex> atom = :a
     iex> [^atom | _] = [:b, :a]
 
-    iex> %{a: :b} = %{a: :c}
+    iex> %{b: _, d: :e} = %{a: :c, d: :e}
 
-    iex> %{a: _} = %{a: :c, d: :e}
-
-    iex> %{year: 2001} = ~D[2000-01-01]
+    iex> %{year: 2001, day: 1} = ~D[2000-01-01]
 
   """
 
@@ -442,11 +440,23 @@ defmodule ExUnit.DocTestTest.PatternMatching do
     iex> num = num + 1
     iex> {_, ^num, :three} = tuple()
 
+    iex> tuple = tuple()
+    iex> {1, 2, _} = tuple
+
   """
   def tuple(), do: {1, 2, :three}
 
   @doc """
+
+    iex> %{} = map()
+
+    iex> %{a: _} = map()
+
+    iex> d = [:d]
+    iex> %{"c" => ^d} = map()
+
   """
+  def map(), do: %{:a => "b", "c" => [:d]}
 end
 |> write_beam
 
@@ -468,7 +478,7 @@ defmodule ExUnit.DocTestTest do
   doctest ExUnit.DocTestTest.IndentationHeredocs
   doctest ExUnit.DocTestTest.FencedHeredocs
   doctest ExUnit.DocTestTest.Haiku
-  doctest ExUnit.DocTestTest.PatternMatching, only: [tuple: 0], import: true
+  doctest ExUnit.DocTestTest.PatternMatching, only: [tuple: 0, map: 0], import: true
 
   import ExUnit.CaptureIO
 
@@ -601,7 +611,6 @@ defmodule ExUnit.DocTestTest do
                   test/ex_unit/doc_test_test.exs:159: ExUnit.DocTestTest.Invalid (module)
            """
 
-
     assert output =~ """
              8) doctest ExUnit.DocTestTest.Invalid.a/0 (8) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
@@ -680,18 +689,117 @@ defmodule ExUnit.DocTestTest do
            """
   end
 
-  @tag :skip
   test "pattern matching assertions in doctests" do
-    defmodule ActuallyCompiled do
+    defmodule PatternMatchingRunner do
       use ExUnit.Case
-      doctest ExUnit.DocTestTest.PatternMatching
+      doctest ExUnit.DocTestTest.PatternMatching, import: true
     end
 
-    _doctest_line = __ENV__.line - 3
+    doctest_line = __ENV__.line - 3
 
     ExUnit.configure(seed: 0, colors: [enabled: false])
     ExUnit.Server.modules_loaded()
-    _output = capture_io(fn -> ExUnit.run() end)
+    output = capture_io(fn -> ExUnit.run() end)
+
+    assert output =~ """
+             1) doctest module ExUnit.DocTestTest.PatternMatching (1) (ExUnit.DocTestTest.PatternMatchingRunner)
+                test/ex_unit/doc_test_test.exs:#{doctest_line}
+                match (=) failed
+                doctest:
+                  iex> {1, 2}={1, 3}
+                left:  {1, 2}
+                right: {1, 3}
+                stacktrace:
+                  test/ex_unit/doc_test_test.exs:406: ExUnit.DocTestTest.PatternMatching (module)
+           """
+
+    assert output =~ """
+             2) doctest module ExUnit.DocTestTest.PatternMatching (2) (ExUnit.DocTestTest.PatternMatchingRunner)
+                test/ex_unit/doc_test_test.exs:#{doctest_line}
+                match (=) failed
+                doctest:
+                  iex> tuple = {1, 3}
+                  iex> {1, 2} = tuple
+                left:  {1, 2}
+                right: {1, 3}
+                stacktrace:
+                  test/ex_unit/doc_test_test.exs:408: ExUnit.DocTestTest.PatternMatching (module)
+           """
+
+    assert output =~ """
+             3) doctest module ExUnit.DocTestTest.PatternMatching (3) (ExUnit.DocTestTest.PatternMatchingRunner)
+                test/ex_unit/doc_test_test.exs:#{doctest_line}
+                match (=) failed
+                doctest:
+                  iex> "Hello, world" = "Hello world"
+                left:  "Hello, world"
+                right: "Hello world"
+                stacktrace:
+                  test/ex_unit/doc_test_test.exs:411: ExUnit.DocTestTest.PatternMatching (module)
+           """
+
+    assert output =~ """
+             4) doctest module ExUnit.DocTestTest.PatternMatching (4) (ExUnit.DocTestTest.PatternMatchingRunner)
+                test/ex_unit/doc_test_test.exs:#{doctest_line}
+                match (=) failed
+                doctest:
+                  iex> "Hello, " <> _ = "Hello world"
+                left:  "Hello, " <> _
+                right: "Hello world"
+                stacktrace:
+                  test/ex_unit/doc_test_test.exs:413: ExUnit.DocTestTest.PatternMatching (module)
+           """
+
+    assert output =~ """
+             5) doctest module ExUnit.DocTestTest.PatternMatching (5) (ExUnit.DocTestTest.PatternMatchingRunner)
+                test/ex_unit/doc_test_test.exs:#{doctest_line}
+                match (=) failed
+                doctest:
+                  iex> [:a | _] = [:b, :a]
+                left:  [:a | _]
+                right: [:b, :a]
+                stacktrace:
+                  test/ex_unit/doc_test_test.exs:415: ExUnit.DocTestTest.PatternMatching (module)
+           """
+
+    assert output =~ """
+             6) doctest module ExUnit.DocTestTest.PatternMatching (6) (ExUnit.DocTestTest.PatternMatchingRunner)
+                test/ex_unit/doc_test_test.exs:#{doctest_line}
+                match (=) failed
+                The following variables were pinned:
+                  atom = :a
+                doctest:
+                  iex> atom = :a
+                  iex> [^atom | _] = [:b, :a]
+                left:  [^atom | _]
+                right: [:b, :a]
+                stacktrace:
+                  test/ex_unit/doc_test_test.exs:417: ExUnit.DocTestTest.PatternMatching (module)
+           """
+
+    assert output =~ """
+             7) doctest module ExUnit.DocTestTest.PatternMatching (7) (ExUnit.DocTestTest.PatternMatchingRunner)
+                test/ex_unit/doc_test_test.exs:#{doctest_line}
+                match (=) failed
+                doctest:
+                  iex> %{b: _, d: :e} = %{a: :c, d: :e}
+                left:  %{b: _, d: :e}
+                right: %{a: :c, d: :e}
+                stacktrace:
+                  test/ex_unit/doc_test_test.exs:420: ExUnit.DocTestTest.PatternMatching (module)
+           """
+
+    assert output =~ """
+             8) doctest module ExUnit.DocTestTest.PatternMatching (8) (ExUnit.DocTestTest.PatternMatchingRunner)
+                test/ex_unit/doc_test_test.exs:#{doctest_line}
+                match (=) failed
+                doctest:
+                  iex> %{year: 2001, day: 1} = ~D[2000-01-01]
+                left:  %{year: 2001, day: 1}
+                right: ~D[2000-01-01]
+                stacktrace:
+                  test/ex_unit/doc_test_test.exs:422: ExUnit.DocTestTest.PatternMatching (module)
+           """
   end
 
   test "IEx prefix contains a number" do

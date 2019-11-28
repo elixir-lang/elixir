@@ -406,18 +406,17 @@ defmodule ExUnit.DocTest do
   defp test_case_content(expr, :match, location, stack, formatted) do
     doctest = "\n" <> formatted
 
-    full_ast = string_to_quoted(location, stack, expr, doctest)
-    {:=, _, [pattern_ast, expr_ast]} = last_expr(full_ast)
+    assertion =
+      location
+      |> string_to_quoted(stack, expr, doctest)
+      |> insert_assertion()
 
     quote do
       try do
-        assert unquote(full_ast)
+        unquote(assertion)
       rescue
-        e ->
+        e in [ExUnit.AssertionError] ->
           doctest = unquote(doctest)
-
-          #expr =
-            #"#{unquote(Macro.to_string(pattern_ast))} = #{unquote(Macro.to_string(expr_ast))}"
 
           error = [
             doctest: doctest,
@@ -558,8 +557,13 @@ defmodule ExUnit.DocTest do
     case String.trim_leading(line) do
       "" ->
         [{previous_line, _} | _] = adjusted_lines
-        if not String.contains?(previous_line, " = ") do
-          raise_incomplete_doctest(line_no, module)
+
+        case previous_line
+             |> String.trim_leading()
+             |> String.slice(4..-1)
+             |> Code.string_to_quoted() do
+          {:ok, {:=, _, _}} -> :ok
+          _ -> raise_incomplete_doctest(line_no, module)
         end
 
       ^stripped_line ->
@@ -878,6 +882,14 @@ defmodule ExUnit.DocTest do
 
   defp last_expr({:__block__, _, [_ | _] = block}), do: block |> List.last() |> last_expr()
   defp last_expr(other), do: other
+
+  defp insert_assertion({:__block__, context, block}) do
+    [expr | rest] = Enum.reverse(block)
+    modified = [{:assert, [], [expr]} | rest]
+    {:__block__, context, Enum.reverse(modified)}
+  end
+
+  defp insert_assertion(ast), do: {:assert, [], [ast]}
 
   defp raise_incomplete_doctest(line_no, module) do
     raise Error,
