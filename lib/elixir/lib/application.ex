@@ -22,7 +22,7 @@ defmodule Application do
   operating system environment.
 
   By default, the environment of an application is an empty list. In a Mix
-  project `mix.exs` file, you can set the `:env` key in `application/0`:
+  project's `mix.exs` file, you can set the `:env` key in `application/0`:
 
       def application do
         [env: [redis_host: "localhost"]]
@@ -50,7 +50,7 @@ defmodule Application do
   own environment. Please do not use the functions in this module for directly
   accessing or modifying the environment of other applications.
 
-  ### Compile time environment
+  ### Compile-time environment
 
   The application environment is available both at compile time and at runtime.
   For example, you can use the application environment and the configuration
@@ -68,7 +68,7 @@ defmodule Application do
         end
       end
 
-  This approach, however, has one big limitation: if the redis host is set
+  This approach, however, has one big limitation: if the Redis host is set
   dynamically, for example through `System.get_env/2` or only when booting
   the application, the code won't be recompiled. This can lead into situations
   where the configuration the code was compiled with is different from the
@@ -485,10 +485,10 @@ defmodule Application do
 
   Similar to `get_env/3`, except it must be used to read values
   at compile time. This allows Elixir to track when configuration
-  values between compile time and runtime differ.
+  values change between compile time and runtime.
 
   The first argument is the application name. The second argument
-  `key_or_path`, is either an atom key or a path to traverse in
+  `key_or_path` is either an atom key or a path to traverse in
   search of the configuration, starting with an atom key.
 
   For example, imagine the following configuration:
@@ -524,7 +524,7 @@ defmodule Application do
   """
   # TODO: Warn if get_env/fetch_env/fetch_env! is used at compile time instead of compile_env
   @doc since: "1.10.0"
-  @spec compile_env(app, key, value) :: value
+  @spec compile_env(app, key | list, value) :: value
   def compile_env(app, key_or_path, default \\ nil) when is_atom(app) do
     case fetch_compile_env(app, key_or_path) do
       {:ok, value} -> value
@@ -539,7 +539,7 @@ defmodule Application do
   ArgumentError if the configuration is not available.
   """
   @doc since: "1.10.0"
-  @spec compile_env!(app, key) :: value
+  @spec compile_env!(app, key | list) :: value
   def compile_env!(app, key_or_path) when is_atom(app) do
     case fetch_compile_env(app, key_or_path) do
       {:ok, value} ->
