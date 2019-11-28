@@ -184,8 +184,9 @@ defmodule Config.Provider do
   end
 
   @doc false
-  def validate_compile_env!(compile_env) do
-    Enum.each(compile_env, fn {app, [key | path], compile_return} ->
+  def validate_compile_env(compile_env) do
+    for {app, [key | path], compile_return} <- compile_env,
+        Application.ensure_loaded(app) == :ok do
       try do
         traverse_env(Application.fetch_env(app, key), path)
       rescue
@@ -215,7 +216,7 @@ defmodule Config.Provider do
           #{compile_env_tips(app)}
           """)
       end
-    end)
+    end
 
     :ok
   end

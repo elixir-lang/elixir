@@ -754,6 +754,22 @@ defmodule Application do
   end
 
   @doc """
+  Ensures the given `app` is loaded.
+
+  Same as `load/2` but returns `:ok` if the application was already
+  loaded.
+  """
+  @doc since: "1.10.0"
+  @spec ensure_loaded(app) :: :ok | {:error, term}
+  def ensure_loaded(app) when is_atom(app) do
+    case :application.load(app) do
+      :ok -> :ok
+      {:error, {:already_loaded, ^app}} -> :ok
+      {:error, _} = error -> error
+    end
+  end
+
+  @doc """
   Ensures the given `app` and its applications are started.
 
   Same as `start/2` but also starts the applications listed under

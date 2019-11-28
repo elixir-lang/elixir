@@ -27,28 +27,28 @@ defmodule Config.ProviderTest do
     end)
   end
 
-  test "validate_compile_env!" do
-    Config.Provider.validate_compile_env!([{:elixir, [:unknown], :error}])
+  test "validate_compile_env" do
+    Config.Provider.validate_compile_env([{:elixir, [:unknown], :error}])
 
     Application.put_env(:elixir, :unknown, nested: [key: :value])
-    Config.Provider.validate_compile_env!([{:elixir, [:unknown], {:ok, [nested: [key: :value]]}}])
-    Config.Provider.validate_compile_env!([{:elixir, [:unknown, :nested], {:ok, [key: :value]}}])
-    Config.Provider.validate_compile_env!([{:elixir, [:unknown, :nested, :key], {:ok, :value}}])
-    Config.Provider.validate_compile_env!([{:elixir, [:unknown, :nested, :unknown], :error}])
+    Config.Provider.validate_compile_env([{:elixir, [:unknown], {:ok, [nested: [key: :value]]}}])
+    Config.Provider.validate_compile_env([{:elixir, [:unknown, :nested], {:ok, [key: :value]}}])
+    Config.Provider.validate_compile_env([{:elixir, [:unknown, :nested, :key], {:ok, :value}}])
+    Config.Provider.validate_compile_env([{:elixir, [:unknown, :nested, :unknown], :error}])
 
     assert capture_abort(fn ->
-             Config.Provider.validate_compile_env!([{:elixir, [:unknown, :nested], :error}])
+             Config.Provider.validate_compile_env([{:elixir, [:unknown, :nested], :error}])
            end) =~ "Compile time value was not set"
 
     assert capture_abort(fn ->
-             Config.Provider.validate_compile_env!([
+             Config.Provider.validate_compile_env([
                {:elixir, [:unknown, :nested], {:ok, :another}}
              ])
            end) =~ "Compile time value was set to: :another"
 
     assert capture_abort(fn ->
              keys = [:unknown, :nested, :key, :too_deep]
-             Config.Provider.validate_compile_env!([{:elixir, keys, :error}])
+             Config.Provider.validate_compile_env([{:elixir, keys, :error}])
            end) =~ "could not read compile env at [:unknown, :nested, :key, :too_deep]"
   after
     Application.delete_env(:elixir, :unknown)
