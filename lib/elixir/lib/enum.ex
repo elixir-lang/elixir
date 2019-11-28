@@ -1941,9 +1941,6 @@ defmodule Enum do
   the random value. Check its documentation for setting a
   different random algorithm or a different seed.
 
-  We use the `exrop` pseudorandom algorithm here since it's the default from OTP 20,
-  however if you are using OTP 22 or above then `exsss` is the default algorithm.
-
   The implementation is based on the
   [reservoir sampling](https://en.wikipedia.org/wiki/Reservoir_sampling#Relation_to_Fisher-Yates_shuffle)
   algorithm.
@@ -1955,6 +1952,10 @@ defmodule Enum do
   range (thus executing in constant time and constant memory).
 
   ## Examples
+
+  The examples below use the `exrop` pseudorandom algorithm since it's
+  the default from OTP 20, however if you are using OTP 22 or above then
+  `exsss` is the default algorithm.
 
       # Although not necessary, let's seed the random algorithm
       iex> :rand.seed(:exrop, {101, 102, 103})
@@ -2268,10 +2269,11 @@ defmodule Enum do
   the random value. Check its documentation for setting a
   different random algorithm or a different seed.
 
-  We use the `exrop` pseudorandom algorithm here since it's the default from OTP 20,
-  however if you are using OTP 22 or above then `exsss` is the default algorithm.
-
   ## Examples
+
+  The examples below use the `exrop` pseudorandom algorithm since it's
+  the default from OTP 20, however if you are using OTP 22 or above then
+  `exsss` is the default algorithm.
 
       # Although not necessary, let's seed the random algorithm
       iex> :rand.seed(:exrop, {1, 2, 3})
