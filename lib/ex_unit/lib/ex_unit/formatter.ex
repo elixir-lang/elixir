@@ -232,12 +232,14 @@ defmodule ExUnit.Formatter do
     nil
   end
 
-  defp blame_match(%{match?: true, node: node}, _, _formatter), do: Macro.to_string(node)
+  defp blame_match(%{match?: true, node: node}, _, _formatter),
+    do: Macro.to_string(node)
 
   defp blame_match(%{match?: false, node: node}, _, formatter),
     do: formatter.(:blame_diff, Macro.to_string(node))
 
-  defp blame_match(_, string, _formatter), do: string
+  defp blame_match(_, string, _formatter),
+    do: string
 
   defp format_meta(fields, formatter, padding, padding_size) do
     for {label, value} <- fields, has_value?(value) do
@@ -289,7 +291,17 @@ defmodule ExUnit.Formatter do
     ["\n" | entries]
   end
 
-  defp code_multiline({fun, _, [expr]}, padding_size) when is_atom(fun) do
+  @assertions [
+    :assert,
+    :assert_raise,
+    :assert_receive,
+    :assert_received,
+    :refute,
+    :refute_receive,
+    :refute_received
+  ]
+
+  defp code_multiline({fun, _, [expr]}, padding_size) when fun in @assertions do
     pad_multiline(Atom.to_string(fun) <> " " <> Macro.to_string(expr), padding_size)
   end
 
