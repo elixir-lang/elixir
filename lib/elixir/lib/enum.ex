@@ -1109,7 +1109,7 @@ defmodule Enum do
 
       iex> Enum.frequencies(~w{ant buffalo ant ant buffalo dingo})
       %{"ant" => 3, "buffalo" => 2, "dingo" => 1}
-      
+
   """
   @doc since: "1.10.0"
   @spec frequencies(t) :: map
@@ -1127,10 +1127,10 @@ defmodule Enum do
   as the count of every element.
 
   ## Examples
-    
+
       iex> Enum.frequencies_by(~w{aa aA bb cc}, &String.downcase/1)
       %{"aa" => 2, "bb" => 1, "cc" => 1}
-    
+
       iex> Enum.frequencies_by(~w{aaa aA bbb cc c}, &String.length/1)
       %{3 => 2, 2 => 2, 1 => 1}
 
@@ -1540,7 +1540,7 @@ defmodule Enum do
       iex> Enum.max([~D[2017-03-31], ~D[2017-04-01]])
       ~D[2017-03-31]
 
-  In the example above, `max/2` returned March 31st instead of April 1st 
+  In the example above, `max/2` returned March 31st instead of April 1st
   because the structural comparison compares the day before the year.
   For this reason, most structs provide a "compare" function, such as
   `Date.compare/2`, which receives two structs and returns `:lt` (less than),
@@ -1953,14 +1953,19 @@ defmodule Enum do
 
   ## Examples
 
+  The examples below use the `:exrop` pseudorandom algorithm since it's
+  the default from Erlang/OTP 20, however if you are using Erlang/OTP 22
+  or above then `:exsss` is the default algorithm. If you are using `:exsplus`,
+  then please update, as this algorithm is deprecated since Erlang/OTP 20.
+
       # Although not necessary, let's seed the random algorithm
-      iex> :rand.seed(:exsplus, {101, 102, 103})
-      iex> Enum.random([1, 2, 3])
-      1
+      iex> :rand.seed(:exrop, {101, 102, 103})
       iex> Enum.random([1, 2, 3])
       3
+      iex> Enum.random([1, 2, 3])
+      2
       iex> Enum.random(1..1_000)
-      556
+      846
 
   """
   @spec random(t) :: element
@@ -2267,12 +2272,17 @@ defmodule Enum do
 
   ## Examples
 
+  The examples below use the `:exrop` pseudorandom algorithm since it's
+  the default from Erlang/OTP 20, however if you are using Erlang/OTP 22
+  or above then `:exsss` is the default algorithm. If you are using `:exsplus`,
+  then please update, as this algorithm is deprecated since Erlang/OTP 20.
+
       # Although not necessary, let's seed the random algorithm
-      iex> :rand.seed(:exsplus, {1, 2, 3})
+      iex> :rand.seed(:exrop, {1, 2, 3})
       iex> Enum.shuffle([1, 2, 3])
-      [2, 1, 3]
+      [3, 1, 2]
       iex> Enum.shuffle([1, 2, 3])
-      [2, 3, 1]
+      [1, 3, 2]
 
   """
   @spec shuffle(t) :: list
@@ -2809,11 +2819,11 @@ defmodule Enum do
   ## Examples
 
       # Although not necessary, let's seed the random algorithm
-      iex> :rand.seed(:exsplus, {1, 2, 3})
+      iex> :rand.seed(:exrop, {1, 2, 3})
       iex> Enum.take_random(1..10, 2)
-      [5, 4]
+      [7, 2]
       iex> Enum.take_random(?a..?z, 5)
-      'ipybz'
+      'hypnt'
 
   """
   @spec take_random(t, non_neg_integer) :: list
