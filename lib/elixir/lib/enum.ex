@@ -1954,13 +1954,13 @@ defmodule Enum do
   ## Examples
 
       # Although not necessary, let's seed the random algorithm
-      iex> :rand.seed(:exsss, {101, 102, 103})
+      iex> :rand.seed(:exrop, {101, 102, 103})
       iex> Enum.random([1, 2, 3])
       3
       iex> Enum.random([1, 2, 3])
-      3
+      2
       iex> Enum.random(1..1_000)
-      735
+      846
 
   """
   @spec random(t) :: element
@@ -2268,11 +2268,11 @@ defmodule Enum do
   ## Examples
 
       # Although not necessary, let's seed the random algorithm
-      iex> :rand.seed(:exsss, {1, 2, 3})
+      iex> :rand.seed(:exrop, {1, 2, 3})
       iex> Enum.shuffle([1, 2, 3])
-      [3, 2, 1]
+      [3, 1, 2]
       iex> Enum.shuffle([1, 2, 3])
-      [2, 1, 3]
+      [1, 3, 2]
 
   """
   @spec shuffle(t) :: list
@@ -2809,11 +2809,11 @@ defmodule Enum do
   ## Examples
 
       # Although not necessary, let's seed the random algorithm
-      iex> :rand.seed(:exsss, {1, 2, 3})
+      iex> :rand.seed(:exrop, {1, 2, 3})
       iex> Enum.take_random(1..10, 2)
-      [3, 1]
+      [7, 2]
       iex> Enum.take_random(?a..?z, 5)
-      'mikel'
+      'hypnt'
 
   """
   @spec take_random(t, non_neg_integer) :: list
