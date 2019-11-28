@@ -604,7 +604,7 @@ defmodule Mix.Release do
   defp validate_compile_env_apply(release) do
     with true <- Keyword.get(release.options, :validate_compile_env, true),
          [_ | _] = compile_env <- compile_env(release) do
-      [{:apply, {Config.Provider, :validate_compile_env!, [compile_env]}}]
+      [{:apply, {Config.Provider, :validate_compile_env, [compile_env]}}]
     else
       _ -> []
     end
