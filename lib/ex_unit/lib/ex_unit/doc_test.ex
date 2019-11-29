@@ -61,11 +61,15 @@ defmodule ExUnit.DocTest do
       2
 
   If you don't want to assert for every result in a doctest, you can omit
-  the result:
+  the result in the middle of expressions:
 
       iex> pid = spawn(fn -> :ok end)
       iex> is_pid(pid)
       true
+
+  As well as at the end:
+
+      iex> Mod.do_a_call_that_should_not_raise!(...)
 
   This is useful when the result is something variable (like a PID in the
   example above) or when the result is a complicated data structure and you
