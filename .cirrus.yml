@@ -5,8 +5,13 @@ env:
   ERLC_OPTS: "+warnings_as_errors"
   LANG: C.UTF-8
 
+test_template: &DEFAULT_TEST_SETTINGS
+  # don't cancel the task execution if it's master or a release branch
+  auto_cancellation: $CIRRUS_BRANCH != 'master' && $CIRRUS_BRANCH !=~ 'v\d+\.\d+.*'
 
 test_linux_task:
+  <<: *DEFAULT_TEST_SETTINGS
+
   container:
     image: buildpack-deps:trusty
     cpu: 8
@@ -14,9 +19,6 @@ test_linux_task:
 
   env:
     PATH: "${CIRRUS_WORKING_DIR}/otp/bin:${PATH}"
-
-  # don't cancel the task execution if it's master or a release branch
-  auto_cancellation: $CIRRUS_BRANCH != 'master' && $CIRRUS_BRANCH !=~ 'v\d+\.\d+.*'
 
   matrix:
     - name: Linux, ${OTP_RELEASE}, Ubuntu 14.04
@@ -89,11 +91,10 @@ test_linux_task:
 
 
 test_windows_task:
+  <<: *DEFAULT_TEST_SETTINGS
+
   name: Windows, OTP-${OTP_RELEASE}, Windows Server 2019
   alias: Windows Stable
-
-  # don't cancel the task execution if it's master or a release branch
-  auto_cancellation: $CIRRUS_BRANCH != 'master' && $CIRRUS_BRANCH !=~ 'v\d+\.\d+.*'
 
   matrix:
     - env:
