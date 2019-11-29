@@ -444,7 +444,6 @@ defmodule ExUnit.DocTestTest do
   doctest ExUnit.DocTestTest.IndentationHeredocs
   doctest ExUnit.DocTestTest.FencedHeredocs
   doctest ExUnit.DocTestTest.Haiku
-  doctest ExUnit.DocTestTest.PatternMatching, only: [tuple: 0, map: 0], import: true
 
   import ExUnit.CaptureIO
 
@@ -757,6 +756,8 @@ defmodule ExUnit.DocTestTest do
                 stacktrace:
                   (for doctest at) test/ex_unit/doc_test_test.exs:#{starting_line + 20}: (test)
            """
+
+    assert output =~ "10 doctests, 8 failures"
   end
 
   test "IEx prefix contains a number" do
