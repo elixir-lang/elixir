@@ -61,11 +61,15 @@ defmodule ExUnit.DocTest do
       2
 
   If you don't want to assert for every result in a doctest, you can omit
-  the result:
+  the result. You can do so between expressions:
 
       iex> pid = spawn(fn -> :ok end)
       iex> is_pid(pid)
       true
+
+  As well as at the end:
+
+      iex> Mod.do_a_call_that_should_not_raise!(...)
 
   This is useful when the result is something variable (like a PID in the
   example above) or when the result is a complicated data structure and you
@@ -291,9 +295,13 @@ defmodule ExUnit.DocTest do
     end) > 1
   end
 
+  defp test_case_content(expr, :test, location, stack, formatted) do
+    string_to_quoted(location, stack, expr, "\n" <> formatted) |> insert_assertions()
+  end
+
   defp test_case_content(expr, {:test, expected}, location, stack, formatted) do
     doctest = "\n" <> formatted <> "\n" <> expected
-    expr_ast = string_to_quoted(location, stack, expr, doctest)
+    expr_ast = string_to_quoted(location, stack, expr, doctest) |> insert_assertions()
     expected_ast = string_to_quoted(location, stack, expected, doctest)
     last_expr_ast = last_expr(expr_ast)
 
@@ -325,7 +333,7 @@ defmodule ExUnit.DocTest do
 
   defp test_case_content(expr, {:inspect, expected}, location, stack, formatted) do
     doctest = "\n" <> formatted <> "\n" <> expected
-    expr_ast = string_to_quoted(location, stack, expr, doctest)
+    expr_ast = string_to_quoted(location, stack, expr, doctest) |> insert_assertions()
     expected_ast = string_to_quoted(location, stack, expected, doctest)
     last_expr_ast = last_expr(expr_ast)
 
@@ -503,10 +511,6 @@ defmodule ExUnit.DocTest do
     adjust_indent(:text, lines, line_no, [], 0, module)
   end
 
-  defp adjust_indent(:after_prompt, [], line_no, _adjusted_lines, _indent, module) do
-    raise_incomplete_doctest(line_no, module)
-  end
-
   defp adjust_indent(_kind, [], _line_no, adjusted_lines, _indent, _module) do
     Enum.reverse(adjusted_lines)
   end
@@ -528,7 +532,7 @@ defmodule ExUnit.DocTest do
 
     case String.trim_leading(line) do
       "" ->
-        raise_incomplete_doctest(line_no, module)
+        :ok
 
       ^stripped_line ->
         :ok
@@ -812,6 +816,9 @@ defmodule ExUnit.DocTest do
 
   defp tag_expected(string) do
     case string do
+      "" ->
+        :test
+
       "** (" <> error ->
         [mod, message] = :binary.split(error, ")")
         {:error, Module.concat([mod]), String.trim_leading(message)}
@@ -844,10 +851,21 @@ defmodule ExUnit.DocTest do
   defp last_expr({:__block__, _, [_ | _] = block}), do: block |> List.last() |> last_expr()
   defp last_expr(other), do: other
 
-  defp raise_incomplete_doctest(line_no, module) do
-    raise Error,
-      line: line_no,
-      module: module,
-      message: "expected non-blank line to follow iex> prompt"
-  end
+  defp insert_assertions({:__block__, meta, block}),
+    do: {:__block__, meta, Enum.map(block, &insert_match_assertion/1)}
+
+  defp insert_assertions(ast),
+    do: insert_match_assertion(ast)
+
+  @match_meta [skip_assert_in_code: true, skip_boolean_assert: true]
+
+  defp insert_match_assertion({:=, _, [{var, _, context}, _]} = ast)
+       when is_atom(var) and is_atom(context),
+       do: ast
+
+  defp insert_match_assertion({:=, meta, [left, right]}),
+    do: {:assert, meta, [{:=, @match_meta ++ meta, [left, right]}]}
+
+  defp insert_match_assertion(ast),
+    do: ast
 end
