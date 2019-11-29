@@ -13,8 +13,8 @@ defmodule Kernel do
   It mainly consists of:
 
     * basic language primitives, such as arithmetic operators, spawning of processes,
-      data type handling, etc.
-    * macros for control-flow and defining new functionality (modules, functions, and so on)
+      data type handling, and others
+    * macros for control-flow and defining new functionality (modules, functions, and the like)
     * guard checks for augmenting pattern matching
 
   You can invoke `Kernel` functions and macros anywhere in Elixir code
@@ -440,7 +440,7 @@ defmodule Kernel do
 
   Exiting with any other reason is considered abnormal and treated
   as a crash. This means the default supervisor behaviour kicks in,
-  error reports are emitted, etc.
+  error reports are emitted, and so forth.
 
   This behaviour is relied on in many different places. For example,
   `ExUnit` uses `exit(:shutdown)` when exiting the test process to

@@ -11,7 +11,7 @@ defmodule Calendar do
   For the actual date, time and datetime structures, see `Date`,
   `Time`, `NaiveDateTime` and `DateTime`.
 
-  Note the year, month, day, etc. designations are overspecified
+  Note designations for year, month, day, and the like, are overspecified
   (i.e. an integer instead of `1..12` for months) because different
   calendars may have a different number of days per month, months per year and so on.
   """
@@ -65,7 +65,7 @@ defmodule Calendar do
   @typedoc "The time zone ID according to the IANA tz database (for example, Europe/Zurich)"
   @type time_zone :: String.t()
 
-  @typedoc "The time zone abbreviation (for example, CET or CEST or BST etc.)"
+  @typedoc "The time zone abbreviation (for example, CET or CEST or BST, and such)"
   @type zone_abbr :: String.t()
 
   @typedoc "The time zone UTC offset in seconds"

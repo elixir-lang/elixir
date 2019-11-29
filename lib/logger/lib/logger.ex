@@ -126,6 +126,8 @@ defmodule Logger do
       to the configured value at compilation time. This configuration is
       automatically set by Mix and made available as metadata when logging.
 
+
+
     * `:compile_time_purge_matching` - purges *at compilation time* all calls
       that match the given conditions. This means that `Logger` calls with
       level lower than this option will be completely removed at compile time,

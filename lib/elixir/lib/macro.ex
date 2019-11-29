@@ -164,7 +164,7 @@ defmodule Macro do
       there are `:do` and `:end` metadata  (when `:token_metadata` is true)
     * `:column` - the column number of the AST node (when `:columns` is true)
     * `:delimiter` - contains the opening delimiter for sigils, strings, atoms,
-      and charlists as a string (such as `"{"`, `"/"`, `":"`, etc)
+      and charlists as a string (such as `"{"`, `"/"`, `":"`, and the like)
     * `:do` - contains metadata about the `do` location in a function call with
       `do/end` blocks (when `:token_metadata` is true)
     * `:end` - contains metadata about the `end` location in a function call with
@@ -182,7 +182,7 @@ defmodule Macro do
 
   Do not rely on them as they may change or be fully removed in future versions
   of the language. They are often used by `quote/2` and the compiler to provide
-  features like hygiene, better error messages, etc.
+  features like hygiene, better error messages, and so forth.
 
   If you introduce custom keys into the AST metadata, please make sure to prefix
   them with the name of your library or application, so that they will not conflict

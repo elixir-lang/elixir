@@ -245,8 +245,8 @@ You can find the built-in list of guards [in the `Kernel` module](Kernel.html#gu
   * arithmetic unary operators ([`+`](`+/1`), [`-`](`-/1`))
   * arithmetic binary operators [`+`](`+/2`), [`-`](`-/2`), [`*`](`*/2`), [`/`](`//2`))
   * [`in`](`in/2`) and [`not in`](`in/2`) operators (as long as the right-hand side is a list or a range)
-  * "type-check" functions (`is_list/1`, `is_number/1`, etc.)
-  * functions that work on built-in datatypes (`abs/1`, `hd/1`, `map_size/1`, etc.)
+  * "type-check" functions (`is_list/1`, `is_number/1`, and the like)
+  * functions that work on built-in datatypes (`abs/1`, `hd/1`, `map_size/1`, and others)
 
 The module `Bitwise` also includes a handful of [Erlang bitwise operations as guards](Bitwise.html#guards).
 

@@ -381,7 +381,7 @@ defmodule Code do
   a whole.
 
   The formatter does not hard code names. The formatter will not behave
-  specially because a function is named `defmodule`, `def`, etc. This
+  specially because a function is named `defmodule`, `def`, or the like. This
   principle mirrors Elixir's goal of being an extensible language where
   developers can extend the language with new constructs as if they were
   part of the language. When it is absolutely necessary to change behaviour
@@ -518,7 +518,7 @@ defmodule Code do
   rules in the future. The goal of documenting them is to provide better
   understanding on what to expect from the formatter.
 
-  ### Multi-line lists, maps, tuples, etc.
+  ### Multi-line lists, maps, tuples, and the like
 
   You can force lists, tuples, bitstrings, maps, structs and function
   calls to have one entry per line by adding a newline after the opening
@@ -1071,7 +1071,7 @@ defmodule Code do
   Purge compiler modules.
 
   The compiler utilizes temporary modules to compile code. For example,
-  `elixir_compiler_1`, `elixir_compiler_2`, etc. In case the compiled code
+  `elixir_compiler_1`, `elixir_compiler_2`, and so on. In case the compiled code
   stores references to anonymous functions or similar, the Elixir compiler
   may be unable to reclaim those modules, keeping an unnecessary amount of
   code in memory and eventually leading to modules such as `elixir_compiler_12345`.
