@@ -60,7 +60,6 @@ defmodule IEx.CLI do
         )
       end
 
-      :application.set_env(:stdlib, :shell_prompt_func, {__MODULE__, :prompt})
       :user.start()
 
       # IEx.Broker is capable of considering all groups under user_drv but
