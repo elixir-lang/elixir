@@ -291,6 +291,9 @@ end
 
 defmodule ExUnit.DocTestTest.Incomplete do
   @doc ~S'''
+      iex> [first | _] = [1,2,3]
+      iex> # This is a comment
+      iex> first
       iex> fn -> %{} = %{a: :b} end
 
   '''
@@ -423,10 +426,23 @@ defmodule ExUnit.DocTestTest.PatternMatching do
 
   """
 
+  def starting_line(), do: 405
+
   @doc """
     iex> {1, 2, :three} = tuple()
 
     iex> {1, _, _} = tuple()
+
+    iex> num = 2 - 2
+    iex> adder = fn int ->
+    ...>   int + 1
+    ...> end
+    iex> num =
+    iex>   adder.(num)
+    iex> {^num, _, _} =
+    iex> # Comments can be here as well
+    iex>
+    iex>   {adder.(0), adder.(1), :three}
 
     iex> tuple = tuple()
     iex> tuple
@@ -696,6 +712,7 @@ defmodule ExUnit.DocTestTest do
     end
 
     doctest_line = __ENV__.line - 3
+    starting_line = ExUnit.DocTestTest.PatternMatching.starting_line()
 
     ExUnit.configure(seed: 0, colors: [enabled: false])
     ExUnit.Server.modules_loaded()
@@ -710,7 +727,7 @@ defmodule ExUnit.DocTestTest do
                 left:  {1, 2}
                 right: {1, 3}
                 stacktrace:
-                  test/ex_unit/doc_test_test.exs:406: ExUnit.DocTestTest.PatternMatching (module)
+                  test/ex_unit/doc_test_test.exs:#{starting_line + 4}: ExUnit.DocTestTest.PatternMatching (module)
            """
 
     assert output =~ """
@@ -723,7 +740,7 @@ defmodule ExUnit.DocTestTest do
                 left:  {1, 2}
                 right: {1, 3}
                 stacktrace:
-                  test/ex_unit/doc_test_test.exs:408: ExUnit.DocTestTest.PatternMatching (module)
+                  test/ex_unit/doc_test_test.exs:#{starting_line + 6}: ExUnit.DocTestTest.PatternMatching (module)
            """
 
     assert output =~ """
@@ -735,7 +752,7 @@ defmodule ExUnit.DocTestTest do
                 left:  "Hello, world"
                 right: "Hello world"
                 stacktrace:
-                  test/ex_unit/doc_test_test.exs:411: ExUnit.DocTestTest.PatternMatching (module)
+                  test/ex_unit/doc_test_test.exs:#{starting_line + 9}: ExUnit.DocTestTest.PatternMatching (module)
            """
 
     assert output =~ """
@@ -747,7 +764,7 @@ defmodule ExUnit.DocTestTest do
                 left:  "Hello, " <> _
                 right: "Hello world"
                 stacktrace:
-                  test/ex_unit/doc_test_test.exs:413: ExUnit.DocTestTest.PatternMatching (module)
+                  test/ex_unit/doc_test_test.exs:#{starting_line + 11}: ExUnit.DocTestTest.PatternMatching (module)
            """
 
     assert output =~ """
@@ -759,7 +776,7 @@ defmodule ExUnit.DocTestTest do
                 left:  [:a | _]
                 right: [:b, :a]
                 stacktrace:
-                  test/ex_unit/doc_test_test.exs:415: ExUnit.DocTestTest.PatternMatching (module)
+                  test/ex_unit/doc_test_test.exs:#{starting_line + 13}: ExUnit.DocTestTest.PatternMatching (module)
            """
 
     assert output =~ """
@@ -774,7 +791,7 @@ defmodule ExUnit.DocTestTest do
                 left:  [^atom | _]
                 right: [:b, :a]
                 stacktrace:
-                  test/ex_unit/doc_test_test.exs:417: ExUnit.DocTestTest.PatternMatching (module)
+                  test/ex_unit/doc_test_test.exs:#{starting_line + 15}: ExUnit.DocTestTest.PatternMatching (module)
            """
 
     assert output =~ """
@@ -786,7 +803,7 @@ defmodule ExUnit.DocTestTest do
                 left:  %{b: _, d: :e}
                 right: %{a: :c, d: :e}
                 stacktrace:
-                  test/ex_unit/doc_test_test.exs:420: ExUnit.DocTestTest.PatternMatching (module)
+                  test/ex_unit/doc_test_test.exs:#{starting_line + 18}: ExUnit.DocTestTest.PatternMatching (module)
            """
 
     assert output =~ """
@@ -798,7 +815,7 @@ defmodule ExUnit.DocTestTest do
                 left:  %{year: 2001, day: 1}
                 right: ~D[2000-01-01]
                 stacktrace:
-                  test/ex_unit/doc_test_test.exs:422: ExUnit.DocTestTest.PatternMatching (module)
+                  test/ex_unit/doc_test_test.exs:#{starting_line + 20}: ExUnit.DocTestTest.PatternMatching (module)
            """
   end
 

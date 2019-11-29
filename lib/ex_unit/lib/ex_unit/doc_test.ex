@@ -556,13 +556,15 @@ defmodule ExUnit.DocTest do
 
     case String.trim_leading(line) do
       "" ->
-        [{previous_line, _} | _] = adjusted_lines
+        {:ok, ast} =
+          adjusted_lines
+          |> Enum.take_while(fn {line, _} -> line != "" end)
+          |> Enum.reverse()
+          |> Enum.reduce("", fn {line, _}, acc -> acc <> String.slice(line, 4..-1) <> "\n" end)
+          |> Code.string_to_quoted()
 
-        case previous_line
-             |> String.trim_leading()
-             |> String.slice(4..-1)
-             |> Code.string_to_quoted() do
-          {:ok, {:=, _, _}} -> :ok
+        case last_expr(ast) do
+          {:=, _, _} -> :ok
           _ -> raise_incomplete_doctest(line_no, module)
         end
 
