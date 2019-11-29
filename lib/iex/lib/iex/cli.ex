@@ -62,6 +62,10 @@ defmodule IEx.CLI do
 
       :application.set_env(:stdlib, :shell_prompt_func, {__MODULE__, :prompt})
       :user.start()
+
+      # IEx.Broker is capable of considering all groups under user_drv but
+      # when we use :user.start(), we need to explicitly register it instead.
+      # If we don't register, pry doesn't work.
       IEx.start([register: true] ++ options(), {:elixir, :start_cli, []})
     end
   end
