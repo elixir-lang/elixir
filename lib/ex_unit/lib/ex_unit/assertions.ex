@@ -104,8 +104,8 @@ defmodule ExUnit.Assertions do
   value. In such cases, simply use `Kernel.==/2` or
   `Kernel.match?/2`.
   """
-  defmacro assert({:=, _, [left, right]} = assertion) do
-    code = escape_quoted(:assert, assertion)
+  defmacro assert({:=, meta, [left, right]} = assertion) do
+    code = escape_quoted(:assert, meta, assertion)
 
     left = __expand_pattern__(left, __CALLER__)
     vars = collect_vars_from_pattern(left)
@@ -115,19 +115,25 @@ defmodule ExUnit.Assertions do
     # is not nil nor false. We need to rewrite the if
     # to avoid silly warnings though.
     return =
-      suppress_warning(
+      if meta[:skip_boolean_assert] do
         quote do
-          case right do
-            x when x in [nil, false] ->
-              raise ExUnit.AssertionError,
-                expr: expr,
-                message: "Expected truthy, got #{inspect(right)}"
-
-            _ ->
-              :ok
-          end
+          :ok
         end
-      )
+      else
+        suppress_warning(
+          quote do
+            case right do
+              x when x in [nil, false] ->
+                raise ExUnit.AssertionError,
+                  expr: expr,
+                  message: "Expected truthy, got #{inspect(right)}"
+
+              _ ->
+                :ok
+            end
+          end
+        )
+      end
 
     match_expr =
       suppress_warning(
@@ -159,7 +165,7 @@ defmodule ExUnit.Assertions do
   end
 
   defmacro assert({:match?, meta, [left, right]} = assertion) do
-    code = escape_quoted(:assert, assertion)
+    code = escape_quoted(:assert, meta, assertion)
     match? = {:match?, meta, [left, Macro.var(:right, __MODULE__)]}
 
     left = __expand_pattern__(left, __CALLER__)
@@ -190,7 +196,7 @@ defmodule ExUnit.Assertions do
         unless value do
           raise ExUnit.AssertionError,
             args: unquote(args),
-            expr: unquote(escape_quoted(:assert, assertion)),
+            expr: unquote(escape_quoted(:assert, [], assertion)),
             message: "Expected truthy, got #{inspect(value)}"
         end
 
@@ -221,7 +227,7 @@ defmodule ExUnit.Assertions do
 
   """
   defmacro refute({:match?, meta, [left, right]} = assertion) do
-    code = escape_quoted(:refute, assertion)
+    code = escape_quoted(:refute, meta, assertion)
     match? = {:match?, meta, [left, Macro.var(:right, __MODULE__)]}
 
     left = __expand_pattern__(left, __CALLER__)
@@ -254,7 +260,7 @@ defmodule ExUnit.Assertions do
         if value do
           raise ExUnit.AssertionError,
             args: unquote(args),
-            expr: unquote(escape_quoted(:refute, assertion)),
+            expr: unquote(escape_quoted(:refute, [], assertion)),
             message: "Expected false or nil, got #{inspect(value)}"
         end
 
@@ -291,8 +297,8 @@ defmodule ExUnit.Assertions do
     nil
   end
 
-  defp translate_operator(kind, {_, _, [left, right]} = expr, call, message, true, _caller) do
-    expr = escape_quoted(kind, expr)
+  defp translate_operator(kind, {_, meta, [left, right]} = expr, call, message, true, _caller) do
+    expr = escape_quoted(kind, meta, expr)
 
     quote do
       left = unquote(left)
@@ -313,8 +319,8 @@ defmodule ExUnit.Assertions do
     end
   end
 
-  defp translate_operator(kind, {_, _, [left, right]} = expr, call, message, false, _caller) do
-    expr = escape_quoted(kind, expr)
+  defp translate_operator(kind, {_, meta, [left, right]} = expr, call, message, false, _caller) do
+    expr = escape_quoted(kind, meta, expr)
 
     quote do
       left = unquote(left)
@@ -333,8 +339,9 @@ defmodule ExUnit.Assertions do
     left === right
   end
 
-  defp escape_quoted(kind, expr) do
-    Macro.escape({kind, [], [expr]}, prune_metadata: true)
+  defp escape_quoted(kind, meta, expr) do
+    to_escape = if meta[:skip_assert_in_code], do: expr, else: {kind, [], [expr]}
+    Macro.escape(to_escape, prune_metadata: true)
   end
 
   defp extract_args({root, meta, [_ | _] = args} = expr, env) do
@@ -416,7 +423,7 @@ defmodule ExUnit.Assertions do
              timeout \\ Application.fetch_env!(:ex_unit, :assert_receive_timeout),
              failure_message \\ nil
            ) do
-    code = escape_quoted(:assert_receive, pattern)
+    code = escape_quoted(:assert_receive, [], pattern)
     assert_receive(pattern, timeout, failure_message, __CALLER__, code)
   end
 
@@ -445,7 +452,7 @@ defmodule ExUnit.Assertions do
 
   """
   defmacro assert_received(pattern, failure_message \\ nil) do
-    code = escape_quoted(:assert_received, pattern)
+    code = escape_quoted(:assert_received, [], pattern)
     assert_receive(pattern, 0, failure_message, __CALLER__, code)
   end
 
