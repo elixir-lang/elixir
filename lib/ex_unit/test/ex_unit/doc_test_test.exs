@@ -294,12 +294,6 @@ defmodule ExUnit.DocTestTest.FencedHeredocs do
 end
 |> write_beam
 
-defmodule ExUnit.DocTestTest.IncompleteNoTrailingNewLine do
-  @doc "iex> 3 + 4"
-  def test_fun, do: :ok
-end
-|> write_beam
-
 defmodule ExUnit.DocTestTest.FenceIncomplete do
   @doc ~S'''
   ```
@@ -428,7 +422,7 @@ defmodule ExUnit.DocTestTest.PatternMatching do
       # false assertions do not accidentally raise
       iex> false = (List.flatten([]) != [])
   """
-  def starting_line(), do: 398
+  def starting_line(), do: 392
 end
 |> write_beam
 
@@ -865,18 +859,6 @@ defmodule ExUnit.DocTestTest do
       defmodule NeverCompiled do
         import ExUnit.DocTest
         doctest ExUnit.DocTestTest.IndentationNotEnough
-      end
-    end
-  end
-
-  test "fails with improper termination not ending in new line" do
-    message =
-      ~r[test/ex_unit/doc_test_test\.exs:\d+: expected non-blank line to follow iex> prompt]
-
-    assert_raise ExUnit.DocTest.Error, message, fn ->
-      defmodule NeverCompiled do
-        import ExUnit.DocTest
-        doctest ExUnit.DocTestTest.IncompleteNoTrailingNewLine
       end
     end
   end
