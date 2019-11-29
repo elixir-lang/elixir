@@ -291,9 +291,13 @@ defmodule ExUnit.DocTest do
     end) > 1
   end
 
+  defp test_case_content(expr, :test, location, stack, formatted) do
+    string_to_quoted(location, stack, expr, "\n" <> formatted) |> insert_assertions()
+  end
+
   defp test_case_content(expr, {:test, expected}, location, stack, formatted) do
     doctest = "\n" <> formatted <> "\n" <> expected
-    expr_ast = string_to_quoted(location, stack, expr, doctest)
+    expr_ast = string_to_quoted(location, stack, expr, doctest) |> insert_assertions()
     expected_ast = string_to_quoted(location, stack, expected, doctest)
     last_expr_ast = last_expr(expr_ast)
 
@@ -325,7 +329,7 @@ defmodule ExUnit.DocTest do
 
   defp test_case_content(expr, {:inspect, expected}, location, stack, formatted) do
     doctest = "\n" <> formatted <> "\n" <> expected
-    expr_ast = string_to_quoted(location, stack, expr, doctest)
+    expr_ast = string_to_quoted(location, stack, expr, doctest) |> insert_assertions()
     expected_ast = string_to_quoted(location, stack, expected, doctest)
     last_expr_ast = last_expr(expr_ast)
 
@@ -399,34 +403,6 @@ defmodule ExUnit.DocTest do
 
           error = [message: message, doctest: doctest]
           reraise ExUnit.AssertionError, error, stack
-      end
-    end
-  end
-
-  defp test_case_content(expr, :match, location, stack, formatted) do
-    doctest = "\n" <> formatted
-
-    assertion =
-      location
-      |> string_to_quoted(stack, expr, doctest)
-      |> insert_assertion()
-
-    quote do
-      try do
-        unquote(assertion)
-      rescue
-        e in [ExUnit.AssertionError] ->
-          doctest = unquote(doctest)
-
-          error = [
-            doctest: doctest,
-            message: e.message,
-            left: e.left,
-            right: e.right,
-            context: e.context
-          ]
-
-          reraise ExUnit.AssertionError, error, unquote(stack)
       end
     end
   end
@@ -556,17 +532,7 @@ defmodule ExUnit.DocTest do
 
     case String.trim_leading(line) do
       "" ->
-        {:ok, ast} =
-          adjusted_lines
-          |> Enum.take_while(fn {line, _} -> line != "" end)
-          |> Enum.reverse()
-          |> Enum.reduce("", fn {line, _}, acc -> acc <> String.slice(line, 4..-1) <> "\n" end)
-          |> Code.string_to_quoted()
-
-        case last_expr(ast) do
-          {:=, _, _} -> :ok
-          _ -> raise_incomplete_doctest(line_no, module)
-        end
+        :ok
 
       ^stripped_line ->
         :ok
@@ -851,7 +817,7 @@ defmodule ExUnit.DocTest do
   defp tag_expected(string) do
     case string do
       "" ->
-        :match
+        :test
 
       "** (" <> error ->
         [mod, message] = :binary.split(error, ")")
@@ -885,13 +851,23 @@ defmodule ExUnit.DocTest do
   defp last_expr({:__block__, _, [_ | _] = block}), do: block |> List.last() |> last_expr()
   defp last_expr(other), do: other
 
-  defp insert_assertion({:__block__, context, block}) do
-    [expr | rest] = Enum.reverse(block)
-    modified = [{:assert, [], [expr]} | rest]
-    {:__block__, context, Enum.reverse(modified)}
-  end
+  defp insert_assertions({:__block__, meta, block}),
+    do: {:__block__, meta, Enum.map(block, &insert_match_assertion/1)}
 
-  defp insert_assertion(ast), do: {:assert, [], [ast]}
+  defp insert_assertions(ast),
+    do: insert_match_assertion(ast)
+
+  @match_meta [skip_assert_in_code: true, skip_boolean_assert: true]
+
+  defp insert_match_assertion({:=, _, [{var, _, context}, _]} = ast)
+       when is_atom(var) and is_atom(context),
+       do: ast
+
+  defp insert_match_assertion({:=, meta, [left, right]}),
+    do: {:assert, meta, [{:=, @match_meta ++ meta, [left, right]}]}
+
+  defp insert_match_assertion(ast),
+    do: ast
 
   defp raise_incomplete_doctest(line_no, module) do
     raise Error,
