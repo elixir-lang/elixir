@@ -61,7 +61,7 @@ defmodule ExUnit.DocTest do
       2
 
   If you don't want to assert for every result in a doctest, you can omit
-  the result in the middle of expressions:
+  the result. You can do so between expressions:
 
       iex> pid = spawn(fn -> :ok end)
       iex> is_pid(pid)
