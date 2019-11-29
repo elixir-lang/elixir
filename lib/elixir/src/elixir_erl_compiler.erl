@@ -125,7 +125,7 @@ custom_format(sys_core_fold, {no_effect, {erlang, F, A}}) ->
   end,
   io_lib:format(Fmt, Args);
 
-%% Rewrite nomatch_guard to be more generic it can happen inside if, unless, etc.
+%% Rewrite nomatch_guard to be more generic it can happen inside if, unless, and the like
 custom_format(sys_core_fold, nomatch_guard) ->
   "this check/guard will always yield the same result";
 

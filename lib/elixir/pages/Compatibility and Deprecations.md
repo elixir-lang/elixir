@@ -90,7 +90,7 @@ Version | Deprecated feature                                  | Replaced by (ava
 [v1.9]  | Passing `:insert_replaced` to `String.replace/4`    | Use `:binary.replace/4` (v1.0)
 [v1.8]  | Passing a non-empty list to `:into` in [`for`](`Kernel.SpecialForms.for/1`) | `Kernel.++/2` or `Keyword.merge/2` (v1.0)
 [v1.8]  | Passing a non-empty list to `Enum.into/2`           | `Kernel.++/2` or `Keyword.merge/2` (v1.0)
-[v1.8]  | Time units in its plural form, such as: `:seconds`, `:milliseconds`, etc. | Use the singular form, such as: `:second`, `:millisecond`, etc. (v1.4)
+[v1.8]  | Time units in its plural form, such as: `:seconds`, `:milliseconds`, and the like | Use the singular form, such as: `:second`, `:millisecond`, and so on (v1.4)
 [v1.8]  | `Inspect.Algebra.surround/3`                        | `Inspect.Algebra.concat/2` and `Inspect.Algebra.nest/2` (v1.0)
 [v1.8]  | `Inspect.Algebra.surround_many/6`                   | `Inspect.Algebra.container_doc/6` (v1.6)
 [v1.9]  | `--detached` in `Kernel.CLI`                        | `--erl "-detached"` (v1.0)

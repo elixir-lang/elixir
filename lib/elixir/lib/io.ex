@@ -84,7 +84,7 @@ defmodule IO do
   Building IO data is cheaper than concatenating binaries. Concatenating multiple
   pieces of IO data just means putting them together inside a list since IO data
   can be arbitrarily nested, and that's a cheap and efficient operation. Most of
-  the IO-based APIs, such as `:gen_tcp`, `IO`, etc, receive IO data and write it
+  the IO-based APIs, such as `:gen_tcp` and `IO`, receive IO data and write it
   to the socket directly without converting it to binary.
 
   One drawback of IO data is that you can't do things like pattern match on the

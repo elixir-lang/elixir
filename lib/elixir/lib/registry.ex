@@ -600,7 +600,8 @@ defmodule Registry do
   Optionally, it is possible to pass a list of guard conditions for more precise matching.
   Each guard is a tuple, which describes checks that should be passed by assigned part of pattern.
   For example the `$1 > 1` guard condition would be expressed as the `{:>, :"$1", 1}` tuple.
-  Please note that guard conditions will work only for assigned variables like `:"$1"`, `:"$2"`, etc.
+  Please note that guard conditions will work only for assigned
+  variables like `:"$1"`, `:"$2"`, and so forth.
   Avoid usage of special match variables `:"$_"` and `:"$$"`, because it might not work as expected.
 
   An empty list will be returned if there is no match.
@@ -1093,7 +1094,8 @@ defmodule Registry do
   Optionally, it is possible to pass a list of guard conditions for more precise matching.
   Each guard is a tuple, which describes checks that should be passed by assigned part of pattern.
   For example the `$1 > 1` guard condition would be expressed as the `{:>, :"$1", 1}` tuple.
-  Please note that guard conditions will work only for assigned variables like `:"$1"`, `:"$2"`, etc.
+  Please note that guard conditions will work only for assigned
+  variables like `:"$1"`, `:"$2"`, and so forth.
   Avoid usage of special match variables `:"$_"` and `:"$$"`, because it might not work as expected.
 
   Zero will be returned if there is no match.
@@ -1160,7 +1162,8 @@ defmodule Registry do
   The second part, the guards, is a list of conditions that allow filtering the results.
   Each guard is a tuple, which describes checks that should be passed by assigned part of pattern.
   For example the `$1 > 1` guard condition would be expressed as the `{:>, :"$1", 1}` tuple.
-  Please note that guard conditions will work only for assigned variables like `:"$1"`, `:"$2"`, etc.
+  Please note that guard conditions will work only for assigned
+  variables like `:"$1"`, `:"$2"`, and so forth.
 
   The third part, the body, is a list of shapes of the returned entries. Like guards, you have access to
   assigned variables like `:"$1"`, which you can combine with hardcoded values to freely shape entries

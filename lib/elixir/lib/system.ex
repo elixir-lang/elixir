@@ -398,7 +398,7 @@ defmodule System do
 
   The handler always executes in a different process from the one it was
   registered in. As a consequence, any resources managed by the calling process
-  (ETS tables, open files, etc.) won't be available by the time the handler
+  (ETS tables, open files, and others) won't be available by the time the handler
   function is invoked.
 
   The function must receive the exit status code as an argument.
