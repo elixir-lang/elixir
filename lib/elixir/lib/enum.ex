@@ -1932,6 +1932,7 @@ defmodule Enum do
     split_with(enumerable, fun)
   end
 
+  # TODO: Update docs to reflect usage of :exsss algorithm (instead of :exrop) once we support Erlang/OTP 22+ exclusively.
   @doc """
   Returns a random element of an `enumerable`.
 
@@ -2263,6 +2264,7 @@ defmodule Enum do
     :lists.reverse(res)
   end
 
+  # TODO: Update docs to reflect usage of :exsss algorithm (instead of :exrop) once we support Erlang/OTP 22+ exclusively.
   @doc """
   Returns a list with the elements of `enumerable` shuffled.
 
@@ -2808,6 +2810,7 @@ defmodule Enum do
     :lists.reverse(res)
   end
 
+  # TODO: Replace :exrop with :exsss once we support Erlang/OTP 22+ exclusively.
   @doc """
   Takes `count` random elements from `enumerable`.
 

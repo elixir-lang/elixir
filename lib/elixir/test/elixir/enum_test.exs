@@ -1,3 +1,5 @@
+# TODO: Replace :exrop with :exsss once we support Erlang/OTP 22+ exclusively.
+
 Code.require_file("test_helper.exs", __DIR__)
 
 defmodule EnumTest do
