@@ -377,5 +377,26 @@ defmodule IO.ANSI.DocsTest do
     test "table with variable number of columns" do
       assert format("a | b | c\nd | e") == "a | b | c\nd | e |  \n\e[0m"
     end
+
+    test "table with last two columns empty" do
+      table = """
+      AAA |     |     |
+      BBB | CCC |     |
+      GGG | HHH | III |
+      JJJ | KKK | LLL | MMM
+      """
+
+      expected =
+        """
+        AAA |     |     |\s\s\s\s
+        BBB | CCC |     |\s\s\s\s
+        GGG | HHH | III |\s\s\s\s
+        JJJ | KKK | LLL | MMM
+        \e[0m
+        """
+        |> String.trim_trailing()
+
+      assert format(table) == expected
+    end
   end
 end
