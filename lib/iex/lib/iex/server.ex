@@ -117,9 +117,10 @@ defmodule IEx.Server do
   defp loop(state, evaluator, evaluator_ref) do
     self_pid = self()
     counter = state.counter
-    prefix = if state.cache != [], do: "...", else: state.prefix
+    prompt_type = if state.cache != [], do: :prompt2, else: :prompt
+    prefix = state.prefix
 
-    input = spawn(fn -> io_get(self_pid, prefix, counter) end)
+    input = spawn(fn -> io_get(self_pid, prefix, counter, prompt_type) end)
     wait_input(state, evaluator, evaluator_ref, input)
   end
 
@@ -316,8 +317,15 @@ defmodule IEx.Server do
 
   ## IO
 
-  defp io_get(pid, prefix, counter) do
-    prompt = prompt(prefix, counter)
+  defp io_get(pid, prefix, counter, :prompt) do
+    io_get(pid, prompt(prefix, counter))
+  end
+
+  defp io_get(pid, prefix, counter, :prompt2) do
+    io_get(pid, prompt2(prefix, counter))
+  end
+
+  defp io_get(pid, prompt) do
     send(pid, {:input, self(), IO.gets(:stdio, prompt)})
   end
 
@@ -336,6 +344,26 @@ defmodule IEx.Server do
       |> String.replace("%node", to_string(node()))
 
     prompt <> " "
+  end
+
+  defp prompt2(prefix, counter) do
+    {mode, prefix} =
+      if Node.alive?() do
+        {:alive_prompt2, prefix || remote_prefix()}
+      else
+        {:default_prompt2, prefix || "..."}
+      end
+
+    prompt_length = String.length(prompt(prefix, counter))
+
+    prompt2 =
+      apply(IEx.Config, mode, [])
+      |> String.replace("%counter", to_string(counter))
+      |> String.replace("%prefix", to_string(prefix))
+      |> String.replace("%node", to_string(node()))
+      |> String.replace("%w", String.duplicate(" ", prompt_length - 1))
+
+    prompt2 <> " "
   end
 
   defp io_error(result) do
