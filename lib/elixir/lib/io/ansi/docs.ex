@@ -349,7 +349,6 @@ defmodule IO.ANSI.Docs do
   defp split_into_columns(line, options) do
     line
     |> String.trim("|")
-    |> String.trim()
     |> String.split(" | ")
     |> Enum.map(&render_column(&1, options))
   end
@@ -357,8 +356,8 @@ defmodule IO.ANSI.Docs do
   defp render_column(col, options) do
     col =
       col
-      |> String.replace("\\\|", "|")
       |> String.trim()
+      |> String.replace("\\\|", "|")
       |> handle_links
       |> handle_inline(options)
 
