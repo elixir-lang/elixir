@@ -476,7 +476,7 @@ defmodule Mix.Dep do
   """
   def diverged?(%Mix.Dep{status: {:overridden, _}}), do: true
   def diverged?(%Mix.Dep{status: {:diverged, _}}), do: true
-  def diverged?(%Mix.Dep{status: {:divergedreq, _}}), do: true
+  def diverged?(%Mix.Dep{status: {:divergedreq, _, _}}), do: true
   def diverged?(%Mix.Dep{status: {:divergedonly, _}}), do: true
   def diverged?(%Mix.Dep{status: {:divergedtargets, _}}), do: true
   def diverged?(%Mix.Dep{}), do: false
