@@ -326,54 +326,77 @@ defmodule IO.ANSI.DocsTest do
              "List (\e[36mList\e[0m) (\e[36m[1, 2, 3]\e[0m), Map (\e[36mMap\e[0m)\n\e[0m"
   end
 
-  test "lone thing that looks like a table line isn't" do
-    assert format("one\n2 | 3\ntwo\n") == "one 2 | 3 two\n\e[0m"
-  end
-
-  test "lone table line at end of input isn't" do
-    assert format("one\n2 | 3") == "one 2 | 3\n\e[0m"
-  end
-
-  test "two successive table lines are a table" do
-    # note spacing
-    assert format("a | b\none | two\n") == "a   | b  \none | two\n\e[0m"
-  end
-
-  test "table with heading" do
-    assert format("column 1 | and 2\n-- | --\na | b\none | two\n") ==
-             "\e[7mcolumn 1 | and 2\e[0m\na        | b    \none      | two  \n\e[0m"
-  end
-
-  test "table with heading alignment" do
-    table = """
-    column 1 | 2        | and three
-    -------: | :------: | :-----
-        a    |  even    | c\none | odd | three
-    """
-
-    expected =
-      """
-      \e[7mcolumn 1 |   2   | and three\e[0m
-             a | even  | c\s\s\s\s\s\s\s\s
-           one |  odd  | three\s\s\s\s
-      \e[0m
-      """
-      |> String.trim_trailing()
-
-    assert format(table) == expected
-  end
-
-  test "table with formatting in cells" do
-    assert format("`a` | _b_\nc | d") == "\e[36ma\e[0m | \e[4mb\e[0m\nc | d\n\e[0m"
-    assert format("`abc` | d \n`e` | f") == "\e[36mabc\e[0m | d\n\e[36me\e[0m   | f\n\e[0m"
-  end
-
-  test "table with variable number of columns" do
-    assert format("a | b | c\nd | e") == "a | b | c\nd | e |  \n\e[0m"
-  end
-
   test "one reference link label per line" do
     assert format("  [id]: //example.com\n  [Elixir]:  https://elixir-lang.org") ==
              "  [id]: //example.com\n  [Elixir]:  https://elixir-lang.org"
+  end
+
+  describe "tables" do
+    test "lone thing that looks like a table line isn't" do
+      assert format("one\n2 | 3\ntwo\n") == "one 2 | 3 two\n\e[0m"
+    end
+
+    test "lone table line at end of input isn't" do
+      assert format("one\n2 | 3") == "one 2 | 3\n\e[0m"
+    end
+
+    test "two successive table lines are a table" do
+      # note spacing
+      assert format("a | b\none | two\n") == "a   | b  \none | two\n\e[0m"
+    end
+
+    test "table with heading" do
+      assert format("column 1 | and 2\n-- | --\na | b\none | two\n") ==
+               "\e[7mcolumn 1 | and 2\e[0m\na        | b    \none      | two  \n\e[0m"
+    end
+
+    test "table with heading alignment" do
+      table = """
+      column 1 | 2        | and three
+      -------: | :------: | :-----
+          a    |  even    | c\none | odd | three
+      """
+
+      expected =
+        """
+        \e[7mcolumn 1 |   2   | and three\e[0m
+               a | even  | c\s\s\s\s\s\s\s\s
+             one |  odd  | three\s\s\s\s
+        \e[0m
+        """
+        |> String.trim_trailing()
+
+      assert format(table) == expected
+    end
+
+    test "table with formatting in cells" do
+      assert format("`a` | _b_\nc | d") == "\e[36ma\e[0m | \e[4mb\e[0m\nc | d\n\e[0m"
+      assert format("`abc` | d \n`e` | f") == "\e[36mabc\e[0m | d\n\e[36me\e[0m   | f\n\e[0m"
+    end
+
+    test "table with variable number of columns" do
+      assert format("a | b | c\nd | e") == "a | b | c\nd | e |  \n\e[0m"
+    end
+
+    test "table with last two columns empty" do
+      table = """
+      AAA |     |     |
+      BBB | CCC |     |
+      GGG | HHH | III |
+      JJJ | KKK | LLL | MMM
+      """
+
+      expected =
+        """
+        AAA |     |     |\s\s\s\s
+        BBB | CCC |     |\s\s\s\s
+        GGG | HHH | III |\s\s\s\s
+        JJJ | KKK | LLL | MMM
+        \e[0m
+        """
+        |> String.trim_trailing()
+
+      assert format(table) == expected
+    end
   end
 end
