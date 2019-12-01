@@ -19,7 +19,7 @@ GIT_TAG = $(strip $(shell head="$(call GIT_REVISION)"; git tag --points-at $$hea
 SOURCE_DATE_EPOCH_PATH = lib/elixir/tmp/ebin_reproducible
 SOURCE_DATE_EPOCH_FILE = $(SOURCE_DATE_EPOCH_PATH)/SOURCE_DATE_EPOCH
 
-.PHONY: install compile erlang elixir unicode app build_plt clean_plt dialyze test check_reproducible clean clean_residual_files install_man clean_man docs Docs.zip Precompiled.zip zips
+.PHONY: install compile erlang elixir unicode app build_plt clean_plt dialyze test check_reproducible clean clean_residual_files format install_man clean_man docs Docs.zip Precompiled.zip zips
 .NOTPARALLEL: compile
 
 #==> Functions
@@ -252,12 +252,19 @@ TEST_ERL = lib/elixir/test/erlang
 TEST_EBIN = lib/elixir/test/ebin
 TEST_ERLS = $(addprefix $(TEST_EBIN)/, $(addsuffix .beam, $(basename $(notdir $(wildcard $(TEST_ERL)/*.erl)))))
 
-test_formatted: compile
+define FORMAT
 	$(Q) if [ "$(OS)" = "Windows_NT" ]; then \
-		cmd //C call ./bin/mix.bat format --check-formatted; \
+		cmd //C call ./bin/mix.bat format $(1); \
 	else \
-		bin/elixir bin/mix format --check-formatted; \
+		bin/elixir bin/mix format $(1); \
 	fi
+endef
+
+format: compile
+	$(call FORMAT)
+
+test_formatted: compile
+	$(call FORMAT,--check-formatted)
 
 test_erlang: compile $(TEST_ERLS)
 	@ echo "==> elixir (eunit)"

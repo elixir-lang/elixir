@@ -110,7 +110,7 @@ To recompile (including Erlang modules):
 make compile
 ```
 
-After your changes are done, please remember to run `mix format` to guarantee
+After your changes are done, please remember to run `make format` to guarantee
 all files are properly formatted and then run the full suite with
 `make test`.
 
