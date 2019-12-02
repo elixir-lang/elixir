@@ -221,7 +221,7 @@ end
 
 You can see that variables are also represented with a tuple, except the third element is an atom expressing the variable context.
 
-Over the course of this section, we will explore many Elixir syntax constructs alongside their AST representation.
+Over the course of this section, we will explore many Elixir syntax constructs alongside their AST representations.
 
 ### Operators
 
