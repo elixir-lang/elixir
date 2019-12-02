@@ -1175,11 +1175,23 @@ format_error({invalid_alias, Expr}) ->
     "it at runtime. If instead you wanted to invoke a function or access a field, "
     "wrap the function or field name in double quotes",
   io_lib:format(Message, ['Elixir.Macro':to_string(Expr)]);
-format_error({op_ambiguity, Name, Arg}) ->
+format_error({op_ambiguity, Name, {Op, _, [Arg]}}) ->
+  NameString = atom_to_binary(Name, utf8),
+  OpString = atom_to_binary(Op, utf8),
+  ArgString = 'Elixir.Macro':to_string(Arg),
+
   Message =
-    "\"~ts ~ts\" looks like a function call but there is a variable named \"~ts\", "
-    "please use explicit parentheses or even spaces",
-  io_lib:format(Message, [Name, 'Elixir.Macro':to_string(Arg), Name]);
+    "\"~ts ~ts~ts\" looks like a function call but there is a variable named \"~ts\".\n"
+    "If you want to perform a function call, use parentheses:\n"
+    "\n"
+    "    ~ts(~ts~ts)\n"
+    "\n"
+    "If you want to perform an operation on the variable ~ts, use even spaces instead:\n"
+    "\n"
+    "    ~ts ~ts ~ts",
+  io_lib:format(Message, [NameString, OpString, ArgString, NameString,
+                          NameString, OpString, ArgString, NameString,
+                          NameString, OpString, ArgString]);
 format_error({invalid_clauses, Name}) ->
   Message =
     "the function \"~ts\" cannot handle clauses with the -> operator because it is not a macro. "
