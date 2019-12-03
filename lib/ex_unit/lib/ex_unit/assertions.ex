@@ -175,12 +175,13 @@ defmodule ExUnit.Assertions do
       right = unquote(right)
       left = unquote(Macro.escape(left))
 
-      assert unquote(match?),
+      ExUnit.Assertions.assert(unquote(match?),
         right: right,
         left: left,
         expr: unquote(code),
         message: "match (match?) failed" <> ExUnit.Assertions.__pins__(unquote(pins)),
         context: {:match, unquote(pins)}
+      )
     end
   end
 
@@ -305,16 +306,18 @@ defmodule ExUnit.Assertions do
       right = unquote(right)
 
       if ExUnit.Assertions.__equal__?(left, right) do
-        assert false,
+        ExUnit.Assertions.assert(false,
           left: left,
           expr: unquote(expr),
           message: unquote(message <> ", both sides are exactly equal")
+        )
       else
-        assert unquote(call),
+        ExUnit.Assertions.assert(unquote(call),
           left: left,
           right: right,
           expr: unquote(expr),
           message: unquote(message)
+        )
       end
     end
   end
@@ -326,11 +329,12 @@ defmodule ExUnit.Assertions do
       left = unquote(left)
       right = unquote(right)
 
-      assert unquote(call),
+      ExUnit.Assertions.assert(unquote(call),
         left: left,
         right: right,
         expr: unquote(expr),
         message: unquote(message)
+      )
     end
   end
 
