@@ -345,7 +345,7 @@ defmodule Mix.Dep.Converger do
   end
 
   defp opts_equal?(opts1, opts2) do
-    keys = ~w(app env compile)a
+    keys = ~w(app env compile manager)a
     Enum.all?(keys, &(Keyword.fetch(opts1, &1) == Keyword.fetch(opts2, &1)))
   end
 
