@@ -369,6 +369,23 @@ defmodule IO.ANSI.DocsTest do
       assert format(table) == expected
     end
 
+    test "table with heading alignment and no space around \"|\"" do
+      table = """
+      | Value | Encoding | Value | Encoding |
+      |------:|:---------|------:|:---------|
+      |     0 | A        |    17 | R        |
+      |     1 | B        |    18 | S        |
+      """
+
+      expected =
+        "\e[7m" <>
+          "Value | Encoding | Value | Encoding\e[0m\n" <>
+          "    0 | A        |    17 | R       \n" <>
+          "    1 | B        |    18 | S       \n\e[0m"
+
+      assert format(table) == expected
+    end
+
     test "table with formatting in cells" do
       assert format("`a` | _b_\nc | d") == "\e[36ma\e[0m | \e[4mb\e[0m\nc | d\n\e[0m"
       assert format("`abc` | d \n`e` | f") == "\e[36mabc\e[0m | d\n\e[36me\e[0m   | f\n\e[0m"

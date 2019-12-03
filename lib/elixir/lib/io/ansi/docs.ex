@@ -348,8 +348,9 @@ defmodule IO.ANSI.Docs do
 
   defp split_into_columns(line, options) do
     line
+    |> String.trim(" ")
     |> String.trim("|")
-    |> String.split(" | ")
+    |> String.split("|")
     |> Enum.map(&render_column(&1, options))
   end
 
@@ -449,7 +450,7 @@ defmodule IO.ANSI.Docs do
   end
 
   defp table_line?(line) do
-    line =~ " | "
+    line =~ ~r/[:\ -]\|[:\ -]/
   end
 
   ## Helpers
