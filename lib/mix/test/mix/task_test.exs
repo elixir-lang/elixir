@@ -13,11 +13,12 @@ defmodule Mix.TaskTest do
     assert Mix.Task.run("hello") == "Hello, World!"
     assert Mix.Task.run("hello") == :noop
 
-    assert_raise Mix.NoTaskError, "The task \"unknown\" could not be found", fn ->
-      Mix.Task.run("unknown")
-    end
+    assert_raise Mix.NoTaskError,
+                 "The task \"unknown\" could not be found\nNote no mix.exs was found in the current directory",
+                 fn -> Mix.Task.run("unknown") end
 
-    message = "The task \"helli\" could not be found. Did you mean \"hello\"?"
+    message =
+      "The task \"helli\" could not be found. Did you mean \"hello\"?\nNote no mix.exs was found in the current directory"
 
     assert_raise Mix.NoTaskError, message, fn ->
       Mix.Task.run("helli")
@@ -184,6 +185,8 @@ defmodule Mix.TaskTest do
   end
 
   test "get!" do
+    Mix.Project.push(MixTest.Case.Sample)
+
     assert Mix.Task.get!("hello") == Mix.Tasks.Hello
 
     assert_raise Mix.NoTaskError, "The task \"unknown\" could not be found", fn ->
