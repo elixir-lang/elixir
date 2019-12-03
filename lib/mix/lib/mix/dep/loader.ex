@@ -83,7 +83,13 @@ defmodule Mix.Dep.Loader do
   latest status and children.
   """
   def load(%Mix.Dep{manager: manager, scm: scm, opts: opts} = dep, children) do
-    manager = scm_manager(scm, opts) || manager || infer_manager(opts[:dest])
+    # The manager for a child dependency is set based on the following rules:
+    #   1. Set in dependency definition
+    #   2. From SCM, so that Hex dependencies of a rebar project can be compiled with mix
+    #   3. From the parent dependency, used for rebar dependencies from git
+    #   4. Inferred from files in dependency (mix.exs, rebar.config, Makefile)
+    manager = opts[:manager] || scm_manager(scm, opts) || manager || infer_manager(opts[:dest])
+
     dep = %{dep | manager: manager, status: scm_status(scm, opts)}
 
     {dep, children} =
@@ -137,9 +143,8 @@ defmodule Mix.Dep.Loader do
 
   ## Helpers
 
-  def to_dep(tuple, from, manager \\ nil) do
-    %{opts: opts} = dep = with_scm_and_app(tuple)
-    %{dep | from: from, manager: opts[:manager] || manager}
+  defp to_dep(tuple, from, manager) do
+    %{with_scm_and_app(tuple) | from: from, manager: manager}
   end
 
   defp with_scm_and_app({app, opts} = original) when is_atom(app) and is_list(opts) do
@@ -325,7 +330,7 @@ defmodule Mix.Dep.Loader do
   # because umbrella projects are not supported in remotes.
   defp mix_dep(%Mix.Dep{opts: opts} = dep, children) do
     from = Path.join(opts[:dest], "mix.exs")
-    deps = Enum.map(children, &to_dep(&1, from))
+    deps = Enum.map(children, &to_dep(&1, from, _manager = nil))
     {dep, deps}
   end
 
@@ -356,7 +361,7 @@ defmodule Mix.Dep.Loader do
     from = Path.absname("mix.exs")
 
     (config[:deps] || [])
-    |> Enum.map(&to_dep(&1, from))
+    |> Enum.map(&to_dep(&1, from, _manager = nil))
     |> split_by_env_and_target({opts[:env], nil})
     |> elem(0)
   end
