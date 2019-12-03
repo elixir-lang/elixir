@@ -416,11 +416,13 @@ defmodule Kernel.ErrorsTest do
                                '''
                                defmodule Kernel.ErrorsTest.BadForm do
                                  def foo do
-                                   bar()
+                                   bar(
+                                     baz(1, 2)
+                                   )
                                  end
                                end
                                '''
-           end) =~ "undefined function bar/0"
+           end) =~ ~r"undefined function bar/1.*undefined function baz/2"s
 
     assert capture_io(:stderr, fn ->
              assert_eval_raise CompileError,
