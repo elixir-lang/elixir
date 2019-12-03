@@ -14,13 +14,21 @@ defmodule Mix.NoTaskError do
       {mod, ^task, _score} ->
         msg <>
           " because the module is named #{inspect(mod)} instead of " <>
-          "#{expected_mod_name(task)} as expected. " <> "Please rename it and try again"
+          "#{expected_mod_name(task)} as expected. Please rename it and try again"
 
       {_mod, similar, score} when score > 0.8 ->
-        msg <> ". Did you mean #{inspect(similar)}?"
+        msg <> ". Did you mean #{inspect(similar)}?" <> maybe_no_project()
 
       _otherwise ->
-        msg
+        msg <> maybe_no_project()
+    end
+  end
+
+  defp maybe_no_project do
+    if Mix.Project.get() do
+      ""
+    else
+      "\nNote no mix.exs was found in the current directory"
     end
   end
 
