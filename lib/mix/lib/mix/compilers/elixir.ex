@@ -137,6 +137,7 @@ defmodule Mix.Compilers.Elixir do
   """
   def clean(manifest, compile_path) do
     {modules, _} = read_manifest(manifest)
+
     Enum.each(modules, fn module(module: module) ->
       File.rm(beam_path(compile_path, module))
     end)
@@ -147,6 +148,7 @@ defmodule Mix.Compilers.Elixir do
   """
   def protocols_and_impls(manifest, compile_path) do
     {modules, _} = read_manifest(manifest)
+
     for module(module: module, kind: kind) <- modules,
         match?(:protocol, kind) or match?({:impl, _}, kind),
         do: {module, kind, beam_path(compile_path, module)}
@@ -196,6 +198,7 @@ defmodule Mix.Compilers.Elixir do
         {modules, _structs, sources, _pending_modules, _pending_structs} = get_compiler_info()
         sources = apply_warnings(sources, warnings)
         write_manifest(manifest, modules, sources, timestamp)
+        put_compile_env(sources)
         {:ok, Enum.map(warnings, &diagnostic(&1, :warning))}
 
       {:error, errors, warnings} ->
@@ -218,6 +221,15 @@ defmodule Mix.Compilers.Elixir do
     opts
     |> Keyword.take(Code.available_compiler_options())
     |> Code.compiler_options()
+  end
+
+  defp put_compile_env(sources) do
+    all_compile_env =
+      Enum.reduce(sources, :ordsets.new(), fn source(compile_env: compile_env), acc ->
+        :ordsets.union(compile_env, acc)
+      end)
+
+    Mix.ProjectStack.compile_env(all_compile_env)
   end
 
   defp each_cycle(compile_path) do

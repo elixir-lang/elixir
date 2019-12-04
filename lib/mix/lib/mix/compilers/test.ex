@@ -198,8 +198,7 @@ defmodule Mix.Compilers.Test do
             do: module,
             into: MapSet.new()
 
-      stale_modules =
-        find_all_dependent_on(stale_modules, elixir_modules, elixir_sources)
+      stale_modules = find_all_dependent_on(stale_modules, elixir_modules, elixir_sources)
 
       for module <- stale_modules,
           source(source: source, runtime_references: r, compile_references: c) <- test_sources,

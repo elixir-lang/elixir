@@ -612,9 +612,8 @@ defmodule Mix.Release do
 
   defp compile_env(release) do
     for {app, properties} <- release.applications,
-        {key, value} <- Keyword.get(properties, :compile_env, []) do
-      {app, key, value}
-    end
+        triplet <- Keyword.get(properties, :compile_env, []),
+        do: triplet
   end
 
   defp prepend_paths_to_script(instructions, []), do: instructions

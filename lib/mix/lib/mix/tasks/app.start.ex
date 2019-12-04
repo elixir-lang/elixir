@@ -156,7 +156,9 @@ defmodule Mix.Tasks.App.Start do
               {:ok, [{:application, _, properties} = application_data]} ->
                 with :ok <- :application.load(application_data) do
                   if compile_env = validate_compile_env? && properties[:compile_env] do
-                    compile_env = for {path, return} <- compile_env, do: {app, path, return}
+                    # Unfortunately we can only check the current app here,
+                    # otherwise we would accidentally load upcoming apps
+                    compile_env = for {^app, path, return} <- compile_env, do: {app, path, return}
                     Config.Provider.validate_compile_env(compile_env)
                   end
 
