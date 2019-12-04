@@ -165,7 +165,7 @@ defmodule Mix.Tasks.Xref do
   execute the function at the root of each individual application.
   """
   # TODO: Remove on v2.0
-  @doc deprecated: "It will be removed in future releases"
+  @doc deprecated: "Use compilation tracers described in the Code module"
   @spec calls(keyword()) :: [
           %{
             callee: {module(), atom(), arity()},
@@ -175,7 +175,7 @@ defmodule Mix.Tasks.Xref do
         ]
   def calls(opts \\ []) do
     for manifest <- manifests(opts),
-        source(source: source, modules: modules) <- read_manifest(manifest),
+        source(source: source, modules: modules) <- read_manifest(manifest) |> elem(1),
         module <- modules,
         call <- collect_calls(source, module),
         do: call
@@ -332,10 +332,10 @@ defmodule Mix.Tasks.Xref do
 
     module_sources =
       for manifest_path <- manifests(opts),
-          manifest_data = read_manifest(manifest_path),
-          module(module: module, sources: sources) <- manifest_data,
+          {manifest_modules, manifest_sources} = read_manifest(manifest_path),
+          module(module: module, sources: sources) <- manifest_modules,
           source <- sources,
-          source = Enum.find(manifest_data, &match?(source(source: ^source), &1)),
+          source = Enum.find(manifest_sources, &match?(source(source: ^source), &1)),
           do: {module, source}
 
     all_modules = MapSet.new(module_sources, &elem(&1, 0))
@@ -511,7 +511,7 @@ defmodule Mix.Tasks.Xref do
 
   defp sources(opts) do
     for manifest <- manifests(opts),
-        source() = source <- read_manifest(manifest),
+        source() = source <- read_manifest(manifest) |> elem(1),
         do: source
   end
 

@@ -1,7 +1,7 @@
 defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
-  @manifest_vsn 4
+  @manifest_vsn 5
 
   import Record
 
@@ -13,6 +13,7 @@ defmodule Mix.Compilers.Elixir do
     compile_references: [],
     struct_references: [],
     runtime_references: [],
+    compile_env: [],
     external: [],
     warnings: [],
     modules: []
@@ -135,9 +136,9 @@ defmodule Mix.Compilers.Elixir do
   Removes compiled files for the given `manifest`.
   """
   def clean(manifest, compile_path) do
-    Enum.each(read_manifest(manifest), fn
-      module(module: module) -> File.rm(beam_path(compile_path, module))
-      _ -> :ok
+    {modules, _} = read_manifest(manifest)
+    Enum.each(modules, fn module(module: module) ->
+      File.rm(beam_path(compile_path, module))
     end)
   end
 
@@ -145,7 +146,8 @@ defmodule Mix.Compilers.Elixir do
   Returns protocols and implementations for the given `manifest`.
   """
   def protocols_and_impls(manifest, compile_path) do
-    for module(module: module, kind: kind) <- read_manifest(manifest),
+    {modules, _} = read_manifest(manifest)
+    for module(module: module, kind: kind) <- modules,
         match?(:protocol, kind) or match?({:impl, _}, kind),
         do: {module, kind, beam_path(compile_path, module)}
   end
@@ -157,10 +159,10 @@ defmodule Mix.Compilers.Elixir do
     try do
       manifest |> File.read!() |> :erlang.binary_to_term()
     rescue
-      _ -> []
+      _ -> {[], []}
     else
-      [@manifest_vsn | data] -> data
-      _ -> []
+      {@manifest_vsn, modules, sources} -> {modules, sources}
+      _ -> {[], []}
     end
   end
 
@@ -364,8 +366,8 @@ defmodule Mix.Compilers.Elixir do
     {modules, structs, sources, pending_modules, pending_structs} = get_compiler_info()
     {source, sources} = List.keytake(sources, file, source(:source))
 
-    {compile_references, struct_references, runtime_references} =
-      Kernel.LexicalTracker.alias_references(lexical)
+    {compile_references, struct_references, runtime_references, compile_env} =
+      Kernel.LexicalTracker.references(lexical)
 
     compile_references =
       Enum.reject(compile_references, &match?("elixir_" <> _, Atom.to_string(&1)))
@@ -380,7 +382,8 @@ defmodule Mix.Compilers.Elixir do
         source,
         compile_references: compile_references,
         struct_references: struct_references,
-        runtime_references: runtime_references
+        runtime_references: runtime_references,
+        compile_env: compile_env
       )
 
     put_compiler_info({modules, structs, [source | sources], pending_modules, pending_structs})
@@ -539,39 +542,38 @@ defmodule Mix.Compilers.Elixir do
       _ ->
         {[], []}
     else
-      [@manifest_vsn | data] ->
-        split_manifest(data)
+      {@manifest_vsn, modules, sources} ->
+        {modules, sources}
 
-      [v | data] when is_integer(v) ->
-        try do
-          for module <- data, elem(module, 0) == :module do
-            module = elem(module, 1)
-            File.rm(beam_path(compile_path, module))
-            :code.purge(module)
-            :code.delete(module)
-          end
-        rescue
-          _ ->
-            Mix.raise(
-              "Cannot clean-up stale manifest, please run \"mix clean --deps\" manually before proceeding"
-            )
-        end
+      # From v5 and later
+      {vsn, modules, _sources} when is_integer(vsn) ->
+        purge_old_manifest(compile_path, modules)
 
-        {[], []}
+      # From v4 and before
+      [vsn | data] when is_integer(vsn) ->
+        purge_old_manifest(compile_path, data)
 
       _ ->
         {[], []}
     end
   end
 
-  defp split_manifest(data) do
-    Enum.reduce(data, {[], []}, fn
-      module() = module, {modules, sources} ->
-        {[module | modules], sources}
+  defp purge_old_manifest(compile_path, data) do
+    try do
+      for module <- data, elem(module, 0) == :module do
+        module = elem(module, 1)
+        File.rm(beam_path(compile_path, module))
+        :code.purge(module)
+        :code.delete(module)
+      end
+    rescue
+      _ ->
+        Mix.raise(
+          "Cannot clean-up stale manifest, please run \"mix clean --deps\" manually before proceeding"
+        )
+    end
 
-      source() = source, {modules, sources} ->
-        {modules, [source | sources]}
-    end)
+    {[], []}
   end
 
   defp write_manifest(manifest, [], [], _timestamp) do
@@ -582,10 +584,7 @@ defmodule Mix.Compilers.Elixir do
   defp write_manifest(manifest, modules, sources, timestamp) do
     File.mkdir_p!(Path.dirname(manifest))
 
-    manifest_data =
-      [@manifest_vsn | modules ++ sources]
-      |> :erlang.term_to_binary([:compressed])
-
+    manifest_data = :erlang.term_to_binary({@manifest_vsn, modules, sources}, [:compressed])
     File.write!(manifest, manifest_data)
     File.touch!(manifest, timestamp)
 
