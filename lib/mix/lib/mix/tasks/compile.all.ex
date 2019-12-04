@@ -12,6 +12,8 @@ defmodule Mix.Tasks.Compile.All do
   @impl true
   def run(args) do
     Mix.Project.get!()
+    config = Mix.Project.config()
+    compilers = Mix.Tasks.Compile.compilers(config)
 
     # Make sure Mix.Dep is cached to avoid loading dependencies
     # during compilation. It is likely this will be invoked anyway,
@@ -19,17 +21,17 @@ defmodule Mix.Tasks.Compile.All do
     Mix.Dep.cached()
 
     # Build the project structure so we can write down compiled files.
-    Mix.Project.build_structure()
+    Mix.Project.build_structure(config)
 
-    with_logger_app(fn ->
-      result = do_compile(compilers(), args, :noop, [])
+    with_logger_app(config, fn ->
+      result = do_compile(compilers, args, :noop, [])
       true = Code.prepend_path(Mix.Project.compile_path())
       result
     end)
   end
 
-  defp with_logger_app(fun) do
-    app = Keyword.fetch!(Mix.Project.config(), :app)
+  defp with_logger_app(config, fun) do
+    app = Keyword.fetch!(config, :app)
     logger? = Process.whereis(Logger)
     logger_config_app = Application.get_env(:logger, :compile_time_application)
 
@@ -73,10 +75,5 @@ defmodule Mix.Tasks.Compile.All do
   defp run_compiler(compiler, args) do
     result = Mix.Task.Compiler.normalize(Mix.Task.run("compile.#{compiler}", args), compiler)
     Enum.reduce(Mix.ProjectStack.pop_after_compiler(compiler), result, & &1.(&2))
-  end
-
-  defp compilers() do
-    # TODO: Deprecate :xref on v1.12
-    List.delete(Mix.Tasks.Compile.compilers(), :xref)
   end
 end
