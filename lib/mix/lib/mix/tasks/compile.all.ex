@@ -22,10 +22,9 @@ defmodule Mix.Tasks.Compile.All do
     Mix.Project.build_structure()
 
     with_logger_app(fn ->
-      {status, diagnostic} = do_compile(compilers(), args, :noop, [])
-      for fun <- Mix.ProjectStack.pop_after_compile(), do: fun.(status)
+      result = do_compile(compilers(), args, :noop, [])
       true = Code.prepend_path(Mix.Project.compile_path())
-      {status, diagnostic}
+      result
     end)
   end
 
@@ -72,7 +71,8 @@ defmodule Mix.Tasks.Compile.All do
   end
 
   defp run_compiler(compiler, args) do
-    Mix.Task.Compiler.normalize(Mix.Task.run("compile.#{compiler}", args), compiler)
+    result = Mix.Task.Compiler.normalize(Mix.Task.run("compile.#{compiler}", args), compiler)
+    Enum.reduce(Mix.ProjectStack.pop_after_compiler(compiler), result, & &1.(&2))
   end
 
   defp compilers() do

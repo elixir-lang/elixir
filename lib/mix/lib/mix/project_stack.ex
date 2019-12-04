@@ -105,19 +105,23 @@ defmodule Mix.ProjectStack do
     end)
   end
 
-  @spec prepend_after_compile(fun) :: :ok
-  def prepend_after_compile(fun) do
+  @spec prepend_after_compiler(atom, fun) :: :ok
+  def prepend_after_compiler(name, fun) do
     update_stack(fn
-      [h | t] -> {:ok, [update_in(h.after_compile, &[fun | &1]) | t]}
+      [h | t] -> {:ok, [update_in(h.after_compiler[name], &[fun | &1 || []]) | t]}
       [] -> {:ok, []}
     end)
   end
 
-  @spec pop_after_compile() :: [fun]
-  def pop_after_compile() do
+  @spec pop_after_compiler(atom) :: [fun]
+  def pop_after_compiler(name) do
     update_stack(fn
-      [h | t] -> {h.after_compile, [%{h | after_compile: []} | t]}
-      [] -> {[], []}
+      [h | t] ->
+        {value, h} = pop_in(h.after_compiler[name])
+        {value || [], [h | t]}
+
+      [] ->
+        {[], []}
     end)
   end
 
@@ -180,31 +184,29 @@ defmodule Mix.ProjectStack do
   @spec push(module, config, file) :: :ok | {:error, file}
   def push(module, config, file) do
     update_state(fn {stack, post_config} ->
-      # Consider the first children to always have io_done
-      # because we don't need to print anything unless another
-      # project takes ahold of the shell.
-      io_done? = stack == []
-      config = Keyword.merge(config, post_config)
+      if existing_file = find_project_named(module, stack) do
+        {{:error, existing_file}, {stack, post_config}}
+      else
+        # Consider the first children to always have io_done
+        # because we don't need to print anything unless another
+        # project takes ahold of the shell.
+        io_done? = stack == []
+        config = Keyword.merge(config, post_config)
 
-      project = %{
-        name: module,
-        config: config,
-        file: file,
-        pos: length(stack),
-        recursing?: false,
-        io_done: io_done?,
-        config_apps: [],
-        config_files: [file] ++ peek_config_files(config[:inherit_parent_config_files], stack),
-        config_mtime: nil,
-        after_compile: []
-      }
+        project = %{
+          name: module,
+          config: config,
+          file: file,
+          pos: length(stack),
+          recursing?: false,
+          io_done: io_done?,
+          config_apps: [],
+          config_files: [file] ++ peek_config_files(config[:inherit_parent_config_files], stack),
+          config_mtime: nil,
+          after_compiler: %{}
+        }
 
-      cond do
-        file = find_project_named(module, stack) ->
-          {{:error, file}, {stack, post_config}}
-
-        true ->
-          {:ok, {[project | stack], []}}
+        {:ok, {[project | stack], []}}
       end
     end)
   end

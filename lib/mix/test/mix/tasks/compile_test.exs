@@ -197,22 +197,22 @@ defmodule Mix.Tasks.CompileTest do
     Application.delete_env(:erl_config_app, :value)
   end
 
-  test "runs after_compile callback once" do
+  test "runs after_compiler callback once" do
     in_fixture("no_mixfile", fn ->
-      callback = fn status -> send(self(), {:status, status}) end
+      callback = fn result -> send(self(), result) end
 
-      assert Mix.Task.Compiler.after_compile(callback) == :ok
+      assert Mix.Task.Compiler.after_compiler(:elixir, callback) == :ok
       assert Mix.Task.rerun("compile", []) == {:ok, []}
-      assert_received {:status, :ok}
+      assert_received {:ok, []}
 
       Mix.Task.clear()
       assert Mix.Task.rerun("compile", []) == {:noop, []}
-      refute_received {:status, :noop}
+      refute_received {:noop, []}
 
       Mix.Task.clear()
-      assert Mix.Task.Compiler.after_compile(callback) == :ok
+      assert Mix.Task.Compiler.after_compiler(:elixir, callback) == :ok
       assert Mix.Task.run("compile", []) == {:noop, []}
-      assert_received {:status, :noop}
+      assert_received {:noop, []}
     end)
   end
 

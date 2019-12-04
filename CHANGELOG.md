@@ -49,7 +49,7 @@ Elixir v1.10 requires Erlang/OTP 21+.
   * [mix test] Add support for simple round-robin test partitioning across multiple machines
   * [Mix.Project] Add `MIX_DEPS_PATH` environment variable for setting `:deps_path`
   * [Mix.Project] Add `Mix.Project.deps_scms/1` that returns deps with their SCMs
-  * [Mix.Task] Add `Mix.Task.Compiler.after_compile/1` callback, to simplify compilers that may need to run something before and after compilation
+  * [Mix.Task] Add `Mix.Task.Compiler.after_compiler/2` callback, to simplify compilers that may need to run something at multiple steps
 
 #### IEx
 
