@@ -1,22 +1,8 @@
 -module(elixir_config).
 -compile({no_auto_import, [get/1]}).
 -export([new/1, delete/1, put/2, get/1, get/2, update/2, get_and_put/2, warn/2]).
--export([start_link/0, init/1, handle_call/3, handle_cast/2,
-  handle_info/2, code_change/3, terminate/2]).
+-export([start_link/0, init/1, handle_call/3, handle_cast/2]).
 -behaviour(gen_server).
-
-%% public api
-
-new(Opts) ->
-  Tab = ets:new(?MODULE, [named_table, public, {read_concurrency, true}]),
-  true = ets:insert_new(?MODULE, Opts),
-  Tab.
-
-delete(?MODULE) ->
-  ets:delete(?MODULE).
-
-put(Key, Value) ->
-  gen_server:call(?MODULE, {put, Key, Value}).
 
 get(Key) ->
   [{_, Value}] = ets:lookup(?MODULE, Key),
@@ -30,14 +16,14 @@ get(Key, Default) ->
     _:_ -> Default
   end.
 
-update(Key, Fun) ->
-  gen_server:call(?MODULE, {update, Key, Fun}).
+put(Key, Value) ->
+  gen_server:call(?MODULE, {put, Key, Value}).
 
 get_and_put(Key, Value) ->
   gen_server:call(?MODULE, {get_and_put, Key, Value}).
 
-start_link() ->
-  gen_server:start_link({local, ?MODULE}, ?MODULE, ?MODULE, []).
+update(Key, Fun) ->
+  gen_server:call(?MODULE, {update, Key, Fun}).
 
 %% Used to guarantee warnings are emitted only once per caller.
 warn(Key, [{Mod, Fun, ArgsOrArity, _} | _]) ->
@@ -50,11 +36,22 @@ warn(_, _) ->
 to_arity(Args) when is_list(Args) -> length(Args);
 to_arity(Arity) -> Arity.
 
+%% ets life-cycle api
+
+new(Opts) ->
+  Tab = ets:new(?MODULE, [named_table, public, {read_concurrency, true}]),
+  true = ets:insert_new(?MODULE, Opts),
+  Tab.
+
+delete(?MODULE) ->
+  ets:delete(?MODULE).
+
 %% gen_server api
 
+start_link() ->
+  gen_server:start_link({local, ?MODULE}, ?MODULE, ?MODULE, []).
+
 init(Tab) ->
-  %% Ets table must be writable
-  public = ets:info(Tab, protection),
   {ok, Tab}.
 
 handle_call({put, Key, Value}, _From, Tab) ->
@@ -71,12 +68,3 @@ handle_call({get_and_put, Key, Value}, _From, Tab) ->
 
 handle_cast(Cast, Tab) ->
   {stop, {bad_cast, Cast}, Tab}.
-
-handle_info(_Msg, Tab) ->
-  {noreply, Tab}.
-
-code_change(_OldVsn, Tab, _Extra) ->
-  {ok, Tab}.
-
-terminate(_Reason, _Tab) ->
-  ok.

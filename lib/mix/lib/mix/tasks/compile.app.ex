@@ -137,35 +137,23 @@ defmodule Mix.Tasks.Compile.App do
     validate_version(version)
 
     path = Keyword.get_lazy(opts, :compile_path, &Mix.Project.compile_path/0)
-    mods = modules_from(Path.wildcard("#{path}/*.beam")) |> Enum.sort()
+    modules = modules_from(Path.wildcard("#{path}/*.beam")) |> Enum.sort()
 
     target = Path.join(path, "#{app}.app")
     source = Mix.Project.config_mtime()
 
-    if opts[:force] || Mix.Utils.stale?([source], [target]) || modules_changed?(mods, target) do
-      best_guess = [
-        description: to_charlist(config[:description] || app),
-        modules: mods,
-        registered: [],
-        vsn: to_charlist(version)
-      ]
-
+    if opts[:force] || Mix.Utils.stale?([source], [target]) || app_changed?(target, modules) do
       properties =
-        if function_exported?(project, :application, 0) do
-          project_application = project.application
+        [
+          description: to_charlist(config[:description] || app),
+          modules: modules,
+          registered: [],
+          vsn: to_charlist(version)
+        ]
+        |> merge_project_application(project)
+        |> validate_properties!()
+        |> handle_extra_applications(config)
 
-          unless Keyword.keyword?(project_application) do
-            Mix.raise(
-              "Application configuration returned from application/0 should be a keyword list"
-            )
-          end
-
-          Keyword.merge(best_guess, project_application)
-        else
-          best_guess
-        end
-
-      properties = ensure_correct_properties(properties, config)
       contents = :io_lib.format("~p.~n", [{:application, app, properties}])
 
       Mix.Project.ensure_structure()
@@ -177,10 +165,10 @@ defmodule Mix.Tasks.Compile.App do
     end
   end
 
-  defp modules_changed?(mods, target) do
+  defp app_changed?(target, mods) do
     case :file.consult(target) do
       {:ok, [{:application, _app, properties}]} ->
-        properties[:modules] != mods
+        Keyword.get(properties, :modules, []) != mods
 
       _ ->
         false
@@ -212,17 +200,20 @@ defmodule Mix.Tasks.Compile.App do
     Enum.map(beams, &(&1 |> Path.basename() |> Path.rootname(".beam") |> String.to_atom()))
   end
 
-  defp ensure_correct_properties(properties, config) do
-    validate_properties!(properties)
-    {extra, properties} = Keyword.pop(properties, :extra_applications, [])
+  defp merge_project_application(best_guess, project) do
+    if function_exported?(project, :application, 0) do
+      project_application = project.application
 
-    apps =
-      properties
-      |> Keyword.get(:applications)
-      |> Kernel.||(apps_from_prod_non_optional_deps(properties, config))
-      |> normalize_apps(extra, config)
+      unless Keyword.keyword?(project_application) do
+        Mix.raise(
+          "Application configuration returned from application/0 should be a keyword list"
+        )
+      end
 
-    Keyword.put(properties, :applications, apps)
+      Keyword.merge(best_guess, project_application)
+    else
+      best_guess
+    end
   end
 
   defp validate_properties!(properties) do
@@ -322,6 +313,20 @@ defmodule Mix.Tasks.Compile.App do
       _ ->
         :ok
     end)
+
+    properties
+  end
+
+  defp handle_extra_applications(properties, config) do
+    {extra, properties} = Keyword.pop(properties, :extra_applications, [])
+
+    apps =
+      properties
+      |> Keyword.get(:applications)
+      |> Kernel.||(apps_from_prod_non_optional_deps(properties, config))
+      |> normalize_apps(extra, config)
+
+    Keyword.put(properties, :applications, apps)
   end
 
   defp apps_from_prod_non_optional_deps(properties, config) do
