@@ -504,7 +504,9 @@ defmodule Kernel.ImplTest do
         """)
       end)
 
-    assert message =~ "module attribute @impl was not set for function baz_without_impl/0 callback"
+    assert message =~
+             "module attribute @impl was not set for function baz_without_impl/0 callback"
+
     refute message =~ "foo_without_impl/0"
   end
 
