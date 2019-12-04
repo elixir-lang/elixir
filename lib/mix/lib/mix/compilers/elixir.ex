@@ -194,13 +194,14 @@ defmodule Mix.Compilers.Elixir do
         {modules, _structs, sources, _pending_modules, _pending_structs} = get_compiler_info()
         sources = apply_warnings(sources, warnings)
         write_manifest(manifest, modules, sources, timestamp)
-        {:ok, warning_diagnostics(sources)}
+        {:ok, Enum.map(warnings, &diagnostic(&1, :warning))}
 
       {:error, errors, warnings} ->
-        errors = Enum.map(errors, &diagnostic(&1, :error))
+        # In case of errors, we show all previous warnings and all new ones
         {_, _, sources, _, _} = get_compiler_info()
-        warnings = Enum.map(warnings, &diagnostic(&1, :warning)) ++ warning_diagnostics(sources)
-        {:error, warnings ++ errors}
+        errors = Enum.map(errors, &diagnostic(&1, :error))
+        warnings = Enum.map(warnings, &diagnostic(&1, :warning))
+        {:error, warning_diagnostics(sources) ++ warnings ++ errors}
     after
       Code.purge_compiler_modules()
       delete_compiler_info()
