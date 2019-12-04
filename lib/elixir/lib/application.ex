@@ -25,62 +25,84 @@ defmodule Application do
   project's `mix.exs` file, you can set the `:env` key in `application/0`:
 
       def application do
-        [env: [redis_host: "localhost"]]
+        [env: [db_host: "localhost"]]
       end
 
-  The environment is available after loading the application. This is typically
-  done automatically for you by tools like Mix, but it can also be done explicitly
-  like so:
+  Now, in your application, you can read this enviironment by using functions
+  such as `fetch_env!/2` and friends:
 
-      Application.load(:APP_NAME)
-      #=> :ok
+      defmodule MyApp.DBClient do
+        def start_link() do
+          SomeLib.DBClient.start_link(host: db_host())
+        end
 
-      Application.fetch_env!(:APP_NAME, :redis_host)
-      #=> "localhost"
-
-  In Mix projects, the environment of the application and its dependencies can
-  be overridden via the `config/config.exs` file. For example, someone using
-  your application can override its `:redis_host` environment variable as follows:
-
-      import Config
-      config :APP_NAME, :redis_host, "redis.local"
-
-  The function `put_env/3` allows dynamic configuration of the application
-  environment, but as a rule of thumb each application is responsible for its
-  own environment. Please do not use the functions in this module for directly
-  accessing or modifying the environment of other applications.
-
-  ### Compile-time environment
-
-  The application environment is available both at compile time and at runtime.
-  For example, you can use the application environment and the configuration
-  system to specify a value that is read when the code is being compiled:
-
-      config :APP_NAME, :redis_host, "redis.local"
-
-  And then in the code:
-
-      defmodule RedisClient do
-        @host Application.fetch_env!(:APP_NAME, :redis_host)
-
-        def connect do
-          # access @host here
+        defp db_host do
+          Application.fetch_env!(:my_app, :db_host)
         end
       end
 
-  This approach, however, has one big limitation: if the Redis host is set
-  dynamically, for example through `System.get_env/2` or only when booting
-  the application, the code won't be recompiled. This can lead into situations
-  where the configuration the code was compiled with is different from the
-  code running, which can be cumbersome to debug.
+  In Mix projects, the environment of the application and its dependencies can
+  be overridden via the `config/config.exs` file. For example, someone using
+  your application can override its `:db_host` environment variable as follows:
 
-  Therefore, whenever reading the environment at compilation time, we
-  recommend using `Application.compile_env!/2` instead:
+      import Config
+      config :my_app, :db_host, "db.local"
 
-      @host Application.compile_env!(:APP_NAME, :redis_host)
+  You can also change the application environment dynamically by using functions
+  such as `put_env/3` and `delete_env/2`. However, as a rule of thumb, each application
+  is responsible for its own environment. Please do not use the functions in this
+  module for directly accessing or modifying the environment of other applications.
 
-  When `compile_env!/2` is used, Elixir is capable of notifying whenever
-  those values differ between compilation time and runtime.
+  ### Compile-time environment
+
+  In the previous example, we read the application environment at runtime:
+
+      defmodule MyApp.DBClient do
+        def start_link() do
+          SomeLib.DBClient.start_link(host: db_host())
+        end
+
+        defp db_host do
+          Application.fetch_env!(:my_app, :db_host)
+        end
+      end
+
+  In other words, the environment key `:db_host` for application `:my_app`
+  will only be read when `MyApp.DBClient` effectively starts. While reading
+  the application environment at runtime is the preferred approach, in some
+  rare occasions you may want to use the application environment to configure
+  the compilation of a certain project. This is often done by calling `get_env/3`
+  outside of a function:
+
+      defmodule MyApp.DBClient do
+        @db_host Application.get_env(:my_app, :db_host, "db.local")
+
+        def start_link() do
+          SomeLib.DBClient.start_link(host: @db_host)
+        end
+      end
+
+  This approach has one big limitation: if you change the value of the
+  application environment after the code is compiled, the value used at
+  runtime is not gouing to change! For example, if you are using `mix release`
+  and your `config/releases.exs` has:
+
+      config :my_app, :db_host, "db.production"
+
+  This value will no effect! The same will happen if your `config/config.exs`
+  reads the value from the system, such as:
+
+      config :my_app, :db_host, System.get_env("DB_HOST") || "db.local"
+
+  For those reasons, reading the application environment at runtime is preferred.
+  However, if you really have to read the application environment during compilation,
+  we recomend you to use `compile_env/3` instead:
+
+      @db_host Application.compile_env(:my_app, :db_host, "db.local")
+
+  By using `compile_env/3`, tools like Mix will store the values used during
+  compilation and compare the compilation values with the runtime values whenever
+  your system starts, raising an error in case they differ.
 
   ## The application callback module
 
