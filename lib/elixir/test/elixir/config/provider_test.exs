@@ -49,7 +49,8 @@ defmodule Config.ProviderTest do
     assert capture_abort(fn ->
              keys = [:unknown, :nested, :key, :too_deep]
              Config.Provider.validate_compile_env([{:elixir, keys, :error}])
-           end) =~ "could not read compile env at [:unknown, :nested, :key, :too_deep]"
+           end) =~
+             "application :elixir failed reading its compile environment for path [:nested, :key, :too_deep] inside key :unknown"
   after
     Application.delete_env(:elixir, :unknown)
   end

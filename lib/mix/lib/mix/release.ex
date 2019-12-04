@@ -611,7 +611,7 @@ defmodule Mix.Release do
   end
 
   defp compile_env(release) do
-    for {app, properties} <- release.applications,
+    for {_, properties} <- release.applications,
         triplet <- Keyword.get(properties, :compile_env, []),
         do: triplet
   end

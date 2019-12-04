@@ -192,7 +192,7 @@ defmodule Config.Provider do
       rescue
         e ->
           abort("""
-          could not read compile env at #{inspect([key | path])} for application #{inspect(app)}:
+          application #{inspect(app)} failed reading its compile environment #{path(key, path)}:
 
           #{Exception.format(:error, e, __STACKTRACE__)}
 
@@ -206,7 +206,7 @@ defmodule Config.Provider do
 
         runtime_return ->
           abort("""
-          the application #{inspect(app)} has a different value set at #{inspect([key | path])} \
+          the application #{inspect(app)} has a different value set #{path(key, path)} \
           during runtime compared to compile time. Since this application environment entry was \
           marked as compile time, this difference can lead to different behaviour than expected:
 
@@ -220,6 +220,9 @@ defmodule Config.Provider do
 
     :ok
   end
+
+  defp path(key, []), do: "for key #{inspect(key)}"
+  defp path(key, path), do: "for path #{inspect(path)} inside key #{inspect(key)}"
 
   defp compile_env_tips(app),
     do: """
