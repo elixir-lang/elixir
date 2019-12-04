@@ -24,7 +24,7 @@ defmodule Mix.Tasks.Compile.All do
     Mix.Project.build_structure(config)
 
     with_globals(config, fn ->
-      result = do_compile(compilers(), args, :noop, [])
+      result = do_compile(compilers, args, :noop, [])
       true = Code.prepend_path(Mix.Project.compile_path())
       result
     end)
