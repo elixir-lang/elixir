@@ -12,7 +12,7 @@ defmodule Config.Reader do
   For example, if you expect the target system to have a config file
   in an absolute path, you can configure your `mix release` as:
 
-      config_providers: [{Config.Reader, "/etc/config.json"}]
+      config_providers: [{Config.Reader, "/etc/config.exs"}]
 
   Or if you want to read a custom path inside the release:
 
