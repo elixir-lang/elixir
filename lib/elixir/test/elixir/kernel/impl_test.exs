@@ -29,29 +29,29 @@ defmodule Kernel.ImplTest do
   end
 
   defmodule UseBehaviourWithoutImpl do
-    @callback foo() :: any
-    @callback bar() :: any
-    @callback baz() :: any
+    @callback foo_without_impl() :: any
+    @callback bar_without_impl() :: any
+    @callback baz_without_impl() :: any
 
     defmacro __using__(_opts) do
       quote do
         @behaviour Kernel.ImplTest.UseBehaviourWithoutImpl
-        def foo(), do: :auto_generated
+        def foo_without_impl(), do: :auto_generated
       end
     end
   end
 
   defmodule UseBehaviourWithImpl do
-    @callback foo() :: any
-    @callback bar() :: any
-    @callback baz() :: any
+    @callback foo_with_impl() :: any
+    @callback bar_with_impl() :: any
+    @callback baz_with_impl() :: any
 
     defmacro __using__(_opts) do
       quote do
         @behaviour Kernel.ImplTest.UseBehaviourWithImpl
         @impl true
-        def foo(), do: :auto_generated
-        def bar(), do: :auto_generated
+        def foo_with_impl(), do: :auto_generated
+        def bar_with_impl(), do: :auto_generated
       end
     end
   end
@@ -498,14 +498,14 @@ defmodule Kernel.ImplTest do
           use Kernel.ImplTest.UseBehaviourWithoutImpl
 
           @impl true
-          def bar(), do: :overridden
-          def baz(), do: :overridden
+          def bar_without_impl(), do: :overridden
+          def baz_without_impl(), do: :overridden
         end
         """)
       end)
 
-    assert message =~ "module attribute @impl was not set for function baz/0 callback"
-    refute message =~ "foo/0"
+    assert message =~ "module attribute @impl was not set for function baz_without_impl/0 callback"
+    refute message =~ "foo_without_impl/0"
   end
 
   test "warns only for generated functions in generated @impl" do
@@ -514,13 +514,13 @@ defmodule Kernel.ImplTest do
         Code.eval_string("""
         defmodule Kernel.ImplTest.ImplAttributes do
           use Kernel.ImplTest.UseBehaviourWithImpl
-          def baz(), do: :overridden
+          def baz_with_impl(), do: :overridden
         end
         """)
       end)
 
-    assert message =~ "module attribute @impl was not set for function bar/0 callback"
-    refute message =~ "foo/0"
+    assert message =~ "module attribute @impl was not set for function bar_with_impl/0 callback"
+    refute message =~ "foo_with_impl/0"
   end
 
   test "does not warn for overridable callback when using __before_compile__/1 hook" do
