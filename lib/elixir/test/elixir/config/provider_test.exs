@@ -27,6 +27,34 @@ defmodule Config.ProviderTest do
     end)
   end
 
+  test "validate_compile_env" do
+    Config.Provider.validate_compile_env([{:elixir, [:unknown], :error}])
+
+    Application.put_env(:elixir, :unknown, nested: [key: :value])
+    Config.Provider.validate_compile_env([{:elixir, [:unknown], {:ok, [nested: [key: :value]]}}])
+    Config.Provider.validate_compile_env([{:elixir, [:unknown, :nested], {:ok, [key: :value]}}])
+    Config.Provider.validate_compile_env([{:elixir, [:unknown, :nested, :key], {:ok, :value}}])
+    Config.Provider.validate_compile_env([{:elixir, [:unknown, :nested, :unknown], :error}])
+
+    assert capture_abort(fn ->
+             Config.Provider.validate_compile_env([{:elixir, [:unknown, :nested], :error}])
+           end) =~ "Compile time value was not set"
+
+    assert capture_abort(fn ->
+             Config.Provider.validate_compile_env([
+               {:elixir, [:unknown, :nested], {:ok, :another}}
+             ])
+           end) =~ "Compile time value was set to: :another"
+
+    assert capture_abort(fn ->
+             keys = [:unknown, :nested, :key, :too_deep]
+             Config.Provider.validate_compile_env([{:elixir, keys, :error}])
+           end) =~
+             "application :elixir failed reading its compile environment for path [:nested, :key, :too_deep] inside key :unknown"
+  after
+    Application.delete_env(:elixir, :unknown)
+  end
+
   describe "config_path" do
     test "validate!" do
       assert Provider.validate_config_path!("/foo") == :ok
@@ -84,9 +112,9 @@ defmodule Config.ProviderTest do
     test "raises if booting twice in a row" do
       init_and_assert_boot()
 
-      assert_raise RuntimeError, ~r"Got infinite loop when running Config.Provider", fn ->
-        assert capture_io(:stderr, fn -> init_and_assert_boot() end) != ""
-      end
+      assert capture_abort(fn ->
+               init_and_assert_boot()
+             end) =~ "Got infinite loop when running Config.Provider"
     end
   end
 
@@ -110,5 +138,11 @@ defmodule Config.ProviderTest do
   defp consult(file) do
     {:ok, [config]} = :file.consult(file)
     config
+  end
+
+  defp capture_abort(fun) do
+    capture_io(:stderr, fn ->
+      assert_raise ErlangError, fun
+    end)
   end
 end

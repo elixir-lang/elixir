@@ -493,7 +493,7 @@ defmodule Mix.Release do
 
           instructions =
             instructions
-            |> boot_config_provider()
+            |> post_stdlib_applies(release)
             |> prepend_paths_to_script(prepend_paths)
 
           script = {:script, rel_info, instructions}
@@ -584,15 +584,36 @@ defmodule Mix.Release do
     end
   end
 
-  defp boot_config_provider(instructions) do
+  defp post_stdlib_applies(instructions, release) do
     {pre, [stdlib | post]} =
       Enum.split_while(
         instructions,
         &(not match?({:apply, {:application, :start_boot, [:stdlib, _]}}, &1))
       )
 
-    config_provider = {:apply, {Config.Provider, :boot, [:elixir, :config_providers]}}
-    pre ++ [stdlib, config_provider | post]
+    pre ++
+      [stdlib] ++ config_provider_apply(release) ++ validate_compile_env_apply(release) ++ post
+  end
+
+  defp config_provider_apply(%{config_providers: []}),
+    do: []
+
+  defp config_provider_apply(_),
+    do: [{:apply, {Config.Provider, :boot, [:elixir, :config_providers]}}]
+
+  defp validate_compile_env_apply(release) do
+    with true <- Keyword.get(release.options, :validate_compile_env, true),
+         [_ | _] = compile_env <- compile_env(release) do
+      [{:apply, {Config.Provider, :validate_compile_env, [compile_env]}}]
+    else
+      _ -> []
+    end
+  end
+
+  defp compile_env(release) do
+    for {_, properties} <- release.applications,
+        triplet <- Keyword.get(properties, :compile_env, []),
+        do: triplet
   end
 
   defp prepend_paths_to_script(instructions, []), do: instructions

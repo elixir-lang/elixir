@@ -12,45 +12,45 @@ defmodule Kernel.LexicalTrackerTest do
 
   test "can add remote dispatch", config do
     D.remote_dispatch(config[:pid], String, :runtime)
-    assert D.alias_references(config[:pid]) == {[], [], [String]}
+    assert D.references(config[:pid]) == {[], [], [String], []}
 
     D.remote_dispatch(config[:pid], String, :compile)
-    assert D.alias_references(config[:pid]) == {[String], [], []}
+    assert D.references(config[:pid]) == {[String], [], [], []}
 
     D.remote_dispatch(config[:pid], String, :runtime)
-    assert D.alias_references(config[:pid]) == {[String], [], []}
+    assert D.references(config[:pid]) == {[String], [], [], []}
   end
 
   test "can add remote structs", config do
     D.remote_struct(config[:pid], URI)
-    assert D.alias_references(config[:pid]) == {[], [URI], []}
+    assert D.references(config[:pid]) == {[], [URI], [], []}
 
     D.remote_dispatch(config[:pid], URI, :runtime)
-    assert D.alias_references(config[:pid]) == {[], [URI], [URI]}
+    assert D.references(config[:pid]) == {[], [URI], [URI], []}
 
     D.remote_dispatch(config[:pid], URI, :compile)
-    assert D.alias_references(config[:pid]) == {[URI], [URI], []}
+    assert D.references(config[:pid]) == {[URI], [URI], [], []}
   end
 
   test "can add module imports", config do
     D.add_import(config[:pid], String, [], 1, true)
     D.import_dispatch(config[:pid], String, {:upcase, 1})
-    assert D.alias_references(config[:pid]) == {[String], [], []}
+    assert D.references(config[:pid]) == {[String], [], [], []}
 
     D.import_dispatch(config[:pid], String, {:upcase, 1})
-    assert D.alias_references(config[:pid]) == {[String], [], []}
+    assert D.references(config[:pid]) == {[String], [], [], []}
   end
 
   test "can add module with {function, arity} imports", config do
     D.add_import(config[:pid], String, [upcase: 1], 1, true)
     D.import_dispatch(config[:pid], String, {:upcase, 1})
-    assert D.alias_references(config[:pid]) == {[String], [], []}
+    assert D.references(config[:pid]) == {[String], [], [], []}
   end
 
   test "can add aliases", config do
     D.add_alias(config[:pid], String, 1, true)
     D.alias_dispatch(config[:pid], String)
-    assert D.alias_references(config[:pid]) == {[], [], []}
+    assert D.references(config[:pid]) == {[], [], [], []}
   end
 
   test "unused module imports", config do
@@ -105,7 +105,7 @@ defmodule Kernel.LexicalTrackerTest do
   end
 
   test "does not tag aliases nor types" do
-    {{compile, _structs, runtime}, _binding} =
+    {{compile, _structs, runtime, _}, _binding} =
       Code.eval_string("""
       defmodule Kernel.LexicalTrackerTest.Typespecs do
         alias Foo.Bar, as: Bar, warn: false
@@ -116,7 +116,7 @@ defmodule Kernel.LexicalTrackerTest do
         @macrocallback foo2(Foo.Bar.t) :: Foo.Bar.t
         @spec foo(bar3) :: Foo.Bar.t
         def foo(_), do: :bar
-        Kernel.LexicalTracker.alias_references(__ENV__.lexical_tracker)
+        Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
       end |> elem(3)
       """)
 

@@ -189,24 +189,16 @@ defmodule Mix.Compilers.Test do
 
     if Mix.Utils.stale?([elixir_manifest], [test_manifest]) do
       compile_path = Mix.Project.compile_path()
-
-      elixir_manifest_entries =
-        CE.read_manifest(elixir_manifest)
-        |> Enum.group_by(&elem(&1, 0))
+      {elixir_modules, elixir_sources} = CE.read_manifest(elixir_manifest)
 
       stale_modules =
-        for CE.module(module: module) <- elixir_manifest_entries.module,
+        for CE.module(module: module) <- elixir_modules,
             beam = Path.join(compile_path, Atom.to_string(module) <> ".beam"),
             Mix.Utils.stale?([beam], [test_manifest]),
             do: module,
             into: MapSet.new()
 
-      stale_modules =
-        find_all_dependent_on(
-          stale_modules,
-          elixir_manifest_entries.source,
-          elixir_manifest_entries.module
-        )
+      stale_modules = find_all_dependent_on(stale_modules, elixir_modules, elixir_sources)
 
       for module <- stale_modules,
           source(source: source, runtime_references: r, compile_references: c) <- test_sources,
@@ -262,8 +254,8 @@ defmodule Mix.Compilers.Test do
       file = Path.relative_to(file, cwd)
       {source, sources} = List.keytake(sources, file, source(:source))
 
-      {compile_references, struct_references, runtime_references} =
-        Kernel.LexicalTracker.alias_references(lexical)
+      {compile_references, struct_references, runtime_references, _compile_env} =
+        Kernel.LexicalTracker.references(lexical)
 
       source =
         source(

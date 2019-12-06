@@ -10,10 +10,10 @@ defmodule Kernel.LexicalTracker do
   @behaviour :gen_server
 
   @doc """
-  Returns all remotes referenced in this lexical scope.
+  Returns all references in this lexical scope.
   """
-  def alias_references(pid) do
-    :gen_server.call(pid, :alias_references, @timeout)
+  def references(pid) do
+    :gen_server.call(pid, :references, @timeout)
   end
 
   # Internal API
@@ -60,6 +60,11 @@ defmodule Kernel.LexicalTracker do
   end
 
   @doc false
+  def add_compile_env(pid, app, path, return) do
+    :gen_server.cast(pid, {:compile_env, app, path, return})
+  end
+
+  @doc false
   def set_file(pid, file) do
     :gen_server.cast(pid, {:set_file, file})
   end
@@ -103,6 +108,7 @@ defmodule Kernel.LexicalTracker do
       references: %{},
       structs: %{},
       cache: %{},
+      compile_env: :ordsets.new(),
       file: nil
     }
 
@@ -119,9 +125,9 @@ defmodule Kernel.LexicalTracker do
     {:reply, Enum.sort(directives), state}
   end
 
-  def handle_call(:alias_references, _from, state) do
+  def handle_call(:references, _from, state) do
     {compile, runtime} = partition(Map.to_list(state.references), [], [])
-    {:reply, {compile, Map.keys(state.structs), runtime}, state}
+    {:reply, {compile, Map.keys(state.structs), runtime, state.compile_env}, state}
   end
 
   def handle_call({:read_cache, key}, _from, %{cache: cache} = state) do
@@ -148,7 +154,6 @@ defmodule Kernel.LexicalTracker do
 
   def handle_cast({:import_dispatch, module, {function, arity}}, state) do
     state = add_import_dispatch(state, module, function, arity)
-
     {:noreply, state}
   end
 
@@ -162,6 +167,10 @@ defmodule Kernel.LexicalTracker do
 
   def handle_cast(:reset_file, state) do
     {:noreply, %{state | file: nil}}
+  end
+
+  def handle_cast({:compile_env, app, path, return}, state) do
+    {:noreply, update_in(state.compile_env, &:ordsets.add_element({app, path, return}, &1))}
   end
 
   def handle_cast({:add_import, module, fas, line, warn}, state) do
@@ -226,7 +235,6 @@ defmodule Kernel.LexicalTracker do
     # Always compile time because we depend
     # on the module at compile time
     references = add_reference(state.references, module, :compile)
-
     %{state | directives: directives, references: references}
   end
 

@@ -142,7 +142,11 @@ defmodule Mix.Tasks.Compile.App do
     target = Path.join(path, "#{app}.app")
     source = Mix.Project.config_mtime()
 
-    if opts[:force] || Mix.Utils.stale?([source], [target]) || app_changed?(target, modules) do
+    current_properties = current_app_properties(target)
+    compile_env = load_compile_env(current_properties)
+
+    if opts[:force] || Mix.Utils.stale?([source], [target]) ||
+         app_changed?(current_properties, modules, compile_env) do
       properties =
         [
           description: to_charlist(config[:description] || app),
@@ -153,6 +157,7 @@ defmodule Mix.Tasks.Compile.App do
         |> merge_project_application(project)
         |> validate_properties!()
         |> handle_extra_applications(config)
+        |> add_compile_env(compile_env)
 
       contents = :io_lib.format("~p.~n", [{:application, app, properties}])
 
@@ -165,14 +170,23 @@ defmodule Mix.Tasks.Compile.App do
     end
   end
 
-  defp app_changed?(target, mods) do
+  defp current_app_properties(target) do
     case :file.consult(target) do
-      {:ok, [{:application, _app, properties}]} ->
-        Keyword.get(properties, :modules, []) != mods
-
-      _ ->
-        false
+      {:ok, [{:application, _app, properties}]} -> properties
+      _ -> []
     end
+  end
+
+  defp load_compile_env(current_properties) do
+    case Mix.ProjectStack.compile_env(:unset) do
+      :unset -> Keyword.get(current_properties, :compile_env, [])
+      list -> list
+    end
+  end
+
+  defp app_changed?(properties, mods, compile_env) do
+    Keyword.get(properties, :modules, []) != mods or
+      Keyword.get(properties, :compile_env, []) != compile_env
   end
 
   defp validate_app(app) when is_atom(app), do: :ok
@@ -316,6 +330,9 @@ defmodule Mix.Tasks.Compile.App do
 
     properties
   end
+
+  defp add_compile_env(properties, []), do: properties
+  defp add_compile_env(properties, compile_env), do: [compile_env: compile_env] ++ properties
 
   defp handle_extra_applications(properties, config) do
     {extra, properties} = Keyword.pop(properties, :extra_applications, [])

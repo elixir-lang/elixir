@@ -358,8 +358,8 @@ defmodule Mix.Tasks.Release do
         * `:temporary` - the application is started and the node does not
           shut down if the application terminates
         * `:load` - the application is only loaded
-        * `:none` - the application is part of the release but it is neither loaded nor
-          started
+        * `:none` - the application is part of the release but it is neither
+          loaded nor started
 
       All applications default to `:permanent`.
 
@@ -388,6 +388,13 @@ defmodule Mix.Tasks.Release do
       to be a long and randomly generated string, such as:
       `Base.url_encode64(:crypto.strong_rand_bytes(40))`. We also recommend to restrict
       the characters in the cookie to the subset returned by `Base.url_encode64/1`.
+
+    * `:validate_compile_env` - by default a release will match all runtime
+      configuration against any configuration that was marked as compile time
+      in your application of its dependencies via the `Application.compile_env/3`
+      function. If there is a mismatch between those, it means your system is
+      misconfigured and unable to boot. You can disable this check by setting
+      this option to false.
 
     * `:path` - the path the release should be installed to.
       Defaults to `"_build/MIX_ENV/rel/RELEASE_NAME"`.

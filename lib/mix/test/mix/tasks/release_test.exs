@@ -362,6 +362,69 @@ defmodule Mix.Tasks.ReleaseTest do
     end)
   end
 
+  test "validates compile_env" do
+    in_fixture("release_test", fn ->
+      config = [releases: [compile_env_config: []]]
+
+      File.write!("lib/compile_env.ex", """
+      _ = Application.compile_env(:release_test, :static)
+      """)
+
+      Mix.Project.in_project(:release_test, ".", config, fn _ ->
+        Mix.Task.run("loadconfig", [])
+
+        File.write!("config/releases.exs", """
+        import Config
+        config :release_test, :static, String.to_atom(System.get_env("RELEASE_STATIC"))
+        """)
+
+        root = Path.absname("_build/dev/rel/compile_env_config")
+        Mix.Task.run("release", ["compile_env_config"])
+
+        assert {output, _} =
+                 System.cmd(Path.join(root, "bin/compile_env_config"), ["start"],
+                   stderr_to_stdout: true,
+                   env: [{"RELEASE_STATIC", "runtime"}]
+                 )
+
+        assert output =~
+                 "ERROR! the application :release_test has a different value set for key :static during runtime compared to compile time"
+
+        # But now it does
+        env = [{'RELEASE_STATIC', 'was_set'}]
+        open_port(Path.join(root, "bin/compile_env_config"), ['start'], env)
+        assert %{} = wait_until_decoded(Path.join(root, "RELEASE_BOOTED"))
+      end)
+    end)
+  end
+
+  test "does not validate compile_env if opted out" do
+    in_fixture("release_test", fn ->
+      config = [releases: [no_compile_env_config: [validate_compile_env: false]]]
+
+      File.write!("lib/compile_env.ex", """
+      _ = Application.compile_env(:release_test, :static)
+      """)
+
+      Mix.Project.in_project(:release_test, ".", config, fn _ ->
+        Mix.Task.run("loadconfig", [])
+
+        File.write!("config/releases.exs", """
+        import Config
+        config :release_test, :static, String.to_atom(System.get_env("RELEASE_STATIC"))
+        """)
+
+        root = Path.absname("_build/dev/rel/no_compile_env_config")
+        Mix.Task.run("release", ["no_compile_env_config"])
+
+        # It boots with mismatched config
+        env = [{'RELEASE_STATIC', 'runtime'}]
+        open_port(Path.join(root, "bin/no_compile_env_config"), ['start'], env)
+        assert %{} = wait_until_decoded(Path.join(root, "RELEASE_BOOTED"))
+      end)
+    end)
+  end
+
   @tag :epmd
   test "executes rpc instructions" do
     in_fixture("release_test", fn ->
