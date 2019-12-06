@@ -45,7 +45,6 @@ Elixir v1.10 requires Erlang/OTP 21+.
 
   * [mix deps.compile] Add `--skip-umbrella-apps` flag. The new flag does not compile umbrella apps. This is useful for building caches in CD/CI pipelines
   * [mix deps.unlock] Add `--check-unused` flag. The new flag raises if there are any unused dependencies in the lock file
-  * [mix release] Allow `{:from_app, app_name}` as a version for releases
   * [mix test] Add support for simple round-robin test partitioning across multiple machines
   * [Mix.Project] Add `MIX_DEPS_PATH` environment variable for setting `:deps_path`
   * [Mix.Project] Add `Mix.Project.deps_scms/1` that returns deps with their SCMs
