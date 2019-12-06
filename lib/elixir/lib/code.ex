@@ -80,6 +80,11 @@ defmodule Code do
       function or macro is referenced. `meta` is the call AST metadata, `module`
       is the invoked module, followed by the `name` and `arity`.
 
+    * `{:compile_env, app, path, return}` - traced whenever `Application.compile_env/3`
+      or `Application.compile_env!/2` are called. `app` is an atom, `path` is a list
+      of keys to traverse in the application environemnt and `return` is either
+      `{:ok, value}` or `:error`.
+
   The `:tracers` compiler option can be combined with the `:parser_options`
   compiler option to enrich the metadata of the traced events above.
 

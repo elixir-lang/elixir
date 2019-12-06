@@ -183,6 +183,68 @@ defmodule Config.Provider do
     end
   end
 
+  @doc false
+  def validate_compile_env(compile_env) do
+    for {app, [key | path], compile_return} <- compile_env,
+        Application.ensure_loaded(app) == :ok do
+      try do
+        traverse_env(Application.fetch_env(app, key), path)
+      rescue
+        e ->
+          abort("""
+          application #{inspect(app)} failed reading its compile environment #{path(key, path)}:
+
+          #{Exception.format(:error, e, __STACKTRACE__)}
+
+          Expected it to match the compile time value of #{return_to_text(compile_return)}.
+
+          #{compile_env_tips(app)}
+          """)
+      else
+        ^compile_return ->
+          :ok
+
+        runtime_return ->
+          abort("""
+          the application #{inspect(app)} has a different value set #{path(key, path)} \
+          during runtime compared to compile time. Since this application environment entry was \
+          marked as compile time, this difference can lead to different behaviour than expected:
+
+            * Compile time value #{return_to_text(compile_return)}
+            * Runtime value #{return_to_text(runtime_return)}
+
+          #{compile_env_tips(app)}
+          """)
+      end
+    end
+
+    :ok
+  end
+
+  defp path(key, []), do: "for key #{inspect(key)}"
+  defp path(key, path), do: "for path #{inspect(path)} inside key #{inspect(key)}"
+
+  defp compile_env_tips(app),
+    do: """
+    To fix this error, you might:
+
+      * Make the runtime value match the compile time one
+
+      * Recompile your project. If the misconfigured application is a dependency, \
+    you may need to run "mix deps.compile #{app} --force"
+
+      * Alternatively, you can disable this check. If you are using releases, you can \
+    set :validate_compile_env to false in your release configuration. If you are \
+    using Mix to start your system, you can pass the --no-validate-compile-env flag
+    """
+
+  defp return_to_text({:ok, value}), do: "was set to: #{inspect(value)}"
+  defp return_to_text(:error), do: "was not set"
+
+  defp traverse_env(return, []), do: return
+  defp traverse_env(:error, _paths), do: :error
+  defp traverse_env({:ok, value}, [key | keys]), do: traverse_env(Access.fetch(value, key), keys)
+
   defp restart_and_sleep do
     :init.restart()
     Process.sleep(:infinity)
@@ -256,6 +318,6 @@ defmodule Config.Provider do
 
   defp abort(msg) do
     IO.puts(:stderr, "ERROR! " <> msg)
-    raise(msg)
+    :erlang.raise(:error, "aborting boot", [{Config.Provider, :boot, 2, []}])
   end
 end

@@ -105,6 +105,14 @@ defmodule Mix.ProjectStack do
     end)
   end
 
+  @spec compile_env([term]) :: [term]
+  def compile_env(compile_env) do
+    update_stack(fn
+      [h | t] -> {h.compile_env, [%{h | compile_env: compile_env} | t]}
+      [] -> {:unset, []}
+    end)
+  end
+
   @spec prepend_after_compiler(atom, fun) :: :ok
   def prepend_after_compiler(name, fun) do
     update_stack(fn
@@ -203,7 +211,8 @@ defmodule Mix.ProjectStack do
           config_apps: [],
           config_files: [file] ++ peek_config_files(config[:inherit_parent_config_files], stack),
           config_mtime: nil,
-          after_compiler: %{}
+          after_compiler: %{},
+          compile_env: :unset
         }
 
         {:ok, {[project | stack], []}}

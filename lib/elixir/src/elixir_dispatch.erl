@@ -16,7 +16,7 @@ default_functions() ->
 default_macros() ->
   [{?kernel, elixir_imported_macros()}].
 default_requires() ->
-  ['Elixir.Kernel', 'Elixir.Kernel.Typespec'].
+  ['Elixir.Application', 'Elixir.Kernel', 'Elixir.Kernel.Typespec'].
 
 %% This is used by elixir_quote. Note we don't record the
 %% import locally because at that point there is no

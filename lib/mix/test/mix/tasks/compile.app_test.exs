@@ -8,7 +8,7 @@ defmodule Mix.Tasks.Compile.AppTest do
       [
         app: :custom_project,
         version: "0.2.0",
-        description: "Some UTF-8 description (uma descrição em UTF-8)"
+        description: "Some UTF-8 dëscriptión"
       ]
     end
 
@@ -68,8 +68,35 @@ defmodule Mix.Tasks.Compile.AppTest do
       assert properties[:vsn] == '0.1.0'
       assert properties[:modules] == [A, B]
       assert properties[:applications] == [:kernel, :stdlib, :elixir]
+      refute Keyword.has_key?(properties, :compile_env)
 
       assert Mix.Tasks.Compile.App.run([]) == {:noop, []}
+    end)
+  end
+
+  test "generates .app file with compile_env" do
+    Mix.Project.push(MixTest.Case.Sample)
+
+    in_fixture("no_mixfile", fn ->
+      Mix.ProjectStack.compile_env([{:app, :key, :error}])
+      assert Mix.Tasks.Compile.App.run([]) == {:ok, []}
+      assert parse_resource_file(:sample)[:compile_env] == [{:app, :key, :error}]
+
+      # No-op with untouched unset compile_env
+      assert Mix.Tasks.Compile.App.run([]) == {:noop, []}
+
+      # No-op with same compile_env
+      Mix.ProjectStack.compile_env([{:app, :key, :error}])
+      assert Mix.Tasks.Compile.App.run([]) == {:noop, []}
+
+      # Recompiles with new compile_env
+      Mix.ProjectStack.compile_env([{:app, :another, :error}])
+      assert Mix.Tasks.Compile.App.run([]) == {:ok, []}
+      assert parse_resource_file(:sample)[:compile_env] == [{:app, :another, :error}]
+
+      # Keeps compile_env if forcing
+      assert Mix.Tasks.Compile.App.run(["--force"]) == {:ok, []}
+      assert parse_resource_file(:sample)[:compile_env] == [{:app, :another, :error}]
     end)
   end
 
@@ -84,12 +111,12 @@ defmodule Mix.Tasks.Compile.AppTest do
       assert properties[:vsn] == '0.2.0'
       assert properties[:maxT] == :infinity
       assert properties[:applications] == [:kernel, :stdlib, :elixir, :logger, :example_app]
-      assert properties[:description] == 'Some UTF-8 description (uma descrição em UTF-8)'
+      assert properties[:description] == 'Some UTF-8 dëscriptión'
       refute Keyword.has_key?(properties, :extra_applications)
     end)
   end
 
-  test "automatically infers applications" do
+  test "infers applications" do
     Mix.Project.push(CustomDeps)
 
     in_fixture("no_mixfile", fn ->
@@ -103,7 +130,7 @@ defmodule Mix.Tasks.Compile.AppTest do
     end)
   end
 
-  test "application properties validation" do
+  test "validates properties" do
     Mix.Project.push(InvalidProject)
 
     in_fixture("no_mixfile", fn ->
@@ -214,7 +241,7 @@ defmodule Mix.Tasks.Compile.AppTest do
     end)
   end
 
-  test "raise on invalid version" do
+  test "raises on invalid version" do
     Mix.Project.push(InvalidVsnProject)
 
     in_fixture("no_mixfile", fn ->

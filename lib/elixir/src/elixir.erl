@@ -204,6 +204,11 @@ env_for_eval(Env, Opts) ->
     false -> nil
   end,
 
+  Tracers = case lists:keyfind(tracers, 1, Opts) of
+    {tracers, TracersOpt} when is_list(TracersOpt) -> TracersOpt;
+    false -> []
+  end,
+
   LexicalTracker = case lists:keyfind(lexical_tracker, 1, Opts) of
     {lexical_tracker, Pid} when is_pid(Pid) ->
       case is_process_alive(Pid) of
@@ -223,7 +228,7 @@ env_for_eval(Env, Opts) ->
   end,
 
   Env#{
-    file := File, module := Module, function := FA,
+    file := File, module := Module, function := FA, tracers := Tracers,
     macros := Macros, functions := Functions, lexical_tracker := LexicalTracker,
     requires := Requires, aliases := Aliases, line := Line
   }.
