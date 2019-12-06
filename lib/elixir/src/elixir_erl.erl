@@ -146,8 +146,9 @@ spawned_compile(Map, Set, _Bag, TranslatedTypespecs) ->
 
   #{module := Module, line := Line} = Map,
   DocsChunk = docs_chunk(Set, Module, Line, Def, Defmacro, Types, Callbacks),
+  CheckerChunk = checker_chunk(Map),
 
-  load_form(Map, Prefix, Forms, TypeSpecs, DocsChunk).
+  load_form(Map, Prefix, Forms, TypeSpecs, DocsChunk ++ CheckerChunk).
 
 dynamic_form(#{module := Module, line := Line, relative_file := RelativeFile,
                attributes := Attributes, definitions := Definitions, unreachable := Unreachable,
@@ -547,6 +548,33 @@ signature_to_binary(Module, '__struct__', []) ->
 
 signature_to_binary(_, Name, Signature) ->
   'Elixir.Macro':to_string({Name, [], Signature}).
+
+checker_chunk(#{definitions := Definitions, deprecated := Deprecated, compile_opts := CompileOpts}) ->
+  DeprecatedMap = maps:from_list(Deprecated),
+
+  Exports =
+    lists:foldl(fun({Function, Kind, _Meta, _Clauses}, Acc) ->
+      case Kind of
+        _ when Kind == def orelse Kind == defmacro ->
+          Reason = maps:get(Function, DeprecatedMap, nil),
+          [{Function, #{kind => Kind, deprecated_reason => Reason}} | Acc];
+        _ ->
+          Acc
+      end
+    end, [], Definitions),
+
+  Contents = #{
+    exports => lists:sort(Exports),
+    no_warn_undefined => no_warn_undefined(CompileOpts)
+  },
+
+  [{<<"ExCk">>, erlang:term_to_binary({elixir_checker_v1, Contents})}].
+
+no_warn_undefined(CompileOpts) ->
+  [Value || {no_warn_undefined, Values} <- CompileOpts, Value <- list_wrap(Values)].
+
+list_wrap(List) when is_list(List) -> List;
+list_wrap(Other) -> [Other].
 
 %% Errors
 

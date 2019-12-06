@@ -10,8 +10,7 @@ defmodule Module.ParallelChecker do
   the modules and adds the ExCk chunk to the binaries. Returns the updated
   binaries and a list of warnings from the verification.
   """
-  @spec verify([{%{}, binary()}], [{module(), binary()}], pos_integer()) ::
-          {[{module(), binary()}], [warning()]}
+  @spec verify([{map(), binary()}], [{module(), binary()}], pos_integer()) :: [warning()]
   def verify(compiled_modules, runtime_binaries, schedulers \\ nil) do
     compiled_maps = Enum.map(compiled_modules, fn {map, _binary} -> {map.module, map} end)
     check_modules = compiled_maps ++ runtime_binaries
@@ -21,34 +20,18 @@ defmodule Module.ParallelChecker do
     preload_cache(get_ets(server), check_modules)
     start(server)
 
-    compiled_binaries = Enum.map(compiled_modules, fn {map, binary} -> {map.module, binary} end)
-    old_binaries = Map.new(compiled_binaries ++ runtime_binaries)
-    collect_results(old_binaries, [], [])
+    collect_results(length(check_modules), [])
   end
 
-  defp collect_results(old_binaries, binaries, warnings) when map_size(old_binaries) == 0 do
-    {binaries, warnings}
+  defp collect_results(0, warnings) do
+    warnings
   end
 
-  defp collect_results(old_binaries, binaries, warnings) do
+  defp collect_results(count, warnings) do
     receive do
-      {__MODULE__, module, chunk, new_warnings} ->
-        {binary, old_binaries} = Map.pop(old_binaries, module)
-        binaries = [{module, add_chunk(chunk, binary)} | binaries]
-
-        warnings = new_warnings ++ warnings
-        collect_results(old_binaries, binaries, warnings)
+      {__MODULE__, _module, new_warnings} ->
+        collect_results(count - 1, new_warnings ++ warnings)
     end
-  end
-
-  defp add_chunk(nil, binary) do
-    binary
-  end
-
-  defp add_chunk(chunk, binary) do
-    {:ok, _module, chunks} = :beam_lib.all_chunks(binary)
-    {:ok, binary} = :beam_lib.build_module([chunk | :lists.keydelete('ExCk', 1, chunks)])
-    binary
   end
 
   @doc """
@@ -96,21 +79,6 @@ defmodule Module.ParallelChecker do
     exports
     |> Enum.map(fn {function, _kind} -> function end)
     |> Enum.sort()
-  end
-
-  @doc """
-  Collects all exported functions and macros from the module definition ASTs.
-  """
-  @spec definitions_to_exports([{atom(), arity(), term(), term()}]) ::
-          [{{atom(), arity()}, kind()}]
-  def definitions_to_exports(definitions) do
-    Enum.flat_map(definitions, fn {function, kind, _meta, _clauses} ->
-      if kind in [:def, :defmacro] do
-        [{function, kind}]
-      else
-        []
-      end
-    end)
   end
 
   def init([modules, send_results, schedulers]) do
@@ -208,8 +176,8 @@ defmodule Module.ParallelChecker do
     send_results_pid = state.send_results
 
     spawn_link(fn ->
-      {chunk, warnings} = Module.Checker.verify(verify, {parent, ets})
-      send(send_results_pid, {__MODULE__, module, chunk, warnings})
+      warnings = Module.Checker.verify(verify, {parent, ets})
+      send(send_results_pid, {__MODULE__, module, warnings})
       send(parent, {__MODULE__, :done})
     end)
 
@@ -298,5 +266,15 @@ defmodule Module.ParallelChecker do
 
     :ets.insert(ets, {{:all_exports, module}, exports})
     :ets.insert(ets, {{:cached, module}, true})
+  end
+
+  defp definitions_to_exports(definitions) do
+    Enum.flat_map(definitions, fn {function, kind, _meta, _clauses} ->
+      if kind in [:def, :defmacro] do
+        [{function, kind}]
+      else
+        []
+      end
+    end)
   end
 end

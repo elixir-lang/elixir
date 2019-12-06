@@ -156,7 +156,7 @@ defmodule Module.CheckerTest do
       assert_warnings(files, warning)
     end
 
-    test " reports missing functions respecting arity" do
+    test "reports missing functions respecting arity" do
       files = %{
         "a.ex" => """
         defmodule A do
