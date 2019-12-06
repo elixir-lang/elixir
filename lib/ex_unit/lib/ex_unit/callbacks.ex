@@ -6,11 +6,13 @@ defmodule ExUnit.Callbacks do
   `setup_all/2` callbacks, as well as the `on_exit/2`, `start_supervised/2`
   and `stop_supervised/1` functions.
 
-  The setup callbacks are defined via macros and each one can
-  optionally receive a map with test state and metadata, usually
-  referred to as `context`. The context to be used in the tests can be
-  optionally extended by the setup callbacks by returning a properly
-  structured value (see below).
+  The setup callbacks are used to define implicit
+  [test fixtures](https://en.wikipedia.org/wiki/Test_fixture#Software),
+  which help bring the system into a known state.
+  They are defined via macros and each one can optionally receive a map
+  with test state and metadata, usually referred to as the `context`.
+  Optionally, the context to be used in the tests can be extended by the
+  setup callbacks by returning a properly structured value (see below).
 
   The `setup_all` callbacks are invoked only once per module, before any
   test is run. All `setup` callbacks are run before each test. No callback
@@ -118,6 +120,38 @@ defmodule ExUnit.Callbacks do
         end
       end
 
+
+      # This demonstrates how you can iteratively modify the context metadata:
+      defmodule ExampleContextTest do
+        use ExUnit.Case
+
+        setup_all [:mod1, :mod2, :mod3]
+
+
+        defp mod1(_context), do: [step_one: true]
+        defp mod2(_context), do: {:ok, [step_two: true]} # return values with shape of {:ok, keyword() | map()} allowed
+        defp mod3(_context), do: :ok  # Context not modified
+
+        test "context was modified", context do
+          assert true == context[:step_one]
+          assert true == context[:step_two]
+        end
+      end
+
+      # Context metadata may also be modified via a @tag
+      defmodule ExampleTagModificationTest do
+        use ExUnit.Case
+
+        setup %{login_as: username} do
+          {:ok, current_user: username}
+        end
+
+        @tag login_as: "max"
+        test "tags modify context", context do
+          assert "max" == context[:login_as]
+          assert "max" == context[:current_user]
+        end
+      end
   """
 
   @doc false
@@ -223,6 +257,43 @@ defmodule ExUnit.Callbacks do
       # one-arity function name
       setup_all :clean_up_tmp_directory
 
+
+    # It is useful for function statements to receive the output of the setup_all block
+    defmodule ExampleATest do
+      use ExUnit.Case
+
+      setup_all do
+        %{is_a_map: true}
+      end
+
+      test "this function receives the output of the setup_all callback", value do
+        assert true == value[:is_a_map]
+      end
+    end
+
+    defmodule ExampleBTest do
+      use ExUnit.Case
+
+      setup_all do
+        [keyword: true]
+      end
+
+      test "keyword lists are also allowed", value do
+        assert true == value[:keyword]
+      end
+    end
+
+    defmodule ExampleCTest do
+      use ExUnit.Case
+
+      setup_all do
+        {:ok, %{is_a_map: true}}
+      end
+
+      test "remember that if an :ok tuple is returned, tests only receive the value", value do
+        assert true == value[:is_a_map]
+      end
+    end
   """
   defmacro setup_all(block) do
     if Keyword.keyword?(block) do
