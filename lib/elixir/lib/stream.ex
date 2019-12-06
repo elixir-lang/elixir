@@ -1417,22 +1417,20 @@ defmodule Stream do
 
   defp do_resource(next_acc, next_fun, {:cont, acc}, fun, after_fun) do
     try do
-      # Optimize the most common cases
-      case next_fun.(next_acc) do
-        {[], next_acc} -> {:opt, {:cont, acc}, next_acc}
-        {[v], next_acc} -> {:opt, fun.(v, acc), next_acc}
-        {_, _} = other -> other
-      end
+      next_fun.(next_acc)
     catch
       kind, reason ->
         after_fun.(next_acc)
         :erlang.raise(kind, reason, __STACKTRACE__)
     else
-      {:opt, acc, next_acc} ->
-        do_resource(next_acc, next_fun, acc, fun, after_fun)
-
       {:halt, next_acc} ->
         do_resource(next_acc, next_fun, {:halt, acc}, fun, after_fun)
+
+      {[], next_acc} ->
+        do_resource(next_acc, next_fun, {:cont, acc}, fun, after_fun)
+
+      {[v], next_acc} ->
+        do_element_resource(next_acc, next_fun, acc, fun, after_fun, v)
 
       {list, next_acc} when is_list(list) ->
         reduce = &Enumerable.List.reduce(list, &1, fun)
@@ -1442,6 +1440,19 @@ defmodule Stream do
         inner = &do_resource_each(&1, &2, fun)
         reduce = &Enumerable.reduce(enum, &1, inner)
         do_enum_resource(next_acc, next_fun, {:cont, acc}, fun, after_fun, reduce)
+    end
+  end
+
+  defp do_element_resource(next_acc, next_fun, acc, fun, after_fun, v) do
+    try do
+      fun.(v, acc)
+    catch
+      kind, reason ->
+        after_fun.(next_acc)
+        :erlang.raise(kind, reason, __STACKTRACE__)
+    else
+      acc ->
+        do_resource(next_acc, next_fun, acc, fun, after_fun)
     end
   end
 

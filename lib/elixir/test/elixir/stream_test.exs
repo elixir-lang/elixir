@@ -684,6 +684,48 @@ defmodule StreamTest do
     assert Process.get(:stream_resource)
   end
 
+  test "resource/3 closes with correct accumulator on outer errors with inner single-element list" do
+    stream =
+      Stream.resource(
+        fn -> :start end,
+        fn _ -> {[:error], :end} end,
+        fn acc -> Process.put(:stream_resource, acc) end
+      )
+      |> Stream.map(fn :error -> throw(:error) end)
+
+    Process.put(:stream_resource, nil)
+    assert catch_throw(Enum.to_list(stream)) == :error
+    assert Process.get(:stream_resource) == :end
+  end
+
+  test "resource/3 closes with correct accumulator on outer errors with inner list" do
+    stream =
+      Stream.resource(
+        fn -> :start end,
+        fn _ -> {[:ok, :error], :end} end,
+        fn acc -> Process.put(:stream_resource, acc) end
+      )
+      |> Stream.map(fn acc -> if acc == :error, do: throw(:error), else: acc end)
+
+    Process.put(:stream_resource, nil)
+    assert catch_throw(Enum.to_list(stream)) == :error
+    assert Process.get(:stream_resource) == :end
+  end
+
+  test "resource/3 closes with correct accumulator on outer errors with inner enum" do
+    stream =
+      Stream.resource(
+        fn -> 1 end,
+        fn acc -> {acc..(acc + 2), acc + 1} end,
+        fn acc -> Process.put(:stream_resource, acc) end
+      )
+      |> Stream.map(fn x -> if x > 2, do: throw(:error), else: x end)
+
+    Process.put(:stream_resource, nil)
+    assert catch_throw(Enum.to_list(stream)) == :error
+    assert Process.get(:stream_resource) == 2
+  end
+
   test "resource/3 is zippable" do
     transform_fun = fn
       10 -> {:halt, 10}
@@ -697,6 +739,13 @@ defmodule StreamTest do
     Process.put(:stream_resource, false)
     assert Enum.zip(list, list) == Enum.zip(stream, stream)
     assert Process.get(:stream_resource)
+  end
+
+  test "resource/3 returning inner empty list" do
+    transform_fun = fn acc -> if rem(acc, 2) == 0, do: {[], acc + 1}, else: {[acc], acc + 1} end
+    stream = Stream.resource(fn -> 1 end, transform_fun, fn _ -> :ok end)
+
+    assert Enum.take(stream, 5) == [1, 3, 5, 7, 9]
   end
 
   test "resource/3 halts with inner list" do
