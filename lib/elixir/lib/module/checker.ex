@@ -7,9 +7,9 @@ defmodule Module.Checker do
     case prepare_module(module) do
       {:ok, map} ->
         undefined_and_deprecation_warnings = undefined_and_deprecation_warnings(map, cache)
-        {types, infer_warnings} = infer_definitions(map)
+        infer_warnings = infer_definitions(map)
         warnings = infer_warnings ++ undefined_and_deprecation_warnings
-        {build_chunk(map, types), emit_warnings(warnings)}
+        {build_chunk(map), emit_warnings(warnings)}
 
       :error ->
         {nil, []}
@@ -69,16 +69,14 @@ defmodule Module.Checker do
     end
   end
 
-  defp build_chunk(map, types) do
+  defp build_chunk(map) do
     exports = ParallelChecker.definitions_to_exports(map.definitions)
     deprecated = Map.new(map.deprecated)
-    types = Map.new(types)
 
     exports =
       Enum.map(exports, fn {function, kind} ->
         deprecated_reason = Map.get(deprecated, function)
-        type = Map.get(types, function)
-        {function, %{kind: kind, deprecated_reason: deprecated_reason, type: type}}
+        {function, %{kind: kind, deprecated_reason: deprecated_reason}}
       end)
 
     contents = %{
@@ -91,14 +89,7 @@ defmodule Module.Checker do
 
   defp infer_definitions(map) do
     results = Module.Types.infer_definitions(map.file, map.module, map.definitions)
-
-    Enum.reduce(results, {[], []}, fn
-      {function, {:ok, signature}}, {signatures, warnings} ->
-        {[{function, signature} | signatures], warnings}
-
-      {_function, {:error, reasons}}, {signatures, warnings} ->
-        {signatures, reasons ++ warnings}
-    end)
+    Enum.flat_map(results, fn {_function, reasons} -> reasons end)
   end
 
   defp undefined_and_deprecation_warnings(map, cache) do

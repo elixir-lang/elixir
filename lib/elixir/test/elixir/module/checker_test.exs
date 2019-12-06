@@ -30,9 +30,9 @@ defmodule Module.CheckerTest do
       contents = read_chunk(modules[A])
 
       assert contents.exports == [
-               {{:c, 0}, %{deprecated_reason: nil, kind: :def, type: [[]]}},
-               {{:d, 0}, %{deprecated_reason: nil, kind: :defmacro, type: [[]]}},
-               {{:e, 0}, %{deprecated_reason: "oops", kind: :def, type: [[]]}}
+               {{:c, 0}, %{deprecated_reason: nil, kind: :def}},
+               {{:d, 0}, %{deprecated_reason: nil, kind: :defmacro}},
+               {{:e, 0}, %{deprecated_reason: "oops", kind: :def}}
              ]
     end
   end
