@@ -454,18 +454,38 @@ defmodule URI do
 
   def parse(string) when is_binary(string) do
     # From https://tools.ietf.org/html/rfc3986#appendix-B
+    # Parts:    12                        3  4          5       6  7        8 9
     regex = ~r{^(([a-z][a-z0-9\+\-\.]*):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?}i
 
     parts = Regex.run(regex, string)
 
-    destructure [_, _, scheme, _, authority, path, query_with_question_mark, _, _, fragment],
+    destructure [
+                  _full,
+                  # 1
+                  _scheme_with_colon,
+                  # 2
+                  scheme,
+                  # 3
+                  authority_with_slashes,
+                  # 4
+                  _authority,
+                  # 5
+                  path,
+                  # 6
+                  query_with_question_mark,
+                  # 7
+                  _query,
+                  # 8
+                  _fragment_with_hash,
+                  # 9
+                  fragment
+                ],
                 parts
 
     scheme = nillify(scheme)
-    authority = nillify(authority)
     path = nillify(path)
     query = nillify_query(query_with_question_mark)
-    {userinfo, host, port} = split_authority(authority)
+    {authority, userinfo, host, port} = split_authority(authority_with_slashes)
 
     scheme = scheme && String.downcase(scheme)
     port = port || (scheme && default_port(scheme))
@@ -486,16 +506,24 @@ defmodule URI do
   defp nillify_query(_other), do: nil
 
   # Split an authority into its userinfo, host and port parts.
-  defp split_authority(string) do
+  defp split_authority("") do
+    {nil, nil, nil, nil}
+  end
+
+  defp split_authority("//") do
+    {"", nil, "", nil}
+  end
+
+  defp split_authority("//" <> authority) do
     regex = ~r/(^(.*)@)?(\[[a-zA-Z0-9:.]*\]|[^:]*)(:(\d*))?/
-    components = Regex.run(regex, string || "")
+    components = Regex.run(regex, authority)
 
     destructure [_, _, userinfo, host, _, port], components
     userinfo = nillify(userinfo)
     host = if nillify(host), do: host |> String.trim_leading("[") |> String.trim_trailing("]")
     port = if nillify(port), do: String.to_integer(port)
 
-    {userinfo, host, port}
+    {authority, userinfo, host, port}
   end
 
   # Regex.run returns empty strings sometimes. We want
