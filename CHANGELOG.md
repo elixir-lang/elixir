@@ -8,10 +8,13 @@ Elixir v1.10 requires Erlang/OTP 21+.
 
 #### Elixir
 
+  * [Application] Add `Application.compile_env/3` and `Application.compile_env!/2` for reading values at compilation time and tracking if they accidentally change during runtime
   * [Calendar] Allow custom calendar representations in calendar sigils
   * [Calendar] Add `c:Calendar.parse_time/1`, `c:Calendar.parse_date/1`, `c:Calendar.parse_naive_datetime/1` and `c:Calendar.parse_utc_datetime/1` callbacks to calendar behaviour
+  * [CLI] Add support for `NO_COLOR` environment variable
   * [Code] Add `:token_metadata` and `:literal_encoder` support to `Code.string_to_quoted/2`
   * [Code] Add compiler tracing to lift events done by the compiler
+  * [Code] Return `{:error, :unavalable}` in `Code.ensure_compiled/1` if module is in a deadlock
   * [DateTime] Add `DateTime.now!/2` and `DateTime.shift_zone!/3`
   * [Enum] Speed up getting one random element from enumerables
   * [Enum] Add `Enum.frequencies/1`, `Enum.frequencies_by/2`, and `Enum.map_intersperse/2`
@@ -19,14 +22,16 @@ Elixir v1.10 requires Erlang/OTP 21+.
   * [Enum] Add `asc/desc` and `compare/1` support to `Enum.sort/2`
   * [Exception] Add version alongside app names in stacktraces
   * [Function] Add `Function.identity/1`
-  * [Kernel] Add `Kernel.is_struct/1`
+  * [Kernel] Add `Kernel.is_struct/1` and `Kernel.is_map_key/2`
   * [Kernel] Warn when function head comes immediately after the implementation instead of before the implementation
   * [Kernel] Warn if duplicate key is found in struct declaration
+  * [Kernel] Print all undefined functions as warnings and then raise. This allows users to see all undefined calls at once, when it would otherwise require them to compile the code multiple times
   * [Keyword] Add `Keyword.pop!/2` and `Keyword.pop_values/2`
   * [Map] Add `Map.pop!/2`
   * [MapSet] Optimize multiple operations
   * [Module] Add `Module.has_attribute?/2`
   * [Module] Add `@compile {:no_warn_undefined, mfa_or_module}` to turn off undefined function warnings
+  * [NaiveDateTime] Add `NaiveDateTime.local_now/0`
   * [Record] Warn if duplicate key is found in record declaration
   * [String] Update to Unicode 12.1
   * [StringIO] Add `:encoding` option to StringIO and optimize `get_chars` operation
@@ -43,8 +48,10 @@ Elixir v1.10 requires Erlang/OTP 21+.
 
 #### Mix
 
+  * [mix compile] Add `--profile time` flag to profile compilation steps
   * [mix deps.compile] Add `--skip-umbrella-apps` flag. The new flag does not compile umbrella apps. This is useful for building caches in CD/CI pipelines
   * [mix deps.unlock] Add `--check-unused` flag. The new flag raises if there are any unused dependencies in the lock file
+  * [mix release] Allow `RELEASE_DISTRIBUTION` to be set to `none`
   * [mix test] Add support for simple round-robin test partitioning across multiple machines
   * [Mix.Project] Add `MIX_DEPS_PATH` environment variable for setting `:deps_path`
   * [Mix.Project] Add `Mix.Project.deps_scms/1` that returns deps with their SCMs
@@ -61,6 +68,8 @@ Elixir v1.10 requires Erlang/OTP 21+.
   * [Kernel] Raise error on functions/guards without implementation
   * [Keyword] Ensure keyword replace and update preserve order
   * [Module] Raise instead of silently failing when performing a write module operation during after-compile
+  * [Stream] Close with correct accumulator in `Stream.resource/3` when called for a single-element list
+  * [URI] Preserve slashes in URIs without authority
 
 #### IEx
 
@@ -69,6 +78,8 @@ Elixir v1.10 requires Erlang/OTP 21+.
 
 #### Mix
 
+  * [mix compile] Do not filter out warning for external files from diagnostics
+  * [Mix.Project] Ensure user given `:manager` to dependencies has higher precedence than the SCM one
   * [Mix.Project] Make sure `MIX_BUILD_PATH` specifies only the `build_path` prefix and that env+target are still concatenated
   * [Mix.Project] Recompile umbrella children when config files change and `mix compile` is called from the umbrella root
   * [Mix.Task] Always recompile before running tasks from dependencies
