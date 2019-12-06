@@ -381,7 +381,7 @@ defmodule Mix.Tasks.ReleaseTest do
         root = Path.absname("_build/dev/rel/compile_env_config")
         Mix.Task.run("release", ["compile_env_config"])
 
-        assert {output, 1} =
+        assert {output, _} =
                  System.cmd(Path.join(root, "bin/compile_env_config"), ["start"],
                    stderr_to_stdout: true,
                    env: [{"RELEASE_STATIC", "runtime"}]
