@@ -355,32 +355,34 @@ defmodule Kernel.ParallelCompiler do
   defp each_cycle_return(other), do: other
 
   defp write_and_verify_modules(result, warnings, dependent_modules, state) do
-    %{output: output, beam_timestamp: beam_timestamp} = state
-
-    {binaries, checker_warnings} = maybe_check_modules(result, dependent_modules, state)
-    write_module_binaries(output, beam_timestamp, binaries)
+    modules = write_module_binaries(result, state)
+    checker_warnings = maybe_check_modules(result, dependent_modules, state)
     warnings = Enum.reverse(warnings, checker_warnings)
-    {:ok, Enum.map(binaries, &elem(&1, 0)), warnings}
+    {:ok, modules, warnings}
   end
 
-  defp write_module_binaries({:compile, path}, timestamp, result) do
-    Enum.each(result, fn {module, binary} ->
-      full_path = Path.join(path, Atom.to_string(module) <> ".beam")
-      File.write!(full_path, binary)
-      if timestamp, do: File.touch!(full_path, timestamp)
+  defp write_module_binaries(result, %{output: {:compile, path}, beam_timestamp: timestamp}) do
+    Enum.flat_map(result, fn
+      {{:module, module}, {binary, _map}} ->
+        full_path = Path.join(path, Atom.to_string(module) <> ".beam")
+        File.write!(full_path, binary)
+        if timestamp, do: File.touch!(full_path, timestamp)
+        [module]
+
+      _ ->
+        []
     end)
   end
 
-  defp write_module_binaries(_output, _timestamp, _result) do
-    :ok
+  defp write_module_binaries(result, _state) do
+    for {{:module, module}, _} <- result, do: module
   end
 
   defp maybe_check_modules(result, runtime_modules, state) do
     %{schedulers: schedulers, profile: profile} = state
 
     if :elixir_config.get(:bootstrap) do
-      binaries = for {{:module, module}, {binary, _map}} <- result, do: {module, binary}
-      {binaries, []}
+      []
     else
       compiled_modules = checker_compiled_modules(result)
       runtime_modules = checker_runtime_modules(runtime_modules)
