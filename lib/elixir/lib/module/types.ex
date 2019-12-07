@@ -8,8 +8,8 @@ defmodule Module.Types do
   Infer function definitions' types.
   """
   def infer_definitions(file, module, defs) do
-    signatures_and_bodies = infer_signatures(file, module, defs)
-    infer_bodies(signatures_and_bodies)
+    clauses = infer_signatures(file, module, defs)
+    infer_bodies(clauses)
   end
 
   defp infer_signatures(file, module, defs) do
@@ -17,50 +17,39 @@ defmodule Module.Types do
       stack = head_stack()
       context = head_context(file, module, function)
 
-      signature_and_body =
+      clauses =
         Enum.map(clauses, fn {_meta, params, guards, body} ->
           def_expr = {kind, meta, [guards_to_expr(guards, {fun, [], params})]}
           stack = push_expr_stack(def_expr, stack)
 
           case of_head(params, guards, stack, context) do
-            {:ok, signature, context} -> {:ok, {signature, context, body}}
+            {:ok, _signature, context} -> {:ok, {context, body}}
             {:error, reason} -> {:error, reason}
           end
         end)
 
-      {function, oks_or_errors(signature_and_body)}
+      {function, clauses}
     end)
   end
 
-  defp infer_bodies(signatures_and_bodies) do
-    signatures =
-      Enum.flat_map(signatures_and_bodies, fn
-        {function, {:ok, clauses}} ->
-          signatures = Enum.map(clauses, fn {signature, _context, _body} -> signature end)
-          [{function, signatures}]
-
-        {_function, {:error, _reason}} ->
-          []
-      end)
-      |> Map.new()
-
-    Enum.map(signatures_and_bodies, fn
-      {function, {:ok, clauses}} ->
-        signatures =
-          Enum.map(clauses, fn {signature, head_context, body} ->
+  defp infer_bodies(clauses) do
+    Enum.map(clauses, fn {function, clauses} ->
+      errors =
+        Enum.flat_map(clauses, fn
+          {:ok, {head_context, body}} ->
             stack = body_stack()
-            context = body_context(head_context, signatures)
+            context = body_context(head_context)
 
             case Expr.of_expr(body, stack, context) do
-              {:ok, _type, _context} -> {:ok, signature}
-              {:error, reason} -> {:error, reason}
+              {:ok, _type, _context} -> []
+              {:error, reason} -> [reason]
             end
-          end)
 
-        {function, oks_or_errors(signatures)}
+          {:error, reason} ->
+            [reason]
+        end)
 
-      {function, {:error, reason}} ->
-        {function, {:error, reason}}
+      {function, errors}
     end)
   end
 
@@ -121,7 +110,7 @@ defmodule Module.Types do
   end
 
   @doc false
-  def body_context(head_context, signatures) do
+  def body_context(head_context) do
     %{
       # File of module
       file: head_context.file,
@@ -139,9 +128,7 @@ defmodule Module.Types do
       # including the type they were refined to, why, and where
       traces: head_context.traces,
       # Counter to give type variables unique names
-      counter: head_context.counter,
-      # Local function signatures from the current module
-      local_funs: signatures
+      counter: head_context.counter
     }
   end
 

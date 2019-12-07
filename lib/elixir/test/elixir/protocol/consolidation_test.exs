@@ -117,7 +117,7 @@ defmodule Protocol.ConsolidationTest do
 
     {:ok, {Sample, [{'ExCk', check_bin}]}} = :beam_lib.chunks(@sample_binary, ['ExCk'])
     assert {:elixir_checker_v1, contents} = :erlang.binary_to_term(check_bin)
-    export_info = %{deprecated_reason: "Reason", kind: :def, type: [[var: 0]]}
+    export_info = %{deprecated_reason: "Reason", kind: :def}
     assert {{:ok, 1}, export_info} in contents.exports
   end
 

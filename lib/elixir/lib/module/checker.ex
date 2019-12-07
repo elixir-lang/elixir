@@ -7,12 +7,12 @@ defmodule Module.Checker do
     case prepare_module(module) do
       {:ok, map} ->
         undefined_and_deprecation_warnings = undefined_and_deprecation_warnings(map, cache)
-        {types, infer_warnings} = infer_definitions(map)
+        infer_warnings = infer_definitions(map)
         warnings = infer_warnings ++ undefined_and_deprecation_warnings
-        {build_chunk(map, types), emit_warnings(warnings)}
+        emit_warnings(warnings)
 
       :error ->
-        {nil, []}
+        []
     end
   end
 
@@ -21,9 +21,9 @@ defmodule Module.Checker do
      %{
        module: module,
        file: module_map.file,
-       no_warn_undefined: no_warn_undefined(module_map.compile_opts),
        definitions: module_map.definitions,
-       deprecated: module_map.deprecated
+       deprecated: module_map.deprecated,
+       no_warn_undefined: no_warn_undefined(module_map.compile_opts)
      }}
   end
 
@@ -33,8 +33,8 @@ defmodule Module.Checker do
       {:ok,
        %{
          module: module,
-         definitions: debug_info.definitions,
          file: debug_info.file,
+         definitions: debug_info.definitions,
          deprecated: checker_info.deprecated,
          no_warn_undefined: checker_info.no_warn_undefined
        }}
@@ -69,36 +69,9 @@ defmodule Module.Checker do
     end
   end
 
-  defp build_chunk(map, types) do
-    exports = ParallelChecker.definitions_to_exports(map.definitions)
-    deprecated = Map.new(map.deprecated)
-    types = Map.new(types)
-
-    exports =
-      Enum.map(exports, fn {function, kind} ->
-        deprecated_reason = Map.get(deprecated, function)
-        type = Map.get(types, function)
-        {function, %{kind: kind, deprecated_reason: deprecated_reason, type: type}}
-      end)
-
-    contents = %{
-      exports: Enum.sort(exports),
-      no_warn_undefined: map.no_warn_undefined
-    }
-
-    {'ExCk', :erlang.term_to_binary({:elixir_checker_v1, contents})}
-  end
-
   defp infer_definitions(map) do
     results = Module.Types.infer_definitions(map.file, map.module, map.definitions)
-
-    Enum.reduce(results, {[], []}, fn
-      {function, {:ok, signature}}, {signatures, warnings} ->
-        {[{function, signature} | signatures], warnings}
-
-      {_function, {:error, reasons}}, {signatures, warnings} ->
-        {signatures, reasons ++ warnings}
-    end)
+    Enum.flat_map(results, fn {_function, reasons} -> reasons end)
   end
 
   defp undefined_and_deprecation_warnings(map, cache) do
