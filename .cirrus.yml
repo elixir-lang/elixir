@@ -117,10 +117,11 @@ test_windows_task:
   test_elixir_script: make --keep-going test_elixir
 
   check_reproducible_script:
-    CMD.exe /C ECHO OFF &
-    IF NOT DEFINED CHECK_REPRODUCIBLE (
-      ECHO The format reproducibility of the build is only checked in the last stable Erlang/OTP version.
-    ) ELSE (
-      make check_reproducible
-    )
+    - echo off
+    - cmd.exe /C echo off &
+      IF NOT DEFINED CHECK_REPRODUCIBLE (
+        echo "The format reproducibility of the build is only checked in the last stable Erlang/OTP version."
+      ) ELSE (
+        make check_reproducible
+      )
 
