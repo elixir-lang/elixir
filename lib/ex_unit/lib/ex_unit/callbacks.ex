@@ -251,7 +251,10 @@ defmodule ExUnit.Callbacks do
 
   ## Examples
 
-      def clean_up_tmp_directory(context) do
+      # one-arity function name
+      setup_all :clean_up_tmp_directory
+
+      def clean_up_tmp_directory(_context) do
         # perform setup
         :ok
       end
@@ -261,46 +264,16 @@ defmodule ExUnit.Callbacks do
         [conn: Plug.Conn.build_conn()]
       end
 
-      # one-arity function name
-      setup_all :clean_up_tmp_directory
+  `setup_all` can return a keyword list, a map, or a tuple in the shape
+  of `{:ok, keyword() | map()}`, the keyword list or map will be merged
+  into the current context and will be available in all subsequent `setup_all`,
+  `setup`, and the `test` itself. For instance, the `conn` from the previous
+  example can be accessed as:
 
-
-    # It is useful for function statements to receive the output of the setup_all block
-    defmodule ExampleATest do
-      use ExUnit.Case
-
-      setup_all do
-        %{is_a_map: true}
+      test "fetches current users", %{conn: conn} do
+        # ...
       end
 
-      test "this function receives the output of the setup_all callback", value do
-        assert true == value[:is_a_map]
-      end
-    end
-
-    defmodule ExampleBTest do
-      use ExUnit.Case
-
-      setup_all do
-        [keyword: true]
-      end
-
-      test "keyword lists are also allowed", value do
-        assert true == value[:keyword]
-      end
-    end
-
-    defmodule ExampleCTest do
-      use ExUnit.Case
-
-      setup_all do
-        {:ok, %{is_a_map: true}}
-      end
-
-      test "remember that if an :ok tuple is returned, tests only receive the value", value do
-        assert true == value[:is_a_map]
-      end
-    end
   """
   defmacro setup_all(block) do
     if Keyword.keyword?(block) do
