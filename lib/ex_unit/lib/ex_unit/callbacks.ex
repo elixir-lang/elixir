@@ -6,10 +6,9 @@ defmodule ExUnit.Callbacks do
   `setup_all/2` callbacks, as well as the `on_exit/2`, `start_supervised/2`
   and `stop_supervised/1` functions.
 
-  The setup callbacks are used to define implicit
-  [test fixtures](https://en.wikipedia.org/wiki/Test_fixture#Software),
-  which help bring the system into a known state.
-  They are defined via macros and each one can optionally receive a map
+  The setup callbacks may be used to define [test fixtures](https://en.wikipedia.org/wiki/Test_fixture#Software)
+  and run any initialization code which help bring the system into a known
+  state. They are defined via macros and each one can optionally receive a map
   with test state and metadata, usually referred to as the `context`.
   Optionally, the context to be used in the tests can be extended by the
   setup callbacks by returning a properly structured value (see below).
@@ -88,18 +87,21 @@ defmodule ExUnit.Callbacks do
             IO.puts("This is invoked once the test is done. Process: #{inspect(self())}")
           end)
 
-          # Returns extra metadata to be merged into context
+          # Returns extra metadata to be merged into context.
+          # Any of the following would also work:
+          #
+          #     {:ok, %{hello: "world"}}
+          #     {:ok, [hello: "world"]}
+          #     %{hello: "world"}
+          #
           [hello: "world"]
-
-          # Similarly, any of the following would work:
-          #   {:ok, [hello: "world"]}
-          #   %{hello: "world"}
-          #   {:ok, %{hello: "world"}}
         end
 
         # Same as above, but receives the context as argument
         setup context do
           IO.puts("Setting up: #{context.test}")
+          
+          # We can simply return :ok when we don't want add any extra metadata
           :ok
         end
 
@@ -120,25 +122,30 @@ defmodule ExUnit.Callbacks do
         end
       end
 
+  It is also common to define your setup as a series of functions,
+  which are put together by calling `setup` or `setup_all` with a
+  list of atoms. Each of these functions receive the context and can
+  return any of the values allowed in `setup` blocks:
 
-      # This demonstrates how you can iteratively modify the context metadata:
       defmodule ExampleContextTest do
         use ExUnit.Case
 
-        setup_all [:mod1, :mod2, :mod3]
+        setup [:step1, :step2, :step3]
 
-
-        defp mod1(_context), do: [step_one: true]
-        defp mod2(_context), do: {:ok, [step_two: true]} # return values with shape of {:ok, keyword() | map()} allowed
-        defp mod3(_context), do: :ok  # Context not modified
+        defp step1(_context), do: [step_one: true]
+        defp step2(_context), do: {:ok, step_two: true} # return values with shape of {:ok, keyword() | map()} allowed
+        defp step3(_context), do: :ok  # Context not modified
 
         test "context was modified", context do
-          assert true == context[:step_one]
-          assert true == context[:step_two]
+          assert context[:step_one] == true
+          assert context[:step_two] == true
         end
       end
 
-      # Context metadata may also be modified via a @tag
+  Finally, as discussed in the `ExUnit.Case` documentation, remember
+  that the initial context metadata can also be set via `@tag`s, which
+  can then be accessed in the `setup` block:
+
       defmodule ExampleTagModificationTest do
         use ExUnit.Case
 
@@ -148,8 +155,8 @@ defmodule ExUnit.Callbacks do
 
         @tag login_as: "max"
         test "tags modify context", context do
-          assert "max" == context[:login_as]
-          assert "max" == context[:current_user]
+          assert context[:login_as] == "max"
+          assert context[:current_user] == "max"
         end
       end
   """
