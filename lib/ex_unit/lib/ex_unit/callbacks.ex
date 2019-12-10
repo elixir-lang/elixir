@@ -6,11 +6,12 @@ defmodule ExUnit.Callbacks do
   `setup_all/2` callbacks, as well as the `on_exit/2`, `start_supervised/2`
   and `stop_supervised/1` functions.
 
-  The setup callbacks are defined via macros and each one can
-  optionally receive a map with test state and metadata, usually
-  referred to as `context`. The context to be used in the tests can be
-  optionally extended by the setup callbacks by returning a properly
-  structured value (see below).
+  The setup callbacks may be used to define [test fixtures](https://en.wikipedia.org/wiki/Test_fixture#Software)
+  and run any initialization code which help bring the system into a known
+  state. They are defined via macros and each one can optionally receive a map
+  with test state and metadata, usually referred to as the `context`.
+  Optionally, the context to be used in the tests can be extended by the
+  setup callbacks by returning a properly structured value (see below).
 
   The `setup_all` callbacks are invoked only once per module, before any
   test is run. All `setup` callbacks are run before each test. No callback
@@ -86,18 +87,21 @@ defmodule ExUnit.Callbacks do
             IO.puts("This is invoked once the test is done. Process: #{inspect(self())}")
           end)
 
-          # Returns extra metadata to be merged into context
+          # Returns extra metadata to be merged into context.
+          # Any of the following would also work:
+          #
+          #     {:ok, %{hello: "world"}}
+          #     {:ok, [hello: "world"]}
+          #     %{hello: "world"}
+          #
           [hello: "world"]
-
-          # Similarly, any of the following would work:
-          #   {:ok, [hello: "world"]}
-          #   %{hello: "world"}
-          #   {:ok, %{hello: "world"}}
         end
 
         # Same as above, but receives the context as argument
         setup context do
           IO.puts("Setting up: #{context.test}")
+          
+          # We can simply return :ok when we don't want add any extra metadata
           :ok
         end
 
@@ -118,6 +122,43 @@ defmodule ExUnit.Callbacks do
         end
       end
 
+  It is also common to define your setup as a series of functions,
+  which are put together by calling `setup` or `setup_all` with a
+  list of atoms. Each of these functions receive the context and can
+  return any of the values allowed in `setup` blocks:
+
+      defmodule ExampleContextTest do
+        use ExUnit.Case
+
+        setup [:step1, :step2, :step3]
+
+        defp step1(_context), do: [step_one: true]
+        defp step2(_context), do: {:ok, step_two: true} # return values with shape of {:ok, keyword() | map()} allowed
+        defp step3(_context), do: :ok  # Context not modified
+
+        test "context was modified", context do
+          assert context[:step_one] == true
+          assert context[:step_two] == true
+        end
+      end
+
+  Finally, as discussed in the `ExUnit.Case` documentation, remember
+  that the initial context metadata can also be set via `@tag`s, which
+  can then be accessed in the `setup` block:
+
+      defmodule ExampleTagModificationTest do
+        use ExUnit.Case
+
+        setup %{login_as: username} do
+          {:ok, current_user: username}
+        end
+
+        @tag login_as: "max"
+        test "tags modify context", context do
+          assert context[:login_as] == "max"
+          assert context[:current_user] == "max"
+        end
+      end
   """
 
   @doc false
@@ -210,7 +251,10 @@ defmodule ExUnit.Callbacks do
 
   ## Examples
 
-      def clean_up_tmp_directory(context) do
+      # one-arity function name
+      setup_all :clean_up_tmp_directory
+
+      def clean_up_tmp_directory(_context) do
         # perform setup
         :ok
       end
@@ -220,8 +264,15 @@ defmodule ExUnit.Callbacks do
         [conn: Plug.Conn.build_conn()]
       end
 
-      # one-arity function name
-      setup_all :clean_up_tmp_directory
+  `setup_all` can return a keyword list, a map, or a tuple in the shape
+  of `{:ok, keyword() | map()}`, the keyword list or map will be merged
+  into the current context and will be available in all subsequent `setup_all`,
+  `setup`, and the `test` itself. For instance, the `conn` from the previous
+  example can be accessed as:
+
+      test "fetches current users", %{conn: conn} do
+        # ...
+      end
 
   """
   defmacro setup_all(block) do
