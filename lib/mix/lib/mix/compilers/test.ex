@@ -210,7 +210,7 @@ defmodule Mix.Compilers.Test do
     end
   end
 
-  defp find_all_dependent_on(modules, sources, all_modules, resolved \\ MapSet.new()) do
+  defp find_all_dependent_on(modules, all_modules, sources, resolved \\ MapSet.new()) do
     new_modules =
       for module <- modules,
           module not in resolved,
@@ -221,13 +221,18 @@ defmodule Mix.Compilers.Test do
     if MapSet.size(new_modules) == MapSet.size(modules) do
       new_modules
     else
-      find_all_dependent_on(new_modules, sources, all_modules, modules)
+      find_all_dependent_on(new_modules, all_modules, sources, modules)
     end
   end
 
   defp dependent_modules(module, modules, sources) do
-    for CE.source(source: source, runtime_references: r, compile_references: c) <- sources,
-        module in r or module in c,
+    for CE.source(
+          source: source,
+          runtime_references: r,
+          compile_references: c,
+          struct_references: s
+        ) <- sources,
+        module in r or module in c or module in s,
         CE.module(sources: sources, module: dependent_module) <- modules,
         source in sources,
         do: dependent_module
