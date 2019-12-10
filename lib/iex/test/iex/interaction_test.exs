@@ -83,6 +83,11 @@ defmodule IEx.InteractionTest do
     assert capture_iex("1\n", opts, [], true) == "prompt(1)> 1\nprompt(2)>"
   end
 
+  test "continuation prompt" do
+    opts = [default_prompt: "%prefix(%counter)>", continuation_prompt: "%prefix(%counter)>>>"]
+    assert capture_iex("[\n1\n]\n", opts, [], true) == "iex(1)> ...(1)>>> ...(1)>>> [1]\niex(2)>"
+  end
+
   if IO.ANSI.enabled?() do
     test "color" do
       opts = [colors: [enabled: true, eval_result: [:red]]]
