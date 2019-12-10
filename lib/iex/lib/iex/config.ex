@@ -9,9 +9,9 @@ defmodule IEx.Config do
     :inspect,
     :history_size,
     :default_prompt,
-    :default_prompt2,
+    :continuation_prompt,
     :alive_prompt,
-    :alive_prompt2,
+    :alive_continuation_prompt,
     :width
   ]
 
@@ -46,16 +46,16 @@ defmodule IEx.Config do
     Application.fetch_env!(:iex, :default_prompt)
   end
 
-  def default_prompt2() do
-    Application.get_env(:iex, :default_prompt2, default_prompt())
+  def continuation_prompt() do
+    Application.get_env(:iex, :continuation_prompt, default_prompt())
   end
 
   def alive_prompt() do
     Application.fetch_env!(:iex, :alive_prompt)
   end
 
-  def alive_prompt2() do
-    Application.get_env(:iex, :alive_prompt2, alive_prompt())
+  def alive_continuation_prompt() do
+    Application.get_env(:iex, :alive_continuation_prompt, alive_prompt())
   end
 
   def color(color) do
@@ -193,9 +193,9 @@ defmodule IEx.Config do
   defp merge_option(:inspect, old, new) when is_list(new), do: Keyword.merge(old, new)
   defp merge_option(:history_size, _old, new) when is_integer(new), do: new
   defp merge_option(:default_prompt, _old, new) when is_binary(new), do: new
-  defp merge_option(:default_prompt2, _old, new) when is_binary(new), do: new
+  defp merge_option(:continuation_prompt, _old, new) when is_binary(new), do: new
   defp merge_option(:alive_prompt, _old, new) when is_binary(new), do: new
-  defp merge_option(:alive_prompt2, _old, new) when is_binary(new), do: new
+  defp merge_option(:alive_continuation_prompt, _old, new) when is_binary(new), do: new
   defp merge_option(:width, _old, new) when is_integer(new), do: new
 
   defp merge_option(key, _old, new) do

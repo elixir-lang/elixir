@@ -117,10 +117,14 @@ defmodule IEx.Server do
   defp loop(state, evaluator, evaluator_ref) do
     self_pid = self()
     counter = state.counter
-    prompt_type = if state.cache != [], do: :prompt2, else: :prompt
-    prefix = state.prefix
+    {prompt_type, prefix} =
+      if state.cache != [] do
+        {:continuation_prompt, "..."}
+      else
+        {:prompt, state.prefix}
+      end
 
-    input = spawn(fn -> io_get(self_pid, prefix, counter, prompt_type) end)
+    input = spawn(fn -> io_get(self_pid, prompt_type, prefix, counter) end)
     wait_input(state, evaluator, evaluator_ref, input)
   end
 
@@ -317,24 +321,17 @@ defmodule IEx.Server do
 
   ## IO
 
-  defp io_get(pid, prefix, counter, :prompt) do
-    io_get(pid, prompt(prefix, counter))
-  end
-
-  defp io_get(pid, prefix, counter, :prompt2) do
-    io_get(pid, prompt2(prefix, counter))
-  end
-
-  defp io_get(pid, prompt) do
+  defp io_get(pid, prompt_type, prefix, counter) do
+    prompt = prompt(prompt_type, prefix, counter)
     send(pid, {:input, self(), IO.gets(:stdio, prompt)})
   end
 
-  defp prompt(prefix, counter) do
+  defp prompt(prompt_type, prefix, counter) do
     {mode, prefix} =
       if Node.alive?() do
-        {:alive_prompt, prefix || remote_prefix()}
+        {prompt_mode(prompt_type, :alive), prefix || remote_prefix()}
       else
-        {:default_prompt, prefix || "iex"}
+        {prompt_mode(prompt_type, :default), prefix || "iex"}
       end
 
     prompt =
@@ -346,25 +343,10 @@ defmodule IEx.Server do
     prompt <> " "
   end
 
-  defp prompt2(prefix, counter) do
-    {mode, prefix} =
-      if Node.alive?() do
-        {:alive_prompt2, prefix || remote_prefix()}
-      else
-        {:default_prompt2, prefix || "..."}
-      end
-
-    prompt_length = String.length(prompt(prefix, counter))
-
-    prompt2 =
-      apply(IEx.Config, mode, [])
-      |> String.replace("%counter", to_string(counter))
-      |> String.replace("%prefix", to_string(prefix))
-      |> String.replace("%node", to_string(node()))
-      |> String.replace("%w", String.duplicate(" ", prompt_length - 1))
-
-    prompt2 <> " "
-  end
+  defp prompt_mode(:prompt, :default), do: :default_prompt
+  defp prompt_mode(:prompt, :alive), do: :alive_prompt
+  defp prompt_mode(:continuation_prompt, :default), do: :continuation_prompt
+  defp prompt_mode(:continuation_prompt, :alive), do: :alive_continuation_prompt
 
   defp io_error(result) do
     IO.puts(:stdio, IEx.color(:eval_error, result))
