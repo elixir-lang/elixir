@@ -90,7 +90,9 @@ defmodule IEx.InteractionTest do
 
   test "continuation prompt falls back to default prompt" do
     opts = [default_prompt: "prompt(%counter)>"]
-    assert capture_iex("[\n1\n]\n", opts, [], true) == "prompt(1)> prompt(1)> prompt(1)> [1]\nprompt(2)>"
+
+    assert capture_iex("[\n1\n]\n", opts, [], true) ==
+             "prompt(1)> prompt(1)> prompt(1)> [1]\nprompt(2)>"
   end
 
   if IO.ANSI.enabled?() do

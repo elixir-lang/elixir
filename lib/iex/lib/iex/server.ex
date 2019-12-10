@@ -117,6 +117,7 @@ defmodule IEx.Server do
   defp loop(state, evaluator, evaluator_ref) do
     self_pid = self()
     counter = state.counter
+
     {prompt_type, prefix} =
       if state.cache != [] do
         {:continuation_prompt, "..."}
