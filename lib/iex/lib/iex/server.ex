@@ -117,9 +117,15 @@ defmodule IEx.Server do
   defp loop(state, evaluator, evaluator_ref) do
     self_pid = self()
     counter = state.counter
-    prefix = if state.cache != [], do: "...", else: state.prefix
 
-    input = spawn(fn -> io_get(self_pid, prefix, counter) end)
+    {prompt_type, prefix} =
+      if state.cache != [] do
+        {:continuation_prompt, "..."}
+      else
+        {:prompt, state.prefix}
+      end
+
+    input = spawn(fn -> io_get(self_pid, prompt_type, prefix, counter) end)
     wait_input(state, evaluator, evaluator_ref, input)
   end
 
@@ -316,17 +322,17 @@ defmodule IEx.Server do
 
   ## IO
 
-  defp io_get(pid, prefix, counter) do
-    prompt = prompt(prefix, counter)
+  defp io_get(pid, prompt_type, prefix, counter) do
+    prompt = prompt(prompt_type, prefix, counter)
     send(pid, {:input, self(), IO.gets(:stdio, prompt)})
   end
 
-  defp prompt(prefix, counter) do
+  defp prompt(prompt_type, prefix, counter) do
     {mode, prefix} =
       if Node.alive?() do
-        {:alive_prompt, prefix || remote_prefix()}
+        {prompt_mode(prompt_type, :alive), prefix || remote_prefix()}
       else
-        {:default_prompt, prefix || "iex"}
+        {prompt_mode(prompt_type, :default), prefix || "iex"}
       end
 
     prompt =
@@ -337,6 +343,11 @@ defmodule IEx.Server do
 
     prompt <> " "
   end
+
+  defp prompt_mode(:prompt, :default), do: :default_prompt
+  defp prompt_mode(:prompt, :alive), do: :alive_prompt
+  defp prompt_mode(:continuation_prompt, :default), do: :continuation_prompt
+  defp prompt_mode(:continuation_prompt, :alive), do: :alive_continuation_prompt
 
   defp io_error(result) do
     IO.puts(:stdio, IEx.color(:eval_error, result))
