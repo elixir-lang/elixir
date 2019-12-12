@@ -1168,8 +1168,7 @@ defmodule Kernel do
 
   """
   @doc guard: true
-  @spec trunc(value) :: value when value: integer
-  @spec trunc(float) :: integer
+  @spec trunc(number) :: integer
   def trunc(number) do
     :erlang.trunc(number)
   end
@@ -1245,7 +1244,8 @@ defmodule Kernel do
 
   """
   @doc guard: true
-  @spec +value :: value when value: number
+  @spec +integer :: integer
+  @spec +float :: float
   def +value do
     :erlang.+(value)
   end
