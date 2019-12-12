@@ -995,12 +995,13 @@ defmodule Enum do
   @doc """
   Similar to `find/3`, but returns the value of the function
   invocation instead of the element itself.
-  An element is considered to be found when the result ist truthy (!= nil or != false).
+
+  An element is considered to be found when the result is truthy (neither `nil` nor `false`).
 
   ## Examples
 
       iex> Enum.find_value([2, 3, 4], fn x ->
-      ...>   if x > 2, do: x*x
+      ...>   if x > 2, do: x * x
       ...> end)
       9
 
