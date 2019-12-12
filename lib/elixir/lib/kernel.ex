@@ -915,8 +915,7 @@ defmodule Kernel do
 
   """
   @doc guard: true
-  @spec round(float) :: integer
-  @spec round(value) :: value when value: integer
+  @spec round(number) :: integer
   def round(number) do
     :erlang.round(number)
   end
