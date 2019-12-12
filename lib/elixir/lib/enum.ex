@@ -998,18 +998,18 @@ defmodule Enum do
   An element is considered to be found when the result ist truthy (!= nil or != false).
 
   ## Examples
-      
+
       iex> Enum.find_value([2, 3, 4], fn x ->
       ...>   if x > 2, do: x*x
       ...> end)
       9
-      
+
       iex> Enum.find_value([2, 4, 6], fn x -> rem(x, 2) == 1 end)
       nil
 
       iex> Enum.find_value([2, 3, 4], fn x -> rem(x, 2) == 1 end)
       true
-      
+
       iex> Enum.find_value([1, 2, 3], "no bools!", &is_boolean/1)
       "no bools!"
 
