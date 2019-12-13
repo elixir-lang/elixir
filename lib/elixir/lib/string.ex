@@ -276,7 +276,7 @@ defmodule String do
   """
   @type t :: binary
 
-  @typedoc "A UTF-8 code point. It may be one or more bytes."
+  @typedoc "A single Unicode code point encoded in UTF-8. It may be one or more bytes."
   @type codepoint :: t
 
   @typedoc "Multiple code points that may be perceived as a single character by readers"
