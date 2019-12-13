@@ -61,8 +61,8 @@ defmodule String do
   strings, as introducing an invalid byte sequence would
   make the string invalid. If you have to introduce a
   character by its hexdecimal representation, it is best
-  to work with Unicode Codepoints, such as `\uNNNN`. In fact,
-  understanding Unicode Codepoints can be essential when doing
+  to work with Unicode code points, such as `\uNNNN`. In fact,
+  understanding Unicode code points can be essential when doing
   low-level manipulations of string, so let's explore them in
   detail next.
 
@@ -221,7 +221,7 @@ defmodule String do
       "olá"
 
   Finally, to convert a String into a list of integers
-  codepoints, usually known as "char lists", you can call
+  code points, usually known as "char lists", you can call
   `Strig.to_charlist`:
 
       iex> String.to_charlist("olá")
