@@ -175,16 +175,16 @@ clean_residual_files:
 #==> Documentation tasks
 
 LOGO_PATH = $(shell test -f ../docs/logo.png && echo "--logo ../docs/logo.png")
-SOURCE_REF = $(shell tag="$(call GIT_TAG)" revision="$(call GIT_REVISION)"; echo "$${tag:-$$revision}\c")
+SOURCE_REF = $(shell tag="$(call GIT_TAG)" revision="$(call GIT_REVISION)"; echo "$${tag:-$$revision}")
 DOCS_FORMAT = html
-COMPILE_DOCS = bin/elixir ../ex_doc/bin/ex_doc "$(1)" "$(VERSION)" "lib/$(2)/ebin" -m "$(3)" -u "https://github.com/elixir-lang/elixir" --source-ref "$(call SOURCE_REF)" $(call LOGO_PATH) -o doc/$(2) -n https://hexdocs.pm/$(2)/$(CANONICAL) -p https://elixir-lang.org/docs.html -f "$(DOCS_FORMAT)" $(4)
+COMPILE_DOCS = bin/elixir ../ex_doc/bin/ex_doc "$(1)" "$(VERSION)" "lib/$(2)/ebin" --main "$(3)" --source-url "https://github.com/elixir-lang/elixir" --source-ref "$(call SOURCE_REF)" $(call LOGO_PATH) --output doc/$(2) --canonical "https://hexdocs.pm/$(2)/$(CANONICAL)" --homepage-url "https://elixir-lang.org/docs.html" --formatter "$(DOCS_FORMAT)" $(4)
 
 docs: compile ../ex_doc/bin/ex_doc docs_elixir docs_eex docs_mix docs_iex docs_ex_unit docs_logger
 
 docs_elixir: compile ../ex_doc/bin/ex_doc
 	@ echo "==> ex_doc (elixir)"
 	$(Q) rm -rf doc/elixir
-	$(call COMPILE_DOCS,Elixir,elixir,Kernel,-c lib/elixir/docs.exs)
+	$(call COMPILE_DOCS,Elixir,elixir,Kernel,--config "lib/elixir/docs.exs")
 
 docs_eex: compile ../ex_doc/bin/ex_doc
 	@ echo "==> ex_doc (eex)"
