@@ -59,7 +59,7 @@ defmodule Logger do
   ## Metadata
 
   Whenever a message is logged, additional information can be given
-  via metadata. Each log operation, such as `Logger.info/3`, allows
+  via metadata. Each log operation, such as `Logger.info/2`, allows
   metadata to be given as argument.
 
   Furthermore, metadata can be set per process with `Logger.metadata/1`.
