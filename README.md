@@ -29,7 +29,7 @@ For the many different ways to install Elixir,
 [see our installation instructions on the website](https://elixir-lang.org/install.html).
 To compile from source, you can follow the steps below.
 
-First, [install Erlang](https://elixir-lang.org/install.html#installing-erlang). Then clone this repository to your machine(It is best to specify the version when downloading, such as git clone -b v1.9.4 https://github.com/elixir-lang/elixir.git), compile and test it:
+First, [install Erlang](https://elixir-lang.org/install.html#installing-erlang). Then clone this repository to your machine(It is best to specify the version when downloading, such as ```git clone -b v1.9.4 https://github.com/elixir-lang/elixir.git```), compile and test it:
 
 ```sh
 git clone https://github.com/elixir-lang/elixir.git
