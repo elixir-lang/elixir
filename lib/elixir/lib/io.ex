@@ -98,14 +98,14 @@ defmodule IO do
 
   Erlang and Elixir also have the idea of `t:chardata/0`. Chardata is very
   similar to IO data: the only difference is that integers in IO data represent
-  bytes while integers in chardata represent Unicode codepoints. Bytes
-  (`t:byte/0`) are integers in the `0..255` range, while Unicode codepoints
+  bytes while integers in chardata represent Unicode code points. Bytes
+  (`t:byte/0`) are integers in the `0..255` range, while Unicode code points
   (`t:char/0`) are integers in the range `0..0x10FFFF`. The `IO` module provides
   the `chardata_to_string/1` function for chardata as the "counter-part" of the
   `iodata_to_binary/1` function for IO data.
 
   If you try to use `iodata_to_binary/1` on chardata, it will result in an
-  argument error. For example, let's try to put a codepoint that is not
+  argument error. For example, let's try to put a code point that is not
   representable with one byte, like `?π`, inside IO data:
 
       iex> IO.iodata_to_binary(["The symbol for pi is: ", ?π])
