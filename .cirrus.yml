@@ -45,6 +45,7 @@ test_linux_task:
       skip_notifications: true
       depends_on:
         - Linux Stable
+        - FreeBSD Stable
       matrix:
         - env:
             OTP_RELEASE: master
@@ -124,3 +125,44 @@ test_windows_task:
   test_erlang_script: make --keep-going test_erlang
 
   test_elixir_script: make --keep-going test_elixir
+
+
+test_freebsd_task:
+  <<: *DEFAULT_TEST_SETTINGS
+
+  name: FreeBSD 12.0
+  alias: FreeBSD Stable
+
+  freebsd_instance:
+    image_family: freebsd-12-0
+    cpu: 8
+    memory: 7424Mi
+
+  env:
+    CHECK_REPRODUCIBLE: true
+    LC_ALL: en_US.UTF-8
+
+  install_script:
+    - sudo pkg update
+    - pkg install -y erlang git gmake
+    - rm -rf .git
+    - gmake compile
+
+  build_info_script: bin/elixir --version
+
+  test_formatted_script:
+    - gmake test_formatted &&
+      echo "All Elixir source code files are properly formatted."
+
+  dialyzer_script: dialyzer -pa lib/elixir/ebin --build_plt --output_plt elixir.plt --apps lib/elixir/ebin/elixir.beam lib/elixir/ebin/Elixir.Kernel.beam
+
+  test_erlang_script: gmake test_erlang
+
+  test_elixir_script: gmake test_elixir
+
+  check_reproducible_script: |
+    if [ -n "$CHECK_REPRODUCIBLE" ]; then
+      gmake check_reproducible
+    else
+      echo "The reproducibility of the build is only checked in the last stable Erlang/OTP version."
+    fi
