@@ -1255,41 +1255,37 @@ defmodule Stream do
 
   def cycle(enumerable) do
     fn acc, fun ->
-      inner = &do_cycle_each(&1, &2, fun)
-      outer = &Enumerable.reduce(enumerable, &1, inner)
-      reduce = check_cycle_first_element(outer)
-      do_cycle(reduce, outer, acc)
+      step = &do_cycle_step(&1, &2)
+      cycle = &Enumerable.reduce(enumerable, &1, step)
+      reduce = check_cycle_first_element(cycle)
+      do_cycle(reduce, [], cycle, acc, fun)
     end
   end
 
-  defp do_cycle(_reduce, _cycle, {:halt, acc}) do
+  defp do_cycle(reduce, inner_acc, _cycle, {:halt, acc}, _fun) do
+    reduce.({:halt, inner_acc})
     {:halted, acc}
   end
 
-  defp do_cycle(reduce, cycle, {:suspend, acc}) do
-    {:suspended, acc, &do_cycle(reduce, cycle, &1)}
+  defp do_cycle(reduce, inner_acc, cycle, {:suspend, acc}, fun) do
+    {:suspended, acc, &do_cycle(reduce, inner_acc, cycle, &1, fun)}
   end
 
-  defp do_cycle(reduce, cycle, acc) do
-    try do
-      reduce.(acc)
-    catch
-      {:stream_cycle, acc} ->
-        {:halted, acc}
-    else
-      {state, acc} when state in [:done, :halted] ->
-        do_cycle(cycle, cycle, {:cont, acc})
+  defp do_cycle(reduce, inner_acc, cycle, {:cont, acc}, fun) do
+    case reduce.({:cont, inner_acc}) do
+      {:suspended, [element], new_reduce} ->
+        do_cycle(new_reduce, inner_acc, cycle, fun.(element, acc), fun)
 
-      {:suspended, acc, continuation} ->
-        {:suspended, acc, &do_cycle(continuation, cycle, &1)}
+      {_, [element]} ->
+        do_cycle(cycle, [], cycle, fun.(element, acc), fun)
+
+      {_, []} ->
+        do_cycle(cycle, [], cycle, {:cont, acc}, fun)
     end
   end
 
-  defp do_cycle_each(x, acc, f) do
-    case f.(x, acc) do
-      {:halt, h} -> throw({:stream_cycle, h})
-      {_, _} = o -> o
-    end
+  defp do_cycle_step(x, acc) do
+    {:suspend, [x | acc]}
   end
 
   defp check_cycle_first_element(reduce) do

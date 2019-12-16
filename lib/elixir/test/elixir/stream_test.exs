@@ -254,6 +254,11 @@ defmodule StreamTest do
     assert [1, 2, 3] |> Stream.take(2) |> Stream.cycle() |> Enum.take(4) == [1, 2, 1, 2]
   end
 
+  test "cycle/1 with cycle/1 with cycle/1" do
+    assert [1] |> Stream.cycle() |> Stream.cycle() |> Stream.cycle() |> Enum.take(5) ==
+             [1, 1, 1, 1, 1]
+  end
+
   test "dedup/1 is lazy" do
     assert lazy?(Stream.dedup([1, 2, 3]))
   end
