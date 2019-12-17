@@ -2341,6 +2341,17 @@ defmodule Enum do
   @spec slice(t, Range.t()) :: list
   def slice(enumerable, index_range)
 
+  def slice(enumerable, first..last) when is_function(enumerable) do
+    amount = last - first + 1
+
+    if amount > 0 and first >= 0 and last >= 0 do
+      slice_any(enumerable, first, amount)
+    else
+      raise ArgumentError
+
+    end
+  end
+
   def slice(enumerable, first..last) do
     {count, fun} = slice_count_and_fun(enumerable)
     corr_first = if first >= 0, do: first, else: first + count
