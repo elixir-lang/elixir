@@ -2334,6 +2334,7 @@ defmodule Enum do
 
   def slice(enumerable, first..last) when first >= 0 and last >= 0 do
     amount = last - first + 1
+
     if amount > 0 do
       slice_any(enumerable, first, amount)
     else
