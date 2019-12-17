@@ -2302,8 +2302,7 @@ defmodule Enum do
   elements before `index_range.first` (zero-base), then takes elements
   until element `index_range.last` (inclusively).
 
-  Indexes are normalized, meaning that negative indexes will be counted
-  from the end (for example, `-1` means the last element of the `enumerable`).
+  Negative indexes cannot be passed.
 
   If `index_range.last` is out of bounds, then it is assigned as the index
   of the last element.
@@ -2320,14 +2319,6 @@ defmodule Enum do
       iex> Enum.slice(1..10, 5..20)
       [6, 7, 8, 9, 10]
 
-      # last five elements (negative indexes)
-      iex> Enum.slice(1..30, -5..-1)
-      [26, 27, 28, 29, 30]
-
-      # last five elements (mixed positive and negative indexes)
-      iex> Enum.slice(1..30, 25..-1)
-      [26, 27, 28, 29, 30]
-
       # out of bounds
       iex> Enum.slice(1..10, 11..20)
       []
@@ -2341,24 +2332,10 @@ defmodule Enum do
   @spec slice(t, Range.t()) :: list
   def slice(enumerable, index_range)
 
-  def slice(enumerable, first..last) when is_function(enumerable) do
+  def slice(enumerable, first..last) when first >= 0 and last >= 0 do
     amount = last - first + 1
-
-    if amount > 0 and first >= 0 and last >= 0 do
+    if amount > 0 do
       slice_any(enumerable, first, amount)
-    else
-      raise ArgumentError
-    end
-  end
-
-  def slice(enumerable, first..last) do
-    {count, fun} = slice_count_and_fun(enumerable)
-    corr_first = if first >= 0, do: first, else: first + count
-    corr_last = if last >= 0, do: last, else: last + count
-    amount = corr_last - corr_first + 1
-
-    if corr_first >= 0 and corr_first < count and amount > 0 do
-      fun.(corr_first, Kernel.min(amount, count - corr_first))
     else
       []
     end
@@ -2372,9 +2349,7 @@ defmodule Enum do
   then takes `amount` of elements, returning as many elements as possible if
   there are not enough elements.
 
-  A negative `start_index` can be passed, which means the `enumerable` is
-  enumerated once and the index is counted from the end (for example,
-  `-1` starts slicing from the last element).
+  A negative `start_index` cannot be passed.
 
   It returns `[]` if `amount` is `0` or if `start_index` is out of bounds.
 
@@ -2390,24 +2365,16 @@ defmodule Enum do
       iex> Enum.slice(1..10, 5, 0)
       []
 
-      # using a negative start index
-      iex> Enum.slice(1..10, -6, 3)
-      [5, 6, 7]
-
-      # out of bound start index (positive)
+      # out of bound start index
       iex> Enum.slice(1..10, 10, 5)
       []
 
-      # out of bound start index (negative)
-      iex> Enum.slice(1..10, -11, 5)
-      []
-
   """
-  @spec slice(t, index, non_neg_integer) :: list
+  @spec slice(t, non_neg_integer, non_neg_integer) :: list
   def slice(_enumerable, start_index, 0) when is_integer(start_index), do: []
 
   def slice(enumerable, start_index, amount)
-      when is_integer(start_index) and is_integer(amount) and amount >= 0 do
+      when is_integer(start_index) and is_integer(amount) and amount >= 0 and start_index >= 0 do
     slice_any(enumerable, start_index, amount)
   end
 

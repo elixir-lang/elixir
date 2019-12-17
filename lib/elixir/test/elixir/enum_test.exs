@@ -716,28 +716,13 @@ defmodule EnumTest do
     assert Enum.slice(list, 0..0) == [1]
     assert Enum.slice(list, 0..1) == [1, 2]
     assert Enum.slice(list, 0..2) == [1, 2, 3]
-    assert Enum.slice(list, 1, 2) == [2, 3]
-    assert Enum.slice(list, 1, 0) == []
-    assert Enum.slice(list, 2, 5) == [3, 4, 5]
-    assert Enum.slice(list, 2, 6) == [3, 4, 5]
-    assert Enum.slice(list, 5, 5) == []
-    assert Enum.slice(list, 6, 5) == []
-    assert Enum.slice(list, 6, 0) == []
-    assert Enum.slice(list, -6, 0) == []
-    assert Enum.slice(list, -6, 5) == []
-    assert Enum.slice(list, -2, 5) == [4, 5]
-    assert Enum.slice(list, -3, 1) == [3]
 
     assert_raise FunctionClauseError, fn ->
-      Enum.slice(list, 0, -1)
+      Enum.slice(list, 0..-2)
     end
 
     assert_raise FunctionClauseError, fn ->
-      Enum.slice(list, 0.99, 0)
-    end
-
-    assert_raise FunctionClauseError, fn ->
-      Enum.slice(list, 0, 0.99)
+      Enum.slice(list, -2..0)
     end
   end
 
@@ -753,13 +738,13 @@ defmodule EnumTest do
     assert Enum.slice(list, 5, 5) == []
     assert Enum.slice(list, 6, 5) == []
     assert Enum.slice(list, 6, 0) == []
-    assert Enum.slice(list, -6, 0) == []
-    assert Enum.slice(list, -6, 5) == []
-    assert Enum.slice(list, -2, 5) == [4, 5]
-    assert Enum.slice(list, -3, 1) == [3]
 
     assert_raise FunctionClauseError, fn ->
       Enum.slice(list, 0, -1)
+    end
+
+    assert_raise FunctionClauseError, fn ->
+      Enum.slice(list, -2, 1)
     end
 
     assert_raise FunctionClauseError, fn ->
@@ -1522,11 +1507,6 @@ defmodule EnumTest.Range do
     assert Enum.slice(1..5, 5..5) == []
     assert Enum.slice(1..5, 6..5) == []
     assert Enum.slice(1..5, 6..0) == []
-    assert Enum.slice(1..5, -6..0) == []
-    assert Enum.slice(1..5, -6..5) == []
-    assert Enum.slice(1..5, -5..-1) == [1, 2, 3, 4, 5]
-    assert Enum.slice(1..5, -5..-3) == [1, 2, 3]
-    assert Enum.slice(1..5, -6..-1) == []
 
     assert_raise ArgumentError, fn ->
       x = 1.1
@@ -1536,6 +1516,14 @@ defmodule EnumTest.Range do
     assert_raise ArgumentError, fn ->
       x = 1.9
       Enum.slice(1..5, 1..x)
+    end
+
+    assert_raise FunctionClauseError, fn ->
+      Enum.slice(1..5, 1..-1)
+    end
+
+    assert_raise FunctionClauseError, fn ->
+      Enum.slice(1..5, -1..1)
     end
 
     assert Enum.slice(5..1, 0..0) == [5]
@@ -1549,11 +1537,6 @@ defmodule EnumTest.Range do
     assert Enum.slice(5..1, 5..5) == []
     assert Enum.slice(5..1, 6..5) == []
     assert Enum.slice(5..1, 6..0) == []
-    assert Enum.slice(5..1, -6..0) == []
-    assert Enum.slice(5..1, -6..5) == []
-    assert Enum.slice(5..1, -5..-1) == [5, 4, 3, 2, 1]
-    assert Enum.slice(5..1, -5..-3) == [5, 4, 3]
-    assert Enum.slice(5..1, -6..-1) == []
   end
 
   test "slice/3" do
@@ -1567,13 +1550,13 @@ defmodule EnumTest.Range do
     assert Enum.slice(1..5, 5, 5) == []
     assert Enum.slice(1..5, 6, 5) == []
     assert Enum.slice(1..5, 6, 0) == []
-    assert Enum.slice(1..5, -6, 0) == []
-    assert Enum.slice(1..5, -6, 5) == []
-    assert Enum.slice(1..5, -2, 5) == [4, 5]
-    assert Enum.slice(1..5, -3, 1) == [3]
 
     assert_raise FunctionClauseError, fn ->
       Enum.slice(1..5, 0, -1)
+    end
+
+    assert_raise FunctionClauseError, fn ->
+      Enum.slice(1..5, -1, 2)
     end
 
     assert_raise FunctionClauseError, fn ->
@@ -1595,8 +1578,6 @@ defmodule EnumTest.Range do
     assert Enum.slice(5..1, 5, 5) == []
     assert Enum.slice(5..1, 6, 5) == []
     assert Enum.slice(5..1, 6, 0) == []
-    assert Enum.slice(5..1, -6, 0) == []
-    assert Enum.slice(5..1, -6, 5) == []
   end
 
   test "sort/1" do
@@ -1851,34 +1832,18 @@ defmodule EnumTest.Map do
     assert Enum.slice(map, 0..0) == [a: 1]
     assert Enum.slice(map, 0..1) == [a: 1, b: 2]
     assert Enum.slice(map, 0..2) == [a: 1, b: 2, c: 3]
+
+    assert_raise FunctionClauseError, fn ->
+      Enum.slice(map, 0..-1)
+    end
+
+    assert_raise FunctionClauseError, fn ->
+      Enum.slice(map, -1..0)
+    end
   end
 
   test "slice/3" do
     map = %{a: 1, b: 2, c: 3, d: 4, e: 5}
-    assert Enum.slice(map, 1, 2) == [b: 2, c: 3]
-    assert Enum.slice(map, 1, 0) == []
-    assert Enum.slice(map, 2, 5) == [c: 3, d: 4, e: 5]
-    assert Enum.slice(map, 2, 6) == [c: 3, d: 4, e: 5]
-    assert Enum.slice(map, 5, 5) == []
-    assert Enum.slice(map, 6, 5) == []
-    assert Enum.slice(map, 6, 0) == []
-    assert Enum.slice(map, -6, 0) == []
-    assert Enum.slice(map, -6, 5) == []
-    assert Enum.slice(map, -2, 5) == [d: 4, e: 5]
-    assert Enum.slice(map, -3, 1) == [c: 3]
-
-    assert_raise FunctionClauseError, fn ->
-      Enum.slice(map, 0, -1)
-    end
-
-    assert_raise FunctionClauseError, fn ->
-      Enum.slice(map, 0.99, 0)
-    end
-
-    assert_raise FunctionClauseError, fn ->
-      Enum.slice(map, 0, 0.99)
-    end
-
     assert Enum.slice(map, 0, 0) == []
     assert Enum.slice(map, 0, 1) == [a: 1]
     assert Enum.slice(map, 0, 2) == [a: 1, b: 2]
@@ -1889,13 +1854,13 @@ defmodule EnumTest.Map do
     assert Enum.slice(map, 5, 5) == []
     assert Enum.slice(map, 6, 5) == []
     assert Enum.slice(map, 6, 0) == []
-    assert Enum.slice(map, -6, 0) == []
-    assert Enum.slice(map, -6, 5) == []
-    assert Enum.slice(map, -2, 5) == [d: 4, e: 5]
-    assert Enum.slice(map, -3, 1) == [c: 3]
 
     assert_raise FunctionClauseError, fn ->
       Enum.slice(map, 0, -1)
+    end
+
+    assert_raise FunctionClauseError, fn ->
+      Enum.slice(map, -1, 2)
     end
 
     assert_raise FunctionClauseError, fn ->
