@@ -2348,7 +2348,6 @@ defmodule Enum do
       slice_any(enumerable, first, amount)
     else
       raise ArgumentError
-
     end
   end
 
