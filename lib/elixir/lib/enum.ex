@@ -2350,7 +2350,9 @@ defmodule Enum do
   then takes `amount` of elements, returning as many elements as possible if
   there are not enough elements.
 
-  A negative `start_index` cannot be passed.
+  A negative `start_index` can be passed, which means the `enumerable` is
+  enumerated once and the index is counted from the end (for example,
+  `-1` starts slicing from the last element).
 
   It returns `[]` if `amount` is `0` or if `start_index` is out of bounds.
 
@@ -2366,16 +2368,24 @@ defmodule Enum do
       iex> Enum.slice(1..10, 5, 0)
       []
 
-      # out of bound start index
+      # using a negative start index
+      iex> Enum.slice(1..10, -6, 3)
+      [5, 6, 7]
+
+      # out of bound start index (positive)
       iex> Enum.slice(1..10, 10, 5)
       []
 
+      # out of bound start index (negative)
+      iex> Enum.slice(1..10, -11, 5)
+      []
+
   """
-  @spec slice(t, non_neg_integer, non_neg_integer) :: list
+  @spec slice(t, index, non_neg_integer) :: list
   def slice(_enumerable, start_index, 0) when is_integer(start_index), do: []
 
   def slice(enumerable, start_index, amount)
-      when is_integer(start_index) and is_integer(amount) and amount >= 0 and start_index >= 0 do
+      when is_integer(start_index) and is_integer(amount) and amount >= 0 do
     slice_any(enumerable, start_index, amount)
   end
 
@@ -2560,8 +2570,7 @@ defmodule Enum do
           t,
           (element -> mapped_element),
           (element, element -> boolean) | :asc | :desc | module() | {:asc | :desc, module()}
-        ) ::
-          list
+        ) :: list
         when mapped_element: element
   def sort_by(enumerable, mapper, sorter \\ &<=/2) do
     enumerable
