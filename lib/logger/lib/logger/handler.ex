@@ -80,6 +80,7 @@ defmodule Logger.Handler do
   def log(%{level: erl_level, msg: msg, meta: metadata}, %{config: config}) do
     case threshold(config) do
       :discard ->
+        # potential call to a genserver that keeps a periodic tally of how many messages have been discarded?
         :ok
 
       mode ->
