@@ -1344,7 +1344,7 @@ defmodule String do
       "a-b,c"
 
   The pattern may also be a list of strings and the replacement may also
-  be a function that receives the matched patterns:
+  be a function that receives the matches:
 
       iex> String.replace("a,b,c", ["a", "c"], fn <<char>> -> <<char + 1>> end)
       "b,b,d"
@@ -1358,8 +1358,7 @@ defmodule String do
 
   Notice we had to escape the backslash escape character (i.e., we used `\\N`
   instead of just `\N` to escape the backslash; same thing for `\\g{N}`). By
-  giving `\0`, one can inject the whole matched pattern in the replacement
-  string.
+  giving `\0`, one can inject the whole match in the replacement string.
 
   A compiled pattern can also be given:
 
