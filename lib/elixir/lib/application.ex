@@ -28,7 +28,7 @@ defmodule Application do
         [env: [db_host: "localhost"]]
       end
 
-  Now, in your application, you can read this enviironment by using functions
+  Now, in your application, you can read this environment by using functions
   such as `fetch_env!/2` and friends:
 
       defmodule MyApp.DBClient do
