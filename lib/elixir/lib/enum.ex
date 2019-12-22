@@ -394,7 +394,7 @@ defmodule Enum do
 
   """
   @spec at(t, index, default) :: element | default
-  def at(enumerable, index, default \\ nil) do
+  def at(enumerable, index, default \\ nil) when is_integer(index) do
     case slice_any(enumerable, index, 1) do
       [value] -> value
       [] -> default
@@ -849,7 +849,7 @@ defmodule Enum do
 
   """
   @spec fetch(t, index) :: {:ok, element} | :error
-  def fetch(enumerable, index) do
+  def fetch(enumerable, index) when is_integer(index) do
     case slice_any(enumerable, index, 1) do
       [value] -> {:ok, value}
       [] -> :error
@@ -875,7 +875,7 @@ defmodule Enum do
 
   """
   @spec fetch!(t, index) :: element
-  def fetch!(enumerable, index) do
+  def fetch!(enumerable, index) when is_integer(index) do
     case slice_any(enumerable, index, 1) do
       [value] -> value
       [] -> raise Enum.OutOfBoundsError
