@@ -3,8 +3,6 @@ Code.require_file("../test_helper.exs", __DIR__)
 defmodule Kernel.GuardTest do
   use ExUnit.Case, async: true
 
-  import ExUnit.CaptureIO
-
   describe "defguard(p) usage" do
     defmodule GuardsInMacros do
       defguard is_foo(atom) when atom == :foo
@@ -163,19 +161,17 @@ defmodule Kernel.GuardTest do
         end
       end
 
-      assert capture_io(:stderr, fn ->
-               assert_raise CompileError,
-                            ~r"cannot define module Kernel.GuardTest.IntegerPrivateFunctionUtils,",
-                            fn ->
-                              defmodule IntegerPrivateFunctionUtils do
-                                import IntegerPrivateGuards
+      assert_raise CompileError,
+                   ~r"undefined function is_even/1",
+                   fn ->
+                     defmodule IntegerPrivateFunctionUtils do
+                       import IntegerPrivateGuards
 
-                                def is_even_and_small?(value) do
-                                  if is_even(value) and value <= 100, do: true, else: false
-                                end
-                              end
-                            end
-             end) =~ "undefined function is_even/1"
+                       def is_even_and_small?(value) do
+                         if is_even(value) and value <= 100, do: true, else: false
+                       end
+                     end
+                   end
     end
 
     test "requires a proper macro name" do

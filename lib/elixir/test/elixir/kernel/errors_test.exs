@@ -375,20 +375,18 @@ defmodule Kernel.ErrorsTest do
                       end
                       '''
 
-    assert capture_io(:stderr, fn ->
-             assert_eval_raise CompileError,
-                               ~r"nofile:4: cannot define module Kernel.ErrorsTest.ClauseWithDefaults5",
-                               ~C'''
-                               defmodule Kernel.ErrorsTest.ClauseWithDefaults5 do
-                                 def hello(
-                                       foo,
-                                       bar \\ foo()
-                                     )
+    assert_eval_raise CompileError,
+                      ~r"nofile:4: undefined function foo/0",
+                      ~C'''
+                      defmodule Kernel.ErrorsTest.ClauseWithDefaults5 do
+                        def hello(
+                              foo,
+                              bar \\ foo()
+                            )
 
-                                 def hello(foo, bar), do: foo + bar
-                               end
-                               '''
-           end) =~ "undefined function foo/0"
+                        def hello(foo, bar), do: foo + bar
+                      end
+                      '''
   end
 
   test "different defs with defaults" do
@@ -410,9 +408,20 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "undefined function" do
+    assert_eval_raise CompileError,
+                      ~r"hello.ex:4: undefined function bar/0",
+                      '''
+                      defmodule Kernel.ErrorsTest.BadForm do
+                        @file "hello.ex"
+                        def foo do
+                          bar()
+                        end
+                      end
+                      '''
+
     assert capture_io(:stderr, fn ->
              assert_eval_raise CompileError,
-                               ~r"nofile:3: cannot define module Kernel.ErrorsTest.BadForm",
+                               ~r"nofile:3: undefined function bar/1",
                                '''
                                defmodule Kernel.ErrorsTest.BadForm do
                                  def foo do
@@ -422,35 +431,20 @@ defmodule Kernel.ErrorsTest do
                                  end
                                end
                                '''
-           end) =~ ~r"undefined function bar/1.*undefined function baz/2"s
+           end) =~ "undefined function baz/2"
 
-    assert capture_io(:stderr, fn ->
-             assert_eval_raise CompileError,
-                               ~r"hello.ex:4: cannot define module Kernel.ErrorsTest.BadForm",
-                               '''
-                               defmodule Kernel.ErrorsTest.BadForm do
-                                 @file "hello.ex"
-                                 def foo do
-                                   bar()
-                                 end
-                               end
-                               '''
-           end) =~ "undefined function bar/0"
+    assert_eval_raise CompileError, ~r"nofile:8: undefined function baz/0", '''
+    defmodule Sample do
+      def foo do
+        bar()
+      end
 
-    assert capture_io(:stderr, fn ->
-             assert_eval_raise CompileError, ~r"nofile:8: cannot define module Sample", '''
-             defmodule Sample do
-               def foo do
-                 bar()
-               end
-
-               defoverridable [foo: 0]
-               def foo do
-                 baz()
-               end
-             end
-             '''
-           end) =~ "undefined function baz/0"
+      defoverridable [foo: 0]
+      def foo do
+        baz()
+      end
+    end
+    '''
   end
 
   test "undefined non-local function" do
@@ -781,54 +775,46 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "macro invoked before its definition" do
-    assert capture_io(:stderr, fn ->
-             assert_eval_raise CompileError,
-                               ~r"nofile:2: cannot define module Kernel.ErrorsTest.IncorrectMacroDispatch",
-                               '''
-                               defmodule Kernel.ErrorsTest.IncorrectMacroDispatch do
-                                 def foo, do: bar()
-                                 defmacro bar, do: :bar
-                               end
-                               '''
-           end) =~ "cannot invoke macro bar/0 before its definition"
+    assert_eval_raise CompileError,
+                      ~r"nofile:2: cannot invoke macro bar/0 before its definition",
+                      '''
+                      defmodule Kernel.ErrorsTest.IncorrectMacroDispatch do
+                        def foo, do: bar()
+                        defmacro bar, do: :bar
+                      end
+                      '''
 
-    assert capture_io(:stderr, fn ->
-             assert_eval_raise CompileError,
-                               ~r"nofile:2: cannot define module Kernel.ErrorsTest.IncorrectMacropDispatch",
-                               '''
-                               defmodule Kernel.ErrorsTest.IncorrectMacropDispatch do
-                                 def foo, do: bar()
-                                 defmacrop bar, do: :ok
-                               end
-                               '''
-           end) =~ "cannot invoke macro bar/0 before its definition"
+    assert_eval_raise CompileError,
+                      ~r"nofile:2: cannot invoke macro bar/0 before its definition",
+                      '''
+                      defmodule Kernel.ErrorsTest.IncorrectMacropDispatch do
+                        def foo, do: bar()
+                        defmacrop bar, do: :ok
+                      end
+                      '''
 
-    assert capture_io(:stderr, fn ->
-             assert_eval_raise CompileError,
-                               ~r"nofile:2: cannot define module Kernel.ErrorsTest.IncorrectMacroDispatch",
-                               '''
-                               defmodule Kernel.ErrorsTest.IncorrectMacroDispatch do
-                                 defmacro bar(a) when is_atom(a), do: bar([a])
-                               end
-                               '''
-           end) =~ "cannot invoke macro bar/1 before its definition"
+    assert_eval_raise CompileError,
+                      ~r"nofile:2: cannot invoke macro bar/1 before its definition",
+                      '''
+                      defmodule Kernel.ErrorsTest.IncorrectMacroDispatch do
+                        defmacro bar(a) when is_atom(a), do: bar([a])
+                      end
+                      '''
   end
 
   test "macro captured before its definition" do
-    assert capture_io(:stderr, fn ->
-             assert_eval_raise CompileError,
-                               ~r"nofile:3: cannot define module Kernel.ErrorsTest.IncorrectMacroDispatch.Capture",
-                               '''
-                               defmodule Kernel.ErrorsTest.IncorrectMacroDispatch.Capture do
-                                 def foo do
-                                   predicate = &is_ok/1
-                                   Enum.any?([:ok, :error, :foo], predicate)
-                                 end
+    assert_eval_raise CompileError,
+                      ~r"nofile:3: cannot invoke macro is_ok/1 before its definition",
+                      '''
+                      defmodule Kernel.ErrorsTest.IncorrectMacroDispatch.Capture do
+                        def foo do
+                          predicate = &is_ok/1
+                          Enum.any?([:ok, :error, :foo], predicate)
+                        end
 
-                                 defmacro is_ok(atom), do: atom == :ok
-                               end
-                               '''
-           end) =~ "cannot invoke macro is_ok/1 before its definition"
+                        defmacro is_ok(atom), do: atom == :ok
+                      end
+                      '''
   end
 
   test "function definition with alias" do
