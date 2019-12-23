@@ -63,6 +63,7 @@ defmodule EEx.Tokenizer do
       {:ok, expr, new_line, rest} ->
         token = token_name(expr)
         {trimmed?, rest, new_line, buffer} = trim_if_needed(rest, new_line, opts, buffer, acc)
+        expr = pad_if_needed(token, expr, trimmed?)
         acc = tokenize_text(buffer, acc)
         final = {token, line, marker, Enum.reverse(expr), trimmed?}
         tokenize(rest, new_line, opts, [], [final | acc])
@@ -239,4 +240,7 @@ defmodule EEx.Tokenizer do
   defp trim_whitespace(list) do
     list
   end
+
+  defp pad_if_needed(:start_expr, [h | _] = expr, true) when h not in @spaces, do: [?\s | expr]
+  defp pad_if_needed(_, expr, _), do: expr
 end
