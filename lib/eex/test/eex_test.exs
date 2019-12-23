@@ -64,6 +64,20 @@ defmodule EExTest do
       assert_eval("  • • •\n  Jößé Vâlìm Jößé Vâlìm\n", template)
     end
 
+    test "no spaces" do
+      string = """
+      <%=cond do%>
+      <%false ->%>
+        this
+      <%true ->%>
+        that
+      <%end%>
+      """
+
+      expected = "\n  that\n\n"
+      assert_eval(expected, string, [])
+    end
+
     test "trim mode" do
       string = "<%= 123 %> \n456\n  <%= 789 %>"
       expected = "123456\n789"
@@ -93,6 +107,20 @@ defmodule EExTest do
       """
 
       expected = "First lineSecond lineThird lineFourth line"
+      assert_eval(expected, string, [], trim: true)
+    end
+
+    test "trim mode with no spaces" do
+      string = """
+      <%=cond do%>
+      <%false ->%>
+        this
+      <%true ->%>
+        that
+      <%end%>
+      """
+
+      expected = "  that\n"
       assert_eval(expected, string, [], trim: true)
     end
 
