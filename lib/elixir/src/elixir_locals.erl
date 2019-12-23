@@ -109,9 +109,9 @@ ensure_no_undefined_local(File, Module, All) ->
       [] -> ok;
 
       List ->
-        [{FirstMeta, _, _} | _] = Sorted = lists:sort(List),
-        [elixir_errors:form_warn(Meta, File, ?MODULE, {Error, Tuple}) || {Meta, Tuple, Error} <- Sorted],
-        elixir_errors:form_error(FirstMeta, File, ?MODULE, {invalid_or_undefined_calls, Module}),
+        [{FirstMeta, FirstTuple, FirstError} | Rest] = lists:sort(List),
+        [elixir_errors:form_warn(Meta, File, ?MODULE, {Error, Tuple}) || {Meta, Tuple, Error} <- lists:reverse(Rest)],
+        elixir_errors:form_error(FirstMeta, File, ?MODULE, {FirstError, FirstTuple}),
         ok
     end
   end).
@@ -139,8 +139,4 @@ format_error({undefined_function, {F, A}}) ->
   io_lib:format("undefined function ~ts/~B", [F, A]);
 
 format_error({incorrect_dispatch, {F, A}}) ->
-  io_lib:format("cannot invoke macro ~ts/~B before its definition", [F, A]);
-
-format_error({invalid_or_undefined_calls, Module}) ->
-  io_lib:format("cannot define module ~ts, undefined or invalid function calls found",
-                [elixir_aliases:inspect(Module)]).
+  io_lib:format("cannot invoke macro ~ts/~B before its definition", [F, A]).
