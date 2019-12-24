@@ -318,7 +318,7 @@ defmodule Kernel.ErrorsTest do
     assert interpret.("f 1 + g h 2, 3") == "f(1 + g(h(2, 3)))"
 
     assert interpret.("assert [] = TestRepo.all from p in Post, where: p.title in ^[]") ==
-             "assert([] = TestRepo.all(from(p in Post, where: p.title() in ^[])))"
+             "assert([] = TestRepo.all(from(p in Post, where: p.title in ^[])))"
   end
 
   test "syntax error on atom dot alias" do
@@ -477,7 +477,7 @@ defmodule Kernel.ErrorsTest do
     assert_eval_raise SyntaxError, "nofile:1: syntax error before: '{'", '%{a, b}{a: :b}'
 
     assert_eval_raise CompileError,
-                      "nofile:1: expected key-value pairs in a map, got: put_in(foo.bar().baz(), nil)",
+                      "nofile:1: expected key-value pairs in a map, got: put_in(foo.bar.baz, nil)",
                       'foo = 1; %{put_in(foo.bar.baz, nil), foo}'
   end
 
