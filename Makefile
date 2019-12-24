@@ -1,4 +1,5 @@
 PREFIX ?= /usr/local
+TEST_FILES ?= "*_test.exs"
 SHARE_PREFIX ?= $(PREFIX)/share
 MAN_PREFIX ?= $(SHARE_PREFIX)/man
 CANONICAL := master/ # master/ or vMAJOR.MINOR/
@@ -45,7 +46,7 @@ lib/$(1)/ebin/Elixir.$(2).beam: $(wildcard lib/$(1)/lib/*.ex) $(wildcard lib/$(1
 
 test_$(1): compile $(1)
 	@ echo "==> $(1) (ex_unit)"
-	$(Q) cd lib/$(1) && ../../bin/elixir -r "test/test_helper.exs" -pr "test/**/*_test.exs";
+	$(Q) cd lib/$(1) && ../../bin/elixir -r "test/test_helper.exs" -pr "test/**/$(TEST_FILES)";
 endef
 
 define WRITE_SOURCE_DATE_EPOCH
@@ -281,9 +282,9 @@ test_stdlib: compile
 	@ echo "==> elixir (ex_unit)"
 	$(Q) exec epmd & exit
 	$(Q) if [ "$(OS)" = "Windows_NT" ]; then \
-		cd lib/elixir && cmd //C call ../../bin/elixir.bat -r "test/elixir/test_helper.exs" -pr "test/elixir/**/*_test.exs"; \
+		cd lib/elixir && cmd //C call ../../bin/elixir.bat -r "test/elixir/test_helper.exs" -pr "test/elixir/**/$(TEST_FILES)"; \
 	else \
-		cd lib/elixir && ../../bin/elixir -r "test/elixir/test_helper.exs" -pr "test/elixir/**/*_test.exs"; \
+		cd lib/elixir && ../../bin/elixir -r "test/elixir/test_helper.exs" -pr "test/elixir/**/$(TEST_FILES)"; \
 	fi
 
 #==> Dialyzer tasks
