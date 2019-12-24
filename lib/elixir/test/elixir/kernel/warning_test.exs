@@ -1623,9 +1623,9 @@ defmodule Kernel.WarningTest do
 
   test "struct comparisons" do
     expressions = [
-      ~s(~N"2018-01-28 12:00:00"),
-      ~s(~T"12:00:00"),
-      ~s(~D"2018-01-28"),
+      ~s(~N[2018-01-28 12:00:00]),
+      ~s(~T[12:00:00]),
+      ~s(~D[2018-01-28]),
       "%File.Stat{}"
     ]
 

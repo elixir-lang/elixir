@@ -326,18 +326,23 @@ defmodule MacroTest do
     end
 
     test "sigil call" do
-      assert Macro.to_string(quote(do: ~r"123")) == ~S/~r"123"/
-      assert Macro.to_string(quote(do: ~r"123"u)) == ~S/~r"123"u/
-      assert Macro.to_string(quote(do: ~r"\n123")) == ~S/~r"\\n123"/
+      assert Macro.to_string(quote(do: ~D[2019-10-31])) == ~S/~D[2019-10-31]/
+      assert Macro.to_string(quote(do: ~T[23:00:07.0])) == ~S/~T[23:00:07.0]/
+      assert Macro.to_string(quote(do: ~N[2019-10-31 23:00:07])) == ~S/~N[2019-10-31 23:00:07]/
+      assert Macro.to_string(quote(do: ~U[2019-10-31 19:59:03Z])) == ~S/~U[2019-10-31 19:59:03Z]/
 
-      assert Macro.to_string(quote(do: ~r"1#{two}3")) == ~S/~r"1#{two}3"/
-      assert Macro.to_string(quote(do: ~r"1#{two}3"u)) == ~S/~r"1#{two}3"u/
+      assert Macro.to_string(quote(do: ~r/123/)) == ~S"~r/123/"
+      assert Macro.to_string(quote(do: ~r/123/u)) == ~S"~r/123/u"
+      assert Macro.to_string(quote(do: ~r{\n123})) == ~S"~r/\\n123/"
 
-      assert Macro.to_string(quote(do: ~R"123")) == ~S/~R"123"/
-      assert Macro.to_string(quote(do: ~R"123"u)) == ~S/~R"123"u/
-      assert Macro.to_string(quote(do: ~R"\n123")) == ~S/~R"\n123"/
+      assert Macro.to_string(quote(do: ~r"1#{two}3")) == ~S"~r/1#{two}3/"
+      assert Macro.to_string(quote(do: ~r"1#{two}3"u)) == ~S"~r/1#{two}3/u"
 
-      assert Macro.to_string(quote(do: ~S["'(123)'"])) == ~S/~S["'(123)'"]/
+      assert Macro.to_string(quote(do: ~R"123")) == ~S"~R/123/"
+      assert Macro.to_string(quote(do: ~R"123"u)) == ~S"~R/123/u"
+      assert Macro.to_string(quote(do: ~R"\n123")) == ~S"~R/\n123/"
+
+      assert Macro.to_string(quote(do: ~S{"'(123)'"})) == ~S/~S["'(123)'"]/
 
       assert Macro.to_string(
                quote do

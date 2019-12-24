@@ -1007,7 +1007,11 @@ defmodule Macro do
     false
   end
 
-  defp interpolate({:<<>>, _, parts}, fun) do
+  defp interpolate(ast, fun) do
+    interpolate(ast, {?", ?"}, fun)
+  end
+
+  defp interpolate({:<<>>, _, parts}, {front, back}, fun) do
     parts =
       Enum.map_join(parts, "", fn
         {:"::", _, [{{:., _, [Kernel, :to_string]}, _, [arg]}, {:binary, _, _}]} ->
@@ -1018,7 +1022,15 @@ defmodule Macro do
           binary_part(binary, 1, byte_size(binary) - 2)
       end)
 
-    <<?", parts::binary, ?">>
+    <<front, parts::binary, back>>
+  end
+
+  defp interpolate(ast, ?r, fun) do
+    interpolate(ast, {?/, ?/}, fun)
+  end
+
+  defp interpolate(ast, _, fun) do
+    interpolate(ast, {?(, ?)}, fun)
   end
 
   defp module_to_string(atom, _fun) when is_atom(atom) do
@@ -1091,14 +1103,15 @@ defmodule Macro do
             binary = String.replace(binary, ~s["""], ~s["\\""])
             <<?~, name, ~s["""\n], binary::binary, ~s["""], sigil_args(args, fun)::binary>>
           else
-            {left, right} = select_sigil_container(binary)
+            {left, right} = select_sigil_container(binary, name)
             <<?~, name, left, binary::binary, right, sigil_args(args, fun)::binary>>
           end
 
         {:ok, fun.(ast, formatted)}
 
       <<"sigil_", name>> when name >= ?a and name <= ?z ->
-        {:ok, fun.(ast, "~" <> <<name>> <> interpolate(parts, fun) <> sigil_args(args, fun))}
+        formatted = "~" <> <<name>> <> interpolate(parts, name, fun) <> sigil_args(args, fun)
+        {:ok, fun.(ast, formatted)}
 
       _ ->
         :error
@@ -1109,7 +1122,31 @@ defmodule Macro do
     :error
   end
 
-  defp select_sigil_container(binary) do
+  defp select_sigil_container(binary, ?R) do
+    cond do
+      :binary.match(binary, ["/", "/"]) == :nomatch -> {?/, ?/}
+      :binary.match(binary, ["[", "]"]) == :nomatch -> {?[, ?]}
+      :binary.match(binary, ["{", "}"]) == :nomatch -> {?{, ?}}
+      :binary.match(binary, ["(", ")"]) == :nomatch -> {?(, ?)}
+      :binary.match(binary, ["<", ">"]) == :nomatch -> {?<, ?>}
+      :binary.match(binary, ["\""]) == :nomatch -> {?", ?"}
+      true -> {?', ?'}
+    end
+  end
+
+  defp select_sigil_container(binary, name) when name in [?D, ?T, ?N, ?U] do
+    cond do
+      :binary.match(binary, ["[", "]"]) == :nomatch -> {?[, ?]}
+      :binary.match(binary, ["{", "}"]) == :nomatch -> {?{, ?}}
+      :binary.match(binary, ["(", ")"]) == :nomatch -> {?(, ?)}
+      :binary.match(binary, ["<", ">"]) == :nomatch -> {?<, ?>}
+      :binary.match(binary, ["\""]) == :nomatch -> {?", ?"}
+      :binary.match(binary, ["\'"]) == :nomatch -> {?', ?'}
+      true -> {?/, ?/}
+    end
+  end
+
+  defp select_sigil_container(binary, _) do
     cond do
       :binary.match(binary, ["\""]) == :nomatch -> {?", ?"}
       :binary.match(binary, ["\'"]) == :nomatch -> {?', ?'}
