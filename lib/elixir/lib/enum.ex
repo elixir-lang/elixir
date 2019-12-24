@@ -996,7 +996,8 @@ defmodule Enum do
   Similar to `find/3`, but returns the value of the function
   invocation instead of the element itself.
 
-  An element is considered to be found when the result is truthy (neither `nil` nor `false`).
+  The return value is considered to be found when the result is truthy
+  (neither `nil` nor `false`).
 
   ## Examples
 
