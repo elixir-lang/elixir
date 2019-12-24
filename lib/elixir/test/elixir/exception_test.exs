@@ -788,7 +788,7 @@ defmodule ExceptionTest do
                  # 2
                  :invalid
 
-             Attempted function clauses (showing 10 out of 24):
+             Attempted function clauses (showing 10 out of 25):
 
                  def to_string(-{var, _, context} = ast-, fun) when -is_atom(var)- and -is_atom(context)-
                  def to_string(-{:__aliases__, _, refs} = ast-, fun)
@@ -801,7 +801,7 @@ defmodule ExceptionTest do
                  def to_string(-{:fn, _, [{:->, _, [_, tuple]}] = arrow} = ast-, fun) when -not(is_tuple(tuple))- or -elem(tuple, 0) != :__block__-
                  def to_string(-{:fn, _, [{:->, _, _}] = block} = ast-, fun)
                  ...
-                 (14 clauses not shown)
+                 (15 clauses not shown)
              """
     end
 

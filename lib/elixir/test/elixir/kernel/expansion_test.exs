@@ -2541,11 +2541,11 @@ defmodule Kernel.ExpansionTest do
       expand(quote(do: foo(1)(2)))
     end
 
-    assert_raise CompileError, ~r"invalid call 1\.foo\(\)", fn ->
+    assert_raise CompileError, ~r"invalid call 1\.foo", fn ->
       expand(quote(do: 1.foo))
     end
 
-    assert_raise CompileError, ~r"invalid call 0\.foo\(\)", fn ->
+    assert_raise CompileError, ~r"invalid call 0\.foo", fn ->
       expand(quote(do: __ENV__.line.foo))
     end
 
