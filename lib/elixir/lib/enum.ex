@@ -996,7 +996,15 @@ defmodule Enum do
   Similar to `find/3`, but returns the value of the function
   invocation instead of the element itself.
 
+  The return value is considered to be found when the result is truthy
+  (neither `nil` nor `false`).
+
   ## Examples
+
+      iex> Enum.find_value([2, 3, 4], fn x ->
+      ...>   if x > 2, do: x * x
+      ...> end)
+      9
 
       iex> Enum.find_value([2, 4, 6], fn x -> rem(x, 2) == 1 end)
       nil
