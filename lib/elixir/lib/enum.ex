@@ -2332,7 +2332,7 @@ defmodule Enum do
       iex> Enum.slice(1..10, 11..20)
       []
 
-      # index_range.first is greater than index_range.last
+      # first is greater than last
       iex> Enum.slice(1..10, 6..5)
       []
 
@@ -2341,14 +2341,18 @@ defmodule Enum do
   @spec slice(t, Range.t()) :: list
   def slice(enumerable, index_range)
 
+  def slice(enumerable, first..last) when last >= first and last >= 0 do
+    slice_any(enumerable, first, last - first + 1)
+  end
+
   def slice(enumerable, first..last) do
     {count, fun} = slice_count_and_fun(enumerable)
-    corr_first = if first >= 0, do: first, else: first + count
-    corr_last = if last >= 0, do: last, else: last + count
-    amount = corr_last - corr_first + 1
+    first = if first >= 0, do: first, else: first + count
+    last = if last >= 0, do: last, else: last + count
+    amount = last - first + 1
 
-    if corr_first >= 0 and corr_first < count and amount > 0 do
-      fun.(corr_first, Kernel.min(amount, count - corr_first))
+    if first >= 0 and first < count and amount > 0 do
+      fun.(first, Kernel.min(amount, count - first))
     else
       []
     end

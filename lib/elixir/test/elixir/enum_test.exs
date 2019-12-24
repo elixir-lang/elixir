@@ -771,6 +771,13 @@ defmodule EnumTest do
     end
   end
 
+  test "slice on infinite streams" do
+    assert [1, 2, 3] |> Stream.cycle() |> Enum.slice(0, 2) == [1, 2]
+    assert [1, 2, 3] |> Stream.cycle() |> Enum.slice(0, 5) == [1, 2, 3, 1, 2]
+    assert [1, 2, 3] |> Stream.cycle() |> Enum.slice(0..1) == [1, 2]
+    assert [1, 2, 3] |> Stream.cycle() |> Enum.slice(0..4) == [1, 2, 3, 1, 2]
+  end
+
   test "sort/1" do
     assert Enum.sort([5, 3, 2, 4, 1]) == [1, 2, 3, 4, 5]
   end
