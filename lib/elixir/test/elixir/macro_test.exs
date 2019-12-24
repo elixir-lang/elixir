@@ -288,19 +288,24 @@ defmodule MacroTest do
       assert Macro.to_string(quoted) == "(foo do\n  :ok\nend).bar([1, 2, 3])"
     end
 
+    test "nullary remote call" do
+      assert Macro.to_string(quote do: foo.bar) == "foo.bar"
+      assert Macro.to_string(quote do: foo.bar()) == "foo.bar()"
+    end
+
     test "atom remote call" do
       assert Macro.to_string(quote(do: :foo.bar(1, 2, 3))) == ":foo.bar(1, 2, 3)"
     end
 
     test "remote and fun call" do
-      assert Macro.to_string(quote(do: foo.bar.(1, 2, 3))) == "foo.bar().(1, 2, 3)"
-      assert Macro.to_string(quote(do: foo.bar.([1, 2, 3]))) == "foo.bar().([1, 2, 3])"
+      assert Macro.to_string(quote(do: foo.bar().(1, 2, 3))) == "foo.bar().(1, 2, 3)"
+      assert Macro.to_string(quote(do: foo.bar().([1, 2, 3]))) == "foo.bar().([1, 2, 3])"
     end
 
     test "unusual remote atom fun call" do
       assert Macro.to_string(quote(do: Foo."42"())) == ~s/Foo."42"()/
       assert Macro.to_string(quote(do: Foo."Bar"())) == ~s/Foo."Bar"()/
-      assert Macro.to_string(quote(do: Foo."bar baz"()."")) == ~s/Foo."bar baz"().""()/
+      assert Macro.to_string(quote(do: Foo."bar baz"().""())) == ~s/Foo."bar baz"().""()/
       assert Macro.to_string(quote(do: Foo."%{}"())) == ~s/Foo."%{}"()/
       assert Macro.to_string(quote(do: Foo."..."())) == ~s/Foo."..."()/
     end

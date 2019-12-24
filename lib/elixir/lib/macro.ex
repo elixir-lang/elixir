@@ -894,6 +894,16 @@ defmodule Macro do
   end
 
   # All other calls
+  def to_string({target, meta, []} = ast, fun) do
+    target = call_to_string(target, fun)
+
+    if meta[:no_parens] do
+      fun.(ast, target)
+    else
+      fun.(ast, target <> "()")
+    end
+  end
+
   def to_string({target, _, args} = ast, fun) when is_list(args) do
     with :error <- unary_call(ast, fun),
          :error <- binary_call(ast, fun),

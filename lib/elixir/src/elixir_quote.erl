@@ -282,10 +282,11 @@ do_quote(Other, _, _) ->
 
 %% do_escape
 
-do_escape({Left, _Meta, Right}, Q, E = prune_metadata) ->
+do_escape({Left, Meta, Right}, Q, E = prune_metadata) ->
+  TM = [{K, V} || {K, V} <- Meta, (K == no_parens) orelse (K == line)],
   TL = do_quote(Left, Q, E),
   TR = do_quote(Right, Q, E),
-  {'{}', [], [TL, [], TR]};
+  {'{}', [], [TL, TM, TR]};
 
 do_escape(Tuple, Q, E) when is_tuple(Tuple) ->
   TT = do_quote(tuple_to_list(Tuple), Q, E),
