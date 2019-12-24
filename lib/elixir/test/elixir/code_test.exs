@@ -302,8 +302,8 @@ defmodule CodeTest do
                 [[do: {:__block__, [], []}]]}
     end
 
-    test "adds delimiter information to sigils" do
-      string_to_quoted = &Code.string_to_quoted!(&1, token_metadata: true)
+    test "delimiter information for sigils is included without token_metadata" do
+      string_to_quoted = &Code.string_to_quoted!(&1, token_metadata: false)
 
       assert string_to_quoted.("~r/foo/") ==
                {:sigil_r, [delimiter: "/", line: 1], [{:<<>>, [line: 1], ["foo"]}, []]}

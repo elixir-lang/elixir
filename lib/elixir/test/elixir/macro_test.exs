@@ -327,11 +327,11 @@ defmodule MacroTest do
 
     test "sigil call" do
       assert Macro.to_string(quote(do: ~r"123")) == ~S/~r"123"/
-      assert Macro.to_string(quote(do: ~r"123"u)) == ~S/~r"123"u/
-      assert Macro.to_string(quote(do: ~r"\n123")) == ~S/~r"\\n123"/
+      assert Macro.to_string(quote(do: ~r/123/u)) == ~S"~r/123/u"
+      assert Macro.to_string(quote(do: ~r{\n123})) == ~S/~r{\\n123}/
 
-      assert Macro.to_string(quote(do: ~r"1#{two}3")) == ~S/~r"1#{two}3"/
-      assert Macro.to_string(quote(do: ~r"1#{two}3"u)) == ~S/~r"1#{two}3"u/
+      assert Macro.to_string(quote(do: ~r[1#{two}3])) == ~S/~r[1#{two}3]/
+      assert Macro.to_string(quote(do: ~r'1#{two}3'u)) == ~S/~r'1#{two}3'u/
 
       assert Macro.to_string(quote(do: ~R"123")) == ~S/~R"123"/
       assert Macro.to_string(quote(do: ~R"123"u)) == ~S/~R"123"u/

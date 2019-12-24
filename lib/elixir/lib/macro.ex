@@ -1007,7 +1007,9 @@ defmodule Macro do
     false
   end
 
-  defp interpolate({:<<>>, _, parts}, fun) do
+  defp interpolate(ast, fun), do: interpolate(ast, "\"", "\"", fun)
+
+  defp interpolate({:<<>>, _, parts}, left, right, fun) do
     parts =
       Enum.map_join(parts, "", fn
         {:"::", _, [{{:., _, [Kernel, :to_string]}, _, [arg]}, {:binary, _, _}]} ->
@@ -1018,7 +1020,7 @@ defmodule Macro do
           binary_part(binary, 1, byte_size(binary) - 2)
       end)
 
-    <<?", parts::binary, ?">>
+    <<left::binary, parts::binary, right::binary>>
   end
 
   defp module_to_string(atom, _fun) when is_atom(atom) do
@@ -1080,25 +1082,25 @@ defmodule Macro do
     :error
   end
 
-  defp sigil_call({sigil, _, [{:<<>>, _, _} = parts, args]} = ast, fun)
+  defp sigil_call({sigil, meta, [{:<<>>, _, _} = parts, args]} = ast, fun)
        when is_atom(sigil) and is_list(args) do
+    delimiter = Keyword.get(meta, :delimiter, "\"")
+    {left, right} = delimiter_pair(delimiter)
+
     case Atom.to_string(sigil) do
       <<"sigil_", name>> when name >= ?A and name <= ?Z ->
         {:<<>>, _, [binary]} = parts
 
         formatted =
-          if :binary.last(binary) == ?\n do
-            binary = String.replace(binary, ~s["""], ~s["\\""])
-            <<?~, name, ~s["""\n], binary::binary, ~s["""], sigil_args(args, fun)::binary>>
-          else
-            {left, right} = select_sigil_container(binary)
-            <<?~, name, left, binary::binary, right, sigil_args(args, fun)::binary>>
-          end
+          <<?~, name, left::binary, binary::binary, right::binary, sigil_args(args, fun)::binary>>
 
         {:ok, fun.(ast, formatted)}
 
       <<"sigil_", name>> when name >= ?a and name <= ?z ->
-        {:ok, fun.(ast, "~" <> <<name>> <> interpolate(parts, fun) <> sigil_args(args, fun))}
+        formatted =
+          "~" <> <<name>> <> interpolate(parts, left, right, fun) <> sigil_args(args, fun)
+
+        {:ok, fun.(ast, formatted)}
 
       _ ->
         :error
@@ -1109,17 +1111,13 @@ defmodule Macro do
     :error
   end
 
-  defp select_sigil_container(binary) do
-    cond do
-      :binary.match(binary, ["\""]) == :nomatch -> {?", ?"}
-      :binary.match(binary, ["\'"]) == :nomatch -> {?', ?'}
-      :binary.match(binary, ["(", ")"]) == :nomatch -> {?(, ?)}
-      :binary.match(binary, ["[", "]"]) == :nomatch -> {?[, ?]}
-      :binary.match(binary, ["{", "}"]) == :nomatch -> {?{, ?}}
-      :binary.match(binary, ["<", ">"]) == :nomatch -> {?<, ?>}
-      true -> {?/, ?/}
-    end
-  end
+  defp delimiter_pair("["), do: {"[", "]"}
+  defp delimiter_pair("{"), do: {"{", "}"}
+  defp delimiter_pair("("), do: {"(", ")"}
+  defp delimiter_pair("<"), do: {"<", ">"}
+  defp delimiter_pair("\"\"\""), do: {"\"\"\"\n", "\"\"\""}
+  defp delimiter_pair("'''"), do: {"'''\n", "'''"}
+  defp delimiter_pair(str), do: {str, str}
 
   defp sigil_args([], _fun), do: ""
   defp sigil_args(args, fun), do: fun.(args, List.to_string(args))
