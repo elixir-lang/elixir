@@ -107,61 +107,25 @@ defmodule ExUnit.Assertions do
   defmacro assert({:=, meta, [left, right]} = assertion) do
     code = escape_quoted(:assert, meta, assertion)
 
-    left = __expand_pattern__(left, __CALLER__)
-    vars = collect_vars_from_pattern(left)
-    pins = collect_pins_from_pattern(left, Macro.Env.vars(__CALLER__))
-
     # If the match works, we need to check if the value
     # is not nil nor false. We need to rewrite the if
     # to avoid silly warnings though.
-    return =
-      if meta[:skip_boolean_assert] do
-        quote do
-          :ok
-        end
-      else
-        suppress_warning(
-          quote do
-            case right do
-              x when x in [nil, false] ->
-                raise ExUnit.AssertionError,
-                  expr: expr,
-                  message: "Expected truthy, got #{inspect(right)}"
-
-              _ ->
-                :ok
-            end
-          end
-        )
-      end
-
-    match_expr =
+    check =
       suppress_warning(
         quote do
           case right do
-            unquote(left) ->
-              unquote(return)
-              unquote(vars)
+            x when x in [nil, false] ->
+              raise ExUnit.AssertionError,
+                expr: expr,
+                message: "Expected truthy, got #{inspect(right)}"
 
             _ ->
-              left = unquote(Macro.escape(left))
-
-              raise ExUnit.AssertionError,
-                left: left,
-                right: right,
-                expr: expr,
-                message: "match (=) failed" <> ExUnit.Assertions.__pins__(unquote(pins)),
-                context: {:match, unquote(pins)}
+              :ok
           end
         end
       )
 
-    quote do
-      right = unquote(right)
-      expr = unquote(code)
-      unquote(vars) = unquote(match_expr)
-      right
-    end
+    __match__(left, right, code, check, __CALLER__)
   end
 
   defmacro assert({:match?, meta, [left, right]} = assertion) do
@@ -344,8 +308,7 @@ defmodule ExUnit.Assertions do
   end
 
   defp escape_quoted(kind, meta, expr) do
-    to_escape = if meta[:skip_assert_in_code], do: expr, else: {kind, [], [expr]}
-    Macro.escape(to_escape, prune_metadata: true)
+    Macro.escape({kind, meta, [expr]}, prune_metadata: true)
   end
 
   defp extract_args({root, meta, [_ | _] = args} = expr, env) do
@@ -375,6 +338,41 @@ defmodule ExUnit.Assertions do
 
   defp extract_args(expr, _env) do
     {ExUnit.AssertionError.no_value(), expr}
+  end
+
+  @doc false
+  def __match__(left, right, code, check, caller) do
+    left = __expand_pattern__(left, caller)
+    vars = collect_vars_from_pattern(left)
+    pins = collect_pins_from_pattern(left, Macro.Env.vars(caller))
+
+    match_expr =
+      suppress_warning(
+        quote do
+          case right do
+            unquote(left) ->
+              unquote(check)
+              unquote(vars)
+
+            _ ->
+              left = unquote(Macro.escape(left))
+
+              raise ExUnit.AssertionError,
+                left: left,
+                right: right,
+                expr: expr,
+                message: "match (=) failed" <> ExUnit.Assertions.__pins__(unquote(pins)),
+                context: {:match, unquote(pins)}
+          end
+        end
+      )
+
+    quote do
+      right = unquote(right)
+      expr = unquote(code)
+      unquote(vars) = unquote(match_expr)
+      right
+    end
   end
 
   ## END HELPERS

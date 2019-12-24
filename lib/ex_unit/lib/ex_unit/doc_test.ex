@@ -857,15 +857,19 @@ defmodule ExUnit.DocTest do
   defp insert_assertions(ast),
     do: insert_match_assertion(ast)
 
-  @match_meta [skip_assert_in_code: true, skip_boolean_assert: true]
-
   defp insert_match_assertion({:=, _, [{var, _, context}, _]} = ast)
        when is_atom(var) and is_atom(context),
        do: ast
 
   defp insert_match_assertion({:=, meta, [left, right]}),
-    do: {:assert, meta, [{:=, @match_meta ++ meta, [left, right]}]}
+    do: {{:., meta, [__MODULE__, :__assert__]}, meta, [{:=, meta, [left, right]}]}
 
   defp insert_match_assertion(ast),
     do: ast
+
+  @doc false
+  defmacro __assert__({:=, _, [left, right]} = assertion) do
+    code = Macro.escape(assertion, prune_metadata: true)
+    ExUnit.Assertions.__match__(left, right, code, :ok, __CALLER__)
+  end
 end
