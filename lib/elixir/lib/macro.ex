@@ -1020,8 +1020,17 @@ defmodule Macro do
           binary_part(binary, 1, byte_size(binary) - 2)
       end)
 
-    <<left::binary, parts::binary, right::binary>>
+    escaped = escape_sigil(parts, left)
+    <<left::binary, escaped::binary, right::binary>>
   end
+
+  def escape_sigil(parts, "("), do: String.replace(parts, ")", ~S"\)")
+  def escape_sigil(parts, "{"), do: String.replace(parts, "}", ~S"\}")
+  def escape_sigil(parts, "["), do: String.replace(parts, "]", ~S"\]")
+  def escape_sigil(parts, "<"), do: String.replace(parts, ">", ~S"\>")
+  def escape_sigil(parts, "\"\"\"\n"), do: parts
+  def escape_sigil(parts, "'''\n"), do: parts
+  def escape_sigil(parts, delimiter), do: String.replace(parts, delimiter, "\\#{delimiter}")
 
   defp module_to_string(atom, _fun) when is_atom(atom) do
     inspect_no_limit(atom)
@@ -1089,17 +1098,22 @@ defmodule Macro do
 
     case Atom.to_string(sigil) do
       <<"sigil_", name>> when name >= ?A and name <= ?Z ->
+        args = sigil_args(args, fun)
         {:<<>>, _, [binary]} = parts
 
-        formatted =
-          <<?~, name, left::binary, binary::binary, right::binary, sigil_args(args, fun)::binary>>
+        binary =
+          if delimiter in [~s["""], ~s[''']] do
+            String.replace(binary, ~s["""], ~s["\\""])
+          else
+            binary
+          end
 
+        formatted = <<?~, name, left::binary, binary::binary, right::binary, args::binary>>
         {:ok, fun.(ast, formatted)}
 
       <<"sigil_", name>> when name >= ?a and name <= ?z ->
-        formatted =
-          "~" <> <<name>> <> interpolate(parts, left, right, fun) <> sigil_args(args, fun)
-
+        args = sigil_args(args, fun)
+        formatted = "~" <> <<name>> <> interpolate(parts, left, right, fun) <> args
         {:ok, fun.(ast, formatted)}
 
       _ ->
