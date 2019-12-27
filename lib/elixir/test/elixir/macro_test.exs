@@ -348,10 +348,34 @@ defmodule MacroTest do
       assert Macro.to_string(
                quote do
                  ~s"""
+                 "\""foo"\""
+                 """
+               end
+             ) == ~s[~s"""\n"\\""foo"\\""\n"""]
+
+      assert Macro.to_string(
+               quote do
+                 ~s'''
+                 '\''foo'\''
+                 '''
+               end
+             ) == ~s[~s'''\n'\\''foo'\\''\n''']
+
+      assert Macro.to_string(
+               quote do
+                 ~s"""
                  "\"foo\""
                  """
                end
              ) == ~s[~s"""\n"\\"foo\\""\n"""]
+
+      assert Macro.to_string(
+               quote do
+                 ~s'''
+                 '\"foo\"'
+                 '''
+               end
+             ) == ~s[~s'''\n'\\"foo\\"'\n''']
 
       assert Macro.to_string(
                quote do

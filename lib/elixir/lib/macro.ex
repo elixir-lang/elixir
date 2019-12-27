@@ -1009,6 +1009,10 @@ defmodule Macro do
 
   defp interpolate(ast, fun), do: interpolate(ast, "\"", "\"", fun)
 
+  defp interpolate({:<<>>, _, [parts]}, left, right, _) when left in [~s["""\n], ~s['''\n]] do
+    <<left::binary, parts::binary, right::binary>>
+  end
+
   defp interpolate({:<<>>, _, parts}, left, right, fun) do
     parts =
       Enum.map_join(parts, "", fn
@@ -1028,8 +1032,6 @@ defmodule Macro do
   def escape_sigil(parts, "{"), do: String.replace(parts, "}", ~S"\}")
   def escape_sigil(parts, "["), do: String.replace(parts, "]", ~S"\]")
   def escape_sigil(parts, "<"), do: String.replace(parts, ">", ~S"\>")
-  def escape_sigil(parts, "\"\"\"\n"), do: parts
-  def escape_sigil(parts, "'''\n"), do: parts
   def escape_sigil(parts, delimiter), do: String.replace(parts, delimiter, "\\#{delimiter}")
 
   defp module_to_string(atom, _fun) when is_atom(atom) do
@@ -1100,14 +1102,6 @@ defmodule Macro do
       <<"sigil_", name>> when name >= ?A and name <= ?Z ->
         args = sigil_args(args, fun)
         {:<<>>, _, [binary]} = parts
-
-        binary =
-          if delimiter in [~s["""], ~s[''']] do
-            String.replace(binary, ~s["""], ~s["\\""])
-          else
-            binary
-          end
-
         formatted = <<?~, name, left::binary, binary::binary, right::binary, args::binary>>
         {:ok, fun.(ast, formatted)}
 
