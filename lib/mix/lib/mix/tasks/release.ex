@@ -431,12 +431,55 @@ defmodule Mix.Tasks.Release do
             ]
           ]
 
+    * `:overlays` - a directory with extra files to be copied as is to the
+      release. See the "Overlays" section for more information. Defaults to
+      "rel/overlays" if said directory exists.
+
     * `:steps` - a list of steps to execute when assembling the release. See
       the "Steps" section for more information.
 
   Besides the options above, it is possible to customize the generated
-  release with custom template files or by tweaking the release steps.
-  We will detail both approaches next.
+  release with custom files, by tweaking the release steps or by running
+  custom options and commands on boot. We will detail both approaches next.
+
+  ### Overlays
+
+  Often it is necessary to copy extra files to the release root after
+  the release is assembled. This can be easily done by placing such
+  files in the `rel/overlays` directory. Any file in there is copied
+  as is to the release root. For example, if you have place a
+  "rel/overlays/Dockerfile" file, the "Dockerfile" will be copied as
+  is to the release root. If you need to copy files dynamically, see
+  the "Steps" section.
+
+  ### Steps
+
+  It is possible to add one or more steps before and after the release is
+  assembled. This can be done with the `:steps` option:
+
+      releases: [
+        demo: [
+          steps: [&set_configs/1, :assemble, &copy_extra_files/1]
+        ]
+      ]
+
+  The `:steps` option must be a list and it must always include the
+  atom `:assemble`, which does most of the release assembling. You
+  can pass anonymous functions before and after the `:assemble` to
+  customize your release assembling pipeline. Those anonymous functions
+  will receive a `Mix.Release` struct and must return the same or
+  an updated `Mix.Release` struct. It is also possible to build a tarball
+  of the release by passing the `:tar` step anywhere after `:assemble`.
+  The tarball is created in `_build/MIX_ENV/RELEASE_NAME-RELEASE_VSN.tar.gz`
+
+  See `Mix.Release` for more documentation on the struct and which
+  fields can be modified. Note that `:steps` field itself can be
+  modified and it is updated every time a step is called. Therefore,
+  if you need to execute a command before and after assembling the
+  release, you only need to declare the first steps in your pipeline
+  and then inject the last step into the release struct. The steps
+  field can also be used to verify if the step was set before or
+  after assembling the release.
 
   ### vm.args and env.sh (env.bat)
 
@@ -488,35 +531,6 @@ defmodule Mix.Tasks.Release do
       IF NOT %RELEASE_COMMAND:start=%==%RELEASE_COMMAND% (
         set ELIXIR_ERL_OPTIONS="-kernel inet_dist_listen_min %BEAM_PORT% inet_dist_listen_max %BEAM_PORT%"
       )
-
-  ### Steps
-
-  It is possible to add one or more steps before and after the release is
-  assembled. This can be done with the `:steps` option:
-
-      releases: [
-        demo: [
-          steps: [&set_configs/1, :assemble, &copy_extra_files/1]
-        ]
-      ]
-
-  The `:steps` option must be a list and it must always include the
-  atom `:assemble`, which does most of the release assembling. You
-  can pass anonymous functions before and after the `:assemble` to
-  customize your release assembling pipeline. Those anonymous functions
-  will receive a `Mix.Release` struct and must return the same or
-  an updated `Mix.Release` struct. It is also possible to build a tarball
-  of the release by passing the `:tar` step anywhere after `:assemble`.
-  The tarball is created in `_build/MIX_ENV/RELEASE_NAME-RELEASE_VSN.tar.gz`
-
-  See `Mix.Release` for more documentation on the struct and which
-  fields can be modified. Note that `:steps` field itself can be
-  modified and it is updated every time a step is called. Therefore,
-  if you need to execute a command before and after assembling the
-  release, you only need to declare the first steps in your pipeline
-  and then inject the last step into the release struct. The steps
-  field can also be used to verify if the step was set before or
-  after assembling the release.
 
   ## Application configuration
 
@@ -1029,7 +1043,7 @@ defmodule Mix.Tasks.Release do
     |> Task.async_stream(&copy(&1, release), ordered: false, timeout: :infinity)
     |> Stream.run()
 
-    release
+    copy_overlays(release)
   end
 
   defp make_tar(release) do
@@ -1055,6 +1069,7 @@ defmodule Mix.Tasks.Release do
     files =
       dirs
       |> Enum.filter(&File.exists?(Path.join(release.path, &1)))
+      |> Kernel.++(release.overlays)
       |> Enum.map(&{String.to_charlist(&1), String.to_charlist(Path.join(release.path, &1))})
 
     File.rm(out_path)
@@ -1200,6 +1215,38 @@ defmodule Mix.Tasks.Release do
 
   defp skipping(message) do
     Mix.shell().info([:yellow, "* skipping ", :reset, message])
+  end
+
+  ## Overlays
+
+  defp copy_overlays(release) do
+    target = release.path
+    overlays = release.options[:overlays]
+
+    copied =
+      cond do
+        is_nil(overlays) and File.dir?("rel/overlays") ->
+          File.cp_r!("rel/overlays", target)
+
+        is_nil(overlays) ->
+          []
+
+        is_binary(overlays) and File.dir?(overlays) ->
+          File.cp_r!(overlays, target)
+
+        true ->
+          Mix.raise(
+            ":overlays release configuration must be a string pointing to an existing directory, " <>
+              "got: #{inspect(overlays)}"
+          )
+      end
+
+    relative =
+      copied
+      |> List.delete(target)
+      |> Enum.map(&Path.relative_to(&1, target))
+
+    update_in(release.overlays, &(relative ++ &1))
   end
 
   ## Copy operations

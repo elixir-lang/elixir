@@ -9,7 +9,7 @@ defmodule Mix.Tasks.ReleaseTest do
   defmacrop release_node(name), do: :"#{name}@#{@hostname}"
 
   describe "customize" do
-    test "rel with EEx" do
+    test "env and vm.args with EEx" do
       in_fixture("release_test", fn ->
         Mix.Project.in_project(:release_test, ".", fn _ ->
           File.mkdir_p!("rel")
@@ -32,74 +32,6 @@ defmodule Mix.Tasks.ReleaseTest do
 
           assert root |> Path.join("releases/0.1.0/vm.args") |> File.read!() ==
                    "rel/vm.args.eex FOR release_test\n"
-        end)
-      end)
-    end
-
-    test "tar" do
-      in_fixture("release_test", fn ->
-        config = [releases: [demo: [steps: [:assemble, :tar]]]]
-
-        Mix.Project.in_project(:release_test, ".", config, fn _ ->
-          root = Path.absname("_build/#{Mix.env()}/rel/demo")
-
-          ignored_app_path = Path.join([root, "lib", "ignored_app-0.1.0", "ebin"])
-          File.mkdir_p!(ignored_app_path)
-          File.touch(Path.join(ignored_app_path, "ignored_app.app"))
-
-          ignored_release_path = Path.join([root, "releases", "ignored_dir"])
-          File.mkdir_p!(ignored_release_path)
-          File.touch(Path.join(ignored_release_path, "ignored"))
-
-          Mix.Task.run("release")
-          tar_path = Path.expand(Path.join([root, "..", "..", "demo-0.1.0.tar.gz"]))
-          message = "* building #{tar_path}"
-          assert_received {:mix_shell, :info, [^message]}
-          assert File.exists?(tar_path)
-
-          {:ok, files} = String.to_charlist(tar_path) |> :erl_tar.table([:compressed])
-
-          files = Enum.map(files, &to_string/1)
-          files_with_versions = File.ls!(Path.join(root, "lib"))
-
-          assert "bin/demo" in files
-          assert "releases/0.1.0/sys.config" in files
-          assert "releases/0.1.0/vm.args" in files
-          assert "releases/COOKIE" in files
-          assert "releases/start_erl.data" in files
-          assert Enum.any?(files, &(&1 =~ "erts"))
-          assert Enum.any?(files, &(&1 =~ "stdlib"))
-
-          for dir <- files_with_versions -- ["ignored_app-0.1.0"] do
-            [name | _] = String.split(dir, "-")
-            assert "lib/#{dir}/ebin/#{name}.app" in files
-          end
-
-          refute "lib/ignored_app-0.1.0/ebin/ignored_app.app" in files
-          refute "releases/ignored_dir/ignored" in files
-        end)
-      end)
-    end
-
-    test "tar without ERTS" do
-      in_fixture("release_test", fn ->
-        config = [releases: [demo: [include_erts: false, steps: [:assemble, :tar]]]]
-
-        Mix.Project.in_project(:release_test, ".", config, fn _ ->
-          root = Path.absname("_build/#{Mix.env()}/rel/demo")
-
-          Mix.Task.run("release")
-          tar_path = Path.expand(Path.join([root, "..", "..", "demo-0.1.0.tar.gz"]))
-          message = "* building #{tar_path}"
-          assert_received {:mix_shell, :info, [^message]}
-          assert File.exists?(tar_path)
-
-          {:ok, files} = String.to_charlist(tar_path) |> :erl_tar.table([:compressed])
-          files = Enum.map(files, &to_string/1)
-
-          assert "bin/demo" in files
-          refute Enum.any?(files, &(&1 =~ "erts"))
-          refute Enum.any?(files, &(&1 =~ "stdlib"))
         end)
       end)
     end
@@ -149,6 +81,130 @@ defmodule Mix.Tasks.ReleaseTest do
           refute root |> Path.join("releases/0.1.0/elixir.bat") |> File.exists?()
           refute root |> Path.join("releases/0.1.0/iex") |> File.exists?()
           refute root |> Path.join("releases/0.1.0/iex.bat") |> File.exists?()
+        end)
+      end)
+    end
+
+    test "default overlays" do
+      in_fixture("release_test", fn ->
+        Mix.Project.in_project(:release_test, ".", fn _ ->
+          File.mkdir_p!("rel/overlays/empty/directory")
+          File.write!("rel/overlays/hello", "world")
+
+          root = Path.absname("_build/dev/rel/release_test")
+          Mix.Task.run("release")
+
+          assert root |> Path.join("empty/directory") |> File.dir?()
+          assert root |> Path.join("hello") |> File.read!() == "world"
+        end)
+      end)
+    end
+
+    test "custom overlays" do
+      in_fixture("release_test", fn ->
+        config = [releases: [release_test: [overlays: "rel/another"]]]
+
+        Mix.Project.in_project(:release_test, ".", config, fn _ ->
+          assert_raise Mix.Error, ~r"a string pointing to an existing directory", fn ->
+            Mix.Task.run("release", ["--overwrite"])
+          end
+
+          File.mkdir_p!("rel/another/empty/directory")
+          File.write!("rel/another/hello", "world")
+
+          root = Path.absname("_build/dev/rel/release_test")
+          Mix.Task.rerun("release", ["--overwrite"])
+
+          assert root |> Path.join("empty/directory") |> File.dir?()
+          assert root |> Path.join("hello") |> File.read!() == "world"
+        end)
+      end)
+    end
+  end
+
+  describe "errors" do
+    test "requires a matching name" do
+      in_fixture("release_test", fn ->
+        Mix.Project.in_project(:release_test, ".", fn _ ->
+          assert_raise Mix.Error, ~r"Unknown release :unknown", fn ->
+            Mix.Task.run("release", ["unknown"])
+          end
+        end)
+      end)
+    end
+  end
+
+  describe "tar" do
+    test "with ERTS" do
+      in_fixture("release_test", fn ->
+        config = [releases: [demo: [steps: [:assemble, :tar]]]]
+
+        Mix.Project.in_project(:release_test, ".", config, fn _ ->
+          root = Path.absname("_build/#{Mix.env()}/rel/demo")
+
+          ignored_app_path = Path.join([root, "lib", "ignored_app-0.1.0", "ebin"])
+          File.mkdir_p!(ignored_app_path)
+          File.touch(Path.join(ignored_app_path, "ignored_app.app"))
+
+          ignored_release_path = Path.join([root, "releases", "ignored_dir"])
+          File.mkdir_p!(ignored_release_path)
+          File.touch(Path.join(ignored_release_path, "ignored"))
+
+          # Overlays
+          File.mkdir_p!("rel/overlays/empty/directory")
+          File.write!("rel/overlays/hello", "world")
+
+          Mix.Task.run("release")
+          tar_path = Path.expand(Path.join([root, "..", "..", "demo-0.1.0.tar.gz"]))
+          message = "* building #{tar_path}"
+          assert_received {:mix_shell, :info, [^message]}
+          assert File.exists?(tar_path)
+
+          {:ok, files} = String.to_charlist(tar_path) |> :erl_tar.table([:compressed])
+
+          files = Enum.map(files, &to_string/1)
+          files_with_versions = File.ls!(Path.join(root, "lib"))
+
+          assert "bin/demo" in files
+          assert "releases/0.1.0/sys.config" in files
+          assert "releases/0.1.0/vm.args" in files
+          assert "releases/COOKIE" in files
+          assert "releases/start_erl.data" in files
+          assert "hello" in files
+          assert "empty/directory" in files
+          assert Enum.any?(files, &(&1 =~ "erts"))
+          assert Enum.any?(files, &(&1 =~ "stdlib"))
+
+          for dir <- files_with_versions -- ["ignored_app-0.1.0"] do
+            [name | _] = String.split(dir, "-")
+            assert "lib/#{dir}/ebin/#{name}.app" in files
+          end
+
+          refute "lib/ignored_app-0.1.0/ebin/ignored_app.app" in files
+          refute "releases/ignored_dir/ignored" in files
+        end)
+      end)
+    end
+
+    test "without ERTS" do
+      in_fixture("release_test", fn ->
+        config = [releases: [demo: [include_erts: false, steps: [:assemble, :tar]]]]
+
+        Mix.Project.in_project(:release_test, ".", config, fn _ ->
+          root = Path.absname("_build/#{Mix.env()}/rel/demo")
+
+          Mix.Task.run("release")
+          tar_path = Path.expand(Path.join([root, "..", "..", "demo-0.1.0.tar.gz"]))
+          message = "* building #{tar_path}"
+          assert_received {:mix_shell, :info, [^message]}
+          assert File.exists?(tar_path)
+
+          {:ok, files} = String.to_charlist(tar_path) |> :erl_tar.table([:compressed])
+          files = Enum.map(files, &to_string/1)
+
+          assert "bin/demo" in files
+          refute Enum.any?(files, &(&1 =~ "erts"))
+          refute Enum.any?(files, &(&1 =~ "stdlib"))
         end)
       end)
     end
@@ -551,16 +607,6 @@ defmodule Mix.Tasks.ReleaseTest do
 
         Mix.Task.rerun("release", ["--overwrite"])
         assert_received {:mix_shell, :info, ["* assembling release_test-0.1.0 on MIX_ENV=dev"]}
-      end)
-    end)
-  end
-
-  test "requires a matching name" do
-    in_fixture("release_test", fn ->
-      Mix.Project.in_project(:release_test, ".", fn _ ->
-        assert_raise Mix.Error, ~r"Unknown release :unknown", fn ->
-          Mix.Task.run("release", ["unknown"])
-        end
       end)
     end)
   end
