@@ -346,7 +346,7 @@ defmodule Mix.Tasks.Release do
 
   ### Options
 
-  The following options can be set inside your mix.exs on each release definition:
+  The following options can be set inside your `mix.exs` on each release definition:
 
     * `:applications` - a keyword list that configures and adds new applications
       to the release. The key is the application name and the value is one of:
@@ -437,6 +437,15 @@ defmodule Mix.Tasks.Release do
 
     * `:steps` - a list of steps to execute when assembling the release. See
       the "Steps" section for more information.
+
+  Note each release definition can be given as an anonymous function. This
+  is useful if some release attributes are expensive to compute:
+
+      releases: [
+        demo: fn ->
+          [version: @version <> "+" <> git_ref()]
+        end
+      ]
 
   Besides the options above, it is possible to customize the generated
   release with custom files, by tweaking the release steps or by running
