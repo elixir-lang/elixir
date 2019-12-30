@@ -88,7 +88,7 @@ Finally, as consequence of these improvements, some functionality related to `xr
 
 The calendar data types got many improvements, such as sigil support for third-party calendars, as well as the additions of `DateTime.now!/2`, `DateTime.shift_zone!/3`, and `NaiveDateTime.local_now/0`.
 
-There are many improvements related to the Elixir AST in this release too. First of all, `Code.string_to_quoted/2` has two new options, `:token_metadata` and `:literal_encoder`, which gives more control over Elixir's parser. This information has already been available to the Elixir formatter for a couple versions and has now been made public. Furthermore, all public metadata entries in the AST nodes have been extensively documented. These changes alongside the compiler improvements from previous section means tools like Credo and Boundary now have a better foundation to analyze the source code.
+There are many improvements related to the Elixir AST in this release too. First of all, `Code.string_to_quoted/2` has two new options, `:token_metadata` and `:literal_encoder`, that give more control over Elixir's parser. This information has already been available to the Elixir formatter for a couple versions and has now been made public. Furthermore, all public metadata entries in the AST nodes have been extensively documented. These changes alongside the compiler improvements from previous section means tools like Credo and Boundary now have a better foundation to analyze the source code.
 
 Finally, ExUnit comes with two but important improvements: `ExUnit.CaptureIO` can now be used in tests that run asynchronously and we have added "data-structure diffing" when performing assertions with pattern matching.
 
