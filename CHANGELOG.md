@@ -1,8 +1,98 @@
 # Changelog for Elixir v1.10
 
-## v1.10.0-dev
+## Support for Erlang/OTP 21+
 
-Elixir v1.10 requires Erlang/OTP 21+.
+Elixir v1.10 requires Erlang/OTP 21+, allowing Elixir to integrate with Erlang/OTP's new logger. Currently, this means that the logger level, logger metadata, as well as all log messages are now shared between Erlang and Elixir APIs.
+
+We will continue improving the relationship between the logging systems in future releases. In particular, we plan to expose all log levels and runtime filtering functionalities available in Erlang directly into Elixir in the next Elixir version.
+
+This release also adds two new guards, `is_struct/1` and `is_map_key/2`, thanks to the strict requirement on Erlang/OTP 21+.
+
+## Releases improvements
+
+Elixir v1.9 introduced releases as a mechanism to package self-contained applications. Elixir v1.10 further improves releases with bug fixes and new enhancements based on feedback we got from the community. The highlights are:
+
+  * Allow the dual boot system of releases to be disabled on environments that are boot-time sensitive, such as embedded devices
+
+  * Track and raise if compile-time configuration is set or changes at runtime (more in the next section)
+
+  * Support for easily adding extra files to releases via overlays
+
+  * Allow `RELEASE_DISTRIBUTION` to be set to `none` in order to fully disable it
+
+  * Add a built-in `:tar` step that automatically packages releases
+
+See the full CHANGELOG for more improvements.
+
+## Improvements to sort-based APIs in Enum
+
+`Enum.sort/1` in Elixir always sorts from lowest to highest. If you want to sort from highest to lowest, you need to call `Enum.sort/2` with a custom sorting function, such as `Enum.sort(collection, &>=/2)`, which is not immediately obvious to someone reading the code.
+
+To make matters worse, comparison operators, such as `<=` and `>=`, perform structural sorting, instead of a semantic one. For example, using `>=` to sort dates descendinglly won't yield the correct result. Therefore, to sort dates from more recent to oldest, one has to write `Enum.sort(dates, &(Date.compare(&1, &2) != :lt))`.
+
+Elixir v1.10 streamlines the sorting functions by introducing both `:asc` and `:desc` shortcuts:
+
+    Enum.sort(collection, :asc) # the default
+    Enum.sort(collection, :desc) # in reverse
+
+Furthermore, if you want to perform semantic comparison, you can pass a module that provides the relevant comparison function. For example, to sort dates:
+
+    Enum.sort(birth_dates, Date)
+    Enum.sort(birth_dates, {:asc, Date})
+    Enum.sort(birth_dates, {:desc, Date})
+
+This new API has also been added to `Enum.sort_by`, `Enum.min_by`, `Enum.max_by`, and friends.
+
+### Compile-time tracking of compile-time configuration
+
+All applications in Elixir come with an application environment. This environment is a key-value store that allows us to configure said application. While reading the application environment at runtime is the preferred approach, in some rare occasions you may want to use the application environment to configure the compilation of a certain project. This is often done by calling `Application.get_env/3` outside of a function:
+
+    defmodule MyApp.DBClient do
+      @db_host Application.get_env(:my_app, :db_host, "db.local")
+
+      def start_link() do
+        SomeLib.DBClient.start_link(host: @db_host)
+      end
+    end
+
+This approach has one big limitation: if you change the value of the application environment after the code is compiled, the value used at runtime is not going to change! For example, if you are using `mix release` and your `config/releases.exs` has:
+
+    config :my_app, :db_host, "db.production"
+
+This value will no effect as the code was compiled to connect to "db.local", which is mostly likely unavailable in the production environment.
+
+For those reasons, reading the application environment at runtime should be the first choice. However, if you really have to read the application environment during compilation, Elixir v1.10 introduces a `Application.compile_env/3` function:
+
+    @db_host Application.compile_env(:my_app, :db_host, "db.local")
+
+By using `compile_env/3`, Elixir will store the values used during compilation and compare the compilation values with the runtime values whenever your system starts, raising an error in case they differ. This helps developers ensure they are running their production systems with the configuration they intend to.
+
+### Compiler tracing
+
+This release brings enhancements to the Elixir compiler and adds new capabilities for developers to listen to compilation events.
+
+In previous Elixir releases, Elixir would compile a database of cross references between modules (such as function calls, references, structs, etc) for each project. Although developers could traverse this database, they often requested more events or more information to be made available.
+
+In Elixir v1.10, we have replaced this database by compiler tracing. This means that developers can now directly listen to events emitted by the compiler to store and collect all the information they need (and only the information they need).
+
+Elixir itself is already using the new compiler tracing to provide new functionality. In particular, the compiler now checks for undefined function warnings more consistently. In previous versions, we would emit undefined function warnings only for files in `lib`, skipping test files and scripts.
+
+Furthermore, in Elixir v1.10 developers can now disable undefined function warnings directly on the callsite. For example, imagine you have an optional dependency which may not be available in some cases. You can tell the compiler to skip warning on calls to optional modules with:
+
+    @compile {:no_warn_undefined, OptionalDependency}
+    defdelegate my_function_call(arg), to: OptionalDependency
+
+Finally, as consequence of these improvements, some functionality related to `xref` (our previous database), has been deprecated.
+
+### Other enhancements
+
+The calendar data types got many improvements, such as sigil support for third-party calendars, as well as the additions of `DateTime.now!/2`, `DateTime.shift_zone!/3`, and `NaiveDateTime.local_now/0`.
+
+There are many improvements related to the Elixir AST in this release too. First of all, `Code.string_to_quoted/2` has two new options, `:token_metadata` and `:literal_encoder`, which gives more control over Elixir's parser. This information has already been available to the Elixir formatted for a couple versions and has now been made public. Furthermore, all public metadata entries in the AST nodes have been extensively documented. These changes alongside the compiler improvements from previous section means tools like Credo and Boundary now have a better foundation to analyze the source code.
+
+Finally, ExUnit comes with two but important improvements: `ExUnit.CaptureIO` can now be used in tests that run asynchronously and we have added "data-structure diffing" when performing assertions with pattern matching.
+
+## v1.10.0
 
 ### 1. Enhancements
 
@@ -14,7 +104,7 @@ Elixir v1.10 requires Erlang/OTP 21+.
   * [CLI] Add support for `NO_COLOR` environment variable
   * [Code] Add `:token_metadata` and `:literal_encoder` support to `Code.string_to_quoted/2`
   * [Code] Add compiler tracing to lift events done by the compiler
-  * [Code] Return `{:error, :unavalable}` in `Code.ensure_compiled/1` if module is in a deadlock
+  * [Code] Return `{:error, :unavailable}` in `Code.ensure_compiled/1` if module is in a deadlock
   * [DateTime] Add `DateTime.now!/2` and `DateTime.shift_zone!/3`
   * [Enum] Speed up getting one random element from enumerables
   * [Enum] Add `Enum.frequencies/1`, `Enum.frequencies_by/2`, and `Enum.map_intersperse/2`
@@ -41,6 +131,11 @@ Elixir v1.10 requires Erlang/OTP 21+.
   * [ExUnit.Assertions] Support diffs in pattern matching and in `assert_receive`
   * [ExUnit.CaptureIO] Supports capturing named devices in asynchronous tests
 
+#### IEx
+
+  * [IEx] Warn on circular file imports when loading default `.iex.exs`
+  * [IEx] Allow customization of the continuation prompt on IEx
+
 #### Logger
 
   * [Logger] Allow `start_options` to be configured on Logger's GenEvent
@@ -57,18 +152,20 @@ Elixir v1.10 requires Erlang/OTP 21+.
   * [Mix.Project] Add `Mix.Project.deps_scms/1` that returns deps with their SCMs
   * [Mix.Task] Add `Mix.Task.Compiler.after_compiler/2` callback, to simplify compilers that may need to run something at multiple steps
 
-#### IEx
-
-  * [IEx] Warn on circular file imports when loading default `.iex.exs`
-
 ### 2. Bug fixes
+
+#### EEx
+
+  * [EEx] Ensure multiline do/end with no spaces compile under trim mode
 
 #### Elixir
 
+  * [Enum] Allow positive range slices on infinite streams given to `Enum.slice/2`
   * [Kernel] Raise error on functions/guards without implementation
   * [Keyword] Ensure keyword replace and update preserve order
   * [Module] Raise instead of silently failing when performing a write module operation during after-compile
   * [Stream] Close with correct accumulator in `Stream.resource/3` when called for a single-element list
+  * [Stream] Allow `Stream.cycle/1` to be double nested inside `Stream.cycle/1`
   * [URI] Preserve slashes in URIs without authority
 
 #### IEx

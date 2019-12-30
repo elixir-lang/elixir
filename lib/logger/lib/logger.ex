@@ -126,8 +126,6 @@ defmodule Logger do
       to the configured value at compilation time. This configuration is
       automatically set by Mix and made available as metadata when logging.
 
-
-
     * `:compile_time_purge_matching` - purges *at compilation time* all calls
       that match the given conditions. This means that `Logger` calls with
       level lower than this option will be completely removed at compile time,
@@ -442,8 +440,8 @@ defmodule Logger do
   ### Erlang/OTP handlers
 
   While Elixir Logger provides backends, Erlang/OTP logger provides handlers.
-  Conceptually, they represent the same concept, which is the ability to
-  integrate into the logging system to handle each logged message/event.
+  They represent the same concept: the ability to integrate into the logging
+  system to handle each logged message/event.
 
   However, implementation-wise, they have the following differences:
 
@@ -459,10 +457,11 @@ defmodule Logger do
       is no built-in overload protection for Erlang handlers, so it is your
       responsibility to implement it
 
-  The good news is that developers can use third-party implementations for
+  The good news is that developers can use third-party implementations of
   both Elixir backends and Erlang handlers.
 
-  Elixir backends can be configured directly in your config/config.exs:
+  Elixir backends can be configured directly under the `:logger` application
+  in your `config/config.exs`:
 
       config :logger, backends: [ACustomBackend]
 
@@ -476,12 +475,12 @@ defmodule Logger do
       :logger.add_handlers(:my_app)
 
   Note we do not recommend configuring Erlang/OTP's logger directly under
-  the `:kernel` application in your `config/config.exs` like this:
+  the `:kernel` application in your `config/config.exs`, like this:
 
       config :kernel, :logger, ...
 
   This is because by the time Elixir starts, Erlang's kernel has already
-  been started, which makes it impossible to configure it.
+  been started, which means the configuration above would have no effect.
   """
 
   @type level :: :error | :warn | :info | :debug
