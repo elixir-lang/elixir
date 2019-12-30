@@ -158,7 +158,8 @@ defmodule Mix.Release do
   end
 
   defp find_release(name, config) do
-    {name, opts} = lookup_release(name, config) || infer_release(config)
+    {name, opts_fun_or_list} = lookup_release(name, config) || infer_release(config)
+    opts = if is_function(opts_fun_or_list, 0), do: opts_fun_or_list.(), else: opts_fun_or_list
     {apps, opts} = Keyword.pop(opts, :applications, [])
 
     if apps == [] and Mix.Project.umbrella?(config) do

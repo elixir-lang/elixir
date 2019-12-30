@@ -74,6 +74,12 @@ defmodule Mix.ReleaseTest do
       assert release.applications.kernel[:otp_app?]
     end
 
+    test "allows release to be given as an anonymous function" do
+      release = from_config!(:foo, config(releases: [foo: fn -> [version: "0.2.0"] end]), [])
+      assert release.name == :foo
+      assert release.version == "0.2.0"
+    end
+
     test "uses chosen release via the CLI" do
       release =
         from_config!(
