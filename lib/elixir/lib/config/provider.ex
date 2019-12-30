@@ -105,7 +105,13 @@ defmodule Config.Provider do
   @callback load(config, state) :: config
 
   @doc false
-  defstruct [:providers, :config_path, extra_config: [], prune_after_boot: false]
+  defstruct [
+    :providers,
+    :config_path,
+    extra_config: [],
+    prune_after_boot: false,
+    reboot_after_config: true
+  ]
 
   @doc """
   Validates a `t:config_path/0`.
@@ -163,13 +169,40 @@ defmodule Config.Provider do
       {:ok, %Config.Provider{} = provider} ->
         path = resolve_config_path!(provider.config_path)
         validate_no_cyclic_boot!(path)
+        loaded_applications = :application.loaded_applications()
+        original_config = read_config!(path)
 
-        read_config!(path)
-        |> Config.__merge__([{app, [{key, booted_key(provider, path)}]} | provider.extra_config])
-        |> run_providers(provider)
-        |> write_config!(path)
+        config =
+          original_config
+          |> Config.__merge__(provider.extra_config)
+          |> run_providers(provider)
 
-        restart_fun.()
+        if provider.reboot_after_config do
+          config
+          |> Config.__merge__([{app, [{key, booted_key(provider, path)}]}])
+          |> write_config!(path)
+
+          restart_fun.()
+        else
+          for {app, _, _} <- loaded_applications, config[app] != original_config[app] do
+            abort("""
+            Cannot configure #{inspect(app)} because :reboot_after_config has been set \
+            to false and #{inspect(app)} has already been loaded, meaning any further \
+            configuration won't have an effect.
+
+            The configuration for #{inspect(app)} before config providers was:
+
+            #{inspect(original_config[app])}
+
+            The configuration for #{inspect(app)} after config providers was:
+
+            #{inspect(config[app])}
+            """)
+          end
+
+          _ = Application.put_all_env(config, persistent: true)
+          :ok
+        end
 
       {:ok, {:booted, path}} ->
         File.rm(path)

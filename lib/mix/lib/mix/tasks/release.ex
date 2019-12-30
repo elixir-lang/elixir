@@ -609,13 +609,20 @@ defmodule Mix.Tasks.Release do
       are evaluated. You can set it to `true` if you need distribution during
       configuration. Defaults to `false`.
 
+    * `:reboot_system_after_config` - every time your release is configured,
+      the system is rebooted to allow the new configuration to take place.
+      You can set this option to `false` to disable the rebooting for applications
+      that are sensitive to boot time but, in doing so, note you won't be able
+      to configure system applications, such as `:kernel`, `:stdlib` and `:elixir`
+      itself. Defaults to `true`.
+
     * `:prune_runtime_sys_config_after_boot` - every time your system boots,
       the release will write a config file to your tmp directory. These
       configuration files are generally small. But if you are concerned with
       disk space or if you have other restrictions, you can ask the system to
       remove said config files after boot. The downside is that you will no
       longer be able to restart the system internally (neither via
-      `System.restart/0` nor `bin/RELEASE_NAME start`). If you need a restart,
+      `System.restart/0` nor `bin/RELEASE_NAME restart`). If you need a restart,
       you will have to terminate the Operating System process and start a new
       one. Defaults to `false`.
 
