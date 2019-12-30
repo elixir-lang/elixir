@@ -70,15 +70,25 @@ defmodule Mix.Tasks.App.Start do
       end
     end
 
-    unless "--no-start" in args do
-      apps = apps(config)
+    # Stop Logger when starting the application as it is
+    # up to the application to decide if it should be restarted
+    # or not.
+    #
+    # Mix should not depend directly on Logger so check that it's loaded.
+    logger = Process.whereis(Logger)
 
-      # Stop Logger if the application does not depend on it.
-      #
-      # Mix should not depend directly on Logger, that's why we first check if it's loaded.
-      if not logger_dependency?(apps) && Process.whereis(Logger), do: Logger.App.stop()
+    if logger do
+      Logger.App.stop()
+    end
 
-      start(apps, type(config, opts), "--no-validate-compile-env" not in args)
+    if "--no-start" in args do
+      # Start Logger again if the application won't be starting it
+      if logger do
+        :ok = Logger.App.start()
+      end
+    else
+      config = Mix.Project.config()
+      start(apps(config), type(config, opts), "--no-validate-compile-env" not in args)
 
       # If there is a build path, we will let the application
       # that owns the build path do the actual check
@@ -213,31 +223,6 @@ defmodule Mix.Tasks.App.Start do
     end
 
     :ok
-  end
-
-  defp logger_dependency?(apps), do: logger_dependency?(apps, [])
-
-  defp logger_dependency?([], _checked_apps) do
-    false
-  end
-
-  defp logger_dependency?([app | apps], checked_apps) do
-    deps =
-      List.wrap(Application.spec(app, :included_applications)) ++
-        List.wrap(Application.spec(app, :applications))
-
-    cond do
-      deps == [] ->
-        logger_dependency?(apps, [app | checked_apps])
-
-      :logger in deps ->
-        true
-
-      true ->
-        checked_apps = [app | checked_apps]
-        new_apps = (deps -- apps) -- checked_apps
-        logger_dependency?(apps ++ new_apps, checked_apps)
-    end
   end
 
   defp load_protocol(file) do
