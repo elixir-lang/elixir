@@ -43,7 +43,7 @@ Furthermore, if you want to perform semantic comparison, you can pass a module t
 
 This new API has also been added to `Enum.sort_by`, `Enum.min_by`, `Enum.max_by`, and friends.
 
-### Compile-time tracking of compile-time configuration
+### Tracking of compile-time configuration
 
 All applications in Elixir come with an application environment. This environment is a key-value store that allows us to configure said application. While reading the application environment at runtime is the preferred approach, in some rare occasions you may want to use the application environment to configure the compilation of a certain project. This is often done by calling `Application.get_env/3` outside of a function:
 
@@ -59,7 +59,7 @@ This approach has one big limitation: if you change the value of the application
 
     config :my_app, :db_host, "db.production"
 
-This value will no effect as the code was compiled to connect to "db.local", which is mostly likely unavailable in the production environment.
+The new value will have no effect as the code was compiled to connect to "db.local", which is mostly likely unavailable in the production environment.
 
 For those reasons, reading the application environment at runtime should be the first choice. However, if you really have to read the application environment during compilation, Elixir v1.10 introduces a `Application.compile_env/3` function:
 
@@ -82,13 +82,13 @@ Furthermore, in Elixir v1.10 developers can now disable undefined function warni
     @compile {:no_warn_undefined, OptionalDependency}
     defdelegate my_function_call(arg), to: OptionalDependency
 
-Finally, as consequence of these improvements, some functionality related to `xref` (our previous database), has been deprecated.
+Finally, as consequence of these improvements, some functionality related to `xref` (our previous database), has been deprecated in favor of the new compiler tracing.
 
 ### Other enhancements
 
 The calendar data types got many improvements, such as sigil support for third-party calendars, as well as the additions of `DateTime.now!/2`, `DateTime.shift_zone!/3`, and `NaiveDateTime.local_now/0`.
 
-There are many improvements related to the Elixir AST in this release too. First of all, `Code.string_to_quoted/2` has two new options, `:token_metadata` and `:literal_encoder`, which gives more control over Elixir's parser. This information has already been available to the Elixir formatted for a couple versions and has now been made public. Furthermore, all public metadata entries in the AST nodes have been extensively documented. These changes alongside the compiler improvements from previous section means tools like Credo and Boundary now have a better foundation to analyze the source code.
+There are many improvements related to the Elixir AST in this release too. First of all, `Code.string_to_quoted/2` has two new options, `:token_metadata` and `:literal_encoder`, which gives more control over Elixir's parser. This information has already been available to the Elixir formatter for a couple versions and has now been made public. Furthermore, all public metadata entries in the AST nodes have been extensively documented. These changes alongside the compiler improvements from previous section means tools like Credo and Boundary now have a better foundation to analyze the source code.
 
 Finally, ExUnit comes with two but important improvements: `ExUnit.CaptureIO` can now be used in tests that run asynchronously and we have added "data-structure diffing" when performing assertions with pattern matching.
 

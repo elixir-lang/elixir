@@ -89,7 +89,7 @@ defmodule Application do
 
       config :my_app, :db_host, "db.production"
 
-  This value will no effect as the code was compiled to connect to "db.local",
+  This value will have no effect as the code was compiled to connect to "db.local",
   which is mostly likely unavailable in the production environment.
 
   For those reasons, reading the application environment at runtime should be the
