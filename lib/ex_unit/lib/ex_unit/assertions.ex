@@ -149,6 +149,26 @@ defmodule ExUnit.Assertions do
     end
   end
 
+  defmacro assert({:|>, meta, [left, {fun, context, [_ | _] = args} = right]} = assertion) do
+    left = __expand_pattern__(left, __CALLER__)
+    expr = escape_quoted(:assert, meta, assertion)
+    fun_name = Macro.to_string({fun, context, []}) |> String.replace_trailing("()", "")
+    fun_arity = length(args) + 1
+
+    quote do
+      match? = unquote(left) |> unquote(right)
+
+      ExUnit.Assertions.assert(match?,
+        args: unquote([left | args]),
+        expr: unquote(expr),
+        message:
+          "Expected #{unquote(fun_name)}/#{unquote(fun_arity)} to return truthy, got #{
+            inspect(match?)
+          }"
+      )
+    end
+  end
+
   defmacro assert(assertion) do
     if translated = translate_assertion(:assert, assertion, __CALLER__) do
       translated

@@ -493,6 +493,34 @@ defmodule ExUnit.AssertionsTest do
     end
   end
 
+  test "assert pipe when truthy" do
+    assert %{foo: 'bar'} |> Map.equal?(%{foo: 'bar'})
+  end
+
+  test "assert pipe when falsy" do
+    try do
+      value = %{foo: 2}
+      "This should never be tested" = assert %{foo: 1} |> Map.equal?(value)
+    rescue
+      error in [ExUnit.AssertionError] ->
+        [%{foo: 1}, %{foo: 2}] = error.args
+        "Expected Map.equal?/2 to return truthy, got false" = error.message
+        "assert(%{foo: 1} |> Map.equal?(value))" = Macro.to_string(error.expr)
+    end
+  end
+
+  test "assert multiple pipes when falsy" do
+    try do
+      value = %{foo: 2}
+      "This should never be tested" = assert %{} |> Map.put(:foo, 1) |> Map.equal?(value)
+    rescue
+      error in [ExUnit.AssertionError] ->
+        [%{foo: 1}, %{foo: 2}] = error.args
+        "Expected Map.equal?/2 to return truthy, got false" = error.message
+        "assert(%{} |> Map.put(:foo, 1) |> Map.equal?(value))" = Macro.to_string(error.expr)
+    end
+  end
+
   test "refute in when is not member" do
     false = refute 'baz' in ['foo', 'bar']
   end
