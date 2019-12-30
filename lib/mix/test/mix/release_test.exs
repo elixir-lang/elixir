@@ -521,7 +521,7 @@ defmodule Mix.ReleaseTest do
     test "writes the given sys_config without reboot" do
       release = release(config_providers: @providers, reboot_system_after_config: false)
       assert make_sys_config(release, [kernel: [key: :value]], "/foo/bar/bat") == :ok
-      assert File.read!(@sys_config) =~ "%% RUNTIME_CONFIG=true"
+      assert File.read!(@sys_config) =~ "%% RUNTIME_CONFIG=false"
       {:ok, [config]} = :file.consult(@sys_config)
       assert %Config.Provider{} = provider = config[:elixir][:config_providers]
       refute provider.reboot_after_config

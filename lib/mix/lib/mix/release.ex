@@ -426,7 +426,7 @@ defmodule Mix.Release do
     ]
 
     init = Config.Provider.init(release.config_providers, config_path, opts)
-    {Config.Reader.merge(sys_config, [elixir: [config_providers: init]] ++ extra_config), true}
+    {Config.Reader.merge(sys_config, [elixir: [config_providers: init]] ++ extra_config), reboot?}
   end
 
   defp start_distribution(%{options: opts}) do
