@@ -381,6 +381,7 @@ defmodule Mix.Release do
 
   It uses the following release options to customize its behaviour:
 
+    * `:reboot_system_after_config`
     * `:start_distribution_during_config`
     * `:prune_runtime_sys_config_after_boot`
 
@@ -389,10 +390,12 @@ defmodule Mix.Release do
   @spec make_sys_config(t, keyword(), Config.Provider.config_path()) ::
           :ok | {:error, String.t()}
   def make_sys_config(release, sys_config, config_provider_path) do
-    {sys_config, runtime?} = merge_provider_config(release, sys_config, config_provider_path)
+    {sys_config, runtime_config?} =
+      merge_provider_config(release, sys_config, config_provider_path)
+
     path = Path.join(release.version_path, "sys.config")
 
-    args = [runtime?, sys_config]
+    args = [runtime_config?, sys_config]
     format = "%% coding: utf-8~n%% RUNTIME_CONFIG=~s~n~tw.~n"
     File.mkdir_p!(Path.dirname(path))
     File.write!(path, :io_lib.format(format, args), [:utf8])
@@ -412,18 +415,27 @@ defmodule Mix.Release do
   defp merge_provider_config(%{config_providers: []}, sys_config, _), do: {sys_config, false}
 
   defp merge_provider_config(release, sys_config, config_path) do
-    {extra_config, initial_config} = start_distribution(release)
+    {reboot?, extra_config, initial_config} = start_distribution(release)
     prune_after_boot = Keyword.get(release.options, :prune_runtime_sys_config_after_boot, false)
-    opts = [extra_config: initial_config, prune_after_boot: prune_after_boot]
+
+    opts = [
+      extra_config: initial_config,
+      prune_after_boot: prune_after_boot,
+      reboot_after_config: reboot?
+    ]
+
     init = Config.Provider.init(release.config_providers, config_path, opts)
     {Config.Reader.merge(sys_config, [elixir: [config_providers: init]] ++ extra_config), true}
   end
 
   defp start_distribution(%{options: opts}) do
-    if Keyword.get(opts, :start_distribution_during_config, false) do
-      {[], []}
+    reboot? = Keyword.get(opts, :reboot_system_after_config, true)
+    early_distribution? = Keyword.get(opts, :start_distribution_during_config, false)
+
+    if not reboot? or early_distribution? do
+      {reboot?, [], []}
     else
-      {[kernel: [start_distribution: false]], [kernel: [start_distribution: true]]}
+      {true, [kernel: [start_distribution: false]], [kernel: [start_distribution: true]]}
     end
   end
 

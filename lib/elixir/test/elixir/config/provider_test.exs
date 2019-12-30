@@ -9,21 +9,18 @@ defmodule Config.ProviderTest do
   import ExUnit.CaptureIO
 
   @tmp_path tmp_path("config_provider")
-  @env_var "ELIXIR_CONFIG_PROVIDER_PATH"
+  @env_var "ELIXIR_CONFIG_PROVIDER_BOOTED"
   @config_app :config_app
   @sys_config Path.join(@tmp_path, "sys.config")
 
   setup context do
-    System.put_env(@env_var, @tmp_path)
-
     File.rm_rf(@tmp_path)
     File.mkdir_p!(@tmp_path)
-    File.write!(@sys_config, :io_lib.format("~tw.~n", [context[:sys_config] || []]), [:utf8])
+    write_sys_config!(context[:sys_config] || [])
 
     on_exit(fn ->
       Application.delete_env(@config_app, :config_providers)
       System.delete_env(@env_var)
-      System.delete_env("ELIXIR_CONFIG_PROVIDER_BOOTED")
     end)
   end
 
@@ -65,8 +62,15 @@ defmodule Config.ProviderTest do
     end
 
     test "resolve!" do
-      assert Provider.resolve_config_path!("/foo") == "/foo"
-      assert Provider.resolve_config_path!({:system, @env_var, "/bar"}) == @tmp_path <> "/bar"
+      env_var = "ELIXIR_CONFIG_PROVIDER_PATH"
+
+      try do
+        System.put_env(env_var, @tmp_path)
+        assert Provider.resolve_config_path!("/foo") == "/foo"
+        assert Provider.resolve_config_path!({:system, env_var, "/bar"}) == @tmp_path <> "/bar"
+      after
+        System.delete_env(env_var)
+      end
     end
   end
 
@@ -116,6 +120,27 @@ defmodule Config.ProviderTest do
                init_and_assert_boot()
              end) =~ "Got infinite loop when running Config.Provider"
     end
+
+    test "returns without rebooting" do
+      reader = {Config.Reader, fixture_path("configs/kernel.exs")}
+      init = Config.Provider.init([reader], @sys_config, reboot_after_config: false)
+      Application.put_env(@config_app, :config_providers, init)
+
+      assert capture_abort(fn ->
+               Provider.boot(@config_app, :config_providers, fn ->
+                 raise "should not be called"
+               end)
+             end) =~ "Cannot configure :kernel because :reboot_after_config has been set to false"
+
+      # Make sure values before and after match
+      write_sys_config!(kernel: [elixir_reboot: true])
+      Application.put_env(@config_app, :config_providers, init)
+      System.delete_env(@env_var)
+
+      Provider.boot(@config_app, :config_providers, fn -> raise "should not be called" end)
+      assert Application.get_env(:kernel, :elixir_reboot) == true
+      assert Application.get_env(:elixir_reboot, :key) == :value
+    end
   end
 
   defp init(opts) do
@@ -144,5 +169,9 @@ defmodule Config.ProviderTest do
     capture_io(:stderr, fn ->
       assert_raise ErlangError, fun
     end)
+  end
+
+  defp write_sys_config!(data) do
+    File.write!(@sys_config, :io_lib.format("~tw.~n", [data]), [:utf8])
   end
 end
