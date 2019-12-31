@@ -90,7 +90,7 @@ The calendar data types got many improvements, such as sigil support for third-p
 
 There are many improvements related to the Elixir AST in this release too. First of all, `Code.string_to_quoted/2` has two new options, `:token_metadata` and `:literal_encoder`, that give more control over Elixir's parser. This information has already been available to the Elixir formatter for a couple versions and has now been made public. Furthermore, all public metadata entries in the AST nodes have been extensively documented. These changes alongside the compiler improvements from previous section means tools like Credo and Boundary now have a better foundation to analyze the source code.
 
-Finally, ExUnit comes with two small but important improvements: `ExUnit.CaptureIO` can now be used in tests that run asynchronously and we have added "data-structure diffing" when performing assertions with pattern matching.
+Finally, ExUnit comes with two small but important improvements: `ExUnit.CaptureIO` can now be used in tests that run asynchronously and we have added "data-structure diffing" when performing assertions with pattern matching. So now, whenever an assertion such `assert %{field: value} = expression()` fails, ExUnit will show both left-hand and right-hand sides, highlighting the parts that did not match in red.
 
 ## v1.10.0
 
