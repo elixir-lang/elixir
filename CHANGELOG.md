@@ -28,7 +28,7 @@ See the full CHANGELOG for more improvements.
 
 `Enum.sort/1` in Elixir always sorts from lowest to highest. If you want to sort from highest to lowest, you need to call `Enum.sort/2` with a custom sorting function, such as `Enum.sort(collection, &>=/2)`, which is not immediately obvious to someone reading the code.
 
-To make matters worse, comparison operators, such as `<=` and `>=`, perform structural sorting, instead of a semantic one. For example, using `>=` to sort dates descendinglly won't yield the correct result. Therefore, to sort dates from more recent to oldest, one has to write `Enum.sort(dates, &(Date.compare(&1, &2) != :lt))`.
+To make matters worse, comparison operators, such as `<=` and `>=`, perform structural sorting, instead of a semantic one. For example, using `>=` to sort dates descendingly won't yield the correct result. Therefore, to sort dates from more recent to oldest, one has to write `Enum.sort(dates, &(Date.compare(&1, &2) != :lt))`.
 
 Elixir v1.10 streamlines the sorting functions by introducing both `:asc` and `:desc` shortcuts:
 
@@ -90,7 +90,7 @@ The calendar data types got many improvements, such as sigil support for third-p
 
 There are many improvements related to the Elixir AST in this release too. First of all, `Code.string_to_quoted/2` has two new options, `:token_metadata` and `:literal_encoder`, that give more control over Elixir's parser. This information has already been available to the Elixir formatter for a couple versions and has now been made public. Furthermore, all public metadata entries in the AST nodes have been extensively documented. These changes alongside the compiler improvements from previous section means tools like Credo and Boundary now have a better foundation to analyze the source code.
 
-Finally, ExUnit comes with two but important improvements: `ExUnit.CaptureIO` can now be used in tests that run asynchronously and we have added "data-structure diffing" when performing assertions with pattern matching.
+Finally, ExUnit comes with two small but important improvements: `ExUnit.CaptureIO` can now be used in tests that run asynchronously and we have added "data-structure diffing" when performing assertions with pattern matching.
 
 ## v1.10.0
 

@@ -94,7 +94,7 @@ defmodule Application do
 
   For those reasons, reading the application environment at runtime should be the
   first choice. However, if you really have to read the application environment
-  during compilation, we recomend you to use `compile_env/3` instead:
+  during compilation, we recommend you to use `compile_env/3` instead:
 
       @db_host Application.compile_env(:my_app, :db_host, "db.local")
 
