@@ -835,6 +835,8 @@ defmodule Kernel.SpecialForms do
       Currently it only works on special forms (for example, you can annotate a `case`
       but not an `if`).
 
+    * `:file` - sets the quoted expressions to have the given file.
+
     * `:line` - sets the quoted expressions to have the given line.
 
     * `:location` - when set to `:keep`, keeps the current line and file from
