@@ -65,7 +65,7 @@ defmodule Config do
   file called `config/releases.exs`. While `config/config.exs` and friends
   mentioned in the previous section are executed whenever you run a Mix
   command, including when you assemble a release, `config/releases.exs` is
-  execute every time your production system boots. Since Mix is not available
+  executed every time your production system boots. Since Mix is not available
   in a production system, `config/releases.exs` must not use any of the
   functions from Mix.
   """
