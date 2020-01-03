@@ -14,6 +14,7 @@ defmodule IO.ANSI.Docs do
     * `:doc_code`          - code blocks (cyan)
     * `:doc_headings`      - h1, h2, h3, h4, h5, h6 headings (yellow)
     * `:doc_metadata`      - documentation metadata keys (yellow)
+    * `:doc_quote`         - quotes (light black, italic)
     * `:doc_inline_code`   - inline code (cyan)
     * `:doc_table_heading` - the style for table headings
     * `:doc_title`         - top level heading (reverse, yellow)
@@ -31,6 +32,7 @@ defmodule IO.ANSI.Docs do
       doc_code: [:cyan],
       doc_headings: [:yellow],
       doc_metadata: [:yellow],
+      doc_quote: [],
       doc_inline_code: [:cyan],
       doc_table_heading: [:reverse],
       doc_title: [:reverse, :yellow],
@@ -139,6 +141,11 @@ defmodule IO.ANSI.Docs do
     write_heading(heading, rest, text, indent, options)
   end
 
+  defp process(["> " <> line | rest], text, indent, options) do
+    write_text(text, indent, options)
+    process_quote(rest, [line], indent, options)
+  end
+
   defp process(["" | rest], text, indent, options) do
     write_text(text, indent, options)
     process(rest, [], indent, options)
@@ -181,6 +188,49 @@ defmodule IO.ANSI.Docs do
     write(:doc_headings, heading, options)
     newline_after_block()
     process(rest, [], "", options)
+  end
+
+  ## Quotes
+
+  defp process_quote([], lines, indent, options) do
+    write_quote(lines, indent, options)
+  end
+
+  defp process_quote(["> " <> line | rest], lines, indent, options) do
+    process_quote(rest, [line | lines], indent, options)
+  end
+
+  defp process_quote(rest, lines, indent, options) do
+    write_quote(lines, indent, options)
+    process(rest, [], indent, options)
+  end
+
+  defp write_quote(lines, indent, options) do
+    formatted_lines_with_length =
+      lines
+      |> Enum.map(&format_text(&1, options))
+      |> Enum.map(&{&1, length_without_escape(&1, 0)})
+
+    {_line, max_length} = Enum.max_by(formatted_lines_with_length, fn {_, length} -> length end)
+
+    quote_text =
+      formatted_lines_with_length
+      |> Enum.reverse()
+      |> Enum.map_join("\n#{indent}", fn {line, length} ->
+        padding = String.duplicate(" ", max_length - length)
+
+        "| " <> line <> padding <> " |"
+      end)
+
+    quote_box = indent <> "+-" <> String.duplicate("-", max_length) <> "-+"
+
+    quote_block =
+      "#{quote_box}\n" <>
+        "#{quote_text}\n" <>
+        quote_box
+
+    write(:doc_quote, quote_block, options)
+    newline_after_block()
   end
 
   ## Lists
@@ -269,12 +319,17 @@ defmodule IO.ANSI.Docs do
   defp write_text(lines, indent, options, no_wrap) do
     lines
     |> Enum.join(" ")
-    |> handle_links
-    |> handle_inline(options)
+    |> format_text(options)
     |> String.split(@spaces)
     |> write_with_wrap(options[:width] - byte_size(indent), indent, no_wrap)
 
     unless no_wrap, do: newline_after_block()
+  end
+
+  defp format_text(text, options) do
+    text
+    |> handle_links()
+    |> handle_inline(options)
   end
 
   ## Code blocks
