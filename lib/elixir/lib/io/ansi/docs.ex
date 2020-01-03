@@ -143,7 +143,7 @@ defmodule IO.ANSI.Docs do
 
   defp process([">" <> line | rest], text, indent, options) do
     write_text(text, indent, options)
-    process_quote(rest, [line], indent, options, quote_prefix(options))
+    process_quote(rest, [line], indent, options)
   end
 
   defp process(["" | rest], text, indent, options) do
@@ -192,30 +192,26 @@ defmodule IO.ANSI.Docs do
 
   ## Quotes
 
-  defp quote_prefix(options) do
-    IO.iodata_to_binary([color(:doc_quote, options), "> ", IO.ANSI.reset()])
+  defp process_quote([], lines, indent, options) do
+    write_quote(lines, indent, options, false)
   end
 
-  defp process_quote([], lines, indent, options, prefix) do
-    write_quote(lines, indent, options, false, prefix)
+  defp process_quote([">", ">" <> line | rest], lines, indent, options) do
+    write_quote(lines, indent, options, true)
+    write_empty_quote_line(options)
+    process_quote(rest, [line], indent, options)
   end
 
-  defp process_quote([">", ">" <> line | rest], lines, indent, options, prefix) do
-    write_quote(lines, indent, options, true, prefix)
-    write_empty_quote_line(prefix)
-    process_quote(rest, [line], indent, options, prefix)
+  defp process_quote([">" <> line | rest], lines, indent, options) do
+    process_quote(rest, [line | lines], indent, options)
   end
 
-  defp process_quote([">" <> line | rest], lines, indent, options, prefix) do
-    process_quote(rest, [line | lines], indent, options, prefix)
-  end
-
-  defp process_quote(rest, lines, indent, options, prefix) do
-    write_quote(lines, indent, options, false, prefix)
+  defp process_quote(rest, lines, indent, options) do
+    write_quote(lines, indent, options, false)
     process(rest, [], indent, options)
   end
 
-  defp write_quote(lines, indent, options, no_wrap, prefix) do
+  defp write_quote(lines, indent, options, no_wrap) do
     lines
     |> Enum.map(&String.trim/1)
     |> Enum.reverse()
@@ -223,11 +219,17 @@ defmodule IO.ANSI.Docs do
       indent,
       options,
       no_wrap,
-      prefix
+      quote_prefix(options)
     )
   end
 
-  defp write_empty_quote_line(prefix), do: IO.puts(prefix)
+  defp quote_prefix(options), do: "#{color(:doc_quote, options)}> #{IO.ANSI.reset()}"
+
+  defp write_empty_quote_line(options) do
+    options
+    |> quote_prefix()
+    |> IO.puts()
+  end
 
   ## Lists
 
