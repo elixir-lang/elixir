@@ -499,11 +499,11 @@ defmodule Mix.Project do
   """
   @spec build_path(keyword) :: Path.t()
   def build_path(config \\ config()) do
-    config[:env_path] || env_path(config)
+    System.get_env("MIX_BUILD_PATH") || config[:env_path] || env_path(config)
   end
 
   defp env_path(config) do
-    dir = System.get_env("MIX_BUILD_PATH") || config[:build_path] || "_build"
+    dir = config[:build_path] || "_build"
     subdir = build_target() <> build_per_environment(config)
     Path.expand(dir <> "/" <> subdir)
   end
