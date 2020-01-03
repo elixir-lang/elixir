@@ -147,6 +147,8 @@ Finally, ExUnit comes with two small but important improvements: `ExUnit.Capture
   * [mix deps.compile] Add `--skip-umbrella-apps` flag. The new flag does not compile umbrella apps. This is useful for building caches in CD/CI pipelines
   * [mix deps.unlock] Add `--check-unused` flag. The new flag raises if there are any unused dependencies in the lock file
   * [mix release] Allow `RELEASE_DISTRIBUTION` to be set to `none`
+  * [mix release] Support overlays in `rel/overlays`
+  * [mix release] Allow configuration reboot to be disabled in releases
   * [mix test] Add support for simple round-robin test partitioning across multiple machines
   * [Mix.Project] Add `MIX_DEPS_PATH` environment variable for setting `:deps_path`
   * [Mix.Project] Add `Mix.Project.deps_scms/1` that returns deps with their SCMs
@@ -164,6 +166,7 @@ Finally, ExUnit comes with two small but important improvements: `ExUnit.Capture
   * [Kernel] Raise error on functions/guards without implementation
   * [Keyword] Ensure keyword replace and update preserve order
   * [Module] Raise instead of silently failing when performing a write module operation during after-compile
+  * [Module] Fix `@macrocallback` definitions with a `when` clause
   * [Stream] Close with correct accumulator in `Stream.resource/3` when called for a single-element list
   * [Stream] Allow `Stream.cycle/1` to be double nested inside `Stream.cycle/1`
   * [URI] Preserve slashes in URIs without authority
@@ -177,7 +180,6 @@ Finally, ExUnit comes with two small but important improvements: `ExUnit.Capture
 
   * [mix compile] Do not filter out warning for external files from diagnostics
   * [Mix.Project] Ensure user given `:manager` to dependencies has higher precedence than the SCM one
-  * [Mix.Project] Make sure `MIX_BUILD_PATH` specifies only the `build_path` prefix and that env+target are still concatenated
   * [Mix.Project] Recompile umbrella children when config files change and `mix compile` is called from the umbrella root
   * [Mix.Task] Always recompile before running tasks from dependencies
   * [Mix.Task] Ensure project's Logger config is used when running Mix tasks
