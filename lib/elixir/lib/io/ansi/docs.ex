@@ -208,11 +208,14 @@ defmodule IO.ANSI.Docs do
   defp write_quote(lines, indent, options) do
     lines
     |> Enum.reverse()
-    |> Enum.map_join("\n#{indent}", fn line ->
-      [color(:doc_quote, options), "> ", IO.ANSI.reset(), format_text(line, options)]
+    |> Enum.join(" ")
+    |> format_text(options)
+    |> String.split(@spaces)
+    # -2 for the leading `> `
+    |> wrap_text(options[:width] - byte_size(indent) - 2, indent, false)
+    |> Enum.map_join("\n", fn line ->
+      [indent, color(:doc_quote, options), "> ", IO.ANSI.reset(), line]
     end)
-    # There is no special style for quotes, as such we simply use IO.puts;
-    # a special quotes style would clash with inline styling (bold, italics etc.)
     |> IO.puts()
 
     newline_after_block()
