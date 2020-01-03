@@ -128,7 +128,10 @@ consolidate(Map, TypeSpecs, Chunks) ->
 
 %% Dynamic compilation hook, used in regular compiler
 
-compile(#{module := Module} = Map) ->
+compile(Map) ->
+  elixir_erl_compiler:spawn(fun spawned_compile/1, [Map]).
+
+spawned_compile(#{module := Module, line := Line} = Map) ->
   {Set, Bag} = elixir_module:data_tables(Module),
 
   TranslatedTypespecs =
@@ -138,13 +141,9 @@ compile(#{module := Module} = Map) ->
       false -> ?typespecs:translate_typespecs_for_module(Set, Bag)
     end,
 
-  elixir_erl_compiler:spawn(fun spawned_compile/4, [Map, Set, Bag, TranslatedTypespecs]).
-
-spawned_compile(Map, Set, _Bag, TranslatedTypespecs) ->
   {Prefix, Forms, Def, Defmacro, Macros, NoWarnUndefined} = dynamic_form(Map),
   {Types, Callbacks, TypeSpecs} = typespecs_form(Map, TranslatedTypespecs, Macros),
 
-  #{module := Module, line := Line} = Map,
   DocsChunk = docs_chunk(Set, Module, Line, Def, Defmacro, Types, Callbacks),
   CheckerChunk = checker_chunk(Map, NoWarnUndefined),
   load_form(Map, Prefix, Forms, TypeSpecs, DocsChunk ++ CheckerChunk).
