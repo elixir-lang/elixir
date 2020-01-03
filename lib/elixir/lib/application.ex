@@ -84,19 +84,17 @@ defmodule Application do
 
   This approach has one big limitation: if you change the value of the
   application environment after the code is compiled, the value used at
-  runtime is not gouing to change! For example, if you are using `mix release`
+  runtime is not going to change! For example, if you are using `mix release`
   and your `config/releases.exs` has:
 
       config :my_app, :db_host, "db.production"
 
-  This value will no effect! The same will happen if your `config/config.exs`
-  reads the value from the system, such as:
+  This value will have no effect as the code was compiled to connect to "db.local",
+  which is mostly likely unavailable in the production environment.
 
-      config :my_app, :db_host, System.get_env("DB_HOST") || "db.local"
-
-  For those reasons, reading the application environment at runtime is preferred.
-  However, if you really have to read the application environment during compilation,
-  we recomend you to use `compile_env/3` instead:
+  For those reasons, reading the application environment at runtime should be the
+  first choice. However, if you really have to read the application environment
+  during compilation, we recommend you to use `compile_env/3` instead:
 
       @db_host Application.compile_env(:my_app, :db_host, "db.local")
 
