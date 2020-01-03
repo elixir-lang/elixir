@@ -644,14 +644,15 @@ defmodule IEx.HelpersTest do
       content = """
       defmodule Macrocallbacks do
         @macrocallback test(:foo) :: integer
+        @macrocallback test(:bar) :: var when var: integer
       end
       """
 
       with_file(filename, content, fn ->
         assert c(filename, ".") == [Macrocallbacks]
-
-        assert capture_io(fn -> b(Macrocallbacks) end) =~
-                 "@macrocallback test(:foo) :: integer()\n\n"
+        callbacks = capture_io(fn -> b(Macrocallbacks) end)
+        assert callbacks =~ "@macrocallback test(:foo) :: integer()\n"
+        assert callbacks =~ "@macrocallback test(:bar) :: var when var: integer()\n"
       end)
     after
       cleanup_modules([Macrocallbacks])
