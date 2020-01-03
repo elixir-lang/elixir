@@ -120,6 +120,32 @@ defmodule IO.ANSI.DocsTest do
                "\e[0m"
   end
 
+  test "multi-line quote block containing empty lines is converted into wrapped multi-line quote" do
+    result =
+      format(
+        "line\n" <>
+          "\n" <>
+          "> normal\n" <>
+          "> *italics*\n" <>
+          ">\n" <>
+          "> `code` \n" <>
+          "> some-extremly-long-word-which-can-not-possibly-fit-into-the-previous-line\n" <>
+          "\n" <>
+          "line2\n"
+      )
+
+    assert result ==
+             "line\n" <>
+               "\e[0m\n" <>
+               "\e[90m> \e[0mnormal \e[1mitalics\e[0m\n" <>
+               "\e[90m> \e[0m\n" <>
+               "\e[90m> \e[0m\e[36mcode\e[0m\n" <>
+               "\e[90m> \e[0msome-extremly-long-word-which-can-not-possibly-fit-into-the-previous-line\n" <>
+               "\e[0m\n" <>
+               "line2\n" <>
+               "\e[0m"
+  end
+
   test "code block is converted" do
     result = format("line\n\n    code\n    code2\n\nline2\n")
     assert result == "line\n\e[0m\n\e[36m    code\n    code2\e[0m\n\e[0m\nline2\n\e[0m"
