@@ -415,9 +415,10 @@ callspecs_form(Kind, Entries, Optional, Macros, Forms, ModuleMap) ->
     end
   end, Forms, lists:sort(Signatures)).
 
+spec_for_macro({type, Line, 'bounded_fun', [H | T]}) ->
+  {type, Line, 'bounded_fun', [spec_for_macro(H) | T]};
 spec_for_macro({type, Line, 'fun', [{type, _, product, Args} | T]}) ->
-  NewArgs = [{type, Line, term, []} | Args],
-  {type, Line, 'fun', [{type, Line, product, NewArgs} | T]};
+  {type, Line, 'fun', [{type, Line, product, [{type, Line, term, []} | Args]} | T]};
 spec_for_macro(Else) ->
   Else.
 
