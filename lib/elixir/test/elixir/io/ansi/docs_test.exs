@@ -65,7 +65,7 @@ defmodule IO.ANSI.DocsTest do
                "\e[0m\n" <>
                "+---------------------+\n" <>
                "| normal \e[1mitalics\e[0m \e[36mcode\e[0m |\n" <>
-               "+---------------------+\e[0m\n" <>
+               "+---------------------+\n" <>
                "\e[0m\n" <>
                "line2\n" <>
                "\e[0m"
@@ -81,7 +81,7 @@ defmodule IO.ANSI.DocsTest do
                "| normal  |\n" <>
                "| \e[1mitalics\e[0m |\n" <>
                "| \e[36mcode\e[0m    |\n" <>
-               "+---------+\e[0m\n" <>
+               "+---------+\n" <>
                "\e[0m\n" <>
                "line2\n" <>
                "\e[0m"

@@ -14,7 +14,6 @@ defmodule IO.ANSI.Docs do
     * `:doc_code`          - code blocks (cyan)
     * `:doc_headings`      - h1, h2, h3, h4, h5, h6 headings (yellow)
     * `:doc_metadata`      - documentation metadata keys (yellow)
-    * `:doc_quote`         - quotes (light black, italic)
     * `:doc_inline_code`   - inline code (cyan)
     * `:doc_table_heading` - the style for table headings
     * `:doc_title`         - top level heading (reverse, yellow)
@@ -32,7 +31,6 @@ defmodule IO.ANSI.Docs do
       doc_code: [:cyan],
       doc_headings: [:yellow],
       doc_metadata: [:yellow],
-      doc_quote: [],
       doc_inline_code: [:cyan],
       doc_table_heading: [:reverse],
       doc_title: [:reverse, :yellow],
@@ -229,7 +227,9 @@ defmodule IO.ANSI.Docs do
         "#{quote_text}\n" <>
         quote_box
 
-    write(:doc_quote, quote_block, options)
+    # There is no special style for quotes, as such we simply use IO.puts;
+    # a special quotes style would clash with inline styling (bold, italics etc.)
+    IO.puts(quote_block)
     newline_after_block()
   end
 
