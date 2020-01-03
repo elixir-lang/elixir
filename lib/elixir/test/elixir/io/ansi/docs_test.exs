@@ -59,91 +59,99 @@ defmodule IO.ANSI.DocsTest do
 
   test "short single-line quote block is converted into single-line quote" do
     result =
-      format(
-        "line\n" <>
-          "\n" <>
-          "> normal *italics* `code`\n" <>
-          "\n" <>
-          "line2\n"
-      )
+      format("""
+      line
+
+      > normal *italics* `code`
+
+      line2
+      """)
 
     assert result ==
-             "line\n" <>
-               "\e[0m\n" <>
-               "\e[90m> \e[0mnormal \e[1mitalics\e[0m \e[36mcode\e[0m\n" <>
-               "\e[0m\n" <>
-               "line2\n" <>
-               "\e[0m"
+             """
+             line
+             \e[0m
+             \e[90m> \e[0mnormal \e[1mitalics\e[0m \e[36mcode\e[0m
+             \e[0m
+             line2
+             \e[0m\
+             """
   end
 
   test "short multi-line quote block is converted into single-line quote" do
     result =
-      format(
-        "line\n" <>
-          "\n" <>
-          "> normal\n" <>
-          "> *italics* \n" <>
-          "> `code`\n" <>
-          "\n" <>
-          "line2\n"
-      )
+      format("""
+      line
+
+      > normal
+      > *italics*
+      > `code`
+
+      line2
+      """)
 
     assert result ==
-             "line\n" <>
-               "\e[0m\n" <>
-               "\e[90m> \e[0mnormal \e[1mitalics\e[0m \e[36mcode\e[0m\n" <>
-               "\e[0m\n" <>
-               "line2\n" <>
-               "\e[0m"
+             """
+             line
+             \e[0m
+             \e[90m> \e[0mnormal \e[1mitalics\e[0m \e[36mcode\e[0m
+             \e[0m
+             line2
+             \e[0m\
+             """
   end
 
   test "long multi-line quote block is converted into wrapped multi-line quote" do
     result =
-      format(
-        "line\n" <>
-          "\n" <>
-          "> normal\n" <>
-          "> *italics*\n" <>
-          "> `code` \n" <>
-          "> some-extremly-long-word-which-can-not-possibly-fit-into-the-previous-line\n" <>
-          "\n" <>
-          "line2\n"
-      )
+      format("""
+      line
+
+      > normal
+      > *italics*
+      > `code`
+      > some-extremly-long-word-which-can-not-possibly-fit-into-the-previous-line
+
+      line2
+      """)
 
     assert result ==
-             "line\n" <>
-               "\e[0m\n" <>
-               "\e[90m> \e[0mnormal \e[1mitalics\e[0m \e[36mcode\e[0m\n" <>
-               "\e[90m> \e[0msome-extremly-long-word-which-can-not-possibly-fit-into-the-previous-line\n" <>
-               "\e[0m\n" <>
-               "line2\n" <>
-               "\e[0m"
+             """
+             line
+             \e[0m
+             \e[90m> \e[0mnormal \e[1mitalics\e[0m \e[36mcode\e[0m
+             \e[90m> \e[0msome-extremly-long-word-which-can-not-possibly-fit-into-the-previous-line
+             \e[0m
+             line2
+             \e[0m\
+             """
   end
 
   test "multi-line quote block containing empty lines is converted into wrapped multi-line quote" do
     result =
-      format(
-        "line\n" <>
-          "\n" <>
-          "> normal\n" <>
-          "> *italics*\n" <>
-          ">\n" <>
-          "> `code` \n" <>
-          "> some-extremly-long-word-which-can-not-possibly-fit-into-the-previous-line\n" <>
-          "\n" <>
-          "line2\n"
-      )
+      format("""
+      line
+
+      > normal
+      > *italics*
+      >
+      > `code`
+      > some-extremly-long-word-which-can-not-possibly-fit-into-the-previous-line
+
+      line2
+      """)
 
     assert result ==
-             "line\n" <>
-               "\e[0m\n" <>
-               "\e[90m> \e[0mnormal \e[1mitalics\e[0m\n" <>
-               "\e[90m> \e[0m\n" <>
-               "\e[90m> \e[0m\e[36mcode\e[0m\n" <>
-               "\e[90m> \e[0msome-extremly-long-word-which-can-not-possibly-fit-into-the-previous-line\n" <>
-               "\e[0m\n" <>
-               "line2\n" <>
-               "\e[0m"
+             """
+             line
+             \e[0m
+             \e[90m> \e[0mnormal \e[1mitalics\e[0m
+             \e[90m> \e[0m
+             \e[90m> \e[0m\e[36mcode\e[0m
+             \e[90m> \e[0msome-extremly-long-word-which-can-not-possibly-fit-into-the-previous-line
+             \e[0m
+             line2
+             \e[0m\
+             """
   end
 
   test "code block is converted" do
