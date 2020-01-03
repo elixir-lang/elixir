@@ -139,7 +139,7 @@ defmodule IO.ANSI.Docs do
     write_heading(heading, rest, text, indent, options)
   end
 
-  defp process(["> " <> line | rest], text, indent, options) do
+  defp process(["> " <> _ = line | rest], text, indent, options) do
     write_text(text, indent, options)
     process_quote(rest, [line], indent, options)
   end
@@ -194,7 +194,7 @@ defmodule IO.ANSI.Docs do
     write_quote(lines, indent, options)
   end
 
-  defp process_quote(["> " <> line | rest], lines, indent, options) do
+  defp process_quote(["> " <> _ = line | rest], lines, indent, options) do
     process_quote(rest, [line | lines], indent, options)
   end
 
@@ -204,34 +204,13 @@ defmodule IO.ANSI.Docs do
   end
 
   defp write_quote(lines, indent, options) do
-    formatted_lines_with_length =
-      Enum.map(lines, fn line ->
-        formatted_line = format_text(line, options)
-
-        {formatted_line, length_without_escape(formatted_line, 0)}
-      end)
-
-    {_line, max_length} = Enum.max_by(formatted_lines_with_length, fn {_, length} -> length end)
-
-    quote_text =
-      formatted_lines_with_length
-      |> Enum.reverse()
-      |> Enum.map_join("\n#{indent}", fn {line, length} ->
-        padding = String.duplicate(" ", max_length - length)
-
-        "| " <> line <> padding <> " |"
-      end)
-
-    quote_box = indent <> "+-" <> String.duplicate("-", max_length) <> "-+"
-
-    quote_block =
-      "#{quote_box}\n" <>
-        "#{quote_text}\n" <>
-        quote_box
-
+    lines
+    |> Enum.reverse()
+    |> Enum.map_join("\n#{indent}", &format_text(&1, options))
     # There is no special style for quotes, as such we simply use IO.puts;
     # a special quotes style would clash with inline styling (bold, italics etc.)
-    IO.puts(quote_block)
+    |> IO.puts()
+
     newline_after_block()
   end
 

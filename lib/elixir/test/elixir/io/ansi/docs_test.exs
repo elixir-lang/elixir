@@ -63,7 +63,7 @@ defmodule IO.ANSI.DocsTest do
     assert result ==
              "line\n" <>
                "\e[0m\n" <>
-               "> normal \e[1mitalics\e[0m \e[36mcode\e[0m\n" <>
+               "\e[90m> \e[0mnormal \e[1mitalics\e[0m \e[36mcode\e[0m\n" <>
                "\e[0m\n" <>
                "line2\n" <>
                "\e[0m"
@@ -75,9 +75,9 @@ defmodule IO.ANSI.DocsTest do
     assert result ==
              "line\n" <>
                "\e[0m\n" <>
-               "> normal\n" <>
-               "> \e[1mitalics\e[0m\n" <>
-               "> \e[36mcode\e[0m\n" <>
+               "\e[90m> \e[0mnormal\n" <>
+               "\e[90m> \e[0m\e[1mitalics\e[0m\n" <>
+               "\e[90m> \e[0m\e[36mcode\e[0m\n" <>
                "\e[0m\n" <>
                "line2\n" <>
                "\e[0m"
