@@ -14,6 +14,7 @@ defmodule IO.ANSI.Docs do
     * `:doc_code`          - code blocks (cyan)
     * `:doc_headings`      - h1, h2, h3, h4, h5, h6 headings (yellow)
     * `:doc_metadata`      - documentation metadata keys (yellow)
+    * `:doc_quote`         - leading quote character `> ` (light black)
     * `:doc_inline_code`   - inline code (cyan)
     * `:doc_table_heading` - the style for table headings
     * `:doc_title`         - top level heading (reverse, yellow)
@@ -31,6 +32,7 @@ defmodule IO.ANSI.Docs do
       doc_code: [:cyan],
       doc_headings: [:yellow],
       doc_metadata: [:yellow],
+      doc_quote: [:light_black],
       doc_inline_code: [:cyan],
       doc_table_heading: [:reverse],
       doc_title: [:reverse, :yellow],
@@ -139,7 +141,7 @@ defmodule IO.ANSI.Docs do
     write_heading(heading, rest, text, indent, options)
   end
 
-  defp process(["> " <> _ = line | rest], text, indent, options) do
+  defp process(["> " <> line | rest], text, indent, options) do
     write_text(text, indent, options)
     process_quote(rest, [line], indent, options)
   end
@@ -194,7 +196,7 @@ defmodule IO.ANSI.Docs do
     write_quote(lines, indent, options)
   end
 
-  defp process_quote(["> " <> _ = line | rest], lines, indent, options) do
+  defp process_quote(["> " <> line | rest], lines, indent, options) do
     process_quote(rest, [line | lines], indent, options)
   end
 
@@ -206,7 +208,9 @@ defmodule IO.ANSI.Docs do
   defp write_quote(lines, indent, options) do
     lines
     |> Enum.reverse()
-    |> Enum.map_join("\n#{indent}", &format_text(&1, options))
+    |> Enum.map_join("\n#{indent}", fn line ->
+      [color(:doc_quote, options), "> ", IO.ANSI.reset(), format_text(line, options)]
+    end)
     # There is no special style for quotes, as such we simply use IO.puts;
     # a special quotes style would clash with inline styling (bold, italics etc.)
     |> IO.puts()
