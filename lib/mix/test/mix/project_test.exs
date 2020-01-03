@@ -30,9 +30,19 @@ defmodule Mix.ProjectTest do
                Path.join(File.cwd!(), "_build/shared")
     end
 
+    test "considers the target" do
+      Mix.target(:rpi3)
+
+      assert Mix.Project.build_path(build_per_environment: true) ==
+               Path.join(File.cwd!(), "_build/rpi3_dev")
+
+      assert Mix.Project.build_path(build_per_environment: false) ==
+               Path.join(File.cwd!(), "_build/rpi3_shared")
+    end
+
     test "considers MIX_BUILD_PATH" do
       System.put_env("MIX_BUILD_PATH", "_build")
-      assert Mix.Project.build_path() == Path.join(File.cwd!(), "_build/dev")
+      assert Mix.Project.build_path() == "_build"
     after
       System.delete_env("MIX_BUILD_PATH")
     end
@@ -42,16 +52,6 @@ defmodule Mix.ProjectTest do
       assert Mix.Project.deps_path() == Path.join(File.cwd!(), "test_deps_path")
     after
       System.delete_env("MIX_DEPS_PATH")
-    end
-
-    test "considers the target" do
-      Mix.target(:rpi3)
-
-      assert Mix.Project.build_path(build_per_environment: true) ==
-               Path.join(File.cwd!(), "_build/rpi3_dev")
-
-      assert Mix.Project.build_path(build_per_environment: false) ==
-               Path.join(File.cwd!(), "_build/rpi3_shared")
     end
   end
 
