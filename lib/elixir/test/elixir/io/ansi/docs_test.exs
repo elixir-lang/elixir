@@ -57,6 +57,36 @@ defmodule IO.ANSI.DocsTest do
     assert result == "\e[33m### wibble\e[0m\n\e[0m\ntext\n\e[0m"
   end
 
+  test "single-line quote block is converted" do
+    result = format("line\n\n> normal *italics* `code`\n\nline2\n")
+
+    assert result ==
+             "line\n" <>
+               "\e[0m\n" <>
+               "+---------------------+\n" <>
+               "| normal \e[1mitalics\e[0m \e[36mcode\e[0m |\n" <>
+               "+---------------------+\e[0m\n" <>
+               "\e[0m\n" <>
+               "line2\n" <>
+               "\e[0m"
+  end
+
+  test "multi-line quote block is converted" do
+    result = format("line\n\n> normal\n> *italics* \n> `code`\n\nline2\n")
+
+    assert result ==
+             "line\n" <>
+               "\e[0m\n" <>
+               "+---------+\n" <>
+               "| normal  |\n" <>
+               "| \e[1mitalics\e[0m |\n" <>
+               "| \e[36mcode\e[0m    |\n" <>
+               "+---------+\e[0m\n" <>
+               "\e[0m\n" <>
+               "line2\n" <>
+               "\e[0m"
+  end
+
   test "code block is converted" do
     result = format("line\n\n    code\n    code2\n\nline2\n")
     assert result == "line\n\e[0m\n\e[36m    code\n    code2\e[0m\n\e[0m\nline2\n\e[0m"
