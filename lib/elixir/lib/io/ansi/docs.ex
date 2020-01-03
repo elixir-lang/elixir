@@ -515,9 +515,23 @@ defmodule IO.ANSI.Docs do
   end
 
   defp write_with_wrap(words, available, indent, first) do
+    words
+    |> wrap_text(available, indent, first)
+    |> Enum.join("\n")
+    |> IO.puts()
+  end
+
+  defp wrap_text(words, available, ident, first, wrapped_lines \\ [])
+
+  defp wrap_text([], _available, _indent, _first, wrapped_lines) do
+    Enum.reverse(wrapped_lines)
+  end
+
+  defp wrap_text(words, available, indent, first, wrapped_lines) do
     {words, rest} = take_words(words, available, [])
-    IO.puts(if(first, do: "", else: indent) <> Enum.join(words, " "))
-    write_with_wrap(rest, available, indent, false)
+    line = if(first, do: "", else: indent) <> Enum.join(words, " ")
+
+    wrap_text(rest, available, indent, false, [line | wrapped_lines])
   end
 
   defp take_words([word | words], available, acc) do
