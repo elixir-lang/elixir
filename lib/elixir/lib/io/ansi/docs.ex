@@ -205,9 +205,11 @@ defmodule IO.ANSI.Docs do
 
   defp write_quote(lines, indent, options) do
     formatted_lines_with_length =
-      lines
-      |> Enum.map(&format_text(&1, options))
-      |> Enum.map(&{&1, length_without_escape(&1, 0)})
+      Enum.map(lines, fn line ->
+        formatted_line = format_text(line, options)
+
+        {formatted_line, length_without_escape(formatted_line, 0)}
+      end)
 
     {_line, max_length} = Enum.max_by(formatted_lines_with_length, fn {_, length} -> length end)
 
