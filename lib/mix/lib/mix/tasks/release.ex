@@ -579,7 +579,7 @@ defmodule Mix.Tasks.Release do
   Your `config/releases.exs` file needs to follow three important rules:
 
     * It MUST `import Config` at the top instead of the deprecated `use Mix.Config`
-    * It MUST NOT import any other configuration file via `import_file`
+    * It MUST NOT import any other configuration file via `import_config`
     * It MUST NOT access `Mix` in any way, as `Mix` is a build tool and it not
       available inside releases
 
