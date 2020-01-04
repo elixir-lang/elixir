@@ -75,13 +75,11 @@ defmodule Module.Checker do
   end
 
   defp undefined_and_deprecation_warnings(map, cache) do
-    no_warn_undefined = map.no_warn_undefined ++ Code.get_compiler_option(:no_warn_undefined)
-
     state = %{
       cache: cache,
       file: map.file,
       module: map.module,
-      no_warn_undefined: no_warn_undefined,
+      no_warn_undefined: merge_no_warn_undefined(map),
       function: nil,
       warnings: []
     }
@@ -91,6 +89,16 @@ defmodule Module.Checker do
     state.warnings
     |> merge_warnings()
     |> sort_warnings()
+  end
+
+  defp merge_no_warn_undefined(map) do
+    case Code.get_compiler_option(:no_warn_undefined) do
+      :all ->
+        :all
+
+      list when is_list(list) ->
+        map.no_warn_undefined ++ list
+    end
   end
 
   defp check_definitions(definitions, state) do
