@@ -211,6 +211,10 @@ defmodule Module.Checker do
   defp warn_undefined?(:erlang, :orelse, 2, _state), do: false
   defp warn_undefined?(:erlang, :andalso, 2, _state), do: false
 
+  defp warn_undefined?(_, _, _, %{no_warn_undefined: :all}) do
+    false
+  end
+
   defp warn_undefined?(module, fun, arity, state) do
     not Enum.any?(state.no_warn_undefined, &(&1 == module or &1 == {module, fun, arity}))
   end

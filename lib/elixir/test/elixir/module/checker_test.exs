@@ -535,6 +535,26 @@ defmodule Module.CheckerTest do
         Code.compiler_options(no_warn_undefined: no_warn_undefined)
       end
     end
+
+    test "global no_warn_undefined :all" do
+      no_warn_undefined = Code.get_compiler_option(:no_warn_undefined)
+
+      try do
+        Code.compiler_options(no_warn_undefined: :all)
+
+        files = %{
+          "a.ex" => """
+          defmodule A do
+            def a, do: MissingModule.func(1)
+          end
+          """
+        }
+
+        assert_no_warnings(files)
+      after
+        Code.compiler_options(no_warn_undefined: no_warn_undefined)
+      end
+    end
   end
 
   describe "deprecated" do
