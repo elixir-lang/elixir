@@ -1029,14 +1029,18 @@ defmodule TypespecTest do
              ] = SpecModuleAttributes.spec4()
 
       assert [
-               {:callback, {:when, _, [{:"::", _, [{:callback2, _, _}, {:var, _, _}]}, [var: {:boolean, _, _}]]},
+               {:callback,
+                {:when, _,
+                 [{:"::", _, [{:callback2, _, _}, {:var, _, _}]}, [var: {:boolean, _, _}]]},
                 {SpecModuleAttributes, _}},
                {:callback, {:"::", _, [{:callback1, _, _}, {:integer, _, _}]},
                 {SpecModuleAttributes, _}}
              ] = SpecModuleAttributes.callback()
 
       assert [
-               {:macrocallback, {:when, _, [{:"::", _, [{:macrocallback2, _, _}, {:var, _, _}]}, [var: {:boolean, _, _}]]},
+               {:macrocallback,
+                {:when, _,
+                 [{:"::", _, [{:macrocallback2, _, _}, {:var, _, _}]}, [var: {:boolean, _, _}]]},
                 {SpecModuleAttributes, _}},
                {:macrocallback, {:"::", _, [{:macrocallback1, _, _}, {:integer, _, _}]},
                 {SpecModuleAttributes, _}}
