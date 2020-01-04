@@ -175,8 +175,9 @@ defmodule Mix.Tasks.Release do
   of crashes. See the generated `releases/RELEASE_VSN/env.sh` file.
 
   The daemon will write all of its standard output to the "tmp/log/"
-  directory in the release root. You can watch the log file by doing: 
-  `tail -f tmp/log/erlang.log.1`. A developer can also attach
+  directory in the release root. You can watch the log file by doing 
+  `tail -f tmp/log/erlang.log.1` or similar. Once files get too large,
+  the index suffix will be incremented. A developer can also attach
   to the standard input of the daemon by invoking "to_erl tmp/pipe/"
   from the release root. However, note that attaching to the system
   should be done with extreme care, since the usual commands for
