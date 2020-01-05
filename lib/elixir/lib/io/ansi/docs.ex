@@ -14,6 +14,7 @@ defmodule IO.ANSI.Docs do
     * `:doc_code`          - code blocks (cyan)
     * `:doc_headings`      - h1, h2, h3, h4, h5, h6 headings (yellow)
     * `:doc_metadata`      - documentation metadata keys (yellow)
+    * `:doc_quote`         - leading quote character `> ` (light black)
     * `:doc_inline_code`   - inline code (cyan)
     * `:doc_table_heading` - the style for table headings
     * `:doc_title`         - top level heading (reverse, yellow)
@@ -31,6 +32,7 @@ defmodule IO.ANSI.Docs do
       doc_code: [:cyan],
       doc_headings: [:yellow],
       doc_metadata: [:yellow],
+      doc_quote: [:light_black],
       doc_inline_code: [:cyan],
       doc_table_heading: [:reverse],
       doc_title: [:reverse, :yellow],
@@ -73,7 +75,7 @@ defmodule IO.ANSI.Docs do
       {key, value}, _printed when is_binary(value) and key in @metadata_filter ->
         label = metadata_label(key, options)
         indent = String.duplicate(" ", length_without_escape(label, 0) + 1)
-        write_with_wrap([label | String.split(value, @spaces)], options[:width], indent, true)
+        write_with_wrap([label | String.split(value, @spaces)], options[:width], indent, true, "")
 
       {key, value}, _printed when is_boolean(value) and key in @metadata_filter ->
         IO.puts([metadata_label(key, options), ' ', to_string(value)])
@@ -139,6 +141,11 @@ defmodule IO.ANSI.Docs do
     write_heading(heading, rest, text, indent, options)
   end
 
+  defp process([">" <> line | rest], text, indent, options) do
+    write_text(text, indent, options)
+    process_quote(rest, [line], indent, options)
+  end
+
   defp process(["" | rest], text, indent, options) do
     write_text(text, indent, options)
     process(rest, [], indent, options)
@@ -181,6 +188,47 @@ defmodule IO.ANSI.Docs do
     write(:doc_headings, heading, options)
     newline_after_block()
     process(rest, [], "", options)
+  end
+
+  ## Quotes
+
+  defp process_quote([], lines, indent, options) do
+    write_quote(lines, indent, options, false)
+  end
+
+  defp process_quote([">", ">" <> line | rest], lines, indent, options) do
+    write_quote(lines, indent, options, true)
+    write_empty_quote_line(options)
+    process_quote(rest, [line], indent, options)
+  end
+
+  defp process_quote([">" <> line | rest], lines, indent, options) do
+    process_quote(rest, [line | lines], indent, options)
+  end
+
+  defp process_quote(rest, lines, indent, options) do
+    write_quote(lines, indent, options, false)
+    process(rest, [], indent, options)
+  end
+
+  defp write_quote(lines, indent, options, no_wrap) do
+    lines
+    |> Enum.map(&String.trim/1)
+    |> Enum.reverse()
+    |> write_lines(
+      indent,
+      options,
+      no_wrap,
+      quote_prefix(options)
+    )
+  end
+
+  defp quote_prefix(options), do: "#{color(:doc_quote, options)}> #{IO.ANSI.reset()}"
+
+  defp write_empty_quote_line(options) do
+    options
+    |> quote_prefix()
+    |> IO.puts()
   end
 
   ## Lists
@@ -267,14 +315,23 @@ defmodule IO.ANSI.Docs do
   end
 
   defp write_text(lines, indent, options, no_wrap) do
+    write_lines(lines, indent, options, no_wrap, "")
+  end
+
+  defp write_lines(lines, indent, options, no_wrap, prefix) do
     lines
     |> Enum.join(" ")
-    |> handle_links
-    |> handle_inline(options)
+    |> format_text(options)
     |> String.split(@spaces)
-    |> write_with_wrap(options[:width] - byte_size(indent), indent, no_wrap)
+    |> write_with_wrap(options[:width] - byte_size(indent), indent, no_wrap, prefix)
 
     unless no_wrap, do: newline_after_block()
+  end
+
+  defp format_text(text, options) do
+    text
+    |> handle_links()
+    |> handle_inline(options)
   end
 
   ## Code blocks
@@ -470,14 +527,27 @@ defmodule IO.ANSI.Docs do
     IO.puts([color(style, options), string, IO.ANSI.reset()])
   end
 
-  defp write_with_wrap([], _available, _indent, _first) do
+  defp write_with_wrap([], _available, _indent, _first, _prefix) do
     :ok
   end
 
-  defp write_with_wrap(words, available, indent, first) do
-    {words, rest} = take_words(words, available, [])
-    IO.puts(if(first, do: "", else: indent) <> Enum.join(words, " "))
-    write_with_wrap(rest, available, indent, false)
+  defp write_with_wrap(words, available, indent, first, prefix) do
+    words
+    |> wrap_text(available, indent, first, prefix, [])
+    |> Enum.join("\n")
+    |> IO.puts()
+  end
+
+  defp wrap_text([], _available, _indent, _first, _prefix, wrapped_lines) do
+    Enum.reverse(wrapped_lines)
+  end
+
+  defp wrap_text(words, available, indent, first, prefix, wrapped_lines) do
+    prefix_length = length_without_escape(prefix, 0)
+    {words, rest} = take_words(words, available - prefix_length, [])
+    line = [if(first, do: "", else: indent), prefix, Enum.join(words, " ")]
+
+    wrap_text(rest, available, indent, false, prefix, [line | wrapped_lines])
   end
 
   defp take_words([word | words], available, acc) do
