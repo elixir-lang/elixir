@@ -133,6 +133,9 @@ defmodule Mix.Release do
 
           to_string(version)
 
+        "" ->
+          Mix.raise("The release :version cannot be an empty string")
+
         _ ->
           version
       end

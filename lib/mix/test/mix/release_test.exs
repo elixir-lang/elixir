@@ -170,6 +170,12 @@ defmodule Mix.ReleaseTest do
       end
     end
 
+    test "raises for blank version" do
+      assert_raise Mix.Error, ~r"The release :version cannot be an empty string", fn ->
+        from_config!(nil, config(version: ""), [])
+      end
+    end
+
     test "raises on invalid release names" do
       assert_raise Mix.Error, ~r"Invalid release name", fn ->
         from_config!(nil, config(releases: ["invalid name": []]), [])

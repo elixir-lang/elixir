@@ -245,7 +245,7 @@ defmodule Mix.Tasks.Compile.AppTest do
     Mix.Project.push(InvalidVsnProject)
 
     in_fixture("no_mixfile", fn ->
-      message = "Expected :version to be a SemVer version, got: \"0.3\""
+      message = ~r"Expected :version to be a valid Version, got: \"0.3\""
 
       assert_raise Mix.Error, message, fn ->
         Mix.Tasks.Compile.App.run([])
