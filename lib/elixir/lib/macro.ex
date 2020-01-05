@@ -1028,11 +1028,11 @@ defmodule Macro do
     <<left::binary, escaped::binary, right::binary>>
   end
 
-  def escape_sigil(parts, "("), do: String.replace(parts, ")", ~S"\)")
-  def escape_sigil(parts, "{"), do: String.replace(parts, "}", ~S"\}")
-  def escape_sigil(parts, "["), do: String.replace(parts, "]", ~S"\]")
-  def escape_sigil(parts, "<"), do: String.replace(parts, ">", ~S"\>")
-  def escape_sigil(parts, delimiter), do: String.replace(parts, delimiter, "\\#{delimiter}")
+  defp escape_sigil(parts, "("), do: String.replace(parts, ")", ~S"\)")
+  defp escape_sigil(parts, "{"), do: String.replace(parts, "}", ~S"\}")
+  defp escape_sigil(parts, "["), do: String.replace(parts, "]", ~S"\]")
+  defp escape_sigil(parts, "<"), do: String.replace(parts, ">", ~S"\>")
+  defp escape_sigil(parts, delimiter), do: String.replace(parts, delimiter, "\\#{delimiter}")
 
   defp module_to_string(atom, _fun) when is_atom(atom) do
     inspect_no_limit(atom)
