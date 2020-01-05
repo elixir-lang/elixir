@@ -327,17 +327,55 @@ defmodule MacroTest do
 
     test "sigil call" do
       assert Macro.to_string(quote(do: ~r"123")) == ~S/~r"123"/
-      assert Macro.to_string(quote(do: ~r"123"u)) == ~S/~r"123"u/
       assert Macro.to_string(quote(do: ~r"\n123")) == ~S/~r"\\n123"/
+      assert Macro.to_string(quote(do: ~r"12\"3")) == ~S/~r"12\\"3"/
+      assert Macro.to_string(quote(do: ~r/12\/3/u)) == ~S"~r/12\/3/u"
+      assert Macro.to_string(quote(do: ~r{\n123})) == ~S/~r{\\n123}/
+      assert Macro.to_string(quote(do: ~r((1\)(2\)3))) == ~S/~r((1\)(2\)3)/
+      assert Macro.to_string(quote(do: ~r{\n1{1\}23})) == ~S/~r{\\n1{1\}23}/
+      assert Macro.to_string(quote(do: ~r|12\|3|)) == ~S"~r|12\|3|"
 
-      assert Macro.to_string(quote(do: ~r"1#{two}3")) == ~S/~r"1#{two}3"/
-      assert Macro.to_string(quote(do: ~r"1#{two}3"u)) == ~S/~r"1#{two}3"u/
+      assert Macro.to_string(quote(do: ~r[1#{two}3])) == ~S/~r[1#{two}3]/
+      assert Macro.to_string(quote(do: ~r[1[#{two}\]3])) == ~S/~r[1[#{two}\]3]/
+      assert Macro.to_string(quote(do: ~r'1#{two}3'u)) == ~S/~r'1#{two}3'u/
 
       assert Macro.to_string(quote(do: ~R"123")) == ~S/~R"123"/
       assert Macro.to_string(quote(do: ~R"123"u)) == ~S/~R"123"u/
       assert Macro.to_string(quote(do: ~R"\n123")) == ~S/~R"\n123"/
 
       assert Macro.to_string(quote(do: ~S["'(123)'"])) == ~S/~S["'(123)'"]/
+
+      assert Macro.to_string(
+               quote do
+                 ~s"""
+                 "\""foo"\""
+                 """
+               end
+             ) == ~s[~s"""\n"\\""foo"\\""\n"""]
+
+      assert Macro.to_string(
+               quote do
+                 ~s'''
+                 '\''foo'\''
+                 '''
+               end
+             ) == ~s[~s'''\n'\\''foo'\\''\n''']
+
+      assert Macro.to_string(
+               quote do
+                 ~s"""
+                 "\"foo\""
+                 """
+               end
+             ) == ~s[~s"""\n"\\"foo\\""\n"""]
+
+      assert Macro.to_string(
+               quote do
+                 ~s'''
+                 '\"foo\"'
+                 '''
+               end
+             ) == ~s[~s'''\n'\\"foo\\"'\n''']
 
       assert Macro.to_string(
                quote do

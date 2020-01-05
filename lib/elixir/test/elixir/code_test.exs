@@ -236,6 +236,27 @@ defmodule CodeTest do
         Code.string_to_quoted!("1 +")
       end
     end
+
+    test "delimiter information for sigils is included" do
+      string_to_quoted = &Code.string_to_quoted!(&1, token_metadata: false)
+
+      assert string_to_quoted.("~r/foo/") ==
+               {:sigil_r, [delimiter: "/", line: 1], [{:<<>>, [line: 1], ["foo"]}, []]}
+
+      assert string_to_quoted.("~r[foo]") ==
+               {:sigil_r, [delimiter: "[", line: 1], [{:<<>>, [line: 1], ["foo"]}, []]}
+
+      assert string_to_quoted.("~r\"foo\"") ==
+               {:sigil_r, [delimiter: "\"", line: 1], [{:<<>>, [line: 1], ["foo"]}, []]}
+
+      meta = [delimiter: "\"\"\"", line: 1]
+      args = {:sigil_S, meta, [{:<<>>, [line: 1], ["sigil heredoc\n"]}, []]}
+      assert string_to_quoted.("~S\"\"\"\nsigil heredoc\n\"\"\"") == args
+
+      meta = [delimiter: "'''", line: 1]
+      args = {:sigil_S, meta, [{:<<>>, [line: 1], ["sigil heredoc\n"]}, []]}
+      assert string_to_quoted.("~S'''\nsigil heredoc\n'''") == args
+    end
   end
 
   describe "string_to_quoted/2 with :token_metadata" do
@@ -300,27 +321,6 @@ defmodule CodeTest do
       assert string_to_quoted.("foo(\n) do\nend") ==
                {:foo, [do: [line: 2], end: [line: 3], newlines: 1, closing: [line: 2], line: 1],
                 [[do: {:__block__, [], []}]]}
-    end
-
-    test "adds delimiter information to sigils" do
-      string_to_quoted = &Code.string_to_quoted!(&1, token_metadata: true)
-
-      assert string_to_quoted.("~r/foo/") ==
-               {:sigil_r, [delimiter: "/", line: 1], [{:<<>>, [line: 1], ["foo"]}, []]}
-
-      assert string_to_quoted.("~r[foo]") ==
-               {:sigil_r, [delimiter: "[", line: 1], [{:<<>>, [line: 1], ["foo"]}, []]}
-
-      assert string_to_quoted.("~r\"foo\"") ==
-               {:sigil_r, [delimiter: "\"", line: 1], [{:<<>>, [line: 1], ["foo"]}, []]}
-
-      meta = [delimiter: "\"\"\"", line: 1]
-      args = {:sigil_S, meta, [{:<<>>, [line: 1], ["sigil heredoc\n"]}, []]}
-      assert string_to_quoted.("~S\"\"\"\nsigil heredoc\n\"\"\"") == args
-
-      meta = [delimiter: "'''", line: 1]
-      args = {:sigil_S, meta, [{:<<>>, [line: 1], ["sigil heredoc\n"]}, []]}
-      assert string_to_quoted.("~S'''\nsigil heredoc\n'''") == args
     end
   end
 
