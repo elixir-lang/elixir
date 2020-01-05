@@ -1018,8 +1018,8 @@ defmodule Code do
 
     * `:no_warn_undefined` (since v1.10.0) - list of modules and `{Mod, fun, arity}`
       tuples that will not emit warnings that the module or function does not exist
-      at compilation time. This can be useful when doing dynamic compilation.
-      Defaults to `[]`.
+      at compilation time. Pass atom `:all` to skip warning for all undefined
+      functions. This can be useful when doing dynamic compilation. Defaults to `[]`.
 
     * `:tracers` (since v1.10.0) - a list of tracers (modules) to be used during
       compilation. See the module docs for more information. Defaults to `[]`.
@@ -1046,6 +1046,16 @@ defmodule Code do
     end
 
     :elixir_config.put(key, value)
+    :ok
+  end
+
+  def put_compiler_option(:no_warn_undefined, value) do
+    if value != :all and not is_list(value) do
+      raise "compiler option :no_warn_undefined should be a list or the atom :all, " <>
+              "got: #{inspect(value)}"
+    end
+
+    :elixir_config.put(:no_warn_undefined, value)
     :ok
   end
 
