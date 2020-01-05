@@ -868,10 +868,7 @@ build_access(Expr, {List, Location}) ->
 
 build_sigil({sigil, Location, Sigil, Parts, Modifiers, Delimiter}) ->
   Meta = meta_from_location(Location),
-  MetaWithDelimiter = case ?token_metadata() of
-    true -> [{delimiter, Delimiter} | Meta];
-    false -> Meta
-  end,
+  MetaWithDelimiter = [{delimiter, Delimiter} | Meta],
   {list_to_atom("sigil_" ++ [Sigil]),
    MetaWithDelimiter,
    [{'<<>>', Meta, string_parts(Parts)}, Modifiers]}.

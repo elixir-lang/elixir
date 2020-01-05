@@ -557,7 +557,7 @@ defmodule ExUnit.DiffTest do
   test "structs with inspect" do
     refute_diff(
       ~D[2017-10-01] = ~D[2017-10-02],
-      ~s/-~D"2017-10-01"-/,
+      ~s/-~D[2017-10-01]-/,
       "~D[2017-10-0+2+]"
     )
 
@@ -569,7 +569,7 @@ defmodule ExUnit.DiffTest do
 
     refute_diff(
       ~D[2017-10-02] = "2017-10-01",
-      ~s/-~D"2017-10-02"-/,
+      ~s/-~D[2017-10-02]-/,
       ~s/+"2017-10-01"+/
     )
   end
