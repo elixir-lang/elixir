@@ -5,8 +5,8 @@ defmodule Version do
   A version is a string in a specific format or a `Version`
   generated after parsing via `Version.parse/1`.
 
-  `Version` parsing and requirements follow
-  [SemVer 2.0 schema](https://semver.org/).
+  Although Elixir projects are not required to follow SemVer,
+  they must follow the format outlined on [SemVer 2.0 schema](https://semver.org/).
 
   ## Versions
 
@@ -29,7 +29,7 @@ defmodule Version do
   ## Struct
 
   The version is represented by the `Version` struct and fields
-  are named according to SemVer: `:major`, `:minor`, `:patch`,
+  are named according to SemVer 2.0: `:major`, `:minor`, `:patch`,
   `:pre`, and `:build`.
 
   ## Requirements
