@@ -1051,7 +1051,7 @@ defmodule Code do
 
   def put_compiler_option(:no_warn_undefined, value) do
     if value != :all and not is_list(value) do
-      raise "compiler option :no_warn_undefined should be a list or an atom :all, " <>
+      raise "compiler option :no_warn_undefined should be a list or the atom :all, " <>
               "got: #{inspect(value)}"
     end
 
