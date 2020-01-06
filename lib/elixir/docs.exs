@@ -86,6 +86,7 @@
     ],
     "Code & Macros": [
       Code,
+      Code.Tracer,
       Kernel.ParallelCompiler,
       Macro,
       Macro.Env
