@@ -1354,6 +1354,12 @@ defmodule Enum do
   @spec join(t, String.t()) :: String.t()
   def join(enumerable, joiner \\ "")
 
+  def join(enumerable, "") do
+    enumerable
+    |> map(&entry_to_string(&1))
+    |> IO.iodata_to_binary()
+  end
+
   def join(enumerable, joiner) when is_binary(joiner) do
     reduced =
       reduce(enumerable, :first, fn
