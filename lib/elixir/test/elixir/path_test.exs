@@ -42,6 +42,8 @@ defmodule PathTest do
     test "absname/1" do
       assert Path.absname("//host/path") == "//host/path"
       assert Path.absname("\\\\host\\path") == "//host/path"
+      assert Path.absname("\\/host\\path") == "//host/path"
+      assert Path.absname("/\\host\\path") == "//host/path"
     end
 
     test "relative/1" do
@@ -75,6 +77,8 @@ defmodule PathTest do
 
       assert Path.type("//host/path") == :absolute
       assert Path.type("\\\\host\\path") == :absolute
+      assert Path.type("/\\host\\path") == :absolute
+      assert Path.type("\\/host\\path") == :absolute
     end
 
     test "split/1" do
