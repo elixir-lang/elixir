@@ -226,20 +226,6 @@ defmodule Module.Types.Pattern do
 
   ## GUARDS
 
-  @top_union [
-    :atom,
-    :binary,
-    :float,
-    :fun,
-    :integer,
-    {:list, :dynamic},
-    {:map, []},
-    :pid,
-    :port,
-    :reference,
-    :tuple
-  ]
-
   # TODO: Some guards can be changed to intersection types or higher order types
 
   @guard_functions %{
@@ -299,13 +285,13 @@ defmodule Module.Types.Pattern do
     {:bxor, 2} => {[:integer, :integer], :integer},
     {:bsl, 2} => {[:integer, :integer], :integer},
     {:bsr, 2} => {[:integer, :integer], :integer},
-    {:xor, 2} => {[:boolean, :boolean], :boolean}
+    {:xor, 2} => {[:boolean, :boolean], :boolean},
+    {:not, 1} => {[:boolean], :boolean}
 
     # Following guards are matched explicitly to handle
     # type guard functions such as is_atom/1
     # {:andalso, 2} => {[:boolean, :boolean], :boolean}
     # {:orelse, 2} => {[:boolean, :boolean], :boolean}
-    # {:not, 1} => {[:boolean], :boolean}
   }
 
   @type_guards [
@@ -352,19 +338,6 @@ defmodule Module.Types.Pattern do
          {:ok, _, context} <- unify(left_type, :boolean, stack, context),
          {:ok, _, context} <- unify(right_type, :boolean, stack, context),
          do: {:ok, :boolean, context}
-  end
-
-  def of_guard({{:., _, [:erlang, :not]}, _, [arg]} = expr, stack, context) do
-    stack = push_expr_stack(expr, stack)
-    fresh_context = fresh_context(context)
-
-    with {:ok, type, arg_context} <- of_guard(arg, stack, fresh_context),
-         arg_context = invert_types(stack, arg_context),
-         {:ok, context} <- unify_new_types(context, stack, arg_context),
-         {:ok, _, context} <- unify(type, :boolean, stack, context) do
-      guard_sources = merge_guard_sources([context.guard_sources, arg_context.guard_sources])
-      {:ok, :boolean, %{context | guard_sources: guard_sources}}
-    end
   end
 
   def of_guard({{:., _, [:erlang, guard]}, _, args} = expr, stack, context) do
@@ -554,52 +527,6 @@ defmodule Module.Types.Pattern do
       end
 
     {:ok, context}
-  end
-
-  defp invert_types(stack, context) do
-    Enum.reduce(context.types, context, fn {index, type}, context ->
-      sources = Map.get(context.guard_sources, index, [])
-
-      cond do
-        :guarded_fail in sources ->
-          remove_var(index, context)
-
-        :guarded in sources ->
-          # Remove traces from inside `not(...)` when we invert the type
-          # to avoid confusing error messages
-          context = %{context | traces: Map.put(context.traces, index, [])}
-          refine_var(index, invert_type(type, context), stack, context)
-
-        true ->
-          context
-      end
-    end)
-  end
-
-  defp invert_type({:union, _} = union, context) do
-    union =
-      Enum.flat_map(@top_union, fn top_type ->
-        if subtype?(top_type, union, context) do
-          []
-        else
-          [top_type]
-        end
-      end)
-
-    to_union(union, context)
-  end
-
-  defp invert_type(type, context) do
-    union =
-      Enum.flat_map(@top_union, fn top_type ->
-        if subtype?(type, top_type, context) do
-          []
-        else
-          [top_type]
-        end
-      end)
-
-    to_union(union, context)
   end
 
   # binary-pattern :: specifier
