@@ -39,6 +39,13 @@ defmodule PathTest do
   describe "Windows" do
     @describetag :windows
 
+    test "absname/1" do
+      assert Path.absname("//host/path") == "//host/path"
+      assert Path.absname("\\\\host\\path") == "//host/path"
+      assert Path.absname("\\/host\\path") == "//host/path"
+      assert Path.absname("/\\host\\path") == "//host/path"
+    end
+
     test "relative/1" do
       assert Path.relative("C:/usr/local/bin") == "usr/local/bin"
       assert Path.relative("C:\\usr\\local\\bin") == "usr\\local\\bin"
@@ -67,6 +74,11 @@ defmodule PathTest do
       assert Path.type("/usr/local/bin") == :volumerelative
       assert Path.type('usr/local/bin') == :relative
       assert Path.type("../usr/local/bin") == :relative
+
+      assert Path.type("//host/path") == :absolute
+      assert Path.type("\\\\host\\path") == :absolute
+      assert Path.type("/\\host\\path") == :absolute
+      assert Path.type("\\/host\\path") == :absolute
     end
 
     test "split/1" do
