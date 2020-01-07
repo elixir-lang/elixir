@@ -8,12 +8,11 @@ Elixir applies bug fixes only to the latest minor branch. Security patches are a
 
 Elixir version | Support
 :------------- | :-----------------------------
-1.10           | Development
-1.9            | Bug fixes and security patches
+1.10           | Bug fixes and security patches
+1.9            | Security patches only
 1.8            | Security patches only
 1.7            | Security patches only
 1.6            | Security patches only
-1.5            | Security patches only
 
 New releases are announced in the read-only [announcements mailing list](https://groups.google.com/group/elixir-lang-ann). All security releases [will be tagged with `[security]`](https://groups.google.com/forum/#!searchin/elixir-lang-ann/%5Bsecurity%5D%7Csort:date).
 
@@ -171,4 +170,4 @@ Version | Deprecated feature                                  | Replaced by (ava
 [v1.7]: https://github.com/elixir-lang/elixir/blob/v1.7/CHANGELOG.md#4-hard-deprecations
 [v1.8]: https://github.com/elixir-lang/elixir/blob/v1.8/CHANGELOG.md#4-hard-deprecations
 [v1.9]: https://github.com/elixir-lang/elixir/blob/v1.9/CHANGELOG.md#4-hard-deprecations
-[v1.10]: https://github.com/elixir-lang/elixir/blob/master/CHANGELOG.md#4-hard-deprecations
+[v1.10]: https://github.com/elixir-lang/elixir/blob/v1.10/CHANGELOG.md#4-hard-deprecations
