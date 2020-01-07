@@ -720,6 +720,7 @@ defmodule Kernel.SpecialForms do
   To retrieve the stacktrace of the current process, use
   `Process.info(self(), :current_stacktrace)` instead.
   """
+  @doc since: "1.7.0"
   defmacro __STACKTRACE__, do: error!([])
 
   @doc """

@@ -823,10 +823,9 @@ defmodule Supervisor do
   end
 
   def start_child(supervisor, args) when is_list(args) do
-    # TODO: Deprecate in v1.11
-    # IO.warn(
-    #   "Supervisor.start_child/2 with a list of args is deprecated, please use DynamicSupervisor instead"
-    # )
+    IO.warn(
+      "Supervisor.start_child/2 with a list of args is deprecated, please use DynamicSupervisor instead"
+    )
 
     call(supervisor, {:start_child, args})
   end
@@ -853,10 +852,9 @@ defmodule Supervisor do
   def terminate_child(supervisor, child_id)
 
   def terminate_child(supervisor, pid) when is_pid(pid) do
-    # TODO: Deprecate in v1.11
-    # IO.warn(
-    #   "Supervisor.terminate_child/2 with a PID is deprecated, please use DynamicSupervisor instead"
-    # )
+    IO.warn(
+      "Supervisor.terminate_child/2 with a PID is deprecated, please use DynamicSupervisor instead"
+    )
 
     call(supervisor, {:terminate_child, pid})
   end
