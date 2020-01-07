@@ -92,7 +92,7 @@ There are many improvements related to the Elixir AST in this release too. First
 
 Finally, ExUnit comes with two small but important improvements: `ExUnit.CaptureIO` can now be used in tests that run asynchronously and we have added "data-structure diffing" when performing assertions with pattern matching. So now, whenever an assertion such `assert %{field: value} = expression()` fails, ExUnit will show both left-hand and right-hand sides, highlighting the parts that did not match in red.
 
-## v1.10.0
+## v1.10.0-rc.0 (2020-01-07)
 
 ### 1. Enhancements
 
@@ -167,6 +167,7 @@ Finally, ExUnit comes with two small but important improvements: `ExUnit.Capture
   * [Keyword] Ensure keyword replace and update preserve order
   * [Module] Raise instead of silently failing when performing a write module operation during after-compile
   * [Module] Fix `@macrocallback` definitions with a `when` clause
+  * [Path] Fix `Path.absname/1` to correctly handle UNC paths on Windows
   * [Stream] Close with correct accumulator in `Stream.resource/3` when called for a single-element list
   * [Stream] Allow `Stream.cycle/1` to be double nested inside `Stream.cycle/1`
   * [URI] Preserve slashes in URIs without authority
