@@ -274,7 +274,7 @@ defmodule IEx do
   When starting, IEx looks for a local `.iex.exs` file (located in the current
   working directory), then a global one (located at `~/.iex.exs` where the `~`
   in this case represents the user that _started the application_, not necessarily
-  the user invoking IEx) ) and loads the first one it finds (if any). The code
+  the user invoking IEx) and loads the first one it finds (if any). The code
   in the loaded `.iex.exs` file is evaluated in the shell's context. So, for
   instance, any modules that are loaded or variables that are bound in the
   `.iex.exs` file will be available in the shell after it has booted.
