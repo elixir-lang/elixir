@@ -721,15 +721,17 @@ defmodule Mix.Project do
 
       {new_proj, file} =
         if File.regular?(file) do
+          old_undefined = Code.get_compiler_option(:no_warn_undefined)
+
           try do
-            Code.compiler_options(relative_paths: false)
+            Code.compiler_options(relative_paths: false, no_warn_undefined: :all)
             _ = Code.compile_file(file)
             get()
           else
             ^old_proj -> Mix.raise("Could not find a Mix project at #{file}")
             new_proj -> {new_proj, file}
           after
-            Code.compiler_options(relative_paths: true)
+            Code.compiler_options(relative_paths: true, no_warn_undefined: old_undefined)
           end
         else
           push(nil, file, app)
