@@ -37,10 +37,10 @@ defmodule Mix.CLI do
     file = System.get_env("MIX_EXS") || "mix.exs"
 
     if File.regular?(file) do
-      old_value = Code.get_compiler_option(:no_warn_undefined)
+      old_undefined = Code.get_compiler_option(:no_warn_undefined)
       Code.put_compiler_option(:no_warn_undefined, :all)
       Code.compile_file(file)
-      Code.put_compiler_option(:no_warn_undefined, old_value)
+      Code.put_compiler_option(:no_warn_undefined, old_undefined)
     end
   end
 
