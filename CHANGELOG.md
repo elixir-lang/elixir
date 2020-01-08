@@ -171,6 +171,7 @@ Finally, ExUnit comes with two small but important improvements: `ExUnit.Capture
   * [Stream] Close with correct accumulator in `Stream.resource/3` when called for a single-element list
   * [Stream] Allow `Stream.cycle/1` to be double nested inside `Stream.cycle/1`
   * [URI] Preserve slashes in URIs without authority
+  * [URI] Require a nil or an absolute path on URIs with host or authority
 
 #### IEx
 
