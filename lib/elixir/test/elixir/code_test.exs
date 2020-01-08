@@ -111,7 +111,7 @@ defmodule CodeTest do
         Code.compile_file(PathHelpers.fixture_path("checker_warning.exs"))
       end)
 
-    assert output =~ "function clause will never match"
+    assert output =~ "incompatible types"
   end
 
   test "require_file/1" do
