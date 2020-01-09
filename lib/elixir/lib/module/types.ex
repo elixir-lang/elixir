@@ -57,7 +57,7 @@ defmodule Module.Types do
   def of_head(params, guards, stack, context) do
     with {:ok, types, context} <-
            map_reduce_ok(params, context, &Pattern.of_pattern(&1, stack, &2)),
-         # TODO: Check that of_guard/3 returns a boolean
+         # TODO: Check that of_guard/3 returns boolean() | :fail
          {:ok, _, context} <- Pattern.of_guard(guards_to_or(guards), stack, context),
          do: {:ok, lift_types(types, context), context}
   end

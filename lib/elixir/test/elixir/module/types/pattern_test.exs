@@ -225,6 +225,11 @@ defmodule Module.Types.PatternTest do
     assert {:ok, :dynamic, context} = quoted_guard([x], elem(x, 0))
     assert Types.lift_type({:var, 0}, context) == :tuple
 
+    assert {:ok, {:atom, true}, context} = quoted_guard([], true)
+    assert {:ok, {:atom, false}, context} = quoted_guard([], false)
+    assert {:ok, {:atom, :fail}, context} = quoted_guard([], :fail)
+    assert {:ok, :boolean, context} = quoted_guard([], is_atom(true or :fail))
+
     assert {:error, {_, {:unable_unify, :tuple, :boolean, _, _}, _}} =
              quoted_guard([x], is_tuple(x) and is_boolean(x))
   end
