@@ -552,6 +552,14 @@ defmodule Mix.ReleaseTest do
 
       refute File.exists?(Path.join(destination, "bin/erl.ini"))
       refute File.exists?(Path.join(destination, "doc"))
+
+      # Now we copy from the copy using a string and without src
+      new_destination = tmp_path("mix_release/_build/dev/rel/new_demo/erts-#{@erts_version}")
+      File.rm_rf!(Path.join(destination, "src"))
+
+      release = from_config!(nil, config(releases: [new_demo: [include_erts: destination]]), [])
+      assert copy_erts(release)
+      assert File.exists?(new_destination)
     end
 
     test "does not copy when include_erts is false" do
