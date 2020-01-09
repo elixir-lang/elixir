@@ -674,7 +674,7 @@ defmodule Module.CheckerTest do
       }
 
       warning = """
-      warning: function clause will never match, found incompatibility:
+      warning: incompatible types:
 
           integer() !~ binary()
 
@@ -710,7 +710,7 @@ defmodule Module.CheckerTest do
       }
 
       warning = """
-      warning: function clause will never match, found incompatibility:
+      warning: incompatible types:
 
           integer() !~ binary()
 
@@ -746,7 +746,7 @@ defmodule Module.CheckerTest do
       }
 
       warning = """
-      warning: function clause will never match, found incompatibility:
+      warning: incompatible types:
 
           {var0} !~ var0
 
@@ -777,7 +777,7 @@ defmodule Module.CheckerTest do
       }
 
       warning = """
-      warning: function clause will never match, found incompatibility:
+      warning: incompatible types:
 
           integer() !~ binary()
 
@@ -813,7 +813,7 @@ defmodule Module.CheckerTest do
       }
 
       warning = """
-      warning: function clause will never match, found incompatibility:
+      warning: incompatible types:
 
           integer() !~ binary()
 
