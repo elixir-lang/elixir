@@ -333,10 +333,9 @@ defmodule Module.Types.Pattern do
     fresh_context = fresh_context(context)
 
     with {:ok, left_type, left_context} <- of_guard(left, stack, fresh_context),
-         {:ok, right_type, right_context} <- of_guard(right, stack, fresh_context),
+         {:ok, _right_type, right_context} <- of_guard(right, stack, fresh_context),
          {:ok, context} <- merge_context_or(context, stack, left_context, right_context),
          {:ok, _, context} <- unify(left_type, :boolean, stack, context),
-         {:ok, _, context} <- unify(right_type, :boolean, stack, context),
          do: {:ok, :boolean, context}
   end
 
