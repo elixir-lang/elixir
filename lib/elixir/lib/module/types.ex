@@ -258,7 +258,7 @@ defmodule Module.Types do
 
   def format_warning({:unable_unify, left, right, expr, traces}) do
     [
-      "function clause will never match, found incompatibility:\n\n    ",
+      "incompatible types:\n\n    ",
       format_type(left),
       " !~ ",
       format_type(right),
