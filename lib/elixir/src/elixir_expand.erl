@@ -817,12 +817,17 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, #{context := Context} = E, E
 
   {EArgs, {EA, _}} = lists:mapfoldl(fun expand_arg/2, {EL, E}, Args),
 
-  case rewrite(Context, Receiver, AttachedDotMeta, Right, Meta, EArgs) of
-    {ok, Rewritten} ->
-      maybe_warn_comparison(Rewritten, Args, E),
-      {Rewritten, elixir_env:close_write(EA, E)};
-    {error, Error} ->
-      form_error(Meta, E, elixir_rewrite, Error)
+  case lists:keyfind(no_parens, 1, Meta) of
+    {no_parens, true} when Context == guard andalso is_tuple(Receiver) ->
+      {{{'.', DotMeta, [Receiver, Right]}, Meta, EArgs}, EA};
+    _ ->
+      case rewrite(Context, Receiver, AttachedDotMeta, Right, Meta, EArgs) of
+        {ok, Rewritten} ->
+          maybe_warn_comparison(Rewritten, Args, E),
+          {Rewritten, elixir_env:close_write(EA, E)};
+        {error, Error} ->
+          form_error(Meta, E, elixir_rewrite, Error)
+      end
   end;
 expand_remote(Receiver, DotMeta, Right, Meta, Args, E, _) ->
   Call = {{'.', DotMeta, [Receiver, Right]}, Meta, Args},
