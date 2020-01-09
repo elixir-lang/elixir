@@ -144,7 +144,7 @@ Finally, ExUnit comes with two small but important improvements: `ExUnit.Capture
 #### Mix
 
   * [mix compile] Add `--profile time` flag to profile compilation steps
-  * [mix deps.compile] Add `--skip-umbrella-apps` flag. The new flag does not compile umbrella apps. This is useful for building caches in CD/CI pipelines
+  * [mix deps.compile] Add `--skip-umbrella-children` flag. The new flag does not compile umbrella apps. This is useful for building caches in CD/CI pipelines
   * [mix deps.unlock] Add `--check-unused` flag. The new flag raises if there are any unused dependencies in the lock file
   * [mix release] Allow `RELEASE_DISTRIBUTION` to be set to `none`
   * [mix release] Support overlays in `rel/overlays`
