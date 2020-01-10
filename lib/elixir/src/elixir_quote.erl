@@ -80,7 +80,7 @@ dot(Meta, Left, Right, nil) when is_atom(Right) ->
   end;
 
 dot(Meta, Left, {Right, _, Context}, nil) when is_atom(Right), is_atom(Context) ->
-  {{'.', Meta, [Left, Right]}, Meta, []};
+  {{'.', Meta, [Left, Right]}, [{no_parens, true} | Meta], []};
 
 dot(Meta, Left, {Right, _, Args}, nil) when is_atom(Right) ->
   {{'.', Meta, [Left, Right]}, Meta, Args};

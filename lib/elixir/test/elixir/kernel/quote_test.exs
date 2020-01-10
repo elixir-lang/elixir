@@ -67,7 +67,8 @@ defmodule Kernel.QuoteTest do
                 end
               end)
 
-    assert quote(do: foo.unquote({:bar, [], nil})) == quote(do: foo.bar())
+    assert quote(do: foo.unquote({:bar, [], nil})) == quote(do: foo.bar)
+    assert quote(do: foo.unquote({:bar, [], nil})()) == quote(do: foo.bar())
     assert quote(do: foo.unquote({:bar, [], [1, 2]})) == quote(do: foo.bar(1, 2))
 
     assert Code.eval_quoted(quote(do: Foo.unquote(Bar))) == {Elixir.Foo.Bar, []}
@@ -302,7 +303,7 @@ defmodule Kernel.QuoteTest.ErrorsTest do
       RuntimeError ->
         mod = Kernel.QuoteTest.ErrorsTest
         file = __ENV__.file |> Path.relative_to_cwd() |> String.to_charlist()
-        assert [{^mod, :will_raise, 2, [file: ^file, line: 282]} | _] = __STACKTRACE__
+        assert [{^mod, :will_raise, 2, [file: ^file, line: 283]} | _] = __STACKTRACE__
     else
       _ -> flunk("expected failure")
     end
@@ -315,7 +316,7 @@ defmodule Kernel.QuoteTest.ErrorsTest do
       RuntimeError ->
         mod = Kernel.QuoteTest.ErrorsTest
         file = __ENV__.file |> Path.relative_to_cwd() |> String.to_charlist()
-        assert [{^mod, _, _, [file: ^file, line: 313]} | _] = __STACKTRACE__
+        assert [{^mod, _, _, [file: ^file, line: 314]} | _] = __STACKTRACE__
     else
       _ -> flunk("expected failure")
     end
