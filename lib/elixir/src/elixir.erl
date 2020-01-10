@@ -3,7 +3,7 @@
 -module(elixir).
 -behaviour(application).
 -export([start_cli/0,
-  string_to_tokens/4, tokens_to_quoted/3, 'string_to_quoted!'/4,
+  string_to_tokens/5, tokens_to_quoted/3, 'string_to_quoted!'/5,
   env_for_eval/1, env_for_eval/2, quoted_to_erl/2,
   eval_forms/3, eval_quoted/3]).
 -include("elixir.hrl").
@@ -335,8 +335,8 @@ quoted_to_erl(Quoted, Env, Scope) ->
 
 %% Converts a given string (charlist) into quote expression
 
-string_to_tokens(String, StartLine, File, Opts) when is_integer(StartLine), is_binary(File) ->
-  case elixir_tokenizer:tokenize(String, StartLine, [{file, File} | Opts]) of
+string_to_tokens(String, StartLine, StartColumn, File, Opts) when is_integer(StartLine), is_binary(File) ->
+  case elixir_tokenizer:tokenize(String, StartLine, StartColumn, [{file, File} | Opts]) of
     {ok, _Tokens} = Ok ->
       Ok;
     {error, {Line, _, {ErrorPrefix, ErrorSuffix}, Token}, _Rest, _SoFar} ->
@@ -370,8 +370,9 @@ parser_line(Meta) ->
     false -> 0
   end.
 
-'string_to_quoted!'(String, StartLine, File, Opts) ->
-  case string_to_tokens(String, StartLine, File, Opts) of
+'string_to_quoted!'(String, StartLine, StartColumn, File, Opts) ->
+  case string_to_tokens(String, StartLine, StartColumn, File, Opts) of
+
     {ok, Tokens} ->
       case tokens_to_quoted(Tokens, File, Opts) of
         {ok, Forms} ->

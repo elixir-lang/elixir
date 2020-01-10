@@ -3,11 +3,11 @@
 
 eval(Content) ->
   {Value, Binding, _} =
-    elixir:eval_forms(elixir:'string_to_quoted!'(Content, 1, <<"nofile">>, []), [], []),
+    elixir:eval_forms(elixir:'string_to_quoted!'(Content, 1, 1, <<"nofile">>, []), [], []),
   {Value, Binding}.
 
 to_erl(String) ->
-  Forms = elixir:'string_to_quoted!'(String, 1, <<"nofile">>, []),
+  Forms = elixir:'string_to_quoted!'(String, 1, 1, <<"nofile">>, []),
   {Expr, _, _} = elixir:quoted_to_erl(Forms, elixir:env_for_eval([])),
   Expr.
 
