@@ -5,7 +5,7 @@
 -include("elixir.hrl").
 
 string(Contents, File, Callback) ->
-  Forms = elixir:'string_to_quoted!'(Contents, 1, File, elixir_config:get(parser_options)),
+  Forms = elixir:'string_to_quoted!'(Contents, 1, 1, File, elixir_config:get(parser_options)),
   quoted(Forms, File, Callback).
 
 quoted(Forms, File, Callback) ->

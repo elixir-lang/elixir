@@ -328,7 +328,7 @@ defmodule Code do
 
   defp eval_string_with_error_handling(string, binding, opts) do
     %{line: line, file: file} = env = :elixir.env_for_eval(opts)
-    forms = :elixir.string_to_quoted!(to_charlist(string), line, file, [])
+    forms = :elixir.string_to_quoted!(to_charlist(string), line, 1, file, [])
     {value, binding, _env} = :elixir.eval_forms(forms, binding, env)
     {value, binding}
   end
@@ -750,6 +750,9 @@ defmodule Code do
     * `:line` - the starting line of the string being parsed.
       Defaults to 1.
 
+    * `:column` - the starting column of the string being parsed.
+      Defaults to 1.
+
     * `:columns` - when `true`, attach a `:column` key to the quoted
       metadata. Defaults to `false`.
 
@@ -821,8 +824,9 @@ defmodule Code do
   def string_to_quoted(string, opts \\ []) when is_list(opts) do
     file = Keyword.get(opts, :file, "nofile")
     line = Keyword.get(opts, :line, 1)
+    column = Keyword.get(opts, :column, 1)
 
-    case :elixir.string_to_tokens(to_charlist(string), line, file, opts) do
+    case :elixir.string_to_tokens(to_charlist(string), line, column, file, opts) do
       {:ok, tokens} ->
         :elixir.tokens_to_quoted(tokens, file, opts)
 
@@ -845,7 +849,8 @@ defmodule Code do
   def string_to_quoted!(string, opts \\ []) when is_list(opts) do
     file = Keyword.get(opts, :file, "nofile")
     line = Keyword.get(opts, :line, 1)
-    :elixir.string_to_quoted!(to_charlist(string), line, file, opts)
+    column = Keyword.get(opts, :column, 1)
+    :elixir.string_to_quoted!(to_charlist(string), line, column, file, opts)
   end
 
   @doc """
