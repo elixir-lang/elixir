@@ -502,6 +502,36 @@ defmodule EExTest do
 
       assert_eval("\n\n  Good\n \n", string)
     end
+
+    test "line and column meta" do
+      parser_options = Code.get_compiler_option(:parser_options)
+      Code.put_compiler_option(:parser_options, columns: true)
+
+      try do
+        ast =
+          EEx.compile_string("""
+          <%= f() %> <% f() %>
+            <%= f fn -> %>
+              <%= f() %>
+            <% end %>
+          """)
+
+        {_, calls} =
+          Macro.prewalk(ast, [], fn
+            {:f, meta, _args} = expr, acc -> {expr, [meta | acc]}
+            other, acc -> {other, acc}
+          end)
+
+        assert Enum.reverse(calls) == [
+                 [line: 1, column: 5],
+                 [line: 1, column: 15],
+                 [line: 2, column: 7],
+                 [line: 3, column: 9]
+               ]
+      after
+        Code.put_compiler_option(:parser_options, parser_options)
+      end
+    end
   end
 
   describe "buffers" do
