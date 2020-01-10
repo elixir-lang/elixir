@@ -465,11 +465,21 @@ defmodule KernelTest do
       refute map_dot(%{field: false})
       assert map_dot(%{field: true})
 
-      message = ~r"cannot invoke remote function map.field/0 inside guards"
+      message =
+        "map lookup do not allow parenthesis inside guards " <>
+          "and cannot invoke remote function where the module is a variable: map.field()"
+
+      assert_raise CompileError, Regex.compile!(message), fn ->
+        defmodule MapDot do
+          def map_dot(map) when map.field(), do: true
+        end
+      end
+
+      message = ~r"cannot invoke remote function Module.fun/0 inside guards"
 
       assert_raise CompileError, message, fn ->
         defmodule MapDot do
-          def map_dot(map) when map.field(), do: true
+          def map_dot(map) when Module.fun(), do: true
         end
       end
     end
