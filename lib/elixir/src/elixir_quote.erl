@@ -76,7 +76,7 @@ dot(Meta, Left, Right, nil) when is_atom(Right) ->
     "Elixir." ++ _ ->
       {'__aliases__', Meta, [Left, Right]};
     _ ->
-      {{'.', Meta, [Left, Right]}, Meta, []}
+      {{'.', Meta, [Left, Right]}, [{no_parens, true} | Meta], []}
   end;
 
 dot(Meta, Left, {Right, _, Context}, nil) when is_atom(Right), is_atom(Context) ->
