@@ -549,7 +549,7 @@ signature_to_binary(Module, '__struct__', []) ->
 signature_to_binary(_, Name, Signature) ->
   'Elixir.Macro':to_string({Name, [], Signature}).
 
-checker_chunk(#{definitions := Definitions, deprecated := Deprecated}, NoWarnUndefined) ->
+checker_chunk(#{definitions := Definitions, deprecated := Deprecated, is_behaviour := IsBehaviour}, NoWarnUndefined) ->
   DeprecatedMap = maps:from_list(Deprecated),
 
   Exports =
@@ -563,12 +563,21 @@ checker_chunk(#{definitions := Definitions, deprecated := Deprecated}, NoWarnUnd
       end
     end, [], Definitions),
 
+  AllExports = [
+    {{'__info__', 1}, #{kind => def, deprecated_reason => nil}},
+    {{module_info, 0}, #{kind => def, deprecated_reason => nil}},
+    {{module_info, 1}, #{kind => def, deprecated_reason => nil}}
+  ] ++ behaviour_info_exports(IsBehaviour) ++ Exports,
+
   Contents = #{
-    exports => lists:sort(Exports),
+    exports => lists:sort(AllExports),
     no_warn_undefined => NoWarnUndefined
   },
 
   [{<<"ExCk">>, erlang:term_to_binary({elixir_checker_v1, Contents})}].
+
+behaviour_info_exports(true) -> [{{behaviour_info, 1}, #{kind => def, deprecated_reason => nil}}];
+behaviour_info_exports(false) -> [].
 
 split_no_warn_undefined([{no_warn_undefined, NoWarnUndefined} | CompileOpts], AccNWU, AccCO) ->
   split_no_warn_undefined(CompileOpts, list_wrap(NoWarnUndefined) ++ AccNWU, AccCO);
