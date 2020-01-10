@@ -13,16 +13,19 @@ defmodule EEx.Compiler do
   def compile(source, opts) when is_binary(source) and is_list(opts) do
     file = opts[:file] || "nofile"
     line = opts[:line] || 1
+    column = 1
     trim = opts[:trim] || false
 
-    case EEx.Tokenizer.tokenize(source, line, trim: trim) do
+    case EEx.Tokenizer.tokenize(source, line, column, trim: trim) do
       {:ok, tokens} ->
         state = %{
           engine: opts[:engine] || @default_engine,
           file: file,
           line: line,
           quoted: [],
-          start_line: nil
+          start_line: nil,
+          start_column: nil,
+          parser_options: Code.get_compiler_option(:parser_options)
         }
 
         init = state.engine.init(opts)
@@ -41,13 +44,19 @@ defmodule EEx.Compiler do
     generate_buffer(rest, buffer, scope, state)
   end
 
-  defp generate_buffer([{:expr, line, mark, chars, _} | rest], buffer, scope, state) do
-    expr = Code.string_to_quoted!(chars, line: line, file: state.file)
+  defp generate_buffer([{:expr, line, column, mark, chars, _} | rest], buffer, scope, state) do
+    options = [file: state.file, line: line, column: column(column, mark)] ++ state.parser_options
+    expr = Code.string_to_quoted!(chars, options)
     buffer = state.engine.handle_expr(buffer, IO.chardata_to_string(mark), expr)
     generate_buffer(rest, buffer, scope, state)
   end
 
-  defp generate_buffer([{:start_expr, start_line, mark, chars, _} | rest], buffer, scope, state) do
+  defp generate_buffer(
+         [{:start_expr, start_line, start_column, mark, chars, _} | rest],
+         buffer,
+         scope,
+         state
+       ) do
     {contents, line, rest} = look_ahead_middle(rest, start_line, chars)
 
     {contents, rest} =
@@ -55,7 +64,13 @@ defmodule EEx.Compiler do
         rest,
         state.engine.handle_begin(buffer),
         [contents | scope],
-        %{state | quoted: [], line: line, start_line: start_line}
+        %{
+          state
+          | quoted: [],
+            line: line,
+            start_line: start_line,
+            start_column: column(start_column, mark)
+        }
       )
 
     buffer = state.engine.handle_expr(buffer, IO.chardata_to_string(mark), contents)
@@ -63,7 +78,7 @@ defmodule EEx.Compiler do
   end
 
   defp generate_buffer(
-         [{:middle_expr, line, '', chars, _} | rest],
+         [{:middle_expr, line, _column, '', chars, _} | rest],
          buffer,
          [current | scope],
          state
@@ -74,7 +89,7 @@ defmodule EEx.Compiler do
   end
 
   defp generate_buffer(
-         [{:middle_expr, line, modifier, chars, trimmed?} | t],
+         [{:middle_expr, line, column, modifier, chars, trimmed?} | t],
          buffer,
          [_ | _] = scope,
          state
@@ -84,27 +99,37 @@ defmodule EEx.Compiler do
         "please remove \"#{modifier}\" accordingly"
 
     :elixir_errors.erl_warn(line, state.file, message)
-    generate_buffer([{:middle_expr, line, '', chars, trimmed?} | t], buffer, scope, state)
+    generate_buffer([{:middle_expr, line, column, '', chars, trimmed?} | t], buffer, scope, state)
     # TODO: Make this an error on Elixir v2.0 since it accidentally worked previously.
     # raise EEx.SyntaxError, message: message, file: state.file, line: line
   end
 
-  defp generate_buffer([{:middle_expr, line, _, chars, _} | _], _buffer, [], state) do
+  defp generate_buffer([{:middle_expr, line, _column, _, chars, _} | _], _buffer, [], state) do
     raise EEx.SyntaxError,
       message: "unexpected middle of expression <%#{chars}%>",
       file: state.file,
       line: line
   end
 
-  defp generate_buffer([{:end_expr, line, '', chars, _} | rest], buffer, [current | _], state) do
+  defp generate_buffer(
+         [{:end_expr, line, _column, '', chars, _} | rest],
+         buffer,
+         [current | _],
+         state
+       ) do
     {wrapped, state} = wrap_expr(current, line, buffer, chars, state)
-    tuples = Code.string_to_quoted!(wrapped, line: state.start_line, file: state.file)
+
+    options =
+      [file: state.file, line: state.start_line, column: state.start_column] ++
+        state.parser_options
+
+    tuples = Code.string_to_quoted!(wrapped, options)
     buffer = insert_quoted(tuples, state.quoted)
     {buffer, rest}
   end
 
   defp generate_buffer(
-         [{:end_expr, line, modifier, chars, trimmed?} | t],
+         [{:end_expr, line, column, modifier, chars, trimmed?} | t],
          buffer,
          [_ | _] = scope,
          state
@@ -114,12 +139,12 @@ defmodule EEx.Compiler do
         "expression \"<%#{modifier}#{chars}%>\", please remove \"#{modifier}\" accordingly"
 
     :elixir_errors.erl_warn(line, state.file, message)
-    generate_buffer([{:end_expr, line, '', chars, trimmed?} | t], buffer, scope, state)
+    generate_buffer([{:end_expr, line, column, '', chars, trimmed?} | t], buffer, scope, state)
     # TODO: Make this an error on Elixir v2.0 since it accidentally worked previously.
     # raise EEx.SyntaxError, message: message, file: state.file, line: line
   end
 
-  defp generate_buffer([{:end_expr, line, _, chars, _} | _], _buffer, [], state) do
+  defp generate_buffer([{:end_expr, line, _column, _, chars, _} | _], _buffer, [], state) do
     raise EEx.SyntaxError,
       message: "unexpected end of expression <%#{chars}%>",
       file: state.file,
@@ -152,7 +177,7 @@ defmodule EEx.Compiler do
   # Look middle expressions that immediately follow a start_expr
 
   defp look_ahead_middle(
-         [{:text, text}, {:middle_expr, line, _, chars, _} | rest] = tokens,
+         [{:text, text}, {:middle_expr, line, _column, _, chars, _} | rest] = tokens,
          start,
          contents
        ) do
@@ -163,7 +188,7 @@ defmodule EEx.Compiler do
     end
   end
 
-  defp look_ahead_middle([{:middle_expr, line, _, chars, _} | rest], _start, contents) do
+  defp look_ahead_middle([{:middle_expr, line, _column, _, chars, _} | rest], _start, contents) do
     {contents ++ chars, line, rest}
   end
 
@@ -196,5 +221,10 @@ defmodule EEx.Compiler do
 
   defp insert_quoted(other, _quoted) do
     other
+  end
+
+  defp column(column, mark) do
+    # length('<%') == 2
+    column + 2 + length(mark)
   end
 end
