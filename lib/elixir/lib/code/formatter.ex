@@ -140,8 +140,8 @@ defmodule Code.Formatter do
   Checks if two strings are equivalent.
   """
   def equivalent(string1, string2) when is_binary(string1) and is_binary(string2) do
-    quoted1 = :elixir.string_to_quoted!(to_charlist(string1), 1, "nofile", [])
-    quoted2 = :elixir.string_to_quoted!(to_charlist(string2), 1, "nofile", [])
+    quoted1 = :elixir.string_to_quoted!(to_charlist(string1), 1, 1, "nofile", [])
+    quoted2 = :elixir.string_to_quoted!(to_charlist(string2), 1, 1, "nofile", [])
 
     case not_equivalent(quoted1, quoted2) do
       {left, right} -> {:error, left, right}
@@ -210,7 +210,7 @@ defmodule Code.Formatter do
       token_metadata: true
     ]
 
-    with {:ok, tokens} <- :elixir.string_to_tokens(charlist, line, file, tokenizer_options),
+    with {:ok, tokens} <- :elixir.string_to_tokens(charlist, line, 1, file, tokenizer_options),
          {:ok, forms} <- :elixir.tokens_to_quoted(tokens, file, parser_options) do
       state =
         Process.get(:code_formatter_comments)

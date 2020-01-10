@@ -4,7 +4,7 @@
 
 eval(Content) ->
   {Value, Binding, _} =
-    elixir:eval_forms(elixir:'string_to_quoted!'(Content, 1, <<"nofile">>, []), [], []),
+    elixir:eval_forms(elixir:'string_to_quoted!'(Content, 1, 1, <<"nofile">>, []), [], []),
   {Value, Binding}.
 
 extract_interpolations(String) ->

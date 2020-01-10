@@ -5,7 +5,7 @@ eval(Content) -> eval(Content, []).
 
 eval(Content, Initial) ->
   {Value, Binding, _} =
-    elixir:eval_forms(elixir:'string_to_quoted!'(Content, 1, <<"nofile">>, []), Initial, []),
+    elixir:eval_forms(elixir:'string_to_quoted!'(Content, 1, 1, <<"nofile">>, []), Initial, []),
   {Value, Binding}.
 
 no_assignment_test() ->

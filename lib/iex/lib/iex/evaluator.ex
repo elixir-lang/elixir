@@ -181,7 +181,7 @@ defmodule IEx.Evaluator do
   defp eval_dot_iex(state, path) do
     try do
       code = File.read!(path)
-      quoted = :elixir.string_to_quoted!(String.to_charlist(code), 1, path, [])
+      quoted = :elixir.string_to_quoted!(String.to_charlist(code), 1, 1, path, [])
 
       # Evaluate the contents in the same environment server_loop will run in
       env = :elixir.env_for_eval(state.env, file: path, line: 1)
