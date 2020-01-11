@@ -165,7 +165,7 @@ defmodule Mix.Tasks.XrefTest do
       end)
     end
 
-    test "callers: gives nice error for quotable but invalid callers spec" do
+    test "gives nice error for quotable but invalid callers spec" do
       in_fixture("no_mixfile", fn ->
         message = "xref callers MODULE expects a MODULE, got: Module.func(arg)"
 
@@ -210,25 +210,6 @@ defmodule Mix.Tasks.XrefTest do
       lib/c.ex
       lib/d.ex
       └── lib/a.ex (compile)
-      """)
-    end
-
-    test "stats" do
-      assert_graph(["--format", "stats"], """
-      Tracked files: 4 (nodes)
-      Compile dependencies: 1 (edges)
-      Structs dependencies: 0 (edges)
-      Runtime dependencies: 2 (edges)
-
-      Top 4 files with most outgoing dependencies:
-        * lib/d.ex (1)
-        * lib/b.ex (1)
-        * lib/a.ex (1)
-        * lib/c.ex (0)
-
-      Top 2 files with most incoming dependencies:
-        * lib/a.ex (2)
-        * lib/b.ex (1)
       """)
     end
 
@@ -311,7 +292,7 @@ defmodule Mix.Tasks.XrefTest do
     end
 
     test "sink and source is error" do
-      assert_raise Mix.Error, "mix xref graph expects only one of --source and --sink", fn ->
+      assert_raise Mix.Error, "mix xref expects only one of --source and --sink", fn ->
         assert_graph(~w[--source lib/a.ex --sink lib/b.ex], "")
       end
     end
@@ -412,48 +393,32 @@ defmodule Mix.Tasks.XrefTest do
     end
 
     defp assert_graph(opts \\ [], expected) do
-      in_fixture("no_mixfile", fn ->
-        File.write!("lib/a.ex", """
-        defmodule A do
-          def a do
-            B.a()
-          end
-
-          def b, do: :ok
-        end
-        """)
-
-        File.write!("lib/b.ex", """
-        defmodule B do
-          def a do
-            A.a()
-            B.a()
-          end
-        end
-        """)
-
-        File.write!("lib/c.ex", """
-        defmodule C do
-        end
-        """)
-
-        File.write!("lib/d.ex", """
-        defmodule :d do
-          A.b()
-        end
-        """)
-
-        assert Mix.Task.run("xref", opts ++ ["graph"]) == :ok
-
-        assert "Compiling 4 files (.ex)\nGenerated sample app\n" <> result =
-                 receive_until_no_messages([])
-
-        assert normalize_graph_output(result) == normalize_graph_output(expected)
-      end)
+      assert normalize_graph_output(xref(["graph"] ++ opts)) == normalize_graph_output(expected)
     end
 
     defp normalize_graph_output(graph) do
       String.replace(graph, "└──", "`--")
+    end
+  end
+
+  describe "mix xref stats" do
+    test "prints general stats" do
+      assert xref(["stats"]) == """
+             Tracked files: 4 (nodes)
+             Compile dependencies: 1 (edges)
+             Structs dependencies: 0 (edges)
+             Runtime dependencies: 2 (edges)
+
+             Top 4 files with most outgoing dependencies:
+               * lib/d.ex (1)
+               * lib/b.ex (1)
+               * lib/a.ex (1)
+               * lib/c.ex (0)
+
+             Top 2 files with most incoming dependencies:
+               * lib/a.ex (2)
+               * lib/b.ex (1)
+             """
     end
 
     test "generates reports considering siblings inside umbrellas" do
@@ -472,7 +437,7 @@ defmodule Mix.Tasks.XrefTest do
           Mix.Task.run("compile")
           Mix.shell().flush()
 
-          Mix.Tasks.Xref.run(["graph", "--format", "stats", "--include-siblings"])
+          Mix.Tasks.Xref.run(["stats", "--include-siblings"])
 
           assert receive_until_no_messages([]) == """
                  Tracked files: 2 (nodes)
@@ -499,6 +464,47 @@ defmodule Mix.Tasks.XrefTest do
   end
 
   ## Helpers
+
+  defp xref(opts) do
+    in_fixture("no_mixfile", fn ->
+      File.write!("lib/a.ex", """
+      defmodule A do
+        def a do
+          B.a()
+        end
+
+        def b, do: :ok
+      end
+      """)
+
+      File.write!("lib/b.ex", """
+      defmodule B do
+        def a do
+          A.a()
+          B.a()
+        end
+      end
+      """)
+
+      File.write!("lib/c.ex", """
+      defmodule C do
+      end
+      """)
+
+      File.write!("lib/d.ex", """
+      defmodule :d do
+        A.b()
+      end
+      """)
+
+      assert Mix.Task.run("xref", opts) == :ok
+
+      assert "Compiling 4 files (.ex)\nGenerated sample app\n" <> result =
+               receive_until_no_messages([])
+
+      result
+    end)
+  end
 
   defp receive_until_no_messages(acc) do
     receive do

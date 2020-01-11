@@ -28,12 +28,26 @@ defmodule Mix.Tasks.Xref do
 
       mix xref callers MyMod
 
+  ### stats
+
+  Show general stats about file and their dependencies in a project.
+
+      mix xref stats
+
+  The stats mode is often used alongside `mix xref graph`, especially
+  to provide insight into large graphs. Therefore stats accepts the
+  same `--exclude`, `--label`, `--source`, and `--sink` options as
+  the graph mode listed below. For example, to limit the stats only
+  to certain labels:
+
+      mix xref stats --label compile
+
   ### graph
 
   Prints a file dependency graph where an edge from `A` to `B` indicates
   that `A` (source) depends on `B` (sink).
 
-      mix xref graph --format stats
+      mix xref graph
 
   The following options are accepted:
 
@@ -41,8 +55,6 @@ defmodule Mix.Tasks.Xref do
 
     * `--label` - only shows relationships with the given label
       The labels are "compile", "struct" and "runtime"
-
-    * `--only-nodes` - only shows the node names (no edges)
 
     * `--source` - displays all files that the given source file
       references (directly or indirectly)
@@ -52,22 +64,22 @@ defmodule Mix.Tasks.Xref do
 
     * `--format` - can be set to one of:
 
-      * `pretty` - prints the graph to the terminal using Unicode characters.
-        Each prints each file followed by the files it depends on. This is the
-        default except on Windows;
+      * `pretty` - prints the graph to the terminal using Unicode
+        characters. Each prints each file followed by the files it
+        depends on. This is the default except on Windows;
 
-      * `plain` - the same as pretty except ASCII characters are used instead of
-        Unicode characters. This is the default on Windows;
+      * `plain` - the same as pretty except ASCII characters are used
+        instead of Unicode characters. This is the default on Windows;
 
-      * `stats` - prints general statistics about the graph;
+      * `dot` - produces a DOT graph description in `xref_graph.dot`
+        in the current directory. Warning: this will override any
+        previously generated file
 
-      * `dot` - produces a DOT graph description in `xref_graph.dot` in the
-        current directory. Warning: this will override any previously generated file
-
-  The `--source` and `--sink` options are particularly useful when trying to understand
-  how the modules in a particular file interact with the whole system. You can combine
-  those options with `--label` and `--only-nodes` to get all files that exhibit a certain
-  property, for example:
+  The `--source` and `--sink` options are particularly useful when
+  trying to understand how the modules in a particular file interact
+  with the whole system. You can combine those options with `--label`
+  and `--only-nodes` to get all files that exhibit a certain property,
+  for example:
 
       # To get all files that depend on lib/foo.ex
       mix xref graph --sink lib/foo.ex --only-nodes
@@ -75,19 +87,13 @@ defmodule Mix.Tasks.Xref do
       # To get all files that depend on lib/foo.ex at compile time
       mix xref graph --label compile --sink lib/foo.ex --only-nodes
 
-      # To show general statistics about the graph
-      mix xref graph --format stats
-
-      # To limit statistics only to certain labels
-      mix xref graph --format stats --label compile
-
   ## Shared options
 
   Those options are shared across all modes:
 
-    * `--include-siblings` - includes dependencies that have `:in_umbrella` set
-      to true in the current project in the reports. This can be used to find
-      callers or to analyze graphs between projects
+    * `--include-siblings` - includes dependencies that have `:in_umbrella`
+      set to true in the current project in the reports. This can be used
+      to find callers or to analyze graphs between projects
 
     * `--no-compile` - does not compile even if files require compilation
 
@@ -132,6 +138,9 @@ defmodule Mix.Tasks.Xref do
       ["graph"] ->
         graph(opts)
 
+      ["stats"] ->
+        stats(opts)
+
       # TODO: Remove on v2.0
       ["deprecated"] ->
         Mix.shell().error(
@@ -147,6 +156,8 @@ defmodule Mix.Tasks.Xref do
       _ ->
         Mix.raise("xref doesn't support this command. For more information run \"mix help xref\"")
     end
+
+    :ok
   end
 
   @doc """
@@ -285,14 +296,79 @@ defmodule Mix.Tasks.Xref do
     for {file, type} <- Enum.sort(file_callers) do
       Mix.shell().info([file, " (", type, ")"])
     end
-
-    :ok
   end
 
   defp graph(opts) do
-    write_graph(file_references(opts), excluded(opts), opts)
+    excluded = excluded(opts)
+    {root, file_references} = build_graph(excluded, opts)
 
-    :ok
+    callback = fn {file, type} ->
+      children = if opts[:only_nodes], do: [], else: Map.get(file_references, file, [])
+      type = type && "(#{type})"
+      {{file, type}, children -- excluded}
+    end
+
+    case opts[:format] do
+      "stats" ->
+        # TODO: Remove in Elixir v2.0
+        Mix.shell().error("mix xref graph --format stats has been renamed to mix xref stats")
+
+      "dot" ->
+        Mix.Utils.write_dot_graph!("xref_graph.dot", "xref graph", root, callback, opts)
+
+        """
+        Generated "xref_graph.dot" in the current directory. To generate a PNG:
+
+           dot -Tpng xref_graph.dot -o xref_graph.png
+
+        For more options see http://www.graphviz.org/.
+        """
+        |> String.trim_trailing()
+        |> Mix.shell().info()
+
+      _ ->
+        Mix.Utils.print_tree(root, callback, opts)
+    end
+  end
+
+  defp stats(opts) do
+    {_, references} = build_graph(excluded(opts), opts)
+    shell = Mix.shell()
+
+    counters =
+      for {_, deps} <- references,
+          {_, value} <- deps,
+          reduce: %{compile: 0, struct: 0, nil: 0} do
+        acc -> Map.update!(acc, value, &(&1 + 1))
+      end
+
+    shell.info("Tracked files: #{map_size(references)} (nodes)")
+    shell.info("Compile dependencies: #{counters.compile} (edges)")
+    shell.info("Structs dependencies: #{counters.struct} (edges)")
+    shell.info("Runtime dependencies: #{counters.nil} (edges)")
+
+    outgoing =
+      references
+      |> Enum.map(fn {file, deps} -> {length(deps), file} end)
+      |> Enum.sort(:desc)
+      |> Enum.take(10)
+
+    shell.info("\nTop #{length(outgoing)} files with most outgoing dependencies:")
+    for {count, file} <- outgoing, do: shell.info("  * #{file} (#{count})")
+
+    incoming =
+      references
+      |> Enum.reduce(%{}, fn {_, deps}, acc ->
+        Enum.reduce(deps, acc, fn {file, _}, acc ->
+          Map.update(acc, file, 1, &(&1 + 1))
+        end)
+      end)
+      |> Enum.map(fn {file, count} -> {count, file} end)
+      |> Enum.sort(:desc)
+      |> Enum.take(10)
+
+    shell.info("\nTop #{length(incoming)} files with most incoming dependencies:")
+    for {count, file} <- incoming, do: shell.info("  * #{file} (#{count})")
   end
 
   ## Callers
@@ -326,6 +402,10 @@ defmodule Mix.Tasks.Xref do
   defp label_filter("struct"), do: :struct
   defp label_filter("runtime"), do: nil
   defp label_filter(other), do: Mix.raise("unknown --label #{other}")
+
+  defp build_graph(excluded, opts) do
+    filter_source_and_sink(file_references(opts), excluded, opts)
+  end
 
   defp file_references(opts) do
     filter = label_filter(opts[:label])
@@ -380,62 +460,34 @@ defmodule Mix.Tasks.Xref do
         into: %{}
   end
 
-  defp write_graph(file_references, excluded, opts) do
-    {root, file_references} =
-      case {opts[:source], opts[:sink]} do
-        {nil, nil} ->
-          {Enum.map(file_references, &{elem(&1, 0), nil}) -- excluded, file_references}
+  defp filter_source_and_sink(file_references, excluded, opts) do
+    case {opts[:source], opts[:sink]} do
+      {nil, nil} ->
+        {Enum.map(file_references, &{elem(&1, 0), nil}) -- excluded, file_references}
 
-        {source, nil} ->
-          if file_references[source] do
-            {Map.get(file_references, source, []), file_references}
-          else
-            Mix.raise("Source could not be found: #{source}")
-          end
+      {source, nil} ->
+        if file_references[source] do
+          {Map.get(file_references, source, []), file_references}
+        else
+          Mix.raise("Source could not be found: #{source}")
+        end
 
-        {nil, sink} ->
-          if file_references[sink] do
-            file_references = filter_for_sink(file_references, sink)
+      {nil, sink} ->
+        if file_references[sink] do
+          file_references = filter_for_sink(file_references, sink)
 
-            roots =
-              file_references
-              |> Map.delete(sink)
-              |> Enum.map(&{elem(&1, 0), nil})
+          roots =
+            file_references
+            |> Map.delete(sink)
+            |> Enum.map(&{elem(&1, 0), nil})
 
-            {roots -- excluded, file_references}
-          else
-            Mix.raise("Sink could not be found: #{sink}")
-          end
+          {roots -- excluded, file_references}
+        else
+          Mix.raise("Sink could not be found: #{sink}")
+        end
 
-        {_, _} ->
-          Mix.raise("mix xref graph expects only one of --source and --sink")
-      end
-
-    callback = fn {file, type} ->
-      children = if opts[:only_nodes], do: [], else: Map.get(file_references, file, [])
-      type = type && "(#{type})"
-      {{file, type}, children -- excluded}
-    end
-
-    case opts[:format] do
-      "dot" ->
-        Mix.Utils.write_dot_graph!("xref_graph.dot", "xref graph", root, callback, opts)
-
-        """
-        Generated "xref_graph.dot" in the current directory. To generate a PNG:
-
-           dot -Tpng xref_graph.dot -o xref_graph.png
-
-        For more options see http://www.graphviz.org/.
-        """
-        |> String.trim_trailing()
-        |> Mix.shell().info()
-
-      "stats" ->
-        stats(file_references)
-
-      _ ->
-        Mix.Utils.print_tree(root, callback, opts)
+      {_, _} ->
+        Mix.raise("mix xref expects only one of --source and --sink")
     end
   end
 
@@ -464,47 +516,6 @@ defmodule Mix.Tasks.Xref do
         Map.update(acc, reference, [{file, type}], &[{file, type} | &1])
       end)
     end)
-  end
-
-  defp stats(references) do
-    shell = Mix.shell()
-
-    counters =
-      Enum.reduce(references, %{compile: 0, struct: 0, nil: 0}, fn {_, deps}, acc ->
-        Enum.reduce(deps, acc, fn {_, value}, acc ->
-          Map.update!(acc, value, &(&1 + 1))
-        end)
-      end)
-
-    shell.info("Tracked files: #{map_size(references)} (nodes)")
-    shell.info("Compile dependencies: #{counters.compile} (edges)")
-    shell.info("Structs dependencies: #{counters.struct} (edges)")
-    shell.info("Runtime dependencies: #{counters.nil} (edges)")
-
-    outgoing =
-      references
-      |> Enum.map(fn {file, deps} -> {length(deps), file} end)
-      |> Enum.sort()
-      |> Enum.take(-10)
-      |> Enum.reverse()
-
-    shell.info("\nTop #{length(outgoing)} files with most outgoing dependencies:")
-    for {count, file} <- outgoing, do: shell.info("  * #{file} (#{count})")
-
-    incoming =
-      references
-      |> Enum.reduce(%{}, fn {_, deps}, acc ->
-        Enum.reduce(deps, acc, fn {file, _}, acc ->
-          Map.update(acc, file, 1, &(&1 + 1))
-        end)
-      end)
-      |> Enum.map(fn {file, count} -> {count, file} end)
-      |> Enum.sort()
-      |> Enum.take(-10)
-      |> Enum.reverse()
-
-    shell.info("\nTop #{length(incoming)} files with most incoming dependencies:")
-    for {count, file} <- incoming, do: shell.info("  * #{file} (#{count})")
   end
 
   ## Helpers
