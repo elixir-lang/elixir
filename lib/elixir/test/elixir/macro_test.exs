@@ -90,7 +90,7 @@ defmodule MacroTest do
     end
 
     test "with alias or no arguments remote unquote" do
-      contents = quote(unquote: false, do: Kernel.unquote(:self))
+      contents = quote(unquote: false, do: Kernel.unquote(:self)())
       assert eval_escaped(contents) == quote(do: Kernel.self())
 
       contents = quote(unquote: false, do: x.unquote(Foo))
