@@ -1,5 +1,5 @@
 -module(elixir_rewrite).
--compile({inline, [inner_inline/4, inner_rewrite/4]}).
+-compile({inline, [inner_inline/4, inner_rewrite/5]}).
 -export([erl_to_ex/3, inline/3, rewrite/5, match_rewrite/5, guard_rewrite/5, format_error/1]).
 -include("elixir.hrl").
 
@@ -34,13 +34,13 @@
 
 -define(
   rewrite(ExMod, ExFun, ExArgs, ErlMod, ErlFun, ErlArgs),
-  inner_rewrite(ex_to_erl, ExMod, ExFun, ExArgs) -> {ErlMod, ErlFun, ErlArgs};
-  inner_rewrite(erl_to_ex, ErlMod, ErlFun, ErlArgs) -> {ExMod, ExFun, ExArgs}
+  inner_rewrite(ex_to_erl, _Meta, ExMod, ExFun, ExArgs) -> {ErlMod, ErlFun, ErlArgs};
+  inner_rewrite(erl_to_ex, _Meta, ErlMod, ErlFun, ErlArgs) -> {ExMod, ExFun, ExArgs}
 ).
 
 erl_to_ex(Mod, Fun, Args) ->
   case inner_inline(erl_to_ex, Mod, Fun, length(Args)) of
-    false -> inner_rewrite(erl_to_ex, Mod, Fun, Args);
+    false -> inner_rewrite(erl_to_ex, [], Mod, Fun, Args);
     {ExMod, ExFun} -> {ExMod, ExFun, Args}
   end.
 
@@ -228,7 +228,7 @@ rewrite(?string_chars, _, to_string, _, [String]) when is_binary(String) ->
 rewrite(?string_chars, _, to_string, _, [{{'.', _, [?kernel, inspect]}, _, _} = Call]) ->
   Call;
 rewrite(Receiver, DotMeta, Right, Meta, Args) ->
-  {EReceiver, ERight, EArgs} = inner_rewrite(ex_to_erl, Receiver, Right, Args),
+  {EReceiver, ERight, EArgs} = inner_rewrite(ex_to_erl, DotMeta, Receiver, Right, Args),
   {{'.', DotMeta, [EReceiver, ERight]}, Meta, EArgs}.
 
 ?rewrite(?atom, to_string, [Arg], erlang, atom_to_binary, [Arg, utf8]);
@@ -248,39 +248,39 @@ rewrite(Receiver, DotMeta, Right, Meta, Args) ->
 ?rewrite(?string, to_existing_atom, [Arg], erlang, binary_to_existing_atom, [Arg, utf8]);
 ?rewrite(?tuple, duplicate, [Data, Size], erlang, make_tuple, [Size, Data]);
 
-inner_rewrite(ex_to_erl, ?tuple, delete_at, [Tuple, Index]) ->
-  {erlang, delete_element, [increment(Index), Tuple]};
-inner_rewrite(ex_to_erl, ?tuple, insert_at, [Tuple, Index, Term]) ->
-  {erlang, insert_element, [increment(Index), Tuple, Term]};
-inner_rewrite(ex_to_erl, ?kernel, elem, [Tuple, Index]) ->
-  {erlang, element, [increment(Index), Tuple]};
-inner_rewrite(ex_to_erl, ?kernel, put_elem, [Tuple, Index, Value]) ->
-  {erlang, setelement, [increment(Index), Tuple, Value]};
+inner_rewrite(ex_to_erl, Meta, ?tuple, delete_at, [Tuple, Index]) ->
+  {erlang, delete_element, [increment(Meta, Index), Tuple]};
+inner_rewrite(ex_to_erl, Meta, ?tuple, insert_at, [Tuple, Index, Term]) ->
+  {erlang, insert_element, [increment(Meta, Index), Tuple, Term]};
+inner_rewrite(ex_to_erl, Meta, ?kernel, elem, [Tuple, Index]) ->
+  {erlang, element, [increment(Meta, Index), Tuple]};
+inner_rewrite(ex_to_erl, Meta, ?kernel, put_elem, [Tuple, Index, Value]) ->
+  {erlang, setelement, [increment(Meta, Index), Tuple, Value]};
 
-inner_rewrite(erl_to_ex, erlang, delete_element, [Index, Tuple]) when is_number(Index) ->
+inner_rewrite(erl_to_ex, _Meta, erlang, delete_element, [Index, Tuple]) when is_number(Index) ->
   {?tuple, delete_at, [Tuple, Index - 1]};
-inner_rewrite(erl_to_ex, erlang, insert_element, [Index, Tuple, Term]) when is_number(Index) ->
+inner_rewrite(erl_to_ex, _Meta, erlang, insert_element, [Index, Tuple, Term]) when is_number(Index) ->
   {?tuple, insert_at, [Tuple, Index - 1, Term]};
-inner_rewrite(erl_to_ex, erlang, element, [Index, Tuple]) when is_number(Index) ->
+inner_rewrite(erl_to_ex, _Meta, erlang, element, [Index, Tuple]) when is_number(Index) ->
   {?kernel, elem, [Tuple, Index - 1]};
-inner_rewrite(erl_to_ex, erlang, setelement, [Index, Tuple, Value]) when is_number(Index) ->
+inner_rewrite(erl_to_ex, _Meta, erlang, setelement, [Index, Tuple, Value]) when is_number(Index) ->
   {?kernel, put_elem, [Tuple, Index - 1, Value]};
 
-inner_rewrite(erl_to_ex, erlang, delete_element, [{{'.', _, [erlang, '+']}, _, [Index, 1]}, Tuple]) ->
+inner_rewrite(erl_to_ex, _Meta, erlang, delete_element, [{{'.', _, [erlang, '+']}, _, [Index, 1]}, Tuple]) ->
   {?tuple, delete_at, [Tuple, Index]};
-inner_rewrite(erl_to_ex, erlang, insert_element, [{{'.', _, [erlang, '+']}, _, [Index, 1]}, Tuple, Term]) ->
+inner_rewrite(erl_to_ex, _Meta, erlang, insert_element, [{{'.', _, [erlang, '+']}, _, [Index, 1]}, Tuple, Term]) ->
   {?tuple, insert_at, [Tuple, Index, Term]};
-inner_rewrite(erl_to_ex, erlang, element, [{{'.', _, [erlang, '+']}, _, [Index, 1]}, Tuple]) ->
+inner_rewrite(erl_to_ex, _Meta, erlang, element, [{{'.', _, [erlang, '+']}, _, [Index, 1]}, Tuple]) ->
   {?kernel, elem, [Tuple, Index]};
-inner_rewrite(erl_to_ex, erlang, setelement, [{{'.', _, [erlang, '+']}, _, [Index, 1]}, Tuple, Value]) ->
+inner_rewrite(erl_to_ex, _Meta, erlang, setelement, [{{'.', _, [erlang, '+']}, _, [Index, 1]}, Tuple, Value]) ->
   {?kernel, put_elem, [Tuple, Index, Value]};
 
-inner_rewrite(_To, Mod, Fun, Args) -> {Mod, Fun, Args}.
+inner_rewrite(_To, _Meta, Mod, Fun, Args) -> {Mod, Fun, Args}.
 
-increment(Number) when is_number(Number) ->
+increment(_Meta, Number) when is_number(Number) ->
   Number + 1;
-increment(Other) ->
-  {{'.', [], [erlang, '+']}, [], [Other, 1]}.
+increment(Meta, Other) ->
+  {{'.', Meta, [erlang, '+']}, Meta, [Other, 1]}.
 
 %% Match rewrite
 %%
@@ -312,7 +312,7 @@ static_append(_, _, _) -> throw(impossible).
 %% it also verifies the resulting function is supported in
 %% guard context - only certain BIFs and operators are.
 guard_rewrite(Receiver, DotMeta, Right, Meta, Args) ->
-  case inner_rewrite(ex_to_erl, Receiver, Right, Args) of
+  case inner_rewrite(ex_to_erl, DotMeta, Receiver, Right, Args) of
     {erlang, RRight, RArgs} ->
       case allowed_guard(RRight, length(RArgs)) of
         true -> {ok, {{'.', DotMeta, [erlang, RRight]}, Meta, RArgs}};
