@@ -201,7 +201,7 @@ validate_on_load_attribute({on_load, Def}, Defs, File, Line) ->
 validate_on_load_attribute(false, _Defs, _File, _Line) -> ok.
 
 is_behaviour(DataBag) ->
-  ets:member(DataBag, {accumulate, callback}) orelse ets:member(DataBag, {accumulate, callback}).
+  ets:member(DataBag, {accumulate, callback}) orelse ets:member(DataBag, {accumulate, macrocallback}).
 
 %% An undef error for a function in the module being compiled might result in an
 %% exception message suggesting the current module is not loaded. This is
