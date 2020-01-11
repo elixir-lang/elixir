@@ -456,6 +456,34 @@ defmodule KernelTest do
       assert case_in(-3, -1..-3) == true
     end
 
+    def map_dot(map) when map.field, do: true
+    def map_dot(_other), do: false
+
+    test "map dot guard" do
+      refute map_dot(:foo)
+      refute map_dot(%{})
+      refute map_dot(%{field: false})
+      assert map_dot(%{field: true})
+
+      message =
+        "cannot invoke remote function in guard. " <>
+          "If you want to do a map lookup instead, please remove parens from map.field()"
+
+      assert_raise CompileError, Regex.compile!(message), fn ->
+        defmodule MapDot do
+          def map_dot(map) when map.field(), do: true
+        end
+      end
+
+      message = ~r"cannot invoke remote function Module.fun/0 inside guards"
+
+      assert_raise CompileError, message, fn ->
+        defmodule MapDot do
+          def map_dot(map) when Module.fun(), do: true
+        end
+      end
+    end
+
     test "performs all side-effects" do
       assert 1 in [1, send(self(), 2)]
       assert_received 2

@@ -810,19 +810,29 @@ expand_local(Meta, Name, Args, #{module := Module, function := Function} = E) ->
 
 expand_remote(Receiver, DotMeta, Right, Meta, Args, #{context := Context} = E, EL) when is_atom(Receiver) or is_tuple(Receiver) ->
   assert_no_clauses(Right, Meta, Args, E),
-  AttachedDotMeta = attach_context_module(Receiver, DotMeta, E),
 
-  is_atom(Receiver) andalso
-    elixir_env:trace({remote_function, DotMeta, Receiver, Right, length(Args)}, E),
+  case {Context, lists:keyfind(no_parens, 1, Meta)} of
+    {guard, {no_parens, true}} when is_tuple(Receiver) ->
+      {{{'.', DotMeta, [Receiver, Right]}, Meta, []}, EL};
 
-  {EArgs, {EA, _}} = lists:mapfoldl(fun expand_arg/2, {EL, E}, Args),
+    {guard, _} when is_tuple(Receiver) ->
+      form_error(Meta, E, ?MODULE, {parens_map_lookup_guard, Receiver, Right});
 
-  case rewrite(Context, Receiver, AttachedDotMeta, Right, Meta, EArgs) of
-    {ok, Rewritten} ->
-      maybe_warn_comparison(Rewritten, Args, E),
-      {Rewritten, elixir_env:close_write(EA, E)};
-    {error, Error} ->
-      form_error(Meta, E, elixir_rewrite, Error)
+    _ ->
+      AttachedDotMeta = attach_context_module(Receiver, DotMeta, E),
+
+      is_atom(Receiver) andalso
+        elixir_env:trace({remote_function, DotMeta, Receiver, Right, length(Args)}, E),
+
+      {EArgs, {EA, _}} = lists:mapfoldl(fun expand_arg/2, {EL, E}, Args),
+
+      case rewrite(Context, Receiver, AttachedDotMeta, Right, Meta, EArgs) of
+        {ok, Rewritten} ->
+          maybe_warn_comparison(Rewritten, Args, E),
+          {Rewritten, elixir_env:close_write(EA, E)};
+        {error, Error} ->
+          form_error(Meta, E, elixir_rewrite, Error)
+      end
   end;
 expand_remote(Receiver, DotMeta, Right, Meta, Args, E, _) ->
   Call = {{'.', DotMeta, [Receiver, Right]}, Meta, Args},
@@ -1287,6 +1297,10 @@ format_error({no_parens_nullary_remote, Remote, Fun}) ->
   io_lib:format("missing parenthesis on call to ~ts.~ts/0. "
                 "parenthesis are always required on function calls without arguments",
                 [elixir_aliases:inspect(Remote), Fun]);
+format_error({parens_map_lookup_guard, Map, Field}) ->
+  io_lib:format("cannot invoke remote function in guard. "
+                "If you want to do a map lookup instead, please remove parens from ~ts.~ts()",
+                ['Elixir.Macro':to_string(Map), Field]);
 format_error({super_in_genserver, {Name, Arity}}) ->
   io_lib:format("calling super for GenServer callback ~ts/~B is deprecated", [Name, Arity]);
 format_error({parallel_bitstring_match, Expr}) ->

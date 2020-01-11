@@ -381,11 +381,18 @@ defmodule Module.Types.Pattern do
     end
   end
 
+  # map.field
+  def of_guard({{:., meta1, [map, field]}, meta2, []}, stack, context) do
+    of_guard({{:., meta1, [:erlang, :map_get]}, meta2, [field, map]}, stack, context)
+  end
+
+  # var
   def of_guard(var, _stack, context) when is_var(var) do
     type = Map.fetch!(context.vars, var_name(var))
     {:ok, type, context}
   end
 
+  # other literals
   def of_guard(expr, stack, context) do
     # Fall back to of_pattern/3 for literals
     of_pattern(expr, stack, context)
