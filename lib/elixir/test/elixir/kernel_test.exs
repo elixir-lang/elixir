@@ -466,8 +466,8 @@ defmodule KernelTest do
       assert map_dot(%{field: true})
 
       message =
-        "map lookup do not allow parenthesis inside guards " <>
-          "and cannot invoke remote function where the module is a variable: map.field()"
+        "cannot invoke remote function in guard. " <>
+          "If you wanted to do a map lookup instead, please remove parens from map.field()"
 
       assert_raise CompileError, Regex.compile!(message), fn ->
         defmodule MapDot do

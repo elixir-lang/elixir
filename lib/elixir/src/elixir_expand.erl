@@ -1298,8 +1298,8 @@ format_error({no_parens_nullary_remote, Remote, Fun}) ->
                 "parenthesis are always required on function calls without arguments",
                 [elixir_aliases:inspect(Remote), Fun]);
 format_error({parens_map_lookup_guard, Map, Field}) ->
-  io_lib:format("map lookup do not allow parenthesis inside guards "
-                "and cannot invoke remote function where the module is a variable: ~ts.~ts()",
+  io_lib:format("cannot invoke remote function in guard. "
+                "If you wanted to do a map lookup instead, please remove parens from ~ts.~ts()",
                 ['Elixir.Macro':to_string(Map), Field]);
 format_error({super_in_genserver, {Name, Arity}}) ->
   io_lib:format("calling super for GenServer callback ~ts/~B is deprecated", [Name, Arity]);
