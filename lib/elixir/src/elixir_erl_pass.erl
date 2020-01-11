@@ -211,37 +211,37 @@ translate({Name, Meta, Args}, S) when is_atom(Name), is_list(Meta), is_list(Args
 
 %% Remote calls
 
-translate({{'.', _, [Left, Right]}, Meta, []}, #elixir_erl{context=Context} = S)
+translate({{'.', _, [Left, Right]}, Meta, []}, #elixir_erl{context=guard} = S)
     when is_tuple(Left), is_atom(Right), is_list(Meta) ->
   {TLeft, SL}  = translate(Left, S),
   Ann = ?ann(Meta),
   TRight = {atom, Ann, Right},
+  {?remote(Ann, erlang, map_get, [TRight, TLeft]), SL};
 
-  case lists:keyfind(no_parens, 1, Meta) of
-    {no_parens, true} when Context == guard andalso is_tuple(Left) ->
-      {?remote(Ann, erlang, map_get, [TRight, TLeft]), SL};
+translate({{'.', _, [Left, Right]}, Meta, []}, S) when is_tuple(Left), is_atom(Right), is_list(Meta) ->
+  {TLeft, SL}  = translate(Left, S),
+  Ann = ?ann(Meta),
+  TRight = {atom, Ann, Right},
 
-    _ ->
-      {Var, SV} = elixir_erl_var:build('_', SL),
-      TVar = {var, Ann, Var},
-      Generated = erl_anno:set_generated(true, Ann),
-      TError = {tuple, Ann, [{atom, Ann, badkey}, TRight, TVar]},
+  {Var, SV} = elixir_erl_var:build('_', SL),
+  TVar = {var, Ann, Var},
+  Generated = erl_anno:set_generated(true, Ann),
+  TError = {tuple, Ann, [{atom, Ann, badkey}, TRight, TVar]},
 
-      {{'case', Generated, TLeft, [
-        {clause, Generated,
-          [{map, Ann, [{map_field_exact, Ann, TRight, TVar}]}],
-          [],
-          [TVar]},
-        {clause, Generated,
-          [TVar],
-          [[?remote(Generated, erlang, is_map, [TVar])]],
-          [?remote(Ann, erlang, error, [TError])]},
-        {clause, Generated,
-          [TVar],
-          [],
-          [{call, Generated, {remote, Generated, TVar, TRight}, []}]}
-      ]}, SV}
-  end;
+  {{'case', Generated, TLeft, [
+    {clause, Generated,
+      [{map, Ann, [{map_field_exact, Ann, TRight, TVar}]}],
+      [],
+      [TVar]},
+    {clause, Generated,
+      [TVar],
+      [[?remote(Generated, erlang, is_map, [TVar])]],
+      [?remote(Ann, erlang, error, [TError])]},
+    {clause, Generated,
+      [TVar],
+      [],
+      [{call, Generated, {remote, Generated, TVar, TRight}, []}]}
+  ]}, SV};
 
 translate({{'.', _, [Left, Right]}, Meta, Args}, S)
     when (is_tuple(Left) orelse is_atom(Left)), is_atom(Right), is_list(Meta), is_list(Args) ->
