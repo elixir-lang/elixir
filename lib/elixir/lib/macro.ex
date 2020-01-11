@@ -54,16 +54,22 @@ defmodule Macro do
 
   Macros are also commonly used to implement custom sigils. To create a custom
   sigil, define a function with the name `sigil_{identifier}` that takes two
-  arguments. The first argument will be the string, the second will be a charlist
-  containing any modifiers. If the sigil is lower case (such as `sigil_x`) then
-  the string argument will allow interpolation. If the sigil is upper case
-  (such as `sigil_X`) then the string will not be interpolated.
+  arguments. The identifier can be an upper case letter followed by more letters,
+  or a single downcase letter. The first argument will be the string, the second
+  will be a charlist containing any modifiers. If the sigil is lower case (such
+  as `sigil_x`) then the string argument will allow interpolation.  If the sigil
+  is upper case (such as `sigil_X`, `sigil_Foo`, etc.) then the string will not be
+  interpolated.
 
   Valid modifiers include only lower and upper case letters. Other characters
   will cause a syntax error.
 
   The module containing the custom sigil must be imported before the sigil
   syntax can be used.
+
+  Elixir originally only allowed single-letter sigils. Support for multi-letter
+  sigils have been added in v1.11.0. Developers are encouraged to use multi-letter
+  sigils as their name can be more intention revealing.
 
   ### Examples
 
@@ -1100,24 +1106,46 @@ defmodule Macro do
     delimiter = Keyword.get(meta, :delimiter, "\"")
     {left, right} = delimiter_pair(delimiter)
 
-    case Atom.to_string(sigil) do
-      <<"sigil_", name>> when name >= ?A and name <= ?Z ->
+    case parse_sigil(Atom.to_string(sigil)) do
+      {:upcase, name} ->
         args = sigil_args(args, fun)
         {:<<>>, _, [binary]} = parts
-        formatted = <<?~, name, left::binary, binary::binary, right::binary, args::binary>>
+
+        formatted =
+          <<?~, name::binary, left::binary, binary::binary, right::binary, args::binary>>
+
         {:ok, fun.(ast, formatted)}
 
-      <<"sigil_", name>> when name >= ?a and name <= ?z ->
+      {:downcase, name} ->
         args = sigil_args(args, fun)
-        formatted = "~" <> <<name>> <> interpolate(parts, left, right, fun) <> args
+        formatted = "~" <> name <> interpolate(parts, left, right, fun) <> args
         {:ok, fun.(ast, formatted)}
 
-      _ ->
+      :error ->
         :error
     end
   end
 
   defp sigil_call(_other, _fun) do
+    :error
+  end
+
+  defp parse_sigil("sigil_" <> <<letter>>) when letter >= ?a and letter <= ?z do
+    {:downcase, <<letter>>}
+  end
+
+  defp parse_sigil("sigil_" <> <<first>> <> remaining) when first >= ?A and first <= ?Z do
+    if Enum.all?(
+         String.to_charlist(remaining),
+         &((&1 >= ?a and &1 <= ?z) or (&1 >= ?A and &1 <= ?Z))
+       ) do
+      {:upcase, <<first>> <> remaining}
+    else
+      :error
+    end
+  end
+
+  defp parse_sigil(_) do
     :error
   end
 

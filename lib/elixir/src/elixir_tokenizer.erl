@@ -11,11 +11,12 @@
 -define(is_digit(S), (S >= $0 andalso S =< $9)).
 -define(is_upcase(S), (S >= $A andalso S =< $Z)).
 -define(is_downcase(S), (S >= $a andalso S =< $z)).
+-define(is_letter(S), (?is_upcase(S) orelse ?is_downcase(S))).
 
 %% Others
 -define(is_quote(S), (S =:= $" orelse S =:= $')).
--define(is_sigil(S), (S =:= $/ orelse S =:= $< orelse S =:= $" orelse S =:= $' orelse
-                      S =:= $[ orelse S =:= $( orelse S =:= ${ orelse S =:= $|)).
+-define(is_delimiter(S), (S =:= $/ orelse S =:= $< orelse S =:= $" orelse S =:= $' orelse
+                          S =:= $[ orelse S =:= $( orelse S =:= ${ orelse S =:= $|)).
 
 %% Spaces
 -define(is_horizontal_space(S), (S =:= $\s orelse S =:= $\t)).
@@ -188,39 +189,8 @@ tokenize([$# | String], Line, Column, Scope, Tokens) ->
 
 % Sigils
 
-tokenize([$~, S, H, H, H | T] = Original, Line, Column, Scope, Tokens) when ?is_quote(H), ?is_upcase(S) orelse ?is_downcase(S) ->
-  case extract_heredoc_with_interpolation(Line, Column, Scope, ?is_downcase(S), T, H) of
-    {ok, NewLine, NewColumn, Parts, Rest} ->
-      {Final, Modifiers} = collect_modifiers(Rest, []),
-      Indentation = NewColumn - 4,
-      Token = {sigil, {Line, Column, nil}, [S], Parts, Modifiers, Indentation, <<H, H, H>>},
-      NewColumnWithModifiers = NewColumn + length(Modifiers),
-      tokenize(Final, NewLine, NewColumnWithModifiers, Scope, [Token | Tokens]);
-
-    {error, Reason} ->
-      {error, Reason, Original, Tokens}
-  end;
-
-tokenize([$~, S, H | T] = Original, Line, Column, Scope, Tokens) when ?is_sigil(H), ?is_upcase(S) orelse ?is_downcase(S) ->
-  case elixir_interpolation:extract(Line, Column + 3, Scope, ?is_downcase(S), T, sigil_terminator(H)) of
-    {NewLine, NewColumn, Parts, Rest} ->
-      {Final, Modifiers} = collect_modifiers(Rest, []),
-      Indentation = nil,
-      Token = {sigil, {Line, Column, nil}, [S], tokens_to_binary(Parts), Modifiers, Indentation, <<H>>},
-      NewColumnWithModifiers = NewColumn + length(Modifiers),
-      tokenize(Final, NewLine, NewColumnWithModifiers, Scope, [Token | Tokens]);
-
-    {error, Reason} ->
-      Sigil = [$~] ++ [S] ++ [H],
-      interpolation_error(Reason, Original, Tokens, " (for sigil ~ts starting at line ~B)", [Sigil, Line])
-  end;
-
-tokenize([$~, S, H | _] = Original, Line, Column, _Scope, Tokens) when ?is_upcase(S) orelse ?is_downcase(S) ->
-  MessageString =
-    "\"~ts\" (column ~p, code point U+~4.16.0B). The available delimiters are: "
-    "//, ||, \"\", '', (), [], {}, <>",
-  Message = io_lib:format(MessageString, [[H], Column + 2, H]),
-  {error, {Line, Column, "invalid sigil delimiter: ", Message}, Original, Tokens};
+tokenize([$~, H | T], Line, Column, Scope, Tokens) when ?is_letter(H) ->
+  tokenize_sigil(T, Line, Column, Scope, Tokens, ?is_downcase(H), [H]);
 
 % Char tokens
 
@@ -1066,6 +1036,63 @@ reverse_number([H | T], Number, Original) ->
   reverse_number(T, [H | Number], [H | Original]);
 reverse_number([], Number, Original) ->
   {Number, Original}.
+
+%% Sigils
+
+tokenize_sigil([H | T], Line, Column, Scope, Tokens, false, Acc) when ?is_letter(H) ->
+  tokenize_sigil(T, Line, Column, Scope, Tokens, false, [H | Acc]);
+
+tokenize_sigil([H | _] = Original, Line, Column, _Scope, Tokens, true, Acc) when ?is_letter(H) ->
+  Original2 = [$~] ++ lists:reverse(Acc) ++ Original,
+  Message = "multi-letter sigils can only start with an uppercase letter",
+  {error, {Line, Column, "invalid sigil: ", Message}, Original2, Tokens};
+
+tokenize_sigil([D, D, D | T] = Original, Line, Column, Scope, Tokens, IsDowncase, Acc) when ?is_delimiter(D) ->
+  case extract_heredoc_with_interpolation(Line, Column, Scope, IsDowncase, T, D) of
+    {ok, NewLine, NewColumn, Parts, Rest} ->
+      {Final, Modifiers} = collect_modifiers(Rest, []),
+      Indentation = NewColumn - 4,
+      Token = {sigil, {Line, Column, nil}, lists:reverse(Acc), Parts, Modifiers, Indentation, <<D, D, D>>},
+      NewColumnWithModifiers = NewColumn + length(Modifiers),
+      tokenize(Final, NewLine, NewColumnWithModifiers, Scope, [Token | Tokens]);
+
+    {error, Reason} ->
+      {error, Reason, Original, Tokens}
+  end;
+
+tokenize_sigil([D | T], Line, Column, Scope, Tokens, IsDowncase, Acc) when ?is_delimiter(D) ->
+  Name = lists:reverse(Acc),
+  Offset = length(Name) + 2,
+
+  case elixir_interpolation:extract(Line, Column + Offset, Scope, IsDowncase, T,
+                                    sigil_terminator(D)) of
+    {NewLine, NewColumn, Parts, Rest} ->
+      {Final, Modifiers} = collect_modifiers(Rest, []),
+      Indentation = nil,
+      Token = {sigil, {Line, Column, nil}, Name, tokens_to_binary(Parts), Modifiers, Indentation, <<D>>},
+      NewColumnWithModifiers = NewColumn + length(Modifiers),
+      tokenize(Final, NewLine, NewColumnWithModifiers, Scope, [Token | Tokens]);
+
+    {error, Reason} ->
+      Sigil = [$~] ++ Name ++ [D],
+      interpolation_error(Reason, Sigil ++ T, Tokens, " (for sigil ~ts starting at line ~B)", [Sigil, Line])
+  end;
+
+tokenize_sigil([H | _] = Original, Line, Column, _Scope, Tokens, _IsDowncase, Acc) ->
+  Original2 = "~" ++ lists:reverse(Acc) ++ Original,
+  MessageString =
+    "\"~ts\" (column ~p, code point U+~4.16.0B). The available delimiters are: "
+    "//, ||, \"\", '', (), [], {}, <>",
+  Message = io_lib:format(MessageString, [[H], Column + length(Acc) + 1, H]),
+  {error, {Line, Column, "invalid sigil delimiter: ", Message}, Original2, Tokens};
+
+tokenize_sigil([], Line, Column, _Scope, Tokens, _IsDowncase, Acc) ->
+  Original = "~" ++ lists:reverse(Acc),
+  MessageString =
+    "(column ~p). The available delimiters are: "
+    "//, ||, \"\", '', (), [], {}, <>",
+  Message = io_lib:format(MessageString, [Column + length(Acc)]),
+  {error, {Line, Column, "missing sigil delimiter ", Message}, Original, Tokens}.
 
 %% Comments
 

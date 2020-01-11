@@ -216,6 +216,7 @@ sigil_terminator_test() ->
   [{sigil, {1, 1, nil}, "r", [<<"foo">>], "", nil, <<"/">>}] = tokenize("~r/foo/"),
   [{sigil, {1, 1, nil}, "r", [<<"foo">>], "", nil, <<"[">>}] = tokenize("~r[foo]"),
   [{sigil, {1, 1, nil}, "r", [<<"foo">>], "", nil, <<"\"">>}] = tokenize("~r\"foo\""),
+  [{sigil, {1, 1, nil}, "Foo", [<<"bar">>], "", nil, <<"\"">>}] = tokenize("~Foo\"bar\""),
   [{sigil, {1, 1, nil}, "r", [<<"foo">>], "", nil, <<"/">>},
    {comp_op, {1, 9, nil}, '=='},
    {identifier, {1, 12, nil}, bar}] = tokenize("~r/foo/ == bar"),
@@ -227,8 +228,18 @@ sigil_heredoc_test() ->
   [{sigil, {1, 1, nil}, "S", [<<"sigil heredoc\n">>], "", 0, <<"\"\"\"">>}] = tokenize("~S\"\"\"\nsigil heredoc\n\"\"\""),
   [{sigil, {1, 1, nil}, "S", [<<"sigil heredoc\n">>], "", 0, <<"'''">>}] = tokenize("~S'''\nsigil heredoc\n'''"),
   [{sigil, {1, 1, nil}, "S", [<<"sigil heredoc\n">>], "", 2, <<"\"\"\"">>}] = tokenize("~S\"\"\"\n  sigil heredoc\n  \"\"\""),
-  [{sigil, {1, 1, nil}, "s", [<<"sigil heredoc\n">>], "", 2, <<"\"\"\"">>}] = tokenize("~s\"\"\"\n  sigil heredoc\n  \"\"\"").
+  [{sigil, {1, 1, nil}, "s", [<<"sigil heredoc\n">>], "", 2, <<"\"\"\"">>}] = tokenize("~s\"\"\"\n  sigil heredoc\n  \"\"\""),
+  [{sigil, {1, 1, nil}, "Foo", [<<"sigil heredoc\n">>], "", 2, <<"\"\"\"">>}] = tokenize("~Foo\"\"\"\n  sigil heredoc\n  \"\"\"").
 
-invalid_sigil_delimiter_test() ->
-  {1, 1, "invalid sigil delimiter: ", Message} = tokenize_error("~s\\"),
-  true = lists:prefix("\"\\\" (column 3, code point U+005C)", lists:flatten(Message)).
+invalid_sigil_test() ->
+  {1, 1, "invalid sigil: ", "multi-letter sigils can only start with an uppercase letter"} = tokenize_error("~bad//"),
+
+  {1, 1, "invalid sigil delimiter: ", Message1} = tokenize_error("~s\\"),
+  <<"\"\\\" (column 3, code point U+005C)", _/binary>> = iolist_to_binary(Message1),
+
+  {1, 1, "invalid sigil delimiter: ", Message2} = tokenize_error("~Foo "),
+  <<"\" \" (column 5, code point U+0020)", _/binary>> = iolist_to_binary(Message2),
+
+  {1, 1, "missing sigil delimiter ", Message3} = tokenize_error("~s"),
+  <<"(column 2)", _/binary>> = iolist_to_binary(Message3),
+  ok.
