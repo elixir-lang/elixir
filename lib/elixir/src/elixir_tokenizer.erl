@@ -193,7 +193,7 @@ tokenize([$~, S, H, H, H | T] = Original, Line, Column, Scope, Tokens) when ?is_
     {ok, NewLine, NewColumn, Parts, Rest} ->
       {Final, Modifiers} = collect_modifiers(Rest, []),
       Indentation = NewColumn - 4,
-      Token = {sigil, {Line, Column, nil}, S, Parts, Modifiers, Indentation, <<H, H, H>>},
+      Token = {sigil, {Line, Column, nil}, [S], Parts, Modifiers, Indentation, <<H, H, H>>},
       NewColumnWithModifiers = NewColumn + length(Modifiers),
       tokenize(Final, NewLine, NewColumnWithModifiers, Scope, [Token | Tokens]);
 
@@ -206,12 +206,12 @@ tokenize([$~, S, H | T] = Original, Line, Column, Scope, Tokens) when ?is_sigil(
     {NewLine, NewColumn, Parts, Rest} ->
       {Final, Modifiers} = collect_modifiers(Rest, []),
       Indentation = nil,
-      Token = {sigil, {Line, Column, nil}, S, tokens_to_binary(Parts), Modifiers, Indentation, <<H>>},
+      Token = {sigil, {Line, Column, nil}, [S], tokens_to_binary(Parts), Modifiers, Indentation, <<H>>},
       NewColumnWithModifiers = NewColumn + length(Modifiers),
       tokenize(Final, NewLine, NewColumnWithModifiers, Scope, [Token | Tokens]);
 
     {error, Reason} ->
-      Sigil = [$~, S, H],
+      Sigil = [$~] ++ [S] ++ [H],
       interpolation_error(Reason, Original, Tokens, " (for sigil ~ts starting at line ~B)", [Sigil, Line])
   end;
 
