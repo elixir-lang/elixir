@@ -31,7 +31,7 @@ defmodule Module.CheckerTest do
         """,
         "c.ex" => """
         defmodule C do
-          @callback g() :: :ok
+          @macrocallback g() :: :ok
         end
         """
       }
