@@ -563,14 +563,8 @@ checker_chunk(#{definitions := Definitions, deprecated := Deprecated, is_behavio
       end
     end, [], Definitions),
 
-  AllExports = [
-    {{'__info__', 1}, #{kind => def, deprecated_reason => nil}},
-    {{module_info, 0}, #{kind => def, deprecated_reason => nil}},
-    {{module_info, 1}, #{kind => def, deprecated_reason => nil}}
-  ] ++ behaviour_info_exports(IsBehaviour) ++ Exports,
-
   Contents = #{
-    exports => lists:sort(AllExports),
+    exports => lists:sort(behaviour_info_exports(IsBehaviour) ++ Exports),
     no_warn_undefined => NoWarnUndefined
   },
 

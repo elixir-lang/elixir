@@ -216,6 +216,8 @@ defmodule Module.Checker do
   # TODO: Do not warn inside guards
   # TODO: Properly handle protocols
   defp warn_undefined?(_module, :__impl__, 1, _state), do: false
+  defp warn_undefined?(_module, :module_info, 0, _state), do: false
+  defp warn_undefined?(_module, :module_info, 1, _state), do: false
   defp warn_undefined?(:erlang, :orelse, 2, _state), do: false
   defp warn_undefined?(:erlang, :andalso, 2, _state), do: false
 

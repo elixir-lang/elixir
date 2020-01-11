@@ -210,11 +210,9 @@ defmodule Module.ParallelChecker do
 
   defp cache_from_module_map(ets, map) do
     exports =
-      [
-        {{:__info__, 1}, :def},
-        {{:module_info, 0}, :def},
-        {{:module_info, 1}, :def}
-      ] ++ behaviour_exports(map) ++ definitions_to_exports(map.definitions)
+      [{{:__info__, 1}, :def}] ++
+        behaviour_exports(map) ++
+        definitions_to_exports(map.definitions)
 
     deprecated = Map.new(map.deprecated)
     cache_info(ets, map.module, exports, deprecated)
@@ -232,11 +230,7 @@ defmodule Module.ParallelChecker do
 
   defp info_exports(module) do
     Map.new(
-      [
-        {{:__info__, 1}, :def},
-        {{:module_info, 0}, :def},
-        {{:module_info, 1}, :def}
-      ] ++
+      [{{:__info__, 1}, :def}] ++
         behaviour_exports(module) ++
         Enum.map(module.__info__(:macros), &{&1, :defmacro}) ++
         Enum.map(module.__info__(:functions), &{&1, :def})
@@ -271,6 +265,9 @@ defmodule Module.ParallelChecker do
 
         {{fun, arity}, kind}
       end)
+
+    :ets.insert(ets, {{:export, {module, :__info__, 1}}, :def, nil})
+    exports = [{{:__info__, 1}, :def} | exports]
 
     :ets.insert(ets, {{:all_exports, module}, exports})
     :ets.insert(ets, {{:cached, module}, true})
