@@ -467,7 +467,7 @@ defmodule KernelTest do
 
       message =
         "cannot invoke remote function in guard. " <>
-          "If you wanted to do a map lookup instead, please remove parens from map.field()"
+          "If you want to do a map lookup instead, please remove parens from map.field()"
 
       assert_raise CompileError, Regex.compile!(message), fn ->
         defmodule MapDot do
