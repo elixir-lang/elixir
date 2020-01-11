@@ -903,7 +903,7 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
-  test "badarg warning" do
+  test "eval failure warning" do
     assert capture_err(fn ->
              assert_raise ArgumentError, fn ->
                Code.eval_string("""
@@ -912,7 +912,15 @@ defmodule Kernel.WarningTest do
                end
                """)
              end
-           end) =~ "this expression will fail with ArgumentError"
+           end) =~ ~r"this expression will fail with ArgumentError\n.*nofile:2"
+
+    assert capture_err(fn ->
+               Code.eval_string("""
+               defmodule Sample do
+                 def foo, do: 1 + nil
+               end
+               """)
+           end) =~ ~r"this expression will fail with ArithmeticError\n.*nofile:2"
   after
     purge([Sample])
   end
