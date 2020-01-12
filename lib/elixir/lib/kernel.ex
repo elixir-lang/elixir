@@ -2275,6 +2275,7 @@ defmodule Kernel do
                 %{__struct__: ^name} -> true
                 _ -> false
               end
+
             _ ->
               raise ArgumentError
           end
@@ -2285,10 +2286,10 @@ defmodule Kernel do
 
       :guard ->
         quote do
-          is_map(unquote(term))
-            and (is_atom(unquote(name)) or :fail)
-            and :erlang.is_map_key(:__struct__, unquote(term))
-            and :erlang.map_get(:__struct__, unquote(term)) == unquote(name)
+          is_map(unquote(term)) and
+            (is_atom(unquote(name)) or :fail) and
+            :erlang.is_map_key(:__struct__, unquote(term)) and
+            :erlang.map_get(:__struct__, unquote(term)) == unquote(name)
         end
     end
   end
