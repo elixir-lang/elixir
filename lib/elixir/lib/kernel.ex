@@ -2272,7 +2272,7 @@ defmodule Kernel do
           case unquote(name) do
             name when is_atom(name) ->
               case unquote(term) do
-                map when is_map(map) and :erlang.map_get(:__struct__, map) == name -> true
+                %{__struct__: ^name} -> true
                 _ -> false
               end
             _ ->
