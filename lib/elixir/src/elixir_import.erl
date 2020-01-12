@@ -219,6 +219,7 @@ special_form('&', 1) -> true;
 special_form('^', 1) -> true;
 special_form('=', 2) -> true;
 special_form('%', 2) -> true;
+special_form('.', 2) -> true;
 special_form('::', 2) -> true;
 special_form('__block__', _) -> true;
 special_form('->', _) -> true;
