@@ -534,29 +534,20 @@ extract_bit_type({Other, _, []}, Acc) ->
 %% Optimizations that are specific to Erlang and change
 %% the format of the AST.
 
-translate_remote('Elixir.Access' = Mod, get, Meta, [Container, Value], S) ->
-  Ann = ?ann(Meta),
-  {TArgs, SA} = translate_args([Container, Value, nil], S),
-  {?remote(Ann, Mod, get, TArgs), SA};
 translate_remote('Elixir.String.Chars', to_string, Meta, [Arg], S) ->
-  case is_always_string(Arg) of
-    true ->
-      translate(Arg, S);
-    false ->
-      {TArg, TS} = translate(Arg, S),
-      {VarName, VS} = elixir_erl_var:build('_', TS),
+  {TArg, TS} = translate(Arg, S),
+  {VarName, VS} = elixir_erl_var:build('_', TS),
 
-      Generated = ?ann(?generated(Meta)),
-      Var = {var, Generated, VarName},
-      Guard = ?remote(Generated, erlang, is_binary, [Var]),
-      Slow = ?remote(Generated, 'Elixir.String.Chars', to_string, [Var]),
-      Fast = Var,
+  Generated = ?ann(?generated(Meta)),
+  Var = {var, Generated, VarName},
+  Guard = ?remote(Generated, erlang, is_binary, [Var]),
+  Slow = ?remote(Generated, 'Elixir.String.Chars', to_string, [Var]),
+  Fast = Var,
 
-      {{'case', Generated, TArg, [
-        {clause, Generated, [Var], [[Guard]], [Fast]},
-        {clause, Generated, [Var], [], [Slow]}
-      ]}, VS}
-  end;
+  {{'case', Generated, TArg, [
+    {clause, Generated, [Var], [[Guard]], [Fast]},
+    {clause, Generated, [Var], [], [Slow]}
+  ]}, VS};
 translate_remote(maps, put, Meta, [Key, Value, Map], S) ->
   Ann = ?ann(Meta),
 
@@ -605,20 +596,6 @@ translate_remote(Left, Right, Meta, Args, S) ->
     false ->
       {{call, Ann, {remote, Ann, TLeft, TRight}, TArgs}, SA}
   end.
-
-is_always_string({{'.', _, [Module, Function]}, _, Args}) ->
-  is_always_string(Module, Function, length(Args));
-%% Binary literals were already excluded in earlier passes.
-is_always_string(_Ast) ->
-  false.
-
-is_always_string('Elixir.Enum', join, _) -> true;
-is_always_string('Elixir.Enum', map_join, _) -> true;
-is_always_string('Elixir.Kernel', inspect, _) -> true;
-is_always_string('Elixir.Macro', to_string, _) -> true;
-is_always_string('Elixir.String.Chars', to_string, _) -> true;
-is_always_string('Elixir.Path', join, _) -> true;
-is_always_string(_Module, _Function, _Args) -> false.
 
 generate_struct_name_guard([{map_field_exact, Ann, {atom, _, '__struct__'} = Key, Var} | Rest], Acc, S0) ->
   {ModuleVarName, S1} = elixir_erl_var:build('_', S0),
