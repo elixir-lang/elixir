@@ -223,10 +223,11 @@ inner_inline(_, _, _, _) -> false.
 %% as they may change the number of arguments. However, they
 %% don't add new code (such as case statements), at best they
 %% perform dead code removal.
-rewrite(?string_chars, _, to_string, _, [String]) when is_binary(String) ->
-  String;
-rewrite(?string_chars, _, to_string, _, [{{'.', _, [?kernel, inspect]}, _, _} = Call]) ->
-  Call;
+rewrite(?string_chars, DotMeta, to_string, Meta, [Arg]) ->
+  case is_always_string(Arg) of
+    true -> Arg;
+    false -> {{'.', DotMeta, [?string_chars, to_string]}, Meta, [Arg]}
+  end;
 rewrite(Receiver, DotMeta, Right, Meta, Args) ->
   {EReceiver, ERight, EArgs} = inner_rewrite(ex_to_erl, DotMeta, Receiver, Right, Args),
   {{'.', DotMeta, [EReceiver, ERight]}, Meta, EArgs}.
@@ -333,3 +334,16 @@ format_error({invalid_match, Receiver, Right, Arity}) ->
 format_error({invalid_match_append, Arg}) ->
   io_lib:format("invalid argument for ++ operator inside a match, expected a literal proper list, got: ~ts",
                 ['Elixir.Macro':to_string(Arg)]).
+
+is_always_string({{'.', _, [Module, Function]}, _, Args}) ->
+  is_always_string(Module, Function, length(Args));
+is_always_string(Ast) ->
+  is_binary(Ast).
+
+is_always_string('Elixir.Enum', join, _) -> true;
+is_always_string('Elixir.Enum', map_join, _) -> true;
+is_always_string('Elixir.Kernel', inspect, _) -> true;
+is_always_string('Elixir.Macro', to_string, _) -> true;
+is_always_string('Elixir.String.Chars', to_string, _) -> true;
+is_always_string('Elixir.Path', join, _) -> true;
+is_always_string(_Module, _Function, _Args) -> false.

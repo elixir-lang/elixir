@@ -132,17 +132,16 @@ compute_alignment(_, _, _) -> unknown.
 
 %% Expands the expression of a bitstring, that is, the LHS of :: or
 %% an argument of the bitstring (such as "foo" in "<<foo>>").
+%% If we are inside a match/guard, we inline interpolations explicitly,
+%% otherwise they are inlined by elixir_rewrite.erl.
 
-expand_expr(Meta, {{'.', M1, [Mod, to_string]}, M2, [Arg]}, Fun, E)
-    when Mod == 'Elixir.Kernel'; Mod == 'Elixir.String.Chars' ->
+expand_expr(_Meta, {{'.', _, [Mod, to_string]}, _, [Arg]} = AST, Fun, {#{context := Context}, _} = E)
+    when Context /= nil, (Mod == 'Elixir.Kernel') orelse (Mod == 'Elixir.String.Chars') ->
   case Fun(Arg, E) of
     {EBin, EE} when is_binary(EBin) -> {EBin, EE};
-    _ -> do_expand_expr(Meta, {{'.', M1, ['Elixir.String.Chars', to_string]}, M2, [Arg]}, Fun, E)
+    _ -> Fun(AST, E) % Let it raise
   end;
 expand_expr(Meta, Component, Fun, E) ->
-  do_expand_expr(Meta, Component, Fun, E).
-
-do_expand_expr(Meta, Component, Fun, E) ->
   case Fun(Component, E) of
     {EComponent, {ErrorE, _}} when is_list(EComponent); is_atom(EComponent) ->
       form_error(Meta, ErrorE, ?MODULE, {invalid_literal, EComponent});
