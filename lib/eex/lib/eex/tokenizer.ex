@@ -37,7 +37,8 @@ defmodule EEx.Tokenizer do
   def tokenize(list, line, column, opts)
       when is_list(list) and is_integer(line) and line >= 0 and is_integer(column) and column >= 0 and
              is_list(opts) do
-    tokenize(list, line, column, opts, [], [])
+    opts = Keyword.put_new(opts, :indent, 0)
+    tokenize(list, line, opts[:indent] + column, opts, [], [])
   end
 
   defp tokenize('<%%' ++ t, line, column, opts, buffer, acc) do
@@ -45,7 +46,7 @@ defmodule EEx.Tokenizer do
   end
 
   defp tokenize('<%#' ++ t, line, column, opts, buffer, acc) do
-    case expr(t, line, column + 3, []) do
+    case expr(t, line, column + 3, opts, []) do
       {:error, _, _} = error ->
         error
 
@@ -60,7 +61,7 @@ defmodule EEx.Tokenizer do
   defp tokenize('<%' ++ t, line, column, opts, buffer, acc) do
     {marker, t} = retrieve_marker(t)
 
-    case expr(t, line, column + 2 + length(marker), []) do
+    case expr(t, line, column + 2 + length(marker), opts, []) do
       {:error, _, _} = error ->
         error
 
@@ -78,7 +79,7 @@ defmodule EEx.Tokenizer do
   end
 
   defp tokenize('\n' ++ t, line, _column, opts, buffer, acc) do
-    tokenize(t, line + 1, 1, opts, [?\n | buffer], acc)
+    tokenize(t, line + 1, opts[:indent] + 1, opts, [?\n | buffer], acc)
   end
 
   defp tokenize([h | t], line, column, opts, buffer, acc) do
@@ -101,19 +102,19 @@ defmodule EEx.Tokenizer do
 
   # Tokenize an expression until we find %>
 
-  defp expr([?%, ?> | t], line, column, buffer) do
+  defp expr([?%, ?> | t], line, column, _opts, buffer) do
     {:ok, buffer, line, column + 2, t}
   end
 
-  defp expr('\n' ++ t, line, _column, buffer) do
-    expr(t, line + 1, 1, [?\n | buffer])
+  defp expr('\n' ++ t, line, _column, opts, buffer) do
+    expr(t, line + 1, opts[:column_padding] + 1, opts, [?\n | buffer])
   end
 
-  defp expr([h | t], line, column, buffer) do
-    expr(t, line, column + 1, [h | buffer])
+  defp expr([h | t], line, column, opts, buffer) do
+    expr(t, line, column + 1, opts, [h | buffer])
   end
 
-  defp expr([], line, _column, _buffer) do
+  defp expr([], line, _column, _opts, _buffer) do
     {:error, line, "missing token '%>'"}
   end
 

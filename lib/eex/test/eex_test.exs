@@ -508,13 +508,18 @@ defmodule EExTest do
       Code.put_compiler_option(:parser_options, columns: true)
 
       try do
+        indent = 12
+
         ast =
-          EEx.compile_string("""
-          <%= f() %> <% f() %>
-            <%= f fn -> %>
-              <%= f() %>
-            <% end %>
-          """)
+          EEx.compile_string(
+            """
+            <%= f() %> <% f() %>
+              <%= f fn -> %>
+                <%= f() %>
+              <% end %>
+            """,
+            indent: indent
+          )
 
         {_, calls} =
           Macro.prewalk(ast, [], fn
@@ -523,10 +528,10 @@ defmodule EExTest do
           end)
 
         assert Enum.reverse(calls) == [
-                 [line: 1, column: 5],
-                 [line: 1, column: 15],
-                 [line: 2, column: 7],
-                 [line: 3, column: 9]
+                 [line: 1, column: indent + 5],
+                 [line: 1, column: indent + 15],
+                 [line: 2, column: indent + 7],
+                 [line: 3, column: indent + 9]
                ]
       after
         Code.put_compiler_option(:parser_options, parser_options)
