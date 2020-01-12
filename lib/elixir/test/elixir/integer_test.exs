@@ -8,11 +8,9 @@ defmodule IntegerTest do
   require Integer
 
   def test_is_odd_in_guards(number) when Integer.is_odd(number), do: number
-  def test_is_odd_in_guards(atom) when is_atom(atom) and not Integer.is_odd(atom), do: :atom
   def test_is_odd_in_guards(_number), do: false
 
   def test_is_even_in_guards(number) when Integer.is_even(number), do: number
-  def test_is_even_in_guards(atom) when is_atom(atom) and not Integer.is_even(atom), do: :atom
   def test_is_even_in_guards(_number), do: false
 
   test "is_odd/1" do
@@ -25,7 +23,7 @@ defmodule IntegerTest do
     assert Integer.is_odd(-3) == true
     assert test_is_odd_in_guards(10) == false
     assert test_is_odd_in_guards(11) == 11
-    assert test_is_odd_in_guards(:not_integer) == :atom
+    assert test_is_odd_in_guards(:not_integer) == false
   end
 
   test "is_even/1" do
@@ -38,7 +36,7 @@ defmodule IntegerTest do
     assert Integer.is_even(-3) == false
     assert test_is_even_in_guards(10) == 10
     assert test_is_even_in_guards(11) == false
-    assert test_is_even_in_guards(:not_integer) == :atom
+    assert test_is_even_in_guards(:not_integer) == false
   end
 
   test "mod/2" do
