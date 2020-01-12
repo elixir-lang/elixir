@@ -334,6 +334,37 @@ defmodule KernelTest do
     assert struct_or_map?(10) == false
   end
 
+  defp struct?(arg, name) when is_struct(arg, name), do: true
+  defp struct?(_arg, _name), do: false
+
+  defp struct_or_map?(arg, name) when is_struct(arg, name) or is_map(arg), do: true
+  defp struct_or_map?(_arg, _name), do: false
+
+  defp not_atom(), do: "not atom"
+
+  test "is_struct/2" do
+    assert is_struct(%{}, Macro.Env) == false
+    assert is_struct([], Macro.Env) == false
+    assert is_struct(%Macro.Env{}, Macro.Env) == true
+    assert is_struct(%Macro.Env{}, URI) == false
+    assert struct?(%Macro.Env{}, Macro.Env) == true
+    assert struct?(%Macro.Env{}, URI) == false
+    assert struct?(%{__struct__: "foo"}, "foo") == false
+    assert struct?(%{__struct__: "foo"}, Macro.Env) == false
+    assert struct?([], Macro.Env) == false
+    assert struct?(%{}, Macro.Env) == false
+
+    assert_raise ArgumentError, "argument error", fn ->
+      is_struct(%{}, not_atom())
+    end
+  end
+
+  test "is_struct/2 and other match works" do
+    assert struct_or_map?(%{}, "foo") == false
+    assert struct_or_map?(%{}, Macro.Env) == true
+    assert struct_or_map?(%Macro.Env{}, Macro.Env) == true
+  end
+
   test "if/2 boolean optimization does not leak variables during expansion" do
     if false do
       :ok
