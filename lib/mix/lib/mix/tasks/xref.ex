@@ -240,15 +240,17 @@ defmodule Mix.Tasks.Xref do
   end
 
   # Mod.fun(...)
-  defp walk_expr({{:., meta, [module, fun]}, _, args}, state)
+  defp walk_expr({{:., _, [module, fun]}, meta, args}, state)
        when is_atom(module) and is_atom(fun) do
-    add_call(module, fun, length(args), meta, state)
+    state = add_call(module, fun, length(args), meta, state)
+    walk_expr(args, state)
   end
 
   # %Module{...}
   defp walk_expr({:%, meta, [module, {:%{}, _meta, args}]}, state)
        when is_atom(module) and is_list(args) do
-    add_call(module, :__struct__, 0, meta, state)
+    state = add_call(module, :__struct__, 0, meta, state)
+    walk_expr(args, state)
   end
 
   # Function call
