@@ -303,7 +303,7 @@ defmodule IEx do
       Erlang/OTP 21 [...]
 
       hello world
-      Interactive Elixir - press Ctrl+C to exit (type h() ENTER for help)
+      Interactive Elixir - press Ctrl+\\ to exit (type h() ENTER for help)
       iex(1)> value
       13
 
@@ -326,7 +326,7 @@ defmodule IEx do
       $ iex
       Erlang/OTP 21 [...]
 
-      Interactive Elixir - press Ctrl+C to exit (type h() ENTER for help)
+      Interactive Elixir - press Ctrl+\\ to exit (type h() ENTER for help)
       iex(1)> [1, 2, 3, 4, 5]
       [1, 2, 3, ...]
 
@@ -569,7 +569,7 @@ defmodule IEx do
       pry(2)> respawn()
       true
 
-      Interactive Elixir - press Ctrl+C to exit (type h() ENTER for help)
+      Interactive Elixir - press Ctrl+\\ to exit (type h() ENTER for help)
 
   Setting variables or importing modules in IEx does not
   affect the caller's environment. However, sending and

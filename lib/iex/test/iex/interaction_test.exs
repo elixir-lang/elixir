@@ -7,7 +7,7 @@ defmodule IEx.InteractionTest do
     assert capture_io("IO.puts \"Hello world\"", fn ->
              IEx.Server.run(dot_iex_path: "")
            end) =~
-             "Interactive Elixir (#{System.version()}) - press Ctrl+C to exit (type h() ENTER for help)" <>
+             "Interactive Elixir (#{System.version()}) - press Ctrl+\\ to exit (type h() ENTER for help)" <>
                "\niex(1)> Hello world\n:ok\niex(2)>"
   end
 

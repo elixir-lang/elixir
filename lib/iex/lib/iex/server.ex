@@ -78,7 +78,7 @@ defmodule IEx.Server do
     Process.link(Process.group_leader())
 
     IO.puts(
-      "Interactive Elixir (#{System.version()}) - press Ctrl+C to exit (type h() ENTER for help)"
+      "Interactive Elixir (#{System.version()}) - press Ctrl+\\ to exit (type h() ENTER for help)"
     )
 
     evaluator = start_evaluator(opts)
