@@ -915,11 +915,11 @@ defmodule Kernel.WarningTest do
            end) =~ ~r"this expression will fail with ArgumentError\n.*nofile:2"
 
     assert capture_err(fn ->
-               Code.eval_string("""
-               defmodule Sample do
-                 def foo, do: 1 + nil
-               end
-               """)
+             Code.eval_string("""
+             defmodule Sample do
+               def foo, do: 1 + nil
+             end
+             """)
            end) =~ ~r"this expression will fail with ArithmeticError\n.*nofile:2"
   after
     purge([Sample])
