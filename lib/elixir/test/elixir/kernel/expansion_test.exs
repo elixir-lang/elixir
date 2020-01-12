@@ -3,6 +3,11 @@ Code.require_file("../test_helper.exs", __DIR__)
 defmodule Kernel.ExpansionTarget do
   defmacro seventeen, do: 17
   defmacro bar, do: "bar"
+
+  defmacro message_hello(arg) do
+    send(self(), :hello)
+    arg
+  end
 end
 
 defmodule Kernel.ExpansionTest do
@@ -2149,6 +2154,14 @@ defmodule Kernel.ExpansionTest do
     test "inlines binaries inside interpolation" do
       import Kernel.ExpansionTarget
 
+      # Check expansion happens only once
+      assert expand(quote(do: "foo#{message_hello("bar")}")) |> clean_meta([:alignment]) ==
+               quote(do: <<"foo"::binary(), "bar"::binary()>>)
+
+      assert_received :hello
+      refute_received :hello
+
+      # And it also works in match
       assert expand(quote(do: "foo#{bar()}" = "foobar")) |> clean_meta([:alignment]) ==
                quote(do: <<"foo"::binary(), "bar"::binary()>> = "foobar")
     end
