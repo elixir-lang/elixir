@@ -2251,6 +2251,50 @@ defmodule Kernel do
   end
 
   @doc """
+  Returns true if `term` is a struct of `name`; otherwise returns `false`.
+
+  Allowed in guard tests.
+
+  ## Examples
+
+      iex> is_struct(URI.parse("/"), URI)
+      true
+
+      iex> is_struct(URI.parse("/"), Macro.Env)
+      false
+
+  """
+  @doc since: "1.10.0", guard: true
+  defmacro is_struct(term, name) do
+    case __CALLER__.context do
+      nil ->
+        quote do
+          case unquote(name) do
+            name when is_atom(name) ->
+              case unquote(term) do
+                %{__struct__: ^name} -> true
+                _ -> false
+              end
+
+            _ ->
+              raise ArgumentError
+          end
+        end
+
+      :match ->
+        invalid_match!(:is_struct)
+
+      :guard ->
+        quote do
+          is_map(unquote(term)) and
+            (is_atom(unquote(name)) or :fail) and
+            :erlang.is_map_key(:__struct__, unquote(term)) and
+            :erlang.map_get(:__struct__, unquote(term)) == unquote(name)
+        end
+    end
+  end
+
+  @doc """
   Gets a value from a nested structure.
 
   Uses the `Access` module to traverse the structures
