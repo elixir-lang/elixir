@@ -107,7 +107,7 @@ defmodule EEx.Tokenizer do
   end
 
   defp expr('\n' ++ t, line, _column, opts, buffer) do
-    expr(t, line + 1, opts[:column_padding] + 1, opts, [?\n | buffer])
+    expr(t, line + 1, opts[:indent] + 1, opts, [?\n | buffer])
   end
 
   defp expr([h | t], line, column, opts, buffer) do
