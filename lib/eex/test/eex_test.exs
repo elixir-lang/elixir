@@ -508,7 +508,7 @@ defmodule EExTest do
       Code.put_compiler_option(:parser_options, columns: true)
 
       try do
-        indent = 12
+        indentation = 12
 
         ast =
           EEx.compile_string(
@@ -518,7 +518,7 @@ defmodule EExTest do
                 <%= f() %>
               <% end %>
             """,
-            indent: indent
+            indentation: indentation
           )
 
         {_, calls} =
@@ -528,10 +528,10 @@ defmodule EExTest do
           end)
 
         assert Enum.reverse(calls) == [
-                 [line: 1, column: indent + 5],
-                 [line: 1, column: indent + 15],
-                 [line: 2, column: indent + 7],
-                 [line: 3, column: indent + 9]
+                 [line: 1, column: indentation + 5],
+                 [line: 1, column: indentation + 15],
+                 [line: 2, column: indentation + 7],
+                 [line: 3, column: indentation + 9]
                ]
       after
         Code.put_compiler_option(:parser_options, parser_options)

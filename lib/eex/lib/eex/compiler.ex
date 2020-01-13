@@ -14,9 +14,9 @@ defmodule EEx.Compiler do
     file = opts[:file] || "nofile"
     line = opts[:line] || 1
     column = 1
-    indent = opts[:indent] || 0
+    indentation = opts[:indentation] || 0
     trim = opts[:trim] || false
-    tokenizer_options = [trim: trim, indent: indent]
+    tokenizer_options = [trim: trim, indentation: indentation]
 
     case EEx.Tokenizer.tokenize(source, line, column, tokenizer_options) do
       {:ok, tokens} ->

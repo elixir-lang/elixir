@@ -37,8 +37,8 @@ defmodule EEx.Tokenizer do
   def tokenize(list, line, column, opts)
       when is_list(list) and is_integer(line) and line >= 0 and is_integer(column) and column >= 0 and
              is_list(opts) do
-    opts = Keyword.put_new(opts, :indent, 0)
-    tokenize(list, line, opts[:indent] + column, opts, [], [])
+    opts = Keyword.put_new(opts, :indentation, 0)
+    tokenize(list, line, opts[:indentation] + column, opts, [], [])
   end
 
   defp tokenize('<%%' ++ t, line, column, opts, buffer, acc) do
@@ -79,7 +79,7 @@ defmodule EEx.Tokenizer do
   end
 
   defp tokenize('\n' ++ t, line, _column, opts, buffer, acc) do
-    tokenize(t, line + 1, opts[:indent] + 1, opts, [?\n | buffer], acc)
+    tokenize(t, line + 1, opts[:indentation] + 1, opts, [?\n | buffer], acc)
   end
 
   defp tokenize([h | t], line, column, opts, buffer, acc) do
@@ -107,7 +107,7 @@ defmodule EEx.Tokenizer do
   end
 
   defp expr('\n' ++ t, line, _column, opts, buffer) do
-    expr(t, line + 1, opts[:indent] + 1, opts, [?\n | buffer])
+    expr(t, line + 1, opts[:indentation] + 1, opts, [?\n | buffer])
   end
 
   defp expr([h | t], line, column, opts, buffer) do
