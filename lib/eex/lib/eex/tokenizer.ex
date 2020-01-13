@@ -28,21 +28,12 @@ defmodule EEx.Tokenizer do
   """
   @spec tokenize(binary | charlist, line, column, keyword) ::
           {:ok, [token]} | {:error, line, String.t()}
-  def tokenize(bin, line, column, opts \\ [])
-
   def tokenize(bin, line, column, opts) when is_binary(bin) do
     tokenize(String.to_charlist(bin), line, column, opts)
   end
 
   def tokenize(list, line, column, opts)
-      when is_list(list) and is_integer(line) and line >= 0 and is_integer(column) and column >= 0 and
-             is_list(opts) do
-    opts =
-      opts
-      |> Map.new()
-      |> Map.put_new(:trim, false)
-      |> Map.put_new(:indentation, 0)
-
+      when is_list(list) and is_integer(line) and line >= 0 and is_integer(column) and column >= 0 do
     tokenize(list, line, opts.indentation + column, opts, [], [])
   end
 

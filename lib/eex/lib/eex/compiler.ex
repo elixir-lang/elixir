@@ -16,7 +16,7 @@ defmodule EEx.Compiler do
     column = 1
     indentation = opts[:indentation] || 0
     trim = opts[:trim] || false
-    tokenizer_options = [trim: trim, indentation: indentation]
+    tokenizer_options = %{trim: trim, indentation: indentation}
 
     case EEx.Tokenizer.tokenize(source, line, column, tokenizer_options) do
       {:ok, tokens} ->
