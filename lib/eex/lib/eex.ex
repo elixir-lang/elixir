@@ -42,7 +42,7 @@ defmodule EEx do
     * `:file` - the file to be used in the template. Defaults to the given
       file the template is read from or to "nofile" when compiling from a string.
     * `:line` - the line to be used as the template start. Defaults to 1.
-    * `:indentation` - (since v1.11.0) Indentation to be added to each column.
+    * `:indentation` - (since v1.11.0) indentation to be added to each column.
       Defaults to 0.
     * `:engine` - the EEx engine to be used for compilation.
     * `:trim` - if true, trims whitespace left/right of quotation tags. If a
