@@ -2264,7 +2264,7 @@ defmodule Kernel do
       false
 
   """
-  @doc since: "1.10.0", guard: true
+  @doc since: "1.11.0", guard: true
   defmacro is_struct(term, name) do
     case __CALLER__.context do
       nil ->
