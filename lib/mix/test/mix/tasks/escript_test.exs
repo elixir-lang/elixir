@@ -351,7 +351,7 @@ defmodule Mix.Tasks.EscriptTest do
       """)
 
       System.cmd("git", ~w[add .])
-      System.cmd("git", ~w[commit -m "ok"])
+      System.cmd("git", ~w[commit --no-gpg-sign -m "ok"])
 
       send(self(), {:mix_shell_input, :yes?, true})
       Mix.Tasks.Escript.Install.run(["git", File.cwd!()])

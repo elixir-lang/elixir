@@ -218,7 +218,7 @@ unless File.dir?(target) do
     System.cmd("git", ~w[config user.email "mix@example.com"])
     System.cmd("git", ~w[config user.name "mix-repo"])
     System.cmd("git", ~w[add .])
-    System.cmd("git", ~w[commit -m "bad"])
+    System.cmd("git", ~w[commit --no-gpg-sign -m "bad"])
   end)
 
   File.write!(Path.join(target, "mix.exs"), """
@@ -237,8 +237,8 @@ unless File.dir?(target) do
 
   File.cd!(target, fn ->
     System.cmd("git", ~w[add .])
-    System.cmd("git", ~w[commit -m "ok"])
-    System.cmd("git", ~w[tag without_module])
+    System.cmd("git", ~w[commit --no-gpg-sign -m "ok"])
+    System.cmd("git", ~w[tag --no-sign without_module])
   end)
 
   File.write!(Path.join(target, "lib/git_repo.ex"), """
@@ -279,8 +279,8 @@ unless File.dir?(target) do
 
   File.cd!(target, fn ->
     System.cmd("git", ~w[add .])
-    System.cmd("git", ~w[commit -m "lib"])
-    System.cmd("git", ~w[tag with_module])
+    System.cmd("git", ~w[commit --no-gpg-sign -m "lib"])
+    System.cmd("git", ~w[tag --no-sign with_module])
   end)
 end
 
@@ -309,7 +309,7 @@ unless File.dir?(target) do
     System.cmd("git", ~w[config user.email "mix@example.com"])
     System.cmd("git", ~w[config user.name "mix-repo"])
     System.cmd("git", ~w[add .])
-    System.cmd("git", ~w[commit -m without-dep])
+    System.cmd("git", ~w[commit --no-gpg-sign -m without-dep])
   end)
 
   File.write!(Path.join(target, "mix.exs"), """
@@ -336,7 +336,7 @@ unless File.dir?(target) do
 
   File.cd!(target, fn ->
     System.cmd("git", ~w[add .])
-    System.cmd("git", ~w[commit -m with-dep])
+    System.cmd("git", ~w[commit --no-gpg-sign -m with-dep])
   end)
 end
 
@@ -364,7 +364,7 @@ unless File.dir?(target) do
     System.cmd("git", ~w[config user.email "mix@example.com"])
     System.cmd("git", ~w[config user.name "mix-repo"])
     System.cmd("git", ~w[add .])
-    System.cmd("git", ~w[commit -m "ok"])
+    System.cmd("git", ~w[commit --no-gpg-sign -m "ok"])
   end)
 end
 
