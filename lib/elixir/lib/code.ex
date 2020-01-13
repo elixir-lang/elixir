@@ -750,7 +750,7 @@ defmodule Code do
     * `:line` - the starting line of the string being parsed.
       Defaults to 1.
 
-    * `:column` - the starting column of the string being parsed.
+    * `:column` - (since v1.11.0) the starting column of the string being parsed.
       Defaults to 1.
 
     * `:columns` - when `true`, attach a `:column` key to the quoted
