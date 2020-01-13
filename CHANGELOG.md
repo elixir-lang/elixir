@@ -194,6 +194,7 @@ Finally, ExUnit comes with two small but important improvements: `ExUnit.Capture
 
 #### Mix
 
+  * [Mix.Config] `Mix.Config.persist/1` has been deprecated. Instead of `Mix.Config.persist(config)` use `Application.put_all_env(config, persistent: true)` (`Application.put_all_env/2` was added in v1.9)
   * [mix xref] `calls/0` is deprecated in favor of compiler tracer
   * [mix xref] The `xref.exclude` option has been moved to `elixirc_options.no_warn_undefined` as the `xref` pass has been moved into the compiler
 
