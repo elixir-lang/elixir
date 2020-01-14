@@ -35,6 +35,7 @@ defmodule ExUnit.Filters do
 
         line_numbers =
           reversed_line_numbers
+          |> Enum.reject(&invalid_line_number?/1)
           |> Enum.reverse()
           |> Enum.map(&{:line, &1})
 
@@ -46,6 +47,18 @@ defmodule ExUnit.Filters do
         {path, line_numbers}
     end
   end
+
+  defp invalid_line_number?("0") do
+    IO.warn("invalid line number given as ExUnit filter: 0", [])
+    true
+  end
+
+  defp invalid_line_number?("-" <> _ = num) do
+    IO.warn("invalid line number given as ExUnit filter: #{num}", [])
+    true
+  end
+
+  defp invalid_line_number?(_), do: false
 
   @doc """
   Normalizes `include` and `exclude` filters to remove duplicates
