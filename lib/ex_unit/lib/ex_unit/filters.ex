@@ -49,17 +49,14 @@ defmodule ExUnit.Filters do
   end
 
   defp invalid_line_number?(arg) do
-    invalid =
-      case Integer.parse(arg) do
-        {num, ""} -> num <= 0
-        _ -> true
-      end
+    case Integer.parse(arg) do
+      {num, ""} when num > 0 ->
+        false
 
-    if invalid do
-      IO.warn("invalid line number given as ExUnit filter: #{arg}", [])
+      _ ->
+        IO.warn("invalid line number given as ExUnit filter: #{arg}", [])
+        true
     end
-
-    invalid
   end
 
   @doc """
