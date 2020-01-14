@@ -27,23 +27,35 @@ defmodule ExUnit.Filters do
       [part] ->
         {part, []}
 
-      [path | line_numbers] ->
+      parts ->
+        {reversed_line_numbers, reversed_path_parts} =
+          parts
+          |> Enum.reverse()
+          |> Enum.split_while(&match?({_, ""}, Integer.parse(&1)))
+
         line_numbers =
-          line_numbers
-          |> Enum.flat_map(&line_number_argument/1)
+          reversed_line_numbers
+          |> Enum.reject(&invalid_line_number?/1)
+          |> Enum.reverse()
+          |> Enum.map(&{:line, &1})
+
+        path =
+          reversed_path_parts
+          |> Enum.reverse()
+          |> Enum.join(":")
 
         {path, line_numbers}
     end
   end
 
-  defp line_number_argument(arg) do
+  defp invalid_line_number?(arg) do
     case Integer.parse(arg) do
       {num, ""} when num > 0 ->
-        [line: arg]
+        false
 
       _ ->
         IO.warn("invalid line number given as ExUnit filter: #{arg}", [])
-        []
+        true
     end
   end
 
