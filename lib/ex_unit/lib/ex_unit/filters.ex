@@ -52,6 +52,7 @@ defmodule ExUnit.Filters do
     invalid =
       case Integer.parse(arg) do
         {num, ""} -> num <= 0
+        _ -> true
       end
     if invalid do
       IO.warn("invalid line number given as ExUnit filter: #{arg}", [])
