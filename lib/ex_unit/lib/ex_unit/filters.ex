@@ -48,17 +48,16 @@ defmodule ExUnit.Filters do
     end
   end
 
-  defp invalid_line_number?("0") do
-    IO.warn("invalid line number given as ExUnit filter: 0", [])
-    true
+  defp invalid_line_number?(arg) do
+    invalid =
+      case Integer.parse(arg) do
+        {num, ""} -> num <= 0
+      end
+    if invalid do
+      IO.warn("invalid line number given as ExUnit filter: #{arg}", [])
+    end
+    invalid
   end
-
-  defp invalid_line_number?("-" <> _ = num) do
-    IO.warn("invalid line number given as ExUnit filter: #{num}", [])
-    true
-  end
-
-  defp invalid_line_number?(_), do: false
 
   @doc """
   Normalizes `include` and `exclude` filters to remove duplicates
