@@ -213,17 +213,21 @@ vc_merge_conflict_test() ->
     tokenize_error("<<<<<<< HEAD\n[1, 2, 3]").
 
 sigil_terminator_test() ->
-  [{sigil, {1, 1, nil}, 114, [<<"foo">>], [], <<"/">>}] = tokenize("~r/foo/"),
-  [{sigil, {1, 1, nil}, 114, [<<"foo">>], [], <<"[">>}] = tokenize("~r[foo]"),
-  [{sigil, {1, 1, nil}, 114, [<<"foo">>], [], <<"\"">>}] = tokenize("~r\"foo\""),
-  [{sigil, {1, 1, nil}, 114, [<<"foo">>], [], <<"/">>},
+  [{sigil, {1, 1, nil}, 114, [<<"foo">>], "", nil, <<"/">>}] = tokenize("~r/foo/"),
+  [{sigil, {1, 1, nil}, 114, [<<"foo">>], "", nil, <<"[">>}] = tokenize("~r[foo]"),
+  [{sigil, {1, 1, nil}, 114, [<<"foo">>], "", nil, <<"\"">>}] = tokenize("~r\"foo\""),
+  [{sigil, {1, 1, nil}, 114, [<<"foo">>], "", nil, <<"/">>},
    {comp_op, {1, 9, nil}, '=='},
    {identifier, {1, 12, nil}, bar}] = tokenize("~r/foo/ == bar"),
-  [{sigil, {1, 1, nil}, 114, [<<"foo">>], "iu", <<"/">>},
+  [{sigil, {1, 1, nil}, 114, [<<"foo">>], "iu", nil, <<"/">>},
    {comp_op, {1, 11, nil}, '=='},
-   {identifier, {1, 14, nil}, bar}] = tokenize("~r/foo/iu == bar"),
-  [{sigil, {1, 1, nil}, 83, [<<"sigil heredoc\n">>], [], <<"\"\"\"">>}] = tokenize("~S\"\"\"\nsigil heredoc\n\"\"\""),
-  [{sigil, {1, 1, nil}, 83, [<<"sigil heredoc\n">>], [], <<"'''">>}] = tokenize("~S'''\nsigil heredoc\n'''").
+   {identifier, {1, 14, nil}, bar}] = tokenize("~r/foo/iu == bar").
+
+sigil_heredoc_test() ->
+  [{sigil, {1, 1, nil}, 83, [<<"sigil heredoc\n">>], "", 0, <<"\"\"\"">>}] = tokenize("~S\"\"\"\nsigil heredoc\n\"\"\""),
+  [{sigil, {1, 1, nil}, 83, [<<"sigil heredoc\n">>], "", 0, <<"'''">>}] = tokenize("~S'''\nsigil heredoc\n'''"),
+  [{sigil, {1, 1, nil}, 83, [<<"sigil heredoc\n">>], "", 2, <<"\"\"\"">>}] = tokenize("~S\"\"\"\n  sigil heredoc\n  \"\"\""),
+  [{sigil, {1, 1, nil}, 115, [<<"sigil heredoc\n">>], "", 2, <<"\"\"\"">>}] = tokenize("~s\"\"\"\n  sigil heredoc\n  \"\"\"").
 
 invalid_sigil_delimiter_test() ->
   {1, 1, "invalid sigil delimiter: ", Message} = tokenize_error("~s\\"),
