@@ -172,6 +172,7 @@ defmodule Macro do
     * `:end_of_expression` - denotes when the end of expression effectively
       happens. Available for all expressions except the last one inside a
       `__block__` (when `:token_metadata` is true)
+    * `:indentation` - indentation of a sigil heredoc
 
   The following metadata keys are private:
 

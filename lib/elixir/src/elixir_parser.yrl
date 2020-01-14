@@ -866,12 +866,17 @@ build_access(Expr, {List, Location}) ->
 
 %% Interpolation aware
 
-build_sigil({sigil, Location, Sigil, Parts, Modifiers, Delimiter}) ->
+build_sigil({sigil, Location, Sigil, Parts, Modifiers, Indentation, Delimiter}) ->
   Meta = meta_from_location(Location),
-  MetaWithDelimiter = [{delimiter, Delimiter} | Meta],
+  SigilMeta = sigil_meta(Meta, Delimiter, Indentation),
   {list_to_atom("sigil_" ++ [Sigil]),
-   MetaWithDelimiter,
+   SigilMeta,
    [{'<<>>', Meta, string_parts(Parts)}, Modifiers]}.
+
+sigil_meta(Meta, Delimiter, nil) ->
+  [{delimiter, Delimiter} | Meta];
+sigil_meta(Meta, Delimiter, Indentation) ->
+  [{delimiter, Delimiter}, {indentation, Indentation} | Meta].
 
 build_bin_heredoc({bin_heredoc, Location, Args}) ->
   build_bin_string({bin_string, Location, Args}, delimiter(<<$", $", $">>)).
