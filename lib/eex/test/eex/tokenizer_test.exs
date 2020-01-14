@@ -222,7 +222,7 @@ defmodule EEx.TokenizerTest do
   end
 
   test "raise syntax error when there is start mark and no end mark" do
-    assert T.tokenize('foo <% :bar', 1, 1, @opts) == {:error, 1, "missing token '%>'"}
-    assert T.tokenize('<%# true ', 1, 1, @opts) == {:error, 1, "missing token '%>'"}
+    assert T.tokenize('foo <% :bar', 1, 1, @opts) == {:error, 1, 12, "missing token '%>'"}
+    assert T.tokenize('<%# true ', 1, 1, @opts) == {:error, 1, 10, "missing token '%>'"}
   end
 end

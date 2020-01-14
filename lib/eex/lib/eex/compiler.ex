@@ -33,8 +33,8 @@ defmodule EEx.Compiler do
         init = state.engine.init(opts)
         generate_buffer(tokens, init, [], state)
 
-      {:error, line, message} ->
-        raise EEx.SyntaxError, line: line, file: file, message: message
+      {:error, line, column, message} ->
+        raise EEx.SyntaxError, file: file, line: line, column: column, message: message
     end
   end
 
@@ -106,11 +106,12 @@ defmodule EEx.Compiler do
     # raise EEx.SyntaxError, message: message, file: state.file, line: line
   end
 
-  defp generate_buffer([{:middle_expr, line, _column, _, chars, _} | _], _buffer, [], state) do
+  defp generate_buffer([{:middle_expr, line, column, _, chars, _} | _], _buffer, [], state) do
     raise EEx.SyntaxError,
       message: "unexpected middle of expression <%#{chars}%>",
       file: state.file,
-      line: line
+      line: line,
+      column: column
   end
 
   defp generate_buffer(
@@ -140,14 +141,15 @@ defmodule EEx.Compiler do
     :elixir_errors.erl_warn(line, state.file, message)
     generate_buffer([{:end_expr, line, column, '', chars, trimmed?} | t], buffer, scope, state)
     # TODO: Make this an error on Elixir v2.0 since it accidentally worked previously.
-    # raise EEx.SyntaxError, message: message, file: state.file, line: line
+    # raise EEx.SyntaxError, message: message, file: state.file, line: line, column: column
   end
 
-  defp generate_buffer([{:end_expr, line, _column, _, chars, _} | _], _buffer, [], state) do
+  defp generate_buffer([{:end_expr, line, column, _, chars, _} | _], _buffer, [], state) do
     raise EEx.SyntaxError,
       message: "unexpected end of expression <%#{chars}%>",
       file: state.file,
-      line: line
+      line: line,
+      column: column
   end
 
   defp generate_buffer([], buffer, [], state) do
@@ -158,7 +160,8 @@ defmodule EEx.Compiler do
     raise EEx.SyntaxError,
       message: "unexpected end of string, expected a closing '<% end %>'",
       file: state.file,
-      line: state.line
+      line: state.line,
+      column: "TODO"
   end
 
   # Creates a placeholder and wrap it inside the expression block
