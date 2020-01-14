@@ -14,9 +14,11 @@ defmodule EEx.Compiler do
     file = opts[:file] || "nofile"
     line = opts[:line] || 1
     column = 1
+    indentation = opts[:indentation] || 0
     trim = opts[:trim] || false
+    tokenizer_options = %{trim: trim, indentation: indentation}
 
-    case EEx.Tokenizer.tokenize(source, line, column, trim: trim) do
+    case EEx.Tokenizer.tokenize(source, line, column, tokenizer_options) do
       {:ok, tokens} ->
         state = %{
           engine: opts[:engine] || @default_engine,
@@ -118,11 +120,8 @@ defmodule EEx.Compiler do
          state
        ) do
     {wrapped, state} = wrap_expr(current, line, buffer, chars, state)
-
-    options =
-      [file: state.file, line: state.start_line, column: state.start_column] ++
-        state.parser_options
-
+    column = state.start_column
+    options = [file: state.file, line: state.start_line, column: column] ++ state.parser_options
     tuples = Code.string_to_quoted!(wrapped, options)
     buffer = insert_quoted(tuples, state.quoted)
     {buffer, rest}

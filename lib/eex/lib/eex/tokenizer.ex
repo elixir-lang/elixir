@@ -28,16 +28,13 @@ defmodule EEx.Tokenizer do
   """
   @spec tokenize(binary | charlist, line, column, keyword) ::
           {:ok, [token]} | {:error, line, String.t()}
-  def tokenize(bin, line, column, opts \\ [])
-
   def tokenize(bin, line, column, opts) when is_binary(bin) do
     tokenize(String.to_charlist(bin), line, column, opts)
   end
 
   def tokenize(list, line, column, opts)
-      when is_list(list) and is_integer(line) and line >= 0 and is_integer(column) and column >= 0 and
-             is_list(opts) do
-    tokenize(list, line, column, opts, [], [])
+      when is_list(list) and is_integer(line) and line >= 0 and is_integer(column) and column >= 0 do
+    tokenize(list, line, opts.indentation + column, opts, [], [])
   end
 
   defp tokenize('<%%' ++ t, line, column, opts, buffer, acc) do
@@ -45,7 +42,7 @@ defmodule EEx.Tokenizer do
   end
 
   defp tokenize('<%#' ++ t, line, column, opts, buffer, acc) do
-    case expr(t, line, column + 3, []) do
+    case expr(t, line, column + 3, opts, []) do
       {:error, _, _} = error ->
         error
 
@@ -60,7 +57,7 @@ defmodule EEx.Tokenizer do
   defp tokenize('<%' ++ t, line, column, opts, buffer, acc) do
     {marker, t} = retrieve_marker(t)
 
-    case expr(t, line, column + 2 + length(marker), []) do
+    case expr(t, line, column + 2 + length(marker), opts, []) do
       {:error, _, _} = error ->
         error
 
@@ -78,7 +75,7 @@ defmodule EEx.Tokenizer do
   end
 
   defp tokenize('\n' ++ t, line, _column, opts, buffer, acc) do
-    tokenize(t, line + 1, 1, opts, [?\n | buffer], acc)
+    tokenize(t, line + 1, opts.indentation + 1, opts, [?\n | buffer], acc)
   end
 
   defp tokenize([h | t], line, column, opts, buffer, acc) do
@@ -101,19 +98,19 @@ defmodule EEx.Tokenizer do
 
   # Tokenize an expression until we find %>
 
-  defp expr([?%, ?> | t], line, column, buffer) do
+  defp expr([?%, ?> | t], line, column, _opts, buffer) do
     {:ok, buffer, line, column + 2, t}
   end
 
-  defp expr('\n' ++ t, line, _column, buffer) do
-    expr(t, line + 1, 1, [?\n | buffer])
+  defp expr('\n' ++ t, line, _column, opts, buffer) do
+    expr(t, line + 1, opts.indentation + 1, opts, [?\n | buffer])
   end
 
-  defp expr([h | t], line, column, buffer) do
-    expr(t, line, column + 1, [h | buffer])
+  defp expr([h | t], line, column, opts, buffer) do
+    expr(t, line, column + 1, opts, [h | buffer])
   end
 
-  defp expr([], line, _column, _buffer) do
+  defp expr([], line, _column, _opts, _buffer) do
     {:error, line, "missing token '%>'"}
   end
 
@@ -213,7 +210,7 @@ defmodule EEx.Tokenizer do
   # only itself and whitespace, trim the whitespace around it,
   # including the line break following it if there is one.
   defp trim_if_needed(rest, line, column, opts, buffer, acc) do
-    with true <- opts[:trim],
+    with true <- opts.trim,
          {true, new_buffer} <- trim_left(buffer, acc),
          {true, new_rest, new_line, new_column} <- trim_right(rest, line, column) do
       {true, new_rest, new_line, new_column, new_buffer}
