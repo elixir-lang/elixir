@@ -52,5 +52,20 @@ defmodule Kernel.SpecialFormsTest do
         :otherwise -> :also_good
       end
     end
+
+    def false_fun(), do: false
+
+    test "cond_clause error keeps line number in stacktrace" do
+      try do
+        cond do
+          false_fun() -> :ok
+        end
+      rescue
+        _ ->
+          assert [{Kernel.SpecialFormsTest, _, _, meta} | _] = __STACKTRACE__
+          assert meta[:file]
+          assert meta[:line]
+      end
+    end
   end
 end
