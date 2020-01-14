@@ -230,12 +230,11 @@ defmodule ExUnit.FiltersTest do
 
     output =
       ExUnit.CaptureIO.capture_io(:stderr, fn ->
-        assert ExUnit.Filters.parse_path("test/some/path.exs:123:0:-789:456:1L") ==
+        assert ExUnit.Filters.parse_path("test/some/path.exs:123:0:-789:456") ==
                  {"test/some/path.exs", [exclude: [:test], include: [line: "123", line: "456"]]}
       end)
 
     assert output =~ "invalid line number given as ExUnit filter: 0"
     assert output =~ "invalid line number given as ExUnit filter: -789"
-    assert output =~ "invalid line number given as ExUnit filter: 1L"
   end
 end
