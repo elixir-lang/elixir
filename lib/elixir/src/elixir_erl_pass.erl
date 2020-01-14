@@ -126,7 +126,7 @@ translate({'cond', CondMeta, [[{do, Clauses}]]}, S) ->
       true -> Meta
     end,
 
-  Error = {{'.', Meta, [erlang, error]}, [], [cond_clause]},
+  Error = {{'.', Meta, [erlang, error]}, Meta, [cond_clause]},
   {Case, SC} = build_cond_clauses([H | T], Error, FirstMeta, S),
   translate(replace_case_meta(CondMeta, Case), SC);
 
