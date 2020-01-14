@@ -142,10 +142,11 @@ defmodule Mix.Tasks.Test do
   `test/test_helper.exs` and then requires all files matching the
   `test/**/*_test.exs` pattern in parallel.
 
-  A list of files can be given after the task name in order to select
-  the files to compile:
+  A list of files and/or directories can be given after the task
+  name in order to select the files to run:
 
       mix test test/some/particular/file_test.exs
+      mix test test/some/particular/dir
 
   Tests in umbrella projects can be run from the root by specifying
   the full suite path, including `apps/my_app/test`, in which case
