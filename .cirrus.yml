@@ -110,7 +110,7 @@ test_windows_task:
     image: fertapric/elixir-ci:otp-win64-${OTP_RELEASE}
     os_version: ${OS_VERSION}
     cpu: 4
-    memory: 3840Mi
+    memory: 6GB
 
   install_script:
     - rmdir /s /q .git
