@@ -1,9 +1,9 @@
 defmodule EEx.SyntaxError do
-  defexception [:message, :file, :line]
+  defexception [:message, :file, :line, :column]
 
   @impl true
   def message(exception) do
-    "#{exception.file}:#{exception.line}: #{exception.message}"
+    "#{exception.file}:#{exception.line}:#{exception.column}: #{exception.message}"
   end
 end
 

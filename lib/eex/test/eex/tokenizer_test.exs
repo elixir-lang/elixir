@@ -7,36 +7,36 @@ defmodule EEx.TokenizerTest do
   @opts %{indentation: 0, trim: false}
 
   test "simple chars lists" do
-    assert T.tokenize('foo', 1, 1, @opts) == {:ok, [{:text, 'foo'}]}
+    assert T.tokenize('foo', 1, 1, @opts) == {:ok, [{:text, 'foo'}, {:eof, 1, 4}]}
   end
 
   test "simple strings" do
-    assert T.tokenize("foo", 1, 1, @opts) == {:ok, [{:text, 'foo'}]}
+    assert T.tokenize("foo", 1, 1, @opts) == {:ok, [{:text, 'foo'}, {:eof, 1, 4}]}
   end
 
   test "strings with embedded code" do
     assert T.tokenize('foo <% bar %>', 1, 1, @opts) ==
-             {:ok, [{:text, 'foo '}, {:expr, 1, 5, '', ' bar ', false}]}
+             {:ok, [{:text, 'foo '}, {:expr, 1, 5, '', ' bar ', false}, {:eof, 1, 14}]}
   end
 
   test "strings with embedded equals code" do
     assert T.tokenize('foo <%= bar %>', 1, 1, @opts) ==
-             {:ok, [{:text, 'foo '}, {:expr, 1, 5, '=', ' bar ', false}]}
+             {:ok, [{:text, 'foo '}, {:expr, 1, 5, '=', ' bar ', false}, {:eof, 1, 15}]}
   end
 
   test "strings with embedded slash code" do
     assert T.tokenize('foo <%/ bar %>', 1, 1, @opts) ==
-             {:ok, [{:text, 'foo '}, {:expr, 1, 5, '/', ' bar ', false}]}
+             {:ok, [{:text, 'foo '}, {:expr, 1, 5, '/', ' bar ', false}, {:eof, 1, 15}]}
   end
 
   test "strings with embedded pipe code" do
     assert T.tokenize('foo <%| bar %>', 1, 1, @opts) ==
-             {:ok, [{:text, 'foo '}, {:expr, 1, 5, '|', ' bar ', false}]}
+             {:ok, [{:text, 'foo '}, {:expr, 1, 5, '|', ' bar ', false}, {:eof, 1, 15}]}
   end
 
   test "strings with more than one line" do
     assert T.tokenize('foo\n<%= bar %>', 1, 1, @opts) ==
-             {:ok, [{:text, 'foo\n'}, {:expr, 2, 1, '=', ' bar ', false}]}
+             {:ok, [{:text, 'foo\n'}, {:expr, 2, 1, '=', ' bar ', false}, {:eof, 2, 11}]}
   end
 
   test "strings with more than one line and expression with more than one line" do
@@ -52,19 +52,21 @@ defmodule EEx.TokenizerTest do
       {:expr, 1, 5, '=', ' bar\n\nbaz ', false},
       {:text, '\n'},
       {:expr, 4, 1, '', ' foo ', false},
-      {:text, '\n'}
+      {:text, '\n'},
+      {:eof, 5, 1}
     ]
 
     assert T.tokenize(string, 1, 1, @opts) == {:ok, exprs}
   end
 
   test "quotation" do
-    assert T.tokenize('foo <%% true %>', 1, 1, @opts) == {:ok, [{:text, 'foo <% true %>'}]}
+    assert T.tokenize('foo <%% true %>', 1, 1, @opts) ==
+             {:ok, [{:text, 'foo <% true %>'}, {:eof, 1, 16}]}
   end
 
   test "quotation with do/end" do
     assert T.tokenize('foo <%% true do %>bar<%% end %>', 1, 1, @opts) ==
-             {:ok, [{:text, 'foo <% true do %>bar<% end %>'}]}
+             {:ok, [{:text, 'foo <% true do %>bar<% end %>'}, {:eof, 1, 32}]}
   end
 
   test "quotation with interpolation" do
@@ -73,7 +75,8 @@ defmodule EEx.TokenizerTest do
       {:expr, 1, 9, '=', ' c ', false},
       {:text, ' '},
       {:expr, 1, 18, '=', ' d ', false},
-      {:text, ' e %> f'}
+      {:text, ' e %> f'},
+      {:eof, 1, 33}
     ]
 
     assert T.tokenize('a <%% b <%= c %> <%= d %> e %> f', 1, 1, @opts) == {:ok, exprs}
@@ -81,7 +84,8 @@ defmodule EEx.TokenizerTest do
 
   test "improperly formatted quotation with interpolation" do
     exprs = [
-      {:text, '<%% a <%= b %> c %>'}
+      {:text, '<%% a <%= b %> c %>'},
+      {:eof, 1, 22}
     ]
 
     assert T.tokenize('<%%% a <%%= b %> c %>', 1, 1, @opts) == {:ok, exprs}
@@ -89,7 +93,8 @@ defmodule EEx.TokenizerTest do
 
   test "comments" do
     exprs = [
-      {:text, 'foo '}
+      {:text, 'foo '},
+      {:eof, 1, 16}
     ]
 
     assert T.tokenize('foo <%# true %>', 1, 1, @opts) == {:ok, exprs}
@@ -97,7 +102,8 @@ defmodule EEx.TokenizerTest do
 
   test "comments with do/end" do
     exprs = [
-      {:text, 'foo bar'}
+      {:text, 'foo bar'},
+      {:eof, 1, 32}
     ]
 
     assert T.tokenize('foo <%# true do %>bar<%# end %>', 1, 1, @opts) == {:ok, exprs}
@@ -108,7 +114,8 @@ defmodule EEx.TokenizerTest do
       {:text, 'foo '},
       {:start_expr, 1, 5, '', ' if true do ', false},
       {:text, 'bar'},
-      {:end_expr, 1, 24, '', ' end ', false}
+      {:end_expr, 1, 24, '', ' end ', false},
+      {:eof, 1, 33}
     ]
 
     assert T.tokenize('foo <% if true do %>bar<% end %>', 1, 1, @opts) == {:ok, exprs}
@@ -122,7 +129,8 @@ defmodule EEx.TokenizerTest do
       {:text, 'bar'},
       {:middle_expr, 1, 35, '', ' true -> ', false},
       {:text, 'baz'},
-      {:end_expr, 1, 51, '', ' end ', false}
+      {:end_expr, 1, 51, '', ' end ', false},
+      {:eof, 1, 60}
     ]
 
     assert T.tokenize('foo <% cond do %><% false -> %>bar<% true -> %>baz<% end %>', 1, 1, @opts) ==
@@ -135,7 +143,8 @@ defmodule EEx.TokenizerTest do
       {:text, 'foo'},
       {:middle_expr, 1, 18, '', ' end, fn -> ', false},
       {:text, 'bar'},
-      {:end_expr, 1, 37, '', ' end ', false}
+      {:end_expr, 1, 37, '', ' end ', false},
+      {:eof, 1, 46}
     ]
 
     assert T.tokenize('<%= a fn -> %>foo<% end, fn -> %>bar<% end %>', 1, 1, @opts) ==
@@ -148,7 +157,8 @@ defmodule EEx.TokenizerTest do
       {:text, 'foo'},
       {:middle_expr, 1, 18, '', ' end do ', false},
       {:text, 'bar'},
-      {:end_expr, 1, 33, '', ' end ', false}
+      {:end_expr, 1, 33, '', ' end ', false},
+      {:eof, 1, 42}
     ]
 
     assert T.tokenize('<%= a fn -> %>foo<% end do %>bar<% end %>', 1, 1, @opts) == {:ok, exprs}
@@ -161,7 +171,8 @@ defmodule EEx.TokenizerTest do
       {:text, 'bar'},
       {:middle_expr, 1, 24, '', ' else ', false},
       {:text, 'baz'},
-      {:end_expr, 1, 37, '', ' end ', false}
+      {:end_expr, 1, 37, '', ' end ', false},
+      {:eof, 1, 46}
     ]
 
     assert T.tokenize('foo <% if true do %>bar<% else %>baz<% end %>', 1, 1, @opts) ==
@@ -176,7 +187,8 @@ defmodule EEx.TokenizerTest do
       {:text, ' TRUE \n'},
       {:middle_expr, 3, 3, '', ' else ', true},
       {:text, ' FALSE \n'},
-      {:end_expr, 5, 3, '', ' end ', true}
+      {:end_expr, 5, 3, '', ' end ', true},
+      {:eof, 5, 12}
     ]
 
     assert T.tokenize(template, 1, 1, %{@opts | trim: true}) == {:ok, exprs}
@@ -184,7 +196,8 @@ defmodule EEx.TokenizerTest do
 
   test "trim mode with comment" do
     exprs = [
-      {:text, '123'}
+      {:text, '123'},
+      {:eof, 2, 4}
     ]
 
     assert T.tokenize('  <%# comment %>  \n123', 1, 1, %{@opts | trim: true}) == {:ok, exprs}
@@ -194,7 +207,8 @@ defmodule EEx.TokenizerTest do
     exprs = [
       {:text, '0\r\n'},
       {:expr, 2, 3, '=', ' 12 ', true},
-      {:text, '34'}
+      {:text, '34'},
+      {:eof, 3, 3}
     ]
 
     assert T.tokenize('0\r\n  <%= 12 %>  \r\n34', 1, 1, %{@opts | trim: true}) == {:ok, exprs}
@@ -204,7 +218,8 @@ defmodule EEx.TokenizerTest do
     exprs = [
       {:text, ' '},
       {:expr, 1, 2, '=', ' 12 ', false},
-      {:text, ' \n'}
+      {:text, ' \n'},
+      {:eof, 2, 1}
     ]
 
     assert T.tokenize(' <%= 12 %> \n', 1, 1, %{@opts | trim: false}) == {:ok, exprs}
@@ -222,7 +237,7 @@ defmodule EEx.TokenizerTest do
   end
 
   test "raise syntax error when there is start mark and no end mark" do
-    assert T.tokenize('foo <% :bar', 1, 1, @opts) == {:error, 1, "missing token '%>'"}
-    assert T.tokenize('<%# true ', 1, 1, @opts) == {:error, 1, "missing token '%>'"}
+    assert T.tokenize('foo <% :bar', 1, 1, @opts) == {:error, 1, 12, "missing token '%>'"}
+    assert T.tokenize('<%# true ', 1, 1, @opts) == {:error, 1, 10, "missing token '%>'"}
   end
 end
