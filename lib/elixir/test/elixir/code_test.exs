@@ -249,18 +249,18 @@ defmodule CodeTest do
       assert string_to_quoted.("~r\"foo\"") ==
                {:sigil_r, [delimiter: "\"", line: 1], [{:<<>>, [line: 1], ["foo"]}, []]}
 
-      meta = [delimiter: "\"\"\"", indentation: 0, line: 1]
-      args = {:sigil_S, meta, [{:<<>>, [line: 1], ["sigil heredoc\n"]}, []]}
+      meta = [delimiter: "\"\"\"", line: 1]
+      args = {:sigil_S, meta, [{:<<>>, [indentation: 0, line: 1], ["sigil heredoc\n"]}, []]}
       assert string_to_quoted.("~S\"\"\"\nsigil heredoc\n\"\"\"") == args
 
-      meta = [delimiter: "'''", indentation: 0, line: 1]
-      args = {:sigil_S, meta, [{:<<>>, [line: 1], ["sigil heredoc\n"]}, []]}
+      meta = [delimiter: "'''", line: 1]
+      args = {:sigil_S, meta, [{:<<>>, [indentation: 0, line: 1], ["sigil heredoc\n"]}, []]}
       assert string_to_quoted.("~S'''\nsigil heredoc\n'''") == args
     end
 
     test "heredoc indentation" do
-      meta = [delimiter: "'''", indentation: 2, line: 1]
-      args = {:sigil_S, meta, [{:<<>>, [line: 1], ["  sigil heredoc\n"]}, []]}
+      meta = [delimiter: "'''", line: 1]
+      args = {:sigil_S, meta, [{:<<>>, [indentation: 2, line: 1], ["  sigil heredoc\n"]}, []]}
       assert Code.string_to_quoted!("~S'''\n    sigil heredoc\n  '''") == args
     end
   end
