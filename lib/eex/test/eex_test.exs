@@ -220,25 +220,27 @@ defmodule EExTest do
 
   describe "raises syntax errors" do
     test "when the token is invalid" do
-      assert_raise EEx.SyntaxError, "nofile:1: missing token '%>'", fn ->
+      assert_raise EEx.SyntaxError, "nofile:1:12: missing token '%>'", fn ->
         EEx.compile_string("foo <%= bar")
       end
     end
 
     test "when middle expression is found without a start expression" do
-      assert_raise EEx.SyntaxError, "nofile:1: unexpected middle of expression <% else %>", fn ->
-        EEx.compile_string("<% if true %> foo<% else %>bar<% end %>")
-      end
+      assert_raise EEx.SyntaxError,
+                   "nofile:1:18: unexpected middle of expression <% else %>",
+                   fn ->
+                     EEx.compile_string("<% if true %> foo<% else %>bar<% end %>")
+                   end
     end
 
     test "when end expression is found without a start expression" do
-      assert_raise EEx.SyntaxError, "nofile:1: unexpected end of expression <% end %>", fn ->
+      assert_raise EEx.SyntaxError, "nofile:1:5: unexpected end of expression <% end %>", fn ->
         EEx.compile_string("foo <% end %>")
       end
     end
 
     test "when start expression is found without an end expression" do
-      msg = "nofile:2: unexpected end of string, expected a closing '<% end %>'"
+      msg = "nofile:2:17: unexpected end of string, expected a closing '<% end %>'"
 
       assert_raise EEx.SyntaxError, msg, fn ->
         EEx.compile_string("foo\n<% if true do %>")
@@ -246,7 +248,7 @@ defmodule EExTest do
     end
 
     test "when nested end expression is found without a start expression" do
-      assert_raise EEx.SyntaxError, "nofile:1: unexpected end of expression <% end %>", fn ->
+      assert_raise EEx.SyntaxError, "nofile:1:30: unexpected end of expression <% end %>", fn ->
         EEx.compile_string("foo <% if true do %><% end %><% end %>")
       end
     end
@@ -285,13 +287,13 @@ defmodule EExTest do
 
   describe "error messages" do
     test "honor line numbers" do
-      assert_raise EEx.SyntaxError, "nofile:99: missing token '%>'", fn ->
+      assert_raise EEx.SyntaxError, "nofile:99:12: missing token '%>'", fn ->
         EEx.compile_string("foo <%= bar", line: 99)
       end
     end
 
     test "honor file names" do
-      assert_raise EEx.SyntaxError, "my_file.eex:1: missing token '%>'", fn ->
+      assert_raise EEx.SyntaxError, "my_file.eex:1:12: missing token '%>'", fn ->
         EEx.compile_string("foo <%= bar", file: "my_file.eex")
       end
     end

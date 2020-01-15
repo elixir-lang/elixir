@@ -23,11 +23,13 @@ defmodule EEx.Tokenizer do
     * `{:start_expr, line, column, marker, content, trimmed?}`
     * `{:middle_expr, line, column, marker, content, trimmed?}`
     * `{:end_expr, line, column, marker, content, trimmed?}`
+    * `{:eof, line, column}`
 
-  Or `{:error, line, error}` in case of errors.
+  Or `{:error, line, column, message}` in case of errors.
   """
   @spec tokenize(binary | charlist, line, column, keyword) ::
-          {:ok, [token]} | {:error, line, String.t()}
+          {:ok, [token]} | {:error, line, column, String.t()}
+
   def tokenize(bin, line, column, opts) when is_binary(bin) do
     tokenize(String.to_charlist(bin), line, column, opts)
   end
@@ -43,7 +45,7 @@ defmodule EEx.Tokenizer do
 
   defp tokenize('<%#' ++ t, line, column, opts, buffer, acc) do
     case expr(t, line, column + 3, opts, []) do
-      {:error, _, _} = error ->
+      {:error, _, _, _} = error ->
         error
 
       {:ok, _, new_line, new_column, rest} ->
@@ -58,7 +60,7 @@ defmodule EEx.Tokenizer do
     {marker, t} = retrieve_marker(t)
 
     case expr(t, line, column + 2 + length(marker), opts, []) do
-      {:error, _, _} = error ->
+      {:error, _, _, _} = error ->
         error
 
       {:ok, expr, new_line, new_column, rest} ->
@@ -82,8 +84,9 @@ defmodule EEx.Tokenizer do
     tokenize(t, line, column + 1, opts, [h | buffer], acc)
   end
 
-  defp tokenize([], _line, _column, _opts, buffer, acc) do
-    {:ok, Enum.reverse(tokenize_text(buffer, acc))}
+  defp tokenize([], line, column, _opts, buffer, acc) do
+    eof = {:eof, line, column}
+    {:ok, Enum.reverse([eof | tokenize_text(buffer, acc)])}
   end
 
   # Retrieve marker for <%
@@ -110,8 +113,8 @@ defmodule EEx.Tokenizer do
     expr(t, line, column + 1, opts, [h | buffer])
   end
 
-  defp expr([], line, _column, _opts, _buffer) do
-    {:error, line, "missing token '%>'"}
+  defp expr([], line, column, _opts, _buffer) do
+    {:error, line, column, "missing token '%>'"}
   end
 
   # Receive an expression content and check
