@@ -164,7 +164,7 @@ def request(path) do
 end
 
 defp http_client() do
-  Application.compile_env!(:my_app, :http_client)
+  Application.fetch_env!(:my_app, :http_client)
 end
 ```
 
