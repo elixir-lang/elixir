@@ -50,6 +50,13 @@ defmodule Mix.Shell.IO do
 
   The user must press Enter or type one of "y", "yes", "Y", "YES" or
   "Yes".
+
+  For example:
+  ```
+  if Mix.shell().yes?("Are you sure?") do
+    # do something...
+  end
+  ```
   """
   def yes?(message) do
     print_app()

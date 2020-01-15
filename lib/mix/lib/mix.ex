@@ -351,6 +351,16 @@ defmodule Mix do
   performing IO (see `Mix.Shell.Process`).
 
   By default, this returns `Mix.Shell.IO`.
+
+  This function is often to call functions in the current shell:
+
+
+      Mix.shell().info("Preparing to do something dangerous...")
+
+      if Mix.shell().yes?("Are you sure?") do
+        # do something dangerous
+      end
+
   """
   @spec shell() :: module
   def shell do
@@ -358,10 +368,26 @@ defmodule Mix do
   end
 
   @doc """
-  Sets the current shell.
+  Sets the current shell. As an argument you may pass `Mix.Shell.IO`,
+  `Mix.Shell.Process`, `Mix.Shell.Quiet`, or any module that implements
+  the `Mix.Shell` behaviour.
+
+  ## Examples
+
+      iex> Mix.shell(Mix.Shell.IO)
+      :ok
 
   After calling this function, `shell` becomes the shell that is returned by
   `shell/0`.
+
+  You can use `shell/0` and `shell/1` to temporarily switch shells, for example,
+  if you want to run a Mix Task that normally produces a lot of output:
+
+      shell = Mix.shell()
+      Mix.shell(Mix.Shell.Quiet)
+      Mix.Task.run("noisy.task")
+      Mix.shell(shell)
+
   """
   @spec shell(module) :: :ok
   def shell(shell) do
