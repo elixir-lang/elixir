@@ -23,6 +23,7 @@ defmodule EEx.Tokenizer do
     * `{:start_expr, line, column, marker, content, trimmed?}`
     * `{:middle_expr, line, column, marker, content, trimmed?}`
     * `{:end_expr, line, column, marker, content, trimmed?}`
+    * `{:eof, line, column}`
 
   Or `{:error, line, column, message}` in case of errors.
   """
@@ -83,8 +84,9 @@ defmodule EEx.Tokenizer do
     tokenize(t, line, column + 1, opts, [h | buffer], acc)
   end
 
-  defp tokenize([], _line, _column, _opts, buffer, acc) do
-    {:ok, Enum.reverse(tokenize_text(buffer, acc))}
+  defp tokenize([], line, column, _opts, buffer, acc) do
+    eof = {:eof, line, column}
+    {:ok, Enum.reverse([eof | tokenize_text(buffer, acc)])}
   end
 
   # Retrieve marker for <%

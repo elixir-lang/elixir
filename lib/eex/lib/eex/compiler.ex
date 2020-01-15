@@ -152,16 +152,16 @@ defmodule EEx.Compiler do
       column: column
   end
 
-  defp generate_buffer([], buffer, [], state) do
+  defp generate_buffer([{:eof, _, _}], buffer, [], state) do
     state.engine.handle_body(buffer)
   end
 
-  defp generate_buffer([], _buffer, _scope, state) do
+  defp generate_buffer([{:eof, line, column}], _buffer, _scope, state) do
     raise EEx.SyntaxError,
       message: "unexpected end of string, expected a closing '<% end %>'",
       file: state.file,
-      line: state.line,
-      column: "TODO"
+      line: line,
+      column: column
   end
 
   # Creates a placeholder and wrap it inside the expression block

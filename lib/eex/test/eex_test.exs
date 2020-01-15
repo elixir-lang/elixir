@@ -239,7 +239,6 @@ defmodule EExTest do
       end
     end
 
-    @tag :skip
     test "when start expression is found without an end expression" do
       msg = "nofile:2:17: unexpected end of string, expected a closing '<% end %>'"
 
