@@ -212,6 +212,11 @@ defmodule Mix.Utils do
   recursively for files with the given extensions or matching
   the given patterns.
   """
+  def extract_files(paths, [first | _] = exts) when is_atom(first),
+    do: extract_files(paths, Enum.map(exts, &"#{&1}"))
+
+  def extract_files(paths, exts) when is_atom(exts), do: extract_files(paths, "#{exts}")
+
   def extract_files(paths, exts) do
     Enum.reduce(paths, [], fn item, acc ->
       if String.ends_with?(item, exts) do

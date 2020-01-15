@@ -468,8 +468,8 @@ defmodule Mix.Tasks.Test do
 
     # Finally parse, require and load the files
     test_files = parse_files(files, shell, test_paths)
-    test_pattern = project[:test_pattern] || "*_test.exs"
-    warn_test_pattern = project[:warn_test_pattern] || "*_test.ex"
+    test_pattern = project[:test_pattern] || "_test.exs"
+    warn_test_pattern = project[:warn_test_pattern] || "_test.ex"
 
     matched_test_files =
       test_files
