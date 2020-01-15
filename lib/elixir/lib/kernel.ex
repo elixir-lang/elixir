@@ -4135,20 +4135,20 @@ defmodule Kernel do
   ## `rescue`/`catch`/`after`/`else`
 
   Function bodies support `rescue`, `catch`, `after`, and `else` as `Kernel.SpecialForms.try/1`
-  does. For example, the following two functions are equivalent:
+  does (known as "implicit try"). For example, the following two functions are equivalent:
 
-      def format(value) do
+      def convert(number) do
         try do
-          format!(value)
-        catch
-          :exit, reason -> {:error, reason}
+          String.to_integer(number)
+        rescue
+          e in ArgumentError -> {:error, e.message}
         end
       end
 
-      def format(value) do
-        format!(value)
-      catch
-        :exit, reason -> {:error, reason}
+      def convert(number) do
+        String.to_integer(number)
+      rescue
+        e in ArgumentError -> {:error, e.message}
       end
 
   """
