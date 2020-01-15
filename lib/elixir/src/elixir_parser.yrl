@@ -868,15 +868,16 @@ build_access(Expr, {List, Location}) ->
 
 build_sigil({sigil, Location, Sigil, Parts, Modifiers, Indentation, Delimiter}) ->
   Meta = meta_from_location(Location),
-  SigilMeta = sigil_meta(Meta, Delimiter, Indentation),
+  MetaWithDelimiter = [{delimiter, Delimiter} | Meta],
+  MetaWithIndentation = meta_with_indentation(Meta, Indentation),
   {list_to_atom("sigil_" ++ [Sigil]),
-   SigilMeta,
-   [{'<<>>', Meta, string_parts(Parts)}, Modifiers]}.
+   MetaWithDelimiter,
+   [{'<<>>', MetaWithIndentation, string_parts(Parts)}, Modifiers]}.
 
-sigil_meta(Meta, Delimiter, nil) ->
-  [{delimiter, Delimiter} | Meta];
-sigil_meta(Meta, Delimiter, Indentation) ->
-  [{delimiter, Delimiter}, {indentation, Indentation} | Meta].
+meta_with_indentation(Meta, nil) ->
+  Meta;
+meta_with_indentation(Meta, Indentation) ->
+  [{indentation, Indentation} | Meta].
 
 build_bin_heredoc({bin_heredoc, Location, Args}) ->
   build_bin_string({bin_string, Location, Args}, delimiter(<<$", $", $">>)).
