@@ -272,6 +272,139 @@ defmodule TaskTest do
     end
   end
 
+  @tag timeout: 10
+  describe "await_many/2" do
+    test "returns replies in input order" do
+      refs = [ref_1 = make_ref(), ref_2 = make_ref(), ref_3 = make_ref()]
+      tasks = Enum.map(refs, fn ref -> %Task{ref: ref, owner: self(), pid: nil} end)
+      send(self(), {ref_2, 3})
+      send(self(), {ref_3, 9})
+      send(self(), {ref_1, 1})
+      assert Task.await_many(tasks) == [1, 3, 9]
+    end
+
+    test "returns an empty list immediately" do
+      assert Task.await_many([]) == []
+    end
+
+    test "ignores messages from other processes" do
+      other_ref = make_ref()
+      refs = [ref_1 = make_ref(), ref_2 = make_ref()]
+      tasks = Enum.map(refs, fn ref -> %Task{ref: ref, owner: self(), pid: nil} end)
+      send(self(), {ref_2, :b})
+      send(self(), other_ref)
+      send(self(), {other_ref, :z})
+      send(self(), {:DOWN, other_ref, :process, 1, :goodbye})
+      send(self(), {ref_1, :a})
+      assert Task.await_many(tasks) == [:a, :b]
+    end
+
+    test "exits on timeout" do
+      tasks = [%Task{ref: make_ref(), owner: self(), pid: nil}]
+      assert catch_exit(Task.await_many(tasks, 0)) == {:timeout, {Task, :await_many, [tasks, 0]}}
+    end
+
+    test "exits when any task exits" do
+      tasks = [
+        %Task{ref: make_ref(), owner: self(), pid: nil},
+        Task.async(fn -> exit(:normal) end)
+      ]
+
+      assert catch_exit(Task.await_many(tasks)) == {:normal, {Task, :await_many, [tasks, 5000]}}
+    end
+
+    test "exits when any task crashes" do
+      Process.flag(:trap_exit, true)
+
+      tasks = [
+        %Task{ref: make_ref(), owner: self(), pid: nil},
+        Task.async(fn -> exit(:unknown) end)
+      ]
+
+      assert catch_exit(Task.await_many(tasks)) == {:unknown, {Task, :await_many, [tasks, 5000]}}
+    end
+
+    test "exits when any task throws" do
+      Process.flag(:trap_exit, true)
+
+      tasks = [
+        %Task{ref: make_ref(), owner: self(), pid: nil},
+        Task.async(fn -> throw(:unknown) end)
+      ]
+
+      assert {{{:nocatch, :unknown}, _}, {Task, :await_many, [^tasks, 5000]}} =
+               catch_exit(Task.await_many(tasks))
+    end
+
+    test "exits on task error" do
+      Process.flag(:trap_exit, true)
+
+      tasks = [
+        %Task{ref: make_ref(), owner: self(), pid: nil},
+        Task.async(fn -> raise "oops" end)
+      ]
+
+      assert {{%RuntimeError{}, _}, {Task, :await_many, [^tasks, 5000]}} =
+               catch_exit(Task.await_many(tasks))
+    end
+
+    @compile {:no_warn_undefined, :module_does_not_exist}
+
+    test "exits on task undef module error" do
+      Process.flag(:trap_exit, true)
+
+      tasks = [
+        %Task{ref: make_ref(), owner: self(), pid: nil},
+        Task.async(&:module_does_not_exist.undef/0)
+      ]
+
+      assert {exit_status, mfa} = catch_exit(Task.await_many(tasks))
+      assert {:undef, [{:module_does_not_exist, :undef, _, _} | _]} = exit_status
+      assert {Task, :await_many, [^tasks, 5000]} = mfa
+    end
+
+    @compile {:no_warn_undefined, {TaskTest, :undef, 0}}
+
+    test "exits on task undef function error" do
+      Process.flag(:trap_exit, true)
+
+      tasks = [
+        %Task{ref: make_ref(), owner: self(), pid: nil},
+        Task.async(&TaskTest.undef/0)
+      ]
+
+      assert {{:undef, [{TaskTest, :undef, _, _} | _]}, {Task, :await_many, [^tasks, 5000]}} =
+               catch_exit(Task.await_many(tasks))
+    end
+
+    test "exits on :noconnection" do
+      ref = make_ref()
+      tasks = [%Task{ref: ref, pid: self(), owner: self()}]
+      send(self(), {:DOWN, ref, :process, self(), :noconnection})
+      assert catch_exit(Task.await_many(tasks)) |> elem(0) == {:nodedown, :nonode@nohost}
+    end
+
+    test "exits on :noconnection from named monitor" do
+      ref = make_ref()
+      tasks = [%Task{ref: ref, owner: self(), pid: nil}]
+      send(self(), {:DOWN, ref, :process, {:name, :node}, :noconnection})
+      assert catch_exit(Task.await_many(tasks)) |> elem(0) == {:nodedown, :node}
+    end
+
+    test "raises when invoked from a non-owner process" do
+      tasks = [
+        %Task{ref: make_ref(), owner: self(), pid: nil},
+        bad_task = create_task_in_other_process()
+      ]
+
+      message =
+        "task #{inspect(bad_task)} must be queried from the owner " <>
+          "but was queried from #{inspect(self())}"
+
+      assert_raise ArgumentError, message, fn -> Task.await_many(tasks, 1) end
+    end
+  end
+
   describe "yield/2" do
     test "returns {:ok, result} when reply and :DOWN in message queue" do
       task = %Task{ref: make_ref(), owner: self(), pid: nil}

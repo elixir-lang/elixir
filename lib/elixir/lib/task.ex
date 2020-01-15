@@ -608,6 +608,118 @@ defmodule Task do
     end
   end
 
+  @doc """
+  Awaits replies from multiple tasks and returns them.
+
+  This function receives a list of tasks and waits for their replies in the
+  given time interval. It returns a list of the results, in the same order as
+  the tasks supplied in the `tasks` input argument.
+
+  If any of the task processes dies, the current process will exit with the
+  same reason as that task.
+
+  A timeout in milliseconds or `:infinity`, can be given with a default value
+  of `5000`. If the timeout is exceeded, then the current process will exit.
+  Any task processes that are linked to the current process (which is the case
+  when a task is started with `async`) will also exit. Any task processes that
+  are trapping exits or not linked to the current process will continue to run.
+
+  This function assumes the tasks' monitors are still active or the monitors'
+  `:DOWN` message is in the message queue. If any tasks have been demonitored,
+  or the message already received, this function will wait for the duration of
+  the timeout.
+
+  This function can only be called once for any given task. If you want to be
+  able to check multiple times if a long-running task has finished its
+  computation, use `yield_many/2` instead.
+
+  ## Compatibility with OTP behaviours
+
+  It is not recommended to `await` long-running tasks inside an OTP behaviour
+  such as `GenServer`. See `await/2` for more information.
+
+  ## Examples
+
+      iex> tasks = [
+      ...>   Task.async(fn -> 1 + 1 end),
+      ...>   Task.async(fn -> 2 + 3 end)
+      ...> ]
+      iex> Task.await_many(tasks)
+      [2, 5]
+
+  """
+  @spec await_many([t], timeout) :: [term]
+  def await_many(tasks, timeout \\ 5000) when is_timeout(timeout) do
+    timeout_ref = make_ref()
+
+    if timeout != :infinity do
+      Process.send_after(self(), timeout_ref, timeout)
+    end
+
+    awaiting = build_awaiting(tasks, %{}, 0)
+
+    await_many(tasks, timeout, awaiting, %{}, timeout_ref)
+  end
+
+  defp await_many(_tasks, _timeout, map, replies, timeout_ref) when map_size(map) == 0 do
+    Process.demonitor(timeout_ref, [:flush])
+    build_replies_list(replies)
+  end
+
+  defp await_many(tasks, timeout, awaiting, replies, timeout_ref) do
+    receive do
+      ^timeout_ref ->
+        exit({:timeout, {__MODULE__, :await_many, [tasks, timeout]}})
+
+      {:DOWN, ref, _, proc, reason} ->
+        if Map.has_key?(awaiting, ref) do
+          exit({reason(reason, proc), {__MODULE__, :await_many, [tasks, timeout]}})
+        else
+          await_many(tasks, timeout, awaiting, replies, timeout_ref)
+        end
+
+      {ref, reply} ->
+        case Map.fetch(awaiting, ref) do
+          {:ok, idx} ->
+            Process.demonitor(ref, [:flush])
+
+            await_many(
+              tasks,
+              timeout,
+              Map.delete(awaiting, ref),
+              Map.put(replies, idx, reply),
+              timeout_ref
+            )
+
+          :error ->
+            await_many(tasks, timeout, awaiting, replies, timeout_ref)
+        end
+    end
+  end
+
+  defp build_awaiting([%Task{ref: ref, owner: owner} = task | rest], awaiting, idx) do
+    if owner != self() do
+      raise ArgumentError, invalid_owner_error(task)
+    end
+
+    build_awaiting(rest, Map.put(awaiting, ref, idx), idx + 1)
+  end
+
+  defp build_awaiting([], awaiting, _idx) do
+    awaiting
+  end
+
+  defp build_replies_list(map) do
+    Stream.unfold({map, 0}, fn
+      {remain, _} when map_size(remain) == 0 ->
+        nil
+
+      {remain, idx} ->
+        {remain[idx], {Map.delete(remain, idx), idx + 1}}
+    end)
+    |> Enum.to_list()
+  end
+
   @doc false
   @deprecated "Pattern match directly on the message instead"
   def find(tasks, {ref, reply}) when is_reference(ref) do
