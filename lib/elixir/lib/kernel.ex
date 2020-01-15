@@ -4147,7 +4147,7 @@ defmodule Kernel do
 
       def convert(number) do
         String.to_integer(number)
-      catch
+      rescue
         e in ArgumentError -> {:error, e.message}
       end
 
