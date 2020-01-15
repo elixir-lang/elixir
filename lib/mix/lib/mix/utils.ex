@@ -205,29 +205,32 @@ defmodule Mix.Utils do
   @doc """
   Extracts files from a list of paths.
 
-  `exts_or_pattern` may be a list of extensions or a
-  `Path.wildcard/1` pattern.
+  `exts` list of extensions to include.
 
   If the path in `paths` is a file, it is included in
   the return result. If it is a directory, it is searched
   recursively for files with the given extensions or matching
   the given patterns.
   """
-  def extract_files(paths, exts_or_pattern)
+  def extract_files(paths, exts) do
+    Enum.reduce(paths, [], fn item, acc ->
+      if String.ends_with?(item, exts) do
+        [item] ++ acc
+      else
+        item
+        |> File.ls()
+        |> case do
+          {:ok, files} ->
+            files
+            |> Enum.map(&Path.join(item, &1))
+            |> extract_files(exts)
+            |> Kernel.++(acc)
 
-  def extract_files(paths, exts) when is_list(exts) do
-    extract_files(paths, "*.{#{Enum.join(exts, ",")}}")
-  end
-
-  def extract_files(paths, pattern) do
-    Enum.flat_map(paths, fn path ->
-      case :elixir_utils.read_file_type(path) do
-        {:ok, :directory} -> Path.wildcard("#{path}/**/#{pattern}")
-        {:ok, :regular} -> [path]
-        _ -> []
+          _ ->
+            acc
+        end
       end
     end)
-    |> Enum.uniq()
   end
 
   @type tree_node :: {name :: String.Chars.t(), edge_info :: String.Chars.t()}
