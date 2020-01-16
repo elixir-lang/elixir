@@ -671,29 +671,19 @@ defmodule Task do
       ^timeout_ref ->
         exit({:timeout, {__MODULE__, :await_many, [tasks, timeout]}})
 
-      {:DOWN, ref, _, proc, reason} ->
-        if Map.has_key?(awaiting, ref) do
-          exit({reason(reason, proc), {__MODULE__, :await_many, [tasks, timeout]}})
-        else
-          await_many(tasks, timeout, awaiting, replies, timeout_ref)
-        end
+      {:DOWN, ref, _, proc, reason} when :erlang.is_map_key(ref, awaiting) ->
+        exit({reason(reason, proc), {__MODULE__, :await_many, [tasks, timeout]}})
 
-      {ref, reply} ->
-        case Map.fetch(awaiting, ref) do
-          {:ok, idx} ->
-            Process.demonitor(ref, [:flush])
+      {ref, reply} when :erlang.is_map_key(ref, awaiting) ->
+        Process.demonitor(ref, [:flush])
 
-            await_many(
-              tasks,
-              timeout,
-              Map.delete(awaiting, ref),
-              Map.put(replies, idx, reply),
-              timeout_ref
-            )
-
-          :error ->
-            await_many(tasks, timeout, awaiting, replies, timeout_ref)
-        end
+        await_many(
+          tasks,
+          timeout,
+          Map.delete(awaiting, ref),
+          Map.put(replies, awaiting[ref], reply),
+          timeout_ref
+        )
     end
   end
 
