@@ -650,6 +650,17 @@ defmodule Task do
   """
   @spec await_many([t], timeout) :: [term]
   def await_many(tasks, timeout \\ 5000) when is_timeout(timeout) do
+    awaiting =
+      for task <- tasks, into: %{} do
+        %Task{ref: ref, owner: owner} = task
+
+        if owner != self() do
+          raise ArgumentError, invalid_owner_error(task)
+        end
+
+        {ref, true}
+      end
+
     timeout_ref = make_ref()
 
     timer_ref =
@@ -658,17 +669,6 @@ defmodule Task do
       end
 
     try do
-      awaiting =
-        for task <- tasks, into: %{} do
-          %Task{ref: ref, owner: owner} = task
-
-          if owner != self() do
-            raise ArgumentError, invalid_owner_error(task)
-          end
-
-          {ref, true}
-        end
-
       await_many(tasks, timeout, awaiting, %{}, timeout_ref)
     after
       timer_ref && Process.cancel_timer(timer_ref)
