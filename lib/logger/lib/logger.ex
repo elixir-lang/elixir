@@ -474,9 +474,9 @@ defmodule Logger do
     * `:format` - the logging format for that backend
     * `:metadata` - the metadata to include in that backend
 
-  Check the [`Logger.Backends.Console`](https://github.com/elixir-lang/elixir/blob/master/lib/logger/lib/logger/backends/console.ex)
-  implementation for examples on how to handle the recommendations in this section and how to process the
-  existing options.
+  Check the `Logger.Backends.Console` implementation in Elixir's codebase
+  for examples on how to handle the recommendations in this section and
+  how to process the existing options.
 
   ### Erlang/OTP handlers
 
