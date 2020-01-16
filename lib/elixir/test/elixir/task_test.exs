@@ -352,35 +352,6 @@ defmodule TaskTest do
                catch_exit(Task.await_many(tasks))
     end
 
-    @compile {:no_warn_undefined, :module_does_not_exist}
-
-    test "exits immediately on task undef module error" do
-      Process.flag(:trap_exit, true)
-
-      tasks = [
-        %Task{ref: make_ref(), owner: self(), pid: nil},
-        Task.async(&:module_does_not_exist.undef/0)
-      ]
-
-      assert {exit_status, mfa} = catch_exit(Task.await_many(tasks))
-      assert {:undef, [{:module_does_not_exist, :undef, _, _} | _]} = exit_status
-      assert {Task, :await_many, [^tasks, 5000]} = mfa
-    end
-
-    @compile {:no_warn_undefined, {TaskTest, :undef, 0}}
-
-    test "exits immediately on task undef function error" do
-      Process.flag(:trap_exit, true)
-
-      tasks = [
-        %Task{ref: make_ref(), owner: self(), pid: nil},
-        Task.async(&TaskTest.undef/0)
-      ]
-
-      assert {{:undef, [{TaskTest, :undef, _, _} | _]}, {Task, :await_many, [^tasks, 5000]}} =
-               catch_exit(Task.await_many(tasks))
-    end
-
     test "exits immediately on :noconnection" do
       tasks = [
         %Task{ref: make_ref(), owner: self(), pid: nil},
