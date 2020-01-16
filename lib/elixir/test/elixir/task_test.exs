@@ -304,7 +304,12 @@ defmodule TaskTest do
       assert catch_exit(Task.await_many(tasks, 0)) == {:timeout, {Task, :await_many, [tasks, 0]}}
     end
 
-    test "exits when any task exits" do
+    test "exits with same reason when task exits" do
+      tasks = [Task.async(fn -> exit(:normal) end)]
+      assert catch_exit(Task.await_many(tasks)) == {:normal, {Task, :await_many, [tasks, 5000]}}
+    end
+
+    test "exits immediately when any task exits" do
       tasks = [
         %Task{ref: make_ref(), owner: self(), pid: nil},
         Task.async(fn -> exit(:normal) end)
@@ -313,7 +318,7 @@ defmodule TaskTest do
       assert catch_exit(Task.await_many(tasks)) == {:normal, {Task, :await_many, [tasks, 5000]}}
     end
 
-    test "exits when any task crashes" do
+    test "exits immediately when any task crashes" do
       Process.flag(:trap_exit, true)
 
       tasks = [
@@ -324,7 +329,7 @@ defmodule TaskTest do
       assert catch_exit(Task.await_many(tasks)) == {:unknown, {Task, :await_many, [tasks, 5000]}}
     end
 
-    test "exits when any task throws" do
+    test "exits immediately when any task throws" do
       Process.flag(:trap_exit, true)
 
       tasks = [
@@ -336,7 +341,7 @@ defmodule TaskTest do
                catch_exit(Task.await_many(tasks))
     end
 
-    test "exits on task error" do
+    test "exits immediately on any task error" do
       Process.flag(:trap_exit, true)
 
       tasks = [
@@ -350,7 +355,7 @@ defmodule TaskTest do
 
     @compile {:no_warn_undefined, :module_does_not_exist}
 
-    test "exits on task undef module error" do
+    test "exits immediately on task undef module error" do
       Process.flag(:trap_exit, true)
 
       tasks = [
@@ -365,7 +370,7 @@ defmodule TaskTest do
 
     @compile {:no_warn_undefined, {TaskTest, :undef, 0}}
 
-    test "exits on task undef function error" do
+    test "exits immediately on task undef function error" do
       Process.flag(:trap_exit, true)
 
       tasks = [
@@ -377,16 +382,20 @@ defmodule TaskTest do
                catch_exit(Task.await_many(tasks))
     end
 
-    test "exits on :noconnection" do
-      ref = make_ref()
-      tasks = [%Task{ref: ref, pid: self(), owner: self()}]
+    test "exits immediately on :noconnection" do
+      tasks = [
+        %Task{ref: make_ref(), owner: self(), pid: nil},
+        %Task{ref: ref = make_ref(), owner: self(), pid: self()}
+      ]
       send(self(), {:DOWN, ref, :process, self(), :noconnection})
       assert catch_exit(Task.await_many(tasks)) |> elem(0) == {:nodedown, :nonode@nohost}
     end
 
-    test "exits on :noconnection from named monitor" do
-      ref = make_ref()
-      tasks = [%Task{ref: ref, owner: self(), pid: nil}]
+    test "exits immediately on :noconnection from named monitor" do
+      tasks = [
+        %Task{ref: make_ref(), owner: self(), pid: nil},
+        %Task{ref: ref = make_ref(), owner: self(), pid: nil}
+      ]
       send(self(), {:DOWN, ref, :process, {:name, :node}, :noconnection})
       assert catch_exit(Task.await_many(tasks)) |> elem(0) == {:nodedown, :node}
     end
