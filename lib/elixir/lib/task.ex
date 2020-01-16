@@ -657,9 +657,18 @@ defmodule Task do
         Process.send_after(self(), timeout_ref, timeout)
       end
 
-    awaiting = build_awaiting(tasks, %{}, 0)
-
     try do
+      awaiting =
+        for task <- tasks, into: %{} do
+          %Task{ref: ref, owner: owner} = task
+
+          if owner != self() do
+            raise ArgumentError, invalid_owner_error(task)
+          end
+
+          {ref, true}
+        end
+
       await_many(tasks, timeout, awaiting, %{}, timeout_ref)
     after
       timer_ref && Process.cancel_timer(timer_ref)
@@ -667,8 +676,8 @@ defmodule Task do
     end
   end
 
-  defp await_many(_tasks, _timeout, map, replies, _timeout_ref) when map_size(map) == 0 do
-    build_replies_list(replies)
+  defp await_many(tasks, _timeout, map, replies, _timeout_ref) when map_size(map) == 0 do
+    for %{ref: ref} <- tasks, do: Map.fetch!(replies, ref)
   end
 
   defp await_many(tasks, timeout, awaiting, replies, timeout_ref) do
@@ -686,33 +695,10 @@ defmodule Task do
           tasks,
           timeout,
           Map.delete(awaiting, ref),
-          Map.put(replies, awaiting[ref], reply),
+          Map.put(replies, ref, reply),
           timeout_ref
         )
     end
-  end
-
-  defp build_awaiting([%Task{ref: ref, owner: owner} = task | rest], awaiting, idx) do
-    if owner != self() do
-      raise ArgumentError, invalid_owner_error(task)
-    end
-
-    build_awaiting(rest, Map.put(awaiting, ref, idx), idx + 1)
-  end
-
-  defp build_awaiting([], awaiting, _idx) do
-    awaiting
-  end
-
-  defp build_replies_list(map) do
-    Stream.unfold({map, 0}, fn
-      {remain, _} when map_size(remain) == 0 ->
-        nil
-
-      {remain, idx} ->
-        {remain[idx], {Map.delete(remain, idx), idx + 1}}
-    end)
-    |> Enum.to_list()
   end
 
   @doc false
