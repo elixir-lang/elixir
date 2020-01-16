@@ -652,17 +652,22 @@ defmodule Task do
   def await_many(tasks, timeout \\ 5000) when is_timeout(timeout) do
     timeout_ref = make_ref()
 
-    if timeout != :infinity do
-      Process.send_after(self(), timeout_ref, timeout)
-    end
+    timer_ref =
+      if timeout != :infinity do
+        Process.send_after(self(), timeout_ref, timeout)
+      end
 
     awaiting = build_awaiting(tasks, %{}, 0)
 
-    await_many(tasks, timeout, awaiting, %{}, timeout_ref)
+    try do
+      await_many(tasks, timeout, awaiting, %{}, timeout_ref)
+    after
+      timer_ref && Process.cancel_timer(timer_ref)
+      receive do: (^timeout_ref -> :ok), after: (0 -> :ok)
+    end
   end
 
-  defp await_many(_tasks, _timeout, map, replies, timeout_ref) when map_size(map) == 0 do
-    Process.demonitor(timeout_ref, [:flush])
+  defp await_many(_tasks, _timeout, map, replies, _timeout_ref) when map_size(map) == 0 do
     build_replies_list(replies)
   end
 
