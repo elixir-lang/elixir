@@ -473,9 +473,9 @@ defmodule Logger do
     * `:format` - the logging format for that backend
     * `:metadata` - the metadata to include in that backend
 
-  Check `Logger.Backends.Console`'s implementation for examples on how to
-  handle the recommendations in this section and how to process the existing
-  options.
+  Check `Logger.Backends.Console`'s implementation for examples on how
+  to handle the recommendations in this section and how to process the
+  existing options.
 
   ### Erlang/OTP handlers
 
