@@ -99,7 +99,8 @@ defmodule Logger do
   `:crash_reason`, `:initial_call`, and `:registered_name` are available
   only inside behaviours such as GenServer, Supervisor, and others.
 
-  For example, you might wish to include a custom error code in your logs:
+  For example, you might wish to include a custom `:error_code` metadata in
+  your logs:
 
       Logger.error("We have a problem", [error_code: :pc_load_letter])
 
@@ -108,12 +109,12 @@ defmodule Logger do
   your log format template:
 
       config :logger, :console,
-       format: "$message[$level]$metadata\n",
+       format: "[$level] $message $metadata\n",
        metadata: [:error_code, :file]
 
   Your logs might then receive lines like this:
 
-      We have a problem[error]error_code=pc_load_letter file=lib/app.ex
+      [error] We have a problem error_code=pc_load_letter file=lib/app.ex
 
   ## Configuration
 
@@ -280,7 +281,7 @@ defmodule Logger do
   Backends can also be added dynamically through `add_backend/2`.
 
   For example, to add multiple backends to your application, modify your
-  `config.exs`:
+  configuration:
 
       config :logger,
         backends: [:console, MyCustomBackend]
@@ -473,8 +474,8 @@ defmodule Logger do
     * `:format` - the logging format for that backend
     * `:metadata` - the metadata to include in that backend
 
-  Check `Logger.Backends.Console`'s implementation for examples on how
-  to handle the recommendations in this section and how to process the
+  Check the [`Logger.Backends.Console`](https://github.com/elixir-lang/elixir/blob/master/lib/logger/lib/logger/backends/console.ex)
+  implementation for examples on how to handle the recommendations in this section and how to process the
   existing options.
 
   ### Erlang/OTP handlers
