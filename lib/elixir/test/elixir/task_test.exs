@@ -272,7 +272,6 @@ defmodule TaskTest do
     end
   end
 
-  @tag timeout: 10
   describe "await_many/2" do
     test "returns replies in input order" do
       refs = [ref_1 = make_ref(), ref_2 = make_ref(), ref_3 = make_ref()]
