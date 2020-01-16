@@ -1,5 +1,10 @@
 defmodule Logger.Backends.Console do
-  @moduledoc false
+  @moduledoc """
+  This module is the default handler for `Logger`. It implements the
+  [`:gen_event`](https://erlang.org/doc/man/gen_event.html) behaviour.
+  It is included here as a reference those who need to implement
+  a custom Logger backend.
+  """
 
   @behaviour :gen_event
 
