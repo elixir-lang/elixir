@@ -273,7 +273,12 @@ defmodule TaskTest do
   end
 
   describe "await_many/2" do
-    test "returns replies in input order" do
+    test "returns list of replies" do
+      tasks = for val <- [1, 3, 9], do: Task.async(fn -> val end)
+      assert Task.await_many(tasks) == [1, 3, 9]
+    end
+
+    test "returns replies in input order ignoring response order" do
       refs = [ref_1 = make_ref(), ref_2 = make_ref(), ref_3 = make_ref()]
       tasks = Enum.map(refs, fn ref -> %Task{ref: ref, owner: self(), pid: nil} end)
       send(self(), {ref_2, 3})
