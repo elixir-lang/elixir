@@ -296,6 +296,19 @@ defmodule TaskTest do
       send(self(), {:DOWN, other_ref, :process, 1, :goodbye})
       send(self(), {ref_1, :a})
       assert Task.await_many(tasks) == [:a, :b]
+      assert_received other_ref
+      assert_received {other_ref, :z}
+      assert_received {:DOWN, other_ref, :process, 1, :goodbye}
+    end
+
+    test "ignores additional messages after reply" do
+      refs = [ref_1 = make_ref(), ref_2 = make_ref()]
+      tasks = Enum.map(refs, fn ref -> %Task{ref: ref, owner: self(), pid: nil} end)
+      send(self(), {ref_2, :b})
+      send(self(), {ref_2, :other})
+      send(self(), {ref_1, :a})
+      assert Task.await_many(tasks) == [:a, :b]
+      assert_received {ref_2, :other}
     end
 
     test "exits on timeout" do
