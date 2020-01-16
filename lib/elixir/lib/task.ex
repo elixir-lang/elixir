@@ -671,10 +671,10 @@ defmodule Task do
       ^timeout_ref ->
         exit({:timeout, {__MODULE__, :await_many, [tasks, timeout]}})
 
-      {:DOWN, ref, _, proc, reason} when :erlang.is_map_key(ref, awaiting) ->
+      {:DOWN, ref, _, proc, reason} when is_map_key(awaiting, ref) ->
         exit({reason(reason, proc), {__MODULE__, :await_many, [tasks, timeout]}})
 
-      {ref, reply} when :erlang.is_map_key(ref, awaiting) ->
+      {ref, reply} when is_map_key(awaiting, ref) ->
         Process.demonitor(ref, [:flush])
 
         await_many(
