@@ -387,6 +387,7 @@ defmodule TaskTest do
         %Task{ref: make_ref(), owner: self(), pid: nil},
         %Task{ref: ref = make_ref(), owner: self(), pid: self()}
       ]
+
       send(self(), {:DOWN, ref, :process, self(), :noconnection})
       assert catch_exit(Task.await_many(tasks)) |> elem(0) == {:nodedown, :nonode@nohost}
     end
@@ -396,6 +397,7 @@ defmodule TaskTest do
         %Task{ref: make_ref(), owner: self(), pid: nil},
         %Task{ref: ref = make_ref(), owner: self(), pid: nil}
       ]
+
       send(self(), {:DOWN, ref, :process, {:name, :node}, :noconnection})
       assert catch_exit(Task.await_many(tasks)) |> elem(0) == {:nodedown, :node}
     end
