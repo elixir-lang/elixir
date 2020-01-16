@@ -288,13 +288,10 @@ defmodule TaskTest do
 
     test "ignores messages from other processes" do
       other_ref = make_ref()
-      refs = [ref_1 = make_ref(), ref_2 = make_ref()]
-      tasks = Enum.map(refs, fn ref -> %Task{ref: ref, owner: self(), pid: nil} end)
-      send(self(), {ref_2, :b})
+      tasks = for val <- [:a, :b], do: Task.async(fn -> val end)
       send(self(), other_ref)
       send(self(), {other_ref, :z})
       send(self(), {:DOWN, other_ref, :process, 1, :goodbye})
-      send(self(), {ref_1, :a})
       assert Task.await_many(tasks) == [:a, :b]
       assert_received other_ref
       assert_received {other_ref, :z}
@@ -312,7 +309,7 @@ defmodule TaskTest do
     end
 
     test "exits on timeout" do
-      tasks = [%Task{ref: make_ref(), owner: self(), pid: nil}]
+      tasks = [Task.async(fn -> Process.sleep(:infinity) end)]
       assert catch_exit(Task.await_many(tasks, 0)) == {:timeout, {Task, :await_many, [tasks, 0]}}
     end
 
@@ -323,7 +320,7 @@ defmodule TaskTest do
 
     test "exits immediately when any task exits" do
       tasks = [
-        %Task{ref: make_ref(), owner: self(), pid: nil},
+        Task.async(fn -> Process.sleep(:infinity) end),
         Task.async(fn -> exit(:normal) end)
       ]
 
@@ -334,7 +331,7 @@ defmodule TaskTest do
       Process.flag(:trap_exit, true)
 
       tasks = [
-        %Task{ref: make_ref(), owner: self(), pid: nil},
+        Task.async(fn -> Process.sleep(:infinity) end),
         Task.async(fn -> exit(:unknown) end)
       ]
 
@@ -345,7 +342,7 @@ defmodule TaskTest do
       Process.flag(:trap_exit, true)
 
       tasks = [
-        %Task{ref: make_ref(), owner: self(), pid: nil},
+        Task.async(fn -> Process.sleep(:infinity) end),
         Task.async(fn -> throw(:unknown) end)
       ]
 
@@ -357,7 +354,7 @@ defmodule TaskTest do
       Process.flag(:trap_exit, true)
 
       tasks = [
-        %Task{ref: make_ref(), owner: self(), pid: nil},
+        Task.async(fn -> Process.sleep(:infinity) end),
         Task.async(fn -> raise "oops" end)
       ]
 
@@ -367,7 +364,7 @@ defmodule TaskTest do
 
     test "exits immediately on :noconnection" do
       tasks = [
-        %Task{ref: make_ref(), owner: self(), pid: nil},
+        Task.async(fn -> Process.sleep(:infinity) end),
         %Task{ref: ref = make_ref(), owner: self(), pid: self()}
       ]
 
@@ -377,7 +374,7 @@ defmodule TaskTest do
 
     test "exits immediately on :noconnection from named monitor" do
       tasks = [
-        %Task{ref: make_ref(), owner: self(), pid: nil},
+        Task.async(fn -> Process.sleep(:infinity) end),
         %Task{ref: ref = make_ref(), owner: self(), pid: nil}
       ]
 
@@ -387,7 +384,7 @@ defmodule TaskTest do
 
     test "raises when invoked from a non-owner process" do
       tasks = [
-        %Task{ref: make_ref(), owner: self(), pid: nil},
+        Task.async(fn -> Process.sleep(:infinity) end),
         bad_task = create_task_in_other_process()
       ]
 
