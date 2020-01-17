@@ -420,11 +420,7 @@ defmodule ExUnit.Assertions do
       assert_receive {:count, ^x}
 
   """
-  defmacro assert_receive(
-             pattern,
-             timeout \\ Application.fetch_env!(:ex_unit, :assert_receive_timeout),
-             failure_message \\ nil
-           ) do
+  defmacro assert_receive(pattern, timeout \\ nil, failure_message \\ nil) do
     code = escape_quoted(:assert_receive, [], pattern)
     assert_receive(pattern, timeout, failure_message, __CALLER__, code)
   end
@@ -492,13 +488,6 @@ defmodule ExUnit.Assertions do
         end
       end
 
-    timeout =
-      if is_integer(timeout) do
-        timeout
-      else
-        quote do: ExUnit.Assertions.__timeout__(unquote(timeout))
-      end
-
     failure_message =
       failure_message ||
         quote do
@@ -512,7 +501,7 @@ defmodule ExUnit.Assertions do
         end
 
     quote do
-      timeout = unquote(timeout)
+      timeout = ExUnit.Assertions.__timeout__(unquote(timeout), :assert_receive_timeout)
 
       {received, unquote(vars)} =
         receive do
@@ -529,9 +518,11 @@ defmodule ExUnit.Assertions do
   @max_mailbox_length 10
 
   @doc false
-  def __timeout__(timeout) when is_integer(timeout) and timeout >= 0, do: timeout
+  def __timeout__(timeout, _) when is_integer(timeout) and timeout >= 0, do: timeout
 
-  def __timeout__(timeout),
+  def __timeout__(nil, key), do: Application.fetch_env!(:ex_unit, key)
+
+  def __timeout__(timeout, _),
     do: raise(ArgumentError, "timeout must be a non-negative integer, got: #{inspect(timeout)}")
 
   @doc false
@@ -900,11 +891,7 @@ defmodule ExUnit.Assertions do
       refute_receive :bye, 1000
 
   """
-  defmacro refute_receive(
-             pattern,
-             timeout \\ Application.fetch_env!(:ex_unit, :refute_receive_timeout),
-             failure_message \\ nil
-           ) do
+  defmacro refute_receive(pattern, timeout \\ nil, failure_message \\ nil) do
     do_refute_receive(pattern, timeout, failure_message)
   end
 
@@ -935,10 +922,12 @@ defmodule ExUnit.Assertions do
     receive_clause = refute_receive_clause(pattern, failure_message)
 
     quote do
+      timeout = ExUnit.Assertions.__timeout__(unquote(timeout), :refute_receive_timeout)
+
       receive do
         unquote(receive_clause)
       after
-        unquote(timeout) -> false
+        timeout -> false
       end
     end
   end
