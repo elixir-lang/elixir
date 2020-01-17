@@ -1530,6 +1530,11 @@ defmodule Enum do
     {:lists.reverse(list), acc}
   end
 
+  @doc false
+  def max(enumerable, empty_fallback) when is_function(empty_fallback, 0) do
+    max(enumerable, &>=/2, empty_fallback)
+  end
+
   @doc """
   Returns the maximal element in the `enumerable` according
   to Erlang's term ordering.
@@ -1572,26 +1577,22 @@ defmodule Enum do
       0
 
   """
+  @spec max(t, (() -> empty_result)) :: element | empty_result when empty_result: any
   @spec max(t, (element, element -> boolean) | module(), (() -> empty_result)) ::
           element | empty_result
         when empty_result: any
   def max(enumerable, sorter \\ &>=/2, empty_fallback \\ fn -> raise Enum.EmptyError end) do
-    {sorter, empty_fallback} = max_sort_fun(sorter, empty_fallback)
-    aggregate(enumerable, sorter, empty_fallback)
+    aggregate(enumerable, max_sort_fun(sorter), empty_fallback)
   end
 
-  # TODO: Deprecate me on 1.14
-  defp max_sort_fun(empty_fallback, default_empty_fallback)
-       when is_function(empty_fallback, 0) and is_function(default_empty_fallback, 0),
-       do: {&>=/2, empty_fallback}
+  defp max_sort_fun(sorter) when is_function(sorter, 2), do: sorter
+  defp max_sort_fun(module) when is_atom(module), do: &(module.compare(&1, &2) != :lt)
 
-  defp max_sort_fun(sorter, empty_fallback)
-       when is_function(sorter, 2) and is_function(empty_fallback, 0),
-       do: {sorter, empty_fallback}
-
-  defp max_sort_fun(module, empty_fallback)
-       when is_atom(module) and is_function(empty_fallback, 0),
-       do: {&(module.compare(&1, &2) != :lt), empty_fallback}
+  @doc false
+  def max_by(enumerable, fun, empty_fallback)
+      when is_function(fun, 1) and is_function(empty_fallback, 0) do
+    max_by(enumerable, fun, &>=/2, empty_fallback)
+  end
 
   @doc """
   Returns the maximal element in the `enumerable` as calculated
@@ -1637,6 +1638,8 @@ defmodule Enum do
       nil
 
   """
+  @spec max_by(t, (element -> any), (() -> empty_result)) :: element | empty_result
+        when empty_result: any
   @spec max_by(
           t,
           (element -> any),
@@ -1646,8 +1649,7 @@ defmodule Enum do
         when empty_result: any
   def max_by(enumerable, fun, sorter \\ &>=/2, empty_fallback \\ fn -> raise Enum.EmptyError end)
       when is_function(fun, 1) do
-    {sorter, empty_fallback} = max_sort_fun(sorter, empty_fallback)
-    aggregate_by(enumerable, fun, sorter, empty_fallback)
+    aggregate_by(enumerable, fun, max_sort_fun(sorter), empty_fallback)
   end
 
   @doc """
@@ -1690,6 +1692,11 @@ defmodule Enum do
     end
   end
 
+  @doc false
+  def min(enumerable, empty_fallback) when is_function(empty_fallback, 0) do
+    min(enumerable, &<=/2, empty_fallback)
+  end
+
   @doc """
   Returns the minimal element in the `enumerable` according
   to Erlang's term ordering.
@@ -1728,30 +1735,26 @@ defmodule Enum do
   Finally, if you don't want to raise on empty enumerables, you can pass
   the empty fallback:
 
-      iex> Enum.min([], &<=/2, fn -> 0 end)
+      iex> Enum.min([], fn -> 0 end)
       0
 
   """
+  @spec min(t, (() -> empty_result)) :: element | empty_result when empty_result: any
   @spec min(t, (element, element -> boolean) | module(), (() -> empty_result)) ::
           element | empty_result
         when empty_result: any
   def min(enumerable, sorter \\ &<=/2, empty_fallback \\ fn -> raise Enum.EmptyError end) do
-    {sorter, empty_fallback} = min_sort_fun(sorter, empty_fallback)
-    aggregate(enumerable, sorter, empty_fallback)
+    aggregate(enumerable, min_sort_fun(sorter), empty_fallback)
   end
 
-  # TODO: Deprecate me on 1.14
-  defp min_sort_fun(empty_fallback, default_empty_fallback)
-       when is_function(empty_fallback, 0) and is_function(default_empty_fallback, 0),
-       do: {&<=/2, empty_fallback}
+  defp min_sort_fun(sorter) when is_function(sorter, 2), do: sorter
+  defp min_sort_fun(module) when is_atom(module), do: &(module.compare(&1, &2) != :gt)
 
-  defp min_sort_fun(sorter, empty_fallback)
-       when is_function(sorter, 2) and is_function(empty_fallback, 0),
-       do: {sorter, empty_fallback}
-
-  defp min_sort_fun(module, empty_fallback)
-       when is_atom(module) and is_function(empty_fallback, 0),
-       do: {&(module.compare(&1, &2) != :gt), empty_fallback}
+  @doc false
+  def min_by(enumerable, fun, empty_fallback)
+      when is_function(fun, 1) and is_function(empty_fallback, 0) do
+    min_by(enumerable, fun, &<=/2, empty_fallback)
+  end
 
   @doc """
   Returns the minimal element in the `enumerable` as calculated
@@ -1799,10 +1802,16 @@ defmodule Enum do
   """
   @spec min_by(t, (element -> any), (() -> empty_result)) :: element | empty_result
         when empty_result: any
+  @spec min_by(
+          t,
+          (element -> any),
+          (element, element -> boolean) | module(),
+          (() -> empty_result)
+        ) :: element | empty_result
+        when empty_result: any
   def min_by(enumerable, fun, sorter \\ &<=/2, empty_fallback \\ fn -> raise Enum.EmptyError end)
       when is_function(fun, 1) do
-    {sorter, empty_fallback} = min_sort_fun(sorter, empty_fallback)
-    aggregate_by(enumerable, fun, sorter, empty_fallback)
+    aggregate_by(enumerable, fun, min_sort_fun(sorter), empty_fallback)
   end
 
   @doc """
