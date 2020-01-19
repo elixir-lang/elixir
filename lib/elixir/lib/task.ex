@@ -608,6 +608,99 @@ defmodule Task do
     end
   end
 
+  @doc """
+  Awaits replies from multiple tasks and returns them.
+
+  This function receives a list of tasks and waits for their replies in the
+  given time interval. It returns a list of the results, in the same order as
+  the tasks supplied in the `tasks` input argument.
+
+  If any of the task processes dies, the current process will exit with the
+  same reason as that task.
+
+  A timeout in milliseconds or `:infinity`, can be given with a default value
+  of `5000`. If the timeout is exceeded, then the current process will exit.
+  Any task processes that are linked to the current process (which is the case
+  when a task is started with `async`) will also exit. Any task processes that
+  are trapping exits or not linked to the current process will continue to run.
+
+  This function assumes the tasks' monitors are still active or the monitors'
+  `:DOWN` message is in the message queue. If any tasks have been demonitored,
+  or the message already received, this function will wait for the duration of
+  the timeout.
+
+  This function can only be called once for any given task. If you want to be
+  able to check multiple times if a long-running task has finished its
+  computation, use `yield_many/2` instead.
+
+  ## Compatibility with OTP behaviours
+
+  It is not recommended to `await` long-running tasks inside an OTP behaviour
+  such as `GenServer`. See `await/2` for more information.
+
+  ## Examples
+
+      iex> tasks = [
+      ...>   Task.async(fn -> 1 + 1 end),
+      ...>   Task.async(fn -> 2 + 3 end)
+      ...> ]
+      iex> Task.await_many(tasks)
+      [2, 5]
+
+  """
+  @spec await_many([t], timeout) :: [term]
+  def await_many(tasks, timeout \\ 5000) when is_timeout(timeout) do
+    awaiting =
+      for task <- tasks, into: %{} do
+        %Task{ref: ref, owner: owner} = task
+
+        if owner != self() do
+          raise ArgumentError, invalid_owner_error(task)
+        end
+
+        {ref, true}
+      end
+
+    timeout_ref = make_ref()
+
+    timer_ref =
+      if timeout != :infinity do
+        Process.send_after(self(), timeout_ref, timeout)
+      end
+
+    try do
+      await_many(tasks, timeout, awaiting, %{}, timeout_ref)
+    after
+      timer_ref && Process.cancel_timer(timer_ref)
+      receive do: (^timeout_ref -> :ok), after: (0 -> :ok)
+    end
+  end
+
+  defp await_many(tasks, _timeout, map, replies, _timeout_ref) when map_size(map) == 0 do
+    for %{ref: ref} <- tasks, do: Map.fetch!(replies, ref)
+  end
+
+  defp await_many(tasks, timeout, awaiting, replies, timeout_ref) do
+    receive do
+      ^timeout_ref ->
+        exit({:timeout, {__MODULE__, :await_many, [tasks, timeout]}})
+
+      {:DOWN, ref, _, proc, reason} when is_map_key(awaiting, ref) ->
+        exit({reason(reason, proc), {__MODULE__, :await_many, [tasks, timeout]}})
+
+      {ref, reply} when is_map_key(awaiting, ref) ->
+        Process.demonitor(ref, [:flush])
+
+        await_many(
+          tasks,
+          timeout,
+          Map.delete(awaiting, ref),
+          Map.put(replies, ref, reply),
+          timeout_ref
+        )
+    end
+  end
+
   @doc false
   @deprecated "Pattern match directly on the message instead"
   def find(tasks, {ref, reply}) when is_reference(ref) do
