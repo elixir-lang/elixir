@@ -676,16 +676,19 @@ defmodule Task do
     end
   end
 
-  defp await_many(tasks, _timeout, map, replies, _timeout_ref) when map_size(map) == 0 do
+  defp await_many(tasks, _timeout, awaiting, replies, _timeout_ref)
+       when map_size(awaiting) == 0 do
     for %{ref: ref} <- tasks, do: Map.fetch!(replies, ref)
   end
 
   defp await_many(tasks, timeout, awaiting, replies, timeout_ref) do
     receive do
       ^timeout_ref ->
+        demonitor_pending_tasks(awaiting)
         exit({:timeout, {__MODULE__, :await_many, [tasks, timeout]}})
 
       {:DOWN, ref, _, proc, reason} when is_map_key(awaiting, ref) ->
+        demonitor_pending_tasks(awaiting)
         exit({reason(reason, proc), {__MODULE__, :await_many, [tasks, timeout]}})
 
       {ref, reply} when is_map_key(awaiting, ref) ->
@@ -699,6 +702,12 @@ defmodule Task do
           timeout_ref
         )
     end
+  end
+
+  defp demonitor_pending_tasks(awaiting) do
+    Enum.each(awaiting, fn {ref, _} ->
+      Process.demonitor(ref, [:flush])
+    end)
   end
 
   @doc false

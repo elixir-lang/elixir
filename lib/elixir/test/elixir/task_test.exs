@@ -341,6 +341,10 @@ defmodule TaskTest do
       ]
 
       assert catch_exit(Task.await_many(tasks)) == {:unknown, {Task, :await_many, [tasks, 5000]}}
+
+      # Make sure all monitors are cleared up afterwards too
+      Enum.each(tasks, &Process.exit(&1.pid, :kill))
+      refute_received {:DOWN, _, _, _, _}
     end
 
     test "exits immediately when any task throws" do
