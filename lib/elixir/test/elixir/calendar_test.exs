@@ -1,7 +1,7 @@
 Code.require_file("test_helper.exs", __DIR__)
 
 defmodule CalendarTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
   doctest Calendar
 
   describe "strftime/3" do
