@@ -518,7 +518,7 @@ defmodule Calendar do
   defp parse("%" <> rest, datetime, format_options, acc),
     do: parse_modifiers(rest, nil, nil, {datetime, format_options, acc})
 
-  defp parse(<<char::binary-1, rest::binary>>, datetime, format_options, acc),
+  defp parse(<<char, rest::binary>>, datetime, format_options, acc),
     do: parse(rest, datetime, format_options, [char | acc])
 
   defp parse_modifiers("-" <> rest, width, nil, parser_data) do
