@@ -99,6 +99,23 @@ defmodule Logger do
   `:crash_reason`, `:initial_call`, and `:registered_name` are available
   only inside behaviours such as GenServer, Supervisor, and others.
 
+  For example, you might wish to include a custom `:error_code` metadata in
+  your logs:
+
+      Logger.error("We have a problem", [error_code: :pc_load_letter])
+
+  In your app's logger configuration, you would need to whitelist the
+  `:error_code` key and you would need to include `$metadata` as part of
+  your log format template:
+
+      config :logger, :console,
+       format: "[$level] $message $metadata\n",
+       metadata: [:error_code, :file]
+
+  Your logs might then receive lines like this:
+
+      [error] We have a problem error_code=pc_load_letter file=lib/app.ex
+
   ## Configuration
 
   `Logger` supports a wide range of configurations.
@@ -262,6 +279,30 @@ defmodule Logger do
   The initial backends are loaded via the `:backends` configuration,
   which must be set before the `:logger` application is started.
   Backends can also be added dynamically through `add_backend/2`.
+
+  For example, to add multiple backends to your application, modify your
+  configuration:
+
+      config :logger,
+        backends: [:console, MyCustomBackend]
+
+  Multiple instances of the same backend can be specified by adding tuples
+  in the format `{BackendModuleName, :backend_name}`:
+
+      config :logger,
+        backends: [
+          :console,
+          {MyCustomBackend, :error_backend},
+          {MyCustomBackend, :debug_backend}
+        ]
+
+      config :logger, :error_backend,
+        level: :error
+        # other options
+
+      config :logger, :debug_backend,
+        level: :debug
+        # other options
 
   ### Console backend
 
@@ -433,9 +474,9 @@ defmodule Logger do
     * `:format` - the logging format for that backend
     * `:metadata` - the metadata to include in that backend
 
-  Check `Logger.Backends.Console`'s implementation for examples on how
-  to handle the recommendations in this section and how to process the
-  existing options.
+  Check the `Logger.Backends.Console` implementation in Elixir's codebase
+  for examples on how to handle the recommendations in this section and
+  how to process the existing options.
 
   ### Erlang/OTP handlers
 
@@ -452,7 +493,7 @@ defmodule Logger do
 
     * Erlang handlers run in the same process as the process logging the
       message/event. This gives developers more flexibility but they should
-      avoid perform any long running action in such handlers, as it may
+      avoid performing any long running action in such handlers, as it may
       slow down the action being executed considerably. At the moment, there
       is no built-in overload protection for Erlang handlers, so it is your
       responsibility to implement it
@@ -477,6 +518,7 @@ defmodule Logger do
   Note we do not recommend configuring Erlang/OTP's logger directly under
   the `:kernel` application in your `config/config.exs`, like this:
 
+      # Not recommended:
       config :kernel, :logger, ...
 
   This is because by the time Elixir starts, Erlang's kernel has already
