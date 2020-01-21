@@ -300,7 +300,7 @@ defmodule Logger do
         level: :error
         # other options
 
-      config :logger, #debug_backend,
+      config :logger, :debug_backend,
         level: :debug
         # other options
 
