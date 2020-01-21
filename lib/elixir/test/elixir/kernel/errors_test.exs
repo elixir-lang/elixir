@@ -1227,22 +1227,12 @@ defmodule Kernel.ErrorsTest do
 
   test "duplicate map keys" do
     assert_eval_raise CompileError, "nofile:1: key :a will be overridden in map", """
-      %{a: :b, a: :c}
-    """
-
-    assert_eval_raise CompileError, "nofile:1: key :a will be overridden in map", """
       %{a: :b, a: :c} = %{a: :c}
     """
 
-    assert_eval_raise CompileError, "nofile:1: key :m will be overridden in map", """
-      %{m: :n, m: :o, m: :p}
+    assert_eval_raise CompileError, "nofile:1: key :a will be overridden in map", """
+      %{a: :b, a: :c, a: :d} = %{a: :c}
     """
-
-    assert_eval_raise CompileError, "nofile:1: key 1 will be overridden in map", """
-      %{1 => 2, 1 => 3}
-    """
-
-    assert map_size(%{System.unique_integer() => 1, System.unique_integer() => 2}) == 2
   end
 
   defp bad_remote_call(x), do: x.foo
