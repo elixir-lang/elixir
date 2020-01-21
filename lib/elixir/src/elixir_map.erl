@@ -87,7 +87,13 @@ validate_match_key(_, _, _) ->
 validate_not_repeated(Meta, Key, Used, E) ->
   case is_literal(Key) andalso Used of
     #{Key := true} ->
-      form_error(Meta, ?key(E, file), ?MODULE, {repeated_key, Key});
+      case E of
+        #{context := match} ->
+          form_error(Meta, ?key(E, file), ?MODULE, {repeated_key, Key});
+        _ ->
+          form_warn(Meta, ?key(E, file), ?MODULE, {repeated_key, Key}),
+          Used
+      end;
 
     #{} ->
       Used#{Key => true};
