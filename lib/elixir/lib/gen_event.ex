@@ -7,7 +7,7 @@ defmodule GenEvent do
   If you are interested in implementing an event manager, please read the
   "Alternatives" section below. If you have to implement an event handler to
   integrate with an existing system, such as Elixir's Logger, please use
-  `:gen_event` instead.
+  [`:gen_event`](https://erlang.org/doc/man/gen_event.html) instead.
 
   ## Alternatives
 
