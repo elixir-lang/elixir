@@ -6,4 +6,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - run: false
-      if: github.event.action != 'neutral' && github.event.action != 'success'
+      if: github.event.conclusion != 'neutral' && github.event.conclusion != 'success'
