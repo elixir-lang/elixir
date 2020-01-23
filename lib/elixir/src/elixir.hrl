@@ -16,17 +16,6 @@
   stacktrace=nil           %% holds information about the stacktrace variable
 }).
 
--record(elixir_quote, {
-  line=false,
-  file=nil,
-  context=nil,
-  vars_hygiene=true,
-  aliases_hygiene=true,
-  imports_hygiene=true,
-  unquote=true,
-  generated=false
-}).
-
 -record(elixir_tokenizer, {
   file=(<<"nofile">>),
   terminators=[],
