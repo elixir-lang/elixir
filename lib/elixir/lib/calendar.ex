@@ -370,7 +370,7 @@ defmodule Calendar do
   The datetime can be any of the Calendar types (`Time`, `Date`,
   `NaiveDateTime`, and `DateTime`) or any map, as long as they
   contain all of the relevant fields necessary for formatting.
-  For example, if you use `%Y` to format the year, the datatime
+  For example, if you use `%Y` to format the year, the datetime
   must have the `:year` field. Therefore, if you pass a `Time`,
   or a map without the `:year` field to a format that expects `%Y`,
   an error will be raised.
@@ -688,14 +688,14 @@ defmodule Calendar do
     parse(rest, datetime, format_options, [result | acc])
   end
 
-  # “AM” or “PM” (noon is “PM”, midnight as “AM”)
+  # "AM" or "PM" (noon is "PM", midnight as "AM")
   defp format_modifiers("p" <> rest, width, pad, datetime, format_options, acc) do
     result = datetime.hour |> am_pm(format_options) |> String.upcase() |> pad_leading(width, pad)
 
     parse(rest, datetime, format_options, [result | acc])
   end
 
-  # “am” or “pm” (noon is “pm”, midnight as “am”)
+  # "am" or "pm" (noon is "pm", midnight as "am")
   defp format_modifiers("P" <> rest, width, pad, datetime, format_options, acc) do
     result =
       datetime.hour
