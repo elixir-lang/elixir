@@ -1,11 +1,70 @@
 -module(elixir_quote).
--export([escape/3, linify/3, linify_with_context_counter/3, quote/5, has_unquotes/1]).
--export([dot/5, tail_list/3, list/2]). %% Quote callbacks
+-export([escape/3, linify/3, linify_with_context_counter/3, build/6, quote/6, has_unquotes/1]).
+-export([dot/5, tail_list/3, list/2, validate_runtime/2]). %% Quote callbacks
 
 -include("elixir.hrl").
 -define(defs(Kind), Kind == def; Kind == defp; Kind == defmacro; Kind == defmacrop; Kind == '@').
 -define(lexical(Kind), Kind == import; Kind == alias; Kind == require).
 -compile({inline, [keyfind/2, keystore/3, keydelete/2, keynew/3, do_tuple_linify/5]}).
+
+-record(elixir_quote, {
+  line=false,
+  file=nil,
+  context=nil,
+  vars_hygiene=true,
+  aliases_hygiene=true,
+  imports_hygiene=true,
+  unquote=true,
+  generated=false
+}).
+
+build(Meta, Line, File, Context, Unquote, Generated) ->
+  Acc0 = [],
+  {ELine, Acc1} = validate_compile(Meta, line, Line, Acc0),
+  {EFile, Acc2} = validate_compile(Meta, file, File, Acc1),
+  {EContext, Acc3} = validate_compile(Meta, context, Context, Acc2),
+  validate_runtime(unquote, Unquote),
+  validate_runtime(generated, Generated),
+
+  Q = #elixir_quote{
+    line=ELine,
+    file=EFile,
+    unquote=Unquote,
+    context=EContext,
+    generated=Generated
+  },
+
+  {Q, Acc3}.
+
+validate_compile(Meta, Key, Value, Acc) ->
+  case is_valid(Key, Value) of
+    true ->
+      {Value, Acc};
+    false ->
+      Var = {Key, Meta, ?MODULE},
+      Call = {{'.', Meta, [?MODULE, validate_runtime]}, Meta, [Key, Value]},
+      {Var, [{'=', Meta, [Var, Call]} | Acc]}
+  end.
+
+validate_runtime(Key, Value) ->
+  case is_valid(Key, Value) of
+    true ->
+      Value;
+
+    false ->
+      erlang:error(
+        'Elixir.ArgumentError':exception(
+          <<"invalid value for option :", (erlang:atom_to_binary(Key, utf8))/binary,
+            "in quote, got: ", ('Elixir.Kernel':inspect(Value))/binary>>
+        )
+      )
+  end.
+
+is_valid(line, Line) -> is_integer(Line) orelse is_boolean(Line);
+is_valid(file, File) -> is_binary(File) orelse (File == nil);
+is_valid(context, Context) -> is_atom(Context) andalso (Context /= nil);
+is_valid(generated, Generated) -> is_boolean(Generated);
+is_valid(unquote, Unquote) -> is_boolean(Unquote).
 
 %% Apply the line from site call on quoted contents.
 %% Receives a Key to look for the default line as argument.
@@ -164,26 +223,31 @@ escape(Expr, Kind, Unquote) ->
 
 %% Quotes an expression and return its quoted Elixir AST.
 
-quote(_Meta, {unquote_splicing, _, [_]}, _Binding, #elixir_quote{unquote=true}, _) ->
+quote(_Meta, {unquote_splicing, _, [_]}, _Binding, #elixir_quote{unquote=true}, _, _) ->
   argument_error(<<"unquote_splicing only works inside arguments and block contexts, "
     "wrap it in parens if you want it to work with one-liners">>);
 
-quote(_Meta, Expr, nil, Q, E) ->
-  do_quote(Expr, Q, E);
-
-quote(Meta, Expr, Binding, Q, E) ->
+quote(Meta, Expr, Binding, Q, Prelude, E) ->
   Context = Q#elixir_quote.context,
-  VarMeta = [Pair || {K, _} = Pair <- Meta, K == counter],
 
-  Vars = [ {'{}', [],
-    [ '=', [], [
-      {'{}', [], [K, VarMeta, Context]},
+  Vars = [{'{}', [],
+    ['=', [], [
+      {'{}', [], [K, Meta, Context]},
       V
-    ] ]
+    ]]
   } || {K, V} <- Binding],
 
-  TExprs = do_quote(Expr, Q, E),
-  {'{}', [], ['__block__', [], Vars ++ [TExprs]]}.
+  Quoted = do_quote(Expr, Q, E),
+
+  WithVars = case Vars of
+    [] -> Quoted;
+    _ -> {'{}', [], ['__block__', [], Vars ++ [Quoted]]}
+  end,
+
+  case Prelude of
+    [] -> WithVars;
+    _ -> {'__block__', [], Prelude ++ [WithVars]}
+  end.
 
 %% Actual quoting and helpers
 
@@ -224,11 +288,12 @@ do_quote({'__aliases__', Meta, [H | T]} = Alias, #elixir_quote{aliases_hygiene=t
 
 %% Vars
 
-do_quote({Left, Meta, nil}, #elixir_quote{vars_hygiene=true, imports_hygiene=true} = Q, E) when is_atom(Left) ->
-  do_quote_import(Left, Meta, Q#elixir_quote.context, Q, E);
+do_quote({Name, Meta, nil}, #elixir_quote{vars_hygiene=true, imports_hygiene=true} = Q, E) when is_atom(Name) ->
+  ImportMeta = import_meta(Meta, Name, 0, Q, E),
+  {'{}', [], [Name, meta(ImportMeta, Q), Q#elixir_quote.context]};
 
-do_quote({Left, Meta, nil}, #elixir_quote{vars_hygiene=true} = Q, E) when is_atom(Left) ->
-  do_quote_tuple(Left, Meta, Q#elixir_quote.context, Q, E);
+do_quote({Name, Meta, nil}, #elixir_quote{vars_hygiene=true} = Q, _E) when is_atom(Name) ->
+  {'{}', [], [Name, meta(Meta, Q), Q#elixir_quote.context]};
 
 %% Unquote
 
@@ -244,8 +309,11 @@ do_quote({'&', Meta, [{'/', _, [{F, _, C}, A]}] = Args},
          #elixir_quote{imports_hygiene=true} = Q, E) when is_atom(F), is_integer(A), is_atom(C) ->
   do_quote_fa('&', Meta, Args, F, A, Q, E);
 
-do_quote({Name, Meta, ArgsOrAtom}, #elixir_quote{imports_hygiene=true} = Q, E) when is_atom(Name) ->
-  do_quote_import(Name, Meta, ArgsOrAtom, Q, E);
+do_quote({Name, Meta, Args}, #elixir_quote{imports_hygiene=true} = Q, E) when is_atom(Name), is_list(Args) ->
+  do_quote_import(Meta, Name, length(Args), Args, Q, E);
+
+do_quote({Name, Meta, Context}, #elixir_quote{imports_hygiene=true} = Q, E) when is_atom(Name), is_atom(Context) ->
+  do_quote_import(Meta, Name, 0, Context, Q, E);
 
 %% Two-element tuples
 
@@ -341,15 +409,8 @@ bad_escape(Arg) ->
                    "The supported values are: lists, tuples, maps, atoms, numbers, bitstrings, ",
                    "PIDs and remote functions in the format &Mod.fun/arity">>).
 
-%% do_quote_*
-
-do_quote_import(Name, Meta, ArgsOrAtom, #elixir_quote{imports_hygiene=true} = Q, E) ->
-  Arity = case is_atom(ArgsOrAtom) of
-    true  -> 0;
-    false -> length(ArgsOrAtom)
-  end,
-
-  NewMeta = case (keyfind(import, Meta) == false) andalso
+import_meta(Meta, Name, Arity, Q, E) ->
+  case (keyfind(import, Meta) == false) andalso
       elixir_dispatch:find_import(Meta, Name, Arity, E) of
     false ->
       case (Arity == 1) andalso keyfind(ambiguous_op, Meta) of
@@ -358,9 +419,13 @@ do_quote_import(Name, Meta, ArgsOrAtom, #elixir_quote{imports_hygiene=true} = Q,
       end;
     Receiver ->
       keystore(import, keystore(context, Meta, Q#elixir_quote.context), Receiver)
-  end,
+  end.
 
-  Annotated = annotate({Name, NewMeta, ArgsOrAtom}, Q#elixir_quote.context),
+%% do_quote_*
+
+do_quote_import(Meta, Name, Arity, ArgsOrAtom, Q, E) ->
+  ImportMeta = import_meta(Meta, Name, Arity, Q, E),
+  Annotated = annotate({Name, ImportMeta, ArgsOrAtom}, Q#elixir_quote.context),
   do_quote_tuple(Annotated, Q, E).
 
 do_quote_call(Left, Meta, Expr, Args, Q, E) ->
