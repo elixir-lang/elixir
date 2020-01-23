@@ -548,16 +548,6 @@ defmodule Kernel.ExpansionTest do
       assert expand(quote(do: quote(do: hello))) == {:{}, [], [:hello, [], __MODULE__]}
     end
 
-    test "raises if the :context option is invalid" do
-      assert_raise CompileError, ~r"invalid :context for quote, .*, got: :erlang\.self\(\)", fn ->
-        expand(quote(do: quote(context: self(), do: :ok)))
-      end
-
-      assert_raise CompileError, ~r"invalid :context for quote, .*, got: nil", fn ->
-        expand(quote(do: quote(context: nil, do: :ok)))
-      end
-    end
-
     test "raises if the :bind_quoted option is invalid" do
       assert_raise CompileError, ~r"invalid :bind_quoted for quote", fn ->
         expand(quote(do: quote(bind_quoted: self(), do: :ok)))

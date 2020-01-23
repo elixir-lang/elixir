@@ -156,31 +156,16 @@ expand({quote, Meta, [Opts, Do]}, E) when is_list(Do) ->
   ValidOpts = [context, location, line, file, unquote, bind_quoted, generated],
   {EOpts, ET} = expand_opts(Meta, quote, ValidOpts, Opts, E),
 
-  Context = case lists:keyfind(context, 1, EOpts) of
-    {context, Ctx} when is_atom(Ctx) and (Ctx /= nil) ->
-      Ctx;
-    {context, Ctx} ->
-      form_error(Meta, E, ?MODULE, {invalid_context_for_quote, Ctx});
-    false ->
-      case ?key(E, module) of
-        nil -> 'Elixir';
-        Mod -> Mod
-      end
-  end,
+  Context = proplists:get_value(context, EOpts, case ?key(E, module) of
+    nil -> 'Elixir';
+    Mod -> Mod
+  end),
 
   {File, Line} = case lists:keyfind(location, 1, EOpts) of
     {location, keep} ->
       {elixir_utils:relative_to_cwd(?key(E, file)), false};
     false ->
-      { case lists:keyfind(file, 1, EOpts) of
-          {file, F} -> F;
-          false -> nil
-        end,
-
-        case lists:keyfind(line, 1, EOpts) of
-          {line, L} -> L;
-          false -> false
-        end }
+      {proplists:get_value(file, EOpts, nil), proplists:get_value(line, EOpts, false)}
   end,
 
   {Binding, DefaultUnquote} = case lists:keyfind(bind_quoted, 1, EOpts) of
@@ -191,20 +176,14 @@ expand({quote, Meta, [Opts, Do]}, E) when is_list(Do) ->
         false -> form_error(Meta, E, ?MODULE, {invalid_bind_quoted_for_quote, BQ})
       end;
     false ->
-      {nil, true}
+      {[], true}
   end,
 
-  Unquote = case lists:keyfind(unquote, 1, EOpts) of
-    {unquote, U} when is_boolean(U) -> U;
-    false -> DefaultUnquote
-  end,
+  Unquote = proplists:get_value(unquote, EOpts, DefaultUnquote),
+  Generated = proplists:get_value(generated, EOpts, false),
 
-  Generated = lists:keyfind(generated, 1, EOpts) == {generated, true},
-
-  Q = #elixir_quote{line=Line, file=File, unquote=Unquote,
-                    context=Context, generated=Generated},
-
-  Quoted = elixir_quote:quote(Meta, Exprs, Binding, Q, ET),
+  {Q, Prelude} = elixir_quote:build(Meta, Line, File, Context, Unquote, Generated),
+  Quoted = elixir_quote:quote(Meta, Exprs, Binding, Q, Prelude, ET),
   expand(Quoted, ET);
 
 expand({quote, Meta, [_, _]}, E) ->
@@ -1143,9 +1122,6 @@ format_error({expected_compile_time_module, Kind, GivenTerm}) ->
 format_error({unquote_outside_quote, Unquote}) ->
   %% Unquote can be "unquote" or "unquote_splicing".
   io_lib:format("~p called outside quote", [Unquote]);
-format_error({invalid_context_for_quote, Context}) ->
-  io_lib:format("invalid :context for quote, expected non-nil compile time atom or alias, got: ~ts",
-                ['Elixir.Macro':to_string(Context)]);
 format_error({invalid_bind_quoted_for_quote, BQ}) ->
   io_lib:format("invalid :bind_quoted for quote, expected a keyword list of variable names, got: ~ts",
                 ['Elixir.Macro':to_string(BQ)]);
