@@ -1,4 +1,6 @@
-on: check_suite
+on:
+  check_suite:
+    types: [completed]
 name: CI email
 jobs:
   sendEmail:
