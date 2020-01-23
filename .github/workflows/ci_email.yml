@@ -6,10 +6,8 @@ jobs:
   sendEmail:
     name: Send email
     runs-on: ubuntu-latest
-    steps:
-    - name: Dump GitHub context
+    steps: 
+    - run: echo "CI conclusion: $SUITE_CONCLUSION" && false
       env:
-        GITHUB_CONTEXT: ${{ toJson(github) }}
-      run: echo "$GITHUB_CONTEXT"
-    - run: echo "CI failed" && false
+        SUITE_CONCLUSION: ${{ github.event.check_suite.conclusion }}
       if: github.event.check_suite.conclusion != 'neutral' && github.event.check_suite.conclusion != 'success'
