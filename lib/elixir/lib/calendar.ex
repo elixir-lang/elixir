@@ -859,7 +859,7 @@ defmodule Calendar do
       if Map.has_key?(acc, key) do
         %{acc | key => value}
       else
-        acc
+        raise ArgumentError, "unknown option #{inspect(key)} given to Calendar.strftime/3"
       end
     end)
   end
