@@ -5,51 +5,51 @@ defmodule CalendarTest do
   doctest Calendar
 
   describe "strftime/3" do
-    test "return received string if there is no datetime formatting to be found in it" do
-      assert Calendar.strftime(~N[2019-08-20 15:47:34.001], "muda string") == "muda string"
+    test "returns received string if there is no datetime formatting to be found in it" do
+      assert Calendar.strftime(~N[2019-08-20 15:47:34.001], "same string") == "same string"
     end
 
-    test "format all time zones blank when receiving a NaiveDateTime" do
+    test "formats all time zones blank when receiving a NaiveDateTime" do
       assert Calendar.strftime(~N[2019-08-15 17:07:57.001], "%z%Z") == ""
     end
 
-    test "raise error when trying to format a date with a map that has no date fields" do
+    test "raises error when trying to format a date with a map that has no date fields" do
       time_without_date = %{hour: 15, minute: 47, second: 34, microsecond: {0, 0}}
 
       assert_raise(KeyError, fn -> Calendar.strftime(time_without_date, "%x") end)
     end
 
-    test "raise error when trying to format a time with a map that has no time fields" do
+    test "raises error when trying to format a time with a map that has no time fields" do
       date_without_time = %{year: 2019, month: 8, day: 20}
 
       assert_raise(KeyError, fn -> Calendar.strftime(date_without_time, "%X") end)
     end
 
-    test "raise error when the format is invalid" do
+    test "raises error when the format is invalid" do
       assert_raise(FunctionClauseError, fn ->
         Calendar.strftime(~N[2019-08-20 15:47:34.001], "%-2-ç")
       end)
     end
 
-    test "raise error when the preferred_datetime calls itself" do
+    test "raises error when the preferred_datetime calls itself" do
       assert_raise(RuntimeError, fn ->
         Calendar.strftime(~N[2019-08-20 15:47:34.001], "%c", preferred_datetime: "%c")
       end)
     end
 
-    test "raise error when the preferred_date calls itself" do
+    test "raises error when the preferred_date calls itself" do
       assert_raise(RuntimeError, fn ->
         Calendar.strftime(~N[2019-08-20 15:47:34.001], "%x", preferred_date: "%x")
       end)
     end
 
-    test "raise error when the preferred_time calls itself" do
+    test "raises error when the preferred_time calls itself" do
       assert_raise(RuntimeError, fn ->
         Calendar.strftime(~N[2019-08-20 15:47:34.001], "%X", preferred_time: "%X")
       end)
     end
 
-    test "raise error when the preferred formats create a circular chain" do
+    test "raises error when the preferred formats creates a circular chain" do
       assert_raise(RuntimeError, fn ->
         Calendar.strftime(~N[2019-08-20 15:47:34.001], "%c",
           preferred_datetime: "%x",
@@ -59,7 +59,7 @@ defmodule CalendarTest do
       end)
     end
 
-    test "format with no errors is the preferred formats are included multiple times on the same string" do
+    test "with preferred formats are included multiple times on the same string" do
       assert(
         Calendar.strftime(~N[2019-08-15 17:07:57.001], "%c %c %x %x %X %X") ==
           "2019-08-15 17:07:57 2019-08-15 17:07:57 2019-08-15 2019-08-15 17:07:57 17:07:57"
@@ -71,7 +71,7 @@ defmodule CalendarTest do
       assert Calendar.strftime(~T[17:07:57.001], "%-999M") == "7"
     end
 
-    test "format time zones correctly when receiving a DateTime" do
+    test "formats time zones correctly when receiving a DateTime" do
       datetime_with_zone = %DateTime{
         year: 2019,
         month: 8,
@@ -89,7 +89,7 @@ defmodule CalendarTest do
       assert Calendar.strftime(datetime_with_zone, "%z %Z") == "+0300 EEST"
     end
 
-    test "format AM and PM correctly on the %P and %p options" do
+    test "formats AM and PM correctly on the %P and %p options" do
       am_time_almost_pm = ~U[2019-08-26 11:59:59.001Z]
       pm_time = ~U[2019-08-26 12:00:57.001Z]
       pm_time_almost_am = ~U[2019-08-26 23:59:57.001Z]
@@ -101,7 +101,7 @@ defmodule CalendarTest do
       assert Calendar.strftime(am_time, "%P %p") == "am AM"
     end
 
-    test "format all weekdays correctly with %A and %a formats" do
+    test "formats all weekdays correctly with %A and %a formats" do
       sunday = ~U[2019-08-25 11:59:59.001Z]
       monday = ~U[2019-08-26 11:59:59.001Z]
       tuesday = ~U[2019-08-27 11:59:59.001Z]
@@ -119,7 +119,7 @@ defmodule CalendarTest do
       assert Calendar.strftime(saturday, "%A %a") == "Saturday Sat"
     end
 
-    test "format all months correctly with the %B and %b formats" do
+    test "formats all months correctly with the %B and %b formats" do
       assert Calendar.strftime(%{month: 1}, "%B %b") == "January Jan"
       assert Calendar.strftime(%{month: 2}, "%B %b") == "February Feb"
       assert Calendar.strftime(%{month: 3}, "%B %b") == "March Mar"
@@ -134,7 +134,7 @@ defmodule CalendarTest do
       assert Calendar.strftime(%{month: 12}, "%B %b") == "December Dec"
     end
 
-    test "format all weekdays correctly on %A with day_of_week_names option" do
+    test "formats all weekdays correctly on %A with day_of_week_names option" do
       sunday = ~U[2019-08-25 11:59:59.001Z]
       monday = ~U[2019-08-26 11:59:59.001Z]
       tuesday = ~U[2019-08-27 11:59:59.001Z]
@@ -171,7 +171,7 @@ defmodule CalendarTest do
                "sábado"
     end
 
-    test "format all months correctly on the %B with month_names option" do
+    test "formats all months correctly on the %B with month_names option" do
       month_names = fn month ->
         {"январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август", "сентябрь",
          "октябрь", "ноябрь", "декабрь"}
@@ -192,7 +192,7 @@ defmodule CalendarTest do
       assert Calendar.strftime(%{month: 12}, "%B", month_names: month_names) == "декабрь"
     end
 
-    test "format all weekdays correctly on the %a format with abbreviated_day_of_week_names option" do
+    test "formats all weekdays correctly on the %a format with abbreviated_day_of_week_names option" do
       sunday = ~U[2019-08-25 11:59:59.001Z]
       monday = ~U[2019-08-26 11:59:59.001Z]
       tuesday = ~U[2019-08-27 11:59:59.001Z]
@@ -235,7 +235,7 @@ defmodule CalendarTest do
              ) == "sáb"
     end
 
-    test "format all months correctly on the %b format with abbreviated_month_names option" do
+    test "formats all months correctly on the %b format with abbreviated_month_names option" do
       abbreviated_month_names = fn month ->
         {"янв", "февр", "март", "апр", "май", "июнь", "июль", "авг", "сент", "окт", "нояб", "дек"}
         |> elem(month - 1)
@@ -281,7 +281,7 @@ defmodule CalendarTest do
              ) == "дек"
     end
 
-    test "microseconds format ignores padding and width options" do
+    test "formats ignores padding and width options on microseconds" do
       datetime = ~U[2019-08-15 17:07:57.001234Z]
       assert Calendar.strftime(datetime, "%f") == "001234"
       assert Calendar.strftime(datetime, "%f") == Calendar.strftime(datetime, "%_20f")
@@ -289,7 +289,7 @@ defmodule CalendarTest do
       assert Calendar.strftime(datetime, "%f") == Calendar.strftime(datetime, "%-f")
     end
 
-    test "microseconds format formats properly dates with different precisions" do
+    test "formats properly dates with different microsecond precisions" do
       assert Calendar.strftime(~U[2019-08-15 17:07:57.5Z], "%f") == "5"
       assert Calendar.strftime(~U[2019-08-15 17:07:57.45Z], "%f") == "45"
       assert Calendar.strftime(~U[2019-08-15 17:07:57.345Z], "%f") == "345"
@@ -298,7 +298,7 @@ defmodule CalendarTest do
       assert Calendar.strftime(~U[2019-08-15 17:07:57.012345Z], "%f") == "012345"
     end
 
-    test "microseconds formats properly different precisions of zero" do
+    test "formats properly different microsecond precisions of zero" do
       assert Calendar.strftime(~N[2019-08-15 17:07:57.0], "%f") == "0"
       assert Calendar.strftime(~N[2019-08-15 17:07:57.00], "%f") == "00"
       assert Calendar.strftime(~N[2019-08-15 17:07:57.000], "%f") == "000"
@@ -307,11 +307,11 @@ defmodule CalendarTest do
       assert Calendar.strftime(~N[2019-08-15 17:07:57.000000], "%f") == "000000"
     end
 
-    test "microseconds returns a single zero if there's no precision at all" do
+    test "returns a single zero if there's no microseconds precision" do
       assert Calendar.strftime(~N[2019-08-15 17:07:57], "%f") == "0"
     end
 
-    test "return the formatted datetime when all format options and modifiers are received" do
+    test "formats datetime with all options and modifiers" do
       assert Calendar.strftime(
                ~U[2019-08-15 17:07:57.001Z],
                "%04% %a %A %b %B %-3c %d %f %H %I %j %m %_5M %p %P %q %S %u %x %X %y %Y %z %Z"
@@ -319,7 +319,7 @@ defmodule CalendarTest do
                "000% Thu Thursday Aug August 2019-08-15 17:07:57 15 001 17 05 227 08     7 PM pm 3 57 4 2019-08-15 17:07:57 19 2019 +0000 UTC"
     end
 
-    test "format according to received custom configs" do
+    test "formats according to custom configs" do
       assert Calendar.strftime(
                ~U[2019-08-15 17:07:57.001Z],
                "%A %a %p %B %b %c %x %X",
@@ -350,6 +350,12 @@ defmodule CalendarTest do
                preferred_time: "%M:%_3H%S",
                preferred_datetime: "%%"
              ) == "четверг ЧТВ P Agosto Ago % 02019-08-15 07: 1757"
+    end
+
+    test "raises on unknown option according to custom configs" do
+      assert_raise ArgumentError, "unknown option :unknown given to Calendar.strftime/3", fn ->
+        Calendar.strftime(~D[2019-08-15], "%D", unknown: "option")
+      end
     end
   end
 end

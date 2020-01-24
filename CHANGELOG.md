@@ -10,6 +10,7 @@
 
 #### Elixir
 
+  * [Calendar] Add `Calendar.stfrtime/3` for datetime formatting
   * [Code] Add `:column` to `Code.string_to_quoted*/2`
   * [Kernel] Add `is_struct/2` guard
   * [Kernel] Support `map.field` syntax in guards
