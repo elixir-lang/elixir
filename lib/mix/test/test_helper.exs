@@ -53,6 +53,8 @@ defmodule MixTest.Case do
         Application.stop(app)
         Application.unload(app)
       end
+
+      :ok
     end)
 
     :ok
