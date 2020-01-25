@@ -1075,14 +1075,20 @@ defmodule Mix.Tasks.Release do
         [Path.join("lib", "#{name}-#{vsn}") | acc]
       end)
 
+    erts_dir =
+      case release.erts_source do
+        nil -> []
+        _ -> ["erts-#{release.erts_version}"]
+      end
+
     release_files =
       for basename <- File.ls!(Path.join(release.path, "releases")),
           not File.dir?(Path.join([release.path, "releases", basename])),
           do: Path.join("releases", basename)
 
     dirs =
-      ["bin", Path.join("releases", release.version), "erts-#{release.erts_version}"] ++
-        lib_dirs ++ release_files
+      ["bin", Path.join("releases", release.version)] ++
+        erts_dir ++ lib_dirs ++ release_files
 
     files =
       dirs
