@@ -155,7 +155,7 @@ assert %{"status" => 200, "body" => %{"key" => "foo"}} = json_payload
 
 Now imagine that `json_payload` is a large JSON blob and the `"key"` inside the `"body"` did not have value of `"foo"`. In previous Elixir versions, if the assertion failed, Elixir would print the right side and let you up to your own devices to figure out what went wrong. In Elixir v1.10, we diff the data structure against the pattern so you can see exactly which parts of the data matched the pattern and which ones did not. Note ExUnit already performed diffing when comparing data types, this new version adds diffing when matching data agaainst a pattern.
 
-## v1.10.0-rc.0 (2020-01-07)
+## v1.10.0 (2020-01-27)
 
 ### 1. Enhancements
 
