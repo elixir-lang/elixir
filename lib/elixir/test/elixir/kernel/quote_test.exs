@@ -20,6 +20,8 @@ defmodule Kernel.QuoteTest do
 
   test "fixed line" do
     assert quote(line: 3, do: bar(1, 2, 3)) == {:bar, [line: 3], [1, 2, 3]}
+    assert quote(line: false, do: bar(1, 2, 3)) == {:bar, [], [1, 2, 3]}
+    assert quote(line: true, do: bar(1, 2, 3)) == {:bar, [line: __ENV__.line], [1, 2, 3]}
   end
 
   test "quote line var" do
@@ -28,6 +30,11 @@ defmodule Kernel.QuoteTest do
 
     assert_raise ArgumentError, fn ->
       line = "oops"
+      quote(line: line, do: bar(1, 2, 3))
+    end
+
+    assert_raise ArgumentError, fn ->
+      line = true
       quote(line: line, do: bar(1, 2, 3))
     end
   end
