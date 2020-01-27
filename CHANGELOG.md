@@ -74,7 +74,7 @@ iex> Enum.sort([~D[2019-12-31], ~D[2020-01-01]], {:desc, Date})
 
 These API improvements make the code more concise and readable and they have also been added to `Enum.sort_by`, `Enum.min_by`, `Enum.max_by`, and friends.
 
-### Tracking of compile-time configuration
+## Tracking of compile-time configuration
 
 In Elixir, we organize our code in applications. Libraries, your dependencies, and your own project are all separate applications. All applications in Elixir also come with an application environment.
 
@@ -124,7 +124,7 @@ By using `compile_env/3`, Elixir will store the values used during compilation a
 
 In future versions, we will deprecate the use `Application.get_env` at compile-time with a clear message pointing users to configuration best practices, effectively addressing the scenario where users read from the application environment at compile time unaware of its pitfalls.
 
-### Compiler tracing
+## Compiler tracing
 
 This release brings enhancements to the Elixir compiler and adds new capabilities for developers to listen to compilation events.
 
@@ -141,7 +141,7 @@ Elixir itself is using the new compiler tracing to provide new functionality. On
 
 Previously, this information had to be added to the overall project configuration, which was far away from where the optional call effectively happened.
 
-### Other enhancements
+## Other enhancements
 
 Elixir's calendar data types got many improvements, such as sigil support for third-party calendars, as well as the additions of `DateTime.now!/2`, `DateTime.shift_zone!/3`, and `NaiveDateTime.local_now/0`.
 
@@ -179,6 +179,7 @@ Now imagine that `json_payload` is a large JSON blob and the `"key"` inside the 
   * [Kernel] Warn when function head comes immediately after the implementation instead of before the implementation
   * [Kernel] Warn if duplicate key is found in struct declaration
   * [Kernel] Print all undefined functions as warnings and then raise. This allows users to see all undefined calls at once, when it would otherwise require them to compile the code multiple times
+  * [Kernel] Allow file, line and context to be dynamically set on `quote`
   * [Keyword] Add `Keyword.pop!/2` and `Keyword.pop_values/2`
   * [Map] Add `Map.pop!/2`
   * [MapSet] Optimize multiple operations
@@ -227,6 +228,7 @@ Now imagine that `json_payload` is a large JSON blob and the `"key"` inside the 
 
   * [Enum] Allow positive range slices on infinite streams given to `Enum.slice/2`
   * [Kernel] Raise error on functions/guards without implementation
+  * [Kernel] Do not expand expressions inside interpolation twice
   * [Keyword] Ensure keyword replace and update preserve order
   * [Module] Raise instead of silently failing when performing a write module operation during after-compile
   * [Module] Fix `@macrocallback` definitions with a `when` clause
