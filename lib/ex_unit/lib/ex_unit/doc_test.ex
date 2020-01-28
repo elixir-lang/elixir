@@ -187,8 +187,7 @@ defmodule ExUnit.DocTest do
       should be set to `false` and a full `Module.function` construct should be
       used.
 
-    * `:tags` - a list of tags to apply to the generated tests. All tests generated
-       will have all of the given tags applied to them.
+    * `:tags` - a list of tags to apply to all generated doctests.
 
   ## Examples
 
