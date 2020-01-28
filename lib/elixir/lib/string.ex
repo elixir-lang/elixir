@@ -222,7 +222,7 @@ defmodule String do
 
   Finally, to convert a String into a list of integers
   code points, usually known as "char lists", you can call
-  `Strig.to_charlist`:
+  `String.to_charlist`:
 
       iex> String.to_charlist("olá")
       [111, 108, 225]
