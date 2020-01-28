@@ -211,7 +211,9 @@ defmodule ExUnit.DocTest do
 
         for {name, test} <- ExUnit.DocTest.__doctests__(module, opts) do
           @file file
-          @tag Keyword.get(opts, :tags, [])
+          if tags = Keyword.get(opts, :tags) do
+            @tag tags
+          end
           doc = ExUnit.Case.register_test(env, :doctest, name, [])
           def unquote(doc)(_), do: unquote(test)
         end

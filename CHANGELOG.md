@@ -15,10 +15,6 @@
   * [Kernel] Add `is_struct/2` guard
   * [Kernel] Support `map.field` syntax in guards
 
-#### ExUnit
-
-  * [DocTest] Accept `:tags` as an option to `doctest/2`
-
 ### 2. Bug fixes
 
 ### 3. Soft-deprecations (no warnings emitted)
