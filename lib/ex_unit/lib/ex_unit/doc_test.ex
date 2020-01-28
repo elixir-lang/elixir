@@ -187,6 +187,8 @@ defmodule ExUnit.DocTest do
       should be set to `false` and a full `Module.function` construct should be
       used.
 
+    * `:tags` - a list of tags to apply to all generated doctests.
+
   ## Examples
 
       doctest MyModule, except: [:moduledoc, trick_fun: 1]
@@ -207,6 +209,10 @@ defmodule ExUnit.DocTest do
         file = ExUnit.DocTest.__file__(module)
 
         for {name, test} <- ExUnit.DocTest.__doctests__(module, opts) do
+          if tags = Keyword.get(opts, :tags) do
+            @tag tags
+          end
+
           @file file
           doc = ExUnit.Case.register_test(env, :doctest, name, [])
           def unquote(doc)(_), do: unquote(test)

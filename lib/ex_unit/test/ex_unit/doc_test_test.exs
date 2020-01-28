@@ -470,6 +470,19 @@ defmodule ExUnit.DocTestTest do
     refute output =~ "doctest"
   end
 
+  test "allows users to tag doctests with configuration options" do
+    defmodule TaggedTests do
+      use ExUnit.Case
+      doctest ExUnit.DocTestTest.SomewhatGoodModuleWithOnly, tags: [skip: true], import: true
+    end
+
+    ExUnit.Server.modules_loaded()
+    output = capture_io(fn -> ExUnit.run() end)
+
+    assert output =~ "0 failures"
+    assert output =~ "2 skipped"
+  end
+
   test "doctest failures" do
     # When adding or removing lines above this line, the tests below will
     # fail because we are explicitly asserting some doctest lines from
