@@ -514,7 +514,18 @@ defmodule Mix.Tasks.ReleaseTest do
     in_fixture("release_test", fn ->
       config = [releases: [permanent1: [include_erts: false]]]
 
+      # We write the compile env to guarantee rpc still works
+      File.write!("lib/compile_env.ex", """
+      _ = Application.compile_env(:release_test, :static)
+      """)
+
       Mix.Project.in_project(:release_test, ".", config, fn _ ->
+        Mix.Task.run("loadconfig", [])
+
+        File.write!("config/releases.exs", """
+        import Config
+        """)
+
         root = Path.absname("_build/dev/rel/permanent1")
         Mix.Task.run("release")
         script = Path.join(root, "bin/permanent1")

@@ -20,6 +20,7 @@ defmodule Config.ProviderTest do
 
     on_exit(fn ->
       Application.delete_env(@config_app, :config_providers)
+      Application.delete_env(@config_app, :config_providers_booted)
       System.delete_env(@env_var)
     end)
   end
@@ -79,7 +80,7 @@ defmodule Config.ProviderTest do
       init_and_assert_boot()
       config = consult(@sys_config)
       assert config[:my_app] == [key: :value]
-      assert config[@config_app] == [config_providers: :booted]
+      assert config[@config_app] == [config_providers_booted: {:booted, nil}]
     end
 
     @tag sys_config: [my_app: [encoding: {:"£", "£", '£'}]]
@@ -111,6 +112,18 @@ defmodule Config.ProviderTest do
       assert boot() == :booted
       refute_received :restart
       refute File.exists?(@sys_config)
+    end
+
+    test "returns :booted if already booted and runs validate_compile_env" do
+      init_and_assert_boot(
+        prune_after_boot: true,
+        validate_compile_env: [{:elixir, [:unknown], {:ok, :value}}]
+      )
+
+      Application.put_all_env(Keyword.take(consult(@sys_config), [@config_app]))
+
+      assert capture_abort(fn -> boot() end) =~
+               "the application :elixir has a different value set for key :unknown"
     end
 
     test "raises if booting twice in a row" do
