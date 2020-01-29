@@ -110,7 +110,8 @@ defmodule Config.Provider do
     :config_path,
     extra_config: [],
     prune_after_boot: false,
-    reboot_after_config: true
+    reboot_after_config: true,
+    validate_compile_env: false
   ]
 
   @doc """
@@ -165,54 +166,74 @@ defmodule Config.Provider do
     # before we go around running Elixir code.
     {:ok, _} = :application.ensure_all_started(:elixir)
 
-    case :application.get_env(app, key) do
-      {:ok, %Config.Provider{} = provider} ->
-        path = resolve_config_path!(provider.config_path)
-        validate_no_cyclic_boot!(path)
-        loaded_applications = :application.loaded_applications()
-        original_config = read_config!(path)
+    # The key we store if the system already booted
+    booted_key = :"#{key}_booted"
 
-        config =
-          original_config
-          |> Config.__merge__(provider.extra_config)
-          |> run_providers(provider)
+    case :application.get_env(app, booted_key) do
+      {:ok, {:booted, path}} ->
+        path && File.rm(path)
 
-        if provider.reboot_after_config do
-          config
-          |> Config.__merge__([{app, [{key, booted_key(provider, path)}]}])
-          |> write_config!(path)
-
-          restart_fun.()
-        else
-          for {app, _, _} <- loaded_applications, config[app] != original_config[app] do
-            abort("""
-            Cannot configure #{inspect(app)} because :reboot_after_config has been set \
-            to false and #{inspect(app)} has already been loaded, meaning any further \
-            configuration won't have an effect.
-
-            The configuration for #{inspect(app)} before config providers was:
-
-            #{inspect(original_config[app])}
-
-            The configuration for #{inspect(app)} after config providers was:
-
-            #{inspect(config[app])}
-            """)
-          end
-
-          _ = Application.put_all_env(config, persistent: true)
-          :ok
+        with {:ok, %Config.Provider{} = provider} <- :application.get_env(app, key) do
+          maybe_validate_compile_env(provider)
         end
 
-      {:ok, {:booted, path}} ->
-        File.rm(path)
-        :booted
-
-      {:ok, :booted} ->
         :booted
 
       _ ->
-        :skip
+        case :application.get_env(app, key) do
+          {:ok, %Config.Provider{} = provider} ->
+            path = resolve_config_path!(provider.config_path)
+            reboot_config = [{app, [{booted_key, booted_value(provider, path)}]}]
+            boot_providers(path, provider, reboot_config, restart_fun)
+
+          _ ->
+            :skip
+        end
+    end
+  end
+
+  defp boot_providers(path, provider, reboot_config, restart_fun) do
+    validate_no_cyclic_boot!(path)
+    loaded_applications = :application.loaded_applications()
+    original_config = read_config!(path)
+
+    config =
+      original_config
+      |> Config.__merge__(provider.extra_config)
+      |> run_providers(provider)
+
+    if provider.reboot_after_config do
+      config
+      |> Config.__merge__(reboot_config)
+      |> write_config!(path)
+
+      restart_fun.()
+    else
+      for {app, _, _} <- loaded_applications, config[app] != original_config[app] do
+        abort("""
+        Cannot configure #{inspect(app)} because :reboot_after_config has been set \
+        to false and #{inspect(app)} has already been loaded, meaning any further \
+        configuration won't have an effect.
+
+        The configuration for #{inspect(app)} before config providers was:
+
+        #{inspect(original_config[app])}
+
+        The configuration for #{inspect(app)} after config providers was:
+
+        #{inspect(config[app])}
+        """)
+      end
+
+      _ = Application.put_all_env(config, persistent: true)
+      maybe_validate_compile_env(provider)
+      :ok
+    end
+  end
+
+  defp maybe_validate_compile_env(provider) do
+    with [_ | _] = compile_env <- provider.validate_compile_env do
+      validate_compile_env(compile_env)
     end
   end
 
@@ -283,8 +304,8 @@ defmodule Config.Provider do
     Process.sleep(:infinity)
   end
 
-  defp booted_key(%{prune_after_boot: true}, path), do: {:booted, path}
-  defp booted_key(%{prune_after_boot: false}, _path), do: :booted
+  defp booted_value(%{prune_after_boot: true}, path), do: {:booted, path}
+  defp booted_value(%{prune_after_boot: false}, _path), do: {:booted, nil}
 
   defp validate_no_cyclic_boot!(path) do
     if System.get_env("ELIXIR_CONFIG_PROVIDER_BOOTED") do
