@@ -510,6 +510,39 @@ defmodule Mix.Tasks.ReleaseTest do
   end
 
   @tag :epmd
+  test "allows you to connect to remote system while using compile_env" do
+    in_fixture("release_test", fn ->
+      config = [releases: [permanent3: [include_erts: false]]]
+
+      File.write!("lib/compile_env.ex", """
+      _ = Application.compile_env(:release_test, :static)
+      """)
+
+      Mix.Project.in_project(:release_test, ".", config, fn _ ->
+        Mix.Task.run("loadconfig", [])
+
+        File.write!("config/releases.exs", """
+        import Config
+        """)
+
+        root = Path.absname("_build/dev/rel/permanent3")
+        Mix.Task.run("release")
+        script = Path.join(root, "bin/permanent3")
+
+        open_port(script, ['start'])
+        wait_until_decoded(Path.join(root, "RELEASE_BOOTED"))
+
+        assert System.cmd(script, ["rpc", "ReleaseTest.hello_world()"]) == {"hello world\n", 0}
+
+        assert {pid, 0} = System.cmd(script, ["pid"])
+        assert pid != "\n"
+
+        assert System.cmd(script, ["stop"]) == {"", 0}
+      end)
+    end)
+  end
+
+  @tag :epmd
   test "executes rpc instructions" do
     in_fixture("release_test", fn ->
       config = [releases: [permanent1: [include_erts: false]]]

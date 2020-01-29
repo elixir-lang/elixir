@@ -175,7 +175,7 @@ defmodule Mix.Tasks.Release do
   of crashes. See the generated `releases/RELEASE_VSN/env.sh` file.
 
   The daemon will write all of its standard output to the "tmp/log/"
-  directory in the release root. You can watch the log file by doing 
+  directory in the release root. You can watch the log file by doing
   `tail -f tmp/log/erlang.log.1` or similar. Once files get too large,
   the index suffix will be incremented. A developer can also attach
   to the standard input of the daemon by invoking "to_erl tmp/pipe/"
@@ -1181,7 +1181,8 @@ defmodule Mix.Tasks.Release do
       for {boot_name, modes} <- release.boot_scripts do
         sys_path = Path.join(version_path, Atom.to_string(boot_name))
 
-        with :ok <- Mix.Release.make_boot_script(release, sys_path, modes, prepend_paths) do
+        with :ok <-
+               Mix.Release.make_boot_script(release, sys_path, modes, prepend_paths, boot_name) do
           if boot_name == :start do
             rel_path = Path.join(Path.dirname(sys_path), "#{release.name}.rel")
             File.rename!(sys_path <> ".rel", rel_path)

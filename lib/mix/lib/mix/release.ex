@@ -492,9 +492,9 @@ defmodule Mix.Release do
   The boot script uses the RELEASE_LIB environment variable, which must
   be accordingly set with `--boot-var` and point to the release lib dir.
   """
-  @spec make_boot_script(t, Path.t(), [{application(), mode()}], [String.t()]) ::
+  @spec make_boot_script(t, Path.t(), [{application(), mode()}], [String.t()], atom()) ::
           :ok | {:error, String.t()}
-  def make_boot_script(release, path, modes, prepend_paths \\ []) do
+  def make_boot_script(release, path, modes, prepend_paths \\ [], boot_name \\ :start) do
     with {:ok, rel_spec} <- build_release_spec(release, modes) do
       File.write!(path <> ".rel", consultable(rel_spec), [:utf8])
 
@@ -515,7 +515,7 @@ defmodule Mix.Release do
 
           instructions =
             instructions
-            |> post_stdlib_applies(release)
+            |> post_stdlib_applies(release, boot_name)
             |> prepend_paths_to_script(prepend_paths)
 
           script = {:script, rel_info, instructions}
@@ -606,15 +606,22 @@ defmodule Mix.Release do
     end
   end
 
-  defp post_stdlib_applies(instructions, release) do
+  defp post_stdlib_applies(instructions, release, boot_name) do
     {pre, [stdlib | post]} =
       Enum.split_while(
         instructions,
         &(not match?({:apply, {:application, :start_boot, [:stdlib, _]}}, &1))
       )
 
-    pre ++
-      [stdlib] ++ config_provider_apply(release) ++ validate_compile_env_apply(release) ++ post
+    if boot_name == :start_clean do
+      pre ++
+        [stdlib] ++
+        config_provider_apply(release) ++ post
+    else
+      pre ++
+        [stdlib] ++
+        config_provider_apply(release) ++ validate_compile_env_apply(release) ++ post
+    end
   end
 
   defp config_provider_apply(%{config_providers: []}),
