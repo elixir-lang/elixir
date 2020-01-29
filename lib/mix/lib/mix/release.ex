@@ -425,11 +425,27 @@ defmodule Mix.Release do
     opts = [
       extra_config: initial_config,
       prune_after_boot: prune_after_boot,
-      reboot_after_config: reboot?
+      reboot_after_config: reboot?,
+      validate_compile_env: validate_compile_env(release)
     ]
 
     init = Config.Provider.init(release.config_providers, config_path, opts)
     {Config.Reader.merge(sys_config, [elixir: [config_providers: init]] ++ extra_config), reboot?}
+  end
+
+  defp validate_compile_env(release) do
+    with true <- Keyword.get(release.options, :validate_compile_env, true),
+         [_ | _] = compile_env <- compile_env(release) do
+      compile_env
+    else
+      _ -> false
+    end
+  end
+
+  defp compile_env(release) do
+    for {_, properties} <- release.applications,
+        triplet <- Keyword.get(properties, :compile_env, []),
+        do: triplet
   end
 
   defp start_distribution(%{options: opts}) do
@@ -613,8 +629,7 @@ defmodule Mix.Release do
         &(not match?({:apply, {:application, :start_boot, [:stdlib, _]}}, &1))
       )
 
-    pre ++
-      [stdlib] ++ config_provider_apply(release) ++ validate_compile_env_apply(release) ++ post
+    pre ++ [stdlib] ++ config_provider_apply(release) ++ post
   end
 
   defp config_provider_apply(%{config_providers: []}),
@@ -622,21 +637,6 @@ defmodule Mix.Release do
 
   defp config_provider_apply(_),
     do: [{:apply, {Config.Provider, :boot, [:elixir, :config_providers]}}]
-
-  defp validate_compile_env_apply(release) do
-    with true <- Keyword.get(release.options, :validate_compile_env, true),
-         [_ | _] = compile_env <- compile_env(release) do
-      [{:apply, {Config.Provider, :validate_compile_env, [compile_env]}}]
-    else
-      _ -> []
-    end
-  end
-
-  defp compile_env(release) do
-    for {_, properties} <- release.applications,
-        triplet <- Keyword.get(properties, :compile_env, []),
-        do: triplet
-  end
 
   defp prepend_paths_to_script(instructions, []), do: instructions
 
