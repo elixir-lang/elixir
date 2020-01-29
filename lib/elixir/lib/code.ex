@@ -75,8 +75,8 @@ defmodule Code do
       function or macro is referenced. `meta` is the call AST metadata, `module`
       is the invoked module, followed by the `name` and `arity`.
 
-    * `{:local_function, meta, module, name, arity}` and
-      `{:local_macro, meta, module, name, arity}` - traced whenever a local
+    * `{:local_function, meta, name, arity}` and
+      `{:local_macro, meta, name, arity}` - traced whenever a local
       function or macro is referenced. `meta` is the call AST metadata, `module`
       is the invoked module, followed by the `name` and `arity`.
 
