@@ -89,15 +89,18 @@
       Kernel.ParallelCompiler,
       Macro,
       Macro.Env
-    ],
-    Deprecated: [
-      Behaviour,
-      Dict,
-      GenEvent,
-      HashDict,
-      HashSet,
-      Set,
-      Supervisor.Spec
     ]
+
+    ## Automatically detected groups
+
+    # Deprecated: [
+    #   Behaviour,
+    #   Dict,
+    #   GenEvent,
+    #   HashDict,
+    #   HashSet,
+    #   Set,
+    #   Supervisor.Spec
+    # ]
   ]
 ]
