@@ -83,7 +83,7 @@ Atoms and numbers (integers and floats) can appear in patterns and they are alwa
 
 ```iex
 iex> :atom = :atom
-:atotm
+:atom
 iex> :atom = :another_atom
 ** (MatchError) no match of right hand side value: :another_atom
 ```
