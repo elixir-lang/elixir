@@ -32,14 +32,6 @@ defmodule Logger.Config do
      Application.fetch_env!(:logger, :discard_threshold_periodic_check)}
   end
 
-  def handle_event({_type, gl, _msg} = event, state) when node(gl) != node() do
-    # Cross node messages are always async which also
-    # means this handler won't crash in case Logger
-    # is not installed in the other node.
-    :gen_event.notify({Logger, node(gl)}, event)
-    {:ok, update_counter(state, false)}
-  end
-
   def handle_event(_event, state) do
     {:ok, update_counter(state, false)}
   end
