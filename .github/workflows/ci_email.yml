@@ -7,7 +7,9 @@ jobs:
     name: Send email
     runs-on: ubuntu-latest
     steps: 
-    - run: echo "CI conclusion: $SUITE_CONCLUSION" && false
+    - run: |
+        echo "CI conclusion: $SUITE_CONCLUSION" && false
+      if: |
+        github.event.check_suite.conclusion != 'neutral' && github.event.check_suite.conclusion != 'success'
       env:
         SUITE_CONCLUSION: ${{ github.event.check_suite.conclusion }}
-      if: github.event.check_suite.conclusion != 'neutral' && github.event.check_suite.conclusion != 'success'
