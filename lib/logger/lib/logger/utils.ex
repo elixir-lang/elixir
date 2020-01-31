@@ -170,7 +170,7 @@ defmodule Logger.Utils do
   @doc """
   Returns a timestamp that includes milliseconds.
   """
-  def timestamp(timestamp \\ :logger.timestamp(), utc_log?) do
+  def timestamp(timestamp \\ :os.system_time(:microsecond), utc_log?) do
     micro = rem(timestamp, 1_000_000)
 
     {date, {hours, minutes, seconds}} =
