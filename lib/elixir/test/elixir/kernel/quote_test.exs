@@ -25,11 +25,6 @@ defmodule Kernel.QuoteTest do
   test "quote line var" do
     line = __ENV__.line
     assert quote(line: line, do: bar(1, 2, 3)) == {:bar, [line: line], [1, 2, 3]}
-
-    assert_raise ArgumentError, fn ->
-      line = "oops"
-      quote(line: line, do: bar(1, 2, 3))
-    end
   end
 
   test "quote context var" do

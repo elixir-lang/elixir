@@ -36,6 +36,8 @@ build(Meta, Line, File, Context, Unquote, Generated) ->
 
   {Q, Acc3}.
 
+validate_compile(_Meta, file, nil, Acc) ->
+  {nil, Acc};
 validate_compile(Meta, Key, Value, Acc) ->
   case is_valid(Key, Value) of
     true ->
@@ -60,8 +62,8 @@ validate_runtime(Key, Value) ->
       )
   end.
 
-is_valid(line, Line) -> is_integer(Line) orelse is_boolean(Line);
-is_valid(file, File) -> is_binary(File) orelse (File == nil);
+is_valid(line, _Line) -> true;
+is_valid(file, File) -> is_binary(File);
 is_valid(context, Context) -> is_atom(Context) andalso (Context /= nil);
 is_valid(generated, Generated) -> is_boolean(Generated);
 is_valid(unquote, Unquote) -> is_boolean(Unquote).
