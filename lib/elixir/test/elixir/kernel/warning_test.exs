@@ -1760,10 +1760,69 @@ defmodule Kernel.WarningTest do
     assert capture_err(fn ->
              Code.eval_string("""
              defmodule TestMod do
-               defstruct [:foo, :bar, foo: 1]
+              defstruct [:foo, :bar, foo: 1]
              end
              """)
            end) =~ "duplicate key :foo found in struct"
+  after
+    purge(TestMod)
+  end
+
+  test "deprecate remote nullary zero-arity calls without parens" do
+    assert capture_err(fn ->
+             Code.eval_string("""
+             defmodule TestMod do
+                def foo(), do: nil
+             end
+
+             TestMod.foo
+             """)
+           end) =~
+             "missing parenthesis on call to TestMod.foo/0. parenthesis are always required on function calls without arguments"
+  after
+    purge(TestMod)
+  end
+
+  test "deprecate remote nullary zero-arity calls without parens in a macro" do
+    assert capture_err(fn ->
+             Code.eval_string("""
+             defmodule TestMod do
+              def foo(), do: nil
+              defmacro foo2(), do: TestMod.foo
+             end
+
+             """)
+           end) =~
+             "missing parenthesis on call to TestMod.foo/0. parenthesis are always required on function calls without arguments"
+  after
+    purge(TestMod)
+  end
+
+  test "deprecate nullary remote zero-arity capture with parens" do
+    assert capture_err(fn ->
+             Code.eval_string("""
+             defmodule TestMod do
+               def foo(), do: nil
+             end
+
+             &TestMod.foo()/0
+             """)
+           end) =~
+             "extra parentheses on a remote function capture &TestMod.foo()/0 has been deprecated. change it to parentheses-less form: &TestMod.foo/0"
+  after
+    purge(TestMod)
+  end
+
+  test "deprecate nullary remote zero-arity capture with parens in a macro" do
+    assert capture_err(fn ->
+             Code.eval_string("""
+             defmodule TestMod do
+               def foo(), do: nil
+               defmacro foo2(), do: &TestMod.foo()/0
+             end
+             """)
+           end) =~
+             "extra parentheses on a remote function capture &TestMod.foo()/0 has been deprecated. change it to parentheses-less form: &TestMod.foo/0"
   after
     purge(TestMod)
   end
