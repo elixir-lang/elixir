@@ -1760,7 +1760,7 @@ defmodule Kernel.WarningTest do
     assert capture_err(fn ->
              Code.eval_string("""
              defmodule TestMod do
-              defstruct [:foo, :bar, foo: 1]
+               defstruct [:foo, :bar, foo: 1]
              end
              """)
            end) =~ "duplicate key :foo found in struct"

@@ -365,7 +365,6 @@ check_deprecated(Meta, 'Elixir.System', stacktrace, 0, #{contextual_vars := Vars
           "move System.stacktrace/0 inside a rescue/catch",
       elixir_errors:erl_warn(?line(Meta), ?key(E, file), Message)
   end;
-
 check_deprecated(Meta, Receiver, Name, Arity, E) ->
   case (?key(E, function) == nil) andalso is_ensure_loaded(Receiver) of
     true ->

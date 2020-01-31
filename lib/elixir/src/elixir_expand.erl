@@ -530,12 +530,12 @@ expand_fn_capture(Meta, Arg, E) ->
   end.
 
 handle_capture_possible_warning(Meta, {_, _, [{_, KeyList, _}, _]}, E, 0, Remote, Fun) ->
-case (lists:keyfind(no_parens, 1, KeyList) /= {no_parens, true}) of
-          true ->
-            elixir_errors:form_warn(Meta, E, ?MODULE, {parens_remote_capture, Remote, Fun});
+  case (lists:keyfind(no_parens, 1, KeyList) /= {no_parens, true}) of
+    true ->
+      elixir_errors:form_warn(Meta, E, ?MODULE, {parens_remote_capture, Remote, Fun});
 
-          false -> ok
-        end;
+    false -> ok
+  end;
 
 handle_capture_possible_warning(_, _, _, _, _, _) -> ok.
 
