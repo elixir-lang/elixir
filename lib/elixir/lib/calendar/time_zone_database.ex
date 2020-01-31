@@ -59,7 +59,7 @@ defmodule Calendar.TimeZoneDatabase do
   with a limit for when the period ends (wall time). The second nested two-tuple is the period
   just after the gap and a datetime (wall time) for when the period begins just after the gap.
 
-  If there is only a single possible period for the provided `datetime`, the a tuple with `:single`
+  If there is only a single possible period for the provided `datetime`, the a tuple with `:ok`
   and the `time_zone_period` is returned.
   """
   @doc since: "1.8.0"
