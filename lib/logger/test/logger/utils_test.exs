@@ -23,6 +23,7 @@ defmodule Logger.UtilsTest do
     assert truncate("olá", 4) == "olá"
     assert truncate("ááááá:", 10) == ["ááááá", " (truncated)"]
     assert truncate("áááááá:", 10) == ["ááááá", " (truncated)"]
+    assert truncate("𠜎𠜱𠝹𠱓", 15) == ["𠜎𠜱𠝹", " (truncated)"]
 
     # Charlists
     assert truncate('olá', 2) == ['olá', " (truncated)"]

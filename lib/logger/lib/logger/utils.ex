@@ -81,7 +81,7 @@ defmodule Logger.Utils do
   end
 
   defp fix_binary(<<h, t::binary>>, acc) do
-    fix_binary(t, <<h, acc::binary>>)
+    fix_binary(t, <<acc::binary, h>>)
   end
 
   defp fix_binary(<<>>, _acc) do
