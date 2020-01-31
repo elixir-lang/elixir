@@ -368,7 +368,7 @@ check_deprecated(Meta, 'Elixir.System', stacktrace, 0, #{contextual_vars := Vars
 
 check_deprecated([{no_parens,true}, _] = Meta, _, _, 0, E) ->
       Message =
-        "Calling remote function without parentheses is deprecated",
+        "Calling remote function with no arguments without parentheses is deprecated",
       elixir_errors:erl_warn(?line(Meta), ?key(E, file), Message);
 
 check_deprecated(Meta, Receiver, Name, Arity, E) ->

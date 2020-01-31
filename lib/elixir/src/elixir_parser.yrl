@@ -713,6 +713,16 @@ build_op({_Kind, Location, 'not in'}, Left, Right) ->
 build_op({_Kind, Location, Op}, Left, Right) ->
   {Op, newlines_op(Location) ++ meta_from_location(Location), [Left, Right]}.
 
+build_unary_op({capture_op, Location, Op}, {_,_,[{_,[{no_parens,true} | _],_}, 0]} = Expr) ->
+  {Op, meta_from_location(Location), [Expr]};
+
+build_unary_op({capture_op, Location, Op}, {_, _, [{{'.',_,_}, _, _},0]} = Expr) ->
+  Message =
+        "Remote function capture with zero arguments and parentheses has been deprecated "
+        "Use flavor without parentheses instead, i.e. &Foo.bar/0 instead of &Foo.bar()/0",
+  elixir_errors:erl_warn(line_from_location(Location), ?file(), Message),
+  {Op, meta_from_location(Location), [Expr]};
+
 build_unary_op({_Kind, Location, Op}, Expr) ->
   {Op, meta_from_location(Location), [Expr]}.
 
