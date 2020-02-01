@@ -401,14 +401,13 @@ expand({{'.', DotMeta, [Left, Right]}, Meta, Args}, E)
     when (is_tuple(Left) orelse is_atom(Left)), is_atom(Right), is_list(Meta), is_list(Args) ->
   {ELeft, EL} = expand(Left, elixir_env:prepare_write(E)),
 
-  %% TODO: Emit this warning on v1.11
-  %% case is_atom(ELeft) andalso (Args == []) andalso
-  %%       (lists:keyfind(no_parens, 1, Meta) == {no_parens, true}) of
-  %%   true ->
-  %%     elixir_errors:form_warn(DotMeta, E, ?MODULE, {no_parens_nullary_remote, ELeft, Right});
-  %%   false ->
-  %%     ok
-  %% end,
+  case is_atom(ELeft) andalso (Args == []) andalso
+        (lists:keyfind(no_parens, 1, Meta) == {no_parens, true}) of
+    true ->
+      elixir_errors:form_warn(DotMeta, E, ?MODULE, {no_parens_nullary_remote, ELeft, Right});
+    false ->
+      ok
+  end,
 
   elixir_dispatch:dispatch_require(Meta, ELeft, Right, Args, EL, fun(AR, AF, AA) ->
     expand_remote(AR, DotMeta, AF, Meta, AA, E, EL)
@@ -520,6 +519,7 @@ expand_fn_capture(Meta, Arg, E) ->
       is_atom(Remote) andalso
         elixir_env:trace({remote_function, Meta, Remote, Fun, Arity}, E),
       AttachedMeta = attach_context_module(Remote, Meta, E),
+      handle_capture_possible_warning(Meta, Arg, E, Arity, Remote, Fun),
       {{'&', AttachedMeta, [{'/', [], [{{'.', [], [Remote, Fun]}, [], []}, Arity]}]}, EE};
     {{local, Fun, Arity}, #{function := nil}} ->
       form_error(Meta, E, ?MODULE, {undefined_local_capture, Fun, Arity});
@@ -528,6 +528,16 @@ expand_fn_capture(Meta, Arg, E) ->
     {expand, Expr, EE} ->
       expand(Expr, EE)
   end.
+
+handle_capture_possible_warning(Meta, {_, _, [{_, KeyList, _}, _]}, E, 0, Remote, Fun) ->
+  case (lists:keyfind(no_parens, 1, KeyList) /= {no_parens, true}) of
+    true ->
+      elixir_errors:form_warn(Meta, E, ?MODULE, {parens_remote_capture, Remote, Fun});
+
+    false -> ok
+  end;
+
+handle_capture_possible_warning(_, _, _, _, _, _) -> ok.
 
 expand_list([{'|', Meta, [_, _] = Args}], Fun, Acc, List) ->
   {EArgs, EAcc} = lists:mapfoldl(Fun, Acc, Args),
@@ -1270,9 +1280,13 @@ format_error({unknown_variable, Name}) ->
   io_lib:format("variable \"~ts\" does not exist and is being expanded to \"~ts()\","
                 " please use parentheses to remove the ambiguity or change the variable name", [Name, Name]);
 format_error({no_parens_nullary_remote, Remote, Fun}) ->
-  io_lib:format("missing parenthesis on call to ~ts.~ts/0. "
-                "parenthesis are always required on function calls without arguments",
+  io_lib:format("missing parentheses on call to ~ts.~ts/0. "
+                "Parentheses are always required on function calls without arguments",
                 [elixir_aliases:inspect(Remote), Fun]);
+format_error({parens_remote_capture, Remote, Fun}) ->
+  io_lib:format("extra parentheses on a remote function capture &~ts.~ts()/0 have been "
+                 "deprecated. Please remove the parentheses: &~ts.~ts/0",
+                 [elixir_aliases:inspect(Remote), Fun, elixir_aliases:inspect(Remote), Fun]);
 format_error({parens_map_lookup_guard, Map, Field}) ->
   io_lib:format("cannot invoke remote function in guard. "
                 "If you want to do a map lookup instead, please remove parens from ~ts.~ts()",
