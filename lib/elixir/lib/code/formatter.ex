@@ -2239,10 +2239,10 @@ defmodule Code.Formatter do
   defp keyword?(rest), do: rest == []
 
   defp keyword_key?({:__block__, meta, [atom]}) when is_atom(atom),
-    do: meta[:delimiter] != ":"
+    do: meta[:format] == :keyword
 
   defp keyword_key?({{:., _, [:erlang, :binary_to_atom]}, meta, [{:<<>>, _, _}, :utf8]}),
-    do: meta[:delimiter] != ":"
+    do: meta[:format] == :keyword
 
   defp keyword_key?(_),
     do: false

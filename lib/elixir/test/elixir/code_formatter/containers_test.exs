@@ -412,6 +412,11 @@ defmodule Code.Formatter.ContainersTest do
       assert_same map, @medium_length
     end
 
+    test "preserves user choice in regards to =>" do
+      assert_same "%{:hello => 1, :world => 2}"
+      assert_format "%{:true => 1, :false => 2}", "%{true => 1, false => 2}"
+    end
+
     test "preserves user choice even when it fits" do
       assert_same """
       %{

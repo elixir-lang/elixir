@@ -344,20 +344,22 @@ defmodule CodeTest do
       assert string_to_quoted.("0xEF") == {:__block__, [token: "0xEF", line: 1], [239]}
       assert string_to_quoted.("12.3") == {:__block__, [token: "12.3", line: 1], [12.3]}
       assert string_to_quoted.("nil") == {:__block__, [line: 1], [nil]}
-      assert string_to_quoted.(":one") == {:__block__, [delimiter: ":", line: 1], [:one]}
+      assert string_to_quoted.(":one") == {:__block__, [line: 1], [:one]}
 
-      args = [[{:__block__, [token: "1", line: 1], [1]}]]
+      assert string_to_quoted.("[one: :two]") == {
+               :__block__,
+               [{:closing, [line: 1]}, {:line, 1}],
+               [
+                 [
+                   {{:__block__, [format: :keyword, line: 1], [:one]},
+                    {:__block__, [line: 1], [:two]}}
+                 ]
+               ]
+             }
 
       assert string_to_quoted.("[1]") ==
-               {:__block__, [closing: [line: 1], line: 1], args}
-
-      args = [
-        {{:__block__, [delimiter: ":", line: 1], [:ok]},
-         {:__block__, [delimiter: ":", line: 1], [:test]}}
-      ]
-
-      assert string_to_quoted.("{:ok, :test}") ==
-               {:__block__, [closing: [line: 1], line: 1], args}
+               {:__block__, [closing: [line: 1], line: 1],
+                [[{:__block__, [token: "1", line: 1], [1]}]]}
 
       assert string_to_quoted.(~s("""\nhello\n""")) ==
                {:__block__, [delimiter: ~s["""], line: 1], ["hello\n"]}
@@ -365,16 +367,15 @@ defmodule CodeTest do
       assert string_to_quoted.("'''\nhello\n'''") ==
                {:__block__, [delimiter: ~s['''], line: 1], ['hello\n']}
 
-      args = [
-        {:->, [line: 1],
-         [
-           [{:__block__, [token: "1", line: 1, closing: [line: 1], line: 1], [1]}],
-           {:__block__, [delimiter: "\"", line: 1], ["hello"]}
-         ]}
-      ]
-
       assert string_to_quoted.(~s[fn (1) -> "hello" end]) ==
-               {:fn, [closing: [line: 1], line: 1], args}
+               {:fn, [closing: [line: 1], line: 1],
+                [
+                  {:->, [line: 1],
+                   [
+                     [{:__block__, [token: "1", line: 1, closing: [line: 1], line: 1], [1]}],
+                     {:__block__, [delimiter: "\"", line: 1], ["hello"]}
+                   ]}
+                ]}
     end
 
     test "raises on bad literal" do
