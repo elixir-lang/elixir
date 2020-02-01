@@ -1768,6 +1768,26 @@ defmodule Kernel.WarningTest do
     purge(TestMod)
   end
 
+  test "deprecate remote nullary zero-arity calls without parens" do
+    assert capture_err(fn ->
+             Code.eval_string("""
+             System.pid
+             """)
+           end) =~
+             "missing parentheses on call to System.pid/0. Parentheses are always required on function calls without arguments"
+  after
+    purge(TestMod)
+  end
+
+  test "deprecate nullary remote zero-arity capture with parens" do
+    assert capture_err(fn ->
+             Code.eval_string("""
+             &System.pid()/0
+             """)
+           end) =~
+             "extra parentheses on a remote function capture &System.pid()/0 have been deprecated. Please remove the parentheses: &System.pid/0"
+  end
+
   defp purge(list) when is_list(list) do
     Enum.each(list, &purge/1)
   end
