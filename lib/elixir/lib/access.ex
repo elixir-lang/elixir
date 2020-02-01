@@ -538,6 +538,11 @@ defmodule Access do
       iex> pop_in(map, [:user, Access.elem(0)])
       ** (RuntimeError) cannot pop data from a tuple
 
+  nil is traversed by returning nil:
+
+      iex> get_in(nil, [Access.elem(0)])
+      nil
+
   An error is raised if the accessed structure is not a tuple:
 
       iex> get_in(%{}, [Access.elem(0)])
@@ -549,6 +554,9 @@ defmodule Access do
     pos = index + 1
 
     fn
+      :get, nil, next ->
+        next.(nil)
+
       :get, data, next when is_tuple(data) ->
         next.(:erlang.element(pos, data))
 
@@ -592,6 +600,11 @@ defmodule Access do
       ...> end)
       {[1, 2, 3, 4, 5], [2, 6, 10]}
 
+  nil is traversed by returning an empty list:
+
+      iex> get_in(nil, [Access.all()])
+      []
+
   An error is raised if the accessed structure is not a list:
 
       iex> get_in(%{}, [Access.all()])
@@ -601,6 +614,10 @@ defmodule Access do
   @spec all() :: access_fun(data :: list, get_value :: list)
   def all() do
     &all/3
+  end
+
+  defp all(:get, nil, _next) do
+    []
   end
 
   defp all(:get, data, next) when is_list(data) do
@@ -667,6 +684,11 @@ defmodule Access do
       ...> end)
       {nil, [%{name: "john"}, %{name: "mary"}]}
 
+  nil is traversed by returning nil:
+
+      iex> get_in(nil, [Access.at(0)])
+      nil
+
   An error is raised if the accessed structure is not a list:
 
       iex> get_in(%{}, [Access.at(1)])
@@ -676,6 +698,10 @@ defmodule Access do
   @spec at(integer) :: access_fun(data :: list, get_value :: term)
   def at(index) when is_integer(index) do
     fn op, data, next -> at(op, data, index, next) end
+  end
+
+  defp at(:get, nil, _index, next) do
+    next.(nil)
   end
 
   defp at(:get, data, index, next) when is_list(data) do
@@ -750,6 +776,11 @@ defmodule Access do
       ...> end)
       {[], [%{name: "john", salary: 10}, %{name: "francine", salary: 30}]}
 
+  nil is traversed by returning an empty list, as if no match is found:
+
+      iex> get_in(nil, [Access.filter(&(&1.salary >= 50)), :name])
+      []
+
   An error is raised if the predicate is not a function or is of the incorrect arity:
 
       iex> get_in([], [Access.filter(5)])
@@ -765,6 +796,10 @@ defmodule Access do
   @spec filter((term -> boolean)) :: access_fun(data :: list, get_value :: list)
   def filter(func) when is_function(func) do
     fn op, data, next -> filter(op, data, func, next) end
+  end
+
+  defp filter(:get, nil, _func, _next) do
+    []
   end
 
   defp filter(:get, data, func, next) when is_list(data) do
