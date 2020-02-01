@@ -259,9 +259,9 @@ access_expr -> bin_heredoc : build_bin_heredoc('$1').
 access_expr -> list_heredoc : build_list_heredoc('$1').
 access_expr -> bit_string : '$1'.
 access_expr -> sigil : build_sigil('$1').
-access_expr -> atom : handle_literal(?exprs('$1'), '$1', delimiter(<<$:>>)).
-access_expr -> atom_safe : build_quoted_atom('$1', true, delimiter(<<$:>>)).
-access_expr -> atom_unsafe : build_quoted_atom('$1', false, delimiter(<<$:>>)).
+access_expr -> atom : handle_literal(?exprs('$1'), '$1').
+access_expr -> atom_safe : build_quoted_atom('$1', true, []).
+access_expr -> atom_unsafe : build_quoted_atom('$1', false, []).
 access_expr -> dot_alias : '$1'.
 access_expr -> parens_call : '$1'.
 
@@ -526,12 +526,12 @@ call_args_parens -> open_paren call_args_parens_base ',' kw_base ',' close_paren
 
 % KV
 
-kw_eol -> kw_identifier : handle_literal(?exprs('$1'), '$1').
-kw_eol -> kw_identifier eol : handle_literal(?exprs('$1'), '$1').
-kw_eol -> kw_identifier_safe : build_quoted_atom('$1', true, []).
-kw_eol -> kw_identifier_safe eol : build_quoted_atom('$1', true, []).
-kw_eol -> kw_identifier_unsafe : build_quoted_atom('$1', false, []).
-kw_eol -> kw_identifier_unsafe eol : build_quoted_atom('$1', false, []).
+kw_eol -> kw_identifier : handle_literal(?exprs('$1'), '$1', [{format, keyword}]).
+kw_eol -> kw_identifier eol : handle_literal(?exprs('$1'), '$1', [{format, keyword}]).
+kw_eol -> kw_identifier_safe : build_quoted_atom('$1', true, [{format, keyword}]).
+kw_eol -> kw_identifier_safe eol : build_quoted_atom('$1', true, [{format, keyword}]).
+kw_eol -> kw_identifier_unsafe : build_quoted_atom('$1', false, [{format, keyword}]).
+kw_eol -> kw_identifier_unsafe eol : build_quoted_atom('$1', false, [{format, keyword}]).
 
 kw_base -> kw_eol container_expr : [{'$1', '$2'}].
 kw_base -> kw_base ',' kw_eol container_expr : [{'$3', '$4'} | '$1'].
