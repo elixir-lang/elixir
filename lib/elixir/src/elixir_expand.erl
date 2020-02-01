@@ -1280,8 +1280,8 @@ format_error({unknown_variable, Name}) ->
   io_lib:format("variable \"~ts\" does not exist and is being expanded to \"~ts()\","
                 " please use parentheses to remove the ambiguity or change the variable name", [Name, Name]);
 format_error({no_parens_nullary_remote, Remote, Fun}) ->
-  io_lib:format("missing parenthesis on call to ~ts.~ts/0. "
-                "parenthesis are always required on function calls without arguments",
+  io_lib:format("missing parentheses on call to ~ts.~ts/0. "
+                "Parentheses are always required on function calls without arguments",
                 [elixir_aliases:inspect(Remote), Fun]);
 format_error({parens_remote_capture, Remote, Fun}) ->
   io_lib:format("extra parentheses on a remote function capture &~ts.~ts()/0 have been "
