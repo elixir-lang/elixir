@@ -1284,8 +1284,8 @@ format_error({no_parens_nullary_remote, Remote, Fun}) ->
                 "parenthesis are always required on function calls without arguments",
                 [elixir_aliases:inspect(Remote), Fun]);
 format_error({parens_remote_capture, Remote, Fun}) ->
-  io_lib:format("extra parentheses on a remote function capture &~ts.~ts()/0 has been "
-                 "deprecated. change it to parentheses-less form: &~ts.~ts/0",
+  io_lib:format("extra parentheses on a remote function capture &~ts.~ts()/0 have been "
+                 "deprecated. Please remove the parentheses: &~ts.~ts/0",
                  [elixir_aliases:inspect(Remote), Fun, elixir_aliases:inspect(Remote), Fun]);
 format_error({parens_map_lookup_guard, Map, Field}) ->
   io_lib:format("cannot invoke remote function in guard. "

@@ -1778,7 +1778,7 @@ defmodule Kernel.WarningTest do
              TestMod.foo
              """)
            end) =~
-             "missing parenthesis on call to TestMod.foo/0. parenthesis are always required on function calls without arguments"
+             "missing parentheses on call to TestMod.foo/0. Parentheses are always required on function calls without arguments"
   after
     purge(TestMod)
   end
