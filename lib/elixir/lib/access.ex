@@ -697,7 +697,7 @@ defmodule Access do
     end
   end
 
-  defp get_and_update_at(list, index, next, updates) when index < 0 do
+  defp get_and_update_at([_ | _] = list, index, next, updates) when index < 0 do
     list_length = length(list)
 
     if list_length + index >= 0 do
