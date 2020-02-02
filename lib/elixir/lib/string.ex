@@ -1531,7 +1531,7 @@ defmodule String do
     :binary.copy(subject, n)
   end
 
-  @doc """
+  @doc ~S"""
   Returns all code points in the string.
 
   For details about code points and graphemes, see the `String` module documentation.
