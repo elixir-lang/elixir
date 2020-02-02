@@ -626,7 +626,7 @@ defmodule Calendar do
          %{preferred_datetime_invoked: true},
          _acc
        ) do
-    raise RuntimeError,
+    raise ArgumentError,
           "tried to format preferred_datetime within another preferred_datetime format"
   end
 
@@ -733,7 +733,7 @@ defmodule Calendar do
          %{preferred_date_invoked: true},
          _acc
        ) do
-    raise RuntimeError,
+    raise ArgumentError,
           "tried to format preferred_date within another preferred_date format"
   end
 
@@ -755,7 +755,7 @@ defmodule Calendar do
          %{preferred_time_invoked: true},
          _acc
        ) do
-    raise RuntimeError,
+    raise ArgumentError,
           "tried to format preferred_time within another preferred_time format"
   end
 
@@ -807,6 +807,11 @@ defmodule Calendar do
   defp format_modifiers("Z" <> rest, width, pad, datetime, format_options, acc) do
     result = datetime |> Map.get(:zone_abbr, "") |> pad_leading(width, pad)
     parse(rest, datetime, format_options, [result | acc])
+  end
+
+  defp format_modifiers(rest, _width, _pad, _datetime, _format_options, _acc) do
+    {next, _rest} = String.next_grapheme(rest) || {"", ""}
+    raise ArgumentError, "invalid strftime format: %#{next}"
   end
 
   defp pad_preferred(result, width, pad) when length(result) < width do
