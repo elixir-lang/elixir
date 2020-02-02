@@ -25,6 +25,21 @@ defmodule Mix.TasksServer do
     Agent.update(@name, &Map.drop(&1, many), @timeout)
   end
 
+  def delete_task_for_all_projects({:task, task}) do
+    Agent.update(
+      @name,
+      fn map ->
+        map
+        |> Enum.reject(fn
+          {{:task, ^task, _}, _} -> true
+          _ -> false
+        end)
+        |> Enum.into(%{})
+      end,
+      @timeout
+    )
+  end
+
   def clear() do
     Agent.update(@name, fn _ -> %{} end, @timeout)
   end

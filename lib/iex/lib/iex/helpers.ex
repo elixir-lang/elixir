@@ -122,6 +122,9 @@ defmodule IEx.Helpers do
     Mix.Task.reenable("compile")
     Mix.Task.reenable("compile.all")
     Mix.Task.reenable("compile.protocols")
+    Mix.Task.reenable("deps.loadpaths")
+    Mix.Task.reenable("deps.precompile")
+    Mix.Task.reenable("loadpaths")
     compilers = config[:compilers] || Mix.compilers()
     Enum.each(compilers, &Mix.Task.reenable("compile.#{&1}"))
   end

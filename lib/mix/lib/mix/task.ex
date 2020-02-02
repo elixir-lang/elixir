@@ -428,6 +428,7 @@ defmodule Mix.Task do
     recursive = (module = get(task)) && recursive(module)
 
     Mix.TasksServer.delete_many([{:task, task, proj}, {:alias, task, proj}])
+    Mix.TasksServer.delete_task_for_all_projects({:task, task})
 
     cond do
       recursive && Mix.Project.umbrella?() ->
