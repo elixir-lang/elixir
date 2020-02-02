@@ -16,54 +16,56 @@ defmodule CalendarTest do
     test "raises error when trying to format a date with a map that has no date fields" do
       time_without_date = %{hour: 15, minute: 47, second: 34, microsecond: {0, 0}}
 
-      assert_raise(KeyError, fn -> Calendar.strftime(time_without_date, "%x") end)
+      assert_raise KeyError, fn -> Calendar.strftime(time_without_date, "%x") end
     end
 
     test "raises error when trying to format a time with a map that has no time fields" do
       date_without_time = %{year: 2019, month: 8, day: 20}
 
-      assert_raise(KeyError, fn -> Calendar.strftime(date_without_time, "%X") end)
+      assert_raise KeyError, fn -> Calendar.strftime(date_without_time, "%X") end
     end
 
     test "raises error when the format is invalid" do
-      assert_raise(FunctionClauseError, fn ->
+      assert_raise ArgumentError, "invalid strftime format: %-", fn ->
         Calendar.strftime(~N[2019-08-20 15:47:34.001], "%-2-ç")
-      end)
+      end
+
+      assert_raise ArgumentError, "invalid strftime format: %", fn ->
+        Calendar.strftime(~N[2019-08-20 15:47:34.001], "%")
+      end
     end
 
     test "raises error when the preferred_datetime calls itself" do
-      assert_raise(RuntimeError, fn ->
+      assert_raise ArgumentError, fn ->
         Calendar.strftime(~N[2019-08-20 15:47:34.001], "%c", preferred_datetime: "%c")
-      end)
+      end
     end
 
     test "raises error when the preferred_date calls itself" do
-      assert_raise(RuntimeError, fn ->
+      assert_raise ArgumentError, fn ->
         Calendar.strftime(~N[2019-08-20 15:47:34.001], "%x", preferred_date: "%x")
-      end)
+      end
     end
 
     test "raises error when the preferred_time calls itself" do
-      assert_raise(RuntimeError, fn ->
+      assert_raise ArgumentError, fn ->
         Calendar.strftime(~N[2019-08-20 15:47:34.001], "%X", preferred_time: "%X")
-      end)
+      end
     end
 
     test "raises error when the preferred formats creates a circular chain" do
-      assert_raise(RuntimeError, fn ->
+      assert_raise ArgumentError, fn ->
         Calendar.strftime(~N[2019-08-20 15:47:34.001], "%c",
           preferred_datetime: "%x",
           preferred_date: "%X",
           preferred_time: "%c"
         )
-      end)
+      end
     end
 
     test "with preferred formats are included multiple times on the same string" do
-      assert(
-        Calendar.strftime(~N[2019-08-15 17:07:57.001], "%c %c %x %x %X %X") ==
-          "2019-08-15 17:07:57 2019-08-15 17:07:57 2019-08-15 2019-08-15 17:07:57 17:07:57"
-      )
+      assert Calendar.strftime(~N[2019-08-15 17:07:57.001], "%c %c %x %x %X %X") ==
+               "2019-08-15 17:07:57 2019-08-15 17:07:57 2019-08-15 2019-08-15 17:07:57 17:07:57"
     end
 
     test "`-` removes padding" do
