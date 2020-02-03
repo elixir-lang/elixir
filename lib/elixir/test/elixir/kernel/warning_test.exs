@@ -1775,8 +1775,6 @@ defmodule Kernel.WarningTest do
              """)
            end) =~
              "missing parentheses on call to System.pid/0. Parentheses are always required on function calls without arguments"
-  after
-    purge(TestMod)
   end
 
   test "deprecate nullary remote zero-arity capture with parens" do
