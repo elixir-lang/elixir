@@ -107,6 +107,7 @@ defmodule Stream do
   @type index :: non_neg_integer
 
   @type default :: any
+  @type timer :: non_neg_integer | :infinity
 
   # Require Stream.Reducers and its callbacks
   require Stream.Reducers, as: R
@@ -505,8 +506,10 @@ defmodule Stream do
       [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 
   """
-  @spec interval(non_neg_integer) :: Enumerable.t()
-  def interval(n) when is_integer(n) and n >= 0 do
+  @spec interval(timer()) :: Enumerable.t()
+  def interval(n)
+      when is_integer(n) and n >= 0
+      when n == :infinity do
     unfold(0, fn count ->
       Process.sleep(n)
       {count, count + 1}
@@ -787,8 +790,10 @@ defmodule Stream do
       [0]
 
   """
-  @spec timer(non_neg_integer) :: Enumerable.t()
-  def timer(n) when is_integer(n) and n >= 0 do
+  @spec timer(timer()) :: Enumerable.t()
+  def timer(n)
+      when is_integer(n) and n >= 0
+      when n == :infinity do
     take(interval(n), 1)
   end
 
