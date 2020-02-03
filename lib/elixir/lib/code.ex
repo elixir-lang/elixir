@@ -1294,6 +1294,8 @@ defmodule Code do
   module is compiled. Returns false when the current process is not capable
   of compiling code and `ensure_compiled/1` simply falls back to `ensure_loaded/2`.
   """
+  @doc since: "1.11.0"
+  @spec ensure_compilable? :: boolean
   def ensure_compilable? do
     Process.info(self(), :error_handler) == {:error_handler, Kernel.ErrorHandler}
   end
