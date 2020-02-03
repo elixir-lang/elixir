@@ -648,6 +648,7 @@ defmodule Task do
       [2, 5]
 
   """
+  @doc since: "1.11.0"
   @spec await_many([t], timeout) :: [term]
   def await_many(tasks, timeout \\ 5000) when is_timeout(timeout) do
     awaiting =
