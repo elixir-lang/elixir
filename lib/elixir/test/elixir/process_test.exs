@@ -100,7 +100,6 @@ defmodule ProcessTest do
         end
       end)
 
-    
     true = Process.exit(pid, :normal)
     refute_receive {:EXIT, ^pid, :normal}
     assert Process.alive?(pid)
