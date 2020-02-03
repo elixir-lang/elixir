@@ -91,6 +91,8 @@ defmodule ProcessTest do
   end
 
   test "exit(pid, :normal) does not cause the target process to exit" do
+    Process.flag(:trap_exit, true)
+
     pid =
       spawn_link(fn ->
         receive do
@@ -98,7 +100,7 @@ defmodule ProcessTest do
         end
       end)
 
-    trap = Process.flag(:trap_exit, true)
+    
     true = Process.exit(pid, :normal)
     refute_receive {:EXIT, ^pid, :normal}
     assert Process.alive?(pid)
@@ -106,26 +108,6 @@ defmodule ProcessTest do
     # now exit the process for real so it doesn't hang around
     true = Process.exit(pid, :abnormal)
     assert_receive {:EXIT, ^pid, :abnormal}
-    refute Process.alive?(pid)
-
-    Process.flag(:trap_exit, trap)
-  end
-
-  test "exit(pid, :normal) makes the process receive a message if it traps exits" do
-    parent = self()
-
-    pid =
-      spawn_link(fn ->
-        Process.flag(:trap_exit, true)
-
-        receive do
-          {:EXIT, ^parent, :normal} -> send(parent, {:ok, self()})
-        end
-      end)
-
-    refute_receive _
-    Process.exit(pid, :normal)
-    assert_receive {:ok, ^pid}
     refute Process.alive?(pid)
   end
 
