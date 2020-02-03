@@ -501,6 +501,7 @@ defmodule Calendar do
       ...>)
       "август"
   """
+  @doc since: "1.11.0"
   @spec strftime(map(), String.t(), keyword()) :: String.t()
   def strftime(date_or_time_or_datetime, string_format, user_options \\ []) do
     parse(
