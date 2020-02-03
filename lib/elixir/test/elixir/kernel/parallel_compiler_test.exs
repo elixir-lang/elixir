@@ -236,6 +236,37 @@ defmodule Kernel.ParallelCompilerTest do
       purge([FooCircular, BarCircular])
     end
 
+    test "handles async compilation" do
+      [foo, bar] =
+        write_tmp(
+          "async_compile",
+          foo: """
+          defmodule FooAsync do
+            true = Code.ensure_compilable?()
+
+            Kernel.ParallelCompiler.async(fn ->
+              true = Code.ensure_compilable?()
+              BarAsync.__info__(:module)
+            end)
+          end
+          """,
+          bar: """
+          defmodule BarAsync do
+            true = Code.ensure_compilable?()
+          end
+          """
+        )
+
+      capture_io(fn ->
+        fixtures = [foo, bar]
+        assert assert {:ok, modules, []} = Kernel.ParallelCompiler.compile(fixtures)
+        assert FooAsync in modules
+        assert BarAsync in modules
+      end)
+    after
+      purge([FooAsync, BarAsync])
+    end
+
     test "handles async deadlocks" do
       [foo, bar] =
         write_tmp(

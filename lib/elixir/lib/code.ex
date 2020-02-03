@@ -1271,7 +1271,7 @@ defmodule Code do
   def ensure_compiled(module) when is_atom(module) do
     case :code.ensure_loaded(module) do
       {:error, :nofile} = error ->
-        if is_pid(:erlang.get(:elixir_compiler_pid)) do
+        if ensure_compilable?() do
           case Kernel.ErrorHandler.ensure_compiled(module, :module, :soft) do
             :found -> {:module, module}
             :deadlock -> {:error, :unavailable}
@@ -1284,6 +1284,18 @@ defmodule Code do
       other ->
         other
     end
+  end
+
+  @doc """
+  Checks if the current process can ensure modules are compiled.
+
+  Returns true if the current process is running inside the compiler and
+  calling `ensure_compiled/1` will halt the current process until the given
+  module is compiled. Returns false when the current process is not capable
+  of compiling code and `ensure_compiled/1` simply falls back to `ensure_loaded/2`.
+  """
+  def ensure_compilable? do
+    Process.info(self(), :error_handler) == {:error_handler, Kernel.ErrorHandler}
   end
 
   @doc false
