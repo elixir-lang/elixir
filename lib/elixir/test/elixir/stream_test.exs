@@ -499,11 +499,15 @@ defmodule StreamTest do
 
   test "interval/1" do
     stream = Stream.interval(10)
-
     {time_us, value} = :timer.tc(fn -> Enum.take(stream, 5) end)
 
     assert value == [0, 1, 2, 3, 4]
     assert time_us >= 50000
+  end
+
+  test "interval/1 with infinity" do
+    stream = Stream.interval(:infinity)
+    spawn(Stream, :run, [stream])
   end
 
   test "into/2 and run/1" do
@@ -1117,6 +1121,11 @@ defmodule StreamTest do
     # enough and we would get a difference of 9000 from
     # time to time. So a value halfway is good enough.
     assert time_us >= 5000
+  end
+
+  test "timer/1 with infinity" do
+    stream = Stream.timer(:infinity)
+    spawn(Stream, :run, [stream])
   end
 
   test "unfold/2" do
