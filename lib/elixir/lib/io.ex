@@ -334,6 +334,18 @@ defmodule IO do
     )
   end
 
+  @doc false
+  def warn_once(key, message, stacktrace_drop_levels) do
+    {:current_stacktrace, stacktrace} = Process.info(self(), :current_stacktrace)
+    stacktrace = Enum.drop(stacktrace, stacktrace_drop_levels)
+
+    if :elixir_config.warn(key, stacktrace) do
+      warn(message, stacktrace)
+    else
+      :ok
+    end
+  end
+
   @doc """
   Writes a `message` to stderr, along with the current stacktrace.
 

@@ -823,8 +823,10 @@ defmodule Supervisor do
   end
 
   def start_child(supervisor, args) when is_list(args) do
-    IO.warn(
-      "Supervisor.start_child/2 with a list of args is deprecated, please use DynamicSupervisor instead"
+    IO.warn_once(
+      {__MODULE__, :start_child},
+      "Supervisor.start_child/2 with a list of args is deprecated, please use DynamicSupervisor instead",
+      _stacktrace_drop_levels = 2
     )
 
     call(supervisor, {:start_child, args})
