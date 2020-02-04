@@ -66,6 +66,7 @@ bar) in ["foo\\\nbar", "foo\\\r\nbar"]
 
   test "sigil w" do
     assert ~w() == []
+    assert ~w([ , ]) == ["[", ",", "]"]
     assert ~w(foo bar baz) == ["foo", "bar", "baz"]
     assert ~w(foo #{:bar} baz) == ["foo", "bar", "baz"]
 
@@ -100,6 +101,7 @@ bar) in ["foo\\\nbar", "foo\\\r\nbar"]
 
   test "sigil W" do
     assert ~W() == []
+    assert ~W([ , ]) == ["[", ",", "]"]
     assert ~W(foo #{bar} baz) == ["foo", "\#{bar}", "baz"]
 
     assert ~W(foo\ bar) == ["foo\\", "bar"]
