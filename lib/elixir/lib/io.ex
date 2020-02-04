@@ -351,10 +351,10 @@ defmodule IO do
 
   It returns `:ok` if it succeeds.
 
-  Make sure to not call this function at the tail of another function,
-  due to tail call optimization a stacktrace entry would not be added
-  and the trace would incorrectly trimmed. As a workaround you can add
-  the `:ok` term after the `IO.warn("message")` call.
+  Do not call this function at the tail of another function. Due to tail
+  call optimization, a stacktrace entry would not be added and the
+  stacktrace would be incorrectly trimmed. Therefore make sure at least
+  one expression (or an atom such as `:ok`) follows the `IO.warn/1` call.
 
   ## Examples
 
