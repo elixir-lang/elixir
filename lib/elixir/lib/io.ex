@@ -351,6 +351,11 @@ defmodule IO do
 
   It returns `:ok` if it succeeds.
 
+  Make sure to not call this function at the tail of another function,
+  due to tail call optimization a stacktrace entry would not be added
+  and the trace would incorrectly trimmed. As a workaround you can add
+  the `:ok` term after the `IO.warn("message")` call.
+
   ## Examples
 
       IO.warn("variable bar is unused")
