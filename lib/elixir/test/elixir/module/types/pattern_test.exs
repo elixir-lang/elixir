@@ -51,12 +51,12 @@ defmodule Module.Types.PatternTest do
   end
 
   defp new_context() do
-    Types.head_context("types_test.ex", TypesTest, {:test, 0})
+    Types.context("types_test.ex", TypesTest, {:test, 0})
   end
 
   defp new_stack() do
     %{
-      Types.head_stack()
+      Types.stack(:pattern)
       | expr_stack: [{:foo, [], nil}]
     }
   end
@@ -82,11 +82,7 @@ defmodule Module.Types.PatternTest do
 
       assert location == [{"types_test.ex", line, {TypesTest, :test, 0}}]
 
-      assert {:<<>>, _,
-              [
-                {:"::", _, [{:foo, _, nil}, {:integer, _, _}]},
-                {:"::", _, [{:foo, _, nil}, {:binary, _, _}]}
-              ]} = expr
+      assert {:"::", _, [{:foo, _, nil}, {:binary, _, []}]} = expr
 
       assert [
                {{:foo, _, nil},

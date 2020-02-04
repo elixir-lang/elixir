@@ -31,7 +31,12 @@ defmodule Module.Types.Pattern do
   def of_pattern({:<<>>, _meta, args} = expr, stack, context) do
     stack = push_expr_stack(expr, stack)
 
-    case reduce_ok(args, context, &of_binary(&1, stack, &2)) do
+    result =
+      reduce_ok(args, context, fn expr, context ->
+        of_binary(expr, stack, context, &of_pattern/3)
+      end)
+
+    case result do
       {:ok, context} -> {:ok, :binary, context}
       {:error, reason} -> {:error, reason}
     end
@@ -111,6 +116,11 @@ defmodule Module.Types.Pattern do
     {:ok, :dynamic, context}
   end
 
+  # ^var
+  def of_pattern({:^, _meta, [var]}, stack, context) do
+    of_pattern(var, stack, context)
+  end
+
   # var
   def of_pattern(var, _stack, context) when is_var(var) do
     {type, context} = new_var(var, context)
@@ -168,6 +178,11 @@ defmodule Module.Types.Pattern do
       {:error, reason} ->
         {:error, reason}
     end
+  end
+
+  # %^var{...}
+  def of_pattern({:%, meta1, [{:^, _meta2, [var]}, args]}, stack, context) do
+    of_pattern({:%, meta1, [var, args]}, stack, context)
   end
 
   # %var{...}
@@ -340,6 +355,21 @@ defmodule Module.Types.Pattern do
          do: {:ok, :boolean, context}
   end
 
+  # The unary operators + and - are special cased to avoid common warnings until
+  # we add support for intersection types for the guard functions
+  # -integer / +integer
+  def of_guard({{:., _, [:erlang, guard]}, _, [integer]}, _stack, context)
+      when guard in [:+, :-] and is_integer(integer) do
+    {:ok, :integer, context}
+  end
+
+  # -float / +float
+  def of_guard({{:., _, [:erlang, guard]}, _, [float]}, _stack, context)
+      when guard in [:+, :-] and is_float(float) do
+    {:ok, :float, context}
+  end
+
+  # fun(args)
   def of_guard({{:., _, [:erlang, guard]}, _, args} = expr, stack, context) do
     stack = push_expr_stack(expr, stack)
     {param_types, return_type} = guard_signature(guard, length(args))
@@ -353,7 +383,7 @@ defmodule Module.Types.Pattern do
 
       with {:ok, arg_types, context} <-
              map_reduce_ok(args, context, &of_guard(&1, arg_stack, &2)),
-           {:ok, context} <- unify_call(param_types, arg_types, stack, context) do
+           {:ok, context} <- unify_call(arg_types, param_types, stack, context) do
         {arg_types, guard_sources} =
           case arg_types do
             [{:var, index} | rest_arg_types] when type_guard? ->
@@ -405,9 +435,9 @@ defmodule Module.Types.Pattern do
     %{context | types: types, traces: traces}
   end
 
-  defp unify_call(params, args, stack, context) do
-    reduce_ok(Enum.zip(params, args), context, fn {param, arg}, context ->
-      case unify(param, arg, stack, context) do
+  defp unify_call(args, params, stack, context) do
+    reduce_ok(Enum.zip(args, params), context, fn {arg, param}, context ->
+      case unify(arg, param, stack, context) do
         {:ok, _, context} -> {:ok, context}
         {:error, reason} -> {:error, reason}
       end
@@ -535,52 +565,6 @@ defmodule Module.Types.Pattern do
 
     {:ok, context}
   end
-
-  # binary-pattern :: specifier
-  defp of_binary({:"::", _meta, [expr, specifiers]} = full_expr, stack, context) do
-    {expected_type, utf?} = collect_binary_type(specifiers) || {:integer, false}
-    stack = push_expr_stack(full_expr, stack)
-
-    # Special case utf specifiers with binary literals since they allow
-    # both integer and binary literals but variables are always integer
-    if is_binary(expr) and utf? do
-      {:ok, context}
-    else
-      with {:ok, type, context} <- of_pattern(expr, stack, context),
-           {:ok, _type, context} <- unify(type, expected_type, stack, context),
-           do: {:ok, context}
-    end
-  end
-
-  # binary-pattern
-  defp of_binary(expr, stack, context) do
-    case of_pattern(expr, stack, context) do
-      {:ok, type, context} when type in [:integer, :float, :binary] ->
-        {:ok, context}
-
-      {:ok, type, _context} ->
-        {:error, {:invalid_binary_type, type}}
-
-      {:error, reason} ->
-        {:error, reason}
-    end
-  end
-
-  # Collect binary type specifiers,
-  # from `<<pattern::integer-size(10)>>` collect `integer`
-  defp collect_binary_type({:-, _meta, [left, right]}),
-    do: collect_binary_type(left) || collect_binary_type(right)
-
-  defp collect_binary_type({:integer, _, _}), do: {:integer, false}
-  defp collect_binary_type({:float, _, _}), do: {:float, false}
-  defp collect_binary_type({:bits, _, _}), do: {:binary, false}
-  defp collect_binary_type({:bitstring, _, _}), do: {:binary, false}
-  defp collect_binary_type({:bytes, _, _}), do: {:binary, false}
-  defp collect_binary_type({:binary, _, _}), do: {:binary, false}
-  defp collect_binary_type({:utf8, _, _}), do: {:integer, true}
-  defp collect_binary_type({:utf16, _, _}), do: {:integer, true}
-  defp collect_binary_type({:utf32, _, _}), do: {:integer, true}
-  defp collect_binary_type(_), do: nil
 
   defp guard_signature(name, arity) do
     Map.fetch!(@guard_functions, {name, arity})

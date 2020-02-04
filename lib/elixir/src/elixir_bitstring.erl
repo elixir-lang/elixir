@@ -41,7 +41,7 @@ expand(BitstrMeta, Fun, [{'::', Meta, [Left, Right]} | T], Acc, E, Alignment, Re
       _ -> false
     end,
 
-  EType = expr_type(ELeft),
+  {EType, _} = expr_type(ELeft),
   {ERight, EAlignment, ES} = expand_specs(EType, Meta, Right, EL, OriginalE, RequireSize or MatchSize),
   EE = {ES, OriginalE},
 
@@ -95,22 +95,23 @@ wrap_expr({'<<>>', Meta, Entries}, Acc) ->
 wrap_expr(Expr, Acc) ->
   Node =
     case expr_type(Expr) of
-      binary ->
-        {'::', [], [Expr, {binary, [], []}]};
-      float ->
-        {'::', [], [Expr, {float, [], []}]};
-      integer ->
-        {'::', [], [Expr, {integer, [], []}]};
-      default ->
-        {'::', [], [Expr, {integer, [], []}]}
+      {binary, Meta} ->
+        {'::', Meta, [Expr, {binary, Meta, []}]};
+      {float, Meta} ->
+        {'::', Meta, [Expr, {float, Meta, []}]};
+      {integer, Meta} ->
+        {'::', Meta, [Expr, {integer, Meta, []}]};
+      {default, Meta} ->
+        {'::', Meta, [Expr, {integer, Meta, []}]}
     end,
   {[Node | Acc], 0}.
 
-expr_type(Integer) when is_integer(Integer) -> integer;
-expr_type(Float) when is_float(Float) -> float;
-expr_type(Binary) when is_binary(Binary) -> binary;
-expr_type({'<<>>', _, _}) -> bitstring;
-expr_type(_) -> default.
+expr_type(Integer) when is_integer(Integer) -> {integer, []};
+expr_type(Float) when is_float(Float) -> {float, []};
+expr_type(Binary) when is_binary(Binary) -> {binary, []};
+expr_type({'<<>>', Meta, _}) -> {bitstring, Meta};
+expr_type({_, Meta, _}) -> {default, Meta};
+expr_type(_) -> {default, []}.
 
 %% Handling of alignment
 

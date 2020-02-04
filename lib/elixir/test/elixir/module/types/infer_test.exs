@@ -11,12 +11,12 @@ defmodule Module.Types.InferTest do
   end
 
   defp new_context() do
-    Types.head_context("types_test.ex", TypesTest, {:test, 0})
+    Types.context("types_test.ex", TypesTest, {:test, 0})
   end
 
   defp new_stack() do
     %{
-      Types.head_stack()
+      Types.stack(:pattern)
       | expr_stack: [{:foo, [], nil}]
     }
   end
@@ -208,13 +208,13 @@ defmodule Module.Types.InferTest do
 
       assert {:ok, {:var, _}, context} = unify({:var, 0}, {:var, 1}, var_context)
 
-      assert {:error, {{:unable_unify, {:var, 1}, {:tuple, [{:var, 0}]}, _, _}, _}} =
+      assert {:error, {{:unable_unify, {:var, 0}, {:tuple, [{:var, 0}]}, _, _}, _}} =
                unify_lift({:var, 1}, {:tuple, [{:var, 0}]}, context)
 
       assert {:ok, {:var, _}, context} = unify({:var, 0}, {:var, 1}, var_context)
       assert {:ok, {:var, _}, context} = unify({:var, 1}, {:var, 2}, context)
 
-      assert {:error, {{:unable_unify, {:var, 2}, {:tuple, [{:var, 0}]}, _, _}, _}} =
+      assert {:error, {{:unable_unify, {:var, 0}, {:tuple, [{:var, 0}]}, _, _}, _}} =
                unify_lift({:var, 2}, {:tuple, [{:var, 0}]}, context)
     end
   end

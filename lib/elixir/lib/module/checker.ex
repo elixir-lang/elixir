@@ -7,7 +7,7 @@ defmodule Module.Checker do
     case prepare_module(module) do
       {:ok, map} ->
         undefined_and_deprecation_warnings = undefined_and_deprecation_warnings(map, cache)
-        infer_warnings = infer_definitions(map)
+        infer_warnings = Module.Types.infer_definitions(map.file, map.module, map.definitions)
         warnings = infer_warnings ++ undefined_and_deprecation_warnings
         emit_warnings(warnings)
 
@@ -67,11 +67,6 @@ defmodule Module.Checker do
     else
       _ -> :error
     end
-  end
-
-  defp infer_definitions(map) do
-    results = Module.Types.infer_definitions(map.file, map.module, map.definitions)
-    Enum.flat_map(results, fn {_function, reasons} -> reasons end)
   end
 
   defp undefined_and_deprecation_warnings(map, cache) do
