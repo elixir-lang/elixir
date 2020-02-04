@@ -5432,7 +5432,8 @@ defmodule Kernel do
       true ->
         parts = String.split(string)
 
-        parts_with_trailing_comma = :lists.filter(&(:binary.last(&1) == ?,), parts)
+        parts_with_trailing_comma =
+          :lists.filter(&(byte_size(&1) > 1 and :binary.last(&1) == ?,), parts)
 
         if parts_with_trailing_comma != [] do
           stacktrace = Macro.Env.stacktrace(caller)
