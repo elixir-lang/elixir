@@ -304,12 +304,13 @@ defmodule IO do
   (in case --warnings-as-errors was enabled). It returns `:ok`
   if it succeeds.
 
+  `Process.stacktrace/1` can be used to get the current stacktrace.
+
   An empty list can be passed to avoid stacktrace printing.
 
   ## Examples
 
-      stacktrace = [{MyApp, :main, 1, [file: 'my_app.ex', line: 4]}]
-      IO.warn("variable bar is unused", stacktrace)
+      IO.warn("variable bar is unused", Process.stacktrace(drop: 1))
       #=> warning: variable bar is unused
       #=>   my_app.ex:4: MyApp.main/1
 
@@ -348,8 +349,16 @@ defmodule IO do
   """
   @spec warn(chardata | String.Chars.t()) :: :ok
   def warn(message) do
-    {:current_stacktrace, stacktrace} = Process.info(self(), :current_stacktrace)
-    warn(message, Enum.drop(stacktrace, 2))
+    warn(message, Process.stacktrace(drop: 2))
+  end
+
+  @doc false
+  def warn_once(key, message, stacktrace) do
+    if :elixir_config.warn(key, stacktrace) do
+      warn(message, stacktrace)
+    else
+      :ok
+    end
   end
 
   @doc """
