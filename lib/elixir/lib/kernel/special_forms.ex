@@ -717,8 +717,7 @@ defmodule Kernel.SpecialForms do
   It is available only in the `catch` and `rescue` clauses of `try/1`
   expressions.
 
-  To retrieve the stacktrace of the current process, use
-  `Process.info(self(), :current_stacktrace)` instead.
+  To retrieve the stacktrace of the current process, use `Process.stacktrace()` instead.
   """
   @doc since: "1.7.0"
   defmacro __STACKTRACE__, do: error!([])

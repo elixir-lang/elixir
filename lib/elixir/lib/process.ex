@@ -766,6 +766,22 @@ defmodule Process do
   end
 
   @doc """
+  Returns the stacktrace of the current process.
+
+  To retrieve the stacktrace of an exception use `__STACKTRACE__` instead.
+
+  ## Options
+
+    * `:drop` - Number of stacktrace entries to drop, the call to this
+      function will always add one entry unless it's a tail call
+  """
+  @spec stacktrace(Keyword.t()) :: Exception.stacktrace()
+  def stacktrace(opts \\ []) do
+    {:current_stacktrace, stacktrace} = :erlang.process_info(self(), :current_stacktrace)
+    Enum.drop(stacktrace, Keyword.get(opts, :drop, 0))
+  end
+
+  @doc """
   Puts the calling process into a "hibernation" state.
 
   The calling process is put into a waiting state

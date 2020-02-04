@@ -62,6 +62,11 @@ defmodule ProcessTest do
     assert Process.info(self(), [:registered_name]) == [registered_name: __MODULE__]
   end
 
+  test "stacktrace/1" do
+    assert [{Process, :stacktrace, 1, _} | _] = Process.stacktrace()
+    assert [{ProcessTest, :"test stacktrace/1", 1, _} | _] = Process.stacktrace(drop: 1)
+  end
+
   test "send_after/3 sends messages once expired" do
     Process.send_after(self(), :hello, 10)
     assert_receive :hello

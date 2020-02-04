@@ -585,7 +585,7 @@ defmodule System do
   Note that the Erlang VM (and therefore this function) does not
   return the current stacktrace but rather the stacktrace of the
   latest exception. To retrieve the stacktrace of the current process,
-  use `Process.info(self(), :current_stacktrace)` instead.
+  use `Process.stacktrace()` instead.
   """
   # TODO: Fully deprecate it on Elixir v1.12 via @deprecated
   # It is currently partially deprecated in elixir_dispatch.erl
