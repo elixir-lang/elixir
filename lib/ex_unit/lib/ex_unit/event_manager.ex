@@ -32,7 +32,8 @@ defmodule ExUnit.EventManager do
         "passing GenEvent handlers (#{inspect(handler)} in this case) in " <>
           "the :formatters option of ExUnit is deprecated, please pass a " <>
           "GenServer instead. Check the documentation for the ExUnit.Formatter " <>
-          "module for more information"
+          "module for more information",
+        Process.stacktrace(drop: 1)
       )
 
       :gen_event.add_handler(event, handler, opts)

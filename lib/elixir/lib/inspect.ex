@@ -183,13 +183,18 @@ defimpl Inspect, for: List do
             IO.warn(
               "the :char_lists inspect option and its :as_char_lists " <>
                 "value are deprecated, use the :charlists option and its " <>
-                ":as_charlists value instead"
+                ":as_charlists value instead",
+              Process.stacktrace(drop: 1)
             )
 
             :as_charlists
 
           _ ->
-            IO.warn("the :char_lists inspect option is deprecated, use :charlists instead")
+            IO.warn(
+              "the :char_lists inspect option is deprecated, use :charlists instead",
+              Process.stacktrace(drop: 1)
+            )
+
             lists_deprecated
         end
       else

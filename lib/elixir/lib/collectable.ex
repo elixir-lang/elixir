@@ -85,7 +85,8 @@ defimpl Collectable, for: List do
           "things like Enum.into/2 or \"for\" comprehensions with an :into option is incorrect " <>
           "when collecting into non-empty lists. If you're collecting into a non-empty keyword " <>
           "list, consider using Keyword.merge/2 instead. If you're collecting into a non-empty " <>
-          "list, consider concatenating the two lists with the ++ operator."
+          "list, consider concatenating the two lists with the ++ operator.",
+        Process.stacktrace(drop: 1)
       )
     end
 

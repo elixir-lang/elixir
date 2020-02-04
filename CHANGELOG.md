@@ -31,6 +31,8 @@
 
 ### 3. Soft-deprecations (no warnings emitted)
 
+  * [IO] `warn/1` is deprecated in favor of `warn/2`
+
 ### 4. Hard-deprecations
 
 #### Elixir

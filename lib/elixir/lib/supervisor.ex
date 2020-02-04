@@ -602,7 +602,8 @@ defmodule Supervisor do
 
         :simple_one_for_one ->
           IO.warn(
-            ":simple_one_for_one strategy is deprecated, please use DynamicSupervisor instead"
+            ":simple_one_for_one strategy is deprecated, please use DynamicSupervisor instead",
+            Process.stacktrace(drop: 1)
           )
 
           :simple_one_for_one
@@ -855,7 +856,8 @@ defmodule Supervisor do
 
   def terminate_child(supervisor, pid) when is_pid(pid) do
     IO.warn(
-      "Supervisor.terminate_child/2 with a PID is deprecated, please use DynamicSupervisor instead"
+      "Supervisor.terminate_child/2 with a PID is deprecated, please use DynamicSupervisor instead",
+      Process.stacktrace(drop: 1)
     )
 
     call(supervisor, {:terminate_child, pid})

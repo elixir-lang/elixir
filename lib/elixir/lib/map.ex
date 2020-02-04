@@ -395,7 +395,8 @@ defmodule Map do
   def take(map, keys) when is_map(map) do
     IO.warn(
       "Map.take/2 with an Enumerable of keys that is not a list is deprecated. " <>
-        " Use a list of keys instead."
+        " Use a list of keys instead.",
+      Process.stacktrace(drop: 1)
     )
 
     take(map, Enum.to_list(keys))
@@ -714,7 +715,8 @@ defmodule Map do
   def drop(map, keys) when is_map(map) do
     IO.warn(
       "Map.drop/2 with an Enumerable of keys that is not a list is deprecated. " <>
-        " Use a list of keys instead."
+        " Use a list of keys instead.",
+      Process.stacktrace(drop: 1)
     )
 
     drop(map, Enum.to_list(keys))
@@ -754,7 +756,8 @@ defmodule Map do
   def split(map, keys) when is_map(map) do
     IO.warn(
       "Map.split/2 with an Enumerable of keys that is not a list is deprecated. " <>
-        " Use a list of keys instead."
+        " Use a list of keys instead.",
+      Process.stacktrace(drop: 1)
     )
 
     split(map, Enum.to_list(keys))

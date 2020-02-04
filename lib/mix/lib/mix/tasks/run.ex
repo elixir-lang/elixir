@@ -102,7 +102,8 @@ defmodule Mix.Tasks.Run do
         {:parallel_require, value} ->
           IO.warn(
             "the --parallel-require option is deprecated in favour of using " <>
-              "--parallel to make all requires parallel and --require VAL for requiring"
+              "--parallel to make all requires parallel and --require VAL for requiring",
+            Process.stacktrace(drop: 1)
           )
 
           [require: value, parallel: true]
@@ -157,7 +158,8 @@ defmodule Mix.Tasks.Run do
         # TODO: Remove on v2.0.
         IO.warn(
           "the --config flag is deprecated. If you need to handle multiple configurations, " <>
-            "it is preferable to dynamically import them in your config files"
+            "it is preferable to dynamically import them in your config files",
+          Process.stacktrace(drop: 1)
         )
 
         Mix.Task.run("loadconfig", [value])

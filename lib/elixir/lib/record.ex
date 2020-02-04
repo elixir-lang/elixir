@@ -314,7 +314,7 @@ defmodule Record do
   end
 
   defp warn_on_duplicate_key([{key, _} | [{key, _} | _] = rest]) do
-    IO.warn("duplicate key #{inspect(key)} found in record")
+    IO.warn("duplicate key #{inspect(key)} found in record", Process.stacktrace(drop: 3))
     warn_on_duplicate_key(rest)
   end
 

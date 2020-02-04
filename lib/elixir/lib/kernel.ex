@@ -4539,7 +4539,8 @@ defmodule Kernel do
                 "Please make sure to only give known fields when raising " <>
                 "or redefine #{Kernel.inspect(__MODULE__)}.exception/1 to " <>
                 "discard unknown fields. Future Elixir versions will raise on " <>
-                "unknown fields given to raise/2"
+                "unknown fields given to raise/2",
+              Process.stacktrace(drop: 1)
             )
         end
 
@@ -5436,12 +5437,10 @@ defmodule Kernel do
           :lists.filter(&(byte_size(&1) > 1 and :binary.last(&1) == ?,), parts)
 
         if parts_with_trailing_comma != [] do
-          stacktrace = Macro.Env.stacktrace(caller)
-
           IO.warn(
             "the sigils ~w/~W do not allow trailing commas at the end of each word. " <>
               "If the comma is necessary, define a regular list with [...], otherwise remove the comma.",
-            stacktrace
+            Macro.Env.stacktrace(caller)
           )
         end
 

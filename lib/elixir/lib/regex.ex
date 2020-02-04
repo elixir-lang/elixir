@@ -847,7 +847,11 @@ defmodule Regex do
   defp translate_options(<<?m, t::binary>>, acc), do: translate_options(t, [:multiline | acc])
 
   defp translate_options(<<?r, t::binary>>, acc) do
-    IO.warn("the /r modifier in regular expressions is deprecated, please use /U instead")
+    IO.warn(
+      "the /r modifier in regular expressions is deprecated, please use /U instead",
+      Process.stacktrace(drop: 3)
+    )
+
     translate_options(t, [:ungreedy | acc])
   end
 

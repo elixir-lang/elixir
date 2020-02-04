@@ -347,6 +347,7 @@ defmodule IO do
       #=>   (iex) evaluator.ex:108: IEx.Evaluator.eval/4
 
   """
+  # TODO: Fully deprecate it on Elixir v1.13 via @deprecated
   @spec warn(chardata | String.Chars.t()) :: :ok
   def warn(message) do
     warn(message, Process.stacktrace(drop: 2))

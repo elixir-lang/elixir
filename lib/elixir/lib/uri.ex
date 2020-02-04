@@ -135,7 +135,11 @@ defmodule URI do
   def decode_query(query, map \\ %{})
 
   def decode_query(query, %_{} = dict) when is_binary(query) do
-    IO.warn("URI.decode_query/2 is deprecated, please use URI.decode_query/1")
+    IO.warn(
+      "URI.decode_query/2 is deprecated, please use URI.decode_query/1",
+      Process.stacktrace(drop: 1)
+    )
+
     decode_query_into_dict(query, dict)
   end
 
@@ -144,7 +148,11 @@ defmodule URI do
   end
 
   def decode_query(query, dict) when is_binary(query) do
-    IO.warn("URI.decode_query/2 is deprecated, please use URI.decode_query/1")
+    IO.warn(
+      "URI.decode_query/2 is deprecated, please use URI.decode_query/1",
+      Process.stacktrace(drop: 1)
+    )
+
     decode_query_into_dict(query, dict)
   end
 

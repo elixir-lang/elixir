@@ -93,7 +93,7 @@ defmodule Behaviour do
           "use the @callback and @macrocallback module attributes. See the " <>
           "documentation for Module for more information on these attributes"
 
-      IO.warn(warning)
+      IO.warn(warning, Process.stacktrace(drop: 1))
 
       @doc false
       def __behaviour__(:callbacks) do

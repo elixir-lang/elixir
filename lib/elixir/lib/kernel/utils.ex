@@ -116,7 +116,7 @@ defmodule Kernel.Utils do
   end
 
   defp warn_on_duplicate_struct_key([{key, _} | [{key, _} | _] = rest]) do
-    IO.warn("duplicate key #{inspect(key)} found in struct")
+    IO.warn("duplicate key #{inspect(key)} found in struct", Process.stacktrace(drop: 2))
     warn_on_duplicate_struct_key(rest)
   end
 

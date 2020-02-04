@@ -140,7 +140,8 @@ defmodule EEx.Engine do
         IO.warn(
           "assign @#{key} not available in EEx template. " <>
             "Please ensure all assigns are given as options. " <>
-            "Available assigns: #{inspect(keys)}"
+            "Available assigns: #{inspect(keys)}",
+          Process.stacktrace(drop: 1)
         )
 
         nil

@@ -1774,7 +1774,7 @@ defmodule File do
   # TODO: Remove :char_list mode on v2.0
   defp normalize_modes([mode | rest], _binary?) when mode in [:charlist, :char_list] do
     if mode == :char_list do
-      IO.warn("the :char_list mode is deprecated, use :charlist")
+      IO.warn("the :char_list mode is deprecated, use :charlist", Process.stacktrace(drop: 2))
     end
 
     normalize_modes(rest, false)

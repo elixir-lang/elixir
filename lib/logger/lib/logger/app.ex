@@ -102,7 +102,8 @@ defmodule Logger.App do
           IO.warn(
             "the level for Erlang's logger was set to #{inspect(erl_level)}, " <>
               "but Elixir's logger was set to #{inspect(app_level)}. " <>
-              "Elixir's logger value will take higher precedence"
+              "Elixir's logger value will take higher precedence",
+            []
           )
         end
 

@@ -85,7 +85,8 @@ defmodule Task.Supervisor do
     if restart || shutdown do
       IO.warn(
         ":restart and :shutdown options in Task.Supervisor.start_link/1 " <>
-          "are deprecated. Please pass those options on start_child/3 instead"
+          "are deprecated. Please pass those options on start_child/3 instead",
+        Process.stacktrace(drop: 1)
       )
     end
 

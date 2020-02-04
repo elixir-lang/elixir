@@ -452,7 +452,11 @@ defmodule OptionParser do
         option_key = config.aliases[key]
 
         if key && option_key do
-          IO.warn("multi-letter aliases are deprecated, got: #{inspect(key)}")
+          IO.warn(
+            "multi-letter aliases are deprecated, got: #{inspect(key)}",
+            Process.stacktrace(drop: 2)
+          )
+
           next_tagged({:default, option_key}, value, original, rest, config)
         else
           next_with_config(expand_multiletter_alias(letters, value) ++ rest, config)
@@ -604,7 +608,11 @@ defmodule OptionParser do
           {strict, true}
 
         true ->
-          IO.warn("not passing the :switches or :strict option to OptionParser is deprecated")
+          IO.warn(
+            "not passing the :switches or :strict option to OptionParser is deprecated",
+            Process.stacktrace(drop: 2)
+          )
+
           {[], false}
       end
 
