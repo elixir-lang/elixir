@@ -406,7 +406,8 @@ format_error({try_with_only_else_clause, Origin}) ->
 format_error(unmatchable_else_in_with) ->
   "\"else\" clauses will never match because all patterns in \"with\" will always match";
 format_error(non_match_argument_in_with) ->
-  "\"with\" arguments should be matches, not statements";
+  "\"with\" requires match expressions to be given either as \"left <- right\" or \"left = right\", "
+  "please assign your expression to underscore if you want to simply execute some code and discard its value"
 
 format_error({zero_list_length_in_guard, ListArg}) ->
   Arg = 'Elixir.Macro':to_string(ListArg),
