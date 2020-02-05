@@ -68,4 +68,14 @@ defmodule Kernel.SpecialFormsTest do
       end
     end
   end
+
+  describe "with" do
+    def true_fun(), do: true
+
+    test "warns when given an argument which is not a match" do
+      with true_fun() do
+        :warn
+      end
+    end
+  end
 end
