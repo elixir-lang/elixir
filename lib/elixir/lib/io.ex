@@ -334,10 +334,27 @@ defmodule IO do
     )
   end
 
+  @doc false
+  def warn_once(key, message, stacktrace_drop_levels) do
+    {:current_stacktrace, stacktrace} = Process.info(self(), :current_stacktrace)
+    stacktrace = Enum.drop(stacktrace, stacktrace_drop_levels)
+
+    if :elixir_config.warn(key, stacktrace) do
+      warn(message, stacktrace)
+    else
+      :ok
+    end
+  end
+
   @doc """
   Writes a `message` to stderr, along with the current stacktrace.
 
   It returns `:ok` if it succeeds.
+
+  Do not call this function at the tail of another function. Due to tail
+  call optimization, a stacktrace entry would not be added and the
+  stacktrace would be incorrectly trimmed. Therefore make sure at least
+  one expression (or an atom such as `:ok`) follows the `IO.warn/1` call.
 
   ## Examples
 
