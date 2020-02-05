@@ -1794,7 +1794,7 @@ defmodule Kernel.WarningTest do
              end
              """)
            end) =~
-             "\"with\" requires match expressions to be given either as \"left <- right\" or \"left = right\", please assign your expression to underscore if you want to simply execute some code and discard its value"
+             "\"with\" requires match expressions to be given either as \"left <- right\" or \"left = right\""
   end
 
   defp purge(list) when is_list(list) do
