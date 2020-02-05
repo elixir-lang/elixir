@@ -158,7 +158,7 @@ defmodule Logger do
       dependency must be recompiled.
 
     * `:start_options` - passes start options to Logger's main process, such
-      as `:spawn_opt` and `:hibernate_after`. All options in `t:GenServer.option`
+      as `:spawn_opt` and `:hibernate_after`. All options in `t:GenServer.option/0`
       are accepted, except `:name`.
 
   For example, to configure the `:backends` and purge all calls that happen
