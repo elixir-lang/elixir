@@ -242,17 +242,17 @@ defmodule Kernel.ParallelCompilerTest do
           "async_compile",
           foo: """
           defmodule FooAsync do
-            true = Code.ensure_compilable?()
+            true = Code.can_await_module_compilation?()
 
             Kernel.ParallelCompiler.async(fn ->
-              true = Code.ensure_compilable?()
+              true = Code.can_await_module_compilation?()
               BarAsync.__info__(:module)
             end)
           end
           """,
           bar: """
           defmodule BarAsync do
-            true = Code.ensure_compilable?()
+            true = Code.can_await_module_compilation?()
           end
           """
         )

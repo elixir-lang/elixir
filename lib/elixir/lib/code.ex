@@ -1271,7 +1271,7 @@ defmodule Code do
   def ensure_compiled(module) when is_atom(module) do
     case :code.ensure_loaded(module) do
       {:error, :nofile} = error ->
-        if ensure_compilable?() do
+        if can_await_module_compilation?() do
           case Kernel.ErrorHandler.ensure_compiled(module, :module, :soft) do
             :found -> {:module, module}
             :deadlock -> {:error, :unavailable}
@@ -1287,16 +1287,17 @@ defmodule Code do
   end
 
   @doc """
-  Checks if the current process can ensure modules are compiled.
+  Returns true if the current process can await for module compilation.
 
-  Returns true if the current process is running inside the compiler and
-  calling `ensure_compiled/1` will halt the current process until the given
-  module is compiled. Returns false when the current process is not capable
-  of compiling code and `ensure_compiled/1` simply falls back to `ensure_loaded/2`.
+  When compiling Elixir code via `Kernel.ParallelCompiler`, which is
+  used by Mix and `elixirc`, calling a module that has not yet been
+  compiled will block the caller until the module becomes available.
+  Executing Elixir scripts, such as passing a filename to `elixir`,
+  does not await.
   """
   @doc since: "1.11.0"
-  @spec ensure_compilable? :: boolean
-  def ensure_compilable? do
+  @spec can_await_module_compilation? :: boolean
+  def can_await_module_compilation? do
     Process.info(self(), :error_handler) == {:error_handler, Kernel.ErrorHandler}
   end
 
