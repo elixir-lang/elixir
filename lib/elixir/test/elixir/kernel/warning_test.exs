@@ -1786,6 +1786,17 @@ defmodule Kernel.WarningTest do
              "extra parentheses on a remote function capture &System.pid()/0 have been deprecated. Please remove the parentheses: &System.pid/0"
   end
 
+  test "\"with\" warns when given an argument which is not a match" do
+    assert capture_err(fn ->
+             Code.eval_string("""
+             with fn -> true end do
+               :warn
+             end
+             """)
+           end) =~
+             "\"with\" requires match expressions to be given either as \"left <- right\" or \"left = right\""
+  end
+
   defp purge(list) when is_list(list) do
     Enum.each(list, &purge/1)
   end
