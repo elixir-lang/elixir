@@ -498,9 +498,12 @@ defmodule Kernel.CLI do
 
           verbose_opts =
             if config.verbose_compile do
-              [each_long_compilation: &IO.puts("Compiling #{&1} (it's taking more than 15s)")]
+              [each_file: &IO.puts("Compiling #{Path.relative_to_cwd(&1)}")]
             else
-              []
+              [
+                each_long_compilation:
+                  &IO.puts("Compiling #{Path.relative_to_cwd(&1)} (it's taking more than 15s)")
+              ]
             end
 
           profile_opts =
