@@ -1789,9 +1789,9 @@ defmodule Kernel.WarningTest do
   test "\"with\" warns when given an argument which is not a match" do
     assert capture_err(fn ->
              Code.eval_string("""
-                  with fn -> true end do
-                    :warn
-                  end
+             with fn -> true end do
+               :warn
+             end
              """)
            end) =~
              "\"with\" requires match expressions to be given either as \"left <- right\" or \"left = right\", please assign your expression to underscore if you want to simply execute some code and discard its value"
