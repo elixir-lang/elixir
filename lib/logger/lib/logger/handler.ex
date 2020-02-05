@@ -84,6 +84,7 @@ defmodule Logger.Handler do
 
       mode ->
         level = erlang_level_to_elixir_level(erl_level)
+        timestamp = Map.get_lazy(metadata, :time, fn -> :os.system_time(:microsecond) end)
 
         case do_log(level, msg, metadata, config) do
           :skip ->
@@ -96,7 +97,8 @@ defmodule Logger.Handler do
             event = {
               level,
               gl,
-              {Logger, truncate(message, truncate), Logger.Utils.timestamp(utc_log?), metadata}
+              {Logger, truncate(message, truncate), Logger.Utils.timestamp(timestamp, utc_log?),
+               metadata}
             }
 
             notify(mode, event)
