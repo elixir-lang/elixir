@@ -576,7 +576,7 @@ defmodule Macro do
 
   This is useful when a struct needs to be expanded at
   compilation time and the struct being expanded may or may
-  not have been compiled. This function is even capable of
+  not have been compiled. This function is also capable of
   expanding structs defined under the module being compiled.
 
   It will raise `CompileError` if the struct is not available.
