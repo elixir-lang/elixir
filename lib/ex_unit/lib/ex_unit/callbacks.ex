@@ -100,7 +100,7 @@ defmodule ExUnit.Callbacks do
         # Same as above, but receives the context as argument
         setup context do
           IO.puts("Setting up: #{context.test}")
-          
+
           # We can simply return :ok when we don't want add any extra metadata
           :ok
         end
@@ -187,6 +187,8 @@ defmodule ExUnit.Callbacks do
   Can return values to be merged into the context, to set up the state for
   tests. For more details, see the "Context" section shown above.
 
+  `setup/1` callbacks are executed in the same process as the test process.
+
   ## Examples
 
       def clean_up_tmp_directory(context) do
@@ -249,9 +251,12 @@ defmodule ExUnit.Callbacks do
   Can return values to be merged into the `context`, to set up the state for
   tests. For more details, see the "Context" section shown above.
 
+  `setup_all/1` callbacks are executed in a separate process than tests.
+  All `setup_all/1` callbacks are executed in order in the same process.
+
   ## Examples
 
-      # one-arity function name
+      # One-arity function name
       setup_all :clean_up_tmp_directory
 
       def clean_up_tmp_directory(_context) do
@@ -259,16 +264,14 @@ defmodule ExUnit.Callbacks do
         :ok
       end
 
-      # block
+      # Block
       setup_all do
         [conn: Plug.Conn.build_conn()]
       end
 
-  `setup_all` can return a keyword list, a map, or a tuple in the shape
-  of `{:ok, keyword() | map()}`, the keyword list or map will be merged
-  into the current context and will be available in all subsequent `setup_all`,
-  `setup`, and the `test` itself. For instance, the `conn` from the previous
-  example can be accessed as:
+  The context returned by `setup_all/1` will be available in all subsequent
+  `setup_all`, `setup`, and the `test` itself. For instance, the `conn` from
+  the previous example can be accessed as:
 
       test "fetches current users", %{conn: conn} do
         # ...
@@ -293,15 +296,12 @@ defmodule ExUnit.Callbacks do
   @doc """
   Defines a callback to be run before all tests in a case.
 
-  Accepts a block or the name of a one-arity function in the form of an atom,
-  or a list of such atoms.
-
-  Can return values to be merged into the `context`, to set up the state for
-  tests. For more details, see the "Context" section shown above.
+  Same as `setup_all/1` but also takes a context. See
+  the "Context" section in the module documentation.
 
   ## Examples
 
-      setup_all context do
+      setup_all _context do
         [conn: Plug.Conn.build_conn()]
       end
 
@@ -330,6 +330,22 @@ defmodule ExUnit.Callbacks do
   However, `on_exit/2` may also be called dynamically, where a
   reference can be used to guarantee the callback will be invoked
   only once.
+
+  `on_exit/2` gets executed in a blocking fashion after a test
+  exits and **before** running the next test. This means that no
+  other test from the same test case will be running while the
+  `on_exit/2` callback for a previous test is running.
+
+  `on_exit/2` is executed in a different process than the test
+  process.
+
+  ## Examples
+
+      setup do
+        File.write!("fixture.json", "{}")
+        on_exit(fn -> File.rm!("fixture.json") end)
+      end
+
   """
   @spec on_exit(term, (() -> term)) :: :ok
   def on_exit(name_or_ref \\ make_ref(), callback) when is_function(callback, 0) do
