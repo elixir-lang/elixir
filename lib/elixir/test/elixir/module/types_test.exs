@@ -161,6 +161,11 @@ defmodule Module.TypesTest do
                quoted_head([x], [is_tuple(is_atom(x))])
     end
 
+    test "erlang-only guards" do
+      assert quoted_head([x], [:erlang.size(x)]) ==
+               {:ok, [{:union, [:binary, :tuple]}]}
+    end
+
     test "failing guard functions" do
       assert quoted_head([x], [length([])]) == {:ok, [{:var, 0}]}
 

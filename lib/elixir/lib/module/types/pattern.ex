@@ -275,6 +275,7 @@ defmodule Module.Types.Pattern do
     {:binary_part, 3} => {[:binary, :integer, :integer], :binary},
     {:bit_size, 1} => {[:binary], :integer},
     {:byte_size, 1} => {[:binary], :integer},
+    {:size, 1} => {[{:union, [:binary, :tuple]}], :boolean},
     {:div, 2} => {[:integer, :integer], :integer},
     {:rem, 2} => {[:integer, :integer], :integer},
     {:node, 0} => {[], :atom},
