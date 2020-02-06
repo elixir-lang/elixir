@@ -155,6 +155,23 @@ defmodule ExUnit.AssertionsTest do
     {2, 1} = assert {2, 1} = Value.tuple()
   end
 
+  test "assert match with unused var" do
+    assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+      Code.eval_string("""
+      defmodule ExSample do
+        import ExUnit.Assertions
+
+        def run do
+          {2, 1} = assert {2, var} = ExUnit.AssertionsTest.Value.tuple()
+        end
+      end
+      """)
+    end) =~ "variable \"var\" is unused"
+  after
+    :code.delete(ExSample)
+    :code.purge(ExSample)
+  end
+
   test "assert match expands argument in match context" do
     {x, y, z} = {1, 2, 3}
     assert vec(x: ^x, y: ^y) = vec(x: x, y: y, z: z)
@@ -308,7 +325,7 @@ defmodule ExUnit.AssertionsTest do
     timeout = ok(1)
 
     try do
-      assert_receive {~l(a)}, timeout
+      assert_receive {~l(_a)}, timeout
     rescue
       error in [ArgumentError] ->
         "timeout must be a non-negative integer, got: {:ok, 1}" = error.message
