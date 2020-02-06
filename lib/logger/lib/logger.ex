@@ -525,11 +525,11 @@ defmodule Logger do
   been started, which means the configuration above would have no effect.
   """
 
-  @type level :: :error | :warn | :info | :debug
+  @type level :: :emergency | :alert | :critical | :error | :warning | :warn | :notice | :info | :debug
   @type backend :: :gen_event.handler()
   @type message :: IO.chardata() | String.Chars.t()
   @type metadata :: keyword()
-  @levels [:error, :warn, :info, :debug]
+  @levels [:emergency, :alert, :critical, :error, :warning, :notice, :info, :debug]
 
   @metadata :logger_enabled
   @compile {:inline, enabled?: 1}
@@ -840,6 +840,33 @@ defmodule Logger do
 
   defp add_elixir_domain(metadata), do: Map.put(metadata, :domain, [:elixir])
 
+  messages = [
+    "We are also out of coffee", # Airplane 2
+    "Kirov reporting", # Red Alert 2
+    "Doctor? Doctor", # Spies like us
+    "I'm sory Dave", # 2001: Space Odyssey
+    "Danger, Will Robinson", # Lost in Space
+    "Mrs. Robinson, you are trying to seduce me", # The Graduate
+    "Bond. James Bond.", # Dr. No
+    "I'm the only stick with eyeballs" # A Bug's Life
+  ]
+
+  for {level, message} <- Enum.zip(@levels, messages) do
+    @doc """
+    Logs a #{level} message.
+
+    Returns `:ok`.
+
+    ## Examples
+
+        Logger.#{level}("#{message}")
+
+    """
+    defmacro unquote(level)(chardata_or_fun, metadata \\ []) do
+      maybe_log(unquote(level), chardata_or_fun, metadata, __CALLER__)
+    end
+  end
+
   @doc """
   Logs a warning message.
 
@@ -852,49 +879,7 @@ defmodule Logger do
   """
   # TODO: Deprecate it in favour of `warning/1-2` macro
   defmacro warn(chardata_or_fun, metadata \\ []) do
-    maybe_log(:warn, chardata_or_fun, metadata, __CALLER__)
-  end
-
-  @doc """
-  Logs an info message.
-
-  Returns `:ok`.
-
-  ## Examples
-
-      Logger.info("mission accomplished")
-
-  """
-  defmacro info(chardata_or_fun, metadata \\ []) do
-    maybe_log(:info, chardata_or_fun, metadata, __CALLER__)
-  end
-
-  @doc """
-  Logs an error message.
-
-  Returns `:ok`.
-
-  ## Examples
-
-      Logger.error("oops")
-
-  """
-  defmacro error(chardata_or_fun, metadata \\ []) do
-    maybe_log(:error, chardata_or_fun, metadata, __CALLER__)
-  end
-
-  @doc """
-  Logs a debug message.
-
-  Returns `:ok`.
-
-  ## Examples
-
-      Logger.debug("hello?")
-
-  """
-  defmacro debug(chardata_or_fun, metadata \\ []) do
-    maybe_log(:debug, chardata_or_fun, metadata, __CALLER__)
+    maybe_log(:warning, chardata_or_fun, metadata, __CALLER__)
   end
 
   @doc """
@@ -971,6 +956,9 @@ defmodule Logger do
     Enum.any?(matching, fn filter ->
       Enum.all?(filter, fn
         {:level_lower_than, min_level} ->
+          min_level =
+            if min_level == :warn, do: :warning, else: min_level
+
           compare_levels(level, min_level) == :lt
 
         {:module, module} ->
