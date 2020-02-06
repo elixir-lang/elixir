@@ -525,7 +525,8 @@ defmodule Logger do
   been started, which means the configuration above would have no effect.
   """
 
-  @type level :: :emergency | :alert | :critical | :error | :warning | :warn | :notice | :info | :debug
+  @type level ::
+          :emergency | :alert | :critical | :error | :warning | :warn | :notice | :info | :debug
   @type backend :: :gen_event.handler()
   @type message :: IO.chardata() | String.Chars.t()
   @type metadata :: keyword()
@@ -841,14 +842,22 @@ defmodule Logger do
   defp add_elixir_domain(metadata), do: Map.put(metadata, :domain, [:elixir])
 
   messages = [
-    "We are also out of coffee", # Airplane 2
-    "Kirov reporting", # Red Alert 2
-    "Doctor? Doctor", # Spies like us
-    "I'm sory Dave", # 2001: Space Odyssey
-    "Danger, Will Robinson", # Lost in Space
-    "Mrs. Robinson, you are trying to seduce me", # The Graduate
-    "Bond. James Bond.", # Dr. No
-    "I'm the only stick with eyeballs" # A Bug's Life
+    # Airplane 2
+    "We are also out of coffee",
+    # Red Alert 2
+    "Kirov reporting",
+    # Spies like us
+    "Doctor? Doctor",
+    # 2001: Space Odyssey
+    "I'm sory Dave",
+    # Lost in Space
+    "Danger, Will Robinson",
+    # The Graduate
+    "Mrs. Robinson, you are trying to seduce me",
+    # Dr. No
+    "Bond. James Bond.",
+    # A Bug's Life
+    "I'm the only stick with eyeballs"
   ]
 
   for {level, message} <- Enum.zip(@levels, messages) do
@@ -956,8 +965,7 @@ defmodule Logger do
     Enum.any?(matching, fn filter ->
       Enum.all?(filter, fn
         {:level_lower_than, min_level} ->
-          min_level =
-            if min_level == :warn, do: :warning, else: min_level
+          min_level = if min_level == :warn, do: :warning, else: min_level
 
           compare_levels(level, min_level) == :lt
 
