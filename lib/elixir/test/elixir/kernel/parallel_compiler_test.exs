@@ -230,7 +230,7 @@ defmodule Kernel.ParallelCompilerTest do
           """
         )
 
-      assert {:ok, modules, []} = Kernel.ParallelCompiler.compile([foo, bar])
+      assert {:ok, _modules, []} = Kernel.ParallelCompiler.compile([foo, bar])
       assert Enum.sort([FooCircular, BarCircular]) == [BarCircular, FooCircular]
     after
       purge([FooCircular, BarCircular])

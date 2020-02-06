@@ -651,7 +651,7 @@ defmodule ExUnit.Assertions do
   end
 
   defp mark_as_generated(vars) do
-    for {name, meta, context} <- vars, do: {name, [generated: true] ++ meta, context }
+    for {name, meta, context} <- vars, do: {name, [generated: true] ++ meta, context}
   end
 
   @doc false

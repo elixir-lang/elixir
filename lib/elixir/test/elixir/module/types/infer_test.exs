@@ -147,11 +147,11 @@ defmodule Module.Types.InferTest do
 
       assert {:ok, {:var, 0}, context} = unify({:var, 0}, :integer, var_context)
       assert {:ok, {:var, 1}, context} = unify({:var, 1}, :integer, context)
-      assert {:ok, {:var, _}, context} = unify({:var, 0}, {:var, 1}, context)
+      assert {:ok, {:var, _}, _context} = unify({:var, 0}, {:var, 1}, context)
 
       assert {:ok, {:var, 0}, context} = unify({:var, 0}, :integer, var_context)
       assert {:ok, {:var, 1}, context} = unify({:var, 1}, :integer, context)
-      assert {:ok, {:var, _}, context} = unify({:var, 1}, {:var, 0}, context)
+      assert {:ok, {:var, _}, _context} = unify({:var, 1}, {:var, 0}, context)
 
       assert {:ok, {:var, 0}, context} = unify({:var, 0}, :integer, var_context)
       assert {:ok, {:var, 1}, context} = unify({:var, 1}, :binary, context)
@@ -178,7 +178,7 @@ defmodule Module.Types.InferTest do
       assert {:ok, {:var, 0}, context} = unify({:var, 0}, :integer, var_context)
       assert {:ok, {:var, 1}, context} = unify({:var, 1}, :integer, context)
 
-      assert {:ok, {:tuple, [{:var, _}]}, context} =
+      assert {:ok, {:tuple, [{:var, _}]}, _context} =
                unify({:tuple, [{:var, 0}]}, {:tuple, [{:var, 1}]}, context)
 
       assert {:ok, {:var, 1}, context} = unify({:var, 1}, {:tuple, [{:var, 0}]}, var_context)
@@ -200,11 +200,11 @@ defmodule Module.Types.InferTest do
       assert {{:var, 2}, var_context} = new_var({:baz, [version: 2], nil}, var_context)
 
       assert {:ok, {:var, _}, context} = unify({:var, 0}, {:var, 1}, var_context)
-      assert {:ok, {:var, _}, context} = unify({:var, 1}, {:var, 0}, context)
+      assert {:ok, {:var, _}, _context} = unify({:var, 1}, {:var, 0}, context)
 
       assert {:ok, {:var, _}, context} = unify({:var, 0}, {:var, 1}, var_context)
       assert {:ok, {:var, _}, context} = unify({:var, 1}, {:var, 2}, context)
-      assert {:ok, {:var, _}, context} = unify({:var, 2}, {:var, 0}, context)
+      assert {:ok, {:var, _}, _context} = unify({:var, 2}, {:var, 0}, context)
 
       assert {:ok, {:var, _}, context} = unify({:var, 0}, {:var, 1}, var_context)
 
