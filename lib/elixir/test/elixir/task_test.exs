@@ -298,9 +298,9 @@ defmodule TaskTest do
       send(self(), {other_ref, :z})
       send(self(), {:DOWN, other_ref, :process, 1, :goodbye})
       assert Task.await_many(tasks) == [:a, :b]
-      assert_received other_ref
-      assert_received {other_ref, :z}
-      assert_received {:DOWN, other_ref, :process, 1, :goodbye}
+      assert_received ^other_ref
+      assert_received {^other_ref, :z}
+      assert_received {:DOWN, ^other_ref, :process, 1, :goodbye}
     end
 
     test "ignores additional messages after reply" do
@@ -310,7 +310,7 @@ defmodule TaskTest do
       send(self(), {ref_2, :other})
       send(self(), {ref_1, :a})
       assert Task.await_many(tasks) == [:a, :b]
-      assert_received {ref_2, :other}
+      assert_received {^ref_2, :other}
     end
 
     test "exits on timeout" do

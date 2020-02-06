@@ -228,8 +228,8 @@ defmodule Mix.ReleaseTest do
       assert %Mix.Release{
                name: :foo,
                version: "0.1.0",
-               path: path,
-               version_path: version_path
+               path: _path,
+               version_path: _version_path
              } = from_config!(nil, config, [])
     end
   end
