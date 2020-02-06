@@ -383,7 +383,9 @@ defmodule RegistryTest do
         assert is_pid(pid)
         assert sum_pid_entries(registry, partitions) == 2
 
-        assert {:error, {:already_registered, pid}} = Registry.register(registry, "hello", :value)
+        assert {:error, {:already_registered, _pid}} =
+                 Registry.register(registry, "hello", :value)
+
         assert sum_pid_entries(registry, partitions) == 2
       end
 

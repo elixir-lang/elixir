@@ -577,7 +577,7 @@ defmodule Mix.Tasks.ReleaseTest do
                  protocols_consolidated?: true,
                  release_name: "eval",
                  release_node: "eval",
-                 release_root: root,
+                 release_root: ^root,
                  release_vsn: "0.1.0",
                  runtime_config: {:ok, :was_set},
                  static_config: {:ok, :was_set}

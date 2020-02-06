@@ -157,16 +157,16 @@ defmodule ExUnit.AssertionsTest do
 
   test "assert match with unused var" do
     assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
-      Code.eval_string("""
-      defmodule ExSample do
-        import ExUnit.Assertions
+             Code.eval_string("""
+             defmodule ExSample do
+               import ExUnit.Assertions
 
-        def run do
-          {2, 1} = assert {2, var} = ExUnit.AssertionsTest.Value.tuple()
-        end
-      end
-      """)
-    end) =~ "variable \"var\" is unused"
+               def run do
+                 {2, 1} = assert {2, var} = ExUnit.AssertionsTest.Value.tuple()
+               end
+             end
+             """)
+           end) =~ "variable \"var\" is unused"
   after
     :code.delete(ExSample)
     :code.purge(ExSample)
