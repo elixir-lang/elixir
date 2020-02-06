@@ -352,7 +352,7 @@ defmodule ExUnit.Assertions do
           case right do
             unquote(left) ->
               unquote(check)
-              unquote(mark_as_generated(vars))
+              unquote(vars)
 
             _ ->
               left = unquote(Macro.escape(left))
@@ -477,7 +477,7 @@ defmodule ExUnit.Assertions do
       quote do
         case message do
           unquote(pattern) ->
-            _ = unquote(mark_as_generated(vars))
+            _ = unquote(vars)
             true
 
           _ ->
@@ -516,7 +516,7 @@ defmodule ExUnit.Assertions do
 
       {received, unquote(vars)} =
         receive do
-          unquote(pattern) -> {received, unquote(mark_as_generated(vars))}
+          unquote(pattern) -> {received, unquote(vars)}
         after
           timeout -> flunk(unquote(failure_message))
         end
@@ -651,16 +651,12 @@ defmodule ExUnit.Assertions do
         {[expanded], acc}
 
       {name, meta, context}, acc when is_atom(name) and is_atom(context) ->
-        {:ok, [{name, meta, context} | acc]}
+        {:ok, [{name, [generated: true] ++ meta, context} | acc]}
 
       node, acc ->
         {node, acc}
     end)
     |> elem(1)
-  end
-
-  defp mark_as_generated(vars) do
-    for {name, meta, context} <- vars, do: {name, [generated: true] ++ meta, context }
   end
 
   @doc false
