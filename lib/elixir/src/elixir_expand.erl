@@ -402,7 +402,8 @@ expand({{'.', DotMeta, [Left, Right]}, Meta, Args}, E)
   {ELeft, EL} = expand(Left, elixir_env:prepare_write(E)),
 
   case is_atom(ELeft) andalso (Args == []) andalso
-        (lists:keyfind(no_parens, 1, Meta) == {no_parens, true}) of
+        (lists:keyfind(no_parens, 1, Meta) == {no_parens, true}) andalso
+        (?key(E, prematch_vars) /= apply) of
     true ->
       elixir_errors:form_warn(DotMeta, E, ?MODULE, {no_parens_nullary_remote, ELeft, Right});
     false ->
