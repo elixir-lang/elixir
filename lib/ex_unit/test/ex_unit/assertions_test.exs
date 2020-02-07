@@ -4,6 +4,7 @@ defmodule ExUnit.AssertionsTest.Value do
   def tuple, do: {2, 1}
   def falsy, do: nil
   def truthy, do: :truthy
+  def binary, do: <<5, "Frank the Walrus">>
 end
 
 defmodule ExUnit.AssertionsTest.BrokenError do
@@ -153,6 +154,10 @@ defmodule ExUnit.AssertionsTest do
 
   test "assert match when equal" do
     {2, 1} = assert {2, 1} = Value.tuple()
+
+    # With dup vars
+    assert {tuple, tuple} = {Value.tuple(), Value.tuple()}
+    assert <<name_size::size(8), _::binary-size(name_size), " the ", _::binary>> = Value.binary()
   end
 
   test "assert match with unused var" do
