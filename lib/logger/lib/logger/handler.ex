@@ -6,17 +6,17 @@ defmodule Logger.Handler do
 
   ## Conversions
 
-  # TODO: Remove this mapping once we support all of Erlang types
-  def erlang_level_to_elixir_level(:none), do: :error
-  def erlang_level_to_elixir_level(:emergency), do: :error
-  def erlang_level_to_elixir_level(:alert), do: :error
-  def erlang_level_to_elixir_level(:critical), do: :error
-  def erlang_level_to_elixir_level(:error), do: :error
-  def erlang_level_to_elixir_level(:warning), do: :warn
-  def erlang_level_to_elixir_level(:notice), do: :info
-  def erlang_level_to_elixir_level(:info), do: :info
-  def erlang_level_to_elixir_level(:debug), do: :debug
-  def erlang_level_to_elixir_level(:all), do: :debug
+  # TODO: Remove this mapping once we support all of Erlang types (2.0)
+  defp erlang_level_to_elixir_level(:none), do: :error
+  defp erlang_level_to_elixir_level(:emergency), do: :error
+  defp erlang_level_to_elixir_level(:alert), do: :error
+  defp erlang_level_to_elixir_level(:critical), do: :error
+  defp erlang_level_to_elixir_level(:error), do: :error
+  defp erlang_level_to_elixir_level(:warning), do: :warn
+  defp erlang_level_to_elixir_level(:notice), do: :info
+  defp erlang_level_to_elixir_level(:info), do: :info
+  defp erlang_level_to_elixir_level(:debug), do: :debug
+  defp erlang_level_to_elixir_level(:all), do: :debug
 
   # TODO: Warn on deprecated level
   def elixir_level_to_erlang_level(:warn), do: :warning
