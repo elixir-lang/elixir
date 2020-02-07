@@ -732,7 +732,7 @@ defmodule Logger do
 
   This is equivalent of doing:
 
-      for mod <- :application.get_key(app, :modules) do
+      for mod <- Application.spec(app, :modules) do
         Logger.set_module_level(mod, level)
       end
 
