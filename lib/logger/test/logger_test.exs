@@ -90,34 +90,34 @@ defmodule LoggerTest do
     assert Logger.level() == :debug
 
     Logger.configure(level: :all)
-    assert Logger.level() == :debug
+    assert Logger.level() == :all
 
     Logger.configure(level: :info)
     assert Logger.level() == :info
 
     Logger.configure(level: :notice)
-    assert Logger.level() == :info
+    assert Logger.level() == :notice
 
     Logger.configure(level: :warn)
-    assert Logger.level() == :warn
+    assert Logger.level() == :warning
 
     Logger.configure(level: :warning)
-    assert Logger.level() == :warn
+    assert Logger.level() == :warning
 
     Logger.configure(level: :error)
     assert Logger.level() == :error
 
     Logger.configure(level: :critical)
-    assert Logger.level() == :error
+    assert Logger.level() == :critical
 
     Logger.configure(level: :alert)
-    assert Logger.level() == :error
+    assert Logger.level() == :alert
 
     Logger.configure(level: :emergency)
-    assert Logger.level() == :error
+    assert Logger.level() == :emergency
 
     Logger.configure(level: :none)
-    assert Logger.level() == :error
+    assert Logger.level() == :none
   after
     Logger.configure(level: :debug)
   end
@@ -587,10 +587,10 @@ defmodule LoggerTest do
       assert capture_log(fn -> Logger.info("hello") end) =~ "hello"
 
       :logger.set_primary_config(:level, :notice)
-      assert Logger.level() == :info
+      assert Logger.level() == :notice
 
       :logger.set_primary_config(:level, :emergency)
-      assert Logger.level() == :error
+      assert Logger.level() == :emergency
     after
       Logger.configure(level: :debug)
     end

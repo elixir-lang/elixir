@@ -636,7 +636,8 @@ defmodule Logger do
   @spec level() :: level()
   def level() do
     %{level: level} = :logger.get_primary_config()
-    Logger.Handler.erlang_level_to_elixir_level(level)
+
+    level
   end
 
   @doc """
@@ -981,7 +982,7 @@ defmodule Logger do
     Enum.any?(matching, fn filter ->
       Enum.all?(filter, fn
         {:level_lower_than, min_level} ->
-          min_level = if min_level == :warn, do: :warning, else: min_level
+          min_level = Logger.Handler.elixir_level_to_erlang_level(min_level)
 
           compare_levels(level, min_level) == :lt
 
