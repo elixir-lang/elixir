@@ -710,8 +710,8 @@ defmodule Path do
   defp do_expand_dot(path), do: do_expand_dot(:binary.split(path, "/", [:global]), [])
   defp do_expand_dot([".." | t], [_, _ | acc]), do: do_expand_dot(t, acc)
   defp do_expand_dot([".." | t], []), do: do_expand_dot(t, [])
-  defp do_expand_dot(["." | t], acc), do: do_expand_dot(t, acc)
-  defp do_expand_dot([h | t], acc), do: do_expand_dot(t, ["/", h | acc])
+  defp do_expand_dot(["." | t], acc) when is_list(acc), do: do_expand_dot(t, acc)
+  defp do_expand_dot([h | t], acc) when is_list(acc), do: do_expand_dot(t, ["/", h | acc])
   defp do_expand_dot([], []), do: ""
   defp do_expand_dot([], ["/" | acc]), do: IO.iodata_to_binary(:lists.reverse(acc))
 
