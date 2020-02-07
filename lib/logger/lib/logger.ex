@@ -982,8 +982,6 @@ defmodule Logger do
     Enum.any?(matching, fn filter ->
       Enum.all?(filter, fn
         {:level_lower_than, min_level} ->
-          min_level = Logger.Handler.elixir_level_to_erlang_level(min_level)
-
           compare_levels(level, min_level) == :lt
 
         {:module, module} ->
