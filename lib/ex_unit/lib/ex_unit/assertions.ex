@@ -621,7 +621,7 @@ defmodule ExUnit.Assertions do
 
     vars =
       for {name, _, context} = var <- collect_vars_from_pattern(right),
-          Enum.any?(pattern, &match?({^name, _, ^context}, &1)),
+          has_var?(pattern, name, context),
           do: var
 
     pattern ++ vars
@@ -629,8 +629,8 @@ defmodule ExUnit.Assertions do
 
   defp collect_vars_from_pattern(expr) do
     Macro.prewalk(expr, [], fn
-      {:"::", _, [left, _]}, acc ->
-        {[left], acc}
+      {:"::", _, [left, right]}, acc ->
+        {[left], collect_vars_from_binary(right, acc)}
 
       {skip, _, [_]}, acc when skip in [:^, :@] ->
         {:ok, acc}
@@ -649,6 +649,24 @@ defmodule ExUnit.Assertions do
     end)
     |> elem(1)
   end
+
+  defp collect_vars_from_binary(right, original_acc) do
+    Macro.prewalk(right, original_acc, fn
+      {mode, _, [{name, meta, context}]}, acc
+      when is_atom(mode) and is_atom(name) and is_atom(context) ->
+        if has_var?(original_acc, name, context) do
+          {:ok, [{name, meta, context} | acc]}
+        else
+          {:ok, acc}
+        end
+
+      node, acc ->
+        {node, acc}
+    end)
+    |> elem(1)
+  end
+
+  defp has_var?(pattern, name, context), do: Enum.any?(pattern, &match?({^name, _, ^context}, &1))
 
   defp mark_as_generated(vars) do
     for {name, meta, context} <- vars, do: {name, [generated: true] ++ meta, context}
