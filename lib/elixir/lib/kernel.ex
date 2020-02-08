@@ -2307,8 +2307,7 @@ defmodule Kernel do
       iex> get_in(users, ["john", :age])
       27
 
-  In case any of the entries in the middle returns `nil`, `nil` will
-  be returned as per the `Access` module:
+  In case keys any of the keys returns `nil`, `nil` will be returned:
 
       iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
       iex> get_in(users, ["unknown", :age])
@@ -2324,9 +2323,6 @@ defmodule Kernel do
     * a function to be invoked next
 
   This means `get_in/2` can be extended to provide custom lookups.
-  The downside is that functions cannot be stored as keys in the accessed
-  data structures.
-
   In the example below, we use a function to get all the maps inside
   a list:
 
