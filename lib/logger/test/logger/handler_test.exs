@@ -147,6 +147,6 @@ defmodule Logger.HandlerTest do
   defp format_report(report, opts) do
     send(self(), {:format, report, opts})
 
-    {'~p', [report]}
+    inspect(report)
   end
 end

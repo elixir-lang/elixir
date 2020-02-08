@@ -230,7 +230,7 @@ defmodule Logger.Handler do
     translate_fallback(:format, callback.(data), meta, truncate)
   end
 
-  defp translate_fallback(:report, {:logger, data}, %{report_cb: callback} = meta, truncate)
+  defp translate_fallback(:report, {:logger, data}, %{report_cb: callback}, _truncate)
        when is_function(callback, 2) do
     translator_opts =
       struct(Inspect.Opts, Application.fetch_env!(:logger, :translator_inspect_opts))
@@ -241,7 +241,7 @@ defmodule Logger.Handler do
       single_line: false
     }
 
-    translate_fallback(:format, callback.(data, opts), meta, truncate)
+    callback.(data, opts)
   end
 
   defp translate_fallback(:format, {format, args}, _meta, truncate) do
