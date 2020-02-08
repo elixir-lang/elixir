@@ -834,7 +834,7 @@ defmodule Logger do
       {msg, meta} ->
         :logger.macro_log(%{}, level, msg, Enum.into(meta, add_elixir_domain(metadata)))
 
-      msg when is_binary(msg) or is_list(msg) ->
+      msg when is_binary(msg) or is_list(msg) or is_map(msg) ->
         :logger.macro_log(%{}, level, msg, add_elixir_domain(metadata))
     end
   end

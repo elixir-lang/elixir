@@ -212,6 +212,20 @@ defmodule LoggerTest do
                assert Logger.bare_log(:info, %{foo: 20}, report_cb: report_cb) == :ok
              end) =~ msg("[info]  Foo is 20")
     end
+
+    test "support function that return report" do
+      assert capture_log(fn ->
+               assert Logger.bare_log(:info, fn -> %{foo: 10} end) == :ok
+             end) =~ msg("[info]  [foo: 10]")
+
+      assert capture_log(fn ->
+               assert Logger.bare_log(:info, fn -> {%{foo: 10}, []} end) == :ok
+             end) =~ msg("[info]  [foo: 10]")
+
+      assert capture_log(fn ->
+               assert Logger.bare_log(:info, fn -> {[foo: 10], []} end) == :ok
+             end) =~ msg("[info]  [foo: 10]")
+    end
   end
 
   test "enable/1 and disable/1" do
