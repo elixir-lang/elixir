@@ -2307,7 +2307,7 @@ defmodule Kernel do
       iex> get_in(users, ["john", :age])
       27
 
-  In case keys any of the keys returns `nil`, `nil` will be returned:
+  In case any of the keys returns `nil`, `nil` will be returned:
 
       iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
       iex> get_in(users, ["unknown", :age])
