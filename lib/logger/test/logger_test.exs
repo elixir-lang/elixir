@@ -185,6 +185,35 @@ defmodule LoggerTest do
     end
   end
 
+  describe "report logging" do
+    test "supports maps" do
+      assert capture_log(fn ->
+               assert Logger.bare_log(:info, %{foo: 10}, application: nil, module: FunctionTest) ==
+                        :ok
+             end) =~ msg("module=FunctionTest [info]  [foo: 10]")
+    end
+
+    test "supports keyword" do
+      assert capture_log(fn ->
+               assert Logger.bare_log(:info, foo: 10) == :ok
+             end) =~ msg("[info]  [foo: 10]")
+    end
+
+    test "supports custom report_cb" do
+      report_cb = fn %{foo: foo} -> {"Foo is ~B", [foo]} end
+
+      assert capture_log(fn ->
+               assert Logger.bare_log(:info, %{foo: 10}, report_cb: report_cb) == :ok
+             end) =~ msg("[info]  Foo is 10")
+
+      report_cb = fn %{foo: foo}, _opts -> "Foo is #{foo}" end
+
+      assert capture_log(fn ->
+               assert Logger.bare_log(:info, %{foo: 20}, report_cb: report_cb) == :ok
+             end) =~ msg("[info]  Foo is 20")
+    end
+  end
+
   test "enable/1 and disable/1" do
     assert Logger.metadata([]) == :ok
 

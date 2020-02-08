@@ -541,7 +541,8 @@ defmodule Logger do
   @type level ::
           :emergency | :alert | :critical | :error | :warning | :warn | :notice | :info | :debug
   @type backend :: :gen_event.handler()
-  @type message :: IO.chardata() | String.Chars.t()
+  @type report :: map() | keyword()
+  @type message :: :unicode.chardata() | String.Chars.t() | report()
   @type metadata :: keyword()
   @levels [:emergency, :alert, :critical, :error, :warning, :notice, :info, :debug]
 
@@ -811,10 +812,10 @@ defmodule Logger do
   if there is something to be logged.
   """
   @spec bare_log(level, message | (() -> message | {message, keyword}), keyword) :: :ok
-  def bare_log(level, chardata_or_fun, metadata \\ []) do
+  def bare_log(level, message, metadata \\ []) do
     case __should_log__(level, nil) do
       nil -> :ok
-      level -> __do_log__(level, chardata_or_fun, Map.new(metadata))
+      level -> __do_log__(level, message, Map.new(metadata))
     end
   end
 
@@ -885,8 +886,8 @@ defmodule Logger do
         Logger.#{level}("#{message}")
 
     """
-    defmacro unquote(level)(chardata_or_fun, metadata \\ []) do
-      maybe_log(unquote(level), chardata_or_fun, metadata, __CALLER__)
+    defmacro unquote(level)(message, metadata \\ []) do
+      maybe_log(unquote(level), message, metadata, __CALLER__)
     end
   end
 
@@ -903,8 +904,8 @@ defmodule Logger do
 
   """
   # TODO: Hard deprecate it in favour of `warning/1-2` macro
-  defmacro warn(chardata_or_fun, metadata \\ []) do
-    maybe_log(:warning, chardata_or_fun, metadata, __CALLER__)
+  defmacro warn(message, metadata \\ []) do
+    maybe_log(:warning, message, metadata, __CALLER__)
   end
 
   @doc """
@@ -918,8 +919,8 @@ defmodule Logger do
   the call to `Logger` altogether at compile time if desired
   (see the documentation for the `Logger` module).
   """
-  defmacro log(level, chardata_or_fun, metadata \\ []) do
-    macro_log(level, chardata_or_fun, metadata, __CALLER__)
+  defmacro log(level, message, metadata \\ []) do
+    macro_log(level, message, metadata, __CALLER__)
   end
 
   defp macro_log(level, data, metadata, caller) do
