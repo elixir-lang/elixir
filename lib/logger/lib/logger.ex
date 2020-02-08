@@ -697,7 +697,7 @@ defmodule Logger do
   Set logging level for given module.
 
   This will take priority over the primary level set, so it can be
-  used to increase verbosity of some parts of the project.
+  used to increase or decrease verbosity of some parts of the project.
 
   ## Example
 
