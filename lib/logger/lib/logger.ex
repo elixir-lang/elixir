@@ -828,25 +828,27 @@ defmodule Logger do
     end
   end
 
+  defguardp is_msg(msg) when is_binary(msg) or is_list(msg) or is_map(msg)
+
   @doc false
   def __do_log__(level, fun, metadata) when is_function(fun, 0) and is_map(metadata) do
     case fun.() do
       {msg, meta} ->
-        :logger.macro_log(%{}, level, msg, Enum.into(meta, add_elixir_domain(metadata)))
+        __do_log__(level, msg, Enum.into(meta, add_elixir_domain(metadata)))
 
-      msg when is_binary(msg) or is_list(msg) or is_map(msg) ->
-        :logger.macro_log(%{}, level, msg, add_elixir_domain(metadata))
+      msg ->
+        __do_log__(level, msg, add_elixir_domain(metadata))
     end
   end
 
-  def __do_log__(level, chardata, metadata)
-      when (is_binary(chardata) or is_list(chardata)) and is_map(metadata) do
-    :logger.macro_log(%{}, level, chardata, add_elixir_domain(metadata))
+  def __do_log__(level, msg, metadata)
+      when is_msg(msg) and is_map(metadata) do
+    :logger.macro_log(%{}, level, msg, add_elixir_domain(metadata))
   end
 
-  # TODO: Remove this on Elixir v2.0
+  # TODO: Remove that in Elixir 2.0
   def __do_log__(level, other, metadata) do
-    IO.warn("passing #{inspect(other)} to Logger is deprecated, expected a binary or an iolist")
+    IO.warn("passing #{inspect(other)} to Logger is deprecated, expected a map, a keyword list, a binary, or an iolist")
     :logger.macro_log(%{}, level, to_string(other), add_elixir_domain(metadata))
   end
 
