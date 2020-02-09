@@ -6,8 +6,8 @@ defmodule Access do
   keys of any type in a data structure via the `data[key]` syntax.
 
   `Access` supports keyword lists (`Keyword`) and maps (`Map`) out
-  of the box. The key can be of any type and it returns `nil` if
-  the key does not exist:
+  of the box. Keywords supports only atoms keys, keys for maps can
+  be of any type. Both returns `nil` if the key does not exist:
 
       iex> keywords = [a: 1, b: 2]
       iex> keywords[:a]
