@@ -73,6 +73,16 @@ defmodule Kernel.WithTest do
     assert state == 1
   end
 
+  test "with extra guards" do
+    var =
+      with %_{} = a <- struct(URI),
+           %_{} <- a do
+        :ok
+      end
+
+    assert var == :ok
+  end
+
   test "errors in with" do
     assert_raise RuntimeError, fn ->
       with({:ok, res} <- oops(), do: res)
