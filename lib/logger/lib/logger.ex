@@ -30,8 +30,8 @@ defmodule Logger do
   The `Logger.info/2` macro emits the provided message at the `:info`
   level. Note the arguments given to `info/2` will only be evaluated
   if a message is logged. For instance, if the Logger level is
-  set to `:warn`, `:info` messages are never logged and therefore the
-  arguments given above won't even be executed.
+  set to `:warning`, `:info` messages are never logged and therefore
+  the arguments given above won't even be executed.
 
   There are additional macros for other levels.
 
@@ -44,17 +44,22 @@ defmodule Logger do
 
   ## Levels
 
-  The supported levels, ordered by precedence, are:
+  The supported levels, ordered by importance, are:
 
-    * `:debug` - for debug-related messages
-    * `:info` - for information of any kind
-    * `:warn` - for warnings
+    * `:emergency` - when system is unusable, panics
+    * `:alert` - for alerts, actions that must be taken immediately,
+      ex. corrupted database
+    * `:critical` - for critical conditions
     * `:error` - for errors
+    * `:warning` - for warnings
+    * `:notice` - for normal, but signifant, messages
+    * `:info` - for information of any kind
+    * `:debug` - for debug-related messages
 
   For example, `:info` takes precedence over `:debug`. If your log
-  level is set to `:info`, `:info`, `:warn`, and `:error` will be
-  printed to the console. If your log level is set to `:warn`, only
-  `:warn` and `:error` will be printed.
+  level is set to `:info`, `:info`, `:warning`, and all above it will
+  be passed to backends. If your log level is set to `:alert`, only
+  `:alert` and `:emergency` will be printed.
 
   ## Metadata
 
@@ -188,7 +193,12 @@ defmodule Logger do
     * `:level` - the logging level. Attempting to log any message
       with severity less than the configured level will simply
       cause the message to be ignored. Keep in mind that each backend
-      may have its specific level, too.
+      may have its specific level, too. In addition to levels mentioned
+      above it also support 2 "meta-levels":
+
+        - `:all` - all messages will be logged, conceptualy identical to
+          `:debug`
+        - `:none` - no messages will be logged at all
 
     * `:utc_log` - when `true`, uses UTC in logs. By default it uses
       local time (i.e., it defaults to `false`).
@@ -214,9 +224,9 @@ defmodule Logger do
       Defaults to 500 messages.
 
     * `:discard_threshold_periodic_check` - a periodic check that
-      checks and reports if logger is discarding messages. It logs a warn
+      checks and reports if logger is discarding messages. It logs a warning
       message whenever the system is (or continues) in discard mode and
-      it logs a warn message whenever if the system was discarding messages
+      it logs a warning message whenever if the system was discarding messages
       but stopped doing so after the previous check. By default it runs
       every `30_000` milliseconds.
 
@@ -229,7 +239,7 @@ defmodule Logger do
   `config/config.exs` file:
 
       config :logger,
-        level: :warn,
+        level: :warning,
         truncate: 4096
 
   ### Erlang/OTP integration
@@ -341,11 +351,11 @@ defmodule Logger do
 
     * `:debug` - color for debug messages. Defaults to: `:cyan`
 
-    * `:info` - color for info messages. Defaults to: `:normal`
+    * `:info` - color for info and notice messages. Defaults to: `:normal`
 
-    * `:warn` - color for warn messages. Defaults to: `:yellow`
+    * `:warn` - color for warning messages. Defaults to: `:yellow`
 
-    * `:error` - color for error messages. Defaults to: `:red`
+    * `:error` - color for error and higher messages. Defaults to: `:red`
 
   See the `IO.ANSI` module for a list of colors and attributes.
 
@@ -403,7 +413,7 @@ defmodule Logger do
   You can read more about formatting in `Logger.Formatter`, especially
   if you want to support custom formatting in a custom backend.
 
-  ### Custom backends
+  ### Elixir custom backends
 
   Any developer can create their own `Logger` backend. Since `Logger`
   is an event manager powered by `:gen_event`, writing a new backend
@@ -428,7 +438,9 @@ defmodule Logger do
 
     * `{level, group_leader, {Logger, message, timestamp, metadata}}` where:
       * `level` is one of `:debug`, `:info`, `:warn`, or `:error`, as previously
-        described
+        described (for compatibility with pre 1.10 backends the `:notice` will
+        be translated to `:info` and all messages above `:error` will be translated
+        to `:error`)
       * `group_leader` is the group leader of the process which logged the message
       * `{Logger, message, timestamp, metadata}` is a tuple containing information
         about the logged message:
@@ -508,8 +520,9 @@ defmodule Logger do
 
   Erlang/OTP handlers must be listed under your own application:
 
-      config :my_app, :logger,
-        [:handler, :name_of_the_handler, ACustomHandler, configuration = %{}]
+      config :my_app, :logger, [
+        {:handler, :name_of_the_handler, ACustomHandler, configuration = %{}}
+      ]
 
   And then explicitly attached in your `c:Application.start/2` callback:
 
@@ -525,11 +538,12 @@ defmodule Logger do
   been started, which means the configuration above would have no effect.
   """
 
-  @type level :: :error | :warn | :info | :debug
+  @type level ::
+          :emergency | :alert | :critical | :error | :warning | :warn | :notice | :info | :debug
   @type backend :: :gen_event.handler()
   @type message :: IO.chardata() | String.Chars.t()
   @type metadata :: keyword()
-  @levels [:error, :warn, :info, :debug]
+  @levels [:emergency, :alert, :critical, :error, :warning, :notice, :info, :debug]
 
   @metadata :logger_enabled
   @compile {:inline, enabled?: 1}
@@ -622,7 +636,8 @@ defmodule Logger do
   @spec level() :: level()
   def level() do
     %{level: level} = :logger.get_primary_config()
-    Logger.Handler.erlang_level_to_elixir_level(level)
+
+    level
   end
 
   @doc """
@@ -828,7 +843,7 @@ defmodule Logger do
     :logger.macro_log(%{}, level, chardata, add_elixir_domain(metadata))
   end
 
-  # # TODO: Remove that in Elixir 2.0
+  # TODO: Remove that in Elixir 2.0
   def __do_log__(level, other, metadata) do
     IO.warn("passing #{inspect(other)} to Logger is deprecated, expected a binary or an iolist")
     :logger.macro_log(%{}, level, to_string(other), add_elixir_domain(metadata))
@@ -840,61 +855,56 @@ defmodule Logger do
 
   defp add_elixir_domain(metadata), do: Map.put(metadata, :domain, [:elixir])
 
+  messages = [
+    # Airplane 2
+    "We are also out of coffee",
+    # Red Alert 2
+    "Kirov reporting",
+    # Spies like us
+    "Doctor? Doctor",
+    # 2001: Space Odyssey
+    "I'm sory Dave",
+    # Lost in Space
+    "Danger, Will Robinson",
+    # The Graduate
+    "Mrs. Robinson, you are trying to seduce me",
+    # Dr. No
+    "Bond. James Bond.",
+    # A Bug's Life
+    "I'm the only stick with eyeballs"
+  ]
+
+  for {level, message} <- Enum.zip(@levels, messages) do
+    @doc """
+    Logs a #{level} message.
+
+    Returns `:ok`.
+
+    ## Examples
+
+        Logger.#{level}("#{message}")
+
+    """
+    defmacro unquote(level)(chardata_or_fun, metadata \\ []) do
+      maybe_log(unquote(level), chardata_or_fun, metadata, __CALLER__)
+    end
+  end
+
   @doc """
   Logs a warning message.
 
   Returns `:ok`.
+
+  This macro is deprecated in favour of `warning/2`.
 
   ## Examples
 
       Logger.warn("knob turned too far to the right")
 
   """
-  # TODO: Deprecate it in favour of `warning/1-2` macro
+  # TODO: Hard deprecate it in favour of `warning/1-2` macro
   defmacro warn(chardata_or_fun, metadata \\ []) do
-    maybe_log(:warn, chardata_or_fun, metadata, __CALLER__)
-  end
-
-  @doc """
-  Logs an info message.
-
-  Returns `:ok`.
-
-  ## Examples
-
-      Logger.info("mission accomplished")
-
-  """
-  defmacro info(chardata_or_fun, metadata \\ []) do
-    maybe_log(:info, chardata_or_fun, metadata, __CALLER__)
-  end
-
-  @doc """
-  Logs an error message.
-
-  Returns `:ok`.
-
-  ## Examples
-
-      Logger.error("oops")
-
-  """
-  defmacro error(chardata_or_fun, metadata \\ []) do
-    maybe_log(:error, chardata_or_fun, metadata, __CALLER__)
-  end
-
-  @doc """
-  Logs a debug message.
-
-  Returns `:ok`.
-
-  ## Examples
-
-      Logger.debug("hello?")
-
-  """
-  defmacro debug(chardata_or_fun, metadata \\ []) do
-    maybe_log(:debug, chardata_or_fun, metadata, __CALLER__)
+    maybe_log(:warning, chardata_or_fun, metadata, __CALLER__)
   end
 
   @doc """
@@ -902,7 +912,8 @@ defmodule Logger do
 
   Returns `:ok`.
 
-  The macros `debug/2`, `warn/2`, `info/2`, and `error/2` are
+  The macros `debug/2`, `info/2`, `notice/2`, `warning/2`,
+  `error/2`, `critical/2`, `alert/2`, and `emergency/2` are
   preferred over this macro as they can automatically eliminate
   the call to `Logger` altogether at compile time if desired
   (see the documentation for the `Logger` module).
