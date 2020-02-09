@@ -6,7 +6,7 @@ defmodule Logger.Handler do
 
   ## Conversions
 
-  # TODO: Remove this mapping once we support all of Erlang types (2.0)
+  # TODO: Remove this mapping once we remove old Logger Backends (v2.0)
   defp erlang_level_to_elixir_level(:none), do: :error
   defp erlang_level_to_elixir_level(:emergency), do: :error
   defp erlang_level_to_elixir_level(:alert), do: :error
@@ -28,7 +28,7 @@ defmodule Logger.Handler do
     {:ok, update_in(config.config, &Map.merge(default_config(), &1))}
   end
 
-  # TODO: Remove when we will support OTP 22+
+  # TODO: Remove this once we support Erlang/OTP 22+ exclusively.
   def changing_config(current, new), do: changing_config(:set, current, new)
 
   def changing_config(
@@ -175,6 +175,8 @@ defmodule Logger.Handler do
   # TODO: We should only do this for legacy handlers.
   # The new handlers should accept all metadata as is
   # and receive the system time unit rather than tuples.
+  # The new handlers should also receive structured
+  # logging events as is.
   defp erlang_metadata_to_elixir_metadata(metadata) do
     metadata =
       case metadata do
