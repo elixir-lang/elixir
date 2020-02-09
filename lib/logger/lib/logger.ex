@@ -834,10 +834,10 @@ defmodule Logger do
   def __do_log__(level, fun, metadata) when is_function(fun, 0) and is_map(metadata) do
     case fun.() do
       {msg, meta} ->
-        __do_log__(level, msg, Enum.into(meta, add_elixir_domain(metadata)))
+        __do_log__(level, msg, Enum.into(meta, metadata))
 
       msg ->
-        __do_log__(level, msg, add_elixir_domain(metadata))
+        __do_log__(level, msg, metadata)
     end
   end
 
