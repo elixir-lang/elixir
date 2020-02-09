@@ -375,6 +375,7 @@ defmodule ExUnit.AssertionsTest do
 
         "assert_received({:status, ^status, ^status})" = Macro.to_string(error.expr)
         "{:status, ^status, ^status}" = Macro.to_string(error.left)
+        "\n\nAssertion failed" <> _ = Exception.message(error)
     end
   end
 
