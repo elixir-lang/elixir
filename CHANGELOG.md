@@ -155,6 +155,33 @@ assert %{"status" => 200, "body" => %{"key" => "foo"}} = json_payload
 
 Now imagine that `json_payload` is a large JSON blob and the `"key"` inside the `"body"` did not have value of `"foo"`. In previous Elixir versions, if the assertion failed, Elixir would print the right side and let you up to your own devices to figure out what went wrong. In Elixir v1.10, we diff the data structure against the pattern so you can see exactly which parts of the data matched the pattern and which ones did not. Note ExUnit already performed diffing when comparing data types, this new version adds diffing when matching data against a pattern.
 
+## v1.10.1 (2020-02-10)
+
+### 1. Bug fixes
+
+#### Elixir
+
+  * [Code] Do not emit invalid code when formatting `nil`, `false`, and `true` keys in maps
+  * [Kernel] Ensure `with` clauses properly unpack "implicit guards" (such as matching on the struct name)
+  * [Kernel] Do not warn if commas are used by themselves in `~w`/`~W` sigils
+  * [Kernel] Do not validate the `:line` option in quote (the validation has been moved to v1.11 to give users more time to update their code)
+  * [Module] Ensure the code verifier handles the `:erlang.size/1` guard properly
+
+#### Logger
+
+  * [Logger] Properly handle the `report_cb/2` option from Erlang
+  * [Logger] Fix truncation for multi-byte characters
+  * [Logger] Do not rebroadcast messages from remote nodes as this is now taken care by Erlang's logger
+
+#### ExUnit
+
+  * [ExUnit] Ensure `assert_receive` produces valid exception messages in case of errors
+
+#### Mix
+
+  * [mix release] Make sure the install command (Window specific) works on paths with spaces in the name
+  * [mix release] Allow using `remote` and `rpc` commands with `Application.compile_env/3`
+
 ## v1.10.0 (2020-01-27)
 
 ### 1. Enhancements
