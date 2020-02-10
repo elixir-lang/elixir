@@ -671,21 +671,18 @@ defmodule Mix.Release do
   end
 
   def copy_erts(release) do
-    destination = Path.join(release.path, "erts-#{release.erts_version}")
-    erts_source_contents = File.ls!(release.erts_source)
+    destination = Path.join(release.path, "erts-#{release.erts_version}/bin")
     File.mkdir_p!(destination)
 
-    for dir <- ~w(bin include lib src), dir in erts_source_contents do
-      source = Path.join(release.erts_source, dir)
-      target = Path.join(destination, dir)
-      File.cp_r!(source, target, fn _, _ -> false end)
-    end
+    release.erts_source
+    |> Path.join("bin")
+    |> File.cp_r!(destination, fn _, _ -> false end)
 
-    _ = File.rm(Path.join(destination, "bin/erl"))
-    _ = File.rm(Path.join(destination, "bin/erl.ini"))
+    _ = File.rm(Path.join(destination, "erl"))
+    _ = File.rm(Path.join(destination, "erl.ini"))
 
     destination
-    |> Path.join("bin/erl")
+    |> Path.join("erl")
     |> File.write!(~S"""
     #!/bin/sh
     SELF=$(readlink "$0" || true)
@@ -701,7 +698,7 @@ defmodule Mix.Release do
     exec "$BINDIR/erlexec" ${1+"$@"}
     """)
 
-    File.chmod!(Path.join(destination, "bin/erl"), 0o744)
+    File.chmod!(Path.join(destination, "erl"), 0o744)
     true
   end
 
