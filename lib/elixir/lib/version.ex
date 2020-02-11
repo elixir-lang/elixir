@@ -116,36 +116,92 @@ defmodule Version do
     for more information.
     """
 
-    defstruct [:source, :matchspec, :compiled]
+    defstruct [:source, :lexed]
 
     @opaque t :: %__MODULE__{
               source: String.t(),
-              matchspec: :ets.match_spec() | :ets.comp_match_spec(),
-              compiled: boolean
+              lexed: [atom | matchable]
             }
+
+    @typep matchable ::
+             {Version.major(), Version.minor(), Version.patch(), Version.pre(), Version.build()}
+
+    @compile inline: [compare: 2]
 
     @doc false
     @spec new(String.t(), :ets.match_spec()) :: t
-    def new(source, spec) do
-      %__MODULE__{source: source, matchspec: spec, compiled: false}
-    end
-
-    @doc false
-    @spec compile(t) :: t
-    def compile(%__MODULE__{matchspec: spec} = requirement) do
-      %{requirement | matchspec: :ets.match_spec_compile(spec), compiled: true}
+    def new(source, lexed) do
+      %__MODULE__{source: source, lexed: lexed}
     end
 
     @doc false
     @spec match?(t, tuple) :: boolean
-    def match?(%__MODULE__{matchspec: spec, compiled: true}, matchable_pattern) do
-      matches = :ets.match_spec_run([matchable_pattern], spec)
-      matches != []
+    def match?(%__MODULE__{lexed: lexed}, matchable_pattern) do
+      match_lexed?(lexed, matchable_pattern)
     end
 
-    def match?(%__MODULE__{matchspec: spec, compiled: false}, matchable_pattern) do
-      {:ok, result} = :ets.test_ms(matchable_pattern, spec)
-      result != false
+    defp match_lexed?([operator, req, :&& | rest], version) do
+      match_op?(operator, req, version) and match_lexed?(rest, version)
+    end
+
+    defp match_lexed?([operator, req, :|| | rest], version) do
+      match_op?(operator, req, version) or match_lexed?(rest, version)
+    end
+
+    defp match_lexed?([operator, req], version) do
+      match_op?(operator, req, version)
+    end
+
+    defp match_op?(:==, req, version) do
+      compare(version, req) == :eq
+    end
+
+    defp match_op?(:!=, req, version) do
+      compare(version, req) != :eq
+    end
+
+    defp match_op?(:~>, {major, minor, nil, req_pre, _}, {_, _, _, pre, allow_pre} = version) do
+      compare(version, {major, minor, 0, req_pre, nil}) in [:eq, :gt] and
+        compare(version, {major + 1, 0, 0, [0], nil}) == :lt and
+        (allow_pre or req_pre != [] or pre == [])
+    end
+
+    defp match_op?(:~>, {major, minor, _, req_pre, _} = req, {_, _, _, pre, allow_pre} = version) do
+      compare(version, req) in [:eq, :gt] and
+        compare(version, {major, minor + 1, 0, [0], nil}) == :lt and
+        (allow_pre or req_pre != [] or pre == [])
+    end
+
+    defp match_op?(:>, {_, _, _, req_pre, _} = req, {_, _, _, pre, allow_pre} = version) do
+      compare(version, req) == :gt and (allow_pre or req_pre != [] or pre == [])
+    end
+
+    defp match_op?(:>=, {_, _, _, req_pre, _} = req, {_, _, _, pre, allow_pre} = version) do
+      compare(version, req) in [:eq, :gt] and (allow_pre or req_pre != [] or pre == [])
+    end
+
+    defp match_op?(:<, req, version) do
+      compare(version, req) == :lt
+    end
+
+    defp match_op?(:<=, req, version) do
+      compare(version, req) in [:eq, :lt]
+    end
+
+    defp compare({major1, minor1, patch1, pre1, _}, {major2, minor2, patch2, pre2, _}) do
+      cond do
+        major1 > major2 -> :gt
+        major1 < major2 -> :lt
+        minor1 > minor2 -> :gt
+        minor1 < minor2 -> :lt
+        patch1 > patch2 -> :gt
+        patch1 < patch2 -> :lt
+        pre1 == [] and pre2 != [] -> :gt
+        pre1 != [] and pre2 == [] -> :lt
+        pre1 > pre2 -> :gt
+        pre1 < pre2 -> :lt
+        true -> :eq
+      end
     end
   end
 
@@ -270,8 +326,12 @@ defmodule Version do
 
   defp do_compare({major1, minor1, patch1, pre1, _}, {major2, minor2, patch2, pre2, _}) do
     cond do
-      {major1, minor1, patch1} > {major2, minor2, patch2} -> :gt
-      {major1, minor1, patch1} < {major2, minor2, patch2} -> :lt
+      major1 > major2 -> :gt
+      major1 < major2 -> :lt
+      minor1 > minor2 -> :gt
+      minor1 < minor2 -> :lt
+      patch1 > patch2 -> :gt
+      patch1 < patch2 -> :lt
       pre1 == [] and pre2 != [] -> :gt
       pre1 != [] and pre2 == [] -> :lt
       pre1 > pre2 -> :gt
@@ -344,12 +404,8 @@ defmodule Version do
   @spec parse_requirement(String.t()) :: {:ok, Requirement.t()} | :error
   def parse_requirement(string) when is_binary(string) do
     case Version.Parser.parse_requirement(string) do
-      {:ok, spec} ->
-        requirement = Requirement.new(string, spec)
-        {:ok, requirement}
-
-      :error ->
-        :error
+      {:ok, lexed} -> {:ok, Requirement.new(string, lexed)}
+      :error -> :error
     end
   end
 
@@ -370,27 +426,20 @@ defmodule Version do
   @doc since: "1.8.0"
   @spec parse_requirement!(String.t()) :: Requirement.t()
   def parse_requirement!(string) when is_binary(string) do
-    case Version.Parser.parse_requirement(string) do
-      {:ok, spec} ->
-        Requirement.new(string, spec)
-
-      :error ->
-        raise InvalidRequirementError, string
+    case parse_requirement(string) do
+      {:ok, requirement} -> requirement
+      :error -> raise InvalidRequirementError, string
     end
   end
 
   @doc """
-  Compiles a requirement to its internal representation with
-  `:ets.match_spec_compile/1` for faster matching.
+  Compiles a requirement to an internal representation that may optimize matching.
 
-  The internal representation is opaque and cannot be converted to external
-  term format and then back again without losing its properties (meaning it
-  can not be sent to a process on another node and still remain a valid
-  compiled match_spec, nor can it be stored on disk).
+  The internal representation is opaque.
   """
   @spec compile_requirement(Requirement.t()) :: Requirement.t()
   def compile_requirement(requirement) do
-    Requirement.compile(requirement)
+    requirement
   end
 
   defp to_matchable(%Version{major: major, minor: minor, patch: patch, pre: pre}, allow_pre?) do
@@ -454,13 +503,27 @@ defmodule Version do
     end
 
     def lexer("", acc) do
-      Enum.reverse(acc)
+      Enum.map(Enum.reverse(acc), fn
+        op when is_atom(op) ->
+          op
+
+        version when is_binary(version) ->
+          case Version.Parser.parse_version(version, true) do
+            {:ok, version} -> version
+            :error -> :error
+          end
+      end)
     end
 
     @spec parse_requirement(String.t()) :: {:ok, term} | :error
     def parse_requirement(source) do
       lexed = lexer(source, [])
-      to_matchspec(lexed)
+
+      if valid_requirement?(lexed) do
+        {:ok, lexed}
+      else
+        :error
+      end
     end
 
     def parse_version(string, approximate? \\ false) when is_binary(string) do
@@ -550,7 +613,7 @@ defmodule Version do
     defp valid_requirement?([a | next]), do: valid_requirement?(a, next)
 
     # it must finish with a version
-    defp valid_requirement?(a, []) when is_binary(a) do
+    defp valid_requirement?(a, []) when is_tuple(a) do
       true
     end
 
@@ -560,178 +623,28 @@ defmodule Version do
     end
 
     # <version> or | <version> and
-    defp valid_requirement?(a, [b | next]) when is_binary(a) and is_atom(b) and b in [:||, :&&] do
+    defp valid_requirement?(a, [b | next]) when is_tuple(a) and is_atom(b) and b in [:||, :&&] do
       valid_requirement?(b, next)
     end
 
     # or <version> | and <version>
-    defp valid_requirement?(a, [b | next]) when is_atom(a) and is_binary(b) and a in [:||, :&&] do
+    defp valid_requirement?(a, [b | next]) when is_atom(a) and is_tuple(b) and a in [:||, :&&] do
+      valid_requirement?(b, next)
+    end
+
+    # ~> <version>
+    defp valid_requirement?(:~>, [b | next]) when is_tuple(b) do
       valid_requirement?(b, next)
     end
 
     # <op> <version>
-    defp valid_requirement?(a, [b | next]) when is_atom(a) and is_binary(b) do
+    defp valid_requirement?(a, [{_major, _minor, patch, _pre, _build} = b | next])
+         when is_atom(a) and is_integer(patch) do
       valid_requirement?(b, next)
     end
 
     defp valid_requirement?(_, _) do
       false
-    end
-
-    defp approximate_upper(version) do
-      case version do
-        {major, _minor, nil, _} ->
-          {major + 1, 0, 0, [0]}
-
-        {major, minor, _patch, _} ->
-          {major, minor + 1, 0, [0]}
-      end
-    end
-
-    defp to_matchspec(lexed) do
-      if valid_requirement?(lexed) do
-        first = to_condition(lexed)
-        rest = Enum.drop(lexed, 2)
-        {:ok, [{{:"$1", :"$2", :"$3", :"$4", :"$5"}, [to_condition(first, rest)], [:"$_"]}]}
-      else
-        :error
-      end
-    catch
-      :invalid_matchspec -> :error
-    end
-
-    defp to_condition([:==, version | _]) do
-      matchable = parse_condition(version)
-      main_condition(:==, matchable)
-    end
-
-    defp to_condition([:!=, version | _]) do
-      matchable = parse_condition(version)
-      main_condition(:"/=", matchable)
-    end
-
-    defp to_condition([:~>, version | _]) do
-      from = parse_condition(version, true)
-      to = approximate_upper(from)
-
-      {
-        :andalso,
-        to_condition([:>=, matchable_to_string(from)]),
-        to_condition([:<, matchable_to_string(to)])
-      }
-    end
-
-    defp to_condition([:>, version | _]) do
-      {major, minor, patch, pre} = parse_condition(version)
-
-      {
-        :andalso,
-        {
-          :orelse,
-          main_condition(:>, {major, minor, patch}),
-          {:andalso, main_condition(:==, {major, minor, patch}), pre_condition(:>, pre)}
-        },
-        no_pre_condition(pre)
-      }
-    end
-
-    defp to_condition([:>=, version | _]) do
-      matchable = parse_condition(version)
-
-      {:orelse, main_condition(:==, matchable), to_condition([:>, version])}
-    end
-
-    defp to_condition([:<, version | _]) do
-      {major, minor, patch, pre} = parse_condition(version)
-
-      {
-        :orelse,
-        main_condition(:<, {major, minor, patch}),
-        {:andalso, main_condition(:==, {major, minor, patch}), pre_condition(:<, pre)}
-      }
-    end
-
-    defp to_condition([:<=, version | _]) do
-      matchable = parse_condition(version)
-
-      {:orelse, main_condition(:==, matchable), to_condition([:<, version])}
-    end
-
-    defp to_condition(current, []) do
-      current
-    end
-
-    defp to_condition(current, [:&&, operator, version | rest]) do
-      to_condition({:andalso, current, to_condition([operator, version])}, rest)
-    end
-
-    defp to_condition(current, [:||, operator, version | rest]) do
-      to_condition({:orelse, current, to_condition([operator, version])}, rest)
-    end
-
-    defp parse_condition(version, approximate? \\ false) do
-      case parse_version(version, approximate?) do
-        {:ok, {major, minor, patch, pre, _build}} -> {major, minor, patch, pre}
-        :error -> throw(:invalid_matchspec)
-      end
-    end
-
-    defp main_condition(op, version) when tuple_size(version) == 3 do
-      {op, {{:"$1", :"$2", :"$3"}}, {:const, version}}
-    end
-
-    defp main_condition(op, version) when tuple_size(version) == 4 do
-      {op, {{:"$1", :"$2", :"$3", :"$4"}}, {:const, version}}
-    end
-
-    defp pre_condition(:>, pre) do
-      length_pre = length(pre)
-
-      {
-        :orelse,
-        {:andalso, {:==, {:length, :"$4"}, 0}, {:const, length_pre != 0}},
-        {
-          :andalso,
-          {:const, length_pre != 0},
-          {
-            :orelse,
-            {:>, {:length, :"$4"}, length_pre},
-            {:andalso, {:==, {:length, :"$4"}, length_pre}, {:>, :"$4", {:const, pre}}}
-          }
-        }
-      }
-    end
-
-    defp pre_condition(:<, pre) do
-      length_pre = length(pre)
-
-      {
-        :orelse,
-        {:andalso, {:"/=", {:length, :"$4"}, 0}, {:const, length_pre == 0}},
-        {
-          :andalso,
-          {:"/=", {:length, :"$4"}, 0},
-          {
-            :orelse,
-            {:<, {:length, :"$4"}, length_pre},
-            {:andalso, {:==, {:length, :"$4"}, length_pre}, {:<, :"$4", {:const, pre}}}
-          }
-        }
-      }
-    end
-
-    defp no_pre_condition([]) do
-      {:orelse, :"$5", {:==, {:length, :"$4"}, 0}}
-    end
-
-    defp no_pre_condition(_pre) do
-      {:const, true}
-    end
-
-    defp matchable_to_string({major, minor, patch, pre}) do
-      patch = if patch, do: "#{patch}", else: "0"
-      pre = if pre != [], do: "-#{Enum.join(pre, ".")}"
-      "#{major}.#{minor}.#{patch}#{pre}"
     end
   end
 end
