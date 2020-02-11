@@ -120,12 +120,11 @@ defmodule Version do
 
     @opaque t :: %__MODULE__{
               source: String.t(),
-              lexed: [
-                atom
-                | {Version.major(), Version.minor(), Version.patch(), Version.pre(),
-                   Version.build()}
-              ]
+              lexed: [atom | matchable]
             }
+
+    @typep matchable ::
+             {Version.major(), Version.minor(), Version.patch(), Version.pre(), Version.build()}
 
     @compile inline: [compare: 2]
 
