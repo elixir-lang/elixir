@@ -136,12 +136,6 @@ defmodule Version do
     end
 
     @doc false
-    @spec compile(t) :: t
-    def compile(%__MODULE__{} = requirement) do
-      requirement
-    end
-
-    @doc false
     @spec match?(t, tuple) :: boolean
     def match?(%__MODULE__{lexed: lexed}, matchable_pattern) do
       match_lexed?(lexed, matchable_pattern)
