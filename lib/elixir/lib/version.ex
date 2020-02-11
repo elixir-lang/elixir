@@ -433,16 +433,11 @@ defmodule Version do
   end
 
   @doc """
-  Compiles a requirement to its internal representation with
-  `:ets.match_spec_compile/1` for faster matching.
+  Compiles a requirement to an internal representation that may optimize matching.
 
-  The internal representation is opaque and cannot be converted to external
-  term format and then back again without losing its properties (meaning it
-  can not be sent to a process on another node and still remain a valid
-  compiled match_spec, nor can it be stored on disk).
+  The internal representation is opaque.
   """
   @spec compile_requirement(Requirement.t()) :: Requirement.t()
-  # TODO: Deprecate this function, it's a NOOP
   def compile_requirement(requirement) do
     requirement
   end
