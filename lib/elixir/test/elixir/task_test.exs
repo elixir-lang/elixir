@@ -717,6 +717,21 @@ defmodule TaskTest do
       [ok: :ok] = Task.async_stream([1], fn _ -> :ok end, timeout: :infinity) |> Enum.to_list()
     end
 
+    test "streams with fake down messages on the inbox" do
+      parent = self()
+
+      assert Task.async_stream([:ok], fn :ok ->
+               {:links, links} = Process.info(self(), :links)
+
+               for link <- links do
+                 send(link, {:DOWN, make_ref(), :process, parent, :oops})
+               end
+
+               :ok
+             end)
+             |> Enum.to_list() == [ok: :ok]
+    end
+
     test "with $callers" do
       grandparent = self()
 

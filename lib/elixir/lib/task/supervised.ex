@@ -539,7 +539,7 @@ defmodule Task.Supervised do
 
       # One of the spawned processes went down. We inform the parent process of
       # this and keep going.
-      {:DOWN, ref, _, _, reason} ->
+      {:DOWN, ref, _, _, reason} when is_map_key(running_tasks, ref) ->
         {task, running_tasks} = Map.pop(running_tasks, ref)
         %{position: position, timer_ref: timer_ref, timed_out?: timed_out?} = task
 
