@@ -84,13 +84,13 @@ defmodule Logger.Handler do
 
       mode ->
         level = erlang_level_to_elixir_level(erl_level)
-        timestamp = Map.get_lazy(metadata, :time, fn -> :os.system_time(:microsecond) end)
 
         case do_log(level, msg, metadata, config) do
           :skip ->
             :ok
 
           {message, %{gl: gl} = metadata} ->
+            timestamp = Map.get_lazy(metadata, :time, fn -> :os.system_time(:microsecond) end)
             metadata = erlang_metadata_to_elixir_metadata(metadata)
             %{truncate: truncate, utc_log: utc_log?} = config
 

@@ -77,9 +77,9 @@ defmodule Logger.FormatterTest do
              "2014-12-30 12:06:30.100"
   end
 
-  test "format discards callers/ancestors/crash_reason" do
+  test "format discards unknown formats" do
     compiled = compile("$metadata $message")
-    metadata = [callers: :discard, ancestors: :discard, crash_reason: :discard, foo: :bar]
+    metadata = [ancestors: [self()], crash_reason: {:some, :tuple}, foo: :bar]
 
     assert format(compiled, :error, "hello", nil, metadata) ==
              [["foo", 61, "bar", 32], " ", "hello"]
