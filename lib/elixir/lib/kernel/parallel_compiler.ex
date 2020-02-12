@@ -139,15 +139,15 @@ defmodule Kernel.ParallelCompiler do
     compiler_pid = self()
     :elixir_code_server.cast({:reset_warnings, compiler_pid})
     schedulers = max(:erlang.system_info(:schedulers_online), 2)
+    beam_timestamp = Keyword.get(options, :beam_timestamp)
 
-    result =
+    outcome =
       spawn_workers(files, 0, [], [], %{}, [], %{
         dest: Keyword.get(options, :dest),
         each_cycle: Keyword.get(options, :each_cycle, fn -> {:runtime, []} end),
         each_file: Keyword.get(options, :each_file, fn _, _ -> :ok end) |> each_file(),
         each_long_compilation: Keyword.get(options, :each_long_compilation, fn _file -> :ok end),
         each_module: Keyword.get(options, :each_module, fn _file, _module, _binary -> :ok end),
-        beam_timestamp: Keyword.get(options, :beam_timestamp),
         long_compilation_threshold: Keyword.get(options, :long_compilation_threshold, 15),
         profile: Keyword.get(options, :profile),
         cycle_start: System.monotonic_time(),
@@ -160,7 +160,7 @@ defmodule Kernel.ParallelCompiler do
     # compilation status will be set to error.
     compilation_status = :elixir_code_server.call({:compilation_status, compiler_pid})
 
-    case {result, compilation_status} do
+    case {outcome, compilation_status} do
       {{:ok, _, warnings}, :error} ->
         message = "Compilation failed due to warnings while using the --warnings-as-errors option"
         IO.puts(:stderr, message)
@@ -169,8 +169,11 @@ defmodule Kernel.ParallelCompiler do
       {{:error, errors, warnings}, :error} ->
         {:error, errors ++ warnings, []}
 
-      _ ->
-        result
+      {{:ok, outcome, warnings}, _} ->
+        {:ok, write_module_binaries(outcome, output, beam_timestamp), warnings}
+
+      {{:error, errors, warnings}, _} ->
+        {:error, errors, warnings}
     end
   end
 
@@ -186,6 +189,74 @@ defmodule Kernel.ParallelCompiler do
       {:DOWN, ^ref, _, _, _} -> :ok
     end
   end
+
+  defp write_module_binaries(result, {:compile, path}, timestamp) do
+    Enum.flat_map(result, fn
+      {{:module, module}, {binary, _map}} ->
+        full_path = Path.join(path, Atom.to_string(module) <> ".beam")
+        File.write!(full_path, binary)
+        if timestamp, do: File.touch!(full_path, timestamp)
+        [module]
+
+      _ ->
+        []
+    end)
+  end
+
+  defp write_module_binaries(result, _output, _timestamp) do
+    for {{:module, module}, _} <- result, do: module
+  end
+
+  ## Verification
+
+  defp verify_modules(result, warnings, dependent_modules, state) do
+    checker_warnings = maybe_check_modules(result, dependent_modules, state)
+    warnings = Enum.reverse(warnings, checker_warnings)
+    {:ok, result, warnings}
+  end
+
+  defp maybe_check_modules(result, runtime_modules, state) do
+    %{schedulers: schedulers, profile: profile} = state
+
+    if :elixir_config.get(:bootstrap) do
+      []
+    else
+      compiled_modules = checker_compiled_modules(result)
+      runtime_modules = checker_runtime_modules(runtime_modules)
+
+      profile_checker(profile, compiled_modules, runtime_modules, fn ->
+        Module.ParallelChecker.verify(compiled_modules, runtime_modules, schedulers)
+      end)
+    end
+  end
+
+  defp checker_compiled_modules(result) do
+    for {{:module, _module}, {binary, module_map}} <- result do
+      {module_map, binary}
+    end
+  end
+
+  defp checker_runtime_modules(modules) do
+    for module <- modules,
+        path = :code.which(module),
+        is_list(path) do
+      {module, File.read!(path)}
+    end
+  end
+
+  defp profile_checker(_profile = :time, compiled_modules, runtime_modules, fun) do
+    {time, result} = :timer.tc(fun)
+    time = div(time, 1000)
+    num_modules = length(compiled_modules) + length(runtime_modules)
+    IO.puts(:stderr, "[profile] Finished group pass check of #{num_modules} modules in #{time}ms")
+    result
+  end
+
+  defp profile_checker(_profile = nil, _compiled_modules, _runtime_modules, fun) do
+    fun.()
+  end
+
+  ## Compiler worker spawning
 
   # We already have n=schedulers currently running, don't spawn new ones
   defp spawn_workers(
@@ -253,10 +324,10 @@ defmodule Kernel.ParallelCompiler do
 
     case each_cycle_return(state.each_cycle.()) do
       {:runtime, dependent_modules} ->
-        write_and_verify_modules(result, warnings, dependent_modules, state)
+        verify_modules(result, warnings, dependent_modules, state)
 
       {:compile, []} ->
-        write_and_verify_modules(result, warnings, [], state)
+        verify_modules(result, warnings, [], state)
 
       {:compile, more} ->
         spawn_workers(more, 0, [], [], result, warnings, state)
@@ -353,71 +424,6 @@ defmodule Kernel.ParallelCompiler do
   # TODO: Deprecate on v1.14
   defp each_cycle_return(modules) when is_list(modules), do: {:compile, modules}
   defp each_cycle_return(other), do: other
-
-  defp write_and_verify_modules(result, warnings, dependent_modules, state) do
-    modules = write_module_binaries(result, state)
-    checker_warnings = maybe_check_modules(result, dependent_modules, state)
-    warnings = Enum.reverse(warnings, checker_warnings)
-    {:ok, modules, warnings}
-  end
-
-  defp write_module_binaries(result, %{output: {:compile, path}, beam_timestamp: timestamp}) do
-    Enum.flat_map(result, fn
-      {{:module, module}, {binary, _map}} ->
-        full_path = Path.join(path, Atom.to_string(module) <> ".beam")
-        File.write!(full_path, binary)
-        if timestamp, do: File.touch!(full_path, timestamp)
-        [module]
-
-      _ ->
-        []
-    end)
-  end
-
-  defp write_module_binaries(result, _state) do
-    for {{:module, module}, _} <- result, do: module
-  end
-
-  defp maybe_check_modules(result, runtime_modules, state) do
-    %{schedulers: schedulers, profile: profile} = state
-
-    if :elixir_config.get(:bootstrap) do
-      []
-    else
-      compiled_modules = checker_compiled_modules(result)
-      runtime_modules = checker_runtime_modules(runtime_modules)
-
-      profile_checker(profile, compiled_modules, runtime_modules, fn ->
-        Module.ParallelChecker.verify(compiled_modules, runtime_modules, schedulers)
-      end)
-    end
-  end
-
-  defp checker_compiled_modules(result) do
-    for {{:module, _module}, {binary, module_map}} <- result do
-      {module_map, binary}
-    end
-  end
-
-  defp checker_runtime_modules(modules) do
-    for module <- modules,
-        path = :code.which(module),
-        is_list(path) do
-      {module, File.read!(path)}
-    end
-  end
-
-  defp profile_checker(_profile = :time, compiled_modules, runtime_modules, fun) do
-    {time, result} = :timer.tc(fun)
-    time = div(time, 1000)
-    num_modules = length(compiled_modules) + length(runtime_modules)
-    IO.puts(:stderr, "[profile] Finished group pass check of #{num_modules} modules in #{time}ms")
-    result
-  end
-
-  defp profile_checker(_profile = nil, _compiled_modules, _runtime_modules, fun) do
-    fun.()
-  end
 
   # The goal of this function is to find leaves in the dependency graph,
   # i.e. to find code that depends on code that we know is not being defined.
