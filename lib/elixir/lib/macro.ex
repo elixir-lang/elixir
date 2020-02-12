@@ -1023,11 +1023,13 @@ defmodule Macro do
 
         binary when is_binary(binary) ->
           binary = inspect_no_limit(binary)
-          binary_part(binary, 1, byte_size(binary) - 2)
+
+          binary
+          |> binary_part(1, byte_size(binary) - 2)
+          |> escape_sigil(left)
       end)
 
-    escaped = escape_sigil(parts, left)
-    <<left::binary, escaped::binary, right::binary>>
+    <<left::binary, parts::binary, right::binary>>
   end
 
   defp escape_sigil(parts, "("), do: String.replace(parts, ")", ~S"\)")
