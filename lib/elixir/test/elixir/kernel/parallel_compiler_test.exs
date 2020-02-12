@@ -309,12 +309,16 @@ defmodule Kernel.ParallelCompilerTest do
           """
         )
 
+      output = tmp_path("not_to_be_used")
+
       try do
         Code.compiler_options(warnings_as_errors: true)
 
         msg =
           capture_io(:stderr, fn ->
-            assert {:error, [error], []} = Kernel.ParallelCompiler.compile([fixture])
+            assert {:error, [error], []} =
+                     Kernel.ParallelCompiler.compile_to_path([fixture], output)
+
             msg = "this clause cannot match because a previous clause at line 2 always matches"
             assert error == {fixture, 3, msg}
           end)
@@ -325,6 +329,8 @@ defmodule Kernel.ParallelCompilerTest do
         Code.compiler_options(warnings_as_errors: warnings_as_errors)
         purge([WarningsSample])
       end
+
+      refute File.exists?(output)
     end
 
     test "does not use incorrect line number when error originates in another file" do
