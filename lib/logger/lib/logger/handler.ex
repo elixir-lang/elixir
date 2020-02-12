@@ -187,12 +187,6 @@ defmodule Logger.Handler do
           metadata
       end
 
-    metadata =
-      case metadata do
-        %{file: file} -> %{metadata | file: List.to_string(file)}
-        %{} -> metadata
-      end
-
     Map.to_list(metadata)
   rescue
     _ -> Map.to_list(metadata)
