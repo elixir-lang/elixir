@@ -1388,6 +1388,22 @@ defmodule Module do
     raise ArgumentError, "expected an Elixir module, got: #{inspect(original)}"
   end
 
+  @doc """
+  Converts a module name to a string.
+
+  ## Examples
+
+      iex> Module.to_string(Example.Module)
+      "Example.Module"
+  """
+  @spec to_string(module) :: String.t()
+  def to_string(module) when is_atom(module) do
+    case Atom.to_string(module) do
+      "Elixir." <> name -> name
+      _ -> raise ArgumentError, "expected an Elixir module, got: #{inspect(module)}"
+    end
+  end
+
   @doc false
   @deprecated "Use @doc instead"
   def add_doc(module, line, kind, {name, arity}, signature \\ [], doc) do

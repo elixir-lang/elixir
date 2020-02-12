@@ -256,6 +256,15 @@ defmodule ModuleTest do
     assert Module.concat(Module.split(module)) == module
   end
 
+  test "to_string" do
+    module = Very.Long.Module.Name.And.Even.Longer
+    assert Module.to_string(module) == "Very.Long.Module.Name.And.Even.Longer"
+
+    assert_raise ArgumentError, "expected an Elixir module, got: :just_an_atom", fn ->
+      Module.to_string(:just_an_atom)
+    end
+  end
+
   test "__MODULE__" do
     assert Code.eval_string("__MODULE__.Foo") |> elem(0) == Foo
   end
