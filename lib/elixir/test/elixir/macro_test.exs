@@ -344,6 +344,7 @@ defmodule MacroTest do
       assert Macro.to_string(quote(do: ~R"\n123")) == ~S/~R"\n123"/
 
       assert Macro.to_string(quote(do: ~S["'(123)'"])) == ~S/~S["'(123)'"]/
+      assert Macro.to_string(quote(do: ~s"#{"foo"}")) == ~S/~s"#{"foo"}"/
 
       assert Macro.to_string(
                quote do
@@ -702,6 +703,12 @@ defmodule MacroTest do
     test "charlist" do
       assert Macro.to_string(quote(do: [])) == "[]"
       assert Macro.to_string(quote(do: 'abc')) == "'abc'"
+    end
+
+    test "string" do
+      assert Macro.to_string(quote(do: "")) == ~S/""/
+      assert Macro.to_string(quote(do: "abc")) == ~S/"abc"/
+      assert Macro.to_string(quote(do: "#{"abc"}")) == ~S/"#{"abc"}"/
     end
 
     test "last arg keyword list" do
