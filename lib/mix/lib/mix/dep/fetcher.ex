@@ -65,6 +65,7 @@ defmodule Mix.Dep.Fetcher do
           end
 
         if new do
+          File.touch!(Path.join(opts[:dest], ".fetch"))
           dep = put_in(dep.opts[:lock], new)
           {dep, [app | acc], Map.put(lock, app, new)}
         else
@@ -92,22 +93,18 @@ defmodule Mix.Dep.Fetcher do
     # dependency is missing, it could directly affect one of the
     # dependencies we are trying to compile, causing the whole thing
     # to fail.
-    #
-    # If there is any other dependency that is not ok, we include
-    # it for compilation too, this is our best to try to solve the
-    # maximum we can at each deps.get and deps.update.
-    deps =
+    parent_deps =
       if Enum.all?(all_deps, &available?/1) do
         Enum.uniq_by(with_depending(deps, all_deps), & &1.app)
       else
-        deps
+        []
       end
 
     # Merge the new lock on top of the old to guarantee we don't
     # leave out things that could not be fetched and save it.
     lock = Map.merge(old_lock, new_lock)
     Mix.Dep.Lock.write(lock)
-    mark_as_fetched(deps)
+    mark_as_fetched(parent_deps)
 
     # See if any of the deps diverged and abort.
     show_diverged!(Enum.filter(all_deps, &Mix.Dep.diverged?/1))
