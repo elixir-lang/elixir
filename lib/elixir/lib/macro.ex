@@ -1023,10 +1023,8 @@ defmodule Macro do
 
         binary when is_binary(binary) ->
           binary = inspect_no_limit(binary)
-
-          binary
-          |> binary_part(1, byte_size(binary) - 2)
-          |> escape_sigil(left)
+          binary = binary_part(binary, 1, byte_size(binary) - 2)
+          escape_sigil(binary, left)
       end)
 
     <<left::binary, parts::binary, right::binary>>
