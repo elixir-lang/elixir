@@ -66,7 +66,7 @@ defmodule Mix.Dep do
           scm: Mix.SCM.t(),
           app: atom,
           requirement: String.t() | Regex.t() | nil,
-          status: atom,
+          status: {:ok, String.t() | nil} | atom | tuple,
           opts: keyword,
           top_level: boolean,
           manager: :rebar | :rebar3 | :mix | :make | nil,
