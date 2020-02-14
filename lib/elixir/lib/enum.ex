@@ -2106,7 +2106,7 @@ defmodule Enum do
   operation cannot be expressed by any of the functions in the `Enum`
   module, developers will most likely resort to `reduce/3`.
   """
-  @spec reduce(t, any, (element, any -> any)) :: any
+  @spec reduce(t, any, (element, acc -> acc)) :: acc
   def reduce(enumerable, acc, fun) when is_list(enumerable) do
     :lists.foldl(fun, acc, enumerable)
   end
