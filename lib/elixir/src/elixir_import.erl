@@ -12,8 +12,14 @@ import(Meta, Ref, Opts, E) ->
         {Added1, Funs} = import_functions(Meta, Ref, Opts, E),
         {Funs, keydelete(Ref, ?key(E, macros)), Added1};
       {only, macros} ->
-        {Added2, Macs} = import_macros(true, Meta, Ref, Opts, E),
-        {keydelete(Ref, ?key(E, functions)), Macs, Added2};
+        {Added1, Macs} = import_macros(true, Meta, Ref, Opts, E),
+        {keydelete(Ref, ?key(E, functions)), Macs, Added1};
+      {only, sigils} ->
+        {Added1, Funs1} = import_functions(Meta, Ref, Opts, E),
+        {Added2, Macs1} = import_macros(false, Meta, Ref, Opts, E),
+        Funs2 = keyupdate(Ref, fun take_sigils/1, Funs1),
+        Macs2 = keyupdate(Ref, fun take_sigils/1, Macs1),
+        {Funs2, Macs2, Added1 or Added2};
       {only, List} when is_list(List) ->
         {Added1, Funs} = import_functions(Meta, Ref, Opts, E),
         {Added2, Macs} = import_macros(false, Meta, Ref, Opts, E),
@@ -28,6 +34,16 @@ import(Meta, Ref, Opts, E) ->
 
   elixir_env:trace({import, [{imported, Added} | Meta], Ref, Opts}, E),
   {Functions, Macros}.
+
+take_sigils(List) ->
+  lists:filter(fun is_sigil/1, List).
+
+is_sigil({Name, Arity}) ->
+  Arity == 2 andalso is_sigil(atom_to_list(Name));
+is_sigil("sigil_" ++ Rest) ->
+  lists:all(fun(X) -> (X >= $a andalso X =< $z) orelse (X >= $A andalso X =< $Z) end, Rest);
+is_sigil(Name) when is_list(Name) ->
+  false.
 
 import_functions(Meta, Ref, Opts, E) ->
   calculate(Meta, Ref, Opts, ?key(E, functions), ?key(E, file), fun() ->
@@ -173,7 +189,7 @@ format_error({invalid_option, Option}) ->
 
 format_error({invalid_option, only, Value}) ->
   Message = "invalid :only option for import, expected value to be an atom :functions, :macros"
-  ", or a list literal, got: ~s",
+  ", :sigils, or a list literal, got: ~s",
   io_lib:format(Message, ['Elixir.Macro':to_string(Value)]);
 
 format_error({invalid_option, except, Value}) ->
@@ -194,6 +210,10 @@ keyfind(Key, List) ->
 
 keydelete(Key, List) ->
   lists:keydelete(Key, 1, List).
+
+keyupdate(Key, Fun, List) ->
+  {Key, Value} = keyfind(Key, List),
+  lists:keyreplace(Key, 1, List, {Key, Fun(Value)}).
 
 intersection([H | T], All) ->
   case lists:member(H, All) of
