@@ -15,7 +15,7 @@ defmodule Mix.Dep.Lock do
     opts = [file: lockfile, warn_on_unnecessary_quotes: false]
 
     with {:ok, contents} <- File.read(lockfile),
-         _ = assert_no_merge_conflicts_in_lockfile(lockfile, contents),
+         assert_no_merge_conflicts_in_lockfile(lockfile, contents),
          {:ok, quoted} <- Code.string_to_quoted(contents, opts),
          {%{} = lock, _binding} <- Code.eval_quoted(quoted, [], opts) do
       lock
