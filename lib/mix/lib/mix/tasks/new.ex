@@ -90,6 +90,7 @@ defmodule Mix.Tasks.New do
     assigns = [
       app: app,
       mod: mod,
+      umbrella: in_umbrella?(),
       sup_app: sup_app(mod, !!opts[:sup]),
       version: get_version(System.version())
     ]
@@ -99,12 +100,9 @@ defmodule Mix.Tasks.New do
     create_file("README.md", readme_template(assigns))
     create_file(".formatter.exs", formatter_template(assigns))
     create_file(".gitignore", gitignore_template(assigns))
+    create_file(".editorconfig", editorconfig_template(assigns))
 
-    if in_umbrella?() do
-      create_file("mix.exs", mix_exs_apps_template(assigns))
-    else
-      create_file("mix.exs", mix_exs_template(assigns))
-    end
+    create_file("mix.exs", mix_exs_template(assigns))
 
     create_directory("lib")
     create_file("lib/#{mod_filename}.ex", lib_template(assigns))
@@ -137,11 +135,12 @@ defmodule Mix.Tasks.New do
   defp cd_path(path), do: "cd #{path}\n    "
 
   defp generate_umbrella(_app, mod, path, _opts) do
-    assigns = [app: nil, mod: mod]
+    assigns = [app: nil, mod: mod, umbrella: false]
 
     create_file("README.md", readme_template(assigns))
     create_file(".formatter.exs", formatter_umbrella_template(assigns))
     create_file(".gitignore", gitignore_template(assigns))
+    create_file(".editorconfig", editorconfig_template(assigns))
     create_file("mix.exs", mix_exs_umbrella_template(assigns))
 
     create_directory("apps")
@@ -294,6 +293,18 @@ defmodule Mix.Tasks.New do
   <% end %>
   """)
 
+  embed_template(:editorconfig, """
+  <%= unless @umbrella do %>root = true
+  <% end %>
+  [*]
+  insert_final_newline = true
+  charset = utf-8
+
+  [*.{ex,exs}]
+  indent_style = space
+  indent_size = 2
+  """)
+
   embed_template(:mix_exs, """
   defmodule <%= @mod %>.MixProject do
     use Mix.Project
@@ -301,42 +312,11 @@ defmodule Mix.Tasks.New do
     def project do
       [
         app: :<%= @app %>,
-        version: "0.1.0",
-        elixir: "~> <%= @version %>",
-        start_permanent: Mix.env() == :prod,
-        deps: deps()
-      ]
-    end
-
-    # Run "mix help compile.app" to learn about applications.
-    def application do
-      [
-        extra_applications: [:logger]<%= @sup_app %>
-      ]
-    end
-
-    # Run "mix help deps" to learn about dependencies.
-    defp deps do
-      [
-        # {:dep_from_hexpm, "~> 0.3.0"},
-        # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"}
-      ]
-    end
-  end
-  """)
-
-  embed_template(:mix_exs_apps, """
-  defmodule <%= @mod %>.MixProject do
-    use Mix.Project
-
-    def project do
-      [
-        app: :<%= @app %>,
-        version: "0.1.0",
+        version: "0.1.0",<%= if @umbrella do %>
         build_path: "../../_build",
         config_path: "../../config/config.exs",
         deps_path: "../../deps",
-        lockfile: "../../mix.lock",
+        lockfile: "../../mix.lock",<% end %>
         elixir: "~> <%= @version %>",
         start_permanent: Mix.env() == :prod,
         deps: deps()

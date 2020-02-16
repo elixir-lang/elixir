@@ -12,6 +12,10 @@ defmodule Mix.Tasks.NewTest do
         assert file =~ "version: \"0.1.0\""
       end)
 
+      assert_file("hello_world/.editorconfig", fn file ->
+        assert file =~ "root = true"
+      end)
+
       assert_file("hello_world/README.md", ~r/# HelloWorld\n/)
       assert_file("hello_world/.gitignore")
 
@@ -42,6 +46,10 @@ defmodule Mix.Tasks.NewTest do
         assert file =~ "app: :hello_world"
         assert file =~ "version: \"0.1.0\""
         assert file =~ "mod: {HelloWorld.Application, []}"
+      end)
+
+      assert_file("hello_world/.editorconfig", fn file ->
+        assert file =~ "root = true"
       end)
 
       assert_file("hello_world/README.md", ~r/# HelloWorld\n/)
@@ -88,6 +96,10 @@ defmodule Mix.Tasks.NewTest do
         assert file =~ "version: \"0.1.0\""
       end)
 
+      assert_file("HELLO_WORLD/.editorconfig", fn file ->
+        assert file =~ "root = true"
+      end)
+
       assert_file("HELLO_WORLD/README.md", ~r/# HelloWorld\n/)
       assert_file("HELLO_WORLD/.gitignore")
 
@@ -114,6 +126,10 @@ defmodule Mix.Tasks.NewTest do
         assert file =~ "apps_path: \"apps\""
       end)
 
+      assert_file("hello_world/.editorconfig", fn file ->
+        assert file =~ "root = true"
+      end)
+
       assert_file("hello_world/README.md", ~r/# HelloWorld\n/)
       assert_file("hello_world/.gitignore")
 
@@ -134,6 +150,10 @@ defmodule Mix.Tasks.NewTest do
         assert_file("hello_world/mix.exs", fn file ->
           assert file =~ "deps_path: \"../../deps\""
           assert file =~ "lockfile: \"../../mix.lock\""
+        end)
+
+        assert_file("hello_world/.editorconfig", fn file ->
+          refute file =~ "root = true"
         end)
 
         # Ensure formatting is setup and consistent.
