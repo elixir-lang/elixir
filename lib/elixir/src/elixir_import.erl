@@ -171,10 +171,14 @@ format_error({invalid_option, Option}) ->
   Message = "invalid :~s option for import, expected a keyword list with integer values",
   io_lib:format(Message, [Option]);
 
-format_error({invalid_option, Option, Value}) ->
-  Message = "invalid :~s option for import, expected value to be an atom :functions, :macros"
+format_error({invalid_option, only, Value}) ->
+  Message = "invalid :only option for import, expected value to be an atom :functions, :macros"
   ", or a list literal, got: ~s",
-  io_lib:format(Message, [Option, 'Elixir.Macro':to_string(Value)]);
+  io_lib:format(Message, ['Elixir.Macro':to_string(Value)]);
+
+format_error({invalid_option, except, Value}) ->
+  Message = "invalid :except option for import, expected value to be a list literal, got: ~s",
+  io_lib:format(Message, ['Elixir.Macro':to_string(Value)]);
 
 format_error({special_form_conflict, {Receiver, Name, Arity}}) ->
   io_lib:format("cannot import ~ts.~ts/~B because it conflicts with Elixir special forms",
