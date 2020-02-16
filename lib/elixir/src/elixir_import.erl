@@ -40,8 +40,8 @@ take_sigils(List) ->
 
 is_sigil({Name, Arity}) ->
   Arity == 2 andalso is_sigil(atom_to_list(Name));
-is_sigil("sigil_" ++ Rest) ->
-  lists:all(fun(X) -> (X >= $a andalso X =< $z) orelse (X >= $A andalso X =< $Z) end, Rest);
+is_sigil("sigil_" ++ [S]) when (S >= $a andalso S =< $z) orelse (S >= $A andalso S =< $Z) ->
+  true;
 is_sigil(Name) when is_list(Name) ->
   false.
 
