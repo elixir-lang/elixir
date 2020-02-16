@@ -284,6 +284,10 @@ defmodule ExUnit.Diff do
 
   # Lists
 
+  defp diff_maybe_list([], [], env) do
+    {%__MODULE__{equivalent?: true, left: [], right: []}, env}
+  end
+
   defp diff_maybe_list(left, right, env) do
     if List.ascii_printable?(left) and List.ascii_printable?(right) do
       diff_string(List.to_string(left), List.to_string(right), ?', env)

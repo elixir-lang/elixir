@@ -817,6 +817,11 @@ defmodule ExUnit.DiffTest do
       "'fox -ho-ps over -\\'-the -dog-'",
       "'fox +jum+ps over the +lazy cat+'"
     )
+
+    refute_diff({[], :ok} = {[], [], :ok}, "{[], -:ok-}", "{[], +[]+, +:ok+}")
+    refute_diff({[], :ok} = {'foo', [], :ok}, "{'--', -:ok-}", "{'+foo+', +[]+, +:ok+}")
+    refute_diff({'foo', :ok} = {[], [], :ok}, "{'-foo-', -:ok-}", "{'++', +[]+, +:ok+}")
+    refute_diff({'foo', :ok} = {'bar', [], :ok}, "{'-foo-', -:ok-}", "{'+bar+', +[]+, +:ok+}")
   end
 
   test "refs" do
