@@ -732,13 +732,28 @@ defmodule Logger do
 
   This is equivalent of doing:
 
-      for mod <- Application.spec(app, :modules) do
-        Logger.set_module_level(mod, level)
-      end
+      Logger.set_module_level(Application.spec(app, :modules), level)
 
   """
   @spec set_application_level(atom(), level() | :all | :none) :: :ok | {:error, :not_loaded}
   defdelegate set_application_level(app, level), to: :logger
+
+  @doc """
+  Reset logging level for given module to primary level.
+  """
+  @spec unset_module_level(module() | [module()]) :: :ok
+  defdelegate unset_module_level(module), to: :logger
+
+  @doc """
+  Reset logging level for all modules in given application to primary level
+
+  This is equivalent of doing:
+
+      Logger.unset_module_level(Application.spec(app, :modules))
+
+  """
+  @spec unset_application_level(atom()) :: :ok
+  defdelegate unset_application_level(app), to: :logger
 
   @doc """
   Adds a new backend.
