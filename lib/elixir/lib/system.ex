@@ -738,7 +738,12 @@ defmodule System do
 
     * `:into` - injects the result into the given collectable, defaults to `""`
     * `:cd` - the directory to run the command in
-    * `:env` - an enumerable of tuples containing environment key-value as binary
+    * `:env` - an enumerable of tuples containing environment key-value as
+      binary. The child process inherits all environment variables from its
+      parent process, the Elixir application, except those overwritten or
+      cleared using this option. Specify a value of `nil` to clear (unset) an
+      environment variable, which is useful for preventing credentials passed
+      to the application from leaking into child processes.
     * `:arg0` - sets the command arg0
     * `:stderr_to_stdout` - redirects stderr to stdout when `true`
     * `:parallelism` - when `true`, the VM will schedule port tasks to improve
