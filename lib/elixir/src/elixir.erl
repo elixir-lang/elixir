@@ -24,9 +24,6 @@
 
 -export([start/2, stop/1, config_change/3]).
 
-just_testing_if_this_will_fail_build_on_ci() ->
-  ok.
-
 start(_Type, _Args) ->
   _ = parse_otp_release(),
   preload_common_modules(),
