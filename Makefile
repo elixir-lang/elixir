@@ -4,7 +4,8 @@ SHARE_PREFIX ?= $(PREFIX)/share
 MAN_PREFIX ?= $(SHARE_PREFIX)/man
 CANONICAL := master/ # master/ or vMAJOR.MINOR/
 ELIXIRC := bin/elixirc --verbose --ignore-module-conflict $(ELIXIRC_OPTS)
-ERLC := erlc -I lib/elixir/include $(ERLC_OPTS)
+ERLC := erlc -I lib/elixir/include
+ERL_MAKE := if [ -n "$(ERLC_OPTS)" ]; then ERL_COMPILER_OPTIONS=$(ERLC_OPTS) erl -make; else erl -make; fi
 ERL := erl -I lib/elixir/include -noshell -pa lib/elixir/ebin
 GENERATE_APP := $(CURDIR)/lib/elixir/generate_app.escript
 VERSION := $(strip $(shell cat VERSION))
@@ -74,7 +75,7 @@ compile: erlang $(APP) elixir
 
 erlang: $(PARSER)
 	$(Q) if [ ! -f $(APP) ]; then $(call CHECK_ERLANG_RELEASE); fi
-	$(Q) cd lib/elixir && mkdir -p ebin && erl -make
+	$(Q) cd lib/elixir && mkdir -p ebin && $(ERL_MAKE)
 
 $(PARSER): lib/elixir/src/elixir_parser.yrl
 	$(Q) erlc -o $@ +'{verbose,true}' +'{report,true}' $<
