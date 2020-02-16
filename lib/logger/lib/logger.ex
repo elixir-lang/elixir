@@ -848,7 +848,10 @@ defmodule Logger do
 
   # TODO: Remove that in Elixir 2.0
   def __do_log__(level, other, metadata) do
-    IO.warn("passing #{inspect(other)} to Logger is deprecated, expected a map, a keyword list, a binary, or an iolist")
+    IO.warn(
+      "passing #{inspect(other)} to Logger is deprecated, expected a map, a keyword list, a binary, or an iolist"
+    )
+
     :logger.macro_log(%{}, level, to_string(other), add_elixir_domain(metadata))
   end
 
