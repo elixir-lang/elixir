@@ -812,10 +812,10 @@ defmodule Logger do
   if there is something to be logged.
   """
   @spec bare_log(level, message | (() -> message | {message, keyword}), keyword) :: :ok
-  def bare_log(level, message, metadata \\ []) do
+  def bare_log(level, message_or_fun, metadata \\ []) do
     case __should_log__(level, nil) do
       nil -> :ok
-      level -> __do_log__(level, message, Map.new(metadata))
+      level -> __do_log__(level, message_or_fun, Map.new(metadata))
     end
   end
 
@@ -888,8 +888,8 @@ defmodule Logger do
         Logger.#{level}("#{message}")
 
     """
-    defmacro unquote(level)(message, metadata \\ []) do
-      maybe_log(unquote(level), message, metadata, __CALLER__)
+    defmacro unquote(level)(message_or_fun, metadata \\ []) do
+      maybe_log(unquote(level), message_or_fun, metadata, __CALLER__)
     end
   end
 
@@ -906,8 +906,8 @@ defmodule Logger do
 
   """
   # TODO: Hard deprecate it in favour of `warning/1-2` macro
-  defmacro warn(message, metadata \\ []) do
-    maybe_log(:warning, message, metadata, __CALLER__)
+  defmacro warn(message_or_fun, metadata \\ []) do
+    maybe_log(:warning, message_or_fun, metadata, __CALLER__)
   end
 
   @doc """
@@ -921,8 +921,8 @@ defmodule Logger do
   the call to `Logger` altogether at compile time if desired
   (see the documentation for the `Logger` module).
   """
-  defmacro log(level, message, metadata \\ []) do
-    macro_log(level, message, metadata, __CALLER__)
+  defmacro log(level, message_or_fun, metadata \\ []) do
+    macro_log(level, message_or_fun, metadata, __CALLER__)
   end
 
   defp macro_log(level, data, metadata, caller) do
