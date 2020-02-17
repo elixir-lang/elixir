@@ -15,11 +15,7 @@ import(Meta, Ref, Opts, E) ->
         {Added1, Macs} = import_macros(true, Meta, Ref, Opts, E),
         {keydelete(Ref, ?key(E, functions)), Macs, Added1};
       {only, sigils} ->
-        {Added1, Funs1} = import_functions(Meta, Ref, Opts, E),
-        {Added2, Macs1} = import_macros(false, Meta, Ref, Opts, E),
-        Funs2 = keyupdate(Ref, fun take_sigils/1, Funs1),
-        Macs2 = keyupdate(Ref, fun take_sigils/1, Macs1),
-        {Funs2, Macs2, Added1 or Added2};
+        import_sigils(Meta, Ref, Opts, E);
       {only, List} when is_list(List) ->
         {Added1, Funs} = import_functions(Meta, Ref, Opts, E),
         {Added2, Macs} = import_macros(false, Meta, Ref, Opts, E),
@@ -35,8 +31,16 @@ import(Meta, Ref, Opts, E) ->
   elixir_env:trace({import, [{imported, Added} | Meta], Ref, Opts}, E),
   {Functions, Macros}.
 
-take_sigils(List) ->
-  lists:filter(fun is_sigil/1, List).
+import_sigils(Meta, Ref, Opts, E) ->
+  {_, AllFunctions} = import_functions(Meta, Ref, Opts, E),
+  {_, AllMacros} = import_macros(false, Meta, Ref, Opts, E),
+  {_, Functions} = keyfind(Ref, AllFunctions),
+  {_, Macros} = keyfind(Ref, AllMacros),
+  SigilFunctions = lists:filter(fun is_sigil/1, Functions),
+  SigilMacros = lists:filter(fun is_sigil/1, Macros),
+  AllFunctions2 = keyput(Ref, SigilFunctions, AllFunctions),
+  AllMacros2 = keyput(Ref, SigilMacros, AllMacros),
+  {AllFunctions2, AllMacros2, length(SigilFunctions ++ SigilMacros) > 0}.
 
 is_sigil({Name, Arity}) ->
   Arity == 2 andalso is_sigil(atom_to_list(Name));
@@ -211,9 +215,8 @@ keyfind(Key, List) ->
 keydelete(Key, List) ->
   lists:keydelete(Key, 1, List).
 
-keyupdate(Key, Fun, List) ->
-  {Key, Value} = keyfind(Key, List),
-  lists:keyreplace(Key, 1, List, {Key, Fun(Value)}).
+keyput(Key, Value, List) ->
+  lists:keyreplace(Key, 1, List, {Key, Value}).
 
 intersection([H | T], All) ->
   case lists:member(H, All) of
