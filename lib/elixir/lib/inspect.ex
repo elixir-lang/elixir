@@ -31,15 +31,17 @@ defprotocol Inspect do
         end
       end
 
-  The [`concat/1`](`Inspect.Algebra.concat/1`) function comes from `Inspect.Algebra` and it
-  concatenates algebra documents together. In the example above it is
-  concatenating the string `"MapSet<"`, the document returned by
-  `Inspect.Algebra.to_doc/2`, and the final string `">"`. All strings are
-  valid algebra documents that keep their formatting when pretty printed.
+  The [`concat/1`](`Inspect.Algebra.concat/1`) function comes from
+  `Inspect.Algebra` and it concatenates algebra documents together.
+  In the example above it is concatenating the string `"#MapSet<"`,
+  the document returned by `Inspect.Algebra.to_doc/2`, and the final
+  string `">"`. We prefix the module name `#` to denote the inspect
+  presentation is not actually valid Elixir syntax.
 
-  Since regular strings are valid entities in an algebra document,
-  an implementation of the `Inspect` protocol may simply return a
-  string, although that will devoid it of any pretty-printing.
+  Finally, note strings themselves are valid algebra documents that
+  keep their formatting when pretty printed. This means your `Inspect`
+  implementation may simply return a string, although that will devoid
+  it of any pretty-printing.
 
   ## Error handling
 
