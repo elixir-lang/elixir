@@ -137,6 +137,26 @@ defmodule Kernel.ImportTest do
     import String
   end
 
+  defmodule Sigils do
+    # when imported it should cause conflict
+    def is_integer(_), do: false
+
+    def sigil_X(_, _), do: :x
+
+    defmacro sigil_Y(_, _), do: :y
+
+    def sigil__(_, _), do: :not_a_sigil
+  end
+
+  test "import only sigils" do
+    import Sigils, only: :sigils
+    assert is_integer(42)
+    assert ~X"" == :x
+    assert ~Y"" == :y
+    assert __ENV__.functions[Sigils] == [sigil_X: 2]
+    assert __ENV__.macros[Sigils] == [sigil_Y: 2]
+  end
+
   test "import many" do
     [import(List), import(String)]
     assert capitalize("foo") == "Foo"
