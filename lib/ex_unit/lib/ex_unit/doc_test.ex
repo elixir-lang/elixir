@@ -130,8 +130,8 @@ defmodule ExUnit.DocTest do
 
   You can also showcase expressions raising an exception, for example:
 
-      iex(1)> String.to_atom((fn -> 1 end).())
-      ** (ArgumentError) argument error
+      iex(1)> raise "some error"
+      ** (RuntimeError) some error
 
   What DocTest will be looking for is a line starting with `** (` and it
   will parse it accordingly to extract the exception name and message.
