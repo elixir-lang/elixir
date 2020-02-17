@@ -1,1 +1,3 @@
 lib/elixir/test/elixir/fixtures/*.txt text eol=lf
+*.ex diff=elixir
+*.exs diff=elixir
