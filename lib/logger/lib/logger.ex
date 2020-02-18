@@ -863,24 +863,25 @@ defmodule Logger do
 
   messages = [
     # Airplane 2
-    "We are also out of coffee",
+    {"We are also out of coffee", coffee: 0, target: Sun, pilots: 0, computer: :mad},
     # Red Alert 2
-    "Kirov reporting",
+    {"Kirov reporting", status: :ready, affiliation: CCCP},
     # Spies like us
-    "Doctor? Doctor",
+    {"Doctor? Doctor", spies: 2, doctors: 0},
     # 2001: Space Odyssey
-    "I'm sory Dave",
+    {"I'm sory Dave", emotion: :sorry, receiver: Dave, computer: :mad, model: HAL9000},
     # Lost in Space
-    "Danger, Will Robinson",
+    {"Danger, Will Robinson", status: :danger, receiver: {Will, Robinson}},
     # The Graduate
-    "Mrs. Robinson, you are trying to seduce me",
+    {"Mrs. Robinson, you are trying to seduce me",
+     reason: :seduction, from: Benjamin, to: Robinson, status: :married},
     # Dr. No
-    "Bond. James Bond.",
+    {"Bond. James Bond.", surname: Bond, name: James, place: :casino},
     # A Bug's Life
-    "I'm the only stick with eyeballs"
+    {"I'm the only stick with eyeballs", who: :stick, what: :eyeballs}
   ]
 
-  for {level, message} <- Enum.zip(@levels, messages) do
+  for {level, {message, report}} <- Enum.zip(@levels, messages) do
     @doc """
     Logs a #{level} message.
 
@@ -888,7 +889,17 @@ defmodule Logger do
 
     ## Examples
 
+    String message
+
         Logger.#{level}("#{message}")
+
+    Report message
+
+        # as keyword list
+        Logger.#{level}(#{inspect(report)})
+
+        # as map
+        Logger.#{level}(#{inspect(Map.new(report))})
 
     """
     defmacro unquote(level)(message_or_fun, metadata \\ []) do
