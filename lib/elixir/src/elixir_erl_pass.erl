@@ -453,7 +453,7 @@ translate_struct(Meta, Name, {'%{}', _, [{'|', _, [Update, Assocs]}]}, S) ->
     {clause, Generated, [Var], [], [?remote(Ann, erlang, error, [Error])]}
   ]}, TS};
 translate_struct(Meta, Name, {'%{}', _, Assocs}, S) ->
-  translate_map(Meta, Assocs ++ [{'__struct__', Name}], none, S).
+  translate_map(Meta, [{'__struct__', Name}] ++ Assocs, none, S).
 
 translate_map(Meta, [{'|', _Meta, [Update, Assocs]}], S) ->
   {TUpdate, SU} = translate(Update, S),

@@ -92,21 +92,6 @@ elixir_to_erl(Tree) when is_binary(Tree) ->
   %% considers a string in a binary to be encoded in latin1, so the bytes
   %% are not changed in any fashion.
   {bin, 0, [{bin_element, 0, {string, 0, binary_to_list(Tree)}, default, default}]};
-elixir_to_erl(Function) when is_function(Function) ->
-  case (erlang:fun_info(Function, type) == {type, external}) andalso
-       (erlang:fun_info(Function, env) == {env, []}) of
-    true ->
-      {module, Module} = erlang:fun_info(Function, module),
-      {name, Name}     = erlang:fun_info(Function, name),
-      {arity, Arity}   = erlang:fun_info(Function, arity),
-
-      {'fun', 0, {function,
-        {atom, 0, Module},
-        {atom, 0, Name},
-        {integer, 0, Arity}}};
-    false ->
-      error(badarg)
-  end;
 elixir_to_erl(Pid) when is_pid(Pid) ->
   ?remote(0, erlang, binary_to_term, [elixir_erl:elixir_to_erl(term_to_binary(Pid))]);
 elixir_to_erl(_Other) ->
