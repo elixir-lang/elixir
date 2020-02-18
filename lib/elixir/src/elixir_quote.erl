@@ -1,5 +1,5 @@
 -module(elixir_quote).
--export([escape/3, linify/3, linify_with_context_counter/3, build/6, quote/6, has_unquotes/1]).
+-export([escape/3, linify/3, linify_with_context_counter/3, build/6, quote/6, has_unquotes/1, fun_to_quoted/1]).
 -export([dot/5, tail_list/3, list/2, validate_runtime/2]). %% Quote callbacks
 
 -include("elixir.hrl").
@@ -225,6 +225,15 @@ escape(Expr, Kind, Unquote) ->
     unquote=Unquote
   }, Kind).
 
+%% fun_to_quoted
+
+fun_to_quoted(Function) ->
+  Meta = [],
+  {module, Module} = erlang:fun_info(Function, module),
+  {name, Name}     = erlang:fun_info(Function, name),
+  {arity, Arity}   = erlang:fun_info(Function, arity),
+  {'&', Meta, [{'/', Meta, [{{'.', Meta, [Module, Name]}, Meta, []}, Arity]}]}.
+
 %% Quotes an expression and return its quoted Elixir AST.
 
 quote(_Meta, {unquote_splicing, _, [_]}, _Binding, #elixir_quote{unquote=true}, _, _) ->
@@ -401,7 +410,7 @@ do_escape(Other, _, _)
 do_escape(Fun, _, _) when is_function(Fun) ->
   case (erlang:fun_info(Fun, env) == {env, []}) andalso
        (erlang:fun_info(Fun, type) == {type, external}) of
-    true  -> Fun;
+    true  -> fun_to_quoted(Fun);
     false -> bad_escape(Fun)
   end;
 

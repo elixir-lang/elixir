@@ -452,7 +452,7 @@ expand(Function, E) when is_function(Function) ->
   case (erlang:fun_info(Function, type) == {type, external}) andalso
        (erlang:fun_info(Function, env) == {env, []}) of
     true ->
-      {Function, E};
+      {elixir_quote:fun_to_quoted(Function), E};
     false ->
       form_error([{line, 0}], ?key(E, file), ?MODULE, {invalid_quoted_expr, Function})
   end;
