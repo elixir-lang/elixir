@@ -5513,6 +5513,22 @@ defmodule Kernel do
     :erlang.list_to_ref('#Ref<#{string}>')
   end
 
+  @doc """
+  Handles the `~Version` sigil.
+
+  See `Version.parse!/1` for more information.
+
+  ## Examples
+
+      iex> ~Version<2.0.1-alpha1>
+      ~Version<2.0.1-alpha1>
+
+  """
+  @doc since: "1.11.0"
+  defmacro sigil_Version({:<<>>, _, [string]} = _version_string, [] = _modifiers) do
+    Macro.escape(Version.parse!(string))
+  end
+
   ## Shared functions
 
   defp assert_module_scope(env, fun, arity) do
