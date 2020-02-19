@@ -36,11 +36,8 @@ defmodule IEx.Helpers do
     * `ls/0`           - lists the contents of the current directory
     * `ls/1`           - lists the contents of the specified directory
     * `open/1`         - opens the source for the given module or function in your editor
-    * `pid/1`          - creates a PID from a string
     * `pid/3`          - creates a PID with the 3 integer arguments passed
-    * `port/1`         - creates a port from a string
     * `port/2`         - creates a port with the 2 non-negative integers passed
-    * `ref/1`          - creates a reference from a string
     * `ref/4`          - creates a reference with the 4 integer arguments passed
     * `pwd/0`          - prints the current working directory
     * `r/1`            - recompiles the given module's source file
@@ -1187,15 +1184,8 @@ defmodule IEx.Helpers do
 
   defp history, do: Process.get(:iex_history)
 
-  @doc """
-  Creates a PID from `string`.
-
-  ## Examples
-
-      iex> pid("0.21.32")
-      #PID<0.21.32>
-
-  """
+  # TODO: Hard-deprecate in favour of ~PID sigil in v1.13
+  @doc false
   def pid(string) when is_binary(string) do
     :erlang.list_to_pid('<#{string}>')
   end
@@ -1221,16 +1211,8 @@ defmodule IEx.Helpers do
     )
   end
 
-  @doc """
-  Creates a Port from `string`.
-
-  ## Examples
-
-      iex> port("0.4")
-      #Port<0.4>
-
-  """
-  @doc since: "1.8.0"
+  # TODO: Hard-deprecate in favour of ~Reference sigil in Elixir v1.13
+  @doc false
   def port(string) when is_binary(string) do
     :erlang.list_to_port('#Port<#{string}>')
   end
@@ -1254,16 +1236,8 @@ defmodule IEx.Helpers do
     )
   end
 
-  @doc """
-  Creates a Reference from `string`.
-
-  ## Examples
-
-      iex> ref("0.1.2.3")
-      #Reference<0.1.2.3>
-
-  """
-  @doc since: "1.6.0"
+  # TODO: Hard-deprecate in favour of ~Reference sigil in Elixir v1.13
+  @doc false
   def ref(string) when is_binary(string) do
     :erlang.list_to_ref('#Ref<#{string}>')
   end
