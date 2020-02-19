@@ -32,7 +32,7 @@ defmodule Agent do
   Usage would be:
 
       Counter.start_link(0)
-      #=> {:ok, #PID<0.123.0>}
+      #=> {:ok, ~PID<0.123.0>}
 
       Counter.value()
       #=> 0

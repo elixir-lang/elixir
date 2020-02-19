@@ -121,7 +121,7 @@ defmodule String.Chars.ErrorsTest do
   end
 
   test "PID" do
-    message = ~r"^protocol String\.Chars not implemented for #PID<.+?> of type PID$"
+    message = ~r"^protocol String\.Chars not implemented for ~PID<.+?> of type PID$"
 
     assert_raise Protocol.UndefinedError, message, fn ->
       to_string(self())
@@ -129,7 +129,7 @@ defmodule String.Chars.ErrorsTest do
   end
 
   test "ref" do
-    message = ~r"^protocol String\.Chars not implemented for #Reference<.+?> of type Reference$"
+    message = ~r"^protocol String\.Chars not implemented for ~Reference<.+?> of type Reference$"
 
     assert_raise Protocol.UndefinedError, message, fn ->
       to_string(make_ref()) == ""
@@ -146,7 +146,7 @@ defmodule String.Chars.ErrorsTest do
 
   test "port" do
     [port | _] = Port.list()
-    message = ~r"^protocol String\.Chars not implemented for #Port<.+?> of type Port$"
+    message = ~r"^protocol String\.Chars not implemented for ~Port<.+?> of type Port$"
 
     assert_raise Protocol.UndefinedError, message, fn ->
       to_string(port)

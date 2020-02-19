@@ -85,7 +85,7 @@ defmodule Registry do
       Registry.dispatch(Registry.DispatcherTest, "hello", fn entries ->
         for {pid, {module, function}} <- entries, do: apply(module, function, [pid])
       end)
-      # Prints #PID<...> where the PID is for the process that called register/3 above
+      # Prints ~PID<...> where the PID is for the process that called register/3 above
       #=> :ok
 
   Dispatching happens in the process that calls `dispatch/3` either serially or
@@ -111,7 +111,7 @@ defmodule Registry do
           end
         end
       end)
-      # Prints #PID<...>
+      # Prints ~PID<...>
       #=> :ok
 
   You could also replace the whole `apply` system by explicitly sending

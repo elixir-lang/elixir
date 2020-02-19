@@ -369,20 +369,20 @@ defmodule GenServer do
       :ok
 
       iex> :sys.get_status(pid)
-      {:status, #PID<0.122.0>, {:module, :gen_server},
+      {:status, ~PID<0.122.0>, {:module, :gen_server},
        [
          [
            "$initial_call": {Stack, :init, 1},            # process dictionary
-           "$ancestors": [#PID<0.80.0>, #PID<0.51.0>]
+           "$ancestors": [~PID<0.80.0>, ~PID<0.51.0>]
          ],
          :running,                                        # :running | :suspended
-         #PID<0.80.0>,                                    # parent
+         ~PID<0.80.0>,                                    # parent
          [],                                              # debugger state
          [
            header: 'Status for generic server <0.122.0>', # module status
            data: [
              {'Status', :running},
-             {'Parent', #PID<0.80.0>},
+             {'Parent', ~PID<0.80.0>},
              {'Logged events', []}
            ],
            data: [{'State', [1]}]

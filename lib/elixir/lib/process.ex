@@ -405,9 +405,9 @@ defmodule Process do
   ## Examples
 
       Process.spawn(fn -> 1 + 2 end, [:monitor])
-      #=> {#PID<0.93.0>, #Reference<0.18808174.1939079169.202418>}
+      #=> {~PID<0.93.0>, ~Reference<0.18808174.1939079169.202418>}
       Process.spawn(fn -> 1 + 2 end, [:link])
-      #=> #PID<0.95.0>
+      #=> ~PID<0.95.0>
 
   """
   @spec spawn((() -> any), spawn_opts) :: pid | {pid, reference}
@@ -456,15 +456,15 @@ defmodule Process do
   ## Examples
 
       pid = spawn(fn -> 1 + 2 end)
-      #=> #PID<0.118.0>
+      #=> ~PID<0.118.0>
       Process.monitor(pid)
-      #=> #Reference<0.906660723.3006791681.40191>
+      #=> ~Reference<0.906660723.3006791681.40191>
       Process.exit(pid, :kill)
       #=> true
       receive do
         msg -> msg
       end
-      #=> {:DOWN, #Reference<0.906660723.3006791681.40191>, :process, #PID<0.118.0>, :noproc}
+      #=> {:DOWN, ~Reference<0.906660723.3006791681.40191>, :process, ~PID<0.118.0>, :noproc}
 
   """
   @spec monitor(pid | {name, node} | name) :: reference when name: atom
@@ -509,7 +509,7 @@ defmodule Process do
   ## Examples
 
       Process.list()
-      #=> [#PID<0.0.0>, #PID<0.1.0>, #PID<0.2.0>, #PID<0.3.0>, ...]
+      #=> [~PID<0.0.0>, ~PID<0.1.0>, ~PID<0.2.0>, ~PID<0.3.0>, ...]
 
   """
   @spec list() :: [pid]
@@ -636,7 +636,7 @@ defmodule Process do
 
       Process.register(self(), :test)
       Process.whereis(:test)
-      #=> #PID<0.84.0>
+      #=> ~PID<0.84.0>
       Process.whereis(:wrong_name)
       #=> nil
 
@@ -654,7 +654,7 @@ defmodule Process do
   ## Examples
 
       Process.group_leader()
-      #=> #PID<0.53.0>
+      #=> ~PID<0.53.0>
 
   """
   @spec group_leader() :: pid

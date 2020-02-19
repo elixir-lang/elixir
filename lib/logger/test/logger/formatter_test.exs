@@ -63,7 +63,7 @@ defmodule Logger.FormatterTest do
       )
 
     # ensure the deserialization worked correctly
-    assert "#Reference<0.0.0.80>" == inspect(ref)
+    assert "~Reference<0.0.0.80>" == inspect(ref)
 
     assert IO.chardata_to_string(format(compiled, :error, nil, nil, meta: :data, ref: ref)) ==
              "meta=data ref=<0.0.0.80> "

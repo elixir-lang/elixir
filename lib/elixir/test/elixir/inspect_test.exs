@@ -633,16 +633,16 @@ defmodule Inspect.OthersTest do
   end
 
   test "PIDs" do
-    assert "#PID<" <> _ = inspect(self())
+    assert "~PID<" <> _ = inspect(self())
     opts = [syntax_colors: []]
-    assert "#PID<" <> _ = inspect(self(), opts)
+    assert "~PID<" <> _ = inspect(self(), opts)
     opts = [syntax_colors: [reset: :cyan]]
-    assert "#PID<" <> rest = inspect(self(), opts)
+    assert "~PID<" <> rest = inspect(self(), opts)
     assert String.ends_with?(rest, ">")
   end
 
   test "references" do
-    assert "#Reference<" <> _ = inspect(make_ref())
+    assert "~Reference<" <> _ = inspect(make_ref())
   end
 
   test "regex" do

@@ -745,7 +745,7 @@ defmodule Kernel do
   ## Examples
 
       make_ref()
-      #=> #Reference<0.0.0.135>
+      #=> ~Reference<0.0.0.135>
 
   """
   @spec make_ref() :: reference
@@ -5460,6 +5460,57 @@ defmodule Kernel do
 
   defp split_words(_string, _mods, _caller) do
     raise ArgumentError, "modifier must be one of: s, a, c"
+  end
+
+  @doc """
+  Handles the `~PID` sigil.
+
+  This function allows creating arbitrary PIDs, even the ones that don't actually exist in the VM.
+  As such, it should only be used for debugging purposes.
+
+  ## Examples
+
+      iex> ~PID<0.108.0>
+      ~PID<0.108.0>
+
+  """
+  @doc since: "1.11.0"
+  def sigil_PID(string, [] = _modifiers) do
+    :erlang.list_to_pid('<#{string}>')
+  end
+
+  @doc """
+  Handles the `~Port` sigil.
+
+  This function allows creating arbitrary ports, even the ones that don't actually exist in the VM.
+  As such, it should only be used for debugging purposes.
+
+  ## Examples
+
+      iex> ~Port<0.6>
+      ~Port<0.6>
+
+  """
+  @doc since: "1.11.0"
+  def sigil_Port(string, [] = _modifiers) do
+    :erlang.list_to_port('#Port<#{string}>')
+  end
+
+  @doc """
+  Handles the `~Reference` sigil.
+
+  This function allows creating arbitrary references, even the ones that don't actually exist in the VM.
+  As such, it should only be used for debugging purposes.
+
+  ## Examples
+
+      iex> ~Reference<0.2283498464.2022703108.246828>
+      ~Reference<0.2283498464.2022703108.246828>
+
+  """
+  @doc since: "1.11.0"
+  def sigil_Reference(string, [] = _modifiers) do
+    :erlang.list_to_ref('#Ref<#{string}>')
   end
 
   ## Shared functions

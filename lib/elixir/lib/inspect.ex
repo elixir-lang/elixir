@@ -391,20 +391,21 @@ end
 
 defimpl Inspect, for: PID do
   def inspect(pid, _opts) do
-    "#PID" <> IO.iodata_to_binary(:erlang.pid_to_list(pid))
+    "~PID" <> IO.iodata_to_binary(:erlang.pid_to_list(pid))
   end
 end
 
 defimpl Inspect, for: Port do
   def inspect(port, _opts) do
-    IO.iodata_to_binary(:erlang.port_to_list(port))
+    '#Port' ++ rest = :erlang.port_to_list(port)
+    "~Port" <> IO.iodata_to_binary(rest)
   end
 end
 
 defimpl Inspect, for: Reference do
   def inspect(ref, _opts) do
     '#Ref' ++ rest = :erlang.ref_to_list(ref)
-    "#Reference" <> IO.iodata_to_binary(rest)
+    "~Reference" <> IO.iodata_to_binary(rest)
   end
 end
 

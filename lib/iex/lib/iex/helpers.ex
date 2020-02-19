@@ -1207,9 +1207,9 @@ defmodule IEx.Helpers do
   ## Examples
 
       iex> pid(0, 21, 32)
-      #PID<0.21.32>
+      ~PID<0.21.32>
       iex> pid(0, 64, 2048)
-      #PID<0.64.2048>
+      ~PID<0.64.2048>
 
   """
   def pid(x, y, z)
@@ -1241,9 +1241,9 @@ defmodule IEx.Helpers do
   ## Examples
 
       iex> port(0, 8080)
-      #Port<0.8080>
+      ~Port<0.8080>
       iex> port(0, 443)
-      #Port<0.443>
+      ~Port<0.443>
 
   """
   @doc since: "1.8.0"
@@ -1274,7 +1274,7 @@ defmodule IEx.Helpers do
   ## Examples
 
       iex> ref(0, 1, 2, 3)
-      #Reference<0.1.2.3>
+      ~Reference<0.1.2.3>
 
   """
   @doc since: "1.6.0"

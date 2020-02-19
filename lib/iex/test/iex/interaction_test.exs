@@ -124,10 +124,10 @@ defmodule IEx.InteractionTest do
 
   test "receive exit" do
     assert capture_iex("spawn_link(fn -> exit(:bye) end); Process.sleep(1000)") =~
-             ~r"\*\* \(EXIT from #PID<\d+\.\d+\.\d+>\) shell process exited with reason: :bye"
+             ~r"\*\* \(EXIT from ~PID<\d+\.\d+\.\d+>\) shell process exited with reason: :bye"
 
     assert capture_iex("spawn_link(fn -> exit({:bye, [:world]}) end); Process.sleep(1000)") =~
-             ~r"\*\* \(EXIT from #PID<\d+\.\d+\.\d+>\) shell process exited with reason: {:bye, \[:world\]}"
+             ~r"\*\* \(EXIT from ~PID<\d+\.\d+\.\d+>\) shell process exited with reason: {:bye, \[:world\]}"
   end
 
   test "receive exit from exception" do
@@ -138,7 +138,7 @@ defmodule IEx.InteractionTest do
                            Process.sleep(1000)")
 
     assert content =~
-             ~r"\*\* \(EXIT from #PID<\d+\.\d+\.\d+>\) shell process exited with reason: an exception was raised:\n"
+             ~r"\*\* \(EXIT from ~PID<\d+\.\d+\.\d+>\) shell process exited with reason: an exception was raised:\n"
 
     assert content =~ ~r"\s{4}\*\* \(ArgumentError\) argument error\n"
     assert content =~ ~r"\s{8}:not_a_real_module\.function/0"
@@ -146,7 +146,7 @@ defmodule IEx.InteractionTest do
 
   test "receive exit due to failed call" do
     assert capture_iex("exit({:bye, {:gen_server, :call, [self(), :hello]}})") =~
-             ~r"\*\* \(exit\) exited in: :gen_server\.call\(#PID<\d+\.\d+\.\d+>, :hello\)\n\s{4}\*\* \(EXIT\) :bye"
+             ~r"\*\* \(exit\) exited in: :gen_server\.call\(~PID<\d+\.\d+\.\d+>, :hello\)\n\s{4}\*\* \(EXIT\) :bye"
   end
 
   test "blames function clause error" do

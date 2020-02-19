@@ -11,12 +11,12 @@ defmodule Port do
       iex> send(port, {self(), {:command, "hello"}})
       iex> send(port, {self(), {:command, "world"}})
       iex> flush()
-      {#Port<0.1444>, {:data, "hello"}}
-      {#Port<0.1444>, {:data, "world"}}
+      {~Port<0.1444>, {:data, "hello"}}
+      {~Port<0.1444>, {:data, "world"}}
       iex> send(port, {self(), :close})
       :ok
       iex> flush()
-      {#Port<0.1464>, :closed}
+      {~Port<0.1464>, :closed}
       :ok
 
   In the example above, we have created a new port that executes the
@@ -86,7 +86,7 @@ defmodule Port do
 
       iex> port = Port.open({:spawn, "echo hello"}, [:binary])
       iex> flush()
-      {#Port<0.1444>, {:data, "hello\n"}}
+      {~Port<0.1444>, {:data, "hello\n"}}
 
   `:spawn` will retrieve the program name from the argument and traverse your
   operating system `$PATH` environment variable looking for a matching program.
@@ -104,7 +104,7 @@ defmodule Port do
       iex> path = System.find_executable("echo")
       iex> port = Port.open({:spawn_executable, path}, [:binary, args: ["hello world"]])
       iex> flush()
-      {#Port<0.1380>, {:data, "hello world\n"}}
+      {~Port<0.1380>, {:data, "hello world\n"}}
 
   When using `:spawn_executable`, the list of arguments can be passed via
   the `:args` option as done above. For the full list of options, see the
