@@ -861,7 +861,7 @@ defmodule Kernel.ErrorsTest do
   test "ensure valid import :only option" do
     assert_eval_raise CompileError,
                       "nofile:3: invalid :only option for import, expected value to be an atom " <>
-                        ":functions, :macros, :sigils, or a list literal, got: x",
+                        ":functions, :macros, or a list literal, got: x",
                       '''
                       defmodule Kernel.ErrorsTest.Only do
                         x = [flatten: 1]

@@ -12,10 +12,8 @@ import(Meta, Ref, Opts, E) ->
         {Added1, Funs} = import_functions(Meta, Ref, Opts, E),
         {Funs, keydelete(Ref, ?key(E, macros)), Added1};
       {only, macros} ->
-        {Added1, Macs} = import_macros(true, Meta, Ref, Opts, E),
-        {keydelete(Ref, ?key(E, functions)), Macs, Added1};
-      {only, sigils} ->
-        import_sigils(Meta, Ref, Opts, E);
+        {Added2, Macs} = import_macros(true, Meta, Ref, Opts, E),
+        {keydelete(Ref, ?key(E, functions)), Macs, Added2};
       {only, List} when is_list(List) ->
         {Added1, Funs} = import_functions(Meta, Ref, Opts, E),
         {Added2, Macs} = import_macros(false, Meta, Ref, Opts, E),
@@ -30,24 +28,6 @@ import(Meta, Ref, Opts, E) ->
 
   elixir_env:trace({import, [{imported, Added} | Meta], Ref, Opts}, E),
   {Functions, Macros}.
-
-import_sigils(Meta, Ref, Opts, E) ->
-  {_, AllFunctions} = import_functions(Meta, Ref, Opts, E),
-  {_, AllMacros} = import_macros(false, Meta, Ref, Opts, E),
-  {_, Functions} = keyfind(Ref, AllFunctions),
-  {_, Macros} = keyfind(Ref, AllMacros),
-  SigilFunctions = lists:filter(fun is_sigil/1, Functions),
-  SigilMacros = lists:filter(fun is_sigil/1, Macros),
-  AllFunctions2 = keyput(Ref, SigilFunctions, AllFunctions),
-  AllMacros2 = keyput(Ref, SigilMacros, AllMacros),
-  {AllFunctions2, AllMacros2, length(SigilFunctions ++ SigilMacros) > 0}.
-
-is_sigil({Name, Arity}) ->
-  Arity == 2 andalso is_sigil(atom_to_list(Name));
-is_sigil("sigil_" ++ [S]) when (S >= $a andalso S =< $z) orelse (S >= $A andalso S =< $Z) ->
-  true;
-is_sigil(Name) when is_list(Name) ->
-  false.
 
 import_functions(Meta, Ref, Opts, E) ->
   calculate(Meta, Ref, Opts, ?key(E, functions), ?key(E, file), fun() ->
@@ -193,7 +173,7 @@ format_error({invalid_option, Option}) ->
 
 format_error({invalid_option, only, Value}) ->
   Message = "invalid :only option for import, expected value to be an atom :functions, :macros"
-  ", :sigils, or a list literal, got: ~s",
+  ", or a list literal, got: ~s",
   io_lib:format(Message, ['Elixir.Macro':to_string(Value)]);
 
 format_error({invalid_option, except, Value}) ->
@@ -214,9 +194,6 @@ keyfind(Key, List) ->
 
 keydelete(Key, List) ->
   lists:keydelete(Key, 1, List).
-
-keyput(Key, Value, List) ->
-  lists:keyreplace(Key, 1, List, {Key, Value}).
 
 intersection([H | T], All) ->
   case lists:member(H, All) of
