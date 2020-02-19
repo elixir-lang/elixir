@@ -661,7 +661,7 @@ defimpl String.Chars, for: URI do
              path != "" and binary_part(path, 0, 1) != "/" do
     raise ArgumentError,
           ":path in URI must be nil or an absolute path if :host or :authority are given, " <>
-            "got: #{inspect(uri)}"
+            "got: #{inspect(Map.from_struct(uri))}"
   end
 
   def to_string(%{scheme: scheme, port: port, path: path, query: query, fragment: fragment} = uri) do
@@ -697,5 +697,11 @@ defimpl String.Chars, for: URI do
       if(String.contains?(host, ":"), do: ["[", host | "]"], else: host),
       if(port, do: [":" | Integer.to_string(port)], else: [])
     ]
+  end
+end
+
+defimpl Inspect, for: URI do
+  def inspect(uri, _) do
+    "~URI<" <> URI.to_string(uri) <> ">"
   end
 end

@@ -5514,6 +5514,22 @@ defmodule Kernel do
   end
 
   @doc """
+  Handles the `~URI` sigil.
+
+  See `URI.parse/1` for more information.
+
+  ## Examples
+
+      iex> ~URI<https://elixir-lang.org>
+      ~URI<https://elixir-lang.org>
+
+  """
+  @doc since: "1.11.0"
+  defmacro sigil_URI({:<<>>, _, [string]} = _uri_string, [] = _modifiers) do
+    Macro.escape(URI.parse(string))
+  end
+
+  @doc """
   Handles the `~Version` sigil.
 
   See `Version.parse!/1` for more information.
