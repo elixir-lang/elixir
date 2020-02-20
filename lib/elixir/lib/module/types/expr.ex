@@ -261,9 +261,14 @@ defmodule Module.Types.Expr do
     stack = push_expr_stack(expr, stack)
 
     result =
-      reduce_ok(blocks, context, fn {_block, clauses}, context ->
-        # TODO: Special handle after
-        of_clauses(clauses, stack, context)
+      reduce_ok(blocks, context, fn
+        {:do, clauses}, context ->
+          of_clauses(clauses, stack, context)
+
+        {:after, [{:->, _meta, [head, body]}]}, context ->
+          with {:ok, _type, context} <- of_expr(head, stack, context),
+               {:ok, _type, context} <- of_expr(body, stack, context),
+               do: {:ok, context}
       end)
 
     case result do
