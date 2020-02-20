@@ -24,23 +24,8 @@ defmodule Module.Types.Expr do
     {:ok, :binary, context}
   end
 
-  # fn -> ... end
-  def of_expr(literal, _stack, context) when is_function(literal) do
-    {:ok, :dynamic, context}
-  end
-
   # #PID<...>
   def of_expr(literal, _stack, context) when is_pid(literal) do
-    {:ok, :dynamic, context}
-  end
-
-  # #Reference<...>
-  def of_expr(literal, _stack, context) when is_reference(literal) do
-    {:ok, :dynamic, context}
-  end
-
-  # #Port<...>
-  def of_expr(literal, _stack, context) when is_port(literal) do
     {:ok, :dynamic, context}
   end
 
