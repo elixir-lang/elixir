@@ -31,12 +31,12 @@ defmodule Module.Types.Infer do
     {:ok, same, context}
   end
 
-  defp do_unify({:var, var}, type, stack, context) do
-    unify_var(var, type, stack, context, _var_source = true)
-  end
-
   defp do_unify(type, {:var, var}, stack, context) do
     unify_var(var, type, stack, context, _var_source = false)
+  end
+
+  defp do_unify({:var, var}, type, stack, context) do
+    unify_var(var, type, stack, context, _var_source = true)
   end
 
   defp do_unify({:tuple, sources}, {:tuple, targets}, stack, context)
@@ -95,6 +95,10 @@ defmodule Module.Types.Infer do
     {:ok, source, context}
   end
 
+  defp do_unify(:dynamic, target, _stack, context) do
+    {:ok, target, context}
+  end
+
   defp do_unify(source, target, stack, context) do
     if subtype?(source, target, context) do
       {:ok, source, context}
@@ -107,6 +111,7 @@ defmodule Module.Types.Infer do
     case Map.fetch!(context.types, var) do
       :unbound ->
         context = refine_var(var, type, stack, context)
+        stack = push_unify_stack(var, stack)
 
         if recursive_type?(type, [], context) do
           if var_source? do
@@ -119,7 +124,15 @@ defmodule Module.Types.Infer do
         end
 
       var_type ->
-        context = trace_var(var, type, stack, context)
+        # Only add trace if the variable wasn't already "expanded"
+        context =
+          if variable_expanded?(var, stack, context) do
+            context
+          else
+            trace_var(var, type, stack, context)
+          end
+
+        stack = push_unify_stack(var, stack)
 
         unify_result =
           if var_source? do
@@ -168,6 +181,28 @@ defmodule Module.Types.Infer do
     end
   end
 
+  # Check unify stack to see if variable was already expanded
+  defp variable_expanded?(var, stack, context) do
+    Enum.any?(stack.unify_stack, &variable_same?(var, &1, context))
+  end
+
+  defp variable_same?(left, right, context) do
+    case Map.fetch(context.types, left) do
+      {:ok, {:var, new_left}} ->
+        variable_same?(new_left, right, context)
+
+      _ ->
+        case Map.fetch(context.types, right) do
+          {:ok, {:var, new_right}} -> variable_same?(left, new_right, context)
+          _ -> false
+        end
+    end
+  end
+
+  defp push_unify_stack(var, stack) do
+    %{stack | unify_stack: [var | stack.unify_stack]}
+  end
+
   @doc """
   Set the type for a variable and add trace.
   """
@@ -186,9 +221,9 @@ defmodule Module.Types.Infer do
     %{context | types: types, traces: traces}
   end
 
-  defp trace_var(var, type, %{trace: true, expr_stack: expr_stack} = _stack, context) do
-    line = get_meta(hd(expr_stack))[:line]
-    trace = {type, expr_stack, {context.file, line}}
+  defp trace_var(var, type, %{trace: true, last_expr: last_expr} = _stack, context) do
+    line = get_meta(last_expr)[:line]
+    trace = {type, last_expr, {context.file, line}}
     traces = Map.update!(context.traces, var, &[trace | &1])
     %{context | traces: traces}
   end
@@ -245,8 +280,10 @@ defmodule Module.Types.Infer do
   def subtype?({:tuple, _}, :tuple, _context), do: true
 
   # TODO: Lift unions to unify/3?
-  def subtype?({:union, left_types}, {:union, _} = right_union, context) do
-    Enum.all?(left_types, &subtype?(&1, right_union, context))
+  def subtype?({:union, left_types}, {:union, right_types} = right_union, context) do
+    # Since we can't unify unions we give up when encountering variables
+    Enum.any?(left_types ++ right_types, &match?({:var, _}, &1)) or
+      Enum.all?(left_types, &subtype?(&1, right_union, context))
   end
 
   def subtype?(left, {:union, right_types}, context) do
@@ -303,27 +340,50 @@ defmodule Module.Types.Infer do
   # Collect relevant information from context and traces to report error
   defp error({:unable_unify, left, right}, stack, context) do
     {fun, arity} = context.function
-    line = get_meta(hd(stack.expr_stack))[:line]
+    line = get_meta(stack.last_expr)[:line]
     location = {context.file, line, {context.module, fun, arity}}
 
-    traces = type_traces(context)
-    common_expr = common_super_expr(traces) || hd(stack.expr_stack)
-    traces = simplify_traces(traces, context)
+    traces = type_traces(stack, context)
+    traces = tag_traces(traces, context)
 
-    {:error, {Module.Types, {:unable_unify, left, right, common_expr, traces}, [location]}}
+    {:error, {Module.Types, {:unable_unify, left, right, stack.last_expr, traces}, [location]}}
   end
 
-  defp type_traces(context) do
-    Enum.flat_map(context.traces, fn {var_index, traces} ->
-      expr_var = Map.fetch!(context.types_to_vars, var_index)
-      Enum.map(traces, &{expr_var, &1})
+  # Collect relevant traces from context.traces using stack.unify_stack
+  defp type_traces(stack, context) do
+    # TODO: Do we need the unify_stack or is enough to only get the last variable
+    #       in the stack since we get related variables anyway?
+    stack =
+      stack.unify_stack
+      |> Enum.uniq()
+      |> Enum.flat_map(&[&1 | related_variables(&1, context.types)])
+      |> Enum.uniq()
+
+    Enum.flat_map(stack, fn var_index ->
+      case Map.fetch(context.traces, var_index) do
+        {:ok, traces} ->
+          expr_var = Map.fetch!(context.types_to_vars, var_index)
+          Enum.map(traces, &{expr_var, &1})
+
+        _other ->
+          []
+      end
     end)
   end
 
-  # Only use last expr from trace and tag if trace is for
-  # a concrete type or type variable
-  defp simplify_traces(traces, context) do
-    Enum.flat_map(traces, fn {var, {type, [expr | _], location}} ->
+  defp related_variables(var, types) do
+    Enum.flat_map(types, fn
+      {related_var, {:var, ^var}} ->
+        [related_var | related_variables(related_var, types)]
+
+      _ ->
+        []
+    end)
+  end
+
+  # Tag if trace is for a concrete type or type variable
+  defp tag_traces(traces, context) do
+    Enum.flat_map(traces, fn {var, {type, expr, location}} ->
       case type do
         {:var, var_index} ->
           var2 = Map.fetch!(context.types_to_vars, var_index)
@@ -331,22 +391,6 @@ defmodule Module.Types.Infer do
 
         _ ->
           [{var, {:type, type, expr, location}}]
-      end
-    end)
-  end
-
-  # Find first common super expression among all traces
-  defp common_super_expr([]) do
-    nil
-  end
-
-  defp common_super_expr([{_var, {_type, expr_stack, _location}} | traces]) do
-    Enum.find_value(expr_stack, fn expr ->
-      common? =
-        Enum.all?(traces, fn {_var, {_type, expr_stack, _location}} -> expr in expr_stack end)
-
-      if common? do
-        expr
       end
     end)
   end

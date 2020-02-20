@@ -186,13 +186,7 @@ defmodule Kernel.SpecialForms do
       iex> <<0, "foo">>
       <<0, 102, 111, 111>>
 
-  Variables or any other type need to be explicitly tagged:
-
-      iex> rest = "oo"
-      iex> <<102, rest>>
-      ** (ArgumentError) argument error
-
-  We can solve this by explicitly tagging it as `binary`:
+  Binaries need to be explicitly tagged as `binary`:
 
       iex> rest = "oo"
       iex> <<102, rest::binary>>
@@ -205,6 +199,12 @@ defmodule Kernel.SpecialForms do
       <<0, 102, 0, 111, 0, 111>>
       iex> <<"foo"::utf32>>
       <<0, 0, 0, 102, 0, 0, 0, 111, 0, 0, 0, 111>>
+
+  Otherwise we get an `ArgumentError` when construcing the binary:
+
+      rest = "oo"
+      <<102, rest>>
+      ** (ArgumentError) argument error
 
   ## Options
 

@@ -719,7 +719,7 @@ defmodule Module.CheckerTest do
 
       in expression:
 
-          def(a(var = 123, var = "abc"))
+          var = "abc"
 
       where "var" was given the type binary() in:
 
@@ -760,12 +760,12 @@ defmodule Module.CheckerTest do
       where "var" was given the type binary() in:
 
           # a.ex:2
-          var :: binary()
+          <<var::integer(), var::binary()>>
 
       where "var" was given the type integer() in:
 
           # a.ex:2
-          var :: integer()
+          <<var::integer(), var::binary()>>
 
       Conflict found at
         a.ex:2: A.a/1
@@ -858,22 +858,135 @@ defmodule Module.CheckerTest do
 
       in expression:
 
-          def(a(x = y) when is_integer(x) and is_binary(y))
+          is_integer(x) and is_binary(y)
 
       where "x" was given the type integer() in:
 
           # a.ex:2
           is_integer(x)
 
-      where "x" was given the same type as "y" in:
+      where "y" was given the type binary() in:
+
+          # a.ex:2
+          is_binary(y)
+
+      where "y" was given the same type as "x" in:
 
           # a.ex:2
           x = y
+
+      Conflict found at
+        a.ex:2: A.a/1
+
+      """
+
+      assert_warnings(files, warning)
+    end
+
+    test "only show relevant traces in warning" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          def a(x = y, z) when is_integer(x) and is_binary(y) and is_boolean(z), do: {x, y, z}
+        end
+        """
+      }
+
+      warning = """
+      warning: incompatible types:
+
+          integer() !~ binary()
+
+      in expression:
+
+          is_integer(x) and is_binary(y) and is_boolean(z)
+
+      where "x" was given the type integer() in:
+
+          # a.ex:2
+          is_integer(x)
 
       where "y" was given the type binary() in:
 
           # a.ex:2
           is_binary(y)
+
+      where "y" was given the same type as "x" in:
+
+          # a.ex:2
+          x = y
+
+      Conflict found at
+        a.ex:2: A.a/2
+
+      """
+
+      assert_warnings(files, warning)
+    end
+
+    test "check body" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          def a(x) when is_integer(x), do: :foo = x
+        end
+        """
+      }
+
+      warning = """
+      warning: incompatible types:
+
+          integer() !~ :foo
+
+      in expression:
+
+          :foo = x
+
+      where \"x\" was given the type :foo in:
+
+          # a.ex:2
+          :foo = x
+
+      where \"x\" was given the type integer() in:
+
+          # a.ex:2
+          is_integer(x)
+
+      Conflict found at
+        a.ex:2: A.a/1
+
+      """
+
+      assert_warnings(files, warning)
+    end
+
+    test "check binary" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          def a(foo) when is_binary(foo), do: <<foo::integer>>
+        end
+        """
+      }
+
+      warning = """
+      warning: incompatible types:
+
+          binary() !~ integer()
+
+      in expression:
+
+          <<foo::integer()>>
+
+      where \"foo\" was given the type integer() in:
+
+          # a.ex:2
+          <<foo::integer()>>
+
+      where \"foo\" was given the type binary() in:
+
+          # a.ex:2
+          is_binary(foo)
 
       Conflict found at
         a.ex:2: A.a/1

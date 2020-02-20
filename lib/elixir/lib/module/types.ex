@@ -8,62 +8,45 @@ defmodule Module.Types do
   Infer function definitions' types.
   """
   def infer_definitions(file, module, defs) do
-    clauses = infer_signatures(file, module, defs)
-    infer_bodies(clauses)
-  end
+    Enum.flat_map(defs, fn {{fun, _arity} = function, kind, meta, clauses} ->
+      context = context(file, module, function)
 
-  defp infer_signatures(file, module, defs) do
-    Enum.map(defs, fn {{fun, _arity} = function, kind, meta, clauses} ->
-      stack = head_stack()
-      context = head_context(file, module, function)
-
-      clauses =
-        Enum.map(clauses, fn {_meta, params, guards, body} ->
-          def_expr = {kind, meta, [guards_to_expr(guards, {fun, [], params})]}
-          stack = push_expr_stack(def_expr, stack)
-
-          case of_head(params, guards, stack, context) do
-            {:ok, _signature, context} -> {:ok, {context, body}}
-            {:error, reason} -> {:error, reason}
-          end
-        end)
-
-      {function, clauses}
-    end)
-  end
-
-  defp infer_bodies(clauses) do
-    Enum.map(clauses, fn {function, clauses} ->
-      errors =
-        Enum.flat_map(clauses, fn
-          {:ok, {head_context, body}} ->
-            stack = body_stack()
-            context = body_context(head_context)
-
-            case Expr.of_expr(body, stack, context) do
-              {:ok, _type, _context} -> []
-              {:error, reason} -> [reason]
-            end
-
-          {:error, reason} ->
-            [reason]
-        end)
-
-      {function, errors}
+      Enum.flat_map(clauses, fn {_meta, params, guards, body} ->
+        def_expr = {kind, meta, [guards_to_expr(guards, {fun, [], params})]}
+        infer_clause(params, guards, body, def_expr, context)
+      end)
     end)
   end
 
   @doc false
-  def of_head(params, guards, stack, context) do
+  def infer_clause(params, guards, body, def_expr, context) do
+    with {:ok, _types, context} <- of_head(params, guards, def_expr, context),
+         {:ok, _type, _context} <- of_body(body, context) do
+      []
+    else
+      {:error, reason} ->
+        [reason]
+    end
+  end
+
+  @doc false
+  def of_head(params, guards, def_expr, context) do
+    stack = push_expr_stack(def_expr, stack(:pattern))
+
     with {:ok, types, context} <-
            map_reduce_ok(params, context, &Pattern.of_pattern(&1, stack, &2)),
          # TODO: Check that of_guard/3 returns boolean() | :fail
          {:ok, _, context} <- Pattern.of_guard(guards_to_or(guards), stack, context),
-         do: {:ok, lift_types(types, context), context}
+         do: {:ok, types, context}
   end
 
   @doc false
-  def head_context(file, module, function) do
+  def of_body(body, context) do
+    Expr.of_expr(body, stack(:expr), context)
+  end
+
+  @doc false
+  def context(file, module, function) do
     %{
       # File of module
       file: file,
@@ -92,11 +75,14 @@ defmodule Module.Types do
   end
 
   @doc false
-  def head_stack() do
+  def stack(context) do
     %{
-      # Stack of expression we have recursed through during inference,
+      # Stack of variables we have refined during unification,
+      # used for creating relevant traces
+      unify_stack: [],
+      # Last expression we have recursed through during inference,
       # used for tracing
-      expr_stack: [],
+      last_expr: nil,
       # When false do not add a trace when a type variable is refined,
       # useful when merging contexts where the variables already have traces
       trace: true,
@@ -105,45 +91,7 @@ defmodule Module.Types do
       type_guards_enabled?: true,
       # Context used to determine if unification is bi-directional, :expr
       # is directional, :pattern is bi-directional
-      context: :pattern
-    }
-  end
-
-  @doc false
-  def body_context(head_context) do
-    %{
-      # File of module
-      file: head_context.file,
-      # Module of definitions
-      module: head_context.module,
-      # Current function
-      function: head_context.function,
-      # Expression variable to type variable
-      vars: head_context.vars,
-      # Type variable to expression variable
-      types_to_vars: head_context.types_to_vars,
-      # Type variable to type
-      types: head_context.types,
-      # Trace of all variables that have been refined to a type,
-      # including the type they were refined to, why, and where
-      traces: head_context.traces,
-      # Counter to give type variables unique names
-      counter: head_context.counter
-    }
-  end
-
-  @doc false
-  def body_stack() do
-    %{
-      # Stack of expression we have recursed through during inference,
-      # used for tracing
-      expr_stack: [],
-      # When false do not add a trace when a type variable is refined,
-      # useful when merging contexts where the variables already have traces
-      trace: true,
-      # Context used to determine if unification is bi-directional, :expr
-      # is directional, :pattern is bi-directional
-      context: :expr
+      context: context
     }
   end
 
@@ -174,16 +122,6 @@ defmodule Module.Types do
   end
 
   ## GUARDS
-
-  # TODO: Remove this and let multiple when be treated as multiple clauses,
-  #       meaning they will be intersection types
-  defp guards_to_or([]) do
-    []
-  end
-
-  defp guards_to_or(guards) do
-    Enum.reduce(guards, fn guard, acc -> {{:., [], [:erlang, :orelse]}, [], [guard, acc]} end)
-  end
 
   defp guards_to_expr([], left) do
     left
@@ -348,12 +286,12 @@ defmodule Module.Types do
     inspect(literal)
   end
 
-  def format_type(atom) when is_atom(atom) do
-    "#{atom}()"
-  end
-
   def format_type({:var, index}) do
     "var#{index}"
+  end
+
+  def format_type(atom) when is_atom(atom) do
+    "#{atom}()"
   end
 
   defp format_map_pairs(pairs) do

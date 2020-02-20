@@ -51,13 +51,13 @@ defmodule Module.Types.PatternTest do
   end
 
   defp new_context() do
-    Types.head_context("types_test.ex", TypesTest, {:test, 0})
+    Types.context("types_test.ex", TypesTest, {:test, 0})
   end
 
   defp new_stack() do
     %{
-      Types.head_stack()
-      | expr_stack: [{:foo, [], nil}]
+      Types.stack(:pattern)
+      | last_expr: {:foo, [], nil}
     }
   end
 
@@ -84,17 +84,13 @@ defmodule Module.Types.PatternTest do
 
       assert {:<<>>, _,
               [
-                {:"::", _, [{:foo, _, nil}, {:integer, _, _}]},
-                {:"::", _, [{:foo, _, nil}, {:binary, _, _}]}
+                {:"::", _, [{:foo, _, nil}, {:integer, _, []}]},
+                {:"::", _, [{:foo, _, nil}, {:binary, _, []}]}
               ]} = expr
 
       assert [
-               {{:foo, _, nil},
-                {:type, :binary, {:"::", _, [{:foo, _, nil}, {:binary, _, _}]},
-                 {"types_test.ex", ^line}}},
-               {{:foo, _, nil},
-                {:type, :integer, {:"::", _, [{:foo, _, nil}, {:integer, _, _}]},
-                 {"types_test.ex", ^line}}}
+               {{:foo, _, nil}, {:type, :binary, _, {"types_test.ex", ^line}}},
+               {{:foo, _, nil}, {:type, :integer, _, {"types_test.ex", ^line}}}
              ] = traces
     end
 
