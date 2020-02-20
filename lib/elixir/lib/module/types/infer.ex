@@ -221,9 +221,9 @@ defmodule Module.Types.Infer do
     %{context | types: types, traces: traces}
   end
 
-  defp trace_var(var, type, %{trace: true, expr_stack: expr_stack} = _stack, context) do
-    line = get_meta(hd(expr_stack))[:line]
-    trace = {type, expr_stack, {context.file, line}}
+  defp trace_var(var, type, %{trace: true, last_expr: last_expr} = _stack, context) do
+    line = get_meta(last_expr)[:line]
+    trace = {type, last_expr, {context.file, line}}
     traces = Map.update!(context.traces, var, &[trace | &1])
     %{context | traces: traces}
   end
@@ -340,17 +340,13 @@ defmodule Module.Types.Infer do
   # Collect relevant information from context and traces to report error
   defp error({:unable_unify, left, right}, stack, context) do
     {fun, arity} = context.function
-    line = get_meta(hd(stack.expr_stack))[:line]
+    line = get_meta(stack.last_expr)[:line]
     location = {context.file, line, {context.module, fun, arity}}
 
     traces = type_traces(stack, context)
+    traces = tag_traces(traces, context)
 
-    # TODO: We might want to still use common_super_expr/1 when we are in stack.context == :pattern
-    # common_expr = common_super_expr(traces) || hd(stack.expr_stack)
-    common_expr = hd(stack.expr_stack)
-    traces = simplify_traces(traces, context)
-
-    {:error, {Module.Types, {:unable_unify, left, right, common_expr, traces}, [location]}}
+    {:error, {Module.Types, {:unable_unify, left, right, stack.last_expr, traces}, [location]}}
   end
 
   # Collect relevant traces from context.traces using stack.unify_stack
@@ -385,10 +381,9 @@ defmodule Module.Types.Infer do
     end)
   end
 
-  # Only use last expr from trace and tag if trace is for
-  # a concrete type or type variable
-  defp simplify_traces(traces, context) do
-    Enum.flat_map(traces, fn {var, {type, [expr | _], location}} ->
+  # Tag if trace is for a concrete type or type variable
+  defp tag_traces(traces, context) do
+    Enum.flat_map(traces, fn {var, {type, expr, location}} ->
       case type do
         {:var, var_index} ->
           var2 = Map.fetch!(context.types_to_vars, var_index)

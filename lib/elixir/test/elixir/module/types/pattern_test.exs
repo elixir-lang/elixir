@@ -57,7 +57,7 @@ defmodule Module.Types.PatternTest do
   defp new_stack() do
     %{
       Types.stack(:pattern)
-      | expr_stack: [{:foo, [], nil}]
+      | last_expr: {:foo, [], nil}
     }
   end
 

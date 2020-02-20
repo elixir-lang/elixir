@@ -27,7 +27,7 @@ defmodule Module.Types.Helpers do
   was refined when show a type conflict error.
   """
   def push_expr_stack(expr, stack) do
-    %{stack | expr_stack: [expr | stack.expr_stack]}
+    %{stack | last_expr: expr}
   end
 
   @doc """

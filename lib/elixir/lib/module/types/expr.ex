@@ -188,8 +188,6 @@ defmodule Module.Types.Expr do
 
   # (expr; expr)
   def of_expr({:__block__, _meta, exprs}, stack, context) do
-    # Clear expression stack here?
-
     case map_reduce_ok(exprs, context, &of_expr(&1, stack, &2)) do
       {:ok, expr_types, context} -> {:ok, Enum.at(expr_types, -1), context}
       {:error, reason} -> {:error, reason}

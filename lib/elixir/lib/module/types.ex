@@ -80,9 +80,9 @@ defmodule Module.Types do
       # Stack of variables we have refined during unification,
       # used for creating relevant traces
       unify_stack: [],
-      # Stack of expression we have recursed through during inference,
+      # Last expression we have recursed through during inference,
       # used for tracing
-      expr_stack: [],
+      last_expr: nil,
       # When false do not add a trace when a type variable is refined,
       # useful when merging contexts where the variables already have traces
       trace: true,
