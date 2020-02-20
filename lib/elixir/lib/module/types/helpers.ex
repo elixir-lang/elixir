@@ -1,6 +1,8 @@
 defmodule Module.Types.Helpers do
   @moduledoc false
 
+  alias Module.Types.Infer
+
   @doc """
   Guard function to check if an AST node is a variable.
   """
@@ -25,7 +27,7 @@ defmodule Module.Types.Helpers do
   was refined when show a type conflict error.
   """
   def push_expr_stack(expr, stack) do
-    %{stack | expr_stack: [expr | stack.expr_stack]}
+    %{stack | last_expr: expr}
   end
 
   @doc """
@@ -122,5 +124,59 @@ defmodule Module.Types.Helpers do
       {oks, []} -> {:ok, Enum.map(oks, fn {:ok, ok} -> ok end)}
       {_oks, errors} -> {:error, Enum.map(errors, fn {:error, error} -> error end)}
     end
+  end
+
+  def of_binary({:"::", _meta, [expr, specifiers]}, stack, context, fun) do
+    {expected_type, utf?} = collect_binary_type(specifiers) || {:integer, false}
+
+    # Special case utf specifiers with binary literals since they allow
+    # both integer and binary literals but variables are always integer
+    if is_binary(expr) and utf? do
+      {:ok, context}
+    else
+      with {:ok, type, context} <- fun.(expr, stack, context),
+           {:ok, _type, context} <- Infer.unify(type, expected_type, stack, context),
+           do: {:ok, context}
+    end
+  end
+
+  def of_binary(expr, stack, context, fun) do
+    case fun.(expr, stack, context) do
+      {:ok, type, context} when type in [:integer, :float, :number, :binary, :dynamic] ->
+        {:ok, context}
+
+      {:ok, type, _context} ->
+        {:error, {:invalid_binary_type, type}}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  # Collect binary type specifiers,
+  # from `<<pattern::integer-size(10)>>` collect `integer`
+  defp collect_binary_type({:-, _meta, [left, right]}),
+    do: collect_binary_type(left) || collect_binary_type(right)
+
+  defp collect_binary_type({:integer, _, _}), do: {:integer, false}
+  defp collect_binary_type({:float, _, _}), do: {:float, false}
+  defp collect_binary_type({:bits, _, _}), do: {:binary, false}
+  defp collect_binary_type({:bitstring, _, _}), do: {:binary, false}
+  defp collect_binary_type({:bytes, _, _}), do: {:binary, false}
+  defp collect_binary_type({:binary, _, _}), do: {:binary, false}
+  defp collect_binary_type({:utf8, _, _}), do: {:integer, true}
+  defp collect_binary_type({:utf16, _, _}), do: {:integer, true}
+  defp collect_binary_type({:utf32, _, _}), do: {:integer, true}
+  defp collect_binary_type(_), do: nil
+
+  # TODO: Remove this and let multiple when be treated as multiple clauses,
+  #       meaning they will be intersection types
+  # TODO
+  def guards_to_or([]) do
+    []
+  end
+
+  def guards_to_or(guards) do
+    Enum.reduce(guards, fn guard, acc -> {{:., [], [:erlang, :orelse]}, [], [guard, acc]} end)
   end
 end

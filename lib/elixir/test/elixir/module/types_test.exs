@@ -5,23 +5,14 @@ defmodule Module.TypesTest do
   import Bitwise, warn: false
   alias Module.Types
 
-  defmacrop quoted_head(patterns) do
-    quote do
-      {patterns, true} = unquote(Macro.escape(expand_head(patterns, true)))
-
-      Types.of_head(patterns, [], new_stack(), new_context())
-      |> maybe_error()
-    end
-  end
-
-  defmacrop quoted_head(patterns, guards) do
+  defmacrop quoted_head(patterns, guards \\ [true]) do
     quote do
       {patterns, guards} = unquote(Macro.escape(expand_head(patterns, guards)))
 
       Types.of_head(
         patterns,
         guards,
-        new_stack(),
+        def_expr(),
         new_context()
       )
       |> maybe_error()
@@ -52,15 +43,15 @@ defmodule Module.TypesTest do
   end
 
   defp new_context() do
-    Types.head_context("types_test.ex", TypesTest, {:test, 0})
+    Types.context("types_test.ex", TypesTest, {:test, 0})
   end
 
-  defp new_stack() do
-    Types.head_stack()
+  defp def_expr() do
+    {:def, [], {:test, [], []}}
   end
 
-  defp maybe_error({:ok, types, %{} = _context}) when is_list(types) do
-    {:ok, types}
+  defp maybe_error({:ok, types, context}) when is_list(types) do
+    {:ok, Types.lift_types(types, context)}
   end
 
   defp maybe_error({:error, {Types, reason, location}}) do
@@ -82,7 +73,7 @@ defmodule Module.TypesTest do
                Types.of_head(
                  [{:a, [version: 0], :foo}, {:a, [version: 0], :foo}],
                  [],
-                 new_stack(),
+                 def_expr(),
                  new_context()
                )
 
@@ -90,7 +81,7 @@ defmodule Module.TypesTest do
                Types.of_head(
                  [{:a, [version: 0], :foo}, {:a, [version: 1], :foo}],
                  [],
-                 new_stack(),
+                 def_expr(),
                  new_context()
                )
     end
@@ -157,7 +148,7 @@ defmodule Module.TypesTest do
       assert {:error, {{:unable_unify, :tuple, :atom, _, _}, _}} =
                quoted_head([x], [is_tuple(x) and is_atom(x)])
 
-      assert {:error, {{:unable_unify, :tuple, :boolean, _, _}, _}} =
+      assert {:error, {{:unable_unify, :boolean, :tuple, _, _}, _}} =
                quoted_head([x], [is_tuple(is_atom(x))])
     end
 
@@ -169,16 +160,16 @@ defmodule Module.TypesTest do
     test "failing guard functions" do
       assert quoted_head([x], [length([])]) == {:ok, [{:var, 0}]}
 
-      assert {:error, {{:unable_unify, {:list, :dynamic}, {:atom, :foo}, _, _}, _}} =
+      assert {:error, {{:unable_unify, {:atom, :foo}, {:list, :dynamic}, _, _}, _}} =
                quoted_head([x], [length(:foo)])
 
-      assert {:error, {{:unable_unify, {:list, :dynamic}, :boolean, _, _}, _}} =
+      assert {:error, {{:unable_unify, :boolean, {:list, :dynamic}, _, _}, _}} =
                quoted_head([x], [length(is_tuple(x))])
 
-      assert {:error, {{:unable_unify, :tuple, :boolean, _, _}, _}} =
+      assert {:error, {{:unable_unify, :boolean, :tuple, _, _}, _}} =
                quoted_head([x], [elem(is_tuple(x), 0)])
 
-      assert {:error, {{:unable_unify, :number, :boolean, _, _}, _}} =
+      assert {:error, {{:unable_unify, :boolean, :number, _, _}, _}} =
                quoted_head([x], [elem({}, is_tuple(x))])
 
       assert quoted_head([x], [elem({}, 1)]) == {:ok, [var: 0]}
@@ -237,7 +228,7 @@ defmodule Module.TypesTest do
       assert quoted_head([%var{}], [is_atom(var)]) ==
                {:ok, [{:map, [{{:atom, :__struct__}, :atom}]}]}
 
-      assert {:error, {{:unable_unify, :integer, :atom, _, _}, _}} =
+      assert {:error, {{:unable_unify, :atom, :integer, _, _}, _}} =
                quoted_head([%var{}], [is_integer(var)])
     end
   end
