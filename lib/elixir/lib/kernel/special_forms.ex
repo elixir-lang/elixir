@@ -202,8 +202,8 @@ defmodule Kernel.SpecialForms do
 
   Otherwise we get an `ArgumentError` when construcing the binary:
 
-      > rest = "oo"
-      > <<102, rest>>
+      rest = "oo"
+      <<102, rest>>
       ** (ArgumentError) argument error
 
   ## Options
