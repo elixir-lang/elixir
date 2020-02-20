@@ -1780,6 +1780,13 @@ defmodule Kernel.WarningTest do
   test "deprecate nullary remote zero-arity capture with parens" do
     assert capture_err(fn ->
              Code.eval_string("""
+             import System, only: [pid: 0]
+             &pid/0
+             """)
+           end) == ""
+
+    assert capture_err(fn ->
+             Code.eval_string("""
              &System.pid()/0
              """)
            end) =~
