@@ -82,15 +82,15 @@ defmodule Module.Types.PatternTest do
 
       assert location == [{"types_test.ex", line, {TypesTest, :test, 0}}]
 
-      assert {:"::", _, [{:foo, _, nil}, {:binary, _, []}]} = expr
+      assert {:<<>>, _,
+              [
+                {:"::", _, [{:foo, _, nil}, {:integer, _, []}]},
+                {:"::", _, [{:foo, _, nil}, {:binary, _, []}]}
+              ]} = expr
 
       assert [
-               {{:foo, _, nil},
-                {:type, :binary, {:"::", _, [{:foo, _, nil}, {:binary, _, _}]},
-                 {"types_test.ex", ^line}}},
-               {{:foo, _, nil},
-                {:type, :integer, {:"::", _, [{:foo, _, nil}, {:integer, _, _}]},
-                 {"types_test.ex", ^line}}}
+               {{:foo, _, nil}, {:type, :binary, _, {"types_test.ex", ^line}}},
+               {{:foo, _, nil}, {:type, :integer, _, {"types_test.ex", ^line}}}
              ] = traces
     end
 

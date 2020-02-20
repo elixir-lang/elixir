@@ -126,9 +126,8 @@ defmodule Module.Types.Helpers do
     end
   end
 
-  def of_binary({:"::", _meta, [expr, specifiers]} = full_expr, stack, context, fun) do
+  def of_binary({:"::", _meta, [expr, specifiers]}, stack, context, fun) do
     {expected_type, utf?} = collect_binary_type(specifiers) || {:integer, false}
-    stack = push_expr_stack(full_expr, stack)
 
     # Special case utf specifiers with binary literals since they allow
     # both integer and binary literals but variables are always integer

@@ -755,17 +755,17 @@ defmodule Module.CheckerTest do
 
       in expression:
 
-          var :: binary()
+          <<var::integer(), var::binary()>>
 
       where "var" was given the type binary() in:
 
           # a.ex:2
-          var :: binary()
+          <<var::integer(), var::binary()>>
 
       where "var" was given the type integer() in:
 
           # a.ex:2
-          var :: integer()
+          <<var::integer(), var::binary()>>
 
       Conflict found at
         a.ex:2: A.a/1
@@ -951,6 +951,42 @@ defmodule Module.CheckerTest do
 
           # a.ex:2
           is_integer(x)
+
+      Conflict found at
+        a.ex:2: A.a/1
+
+      """
+
+      assert_warnings(files, warning)
+    end
+
+    test "check binary" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          def a(foo) when is_binary(foo), do: <<foo::integer>>
+        end
+        """
+      }
+
+      warning = """
+      warning: incompatible types:
+
+          binary() !~ integer()
+
+      in expression:
+
+          <<foo::integer()>>
+
+      where \"foo\" was given the type integer() in:
+
+          # a.ex:2
+          <<foo::integer()>>
+
+      where \"foo\" was given the type binary() in:
+
+          # a.ex:2
+          is_binary(foo)
 
       Conflict found at
         a.ex:2: A.a/1
