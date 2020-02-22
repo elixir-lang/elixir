@@ -39,7 +39,7 @@ defmodule Map do
 
   To access atom keys, one may also use the `map.key` notation. Note that `map.key`
   will raise a `KeyError` if the `map` doesn't contain the key `:key`, compared to
-  `map[key]`, that would return nil.
+  `map[:key]`, that would return `nil`.
 
       iex> map = %{foo: "bar", baz: "bong"}
       iex> map.foo
