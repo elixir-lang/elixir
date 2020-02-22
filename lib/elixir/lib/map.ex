@@ -37,9 +37,9 @@ defmodule Map do
       iex> map["non_existing_key"]
       nil
 
-  For accessing atom keys, one may also `map.key`. Note that while `map[key]` will
-  return `nil` if `map` doesn't contain `key`, `map.key` will raise if `map` doesn't
-  contain the key `:key`.
+  To access atom keys, one may also use the `map.key` notation. Note that `map.key`
+  will raise a `KeyError` if the `map` doesn't contain the key `:key`, compared to
+  `map[:key]`, that would return `nil`.
 
       iex> map = %{foo: "bar", baz: "bong"}
       iex> map.foo
