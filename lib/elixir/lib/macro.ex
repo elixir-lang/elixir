@@ -963,10 +963,14 @@ defmodule Macro do
     Kernel.inspect(value, limit: :infinity, printable_limit: :infinity)
   end
 
-  defp bitpart_to_string({:"::", _, [left, right]} = ast, fun) do
+  defp bitpart_to_string({:"::", meta, [left, right]} = ast, fun) do
     result =
-      op_to_string(left, fun, :"::", :left) <>
-        "::" <> bitmods_to_string(right, fun, :"::", :right)
+      if meta[:inferred_binary_type] do
+        to_string(left, fun)
+      else
+        op_to_string(left, fun, :"::", :left) <>
+          "::" <> bitmods_to_string(right, fun, :"::", :right)
+      end
 
     fun.(ast, result)
   end

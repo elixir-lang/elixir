@@ -964,6 +964,40 @@ defmodule Module.CheckerTest do
       files = %{
         "a.ex" => """
         defmodule A do
+          def a(foo) when is_binary(foo), do: <<foo>>
+        end
+        """
+      }
+
+      warning = """
+      warning: incompatible types:
+
+          binary() !~ integer()
+
+      in expression:
+
+          <<foo>>
+
+      where \"foo\" was given the type integer() in:
+
+          # a.ex:2
+          <<foo>>
+
+      where \"foo\" was given the type binary() in:
+
+          # a.ex:2
+          is_binary(foo)
+
+      Conflict found at
+        a.ex:2: A.a/1
+
+      """
+
+      assert_warnings(files, warning)
+
+      files = %{
+        "a.ex" => """
+        defmodule A do
           def a(foo) when is_binary(foo), do: <<foo::integer>>
         end
         """
