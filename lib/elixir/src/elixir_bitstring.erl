@@ -96,13 +96,13 @@ wrap_expr(Expr, Acc) ->
   Node =
     case expr_type(Expr) of
       {binary, Meta} ->
-        {'::', Meta, [Expr, {binary, Meta, []}]};
+        {'::', [{inferred_binary_type, true} | Meta], [Expr, {binary, Meta, []}]};
       {float, Meta} ->
-        {'::', Meta, [Expr, {float, Meta, []}]};
+        {'::', [{inferred_binary_type, true} | Meta], [Expr, {float, Meta, []}]};
       {integer, Meta} ->
-        {'::', Meta, [Expr, {integer, Meta, []}]};
+        {'::', [{inferred_binary_type, true} | Meta], [Expr, {integer, Meta, []}]};
       {default, Meta} ->
-        {'::', Meta, [Expr, {integer, Meta, []}]}
+        {'::', [{inferred_binary_type, true} | Meta], [Expr, {integer, Meta, []}]}
     end,
   {[Node | Acc], 0}.
 
