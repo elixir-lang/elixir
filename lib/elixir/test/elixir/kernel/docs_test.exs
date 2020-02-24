@@ -304,14 +304,27 @@ defmodule Kernel.DocsTest do
     end
   end
 
-  if System.otp_release() >= "23" do
-    test "OTP stdlib module docs" do
-      {:docs_v1, _, :erlang, _, _, _, _} = Code.fetch_docs(:array)
-    end
+  test "fetch docs chunk from doc/chunks" do
+    Code.compiler_options(docs: false)
 
-    test "OTP preloaded module docs" do
-      {:docs_v1, _, :erlang, _, _, _, _} = Code.fetch_docs(:erlang)
-    end
+    doc_chunks_path = Path.join([tmp_path(), "doc", "chunks"])
+    File.rm_rf!(doc_chunks_path)
+    File.mkdir_p!(doc_chunks_path)
+
+    write_beam(
+      defmodule ExternalDocs do
+      end
+    )
+
+    assert Code.fetch_docs(ExternalDocs) == {:error, :chunk_not_found}
+
+    path = Path.join([doc_chunks_path, "#{ExternalDocs}.chunk"])
+    chunk = {:docs_v1, 1, :elixir, "text/markdown", %{"en" => "Some docs"}, %{}}
+    File.write!(path, :erlang.term_to_binary(chunk))
+
+    assert Code.fetch_docs(ExternalDocs) == chunk
+  after
+    Code.compiler_options(docs: true)
   end
 
   test "@impl true doesn't set @doc false if previous implementation has docs" do
