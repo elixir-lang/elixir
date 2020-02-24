@@ -48,13 +48,14 @@ defmodule IO.ANSI.Docs do
   """
   @spec print_heading(String.t(), keyword) :: :ok
   def print_heading(heading, options \\ []) do
-    IO.puts(IO.ANSI.reset())
     options = Keyword.merge(default_options(), options)
+    newline_after_block(options)
     width = options[:width]
     padding = div(width + String.length(heading), 2)
-    heading = heading |> String.pad_leading(padding) |> String.pad_trailing(width)
+    heading = String.pad_leading(heading, padding)
+    heading = if options[:enabled], do: String.pad_trailing(heading, width), else: heading
     write(:doc_title, heading, options)
-    newline_after_block()
+    newline_after_block(options)
   end
 
   @doc """
@@ -90,11 +91,7 @@ defmodule IO.ANSI.Docs do
   end
 
   defp metadata_label(key, options) do
-    if options[:enabled] do
-      "#{color(:doc_metadata, options)}#{key}:#{IO.ANSI.reset()}"
-    else
-      "#{key}:"
-    end
+    "#{color(:doc_metadata, options)}#{key}:#{maybe_reset(options)}"
   end
 
   @doc """
@@ -186,7 +183,7 @@ defmodule IO.ANSI.Docs do
   defp write_heading(heading, rest, text, indent, options) do
     write_text(text, indent, options)
     write(:doc_headings, heading, options)
-    newline_after_block()
+    newline_after_block(options)
     process(rest, [], "", options)
   end
 
@@ -223,7 +220,7 @@ defmodule IO.ANSI.Docs do
     )
   end
 
-  defp quote_prefix(options), do: "#{color(:doc_quote, options)}> #{IO.ANSI.reset()}"
+  defp quote_prefix(options), do: "#{color(:doc_quote, options)}> #{maybe_reset(options)}"
 
   defp write_empty_quote_line(options) do
     options
@@ -260,7 +257,7 @@ defmodule IO.ANSI.Docs do
     {contents, rest, done} = process_list_next(rest, count, byte_size(new_indent), [])
     process(contents, [indent <> entry <> line, :no_wrap], new_indent, options)
 
-    if done, do: newline_after_block()
+    if done, do: newline_after_block(options)
     process(rest, [], indent, options)
   end
 
@@ -325,7 +322,7 @@ defmodule IO.ANSI.Docs do
     |> String.split(@spaces)
     |> write_with_wrap(options[:width] - byte_size(indent), indent, no_wrap, prefix)
 
-    unless no_wrap, do: newline_after_block()
+    unless no_wrap, do: newline_after_block(options)
   end
 
   defp format_text(text, options) do
@@ -373,7 +370,7 @@ defmodule IO.ANSI.Docs do
 
   defp write_code(code, indent, options) do
     write(:doc_code, "#{indent}    #{Enum.join(Enum.reverse(code), "\n#{indent}    ")}", options)
-    newline_after_block()
+    newline_after_block(options)
   end
 
   ## Tables
@@ -381,7 +378,7 @@ defmodule IO.ANSI.Docs do
   defp process_table(lines, indent, options) do
     {table, rest} = Enum.split_while(lines, &table_line?/1)
     table_lines(table, options)
-    newline_after_block()
+    newline_after_block(options)
     process(rest, [], indent, options)
   end
 
@@ -524,7 +521,7 @@ defmodule IO.ANSI.Docs do
   defp strip_spaces(rest, acc, _max), do: {rest, acc}
 
   defp write(style, string, options) do
-    IO.puts([color(style, options), string, IO.ANSI.reset()])
+    IO.puts([color(style, options), string, maybe_reset(options)])
   end
 
   defp write_with_wrap([], _available, _indent, _first, _prefix) do
@@ -712,8 +709,13 @@ defmodule IO.ANSI.Docs do
   end
 
   defp inline_buffer(buffer, options) do
-    [h | t] = Enum.reverse([IO.ANSI.reset() | buffer])
-    [color_for(h, options) | t]
+    if options[:enabled] do
+      [h | t] = Enum.reverse([maybe_reset(options) | buffer])
+      [color_for(h, options) | t]
+    else
+      [h | t] = Enum.reverse(buffer)
+      [h | t] ++ [h]
+    end
   end
 
   defp color_for(mark, colors) do
@@ -726,9 +728,14 @@ defmodule IO.ANSI.Docs do
   end
 
   defp color(style, colors) do
-    color = colors[style]
-    IO.ANSI.format_fragment(color, colors[:enabled])
+    IO.ANSI.format_fragment(colors[style], colors[:enabled])
   end
 
-  defp newline_after_block, do: IO.puts(IO.ANSI.reset())
+  defp newline_after_block(options) do
+    IO.puts(maybe_reset(options))
+  end
+
+  defp maybe_reset(options) do
+    if options[:enabled], do: IO.ANSI.reset(), else: ""
+  end
 end

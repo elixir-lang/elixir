@@ -119,10 +119,8 @@ defmodule IEx.Config do
 
   def ansi_docs() do
     colors = Application.get_env(:iex, :colors, [])
-
-    if enabled = colors_enabled?(colors) do
-      [width: width(), enabled: enabled] ++ colors
-    end
+    enabled = colors_enabled?(colors)
+    [width: width(), enabled: enabled] ++ colors
   end
 
   def inspect_opts() do

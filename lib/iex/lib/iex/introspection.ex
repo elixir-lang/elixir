@@ -758,31 +758,19 @@ defmodule IEx.Introspection do
 
   defp print_doc(heading, types, doc, metadata) do
     doc = translate_doc(doc) || ""
-
-    if opts = IEx.Config.ansi_docs() do
-      IO.ANSI.Docs.print_heading(heading, opts)
-      IO.write(types)
-      IO.ANSI.Docs.print_metadata(metadata, opts)
-      IO.ANSI.Docs.print(doc, opts)
-    else
-      IO.puts("* #{heading}\n")
-      IO.write(types)
-      IO.ANSI.Docs.print_metadata(metadata, enabled: false)
-      IO.puts(doc)
-    end
+    opts = IEx.Config.ansi_docs()
+    IO.ANSI.Docs.print_heading(heading, opts)
+    IO.write(types)
+    IO.ANSI.Docs.print_metadata(metadata, opts)
+    IO.ANSI.Docs.print(doc, opts)
   end
 
   defp print_typespec({types, doc, metadata}) do
     IO.puts(types)
     doc = translate_doc(doc)
-
-    if opts = IEx.Config.ansi_docs() do
-      IO.ANSI.Docs.print_metadata(metadata, opts)
-      doc && IO.ANSI.Docs.print(doc, opts)
-    else
-      IO.ANSI.Docs.print_metadata(metadata, enabled: false)
-      doc && IO.puts(doc)
-    end
+    opts = IEx.Config.ansi_docs()
+    IO.ANSI.Docs.print_metadata(metadata, opts)
+    doc && IO.ANSI.Docs.print(doc, opts)
   end
 
   defp translate_doc(:none), do: nil

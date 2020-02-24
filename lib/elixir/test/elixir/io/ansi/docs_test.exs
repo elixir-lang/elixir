@@ -12,8 +12,8 @@ defmodule IO.ANSI.DocsTest do
     capture_io(fn -> IO.ANSI.Docs.print_metadata(map, []) end)
   end
 
-  def format(str) do
-    capture_io(fn -> IO.ANSI.Docs.print(str, []) end) |> String.trim_trailing()
+  def format(str, opts \\ []) do
+    capture_io(fn -> IO.ANSI.Docs.print(str, opts) end) |> String.trim_trailing()
   end
 
   test "heading is formatted" do
@@ -257,6 +257,20 @@ defmodule IO.ANSI.DocsTest do
 
     result = format("`hello world`")
     assert result == "\e[36mhello world\e[0m\n\e[0m"
+  end
+
+  test "star/underscore/backtick works across words with ansi disabled" do
+    result = format("*hello world*", enabled: false)
+    assert result == "*hello world*"
+
+    result = format("**hello world**", enabled: false)
+    assert result == "**hello world**"
+
+    result = format("_hello world_", enabled: false)
+    assert result == "_hello world_"
+
+    result = format("`hello world`", enabled: false)
+    assert result == "`hello world`"
   end
 
   test "multiple stars/underscores/backticks work" do
