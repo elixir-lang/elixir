@@ -85,19 +85,14 @@ defmodule Mix.Tasks.Help do
 
   def run([task]) do
     loadpaths!()
-
     opts = Application.get_env(:mix, :colors)
-
-    opts =
-      if ansi_docs?(opts) do
-        [width: width()] ++ opts
-      else
-        opts
-      end
+    opts = [width: width(), enabled: ansi_docs?(opts)] ++ opts
 
     for doc <- verbose_doc(task) do
       print_doc(task, doc, opts)
     end
+
+    :ok
   end
 
   def run(_) do
@@ -105,18 +100,10 @@ defmodule Mix.Tasks.Help do
   end
 
   defp print_doc(task, {doc, location, note}, opts) do
-    if ansi_docs?(opts) do
-      opts = [width: width()] ++ opts
-      IO.ANSI.Docs.print_heading("mix #{task}", opts)
-      IO.ANSI.Docs.print(doc, opts)
-      IO.puts("Location: #{location}")
-      note && IO.puts("") && IO.ANSI.Docs.print(note, opts)
-    else
-      IO.puts("# mix #{task}\n")
-      IO.puts(doc)
-      IO.puts("\nLocation: #{location}")
-      note && IO.puts([?\n, note, ?\n, ?\n])
-    end
+    IO.ANSI.Docs.print_heading("mix #{task}", opts)
+    IO.ANSI.Docs.print(doc, "text/markdown", opts)
+    IO.puts("Location: #{location}")
+    note && IO.puts("") && IO.ANSI.Docs.print(note, "text/markdown", opts)
   end
 
   # Loadpaths without checks because tasks may be defined in deps.

@@ -95,13 +95,24 @@ defmodule IO.ANSI.Docs do
   end
 
   @doc """
-  Prints the documentation body.
+  Prints the documentation body `doc` according to `format`.
 
-  In addition to the printing string, takes a set of `options`
-  defined in `default_options/0`.
+  It takes a set of `options` defined in `default_options/0`.
   """
-  @spec print(String.t(), keyword) :: :ok
-  def print(doc, options \\ []) do
+  @spec print(term(), String.t(), keyword) :: :ok
+  def print(doc, format, options \\ [])
+
+  def print(doc, "text/markdown", options) when is_binary(doc) and is_list(options) do
+    print_markdown(doc, options)
+  end
+
+  def print(_doc, format, options) when is_binary(format) and is_list(options) do
+    IO.puts("\nUnknown documentation format #{inspect(format)}\n")
+  end
+
+  ## Markdown
+
+  def print_markdown(doc, options) do
     options = Keyword.merge(default_options(), options)
 
     doc
@@ -178,7 +189,7 @@ defmodule IO.ANSI.Docs do
     end
   end
 
-  ## Headings
+  ### Headings
 
   defp write_heading(heading, rest, text, indent, options) do
     write_text(text, indent, options)
@@ -187,7 +198,7 @@ defmodule IO.ANSI.Docs do
     process(rest, [], "", options)
   end
 
-  ## Quotes
+  ### Quotes
 
   defp process_quote([], lines, indent, options) do
     write_quote(lines, indent, options, false)
@@ -228,7 +239,7 @@ defmodule IO.ANSI.Docs do
     |> IO.puts()
   end
 
-  ## Lists
+  ### Lists
 
   defp process_rest(stripped, rest, count, text, indent, options) do
     case stripped do
@@ -298,7 +309,7 @@ defmodule IO.ANSI.Docs do
     end
   end
 
-  ## Text
+  ### Text
 
   defp write_text(text, indent, options) do
     case Enum.reverse(text) do
@@ -331,7 +342,7 @@ defmodule IO.ANSI.Docs do
     |> handle_inline(options)
   end
 
-  ## Code blocks
+  ### Code blocks
 
   defp process_code([], code, indent, options) do
     write_code(code, indent, options)
@@ -373,7 +384,7 @@ defmodule IO.ANSI.Docs do
     newline_after_block(options)
   end
 
-  ## Tables
+  ### Tables
 
   defp process_table(lines, indent, options) do
     {table, rest} = Enum.split_while(lines, &table_line?/1)
@@ -618,7 +629,7 @@ defmodule IO.ANSI.Docs do
   @delimiters [?\s, ?', ?", ?!, ?@, ?#, ?$, ?%, ?^, ?&] ++
                 [?-, ?+, ?(, ?), ?[, ?], ?{, ?}, ?<, ?>, ?.]
 
-  # Inline start
+  ### Inline start
 
   defp handle_inline(<<?*, ?*, rest::binary>>, options) do
     handle_inline(rest, ?d, ["**"], [], options)
@@ -632,7 +643,7 @@ defmodule IO.ANSI.Docs do
     handle_inline(rest, nil, [], [], options)
   end
 
-  # Inline delimiters
+  ### Inline delimiters
 
   defp handle_inline(<<delimiter, ?*, ?*, rest::binary>>, nil, buffer, acc, options)
        when rest != "" and delimiter in @delimiters do
@@ -649,7 +660,7 @@ defmodule IO.ANSI.Docs do
     handle_inline(rest, ?`, ["`"], [Enum.reverse(buffer) | acc], options)
   end
 
-  # Clauses for handling escape
+  ### Clauses for handling escape
 
   defp handle_inline(<<?\\, ?\\, ?*, ?*, rest::binary>>, nil, buffer, acc, options)
        when rest != "" do
@@ -670,7 +681,7 @@ defmodule IO.ANSI.Docs do
     handle_inline(rest, limit, [mark | buffer], acc, options)
   end
 
-  # Inline end
+  ### Inline end
 
   defp handle_inline(<<?*, ?*, delimiter, rest::binary>>, ?d, buffer, acc, options)
        when delimiter in @delimiters do
@@ -698,7 +709,7 @@ defmodule IO.ANSI.Docs do
     handle_inline(rest, nil, [], [inline_buffer(buffer, options) | acc], options)
   end
 
-  # Catch all
+  ### Catch all
 
   defp handle_inline(<<char, rest::binary>>, mark, buffer, acc, options) do
     handle_inline(rest, mark, [char | buffer], acc, options)
@@ -717,6 +728,8 @@ defmodule IO.ANSI.Docs do
       [h | t] ++ [h]
     end
   end
+
+  ## Helpers
 
   defp color_for(mark, colors) do
     case mark do

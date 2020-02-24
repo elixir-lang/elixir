@@ -250,8 +250,8 @@ defmodule IEx.Introspection do
     case Code.ensure_loaded(module) do
       {:module, _} ->
         case Code.fetch_docs(module) do
-          {:docs_v1, _, _, _, %{} = doc, metadata, _} ->
-            print_doc(inspect(module), [], doc, metadata)
+          {:docs_v1, _, _, format, %{} = doc, metadata, _} ->
+            print_doc(inspect(module), [], format, doc, metadata)
 
           {:docs_v1, _, _, _, _, _, _} ->
             docs_not_found(inspect(module))
@@ -270,7 +270,7 @@ defmodule IEx.Introspection do
   def h({module, function}) when is_atom(module) and is_atom(function) do
     case Code.ensure_loaded(module) do
       {:module, _} ->
-        docs = get_docs(module, [:function, :macro])
+        {_format, docs} = get_docs(module, [:function, :macro])
 
         exports =
           cond do
@@ -361,12 +361,12 @@ defmodule IEx.Introspection do
   end
 
   defp h_mod_fun_arity(mod, fun, arity) when is_atom(mod) do
-    docs = get_docs(mod, [:function, :macro])
+    {format, docs} = get_docs(mod, [:function, :macro])
     spec = get_spec(mod, fun, arity)
 
     cond do
       doc_tuple = find_doc_with_content(docs, fun, arity) ->
-        print_fun(mod, doc_tuple, spec)
+        print_fun(mod, format, doc_tuple, spec)
         :ok
 
       docs && has_callback?(mod, fun, arity) ->
@@ -377,7 +377,7 @@ defmodule IEx.Introspection do
 
       is_nil(docs) and spec != [] ->
         message = %{"en" => "Module was compiled without docs. Showing only specs."}
-        print_doc("#{inspect(mod)}.#{fun}/#{arity}", spec, message, %{})
+        print_doc("#{inspect(mod)}.#{fun}/#{arity}", spec, "text/markdown", message, %{})
         :ok
 
       is_nil(docs) ->
@@ -389,38 +389,31 @@ defmodule IEx.Introspection do
   end
 
   defp has_callback?(mod, fun) do
-    case get_callback_docs(mod, &match?({_, ^fun, _}, elem(&1, 0))) do
-      {:ok, [_ | _]} -> true
-      _ -> false
-    end
+    match?([_ | _], get_callback_docs(mod, &match?({_, ^fun, _}, elem(&1, 0))))
   end
 
   defp has_callback?(mod, fun, arity) do
-    case get_callback_docs(mod, &match?({_, ^fun, ^arity}, elem(&1, 0))) do
-      {:ok, [_ | _]} -> true
-      _ -> false
-    end
+    match?([_ | _], get_callback_docs(mod, &match?({_, ^fun, ^arity}, elem(&1, 0))))
   end
 
   defp has_type?(mod, fun) do
-    mod
-    |> get_docs([:type])
-    |> Enum.any?(&match?({_, ^fun, _}, elem(&1, 0)))
+    {_, docs} = get_docs(mod, [:type])
+    Enum.any?(docs, &match?({_, ^fun, _}, elem(&1, 0)))
   end
 
   defp has_type?(mod, fun, arity) do
-    mod
-    |> get_docs([:type])
-    |> Enum.any?(&match?({_, ^fun, ^arity}, elem(&1, 0)))
+    {_, docs} = get_docs(mod, [:type])
+    Enum.any?(docs, &match?({_, ^fun, ^arity}, elem(&1, 0)))
   end
 
   defp get_docs(mod, kinds) do
     case Code.fetch_docs(mod) do
-      {:docs_v1, _, _, _, _, _, docs} ->
-        for {{kind, _, _}, _, _, _, _} = doc <- docs, kind in kinds, do: doc
+      {:docs_v1, _, _, format, _, _, docs} ->
+        docs = for {{kind, _, _}, _, _, _, _} = doc <- docs, kind in kinds, do: doc
+        {format, docs}
 
       {:error, _} ->
-        nil
+        {nil, nil}
     end
   end
 
@@ -454,16 +447,16 @@ defmodule IEx.Introspection do
     end)
   end
 
-  defp print_fun(mod, {{kind, fun, arity}, _line, signature, doc, metadata}, spec) do
+  defp print_fun(mod, format, {{kind, fun, arity}, _line, signature, doc, metadata}, spec) do
     if callback_module = doc == :none and callback_module(mod, fun, arity) do
       filter = &match?({_, ^fun, ^arity}, elem(&1, 0))
 
       case get_callback_docs(callback_module, filter) do
-        {:ok, callback_docs} -> Enum.each(callback_docs, &print_typespec/1)
-        _ -> nil
+        :no_beam -> nil
+        callback_docs -> Enum.each(callback_docs, &print_typespec/1)
       end
     else
-      print_doc("#{kind_to_def(kind)} #{Enum.join(signature, " ")}", spec, doc, metadata)
+      print_doc("#{kind_to_def(kind)} #{Enum.join(signature, " ")}", spec, format, doc, metadata)
     end
   end
 
@@ -500,13 +493,13 @@ defmodule IEx.Introspection do
       :no_beam ->
         no_beam(mod)
 
-      {:ok, []} ->
+      [] ->
         puts_error("No callbacks for #{inspect(mod)} were found")
 
-      {:ok, docs} ->
+      docs ->
         docs
         |> add_optional_callback_docs(mod)
-        |> Enum.each(fn {definition, _, _} -> IO.puts(definition) end)
+        |> Enum.each(fn {_, definition, _, _} -> IO.puts(definition) end)
     end
 
     dont_display_result()
@@ -517,8 +510,8 @@ defmodule IEx.Introspection do
 
     case get_callback_docs(mod, filter) do
       :no_beam -> no_beam(mod)
-      {:ok, []} -> docs_not_found("#{inspect(mod)}.#{fun}")
-      {:ok, docs} -> Enum.each(docs, &print_typespec/1)
+      [] -> docs_not_found("#{inspect(mod)}.#{fun}")
+      docs -> Enum.each(docs, &print_typespec/1)
     end
 
     dont_display_result()
@@ -529,8 +522,8 @@ defmodule IEx.Introspection do
 
     case get_callback_docs(mod, filter) do
       :no_beam -> no_beam(mod)
-      {:ok, []} -> docs_not_found("#{inspect(mod)}.#{fun}/#{arity}")
-      {:ok, docs} -> Enum.each(docs, &print_typespec/1)
+      [] -> docs_not_found("#{inspect(mod)}.#{fun}/#{arity}")
+      docs -> Enum.each(docs, &print_typespec/1)
     end
 
     dont_display_result()
@@ -542,27 +535,24 @@ defmodule IEx.Introspection do
   end
 
   defp get_callback_docs(mod, filter) do
-    docs = get_docs(mod, [:callback, :macrocallback])
+    {format, docs} = get_docs(mod, [:callback, :macrocallback])
 
     case Typespec.fetch_callbacks(mod) do
       :error ->
         :no_beam
 
       {:ok, callbacks} ->
-        docs =
-          callbacks
-          |> Enum.map(&translate_callback/1)
-          |> Enum.filter(filter)
-          |> Enum.sort()
-          |> Enum.flat_map(fn {{_, function, arity}, _specs} = callback ->
-            case find_doc(docs, function, arity) do
-              nil -> [{format_callback(callback), :none, %{}}]
-              {_, _, _, :hidden, _} -> []
-              {_, _, _, doc, metadata} -> [{format_callback(callback), doc, metadata}]
-            end
-          end)
-
-        {:ok, docs}
+        callbacks
+        |> Enum.map(&translate_callback/1)
+        |> Enum.filter(filter)
+        |> Enum.sort()
+        |> Enum.flat_map(fn {{_, function, arity}, _specs} = callback ->
+          case find_doc(docs, function, arity) do
+            nil -> [{format, format_callback(callback), :none, %{}}]
+            {_, _, _, :hidden, _} -> []
+            {_, _, _, doc, metadata} -> [{format, format_callback(callback), doc, metadata}]
+          end
+        end)
     end
   end
 
@@ -623,7 +613,7 @@ defmodule IEx.Introspection do
     if optional_callbacks == [] do
       docs
     else
-      docs ++ [{format_optional_callbacks(optional_callbacks), "", %{}}]
+      docs ++ [{"text/markdown", format_optional_callbacks(optional_callbacks), "", %{}}]
     end
   end
 
@@ -714,11 +704,13 @@ defmodule IEx.Introspection do
   end
 
   defp type_doc(module, type, arity, typespec) do
-    if docs = get_docs(module, [:type]) do
+    {format, docs} = get_docs(module, [:type])
+
+    if docs do
       {_, _, _, content, metadata} = Enum.find(docs, &match?({:type, ^type, ^arity}, elem(&1, 0)))
-      {format_type(typespec), content, metadata}
+      {format, format_type(typespec), content, metadata}
     else
-      {format_type(typespec), :none, %{}}
+      {format, format_type(typespec), :none, %{}}
     end
   end
 
@@ -756,21 +748,21 @@ defmodule IEx.Introspection do
     IEx.color(:doc_inline_code, left) <> " " <> right
   end
 
-  defp print_doc(heading, types, doc, metadata) do
+  defp print_doc(heading, types, format, doc, metadata) do
     doc = translate_doc(doc) || ""
     opts = IEx.Config.ansi_docs()
     IO.ANSI.Docs.print_heading(heading, opts)
     IO.write(types)
     IO.ANSI.Docs.print_metadata(metadata, opts)
-    IO.ANSI.Docs.print(doc, opts)
+    IO.ANSI.Docs.print(doc, format, opts)
   end
 
-  defp print_typespec({types, doc, metadata}) do
+  defp print_typespec({format, types, doc, metadata}) do
     IO.puts(types)
     doc = translate_doc(doc)
     opts = IEx.Config.ansi_docs()
     IO.ANSI.Docs.print_metadata(metadata, opts)
-    doc && IO.ANSI.Docs.print(doc, opts)
+    doc && IO.ANSI.Docs.print(doc, format, opts)
   end
 
   defp translate_doc(:none), do: nil
