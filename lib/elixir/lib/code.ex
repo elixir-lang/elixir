@@ -1352,9 +1352,10 @@ defmodule Code do
       {_module, bin, beam_path} ->
         case fetch_docs_from_beam(bin) do
           {:error, :chunk_not_found} ->
-            dir = beam_path |> :filename.dirname() |> :filename.dirname()
-            path = :filename.join([dir, 'doc', 'chunks', '#{module}.chunk'])
-            fetch_docs_from_chunk(path)
+            ["..", "..", "doc", "chunks", "#{module}.chunk"]
+            |> Path.join()
+            |> Path.expand(beam_path)
+            |> fetch_docs_from_chunk()
 
           other ->
             other
@@ -1363,8 +1364,9 @@ defmodule Code do
       :error ->
         case :code.which(module) do
           :preloaded ->
-            path = :filename.join([:code.lib_dir(:erts), 'doc', 'chunks', '#{module}.chunk'])
-            fetch_docs_from_chunk(path)
+            [:code.lib_dir(:erts), "doc", "chunks", "#{module}.chunk"]
+            |> Path.join()
+            |> fetch_docs_from_chunk()
 
           _ ->
             {:error, :module_not_found}
