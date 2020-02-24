@@ -1352,10 +1352,9 @@ defmodule Code do
       {_module, bin, beam_path} ->
         case fetch_docs_from_beam(bin) do
           {:error, :chunk_not_found} ->
-            ["..", "..", "doc", "chunks", "#{module}.chunk"]
-            |> Path.join()
-            |> Path.expand(beam_path)
-            |> fetch_docs_from_chunk()
+            app_root = Path.expand(Path.join(["..", ".."]), beam_path)
+            path = Path.join([app_root, "doc", "chunks", "#{module}.chunk"])
+            fetch_docs_from_chunk(path)
 
           other ->
             other
@@ -1364,9 +1363,8 @@ defmodule Code do
       :error ->
         case :code.which(module) do
           :preloaded ->
-            [:code.lib_dir(:erts), "doc", "chunks", "#{module}.chunk"]
-            |> Path.join()
-            |> fetch_docs_from_chunk()
+            path = Path.join([:code.lib_dir(:erts), "doc", "chunks", "#{module}.chunk"])
+            fetch_docs_from_chunk(path)
 
           _ ->
             {:error, :module_not_found}
