@@ -320,7 +320,9 @@ defmodule IEx.HelpersTest do
 
   describe "h" do
     test "shows help" do
-      assert "* IEx.Helpers\n\nWelcome to Interactive Elixir" <> _ = capture_iex("h()")
+      help = capture_iex("h()")
+      assert help =~ "IEx.Helpers"
+      assert help =~ "Welcome to Interactive Elixir"
     end
 
     test "prints non-Elixir module specs" do
@@ -337,52 +339,60 @@ defmodule IEx.HelpersTest do
                ":erlang was not compiled with docs\n"
 
       assert capture_io(fn -> h(:timer.sleep() / 1) end) == """
-             * :timer.sleep/1
+
+                                              :timer.sleep/1
 
                @spec sleep(time) :: :ok when time: timeout()
 
              Module was compiled without docs. Showing only specs.
-             """
 
-      assert capture_io(fn -> h(:timer.send_interval()) end) == """
-             * :timer.send_interval/2
-
-               @spec send_interval(time, message) :: {:ok, tRef} | {:error, reason}
-                     when time: time(), message: term(), tRef: tref(), reason: term()
-
-             Module was compiled without docs. Showing only specs.
-             * :timer.send_interval/3
-
-               @spec send_interval(time, pid, message) :: {:ok, tRef} | {:error, reason}
-                     when time: time(),
-                          pid: pid() | (regName :: atom()),
-                          message: term(),
-                          tRef: tref(),
-                          reason: term()
-
-             Module was compiled without docs. Showing only specs.
              """
     end
 
     test "prints module documentation" do
-      assert "* IEx.Helpers\n\nWelcome to Interactive Elixir" <> _ =
-               capture_io(fn -> h(IEx.Helpers) end)
+      assert "\n                                  IEx.Helpers\n\nWelcome to Interactive Elixir" <>
+               _ = capture_io(fn -> h(IEx.Helpers) end)
 
       assert capture_io(fn -> h(:whatever) end) ==
                "Could not load module :whatever, got: nofile\n"
 
-      assert capture_io(fn -> h(:lists) end) == ":lists was not compiled with docs\n"
+      assert capture_io(fn -> h(:lists) end) ==
+               ":lists was not compiled with docs\n"
     end
 
     test "prints function/macro documentation" do
-      pwd_h = "* def pwd()\n\nPrints the current working directory.\n\n"
-      c_h = "* def c(files, path \\\\ :in_memory)\n\nCompiles the given files."
+      pwd_h = """
 
-      eq_h =
-        "* def left == right\n\n  @spec term() == term() :: boolean()\n\nguard: true\n\nReturns `true` if the two terms are equal.\n\n"
+                                         def pwd()
 
-      def_h =
-        "* defmacro def(call, expr \\\\ [])\n\nDefines a public function with the given name and body."
+      Prints the current working directory.
+
+      """
+
+      c_h = """
+
+                              def c(files, path \\\\ :in_memory)
+
+      Compiles the given files.
+      """
+
+      eq_h = """
+
+                                     def left == right
+
+        @spec term() == term() :: boolean()
+
+      guard: true
+
+      Returns `true` if the two terms are equal.
+      """
+
+      def_h = """
+
+                               defmacro def(call, expr \\\\ [])
+
+      Defines a public function with the given name and body.
+      """
 
       assert capture_io(fn -> h(IEx.Helpers.pwd() / 0) end) =~ pwd_h
       assert capture_io(fn -> h(IEx.Helpers.c() / 2) end) =~ c_h
@@ -422,14 +432,35 @@ defmodule IEx.HelpersTest do
       with_file(filename, content, fn ->
         assert c(filename, ".") == [Sample]
 
-        assert capture_io(fn -> h(Sample) end) ==
-                 "* Sample\n\ndeprecated: Use OtherSample\nsince: 1.2.3\n\nSample module\n"
+        assert capture_io(fn -> h(Sample) end) == """
 
-        assert capture_io(fn -> h(Sample.with_metadata()) end) ==
-                 "* def with_metadata()\n\ndeprecated: Use OtherSample.with_metadata/0\nsince: 1.2.3\n\nWith metadata\n"
+                                                    Sample
 
-        assert capture_io(fn -> h(Sample.without_metadata()) end) ==
-                 "* def without_metadata()\n\nWithout metadata\n"
+               deprecated: Use OtherSample
+               since: 1.2.3
+
+               Sample module
+
+               """
+
+        assert capture_io(fn -> h(Sample.with_metadata()) end) == """
+
+                                             def with_metadata()
+
+               deprecated: Use OtherSample.with_metadata/0
+               since: 1.2.3
+
+               With metadata
+
+               """
+
+        assert capture_io(fn -> h(Sample.without_metadata()) end) == """
+
+                                            def without_metadata()
+
+               Without metadata
+
+               """
       end)
     after
       cleanup_modules([Sample])
@@ -452,12 +483,24 @@ defmodule IEx.HelpersTest do
         assert capture_io(fn -> h(Sample.__foo__()) end) ==
                  "No documentation for Sample.__foo__ was found\n"
 
-        assert capture_io(fn -> h(Sample.__bar__()) end) == "* def __bar__()\n\nBar doc\n"
+        assert capture_io(fn -> h(Sample.__bar__()) end) == """
+
+                                                def __bar__()
+
+               Bar doc
+
+               """
 
         assert capture_io(fn -> h(Sample.__foo__() / 0) end) ==
                  "No documentation for Sample.__foo__/0 was found\n"
 
-        assert capture_io(fn -> h(Sample.__bar__() / 0) end) == "* def __bar__()\n\nBar doc\n"
+        assert capture_io(fn -> h(Sample.__bar__() / 0) end) == """
+
+                                                def __bar__()
+
+               Bar doc
+
+               """
       end)
     after
       cleanup_modules([Sample])
@@ -489,20 +532,48 @@ defmodule IEx.HelpersTest do
       with_file(files, [behaviour, impl], fn ->
         assert c(files, ".") |> Enum.sort() == [Impl, MyBehaviour]
 
-        assert capture_io(fn -> h(Impl.first() / 1) end) ==
-                 "@callback first(integer()) :: integer()\n\nDocs for MyBehaviour.first\n"
+        assert capture_io(fn -> h(Impl.first() / 1) end) == """
+               @callback first(integer()) :: integer()
 
-        assert capture_io(fn -> h(Impl.second() / 1) end) ==
-                 "* def second(int)\n\nDocs for Impl.second/1\n"
+               Docs for MyBehaviour.first
 
-        assert capture_io(fn -> h(Impl.second() / 2) end) ==
-                 "* def second(int1, int2)\n\nDocs for Impl.second/2\n"
+               """
 
-        assert capture_io(fn -> h(Impl.first()) end) ==
-                 "@callback first(integer()) :: integer()\n\nDocs for MyBehaviour.first\n"
+        assert capture_io(fn -> h(Impl.second() / 1) end) == """
 
-        assert capture_io(fn -> h(Impl.second()) end) ==
-                 "* def second(int)\n\nDocs for Impl.second/1\n* def second(int1, int2)\n\nDocs for Impl.second/2\n"
+                                               def second(int)
+
+               Docs for Impl.second/1
+
+               """
+
+        assert capture_io(fn -> h(Impl.second() / 2) end) == """
+
+                                            def second(int1, int2)
+
+               Docs for Impl.second/2
+
+               """
+
+        assert capture_io(fn -> h(Impl.first()) end) == """
+               @callback first(integer()) :: integer()
+
+               Docs for MyBehaviour.first
+
+               """
+
+        assert capture_io(fn -> h(Impl.second()) end) == """
+
+                                               def second(int)
+
+               Docs for Impl.second/1
+
+
+                                            def second(int1, int2)
+
+               Docs for Impl.second/2
+
+               """
 
         assert capture_io(fn -> h(MyBehaviour.first()) end) == """
                No documentation for function MyBehaviour.first was found, but there is a callback with the same name.
@@ -545,11 +616,23 @@ defmodule IEx.HelpersTest do
       with_file(filename, content, fn ->
         assert c(filename, ".") |> Enum.sort() == [Delegated, Delegator]
 
-        assert capture_io(fn -> h(Delegator.func1()) end) ==
-                 "* def func1()\n\ndelegate_to: Delegated.func1/0\n\n\n"
+        assert capture_io(fn -> h(Delegator.func1()) end) == """
 
-        assert capture_io(fn -> h(Delegator.func2()) end) ==
-                 "* def func2()\n\ndelegate_to: Delegated.func2/0\n\nDelegator func2 doc\n"
+                                                 def func1()
+
+               delegate_to: Delegated.func1/0
+
+               """
+
+        assert capture_io(fn -> h(Delegator.func2()) end) == """
+
+                                                 def func2()
+
+               delegate_to: Delegated.func2/0
+
+               Delegator func2 doc
+
+               """
       end)
     after
       cleanup_modules([Delegated, Delegator])
@@ -598,11 +681,13 @@ defmodule IEx.HelpersTest do
         assert c(filename, ".") == [Sample]
 
         assert capture_io(fn -> h(Sample.foo() / 1) end) == """
-               * Sample.foo/1
+
+                                                 Sample.foo/1
 
                  @spec foo(any()) :: any()
 
                Module was compiled without docs. Showing only specs.
+
                """
       end)
     after
@@ -734,8 +819,15 @@ defmodule IEx.HelpersTest do
       with_file(filename, content, fn ->
         assert c(filename, ".") == [CallbackWithMetadata]
 
-        assert capture_io(fn -> b(CallbackWithMetadata.test()) end) ==
-                 "@callback test(:foo) :: integer()\n\ndeprecated: Use handle_test/1\nsince: 1.2.3\n\ncallback\n"
+        assert capture_io(fn -> b(CallbackWithMetadata.test()) end) == """
+               @callback test(:foo) :: integer()
+
+               deprecated: Use handle_test/1
+               since: 1.2.3
+
+               callback
+
+               """
       end)
     after
       cleanup_modules([CallbackWithMetadata])
@@ -865,12 +957,14 @@ defmodule IEx.HelpersTest do
                @type id_with_desc() :: {number(), String.t()}
 
                An ID with description.
+
                """
 
         assert capture_io(fn -> t(TypeSample.id_with_desc()) end) == """
                @type id_with_desc() :: {number(), String.t()}
 
                An ID with description.
+
                """
       end)
     after
@@ -898,6 +992,7 @@ defmodule IEx.HelpersTest do
                since: 1.2.3
 
                An ID with description.
+
                """
       end)
     after
