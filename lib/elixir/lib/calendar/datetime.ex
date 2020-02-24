@@ -98,7 +98,8 @@ defmodule DateTime do
 
   The integer can be given in different unit
   according to `System.convert_time_unit/3` and it will
-  be converted to microseconds internally.
+  be converted to microseconds internally. Up to
+  253402300799 seconds is supported.
 
   Unix times are always in UTC and therefore the DateTime
   will be returned in UTC.
@@ -113,14 +114,26 @@ defmodule DateTime do
       iex> datetime
       ~U[2015-05-25 13:26:08.868569Z]
 
+      iex> {:ok, datetime} = DateTime.from_unix(253_402_300_799)
+      iex> datetime
+      ~U[9999-12-31 23:59:59Z]
+
+      iex> {:error, :invalid_unix_time} = DateTime.from_unix(253_402_300_800)
+
   The unit can also be an integer as in `t:System.time_unit/0`:
 
       iex> {:ok, datetime} = DateTime.from_unix(143_256_036_886_856, 1024)
       iex> datetime
       ~U[6403-03-17 07:05:22.320312Z]
 
-  Negative Unix times are supported, up to -62167219200 seconds,
-  which is equivalent to "0000-01-01T00:00:00Z" or 0 Gregorian seconds.
+  Negative Unix times are supported up to -377705116800 seconds:
+
+      iex> {:ok, datetime} = DateTime.from_unix(-377_705_116_800)
+      iex> datetime
+      ~U[-9999-01-01 00:00:00Z]
+
+      iex> {:error, :invalid_unix_time} = DateTime.from_unix(-377_705_116_801)
+
   """
   @spec from_unix(integer, :native | System.time_unit(), Calendar.calendar()) ::
           {:ok, t} | {:error, atom}
