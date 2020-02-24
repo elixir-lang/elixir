@@ -300,6 +300,16 @@ defmodule Kernel.DocsTest do
     end
   end
 
+  if System.otp_release() >= "23" do
+    test "OTP stdlib module docs" do
+      {:docs_v1, _, :erlang, _, _, _, _} = Code.fetch_docs(:array)
+    end
+
+    test "OTP preloaded module docs" do
+      {:docs_v1, _, :erlang, _, _, _, _} = Code.fetch_docs(:erlang)
+    end
+  end
+
   test "@impl true doesn't set @doc false if previous implementation has docs" do
     write_beam(
       defmodule Docs do
