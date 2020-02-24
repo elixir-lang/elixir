@@ -97,6 +97,20 @@ dispatch_import(Meta, Name, Args, E, Callback) ->
       Callback()
   end.
 
+dispatch_require(Meta, 'Elixir.System', stacktrace, [], #{contextual_vars := Vars} = E, Callback) ->
+  case lists:member('__STACKTRACE__', Vars) of
+    true ->
+      {{'__STACKTRACE__', [], nil}, E};
+    false ->
+      Message =
+        "System.stacktrace/0 outside of rescue/catch clauses is deprecated. "
+          "If you want to support only Elixir v1.7+, you must access __STACKTRACE__ "
+          "inside a rescue/catch. If you want to support earlier Elixir versions, "
+          "move System.stacktrace/0 inside a rescue/catch",
+      elixir_errors:erl_warn(?line(Meta), ?key(E, file), Message),
+      Callback('Elixir.System', stacktrace, [])
+  end;
+
 dispatch_require(Meta, Receiver, Name, Args, E, Callback) when is_atom(Receiver) ->
   Arity = length(Args),
 
@@ -353,18 +367,6 @@ check_deprecated(_, erlang, _, _, _) ->
   ok;
 check_deprecated(_, _, _, _, #{module := 'Elixir.HashDict'}) ->
   ok;
-check_deprecated(Meta, 'Elixir.System', stacktrace, 0, #{contextual_vars := Vars} = E) ->
-  case lists:member('__STACKTRACE__', Vars) of
-    true ->
-      ok;
-    false ->
-      Message =
-        "System.stacktrace/0 outside of rescue/catch clauses is deprecated. "
-          "If you want to support only Elixir v1.7+, you must access __STACKTRACE__ "
-          "inside a rescue/catch. If you want to support earlier Elixir versions, "
-          "move System.stacktrace/0 inside a rescue/catch",
-      elixir_errors:erl_warn(?line(Meta), ?key(E, file), Message)
-  end;
 check_deprecated(Meta, Receiver, Name, Arity, E) ->
   case (?key(E, function) == nil) andalso is_ensure_loaded(Receiver) of
     true ->
