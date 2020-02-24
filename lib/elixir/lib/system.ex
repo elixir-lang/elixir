@@ -587,8 +587,7 @@ defmodule System do
   latest exception. To retrieve the stacktrace of the current process,
   use `Process.info(self(), :current_stacktrace)` instead.
   """
-  # TODO: Fully deprecate it on Elixir v1.12 via @deprecated
-  # It is currently partially deprecated in elixir_dispatch.erl
+  @deprecated "Use __STACKTRACE__ instead"
   def stacktrace do
     apply(:erlang, :get_stacktrace, [])
   end

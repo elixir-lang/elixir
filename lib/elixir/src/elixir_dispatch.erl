@@ -97,6 +97,14 @@ dispatch_import(Meta, Name, Args, E, Callback) ->
       Callback()
   end.
 
+dispatch_require(Meta, 'Elixir.System', stacktrace, [], #{contextual_vars := Vars} = E, Callback) ->
+  Message = "System.stacktrace/0 is deprecated, use __STACKTRACE__ instead",
+  elixir_errors:erl_warn(?line(Meta), ?key(E, file), Message),
+  case lists:member('__STACKTRACE__', Vars) of
+    true -> {{'__STACKTRACE__', [], nil}, E};
+    false -> Callback('Elixir.System', stacktrace, [])
+  end;
+
 dispatch_require(Meta, Receiver, Name, Args, E, Callback) when is_atom(Receiver) ->
   Arity = length(Args),
 
@@ -319,9 +327,8 @@ get_macros(Receiver, true) ->
     false -> []
   end.
 
-%% Kernel deprecations are inlined.
-get_deprecations(?kernel) -> [];
-get_deprecations(Receiver) -> get_info(Receiver, deprecated).
+get_deprecations(Receiver) ->
+  get_info(Receiver, deprecated).
 
 get_info(Receiver, Key) ->
   case erlang:function_exported(Receiver, '__info__', 1) of
@@ -351,38 +358,30 @@ elixir_imported_macros() ->
 
 check_deprecated(_, erlang, _, _, _) ->
   ok;
-check_deprecated(_, _, _, _, #{module := 'Elixir.HashDict'}) ->
+check_deprecated(Meta, ?kernel, to_char_list, 1, E) ->
+  elixir_errors:form_warn(Meta, E, ?MODULE, {deprecated, ?kernel, to_char_list, 1, "Use Kernel.to_charlist/1 instead"});
+check_deprecated(_, ?kernel, _, _, _) ->
   ok;
-check_deprecated(Meta, 'Elixir.System', stacktrace, 0, #{contextual_vars := Vars} = E) ->
-  case lists:member('__STACKTRACE__', Vars) of
-    true ->
-      ok;
-    false ->
-      Message =
-        "System.stacktrace/0 outside of rescue/catch clauses is deprecated. "
-          "If you want to support only Elixir v1.7+, you must access __STACKTRACE__ "
-          "inside a rescue/catch. If you want to support earlier Elixir versions, "
-          "move System.stacktrace/0 inside a rescue/catch",
-      elixir_errors:erl_warn(?line(Meta), ?key(E, file), Message)
-  end;
 check_deprecated(Meta, Receiver, Name, Arity, E) ->
   case (?key(E, function) == nil) andalso is_ensure_loaded(Receiver) of
     true ->
       case check_deprecated(Receiver, Name, Arity, get_deprecations(Receiver)) of
-        nil -> ok;
-        Other -> elixir_errors:form_warn(Meta, E, ?MODULE, Other)
+        %% TODO: Remove me when Elixir.HashDict is removed
+        Other when is_tuple(Other), map_get(module, E) /= 'Elixir.HashDict' ->
+          elixir_errors:form_warn(Meta, E, ?MODULE, Other);
+
+        _ ->
+          ok
       end;
 
     false ->
       ok
   end.
 
-check_deprecated(?kernel, to_char_list, 1, _) ->
-  {deprecated, ?kernel, to_char_list, 1, "Use Kernel.to_charlist/1 instead"};
 check_deprecated(Mod, Fun, Arity, [_ | _] = Deprecated) ->
   case lists:keyfind({Fun, Arity}, 1, Deprecated) of
     {_, Message} -> {deprecated, Mod, Fun, Arity, Message};
-    false -> nil
+    false -> false
   end;
 check_deprecated(_, _, _, _) ->
-  nil.
+  false.
