@@ -1385,6 +1385,9 @@ defmodule Code do
 
       {:error, :beam_lib, {:missing_chunk, _, @docs_chunk}} ->
         {:error, :chunk_not_found}
+
+      {:error, :beam_lib, {:file_error, _, :enoent}} ->
+        {:error, :module_not_found}
     end
   end
 

@@ -63,6 +63,10 @@ defmodule Kernel.DocsTest do
     assert Code.fetch_docs(InMemoryDocs) == {:error, :module_not_found}
   end
 
+  test "non-existent beam file" do
+    assert {:error, :module_not_found} = Code.fetch_docs("bad.beam")
+  end
+
   test "raises on invalid @doc since: ..." do
     assert_raise ArgumentError, ~r"should be a string representing the version", fn ->
       defmodule InvalidSince do
