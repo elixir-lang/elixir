@@ -79,7 +79,7 @@ defmodule Mix.Tasks.HelpTest do
           Mix.Tasks.Help.run(["h"])
         end)
 
-      assert output =~ "# mix h\n\n"
+      assert output =~ "mix h\n\n"
       assert output =~ "Alias for \"hello\"\n"
       assert output =~ ~r/^Location: mix.exs/m
 
@@ -88,7 +88,7 @@ defmodule Mix.Tasks.HelpTest do
           Mix.Tasks.Help.run(["p"])
         end)
 
-      assert output =~ "# mix p\n\n"
+      assert output =~ "mix p\n\n"
       assert output =~ "Alias for &Kernel.inspect/1\n"
       assert output =~ ~r/^Location: mix.exs/m
 
@@ -97,7 +97,7 @@ defmodule Mix.Tasks.HelpTest do
           Mix.Tasks.Help.run(["help"])
         end)
 
-      assert output =~ "# mix help\n\n"
+      assert output =~ "mix help\n\n"
       assert output =~ "Alias for [\"help\", \"hello\"]\n"
       assert output =~ ~r/^Location: mix.exs/m
 
@@ -106,11 +106,8 @@ defmodule Mix.Tasks.HelpTest do
           Mix.Tasks.Help.run(["nested.h"])
         end)
 
-      assert output =~ "# mix nested.h\n\n"
-
-      assert output =~
-               ~r/Alias for \[#Function<.*\/1 in .*ComplexAliases.project\/0>, \"h foo bar\"\]\n/
-
+      assert output =~ "mix nested.h\n\n"
+      assert output =~ ~r/Alias for \[#Function/
       assert output =~ ~r/^Location: mix.exs/m
     end)
   end
@@ -122,7 +119,7 @@ defmodule Mix.Tasks.HelpTest do
           Mix.Tasks.Help.run(["compile"])
         end)
 
-      assert output =~ "# mix compile\n"
+      assert output =~ "mix compile\n"
       assert output =~ "## Command line options"
       assert output =~ ~r/^Location:/m
 
@@ -131,7 +128,7 @@ defmodule Mix.Tasks.HelpTest do
           Mix.Tasks.Help.run(["compile.all"])
         end)
 
-      assert output =~ "# mix compile.all\n"
+      assert output =~ "mix compile.all\n"
       assert output =~ "There is no documentation for this task"
     end)
   end
@@ -151,7 +148,7 @@ defmodule Mix.Tasks.HelpTest do
           Mix.Tasks.Help.run(["compile"])
         end)
 
-      assert output =~ "# mix compile\n\n"
+      assert output =~ "mix compile\n\n"
       assert output =~ "Alias for \"compile\"\n"
       assert output =~ ~r/^Location: mix.exs/m
 
