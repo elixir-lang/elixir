@@ -2615,7 +2615,7 @@ defmodule Kernel.ExpansionTest do
     end)
 
     receive do
-      {:expand_env, {expr, env}} -> {clean_meta(expr, [:version]), env}
+      {:expand_env, {expr, env}} -> {clean_meta(expr, [:version, :inferred_binary_type]), env}
     end
   end
 end
