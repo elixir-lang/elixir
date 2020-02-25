@@ -121,7 +121,31 @@ defmodule Module.Types.ExprTest do
 
       assert quoted_expr([foo], {<<foo::integer>>, foo}) == {:ok, {:tuple, [:binary, :integer]}}
       assert quoted_expr([foo], {<<foo::binary>>, foo}) == {:ok, {:tuple, [:binary, :binary]}}
-      assert quoted_expr([foo], {<<foo::utf8>>, foo}) == {:ok, {:tuple, [:binary, :integer]}}
+
+      assert quoted_expr([foo], {<<foo::utf8>>, foo}) ==
+               {:ok, {:tuple, [:binary, {:union, [:integer, :binary]}]}}
+
+      assert quoted_expr(
+               (
+                 foo = 0.0
+                 <<foo::float>>
+               )
+             ) == {:ok, :binary}
+
+      assert quoted_expr(
+               (
+                 foo = 0
+                 <<foo::float>>
+               )
+             ) == {:ok, :binary}
+
+      assert {:error, {{:unable_unify, :integer, :binary, _, _}, _}} =
+               quoted_expr(
+                 (
+                   foo = 0
+                   <<foo::binary>>
+                 )
+               )
 
       assert {:error, {{:unable_unify, :binary, :integer, _, _}, _}} =
                quoted_expr([foo], <<foo::binary-0, foo::integer>>)
