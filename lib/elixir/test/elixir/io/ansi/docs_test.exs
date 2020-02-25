@@ -4,8 +4,8 @@ defmodule IO.ANSI.DocsTest do
   use ExUnit.Case, async: true
   import ExUnit.CaptureIO
 
-  def format_heading(str) do
-    capture_io(fn -> IO.ANSI.Docs.print_heading(str, []) end) |> String.trim_trailing()
+  def format_headings(list) do
+    capture_io(fn -> IO.ANSI.Docs.print_headings(list, []) end) |> String.trim_trailing()
   end
 
   def format_metadata(map) do
@@ -18,10 +18,19 @@ defmodule IO.ANSI.DocsTest do
 
   describe "heading" do
     test "is formatted" do
-      result = format_heading("wibble")
+      result = format_headings(["foo"])
       assert String.starts_with?(result, "\e[0m\n\e[7m\e[33m")
       assert String.ends_with?(result, "\e[0m\n\e[0m")
-      assert String.contains?(result, " wibble ")
+      assert String.contains?(result, " foo ")
+    end
+
+    test "multiple entries formatted" do
+      result = format_headings(["foo", "bar"])
+      assert :binary.matches(result, "\e[0m\n\e[7m\e[33m") |> length == 2
+      assert String.starts_with?(result, "\e[0m\n\e[7m\e[33m")
+      assert String.ends_with?(result, "\e[0m\n\e[0m")
+      assert String.contains?(result, " foo ")
+      assert String.contains?(result, " bar ")
     end
   end
 

@@ -326,27 +326,8 @@ defmodule IEx.HelpersTest do
     end
 
     test "prints non-Elixir module specs" do
-      assert capture_io(fn -> h(:timer.nonexistent_function()) end) ==
-               ":timer was not compiled with docs\n"
-
-      assert capture_io(fn -> h(:timer.nonexistent_function() / 1) end) ==
-               ":timer was not compiled with docs\n"
-
-      assert capture_io(fn -> h(:erlang.trace_pattern()) end) ==
-               ":erlang was not compiled with docs\n"
-
-      assert capture_io(fn -> h(:erlang.trace_pattern() / 2) end) ==
-               ":erlang was not compiled with docs\n"
-
-      assert capture_io(fn -> h(:timer.sleep() / 1) end) == """
-
-                                              :timer.sleep/1
-
-               @spec sleep(time) :: :ok when time: timeout()
-
-             Module was compiled without docs. Showing only specs.
-
-             """
+      assert capture_io(fn -> h(:timer.sleep() / 1) end) =~
+               "@spec sleep(time) :: :ok when time: timeout()"
     end
 
     test "prints module documentation" do
@@ -355,9 +336,6 @@ defmodule IEx.HelpersTest do
 
       assert capture_io(fn -> h(:whatever) end) ==
                "Could not load module :whatever, got: nofile\n"
-
-      assert capture_io(fn -> h(:lists) end) ==
-               ":lists was not compiled with docs\n"
     end
 
     test "prints function/macro documentation" do
