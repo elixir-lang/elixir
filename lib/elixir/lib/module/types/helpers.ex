@@ -127,16 +127,25 @@ defmodule Module.Types.Helpers do
   end
 
   def of_binary({:"::", _meta, [expr, specifiers]}, stack, context, fun) do
-    {expected_type, utf?} = collect_binary_type(specifiers) || {:integer, false}
+    expected_type =
+      collect_binary_specifier(specifiers, &binary_type(stack.context, &1)) || :integer
 
-    # Special case utf specifiers with binary literals since they allow
-    # both integer and binary literals but variables are always integer
-    if is_binary(expr) and utf? do
-      {:ok, context}
-    else
-      with {:ok, type, context} <- fun.(expr, stack, context),
-           {:ok, _type, context} <- Infer.unify(type, expected_type, stack, context),
-           do: {:ok, context}
+    utf? = collect_binary_specifier(specifiers, &utf_type?/1)
+    float? = collect_binary_specifier(specifiers, &float_type?/1)
+
+    # Special case utf and float specifiers because they can be two types as literals
+    # but only a specific type as a variable in a pattern
+    cond do
+      stack.context == :pattern and utf? and is_binary(expr) ->
+        {:ok, context}
+
+      stack.context == :pattern and float? and is_integer(expr) ->
+        {:ok, context}
+
+      true ->
+        with {:ok, type, context} <- fun.(expr, stack, context),
+             {:ok, _type, context} <- Infer.unify(type, expected_type, stack, context),
+             do: {:ok, context}
     end
   end
 
@@ -155,19 +164,34 @@ defmodule Module.Types.Helpers do
 
   # Collect binary type specifiers,
   # from `<<pattern::integer-size(10)>>` collect `integer`
-  defp collect_binary_type({:-, _meta, [left, right]}),
-    do: collect_binary_type(left) || collect_binary_type(right)
+  defp collect_binary_specifier({:-, _meta, [left, right]}, fun) do
+    collect_binary_specifier(left, fun) || collect_binary_specifier(right, fun)
+  end
 
-  defp collect_binary_type({:integer, _, _}), do: {:integer, false}
-  defp collect_binary_type({:float, _, _}), do: {:float, false}
-  defp collect_binary_type({:bits, _, _}), do: {:binary, false}
-  defp collect_binary_type({:bitstring, _, _}), do: {:binary, false}
-  defp collect_binary_type({:bytes, _, _}), do: {:binary, false}
-  defp collect_binary_type({:binary, _, _}), do: {:binary, false}
-  defp collect_binary_type({:utf8, _, _}), do: {:integer, true}
-  defp collect_binary_type({:utf16, _, _}), do: {:integer, true}
-  defp collect_binary_type({:utf32, _, _}), do: {:integer, true}
-  defp collect_binary_type(_), do: nil
+  defp collect_binary_specifier(other, fun) do
+    fun.(other)
+  end
+
+  defp binary_type(:expr, {:float, _, _}), do: :number
+  defp binary_type(:expr, {:utf8, _, _}), do: {:union, [:integer, :binary]}
+  defp binary_type(:expr, {:utf16, _, _}), do: {:union, [:integer, :binary]}
+  defp binary_type(:expr, {:utf32, _, _}), do: {:union, [:integer, :binary]}
+  defp binary_type(:pattern, {:utf8, _, _}), do: :integer
+  defp binary_type(:pattern, {:utf16, _, _}), do: :integer
+  defp binary_type(:pattern, {:utf32, _, _}), do: :integer
+  defp binary_type(:pattern, {:float, _, _}), do: :float
+  defp binary_type(_context, {:integer, _, _}), do: :integer
+  defp binary_type(_context, {:bits, _, _}), do: :binary
+  defp binary_type(_context, {:bitstring, _, _}), do: :binary
+  defp binary_type(_context, {:bytes, _, _}), do: :binary
+  defp binary_type(_context, {:binary, _, _}), do: :binary
+  defp binary_type(_context, _specifier), do: nil
+
+  defp utf_type?({specifier, _, _}), do: specifier in [:utf8, :utf16, :utf32]
+  defp utf_type?(_), do: false
+
+  defp float_type?({:float, _, _}), do: true
+  defp float_type?(_), do: false
 
   # TODO: Remove this and let multiple when be treated as multiple clauses,
   #       meaning they will be intersection types
