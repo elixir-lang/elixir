@@ -272,6 +272,8 @@ defmodule Module.Types.Infer do
   Checks if the first argument is a subtype of the second argument.
   Only checks for simple and concrete types.
   """
+  # TODO: boolean <: false | true
+  # TODO: number <: float | integer
   def subtype?({:atom, boolean}, :boolean, _context) when is_boolean(boolean), do: true
   def subtype?({:atom, atom}, :atom, _context) when is_atom(atom), do: true
   def subtype?(:boolean, :atom, _context), do: true
