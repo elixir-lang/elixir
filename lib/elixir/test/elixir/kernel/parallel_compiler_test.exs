@@ -319,8 +319,7 @@ defmodule Kernel.ParallelCompilerTest do
             assert {:error, [error], []} =
                      Kernel.ParallelCompiler.compile_to_path([fixture], output)
 
-            msg = "this clause cannot match because a previous clause at line 2 always matches"
-            assert error == {fixture, 3, msg}
+            assert {^fixture, 3, "this clause " <> _} = error
           end)
 
         assert msg =~
@@ -465,10 +464,7 @@ defmodule Kernel.ParallelCompilerTest do
           capture_io(:stderr, fn ->
             assert {:error, [error], []} = Kernel.ParallelCompiler.require([fixture])
 
-            message =
-              "this clause cannot match because a previous clause at line 2 always matches"
-
-            assert error == {fixture, 3, message}
+            assert {^fixture, 3, "this clause " <> _} = error
           end)
 
         assert msg =~

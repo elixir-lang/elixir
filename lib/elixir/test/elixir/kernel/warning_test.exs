@@ -661,24 +661,6 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
-  test "previous clause always matches" do
-    assert capture_err(fn ->
-             Code.eval_string("""
-             defmodule Sample do
-               def binary_cond do
-                 v = "bc"
-                 cond do
-                   is_binary(v) -> :bin
-                   true -> :ok
-                 end
-               end
-             end
-             """)
-           end) =~ "this clause cannot match because a previous clause at line 5 always matches"
-  after
-    purge(Sample)
-  end
-
   test "late function heads" do
     assert capture_err(fn ->
              Code.eval_string("""
@@ -740,7 +722,8 @@ defmodule Kernel.WarningTest do
                def hello, do: nil
              end
              """)
-           end) =~ "this clause cannot match because a previous clause at line 2 always matches"
+           end) =~
+             ~r"this clause( for hello/0)? cannot match because a previous clause at line 2 always matches"
   after
     purge(Sample)
   end
@@ -760,7 +743,8 @@ defmodule Kernel.WarningTest do
                use Sample
              end
              """)
-           end) =~ "this clause cannot match because a previous clause at line 10 always matches"
+           end) =~
+             ~r"this clause( for hello/0)? cannot match because a previous clause at line 10 always matches"
   after
     purge(Sample)
     purge(UseSample)
@@ -1613,7 +1597,8 @@ defmodule Kernel.WarningTest do
                defguard foo(baz) when baz == :baz
              end
              """)
-           end) =~ "this clause cannot match because a previous clause at line 2 always matches"
+           end) =~
+             ~r"this clause( for foo/1)? cannot match because a previous clause at line 2 always matches"
   after
     purge(Sample)
   end
@@ -1626,7 +1611,8 @@ defmodule Kernel.WarningTest do
                defmacro foo(bar), do: bar == :bar
              end
              """)
-           end) =~ "this clause cannot match because a previous clause at line 2 always matches"
+           end) =~
+             ~r"this clause( for foo/1)? cannot match because a previous clause at line 2 always matches"
   after
     purge(Sample)
   end

@@ -7,14 +7,18 @@
   read_file_type/1, read_file_type/2, read_link_type/1, read_posix_mtime_and_size/1,
   change_posix_time/2, change_universal_time/2,
   guard_op/2, extract_splat_guards/1, extract_guards/1,
-  erlang_comparison_op_to_elixir/1]).
+  erlang_comparison_op_to_elixir/1, erl_fa_to_elixir_fa/2]).
 -include("elixir.hrl").
 -include_lib("kernel/include/file.hrl").
 
-% Builds the macro name
-
 macro_name(Macro) ->
   list_to_atom("MACRO-" ++ atom_to_list(Macro)).
+
+erl_fa_to_elixir_fa(Name, Arity) ->
+  case atom_to_list(Name) of
+    "MACRO-" ++ Rest -> {list_to_atom(Rest), Arity - 1};
+    _ -> {Name, Arity}
+  end.
 
 guard_op('andalso', 2) ->
   true;
