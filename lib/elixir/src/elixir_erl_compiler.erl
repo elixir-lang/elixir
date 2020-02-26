@@ -134,6 +134,14 @@ custom_format(sys_core_fold, {eval_failure, Error}) ->
   #{'__struct__' := Struct} = 'Elixir.Exception':normalize(error, Error),
   ["this expression will fail with ", elixir_aliases:inspect(Struct)];
 
+custom_format(sys_core_fold, {nomatch_shadow,Line,{ErlName,ErlArity}}) ->
+  {Name, Arity} = elixir_utils:erl_fa_to_elixir_fa(ErlName, ErlArity),
+
+  io_lib:format(
+    "this clause for ~ts/~B cannot match because a previous clause at line ~B always matches",
+    [Name, Arity, Line]
+  );
+
 custom_format([], Desc) ->
   io_lib:format("~p", [Desc]);
 

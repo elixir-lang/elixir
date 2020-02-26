@@ -54,13 +54,8 @@ definition_to_anonymous(Module, Kind, Meta, Clauses) ->
   {value, Result, _Binding} = erl_eval:expr(Fun, [], {value, LocalHandler}),
   Result.
 
-invoke_local(Module, RawName, Args) ->
-  %% If we have a macro, its arity in the table is
-  %% actually one less than in the function call
-  {Name, Arity} = case atom_to_list(RawName) of
-    "MACRO-" ++ Rest -> {list_to_atom(Rest), length(Args) - 1};
-    _ -> {RawName, length(Args)}
-  end,
+invoke_local(Module, ErlName, Args) ->
+  {Name, Arity} = elixir_utils:erl_fa_to_elixir_fa(ErlName, length(Args)),
 
   case elixir_def:local_for(Module, Name, Arity, all) of
     false ->
