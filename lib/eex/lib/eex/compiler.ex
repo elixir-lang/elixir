@@ -46,7 +46,7 @@ defmodule EEx.Compiler do
     generate_buffer(rest, buffer, scope, state)
   end
 
-  defp generate_buffer([{:expr, line, column, mark, chars, _} | rest], buffer, scope, state) do
+  defp generate_buffer([{:expr, line, column, mark, chars} | rest], buffer, scope, state) do
     options = [file: state.file, line: line, column: column(column, mark)] ++ state.parser_options
     expr = Code.string_to_quoted!(chars, options)
     buffer = state.engine.handle_expr(buffer, IO.chardata_to_string(mark), expr)
@@ -54,7 +54,7 @@ defmodule EEx.Compiler do
   end
 
   defp generate_buffer(
-         [{:start_expr, start_line, start_column, mark, chars, _} | rest],
+         [{:start_expr, start_line, start_column, mark, chars} | rest],
          buffer,
          scope,
          state
@@ -80,7 +80,7 @@ defmodule EEx.Compiler do
   end
 
   defp generate_buffer(
-         [{:middle_expr, line, _column, '', chars, _} | rest],
+         [{:middle_expr, line, _column, '', chars} | rest],
          buffer,
          [current | scope],
          state
@@ -91,7 +91,7 @@ defmodule EEx.Compiler do
   end
 
   defp generate_buffer(
-         [{:middle_expr, line, column, modifier, chars, trimmed?} | t],
+         [{:middle_expr, line, column, modifier, chars} | t],
          buffer,
          [_ | _] = scope,
          state
@@ -101,12 +101,12 @@ defmodule EEx.Compiler do
         "please remove \"#{modifier}\" accordingly"
 
     :elixir_errors.erl_warn(line, state.file, message)
-    generate_buffer([{:middle_expr, line, column, '', chars, trimmed?} | t], buffer, scope, state)
+    generate_buffer([{:middle_expr, line, column, '', chars} | t], buffer, scope, state)
     # TODO: Make this an error on Elixir v2.0 since it accidentally worked previously.
     # raise EEx.SyntaxError, message: message, file: state.file, line: line
   end
 
-  defp generate_buffer([{:middle_expr, line, column, _, chars, _} | _], _buffer, [], state) do
+  defp generate_buffer([{:middle_expr, line, column, _, chars} | _], _buffer, [], state) do
     raise EEx.SyntaxError,
       message: "unexpected middle of expression <%#{chars}%>",
       file: state.file,
@@ -115,7 +115,7 @@ defmodule EEx.Compiler do
   end
 
   defp generate_buffer(
-         [{:end_expr, line, _column, '', chars, _} | rest],
+         [{:end_expr, line, _column, '', chars} | rest],
          buffer,
          [current | _],
          state
@@ -129,7 +129,7 @@ defmodule EEx.Compiler do
   end
 
   defp generate_buffer(
-         [{:end_expr, line, column, modifier, chars, trimmed?} | t],
+         [{:end_expr, line, column, modifier, chars} | t],
          buffer,
          [_ | _] = scope,
          state
@@ -139,12 +139,12 @@ defmodule EEx.Compiler do
         "expression \"<%#{modifier}#{chars}%>\", please remove \"#{modifier}\" accordingly"
 
     :elixir_errors.erl_warn(line, state.file, message)
-    generate_buffer([{:end_expr, line, column, '', chars, trimmed?} | t], buffer, scope, state)
+    generate_buffer([{:end_expr, line, column, '', chars} | t], buffer, scope, state)
     # TODO: Make this an error on Elixir v2.0 since it accidentally worked previously.
     # raise EEx.SyntaxError, message: message, file: state.file, line: line, column: column
   end
 
-  defp generate_buffer([{:end_expr, line, column, _, chars, _} | _], _buffer, [], state) do
+  defp generate_buffer([{:end_expr, line, column, _, chars} | _], _buffer, [], state) do
     raise EEx.SyntaxError,
       message: "unexpected end of expression <%#{chars}%>",
       file: state.file,
@@ -179,7 +179,7 @@ defmodule EEx.Compiler do
   # Look middle expressions that immediately follow a start_expr
 
   defp look_ahead_middle(
-         [{:text, text}, {:middle_expr, line, _column, _, chars, _} | rest] = tokens,
+         [{:text, text}, {:middle_expr, line, _column, _, chars} | rest] = tokens,
          start,
          contents
        ) do
@@ -190,7 +190,7 @@ defmodule EEx.Compiler do
     end
   end
 
-  defp look_ahead_middle([{:middle_expr, line, _column, _, chars, _} | rest], _start, contents) do
+  defp look_ahead_middle([{:middle_expr, line, _column, _, chars} | rest], _start, contents) do
     {contents ++ chars, line, rest}
   end
 

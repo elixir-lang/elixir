@@ -79,8 +79,24 @@ defmodule EExTest do
     end
 
     test "trim mode" do
+      string = "<%= 123 %> \n  \n  <%= 789 %>"
+      expected = "123\n789"
+      assert_eval(expected, string, [], trim: true)
+
       string = "<%= 123 %> \n456\n  <%= 789 %>"
-      expected = "123456\n789"
+      expected = "123\n456\n789"
+      assert_eval(expected, string, [], trim: true)
+
+      string = "<%= 123 %> \n  <%= 456 %>  \n  <%= 789 %>"
+      expected = "123\n456\n789"
+      assert_eval(expected, string, [], trim: true)
+
+      string = "\n  <%= 123 %> \n  <%= 456 %>  \n  <%= 789 %>  \n"
+      expected = "123\n456\n789"
+      assert_eval(expected, string, [], trim: true)
+
+      string = "\r\n  <%= 123 %> \r\n  <%= 456 %>  \r\n  <%= 789 %>  \r\n"
+      expected = "123\n456\n789"
       assert_eval(expected, string, [], trim: true)
     end
 
@@ -94,7 +110,7 @@ defmodule EExTest do
       <% end %>
       """
 
-      expected = "  that\n"
+      expected = "\n  that\n"
       assert_eval(expected, string, [], trim: true)
     end
 
@@ -106,7 +122,7 @@ defmodule EExTest do
       <%= "Fourth line" %>
       """
 
-      expected = "First lineSecond lineThird lineFourth line"
+      expected = "First line\nSecond line\nThird line\nFourth line"
       assert_eval(expected, string, [], trim: true)
     end
 
@@ -120,7 +136,7 @@ defmodule EExTest do
       <%end%>
       """
 
-      expected = "  that\n"
+      expected = "\n  that\n"
       assert_eval(expected, string, [], trim: true)
     end
 
