@@ -45,9 +45,8 @@ defmodule EEx do
     * `:indentation` - (since v1.11.0) an integer added to the column after every
       new line. Defaults to 0.
     * `:engine` - the EEx engine to be used for compilation.
-    * `:trim` - if true, trims whitespace left/right of quotation tags. If a
-      quotation tag appears on its own in a given line, line endings are also
-      removed. Defaults to false.
+    * `:trim` - if true, trims whitespace left/right of quotation tags up until
+      newlines. At least one newline is retained. Defaults to false.
 
   ## Engine
 

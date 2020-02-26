@@ -5,10 +5,9 @@ defmodule EEx.Tokenizer do
   @type line :: non_neg_integer
   @type column :: non_neg_integer
   @type marker :: '=' | '/' | '|' | ''
-  @type trimmed? :: boolean
   @type token ::
           {:text, content}
-          | {:expr | :start_expr | :middle_expr | :end_expr, line, marker, content, trimmed?}
+          | {:expr | :start_expr | :middle_expr | :end_expr, line, marker, content}
 
   @spaces [?\s, ?\t]
   @closing_brackets ')]}'
@@ -19,10 +18,10 @@ defmodule EEx.Tokenizer do
   It returns {:ok, list} with the following tokens:
 
     * `{:text, content}`
-    * `{:expr, line, column, marker, content, trimmed?}`
-    * `{:start_expr, line, column, marker, content, trimmed?}`
-    * `{:middle_expr, line, column, marker, content, trimmed?}`
-    * `{:end_expr, line, column, marker, content, trimmed?}`
+    * `{:expr, line, column, marker, content}`
+    * `{:start_expr, line, column, marker, content}`
+    * `{:middle_expr, line, column, marker, content}`
+    * `{:end_expr, line, column, marker, content}`
     * `{:eof, line, column}`
 
   Or `{:error, line, column, message}` in case of errors.
@@ -36,7 +35,9 @@ defmodule EEx.Tokenizer do
 
   def tokenize(list, line, column, opts)
       when is_list(list) and is_integer(line) and line >= 0 and is_integer(column) and column >= 0 do
-    tokenize(list, line, opts.indentation + column, opts, [], [])
+    column = opts.indentation + column
+    {list, line, column} = (opts.trim && trim_init(list, line, column)) || {list, line, column}
+    tokenize(list, line, column, opts, [], [])
   end
 
   defp tokenize('<%%' ++ t, line, column, opts, buffer, acc) do
@@ -49,8 +50,8 @@ defmodule EEx.Tokenizer do
         error
 
       {:ok, _, new_line, new_column, rest} ->
-        {_, rest, new_line, new_column, buffer} =
-          trim_if_needed(rest, new_line, new_column, opts, buffer, acc)
+        {rest, new_line, new_column, buffer} =
+          trim_if_needed(rest, new_line, new_column, opts, buffer)
 
         tokenize(rest, new_line, new_column, opts, buffer, acc)
     end
@@ -66,12 +67,11 @@ defmodule EEx.Tokenizer do
       {:ok, expr, new_line, new_column, rest} ->
         token = token_name(expr)
 
-        {trimmed?, rest, new_line, new_column, buffer} =
-          trim_if_needed(rest, new_line, new_column, opts, buffer, acc)
+        {rest, new_line, new_column, buffer} =
+          trim_if_needed(rest, new_line, new_column, opts, buffer)
 
-        expr = pad_if_needed(token, expr, trimmed?)
         acc = tokenize_text(buffer, acc)
-        final = {token, line, column, marker, Enum.reverse(expr), trimmed?}
+        final = {token, line, column, marker, Enum.reverse(expr)}
         tokenize(rest, new_line, new_column, opts, [], [final | acc])
     end
   end
@@ -209,45 +209,41 @@ defmodule EEx.Tokenizer do
     [{:text, Enum.reverse(buffer)} | acc]
   end
 
-  # If trim mode is enabled and the token is on a line with
-  # only itself and whitespace, trim the whitespace around it,
-  # including the line break following it if there is one.
-  defp trim_if_needed(rest, line, column, opts, buffer, acc) do
-    with true <- opts.trim,
-         {true, new_buffer} <- trim_left(buffer, acc),
-         {true, new_rest, new_line, new_column} <- trim_right(rest, line, column) do
-      {true, new_rest, new_line, new_column, new_buffer}
+  defp trim_if_needed(rest, line, column, opts, buffer) do
+    if opts.trim do
+      buffer = trim_left(buffer, 0)
+      {rest, line, column} = trim_right(rest, line, column, 0)
+      {rest, line, column, buffer}
     else
-      _ -> {false, rest, line, column, buffer}
+      {rest, line, column, buffer}
     end
   end
 
-  defp trim_left(buffer, acc) do
-    case {trim_whitespace(buffer), acc} do
-      {[?\n | _] = trimmed_buffer, _} -> {true, trimmed_buffer}
-      {[], [{_, _, _, _, _, true} | _]} -> {true, []}
-      {[], []} -> {true, []}
-      _ -> {false, buffer}
+  defp trim_init([h | t], line, column) when h in @spaces, do: trim_init(t, line, column + 1)
+  defp trim_init([?\r, ?\n | t], line, _column), do: trim_init(t, line + 1, 1)
+  defp trim_init([?\n | t], line, _column), do: trim_init(t, line + 1, 1)
+  defp trim_init([?<, ?% | _] = rest, line, column), do: {rest, line, column}
+  defp trim_init(_, _, _), do: false
+
+  defp trim_left(buffer, count) do
+    case trim_whitespace(buffer) do
+      [?\n, ?\r | rest] -> trim_left(rest, count + 1)
+      [?\n | rest] -> trim_left(rest, count + 1)
+      _ when count > 0 -> [?\n | buffer]
+      _ -> buffer
     end
   end
 
-  defp trim_right(rest, line, column) do
+  defp trim_right(rest, line, column, count) do
     case trim_whitespace(rest) do
-      [?\r, ?\n | trimmed_rest] -> {true, trimmed_rest, line + 1, 1}
-      [?\n | trimmed_rest] -> {true, trimmed_rest, line + 1, 1}
-      [] -> {true, [], line, column}
-      _ -> {false, rest, line, column}
+      [?\r, ?\n | rest] -> trim_right(rest, line + 1, 1, count + 1)
+      [?\n | rest] -> trim_right(rest, line + 1, 1, count + 1)
+      [] -> {[], line, column + length(rest)}
+      _ when count > 0 -> {[?\n | rest], line - 1, column}
+      _ -> {rest, line, column}
     end
   end
 
-  defp trim_whitespace([h | t]) when h in @spaces do
-    trim_whitespace(t)
-  end
-
-  defp trim_whitespace(list) do
-    list
-  end
-
-  defp pad_if_needed(:start_expr, [h | _] = expr, true) when h not in @spaces, do: [?\s | expr]
-  defp pad_if_needed(_, expr, _), do: expr
+  defp trim_whitespace([h | t]) when h in @spaces, do: trim_whitespace(t)
+  defp trim_whitespace(list), do: list
 end

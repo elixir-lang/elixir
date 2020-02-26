@@ -16,27 +16,27 @@ defmodule EEx.TokenizerTest do
 
   test "strings with embedded code" do
     assert T.tokenize('foo <% bar %>', 1, 1, @opts) ==
-             {:ok, [{:text, 'foo '}, {:expr, 1, 5, '', ' bar ', false}, {:eof, 1, 14}]}
+             {:ok, [{:text, 'foo '}, {:expr, 1, 5, '', ' bar '}, {:eof, 1, 14}]}
   end
 
   test "strings with embedded equals code" do
     assert T.tokenize('foo <%= bar %>', 1, 1, @opts) ==
-             {:ok, [{:text, 'foo '}, {:expr, 1, 5, '=', ' bar ', false}, {:eof, 1, 15}]}
+             {:ok, [{:text, 'foo '}, {:expr, 1, 5, '=', ' bar '}, {:eof, 1, 15}]}
   end
 
   test "strings with embedded slash code" do
     assert T.tokenize('foo <%/ bar %>', 1, 1, @opts) ==
-             {:ok, [{:text, 'foo '}, {:expr, 1, 5, '/', ' bar ', false}, {:eof, 1, 15}]}
+             {:ok, [{:text, 'foo '}, {:expr, 1, 5, '/', ' bar '}, {:eof, 1, 15}]}
   end
 
   test "strings with embedded pipe code" do
     assert T.tokenize('foo <%| bar %>', 1, 1, @opts) ==
-             {:ok, [{:text, 'foo '}, {:expr, 1, 5, '|', ' bar ', false}, {:eof, 1, 15}]}
+             {:ok, [{:text, 'foo '}, {:expr, 1, 5, '|', ' bar '}, {:eof, 1, 15}]}
   end
 
   test "strings with more than one line" do
     assert T.tokenize('foo\n<%= bar %>', 1, 1, @opts) ==
-             {:ok, [{:text, 'foo\n'}, {:expr, 2, 1, '=', ' bar ', false}, {:eof, 2, 11}]}
+             {:ok, [{:text, 'foo\n'}, {:expr, 2, 1, '=', ' bar '}, {:eof, 2, 11}]}
   end
 
   test "strings with more than one line and expression with more than one line" do
@@ -49,9 +49,9 @@ defmodule EEx.TokenizerTest do
 
     exprs = [
       {:text, 'foo '},
-      {:expr, 1, 5, '=', ' bar\n\nbaz ', false},
+      {:expr, 1, 5, '=', ' bar\n\nbaz '},
       {:text, '\n'},
-      {:expr, 4, 1, '', ' foo ', false},
+      {:expr, 4, 1, '', ' foo '},
       {:text, '\n'},
       {:eof, 5, 1}
     ]
@@ -72,9 +72,9 @@ defmodule EEx.TokenizerTest do
   test "quotation with interpolation" do
     exprs = [
       {:text, 'a <% b '},
-      {:expr, 1, 9, '=', ' c ', false},
+      {:expr, 1, 9, '=', ' c '},
       {:text, ' '},
-      {:expr, 1, 18, '=', ' d ', false},
+      {:expr, 1, 18, '=', ' d '},
       {:text, ' e %> f'},
       {:eof, 1, 33}
     ]
@@ -112,9 +112,9 @@ defmodule EEx.TokenizerTest do
   test "strings with embedded do end" do
     exprs = [
       {:text, 'foo '},
-      {:start_expr, 1, 5, '', ' if true do ', false},
+      {:start_expr, 1, 5, '', ' if true do '},
       {:text, 'bar'},
-      {:end_expr, 1, 24, '', ' end ', false},
+      {:end_expr, 1, 24, '', ' end '},
       {:eof, 1, 33}
     ]
 
@@ -124,12 +124,12 @@ defmodule EEx.TokenizerTest do
   test "strings with embedded -> end" do
     exprs = [
       {:text, 'foo '},
-      {:start_expr, 1, 5, '', ' cond do ', false},
-      {:middle_expr, 1, 18, '', ' false -> ', false},
+      {:start_expr, 1, 5, '', ' cond do '},
+      {:middle_expr, 1, 18, '', ' false -> '},
       {:text, 'bar'},
-      {:middle_expr, 1, 35, '', ' true -> ', false},
+      {:middle_expr, 1, 35, '', ' true -> '},
       {:text, 'baz'},
-      {:end_expr, 1, 51, '', ' end ', false},
+      {:end_expr, 1, 51, '', ' end '},
       {:eof, 1, 60}
     ]
 
@@ -139,11 +139,11 @@ defmodule EEx.TokenizerTest do
 
   test "strings with multiple callbacks" do
     exprs = [
-      {:start_expr, 1, 1, '=', ' a fn -> ', false},
+      {:start_expr, 1, 1, '=', ' a fn -> '},
       {:text, 'foo'},
-      {:middle_expr, 1, 18, '', ' end, fn -> ', false},
+      {:middle_expr, 1, 18, '', ' end, fn -> '},
       {:text, 'bar'},
-      {:end_expr, 1, 37, '', ' end ', false},
+      {:end_expr, 1, 37, '', ' end '},
       {:eof, 1, 46}
     ]
 
@@ -153,11 +153,11 @@ defmodule EEx.TokenizerTest do
 
   test "strings with callback followed by do block" do
     exprs = [
-      {:start_expr, 1, 1, '=', ' a fn -> ', false},
+      {:start_expr, 1, 1, '=', ' a fn -> '},
       {:text, 'foo'},
-      {:middle_expr, 1, 18, '', ' end do ', false},
+      {:middle_expr, 1, 18, '', ' end do '},
       {:text, 'bar'},
-      {:end_expr, 1, 33, '', ' end ', false},
+      {:end_expr, 1, 33, '', ' end '},
       {:eof, 1, 42}
     ]
 
@@ -167,11 +167,11 @@ defmodule EEx.TokenizerTest do
   test "strings with embedded keywords blocks" do
     exprs = [
       {:text, 'foo '},
-      {:start_expr, 1, 5, '', ' if true do ', false},
+      {:start_expr, 1, 5, '', ' if true do '},
       {:text, 'bar'},
-      {:middle_expr, 1, 24, '', ' else ', false},
+      {:middle_expr, 1, 24, '', ' else '},
       {:text, 'baz'},
-      {:end_expr, 1, 37, '', ' end ', false},
+      {:end_expr, 1, 37, '', ' end '},
       {:eof, 1, 46}
     ]
 
@@ -180,15 +180,15 @@ defmodule EEx.TokenizerTest do
   end
 
   test "trim mode" do
-    template = '\t<%= if true do %> \n TRUE \n  <% else %>\n FALSE \n  <% end %>  '
+    template = '\t<%= if true do %> \n TRUE \n  <% else %>\n FALSE \n  <% end %>  \n\n  '
 
     exprs = [
-      {:start_expr, 1, 2, '=', ' if true do ', true},
-      {:text, ' TRUE \n'},
-      {:middle_expr, 3, 3, '', ' else ', true},
-      {:text, ' FALSE \n'},
-      {:end_expr, 5, 3, '', ' end ', true},
-      {:eof, 5, 12}
+      {:start_expr, 1, 2, '=', ' if true do '},
+      {:text, '\n TRUE \n'},
+      {:middle_expr, 3, 3, '', ' else '},
+      {:text, '\n FALSE \n'},
+      {:end_expr, 5, 3, '', ' end '},
+      {:eof, 7, 3}
     ]
 
     assert T.tokenize(template, 1, 1, %{@opts | trim: true}) == {:ok, exprs}
@@ -196,7 +196,7 @@ defmodule EEx.TokenizerTest do
 
   test "trim mode with comment" do
     exprs = [
-      {:text, '123'},
+      {:text, '\n123'},
       {:eof, 2, 4}
     ]
 
@@ -205,9 +205,9 @@ defmodule EEx.TokenizerTest do
 
   test "trim mode with CRLF" do
     exprs = [
-      {:text, '0\r\n'},
-      {:expr, 2, 3, '=', ' 12 ', true},
-      {:text, '34'},
+      {:text, '0\n'},
+      {:expr, 2, 3, '=', ' 12 '},
+      {:text, '\n34'},
       {:eof, 3, 3}
     ]
 
@@ -217,7 +217,7 @@ defmodule EEx.TokenizerTest do
   test "trim mode set to false" do
     exprs = [
       {:text, ' '},
-      {:expr, 1, 2, '=', ' 12 ', false},
+      {:expr, 1, 2, '=', ' 12 '},
       {:text, ' \n'},
       {:eof, 2, 1}
     ]
