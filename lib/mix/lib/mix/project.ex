@@ -381,6 +381,19 @@ defmodule Mix.Project do
   end
 
   @doc """
+  Returns all dependencies app names.
+
+  The order they are returned is guaranteed to be sorted
+  for proper dependency resolution. For example, if A
+  depends on B, then B will listed before A.
+  """
+  @doc since: "1.11.0"
+  @spec deps_apps() :: atom()
+  def deps_apps() do
+    Mix.Dep.cached() |> Enum.map(& &1.app)
+  end
+
+  @doc """
   Returns the SCMs of all dependencies as a map.
 
   See `Mix.SCM` module documentation to learn more about SCMs.
@@ -468,6 +481,16 @@ defmodule Mix.Project do
   Clears the dependency for the current environment.
 
   Useful when dependencies need to be reloaded due to change of global state.
+
+  For example, Nerves uses this function to force all dependencies to be
+  reloaded after it updates the system environment. It goes roughly like
+  this:
+
+    1. Nerves fetches all dependencies and looks for the system specific deps
+    2. Once the system specific dep is found, it loads it alongside env vars
+    3. Nerves then clears the cache, forcing dependencies to be loaded again
+    4. Dependencies are loaded again, now with an updated env environment
+
   """
   @doc since: "1.7.0"
   @spec clear_deps_cache() :: :ok
