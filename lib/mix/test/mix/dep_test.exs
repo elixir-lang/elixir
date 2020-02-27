@@ -73,6 +73,11 @@ defmodule Mix.DepTest do
     Mix.Project.push(DepsApp)
 
     in_fixture("deps_status", fn ->
+      apps = Mix.Project.deps_apps()
+      assert length(apps) == 6
+      assert :ok in apps
+      assert :uncloned in apps
+
       paths = Mix.Project.deps_paths()
       assert map_size(paths) == 6
       assert paths[:ok] =~ "deps/ok"
