@@ -261,6 +261,17 @@ defmodule Mix.Tasks.Release do
   can be done in multiple ways, such as releasing on the target itself, or by
   using virtual machines or containers, usually as part of your release pipeline.
 
+  Creating a stand alone package and release for Windows comes with a small
+  challenge, since Erlang Runtime System has a dependency to some Microsoft
+  libraries (Visual C++ Redistributable Packages for Visual Studio 2013).
+  These libraries are installed (if not present before) when Erlang is installed,
+  and as well for lot of other software installations, but it is not part of
+  the standard Windows environment. Deploying a stand alone release on a computer
+  without these libraries will result in a failure when trying to run the package.
+  One way to solve this is to download and install these Microsoft libraries
+  the first time a release is deployed (e.g. Erlang version 10.6 ships with
+  “Microsoft Visual C++ 2013 Redistributable - 12.0.30501”).
+
   In addition to matching the target triple, it is also important that the
   target has all of the system packages that your application will need at
   runtime. A common one is the need for OpenSSL when building an application
