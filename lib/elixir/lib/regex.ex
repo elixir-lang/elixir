@@ -37,9 +37,10 @@ defmodule Regex do
 
   The modifiers available when creating a Regex are:
 
-    * `unicode` (u) - enables Unicode specific patterns like `\p` and change
-      modifiers like `\w`, `\W`, `\s` and friends to also match on Unicode.
-      It expects valid Unicode strings to be given on match
+    * `unicode` (u) - enables Unicode specific patterns like `\p` and causes
+      character classes like `\w`, `\W`, `\s`, etc. to also match on Unicode
+      (see examples below in "Character classes"). It expects valid Unicode
+      strings to be given on match
 
     * `caseless` (i) - adds case insensitivity
 
@@ -125,6 +126,10 @@ defmodule Regex do
       false
       iex> String.match?("josé", ~r/^[[:lower:]]+$/u)
       true
+      iex> Regex.replace(~r/\s/, "Unicode\u00A0spaces", "-")
+      "Unicode spaces"
+      iex> Regex.replace(~r/\s/u, "Unicode\u00A0spaces", "-")
+      "Unicode-spaces"
 
   ## Precompilation
 
