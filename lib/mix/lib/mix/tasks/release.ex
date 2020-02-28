@@ -1132,7 +1132,7 @@ defmodule Mix.Tasks.Release do
         []
       end
 
-    release = maybe_add_config_reader_provider(release, version_path)
+    release = maybe_add_config_reader_provider(config, release, version_path)
     vm_args_path = Path.join(version_path, "vm.args")
     cookie_path = Path.join(release.path, "releases/COOKIE")
     start_erl_path = Path.join(release.path, "releases/start_erl.data")
@@ -1151,14 +1151,17 @@ defmodule Mix.Tasks.Release do
     end
   end
 
-  defp maybe_add_config_reader_provider(%{options: opts} = release, version_path) do
+  defp maybe_add_config_reader_provider(config, %{options: opts} = release, version_path) do
+    default_path = config[:config_path] |> Path.dirname() |> Path.join("releases.exs")
+
     path =
       cond do
+        # TODO: rename this to releases_config_path when we introduce runtime_config_path
         path = opts[:runtime_config_path] ->
           path
 
-        File.exists?("config/releases.exs") ->
-          "config/releases.exs"
+        File.exists?(default_path) ->
+          default_path
 
         true ->
           nil
@@ -1173,7 +1176,7 @@ defmodule Mix.Tasks.Release do
         update_in(release.config_providers, &[{Config.Reader, init} | &1])
 
       release.config_providers == [] ->
-        skipping("runtime configuration (config/releases.exs not found)")
+        skipping("runtime configuration (#{default_path} not found)")
         release
 
       true ->

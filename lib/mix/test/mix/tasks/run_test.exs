@@ -14,13 +14,8 @@ defmodule Mix.Tasks.RunTest do
       config = fixture_path("configs/good_config.exs")
       expr = "IO.puts(Application.get_env(:my_app, :key))"
 
-      output =
-        capture_io(:stderr, fn ->
-          assert capture_io(fn -> Mix.Task.run("run", ["--config", config, "--eval", expr]) end) ==
-                   "value\n"
-        end)
-
-      assert output =~ "deprecated"
+      assert capture_io(fn -> Mix.Task.run("run", ["--config", config, "--eval", expr]) end) ==
+               "value\n"
     end)
   after
     Application.delete_env(:my_app, :key)
