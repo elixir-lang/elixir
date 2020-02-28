@@ -276,11 +276,11 @@ defmodule Mix.Tasks.Release do
   some systems, especially so with package managers that try to create fully
   reproducible environments (Nix, Guix).
 
-  Similarly, wen creating a stand alone package and release for Windows, note
+  Similarly, when creating a stand-alone package and release for Windows, note
   the Erlang Runtime System has a dependency to some Microsoft libraries
   (Visual C++ Redistributable Packages for Visual Studio 2013). These libraries
   are installed (if not present before) when Erlang is installed but it is not
-  part of the standard Windows environment. Deploying a stand alone release on
+  part of the standard Windows environment. Deploying a stand-alone release on
   a computer without these libraries will result in a failure when trying to
   run the release. One way to solve this is to download and install these
   Microsoft libraries the first time a release is deployed (the Erlang installer
