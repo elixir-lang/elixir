@@ -261,17 +261,6 @@ defmodule Mix.Tasks.Release do
   can be done in multiple ways, such as releasing on the target itself, or by
   using virtual machines or containers, usually as part of your release pipeline.
 
-  Creating a stand alone package and release for Windows comes with a small
-  challenge, since Erlang Runtime System has a dependency to some Microsoft
-  libraries (Visual C++ Redistributable Packages for Visual Studio 2013).
-  These libraries are installed (if not present before) when Erlang is installed,
-  and as well for lot of other software installations, but it is not part of
-  the standard Windows environment. Deploying a stand alone release on a computer
-  without these libraries will result in a failure when trying to run the package.
-  One way to solve this is to download and install these Microsoft libraries
-  the first time a release is deployed (e.g. Erlang version 10.6 ships with
-  “Microsoft Visual C++ 2013 Redistributable - 12.0.30501”).
-
   In addition to matching the target triple, it is also important that the
   target has all of the system packages that your application will need at
   runtime. A common one is the need for OpenSSL when building an application
@@ -287,9 +276,21 @@ defmodule Mix.Tasks.Release do
   some systems, especially so with package managers that try to create fully
   reproducible environments (Nix, Guix).
 
+  Similarly, wen creating a stand alone package and release for Windows, note
+  the Erlang Runtime System has a dependency to some Microsoft libraries
+  (Visual C++ Redistributable Packages for Visual Studio 2013). These libraries
+  are installed (if not present before) when Erlang is installed but it is not
+  part of the standard Windows environment. Deploying a stand alone release on
+  a computer without these libraries will result in a failure when trying to
+  run the release. One way to solve this is to download and install these
+  Microsoft libraries the first time a release is deployed (the Erlang installer
+  version 10.6 ships with “Microsoft Visual C++ 2013 Redistributable - 12.0.30501”).
+
   Alternatively, you can also bundle the compiled object files in the release,
   as long as they were compiled for the same target. If doing so, you need to
-  update `LD_LIBRARY_PATH` with the paths containing the bundled objects.
+  update `LD_LIBRARY_PATH` environment variable with the paths containing the
+  bundled objects on Unix-like systems or the `PATH` environment variable on
+  Windows systems.
 
   Currently, there is no official way to cross-compile a release from one
   target triple to another, due to the complexities involved in the process.
