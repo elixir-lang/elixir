@@ -526,7 +526,7 @@ defmodule Logger do
 
   And then explicitly attached in your `c:Application.start/2` callback:
 
-      :logger.add_handlers(:my_app)
+      Logger.install(:my_app)
 
   Note we do not recommend configuring Erlang/OTP's logger directly under
   the `:kernel` application in your `config/config.exs`, like this:
@@ -548,6 +548,17 @@ defmodule Logger do
 
   @metadata :logger_enabled
   @compile {:inline, enabled?: 1}
+
+  @doc """
+  Install from the given application environment. It uses value returned by
+  `Application.get_env(app_name, :logger)`. It should contain list of tuples
+  in form of:
+
+      {:handler, :handler_id, HandlerModule, configuration_map}
+
+  """
+  @spec install(atom()) :: :ok | {:error, term()}
+  defdelegate install(app_name), to: :logger, as: :add_handlers
 
   @doc """
   Alters the current process metadata according the given keyword list.
