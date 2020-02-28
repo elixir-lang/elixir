@@ -587,7 +587,8 @@ defmodule System do
   latest exception. To retrieve the stacktrace of the current process,
   use `Process.info(self(), :current_stacktrace)` instead.
   """
-  @deprecated "Use __STACKTRACE__ instead"
+  # The warning is emitted by the compiler - so a @doc annotation is enough
+  @doc deprecated: "Use __STACKTRACE__ instead"
   def stacktrace do
     apply(:erlang, :get_stacktrace, [])
   end
