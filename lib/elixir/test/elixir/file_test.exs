@@ -85,7 +85,7 @@ defmodule FileTest do
 
       try do
         File.mkdir_p(Path.join(dest, "a"))
-        assert File.rename(src, dest) == {:error, :eisdir}
+        assert File.rename(src, dest) in [{:error, :eisdir}, {:error, :eexist}]
         assert File.exists?(src)
         refute File.exists?(Path.join(dest, "file.txt"))
       after
@@ -245,7 +245,7 @@ defmodule FileTest do
 
       try do
         assert File.exists?(src)
-        assert File.rename(src, dest) == {:error, :einval}
+        assert File.rename(src, dest) in [{:error, :einval}, {:error, :eexist}]
         assert File.exists?(src)
       after
         File.rm_rf(src)
