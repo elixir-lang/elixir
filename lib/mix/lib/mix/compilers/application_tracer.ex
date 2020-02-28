@@ -25,13 +25,13 @@ defmodule Mix.Compilers.ApplicationTracer do
     :ok
   end
 
-  def trace({type, _meta, module, function, arity}, env)
+  def trace({type, meta, module, function, arity}, env)
       when type in [:remote_function, :remote_macro, :imported_function, :imported_macro] do
     # Unknown modules need to be looked up and filtered later
     unless :ets.member(@table, module) do
       :ets.insert(
         warnings_table(),
-        {module, function, arity, env.module, env.function, env.file, env.line}
+        {module, function, arity, env.module, env.function, env.file, meta[:line] || env.line}
       )
     end
 
