@@ -124,11 +124,11 @@ defmodule Mix.Tasks.App.StartTest do
       """)
 
       System.put_env("MIX_SAMPLE_HELLO", "compile")
-      assert Mix.Tasks.Loadconfig.run([]) == :ok
+      Mix.Tasks.Loadconfig.run([])
       assert Mix.Tasks.Compile.run([]) == {:ok, []}
 
       System.put_env("MIX_SAMPLE_HELLO", "runtime")
-      assert Mix.Tasks.Loadconfig.run([]) == :ok
+      Mix.Tasks.Loadconfig.run([])
 
       assert capture_io(:stderr, fn ->
                assert_raise ErlangError, fn -> Mix.Tasks.App.Start.run([]) end
@@ -137,7 +137,7 @@ defmodule Mix.Tasks.App.StartTest do
 
       # Can start if compile env matches
       System.put_env("MIX_SAMPLE_HELLO", "compile")
-      assert Mix.Tasks.Loadconfig.run([]) == :ok
+      Mix.Tasks.Loadconfig.run([])
       assert Mix.Tasks.App.Start.run([]) == :ok
     end)
   after

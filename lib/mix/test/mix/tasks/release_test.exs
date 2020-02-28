@@ -448,19 +448,23 @@ defmodule Mix.Tasks.ReleaseTest do
 
   test "validates compile_env" do
     in_fixture("release_test", fn ->
-      config = [releases: [compile_env_config: []]]
+      # Let's also use a non standard config_path.
+      config = [releases: [compile_env_config: []], config_path: "different_config/config.exs"]
 
       File.write!("lib/compile_env.ex", """
       _ = Application.compile_env(:release_test, :static)
       """)
 
+      File.mkdir_p!("different_config")
+      File.cp!("config/config.exs", "different_config/config.exs")
+
+      File.write!("different_config/releases.exs", """
+      import Config
+      config :release_test, :static, String.to_atom(System.get_env("RELEASE_STATIC"))
+      """)
+
       Mix.Project.in_project(:release_test, ".", config, fn _ ->
         Mix.Task.run("loadconfig", [])
-
-        File.write!("config/releases.exs", """
-        import Config
-        config :release_test, :static, String.to_atom(System.get_env("RELEASE_STATIC"))
-        """)
 
         root = Path.absname("_build/dev/rel/compile_env_config")
         Mix.Task.run("release", ["compile_env_config"])
@@ -522,6 +526,7 @@ defmodule Mix.Tasks.ReleaseTest do
       Mix.Project.in_project(:release_test, ".", config, fn _ ->
         Mix.Task.run("loadconfig", [])
 
+        # For compile env to be validated, we need a config/releases.exs
         File.write!("config/releases.exs", """
         import Config
         """)
