@@ -172,8 +172,12 @@ defmodule Mix.Compilers.Elixir do
     Mix.Utils.compiling_n(length(stale), hd(exts))
     Mix.Project.ensure_structure()
     true = Code.prepend_path(dest)
-    set_compiler_opts(opts)
     cwd = File.cwd!()
+
+    previous_opts =
+      opts
+      |> Mix.Compilers.ApplicationTracer.init()
+      |> set_compiler_opts()
 
     # Stores state for keeping track which files were compiled
     # and the dependencies between them.
@@ -197,6 +201,7 @@ defmodule Mix.Compilers.Elixir do
       {:ok, _, warnings} ->
         {modules, _structs, sources, _pending_modules, _pending_structs} = get_compiler_info()
         sources = apply_warnings(sources, warnings)
+        sources = apply_warnings(sources, Mix.Compilers.ApplicationTracer.warnings(modules))
         write_manifest(manifest, modules, sources, timestamp)
         put_compile_env(sources)
         {:ok, Enum.map(warnings, &diagnostic(&1, :warning))}
@@ -208,6 +213,8 @@ defmodule Mix.Compilers.Elixir do
         warnings = Enum.map(warnings, &diagnostic(&1, :warning))
         {:error, warning_diagnostics(sources) ++ warnings ++ errors}
     after
+      Code.compiler_options(previous_opts)
+      Mix.Compilers.ApplicationTracer.stop()
       Code.purge_compiler_modules()
       delete_compiler_info()
     end

@@ -459,4 +459,11 @@ defmodule Code.SyncTest do
     {:ok, claimed} = Code.purge_compiler_modules()
     assert claimed == 0
   end
+
+  test "returns previous options when setting compiler options" do
+    Code.compiler_options(debug_info: false)
+    assert Code.compiler_options(debug_info: true) == %{debug_info: false}
+  after
+    Code.compiler_options(debug_info: true)
+  end
 end

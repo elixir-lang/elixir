@@ -76,6 +76,31 @@ defmodule Mix.Dep do
         }
 
   @doc """
+  Receives the project configuration and returns
+  a map saying if dependencies are runtime or compile time.
+  """
+  def compile_or_runtime_deps_mapping(config) do
+    for config_dep <- Keyword.get(config, :deps, []),
+        do: {elem(config_dep, 0), if(runtime_dep?(config_dep), do: :runtime, else: :compile)},
+        into: %{}
+  end
+
+  defp runtime_dep?({_app, opts}) when is_list(opts), do: runtime_opts?(opts)
+  defp runtime_dep?({_app, _req, opts}) when is_list(opts), do: runtime_opts?(opts)
+  defp runtime_dep?(_), do: true
+
+  defp runtime_opts?(opts) do
+    Keyword.get(opts, :runtime, true) and Keyword.get(opts, :app, true) and matching_only?(opts)
+  end
+
+  defp matching_only?(opts) do
+    case Keyword.fetch(opts, :only) do
+      {:ok, value} -> Mix.env() in List.wrap(value)
+      :error -> true
+    end
+  end
+
+  @doc """
   Returns loaded dependencies from the cache for the current environment.
 
   If dependencies have not been cached yet, they are loaded

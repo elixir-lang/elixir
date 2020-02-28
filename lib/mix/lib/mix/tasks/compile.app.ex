@@ -218,7 +218,7 @@ defmodule Mix.Tasks.Compile.App do
 
   defp merge_project_application(best_guess, project) do
     if function_exported?(project, :application, 0) do
-      project_application = project.application
+      project_application = project.application()
 
       unless Keyword.keyword?(project_application) do
         Mix.raise(
@@ -350,35 +350,13 @@ defmodule Mix.Tasks.Compile.App do
 
   defp apps_from_prod_non_optional_deps(properties, config) do
     included_applications = Keyword.get(properties, :included_applications, [])
-    non_runtime_deps = non_runtime_deps(config)
+    deps_mapping = Mix.Dep.compile_or_runtime_deps_mapping(config)
 
     for %{app: app, opts: opts, top_level: true} <- Mix.Dep.cached(),
         not Keyword.get(opts, :optional, false),
-        not Map.has_key?(non_runtime_deps, app),
+        Map.fetch!(deps_mapping, app) == :runtime,
         app not in included_applications,
         do: app
-  end
-
-  defp non_runtime_deps(config) do
-    for config_dep <- Keyword.get(config, :deps, []),
-        not runtime_dep?(config_dep),
-        do: {elem(config_dep, 0), true},
-        into: %{}
-  end
-
-  defp runtime_dep?({_app, opts}) when is_list(opts), do: runtime_opts?(opts)
-  defp runtime_dep?({_app, _req, opts}) when is_list(opts), do: runtime_opts?(opts)
-  defp runtime_dep?(_), do: true
-
-  defp runtime_opts?(opts) do
-    Keyword.get(opts, :runtime, true) and Keyword.get(opts, :app, true) and matching_only?(opts)
-  end
-
-  defp matching_only?(opts) do
-    case Keyword.fetch(opts, :only) do
-      {:ok, value} -> Mix.env() in List.wrap(value)
-      :error -> true
-    end
   end
 
   defp normalize_apps(apps, extra, config) do

@@ -28,6 +28,10 @@ defmodule MixTest.Case do
     def project do
       [app: :sample, version: "0.1.0", aliases: [sample: "compile"]]
     end
+
+    def application do
+      Process.get({__MODULE__, :application}) || []
+    end
   end
 
   using do
