@@ -959,8 +959,9 @@ defmodule Code do
   @spec compiler_options(Enumerable.t()) :: %{optional(atom) => boolean}
   def compiler_options(opts) do
     for {key, value} <- opts, into: %{} do
+      previous = get_compiler_option(key)
       put_compiler_option(key, value)
-      {key, value}
+      {key, previous}
     end
   end
 

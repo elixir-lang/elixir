@@ -57,6 +57,35 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     Code.put_compiler_option(:tracers, [])
   end
 
+  test "warns when Logger is used but not depended on" do
+    in_fixture("no_mixfile", fn ->
+      File.write!("lib/a.ex", """
+      defmodule A do
+      require Logger
+      def info, do: Logger.info("hello")
+      end
+      """)
+
+      assert capture_io(:stderr, fn ->
+               Mix.Task.run("compile", [])
+             end) =~
+               "Logger.info/1 defined in application :logger is used by the current application but the current application does not directly depend on :logger"
+    end)
+  end
+
+  test "recompiles module-application manifest if manifest is outdated" do
+    in_fixture("no_mixfile", fn ->
+      Mix.Tasks.Compile.Elixir.run(["--force"])
+      purge([A, B])
+
+      mtime = File.stat!("_build/dev/lib/sample/.mix/compile.app_tracer").mtime
+      ensure_touched("_build/dev/lib/sample/.mix/compile.lock", mtime)
+
+      Mix.Tasks.Compile.Elixir.run(["--force"])
+      assert File.stat!("_build/dev/lib/sample/.mix/compile.app_tracer").mtime > mtime
+    end)
+  end
+
   test "recompiles project if Elixir version changed" do
     in_fixture("no_mixfile", fn ->
       Mix.Tasks.Compile.run([])

@@ -40,6 +40,10 @@ defmodule Mix.Tasks.Compile.Elixir do
       options are often overridable from the command line using the switches
       above.
 
+    * `[xref: [exclude: ...]]` - a list of `module` or `{module, function, arity}`
+      that should not be warned on in case on undefined modules or undefined
+      application warnings.
+
   """
 
   @switches [
@@ -91,7 +95,6 @@ defmodule Mix.Tasks.Compile.Elixir do
     Mix.Compilers.Elixir.clean(manifest(), dest)
   end
 
-  # TODO: Deprecate project[:xref][:exclude] in v1.14
   defp xref_exclude_opts(opts, project) do
     exclude = List.wrap(project[:xref][:exclude])
 

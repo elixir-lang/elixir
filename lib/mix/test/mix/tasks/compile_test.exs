@@ -105,6 +105,8 @@ defmodule Mix.Tasks.CompileTest do
     import ExUnit.CaptureLog
 
     in_fixture("no_mixfile", fn ->
+      Process.put({MixTest.Case.Sample, :application}, extra_applications: [:logger])
+
       File.write!("lib/a.ex", """
       defmodule A do
       require Logger

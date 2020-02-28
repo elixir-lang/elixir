@@ -1,7 +1,6 @@
 defmodule Module.Checker do
-  alias Module.ParallelChecker
-
   @moduledoc false
+  alias Module.ParallelChecker
 
   def verify(module, cache) do
     case prepare_module(module) do
@@ -79,11 +78,7 @@ defmodule Module.Checker do
       warnings: []
     }
 
-    state = check_definitions(map.definitions, state)
-
-    state.warnings
-    |> merge_warnings()
-    |> sort_warnings()
+    check_definitions(map.definitions, state).warnings |> group_warnings()
   end
 
   defp merge_no_warn_undefined(map) do
@@ -230,20 +225,19 @@ defmodule Module.Checker do
     %{state | warnings: [{__MODULE__, warning, location} | state.warnings]}
   end
 
-  defp merge_warnings(warnings) do
-    Enum.reduce(warnings, %{}, fn {module, warning, location}, acc ->
+  ## Warning helpers
+
+  def group_warnings(warnings) do
+    warnings
+    |> Enum.reduce(%{}, fn {module, warning, location}, acc ->
       locations = MapSet.new([location])
       Map.update(acc, {module, warning}, locations, &MapSet.put(&1, location))
     end)
-  end
-
-  defp sort_warnings(warnings) do
-    warnings
     |> Enum.map(fn {{module, warning}, locations} -> {module, warning, Enum.sort(locations)} end)
     |> Enum.sort()
   end
 
-  defp emit_warnings(warnings) do
+  def emit_warnings(warnings) do
     Enum.flat_map(warnings, fn {module, warning, locations} ->
       message = module.format_warning(warning)
       print_warning([message, ?\n, format_locations(locations)])
@@ -300,10 +294,22 @@ defmodule Module.Checker do
   end
 
   defp format_location({file, line, {module, fun, arity}}) do
-    file = Path.relative_to_cwd(file)
-    line = if line, do: [Integer.to_string(line), ": "], else: []
     mfa = Exception.format_mfa(module, fun, arity)
-    ["  ", file, ?:, line, mfa, ?\n]
+    [format_file_line(file, line), ": ", mfa, ?\n]
+  end
+
+  defp format_location({file, line, nil}) do
+    [format_file_line(file, line), ?\n]
+  end
+
+  defp format_location({file, line, module}) do
+    [format_file_line(file, line), ": ", inspect(module), ?\n]
+  end
+
+  defp format_file_line(file, line) do
+    file = Path.relative_to_cwd(file)
+    line = if line, do: [?: | Integer.to_string(line)], else: []
+    ["  ", file, line]
   end
 
   defp print_warning(message) do
