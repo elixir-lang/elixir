@@ -889,11 +889,11 @@ defmodule Logger do
 
     ## Examples
 
-    String message
+    Logging a message (string or iodata):
 
         Logger.#{level}("#{message}")
 
-    Report message
+    Report message (maps or keywords):
 
         # as keyword list
         Logger.#{level}(#{inspect(report)})
