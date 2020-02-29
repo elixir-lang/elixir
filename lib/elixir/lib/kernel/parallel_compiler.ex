@@ -149,9 +149,7 @@ defmodule Kernel.ParallelCompiler do
         each_long_compilation: Keyword.get(options, :each_long_compilation, fn _file -> :ok end),
         each_module: Keyword.get(options, :each_module, fn _file, _module, _binary -> :ok end),
         long_compilation_threshold: Keyword.get(options, :long_compilation_threshold, 15),
-        profile: Keyword.get(options, :profile),
-        cycle_start: System.monotonic_time(),
-        module_counter: 0,
+        profile: profile_init(Keyword.get(options, :profile, :none)),
         output: output,
         schedulers: schedulers
       })
@@ -244,7 +242,10 @@ defmodule Kernel.ParallelCompiler do
     end
   end
 
-  defp profile_checker(_profile = :time, compiled_modules, runtime_modules, fun) do
+  defp profile_init(:time), do: {:time, System.monotonic_time(), 0}
+  defp profile_init(:none), do: :none
+
+  defp profile_checker({:time, _, _}, compiled_modules, runtime_modules, fun) do
     {time, result} = :timer.tc(fun)
     time = div(time, 1000)
     num_modules = length(compiled_modules) + length(runtime_modules)
@@ -252,7 +253,7 @@ defmodule Kernel.ParallelCompiler do
     result
   end
 
-  defp profile_checker(_profile = nil, _compiled_modules, _runtime_modules, fun) do
+  defp profile_checker(:none, _compiled_modules, _runtime_modules, fun) do
     fun.()
   end
 
@@ -320,9 +321,10 @@ defmodule Kernel.ParallelCompiler do
 
   # No more queue, nothing waiting, this cycle is done
   defp spawn_workers([], 0, [], [], result, warnings, state) do
+    cycle_return = each_cycle_return(state.each_cycle.())
     state = cycle_timing(result, state)
 
-    case each_cycle_return(state.each_cycle.()) do
+    case cycle_return do
       {:runtime, dependent_modules} ->
         verify_modules(result, warnings, dependent_modules, state)
 
@@ -398,8 +400,11 @@ defmodule Kernel.ParallelCompiler do
     end
   end
 
-  defp cycle_timing(result, %{profile: :time} = state) do
-    %{cycle_start: cycle_start, module_counter: module_counter} = state
+  defp cycle_timing(_result, %{profile: :none} = state) do
+    state
+  end
+
+  defp cycle_timing(result, %{profile: {:time, cycle_start, module_counter}} = state) do
     num_modules = count_modules(result)
     diff_modules = num_modules - module_counter
     now = System.monotonic_time()
@@ -410,11 +415,7 @@ defmodule Kernel.ParallelCompiler do
       "[profile] Finished compilation cycle of #{diff_modules} modules in #{time}ms"
     )
 
-    %{state | cycle_start: now, module_counter: num_modules}
-  end
-
-  defp cycle_timing(_result, %{profile: nil} = state) do
-    state
+    %{state | profile: {:time, now, num_modules}}
   end
 
   defp count_modules(result) do
