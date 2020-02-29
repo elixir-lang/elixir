@@ -66,10 +66,18 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       end
       """)
 
+      message =
+        "Logger.info/1 defined in application :logger is used by the current application but the current application does not directly depend on :logger"
+
       assert capture_io(:stderr, fn ->
                Mix.Task.run("compile", [])
-             end) =~
-               "Logger.info/1 defined in application :logger is used by the current application but the current application does not directly depend on :logger"
+             end) =~ message
+
+      Mix.Task.clear()
+
+      assert capture_io(:stderr, fn ->
+               assert catch_exit(Mix.Task.run("compile", ["--warnings-as-errors", "--force"]))
+             end) =~ message
     end)
   end
 

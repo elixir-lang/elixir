@@ -166,12 +166,9 @@ print_warning(Message) ->
   ok.
 
 send_warning(Line, File, Message) ->
-  CompilerPid = get(elixir_compiler_pid),
-  if
-    CompilerPid =/= undefined ->
-      CompilerPid ! {warning, File, Line, Message},
-      elixir_code_server:cast({register_warning, CompilerPid});
-    true -> ok
+  case get(elixir_compiler_pid) of
+    undefined -> ok;
+    CompilerPid -> CompilerPid ! {warning, File, Line, Message}
   end,
   ok.
 

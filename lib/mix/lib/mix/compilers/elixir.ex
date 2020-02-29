@@ -201,7 +201,6 @@ defmodule Mix.Compilers.Elixir do
       {:ok, _, warnings} ->
         {modules, _structs, sources, _pending_modules, _pending_structs} = get_compiler_info()
         sources = apply_warnings(sources, warnings)
-        sources = apply_warnings(sources, Mix.Compilers.ApplicationTracer.warnings(modules))
         write_manifest(manifest, modules, sources, timestamp)
         put_compile_env(sources)
         {:ok, Enum.map(warnings, &diagnostic(&1, :warning))}
@@ -246,7 +245,9 @@ defmodule Mix.Compilers.Elixir do
       update_stale_entries(pending_modules, sources, [], %{}, pending_structs, compile_path)
 
     if changed == [] do
-      {:runtime, dependent_runtime_modules(sources, modules, pending_modules)}
+      runtime_modules = dependent_runtime_modules(sources, modules, pending_modules)
+      warnings = Mix.Compilers.ApplicationTracer.warnings(modules)
+      {:runtime, runtime_modules, warnings}
     else
       modules =
         for module(sources: source_files) = module <- modules do
@@ -255,7 +256,7 @@ defmodule Mix.Compilers.Elixir do
 
       sources = update_stale_sources(sources, changed)
       put_compiler_info({modules, structs, sources, pending_modules, %{}})
-      {:compile, changed}
+      {:compile, changed, []}
     end
   end
 

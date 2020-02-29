@@ -63,9 +63,10 @@ defmodule Kernel.ParallelCompiler do
 
     * `:each_cycle` - after the given files are compiled, invokes this function
       that should return the following values:
-      * `{:compile, modules}` - to continue compilation with a list of further modules to compile
-      * `{:runtime, modules}` - to stop compilation and verify the list of modules because
-        dependent modules have changed
+      * `{:compile, modules, warnings}` - to continue compilation with a list of
+        further modules to compile
+      * `{:runtime, modules, warnings}` - to stop compilation and verify the list
+        of modules because dependent modules have changed
 
     * `:long_compilation_threshold` - the timeout (in seconds) after the
       `:each_long_compilation` callback is invoked; defaults to `15`
@@ -136,15 +137,13 @@ defmodule Kernel.ParallelCompiler do
 
   defp spawn_workers(files, output, options) do
     {:module, _} = :code.ensure_loaded(Kernel.ErrorHandler)
-    compiler_pid = self()
-    :elixir_code_server.cast({:reset_warnings, compiler_pid})
     schedulers = max(:erlang.system_info(:schedulers_online), 2)
     beam_timestamp = Keyword.get(options, :beam_timestamp)
 
     outcome =
       spawn_workers(files, 0, [], [], %{}, [], %{
         dest: Keyword.get(options, :dest),
-        each_cycle: Keyword.get(options, :each_cycle, fn -> {:runtime, []} end),
+        each_cycle: Keyword.get(options, :each_cycle, fn -> {:runtime, [], []} end),
         each_file: Keyword.get(options, :each_file, fn _, _ -> :ok end) |> each_file(),
         each_long_compilation: Keyword.get(options, :each_long_compilation, fn _file -> :ok end),
         each_module: Keyword.get(options, :each_module, fn _file, _module, _binary -> :ok end),
@@ -154,21 +153,17 @@ defmodule Kernel.ParallelCompiler do
         schedulers: schedulers
       })
 
-    # In case --warning-as-errors is enabled and there was a warning,
-    # compilation status will be set to error.
-    compilation_status = :elixir_code_server.call({:compilation_status, compiler_pid})
-
-    case {outcome, compilation_status} do
-      {{:ok, _, warnings}, :error} ->
+    case {outcome, Code.get_compiler_option(:warnings_as_errors)} do
+      {{:ok, _, [_ | _] = warnings}, true} ->
         message = "Compilation failed due to warnings while using the --warnings-as-errors option"
         IO.puts(:stderr, message)
         {:error, warnings, []}
 
-      {{:error, errors, warnings}, :error} ->
-        {:error, errors ++ warnings, []}
-
       {{:ok, outcome, warnings}, _} ->
         {:ok, write_module_binaries(outcome, output, beam_timestamp), warnings}
+
+      {{:error, errors, warnings}, true} ->
+        {:error, errors ++ warnings, []}
 
       {{:error, errors, warnings}, _} ->
         {:error, errors, warnings}
@@ -325,14 +320,14 @@ defmodule Kernel.ParallelCompiler do
     state = cycle_timing(result, state)
 
     case cycle_return do
-      {:runtime, dependent_modules} ->
-        verify_modules(result, warnings, dependent_modules, state)
+      {:runtime, dependent_modules, extra_warnings} ->
+        verify_modules(result, extra_warnings ++ warnings, dependent_modules, state)
 
-      {:compile, []} ->
-        verify_modules(result, warnings, [], state)
+      {:compile, [], extra_warnings} ->
+        verify_modules(result, extra_warnings ++ warnings, [], state)
 
-      {:compile, more} ->
-        spawn_workers(more, 0, [], [], result, warnings, state)
+      {:compile, more, extra_warnings} ->
+        spawn_workers(more, 0, [], [], result, extra_warnings ++ warnings, state)
     end
   end
 
@@ -422,9 +417,10 @@ defmodule Kernel.ParallelCompiler do
     Enum.count(result, &match?({{:module, _}, _}, &1))
   end
 
-  # TODO: Deprecate on v1.14
-  defp each_cycle_return(modules) when is_list(modules), do: {:compile, modules}
-  defp each_cycle_return(other), do: other
+  # TODO: Deprecate other returns on v1.14
+  defp each_cycle_return({kind, modules, warnings}), do: {kind, modules, warnings}
+  defp each_cycle_return({kind, modules}), do: {kind, modules, []}
+  defp each_cycle_return(modules) when is_list(modules), do: {:compile, modules, []}
 
   # The goal of this function is to find leaves in the dependency graph,
   # i.e. to find code that depends on code that we know is not being defined.
