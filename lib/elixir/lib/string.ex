@@ -193,14 +193,15 @@ defmodule String do
 
   ## Integer code points
 
-  Although code points could be represented as integers, this
-  module represents all code points as strings. For example:
+  Although code points are represented as integers, this module
+  represents code points in their encoded format as strings.
+  For example:
 
       iex> String.codepoints("olá")
       ["o", "l", "á"]
 
-  There are a couple of ways to retrieve a character integer
-  code point. One may use the `?` construct:
+  There are a couple of ways to retrieve the character code point.
+  One may use the `?` construct:
 
       iex> ?o
       111
@@ -221,7 +222,7 @@ defmodule String do
       "olá"
 
   Finally, to convert a String into a list of integers
-  code points, usually known as "char lists", you can call
+  code points, known as "charlists" in Elixir, you can call
   `String.to_charlist`:
 
       iex> String.to_charlist("olá")
@@ -1532,9 +1533,12 @@ defmodule String do
   end
 
   @doc ~S"""
-  Returns all code points in the string.
+  Returns a list of code points encoded as strings.
 
-  For details about code points and graphemes, see the `String` module documentation.
+  To retrieve code points in their natural integer
+  representation, see `to_charlist/1`. For details about
+  code points and graphemes, see the `String` module
+  documentation.
 
   ## Examples
 
