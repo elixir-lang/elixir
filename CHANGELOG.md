@@ -14,6 +14,7 @@
 
   * [Calendar] Add `Calendar.stfrtime/3` for datetime formatting
   * [Code] Add `:column` to `Code.string_to_quoted*/2`
+  * [Code] Add `Code.can_await_module_compilation?/0` to check if the parallel compiler is enabled and it can await for other modules to be compiled
   * [Kernel] Add `is_struct/2` guard
   * [Kernel] Support `map.field` syntax in guards
   * [Task] Add `Task.await_many/2`
@@ -23,13 +24,29 @@
   * [ExUnit.Assertion] Allow receive timeouts to be computed at runtime
   * [ExUnit.Doctest] Allow users to tag doctests with options
 
+#### Logger
+
+  * [Logger] Add `notice`, `critical`, `alert`, and `emergency` log levels
+  * [Logger] Support structured logging by logging maps or keyword lists
+  * [Logger] Allow level to be set per module with `put_module_level` and `put_application_level`
+
+#### Mix
+
+  * [mix compile.elixir] Track application boundaries in the Elixir compiler. If you invoke code from Erlang or Elixir standard libraries and you don't depend on the proper applications, a warning will be emitted. A warning will also be emitted if you invoke code from an umbrella sibling that you don't depend on
+
 ### 2. Bug fixes
+
+#### EEx
+
+  * [EEx] Make trimming behaviour via the `:trim` option more consistent
 
 #### Elixir
 
   * [Kernel] Validate values given to `:line` in quote to avoid emitting invalid ASTs
 
 ### 3. Soft-deprecations (no warnings emitted)
+
+  * [Logger] `warn` log level is deprecated in favor of `warning`
 
 ### 4. Hard-deprecations
 

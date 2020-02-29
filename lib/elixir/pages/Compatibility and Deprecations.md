@@ -75,6 +75,7 @@ The first column is the version the feature was hard deprecated. The second colu
 
 Version | Deprecated feature                                  | Replaced by (available since)
 :-------| :-------------------------------------------------- | :---------------------------------------------------------------
+[v1.11] | `System.stacktrace/1`                               | `__STACKTRACE__` in `try/catch/rescue` (v1.7)
 [v1.11] | `Supervisor.Spec.worker/3` and `Supervisor.Spec.supervisor/3` | The new child specs outlined in `Supervisor` (v1.5)
 [v1.11] | `Supervisor.start_child/2` and `Supervisor.terminate_child/2` | `DynamicSupervisor` (v1.6)
 [v1.10] | `Code.ensure_compiled?/1`                           | `Code.ensure_compiled/1` (v1.0)
