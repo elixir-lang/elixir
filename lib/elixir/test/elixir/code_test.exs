@@ -103,12 +103,18 @@ defmodule CodeTest do
   test "compile_file/1" do
     assert Code.compile_file(fixture_path("code_sample.exs")) == []
     refute fixture_path("code_sample.exs") in Code.required_files()
+
+    assert [{CompileSample, binary}] = Code.compile_file(fixture_path("compile_sample.ex"))
+    assert is_binary(binary)
+  after
+    :code.purge(CompileSample)
+    :code.delete(CompileSample)
   end
 
   test "compile_file/1 also emits checker warnings" do
     output =
       ExUnit.CaptureIO.capture_io(:stderr, fn ->
-        Code.compile_file(PathHelpers.fixture_path("checker_warning.exs"))
+        Code.compile_file(fixture_path("checker_warning.exs"))
       end)
 
     assert output =~ "incompatible types"
@@ -122,8 +128,13 @@ defmodule CodeTest do
     Code.unrequire_files([fixture_path("code_sample.exs")])
     refute fixture_path("code_sample.exs") in Code.required_files()
     assert Code.require_file(fixture_path("code_sample.exs")) != nil
+
+    assert [{CompileSample, binary}] = Code.require_file(fixture_path("compile_sample.ex"))
+    assert is_binary(binary)
   after
-    Code.unrequire_files([fixture_path("code_sample.exs")])
+    Code.unrequire_files([fixture_path("code_sample.exs"), fixture_path("compile_sample.ex")])
+    :code.purge(CompileSample)
+    :code.delete(CompileSample)
   end
 
   describe "string_to_quoted/2" do
