@@ -122,6 +122,34 @@ defmodule LoggerTest do
     Logger.configure(level: :debug)
   end
 
+  test "per-module levels" do
+    defmodule PerModuleLevels do
+      def debug, do: Logger.debug("debug_msg")
+
+      def error, do: Logger.error("error_msg")
+    end
+
+    assert capture_log(fn -> assert PerModuleLevels.debug() == :ok end) =~ "debug_msg"
+    assert capture_log(fn -> assert PerModuleLevels.error() == :ok end) =~ "error_msg"
+
+    Logger.put_module_level(PerModuleLevels, :error)
+
+    assert capture_log(fn -> assert PerModuleLevels.debug() == :ok end) == ""
+    assert capture_log(fn -> Logger.debug("outer_debug_msg") end) =~ "outer_debug_msg"
+    assert capture_log(fn -> assert PerModuleLevels.error() == :ok end) =~ "error_msg"
+
+    Logger.put_module_level(PerModuleLevels, :debug)
+
+    assert capture_log(:error, fn -> assert PerModuleLevels.debug() == :ok end) =~ "debug_msg"
+    assert capture_log(:error, fn -> Logger.debug("outer_debug_msg") end) == ""
+    assert capture_log(:error, fn -> assert PerModuleLevels.error() == :ok end) =~ "error_msg"
+
+    Logger.delete_module_level(PerModuleLevels)
+
+    assert capture_log(fn -> assert PerModuleLevels.debug() == :ok end) =~ "debug_msg"
+    assert capture_log(fn -> assert PerModuleLevels.error() == :ok end) =~ "error_msg"
+  end
+
   test "process metadata" do
     assert Logger.metadata(data: true) == :ok
     assert Logger.metadata() == [data: true]

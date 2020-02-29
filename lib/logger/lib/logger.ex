@@ -710,6 +710,74 @@ defmodule Logger do
   end
 
   @doc """
+  Set logging level for given module.
+
+  This will take priority over the primary level set, so it can be
+  used to increase or decrease verbosity of some parts of the project.
+
+  ## Example
+
+      defmodule Foo do
+        require Logger
+
+        def log, do: Logger.debug("foo")
+      end
+
+      Logger.configure(level: :error)
+      Logger.put_module_level(Foo, :all)
+
+      Foo.log()
+      # This will print the message even if global level is :error
+
+  """
+  @spec put_module_level(module(), level() | :all | :none) :: :ok | {:error, term()}
+  defdelegate put_module_level(mod, level), to: :logger, as: :set_module_level
+
+  @doc """
+  Get logging level for given module.
+
+  Returned value will be the effective value used. If no value
+  was set for given module then it will not be present in
+  the returned list.
+  """
+  @spec get_module_level(module() | [module()]) :: [{module(), level() | :all | :none}]
+  defdelegate get_module_level(mod), to: :logger
+
+  @doc """
+  Set logging level for all modules in given application.
+
+  This is equivalent of doing:
+
+      Logger.put_module_level(Application.spec(app, :modules), level)
+
+  """
+  @spec put_application_level(atom(), level() | :all | :none) :: :ok | {:error, :not_loaded}
+  defdelegate put_application_level(app, level), to: :logger, as: :set_application_level
+
+  @doc """
+  Reset logging level for given module to primary level.
+  """
+  @spec delete_module_level(module() | [module()]) :: :ok
+  defdelegate delete_module_level(module), to: :logger, as: :unset_module_level
+
+  @doc """
+  Reset logging level for all modules to primary level
+  """
+  @spec delete_all_module_levels() :: :ok
+  defdelegate delete_all_module_levels(), to: :logger, as: :unset_module_level
+
+  @doc """
+  Reset logging level for all modules in given application to primary level
+
+  This is equivalent of doing:
+
+      Logger.delete_module_level(Application.spec(app, :modules))
+
+  """
+  @spec delete_application_level(atom()) :: :ok
+  defdelegate delete_application_level(app), to: :logger, as: :unset_application_level
+
+  @doc """
   Adds a new backend.
 
   Adding a backend calls the `init/1` function in that backend
