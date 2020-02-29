@@ -744,17 +744,6 @@ defmodule Logger do
   defdelegate get_module_level(mod), to: :logger
 
   @doc """
-  Puts logging level for all modules in given application.
-
-  This is equivalent of doing:
-
-      Logger.put_module_level(Application.spec(app, :modules), level)
-
-  """
-  @spec put_application_level(atom(), level() | :all | :none) :: :ok | {:error, :not_loaded}
-  defdelegate put_application_level(app, level), to: :logger, as: :set_application_level
-
-  @doc """
   Deletes logging level for given module to primary level.
   """
   @spec delete_module_level(module() | [module()]) :: :ok
@@ -765,17 +754,6 @@ defmodule Logger do
   """
   @spec delete_all_module_levels() :: :ok
   defdelegate delete_all_module_levels(), to: :logger, as: :unset_module_level
-
-  @doc """
-  Reset logging level for all modules in given application to primary level
-
-  This is equivalent of doing:
-
-      Logger.delete_module_level(Application.spec(app, :modules))
-
-  """
-  @spec delete_application_level(atom()) :: :ok
-  defdelegate delete_application_level(app), to: :logger, as: :unset_application_level
 
   @doc """
   Adds a new backend.
