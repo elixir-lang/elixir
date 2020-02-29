@@ -710,7 +710,7 @@ defmodule Logger do
   end
 
   @doc """
-  Set logging level for given module.
+  Puts logging level for given module.
 
   This will take priority over the primary level set, so it can be
   used to increase or decrease verbosity of some parts of the project.
@@ -734,7 +734,7 @@ defmodule Logger do
   defdelegate put_module_level(mod, level), to: :logger, as: :set_module_level
 
   @doc """
-  Get logging level for given module.
+  Gets logging level for given module.
 
   Returned value will be the effective value used. If no value
   was set for given module then it will not be present in
@@ -744,7 +744,7 @@ defmodule Logger do
   defdelegate get_module_level(mod), to: :logger
 
   @doc """
-  Set logging level for all modules in given application.
+  Puts logging level for all modules in given application.
 
   This is equivalent of doing:
 
@@ -755,13 +755,13 @@ defmodule Logger do
   defdelegate put_application_level(app, level), to: :logger, as: :set_application_level
 
   @doc """
-  Reset logging level for given module to primary level.
+  Deletes logging level for given module to primary level.
   """
   @spec delete_module_level(module() | [module()]) :: :ok
   defdelegate delete_module_level(module), to: :logger, as: :unset_module_level
 
   @doc """
-  Reset logging level for all modules to primary level
+  Deletes logging level for all modules to primary level
   """
   @spec delete_all_module_levels() :: :ok
   defdelegate delete_all_module_levels(), to: :logger, as: :unset_module_level
