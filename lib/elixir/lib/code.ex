@@ -1447,6 +1447,6 @@ defmodule Code do
   defp verify_loaded(loaded) do
     maps_binaries = Enum.map(loaded, fn {_module, map, binary} -> {map, binary} end)
     Module.ParallelChecker.verify(maps_binaries, [])
-    Enum.map(loaded, fn {module, map, _binary} -> {module, map} end)
+    Enum.map(loaded, fn {module, _map, binary} -> {module, binary} end)
   end
 end
