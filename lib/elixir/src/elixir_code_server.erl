@@ -8,8 +8,7 @@
 -record(elixir_code_server, {
   required=#{},
   mod_pool={[], [], 0},
-  mod_ets=#{},
-  compilation_status=#{}
+  mod_ets=#{}
 }).
 
 call(Args) ->
@@ -56,13 +55,6 @@ handle_call({acquire, Path}, From, Config) ->
 handle_call(required, _From, Config) ->
   {reply, [F || {F, true} <- maps:to_list(Config#elixir_code_server.required)], Config};
 
-handle_call({compilation_status, CompilerPid}, _From, Config) ->
-  CompilationStatusList = Config#elixir_code_server.compilation_status,
-  CompilationStatusListNew = maps:remove(CompilerPid, CompilationStatusList),
-  CompilationStatus = maps:get(CompilerPid, CompilationStatusList),
-  {reply, CompilationStatus,
-   Config#elixir_code_server{compilation_status=CompilationStatusListNew}};
-
 handle_call(retrieve_compiler_module, _From, Config) ->
   case Config#elixir_code_server.mod_pool of
     {Used, [Mod | Unused], Counter} ->
@@ -79,19 +71,6 @@ handle_call(purge_compiler_modules, _From, Config) ->
 
 handle_call(Request, _From, Config) ->
   {stop, {badcall, Request}, Config}.
-
-handle_cast({register_warning, CompilerPid}, Config) ->
-  CompilationStatusCurrent = Config#elixir_code_server.compilation_status,
-  CompilationStatusNew = maps:put(CompilerPid, error, CompilationStatusCurrent),
-  case elixir_config:get(warnings_as_errors) of
-    true -> {noreply, Config#elixir_code_server{compilation_status=CompilationStatusNew}};
-    false -> {noreply, Config}
-  end;
-
-handle_cast({reset_warnings, CompilerPid}, Config) ->
-  CompilationStatusCurrent = Config#elixir_code_server.compilation_status,
-  CompilationStatusNew = maps:put(CompilerPid, ok, CompilationStatusCurrent),
-  {noreply, Config#elixir_code_server{compilation_status=CompilationStatusNew}};
 
 handle_cast({required, Path}, Config) ->
   Current = Config#elixir_code_server.required,
