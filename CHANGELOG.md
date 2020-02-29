@@ -28,7 +28,7 @@
 
   * [Logger] Add `notice`, `critical`, `alert`, and `emergency` log levels
   * [Logger] Support structured logging by logging maps or keyword lists
-  * [Logger] Allow level to be set per module with `put_module_level` and `put_application_level`
+  * [Logger] Allow level to be set per module with `Logger.put_module_level/2`
 
 #### Mix
 
