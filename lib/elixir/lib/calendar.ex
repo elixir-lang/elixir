@@ -503,7 +503,8 @@ defmodule Calendar do
   """
   @doc since: "1.11.0"
   @spec strftime(map(), String.t(), keyword()) :: String.t()
-  def strftime(date_or_time_or_datetime, string_format, user_options \\ []) do
+  def strftime(date_or_time_or_datetime, string_format, user_options \\ [])
+      when is_map(date_or_time_or_datetime) and is_binary(string_format) do
     parse(
       string_format,
       date_or_time_or_datetime,
