@@ -149,7 +149,7 @@ defmodule Kernel.ParallelCompiler do
         each_long_compilation: Keyword.get(options, :each_long_compilation, fn _file -> :ok end),
         each_module: Keyword.get(options, :each_module, fn _file, _module, _binary -> :ok end),
         long_compilation_threshold: Keyword.get(options, :long_compilation_threshold, 15),
-        profile: profile_init(Keyword.get(options, :profile, :none)),
+        profile: profile_init(Keyword.get(options, :profile)),
         output: output,
         schedulers: schedulers
       })
@@ -243,7 +243,7 @@ defmodule Kernel.ParallelCompiler do
   end
 
   defp profile_init(:time), do: {:time, System.monotonic_time(), 0}
-  defp profile_init(:none), do: :none
+  defp profile_init(nil), do: :none
 
   defp profile_checker({:time, _, _}, compiled_modules, runtime_modules, fun) do
     {time, result} = :timer.tc(fun)
