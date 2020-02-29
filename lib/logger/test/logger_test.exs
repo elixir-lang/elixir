@@ -148,6 +148,11 @@ defmodule LoggerTest do
 
     assert capture_log(fn -> assert PerModuleLevels.debug() == :ok end) =~ "debug_msg"
     assert capture_log(fn -> assert PerModuleLevels.error() == :ok end) =~ "error_msg"
+
+    Logger.put_module_level(PerModuleLevels, :error)
+    assert capture_log(fn -> assert PerModuleLevels.debug() == :ok end) == ""
+    Logger.delete_all_module_levels()
+    assert capture_log(fn -> assert PerModuleLevels.debug() == :ok end) =~ "debug_msg"
   end
 
   test "process metadata" do
