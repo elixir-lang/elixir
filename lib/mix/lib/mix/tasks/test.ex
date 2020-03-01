@@ -426,12 +426,7 @@ defmodule Mix.Tasks.Test do
       """)
     end
 
-    Mix.Task.run("loadpaths", args)
-
-    if Keyword.get(opts, :compile, true) do
-      Mix.Project.compile(args)
-    end
-
+    Mix.Task.run("compile", args)
     project = Mix.Project.config()
 
     # Start cover after we load deps but before we start the app.

@@ -1,8 +1,16 @@
 defmodule Mix.Tasks.Loadpaths do
   use Mix.Task
 
-  @moduledoc """
+  @moduledoc false
+
+  @doc """
   Loads the application and its dependencies paths.
+
+  This task is never directly invoked from the command line,
+  but it is rather used as building block by other tasks.
+
+  See `Mix.Project.compile/2` which may compile or simply
+  invoke this task based on a flag.
 
   ## Configuration
 
@@ -16,7 +24,6 @@ defmodule Mix.Tasks.Loadpaths do
     * `--no-elixir-version-check` - does not check Elixir version
 
   """
-
   @impl true
   def run(args) do
     config = Mix.Project.config()
