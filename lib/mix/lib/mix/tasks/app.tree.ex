@@ -35,7 +35,7 @@ defmodule Mix.Tasks.App.Tree do
 
   @impl true
   def run(args) do
-    Mix.Task.run("compile")
+    Mix.Task.run("compile", args)
 
     {app, opts} =
       case OptionParser.parse!(args, strict: [exclude: :keep, format: :string]) do

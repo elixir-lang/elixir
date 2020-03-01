@@ -123,12 +123,7 @@ defmodule Mix.Tasks.Xref do
   @impl true
   def run(args) do
     {opts, args} = OptionParser.parse!(args, strict: @switches)
-    Mix.Task.run("loadpaths")
-
-    if Keyword.get(opts, :compile, true) do
-      Mix.Task.run("compile")
-    end
-
+    Mix.Task.run("compile", args)
     Mix.Task.reenable("xref")
 
     case args do

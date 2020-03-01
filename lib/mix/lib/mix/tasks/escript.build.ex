@@ -123,11 +123,7 @@ defmodule Mix.Tasks.Escript.Build do
   @impl true
   def run(args) do
     Mix.Project.get!()
-    Mix.Task.run("loadpaths", args)
-
-    unless "--no-compile" in args do
-      Mix.Project.compile(args)
-    end
+    Mix.Task.run("compile", args)
 
     project = Mix.Project.config()
     language = Keyword.get(project, :language, :elixir)

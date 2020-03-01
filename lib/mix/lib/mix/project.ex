@@ -653,10 +653,8 @@ defmodule Mix.Project do
     end
   end
 
-  @doc """
-  Compiles the given project.
-  """
-  @spec compile([term], keyword) :: term
+  @doc false
+  @deprecated "Use Mix.Task.run(\"compile\", args) instead"
   def compile(args, _config \\ []) do
     Mix.Task.run("compile", args)
   end

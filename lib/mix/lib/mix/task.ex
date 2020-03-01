@@ -334,7 +334,7 @@ defmodule Mix.Task do
     # 3. Finally, we compile the current project in hope it is available.
     module =
       get_task_or_run(proj, task, fn -> Mix.Task.run("deps.loadpaths") end) ||
-        get_task_or_run(proj, task, fn -> Mix.Project.compile([]) end) ||
+        get_task_or_run(proj, task, fn -> Mix.Task.run("compile", []) end) ||
         get!(task)
 
     recursive = recursive(module)

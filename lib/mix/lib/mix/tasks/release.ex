@@ -175,7 +175,7 @@ defmodule Mix.Tasks.Release do
   of crashes. See the generated `releases/RELEASE_VSN/env.sh` file.
 
   The daemon will write all of its standard output to the "tmp/log/"
-  directory in the release root. You can watch the log file by doing 
+  directory in the release root. You can watch the log file by doing
   `tail -f tmp/log/erlang.log.1` or similar. Once files get too large,
   the index suffix will be incremented. A developer can also attach
   to the standard input of the daemon by invoking "to_erl tmp/pipe/"
@@ -983,12 +983,9 @@ defmodule Mix.Tasks.Release do
   @impl true
   def run(args) do
     Mix.Project.get!()
-    config = Mix.Project.config()
-    Mix.Task.run("loadpaths", args)
+    Mix.Task.run("compile", args)
 
-    unless "--no-compile" in args do
-      Mix.Project.compile(args, config)
-    end
+    config = Mix.Project.config()
 
     release =
       case OptionParser.parse!(args, strict: @switches, aliases: @aliases) do

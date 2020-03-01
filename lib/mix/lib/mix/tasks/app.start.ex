@@ -52,14 +52,10 @@ defmodule Mix.Tasks.App.Start do
   @impl true
   def run(args) do
     Mix.Project.get!()
+    Mix.Task.run("compile", args)
+
     config = Mix.Project.config()
-
     {opts, _, _} = OptionParser.parse(args, switches: @switches)
-    Mix.Task.run("loadpaths", args)
-
-    unless "--no-compile" in args do
-      Mix.Project.compile(args, config)
-    end
 
     unless "--no-protocols" in args do
       path = Mix.Project.consolidation_path(config)
