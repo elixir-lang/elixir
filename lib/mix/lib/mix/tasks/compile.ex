@@ -107,15 +107,13 @@ defmodule Mix.Tasks.Compile do
         |> Enum.map(&Mix.Task.Compiler.normalize(&1, :all))
         |> Enum.reduce({:noop, []}, &merge_diagnostics/2)
 
-      res =
-        if consolidate_protocols?(res) and "--no-protocol-consolidation" not in args do
-          Mix.Task.run("compile.protocols", args)
-          :ok
-        else
-          res
-        end
+      config = Mix.Project.config()
 
-      {res, diagnostics}
+      if config[:consolidate_protocols] and "--no-protocol-consolidation" not in args do
+        {consolidate_and_load_protocols(args, config, res), diagnostics}
+      else
+        {res, diagnostics}
+      end
     end
   end
 
@@ -138,17 +136,39 @@ defmodule Mix.Tasks.Compile do
     Mix.Task.reenable("deps.loadpaths")
   end
 
-  defp consolidate_protocols?(:ok) do
-    Mix.Project.config()[:consolidate_protocols]
+  defp consolidate_protocols?(:ok), do: true
+  defp consolidate_protocols?(:noop), do: not Mix.Tasks.Compile.Protocols.consolidated?()
+  defp consolidate_protocols?(:error), do: false
+
+  defp consolidate_and_load_protocols(args, config, res) do
+    res =
+      if consolidate_protocols?(res) do
+        Mix.Task.run("compile.protocols", args)
+        :ok
+      else
+        res
+      end
+
+    path = Mix.Project.consolidation_path(config)
+
+    with {:ok, protocols} <- File.ls(path) do
+      Code.prepend_path(path)
+      Enum.each(protocols, &load_protocol/1)
+    end
+
+    res
   end
 
-  defp consolidate_protocols?(:noop) do
-    config = Mix.Project.config()
-    config[:consolidate_protocols] and not Mix.Tasks.Compile.Protocols.consolidated?()
-  end
+  defp load_protocol(file) do
+    case file do
+      "Elixir." <> _ ->
+        module = file |> Path.rootname() |> String.to_atom()
+        :code.purge(module)
+        :code.delete(module)
 
-  defp consolidate_protocols?(:error) do
-    false
+      _ ->
+        :ok
+    end
   end
 
   @doc """

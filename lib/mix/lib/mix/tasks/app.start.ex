@@ -1,16 +1,16 @@
 defmodule Mix.Tasks.App.Start do
   use Mix.Task
 
-  # Do not mark this task as recursive as it is
-  # responsible for loading consolidated protocols.
   @shortdoc "Starts all registered apps"
 
   @moduledoc """
   Starts all registered apps.
 
-  The application is started by default as temporary. In case
+  First this task guarantees that all dependencies are in place
+  and that the current project has been compiled. Then the current
+  application is started as a temporary application, unless
   `:start_permanent` is set to `true` in your project configuration
-  or the `--permanent` option is given, it is started as permanent,
+  or the `--permanent` option is given, then it's started as permanent,
   which guarantees the node will shut down if the application
   crashes permanently.
 
@@ -31,12 +31,11 @@ defmodule Mix.Tasks.App.Start do
     * `--temporary` - starts the application as temporary
     * `--permanent` - starts the application as permanent
     * `--preload-modules` - preloads all modules defined in applications
-    * `--no-compile` - does not compile even if files require compilation
-    * `--no-protocols` - does not load consolidated protocols
     * `--no-archives-check` - does not check archives
+    * `--no-compile` - does not compile even if files require compilation
     * `--no-deps-check` - does not check dependencies
     * `--no-elixir-version-check` - does not check Elixir version
-    * `--no-start` - does not start applications after compilation
+    * `--no-start` - does not actually start applications, only compiles and loads code
     * `--no-validate-compile-env` - does not validate the application compile environment
 
   """
@@ -53,36 +52,19 @@ defmodule Mix.Tasks.App.Start do
   def run(args) do
     Mix.Project.get!()
     Mix.Task.run("compile", args)
-
-    config = Mix.Project.config()
     {opts, _, _} = OptionParser.parse(args, switches: @switches)
 
-    unless "--no-protocols" in args do
-      path = Mix.Project.consolidation_path(config)
-
-      if config[:consolidate_protocols] && File.dir?(path) do
-        Code.prepend_path(path)
-        Enum.each(File.ls!(path), &load_protocol/1)
-      end
-    end
-
-    # Stop Logger when starting the application as it is
-    # up to the application to decide if it should be restarted
-    # or not.
-    #
-    # Mix should not depend directly on Logger so check that it's loaded.
-    logger = Process.whereis(Logger)
-
-    if logger do
-      Logger.App.stop()
-    end
-
     if "--no-start" in args do
-      # Start Logger again if the application won't be starting it
-      if logger do
-        :ok = Logger.App.start()
-      end
+      Mix.Task.reenable("app.start")
     else
+      # Stop Logger when starting the application as it is up to the
+      # application to decide if it should be restarted or not.
+      #
+      # Mix should not depend directly on Logger so check that it's loaded.
+      if Process.whereis(Logger) do
+        Logger.App.stop()
+      end
+
       config = Mix.Project.config()
       start(apps(config), type(config, opts), "--no-validate-compile-env" not in args)
 
@@ -219,17 +201,5 @@ defmodule Mix.Tasks.App.Start do
     end
 
     :ok
-  end
-
-  defp load_protocol(file) do
-    case file do
-      "Elixir." <> _ ->
-        module = file |> Path.rootname() |> String.to_atom()
-        :code.purge(module)
-        :code.delete(module)
-
-      _ ->
-        :ok
-    end
   end
 end
