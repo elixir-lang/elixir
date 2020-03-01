@@ -103,12 +103,6 @@ defmodule CodeTest do
   test "compile_file/1" do
     assert Code.compile_file(fixture_path("code_sample.exs")) == []
     refute fixture_path("code_sample.exs") in Code.required_files()
-
-    assert [{CompileSample, binary}] = Code.compile_file(fixture_path("compile_sample.ex"))
-    assert is_binary(binary)
-  after
-    :code.purge(CompileSample)
-    :code.delete(CompileSample)
   end
 
   test "compile_file/1 also emits checker warnings" do
@@ -128,13 +122,8 @@ defmodule CodeTest do
     Code.unrequire_files([fixture_path("code_sample.exs")])
     refute fixture_path("code_sample.exs") in Code.required_files()
     assert Code.require_file(fixture_path("code_sample.exs")) != nil
-
-    assert [{CompileSample, binary}] = Code.require_file(fixture_path("compile_sample.ex"))
-    assert is_binary(binary)
   after
-    Code.unrequire_files([fixture_path("code_sample.exs"), fixture_path("compile_sample.ex")])
-    :code.purge(CompileSample)
-    :code.delete(CompileSample)
+    Code.unrequire_files([fixture_path("code_sample.exs")])
   end
 
   describe "string_to_quoted/2" do
@@ -451,6 +440,8 @@ end
 defmodule Code.SyncTest do
   use ExUnit.Case
 
+  import PathHelpers
+
   test "path manipulation" do
     path = Path.join(__DIR__, "fixtures")
     Code.prepend_path(path)
@@ -476,5 +467,22 @@ defmodule Code.SyncTest do
     assert Code.compiler_options(debug_info: true) == %{debug_info: false}
   after
     Code.compiler_options(debug_info: true)
+  end
+
+  test "compile_file/1 return value" do
+    assert [{CompileSample, binary}] = Code.compile_file(fixture_path("compile_sample.ex"))
+    assert is_binary(binary)
+  after
+    :code.purge(CompileSample)
+    :code.delete(CompileSample)
+  end
+
+  test "require_file/1 return value" do
+    assert [{CompileSample, binary}] = Code.require_file(fixture_path("compile_sample.ex"))
+    assert is_binary(binary)
+  after
+    Code.unrequire_files([fixture_path("compile_sample.ex")])
+    :code.purge(CompileSample)
+    :code.delete(CompileSample)
   end
 end
