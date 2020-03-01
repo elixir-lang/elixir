@@ -15,23 +15,23 @@ defmodule Mix.Tasks.ReleaseTest do
           File.mkdir_p!("rel")
 
           for file <- ~w(rel/vm.args.eex rel/env.sh.eex rel/env.bat.eex) do
-            File.write!(file, """
-            #{file} FOR <%= @release.name %>
-            """)
+            File.write!(file, "#{file} FOR <%= @release.name %>\n")
           end
 
-          root = Path.absname("_build/dev/rel/release_test")
+          root = Path.absname("_build/dev/rel/release_test/releases/0.1.0")
           Mix.Task.run("release")
           assert_received {:mix_shell, :info, ["* assembling release_test-0.1.0 on MIX_ENV=dev"]}
 
-          assert root |> Path.join("releases/0.1.0/env.sh") |> File.read!() ==
-                   "rel/env.sh.eex FOR release_test\n"
+          host = host_type()
 
-          assert root |> Path.join("releases/0.1.0/env.bat") |> File.read!() ==
-                   "rel/env.bat.eex FOR release_test\n"
+          assert host == :windows ||
+                   File.read!("#{root}/env.sh") == "rel/env.sh.eex FOR release_test\n"
 
-          assert root |> Path.join("releases/0.1.0/vm.args") |> File.read!() ==
-                   "rel/vm.args.eex FOR release_test\n"
+          assert host == :unix ||
+                   File.read!("#{root}/env.bat") == "rel/env.bat.eex FOR release_test\n"
+
+          assert host in [:unix, :windows] &&
+                   File.read!("#{root}/vm.args") == "rel/vm.args.eex FOR release_test\n"
         end)
       end)
     end
@@ -252,6 +252,8 @@ defmodule Mix.Tasks.ReleaseTest do
 
         assert_received {:mix_shell, :info, ["* skipping runtime configuration" <> _]}
 
+        host = host_type()
+
         # Assert structure
         assert root |> Path.join("erts-#{@erts_version}") |> File.exists?()
         assert root |> Path.join("lib/release_test-0.1.0/ebin") |> File.exists?()
@@ -260,8 +262,8 @@ defmodule Mix.Tasks.ReleaseTest do
         assert root |> Path.join("releases/start_erl.data") |> File.exists?()
         assert root |> Path.join("releases/0.1.0/release_test.rel") |> File.exists?()
         assert root |> Path.join("releases/0.1.0/sys.config") |> File.exists?()
-        assert root |> Path.join("releases/0.1.0/env.sh") |> File.exists?()
-        assert root |> Path.join("releases/0.1.0/env.bat") |> File.exists?()
+        assert root |> Path.join("releases/0.1.0/env.sh") |> File.exists?() || host == :windows
+        assert root |> Path.join("releases/0.1.0/env.bat") |> File.exists?() || host == :unix
         assert root |> Path.join("releases/0.1.0/vm.args") |> File.exists?()
 
         assert root
@@ -680,6 +682,13 @@ defmodule Mix.Tasks.ReleaseTest do
     else
       Process.sleep(10)
       wait_until(fun)
+    end
+  end
+
+  defp host_type() do
+    case :os.type() do
+      {:unix, _} -> :unix
+      {:win32, _} -> :windows
     end
   end
 end

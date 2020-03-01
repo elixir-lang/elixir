@@ -437,11 +437,12 @@ defmodule Mix.Tasks.Release do
 
     * `:include_executables_for` - a list of atoms detailing for which Operating
       Systems executable files should be generated for. By default, it is set to
-      `[:unix, :windows]`. You can customize those as follows:
+      `[:unix]` or `[:windows]` depending on the host machine.
+      You can customize those as follows:
 
           releases: [
             demo: [
-              include_executables_for: [:unix] # Or [:windows] or []
+              include_executables_for: [:unix, :windows] # Or []
             ]
           ]
 
@@ -1063,7 +1064,7 @@ defmodule Mix.Tasks.Release do
       #     elixir.bat
       #     iex
       #     iex.bat
-      {:executables, Keyword.get(release.options, :include_executables_for, [:unix, :windows])}
+      {:executables, Keyword.get(release.options, :include_executables_for, default_executable())}
       # lib/APP_NAME-APP_VSN/
       | Map.keys(release.applications)
     ]
@@ -1071,6 +1072,13 @@ defmodule Mix.Tasks.Release do
     |> Stream.run()
 
     copy_overlays(release)
+  end
+
+  defp default_executable() do
+    case :os.type() do
+      {:unix, _} -> [:unix]
+      {:win32, _} -> [:windows]
+    end
   end
 
   defp make_tar(release) do
