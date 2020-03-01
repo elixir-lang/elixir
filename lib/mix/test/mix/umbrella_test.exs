@@ -519,8 +519,7 @@ defmodule Mix.UmbrellaTest do
       end)
 
       Mix.Project.in_project(:umbrella, ".", fn _ ->
-        Mix.Task.run("compile.protocols")
-        Mix.Task.run("app.start")
+        Mix.Task.run("compile")
         assert Protocol.consolidated?(Bar)
       end)
     end)

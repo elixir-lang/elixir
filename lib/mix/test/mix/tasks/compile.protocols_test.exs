@@ -53,7 +53,8 @@ defmodule Mix.Tasks.Compile.ProtocolsTest do
 
     in_tmp(context.test, fn ->
       File.mkdir_p!("lib")
-      assert Mix.Task.run("compile")
+      Mix.Task.run("compile")
+      purge_protocol(Compile.Protocol)
 
       # Define a local protocol
       File.write!("lib/protocol.ex", """
@@ -90,8 +91,8 @@ defmodule Mix.Tasks.Compile.ProtocolsTest do
 
     in_tmp(context.test, fn ->
       File.mkdir_p!("lib")
-
-      assert Mix.Task.run("compile")
+      Mix.Task.run("compile")
+      purge_protocol(String.Chars)
       mark_as_old!("_build/dev/lib/sample/consolidated/Elixir.String.Chars.beam")
 
       assert compile_elixir_and_protocols() == :noop
@@ -121,8 +122,7 @@ defmodule Mix.Tasks.Compile.ProtocolsTest do
     Mix.Project.push(MixTest.Case.Sample)
 
     in_fixture("no_mixfile", fn ->
-      Mix.Tasks.Compile.Elixir.run([])
-      Mix.Tasks.Compile.Protocols.run([])
+      compile_elixir_and_protocols()
 
       # Load consolidated
       :code.add_patha('_build/dev/lib/sample/consolidated')
@@ -138,9 +138,7 @@ defmodule Mix.Tasks.Compile.ProtocolsTest do
         _ ->
           flunk("Enumerable.impl_for!/1 should have failed")
       after
-        :code.del_path('_build/dev/lib/sample/consolidated')
-        :code.purge(Enumerable)
-        :code.delete(Enumerable)
+        purge_protocol(Enumerable)
       end
     end)
   end
@@ -158,5 +156,11 @@ defmodule Mix.Tasks.Compile.ProtocolsTest do
     mtime = mtime(path)
     File.touch!(path, @old)
     mtime
+  end
+
+  defp purge_protocol(module) do
+    :code.del_path(:filename.absname('_build/dev/lib/sample/consolidated'))
+    :code.purge(module)
+    :code.delete(module)
   end
 end
