@@ -20,6 +20,15 @@ defmodule Kernel.TracersTest do
     end)
   end
 
+  test "traces start and stop" do
+    compile_string("""
+    Foo
+    """)
+
+    assert_receive {:start, %{lexical_tracker: pid}} when is_pid(pid)
+    assert_receive {:stop, %{lexical_tracker: pid}} when is_pid(pid)
+  end
+
   test "traces alias references" do
     compile_string("""
     Foo
