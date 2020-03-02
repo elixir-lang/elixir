@@ -4,11 +4,14 @@ defmodule Module.Types.ExprTest do
   use ExUnit.Case, async: true
   import Module.Types.Expr
   alias Module.Types
+  alias Module.Types.Infer
 
   defmacrop quoted_expr(vars \\ [], body) do
     quote do
-      unquote(Macro.escape(expand_expr(vars, body)))
-      |> of_expr(new_stack(), new_context())
+      {vars, body} = unquote(Macro.escape(expand_expr(vars, body)))
+
+      body
+      |> of_expr(new_stack(), new_context(vars))
       |> lift_result()
     end
   end
@@ -20,12 +23,17 @@ defmodule Module.Types.ExprTest do
       end
 
     {ast, _env} = :elixir_expand.expand(fun, __ENV__)
-    {:fn, _, [{:->, _, [[_vars], body]}]} = ast
-    body
+    {:fn, _, [{:->, _, [[vars], body]}]} = ast
+    {vars, body}
   end
 
-  defp new_context() do
-    Types.context("types_test.ex", TypesTest, {:test, 0})
+  defp new_context(vars) do
+    context = Types.context("types_test.ex", TypesTest, {:test, 0})
+
+    Enum.reduce(vars, context, fn var, context ->
+      {_type, context} = Infer.new_var(var, context)
+      context
+    end)
   end
 
   defp new_stack() do
@@ -119,12 +127,6 @@ defmodule Module.Types.ExprTest do
       assert quoted_expr(<<123::utf8>>) == {:ok, :binary}
       assert quoted_expr(<<"foo"::utf8>>) == {:ok, :binary}
 
-      assert quoted_expr([foo], {<<foo::integer>>, foo}) == {:ok, {:tuple, [:binary, :integer]}}
-      assert quoted_expr([foo], {<<foo::binary>>, foo}) == {:ok, {:tuple, [:binary, :binary]}}
-
-      assert quoted_expr([foo], {<<foo::utf8>>, foo}) ==
-               {:ok, {:tuple, [:binary, {:union, [:integer, :binary]}]}}
-
       assert quoted_expr(
                (
                  foo = 0.0
@@ -138,6 +140,12 @@ defmodule Module.Types.ExprTest do
                  <<foo::float>>
                )
              ) == {:ok, :binary}
+
+      assert quoted_expr([foo], {<<foo::integer>>, foo}) == {:ok, {:tuple, [:binary, :integer]}}
+      assert quoted_expr([foo], {<<foo::binary>>, foo}) == {:ok, {:tuple, [:binary, :binary]}}
+
+      assert quoted_expr([foo], {<<foo::utf8>>, foo}) ==
+               {:ok, {:tuple, [:binary, {:union, [:integer, :binary]}]}}
 
       assert {:error, {{:unable_unify, :integer, :binary, _, _}, _}} =
                quoted_expr(
@@ -193,12 +201,95 @@ defmodule Module.Types.ExprTest do
       assert {:error, _} = quoted_expr([a], case(a, do: (:foo = b -> :bar = b)))
 
       assert quoted_expr([a], case(a, do: (:foo = b -> :foo = b))) == {:ok, :dynamic}
+
+      assert quoted_expr(
+               [a],
+               case a do
+                 :foo = b -> b
+                 :bar = b -> b
+               end
+             ) == {:ok, :dynamic}
+
+      assert quoted_expr(
+               [a],
+               case a do
+                 b when is_atom(b) -> b
+                 b when is_integer(b) -> b
+               end
+             ) == {:ok, :dynamic}
+
+      assert quoted_expr(
+               [a, b],
+               case a do
+                 :foo when is_binary(b) -> b
+               end
+             ) == {:ok, :dynamic}
+
+      assert quoted_expr(
+               [a, b],
+               case a do
+                 :foo when is_binary(b) -> b <> ""
+                 :foo when is_list(b) -> b
+               end
+             ) == {:ok, :dynamic}
+
+      assert quoted_expr(
+               [a],
+               case a do
+                 :foo = b -> :foo = b
+                 :bar = b -> :bar = b
+               end
+             ) == {:ok, :dynamic}
+
+      assert quoted_expr(
+               [a],
+               case a do
+                 :foo ->
+                   b = :foo
+                   b
+
+                 :bar ->
+                   b = :bar
+                   b
+               end
+             ) == {:ok, :dynamic}
+
+      assert quoted_expr(
+               [a, b],
+               case a do
+                 :foo -> :foo = b
+                 :bar -> :bar = b
+               end
+             ) == {:ok, :dynamic}
     end
 
     test "fn" do
-      assert {:error, _} = quoted_expr(fn :foo = b -> :bar = b end)
-
       assert quoted_expr(fn :foo = b -> :foo = b end) == {:ok, :dynamic}
+
+      assert {:error, _} = quoted_expr(fn :foo = b -> :bar = b end)
+    end
+
+    test "with" do
+      assert quoted_expr(
+               [a, b],
+               with(
+                 :foo <- a,
+                 :bar <- b,
+                 c = :baz,
+                 do: c
+               )
+             ) == {:ok, :dynamic}
+    end
+
+    test "for" do
+      assert quoted_expr(
+               [list],
+               for(
+                 foo <- list,
+                 is_integer(foo),
+                 do: foo == 123
+               )
+             ) == {:ok, :dynamic}
     end
   end
 end
