@@ -10,6 +10,7 @@ run(#{tracers := Tracers} = E, ExecutionCallback, AfterExecutionCallback) ->
     false ->
       {ok, Pid} = ?tracker:start_link(),
       LexEnv = E#{lexical_tracker := Pid, tracers := [?MODULE | Tracers]},
+      elixir_env:trace(start, LexEnv),
 
       try ExecutionCallback(LexEnv) of
         Res ->
@@ -18,6 +19,7 @@ run(#{tracers := Tracers} = E, ExecutionCallback, AfterExecutionCallback) ->
           AfterExecutionCallback(LexEnv),
           Res
       after
+        elixir_env:trace(stop, LexEnv),
         unlink(Pid),
         ?tracker:stop(Pid)
       end;
