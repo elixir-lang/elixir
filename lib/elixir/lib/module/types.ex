@@ -305,6 +305,7 @@ defmodule Module.Types do
     expr
     |> reverse_rewrite()
     |> Macro.to_string()
+    |> String.replace("\n", "\n    ")
   end
 
   defp reverse_rewrite(guard) do
