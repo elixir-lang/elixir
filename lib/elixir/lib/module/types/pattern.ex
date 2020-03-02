@@ -482,7 +482,6 @@ defmodule Module.Types.Pattern do
 
     cond do
       :fail in sources -> [:fail]
-      :guarded_fail in sources -> [:guarded_fail]
       :guarded in sources -> [:guarded]
       true -> []
     end
@@ -493,7 +492,7 @@ defmodule Module.Types.Pattern do
       # When the failing guard function wont fail due to type check function before it,
       # for example: is_list(x) and length(x)
       if :guarded in left and :fail in right do
-        [:guarded_fail]
+        [:guarded]
       else
         join_guard_source(left, right)
       end

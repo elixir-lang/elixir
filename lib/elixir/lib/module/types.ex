@@ -68,8 +68,8 @@ defmodule Module.Types do
       # Track if a variable was infered from a type guard function such is_tuple/1
       # or a guard function that fails such as elem/2, possible values are:
       # `:guarded` when `is_tuple(x)`
+      # `:guarded` when `is_tuple and elem(x, 0)`
       # `:fail` when `elem(x, 0)`
-      # `:guarded_fail` when `is_tuple and elem(x, 0)`
       guard_sources: %{}
     }
   end
