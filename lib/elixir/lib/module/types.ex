@@ -31,7 +31,7 @@ defmodule Module.Types do
 
   @doc false
   def of_head(params, guards, def_expr, context) do
-    stack = push_expr_stack(def_expr, stack(:pattern))
+    stack = push_expr_stack(def_expr, stack())
 
     with {:ok, types, context} <-
            map_reduce_ok(params, context, &Pattern.of_pattern(&1, stack, &2)),
@@ -42,7 +42,7 @@ defmodule Module.Types do
 
   @doc false
   def of_body(body, context) do
-    Expr.of_expr(body, stack(:expr), context)
+    Expr.of_expr(body, stack(), context)
   end
 
   @doc false
@@ -75,7 +75,7 @@ defmodule Module.Types do
   end
 
   @doc false
-  def stack(context) do
+  def stack() do
     %{
       # Stack of variables we have refined during unification,
       # used for creating relevant traces
@@ -91,7 +91,7 @@ defmodule Module.Types do
       type_guards_enabled?: true,
       # Context used to determine if unification is bi-directional, :expr
       # is directional, :pattern is bi-directional
-      context: context
+      context: nil
     }
   end
 

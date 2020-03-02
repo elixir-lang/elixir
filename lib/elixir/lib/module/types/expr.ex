@@ -4,6 +4,10 @@ defmodule Module.Types.Expr do
   import Module.Types.{Helpers, Infer}
   import Module.Types.Pattern, only: [of_guard: 3, of_pattern: 3]
 
+  def of_expr(expr, %{context: stack_context} = stack, context) when stack_context != :expr do
+    of_expr(expr, %{stack | context: :expr}, context)
+  end
+
   # :atom
   def of_expr(atom, _stack, context) when is_atom(atom) do
     {:ok, {:atom, atom}, context}
@@ -128,7 +132,7 @@ defmodule Module.Types.Expr do
     stack = push_expr_stack(expr, stack)
 
     with {:ok, left_type, context} <-
-           of_pattern(left_expr, %{stack | context: :pattern}, context),
+           of_pattern(left_expr, stack, context),
          {:ok, right_type, context} <- of_expr(right_expr, stack, context),
          do: unify(right_type, left_type, stack, context)
   end

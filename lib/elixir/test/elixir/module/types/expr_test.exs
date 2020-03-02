@@ -30,7 +30,7 @@ defmodule Module.Types.ExprTest do
 
   defp new_stack() do
     %{
-      Types.stack(:expr)
+      Types.stack()
       | last_expr: {:foo, [], nil}
     }
   end
