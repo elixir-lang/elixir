@@ -31,7 +31,7 @@ defmodule Module.Types do
 
   @doc false
   def of_head(params, guards, def_expr, context) do
-    stack = push_expr_stack(def_expr, stack(:pattern))
+    stack = push_expr_stack(def_expr, stack())
 
     with {:ok, types, context} <-
            map_reduce_ok(params, context, &Pattern.of_pattern(&1, stack, &2)),
@@ -42,7 +42,7 @@ defmodule Module.Types do
 
   @doc false
   def of_body(body, context) do
-    Expr.of_expr(body, stack(:expr), context)
+    Expr.of_expr(body, stack(), context)
   end
 
   @doc false
@@ -68,14 +68,14 @@ defmodule Module.Types do
       # Track if a variable was infered from a type guard function such is_tuple/1
       # or a guard function that fails such as elem/2, possible values are:
       # `:guarded` when `is_tuple(x)`
+      # `:guarded` when `is_tuple and elem(x, 0)`
       # `:fail` when `elem(x, 0)`
-      # `:guarded_fail` when `is_tuple and elem(x, 0)`
       guard_sources: %{}
     }
   end
 
   @doc false
-  def stack(context) do
+  def stack() do
     %{
       # Stack of variables we have refined during unification,
       # used for creating relevant traces
@@ -91,7 +91,7 @@ defmodule Module.Types do
       type_guards_enabled?: true,
       # Context used to determine if unification is bi-directional, :expr
       # is directional, :pattern is bi-directional
-      context: context
+      context: nil
     }
   end
 
@@ -305,6 +305,7 @@ defmodule Module.Types do
     expr
     |> reverse_rewrite()
     |> Macro.to_string()
+    |> String.replace("\n", "\n    ")
   end
 
   defp reverse_rewrite(guard) do
