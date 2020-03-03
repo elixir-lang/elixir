@@ -7,6 +7,11 @@ defmodule Module.Types.Pattern do
   Return the type and typing context of a pattern expression or an error
   in case of a typing conflict.
   """
+  def of_pattern(pattern, %{context: stack_context} = stack, context)
+      when stack_context != :pattern do
+    of_pattern(pattern, %{stack | context: :pattern}, context)
+  end
+
   # :atom
   def of_pattern(atom, _stack, context) when is_atom(atom) do
     {:ok, {:atom, atom}, context}
@@ -332,6 +337,10 @@ defmodule Module.Types.Pattern do
   Refines the type variables in the typing context using type check guards
   such as `is_integer/1`.
   """
+  def of_guard(expr, %{context: stack_context} = stack, context) when stack_context != :pattern do
+    of_guard(expr, %{stack | context: :pattern}, context)
+  end
+
   def of_guard({{:., _, [:erlang, :andalso]}, _, [left, right]} = expr, stack, context) do
     stack = push_expr_stack(expr, stack)
     fresh_context = fresh_context(context)
@@ -482,7 +491,6 @@ defmodule Module.Types.Pattern do
 
     cond do
       :fail in sources -> [:fail]
-      :guarded_fail in sources -> [:guarded_fail]
       :guarded in sources -> [:guarded]
       true -> []
     end
@@ -493,7 +501,7 @@ defmodule Module.Types.Pattern do
       # When the failing guard function wont fail due to type check function before it,
       # for example: is_list(x) and length(x)
       if :guarded in left and :fail in right do
-        [:guarded_fail]
+        [:guarded]
       else
         join_guard_source(left, right)
       end

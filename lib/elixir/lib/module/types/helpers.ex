@@ -95,6 +95,19 @@ defmodule Module.Types.Helpers do
   defp do_map_ok([], acc, _fun), do: {:ok, Enum.reverse(acc)}
 
   @doc """
+  Like `Enum.each/2` but only continues while `fun` returns `:ok`
+  and stops on `{:error, reason}`.
+  """
+  def each_ok([head | tail], fun) do
+    case fun.(head) do
+      :ok -> each_ok(tail, fun)
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  def each_ok([], _fun), do: :ok
+
+  @doc """
   Like `Enum.map_reduce/3` but only continues while `fun` returns `{:ok, elem, acc}`
   and stops on `{:error, reason}`.
   """

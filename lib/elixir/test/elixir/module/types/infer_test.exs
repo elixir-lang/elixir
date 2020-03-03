@@ -10,14 +10,22 @@ defmodule Module.Types.InferTest do
     |> lift_result()
   end
 
+  defp unify_directed_lift(left, right) do
+    stack = %{new_stack() | context: :expr}
+
+    unify(left, right, stack, new_context())
+    |> lift_result()
+  end
+
   defp new_context() do
     Types.context("types_test.ex", TypesTest, {:test, 0})
   end
 
   defp new_stack() do
     %{
-      Types.stack(:pattern)
-      | last_expr: {:foo, [], nil}
+      Types.stack()
+      | context: :pattern,
+        last_expr: {:foo, [], nil}
     }
   end
 
@@ -51,13 +59,23 @@ defmodule Module.Types.InferTest do
                unify_lift(:integer, :boolean)
     end
 
-    test "subtype" do
+    test "subtype undirected" do
       assert unify_lift(:boolean, :atom) == {:ok, :boolean}
       assert unify_lift(:atom, :boolean) == {:ok, :boolean}
       assert unify_lift(:boolean, {:atom, true}) == {:ok, {:atom, true}}
       assert unify_lift({:atom, true}, :boolean) == {:ok, {:atom, true}}
       assert unify_lift(:atom, {:atom, true}) == {:ok, {:atom, true}}
       assert unify_lift({:atom, true}, :atom) == {:ok, {:atom, true}}
+    end
+
+    test "subtype directed" do
+      assert unify_directed_lift(:boolean, :atom) == {:ok, :boolean}
+      assert unify_directed_lift({:atom, true}, :boolean) == {:ok, {:atom, true}}
+      assert unify_directed_lift({:atom, true}, :atom) == {:ok, {:atom, true}}
+
+      assert {:error, _} = unify_directed_lift(:atom, :boolean)
+      assert {:error, _} = unify_directed_lift(:boolean, {:atom, true})
+      assert {:error, _} = unify_directed_lift(:atom, {:atom, true})
     end
 
     test "tuple" do
