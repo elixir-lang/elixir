@@ -259,7 +259,7 @@ defmodule Kernel do
       4
 
   """
-  @spec apply(fun, [any]) :: any
+  @deprecated "Use Kernel.apply/3 instead"
   def apply(fun, args) do
     :erlang.apply(fun, args)
   end
