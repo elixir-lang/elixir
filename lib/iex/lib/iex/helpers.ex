@@ -509,6 +509,7 @@ defmodule IEx.Helpers do
   Just like `runtime_info/0`, except accepts topic or a list of topics.
   For example, topic `:applications` will list the applications loaded.
   """
+  @doc since: "1.5.0"
   def runtime_info(topic) when is_atom(topic) and topic in @runtime_info_topics do
     topic
     |> List.wrap()
