@@ -640,7 +640,7 @@ defmodule GenServer do
   This callback is optional.
   """
   @callback terminate(reason, state :: term) :: term
-            when reason: :normal | :shutdown | {:shutdown, term}
+            when reason: :normal | :shutdown | {:shutdown, term} | term
 
   @doc """
   Invoked to change the state of the `GenServer` when a different version of a
