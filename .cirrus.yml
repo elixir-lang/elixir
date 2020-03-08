@@ -143,7 +143,6 @@ test_freebsd_task:
     LC_ALL: en_US.UTF-8
 
   install_script:
-    - sudo pkg update
     - pkg install -y erlang git gmake
     - rm -rf .git
     - gmake compile
