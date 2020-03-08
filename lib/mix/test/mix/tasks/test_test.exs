@@ -286,18 +286,18 @@ defmodule Mix.Tasks.TestTest do
         refute File.regular?("cover/3.coverdata")
 
         assert mix(["test.coverage"]) == """
-        Importing cover results: cover/1.coverdata
-        Importing cover results: cover/2.coverdata
+               Importing cover results: cover/1.coverdata
+               Importing cover results: cover/2.coverdata
 
-        Percentage | Module
-        -----------|--------------------------
-           100.00% | A
-           100.00% | B
-        -----------|--------------------------
-           100.00% | Total
+               Percentage | Module
+               -----------|--------------------------
+                  100.00% | A
+                  100.00% | B
+               -----------|--------------------------
+                  100.00% | Total
 
-        Generated HTML coverage results in \"cover\" directory
-        """
+               Generated HTML coverage results in \"cover\" directory
+               """
       end)
     end
 
