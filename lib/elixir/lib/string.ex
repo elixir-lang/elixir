@@ -248,7 +248,7 @@ defmodule String do
   ## Compile binary patterns
 
   Many functions in this module work with patterns. For example,
-  `String.split/2` can split a string into multiple strings given
+  `String.split/3` can split a string into multiple strings given
   a pattern. This pattern can be a string, a list of strings or
   a compiled pattern:
 
@@ -283,7 +283,7 @@ defmodule String do
   @typedoc "Multiple code points that may be perceived as a single character by readers"
   @type grapheme :: t
 
-  @typedoc "Pattern used in functions like `replace/3` and `split/2`"
+  @typedoc "Pattern used in functions like `replace/4` and `split/3`"
   @type pattern :: t | [t] | :binary.cp()
 
   @conditional_mappings [:greek]
@@ -374,9 +374,10 @@ defmodule String do
   @doc ~S"""
   Divides a string into parts based on a pattern.
 
-  Returns a list of these parts. The pattern can
-  be a string, a list of strings, a regular expression,
-  or a compiled pattern.
+  Returns a list of these parts.
+
+  The `pattern` may be a string, a list of strings, a regular expression, or a
+  compiled pattern.
 
   The string is split into as many parts as possible by
   default, but can be controlled via the `:parts` option.
@@ -1322,7 +1323,8 @@ defmodule String do
 
   The `subject` is always a string.
 
-  The `pattern` may be a string, a regular expression, or a compiled pattern.
+  The `pattern` may be a string, a list of strings, a regular expression, or a
+  compiled pattern.
 
   The `replacement` may be a string or a function that receives the matched
   pattern and must return the replacement as a string or iodata.
