@@ -2,39 +2,94 @@ defmodule Mix.Tasks.Test.Coverage do
   use Mix.Task
 
   @moduledoc """
-  Build coverage report from exported coverage:
-
-      MIX_TEST_PARTITION=1 mix test --partitions 2
-      MIX_TEST_PARTITION=2 mix test --partitions 2
-      mix test.coverage
+  Build report from exported test coverage.
 
   When using `--cover` with the default coverage tool,
-  it supports an `:export` option that exports the coverage
-  results into a directory. This is useful when there are
-  multiple test suites or when a single test suite is
-  partitioned across multiple runs when using the
-  `mix test --partitions N` option.
+  the coverage tool supports an `:export` option to
+  export the coverage results into a directory. This is
+  useful when there are multiple test suites (such as in
+  an umbrella app) or when a single test suite is partitioned
+  across multiple runs when using the `mix test --partitions N`
+  option.
 
   Once multiple test runs are exported, this task can be
   used to generate an aggregated report.
+
+  ## Example: aggregating partitioned runs
+
+  If you partition your tests across multiple runs,
+  you can unify the report as shown below:
+
+      MIX_TEST_PARTITION=1 mix test --partitions 2 --cover
+      MIX_TEST_PARTITION=2 mix test --partitions 2 --cover
+      mix test.coverage
+
+  This works because the `--partitions` option
+  automatically exports the coverage results.
+
+  ## Example: aggregating coverage reports from all umbrella children
+
+  If you run `mix test.coverage` inside an umbrella,
+  it will automatically gather exported cover results
+  from all umbrella children - as long as any coverage
+  has been exported. One option is to leverage the fact
+  that partitioning automatically exports, and run tests
+  as single partition, like this:
+
+      # from the umbrella root
+      MIX_TEST_PARTITION=1 mix test --partitions 1 --cover
+      mix test.coverage
+
+  Alternatively, you can configure the `:test_coverage`
+  option in each `mix.exs` file of each app to always
+  `:export`.
+
+  Of course, if you want to actually partition the tests,
+  you can also do:
+
+      # from the umbrella root
+      MIX_TEST_PARTITION=1 mix test --partitions 2 --cover
+      MIX_TEST_PARTITION=2 mix test --partitions 2 --cover
+      mix test.coverage
+
+  On the other hand, if you want partitioned tests but
+  per-app reports, you can do:
+
+      # from the umbrella root
+      MIX_TEST_PARTITION=1 mix test --partitions 2 --cover
+      MIX_TEST_PARTITION=2 mix test --partitions 2 --cover
+      mix cmd mix test.coverage
+
+  When running `test.coverage` from the umbrella root, it
+  will use the `:test_coverage` configuration from the umbrella
+  root.
+
+  Finally, note the coverage itself is not measured across
+  the projects themselves. For example, if project B depends
+  on A, and if there is code in A that is only executed from
+  project B, those lines will not be marked as covered, which
+  is important, as those projects should be developed and tested
+  in isolation.
   """
 
-  @shortdoc "Build coverage report from exported coverage"
-  @recursive true
+  @shortdoc "Build report from exported test coverage"
   @preferred_cli_env :test
   @default_threshold 90
 
   @doc false
   def run(_args) do
+    Mix.Task.run("compile")
     config = Mix.Project.config()
-    compile_path = Mix.Project.compile_path(config)
     test_coverage = config[:test_coverage] || []
-    output = Keyword.get(test_coverage, :output, "cover")
-    pid = cover_compile(compile_path)
+    {cover_paths, compile_paths} = apps_paths(config, test_coverage)
+    pid = cover_compile(compile_paths)
 
-    case Path.wildcard("#{output}/*.coverdata") do
+    case Enum.flat_map(cover_paths, &Path.wildcard(Path.join(&1, "*.coverdata"))) do
       [] ->
-        Mix.shell().error("Could not find any .coverdata file inside #{output}/")
+        Mix.shell().error(
+          "Could not find .coverdata file in any of the paths: " <>
+            Enum.join(cover_paths, ", ")
+        )
 
       entries ->
         for entry <- entries do
@@ -45,16 +100,32 @@ defmodule Mix.Tasks.Test.Coverage do
         # Silence analyse import messages emitted by cover
         {:ok, string_io} = StringIO.open("")
         Process.group_leader(pid, string_io)
-
         Mix.shell().info("")
         generate_cover_results(test_coverage)
+    end
+  end
+
+  defp apps_paths(config, test_coverage) do
+    output = Keyword.get(test_coverage, :output, "cover")
+
+    if apps_paths = Mix.Project.apps_paths(config) do
+      build_path = Mix.Project.build_path(config)
+
+      compile_paths =
+        Enum.map(apps_paths, fn {app, _} ->
+          Path.join([build_path, "lib", Atom.to_string(app), "ebin"])
+        end)
+
+      {Enum.map(apps_paths, fn {_, path} -> Path.join(path, output) end), compile_paths}
+    else
+      {[output], [Mix.Project.compile_path(config)]}
     end
   end
 
   @doc false
   def start(compile_path, opts) do
     Mix.shell().info("Cover compiling modules ...")
-    cover_compile(compile_path)
+    cover_compile([compile_path])
 
     if name = opts[:export] do
       fn ->
@@ -69,19 +140,21 @@ defmodule Mix.Tasks.Test.Coverage do
     end
   end
 
-  defp cover_compile(compile_path) do
+  defp cover_compile(compile_paths) do
     _ = :cover.stop()
     {:ok, pid} = :cover.start()
 
-    case :cover.compile_beam_directory(compile_path |> to_charlist) do
-      results when is_list(results) ->
-        :ok
+    for compile_path <- compile_paths do
+      case :cover.compile_beam_directory(to_charlist(compile_path)) do
+        results when is_list(results) ->
+          :ok
 
-      {:error, reason} ->
-        Mix.raise(
-          "Failed to cover compile directory #{inspect(Path.relative_to_cwd(compile_path))} " <>
-            "with reason: #{inspect(reason)}"
-        )
+        {:error, reason} ->
+          Mix.raise(
+            "Failed to cover compile directory #{inspect(Path.relative_to_cwd(compile_path))} " <>
+              "with reason: #{inspect(reason)}"
+          )
+      end
     end
 
     pid

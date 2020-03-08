@@ -155,9 +155,10 @@ defmodule Mix.Tasks.Test do
       percentage is below or above the specified threshold, respectively.
       Defaults to `[threshold: 90]`
     * `:export` - a file name to export results to instead of generating
-      the result on the fly. See `mix test.coverage` to compile a report
-      from multiple exports. This option is automatically enabled when
-      using the process partitioning feature
+      the result on the fly. The `.coverdata extension is automatically
+      added to the given file. See `mix test.coverage` to compile a
+      report from multiple exports. This option is automatically enabled
+      when using the process partitioning feature
 
   By default, a very simple wrapper around OTP's `cover` is used as a tool,
   but it can be overridden as follows:
