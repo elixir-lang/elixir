@@ -20,16 +20,35 @@ defmodule Mix.Tasks.Test do
       fn ->
         Mix.shell().info("\nGenerating cover results ...\n")
         {:result, ok, _fail} = :cover.analyse(:coverage, :line)
-
-        {module_results, totals} = gather_coverage(ok, :cover.modules())
-        module_results = Enum.sort_by(module_results, &percentage(elem(&1, 1)), &>=/2)
+        modules = :cover.modules()
 
         if summary_opts = Keyword.get(opts, :summary, true) do
-          console(module_results, totals, summary_opts)
+          summary(ok, modules, summary_opts)
         end
 
-        html(module_results, opts)
+        html(modules, opts)
       end
+    end
+
+    defp html(results, opts) do
+      output = opts[:output]
+      File.mkdir_p!(output)
+
+      for mod <- results do
+        {:ok, _} = :cover.analyse_to_file(mod, '#{output}/#{mod}.html', [:html])
+      end
+
+      Mix.shell().info([
+        "Generated HTML coverage results in '",
+        output,
+        "' directory\n"
+      ])
+    end
+
+    defp summary(results, keep, summary_opts) do
+      {module_results, totals} = gather_coverage(results, keep)
+      module_results = Enum.sort(module_results, :desc)
+      print_summary(module_results, totals, summary_opts)
     end
 
     defp gather_coverage(results, keep) do
@@ -52,49 +71,43 @@ defmodule Mix.Tasks.Test do
           end
         end
 
-        module_results =
-          for module <- keep,
-              results = read_module_cover_results(table, module),
-              do: {module, results}
-
-        total_covered = :ets.select_count(table, [{{:_, true}, [], [true]}])
-        total_not_covered = :ets.select_count(table, [{{:_, false}, [], [true]}])
-
-        {module_results, {total_covered, total_not_covered}}
+        module_results = for module <- keep, do: {read_cover_results(table, module), module}
+        {module_results, read_cover_results(table, :_)}
       after
         :ets.delete(table)
       end
     end
 
-    defp read_module_cover_results(table, module) do
+    defp read_cover_results(table, module) do
       covered = :ets.select_count(table, [{{{module, :_}, true}, [], [true]}])
       not_covered = :ets.select_count(table, [{{{module, :_}, false}, [], [true]}])
-      {covered, not_covered}
+      percentage(covered, not_covered)
     end
 
-    defp console(results, totals, true), do: console(results, totals, [])
+    defp percentage(0, 0), do: 100.0
+    defp percentage(covered, not_covered), do: covered / (covered + not_covered) * 100
 
-    defp console(results, totals, opts) when is_list(opts) do
+    defp print_summary(results, totals, true), do: print_summary(results, totals, [])
+
+    defp print_summary(results, totals, opts) when is_list(opts) do
       Mix.shell().info("Percentage | Module")
       Mix.shell().info("-----------|--------------------------")
       results |> Enum.sort() |> Enum.each(&display(&1, opts))
       Mix.shell().info("-----------|--------------------------")
-      display({"Total", totals}, opts)
+      display({totals, "Total"}, opts)
       Mix.shell().info("")
     end
 
-    defp html(results, opts) do
-      output = opts[:output]
-      File.mkdir_p!(output)
-
-      for {mod, _} <- results do
-        {:ok, _} = :cover.analyse_to_file(mod, '#{output}/#{mod}.html', [:html])
-      end
+    defp display({percentage, name}, opts) do
+      threshold = Keyword.get(opts, :threshold, @default_threshold)
 
       Mix.shell().info([
-        "Generated HTML coverage results in '",
-        output,
-        "' directory\n"
+        color(percentage, threshold),
+        format_number(percentage, 9),
+        "%",
+        :reset,
+        " | ",
+        format_name(name)
       ])
     end
 
@@ -103,24 +116,7 @@ defmodule Mix.Tasks.Test do
     defp color(percentage, threshold) when percentage > threshold, do: :green
     defp color(_, _), do: :red
 
-    defp display({name, coverage}, opts) do
-      threshold = Keyword.get(opts, :threshold, @default_threshold)
-      percentage = percentage(coverage)
-
-      Mix.shell().info([
-        color(percentage, threshold),
-        format(percentage, 9),
-        "%",
-        :reset,
-        " | ",
-        format_name(name)
-      ])
-    end
-
-    defp percentage({0, 0}), do: 100.0
-    defp percentage({covered, not_covered}), do: covered / (covered + not_covered) * 100
-
-    defp format(number, length), do: :io_lib.format("~#{length}.2f", [number])
+    defp format_number(number, length), do: :io_lib.format("~#{length}.2f", [number])
 
     defp format_name(name) when is_binary(name), do: name
     defp format_name(mod) when is_atom(mod), do: inspect(mod)
