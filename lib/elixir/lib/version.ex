@@ -95,7 +95,9 @@ defmodule Version do
   """
 
   import Kernel, except: [match?: 2]
-  defstruct [:major, :minor, :patch, :pre, :build]
+
+  @enforce_keys [:major, :minor, :patch]
+  defstruct [:major, :minor, :patch, :build, pre: []]
 
   @type version :: String.t() | t
   @type requirement :: String.t() | Version.Requirement.t()
