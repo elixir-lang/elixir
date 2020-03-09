@@ -158,6 +158,27 @@ defmodule Mix.Tasks.TestTest do
                """
       end)
     end
+
+    test "supports unified reports by using test.coverage" do
+      in_fixture("umbrella_test", fn ->
+        assert mix(["test", "--partitions", "1", "--cover"], [{"MIX_TEST_PARTITION", "1"}]) =~
+                 "Run \"mix test.coverage\" once all exports complete"
+
+        assert mix(["test.coverage"]) =~ """
+               Importing cover results: apps/bar/cover/1.coverdata
+               Importing cover results: apps/foo/cover/1.coverdata
+
+               Percentage | Module
+               -----------|--------------------------
+                  100.00% | Bar
+                  100.00% | Bar.Protocol
+                  100.00% | Bar.Protocol.BitString
+                  100.00% | Foo
+               -----------|--------------------------
+                  100.00% | Total
+               """
+      end)
+    end
   end
 
   describe "--failed" do
@@ -272,14 +293,32 @@ defmodule Mix.Tasks.TestTest do
   describe "--partitions" do
     test "splits tests into partitions" do
       in_fixture("test_stale", fn ->
-        assert mix(["test", "--partitions", "3"], [{"MIX_TEST_PARTITION", "1"}]) =~
+        assert mix(["test", "--partitions", "3", "--cover"], [{"MIX_TEST_PARTITION", "1"}]) =~
                  "1 test, 0 failures"
 
-        assert mix(["test", "--partitions", "3"], [{"MIX_TEST_PARTITION", "2"}]) =~
+        assert mix(["test", "--partitions", "3", "--cover"], [{"MIX_TEST_PARTITION", "2"}]) =~
                  "1 test, 0 failures"
 
-        assert mix(["test", "--partitions", "3"], [{"MIX_TEST_PARTITION", "3"}]) =~
+        assert mix(["test", "--partitions", "3", "--cover"], [{"MIX_TEST_PARTITION", "3"}]) =~
                  "There are no tests to run"
+
+        assert File.regular?("cover/1.coverdata")
+        assert File.regular?("cover/2.coverdata")
+        refute File.regular?("cover/3.coverdata")
+
+        assert mix(["test.coverage"]) == """
+               Importing cover results: cover/1.coverdata
+               Importing cover results: cover/2.coverdata
+
+               Percentage | Module
+               -----------|--------------------------
+                  100.00% | A
+                  100.00% | B
+               -----------|--------------------------
+                  100.00% | Total
+
+               Generated HTML coverage results in \"cover\" directory
+               """
       end)
     end
 

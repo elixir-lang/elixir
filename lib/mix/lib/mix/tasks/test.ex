@@ -1,127 +1,4 @@
 defmodule Mix.Tasks.Test do
-  defmodule Cover do
-    @default_threshold 90
-
-    @moduledoc false
-
-    def start(compile_path, opts) do
-      Mix.shell().info("Cover compiling modules ...")
-      _ = :cover.stop()
-      _ = :cover.start()
-
-      case :cover.compile_beam_directory(compile_path |> to_charlist) do
-        results when is_list(results) ->
-          :ok
-
-        {:error, _} ->
-          Mix.raise("Failed to cover compile directory: " <> compile_path)
-      end
-
-      fn ->
-        Mix.shell().info("\nGenerating cover results ...\n")
-        {:result, ok, _fail} = :cover.analyse(:coverage, :line)
-        modules = :cover.modules()
-
-        if summary_opts = Keyword.get(opts, :summary, true) do
-          summary(ok, modules, summary_opts)
-        end
-
-        html(modules, opts)
-      end
-    end
-
-    defp html(results, opts) do
-      output = opts[:output]
-      File.mkdir_p!(output)
-
-      for mod <- results do
-        {:ok, _} = :cover.analyse_to_file(mod, '#{output}/#{mod}.html', [:html])
-      end
-
-      Mix.shell().info([
-        "Generated HTML coverage results in '",
-        output,
-        "' directory\n"
-      ])
-    end
-
-    defp summary(results, keep, summary_opts) do
-      {module_results, totals} = gather_coverage(results, keep)
-      module_results = Enum.sort(module_results, :desc)
-      print_summary(module_results, totals, summary_opts)
-    end
-
-    defp gather_coverage(results, keep) do
-      keep_set = MapSet.new(keep)
-
-      # When gathering coverage results, we need to skip any
-      # entry with line equal to 0 as those are generated code.
-      #
-      # We may also have multiple entries on the same line.
-      # Each line is only considered once.
-      #
-      # We use ETS for performance, to avoid working with nested maps.
-      table = :ets.new(__MODULE__, [:set, :private])
-
-      try do
-        for {{module, line}, cov} <- results, module in keep_set, line != 0 do
-          case cov do
-            {1, 0} -> :ets.insert(table, {{module, line}, true})
-            {0, 1} -> :ets.insert_new(table, {{module, line}, false})
-          end
-        end
-
-        module_results = for module <- keep, do: {read_cover_results(table, module), module}
-        {module_results, read_cover_results(table, :_)}
-      after
-        :ets.delete(table)
-      end
-    end
-
-    defp read_cover_results(table, module) do
-      covered = :ets.select_count(table, [{{{module, :_}, true}, [], [true]}])
-      not_covered = :ets.select_count(table, [{{{module, :_}, false}, [], [true]}])
-      percentage(covered, not_covered)
-    end
-
-    defp percentage(0, 0), do: 100.0
-    defp percentage(covered, not_covered), do: covered / (covered + not_covered) * 100
-
-    defp print_summary(results, totals, true), do: print_summary(results, totals, [])
-
-    defp print_summary(results, totals, opts) when is_list(opts) do
-      Mix.shell().info("Percentage | Module")
-      Mix.shell().info("-----------|--------------------------")
-      results |> Enum.sort() |> Enum.each(&display(&1, opts))
-      Mix.shell().info("-----------|--------------------------")
-      display({totals, "Total"}, opts)
-      Mix.shell().info("")
-    end
-
-    defp display({percentage, name}, opts) do
-      threshold = Keyword.get(opts, :threshold, @default_threshold)
-
-      Mix.shell().info([
-        color(percentage, threshold),
-        format_number(percentage, 9),
-        "%",
-        :reset,
-        " | ",
-        format_name(name)
-      ])
-    end
-
-    defp color(percentage, true), do: color(percentage, @default_threshold)
-    defp color(_, false), do: ""
-    defp color(percentage, threshold) when percentage > threshold, do: :green
-    defp color(_, _), do: :red
-
-    defp format_number(number, length), do: :io_lib.format("~#{length}.2f", [number])
-
-    defp format_name(name) when is_binary(name), do: name
-    defp format_name(mod) when is_atom(mod), do: inspect(mod)
-  end
-
   use Mix.Task
 
   alias Mix.Compilers.Test, as: CT
@@ -272,10 +149,16 @@ defmodule Mix.Tasks.Test do
     * `:output` - the output directory for cover results. Defaults to `"cover"`
     * `:tool` - the coverage tool
     * `:summary` - summary output configuration; can be either a boolean
-      or a keyword list. When a keyword list is passed, it can specify a `:threshold`,
-      which is a boolean or numeric value that enables coloring of code coverage
-      results in red or green depending on whether the percentage is below or
-      above the specified threshold, respectively. Defaults to `[threshold: 90]`
+      or a keyword list. When a keyword list is passed, it can specify a
+      `:threshold`, which is a boolean or numeric value that enables coloring
+      of code coverage results in red or green depending on whether the
+      percentage is below or above the specified threshold, respectively.
+      Defaults to `[threshold: 90]`
+    * `:export` - a file name to export results to instead of generating
+      the result on the fly. The `.coverdata extension is automatically
+      added to the given file. See `mix test.coverage` to compile a
+      report from multiple exports. This option is automatically enabled
+      when using the process partitioning feature
 
   By default, a very simple wrapper around OTP's `cover` is used as a tool,
   but it can be overridden as follows:
@@ -314,10 +197,16 @@ defmodule Mix.Tasks.Test do
       MIX_TEST_PARTITION=3 mix test --partitions 4
       MIX_TEST_PARTITION=4 mix test --partitions 4
 
-  The test files are sorted and distributed in a round-robin fashion. Note the
-  partition itself is given as an environment variable so it can be accessed in
-  configuration files and test scripts. For example, it can be used to setup a
-  different database instance per partition in `config/test.exs`.
+  The test files are sorted upfront in a round-robin fashion. Note the partition
+  itself is given as an environment variable so it can be accessed in config files
+  and test scripts. For example, it can be used to setup a different database instance
+  per partition in `config/test.exs`.
+
+  If partitioning is enabled and `--cover` is used, no cover reports are generated,
+  as they only contain a subset of the coverage data. Instead, the coverage data
+  is exported to files such as `cover/MIX_TEST_PARTITION.coverdata`. Once you have
+  the results of all partitions inside `cover/`, you can run `mix test.coverage` to
+  get the unified report.
 
   ## The --stale option
 
@@ -362,7 +251,7 @@ defmodule Mix.Tasks.Test do
     preload_modules: :boolean
   ]
 
-  @cover [output: "cover", tool: Cover]
+  @cover [output: "cover", tool: Mix.Tasks.Test.Coverage]
 
   @impl true
   def run(args) do
@@ -429,7 +318,12 @@ defmodule Mix.Tasks.Test do
     cover =
       if opts[:cover] do
         compile_path = Mix.Project.compile_path(project)
-        cover = Keyword.merge(@cover, project[:test_coverage] || [])
+
+        cover =
+          @cover
+          |> Keyword.put(:export, opts[:partitions] && System.get_env("MIX_TEST_PARTITION"))
+          |> Keyword.merge(project[:test_coverage] || [])
+
         cover[:tool].start(compile_path, cover)
       end
 
