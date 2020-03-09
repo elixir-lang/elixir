@@ -326,6 +326,7 @@ Now imagine that `json_payload` is a large JSON blob and the `"key"` inside the 
 #### Mix
 
   * [mix compile.xref] This check has been moved into the compiler and has no effect now
+  * [mix xref] `xref` now only tracks dependencies between modules and files, no longer between functions. See "Compilation tracers" to learn more about how to track this information directly
   * [mix xref deprecations] This check has been moved into the compiler and has no effect now
   * [mix xref unreachable] This check has been moved into the compiler and has no effect now
 
