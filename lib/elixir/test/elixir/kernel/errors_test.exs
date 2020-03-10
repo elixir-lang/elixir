@@ -1117,7 +1117,7 @@ defmodule Kernel.ErrorsTest do
                       'fn do :ok end'
   end
 
-  test "bodyless function with guard" do
+  test "function head with guard" do
     assert_eval_raise CompileError, "nofile:2: missing :do option in \"def\"", '''
     defmodule Kernel.ErrorsTest.BodyessFunctionWithGuard do
       def foo(n) when is_number(n)

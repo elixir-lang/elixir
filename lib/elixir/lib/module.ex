@@ -1430,7 +1430,7 @@ defmodule Module do
     end
   end
 
-  defp compile_doc(table, line, kind, name, arity, args, _body, doc, doc_meta, env, impl) do
+  defp compile_doc(table, line, kind, name, arity, args, body, doc, doc_meta, env, impl) do
     key = {doc_key(kind), name, arity}
     signature = build_signature(args, env)
 
@@ -1440,6 +1440,22 @@ defmodule Module do
         :ets.insert(table, {key, line, signature, doc, doc_meta})
 
       [{_, current_line, current_sign, current_doc, current_doc_meta}] ->
+        if is_binary(current_doc) and is_binary(doc) and body != [] do
+          message = ~s'''
+          redefining @doc attribute previously set at line #{current_line}.
+
+          Please remove the duplicate docs. If instead you want to override a \
+          previously defined @doc, attach the @doc attribute to a function head:
+
+              @doc """
+              new docs
+              """
+              def #{name}(...)
+          '''
+
+          IO.warn(message, Macro.Env.stacktrace(%{env | line: line}))
+        end
+
         signature = merge_signatures(current_sign, signature, 1)
         doc = if is_nil(doc), do: current_doc, else: doc
         doc = if is_nil(doc) && impl, do: false, else: doc

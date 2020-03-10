@@ -1174,6 +1174,40 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
+  test "duplicate docs across clauses" do
+    assert capture_err(fn ->
+             Code.eval_string("""
+             defmodule Sample1 do
+               defmacro __using__(_) do
+                 quote do
+                   @doc "hello"
+                   def add(a, b), do: a + b
+                 end
+               end
+             end
+
+             defmodule Sample2 do
+               use Sample1
+               @doc "world"
+               def add(a, b)
+             end
+             """)
+           end) == ""
+
+    assert capture_err(fn ->
+             Code.eval_string("""
+             defmodule Sample3 do
+               @doc "hello"
+               def add(a, 1), do: a + 1
+               @doc "world"
+               def add(a, 2), do: a + 2
+             end
+             """)
+           end) =~ "redefining @doc attribute previously set at line "
+  after
+    purge([Sample1, Sample2, Sample3])
+  end
+
   test "reserved doc metadata keys" do
     output =
       capture_err(fn ->
