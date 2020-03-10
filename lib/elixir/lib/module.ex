@@ -1441,6 +1441,16 @@ defmodule Module do
 
       [{_, current_line, current_sign, current_doc, current_doc_meta}] ->
         signature = merge_signatures(current_sign, signature, 1)
+
+        if is_binary(doc) and is_binary(current_doc) and not impl do
+          message =
+            "@doc attribute will override the documentation and tests previously defined at line #{
+              current_line
+            }"
+
+          IO.warn(message, Macro.Env.stacktrace(%{env | line: line}))
+        end
+
         doc = if is_nil(doc), do: current_doc, else: doc
         doc = if is_nil(doc) && impl, do: false, else: doc
         doc_meta = Map.merge(current_doc_meta, doc_meta)
