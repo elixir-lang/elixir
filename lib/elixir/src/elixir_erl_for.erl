@@ -301,9 +301,9 @@ no_var_size(Size) -> Size.
 build_comprehension(Ann, Clauses, Expr, Into) ->
   {comprehension_kind(Into), Ann, Expr, comprehension_clause(Clauses)}.
 
-comprehension_clause([{Kind, Meta, Left, Right, Filters} | T]) ->
+comprehension_clause([{bin, Meta, Left, Right, Filters} | T]) ->
   Ann = ?ann(Meta),
-  [{comprehension_generator(Kind), Ann, Left, Right}] ++
+  [{b_generate, Ann, Left, Right}] ++
     comprehension_filter(Ann, Filters) ++
     comprehension_clause(T);
 comprehension_clause([]) ->
@@ -312,9 +312,6 @@ comprehension_clause([]) ->
 comprehension_kind(false) -> lc;
 comprehension_kind({nil, _}) -> lc;
 comprehension_kind({bin, _, []}) -> bc.
-
-comprehension_generator(enum) -> generate;
-comprehension_generator(bin) -> b_generate.
 
 inline_or_into({bin, _, []}) -> inline;
 inline_or_into({nil, _}) -> inline;
