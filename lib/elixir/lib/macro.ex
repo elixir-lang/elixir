@@ -896,13 +896,13 @@ defmodule Macro do
   end
 
   # All other calls
-  def to_string({target, meta, []} = ast, fun) do
-    target = call_to_string(target, fun)
+  def to_string({{:., _, [left, _]} = target, meta, []} = ast, fun) do
+    to_string = call_to_string(target, fun)
 
-    if meta[:no_parens] do
-      fun.(ast, target)
+    if is_tuple(left) && meta[:no_parens] do
+      fun.(ast, to_string)
     else
-      fun.(ast, target <> "()")
+      fun.(ast, to_string <> "()")
     end
   end
 

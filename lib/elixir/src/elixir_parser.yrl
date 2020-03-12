@@ -835,7 +835,6 @@ build_no_parens(Expr, Args) ->
   build_identifier(Expr, Args).
 
 build_identifier({'.', Meta, _} = Dot, nil) ->
-  %% TODO: We should emit a different AST for this in the future
   {Dot, [{no_parens, true} | Meta], []};
 
 build_identifier({'.', Meta, _} = Dot, Args) ->
