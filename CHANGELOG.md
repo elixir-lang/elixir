@@ -32,7 +32,8 @@
 
 #### Mix
 
-  * [mix compile.elixir] Track application boundaries in the Elixir compiler. If you invoke code from Erlang or Elixir standard libraries and you don't depend on the proper applications, a warning will be emitted. A warning will also be emitted if you invoke code from an umbrella sibling that you don't depend on
+  * [mix compile.elixir] Track application boundaries in the Elixir compiler. If you invoke code from Erlang or Elixir standard libraries and you don't depend on the proper applications, a warning will be emitted. A warning will also be emitted if you invoke code from an umbrella sibling that you don't depend on - effectively forbidding cyclic dependencies between apps
+  * [mix test.coverage] Add `mix test.coverage` that aggregates coverage results from umbrellas and OS partitioning
 
 ### 2. Bug fixes
 
@@ -43,6 +44,7 @@
 #### Elixir
 
   * [Kernel] Validate values given to `:line` in quote to avoid emitting invalid ASTs
+  * [Version] Add defaults and enforce keys in `Version` struct
 
 ### 3. Soft-deprecations (no warnings emitted)
 
@@ -52,7 +54,6 @@
 
 #### Elixir
 
-  * [Kernel] Deprecate remote nil arity calls without parens
   * [Supervisor] Deprecate `Supervisor.start_child/2` and `Supervisor.terminate_child/2` in favor of `DynamicSupervisor`
   * [Supervisor.Spec] Deprecate `Supervisor.Spec.worker/3` and `Supervisor.Spec.supervisor/3` in favor of the new typespecs
 
