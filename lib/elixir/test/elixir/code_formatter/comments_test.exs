@@ -102,6 +102,108 @@ defmodule Code.Formatter.CommentsTest do
     end
   end
 
+  describe "modules attributes" do
+    test "with comments around" do
+      assert_same """
+      defmodule Sample do
+        # Comment 0
+        @moduledoc false
+        # Comment 1
+
+        # Comment 2
+        @attr1 1
+        # Comment 3
+
+        # Comment 4
+        @doc "Doc"
+        # Comment 5
+        @attr2 2
+        # Comment 6
+        def sample, do: :sample
+      end
+      """
+    end
+
+    test "with comments only after" do
+      assert_same """
+      @moduledoc false
+      # Comment 1
+
+      @attr 1
+      """
+    end
+
+    test "with too many new lines" do
+      bad = """
+      defmodule Sample do
+
+        # Comment 0
+
+
+        @moduledoc false
+
+
+        # Comment 1
+
+
+        # Comment 2
+
+
+        @attr1 1
+
+
+        # Comment 3
+
+
+        # Comment 4
+
+
+        @doc "Doc"
+
+
+        # Comment 5
+
+
+        @attr2 2
+
+
+        # Comment 6
+
+
+        def sample, do: :sample
+      end
+      """
+
+      assert_format bad, """
+      defmodule Sample do
+        # Comment 0
+
+        @moduledoc false
+
+        # Comment 1
+
+        # Comment 2
+
+        @attr1 1
+
+        # Comment 3
+
+        # Comment 4
+
+        @doc "Doc"
+
+        # Comment 5
+
+        @attr2 2
+
+        # Comment 6
+
+        def sample, do: :sample
+      end
+      """
+    end
+  end
+
   describe "interpolation" do
     test "with comment outside before, during and after" do
       assert_same ~S"""
