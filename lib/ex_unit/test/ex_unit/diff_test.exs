@@ -471,6 +471,34 @@ defmodule ExUnit.DiffTest do
     refute_diff(%{a: 1} = :a, "-%{a: 1}-", "+:a+")
   end
 
+  test "maps as pinned map value" do
+    user = %{"id" => 13, "name" => "john"}
+
+    notification = %{
+      "user" => user,
+      "subtitle" => "foo"
+    }
+
+    assert_diff(
+      %{
+        "user" => ^user,
+        "subtitle" => "foo"
+      } = notification,
+      [],
+      %{{:user, nil} => user}
+    )
+
+    refute_diff(
+      %{
+        "user" => ^user,
+        "subtitle" => "bar"
+      } = notification,
+      ~s|%{"subtitle" => "-bar-", "user" => ^user}|,
+      ~s|%{"subtitle" => "+foo+", "user" => %{"id" => 13, "name" => "john"}}|,
+      %{{:user, nil} => user}
+    )
+  end
+
   test "maps outside match context" do
     assert_diff(%{a: 1} == %{a: 1}, [])
     assert_diff(%{a: 1, b: 2} == %{a: 1, b: 2}, [])
