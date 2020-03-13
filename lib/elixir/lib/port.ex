@@ -132,9 +132,9 @@ defmodule Port do
   While we encourage graceful termination by detecting if stdin/stdout has been
   closed, we do not always have control over how third-party software terminates.
   In those cases, you can wrap the application in a script that checks for stdin.
-  Here is such script in `sh`:
+  Here is such script that has been verified to work on bash shells:
 
-      #!/bin/sh
+      #!/usr/bin/env bash
 
       # Start the program in the background
       exec "$@" &
