@@ -1914,8 +1914,7 @@ defmodule Code.Formatter do
     {args_docs, comments?, %{state | comments: comments}}
   end
 
-  defp each_quoted_to_algebra_with_comments(args, acc, max_line, state, comments?, fun) do
-    [arg | args] = args
+  defp each_quoted_to_algebra_with_comments([arg | args], acc, max_line, state, comments?, fun) do
     {doc_start, doc_end} = traverse_line(arg, {@max_line, @min_line})
 
     {acc, comments, comments?} =
@@ -1926,7 +1925,7 @@ defmodule Code.Formatter do
     {acc, comments, comments?} =
       extract_comments_trailing(doc_start, doc_end, acc, state.comments, comments?)
 
-    acc = [doc_triplet | acc]
+    acc = [adjust_trailing_newlines(doc_triplet, doc_end, comments) | acc]
     state = %{state | comments: comments}
     each_quoted_to_algebra_with_comments(args, acc, max_line, state, comments?, fun)
   end
@@ -1956,6 +1955,15 @@ defmodule Code.Formatter do
   defp extract_comments_trailing(_min, _max, acc, rest, comments?) do
     {acc, rest, comments?}
   end
+
+  # If the document is immediately followed by comment which is followed by newlines,
+  # its newlines wouldn't have considerd the comment, so we need to adjust it.
+  defp adjust_trailing_newlines({doc, next_line, newlines}, doc_end, [{line, _, _} | _])
+       when newlines > 1 and line == doc_end + 1 do
+    {doc, next_line, 1}
+  end
+
+  defp adjust_trailing_newlines(doc_triplet, _, _), do: doc_triplet
 
   defp traverse_line({expr, meta, args}, {min, max}) do
     acc =
