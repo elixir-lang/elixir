@@ -111,7 +111,7 @@ defmodule Mix.Compilers.ApplicationTracer do
     in your mix.exs
 
       3. In case you don't want to add a requirement to :#{app}, you may \
-    optionally skip this warning by adding [xref: [exclude: #{inspect(module)}]
+    optionally skip this warning by adding [xref: [exclude: #{inspect(module)}] \
     to your "def project" in mix.exs
     """
   end
