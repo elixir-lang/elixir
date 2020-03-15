@@ -1,4 +1,4 @@
-defmodule BuildDiff do
+defmodule Diff do
   @moduledoc """
   Utilities for comparing build artifacts.
   """
@@ -167,7 +167,7 @@ end
 
 case System.argv() do
   [dir1, dir2] ->
-    case BuildDiff.compare_dirs(dir1, dir2) do
+    case Diff.compare_dirs(dir1, dir2) do
       {[], [], []} ->
         IO.puts("#{inspect(dir1)} and #{inspect(dir2)} are equal")
 
