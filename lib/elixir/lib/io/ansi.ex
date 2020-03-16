@@ -33,7 +33,7 @@ defmodule IO.ANSI do
   A higher level and more convenient API is also available via `IO.ANSI.format/1`,
   where you use atoms to represent each ANSI escape sequence:
 
-      IO.puts IO.ANSI.format [:blue_background, "Example", :reset]
+      IO.puts(IO.ANSI.format([:blue_background, "Example", :reset]))
 
   """
 
