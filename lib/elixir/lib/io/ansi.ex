@@ -28,7 +28,7 @@ defmodule IO.ANSI do
   these functions is to concatenate their output with text.
 
       formatted_text = IO.ANSI.blue_background() <> "Example" <> IO.ANSI.reset()
-      IO.puts formatted_text
+      IO.puts(formatted_text)
 
   A higher level and more convenient API is also available via `IO.ANSI.format/1`,
   where you use atoms to represent each ANSI escape sequence:
