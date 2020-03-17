@@ -55,8 +55,8 @@ defmodule Keyword do
 
   ## Call syntax
 
-  When keyword lists are passed as the last argument to a function, then
-  the square brackets around the keyword list can be omitted as well. For
+  When keyword lists are passed as the last argument to a function,
+  the square brackets around the keyword list can be omitted. For
   example, the keyword list syntax:
 
       String.split("1-0", "-", [trim: true, parts: 2])
