@@ -116,11 +116,8 @@ defmodule Mix.Shell do
   @doc since: "1.11.0"
   def cmd!(command, options \\ [], callback) do
     case cmd(command, options, callback) do
-      0 ->
-        0
-
-      other ->
-        Mix.raise("Command exited with status #{other}")
+      0 -> 0
+      other -> Mix.raise("Command exited with status #{other}")
     end
   end
 
