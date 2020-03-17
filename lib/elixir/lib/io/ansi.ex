@@ -36,6 +36,7 @@ defmodule IO.ANSI do
 
       IO.puts(IO.ANSI.format([:blue_background, "Example"]))
 
+  In case ANSI is disabled, the ANSI escape sequences are simply discarded.
   """
 
   import IO.ANSI.Sequence
