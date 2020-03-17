@@ -21,6 +21,22 @@ defmodule IO.ANSI do
   [ANSI escape sequences](https://en.wikipedia.org/wiki/ANSI_escape_code)
   are characters embedded in text used to control formatting, color, and
   other output options on video text terminals.
+
+  ## Examples
+
+  Because the ANSI escape sequences are embedded in text, the normal usage of
+  these functions is to concatenate their output with text.
+
+      formatted_text = IO.ANSI.blue_background() <> "Example" <> IO.ANSI.reset()
+      IO.puts(formatted_text)
+
+  A higher level and more convenient API is also available via `IO.ANSI.format/1`,
+  where you use atoms to represent each ANSI escape sequence and by default 
+  checks if ANSI is enabled:
+
+      IO.puts(IO.ANSI.format([:blue_background, "Example"]))
+
+  In case ANSI is disabled, the ANSI escape sequences are simply discarded.
   """
 
   import IO.ANSI.Sequence
