@@ -29,7 +29,7 @@ defmodule Mix.Shell.IOTest do
     assert capture_io("", fn -> refute yes?("Ok?") end)
   end
 
-  test "runs a given command" do
+  test "cmd/3" do
     nl = os_newline()
 
     assert capture_io("", fn -> assert cmd("echo hello") == 0 end) == "hello" <> nl
@@ -40,6 +40,14 @@ defmodule Mix.Shell.IOTest do
              "hello" <> nl
 
     assert capture_io("", fn -> assert cmd("echo hello") == 0 end) == "==> sample\nhello" <> nl
+  end
+
+  test "cmd!/3" do
+    assert cmd!("test 1 = 1") == 0
+
+    assert_raise Mix.Error, "Command exited with status 1", fn ->
+      assert cmd!("test 1 = 0")
+    end
   end
 
   defp will_print_sample do

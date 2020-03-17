@@ -74,6 +74,8 @@ defmodule Mix.Shell do
   This is most commonly used by shell implementations
   but can also be invoked directly.
 
+  Returns exit status of the command.
+
   ## Options
 
     * `:stderr_to_stdout` - redirects stderr to stdout, defaults to true
@@ -101,6 +103,25 @@ defmodule Mix.Shell do
     opts = [:stream, :binary, :exit_status, :hide, :use_stdio, {:env, env} | args]
     port = Port.open({:spawn, shell_command(command)}, opts)
     port_read(port, callback)
+  end
+
+  @doc """
+  Executes the given `command` as a shell command and
+  invokes the `callback` for the streamed response.
+
+  Raises on non-zero exit status of the command.
+
+  See `cmd/3` for more information.
+  """
+  @doc since: "1.11.0"
+  def cmd!(command, options \\ [], callback) do
+    case cmd(command, options, callback) do
+      0 ->
+        0
+
+      other ->
+        Mix.raise("Command exited with status #{other}")
+    end
   end
 
   defp port_read(port, callback) do

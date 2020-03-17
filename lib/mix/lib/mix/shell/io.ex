@@ -71,11 +71,29 @@ defmodule Mix.Shell.IO do
   @doc """
   Executes the given command and prints its output
   to stdout as it comes.
+
+  Returns exit status of the command.
   """
   def cmd(command, opts \\ []) do
     print_app? = Keyword.get(opts, :print_app, true)
 
     Mix.Shell.cmd(command, opts, fn data ->
+      if print_app?, do: print_app()
+      IO.write(data)
+    end)
+  end
+
+  @doc """
+  Executes the given command and prints its output
+  to stdout as it comes.
+
+  Raises on non-zero exit status of the command.
+  """
+  @doc since: "1.11.0"
+  def cmd!(command, opts \\ []) do
+    print_app? = Keyword.get(opts, :print_app, true)
+
+    Mix.Shell.cmd!(command, opts, fn data ->
       if print_app?, do: print_app()
       IO.write(data)
     end)
