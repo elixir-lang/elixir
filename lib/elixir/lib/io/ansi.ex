@@ -31,7 +31,8 @@ defmodule IO.ANSI do
       IO.puts(formatted_text)
 
   A higher level and more convenient API is also available via `IO.ANSI.format/1`,
-  where you use atoms to represent each ANSI escape sequence:
+  where you use atoms to represent each ANSI escape sequence and by default 
+  checks if ANSI is enabled:
 
       IO.puts(IO.ANSI.format([:blue_background, "Example"]))
 
