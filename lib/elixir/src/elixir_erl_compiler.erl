@@ -48,8 +48,10 @@ compile(Forms, File, Opts) when is_list(Forms), is_list(Opts), is_binary(File) -
   case erl_to_core(Forms, Opts) of
     {ok, CoreForms, CoreWarnings} ->
       format_warnings(Opts, CoreWarnings),
+      CompileOpts = [?NO_SPAWN_COMPILER_PROCESS, from_core, no_core_prepare,
+                     no_auto_import, return, {source, Source} | Opts],
 
-      case compile:noenv_forms(CoreForms, [?NO_SPAWN_COMPILER_PROCESS, from_core, no_auto_import, return, {source, Source} | Opts]) of
+      case compile:noenv_forms(CoreForms, CompileOpts) of
         {ok, Module, Binary, Warnings} when is_binary(Binary) ->
           format_warnings(Opts, Warnings),
           {Module, Binary};
