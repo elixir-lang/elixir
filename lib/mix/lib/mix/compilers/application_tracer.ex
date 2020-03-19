@@ -57,7 +57,7 @@ defmodule Mix.Compilers.ApplicationTracer do
           # If the module belongs to this application (from another compiler), we skip it.
           # If the module is excluded, we skip it too.
           with path when is_list(path) <- :code.which(module),
-               [module_app, "ebin", _beam] <- path |> Path.split() |> Enum.take(-3),
+               {:ok, module_app} <- app(path),
                true <- module_app != app,
                false <- module in excludes or {module, function, arity} in excludes do
             env_mfa =
@@ -80,6 +80,15 @@ defmodule Mix.Compilers.ApplicationTracer do
     warnings
     |> Module.Checker.group_warnings()
     |> Module.Checker.emit_warnings()
+  end
+
+  # ../elixir/ebin/elixir.beam -> elixir
+  # ../ssl-9.6/ebin/ssl.beam -> ssl
+  defp app(path) do
+    case path |> Path.split() |> Enum.take(-3) do
+      [dir, "ebin", _beam] -> {:ok, dir |> String.split("-") |> hd()}
+      _ -> :error
+    end
   end
 
   def stop() do
