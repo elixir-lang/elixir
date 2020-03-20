@@ -203,7 +203,6 @@ annotate(Tree, _Context) -> Tree.
 
 has_unquotes({unquote, _, [_]}) -> true;
 has_unquotes({unquote_splicing, _, [_]}) -> true;
-has_unquotes({unquote_var, _, [_]}) -> true;
 has_unquotes({{'.', _, [_, unquote]}, _, [_]}) -> true;
 has_unquotes({Var, _, Ctx}) when is_atom(Var), is_atom(Ctx) -> false;
 has_unquotes({Name, _, Args}) when is_list(Args) ->
@@ -240,9 +239,6 @@ fun_to_quoted(Function) ->
 quote(_Meta, {unquote_splicing, _, [_]}, _Binding, #elixir_quote{unquote=true}, _, _) ->
   argument_error(<<"unquote_splicing only works inside arguments and block contexts, "
     "wrap it in parens if you want it to work with one-liners">>);
-
-quote(_Meta, {unquote_var, _, [_]}, _Binding, #elixir_quote{unquote=true}, _, _) ->
-  argument_error(<<"unquote_var only works for a single variable">>);
 
 quote(Meta, Expr, Binding, Q, Prelude, E) ->
   Context = Q#elixir_quote.context,
@@ -291,7 +287,7 @@ do_quote({quote, Meta, [Opts, Arg]}, Q, E) ->
 
 do_quote({unquote, _Meta, [Expr]}, #elixir_quote{unquote=true}, _) ->
   Expr;
-  
+
 do_quote({unquote_var, Meta, [{Name, _, _Context} = Tuple]}, #elixir_quote{unquote=true} = Q, _E) when is_atom(Name) ->
   {'{}', [], [Tuple, meta(Meta, Q), Q#elixir_quote.context]};
 
@@ -320,16 +316,12 @@ do_quote({Name, Meta, nil}, #elixir_quote{vars_hygiene=true} = Q, _E) when is_at
 do_quote({{{'.', Meta, [Left, unquote]}, _, [Expr]}, _, Args}, #elixir_quote{unquote=true} = Q, E) ->
   do_quote_call(Left, Meta, Expr, Args, Q, E);
 
-% {{'.', Meta, [Left, :unquot]}, _, [{:bar, [], Elixir}]}
 do_quote({{'.', Meta, [Left, unquote]}, _, [Expr]}, #elixir_quote{unquote=true} = Q, E) ->
   do_quote_call(Left, Meta, Expr, nil, Q, E);
 
-% {{'.', Meta, [Left, :unquot]}, _, [{:bar, [], Elixir}]}
-% {'/', Meta, [{:unquot, [], [Expr]}, Arity]}
-do_quote({'&', MMeta, [{'/', Meta, [{unquote, C, [F]}, A]}]},
-         #elixir_quote{unquote=true} = Q, E) ->
+do_quote({'&', MMeta, [{'/', Meta, [{unquote, C, [F]}, A]}]}, #elixir_quote{unquote=true} = Q, E) ->
   do_quote({'&', MMeta, [{'/', Meta, [{unquote_var, C, [F]}, A]}]}, Q, E);
-  
+
 %% Imports
 
 do_quote({'&', Meta, [{'/', _, [{F, _, C}, A]}] = Args},
@@ -459,8 +451,8 @@ do_quote_call(Left, Meta, Expr, Args, Q, E) ->
   All  = [meta(Meta, Q), Left, {unquote, Meta, [Expr]}, Args, Q#elixir_quote.context],
   TAll = [do_quote(X, Q, E) || X <- All],
   {{'.', Meta, [elixir_quote, dot]}, Meta, TAll}.
-  
-  do_quote_fa(Target, Meta, Args, F, A, Q, E) ->
+
+do_quote_fa(Target, Meta, Args, F, A, Q, E) ->
   NewMeta =
     case elixir_dispatch:find_import(Meta, F, A, E) of
       false -> Meta;

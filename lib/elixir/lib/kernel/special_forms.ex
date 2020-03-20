@@ -1351,8 +1351,6 @@ defmodule Kernel.SpecialForms do
   """
   defmacro unquote(:unquote_splicing)(expr), do: error!([expr])
 
-  defmacro unquote(:unquote_var)(expr), do: error!([expr])
-
   @doc ~S"""
   Comprehensions allow you to quickly build a data structure from
   an enumerable or a bitstring.
