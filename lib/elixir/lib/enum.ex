@@ -161,6 +161,9 @@ defprotocol Enumerable do
 
   Otherwise it should return `{:error, __MODULE__}` and a default algorithm
   built on top of `reduce/3` that runs in linear time will be used.
+
+  The [`in`](`in/2`) and [`not in`](`in/2`) operators work by calling this
+  function.
   """
   @spec member?(t, term) :: {:ok, boolean} | {:error, module}
   def member?(enumerable, element)
@@ -1672,6 +1675,9 @@ defmodule Enum do
       iex> Enum.member?([:a, :b, :c], :d)
       false
 
+
+  The [`in`](`in/2`) and [`not in`](`in/2`) operators work by calling this
+  function.
   """
   @spec member?(t, element) :: boolean
   def member?(enumerable, element) when is_list(enumerable) do
