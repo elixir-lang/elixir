@@ -47,6 +47,9 @@ Many of them can be used in guards; see the [list of allowed guard functions and
   * [`&&`](`&&/2`) and [`and`](`and/2`) - relaxed and strict logical and
   * [`||`](`||/2`) and [`or`](`or/2`) - relaxed and strict logical or
 
+Additionally, there are a few other operators that Elixir parses but doesn't actually use.
+See [Custom and overridden operators](#custom-and-overridden-operators) below for a list.
+
 Some other operators are special forms and cannot be overridden:
 
   * [`^`](`^/1`) - pin
@@ -55,10 +58,7 @@ Some other operators are special forms and cannot be overridden:
   * [`&`](`&/1`) - function capture
   * [`::`](Kernel.SpecialForms.html#::/2) - type
 
-There are a few operators that Elixir parses but doesn't actually use.
-See [Custom and overridden operators](#custom-and-overridden-operators) below for a list.
-
-Finally, these operators appear in the precedence table above but are only meaningful within certain other constructs:
+Finally, these operators appear in the precedence table above but are only meaningful within certain constructs:
 
   * `=>` - see [`%{}`](`%{}/1`)
   * `when` - see [Guards](patterns-and-guards.html#guards)
