@@ -31,7 +31,8 @@ Operator                                                                        
 
 ## General operators
 
-Elixir provides the following built-in operators that are defined as functions that can be overridden:
+Elixir provides the following built-in operators that are defined as functions that can be overridden.
+Many of them can be used in guards; see the [list of allowed guard functions and operators](patterns-and-guards.html#list-of-allowed-functions-and-operators).
 
   * [`@`](`@/1`) - module attribute definition and access
   * [`+`](`+/1`) and [`-`](`-/1`) - unary positive/negative
