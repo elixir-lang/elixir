@@ -133,6 +133,14 @@ defmodule Kernel.QuoteTest do
 
       # Remote call unquote
       def unquote(k)(arg), do: __MODULE__.unquote(k)() + arg
+
+      # Anonymous functions with local call unquote
+      # def unquote(:"fn_local_#{k}")(), do: (&(unquote_var(k) / 0)).()
+      def unquote(:"fn_local_#{k}")(), do: (&(unquote(k) / 0)).()
+
+      # Anonymous functions with remote call unquote
+      def unquote(:"fn_remote_#{k}")(),
+        do: &(__MODULE__.unquote(k) / 0)
     end
   end
 
@@ -144,6 +152,17 @@ defmodule Kernel.QuoteTest do
     assert Dyn.foo(1) == 2
     assert Dyn.bar(2) == 4
     assert Dyn.baz(3) == 6
+
+    assert Dyn.fn_remote_foo() == (&Dyn.foo/0)
+    assert Dyn.fn_remote_bar() == (&Dyn.bar/0)
+    assert Dyn.fn_remote_baz() == (&Dyn.baz/0)
+    assert Dyn.fn_remote_foo().() == 1
+    assert Dyn.fn_remote_bar().() == 2
+    assert Dyn.fn_remote_baz().() == 3
+
+    assert Dyn.fn_local_foo() == 1
+    assert Dyn.fn_local_bar() == 2
+    assert Dyn.fn_local_baz() == 3
   end
 
   test "splice on root" do

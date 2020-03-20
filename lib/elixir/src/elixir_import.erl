@@ -246,6 +246,7 @@ special_form('quote', 1) -> true;
 special_form('quote', 2) -> true;
 special_form('unquote', 1) -> true;
 special_form('unquote_splicing', 1) -> true;
+special_form('unquote_var', 1) -> true;
 special_form('fn', _) -> true;
 special_form('super', _) -> true;
 special_form('for', _) -> true;

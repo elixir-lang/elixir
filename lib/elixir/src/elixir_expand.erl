@@ -132,7 +132,7 @@ expand({{'.', DotMeta, [{'__ENV__', Meta, Atom}, Field]}, CallMeta, []}, E) when
 
 %% Quote
 
-expand({Unquote, Meta, [_]}, E) when Unquote == unquote; Unquote == unquote_splicing ->
+expand({Unquote, Meta, [_]}, E) when Unquote == unquote; Unquote == unquote_splicing; Unquote == unquote_var ->
   form_error(Meta, E, ?MODULE, {unquote_outside_quote, Unquote});
 
 expand({quote, Meta, [Opts]}, E) when is_list(Opts) ->
@@ -1111,7 +1111,7 @@ format_error({expected_compile_time_module, Kind, GivenTerm}) ->
   io_lib:format("invalid argument for ~ts, expected a compile time atom or alias, got: ~ts",
                 [Kind, 'Elixir.Macro':to_string(GivenTerm)]);
 format_error({unquote_outside_quote, Unquote}) ->
-  %% Unquote can be "unquote" or "unquote_splicing".
+  %% Unquote can be "unquote" or "unquote_splicing" or "unquote_var".
   io_lib:format("~p called outside quote", [Unquote]);
 format_error({invalid_bind_quoted_for_quote, BQ}) ->
   io_lib:format("invalid :bind_quoted for quote, expected a keyword list of variable names, got: ~ts",
