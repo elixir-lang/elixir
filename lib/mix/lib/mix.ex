@@ -161,24 +161,28 @@ defmodule Mix do
       [all: [&hello/1, "deps.get --only #{Mix.env()}", "compile"]]
 
   In the example above, we have defined an alias named `mix all`,
-  that prints "Hello world", then fetches dependencies specific to the
-  current environment, and compiles the project.
+  that prints "Hello world", then fetches dependencies specific
+  to the current environment, and compiles the project.
 
-  Arguments given to the alias will be appended to the arguments
-  of the last task in the list, if the last task is a function
-  they will be given as a list of strings to the function.
-
-  Finally, aliases can also be used to augment existing tasks.
-  Let's suppose you want to augment `mix clean` to clean another
-  directory Mix does not know about:
+  Aliases can also be used to augment existing tasks. Let's suppose
+  you want to augment `mix clean` to clean another directory Mix does
+  not know about:
 
       [clean: ["clean", &clean_extra/1]]
 
   Where `&clean_extra/1` would be a function in your `mix.exs`
   with extra cleanup logic.
 
-  Aliases defined in the current project do not affect its dependencies and
-  aliases defined in dependencies are not accessible from the current project.
+  Arguments given to the alias will be appended to the arguments of
+  the last task in the list. Except when overriding an existing task.
+  In this case, the arguments will be given to the original task,
+  in order to preserve semantics. For example, in the `:clean` alias
+  above, the arguments given to the alias will be passed to "clean"
+  and not to `clean_extra/1`.
+
+  Aliases defined in the current project do not affect its dependencies
+  and aliases defined in dependencies are not accessible from the
+  current project.
 
   Aliases can be used very powerfully to also run Elixir scripts and
   shell commands, for example:
@@ -200,15 +204,15 @@ defmodule Mix do
         ]
       end
 
-  In the example above we have created the alias `some_alias` that will run the
-  task `mix hex.info`, then `mix run` to run an Elixir script, then `mix cmd` to
-  execute a command line shell script. This shows how powerful aliases mixed with
-  Mix tasks can be.
+  In the example above we have created the alias `some_alias` that will
+  run the task `mix hex.info`, then `mix run` to run an Elixir script,
+  then `mix cmd` to execute a command line shell script. This shows how
+  powerful aliases mixed with Mix tasks can be.
 
-  Mix tasks are designed to run only once. This prevents the same task to be
-  executed multiple times. For example, if there are several tasks depending on
-  `mix compile`, the code will be compiled once. Tasks can be executed again if
-  they are explicitly reenabled using `Mix.Task.reenable/1`:
+  Mix tasks are designed to run only once. This prevents the same task
+  to be executed multiple times. For example, if there are several tasks
+  depending on `mix compile`, the code will be compiled once. Tasks can
+  be executed again if they are explicitly reenabled using `Mix.Task.reenable/1`:
 
       another_alias: [
         "format --check-formatted priv/hello1.exs",
@@ -217,13 +221,14 @@ defmodule Mix do
         "format --check-formatted priv/hello2.exs"
       ]
 
-  The following tasks are automatically reenabled: `mix cmd`, `mix do`,
-  `mix loadconfig`, `mix profile.cprof`, `mix profile.eprof`, `mix profile.fprof`,
-  `mix run`, and `mix xref`.
+  Some tasks are automatically reenabled though, as they are expected to
+  be invoked multiple times. They are: `mix cmd`, `mix do`, `mix loadconfig`,
+  `mix profile.cprof`, `mix profile.eprof`, `mix profile.fprof`, `mix run`,
+  and `mix xref`.
 
-  It is worth mentioning that some tasks, such as in the case of the `format`
-  command in the example above, can accept multiple files so it could be rewritten
-  as:
+  It is worth mentioning that some tasks, such as in the case of the
+  `mix format` command in the example above, can accept multiple files so it
+  could be rewritten as:
 
       another_alias: ["format --check-formatted priv/hello1.exs priv/hello2.exs"]
 
