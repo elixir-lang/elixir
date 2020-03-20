@@ -41,7 +41,7 @@ Many of them can be used in guards; see the [list of allowed guard functions and
   * [`++`](`++/2`) and [`--`](`--/2`) - list concatenation and pruning
   * [`..`](`../2`) - range creation
   * [`<>`](`<>/2`) - binary concatenation
-  * [`in`](`in/2`) and [`not in`](`in/2`) - shorthand for [`Enum.member?`](`Enum.member?/2`)
+  * [`in`](`in/2`) and [`not in`](`in/2`) - shorthands for [`Enum.member?`](`Enum.member?/2`)
   * [`|>`](`|>/2`) - function pipeline
   * [`=~`](`=~/2`) - shorthand for [`Regex.match?/2`](`Regex.match?/2`)
   * [`&&`](`&&/2`) and [`and`](`and/2`) - relaxed and strict logical and
