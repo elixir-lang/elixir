@@ -51,7 +51,12 @@ defmodule Mix.AliasesTest do
   end
 
   test "run alias override with recursion" do
-    assert Mix.Task.run("help", []) == "Hello, World!"
+    assert Mix.Task.rerun("help", []) == "Hello, World!"
     assert_received {:mix_shell, :info, ["mix test" <> _]}
+
+    # Arguments are passed to the recursive task and not the liast one.
+    assert ExUnit.CaptureIO.capture_io(fn ->
+      Mix.Task.rerun("help", ["test"]) == "Hello, World!"
+    end) =~ "mix test"
   end
 end

@@ -314,7 +314,7 @@ defmodule Mix.Task do
 
     cond do
       alias && Mix.TasksServer.run({:alias, task, proj}) ->
-        res = run_alias(List.wrap(alias), args, :ok)
+        res = run_alias(List.wrap(alias), args, task, :ok)
         Mix.TasksServer.put({:task, task, proj})
         res
 
@@ -384,18 +384,24 @@ defmodule Mix.Task do
     end
   end
 
-  defp run_alias([h | t], alias_args, _res) when is_binary(h) do
-    [task | args] = OptionParser.split(h)
-    res = Mix.Task.run(task, join_args(args, alias_args, t))
-    run_alias(t, alias_args, res)
+  defp run_alias([h | t], alias_args, original_task, _res) when is_binary(h) do
+    case OptionParser.split(h) do
+      [^original_task | args] ->
+        res = Mix.Task.run(original_task, args ++ alias_args)
+        run_alias(t, [], original_task, res)
+
+      [task | args] ->
+        res = Mix.Task.run(task, join_args(args, alias_args, t))
+        run_alias(t, alias_args, original_task, res)
+    end
   end
 
-  defp run_alias([h | t], alias_args, _res) when is_function(h, 1) do
+  defp run_alias([h | t], alias_args, original_task, _res) when is_function(h, 1) do
     res = h.(join_args([], alias_args, t))
-    run_alias(t, alias_args, res)
+    run_alias(t, alias_args, original_task, res)
   end
 
-  defp run_alias([], _alias_task, res) do
+  defp run_alias([], _alias_task, _original_task, res) do
     res
   end
 
