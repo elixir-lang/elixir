@@ -85,7 +85,7 @@ defmodule Mix.Task do
 
   @doc false
   def supported_attributes do
-    [:shortdoc, :recursive, :preferred_cli_env]
+    [:shortdoc, :recursive, :preferred_cli_env, :requirements]
   end
 
   @doc """
@@ -216,6 +216,19 @@ defmodule Mix.Task do
   end
 
   @doc """
+  Gets requirements for the task.
+
+  Returns list with requirements (for example, `["compile"]`, or `["compile --warning-as-errors"]`), or `["compile", "app.start"]`.
+  """
+  @spec requirements(module) :: atom | nil
+  def requirements(module) when is_atom(module) do
+    case List.keyfind(module.__info__(:attributes), :requirements, 0) do
+      {:requirements, requirements} -> requirements
+      _ -> nil
+    end
+  end
+
+  @doc """
   Returns the task name for the given `module`.
   """
   @spec task_name(task_module) :: task_name
@@ -337,6 +350,8 @@ defmodule Mix.Task do
         get_task_or_run(proj, task, fn -> Mix.Task.run("compile", []) end) ||
         get!(task)
 
+    run_requirements(module)
+
     recursive = recursive(module)
 
     cond do
@@ -357,6 +372,19 @@ defmodule Mix.Task do
           e in OptionParser.ParseError ->
             Mix.raise("Could not invoke task #{inspect(task)}: " <> Exception.message(e))
         end
+    end
+  end
+
+  def run_requirements(module) do
+    case Mix.Task.requirements(module) do
+      nil ->
+        nil
+
+      requirements ->
+        Enum.each(requirements, fn requirement ->
+          [task | args] = String.split(requirement)
+          Mix.Task.rerun(task, args)
+        end)
     end
   end
 
