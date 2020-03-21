@@ -220,7 +220,7 @@ defmodule Mix.Task do
 
   Returns list with requirements (for example, `["compile"]`, or `["compile --warning-as-errors"]`), or `["compile", "app.start"]`.
   """
-  @spec requirements(module) :: atom | nil
+  @spec requirements(task_module) :: requirements
   def requirements(module) when is_atom(module) do
     case List.keyfind(module.__info__(:attributes), :requirements, 0) do
       {:requirements, requirements} -> requirements
