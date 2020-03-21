@@ -393,6 +393,7 @@ end
 defmodule Mix.Tasks.Hello do
   use Mix.Task
   @shortdoc "This is short documentation, see"
+  @requirements ["cmd touch file1.txt", "cmd touch file2.txt"]
 
   @moduledoc """
   A test task.

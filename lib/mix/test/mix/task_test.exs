@@ -237,4 +237,14 @@ defmodule Mix.TaskTest do
   test "shortdoc/1" do
     assert Mix.Task.shortdoc(Mix.Tasks.Hello) == "This is short documentation, see"
   end
+
+  test "requirements/1" do
+    assert Mix.Task.requirements(Mix.Tasks.Hello) == ["cmd touch file1.txt", "cmd touch file2.txt"]
+  end
+
+  test "run_requirements/0" do
+    Mix.Task.run("hello")
+    ensure_touched("file1.txt")
+    ensure_touched("file2.txt")
+  end
 end
