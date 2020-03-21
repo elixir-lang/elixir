@@ -1214,7 +1214,7 @@ handle_terminator(Rest, Line, Column, _, {'(', _}, [{alias, _, Alias} | Tokens])
       "    _starting_with_underscore()\n"
       "    numb3rs_are_allowed()\n"
       "    may_finish_with_question_mark?()\n"
-      "    may_finish_with_exclamation_mark!()\n"
+      "    may_finish_with_exclamation_mark!()\n\n"
       "Unexpected token: ",
       [Alias]
     ),

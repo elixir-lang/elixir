@@ -56,7 +56,7 @@ defmodule Mix.AliasesTest do
 
     # Arguments are passed to the recursive task and not the liast one.
     assert ExUnit.CaptureIO.capture_io(fn ->
-      Mix.Task.rerun("help", ["test"]) == "Hello, World!"
-    end) =~ "mix test"
+             Mix.Task.rerun("help", ["test"]) == "Hello, World!"
+           end) =~ "mix test"
   end
 end
