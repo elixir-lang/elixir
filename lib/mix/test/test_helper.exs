@@ -393,7 +393,6 @@ end
 defmodule Mix.Tasks.Hello do
   use Mix.Task
   @shortdoc "This is short documentation, see"
-  @requirements ["cmd touch file1.txt", "cmd touch file2.txt"]
 
   @moduledoc """
   A test task.
@@ -409,6 +408,21 @@ defmodule Mix.Tasks.Hello do
 
   def run(args) do
     "Hello, #{Enum.join(args, " ")}!"
+  end
+end
+|> write_beam.()
+
+defmodule Mix.Tasks.WithRequirement do
+  use Mix.Task
+  @shortdoc "This is short documentation, see"
+  @requirements ["help compile"]
+
+  @moduledoc """
+  A test task.
+  """
+
+  def run(_args) do
+    "Task with requirements"
   end
 end
 |> write_beam.()

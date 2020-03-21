@@ -239,15 +239,10 @@ defmodule Mix.TaskTest do
   end
 
   test "requirements/1" do
-    assert Mix.Task.requirements(Mix.Tasks.Hello) == [
-             "cmd touch file1.txt",
-             "cmd touch file2.txt"
-           ]
+    assert Mix.Task.requirements(Mix.Tasks.WithRequirement) == ["help compile"]
   end
 
-  test "run_requirements/1" do
-    Mix.Task.run("hello")
-    ensure_touched("file1.txt")
-    ensure_touched("file2.txt")
+  test "run_requirements/1 is run during task execution" do
+    assert String.contains?(ExUnit.CaptureIO.capture_io(fn -> Mix.Task.run("with_requirement") end), "compile")
   end
 end
