@@ -29,9 +29,46 @@ Operator                                                                        
 `when`                                                                                   | Right to left
 `<-` `\\`                                                                                | Left to right
 
+## General operators
+
+Elixir provides the following built-in operators that are defined as functions that can be overridden:
+
+  * [`@`](`@/1`) - module attribute definition and access
+  * [`+`](`+/1`) and [`-`](`-/1`) - unary positive/negative
+  * [`!`](`!/1`) and [`not`](`not/1`) - relaxed and strict logical not
+  * [`*`](`*/2`), [`/`](`//2`), [`+`](`+/2`), and [`-`](`-/2`) - arithmetic
+  * [`++`](`++/2`) and [`--`](`--/2`) - list concatenation and pruning
+  * [`..`](`../2`) - range creation
+  * [`<>`](`<>/2`) - binary concatenation
+  * [`in`](`in/2`) and [`not in`](`in/2`) - shorthands for [`Enum.member?`](`Enum.member?/2`)
+  * [`|>`](`|>/2`) - function pipeline
+  * [`=~`](`=~/2`) - shorthand for [`Regex.match?/2`](`Regex.match?/2`)
+  * [`&&`](`&&/2`) and [`and`](`and/2`) - relaxed and strict logical and
+  * [`||`](`||/2`) and [`or`](`or/2`) - relaxed and strict logical or
+
+Many of those can be used in guards; consult the [list of allowed guard functions and operators](patterns-and-guards.html#list-of-allowed-functions-and-operators).
+
+Additionally, there are a few other operators that Elixir parses but doesn't actually use.
+See [Custom and overridden operators](#custom-and-overridden-operators) below for a list and for guidelines about their use.
+
+Some other operators are special forms and cannot be overridden:
+
+  * [`^`](`^/1`) - pin
+  * [`.`](`./2`) - remote and anonymous calls, and alias join
+  * [`=`](`=/2`) - match
+  * [`&`](`&/1`) - function capture
+  * [`::`](Kernel.SpecialForms.html#::/2) - type
+
+Finally, these operators appear in the precedence table above but are only meaningful within certain constructs:
+
+  * `=>` - see [`%{}`](`%{}/1`)
+  * `when` - see [Guards](patterns-and-guards.html#guards)
+  * `<-` - see [`for`](`for/1`) and [`with`](`with/1`)
+  * `\\` - see [Default arguments](Kernel.html#def/2-default-arguments)
+
 ## Comparison operators
 
-Elixir provides the following built-in comparison operators:
+Elixir provides the following built-in comparison operators (all of which can be used in guards):
 
   * [`==`](`==/2`) - equality
   * [`===`](`===/2`) - strict equality
