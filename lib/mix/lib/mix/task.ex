@@ -383,7 +383,7 @@ defmodule Mix.Task do
       requirements ->
         Enum.each(requirements, fn requirement ->
           [task | args] = String.split(requirement)
-          Mix.Task.rerun(task, args)
+          Mix.Task.run(task, args)
         end)
     end
   end
