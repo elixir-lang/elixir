@@ -68,7 +68,7 @@ Finally, these operators appear in the precedence table above but are only meani
 
 ## Comparison operators
 
-Elixir provides the following built-in comparison operators:
+Elixir provides the following built-in comparison operators (all of which can be overridden or used in guards):
 
   * [`==`](`==/2`) - equality
   * [`===`](`===/2`) - strict equality
