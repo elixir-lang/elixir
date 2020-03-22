@@ -391,7 +391,7 @@ defmodule Mix.Task do
 
   def run_requirements(module) do
     Enum.each(requirements(module), fn requirement ->
-      [task | args] = String.split(requirement)
+      [task | args] = OptionParser.split(requirement)
       Mix.Task.run(task, args)
     end)
   end

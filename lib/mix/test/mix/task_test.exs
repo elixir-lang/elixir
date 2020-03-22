@@ -241,7 +241,7 @@ defmodule Mix.TaskTest do
   defmodule Elixir.Mix.Tasks.WithRequirement do
     use Mix.Task
     @shortdoc "This is short documentation, see"
-    @requirements "help compile"
+    @requirements "help \"compile\""
 
     @moduledoc """
     A test task.
@@ -253,7 +253,7 @@ defmodule Mix.TaskTest do
   end
 
   test "requirements/1" do
-    assert Mix.Task.requirements(Mix.Tasks.WithRequirement) == ["help compile"]
+    assert Mix.Task.requirements(Mix.Tasks.WithRequirement) == ["help \"compile\""]
   end
 
   test "run_requirements/1 is run during task execution" do
