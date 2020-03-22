@@ -246,5 +246,11 @@ defmodule Mix.TaskTest do
     assert ExUnit.CaptureIO.capture_io(fn ->
              assert Mix.Task.run("with_requirement") == "Task with requirements"
            end) =~ "mix compile"
+
+    Mix.Task.reenable("help")
+
+    assert ExUnit.CaptureIO.capture_io(fn ->
+             assert Mix.Task.run("with_requirement") == :noop
+           end) == ""
   end
 end
