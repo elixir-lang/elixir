@@ -282,6 +282,10 @@ Now imagine that `json_payload` is a large JSON blob and the `"key"` inside the 
   * [URI] Preserve slashes in URIs without authority
   * [URI] Require a nil or an absolute path on URIs with host or authority
 
+#### ExUnit
+
+  * [ExUnit.Assertions] Fix `assert_receive` and `assert match?` to behave consistently compared `receive` and `match?` when given an invalid macro
+
 #### IEx
 
   * [IEx] Exit IEx session if the group leader exits
