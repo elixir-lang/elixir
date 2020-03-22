@@ -41,21 +41,33 @@ defmodule Mix.Task do
   publicly visible on `mix help`. Omit this attribute if you do
   not want your task to be listed on `mix help`.
 
-  After creating a task module, run `mix compile` and any public
-  tasks should become visible to `mix help`.
+  If a task has requirements, they can be listed using the
+  `@requirements` attribute. For example:
+  
+      @requirements ["compile"]
+  
+  Tasks typically depend on the `"compile"` task, when they need
+  to access code from the current project, or the "app.start" task,
+  which compiles and starts the current app:
+  
+      @requirements ["app.start"]
+
+  Tasks can also be run directly by using `run/2`.
 
   ## Attributes
 
   There are a few attributes available in Mix tasks to
   configure them in Mix:
 
-    * `@shortdoc`  - makes the task public with a short description that appears on `mix help`
+    * `@shortdoc`  - makes the task public with a short description that appears
+      on `mix help`
     * `@recursive` - runs the task recursively in umbrella projects
-    * `@preferred_cli_env` - recommends environment to run task. It is used in absence of
-      a Mix project recommendation, or explicit `MIX_ENV`, and it only works for tasks
-      in the current project. `@preferred_cli_env` is not loaded from dependencies as
-      we need to know the environment before dependencies are loaded.
-    * `@requirements` - list of required tasks to be run before the task.
+    * `@requirements` - list of required tasks to be run before the task
+    * `@preferred_cli_env` - recommends environment to run task. It is used
+      only if `MIX_ENV` is not yet set. Note `@preferred_cli_env` is not loaded
+      from dependencies as we need to know the environment in order to load
+      the depenencies themselves. In those cases, you can set the `preferred_cli_env`
+      cocnfiguration under `def project` in your `mix.exs`
 
   ## Documentation
 
