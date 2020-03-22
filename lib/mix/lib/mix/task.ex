@@ -217,9 +217,10 @@ defmodule Mix.Task do
   end
 
   @doc """
-  Gets requirements for the task.
+  Gets the list of requirements for the given task.
 
-  Returns list with requirements (for example, `["compile"]`, or `["compile --warning-as-errors"]`), or `["compile", "app.start"]`.
+  Returns a list of strings, where the string is expected
+  to be a task optionally followed by its arguments.
   """
   @spec requirements(task_module) :: []
   def requirements(module) when is_atom(module) do
