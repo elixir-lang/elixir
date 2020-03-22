@@ -244,7 +244,7 @@ defmodule Mix.TaskTest do
 
   test "run_requirements/1 is run during task execution" do
     assert ExUnit.CaptureIO.capture_io(fn ->
-      assert Mix.Task.run("with_requirement") == "Task with requirements"
-    end) =~ "mix compile"
+             assert Mix.Task.run("with_requirement") == "Task with requirements"
+           end) =~ "mix compile"
   end
 end

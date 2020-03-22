@@ -222,7 +222,9 @@ defmodule Mix.Task do
   """
   @spec requirements(task_module) :: []
   def requirements(module) when is_atom(module) do
-    {:requirements, requirements} = List.keyfind(module.__info__(:attributes), :requirements, 0, {:requirements, []})
+    {:requirements, requirements} =
+      List.keyfind(module.__info__(:attributes), :requirements, 0, {:requirements, []})
+
     requirements
   end
 
