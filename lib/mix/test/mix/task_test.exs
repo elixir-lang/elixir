@@ -243,6 +243,9 @@ defmodule Mix.TaskTest do
   end
 
   test "run_requirements/1 is run during task execution" do
-    assert String.contains?(ExUnit.CaptureIO.capture_io(fn -> Mix.Task.run("with_requirement") end), "compile")
+    assert String.contains?(
+             ExUnit.CaptureIO.capture_io(fn -> Mix.Task.run("with_requirement") end),
+             "compile"
+           )
   end
 end
