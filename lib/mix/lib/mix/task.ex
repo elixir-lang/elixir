@@ -374,12 +374,10 @@ defmodule Mix.Task do
   end
 
   def run_requirements(module) do
-    if requirements = requirements(module) do
-      Enum.each(requirements, fn requirement ->
-        [task | args] = String.split(requirement)
-        Mix.Task.run(task, args)
-      end)
-    end
+    Enum.each(requirements(module), fn requirement ->
+      [task | args] = String.split(requirement)
+      Mix.Task.run(task, args)
+    end)
   end
 
   defp output_task_debug_info(task, args, proj) do
