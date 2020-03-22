@@ -55,6 +55,7 @@ defmodule Mix.Task do
       a Mix project recommendation, or explicit `MIX_ENV`, and it only works for tasks
       in the current project. `@preferred_cli_env` is not loaded from dependencies as
       we need to know the environment before dependencies are loaded.
+    * `@requirements` - list of required tasks to be run before the task.
 
   ## Documentation
 
