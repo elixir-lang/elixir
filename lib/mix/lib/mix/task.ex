@@ -41,20 +41,33 @@ defmodule Mix.Task do
   publicly visible on `mix help`. Omit this attribute if you do
   not want your task to be listed on `mix help`.
 
-  After creating a task module, run `mix compile` and any public
-  tasks should become visible to `mix help`.
+  If a task has requirements, they can be listed using the
+  `@requirements` attribute. For example:
+  
+      @requirements ["compile"]
+  
+  Tasks typically depend on the `"compile"` task, when they need
+  to access code from the current project, or the "app.start" task,
+  which compiles and starts the current app:
+  
+      @requirements ["app.start"]
+
+  Tasks can also be run directly by using `run/2`.
 
   ## Attributes
 
   There are a few attributes available in Mix tasks to
   configure them in Mix:
 
-    * `@shortdoc`  - makes the task public with a short description that appears on `mix help`
+    * `@shortdoc`  - makes the task public with a short description that appears
+      on `mix help`
     * `@recursive` - runs the task recursively in umbrella projects
-    * `@preferred_cli_env` - recommends environment to run task. It is used in absence of
-      a Mix project recommendation, or explicit `MIX_ENV`, and it only works for tasks
-      in the current project. `@preferred_cli_env` is not loaded from dependencies as
-      we need to know the environment before dependencies are loaded.
+    * `@requirements` - list of required tasks to be run before the task
+    * `@preferred_cli_env` - recommends environment to run task. It is used
+      only if `MIX_ENV` is not yet set. Note `@preferred_cli_env` is not loaded
+      from dependencies as we need to know the environment in order to load
+      the depenencies themselves. In those cases, you can set the `preferred_cli_env`
+      cocnfiguration under `def project` in your `mix.exs`
 
   ## Documentation
 
@@ -85,7 +98,7 @@ defmodule Mix.Task do
 
   @doc false
   def supported_attributes do
-    [:shortdoc, :recursive, :preferred_cli_env]
+    [:shortdoc, :recursive, :preferred_cli_env, :requirements]
   end
 
   @doc """
@@ -216,6 +229,20 @@ defmodule Mix.Task do
   end
 
   @doc """
+  Gets the list of requirements for the given task.
+
+  Returns a list of strings, where the string is expected
+  to be a task optionally followed by its arguments.
+  """
+  @spec requirements(task_module) :: []
+  def requirements(module) when is_atom(module) do
+    {:requirements, requirements} =
+      List.keyfind(module.__info__(:attributes), :requirements, 0, {:requirements, []})
+
+    requirements
+  end
+
+  @doc """
   Returns the task name for the given `module`.
   """
   @spec task_name(task_module) :: task_name
@@ -337,6 +364,8 @@ defmodule Mix.Task do
         get_task_or_run(proj, task, fn -> Mix.Task.run("compile", []) end) ||
         get!(task)
 
+    run_requirements(module)
+
     recursive = recursive(module)
 
     cond do
@@ -358,6 +387,13 @@ defmodule Mix.Task do
             Mix.raise("Could not invoke task #{inspect(task)}: " <> Exception.message(e))
         end
     end
+  end
+
+  def run_requirements(module) do
+    Enum.each(requirements(module), fn requirement ->
+      [task | args] = String.split(requirement)
+      Mix.Task.run(task, args)
+    end)
   end
 
   defp output_task_debug_info(task, args, proj) do
