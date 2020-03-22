@@ -412,21 +412,6 @@ defmodule Mix.Tasks.Hello do
 end
 |> write_beam.()
 
-defmodule Mix.Tasks.WithRequirement do
-  use Mix.Task
-  @shortdoc "This is short documentation, see"
-  @requirements ["help compile"]
-
-  @moduledoc """
-  A test task.
-  """
-
-  def run(_args) do
-    "Task with requirements"
-  end
-end
-|> write_beam.()
-
 defmodule Mix.Tasks.Invalid do
 end
 |> write_beam.()

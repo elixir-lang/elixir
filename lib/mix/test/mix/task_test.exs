@@ -238,6 +238,20 @@ defmodule Mix.TaskTest do
     assert Mix.Task.shortdoc(Mix.Tasks.Hello) == "This is short documentation, see"
   end
 
+  defmodule Elixir.Mix.Tasks.WithRequirement do
+    use Mix.Task
+    @shortdoc "This is short documentation, see"
+    @requirements "help compile"
+
+    @moduledoc """
+    A test task.
+    """
+
+    def run(_args) do
+      "Task with requirements"
+    end
+  end
+
   test "requirements/1" do
     assert Mix.Task.requirements(Mix.Tasks.WithRequirement) == ["help compile"]
   end
