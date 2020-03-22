@@ -376,14 +376,10 @@ defmodule Mix.Task do
   end
 
   def run_requirements(module) do
-    case Mix.Task.requirements(module) do
-      nil ->
-        nil
-
-      requirements ->
+    if requirements = requirements(module) do
         Enum.each(requirements, fn requirement ->
           [task | args] = String.split(requirement)
-          Mix.Task.rerun(task, args)
+          Mix.Task.run(task, args)
         end)
     end
   end
