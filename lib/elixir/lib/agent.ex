@@ -191,12 +191,21 @@ defmodule Agent do
   See the "Child specification" section in the `Supervisor` module for more detailed information.
   """
   @doc since: "1.5.0"
-  def child_spec(arg) do
+  def child_spec({func, opts}) when is_function(func, 0) do
     %{
       id: Agent,
-      start: {Agent, :start_link, [arg]}
+      start: {Agent, :start_link, [func, opts]}
     }
   end
+
+  def child_spec({{m, f, a}, opts}) when is_atom(m) and is_atom(f) and is_list(a) do
+    %{
+      id: Agent,
+      start: {Agent, :start_link, [m, f, a, opts]}
+    }
+  end
+
+  def child_spec(arg), do: child_spec({arg, []})
 
   @doc false
   defmacro __using__(opts) do
