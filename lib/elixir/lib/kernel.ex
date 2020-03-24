@@ -4148,7 +4148,7 @@ defmodule Kernel do
       end
 
   """
-  defmacro def(call, expr \\ []) do
+  defmacro def(call, expr \\ nil) do
     define(:def, call, expr, __CALLER__)
   end
 
@@ -4178,7 +4178,7 @@ defmodule Kernel do
       ** (UndefinedFunctionError) undefined function Foo.sum/2
 
   """
-  defmacro defp(call, expr \\ []) do
+  defmacro defp(call, expr \\ nil) do
     define(:defp, call, expr, __CALLER__)
   end
 
@@ -4206,7 +4206,7 @@ defmodule Kernel do
       end
 
   """
-  defmacro defmacro(call, expr \\ []) do
+  defmacro defmacro(call, expr \\ nil) do
     define(:defmacro, call, expr, __CALLER__)
   end
 
@@ -4222,7 +4222,7 @@ defmodule Kernel do
   naming and default arguments.
 
   """
-  defmacro defmacrop(call, expr \\ []) do
+  defmacro defmacrop(call, expr \\ nil) do
     define(:defmacrop, call, expr, __CALLER__)
   end
 
@@ -4717,7 +4717,7 @@ defmodule Kernel do
             macro_definition =
               case impls do
                 [] ->
-                  define(kind, call, [], env)
+                  define(kind, call, nil, env)
 
                 [guard] ->
                   quoted =

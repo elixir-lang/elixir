@@ -389,7 +389,7 @@ defmodule IEx.HelpersTest do
 
       def_h = """
 
-                               defmacro def(call, expr \\\\ [])
+                              defmacro def(call, expr \\\\ nil)
 
       Defines a public function with the given name and body.
       """

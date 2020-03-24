@@ -1440,7 +1440,7 @@ defmodule Module do
         :ets.insert(table, {key, line, signature, doc, doc_meta})
 
       [{_, current_line, current_sign, current_doc, current_doc_meta}] ->
-        if is_binary(current_doc) and is_binary(doc) and body != [] do
+        if is_binary(current_doc) and is_binary(doc) and body != nil do
           message = ~s'''
           redefining @doc attribute previously set at line #{current_line}.
 
