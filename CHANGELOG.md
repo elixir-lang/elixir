@@ -12,7 +12,7 @@
 
 #### Elixir
 
-  * [Calendar] Add `Calendar.stfrtime/3` for datetime formatting
+  * [Calendar] Add `Calendar.strftime/3` for datetime formatting
   * [Code] Add `:column` to `Code.string_to_quoted*/2`
   * [Code] Add `Code.can_await_module_compilation?/0` to check if the parallel compiler is enabled and it can await for other modules to be compiled
   * [Kernel] Add `is_struct/2` guard
