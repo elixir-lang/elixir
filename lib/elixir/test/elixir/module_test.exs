@@ -151,13 +151,10 @@ defmodule ModuleTest do
   end
 
   def __on_definition__(env, kind, name, args, guards, expr) do
-    Process.put(env.module, :called)
+    Process.put(env.module, {args, guards, expr})
     assert env.module == ModuleTest.OnDefinition
     assert kind == :def
     assert name == :hello
-    assert [{:foo, _, _}, {:bar, _, _}] = args
-    assert [] = guards
-    assert [do: {:+, _, [{:foo, _, nil}, {:bar, _, nil}]}] = expr
     assert Module.defines?(env.module, {:hello, 2})
   end
 
@@ -165,12 +162,17 @@ defmodule ModuleTest do
     defmodule OnDefinition do
       @on_definition ModuleTest
 
+      def hello(foo, bar)
+
+      assert {[{:foo, _, _}, {:bar, _, _}], [], nil} = Process.get(ModuleTest.OnDefinition)
+
       def hello(foo, bar) do
         foo + bar
       end
-    end
 
-    assert Process.get(ModuleTest.OnDefinition) == :called
+      assert {[{:foo, _, _}, {:bar, _, _}], [], [do: {:+, _, [{:foo, _, nil}, {:bar, _, nil}]}]} =
+               Process.get(ModuleTest.OnDefinition)
+    end
   end
 
   defmacro __before_compile__(_) do
