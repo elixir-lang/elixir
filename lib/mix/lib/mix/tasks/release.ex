@@ -604,8 +604,15 @@ defmodule Mix.Tasks.Release do
   process) and the new configuration will take place.
 
   You can change the path to the runtime configuration file by setting
-  `:runtime_config_path`. This path is resolved at build time as the
-  given configuration file is always copied to inside the release.
+  `:runtime_config_path` inside each release configuration. This path is
+  resolved at build time as the given configuration file is always copied
+  to inside the release:
+
+      releases: [
+        demo: [
+          runtime_config_path: ...
+        ]
+      ]
 
   Finally, in order for runtime configuration to work properly (as well
   as any other "Config provider" as defined next), it needs to be able
