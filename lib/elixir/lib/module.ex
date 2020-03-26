@@ -57,7 +57,7 @@ defmodule Module do
   one of the callbacks, a warning will be raised.
 
   For detailed documentation, see the
-  [behaviour typespec documentation](typespecs.html#behaviours).
+  [behaviour typespec documentation](typespecs.md#behaviours).
 
   ### `@impl`
 

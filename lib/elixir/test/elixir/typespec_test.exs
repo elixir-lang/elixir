@@ -1241,7 +1241,7 @@ defmodule TypespecTest do
       assert Code.Typespec.fetch_specs(Unknown) == :error
     end
 
-    # This is a test that implements all types specified in lib/elixir/pages/Typespecs.md
+    # This is a test that implements all types specified in lib/elixir/pages/typespecs.md
     test "documented types and their AST" do
       defmodule SomeStruct do
         defstruct [:key]

@@ -36,7 +36,7 @@ defmodule Config do
   **Important:** if you are writing a library to be used by other developers,
   it is generally recommended to avoid the application environment, as the
   application environment is effectively a global storage. For more information,
-  read our [library guidelines](library-guidelines.html).
+  read our [library guidelines](library-guidelines.md).
 
   ## Migrating from `use Mix.Config`
 
