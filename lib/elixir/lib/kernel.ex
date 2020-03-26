@@ -127,19 +127,19 @@ defmodule Kernel do
   Elixir documentation also includes supporting documents under the
   "Pages" section. Those are:
 
-    * [Compatibility and Deprecations](compatibility-and-deprecations.html) - lists
+    * [Compatibility and Deprecations](lib/elixir/pages/Compatibility and Deprecations.md) - lists
       compatibility between every Elixir version and Erlang/OTP, release schema;
       lists all deprecated functions, when they were deprecated and alternatives
-    * [Library Guidelines](library-guidelines.html) - general guidelines, anti-patterns,
+    * [Library Guidelines](lib/elixir/pages/Library Guidelines.md) - general guidelines, anti-patterns,
       and rules for those writing libraries
-    * [Naming Conventions](naming-conventions.html) - naming conventions for Elixir code
-    * [Operators](operators.html) - lists all Elixir operators and their precedence
-    * [Patterns and Guards](patterns-and-guards.html) - an introduction to patterns,
+    * [Naming Conventions](lib/elixir/pages/Naming Conventions.md) - naming conventions for Elixir code
+    * [Operators](lib/elixir/pages/Operators.md) - lists all Elixir operators and their precedence
+    * [Patterns and Guards](lib/elixir/pages/Patterns and Guards.md) - an introduction to patterns,
       guards, and extensions
-    * [Syntax Reference](syntax-reference.html) - the language syntax reference
-    * [Typespecs](typespecs.html)- types and function specifications, including list of types
-    * [Unicode Syntax](unicode-syntax.html) - outlines Elixir support for Unicode
-    * [Writing Documentation](writing-documentation.html) - guidelines for writing
+    * [Syntax Reference](lib/elixir/pages/Syntax Reference.md) - the language syntax reference
+    * [Typespecs](lib/elixir/pages/Typespecs.md)- types and function specifications, including list of types
+    * [Unicode Syntax](lib/elixir/pages/Unicode Syntax.md) - outlines Elixir support for Unicode
+    * [Writing Documentation](lib/elixir/pages/Writing Documentation.md) - guidelines for writing
       documentation in Elixir
 
   ## Guards
@@ -156,7 +156,7 @@ defmodule Kernel do
   or equal to 16. Guards also support joining multiple conditions with
   `and` and `or`. The whole guard is true if all guard expressions will
   evaluate to `true`. A more complete introduction to guards is available
-  [in the "Patterns and Guards" page](patterns-and-guards.html).
+  [in the "Patterns and Guards" page](lib/elixir/pages/Patterns and Guards.md).
 
   ## Inlining
 
