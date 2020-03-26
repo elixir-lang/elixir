@@ -127,19 +127,19 @@ defmodule Kernel do
   Elixir documentation also includes supporting documents under the
   "Pages" section. Those are:
 
-    * [Compatibility and Deprecations](compatibility-and-deprecations.html) - lists
+    * [Compatibility and Deprecations](compatibility-and-deprecations.md) - lists
       compatibility between every Elixir version and Erlang/OTP, release schema;
       lists all deprecated functions, when they were deprecated and alternatives
-    * [Library Guidelines](library-guidelines.html) - general guidelines, anti-patterns,
+    * [Library Guidelines](library-guidelines.md) - general guidelines, anti-patterns,
       and rules for those writing libraries
-    * [Naming Conventions](naming-conventions.html) - naming conventions for Elixir code
-    * [Operators](operators.html) - lists all Elixir operators and their precedence
-    * [Patterns and Guards](patterns-and-guards.html) - an introduction to patterns,
+    * [Naming Conventions](naming-conventions.md) - naming conventions for Elixir code
+    * [Operators](operators.md) - lists all Elixir operators and their precedence
+    * [Patterns and Guards](patterns-and-guards.md) - an introduction to patterns,
       guards, and extensions
-    * [Syntax Reference](syntax-reference.html) - the language syntax reference
-    * [Typespecs](typespecs.html)- types and function specifications, including list of types
-    * [Unicode Syntax](unicode-syntax.html) - outlines Elixir support for Unicode
-    * [Writing Documentation](writing-documentation.html) - guidelines for writing
+    * [Syntax Reference](syntax-reference.md) - the language syntax reference
+    * [Typespecs](typespecs.md)- types and function specifications, including list of types
+    * [Unicode Syntax](unicode-syntax.md) - outlines Elixir support for Unicode
+    * [Writing Documentation](writing-documentation.md) - guidelines for writing
       documentation in Elixir
 
   ## Guards
@@ -156,7 +156,7 @@ defmodule Kernel do
   or equal to 16. Guards also support joining multiple conditions with
   `and` and `or`. The whole guard is true if all guard expressions will
   evaluate to `true`. A more complete introduction to guards is available
-  [in the "Patterns and Guards" page](patterns-and-guards.html).
+  [in the "Patterns and Guards" page](patterns-and-guards.md).
 
   ## Inlining
 
