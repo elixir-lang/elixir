@@ -1,5 +1,7 @@
 # Library Guidelines
 
+[Operators](Operators.md)
+
 This document outlines general guidelines, anti-patterns, and rules for those writing and publishing Elixir libraries meant to be consumed by other developers.
 
 ## Getting started
