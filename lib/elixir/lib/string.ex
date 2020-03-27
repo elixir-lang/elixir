@@ -221,7 +221,7 @@ defmodule String do
       iex> "ol\u00E1"
       "olá"
 
-  Finally, to convert a String into a list of integers
+  Finally, to convert a String into a list of integer
   code points, known as "charlists" in Elixir, you can call
   `String.to_charlist`:
 
