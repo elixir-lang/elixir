@@ -335,7 +335,8 @@ defmodule IO do
   end
 
   @doc false
-  def warn_once(key, message, stacktrace_drop_levels) do
+  def warn_once(key, message, opts) do
+    stacktrace_drop_levels = Keyword.fetch!(opts, :stacktrace_drop_levels)
     {:current_stacktrace, stacktrace} = Process.info(self(), :current_stacktrace)
     stacktrace = Enum.drop(stacktrace, stacktrace_drop_levels)
 
