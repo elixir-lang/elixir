@@ -41,7 +41,7 @@ defmodule ApplicationTest do
     end)
 
     assert_deprecated(fn ->
-      assert Application.fetch_env(:elixir, [:a, :b]) == {:ok, :c}
+      assert Application.fetch_env!(:elixir, [:a, :b]) == :c
     end)
   after
     assert_deprecated(fn ->
