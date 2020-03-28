@@ -4,8 +4,8 @@ defmodule IO.ANSI.DocsTest do
   use ExUnit.Case, async: true
   import ExUnit.CaptureIO
 
-  def format_heading(str) do
-    capture_io(fn -> IO.ANSI.Docs.print_heading(str, []) end) |> String.trim_trailing()
+  def format_headings(list) do
+    capture_io(fn -> IO.ANSI.Docs.print_headings(list, []) end) |> String.trim_trailing()
   end
 
   def format_metadata(map) do
@@ -13,15 +13,29 @@ defmodule IO.ANSI.DocsTest do
   end
 
   def format_markdown(str, opts \\ []) do
-    capture_io(fn -> IO.ANSI.Docs.print(str, "text/markdown", opts) end) |> String.trim_trailing()
+    capture_io(fn -> IO.ANSI.Docs.print(str, "text/markdown", opts) end)
+    |> String.trim_trailing()
+  end
+
+  def format_erlang(str, opts \\ []) do
+    capture_io(fn -> IO.ANSI.Docs.print(str, "application/erlang+html", opts) end)
   end
 
   describe "heading" do
     test "is formatted" do
-      result = format_heading("wibble")
+      result = format_headings(["foo"])
       assert String.starts_with?(result, "\e[0m\n\e[7m\e[33m")
       assert String.ends_with?(result, "\e[0m\n\e[0m")
-      assert String.contains?(result, " wibble ")
+      assert String.contains?(result, " foo ")
+    end
+
+    test "multiple entries formatted" do
+      result = format_headings(["foo", "bar"])
+      assert :binary.matches(result, "\e[0m\n\e[7m\e[33m") |> length == 2
+      assert String.starts_with?(result, "\e[0m\n\e[7m\e[33m")
+      assert String.ends_with?(result, "\e[0m\n\e[0m")
+      assert String.contains?(result, " foo ")
+      assert String.contains?(result, " bar ")
     end
   end
 
@@ -538,6 +552,187 @@ defmodule IO.ANSI.DocsTest do
         |> String.trim_trailing()
 
       assert format_markdown(table) == expected
+    end
+  end
+
+  describe "erlang" do
+    @hello_world [{:p, [], ["Hello"]}, {:p, [], ["World"]}]
+
+    test "text" do
+      assert format_erlang("Hello world") == "Hello world"
+    end
+
+    test "skips line breaks" do
+      assert format_erlang([{:p, [], ["Hello"]}, {:br, [], []}, {:p, [], ["World"]}]) ==
+               "Hello\n\nWorld\n\n"
+    end
+
+    test "paragraphs" do
+      assert format_erlang(@hello_world) == "Hello\n\nWorld\n\n"
+    end
+
+    test "code chunks" do
+      code = """
+      def foo do
+        :bar
+      end\
+      """
+
+      assert format_erlang({:pre, [], [{:code, [], [code]}]}) == """
+                 def foo do
+                   :bar
+                 end
+
+             """
+    end
+
+    test "unordered lists" do
+      assert format_erlang([{:ul, [], [{:li, [], ["Hello"]}, {:li, [], ["World"]}]}]) ==
+               "  • Hello\n\n  • World\n\n"
+
+      assert format_erlang([{:ul, [], [{:li, [], [@hello_world]}]}]) ==
+               "  • Hello\n\n    World\n\n"
+
+      assert format_erlang([
+               {:ul, [], [{:li, [], [{:p, [], ["Hello"]}]}, {:li, [], [{:p, [], ["World"]}]}]}
+             ]) ==
+               "  • Hello\n\n  • World\n\n"
+    end
+
+    test "ordered lists" do
+      assert format_erlang([{:ol, [], [{:li, [], ["Hello"]}, {:li, [], ["World"]}]}]) ==
+               "  1. Hello\n\n  2. World\n\n"
+
+      assert format_erlang([
+               {:ol, [], [{:li, [], [{:p, [], ["Hello"]}]}, {:li, [], [{:p, [], ["World"]}]}]}
+             ]) ==
+               "  1. Hello\n\n  2. World\n\n"
+    end
+
+    test "admonition blocks" do
+      assert format_erlang([{:div, [class: "warning"], @hello_world}]) == """
+             \e[90m> \e[0mWARNING
+             \e[90m> \e[0m
+             \e[90m> \e[0mHello
+             \e[90m> \e[0m
+             \e[90m> \e[0mWorld
+
+             """
+    end
+
+    test "headers" do
+      assert format_erlang([{:h1, [], ["Hello"]}]) ==
+               "\e[33m# Hello\e[0m\n\n"
+
+      assert format_erlang([{:h2, [], ["Hello"]}]) ==
+               "\e[33m## Hello\e[0m\n\n"
+
+      assert format_erlang([{:h3, [], ["Hello"]}]) ==
+               "\e[33m### Hello\e[0m\n\n"
+
+      assert format_erlang([{:h4, [], ["Hello"]}]) ==
+               "\e[33m#### Hello\e[0m\n\n"
+
+      assert format_erlang([{:h5, [], ["Hello"]}]) ==
+               "\e[33m##### Hello\e[0m\n\n"
+
+      assert format_erlang([{:h6, [], ["Hello"]}]) ==
+               "\e[33m###### Hello\e[0m\n\n"
+
+      assert format_erlang([{:h1, [], [{:code, [], ["Hello"]}]}]) ==
+               "\e[33m# \e[36mHello\e[0m\e[0m\n\n"
+
+      assert format_erlang([{:h2, [], [{:code, [], ["Hello"]}]}]) ==
+               "\e[33m## \e[36mHello\e[0m\e[0m\n\n"
+
+      assert format_erlang([{:h3, [], [{:code, [], ["Hello"]}]}]) ==
+               "\e[33m### \e[36mHello\e[0m\e[0m\n\n"
+
+      assert format_erlang([{:h4, [], [{:code, [], ["Hello"]}]}]) ==
+               "\e[33m#### \e[36mHello\e[0m\e[0m\n\n"
+
+      assert format_erlang([{:h5, [], [{:code, [], ["Hello"]}]}]) ==
+               "\e[33m##### \e[36mHello\e[0m\e[0m\n\n"
+
+      assert format_erlang([{:h6, [], [{:code, [], ["Hello"]}]}]) ==
+               "\e[33m###### \e[36mHello\e[0m\e[0m\n\n"
+    end
+
+    test "inline tags" do
+      assert format_erlang([{:i, [], ["Hello"]}]) == "\e[4mHello\e[0m"
+      assert format_erlang([{:i, [], ["Hello"]}], enabled: false) == "_Hello_"
+
+      assert format_erlang([{:em, [], ["Hello"]}]) == "\e[1mHello\e[0m"
+      assert format_erlang([{:em, [], ["Hello"]}], enabled: false) == "*Hello*"
+
+      assert format_erlang([{:code, [], ["Hello"]}]) == "\e[36mHello\e[0m"
+      assert format_erlang([{:code, [], ["Hello"]}], enabled: false) == "`Hello`"
+    end
+
+    test "inline tags within paragraphs" do
+      assert format_erlang([{:p, [], [[{:em, [], ["Hello"]}, {:code, [], ["World"]}]]}]) ==
+               "\e[1mHello\e[0m\e[36mWorld\e[0m"
+    end
+
+    test "inline tags within list item" do
+      assert format_erlang([
+               {:ul, [], [{:li, [], [{:em, [], ["Hello"]}, {:code, [], ["World"]}]}]}
+             ]) ==
+               "  • \e[1mHello\e[0m\e[36mWorld\e[0m\n\n"
+    end
+
+    test "links" do
+      assert format_erlang([{:a, [], ["Hello"]}]) == "Hello"
+      assert format_erlang([{:a, [href: "foo/bar"], ["Hello"]}]) == "Hello (foo/bar)"
+    end
+
+    test "definition lists" do
+      assert format_erlang([{:dl, [], [[{:dt, [], ["Hello"]}, {:dd, [], ["World"]}]]}]) == """
+               • Hello
+
+                 World
+
+             """
+    end
+
+    test "typespecs" do
+      assert format_erlang([{:ul, [class: "types"], [{:li, [], ["Hello"]}, {:li, [], ["World"]}]}]) ==
+               """
+               Typespecs:
+
+                   Hello
+                   World
+
+               """
+    end
+
+    test "extra markup" do
+      assert format_erlang([{:p, [], ["Hello"]}, {:unknown, [], ["Unknown"]}, {:p, [], ["World"]}]) ==
+               """
+               Hello
+
+               <unknown>
+               Unknown
+               </unknown>
+
+               World
+
+               """
+
+      assert format_erlang([
+               {:p, [], ["Hello"]},
+               {:unknown, [], [{:p, [], ["Unknown"]}]},
+               {:p, [], ["World"]}
+             ]) == """
+             Hello
+
+             <unknown>
+                 Unknown
+             </unknown>
+
+             World
+
+             """
     end
   end
 
