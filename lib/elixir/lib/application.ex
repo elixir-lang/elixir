@@ -747,7 +747,7 @@ defmodule Application do
     do: :ok
 
   defp maybe_warn_on_app_env_key(app, key) do
-    message = "passing non-atom as application env key is deprecated (got: `#{inspect(key)}`)"
+    message = "passing non-atom as application env key is deprecated, got: #{inspect(key)}"
     IO.warn_once({Application, :key, app, key}, message, _stacktrace_drop_levels = 2)
   end
 
