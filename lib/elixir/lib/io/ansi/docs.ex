@@ -84,11 +84,11 @@ defmodule IO.ANSI.Docs do
         write_with_wrap([label | String.split(value, @spaces)], options[:width], indent, true, "")
 
       {key, value}, _printed when is_boolean(value) and key in @metadata_filter ->
-        IO.puts([metadata_label(key, options), ' ', to_string(value)])
+        IO.puts([metadata_label(key, options), ?\s, to_string(value)])
 
       {:delegate_to, {m, f, a}}, _printed ->
         label = metadata_label(:delegate_to, options)
-        IO.puts([label, ' ', Exception.format_mfa(m, f, a)])
+        IO.puts([label, ?\s, Exception.format_mfa(m, f, a)])
 
       _metadata, printed ->
         printed
@@ -136,16 +136,21 @@ defmodule IO.ANSI.Docs do
     end
   end
 
-  defp traverse_erlang_html({:p, attributes, [{:p, _, entries}]}, indent, options) do
+  defp traverse_erlang_html({:div, attributes, entries}, indent, options) do
     class = attributes[:class]
-    quote = quote_prefix(options)
+    prefix = indent <> quote_prefix(options)
+
+    content =
+      entries
+      |> traverse_erlang_html(indent, options)
+      |> IO.iodata_to_binary()
+      |> String.trim_trailing()
 
     [
-      indent,
-      quote,
+      prefix,
       class |> to_string() |> String.upcase(),
-      "\n#{indent}#{quote}\n" | handle_erlang_html_text(entries, indent, quote, options)
-    ]
+      "\n#{prefix}\n#{prefix}" | String.replace(content, "\n", "\n#{prefix}")
+    ] |> newline_cons()
   end
 
   defp traverse_erlang_html({:p, _, entries}, indent, options) do
@@ -176,7 +181,7 @@ defmodule IO.ANSI.Docs do
     entries |> traverse_erlang_html(indent, options) |> heading(6, options) |> newline_cons()
   end
 
-  defp traverse_erlang_html({:br, _, []}, indent, options) do
+  defp traverse_erlang_html({:br, _, []}, _indent, _options) do
     []
   end
 
@@ -223,7 +228,7 @@ defmodule IO.ANSI.Docs do
   end
 
   defp traverse_erlang_html({:ul, attributes, entries}, indent, options) do
-    if attributes[:class] == 'types' do
+    if attributes[:class] == "types" do
       types =
         for {:li, _, lines} <- entries,
             line <- lines,
@@ -252,16 +257,12 @@ defmodule IO.ANSI.Docs do
   end
 
   defp handle_erlang_html_text(entries, indent, options) do
-    handle_erlang_html_text(entries, indent, "", options)
-  end
-
-  defp handle_erlang_html_text(entries, indent, prefix, options) do
     if Enum.all?(entries, &inline_html?/1) do
       entries
       |> traverse_erlang_html(indent, options)
       |> IO.iodata_to_binary()
       |> String.split(@spaces)
-      |> wrap_text(options[:width], indent, true, prefix, [])
+      |> wrap_text(options[:width], indent, true, "", [])
       |> tl()
       |> newline_cons()
     else
