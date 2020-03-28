@@ -618,6 +618,7 @@ defmodule Application do
   """
   @spec get_env(app, key, value) :: value
   def get_env(app, key, default \\ nil) when is_atom(app) do
+    maybe_warn_on_app_env_key(app, key)
     :application.get_env(app, key, default)
   end
 
@@ -628,6 +629,8 @@ defmodule Application do
   """
   @spec fetch_env(app, key) :: {:ok, value} | :error
   def fetch_env(app, key) when is_atom(app) do
+    maybe_warn_on_app_env_key(app, key)
+
     case :application.get_env(app, key) do
       {:ok, value} -> {:ok, value}
       :undefined -> :error
@@ -689,6 +692,7 @@ defmodule Application do
   """
   @spec put_env(app, key, value, timeout: timeout, persistent: boolean) :: :ok
   def put_env(app, key, value, opts \\ []) when is_atom(app) do
+    maybe_warn_on_app_env_key(app, key)
     :application.set_env(app, key, value, opts)
   end
 
@@ -734,7 +738,17 @@ defmodule Application do
   """
   @spec delete_env(app, key, timeout: timeout, persistent: boolean) :: :ok
   def delete_env(app, key, opts \\ []) when is_atom(app) do
+    maybe_warn_on_app_env_key(app, key)
     :application.unset_env(app, key, opts)
+  end
+
+  # TODO: turn warning into error on Elixir v2.0
+  defp maybe_warn_on_app_env_key(_app, key) when is_atom(key),
+    do: :ok
+
+  defp maybe_warn_on_app_env_key(app, key) do
+    message = "passing non-atom as application env key is deprecated, got: #{inspect(key)}"
+    IO.warn_once({Application, :key, app, key}, message, _stacktrace_drop_levels = 2)
   end
 
   @doc """
