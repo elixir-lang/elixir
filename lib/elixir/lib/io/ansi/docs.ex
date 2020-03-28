@@ -150,7 +150,8 @@ defmodule IO.ANSI.Docs do
       prefix,
       class |> to_string() |> String.upcase(),
       "\n#{prefix}\n#{prefix}" | String.replace(content, "\n", "\n#{prefix}")
-    ] |> newline_cons()
+    ]
+    |> newline_cons()
   end
 
   defp traverse_erlang_html({:p, _, entries}, indent, options) do
