@@ -91,8 +91,10 @@ defmodule RegexTest do
     assert <<0xA0::utf8>> =~ ~r/[[:space:]]/u
     assert <<0xA0::utf8>> =~ ~r/\s/u
 
+    # Erlang/OTP 23 raises badarg on invalid UTF-8.
+    # Earlier versions simply would not match.
+    assert catch_error(if <<?<, 255, ?>>> =~ ~r/<.>/u, do: flunk("failed"), else: raise("failed"))
     assert <<?<, 255, ?>>> =~ ~r/<.>/
-    refute <<?<, 255, ?>>> =~ ~r/<.>/u
   end
 
   test "ungreedy" do
@@ -349,6 +351,6 @@ defmodule RegexTest do
   end
 
   defp matches_escaped?(string, match) do
-    Regex.match?(~r/#{Regex.escape(string)}/simxu, match)
+    Regex.match?(~r/#{Regex.escape(string)}/simx, match)
   end
 end
