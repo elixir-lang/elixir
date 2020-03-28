@@ -136,8 +136,7 @@ defmodule IO.ANSI.Docs do
     end
   end
 
-  defp traverse_erlang_html({:div, attributes, entries}, indent, options) do
-    class = attributes[:class]
+  defp traverse_erlang_html({:div, [class: class] ++ _, entries}, indent, options) do
     prefix = indent <> quote_prefix(options)
 
     content =
@@ -221,7 +220,6 @@ defmodule IO.ANSI.Docs do
 
   defp traverse_erlang_html({:dt, _, entries}, indent, options) do
     ["#{indent}  ", @bullet_text | handle_erlang_html_text(entries, indent <> "    ", options)]
-    |> newline_cons()
   end
 
   defp traverse_erlang_html({:dd, _, entries}, indent, options) do
@@ -251,6 +249,17 @@ defmodule IO.ANSI.Docs do
         ". " | handle_erlang_html_text(lines, indent <> "     ", options)
       ]
     end
+  end
+
+  defp traverse_erlang_html({tag, _, entries}, indent, options) do
+    [
+      indent <> "<#{tag}>\n",
+      traverse_erlang_html(entries, indent <> "    ", options)
+      |> IO.iodata_to_binary()
+      |> String.trim_trailing(),
+      "\n" <> indent <> "</#{tag}>"
+    ]
+    |> newline_cons()
   end
 
   defp newline_cons(text) do
