@@ -100,7 +100,7 @@ defmodule Mix.Tasks.Help do
   end
 
   defp print_doc(task, {doc, location, note}, opts) do
-    IO.ANSI.Docs.print_heading("mix #{task}", opts)
+    IO.ANSI.Docs.print_headings(["mix #{task}"], opts)
     IO.ANSI.Docs.print(doc, "text/markdown", opts)
     IO.puts("Location: #{location}")
     note && IO.puts("") && IO.ANSI.Docs.print(note, "text/markdown", opts)
