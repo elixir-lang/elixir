@@ -1742,6 +1742,9 @@ defmodule String do
       iex> String.next_grapheme("olá")
       {"o", "lá"}
 
+      iex> String.next_grapheme("")
+      nil
+
   """
   @spec next_grapheme(t) :: {grapheme, t} | nil
   def next_grapheme(binary) do
@@ -1752,9 +1755,9 @@ defmodule String do
   end
 
   @doc """
-  Returns the size of the next grapheme.
+  Returns the size (in bytes) of the next grapheme.
 
-  The result is a tuple with the next grapheme size and
+  The result is a tuple with the next grapheme size in bytes and
   the remainder of the string or `nil` in case the string
   reached its end.
 
@@ -1762,6 +1765,9 @@ defmodule String do
 
       iex> String.next_grapheme_size("olá")
       {1, "lá"}
+
+      iex> String.next_grapheme_size("")
+      nil
 
   """
   @spec next_grapheme_size(t) :: {pos_integer, t} | nil
@@ -1778,6 +1784,9 @@ defmodule String do
 
       iex> String.first("եոգլի")
       "ե"
+
+      iex> String.first("")
+      nil
 
   """
   @spec first(t) :: grapheme | nil
