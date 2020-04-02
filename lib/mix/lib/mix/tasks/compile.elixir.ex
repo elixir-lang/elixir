@@ -39,6 +39,9 @@ defmodule Mix.Tasks.Compile.Elixir do
   to do there as little work as possible to not slow down the
   compilation.
 
+  If module has `@compile {:autoload, false}`, `__mix_recompile__?/0` will
+  not be used.
+
   ## Command line options
 
     * `--verbose` - prints each file being compiled

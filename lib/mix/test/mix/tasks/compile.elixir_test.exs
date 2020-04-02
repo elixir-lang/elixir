@@ -470,7 +470,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   end
 
-  test "recompiles modules with __mix_recompile__?" do
+  test "recompiles modules with __mix_recompile__?/0" do
     in_fixture("no_mixfile", fn ->
       File.write!("lib/a.ex", """
       defmodule A do
@@ -484,10 +484,19 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       end
       """)
 
+      File.write!("lib/c.ex", """
+      defmodule C do
+        @compile {:autoload, false}
+
+        def __mix_recompile__?(), do: true
+      end
+      """)
+
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
-      assert_received {:mix_shell, :info, ["Compiling 2 files (.ex)"]}
+      assert_received {:mix_shell, :info, ["Compiling 3 files (.ex)"]}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/c.ex"]}
 
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiling 1 file (.ex)"]}
