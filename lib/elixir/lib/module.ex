@@ -248,8 +248,9 @@ defmodule Module do
   attribute allows the module to annotate which external resources
   have been used.
 
-  Tools like Mix may use this information to ensure the module is
-  recompiled in case any of the external resources change.
+  Tools may use this information to ensure the module is recompiled
+  in case any of the external resources change, see for example:
+  [`mix compile.elixir`](https://hexdocs.pm/mix/Mix.Tasks.Compile.Elixir.html).
 
   ### `@file`
 
