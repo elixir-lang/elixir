@@ -199,6 +199,7 @@ defmodule Mix.Tasks.Release.Init do
              $(release_distribution "rem-$(rand)-$RELEASE_NODE") \
              --boot "$REL_VSN_DIR/$RELEASE_BOOT_SCRIPT_CLEAN" \
              --boot-var RELEASE_LIB "$RELEASE_ROOT/lib" \
+             --vm-args "$RELEASE_VM_ARGS" \
              --remsh "$RELEASE_NODE"
         ;;
 
