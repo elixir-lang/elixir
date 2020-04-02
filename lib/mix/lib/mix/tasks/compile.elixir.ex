@@ -17,25 +17,23 @@ defmodule Mix.Tasks.Compile.Elixir do
 
   ## `__mix_recompile__?/0`
 
-  A module may export a `__mix_recompile__?/0` function that can cause the module to be recompiled
-  using custom rules. For example, `@external_resource` already adds a compile-time dependency on
-  an external file, however to depend on a _dynamic_ list of files we can do:
+  A module may export a `__mix_recompile__?/0` function that can
+  cause the module to be recompiled using custom rules. For example,
+  `@external_resource` already adds a compile-time dependency on an
+  external file, however to depend on a _dynamic_ list of files we
+  can do:
 
-      defmodule MyModule do
-        paths = Path.wildcard("*.txt")
-        paths_hash = :erlang.md5(paths)
+      defmodule MyModule do paths = Path.wildcard("*.txt")
+      paths_hash = :erlang.md5(paths)
 
-        for path <- paths do
-          @external_resource path
-        end
+        for path <- paths do @external_resource path end
 
-        def __mix_recompile__?() do
-          Path.wildcard("*.txt") |> :erlang.md5() == unquote(paths_hash)
-        end
-      end
+        def __mix_recompile__?() do Path.wildcard("*.txt") |>
+        :erlang.md5() == unquote(paths_hash) end end
 
-  Compiler calls `__mix_recompile__?/0` for every module being compiled (or previously compiled)
-  and thus it is is very important to do there as little work as possible to not slow down the
+  Compiler calls `__mix_recompile__?/0` for every module being
+  compiled (or previously compiled) and thus it is is very important
+  to do there as little work as possible to not slow down the
   compilation.
 
   ## Command line options
