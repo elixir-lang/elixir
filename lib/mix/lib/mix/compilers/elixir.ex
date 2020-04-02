@@ -351,7 +351,7 @@ defmodule Mix.Compilers.Elixir do
         kind: kind,
         sources: module_sources,
         struct: struct,
-        recompile?: recompile_module?(module)
+        recompile?: function_exported?(module, :__mix_recompile__?, 0)
       )
 
     modules = prepend_or_merge(modules, module, module(:module), module, existing_module?)
