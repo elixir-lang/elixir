@@ -23,13 +23,16 @@ defmodule Mix.Tasks.Compile.Elixir do
   external file, however to depend on a _dynamic_ list of files we
   can do:
 
-      defmodule MyModule do paths = Path.wildcard("*.txt")
-      paths_hash = :erlang.md5(paths)
+      defmodule MyModule do
+        paths = Path.wildcard("*.txt")
+        paths_hash = :erlang.md5(paths)
 
         for path <- paths do @external_resource path end
 
-        def __mix_recompile__?() do Path.wildcard("*.txt") |>
-        :erlang.md5() == unquote(paths_hash) end end
+        def __mix_recompile__?() do
+          Path.wildcard("*.txt") |> :erlang.md5() == unquote(paths_hash)
+        end
+      end
 
   Compiler calls `__mix_recompile__?/0` for every module being
   compiled (or previously compiled) and thus it is is very important
