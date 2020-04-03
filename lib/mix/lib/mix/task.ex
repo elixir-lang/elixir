@@ -246,8 +246,10 @@ defmodule Mix.Task do
   Returns the task name for the given `module`.
 
   ## Examples
+
       iex> Mix.Task.task_name(Mix.Tasks.Test)
       "test"
+
   """
   @spec task_name(task_module) :: task_name
   def task_name(module) when is_atom(module) do
@@ -260,7 +262,7 @@ defmodule Mix.Task do
   Returns false if the given name is not an alias or if it is not a task.
 
   For more information about task aliasing, take a look at the
-  ["Aliasing"]((https://hexdocs.pm/mix/Mix.html#module-aliases) section in the
+  ["Aliasing"](https://hexdocs.pm/mix/Mix.html#module-aliases) section in the
   docs for `Mix`.
   """
   @spec alias?(task_name) :: boolean
