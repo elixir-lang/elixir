@@ -178,7 +178,7 @@ defmodule Code do
   """
   @doc since: "1.7.0"
   @spec unrequire_files([binary]) :: :ok
-  def unrequire_files(files) do
+  def unrequire_files(files) when is_list(files) do
     :elixir_code_server.cast({:unrequire_files, files})
   end
 
