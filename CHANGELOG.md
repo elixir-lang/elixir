@@ -24,6 +24,10 @@
   * [ExUnit.Assertion] Allow receive timeouts to be computed at runtime
   * [ExUnit.Doctest] Allow users to tag doctests with options
 
+#### IEx
+
+  * [IEx.Helpers] Show docs from Erlang modules that have been compiled with the docs chunk
+
 #### Logger
 
   * [Logger] Add `notice`, `critical`, `alert`, and `emergency` log levels
@@ -54,6 +58,7 @@
 
 #### Elixir
 
+  * [Application] Deprecate non-atom keys on `put_env`, `get_env`, `fetch_env`, and `delete_env`
   * [Supervisor] Deprecate `Supervisor.start_child/2` and `Supervisor.terminate_child/2` in favor of `DynamicSupervisor`
   * [Supervisor.Spec] Deprecate `Supervisor.Spec.worker/3` and `Supervisor.Spec.supervisor/3` in favor of the new typespecs
 
