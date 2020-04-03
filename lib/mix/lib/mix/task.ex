@@ -3,7 +3,7 @@ defmodule Mix.Task do
   Provides conveniences for creating, loading, and manipulating Mix tasks.
 
   A Mix task can be defined by using `Mix.Task` in a module whose name
-  starts with `Mix.Tasks.` and which defines the `run/1` function.
+  begins with `Mix.Tasks.` and which defines the `run/1` function.
   Typically, task modules live inside the `lib/mix/tasks/` directory,
   and their file names use dot separators instead of underscores
   (e.g. `deps.clean.ex`) - although ultimately the file name is not
@@ -39,7 +39,7 @@ defmodule Mix.Task do
 
   Define the `@shortdoc` attribute if you wish to make the task
   publicly visible on `mix help`. Omit this attribute if you do
-  not want your task to be listed on `mix help`.
+  not want your task to be listed via `mix help`.
 
   If a task has requirements, they can be listed using the
   `@requirements` attribute. For example:
@@ -63,11 +63,11 @@ defmodule Mix.Task do
       on `mix help`
     * `@recursive` - runs the task recursively in umbrella projects
     * `@requirements` - list of required tasks to be run before the task
-    * `@preferred_cli_env` - recommends environment to run task. It is used
-      only if `MIX_ENV` is not yet set. Note `@preferred_cli_env` is not loaded
-      from dependencies as we need to know the environment in order to load
-      the depenencies themselves. In those cases, you can set the `preferred_cli_env`
-      cocnfiguration under `def project` in your `mix.exs`
+    * `@preferred_cli_env` - recommends an environment in which to run the task.
+      It is used only if `MIX_ENV` is not yet set. Note `@preferred_cli_env` is
+      not loaded from dependencies as we need to know the environment in order to
+      load the dependencies themselves. In those cases, you can set the
+      `preferred_cli_env` configuration under `def project` in your `mix.exs`
 
   ## Documentation
 
@@ -244,6 +244,10 @@ defmodule Mix.Task do
 
   @doc """
   Returns the task name for the given `module`.
+
+  ## Examples
+      iex> Mix.Task.task_name(Mix.Tasks.Test)
+      "test"
   """
   @spec task_name(task_module) :: task_name
   def task_name(module) when is_atom(module) do
@@ -251,10 +255,13 @@ defmodule Mix.Task do
   end
 
   @doc """
-  Checks if an alias called `task` exists.
+  Checks if the given `task` name is an alias.
 
-  For more information about task aliasing, take a look at the "Aliasing"
-  section in the docs for `Mix`.
+  Returns false if the given name is not an alias or if it is not a task.
+
+  For more information about task aliasing, take a look at the
+  ["Aliasing"]((https://hexdocs.pm/mix/Mix.html#module-aliases) section in the
+  docs for `Mix`.
   """
   @spec alias?(task_name) :: boolean
   def alias?(task) when is_binary(task) do
@@ -266,10 +273,10 @@ defmodule Mix.Task do
   end
 
   @doc """
-  Receives a task name and returns the task module if found.
+  Receives a task name and returns the corresponding task module if one exists.
 
-  Otherwise returns `nil` in case the module
-  exists, but it isn't a task or cannot be found.
+  Returns `nil` if the module cannot be found, if it is an alias, or if it is
+  not a valid `Mix.Task`.
   """
   @spec get(task_name) :: task_module | nil
   def get(task) do
@@ -280,7 +287,7 @@ defmodule Mix.Task do
   end
 
   @doc """
-  Receives a task name and retrieves the task module.
+  Receives a task name and retrieves the corresponding task module.
 
   ## Exceptions
 
@@ -313,20 +320,24 @@ defmodule Mix.Task do
   end
 
   @doc """
-  Runs a `task` with the given `args`.
+  Conditionally runs the task (or alias) with the given `args`.
 
-  If the task was not yet invoked, it runs the task and
-  returns the result.
+  If there exists a task matching the given task name and it has not yet been
+  invoked, this will run the task with the given `args` and return the result.
 
-  If there is an alias with the same name, the alias
-  will be invoked instead of the original task.
+  If there is an [alias](https://hexdocs.pm/mix/Mix.html#module-aliases) defined
+  for the given task name, the alias will be invoked instead of the original
+  task.
 
-  If the task or alias were already invoked, it does not
-  run them again and simply aborts with `:noop`.
+  If the task or alias has already been invoked, subsequent calls to `run/2`
+  will _abort_ without executing and return `:noop`.
 
-  It may raise an exception if an alias or a task can't
-  be found or the task is invalid. Check `get!/1` for more
-  information.
+  Remember: by default, tasks will only run _once_, even when called repeatedly!
+  If you need to run a task multiple times, you need to re-enable it via
+  `reenable/1` or call it using `rerun/2`.
+
+  `run/2` raises an exception if an alias or a task cannot be found or if the
+  task is invalid. See `get!/1` for more information.
   """
   @spec run(task_name, [any]) :: any
   def run(task, args \\ [])
