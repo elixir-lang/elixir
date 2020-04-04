@@ -2485,6 +2485,14 @@ defmodule Kernel.ExpansionTest do
       assert_raise CompileError, message, fn ->
         expand(quote(do: <<x::binary, y::binary>> = "foobar"))
       end
+
+      assert_raise CompileError, message, fn ->
+        expand(quote(do: <<(<<x::binary>>), y::binary>> = "foobar"))
+      end
+
+      assert_raise CompileError, message, fn ->
+        expand(quote(do: <<(<<x::bitstring>>), y::bitstring>> = "foobar"))
+      end
     end
   end
 

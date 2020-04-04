@@ -62,14 +62,14 @@ expand(BitstrMeta, Fun, [{'::', Meta, [Left, Right]} | T], Acc, E, Alignment, Re
     end,
 
   expand(BitstrMeta, Fun, T, EAcc, EE, alignment(Alignment, EAlignment), RequireSize);
+expand(BitstrMeta, Fun, [{'<<>>', _Meta, Parts} | T], Acc, E, Alignment, RequireSize) ->
+  expand(BitstrMeta, Fun, Parts ++ T, Acc, E, Alignment, RequireSize);
 expand(BitstrMeta, Fun, [{_, Meta, _} = H | T], Acc, E, Alignment, RequireSize) ->
   {Expr, ES} = expand_expr(Meta, H, Fun, E),
-  {EAcc, EAlignment} = wrap_expr(Expr, Acc),
-  expand(BitstrMeta, Fun, T, EAcc, ES, alignment(Alignment, EAlignment), RequireSize);
+  expand(BitstrMeta, Fun, T, [infer_expr(Expr) | Acc], ES, Alignment, RequireSize);
 expand(Meta, Fun, [H | T], Acc, E, Alignment, RequireSize) ->
   {Expr, ES} = expand_expr(Meta, H, Fun, E),
-  {EAcc, EAlignment} = wrap_expr(Expr, Acc),
-  expand(Meta, Fun, T, EAcc, ES, alignment(Alignment, EAlignment), RequireSize).
+  expand(Meta, Fun, T, [infer_expr(Expr) | Acc], ES, Alignment, RequireSize).
 
 prepend_unless_bitstring_in_match(Type, Meta, Left, Right, Acc, E) ->
   Expr = {'::', Meta, [Left, Right]},
@@ -87,24 +87,17 @@ byte_parts({'<<>>', Meta, Parts}) ->
     _ -> error
   end.
 
-wrap_expr({'<<>>', Meta, Entries}, Acc) ->
-  %% A literal bitstring can always be merged into the outer one
-  %% when the bitstring specifications are not present.
-  {_, Alignment} = lists:keyfind(alignment, 1, Meta),
-  {lists:reverse(Entries, Acc), Alignment};
-wrap_expr(Expr, Acc) ->
-  Node =
-    case expr_type(Expr) of
-      {binary, Meta} ->
-        {'::', [{inferred_binary_type, true} | Meta], [Expr, {binary, Meta, []}]};
-      {float, Meta} ->
-        {'::', [{inferred_binary_type, true} | Meta], [Expr, {float, Meta, []}]};
-      {integer, Meta} ->
-        {'::', [{inferred_binary_type, true} | Meta], [Expr, {integer, Meta, []}]};
-      {default, Meta} ->
-        {'::', [{inferred_binary_type, true} | Meta], [Expr, {integer, Meta, []}]}
-    end,
-  {[Node | Acc], 0}.
+infer_expr(Expr) ->
+  case expr_type(Expr) of
+    {binary, Meta} ->
+      {'::', [{inferred_binary_type, true} | Meta], [Expr, {binary, Meta, []}]};
+    {float, Meta} ->
+      {'::', [{inferred_binary_type, true} | Meta], [Expr, {float, Meta, []}]};
+    {integer, Meta} ->
+      {'::', [{inferred_binary_type, true} | Meta], [Expr, {integer, Meta, []}]};
+    {default, Meta} ->
+      {'::', [{inferred_binary_type, true} | Meta], [Expr, {integer, Meta, []}]}
+  end.
 
 expr_type(Integer) when is_integer(Integer) -> {integer, []};
 expr_type(Float) when is_float(Float) -> {float, []};
