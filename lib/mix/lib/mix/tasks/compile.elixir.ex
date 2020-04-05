@@ -27,7 +27,9 @@ defmodule Mix.Tasks.Compile.Elixir do
         paths = Path.wildcard("*.txt")
         paths_hash = :erlang.md5(paths)
 
-        for path <- paths do @external_resource path end
+        for path <- paths do
+          @external_resource path
+        end
 
         def __mix_recompile__?() do
           Path.wildcard("*.txt") |> :erlang.md5() == unquote(paths_hash)
