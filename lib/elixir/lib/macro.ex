@@ -965,7 +965,7 @@ defmodule Macro do
 
   defp bitpart_to_string({:"::", meta, [left, right]} = ast, fun) do
     result =
-      if meta[:inferred_binary_type] do
+      if meta[:inferred_bitstring_spec] do
         to_string(left, fun)
       else
         op_to_string(left, fun, :"::", :left) <>

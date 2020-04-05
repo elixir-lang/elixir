@@ -2356,14 +2356,14 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "raises on unaligned binaries in match" do
-      message = ~r"cannot verify size of binary expression in match"
-
-      assert_raise CompileError, message, fn ->
-        expand(quote(do: <<rest::bits>> <> _ = "foo"))
-      end
+      message = ~r"its number of bits is not divisible by 8"
 
       assert_raise CompileError, message, fn ->
         expand(quote(do: <<rest::size(3)>> <> _ = "foo"))
+      end
+
+      assert_raise CompileError, message, fn ->
+        expand(quote(do: <<1::4>> <> "foo"))
       end
     end
 
@@ -2492,6 +2492,10 @@ defmodule Kernel.ExpansionTest do
 
       assert_raise CompileError, message, fn ->
         expand(quote(do: <<(<<x::bitstring>>), y::bitstring>> = "foobar"))
+      end
+
+      assert_raise CompileError, message, fn ->
+        expand(quote(do: <<(<<x::bitstring>>)::bitstring, y::bitstring>> = "foobar"))
       end
     end
   end
@@ -2623,7 +2627,7 @@ defmodule Kernel.ExpansionTest do
     end)
 
     receive do
-      {:expand_env, {expr, env}} -> {clean_meta(expr, [:version, :inferred_binary_type]), env}
+      {:expand_env, {expr, env}} -> {clean_meta(expr, [:version, :inferred_bitstring_spec]), env}
     end
   end
 end
