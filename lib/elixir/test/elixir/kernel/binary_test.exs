@@ -199,10 +199,6 @@ defmodule Kernel.BinaryTest do
     assert_raise CompileError, message, fn ->
       Code.eval_string(~s[<<'foo'::binary>>])
     end
-
-    assert_raise ArgumentError, fn ->
-      Code.eval_string(~s[<<1::4>> <> "foo"])
-    end
   end
 
   @bitstring <<"foo", 16::4>>
