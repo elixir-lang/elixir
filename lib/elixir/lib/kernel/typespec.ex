@@ -22,9 +22,10 @@ defmodule Kernel.Typespec do
       {:docs_v1, _, _, _, _, _, docs} ->
         for {{:type, name, arity}, _, _, doc, _} <- docs do
           case doc do
-            :none -> {{name, arity}, nil}
-            :hidden -> {{name, arity}, false}
             %{"en" => doc_string} -> {{name, arity}, doc_string}
+            :none -> {{name, arity}, nil}
+            # Hidden or unknown format are ignored
+            _ -> {{name, arity}, false}
           end
         end
 
