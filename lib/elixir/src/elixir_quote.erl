@@ -232,7 +232,7 @@ fun_to_quoted(Function) ->
   {module, Module} = erlang:fun_info(Function, module),
   {name, Name}     = erlang:fun_info(Function, name),
   {arity, Arity}   = erlang:fun_info(Function, arity),
-  {'&', Meta, [{'/', Meta, [{{'.', Meta, [Module, Name]}, Meta, []}, Arity]}]}.
+  {'&', Meta, [{'/', Meta, [{{'.', Meta, [Module, Name]}, [{no_parens, true} | Meta], []}, Arity]}]}.
 
 %% Quotes an expression and return its quoted Elixir AST.
 
