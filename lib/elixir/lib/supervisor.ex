@@ -194,7 +194,7 @@ defmodule Supervisor do
         start: {Stack, :start_link, [[:hello]]}
       }
 
-  The map above defines a supervisor with `:id` of `Stack` that is started
+  The map above defines a child with `:id` of `Stack` that is started
   by calling `Stack.start_link([:hello])`.
 
   However, specifying the child specification for each child as a map can be
