@@ -210,8 +210,7 @@ defmodule Code.Formatter do
       token_metadata: true
     ]
 
-    with {:ok, {tokens, _warnings}} <-
-           :elixir.string_to_tokens(charlist, line, 1, file, tokenizer_options),
+    with {:ok, tokens} <- :elixir.string_to_tokens(charlist, line, 1, file, tokenizer_options),
          {:ok, forms} <- :elixir.tokens_to_quoted(tokens, file, parser_options) do
       state =
         Process.get(:code_formatter_comments)

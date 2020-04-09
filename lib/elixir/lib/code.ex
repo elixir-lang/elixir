@@ -836,7 +836,7 @@ defmodule Code do
     column = Keyword.get(opts, :column, 1)
 
     case :elixir.string_to_tokens(to_charlist(string), line, column, file, opts) do
-      {:ok, {tokens, _warnings}} ->
+      {:ok, tokens} ->
         :elixir.tokens_to_quoted(tokens, file, opts)
 
       {:error, _error_msg} = error ->

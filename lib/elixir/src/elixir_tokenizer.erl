@@ -144,8 +144,8 @@ tokenize(String, Line, Opts) ->
   tokenize(String, Line, 1, Opts).
 
 tokenize([], _Line, _Column, #elixir_tokenizer{terminators=[], warnings = Warnings}, Tokens) ->
-  UniqueWarnings = ordsets:to_list(ordsets:from_list(Warnings)),
-  {ok, {lists:reverse(Tokens), UniqueWarnings}};
+  [elixir_errors:erl_warn(Line, File, Msg) || {Line, File, Msg} <- lists:reverse(Warnings)],
+  {ok, lists:reverse(Tokens)};
 
 tokenize([], EndLine, Column, Scope, Tokens) ->
   #elixir_tokenizer{terminators=[{Start, StartLine, _} | _]} = Scope,
@@ -1460,5 +1460,4 @@ maybe_warn_for_ambiguous_bang_before_equals(_Kind, _Atom, _Rest, Scope, _Line) -
   Scope.
 
 prepend_warning({Line, File, Msg}, Scope) ->
-  elixir_errors:erl_warn(Line, File, Msg),
   Scope#elixir_tokenizer{warnings = [{Line, File, Msg} | Scope#elixir_tokenizer.warnings]}.

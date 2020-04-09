@@ -337,7 +337,7 @@ quoted_to_erl(Quoted, Env, Scope) ->
 
 string_to_tokens(String, StartLine, StartColumn, File, Opts) when is_integer(StartLine), is_binary(File) ->
   case elixir_tokenizer:tokenize(String, StartLine, StartColumn, [{file, File} | Opts]) of
-    {ok, {_Tokens, _Warnings}} = Ok ->
+    {ok, _Tokens} = Ok ->
       Ok;
     {error, {Line, _, {ErrorPrefix, ErrorSuffix}, Token}, _Rest, _SoFar} ->
       {error, {Line, {to_binary(ErrorPrefix), to_binary(ErrorSuffix)}, to_binary(Token)}};
@@ -373,7 +373,7 @@ parser_line(Meta) ->
 'string_to_quoted!'(String, StartLine, StartColumn, File, Opts) ->
   case string_to_tokens(String, StartLine, StartColumn, File, Opts) of
 
-    {ok, {Tokens, _Warnings}} ->
+    {ok, Tokens} ->
       case tokens_to_quoted(Tokens, File, Opts) of
         {ok, Forms} ->
           Forms;
