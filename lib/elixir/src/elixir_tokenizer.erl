@@ -144,7 +144,7 @@ tokenize(String, Line, Opts) ->
   tokenize(String, Line, 1, Opts).
 
 tokenize([], _Line, _Column, #elixir_tokenizer{terminators=[], warnings = Warnings}, Tokens) ->
-  UniqueWarnings = sets:to_list(sets:from_list(Warnings)),
+  UniqueWarnings = ordsets:to_list(ordsets:from_list(Warnings)),
   {ok, {lists:reverse(Tokens), UniqueWarnings}};
 
 tokenize([], EndLine, Column, Scope, Tokens) ->
@@ -241,10 +241,7 @@ tokenize([$?, Char | T], Line, Column, Scope, Tokens) ->
     {Escape, Name} ->
       Msg = io_lib:format("found ? followed by code point 0x~.16B (~ts), please use ?~ts instead",
                           [Char, Name, Escape]),
-      elixir_errors:erl_warn(Line, Scope#elixir_tokenizer.file, Msg),
-      Scope#elixir_tokenizer{warnings =
-        Scope#elixir_tokenizer.warnings ++ [{Line, Scope#elixir_tokenizer.file, Msg}]
-      };
+      prepend_warning({Line, Scope#elixir_tokenizer.file, Msg}, Scope);
     false ->
       Scope
   end,
@@ -437,10 +434,7 @@ tokenize([$:, H | T] = Original, Line, Column, Scope, Tokens) when ?is_quote(H) 
             "and @ do not require quotes",
             [hd(Parts)]
           ),
-          elixir_errors:erl_warn(Line, Scope#elixir_tokenizer.file, WarnMsg),
-          Scope#elixir_tokenizer{warnings =
-            Scope#elixir_tokenizer.warnings ++ [{Line, Scope#elixir_tokenizer.file, WarnMsg}]
-          };
+          prepend_warning({Line, Scope#elixir_tokenizer.file, WarnMsg}, Scope);
 
         false ->
           Scope
@@ -666,10 +660,7 @@ handle_strings(T, Line, Column, H, Scope, Tokens) ->
             "letters, numbers, underscore, and @ do not require quotes",
             [hd(Parts)]
           ),
-          elixir_errors:erl_warn(Line, Scope#elixir_tokenizer.file, WarnMsg),
-          Scope#elixir_tokenizer{warnings =
-            Scope#elixir_tokenizer.warnings ++ [{Line, Scope#elixir_tokenizer.file, WarnMsg}]
-          };
+          prepend_warning({Line, Scope#elixir_tokenizer.file, WarnMsg}, Scope);
 
         false ->
           Scope
@@ -763,10 +754,7 @@ handle_dot([$., H | T] = Original, Line, Column, DotInfo, Scope, Tokens) when ?i
             "do not require quotes",
             [Part]
           ),
-          elixir_errors:erl_warn(Line, Scope#elixir_tokenizer.file, WarnMsg),
-          Scope#elixir_tokenizer{warnings =
-            Scope#elixir_tokenizer.warnings ++ [{Line, Scope#elixir_tokenizer.file, WarnMsg}]
-          };
+          prepend_warning({Line, Scope#elixir_tokenizer.file, WarnMsg}, Scope);
 
         false ->
           Scope
@@ -934,9 +922,7 @@ remove_heredoc_spaces(Body, Spaces, Marker, Scope) ->
                           "      \"\"\"~n"
                           "    end~n~n"
                           "The current heredoc line is indented too little", [[Marker, Marker, Marker]]),
-      elixir_errors:erl_warn(Line, Scope#elixir_tokenizer.file, Msg),
-      {Acc, Scope#elixir_tokenizer{warnings =
-              Scope#elixir_tokenizer.warnings ++ [{Line, Scope#elixir_tokenizer.file, Msg}]}}
+      {Acc, prepend_warning({Line, Scope#elixir_tokenizer.file, Msg}, Scope)}
   end.
 
 trim_spaces([{Line, Entry} | Rest], Acc, Spaces, Warned) ->
@@ -1448,10 +1434,7 @@ maybe_warn_too_many_of_same_char([T | _] = Token, [T | _] = _Rest, Line, Scope) 
       _ -> io_lib:format("please use a space between \"~ts\" and the next \"~ts\"", [Token, [T]])
     end,
   Message = io_lib:format("found \"~ts\" followed by \"~ts\", ~ts", [Token, [T], Warning]),
-  elixir_errors:erl_warn(Line, Scope#elixir_tokenizer.file, Message),
-  Scope#elixir_tokenizer{warnings =
-    Scope#elixir_tokenizer.warnings ++ [{Line, Scope#elixir_tokenizer.file, Warning}]
-  };
+  prepend_warning({Line, Scope#elixir_tokenizer.file, Message}, Scope);
 maybe_warn_too_many_of_same_char(_Token, _Rest, _Line, Scope) ->
   Scope.
 
@@ -1469,12 +1452,13 @@ maybe_warn_for_ambiguous_bang_before_equals(Kind, Atom, [$= | _], Scope, Line) -
                           "It is unclear if you mean \"~ts ~ts=\" or \"~ts =\". Please add "
                           "a space before or after ~ts to remove the ambiguity",
                           [What, Identifier, [Last], lists:droplast(Identifier), [Last], Identifier, [Last]]),
-      elixir_errors:erl_warn(Line, Scope#elixir_tokenizer.file, Msg),
-      Scope#elixir_tokenizer{warnings =
-        Scope#elixir_tokenizer.warnings ++ [{Line, Scope#elixir_tokenizer.file, Msg}]
-      };
+      prepend_warning({Line, Scope#elixir_tokenizer.file, Msg}, Scope);
     _ ->
       Scope
   end;
 maybe_warn_for_ambiguous_bang_before_equals(_Kind, _Atom, _Rest, Scope, _Line) ->
   Scope.
+
+prepend_warning({Line, File, Msg}, Scope) ->
+  elixir_errors:erl_warn(Line, File, Msg),
+  Scope#elixir_tokenizer{warnings = [{Line, File, Msg} | Scope#elixir_tokenizer.warnings]}.
