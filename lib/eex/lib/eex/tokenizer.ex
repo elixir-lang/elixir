@@ -175,7 +175,10 @@ defmodule EEx.Tokenizer do
   # which relax the tokenizer to not error on unmatched pairs.
   # If the tokens start with an "end" we have a middle expr.
   defp tokenize_rest(rest) do
-    :elixir_tokenizer.tokenize(Enum.reverse(rest), 1, file: "eex", check_terminators: false)
+    {:ok, {tokens, _warnings}} =
+      :elixir_tokenizer.tokenize(Enum.reverse(rest), 1, file: "eex", check_terminators: false)
+
+    {:ok, tokens}
   end
 
   defp fn_index(tokens) do
