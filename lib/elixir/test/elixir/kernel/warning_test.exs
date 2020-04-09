@@ -22,6 +22,10 @@ defmodule Kernel.WarningTest do
     assert output =~ "nofile:2"
   end
 
+  test "does not warn on incomplete tokenization" do
+    assert {:error, _} = Code.string_to_quoted(~s[:"foobar" do])
+  end
+
   test "operators formed by many of the same character followed by that character" do
     output =
       capture_err(fn ->

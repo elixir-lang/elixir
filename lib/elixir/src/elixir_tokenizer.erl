@@ -143,7 +143,8 @@ tokenize(String, Line, Column, Opts) ->
 tokenize(String, Line, Opts) ->
   tokenize(String, Line, 1, Opts).
 
-tokenize([], _Line, _Column, #elixir_tokenizer{terminators=[]}, Tokens) ->
+tokenize([], _Line, _Column, #elixir_tokenizer{terminators=[], warnings = Warnings}, Tokens) ->
+  [elixir_errors:erl_warn(Line, File, Msg) || {Line, File, Msg} <- lists:reverse(Warnings)],
   {ok, lists:reverse(Tokens)};
 
 tokenize([], EndLine, Column, Scope, Tokens) ->
@@ -190,12 +191,12 @@ tokenize([$# | String], Line, Column, Scope, Tokens) ->
 
 tokenize([$~, S, H, H, H | T] = Original, Line, Column, Scope, Tokens) when ?is_quote(H), ?is_upcase(S) orelse ?is_downcase(S) ->
   case extract_heredoc_with_interpolation(Line, Column, Scope, ?is_downcase(S), T, H) of
-    {ok, NewLine, NewColumn, Parts, Rest} ->
+    {ok, NewLine, NewColumn, Parts, Rest, NewScope} ->
       {Final, Modifiers} = collect_modifiers(Rest, []),
       Indentation = NewColumn - 4,
       Token = {sigil, {Line, Column, nil}, S, Parts, Modifiers, Indentation, <<H, H, H>>},
       NewColumnWithModifiers = NewColumn + length(Modifiers),
-      tokenize(Final, NewLine, NewColumnWithModifiers, Scope, [Token | Tokens]);
+      tokenize(Final, NewLine, NewColumnWithModifiers, NewScope, [Token | Tokens]);
 
     {error, Reason} ->
       {error, Reason, Original, Tokens}
@@ -236,16 +237,16 @@ tokenize([$?, $\\, H | T], Line, Column, Scope, Tokens) ->
   tokenize(T, Line, Column + 3, Scope, [Token | Tokens]);
 
 tokenize([$?, Char | T], Line, Column, Scope, Tokens) ->
-  case handle_char(Char) of
+  NewScope = case handle_char(Char) of
     {Escape, Name} ->
       Msg = io_lib:format("found ? followed by code point 0x~.16B (~ts), please use ?~ts instead",
                           [Char, Name, Escape]),
-      elixir_errors:erl_warn(Line, Scope#elixir_tokenizer.file, Msg);
+      prepend_warning({Line, Scope#elixir_tokenizer.file, Msg}, Scope);
     false ->
-      ok
+      Scope
   end,
   Token = {char, {Line, Column, [$?, Char]}, Char},
-  tokenize(T, Line, Column + 2, Scope, [Token | Tokens]);
+  tokenize(T, Line, Column + 2, NewScope, [Token | Tokens]);
 
 % Heredocs
 
@@ -311,9 +312,9 @@ tokenize([$:, T | Rest], Line, Column, Scope, Tokens) when
 % Stand-alone tokens
 
 tokenize("..." ++ Rest, Line, Column, Scope, Tokens) ->
-  maybe_warn_too_many_of_same_char("...", Rest, Line, Scope),
+  NewScope = maybe_warn_too_many_of_same_char("...", Rest, Line, Scope),
   Token = check_call_identifier(Line, Column, '...', Rest),
-  tokenize(Rest, Line, Column + 3, Scope, [Token | Tokens]);
+  tokenize(Rest, Line, Column + 3, NewScope, [Token | Tokens]);
 
 tokenize("=>" ++ Rest, Line, Column, Scope, Tokens) ->
   Token = {assoc_op, {Line, Column, previous_was_eol(Tokens)}, '=>'},
@@ -327,16 +328,16 @@ tokenize([T1, T2, T3 | Rest], Line, Column, Scope, Tokens) when ?comp_op3(T1, T2
   handle_op(Rest, Line, Column, comp_op, 3, list_to_atom([T1, T2, T3]), Scope, Tokens);
 
 tokenize([T1, T2, T3 | Rest], Line, Column, Scope, Tokens) when ?and_op3(T1, T2, T3) ->
-  maybe_warn_too_many_of_same_char([T1, T2, T3], Rest, Line, Scope),
-  handle_op(Rest, Line, Column, and_op, 3, list_to_atom([T1, T2, T3]), Scope, Tokens);
+  NewScope = maybe_warn_too_many_of_same_char([T1, T2, T3], Rest, Line, Scope),
+  handle_op(Rest, Line, Column, and_op, 3, list_to_atom([T1, T2, T3]), NewScope, Tokens);
 
 tokenize([T1, T2, T3 | Rest], Line, Column, Scope, Tokens) when ?or_op3(T1, T2, T3) ->
-  maybe_warn_too_many_of_same_char([T1, T2, T3], Rest, Line, Scope),
-  handle_op(Rest, Line, Column, or_op, 3, list_to_atom([T1, T2, T3]), Scope, Tokens);
+  NewScope = maybe_warn_too_many_of_same_char([T1, T2, T3], Rest, Line, Scope),
+  handle_op(Rest, Line, Column, or_op, 3, list_to_atom([T1, T2, T3]), NewScope, Tokens);
 
 tokenize([T1, T2, T3 | Rest], Line, Column, Scope, Tokens) when ?three_op(T1, T2, T3) ->
-  maybe_warn_too_many_of_same_char([T1, T2, T3], Rest, Line, Scope),
-  handle_op(Rest, Line, Column, three_op, 3, list_to_atom([T1, T2, T3]), Scope, Tokens);
+  NewScope = maybe_warn_too_many_of_same_char([T1, T2, T3], Rest, Line, Scope),
+  handle_op(Rest, Line, Column, three_op, 3, list_to_atom([T1, T2, T3]), NewScope, Tokens);
 
 tokenize([T1, T2, T3 | Rest], Line, Column, Scope, Tokens) when ?arrow_op3(T1, T2, T3) ->
   handle_op(Rest, Line, Column, arrow_op, 3, list_to_atom([T1, T2, T3]), Scope, Tokens);
@@ -367,8 +368,8 @@ tokenize([T1, T2 | Rest], Line, Column, Scope, Tokens) when ?two_op(T1, T2) ->
   handle_op(Rest, Line, Column, two_op, 2, list_to_atom([T1, T2]), Scope, Tokens);
 
 tokenize([T1, T2 | Rest], Line, Column, Scope, Tokens) when ?list_op(T1, T2) ->
-  maybe_warn_too_many_of_same_char([T1, T2], Rest, Line, Scope),
-  handle_op(Rest, Line, Column, two_op, 2, list_to_atom([T1, T2]), Scope, Tokens);
+  NewScope = maybe_warn_too_many_of_same_char([T1, T2], Rest, Line, Scope),
+  handle_op(Rest, Line, Column, two_op, 2, list_to_atom([T1, T2]), NewScope, Tokens);
 
 tokenize([T1, T2 | Rest], Line, Column, Scope, Tokens) when ?arrow_op(T1, T2) ->
   handle_op(Rest, Line, Column, arrow_op, 2, list_to_atom([T1, T2]), Scope, Tokens);
@@ -425,25 +426,26 @@ tokenize([T | Rest], Line, Column, Scope, Tokens) when ?pipe_op(T) ->
 tokenize([$:, H | T] = Original, Line, Column, Scope, Tokens) when ?is_quote(H) ->
   case elixir_interpolation:extract(Line, Column + 2, Scope, true, T, H) of
     {NewLine, NewColumn, Parts, Rest} ->
-      case is_unnecessary_quote(Parts, Scope) of
+      NewScope = case is_unnecessary_quote(Parts, Scope) of
         true ->
-          elixir_errors:erl_warn(Line, Scope#elixir_tokenizer.file, io_lib:format(
+          WarnMsg = io_lib:format(
             "found quoted atom \"~ts\" but the quotes are not required. "
             "Atoms made exclusively of Unicode letters, numbers, underscore, "
             "and @ do not require quotes",
             [hd(Parts)]
-          ));
+          ),
+          prepend_warning({Line, Scope#elixir_tokenizer.file, WarnMsg}, Scope);
 
         false ->
-          ok
+          Scope
       end,
 
-      case unescape_tokens(Parts, Scope) of
+      case unescape_tokens(Parts, NewScope) of
         {ok, [Part]} when is_binary(Part) ->
           case unsafe_to_atom(Part, Line, Column, Scope) of
             {ok, Atom} ->
               Token = {atom, {Line, Column, nil}, Atom},
-              tokenize(Rest, NewLine, NewColumn, Scope, [Token | Tokens]);
+              tokenize(Rest, NewLine, NewColumn, NewScope, [Token | Tokens]);
 
             {error, Reason} ->
               {error, Reason, Rest, Tokens}
@@ -455,7 +457,7 @@ tokenize([$:, H | T] = Original, Line, Column, Scope, Tokens) when ?is_quote(H) 
             false -> atom_unsafe
           end,
           Token = {Key, {Line, Column, nil}, Unescaped},
-          tokenize(Rest, NewLine, NewColumn, Scope, [Token | Tokens]);
+          tokenize(Rest, NewLine, NewColumn, NewScope, [Token | Tokens]);
 
         {error, Msg} ->
           {error, {Line, Column, Msg, [$:, H]}, Rest, Tokens}
@@ -468,9 +470,9 @@ tokenize([$:, H | T] = Original, Line, Column, Scope, Tokens) when ?is_quote(H) 
 tokenize([$: | String] = Original, Line, Column, Scope, Tokens) ->
   case tokenize_identifier(String, Line, Column, Scope) of
     {_Kind, Atom, Rest, Length, _Ascii, _Special} ->
-      maybe_warn_for_ambiguous_bang_before_equals(atom, Atom, Rest, Scope, Line),
+      NewScope = maybe_warn_for_ambiguous_bang_before_equals(atom, Atom, Rest, Scope, Line),
       Token = {atom, {Line, Column, nil}, Atom},
-      tokenize(Rest, Line, Column + 1 + Length, Scope, [Token | Tokens]);
+      tokenize(Rest, Line, Column + 1 + Length, NewScope, [Token | Tokens]);
     empty ->
       unexpected_token(Original, Line, Column, Tokens);
     {error, Reason} ->
@@ -570,8 +572,8 @@ tokenize(String, Line, Column, Scope, Tokens) ->
           tokenize_alias(Rest, Line, Column, Atom, Length, Ascii, Special, Scope, Tokens);
 
         _ when Kind == identifier ->
-          maybe_warn_for_ambiguous_bang_before_equals(identifier, Atom, Rest, Scope, Line),
-          tokenize_other(Rest, Line, Column, Atom, Length, Scope, Tokens);
+          NewScope = maybe_warn_for_ambiguous_bang_before_equals(identifier, Atom, Rest, Scope, Line),
+          tokenize_other(Rest, Line, Column, Atom, Length, NewScope, Tokens);
 
         _ ->
           unexpected_token(String, Line, Column, Tokens)
@@ -629,11 +631,11 @@ handle_char(_)  -> false.
 
 handle_heredocs(T, Line, Column, H, Scope, Tokens) ->
   case extract_heredoc_with_interpolation(Line, Column, Scope, true, T, H) of
-    {ok, NewLine, NewColumn, Parts, Rest} ->
-      case unescape_tokens(Parts, Scope) of
+    {ok, NewLine, NewColumn, Parts, Rest, NewScope} ->
+      case unescape_tokens(Parts, NewScope) of
         {ok, Unescaped} ->
           Token = {heredoc_type(H), {Line, Column, nil}, Unescaped},
-          tokenize(Rest, NewLine, NewColumn, Scope, [Token | Tokens]);
+          tokenize(Rest, NewLine, NewColumn, NewScope, [Token | Tokens]);
 
         {error, Msg} ->
           {error, {Line, Column, Msg, [H, H, H]}, Rest, Tokens}
@@ -649,28 +651,29 @@ handle_strings(T, Line, Column, H, Scope, Tokens) ->
       interpolation_error(Reason, [H | T], Tokens, " (for string starting at line ~B)", [Line]);
 
     {NewLine, NewColumn, Parts, [$: | Rest]} when ?is_space(hd(Rest)) ->
-      case is_unnecessary_quote(Parts, Scope) of
+      NewScope = case is_unnecessary_quote(Parts, Scope) of
         true ->
-          elixir_errors:erl_warn(Line, Scope#elixir_tokenizer.file, io_lib:format(
+          WarnMsg = io_lib:format(
             "found quoted keyword \"~ts\" but the quotes are not required. "
             "Note that keywords are always atoms, even when quoted. "
             "Similar to atoms, keywords made exclusively of Unicode "
             "letters, numbers, underscore, and @ do not require quotes",
             [hd(Parts)]
-          ));
+          ),
+          prepend_warning({Line, Scope#elixir_tokenizer.file, WarnMsg}, Scope);
 
         false ->
-          ok
+          Scope
       end,
 
-      case unescape_tokens(Parts, Scope) of
+      case unescape_tokens(Parts, NewScope) of
         {ok, Unescaped} ->
           Key = case Scope#elixir_tokenizer.existing_atoms_only of
             true  -> kw_identifier_safe;
             false -> kw_identifier_unsafe
           end,
           Token = {Key, {Line, Column - 1, nil}, Unescaped},
-          tokenize(Rest, NewLine, NewColumn + 1, Scope, [Token | Tokens]);
+          tokenize(Rest, NewLine, NewColumn + 1, NewScope, [Token | Tokens]);
 
         {error, Msg} ->
           {error, {Line, Column, Msg, [H]}, Rest, Tokens}
@@ -743,24 +746,25 @@ handle_dot([$., $( | Rest], Line, Column, DotInfo, Scope, Tokens) ->
 handle_dot([$., H | T] = Original, Line, Column, DotInfo, Scope, Tokens) when ?is_quote(H) ->
   case elixir_interpolation:extract(Line, Column + 1, Scope, true, T, H) of
     {NewLine, NewColumn, [Part], Rest} when is_list(Part) ->
-      case is_unnecessary_quote([Part], Scope) of
+      NewScope = case is_unnecessary_quote([Part], Scope) of
         true ->
-          elixir_errors:erl_warn(Line, Scope#elixir_tokenizer.file, io_lib:format(
+          WarnMsg = io_lib:format(
             "found quoted call \"~ts\" but the quotes are not required. "
             "Calls made exclusively of Unicode letters, numbers, and underscore "
             "do not require quotes",
             [Part]
-          ));
+          ),
+          prepend_warning({Line, Scope#elixir_tokenizer.file, WarnMsg}, Scope);
 
         false ->
-          ok
+          Scope
       end,
 
-      case unsafe_to_atom(Part, Line, Column, Scope) of
+      case unsafe_to_atom(Part, Line, Column, NewScope) of
         {ok, Atom} ->
           Token = check_call_identifier(Line, Column, Atom, Rest),
           TokensSoFar = add_token_with_eol({'.', DotInfo}, Tokens),
-          tokenize(Rest, NewLine, NewColumn, Scope, [Token | TokensSoFar]);
+          tokenize(Rest, NewLine, NewColumn, NewScope, [Token | TokensSoFar]);
 
         {error, Reason} ->
           {error, Reason, Original, Tokens}
@@ -855,13 +859,13 @@ collect_modifiers(Rest, Buffer) ->
 
 extract_heredoc_with_interpolation(Line, Column, Scope, Interpol, T, H) ->
   case extract_heredoc(Line, Column, T, H, Scope) of
-    {ok, NewLine, NewColumn, Body, Rest} ->
-      case elixir_interpolation:extract(Line + 1, 1, Scope, Interpol, Body, none) of
+    {ok, NewLine, NewColumn, Body, Rest, NewScope} ->
+      case elixir_interpolation:extract(Line + 1, 1, NewScope, Interpol, Body, none) of
         {error, Reason} ->
           {error, interpolation_format(Reason, " (for heredoc starting at line ~B)", [Line])};
 
         {_, _, Parts, []} ->
-          {ok, NewLine, NewColumn, tokens_to_binary(Parts), Rest}
+          {ok, NewLine, NewColumn, tokens_to_binary(Parts), Rest, NewScope}
       end;
 
     {error, _} = Error ->
@@ -876,7 +880,8 @@ extract_heredoc(Line0, Column0, Rest0, Marker, Scope) ->
       %% in the final heredoc body three lines below.
       case extract_heredoc_body(Line0, Column0, Marker, [$\n | Rest1], []) of
         {ok, Line1, Body, Rest2, Spaces} ->
-          {ok, Line1, 4 + Spaces, tl(remove_heredoc_spaces(Body, Spaces, Marker, Scope)), Rest2};
+          {Acc, NewScope} = remove_heredoc_spaces(Body, Spaces, Marker, Scope),
+          {ok, Line1, 4 + Spaces, tl(Acc), Rest2, NewScope};
         {error, Reason, ErrorLine, ErrorColumn} ->
           Terminator = [Marker, Marker, Marker],
           {Message, Token} = heredoc_error_message(Reason, Line0, Terminator),
@@ -900,7 +905,7 @@ heredoc_error_message(badterminator, _Line, Terminator) ->
 remove_heredoc_spaces(Body, Spaces, Marker, Scope) ->
   case trim_spaces(Body, [], Spaces, false) of
     {Acc, false} ->
-      Acc;
+      {Acc, Scope};
 
     {Acc, Line} ->
       Msg = io_lib:format("outdented heredoc line. The contents inside the heredoc should be indented "
@@ -917,8 +922,7 @@ remove_heredoc_spaces(Body, Spaces, Marker, Scope) ->
                           "      \"\"\"~n"
                           "    end~n~n"
                           "The current heredoc line is indented too little", [[Marker, Marker, Marker]]),
-      elixir_errors:erl_warn(Line, Scope#elixir_tokenizer.file, Msg),
-      Acc
+      {Acc, prepend_warning({Line, Scope#elixir_tokenizer.file, Msg}, Scope)}
   end.
 
 trim_spaces([{Line, Entry} | Rest], Acc, Spaces, Warned) ->
@@ -1430,9 +1434,9 @@ maybe_warn_too_many_of_same_char([T | _] = Token, [T | _] = _Rest, Line, Scope) 
       _ -> io_lib:format("please use a space between \"~ts\" and the next \"~ts\"", [Token, [T]])
     end,
   Message = io_lib:format("found \"~ts\" followed by \"~ts\", ~ts", [Token, [T], Warning]),
-  elixir_errors:erl_warn(Line, Scope#elixir_tokenizer.file, Message);
-maybe_warn_too_many_of_same_char(_Token, _Rest, _Line, _Scope) ->
-  ok.
+  prepend_warning({Line, Scope#elixir_tokenizer.file, Message}, Scope);
+maybe_warn_too_many_of_same_char(_Token, _Rest, _Line, Scope) ->
+  Scope.
 
 %% TODO: Turn into an error on v2.0
 maybe_warn_for_ambiguous_bang_before_equals(Kind, Atom, [$= | _], Scope, Line) ->
@@ -1448,9 +1452,12 @@ maybe_warn_for_ambiguous_bang_before_equals(Kind, Atom, [$= | _], Scope, Line) -
                           "It is unclear if you mean \"~ts ~ts=\" or \"~ts =\". Please add "
                           "a space before or after ~ts to remove the ambiguity",
                           [What, Identifier, [Last], lists:droplast(Identifier), [Last], Identifier, [Last]]),
-      elixir_errors:erl_warn(Line, Scope#elixir_tokenizer.file, Msg);
+      prepend_warning({Line, Scope#elixir_tokenizer.file, Msg}, Scope);
     _ ->
-      ok
+      Scope
   end;
-maybe_warn_for_ambiguous_bang_before_equals(_Kind, _Atom, _Rest, _Scope, _Line) ->
-  ok.
+maybe_warn_for_ambiguous_bang_before_equals(_Kind, _Atom, _Rest, Scope, _Line) ->
+  Scope.
+
+prepend_warning({Line, File, Msg}, Scope) ->
+  Scope#elixir_tokenizer{warnings = [{Line, File, Msg} | Scope#elixir_tokenizer.warnings]}.
