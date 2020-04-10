@@ -32,7 +32,7 @@ defmodule Macro do
       #=> 1
 
   So far they behave the same, as we are passing an integer as argument.
-  But what happens when we pass an expresion:
+  But what happens when we pass an expression:
 
       macro_inspect(1 + 2)
       #=> {:+, [line: 3], [1, 2]}
