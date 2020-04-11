@@ -1503,6 +1503,12 @@ defmodule File do
   @doc """
   Sets the current working directory.
 
+  The current working directory is set for the BEAM globally. This can lead to
+  race conditions if multiple processes are changing the current working
+  directory concurrently. To run an external command in a given directory
+  without changing the global current working directory, use the `:cd` option
+  of `System.cmd/3` and `Port.open/2`.
+
   Returns `:ok` if successful, `{:error, reason}` otherwise.
   """
   @spec cd(Path.t()) :: :ok | {:error, posix}
