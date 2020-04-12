@@ -524,7 +524,7 @@ defmodule Application do
   Reads the application environment at compilation time or raises.
 
   This is the same as `compile_env/3` but it raises an
-  ArgumentError if the configuration is not available.
+  `ArgumentError` if the configuration is not available.
   """
   @doc since: "1.10.0"
   @spec compile_env!(app, key | list) :: value
