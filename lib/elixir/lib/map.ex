@@ -564,19 +564,15 @@ defmodule Map do
   """
   @spec merge(map, map, (key, value, value -> value)) :: map
   def merge(map1, map2, fun) when is_function(fun, 3) do
-    if map_size(map1) > map_size(map2) do
-      folder = fn key, val2, acc ->
+    folder = fn
+      key, val2, acc when map_size(map1) > map_size(map2 ) ->
         update(acc, key, val2, fn val1 -> fun.(key, val1, val2) end)
-      end
 
-      :maps.fold(folder, map1, map2)
-    else
-      folder = fn key, val2, acc ->
+      key, val2, acc ->
         update(acc, key, val2, fn val1 -> fun.(key, val2, val1) end)
-      end
-
-      :maps.fold(folder, map2, map1)
     end
+
+    :maps.fold(folder, map2, map1)
   end
 
   @doc """
