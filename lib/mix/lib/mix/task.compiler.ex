@@ -85,7 +85,7 @@ defmodule Mix.Task.Compiler do
   produces errors, warnings, or any other diagnostic information,
   it should return a tuple with the status and a list of diagnostics.
   """
-  @callback run([binary]) :: {status, [Diagnostic.t()]}
+  @callback run([binary]) :: status | {status, [Diagnostic.t()]}
 
   @doc """
   Lists manifest files for the compiler.
