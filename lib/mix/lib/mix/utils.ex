@@ -5,7 +5,7 @@ defmodule Mix.Utils do
   Gets the Mix home.
 
   It uses the the locations `MIX_HOME`, `XDG_DATA_HOME/mix`,
-  `~/.mix` with decreasing priority.
+  `~/.mix`, `~/.config/mix` with decreasing priority.
 
   Developers should only store entries in the
   `MIX_HOME` directory which are guaranteed to
@@ -15,7 +15,7 @@ defmodule Mix.Utils do
   stored there.
   """
   def mix_home do
-    mix_home_xdg_lookup("XDG_DATA_HOME")
+    mix_home_lookup(["MIX_HOME", {:xdg, "DATA_HOME"}, :legacy], "~/.local/share/mix")
   end
 
   @doc """
@@ -29,14 +29,36 @@ defmodule Mix.Utils do
 
   """
   def mix_config do
-    mix_home_xdg_lookup("XDG_CONFIG_HOME")
+    mix_home_lookup(["MIX_HOME", {:xdg, "CONFIG_HOME"}, :legacy], "~/.config/mix")
   end
 
-  defp mix_home_xdg_lookup(xdg) do
-    case {System.get_env("MIX_HOME"), System.get_env(xdg)} do
-      {directory, _} when is_binary(directory) -> directory
-      {nil, directory} when is_binary(directory) -> Path.join(directory, "mix")
-      {nil, nil} -> Path.expand("~/.mix")
+  defp mix_home_lookup(list, default) do
+    with nil <- mix_home_lookup(list), do: Path.expand(default)
+  end
+
+  defp mix_home_lookup([]), do: nil
+  defp mix_home_lookup([nil | rest]), do: mix_home_lookup(rest)
+
+  defp mix_home_lookup([{:xdg, name} | rest]) do
+    case  System.get_env("XDG_#{name}") do
+      nil -> mix_home_lookup(rest)
+      dir -> Path.join(dir, "mix")
+    end
+  end
+
+  defp mix_home_lookup([:legacy | rest]) do
+    path = Path.expand("~/.mix")
+
+    case File.dir?(path) do
+      true -> path
+      _ -> mix_home_lookup(rest)
+    end
+  end
+
+  defp mix_home_lookup([env | rest]) when is_binary(env) do
+    case System.get_env(env) do
+      nil -> mix_home_lookup(rest)
+      path -> path
     end
   end
 
