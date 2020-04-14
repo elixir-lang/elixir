@@ -257,9 +257,10 @@ defmodule Mix do
     * `MIX_REBAR3` - path to rebar3 command that overrides the one Mix installs
       (default: `~/.mix/rebar3`)
 
-  Mix also falls back to the `XDG_DATA_HOME` and `XDG_CONFIG_HOME`
-  environment variables, if `MIX_HOME` is not set, when storing its
-  contents and configuration.
+  If `MIX_HOME` is not set then the environment variables `XDG_DATA_HOME` and
+  `XDG_CONFIG_HOME` will be used as directories for storage of data and
+  configuration respectively. If none of the variables are set the default
+  directory `~/.mix` will be used.
 
   Environment variables that are not meant to hold a value (and act basically as
   flags) should be set to either `1` or `true`, for example:
