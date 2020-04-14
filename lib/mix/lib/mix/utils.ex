@@ -15,7 +15,7 @@ defmodule Mix.Utils do
   stored there.
   """
   def mix_home do
-    mix_home_xdg_lookup("XDG_DATA_HOME")
+    mix_home_lookup(["MIX_HOME", {:system, :user_data}])
   end
 
   @doc """
@@ -29,15 +29,34 @@ defmodule Mix.Utils do
 
   """
   def mix_config do
-    mix_home_xdg_lookup("XDG_CONFIG_HOME")
+    mix_home_lookup(["MIX_HOME", {:system, :user_config}])
   end
 
-  defp mix_home_xdg_lookup(xdg) do
-    case {System.get_env("MIX_HOME"), System.get_env(xdg)} do
-      {directory, _} when is_binary(directory) -> directory
-      {nil, directory} when is_binary(directory) -> Path.join(directory, "mix")
-      {nil, nil} -> Path.expand("~/.mix")
+  defp mix_home_lookup([]), do: Path.expand("~/.mix")
+
+  defp mix_home_lookup([{:system, type} | rest]) do
+    case xdg?() do
+      true -> xdg_dir(type)
+      _ -> mix_home_lookup(rest)
     end
+  end
+
+  defp mix_home_lookup([{env, suffix} | rest]) when is_binary(env) and is_binary(suffix) do
+    case System.get_env(env) do
+      nil -> mix_home_lookup(rest)
+      dir -> Path.join(dir, suffix)
+    end
+  end
+
+  defp mix_home_lookup([env | rest]) when is_binary(env) do
+    mix_home_lookup([{env, ""} | rest])
+  end
+
+  defp xdg_dir(type), do: :filename.basedir(type, "mix", %{os: :linux})
+
+  defp xdg? do
+    File.dir?(xdg_dir(:user_config)) or
+      Enum.any?(~w[XDG_CONFIG_HOME XDG_DATA_HOME], &(not is_nil(System.get_env(&1))))
   end
 
   @doc """
