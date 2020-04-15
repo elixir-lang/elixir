@@ -239,22 +239,28 @@ defmodule Mix do
   Mix responds to the following variables:
 
     * `MIX_ARCHIVES` - specifies the directory into which the archives should be installed
+      (default: `~/.mix/archives`)
     * `MIX_BUILD_PATH` - sets the project `Mix.Project.build_path/0` config. This option
       must always point to a subdirectory inside a temporary directory. For instance,
       never "/tmp" or "_build" but "_build/PROD" or "/tmp/PROD", as required by Mix
-    * `MIX_DEPS_PATH` - sets the project `Mix.Project.deps_path/0` config
+    * `MIX_DEPS_PATH` - sets the project `Mix.Project.deps_path/0` config (default: `deps`)
     * `MIX_DEBUG` - outputs debug information about each task before running it
     * `MIX_ENV` - specifies which environment should be used. See [Environments](#module-environments)
     * `MIX_TARGET` - specifies which target should be used. See [Targets](#module-targets)
     * `MIX_EXS` - changes the full path to the `mix.exs` file
     * `MIX_HOME` - path to Mix's home directory, stores configuration files and scripts used by Mix
+      (default: `~/.mix`)
     * `MIX_PATH` - appends extra code paths
     * `MIX_QUIET` - does not print information messages to the terminal
     * `MIX_REBAR` - path to rebar command that overrides the one Mix installs
+      (default: `~/.mix/rebar`)
     * `MIX_REBAR3` - path to rebar3 command that overrides the one Mix installs
+      (default: `~/.mix/rebar3`)
 
-  Mix also falls back to the `XDG_DATA_HOME` and `XDG_CONFIG_HOME`
-  environment variables when storing its contents and configuration.
+  If `MIX_HOME` is not set then the environment variables `XDG_DATA_HOME` and
+  `XDG_CONFIG_HOME` will be used as directories for storage of data and
+  configuration respectively. If none of the variables are set the default
+  directory `~/.mix` will be used.
 
   Environment variables that are not meant to hold a value (and act basically as
   flags) should be set to either `1` or `true`, for example:
