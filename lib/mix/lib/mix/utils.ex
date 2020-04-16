@@ -56,7 +56,7 @@ defmodule Mix.Utils do
 
   defp xdg? do
     File.dir?(xdg_dir(:user_config)) or
-      Enum.any?(~w[XDG_CONFIG_HOME XDG_DATA_HOME], &(not is_nil(System.get_env(&1))))
+      Enum.any?(~w[XDG_CONFIG_HOME XDG_DATA_HOME], &System.get_env/1)
   end
 
   @doc """
