@@ -86,8 +86,8 @@ defmodule Code do
 
     * `{:local_function, meta, name, arity}` and
       `{:local_macro, meta, name, arity}` - traced whenever a local
-      function or macro is referenced. `meta` is the call AST metadata, `module`
-      is the invoked module, followed by the `name` and `arity`.
+      function or macro is referenced. `meta` is the call AST metadata, followed by
+      the `name` and `arity`.
 
     * `{:compile_env, app, path, return}` - traced whenever `Application.compile_env/3`
       or `Application.compile_env!/2` are called. `app` is an atom, `path` is a list
