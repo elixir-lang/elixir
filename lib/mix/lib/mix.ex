@@ -249,7 +249,6 @@ defmodule Mix do
     * `MIX_TARGET` - specifies which target should be used. See [Targets](#module-targets)
     * `MIX_EXS` - changes the full path to the `mix.exs` file
     * `MIX_HOME` - path to Mix's home directory, stores configuration files and scripts used by Mix
-      (default: `~/.mix`)
     * `MIX_PATH` - appends extra code paths
     * `MIX_QUIET` - does not print information messages to the terminal
     * `MIX_REBAR` - path to rebar command that overrides the one Mix installs
@@ -257,15 +256,20 @@ defmodule Mix do
     * `MIX_REBAR3` - path to rebar3 command that overrides the one Mix installs
       (default: `~/.mix/rebar3`)
 
-  If `MIX_HOME` is not set then the environment variables `XDG_DATA_HOME` and
-  `XDG_CONFIG_HOME` will be used as directories for storage of data and
-  configuration respectively. If none of the variables are set the default
-  directory `~/.mix` will be used.
+  If `MIX_HOME` is not set then:
+
+  - If [XDG Base Directory][xdg-bds] configuration or data directory is present, or
+    `XDG_CONFIG_HOME` or `XDG_DATA_HOME` environment variables are present, then it
+    will follow mentioned specification (defaut to `~/.config/mix`
+    and `~/.local/share/mix` for config and data respectively).
+  - Fall back to the default `~/.mix` for both - configuration and data
 
   Environment variables that are not meant to hold a value (and act basically as
   flags) should be set to either `1` or `true`, for example:
 
       $ MIX_DEBUG=1 mix compile
+
+  [xdg-bds]: https://specifications.freedesktop.org/basedir-spec/latest/
 
   """
 
