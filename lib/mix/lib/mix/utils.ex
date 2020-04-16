@@ -41,21 +41,18 @@ defmodule Mix.Utils do
     end
   end
 
-  defp mix_home_lookup([{env, suffix} | rest]) when is_binary(env) and is_binary(suffix) do
+  defp mix_home_lookup([env | rest]) when is_binary(env) do
     case System.get_env(env) do
       nil -> mix_home_lookup(rest)
-      dir -> Path.join(dir, suffix)
+      dir -> dir
     end
-  end
-
-  defp mix_home_lookup([env | rest]) when is_binary(env) do
-    mix_home_lookup([{env, ""} | rest])
   end
 
   defp xdg_dir(type), do: :filename.basedir(type, "mix", %{os: :linux})
 
   defp xdg? do
     File.dir?(xdg_dir(:user_config)) or
+      File.dir?(xdg_dir(:user_data)) or
       Enum.any?(~w[XDG_CONFIG_HOME XDG_DATA_HOME], &System.get_env/1)
   end
 
