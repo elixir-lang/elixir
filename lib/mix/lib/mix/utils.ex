@@ -48,7 +48,7 @@ defmodule Mix.Utils do
     end
   end
 
-  defp xdg_dir(type), do: :filename.basedir(type, "mix", %{os: :linux})
+  defp xdg_dir(type), do: :filename.basedir(type, "mix", %{os: :unix})
 
   defp xdg? do
     File.dir?(xdg_dir(:user_config)) or
