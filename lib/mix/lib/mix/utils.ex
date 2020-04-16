@@ -37,7 +37,7 @@ defmodule Mix.Utils do
   defp mix_home_lookup([{:system, type} | rest]) do
     case xdg?() do
       true -> xdg_dir(type)
-      _ -> mix_home_lookup(rest)
+      false -> mix_home_lookup(rest)
     end
   end
 
