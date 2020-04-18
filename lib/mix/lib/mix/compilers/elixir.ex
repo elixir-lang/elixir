@@ -38,7 +38,7 @@ defmodule Mix.Compilers.Elixir do
 
     {all_modules, all_sources} = parse_manifest(manifest, dest)
     modified = Mix.Utils.last_modified(manifest)
-    stale_local_deps = stale_local_deps(manifest, modified)
+    {stale_local_deps, stale_local_mods} = stale_local_deps(manifest, modified)
     prev_paths = for source(source: source) <- all_sources, into: MapSet.new(), do: source
 
     removed =
@@ -92,8 +92,8 @@ defmodule Mix.Compilers.Elixir do
             all_modules,
             all_sources,
             removed ++ changed,
-            stale_local_deps,
-            stale_local_deps,
+            stale_local_mods,
+            stale_local_mods,
             dest
           )
 
@@ -111,11 +111,23 @@ defmodule Mix.Compilers.Elixir do
 
     cond do
       stale != [] ->
-        compile_manifest(manifest, exts, modules, structs, sources, stale, dest, timestamp, opts)
+        Mix.Utils.compiling_n(length(stale), hd(exts))
 
-      # We need to return ok if stale_local_deps changed
+        compile_manifest(
+          manifest,
+          modules,
+          structs,
+          sources,
+          stale,
+          dest,
+          timestamp,
+          stale_local_deps,
+          opts
+        )
+
+      # We need to return ok if stale_local_mods changed
       # because we want that to propagate to compile.protocols
-      removed != [] or stale_local_deps != %{} ->
+      removed != [] or stale_local_mods != %{} ->
         write_manifest(manifest, modules, sources, timestamp)
         {:ok, warning_diagnostics(sources)}
 
@@ -168,14 +180,13 @@ defmodule Mix.Compilers.Elixir do
     end
   end
 
-  defp compile_manifest(manifest, exts, modules, structs, sources, stale, dest, timestamp, opts) do
-    Mix.Utils.compiling_n(length(stale), hd(exts))
+  defp compile_manifest(manifest, modules, structs, sources, stale, dest, timestamp, deps, opts) do
     Mix.Project.ensure_structure()
     true = Code.prepend_path(dest)
     cwd = File.cwd!()
 
     previous_opts =
-      opts
+      {deps, opts}
       |> Mix.Compilers.ApplicationTracer.init()
       |> set_compiler_opts()
 
@@ -505,11 +516,17 @@ defmodule Mix.Compilers.Elixir do
     for %{scm: scm, opts: opts} = dep <- Mix.Dep.cached(),
         not scm.fetchable?,
         Mix.Utils.last_modified(Path.join([opts[:build], ".mix", base])) > modified,
-        path <- Mix.Dep.load_paths(dep),
-        beam <- Path.wildcard(Path.join(path, "*.beam")),
-        Mix.Utils.last_modified(beam) > modified,
-        do: {beam |> Path.basename() |> Path.rootname() |> String.to_atom(), true},
-        into: %{}
+        reduce: {%{}, %{}} do
+      {deps, paths} ->
+        deps_paths =
+          for path <- Mix.Dep.load_paths(dep),
+              beam <- Path.wildcard(Path.join(path, "*.beam")),
+              Mix.Utils.last_modified(beam) > modified,
+              do: {beam |> Path.basename() |> Path.rootname() |> String.to_atom(), true},
+              into: %{}
+
+        {Map.put(deps, dep.app, true), Map.merge(paths, deps_paths)}
+    end
   end
 
   defp remove_and_purge(beam, module) do

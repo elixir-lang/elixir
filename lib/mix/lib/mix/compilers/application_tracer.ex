@@ -4,14 +4,14 @@ defmodule Mix.Compilers.ApplicationTracer do
   @table __MODULE__
   @warnings_key 0
 
-  def init(opts) do
+  def init({stale_deps, opts}) do
     config = Mix.Project.config()
     manifest = manifest(config)
 
     if Mix.Utils.stale?([Mix.Project.config_mtime()], [manifest]) do
       build_manifest(config, manifest)
     else
-      read_manifest(manifest) || build_manifest(config, manifest)
+      read_manifest(manifest, stale_deps) || build_manifest(config, manifest)
     end
 
     setup_warnings_table(config)
@@ -141,12 +141,19 @@ defmodule Mix.Compilers.ApplicationTracer do
     Path.join(Mix.Project.manifest_path(config), @manifest)
   end
 
-  defp read_manifest(manifest) do
+  defp read_manifest(manifest, stale_deps) do
     try do
       {:ok, table} = :ets.file2tab(String.to_charlist(manifest))
       table
     rescue
       _ -> nil
+    else
+      table when stale_deps == %{} ->
+        table
+
+      table ->
+        Enum.reduce(stale_deps, %{}, fn {app, _}, acc -> store_app(table, app, acc) end)
+        write_manifest(table, manifest)
     end
   end
 
@@ -159,6 +166,10 @@ defmodule Mix.Compilers.ApplicationTracer do
     |> store_deps(table, config)
 
     File.mkdir_p!(Path.dirname(manifest))
+    write_manifest(table, manifest)
+  end
+
+  defp write_manifest(table, manifest) do
     :ok = :ets.tab2file(table, String.to_charlist(manifest), sync: true)
     table
   end
