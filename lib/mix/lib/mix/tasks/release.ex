@@ -470,7 +470,7 @@ defmodule Mix.Tasks.Release do
   Often it is necessary to copy extra files to the release root after
   the release is assembled. This can be easily done by placing such
   files in the `rel/overlays` directory. Any file in there is copied
-  as is to the release root. For example, if you have place a
+  as is to the release root. For example, if you have placed a
   "rel/overlays/Dockerfile" file, the "Dockerfile" will be copied as
   is to the release root. If you need to copy files dynamically, see
   the "Steps" section.
