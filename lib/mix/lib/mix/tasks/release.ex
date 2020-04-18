@@ -404,7 +404,7 @@ defmodule Mix.Tasks.Release do
       the characters in the cookie to the subset returned by `Base.url_encode64/1`.
 
     * `:validate_compile_env` - by default a release will match all runtime
-      configuration against any configuration that was marked as compile time
+      configuration against any configuration that was marked at compile time
       in your application of its dependencies via the `Application.compile_env/3`
       function. If there is a mismatch between those, it means your system is
       misconfigured and unable to boot. You can disable this check by setting
@@ -470,7 +470,7 @@ defmodule Mix.Tasks.Release do
   Often it is necessary to copy extra files to the release root after
   the release is assembled. This can be easily done by placing such
   files in the `rel/overlays` directory. Any file in there is copied
-  as is to the release root. For example, if you have place a
+  as is to the release root. For example, if you have placed a
   "rel/overlays/Dockerfile" file, the "Dockerfile" will be copied as
   is to the release root. If you need to copy files dynamically, see
   the "Steps" section.
@@ -496,7 +496,7 @@ defmodule Mix.Tasks.Release do
   The tarball is created in `_build/MIX_ENV/RELEASE_NAME-RELEASE_VSN.tar.gz`
 
   See `Mix.Release` for more documentation on the struct and which
-  fields can be modified. Note that `:steps` field itself can be
+  fields can be modified. Note that the `:steps` field itself can be
   modified and it is updated every time a step is called. Therefore,
   if you need to execute a command before and after assembling the
   release, you only need to declare the first steps in your pipeline
@@ -899,7 +899,7 @@ defmodule Mix.Tasks.Release do
         end
       end
 
-  If you to perform a hot code upgrade in such application, it would
+  If you were to perform a hot code upgrade in such an application, it would
   crash, because in the initial version the state was just a counter
   but in the new version the state is a tuple. Furthermore, you changed
   the format of the `call` message from `:bump` to  `{:bump, by}` and
