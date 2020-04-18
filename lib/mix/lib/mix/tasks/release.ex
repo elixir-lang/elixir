@@ -496,7 +496,7 @@ defmodule Mix.Tasks.Release do
   The tarball is created in `_build/MIX_ENV/RELEASE_NAME-RELEASE_VSN.tar.gz`
 
   See `Mix.Release` for more documentation on the struct and which
-  fields can be modified. Note that `:steps` field itself can be
+  fields can be modified. Note that the `:steps` field itself can be
   modified and it is updated every time a step is called. Therefore,
   if you need to execute a command before and after assembling the
   release, you only need to declare the first steps in your pipeline
@@ -899,7 +899,7 @@ defmodule Mix.Tasks.Release do
         end
       end
 
-  If you to perform a hot code upgrade in such application, it would
+  If you were to perform a hot code upgrade in such an application, it would
   crash, because in the initial version the state was just a counter
   but in the new version the state is a tuple. Furthermore, you changed
   the format of the `call` message from `:bump` to  `{:bump, by}` and
