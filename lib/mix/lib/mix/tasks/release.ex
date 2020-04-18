@@ -404,7 +404,7 @@ defmodule Mix.Tasks.Release do
       the characters in the cookie to the subset returned by `Base.url_encode64/1`.
 
     * `:validate_compile_env` - by default a release will match all runtime
-      configuration against any configuration that was marked as compile time
+      configuration against any configuration that was marked at compile time
       in your application of its dependencies via the `Application.compile_env/3`
       function. If there is a mismatch between those, it means your system is
       misconfigured and unable to boot. You can disable this check by setting
