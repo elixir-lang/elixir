@@ -1,6 +1,6 @@
 defmodule IEx.Broker do
   @moduledoc false
-  @name IEx.Broker
+  @name __MODULE__
 
   @type take_ref :: {takeover_ref :: reference(), server_ref :: reference()}
 
@@ -44,7 +44,7 @@ defmodule IEx.Broker do
   ## Broker API
 
   def start_link(_) do
-    GenServer.start_link(__MODULE__, :ok, name: @name)
+    GenServer.start_link(@name, :ok, name: @name)
   end
 
   @doc """
