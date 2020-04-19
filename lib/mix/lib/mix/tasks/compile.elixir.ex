@@ -37,7 +37,7 @@ defmodule Mix.Tasks.Compile.Elixir do
       end
 
   Compiler calls `__mix_recompile__?/0` for every module being
-  compiled (or previously compiled) and thus it is is very important
+  compiled (or previously compiled) and thus it is very important
   to do there as little work as possible to not slow down the
   compilation.
 
