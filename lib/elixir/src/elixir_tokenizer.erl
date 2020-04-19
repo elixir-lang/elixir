@@ -47,6 +47,10 @@
 -define(three_op(T1, T2, T3),
   T1 =:= $^, T2 =:= $^, T3 =:= $^).
 
+-define(three_dsl_op(T1, T2, T3),
+  T1 =:= $+, T2 =:= $+, T3 =:= $+;
+  T1 =:= $-, T2 =:= $-, T3 =:= $-).
+
 -define(mult_op(T),
   T =:= $* orelse T =:= $/).
 
@@ -290,7 +294,7 @@ tokenize(":{}" ++ Rest, Line, Column, Scope, Tokens) ->
 % ## Three Token Operators
 tokenize([$:, T1, T2, T3 | Rest], Line, Column, Scope, Tokens) when
     ?unary_op3(T1, T2, T3); ?comp_op3(T1, T2, T3); ?and_op3(T1, T2, T3); ?or_op3(T1, T2, T3);
-    ?arrow_op3(T1, T2, T3); ?three_op(T1, T2, T3) ->
+    ?arrow_op3(T1, T2, T3); ?three_op(T1, T2, T3); ?three_dsl_op(T1, T2, T3) ->
   Token = {atom, {Line, Column, nil}, list_to_atom([T1, T2, T3])},
   tokenize(Rest, Line, Column + 4, Scope, [Token | Tokens]);
 
@@ -338,6 +342,10 @@ tokenize([T1, T2, T3 | Rest], Line, Column, Scope, Tokens) when ?or_op3(T1, T2, 
 tokenize([T1, T2, T3 | Rest], Line, Column, Scope, Tokens) when ?three_op(T1, T2, T3) ->
   NewScope = maybe_warn_too_many_of_same_char([T1, T2, T3], Rest, Line, Scope),
   handle_op(Rest, Line, Column, three_op, 3, list_to_atom([T1, T2, T3]), NewScope, Tokens);
+
+tokenize([T1, T2, T3 | Rest], Line, Column, Scope, Tokens) when ?three_dsl_op(T1, T2, T3) ->
+  NewScope = maybe_warn_too_many_of_same_char([T1, T2, T3], Rest, Line, Scope),
+  handle_op(Rest, Line, Column, three_dsl_op, 3, list_to_atom([T1, T2, T3]), NewScope, Tokens);
 
 tokenize([T1, T2, T3 | Rest], Line, Column, Scope, Tokens) when ?arrow_op3(T1, T2, T3) ->
   handle_op(Rest, Line, Column, arrow_op, 3, list_to_atom([T1, T2, T3]), Scope, Tokens);
@@ -723,7 +731,7 @@ handle_op(Rest, Line, Column, Kind, Length, Op, Scope, Tokens) ->
 % ## Three Token Operators
 handle_dot([$., T1, T2, T3 | Rest], Line, Column, DotInfo, Scope, Tokens) when
     ?unary_op3(T1, T2, T3); ?comp_op3(T1, T2, T3); ?and_op3(T1, T2, T3); ?or_op3(T1, T2, T3);
-    ?arrow_op3(T1, T2, T3); ?three_op(T1, T2, T3) ->
+    ?arrow_op3(T1, T2, T3); ?three_op(T1, T2, T3); ?three_dsl_op(T1, T2, T3) ->
   handle_call_identifier(Rest, Line, Column, DotInfo, 3, list_to_atom([T1, T2, T3]), Scope, Tokens);
 
 % ## Two Token Operators

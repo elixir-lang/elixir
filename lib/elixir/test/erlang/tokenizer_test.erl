@@ -172,6 +172,13 @@ addadd_test() ->
    {two_op, {1, 3, nil}, '++'},
    {identifier, {1, 6, nil}, y}] = tokenize("x ++ y").
 
+dsl_test() ->
+  [{identifier, {1, 1, nil}, x},
+   {three_dsl_op, {1, 3, nil}, '+++'},
+   {identifier, {1, 7, nil}, y}] = tokenize("x +++ y"),
+  [{dual_op, {1, 1, nil}, '+'},
+   {two_op, {1, 3, nil}, '++'}] = tokenize("+ ++") .
+
 space_test() ->
   [{op_identifier, {1, 1, nil}, foo},
    {dual_op, {1, 5, nil}, '-'},

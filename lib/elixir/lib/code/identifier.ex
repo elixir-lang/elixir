@@ -43,6 +43,7 @@ defmodule Code.Identifier do
       op in [:<, :<=, :>=, :>] -> {:left, 160}
       op in [:|>, :<<<, :>>>, :<~, :~>, :<<~, :~>>, :<~>, :<|>] -> {:left, 170}
       op in [:in] -> {:left, 180}
+      op in [:+++, :---] -> {:right, 185}
       op in [:^^^] -> {:left, 190}
       op in [:++, :--, :.., :<>] -> {:right, 200}
       op in [:+, :-] -> {:left, 210}

@@ -5,7 +5,7 @@ Nonterminals
   bracket_expr bracket_at_expr bracket_arg matched_expr unmatched_expr
   unmatched_op_expr matched_op_expr no_parens_op_expr no_parens_many_expr
   comp_op_eol at_op_eol unary_op_eol and_op_eol or_op_eol capture_op_eol
-  dual_op_eol mult_op_eol two_op_eol three_op_eol pipe_op_eol stab_op_eol
+  dual_op_eol mult_op_eol two_op_eol three_op_eol three_dsl_op_eol pipe_op_eol stab_op_eol
   arrow_op_eol match_op_eol when_op_eol in_op_eol in_match_op_eol
   type_op_eol rel_op_eol
   open_paren close_paren empty_paren eoe
@@ -35,7 +35,7 @@ Terminals
   bin_heredoc list_heredoc
   dot_call_op op_identifier
   comp_op at_op unary_op and_op or_op arrow_op match_op in_op in_match_op
-  type_op dual_op mult_op two_op three_op pipe_op stab_op when_op assoc_op
+  type_op dual_op mult_op two_op three_op three_dsl_op pipe_op stab_op when_op assoc_op
   capture_op rel_op
   'true' 'false' 'nil' 'do' eol ';' ',' '.'
   '(' ')' '[' ']' '{' '}' '<<' '>>' '%{}' '%'
@@ -68,6 +68,7 @@ Left     150 comp_op_eol.     %% ==, !=, =~, ===, !==
 Left     160 rel_op_eol.      %% <, >, <=, >=
 Left     170 arrow_op_eol.    %% |>, <<<, >>>, <<~, ~>>, <~, ~>, <~>, <|>
 Left     180 in_op_eol.       %% in, not in
+Right    185 three_dsl_op_eol.%% +++, ---
 Left     190 three_op_eol.    %% ^^^
 Right    200 two_op_eol.      %% ++, --, .., <>
 Left     210 dual_op_eol.     %% +, -
@@ -170,6 +171,7 @@ matched_op_expr -> dual_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> mult_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> two_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> three_op_eol matched_expr : {'$1', '$2'}.
+matched_op_expr -> three_dsl_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> and_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> or_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> in_op_eol matched_expr : {'$1', '$2'}.
@@ -188,6 +190,7 @@ unmatched_op_expr -> dual_op_eol unmatched_expr : {'$1', '$2'}.
 unmatched_op_expr -> mult_op_eol unmatched_expr : {'$1', '$2'}.
 unmatched_op_expr -> two_op_eol unmatched_expr : {'$1', '$2'}.
 unmatched_op_expr -> three_op_eol unmatched_expr : {'$1', '$2'}.
+unmatched_op_expr -> three_dsl_op_eol unmatched_expr : {'$1', '$2'}.
 unmatched_op_expr -> and_op_eol unmatched_expr : {'$1', '$2'}.
 unmatched_op_expr -> or_op_eol unmatched_expr : {'$1', '$2'}.
 unmatched_op_expr -> in_op_eol unmatched_expr : {'$1', '$2'}.
@@ -204,6 +207,7 @@ no_parens_op_expr -> dual_op_eol no_parens_expr : {'$1', '$2'}.
 no_parens_op_expr -> mult_op_eol no_parens_expr : {'$1', '$2'}.
 no_parens_op_expr -> two_op_eol no_parens_expr : {'$1', '$2'}.
 no_parens_op_expr -> three_op_eol no_parens_expr : {'$1', '$2'}.
+no_parens_op_expr -> three_dsl_op_eol no_parens_expr : {'$1', '$2'}.
 no_parens_op_expr -> and_op_eol no_parens_expr : {'$1', '$2'}.
 no_parens_op_expr -> or_op_eol no_parens_expr : {'$1', '$2'}.
 no_parens_op_expr -> in_op_eol no_parens_expr : {'$1', '$2'}.
@@ -397,6 +401,9 @@ two_op_eol -> two_op eol : next_is_eol('$1', '$2').
 
 three_op_eol -> three_op : '$1'.
 three_op_eol -> three_op eol : next_is_eol('$1', '$2').
+
+three_dsl_op_eol -> three_dsl_op : '$1'.
+three_dsl_op_eol -> three_dsl_op eol : next_is_eol('$1', '$2').
 
 pipe_op_eol -> pipe_op : '$1'.
 pipe_op_eol -> pipe_op eol : next_is_eol('$1', '$2').
