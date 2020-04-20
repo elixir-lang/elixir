@@ -145,7 +145,6 @@ iex> 1 <~ 2
 
 The following is a table of all the operators that Elixir is capable of parsing, but that are not used by default:
 
-  * `|`
   * `|||`
   * `&&&`
   * `<<<`
