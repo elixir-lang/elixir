@@ -516,6 +516,14 @@ defmodule Code.Formatter.IntegrationTest do
     """
 
     bad = """
+    "this works" +++ (&String.upcase/1) +++ (&String.downcase/1)
+    """
+
+    assert_format bad, """
+    "this works" +++ (&String.upcase/1) +++ &String.downcase/1
+    """
+
+    bad = """
     "this works" | (&String.upcase/1) | (&String.downcase/1)
     """
 
