@@ -13,7 +13,7 @@ Operator                                                                        
 `+` `-` `!` `^` `not` `~~~`                                                              | Unary
 `*` `/`                                                                                  | Left to right
 `+` `-`                                                                                  | Left to right
-`++` `--` `..` `<>`                                                                      | Right to left
+`++` `--` `..` `<>` `+++` `---`                                                          | Right to left
 `^^^`                                                                                    | Left to right
 `in` `not in`                                                                            | Left to right
 `\|>` `<<<` `>>>` `<<~` `~>>` `<~` `~>` `<~>` `<\|>`                                     | Left to right
@@ -144,7 +144,6 @@ iex> 1 <~ 2
 
 The following is a table of all the operators that Elixir is capable of parsing, but that are not used by default:
 
-  * `|`
   * `|||`
   * `&&&`
   * `<<<`
@@ -156,6 +155,8 @@ The following is a table of all the operators that Elixir is capable of parsing,
   * `<~>`
   * `<|>`
   * `^^^`
+  * `+++`
+  * `---`
   * `~~~`
 
 The following operators are used by the `Bitwise` module when imported: [`&&&`](`Bitwise.&&&/2`), [`^^^`](`Bitwise.^^^/2`), [`<<<`](`Bitwise.<<</2`), [`>>>`](`Bitwise.>>>/2`), [`|||`](`Bitwise.|||/2`), [`~~~`](`Bitwise.~~~/1`). See the documentation for `Bitwise` for more information.

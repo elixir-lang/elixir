@@ -54,6 +54,8 @@ defmodule Inspect.AtomTest do
     assert inspect(:~>>) == ":~>>"
     assert inspect(:<~>) == ":<~>"
     assert inspect(:<|>) == ":<|>"
+    assert inspect(:+++) == ":+++"
+    assert inspect(:---) == ":---"
   end
 
   test "::" do
