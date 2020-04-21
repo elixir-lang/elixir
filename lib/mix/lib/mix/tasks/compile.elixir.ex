@@ -32,7 +32,7 @@ defmodule Mix.Tasks.Compile.Elixir do
         end
 
         def __mix_recompile__?() do
-          Path.wildcard("*.txt") |> :erlang.md5() == unquote(paths_hash)
+          Path.wildcard("*.txt") |> :erlang.md5() != unquote(paths_hash)
         end
       end
 
