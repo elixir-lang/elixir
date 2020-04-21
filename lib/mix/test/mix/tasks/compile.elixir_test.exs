@@ -470,6 +470,44 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   end
 
+  test "recompiles modules with __mix_recompile__?/0" do
+    in_fixture("no_mixfile", fn ->
+      File.write!("lib/a.ex", """
+      defmodule A do
+        def __mix_recompile__?(), do: true
+      end
+      """)
+
+      File.write!("lib/b.ex", """
+      defmodule B do
+        def __mix_recompile__?(), do: false
+      end
+      """)
+
+      File.write!("lib/c.ex", """
+      defmodule C do
+        @compile {:autoload, false}
+
+        def __mix_recompile__?(), do: true
+      end
+      """)
+
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiling 3 files (.ex)"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/c.ex"]}
+
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiling 1 file (.ex)"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+
+      File.rm!("lib/a.ex")
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+      refute_received _
+    end)
+  end
+
   test "does not treat remote typespecs as compile time dependencies" do
     in_fixture("no_mixfile", fn ->
       File.write!("lib/b.ex", """
