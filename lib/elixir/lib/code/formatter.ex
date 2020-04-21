@@ -42,6 +42,8 @@ defmodule Code.Formatter do
     :<~>,
     :<|>,
     :^^^,
+    :+++,
+    :---,
     :in,
     :++,
     :--,

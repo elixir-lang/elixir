@@ -245,6 +245,8 @@ defmodule Code.Formatter.OperatorsTest do
 
     test "with multiple of the different entry, same precedence and right associative" do
       assert_format "foo ++ bar ++ baz -- bat", "foo ++ bar ++ (baz -- bat)"
+
+      assert_format "foo +++ bar +++ baz --- bat", "foo +++ bar +++ (baz --- bat)"
     end
 
     test "preserves user choice even when it fits" do
@@ -277,6 +279,8 @@ defmodule Code.Formatter.OperatorsTest do
   describe "binary with following new line" do
     test "formats with spaces" do
       assert_format "1++2", "1 ++ 2"
+
+      assert_format "1+++2", "1 +++ 2"
     end
 
     test "breaks into new line" do

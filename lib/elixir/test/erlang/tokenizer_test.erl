@@ -127,7 +127,7 @@ newline_test() ->
    {'.', {2, 1, nil}},
    {identifier, {2, 2, nil}, bar}]  = tokenize("foo\n.bar"),
   [{int, {1, 1, 1}, "1"},
-   {two_op, {2, 1, 1}, '++'},
+   {concat_op, {2, 1, 1}, '++'},
    {int, {2, 3, 2}, "2"}]  = tokenize("1\n++2").
 
 dot_newline_operator_test() ->
@@ -167,10 +167,13 @@ empty_string_test() ->
   [{bin_string, {1, 1, nil}, [<<>>]}] = tokenize("\"\""),
   [{list_string, {1, 1, nil}, [<<>>]}] = tokenize("''").
 
-addadd_test() ->
+concat_test() ->
   [{identifier, {1, 1, nil}, x},
-   {two_op, {1, 3, nil}, '++'},
-   {identifier, {1, 6, nil}, y}] = tokenize("x ++ y").
+   {concat_op, {1, 3, nil}, '++'},
+   {identifier, {1, 6, nil}, y}] = tokenize("x ++ y"),
+  [{identifier, {1, 1, nil}, x},
+   {concat_op, {1, 3, nil}, '+++'},
+   {identifier, {1, 7, nil}, y}] = tokenize("x +++ y").
 
 space_test() ->
   [{op_identifier, {1, 1, nil}, foo},
@@ -190,7 +193,7 @@ chars_test() ->
 
 interpolation_test() ->
   [{bin_string, {1, 1, nil}, [<<"f">>, {{1, 3, nil},{1, 7, nil}, [{identifier, {1, 5, nil}, oo}]}]},
-   {two_op, {1, 10, nil}, '<>'},
+   {concat_op, {1, 10, nil}, '<>'},
    {bin_string, {1, 13, nil}, [<<>>]}] = tokenize("\"f#{oo}\" <> \"\"").
 
 capture_test() ->
