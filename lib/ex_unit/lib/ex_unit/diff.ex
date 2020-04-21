@@ -57,7 +57,8 @@ defmodule ExUnit.Diff do
   end
 
   defp diff_quoted({name, _, context} = left, right, env)
-       when is_atom(name) and is_atom(context) do
+       when is_atom(name) and is_atom(context) and
+              name not in [:__MODULE__, :__DIR__, :__STACKTRACE__, :__ENV__, :__CALLER__] do
     diff_var(left, right, env)
   end
 
@@ -94,7 +95,8 @@ defmodule ExUnit.Diff do
     end
   end
 
-  defp diff_quoted({:<>, _, _} = left, right, env) when is_binary(right) do
+  defp diff_quoted({:<>, _, [literal, _]} = left, right, env)
+       when is_binary(literal) and is_binary(right) do
     diff_string_concat(left, right, env)
   end
 
@@ -765,11 +767,10 @@ defmodule ExUnit.Diff do
     String.bag_distance(left, right) > 0.4
   end
 
-  defp parse_string({:<>, _, [literal, rest]}) do
+  defp parse_string({:<>, _, [literal, rest]}) when is_binary(literal) do
     {parsed, quoted, indexes, parsed_length} = parse_string(rest)
     literal_length = String.length(literal)
     length = literal_length + parsed_length
-
     {literal <> parsed, quoted, [literal_length | indexes], length}
   end
 
