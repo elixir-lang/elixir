@@ -141,6 +141,11 @@ defmodule ExUnit.DiffTest do
     refute_diff(^b = :a, "-^b-", "+:a+", pins)
   end
 
+  test "pseudo vars" do
+    assert_diff(__MODULE__ = ExUnit.DiffTest, [])
+    refute_diff(__MODULE__ = SomethingElse, "-__MODULE__-", "+SomethingElse+")
+  end
+
   test "integers" do
     assert_diff(123 = 123, [])
     assert_diff(-123 = -123, [])
@@ -749,7 +754,7 @@ defmodule ExUnit.DiffTest do
     )
   end
 
-  test "concat operator" do
+  test "concat binaries" do
     assert_diff("fox hops" <> " over the dog" = "fox hops over the dog", [])
     assert_diff("fox hops " <> "over " <> "the dog" = "fox hops over the dog", [])
 
@@ -783,6 +788,10 @@ defmodule ExUnit.DiffTest do
       ~s/"fox hops over the dog"/
     )
 
+    refute_diff("fox" <> " hops" = :a, ~s/-"fox" <> " hops"-/, "+:a+")
+  end
+
+  test "concat binaries with pin" do
     pins = %{{:x, nil} => " over the dog"}
 
     assert_diff("fox hops" <> x = "fox hops over the dog", x: " over the dog")
@@ -801,8 +810,16 @@ defmodule ExUnit.DiffTest do
       ~s/"fox hops over +t+he dog"/,
       pins
     )
+  end
 
-    refute_diff("fox" <> " hops" = :a, ~s/-"fox" <> " hops"-/, "+:a+")
+  test "concat binaries with specifiers" do
+    input = "foobar"
+
+    refute_diff(
+      <<trap::binary-size(3)>> <> "baz" = input,
+      "-<<trap::binary-size(3)>> <> \"baz\"-",
+      "+\"foobar\"+"
+    )
   end
 
   test "underscore" do

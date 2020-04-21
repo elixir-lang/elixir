@@ -14,7 +14,8 @@ defmodule Kernel.SpecialForms do
   forms used to define tuple and binary data structures respectively.
 
   This module also documents macros that return information about Elixir's
-  compilation environment, such as (`__ENV__/0`, `__MODULE__/0`, `__DIR__/0` and `__CALLER__/0`).
+  compilation environment, such as (`__ENV__/0`, `__MODULE__/0`, `__DIR__/0`,
+  `__STACKTRACE__/0`, and `__CALLER__/0`).
 
   Additionally, it documents two special forms, `__block__/1` and
   `__aliases__/1`, which are not intended to be called directly by the
