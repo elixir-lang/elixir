@@ -1,11 +1,11 @@
 defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
-  @manifest_vsn 5
+  @manifest_vsn 6
 
   import Record
 
-  defrecord :module, [:module, :kind, :sources, :struct]
+  defrecord :module, [:module, :kind, :sources, :struct, :recompile?]
 
   defrecord :source,
     source: nil,
@@ -77,12 +77,21 @@ defmodule Mix.Compilers.Elixir do
               into: mtimes_and_sizes(all_sources),
               do: {path, Mix.Utils.last_modified_and_size(path)}
 
-        # Plus the sources that have changed in disk
+        modules_to_recompile =
+          for module(module: module, recompile?: true) <- all_modules,
+              recompile_module?(module),
+              into: %{},
+              do: {module, true}
+
+        # Plus the sources that have changed on disk or any modules associated with them need to
+        # be recompiled
         changed =
-          for source(source: source, external: external, size: size) <- all_sources,
+          for source(source: source, external: external, size: size, modules: modules) <-
+                all_sources,
               {last_mtime, last_size} = Map.fetch!(sources_stats, source),
               times = Enum.map(external, &(sources_stats |> Map.fetch!(&1) |> elem(0))),
-              size != last_size or Mix.Utils.stale?([last_mtime | times], [modified]),
+              size != last_size or Mix.Utils.stale?([last_mtime | times], [modified]) or
+                Enum.any?(modules, &Map.has_key?(modules_to_recompile, &1)),
               do: source
 
         changed = new_paths ++ changed
@@ -352,12 +361,19 @@ defmodule Mix.Compilers.Elixir do
         module: module,
         kind: kind,
         sources: module_sources,
-        struct: struct
+        struct: struct,
+        recompile?: function_exported?(module, :__mix_recompile__?, 0)
       )
 
     modules = prepend_or_merge(modules, module, module(:module), module, existing_module?)
     put_compiler_info({modules, structs, [source | sources], pending_modules, pending_structs})
     :ok
+  end
+
+  defp recompile_module?(module) do
+    Code.ensure_loaded?(module) and
+      function_exported?(module, :__mix_recompile__?, 0) and
+      module.__mix_recompile__?()
   end
 
   defp prepend_or_merge(collection, key, pos, value, true) do
