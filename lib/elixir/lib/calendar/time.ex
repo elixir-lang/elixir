@@ -561,7 +561,7 @@ defmodule Time do
   the difference.
 
   The answer can be returned in any `unit` available from
-  `t:System.time_unit/0`. If the first unit is smaller than
+  `t:System.time_unit/0`. If the first time value is earlier than
   the second, a negative number is returned.
 
   This function returns the difference in seconds where seconds
