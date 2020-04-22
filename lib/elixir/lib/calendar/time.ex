@@ -556,7 +556,7 @@ defmodule Time do
 
   As with the `compare/2` function both `Time` structs and other structures
   containing time can be used. If for instance a `NaiveDateTime` or `DateTime`
-  is passed, only the hour, month, second, and microsecond is considered. Any
+  is passed, only the hour, minute, second, and microsecond is considered. Any
   additional information about a date or time zone is ignored when calculating
   the difference.
 
