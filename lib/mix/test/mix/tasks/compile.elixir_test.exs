@@ -201,6 +201,32 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   end
 
+  test "compiles dependent changed modules without beam files" do
+    in_fixture("no_mixfile", fn ->
+      File.write!("lib/b.ex", """
+      defmodule B do
+        def a, do: A.__info__(:module)
+      end
+      """)
+
+      Mix.Tasks.Compile.Elixir.run(["--verbose"])
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+
+      assert File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
+      assert File.regular?("_build/dev/lib/sample/ebin/Elixir.B.beam")
+
+      Code.put_compiler_option(:ignore_module_conflict, true)
+      Code.compile_file("lib/b.ex")
+      File.touch!("lib/a.ex", {{2038, 1, 1}, {0, 0, 0}})
+
+      Mix.Tasks.Compile.Elixir.run(["--verbose"])
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+    end)
+  after
+    Code.put_compiler_option(:ignore_module_conflict, false)
+  end
+
   test "compiles dependent changed modules even on removal" do
     in_fixture("no_mixfile", fn ->
       File.write!("lib/a.ex", "defmodule A, do: B.module_info()")

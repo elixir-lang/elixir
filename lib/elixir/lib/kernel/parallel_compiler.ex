@@ -239,7 +239,7 @@ defmodule Kernel.ParallelCompiler do
   defp checker_runtime_modules(modules) do
     for module <- modules,
         path = :code.which(module),
-        is_list(path) do
+        is_list(path) and path != [] do
       {module, File.read!(path)}
     end
   end
