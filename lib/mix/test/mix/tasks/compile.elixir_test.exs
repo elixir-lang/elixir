@@ -496,7 +496,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   end
 
-  test "recompiles modules with __mix_recompile__?/0" do
+  test "recompiles modules with __mix_recompile__ check" do
     in_fixture("no_mixfile", fn ->
       File.write!("lib/a.ex", """
       defmodule A do
