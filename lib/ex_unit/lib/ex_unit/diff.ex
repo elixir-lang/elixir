@@ -82,17 +82,12 @@ defmodule ExUnit.Diff do
     diff_tuple(Tuple.to_list(left), Tuple.to_list(right), env)
   end
 
-  defp diff_quoted({:%, _, [struct, {:%{}, _, kw}]}, %{} = right, env)
-       when is_atom(struct) and is_list(kw) do
-    diff_quoted_struct([__struct__: struct] ++ kw, struct, right, env)
+  defp diff_quoted({:%, _, [struct, {:%{}, _, kw}]}, %{} = right, env) when is_list(kw) do
+    diff_quoted_struct([__struct__: struct] ++ kw, right, env)
   end
 
-  defp diff_quoted({:%{}, _, items}, %{} = right, env) when is_list(items) do
-    if struct = items[:__struct__] do
-      diff_quoted_struct(items, struct, right, env)
-    else
-      diff_map(items, right, nil, maybe_struct(right), env)
-    end
+  defp diff_quoted({:%{}, _, kw}, %{} = right, env) when is_list(kw) do
+    diff_quoted_struct(kw, right, env)
   end
 
   defp diff_quoted({:<>, _, [literal, _]} = left, right, env)
@@ -628,8 +623,9 @@ defmodule ExUnit.Diff do
 
   # Structs
 
-  defp diff_quoted_struct(kw, struct1, right, env) do
-    left = load_struct(struct1)
+  defp diff_quoted_struct(kw, right, env) do
+    struct1 = kw[:__struct__]
+    left = load_struct(kw[:__struct__])
 
     if left && Enum.all?(kw, fn {k, _} -> Map.has_key?(left, k) end) do
       if Macro.quoted_literal?(kw) do
@@ -676,7 +672,8 @@ defmodule ExUnit.Diff do
   end
 
   defp load_struct(struct) do
-    if Code.ensure_loaded?(struct) and function_exported?(struct, :__struct__, 0) do
+    if is_atom(struct) and struct != nil and
+         Code.ensure_loaded?(struct) and function_exported?(struct, :__struct__, 0) do
       struct.__struct__
     end
   end

@@ -627,7 +627,7 @@ defmodule ExUnit.DiffTest do
     )
   end
 
-  test "structs with inspect difference" do
+  test "structs with same inspect but different" do
     refute_diff(
       %Opaque{data: 1} = %Opaque{data: 2},
       "%ExUnit.DiffTest.Opaque{data: -1-}",
@@ -641,7 +641,7 @@ defmodule ExUnit.DiffTest do
     )
   end
 
-  test "structs without inspect difference outside match" do
+  test "structs with same inspect but different outside match" do
     refute_diff(
       %Opaque{data: 1} == %Opaque{data: 2},
       "%ExUnit.DiffTest.Opaque{data: -1-}",
@@ -660,6 +660,66 @@ defmodule ExUnit.DiffTest do
       Enum.sort([~D[2019-03-31], ~D[2019-04-01]]) == [~D[2019-03-31], ~D[2019-04-01]],
       "[-~D[2019-04-01]-, ~D[2019-03-31]]",
       "[~D[2019-03-31], +~D[2019-04-01]+]"
+    )
+  end
+
+  test "structs with matched type" do
+    pins = %{{:type, nil} => User, {:age, nil} => 33}
+
+    # pin on __struct__
+    assert_diff(
+      %{__struct__: ^type, age: ^age, name: "john"} = %User{name: "john", age: 33},
+      [],
+      pins
+    )
+
+    refute_diff(
+      %{__struct__: ^type, age: ^age, name: "john"} = %User{name: "jane", age: 33},
+      "%{__struct__: ^type, age: ^age, name: \"j-oh-n\"}",
+      "%ExUnit.DiffTest.User{age: 33, name: \"j+a+n+e+\"}",
+      pins
+    )
+
+    refute_diff(
+      %{__struct__: ^type, age: ^age, name: "john"} = %User{name: "john", age: 35},
+      "%{__struct__: ^type, age: -^age-, name: \"john\"}",
+      "%ExUnit.DiffTest.User{age: 3+5+, name: \"john\"}",
+      pins
+    )
+
+    refute_diff(
+      %{__struct__: ^type, age: ^age, name: "john"} = ~D[2020-01-01],
+      "%{__struct__: -^type-, -age: ^age-, -name: \"john\"-}",
+      "%+Date+{calendar: Calendar.ISO, day: 1, month: 1, year: 2020}",
+      pins
+    )
+
+    # pin on %
+    assert_diff(
+      %^type{age: ^age, name: "john"} = %User{name: "john", age: 33},
+      [],
+      pins
+    )
+
+    refute_diff(
+      %^type{age: ^age, name: "john"} = %User{name: "jane", age: 33},
+      "%{__struct__: ^type, age: ^age, name: \"j-oh-n\"}",
+      "%ExUnit.DiffTest.User{age: 33, name: \"j+a+n+e+\"}",
+      pins
+    )
+
+    refute_diff(
+      %^type{age: ^age, name: "john"} = %User{name: "john", age: 35},
+      "%{__struct__: ^type, age: -^age-, name: \"john\"}",
+      "%ExUnit.DiffTest.User{age: 3+5+, name: \"john\"}",
+      pins
+    )
+
+    refute_diff(
+      %^type{age: ^age, name: "john"} = ~D[2020-01-01],
+      "%{__struct__: -^type-, -age: ^age-, -name: \"john\"-}",
+      "%+Date+{calendar: Calendar.ISO, day: 1, month: 1, year: 2020}",
+      pins
     )
   end
 
