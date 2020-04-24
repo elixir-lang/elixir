@@ -493,7 +493,9 @@ defmodule Mix.Tasks.Release do
   will receive a `Mix.Release` struct and must return the same or
   an updated `Mix.Release` struct. It is also possible to build a tarball
   of the release by passing the `:tar` step anywhere after `:assemble`.
-  The tarball is created in `_build/MIX_ENV/RELEASE_NAME-RELEASE_VSN.tar.gz`
+  If the release `:path` is not configured, the tarball is created in
+  `_build/MIX_ENV/RELEASE_NAME-RELEASE_VSN.tar.gz` Otherwise it is
+  created inside the configured `:path`.
 
   See `Mix.Release` for more documentation on the struct and which
   fields can be modified. Note that the `:steps` field itself can be
@@ -1081,8 +1083,16 @@ defmodule Mix.Tasks.Release do
   end
 
   defp make_tar(release) do
-    tar_filename = "#{release.name}-#{release.version}.tar.gz"
-    out_path = Path.join([release.path, "..", "..", tar_filename]) |> Path.expand()
+    build_path = Mix.Project.build_path()
+
+    dir_path =
+      if release.path == Path.join([build_path, "rel", Atom.to_string(release.name)]) do
+        build_path
+      else
+        release.path
+      end
+
+    out_path = Path.join(dir_path, "#{release.name}-#{release.version}.tar.gz")
     info(release, [:green, "* building ", :reset, out_path])
 
     lib_dirs =
