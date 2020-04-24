@@ -1398,7 +1398,7 @@ defmodule Module do
       if doc, do: {:error, :private_doc}, else: :ok
     else
       {set, _bag} = data_tables_for(module)
-      compile_doc(set, line, kind, name, arity, signature, nil, doc, %{}, __ENV__, false)
+      compile_doc(set, nil, line, kind, name, arity, signature, nil, doc, %{}, __ENV__, false)
       :ok
     end
   end
@@ -1411,16 +1411,17 @@ defmodule Module do
     {set, bag} = data_tables_for(module)
     {arity, defaults} = args_count(args, 0, 0)
 
-    impl = compile_impl(set, bag, name, env, kind, arity, defaults)
+    context = Keyword.get(:ets.lookup_element(set, {:def, {name, arity}}, 3), :context)
+    impl = compile_impl(set, bag, context, name, env, kind, arity, defaults)
     doc_meta = compile_doc_meta(set, bag, name, arity, defaults)
 
     {line, doc} = get_doc_info(set, env)
-    compile_doc(set, line, kind, name, arity, args, body, doc, doc_meta, env, impl)
+    compile_doc(set, context, line, kind, name, arity, args, body, doc, doc_meta, env, impl)
 
     :ok
   end
 
-  defp compile_doc(_table, line, kind, name, arity, _args, _body, doc, _doc_meta, env, _impl)
+  defp compile_doc(_table, _ctx, line, kind, name, arity, _args, _body, doc, _meta, env, _impl)
        when kind in [:defp, :defmacrop] do
     if doc do
       message =
@@ -1431,17 +1432,17 @@ defmodule Module do
     end
   end
 
-  defp compile_doc(table, line, kind, name, arity, args, body, doc, doc_meta, env, impl) do
+  defp compile_doc(table, ctx, line, kind, name, arity, args, body, doc, doc_meta, env, impl) do
     key = {doc_key(kind), name, arity}
     signature = build_signature(args, env)
 
     case :ets.lookup(table, key) do
       [] ->
         doc = if is_nil(doc) && impl, do: false, else: doc
-        :ets.insert(table, {key, line, signature, doc, doc_meta})
+        :ets.insert(table, {key, ctx, line, signature, doc, doc_meta})
 
-      [{_, current_line, current_sign, current_doc, current_doc_meta}] ->
-        if is_binary(current_doc) and is_binary(doc) and body != nil do
+      [{_, current_ctx, current_line, current_sign, current_doc, current_doc_meta}] ->
+        if is_binary(current_doc) and is_binary(doc) and body != nil and is_nil(current_ctx) do
           message = ~s'''
           redefining @doc attribute previously set at line #{current_line}.
 
@@ -1461,7 +1462,7 @@ defmodule Module do
         doc = if is_nil(doc), do: current_doc, else: doc
         doc = if is_nil(doc) && impl, do: false, else: doc
         doc_meta = Map.merge(current_doc_meta, doc_meta)
-        :ets.insert(table, {key, current_line, signature, doc, doc_meta})
+        :ets.insert(table, {key, ctx, current_line, signature, doc, doc_meta})
     end
   end
 
@@ -1509,14 +1510,12 @@ defmodule Module do
   defp deprecated_reason(name, arity, reason),
     do: {:deprecated, {{name, arity}, reason}}
 
-  defp compile_impl(set, bag, name, env, kind, arity, defaults) do
+  defp compile_impl(set, bag, context, name, env, kind, arity, defaults) do
     %{line: line, file: file} = env
 
     case :ets.take(set, :impl) do
       [{:impl, value, _}] ->
-        pair = {name, arity}
-        meta = :ets.lookup_element(set, {:def, pair}, 3)
-        impl = {pair, Keyword.get(meta, :context), defaults, kind, line, file, value}
+        impl = {{name, arity}, context, defaults, kind, line, file, value}
         :ets.insert(bag, {:impls, impl})
         value
 
