@@ -188,7 +188,9 @@ defmodule Mix.Tasks.ReleaseTest do
 
     test "without ERTS and custom path" do
       in_fixture("release_test", fn ->
-        config = [releases: [demo: [include_erts: false, path: "tmp/rel", steps: [:assemble, :tar]]]]
+        config = [
+          releases: [demo: [include_erts: false, path: "tmp/rel", steps: [:assemble, :tar]]]
+        ]
 
         Mix.Project.in_project(:release_test, ".", config, fn _ ->
           Mix.Task.run("release")
