@@ -490,7 +490,7 @@ get_docs(Set, Module, Definitions, Kind) ->
     doc_value(Doc),
     Meta
    } || {Name, Arity} <- Definitions,
-        {Key, Line, Signature, Doc, Meta} <- ets:lookup(Set, {Kind, Name, Arity})].
+        {Key, _Ctx, Line, Signature, Doc, Meta} <- ets:lookup(Set, {Kind, Name, Arity})].
 
 get_callback_docs(Set, Callbacks) ->
   [{Key,
