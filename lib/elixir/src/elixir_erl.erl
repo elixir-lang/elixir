@@ -43,7 +43,7 @@ get_ann(Opts) when is_list(Opts) ->
 get_ann([{generated, true} | T], _, Line) -> get_ann(T, true, Line);
 get_ann([{line, Line} | T], Gen, _) when is_integer(Line) -> get_ann(T, Gen, Line);
 get_ann([_ | T], Gen, Line) -> get_ann(T, Gen, Line);
-get_ann([], Gen, Line) -> erl_anno:set_generated(Gen, Line).
+get_ann([], Gen, Line) -> erl_anno:set_generated(Gen, erl_anno:new(Line)).
 
 %% Converts an Elixir definition to an anonymous function.
 
@@ -68,31 +68,31 @@ invoke_local(Module, ErlName, Args) ->
 %% Converts Elixir quoted literals to Erlang AST.
 
 elixir_to_erl(Tree) when is_tuple(Tree) ->
-  {tuple, 0, [elixir_to_erl(X) || X <- tuple_to_list(Tree)]};
+  {tuple, erl_anno:new(0), [elixir_to_erl(X) || X <- tuple_to_list(Tree)]};
 elixir_to_erl([]) ->
-  {nil, 0};
+  {nil, erl_anno:new(0)};
 elixir_to_erl(<<>>) ->
-  {bin, 0, []};
+  {bin, erl_anno:new(0), []};
 elixir_to_erl(Tree) when is_list(Tree) ->
   elixir_to_erl_cons(Tree);
 elixir_to_erl(Tree) when is_atom(Tree) ->
-  {atom, 0, Tree};
+  {atom, erl_anno:new(0), Tree};
 elixir_to_erl(Tree) when is_integer(Tree) ->
-  {integer, 0, Tree};
+  {integer, erl_anno:new(0), Tree};
 elixir_to_erl(Tree) when is_float(Tree) ->
-  {float, 0, Tree};
+  {float, erl_anno:new(0), Tree};
 elixir_to_erl(Tree) when is_binary(Tree) ->
   %% Note that our binaries are UTF-8 encoded and we are converting
   %% to a list using binary_to_list. The reason for this is that Erlang
   %% considers a string in a binary to be encoded in latin1, so the bytes
   %% are not changed in any fashion.
-  {bin, 0, [{bin_element, 0, {string, 0, binary_to_list(Tree)}, default, default}]};
+  {bin, erl_anno:new(0), [{bin_element, erl_anno:new(0), {string, erl_anno:new(0), binary_to_list(Tree)}, default, default}]};
 elixir_to_erl(Pid) when is_pid(Pid) ->
   ?remote(0, erlang, binary_to_term, [elixir_erl:elixir_to_erl(term_to_binary(Pid))]);
 elixir_to_erl(_Other) ->
   error(badarg).
 
-elixir_to_erl_cons([H | T]) -> {cons, 0, elixir_to_erl(H), elixir_to_erl_cons(T)};
+elixir_to_erl_cons([H | T]) -> {cons, erl_anno:new(0), elixir_to_erl(H), elixir_to_erl_cons(T)};
 elixir_to_erl_cons(T) -> elixir_to_erl(T).
 
 %% Returns a scope for translation.
