@@ -85,15 +85,15 @@ code_mod(Fun, Expr, Line, File, Module, Vars) when is_binary(File), is_integer(L
   Tuple = {tuple, Line, [{var, Line, Var} || {_, Var} <- Vars]},
   Relative = elixir_utils:relative_to_cwd(File),
 
-  [{attribute, Line, file, {elixir_utils:characters_to_list(Relative), 1}},
-   {attribute, Line, module, Module},
-   {attribute, Line, compile, no_auto_import},
-   {attribute, Line, export, [{Fun, 1}, {'__RELATIVE__', 0}]},
-   {function, Line, Fun, 1, [
-     {clause, Line, [Tuple], [], [Expr]}
+  [{attribute, erl_anno:new(Line), file, {elixir_utils:characters_to_list(Relative), 1}},
+   {attribute, erl_anno:new(Line), module, Module},
+   {attribute, erl_anno:new(Line), compile, no_auto_import},
+   {attribute, erl_anno:new(Line), export, [{Fun, 1}, {'__RELATIVE__', 0}]},
+   {function, erl_anno:new(Line), Fun, 1, [
+     {clause, erl_anno:new(Line), [Tuple], [], [Expr]}
    ]},
-   {function, Line, '__RELATIVE__', 0, [
-     {clause, Line, [], [], [elixir_erl:elixir_to_erl(Relative)]}
+   {function, erl_anno:new(Line), '__RELATIVE__', 0, [
+     {clause, erl_anno:new(Line), [], [], [elixir_erl:elixir_to_erl(Relative)]}
    ]}].
 
 retrieve_compiler_module() ->
