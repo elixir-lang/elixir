@@ -19,17 +19,17 @@ defmodule EEx do
 
   This module provides 3 main APIs for you to use:
 
-    1. Evaluate a string (`eval_string`) or a file (`eval_file`)
+    1. Evaluate a string (`eval_string/3`) or a file (`eval_file/3`)
        directly. This is the simplest API to use but also the
        slowest, since the code is evaluated and not compiled before.
 
-    2. Define a function from a string (`function_from_string`)
-       or a file (`function_from_file`). This allows you to embed
+    2. Define a function from a string (`function_from_string/5`)
+       or a file (`function_from_file/5`). This allows you to embed
        the template as a function inside a module which will then
        be compiled. This is the preferred API if you have access
        to the template at compilation time.
 
-    3. Compile a string (`compile_string`) or a file (`compile_file`)
+    3. Compile a string (`compile_string/2`) or a file (`compile_file/2`)
        into Elixir syntax tree. This is the API used by both functions
        above and is available to you if you want to provide your own
        ways of handling the compiled template.
@@ -69,7 +69,7 @@ defmodule EEx do
   **must** use the equals sign (`=`). Since everything in
   Elixir is an expression, there are no exceptions for this rule.
   For example, while some template languages would special-case
-  `if/2` clauses, they are treated the same in EEx and
+  `if` clauses, they are treated the same in EEx and
   also require `=` in order to have their result printed:
 
       <%= if true do %>
