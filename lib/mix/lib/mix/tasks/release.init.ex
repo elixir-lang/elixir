@@ -155,7 +155,7 @@ defmodule Mix.Tasks.Release.Init do
           exit 1
         )
       else
-        RELEASE_SYS_CONFIG="$REL_VSN_DIR/sys"
+        RELEASE_SYS_CONFIG="${RELEASE_SYS_CONFIG:-"$REL_VSN_DIR/sys"}"
       fi
 
       export RELEASE_SYS_CONFIG
@@ -284,7 +284,7 @@ defmodule Mix.Tasks.Release.Init do
     if not defined RELEASE_DISTRIBUTION (set RELEASE_DISTRIBUTION=sname)
     if not defined RELEASE_BOOT_SCRIPT (set RELEASE_BOOT_SCRIPT=start)
     if not defined RELEASE_BOOT_SCRIPT_CLEAN (set RELEASE_BOOT_SCRIPT_CLEAN=start_clean)
-    set RELEASE_SYS_CONFIG=!REL_VSN_DIR!\sys
+    if not defined RELEASE_SYS_CONFIG (set RELEASE_SYS_CONFIG=!REL_VSN_DIR!\sys)
 
     if "%~1" == "start" (set "REL_EXEC=elixir" && set "REL_EXTRA=--no-halt" && set "REL_GOTO=start")
     if "%~1" == "start_iex" (set "REL_EXEC=iex" && set "REL_EXTRA=--werl" && set "REL_GOTO=start")
