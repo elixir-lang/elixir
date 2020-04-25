@@ -82,18 +82,19 @@ code_fun(nil) -> '__FILE__';
 code_fun(_)   -> '__MODULE__'.
 
 code_mod(Fun, Expr, Line, File, Module, Vars) when is_binary(File), is_integer(Line) ->
-  Tuple = {tuple, Line, [{var, Line, Var} || {_, Var} <- Vars]},
+  Ann = erl_anno:new(Line),
+  Tuple = {tuple, Ann, [{var, Ann, Var} || {_, Var} <- Vars]},
   Relative = elixir_utils:relative_to_cwd(File),
 
-  [{attribute, erl_anno:new(Line), file, {elixir_utils:characters_to_list(Relative), 1}},
-   {attribute, erl_anno:new(Line), module, Module},
-   {attribute, erl_anno:new(Line), compile, no_auto_import},
-   {attribute, erl_anno:new(Line), export, [{Fun, 1}, {'__RELATIVE__', 0}]},
-   {function, erl_anno:new(Line), Fun, 1, [
-     {clause, erl_anno:new(Line), [Tuple], [], [Expr]}
+  [{attribute, Ann, file, {elixir_utils:characters_to_list(Relative), 1}},
+   {attribute, Ann, module, Module},
+   {attribute, Ann, compile, no_auto_import},
+   {attribute, Ann, export, [{Fun, 1}, {'__RELATIVE__', 0}]},
+   {function, Ann, Fun, 1, [
+     {clause, Ann, [Tuple], [], [Expr]}
    ]},
-   {function, erl_anno:new(Line), '__RELATIVE__', 0, [
-     {clause, erl_anno:new(Line), [], [], [elixir_erl:elixir_to_erl(Relative)]}
+   {function, Ann, '__RELATIVE__', 0, [
+     {clause, Ann, [], [], [elixir_erl:elixir_to_erl(Relative)]}
    ]}].
 
 retrieve_compiler_module() ->
