@@ -66,34 +66,36 @@ invoke_local(Module, ErlName, Args) ->
   end.
 
 %% Converts Elixir quoted literals to Erlang AST.
+elixir_to_erl(Tree) ->
+  elixir_to_erl(Tree, erl_anno:new(0)).
 
-elixir_to_erl(Tree) when is_tuple(Tree) ->
-  {tuple, erl_anno:new(0), [elixir_to_erl(X) || X <- tuple_to_list(Tree)]};
-elixir_to_erl([]) ->
-  {nil, erl_anno:new(0)};
-elixir_to_erl(<<>>) ->
-  {bin, erl_anno:new(0), []};
-elixir_to_erl(Tree) when is_list(Tree) ->
-  elixir_to_erl_cons(Tree);
-elixir_to_erl(Tree) when is_atom(Tree) ->
-  {atom, erl_anno:new(0), Tree};
-elixir_to_erl(Tree) when is_integer(Tree) ->
-  {integer, erl_anno:new(0), Tree};
-elixir_to_erl(Tree) when is_float(Tree) ->
-  {float, erl_anno:new(0), Tree};
-elixir_to_erl(Tree) when is_binary(Tree) ->
+elixir_to_erl(Tree, Ann) when is_tuple(Tree) ->
+  {tuple, Ann, [elixir_to_erl(X, Ann) || X <- tuple_to_list(Tree)]};
+elixir_to_erl([], Ann) ->
+  {nil, Ann};
+elixir_to_erl(<<>>, Ann) ->
+  {bin, Ann, []};
+elixir_to_erl(Tree, Ann) when is_list(Tree) ->
+  elixir_to_erl_cons(Tree, Ann);
+elixir_to_erl(Tree, Ann) when is_atom(Tree) ->
+  {atom, Ann, Tree};
+elixir_to_erl(Tree, Ann) when is_integer(Tree) ->
+  {integer, Ann, Tree};
+elixir_to_erl(Tree, Ann) when is_float(Tree) ->
+  {float, Ann, Tree};
+elixir_to_erl(Tree, Ann) when is_binary(Tree) ->
   %% Note that our binaries are UTF-8 encoded and we are converting
   %% to a list using binary_to_list. The reason for this is that Erlang
   %% considers a string in a binary to be encoded in latin1, so the bytes
   %% are not changed in any fashion.
-  {bin, erl_anno:new(0), [{bin_element, erl_anno:new(0), {string, erl_anno:new(0), binary_to_list(Tree)}, default, default}]};
-elixir_to_erl(Pid) when is_pid(Pid) ->
-  ?remote(0, erlang, binary_to_term, [elixir_erl:elixir_to_erl(term_to_binary(Pid))]);
-elixir_to_erl(_Other) ->
+  {bin, Ann, [{bin_element, Ann, {string, Ann, binary_to_list(Tree)}, default, default}]};
+elixir_to_erl(Pid, Ann) when is_pid(Pid) ->
+  ?remote(Ann, erlang, binary_to_term, [elixir_to_erl(term_to_binary(Pid), Ann)]);
+elixir_to_erl(_Other, _Ann) ->
   error(badarg).
 
-elixir_to_erl_cons([H | T]) -> {cons, erl_anno:new(0), elixir_to_erl(H), elixir_to_erl_cons(T)};
-elixir_to_erl_cons(T) -> elixir_to_erl(T).
+elixir_to_erl_cons([H | T], Ann) -> {cons, Ann, elixir_to_erl(H, Ann), elixir_to_erl_cons(T, Ann)};
+elixir_to_erl_cons(T, Ann) -> elixir_to_erl(T, Ann).
 
 %% Returns a scope for translation.
 
