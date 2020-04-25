@@ -15,7 +15,7 @@ defmodule ExUnit.OnExitHandler do
     Agent.start_link(fn -> :ets.new(@name, @ets_opts) end, name: @name)
   end
 
-  @spec register(pid) :: :ok
+  @spec register(pid) :: true
   def register(pid) when is_pid(pid) do
     :ets.insert(@name, {pid, nil, []})
   end
