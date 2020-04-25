@@ -155,6 +155,30 @@ assert %{"status" => 200, "body" => %{"key" => "foo"}} = json_payload
 
 Now imagine that `json_payload` is a large JSON blob and the `"key"` inside the `"body"` did not have value of `"foo"`. In previous Elixir versions, if the assertion failed, Elixir would print the right side and let you up to your own devices to figure out what went wrong. In Elixir v1.10, we diff the data structure against the pattern so you can see exactly which parts of the data matched the pattern and which ones did not. Note ExUnit already performed diffing when comparing data types, this new version adds diffing when matching data against a pattern.
 
+## v1.10.3 (2020-04-25)
+
+### 1. Bug fixes
+
+#### Elixir
+
+  * [Code] Return `[{mod, bin}]` from `Code.compile_file/2`, `Code.require_file/2`, `Code.load_file/2`
+  * [Code] Make sure the formatter respects newlines before and after module attributes
+  * [Kernel.ParallelCompiler] Fix a bug where the parallel compiler would raise in long compilation cycles
+  * [Kernel.ParallelCompiler] Fix a bug where the parallel compiler would raise if some of the modules being compiled referred to a module that has been loaded directly to memory
+  * [Module] Fix accidental breaking change where bodiless clauses had their body value on `@on_definition` callbacks set to an empty list instead of `nil`
+  * [String] Undeprecate `String.normalize/2` normalize and fix infinite loop caused by certain invalid strings
+
+#### ExUnit
+
+  * [ExUnit.Assertions] Fix pattern matching diff when matching on pinned variables
+  * [ExUnit.Assertions] Fix pattern matching diff when matching variable struct names
+  * [ExUnit.Assertions] Fix pattern matching diff when matching on the binary concat operator (`<>`) and the left side is not a literal string
+  * [ExUnit.Assertions] Fix pattern matching diff when matching on pseudo-vars (`__MODULE__`, `__DIR__`, etc)
+
+#### Mix
+
+  * [mix release] Respect the `:path` option when creating a `:tar` file for releases
+
 ## v1.10.2 (2020-02-26)
 
 ### 1. Bug fixes
