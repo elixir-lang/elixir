@@ -440,15 +440,17 @@ defmodule IO.ANSI.Docs do
     entry = if indent == "", do: "  " <> entry, else: entry
     new_indent = indent <> String.duplicate(" ", String.length(entry))
 
-    {contents, rest, done} = process_list_next(rest, count, byte_size(new_indent), [])
+    {_, new_next_count} = strip_spaces(List.first(rest), 0, :infinity)
+
+    {contents, rest, done} = process_list_next(rest, count, new_next_count, [])
     process(contents, [indent <> entry <> line, :no_wrap], new_indent, options)
 
     if done, do: newline_after_block(options)
-    process(rest, [], new_indent, options)
+    process(rest, [], indent, options)
   end
 
   defp process_list_next([line | rest], count, max, acc) do
-    {stripped, next_count} = strip_spaces(line, 0, max)
+    {stripped, next_count} = strip_spaces(line, 0, max - 2)
 
     case process_list_next_kind(stripped, rest, count, next_count) do
       :next -> process_list_next(rest, count, max, [stripped | acc])
