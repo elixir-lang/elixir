@@ -223,7 +223,7 @@ defmodule Regex do
   and recompiles the regex in case of version mismatch.
   """
   @doc since: "1.4.0"
-  @spec recompile(t) :: t
+  @spec recompile(t) :: {:ok, t} | {:error, any}
   def recompile(%Regex{} = regex) do
     version = version()
 
