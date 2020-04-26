@@ -328,9 +328,10 @@ get_macros(Receiver, false) ->
   end;
 
 get_macros(Receiver, true) ->
-  case is_ensure_loaded(Receiver) of
-    true -> get_info(Receiver, macros);
-    false -> []
+  try
+    Receiver:'__info__'(macros)
+  catch
+    error:_ -> []
   end.
 
 %% Kernel deprecations are inlined.
