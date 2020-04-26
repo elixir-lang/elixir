@@ -536,11 +536,7 @@ defmodule Calendar do
   end
 
   defp parse_modifiers(<<digit, rest::binary>>, width, pad, parser_data) when digit in ?0..?9 do
-    new_width =
-      case pad do
-        ?- -> 0
-        _ -> (width || 0) * 10 + (digit - ?0)
-      end
+    new_width = (width || 0) * 10 + (digit - ?0)
 
     parse_modifiers(rest, new_width, pad, parser_data)
   end
