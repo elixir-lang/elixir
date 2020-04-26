@@ -457,13 +457,13 @@ defmodule String do
   For example, take the grapheme "é" which is made of the characters
   "e" and the acute accent. The following will split the string into two parts:
 
-      iex> String.split(:unicode.characters_to_nfd_binary("é"), "e")
+      iex> String.split(String.normalize("é", :nfd), "e")
       ["", "́"]
 
   However, if "é" is represented by the single character "e with acute"
   accent, then it will split the string into just one part:
 
-      iex> String.split(:unicode.characters_to_nfc_binary("é"), "e")
+      iex> String.split(String.normalize("é", :nfc), "e")
       ["é"]
 
   """
@@ -652,9 +652,9 @@ defmodule String do
 
       String.normalize(string1, :nfd) == String.normalize(string2, :nfd)
 
-  Therefore, if you plan to compare multiple strings, multiple times
-  in a row, you may normalize them upfront and compare them directly
-  to avoid multiple normalization passes.
+  If you plan to compare multiple strings, multiple times in a row, you
+  may normalize them upfront and compare them directly to avoid multiple
+  normalization passes.
 
   ## Examples
 
@@ -676,21 +676,49 @@ defmodule String do
     normalize(string1, :nfd) == normalize(string2, :nfd)
   end
 
-  @doc false
-  @deprecated "Use :unicode.characters_to_nfc_binary/1 or :unicode.characters_to_nfd_binary/1 instead"
+  @doc """
+  Converts all characters in `string` to Unicode normalization
+  form identified by `form`.
+
+  Invalid Unicode codepoints are skipped and the remaining of
+  the string is converted. If you want the algorith to stop
+  and return on invalid codepoint, use `:unicode.characters_to_nfd_binary/1`
+  and `:unicode.characters_to_nfc_binary/1` instead.
+
+  ## Forms
+
+  The supported forms are:
+
+    * `:nfd` - Normalization Form Canonical Decomposition.
+      Characters are decomposed by canonical equivalence, and
+      multiple combining characters are arranged in a specific
+      order.
+
+    * `:nfc` - Normalization Form Canonical Composition.
+      Characters are decomposed and then recomposed by canonical equivalence.
+
+  ## Examples
+
+      iex> String.normalize("yêṩ", :nfd)
+      "yêṩ"
+
+      iex> String.normalize("leña", :nfc)
+      "leña"
+
+  """
   def normalize(string, form)
 
   def normalize(string, :nfd) do
     case :unicode.characters_to_nfd_binary(string) do
       string when is_binary(string) -> string
-      {:error, bad, rest} -> bad <> normalize(rest, :nfd)
+      {:error, good, <<head, rest::binary>>} -> good <> <<head>> <> normalize(rest, :nfd)
     end
   end
 
   def normalize(string, :nfc) do
     case :unicode.characters_to_nfc_binary(string) do
       string when is_binary(string) -> string
-      {:error, bad, rest} -> bad <> normalize(rest, :nfc)
+      {:error, good, <<head, rest::binary>>} -> good <> <<head>> <> normalize(rest, :nfc)
     end
   end
 
@@ -2189,13 +2217,13 @@ defmodule String do
   For example, take the grapheme "é" which is made of the characters
   "e" and the acute accent. The following returns `true`:
 
-      iex> String.contains?(:unicode.characters_to_nfd_binary("é"), "e")
+      iex> String.contains?(String.normalize("é", :nfd), "e")
       true
 
   However, if "é" is represented by the single character "e with acute"
   accent, then it will return `false`:
 
-      iex> String.contains?(:unicode.characters_to_nfc_binary("é"), "e")
+      iex> String.contains?(String.normalize("é", :nfc), "e")
       false
 
   """

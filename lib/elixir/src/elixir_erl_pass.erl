@@ -468,7 +468,7 @@ translate_map(Meta, Assocs, TUpdate, #elixir_erl{extra=Extra} = S) ->
   {TArgs, SA} = lists:mapfoldl(fun({Key, Value}, Acc0) ->
     {TKey, Acc1} = translate(Key, Acc0#elixir_erl{extra=map_key}),
     {TValue, Acc2} = translate(Value, Acc1#elixir_erl{extra=Extra}),
-    {{Op, ?ann(Meta), TKey, TValue}, Acc2}
+    {{Op, Ann, TKey, TValue}, Acc2}
   end, S, Assocs),
 
   build_map(Ann, TUpdate, TArgs, SA).

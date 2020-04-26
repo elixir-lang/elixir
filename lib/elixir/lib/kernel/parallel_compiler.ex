@@ -232,7 +232,7 @@ defmodule Kernel.ParallelCompiler do
   defp checker_runtime_modules(modules) do
     for module <- modules,
         path = :code.which(module),
-        is_list(path) do
+        is_list(path) and path != [] do
       {module, File.read!(path)}
     end
   end
@@ -424,10 +424,11 @@ defmodule Kernel.ParallelCompiler do
 
   # The goal of this function is to find leaves in the dependency graph,
   # i.e. to find code that depends on code that we know is not being defined.
+  # Note that not all files have been compile yet, so they may not be in waiting.
   defp without_definition(waiting, files) do
     nillify_empty(
       for {pid, _, _, _} <- files,
-          {_, ^pid, ref, on, _, _} = List.keyfind(waiting, pid, 1),
+          {_, ^pid, ref, on, _, _} <- List.wrap(List.keyfind(waiting, pid, 1)),
           not Enum.any?(waiting, fn {_, _, _, _, defining, _} -> on in defining end),
           do: {ref, :not_found}
     )

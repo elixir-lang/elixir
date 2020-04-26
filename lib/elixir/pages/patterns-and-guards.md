@@ -309,7 +309,7 @@ iex> case "hello" do
 ...>   _anything_else ->
 ...>     :failed
 ...> end
-:worked
+:failed
 ```
 
 In many cases, we can take advantage of this. In the code above, we used `tuple_size/1` to both check that the given value is a tuple *and* check its size (instead of using `is_tuple(something) and tuple_size(something) == 2`).

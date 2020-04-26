@@ -172,7 +172,7 @@ defmodule IEx.Config do
   end
 
   def handle_configure(tab, options) do
-    options = :lists.ukeysort(1, options)
+    Enum.each(options, &validate_option/1)
 
     configuration()
     |> Keyword.merge(options, &merge_option/3)
@@ -189,15 +189,18 @@ defmodule IEx.Config do
 
   defp merge_option(:colors, old, new) when is_list(new), do: Keyword.merge(old, new)
   defp merge_option(:inspect, old, new) when is_list(new), do: Keyword.merge(old, new)
-  defp merge_option(:history_size, _old, new) when is_integer(new), do: new
-  defp merge_option(:default_prompt, _old, new) when is_binary(new), do: new
-  defp merge_option(:continuation_prompt, _old, new) when is_binary(new), do: new
-  defp merge_option(:alive_prompt, _old, new) when is_binary(new), do: new
-  defp merge_option(:alive_continuation_prompt, _old, new) when is_binary(new), do: new
-  defp merge_option(:width, _old, new) when is_integer(new), do: new
+  defp merge_option(_key, _old, new), do: new
 
-  defp merge_option(key, _old, new) do
-    raise ArgumentError,
-          "invalid configuration or value for pair #{inspect(key)} - #{inspect(new)}"
+  defp validate_option({:colors, new}) when is_list(new), do: :ok
+  defp validate_option({:inspect, new}) when is_list(new), do: :ok
+  defp validate_option({:history_size, new}) when is_integer(new), do: :ok
+  defp validate_option({:default_prompt, new}) when is_binary(new), do: :ok
+  defp validate_option({:continuation_prompt, new}) when is_binary(new), do: :ok
+  defp validate_option({:alive_prompt, new}) when is_binary(new), do: :ok
+  defp validate_option({:alive_continuation_prompt, new}) when is_binary(new), do: :ok
+  defp validate_option({:width, new}) when is_integer(new), do: :ok
+
+  defp validate_option(option) do
+    raise ArgumentError, "invalid configuration #{inspect(option)}"
   end
 end
