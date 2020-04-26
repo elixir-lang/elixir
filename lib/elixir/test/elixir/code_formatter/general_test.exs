@@ -525,6 +525,13 @@ defmodule Code.Formatter.GeneralTest do
   end
 
   describe "blocks" do
+    test "empty" do
+      assert_format "(;)", ""
+      assert_format "quote do: (;)", "quote do: nil"
+      assert_format "quote do end", "quote do\nend"
+      assert_format "quote do ; end", "quote do\nend"
+    end
+
     test "with multiple lines" do
       assert_same """
       foo = bar

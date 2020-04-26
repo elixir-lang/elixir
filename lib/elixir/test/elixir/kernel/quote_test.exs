@@ -218,6 +218,14 @@ defmodule Kernel.QuoteTest do
     assert [{:->, _, [[], 1]}] = quote(do: (() -> 1))
   end
 
+  test "empty block" do
+    # Since ; is allowed by itself, it must also be allowed inside ()
+    # The exception to this rule is an empty (). While empty expressions
+    # are allowed, an empty () is ambiguous. We also can't use quote here,
+    # since the formatter will rewrite (;) to something else.
+    assert {:ok, {:__block__, [line: 1], []}} = Code.string_to_quoted("(;)")
+  end
+
   test "bind quoted" do
     args = [
       {:=, [], [{:foo, [line: __ENV__.line + 4], Kernel.QuoteTest}, 3]},
