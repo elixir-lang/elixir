@@ -227,8 +227,8 @@ defmodule Mix.Tasks.Deps.Compile do
       Mix.raise(error_message)
     end
 
-    (Mix.Tasks.Local.Rebar.run([]) && Mix.Rebar.local_rebar_cmd(manager)) ||
-      Mix.raise("\"#{manager}\" installation failed")
+    Mix.Tasks.Local.Rebar.run([])
+    Mix.Rebar.local_rebar_cmd(manager)
   end
 
   defp do_make(dep, config) do

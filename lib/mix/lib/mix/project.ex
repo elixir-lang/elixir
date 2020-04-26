@@ -388,7 +388,7 @@ defmodule Mix.Project do
   depends on B, then B will listed before A.
   """
   @doc since: "1.11.0"
-  @spec deps_apps() :: atom()
+  @spec deps_apps() :: [atom()]
   def deps_apps() do
     Mix.Dep.cached() |> Enum.map(& &1.app)
   end

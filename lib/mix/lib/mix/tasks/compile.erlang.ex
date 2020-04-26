@@ -62,6 +62,9 @@ defmodule Mix.Tasks.Compile.Erlang do
     do_run(files, opts, project, source_paths)
   end
 
+  # TODO: Update :compile.file/2 return type to include {:error, :badarg}
+  # see a66a563 for example
+  @dialyzer {:no_match, do_run: 4}
   defp do_run([], _, _, _), do: {:noop, []}
 
   defp do_run(files, opts, project, source_paths) do

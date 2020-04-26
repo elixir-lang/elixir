@@ -50,7 +50,7 @@ defmodule Mix.Release do
 
   @type mode :: :permanent | :transient | :temporary | :load | :none
   @type application :: atom()
-  @type t :: %{
+  @type t :: %__MODULE__{
           name: atom(),
           version: String.t(),
           path: String.t(),
@@ -61,6 +61,7 @@ defmodule Mix.Release do
           erts_source: charlist() | nil,
           config_providers: [{module, term}],
           options: keyword(),
+          overlays: list(),
           steps: [(t -> t) | :assemble, ...]
         }
 
@@ -222,6 +223,7 @@ defmodule Mix.Release do
     end
   end
 
+  @spec bad_umbrella! :: no_return
   defp bad_umbrella! do
     Mix.raise("""
     Umbrella projects require releases to be explicitly defined with \

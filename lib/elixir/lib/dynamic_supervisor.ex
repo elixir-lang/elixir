@@ -329,6 +329,8 @@ defmodule DynamicSupervisor do
     end
   end
 
+  # Ignore dialyzer warning for fallback clause (invalid child spec)
+  @dialyzer {:no_match, validate_child: 1}
   defp validate_child(%{id: _, start: {mod, _, _} = start} = child) do
     restart = Map.get(child, :restart, :permanent)
     type = Map.get(child, :type, :worker)

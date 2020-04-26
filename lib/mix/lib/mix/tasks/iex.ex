@@ -6,6 +6,7 @@ defmodule Mix.Tasks.Iex do
   """
 
   @impl true
+  @spec run(term) :: no_return
   def run(_) do
     Mix.raise("To use IEx with Mix, please run \"iex -S mix\"")
   end

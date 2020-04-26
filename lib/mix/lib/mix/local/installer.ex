@@ -18,6 +18,7 @@ defmodule Mix.Local.Installer do
           | {:local, path :: Path.t()}
           | {:url, url :: binary}
           | {:fetcher, dep_spec :: tuple}
+          | {:error, message :: String.t()}
 
   @doc """
   Checks that the `install_spec` and `opts` are supported by the respective module.

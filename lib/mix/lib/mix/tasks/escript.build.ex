@@ -136,14 +136,6 @@ defmodule Mix.Tasks.Escript.Build do
     filename = escript_opts[:path] || script_name
     main = escript_opts[:main_module]
 
-    unless script_name do
-      error_message =
-        "Could not generate escript, no name given, " <>
-          "set :name escript option or :app in the project settings"
-
-      Mix.raise(error_message)
-    end
-
     unless main do
       error_message =
         "Could not generate escript, please set :main_module " <>

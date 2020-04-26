@@ -638,6 +638,7 @@ defmodule IEx do
     __break__!(ast, module, fun, args, guards, stops, env)
   end
 
+  @spec __break__!(term, term) :: no_return
   def __break__!(ast, _stops) do
     raise_unknown_break_ast!(ast)
   end

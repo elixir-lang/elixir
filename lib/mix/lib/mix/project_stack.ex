@@ -105,7 +105,6 @@ defmodule Mix.ProjectStack do
     end)
   end
 
-  @spec compile_env([term]) :: [term]
   def compile_env(compile_env) do
     update_stack(fn
       [h | t] -> {h.compile_env, [%{h | compile_env: compile_env} | t]}

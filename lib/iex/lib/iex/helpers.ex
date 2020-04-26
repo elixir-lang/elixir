@@ -619,7 +619,6 @@ defmodule IEx.Helpers do
     IO.puts(IEx.color(:eval_result, ["\n## ", msg, " \n"]))
   end
 
-  defp print_entry(_key, nil), do: :ok
   defp print_entry(key, value), do: IO.puts("#{pad_key(key)}#{value}")
 
   defp print_uptime() do

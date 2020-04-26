@@ -217,6 +217,8 @@ defmodule Kernel do
   # We need this check only for bootstrap purposes.
   # Once Kernel is loaded and we recompile, it is a no-op.
   @compile {:inline, bootstrapped?: 1}
+  @dialyzer {:nowarn_function, bootstrapped?: 1}
+  @spec bootstrapped?(module) :: boolean
   case :code.ensure_loaded(Kernel) do
     {:module, _} ->
       defp bootstrapped?(_), do: true

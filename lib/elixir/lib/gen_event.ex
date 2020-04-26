@@ -457,6 +457,7 @@ defmodule GenEvent do
   end
 
   @doc false
+  @spec system_terminate(term, term, term, term) :: no_return
   def system_terminate(reason, parent, _debug, [name, handlers, _hib]) do
     server_terminate(reason, parent, handlers, name)
   end

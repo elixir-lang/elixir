@@ -536,6 +536,7 @@ defmodule Time do
       %Time{calendar: Calendar.Holocene, hour: 13, minute: 30, second: 15, microsecond: {0, 0}}
 
   """
+  @dialyzer {:no_match, convert!: 2}
   @doc since: "1.5.0"
   @spec convert!(Calendar.time(), Calendar.calendar()) :: t
   def convert!(time, calendar) do

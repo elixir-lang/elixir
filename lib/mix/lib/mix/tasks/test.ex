@@ -401,6 +401,7 @@ defmodule Mix.Tasks.Test do
     end
   end
 
+  @spec raise_with_shell(term, term) :: no_return
   defp raise_with_shell(shell, message) do
     Mix.shell(shell)
     Mix.raise(message)
@@ -556,7 +557,7 @@ defmodule Mix.Tasks.Test do
 
   defp filter_to_allowed_files(matched_test_files, nil), do: matched_test_files
 
-  defp filter_to_allowed_files(matched_test_files, %MapSet{} = allowed_files) do
+  defp filter_to_allowed_files(matched_test_files, allowed_files) do
     Enum.filter(matched_test_files, &MapSet.member?(allowed_files, Path.expand(&1)))
   end
 

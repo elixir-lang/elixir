@@ -147,6 +147,7 @@ defmodule IEx.CLI do
     [dot_iex_path: find_dot_iex(:init.get_plain_arguments()), on_eof: :halt]
   end
 
+  @dialyzer {:no_return, abort: 1}
   defp abort(msg) do
     function = fn ->
       IO.puts(:stderr, msg)

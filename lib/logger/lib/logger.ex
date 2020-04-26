@@ -876,6 +876,8 @@ defmodule Logger do
 
   defguardp is_msg(msg) when is_binary(msg) or is_list(msg) or is_map(msg)
 
+  # TODO: Update :logger.macro_log/4 first argument type to include %{}
+  @dialyzer {:nowarn_function, __do_log__: 3}
   @doc false
   def __do_log__(level, fun, metadata) when is_function(fun, 0) and is_map(metadata) do
     case fun.() do

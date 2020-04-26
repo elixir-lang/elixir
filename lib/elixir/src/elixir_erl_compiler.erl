@@ -42,6 +42,9 @@ erl_to_core(Forms, Opts) ->
       end
   end.
 
+%% TODO: Update compile:noenv_forms/2 return type to include {ok, Module, _NotABinary, _Warnings}
+%% see 718263f and #7839 for example
+-dialyzer({no_match, compile/3}).
 compile(Forms, File, Opts) when is_list(Forms), is_list(Opts), is_binary(File) ->
   Source = elixir_utils:characters_to_list(File),
 
@@ -56,7 +59,7 @@ compile(Forms, File, Opts) when is_list(Forms), is_list(Opts), is_binary(File) -
           format_warnings(Opts, Warnings),
           {Module, Binary};
 
-        {ok, Module, _Binary, _Warnings} ->
+        {ok, Module, _NotABinary, _Warnings} ->
           elixir_errors:form_error([], File, ?MODULE, {invalid_compilation, Module});
 
         {error, Errors, Warnings} ->

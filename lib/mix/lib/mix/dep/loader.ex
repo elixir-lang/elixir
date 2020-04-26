@@ -256,6 +256,7 @@ defmodule Mix.Dep.Loader do
     Enum.any?(files, &File.regular?(Path.join(dest, &1)))
   end
 
+  @spec invalid_dep_format(term) :: no_return
   defp invalid_dep_format(dep) do
     Mix.raise("""
     Dependency specified in the wrong format:

@@ -27,7 +27,7 @@ defmodule Mix.Dep.Lock do
   @doc """
   Receives a map and writes it as the latest lock.
   """
-  @spec write(map) :: :ok
+  @spec write(map | keyword) :: :ok
   def write(map) do
     unless map == read() do
       lines =
