@@ -484,7 +484,7 @@ defmodule IEx do
 
   ANSI escapes in `string` are not processed in any way.
   """
-  @spec color(atom(), String.t()) :: String.t()
+  @spec color(atom(), iodata()) :: iodata()
   def color(color, string) do
     case IEx.Config.color(color) do
       nil ->
