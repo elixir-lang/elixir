@@ -207,6 +207,23 @@ defmodule IO.ANSI.DocsTest do
       assert result == "  • one\n    • one.one\n    • one.two\n\e[0m\n  • two\n\e[0m"
     end
 
+    test "* deep nested lists are converted" do
+      result =
+        format_markdown("""
+          * level 1
+            * level 2a
+            * level 2b
+              * level 3
+                * level 4a
+                * level 4b
+                  * level 5
+                    * level 6
+        """)
+
+      assert result ==
+               "  • level 1\n    • level 2a\n    • level 2b\n      • level 3\n        • level 4a\n        • level 4b\n          • level 5\n            • level 6\n\e[0m\n\e[0m\n\e[0m\n\e[0m\n\e[0m\n\e[0m"
+    end
+
     test "* lists with spaces are converted" do
       result = format_markdown("  * one\n  * two\n  * three")
       assert result == "  • one\n  • two\n  • three\n\e[0m"
