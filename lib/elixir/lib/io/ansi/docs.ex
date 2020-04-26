@@ -450,7 +450,7 @@ defmodule IO.ANSI.Docs do
   end
 
   defp process_list_next([line | rest], count, max, acc) do
-    {stripped, next_count} = strip_spaces(line, 0, max - 2)
+    {stripped, next_count} = strip_spaces(line, 0, max)
 
     case process_list_next_kind(stripped, rest, count, next_count) do
       :next -> process_list_next(rest, count, max, [stripped | acc])

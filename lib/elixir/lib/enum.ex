@@ -1337,12 +1337,12 @@ defmodule Enum do
   end
 
   @doc """
-  Joins the given `enumerable` into a binary using `joiner` as a
+  Joins the given `enumerable` into a string using `joiner` as a
   separator.
 
-  If `joiner` is not passed at all, it defaults to the empty binary.
+  If `joiner` is not passed at all, it defaults to an empty string.
 
-  All elements in the `enumerable` must be convertible to a binary,
+  All elements in the `enumerable` must be convertible to a string,
   otherwise an error is raised.
 
   ## Examples
@@ -1476,12 +1476,10 @@ defmodule Enum do
   @doc """
   Maps and joins the given `enumerable` in one pass.
 
-  `joiner` can be either a binary or a list and the result will be of
-  the same type as `joiner`.
-  If `joiner` is not passed at all, it defaults to an empty binary.
+  If `joiner` is not passed at all, it defaults to an empty string.
 
   All elements returned from invoking the `mapper` must be convertible to
-  a binary, otherwise an error is raised.
+  a string, otherwise an error is raised.
 
   ## Examples
 

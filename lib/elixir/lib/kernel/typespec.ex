@@ -84,7 +84,7 @@ defmodule Kernel.Typespec do
         store_typespec(bag, kind, expr, pos)
 
         case :ets.lookup(set, {:function, name, arity}) do
-          [{{:function, ^name, ^arity}, line, _, doc, doc_meta}] ->
+          [{{:function, ^name, ^arity}, _, line, _, doc, doc_meta}] ->
             store_doc(set, kind, name, arity, line, :doc, doc, doc_meta)
 
           _ ->

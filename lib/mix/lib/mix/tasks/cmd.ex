@@ -10,12 +10,12 @@ defmodule Mix.Tasks.Cmd do
   Useful in umbrella applications to execute a command
   on each child app:
 
-      mix cmd echo pwd
+      mix cmd pwd
 
   You can limit which apps the cmd runs in by passing the app names
   before the cmd using --app:
 
-      mix cmd --app app1 --app app2 echo pwd
+      mix cmd --app app1 --app app2 pwd
 
   Aborts when a command exits with a non-zero status.
 

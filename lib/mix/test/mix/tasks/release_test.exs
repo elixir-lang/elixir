@@ -135,7 +135,7 @@ defmodule Mix.Tasks.ReleaseTest do
   end
 
   describe "tar" do
-    test "with ERTS" do
+    test "with default options" do
       in_fixture("release_test", fn ->
         config = [releases: [demo: [steps: [:assemble, :tar]]]]
 
@@ -186,15 +186,15 @@ defmodule Mix.Tasks.ReleaseTest do
       end)
     end
 
-    test "without ERTS" do
+    test "without ERTS and custom path" do
       in_fixture("release_test", fn ->
-        config = [releases: [demo: [include_erts: false, steps: [:assemble, :tar]]]]
+        config = [
+          releases: [demo: [include_erts: false, path: "tmp/rel", steps: [:assemble, :tar]]]
+        ]
 
         Mix.Project.in_project(:release_test, ".", config, fn _ ->
-          root = Path.absname("_build/#{Mix.env()}/rel/demo")
-
           Mix.Task.run("release")
-          tar_path = Path.expand(Path.join([root, "..", "..", "demo-0.1.0.tar.gz"]))
+          tar_path = Path.expand(Path.join(["tmp", "rel", "demo-0.1.0.tar.gz"]))
           message = "* building #{tar_path}"
           assert_received {:mix_shell, :info, [^message]}
           assert File.exists?(tar_path)
