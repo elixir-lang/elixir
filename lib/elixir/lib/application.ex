@@ -210,7 +210,7 @@ defmodule Application do
   dependencies for you.
 
   If the application does not have a callback module configured, starting is
-  done at this point. Otherwise, its `c:start/2` callback if invoked. The PID of
+  done at this point. Otherwise, its `c:start/2` callback is invoked. The PID of
   the top-level supervisor returned by this function is stored by the runtime
   for later use, and the returned application state is saved too, if any.
 
