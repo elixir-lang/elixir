@@ -963,6 +963,7 @@ delimiter(Delimiter) ->
 %% Keywords
 
 check_stab([{'->', _, [_, _]}], _) -> stab;
+check_stab([], none) -> block;
 check_stab([_], none) -> block;
 check_stab([_], Meta) -> error_invalid_stab(Meta);
 check_stab([{'->', Meta, [_, _]} | T], _) -> check_stab(T, Meta);
@@ -1070,19 +1071,9 @@ warn_empty_paren({_, {Line, _, _}}) ->
     "invalid expression (). "
     "If you want to invoke or define a function, make sure there are "
     "no spaces between the function name and its arguments. If you wanted "
-    "to pass an empty block, pass a value instead, such as a nil or an atom").
+    "to pass an empty block or code, pass a value instead, such as a nil or an atom").
 
 %% TODO: Make this an error on v2.0
-warn_trailing_comma({',', {Line, _, _}}) ->
-  elixir_errors:erl_warn(Line, ?file(),
-    "trailing commas are not allowed inside function/macro call arguments"
-  ).
-
-warn_empty_stab_clause({stab_op, {Line, _, _}, '->'}) ->
-  elixir_errors:erl_warn(Line, ?file(),
-    "an expression is always required on the right side of ->. "
-    "Please provide a value after ->").
-
 warn_pipe({arrow_op, {Line, _, _}, Op}, {_, [_ | _], [_ | _]}) ->
   elixir_errors:erl_warn(Line, ?file(),
     io_lib:format(
@@ -1096,3 +1087,13 @@ warn_pipe({arrow_op, {Line, _, _}, Op}, {_, [_ | _], [_ | _]}) ->
   );
 warn_pipe(_Token, _) ->
   ok.
+
+warn_trailing_comma({',', {Line, _, _}}) ->
+  elixir_errors:erl_warn(Line, ?file(),
+    "trailing commas are not allowed inside function/macro call arguments"
+  ).
+
+warn_empty_stab_clause({stab_op, {Line, _, _}, '->'}) ->
+  elixir_errors:erl_warn(Line, ?file(),
+    "an expression is always required on the right side of ->. "
+    "Please provide a value after ->").
