@@ -705,7 +705,8 @@ defmodule Process do
   """
   @spec flag(:error_handler, module) :: module
   @spec flag(:max_heap_size, heap_size) :: heap_size
-  @spec flag(:message_queue_data, :erlang.message_queue_data()) :: :erlang.message_queue_data()
+  # :off_heap | :on_heap twice because :erlang.message_queue_data() is not exported
+  @spec flag(:message_queue_data, :off_heap | :on_heap) :: :off_heap | :on_heap
   @spec flag(:min_bin_vheap_size, non_neg_integer) :: non_neg_integer
   @spec flag(:min_heap_size, non_neg_integer) :: non_neg_integer
   @spec flag(:priority, priority_level) :: priority_level
