@@ -418,7 +418,8 @@ defmodule DynamicSupervisor do
   """
   @doc since: "1.6.0"
   @spec which_children(Supervisor.supervisor()) :: [
-          {:undefined, pid | :restarting, :worker | :supervisor, :supervisor.modules()}
+          # module() | :dynamic here because :supervisor.modules() is not exported
+          {:undefined, pid | :restarting, :worker | :supervisor, module() | :dynamic}
         ]
   def which_children(supervisor) do
     call(supervisor, :which_children)
