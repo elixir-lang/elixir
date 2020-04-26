@@ -623,6 +623,7 @@ defmodule System do
       System.halt(:abort)
 
   """
+  @spec halt() :: no_return
   @spec halt(non_neg_integer | binary | :abort) :: no_return
   def halt(status \\ 0)
 

@@ -10,7 +10,7 @@ defmodule Module.ParallelChecker do
   the modules and adds the ExCk chunk to the binaries. Returns the updated
   binaries and a list of warnings from the verification.
   """
-  @spec verify([{map(), binary()}], [{module(), binary()}], pos_integer()) :: [warning()]
+  @spec verify([{map(), binary()}], [{module(), binary()}], pos_integer() | nil) :: [warning()]
   def verify(compiled_modules, runtime_binaries, schedulers \\ nil) do
     compiled_maps = Enum.map(compiled_modules, fn {map, _binary} -> {map.module, map} end)
     check_modules = compiled_maps ++ runtime_binaries

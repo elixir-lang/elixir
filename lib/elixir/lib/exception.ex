@@ -237,7 +237,11 @@ defmodule Exception do
     binding = :orddict.store(:VAR, call_arg, binding)
 
     try do
-      {:value, _, binding} = :erl_eval.expr({:match, 0, erl_arg, {:var, 0, :VAR}}, binding, :none)
+      ann = :erl_anno.new(0)
+
+      {:value, _, binding} =
+        :erl_eval.expr({:match, ann, erl_arg, {:var, ann, :VAR}}, binding, :none)
+
       {true, binding}
     rescue
       _ -> {false, binding}
