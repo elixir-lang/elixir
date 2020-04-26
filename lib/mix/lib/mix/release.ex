@@ -777,7 +777,21 @@ defmodule Mix.Release do
   The exact chunks that are kept are not documented and may change in
   future versions.
   """
-  @spec strip_beam(binary()) :: {:ok, binary} | {:error, :beam_lib, :beam_lib.chnk_rsn()}
+  @type chunkid :: nonempty_charlist()
+  @type info_rsn() ::
+          {:chunk_too_big, :file.filename(), chunkid(), chunk_size :: non_neg_integer(),
+           file_size :: non_neg_integer()}
+          | {:invalid_beam_file, :file.filename(), position :: non_neg_integer()}
+          | {:invalid_chunk, :file.filename(), chunkid()}
+          | {:missing_chunk, :file.filename(), chunkid()}
+          | {:not_a_beam_file, :file.filename()}
+          | {:file_error, :file.filename(), :file.posix()}
+  @type chnk_rsn() ::
+          {:unknown_chunk, :file.filename(), atom()}
+          | {:key_missing_or_invalid, :file.filename(), :abstract_code | :debug_info}
+          | info_rsn()
+  # inlining chnk_rsn() here because :beam_lib.chnk_rsn() is not exported
+  @spec strip_beam(binary()) :: {:ok, binary} | {:error, :beam_lib, chnk_rsn()}
   def strip_beam(binary) do
     case :beam_lib.chunks(binary, @significant_chunks, [:allow_missing_chunks]) do
       {:ok, {_, chunks}} ->
