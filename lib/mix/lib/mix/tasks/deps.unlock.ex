@@ -61,7 +61,7 @@ defmodule Mix.Tasks.Deps.Unlock do
         if unlock == [] do
           Mix.shell().error("warning: no dependencies were matched")
         else
-          lock = Enum.reject(lock, fn {app, _} -> app in unlock end)
+          lock = lock |> Enum.reject(fn {app, _} -> app in unlock end) |> Map.new()
           Mix.Dep.Lock.write(lock)
 
           Mix.shell().info("""
