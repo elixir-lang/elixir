@@ -458,8 +458,8 @@ defmodule Task do
       This is also useful when you're using the tasks for side effects.
       Defaults to `true`.
 
-    * `:timeout` - the maximum amount of time (in milliseconds) each
-      task is allowed to execute for. Defaults to `5000`.
+    * `:timeout` - the maximum amount of time (in milliseconds or `:infinity`)
+      each task is allowed to execute for. Defaults to `5000`.
 
     * `:on_timeout` - what to do when a task times out. The possible
       values are:
@@ -558,11 +558,12 @@ defmodule Task do
   In case the task process dies, the current process will exit with the same
   reason as the task.
 
-  A timeout in milliseconds or `:infinity`, can be given with a default value of `5000`. If the
-  timeout is exceeded, then the current process will exit. If the task process
-  is linked to the current process which is the case when a task is started with
-  `async`, then the task process will also exit. If the task process is trapping
-  exits or not linked to the current process, then it will continue to run.
+  A timeout, in milliseconds or `:infinity`, can be given with a default value
+  of `5000`. If the timeout is exceeded, then the current process will exit. If
+  the task process is linked to the current process which is the case when a
+  task is started with `async`, then the task process will also exit. If the
+  task process is trapping exits or not linked to the current process, then it
+  will continue to run.
 
   This function assumes the task's monitor is still active or the monitor's
   `:DOWN` message is in the message queue. If it has been demonitored, or the
@@ -618,7 +619,7 @@ defmodule Task do
   If any of the task processes dies, the current process will exit with the
   same reason as that task.
 
-  A timeout in milliseconds or `:infinity`, can be given with a default value
+  A timeout, in milliseconds or `:infinity`, can be given with a default value
   of `5000`. If the timeout is exceeded, then the current process will exit.
   Any task processes that are linked to the current process (which is the case
   when a task is started with `async`) will also exit. Any task processes that
@@ -750,10 +751,9 @@ defmodule Task do
     * the caller is trapping exits
 
   A timeout, in milliseconds or `:infinity`, can be given with a default value
-  of `5000`. If the time runs out before a message from
-  the task is received, this function will return `nil`
-  and the monitor will remain active. Therefore `yield/2` can be
-  called multiple times on the same task.
+  of `5000`. If the time runs out before a message from the task is received,
+  this function will return `nil` and the monitor will remain active. Therefore
+  `yield/2` can be called multiple times on the same task.
 
   This function assumes the task's monitor is still active or the
   monitor's `:DOWN` message is in the message queue. If it has been
