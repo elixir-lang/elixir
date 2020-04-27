@@ -188,9 +188,10 @@ defmodule Exception do
   Where `definition` is `:def`, `:defp`, `:defmacro` or `:defmacrop`.
   """
   @doc since: "1.5.0"
-  @spec blame_mfa(module, function, args :: [term]) ::
+  @spec blame_mfa(module, function_name :: atom, args :: [term]) ::
           {:ok, :def | :defp | :defmacro | :defmacrop, [{args :: [term], guards :: [term]}]}
           | :error
+
   def blame_mfa(module, function, args)
       when is_atom(module) and is_atom(function) and is_list(args) do
     try do
