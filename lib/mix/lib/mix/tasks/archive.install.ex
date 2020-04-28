@@ -113,7 +113,7 @@ defmodule Mix.Tasks.Archive.Install do
     remove_previous_versions(previous)
 
     File.mkdir_p!(dir_dest)
-    {:ok, _} = :zip.extract(contents, cwd: dir_dest)
+    {:ok, _} = :zip.extract(contents, cwd: to_charlist(dir_dest))
     Mix.shell().info([:green, "* creating ", :reset, Path.relative_to_cwd(dir_dest)])
 
     ebin = Mix.Local.archive_ebin(dir_dest)
