@@ -556,7 +556,7 @@ defmodule Mix.Tasks.Test do
 
   defp filter_to_allowed_files(matched_test_files, nil), do: matched_test_files
 
-  defp filter_to_allowed_files(matched_test_files, %MapSet{} = allowed_files) do
+  defp filter_to_allowed_files(matched_test_files, allowed_files) do
     Enum.filter(matched_test_files, &MapSet.member?(allowed_files, Path.expand(&1)))
   end
 
