@@ -171,7 +171,7 @@ defmodule Mix.Local.Installer do
   @doc """
   Receives `argv` and `opts` from options parsing and returns an `install_spec`.
   """
-  @spec parse_args([String.t()], keyword) :: install_spec
+  @spec parse_args([String.t()], keyword) :: install_spec | {:error, String.t()}
   def parse_args(argv, opts)
 
   def parse_args([], _opts) do
