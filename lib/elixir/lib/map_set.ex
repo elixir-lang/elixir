@@ -54,7 +54,8 @@ defmodule MapSet do
 
   @type value :: term
 
-  @opaque t(value) :: %__MODULE__{map: %{optional(value) => []}}
+  @typep internal_representation(value) :: %__MODULE__{map: %{optional(value) => []}}
+  @type t(value) :: internal_representation(value)
   @type t :: t(term)
 
   # TODO: Remove version key on v2.0
