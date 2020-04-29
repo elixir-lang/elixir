@@ -123,7 +123,11 @@ bootstrap() ->
   elixir_config:put(ignore_module_conflict, true),
   elixir_config:put(tracers, []),
   elixir_config:put(parser_options, []),
-  [bootstrap_file(File) || File <- bootstrap_main()].
+  {Init, Main} = bootstrap_files(),
+  [bootstrap_file(File) || File <- [<<"lib/elixir/lib/kernel.ex">> | Init]],
+  elixir_config:put(bootstrap, true),
+  elixir_config:put(docs, true),
+  [bootstrap_file(File) || File <- [<<"lib/elixir/lib/kernel.ex">> | Main]].
 
 bootstrap_file(File) ->
   try
@@ -136,45 +140,50 @@ bootstrap_file(File) ->
       erlang:halt(1)
   end.
 
-bootstrap_main() ->
-  [<<"lib/elixir/lib/kernel.ex">>,
-   <<"lib/elixir/lib/macro/env.ex">>,
-   <<"lib/elixir/lib/keyword.ex">>,
-   <<"lib/elixir/lib/module.ex">>,
-   <<"lib/elixir/lib/list.ex">>,
-   <<"lib/elixir/lib/macro.ex">>,
-   <<"lib/elixir/lib/kernel/typespec.ex">>,
-   <<"lib/elixir/lib/code.ex">>,
-   <<"lib/elixir/lib/code/identifier.ex">>,
-   <<"lib/elixir/lib/module/checker.ex">>,
-   <<"lib/elixir/lib/module/locals_tracker.ex">>,
-   <<"lib/elixir/lib/module/parallel_checker.ex">>,
-   <<"lib/elixir/lib/module/types/helpers.ex">>,
-   <<"lib/elixir/lib/module/types/infer.ex">>,
-   <<"lib/elixir/lib/module/types/pattern.ex">>,
-   <<"lib/elixir/lib/module/types/expr.ex">>,
-   <<"lib/elixir/lib/module/types.ex">>,
-   <<"lib/elixir/lib/kernel/utils.ex">>,
-   <<"lib/elixir/lib/exception.ex">>,
-   <<"lib/elixir/lib/protocol.ex">>,
-   <<"lib/elixir/lib/stream/reducers.ex">>,
-   <<"lib/elixir/lib/enum.ex">>,
-   <<"lib/elixir/lib/map.ex">>,
-   <<"lib/elixir/lib/inspect/algebra.ex">>,
-   <<"lib/elixir/lib/inspect.ex">>,
-   <<"lib/elixir/lib/access.ex">>,
-   <<"lib/elixir/lib/range.ex">>,
-   <<"lib/elixir/lib/regex.ex">>,
-   <<"lib/elixir/lib/string.ex">>,
-   <<"lib/elixir/lib/string/chars.ex">>,
-   <<"lib/elixir/lib/io.ex">>,
-   <<"lib/elixir/lib/path.ex">>,
-   <<"lib/elixir/lib/file.ex">>,
-   <<"lib/elixir/lib/system.ex">>,
-   <<"lib/elixir/lib/kernel/cli.ex">>,
-   <<"lib/elixir/lib/kernel/error_handler.ex">>,
-   <<"lib/elixir/lib/kernel/parallel_compiler.ex">>,
-   <<"lib/elixir/lib/kernel/lexical_tracker.ex">>].
+bootstrap_files() ->
+  {
+    [
+     <<"lib/elixir/lib/macro/env.ex">>,
+     <<"lib/elixir/lib/keyword.ex">>,
+     <<"lib/elixir/lib/module.ex">>,
+     <<"lib/elixir/lib/list.ex">>,
+     <<"lib/elixir/lib/macro.ex">>,
+     <<"lib/elixir/lib/kernel/typespec.ex">>,
+     <<"lib/elixir/lib/kernel/utils.ex">>,
+     <<"lib/elixir/lib/code.ex">>,
+     <<"lib/elixir/lib/code/identifier.ex">>,
+     <<"lib/elixir/lib/protocol.ex">>,
+     <<"lib/elixir/lib/stream/reducers.ex">>,
+     <<"lib/elixir/lib/enum.ex">>,
+     <<"lib/elixir/lib/regex.ex">>,
+     <<"lib/elixir/lib/inspect/algebra.ex">>,
+     <<"lib/elixir/lib/inspect.ex">>,
+     <<"lib/elixir/lib/string.ex">>,
+     <<"lib/elixir/lib/string/chars.ex">>
+    ],
+    [
+     <<"lib/elixir/lib/module/checker.ex">>,
+     <<"lib/elixir/lib/module/locals_tracker.ex">>,
+     <<"lib/elixir/lib/module/parallel_checker.ex">>,
+     <<"lib/elixir/lib/module/types/helpers.ex">>,
+     <<"lib/elixir/lib/module/types/infer.ex">>,
+     <<"lib/elixir/lib/module/types/pattern.ex">>,
+     <<"lib/elixir/lib/module/types/expr.ex">>,
+     <<"lib/elixir/lib/module/types.ex">>,
+     <<"lib/elixir/lib/exception.ex">>,
+     <<"lib/elixir/lib/path.ex">>,
+     <<"lib/elixir/lib/file.ex">>,
+     <<"lib/elixir/lib/map.ex">>,
+     <<"lib/elixir/lib/range.ex">>,
+     <<"lib/elixir/lib/access.ex">>,
+     <<"lib/elixir/lib/io.ex">>,
+     <<"lib/elixir/lib/system.ex">>,
+     <<"lib/elixir/lib/kernel/cli.ex">>,
+     <<"lib/elixir/lib/kernel/error_handler.ex">>,
+     <<"lib/elixir/lib/kernel/parallel_compiler.ex">>,
+     <<"lib/elixir/lib/kernel/lexical_tracker.ex">>
+    ]
+  }.
 
 binary_to_path({ModuleName, _ModuleMap, Binary}, CompilePath) ->
   Path = filename:join(CompilePath, atom_to_list(ModuleName) ++ ".beam"),
