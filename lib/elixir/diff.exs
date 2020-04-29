@@ -3,8 +3,6 @@ defmodule Diff do
   Utilities for comparing build artifacts.
   """
 
-  @tmp_env_vars ~w(TMPDIR TMP TEMP)s
-
   @known_chunks ~w(
     abstract_code
     debug_info
@@ -73,7 +71,7 @@ defmodule Diff do
     else
       diff =
         if String.ends_with?(file1, ".beam") do
-          beam_diff(content1, content2)
+          beam_diff(file1, content1, file2, content2)
         else
           file_diff(file1, file2)
         end
@@ -82,43 +80,32 @@ defmodule Diff do
     end
   end
 
-  defp beam_diff(content1, content2) do
-    tmp_file1 =
-      content1
-      |> humanize_beam_chunks()
-      |> inspect(pretty: true, limit: :infinity)
-      |> write_tmp()
+  defp beam_diff(file1, content1, file2, content2) do
+    with {:ok, {module, chunks1}} <- :beam_lib.chunks(content1, @known_chunks),
+         {:ok, {^module, chunks2}} <- :beam_lib.chunks(content2, @known_chunks),
+         true <- chunks1 != chunks2 do
+      for {chunk1, chunk2} <- Enum.zip(chunks1, chunks2), chunk1 != chunk2 do
+        tmp_file1 =
+          chunk1
+          |> inspect(pretty: true, limit: :infinity)
+          |> write_tmp()
 
-    tmp_file2 =
-      content2
-      |> humanize_beam_chunks()
-      |> inspect(pretty: true, limit: :infinity)
-      |> write_tmp()
+        tmp_file2 =
+          chunk2
+          |> inspect(pretty: true, limit: :infinity)
+          |> write_tmp()
 
-    file_diff(tmp_file1, tmp_file2)
+        file_diff(tmp_file1, tmp_file2)
+      end
+    else
+      _ ->
+        file_diff(file1, file2)
+    end
   end
 
   defp file_diff(file1, file2) do
     {diff, _} = System.cmd("diff", [file1, file2])
     diff
-  end
-
-  defp humanize_beam_chunks(beam) do
-    with {:ok, :beam_lib, chunks} <- :beam_lib.all_chunks(beam),
-         chunk_ids = chunks |> Enum.map(fn {chunk_id, _binary} -> chunk_id end) |> Enum.sort(),
-         {:ok, {_module, chunks}} <- :beam_lib.chunks(beam, chunk_ids) do
-      Enum.map(chunks, &humanize_beam_chunk/1)
-    else
-      _ -> beam
-    end
-  end
-
-  defp humanize_beam_chunk({chunk_id, _} = chunk) when chunk_id in @known_chunks do
-    chunk
-  end
-
-  defp humanize_beam_chunk({chunk_id, binary}) do
-    {chunk_id, :erlang.binary_to_term(binary)}
   end
 
   defp relative_paths(dir) do
@@ -136,32 +123,16 @@ defmodule Diff do
 
   defp write_tmp(content) do
     filename = generate_tmp_filename()
-
-    case Enum.find_value(tmp_dirs(), &maybe_write(Path.join(&1, filename), content)) do
-      nil -> raise "could not write tmp file"
-      path -> path
-    end
-  end
-
-  defp maybe_write(path, content) do
-    case File.write(path, content) do
-      :ok -> path
-      {:error, _} -> nil
-    end
+    File.mkdir_p!("tmp")
+    File.write!(Path.join("tmp", filename), content)
+    Path.join("tmp", filename)
   end
 
   defp generate_tmp_filename do
     sec = :os.system_time(:second)
-    rand = :rand.uniform(999_999_999_999_999)
+    rand = :rand.uniform(999_999_999)
     scheduler_id = :erlang.system_info(:scheduler_id)
-
     "tmp-#{sec}-#{rand}-#{scheduler_id}"
-  end
-
-  defp tmp_dirs do
-    system_tmp_dir = Enum.find_value(@tmp_env_vars, "/tmp", &System.get_env/1)
-    cwd_tmp_dir = Path.join(File.cwd!(), "tmp")
-    [system_tmp_dir, cwd_tmp_dir]
   end
 end
 
