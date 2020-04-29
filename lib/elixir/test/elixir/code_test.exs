@@ -176,7 +176,7 @@ defmodule CodeTest do
                {:error, {1, "unsafe atom does not exist: ", "there_is_no_such_atom"}}
     end
 
-    test "supports static_atoms_encoder" do
+    test "static_atoms_encoder encodes atoms" do
       ref = make_ref()
 
       encoder = fn atom, meta ->
@@ -191,7 +191,40 @@ defmodule CodeTest do
                Code.string_to_quoted(":there_is_no_such_atom", static_atoms_encoder: encoder)
     end
 
-    test "static_atoms_encoder, error case" do
+    test "static_atoms_encoder encodes vars" do
+      ref = make_ref()
+
+      encoder = fn atom, meta ->
+        assert atom == "there_is_no_such_var"
+        assert meta[:line] == 1
+        assert meta[:column] == 1
+        assert meta[:file] == "nofile"
+        {:ok, {:my, "atom", ref}}
+      end
+
+      assert {:ok, {{:my, "atom", ^ref}, [line: 1], nil}} =
+               Code.string_to_quoted("there_is_no_such_var", static_atoms_encoder: encoder)
+    end
+
+    test "static_atoms_encoder does not encode keywords" do
+      encoder = fn atom, _meta -> raise "shouldn't be invoked for #{atom}" end
+
+      assert {:ok, {:fn, [line: 1], [{:->, [line: 1], [[1], 2]}]}} =
+               Code.string_to_quoted("fn 1 -> 2 end", static_atoms_encoder: encoder)
+
+      assert {:ok, {:or, [line: 1], [true, false]}} =
+               Code.string_to_quoted("true or false", static_atoms_encoder: encoder)
+
+      encoder = fn atom, _meta -> {:ok, {:encoded, atom}} end
+
+      assert {:ok, [encoded: "true", encoded: "do", encoded: "and"]} =
+               Code.string_to_quoted("[:true, :do, :and]", static_atoms_encoder: encoder)
+
+      assert {:ok, [{{:encoded, "do"}, 1}, {{:encoded, "true"}, 2}, {{:encoded, "end"}, 3}]} =
+               Code.string_to_quoted("[do: 1, true: 2, end: 3]", static_atoms_encoder: encoder)
+    end
+
+    test "static_atoms_encoder may return errors" do
       encoder = fn _atom, _meta ->
         {:error, "Invalid atom name"}
       end

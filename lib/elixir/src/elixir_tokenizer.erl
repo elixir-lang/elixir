@@ -476,7 +476,7 @@ tokenize([$:, H | T] = Original, Line, Column, Scope, Tokens) when ?is_quote(H) 
   end;
 
 tokenize([$: | String] = Original, Line, Column, Scope, Tokens) ->
-  case tokenize_identifier(String, Line, Column, Scope) of
+  case tokenize_identifier(String, Line, Column, Scope, false) of
     {_Kind, Atom, Rest, Length, _Ascii, _Special} ->
       NewScope = maybe_warn_for_ambiguous_bang_before_equals(atom, Atom, Rest, Scope, Line),
       Token = {atom, {Line, Column, nil}, Atom},
@@ -558,7 +558,7 @@ tokenize([$. | T], Line, Column, Scope, Tokens) ->
 % Identifiers
 
 tokenize(String, Line, Column, Scope, Tokens) ->
-  case tokenize_identifier(String, Line, Column, Scope) of
+  case tokenize_identifier(String, Line, Column, Scope, not previous_was_dot(Tokens)) of
     {Kind, Atom, Rest, Length, Ascii, Special} ->
       HasAt = lists:member($@, Special),
 
@@ -576,16 +576,23 @@ tokenize(String, Line, Column, Scope, Tokens) ->
           Reason = {Line, Column, invalid_character_error(Kind, $@), atom_to_list(Atom)},
           {error, Reason, String, Tokens};
 
+        _ when Atom == '__aliases__'; Atom == '__block__' ->
+          {error, {Line, Column, "reserved token: ", atom_to_list(Atom)}, Rest, Tokens};
+
         _ when Kind == alias ->
           tokenize_alias(Rest, Line, Column, Atom, Length, Ascii, Special, Scope, Tokens);
 
         _ when Kind == identifier ->
           NewScope = maybe_warn_for_ambiguous_bang_before_equals(identifier, Atom, Rest, Scope, Line),
-          tokenize_other(Rest, Line, Column, Atom, Length, NewScope, Tokens);
+          Token = check_call_identifier(Line, Column, Atom, Rest),
+          tokenize(Rest, Line, Column + Length, NewScope, [Token | Tokens]);
 
         _ ->
           unexpected_token(String, Line, Column, Tokens)
       end;
+
+    {keyword, Atom, Type, Rest, Length} ->
+      tokenize_keyword(Type, Rest, Line, Column, Atom, Length, Scope, Tokens);
 
     empty ->
       unexpected_token(String, Line, Column, Tokens);
@@ -593,6 +600,9 @@ tokenize(String, Line, Column, Scope, Tokens) ->
     {error, Reason} ->
       {error, Reason, String, Tokens}
   end.
+
+previous_was_dot([{'.', _} | _]) -> true;
+previous_was_dot(_) -> false.
 
 unexpected_token([T | Rest], Line, Column, Tokens) ->
   Message = io_lib:format("\"~ts\" (column ~p, code point U+~4.16.0B)", [[T], Column, T]),
@@ -1123,10 +1133,14 @@ tokenize_continue([H | T], Acc, Length, Special) when ?is_upcase(H); ?is_downcas
 tokenize_continue(Rest, Acc, Length, Special) ->
   {Acc, Rest, Length, Special}.
 
-tokenize_identifier(String, Line, Column, Scope) ->
+tokenize_identifier(String, Line, Column, Scope, MaybeKeyword) ->
   case (Scope#elixir_tokenizer.identifier_tokenizer):tokenize(String) of
     {Kind, Acc, Rest, Length, Ascii, Special} ->
-      case unsafe_to_atom(Acc, Line, Column, Scope) of
+      Keyword = MaybeKeyword andalso ((Rest == []) orelse (hd(Rest) /= $:)),
+
+      case keyword_or_unsafe_to_atom(Keyword, Acc, Line, Column, Scope) of
+        {keyword, Atom, Type} ->
+          {keyword, Atom, Type, Rest, Length};
         {ok, Atom} ->
           {Kind, Atom, Rest, Length, Ascii, Special};
         {error, _Reason} = Error ->
@@ -1163,28 +1177,6 @@ tokenize_alias(Rest, Line, Column, Atom, Length, Ascii, Special, Scope, Tokens) 
     true ->
       AliasesToken = {alias, {Line, Column, nil}, Atom},
       tokenize(Rest, Line, Column + Length, Scope, [AliasesToken | Tokens])
-  end.
-
-tokenize_other(Rest, Line, Column, Atom, Length, Scope, Tokens) ->
-  case tokenize_keyword_or_identifier(Rest, Line, Column, Atom, Tokens) of
-    {keyword, NewRest, NewCheck, NewTokens} ->
-      handle_terminator(NewRest, Line, Column + Length, Scope, NewCheck, NewTokens);
-    {identifier, NewRest, NewTokens} ->
-      tokenize(NewRest, Line, Column + Length, Scope, NewTokens);
-    {error, _, _, _} = Error ->
-      Error
-  end.
-
-tokenize_keyword_or_identifier(Rest, Line, Column, Atom, Tokens) ->
-  case check_keyword(Line, Column, Atom, Tokens, Rest) of
-    nomatch ->
-      {identifier, Rest, [check_call_identifier(Line, Column, Atom, Rest) | Tokens]};
-    {ok, [{in_op, _, in} | [{unary_op, NotInfo, 'not'} | T]]} ->
-      {keyword, Rest, {in_op, NotInfo, 'not in'}, T};
-    {ok, [Check | T]} ->
-      {keyword, Rest, Check, T};
-    {error, Message, Token} ->
-      {error, {Line, Column, Message, Token}, atom_to_list(Atom) ++ Rest, Tokens}
   end.
 
 %% Check if it is a call identifier (paren | bracket | do)
@@ -1346,73 +1338,93 @@ terminator('<<') -> '>>'.
 
 %% Keywords checking
 
-check_keyword(_Line, _Column, _Atom, [{'.', _} | _], _Rest) ->
-  nomatch;
-check_keyword(DoLine, DoColumn, do, [{identifier, {Line, Column, Meta}, Atom} | T], _Rest) ->
-  {ok, add_token_with_eol({do, {DoLine, DoColumn, nil}},
-                          [{do_identifier, {Line, Column, Meta}, Atom} | T])};
-check_keyword(_Line, _Column, do, [{'fn', _} | _], _Rest) ->
-  {error, invalid_do_with_fn_error("unexpected token: "), "do"};
-check_keyword(Line, Column, do, Tokens, _Rest) ->
-  case do_keyword_valid(Tokens) of
-    true  -> {ok, add_token_with_eol({do, {Line, Column, nil}}, Tokens)};
-    false -> {error, invalid_do_error("unexpected token: "), "do"}
+keyword_or_unsafe_to_atom(true, "fn", _Line, _Column, _Scope) -> {keyword, 'fn', terminator};
+keyword_or_unsafe_to_atom(true, "do", _Line, _Column, _Scope) -> {keyword, 'do', terminator};
+keyword_or_unsafe_to_atom(true, "end", _Line, _Column, _Scope) -> {keyword, 'end', terminator};
+keyword_or_unsafe_to_atom(true, "true", _Line, _Column, _Scope) -> {keyword, 'true', token};
+keyword_or_unsafe_to_atom(true, "false", _Line, _Column, _Scope) -> {keyword, 'false', token};
+keyword_or_unsafe_to_atom(true, "nil", _Line, _Column, _Scope) -> {keyword, 'nil', token};
+
+keyword_or_unsafe_to_atom(true, "not", _Line, _Column, _Scope) -> {keyword, 'not', unary_op};
+keyword_or_unsafe_to_atom(true, "and", _Line, _Column, _Scope) -> {keyword, 'and', and_op};
+keyword_or_unsafe_to_atom(true, "or", _Line, _Column, _Scope) -> {keyword, 'or', or_op};
+keyword_or_unsafe_to_atom(true, "when", _Line, _Column, _Scope) -> {keyword, 'when', when_op};
+keyword_or_unsafe_to_atom(true, "in", _Line, _Column, _Scope) -> {keyword, 'in', in_op};
+
+keyword_or_unsafe_to_atom(true, "after", _Line, _Column, _Scope) -> {keyword, 'after', block};
+keyword_or_unsafe_to_atom(true, "else", _Line, _Column, _Scope) -> {keyword, 'else', block};
+keyword_or_unsafe_to_atom(true, "catch", _Line, _Column, _Scope) -> {keyword, 'catch', block};
+keyword_or_unsafe_to_atom(true, "rescue", _Line, _Column, _Scope) -> {keyword, 'rescue', block};
+
+keyword_or_unsafe_to_atom(_, Part, Line, Column, Scope) ->
+  unsafe_to_atom(Part, Line, Column, Scope).
+
+tokenize_keyword(terminator, Rest, Line, Column, Atom, Length, Scope, Tokens) ->
+  case tokenize_keyword_terminator(Line, Column, Atom, Tokens) of
+    {ok, [Check | T]} ->
+      handle_terminator(Rest, Line, Column + Length, Scope, Check, T);
+    {error, Message, Token} ->
+      {error, {Line, Column, Message, Token}, "do" ++ Rest, Tokens}
   end;
-check_keyword(_Line, _Column, Atom, _Tokens, _Rest) when Atom == '__aliases__'; Atom == '__block__' ->
-  {error, "reserved token: ", atom_to_list(Atom)};
-check_keyword(Line, Column, Atom, Tokens, Rest) ->
-  case keyword(Atom) of
-    false ->
-      nomatch;
-    token ->
-      {ok, [{Atom, {Line, Column, nil}} | Tokens]};
-    block ->
-      {ok, [{block_identifier, {Line, Column, nil}, Atom} | Tokens]};
-    Kind ->
-      case strip_horizontal_space(Rest, 0) of
-        {[$/ | _], _} ->
-          {ok, [{identifier, {Line, Column, nil}, Atom} | Tokens]};
-        _ ->
-          {ok, add_token_with_eol({Kind, {Line, Column, previous_was_eol(Tokens)}, Atom}, Tokens)}
-      end
-  end.
+
+tokenize_keyword(token, Rest, Line, Column, Atom, Length, Scope, Tokens) ->
+  Token = {Atom, {Line, Column, nil}},
+  tokenize(Rest, Line, Column + Length, Scope, [Token | Tokens]);
+
+tokenize_keyword(block, Rest, Line, Column, Atom, Length, Scope, Tokens) ->
+  Token = {block_identifier, {Line, Column, nil}, Atom},
+  tokenize(Rest, Line, Column + Length, Scope, [Token | Tokens]);
+
+tokenize_keyword(Kind, Rest, Line, Column, Atom, Length, Scope, Tokens) ->
+  NewTokens =
+    case strip_horizontal_space(Rest, 0) of
+      {[$/ | _], _} ->
+        [{identifier, {Line, Column, nil}, Atom} | Tokens];
+
+      _ ->
+        case {Kind, Tokens} of
+          {in_op, [{unary_op, NotInfo, 'not'} | T]} ->
+            add_token_with_eol({in_op, NotInfo, 'not in'}, T);
+
+          {_, _} ->
+            add_token_with_eol({Kind, {Line, Column, previous_was_eol(Tokens)}, Atom}, Tokens)
+        end
+    end,
+
+  tokenize(Rest, Line, Column + Length, Scope, NewTokens).
 
 %% Fail early on invalid do syntax. For example, after
 %% most keywords, after comma and so on.
-do_keyword_valid([{Atom, _} | _]) ->
-  case Atom of
-    ','   -> false;
-    ';'   -> false;
-    'end' -> true;
-    nil   -> true;
-    true  -> true;
-    false -> true;
-    _     -> keyword(Atom) == false
+tokenize_keyword_terminator(DoLine, DoColumn, do, [{identifier, {Line, Column, Meta}, Atom} | T]) ->
+  {ok, add_token_with_eol({do, {DoLine, DoColumn, nil}},
+                          [{do_identifier, {Line, Column, Meta}, Atom} | T])};
+tokenize_keyword_terminator(_Line, _Column, do, [{'fn', _} | _]) ->
+  {error, invalid_do_with_fn_error("unexpected token: "), "do"};
+tokenize_keyword_terminator(Line, Column, do, Tokens) ->
+  case is_valid_do(Tokens) of
+    true  -> {ok, add_token_with_eol({do, {Line, Column, nil}}, Tokens)};
+    false -> {error, invalid_do_error("unexpected token: "), "do"}
   end;
-do_keyword_valid(_) ->
+tokenize_keyword_terminator(Line, Column, Atom, Tokens) ->
+  {ok, [{Atom, {Line, Column, nil}} | Tokens]}.
+
+is_valid_do([{Atom, _} | _]) ->
+  case Atom of
+    ','      -> false;
+    ';'      -> false;
+    'not'    -> false;
+    'and'    -> false;
+    'or'     -> false;
+    'when'   -> false;
+    'in'     -> false;
+    'after'  -> false;
+    'else'   -> false;
+    'catch'  -> false;
+    'rescue' -> false;
+    _        -> true
+  end;
+is_valid_do(_) ->
   true.
-
-% Regular keywords
-keyword('fn')    -> token;
-keyword('end')   -> token;
-keyword('true')  -> token;
-keyword('false') -> token;
-keyword('nil')   -> token;
-
-% Operators keywords
-keyword('not')    -> unary_op;
-keyword('and')    -> and_op;
-keyword('or')     -> or_op;
-keyword('when')   -> when_op;
-keyword('in')     -> in_op;
-
-% Block keywords
-keyword('after')  -> block;
-keyword('else')   -> block;
-keyword('rescue') -> block;
-keyword('catch')  -> block;
-
-keyword(_) -> false.
 
 invalid_character_error(What, Char) ->
   io_lib:format("invalid character \"~ts\" (code point U+~4.16.0B) in ~ts: ", [[Char], Char, What]).
