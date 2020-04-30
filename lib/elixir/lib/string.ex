@@ -835,16 +835,18 @@ defmodule String do
   defp downcase_ascii(<<>>), do: []
 
   @doc """
-  Capitalizes the first character of all the words in a string according to `mode`.
+  Capitalizes the first character of all the words in `string` according to `mode`.
 
-  `mode` may be `:default`, `:ascii` or `:greek`. The `:default` mode considers
+  `mode` may be `:default`, `:ascii`, or `:greek`. The `:default` mode considers
   all non-conditional transformations outlined in the Unicode standard. `:ascii`
-  lowercases only the letters A to Z. `:greek` includes the context sensitive
+  lowercases only the letters `A` to `Z`. `:greek` includes the context-sensitive
   mappings found in Greek.
 
   ## Examples
+
       iex> String.titlecase("hello world")
       "Hello World"
+
   """
   @spec titlecase(t, :default | :ascii | :greek) :: t
   def titlecase(string, mode \\ :default)
@@ -853,7 +855,7 @@ defmodule String do
 
   def titlecase(string, mode) when is_binary(string) do
     string
-    |> split
+    |> split()
     |> Enum.map_join(" ", &capitalize(&1, mode))
   end
 
