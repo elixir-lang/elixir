@@ -838,15 +838,22 @@ defmodule String do
   Converts the first character in the given string to
   uppercase and the remainder to lowercase according to `mode`.
 
-  `mode` may be `:default`, `:ascii` or `:greek`. The `:default` mode considers
-  all non-conditional transformations outlined in the Unicode standard. `:ascii`
-  lowercases only the letters A to Z. `:greek` includes the context sensitive
-  mappings found in Greek.
+  `mode` may be `:default`, `:ascii` or `:greek`. The `:default`
+  mode considers all non-conditional transformations outlined in
+  the Unicode standard. `:ascii` lowercases only the letters A to Z.
+  `:greek` includes the context sensitive mappings found in Greek.
+
+  More precisely, it converts the first character to titlecase.
+  If you want to convert only the first character without downcasing
+  the rest of the string, see `titlecase/2`.
 
   ## Examples
 
       iex> String.capitalize("abcd")
       "Abcd"
+
+      iex> String.capitalize("OS")
+      "Os"
 
       iex> String.capitalize("ﬁn")
       "Fin"
@@ -859,7 +866,8 @@ defmodule String do
   def capitalize(string, mode \\ :default)
 
   def capitalize(<<char, rest::binary>>, :ascii) do
-    <<capitalize_ascii_char(char)>> <> downcase(rest, :ascii)
+    char = if char >= ?a and char <= ?z, do: char - 32, else: char
+    <<char>> <> downcase(rest, :ascii)
   end
 
   def capitalize(string, mode) when is_binary(string) do
@@ -867,25 +875,30 @@ defmodule String do
     char <> downcase(rest, mode)
   end
 
-  defp capitalize_ascii_char(char) when char >= ?a and char <= ?z, do: char - 32
-  defp capitalize_ascii_char(char), do: char
-
   @doc """
   Converts only the first character in the given string to
   uppercase according to `mode`.
 
-  `mode` may be `:default`, `:ascii` or `:greek`. The `:default` mode considers
-  all non-conditional transformations outlined in the Unicode standard. `:ascii`
-  lowercases only the letters A to Z. `:greek` includes the context sensitive
-  mappings found in Greek.
+  `mode` may be `:default`, `:ascii` or `:greek`. The `:default`
+  mode considers all non-conditional transformations outlined in
+  the Unicode standard. `:ascii` lowercases only the letters A to Z.
+  `:greek` includes the context sensitive mappings found in Greek.
+
+  More precisely, it converts the first character to titlecase,
+  according to the Unicode Standard. This function makes no
+  attempt to titlecase each word, as those are often language
+  and locale specific.
+
+  If you want to uppercase the first character and downcase the
+  rest of the string, see `capitalize/2`.
 
   ## Examples
 
       iex> String.titlecase("abcd")
       "Abcd"
 
-      iex> String.titlecase("ABCd")
-      "ABCd"
+      iex> String.titlecase("OS")
+      "OS"
 
       iex> String.titlecase("ﬁn")
       "Fin"
@@ -897,8 +910,12 @@ defmodule String do
   @spec titlecase(t, :default | :ascii | :greek) :: t
   def titlecase(string, mode \\ :default)
 
-  def titlecase(<<char, rest::binary>>, :ascii) do
-    <<capitalize_ascii_char(char)>> <> rest
+  def titlecase(<<char, rest::binary>>, :ascii) when char >= ?a and char <= ?z do
+    <<char-32, rest::binary>>
+  end
+
+  def titlecase(string, :ascii) when is_binary(string) do
+    string
   end
 
   def titlecase(string, mode) when is_binary(string) do
