@@ -27,15 +27,11 @@ test_linux_task:
         - env:
             CHECK_POSIX_COMPLIANT: true
             CHECK_REPRODUCIBLE: true
-            OTP_RELEASE: OTP-22.1
+            OTP_RELEASE: OTP-22.3
         - env:
             OTP_RELEASE: OTP-22.0
         - env:
             OTP_RELEASE: OTP-21.3.8
-        - env:
-            OTP_RELEASE: OTP-21.2
-        - env:
-            OTP_RELEASE: OTP-21.1
         - env:
             OTP_RELEASE: OTP-21.0
 
@@ -85,7 +81,7 @@ test_linux_task:
 
   check_reproducible_script: |
     if [ -n "$CHECK_REPRODUCIBLE" ]; then
-      make check_reproducible
+      taskset 1 make check_reproducible
     else
       echo "The reproducibility of the build is only checked in the last stable Erlang/OTP version."
     fi
