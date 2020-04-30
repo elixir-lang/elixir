@@ -252,6 +252,9 @@ defmodule Module do
   in case any of the external resources change, see for example:
   [`mix compile.elixir`](https://hexdocs.pm/mix/Mix.Tasks.Compile.Elixir.html).
 
+  Even if the given external file does not exist, the module still
+  adds a dependency on it.
+
   ### `@file`
 
   Changes the filename used in stacktraces for the function or macro that
