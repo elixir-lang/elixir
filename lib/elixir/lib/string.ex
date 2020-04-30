@@ -911,7 +911,7 @@ defmodule String do
   def titlecase(string, mode \\ :default)
 
   def titlecase(<<char, rest::binary>>, :ascii) when char >= ?a and char <= ?z do
-    <<char-32, rest::binary>>
+    <<char - 32, rest::binary>>
   end
 
   def titlecase(string, :ascii) when is_binary(string) do
