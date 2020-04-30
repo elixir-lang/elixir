@@ -252,8 +252,9 @@ defmodule Module do
   in case any of the external resources change, see for example:
   [`mix compile.elixir`](https://hexdocs.pm/mix/Mix.Tasks.Compile.Elixir.html).
 
-  Even if the given external file does not exist, the module still
-  adds a dependency on it.
+  If the external resource does not exist, the module still has
+  a dependency on it, causing the module be recompiled as soon
+  as the file is added.
 
   ### `@file`
 
