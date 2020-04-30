@@ -446,7 +446,7 @@ defmodule IO.ANSI.Docs do
     process(contents, [indent <> entry <> line, :no_wrap], new_indent, options)
 
     if done, do: newline_after_block(options)
-    process(rest, [], new_indent, options)
+    process(rest, [], indent, options)
   end
 
   defp process_list_next([line | rest], count, max, acc) do
