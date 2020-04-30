@@ -210,6 +210,41 @@ defmodule StringTest do
     assert String.capitalize("aáA", :ascii) == "Aáa"
   end
 
+  test "titlecase/1" do
+    assert String.titlecase("") == ""
+    assert String.titlecase("abc") == "Abc"
+    assert String.titlecase("ABC") == "ABC"
+    assert String.titlecase("c b a") == "C b a"
+    assert String.titlecase("1ABc") == "1ABc"
+    assert String.titlecase("_aBc1") == "_aBc1"
+    assert String.titlecase(" aBc1") == " aBc1"
+  end
+
+  test "titlecase/1 with UTF-8" do
+    assert String.titlecase("àáâ") == "Àáâ"
+    assert String.titlecase("ÀÁÂ") == "ÀÁÂ"
+    assert String.titlecase("âáàÕ") == "ÂáàÕ"
+    assert String.titlecase("ÂÁÀõ") == "ÂÁÀõ"
+    assert String.titlecase("òóôõö") == "Òóôõö"
+    assert String.titlecase("ÒÓÔÕÖ") == "ÒÓÔÕÖ"
+    assert String.titlecase("ﬁn") == "Fin"
+  end
+
+  test "titlecase/2 with ascii" do
+    assert String.titlecase("àáâ", :ascii) == "àáâ"
+    assert String.titlecase("aáA", :ascii) == "AáA"
+  end
+
+  test "titlecase/1 with greek final sigma" do
+    assert String.titlecase("σ") == "Σ"
+    assert String.titlecase("μΜσΣ") == "ΜΜσΣ"
+  end
+
+  test "titlecase/2 with greek final sigma" do
+    assert String.titlecase("σ", :greek) == "Σ"
+    assert String.titlecase("σ ςΠ", :greek) == "Σ ςΠ"
+  end
+
   test "replace_leading/3" do
     assert String.replace_leading("aa abc   ", "a", "b") == "bb abc   "
     assert String.replace_leading("__ abc   ", "_", "b") == "bb abc   "
