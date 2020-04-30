@@ -185,6 +185,26 @@ defmodule StringTest do
     assert String.downcase("OLÁ", :ascii) == "olÁ"
   end
 
+  test "titlecase/1" do
+    assert String.titlecase("") == ""
+    assert String.titlecase("abc ABC 1ABC") == "Abc Abc 1abc"
+    assert String.titlecase("_aBc1") == "_abc1"
+    assert String.titlecase(" aBc1") == "Abc1"
+
+    assert String.titlecase("hello world, elixir is awesome. Thank you.") ==
+             "Hello World, Elixir Is Awesome. Thank You."
+  end
+
+  test "titlecase/1 with UTF-8" do
+    assert String.titlecase("àáâ ÀÁÂ ÂÁÀ") == "Àáâ Àáâ Âáà"
+    assert String.titlecase("òóôõö ÒÓÔÕÖ") == "Òóôõö Òóôõö"
+    assert String.titlecase("ﬁn") == "Fin"
+  end
+
+  test "titlecase/1 with ascii" do
+    assert String.titlecase("àáâ aáA", :ascii) == "àáâ Aáa"
+  end
+
   test "capitalize/1" do
     assert String.capitalize("") == ""
     assert String.capitalize("abc") == "Abc"
