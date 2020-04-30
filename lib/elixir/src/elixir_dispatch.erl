@@ -315,20 +315,29 @@ is_ensure_loaded(Receiver) ->
 %% Do not try to get macros from Erlang. Speeds up compilation a bit.
 get_macros(erlang, _) -> [];
 
+%% Module was not required, so we don't try to load it.
 get_macros(Receiver, false) ->
   case erlang:module_loaded(Receiver) of
     true -> get_info(Receiver, macros);
     false -> []
   end;
 
+%% If module was required, do a function call to force
+%% the error handler in.
 get_macros(Receiver, true) ->
-  case is_ensure_loaded(Receiver) of
-    true -> get_info(Receiver, macros);
-    false -> []
+  try
+    Receiver:'__info__'(macros)
+  catch
+    error:_ -> []
   end.
 
+%% Deprecations checks only happen at the moule root,
+%% so in there we can try to at least load the module.
 get_deprecations(Receiver) ->
-  get_info(Receiver, deprecated).
+  case is_ensure_loaded(Receiver) of
+    true -> get_info(Receiver, deprecated);
+    false -> []
+  end.
 
 get_info(Receiver, Key) ->
   case erlang:function_exported(Receiver, '__info__', 1) of
@@ -363,9 +372,9 @@ check_deprecated(Meta, ?kernel, to_char_list, 1, E) ->
 check_deprecated(_, ?kernel, _, _, _) ->
   ok;
 check_deprecated(Meta, Receiver, Name, Arity, E) ->
-  case (?key(E, function) == nil) andalso is_ensure_loaded(Receiver) of
-    true ->
-      case check_deprecated(Receiver, Name, Arity, get_deprecations(Receiver)) of
+  case (?key(E, function) == nil) andalso get_deprecations(Receiver) of
+    [_ | _] = Deprecations ->
+      case check_deprecated(Receiver, Name, Arity, Deprecations) of
         %% TODO: Remove me when Elixir.HashDict is removed
         Other when is_tuple(Other), map_get(module, E) /= 'Elixir.HashDict' ->
           elixir_errors:form_warn(Meta, E, ?MODULE, Other);
@@ -374,14 +383,12 @@ check_deprecated(Meta, Receiver, Name, Arity, E) ->
           ok
       end;
 
-    false ->
+    _ ->
       ok
   end.
 
-check_deprecated(Mod, Fun, Arity, [_ | _] = Deprecated) ->
+check_deprecated(Mod, Fun, Arity, Deprecated) ->
   case lists:keyfind({Fun, Arity}, 1, Deprecated) of
     {_, Message} -> {deprecated, Mod, Fun, Arity, Message};
     false -> false
-  end;
-check_deprecated(_, _, _, _) ->
-  false.
+  end.

@@ -188,7 +188,7 @@ defmodule Exception do
   Where `definition` is `:def`, `:defp`, `:defmacro` or `:defmacrop`.
   """
   @doc since: "1.5.0"
-  @spec blame_mfa(module, function, args :: [term]) ::
+  @spec blame_mfa(module, function :: atom, args :: [term]) ::
           {:ok, :def | :defp | :defmacro | :defmacrop, [{args :: [term], guards :: [term]}]}
           | :error
   def blame_mfa(module, function, args)
@@ -237,7 +237,11 @@ defmodule Exception do
     binding = :orddict.store(:VAR, call_arg, binding)
 
     try do
-      {:value, _, binding} = :erl_eval.expr({:match, 0, erl_arg, {:var, 0, :VAR}}, binding, :none)
+      ann = :erl_anno.new(0)
+
+      {:value, _, binding} =
+        :erl_eval.expr({:match, ann, erl_arg, {:var, ann, :VAR}}, binding, :none)
+
       {true, binding}
     rescue
       _ -> {false, binding}

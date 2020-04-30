@@ -295,7 +295,7 @@ PLT = .elixir.plt
 
 $(PLT):
 	@ echo "==> Building PLT with Elixir's dependencies..."
-	$(Q) dialyzer --output_plt $(PLT) --build_plt --apps erts kernel stdlib compiler syntax_tools parsetools tools ssl inets
+	$(Q) dialyzer --output_plt $(PLT) --build_plt --apps erts kernel stdlib compiler syntax_tools parsetools tools ssl inets crypto runtime_tools ftp tftp mnesia public_key asn1 hipe sasl
 
 clean_plt:
 	$(Q) rm -f $(PLT)

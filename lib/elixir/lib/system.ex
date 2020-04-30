@@ -312,9 +312,14 @@ defmodule System do
   """
   @spec user_home() :: String.t() | nil
   def user_home do
-    {:ok, [[home] | _]} = :init.get_argument(:home)
-    encoding = :file.native_name_encoding()
-    :unicode.characters_to_binary(home, encoding, encoding)
+    case :init.get_argument(:home) do
+      {:ok, [[home] | _]} ->
+        encoding = :file.native_name_encoding()
+        :unicode.characters_to_binary(home, encoding, encoding)
+
+      _ ->
+        nil
+    end
   end
 
   @doc """
@@ -623,6 +628,7 @@ defmodule System do
       System.halt(:abort)
 
   """
+  @spec halt() :: no_return
   @spec halt(non_neg_integer | binary | :abort) :: no_return
   def halt(status \\ 0)
 

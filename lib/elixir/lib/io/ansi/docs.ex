@@ -440,7 +440,9 @@ defmodule IO.ANSI.Docs do
     entry = if indent == "", do: "  " <> entry, else: entry
     new_indent = indent <> String.duplicate(" ", String.length(entry))
 
-    {contents, rest, done} = process_list_next(rest, count, byte_size(new_indent), [])
+    {contents, rest, done} =
+      process_list_next(rest, count, byte_size(new_indent) - byte_size(indent), [])
+
     process(contents, [indent <> entry <> line, :no_wrap], new_indent, options)
 
     if done, do: newline_after_block(options)

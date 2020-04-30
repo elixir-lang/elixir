@@ -485,6 +485,10 @@ defmodule Code.Formatter do
     quoted_to_algebra(arg, context, state)
   end
 
+  defp quoted_to_algebra({:__block__, _meta, []}, _context, state) do
+    {"nil", state}
+  end
+
   defp quoted_to_algebra({:__block__, meta, _} = block, _context, state) do
     {block, state} = block_to_algebra(block, line(meta), closing_line(meta), state)
     {surround("(", block, ")"), state}

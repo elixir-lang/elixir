@@ -7,7 +7,8 @@ defmodule EEx.Tokenizer do
   @type marker :: '=' | '/' | '|' | ''
   @type token ::
           {:text, content}
-          | {:expr | :start_expr | :middle_expr | :end_expr, line, marker, content}
+          | {:expr | :start_expr | :middle_expr | :end_expr, line, column, marker, content}
+          | {:eof, line, column}
 
   @spaces [?\s, ?\t]
   @closing_brackets ')]}'
@@ -26,7 +27,7 @@ defmodule EEx.Tokenizer do
 
   Or `{:error, line, column, message}` in case of errors.
   """
-  @spec tokenize(binary | charlist, line, column, keyword) ::
+  @spec tokenize(binary | charlist, line, column, map) ::
           {:ok, [token]} | {:error, line, column, String.t()}
 
   def tokenize(bin, line, column, opts) when is_binary(bin) do

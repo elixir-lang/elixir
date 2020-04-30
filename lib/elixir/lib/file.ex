@@ -1643,7 +1643,7 @@ defmodule File do
 
   See `Stream.run/1` for an example of streaming into a file.
   """
-  @spec stream!(Path.t(), stream_mode, :line | pos_integer) :: File.Stream.t()
+  @spec stream!(Path.t(), [stream_mode], :line | pos_integer) :: File.Stream.t()
   def stream!(path, modes \\ [], line_or_bytes \\ :line) do
     modes = normalize_modes(modes, true)
     File.Stream.__build__(IO.chardata_to_string(path), modes, line_or_bytes)

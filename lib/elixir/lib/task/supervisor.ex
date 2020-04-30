@@ -27,8 +27,10 @@ defmodule Task.Supervisor do
   @typedoc "Option values used by `start_link`"
   @type option ::
           DynamicSupervisor.option()
-          | {:restart, :supervisor.restart()}
-          | {:shutdown, :supervisor.shutdown()}
+          # :permanent | :transient | :temporary here because :supervisor.restart() is not exported
+          | {:restart, :permanent | :transient | :temporary}
+          # :brutal_kill | timeout() here because :supervisor.shutdown() is not exported
+          | {:shutdown, :brutal_kill | timeout()}
 
   @doc false
   def child_spec(opts) when is_list(opts) do

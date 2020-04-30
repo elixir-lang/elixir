@@ -30,13 +30,13 @@ warning_prefix() ->
 
 %% General forms handling.
 
--spec form_error(list(), binary() | #{file := binary()}, module(), any()) -> no_return().
+-spec form_error(list(), binary() | #{file := binary(), _ => _}, module(), any()) -> no_return().
 form_error(Meta, #{file := File}, Module, Desc) ->
   compile_error(Meta, File, Module:format_error(Desc));
 form_error(Meta, File, Module, Desc) ->
   compile_error(Meta, File, Module:format_error(Desc)).
 
--spec form_warn(list(), binary() | #{file := binary()}, module(), any()) -> ok.
+-spec form_warn(list(), binary() | #{file := binary(), _ => _}, module(), any()) -> ok.
 form_warn(Meta, File, Module, Desc) when is_list(Meta), is_binary(File) ->
   do_form_warn(Meta, File, #{}, Module:format_error(Desc));
 form_warn(Meta, #{file := File} = E, Module, Desc) when is_list(Meta) ->

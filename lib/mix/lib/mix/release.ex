@@ -50,7 +50,7 @@ defmodule Mix.Release do
 
   @type mode :: :permanent | :transient | :temporary | :load | :none
   @type application :: atom()
-  @type t :: %{
+  @type t :: %__MODULE__{
           name: atom(),
           version: String.t(),
           path: String.t(),
@@ -61,6 +61,7 @@ defmodule Mix.Release do
           erts_source: charlist() | nil,
           config_providers: [{module, term}],
           options: keyword(),
+          overlays: list(String.t()),
           steps: [(t -> t) | :assemble, ...]
         }
 
@@ -777,7 +778,7 @@ defmodule Mix.Release do
   The exact chunks that are kept are not documented and may change in
   future versions.
   """
-  @spec strip_beam(binary()) :: {:ok, binary} | {:error, :beam_lib, :beam_lib.chnk_rsn()}
+  @spec strip_beam(binary()) :: {:ok, binary} | {:error, :beam_lib, term}
   def strip_beam(binary) do
     case :beam_lib.chunks(binary, @significant_chunks, [:allow_missing_chunks]) do
       {:ok, {_, chunks}} ->

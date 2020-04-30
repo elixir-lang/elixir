@@ -1308,7 +1308,7 @@ defmodule Code do
   @doc since: "1.11.0"
   @spec can_await_module_compilation? :: boolean
   def can_await_module_compilation? do
-    Process.info(self(), :error_handler) == {:error_handler, Kernel.ErrorHandler}
+    :erlang.process_info(self(), :error_handler) == {:error_handler, Kernel.ErrorHandler}
   end
 
   @doc false
