@@ -83,11 +83,11 @@ defmodule Config.ProviderTest do
       assert config[@config_app] == [config_providers_booted: {:booted, nil}]
     end
 
-    @tag sys_config: [my_app: [encoding: {:"£", "£", '£'}]]
+    @tag sys_config: [my_app: [encoding: {:time_μs, :"£", "£", '£'}]]
     test "writes sys_config with encoding" do
       init_and_assert_boot()
       config = consult(@sys_config)
-      assert config[:my_app][:encoding] == {:"£", "£", '£'}
+      assert config[:my_app][:encoding] == {:time_μs, :"£", "£", '£'}
     end
 
     @tag sys_config: [my_app: [key: :old_value, sys_key: :sys_value, extra_config: :old_value]]
@@ -185,6 +185,6 @@ defmodule Config.ProviderTest do
   end
 
   defp write_sys_config!(data) do
-    File.write!(@sys_config, :io_lib.format("~tw.~n", [data]), [:utf8])
+    File.write!(@sys_config, IO.chardata_to_string(:io_lib.format("~tw.~n", [data])))
   end
 end
