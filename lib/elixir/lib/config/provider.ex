@@ -350,7 +350,7 @@ defmodule Config.Provider do
   defp write_config!(config, path) do
     contents = :io_lib.format("%% coding: utf-8~n~tw.~n", [config])
 
-    case File.write(path, contents, [:utf8]) do
+    case File.write(path, IO.chardata_to_string(contents)) do
       :ok ->
         :ok
 
