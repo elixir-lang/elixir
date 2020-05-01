@@ -437,7 +437,7 @@ defmodule Keyword do
   """
   @spec keys(t) :: [key]
   def keys(keywords) when is_list(keywords) do
-    :lists.map(fn {k, _} -> k end, keywords)
+    :lists.map(fn {k, _} when is_atom(k) -> k end, keywords)
   end
 
   @doc """
