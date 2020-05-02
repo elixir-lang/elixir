@@ -5,8 +5,8 @@ defmodule Mix.Config do
   @moduledoc ~S"""
   A simple configuration API and functions for managing config files.
 
-  This module is deprecated, use `Elixir.Config` and `Elixir.Config.Reader`
-  instead.
+  This module is deprecated, use the modules `Config` and `Config.Reader`
+  from Elixir's standard library instead.
 
   ## Setting configuration
 
