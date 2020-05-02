@@ -46,6 +46,21 @@ defmodule Kernel.SpecialFormsTest do
       assert x == 0
     end
 
+    test "does not leak variables from conditions" do
+      x = :not_nil
+
+      result =
+      cond do
+        x = List.first([]) ->
+          x
+
+        true ->
+          x
+      end
+
+      assert result == :not_nil
+    end
+
     test "does not warn on non-boolean as catch-all" do
       cond do
         List.flatten([]) == [] -> :good
