@@ -131,7 +131,41 @@ defmodule Mix.ReleaseTest do
       end
     end
 
-    test "uses the latest version of an app if there are multiple versions", context do
+    test "uses the locked version of an app", context do
+      in_tmp(context.test, fn ->
+        test_erts_dir = Path.join(File.cwd!(), "erts-#{@erts_version}")
+        File.cp_r!(@erts_source, test_erts_dir)
+
+        for version <- ["2.0.0", "1.1.2"] do
+          ebin_dir = Path.join(["lib", "cowboy-#{version}", "ebin"])
+          File.mkdir_p!(ebin_dir)
+
+          File.write!(
+            Path.join(ebin_dir, "cowboy.app"),
+            "{application,cowboy,[{vsn,\"#{version}\"},{modules,[]},{applications,[]}]}."
+          )
+        end
+
+        lockfile = Path.join(File.cwd!(), "mix.lock")
+
+        File.write!(lockfile, ~S"""
+        %{
+          "cowboy": {:hex, :cowboy, "1.1.2", "61ac29ea970389a88eca5a65601460162d370a70018afe6f949a29dca91f3bb0", [:rebar3], [{:cowlib, "~> 1.0.2", [hex: :cowlib, repo: "hexpm", optional: false]}, {:ranch, "~> 1.3.2", [hex: :ranch, repo: "hexpm", optional: false]}], "hexpm", "f4763bbe08233eceed6f24bc4fcc8d71c17cfeafa6439157c57349aa1bb4f17c"}
+        }
+        """)
+
+        app_config =
+          config(
+            lockfile: lockfile,
+            releases: [demo: [include_erts: test_erts_dir, applications: [cowboy: :permanent]]]
+          )
+
+        release = from_config!(nil, app_config, [])
+        assert release.applications.cowboy[:vsn] == '1.1.2'
+      end)
+    end
+
+    test "uses the latest version of an app if it is not locked", context do
       in_tmp(context.test, fn ->
         test_erts_dir = Path.join(File.cwd!(), "erts-#{@erts_version}")
         test_libs_dir = Path.join(File.cwd!(), "lib")
