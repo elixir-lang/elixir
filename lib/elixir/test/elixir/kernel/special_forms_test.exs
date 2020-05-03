@@ -50,13 +50,13 @@ defmodule Kernel.SpecialFormsTest do
       x = :not_nil
 
       result =
-      cond do
-        x = List.first([]) ->
-          x
+        cond do
+          x = List.first([]) ->
+            x
 
-        true ->
-          x
-      end
+          true ->
+            x
+        end
 
       assert result == :not_nil
     end
