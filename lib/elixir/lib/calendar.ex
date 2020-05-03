@@ -68,12 +68,15 @@ defmodule Calendar do
   @typedoc "The time zone abbreviation (for example, CET or CEST or BST, and such)"
   @type zone_abbr :: String.t()
 
-  @typedoc "The time zone UTC offset in seconds for standard time. See also `t:std_offset/0`."
+  @typedoc """
+  The time zone UTC offset in seconds for standard time.
+
+  See also `t:std_offset/0`.
+  """
   @type utc_offset :: integer
 
   @typedoc """
   The time zone standard offset in seconds (typically not zero in summer times).
-  
   It must be added to `t:utc_offset/0` to get the total offset from UTC used for "wall time".
   """
   @type std_offset :: integer
