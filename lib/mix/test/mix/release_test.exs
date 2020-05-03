@@ -133,35 +133,45 @@ defmodule Mix.ReleaseTest do
 
     test "uses the locked version of an app", context do
       in_tmp(context.test, fn ->
-        test_erts_dir = Path.join(File.cwd!(), "erts-#{@erts_version}")
-        File.cp_r!(@erts_source, test_erts_dir)
+        # install newer version of the app in the custom erts
+        custom_erts_path = Path.join([File.cwd!(), "erts-#{@erts_version}"])
+        File.cp_r!(@erts_source, custom_erts_path)
 
-        for version <- ["2.0.0", "1.1.2"] do
-          ebin_dir = Path.join(["lib", "cowboy-#{version}", "ebin"])
-          File.mkdir_p!(ebin_dir)
+        ebin_dir = Path.expand(Path.join([custom_erts_path, "..", "lib", "cowboy-2.0.0", "ebin"]))
+        File.mkdir_p!(ebin_dir)
+        app_resource = "{application,cowboy,[{vsn,\"2.0.0\"},{modules,[]},{applications,[]}]}."
+        File.write!(Path.join(ebin_dir, "cowboy.app"), app_resource)
 
-          File.write!(
-            Path.join(ebin_dir, "cowboy.app"),
-            "{application,cowboy,[{vsn,\"#{version}\"},{modules,[]},{applications,[]}]}."
-          )
-        end
+        # install older version of the app in the project dependencies
+        project_path = Path.join(File.cwd!(), "project")
+        build_path = Path.join(project_path, "_build")
+        ebin_dir = Path.join([build_path, "dev", "lib", "cowboy", "ebin"])
+        File.mkdir_p!(ebin_dir)
+        app_resource = "{application,cowboy,[{vsn,\"1.1.2\"},{modules,[]},{applications,[]}]}."
+        File.write!(Path.join(ebin_dir, "cowboy.app"), app_resource)
 
-        lockfile = Path.join(File.cwd!(), "mix.lock")
+        File.mkdir_p!(Path.join([project_path, "deps", "cowboy"]))
+        lockfile = Path.join(project_path, "mix.lock")
 
         File.write!(lockfile, ~S"""
         %{
-          "cowboy": {:hex, :cowboy, "1.1.2", "61ac29ea970389a88eca5a65601460162d370a70018afe6f949a29dca91f3bb0", [:rebar3], [{:cowlib, "~> 1.0.2", [hex: :cowlib, repo: "hexpm", optional: false]}, {:ranch, "~> 1.3.2", [hex: :ranch, repo: "hexpm", optional: false]}], "hexpm", "f4763bbe08233eceed6f24bc4fcc8d71c17cfeafa6439157c57349aa1bb4f17c"}
+          "cowboy": {:hex, :cowboy, "1.1.2"},
         }
         """)
 
         app_config =
           config(
+            build_path: build_path,
             lockfile: lockfile,
-            releases: [demo: [include_erts: test_erts_dir, applications: [cowboy: :permanent]]]
+            deps: [{:cowboy, "~> 1.0", path: "deps/cowvoy"}],
+            releases: [demo: [include_erts: custom_erts_path, applications: [cowboy: :permanent]]]
           )
 
-        release = from_config!(nil, app_config, [])
-        assert release.applications.cowboy[:vsn] == '1.1.2'
+        with_project(app_config, ebin_dir, fn ->
+          File.cd!(project_path)
+          release = from_config!(nil, app_config, [])
+          assert release.applications.cowboy[:vsn] == '1.1.2'
+        end)
       end)
     end
 
@@ -747,5 +757,29 @@ defmodule Mix.ReleaseTest do
       config_path: tmp_path("mix_release/config/config.exs")
     ]
     |> Keyword.merge(extra)
+  end
+
+  defmodule ReleaseApp do
+    def project do
+      [
+        app: :mix,
+        version: "0.1.0",
+        build_path: tmp_path("mix_release/_build"),
+        build_per_environment: true,
+        config_path: tmp_path("mix_release/config/config.exs")
+      ]
+      |> Keyword.merge(Process.get(:project))
+    end
+  end
+
+  # `mix release` task normally takes care of loading the deps
+  defp with_project(config, dep_lib_path, fun) do
+    Process.put(:project, config)
+    Mix.Project.push(ReleaseApp)
+    Code.prepend_path(dep_lib_path)
+    fun.()
+  after
+    Mix.Project.pop()
+    Code.delete_path(dep_lib_path)
   end
 end

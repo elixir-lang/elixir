@@ -299,30 +299,31 @@ defmodule Mix.Release do
   end
 
   defp load_app(app, apps_lock, seen, otp_root, included) do
-    case apps_lock[app] do
-      {:hex, _, version, _, _, _, _, _} ->
-        %{path: path, otp_app?: otp_app?} = app_path(otp_root, app, version)
-        do_load_app(app, path, apps_lock, seen, otp_root, otp_app?, included)
+    %{path: path, otp_app?: otp_app?} =
+      if app in Mix.Project.deps_apps(),
+        do: project_app_path(app),
+        else: app_path(otp_root, app)
 
-      _ ->
-        %{path: path, otp_app?: otp_app?} = app_path(otp_root, app)
-        do_load_app(app, path, apps_lock, seen, otp_root, otp_app?, included)
-    end
+    do_load_app(app, path, apps_lock, seen, otp_root, otp_app?, included)
   end
 
-  defp app_path(otp_root, app, version \\ "*") do
-    path = Path.join(otp_root, "#{app}-#{version}")
+  defp app_path(otp_root, app) do
+    path = Path.join(otp_root, "#{app}-*")
 
     case Path.wildcard(path) do
       [] ->
-        case :code.lib_dir(app) do
-          {:error, :bad_name} -> Mix.raise("Could not find application #{inspect(app)}")
-          path -> %{path: path, otp_app?: false}
-        end
+        project_app_path(app)
 
       paths ->
         path = paths |> Enum.sort() |> List.last()
         %{path: to_charlist(path), otp_app?: true}
+    end
+  end
+
+  defp project_app_path(app) do
+    case :code.lib_dir(app) do
+      {:error, :bad_name} -> Mix.raise("Could not find application #{inspect(app)}")
+      path -> %{path: path, otp_app?: false}
     end
   end
 
