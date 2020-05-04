@@ -91,15 +91,15 @@ defmodule Mix.Release do
     {include_erts, opts} = Keyword.pop(opts, :include_erts, true)
     {erts_source, erts_lib_dir, erts_version} = erts_data(include_erts)
 
-    apps_lock = Mix.Dep.Lock.read()
-    loaded_apps = apps |> Keyword.keys() |> load_apps(apps_lock, %{}, erts_lib_dir, :maybe)
+    deps_apps = Mix.Project.deps_apps()
+    loaded_apps = apps |> Keyword.keys() |> load_apps(deps_apps, %{}, erts_lib_dir, :maybe)
 
     # Make sure IEx is either an active part of the release or add it as none.
     {loaded_apps, apps} =
       if Map.has_key?(loaded_apps, :iex) do
         {loaded_apps, apps}
       else
-        {load_apps([:iex], apps_lock, loaded_apps, erts_lib_dir, :maybe), apps ++ [iex: :none]}
+        {load_apps([:iex], deps_apps, loaded_apps, erts_lib_dir, :maybe), apps ++ [iex: :none]}
       end
 
     start_boot = build_start_boot(loaded_apps, apps)
@@ -266,13 +266,13 @@ defmodule Mix.Release do
     end
   end
 
-  defp load_apps(apps, apps_lock, seen, otp_root, included) do
+  defp load_apps(apps, deps_apps, seen, otp_root, included) do
     for app <- apps, reduce: seen do
       seen ->
         if reentrant_seen = reentrant(seen, app, included) do
           reentrant_seen
         else
-          load_app(app, apps_lock, seen, otp_root, included)
+          load_app(app, deps_apps, seen, otp_root, included)
         end
     end
   end
@@ -298,13 +298,13 @@ defmodule Mix.Release do
     end
   end
 
-  defp load_app(app, apps_lock, seen, otp_root, included) do
+  defp load_app(app, deps_apps, seen, otp_root, included) do
     %{path: path, otp_app?: otp_app?} =
-      if app in Mix.Project.deps_apps(),
+      if app in deps_apps,
         do: project_app_path(app),
         else: app_path(otp_root, app)
 
-    do_load_app(app, path, apps_lock, seen, otp_root, otp_app?, included)
+    do_load_app(app, path, deps_apps, seen, otp_root, otp_app?, included)
   end
 
   defp app_path(otp_root, app) do
@@ -327,16 +327,16 @@ defmodule Mix.Release do
     end
   end
 
-  defp do_load_app(app, path, apps_lock, seen, otp_root, otp_app?, included) do
+  defp do_load_app(app, path, deps_apps, seen, otp_root, otp_app?, included) do
     case :file.consult(Path.join(path, "ebin/#{app}.app")) do
       {:ok, terms} ->
         [{:application, ^app, properties}] = terms
         value = [path: path, otp_app?: otp_app?, included: included] ++ properties
         seen = Map.put(seen, app, value)
         applications = Keyword.get(properties, :applications, [])
-        seen = load_apps(applications, apps_lock, seen, otp_root, false)
+        seen = load_apps(applications, deps_apps, seen, otp_root, false)
         included_applications = Keyword.get(properties, :included_applications, [])
-        load_apps(included_applications, apps_lock, seen, otp_root, true)
+        load_apps(included_applications, deps_apps, seen, otp_root, true)
 
       {:error, reason} ->
         Mix.raise("Could not load #{app}.app. Reason: #{inspect(reason)}")
