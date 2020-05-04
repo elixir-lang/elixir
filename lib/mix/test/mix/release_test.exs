@@ -161,14 +161,12 @@ defmodule Mix.ReleaseTest do
 
         app_config =
           config(
-            build_path: build_path,
-            lockfile: lockfile,
             deps: [{:cowboy, "~> 1.0", path: "deps/cowvoy"}],
             releases: [demo: [include_erts: custom_erts_path, applications: [cowboy: :permanent]]]
           )
 
-        with_project(app_config, ebin_dir, fn ->
-          File.cd!(project_path)
+        Mix.Project.in_project(:mix, project_path, app_config, fn _ ->
+          Code.prepend_path(ebin_dir)
           release = from_config!(nil, app_config, [])
           assert release.applications.cowboy[:vsn] == '1.1.2'
         end)
@@ -774,16 +772,5 @@ defmodule Mix.ReleaseTest do
       ]
       |> Keyword.merge(Process.get(:project))
     end
-  end
-
-  # `mix release` task normally takes care of loading the deps
-  defp with_project(config, dep_lib_path, fun) do
-    Process.put(:project, config)
-    Mix.Project.push(ReleaseApp)
-    Code.prepend_path(dep_lib_path)
-    fun.()
-  after
-    Mix.Project.pop()
-    Code.delete_path(dep_lib_path)
   end
 end
