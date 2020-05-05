@@ -749,6 +749,9 @@ defmodule Mix.Tasks.Release do
       It can be set to a custom value. The name part must be made only
       of letters, digits, underscores, and hyphens
 
+    * `RELEASE_SYS_CONFIG` - the location of the sys.config file. It can
+      be set to a custom path and it must not include the `.config` extension
+
     * `RELEASE_VM_ARGS` - the location of the vm.args file. It can be set
       to a custom path
 
