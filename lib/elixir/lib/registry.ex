@@ -204,7 +204,7 @@ defmodule Registry do
   @type guards :: [guard]
 
   @typedoc "A pattern used to representing the output format part of a match spec"
-  @type body :: [atom | tuple]
+  @type body :: [term]
 
   @typedoc "A full match spec used when selecting objects in the registry"
   @type spec :: [{match_pattern, guards, body}]
