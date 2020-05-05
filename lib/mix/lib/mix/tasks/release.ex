@@ -750,7 +750,7 @@ defmodule Mix.Tasks.Release do
       of letters, digits, underscores, and hyphens
 
     * `RELEASE_SYS_CONFIG` - the location of the sys.config file. It can
-    be set to a custom path
+      be set to a custom path and it must not include the `.config` extension
 
     * `RELEASE_VM_ARGS` - the location of the vm.args file. It can be set
       to a custom path
