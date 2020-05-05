@@ -795,8 +795,8 @@ defmodule NaiveDateTime do
       )
       when is_integer(seconds) do
     {days, rest_seconds} = div_mod(seconds, @seconds_per_day)
-    ms_in_day = rest_seconds * @microseconds_per_second + microsecond
-    day_fraction = {ms_in_day, @microseconds_per_day}
+    microseconds_in_day = rest_seconds * @microseconds_per_second + microsecond
+    day_fraction = {microseconds_in_day, @microseconds_per_day}
 
     {year, month, day, hour, minute, second, {microsecond, _}} =
       calendar.naive_datetime_from_iso_days({days, day_fraction})
