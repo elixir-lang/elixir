@@ -847,8 +847,8 @@ defmodule NaiveDateTime do
         {microsecond, precision}
       )
 
-    microseconds_in_day = microseconds_from_day_fraction(day_fraction)
-    trunc(days * @seconds_per_day + microseconds_in_day / @microseconds_per_second)
+    seconds_in_day = seconds_from_day_fraction(day_fraction)
+    days * @seconds_per_day + seconds_in_day
   end
 
   @doc """
@@ -1006,11 +1006,11 @@ defmodule NaiveDateTime do
     end
   end
 
-  defp microseconds_from_day_fraction({parts_in_day, @microseconds_per_day}),
+  defp seconds_from_day_fraction({parts_in_day, @seconds_per_day}),
     do: parts_in_day
 
-  defp microseconds_from_day_fraction({parts_in_day, parts_per_day}),
-    do: div(parts_in_day * @microseconds_per_day, parts_per_day)
+  defp seconds_from_day_fraction({parts_in_day, parts_per_day}),
+    do: div(parts_in_day * @seconds_per_day, parts_per_day)
 
   # Keep it multiline for proper function clause errors.
   defp to_iso_days(%{
