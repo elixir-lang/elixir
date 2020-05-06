@@ -54,7 +54,7 @@ defmodule ExUnit do
 
   Mix will load the `test_helper.exs` file before executing the tests.
   It is not necessary to `require` the `test_helper.exs` file in your test
-  files. See `Mix.Tasks.Test` for more information.
+  files. See [`Mix.Tasks.Test`](https://hexdocs.pm/mix/Mix.Tasks.Test.html) for more information.
   """
 
   @typedoc """
