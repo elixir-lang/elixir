@@ -3084,10 +3084,18 @@ defmodule Enum do
   """
   @spec with_index(t, integer) :: [{element, index}]
   def with_index(enumerable, offset \\ 0) do
-    map_reduce(enumerable, offset, fn x, acc ->
-      {{x, acc}, acc + 1}
-    end)
-    |> elem(0)
+    enumerable
+    |> to_list()
+    |> do_with_index(offset)
+  end
+
+  @spec do_with_index(list, integer) :: [{element, index}]
+  defp do_with_index([], _) do
+    []
+  end
+
+  defp do_with_index([head | tail], index) do
+    [{head, index} | do_with_index(tail, index + 1)]
   end
 
   @doc """
