@@ -787,7 +787,6 @@ defmodule NaiveDateTime do
 
   """
   @spec from_gregorian_seconds(integer(), Calendar.microsecond(), Calendar.calendar()) :: t
-
   def from_gregorian_seconds(
         seconds,
         {microsecond, precision} \\ {0, 0},
@@ -825,7 +824,6 @@ defmodule NaiveDateTime do
 
   """
   @spec to_gregorian_seconds(t) :: integer()
-
   def to_gregorian_seconds(%NaiveDateTime{
         calendar: calendar,
         year: year,

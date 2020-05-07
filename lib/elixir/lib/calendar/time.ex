@@ -379,7 +379,6 @@ defmodule Time do
           Calendar.microsecond(),
           Calendar.calendar()
         ) :: t
-
   def from_seconds_after_midnight(seconds, microsecond \\ {0, 0}, calendar \\ Calendar.ISO)
       when is_integer(seconds) do
     seconds_in_day = Integer.mod(seconds, @seconds_per_day)
@@ -408,7 +407,6 @@ defmodule Time do
 
   """
   @spec to_seconds_after_midnight(t) :: Calendar.seconds_after_midnight()
-
   def to_seconds_after_midnight(time) do
     iso_days = {0, to_day_fraction(time)}
     Calendar.ISO.iso_days_to_unit(iso_days, :second)

@@ -430,7 +430,6 @@ defmodule Date do
 
   """
   @spec to_gregorian_days(t) :: integer()
-
   def to_gregorian_days(date) do
     {days, _} = to_iso_days(date)
     days
