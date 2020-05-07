@@ -46,6 +46,7 @@ defmodule Time do
         }
 
   @parts_per_day 86_400_000_000
+  @seconds_per_day 24 * 60 * 60
 
   @doc """
   Returns the current time in UTC.
@@ -356,6 +357,61 @@ defmodule Time do
         raise ArgumentError,
               "cannot convert #{inspect(tuple)} to time, reason: #{inspect(reason)}"
     end
+  end
+
+  @doc """
+  Converts a number of seconds after midnight to a `Time` struct.
+
+  ## Examples
+
+      iex> Time.from_seconds_after_midnight(10_000)
+      ~T[02:46:40]
+      iex> Time.from_seconds_after_midnight(30_000, {5000, 3})
+      ~T[08:20:00.005]
+      iex> Time.from_seconds_after_midnight(-1)
+      ~T[23:59:59]
+      iex> Time.from_seconds_after_midnight(100_000)
+      ~T[03:46:40]
+
+  """
+  @doc since: "1.11.0"
+  @spec from_seconds_after_midnight(
+          integer(),
+          Calendar.microsecond(),
+          Calendar.calendar()
+        ) :: t
+  def from_seconds_after_midnight(seconds, microsecond \\ {0, 0}, calendar \\ Calendar.ISO)
+      when is_integer(seconds) do
+    seconds_in_day = Integer.mod(seconds, @seconds_per_day)
+
+    {hour, minute, second, {_, _}} =
+      calendar.time_from_day_fraction({seconds_in_day, @seconds_per_day})
+
+    %Time{
+      calendar: calendar,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: microsecond
+    }
+  end
+
+  @doc """
+  Converts a `Time` struct to a number of seconds after midnight.
+
+  ## Examples
+
+      iex> Time.to_seconds_after_midnight(~T[23:30:15])
+      84615
+      iex> Time.to_seconds_after_midnight(~N[2010-04-17 23:30:15.999])
+      84615
+
+  """
+  @doc since: "1.11.0"
+  @spec to_seconds_after_midnight(Calendar.time()) :: integer()
+  def to_seconds_after_midnight(time) do
+    iso_days = {0, to_day_fraction(time)}
+    Calendar.ISO.iso_days_to_unit(iso_days, :second)
   end
 
   @doc """
