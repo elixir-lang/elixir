@@ -786,6 +786,7 @@ defmodule NaiveDateTime do
       ~N[-0001-12-31 23:59:59]
 
   """
+  @doc since: "1.11.0"
   @spec from_gregorian_seconds(integer(), Calendar.microsecond(), Calendar.calendar()) :: t
   def from_gregorian_seconds(
         seconds,
@@ -823,6 +824,7 @@ defmodule NaiveDateTime do
       63_755_511_991
 
   """
+  @doc since: "1.11.0"
   @spec to_gregorian_seconds(Calendar.naive_datetime()) :: integer()
   def to_gregorian_seconds(%{
         calendar: calendar,

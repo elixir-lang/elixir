@@ -411,6 +411,7 @@ defmodule Date do
       ~D[-0001-12-31]
 
   """
+  @doc since: "1.11.0"
   @spec from_gregorian_days(integer(), Calendar.calendar()) :: t
   def from_gregorian_days(days, calendar \\ Calendar.ISO) when is_integer(days) do
     from_iso_days({days, 0}, calendar)
@@ -429,6 +430,7 @@ defmodule Date do
       730_485
 
   """
+  @doc since: "1.11.0"
   @spec to_gregorian_days(Calendar.date()) :: integer()
   def to_gregorian_days(date) do
     {days, _} = to_iso_days(date)

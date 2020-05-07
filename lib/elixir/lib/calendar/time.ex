@@ -374,6 +374,7 @@ defmodule Time do
       ~T[03:46:40]
 
   """
+  @doc since: "1.11.0"
   @spec from_seconds_after_midnight(
           integer(),
           Calendar.microsecond(),
@@ -406,6 +407,7 @@ defmodule Time do
       84615
 
   """
+  @doc since: "1.11.0"
   @spec to_seconds_after_midnight(Calendar.time()) :: integer()
   def to_seconds_after_midnight(time) do
     iso_days = {0, to_day_fraction(time)}
