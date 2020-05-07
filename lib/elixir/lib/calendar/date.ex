@@ -399,6 +399,45 @@ defmodule Date do
   end
 
   @doc """
+  Converts a number of gregorian days to a `Date` struct.
+
+  ## Examples
+
+      iex> Date.from_gregorian_days(1)
+      ~D[0000-01-02]
+      iex> Date.from_gregorian_days(730_485)
+      ~D[2000-01-01]
+      iex> Date.from_gregorian_days(-1)
+      ~D[-0001-12-31]
+
+  """
+  @doc since: "1.11.0"
+  @spec from_gregorian_days(integer(), Calendar.calendar()) :: t
+  def from_gregorian_days(days, calendar \\ Calendar.ISO) when is_integer(days) do
+    from_iso_days({days, 0}, calendar)
+  end
+
+  @doc """
+  Converts a `date` struct to a number of gregorian days.
+
+  ## Examples
+
+      iex> Date.to_gregorian_days(~D[0000-01-02])
+      1
+      iex> Date.to_gregorian_days(~D[2000-01-01])
+      730_485
+      iex> Date.to_gregorian_days(~N[2000-01-01 00:00:00])
+      730_485
+
+  """
+  @doc since: "1.11.0"
+  @spec to_gregorian_days(Calendar.date()) :: integer()
+  def to_gregorian_days(date) do
+    {days, _} = to_iso_days(date)
+    days
+  end
+
+  @doc """
   Compares two date structs.
 
   Returns `:gt` if first date is later than the second
