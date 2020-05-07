@@ -417,7 +417,7 @@ defmodule Date do
   end
 
   @doc """
-  Converts a `Date` struct to a number of gregorian days.
+  Converts a `date` struct to a number of gregorian days.
 
   ## Examples
 
@@ -429,7 +429,7 @@ defmodule Date do
       730_485
 
   """
-  @spec to_gregorian_days(t) :: integer()
+  @spec to_gregorian_days(Calendar.date()) :: integer()
   def to_gregorian_days(date) do
     {days, _} = to_iso_days(date)
     days

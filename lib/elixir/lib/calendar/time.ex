@@ -406,7 +406,7 @@ defmodule Time do
       84615
 
   """
-  @spec to_seconds_after_midnight(t) :: Calendar.seconds_after_midnight()
+  @spec to_seconds_after_midnight(Calendar.time()) :: integer()
   def to_seconds_after_midnight(time) do
     iso_days = {0, to_day_fraction(time)}
     Calendar.ISO.iso_days_to_unit(iso_days, :second)

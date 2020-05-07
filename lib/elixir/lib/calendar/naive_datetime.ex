@@ -823,7 +823,7 @@ defmodule NaiveDateTime do
       63_755_511_991
 
   """
-  @spec to_gregorian_seconds(t) :: integer()
+  @spec to_gregorian_seconds(Calendar.naive_datetime()) :: integer()
   def to_gregorian_seconds(%NaiveDateTime{
         calendar: calendar,
         year: year,
