@@ -102,8 +102,8 @@ defmodule Task.Supervised do
           %{
             label: {Task.Supervisor, :terminating},
             report: %{
-              name: get_from(owner),
-              starter: self(),
+              name: self(),
+              starter: get_from(owner),
               function: fun,
               args: args,
               reason: {log_value(kind, value), __STACKTRACE__}
