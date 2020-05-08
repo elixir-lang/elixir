@@ -587,7 +587,7 @@ defmodule System do
   `__STACKTRACE__/0` inside a rescue/catch. If you want to support
   earlier Elixir versions, move `System.stacktrace/0` inside a rescue/catch.
 
-  Since OTP 23 this always returns an empty list.
+  From Erlang/OTP 23+ this always returns an empty list.
 
   Note that the Erlang VM (and therefore this function) does not
   return the current stacktrace but rather the stacktrace of the
