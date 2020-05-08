@@ -312,7 +312,7 @@ defmodule Logger.TranslatorTest do
              send(pid, :go)
              receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
            end) =~ ~r"""
-           \[error\] Task #PID<\d+\.\d+\.\d+> started from #PID<\d+\.\d+\.\d+> terminating
+           \[error\] Task #{inspect(pid)} started from #{inspect(self())} terminating
            \*\* \(RuntimeError\) oops
            .*
            Function: &Logger.TranslatorTest.task\/1
