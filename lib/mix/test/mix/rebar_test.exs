@@ -266,6 +266,9 @@ defmodule Mix.RebarTest do
       end)
     end
 
+    # We run only on Unix because Windows has a hard time
+    # removing the Rebar executable after executed.
+    @tag [unix: true]
     test "gets and compiles dependencies for Rebar3" do
       Mix.Project.push(Rebar3AsDep)
 
