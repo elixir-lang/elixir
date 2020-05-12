@@ -76,8 +76,12 @@ defmodule Mix.Shell do
 
   ## Options
 
+    * `:cd` - (since v1.11.0) the directory to run the command in
+
     * `:stderr_to_stdout` - redirects stderr to stdout, defaults to true
+
     * `:env` - a list of environment variables, defaults to `[]`
+
     * `:quiet` - overrides the callback to no-op
 
   """
@@ -98,7 +102,10 @@ defmodule Mix.Shell do
         []
       end
 
-    opts = [:stream, :binary, :exit_status, :hide, :use_stdio, {:env, env} | args]
+    opts =
+      [:stream, :binary, :exit_status, :hide, :use_stdio, {:env, env}] ++
+        args ++ Keyword.take(options, [:cd])
+
     port = Port.open({:spawn, shell_command(command)}, opts)
     port_read(port, callback)
   end
