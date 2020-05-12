@@ -258,7 +258,7 @@ defmodule Mix do
       (default: `~/.mix/rebar3`)
     * `MIX_XDG` - asks Mix to follow the [XDG Directory Specification](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html)
       for its home directory and configuration files. This behaviour needs to
-      be opt-in due to backwards compatibilit.y `MIX_HOME` has higher preference
+      be opt-in due to backwards compatibility. `MIX_HOME` has higher preference
       than `MIX_XDG`. If none of the variables are set, the default directory
       `~/.mix` will be used
 

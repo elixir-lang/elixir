@@ -23,8 +23,8 @@ defmodule Mix.Utils do
 
   Possible locations:
 
-     * `XDG_CONFIG_HOME/mix`
      * `MIX_HOME`
+     * `XDG_CONFIG_HOME/mix` (if `MIX_XDG` is set)
      * `~/.mix`
 
   """
