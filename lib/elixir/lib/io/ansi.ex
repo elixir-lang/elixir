@@ -31,7 +31,7 @@ defmodule IO.ANSI do
       IO.puts(formatted_text)
 
   A higher level and more convenient API is also available via `IO.ANSI.format/1`,
-  where you use atoms to represent each ANSI escape sequence and by default 
+  where you use atoms to represent each ANSI escape sequence and by default
   checks if ANSI is enabled:
 
       IO.puts(IO.ANSI.format([:blue_background, "Example"]))
@@ -215,6 +215,9 @@ defmodule IO.ANSI do
 
   @doc "Clears screen."
   defsequence(:clear, "2", "J")
+
+  @doc "Clears scrollback buffer."
+  defsequence(:clear_scrollback, "3", "J")
 
   @doc "Clears line."
   defsequence(:clear_line, "2", "K")
