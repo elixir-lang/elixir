@@ -17,4 +17,16 @@ defmodule Mix.ShellTest do
   after
     Mix.shell(Mix.Shell.Process)
   end
+
+  test "with :cd" do
+    Mix.shell(Mix.Shell.IO)
+
+    parent_dir = Path.expand("..")
+
+    assert capture_io(fn ->
+             Mix.shell().cmd("pwd", cd: parent_dir)
+           end) == "#{parent_dir}\n"
+  after
+    Mix.shell(Mix.Shell.Process)
+  end
 end
