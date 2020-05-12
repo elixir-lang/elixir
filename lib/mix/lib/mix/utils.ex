@@ -37,7 +37,7 @@ defmodule Mix.Utils do
       dir = System.get_env("MIX_HOME") ->
         dir
 
-      System.get_env("MIX_XDG") ->
+      System.get_env("MIX_XDG") in ["1", "true"]->
         :filename.basedir(xdg, "mix", %{os: :unix})
 
       true ->
