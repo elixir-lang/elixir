@@ -15,7 +15,7 @@ defmodule Mix.Utils do
   stored there.
   """
   def mix_home do
-    mix_home_xdg_lookup("XDG_DATA_HOME")
+    mix_home_xdg_lookup(:user_data)
   end
 
   @doc """
@@ -23,20 +23,25 @@ defmodule Mix.Utils do
 
   Possible locations:
 
-   * `~/.mix`
-   * `MIX_HOME`
-   * `XDG_CONFIG_HOME/mix`
+     * `XDG_CONFIG_HOME/mix`
+     * `MIX_HOME`
+     * `~/.mix`
 
   """
   def mix_config do
-    mix_home_xdg_lookup("XDG_CONFIG_HOME")
+    mix_home_xdg_lookup(:user_config)
   end
 
   defp mix_home_xdg_lookup(xdg) do
-    case {System.get_env("MIX_HOME"), System.get_env(xdg)} do
-      {directory, _} when is_binary(directory) -> directory
-      {nil, directory} when is_binary(directory) -> Path.join(directory, "mix")
-      {nil, nil} -> Path.expand("~/.mix")
+    cond do
+      dir = System.get_env("MIX_HOME") ->
+        dir
+
+      System.get_env("MIX_XDG") ->
+        :filename.basedir(xdg, "mix", %{os: :unix})
+
+      true ->
+        Path.expand("~/.mix")
     end
   end
 
