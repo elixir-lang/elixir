@@ -41,10 +41,9 @@ defmodule Mix.Tasks.CmdTest do
     in_fixture("umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
         Mix.Task.run("cmd", ["--app", "bar", "--cd", "lib", "pwd"])
-        nl = os_newline()
         assert_received {:mix_shell, :info, ["==> bar"]}
-        expected = Path.expand(Path.join(["apps", "bar", "lib"])) <> nl
-        assert_received {:mix_shell, :run, [^expected]}
+        {pwd, 0} = System.cmd("pwd", [], cd: Path.join(["apps", "bar", "lib"]))
+        assert_received {:mix_shell, :run, [^pwd]}
         refute_received {:mix_shell, :info, ["==> foo"]}
       end)
     end)
