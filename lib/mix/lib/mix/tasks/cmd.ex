@@ -50,7 +50,7 @@ defmodule Mix.Tasks.Cmd do
   @impl true
   def run(args) do
     {opts, args} = OptionParser.parse_head!(args, strict: @switches)
-    apps = Enum.map(List.wrap(opts[:app] || []), &String.to_atom/1)
+    apps = Enum.map(List.wrap(opts[:app]), &String.to_atom/1)
 
     if apps == [] or Mix.Project.config()[:app] in apps do
       cmd_opts = Keyword.take(opts, [:cd])
