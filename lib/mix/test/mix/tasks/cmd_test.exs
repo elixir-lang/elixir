@@ -36,4 +36,16 @@ defmodule Mix.Tasks.CmdTest do
       end)
     end)
   end
+
+  test "only runs the cmd for specified apps and in specific directory" do
+    in_fixture("umbrella_dep/deps/umbrella", fn ->
+      Mix.Project.in_project(:umbrella, ".", fn _ ->
+        Mix.Task.run("cmd", ["--app", "bar", "--cd", "lib", "pwd"])
+        assert_received {:mix_shell, :info, ["==> bar"]}
+        {pwd, 0} = System.cmd("pwd", [], cd: Path.join(["apps", "bar", "lib"]))
+        assert_received {:mix_shell, :run, [^pwd]}
+        refute_received {:mix_shell, :info, ["==> foo"]}
+      end)
+    end)
+  end
 end

@@ -22,6 +22,13 @@ defmodule Mix.Tasks.Cmd do
   This task is automatically reenabled, so it can be called multiple times
   with different arguments.
 
+  ## Command line options
+
+    * `--app` - limit running the command to the given app. This option
+      may be given multiple times
+
+    * `--cd` - (since v1.11.0) the directory to run the command in
+
   ## Zombie operating system processes
 
   Beware that the Erlang VM does not terminate child processes
@@ -35,27 +42,25 @@ defmodule Mix.Tasks.Cmd do
   of the `Port` module documentation.
   """
 
+  @switches [
+    app: :keep,
+    cd: :string
+  ]
+
   @impl true
   def run(args) do
-    {args, apps} = parse_apps(args, [])
+    {opts, args} = OptionParser.parse_head!(args, strict: @switches)
+    apps = Enum.map(List.wrap(opts[:app]), &String.to_atom/1)
 
     if apps == [] or Mix.Project.config()[:app] in apps do
-      case Mix.shell().cmd(Enum.join(args, " ")) do
+      cmd_opts = Keyword.take(opts, [:cd])
+
+      case Mix.shell().cmd(Enum.join(args, " "), cmd_opts) do
         0 -> :ok
         status -> exit(status)
       end
     end
 
     Mix.Task.reenable("cmd")
-  end
-
-  defp parse_apps(args, apps) do
-    case args do
-      ["--app", app | tail] ->
-        parse_apps(tail, [String.to_atom(app) | apps])
-
-      args ->
-        {args, apps}
-    end
   end
 end
