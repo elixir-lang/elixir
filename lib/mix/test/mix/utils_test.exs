@@ -13,14 +13,12 @@ defmodule Mix.UtilsTest do
 
     # Clear all variables to get a reproducible test
     System.delete_env("MIX_HOME")
-    System.delete_env("XDG_DATA_HOME")
-    System.delete_env("XDG_CONFIG_HOME")
+    System.delete_env("MIX_XDG")
 
     # Reset Env Variables
     on_exit(fn ->
       System.put_env("MIX_HOME", mix_home)
-      System.delete_env("XDG_DATA_HOME")
-      System.delete_env("XDG_CONFIG_HOME")
+      System.delete_env("MIX_XDG")
     end)
   end
 
@@ -124,15 +122,16 @@ defmodule Mix.UtilsTest do
   end
 
   describe "mix_home/0" do
-    test "prefers MIX_HOME over XDG_DATA_HOME" do
+    test "prefers MIX_HOME over MIX_XDG" do
       System.put_env("MIX_HOME", "mix_home")
-      System.put_env("XDG_DATA_HOME", "xdg_data_home")
+      System.put_env("MIX_XDG", "true")
       assert "mix_home" = Mix.Utils.mix_home()
     end
 
+    @tag :unix
     test "falls back to XDG_DATA_HOME/mix" do
-      System.put_env("XDG_DATA_HOME", "xdg_data_home")
-      assert "xdg_data_home/mix" == Mix.Utils.mix_home()
+      System.put_env("MIX_XDG", "1")
+      assert Mix.Utils.mix_home() == :filename.basedir(:user_data, "mix", %{os: :unix})
     end
 
     test "falls back to $HOME/.mix" do
@@ -141,15 +140,16 @@ defmodule Mix.UtilsTest do
   end
 
   describe "mix_config/0" do
-    test "prefers MIX_HOME over XDG_CONFIG_HOME" do
+    test "prefers MIX_HOME over MIX_XDG" do
       System.put_env("MIX_HOME", "mix_home")
-      System.put_env("XDG_CONFIG_HOME", "xdg_data_home")
+      System.put_env("MIX_XDG", "true")
       assert "mix_home" = Mix.Utils.mix_config()
     end
 
+    @tag :unix
     test "falls back to XDG_CONFIG_HOME/mix" do
-      System.put_env("XDG_CONFIG_HOME", "xdg_config_home")
-      assert "xdg_config_home/mix" == Mix.Utils.mix_config()
+      System.put_env("MIX_XDG", "1")
+      assert Mix.Utils.mix_config() == :filename.basedir(:user_config, "mix", %{os: :unix})
     end
 
     test "falls back to $HOME/.mix" do
