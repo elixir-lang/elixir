@@ -1865,9 +1865,6 @@ defmodule Enum do
   If multiple elements are considered maximal or minimal, the first one
   that was found is returned.
 
-  Calls the provided `empty_fallback` function and returns its value if
-  `enumerable` is empty. The default `empty_fallback` raises `Enum.EmptyError`.
-
   ## Examples
 
       iex> Enum.min_max_by(["aaa", "bb", "c"], fn x -> String.length(x) end)
@@ -1879,11 +1876,60 @@ defmodule Enum do
       iex> Enum.min_max_by([], &String.length/1, fn -> {nil, nil} end)
       {nil, nil}
 
+  The fact this function uses Erlang's term ordering means that the
+  comparison is structural and not semantic. Therefore, if you want
+  to compare structs, most structs provide a "compare" function, such as
+  `Date.compare/2`, which receives two structs and returns `:lt` (less than),
+  `:eq` (equal), and `:gt` (greater than). If you pass a module as the
+  sorting function, Elixir will automatically use the `compare/2` function
+  of said module:
+
+      iex> users = [
+      ...>   %{name: "Ellis", birthday: ~D[1943-05-11]},
+      ...>   %{name: "Lovelace", birthday: ~D[1815-12-10]},
+      ...>   %{name: "Turing", birthday: ~D[1912-06-23]}
+      ...> ]
+      iex> Enum.min_max_by(users, &(&1.birthday), Date)
+      {
+        %{name: "Lovelace", birthday: ~D[1815-12-10]},
+        %{name: "Ellis", birthday: ~D[1943-05-11]}
+      }
+
+  Finally, if you don't want to raise on empty enumerables, you can pass
+  the empty fallback:
+
+      iex> Enum.min_max_by([], &String.length/1, fn -> nil end)
+      nil
+
   """
   @spec min_max_by(t, (element -> any), (() -> empty_result)) :: {element, element} | empty_result
         when empty_result: any
-  def min_max_by(enumerable, fun, empty_fallback \\ fn -> raise Enum.EmptyError end)
+  @spec min_max_by(
+          t,
+          (element -> any),
+          (element, element -> boolean) | module(),
+          (() -> empty_result)
+        ) :: {element, element} | empty_result
+        when empty_result: any
+  def min_max_by(
+        enumerable,
+        fun,
+        sorter_or_empty_fallback \\ &</2,
+        empty_fallback \\ fn -> raise Enum.EmptyError end
+      )
+
+  def min_max_by(enumerable, fun, empty_fallback, _empty_fallback)
       when is_function(fun, 1) and is_function(empty_fallback, 0) do
+    min_max_by(enumerable, fun, &</2, empty_fallback)
+  end
+
+  def min_max_by(enumerable, fun, sorter, empty_fallback)
+      when is_function(fun, 1) and is_atom(sorter) and is_function(empty_fallback, 0) do
+    min_max_by(enumerable, fun, min_max_by_sort_fun(sorter), empty_fallback)
+  end
+
+  def min_max_by(enumerable, fun, sorter, empty_fallback)
+      when is_function(fun, 1) and is_function(sorter, 2) and is_function(empty_fallback, 0) do
     first_fun = fn entry ->
       fun_entry = fun.(entry)
       {entry, entry, fun_entry, fun_entry}
@@ -1893,10 +1939,10 @@ defmodule Enum do
       fun_entry = fun.(entry)
 
       cond do
-        fun_entry < fun_min ->
+        sorter.(fun_entry, fun_min) ->
           {entry, prev_max, fun_entry, fun_max}
 
-        fun_entry > fun_max ->
+        sorter.(fun_max, fun_entry) ->
           {prev_min, entry, fun_min, fun_entry}
 
         true ->
@@ -1909,6 +1955,8 @@ defmodule Enum do
       {min, max, _, _} -> {min, max}
     end
   end
+
+  defp min_max_by_sort_fun(module) when is_atom(module), do: &(module.compare(&1, &2) == :lt)
 
   @doc """
   Splits the `enumerable` in two lists according to the given function `fun`.
