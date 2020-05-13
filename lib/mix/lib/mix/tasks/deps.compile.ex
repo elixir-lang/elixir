@@ -188,8 +188,14 @@ defmodule Mix.Tasks.Deps.Compile do
     config_path = Path.join(dep_path, "mix.rebar.config")
     lib_path = Path.join(config[:env_path], "lib/*/ebin")
 
-    env = [{"REBAR_CONFIG", config_path}, {"TERM", "dumb"}]
-    cmd = "#{rebar_cmd(dep)} bare compile --paths=#{inspect(lib_path)}"
+    # REBAR_BARE_COMPILER_OUTPUT_DIR is only honored by rebar3 >= 3.14
+    env = [
+      {"REBAR_CONFIG", config_path},
+      {"TERM", "dumb"},
+      {"REBAR_BARE_COMPILER_OUTPUT_DIR", dep_path}
+    ]
+
+    cmd = "#{rebar_cmd(dep)} bare compile --paths #{lib_path}"
 
     File.mkdir_p!(dep_path)
     File.write!(config_path, rebar_config(dep))
