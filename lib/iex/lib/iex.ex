@@ -29,6 +29,17 @@ defmodule IEx do
   to work. `--werl` may be permanently enabled by setting the `IEX_WITH_WERL`
   environment variable.
 
+  ## Coloring
+
+  Coloring is enabled by default on most Unix terminals. They are also
+  available on Windows consoles from Windows 10, although it must be
+  explicitly enabled for the current user in the registry by running
+  the following command:
+
+      reg add HKCU\Console /v VirtualTerminalLevel /t REG_DWORD /d 1
+
+  After running the command above, you must restart your current console.
+
   ## Shell history
 
   It is possible to get shell history by passing some options that enable it
