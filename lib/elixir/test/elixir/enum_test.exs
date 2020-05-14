@@ -600,7 +600,29 @@ defmodule EnumTest do
     assert Enum.min_max_by(%{}, fn x -> String.length(x) end, fn -> {:no_min, :no_max} end) ==
              {:no_min, :no_max}
 
+    assert Enum.min_max_by(["aaa", "a", "aa"], fn x -> String.length(x) end, &>/2) == {"aaa", "a"}
+
     assert_runs_enumeration_only_once(&Enum.min_max_by(&1, fn x -> x end, fn -> nil end))
+  end
+
+  test "min_max_by/4" do
+    users = [%{id: 1, date: ~D[2019-01-01]}, %{id: 2, date: ~D[2020-01-01]}]
+
+    assert Enum.min_max_by(users, & &1.date, Date) ==
+             {%{id: 1, date: ~D[2019-01-01]}, %{id: 2, date: ~D[2020-01-01]}}
+
+    assert Enum.min_max_by(["aaa", "a", "aa"], fn x -> String.length(x) end, &>/2, fn -> nil end) ==
+             {"aaa", "a"}
+
+    assert Enum.min_max_by([], fn x -> String.length(x) end, &>/2, fn -> {:no_min, :no_max} end) ==
+             {:no_min, :no_max}
+
+    assert Enum.min_max_by(%{}, fn x -> String.length(x) end, &>/2, fn -> {:no_min, :no_max} end) ==
+             {:no_min, :no_max}
+
+    assert_runs_enumeration_only_once(
+      &Enum.min_max_by(&1, fn x -> x end, fn a, b -> a > b end, fn -> nil end)
+    )
   end
 
   test "split_with/2" do
