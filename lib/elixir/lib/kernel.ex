@@ -2381,6 +2381,12 @@ defmodule Kernel do
   function. If the key is a function, it will be invoked
   as specified in `get_and_update_in/3`.
 
+  `data` is a nested structure (that is, a map, keyword
+  list, or struct that implements the `Access` behaviour).
+  The `fun` argument receives the value of `key` (or `nil`
+  if `key` is not present) and the result replaces the value
+  in the structure.
+
   ## Examples
 
       iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
