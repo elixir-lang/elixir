@@ -358,8 +358,6 @@ defmodule ExUnit.Callbacks do
     end
   end
 
-  @supervisor_opts [strategy: :one_for_one, max_restarts: 1_000_000, max_seconds: 1]
-
   @doc """
   Starts a child process under the test supervisor.
 
@@ -397,20 +395,7 @@ defmodule ExUnit.Callbacks do
   @spec start_supervised(Supervisor.child_spec() | module | {module, term}, keyword) ::
           Supervisor.on_start_child()
   def start_supervised(child_spec_or_module, opts \\ []) do
-    sup =
-      case ExUnit.OnExitHandler.get_supervisor(self()) do
-        {:ok, nil} ->
-          {:ok, sup} = Supervisor.start_link([], @supervisor_opts)
-          ExUnit.OnExitHandler.put_supervisor(self(), sup)
-          sup
-
-        {:ok, sup} ->
-          sup
-
-        :error ->
-          raise ArgumentError, "start_supervised/2 can only be invoked from the test process"
-      end
-
+    sup = ExUnit.fetch_test_supervisor!()
     child_spec = Supervisor.child_spec(child_spec_or_module, opts)
 
     case Supervisor.start_child(sup, child_spec) do
