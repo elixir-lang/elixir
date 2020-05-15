@@ -395,7 +395,15 @@ defmodule ExUnit.Callbacks do
   @spec start_supervised(Supervisor.child_spec() | module | {module, term}, keyword) ::
           Supervisor.on_start_child()
   def start_supervised(child_spec_or_module, opts \\ []) do
-    sup = ExUnit.fetch_test_supervisor!()
+    sup =
+      case ExUnit.fetch_test_supervisor() do
+        {:ok, sup} ->
+          sup
+
+        :error ->
+          raise ArgumentError, "start_supervised/2 can only be invoked from the test process"
+      end
+
     child_spec = Supervisor.child_spec(child_spec_or_module, opts)
 
     case Supervisor.start_child(sup, child_spec) do
