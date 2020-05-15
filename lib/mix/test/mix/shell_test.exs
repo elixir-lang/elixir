@@ -21,6 +21,7 @@ defmodule Mix.ShellTest do
   test "with :cd" do
     Mix.shell(Mix.Shell.IO)
     tmp_dir = System.tmp_dir()
+    File.mkdir_p!(tmp_dir)
     {pwd, 0} = System.cmd("pwd", [], cd: tmp_dir)
 
     assert ExUnit.CaptureIO.capture_io(fn ->
