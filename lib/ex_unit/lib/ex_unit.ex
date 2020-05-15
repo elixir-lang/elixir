@@ -360,6 +360,32 @@ defmodule ExUnit do
     configure(after_suite: [function | current_callbacks])
   end
 
+  @doc """
+  Fetches the test supervisor for the current test.
+
+  Returns `{:ok, supervisor_pid}` or `:error` if not called from the test process.
+
+  This is the same supervisor as used by `ExUnit.Callbacks.start_supervised/2`
+  and similar, see `ExUnit.Callbacks` module documentation for more information.
+  """
+  @doc since: "1.11.0"
+  @spec fetch_test_supervisor() :: {:ok, pid()} | :error
+  def fetch_test_supervisor() do
+    case ExUnit.OnExitHandler.get_supervisor(self()) do
+      {:ok, nil} ->
+        opts = [strategy: :one_for_one, max_restarts: 1_000_000, max_seconds: 1]
+        {:ok, sup} = Supervisor.start_link([], opts)
+        ExUnit.OnExitHandler.put_supervisor(self(), sup)
+        {:ok, sup}
+
+      {:ok, _} = ok ->
+        ok
+
+      :error ->
+        :error
+    end
+  end
+
   # Persists default values in application
   # environment before the test suite starts.
   defp persist_defaults(config) do

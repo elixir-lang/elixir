@@ -358,8 +358,6 @@ defmodule ExUnit.Callbacks do
     end
   end
 
-  @supervisor_opts [strategy: :one_for_one, max_restarts: 1_000_000, max_seconds: 1]
-
   @doc """
   Starts a child process under the test supervisor.
 
@@ -398,12 +396,7 @@ defmodule ExUnit.Callbacks do
           Supervisor.on_start_child()
   def start_supervised(child_spec_or_module, opts \\ []) do
     sup =
-      case ExUnit.OnExitHandler.get_supervisor(self()) do
-        {:ok, nil} ->
-          {:ok, sup} = Supervisor.start_link([], @supervisor_opts)
-          ExUnit.OnExitHandler.put_supervisor(self(), sup)
-          sup
-
+      case ExUnit.fetch_test_supervisor() do
         {:ok, sup} ->
           sup
 
