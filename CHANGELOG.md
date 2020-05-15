@@ -42,6 +42,7 @@
 #### Mix
 
   * [mix] Introduce `MIX_XDG` as a simpler mechanism to opt-in to the XDG specification
+  * [mix] Allow requirements for a Mix task to be listed via the `@requirements` module attribute
   * [mix compile] Support the `__mix_recompile__?/0` callback for custom behaviour on when Mix should recompile a given module
   * [mix compile.elixir] Track application boundaries in the Elixir compiler. If you invoke code from Erlang or Elixir standard libraries and you don't depend on the proper applications, a warning will be emitted. A warning will also be emitted if you invoke code from an umbrella sibling that you don't depend on - effectively forbidding cyclic dependencies between apps
   * [mix release] Enable overriding `sys.config` location via `RELEASE_SYS_CONFIG` env var
