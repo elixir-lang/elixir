@@ -131,7 +131,7 @@ defmodule Mix.UtilsTest do
     @tag :unix
     test "falls back to XDG_DATA_HOME/mix" do
       System.put_env("MIX_XDG", "1")
-      assert Mix.Utils.mix_home() == :filename.basedir(:user_data, "mix", %{os: :unix})
+      assert Mix.Utils.mix_home() == :filename.basedir(:user_data, "mix", %{os: :linux})
     end
 
     test "falls back to $HOME/.mix" do
@@ -149,7 +149,7 @@ defmodule Mix.UtilsTest do
     @tag :unix
     test "falls back to XDG_CONFIG_HOME/mix" do
       System.put_env("MIX_XDG", "1")
-      assert Mix.Utils.mix_config() == :filename.basedir(:user_config, "mix", %{os: :unix})
+      assert Mix.Utils.mix_config() == :filename.basedir(:user_config, "mix", %{os: :linux})
     end
 
     test "falls back to $HOME/.mix" do
