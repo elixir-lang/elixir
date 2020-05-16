@@ -148,6 +148,39 @@ defmodule Mix.Tasks.CompileTest do
     end)
   end
 
+  test "calling raise inside a macro returns a diagnostic with a position" do
+    in_fixture("no_mixfile", fn ->
+      File.write!("lib/a.ex", """
+      defmodule A do
+        defmacro custom_macro do
+          raise "error"
+        end
+      end
+      """)
+
+      File.write!("lib/b.ex", """
+      defmodule B do
+        require A
+        A.custom_macro()
+      end
+      """)
+
+      file = Path.absname("lib/b.ex")
+
+      ExUnit.CaptureIO.capture_io(fn ->
+        assert {:error, [diagnostic]} = Mix.Task.run("compile", ["--return-errors"])
+
+        assert %Mix.Task.Compiler.Diagnostic{
+                 file: ^file,
+                 severity: :error,
+                 position: 3,
+                 message: "** (RuntimeError) error\n    expanding macro: A.custom_macro/0" <> _,
+                 compiler_name: "Elixir"
+               } = diagnostic
+      end)
+    end)
+  end
+
   test "returns syntax error from an Erlang file when --return-errors is set" do
     in_fixture("no_mixfile", fn ->
       import ExUnit.CaptureIO
