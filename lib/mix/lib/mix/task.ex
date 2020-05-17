@@ -234,6 +234,7 @@ defmodule Mix.Task do
   Returns a list of strings, where the string is expected
   to be a task optionally followed by its arguments.
   """
+  @doc since: "1.11.0"
   @spec requirements(task_module) :: []
   def requirements(module) when is_atom(module) do
     {:requirements, requirements} =
@@ -402,7 +403,7 @@ defmodule Mix.Task do
     end
   end
 
-  def run_requirements(module) do
+  defp run_requirements(module) do
     Enum.each(requirements(module), fn requirement ->
       [task | args] = OptionParser.split(requirement)
       Mix.Task.run(task, args)
