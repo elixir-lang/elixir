@@ -730,6 +730,7 @@ defmodule Logger do
       # This will print the message even if global level is :error
 
   """
+  @doc since: "1.11.0"
   @spec put_module_level(module(), level() | :all | :none) :: :ok | {:error, term()}
   defdelegate put_module_level(mod, level), to: :logger, as: :set_module_level
 
@@ -740,18 +741,21 @@ defmodule Logger do
   was set for given module then it will not be present in
   the returned list.
   """
+  @doc since: "1.11.0"
   @spec get_module_level(module() | [module()]) :: [{module(), level() | :all | :none}]
   defdelegate get_module_level(mod), to: :logger
 
   @doc """
   Deletes logging level for given module to primary level.
   """
+  @doc since: "1.11.0"
   @spec delete_module_level(module() | [module()]) :: :ok
   defdelegate delete_module_level(module), to: :logger, as: :unset_module_level
 
   @doc """
   Deletes logging level for all modules to primary level
   """
+  @doc since: "1.11.0"
   @spec delete_all_module_levels() :: :ok
   defdelegate delete_all_module_levels(), to: :logger, as: :unset_module_level
 
@@ -948,6 +952,7 @@ defmodule Logger do
         Logger.#{level}(#{inspect(Map.new(report))})
 
     """
+    @doc since: "1.11.0"
     defmacro unquote(level)(message_or_fun, metadata \\ []) do
       maybe_log(unquote(level), message_or_fun, metadata, __CALLER__)
     end
