@@ -1559,6 +1559,8 @@ defmodule Kernel.SpecialForms do
   @doc """
   Defines an anonymous function.
 
+  See `Function` for more information.
+
   ## Examples
 
       iex> add = fn a, b -> a + b end

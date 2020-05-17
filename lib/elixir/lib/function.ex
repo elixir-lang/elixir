@@ -8,8 +8,21 @@ defmodule Function do
       iex> add.(1, 2)
       3
 
-  It is also possible to capture module functions and pass them around
-  as if they were anonymous functions by using the capture operator `&/1`:
+  Anonymous functions can also have multiple clauses. All clauses
+  should expect the same number of arguments:
+
+      iex> negate = fn
+      ...>   true -> false
+      ...>   false -> true
+      ...> end
+      iex> negate.(false)
+      true
+
+  ## The capture operator
+
+  It is also possible to capture public module functions and pass them
+  around as if they were anonymous functions by using the capture
+  operator `Kernel.SpecialForms.&/1`:
 
       iex> add = &Kernel.+/2
       iex> add.(1, 2)
@@ -19,8 +32,9 @@ defmodule Function do
       iex> length.("hello")
       5
 
-  It is also possible to capture a definition in the current module by
-  skipping the module prefix, such as `&my_fun/2`.
+  To capture a definition within the current module, you can skip the
+  module prefix, such as `&my_fun/2`. In those cases, the captured
+  function can be public (`def`) or private (`defp`).
 
   The capture operator can also be used to create anonymous functions
   that expect at least one argument:
@@ -30,6 +44,8 @@ defmodule Function do
       3
 
   In such cases, using the capture operator is no different than using `fn`.
+
+  ## Internal and external functions
 
   We say that functions that point to definitions residing in modules, such
   as `&String.length/1`, are **external** functions. All other functions are
