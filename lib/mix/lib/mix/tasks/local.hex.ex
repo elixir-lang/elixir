@@ -11,6 +11,11 @@ defmodule Mix.Tasks.Local.Hex do
 
       mix local.hex
 
+  If installing a precompiled Hex does not work, you can compile and install
+  Hex directly with this command:
+
+      mix archive.install github hexpm/hex branch latest
+
   ## Command line options
 
     * `--force` - forces installation without a shell prompt; primarily
