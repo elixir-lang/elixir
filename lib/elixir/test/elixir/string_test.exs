@@ -848,6 +848,6 @@ defmodule StringTest do
 
     # (ﬓ; ﬓ; ﬓ; մն; մն; ) ARMENIAN SMALL LIGATURE MEN NOW
     # FB13;FB13;FB13;0574 0576;0574 0576;
-    assert String.normalize("\u0073\u0074", :nfkc) == "\u0073\u0074"
+    assert String.normalize("\u0574\u0576", :nfkc) == "\u0574\u0576"
   end
 end
