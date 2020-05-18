@@ -682,8 +682,9 @@ defmodule String do
 
   Invalid Unicode codepoints are skipped and the remaining of
   the string is converted. If you want the algorith to stop
-  and return on invalid codepoint, use `:unicode.characters_to_nfd_binary/1`
-  and `:unicode.characters_to_nfc_binary/1` instead.
+  and return on invalid codepoint, use `:unicode.characters_to_nfd_binary/1`,
+  `:unicode.characters_to_nfc_binary/1`, `:unicode.characters_to_nfkd_binary/1`,
+  and `:unicode.characters_to_nfkc_binary/1` instead.
 
   Normalization forms `:nfkc` and `:nfkd` should not be blindly applied
   to arbitrary text. Because they erase many formatting distinctions,
