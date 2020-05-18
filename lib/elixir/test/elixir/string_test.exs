@@ -765,6 +765,11 @@ defmodule StringTest do
     assert String.normalize(<<216, 15>>, :nfc) == <<216, 15>>
     assert String.normalize(<<216, 15>>, :nfd) == <<216, 15>>
 
+    assert String.normalize(<<15, 216>>, :nfkc) == <<15, 216>>
+    assert String.normalize(<<15, 216>>, :nfkd) == <<15, 216>>
+    assert String.normalize(<<216, 15>>, :nfkc) == <<216, 15>>
+    assert String.normalize(<<216, 15>>, :nfkd) == <<216, 15>>
+
     ## Cases from NormalizationTest.txt
 
     # 05B8 05B9 05B1 0591 05C3 05B0 05AC 059F
@@ -794,6 +799,7 @@ defmodule StringTest do
     # 115B9 0334 115AF
     # SIDDHAM VOWEL SIGN AI, COMBINING TILDE OVERLAY, SIDDHAM VOWEL SIGN AA
     assert String.normalize("𑖹̴𑖯", :nfc) == "𑖹̴𑖯"
+
     # HEBREW ACCENT ETNAHTA, HEBREW PUNCTUATION SOF PASUQ, HEBREW POINT SHEVA,
     # HEBREW ACCENT ILUY, HEBREW ACCENT QARNEY PARA
     assert String.normalize("ֱָֹ֑׃ְ֬֟", :nfc) == "ֱָֹ֑׃ְ֬֟"
@@ -823,5 +829,25 @@ defmodule StringTest do
     # 115B9 0334 115AF
     # SIDDHAM VOWEL SIGN AI, COMBINING TILDE OVERLAY, SIDDHAM VOWEL SIGN AA
     assert String.normalize("𑖹̴𑖯", :nfc) == "𑖹̴𑖯"
+
+    # (ﬀ; ﬀ; ﬀ; ff; ff; ) LATIN SMALL LIGATURE FF
+    # FB00;FB00;FB00;0066 0066;0066 0066;
+    assert String.normalize("ﬀ", :nfkd) == "\u0066\u0066"
+
+    # (ﬂ; ﬂ; ﬂ; fl; fl; ) LATIN SMALL LIGATURE FL
+    # FB02;FB02;FB02;0066 006C;0066 006C;
+    assert String.normalize("ﬂ", :nfkd) == "\u0066\u006C"
+
+    # (ﬅ; ﬅ; ﬅ; st; st; ) LATIN SMALL LIGATURE LONG S T
+    # FB05;FB05;FB05;0073 0074;0073 0074;
+    assert String.normalize("ﬅ", :nfkd) == "\u0073\u0074"
+
+    # (ﬆ; ﬆ; ﬆ; st; st; ) LATIN SMALL LIGATURE ST
+    # FB06;FB06;FB06;0073 0074;0073 0074;
+    assert String.normalize("\u0073\u0074", :nfkc) == "\u0073\u0074"
+
+    # (ﬓ; ﬓ; ﬓ; մն; մն; ) ARMENIAN SMALL LIGATURE MEN NOW
+    # FB13;FB13;FB13;0574 0576;0574 0576;
+    assert String.normalize("\u0574\u0576", :nfkc) == "\u0574\u0576"
   end
 end
