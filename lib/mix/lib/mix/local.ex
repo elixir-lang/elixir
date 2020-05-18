@@ -161,12 +161,27 @@ defmodule Mix.Local do
         contents
 
       {:remote, message} ->
-        Mix.raise("""
-        #{message}
+        Mix.raise(
+          """
+          #{message}
 
-        Could not install #{name} because Mix could not download metadata at #{path}.
-        """)
+          Could not install #{name} because Mix could not download metadata at #{path}.
+          """ <> suggestions(name)
+        )
     end
+  end
+
+  defp suggestions("Hex") do
+    """
+
+    Alternatively, you can compile and install Hex directly with this command:
+
+        mix archive.install github hexpm/hex branch latest
+    """
+  end
+
+  defp suggestions(_) do
+    ""
   end
 
   defp parse_csv(body) do
