@@ -685,6 +685,11 @@ defmodule String do
   and return on invalid codepoint, use `:unicode.characters_to_nfd_binary/1`
   and `:unicode.characters_to_nfc_binary/1` instead.
 
+  Normalization forms `:nfkc` and `:nfkd` should not be blindly applied
+  to arbitrary text. Because they erase many formatting distinctions,
+  they will prevent round-trip conversion to and from many legacy
+  character sets.
+
   ## Forms
 
   The supported forms are:
@@ -697,6 +702,14 @@ defmodule String do
     * `:nfc` - Normalization Form Canonical Composition.
       Characters are decomposed and then recomposed by canonical equivalence.
 
+    * `:nfkd` - Normalization Form Compatibility Decomposition.
+      Characters are decomposed by compatibility equivalence, and
+      multiple combining characters are arranged in a specific
+      order.
+
+    * `:nfkc` - Normalization Form Compatibility Composition.
+      Characters are decomposed and then recomposed by compatibility equivalence.
+
   ## Examples
 
       iex> String.normalize("yêṩ", :nfd)
@@ -704,6 +717,12 @@ defmodule String do
 
       iex> String.normalize("leña", :nfc)
       "leña"
+
+      iex> String.normalize("ﬁ", :nfkd)
+      "fi"
+
+      iex> String.normalize("fi", :nfkc)
+      "fi"
 
   """
   def normalize(string, form)
@@ -719,6 +738,20 @@ defmodule String do
     case :unicode.characters_to_nfc_binary(string) do
       string when is_binary(string) -> string
       {:error, good, <<head, rest::binary>>} -> good <> <<head>> <> normalize(rest, :nfc)
+    end
+  end
+
+  def normalize(string, :nfkd) do
+    case :unicode.characters_to_nfkd_binary(string) do
+      string when is_binary(string) -> string
+      {:error, good, <<head, rest::binary>>} -> good <> <<head>> <> normalize(rest, :nfkd)
+    end
+  end
+
+  def normalize(string, :nfkc) do
+    case :unicode.characters_to_nfkc_binary(string) do
+      string when is_binary(string) -> string
+      {:error, good, <<head, rest::binary>>} -> good <> <<head>> <> normalize(rest, :nfkc)
     end
   end
 
