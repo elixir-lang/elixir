@@ -1902,6 +1902,9 @@ defmodule Enum do
       nil
 
   """
+  @spec min_max_by(t, (element -> any), (element, element -> boolean) | module()) ::
+          {element, element} | empty_result
+        when empty_result: any
   @spec min_max_by(t, (element -> any), (() -> empty_result)) :: {element, element} | empty_result
         when empty_result: any
   @spec min_max_by(
