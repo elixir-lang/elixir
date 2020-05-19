@@ -1532,6 +1532,7 @@ defmodule Enum do
   end
 
   @doc false
+  @spec max(t, (() -> empty_result)) :: element | empty_result when empty_result: any
   def max(enumerable, empty_fallback) when is_function(empty_fallback, 0) do
     max(enumerable, &>=/2, empty_fallback)
   end
@@ -1578,7 +1579,9 @@ defmodule Enum do
       0
 
   """
-  @spec max(t, (() -> empty_result)) :: element | empty_result when empty_result: any
+  @spec max(t, (element, element -> boolean) | module()) ::
+          element | empty_result
+        when empty_result: any
   @spec max(t, (element, element -> boolean) | module(), (() -> empty_result)) ::
           element | empty_result
         when empty_result: any
@@ -1590,6 +1593,8 @@ defmodule Enum do
   defp max_sort_fun(module) when is_atom(module), do: &(module.compare(&1, &2) != :lt)
 
   @doc false
+  @spec max_by(t, (element -> any), (() -> empty_result)) :: element | empty_result
+        when empty_result: any
   def max_by(enumerable, fun, empty_fallback)
       when is_function(fun, 1) and is_function(empty_fallback, 0) do
     max_by(enumerable, fun, &>=/2, empty_fallback)
@@ -1639,7 +1644,11 @@ defmodule Enum do
       nil
 
   """
-  @spec max_by(t, (element -> any), (() -> empty_result)) :: element | empty_result
+  @spec max_by(
+          t,
+          (element -> any),
+          (element, element -> boolean) | module()
+        ) :: element | empty_result
         when empty_result: any
   @spec max_by(
           t,
@@ -1697,6 +1706,7 @@ defmodule Enum do
   end
 
   @doc false
+  @spec min(t, (() -> empty_result)) :: element | empty_result when empty_result: any
   def min(enumerable, empty_fallback) when is_function(empty_fallback, 0) do
     min(enumerable, &<=/2, empty_fallback)
   end
@@ -1743,7 +1753,9 @@ defmodule Enum do
       0
 
   """
-  @spec min(t, (() -> empty_result)) :: element | empty_result when empty_result: any
+  @spec min(t, (element, element -> boolean) | module()) ::
+          element | empty_result
+        when empty_result: any
   @spec min(t, (element, element -> boolean) | module(), (() -> empty_result)) ::
           element | empty_result
         when empty_result: any
@@ -1755,6 +1767,8 @@ defmodule Enum do
   defp min_sort_fun(module) when is_atom(module), do: &(module.compare(&1, &2) != :gt)
 
   @doc false
+  @spec min_by(t, (element -> any), (() -> empty_result)) :: element | empty_result
+        when empty_result: any
   def min_by(enumerable, fun, empty_fallback)
       when is_function(fun, 1) and is_function(empty_fallback, 0) do
     min_by(enumerable, fun, &<=/2, empty_fallback)
@@ -1804,7 +1818,11 @@ defmodule Enum do
       nil
 
   """
-  @spec min_by(t, (element -> any), (() -> empty_result)) :: element | empty_result
+  @spec min_by(
+          t,
+          (element -> any),
+          (element, element -> boolean) | module()
+        ) :: element | empty_result
         when empty_result: any
   @spec min_by(
           t,
@@ -1858,6 +1876,14 @@ defmodule Enum do
     end
   end
 
+  @doc false
+  @spec min_max_by(t, (element -> any), (() -> empty_result)) :: {element, element} | empty_result
+        when empty_result: any
+  def min_max_by(enumerable, fun, empty_fallback)
+      when is_function(fun, 1) and is_function(empty_fallback, 0) do
+    min_max_by(enumerable, fun, &</2, empty_fallback)
+  end
+
   @doc """
   Returns a tuple with the minimal and the maximal elements in the
   enumerable as calculated by the given function.
@@ -1905,8 +1931,6 @@ defmodule Enum do
   @spec min_max_by(t, (element -> any), (element, element -> boolean) | module()) ::
           {element, element} | empty_result
         when empty_result: any
-  @spec min_max_by(t, (element -> any), (() -> empty_result)) :: {element, element} | empty_result
-        when empty_result: any
   @spec min_max_by(
           t,
           (element -> any),
@@ -1920,11 +1944,6 @@ defmodule Enum do
         sorter_or_empty_fallback \\ &</2,
         empty_fallback \\ fn -> raise Enum.EmptyError end
       )
-
-  def min_max_by(enumerable, fun, empty_fallback, _empty_fallback)
-      when is_function(fun, 1) and is_function(empty_fallback, 0) do
-    min_max_by(enumerable, fun, &</2, empty_fallback)
-  end
 
   def min_max_by(enumerable, fun, sorter, empty_fallback)
       when is_function(fun, 1) and is_atom(sorter) and is_function(empty_fallback, 0) do
