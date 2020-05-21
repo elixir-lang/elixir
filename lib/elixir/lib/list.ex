@@ -446,6 +446,10 @@ defmodule List do
     end
   end
 
+  @doc "Returns the empty list."
+  @spec new() :: []
+  def new(), do: []
+
   @doc """
   Wraps `term` in a list if this is not list.
 
