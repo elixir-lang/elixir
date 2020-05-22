@@ -116,8 +116,6 @@ defmodule Mix do
   is `:host` but it can be set via the `MIX_TARGET` environment variable.
   The target can be read via `Mix.target/0`.
 
-  This feature is considered experimental and may change in future releases.
-
   ## Aliases
 
   Aliases are shortcuts or tasks specific to the current project.
