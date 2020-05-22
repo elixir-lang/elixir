@@ -288,6 +288,15 @@ defmodule Module.Types.ExprTest do
     assert {:error, _} = quoted_expr(fn :foo = b -> :bar = b end)
   end
 
+  test "receive" do
+    assert quoted_expr(
+             receive do
+             after
+               0 -> :ok
+             end
+           ) == {:ok, :dynamic}
+  end
+
   test "with" do
     assert quoted_expr(
              [a, b],

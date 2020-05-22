@@ -264,6 +264,9 @@ defmodule Module.Types.Expr do
 
     result =
       each_ok(blocks, fn
+        {:do, {:__block__, _, []}} ->
+          :ok
+
         {:do, clauses} ->
           of_clauses(clauses, stack, context)
 
