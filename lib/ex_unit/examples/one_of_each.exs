@@ -1,4 +1,4 @@
-ExUnit.start [seed: 0]
+ExUnit.start(seed: 0)
 
 defmodule TestOneOfEach do
   @moduledoc """
@@ -10,8 +10,8 @@ defmodule TestOneOfEach do
   @one 1
   @two 2
 
-  @long_data_1  [field1: "one", field2: {:two1, :two2}, field3: 'three', field4: [1, 2, 3, 4]]
-  @long_data_2  [field1: "one", field2: {:two1, :two3}, field3: 'three', field4: [1, 2, 3, 4]]
+  @long_data_1 [field1: "one", field2: {:two1, :two2}, field3: 'three', field4: [1, 2, 3, 4]]
+  @long_data_2 [field1: "one", field2: {:two1, :two3}, field3: 'three', field4: [1, 2, 3, 4]]
 
   setup do
     {:ok, user_id: 1, post_id: 2, many_ids: Enum.to_list(1..50)}
@@ -62,10 +62,10 @@ defmodule TestOneOfEach do
   end
 
   test "12. assert that a message is received within a timeout" do
-    send self(), {:ok, 1}
-    send self(), :message_in_my_inbox
-    send self(), {:ok, 2}
-    send self(), :another_message
+    send(self(), {:ok, 1})
+    send(self(), :message_in_my_inbox)
+    send(self(), {:ok, 2})
+    send(self(), :another_message)
     assert_receive :no_message_after_timeout
   end
 
@@ -75,14 +75,14 @@ defmodule TestOneOfEach do
 
   test "14. assert an exception with a given message is raised" do
     assert_raise(SomeException, "some message", fn ->
-                                                     raise "other exception"
-                                                end)
+      raise "other exception"
+    end)
   end
 
   test "15. assert an exception with a given message is raised, but the message is wrong" do
     assert_raise(RuntimeError, "some message", fn ->
-                                                    raise "other error"
-                                               end)
+      raise "other error"
+    end)
   end
 
   test "16. assert an exception is raised" do
@@ -90,7 +90,7 @@ defmodule TestOneOfEach do
   end
 
   test "17. assert two values are within some delta" do
-    assert_in_delta 3.1415926, 22.0/7, 0.001
+    assert_in_delta 3.1415926, 22.0 / 7, 0.001
   end
 
   test "18. refute a value with a message" do
@@ -98,12 +98,12 @@ defmodule TestOneOfEach do
   end
 
   test "19. refute a message is received within a timeout" do
-    send self(), {:hello, "Dave"}
+    send(self(), {:hello, "Dave"})
     refute_receive {:hello, _}, 1000
   end
 
   test "20. refute a message is ready to be received" do
-    send self(), :hello_again
+    send(self(), :hello_again)
     refute_received :hello_again
   end
 
@@ -116,7 +116,7 @@ defmodule TestOneOfEach do
   end
 
   test "23. flunk" do
-    flunk "we failed. totally"
+    flunk("we failed. totally")
   end
 
   test "24. exception raised while running test" do
@@ -124,7 +124,8 @@ defmodule TestOneOfEach do
   end
 
   test "25. error due to exit" do
-    spawn_link fn -> raise "oops" end
+    spawn_link(fn -> raise "oops" end)
+
     receive do
     end
   end
@@ -133,15 +134,17 @@ defmodule TestOneOfEach do
     error1 =
       try do
         assert [@one] = [@two]
-      rescue e in ExUnit.AssertionError ->
-        {:error, e, System.stacktrace}
+      rescue
+        e in ExUnit.AssertionError ->
+          {:error, e, __STACKTRACE__}
       end
 
     error2 =
       try do
         assert @one * 4 > @two * 3
-      rescue e in ExUnit.AssertionError ->
-        {:error, e, System.stacktrace}
+      rescue
+        e in ExUnit.AssertionError ->
+          {:error, e, __STACKTRACE__}
       end
 
     raise ExUnit.MultiError, errors: [error1, error2]
@@ -150,8 +153,8 @@ defmodule TestOneOfEach do
   @tag capture_log: true
   test "27. log capturing" do
     require Logger
-    Logger.debug "this will be logged"
-    flunk "oops"
+    Logger.debug("this will be logged")
+    flunk("oops")
   end
 
   test "28. function clause error" do
@@ -160,6 +163,28 @@ defmodule TestOneOfEach do
 
   test "29. function call arguments" do
     assert some_vars(1 + 2, 3 + 4)
+  end
+
+  @tag :capture_log
+  test "30. linked assertion error" do
+    Task.async(fn -> assert 1 == 2 end) |> Task.await()
+  end
+
+  @tag :capture_log
+  test "31. linked function clause error" do
+    Task.async(fn -> Access.fetch(:foo, :bar) end) |> Task.await()
+  end
+
+  @tag :capture_log
+  test "32. trapped assertion error" do
+    Process.flag(:trap_exit, true)
+    Task.async(fn -> assert 1 == 2 end) |> Task.await()
+  end
+
+  @tag :capture_log
+  test "33. trapped function clause error" do
+    Process.flag(:trap_exit, true)
+    Task.async(fn -> Access.fetch(:foo, :bar) end) |> Task.await()
   end
 
   defp some_vars(_a, _b) do
@@ -171,6 +196,6 @@ defmodule TestOneOfEach do
   end
 
   defp ignite(val) do
-    1/val
+    1 / val
   end
 end

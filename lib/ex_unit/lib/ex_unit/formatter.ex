@@ -54,6 +54,7 @@ defmodule ExUnit.Formatter do
 
   @counter_padding "     "
   @mailbox_label_padding @counter_padding <> "  "
+  @formatter_exceptions [ExUnit.AssertionError, FunctionClauseError]
   @no_value ExUnit.AssertionError.no_value()
 
   @doc """
@@ -136,10 +137,10 @@ defmodule ExUnit.Formatter do
 
   @doc false
   def format_assertion_error(%ExUnit.AssertionError{} = struct) do
-    format_assertion_error(%{}, struct, [], :infinity, fn _, msg -> msg end, "")
+    format_exception(%{}, struct, [], :infinity, fn _, msg -> msg end, "") |> elem(0)
   end
 
-  defp format_assertion_error(test, struct, stack, width, formatter, counter_padding) do
+  defp format_exception(test, %ExUnit.AssertionError{} = struct, stack, width, formatter, pad) do
     label_padding_size = if has_value?(struct.right), do: 7, else: 6
     padding_size = label_padding_size + byte_size(@counter_padding)
 
@@ -148,16 +149,27 @@ defmodule ExUnit.Formatter do
         do: &pad_multiline(&1, padding_size),
         else: &code_multiline(&1, padding_size)
 
-    [
-      note: if_value(struct.message, &format_message(&1, formatter)),
-      doctest: if_value(struct.doctest, &pad_multiline(&1, 2 + byte_size(@counter_padding))),
-      code: if_value(struct.expr, code_multiline),
-      code: unless_value(struct.expr, fn -> get_code(test, stack) || @no_value end),
-      arguments: if_value(struct.args, &format_args(&1, width))
-    ]
-    |> Kernel.++(format_context(struct, formatter, padding_size, width))
-    |> format_meta(formatter, counter_padding, label_padding_size)
-    |> IO.iodata_to_binary()
+    formatted =
+      [
+        note: if_value(struct.message, &format_message(&1, formatter)),
+        doctest: if_value(struct.doctest, &pad_multiline(&1, 2 + byte_size(@counter_padding))),
+        code: if_value(struct.expr, code_multiline),
+        code: unless_value(struct.expr, fn -> get_code(test, stack) || @no_value end),
+        arguments: if_value(struct.args, &format_args(&1, width))
+      ]
+      |> Kernel.++(format_context(struct, formatter, padding_size, width))
+      |> format_meta(formatter, pad, label_padding_size)
+      |> IO.iodata_to_binary()
+
+    {formatted, stack}
+  end
+
+  defp format_exception(test, %FunctionClauseError{} = struct, stack, _width, formatter, _pad) do
+    {blamed, stack} = Exception.blame(:error, struct, stack)
+    banner = Exception.format_banner(:error, struct)
+    blamed = FunctionClauseError.blame(blamed, &inspect/1, &blame_match(&1, &2, formatter))
+    message = error_info(banner, formatter) <> "\n" <> pad(String.trim_leading(blamed, "\n"))
+    {message <> format_code(test, stack, formatter), stack}
   end
 
   @doc false
@@ -179,29 +191,47 @@ defmodule ExUnit.Formatter do
       end)
   end
 
-  defp format_kind_reason(
-         test,
-         :error,
-         %ExUnit.AssertionError{} = struct,
-         stack,
-         width,
-         formatter
-       ) do
-    {format_assertion_error(test, struct, stack, width, formatter, @counter_padding), stack}
+  defp format_kind_reason(test, :error, %mod{} = struct, stack, width, formatter)
+       when mod in @formatter_exceptions do
+    format_exception(test, struct, stack, width, formatter, @counter_padding)
   end
 
-  defp format_kind_reason(test, :error, %FunctionClauseError{} = struct, stack, _width, formatter) do
-    {blamed, stack} = Exception.blame(:error, struct, stack)
-    banner = Exception.format_banner(:error, struct)
-    blamed = FunctionClauseError.blame(blamed, &inspect/1, &blame_match(&1, &2, formatter))
-    message = error_info(banner, formatter) <> "\n" <> pad(String.trim_leading(blamed, "\n"))
-    {message <> format_code(test, stack, formatter), stack}
+  defp format_kind_reason(test, kind, reason, stack, width, formatter) do
+    case linked_or_trapped_exit(kind, reason) do
+      {header, wrapped_reason, wrapped_stack} ->
+        struct = Exception.normalize(:error, wrapped_reason, wrapped_stack)
+
+        {formatted_reason, _} =
+          format_exception(test, struct, wrapped_stack, width, formatter, @counter_padding)
+
+        formatted_stack = format_stacktrace(wrapped_stack, test.module, test.name, formatter)
+        {error_info(header, formatter) <> pad(formatted_reason <> formatted_stack), stack}
+
+      :error ->
+        {reason, stack} = Exception.blame(kind, reason, stack)
+        message = error_info(Exception.format_banner(kind, reason), formatter)
+        {message <> format_code(test, stack, formatter), stack}
+    end
   end
 
-  defp format_kind_reason(test, kind, reason, stack, _width, formatter) do
-    message = error_info(Exception.format_banner(kind, reason), formatter)
-    {message <> format_code(test, stack, formatter), stack}
+  defp linked_or_trapped_exit({:EXIT, pid}, {reason, [_ | _] = stack})
+       when reason.__struct__ in @formatter_exceptions
+       when reason == :function_clause do
+    {"** (EXIT from #{inspect(pid)}) an exception was raised:\n", reason, stack}
   end
+
+  defp linked_or_trapped_exit(:exit, {{reason, [_ | _] = stack}, {mod, fun, args}})
+       when is_atom(mod) and is_atom(fun) and is_list(args) and
+              reason.__struct__ in @formatter_exceptions
+       when is_atom(mod) and is_atom(fun) and is_list(args) and reason == :function_clause do
+    {
+      "** (exit) exited in: #{Exception.format_mfa(mod, fun, args)}\n   ** (EXIT) an exception was raised:",
+      reason,
+      stack
+    }
+  end
+
+  defp linked_or_trapped_exit(_kind, _reason), do: :error
 
   defp format_code(test, stack, formatter) do
     if snippet = get_code(test, stack) do
