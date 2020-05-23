@@ -1183,6 +1183,12 @@ defmodule TypespecTest do
       quoted =
         Enum.sort([
           quote(do: @spec(foo() :: integer())),
+          quote(do: @spec(foo() :: union())),
+          quote(do: @spec(foo() :: union(integer()))),
+          quote(do: @spec(foo() :: truly_union())),
+          quote(do: @spec(foo(union()) :: union())),
+          quote(do: @spec(foo(union(integer())) :: union(integer()))),
+          quote(do: @spec(foo(truly_union()) :: truly_union())),
           quote(do: @spec(foo(atom()) :: integer() | [{}])),
           quote(do: @spec(foo(arg) :: integer() when [arg: integer()])),
           quote(do: @spec(foo(arg) :: arg when [arg: var])),
@@ -1191,6 +1197,10 @@ defmodule TypespecTest do
 
       bytecode =
         test_module do
+          @type union :: any()
+          @type union(t) :: t
+          @type truly_union :: list | map | union
+
           def foo(), do: 1
           def foo(arg), do: arg
           Module.eval_quoted(__MODULE__, quote(do: (unquote_splicing(quoted))))
