@@ -217,7 +217,8 @@ defmodule Code.Typespec do
   end
 
   defp typespec_to_quoted({:user_type, line, name, args}) do
-    typespec_to_quoted({:type, line, name, args})
+    args = for arg <- args, do: typespec_to_quoted(arg)
+    {name, [line: line], args}
   end
 
   defp typespec_to_quoted({:type, line, :tuple, :any}) do
