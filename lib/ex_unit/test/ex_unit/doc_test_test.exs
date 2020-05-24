@@ -213,6 +213,12 @@ defmodule ExUnit.DocTestTest.Invalid do
       {:ok, #MapSet<[1, 2, 3]>}
   """
   def misplaced_opaque_type, do: :ok
+
+  @typedoc """
+      iex> 1 + * 1
+      1
+  """
+  @type t :: any()
 end
 |> write_beam
 
@@ -422,7 +428,7 @@ defmodule ExUnit.DocTestTest.PatternMatching do
       # false assertions do not accidentally raise
       iex> false = (List.flatten([]) != [])
   """
-  def starting_line(), do: 392
+  def starting_line(), do: 398
 end
 |> write_beam
 
@@ -664,6 +670,17 @@ defmodule ExUnit.DocTestTest do
                   1
                 stacktrace:
                   test/ex_unit/doc_test_test.exs:176: ExUnit.DocTestTest.Invalid (module)
+           """
+
+    assert output =~ """
+            15) doctest ExUnit.DocTestTest.Invalid.t/0 (15) (ExUnit.DocTestTest.ActuallyCompiled)
+                test/ex_unit/doc_test_test.exs:#{doctest_line}
+                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:218: syntax error before: '*'
+                doctest:
+                  iex> 1 + * 1
+                  1
+                stacktrace:
+                  test/ex_unit/doc_test_test.exs:218: ExUnit.DocTestTest.Invalid (module)
            """
   end
 
