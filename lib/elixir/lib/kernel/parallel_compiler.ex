@@ -15,7 +15,7 @@ defmodule Kernel.ParallelCompiler do
   always awaited on by calling `Task.await/1`
   """
   @doc since: "1.6.0"
-  def async(fun) when is_function(fun) do
+  def async(fun) when is_function(fun, 0) do
     if parent = :erlang.get(:elixir_compiler_pid) do
       file = :erlang.get(:elixir_compiler_file)
       dest = :erlang.get(:elixir_compiler_dest)
