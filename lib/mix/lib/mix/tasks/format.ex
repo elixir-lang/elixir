@@ -320,7 +320,8 @@ defmodule Mix.Tasks.Format do
     if no_entries_in_formatter_opts?(formatter_opts_and_subs) do
       Mix.raise(
         "Expected one or more files/patterns to be given to mix format " <>
-          "or for a .formatter.exs to exist with an :inputs or :subdirectories key"
+          "or for a .formatter.exs to exist with an :inputs or :subdirectories key." <>
+          "Run mix format.gen to generate a .formatter.exs"
       )
     end
 

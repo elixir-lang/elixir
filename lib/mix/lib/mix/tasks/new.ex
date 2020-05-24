@@ -252,20 +252,28 @@ defmodule Mix.Tasks.New do
   <% end %>
   """)
 
-  embed_template(:formatter, """
+  @formatter_template """
   # Used by "mix format"
   [
     inputs: ["{mix,.formatter}.exs", "{config,lib,test}/**/*.{ex,exs}"]
   ]
-  """)
+  """
 
-  embed_template(:formatter_umbrella, """
+  def formatter_template, do: @formatter_template
+
+  embed_template(:formatter, @formatter_template)
+
+  @formatter_umbrella_template """
   # Used by "mix format"
   [
     inputs: ["mix.exs", "config/*.exs"],
     subdirectories: ["apps/*"]
   ]
-  """)
+  """
+
+  def formatter_umbrella_template, do: @formatter_umbrella_template
+
+  embed_template(:formatter_umbrella, @formatter_umbrella_template)
 
   embed_template(:gitignore, """
   # The directory Mix will write compiled artifacts to.
