@@ -493,7 +493,7 @@ defmodule ExUnit.DocTest do
   end
 
   defp extract_from_doc({{kind, _, _}, _, _, doc, _}, _module)
-       when kind not in [:function, :macro] or doc in [:none, :hidden],
+       when kind not in [:function, :macro, :type] or doc in [:none, :hidden],
        do: []
 
   defp extract_from_doc({{_, name, arity}, annotation, _, %{"en" => doc}, _}, module) do
