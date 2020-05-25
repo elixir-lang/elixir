@@ -140,8 +140,8 @@ defmodule Mix.Tasks.App.Start do
             {:error, {:file.format_error(:enoent), name}}
 
           path ->
-            case :file.consult(path) do
-              {:ok, [{:application, _, properties} = application_data]} ->
+            case consult_app_file_maybe_in_archive(path) do
+              {:ok, {:application, _, properties} = application_data} ->
                 with :ok <- :application.load(application_data) do
                   if compile_env = validate_compile_env? && properties[:compile_env] do
                     # Unfortunately we can only check the current app here,
@@ -157,6 +157,19 @@ defmodule Mix.Tasks.App.Start do
                 {:error, {:file.format_error(reason), name}}
             end
         end
+    end
+  end
+
+  defp consult_app_file_maybe_in_archive(path) do
+    # The path could be located in .ez archive
+    case :erl_prim_loader.get_file(path) do
+      {:ok, bin, _full_name} ->
+        with {:ok, tokens, _} <- :erl_scan.string(String.to_charlist(bin)) do
+          :erl_parse.parse_term(tokens)
+        end
+
+      :error ->
+        {:error, :enoent}
     end
   end
 
