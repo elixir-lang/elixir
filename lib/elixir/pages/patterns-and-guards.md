@@ -282,7 +282,7 @@ not_nil_head?(["some_value", "another_value"])
 Even though the head of the list is not `nil`, the first clause for `not_nil_head?/1` fails because the expression does not evaluate to `true`, but to `"some_value"`, therefore triggering the second clause which returns `false`. To make the guard behave correctly, you must ensure that the guard evaluates to `true`, like so:
 
 ```elixir
-def not_nil_head?(term) when head != nil, do: true
+def not_nil_head?([head | _]) when head != nil, do: true
 def not_nil_head?(_), do: false
 
 not_nil_head?(["some_value", "another_value"])
