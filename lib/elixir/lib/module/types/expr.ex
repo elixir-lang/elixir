@@ -94,7 +94,7 @@ defmodule Module.Types.Expr do
   # __CALLER__
   def of_expr({:__CALLER__, _meta, var_context}, _stack, context) when is_atom(var_context) do
     # TODO: Full %Macro.Env{} struct
-    {:ok, {:map, [{{:atom, :__struct__}, {:atom, Macro.Env}}]}, context}
+    {:ok, {:map, [{:required, {:atom, :__struct__}, {:atom, Macro.Env}}]}, context}
   end
 
   # __STACKTRACE__
@@ -142,7 +142,7 @@ defmodule Module.Types.Expr do
     stack = push_expr_stack(expr, stack)
 
     case of_pairs(args, stack, context) do
-      {:ok, _pairs, context} -> {:ok, {:map, []}, context}
+      {:ok, _pairs, context} -> {:ok, {:map, [{:optional, :dynamic, :dynamic}]}, context}
       {:error, reason} -> {:error, reason}
     end
   end
@@ -153,7 +153,7 @@ defmodule Module.Types.Expr do
 
     case of_pairs(args, stack, context) do
       {:ok, _pairs, context} ->
-        pairs = [{{:atom, :__struct__}, {:atom, module}}]
+        pairs = [{:required, {:atom, :__struct__}, {:atom, module}}]
         {:ok, {:map, pairs}, context}
 
       {:error, reason} ->
@@ -177,7 +177,7 @@ defmodule Module.Types.Expr do
 
     case of_pairs(args, stack, context) do
       {:ok, pairs, context} ->
-        pairs = [{{:atom, :__struct__}, {:atom, module}} | pairs]
+        pairs = [{:required, {:atom, :__struct__}, {:atom, module}} | pairs]
         {:ok, {:map, pairs}, context}
 
       {:error, reason} ->
@@ -336,23 +336,22 @@ defmodule Module.Types.Expr do
     map_reduce_ok(pairs, context, fn {key, value}, context ->
       with {:ok, key_type, context} <- of_expr(key, stack, context),
            {:ok, value_type, context} <- of_expr(value, stack, context),
-           do: {:ok, {key_type, value_type}, context}
+           do: {:ok, {:required, key_type, value_type}, context}
     end)
   end
 
   defp pairs_to_unions(pairs, context) do
     # We are currently creating overlapping key types
 
-    Enum.reduce(pairs, [], fn {key, value}, pairs ->
-      case :lists.keyfind(key, 1, pairs) do
-        {^key, {:union, union}} ->
-          :lists.keystore(key, 1, pairs, {key, to_union([value | union], context)})
+    Enum.reduce(pairs, [], fn {kind_left, key, value_left}, pairs ->
+      case List.keyfind(pairs, key, 1) do
+        {kind_right, ^key, value_right} ->
+          kind = unify_kinds(kind_left, kind_right)
+          value = to_union([value_left, value_right], context)
+          List.keystore(pairs, key, 1, {kind, key, value})
 
-        {^key, original_value} ->
-          :lists.keystore(key, 1, pairs, {key, to_union([value, original_value], context)})
-
-        false ->
-          [{key, value} | pairs]
+        nil ->
+          [{kind_left, key, value_left} | pairs]
       end
     end)
   end

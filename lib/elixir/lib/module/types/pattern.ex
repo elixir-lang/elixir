@@ -161,8 +161,12 @@ defmodule Module.Types.Pattern do
     stack = push_expr_stack(expr, stack)
 
     case of_pairs(args, stack, context) do
-      {:ok, pairs, context} -> {:ok, {:map, pairs_to_unions(pairs, context)}, context}
-      {:error, reason} -> {:error, reason}
+      {:ok, pairs, context} ->
+        pairs = pairs_to_unions(pairs, context) ++ [{:optional, :dynamic, :dynamic}]
+        {:ok, {:map, pairs}, context}
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
@@ -177,7 +181,9 @@ defmodule Module.Types.Pattern do
 
     case of_pairs(args, stack, context) do
       {:ok, pairs, context} ->
-        pairs = [{{:atom, :__struct__}, :atom} | pairs]
+        pairs =
+          [{:required, {:atom, :__struct__}, :atom}] ++ pairs ++ [{:optional, :dynamic, :dynamic}]
+
         {:ok, {:map, pairs}, context}
 
       {:error, reason} ->
@@ -198,7 +204,10 @@ defmodule Module.Types.Pattern do
     with {:ok, pairs, context} <- of_pairs(args, stack, context),
          {var_type, context} = new_var(var, context),
          {:ok, _, context} <- unify(var_type, :atom, stack, context) do
-      pairs = [{{:atom, :__struct__}, var_type} | pairs]
+      pairs =
+        [{:required, {:atom, :__struct__}, var_type}] ++
+          pairs ++ [{:optional, :dynamic, :dynamic}]
+
       {:ok, {:map, pairs}, context}
     end
   end
@@ -210,7 +219,7 @@ defmodule Module.Types.Pattern do
 
     case of_pairs(args, stack, context) do
       {:ok, pairs, context} ->
-        pairs = [{{:atom, :__struct__}, {:atom, module}} | pairs]
+        pairs = [{:required, {:atom, :__struct__}, {:atom, module}} | pairs]
         {:ok, {:map, pairs}, context}
 
       {:error, reason} ->
@@ -222,7 +231,7 @@ defmodule Module.Types.Pattern do
     map_reduce_ok(pairs, context, fn {key, value}, context ->
       with {:ok, key_type, context} <- of_pattern(key, stack, context),
            {:ok, value_type, context} <- of_pattern(value, stack, context),
-           do: {:ok, {key_type, value_type}, context}
+           do: {:ok, {:required, key_type, value_type}, context}
     end)
   end
 
@@ -230,16 +239,15 @@ defmodule Module.Types.Pattern do
     # Maps only allow simple literal keys in patterns so
     # we do not have to do subtype checking
 
-    Enum.reduce(pairs, [], fn {key, value}, pairs ->
-      case :lists.keyfind(key, 1, pairs) do
-        {^key, {:union, union}} ->
-          :lists.keystore(key, 1, pairs, {key, to_union([value | union], context)})
+    Enum.reduce(pairs, [], fn {kind_left, key, value_left}, pairs ->
+      case List.keyfind(pairs, key, 1) do
+        {kind_right, ^key, value_right} ->
+          kind = unify_kinds(kind_left, kind_right)
+          value = to_union([value_left, value_right], context)
+          List.keystore(pairs, key, 1, {kind, key, value})
 
-        {^key, original_value} ->
-          :lists.keystore(key, 1, pairs, {key, to_union([value, original_value], context)})
-
-        false ->
-          [{key, value} | pairs]
+        nil ->
+          [{kind_left, key, value_left} | pairs]
       end
     end)
   end

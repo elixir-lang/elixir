@@ -64,24 +64,27 @@ defmodule Module.Types.Infer do
     # we can do exact type match without subtype checking
 
     unique_right_pairs =
-      Enum.reject(target_pairs, fn {key, _value} ->
-        :lists.keyfind(key, 1, source_pairs)
+      Enum.reject(target_pairs, fn {_kind, key, _value} ->
+        List.keyfind(source_pairs, key, 1)
       end)
 
     unique_pairs = source_pairs ++ unique_right_pairs
 
     # Build union of all unique key-value pairs between the maps
     result =
-      map_reduce_ok(unique_pairs, context, fn {source_key, source_value}, context ->
-        case :lists.keyfind(source_key, 1, target_pairs) do
-          {^source_key, target_value} ->
+      map_reduce_ok(unique_pairs, context, fn {source_kind, source_key, source_value}, context ->
+        case List.keyfind(target_pairs, source_key, 1) do
+          {target_kind, ^source_key, target_value} ->
             case unify(source_value, target_value, stack, context) do
-              {:ok, value, context} -> {:ok, {source_key, value}, context}
-              {:error, reason} -> {:error, reason}
+              {:ok, value, context} ->
+                {:ok, {unify_kinds(source_kind, target_kind), source_key, value}, context}
+
+              {:error, reason} ->
+                {:error, reason}
             end
 
-          false ->
-            {:ok, {source_key, source_value}, context}
+          nil ->
+            {:ok, {source_kind, source_key, source_value}, context}
         end
       end)
 
@@ -258,7 +261,7 @@ defmodule Module.Types.Infer do
   end
 
   defp recursive_type?({:map, pairs} = parent, parents, context) do
-    Enum.any?(pairs, fn {key, value} ->
+    Enum.any?(pairs, fn {_kind, key, value} ->
       recursive_type?(key, [parent | parents], context) or
         recursive_type?(value, [parent | parents], context)
     end)
@@ -304,10 +307,12 @@ defmodule Module.Types.Infer do
   """
   # TODO: Translate union of all top types to dynamic()
   def to_union(types, context) when types != [] do
-    if :dynamic in types do
+    flat_types = flatten_union(types)
+
+    if :dynamic in flat_types do
       :dynamic
     else
-      case unique_super_types(flatten_union(types), context) do
+      case unique_super_types(flat_types, context) do
         [type] -> type
         types -> {:union, types}
       end
@@ -338,6 +343,10 @@ defmodule Module.Types.Infer do
   defp unique_super_types([], _context) do
     []
   end
+
+  def unify_kinds(:required, _), do: :required
+  def unify_kinds(_, :required), do: :required
+  def unify_kinds(:optional, :optional), do: :optional
 
   # Collect relevant information from context and traces to report error
   defp error({:unable_unify, left, right}, stack, context) do

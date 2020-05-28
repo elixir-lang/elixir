@@ -165,10 +165,10 @@ defmodule Module.Types do
 
   defp do_lift_type({:map, pairs}, context) do
     {pairs, context} =
-      Enum.map_reduce(pairs, context, fn {key, value}, context ->
+      Enum.map_reduce(pairs, context, fn {kind, key, value}, context ->
         {key, context} = do_lift_type(key, context)
         {value, context} = do_lift_type(value, context)
-        {{key, value}, context}
+        {{kind, key, value}, context}
       end)
 
     {{:map, pairs}, context}
@@ -273,11 +273,11 @@ defmodule Module.Types do
   end
 
   def format_type({:map, pairs}) do
-    case List.keytake(pairs, :__struct__, 0) do
-      {{:__struct__, struct}, pairs} ->
+    case List.keytake(pairs, {:atom, :__struct__}, 1) do
+      {{:required, {:atom, :__struct__}, {:atom, struct}}, pairs} ->
         "%#{inspect(struct)}{#{format_map_pairs(pairs)}}"
 
-      nil ->
+      _ ->
         "%{#{format_map_pairs(pairs)}}"
     end
   end
@@ -295,8 +295,17 @@ defmodule Module.Types do
   end
 
   defp format_map_pairs(pairs) do
-    Enum.map_join(pairs, ", ", fn {left, right} ->
-      "#{format_type(left)} => #{format_type(right)}"
+    {atoms, others} = Enum.split_with(pairs, &match?({:atom, _}, &1))
+
+    Enum.map_join(atoms ++ others, ", ", fn
+      {:required, {:atom, atom}, right} ->
+        "#{atom}: #{format_type(right)}"
+
+      {:required, left, right} ->
+        "#{format_type(left)} => #{format_type(right)}"
+
+      {:optional, left, right} ->
+        "optional(#{format_type(left)}) => #{format_type(right)}"
     end)
   end
 

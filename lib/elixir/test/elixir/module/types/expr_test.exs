@@ -89,11 +89,11 @@ defmodule Module.Types.ExprTest do
 
   test "map" do
     assert quoted_expr(%{}) == {:ok, {:map, []}}
-    assert quoted_expr(%{a: :b}) == {:ok, {:map, [{{:atom, :a}, {:atom, :b}}]}}
-    assert quoted_expr([a], %{123 => a}) == {:ok, {:map, [{:integer, {:var, 0}}]}}
+    assert quoted_expr(%{a: :b}) == {:ok, {:map, [{:required, {:atom, :a}, {:atom, :b}}]}}
+    assert quoted_expr([a], %{123 => a}) == {:ok, {:map, [{:required, :integer, {:var, 0}}]}}
 
     assert quoted_expr(%{123 => :foo, 456 => :bar}) ==
-             {:ok, {:map, [{:integer, {:union, [{:atom, :bar}, {:atom, :foo}]}}]}}
+             {:ok, {:map, [{:required, :integer, {:union, [{:atom, :bar}, {:atom, :foo}]}}]}}
   end
 
   test "struct" do
@@ -101,20 +101,20 @@ defmodule Module.Types.ExprTest do
              {:ok,
               {:map,
                [
-                 {{:atom, :__struct__}, {:atom, Module.Types.ExprTest.Struct}},
-                 {{:atom, :bar}, :integer},
-                 {{:atom, :baz}, {:map, []}},
-                 {{:atom, :foo}, {:atom, :atom}}
+                 {:required, {:atom, :__struct__}, {:atom, Module.Types.ExprTest.Struct}},
+                 {:required, {:atom, :bar}, :integer},
+                 {:required, {:atom, :baz}, {:map, []}},
+                 {:required, {:atom, :foo}, {:atom, :atom}}
                ]}}
 
     assert quoted_expr(%:"Elixir.Module.Types.ExprTest.Struct"{foo: 123, bar: :atom}) ==
              {:ok,
               {:map,
                [
-                 {{:atom, :__struct__}, {:atom, Module.Types.ExprTest.Struct}},
-                 {{:atom, :baz}, {:map, []}},
-                 {{:atom, :foo}, :integer},
-                 {{:atom, :bar}, {:atom, :atom}}
+                 {:required, {:atom, :__struct__}, {:atom, Module.Types.ExprTest.Struct}},
+                 {:required, {:atom, :baz}, {:map, []}},
+                 {:required, {:atom, :foo}, :integer},
+                 {:required, {:atom, :bar}, {:atom, :atom}}
                ]}}
   end
 
