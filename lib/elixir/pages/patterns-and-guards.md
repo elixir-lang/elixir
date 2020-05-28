@@ -293,7 +293,7 @@ not_nil_head?(["some_value", "another_value"])
 
 In guards, when functions would normally raise exceptions, they cause the guard to fail instead.
 
-For example, the [`tuple_size/1`](`Kernel.tuple_size/1`) function only works with tuples. If we use it with anything else, an argument error is raised:
+For example, the `tuple_size/1` function only works with tuples. If we use it with anything else, an argument error is raised:
 
 ```elixir
 iex> tuple_size("hello")
@@ -382,13 +382,8 @@ Check.empty?({})
 
 In the examples above, we have used the match operator (`=`) and function clauses to showcase patterns and guards respectively. Here is the list of the built-in constructs in Elixir that support patterns and guards.
 
-  * the match operator (`=`) intentionally does _not_ support guards:
 
-    ```elixir
-    {:ok, binary} = File.read("some/file")
-    ```
-
-  * [`match?/2`](`Kernel.match?/2`):
+  * `match?/2`:
 
     ```elixir
     match?({:ok, value} when value > 0, {:ok, 13})
@@ -401,7 +396,7 @@ In the examples above, we have used the match operator (`=`) and function clause
     def type(term) when is_float(term), do: :float
     ```
 
-  * [`case`](`Kernel.SpecialForms.case/2`) expressions:
+  * [`case`](`case/2`) expressions:
 
     ```elixir
     case x do
@@ -411,7 +406,7 @@ In the examples above, we have used the match operator (`=`) and function clause
     end
     ```
 
-  * anonymous functions ([`fn`](`Kernel.SpecialForms.fn/1`)):
+  * anonymous functions (`fn/1`):
 
     ```elixir
     larger_than_two? = fn
@@ -420,7 +415,7 @@ In the examples above, we have used the match operator (`=`) and function clause
     end
     ```
 
-  * [`for`](`Kernel.SpecialForms.for/1`) and [`with`](`Kernel.SpecialForms.with/1`) support patterns and guards on the left side of `<-`:
+  * [`for`](`for/1`) and [`with`](`with/1`) support patterns and guards on the left side of `<-`:
 
     ```elixir
     for x when x >= 0 <- [1, -2, 3, -4], do: x
@@ -428,11 +423,18 @@ In the examples above, we have used the match operator (`=`) and function clause
 
     `with` also supports the `else` keyword, which supports patterns matching and guards.
 
-  * [`try`](`Kernel.SpecialForms.try/1`) supports patterns and guards on `catch` and `else`
-  
-  * [`receive`](`Kernel.SpecialForms.receive/1`) supports patterns and guards to match on the received messages.
+  * [`try`](`try/1`) supports patterns and guards on `catch` and `else`
 
-  * custom guards can also be defined with [`defguard/1`](`Kernel.defguard/1`) and [`defguardp/1`](`Kernel.defguardp/1`). A custom guard can only be defined based on existing guards.
+  * [`receive`](`receive/1`) supports patterns and guards to match on the received messages.
+
+  * custom guards can also be defined with `defguard/1` and `defguardp/1`. A custom guard can only be defined based on existing guards.
+  
+  
+Finally, the the match operator (`=`) does _not_ support guards:
+
+    ```elixir
+    {:ok, binary} = File.read("some/file")
+    ```
 
 ## Custom patterns and guards expressions
 
