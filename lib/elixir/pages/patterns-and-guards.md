@@ -430,7 +430,7 @@ In the examples above, we have used the match operator (`=`) and function clause
   * custom guards can also be defined with `defguard/1` and `defguardp/1`. A custom guard can only be defined based on existing guards.
   
   
-Finally, the the match operator (`=`) does _not_ support guards:
+Note that the match operator (`=`) does *not* support guards:
 
     ```elixir
     {:ok, binary} = File.read("some/file")
