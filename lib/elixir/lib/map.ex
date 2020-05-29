@@ -208,9 +208,7 @@ defmodule Map do
   end
 
   defp new_transform([], _fun, acc) do
-    acc
-    |> :lists.reverse()
-    |> :maps.from_list()
+    :maps.from_list(acc)
   end
 
   defp new_transform([element | rest], fun, acc) do
