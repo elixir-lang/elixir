@@ -141,6 +141,44 @@ defmodule Time do
   end
 
   @doc """
+  Builds a new time.
+
+  Expects all values to be integers. Returns `time` if each
+  entry fits its appropriate range, raises if the time is invalid.
+
+  Microseconds can also be given with a precision, which must be an
+  integer between 0 and 6.
+
+  The built-in calendar does not support leap seconds.
+
+  ## Examples
+
+      iex> Time.new!(0, 0, 0, 0)
+      ~T[00:00:00.000000]
+      iex> Time.new!(23, 59, 59, 999_999)
+      ~T[23:59:59.999999]
+      iex> Time.new!(24, 59, 59, 999_999)
+      ** (ArgumentError) cannot parse as time, reason: :invalid_time
+  """
+  @doc since: "1.11.0"
+  @spec new!(
+          Calendar.hour(),
+          Calendar.minute(),
+          Calendar.second(),
+          Calendar.microsecond() | non_neg_integer,
+          Calendar.calendar()
+        ) :: t
+  def new!(hour, minute, second, microsecond \\ {0, 0}, calendar \\ Calendar.ISO) do
+    case new(hour, minute, second, microsecond, calendar) do
+      {:ok, time} ->
+        time
+
+      {:error, :invalid_time} ->
+        raise ArgumentError, "cannot parse as time, reason: :invalid_time"
+    end
+  end
+
+  @doc """
   Converts the given `time` to a string.
 
   ### Examples
