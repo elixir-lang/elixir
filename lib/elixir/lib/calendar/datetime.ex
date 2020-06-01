@@ -156,7 +156,7 @@ defmodule DateTime do
   end
 
   @doc """
-  Builds a datetime from date and time structs
+  Builds a datetime from date and time structs, raising on errors.
 
   It expects a time zone to put the `DateTime` in.
   If the time zone is not passed it will default to `"Etc/UTC"`,
