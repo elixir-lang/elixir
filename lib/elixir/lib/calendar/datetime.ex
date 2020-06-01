@@ -97,7 +97,7 @@ defmodule DateTime do
   Builds a datetime from date and time structs
 
   It expects a time zone to put the `DateTime` in.
-  If the time zone is not passed it will default to "Etc/UTC",
+  If the time zone is not passed it will default to `"Etc/UTC"`,
   which always succeeds. Otherwise, the DateTime is checked against the time zone database
   given as `time_zone_database`. See the "Time zone database"
   section in the module documentation.
