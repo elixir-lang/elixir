@@ -350,6 +350,8 @@ defmodule Module do
       behaviour callbacks are optional
     * `@impl` - declares an implementation of a callback function or macro
 
+  For detailed documentation, see the [typespec documentation](typespecs.md).
+
   ### Custom attributes
 
   In addition to the built-in attributes outlined above, custom attributes may
