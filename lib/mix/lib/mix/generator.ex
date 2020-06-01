@@ -97,7 +97,7 @@ defmodule Mix.Generator do
 
   ## Examples
 
-      iex> Mix.Generator.copy_template("source/gitignore", ".gitignore")
+      iex> Mix.Generator.copy_template("source/gitignore", ".gitignore", [project_path: path])
       * creating .gitignore
       true
 
