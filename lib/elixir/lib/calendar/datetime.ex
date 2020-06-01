@@ -187,6 +187,7 @@ defmodule DateTime do
       iex> datetime = DateTime.new!(~D[2018-07-28], ~T[12:30:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
       iex> datetime
       #DateTime<2018-07-28 12:30:00+02:00 CEST Europe/Copenhagen>
+
   """
   @doc since: "1.11.0"
   @spec new!(Date.t(), Time.t(), Calendar.time_zone(), Calendar.time_zone_database()) :: t
