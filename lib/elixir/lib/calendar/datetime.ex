@@ -149,6 +149,28 @@ defmodule DateTime do
         time_zone_database \\ Calendar.get_time_zone_database()
       )
 
+  def new(%Date{calendar: calendar} = date, %Time{calendar: calendar} = time, "Etc/UTC", _db) do
+    %{year: year, month: month, day: day} = date
+    %{hour: hour, minute: minute, second: second, microsecond: microsecond} = time
+
+    datetime = %DateTime{
+      calendar: calendar,
+      year: year,
+      month: month,
+      day: day,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: microsecond,
+      std_offset: 0,
+      utc_offset: 0,
+      zone_abbr: "UTC",
+      time_zone: "Etc/UTC"
+    }
+
+    {:ok, datetime}
+  end
+
   def new(date, time, time_zone, time_zone_database) do
     with {:ok, naive_datetime} <- NaiveDateTime.new(date, time) do
       from_naive(naive_datetime, time_zone, time_zone_database)
