@@ -297,7 +297,7 @@ defmodule NaiveDateTime do
         naive_datetime
 
       {:error, reason} ->
-        raise ArgumentError, "cannot parse as naive datetime, reason: #{inspect(reason)}"
+        raise ArgumentError, "cannot build naive datetime, reason: #{inspect(reason)}"
     end
   end
 
