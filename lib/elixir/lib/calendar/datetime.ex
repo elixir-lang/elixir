@@ -173,13 +173,13 @@ defmodule DateTime do
   to winter time - an error will be raised.
 
       iex> DateTime.new!(~D[2018-10-28], ~T[02:30:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
-      ** (ArgumentError) cannot parse as datetime, reason: ambiguous datetime, datetime1: #DateTime<2018-10-28 02:30:00+02:00 CEST Europe/Copenhagen>, datetime2: #DateTime<2018-10-28 02:30:00+01:00 CET Europe/Copenhagen>
+      ** (ArgumentError) cannot build datetime with ~D[2018-10-28] and ~T[02:30:00] because such instant is ambiguous in time zone Europe/Copenhagen as there is an overlap between #DateTime<2018-10-28 02:30:00+02:00 CEST Europe/Copenhagen> and #DateTime<2018-10-28 02:30:00+01:00 CET Europe/Copenhagen>
 
   When there is a gap in wall time - for instance in spring when the clocks are
   turned forward - an error will be raised.
 
       iex> DateTime.new!(~D[2019-03-31], ~T[02:30:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
-      ** (ArgumentError) cannot parse as datetime, reason: gap in wall time, just before: #DateTime<2019-03-31 01:59:59.999999+01:00 CET Europe/Copenhagen>, just after: #DateTime<2019-03-31 03:00:00+02:00 CEST Europe/Copenhagen>
+      ** (ArgumentError) cannot build datetime with ~D[2019-03-31] and ~T[02:30:00] because such instant does not exist in time zone Europe/Copenhagen as there is a gap between #DateTime<2019-03-31 01:59:59.999999+01:00 CET Europe/Copenhagen> and #DateTime<2019-03-31 03:00:00+02:00 CEST Europe/Copenhagen>
 
   Most of the time there is one, and just one, valid datetime for a certain
   date and time in a certain time zone.
@@ -203,20 +203,23 @@ defmodule DateTime do
       {:ok, datetime} ->
         datetime
 
-      {:ambiguous, time1, time2} ->
+      {:ambiguous, dt1, dt2} ->
         raise ArgumentError,
-              "cannot parse as datetime, reason: ambiguous datetime, datetime1: #{inspect(time1)}, datetime2: #{
-                inspect(time2)
-              }"
+              "cannot build datetime with #{inspect(date)} and #{inspect(time)} because such " <>
+                "instant is ambiguous in time zone #{time_zone} as there is an overlap " <>
+                "between #{inspect(dt1)} and #{inspect(dt2)}"
 
-      {:gap, just_before, just_after} ->
+      {:gap, dt1, dt2} ->
         raise ArgumentError,
-              "cannot parse as datetime, reason: gap in wall time, just before: #{
-                inspect(just_before)
-              }, just after: #{inspect(just_after)}"
+              "cannot build datetime with #{inspect(date)} and #{inspect(time)} because such " <>
+                "instant does not exist in time zone #{time_zone} as there is a gap " <>
+                "between #{inspect(dt1)} and #{inspect(dt2)}"
 
       {:error, reason} ->
-        raise ArgumentError, "cannot parse as datetime, reason: #{inspect(reason)}"
+        raise ArgumentError,
+              "cannot build datetime with #{inspect(date)} and #{inspect(time)}, reason: #{
+                inspect(reason)
+              }"
     end
   end
 

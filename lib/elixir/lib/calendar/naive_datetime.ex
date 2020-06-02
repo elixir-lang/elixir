@@ -266,7 +266,7 @@ defmodule NaiveDateTime do
       iex> NaiveDateTime.new!(2000, 1, 1, 23, 59, 59, {0, 1}, Calendar.ISO)
       ~N[2000-01-01 23:59:59.0]
       iex> NaiveDateTime.new!(2000, 1, 1, 24, 59, 59, 999_999)
-      ** (ArgumentError) cannot parse as naive datetime, reason: :invalid_time
+      ** (ArgumentError) cannot build naive datetime, reason: :invalid_time
 
   """
   @doc since: "1.11.0"

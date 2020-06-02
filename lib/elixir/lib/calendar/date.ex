@@ -235,7 +235,7 @@ defmodule Date do
       iex> Date.new!(2000, 1, 1)
       ~D[2000-01-01]
       iex> Date.new!(2000, 13, 1)
-      ** (ArgumentError) cannot parse as date, reason: :invalid_date
+      ** (ArgumentError) cannot build date, reason: :invalid_date
       iex> Date.new!(2000, 2, 29)
       ~D[2000-02-29]
   """

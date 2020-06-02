@@ -158,7 +158,7 @@ defmodule Time do
       iex> Time.new!(23, 59, 59, 999_999)
       ~T[23:59:59.999999]
       iex> Time.new!(24, 59, 59, 999_999)
-      ** (ArgumentError) cannot parse as time, reason: :invalid_time
+      ** (ArgumentError) cannot build time, reason: :invalid_time
   """
   @doc since: "1.11.0"
   @spec new!(
