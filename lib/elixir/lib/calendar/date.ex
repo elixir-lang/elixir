@@ -246,8 +246,8 @@ defmodule Date do
       {:ok, value} ->
         value
 
-      {:error, :invalid_date} ->
-        raise ArgumentError, "cannot parse as date, reason: :invalid_date"
+      {:error, reason} ->
+        raise ArgumentError, "cannot build date, reason: #{inspect(reason)}"
     end
   end
 
