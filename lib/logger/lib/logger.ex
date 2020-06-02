@@ -109,7 +109,7 @@ defmodule Logger do
 
       Logger.error("We have a problem", [error_code: :pc_load_letter])
 
-  In your app's logger configuration, you would need to whitelist the
+  In your app's logger configuration, you would need to allowlist the
   `:error_code` key and you would need to include `$metadata` as part of
   your log format template:
 
