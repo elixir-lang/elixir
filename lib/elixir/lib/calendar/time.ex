@@ -173,8 +173,8 @@ defmodule Time do
       {:ok, time} ->
         time
 
-      {:error, :invalid_time} ->
-        raise ArgumentError, "cannot parse as time, reason: :invalid_time"
+      {:error, reason} ->
+        raise ArgumentError, "cannot build time, reason: #{inspect(reason)}"
     end
   end
 
