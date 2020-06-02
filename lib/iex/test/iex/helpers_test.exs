@@ -853,6 +853,7 @@ defmodule IEx.HelpersTest do
       defmodule TypeSample do
         @typedoc "An ID with description."
         @type id_with_desc :: {number, String.t}
+        @type unquote(:"?")() :: :question_mark
       end
       """
 
@@ -871,6 +872,11 @@ defmodule IEx.HelpersTest do
                @type id_with_desc() :: {number(), String.t()}
 
                An ID with description.
+               """
+
+        assert capture_io(fn -> t(TypeSample."?"()) end) == """
+               @type ?() :: :question_mark
+
                """
       end)
     after
