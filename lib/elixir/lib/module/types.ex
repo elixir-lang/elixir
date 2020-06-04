@@ -295,9 +295,10 @@ defmodule Module.Types do
   end
 
   defp format_map_pairs(pairs) do
-    {atoms, others} = Enum.split_with(pairs, &match?({:atom, _}, &1))
+    {atoms, others} = Enum.split_with(pairs, &match?({:required, {:atom, _}, _}, &1))
+    {required, optional} = Enum.split_with(others, &match?({:required, _, _}, &1))
 
-    Enum.map_join(atoms ++ others, ", ", fn
+    Enum.map_join(atoms ++ required ++ optional, ", ", fn
       {:required, {:atom, atom}, right} ->
         "#{atom}: #{format_type(right)}"
 
@@ -321,15 +322,15 @@ defmodule Module.Types do
     Macro.prewalk(guard, fn
       {:., _, [:erlang, :orelse]} -> :or
       {:., _, [:erlang, :andalso]} -> :and
-      {{:., _, [mod, fun]}, _, args} -> erl_to_ex(mod, fun, args)
+      {{:., _, [mod, fun]}, meta, args} -> erl_to_ex(mod, fun, args, meta)
       other -> other
     end)
   end
 
-  defp erl_to_ex(mod, fun, args) do
+  defp erl_to_ex(mod, fun, args, meta) do
     case :elixir_rewrite.erl_to_ex(mod, fun, args) do
-      {Kernel, fun, args} -> {fun, [], args}
-      {mod, fun, args} -> {{:., [], [mod, fun]}, [], args}
+      {Kernel, fun, args} -> {fun, meta, args}
+      {mod, fun, args} -> {{:., [], [mod, fun]}, meta, args}
     end
   end
 end

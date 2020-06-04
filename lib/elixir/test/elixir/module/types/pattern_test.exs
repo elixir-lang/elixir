@@ -51,7 +51,7 @@ defmodule Module.Types.PatternTest do
   end
 
   defp new_context() do
-    Types.context("types_test.ex", TypesTest, {:test, 0})
+    Types.context("pattern_test.ex", TypesTest, {:test, 0})
   end
 
   defp new_stack() do
@@ -80,7 +80,7 @@ defmodule Module.Types.PatternTest do
       assert {:error, {{:unable_unify, :integer, :binary, expr, traces}, location}} =
                quoted_pattern(<<foo::integer, foo::binary>>)
 
-      assert location == [{"types_test.ex", line, {TypesTest, :test, 0}}]
+      assert location == [{"pattern_test.ex", line, {TypesTest, :test, 0}}]
 
       assert {:<<>>, _,
               [
@@ -89,8 +89,8 @@ defmodule Module.Types.PatternTest do
               ]} = expr
 
       assert [
-               {{:foo, _, nil}, {:type, :binary, _, {"types_test.ex", ^line}}},
-               {{:foo, _, nil}, {:type, :integer, _, {"types_test.ex", ^line}}}
+               {{:foo, _, nil}, {:type, :binary, _, {"pattern_test.ex", ^line}}},
+               {{:foo, _, nil}, {:type, :integer, _, {"pattern_test.ex", ^line}}}
              ] = traces
     end
 
@@ -161,7 +161,9 @@ defmodule Module.Types.PatternTest do
       assert quoted_pattern(%:"Elixir.Module.Types.InferTest.Struct"{}) ==
                {:ok,
                 {:map,
-                 [{:required, {:atom, :__struct__}, {:atom, Module.Types.InferTest.Struct}}]}}
+                 [
+                   {:required, {:atom, :__struct__}, {:atom, Module.Types.InferTest.Struct}}
+                 ]}}
 
       assert quoted_pattern(%:"Elixir.Module.Types.InferTest.Struct"{foo: 123, bar: :atom}) ==
                {:ok,

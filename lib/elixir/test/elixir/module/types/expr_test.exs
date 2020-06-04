@@ -28,7 +28,7 @@ defmodule Module.Types.ExprTest do
   end
 
   defp new_context(vars) do
-    context = Types.context("types_test.ex", TypesTest, {:test, 0})
+    context = Types.context("expr_test.ex", TypesTest, {:test, 0})
 
     Enum.reduce(vars, context, fn var, context ->
       {_type, context} = Infer.new_var(var, context)
@@ -116,6 +116,98 @@ defmodule Module.Types.ExprTest do
                  {:required, {:atom, :foo}, :integer},
                  {:required, {:atom, :bar}, {:atom, :atom}}
                ]}}
+  end
+
+  test "map field" do
+    assert quoted_expr(%{foo: :bar}.foo) == {:ok, {:atom, :bar}}
+
+    assert quoted_expr(
+             (
+               map = %{foo: :bar}
+               map.foo
+             )
+           ) == {:ok, {:atom, :bar}}
+
+    assert quoted_expr(
+             [map],
+             (
+               map.foo
+               map.bar
+               map
+             )
+           ) ==
+             {:ok,
+              {:map,
+               [
+                 {:required, {:atom, :bar}, {:var, 0}},
+                 {:optional, :dynamic, :dynamic},
+                 {:required, {:atom, :foo}, {:var, 1}}
+               ]}}
+
+    assert quoted_expr(
+             [map],
+             (
+               :foo = map.foo
+               :bar = map.bar
+               map
+             )
+           ) ==
+             {:ok,
+              {:map,
+               [
+                 {:required, {:atom, :bar}, {:atom, :bar}},
+                 {:optional, :dynamic, :dynamic},
+                 {:required, {:atom, :foo}, {:atom, :foo}}
+               ]}}
+
+    assert {:error,
+            {{:unable_unify,
+              {:map, [{:required, {:atom, :bar}, {:var, 1}}, {:optional, :dynamic, :dynamic}]},
+              {:map, [{:required, {:atom, :foo}, {:atom, :foo}}]}, _, _},
+             _}} =
+             quoted_expr(
+               (
+                 map = %{foo: :foo}
+                 map.bar
+               )
+             )
+  end
+
+  test "struct field" do
+    assert quoted_expr(%File.Stat{}.mtime) == {:ok, {:atom, nil}}
+    assert quoted_expr(%File.Stat{mtime: 123}.mtime) == {:ok, :integer}
+
+    assert quoted_expr(
+             (
+               map = %File.Stat{}
+               map.mtime
+             )
+           ) == {:ok, {:atom, nil}}
+
+    assert quoted_expr(
+             (
+               map = %File.Stat{mtime: 123}
+               map.mtime
+             )
+           ) == {:ok, :integer}
+
+    assert {:error,
+            {{:unable_unify,
+              {:map, [{:required, {:atom, :foo}, {:var, 0}}, {:optional, :dynamic, :dynamic}]},
+              {:map, [{:required, {:atom, :__struct__}, {:atom, File.Stat}} | _]}, _, _},
+             _}} = quoted_expr(%File.Stat{}.foo)
+
+    assert {:error,
+            {{:unable_unify,
+              {:map, [{:required, {:atom, :foo}, {:var, 1}}, {:optional, :dynamic, :dynamic}]},
+              {:map, [{:required, {:atom, :__struct__}, {:atom, File.Stat}} | _]}, _, _},
+             _}} =
+             quoted_expr(
+               (
+                 map = %File.Stat{}
+                 map.foo
+               )
+             )
   end
 
   describe "binary" do

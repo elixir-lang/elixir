@@ -266,7 +266,7 @@ defmodule Module.Types.Pattern do
     {:is_function, 2} => {[:fun, :integer], :boolean},
     {:is_integer, 1} => {[:integer], :boolean},
     {:is_list, 1} => {[{:list, :dynamic}], :boolean},
-    {:is_map, 1} => {[{:map, []}], :boolean},
+    {:is_map, 1} => {[{:map, [{:optional, :dynamic, :dynamic}]}], :boolean},
     {:is_map_key, 2} => {[:dynamic, {:map, []}], :dynamic},
     {:is_number, 1} => {[:number], :boolean},
     {:is_pid, 1} => {[:pid], :boolean},
