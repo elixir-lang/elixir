@@ -784,7 +784,8 @@ defmodule Registry do
   end
 
   @doc """
-  Unregister entries for a given key matching a pattern.
+  Unregisters entries for keys matching a pattern associated to the current
+  process in `registry`.
 
   ## Examples
 
