@@ -180,13 +180,18 @@ defmodule ExUnit.Diff do
   defp diff_guard({:when, _, [expression, clause]}, right, env) do
     {diff_expression, post_env} = diff_quoted(expression, right, env)
 
-    bindings = Map.merge(post_env.pins, post_env.current_vars)
-    {diff_clause, clause_equivalent?} = diff_guard_clause(clause, Map.to_list(bindings))
+    {guard_clause, guard_equivalent?} =
+      if diff_expression.equivalent? do
+        bindings = Map.merge(post_env.pins, post_env.current_vars)
+        diff_guard_clause(clause, Map.to_list(bindings))
+      else
+        {clause, false}
+      end
 
     diff = %__MODULE__{
       diff_expression
-      | left: {:when, [], [diff_expression.left, diff_clause]},
-        equivalent?: diff_expression.equivalent? and clause_equivalent?
+      | left: {:when, [], [diff_expression.left, guard_clause]},
+        equivalent?: guard_equivalent?
     }
 
     {diff, post_env}
