@@ -32,13 +32,8 @@ defmodule Mix.Tasks.Deps.Unlock do
         Mix.Dep.Lock.write(%{})
 
       opts[:check_unused] ->
-        apps = Mix.Dep.load_on_environment([]) |> Enum.map(& &1.app)
-
-        unused_apps =
-          Mix.Dep.Lock.read()
-          |> Map.drop(apps)
-          |> Map.keys()
-          |> Enum.sort()
+        lock = Mix.Dep.Lock.read()
+        unused_apps = unused_apps(lock)
 
         unless unused_apps == [] do
           Mix.raise("""
@@ -49,41 +44,33 @@ defmodule Mix.Tasks.Deps.Unlock do
         end
 
       opts[:unused] ->
-        apps = Mix.Dep.load_on_environment([]) |> Enum.map(& &1.app)
-        Mix.Dep.Lock.read() |> Map.take(apps) |> Mix.Dep.Lock.write()
+        lock = Mix.Dep.Lock.read()
+        unused_apps = unused_apps(lock)
+
+        unless unused_apps == [] do
+          unlock(lock, unused_apps)
+        end
 
       filter = opts[:filter] ->
         lock = Mix.Dep.Lock.read()
-        apps = Map.keys(lock)
+        apps = lock |> Map.keys() |> Enum.filter(&(Atom.to_string(&1) =~ filter))
 
-        unlock = Enum.filter(apps, &(Atom.to_string(&1) =~ filter))
-
-        if unlock == [] do
+        if apps == [] do
           Mix.shell().error("warning: no dependencies were matched")
         else
-          lock = lock |> Enum.reject(fn {app, _} -> app in unlock end) |> Map.new()
-          Mix.Dep.Lock.write(lock)
-
-          Mix.shell().info("""
-          Unlocked deps:
-          * #{Enum.join(unlock, "\n* ")}
-          """)
+          unlock(lock, apps)
         end
 
       apps != [] ->
-        lock =
-          Enum.reduce(apps, Mix.Dep.Lock.read(), fn app_str, lock ->
-            app = String.to_atom(app_str)
+        lock = Mix.Dep.Lock.read()
+        apps = Enum.map(apps, &String.to_atom/1)
+        unlocked = apps -- Map.keys(lock)
 
-            if Map.has_key?(lock, app) do
-              Map.delete(lock, app)
-            else
-              Mix.shell().error("warning: #{app} dependency is not locked")
-              lock
-            end
-          end)
+        for app <- unlocked do
+          Mix.shell().error("warning: #{app} dependency is not locked")
+        end
 
-        Mix.Dep.Lock.write(lock)
+        unlock(lock, apps -- unlocked)
 
       true ->
         Mix.raise(
@@ -93,5 +80,23 @@ defmodule Mix.Tasks.Deps.Unlock do
             "the --unused option unlocks unused dependencies"
         )
     end
+  end
+
+  defp unused_apps(lock) do
+    apps = Mix.Dep.load_on_environment([]) |> Enum.map(& &1.app)
+
+    lock
+    |> Map.drop(apps)
+    |> Map.keys()
+    |> Enum.sort()
+  end
+
+  defp unlock(lock, apps) do
+    lock |> Map.drop(apps) |> Mix.Dep.Lock.write()
+
+    Mix.shell().info("""
+    Unlocked deps:
+    * #{Enum.join(apps, "\n* ")}
+    """)
   end
 end
