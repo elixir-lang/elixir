@@ -354,6 +354,13 @@ defmodule Mix.Tasks.DepsTest do
       assert Mix.Dep.Lock.read() == %{whatever: "abcdef", ok: "abcdef"}
       Mix.Tasks.Deps.Unlock.run(["--unused"])
       assert Mix.Dep.Lock.read() == %{ok: "abcdef"}
+
+      output = """
+      Unlocked deps:
+      * whatever
+      """
+
+      assert_received {:mix_shell, :info, [^output]}
     end)
   end
 
@@ -366,6 +373,13 @@ defmodule Mix.Tasks.DepsTest do
       assert Mix.Dep.Lock.read() == %{another: "hash"}
       error = "warning: unknown dependency is not locked"
       assert_received {:mix_shell, :error, [^error]}
+
+      output = """
+      Unlocked deps:
+      * git_repo
+      """
+
+      assert_received {:mix_shell, :info, [^output]}
     end)
   end
 
