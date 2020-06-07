@@ -94,6 +94,158 @@ defmodule DateTime do
   end
 
   @doc """
+  Builds a datetime from date and time structs.
+
+  It expects a time zone to put the `DateTime` in.
+  If the time zone is not passed it will default to `"Etc/UTC"`,
+  which always succeeds. Otherwise, the `DateTime` is checked against the time zone database
+  given as `time_zone_database`. See the "Time zone database"
+  section in the module documentation.
+
+  ## Examples
+
+      iex> DateTime.new(~D[2016-05-24], ~T[13:26:08.003], "Etc/UTC")
+      {:ok, ~U[2016-05-24 13:26:08.003Z]}
+
+  When the datetime is ambiguous - for instance during changing from summer
+  to winter time - the two possible valid datetimes are returned. First the one
+  that happens first, then the one that happens after.
+
+      iex> {:ambiguous, first_dt, second_dt} = DateTime.new(~D[2018-10-28], ~T[02:30:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
+      iex> first_dt
+      #DateTime<2018-10-28 02:30:00+02:00 CEST Europe/Copenhagen>
+      iex> second_dt
+      #DateTime<2018-10-28 02:30:00+01:00 CET Europe/Copenhagen>
+
+  When there is a gap in wall time - for instance in spring when the clocks are
+  turned forward - the latest valid datetime just before the gap and the first
+  valid datetime just after the gap.
+
+      iex> {:gap, just_before, just_after} = DateTime.new(~D[2019-03-31], ~T[02:30:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
+      iex> just_before
+      #DateTime<2019-03-31 01:59:59.999999+01:00 CET Europe/Copenhagen>
+      iex> just_after
+      #DateTime<2019-03-31 03:00:00+02:00 CEST Europe/Copenhagen>
+
+  Most of the time there is one, and just one, valid datetime for a certain
+  date and time in a certain time zone.
+
+      iex> {:ok, datetime} = DateTime.new(~D[2018-07-28], ~T[12:30:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
+      iex> datetime
+      #DateTime<2018-07-28 12:30:00+02:00 CEST Europe/Copenhagen>
+
+  """
+  @doc since: "1.11.0"
+  @spec new(Date.t(), Time.t(), Calendar.time_zone(), Calendar.time_zone_database()) ::
+          {:ok, t}
+          | {:ambiguous, t, t}
+          | {:gap, t, t}
+          | {:error,
+             :incompatible_calendars | :time_zone_not_found | :utc_only_time_zone_database}
+  def new(
+        date,
+        time,
+        time_zone \\ "Etc/UTC",
+        time_zone_database \\ Calendar.get_time_zone_database()
+      )
+
+  def new(%Date{calendar: calendar} = date, %Time{calendar: calendar} = time, "Etc/UTC", _db) do
+    %{year: year, month: month, day: day} = date
+    %{hour: hour, minute: minute, second: second, microsecond: microsecond} = time
+
+    datetime = %DateTime{
+      calendar: calendar,
+      year: year,
+      month: month,
+      day: day,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: microsecond,
+      std_offset: 0,
+      utc_offset: 0,
+      zone_abbr: "UTC",
+      time_zone: "Etc/UTC"
+    }
+
+    {:ok, datetime}
+  end
+
+  def new(date, time, time_zone, time_zone_database) do
+    with {:ok, naive_datetime} <- NaiveDateTime.new(date, time) do
+      from_naive(naive_datetime, time_zone, time_zone_database)
+    end
+  end
+
+  @doc """
+  Builds a datetime from date and time structs, raising on errors.
+
+  It expects a time zone to put the `DateTime` in.
+  If the time zone is not passed it will default to `"Etc/UTC"`,
+  which always succeeds. Otherwise, the DateTime is checked against the time zone database
+  given as `time_zone_database`. See the "Time zone database"
+  section in the module documentation.
+
+  ## Examples
+
+      iex> DateTime.new!(~D[2016-05-24], ~T[13:26:08.003], "Etc/UTC")
+      ~U[2016-05-24 13:26:08.003Z]
+
+  When the datetime is ambiguous - for instance during changing from summer
+  to winter time - an error will be raised.
+
+      iex> DateTime.new!(~D[2018-10-28], ~T[02:30:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
+      ** (ArgumentError) cannot build datetime with ~D[2018-10-28] and ~T[02:30:00] because such instant is ambiguous in time zone Europe/Copenhagen as there is an overlap between #DateTime<2018-10-28 02:30:00+02:00 CEST Europe/Copenhagen> and #DateTime<2018-10-28 02:30:00+01:00 CET Europe/Copenhagen>
+
+  When there is a gap in wall time - for instance in spring when the clocks are
+  turned forward - an error will be raised.
+
+      iex> DateTime.new!(~D[2019-03-31], ~T[02:30:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
+      ** (ArgumentError) cannot build datetime with ~D[2019-03-31] and ~T[02:30:00] because such instant does not exist in time zone Europe/Copenhagen as there is a gap between #DateTime<2019-03-31 01:59:59.999999+01:00 CET Europe/Copenhagen> and #DateTime<2019-03-31 03:00:00+02:00 CEST Europe/Copenhagen>
+
+  Most of the time there is one, and just one, valid datetime for a certain
+  date and time in a certain time zone.
+
+      iex> datetime = DateTime.new!(~D[2018-07-28], ~T[12:30:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
+      iex> datetime
+      #DateTime<2018-07-28 12:30:00+02:00 CEST Europe/Copenhagen>
+
+  """
+  @doc since: "1.11.0"
+  @spec new!(Date.t(), Time.t(), Calendar.time_zone(), Calendar.time_zone_database()) :: t
+  def new!(
+        date,
+        time,
+        time_zone \\ "Etc/UTC",
+        time_zone_database \\ Calendar.get_time_zone_database()
+      )
+
+  def new!(date, time, time_zone, time_zone_database) do
+    case new(date, time, time_zone, time_zone_database) do
+      {:ok, datetime} ->
+        datetime
+
+      {:ambiguous, dt1, dt2} ->
+        raise ArgumentError,
+              "cannot build datetime with #{inspect(date)} and #{inspect(time)} because such " <>
+                "instant is ambiguous in time zone #{time_zone} as there is an overlap " <>
+                "between #{inspect(dt1)} and #{inspect(dt2)}"
+
+      {:gap, dt1, dt2} ->
+        raise ArgumentError,
+              "cannot build datetime with #{inspect(date)} and #{inspect(time)} because such " <>
+                "instant does not exist in time zone #{time_zone} as there is a gap " <>
+                "between #{inspect(dt1)} and #{inspect(dt2)}"
+
+      {:error, reason} ->
+        raise ArgumentError,
+              "cannot build datetime with #{inspect(date)} and #{inspect(time)}, reason: #{
+                inspect(reason)
+              }"
+    end
+  end
+
+  @doc """
   Converts the given Unix time to `DateTime`.
 
   The integer can be given in different unit

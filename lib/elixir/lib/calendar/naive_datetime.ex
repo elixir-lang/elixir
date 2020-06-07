@@ -247,6 +247,61 @@ defmodule NaiveDateTime do
   end
 
   @doc """
+  Builds a new ISO naive datetime.
+
+  Expects all values to be integers. Returns `naive_datetime`
+  if each entry fits its appropriate range, raises if
+  time or date is invalid.
+
+  ## Examples
+
+      iex> NaiveDateTime.new!(2000, 1, 1, 0, 0, 0)
+      ~N[2000-01-01 00:00:00]
+      iex> NaiveDateTime.new!(2000, 2, 29, 0, 0, 0)
+      ~N[2000-02-29 00:00:00]
+      iex> NaiveDateTime.new!(2000, 1, 1, 23, 59, 59, {0, 1})
+      ~N[2000-01-01 23:59:59.0]
+      iex> NaiveDateTime.new!(2000, 1, 1, 23, 59, 59, 999_999)
+      ~N[2000-01-01 23:59:59.999999]
+      iex> NaiveDateTime.new!(2000, 1, 1, 23, 59, 59, {0, 1}, Calendar.ISO)
+      ~N[2000-01-01 23:59:59.0]
+      iex> NaiveDateTime.new!(2000, 1, 1, 24, 59, 59, 999_999)
+      ** (ArgumentError) cannot build naive datetime, reason: :invalid_time
+
+  """
+  @doc since: "1.11.0"
+  @spec new!(
+          Calendar.year(),
+          Calendar.month(),
+          Calendar.day(),
+          Calendar.hour(),
+          Calendar.minute(),
+          Calendar.second(),
+          Calendar.microsecond() | non_neg_integer,
+          Calendar.calendar()
+        ) :: t
+  def new!(
+        year,
+        month,
+        day,
+        hour,
+        minute,
+        second,
+        microsecond \\ {0, 0},
+        calendar \\ Calendar.ISO
+      )
+
+  def new!(year, month, day, hour, minute, second, microsecond, calendar) do
+    case new(year, month, day, hour, minute, second, microsecond, calendar) do
+      {:ok, naive_datetime} ->
+        naive_datetime
+
+      {:error, reason} ->
+        raise ArgumentError, "cannot build naive datetime, reason: #{inspect(reason)}"
+    end
+  end
+
+  @doc """
   Builds a naive datetime from date and time structs.
 
   ## Examples
@@ -274,6 +329,24 @@ defmodule NaiveDateTime do
     }
 
     {:ok, naive_datetime}
+  end
+
+  @doc """
+  Builds a naive datetime from date and time structs.
+
+  ## Examples
+
+      iex> NaiveDateTime.new!(~D[2010-01-13], ~T[23:00:07.005])
+      ~N[2010-01-13 23:00:07.005]
+
+  """
+  @doc since: "1.11.0"
+  @spec new!(Date.t(), Time.t()) :: t
+  def new!(date, time)
+
+  def new!(%Date{calendar: calendar} = date, %Time{calendar: calendar} = time) do
+    {:ok, naive_datetime} = new(date, time)
+    naive_datetime
   end
 
   @doc """

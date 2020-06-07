@@ -225,6 +225,33 @@ defmodule Date do
   end
 
   @doc """
+  Builds a new ISO date.
+
+  Expects all values to be integers. Returns `date` if each
+  entry fits its appropriate range, raises if the date is invalid.
+
+  ## Examples
+
+      iex> Date.new!(2000, 1, 1)
+      ~D[2000-01-01]
+      iex> Date.new!(2000, 13, 1)
+      ** (ArgumentError) cannot build date, reason: :invalid_date
+      iex> Date.new!(2000, 2, 29)
+      ~D[2000-02-29]
+  """
+  @doc since: "1.11.0"
+  @spec new!(Calendar.year(), Calendar.month(), Calendar.day(), Calendar.calendar()) :: t
+  def new!(year, month, day, calendar \\ Calendar.ISO) do
+    case new(year, month, day, calendar) do
+      {:ok, value} ->
+        value
+
+      {:error, reason} ->
+        raise ArgumentError, "cannot build date, reason: #{inspect(reason)}"
+    end
+  end
+
+  @doc """
   Converts the given date to a string according to its calendar.
 
   ### Examples
