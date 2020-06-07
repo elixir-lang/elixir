@@ -186,7 +186,7 @@ returns_boolean({{'.', _, [erlang, Fun]}, _, [_]}) when
   Fun == is_tuple;  Fun == is_map;      Fun == is_process_alive -> true;
 
 returns_boolean({{'.', _, [erlang, Fun]}, _, [_, _]}) when
-  Fun == is_function; Fun == is_record -> true;
+  Fun == is_map_key; Fun == is_function; Fun == is_record -> true;
 
 returns_boolean({{'.', _, [erlang, Fun]}, _, [_, _, _]}) when
   Fun == function_exported; Fun == is_record -> true;
