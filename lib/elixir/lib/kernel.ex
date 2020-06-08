@@ -3512,6 +3512,29 @@ defmodule Kernel do
   end
 
   @doc """
+  Provides a run_if macro, that accepts three arguments:
+  * argument
+  * condition
+  * function, with arity 1, that will be applied with provided argument if the condition is true
+
+  If the condition is falsy, run_if will return the argument.
+
+  ## Examples
+
+      iex> %{a: 1, b: 2} |> run_if(1 == 2, &Map.put(&1, :foo, "foo")) |> run_if(1 == 1, &Map.put(&1, :foo, "bar"))
+      %{a: 1, b: 2, foo: "bar"}
+  """
+  defmacro run_if(piped_value, condition, fun) do
+    quote do
+      if unquote(condition) do
+        unquote(fun).(unquote(piped_value))
+      else
+        unquote(piped_value)
+      end
+    end
+  end
+
+  @doc """
   Returns `true` if `module` is loaded and contains a
   public `function` with the given `arity`, otherwise `false`.
 

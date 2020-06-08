@@ -1274,4 +1274,23 @@ defmodule KernelTest do
       Code.eval_string(~s{~U[2015-01-13 13:00:07+00:30]})
     end
   end
+
+  describe "run_if/2" do
+    test "must run code conditionally" do
+      assert %{a: 1, b: 2, foo: "bar"} ==
+               %{a: 1, b: 2}
+               |> run_if(1 == 2, &Map.put(&1, :foo, "foo"))
+               |> run_if(1 == 1, &Map.put(&1, :foo, "bar"))
+    end
+
+    test "must allow passing conditions in runtime" do
+      condition_true = fn -> true end
+      condition_false = fn -> false end
+
+      assert %{a: 1, b: 2, foo: "bar"} ==
+               %{a: 1, b: 2}
+               |> run_if(condition_false.(), &Map.put(&1, :foo, "foo"))
+               |> run_if(condition_true.(), &Map.put(&1, :foo, "bar"))
+    end
+  end
 end
