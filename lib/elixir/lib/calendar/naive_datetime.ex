@@ -814,7 +814,7 @@ defmodule NaiveDateTime do
   end
 
   @doc """
-  Converts a `NaiveDateTime` struct to a number of gregorian seconds.
+  Converts a `NaiveDateTime` struct to a number of gregorian seconds and microseconds.
 
   ## Examples
 
