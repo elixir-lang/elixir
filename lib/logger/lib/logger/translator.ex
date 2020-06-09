@@ -385,11 +385,11 @@ defmodule Logger.Translator do
     dictionary = crashed[:dictionary]
     reason = Exception.normalize(kind, reason, stack)
 
-    case Keyword.get(dictionary, :logger_metadata, {true, []}) do
-      {false, _} ->
+    case Keyword.get(dictionary, :logger_enabled, true) do
+      false ->
         :skip
 
-      {true, _user_metadata} ->
+      true ->
         user_metadata = Keyword.get(dictionary, :"$logger_metadata$", %{}) |> Map.to_list()
 
         msg =
