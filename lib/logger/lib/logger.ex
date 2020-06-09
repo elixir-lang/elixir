@@ -891,18 +891,17 @@ defmodule Logger do
     end
   end
 
-  def __do_log__(level, msg, metadata)
-      when level in @levels and is_msg(msg) and is_map(metadata) do
-    :logger.macro_log(%{}, level, msg, add_elixir_domain(metadata))
-  end
+  def __do_log__(level, msg, metadata) when level in @levels and is_map(metadata) do
+    if is_msg(msg) do
+      :logger.macro_log(%{}, level, msg, add_elixir_domain(metadata))
+    else
+      # TODO: Remove this branch in Elixir v2.0
+      IO.warn(
+        "passing #{inspect(msg)} to Logger is deprecated, expected a map, a keyword list, a binary, or an iolist"
+      )
 
-  # TODO: Remove that in Elixir v2.0
-  def __do_log__(level, other, metadata) do
-    IO.warn(
-      "passing #{inspect(other)} to Logger is deprecated, expected a map, a keyword list, a binary, or an iolist"
-    )
-
-    :logger.macro_log(%{}, level, to_string(other), add_elixir_domain(metadata))
+      :logger.macro_log(%{}, level, to_string(msg), add_elixir_domain(metadata))
+    end
   end
 
   defp add_elixir_domain(%{domain: domain} = metadata) when is_list(domain) do
