@@ -314,6 +314,20 @@ defmodule LoggerTest do
     assert Logger.compare_levels(:error, :error) == :eq
   end
 
+  test "deprecated :warn" do
+    assert capture_log(fn ->
+      Logger.warn("hello") == :ok
+    end) =~ "[warn]"
+
+    assert capture_log(fn ->
+      Logger.log(:warn, "hello") == :ok
+    end) =~ "[warn]"
+
+    assert capture_log(fn ->
+      Logger.bare_log(:warn, "hello") == :ok
+    end) =~ "[warn]"
+  end
+
   describe "levels" do
     test "debug/2" do
       assert capture_log(fn ->

@@ -653,7 +653,7 @@ defmodule Logger do
 
   ## Examples
 
-      iex> Logger.compare_levels(:debug, :warn)
+      iex> Logger.compare_levels(:debug, :warning)
       :lt
       iex> Logger.compare_levels(:error, :info)
       :gt
@@ -870,7 +870,7 @@ defmodule Logger do
   end
 
   @doc false
-  def __should_log__(level, module) when level in @levels do
+  def __should_log__(level, module) do
     level = Logger.Handler.elixir_level_to_erlang_level(level)
 
     if enabled?(self()) and :logger.allow(level, module) do
@@ -892,7 +892,7 @@ defmodule Logger do
   end
 
   def __do_log__(level, msg, metadata)
-      when is_msg(msg) and is_map(metadata) do
+      when level in @levels and is_msg(msg) and is_map(metadata) do
     :logger.macro_log(%{}, level, msg, add_elixir_domain(metadata))
   end
 
