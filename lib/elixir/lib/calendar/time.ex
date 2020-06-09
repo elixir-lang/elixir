@@ -410,7 +410,7 @@ defmodule Time do
 
   """
   @doc since: "1.11.0"
-  @spec to_seconds_after_midnight(Calendar.time()) :: integer()
+  @spec to_seconds_after_midnight(Calendar.time()) :: {integer(), integer()}
   def to_seconds_after_midnight(%{microsecond: {microsecond, _precision}} = time) do
     iso_days = {0, to_day_fraction(time)}
     {Calendar.ISO.iso_days_to_unit(iso_days, :second), microsecond}
