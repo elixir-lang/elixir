@@ -399,6 +399,8 @@ defmodule Time do
   @doc """
   Converts a `Time` struct to a number of seconds after midnight.
 
+  The returned value is a two-element tuple with the number of seconds and microseconds.
+
   ## Examples
 
       iex> Time.to_seconds_after_midnight(~T[23:30:15])
