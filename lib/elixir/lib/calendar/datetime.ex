@@ -1033,6 +1033,56 @@ defmodule DateTime do
     end
   end
 
+  @seconds_per_day 24 * 60 * 60
+
+  @doc """
+  Converts a `DateTime` struct to a number of gregorian seconds and microseconds.
+
+  ## Examples
+
+      iex> dt = %DateTime{year: 0000, month: 1, day: 1, zone_abbr: "UTC",
+      ...>                hour: 0, minute: 0, second: 1, microsecond: {0, 0},
+      ...>                utc_offset: 0, std_offset: 0, time_zone: "Etc/UTC"}
+      iex> DateTime.to_gregorian_seconds(dt)
+      {1, 0}
+
+      iex> dt = %DateTime{year: 2020, month: 5, day: 1, zone_abbr: "UTC",
+      ...>                hour: 0, minute: 26, second: 31, microsecond: {5000, 0},
+      ...>                utc_offset: 0, std_offset: 0, time_zone: "Etc/UTC"}
+      iex> DateTime.to_gregorian_seconds(dt)
+      {63_755_511_991, 5000}
+
+      iex> dt = %DateTime{year: 2020, month: 5, day: 1, zone_abbr: "CET",
+      ...>                hour: 1, minute: 26, second: 31, microsecond: {5000, 0},
+      ...>                utc_offset: 3600, std_offset: 0, time_zone: "Europe/Warsaw"}
+      iex> DateTime.to_gregorian_seconds(dt)
+      {63_755_511_991, 5000}
+
+  """
+  @doc since: "1.11.0"
+  @spec to_gregorian_seconds(Calendar.datetime()) :: {integer(), non_neg_integer()}
+  def to_gregorian_seconds(
+        %{
+          std_offset: std_offset,
+          utc_offset: utc_offset,
+          microsecond: {microsecond, _}
+        } = datetime
+      ) do
+    {days, day_fraction} =
+      datetime
+      |> to_iso_days()
+      |> apply_tz_offset(utc_offset + std_offset)
+
+    seconds_in_day = seconds_from_day_fraction(day_fraction)
+    {days * @seconds_per_day + seconds_in_day, microsecond}
+  end
+
+  defp seconds_from_day_fraction({parts_in_day, @seconds_per_day}),
+    do: parts_in_day
+
+  defp seconds_from_day_fraction({parts_in_day, parts_per_day}),
+    do: div(parts_in_day * @seconds_per_day, parts_per_day)
+
   @doc """
   Converts the given `datetime` to a string according to its calendar.
 
