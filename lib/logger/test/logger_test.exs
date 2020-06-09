@@ -316,16 +316,16 @@ defmodule LoggerTest do
 
   test "deprecated :warn" do
     assert capture_log(fn ->
-      Logger.warn("hello") == :ok
-    end) =~ "[warn]"
+             Logger.warn("hello") == :ok
+           end) =~ "[warn]"
 
     assert capture_log(fn ->
-      Logger.log(:warn, "hello") == :ok
-    end) =~ "[warn]"
+             Logger.log(:warn, "hello") == :ok
+           end) =~ "[warn]"
 
     assert capture_log(fn ->
-      Logger.bare_log(:warn, "hello") == :ok
-    end) =~ "[warn]"
+             Logger.bare_log(:warn, "hello") == :ok
+           end) =~ "[warn]"
   end
 
   describe "levels" do
