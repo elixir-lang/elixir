@@ -4936,7 +4936,7 @@ defmodule Kernel do
       with true <- is_list(opts),
            {:ok, target} <- Keyword.fetch(opts, :to),
            {:__aliases__, _, _} <- target do
-        target = Macro.expand(target, %{__CALLER__ | lexical_tracker: nil})
+        target = Macro.expand(target, %{__CALLER__ | function: {:__info__, 1}})
         Keyword.replace!(opts, :to, target)
       else
         _ ->
