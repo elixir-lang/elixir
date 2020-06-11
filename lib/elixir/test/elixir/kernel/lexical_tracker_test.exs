@@ -126,4 +126,21 @@ defmodule Kernel.LexicalTrackerTest do
     refute Foo.Bar in runtime
     refute Foo.Bar in compile
   end
+
+  test "defdelegate with literal does not add compile dependency" do
+    {{compile, _structs, _runtime, _}, _binding} =
+      Code.eval_string("""
+      defmodule Kernel.LexicalTrackerTest.Defdelegate do
+        defdelegate a, to: A
+
+        opts = [to: B]
+        defdelegate b, opts
+
+        Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
+      end |> elem(3)
+      """)
+
+    refute A in compile
+    assert B in compile
+  end
 end

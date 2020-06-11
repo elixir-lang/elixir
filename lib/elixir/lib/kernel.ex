@@ -4931,6 +4931,18 @@ defmodule Kernel do
   defmacro defdelegate(funs, opts) do
     funs = Macro.escape(funs, unquote: true)
 
+    # don't add compile-time dependency on :to
+    opts =
+      with true <- is_list(opts),
+           {:ok, target} <- Keyword.fetch(opts, :to),
+           {:__aliases__, _, _} <- target do
+        target = Macro.expand(target, %{__CALLER__ | function: {:__info__, 1}})
+        Keyword.replace!(opts, :to, target)
+      else
+        _ ->
+          opts
+      end
+
     quote bind_quoted: [funs: funs, opts: opts] do
       target =
         Keyword.get(opts, :to) || raise ArgumentError, "expected to: to be given as argument"
