@@ -436,7 +436,7 @@ defmodule Kernel.WarningTest do
                defp b(arg1 \\ 1, arg2 \\ 2, arg3 \\ 3), do: [arg1, arg2, arg3]
              end
              """)
-           end) =~ "default arguments in b/3 are never used\n  nofile:3"
+           end) =~ "default values for the arguments in b/3 are never used\n  nofile:3"
 
     assert capture_err(fn ->
              Code.eval_string(~S"""
@@ -445,7 +445,8 @@ defmodule Kernel.WarningTest do
                defp b(arg1 \\ 1, arg2 \\ 2, arg3 \\ 3), do: [arg1, arg2, arg3]
              end
              """)
-           end) =~ "the first 2 default arguments in b/3 are never used\n  nofile:3"
+           end) =~
+             "the default values for the first 2 arguments in b/3 are never used\n  nofile:3"
 
     assert capture_err(fn ->
              Code.eval_string(~S"""
@@ -454,7 +455,7 @@ defmodule Kernel.WarningTest do
                defp b(arg1 \\ 1, arg2 \\ 2, arg3 \\ 3), do: [arg1, arg2, arg3]
              end
              """)
-           end) =~ "the first default argument in b/3 is never used\n  nofile:3"
+           end) =~ "the default value for the first argument in b/3 is never used\n  nofile:3"
 
     assert capture_err(fn ->
              Code.eval_string(~S"""
@@ -474,7 +475,7 @@ defmodule Kernel.WarningTest do
                defp b(arg1, arg2, arg3), do: [arg1, arg2, arg3]
              end
              """)
-           end) =~ "default arguments in b/3 are never used\n  nofile:3"
+           end) =~ "default values for the arguments in b/3 are never used\n  nofile:3"
 
     assert capture_err(fn ->
              Code.eval_string(~S"""
@@ -485,7 +486,8 @@ defmodule Kernel.WarningTest do
                defp b(arg1, arg2, arg3), do: [arg1, arg2, arg3]
              end
              """)
-           end) =~ "the first 2 default arguments in b/3 are never used\n  nofile:3"
+           end) =~
+             "the default values for the first 2 arguments in b/3 are never used\n  nofile:3"
   after
     purge([Sample1, Sample2, Sample3, Sample4, Sample5, Sample6])
   end
