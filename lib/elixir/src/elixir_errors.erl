@@ -98,7 +98,7 @@ parse_error(Line, File, <<"syntax error before: ">>, Keyword)
          Keyword == <<"'after'">>;
          Keyword == <<"'catch'">>;
          Keyword == <<"'end'">> ->
-  raise_keyword(Line, File, binary_part(Keyword, 1, byte_size(Keyword) - 2));
+  raise_reserved(Line, File, binary_part(Keyword, 1, byte_size(Keyword) - 2));
 
 %% Show a nicer message for keywords pt2 (Elixir keywords show up as is)
 parse_error(Line, File, <<"syntax error before: ">>, Keyword)
@@ -109,7 +109,7 @@ parse_error(Line, File, <<"syntax error before: ">>, Keyword)
          Keyword == <<"false">>;
          Keyword == <<"nil">>;
          Keyword == <<"in">> ->
-  raise_keyword(Line, File, Keyword);
+  raise_reserved(Line, File, Keyword);
 
 %% Produce a human-readable message for errors before a sigil
 parse_error(Line, File, <<"syntax error before: ">>, <<"{sigil,", _Rest/binary>> = Full) ->
@@ -153,11 +153,11 @@ parse_erl_term(Term) ->
   {ok, Parsed} = erl_parse:parse_term(Tokens ++ [{dot, 1}]),
   Parsed.
 
-raise_keyword(Line, File, Keyword) ->
+raise_reserved(Line, File, Keyword) ->
   raise(Line, File, 'Elixir.SyntaxError',
         <<"syntax error before: ", Keyword/binary, ". \"", Keyword/binary, "\" is a "
-          "keyword in Elixir and therefore its usage is limited. For instance, it can't "
-          "be used as a variable or be defined nor invoked as a regular function">>).
+          "reserved word in Elixir and therefore its usage is limited. For instance, "
+          "it can't be used as a variable or be defined nor invoked as a regular function">>).
 
 %% Helpers
 

@@ -186,7 +186,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "unexpected end" do
-    assert_eval_raise SyntaxError, "nofile:1: unexpected token: end", '1 end'
+    assert_eval_raise SyntaxError, "nofile:1: unexpected reserved word: end", '1 end'
 
     assert_eval_raise SyntaxError,
                       ~r" HINT: it looks like the \"end\" on line 2 does not have a matching \"do\" defined before it",
@@ -260,7 +260,7 @@ defmodule Kernel.ErrorsTest do
                       '+.foo'
 
     assert_eval_raise SyntaxError,
-                      ~r"nofile:1: syntax error before: after. \"after\" is a keyword",
+                      ~r"nofile:1: syntax error before: after. \"after\" is a reserved word",
                       'after = 1'
   end
 
@@ -280,7 +280,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "syntax error with do" do
-    assert_eval_raise SyntaxError, ~r/nofile:1: unexpected token: do./, 'if true, do\n'
+    assert_eval_raise SyntaxError, ~r/nofile:1: unexpected reserved word: do./, 'if true, do\n'
 
     assert_eval_raise SyntaxError, ~r/nofile:1: unexpected keyword: do:./, 'if true do:\n'
   end
@@ -1113,7 +1113,7 @@ defmodule Kernel.ErrorsTest do
 
   test "invalid \"fn do expr end\"" do
     assert_eval_raise SyntaxError,
-                      "nofile:1: unexpected token: do. Anonymous functions are written as:\n\n    fn pattern -> expression end",
+                      "nofile:1: unexpected reserved word: do. Anonymous functions are written as:\n\n    fn pattern -> expression end",
                       'fn do :ok end'
   end
 
