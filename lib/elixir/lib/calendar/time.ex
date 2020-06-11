@@ -437,19 +437,21 @@ defmodule Time do
   @doc """
   Converts a `Time` struct to a number of seconds after midnight.
 
+  The returned value is a two-element tuple with the number of seconds and microseconds.
+
   ## Examples
 
       iex> Time.to_seconds_after_midnight(~T[23:30:15])
-      84615
+      {84615, 0}
       iex> Time.to_seconds_after_midnight(~N[2010-04-17 23:30:15.999])
-      84615
+      {84615, 999000}
 
   """
   @doc since: "1.11.0"
-  @spec to_seconds_after_midnight(Calendar.time()) :: integer()
-  def to_seconds_after_midnight(time) do
+  @spec to_seconds_after_midnight(Calendar.time()) :: {integer(), non_neg_integer()}
+  def to_seconds_after_midnight(%{microsecond: {microsecond, _precision}} = time) do
     iso_days = {0, to_day_fraction(time)}
-    Calendar.ISO.iso_days_to_unit(iso_days, :second)
+    {Calendar.ISO.iso_days_to_unit(iso_days, :second), microsecond}
   end
 
   @doc """

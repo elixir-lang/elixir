@@ -887,18 +887,18 @@ defmodule NaiveDateTime do
   end
 
   @doc """
-  Converts a `NaiveDateTime` struct to a number of gregorian seconds.
+  Converts a `NaiveDateTime` struct to a number of gregorian seconds and microseconds.
 
   ## Examples
 
       iex> NaiveDateTime.to_gregorian_seconds(~N[0000-01-01 00:00:01])
-      1
+      {1, 0}
       iex> NaiveDateTime.to_gregorian_seconds(~N[2020-05-01 00:26:31.005])
-      63_755_511_991
+      {63_755_511_991, 5000}
 
   """
   @doc since: "1.11.0"
-  @spec to_gregorian_seconds(Calendar.naive_datetime()) :: integer()
+  @spec to_gregorian_seconds(Calendar.naive_datetime()) :: {integer(), non_neg_integer()}
   def to_gregorian_seconds(%{
         calendar: calendar,
         year: year,
@@ -921,7 +921,7 @@ defmodule NaiveDateTime do
       )
 
     seconds_in_day = seconds_from_day_fraction(day_fraction)
-    days * @seconds_per_day + seconds_in_day
+    {days * @seconds_per_day + seconds_in_day, microsecond}
   end
 
   @doc """
