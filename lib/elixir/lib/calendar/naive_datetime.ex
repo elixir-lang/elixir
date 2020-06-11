@@ -79,8 +79,6 @@ defmodule NaiveDateTime do
         }
 
   @seconds_per_day 24 * 60 * 60
-  @microseconds_per_second 1_000_000
-  @microseconds_per_day @seconds_per_day * @microseconds_per_second
 
   @doc """
   Returns the current naive datetime in UTC.
@@ -867,12 +865,10 @@ defmodule NaiveDateTime do
         calendar \\ Calendar.ISO
       )
       when is_integer(seconds) do
-    {days, rest_seconds} = div_mod(seconds, @seconds_per_day)
-    microseconds_in_day = rest_seconds * @microseconds_per_second + microsecond
-    day_fraction = {microseconds_in_day, @microseconds_per_day}
+    iso_days = Calendar.ISO.gregorian_seconds_to_iso_days(seconds, microsecond)
 
     {year, month, day, hour, minute, second, {microsecond, _}} =
-      calendar.naive_datetime_from_iso_days({days, day_fraction})
+      calendar.naive_datetime_from_iso_days(iso_days)
 
     %NaiveDateTime{
       calendar: calendar,
@@ -1067,17 +1063,6 @@ defmodule NaiveDateTime do
   end
 
   ## Helpers
-
-  defp div_mod(int1, int2) do
-    div = div(int1, int2)
-    rem = int1 - div * int2
-
-    if rem >= 0 do
-      {div, rem}
-    else
-      {div - 1, rem + int2}
-    end
-  end
 
   defp seconds_from_day_fraction({parts_in_day, @seconds_per_day}),
     do: parts_in_day
