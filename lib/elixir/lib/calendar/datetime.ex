@@ -77,6 +77,9 @@ defmodule DateTime do
         }
 
   @unix_days :calendar.date_to_gregorian_days({1970, 1, 1})
+  @seconds_per_day 24 * 60 * 60
+  @microseconds_per_second 1_000_000
+  @microseconds_per_day @seconds_per_day * @microseconds_per_second
 
   @doc """
   Returns the current datetime in UTC.
@@ -1034,6 +1037,95 @@ defmodule DateTime do
   end
 
   @doc """
+  Converts a number of gregorian seconds to a `DateTime` struct.
+
+  The returned `DateTime` will have `UTC` timezone, if you want other tiimezone, please use 
+  `DateTime.shift_zone/3`.
+
+  ## Examples
+
+      iex> DateTime.from_gregorian_seconds(1)
+      ~U[0000-01-01 00:00:01Z]
+      iex> DateTime.from_gregorian_seconds(63_755_511_991, {5000, 3})
+      ~U[2020-05-01 00:26:31.005Z]
+      iex> DateTime.from_gregorian_seconds(-1)
+      ~U[-0001-12-31 23:59:59Z]
+
+  """
+  @doc since: "1.11.0"
+  @spec from_gregorian_seconds(integer(), Calendar.microsecond(), Calendar.calendar()) :: t
+  def from_gregorian_seconds(
+        seconds,
+        {microsecond, precision} \\ {0, 0},
+        calendar \\ Calendar.ISO
+      )
+      when is_integer(seconds) do
+    {days, rest_seconds} = div_mod(seconds, @seconds_per_day)
+    microseconds_in_day = rest_seconds * @microseconds_per_second + microsecond
+    day_fraction = {microseconds_in_day, @microseconds_per_day}
+
+    {year, month, day, hour, minute, second, {microsecond, _}} =
+      calendar.naive_datetime_from_iso_days({days, day_fraction})
+
+    %DateTime{
+      calendar: calendar,
+      year: year,
+      month: month,
+      day: day,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: {microsecond, precision},
+      std_offset: 0,
+      utc_offset: 0,
+      zone_abbr: "UTC",
+      time_zone: "Etc/UTC"
+    }
+  end
+
+  @doc """
+  Converts a `DateTime` struct to a number of gregorian seconds and microseconds.
+
+  ## Examples
+
+      iex> dt = %DateTime{year: 0000, month: 1, day: 1, zone_abbr: "UTC",
+      ...>                hour: 0, minute: 0, second: 1, microsecond: {0, 0},
+      ...>                utc_offset: 0, std_offset: 0, time_zone: "Etc/UTC"}
+      iex> DateTime.to_gregorian_seconds(dt)
+      {1, 0}
+
+      iex> dt = %DateTime{year: 2020, month: 5, day: 1, zone_abbr: "UTC",
+      ...>                hour: 0, minute: 26, second: 31, microsecond: {5000, 0},
+      ...>                utc_offset: 0, std_offset: 0, time_zone: "Etc/UTC"}
+      iex> DateTime.to_gregorian_seconds(dt)
+      {63_755_511_991, 5000}
+
+      iex> dt = %DateTime{year: 2020, month: 5, day: 1, zone_abbr: "CET",
+      ...>                hour: 1, minute: 26, second: 31, microsecond: {5000, 0},
+      ...>                utc_offset: 3600, std_offset: 0, time_zone: "Europe/Warsaw"}
+      iex> DateTime.to_gregorian_seconds(dt)
+      {63_755_511_991, 5000}
+
+  """
+  @doc since: "1.11.0"
+  @spec to_gregorian_seconds(Calendar.datetime()) :: {integer(), non_neg_integer()}
+  def to_gregorian_seconds(
+        %{
+          std_offset: std_offset,
+          utc_offset: utc_offset,
+          microsecond: {microsecond, _}
+        } = datetime
+      ) do
+    {days, day_fraction} =
+      datetime
+      |> to_iso_days()
+      |> apply_tz_offset(utc_offset + std_offset)
+
+    seconds_in_day = seconds_from_day_fraction(day_fraction)
+    {days * @seconds_per_day + seconds_in_day, microsecond}
+  end
+
+  @doc """
   Converts the given `datetime` to a string according to its calendar.
 
   ### Examples
@@ -1432,6 +1524,23 @@ defmodule DateTime do
       std_offset: datetime_map.std_offset
     }
   end
+
+  defp div_mod(int1, int2) do
+    div = div(int1, int2)
+    rem = int1 - div * int2
+
+    if rem >= 0 do
+      {div, rem}
+    else
+      {div - 1, rem + int2}
+    end
+  end
+
+  defp seconds_from_day_fraction({parts_in_day, @seconds_per_day}),
+    do: parts_in_day
+
+  defp seconds_from_day_fraction({parts_in_day, parts_per_day}),
+    do: div(parts_in_day * @seconds_per_day, parts_per_day)
 
   defimpl String.Chars do
     def to_string(datetime) do
