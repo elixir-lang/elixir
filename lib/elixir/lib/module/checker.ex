@@ -231,7 +231,7 @@ defmodule Module.Checker do
 
   defp warn(meta, state, warning) do
     {fun, arity} = state.function
-    location = {state.file, meta[:line], {state.module, fun, arity}}
+    location = {state.file, meta[:line] || 0, {state.module, fun, arity}}
     %{state | warnings: [{__MODULE__, warning, location} | state.warnings]}
   end
 
@@ -306,7 +306,7 @@ defmodule Module.Checker do
 
   defp format_location({file, line, {module, fun, arity}}) do
     file = Path.relative_to_cwd(file)
-    line = if line, do: [Integer.to_string(line), ": "], else: []
+    line = if line > 0, do: [Integer.to_string(line), ": "], else: []
     mfa = Exception.format_mfa(module, fun, arity)
     ["  ", file, ?:, line, mfa, ?\n]
   end

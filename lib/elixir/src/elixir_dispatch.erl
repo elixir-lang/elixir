@@ -92,7 +92,7 @@ dispatch_import(Meta, Name, Args, E, Callback) ->
     {ok, Receiver, Quoted} ->
       expand_quoted(Meta, Receiver, Name, Arity, Quoted, E);
     {ok, Receiver, NewName, NewArgs} ->
-      elixir_expand:expand({{'.', [], [Receiver, NewName]}, Meta, NewArgs}, E);
+      elixir_expand:expand({{'.', Meta, [Receiver, NewName]}, Meta, NewArgs}, E);
     error ->
       Callback()
   end.

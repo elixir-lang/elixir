@@ -639,6 +639,31 @@ defmodule Module.CheckerTest do
       assert_warnings(files, warning)
     end
 
+    test "reports imported functions" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          @deprecated "oops"
+          def a, do: :ok
+        end
+        """,
+        "b.ex" => """
+        defmodule B do
+          import A
+          def b, do: a()
+        end
+        """
+      }
+
+      warning = """
+      warning: A.a/0 is deprecated. oops
+        b.ex:3: B.b/0
+
+      """
+
+      assert_warnings(files, warning)
+    end
+
     test "reports structs" do
       files = %{
         "a.ex" => """
