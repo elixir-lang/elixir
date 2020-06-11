@@ -1287,7 +1287,7 @@ check_terminator({End, {EndLine, EndColumn, _}}, [{Start, StartLine, _} | _], Sc
     [io_lib:format(". The \"~ts\" at line ~B is missing terminator \"~ts\"", [Start, StartLine, ExpectedEnd]),
      missing_terminator_hint(Start, ExpectedEnd, Scope)],
 
-  {error, {EndLine, EndColumn, {"unexpected token: ", Suffix}, [atom_to_list(End)]}};
+  {error, {EndLine, EndColumn, {unexpected_token_or_reserved(End), Suffix}, [atom_to_list(End)]}};
 
 check_terminator({'end', {Line, Column, _}}, [], #elixir_tokenizer{mismatch_hints=Hints}) ->
   Suffix =
@@ -1299,7 +1299,7 @@ check_terminator({'end', {Line, Column, _}}, [], #elixir_tokenizer{mismatch_hint
         ""
     end,
 
-  {error, {Line, Column, {"unexpected token: ", Suffix}, "end"}};
+  {error, {Line, Column, {"unexpected reserved word: ", Suffix}, "end"}};
 
 check_terminator({End, {Line, Column, _}}, [], _Scope)
     when End == ')'; End == ']'; End == '}'; End == '>>' ->
@@ -1307,6 +1307,9 @@ check_terminator({End, {Line, Column, _}}, [], _Scope)
 
 check_terminator(_, _, Scope) ->
   {ok, Scope}.
+
+unexpected_token_or_reserved('end') -> "unexpected reserved word: ";
+unexpected_token_or_reserved(_) -> "unexpected token: ".
 
 missing_terminator_hint(Start, End, #elixir_tokenizer{mismatch_hints=Hints}) ->
   case lists:keyfind(Start, 1, Hints) of
@@ -1399,11 +1402,11 @@ tokenize_keyword_terminator(DoLine, DoColumn, do, [{identifier, {Line, Column, M
   {ok, add_token_with_eol({do, {DoLine, DoColumn, nil}},
                           [{do_identifier, {Line, Column, Meta}, Atom} | T])};
 tokenize_keyword_terminator(_Line, _Column, do, [{'fn', _} | _]) ->
-  {error, invalid_do_with_fn_error("unexpected token: "), "do"};
+  {error, invalid_do_with_fn_error("unexpected reserved word: "), "do"};
 tokenize_keyword_terminator(Line, Column, do, Tokens) ->
   case is_valid_do(Tokens) of
     true  -> {ok, add_token_with_eol({do, {Line, Column, nil}}, Tokens)};
-    false -> {error, invalid_do_error("unexpected token: "), "do"}
+    false -> {error, invalid_do_error("unexpected reserved word: "), "do"}
   end;
 tokenize_keyword_terminator(Line, Column, Atom, Tokens) ->
   {ok, [{Atom, {Line, Column, nil}} | Tokens]}.
