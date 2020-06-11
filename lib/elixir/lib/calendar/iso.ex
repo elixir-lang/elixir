@@ -493,12 +493,12 @@ defmodule Calendar.ISO do
     total_microseconds = divide_by_parts_per_day(parts_in_day, parts_per_day)
 
     {hours, rest_microseconds1} =
-      div_mod(total_microseconds, @seconds_per_hour * @microseconds_per_second)
+      div_rem(total_microseconds, @seconds_per_hour * @microseconds_per_second)
 
     {minutes, rest_microseconds2} =
-      div_mod(rest_microseconds1, @seconds_per_minute * @microseconds_per_second)
+      div_rem(rest_microseconds1, @seconds_per_minute * @microseconds_per_second)
 
-    {seconds, microseconds} = div_mod(rest_microseconds2, @microseconds_per_second)
+    {seconds, microseconds} = div_rem(rest_microseconds2, @microseconds_per_second)
     {hours, minutes, seconds, {microseconds, 6}}
   end
 
@@ -533,7 +533,7 @@ defmodule Calendar.ISO do
     {year, month, day_in_month + 1}
   end
 
-  defp div_mod(int1, int2) do
+  defp div_rem(int1, int2) do
     div = div(int1, int2)
     rem = int1 - div * int2
 
@@ -1161,6 +1161,14 @@ defmodule Calendar.ISO do
   end
 
   @doc false
+  def gregorian_seconds_to_iso_days(seconds, microsecond) do
+    {days, rest_seconds} = div_rem(seconds, @seconds_per_day)
+    microseconds_in_day = rest_seconds * @microseconds_per_second + microsecond
+    day_fraction = {microseconds_in_day, @parts_per_day}
+    {days, day_fraction}
+  end
+
+  @doc false
   def iso_days_to_unit({days, {parts, ppd}}, unit) do
     day_microseconds = days * @parts_per_day
     microseconds = divide_by_parts_per_day(parts, ppd)
@@ -1312,7 +1320,7 @@ defmodule Calendar.ISO do
   end
 
   defp iso_seconds_to_datetime(seconds) do
-    {days, rest_seconds} = div_mod(seconds, @seconds_per_day)
+    {days, rest_seconds} = div_rem(seconds, @seconds_per_day)
 
     date = date_from_iso_days(days)
     time = seconds_to_time(rest_seconds)
@@ -1320,8 +1328,8 @@ defmodule Calendar.ISO do
   end
 
   defp seconds_to_time(seconds) when seconds in 0..@last_second_of_the_day do
-    {hour, rest_seconds} = div_mod(seconds, @seconds_per_hour)
-    {minute, second} = div_mod(rest_seconds, @seconds_per_minute)
+    {hour, rest_seconds} = div_rem(seconds, @seconds_per_hour)
+    {minute, second} = div_rem(rest_seconds, @seconds_per_minute)
 
     {hour, minute, second}
   end
