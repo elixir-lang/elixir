@@ -654,8 +654,8 @@ defmodule Kernel.ExpansionTest do
         expand(quote(do: [1] ++ 2 ++ [3] = [1, 2, 3]))
       end
 
-      assert {:=, _, [-1, {{:., [], [:erlang, :-]}, _, [1]}]} = expand(quote(do: -1 = -1))
-      assert {:=, _, [1, {{:., [], [:erlang, :+]}, _, [1]}]} = expand(quote(do: +1 = +1))
+      assert {:=, _, [-1, {{:., _, [:erlang, :-]}, _, [1]}]} = expand(quote(do: -1 = -1))
+      assert {:=, _, [1, {{:., _, [:erlang, :+]}, _, [1]}]} = expand(quote(do: +1 = +1))
 
       assert {:=, _, [[{:|, _, [1, [{:|, _, [2, 3]}]]}], [1, 2, 3]]} =
                expand(quote(do: [1] ++ [2] ++ 3 = [1, 2, 3]))

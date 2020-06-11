@@ -16,8 +16,8 @@ erl_warn(Line, File, Warning) when is_integer(Line), is_binary(File) ->
   io_warn(Line, File, Warning, [Warning, "\n  ", file_format(Line, File), $\n]).
 
 %% Low-level warning, all other warnings are built on top of it.
--spec io_warn(non_neg_integer() | nil, unicode:chardata() | nil, unicode:chardata(), unicode:chardata()) -> ok.
-io_warn(Line, File, LogMessage, PrintMessage) when is_integer(Line) or (Line == nil), is_binary(File) or (File == nil) ->
+-spec io_warn(non_neg_integer(), unicode:chardata() | nil, unicode:chardata(), unicode:chardata()) -> ok.
+io_warn(Line, File, LogMessage, PrintMessage) when is_integer(Line), is_binary(File) or (File == nil) ->
   send_warning(Line, File, LogMessage),
   print_warning(PrintMessage).
 
