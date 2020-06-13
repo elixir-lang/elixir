@@ -121,13 +121,13 @@ format_error({function_conflict, {Receiver, {Name, Arity}}}) ->
     [elixir_aliases:inspect(Receiver), Name, Arity]);
 
 format_error({unused_args, {Name, Arity}}) ->
-  io_lib:format("default arguments in ~ts/~B are never used", [Name, Arity]);
+  io_lib:format("default values for the optional arguments in ~ts/~B are never used", [Name, Arity]);
 
 format_error({unused_args, {Name, Arity}, 1}) ->
-  io_lib:format("the first default argument in ~ts/~B is never used", [Name, Arity]);
+  io_lib:format("the default value for the first optional argument in ~ts/~B is never used", [Name, Arity]);
 
 format_error({unused_args, {Name, Arity}, Count}) ->
-  io_lib:format("the first ~B default arguments in ~ts/~B are never used", [Count, Name, Arity]);
+  io_lib:format("the default values for the first ~B optional arguments in ~ts/~B are never used", [Count, Name, Arity]);
 
 format_error({unused_def, {Name, Arity}, defp}) ->
   io_lib:format("function ~ts/~B is unused", [Name, Arity]);
