@@ -182,18 +182,23 @@ defmodule MixTest.Case do
   end
 end
 
-## Set up Mix home with Rebar
+## Set up globals
 
-home = MixTest.Case.tmp_path(".mix")
+home = MixTest.Case.tmp_path(".home")
 File.mkdir_p!(home)
-System.put_env("MIX_HOME", home)
+System.put_env("HOME", home)
+
+mix = MixTest.Case.tmp_path(".mix")
+File.mkdir_p!(mix)
+System.put_env("MIX_HOME", mix)
+
 System.delete_env("XDG_DATA_HOME")
 System.delete_env("XDG_CONFIG_HOME")
 
 rebar = System.get_env("REBAR") || Path.expand("fixtures/rebar", __DIR__)
-File.cp!(rebar, Path.join(home, "rebar"))
+File.cp!(rebar, Path.join(mix, "rebar"))
 rebar = System.get_env("REBAR3") || Path.expand("fixtures/rebar3", __DIR__)
-File.cp!(rebar, Path.join(home, "rebar3"))
+File.cp!(rebar, Path.join(mix, "rebar3"))
 
 ## Copy fixtures to tmp
 
@@ -207,6 +212,8 @@ Enum.each(fixtures, fn fixture ->
 end)
 
 ## Generate Git repo fixtures
+System.cmd("git", ~w[config --global user.email "mix@example.com"])
+System.cmd("git", ~w[config --global user.name "mix-repo"])
 
 # Git repo
 target = Path.expand("fixtures/git_repo", __DIR__)
@@ -220,11 +227,9 @@ unless File.dir?(target) do
   """)
 
   File.cd!(target, fn ->
-    System.cmd("git", ~w[-c core.hooksPath='' init])
-    System.cmd("git", ~w[config user.email "mix@example.com"])
-    System.cmd("git", ~w[config user.name "mix-repo"])
+    System.cmd("git", ~w[init])
     System.cmd("git", ~w[add .])
-    System.cmd("git", ~w[commit --no-gpg-sign -m "bad"])
+    System.cmd("git", ~w[commit -m "bad"])
   end)
 
   File.write!(Path.join(target, "mix.exs"), """
@@ -243,8 +248,8 @@ unless File.dir?(target) do
 
   File.cd!(target, fn ->
     System.cmd("git", ~w[add .])
-    System.cmd("git", ~w[commit --no-gpg-sign -m "ok"])
-    System.cmd("git", ~w[tag --no-sign without_module])
+    System.cmd("git", ~w[commit -m "ok"])
+    System.cmd("git", ~w[tag without_module])
   end)
 
   File.write!(Path.join(target, "lib/git_repo.ex"), """
@@ -285,8 +290,8 @@ unless File.dir?(target) do
 
   File.cd!(target, fn ->
     System.cmd("git", ~w[add .])
-    System.cmd("git", ~w[commit --no-gpg-sign -m "lib"])
-    System.cmd("git", ~w[tag --no-sign with_module])
+    System.cmd("git", ~w[commit -m "lib"])
+    System.cmd("git", ~w[tag with_module])
   end)
 end
 
@@ -311,11 +316,9 @@ unless File.dir?(target) do
   """)
 
   File.cd!(target, fn ->
-    System.cmd("git", ~w[-c core.hooksPath='' init])
-    System.cmd("git", ~w[config user.email "mix@example.com"])
-    System.cmd("git", ~w[config user.name "mix-repo"])
+    System.cmd("git", ~w[init])
     System.cmd("git", ~w[add .])
-    System.cmd("git", ~w[commit --no-gpg-sign -m without-dep])
+    System.cmd("git", ~w[commit -m without-dep])
   end)
 
   File.write!(Path.join(target, "mix.exs"), """
@@ -342,7 +345,7 @@ unless File.dir?(target) do
 
   File.cd!(target, fn ->
     System.cmd("git", ~w[add .])
-    System.cmd("git", ~w[commit --no-gpg-sign -m with-dep])
+    System.cmd("git", ~w[commit -m with-dep])
   end)
 end
 
@@ -366,11 +369,9 @@ unless File.dir?(target) do
   """)
 
   File.cd!(target, fn ->
-    System.cmd("git", ~w[-c core.hooksPath='' init])
-    System.cmd("git", ~w[config user.email "mix@example.com"])
-    System.cmd("git", ~w[config user.name "mix-repo"])
+    System.cmd("git", ~w[init])
     System.cmd("git", ~w[add .])
-    System.cmd("git", ~w[commit --no-gpg-sign -m "ok"])
+    System.cmd("git", ~w[commit -m "ok"])
   end)
 end
 

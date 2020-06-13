@@ -251,8 +251,11 @@ defmodule Mix.SCM.Git do
     opts = cmd_opts(into: into, stderr_to_stdout: true)
 
     case System.cmd("git", args, opts) do
-      {response, 0} -> response
-      {_, _} -> Mix.raise("Command \"git #{Enum.join(args, " ")}\" failed")
+      {response, 0} ->
+        response
+
+      {response, _} ->
+        Mix.raise("Command \"git #{Enum.join(args, " ")}\" failed with reason: #{response}")
     end
   end
 
