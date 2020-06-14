@@ -546,7 +546,7 @@ defmodule Mix.ReleaseTest do
       assert make_sys_config(release, [kernel: [key: :value]], "/foo/bar/bat") == :ok
       assert File.read!(@sys_config) =~ "%% RUNTIME_CONFIG=true"
       {:ok, [config]} = :file.consult(@sys_config)
-      assert %Config.Provider{} = provider = config[:elixir][:config_providers]
+      assert %Config.Provider{} = provider = config[:elixir][:config_provider_init]
       refute provider.prune_after_boot
       assert provider.extra_config == [kernel: [start_distribution: true]]
       assert config[:kernel] == [key: :value, start_distribution: false]
@@ -563,7 +563,7 @@ defmodule Mix.ReleaseTest do
       assert make_sys_config(release, [kernel: [key: :value]], "/foo/bar/bat") == :ok
       assert File.read!(@sys_config) =~ "%% RUNTIME_CONFIG=true"
       {:ok, [config]} = :file.consult(@sys_config)
-      assert %Config.Provider{} = provider = config[:elixir][:config_providers]
+      assert %Config.Provider{} = provider = config[:elixir][:config_provider_init]
       assert provider.reboot_after_config
       assert provider.prune_after_boot
       assert provider.extra_config == []
@@ -575,7 +575,7 @@ defmodule Mix.ReleaseTest do
       assert make_sys_config(release, [kernel: [key: :value]], "/foo/bar/bat") == :ok
       assert File.read!(@sys_config) =~ "%% RUNTIME_CONFIG=false"
       {:ok, [config]} = :file.consult(@sys_config)
-      assert %Config.Provider{} = provider = config[:elixir][:config_providers]
+      assert %Config.Provider{} = provider = config[:elixir][:config_provider_init]
       refute provider.reboot_after_config
       assert provider.extra_config == []
       assert config[:kernel] == [key: :value]

@@ -139,7 +139,7 @@ defmodule Mix.Tasks.Release.Init do
       exec "$REL_VSN_DIR/$REL_EXEC" \
            --cookie "$RELEASE_COOKIE" \
            $(release_distribution "$RELEASE_NODE") \
-           --erl "-mode <%= maybe_interactive(@release, "$RELEASE_MODE") %>" \
+           --erl "<%= release_mode(@release, "$RELEASE_MODE") %>" \
            --erl-config "$RELEASE_SYS_CONFIG" \
            --boot "$REL_VSN_DIR/$RELEASE_BOOT_SCRIPT" \
            --boot-var RELEASE_LIB "$RELEASE_ROOT/lib" \
@@ -356,7 +356,7 @@ defmodule Mix.Tasks.Release.Init do
     "!REL_VSN_DIR!\!REL_EXEC!.bat" !REL_EXTRA! ^
       --cookie "!RELEASE_COOKIE!" ^
       !RELEASE_DISTRIBUTION_FLAG! ^
-      --erl "-mode <%= maybe_interactive(@release, "!RELEASE_MODE!") %>" ^
+      --erl "<%= release_mode(@release, "!RELEASE_MODE!") %>" ^
       --erl-config "!RELEASE_SYS_CONFIG!" ^
       --boot "!REL_VSN_DIR!\!RELEASE_BOOT_SCRIPT!" ^
       --boot-var RELEASE_LIB "!RELEASE_ROOT!\lib" ^
@@ -421,8 +421,8 @@ defmodule Mix.Tasks.Release.Init do
 
     "!ERLSRV!" add "!RELEASE_NAME!_!RELEASE_NAME!" ^
       -!RELEASE_DISTRIBUTION! "!RELEASE_NODE!" ^
-      -env RELEASE_ROOT="!RELEASE_ROOT!" -env RELEASE_NAME="!RELEASE_NAME!" -env RELEASE_VSN="!RELEASE_VSN!" -env RELEASE_COOKIE="!RELEASE_COOKIE!" -env RELEASE_NODE="!RELEASE_NODE!" -env RELEASE_VM_ARGS="!RELEASE_VM_ARGS!" -env RELEASE_TMP="!RELEASE_TMP!" -env RELEASE_SYS_CONFIG="!RELEASE_SYS_CONFIG!" ^
-      -args "-setcookie !RELEASE_COOKIE! -config !RELEASE_SYS_CONFIG! -mode !RELEASE_MODE! -boot !REL_VSN_DIR!\start -boot_var RELEASE_LIB !RELEASE_ROOT!\lib -args_file !REL_VSN_DIR!\vm.args"
+      -env RELEASE_ROOT="!RELEASE_ROOT!" -env RELEASE_NAME="!RELEASE_NAME!" -env RELEASE_VSN="!RELEASE_VSN!" -env RELEASE_MODE="!RELEASE_MODE!" -env RELEASE_COOKIE="!RELEASE_COOKIE!" -env RELEASE_NODE="!RELEASE_NODE!" -env RELEASE_VM_ARGS="!RELEASE_VM_ARGS!" -env RELEASE_TMP="!RELEASE_TMP!" -env RELEASE_SYS_CONFIG="!RELEASE_SYS_CONFIG!" ^
+      -args "-setcookie !RELEASE_COOKIE! -config !RELEASE_SYS_CONFIG! <%= release_mode(@release, "!RELEASE_MODE!") %> -boot !REL_VSN_DIR!\start -boot_var RELEASE_LIB !RELEASE_ROOT!\lib -args_file !REL_VSN_DIR!\vm.args"
 
     if %ERRORLEVEL% EQU 0 (
       echo Service installed but not started. From now on, it must be started and stopped by erlsrv:

@@ -10,7 +10,6 @@ defmodule Config.ProviderTest do
 
   @tmp_path tmp_path("config_provider")
   @env_var "ELIXIR_CONFIG_PROVIDER_BOOTED"
-  @config_app :config_app
   @sys_config Path.join(@tmp_path, "sys.config")
 
   setup context do
@@ -19,8 +18,8 @@ defmodule Config.ProviderTest do
     write_sys_config!(context[:sys_config] || [])
 
     on_exit(fn ->
-      Application.delete_env(@config_app, :config_providers)
-      Application.delete_env(@config_app, :config_providers_booted)
+      Application.delete_env(:elixir, :config_provider_init)
+      Application.delete_env(:elixir, :config_provider_booted)
       System.delete_env(@env_var)
     end)
   end
@@ -80,7 +79,7 @@ defmodule Config.ProviderTest do
       init_and_assert_boot()
       config = consult(@sys_config)
       assert config[:my_app] == [key: :value]
-      assert config[@config_app] == [config_providers_booted: {:booted, nil}]
+      assert config[:elixir] == [config_provider_booted: {:booted, nil}]
     end
 
     @tag sys_config: [my_app: [encoding: {:time_μs, :"£", "£", '£'}]]
@@ -100,7 +99,7 @@ defmodule Config.ProviderTest do
 
     test "returns :booted if already booted and keeps config file" do
       init_and_assert_boot()
-      Application.put_all_env(Keyword.take(consult(@sys_config), [@config_app]))
+      Application.put_all_env(Keyword.take(consult(@sys_config), [:elixir]))
       assert boot() == :booted
       refute_received :restart
       assert File.exists?(@sys_config)
@@ -108,7 +107,7 @@ defmodule Config.ProviderTest do
 
     test "returns :booted if already booted and prunes config file" do
       init_and_assert_boot(prune_after_boot: true)
-      Application.put_all_env(Keyword.take(consult(@sys_config), [@config_app]))
+      Application.put_all_env(Keyword.take(consult(@sys_config), [:elixir]))
       assert boot() == :booted
       refute_received :restart
       refute File.exists?(@sys_config)
@@ -120,7 +119,7 @@ defmodule Config.ProviderTest do
         validate_compile_env: [{:elixir, [:unknown], {:ok, :value}}]
       )
 
-      Application.put_all_env(Keyword.take(consult(@sys_config), [@config_app]))
+      Application.put_all_env(Keyword.take(consult(@sys_config), [:elixir]))
 
       assert capture_abort(fn -> boot() end) =~
                "the application :elixir has a different value set for key :unknown"
@@ -137,20 +136,20 @@ defmodule Config.ProviderTest do
     test "returns without rebooting" do
       reader = {Config.Reader, fixture_path("configs/kernel.exs")}
       init = Config.Provider.init([reader], @sys_config, reboot_after_config: false)
-      Application.put_env(@config_app, :config_providers, init)
+      Application.put_all_env(init)
 
       assert capture_abort(fn ->
-               Provider.boot(@config_app, :config_providers, fn ->
+               Provider.boot(fn ->
                  raise "should not be called"
                end)
              end) =~ "Cannot configure :kernel because :reboot_after_config has been set to false"
 
       # Make sure values before and after match
       write_sys_config!(kernel: [elixir_reboot: true])
-      Application.put_env(@config_app, :config_providers, init)
+      Application.put_all_env(init)
       System.delete_env(@env_var)
 
-      Provider.boot(@config_app, :config_providers, fn -> raise "should not be called" end)
+      Provider.boot(fn -> raise "should not be called" end)
       assert Application.get_env(:kernel, :elixir_reboot) == true
       assert Application.get_env(:elixir_reboot, :key) == :value
     end
@@ -159,12 +158,12 @@ defmodule Config.ProviderTest do
   defp init(opts) do
     reader = {Config.Reader, fixture_path("configs/good_config.exs")}
     init = Config.Provider.init([reader], Keyword.get(opts, :path, @sys_config), opts)
-    Application.put_env(@config_app, :config_providers, init)
+    Application.put_all_env(init)
     init
   end
 
   defp boot do
-    Provider.boot(@config_app, :config_providers, fn -> send(self(), :restart) end)
+    Provider.boot(fn -> send(self(), :restart) end)
   end
 
   defp init_and_assert_boot(opts \\ []) do
