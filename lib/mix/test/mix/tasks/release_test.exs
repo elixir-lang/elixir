@@ -5,8 +5,10 @@ defmodule Mix.Tasks.ReleaseTest do
 
   @erts_version :erlang.system_info(:version)
   @hostname :inet_db.gethostname()
+  @otp_version :erlang.system_info(:otp_release)
 
   defmacrop release_node(name), do: :"#{name}@#{@hostname}"
+  defmacrop otp_gte(v, t, f), do: if(@otp_version >= v, do: t, else: f)
 
   describe "customize" do
     test "env and vm.args with EEx" do
@@ -282,7 +284,7 @@ defmodule Mix.Tasks.ReleaseTest do
                  app_dir: app_dir,
                  cookie_env: ^cookie,
                  encoding: {:time_μs, :"£", "£", '£'},
-                 mode: :embedded,
+                 mode: otp_gte('23', :interactive, :embedded),
                  node: release_node("release_test"),
                  protocols_consolidated?: true,
                  release_name: "release_test",
@@ -382,7 +384,7 @@ defmodule Mix.Tasks.ReleaseTest do
         open_port(Path.join(root, "bin/no_dist"), ['start'], [{'RELEASE_DISTRIBUTION', 'none'}])
 
         assert %{
-                 mode: :embedded,
+                 mode: otp_gte('23', :interactive, :embedded),
                  node: :nonode@nohost,
                  protocols_consolidated?: true,
                  release_name: "no_dist",
@@ -421,7 +423,7 @@ defmodule Mix.Tasks.ReleaseTest do
         assert %{
                  app_dir: app_dir,
                  cookie_env: "abcdefghijk",
-                 mode: :embedded,
+                 mode: otp_gte('23', :interactive, :embedded),
                  node: release_node("demo"),
                  protocols_consolidated?: true,
                  release_name: "demo",
@@ -577,7 +579,7 @@ defmodule Mix.Tasks.ReleaseTest do
 
         assert %{
                  cookie_env: "abcdefghij",
-                 mode: :interactive,
+                 mode: otp_gte('23', :embedded, :interactive),
                  node: :nonode@nohost,
                  protocols_consolidated?: true,
                  release_name: "eval",
@@ -612,7 +614,7 @@ defmodule Mix.Tasks.ReleaseTest do
         assert %{
                  app_dir: app_dir,
                  cookie_env: "abcdefghij",
-                 mode: :embedded,
+                 mode: otp_gte('23', :interactive, :embedded),
                  node: release_node("permanent2"),
                  protocols_consolidated?: true,
                  release_name: "permanent2",
@@ -657,6 +659,26 @@ defmodule Mix.Tasks.ReleaseTest do
 
         Mix.Task.rerun("release", ["--overwrite"])
         assert_received {:mix_shell, :info, ["* assembling release_test-0.1.0 on MIX_ENV=dev"]}
+      end)
+    end)
+  end
+
+  test "startup mode without system reboot after config" do
+    in_fixture("release_test", fn ->
+      config = [reboot_system_after_config: false]
+
+      Mix.Project.in_project(:release_test, ".", config, fn _ ->
+        root = Path.absname("_build/dev/rel/release_test")
+
+        # Assert command
+        Mix.Task.run("release")
+
+        # Assert runtime
+        open_port(Path.join(root, "bin/release_test"), ['start'])
+
+        assert %{
+                 mode: otp_gte('23', :interactive, :embedded)
+               } = wait_until_decoded(Path.join(root, "RELEASE_BOOTED"))
       end)
     end)
   end
