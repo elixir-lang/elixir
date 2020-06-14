@@ -139,7 +139,7 @@ defmodule Mix.Tasks.Release.Init do
       exec "$REL_VSN_DIR/$REL_EXEC" \
            --cookie "$RELEASE_COOKIE" \
            $(release_distribution "$RELEASE_NODE") \
-           --erl "-mode $RELEASE_MODE" \
+           --erl "-mode <%= maybe_interactive(@release, "$RELEASE_MODE") %>" \
            --erl-config "$RELEASE_SYS_CONFIG" \
            --boot "$REL_VSN_DIR/$RELEASE_BOOT_SCRIPT" \
            --boot-var RELEASE_LIB "$RELEASE_ROOT/lib" \
@@ -356,7 +356,7 @@ defmodule Mix.Tasks.Release.Init do
     "!REL_VSN_DIR!\!REL_EXEC!.bat" !REL_EXTRA! ^
       --cookie "!RELEASE_COOKIE!" ^
       !RELEASE_DISTRIBUTION_FLAG! ^
-      --erl "-mode !RELEASE_MODE!" ^
+      --erl "-mode <%= maybe_interactive(@release, "!RELEASE_MODE!") %>" ^
       --erl-config "!RELEASE_SYS_CONFIG!" ^
       --boot "!REL_VSN_DIR!\!RELEASE_BOOT_SCRIPT!" ^
       --boot-var RELEASE_LIB "!RELEASE_ROOT!\lib" ^

@@ -57,9 +57,13 @@ defmodule Mix.Tasks.Release do
       the VM will find the `Enum` module and load it. There’s a downside.
       When you start a new server in production, it may need to load
       many other modules, causing the first requests to have an unusual
-      spike in response time. Releases run in embedded mode, which loads
-      all available modules upfront, guaranteeing your system is ready
-      to handle requests after booting.
+      spike in response time. When running in Erlang/OTP <23, releases
+      run in embedded mode by default. Whereas when running in Erlang/OTP
+      23+ they run in interactive mode by default in order to load the
+      minimum amount of files necessary to process configuration files.
+      After the config provider boots it restarts the system in embedded
+      mode which loads all available modules upfront, guaranteeing your
+      system is ready to handle requests after booting.
 
     * Configuration and customization. Releases give developers fine
       grained control over system configuration and the VM flags used
@@ -1401,6 +1405,19 @@ defmodule Mix.Tasks.Release do
   end
 
   defp executable!(path), do: File.chmod!(path, 0o744)
+
+  # helper functions
+
+  defp maybe_interactive(release, other) do
+    otp_gte_23? = :erlang.system_info(:otp_release) >= '23'
+    reboot? = Keyword.get(release.options, :reboot_system_after_config, true)
+
+    if otp_gte_23? and reboot? do
+      "interactive"
+    else
+      other
+    end
+  end
 
   embed_template(:vm_args, Mix.Tasks.Release.Init.vm_args_text())
   embed_template(:env, Mix.Tasks.Release.Init.env_text())

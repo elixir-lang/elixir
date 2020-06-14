@@ -27,6 +27,8 @@ test_linux_task:
         - env:
             CHECK_POSIX_COMPLIANT: true
             CHECK_REPRODUCIBLE: true
+            OTP_RELEASE: OTP-23.0
+        - env:
             OTP_RELEASE: OTP-22.3
         - env:
             OTP_RELEASE: OTP-22.0

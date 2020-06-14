@@ -299,8 +299,17 @@ defmodule Config.Provider do
   defp traverse_env(:error, _paths), do: :error
   defp traverse_env({:ok, value}, [key | keys]), do: traverse_env(Access.fetch(value, key), keys)
 
+  @compile {:no_warn_undefined, {:init, :restart, 1}}
   defp restart_and_sleep do
-    :init.restart()
+    case :erlang.system_info(:otp_release) >= '23' do
+      true ->
+        mode = if System.get_env("RELEASE_MODE") == "embedded", do: :embedded, else: :interactive
+        :init.restart(mode: mode)
+
+      false ->
+        :init.restart()
+    end
+
     Process.sleep(:infinity)
   end
 
