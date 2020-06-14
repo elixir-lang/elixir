@@ -438,8 +438,8 @@ defmodule Mix.Release do
       validate_compile_env: validate_compile_env(release)
     ]
 
-    init = Config.Provider.init(release.config_providers, config_path, opts)
-    {Config.Reader.merge(sys_config, [elixir: [config_providers: init]] ++ extra_config), reboot?}
+    init_config = Config.Provider.init(release.config_providers, config_path, opts)
+    {Config.Reader.merge(sys_config, init_config ++ extra_config), reboot?}
   end
 
   defp validate_compile_env(release) do
@@ -645,7 +645,7 @@ defmodule Mix.Release do
     do: []
 
   defp config_provider_apply(_),
-    do: [{:apply, {Config.Provider, :boot, [:elixir, :config_providers]}}]
+    do: [{:apply, {Config.Provider, :boot, []}}]
 
   defp prepend_paths_to_script(instructions, []), do: instructions
 

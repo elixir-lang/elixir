@@ -147,44 +147,44 @@ defmodule Config.Provider do
   def resolve_config_path!(path) when is_binary(path), do: path
   def resolve_config_path!({:system, name, path}), do: System.fetch_env!(name) <> path
 
+  # Private keys
+  @init_key :config_provider_init
+  @booted_key :config_provider_booted
+
+  # Public keys
+  @reboot_mode_key :config_provider_reboot_mode
+
   @doc false
   def init(providers, config_path, opts \\ []) when is_list(providers) and is_list(opts) do
     validate_config_path!(config_path)
     providers = for {provider, init} <- providers, do: {provider, provider.init(init)}
-    struct!(%Config.Provider{config_path: config_path, providers: providers}, opts)
+    init = struct!(%Config.Provider{config_path: config_path, providers: providers}, opts)
+    [elixir: [{@init_key, init}]]
   end
 
   @doc false
-  def boot(app, key, restart_fun \\ &restart_and_sleep/0) do
-    # The app with the config provider settings may not
-    # have been loaded at this point, so make sure we load
-    # its environment before querying it.
-    _ = :application.load(app)
-
+  def boot(reboot_fun \\ &restart_and_sleep/0) do
     # The config provider typically runs very early in the
     # release process, so we need to make sure Elixir is started
     # before we go around running Elixir code.
     {:ok, _} = :application.ensure_all_started(:elixir)
 
-    # The key we store if the system already booted
-    booted_key = :"#{key}_booted"
-
-    case :application.get_env(app, booted_key) do
+    case Application.fetch_env(:elixir, @booted_key) do
       {:ok, {:booted, path}} ->
         path && File.rm(path)
 
-        with {:ok, %Config.Provider{} = provider} <- :application.get_env(app, key) do
+        with {:ok, %Config.Provider{} = provider} <- Application.fetch_env(:elixir, @init_key) do
           maybe_validate_compile_env(provider)
         end
 
         :booted
 
       _ ->
-        case :application.get_env(app, key) do
+        case Application.fetch_env(:elixir, @init_key) do
           {:ok, %Config.Provider{} = provider} ->
             path = resolve_config_path!(provider.config_path)
-            reboot_config = [{app, [{booted_key, booted_value(provider, path)}]}]
-            boot_providers(path, provider, reboot_config, restart_fun)
+            reboot_config = [elixir: [{@booted_key, booted_value(provider, path)}]]
+            boot_providers(path, provider, reboot_config, reboot_fun)
 
           _ ->
             :skip
@@ -192,7 +192,7 @@ defmodule Config.Provider do
     end
   end
 
-  defp boot_providers(path, provider, reboot_config, restart_fun) do
+  defp boot_providers(path, provider, reboot_config, reboot_fun) do
     validate_no_cyclic_boot!(path)
     loaded_applications = :application.loaded_applications()
     original_config = read_config!(path)
@@ -207,7 +207,7 @@ defmodule Config.Provider do
       |> Config.__merge__(reboot_config)
       |> write_config!(path)
 
-      restart_fun.()
+      reboot_fun.()
     else
       for {app, _, _} <- loaded_applications, config[app] != original_config[app] do
         abort("""
@@ -300,14 +300,14 @@ defmodule Config.Provider do
   defp traverse_env({:ok, value}, [key | keys]), do: traverse_env(Access.fetch(value, key), keys)
 
   @compile {:no_warn_undefined, {:init, :restart, 1}}
-  defp restart_and_sleep do
-    case :erlang.system_info(:otp_release) >= '23' do
-      true ->
-        mode = if System.get_env("RELEASE_MODE") == "embedded", do: :embedded, else: :interactive
-        :init.restart(mode: mode)
+  defp restart_and_sleep() do
+    mode = Application.get_env(:elixir, @reboot_mode_key)
 
-      false ->
-        :init.restart()
+    # TODO: Remove otp_release check once we require Erlang/OTP 23+
+    if :erlang.system_info(:otp_release) >= '23' and mode in [:embedded, :interactive] do
+      :init.restart(mode: mode)
+    else
+      :init.restart()
     end
 
     Process.sleep(:infinity)

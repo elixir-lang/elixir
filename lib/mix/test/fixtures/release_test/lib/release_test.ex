@@ -13,6 +13,7 @@ defmodule ReleaseTest do
       node: node(),
       protocols_consolidated?: Protocol.consolidated?(Enumerable),
       release_name: System.get_env("RELEASE_NAME"),
+      release_mode: System.get_env("RELEASE_MODE"),
       release_node: System.get_env("RELEASE_NODE"),
       release_root: System.get_env("RELEASE_ROOT"),
       release_vsn: System.get_env("RELEASE_VSN"),
