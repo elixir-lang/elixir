@@ -98,10 +98,6 @@ test_windows_task:
   matrix:
     - env:
         OS_VERSION: 2019
-        OTP_RELEASE: 23.0
-
-    - env:
-        OS_VERSION: 2019
         OTP_RELEASE: 22.0
 
     - env:
