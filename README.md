@@ -205,8 +205,11 @@ and `mix` under the `doc` directory. If you are planning to contribute documenta
 
 ## License
 
-"Elixir" and the Elixir logo are copyright (c) 2012 Plataformatec.
+"Elixir" and the Elixir logo are copyright (c) 2020 Dashbit.
 
 Elixir source code is released under Apache License 2.0.
+
+Copyright (c) 2012 Plataformatec.
+Copyright (c) 2020 Dashbit.
 
 Check [NOTICE](NOTICE) and [LICENSE](LICENSE) files for more information.
