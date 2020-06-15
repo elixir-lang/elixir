@@ -27,15 +27,13 @@ test_linux_task:
         - env:
             CHECK_POSIX_COMPLIANT: true
             CHECK_REPRODUCIBLE: true
-            OTP_RELEASE: OTP-22.1
+            OTP_RELEASE: OTP-23.0
+        - env:
+            OTP_RELEASE: OTP-22.3
         - env:
             OTP_RELEASE: OTP-22.0
         - env:
             OTP_RELEASE: OTP-21.3.8
-        - env:
-            OTP_RELEASE: OTP-21.2
-        - env:
-            OTP_RELEASE: OTP-21.1
         - env:
             OTP_RELEASE: OTP-21.0
 
@@ -110,7 +108,7 @@ test_windows_task:
     image: fertapric/elixir-ci:otp-win64-${OTP_RELEASE}
     os_version: ${OS_VERSION}
     cpu: 4
-    memory: 3840Mi
+    memory: 6GB
 
   install_script:
     - rmdir /s /q .git
@@ -143,7 +141,6 @@ test_freebsd_task:
     LC_ALL: en_US.UTF-8
 
   install_script:
-    - sudo pkg update
     - pkg install -y erlang git gmake
     - rm -rf .git
     - gmake compile
