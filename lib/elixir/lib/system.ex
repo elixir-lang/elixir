@@ -398,8 +398,9 @@ defmodule System do
   @doc """
   Registers a program exit handler function.
 
-  Registers a function that will be invoked at the end of program execution.
-  Useful for invoking a hook in "script" mode.
+  Registers a function that will be invoked at the end of an Elixir script.
+  A script is typically started via the command line via the `elixir` and
+  `mix` executables.
 
   The handler always executes in a different process from the one it was
   registered in. As a consequence, any resources managed by the calling process
@@ -407,6 +408,9 @@ defmodule System do
   function is invoked.
 
   The function must receive the exit status code as an argument.
+
+  If the VM terminates programatically, via `System.stop/1` or `System.halt/1`,
+  the `at_exit/1` callbacks are not executed.
   """
   @spec at_exit((non_neg_integer -> any)) :: :ok
   def at_exit(fun) when is_function(fun, 1) do
