@@ -21,15 +21,15 @@ defmodule Exception do
 
   @typedoc "The kind handled by formatting functions"
   @type kind :: :error | non_error_kind
-  @typep non_error_kind :: :exit | :throw | {:EXIT, pid}
+  @type non_error_kind :: :exit | :throw | {:EXIT, pid}
 
   @type stacktrace :: [stacktrace_entry]
   @type stacktrace_entry ::
           {module, atom, arity_or_args, location}
           | {(... -> any), arity_or_args, location}
 
-  @typep arity_or_args :: non_neg_integer | list
-  @typep location :: keyword
+  @type arity_or_args :: non_neg_integer | list
+  @type location :: keyword
 
   @callback exception(term) :: t
   @callback message(t) :: String.t()
