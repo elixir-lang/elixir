@@ -1177,8 +1177,11 @@ defmodule GenServer do
   end
 
   @doc """
-  Returns the `pid` or `{name, node}` of a GenServer process, or `nil` if
-  no process is associated with the given `server`.
+  Returns the `pid` or `{name, node}` of a GenServer process, `nil` otherwise.
+
+  To be precise, `nil` is returned whenever a `pid` or `{name, node}` cannot
+  be returned. Note there is no guarantee the returned `pid` or `{name, node}`
+  is alive, as a process could terminate immediately after it is looked up.
 
   ## Examples
 
