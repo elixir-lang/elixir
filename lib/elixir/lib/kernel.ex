@@ -1363,12 +1363,12 @@ defmodule Kernel do
   Removes the first occurrence of an element on the left list
   for each element on the right.
 
-  Before OTP 22, the complexity of `a -- b` was proportional to
+  Before Erlang/OTP 22, the complexity of `a -- b` was proportional to
   `length(a) * length(b)`, meaning that it would be very slow if
   both `a` and `b` were long lists. In such cases, consider
   converting each list to a `MapSet` and using `MapSet.difference/2`.
 
-  As of OTP 22, this operation is significantly faster even if both
+  As of Erlang/OTP 22, this operation is significantly faster even if both
   lists are very long, and using `--/2` is usually faster and uses less
   memory than using the `MapSet`-based alternative mentioned above.
   See also the [Erlang efficiency
