@@ -13,17 +13,17 @@ defmodule Mix.Tasks.Format do
 
   ## Formatting options
 
-  The formatter will read a `.formatter.exs` in the current directory for
+  The formatter will read a `.formatter.exs` file in the current directory for
   formatter configuration. Evaluating this file should return a keyword list.
 
-  Here is an example `.formatter.exs` that works as a starting point:
+  Here is an example of a `.formatter.exs` file that works as a starting point:
 
       [
         inputs: ["{mix,.formatter}.exs", "{config,lib,test}/**/*.{ex,exs}"]
       ]
 
   Besides the options listed in `Code.format_string!/2`, the `.formatter.exs`
-  supports the following options:
+  file supports the following options:
 
     * `:inputs` (a list of paths and patterns) - specifies the default inputs
       to be used by this task. For example, `["mix.exs", "{config,lib,test}/**/*.{ex,exs}"]`.
@@ -84,7 +84,7 @@ defmodule Mix.Tasks.Format do
 
   It is also possible to format code across the whole project by passing a list
   of patterns and files to `mix format`, as shown at the top of this task
-  documentation. This list can also be set in the `.formatter.exs` under the
+  documentation. This list can also be set in the `.formatter.exs` file under the
   `:inputs` key.
 
   ## Importing dependencies configuration
@@ -320,7 +320,7 @@ defmodule Mix.Tasks.Format do
     if no_entries_in_formatter_opts?(formatter_opts_and_subs) do
       Mix.raise(
         "Expected one or more files/patterns to be given to mix format " <>
-          "or for a .formatter.exs to exist with an :inputs or :subdirectories key"
+          "or for a .formatter.exs file to exist with an :inputs or :subdirectories key"
       )
     end
 
