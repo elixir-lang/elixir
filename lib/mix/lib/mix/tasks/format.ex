@@ -101,7 +101,7 @@ defmodule Mix.Tasks.Format do
   a dependency can be imported in a project by listing that dependency in the
   `:import_deps` option of the formatter configuration file of the project.
 
-  For example, consider I have a project `my_app` that depends on `my_dep`.
+  For example, consider you have a project called `my_app` that depends on another one called `my_dep`.
   `my_dep` wants to export some configuration, so `my_dep/.formatter.exs`
   would look like this:
 
