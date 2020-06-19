@@ -259,7 +259,7 @@ Elixir's standard library contains a few frequently used behaviours such as `Gen
 
 ### Inspecting behaviours
 
-The `@callback` and `@optional_callback` attributes are used to create a `behaviour_info/1` function available on the defining module. This function can be used to retrieve the callbacks and optional callbacks defined by that module.
+The `@callback` and `@optional_callbacks` attributes are used to create a `behaviour_info/1` function available on the defining module. This function can be used to retrieve the callbacks and optional callbacks defined by that module.
 
 For example, for the `MyBehaviour` module defined in "Optional callbacks" above:
 
