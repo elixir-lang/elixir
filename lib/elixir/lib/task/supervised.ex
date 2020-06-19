@@ -112,7 +112,8 @@ defmodule Task.Supervised do
           %{
             domain: [:otp, :elixir],
             error_logger: %{tag: :error_msg},
-            report_cb: &__MODULE__.format_report/1
+            report_cb: &__MODULE__.format_report/1,
+            callers: Process.get(:"$callers")
           }
         )
 
