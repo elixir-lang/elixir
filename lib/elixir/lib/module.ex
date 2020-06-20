@@ -506,8 +506,6 @@ defmodule Module do
       `@compile {:no_warn_undefined, {Mod, fun, arity}}` - does not warn if
       the given module or the given `Mod.fun/arity` are not defined
 
-  You can see a handful more options used by the Erlang compiler in
-  the documentation for the [`:compile` module](http://www.erlang.org/doc/man/compile.html).
   '''
 
   @typep definition :: {atom, arity}
