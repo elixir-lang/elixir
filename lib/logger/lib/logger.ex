@@ -918,7 +918,7 @@ defmodule Logger do
     # Spies like us
     {"Doctor? Doctor", spies: 2, doctors: 0},
     # 2001: Space Odyssey
-    {"I'm sory Dave", emotion: :sorry, receiver: Dave, computer: :mad, model: HAL9000},
+    {"I'm sorry Dave", emotion: :sorry, receiver: Dave, computer: :mad, model: HAL9000},
     # Lost in Space
     {"Danger, Will Robinson", status: :danger, receiver: {Will, Robinson}},
     # The Graduate
