@@ -403,19 +403,19 @@ defmodule Calendar do
 
     *  `:month_names` - a function that receives a number and returns the name of
       the corresponding month, if the option is not received it defaults to a
-      function thet returns the month names in english
+      function that returns the month names in English
 
     * `:abbreviated_month_names` - a function that receives a number and returns the
       abbreviated name of the corresponding month, if the option is not received it
-      defaults to a function thet returns the abbreviated month names in english
+      defaults to a function that returns the abbreviated month names in English
 
     * `:day_of_week_names` - a function that receives a number and returns the name of
       the corresponding day of week, if the option is not received it defaults to a
-      function that returns the day of week names in english
+      function that returns the day of week names in English
 
     * `:abbreviated_day_of_week_names` - a function that receives a number and returns
       the abbreviated name of the corresponding day of week, if the option is not received
-      it defaults to a function that returns the abbreviated day of week names in english
+      it defaults to a function that returns the abbreviated day of week names in English
 
   ## Formatting syntax
 
@@ -428,7 +428,7 @@ defmodule Calendar do
     * `%`: indicates the start of a formatted section
     * `<padding>`: set the padding (see below)
     * `<width>`: a number indicating the minimum size of the formatted section
-    * `<format>`: the format iself (see below)
+    * `<format>`: the format itself (see below)
 
   ### Accepted padding options
 
@@ -549,7 +549,7 @@ defmodule Calendar do
     parse_modifiers(rest, new_width, pad, parser_data)
   end
 
-  # set default padding if none was specfied
+  # set default padding if none was specified
   defp parse_modifiers(<<format, _::binary>> = rest, width, nil, parser_data) do
     parse_modifiers(rest, width, default_pad(format), parser_data)
   end

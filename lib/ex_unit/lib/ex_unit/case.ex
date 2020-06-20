@@ -22,7 +22,7 @@ defmodule ExUnit.Case do
 
   This module automatically includes all callbacks defined in
   `ExUnit.Callbacks`. See that module for more information on `setup`,
-  `start_supervised`, `on_exit` and the test process lifecycle.
+  `start_supervised`, `on_exit` and the test process life cycle.
 
   For grouping tests together, see `describe/2` in this module.
 

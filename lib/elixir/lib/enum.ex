@@ -2576,7 +2576,7 @@ defmodule Enum do
 
   For this reason, most structs provide a "compare" function, such as
   `Date.compare/2`, which receives two structs and returns `:lt` (less than),
-  `:eq` (equal), and `:gt` (greather than). If you pass a module as the
+  `:eq` (equal), and `:gt` (greater than). If you pass a module as the
   sorting function, Elixir will automatically use the `compare/2` function
   of said module:
 

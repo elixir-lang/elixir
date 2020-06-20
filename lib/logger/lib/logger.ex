@@ -52,7 +52,7 @@ defmodule Logger do
     * `:critical` - for critical conditions
     * `:error` - for errors
     * `:warning` - for warnings
-    * `:notice` - for normal, but signifant, messages
+    * `:notice` - for normal, but significant, messages
     * `:info` - for information of any kind
     * `:debug` - for debug-related messages
 
@@ -196,7 +196,7 @@ defmodule Logger do
       may have its specific level, too. In addition to levels mentioned
       above it also support 2 "meta-levels":
 
-        - `:all` - all messages will be logged, conceptualy identical to
+        - `:all` - all messages will be logged, conceptually identical to
           `:debug`
         - `:none` - no messages will be logged at all
 

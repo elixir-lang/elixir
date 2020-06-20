@@ -60,7 +60,7 @@ defmodule String do
   Note it is generally not advised to use `\xNN` in Elixir
   strings, as introducing an invalid byte sequence would
   make the string invalid. If you have to introduce a
-  character by its hexdecimal representation, it is best
+  character by its hexadecimal representation, it is best
   to work with Unicode code points, such as `\uNNNN`. In fact,
   understanding Unicode code points can be essential when doing
   low-level manipulations of string, so let's explore them in
@@ -681,7 +681,7 @@ defmodule String do
   form identified by `form`.
 
   Invalid Unicode codepoints are skipped and the remaining of
-  the string is converted. If you want the algorith to stop
+  the string is converted. If you want the algorithm to stop
   and return on invalid codepoint, use `:unicode.characters_to_nfd_binary/1`,
   `:unicode.characters_to_nfc_binary/1`, `:unicode.characters_to_nfkd_binary/1`,
   and `:unicode.characters_to_nfkc_binary/1` instead.

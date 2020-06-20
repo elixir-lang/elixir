@@ -1963,7 +1963,7 @@ defmodule Code.Formatter do
   end
 
   # If the document is immediately followed by comment which is followed by newlines,
-  # its newlines wouldn't have considerd the comment, so we need to adjust it.
+  # its newlines wouldn't have considered the comment, so we need to adjust it.
   defp adjust_trailing_newlines({doc, next_line, newlines}, doc_end, [{line, _, _} | _])
        when newlines > 1 and line == doc_end + 1 do
     {doc, next_line, 1}
@@ -2153,7 +2153,7 @@ defmodule Code.Formatter do
   end
 
   defp next_break_fits?({:__block__, meta, [list]}, _state) when is_list(list) do
-    meta[:delimeter] != ~s[']
+    meta[:delimiter] != ~s[']
   end
 
   defp next_break_fits?({form, _, [_ | _]}, _state) when form in [:fn, :%{}, :%] do

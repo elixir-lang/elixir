@@ -1037,7 +1037,7 @@ defmodule DateTime do
   @doc """
   Converts a number of gregorian seconds to a `DateTime` struct.
 
-  The returned `DateTime` will have `UTC` timezone, if you want other tiimezone, please use 
+  The returned `DateTime` will have `UTC` timezone, if you want other timezone, please use 
   `DateTime.shift_zone/3`.
 
   ## Examples
