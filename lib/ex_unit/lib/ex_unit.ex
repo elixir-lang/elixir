@@ -128,7 +128,7 @@ defmodule ExUnit do
   end
 
   defmodule TestCase do
-    # TODO: Remove this module on v2.0 (it has been replacede by TestModule)
+    # TODO: Remove this module on v2.0 (it has been replaced by TestModule)
     @moduledoc false
     defstruct [:name, :state, tests: []]
 
@@ -227,7 +227,7 @@ defmodule ExUnit do
       * `:diff_insert` - color of the insertions on diffs, defaults to `:green`;
       * `:diff_insert_whitespace` - color of the whitespace insertions on diffs,
         defaults to `IO.ANSI.color_background(2, 0, 0)`;
-      * `:diff_delete` - color of the deletiopns on diffs, defaults to `:red`;
+      * `:diff_delete` - color of the deletions on diffs, defaults to `:red`;
       * `:diff_delete_whitespace` - color of the whitespace deletions on diffs,
         defaults to `IO.ANSI.color_background(0, 2, 0)`;
 

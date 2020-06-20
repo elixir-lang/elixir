@@ -974,7 +974,7 @@ defmodule Keyword do
   end
 
   @doc """
-  Returns the first value for `key` and removes all associated antries in the keyword list,
+  Returns the first value for `key` and removes all associated entries in the keyword list,
   raising if `key` is not present.
 
   This function behaves like `pop/3`, but raises in cases the `key` is not present in the
