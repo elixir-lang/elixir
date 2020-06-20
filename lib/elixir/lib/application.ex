@@ -7,7 +7,7 @@ defmodule Application do
   programming languages, but with some additional characteristics.
 
   An application is a component implementing some specific functionality, with a
-  standardized directory structure, configuration, and lifecycle. Applications
+  standardized directory structure, configuration, and life cycle. Applications
   are *loaded*, *started*, and *stopped*. Each application also has its own
   environment, which provides a unified API for configuring each application.
 
@@ -171,7 +171,7 @@ defmodule Application do
   the documentation of `Mix.Tasks.Compile.App`, available as well by running
   `mix help compile.app`.
 
-  ## The application lifecycle
+  ## The application life cycle
 
   ### Loading applications
 

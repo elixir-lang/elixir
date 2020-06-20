@@ -91,7 +91,7 @@ defmodule Code do
 
     * `{:compile_env, app, path, return}` - traced whenever `Application.compile_env/3`
       or `Application.compile_env!/2` are called. `app` is an atom, `path` is a list
-      of keys to traverse in the application environemnt and `return` is either
+      of keys to traverse in the application environment and `return` is either
       `{:ok, value}` or `:error`.
 
   The `:tracers` compiler option can be combined with the `:parser_options`
@@ -937,7 +937,7 @@ defmodule Code do
   @doc """
   Gets all compilation options from the code server.
 
-  To get invidual options, see `get_compiler_option/1`.
+  To get individual options, see `get_compiler_option/1`.
   For a description of all options, see `put_compiler_option/2`.
 
   ## Examples
@@ -956,7 +956,7 @@ defmodule Code do
   @doc """
   Stores all given compilation options.
 
-  To store invidual options, see `put_compiler_option/2`.
+  To store individual options, see `put_compiler_option/2`.
   For a description of all options, see `put_compiler_option/2`.
 
   ## Examples

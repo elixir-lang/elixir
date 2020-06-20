@@ -409,7 +409,7 @@ defmodule System do
 
   The function must receive the exit status code as an argument.
 
-  If the VM terminates programatically, via `System.stop/1` or `System.halt/1`,
+  If the VM terminates programmatically, via `System.stop/1` or `System.halt/1`,
   the `at_exit/1` callbacks are not executed.
   """
   @spec at_exit((non_neg_integer -> any)) :: :ok
