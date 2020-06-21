@@ -599,7 +599,7 @@ defmodule Kernel.SpecialForms do
   ## Selector
 
   By default, Elixir imports functions and macros from the given
-  module, except the ones starting with underscore (which are
+  module, except the ones starting with an underscore (which are
   usually callbacks):
 
       import List
