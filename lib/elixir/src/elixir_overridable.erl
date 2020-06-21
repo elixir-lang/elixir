@@ -1,8 +1,8 @@
 % Holds the logic responsible for defining overridable functions and handling super.
 -module(elixir_overridable).
--export([overridable_for/2, record_overridable/4, super/4, store_not_overriden/1, format_error/1]).
+-export([overridable_for/2, record_overridable/4, super/4, store_not_overridden/1, format_error/1]).
 -include("elixir.hrl").
--define(overriden_pos, 5).
+-define(overridden_pos, 5).
 
 overridables_for(Module) ->
   {_, Bag} = elixir_module:data_tables(Module),
@@ -47,7 +47,7 @@ super(Meta, Module, Tuple, E) ->
       elixir_errors:form_error(Meta, E, ?MODULE, {no_super, Module, Tuple})
   end.
 
-store_not_overriden(Module) ->
+store_not_overridden(Module) ->
   {Set, Bag} = elixir_module:data_tables(Module),
 
   lists:foreach(fun({_, Tuple}) ->
@@ -68,7 +68,7 @@ store_not_overriden(Module) ->
 
 %% Private
 
-store(Set, Module, Tuple, {_, Count, Def, Neighbours, Overriden}, Hidden) ->
+store(Set, Module, Tuple, {_, Count, Def, Neighbours, Overridden}, Hidden) ->
   {{{def, {Name, Arity}}, Kind, Meta, File, _Check,
    {Defaults, _HasBody, _LastDefaults}}, Clauses} = Def,
 
@@ -82,9 +82,9 @@ store(Set, Module, Tuple, {_, Count, Def, Neighbours, Overriden}, Hidden) ->
         {defp, name(Name, Count), Arity, Clauses}
     end,
 
-  case Overriden of
+  case Overridden of
     false ->
-      ets:update_element(Set, {overridable, Tuple}, {?overriden_pos, true}),
+      ets:update_element(Set, {overridable, Tuple}, {?overridden_pos, true}),
       elixir_def:store_definition(false, FinalKind, Meta, FinalName, FinalArity,
                                   File, Module, Defaults, FinalClauses),
       elixir_locals:reattach({FinalName, FinalArity}, FinalKind, Module, Tuple, Neighbours, Meta);
