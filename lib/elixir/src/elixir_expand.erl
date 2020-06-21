@@ -326,7 +326,7 @@ expand({Name, Meta, Kind}, #{context := match} = E) when is_atom(Name), is_atom(
   Pair = {Name, elixir_utils:var_context(Meta, Kind)},
 
   case ReadCurrent of
-    %% Variable was already overriden
+    %% Variable was already overridden
     #{Pair := VarVersion} when VarVersion >= PrematchVersion ->
       maybe_warn_underscored_var_repeat(Meta, Name, Kind, E),
       NewUnused = var_used(Pair, VarVersion, Unused),
