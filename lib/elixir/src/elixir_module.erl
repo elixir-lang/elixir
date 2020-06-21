@@ -331,10 +331,10 @@ build(Line, File, Module) ->
 
 eval_form(Line, Module, DataBag, Block, Vars, E) ->
   {Value, EE} = elixir_compiler:eval_forms(Block, Vars, E),
-  elixir_overridable:store_not_overriden(Module),
+  elixir_overridable:store_not_overridden(Module),
   EV = elixir_env:linify({Line, elixir_env:reset_vars(EE)}),
   EC = eval_callbacks(Line, DataBag, before_compile, [EV], EV),
-  elixir_overridable:store_not_overriden(Module),
+  elixir_overridable:store_not_overridden(Module),
   {Value, EC}.
 
 eval_callbacks(Line, DataBag, Name, Args, E) ->
