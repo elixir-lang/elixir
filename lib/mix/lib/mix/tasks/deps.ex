@@ -158,7 +158,9 @@ defmodule Mix.Tasks.Deps do
 
     shell = Mix.shell()
 
-    Enum.each(load_on_environment(loaded_opts), fn dep ->
+    load_on_environment(loaded_opts)
+    |> Enum.sort_by(& &1.app)
+    |> Enum.each(fn dep ->
       %Mix.Dep{scm: scm, manager: manager} = dep
       dep = check_lock(dep)
       extra = if manager, do: " (#{manager})", else: ""
