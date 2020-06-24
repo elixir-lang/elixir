@@ -21,8 +21,8 @@ defmodule Kernel.LexicalTrackerTest do
     assert D.references(config[:pid]) == {[String], [], [], []}
   end
 
-  test "can add remote structs", config do
-    D.remote_struct(config[:pid], URI)
+  test "can add requires", config do
+    D.add_require(config[:pid], URI)
     assert D.references(config[:pid]) == {[], [URI], [], []}
 
     D.remote_dispatch(config[:pid], URI, :runtime)
@@ -33,18 +33,22 @@ defmodule Kernel.LexicalTrackerTest do
   end
 
   test "can add module imports", config do
+    D.add_require(config[:pid], String)
     D.add_import(config[:pid], String, [], 1, true)
-    D.import_dispatch(config[:pid], String, {:upcase, 1})
-    assert D.references(config[:pid]) == {[String], [], [], []}
 
-    D.import_dispatch(config[:pid], String, {:upcase, 1})
-    assert D.references(config[:pid]) == {[String], [], [], []}
+    D.import_dispatch(config[:pid], String, {:upcase, 1}, :runtime)
+    assert D.references(config[:pid]) == {[], [String], [String], []}
+
+    D.import_dispatch(config[:pid], String, {:upcase, 1}, :compile)
+    assert D.references(config[:pid]) == {[String], [String], [], []}
   end
 
   test "can add module with {function, arity} imports", config do
+    D.add_require(config[:pid], String)
     D.add_import(config[:pid], String, [upcase: 1], 1, true)
-    D.import_dispatch(config[:pid], String, {:upcase, 1})
-    assert D.references(config[:pid]) == {[String], [], [], []}
+
+    D.import_dispatch(config[:pid], String, {:upcase, 1}, :compile)
+    assert D.references(config[:pid]) == {[String], [String], [], []}
   end
 
   test "can add aliases", config do
@@ -60,7 +64,7 @@ defmodule Kernel.LexicalTrackerTest do
 
   test "used module imports are not unused", config do
     D.add_import(config[:pid], String, [], 1, true)
-    D.import_dispatch(config[:pid], String, {:upcase, 1})
+    D.import_dispatch(config[:pid], String, {:upcase, 1}, :compile)
     assert D.collect_unused_imports(config[:pid]) == []
   end
 
@@ -72,14 +76,14 @@ defmodule Kernel.LexicalTrackerTest do
   test "used {module, function, arity} imports are not unused", config do
     D.add_import(config[:pid], String, [upcase: 1], 1, true)
     D.add_import(config[:pid], String, [downcase: 1], 1, true)
-    D.import_dispatch(config[:pid], String, {:upcase, 1})
+    D.import_dispatch(config[:pid], String, {:upcase, 1}, :compile)
     assert D.collect_unused_imports(config[:pid]) == [{{String, :downcase, 1}, 1}]
   end
 
   test "overwriting {module, function, arity} import with module import", config do
     D.add_import(config[:pid], String, [upcase: 1], 1, true)
     D.add_import(config[:pid], String, [], 1, true)
-    D.import_dispatch(config[:pid], String, {:downcase, 1})
+    D.import_dispatch(config[:pid], String, {:downcase, 1}, :compile)
     assert D.collect_unused_imports(config[:pid]) == []
   end
 
@@ -105,9 +109,9 @@ defmodule Kernel.LexicalTrackerTest do
   end
 
   test "does not tag aliases nor types" do
-    {{compile, _structs, runtime, _}, _binding} =
+    {{compile, _exports, runtime, _}, _binding} =
       Code.eval_string("""
-      defmodule Kernel.LexicalTrackerTest.Typespecs do
+      defmodule Kernel.LexicalTrackerTest.AliasTypespecs do
         alias Foo.Bar, as: Bar, warn: false
         @type bar :: Foo.Bar.t
         @opaque bar2 :: Foo.Bar.t
@@ -125,6 +129,20 @@ defmodule Kernel.LexicalTrackerTest do
 
     refute Foo.Bar in runtime
     refute Foo.Bar in compile
+  end
+
+  test "does not tag imports" do
+    {{compile, exports, runtime, _}, _binding} =
+      Code.eval_string("""
+      defmodule Kernel.LexicalTrackerTest.Imports do
+        import String, warn: false
+        Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
+      end |> elem(3)
+      """)
+
+    refute String in compile
+    assert String in exports
+    refute String in runtime
   end
 
   test "defdelegate with literal does not add compile dependency" do

@@ -30,6 +30,11 @@ defmodule Kernel.LexicalTracker do
   end
 
   @doc false
+  def add_require(pid, module) when is_atom(module) do
+    :gen_server.cast(pid, {:add_require, module})
+  end
+
+  @doc false
   def add_import(pid, module, fas, line, warn) when is_atom(module) do
     :gen_server.cast(pid, {:add_import, module, fas, line, warn})
   end
@@ -45,13 +50,8 @@ defmodule Kernel.LexicalTracker do
   end
 
   @doc false
-  def remote_struct(pid, module) when is_atom(module) do
-    :gen_server.cast(pid, {:remote_struct, module})
-  end
-
-  @doc false
-  def import_dispatch(pid, module, fa) when is_atom(module) do
-    :gen_server.cast(pid, {:import_dispatch, module, fa})
+  def import_dispatch(pid, module, fa, mode) when is_atom(module) do
+    :gen_server.cast(pid, {:import_dispatch, module, fa, mode})
   end
 
   @doc false
@@ -106,7 +106,7 @@ defmodule Kernel.LexicalTracker do
     state = %{
       directives: %{},
       references: %{},
-      structs: %{},
+      exports: %{},
       cache: %{},
       compile_env: :ordsets.new(),
       file: nil
@@ -127,7 +127,7 @@ defmodule Kernel.LexicalTracker do
 
   def handle_call(:references, _from, state) do
     {compile, runtime} = partition(Map.to_list(state.references), [], [])
-    {:reply, {compile, Map.keys(state.structs), runtime, state.compile_env}, state}
+    {:reply, {compile, Map.keys(state.exports), runtime, state.compile_env}, state}
   end
 
   def handle_call({:read_cache, key}, _from, %{cache: cache} = state) do
@@ -142,18 +142,13 @@ defmodule Kernel.LexicalTracker do
     {:noreply, %{state | cache: Map.put(cache, key, value)}}
   end
 
-  def handle_cast({:remote_struct, module}, state) do
-    structs = Map.put(state.structs, module, true)
-    {:noreply, %{state | structs: structs}}
-  end
-
   def handle_cast({:remote_dispatch, module, mode}, state) do
     references = add_reference(state.references, module, mode)
     {:noreply, %{state | references: references}}
   end
 
-  def handle_cast({:import_dispatch, module, {function, arity}}, state) do
-    state = add_import_dispatch(state, module, function, arity)
+  def handle_cast({:import_dispatch, module, {function, arity}, mode}, state) do
+    state = add_import_dispatch(state, module, function, arity, mode)
     {:noreply, state}
   end
 
@@ -171,6 +166,10 @@ defmodule Kernel.LexicalTracker do
 
   def handle_cast({:compile_env, app, path, return}, state) do
     {:noreply, update_in(state.compile_env, &:ordsets.add_element({app, path, return}, &1))}
+  end
+
+  def handle_cast({:add_require, module}, state) do
+    {:noreply, put_in(state.exports[module], true)}
   end
 
   def handle_cast({:add_import, module, fas, line, warn}, state) do
@@ -227,14 +226,13 @@ defmodule Kernel.LexicalTracker do
     end
   end
 
-  defp add_import_dispatch(state, module, function, arity) do
+  defp add_import_dispatch(state, module, function, arity, mode) do
     directives =
-      add_dispatch(state.directives, module, :import)
+      state.directives
+      |> add_dispatch(module, :import)
       |> add_dispatch({module, function, arity}, :import)
 
-    # Always compile time because we depend
-    # on the module at compile time
-    references = add_reference(state.references, module, :compile)
+    references = add_reference(state.references, module, mode)
     %{state | directives: directives, references: references}
   end
 

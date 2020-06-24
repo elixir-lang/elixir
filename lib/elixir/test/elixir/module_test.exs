@@ -444,17 +444,38 @@ defmodule ModuleTest do
 
   test "definitions in" do
     in_module do
-      def foo(1, 2, 3), do: 4
+      defp bar(), do: :ok
+      def foo(1, 2, 3), do: bar()
 
-      assert Module.definitions_in(__MODULE__) == [foo: 3]
+      defmacrop macro_bar(), do: 4
+      defmacro macro_foo(1, 2, 3), do: macro_bar()
+
+      assert Module.definitions_in(__MODULE__) |> Enum.sort() ==
+               [{:bar, 0}, {:foo, 3}, {:macro_bar, 0}, {:macro_foo, 3}]
+
+      assert Module.definitions_in(__MODULE__, :public) |> Enum.sort() ==
+               [{:foo, 3}, {:macro_foo, 3}]
+
+      assert Module.definitions_in(__MODULE__, :private) |> Enum.sort() ==
+               [{:bar, 0}, {:macro_bar, 0}]
+
       assert Module.definitions_in(__MODULE__, :def) == [foo: 3]
-      assert Module.definitions_in(__MODULE__, :defp) == []
+      assert Module.definitions_in(__MODULE__, :defp) == [bar: 0]
+      assert Module.definitions_in(__MODULE__, :defmacro) == [macro_foo: 3]
+      assert Module.definitions_in(__MODULE__, :defmacrop) == [macro_bar: 0]
 
       defoverridable foo: 3
 
-      assert Module.definitions_in(__MODULE__) == []
+      assert Module.definitions_in(__MODULE__) |> Enum.sort() ==
+               [{:bar, 0}, {:macro_bar, 0}, {:macro_foo, 3}]
+
+      assert Module.definitions_in(__MODULE__, :public) |> Enum.sort() ==
+               [{:macro_foo, 3}]
+
+      assert Module.definitions_in(__MODULE__, :private) |> Enum.sort() ==
+               [{:bar, 0}, {:macro_bar, 0}]
+
       assert Module.definitions_in(__MODULE__, :def) == []
-      assert Module.definitions_in(__MODULE__, :defp) == []
     end
   end
 
