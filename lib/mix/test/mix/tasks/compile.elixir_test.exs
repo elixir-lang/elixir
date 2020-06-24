@@ -381,7 +381,6 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
       purge([A, B])
 
-
       File.write!("lib/a.ex", """
       defmodule A do
         @enforce_keys [:foo]
