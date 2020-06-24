@@ -47,12 +47,10 @@ trace({alias_expansion, _Meta, Lookup, _Result}, #{lexical_tracker := Pid}) ->
   ?tracker:alias_dispatch(Pid, Lookup),
   ok;
 trace({require, _Meta, Module, _Opts}, #{lexical_tracker := Pid}) ->
-  %% We always record requires when they are defined
-  %% as they expect the reference at compile time.
-  ?tracker:remote_dispatch(Pid, Module, compile),
+  ?tracker:add_require(Pid, Module),
   ok;
 trace({struct_expansion, _Meta, Module, _Keys}, #{lexical_tracker := Pid}) ->
-  ?tracker:remote_struct(Pid, Module),
+  ?tracker:add_require(Pid, Module),
   ok;
 trace({alias_reference, _Meta, Module}, #{lexical_tracker := Pid} = E) ->
   ?tracker:remote_dispatch(Pid, Module, mode(E)),
@@ -63,11 +61,11 @@ trace({remote_function, _Meta, Module, _Function, _Arity}, #{lexical_tracker := 
 trace({remote_macro, _Meta, Module, _Function, _Arity}, #{lexical_tracker := Pid}) ->
   ?tracker:remote_dispatch(Pid, Module, compile),
   ok;
-trace({imported_function, _Meta, Module, Function, Arity}, #{lexical_tracker := Pid}) ->
-  ?tracker:import_dispatch(Pid, Module, {Function, Arity}),
+trace({imported_function, _Meta, Module, Function, Arity}, #{lexical_tracker := Pid} = E) ->
+  ?tracker:import_dispatch(Pid, Module, {Function, Arity}, mode(E)),
   ok;
 trace({imported_macro, _Meta, Module, Function, Arity}, #{lexical_tracker := Pid}) ->
-  ?tracker:import_dispatch(Pid, Module, {Function, Arity}),
+  ?tracker:import_dispatch(Pid, Module, {Function, Arity}, compile),
   ok;
 trace({compile_env, App, Path, Return}, #{lexical_tracker := Pid}) ->
   ?tracker:add_compile_env(Pid, App, Path, Return),

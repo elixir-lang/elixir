@@ -343,7 +343,7 @@ defmodule Mix.Tasks.XrefTest do
       end)
     end
 
-    test "with struct" do
+    test "with export" do
       in_fixture("no_mixfile", fn ->
         File.write!("lib/a.ex", """
         defmodule A do
@@ -364,7 +364,7 @@ defmodule Mix.Tasks.XrefTest do
         assert File.read!("xref_graph.dot") === """
                digraph "xref graph" {
                  "lib/a.ex"
-                 "lib/a.ex" -> "lib/b.ex" [label="(struct)"]
+                 "lib/a.ex" -> "lib/b.ex" [label="(export)"]
                  "lib/b.ex"
                }
                """
@@ -404,7 +404,7 @@ defmodule Mix.Tasks.XrefTest do
                digraph "xref graph" {
                  "lib/a.ex"
                  "lib/a.ex" -> "lib/b.ex" [label="(compile)"]
-                 "lib/b.ex" -> "lib/a.ex" [label="(compile)"]
+                 "lib/b.ex" -> "lib/a.ex" [label="(export)"]
                  "lib/b.ex"
                }
                """

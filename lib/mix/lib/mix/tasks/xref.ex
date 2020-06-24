@@ -40,7 +40,8 @@ defmodule Mix.Tasks.Xref do
     * `--exclude` - paths to exclude
 
     * `--label` - only shows relationships with the given label
-      The labels are "compile", "struct" and "runtime"
+      The labels are "compile", "export" and "runtime". See
+      "Dependencies types" section below
 
     * `--only-nodes` - only shows the node names (no edges)
 
@@ -80,6 +81,28 @@ defmodule Mix.Tasks.Xref do
 
       # To limit statistics only to certain labels
       mix xref graph --format stats --label compile
+
+  ### Dependencies types
+
+  ELixir tracks three types of dependencies between modules: compile,
+  exports, and runtime. If a module has a compile time dependency on
+  another module, the caller module has to be recompiled whenever the
+  callee changes. Compile-time dependencies are typically added when
+  using macros or when invoking functions in the module body (outside
+  of functions).
+
+  Exports dependencies are compile-time dependencies on the module API,
+  namely structs and its public definitions. For example, if you import
+  a module but only use its functions, it is an export dependency. If
+  you use a struct, it is an export dependency too. Export dependencies
+  are only recompiled if the module API changes. Note however compile
+  time dependencies have higher precedence than exports. Therefore if
+  you import a module and use its macros, it is a compile-time dependency.
+
+  Runtime dependencies are added whenever you invoke another module
+  inside a function. Modules with runtime dependencies do not have
+  to be compiled when the callee changes, unless there is a transitive
+  compile or export time dependency between them.
 
   ## Shared options
 
@@ -304,7 +327,7 @@ defmodule Mix.Tasks.Xref do
   defp reference(module, source) do
     cond do
       module in source(source, :compile_references) -> "compile"
-      module in source(source, :struct_references) -> "struct"
+      module in source(source, :export_references) -> "export"
       module in source(source, :runtime_references) -> "runtime"
       true -> nil
     end
@@ -315,12 +338,12 @@ defmodule Mix.Tasks.Xref do
   defp excluded(opts) do
     opts
     |> Keyword.get_values(:exclude)
-    |> Enum.flat_map(&[{&1, nil}, {&1, :compile}, {&1, :struct}])
+    |> Enum.flat_map(&[{&1, nil}, {&1, :compile}, {&1, :export}])
   end
 
   defp label_filter(nil), do: :all
   defp label_filter("compile"), do: :compile
-  defp label_filter("struct"), do: :struct
+  defp label_filter("export"), do: :export
   defp label_filter("runtime"), do: nil
   defp label_filter(other), do: Mix.raise("unknown --label #{other}")
 
@@ -340,7 +363,7 @@ defmodule Mix.Tasks.Xref do
     Map.new(module_sources, fn {current, source} ->
       source(
         runtime_references: runtime,
-        struct_references: structs,
+        export_references: exports,
         compile_references: compile,
         source: file
       ) = source
@@ -348,15 +371,15 @@ defmodule Mix.Tasks.Xref do
       compile_references =
         modules_to_nodes(compile, :compile, current, source, module_sources, all_modules, filter)
 
-      struct_references =
-        modules_to_nodes(structs, :struct, current, source, module_sources, all_modules, filter)
+      export_references =
+        modules_to_nodes(exports, :export, current, source, module_sources, all_modules, filter)
 
       runtime_references =
         modules_to_nodes(runtime, nil, current, source, module_sources, all_modules, filter)
 
       references =
         runtime_references
-        |> Map.merge(struct_references)
+        |> Map.merge(export_references)
         |> Map.merge(compile_references)
         |> Enum.to_list()
 
@@ -467,7 +490,7 @@ defmodule Mix.Tasks.Xref do
     shell = Mix.shell()
 
     counters =
-      Enum.reduce(references, %{compile: 0, struct: 0, nil: 0}, fn {_, deps}, acc ->
+      Enum.reduce(references, %{compile: 0, export: 0, nil: 0}, fn {_, deps}, acc ->
         Enum.reduce(deps, acc, fn {_, value}, acc ->
           Map.update!(acc, value, &(&1 + 1))
         end)
@@ -475,7 +498,7 @@ defmodule Mix.Tasks.Xref do
 
     shell.info("Tracked files: #{map_size(references)} (nodes)")
     shell.info("Compile dependencies: #{counters.compile} (edges)")
-    shell.info("Structs dependencies: #{counters.struct} (edges)")
+    shell.info("Structs dependencies: #{counters.export} (edges)")
     shell.info("Runtime dependencies: #{counters.nil} (edges)")
 
     outgoing =

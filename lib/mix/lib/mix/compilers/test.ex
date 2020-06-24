@@ -230,9 +230,9 @@ defmodule Mix.Compilers.Test do
           source: source,
           runtime_references: r,
           compile_references: c,
-          struct_references: s
+          export_references: e
         ) <- sources,
-        module in r or module in c or module in s,
+        module in r or module in c or module in e,
         CE.module(sources: sources, module: dependent_module) <- modules,
         source in sources,
         do: dependent_module
@@ -259,13 +259,13 @@ defmodule Mix.Compilers.Test do
       file = Path.relative_to(file, cwd)
       {source, sources} = List.keytake(sources, file, source(:source))
 
-      {compile_references, struct_references, runtime_references, _compile_env} =
+      {compile_references, export_references, runtime_references, _compile_env} =
         Kernel.LexicalTracker.references(lexical)
 
       source =
         source(
           source,
-          compile_references: compile_references ++ struct_references,
+          compile_references: compile_references ++ export_references,
           runtime_references: runtime_references
         )
 

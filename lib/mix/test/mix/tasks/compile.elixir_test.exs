@@ -325,7 +325,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     File.rm(tmp_path("c.eex"))
   end
 
-  test "recompiles modules with structs tracking" do
+  test "recompiles modules with exports tracking" do
     in_fixture("no_mixfile", fn ->
       File.write!("lib/a.ex", """
       defmodule A do
@@ -348,8 +348,8 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
       File.write!("lib/a.ex", """
       defmodule A do
+        # Some comments
         defstruct [:foo]
-        def some_fun, do: :ok
       end
       """)
 
@@ -361,7 +361,6 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       File.write!("lib/a.ex", """
       defmodule A do
         defstruct [:foo, :bar]
-        def some_fun, do: :ok
       end
       """)
 
@@ -369,6 +368,19 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
       purge([A, B])
+
+      File.write!("lib/a.ex", """
+      defmodule A do
+        @enforce_keys [:foo]
+        defstruct [:foo, :bar]
+      end
+      """)
+
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+      purge([A, B])
+
 
       File.write!("lib/a.ex", """
       defmodule A do

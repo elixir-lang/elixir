@@ -1053,13 +1053,19 @@ defmodule Module do
       end
 
   """
-  @spec definitions_in(module, def_kind) :: [definition]
-  def definitions_in(module, def_kind)
-      when is_atom(module) and def_kind in [:def, :defp, :defmacro, :defmacrop] do
+  @spec definitions_in(module, def_kind | :public | :private) :: [definition]
+  def definitions_in(module, kind) when is_atom(module) do
     assert_not_compiled!(__ENV__.function, module, @extra_error_msg_definitions_in)
     {set, _} = data_tables_for(module)
-    :lists.append(:ets.match(set, {{:def, :"$1"}, def_kind, :_, :_, :_, :_}))
+    selector = [{{{:def, :"$1"}, :"$2", :_, :_, :_, :_}, definition_guard(kind), [:"$1"]}]
+    :ets.select(set, selector)
   end
+
+  defp definition_guard(:public), do: [{:or, {:==, :"$2", :def}, {:==, :"$2", :defmacro}}]
+  defp definition_guard(:private), do: [{:or, {:==, :"$2", :defp}, {:==, :"$2", :defmacrop}}]
+
+  defp definition_guard(other) when other in [:def, :defp, :defmacro, :defmacrop],
+    do: [{:==, :"$2", other}]
 
   @doc """
   Makes the given functions in `module` overridable.
