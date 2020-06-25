@@ -217,7 +217,7 @@ defmodule Mix.Tasks.XrefTest do
       assert_graph(["--format", "stats"], """
       Tracked files: 4 (nodes)
       Compile dependencies: 1 (edges)
-      Structs dependencies: 0 (edges)
+      Exports dependencies: 0 (edges)
       Runtime dependencies: 2 (edges)
 
       Top 4 files with most outgoing dependencies:
@@ -477,7 +477,7 @@ defmodule Mix.Tasks.XrefTest do
           assert receive_until_no_messages([]) == """
                  Tracked files: 2 (nodes)
                  Compile dependencies: 0 (edges)
-                 Structs dependencies: 0 (edges)
+                 Exports dependencies: 0 (edges)
                  Runtime dependencies: 1 (edges)
 
                  Top 2 files with most outgoing dependencies:
