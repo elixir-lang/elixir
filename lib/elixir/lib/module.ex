@@ -1054,8 +1054,7 @@ defmodule Module do
 
   """
   @spec definitions_in(module, def_kind) :: [definition]
-  def definitions_in(module, kind)
-      when is_atom(module) and kind in [:def, :defp, :defmacro, :defmacrop] do
+  def definitions_in(module, kind) when kind in [:def, :defp, :defmacro, :defmacrop] do
     assert_not_compiled!(__ENV__.function, module, @extra_error_msg_definitions_in)
     {set, _} = data_tables_for(module)
     :ets.select(set, [{{{:def, :"$1"}, kind, :_, :_, :_, :_}, [], [:"$1"]}])
