@@ -327,7 +327,7 @@ defmodule Kernel.ParallelCompiler do
       pid: pid,
       ref: ref,
       file: file,
-      timestamp: System.system_time(),
+      timestamp: System.monotonic_time(),
       compiling: 0,
       waiting: 0,
       warned: false
@@ -572,7 +572,7 @@ defmodule Kernel.ParallelCompiler do
   defp update_timing(files, pid, key) do
     Enum.map(files, fn data ->
       if data.pid == pid do
-        time = System.system_time()
+        time = System.monotonic_time()
         %{data | key => data[key] + time - data.timestamp, timestamp: time}
       else
         data
@@ -581,7 +581,7 @@ defmodule Kernel.ParallelCompiler do
   end
 
   defp update_timing(data, key) do
-    time = System.system_time()
+    time = System.monotonic_time()
     %{data | key => data[key] + time - data.timestamp, timestamp: time}
   end
 
