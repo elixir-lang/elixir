@@ -498,7 +498,7 @@ defmodule Mix.Tasks.Xref do
 
     shell.info("Tracked files: #{map_size(references)} (nodes)")
     shell.info("Compile dependencies: #{counters.compile} (edges)")
-    shell.info("Structs dependencies: #{counters.export} (edges)")
+    shell.info("Exports dependencies: #{counters.export} (edges)")
     shell.info("Runtime dependencies: #{counters.nil} (edges)")
 
     outgoing =
