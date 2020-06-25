@@ -123,10 +123,10 @@ defmodule Inspect.AlgebraTest do
 
   test "reset nest doc" do
     # Consistent with definitions
-    assert nest(empty(), :cursor) == {:doc_nest, empty(), :cursor, :always}
+    assert nest(empty(), :reset) == {:doc_nest, empty(), :reset, :always}
 
     # Consistent formatting
-    assert render(nest("a", :cursor), 80) == "a"
+    assert render(nest("a", :reset), 80) == "a"
     assert render(nest(nest(glue("a", "b"), :reset), 10), 2) == "a\nb"
     assert render(nest(nest(line("a", "b"), :reset), 10), 2) == "a\nb"
   end
