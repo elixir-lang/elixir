@@ -26,6 +26,30 @@ defmodule Kernel.ParallelCompilerTest do
   end
 
   describe "compile" do
+    test "with profiling" do
+      fixtures =
+        write_tmp(
+          "profile_time",
+          bar: """
+          defmodule HelloWorld do
+          end
+          """
+        )
+
+      profile =
+        capture_io(:stderr, fn ->
+          assert {:ok, modules, []} = Kernel.ParallelCompiler.compile(fixtures, profile: :time)
+
+          assert HelloWorld in modules
+        end)
+
+      assert profile =~ ~r"\[profile\] lib/elixir/tmp/profile_time/bar.ex compiled in \d+ms"
+      assert profile =~ ~r"\[profile\] Finished compilation cycle of 1 modules in \d+ms"
+      assert profile =~ ~r"\[profile\] Finished group pass check of 1 modules in \d+ms"
+    after
+      purge([HelloWorld])
+    end
+
     test "solves dependencies between modules" do
       fixtures =
         write_tmp(

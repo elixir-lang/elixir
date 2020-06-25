@@ -202,7 +202,7 @@ defmodule Mix.Compilers.Elixir do
     # Stores state for keeping track which files were compiled
     # and the dependencies between them.
     put_compiler_info({modules, exports, sources, modules, %{}})
-    long_compilation_threshold = opts[:long_compilation_threshold] || 15
+    long_compilation_threshold = opts[:long_compilation_threshold] || 10
     verbose = opts[:verbose] || false
 
     compile_opts = [

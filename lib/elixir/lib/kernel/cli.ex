@@ -502,7 +502,7 @@ defmodule Kernel.CLI do
             else
               [
                 each_long_compilation:
-                  &IO.puts("Compiling #{Path.relative_to_cwd(&1)} (it's taking more than 15s)")
+                  &IO.puts("Compiling #{Path.relative_to_cwd(&1)} (it's taking more than 10s)")
               ]
             end
 
