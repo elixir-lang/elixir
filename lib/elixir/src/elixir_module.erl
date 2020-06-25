@@ -125,6 +125,7 @@ compile(Line, Module, Block, Vars, E) ->
     validate_on_load_attribute(OnLoadAttribute, AllDefinitions, File, Line),
 
     ModuleMap = #{
+      struct => get_struct(DataSet),
       module => Module,
       line => Line,
       file => File,
@@ -387,6 +388,17 @@ warn_unused_attributes(File, DataSet, DataBag, PersistedAttrs) ->
   Query = [{{Attr, '_', '$1'}, [{is_integer, '$1'}], [[Attr, '$1']]} || Attr <- Attrs],
   [elixir_errors:form_warn([{line, Line}], File, ?MODULE, {unused_attribute, Key})
    || [Key, Line] <- ets:select(DataSet, Query)].
+
+get_struct(Set) ->
+  case ets:lookup(Set, struct) of
+    [] -> nil;
+    [{_, Struct, _}] ->
+      case ets:lookup(Set, enforce_keys) of
+        [] -> {Struct, []};
+        [{_, EnforceKeys, _}] when is_list(EnforceKeys) -> {Struct, EnforceKeys};
+        [{_, EnforceKeys, _}] -> {Struct, [EnforceKeys]}
+      end
+  end.
 
 get_deprecated(Bag) ->
   lists:usort(bag_lookup_element(Bag, deprecated, 2)).
