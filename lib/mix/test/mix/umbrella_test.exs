@@ -418,7 +418,7 @@ defmodule Mix.UmbrellaTest do
         ensure_touched("_build/dev/lib/foo/ebin/Elixir.Foo.beam", mtime)
         ensure_touched("_build/dev/lib/foo/.mix/compile.elixir", mtime)
 
-        assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+        Mix.Tasks.Compile.Elixir.run(["--verbose"])
         refute_received {:mix_shell, :info, ["Compiled lib/bar.ex"]}
       end)
 
