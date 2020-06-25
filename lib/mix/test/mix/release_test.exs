@@ -694,6 +694,18 @@ defmodule Mix.ReleaseTest do
     end
   end
 
+  describe "strip_beam/2" do
+    test "can keep docs and debug info, if requested" do
+      {:ok, beam} =
+        Path.join(@eex_ebin, "Elixir.EEx.beam")
+        |> File.read!()
+        |> strip_beam(['Docs', 'Dbgi'])
+
+      assert {:ok, {EEx, [{'Dbgi', _}]}} = :beam_lib.chunks(beam, ['Dbgi'])
+      assert {:ok, {EEx, [{'Docs', _}]}} = :beam_lib.chunks(beam, ['Docs'])
+    end
+  end
+
   describe "included applications" do
     test "are included in the release", context do
       in_tmp(context.test, fn ->

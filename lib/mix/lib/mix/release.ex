@@ -757,10 +757,11 @@ defmodule Mix.Release do
   def copy_ebin(release, source, target) do
     with {:ok, [_ | _] = files} <- File.ls(source) do
       File.mkdir_p!(target)
-      strip_beams? = Keyword.get(release.options, :strip_beams, true)
-      chunks_to_keep = release.options
-        |> Keyword.get(:strip_beams_exceptions, [])
-        |> chunks_to_keep()
+
+      {strip_beams?, chunks_to_keep} =
+        release.options
+        |> Keyword.get(:strip_beams, true)
+        |> parse_strip_beams_option()
 
       for file <- files do
         source_file = Path.join(source, file)
@@ -780,6 +781,9 @@ defmodule Mix.Release do
     end
   end
 
+  @spec strip_beam(binary()) :: {:ok, binary} | {:error, :beam_lib, term}
+  def strip_beam(binary), do: strip_beam(binary, [])
+
   @doc """
   Strips a beam file for a release.
 
@@ -790,8 +794,8 @@ defmodule Mix.Release do
   future versions.
   """
   @spec strip_beam(binary(), List.t()) :: {:ok, binary} | {:error, :beam_lib, term}
-  def strip_beam(binary, chunks_to_keep) do
-    case :beam_lib.chunks(binary, chunks_to_keep, [:allow_missing_chunks]) do
+  def strip_beam(binary, exceptions) do
+    case :beam_lib.chunks(binary, @significant_chunks ++ exceptions, [:allow_missing_chunks]) do
       {:ok, {_, chunks}} ->
         chunks = for {name, chunk} <- chunks, is_binary(chunk), do: {name, chunk}
         {:ok, binary} = :beam_lib.build_module(chunks)
@@ -806,13 +810,15 @@ defmodule Mix.Release do
     end
   end
 
-  defp chunks_to_keep(exceptions) do
-    @significant_chunks ++ Enum.map(exceptions, fn ex ->
-      case ex do
-        :docs -> 'Docs'
-        :debug_info -> :debug_info
-        # NOTE: More chunks we might want to allow keeping?
+  @spec parse_strip_beams_option(true | false | Keyword.t()) :: {true | false, List.t() | nil}
+  def parse_strip_beams_option(option) do
+    {strip?, exceptions} =
+      case option do
+        [keep: exceptions] when is_list(exceptions) -> {true, exceptions}
+        true -> {true, []}
+        false -> {false, nil}
       end
-    end)
+
+    {strip?, @significant_chunks ++ exceptions}
   end
 end

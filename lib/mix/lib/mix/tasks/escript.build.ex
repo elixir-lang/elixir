@@ -65,6 +65,8 @@ defmodule Mix.Tasks.Escript.Build do
 
     * `:strip_beams` - if `true` strips BEAM code in the escript to remove chunks
       unnecessary at runtime, such as debug information and documentation.
+      Can be set to [keep: ['Docs', 'Dbgi']] to strip while keeping some chunks
+      that would otherwise be stripped, like docs, and debug info, for instance.
       Defaults to `true`.
 
     * `:embed_elixir` - if `true` embeds Elixir and its children apps
@@ -159,10 +161,12 @@ defmodule Mix.Tasks.Escript.Build do
     # use default true if neither are present.
     #
     # TODO: Deprecate :strip_beam option on v1.13
-    strip_beams? =
-      Keyword.get_lazy(escript_opts, :strip_beams, fn ->
+    {strip_beams?, chunks_to_keep} =
+      escript_opts
+      |> Keyword.get_lazy(:strip_beams, fn ->
         Keyword.get(escript_opts, :strip_beam, true)
       end)
+      |> Mix.Release.parse_strip_beams_option()
 
     escript_mod = String.to_atom(Atom.to_string(app) <> "_escript")
 
@@ -173,7 +177,7 @@ defmodule Mix.Tasks.Escript.Build do
       |> Map.merge(consolidated_paths(project))
 
     tuples = gen_main(project, escript_mod, main, app, language) ++ read_beams(beam_paths)
-    tuples = if strip_beams?, do: strip_beams(tuples), else: tuples
+    tuples = if strip_beams?, do: strip_beams(tuples, chunks_to_keep), else: tuples
 
     case :zip.create('mem', tuples, [:memory]) do
       {:ok, {'mem', zip}} ->
@@ -267,10 +271,10 @@ defmodule Mix.Tasks.Escript.Build do
     end)
   end
 
-  defp strip_beams(tuples) do
+  defp strip_beams(tuples, exceptions) do
     for {basename, maybe_beam} <- tuples do
       with ".beam" <- Path.extname(basename),
-           {:ok, binary} <- Mix.Release.strip_beam(maybe_beam) do
+           {:ok, binary} <- Mix.Release.strip_beam(maybe_beam, exceptions) do
         {basename, binary}
       else
         _ -> {basename, maybe_beam}
