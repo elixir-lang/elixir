@@ -790,9 +790,11 @@ defmodule Mix.Release do
   The exact chunks that are kept are not documented and may change in
   future versions.
   """
-  @spec strip_beam(binary(), List.t()) :: {:ok, binary} | {:error, :beam_lib, term}
-  def strip_beam(binary, options \\ [keep: []]) when is_list(options) do
-    case :beam_lib.chunks(binary, Enum.uniq(@significant_chunks ++ options[:keep]), [
+  @spec strip_beam(binary(), keyword()) :: {:ok, binary()} | {:error, :beam_lib, term()}
+  def strip_beam(binary, options \\ []) when is_list(options) do
+    chunks_to_keep = Keyword.get(options, :keep, [])
+
+    case :beam_lib.chunks(binary, Enum.uniq(@significant_chunks ++ chunks_to_keep), [
            :allow_missing_chunks
          ]) do
       {:ok, {_, chunks}} ->
@@ -810,7 +812,7 @@ defmodule Mix.Release do
   end
 
   @doc false
-  @spec parse_strip_beams_option(true | false | Keyword.t()) :: {true | false, List.t() | nil}
+  @spec parse_strip_beams_option(true | false | keyword()) :: {true | false, keyword() | nil}
   def parse_strip_beams_option(option) do
     case option do
       [keep: exceptions] when is_list(exceptions) -> {true, [keep: exceptions]}
