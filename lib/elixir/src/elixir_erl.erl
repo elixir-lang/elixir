@@ -12,10 +12,10 @@ debug_info(elixir_v1, _Module, none, _Opts) ->
 debug_info(elixir_v1, _Module, {elixir_v1, Map, _Specs}, _Opts) ->
   {ok, Map};
 debug_info(erlang_v1, _Module, {elixir_v1, Map, Specs}, _Opts) ->
-  {Prefix, Forms, _, _, _, _} = dynamic_form(Map),
+  {Prefix, Forms, _, _, _} = dynamic_form(Map),
   {ok, Prefix ++ Specs ++ Forms};
 debug_info(core_v1, _Module, {elixir_v1, Map, Specs}, Opts) ->
-  {Prefix, Forms, _, _, _, _} = dynamic_form(Map),
+  {Prefix, Forms, _, _, _} = dynamic_form(Map),
   #{compile_opts := CompileOpts} = Map,
   AllOpts = CompileOpts ++ Opts,
 
@@ -105,7 +105,7 @@ scope(_Meta, ExpandCaptures) ->
 %% Static compilation hook, used in protocol consolidation
 
 consolidate(Map, TypeSpecs, Chunks) ->
-  {Prefix, Forms, _Def, _Defmacro, _Macros, _NoWarnUndefined} = dynamic_form(Map),
+  {Prefix, Forms, _Def, _Defmacro, _Macros} = dynamic_form(Map),
   load_form(Map, Prefix, Forms, TypeSpecs, Chunks).
 
 %% Dynamic compilation hook, used in regular compiler
@@ -123,11 +123,11 @@ spawned_compile(#{module := Module, line := Line} = Map) ->
       false -> ?typespecs:translate_typespecs_for_module(Set, Bag)
     end,
 
-  {Prefix, Forms, Def, Defmacro, Macros, NoWarnUndefined} = dynamic_form(Map),
+  {Prefix, Forms, Def, Defmacro, Macros} = dynamic_form(Map),
   {Types, Callbacks, TypeSpecs} = typespecs_form(Map, TranslatedTypespecs, Macros),
 
   DocsChunk = docs_chunk(Set, Module, Line, Def, Defmacro, Types, Callbacks),
-  CheckerChunk = checker_chunk(Map, NoWarnUndefined),
+  CheckerChunk = checker_chunk(Map),
   load_form(Map, Prefix, Forms, TypeSpecs, DocsChunk ++ CheckerChunk).
 
 dynamic_form(#{module := Module, line := Line, relative_file := RelativeFile,
@@ -136,8 +136,9 @@ dynamic_form(#{module := Module, line := Line, relative_file := RelativeFile,
   {Def, Defmacro, Macros, Exports, Functions} =
     split_definition(Definitions, Unreachable, [], [], [], [], {[], []}),
 
-  {NoWarnUndefined, FilteredOpts} = split_no_warn_undefined(Opts, [], []),
+  FilteredOpts = lists:filter(fun({no_warn_undefined, _}) -> false; (_) -> true end, Opts),
   Location = {elixir_utils:characters_to_list(RelativeFile), Line},
+
   Prefix = [{attribute, Line, file, Location},
             {attribute, Line, module, Module},
             {attribute, Line, compile, [no_auto_import | FilteredOpts]}],
@@ -145,7 +146,7 @@ dynamic_form(#{module := Module, line := Line, relative_file := RelativeFile,
   Struct = maps:get(struct, Map, nil),
   Forms0 = functions_form(Line, Module, Def, Defmacro, Exports, Functions, Deprecated, Struct),
   Forms1 = attributes_form(Line, Attributes, Forms0),
-  {Prefix, Forms1, Def, Defmacro, Macros, NoWarnUndefined}.
+  {Prefix, Forms1, Def, Defmacro, Macros}.
 
 % Definitions
 
@@ -541,7 +542,7 @@ signature_to_binary(Module, '__struct__', []) ->
 signature_to_binary(_, Name, Signature) ->
   'Elixir.Macro':to_string({Name, [], Signature}).
 
-checker_chunk(#{definitions := Definitions, deprecated := Deprecated, is_behaviour := IsBehaviour}, NoWarnUndefined) ->
+checker_chunk(#{definitions := Definitions, deprecated := Deprecated, is_behaviour := IsBehaviour}) ->
   DeprecatedMap = maps:from_list(Deprecated),
 
   Exports =
@@ -556,24 +557,13 @@ checker_chunk(#{definitions := Definitions, deprecated := Deprecated, is_behavio
     end, [], Definitions),
 
   Contents = #{
-    exports => lists:sort(behaviour_info_exports(IsBehaviour) ++ Exports),
-    no_warn_undefined => NoWarnUndefined
+    exports => lists:sort(behaviour_info_exports(IsBehaviour) ++ Exports)
   },
 
   [{<<"ExCk">>, erlang:term_to_binary({elixir_checker_v1, Contents})}].
 
 behaviour_info_exports(true) -> [{{behaviour_info, 1}, #{kind => def, deprecated_reason => nil}}];
 behaviour_info_exports(false) -> [].
-
-split_no_warn_undefined([{no_warn_undefined, NoWarnUndefined} | CompileOpts], AccNWU, AccCO) ->
-  split_no_warn_undefined(CompileOpts, list_wrap(NoWarnUndefined) ++ AccNWU, AccCO);
-split_no_warn_undefined([Opt | CompileOpts], AccNWU, AccCO) ->
-  split_no_warn_undefined(CompileOpts, AccNWU, [Opt | AccCO]);
-split_no_warn_undefined([], AccNWU, AccCO) ->
-  {AccNWU, lists:reverse(AccCO)}.
-
-list_wrap(List) when is_list(List) -> List;
-list_wrap(Other) -> [Other].
 
 %% Errors
 
