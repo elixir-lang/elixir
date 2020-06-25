@@ -271,10 +271,10 @@ defmodule Mix.Tasks.Escript.Build do
     end)
   end
 
-  defp strip_beams(tuples, exceptions) do
+  defp strip_beams(tuples, strip_options) do
     for {basename, maybe_beam} <- tuples do
       with ".beam" <- Path.extname(basename),
-           {:ok, binary} <- Mix.Release.strip_beam(maybe_beam, exceptions) do
+           {:ok, binary} <- Mix.Release.strip_beam(maybe_beam, strip_options) do
         {basename, binary}
       else
         _ -> {basename, maybe_beam}
