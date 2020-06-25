@@ -453,12 +453,6 @@ defmodule ModuleTest do
       assert Module.definitions_in(__MODULE__) |> Enum.sort() ==
                [{:bar, 0}, {:foo, 3}, {:macro_bar, 0}, {:macro_foo, 3}]
 
-      assert Module.definitions_in(__MODULE__, :public) |> Enum.sort() ==
-               [{:foo, 3}, {:macro_foo, 3}]
-
-      assert Module.definitions_in(__MODULE__, :private) |> Enum.sort() ==
-               [{:bar, 0}, {:macro_bar, 0}]
-
       assert Module.definitions_in(__MODULE__, :def) == [foo: 3]
       assert Module.definitions_in(__MODULE__, :defp) == [bar: 0]
       assert Module.definitions_in(__MODULE__, :defmacro) == [macro_foo: 3]
@@ -468,12 +462,6 @@ defmodule ModuleTest do
 
       assert Module.definitions_in(__MODULE__) |> Enum.sort() ==
                [{:bar, 0}, {:macro_bar, 0}, {:macro_foo, 3}]
-
-      assert Module.definitions_in(__MODULE__, :public) |> Enum.sort() ==
-               [{:macro_foo, 3}]
-
-      assert Module.definitions_in(__MODULE__, :private) |> Enum.sort() ==
-               [{:bar, 0}, {:macro_bar, 0}]
 
       assert Module.definitions_in(__MODULE__, :def) == []
     end

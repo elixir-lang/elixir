@@ -132,7 +132,7 @@ spawned_compile(#{module := Module, line := Line} = Map) ->
 
 dynamic_form(#{module := Module, line := Line, relative_file := RelativeFile,
                attributes := Attributes, definitions := Definitions, unreachable := Unreachable,
-               deprecated := Deprecated, compile_opts := Opts}) ->
+               deprecated := Deprecated, compile_opts := Opts} = Map) ->
   {Def, Defmacro, Macros, Exports, Functions} =
     split_definition(Definitions, Unreachable, [], [], [], [], {[], []}),
 
@@ -142,7 +142,8 @@ dynamic_form(#{module := Module, line := Line, relative_file := RelativeFile,
             {attribute, Line, module, Module},
             {attribute, Line, compile, [no_auto_import | FilteredOpts]}],
 
-  Forms0 = functions_form(Line, Module, Def, Defmacro, Exports, Functions, Deprecated),
+  Struct = maps:get(struct, Map, nil),
+  Forms0 = functions_form(Line, Module, Def, Defmacro, Exports, Functions, Deprecated, Struct),
   Forms1 = attributes_form(Line, Attributes, Forms0),
   {Prefix, Forms1, Def, Defmacro, Macros, NoWarnUndefined}.
 
@@ -238,13 +239,15 @@ is_macro(_)         -> false.
 
 % Functions
 
-functions_form(Line, Module, Def, Defmacro, Exports, Body, Deprecated) ->
-  {Spec, Info} = add_info_function(Line, Module, Def, Defmacro, Deprecated),
+functions_form(Line, Module, Def, Defmacro, Exports, Body, Deprecated, Struct) ->
+  {Spec, Info} = add_info_function(Line, Module, Def, Defmacro, Deprecated, Struct),
   [{attribute, Line, export, lists:sort([{'__info__', 1} | Exports])}, Spec, Info | Body].
 
-add_info_function(Line, Module, Def, Defmacro, Deprecated) ->
-  AllowedAttrs = [attributes, compile, functions, macros, md5, module, deprecated],
+add_info_function(Line, Module, Def, Defmacro, Deprecated, Struct) ->
+  AllowedAttrs = [attributes, compile, functions, macros, md5, exports_md5, module, deprecated],
   AllowedArgs = lists:map(fun(Atom) -> {atom, Line, Atom} end, AllowedAttrs),
+  SortedDef = lists:sort(Def),
+  SortedDefmacro = lists:sort(Defmacro),
 
   Spec =
     {attribute, Line, spec, {{'__info__', 1},
@@ -258,9 +261,10 @@ add_info_function(Line, Module, Def, Defmacro, Deprecated) ->
 
   Info =
     {function, 0, '__info__', 1, [
-      direct_module_info(Module),
-      functions_info(Def),
-      macros_info(Defmacro),
+      get_module_info(Module),
+      functions_info(SortedDef),
+      macros_info(SortedDefmacro),
+      exports_md5_info(Struct, SortedDef, SortedDefmacro),
       get_module_info(Module, attributes),
       get_module_info(Module, compile),
       get_module_info(Module, md5),
@@ -269,14 +273,20 @@ add_info_function(Line, Module, Def, Defmacro, Deprecated) ->
 
   {Spec, Info}.
 
-direct_module_info(Module) ->
+get_module_info(Module) ->
   {clause, 0, [{atom, 0, module}], [], [{atom, 0, Module}]}.
 
+exports_md5_info(Struct, Def, Defmacro) ->
+  %% Deprecations do not need to be part of exports_md5 because it is always
+  %% checked by the runtime pass, so it is not really part of compilation.
+  Md5 = erlang:md5(erlang:term_to_binary({Def, Defmacro, Struct})),
+  {clause, 0, [{atom, 0, exports_md5}], [], [elixir_erl:elixir_to_erl(Md5)]}.
+
 functions_info(Def) ->
-  {clause, 0, [{atom, 0, functions}], [], [elixir_erl:elixir_to_erl(lists:sort(Def))]}.
+  {clause, 0, [{atom, 0, functions}], [], [elixir_erl:elixir_to_erl(Def)]}.
 
 macros_info(Defmacro) ->
-  {clause, 0, [{atom, 0, macros}], [], [elixir_erl:elixir_to_erl(lists:sort(Defmacro))]}.
+  {clause, 0, [{atom, 0, macros}], [], [elixir_erl:elixir_to_erl(Defmacro)]}.
 
 get_module_info(Module, Key) ->
   Call = ?remote(0, erlang, get_module_info, [{atom, 0, Module}, {var, 0, 'Key'}]),

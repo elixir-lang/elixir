@@ -391,7 +391,7 @@ defmodule Mix.UmbrellaTest do
   test "recompiles after compile time path dependency changes" do
     in_fixture("umbrella_dep/deps/umbrella/apps", fn ->
       Mix.Project.in_project(:bar, "bar", fn _ ->
-        Mix.Task.run("compile", ["--verbose"])
+        Mix.Task.run("compile", [])
 
         # Add compile time dependency
         File.write!("lib/bar.ex", "defmodule Bar, do: Foo.foo()")
@@ -399,13 +399,27 @@ defmodule Mix.UmbrellaTest do
         assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
         assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
 
-        # Recompiles for compile time dependencies
+        # Touch to emulate local recompilation
         mtime = File.stat!("_build/dev/lib/bar/.mix/compile.elixir").mtime
         ensure_touched("_build/dev/lib/foo/ebin/Elixir.Foo.beam", mtime)
         ensure_touched("_build/dev/lib/foo/.mix/compile.elixir", mtime)
 
         assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
-        assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
+        assert_received {:mix_shell, :info, ["Compiled lib/bar.ex"]}
+
+        # But exports dependencies are not recompiled
+        File.write!("lib/bar.ex", "defmodule Bar, do: (require Foo)")
+
+        assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+        assert_received {:mix_shell, :info, ["Compiled lib/bar.ex"]}
+
+        # Touch to emulate local recompilation
+        mtime = File.stat!("_build/dev/lib/bar/.mix/compile.elixir").mtime
+        ensure_touched("_build/dev/lib/foo/ebin/Elixir.Foo.beam", mtime)
+        ensure_touched("_build/dev/lib/foo/.mix/compile.elixir", mtime)
+
+        assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+        refute_received {:mix_shell, :info, ["Compiled lib/bar.ex"]}
       end)
 
       # Now let's add a new file to foo
