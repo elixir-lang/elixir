@@ -336,7 +336,7 @@ stab_expr -> stab_parens_many when_op expr stab_op_eol_and_expr :
                build_op(element(1, '$4'), [{'when', meta_from_token('$2'), unwrap_splice('$1') ++ ['$3']}], element(2, '$4')).
 
 stab_op_eol_and_expr -> stab_op_eol expr : {'$1', '$2'}.
-stab_op_eol_and_expr -> stab_op_eol : {'$1', handle_literal(nil, '$1')}.
+stab_op_eol_and_expr -> stab_op_eol : warn_empty_stab_clause('$1'), {'$1', handle_literal(nil, '$1')}.
 
 block_item -> block_eoe stab_eoe :
                 {handle_literal(?exprs('$1'), '$1'), build_stab('$2')}.
@@ -1092,3 +1092,8 @@ warn_trailing_comma({',', {Line, _, _}}) ->
   elixir_errors:erl_warn(Line, ?file(),
     "trailing commas are not allowed inside function/macro call arguments"
   ).
+
+warn_empty_stab_clause({stab_op, {Line, _, _}, '->'}) ->
+  elixir_errors:erl_warn(Line, ?file(),
+    "an expression is always required on the right side of ->. "
+    "Please provide a value after ->").
