@@ -418,7 +418,7 @@ defmodule Mix.UmbrellaTest do
         ensure_touched("_build/dev/lib/foo/ebin/Elixir.Foo.beam", mtime)
         ensure_touched("_build/dev/lib/foo/.mix/compile.elixir", mtime)
 
-        Mix.Tasks.Compile.Elixir.run(["--verbose"])
+        assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
         refute_received {:mix_shell, :info, ["Compiled lib/bar.ex"]}
       end)
 
@@ -437,10 +437,12 @@ defmodule Mix.UmbrellaTest do
 
       # And bar can use it without warnings
       Mix.Project.in_project(:bar, "bar", fn _ ->
+        File.write!("lib/bar.ex", "defmodule Bar, do: Foo.Bar.baz()")
+
         mtime = File.stat!("_build/dev/lib/bar/.mix/compile.elixir").mtime
         ensure_touched("_build/dev/lib/foo/.mix/compile.elixir", mtime)
+        ensure_touched("lib/bar.ex", mtime)
 
-        File.write!("lib/bar.ex", "defmodule Bar, do: Foo.Bar.baz()")
         assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
         assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
       end)
