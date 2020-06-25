@@ -161,7 +161,7 @@ defmodule Mix.Tasks.Escript.Build do
     # use default true if neither are present.
     #
     # TODO: Deprecate :strip_beam option on v1.13
-    {strip_beams?, chunks_to_keep} =
+    {strip_beams?, strip_options} =
       escript_opts
       |> Keyword.get_lazy(:strip_beams, fn ->
         Keyword.get(escript_opts, :strip_beam, true)
@@ -177,7 +177,7 @@ defmodule Mix.Tasks.Escript.Build do
       |> Map.merge(consolidated_paths(project))
 
     tuples = gen_main(project, escript_mod, main, app, language) ++ read_beams(beam_paths)
-    tuples = if strip_beams?, do: strip_beams(tuples, chunks_to_keep), else: tuples
+    tuples = if strip_beams?, do: strip_beams(tuples, strip_options), else: tuples
 
     case :zip.create('mem', tuples, [:memory]) do
       {:ok, {'mem', zip}} ->

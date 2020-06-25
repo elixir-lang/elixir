@@ -692,14 +692,12 @@ defmodule Mix.ReleaseTest do
       assert {:error, :beam_lib, {:missing_chunk, _, 'Dbgi'}} = :beam_lib.chunks(beam, ['Dbgi'])
       assert {:error, :beam_lib, {:missing_chunk, _, 'Docs'}} = :beam_lib.chunks(beam, ['Docs'])
     end
-  end
 
-  describe "strip_beam/2" do
     test "can keep docs and debug info, if requested" do
       {:ok, beam} =
         Path.join(@eex_ebin, "Elixir.EEx.beam")
         |> File.read!()
-        |> strip_beam(['Docs', 'Dbgi'])
+        |> strip_beam(keep: ['Docs', 'Dbgi'])
 
       assert {:ok, {EEx, [{'Dbgi', _}]}} = :beam_lib.chunks(beam, ['Dbgi'])
       assert {:ok, {EEx, [{'Docs', _}]}} = :beam_lib.chunks(beam, ['Docs'])
