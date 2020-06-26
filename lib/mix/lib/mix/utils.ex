@@ -257,10 +257,10 @@ defmodule Mix.Utils do
   end
 
   defp print_tree(nodes, depth, seen, pretty?, callback) do
+    # We perform a breadth first traversal so we always show a dependency
+    # a node with its children as high as possible in tree. This helps avoid
+    # very deep trees.
     {nodes, seen} =
-      # We perform a breadth first traversal so we always show a dependency
-      # a node with its children as high as possible in tree. This helps avoid
-      # very deep trees.
       Enum.flat_map_reduce(nodes, seen, fn node, seen ->
         {{name, info}, children} = callback.(node)
 
