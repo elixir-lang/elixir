@@ -31,6 +31,7 @@ defmodule VersionTest do
     assert Version.compare("1.0.0", "1.0.0") == :eq
     assert Version.compare("1.0.0-dev", "1.0.0-dev") == :eq
     assert Version.compare("1.0.0-a", "1.0.0-a") == :eq
+    assert Version.compare("1.5.0-rc.0", "1.5.0-rc0") == :lt
   end
 
   test "compare/2 with invalid versions" do
@@ -173,6 +174,9 @@ defmodule VersionTest do
     assert Version.match?("1.2.3-alpha.beta.sigma", "> 1.2.3-alpha.beta")
     refute Version.match?("1.2.3-alpha.10", "< 1.2.3-alpha.1")
     refute Version.match?("0.10.2-dev", "> 0.10.2")
+
+    refute Version.match?("1.5.0-rc.0", "> 1.5.0-rc0")
+    assert Version.match?("1.5.0-rc0", "> 1.5.0-rc.0")
   end
 
   test ">=" do
@@ -182,6 +186,9 @@ defmodule VersionTest do
 
     assert Version.match?("2.0.0", ">= 1.0.0")
     assert Version.match?("1.0.0", ">= 1.0.0")
+
+    refute Version.match?("1.5.0-rc.0", ">= 1.5.0-rc0")
+    assert Version.match?("1.5.0-rc0", ">= 1.5.0-rc.0")
   end
 
   test "<" do
@@ -233,6 +240,9 @@ defmodule VersionTest do
       assert Version.match?("1.12.0", "~> 1.11-dev")
       refute Version.match?("1.10.0", "~> 1.11-dev")
       refute Version.match?("2.0.0", "~> 1.11-dev")
+
+      refute Version.match?("1.5.0-rc.0", "~> 1.5.0-rc0")
+      assert Version.match?("1.5.0-rc0", "~> 1.5.0-rc.0")
 
       assert_raise Version.InvalidRequirementError, fn ->
         Version.match?("3.0.0", "~> 3")
