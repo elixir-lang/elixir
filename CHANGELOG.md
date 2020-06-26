@@ -1,18 +1,22 @@
 # Changelog for Elixir v1.11
 
-## Compilation-time improvements
+## More compiler checks
+
+TODO: Talk about application boundaries and map field checking.
+
+## Compilation time improvements
 
 Elixir v1.11 features many improvements to how the compiler tracks file dependencies, such that touching one file causes less files to be recompiled. In previous versions, Elixir tracked three types of dependencies:
 
-  * compile-time dependencies - if A depends on B at compile-time, such as by using a macro, whenever B changes, A is recompiled
+  * compile time dependencies - if A depends on B at compile time, such as by using a macro, whenever B changes, A is recompiled
   * struct dependencies - if A depends on B's struct, whenever B's struct definition changed, A is recompiled
   * runtime dependencies - if A depends on B at runtime, A is never recompiled
 
-However, because dependencies are transitive, if A depends on B at compile-time and B depends on C at runtime, A would depend on C at compile-time. Therefore, it is very important to reduce the amount of compile-time dependencies.
+However, because dependencies are transitive, if A depends on B at compile time and B depends on C at runtime, A would depend on C at compile time. Therefore, it is very important to reduce the amount of compile time dependencies.
 
-Elixir v1.11 improves this situation by replacing the struct dependencies by "exports dependencies". In other words, if A depends on B, whenever B public's interface changes is recompiled, A is recompiled. What is B's public interface? Its struct definition and all of its public functions and macros.
+Elixir v1.11 replaces the struct dependencies by "exports dependencies". In other words, if A depends on B, whenever B public's interface changes is recompiled, A is recompiled. B's public interface is made by its struct definition and all of its public functions and macros.
 
-This change allows us to mark `import`s and `require`s as "exports dependencies" instead of "compile-time" dependencies. This simplifies the dependency graph considerably. For example, [in the Hex.pm project](https://github.com/hexpm/hexpm), changing the `user.ex` file in Elixir v1.10 would emit this:
+This change allows us to mark `import`s and `require`s as "exports dependencies" instead of "compile time" dependencies. This simplifies the dependency graph considerably. For example, [in the Hex.pm project](https://github.com/hexpm/hexpm), changing the `user.ex` file in Elixir v1.10 would emit this:
 
     $ touch lib/hexpm/accounts/user.ex && mix compile
     Compiling 90 files (.ex)
@@ -22,9 +26,9 @@ In Elixir v1.11, we now get:
     $ touch lib/hexpm/accounts/user.ex && mix compile
     Compiling 16 files (.ex)
 
-To make things even better, Elixir v1.11 also introduces a more granular file tracking to path dependencies, such as the ones found in umbrella projects. In previous versions, a module from a path dependency would always be treated as a compile-time dependency. Not anymore! Elixir v1.11 may tag them as an export dependency if appropriate.
+To make things even better, Elixir v1.11 also introduces a more granular file tracking to path dependencies. In previous versions, a module from a path dependency would always be treated as a compile time dependency. Not anymore! Elixir v1.11 may tag them as an export instead of compile time if appropriate. Path dependencies are the building blocks of umbrella projects, so umbrella users should see dramatic improvements on latest Elixir.
 
-To round up the list of improvements, the `--profile=time` option added in Elixir v1.10 now also includes the time to compile each individual file. For example, in the Plug project, one can now get:
+To round up the list of compiler enhancements, the `--profile=time` option added in Elixir v1.10 now also includes the time to compile each individual file. For example, in the Plug project, one can now get:
 
     [profile] lib/plug/conn.ex compiled in 935ms
     [profile] lib/plug/ssl.ex compiled in 147ms (plus 744ms waiting)
@@ -36,9 +40,49 @@ To round up the list of improvements, the `--profile=time` option added in Elixi
 
 While implementing those features, we have also made the `--long-compilation-threshold` flag more precise. In previous versions, `--long-compilation-threshold` would consider both the time a file spent to compile and the time spent waiting on other files to emit warnings. In Elixir v1.11, we consider only the compilation time. This means less false positives and you can now effectively get all files that take longer than 2s to compile by passing `--long-compilation-threshold 2`.
 
-## More compiler checks
+## `mix xref graph` improvements
 
-TODO: Talk about application boundaries and map field checking.
+To bring visibility to the compiler tracking improvements described in the previous section, we have also added new features to `mix xref`. `mix xref` is a task that describes cross-references between files in your projects. The `mix xref graph` subsection focuses on the dependency graph.
+
+First we have made the existing `--label` flag to consider transitive dependencies. Using `--sink FILE` and `--label compile` can be a powerful combo to find out which files will change whenever the given `FILE` changes. For example, in the Hex.pm project, we get:
+
+    $ mix xref graph --sink lib/hexpm/accounts/user.ex --label compile
+    lib/hexpm/billing/hexpm.ex
+    └── lib/hexpm/billing/billing.ex (compile)
+    lib/hexpm/billing/local.ex
+    └── lib/hexpm/billing/billing.ex (compile)
+    lib/hexpm/emails/bamboo.ex
+    ├── lib/hexpm/accounts/email.ex (compile)
+    └── lib/hexpm/accounts/user.ex (compile)
+    lib/hexpm/emails/emails.ex
+    └── lib/hexpm_web/views/email_view.ex (compile)
+    lib/hexpm_web/controllers/api/docs_controller.ex
+    └── lib/hexpm_web/controllers/auth_helpers.ex (compile)
+    lib/hexpm_web/controllers/api/key_controller.ex
+    └── lib/hexpm_web/controllers/auth_helpers.ex (compile)
+    lib/hexpm_web/controllers/api/organization_controller.ex
+    └── lib/hexpm_web/controllers/auth_helpers.ex (compile)
+    lib/hexpm_web/controllers/api/organization_user_controller.ex
+    └── lib/hexpm_web/controllers/auth_helpers.ex (compile)
+    lib/hexpm_web/controllers/api/owner_controller.ex
+    └── lib/hexpm_web/controllers/auth_helpers.ex (compile)
+    lib/hexpm_web/controllers/api/package_controller.ex
+    └── lib/hexpm_web/controllers/auth_helpers.ex (compile)
+    lib/hexpm_web/controllers/api/release_controller.ex
+    └── lib/hexpm_web/controllers/auth_helpers.ex (compile)
+    lib/hexpm_web/controllers/api/repository_controller.ex
+    └── lib/hexpm_web/controllers/auth_helpers.ex (compile)
+    lib/hexpm_web/controllers/api/retirement_controller.ex
+    └── lib/hexpm_web/controllers/auth_helpers.ex (compile)
+    lib/hexpm_web/controllers/blog_controller.ex
+    └── lib/hexpm_web/views/blog_view.ex (compile)
+    lib/hexpm_web/endpoint.ex
+    ├── lib/hexpm_web/plug_parser.ex (compile)
+    └── lib/hexpm_web/session.ex (compile)
+
+All the files at the root will recompile if `lib/hexpm/accounts/user.ex` changes. Their children describe the *why*. For example, the `repository_controller.ex` file will recompile if user changes because it has a compile time dependency on `auth_helpers.ex` (which depends on `user.ex` at runtime). This indirect compile time dependency is often the source of recompilations and Elixir v1.11 now makes it trivial to spot them. A developer interested in reducing compilation times would remove the compile time dependency on files such as `auth_helpers.ex`, which are frequent in the snippet above.
+
+Another improvement to `mix xref graph` is the addition of `--format cycles`, which will print all cycles in your compilation dependency graph. A `--min-cycle-size` flag can be used if you want to discard short cycles.
 
 ## v1.11.0-dev
 
@@ -97,6 +141,7 @@ TODO: Talk about application boundaries and map field checking.
   * [mix new] Add `@impl` to application generated by `mix new --sup`
   * [mix release] Enable overriding `sys.config` location via `RELEASE_SYS_CONFIG` env var
   * [mix release] Boot a release under configuration in interactive mode and then swap to embedded mode (if running on Erlang/OTP 23+)
+  * [mix release] Allow some chunks to be kept in the `:strip_beams` config
   * [mix test.coverage] Add `mix test.coverage` that aggregates coverage results from umbrellas and OS partitioning
 
 ### 2. Bug fixes
