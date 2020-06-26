@@ -39,11 +39,15 @@ defmodule Mix.Tasks.Xref do
 
     * `--exclude` - paths to exclude
 
-    * `--label` - only shows relationships with the given label
+    * `--label` - only shows relationships with the given label.
+      By default, it keeps all labels that are transitive.
       The labels are "compile", "export" and "runtime". See
       "Dependencies types" section below
 
     * `--only-nodes` - only shows the node names (no edges)
+
+    * `--only-direct` - the `--label` option will restrict itself
+      to only direct dependencies instead of transitive ones
 
     * `--source` - displays all files that the given source file
       references (directly or indirectly)
@@ -70,8 +74,8 @@ defmodule Mix.Tasks.Xref do
   those options with `--label` and `--only-nodes` to get all files that exhibit a certain
   property, for example:
 
-      # To get all files that depend on lib/foo.ex
-      mix xref graph --sink lib/foo.ex --only-nodes
+      # To get the tree that depend on lib/foo.ex at compile time
+      mix xref graph --label compile --sink lib/foo.ex
 
       # To get all files that depend on lib/foo.ex at compile time
       mix xref graph --label compile --sink lib/foo.ex --only-nodes
@@ -133,6 +137,7 @@ defmodule Mix.Tasks.Xref do
     include_siblings: :boolean,
     label: :string,
     only_nodes: :boolean,
+    only_direct: :boolean,
     sink: :string,
     source: :string
   ]
@@ -310,8 +315,12 @@ defmodule Mix.Tasks.Xref do
   end
 
   defp graph(opts) do
-    write_graph(file_references(opts), excluded(opts), opts)
+    filter = label_filter(opts[:label])
 
+    {direct_filter, transitive_filter} =
+      if opts[:only_direct], do: {filter, :all}, else: {:all, filter}
+
+    write_graph(file_references(direct_filter, opts), transitive_filter, opts)
     :ok
   end
 
@@ -347,9 +356,7 @@ defmodule Mix.Tasks.Xref do
   defp label_filter("runtime"), do: nil
   defp label_filter(other), do: Mix.raise("unknown --label #{other}")
 
-  defp file_references(opts) do
-    filter = label_filter(opts[:label])
-
+  defp file_references(filter, opts) do
     module_sources =
       for manifest_path <- manifests(opts),
           {manifest_modules, manifest_sources} = read_manifest(manifest_path),
@@ -400,29 +407,37 @@ defmodule Mix.Tasks.Xref do
         into: %{}
   end
 
-  defp write_graph(file_references, excluded, opts) do
-    {root, file_references} =
+  defp write_graph(file_references, filter, opts) do
+    excluded = excluded(opts)
+
+    {roots, file_references} =
       case {opts[:source], opts[:sink]} do
         {nil, nil} ->
-          {Enum.map(file_references, &{elem(&1, 0), nil}) -- excluded, file_references}
+          roots =
+            file_references |> Enum.map(&{elem(&1, 0), nil}) |> Kernel.--(excluded) |> Map.new()
+
+          {roots, file_references}
 
         {source, nil} ->
           if file_references[source] do
-            {Map.get(file_references, source, []), file_references}
+            file_references = filter_for_source(file_references, filter)
+            {%{source => nil}, file_references}
           else
             Mix.raise("Source could not be found: #{source}")
           end
 
         {nil, sink} ->
           if file_references[sink] do
-            file_references = filter_for_sink(file_references, sink)
+            file_references = filter_for_sink(file_references, sink, filter)
 
             roots =
               file_references
               |> Map.delete(sink)
               |> Enum.map(&{elem(&1, 0), nil})
+              |> Kernel.--(excluded)
+              |> Map.new()
 
-            {roots -- excluded, file_references}
+            {roots, file_references}
           else
             Mix.raise("Sink could not be found: #{sink}")
           end
@@ -434,12 +449,18 @@ defmodule Mix.Tasks.Xref do
     callback = fn {file, type} ->
       children = if opts[:only_nodes], do: [], else: Map.get(file_references, file, [])
       type = type && "(#{type})"
-      {{file, type}, children -- excluded}
+      {{file, type}, Enum.sort(children -- excluded)}
     end
 
     case opts[:format] do
       "dot" ->
-        Mix.Utils.write_dot_graph!("xref_graph.dot", "xref graph", root, callback, opts)
+        Mix.Utils.write_dot_graph!(
+          "xref_graph.dot",
+          "xref graph",
+          Enum.sort(roots),
+          callback,
+          opts
+        )
 
         """
         Generated "xref_graph.dot" in the current directory. To generate a PNG:
@@ -455,33 +476,66 @@ defmodule Mix.Tasks.Xref do
         stats(file_references)
 
       _ ->
-        Mix.Utils.print_tree(root, callback, opts)
+        Mix.Utils.print_tree(Enum.sort(roots), callback, opts)
     end
   end
 
-  defp filter_for_sink(file_references, sink) do
-    file_references
-    |> invert_references()
-    |> apply_filter_for_sink([{sink, nil}], %{})
-    |> invert_references()
+  defp filter_for_source(file_references, :all), do: file_references
+
+  defp filter_for_source(file_references, filter) do
+    Enum.reduce(file_references, %{}, fn {key, _}, acc ->
+      {children, _} = filter_for_source(file_references, key, %{}, %{}, filter)
+      Map.put(acc, key, Map.to_list(children))
+    end)
   end
 
-  defp apply_filter_for_sink(file_references, new_nodes, acc) do
+  defp filter_for_source(references, key, acc, seen, filter) do
+    nodes = references[key]
+
+    if is_nil(nodes) || seen[key] do
+      {acc, seen}
+    else
+      seen = Map.put(seen, key, true)
+
+      Enum.reduce(nodes, {acc, seen}, fn {child_key, type}, {acc, seen} ->
+        if type == filter do
+          {Map.put(acc, child_key, type), Map.put(seen, child_key, true)}
+        else
+          filter_for_source(references, child_key, acc, seen, filter)
+        end
+      end)
+    end
+  end
+
+  defp filter_for_sink(file_references, sink, filter) do
+    fun = if filter == :all, do: fn _ -> true end, else: fn type -> type == filter end
+
+    file_references
+    |> invert_references(fn _ -> true end)
+    |> depends_on_sink([{sink, nil}], %{})
+    |> invert_references(fun)
+  end
+
+  defp depends_on_sink(file_references, new_nodes, acc) do
     Enum.reduce(new_nodes, acc, fn {new_node_name, _type}, acc ->
       new_nodes = file_references[new_node_name]
 
       if acc[new_node_name] || !new_nodes do
         acc
       else
-        apply_filter_for_sink(file_references, new_nodes, Map.put(acc, new_node_name, new_nodes))
+        depends_on_sink(file_references, new_nodes, Map.put(acc, new_node_name, new_nodes))
       end
     end)
   end
 
-  defp invert_references(file_references) do
+  defp invert_references(file_references, fun) do
     Enum.reduce(file_references, %{}, fn {file, references}, acc ->
       Enum.reduce(references, acc, fn {reference, type}, acc ->
-        Map.update(acc, reference, [{file, type}], &[{file, type} | &1])
+        if fun.(type) do
+          Map.update(acc, reference, [{file, type}], &[{file, type} | &1])
+        else
+          acc
+        end
       end)
     end)
   end

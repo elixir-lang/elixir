@@ -201,33 +201,39 @@ defmodule Mix.Tasks.XrefTest do
   end
 
   describe "mix xref graph" do
-    test " basic usage" do
+    test "basic usage" do
       assert_graph("""
       lib/a.ex
-      └── lib/b.ex
-          └── lib/a.ex
+      `-- lib/b.ex (compile)
       lib/b.ex
+      `-- lib/c.ex
+      `-- lib/e.ex (compile)
       lib/c.ex
+      `-- lib/d.ex (compile)
       lib/d.ex
-      └── lib/a.ex (compile)
+      `-- lib/e.ex
+      lib/e.ex
       """)
     end
 
     test "stats" do
       assert_graph(["--format", "stats"], """
-      Tracked files: 4 (nodes)
-      Compile dependencies: 1 (edges)
+      Tracked files: 5 (nodes)
+      Compile dependencies: 3 (edges)
       Exports dependencies: 0 (edges)
       Runtime dependencies: 2 (edges)
 
-      Top 4 files with most outgoing dependencies:
+      Top 5 files with most outgoing dependencies:
+        * lib/b.ex (2)
         * lib/d.ex (1)
-        * lib/b.ex (1)
+        * lib/c.ex (1)
         * lib/a.ex (1)
-        * lib/c.ex (0)
+        * lib/e.ex (0)
 
-      Top 2 files with most incoming dependencies:
-        * lib/a.ex (2)
+      Top 4 files with most incoming dependencies:
+        * lib/e.ex (2)
+        * lib/d.ex (1)
+        * lib/c.ex (1)
         * lib/b.ex (1)
       """)
     end
@@ -236,25 +242,20 @@ defmodule Mix.Tasks.XrefTest do
       assert_graph(~w[--exclude lib/c.ex --exclude lib/b.ex], """
       lib/a.ex
       lib/d.ex
-      └── lib/a.ex (compile)
+      `-- lib/e.ex
+      lib/e.ex
       """)
     end
 
     test "exclude one" do
       assert_graph(~w[--exclude lib/d.ex], """
       lib/a.ex
-      └── lib/b.ex
-          └── lib/a.ex
+      `-- lib/b.ex (compile)
       lib/b.ex
+      `-- lib/c.ex
+      `-- lib/e.ex (compile)
       lib/c.ex
-      """)
-    end
-
-    test "source" do
-      assert_graph(~w[--source lib/a.ex], """
-      lib/b.ex
-      └── lib/a.ex
-          └── lib/b.ex
+      lib/e.ex
       """)
     end
 
@@ -264,27 +265,90 @@ defmodule Mix.Tasks.XrefTest do
       lib/b.ex
       lib/c.ex
       lib/d.ex
+      lib/e.ex
       """)
     end
 
     test "filter by compile label" do
       assert_graph(~w[--label compile], """
       lib/a.ex
+      `-- lib/b.ex (compile)
       lib/b.ex
+      `-- lib/c.ex
+      `-- lib/e.ex (compile)
       lib/c.ex
+      `-- lib/d.ex (compile)
       lib/d.ex
-      └── lib/a.ex (compile)
+      `-- lib/e.ex
+      lib/e.ex
+      """)
+    end
+
+    test "filter by compile label with only direct" do
+      assert_graph(~w[--label compile --only-direct], """
+      lib/a.ex
+      `-- lib/b.ex (compile)
+      lib/b.ex
+      `-- lib/e.ex (compile)
+      lib/c.ex
+      `-- lib/d.ex (compile)
+      lib/d.ex
+      lib/e.ex
       """)
     end
 
     test "filter by runtime label" do
       assert_graph(~w[--label runtime], """
       lib/a.ex
-      └── lib/b.ex
-          └── lib/a.ex
+      `-- lib/b.ex (compile)
       lib/b.ex
+      `-- lib/c.ex
+      `-- lib/e.ex (compile)
+      lib/c.ex
+      `-- lib/d.ex (compile)
+      lib/d.ex
+      `-- lib/e.ex
+      lib/e.ex
+      """)
+    end
+
+    test "filter by runtime label with only direct" do
+      assert_graph(~w[--label runtime --only-direct], """
+      lib/a.ex
+      lib/b.ex
+      `-- lib/c.ex
       lib/c.ex
       lib/d.ex
+      `-- lib/e.ex
+      lib/e.ex
+      """)
+    end
+
+    test "source" do
+      assert_graph(~w[--source lib/a.ex], """
+      lib/a.ex
+      `-- lib/b.ex (compile)
+          `-- lib/c.ex
+              `-- lib/d.ex (compile)
+                  `-- lib/e.ex
+          `-- lib/e.ex (compile)
+      """)
+    end
+
+    test "source with compile label" do
+      assert_graph(~w[--source lib/a.ex --label compile], """
+      lib/a.ex
+      `-- lib/b.ex (compile)
+          `-- lib/d.ex (compile)
+          `-- lib/e.ex (compile)
+      """)
+    end
+
+    test "source with compile label and only direct" do
+      assert_graph(~w[--source lib/a.ex --label compile --only-direct], """
+      lib/a.ex
+      `-- lib/b.ex (compile)
+          `-- lib/e.ex (compile)
       """)
     end
 
@@ -295,12 +359,36 @@ defmodule Mix.Tasks.XrefTest do
     end
 
     test "sink" do
-      assert_graph(~w[--sink lib/b.ex], """
+      assert_graph(~w[--sink lib/e.ex], """
       lib/a.ex
-      └── lib/b.ex
-          └── lib/a.ex
+      `-- lib/b.ex (compile)
+      lib/b.ex
+      `-- lib/c.ex
+      `-- lib/e.ex (compile)
+      lib/c.ex
+      `-- lib/d.ex (compile)
       lib/d.ex
-      └── lib/a.ex (compile)
+      `-- lib/e.ex
+      """)
+    end
+
+    test "sink with compile label" do
+      assert_graph(~w[--sink lib/e.ex --label compile], """
+      lib/a.ex
+      `-- lib/b.ex (compile)
+      lib/b.ex
+      `-- lib/e.ex (compile)
+      lib/c.ex
+      `-- lib/d.ex (compile)
+      """)
+    end
+
+    test "sink with compile label and only direct" do
+      assert_graph(~w[--sink lib/e.ex --label compile --only-direct], """
+      lib/a.ex
+      `-- lib/b.ex (compile)
+      lib/b.ex
+      `-- lib/e.ex (compile)
       """)
     end
 
@@ -415,45 +503,51 @@ defmodule Mix.Tasks.XrefTest do
       in_fixture("no_mixfile", fn ->
         File.write!("lib/a.ex", """
         defmodule A do
-          def a do
-            B.a()
-          end
-
-          def b, do: :ok
+          B.b()
         end
         """)
 
         File.write!("lib/b.ex", """
         defmodule B do
-          def a do
-            A.a()
-            B.a()
-          end
+          def b, do: C.c()
+          :e.e()
         end
         """)
 
         File.write!("lib/c.ex", """
         defmodule C do
+          def c, do: :ok
+          :d.d()
         end
         """)
 
         File.write!("lib/d.ex", """
         defmodule :d do
-          A.b()
+          def d, do: :ok
+          def e, do: :e.e()
+        end
+        """)
+
+        File.write!("lib/e.ex", """
+        defmodule :e do
+          def e, do: :ok
         end
         """)
 
         assert Mix.Task.run("xref", opts ++ ["graph"]) == :ok
 
-        assert "Compiling 4 files (.ex)\nGenerated sample app\n" <> result =
+        assert "Compiling 5 files (.ex)\nGenerated sample app\n" <> result =
                  receive_until_no_messages([])
 
-        assert normalize_graph_output(result) == normalize_graph_output(expected)
+        assert normalize_graph_output(result) == expected
       end)
     end
 
     defp normalize_graph_output(graph) do
-      String.replace(graph, "└──", "`--")
+      graph
+      |> String.replace("├──", "`--")
+      |> String.replace("└──", "`--")
+      |> String.replace("│", " ")
     end
 
     test "generates reports considering siblings inside umbrellas" do

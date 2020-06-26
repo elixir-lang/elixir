@@ -235,7 +235,7 @@ defmodule Mix.Utils do
     |> Enum.uniq()
   end
 
-  @type tree_node :: {name :: String.Chars.t(), edge_info :: String.Chars.t()}
+  @type formatted_node :: {name :: String.Chars.t(), edge_info :: String.Chars.t()}
 
   @doc """
   Prints the given tree according to the callback.
@@ -243,7 +243,7 @@ defmodule Mix.Utils do
   The callback will be invoked for each node and it
   must return a `{printed, children}` tuple.
   """
-  @spec print_tree([tree_node], (tree_node -> {tree_node, [tree_node]}), keyword) :: :ok
+  @spec print_tree([node], (node -> {formatted_node, [node]}), keyword) :: :ok when node: term()
   def print_tree(nodes, callback, opts \\ []) do
     pretty? =
       case Keyword.get(opts, :format) do
@@ -252,36 +252,38 @@ defmodule Mix.Utils do
         _other -> elem(:os.type(), 0) != :win32
       end
 
-    print_tree(nodes, _depth = [], _parent = nil, _seen = MapSet.new(), pretty?, callback)
+    print_tree(nodes, _depth = [], _seen = %{}, pretty?, callback)
     :ok
   end
 
-  defp print_tree(_nodes = [], _depth, _parent, seen, _pretty, _callback) do
+  defp print_tree(nodes, depth, seen, pretty?, callback) do
+    {nodes, seen} =
+      # We perform a breadth first traversal so we always show a dependency
+      # a node with its children as high as possible in tree. This helps avoid
+      # very deep trees.
+      Enum.flat_map_reduce(nodes, seen, fn node, seen ->
+        {{name, info}, children} = callback.(node)
+
+        if Map.has_key?(seen, name) do
+          {[{name, info, []}], seen}
+        else
+          {[{name, info, children}], Map.put(seen, name, true)}
+        end
+      end)
+
+    print_each_node(nodes, depth, seen, pretty?, callback)
+  end
+
+  defp print_each_node([], _depth, seen, _pretty?, _callback) do
     seen
   end
 
-  defp print_tree([node | nodes], depth, parent, seen, pretty?, callback) do
-    {{name, info}, children} = callback.(node)
-    key = {parent, name}
+  defp print_each_node([{name, info, children} | nodes], depth, seen, pretty?, callback) do
+    info = if(info, do: " #{info}", else: "")
+    Mix.shell().info("#{depth(pretty?, depth)}#{prefix(pretty?, depth, nodes)}#{name}#{info}")
 
-    if MapSet.member?(seen, key) do
-      seen
-    else
-      info = if(info, do: " #{info}", else: "")
-      Mix.shell().info("#{depth(pretty?, depth)}#{prefix(pretty?, depth, nodes)}#{name}#{info}")
-
-      seen =
-        print_tree(
-          children,
-          [nodes != [] | depth],
-          name,
-          MapSet.put(seen, key),
-          pretty?,
-          callback
-        )
-
-      print_tree(nodes, depth, parent, seen, pretty?, callback)
-    end
+    seen = print_tree(children, [nodes != [] | depth], seen, pretty?, callback)
+    print_each_node(nodes, depth, seen, pretty?, callback)
   end
 
   defp depth(_pretty?, []), do: ""
@@ -308,10 +310,11 @@ defmodule Mix.Utils do
   @spec write_dot_graph!(
           Path.t(),
           String.t(),
-          [tree_node],
-          (tree_node -> {tree_node, [tree_node]}),
+          [node],
+          (node -> {formatted_node, [node]}),
           keyword
         ) :: :ok
+        when node: term()
   def write_dot_graph!(path, title, nodes, callback, _opts \\ []) do
     {dot, _} = build_dot_graph(make_ref(), nodes, MapSet.new(), callback)
     File.write!(path, ["digraph ", quoted(title), " {\n", dot, "}\n"])

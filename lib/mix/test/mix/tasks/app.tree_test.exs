@@ -22,10 +22,13 @@ defmodule Mix.Tasks.App.TreeTest do
       Mix.Tasks.App.Tree.run(["--format", "pretty"])
 
       assert_received {:mix_shell, :info, ["test"]}
-      assert_received {:mix_shell, :info, ["└── app_deps_sample"]}
-      assert_received {:mix_shell, :info, ["    ├── app_deps2_sample"]}
-      assert_received {:mix_shell, :info, ["    │   └── app_deps4_sample (included)"]}
-      assert_received {:mix_shell, :info, ["    └── app_deps3_sample"]}
+      assert_received {:mix_shell, :info, ["├── app_deps_sample"]}
+      assert_received {:mix_shell, :info, ["│   ├── app_deps2_sample"]}
+      assert_received {:mix_shell, :info, ["│   │   └── app_deps4_sample (included)"]}
+      assert_received {:mix_shell, :info, ["│   └── app_deps3_sample"]}
+      assert_received {:mix_shell, :info, ["├── elixir"]}
+      assert_received {:mix_shell, :info, ["└── logger"]}
+      assert_received {:mix_shell, :info, ["    └── elixir"]}
     end)
   end
 
@@ -71,10 +74,11 @@ defmodule Mix.Tasks.App.TreeTest do
       Mix.Tasks.App.Tree.run(["--format", "pretty" | exclude])
 
       assert_received {:mix_shell, :info, ["test"]}
-      assert_received {:mix_shell, :info, ["└── app_deps_sample"]}
-      assert_received {:mix_shell, :info, ["    └── app_deps2_sample"]}
-      refute_received {:mix_shell, :info, ["    │   └── app_deps4_sample (included)"]}
-      refute_received {:mix_shell, :info, ["    └── app_deps3_sample"]}
+      assert_received {:mix_shell, :info, ["├── app_deps_sample"]}
+      assert_received {:mix_shell, :info, ["│   └── app_deps2_sample"]}
+      assert_received {:mix_shell, :info, ["├── elixir"]}
+      assert_received {:mix_shell, :info, ["└── logger"]}
+      assert_received {:mix_shell, :info, ["    └── elixir"]}
     end)
   end
 
@@ -89,13 +93,13 @@ defmodule Mix.Tasks.App.TreeTest do
       assert File.read!("app_tree.dot") == """
              digraph "application tree" {
                "test"
-               "test" -> "elixir"
-               "test" -> "logger"
-               "logger" -> "elixir"
                "test" -> "app_deps_sample"
                "app_deps_sample" -> "app_deps2_sample"
                "app_deps2_sample" -> "app_deps4_sample" [label="(included)"]
                "app_deps_sample" -> "app_deps3_sample"
+               "test" -> "elixir"
+               "test" -> "logger"
+               "logger" -> "elixir"
              }
              """
     end)

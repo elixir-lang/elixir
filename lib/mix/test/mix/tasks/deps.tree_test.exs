@@ -35,16 +35,15 @@ defmodule Mix.Tasks.Deps.TreeTest do
     in_tmp(context.test, fn ->
       Mix.Tasks.Deps.Tree.run(["--format", "pretty"])
       assert_received {:mix_shell, :info, ["sample"]}
-      assert_received {:mix_shell, :info, ["├── git_repo >= 0.1.0 (" <> _]}
-      assert_received {:mix_shell, :info, ["└── deps_on_git_repo 0.2.0 (" <> _]}
-      refute_received {:mix_shell, :info, ["    └── git_repo (" <> _]}
+      assert_received {:mix_shell, :info, ["├── deps_on_git_repo 0.2.0 (" <> _]}
+      assert_received {:mix_shell, :info, ["└── git_repo >= 0.1.0 (" <> _]}
 
       Mix.Tasks.Deps.Get.run([])
       Mix.Tasks.Deps.Tree.run(["--format", "pretty"])
       assert_received {:mix_shell, :info, ["sample"]}
-      assert_received {:mix_shell, :info, ["├── git_repo >= 0.1.0 (" <> _]}
-      assert_received {:mix_shell, :info, ["└── deps_on_git_repo 0.2.0 (" <> _]}
-      assert_received {:mix_shell, :info, ["    └── git_repo (" <> _]}
+      assert_received {:mix_shell, :info, ["├── deps_on_git_repo 0.2.0 (" <> _]}
+      assert_received {:mix_shell, :info, ["│   └── git_repo (" <> _]}
+      assert_received {:mix_shell, :info, ["└── git_repo >= 0.1.0 (" <> _]}
     end)
   after
     purge([DepsOnGitRepo.MixProject, GitRepo.MixProject])
@@ -81,8 +80,8 @@ defmodule Mix.Tasks.Deps.TreeTest do
     in_tmp(context.test, fn ->
       Mix.Tasks.Deps.Tree.run(["--format", "pretty"])
       assert_received {:mix_shell, :info, ["sample"]}
-      assert_received {:mix_shell, :info, ["├── git_repo (" <> msg]}
-      assert_received {:mix_shell, :info, ["└── deps_on_git_repo ~r/0.2.0/ (" <> _]}
+      assert_received {:mix_shell, :info, ["└── git_repo (" <> msg]}
+      assert_received {:mix_shell, :info, ["├── deps_on_git_repo ~r/0.2.0/ (" <> _]}
       assert msg =~ "*override*"
     end)
   end
@@ -118,8 +117,8 @@ defmodule Mix.Tasks.Deps.TreeTest do
       assert File.read!("deps_tree.dot") == """
              digraph "dependency tree" {
                "sample"
-               "sample" -> "git_repo" [label=">= 0.1.0"]
                "sample" -> "deps_on_git_repo" [label="0.2.0"]
+               "sample" -> "git_repo" [label=">= 0.1.0"]
              }
              """
 
@@ -129,9 +128,9 @@ defmodule Mix.Tasks.Deps.TreeTest do
       assert File.read!("deps_tree.dot") == """
              digraph "dependency tree" {
                "sample"
-               "sample" -> "git_repo" [label=">= 0.1.0"]
                "sample" -> "deps_on_git_repo" [label="0.2.0"]
                "deps_on_git_repo" -> "git_repo" [label=""]
+               "sample" -> "git_repo" [label=">= 0.1.0"]
              }
              """
     end)
