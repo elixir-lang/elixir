@@ -55,6 +55,9 @@ defmodule Mix.Tasks.Xref do
     * `--sink` - displays all files that reference the given file
       (directly or indirectly)
 
+    * `--min-cycle-size` - controls the minimum cycle size on formats
+      like `stats` and `cycles`
+
     * `--format` - can be set to one of:
 
       * `pretty` - prints the graph to the terminal using Unicode characters.
@@ -65,6 +68,8 @@ defmodule Mix.Tasks.Xref do
         Unicode characters. This is the default on Windows;
 
       * `stats` - prints general statistics about the graph;
+
+      * `cycles` - prints all cycles in the graph;
 
       * `dot` - produces a DOT graph description in `xref_graph.dot` in the
         current directory. Warning: this will override any previously generated file
@@ -139,7 +144,8 @@ defmodule Mix.Tasks.Xref do
     only_nodes: :boolean,
     only_direct: :boolean,
     sink: :string,
-    source: :string
+    source: :string,
+    min_cycle_size: :integer
   ]
 
   @impl true
@@ -473,7 +479,10 @@ defmodule Mix.Tasks.Xref do
         |> Mix.shell().info()
 
       "stats" ->
-        stats(file_references)
+        print_stats(file_references, opts)
+
+      "cycles" ->
+        print_cycles(file_references, opts)
 
       _ ->
         Mix.Utils.print_tree(Enum.sort(roots), callback, opts)
@@ -485,7 +494,7 @@ defmodule Mix.Tasks.Xref do
   defp filter_for_source(file_references, filter) do
     Enum.reduce(file_references, %{}, fn {key, _}, acc ->
       {children, _} = filter_for_source(file_references, key, %{}, %{}, filter)
-      Map.put(acc, key, Map.to_list(children))
+      Map.put(acc, key, children |> Map.delete(key) |> Map.to_list())
     end)
   end
 
@@ -540,45 +549,100 @@ defmodule Mix.Tasks.Xref do
     end)
   end
 
-  defp stats(references) do
-    shell = Mix.shell()
+  defp print_stats(references, opts) do
+    with_digraph(references, fn graph ->
+      shell = Mix.shell()
 
-    counters =
-      Enum.reduce(references, %{compile: 0, export: 0, nil: 0}, fn {_, deps}, acc ->
-        Enum.reduce(deps, acc, fn {_, value}, acc ->
-          Map.update!(acc, value, &(&1 + 1))
+      counters =
+        Enum.reduce(references, %{compile: 0, export: 0, nil: 0}, fn {_, deps}, acc ->
+          Enum.reduce(deps, acc, fn {_, value}, acc ->
+            Map.update!(acc, value, &(&1 + 1))
+          end)
         end)
-      end)
 
-    shell.info("Tracked files: #{map_size(references)} (nodes)")
-    shell.info("Compile dependencies: #{counters.compile} (edges)")
-    shell.info("Exports dependencies: #{counters.export} (edges)")
-    shell.info("Runtime dependencies: #{counters.nil} (edges)")
+      shell.info("Tracked files: #{map_size(references)} (nodes)")
+      shell.info("Compile dependencies: #{counters.compile} (edges)")
+      shell.info("Exports dependencies: #{counters.export} (edges)")
+      shell.info("Runtime dependencies: #{counters.nil} (edges)")
+      shell.info("Cycles: #{length(cycles(graph, opts))}")
 
-    outgoing =
-      references
-      |> Enum.map(fn {file, deps} -> {length(deps), file} end)
-      |> Enum.sort()
-      |> Enum.take(-10)
-      |> Enum.reverse()
+      outgoing =
+        references
+        |> Enum.map(fn {file, _} -> {:digraph.out_degree(graph, file), file} end)
+        |> Enum.sort(:desc)
+        |> Enum.take(10)
 
-    shell.info("\nTop #{length(outgoing)} files with most outgoing dependencies:")
-    for {count, file} <- outgoing, do: shell.info("  * #{file} (#{count})")
+      shell.info("\nTop #{length(outgoing)} files with most outgoing dependencies:")
+      for {count, file} <- outgoing, do: shell.info("  * #{file} (#{count})")
 
-    incoming =
-      references
-      |> Enum.reduce(%{}, fn {_, deps}, acc ->
-        Enum.reduce(deps, acc, fn {file, _}, acc ->
-          Map.update(acc, file, 1, &(&1 + 1))
-        end)
-      end)
-      |> Enum.map(fn {file, count} -> {count, file} end)
-      |> Enum.sort()
-      |> Enum.take(-10)
-      |> Enum.reverse()
+      incoming =
+        references
+        |> Enum.map(fn {file, _} -> {:digraph.in_degree(graph, file), file} end)
+        |> Enum.sort(:desc)
+        |> Enum.take(10)
 
-    shell.info("\nTop #{length(incoming)} files with most incoming dependencies:")
-    for {count, file} <- incoming, do: shell.info("  * #{file} (#{count})")
+      shell.info("\nTop #{length(incoming)} files with most incoming dependencies:")
+      for {count, file} <- incoming, do: shell.info("  * #{file} (#{count})")
+    end)
+  end
+
+  defp with_digraph(references, callback) do
+    graph = :digraph.new()
+
+    try do
+      for {file, _} <- references do
+        :digraph.add_vertex(graph, file)
+      end
+
+      for {file, deps} <- references, {dep, label} <- deps do
+        :digraph.add_edge(graph, file, dep, label)
+      end
+
+      callback.(graph)
+    after
+      :digraph.delete(graph)
+    end
+  end
+
+  defp cycles(graph, opts) do
+    cycles =
+      graph
+      |> :digraph_utils.cyclic_strong_components()
+      |> Enum.reduce([], &inner_cycles(graph, &1, &2))
+      |> Enum.map(&{length(&1), &1})
+
+    if min = opts[:min_cycle_size], do: Enum.filter(cycles, &(elem(&1, 0) > min)), else: cycles
+  end
+
+  defp inner_cycles(_graph, [], acc), do: acc
+
+  defp inner_cycles(graph, [v | vertices], acc) do
+    cycle = :digraph.get_cycle(graph, v)
+    inner_cycles(graph, vertices -- cycle, [cycle | acc])
+  end
+
+  defp print_cycles(references, opts) do
+    with_digraph(references, fn graph ->
+      shell = Mix.shell()
+
+      case graph |> cycles(opts) |> Enum.sort(:desc) do
+        [] ->
+          shell.info("No cycles found")
+
+        cycles ->
+          shell.info("#{length(cycles)} cycles found. Showing them in decreasing size:\n")
+
+          for {length, cycle} <- cycles do
+            shell.info("Cycle of length #{length}:\n")
+
+            for node <- cycle do
+              shell.info("    " <> node)
+            end
+
+            shell.info("")
+          end
+      end
+    end)
   end
 
   ## Helpers
