@@ -66,14 +66,27 @@ defmodule Mix.Tasks.ReleaseTest do
       end)
     end
 
-    test "include_executables_for" do
+    test "include_executables_for and strip_beams" do
       in_fixture("release_test", fn ->
-        config = [releases: [release_test: [include_executables_for: []]]]
+        config = [
+          releases: [
+            release_test: [
+              include_executables_for: [],
+              strip_beams: [keep: "Docs"]
+            ]
+          ]
+        ]
 
         Mix.Project.in_project(:release_test, ".", config, fn _ ->
           root = Path.absname("_build/dev/rel/release_test")
           Mix.Task.run("release")
           assert_received {:mix_shell, :info, ["* assembling release_test-0.1.0 on MIX_ENV=dev"]}
+
+          beam =
+            File.read!(Path.join(root, "lib/release_test-0.1.0/ebin/Elixir.ReleaseTest.beam"))
+
+          assert {:ok, {_, [{'Docs', _}]}} = :beam_lib.chunks(beam, ['Docs'])
+          assert {:error, _, _} = :beam_lib.chunks(beam, ['Dbgi'])
 
           refute root |> Path.join("bin/start") |> File.exists?()
           refute root |> Path.join("bin/start.bat") |> File.exists?()

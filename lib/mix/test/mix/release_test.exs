@@ -697,7 +697,7 @@ defmodule Mix.ReleaseTest do
       {:ok, beam} =
         Path.join(@eex_ebin, "Elixir.EEx.beam")
         |> File.read!()
-        |> strip_beam(keep: ['Docs', 'Dbgi'])
+        |> strip_beam(keep: ["Docs", "Dbgi"])
 
       assert {:ok, {EEx, [{'Dbgi', _}]}} = :beam_lib.chunks(beam, ['Dbgi'])
       assert {:ok, {EEx, [{'Docs', _}]}} = :beam_lib.chunks(beam, ['Docs'])
