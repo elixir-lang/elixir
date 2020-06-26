@@ -1,0 +1,70 @@
+name: CI
+
+on: [pull_request, push]
+
+env:
+  ELIXIR_ASSERT_TIMEOUT: 2000
+  ELIXIRC_OPTS: "--warnings-as-errors"
+  ERLC_OPTS: "warnings_as_errors"
+  LANG: C.UTF-8
+
+jobs:
+  test:
+    name: Linux, ${{ matrix.otp_release }}, Ubuntu 16.04
+    continue-on-error: ${{ matrix.development }}
+    strategy:
+      matrix:
+        otp_release: ['OTP-23.0', 'OTP-22.3', 'OTP-22.0', 'OTP-21.3.8', 'OTP-21.0']
+        development: [false]
+        include:
+          - otp_release: master
+            development: true
+          - otp_release: maint
+            development: true
+    runs-on: ubuntu-16.04
+    steps:
+      - uses: actions/checkout@v1
+        with:
+          fetch-depth: 50
+      - name: Install Erlang/OTP
+        run: |
+          cd $RUNNER_TEMP
+          wget -O otp.tar.gz https://repo.hex.pm/builds/otp/ubuntu-14.04/${{ matrix.otp_release }}.tar.gz
+          mkdir -p otp
+          tar zxf otp.tar.gz -C otp --strip-components=1
+          otp/Install -minimal $(pwd)/otp
+          echo "::add-path::$(pwd)/otp/bin"
+      - name: Compile Elixir
+        run: |
+          rm -rf .git
+          make compile
+      - name: Build info
+        run: bin/elixir --version
+      - name: Check format
+        run: make test_formatted && echo "All Elixir source code files are properly formatted."
+      - name: Dyalizer
+        run: dialyzer -pa lib/elixir/ebin --build_plt --output_plt elixir.plt --apps lib/elixir/ebin/elixir.beam lib/elixir/ebin/Elixir.Kernel.beam
+      - name: Erlang test suite
+        run: make test_erlang
+      - name: Elixir test suite
+        run: make test_elixir
+      - name: Check reproducible builds
+        run: taskset 1 make check_reproducible
+        if: matrix.otp_release == 'OTP-23.0'
+
+  check_posix_compliant:
+    name: Check POSIX-compliant
+    runs-on: ubuntu-16.04
+    steps:
+      - uses: actions/checkout@v1
+        with:
+          fetch-depth: 50
+      - name: Install Shellcheck
+        run: |
+          sudo apt update
+          sudo apt install -y shellcheck
+      - name: Check POSIX-compliant
+        run: |
+          shellcheck -e SC2039,2086 bin/elixir && echo "bin/elixir is POSIX compliant"
+          shellcheck bin/elixirc && echo "bin/elixirc is POSIX compliant"
+          shellcheck bin/iex && echo "bin/iex is POSIX compliant"
