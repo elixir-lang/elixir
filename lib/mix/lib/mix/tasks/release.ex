@@ -390,9 +390,10 @@ defmodule Mix.Tasks.Release do
       Releases assembled from an umbrella project require this configuration
       to be explicitly given.
 
-    * `:strip_beams` - a boolean that controls if BEAM files should have their debug
-      information, documentation chunks, and other non-essential metadata removed.
-      Defaults to `true`.
+    * `:strip_beams` - controls if BEAM files should have their debug information,
+      documentation chunks, and other non-essential metadata removed. Defaults to
+      `true`. Maybe be set to `false` to disable striping. Also accepts
+      `[keep: ["Docs", "Dbgi"]]` to keep certain chunks that are usually stripped.
 
     * `:cookie` - a string representing the Erlang Distribution cookie. If this
       option is not set, a random cookie is  written to the `releases/COOKIE` file

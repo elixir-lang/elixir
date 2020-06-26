@@ -161,12 +161,12 @@ defmodule Mix.Tasks.Escript.Build do
     # use default true if neither are present.
     #
     # TODO: Deprecate :strip_beam option on v1.13
-    {strip_beams?, strip_options} =
+    strip_options =
       escript_opts
       |> Keyword.get_lazy(:strip_beams, fn ->
         Keyword.get(escript_opts, :strip_beam, true)
       end)
-      |> Mix.Release.parse_strip_beams_option()
+      |> parse_strip_beams_options()
 
     escript_mod = String.to_atom(Atom.to_string(app) <> "_escript")
 
@@ -177,7 +177,7 @@ defmodule Mix.Tasks.Escript.Build do
       |> Map.merge(consolidated_paths(project))
 
     tuples = gen_main(project, escript_mod, main, app, language) ++ read_beams(beam_paths)
-    tuples = if strip_beams?, do: strip_beams(tuples, strip_options), else: tuples
+    tuples = if strip_options, do: strip_beams(tuples, strip_options), else: tuples
 
     case :zip.create('mem', tuples, [:memory]) do
       {:ok, {'mem', zip}} ->
@@ -269,6 +269,14 @@ defmodule Mix.Tasks.Escript.Build do
     Enum.map(items, fn {basename, beam_path} ->
       {String.to_charlist(basename), File.read!(beam_path)}
     end)
+  end
+
+  defp parse_strip_beams_options(options) do
+    case options do
+      options when is_list(options) -> options
+      true -> []
+      false -> nil
+    end
   end
 
   defp strip_beams(tuples, strip_options) do

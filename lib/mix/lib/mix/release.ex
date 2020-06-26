@@ -758,16 +758,16 @@ defmodule Mix.Release do
     with {:ok, [_ | _] = files} <- File.ls(source) do
       File.mkdir_p!(target)
 
-      {strip_beams?, strip_options} =
+      strip_options =
         release.options
         |> Keyword.get(:strip_beams, true)
-        |> parse_strip_beams_option()
+        |> parse_strip_beams_options()
 
       for file <- files do
         source_file = Path.join(source, file)
         target_file = Path.join(target, file)
 
-        with true <- strip_beams? and String.ends_with?(file, ".beam"),
+        with true <- is_list(strip_options) and String.ends_with?(file, ".beam"),
              {:ok, binary} <- strip_beam(File.read!(source_file), strip_options) do
           File.write!(target_file, binary)
         else
@@ -792,11 +792,10 @@ defmodule Mix.Release do
   """
   @spec strip_beam(binary(), keyword()) :: {:ok, binary()} | {:error, :beam_lib, term()}
   def strip_beam(binary, options \\ []) when is_list(options) do
-    chunks_to_keep = Keyword.get(options, :keep, [])
+    chunks_to_keep = options[:keep] |> List.wrap() |> Enum.map(&String.to_charlist/1)
+    all_chunks = Enum.uniq(@significant_chunks ++ chunks_to_keep)
 
-    case :beam_lib.chunks(binary, Enum.uniq(@significant_chunks ++ chunks_to_keep), [
-           :allow_missing_chunks
-         ]) do
+    case :beam_lib.chunks(binary, all_chunks, [:allow_missing_chunks]) do
       {:ok, {_, chunks}} ->
         chunks = for {name, chunk} <- chunks, is_binary(chunk), do: {name, chunk}
         {:ok, binary} = :beam_lib.build_module(chunks)
@@ -811,13 +810,11 @@ defmodule Mix.Release do
     end
   end
 
-  @doc false
-  @spec parse_strip_beams_option(true | false | keyword()) :: {true | false, keyword() | nil}
-  def parse_strip_beams_option(option) do
-    case option do
-      [keep: exceptions] when is_list(exceptions) -> {true, [keep: exceptions]}
-      true -> {true, [keep: []]}
-      false -> {false, nil}
+  defp parse_strip_beams_options(options) do
+    case options do
+      options when is_list(options) -> options
+      true -> []
+      false -> nil
     end
   end
 end
