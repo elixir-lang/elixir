@@ -206,6 +206,7 @@ defmodule Mix.Tasks.XrefTest do
       lib/a.ex
       `-- lib/b.ex (compile)
       lib/b.ex
+      `-- lib/a.ex
       `-- lib/c.ex
       `-- lib/e.ex (compile)
       lib/c.ex
@@ -221,20 +222,41 @@ defmodule Mix.Tasks.XrefTest do
       Tracked files: 5 (nodes)
       Compile dependencies: 3 (edges)
       Exports dependencies: 0 (edges)
-      Runtime dependencies: 2 (edges)
+      Runtime dependencies: 3 (edges)
+      Cycles: 1
 
       Top 5 files with most outgoing dependencies:
-        * lib/b.ex (2)
+        * lib/b.ex (3)
         * lib/d.ex (1)
         * lib/c.ex (1)
         * lib/a.ex (1)
         * lib/e.ex (0)
 
-      Top 4 files with most incoming dependencies:
+      Top 5 files with most incoming dependencies:
         * lib/e.ex (2)
         * lib/d.ex (1)
         * lib/c.ex (1)
         * lib/b.ex (1)
+        * lib/a.ex (1)
+      """)
+    end
+
+    test "cycles" do
+      assert_graph(["--format", "cycles"], """
+      1 cycles found. Showing them in decreasing size:
+
+      Cycle of length 3:
+
+          lib/b.ex
+          lib/a.ex
+          lib/b.ex
+
+      """)
+    end
+
+    test "cycles with min cycle size" do
+      assert_graph(["--format", "cycles", "--min-cycle-size", "3"], """
+      No cycles found
       """)
     end
 
@@ -252,6 +274,7 @@ defmodule Mix.Tasks.XrefTest do
       lib/a.ex
       `-- lib/b.ex (compile)
       lib/b.ex
+      `-- lib/a.ex
       `-- lib/c.ex
       `-- lib/e.ex (compile)
       lib/c.ex
@@ -274,6 +297,7 @@ defmodule Mix.Tasks.XrefTest do
       lib/a.ex
       `-- lib/b.ex (compile)
       lib/b.ex
+      `-- lib/a.ex
       `-- lib/c.ex
       `-- lib/e.ex (compile)
       lib/c.ex
@@ -302,6 +326,7 @@ defmodule Mix.Tasks.XrefTest do
       lib/a.ex
       `-- lib/b.ex (compile)
       lib/b.ex
+      `-- lib/a.ex
       `-- lib/c.ex
       `-- lib/e.ex (compile)
       lib/c.ex
@@ -316,6 +341,7 @@ defmodule Mix.Tasks.XrefTest do
       assert_graph(~w[--label runtime --only-direct], """
       lib/a.ex
       lib/b.ex
+      `-- lib/a.ex
       `-- lib/c.ex
       lib/c.ex
       lib/d.ex
@@ -328,6 +354,7 @@ defmodule Mix.Tasks.XrefTest do
       assert_graph(~w[--source lib/a.ex], """
       lib/a.ex
       `-- lib/b.ex (compile)
+          `-- lib/a.ex
           `-- lib/c.ex
               `-- lib/d.ex (compile)
                   `-- lib/e.ex
@@ -363,6 +390,7 @@ defmodule Mix.Tasks.XrefTest do
       lib/a.ex
       `-- lib/b.ex (compile)
       lib/b.ex
+      `-- lib/a.ex
       `-- lib/c.ex
       `-- lib/e.ex (compile)
       lib/c.ex
@@ -499,17 +527,62 @@ defmodule Mix.Tasks.XrefTest do
       end)
     end
 
+    test "generates reports considering siblings inside umbrellas" do
+      Mix.Project.pop()
+
+      in_fixture("umbrella_dep/deps/umbrella", fn ->
+        Mix.Project.in_project(:bar, "apps/bar", fn _ ->
+          File.write!("lib/bar.ex", """
+          defmodule Bar do
+            def bar do
+              Foo.foo()
+            end
+          end
+          """)
+
+          Mix.Task.run("compile")
+          Mix.shell().flush()
+
+          Mix.Tasks.Xref.run(["graph", "--format", "stats", "--include-siblings"])
+
+          assert receive_until_no_messages([]) == """
+                 Tracked files: 2 (nodes)
+                 Compile dependencies: 0 (edges)
+                 Exports dependencies: 0 (edges)
+                 Runtime dependencies: 1 (edges)
+                 Cycles: 0
+
+                 Top 2 files with most outgoing dependencies:
+                   * lib/bar.ex (1)
+                   * lib/foo.ex (0)
+
+                 Top 2 files with most incoming dependencies:
+                   * lib/foo.ex (1)
+                   * lib/bar.ex (0)
+                 """
+
+          Mix.Tasks.Xref.run(["callers", "Foo"])
+
+          assert receive_until_no_messages([]) == """
+                 lib/bar.ex (runtime)
+                 """
+        end)
+      end)
+    end
+
     defp assert_graph(opts \\ [], expected) do
       in_fixture("no_mixfile", fn ->
         File.write!("lib/a.ex", """
         defmodule A do
-          B.b()
+          def a, do: :ok
+          B.b2()
         end
         """)
 
         File.write!("lib/b.ex", """
         defmodule B do
-          def b, do: C.c()
+          def b1, do: A.a() == C.c()
+          def b2, do: :ok
           :e.e()
         end
         """)
@@ -548,47 +621,6 @@ defmodule Mix.Tasks.XrefTest do
       |> String.replace("├──", "`--")
       |> String.replace("└──", "`--")
       |> String.replace("│", " ")
-    end
-
-    test "generates reports considering siblings inside umbrellas" do
-      Mix.Project.pop()
-
-      in_fixture("umbrella_dep/deps/umbrella", fn ->
-        Mix.Project.in_project(:bar, "apps/bar", fn _ ->
-          File.write!("lib/bar.ex", """
-          defmodule Bar do
-            def bar do
-              Foo.foo()
-            end
-          end
-          """)
-
-          Mix.Task.run("compile")
-          Mix.shell().flush()
-
-          Mix.Tasks.Xref.run(["graph", "--format", "stats", "--include-siblings"])
-
-          assert receive_until_no_messages([]) == """
-                 Tracked files: 2 (nodes)
-                 Compile dependencies: 0 (edges)
-                 Exports dependencies: 0 (edges)
-                 Runtime dependencies: 1 (edges)
-
-                 Top 2 files with most outgoing dependencies:
-                   * lib/bar.ex (1)
-                   * lib/foo.ex (0)
-
-                 Top 1 files with most incoming dependencies:
-                   * lib/foo.ex (1)
-                 """
-
-          Mix.Tasks.Xref.run(["callers", "Foo"])
-
-          assert receive_until_no_messages([]) == """
-                 lib/bar.ex (runtime)
-                 """
-        end)
-      end)
     end
   end
 
