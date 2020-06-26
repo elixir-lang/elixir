@@ -91,15 +91,17 @@ defmodule Mix.Tasks.Deps.Tree do
             find_dep(deps, app).deps
           end
 
-        {formatter.(dep), exclude(deps, excluded)}
+        {formatter.(dep), exclude_and_sort(deps, excluded)}
 
       app ->
-        {{Atom.to_string(app), nil}, exclude(top_level, excluded)}
+        {{Atom.to_string(app), nil}, exclude_and_sort(top_level, excluded)}
     end
   end
 
-  defp exclude(deps, excluded) do
-    Enum.reject(deps, &(&1.app in excluded))
+  defp exclude_and_sort(deps, excluded) do
+    deps
+    |> Enum.reject(&(&1.app in excluded))
+    |> Enum.sort_by(& &1.app)
   end
 
   defp format_dot(%{app: app, requirement: requirement, opts: opts}) do

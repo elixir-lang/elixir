@@ -53,13 +53,13 @@ defmodule Mix.Tasks.App.Tree do
     excluded = Keyword.get_values(opts, :exclude) |> Enum.map(&String.to_atom/1)
     excluded = @default_excluded ++ excluded
 
-    callback = fn {type, app} ->
+    callback = fn {app, type} ->
       load(app)
       {{app, type(type)}, children_for(app, excluded)}
     end
 
     if opts[:format] == "dot" do
-      root = [{:normal, app}]
+      root = [{app, :normal}]
       Mix.Utils.write_dot_graph!("app_tree.dot", "application tree", root, callback, opts)
 
       """
@@ -72,7 +72,7 @@ defmodule Mix.Tasks.App.Tree do
       |> String.trim_trailing()
       |> Mix.shell().info()
     else
-      Mix.Utils.print_tree([{:normal, app}], callback, opts)
+      Mix.Utils.print_tree([{app, :normal}], callback, opts)
     end
   end
 
@@ -87,7 +87,7 @@ defmodule Mix.Tasks.App.Tree do
   defp children_for(app, excluded) do
     apps = Application.spec(app, :applications) -- excluded
     included_apps = Application.spec(app, :included_applications) -- excluded
-    Enum.map(apps, &{:normal, &1}) ++ Enum.map(included_apps, &{:included, &1})
+    Enum.sort(Enum.map(apps, &{&1, :normal}) ++ Enum.map(included_apps, &{&1, :included}))
   end
 
   defp type(:normal), do: nil
