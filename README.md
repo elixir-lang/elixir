@@ -1,6 +1,6 @@
 ![Elixir](https://github.com/elixir-lang/elixir-lang.github.com/raw/master/images/logo/logo.png)
 =========
-[![Build status](https://api.cirrus-ci.com/github/elixir-lang/elixir.svg?branch=master)](https://cirrus-ci.com/github/elixir-lang/elixir)
+![CI](https://github.com/elixir-lang/elixir/workflows/CI/badge.svg) [![Build status](https://api.cirrus-ci.com/github/elixir-lang/elixir.svg?branch=master)](https://cirrus-ci.com/github/elixir-lang/elixir)
 
 Elixir is a dynamic, functional language designed for building scalable
 and maintainable applications.
