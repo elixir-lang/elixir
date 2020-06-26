@@ -91,7 +91,41 @@ defmodule Mix.Tasks.Xref do
       # To limit statistics only to certain labels
       mix xref graph --format stats --label compile
 
-  ### Dependencies types
+  #### Understanding the printed graph
+
+  When `mix xref graph` runs, it will print a tree of the following
+  format:
+
+      lib/a.ex
+      `-- lib/b.ex (compile)
+          `-- lib/c.ex
+
+  This tree means that `lib/a.ex` depends on `lib/b.ex` at compile
+  time which then depends on `lib/c.ex` at runtime. This is often
+  problematic because if `lib/c.ex` changes, `lib/a.ex` also has to
+  recompile due to this indirect compile time dependency.
+
+  This interpretation is the same regardless if `--source` or `--sink`
+  flags are used. For example, if we use the `--sink lib/c.ex` flag,
+  we would see the same tree:
+
+      lib/a.ex
+      `-- lib/b.ex (compile)
+          `-- lib/c.ex
+
+  If the `--label compile` flag is given with `--sink`, then `lib/c.ex`
+  won't be shown, because no module has a compile time dependency on
+  `lib/c.ex` but `lib/a.ex` still has an indirect compile time dependency
+  on `lib/c.ex` via `lib/b.ex`:
+
+      lib/a.ex
+      `-- lib/b.ex (compile)
+
+  Therefore, using a combination of `--sink` with `--label` is useful to
+  find all files that will change once the sink changes, alongside the
+  transitive dependencies that will cause said recompilations.
+
+  #### Dependencies types
 
   ELixir tracks three types of dependencies between modules: compile,
   exports, and runtime. If a module has a compile time dependency on
@@ -100,13 +134,13 @@ defmodule Mix.Tasks.Xref do
   using macros or when invoking functions in the module body (outside
   of functions).
 
-  Exports dependencies are compile-time dependencies on the module API,
+  Exports dependencies are compile time dependencies on the module API,
   namely structs and its public definitions. For example, if you import
   a module but only use its functions, it is an export dependency. If
   you use a struct, it is an export dependency too. Export dependencies
   are only recompiled if the module API changes. Note however compile
   time dependencies have higher precedence than exports. Therefore if
-  you import a module and use its macros, it is a compile-time dependency.
+  you import a module and use its macros, it is a compile time dependency.
 
   Runtime dependencies are added whenever you invoke another module
   inside a function. Modules with runtime dependencies do not have
