@@ -119,11 +119,21 @@ defmodule EEx.Engine do
   @spec handle_assign(Macro.t()) :: Macro.t()
   def handle_assign({:@, meta, [{name, _, atom}]}) when is_atom(name) and is_atom(atom) do
     line = meta[:line] || 0
+
     quote(line: line, do: EEx.Engine.fetch_assign!(var!(assigns), unquote(name)))
+    |> maybe_put_column(meta[:column])
   end
 
   def handle_assign(arg) do
     arg
+  end
+
+  defp maybe_put_column(quoted, nil) do
+    quoted
+  end
+
+  defp maybe_put_column(quoted, column) do
+    Macro.update_meta(quoted, &Keyword.put(&1, :column, column))
   end
 
   @doc false

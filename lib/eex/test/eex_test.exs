@@ -531,9 +531,9 @@ defmodule EExTest do
         ast =
           EEx.compile_string(
             """
-            <%= f() %> <% f() %>
+            <%= f(@x) %> <% f(@y) %>
               <%= f fn -> %>
-                <%= f() %>
+                <%= f(@z) %>
               <% end %>
             """,
             indentation: indentation
@@ -541,15 +541,26 @@ defmodule EExTest do
 
         {_, calls} =
           Macro.prewalk(ast, [], fn
-            {:f, meta, _args} = expr, acc -> {expr, [meta | acc]}
-            other, acc -> {other, acc}
+            {:f, meta, _args} = expr, acc ->
+              {expr, [meta | acc]}
+
+            {{:., _, [_, :fetch_assign!]}, meta, _} = expr, acc ->
+              {expr, [meta | acc]}
+
+            other, acc ->
+              {other, acc}
           end)
 
-        assert Enum.reverse(calls) == [
+        metas = calls |> Enum.reverse() |> Enum.map(&Enum.sort(&1, :desc))
+
+        assert metas == [
                  [line: 1, column: indentation + 5],
-                 [line: 1, column: indentation + 15],
+                 [line: 1, column: indentation + 7],
+                 [line: 1, column: indentation + 17],
+                 [line: 1, column: indentation + 19],
                  [line: 2, column: indentation + 7],
-                 [line: 3, column: indentation + 9]
+                 [line: 3, column: indentation + 9],
+                 [line: 3, column: indentation + 11]
                ]
       after
         Code.put_compiler_option(:parser_options, parser_options)
