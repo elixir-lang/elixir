@@ -125,6 +125,24 @@ defmodule Kernel.CLI.CompileTest do
     Code.append_path(context[:tmp_dir_path])
     assert :code.which(CompileSample) |> List.to_string() == Path.expand(context[:beam_file_path])
   after
+    :code.purge([CompileSample])
+    :code.delete([CompileSample])
+    Code.delete_path(context[:tmp_dir_path])
+  end
+
+  @tag :windows
+  test "compiles code with Windows paths", context do
+    fixture = String.replace(context[:fixture], "/", "\\")
+    tmp_dir_path = String.replace(context[:tmp_dir_path], "/", "\\")
+    assert elixirc('#{fixture} -o #{tmp_dir_path}') == ""
+    assert File.regular?(context[:beam_file_path])
+
+    # Assert that the module is loaded into memory with the proper destination for the BEAM file.
+    Code.append_path(context[:tmp_dir_path])
+    assert :code.which(CompileSample) |> List.to_string() == Path.expand(context[:beam_file_path])
+  after
+    :code.purge([CompileSample])
+    :code.delete([CompileSample])
     Code.delete_path(context[:tmp_dir_path])
   end
 
