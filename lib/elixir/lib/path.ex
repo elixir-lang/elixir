@@ -565,9 +565,6 @@ defmodule Path do
   """
   @spec split(t) :: [binary]
 
-  # Work around a bug in Erlang on Unix-like operating systems
-  def split(""), do: []
-
   def split(path) do
     :filename.split(IO.chardata_to_string(path))
   end

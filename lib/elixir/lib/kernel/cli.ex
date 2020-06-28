@@ -528,6 +528,7 @@ defmodule Kernel.CLI do
 
   defp filter_patterns(pattern) do
     pattern
+    |> Path.expand()
     |> Path.wildcard()
     |> :lists.usort()
     |> Enum.filter(&File.regular?/1)
