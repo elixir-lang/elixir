@@ -206,8 +206,8 @@ defmodule Mix.Tasks.XrefTest do
       lib/a.ex
       `-- lib/b.ex (compile)
       lib/b.ex
-      `-- lib/a.ex
-      `-- lib/c.ex
+      |-- lib/a.ex
+      |-- lib/c.ex
       `-- lib/e.ex (compile)
       lib/c.ex
       `-- lib/d.ex (compile)
@@ -274,8 +274,8 @@ defmodule Mix.Tasks.XrefTest do
       lib/a.ex
       `-- lib/b.ex (compile)
       lib/b.ex
-      `-- lib/a.ex
-      `-- lib/c.ex
+      |-- lib/a.ex
+      |-- lib/c.ex
       `-- lib/e.ex (compile)
       lib/c.ex
       lib/e.ex
@@ -297,8 +297,8 @@ defmodule Mix.Tasks.XrefTest do
       lib/a.ex
       `-- lib/b.ex (compile)
       lib/b.ex
-      `-- lib/a.ex
-      `-- lib/c.ex
+      |-- lib/a.ex
+      |-- lib/c.ex
       `-- lib/e.ex (compile)
       lib/c.ex
       `-- lib/d.ex (compile)
@@ -326,8 +326,8 @@ defmodule Mix.Tasks.XrefTest do
       lib/a.ex
       `-- lib/b.ex (compile)
       lib/b.ex
-      `-- lib/a.ex
-      `-- lib/c.ex
+      |-- lib/a.ex
+      |-- lib/c.ex
       `-- lib/e.ex (compile)
       lib/c.ex
       `-- lib/d.ex (compile)
@@ -341,7 +341,7 @@ defmodule Mix.Tasks.XrefTest do
       assert_graph(~w[--label runtime --only-direct], """
       lib/a.ex
       lib/b.ex
-      `-- lib/a.ex
+      |-- lib/a.ex
       `-- lib/c.ex
       lib/c.ex
       lib/d.ex
@@ -354,10 +354,10 @@ defmodule Mix.Tasks.XrefTest do
       assert_graph(~w[--source lib/a.ex], """
       lib/a.ex
       `-- lib/b.ex (compile)
-          `-- lib/a.ex
-          `-- lib/c.ex
-              `-- lib/d.ex (compile)
-                  `-- lib/e.ex
+          |-- lib/a.ex
+          |-- lib/c.ex
+          |   `-- lib/d.ex (compile)
+          |       `-- lib/e.ex
           `-- lib/e.ex (compile)
       """)
     end
@@ -366,7 +366,7 @@ defmodule Mix.Tasks.XrefTest do
       assert_graph(~w[--source lib/a.ex --label compile], """
       lib/a.ex
       `-- lib/b.ex (compile)
-          `-- lib/d.ex (compile)
+          |-- lib/d.ex (compile)
           `-- lib/e.ex (compile)
       """)
     end
@@ -390,8 +390,8 @@ defmodule Mix.Tasks.XrefTest do
       lib/a.ex
       `-- lib/b.ex (compile)
       lib/b.ex
-      `-- lib/a.ex
-      `-- lib/c.ex
+      |-- lib/a.ex
+      |-- lib/c.ex
       `-- lib/e.ex (compile)
       lib/c.ex
       `-- lib/d.ex (compile)
@@ -618,9 +618,9 @@ defmodule Mix.Tasks.XrefTest do
 
     defp normalize_graph_output(graph) do
       graph
-      |> String.replace("├──", "`--")
+      |> String.replace("├──", "|--")
       |> String.replace("└──", "`--")
-      |> String.replace("│", " ")
+      |> String.replace("│", "|")
     end
   end
 
