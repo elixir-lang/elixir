@@ -125,8 +125,8 @@ defmodule Kernel.CLI.CompileTest do
     Code.append_path(context[:tmp_dir_path])
     assert :code.which(CompileSample) |> List.to_string() == Path.expand(context[:beam_file_path])
   after
-    :code.purge([CompileSample])
-    :code.delete([CompileSample])
+    :code.purge(CompileSample)
+    :code.delete(CompileSample)
     Code.delete_path(context[:tmp_dir_path])
   end
 
@@ -141,8 +141,8 @@ defmodule Kernel.CLI.CompileTest do
     Code.append_path(context[:tmp_dir_path])
     assert :code.which(CompileSample) |> List.to_string() == Path.expand(context[:beam_file_path])
   after
-    :code.purge([CompileSample])
-    :code.delete([CompileSample])
+    :code.purge(CompileSample)
+    :code.delete(CompileSample)
     Code.delete_path(context[:tmp_dir_path])
   end
 
