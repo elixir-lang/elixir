@@ -242,6 +242,7 @@ defmodule ExUnit.Runner do
   defp run_test(config, %{tags: tags} = test, context) do
     EM.test_started(config.manager, test)
 
+    context = maybe_create_tmp_dir(test, context, tags)
     capture_log = Map.get(tags, :capture_log, config.capture_log)
     test = run_test_with_capture_log(capture_log, config, test, Map.merge(tags, context))
 
@@ -257,6 +258,39 @@ defmodule ExUnit.Runner do
       :surpassed ->
         :max_failures_reached
     end
+  end
+
+  defp maybe_create_tmp_dir(test, context, %{tmp_dir: true}) do
+    create_tmp_dir!(test, "", context)
+  end
+
+  defp maybe_create_tmp_dir(test, context, %{tmp_dir: path}) when is_binary(path) do
+    create_tmp_dir!(test, path, context)
+  end
+
+  defp maybe_create_tmp_dir(_, _, %{tmp_dir: other}) do
+    raise ArgumentError, "expected :tmp_dir to be atom true or a string, got: #{inspect(other)}"
+  end
+
+  defp maybe_create_tmp_dir(_, context, _) do
+    context
+  end
+
+  defp create_tmp_dir!(test, extra_path, context) do
+    module = escape_path(inspect(test.module))
+    name = escape_path(to_string(test.name))
+    path = Path.join(["tmp", module, name, extra_path])
+    File.rm_rf!(path)
+    File.mkdir_p!(path)
+    Map.put(context, :tmp_dir, path)
+  end
+
+  defp escape_path(path) do
+    case :os.type() do
+      {:win32, _} -> String.replace(path, ~R'[~#%&*{}\\:<>?/+|"]', "_")
+      _ -> path
+    end
+    |> String.replace("/", "_")
   end
 
   defp run_test_with_capture_log(true, config, test, context) do
