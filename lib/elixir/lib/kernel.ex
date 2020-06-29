@@ -3647,7 +3647,6 @@ defmodule Kernel do
         end
 
       [head | tail] = list when not in_body? ->
-        maybe_raise_on_large_list!(list)
         in_list(left, head, tail, expand, list, in_body?)
 
       [_ | _] = list when in_body? ->
@@ -3686,13 +3685,6 @@ defmodule Kernel do
       Macro.to_string(right)::binary
     >>
   end
-
-  defp maybe_raise_on_large_list!(list) when length(list) > 1023 do
-    raise ArgumentError,
-          "in/2 supports only up to 1023 elements in the list given as right argument when used in guards"
-  end
-
-  defp maybe_raise_on_large_list!(_list), do: :ok
 
   defp in_var(false, ast, fun), do: fun.(ast)
 
@@ -3792,7 +3784,38 @@ defmodule Kernel do
         [head | tail]
       )
 
+    case length(tail) + 1 < 1024 do
+      true ->
+        fold_list([head | tail])
+
+      false ->
+        fold_list_split(:lists.reverse([head | tail]))
+    end
+  end
+
+  defp fold_list([head | tail]) do
     :lists.foldl(&quote(do: :erlang.orelse(unquote(&1), unquote(&2))), head, tail)
+  end
+
+  defp fold_list_split([head | tail]) do
+    {list_split, _counter} =
+      :lists.foldl(
+        fn
+          elem, {[head | acc], counter} when counter < 1024 ->
+            {[[elem | head] | acc], counter + 1}
+
+          elem, {[head | acc], _counter} ->
+            {[[elem], head | acc], 1}
+        end,
+        {[[head]], 1},
+        tail
+      )
+
+    :lists.foldl(
+      &quote(do: :erlang.orelse(unquote(fold_list(&1)), unquote(&2))),
+      [],
+      list_split
+    )
   end
 
   defp comp(left, {:|, _, [head, tail]}, expand, right, in_body?) do
