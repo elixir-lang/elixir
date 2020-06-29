@@ -231,16 +231,26 @@ defmodule Mix.Local.Installer do
         package_name
       end
 
-    dep_opts =
-      opts
-      |> Keyword.take([:organization, :repo])
-      |> Keyword.put(:hex, String.to_atom(package_name))
+    dep_opts = [
+      hex: String.to_atom(package_name),
+      repo: hex_repo(opts)
+    ]
 
     {:fetcher, {String.to_atom(app_name), version, dep_opts}}
   end
 
   def parse_args(["hex" | [_package_name | rest]], _opts) do
     {:error, "received invalid Hex package spec: #{Enum.join(rest, " ")}"}
+  end
+
+  defp hex_repo(opts) do
+    repo = Keyword.get(opts, :repo, "hexpm")
+
+    if organization = opts[:organization] do
+      repo <> ":" <> organization
+    else
+      repo
+    end
   end
 
   defp ref_to_config("branch", branch), do: [branch: branch]
