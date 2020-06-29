@@ -268,6 +268,10 @@ defmodule ExUnit.Runner do
     create_tmp_dir!(test, path, context)
   end
 
+  defp maybe_create_tmp_dir(_, context, %{tmp_dir: false}) do
+    context
+  end
+
   defp maybe_create_tmp_dir(_, _, %{tmp_dir: other}) do
     raise ArgumentError, "expected :tmp_dir to be atom true or a string, got: #{inspect(other)}"
   end
