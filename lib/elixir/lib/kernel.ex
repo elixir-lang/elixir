@@ -3628,7 +3628,7 @@ defmodule Kernel do
   """
   @doc guard: true
   defmacro left in right do
-    in_module? = __CALLER__.context == nil
+    in_body? = __CALLER__.context == nil
 
     expand =
       case bootstrapped?(Macro) do
@@ -3637,7 +3637,7 @@ defmodule Kernel do
       end
 
     case expand.(right) do
-      [] when not in_module? ->
+      [] when not in_body? ->
         false
 
       [] ->
@@ -3646,28 +3646,29 @@ defmodule Kernel do
           false
         end
 
-      [head | tail] = list when not in_module? ->
-        in_var(in_module?, left, &in_list(&1, head, tail, expand, list, in_module?))
+      [head | tail] = list when not in_body? ->
+        maybe_raise_on_large_list!(list)
+        in_list(left, head, tail, expand, list, in_body?)
 
-      [_ | _] = list when in_module? ->
+      [_ | _] = list when in_body? ->
         case ensure_evaled(list, {0, []}, expand) do
           {[head | tail], {_, []}} ->
-            in_var(in_module?, left, &in_list(&1, head, tail, expand, list, in_module?))
+            in_var(in_body?, left, &in_list(&1, head, tail, expand, list, in_body?))
 
           {[head | tail], {_, vars_values}} ->
             {vars, values} = :lists.unzip(:lists.reverse(vars_values))
-            is_in_list = &in_list(&1, head, tail, expand, list, in_module?)
+            is_in_list = &in_list(&1, head, tail, expand, list, in_body?)
 
             quote do
               {unquote_splicing(vars)} = {unquote_splicing(values)}
-              unquote(in_var(in_module?, left, is_in_list))
+              unquote(in_var(in_body?, left, is_in_list))
             end
         end
 
       {:%{}, _meta, [__struct__: Elixir.Range, first: first, last: last]} ->
-        in_var(in_module?, left, &in_range(&1, expand.(first), expand.(last)))
+        in_var(in_body?, left, &in_range(&1, expand.(first), expand.(last)))
 
-      right when in_module? ->
+      right when in_body? ->
         quote(do: Elixir.Enum.member?(unquote(right), unquote(left)))
 
       %{__struct__: Elixir.Range, first: _, last: _} ->
@@ -3685,6 +3686,13 @@ defmodule Kernel do
       Macro.to_string(right)::binary
     >>
   end
+
+  defp maybe_raise_on_large_list!(list) when length(list) > 1023 do
+    raise ArgumentError,
+          "in/2 supports only up to 1023 elements in the list given as right argument when used in guards"
+  end
+
+  defp maybe_raise_on_large_list!(_list), do: :ok
 
   defp in_var(false, ast, fun), do: fun.(ast)
 
@@ -3776,10 +3784,10 @@ defmodule Kernel do
     end
   end
 
-  defp in_list(left, head, tail, expand, right, in_module?) do
+  defp in_list(left, head, tail, expand, right, in_body?) do
     [head | tail] =
       :lists.foldl(
-        &[comp(left, &1, expand, right, in_module?) | &2],
+        &[comp(left, &1, expand, right, in_body?) | &2],
         [],
         [head | tail]
       )
@@ -3787,7 +3795,7 @@ defmodule Kernel do
     :lists.foldl(&quote(do: :erlang.orelse(unquote(&1), unquote(&2))), head, tail)
   end
 
-  defp comp(left, {:|, _, [head, tail]}, expand, right, in_module?) do
+  defp comp(left, {:|, _, [head, tail]}, expand, right, in_body?) do
     case expand.(tail) do
       [] ->
         quote(do: :erlang."=:="(unquote(left), unquote(head)))
@@ -3796,11 +3804,11 @@ defmodule Kernel do
         quote do
           :erlang.orelse(
             :erlang."=:="(unquote(left), unquote(head)),
-            unquote(in_list(left, tail_head, tail, expand, right, in_module?))
+            unquote(in_list(left, tail_head, tail, expand, right, in_body?))
           )
         end
 
-      tail when in_module? ->
+      tail when in_body? ->
         quote do
           :erlang.orelse(
             :erlang."=:="(unquote(left), unquote(head)),
@@ -3813,7 +3821,7 @@ defmodule Kernel do
     end
   end
 
-  defp comp(left, right, _expand, _right, _in_module?) do
+  defp comp(left, right, _expand, _right, _in_body?) do
     quote(do: :erlang."=:="(unquote(left), unquote(right)))
   end
 

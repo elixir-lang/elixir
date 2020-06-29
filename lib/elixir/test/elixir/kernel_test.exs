@@ -374,6 +374,15 @@ defmodule KernelTest do
   end
 
   describe "in/2" do
+    test "too large list in guards" do
+      assert_raise ArgumentError, ~r"in/2 supports only up to 1023 elements", fn ->
+        defmodule TooLargeList do
+          @list List.duplicate([:ok], 1024)
+          def value(value) when value in @list, do: :ok
+        end
+      end
+    end
+
     test "with literals on right side" do
       assert 2 in [1, 2, 3]
       assert 2 in 1..3
