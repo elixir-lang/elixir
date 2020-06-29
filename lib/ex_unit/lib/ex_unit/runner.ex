@@ -285,12 +285,10 @@ defmodule ExUnit.Runner do
     Map.put(context, :tmp_dir, path)
   end
 
+  @escape Enum.map('[~#%&*{}\\:<>?/+|"]', &<<&1::utf8>>)
+
   defp escape_path(path) do
-    case :os.type() do
-      {:win32, _} -> String.replace(path, ~R'[~#%&*{}\\:<>?/+|"]', "_")
-      _ -> path
-    end
-    |> String.replace("/", "_")
+    String.replace(path, @escape, "_")
   end
 
   defp run_test_with_capture_log(true, config, test, context) do

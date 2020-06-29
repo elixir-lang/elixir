@@ -159,6 +159,11 @@ defmodule ExUnit.CaseTest.TmpDir do
     assert File.ls!(context.tmp_dir) == []
   end
 
+  @tag :tmp_dir
+  test "escapes foo?/0", context do
+    assert context.tmp_dir == "tmp/ExUnit.CaseTest.TmpDir/test escapes foo__0"
+  end
+
   @tag tmp_dir: "foo/bar"
   test "custom path", context do
     assert context.tmp_dir == "tmp/ExUnit.CaseTest.TmpDir/test custom path/foo/bar"
