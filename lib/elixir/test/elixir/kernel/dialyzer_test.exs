@@ -34,14 +34,7 @@ defmodule Kernel.DialyzerTest do
   end
 
   setup context do
-    # Set up a per-test temporary directory, so we can run these with async: true.
-    # We use the test's line number as the directory name, so they won't conflict.
-    dir =
-      context.base_dir
-      |> Path.join("line#{context.line}")
-      |> String.to_charlist()
-
-    File.mkdir_p!(dir)
+    dir = String.to_charlist(context.tmp_dir)
 
     plt =
       dir
@@ -61,6 +54,8 @@ defmodule Kernel.DialyzerTest do
 
     {:ok, [outdir: dir, dialyzer: dialyzer]}
   end
+
+  @moduletag :tmp_dir
 
   @tag warnings: [:specdiffs]
   test "no warnings on specdiffs", context do

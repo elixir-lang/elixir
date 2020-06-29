@@ -141,19 +141,29 @@ defmodule ExUnit.Case do
   therefore reserved:
 
     * `:module`     - the module on which the test was defined
+
     * `:file`       - the file on which the test was defined
+
     * `:line`       - the line on which the test was defined
+
     * `:test`       - the test name
+
     * `:async`      - if the test case is in async mode
+
     * `:registered` - used for `ExUnit.Case.register_attribute/3` values
+
     * `:describe`   - the describe block the test belongs to
 
   The following tags customize how tests behave:
 
     * `:capture_log` - see the "Log Capture" section below
+
     * `:skip` - skips the test with the given reason
+
     * `:timeout` - customizes the test timeout in milliseconds (defaults to 60000).
       Accepts `:infinity` as a timeout value.
+
+    * `:tmp_dir` - (since v1.11.0) see the "Tmp Dir" section below
 
   The `:test_type` tag is automatically set by ExUnit, but is **not** reserved.
   This tag is available for users to customize if they desire.
@@ -209,6 +219,32 @@ defmodule ExUnit.Case do
 
       config :logger, backends: []
 
+  ## Tmp Dir
+
+  ExUnit automatically creates a temporary directory for tests tagged with
+  `:tmp_dir` and puts the path to that directory into the test context.
+  The directory is removed before being created to ensure we start with a blank
+  slate.
+
+  The temporary directory path is unique (includes the test module and test name)
+  and thus appropriate for running tests concurrently. You can customize the path
+  further by setting the tag to a string, e.g.: `tmp_dir: "my_path"`, which would
+  make the final path to be: `tmp/<module>/<test>/my_path`.
+
+  Example:
+
+      defmodule MyTest do
+        use ExUnit.Case, async: true
+
+        @tag :tmp_dir
+        test "with tmp_dir", %{tmp_dir: tmp_dir} do
+          assert tmp_dir =~ "with tmp_dir"
+          assert File.dir?(tmp_dir)
+        end
+      end
+
+  As with other tags, `:tmp_dir` can also be set as `@moduletag` and
+  `@describetag`.
   """
 
   @type env :: module() | Macro.Env.t()
