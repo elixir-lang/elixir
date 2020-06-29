@@ -50,11 +50,10 @@ defmodule Mix.Tasks.Archive.Install do
     * `--app` - specifies a custom app name to be used for building the archive
       from Git, GitHub, or Hex
 
-    * `--organization` - specifies an organization to use if fetching the package
-      from a private Hex repository. Setting `--organization acme` has the same
-      effect as `--repo hexpm:acme`
+    * `--organization` - set this for Hex private packages belonging to an
+      organization
 
-    * `--repo` - specifies a repo to use when using Hex
+    * `--repo` - set this for self-hosted Hex instances, defaults to `hexpm`
 
   """
 
