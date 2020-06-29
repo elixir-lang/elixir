@@ -227,8 +227,9 @@ defmodule ExUnit.Case do
   slate.
 
   The temporary directory path is unique (includes the test module and test name)
-  and thus appropriate for running tests concurrently. You can customize it by
-  setting the tag to a string, e.g.: `tmp_dir: "my_path"`.
+  and thus appropriate for running tests concurrently. You can customize the path
+  further by setting the tag to a string, e.g.: `tmp_dir: "my_path"`, which would
+  make the final path to be: `tmp/<module>/<test>/my_path`.
 
   Example:
 
