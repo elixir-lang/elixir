@@ -107,27 +107,25 @@ end
 defmodule Kernel.CLI.CompileTest do
   use ExUnit.Case, async: true
 
+  @moduletag :tmp_dir
+
   setup context do
-    # Set up a per-test temporary directory, so we can run these with async: true.
-    # We use the test's line number as the directory name, so they won't conflict.
-    tmp_dir_path = tmp_path("beams/#{context[:line]}")
-    beam_file_path = Path.join([tmp_dir_path, "Elixir.CompileSample.beam"])
+    beam_file_path = Path.join([context.tmp_dir, "Elixir.CompileSample.beam"])
     fixture = fixture_path("compile_sample.ex")
-    File.mkdir_p!(tmp_dir_path)
-    {:ok, [tmp_dir_path: tmp_dir_path, beam_file_path: beam_file_path, fixture: fixture]}
+    {:ok, [beam_file_path: beam_file_path, fixture: fixture]}
   end
 
   test "compiles code", context do
-    assert elixirc('#{context[:fixture]} -o #{context[:tmp_dir_path]}') == ""
-    assert File.regular?(context[:beam_file_path])
+    assert elixirc('#{context.fixture} -o \'#{context.tmp_dir}\'') == ""
+    assert File.regular?(context.beam_file_path)
 
     # Assert that the module is loaded into memory with the proper destination for the BEAM file.
-    Code.append_path(context[:tmp_dir_path])
-    assert :code.which(CompileSample) |> List.to_string() == Path.expand(context[:beam_file_path])
+    Code.append_path(context.tmp_dir)
+    assert :code.which(CompileSample) |> List.to_string() == Path.expand(context.beam_file_path)
   after
     :code.purge(CompileSample)
     :code.delete(CompileSample)
-    Code.delete_path(context[:tmp_dir_path])
+    Code.delete_path(context.tmp_dir)
   end
 
   @tag :windows
@@ -143,34 +141,34 @@ defmodule Kernel.CLI.CompileTest do
   after
     :code.purge(CompileSample)
     :code.delete(CompileSample)
-    Code.delete_path(context[:tmp_dir_path])
+    Code.delete_path(context.tmp_dir)
   end
 
   test "fails on missing patterns", context do
-    output = elixirc('#{context[:fixture]} non_existing.ex -o #{context[:tmp_dir_path]}')
+    output = elixirc('#{context.fixture} non_existing.ex -o \'#{context.tmp_dir}\'')
     assert output =~ "non_existing.ex"
     refute output =~ "compile_sample.ex"
-    refute File.exists?(context[:beam_file_path])
+    refute File.exists?(context.beam_file_path)
   end
 
   test "fails on missing write access to .beam file", context do
-    compilation_args = '#{context[:fixture]} -o #{context[:tmp_dir_path]}'
+    compilation_args = '#{context.fixture} -o \'#{context.tmp_dir}\''
 
     assert elixirc(compilation_args) == ""
-    assert File.regular?(context[:beam_file_path])
+    assert File.regular?(context.beam_file_path)
 
     # Set the .beam file to read-only
-    File.chmod!(context[:beam_file_path], 4)
-    {:ok, %{access: access}} = File.stat(context[:beam_file_path])
+    File.chmod!(context.beam_file_path, 4)
+    {:ok, %{access: access}} = File.stat(context.beam_file_path)
 
     # Can only assert when read-only applies to the user
     if access != :read_write do
       output = elixirc(compilation_args)
 
       expected =
-        "(File.Error) could not write to file #{inspect(context[:beam_file_path])}: permission denied"
+        "(File.Error) could not write to file #{inspect(context.beam_file_path)}: permission denied"
 
-      assert String.contains?(output, expected)
+      assert output =~ expected
     end
   end
 end

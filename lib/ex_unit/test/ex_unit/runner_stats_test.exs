@@ -4,7 +4,6 @@ defmodule ExUnit.RunnerStatsTest do
   use ExUnit.Case, async: false
 
   alias ExUnit.{FailuresManifest, RunnerStats}
-  import ExUnit.TestHelpers, only: [in_tmp: 2]
 
   @failures_manifest_file "ex_unit_failures_manifest.elixir"
 
@@ -29,8 +28,9 @@ defmodule ExUnit.RunnerStatsTest do
   end
 
   describe "when no failures manifest path option is provided" do
-    test "does not write a failures manifest", context do
-      in_tmp(context.test, fn ->
+    @tag :tmp_dir
+    test "does not write a failures manifest", %{tmp_dir: tmp_dir} do
+      File.cd!(tmp_dir, fn ->
         simulate_suite([], fn formatter ->
           simulate_test(formatter, :test_1, :passed)
           simulate_test(formatter, :test_2, :failed)
@@ -42,8 +42,9 @@ defmodule ExUnit.RunnerStatsTest do
   end
 
   describe "when a failures manifest path option is provided" do
-    test "records the test failures in the failures manifest file", context do
-      in_tmp(context.test, fn ->
+    @tag :tmp_dir
+    test "records the test failures in the failures manifest file", %{tmp_dir: tmp_dir} do
+      File.cd!(tmp_dir, fn ->
         simulate_suite(fn formatter ->
           simulate_test(formatter, :test_1, :passed)
           simulate_test(formatter, :test_2, :failed)
@@ -53,8 +54,9 @@ defmodule ExUnit.RunnerStatsTest do
       end)
     end
 
-    test "merges the results with the results from the prior run", context do
-      in_tmp(context.test, fn ->
+    @tag :tmp_dir
+    test "merges the results with the results from the prior run", %{tmp_dir: tmp_dir} do
+      File.cd!(tmp_dir, fn ->
         simulate_suite(&simulate_test(&1, :test_1, :failed))
         simulate_suite(&simulate_test(&1, :test_2, :failed))
 

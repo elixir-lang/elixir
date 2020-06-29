@@ -166,31 +166,34 @@ defmodule IEx.InteractionTest do
                capture_iex("my_variable")
     end
 
-    test "single .iex" do
-      path = write_dot_iex!("dot-iex", "my_variable = 144")
+    @tag :tmp_dir
+    test "single .iex", %{tmp_dir: tmp_dir} do
+      path = write_dot_iex!(tmp_dir, "dot-iex", "my_variable = 144")
       assert capture_iex("my_variable", [], dot_iex_path: path) == "144"
     end
 
-    test "nested .iex" do
-      write_dot_iex!("dot-iex-1", "nested_var = 13\nimport IO")
-      path = write_dot_iex!("dot-iex", "import_file \"tmp/dot-iex-1\"\nmy_variable=14")
+    @tag :tmp_dir
+    test "nested .iex", %{tmp_dir: tmp_dir} do
+      write_dot_iex!(tmp_dir, "dot-iex-1", "nested_var = 13\nimport IO")
+
+      path =
+        write_dot_iex!(tmp_dir, "dot-iex", "import_file \"#{tmp_dir}/dot-iex-1\"\nmy_variable=14")
 
       input = "nested_var\nmy_variable\nputs \"hello\""
       assert capture_iex(input, [], dot_iex_path: path) == "13\n14\nhello\n:ok"
     end
 
-    test "malformed .iex" do
-      path = write_dot_iex!("dot-iex", "malformed")
+    @tag :tmp_dir
+    test "malformed .iex", %{tmp_dir: tmp_dir} do
+      path = write_dot_iex!(tmp_dir, "dot-iex", "malformed")
 
       assert capture_iex("1 + 2", [], dot_iex_path: path) =~
                "dot-iex:1: undefined function malformed/0"
     end
   end
 
-  defp write_dot_iex!(name, contents) do
-    dir = "#{__DIR__}/../../tmp"
-    File.mkdir_p!(dir)
-    path = Path.join(dir, name)
+  defp write_dot_iex!(tmp_dir, name, contents) do
+    path = Path.join(tmp_dir, name)
     File.write!(path, contents)
     path
   end
