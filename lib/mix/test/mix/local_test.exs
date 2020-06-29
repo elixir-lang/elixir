@@ -77,8 +77,9 @@ defmodule Mix.LocalTest do
     |> File.write!(@public_key)
   end
 
-  test "select correct versions from csv" do
-    in_tmp("select correct versions from csv", fn ->
+  @tag :tmp_dir
+  test "select correct versions from csv", %{tmp_dir: tmp_dir} do
+    File.cd!(tmp_dir, fn ->
       File.write!("csv", @csv)
       File.write!("csv.signed", @csv_signed)
 
@@ -87,8 +88,9 @@ defmodule Mix.LocalTest do
     end)
   end
 
-  test "raise on bad signature" do
-    in_tmp("raise on bad signature", fn ->
+  @tag :tmp_dir
+  test "raise on bad signature", %{tmp_dir: tmp_dir} do
+    File.cd!(tmp_dir, fn ->
       csv_signed = String.replace(@csv_signed, "VRy", "BAD")
       File.write!("csv", @csv)
       File.write!("csv.signed", csv_signed)

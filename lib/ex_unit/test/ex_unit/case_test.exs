@@ -149,3 +149,28 @@ defmodule ExUnit.DoubleCaseTest4 do
     assert context.async
   end
 end
+
+defmodule ExUnit.CaseTest.TmpDir do
+  use ExUnit.Case
+
+  @moduletag :tmp_dir
+
+  test "default path", context do
+    assert context.tmp_dir == "tmp/ExUnit.CaseTest.TmpDir/test default path"
+    assert File.ls!(context.tmp_dir) == []
+  end
+
+  test "escapes foo?/0", context do
+    assert context.tmp_dir == "tmp/ExUnit.CaseTest.TmpDir/test escapes foo__0"
+  end
+
+  @tag tmp_dir: "foo/bar"
+  test "custom path", context do
+    assert context.tmp_dir == "tmp/ExUnit.CaseTest.TmpDir/test custom path/foo/bar"
+  end
+
+  @tag tmp_dir: false
+  test "disabled", context do
+    refute context[:tmp_dir]
+  end
+end
