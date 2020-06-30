@@ -63,7 +63,7 @@ The compiler would not catch the missing field and an error would only be raised
     Conflict found at
       example.exs:7: Check.drive?/1
 
-The compiler also checks binary constructors. For example, imagine you have to send a string over the wire with run-length encoding, where the string is prefixed by its length, up to 4MBs. Your initial attempt may be this:
+The compiler also checks binary constructors. For example, consider you have to send a string over the wire with length-based encoding, where the string is prefixed by its length, up to 4MBs. Your initial attempt may be this:
 
     def run_length(string) when is_binary(string) do
       <<byte_size(string)::32, string>>
@@ -92,7 +92,7 @@ However, the code above has a bug. Each segment given between `<<>>` must be an 
     Conflict found at
       foo.exs:4: Check.run_length/1
 
-Which can be fixed with:
+Which can be fixed by adding `::binary` to the second component:
 
     def run_length(string) when is_binary(string) do
       <<byte_size(string)::32, string::binary>>
