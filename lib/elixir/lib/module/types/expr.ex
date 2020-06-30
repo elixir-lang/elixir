@@ -337,8 +337,8 @@ defmodule Module.Types.Expr do
            {:ok, _map_type, context} <- unify(map_field_type, expr_type, stack, context),
            do: {:ok, value_var, context}
     else
-      with {:ok, _expr_type, context} <- of_expr(expr1, stack, context),
-           {:ok, _fun_type, context} <- of_expr(key_or_fun, stack, context),
+      with {:ok, expr_type, context} <- of_expr(expr1, stack, context),
+           {:ok, _map_type, context} <- unify(expr_type, :atom, stack, context),
            do: {:ok, :dynamic, context}
     end
   end

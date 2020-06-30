@@ -411,10 +411,12 @@ defmodule Kernel.RaiseTest do
       assert result == "no match of right hand side value: 0"
     end
 
+    defp empty_map(), do: %{}
+
     test "bad key error" do
       result =
         try do
-          %{%{} | foo: :bar}
+          %{empty_map() | foo: :bar}
         rescue
           x in [KeyError] -> Exception.message(x)
         end
@@ -423,7 +425,7 @@ defmodule Kernel.RaiseTest do
 
       result =
         try do
-          %{}.foo
+          empty_map().foo
         rescue
           x in [KeyError] -> Exception.message(x)
         end

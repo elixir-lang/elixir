@@ -442,7 +442,7 @@ defmodule ExUnit.Runner do
   end
 
   defp get_timeout(config, tags) do
-    if config.trace() do
+    if config.trace do
       :infinity
     else
       Map.get(tags, :timeout, config.timeout)

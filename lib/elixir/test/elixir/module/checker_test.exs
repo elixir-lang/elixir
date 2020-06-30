@@ -1056,6 +1056,141 @@ defmodule Module.CheckerTest do
     end
   end
 
+  describe "map checks" do
+    test "show map() when comparing against non-map" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          def a(foo) do
+            foo.bar
+            :atom = foo
+          end
+        end
+        """
+      }
+
+      warning = """
+      warning: incompatible types:
+
+          map() !~ :atom
+
+      in expression:
+
+          :atom = foo
+
+      where "foo" was given the type :atom in:
+
+          # a.ex:4
+          :atom = foo
+
+      where "foo" was given the type %{bar: var1, optional(dynamic()) => dynamic()} in:
+
+          # a.ex:3
+          foo.bar
+
+      Conflict found at
+        a.ex:4: A.a/1
+
+      """
+
+      assert_warnings(files, warning)
+    end
+
+    test "use module as map (without parenthesis)" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          def a(foo) do
+            %module{} = foo
+            module.__struct__
+          end
+        end
+        """
+      }
+
+      warning = """
+      warning: parentheses are required when dynamically invoking zero-arity functions in expression:
+
+          module.__struct__
+
+      `module` is an atom and you attempted to fetch the field `:__struct__`. Make sure that \
+      `module` is a map or add parenthesis to invoke a function instead:
+
+          module.__struct__()
+
+      Conflict found at
+        a.ex:4: A.a/1
+
+      """
+
+      assert_warnings(files, warning)
+    end
+
+    test "use map as module (with parenthesis)" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          def a(foo) when is_map(foo) do
+            foo.__struct__()
+          end
+        end
+        """
+      }
+
+      warning = """
+      warning: parentheses are not allowed when fetching fields on a map in expression:
+
+          foo.__struct__()
+
+      `foo` is a map and you attempted to invoke the function `:__struct__`. Make sure that \
+      `foo` is an atom or remove parentheses to fetch a field:
+
+          foo.__struct__
+
+      Conflict found at
+        a.ex:3: A.a/1
+
+      """
+
+      assert_warnings(files, warning)
+    end
+
+    test "non-existant field warning" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          def a() do
+            map = %{foo: 1}
+            map.bar
+          end
+        end
+        """
+      }
+
+      warning = """
+      warning: undefined field of type `:bar` in expression:
+
+          map.bar
+
+      where "map" was given the type %{bar: var1, optional(dynamic()) => dynamic()} in:
+
+          # a.ex:4
+          map.bar
+
+      where "map" was given the type %{foo: integer()} in:
+
+          # a.ex:3
+          map = %{foo: 1}
+
+      Conflict found at
+        a.ex:4: A.a/0
+
+      """
+
+      assert_warnings(files, warning)
+    end
+  end
+
   defp assert_warnings(files, expected) when is_binary(expected) do
     assert capture_compile_warnings(files) == expected
   end

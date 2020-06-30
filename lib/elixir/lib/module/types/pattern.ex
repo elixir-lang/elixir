@@ -121,6 +121,7 @@ defmodule Module.Types.Pattern do
     {:ok, :dynamic, context}
   end
 
+  # TODO: What about maps dude?
   # ^var
   def of_pattern({:^, _meta, [var]}, stack, context) do
     of_pattern(var, stack, context)

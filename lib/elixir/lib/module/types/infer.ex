@@ -515,6 +515,8 @@ defmodule Module.Types.Infer do
   defp get_meta({_fun, meta, _args}) when is_list(meta), do: meta
   defp get_meta(_other), do: []
 
+  # TODO: Remove any non struct fields
+  #       Maybe not here...
   defp expand_struct(pairs) do
     case fetch_struct_pair(pairs) do
       {:ok, module} ->

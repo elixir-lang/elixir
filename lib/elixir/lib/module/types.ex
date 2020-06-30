@@ -195,16 +195,150 @@ defmodule Module.Types do
   ## ERROR FORMATTING
 
   def format_warning({:unable_unify, left, right, expr, traces}) do
-    [
-      "incompatible types:\n\n    ",
-      format_type(left),
-      " !~ ",
-      format_type(right),
-      "\n\n",
-      format_expr(expr),
-      format_traces(traces),
-      "Conflict found at"
-    ]
+    cond do
+      (match?({:ok, _}, map_dot(expr)) and (map_type?(left) and atom_type?(right))) or
+          (atom_type?(left) and map_type?(right)) ->
+        {:ok, {map, field}} = map_dot(expr)
+
+        """
+        parentheses are required when dynamically invoking zero-arity functions in \
+        expression:
+
+            #{String.replace(expr_to_string(expr), "\n", "\n    ")}
+
+        `#{expr_to_string(map)}` is an atom and you attempted to fetch the field \
+        `#{expr_to_string(field)}`. Make sure that `#{expr_to_string(map)}` is a map or \
+        add parenthesis to invoke a function instead:
+
+            #{String.replace(expr_to_string(invert_parens(expr)), "\n", "\n    ")}
+
+        Conflict found at\
+        """
+
+      (match?({:ok, _}, remote_call(expr)) and (map_type?(left) and atom_type?(right))) or
+          (atom_type?(left) and map_type?(right)) ->
+        {:ok, {module, fun}} = remote_call(expr)
+
+        """
+        parentheses are not allowed when fetching fields on a map in expression:
+
+            #{String.replace(expr_to_string(expr), "\n", "\n    ")}
+
+        `#{expr_to_string(module)}` is a map and you attempted to invoke the function \
+        `#{expr_to_string(fun)}`. Make sure that `#{expr_to_string(module)}` is an atom or \
+        remove parentheses to fetch a field:
+
+            #{String.replace(expr_to_string(invert_parens(expr)), "\n", "\n    ")}
+
+        Conflict found at\
+        """
+
+      map_type?(left) and map_type?(right) and match?({:ok, _}, missing_field(left, right)) ->
+        {:ok, atom} = missing_field(left, right)
+
+        [
+          "undefined field of type `#{format_type(atom)}` in expression:",
+          "\n\n    ",
+          String.replace(expr_to_string(expr), "\n", "\n    "),
+          "\n\n",
+          format_traces(traces),
+          "Conflict found at"
+        ]
+
+      true ->
+        [
+          "incompatible types:\n\n    ",
+          format_types(left, right),
+          "\n\n",
+          format_expr(expr),
+          format_traces(traces),
+          "Conflict found at"
+        ]
+    end
+  end
+
+  defp map_dot({{:., _meta1, [map, field]}, meta2, []}) do
+    if Keyword.get(meta2, :no_parens, false) do
+      {:ok, {map, field}}
+    else
+      :error
+    end
+  end
+
+  defp map_dot(_other) do
+    :error
+  end
+
+  defp remote_call({{:., _meta1, [module, fun]}, meta2, []}) do
+    if Keyword.get(meta2, :no_parens, false) do
+      :error
+    else
+      {:ok, {module, fun}}
+    end
+  end
+
+  defp remote_call(_other) do
+    :error
+  end
+
+  defp invert_parens({{:., meta1, [expr1, expr2]}, meta2, []}) do
+    {{:., meta1, [expr1, expr2]}, Keyword.update(meta2, :no_parens, true, &not/1), []}
+  end
+
+  defp missing_field(
+         {:map, [{:required, {:atom, _} = atom, _}, {:optional, :dynamic, :dynamic}]},
+         {:map, fields}
+       ) do
+    if List.keymember?(fields, atom, 1) do
+      :error
+    else
+      {:ok, atom}
+    end
+  end
+
+  defp missing_field(
+         {:map, fields},
+         {:map, [{:required, {:atom, _} = atom, _}, {:optional, :dynamic, :dynamic}]}
+       ) do
+    if List.keymember?(fields, atom, 1) do
+      :error
+    else
+      {:ok, atom}
+    end
+  end
+
+  defp format_types(left, right) do
+    cond do
+      map_type?(left) and not map_type?(right) ->
+        [format_simplified_map(left), " !~ ", format_type(right)]
+
+      not map_type?(left) and map_type?(right) ->
+        [format_type(left), " !~ ", format_simplified_map(right)]
+
+      true ->
+        [format_type(left), " !~ ", format_type(right)]
+    end
+  end
+
+  defp map_type?({:map, _}), do: true
+  defp map_type?(_other), do: false
+
+  defp atom_type?(:atom), do: true
+  defp atom_type?(:boolean), do: true
+  defp atom_type?({:atom, _}), do: false
+  defp atom_type?(_other), do: false
+
+  defp format_simplified_map({:map, pairs}) do
+    case List.keyfind(pairs, {:atom, :__struct__}, 1) do
+      {:required, {:atom, :__struct__}, {:atom, struct}} ->
+        "%#{inspect(struct)}{}"
+
+      {:required, {:atom, :__struct__}, {:var, _} = var} ->
+        "%#{format_type(var)}{}"
+
+      _ ->
+        "map()"
+    end
   end
 
   defp format_expr(nil) do
@@ -214,7 +348,7 @@ defmodule Module.Types do
   defp format_expr(expr) do
     [
       "in expression:\n\n    ",
-      expr_to_string(expr),
+      String.replace(expr_to_string(expr), "\n", "\n    "),
       "\n\n"
     ]
   end
@@ -234,7 +368,7 @@ defmodule Module.Types do
           " in:\n\n    # ",
           format_location(location),
           "    ",
-          expr_to_string(expr),
+          String.replace(expr_to_string(expr), "\n", "\n    "),
           "\n\n"
         ]
 
@@ -247,7 +381,7 @@ defmodule Module.Types do
           "\" in:\n\n    # ",
           format_location(location),
           "    ",
-          expr_to_string(expr),
+          String.replace(expr_to_string(expr), "\n", "\n    "),
           "\n\n"
         ]
     end)
@@ -315,7 +449,6 @@ defmodule Module.Types do
     expr
     |> reverse_rewrite()
     |> Macro.to_string()
-    |> String.replace("\n", "\n    ")
   end
 
   defp reverse_rewrite(guard) do
