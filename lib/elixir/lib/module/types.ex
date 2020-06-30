@@ -257,28 +257,22 @@ defmodule Module.Types do
     end
   end
 
-  defp map_dot({{:., _meta1, [map, field]}, meta2, []}) do
-    if Keyword.get(meta2, :no_parens, false) do
+  defp map_dot(expr) do
+    with {{:., _meta1, [map, field]}, meta2, []} <- expr,
+         true <- Keyword.get(meta2, :no_parens, false) do
       {:ok, {map, field}}
     else
-      :error
+      _ -> :error
     end
   end
 
-  defp map_dot(_other) do
-    :error
-  end
-
-  defp remote_call({{:., _meta1, [module, fun]}, meta2, []}) do
-    if Keyword.get(meta2, :no_parens, false) do
-      :error
+  defp remote_call(expr) do
+    with {{:., _meta1, [module, field]}, meta2, []} <- expr,
+         false <- Keyword.get(meta2, :no_parens, false) do
+      {:ok, {module, field}}
     else
-      {:ok, {module, fun}}
+      _ -> :error
     end
-  end
-
-  defp remote_call(_other) do
-    :error
   end
 
   defp invert_parens({{:., meta1, [expr1, expr2]}, meta2, []}) do
