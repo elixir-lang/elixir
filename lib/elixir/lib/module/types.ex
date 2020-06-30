@@ -206,9 +206,9 @@ defmodule Module.Types do
 
             #{String.replace(expr_to_string(expr), "\n", "\n    ")}
 
-        `#{expr_to_string(map)}` is an atom and you attempted to fetch the field \
-        `#{expr_to_string(field)}`. Make sure that `#{expr_to_string(map)}` is a map or \
-        add parenthesis to invoke a function instead:
+        "#{expr_to_string(map)}" is an atom and you attempted to fetch the field \
+        #{field}. Make sure that "#{expr_to_string(map)}" is a map or add parenthesis \
+        to invoke a function instead:
 
             #{String.replace(expr_to_string(invert_parens(expr)), "\n", "\n    ")}
 
@@ -224,9 +224,9 @@ defmodule Module.Types do
 
             #{String.replace(expr_to_string(expr), "\n", "\n    ")}
 
-        `#{expr_to_string(module)}` is a map and you attempted to invoke the function \
-        `#{expr_to_string(fun)}`. Make sure that `#{expr_to_string(module)}` is an atom or \
-        remove parentheses to fetch a field:
+        "#{expr_to_string(module)}" is a map and you attempted to invoke the function \
+        #{fun}/0. Make sure that "#{expr_to_string(module)}" is an atom or remove \
+        parentheses to fetch a field:
 
             #{String.replace(expr_to_string(invert_parens(expr)), "\n", "\n    ")}
 
@@ -237,7 +237,7 @@ defmodule Module.Types do
         {:ok, atom} = missing_field(left, right)
 
         [
-          "undefined field of type `#{format_type(atom)}` in expression:",
+          "undefined field \"#{atom}\" in expression:",
           "\n\n    ",
           String.replace(expr_to_string(expr), "\n", "\n    "),
           "\n\n",
@@ -280,10 +280,10 @@ defmodule Module.Types do
   end
 
   defp missing_field(
-         {:map, [{:required, {:atom, _} = atom, _}, {:optional, :dynamic, :dynamic}]},
+         {:map, [{:required, {:atom, atom} = type, _}, {:optional, :dynamic, :dynamic}]},
          {:map, fields}
        ) do
-    if List.keymember?(fields, atom, 1) do
+    if List.keymember?(fields, type, 1) do
       :error
     else
       {:ok, atom}
@@ -292,9 +292,9 @@ defmodule Module.Types do
 
   defp missing_field(
          {:map, fields},
-         {:map, [{:required, {:atom, _} = atom, _}, {:optional, :dynamic, :dynamic}]}
+         {:map, [{:required, {:atom, atom} = type, _}, {:optional, :dynamic, :dynamic}]}
        ) do
-    if List.keymember?(fields, atom, 1) do
+    if List.keymember?(fields, type, 1) do
       :error
     else
       {:ok, atom}
