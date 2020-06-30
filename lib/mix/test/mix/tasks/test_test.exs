@@ -161,12 +161,12 @@ defmodule Mix.Tasks.TestTest do
 
     test "supports unified reports by using test.coverage" do
       in_fixture("umbrella_test", fn ->
-        assert mix(["test", "--partitions", "1", "--cover"], [{"MIX_TEST_PARTITION", "1"}]) =~
+        assert mix(["test", "--export-coverage", "default", "--cover"]) =~
                  "Run \"mix test.coverage\" once all exports complete"
 
         assert mix(["test.coverage"]) =~ """
-               Importing cover results: apps/bar/cover/1.coverdata
-               Importing cover results: apps/foo/cover/1.coverdata
+               Importing cover results: apps/bar/cover/default.coverdata
+               Importing cover results: apps/foo/cover/default.coverdata
 
                Percentage | Module
                -----------|--------------------------
