@@ -24,10 +24,6 @@ defmodule Dialyzer.RemoteCall do
 
   def mod_var() do
     module = Hello
-    module.fun
-  end
-
-  def mod_var(module) when is_atom(module) or is_atom(elem(module, 0)) do
-    module.fun
+    module.fun()
   end
 end

@@ -127,6 +127,23 @@ defmodule Module.Types.Helpers do
 
   defp do_map_reduce_ok([], {list, acc}, _fun), do: {:ok, Enum.reverse(list), acc}
 
+  def flat_map_reduce_ok(list, acc, fun) do
+    do_flat_map_reduce_ok(list, {[], acc}, fun)
+  end
+
+  defp do_flat_map_reduce_ok([head | tail], {list, acc}, fun) do
+    case fun.(head, acc) do
+      {:ok, elems, acc} ->
+        do_flat_map_reduce_ok(tail, {[elems | list], acc}, fun)
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp do_flat_map_reduce_ok([], {list, acc}, _fun),
+    do: {:ok, Enum.reverse(Enum.concat(list)), acc}
+
   @doc """
   Given a list of `[{:ok, term()} | {:error, term()}]` it returns a list of
   errors `{:error, [term()]}` in case of at least one error or `{:ok, [term()]}`

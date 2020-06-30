@@ -41,11 +41,11 @@ defmodule Map do
   will raise a `KeyError` if the `map` doesn't contain the key `:key`, compared to
   `map[:key]`, that would return `nil`.
 
-      iex> map = %{foo: "bar", baz: "bong"}
-      iex> map.foo
-      "bar"
-      iex> map.non_existing_key
-      ** (KeyError) key :non_existing_key not found in: %{baz: "bong", foo: "bar"}
+      map = %{foo: "bar", baz: "bong"}
+      map.foo
+      #=> "bar"
+      map.non_existing_key
+      #=> ** (KeyError) key :non_existing_key not found in: %{baz: "bong", foo: "bar"}
 
   The two syntaxes for accessing keys reveal the dual nature of maps. The `map[key]`
   syntax is used for dynamically created maps that may have any key, of any type.

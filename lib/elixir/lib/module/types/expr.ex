@@ -93,8 +93,14 @@ defmodule Module.Types.Expr do
 
   # __CALLER__
   def of_expr({:__CALLER__, _meta, var_context}, _stack, context) when is_atom(var_context) do
-    # TODO: Full %Macro.Env{} struct
-    {:ok, {:map, [{{:atom, :__struct__}, {:atom, Macro.Env}}]}, context}
+    struct_pair = {:required, {:atom, :__struct__}, {:atom, Macro.Env}}
+
+    pairs =
+      Enum.map(Map.from_struct(Macro.Env.__struct__()), fn {key, _value} ->
+        {:required, {:atom, key}, :dynamic}
+      end)
+
+    {:ok, {:map, [struct_pair | pairs]}, context}
   end
 
   # __STACKTRACE__
@@ -134,7 +140,7 @@ defmodule Module.Types.Expr do
     with {:ok, left_type, context} <-
            of_pattern(left_expr, stack, context),
          {:ok, right_type, context} <- of_expr(right_expr, stack, context),
-         do: unify(right_type, left_type, stack, context)
+         do: unify(right_type, left_type, %{stack | context: :pattern}, context)
   end
 
   # %{map | ...}
@@ -142,7 +148,7 @@ defmodule Module.Types.Expr do
     stack = push_expr_stack(expr, stack)
 
     case of_pairs(args, stack, context) do
-      {:ok, _pairs, context} -> {:ok, {:map, []}, context}
+      {:ok, _pairs, context} -> {:ok, {:map, [{:optional, :dynamic, :dynamic}]}, context}
       {:error, reason} -> {:error, reason}
     end
   end
@@ -153,7 +159,7 @@ defmodule Module.Types.Expr do
 
     case of_pairs(args, stack, context) do
       {:ok, _pairs, context} ->
-        pairs = [{{:atom, :__struct__}, {:atom, module}}]
+        pairs = [{:required, {:atom, :__struct__}, {:atom, module}}]
         {:ok, {:map, pairs}, context}
 
       {:error, reason} ->
@@ -177,7 +183,7 @@ defmodule Module.Types.Expr do
 
     case of_pairs(args, stack, context) do
       {:ok, pairs, context} ->
-        pairs = [{{:atom, :__struct__}, {:atom, module}} | pairs]
+        pairs = [{:required, {:atom, :__struct__}, {:atom, module}} | pairs]
         {:ok, {:map, pairs}, context}
 
       {:error, reason} ->
@@ -303,22 +309,50 @@ defmodule Module.Types.Expr do
   end
 
   # fun.(arg)
-  def of_expr({{:., _meta1, [_fun]}, _meta2, args} = expr, stack, context) do
+  def of_expr({{:., _meta1, [fun]}, _meta2, args} = expr, stack, context) do
     stack = push_expr_stack(expr, stack)
 
-    case map_reduce_ok(args, context, &of_expr(&1, stack, &2)) do
-      {:ok, _arg_types, context} -> {:ok, :dynamic, context}
-      {:error, reason} -> {:error, reason}
+    case of_expr(fun, stack, context) do
+      {:ok, _fun_type, context} ->
+        case map_reduce_ok(args, context, &of_expr(&1, stack, &2)) do
+          {:ok, _arg_types, context} -> {:ok, :dynamic, context}
+          {:error, reason} -> {:error, reason}
+        end
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
-  # Module.fun(arg)
-  def of_expr({{:., _meta1, [_module, _fun]}, _meta2, args} = expr, stack, context) do
-    stack = push_expr_stack(expr, stack)
+  # expr.key_or_fun
+  def of_expr({{:., _meta1, [expr1, key_or_fun]}, meta2, []} = expr2, stack, context) do
+    stack = push_expr_stack(expr2, stack)
 
-    case map_reduce_ok(args, context, &of_expr(&1, stack, &2)) do
-      {:ok, _arg_types, context} -> {:ok, :dynamic, context}
-      {:error, reason} -> {:error, reason}
+    if Keyword.get(meta2, :no_parens, false) do
+      with {:ok, expr_type, context} <- of_expr(expr1, stack, context),
+           {value_var, context} = add_var(context),
+           pair_type = {:required, {:atom, key_or_fun}, value_var},
+           optional_type = {:optional, :dynamic, :dynamic},
+           map_field_type = {:map, [pair_type, optional_type]},
+           {:ok, _map_type, context} <- unify(map_field_type, expr_type, stack, context),
+           do: {:ok, value_var, context}
+    else
+      with {:ok, expr_type, context} <- of_expr(expr1, stack, context),
+           {:ok, _map_type, context} <- unify(expr_type, :atom, stack, context),
+           do: {:ok, :dynamic, context}
+    end
+  end
+
+  # expr.fun(arg)
+  def of_expr({{:., _meta1, [expr1, fun]}, _meta2, args} = expr2, stack, context) do
+    stack = push_expr_stack(expr2, stack)
+
+    with {:ok, _expr_type, context} <- of_expr(expr1, stack, context),
+         {:ok, _fun_type, context} <- of_expr(fun, stack, context) do
+      case map_reduce_ok(args, context, &of_expr(&1, stack, &2)) do
+        {:ok, _arg_types, context} -> {:ok, :dynamic, context}
+        {:error, reason} -> {:error, reason}
+      end
     end
   end
 
@@ -336,23 +370,22 @@ defmodule Module.Types.Expr do
     map_reduce_ok(pairs, context, fn {key, value}, context ->
       with {:ok, key_type, context} <- of_expr(key, stack, context),
            {:ok, value_type, context} <- of_expr(value, stack, context),
-           do: {:ok, {key_type, value_type}, context}
+           do: {:ok, {:required, key_type, value_type}, context}
     end)
   end
 
   defp pairs_to_unions(pairs, context) do
     # We are currently creating overlapping key types
 
-    Enum.reduce(pairs, [], fn {key, value}, pairs ->
-      case :lists.keyfind(key, 1, pairs) do
-        {^key, {:union, union}} ->
-          :lists.keystore(key, 1, pairs, {key, to_union([value | union], context)})
+    Enum.reduce(pairs, [], fn {kind_left, key, value_left}, pairs ->
+      case List.keyfind(pairs, key, 1) do
+        {kind_right, ^key, value_right} ->
+          kind = unify_kinds(kind_left, kind_right)
+          value = to_union([value_left, value_right], context)
+          List.keystore(pairs, key, 1, {kind, key, value})
 
-        {^key, original_value} ->
-          :lists.keystore(key, 1, pairs, {key, to_union([value, original_value], context)})
-
-        false ->
-          [{key, value} | pairs]
+        nil ->
+          [{kind_left, key, value_left} | pairs]
       end
     end)
   end

@@ -439,7 +439,7 @@ defimpl Inspect, for: Any do
 
   def inspect(%module{} = struct, opts) do
     try do
-      module.__struct__
+      module.__struct__()
     rescue
       _ -> Inspect.Map.inspect(struct, opts)
     else

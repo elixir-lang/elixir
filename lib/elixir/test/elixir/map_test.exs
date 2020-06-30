@@ -7,6 +7,8 @@ defmodule MapTest do
 
   @sample %{a: 1, b: 2}
 
+  defp sample, do: @sample
+
   test "maps in attributes" do
     assert @sample == %{a: 1, b: 2}
   end
@@ -133,18 +135,18 @@ defmodule MapTest do
   end
 
   test "update maps" do
-    assert %{@sample | a: 3} == %{a: 3, b: 2}
+    assert %{sample() | a: 3} == %{a: 3, b: 2}
 
     assert_raise KeyError, fn ->
-      %{@sample | c: 3}
+      %{sample() | c: 3}
     end
   end
 
   test "map dot access" do
-    assert @sample.a == 1
+    assert sample().a == 1
 
     assert_raise KeyError, fn ->
-      @sample.c
+      sample().c
     end
   end
 

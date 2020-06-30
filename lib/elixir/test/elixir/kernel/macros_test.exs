@@ -64,7 +64,7 @@ defmodule Kernel.MacrosTest do
 
   test "macros cannot be called dynamically" do
     x = Nested
-    assert_raise UndefinedFunctionError, fn -> x.value end
+    assert_raise UndefinedFunctionError, fn -> x.func() end
   end
 
   test "macros with bang and do block have proper precedence" do

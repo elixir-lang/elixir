@@ -60,33 +60,8 @@ defmodule Module.Types.Infer do
   end
 
   defp do_unify({:map, source_pairs}, {:map, target_pairs}, stack, context) do
-    # Since maps in patterns only support literal keys (excluding maps)
-    # we can do exact type match without subtype checking
-
-    unique_right_pairs =
-      Enum.reject(target_pairs, fn {key, _value} ->
-        :lists.keyfind(key, 1, source_pairs)
-      end)
-
-    unique_pairs = source_pairs ++ unique_right_pairs
-
-    # Build union of all unique key-value pairs between the maps
-    result =
-      map_reduce_ok(unique_pairs, context, fn {source_key, source_value}, context ->
-        case :lists.keyfind(source_key, 1, target_pairs) do
-          {^source_key, target_value} ->
-            case unify(source_value, target_value, stack, context) do
-              {:ok, value, context} -> {:ok, {source_key, value}, context}
-              {:error, reason} -> {:error, reason}
-            end
-
-          false ->
-            {:ok, {source_key, source_value}, context}
-        end
-      end)
-
-    case result do
-      {:ok, pairs, context} -> {:ok, {:map, pairs}, context}
+    case unify_structs(source_pairs, target_pairs, stack, context) do
+      :ok -> unify_maps(source_pairs, target_pairs, stack, context)
       {:error, reason} -> {:error, reason}
     end
   end
@@ -105,6 +80,10 @@ defmodule Module.Types.Infer do
     else
       error({:unable_unify, source, target}, stack, context)
     end
+  end
+
+  defp unify_var(var, :dynamic, _stack, context, _var_source?) do
+    {:ok, {:var, var}, context}
   end
 
   defp unify_var(var, type, stack, context, var_source?) do
@@ -152,6 +131,121 @@ defmodule Module.Types.Infer do
     end
   end
 
+  defp unify_structs(left_pairs, right_pairs, stack, context) do
+    with {:ok, left_module} when is_atom(left_module) <- fetch_struct_pair(left_pairs),
+         {:ok, right_module} when is_atom(right_module) <- fetch_struct_pair(right_pairs) do
+      if left_module == right_module do
+        :ok
+      else
+        left = {:map, [{:required, {:atom, :__struct__}, left_module}]}
+        right = {:map, [{:required, {:atom, :__struct__}, right_module}]}
+        error({:unable_unify, left, right}, stack, context)
+      end
+    else
+      _ -> :ok
+    end
+  end
+
+  defp unify_maps(source_pairs, target_pairs, %{context: :pattern} = stack, context) do
+    source_pairs = expand_struct(source_pairs)
+    target_pairs = expand_struct(target_pairs)
+
+    # Since maps in patterns only support literal keys (excluding maps)
+    # we can do exact type match without subtype checking
+
+    unique_right_pairs =
+      Enum.reject(target_pairs, fn {_kind, key, _value} ->
+        List.keyfind(source_pairs, key, 1)
+      end)
+
+    unique_pairs = source_pairs ++ unique_right_pairs
+
+    # Build union of all unique key-value pairs between the maps
+    result =
+      map_reduce_ok(unique_pairs, context, fn {source_kind, source_key, source_value}, context ->
+        case List.keyfind(target_pairs, source_key, 1) do
+          {target_kind, ^source_key, target_value} ->
+            case unify(source_value, target_value, stack, context) do
+              {:ok, value, context} ->
+                {:ok, {unify_kinds(source_kind, target_kind), source_key, value}, context}
+
+              {:error, reason} ->
+                {:error, reason}
+            end
+
+          nil ->
+            {:ok, {source_kind, source_key, source_value}, context}
+        end
+      end)
+
+    case result do
+      {:ok, pairs, context} -> {:ok, {:map, simplify_struct(pairs)}, context}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp unify_maps(source_pairs, target_pairs, %{context: :expr} = stack, context) do
+    source_pairs = expand_struct(source_pairs)
+    target_pairs = expand_struct(target_pairs)
+
+    result =
+      flat_map_reduce_ok(source_pairs, context, fn {source_kind, _, _} = source_pair, context ->
+        # Currently we only match on exact and dynamic types
+        # since those are the only we get from map.key
+        with :error <- exact_map_match(source_pair, target_pairs, stack, context),
+             :error <- dynamic_map_match(source_pair, target_pairs, stack, context) do
+          if source_kind == :optional do
+            {:ok, [], context}
+          else
+            source_map = {:map, simplify_struct(source_pairs)}
+            target_map = {:map, simplify_struct(target_pairs)}
+            error({:unable_unify, source_map, target_map}, stack, context)
+          end
+        end
+      end)
+
+    case result do
+      {:ok, pairs, context} ->
+        pairs = Enum.uniq_by(pairs ++ target_pairs, fn {_kind, key, _value} -> key end)
+        {:ok, {:map, simplify_struct(pairs)}, context}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp exact_map_match({source_kind, source_key, source_value}, target_pairs, stack, context) do
+    case List.keyfind(target_pairs, source_key, 1) do
+      {target_kind, ^source_key, target_value} ->
+        case unify(source_value, target_value, stack, context) do
+          {:ok, value, context} ->
+            {:ok, [{unify_kinds(source_kind, target_kind), source_key, value}], context}
+
+          {:error, reason} ->
+            {:error, reason}
+        end
+
+      nil ->
+        :error
+    end
+  end
+
+  defp dynamic_map_match({source_kind, source_key, source_value}, target_pairs, stack, context) do
+    case dynamic_pair(target_pairs) do
+      {:ok, {_target_kind, target_value}} ->
+        case unify(source_value, target_value, stack, context) do
+          {:ok, value, context} ->
+            {:ok, [{source_kind, source_key, value}], context}
+
+          {:error, reason} ->
+            {:error, reason}
+        end
+
+      :error ->
+        :error
+    end
+  end
+
   @doc """
   Adds a variable to the typing context and returns its type variables.
   If the variable has already been added, return the existing type variable.
@@ -179,6 +273,21 @@ defmodule Module.Types.Infer do
 
         {type, context}
     end
+  end
+
+  def add_var(context) do
+    type = {:var, context.counter}
+    types = Map.put(context.types, context.counter, :unbound)
+    traces = Map.put(context.traces, context.counter, [])
+
+    context = %{
+      context
+      | types: types,
+        traces: traces,
+        counter: context.counter + 1
+    }
+
+    {type, context}
   end
 
   # Check unify stack to see if variable was already expanded
@@ -258,7 +367,7 @@ defmodule Module.Types.Infer do
   end
 
   defp recursive_type?({:map, pairs} = parent, parents, context) do
-    Enum.any?(pairs, fn {key, value} ->
+    Enum.any?(pairs, fn {_kind, key, value} ->
       recursive_type?(key, [parent | parents], context) or
         recursive_type?(value, [parent | parents], context)
     end)
@@ -304,10 +413,12 @@ defmodule Module.Types.Infer do
   """
   # TODO: Translate union of all top types to dynamic()
   def to_union(types, context) when types != [] do
-    if :dynamic in types do
+    flat_types = flatten_union(types)
+
+    if :dynamic in flat_types do
       :dynamic
     else
-      case unique_super_types(flatten_union(types), context) do
+      case unique_super_types(flat_types, context) do
         [type] -> type
         types -> {:union, types}
       end
@@ -338,6 +449,10 @@ defmodule Module.Types.Infer do
   defp unique_super_types([], _context) do
     []
   end
+
+  def unify_kinds(:required, _), do: :required
+  def unify_kinds(_, :required), do: :required
+  def unify_kinds(:optional, :optional), do: :optional
 
   # Collect relevant information from context and traces to report error
   defp error({:unable_unify, left, right}, stack, context) do
@@ -399,4 +514,56 @@ defmodule Module.Types.Infer do
 
   defp get_meta({_fun, meta, _args}) when is_list(meta), do: meta
   defp get_meta(_other), do: []
+
+  # TODO: We should check if structs have keys that do not belong to them.
+  #       This might not be the best place to do it since it will only be
+  #       called if the type is unified. A post-pass walking over all
+  #       inferred types might be better.
+  defp expand_struct(pairs) do
+    case fetch_struct_pair(pairs) do
+      {:ok, module} ->
+        struct_pairs =
+          Enum.flat_map(Map.from_struct(module.__struct__()), fn {key, _value} ->
+            if List.keyfind(pairs, {:atom, key}, 1) do
+              []
+            else
+              [{:required, {:atom, key}, :dynamic}]
+            end
+          end)
+
+        pairs ++ struct_pairs
+
+      :error ->
+        pairs
+    end
+  end
+
+  defp simplify_struct(pairs) do
+    case fetch_struct_pair(pairs) do
+      {:ok, module} ->
+        Enum.reduce(Map.from_struct(module.__struct__()), pairs, fn {key, _value}, pairs ->
+          case List.keyfind(pairs, {:atom, key}, 1) do
+            {_, _key, :dynamic} -> List.keydelete(pairs, {:atom, key}, 1)
+            _ -> pairs
+          end
+        end)
+
+      :error ->
+        pairs
+    end
+  end
+
+  defp fetch_struct_pair(pairs) do
+    case Enum.find(pairs, &match?({:required, {:atom, :__struct__}, {:atom, _}}, &1)) do
+      {:required, {:atom, :__struct__}, {:atom, module}} -> {:ok, module}
+      nil -> :error
+    end
+  end
+
+  defp dynamic_pair(pairs) do
+    case List.keyfind(pairs, :dynamic, 1) do
+      {kind, :dynamic, type} -> {:ok, {kind, type}}
+      nil -> :error
+    end
+  end
 end
