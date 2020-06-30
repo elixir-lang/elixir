@@ -670,6 +670,13 @@ defmodule Mix.Release do
   end
 
   @doc """
+  Finds a template path for the release.
+  """
+  def rel_templates_path(release, path) do
+    Path.join(release.options[:rel_templates_path] || "rel", path)
+  end
+
+  @doc """
   Copies ERTS if the release is configured to do so.
 
   Returns true if the release was copied, false otherwise.
