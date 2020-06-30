@@ -448,9 +448,14 @@ defmodule Mix.Tasks.Release do
             ]
           ]
 
-    * `:overlays` - a directory with extra files to be copied as is to the
-      release. See the "Overlays" section for more information. Defaults to
-      "rel/overlays" if said directory exists.
+    * `:rel_templates_path` - the path to find template files that are copied to
+      the release, such as "vm.args.eex", "env.sh.eex" (or "env.bat.eex"), and
+      "overlays". Defaults to "rel" in the project root.
+
+    * `:overlays` - a list of directories with extra files to be copied
+      as is to the release. The "overlays" directory at `:rel_templates_path`
+      is always included in this list by default (typically at "rel/overlays").
+      See the "Overlays" section for more information.
 
     * `:steps` - a list of steps to execute when assembling the release. See
       the "Steps" section for more information.
@@ -475,8 +480,11 @@ defmodule Mix.Tasks.Release do
   files in the `rel/overlays` directory. Any file in there is copied
   as is to the release root. For example, if you have placed a
   "rel/overlays/Dockerfile" file, the "Dockerfile" will be copied as
-  is to the release root. If you need to copy files dynamically, see
-  the "Steps" section.
+  is to the release root.
+
+  If you want to specify extra overlay directories, you can do so
+  with the `:overlays` option. If you need to copy files dynamically,
+  see the "Steps" section.
 
   ### Steps
 
@@ -609,13 +617,13 @@ defmodule Mix.Tasks.Release do
   process) and the new configuration will take place.
 
   You can change the path to the runtime configuration file by setting
-  `:runtime_config_path` inside each release configuration. This path is
+  `:releases_config_path` inside each release configuration. This path is
   resolved at build time as the given configuration file is always copied
   to inside the release:
 
       releases: [
         demo: [
-          runtime_config_path: ...
+          releases_config_path: ...
         ]
       ]
 
@@ -1176,8 +1184,12 @@ defmodule Mix.Tasks.Release do
 
     path =
       cond do
-        # TODO: rename this to releases_config_path when we introduce runtime_config_path
+        path = opts[:releases_config_path] ->
+          path
+
         path = opts[:runtime_config_path] ->
+          # TODO: Deprecate on v1.14
+          # IO.warn("runtime_config_path is deprecated, please use releases_config_path instead")
           path
 
         File.exists?(default_path) ->
@@ -1232,8 +1244,10 @@ defmodule Mix.Tasks.Release do
   end
 
   defp make_vm_args(release, path) do
-    if File.exists?("rel/vm.args.eex") do
-      copy_template("rel/vm.args.eex", path, [release: release], force: true)
+    vm_args_template = Mix.Release.rel_templates_path(release, "vm.args.eex")
+
+    if File.exists?(vm_args_template) do
+      copy_template(vm_args_template, path, [release: release], force: true)
     else
       File.write!(path, vm_args_template(release: release))
     end
@@ -1280,28 +1294,19 @@ defmodule Mix.Tasks.Release do
 
   defp copy_overlays(release) do
     target = release.path
-    overlays = release.options[:overlays]
+    default = Mix.Release.rel_templates_path(release, "overlays")
 
-    copied =
-      cond do
-        is_nil(overlays) and File.dir?("rel/overlays") ->
-          File.cp_r!("rel/overlays", target)
-
-        is_nil(overlays) ->
-          []
-
-        is_binary(overlays) and File.dir?(overlays) ->
-          File.cp_r!(overlays, target)
-
-        true ->
-          Mix.raise(
-            ":overlays release configuration must be a string pointing to an existing directory, " <>
-              "got: #{inspect(overlays)}"
-          )
+    overlays =
+      if File.dir?(default) do
+        [default | List.wrap(release.options[:overlays])]
+      else
+        List.wrap(release.options[:overlays])
       end
 
     relative =
-      copied
+      overlays
+      |> Enum.flat_map(&File.cp_r!(&1, target))
+      |> Enum.uniq()
       |> List.delete(target)
       |> Enum.map(&Path.relative_to(&1, target))
 
@@ -1336,7 +1341,7 @@ defmodule Mix.Tasks.Release do
     for os <- include_executables_for do
       {env, env_fun, clis} = cli_for(os, release)
       env_path = Path.join(release.version_path, env)
-      env_template_path = Path.join("rel", env <> ".eex")
+      env_template_path = Mix.Release.rel_templates_path(release, env <> ".eex")
 
       if File.exists?(env_template_path) do
         copy_template(env_template_path, env_path, [release: release], force: true)

@@ -9,10 +9,11 @@ defmodule Mix.Tasks.ReleaseTest do
   defmacrop release_node(name), do: :"#{name}@#{@hostname}"
 
   describe "customize" do
-    test "env and vm.args with EEx" do
+    test "env, vm.args and overlays templates" do
       in_fixture("release_test", fn ->
         Mix.Project.in_project(:release_test, ".", fn _ ->
-          File.mkdir_p!("rel")
+          File.mkdir_p!("rel/overlays/empty/directory")
+          File.write!("rel/overlays/hello", "world")
 
           for file <- ~w(rel/vm.args.eex rel/env.sh.eex rel/env.bat.eex) do
             File.write!(file, """
@@ -32,6 +33,68 @@ defmodule Mix.Tasks.ReleaseTest do
 
           assert root |> Path.join("releases/0.1.0/vm.args") |> File.read!() ==
                    "rel/vm.args.eex FOR release_test\n"
+
+          assert root |> Path.join("empty/directory") |> File.dir?()
+          assert root |> Path.join("hello") |> File.read!() == "world"
+        end)
+      end)
+    end
+
+    test "env, vm.args and overlays templates with custom rel_templates_path" do
+      in_fixture("release_test", fn ->
+        config = [
+          releases: [
+            release_test: [rel_templates_path: "custom_rel"]
+          ]
+        ]
+
+        Mix.Project.in_project(:release_test, ".", config, fn _ ->
+          File.mkdir_p!("custom_rel/overlays/empty/directory")
+          File.write!("custom_rel/overlays/hello", "world")
+
+          for file <- ~w(custom_rel/vm.args.eex custom_rel/env.sh.eex custom_rel/env.bat.eex) do
+            File.write!(file, """
+            #{file} FOR <%= @release.name %>
+            """)
+          end
+
+          root = Path.absname("_build/dev/rel/release_test")
+          Mix.Task.run("release")
+          assert_received {:mix_shell, :info, ["* assembling release_test-0.1.0 on MIX_ENV=dev"]}
+
+          assert root |> Path.join("releases/0.1.0/env.sh") |> File.read!() ==
+                   "custom_rel/env.sh.eex FOR release_test\n"
+
+          assert root |> Path.join("releases/0.1.0/env.bat") |> File.read!() ==
+                   "custom_rel/env.bat.eex FOR release_test\n"
+
+          assert root |> Path.join("releases/0.1.0/vm.args") |> File.read!() ==
+                   "custom_rel/vm.args.eex FOR release_test\n"
+
+          assert root |> Path.join("empty/directory") |> File.dir?()
+          assert root |> Path.join("hello") |> File.read!() == "world"
+        end)
+      end)
+    end
+
+    test "custom overlays" do
+      in_fixture("release_test", fn ->
+        config = [releases: [release_test: [overlays: "rel/another"]]]
+
+        Mix.Project.in_project(:release_test, ".", config, fn _ ->
+          File.mkdir_p!("rel/overlays")
+          File.write!("rel/overlays/hello", "world")
+          File.write!("rel/overlays/original", "kept")
+
+          File.mkdir_p!("rel/another/empty/directory")
+          File.write!("rel/another/hello", "override")
+
+          root = Path.absname("_build/dev/rel/release_test")
+          Mix.Task.rerun("release", ["--overwrite"])
+
+          assert root |> Path.join("empty/directory") |> File.dir?()
+          assert root |> Path.join("hello") |> File.read!() == "override"
+          assert root |> Path.join("original") |> File.read!() == "kept"
         end)
       end)
     end
@@ -94,42 +157,6 @@ defmodule Mix.Tasks.ReleaseTest do
           refute root |> Path.join("releases/0.1.0/elixir.bat") |> File.exists?()
           refute root |> Path.join("releases/0.1.0/iex") |> File.exists?()
           refute root |> Path.join("releases/0.1.0/iex.bat") |> File.exists?()
-        end)
-      end)
-    end
-
-    test "default overlays" do
-      in_fixture("release_test", fn ->
-        Mix.Project.in_project(:release_test, ".", fn _ ->
-          File.mkdir_p!("rel/overlays/empty/directory")
-          File.write!("rel/overlays/hello", "world")
-
-          root = Path.absname("_build/dev/rel/release_test")
-          Mix.Task.run("release")
-
-          assert root |> Path.join("empty/directory") |> File.dir?()
-          assert root |> Path.join("hello") |> File.read!() == "world"
-        end)
-      end)
-    end
-
-    test "custom overlays" do
-      in_fixture("release_test", fn ->
-        config = [releases: [release_test: [overlays: "rel/another"]]]
-
-        Mix.Project.in_project(:release_test, ".", config, fn _ ->
-          assert_raise Mix.Error, ~r"a string pointing to an existing directory", fn ->
-            Mix.Task.run("release", ["--overwrite"])
-          end
-
-          File.mkdir_p!("rel/another/empty/directory")
-          File.write!("rel/another/hello", "world")
-
-          root = Path.absname("_build/dev/rel/release_test")
-          Mix.Task.rerun("release", ["--overwrite"])
-
-          assert root |> Path.join("empty/directory") |> File.dir?()
-          assert root |> Path.join("hello") |> File.read!() == "world"
         end)
       end)
     end
