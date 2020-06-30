@@ -515,8 +515,10 @@ defmodule Module.Types.Infer do
   defp get_meta({_fun, meta, _args}) when is_list(meta), do: meta
   defp get_meta(_other), do: []
 
-  # TODO: Remove any non struct fields
-  #       Maybe not here...
+  # TODO: We should check if structs have keys that do not belong to them.
+  #       This might not be the best place to do it since it will only be
+  #       called if the type is unified. A post-pass walking over all
+  #       inferred types might be better.
   defp expand_struct(pairs) do
     case fetch_struct_pair(pairs) do
       {:ok, module} ->
