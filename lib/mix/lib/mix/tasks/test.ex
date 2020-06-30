@@ -36,6 +36,8 @@ defmodule Mix.Tasks.Test do
     * `--color` - enables color in the output
     * `--cover` - runs coverage tool. See "Coverage" section below
     * `--exclude` - excludes tests that match the filter
+    * `--export-coverage` - the name of the file to export coverage results too.
+      Only has an effect when used with `--cover`
     * `--failed` - runs only tests that failed the last time they ran
     * `--force` - forces compilation regardless of modification times
     * `--formatter` - sets the formatter module that will print the results.
@@ -156,9 +158,9 @@ defmodule Mix.Tasks.Test do
       Defaults to `[threshold: 90]`
     * `:export` - a file name to export results to instead of generating
       the result on the fly. The `.coverdata` extension is automatically
-      added to the given file. See `mix test.coverage` to compile a
-      report from multiple exports. This option is automatically enabled
-      when using the process partitioning feature
+      added to the given file. This option is automatically set via the
+      `--export-coverage` option or when using process partitioning.
+      See `mix test.coverage` to compile a report from multiple exports.
 
   By default, a very simple wrapper around OTP's `cover` is used as a tool,
   but it can be overridden as follows:
@@ -228,6 +230,7 @@ defmodule Mix.Tasks.Test do
     force: :boolean,
     color: :boolean,
     cover: :boolean,
+    export_coverage: :string,
     trace: :boolean,
     max_cases: :integer,
     max_failures: :integer,
@@ -318,10 +321,11 @@ defmodule Mix.Tasks.Test do
     cover =
       if opts[:cover] do
         compile_path = Mix.Project.compile_path(project)
+        partition = opts[:partitions] && System.get_env("MIX_TEST_PARTITION")
 
         cover =
           @cover
-          |> Keyword.put(:export, opts[:partitions] && System.get_env("MIX_TEST_PARTITION"))
+          |> Keyword.put(:export, opts[:export_coverage] || partition)
           |> Keyword.merge(project[:test_coverage] || [])
 
         cover[:tool].start(compile_path, cover)

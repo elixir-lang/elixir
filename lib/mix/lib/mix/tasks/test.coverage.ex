@@ -31,18 +31,12 @@ defmodule Mix.Tasks.Test.Coverage do
 
   If you run `mix test.coverage` inside an umbrella,
   it will automatically gather exported cover results
-  from all umbrella children - as long as any coverage
-  has been exported. One option is to leverage the fact
-  that partitioning automatically exports, and run tests
-  as single partition, like this:
+  from all umbrella children - as long as the coverage
+  results have been exported, like this:
 
       # from the umbrella root
-      MIX_TEST_PARTITION=1 mix test --partitions 1 --cover
+      mix test --cover --export-coverage default
       mix test.coverage
-
-  Alternatively, you can configure the `:test_coverage`
-  option in each `mix.exs` file of each app to always
-  `:export`.
 
   Of course, if you want to actually partition the tests,
   you can also do:
