@@ -1,16 +1,11 @@
 defmodule Mix.Tasks.Loadpaths do
   use Mix.Task
 
-  @moduledoc false
-
-  @doc """
+  @moduledoc """
   Loads the application and its dependencies paths.
 
   This task is never directly invoked from the command line,
   but it is rather used as building block by other tasks.
-
-  See `Mix.Project.compile/2` which may compile or simply
-  invoke this task based on a flag.
 
   ## Configuration
 
