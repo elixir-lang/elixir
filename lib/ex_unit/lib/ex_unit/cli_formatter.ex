@@ -42,7 +42,7 @@ defmodule ExUnit.CLIFormatter do
   end
 
   def handle_cast({:test_finished, %ExUnit.Test{state: nil} = test}, config) do
-    if config.trace() do
+    if config.trace do
       IO.puts(success(trace_test_result(test), config))
     else
       IO.write(success(".", config))
@@ -78,7 +78,7 @@ defmodule ExUnit.CLIFormatter do
   end
 
   def handle_cast({:test_finished, %ExUnit.Test{state: {:invalid, _}} = test}, config) do
-    if config.trace() do
+    if config.trace do
       IO.puts(invalid(trace_test_result(test), config))
     else
       IO.write(invalid("?", config))
@@ -91,7 +91,7 @@ defmodule ExUnit.CLIFormatter do
   end
 
   def handle_cast({:test_finished, %ExUnit.Test{state: {:failed, failures}} = test}, config) do
-    if config.trace() do
+    if config.trace do
       IO.puts(failure(trace_test_result(test), config))
     end
 

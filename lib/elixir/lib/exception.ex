@@ -1333,7 +1333,7 @@ defmodule File.CopyError do
     formatted = IO.iodata_to_binary(:file.format_error(exception.reason))
 
     location =
-      case exception.on() do
+      case exception.on do
         "" -> ""
         on -> ". #{on}"
       end
@@ -1351,7 +1351,7 @@ defmodule File.RenameError do
     formatted = IO.iodata_to_binary(:file.format_error(exception.reason))
 
     location =
-      case exception.on() do
+      case exception.on do
         "" -> ""
         on -> ". #{on}"
       end
