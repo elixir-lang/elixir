@@ -1,10 +1,104 @@
 # Changelog for Elixir v1.11
 
-Elixir v1.11 has extensive focus on the Elixir compiler and related tooling. It also includes many other goodies, such as support for more guard expressions, improvements to logger, built-in datetime formatting, and other calendar enhancements.
+Over the last releases, the Elixir team has been focusing on the compiler, both in terms of catching more mistakes at compilation time and at making it faster. Elixir v1.11 has made excellent progress on both fronts. This release also includes many other goodies, such as tighter Erlang integration, support for more guard expressions, built-in datetime formatting, and other calendar enhancements.
 
-## Compiler checks
+## Tighter Erlang integration
 
-TODO: Talk about application boundaries and map field checking.
+Following on the steps of Elixir v1.10, we have further integrated with Erlang's new logger by adding four new log levels: `notice`, `critical`, `alert`, and `emergency`. Matching all log levels found in the Syslog standard. The Logger module now supports structured logging by passing maps and keyword lists to its various functions. It is also possible to specify the log level per module, via the `Logger.put_module_level/2` function. Log levels per application will be added in future releases.
+
+IEx also has been improved to show the documentation for Erlang modules directly from your Elixir terminal. This works with Erlang/OTP 23+ and requires Erlang modules to have been compiled with documentation chunks.
+
+## Compiler checks: application boundaries
+
+Elixir v1.11 buidls on top of the compilation tracers added in v1.10 to track application boundaries. From this release, Elixir will warn if you invoke a function from an existing module but this module does not belong to any of your listed dependencies.
+
+These two conditions may seem contradictory. After all, if a module is available, it must have come from a dependency. However, this is not true in two scenarios:
+
+  * Modules from Elixir and Erlang/OTP are always available - even if their applications are not explicitly listed as a dependency
+
+  * In an umbrella project, because all child applications are compiled within the same VM, you may have a module from a sibling project available, even if you don't list it
+
+When assembling a release, Elixir includes only the applications you explicitly depend on in the assembled artifact. This could lead to a situation where you used a module from Erlang/Elixir successfully during development and test but this module would not be available in production.
+
+This new compiler check makes sure that all modules that you invoke are listed as part of your dependencies, emitting a warning like below otherwise:
+
+    :ssl.connect/2 defined in application :ssl is used by the current
+    application but the current application does not directly depend
+    on :sll. To fix this, you must do one of:
+
+      1. If :ssl is part of Erlang/Elixir, you must include it under
+         :extra_applications inside "def application" in your mix.exs
+
+      2. If :ssl is a dependency, make sure it is listed under "def deps"
+         in your mix.exs
+
+      3. In case you don't want to add a requirement to :sll, you may
+         optionally skip this warning by adding [xref: [exclude: :ssl]
+         to your "def project" in mix.exs
+
+This comes with extra benefits in umbrella projects, as it requires child applications to explicitly list their dependencies, completely rejecting cyclic dependencies between siblings.
+
+## Compiler checks: data constructors
+
+In Elixir v1.11, the compiler also tracks structs and maps fields across a function body. For example, imagine you wanted to write this code:
+
+    def drive?(%User{age: age}), do: age >= 18
+
+However, there is either a typo on the `:age` field or the `:age` field was not yet defined. In the example above, the compiler will fail stating that `:age` does not exist in the `User` struct. However, if you wrote this code:
+
+    def drive?(%User{} = user), do: user.age >= 18
+
+The compiler would not catch the missing field and an error would only be raised at runtime. With v1.11, Elixir will track the usage of all maps and struct fields within the same function, emitting warnings for cases like above:
+
+    warning: undefined field `age` in expression:
+
+        # example.exs:7
+        user.age
+
+    where "user" was given the type %User{} in:
+
+        # example.exs:7
+        %User{} = user
+
+    Conflict found at
+      example.exs:7: Check.drive?/1
+
+The compiler also checks binary constructors. For example, imagine you have to send a string over the wire with run-length encoding, where the string is prefixed by its length, up to 4MBs. Your initial attempt may be this:
+
+    def run_length(string) when is_binary(string) do
+      <<byte_size(string)::32, string>>
+    end
+
+However, the code above has a bug. Each segment given between `<<>>` must be an integer, unless specified otherwise. With Elixir v1.11, the compiler will let you know so:
+
+    warning: incompatible types:
+
+        binary() !~ integer()
+
+    in expression:
+
+        <<byte_size(string)::integer()-size(32), string>>
+
+    where "string" was given the type integer() in:
+
+        # foo.exs:4
+        <<byte_size(string)::integer()-size(32), string>>
+
+    where "string" was given the type binary() in:
+
+        # foo.exs:3
+        is_binary(string)
+
+    Conflict found at
+      foo.exs:4: Check.run_length/1
+
+Which can be fixed with:
+
+    def run_length(string) when is_binary(string) do
+      <<byte_size(string)::32, string::binary>>
+    end
+
+While some of those could be fixed automatically by the compiler, future versions will also perform those checks across functions and potentially across modules, where automatic fixes wouldn't be desired (nor possible).
 
 ## Compilation time improvements
 
@@ -93,8 +187,6 @@ Elixir v1.11 adds the `is_struct/2` guard and also includes support for `map.fie
 The Calendar module now includes the `Calendar.strftime/3` function, which provides datetime formatting based on the `strftime` format. All Calendar types also got new conversion functions from and to gregorian timestamps, such as: `Date.from_gregorian_days/2` and `NaiveDateTime.to_gregorian_seconds/1`.
 
 Mix also includes a new task, `mix test.coverage`, which generates aggregated coverage reports from in umbrella projects and partitioned test suites.
-
-Finally, following on the steps of Elixir v1.10, we have further integrated with Erlang's new logger by adding four new log levels: `notice`, `critical`, `alert`, and `emergency`. Matching all log levels found in the Syslog standard. The Logger module now supports structured logging by passing maps and keyword lists to its various functions. It is also possible to specify the log level per module, via the `Logger.put_module_level/2` function. Log levels per application will be added in future releases.
 
 ## v1.11.0-dev
 
