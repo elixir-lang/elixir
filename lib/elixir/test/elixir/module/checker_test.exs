@@ -1113,8 +1113,8 @@ defmodule Module.CheckerTest do
 
           module.__struct__
 
-      `module` is an atom and you attempted to fetch the field `:__struct__`. Make sure that \
-      `module` is a map or add parenthesis to invoke a function instead:
+      "module" is an atom and you attempted to fetch the field __struct__. Make sure that \
+      "module" is a map or add parenthesis to invoke a function instead:
 
           module.__struct__()
 
@@ -1142,8 +1142,8 @@ defmodule Module.CheckerTest do
 
           foo.__struct__()
 
-      `foo` is a map and you attempted to invoke the function `:__struct__`. Make sure that \
-      `foo` is an atom or remove parentheses to fetch a field:
+      "foo" is a map and you attempted to invoke the function __struct__/0. Make sure that \
+      "foo" is an atom or remove parentheses to fetch a field:
 
           foo.__struct__
 
@@ -1168,7 +1168,7 @@ defmodule Module.CheckerTest do
       }
 
       warning = """
-      warning: undefined field of type `:bar` in expression:
+      warning: undefined field "bar" in expression:
 
           map.bar
 
