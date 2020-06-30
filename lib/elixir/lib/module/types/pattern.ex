@@ -314,6 +314,8 @@ defmodule Module.Types.Pattern do
     {:bxor, 2} => {[:integer, :integer], :integer},
     {:bsl, 2} => {[:integer, :integer], :integer},
     {:bsr, 2} => {[:integer, :integer], :integer},
+    {:or, 2} => {[:boolean, :boolean], :boolean},
+    {:and, 2} => {[:boolean, :boolean], :boolean},
     {:xor, 2} => {[:boolean, :boolean], :boolean},
     {:not, 1} => {[:boolean], :boolean}
 
