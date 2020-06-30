@@ -375,11 +375,9 @@ defmodule KernelTest do
 
   describe "in/2" do
     test "too large list in guards" do
-      assert_raise ArgumentError, ~r"in/2 supports only up to 1023 elements", fn ->
-        defmodule TooLargeList do
-          @list List.duplicate([:ok], 1024)
-          def value(value) when value in @list, do: :ok
-        end
+      defmodule TooLargeList do
+        @list Enum.map(1..1024, & &1)
+        defguard is_value(value) when value in @list
       end
     end
 
@@ -672,9 +670,7 @@ defmodule KernelTest do
       result = expand_to_string(quote(do: rand() in [{1}, {2}, {3} | some_call()]))
       assert result =~ "var = rand()"
       assert result =~ "{arg0, arg1, arg2, arg3} = {{1}, {2}, {3}, some_call()}"
-
-      assert result =~
-               ":erlang.orelse(:erlang.\"=:=\"(var, arg1), :erlang.orelse(:erlang.\"=:=\"(var, arg2), :lists.member(var, arg3))))"
+      assert result =~ ":erlang.orelse(:erlang.\"=:=\"(var, arg2), :lists.member(var, arg3)))"
     end
 
     defp quote_case_in(left, right) do
