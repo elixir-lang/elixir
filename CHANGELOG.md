@@ -155,6 +155,34 @@ assert %{"status" => 200, "body" => %{"key" => "foo"}} = json_payload
 
 Now imagine that `json_payload` is a large JSON blob and the `"key"` inside the `"body"` did not have value of `"foo"`. In previous Elixir versions, if the assertion failed, Elixir would print the right side and let you up to your own devices to figure out what went wrong. In Elixir v1.10, we diff the data structure against the pattern so you can see exactly which parts of the data matched the pattern and which ones did not. Note ExUnit already performed diffing when comparing data types, this new version adds diffing when matching data against a pattern.
 
+## v1.10.4 (2020-07-01)
+
+### 1. Bug fixes
+
+#### Elixir
+
+  * [Kernel] Fix a bug where custom types were printed as regular types
+  * [Kernel] Don't add compile-time dependency on `defdelegate`
+  * [Kernel] Add line numbers to warnings on deprecated imports
+  * [Kernel] Report the correct line number when raising inside a macro
+  * [Task] Include callers in translated Logger metadata for Task
+  * [Task] Fix Task PID and caller in Task Supervisor reports
+
+#### ExUnit
+
+  * [ExUnit.Formatter] Avoid crashes when diffing guards when the pattern does not match
+  * [ExUnit.Formatter] Also blame exceptions that come from linked and trapped exits
+
+#### IEx
+
+  * [IEx.Helpers] Do not crash when printing a type that cannot be code formatted
+
+####  Mix
+
+  * [mix app.start] Fix reading `.app` file located in archives (`.ez` files)
+  * [mix local.hex] Provide more guidance when Hex can't be installed
+  * [mix release] Properly encode config in releases
+
 ## v1.10.3 (2020-04-25)
 
 ### 1. Bug fixes
