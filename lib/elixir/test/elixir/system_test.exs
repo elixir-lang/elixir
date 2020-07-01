@@ -110,9 +110,9 @@ defmodule SystemTest do
     end
 
     @echo "echo-elixir-test"
-
-    test "cmd/2 with absolute and relative paths" do
-      echo = tmp_path(@echo)
+    @tag :tmp_dir
+    test "cmd/2 with absolute and relative paths", config do
+      echo = Path.join(config.tmp_dir, @echo)
       File.mkdir_p!(Path.dirname(echo))
       File.cp!(System.find_executable("cmd"), echo)
 
@@ -151,9 +151,9 @@ defmodule SystemTest do
     end
 
     @echo "echo-elixir-test"
-
-    test "cmd/2 with absolute and relative paths" do
-      echo = tmp_path(@echo)
+    @tag :tmp_dir
+    test "cmd/2 with absolute and relative paths", config do
+      echo = Path.join(config.tmp_dir, @echo)
       File.mkdir_p!(Path.dirname(echo))
       File.cp!(System.find_executable("echo"), echo)
 
