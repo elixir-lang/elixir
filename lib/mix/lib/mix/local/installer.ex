@@ -233,7 +233,7 @@ defmodule Mix.Local.Installer do
 
     dep_opts =
       opts
-      |> Keyword.take([:organization, :repo])
+      |> Keyword.take([:organization])
       |> Keyword.put(:hex, String.to_atom(package_name))
 
     {:fetcher, {String.to_atom(app_name), version, dep_opts}}

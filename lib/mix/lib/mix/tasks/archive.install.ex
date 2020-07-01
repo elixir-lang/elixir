@@ -51,10 +51,7 @@ defmodule Mix.Tasks.Archive.Install do
       from Git, GitHub, or Hex
 
     * `--organization` - specifies an organization to use if fetching the package
-      from a private Hex repository. Setting `--organization acme` has the same
-      effect as `--repo hexpm:acme`
-
-    * `--repo` - specifies a repo to use when using Hex
+      from a private Hex repository
 
   """
 
@@ -66,7 +63,6 @@ defmodule Mix.Tasks.Archive.Install do
     submodules: :boolean,
     app: :string,
     organization: :string,
-    repo: :string,
     timeout: :integer
   ]
 
