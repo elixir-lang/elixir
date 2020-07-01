@@ -18,10 +18,13 @@ defmodule Dict do
   message =
     "Use the Map module for working with maps or the Keyword module for working with keyword lists"
 
-  @deprecated message
   defmacro __using__(_) do
     # Use this import to guarantee proper code expansion
     import Kernel, except: [size: 1]
+
+    if __CALLER__.module != HashDict do
+      IO.warn("use Dict is deprecated. " <> unquote(message), Macro.Env.stacktrace(__CALLER__))
+    end
 
     quote do
       message = "Use maps and the Map module instead"

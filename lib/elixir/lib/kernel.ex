@@ -5542,9 +5542,12 @@ defmodule Kernel do
   end
 
   @doc false
-  # TODO: Remove on v2.0 (also hard-coded in elixir_dispatch)
-  @deprecated "Use Kernel.to_charlist/1 instead"
   defmacro to_char_list(arg) do
+    IO.warn(
+      "Kernel.to_char_list/1 is deprecated, use Kernel.to_charlist/1 instead",
+      Macro.Env.stacktrace(__CALLER__)
+    )
+
     quote(do: Kernel.to_charlist(unquote(arg)))
   end
 end
