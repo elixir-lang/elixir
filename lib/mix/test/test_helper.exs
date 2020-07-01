@@ -140,8 +140,14 @@ defmodule MixTest.Case do
 
   def ensure_touched(file, current) do
     File.touch!(file)
+    mtime = File.stat!(file).mtime
 
-    unless File.stat!(file).mtime > current do
+    if mtime <= current do
+      seconds =
+        :calendar.datetime_to_gregorian_seconds(current) -
+          :calendar.datetime_to_gregorian_seconds(mtime)
+
+      Process.sleep(seconds * 1000)
       ensure_touched(file, current)
     end
   end
