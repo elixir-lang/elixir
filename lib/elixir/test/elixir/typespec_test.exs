@@ -134,13 +134,13 @@ defmodule TypespecTest do
       end
     end
 
-    test "@type with a variable starting with underscore" do
+    test "type variable starting with underscore" do
       test_module do
         assert @type(foo(_hello) :: integer) == :ok
       end
     end
 
-    test "type variable _ should be invalid" do
+    test "type variable named _" do
       assert_raise CompileError, ~r"type variable '_' is invalid", fn ->
         test_module do
           @type foo(_) :: integer
@@ -171,7 +171,7 @@ defmodule TypespecTest do
       end
     end
 
-    test "ill defined optional callback" do
+    test "invalid optional callback" do
       assert_raise CompileError, ~r"invalid optional callback :foo", fn ->
         test_module do
           @optional_callbacks :foo
@@ -290,40 +290,30 @@ defmodule TypespecTest do
       assert [type: {:my_type, {:type, _, :term, []}, []}] = types(bytecode)
     end
 
-    test "@type with an atom" do
+    test "@type with an atom/alias" do
       bytecode =
         test_module do
-          @type my_type :: :foo
+          @type foo :: :foo
+          @type bar :: Bar
         end
 
-      assert [type: {:my_type, {:atom, _, :foo}, []}] = types(bytecode)
-    end
-
-    test "@type with an atom alias" do
-      bytecode =
-        test_module do
-          @type my_type :: Atom
-        end
-
-      assert [type: {:my_type, {:atom, _, Atom}, []}] = types(bytecode)
+      assert [
+               type: {:bar, {:atom, _, Bar}, []},
+               type: {:foo, {:atom, _, :foo}, []}
+             ] = types(bytecode)
     end
 
     test "@type with an integer" do
       bytecode =
         test_module do
-          @type my_type :: 10
+          @type pos :: 10
+          @type neg :: -10
         end
 
-      assert [type: {:my_type, {:integer, _, 10}, []}] = types(bytecode)
-    end
-
-    test "@type with a negative integer" do
-      bytecode =
-        test_module do
-          @type my_type :: -10
-        end
-
-      assert [type: {:my_type, {:op, _, :-, {:integer, _, 10}}, []}] = types(bytecode)
+      assert [
+               type: {:neg, {:op, _, :-, {:integer, _, 10}}, []},
+               type: {:pos, {:integer, _, 10}, []}
+             ] = types(bytecode)
     end
 
     test "@type with a remote type" do
@@ -346,50 +336,21 @@ defmodule TypespecTest do
     test "@type with a binary" do
       bytecode =
         test_module do
-          @type my_type :: binary
+          @type bin :: binary
+          @type empty :: <<>>
+          @type size :: <<_::3>>
+          @type unit :: <<_::_*8>>
+          @type size_and_unit :: <<_::3, _::_*8>>
         end
 
-      assert [type: {:my_type, {:type, _, :binary, []}, []}] = types(bytecode)
-    end
-
-    test "@type with an empty binary" do
-      bytecode =
-        test_module do
-          @type my_type :: <<>>
-        end
-
-      assert [type: {:my_type, {:type, _, :binary, [{:integer, _, 0}, {:integer, _, 0}]}, []}] =
-               types(bytecode)
-    end
-
-    test "@type with a binary with a base size" do
-      bytecode =
-        test_module do
-          @type my_type :: <<_::3>>
-        end
-
-      assert [type: {:my_type, {:type, _, :binary, [{:integer, _, 3}, {:integer, _, 0}]}, []}] =
-               types(bytecode)
-    end
-
-    test "@type with a binary with a unit size" do
-      bytecode =
-        test_module do
-          @type my_type :: <<_::_*8>>
-        end
-
-      assert [type: {:my_type, {:type, _, :binary, [{:integer, _, 0}, {:integer, _, 8}]}, []}] =
-               types(bytecode)
-    end
-
-    test "@type with a binary with a size and unit size" do
-      bytecode =
-        test_module do
-          @type my_type :: <<_::3, _::_*8>>
-        end
-
-      assert [type: {:my_type, {:type, _, :binary, [{:integer, _, 3}, {:integer, _, 8}]}, []}] =
-               types(bytecode)
+      assert [
+               type: {:bin, {:type, _, :binary, []}, []},
+               type: {:empty, {:type, _, :binary, [{:integer, _, 0}, {:integer, _, 0}]}, []},
+               type: {:size, {:type, _, :binary, [{:integer, _, 3}, {:integer, _, 0}]}, []},
+               type:
+                 {:size_and_unit, {:type, _, :binary, [{:integer, _, 3}, {:integer, _, 8}]}, []},
+               type: {:unit, {:type, _, :binary, [{:integer, _, 0}, {:integer, _, 8}]}, []}
+             ] = types(bytecode)
     end
 
     test "@type with invalid binary spec" do
@@ -765,25 +726,6 @@ defmodule TypespecTest do
       assert {:type, _, :integer, []} = fun_return
     end
 
-    test "@opaque(type)" do
-      bytecode =
-        test_module do
-          @opaque my_type(x) :: x
-        end
-
-      assert [opaque: {:my_type, {:var, _, :x}, [{:var, _, :x}]}] = types(bytecode)
-    end
-
-    test "@type + opaque" do
-      bytecode =
-        test_module do
-          @type my_type :: tuple
-          @opaque my_type1 :: {}
-        end
-
-      assert [opaque: {:my_type1, _, []}, type: {:my_type, _, []}] = types(bytecode)
-    end
-
     test "@type unquote fragment" do
       quoted =
         quote unquote: false do
@@ -846,7 +788,16 @@ defmodule TypespecTest do
       assert specs(bytecode) == callbacks(bytecode)
     end
 
-    test "@spec(spec)" do
+    test "@opaque" do
+      bytecode =
+        test_module do
+          @opaque my_type(x) :: x
+        end
+
+      assert [opaque: {:my_type, {:var, _, :x}, [{:var, _, :x}]}] = types(bytecode)
+    end
+
+    test "@spec" do
       bytecode =
         test_module do
           def my_fun1(x), do: x
@@ -876,7 +827,7 @@ defmodule TypespecTest do
       assert {:type, _, :product, [{:ann_type, _, [{:var, _, :x}, {:type, _, :integer, []}]}]} = x
     end
 
-    test "@spec(spec) with tuples and tuple vars" do
+    test "@spec with vars matching built-ins" do
       bytecode =
         test_module do
           def my_fun1(x), do: x
@@ -898,7 +849,7 @@ defmodule TypespecTest do
                type
     end
 
-    test "@spec(spec) with guards" do
+    test "@spec with guards" do
       bytecode =
         test_module do
           def my_fun1(x), do: x
@@ -1050,7 +1001,7 @@ defmodule TypespecTest do
       :code.purge(SpecModuleAttributes)
     end
 
-    test "@callback(callback)" do
+    test "@callback" do
       bytecode =
         test_module do
           @callback my_fun(integer) :: integer
@@ -1077,29 +1028,6 @@ defmodule TypespecTest do
 
       assert {:type, _, :tuple, [{:type, _, :integer, []}, {:type, _, :integer, []}]} =
                return_type
-    end
-
-    test "@spec + @callback" do
-      bytecode =
-        test_module do
-          def my_fun(x), do: x
-          @spec my_fun(integer) :: integer
-          @spec my_fun(charlist) :: charlist
-          @callback cb(integer) :: integer
-        end
-
-      assert [{{:cb, 1}, [{:type, _, :fun, args}]}] = callbacks(bytecode)
-      assert [{:type, _, :product, [{:type, _, :integer, []}]}, {:type, _, :integer, []}] = args
-
-      assert [{{:my_fun, 1}, [integer_clause, charlist_clause]}] = specs(bytecode)
-
-      assert {:type, _, :fun, [{:type, _, :product, [arg]}, return]} = integer_clause
-      assert {:type, _, :integer, []} = arg
-      assert {:type, _, :integer, []} = return
-
-      assert {:type, _, :fun, [{:type, _, :product, [arg]}, return]} = charlist_clause
-      assert {:remote_type, _, [{:atom, _, :elixir}, {:atom, _, :charlist}, []]} = arg
-      assert {:remote_type, _, [{:atom, _, :elixir}, {:atom, _, :charlist}, []]} = return
     end
 
     test "block handling" do
