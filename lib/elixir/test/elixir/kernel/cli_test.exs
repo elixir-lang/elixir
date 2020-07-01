@@ -116,7 +116,7 @@ defmodule Kernel.CLI.CompileTest do
   end
 
   test "compiles code", context do
-    assert elixirc('#{context.fixture} -o \'#{context.tmp_dir}\'') == ""
+    assert elixirc('#{context.fixture} -o #{context.tmp_dir}') == ""
     assert File.regular?(context.beam_file_path)
 
     # Assert that the module is loaded into memory with the proper destination for the BEAM file.
@@ -132,7 +132,7 @@ defmodule Kernel.CLI.CompileTest do
   test "compiles code with Windows paths", context do
     fixture = String.replace(context.fixture, "/", "\\")
     tmp_dir_path = String.replace(context.tmp_dir, "/", "\\")
-    assert elixirc('#{fixture} -o \'#{tmp_dir_path}\'') == ""
+    assert elixirc('#{fixture} -o #{tmp_dir_path}') == ""
     assert File.regular?(context[:beam_file_path])
 
     # Assert that the module is loaded into memory with the proper destination for the BEAM file.
