@@ -316,6 +316,19 @@ defmodule TypespecTest do
              ] = types(bytecode)
     end
 
+    test "@type with a tuple" do
+      bytecode =
+        test_module do
+          @type tup :: tuple()
+          @type one :: {123}
+        end
+
+      assert [
+               type: {:one, {:type, _, :tuple, [{:integer, _, 123}]}, []},
+               type: {:tup, {:type, _, :tuple, :any}, []}
+             ] = types(bytecode)
+    end
+
     test "@type with a remote type" do
       bytecode =
         test_module do
@@ -1048,11 +1061,13 @@ defmodule TypespecTest do
     test "type_to_quoted" do
       quoted =
         Enum.sort([
+          quote(do: @type(tuple(arg) :: {:tuple, arg})),
           quote(do: @type(with_ann() :: t :: atom())),
           quote(do: @type(a_tuple() :: tuple())),
           quote(do: @type(empty_tuple() :: {})),
           quote(do: @type(one_tuple() :: {:foo})),
           quote(do: @type(two_tuple() :: {:foo, :bar})),
+          quote(do: @type(custom_tuple() :: tuple(:foo))),
           quote(do: @type(imm_type_1() :: 1)),
           quote(do: @type(imm_type_2() :: :foo)),
           quote(do: @type(simple_type() :: integer())),
@@ -1074,12 +1089,14 @@ defmodule TypespecTest do
           quote(do: @type(rng() :: 1..10)),
           quote(do: @type(opts() :: [first: integer(), step: integer(), last: integer()])),
           quote(do: @type(ops() :: {+1, -1})),
+          quote(do: @type(map(arg) :: {:map, arg})),
           quote(do: @type(a_map() :: map())),
           quote(do: @type(empty_map() :: %{})),
           quote(do: @type(my_map() :: %{hello: :world})),
           quote(do: @type(my_req_map() :: %{required(0) => :foo})),
           quote(do: @type(my_opt_map() :: %{optional(0) => :foo})),
           quote(do: @type(my_struct() :: %TypespecTest{hello: :world})),
+          quote(do: @type(custom_map() :: map(:foo))),
           quote(do: @type(list1() :: list())),
           quote(do: @type(list2() :: [0])),
           quote(do: @type(list3() :: [...])),
