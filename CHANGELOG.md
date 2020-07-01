@@ -10,7 +10,7 @@ IEx also has been improved to show the documentation for Erlang modules directly
 
 ## Compiler checks: application boundaries
 
-Elixir v1.11 buidls on top of the compilation tracers added in v1.10 to track application boundaries. From this release, Elixir will warn if you invoke a function from an existing module but this module does not belong to any of your listed dependencies.
+Elixir v1.11 builds on top of the compilation tracers added in v1.10 to track application boundaries. From this release, Elixir will warn if you invoke a function from an existing module but this module does not belong to any of your listed dependencies.
 
 These two conditions may seem contradictory. After all, if a module is available, it must have come from a dependency. However, this is not true in two scenarios:
 
@@ -24,7 +24,7 @@ This new compiler check makes sure that all modules that you invoke are listed a
 
     :ssl.connect/2 defined in application :ssl is used by the current
     application but the current application does not directly depend
-    on :sll. To fix this, you must do one of:
+    on :ssl. To fix this, you must do one of:
 
       1. If :ssl is part of Erlang/Elixir, you must include it under
          :extra_applications inside "def application" in your mix.exs
