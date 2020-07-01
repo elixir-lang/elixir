@@ -1198,7 +1198,7 @@ defmodule Module.CheckerTest do
       }
 
       warning = """
-      warning: undefined field of type `:bar` in expression:
+      warning: undefined field "bar" in expression:
 
           foo.bar
 

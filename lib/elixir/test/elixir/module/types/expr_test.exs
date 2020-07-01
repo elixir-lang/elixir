@@ -210,9 +210,12 @@ defmodule Module.Types.ExprTest do
              )
   end
 
+  # Use module attribute to avoid formatter adding parentheses
+  @mix_module Mix
+
   test "module call" do
-    assert quoted_expr(Mix.shell) == {:ok, :dynamic}
-    assert quoted_expr(Mix.shell.info) == {:ok, {:var, 0}}
+    assert quoted_expr(@mix_module.shell) == {:ok, :dynamic}
+    assert quoted_expr(@mix_module.shell.info) == {:ok, {:var, 0}}
   end
 
   describe "binary" do
