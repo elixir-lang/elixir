@@ -136,7 +136,7 @@ defmodule Kernel.CLI.CompileTest do
     assert File.regular?(context[:beam_file_path])
 
     # Assert that the module is loaded into memory with the proper destination for the BEAM file.
-    Code.append_path(context[:tmp_dir_path])
+    Code.append_path(context.tmp_dir)
     assert :code.which(CompileSample) |> List.to_string() == Path.expand(context[:beam_file_path])
   after
     :code.purge(CompileSample)
@@ -145,14 +145,14 @@ defmodule Kernel.CLI.CompileTest do
   end
 
   test "fails on missing patterns", context do
-    output = elixirc('#{context.fixture} non_existing.ex -o \'#{context.tmp_dir}\'')
+    output = elixirc('#{context.fixture} non_existing.ex -o #{context.tmp_dir}')
     assert output =~ "non_existing.ex"
     refute output =~ "compile_sample.ex"
     refute File.exists?(context.beam_file_path)
   end
 
   test "fails on missing write access to .beam file", context do
-    compilation_args = '#{context.fixture} -o \'#{context.tmp_dir}\''
+    compilation_args = '#{context.fixture} -o #{context.tmp_dir}'
 
     assert elixirc(compilation_args) == ""
     assert File.regular?(context.beam_file_path)
