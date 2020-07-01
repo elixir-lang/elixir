@@ -325,7 +325,8 @@ defmodule Module.Types.Expr do
   end
 
   # expr.key_or_fun
-  def of_expr({{:., _meta1, [expr1, key_or_fun]}, meta2, []} = expr2, stack, context) do
+  def of_expr({{:., _meta1, [expr1, key_or_fun]}, meta2, []} = expr2, stack, context)
+      when not is_atom(expr1) do
     stack = push_expr_stack(expr2, stack)
 
     if Keyword.get(meta2, :no_parens, false) do

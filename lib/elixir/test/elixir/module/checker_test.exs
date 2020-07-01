@@ -1096,7 +1096,7 @@ defmodule Module.CheckerTest do
       assert_warnings(files, warning)
     end
 
-    test "use module as map (without parenthesis)" do
+    test "use module as map (without parentheses)" do
       files = %{
         "a.ex" => """
         defmodule A do
@@ -1114,7 +1114,7 @@ defmodule Module.CheckerTest do
           module.__struct__
 
       "module" is an atom and you attempted to fetch the field __struct__. Make sure that \
-      "module" is a map or add parenthesis to invoke a function instead:
+      "module" is a map or add parentheses to invoke a function instead:
 
           module.__struct__()
 
@@ -1126,7 +1126,7 @@ defmodule Module.CheckerTest do
       assert_warnings(files, warning)
     end
 
-    test "use map as module (with parenthesis)" do
+    test "use map as module (with parentheses)" do
       files = %{
         "a.ex" => """
         defmodule A do
@@ -1138,7 +1138,7 @@ defmodule Module.CheckerTest do
       }
 
       warning = """
-      warning: parentheses are not allowed when fetching fields on a map in expression:
+      warning: parentheses are not allowed when fetching fields from a map in expression:
 
           foo.__struct__()
 
@@ -1155,7 +1155,7 @@ defmodule Module.CheckerTest do
       assert_warnings(files, warning)
     end
 
-    test "non-existant field warning" do
+    test "non-existant map field warning" do
       files = %{
         "a.ex" => """
         defmodule A do
@@ -1172,11 +1172,6 @@ defmodule Module.CheckerTest do
 
           map.bar
 
-      where "map" was given the type %{bar: var1, optional(dynamic()) => dynamic()} in:
-
-          # a.ex:4
-          map.bar
-
       where "map" was given the type %{foo: integer()} in:
 
           # a.ex:3
@@ -1184,6 +1179,36 @@ defmodule Module.CheckerTest do
 
       Conflict found at
         a.ex:4: A.a/0
+
+      """
+
+      assert_warnings(files, warning)
+    end
+
+    test "non-existant struct field warning" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          def a(foo) do
+            %File.Stat{} = foo
+            foo.bar
+          end
+        end
+        """
+      }
+
+      warning = """
+      warning: undefined field of type `:bar` in expression:
+
+          foo.bar
+
+      where "foo" was given the type %File.Stat{} in:
+
+          # a.ex:3
+          %File.Stat{} = foo
+
+      Conflict found at
+        a.ex:4: A.a/1
 
       """
 

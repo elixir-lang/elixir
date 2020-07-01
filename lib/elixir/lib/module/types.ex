@@ -207,7 +207,7 @@ defmodule Module.Types do
             #{String.replace(expr_to_string(expr), "\n", "\n    ")}
 
         "#{expr_to_string(map)}" is an atom and you attempted to fetch the field \
-        #{field}. Make sure that "#{expr_to_string(map)}" is a map or add parenthesis \
+        #{field}. Make sure that "#{expr_to_string(map)}" is a map or add parentheses \
         to invoke a function instead:
 
             #{String.replace(expr_to_string(invert_parens(expr)), "\n", "\n    ")}
@@ -220,7 +220,7 @@ defmodule Module.Types do
         {:ok, {module, fun}} = remote_call(expr)
 
         """
-        parentheses are not allowed when fetching fields on a map in expression:
+        parentheses are not allowed when fetching fields from a map in expression:
 
             #{String.replace(expr_to_string(expr), "\n", "\n    ")}
 
@@ -235,6 +235,9 @@ defmodule Module.Types do
 
       map_type?(left) and map_type?(right) and match?({:ok, _}, missing_field(left, right)) ->
         {:ok, atom} = missing_field(left, right)
+
+        # Drop the last trace which is the expression map.foo
+        traces = Enum.drop(traces, 1)
 
         [
           "undefined field \"#{atom}\" in expression:",

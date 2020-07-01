@@ -210,6 +210,11 @@ defmodule Module.Types.ExprTest do
              )
   end
 
+  test "module call" do
+    assert quoted_expr(Mix.shell) == {:ok, :dynamic}
+    assert quoted_expr(Mix.shell.info) == {:ok, {:var, 0}}
+  end
+
   describe "binary" do
     test "literal" do
       assert quoted_expr(<<"foo"::binary>>) == {:ok, :binary}
