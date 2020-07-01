@@ -24,7 +24,7 @@ This new compiler check makes sure that all modules that you invoke are listed a
 
     :ssl.connect/2 defined in application :ssl is used by the current
     application but the current application does not directly depend
-    on :sll. To fix this, you must do one of:
+    on :ssl. To fix this, you must do one of:
 
       1. If :ssl is part of Erlang/Elixir, you must include it under
          :extra_applications inside "def application" in your mix.exs
