@@ -4,7 +4,6 @@ defmodule ExUnit.FailuresManifestTest do
   use ExUnit.Case, async: false
 
   import ExUnit.FailuresManifest
-  import ExUnit.TestHelpers, only: [tmp_path: 0, in_tmp: 2]
 
   @passed nil
   @skipped {:skipped, "reason"}
@@ -97,19 +96,21 @@ defmodule ExUnit.FailuresManifestTest do
   @manifest_path "example.manifest"
 
   describe "write!/2" do
+    @tag :tmp_dir
     test "stores a manifest that can later be read with read/1", context do
       manifest = non_blank_manifest(context)
 
-      in_tmp(context.test, fn ->
+      File.cd!(context.tmp_dir, fn ->
         assert write!(manifest, @manifest_path) == :ok
         assert read(@manifest_path) == manifest
       end)
     end
 
+    @tag :tmp_dir
     test "prunes tests from files that no longer exist", context do
       test = new_test(@failed, %{context | file: "missing_file.exs"})
 
-      in_tmp(context.test, fn ->
+      File.cd!(context.tmp_dir, fn ->
         new()
         |> put_test(test)
         |> write!(@manifest_path)
@@ -118,20 +119,22 @@ defmodule ExUnit.FailuresManifestTest do
       end)
     end
 
+    @tag :tmp_dir
     test "keeps tests from modules that were not loaded", context do
       test = new_test(@failed, %{context | module: SomeUnloadedModule})
       manifest = new() |> put_test(test)
 
-      in_tmp(context.test, fn ->
+      File.cd!(context.tmp_dir, fn ->
         write!(manifest, @manifest_path)
         assert read(@manifest_path) == manifest
       end)
     end
 
+    @tag :tmp_dir
     test "prunes tests defined in a function that no longer exists", context do
       test = new_test(@failed, %{context | test: :not_a_function_anymore})
 
-      in_tmp(context.test, fn ->
+      File.cd!(context.tmp_dir, fn ->
         new()
         |> put_test(test)
         |> write!(@manifest_path)
@@ -142,16 +145,18 @@ defmodule ExUnit.FailuresManifestTest do
   end
 
   describe "read/1" do
-    test "returns a blank manifest when loading a file that does not exit" do
-      path = tmp_path() <> "missing.manifest"
+    @tag :tmp_dir
+    test "returns a blank manifest when loading a file that does not exit", context do
+      path = Path.join(context.tmp_dir, "missing.manifest")
       refute File.exists?(path)
       assert read(path) == new()
     end
 
+    @tag :tmp_dir
     test "returns a blank manifest when the file is corrupted", context do
       manifest = non_blank_manifest(context)
 
-      in_tmp(context.test, fn ->
+      File.cd!(context.tmp_dir, fn ->
         assert write!(manifest, @manifest_path) == :ok
         corrupted = "corrupted" <> File.read!(@manifest_path)
         File.write!(@manifest_path, corrupted)
@@ -159,10 +164,11 @@ defmodule ExUnit.FailuresManifestTest do
       end)
     end
 
+    @tag :tmp_dir
     test "returns a blank manifest when the file was saved at a prior version", context do
       manifest = non_blank_manifest(context)
 
-      in_tmp(context.test, fn ->
+      File.cd!(context.tmp_dir, fn ->
         assert write!(manifest, @manifest_path) == :ok
         assert {vsn, ^manifest} = @manifest_path |> File.read!() |> :erlang.binary_to_term()
         File.write!(@manifest_path, :erlang.term_to_binary({vsn + 1, manifest}))
