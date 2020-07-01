@@ -331,7 +331,7 @@ get_macros(Receiver, true) ->
     error:_ -> []
   end.
 
-%% Deprecations checks only happen at the moule root,
+%% Deprecations checks only happen at the module body,
 %% so in there we can try to at least load the module.
 get_deprecations(Receiver) ->
   case is_ensure_loaded(Receiver) of
@@ -367,28 +367,19 @@ elixir_imported_macros() ->
 
 check_deprecated(_, erlang, _, _, _) ->
   ok;
-check_deprecated(Meta, ?kernel, to_char_list, 1, E) ->
-  elixir_errors:form_warn(Meta, E, ?MODULE, {deprecated, ?kernel, to_char_list, 1, "Use Kernel.to_charlist/1 instead"});
 check_deprecated(_, ?kernel, _, _, _) ->
   ok;
 check_deprecated(Meta, Receiver, Name, Arity, E) ->
   case (?key(E, function) == nil) andalso get_deprecations(Receiver) of
     [_ | _] = Deprecations ->
-      case check_deprecated(Receiver, Name, Arity, Deprecations) of
-        %% TODO: Remove me when Elixir.HashDict is removed
-        Other when is_tuple(Other), map_get(module, E) /= 'Elixir.HashDict' ->
-          elixir_errors:form_warn(Meta, E, ?MODULE, Other);
+      case lists:keyfind({Name, Arity}, 1, Deprecations) of
+        {_, Message} ->
+          elixir_errors:form_warn(Meta, E, ?MODULE, {deprecated, Receiver, Name, Arity, Message});
 
-        _ ->
-          ok
+        false ->
+          false
       end;
 
     _ ->
       ok
-  end.
-
-check_deprecated(Mod, Fun, Arity, Deprecated) ->
-  case lists:keyfind({Fun, Arity}, 1, Deprecated) of
-    {_, Message} -> {deprecated, Mod, Fun, Arity, Message};
-    false -> false
   end.
