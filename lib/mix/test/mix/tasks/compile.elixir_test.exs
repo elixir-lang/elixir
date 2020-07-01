@@ -86,10 +86,8 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       Mix.Tasks.Compile.Elixir.run(["--force"])
       purge([A, B])
 
-      mtime = File.stat!("_build/dev/lib/sample/.mix/compile.app_tracer").mtime
-      # Ensure they have matching times and that it will be touched the second after
-      File.touch!("_build/dev/lib/sample/.mix/compile.lock", mtime)
-      ensure_touched("_build/dev/lib/sample/.mix/compile.lock", mtime)
+      mtime = {{1970, 1, 1}, {0, 0, 0}}
+      File.touch!("_build/dev/lib/sample/.mix/compile.app_tracer", mtime)
 
       Mix.Tasks.Compile.Elixir.run(["--force"])
       assert File.stat!("_build/dev/lib/sample/.mix/compile.app_tracer").mtime > mtime
