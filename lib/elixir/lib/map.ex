@@ -47,6 +47,10 @@ defmodule Map do
       map.non_existing_key
       #=> ** (KeyError) key :non_existing_key not found in: %{baz: "bong", foo: "bar"}
 
+  > Note: do not add parens when accessing fields, such as in `data.key()`.
+  > If parenthesis are used, Elixir will consider it to be a function call
+  > on `data`, which would be expected to be an atom.
+
   The two syntaxes for accessing keys reveal the dual nature of maps. The `map[key]`
   syntax is used for dynamically created maps that may have any key, of any type.
   `map.key` is used with maps that hold a predetermined set of atoms keys, which are
