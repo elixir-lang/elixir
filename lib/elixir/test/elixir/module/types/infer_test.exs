@@ -45,7 +45,7 @@ defmodule Module.Types.InferTest do
     test "literal" do
       assert unify_lift({:atom, :foo}, {:atom, :foo}) == {:ok, {:atom, :foo}}
 
-      assert {:error, {{:unable_unify, {:atom, :foo}, {:atom, :bar}, _, _}, _}} =
+      assert {:error, {{:unable_unify, {:atom, :foo}, {:atom, :bar}, _}, _}} =
                unify_lift({:atom, :foo}, {:atom, :bar})
     end
 
@@ -55,7 +55,7 @@ defmodule Module.Types.InferTest do
       assert unify_lift(:atom, :atom) == {:ok, :atom}
       assert unify_lift(:boolean, :boolean) == {:ok, :boolean}
 
-      assert {:error, {{:unable_unify, :integer, :boolean, _, _}, _}} =
+      assert {:error, {{:unable_unify, :integer, :boolean, _}, _}} =
                unify_lift(:integer, :boolean)
     end
 
@@ -83,17 +83,17 @@ defmodule Module.Types.InferTest do
       assert unify_lift({:tuple, [:integer]}, {:tuple, [:integer]}) == {:ok, {:tuple, [:integer]}}
       assert unify_lift({:tuple, [:boolean]}, {:tuple, [:atom]}) == {:ok, {:tuple, [:boolean]}}
 
-      assert {:error, {{:unable_unify, {:tuple, [:integer]}, {:tuple, []}, _, _}, _}} =
+      assert {:error, {{:unable_unify, {:tuple, [:integer]}, {:tuple, []}, _}, _}} =
                unify_lift({:tuple, [:integer]}, {:tuple, []})
 
-      assert {:error, {{:unable_unify, :integer, :atom, _, _}, _}} =
+      assert {:error, {{:unable_unify, :integer, :atom, _}, _}} =
                unify_lift({:tuple, [:integer]}, {:tuple, [:atom]})
     end
 
     test "list" do
       assert unify_lift({:list, :integer}, {:list, :integer}) == {:ok, {:list, :integer}}
 
-      assert {:error, {{:unable_unify, :atom, :integer, _, _}, _}} =
+      assert {:error, {{:unable_unify, :atom, :integer, _}, _}} =
                unify_lift({:list, :atom}, {:list, :integer})
     end
 
@@ -124,7 +124,7 @@ defmodule Module.Types.InferTest do
              ) ==
                {:ok, {:map, [{:required, {:atom, :foo}, :boolean}]}}
 
-      assert {:error, {{:unable_unify, :integer, :atom, _, _}, _}} =
+      assert {:error, {{:unable_unify, :integer, :atom, _}, _}} =
                unify_lift(
                  {:map, [{:required, {:atom, :foo}, :integer}]},
                  {:map, [{:required, {:atom, :foo}, :atom}]}
@@ -170,7 +170,7 @@ defmodule Module.Types.InferTest do
       assert unify_lift({:union, [:atom]}, {:union, [:boolean]}) == {:ok, {:union, [:boolean]}}
       assert unify_lift({:union, [:boolean]}, {:union, [:atom]}) == {:ok, {:union, [:boolean]}}
 
-      assert {:error, {{:unable_unify, {:union, [:integer]}, {:union, [:atom]}, _, _}, _}} =
+      assert {:error, {{:unable_unify, {:union, [:integer]}, {:union, [:atom]}, _}, _}} =
                unify_lift({:union, [:integer]}, {:union, [:atom]})
     end
 
@@ -206,13 +206,13 @@ defmodule Module.Types.InferTest do
       assert {:ok, {:var, 0}, context} = unify({:var, 0}, :integer, var_context)
       assert {:ok, {:var, 1}, context} = unify({:var, 1}, :binary, context)
 
-      assert {:error, {{:unable_unify, :integer, :binary, _, _}, _}} =
+      assert {:error, {{:unable_unify, :integer, :binary, _}, _}} =
                unify_lift({:var, 0}, {:var, 1}, context)
 
       assert {:ok, {:var, 0}, context} = unify({:var, 0}, :integer, var_context)
       assert {:ok, {:var, 1}, context} = unify({:var, 1}, :binary, context)
 
-      assert {:error, {{:unable_unify, :binary, :integer, _, _}, _}} =
+      assert {:error, {{:unable_unify, :binary, :integer, _}, _}} =
                unify_lift({:var, 1}, {:var, 0}, context)
     end
 
@@ -238,7 +238,7 @@ defmodule Module.Types.InferTest do
       assert {:ok, {:var, 0}, context} = unify({:var, 0}, :integer, var_context)
       assert {:ok, {:var, 1}, context} = unify({:var, 1}, :binary, context)
 
-      assert {:error, {{:unable_unify, :integer, :binary, _, _}, _}} =
+      assert {:error, {{:unable_unify, :integer, :binary, _}, _}} =
                unify_lift({:tuple, [{:var, 0}]}, {:tuple, [{:var, 1}]}, context)
     end
 
@@ -258,13 +258,13 @@ defmodule Module.Types.InferTest do
 
       assert {:ok, {:var, _}, context} = unify({:var, 0}, {:var, 1}, var_context)
 
-      assert {:error, {{:unable_unify, {:var, 0}, {:tuple, [{:var, 0}]}, _, _}, _}} =
+      assert {:error, {{:unable_unify, {:var, 0}, {:tuple, [{:var, 0}]}, _}, _}} =
                unify_lift({:var, 1}, {:tuple, [{:var, 0}]}, context)
 
       assert {:ok, {:var, _}, context} = unify({:var, 0}, {:var, 1}, var_context)
       assert {:ok, {:var, _}, context} = unify({:var, 1}, {:var, 2}, context)
 
-      assert {:error, {{:unable_unify, {:var, 0}, {:tuple, [{:var, 0}]}, _, _}, _}} =
+      assert {:error, {{:unable_unify, {:var, 0}, {:tuple, [{:var, 0}]}, _}, _}} =
                unify_lift({:var, 2}, {:tuple, [{:var, 0}]}, context)
     end
   end
