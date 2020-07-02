@@ -20,11 +20,11 @@ defmodule Mix.Tasks.Compile.App do
     * `:extra_applications` - a list of OTP applications
       your application depends on which are not included in `:deps`
       (usually defined in `deps/0` in your `mix.exs`). For example,
-      here you can declare a dependency on applications that ship with
-      Erlang/OTP or Elixir, like `:crypto` or `:logger`, but anything in
-      the code path works. Mix guarantees that these applications and
-      the rest of your runtime dependencies are started before your
-      application starts.
+      here you can declare a dependency on applications that ship
+      with Erlang/OTP or Elixir, like `:crypto` or `:logger`.
+      Optional extra applications can be declared as a tuple, such
+      as `{:ex_unit, :optional}`. Mix guarantees all non-optional
+      applications are started before your application starts.
 
     * `:registered` - the name of all registered processes in the
       application. If your application defines a local GenServer
@@ -41,12 +41,11 @@ defmodule Mix.Tasks.Compile.App do
 
       def application do
         [
-          extra_applications: [:logger, :crypto],
+          extra_applications: [:logger, :crypto, ex_unit: :optional],
           env: [key: :value],
           registered: [MyServer]
         ]
       end
-
 
   Other options include:
 
@@ -284,18 +283,18 @@ defmodule Mix.Tasks.Compile.App do
         end
 
       {:extra_applications, value} ->
-        unless is_list(value) and Enum.all?(value, &is_atom(&1)) do
+        unless is_list(value) and Enum.all?(value, &typed_app?(&1)) do
           Mix.raise(
-            "Application extra applications (:extra_applications) should be a list of atoms, got: " <>
-              inspect(value)
+            "Application extra applications (:extra_applications) should be a list of atoms or " <>
+            "{app, :required | :optional} pairs, got: " <> inspect(value)
           )
         end
 
       {:applications, value} ->
-        unless is_list(value) and Enum.all?(value, &is_atom(&1)) do
+        unless is_list(value) and Enum.all?(value, &typed_app?(&1)) do
           Mix.raise(
-            "Application applications (:applications) should be a list of atoms, got: " <>
-              inspect(value)
+            "Application applications (:applications) should be a list of atoms or " <>
+            "{app, :required | :optional} pairs, got: " <> inspect(value)
           )
         end
 
@@ -333,40 +332,84 @@ defmodule Mix.Tasks.Compile.App do
     properties
   end
 
+  defp typed_app?(app) when is_atom(app), do: true
+  defp typed_app?({app, type}) when is_atom(app) and type in [:required, :optional], do: true
+  defp typed_app?(_), do: false
+
   defp add_compile_env(properties, []), do: properties
   defp add_compile_env(properties, compile_env), do: [compile_env: compile_env] ++ properties
 
   defp handle_extra_applications(properties, config) do
     {extra, properties} = Keyword.pop(properties, :extra_applications, [])
 
-    apps =
-      properties
-      |> Keyword.get(:applications)
-      |> Kernel.||(apps_from_prod_non_optional_deps(properties, config))
-      |> normalize_apps(extra, config)
+    {required, _optional} =
+      project_apps(properties, config, extra, fn ->
+        apps_from_runtime_prod_deps(properties, config)
+      end)
 
-    Keyword.put(properties, :applications, apps)
+    # TODO: Also store optional applications once support lands in Erlang/OTP 24+
+    Keyword.put(properties, :applications, required)
   end
 
-  defp apps_from_prod_non_optional_deps(properties, config) do
+  defp apps_from_runtime_prod_deps(properties, config) do
     included_applications = Keyword.get(properties, :included_applications, [])
-    deps_mapping = Mix.Dep.compile_or_runtime_deps_mapping(config)
 
-    for %{app: app, opts: opts, top_level: true} <- Mix.Dep.cached(),
-        not Keyword.get(opts, :optional, false),
-        Map.fetch!(deps_mapping, app) == :runtime,
+    for {app, opts} <- Mix.Dep.deps_opts(config),
+        runtime_app?(opts),
         app not in included_applications,
-        do: app
+        do: {app, if(Keyword.get(opts, :optional, false), do: :optional, else: :required)}
   end
 
-  defp normalize_apps(apps, extra, config) do
-    Enum.uniq([:kernel, :stdlib] ++ language_app(config) ++ extra ++ apps)
+  defp runtime_app?(opts) do
+    Keyword.get(opts, :runtime, true) and Keyword.get(opts, :app, true) and matching_only?(opts)
   end
 
-  defp language_app(config) do
+  defp matching_only?(opts) do
+    case Keyword.fetch(opts, :only) do
+      {:ok, value} -> Mix.env() in List.wrap(value)
+      :error -> true
+    end
+  end
+
+  ## Helpers for manipulating apps
+
+  @doc false
+  # Entry point function used by app tracer, app loader, etc.
+  def project_apps(config) do
+    project = Mix.Project.get!()
+
+    properties =
+      if function_exported?(project, :application, 0), do: project.application(), else: []
+
+    extra =
+      Keyword.get(properties, :included_applications, []) ++
+        Keyword.get(properties, :extra_applications, [])
+
+    project_apps(properties, config, extra, fn ->
+      config |> Mix.Dep.deps_opts() |> Keyword.keys()
+    end)
+  end
+
+  defp project_apps(properties, config, extra, deps_loader) do
+    apps = Keyword.get(properties, :applications) || deps_loader.()
+    {required, optional} = split_by_type(extra ++ apps)
+    required = Enum.uniq(language_apps(config) ++ Enum.reverse(required))
+    optional = Enum.uniq(Enum.reverse(optional -- required))
+    {required, optional}
+  end
+
+  defp split_by_type(apps) do
+    Enum.reduce(apps, {[], []}, fn
+      app, {required, optional} when is_atom(app) -> {[app | required], optional}
+      {app, :required}, {required, optional} -> {[app | required], optional}
+      {app, :optional}, {required, optional} -> {required, [app | optional]}
+    end)
+  end
+
+  defp language_apps(config) do
     case Keyword.get(config, :language, :elixir) do
-      :elixir -> [:elixir]
-      :erlang -> []
+      :elixir -> [:kernel, :stdlib, :elixir]
+      :erlang -> [:kernel, :stdlib]
     end
   end
 end

@@ -159,11 +159,12 @@ defmodule Mix.Compilers.ApplicationTracer do
 
   defp build_manifest(config, manifest) do
     table = :ets.new(@table, [:public, :named_table, :set, read_concurrency: true])
+    {required, optional} = Mix.Tasks.Compile.App.project_apps(config)
 
     %{}
-    |> store_apps(table, language_apps(config))
-    |> store_apps(table, app_file_applications())
-    |> store_deps(table, config)
+    |> store_apps(table, required)
+    |> store_apps(table, optional)
+    |> store_apps(table, extra_apps(config))
 
     File.mkdir_p!(Path.dirname(manifest))
     write_manifest(table, manifest)
@@ -174,31 +175,17 @@ defmodule Mix.Compilers.ApplicationTracer do
     table
   end
 
-  defp language_apps(config) do
+  # TODO: Remove this on Elixir v1.15.
+  # We support extra_applications: [foo: :optional] from v1.11,
+  # so those using Mix and ExUhit can declare them as optional
+  # apps under extra_applications from v1.15. When we do so,
+  # let's improve the warning for :mix and :ex_unit to explicitly
+  # mention declaring them as optional.
+  defp extra_apps(config) do
     case Keyword.get(config, :language, :elixir) do
-      :elixir -> [:elixir, :ex_unit, :mix]
-      :erlang -> [:stdlib, :kernel]
+      :elixir -> [:ex_unit, :mix]
+      :erlang -> []
     end
-  end
-
-  defp app_file_applications() do
-    project = Mix.Project.get!()
-
-    if function_exported?(project, :application, 0) do
-      properties = project.application()
-
-      Keyword.get(properties, :applications, []) ++
-        Keyword.get(properties, :extra_applications, []) ++
-        Keyword.get(properties, :included_applications, [])
-    else
-      []
-    end
-  end
-
-  defp store_deps(seen, table, config) do
-    config
-    |> Mix.Dep.compile_or_runtime_deps_mapping()
-    |> Enum.reduce(seen, fn {app, _}, acc -> store_app(table, app, acc) end)
   end
 
   defp store_apps(seen, table, apps) do
