@@ -54,6 +54,7 @@ defmodule Mix.Tasks.Compile do
     * `--no-deps-check` - skips checking of dependencies
     * `--no-elixir-version-check` - does not check Elixir version
     * `--no-protocol-consolidation` - skips protocol consolidation
+    * `--no-validate-compile-env` - does not validate the application compile environment
     * `--return-errors` - returns error status and diagnostics instead of exiting on error
 
   """
@@ -93,6 +94,10 @@ defmodule Mix.Tasks.Compile do
   def run(args) do
     Mix.Project.get!()
     Mix.Task.run("loadpaths", args)
+
+    unless "--no-app-loading" in args do
+      Mix.Task.run("app.load")
+    end
 
     if "--no-compile" in args do
       Mix.Task.reenable("compile")

@@ -154,7 +154,8 @@ defmodule Mix.Tasks.Deps.Compile do
 
       try do
         options = [
-          "--no-deps",
+          "--no-deps-loading",
+          "--no-apps-loading",
           "--no-archives-check",
           "--no-elixir-version-check",
           "--no-warnings-as-errors"

@@ -66,13 +66,25 @@ defmodule Mix.Tasks.App.Start do
       end
 
       config = Mix.Project.config()
+
+      # For our own apps, now is the time to validate compile env.
       start(apps(config), type(config, opts), "--no-validate-compile-env" not in args)
 
-      # If there is a build path, we will let the application
-      # that owns the build path do the actual check
+      if opts[:preload_modules] do
+        for {app, _, _} <- Application.loaded_applications() do
+          :code.ensure_modules_loaded(Application.spec(app, :modules))
+        end
+      end
+
+      # If the build path is set, we assume it is being shared
+      # (such as in an umbrella) and therefore we cannot check
+      # for applications as we may have both false positives and
+      # false negatives.
+      #
+      # Therefore we let the application that owns the build path
+      # to ultimately perform the check.
       unless config[:build_path] do
-        loaded = loaded_applications(opts)
-        check_configured(loaded)
+        check_configured()
       end
     end
 
@@ -81,7 +93,11 @@ defmodule Mix.Tasks.App.Start do
 
   @doc false
   def start(apps, type, validate_compile_env? \\ true) do
-    Enum.each(apps, &ensure_all_started(&1, type, validate_compile_env?))
+    Enum.each(apps, fn app ->
+      Mix.Tasks.App.Load.load(app, validate_compile_env?)
+      ensure_all_started(app, type)
+    end)
+
     :ok
   end
 
@@ -98,8 +114,8 @@ defmodule Mix.Tasks.App.Start do
     end
   end
 
-  defp ensure_all_started(app, type, validate_compile_env?) do
-    case load_check_and_start(app, type, validate_compile_env?) do
+  defp ensure_all_started(app, type) do
+    case Application.start(app, type) do
       :ok ->
         :ok
 
@@ -107,8 +123,8 @@ defmodule Mix.Tasks.App.Start do
         :ok
 
       {:error, {:not_started, dep}} ->
-        :ok = ensure_all_started(dep, type, validate_compile_env?)
-        ensure_all_started(app, type, validate_compile_env?)
+        :ok = ensure_all_started(dep, type)
+        ensure_all_started(app, type)
 
       {:error, reason} when type == :permanent ->
         # We need to stop immediately because application_controller is
@@ -127,52 +143,6 @@ defmodule Mix.Tasks.App.Start do
     "Could not start application #{app}: " <> Application.format_error(reason)
   end
 
-  defp load_check_and_start(app, type, validate_compile_env?) do
-    case :application.get_key(app, :vsn) do
-      {:ok, _} ->
-        :application.start(app, type)
-
-      :undefined ->
-        name = Atom.to_charlist(app) ++ '.app'
-
-        case :code.where_is_file(name) do
-          :non_existing ->
-            {:error, {:file.format_error(:enoent), name}}
-
-          path ->
-            case consult_app_file_maybe_in_archive(path) do
-              {:ok, {:application, _, properties} = application_data} ->
-                with :ok <- :application.load(application_data) do
-                  if compile_env = validate_compile_env? && properties[:compile_env] do
-                    # Unfortunately we can only check the current app here,
-                    # otherwise we would accidentally load upcoming apps
-                    compile_env = for {^app, path, return} <- compile_env, do: {app, path, return}
-                    Config.Provider.validate_compile_env(compile_env)
-                  end
-
-                  :application.start(app, type)
-                end
-
-              {:error, reason} ->
-                {:error, {:file.format_error(reason), name}}
-            end
-        end
-    end
-  end
-
-  defp consult_app_file_maybe_in_archive(path) do
-    # The path could be located in .ez archive
-    case :erl_prim_loader.get_file(path) do
-      {:ok, bin, _full_name} ->
-        with {:ok, tokens, _} <- :erl_scan.string(String.to_charlist(bin)) do
-          :erl_parse.parse_term(tokens)
-        end
-
-      :error ->
-        {:error, :enoent}
-    end
-  end
-
   @doc false
   def type(config, opts) do
     cond do
@@ -183,22 +153,9 @@ defmodule Mix.Tasks.App.Start do
     end
   end
 
-  defp loaded_applications(opts) do
-    preload_modules? = opts[:preload_modules]
-
-    for {app, _, _} <- Application.loaded_applications() do
-      if modules = preload_modules? && Application.spec(app, :modules) do
-        :code.ensure_modules_loaded(modules)
-      end
-
-      app
-    end
-  end
-
-  defp check_configured(loaded) do
-    configured = Mix.ProjectStack.config_apps()
-
-    for app <- configured -- loaded, :code.lib_dir(app) == {:error, :bad_name} do
+  defp check_configured() do
+    for app <- Mix.ProjectStack.config_apps(),
+        is_nil(Application.spec(app, :vsn)) do
       Mix.shell().error("""
       You have configured application #{inspect(app)} in your configuration file,
       but the application is not available.

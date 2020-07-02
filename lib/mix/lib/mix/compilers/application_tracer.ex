@@ -175,16 +175,29 @@ defmodule Mix.Compilers.ApplicationTracer do
     table
   end
 
-  # TODO: Remove this on Elixir v1.15.
-  # We support extra_applications: [foo: :optional] from v1.11,
-  # so those using Mix and ExUhit can declare them as optional
-  # apps under extra_applications from v1.15. When we do so,
-  # let's improve the warning for :mix and :ex_unit to explicitly
-  # mention declaring them as optional.
+  # TODO: Update from Elixir v1.15 onwards.
+  #
+  # We support extra_applications: [mix: :optional] from v1.11,
+  # so those using Mix and ExUnit can declare it as an optional
+  # apps under extra_applications from v1.15.
+  #
+  # For Mix, this means removing it from the list below.
+  #
+  # For ExUnit, we always include it but we should no longer
+  # load it. Then only "mix test" will load ex_unit, which
+  # means that ExUnit deps won't warn when testing code but
+  # it will when compiling.
+  #
+  # When we do these changes, we should improve the warning
+  # messages for :mix/:ex_unit to point to optional apps.
   defp extra_apps(config) do
     case Keyword.get(config, :language, :elixir) do
-      :elixir -> [:ex_unit, :mix]
-      :erlang -> []
+      :elixir ->
+        Application.ensure_loaded(:ex_unit)
+        [:ex_unit, :mix]
+
+      :erlang ->
+        []
     end
   end
 
@@ -193,22 +206,20 @@ defmodule Mix.Compilers.ApplicationTracer do
   end
 
   defp store_app(table, app, seen) do
-    if Map.has_key?(seen, app) do
-      seen
-    else
-      seen = Map.put(seen, app, true)
-      result = Application.load(app)
+    cond do
+      Map.has_key?(seen, app) ->
+        seen
 
-      if result == :ok or result == {:error, {:already_loaded, app}} do
-        modules = Application.spec(app, :modules)
+      modules = Application.spec(app, :modules) ->
         :ets.insert(table, Enum.map(modules, &{&1}))
 
         seen
+        |> Map.put(app, true)
         |> store_apps(table, Application.spec(app, :applications))
         |> store_apps(table, Application.spec(app, :included_applications))
-      else
+
+      true ->
         seen
-      end
     end
   end
 end
