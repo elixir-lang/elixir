@@ -14,7 +14,7 @@ defmodule Macro do
         end
 
         def fun_inspect(value) do
-          IO.inpect(value)
+          IO.inspect(value)
           value
         end
       end
