@@ -31,9 +31,9 @@ defmodule Mix.Tasks.Loadpaths do
       Mix.Task.run("archive.check", args)
     end
 
-    # --no-deps is used only internally. It has no purpose
-    # from Mix.CLI because running a task may load deps.
-    unless "--no-deps" in args do
+    # --no-deps-loading is used only internally. It has no
+    # purpose from Mix.CLI because running a task may load deps.
+    unless "--no-deps-loading" in args do
       Mix.Task.run("deps.loadpaths", args)
     end
 

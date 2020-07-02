@@ -238,9 +238,9 @@ defmodule Config.Provider do
   end
 
   @doc false
-  def validate_compile_env(compile_env) do
+  def validate_compile_env(compile_env, ensure_loaded? \\ true) do
     for {app, [key | path], compile_return} <- compile_env,
-        Application.ensure_loaded(app) == :ok do
+        ensure_app_loaded?(app, ensure_loaded?) do
       try do
         traverse_env(Application.fetch_env(app, key), path)
       rescue
@@ -274,6 +274,9 @@ defmodule Config.Provider do
 
     :ok
   end
+
+  defp ensure_app_loaded?(app, true), do: Application.ensure_loaded(app) == :ok
+  defp ensure_app_loaded?(app, false), do: Application.spec(app, :vsn) != nil
 
   defp path(key, []), do: "for key #{inspect(key)}"
   defp path(key, path), do: "for path #{inspect(path)} inside key #{inspect(key)}"

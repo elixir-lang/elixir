@@ -314,6 +314,9 @@ defmodule Mix.Tasks.Test do
       """)
     end
 
+    # Load ExUnit before we compile anything
+    Application.ensure_loaded(:ex_unit)
+
     Mix.Task.run("compile", args)
     project = Mix.Project.config()
 
@@ -337,12 +340,6 @@ defmodule Mix.Tasks.Test do
     Mix.shell().print_app
     app_start_args = if opts[:slowest], do: ["--preload-modules" | args], else: args
     Mix.Task.run("app.start", app_start_args)
-
-    # Ensure ExUnit is loaded.
-    case Application.load(:ex_unit) do
-      :ok -> :ok
-      {:error, {:already_loaded, :ex_unit}} -> :ok
-    end
 
     # The test helper may change the Mix.shell(), so revert it whenever we raise and after suite
     shell = Mix.shell()

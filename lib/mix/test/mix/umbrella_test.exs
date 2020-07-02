@@ -433,6 +433,7 @@ defmodule Mix.UmbrellaTest do
         Mix.Task.clear()
         assert Mix.Tasks.Compile.run(["--verbose", "--ignore-module-conflict"]) == {:ok, []}
         Application.unload(:foo)
+        Application.load(:foo)
       end)
 
       # And bar can use it without warnings

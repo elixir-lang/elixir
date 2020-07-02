@@ -66,7 +66,7 @@ defmodule Mix.Tasks.CompileTest do
       end)
       """)
 
-      assert Mix.Task.run("compile", ["--force", "--no-deps"]) == {:ok, []}
+      assert Mix.Task.run("compile", ["--force", "--no-deps-loading"]) == {:ok, []}
     end)
   end
 
