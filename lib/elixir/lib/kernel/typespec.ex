@@ -251,11 +251,12 @@ defmodule Kernel.Typespec do
           end
 
           if Map.has_key?(type_pairs, type_pair) do
-            {error_file, error_line} = type_pairs[type_pair]
+            {error_full_path, error_line} = type_pairs[type_pair]
+            error_relative_path = Path.relative_to_cwd(error_full_path)
 
             compile_error(
               env,
-              "type #{name}/#{arity} is already defined in #{error_file}:#{error_line}"
+              "type #{name}/#{arity} is already defined in #{error_relative_path}:#{error_line}"
             )
           end
 
