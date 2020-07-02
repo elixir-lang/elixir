@@ -286,7 +286,7 @@ defmodule Mix.Tasks.Compile.App do
         unless is_list(value) and Enum.all?(value, &typed_app?(&1)) do
           Mix.raise(
             "Application extra applications (:extra_applications) should be a list of atoms or " <>
-            "{app, :required | :optional} pairs, got: " <> inspect(value)
+              "{app, :required | :optional} pairs, got: " <> inspect(value)
           )
         end
 
@@ -294,7 +294,7 @@ defmodule Mix.Tasks.Compile.App do
         unless is_list(value) and Enum.all?(value, &typed_app?(&1)) do
           Mix.raise(
             "Application applications (:applications) should be a list of atoms or " <>
-            "{app, :required | :optional} pairs, got: " <> inspect(value)
+              "{app, :required | :optional} pairs, got: " <> inspect(value)
           )
         end
 
