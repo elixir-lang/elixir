@@ -484,7 +484,7 @@ defmodule Mix.Tasks.Format do
 
     #{to_bullet_list(not_equivalent)}
 
-    Please report this bug with the input files at httsp://github.com/elixir-lang/elixir/issues
+    Please report this bug with the input files at https://github.com/elixir-lang/elixir/issues
     """)
   end
 
