@@ -194,23 +194,20 @@ defmodule Module.Types do
 
   ## ERROR FORMATTING
 
-  def format_warning({:unable_unify, left, right, expr, traces}) do
+  def format_warning({:unable_unify, left, right, {location, expr, traces}}) do
     cond do
       (match?({:ok, _}, map_dot(expr)) and (map_type?(left) and atom_type?(right))) or
           (atom_type?(left) and map_type?(right)) ->
         {:ok, {map, field}} = map_dot(expr)
 
         """
-        parentheses are required when dynamically invoking zero-arity functions in \
-        expression:
-
-            #{String.replace(expr_to_string(expr), "\n", "\n    ")}
-
+        parentheses are required when dynamically invoking zero-arity functions \
+        #{format_expr(expr, location)}\
         "#{expr_to_string(map)}" is an atom and you attempted to fetch the field \
-        #{field}. Make sure that "#{expr_to_string(map)}" is a map or add parenthesis \
+        #{field}. Make sure that "#{expr_to_string(map)}" is a map or add parentheses \
         to invoke a function instead:
 
-            #{String.replace(expr_to_string(invert_parens(expr)), "\n", "\n    ")}
+            #{indent(expr_to_string(invert_parens(expr)))}
 
         Conflict found at\
         """
@@ -220,15 +217,13 @@ defmodule Module.Types do
         {:ok, {module, fun}} = remote_call(expr)
 
         """
-        parentheses are not allowed when fetching fields on a map in expression:
-
-            #{String.replace(expr_to_string(expr), "\n", "\n    ")}
-
+        parentheses are not allowed when fetching fields from a map \
+        #{format_expr(expr, location)}\
         "#{expr_to_string(module)}" is a map and you attempted to invoke the function \
         #{fun}/0. Make sure that "#{expr_to_string(module)}" is an atom or remove \
         parentheses to fetch a field:
 
-            #{String.replace(expr_to_string(invert_parens(expr)), "\n", "\n    ")}
+            #{indent(expr_to_string(invert_parens(expr)))}
 
         Conflict found at\
         """
@@ -236,11 +231,12 @@ defmodule Module.Types do
       map_type?(left) and map_type?(right) and match?({:ok, _}, missing_field(left, right)) ->
         {:ok, atom} = missing_field(left, right)
 
+        # Drop the last trace which is the expression map.foo
+        traces = Enum.drop(traces, 1)
+
         [
-          "undefined field \"#{atom}\" in expression:",
-          "\n\n    ",
-          String.replace(expr_to_string(expr), "\n", "\n    "),
-          "\n\n",
+          "undefined field \"#{atom}\" ",
+          format_expr(expr, location),
           format_traces(traces),
           "Conflict found at"
         ]
@@ -250,7 +246,7 @@ defmodule Module.Types do
           "incompatible types:\n\n    ",
           format_types(left, right),
           "\n\n",
-          format_expr(expr),
+          format_expr(expr, location),
           format_traces(traces),
           "Conflict found at"
         ]
@@ -335,14 +331,16 @@ defmodule Module.Types do
     end
   end
 
-  defp format_expr(nil) do
+  defp format_expr(nil, _location) do
     []
   end
 
-  defp format_expr(expr) do
+  defp format_expr(expr, location) do
     [
-      "in expression:\n\n    ",
-      String.replace(expr_to_string(expr), "\n", "\n    "),
+      "in expression:\n\n    # ",
+      format_location(location),
+      "    ",
+      indent(expr_to_string(expr)),
       "\n\n"
     ]
   end
@@ -362,7 +360,7 @@ defmodule Module.Types do
           " in:\n\n    # ",
           format_location(location),
           "    ",
-          String.replace(expr_to_string(expr), "\n", "\n    "),
+          indent(expr_to_string(expr)),
           "\n\n"
         ]
 
@@ -375,10 +373,14 @@ defmodule Module.Types do
           "\" in:\n\n    # ",
           format_location(location),
           "    ",
-          String.replace(expr_to_string(expr), "\n", "\n    "),
+          indent(expr_to_string(expr)),
           "\n\n"
         ]
     end)
+  end
+
+  defp format_location({file, line, _mfa}) do
+    format_location({file, line})
   end
 
   defp format_location({file, line}) do
@@ -443,6 +445,10 @@ defmodule Module.Types do
     expr
     |> reverse_rewrite()
     |> Macro.to_string()
+  end
+
+  defp indent(string) do
+    String.replace(string, "\n", "    \n")
   end
 
   defp reverse_rewrite(guard) do
