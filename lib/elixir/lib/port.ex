@@ -180,7 +180,7 @@ defmodule Port do
   @type name ::
           {:spawn, charlist | binary}
           | {:spawn_driver, charlist | binary}
-          | {:spawn_executable, charlist | atom}
+          | {:spawn_executable, :file.name_all()}
           | {:fd, non_neg_integer, non_neg_integer}
 
   @doc """
