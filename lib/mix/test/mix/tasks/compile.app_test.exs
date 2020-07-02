@@ -13,7 +13,11 @@ defmodule Mix.Tasks.Compile.AppTest do
     end
 
     def application do
-      [maxT: :infinity, applications: [:example_app], extra_applications: [:logger]]
+      [
+        maxT: :infinity,
+        applications: [:example_app, mix: :optional],
+        extra_applications: [:logger, ex_unit: :optional]
+      ]
     end
   end
 
@@ -167,7 +171,7 @@ defmodule Mix.Tasks.Compile.AppTest do
       Process.put(:application, extra_applications: ["invalid"])
 
       message =
-        "Application extra applications (:extra_applications) should be a list of atoms, got: [\"invalid\"]"
+        "Application extra applications (:extra_applications) should be a list of atoms or {app, :required | :optional} pairs, got: [\"invalid\"]"
 
       assert_raise Mix.Error, message, fn ->
         Mix.Tasks.Compile.App.run([])
@@ -185,14 +189,16 @@ defmodule Mix.Tasks.Compile.AppTest do
       Process.put(:application, applications: ["invalid"])
 
       message =
-        "Application applications (:applications) should be a list of atoms, got: [\"invalid\"]"
+        "Application applications (:applications) should be a list of atoms or {app, :required | :optional} pairs, got: [\"invalid\"]"
 
       assert_raise Mix.Error, message, fn ->
         Mix.Tasks.Compile.App.run([])
       end
 
       Process.put(:application, applications: nil)
-      message = "Application applications (:applications) should be a list of atoms, got: nil"
+
+      message =
+        "Application applications (:applications) should be a list of atoms or {app, :required | :optional} pairs, got: nil"
 
       assert_raise Mix.Error, message, fn ->
         Mix.Tasks.Compile.App.run([])
