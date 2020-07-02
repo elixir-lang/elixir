@@ -251,7 +251,12 @@ defmodule Kernel.Typespec do
           end
 
           if Map.has_key?(type_pairs, type_pair) do
-            compile_error(env, "type #{name}/#{arity} is already defined")
+            {error_file, error_line} = type_pairs[type_pair]
+
+            compile_error(
+              env,
+              "type #{name}/#{arity} is already defined in #{error_file}:#{error_line}"
+            )
           end
 
           Map.put(type_pairs, type_pair, {file, line})
