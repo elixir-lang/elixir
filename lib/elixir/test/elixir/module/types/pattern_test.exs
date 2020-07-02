@@ -77,7 +77,7 @@ defmodule Module.Types.PatternTest do
     test "error location" do
       line = __ENV__.line + 3
 
-      assert {:error, {{:unable_unify, :integer, :binary, expr, traces}, location}} =
+      assert {:error, {{:unable_unify, :integer, :binary, {_location, expr, traces}}, location}} =
                quoted_pattern(<<foo::integer, foo::binary>>)
 
       assert location == [{"pattern_test.ex", line, {TypesTest, :test, 0}}]
@@ -153,7 +153,7 @@ defmodule Module.Types.PatternTest do
                    {:optional, :dynamic, :dynamic}
                  ]}}
 
-      assert {:error, {{:unable_unify, :integer, {:atom, :foo}, _, _}, _}} =
+      assert {:error, {{:unable_unify, :integer, {:atom, :foo}, _}, _}} =
                quoted_pattern(%{a: a = 123, b: a = :foo})
     end
 
@@ -215,7 +215,7 @@ defmodule Module.Types.PatternTest do
       assert quoted_pattern({<<foo::binary>>, foo}) == {:ok, {:tuple, [:binary, :binary]}}
       assert quoted_pattern({<<foo::utf8>>, foo}) == {:ok, {:tuple, [:binary, :integer]}}
 
-      assert {:error, {{:unable_unify, :binary, :integer, _, _}, _}} =
+      assert {:error, {{:unable_unify, :binary, :integer, _}, _}} =
                quoted_pattern(<<foo::binary-0, foo::integer>>)
     end
 
@@ -238,7 +238,7 @@ defmodule Module.Types.PatternTest do
       assert quoted_pattern(x = 123 = y) == {:ok, :integer}
       assert quoted_pattern(123 = x = y) == {:ok, :integer}
 
-      assert {:error, {{:unable_unify, {:tuple, [var: 0]}, {:var, 0}, _, _}, _}} =
+      assert {:error, {{:unable_unify, {:tuple, [var: 0]}, {:var, 0}, _}, _}} =
                quoted_pattern({x} = x)
     end
   end
@@ -255,7 +255,7 @@ defmodule Module.Types.PatternTest do
     assert {:ok, {:atom, :fail}, _context} = quoted_guard([], :fail)
     assert {:ok, :boolean, _context} = quoted_guard([], is_atom(true or :fail))
 
-    assert {:error, {_, {:unable_unify, :tuple, :boolean, _, _}, _}} =
+    assert {:error, {_, {:unable_unify, :tuple, :boolean, _}, _}} =
              quoted_guard([x], is_tuple(x) and is_boolean(x))
   end
 end

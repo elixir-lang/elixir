@@ -463,7 +463,8 @@ defmodule Module.Types.Infer do
     traces = type_traces(stack, context)
     traces = tag_traces(traces, context)
 
-    {:error, {Module.Types, {:unable_unify, left, right, stack.last_expr, traces}, [location]}}
+    error = {:unable_unify, left, right, {location, stack.last_expr, traces}}
+    {:error, {Module.Types, error, [location]}}
   end
 
   # Collect relevant traces from context.traces using stack.unify_stack

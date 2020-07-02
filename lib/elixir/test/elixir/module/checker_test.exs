@@ -744,6 +744,7 @@ defmodule Module.CheckerTest do
 
       in expression:
 
+          # a.ex:2
           var = "abc"
 
       where "var" was given the type binary() in:
@@ -780,6 +781,7 @@ defmodule Module.CheckerTest do
 
       in expression:
 
+          # a.ex:2
           <<var::integer(), var::binary()>>
 
       where "var" was given the type binary() in:
@@ -816,6 +818,7 @@ defmodule Module.CheckerTest do
 
       in expression:
 
+          # a.ex:2
           {var} = var
 
       where "var" was given the type {var0} in:
@@ -847,6 +850,7 @@ defmodule Module.CheckerTest do
 
       in expression:
 
+          # a.ex:2
           is_integer(var) and is_binary(var)
 
       where "var" was given the type binary() in:
@@ -883,6 +887,7 @@ defmodule Module.CheckerTest do
 
       in expression:
 
+          # a.ex:2
           is_integer(x) and is_binary(y)
 
       where "x" was given the type integer() in:
@@ -924,6 +929,7 @@ defmodule Module.CheckerTest do
 
       in expression:
 
+          # a.ex:2
           is_integer(x) and is_binary(y) and is_boolean(z)
 
       where "x" was given the type integer() in:
@@ -965,6 +971,7 @@ defmodule Module.CheckerTest do
 
       in expression:
 
+          # a.ex:2
           :foo = x
 
       where \"x\" was given the type :foo in:
@@ -1001,6 +1008,7 @@ defmodule Module.CheckerTest do
 
       in expression:
 
+          # a.ex:2
           <<foo>>
 
       where \"foo\" was given the type integer() in:
@@ -1035,6 +1043,7 @@ defmodule Module.CheckerTest do
 
       in expression:
 
+          # a.ex:2
           <<foo::integer()>>
 
       where \"foo\" was given the type integer() in:
@@ -1076,6 +1085,7 @@ defmodule Module.CheckerTest do
 
       in expression:
 
+          # a.ex:4
           :atom = foo
 
       where "foo" was given the type :atom in:
@@ -1111,6 +1121,7 @@ defmodule Module.CheckerTest do
       warning = """
       warning: parentheses are required when dynamically invoking zero-arity functions in expression:
 
+          # a.ex:4
           module.__struct__
 
       "module" is an atom and you attempted to fetch the field __struct__. Make sure that \
@@ -1140,6 +1151,7 @@ defmodule Module.CheckerTest do
       warning = """
       warning: parentheses are not allowed when fetching fields from a map in expression:
 
+          # a.ex:3
           foo.__struct__()
 
       "foo" is a map and you attempted to invoke the function __struct__/0. Make sure that \
@@ -1170,6 +1182,7 @@ defmodule Module.CheckerTest do
       warning = """
       warning: undefined field "bar" in expression:
 
+          # a.ex:4
           map.bar
 
       where "map" was given the type %{foo: integer()} in:
@@ -1200,6 +1213,7 @@ defmodule Module.CheckerTest do
       warning = """
       warning: undefined field "bar" in expression:
 
+          # a.ex:4
           foo.bar
 
       where "foo" was given the type %File.Stat{} in:

@@ -163,7 +163,7 @@ defmodule Module.Types.ExprTest do
     assert {:error,
             {{:unable_unify,
               {:map, [{:required, {:atom, :bar}, {:var, 1}}, {:optional, :dynamic, :dynamic}]},
-              {:map, [{:required, {:atom, :foo}, {:atom, :foo}}]}, _, _},
+              {:map, [{:required, {:atom, :foo}, {:atom, :foo}}]}, _},
              _}} =
              quoted_expr(
                (
@@ -194,13 +194,13 @@ defmodule Module.Types.ExprTest do
     assert {:error,
             {{:unable_unify,
               {:map, [{:required, {:atom, :foo}, {:var, 0}}, {:optional, :dynamic, :dynamic}]},
-              {:map, [{:required, {:atom, :__struct__}, {:atom, File.Stat}} | _]}, _, _},
+              {:map, [{:required, {:atom, :__struct__}, {:atom, File.Stat}} | _]}, _},
              _}} = quoted_expr(%File.Stat{}.foo)
 
     assert {:error,
             {{:unable_unify,
               {:map, [{:required, {:atom, :foo}, {:var, 1}}, {:optional, :dynamic, :dynamic}]},
-              {:map, [{:required, {:atom, :__struct__}, {:atom, File.Stat}} | _]}, _, _},
+              {:map, [{:required, {:atom, :__struct__}, {:atom, File.Stat}} | _]}, _},
              _}} =
              quoted_expr(
                (
@@ -255,7 +255,7 @@ defmodule Module.Types.ExprTest do
       assert quoted_expr([foo], {<<foo::utf8>>, foo}) ==
                {:ok, {:tuple, [:binary, {:union, [:integer, :binary]}]}}
 
-      assert {:error, {{:unable_unify, :integer, :binary, _, _}, _}} =
+      assert {:error, {{:unable_unify, :integer, :binary, _}, _}} =
                quoted_expr(
                  (
                    foo = 0
@@ -263,7 +263,7 @@ defmodule Module.Types.ExprTest do
                  )
                )
 
-      assert {:error, {{:unable_unify, :binary, :integer, _, _}, _}} =
+      assert {:error, {{:unable_unify, :binary, :integer, _}, _}} =
                quoted_expr([foo], <<foo::binary-0, foo::integer>>)
     end
   end
