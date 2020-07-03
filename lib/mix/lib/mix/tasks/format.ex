@@ -480,18 +480,18 @@ defmodule Mix.Tasks.Format do
   defp check!({_exits, [_ | _] = not_equivalent, _not_formatted}) do
     Mix.raise("""
     mix format failed due to --check-equivalent.
-    The following files were not equivalent:
+    The following files are not equivalent:
 
     #{to_bullet_list(not_equivalent)}
 
-    Please report this bug with the input files at github.com/elixir-lang/elixir/issues
+    Please report this bug with the input files at https://github.com/elixir-lang/elixir/issues
     """)
   end
 
   defp check!({_exits, _not_equivalent, [_ | _] = not_formatted}) do
     Mix.raise("""
     mix format failed due to --check-formatted.
-    The following files were not formatted:
+    The following files are not formatted:
 
     #{to_bullet_list(not_formatted)}
     """)
