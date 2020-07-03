@@ -103,27 +103,33 @@ defmodule TypespecTest do
     end
 
     test "redefined type" do
-      assert_raise CompileError, ~r"type foo/0 is already defined", fn ->
-        test_module do
-          @type foo :: atom
-          @type foo :: integer
-        end
-      end
+      assert_raise CompileError,
+                   ~r"type foo/0 is already defined in test/elixir/typespec_test.exs:110",
+                   fn ->
+                     test_module do
+                       @type foo :: atom
+                       @type foo :: integer
+                     end
+                   end
 
-      assert_raise CompileError, ~r"type foo/2 is already defined", fn ->
-        test_module do
-          @type foo :: atom
-          @type foo(var1, var2) :: {var1, var2}
-          @type foo(x, y) :: {x, y}
-        end
-      end
+      assert_raise CompileError,
+                   ~r"type foo/2 is already defined in test/elixir/typespec_test.exs:120",
+                   fn ->
+                     test_module do
+                       @type foo :: atom
+                       @type foo(var1, var2) :: {var1, var2}
+                       @type foo(x, y) :: {x, y}
+                     end
+                   end
 
-      assert_raise CompileError, ~r"type foo/0 is already defined", fn ->
-        test_module do
-          @type foo :: atom
-          @typep foo :: integer
-        end
-      end
+      assert_raise CompileError,
+                   ~r"type foo/0 is already defined in test/elixir/typespec_test.exs:129",
+                   fn ->
+                     test_module do
+                       @type foo :: atom
+                       @typep foo :: integer
+                     end
+                   end
     end
 
     test "type variable unused (singleton type variable)" do
