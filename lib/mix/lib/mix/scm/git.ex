@@ -7,7 +7,14 @@ defmodule Mix.SCM.Git do
   end
 
   def format(opts) do
-    opts[:git]
+    {ref_type, ref_value} = cond do
+      opts[:tag] -> {:tag, opts[:tag]}
+      opts[:branch] -> {:branch, opts[:branch]}
+      opts[:ref] -> {:ref, opts[:ref]}
+      true -> {nil, nil}
+    end
+    extra_info = if ref_type, do: " - #{ref_type}: #{ref_value}", else: ""
+    "#{opts[:git]}#{extra_info}"
   end
 
   def format_lock(opts) do
