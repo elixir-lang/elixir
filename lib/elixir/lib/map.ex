@@ -302,8 +302,20 @@ defmodule Map do
     end
   end
 
-  @doc false
-  @deprecated "Use Map.fetch/2 + Map.put/3 instead"
+  @doc """
+  Puts a value under `key` only if the `key` already exists in `map`.
+
+  ## Examples
+
+      iex> Map.replace(%{a: 1, b: 2}, :a, 3)
+      %{a: 3, b: 2}
+
+      iex> Map.replace(%{a: 1}, :b, 2)
+      %{a: 1}
+
+  """
+  @doc since: "1.11.0"
+  @spec replace(map, key, value) :: map
   def replace(map, key, value) do
     case map do
       %{^key => _value} ->
@@ -318,8 +330,7 @@ defmodule Map do
   end
 
   @doc """
-  Alters the value stored under `key` to `value`, but only
-  if the entry `key` already exists in `map`.
+  Puts a value under `key` only if the `key` already exists in `map`.
 
   If `key` is not present in `map`, a `KeyError` exception is raised.
 
