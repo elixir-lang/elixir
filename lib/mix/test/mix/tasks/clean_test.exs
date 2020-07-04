@@ -27,12 +27,14 @@ defmodule Mix.Tasks.CleanTest do
       File.mkdir_p!("_build/dev/lib/sample")
       File.mkdir_p!("_build/test/lib/sample")
       File.mkdir_p!("_build/dev/lib/ok")
+      File.touch!("deps/ok/priv/compiled.erl")
 
       Mix.Tasks.Clean.run([])
       refute File.exists?("_build/dev/lib/sample/consolidated")
       refute File.exists?("_build/dev/lib/sample")
       refute File.exists?("_build/test/lib/sample")
       assert File.exists?("_build/dev/lib/ok")
+      assert File.exists?("deps/ok/priv/compiled.erl")
     end)
   end
 
@@ -43,10 +45,12 @@ defmodule Mix.Tasks.CleanTest do
 
       Mix.Tasks.Clean.run(["--deps", "--only", "dev"])
       refute File.exists?("_build/dev")
+      refute File.exists?("deps/ok/priv/compiled.erl")
       assert File.exists?("_build/test")
 
       Mix.Tasks.Clean.run(["--deps"])
       refute File.exists?("_build/test")
+      refute File.exists?("deps/ok/priv/compiled.erl")
     end)
   end
 end

@@ -36,9 +36,16 @@ defmodule Mix.Tasks.Clean do
       |> Path.join("*#{opts[:only]}")
 
     if opts[:deps] do
-      build
-      |> Path.wildcard()
-      |> Enum.each(&File.rm_rf/1)
+      deps_paths =
+        Mix.Project.deps_paths()
+        |> Map.values()
+        |> Enum.map(&Path.join(&1, "**/*.erl"))
+
+      for path <- [build] ++ deps_paths do
+        path
+        |> Path.wildcard()
+        |> Enum.each(&File.rm_rf/1)
+      end
     else
       build
       |> Path.join("lib/#{Mix.Project.config()[:app]}")
