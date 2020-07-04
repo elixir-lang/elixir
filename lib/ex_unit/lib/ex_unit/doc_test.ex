@@ -133,12 +133,12 @@ defmodule ExUnit.DocTest do
       iex(1)> raise "some error"
       ** (RuntimeError) some error
 
-  What DocTest will be looking for is a line starting with `** (` and it
-  will parse it accordingly to extract the exception name and message.
-  At this moment, the exception parser would make the parser treat the next
-  line as a start of a completely new expression (if it is prefixed with `iex>`)
-  or a no-op line with documentation. Thus, multiline messages are not
-  supported.
+  Doctest will looking for a line starting with `** (` and it will parse it
+  accordingly to extract the exception name and message. The exception parser
+  will consider all following lines part of the exception message until there
+  is an empty line or there is a new expression prefixed with `iex>`.
+  Therefore, it is possible to match on multiline messages as long as there
+  are no empty lines on the message itself.
 
   ## When not to use doctest
 
