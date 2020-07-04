@@ -612,8 +612,23 @@ defmodule Keyword do
     end
   end
 
-  @doc false
-  @deprecated "Use Keyword.fetch/2 + Keyword.put/3 instead"
+  @doc """
+  Puts a value under `key` only if the `key` already exists in `keywords`.
+
+  In the case a value is stored multiple times in the keyword list,
+  later occurrences are removed.
+
+  ## Examples
+
+      iex> Keyword.replace([a: 1, b: 2, a: 4], :a, 3)
+      [a: 3, b: 2]
+
+      iex> Keyword.replace([a: 1], :b, 2)
+      [a: 1]
+
+  """
+  @doc since: "1.11.0"
+  @spec replace(t, key, value) :: t
   def replace(keywords, key, value) when is_list(keywords) and is_atom(key) do
     case :lists.keyfind(key, 1, keywords) do
       {^key, _} -> [{key, value} | delete(keywords, key)]
@@ -622,8 +637,7 @@ defmodule Keyword do
   end
 
   @doc """
-  Alters the value stored under `key` to `value`, but only
-  if the entry `key` already exists in `keywords`.
+  Puts a value under `key` only if the `key` already exists in `keywords`.
 
   If `key` is not present in `keywords`, a `KeyError` exception is raised.
 
