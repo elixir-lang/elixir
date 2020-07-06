@@ -24,10 +24,18 @@ defmodule Mix.SCM.GitTest do
 
   test "get and update should display git checkout options along the url" do
     opts = [git: "https://github.com/elixir-lang/some_dep.git"]
-    assert Mix.SCM.Git.format(opts) == "https://github.com/elixir-lang/some_dep.git (origin/master)"
-    assert Mix.SCM.Git.format(Keyword.put(opts, :tag, "v1")) == "https://github.com/elixir-lang/some_dep.git (v1)"
-    assert Mix.SCM.Git.format(Keyword.put(opts, :branch, "b")) == "https://github.com/elixir-lang/some_dep.git (origin/b)"
-    assert Mix.SCM.Git.format(Keyword.put(opts, :ref, "xx")) == "https://github.com/elixir-lang/some_dep.git (xx)"
+
+    assert Mix.SCM.Git.format(opts) ==
+             "https://github.com/elixir-lang/some_dep.git (origin/master)"
+
+    assert Mix.SCM.Git.format(Keyword.put(opts, :tag, "v1")) ==
+             "https://github.com/elixir-lang/some_dep.git (v1)"
+
+    assert Mix.SCM.Git.format(Keyword.put(opts, :branch, "b")) ==
+             "https://github.com/elixir-lang/some_dep.git (origin/b)"
+
+    assert Mix.SCM.Git.format(Keyword.put(opts, :ref, "xx")) ==
+             "https://github.com/elixir-lang/some_dep.git (xx)"
   end
 
   test "raises about conflicting Git checkout options" do
