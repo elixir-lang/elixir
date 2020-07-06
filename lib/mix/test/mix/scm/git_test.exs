@@ -34,8 +34,8 @@ defmodule Mix.SCM.GitTest do
     assert Mix.SCM.Git.format(Keyword.put(opts, :branch, "b")) ==
              "https://github.com/elixir-lang/some_dep.git - origin/b"
 
-    assert Mix.SCM.Git.format(Keyword.put(opts, :ref, "xx")) ==
-             "https://github.com/elixir-lang/some_dep.git - xx"
+    assert Mix.SCM.Git.format(Keyword.put(opts, :ref, "abcdef")) ==
+             "https://github.com/elixir-lang/some_dep.git - abcdef"
   end
 
   test "raises about conflicting Git checkout options" do
