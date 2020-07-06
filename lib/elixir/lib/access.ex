@@ -7,7 +7,7 @@ defmodule Access do
 
   `Access` supports keyword lists (`Keyword`) and maps (`Map`) out
   of the box. Keywords supports only atoms keys, keys for maps can
-  be of any type. Both returns `nil` if the key does not exist:
+  be of any type. Both return `nil` if the key does not exist:
 
       iex> keywords = [a: 1, b: 2]
       iex> keywords[:a]
@@ -648,7 +648,7 @@ defmodule Access do
       ...> end)
       {"mary", [%{name: "john"}, %{name: "MARY"}]}
 
-  `at/1` can also be used to pop elements out of a list or
+  `at/2` can also be used to pop elements out of a list or
   a key inside of a list:
 
       iex> list = [%{name: "john"}, %{name: "mary"}]
@@ -657,11 +657,17 @@ defmodule Access do
       iex> pop_in(list, [Access.at(0), :name])
       {"john", [%{}, %{name: "mary"}]}
 
-  When the index is out of bounds, `nil` is returned and the update function is never called:
+  When the index is out of bounds, `nil` or your provided default is returned:
 
       iex> list = [%{name: "john"}, %{name: "mary"}]
-      iex> get_in(list, [Access.at(10), :name])
+      iex> get_in(list, [Access.at(10)])
       nil
+      iex> get_in(list, [Access.at(10, :my_default)])
+      :my_default
+
+  When the index is out of bounds, the update function is never called:
+
+      iex> list = [%{name: "john"}, %{name: "mary"}]
       iex> get_and_update_in(list, [Access.at(10), :name], fn prev ->
       ...>   {prev, String.upcase(prev)}
       ...> end)
@@ -670,49 +676,57 @@ defmodule Access do
   An error is raised if the accessed structure is not a list:
 
       iex> get_in(%{}, [Access.at(1)])
-      ** (RuntimeError) Access.at/1 expected a list, got: %{}
+      ** (RuntimeError) Access.at/2 expected a list, got: %{}
 
+  An error is raised if your default value does not implement the `Access`
+  behaviour but you try to access values on it:
+
+      iex> list = [%{name: "john"}]
+      iex> get_in(list, [Access.at(1), :name])
+      nil
+      iex> get_in(list, [Access.at(1, :my_default), :name])
+      ** (FunctionClauseError) no function clause matching in Access.get/3
   """
   @spec at(integer) :: access_fun(data :: list, get_value :: term)
-  def at(index) when is_integer(index) do
-    fn op, data, next -> at(op, data, index, next) end
+  def at(index, default \\ nil) when is_integer(index) do
+    fn op, data, next -> at(op, data, index, default, next) end
   end
 
-  defp at(:get, data, index, next) when is_list(data) do
-    data |> Enum.at(index) |> next.()
+  defp at(:get, data, index, default, next) when is_list(data) do
+    data |> Enum.at(index, default) |> next.()
   end
 
-  defp at(:get_and_update, data, index, next) when is_list(data) do
-    get_and_update_at(data, index, next, [])
+  defp at(:get_and_update, data, index, default, next) when is_list(data) do
+    get_and_update_at(data, index, default, next, [])
   end
 
-  defp at(_op, data, _index, _next) do
-    raise "Access.at/1 expected a list, got: #{inspect(data)}"
+  defp at(_op, data, _index, _default, _next) do
+    raise "Access.at/2 expected a list, got: #{inspect(data)}"
   end
 
-  defp get_and_update_at([head | rest], 0, next, updates) do
+  defp get_and_update_at([head | rest], 0, _default, next, updates) do
     case next.(head) do
       {get, update} -> {get, :lists.reverse([update | updates], rest)}
       :pop -> {head, :lists.reverse(updates, rest)}
     end
   end
 
-  defp get_and_update_at([_ | _] = list, index, next, updates) when index < 0 do
+  defp get_and_update_at([_ | _] = list, index, default, next, updates) when index < 0 do
     list_length = length(list)
 
     if list_length + index >= 0 do
-      get_and_update_at(list, list_length + index, next, updates)
+      get_and_update_at(list, list_length + index, default, next, updates)
     else
-      {nil, list}
+      {default, list}
     end
   end
 
-  defp get_and_update_at([head | rest], index, next, updates) when index > 0 do
-    get_and_update_at(rest, index - 1, next, [head | updates])
+  defp get_and_update_at([head | rest], index, default, next, updates) when index > 0 do
+    get_and_update_at(rest, index - 1, default, next, [head | updates])
   end
 
-  defp get_and_update_at([], _index, _next, updates) do
-    {nil, :lists.reverse(updates)}
+  defp get_and_update_at([], _index, default, _next, updates) do
+    {default, :lists.reverse(updates)}
   end
 
   @doc ~S"""

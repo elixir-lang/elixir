@@ -135,15 +135,28 @@ defmodule AccessTest do
     end
   end
 
-  describe "at/1" do
+  describe "at/2" do
     @test_list [1, 2, 3, 4, 5, 6]
+
+    test "returns element from the beginning if index is non-negative" do
+      assert get_in(@test_list, [Access.at(0)]) == 1
+      assert get_in(@test_list, [Access.at(1)]) == 2
+    end
 
     test "returns element from the end if index is negative" do
       assert get_in(@test_list, [Access.at(-2)]) == 5
     end
 
-    test "returns nil if index is out of bounds counting from the end" do
+    test "returns nil by default if index is out of bounds counting from the beginning" do
+      assert get_in(@test_list, [Access.at(10)]) == nil
+    end
+
+    test "returns nil by default if index is out of bounds counting from the end" do
       assert get_in(@test_list, [Access.at(-10)]) == nil
+    end
+
+    test "returns any provided default instead of nil when index is out of bounds" do
+      assert get_in(@test_list, [Access.at(10, :my_default)]) == :my_default
     end
 
     test "updates the element counting from the end if index is negative" do
@@ -152,10 +165,16 @@ defmodule AccessTest do
              end) == {5, [1, 2, 3, 4, :foo, 6]}
     end
 
-    test "returns nil and does not update if index is out of bounds" do
+    test "returns nil by default and does not update if index is out of bounds" do
       assert get_and_update_in(@test_list, [Access.at(-10)], fn prev ->
                {prev, :foo}
              end) == {nil, [1, 2, 3, 4, 5, 6]}
+    end
+
+    test "returns any provided default and does not update if index is out of bounds" do
+      assert get_and_update_in(@test_list, [Access.at(10, :my_default)], fn prev ->
+               {prev, :foo}
+             end) == {:my_default, [1, 2, 3, 4, 5, 6]}
     end
   end
 end
