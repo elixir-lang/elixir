@@ -19,6 +19,20 @@ defmodule Module.TypesTest do
     end
   end
 
+  defmacrop quoted_fun(patterns, guards \\ [true], body) do
+    quote do
+      {patterns, guards, body} = unquote(Macro.escape(expand_expr(patterns, guards, body)))
+
+      with {:ok, _types, context} <- Types.of_head(patterns, guards, def_expr(), new_context()),
+           {:ok, type, context} <- Types.of_body(body, context) do
+        {:ok, Types.lift_type(type, context)}
+      else
+        {:error, {Types, reason, location}} ->
+          {:error, {reason, location}}
+      end
+    end
+  end
+
   defp expand_head(patterns, guards) do
     {_, vars} =
       Macro.prewalk(patterns, [], fn
@@ -40,6 +54,17 @@ defmodule Module.TypesTest do
     {ast, _env} = :elixir_expand.expand(fun, __ENV__)
     {:fn, _, [{:->, _, [[{:when, _, [patterns, guards]}], _]}]} = ast
     {patterns, guards}
+  end
+
+  defp expand_expr(patterns, guards, body) do
+    fun =
+      quote do
+        fn unquote(patterns) when unquote(guards) -> unquote(body) end
+      end
+
+    {ast, _env} = :elixir_expand.expand(fun, __ENV__)
+    {:fn, _, [{:->, _, [[{:when, _, [patterns, guards]}], body]}]} = ast
+    {patterns, guards, body}
   end
 
   defp new_context() do
@@ -246,6 +271,12 @@ defmodule Module.TypesTest do
 
       assert {:error, {{:unable_unify, :atom, :integer, _}, _}} =
                quoted_head([%var{}], [is_integer(var)])
+    end
+  end
+
+  describe "of_body/2" do
+    test "not is_struct/2" do
+      assert quoted_fun([var], [not is_struct(var, URI)], var.name) == {:ok, {:var, 0}}
     end
   end
 
