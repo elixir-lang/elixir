@@ -236,6 +236,9 @@ unless File.dir?(target) do
     System.cmd("git", ~w[init])
     System.cmd("git", ~w[add .])
     System.cmd("git", ~w[commit -m "bad"])
+    System.cmd("git", ~w[checkout -q -b main])
+    System.cmd("git", ~w[symbolic-ref HEAD refs/heads/main])
+    System.cmd("git", ~w[branch -d master])
   end)
 
   File.write!(Path.join(target, "mix.exs"), """
