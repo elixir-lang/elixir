@@ -22,6 +22,22 @@ defmodule Mix.SCM.GitTest do
     assert Mix.SCM.Git.equal?([git: "foo", lock: 1], git: "foo", lock: 2)
   end
 
+  test "get and update should display git checkout options along the url" do
+    opts = [git: "https://github.com/elixir-lang/some_dep.git"]
+
+    assert Mix.SCM.Git.format(opts) ==
+             "https://github.com/elixir-lang/some_dep.git - origin/master"
+
+    assert Mix.SCM.Git.format(Keyword.put(opts, :tag, "v1")) ==
+             "https://github.com/elixir-lang/some_dep.git - v1"
+
+    assert Mix.SCM.Git.format(Keyword.put(opts, :branch, "b")) ==
+             "https://github.com/elixir-lang/some_dep.git - origin/b"
+
+    assert Mix.SCM.Git.format(Keyword.put(opts, :ref, "abcdef")) ==
+             "https://github.com/elixir-lang/some_dep.git - abcdef"
+  end
+
   test "raises about conflicting Git checkout options" do
     assert_raise Mix.Error, ~r/You should specify only one of branch, ref or tag/, fn ->
       Mix.SCM.Git.accepts_options(nil, git: "/repo", branch: "master", tag: "0.1.0")

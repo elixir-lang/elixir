@@ -7,7 +7,7 @@ defmodule Mix.SCM.Git do
   end
 
   def format(opts) do
-    opts[:git]
+    "#{opts[:git]} - #{get_opts_rev(opts)}"
   end
 
   def format_lock(opts) do
