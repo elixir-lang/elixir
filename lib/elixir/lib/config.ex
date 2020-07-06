@@ -13,7 +13,7 @@ defmodule Config do
         key1: "value1",
         key2: "value2"
 
-      import_config "#{Mix.env()}.exs"
+      import_config "#{config_env()}.exs"
 
   `import Config` will import the functions `config/2`, `config/3`
   and `import_config/1` to help you manage your configuration.
@@ -26,9 +26,9 @@ defmodule Config do
 
       "value1" = Application.fetch_env!(:some_app, :key1)
 
-  Finally, the line `import_config "#{Mix.env()}.exs"` will import other
-  config files, based on the current Mix environment, such as
-  `config/dev.exs` and `config/test.exs`.
+  Finally, the line `import_config "#{config_env()}.exs"` will import
+  other config files based on the current configuration environment,
+  such as `config/dev.exs` and `config/test.exs`.
 
   `Config` also provides a low-level API for evaluating and reading
   configuration, under the `Config.Reader` module.
@@ -43,7 +43,7 @@ defmodule Config do
   The `Config` module in Elixir was introduced in v1.9 as a replacement to
   `Mix.Config`, which was specific to Mix and has been deprecated.
 
-  You can leverage `Config` instead of `Mix.Config` in two steps. The first
+  You can leverage `Config` instead of `Mix.Config` in three steps. The first
   step is to replace `use Mix.Config` at the top of your config files by
   `import Config`.
 
@@ -59,43 +59,30 @@ defmodule Config do
         import_config config
       end
 
-  ## config/releases.exs
+  The last step is to replace all `Mix.env()` calls by `config_env()`.
 
-  If you are using releases, see `mix release`, there is another configuration
-  file called `config/releases.exs`. While `config/config.exs` and friends
-  mentioned in the previous section are executed whenever you run a Mix
-  command, including when you assemble a release, `config/releases.exs` is
-  executed every time your production system boots. Since Mix is not available
-  in a production system, `config/releases.exs` must not use any of the
-  functions from Mix.
+  ## config/runtime.exs
+
+  For runtime configuration, you can use the `config/runtime.exs` file.
+  It is executed after your Mix project is compiled and also before a
+  release (assembled with `mix release`) starts.
   """
 
+  @env_key {__MODULE__, :env}
   @config_key {__MODULE__, :config}
-  @files_key {__MODULE__, :files}
+  @imports_key {__MODULE__, :imports}
 
-  defp get_config!() do
-    Process.get(@config_key) || raise_improper_use!()
-  end
+  defp get_env!(), do: Process.get(@env_key)
+  defp put_env(value), do: Process.put(@env_key, value)
+  defp delete_env(), do: Process.delete(@env_key)
 
-  defp put_config(value) do
-    Process.put(@config_key, value)
-  end
+  defp get_config!(), do: Process.get(@config_key) || raise_improper_use!()
+  defp put_config(value), do: Process.put(@config_key, value)
+  defp delete_config(), do: Process.delete(@config_key)
 
-  defp delete_config() do
-    Process.delete(@config_key)
-  end
-
-  defp get_files!() do
-    Process.get(@files_key) || raise_improper_use!()
-  end
-
-  defp put_files(value) do
-    Process.put(@files_key, value)
-  end
-
-  defp delete_files() do
-    Process.delete(@files_key)
-  end
+  defp get_imports!(), do: Process.get(@imports_key) || raise_improper_use!()
+  defp put_imports(value), do: Process.put(@imports_key, value)
+  defp delete_imports(), do: Process.delete(@imports_key)
 
   defp raise_improper_use!() do
     raise "could not set configuration via Config. " <>
@@ -184,50 +171,94 @@ defmodule Config do
 
   This is often used to emulate configuration across environments:
 
-      import_config "#{Mix.env()}.exs"
+      import_config "#{config_env()}.exs"
 
+  Note, however, some configuration files, such as `config/runtime.exs`
+  does not support imports, as they are meant to be copied across
+  systems.
   """
   @doc since: "1.9.0"
   defmacro import_config(file) do
     quote do
-      Config.__import__!(Path.expand(unquote(file), __DIR__))
+      Config.__import__!(Path.expand(unquote(file), __DIR__), true)
       :ok
     end
   end
 
-  @doc false
-  @spec __import__!(Path.t()) :: {term, Code.binding()}
-  def __import__!(file) when is_binary(file) do
-    current_files = get_files!()
+  @doc """
+  Returns the environemnt this configuration file is executed on.
 
-    if file in current_files do
-      raise ArgumentError,
-            "attempting to load configuration #{Path.relative_to_cwd(file)} recursively"
+  This is most often used to execute conditional code:
+
+      if config_env() == :prod do
+        config :my_app, :debug, false
+      end
+
+  """
+  @doc since: "1.11.0"
+  defmacro config_env() do
+    quote do
+      Config.__env__!()
+    end
+  end
+
+  @doc false
+  @spec __env__!() :: atom()
+  def __env__!() do
+    get_env!() || raise "no :env key was given to this configuration file"
+  end
+
+  @doc false
+  @spec __import__!(Path.t(), boolean()) :: {term, Code.binding()}
+  def __import__!(file, raise_when_disabled?) when is_binary(file) do
+    current_imports = get_imports!()
+
+    cond do
+      current_imports == :disabled ->
+        if raise_when_disabled? do
+          raise "import_config/1 is not enabled for this configuration file. " <>
+                  "Some configuration files do not allow importing other files " <>
+                  "as they are often copied to external systems"
+        end
+
+      file in current_imports ->
+        raise ArgumentError,
+              "attempting to load configuration #{Path.relative_to_cwd(file)} recursively"
+
+      true ->
+        put_imports([file | current_imports])
+        :ok
     end
 
-    put_files([file | current_files])
+    # TODO: Emit a warning if Mix.env() is found in said files in Elixir v1.15.
+    # Note this won't be a deprecation warning as it will always be emitted.
     Code.eval_file(file)
   end
 
   @doc false
-  @spec __eval__!(Path.t(), [Path.t()]) :: {keyword, [Path.t()]}
-  def __eval__!(file, imported_paths \\ []) when is_binary(file) and is_list(imported_paths) do
+  @spec __eval__!(Path.t(), keyword) :: {keyword, [Path.t()] | :disabled}
+  def __eval__!(file, opts \\ []) when is_binary(file) and is_list(opts) do
+    env = Keyword.get(opts, :env)
+    imports = Keyword.get(opts, :imports, [])
+
+    previous_env = put_env(env)
     previous_config = put_config([])
-    previous_files = put_files(imported_paths)
+    previous_imports = put_imports(imports)
 
     try do
-      {eval_config, _} = __import__!(Path.expand(file))
+      {eval_config, _} = __import__!(Path.expand(file), false)
 
       case get_config!() do
         [] when is_list(eval_config) ->
-          {validate!(eval_config, file), get_files!()}
+          {validate!(eval_config, file), get_imports!()}
 
         pdict_config ->
-          {pdict_config, get_files!()}
+          {pdict_config, get_imports!()}
       end
     after
+      if previous_env, do: put_env(previous_env), else: delete_env()
       if previous_config, do: put_config(previous_config), else: delete_config()
-      if previous_files, do: put_files(previous_files), else: delete_files()
+      if previous_imports, do: put_imports(previous_imports), else: delete_imports()
     end
   end
 

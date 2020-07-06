@@ -312,7 +312,7 @@ defmodule Mix.Tasks.Escript.Build do
   defp gen_main(project, name, module, app, language) do
     config =
       if File.regular?(project[:config_path]) do
-        config = Config.Reader.read!(project[:config_path])
+        config = Config.Reader.read!(project[:config_path], env: Mix.env())
         Macro.escape(config)
       else
         []

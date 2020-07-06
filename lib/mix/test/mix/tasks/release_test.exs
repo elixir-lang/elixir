@@ -359,9 +359,14 @@ defmodule Mix.Tasks.ReleaseTest do
       config = [releases: [runtime_config: []]]
 
       Mix.Project.in_project(:release_test, ".", config, fn _ ->
-        File.write!("config/releases.exs", """
+        File.write!("config/runtime.exs", """
         import Config
-        config :release_test, :runtime, :was_set
+
+        if System.get_env("RELEASE_MODE") == nil do
+          raise "file should not be loaded while assembling release"
+        end
+
+        config :release_test, :runtime, {:was_set, config_env()}
         config :release_test, :encoding, {:runtime, :time_μs, :"£", "£", '£'}
         """)
 
@@ -372,7 +377,7 @@ defmodule Mix.Tasks.ReleaseTest do
         assert_received {:mix_shell, :info, ["* assembling runtime_config-0.1.0 on MIX_ENV=dev"]}
 
         assert_received {:mix_shell, :info,
-                         ["* using config/releases.exs to configure the release at runtime"]}
+                         ["* using config/runtime.exs to configure the release at runtime"]}
 
         # Assert structure
         assert root
@@ -396,7 +401,7 @@ defmodule Mix.Tasks.ReleaseTest do
                  release_mode: "embedded",
                  release_node: "runtime_config",
                  release_vsn: "0.1.0",
-                 runtime_config: {:ok, :was_set},
+                 runtime_config: {:ok, {:was_set, :dev}},
                  static_config: {:ok, :was_set},
                  sys_config_env: sys_config_env,
                  sys_config_init: sys_config_init
@@ -499,7 +504,7 @@ defmodule Mix.Tasks.ReleaseTest do
       File.mkdir_p!("different_config")
       File.cp!("config/config.exs", "different_config/config.exs")
 
-      File.write!("different_config/releases.exs", """
+      File.write!("different_config/runtime.exs", """
       import Config
       config :release_test, :static, String.to_atom(System.get_env("RELEASE_STATIC"))
       """)
@@ -538,7 +543,7 @@ defmodule Mix.Tasks.ReleaseTest do
       Mix.Project.in_project(:release_test, ".", config, fn _ ->
         Mix.Task.run("loadconfig", [])
 
-        File.write!("config/releases.exs", """
+        File.write!("config/runtime.exs", """
         import Config
         config :release_test, :static, String.to_atom(System.get_env("RELEASE_STATIC"))
         """)
@@ -567,8 +572,8 @@ defmodule Mix.Tasks.ReleaseTest do
       Mix.Project.in_project(:release_test, ".", config, fn _ ->
         Mix.Task.run("loadconfig", [])
 
-        # For compile env to be validated, we need a config/releases.exs
-        File.write!("config/releases.exs", """
+        # For compile env to be validated, we need a config/runtime.exs
+        File.write!("config/runtime.exs", """
         import Config
         """)
 
@@ -597,7 +602,7 @@ defmodule Mix.Tasks.ReleaseTest do
       config = [releases: [eval: [include_erts: false, cookie: "abcdefghij"]]]
 
       Mix.Project.in_project(:release_test, ".", config, fn _ ->
-        File.write!("config/releases.exs", """
+        File.write!("config/runtime.exs", """
         import Config
         config :release_test, :runtime, :was_set
         """)

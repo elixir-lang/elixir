@@ -7,9 +7,10 @@ defmodule ConfigTest do
   import Config
   import PathHelpers
 
-  setup do
+  setup config do
+    Process.put({Config, :env}, config[:env])
     Process.put({Config, :config}, [])
-    Process.put({Config, :files}, [])
+    Process.put({Config, :imports}, config[:imports] || [])
     :ok
   end
 
@@ -18,7 +19,7 @@ defmodule ConfigTest do
   end
 
   defp files do
-    Process.get({Config, :files})
+    Process.get({Config, :imports})
   end
 
   test "config/2" do
@@ -63,10 +64,28 @@ defmodule ConfigTest do
     assert config() == [app: [{Repo, other: :value, key: :other}]]
   end
 
+  @tag env: :dev
+  test "config_env/0" do
+    assert config_env() == :dev
+  end
+
+  test "config_env/0 raises if no env is set" do
+    assert_raise RuntimeError, "no :env key was given to this configuration file", fn ->
+      config_env()
+    end
+  end
+
   test "import_config/1" do
     import_config fixture_path("configs/good_config.exs")
     assert config() == [my_app: [key: :value]]
     assert files() == [fixture_path("configs/good_config.exs")]
+  end
+
+  @tag imports: :disabled
+  test "import_config/1 raises when disabled" do
+    assert_raise RuntimeError,
+                 ~r"import_config/1 is not enabled for this configuration file",
+                 fn -> import_config "whatever" end
   end
 
   test "import_config/1 raises for recursive import" do

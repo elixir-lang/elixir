@@ -285,7 +285,7 @@ Mix also includes a new task, `mix test.coverage`, which generates aggregated co
 
 ### Mix
 
-  * [mix release] `runtime_config_path` is deprecated in favor of `releases_config_path`
+  * [mix release] `config/releases.exs` is deprecated in favor of a more general purpose `config/runtime.exs`
 
 ### 4. Hard-deprecations
 
