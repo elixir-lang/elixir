@@ -26,16 +26,16 @@ defmodule Mix.SCM.GitTest do
     opts = [git: "https://github.com/elixir-lang/some_dep.git"]
 
     assert Mix.SCM.Git.format(opts) ==
-             "https://github.com/elixir-lang/some_dep.git (origin/master)"
+             "https://github.com/elixir-lang/some_dep.git - origin/master"
 
     assert Mix.SCM.Git.format(Keyword.put(opts, :tag, "v1")) ==
-             "https://github.com/elixir-lang/some_dep.git (v1)"
+             "https://github.com/elixir-lang/some_dep.git - v1"
 
     assert Mix.SCM.Git.format(Keyword.put(opts, :branch, "b")) ==
-             "https://github.com/elixir-lang/some_dep.git (origin/b)"
+             "https://github.com/elixir-lang/some_dep.git - origin/b"
 
     assert Mix.SCM.Git.format(Keyword.put(opts, :ref, "xx")) ==
-             "https://github.com/elixir-lang/some_dep.git (xx)"
+             "https://github.com/elixir-lang/some_dep.git - xx"
   end
 
   test "raises about conflicting Git checkout options" do
