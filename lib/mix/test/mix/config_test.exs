@@ -8,7 +8,7 @@ defmodule Mix.ConfigTest do
 
   setup do
     Process.put({Config, :config}, [])
-    Process.put({Config, :files}, [])
+    Process.put({Config, :imports}, [])
     :ok
   end
 
@@ -17,7 +17,7 @@ defmodule Mix.ConfigTest do
   end
 
   defp files do
-    Process.get({Config, :files})
+    Process.get({Config, :imports})
   end
 
   test "config/2" do

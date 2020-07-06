@@ -598,32 +598,35 @@ defmodule Mix.Tasks.Release do
   ### Runtime configuration
 
   To enable runtime configuration in your release, all you need to do is
-  to create a file named `config/releases.exs`:
+  to create a file named `config/runtime.exs`:
 
       import Config
       config :my_app, :secret_key, System.fetch_env!("MY_APP_SECRET_KEY")
 
-  Your `config/releases.exs` file needs to follow three important rules:
+  This file will be executed whenever your Mix project or your release
+  starts.
+
+  Your `config/runtime.exs` file needs to follow three important rules:
 
     * It MUST `import Config` at the top instead of the deprecated `use Mix.Config`
     * It MUST NOT import any other configuration file via `import_config`
-    * It MUST NOT access `Mix` in any way, as `Mix` is a build tool and it not
-      available inside releases
+    * It MUST NOT access `Mix` in any way, as `Mix` is a build tool and
+      it is not available inside releases
 
-  If a `config/releases.exs` exists, it will be copied to your release
+  If a `config/runtime.exs` exists, it will be copied to your release
   and executed early in the boot process, when only Elixir and Erlang's
   main applications have been started. Once the configuration is loaded,
   the Erlang system will be restarted (within the same Operating System
   process) and the new configuration will take place.
 
   You can change the path to the runtime configuration file by setting
-  `:releases_config_path` inside each release configuration. This path is
+  `:runtime_config_path` inside each release configuration. This path is
   resolved at build time as the given configuration file is always copied
   to inside the release:
 
       releases: [
         demo: [
-          releases_config_path: ...
+          runtime_config_path: ...
         ]
       ]
 
@@ -681,9 +684,11 @@ defmodule Mix.Tasks.Release do
       application configuration, which are executed when the release is
       assembled
 
-    * `config/releases.exs` - provides runtime application configuration.
-      It is executed every time the release boots and is further extensible
-      via config providers
+    * `config/runtime.exs` - provides runtime application configuration.
+      It is executed every time your Mix project or your release boots
+      and is further extensible via config providers. If you want to
+      detect you are inside a release, you can check for release specific
+      environment variables, such as `RELEASE_NODE` or `RELEASE_MODE`
 
     * `rel/vm.args.eex` - a template file that is copied into every release
       and provides static configuration of the Erlang Virtual Machine and
@@ -714,7 +719,7 @@ defmodule Mix.Tasks.Release do
           env.sh
           iex
           iex.bat
-          releases.exs
+          runtime.exs
           start.boot
           start.script
           start_clean.boot
@@ -1155,7 +1160,7 @@ defmodule Mix.Tasks.Release do
 
     sys_config =
       if File.regular?(config[:config_path]) do
-        config[:config_path] |> Config.Reader.read!()
+        config[:config_path] |> Config.Reader.read!(env: Mix.env())
       else
         []
       end
@@ -1180,20 +1185,20 @@ defmodule Mix.Tasks.Release do
   end
 
   defp maybe_add_config_reader_provider(config, %{options: opts} = release, version_path) do
-    default_path = config[:config_path] |> Path.dirname() |> Path.join("releases.exs")
+    default_path = config[:config_path] |> Path.dirname() |> Path.join("runtime.exs")
+    deprecated_path = config[:config_path] |> Path.dirname() |> Path.join("releases.exs")
 
     path =
       cond do
-        path = opts[:releases_config_path] ->
-          path
-
         path = opts[:runtime_config_path] ->
-          # TODO: Deprecate on v1.14
-          # IO.warn("runtime_config_path is deprecated, please use releases_config_path instead")
           path
 
         File.exists?(default_path) ->
           default_path
+
+        File.exists?(deprecated_path) ->
+          # TODO: Warn from Elixir v1.13 onwards
+          deprecated_path
 
         true ->
           nil
@@ -1203,9 +1208,10 @@ defmodule Mix.Tasks.Release do
       path ->
         msg = "#{path} to configure the release at runtime"
         Mix.shell().info([:green, "* using ", :reset, msg])
-        File.cp!(path, Path.join(version_path, "releases.exs"))
-        init = {:system, "RELEASE_ROOT", "/releases/#{release.version}/releases.exs"}
-        update_in(release.config_providers, &[{Config.Reader, init} | &1])
+        File.cp!(path, Path.join(version_path, "runtime.exs"))
+        init = {:system, "RELEASE_ROOT", "/releases/#{release.version}/runtime.exs"}
+        opts = [path: init, env: Mix.env(), imports: :disabled]
+        update_in(release.config_providers, &[{Config.Reader, opts} | &1])
 
       release.config_providers == [] ->
         skipping("runtime configuration (#{default_path} not found)")

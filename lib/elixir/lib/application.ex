@@ -84,8 +84,8 @@ defmodule Application do
 
   This approach has one big limitation: if you change the value of the
   application environment after the code is compiled, the value used at
-  runtime is not going to change! For example, if you are using `mix release`
-  and your `config/releases.exs` has:
+  runtime is not going to change! For example, if your `config/runtime.exs`
+  has:
 
       config :my_app, :db_host, "db.production"
 

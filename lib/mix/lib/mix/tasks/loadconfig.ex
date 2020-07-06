@@ -34,7 +34,7 @@ defmodule Mix.Tasks.Loadconfig do
   end
 
   def load([file]) do
-    {config, files} = Config.Reader.read_imports!(file)
+    {config, files} = Config.Reader.read_imports!(file, env: Mix.env())
     Application.put_all_env(config, persistent: true)
     Mix.ProjectStack.loaded_config(Keyword.keys(config), files)
     config

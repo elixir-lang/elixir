@@ -18,8 +18,18 @@ defmodule Config.Reader do
 
       config_provider: [{Config.Reader, {:system, "RELEASE_ROOT", "/config.exs"}}]
 
+  You can also pass a keyword list of options to the reader,
+  where the `:path` is a required key:
+
+      config_providers: [
+        {Config.Reader,
+         path: "/etc/config.exs",
+         env: :prod,
+         imports: :disabled}
+      ]
+
   Note by default Mix releases supports runtime configuration via
-  a `config/releases.exs`. If a `config/releases.exs` exists in your
+  a `config/runtime.exs`. If a `config/runtime.exs` exists in your
   application, it is automatically copied inside the release and
   automatically set as a config provider.
   """
@@ -27,49 +37,54 @@ defmodule Config.Reader do
   @behaviour Config.Provider
 
   @impl true
-  def init(path) do
+  def init(opts) when is_list(opts) do
+    {path, opts} = Keyword.pop!(opts, :path)
     Config.Provider.validate_config_path!(path)
-    path
+    {path, opts}
+  end
+
+  def init(path) do
+    init(path: path)
   end
 
   @impl true
-  def load(config, path) do
-    merge(config, path |> Config.Provider.resolve_config_path!() |> read!())
+  def load(config, {path, opts}) do
+    merge(config, path |> Config.Provider.resolve_config_path!() |> read!(opts))
   end
 
   @doc """
   Reads the configuration file.
 
-  The same as `read_imports!/2` but only returns the configuration
-  in the given file, without returning the imported paths.
+  ## Options
 
-  It exists for convenience purposes. For example, you could
-  invoke it inside your `mix.exs` to read some external data
-  you decided to move to a configuration file:
+    * `:imports` - a list of already imported paths or `:disabled`
+      to disable imports
 
-      releases: Config.Reader.read!("rel/releases.exs")
+    * `:env` - the environment the configuration file runs on.
+      See `Config.config_env/0` for sample usage
 
   """
   @doc since: "1.9.0"
-  @spec read!(Path.t(), [Path.t()]) :: keyword
-  def read!(file, imported_paths \\ [])
-      when is_binary(file) and is_list(imported_paths) do
-    Config.__eval__!(file, imported_paths) |> elem(0)
+  @spec read!(Path.t(), keyword) :: keyword
+  def read!(file, opts \\ []) when is_binary(file) and is_list(opts) do
+    Config.__eval__!(file, opts) |> elem(0)
   end
 
   @doc """
-  Reads the given configuration file alongside its imports.
+  Reads the given configuration file and returns the configuration
+  with its imports.
 
-  It accepts a list of `imported_paths` that should raise if attempted
-  to be imported again (to avoid recursive imports).
-
-  It returns a tuple with the configuration and the imported paths.
+  See `read!/2` for the list of options. Although note the `:imports`
+  option cannot be disabled in `read_imports!/2`.
   """
   @doc since: "1.9.0"
-  @spec read_imports!(Path.t(), [Path.t()]) :: {keyword, [Path.t()]}
-  def read_imports!(file, imported_paths \\ [])
-      when is_binary(file) and is_list(imported_paths) do
-    Config.__eval__!(file, imported_paths)
+  @spec read_imports!(Path.t(), keyword) :: {keyword, [Path.t()]}
+  def read_imports!(file, opts \\ []) when is_binary(file) and is_list(opts) do
+    if opts[:imports] == :disabled do
+      raise ArgumentError, ":imports must be a list of paths"
+    end
+
+    Config.__eval__!(file, opts)
   end
 
   @doc """
