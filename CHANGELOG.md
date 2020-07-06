@@ -32,7 +32,7 @@ This new compiler check makes sure that all modules that you invoke are listed a
       2. If :ssl is a dependency, make sure it is listed under "def deps"
          in your mix.exs
 
-      3. In case you don't want to add a requirement to :sll, you may
+      3. In case you don't want to add a requirement to :ssl, you may
          optionally skip this warning by adding [xref: [exclude: :ssl]
          to your "def project" in mix.exs
 
