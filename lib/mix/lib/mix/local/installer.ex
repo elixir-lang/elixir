@@ -193,7 +193,7 @@ defmodule Mix.Local.Installer do
   end
 
   def parse_args(["git", url], opts) do
-    parse_args(["git", url, "branch", "master"], opts)
+    git_fetcher(url, [], opts)
   end
 
   def parse_args(["git", url, ref_type, ref], opts) do
@@ -202,16 +202,7 @@ defmodule Mix.Local.Installer do
         {:error, error}
 
       git_config ->
-        git_opts = git_config ++ [git: url, submodules: opts[:submodules]]
-
-        app_name =
-          if opts[:app] do
-            opts[:app]
-          else
-            "new package"
-          end
-
-        {:fetcher, {String.to_atom(app_name), git_opts}}
+        git_fetcher(url, git_config, opts)
     end
   end
 
@@ -251,6 +242,19 @@ defmodule Mix.Local.Installer do
     else
       repo
     end
+  end
+
+  defp git_fetcher(url, git_config, opts) do
+    git_opts = git_config ++ [git: url, submodules: opts[:submodules]]
+
+    app_name =
+      if opts[:app] do
+        opts[:app]
+      else
+        "new package"
+      end
+
+    {:fetcher, {String.to_atom(app_name), git_opts}}
   end
 
   defp ref_to_config("branch", branch), do: [branch: branch]

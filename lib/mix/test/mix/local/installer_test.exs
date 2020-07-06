@@ -30,7 +30,7 @@ defmodule Mix.Local.InstallerTest do
 
   test "parse_args Git" do
     args = ["git", "https://example.com/user/repo.git"]
-    opts = [branch: "master", git: "https://example.com/user/repo.git", submodules: nil]
+    opts = [git: "https://example.com/user/repo.git", submodules: nil]
 
     assert Mix.Local.Installer.parse_args(args, []) == {:fetcher, {:"new package", opts}}
   end
@@ -58,7 +58,7 @@ defmodule Mix.Local.InstallerTest do
 
   test "parse_args Git submodules" do
     args = ["git", "https://example.com/user/repo.git"]
-    opts = [branch: "master", git: "https://example.com/user/repo.git", submodules: true]
+    opts = [git: "https://example.com/user/repo.git", submodules: true]
 
     assert Mix.Local.Installer.parse_args(args, submodules: true) ==
              {:fetcher, {:"new package", opts}}
@@ -66,14 +66,14 @@ defmodule Mix.Local.InstallerTest do
 
   test "parse_args Git app" do
     args = ["git", "https://example.com/user/repo.git"]
-    opts = [branch: "master", git: "https://example.com/user/repo.git", submodules: nil]
+    opts = [git: "https://example.com/user/repo.git", submodules: nil]
 
     assert Mix.Local.Installer.parse_args(args, app: "my_app") == {:fetcher, {:my_app, opts}}
   end
 
   test "parse_args GitHub" do
     args = ["github", "user/repo"]
-    opts = [branch: "master", git: "https://github.com/user/repo.git", submodules: nil]
+    opts = [git: "https://github.com/user/repo.git", submodules: nil]
 
     assert Mix.Local.Installer.parse_args(args, []) == {:fetcher, {:"new package", opts}}
   end
