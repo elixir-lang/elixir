@@ -1,0 +1,32 @@
+# MD005 Inconsistent indentation for list items at the same level
+MD005: false
+
+# MD006 Consider starting bulleted lists at the beginning of the line
+MD006: false
+
+# MD007/ul-indent Unordered list indentation
+MD007: false
+
+# MD013 Line length
+MD013: false
+
+# MD024 Multiple headers with the same content
+MD024: false
+
+# MD026/no-trailing-punctuation Trailing punctuation in heading
+MD026: false
+
+# MD029 Ordered list item prefix
+MD029: false
+
+# MD033 Inline HTML
+MD033: false
+
+# MD038 Spaces inside code span elements
+MD038: false
+
+# MD040/fenced-code-language Fenced code blocks should have a language specified
+MD040: false
+
+# MD046 Code block style
+MD046: false

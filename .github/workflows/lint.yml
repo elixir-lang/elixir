@@ -1,0 +1,15 @@
+name: Lint Markdown
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: '12.x'
+      - run: npm install -g markdownlint-cli@0.23.2
+      - run: markdownlint '**/*.md' --ignore node_modules
