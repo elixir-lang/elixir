@@ -26,7 +26,7 @@ defmodule Mix.SCM.GitTest do
     opts = [git: "https://github.com/elixir-lang/some_dep.git"]
 
     assert Mix.SCM.Git.format(opts) ==
-             "https://github.com/elixir-lang/some_dep.git - origin/master"
+             "https://github.com/elixir-lang/some_dep.git"
 
     assert Mix.SCM.Git.format(Keyword.put(opts, :tag, "v1")) ==
              "https://github.com/elixir-lang/some_dep.git - v1"
