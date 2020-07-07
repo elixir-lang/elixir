@@ -206,7 +206,7 @@ Mix also includes a new task, `mix test.coverage`, which generates aggregated co
   * [Code] Add `:column` to `Code.string_to_quoted*/2`
   * [Code] Add `Code.can_await_module_compilation?/0` to check if the parallel compiler is enabled and it can await for other modules to be compiled
   * [Config] Support `config_env/0` in `config` files
-  * [Config] Allow `import_config` to be disable for some configuration files
+  * [Config] Allow `import_config` to be disabled for some configuration files
   * [Enum] Allow a sorting function on `Enum.min_max_by/3,4`, including the new `compare/2` conventions
   * [Kernel] Add `is_struct/2` guard
   * [Kernel] Support `map.field` syntax in guards
