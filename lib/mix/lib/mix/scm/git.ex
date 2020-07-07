@@ -12,6 +12,7 @@ defmodule Mix.SCM.Git do
     else
       opts[:git]
     end
+    |> redact_git_url
   end
 
   def format_lock(opts) do
@@ -229,6 +230,16 @@ defmodule Mix.SCM.Git do
       "origin/#{branch}"
     else
       opts[:ref] || opts[:tag]
+    end
+  end
+
+  defp redact_git_url(url) do
+    cond do
+      String.match?(url, ~r'https://[^:]+:[^:@]+@.+'i) ->
+        String.replace(url, ~r'https://[^:]+:[^:@]+(?=@.+)'i, "https://****:****")
+
+      true ->
+        url
     end
   end
 
