@@ -596,6 +596,14 @@ defmodule Mix.ReleaseTest do
       assert File.read!(Path.join(destination, "bin/erl")) =~
                ~s|ROOTDIR="$(dirname "$(dirname "$BINDIR")")"|
 
+      mode =
+        File.lstat!(Path.join(destination, "bin/erl")).mode
+        |> Integer.digits(8)
+        |> Enum.drop(3)
+        |> Integer.undigits()
+
+      assert mode == 755
+
       refute File.exists?(Path.join(destination, "bin/erl.ini"))
       refute File.exists?(Path.join(destination, "doc"))
 
