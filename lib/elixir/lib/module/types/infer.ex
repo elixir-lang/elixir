@@ -32,11 +32,23 @@ defmodule Module.Types.Infer do
   end
 
   defp do_unify(type, {:var, var}, stack, context) do
-    unify_var(var, type, stack, context, _var_source = false)
+    case Map.fetch!(context.types, var) do
+      {:var, var_type} ->
+        do_unify(type, {:var, var_type}, stack, context)
+
+      _other ->
+        unify_var(var, type, stack, context, _var_source = false)
+    end
   end
 
   defp do_unify({:var, var}, type, stack, context) do
-    unify_var(var, type, stack, context, _var_source = true)
+    case Map.fetch!(context.types, var) do
+      {:var, var_type} ->
+        do_unify({:var, var_type}, type, stack, context)
+
+      _other ->
+        unify_var(var, type, stack, context, _var_source = true)
+    end
   end
 
   defp do_unify({:tuple, sources}, {:tuple, targets}, stack, context)
