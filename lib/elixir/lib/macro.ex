@@ -232,6 +232,10 @@ defmodule Macro do
     unpipe(right, unpipe(left, acc))
   end
 
+  defp unpipe({:&, _, [{:/, _, [func, 1]}]}, acc) do
+    [{func, 0} | acc]
+  end
+
   defp unpipe(other, acc) do
     [{other, 0} | acc]
   end

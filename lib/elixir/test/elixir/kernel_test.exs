@@ -1058,6 +1058,14 @@ defmodule KernelTest do
       assert Enum.map([1, 2, 3], &(&1 |> twice |> twice)) == [4, 8, 12]
     end
 
+    test "function capture" do
+      # We need to split this as `==` bounds stronger than `&foo/1` which was
+      # causing problems
+      pipe = [1, [2], 3] |> (&List.flatten/1)
+
+      assert pipe == [1, 2, 3]
+    end
+
     test "with anonymous functions" do
       assert 1 |> (&(&1 * 2)).() == 2
       assert [1] |> (&hd(&1)).() == 1
