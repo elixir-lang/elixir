@@ -39,10 +39,15 @@ defmodule Mix.SCM.GitTest do
   end
 
   test "redacts username password from urls" do
-    opts = [git: "https://username:password@github.com/elixir-lang/some_dep.git"]
+    url = "https://username:password@github.com/elixir-lang/some_dep.git"
+    opts = [git: url]
 
     assert Mix.SCM.Git.format(opts) ==
              "https://****:****@github.com/elixir-lang/some_dep.git"
+
+    assert_raise Mix.Error, ~r/[*]{4}:[*]{4}/, fn ->
+      Mix.SCM.Git.accepts_options(nil, git: url, branch: "master", branch: "develop")
+    end
   end
 
   test "raises about conflicting Git checkout options" do
