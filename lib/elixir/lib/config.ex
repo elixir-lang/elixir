@@ -68,13 +68,13 @@ defmodule Config do
   release (assembled with `mix release`) starts.
   """
 
-  @env_key {__MODULE__, :env}
+  @opts_key {__MODULE__, :opts}
   @config_key {__MODULE__, :config}
   @imports_key {__MODULE__, :imports}
 
-  defp get_env!(), do: Process.get(@env_key)
-  defp put_env(value), do: Process.put(@env_key, value)
-  defp delete_env(), do: Process.delete(@env_key)
+  defp get_opts!(), do: Process.get(@opts_key)
+  defp put_opts(value), do: Process.put(@opts_key, value)
+  defp delete_opts(), do: Process.delete(@opts_key)
 
   defp get_config!(), do: Process.get(@config_key) || raise_improper_use!()
   defp put_config(value), do: Process.put(@config_key, value)
@@ -159,6 +159,52 @@ defmodule Config do
     |> put_config()
   end
 
+  @doc """
+  Returns the environemnt this configuration file is executed on.
+
+  This is most often used to execute conditional code:
+
+      if config_env() == :prod do
+        config :my_app, :debug, false
+      end
+
+  """
+  @doc since: "1.11.0"
+  defmacro config_env() do
+    quote do
+      Config.__env__!()
+    end
+  end
+
+  @doc false
+  @spec __env__!() :: atom()
+  def __env__!() do
+    elem(get_opts!(), 0) || raise "no :env key was given to this configuration file"
+  end
+
+  @doc """
+  Returns the target this configuration file is executed on.
+
+  This is most often used to execute conditional code:
+
+      if config_target() == :host do
+        config :my_app, :debug, false
+      end
+
+  """
+  @doc since: "1.11.0"
+  defmacro config_target() do
+    quote do
+      Config.__target__!()
+    end
+  end
+
+  @doc false
+  @spec __target__!() :: atom()
+  def __target__!() do
+    elem(get_opts!(), 1) || raise "no :target key was given to this configuration file"
+  end
+
   @doc ~S"""
   Imports configuration from the given file.
 
@@ -180,37 +226,46 @@ defmodule Config do
   @doc since: "1.9.0"
   defmacro import_config(file) do
     quote do
-      Config.__import__!(Path.expand(unquote(file), __DIR__), true)
+      Config.__import__!(Path.expand(unquote(file), __DIR__))
       :ok
     end
   end
 
-  @doc """
-  Returns the environemnt this configuration file is executed on.
+  @doc false
+  @spec __import__!(Path.t()) :: {term, Code.binding()}
+  def __import__!(file) when is_binary(file) do
+    import_config!(file, File.read!(file), true)
+  end
 
-  This is most often used to execute conditional code:
+  @doc false
+  @spec __eval__!(Path.t(), binary(), keyword) :: {keyword, [Path.t()] | :disabled}
+  def __eval__!(file, content, opts \\ []) when is_binary(file) and is_list(opts) do
+    env = Keyword.get(opts, :env)
+    target = Keyword.get(opts, :target)
+    imports = Keyword.get(opts, :imports, [])
 
-      if config_env() == :prod do
-        config :my_app, :debug, false
+    previous_opts = put_opts({env, target})
+    previous_config = put_config([])
+    previous_imports = put_imports(imports)
+
+    try do
+      {eval_config, _} = import_config!(file, content, false)
+
+      case get_config!() do
+        [] when is_list(eval_config) ->
+          {validate!(eval_config, file), get_imports!()}
+
+        pdict_config ->
+          {pdict_config, get_imports!()}
       end
-
-  """
-  @doc since: "1.11.0"
-  defmacro config_env() do
-    quote do
-      Config.__env__!()
+    after
+      if previous_opts, do: put_opts(previous_opts), else: delete_opts()
+      if previous_config, do: put_config(previous_config), else: delete_config()
+      if previous_imports, do: put_imports(previous_imports), else: delete_imports()
     end
   end
 
-  @doc false
-  @spec __env__!() :: atom()
-  def __env__!() do
-    get_env!() || raise "no :env key was given to this configuration file"
-  end
-
-  @doc false
-  @spec __import__!(Path.t(), boolean()) :: {term, Code.binding()}
-  def __import__!(file, raise_when_disabled?) when is_binary(file) do
+  defp import_config!(file, contents, raise_when_disabled?) do
     current_imports = get_imports!()
 
     cond do
@@ -232,34 +287,7 @@ defmodule Config do
 
     # TODO: Emit a warning if Mix.env() is found in said files in Elixir v1.15.
     # Note this won't be a deprecation warning as it will always be emitted.
-    Code.eval_file(file)
-  end
-
-  @doc false
-  @spec __eval__!(Path.t(), keyword) :: {keyword, [Path.t()] | :disabled}
-  def __eval__!(file, opts \\ []) when is_binary(file) and is_list(opts) do
-    env = Keyword.get(opts, :env)
-    imports = Keyword.get(opts, :imports, [])
-
-    previous_env = put_env(env)
-    previous_config = put_config([])
-    previous_imports = put_imports(imports)
-
-    try do
-      {eval_config, _} = __import__!(Path.expand(file), false)
-
-      case get_config!() do
-        [] when is_list(eval_config) ->
-          {validate!(eval_config, file), get_imports!()}
-
-        pdict_config ->
-          {pdict_config, get_imports!()}
-      end
-    after
-      if previous_env, do: put_env(previous_env), else: delete_env()
-      if previous_config, do: put_config(previous_config), else: delete_config()
-      if previous_imports, do: put_imports(previous_imports), else: delete_imports()
-    end
+    Code.eval_string(contents, [], file: file)
   end
 
   @doc false

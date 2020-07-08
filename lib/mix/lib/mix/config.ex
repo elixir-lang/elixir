@@ -158,7 +158,7 @@ defmodule Mix.Config do
       end
 
     for path <- paths do
-      Config.__import__!(path, true)
+      Config.__import__!(path)
     end
 
     :ok
@@ -174,9 +174,9 @@ defmodule Mix.Config do
 
   It returns a tuple with the configuration and the imported paths.
   """
-  @doc deprecated: "Use Config.Reader.read!/2 instead"
+  @doc deprecated: "Use Config.Reader.read_imports!/2 instead"
   def eval!(file, imported_paths \\ []) do
-    Config.__eval__!(file, imports: imported_paths)
+    Config.Reader.read_imports!(file, imports: imported_paths)
   end
 
   @doc """
@@ -192,10 +192,10 @@ defmodule Mix.Config do
       subsystem: Mix.Config.read!("rel/subsystem.exs")
 
   """
-  @doc deprecated: "Use Config.Reader.read_imports!/2 instead"
+  @doc deprecated: "Use Config.Reader.read!/2 instead"
   @spec read!(Path.t(), [Path.t()]) :: keyword
   def read!(file, imported_paths \\ []) do
-    Config.__eval__!(file, imports: imported_paths) |> elem(0)
+    Config.Reader.read!(file, imports: imported_paths)
   end
 
   @doc """
