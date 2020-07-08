@@ -20,10 +20,6 @@ test_windows_task:
         OS_VERSION: 2019
         OTP_RELEASE: 22.0
 
-    - env:
-        OS_VERSION: 2019
-        OTP_RELEASE: 21.0.1
-
   windows_container:
     image: fertapric/elixir-ci:otp-win64-${OTP_RELEASE}
     os_version: ${OS_VERSION}
