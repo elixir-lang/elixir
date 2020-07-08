@@ -8,9 +8,9 @@ defmodule Mix.SCM.Git do
 
   def format(opts) do
     if rev = get_opts_rev(opts) do
-      "#{opts[:git]} - #{rev}"
+      "#{redact_uri(opts[:git])} - #{rev}"
     else
-      opts[:git]
+      redact_uri(opts[:git])
     end
   end
 
@@ -186,7 +186,7 @@ defmodule Mix.SCM.Git do
   defp validate_git_options(opts) do
     err =
       "You should specify only one of branch, ref or tag, and only once. " <>
-        "Error on Git dependency: #{opts[:git]}"
+        "Error on Git dependency: #{redact_uri(opts[:git])}"
 
     validate_single_uniq(opts, [:branch, :ref, :tag], err)
   end
@@ -229,6 +229,13 @@ defmodule Mix.SCM.Git do
       "origin/#{branch}"
     else
       opts[:ref] || opts[:tag]
+    end
+  end
+
+  defp redact_uri(git) do
+    case URI.parse(git) do
+      %{userinfo: nil} -> git
+      uri -> URI.to_string(%{uri | userinfo: "****:****"})
     end
   end
 
