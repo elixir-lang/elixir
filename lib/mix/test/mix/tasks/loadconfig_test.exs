@@ -43,7 +43,7 @@ defmodule Mix.Tasks.LoadconfigTest do
 
       File.rm("fresh.config")
 
-      assert_raise Code.LoadError, ~r"could not load .*/fresh\.config", fn ->
+      assert_raise File.Error, ~r"could not read file .*/fresh\.config", fn ->
         Mix.Task.run("loadconfig", [])
       end
     end)

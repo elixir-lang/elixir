@@ -1160,7 +1160,7 @@ defmodule Mix.Tasks.Release do
 
     sys_config =
       if File.regular?(config[:config_path]) do
-        config[:config_path] |> Config.Reader.read!(env: Mix.env())
+        config[:config_path] |> Config.Reader.read!(env: Mix.env(), target: Mix.target())
       else
         []
       end
@@ -1210,7 +1210,7 @@ defmodule Mix.Tasks.Release do
         Mix.shell().info([:green, "* using ", :reset, msg])
         File.cp!(path, Path.join(version_path, "runtime.exs"))
         init = {:system, "RELEASE_ROOT", "/releases/#{release.version}/runtime.exs"}
-        opts = [path: init, env: Mix.env(), imports: :disabled]
+        opts = [path: init, env: Mix.env(), target: Mix.target(), imports: :disabled]
         update_in(release.config_providers, &[{Config.Reader, opts} | &1])
 
       release.config_providers == [] ->

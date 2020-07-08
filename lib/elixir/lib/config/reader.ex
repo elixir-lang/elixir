@@ -63,11 +63,15 @@ defmodule Config.Reader do
     * `:env` - the environment the configuration file runs on.
       See `Config.config_env/0` for sample usage
 
+    * `:target` - the target the configuration file runs on.
+      See `Config.config_target/0` for sample usage
+
   """
   @doc since: "1.9.0"
   @spec read!(Path.t(), keyword) :: keyword
   def read!(file, opts \\ []) when is_binary(file) and is_list(opts) do
-    Config.__eval__!(file, opts) |> elem(0)
+    file = Path.expand(file)
+    Config.__eval__!(file, File.read!(file), opts) |> elem(0)
   end
 
   @doc """
@@ -84,7 +88,8 @@ defmodule Config.Reader do
       raise ArgumentError, ":imports must be a list of paths"
     end
 
-    Config.__eval__!(file, opts)
+    file = Path.expand(file)
+    Config.__eval__!(file, File.read!(file), opts)
   end
 
   @doc """

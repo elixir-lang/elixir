@@ -366,7 +366,7 @@ defmodule Mix.Tasks.ReleaseTest do
           raise "file should not be loaded while assembling release"
         end
 
-        config :release_test, :runtime, {:was_set, config_env()}
+        config :release_test, :runtime, {:was_set, config_env(), config_target()}
         config :release_test, :encoding, {:runtime, :time_μs, :"£", "£", '£'}
         """)
 
@@ -401,7 +401,7 @@ defmodule Mix.Tasks.ReleaseTest do
                  release_mode: "embedded",
                  release_node: "runtime_config",
                  release_vsn: "0.1.0",
-                 runtime_config: {:ok, {:was_set, :dev}},
+                 runtime_config: {:ok, {:was_set, :dev, :host}},
                  static_config: {:ok, :was_set},
                  sys_config_env: sys_config_env,
                  sys_config_init: sys_config_init
