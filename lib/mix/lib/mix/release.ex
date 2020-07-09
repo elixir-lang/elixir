@@ -714,7 +714,7 @@ defmodule Mix.Release do
     exec "$BINDIR/erlexec" ${1+"$@"}
     """)
 
-    File.chmod!(Path.join(destination, "erl"), 0o744)
+    File.chmod!(Path.join(destination, "erl"), 0o755)
     true
   end
 
