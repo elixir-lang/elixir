@@ -805,6 +805,37 @@ defmodule Date do
     calendar.day_of_era(year, month, day)
   end
 
+  @doc """
+  Calculates a date that is the first day of the month for the given `date`.
+
+  ## Examples
+
+      iex> Date.beginning_of_month(~D[2000-01-31])
+      ~D[2000-01-01]
+
+  """
+  @doc since: "1.11.0"
+  @spec beginning_of_month(Calendar.date()) :: t()
+  def beginning_of_month(%{year: year, month: month, calendar: calendar}) do
+    %Date{year: year, month: month, day: 1, calendar: calendar}
+  end
+
+  @doc """
+  Calculates a date that is the last day of the month for the given `date`.
+
+  ## Examples
+
+      iex> Date.end_of_month(~D[2000-01-01])
+      ~D[2000-01-31]
+
+  """
+  @doc since: "1.11.0"
+  @spec end_of_month(Calendar.date()) :: t()
+  def end_of_month(%{year: year, month: month, calendar: calendar} = date) do
+    day = Date.days_in_month(date)
+    %Date{year: year, month: month, day: day, calendar: calendar}
+  end
+
   ## Helpers
 
   defimpl String.Chars do
