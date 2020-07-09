@@ -265,13 +265,15 @@ defmodule Macro do
             "since #{unquote}/1 is used to build the Elixir AST itself"
   end
 
-  # {:fn, _, _} is what we get when we pipe into an anonymous function without
-  # calling it, for example, `:foo |> (fn x -> x end)`.
-  def pipe(expr, {:fn, _, _}, _integer) do
+  def pipe(expr, {:fn, _line, [{:->, _, [args | _]}]}, _integer)
+      when is_list(args) and length(args) > 1 do
     raise ArgumentError,
-          "cannot pipe #{to_string(expr)} into an anonymous function without" <>
-            " calling the function; use something like (fn ... end).() or" <>
-            " define the anonymous function as a regular private function"
+          "cannot pipe #{to_string(expr)} into an anonymous function that expects " <>
+            "#{length(args)}-arity. Anonymous functions in pipes only support 1-arity"
+  end
+
+  def pipe(expr, {:fn, line, args}, integer) when is_list(args) do
+    {:case, line, List.insert_at([[do: args]], integer, expr)}
   end
 
   def pipe(expr, {call, line, atom}, integer) when is_atom(atom) do

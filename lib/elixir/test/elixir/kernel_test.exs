@@ -1061,6 +1061,16 @@ defmodule KernelTest do
     test "with anonymous functions" do
       assert 1 |> (&(&1 * 2)).() == 2
       assert [1] |> (&hd(&1)).() == 1
+
+      pipe = "foobar" |> fn x -> Regex.replace(~r/foo/, x, "baz") end
+      assert pipe == "bazbar"
+
+      message =
+        "cannot pipe 1 into an anonymous function that expects 2-arity. Anonymous functions in pipes only support 1-arity"
+
+      assert_raise ArgumentError, message, fn ->
+        1 |> fn _, _ -> :ok end
+      end
     end
 
     defp twice(a), do: a * 2
