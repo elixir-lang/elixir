@@ -50,15 +50,13 @@ defmodule ExUnit.CaptureServer do
     device = Map.fetch!(config.devices, name)
     {_, output} = StringIO.contents(device.pid)
     total = byte_size(output)
-    offset = Map.fetch!(device.refs, ref)
+    {_pid, offset} = Map.fetch!(device.refs, ref)
     output_size = total - offset
     {:reply, binary_part(output, offset, output_size), config}
   end
 
   def handle_call({:device_capture_off, ref}, _from, config) do
-    Process.demonitor(ref, [:flush])
-    config = release_device(ref, config)
-    {:reply, :ok, config}
+    {:reply, :ok, release_device(ref, config)}
   end
 
   def handle_call({:log_capture_on, pid}, _from, config) do
@@ -85,23 +83,42 @@ defmodule ExUnit.CaptureServer do
     {:noreply, config}
   end
 
-  defp capture_device(name, encoding, input, %{devices: devices} = config, caller)
-       when is_map_key(devices, name) do
-    case Map.fetch!(devices, name) do
+  defp capture_device(name, encoding, input, config, caller) do
+    case config.devices do
+      %{^name => device} ->
+        dead_refs = for {ref, {pid, _}} <- device.refs, not Process.alive?(pid), do: ref
+
+        case dead_refs do
+          [] ->
+            capture_existing_device(name, encoding, input, config, caller)
+
+          _ ->
+            config = Enum.reduce(dead_refs, config, &release_device/2)
+            capture_device(name, encoding, input, config, caller)
+        end
+
+      %{} ->
+        capture_new_device(name, encoding, input, config, caller)
+    end
+  end
+
+  defp capture_existing_device(name, encoding, input, config, caller) do
+    case Map.fetch!(config.devices, name) do
       %{input?: input?} when input? or input != "" ->
         {:reply, {:error, :input_on_already_captured_device}, config}
 
       %{encoding: ^encoding} = device ->
         {_, output} = StringIO.contents(device.pid)
         ref = Process.monitor(caller)
-        {:reply, {:ok, ref}, put_in(config.devices[name].refs[ref], byte_size(output))}
+        config = put_in(config.devices[name].refs[ref], {caller, byte_size(output)})
+        {:reply, {:ok, ref}, config}
 
       %{encoding: other_encoding} ->
         {:reply, {:error, {:changed_encoding, other_encoding}}, config}
     end
   end
 
-  defp capture_device(name, encoding, input, config, caller) do
+  defp capture_new_device(name, encoding, input, config, caller) do
     {:ok, pid} = StringIO.open(input, encoding: encoding)
     original_pid = Process.whereis(name)
 
@@ -118,7 +135,7 @@ defmodule ExUnit.CaptureServer do
         device = %{
           original_pid: original_pid,
           pid: pid,
-          refs: %{ref => 0},
+          refs: %{ref => {caller, 0}},
           encoding: encoding,
           input?: input != ""
         }
@@ -128,6 +145,8 @@ defmodule ExUnit.CaptureServer do
   end
 
   defp release_device(ref, %{devices: devices} = config) do
+    Process.demonitor(ref, [:flush])
+
     case Enum.find(devices, fn {_, device} -> Map.has_key?(device.refs, ref) end) do
       {name, device} ->
         case Map.delete(device.refs, ref) do
