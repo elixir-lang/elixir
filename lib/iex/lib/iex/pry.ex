@@ -36,7 +36,7 @@ defmodule IEx.Pry do
     opts = [
       binding: binding,
       dot_iex_path: "",
-      env: env,
+      env: %{env | tracers: []},
       prefix: "pry",
       stacktrace: prune_stacktrace(stacktrace)
     ]
