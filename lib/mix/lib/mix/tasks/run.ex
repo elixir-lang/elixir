@@ -153,10 +153,11 @@ defmodule Mix.Tasks.Run do
   end
 
   defp process_config(opts) do
-    Enum.each(opts, fn
-      {:config, value} -> Mix.Tasks.Loadconfig.load([value])
-      _ -> :ok
-    end)
+    for {:config, value} <- opts do
+      Mix.Tasks.Loadconfig.load_imports(value)
+    end
+
+    :ok
   end
 
   defp process_load(opts, expr_evaluator) do

@@ -3,7 +3,6 @@ Code.require_file("../../test_helper.exs", __DIR__)
 defmodule Mix.Tasks.LoadconfigTest do
   use MixTest.Case
 
-  @tag apps: [:my_app]
   test "reads and persists project configuration", context do
     Mix.Project.push(MixTest.Case.Sample)
 
@@ -27,7 +26,21 @@ defmodule Mix.Tasks.LoadconfigTest do
     end)
   end
 
-  @tag apps: [:config_app]
+  test "sets config_env() and config_target()", context do
+    Mix.Project.push(MixTest.Case.Sample)
+
+    in_tmp(context.test, fn ->
+      write_config("""
+      import Config
+      config :opts_app, :key, {config_env(), config_target()}
+      """)
+
+      assert Application.fetch_env(:opts_app, :key) == :error
+      Mix.Task.run("loadconfig", [])
+      assert Application.fetch_env(:opts_app, :key) == {:ok, {:dev, :host}}
+    end)
+  end
+
   test "reads from custom config_path", context do
     Mix.ProjectStack.post_config(config_path: "fresh.config")
     Mix.Project.push(MixTest.Case.Sample)

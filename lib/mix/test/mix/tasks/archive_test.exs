@@ -245,6 +245,7 @@ defmodule Mix.Tasks.ArchiveTest do
       Mix.Tasks.Archive.Build.run(["--no-elixir-version-check"])
       send(self(), {:mix_shell_input, :yes?, true})
       Mix.Tasks.Archive.Install.run([])
+      Application.unload(:archive)
     end)
 
     assert_raise Mix.Error, ~r/Expected archive to be in the format/, fn ->

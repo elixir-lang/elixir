@@ -19,12 +19,6 @@ defmodule Mix.Tasks.App.Start do
     * `:start_permanent` - the application and all of its children
       applications are started in permanent mode. Defaults to `false`.
 
-    * `:consolidate_protocols` - when `true`, loads consolidated
-      protocols before start. The default value is `true`.
-
-    * `:elixir` - matches the current Elixir version against the
-      given requirement
-
   ## Command line options
 
     * `--force` - forces compilation regardless of compilation times
@@ -36,7 +30,6 @@ defmodule Mix.Tasks.App.Start do
     * `--no-deps-check` - does not check dependencies
     * `--no-elixir-version-check` - does not check Elixir version
     * `--no-start` - does not actually start applications, only compiles and loads code
-    * `--no-validate-compile-env` - does not validate the application compile environment
 
   """
 
@@ -44,14 +37,13 @@ defmodule Mix.Tasks.App.Start do
 
   @switches [
     permanent: :boolean,
-    temporary: :boolean,
-    preload_modules: :boolean
+    temporary: :boolean
   ]
 
   @impl true
   def run(args) do
     Mix.Project.get!()
-    Mix.Task.run("compile", args)
+    Mix.Task.run("app.config", args)
     {opts, _, _} = OptionParser.parse(args, switches: @switches)
 
     if "--no-start" in args do
@@ -66,51 +58,23 @@ defmodule Mix.Tasks.App.Start do
       end
 
       config = Mix.Project.config()
-
-      # For our own apps, now is the time to validate compile env.
-      start(apps(config), type(config, opts), "--no-validate-compile-env" not in args)
-
-      if opts[:preload_modules] do
-        for {app, _, _} <- Application.loaded_applications() do
-          :code.ensure_modules_loaded(Application.spec(app, :modules))
-        end
-      end
-
-      # If the build path is set, we assume it is being shared
-      # (such as in an umbrella) and therefore we cannot check
-      # for applications as we may have both false positives and
-      # false negatives.
-      #
-      # Therefore we let the application that owns the build path
-      # to ultimately perform the check.
-      unless config[:build_path] do
-        check_configured()
-      end
+      start(apps(config), type(config, opts))
     end
 
     :ok
   end
 
   @doc false
-  def start(apps, type, validate_compile_env? \\ true) do
-    Enum.each(apps, fn app ->
-      Mix.Tasks.App.Load.load(app, validate_compile_env?)
-      ensure_all_started(app, type)
-    end)
-
+  def start(apps, type) do
+    Enum.each(apps, &ensure_all_started(&1, type))
     :ok
   end
 
   defp apps(config) do
     cond do
-      Mix.Project.umbrella?(config) ->
-        for %Mix.Dep{app: app} <- Mix.Dep.Umbrella.cached(), do: app
-
-      app = config[:app] ->
-        [app]
-
-      true ->
-        []
+      Mix.Project.umbrella?(config) -> Enum.map(Mix.Dep.Umbrella.cached(), & &1.app)
+      app = config[:app] -> [app]
+      true -> []
     end
   end
 
@@ -151,25 +115,5 @@ defmodule Mix.Tasks.App.Start do
       config[:start_permanent] -> :permanent
       true -> :temporary
     end
-  end
-
-  defp check_configured() do
-    for app <- Mix.ProjectStack.config_apps(),
-        is_nil(Application.spec(app, :vsn)) do
-      Mix.shell().error("""
-      You have configured application #{inspect(app)} in your configuration file,
-      but the application is not available.
-
-      This usually means one of:
-
-        1. You have not added the application as a dependency in a mix.exs file.
-
-        2. You are configuring an application that does not really exist.
-
-      Please ensure #{inspect(app)} exists or remove the configuration.
-      """)
-    end
-
-    :ok
   end
 end

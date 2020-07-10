@@ -3,8 +3,6 @@ Code.require_file("../../test_helper.exs", __DIR__)
 defmodule Mix.Tasks.App.StartTest do
   use MixTest.Case
 
-  import ExUnit.CaptureIO
-
   defmodule AppStartSample do
     def project do
       [app: :app_start_sample, version: "0.1.0"]
@@ -15,24 +13,20 @@ defmodule Mix.Tasks.App.StartTest do
     end
   end
 
-  defmodule WrongElixirProject do
-    def project do
-      [app: :error, version: "0.1.0", elixir: "~> 0.8.1"]
-    end
-  end
-
   test "compiles and starts the project" do
     Mix.Project.push(AppStartSample)
 
     in_fixture("no_mixfile", fn ->
       assert_raise Mix.Error, fn ->
-        Mix.Tasks.App.Start.run(["--no-compile"])
+        Mix.Task.run("app.start", ["--no-compile"])
       end
 
       refute List.keyfind(Application.started_applications(), :logger, 0)
       Application.start(:logger)
 
-      Mix.Tasks.App.Start.run(["--no-start"])
+      Mix.Task.reenable("app.config")
+      Mix.Task.reenable("app.start")
+      Mix.Task.run("app.start", ["--no-start"])
       assert File.regular?("_build/dev/lib/app_start_sample/ebin/Elixir.A.beam")
       assert File.regular?("_build/dev/lib/app_start_sample/ebin/app_start_sample.app")
 
@@ -41,110 +35,16 @@ defmodule Mix.Tasks.App.StartTest do
       assert List.keyfind(Application.started_applications(), :logger, 0)
       purge([A])
 
-      Mix.Tasks.App.Start.run([])
+      Mix.Task.reenable("app.config")
+      Mix.Task.reenable("app.start")
+      Mix.Task.run("app.start", [])
       refute :code.is_loaded(A)
       assert List.keyfind(Application.started_applications(), :app_start_sample, 0)
       assert List.keyfind(Application.started_applications(), :logger, 0)
-
-      Mix.Tasks.App.Start.run(["--preload-modules"])
-      assert :code.is_loaded(A)
     end)
   end
 
-  test "start checks for invalid configuration", context do
-    Mix.Project.push(AppStartSample)
-
-    in_tmp(context.test, fn ->
-      :ok = :application.load({:application, :app_loaded_sample, [vsn: '1.0.0', env: []]})
-
-      Mix.ProjectStack.loaded_config(
-        [
-          :app_start_sample,
-          :app_unknown_sample,
-          :app_loaded_sample
-        ],
-        []
-      )
-
-      Mix.Tasks.Compile.run([])
-      Mix.Tasks.App.Start.run([])
-
-      assert_received {:mix_shell, :error,
-                       ["You have configured application :app_unknown_sample" <> _]}
-
-      refute_received {:mix_shell, :error,
-                       ["You have configured application :app_loaded_sample" <> _]}
-    end)
-  end
-
-  test "validates Elixir version requirement", context do
-    Mix.ProjectStack.post_config(elixir: "~> ~> 0.8.1")
-    Mix.Project.push(WrongElixirProject)
-
-    in_tmp(context.test, fn ->
-      assert_raise Mix.Error, ~r"Invalid Elixir version requirement", fn ->
-        Mix.Tasks.App.Start.run(["--no-start"])
-      end
-    end)
-  end
-
-  test "validates the Elixir version with requirement", context do
-    Mix.Project.push(WrongElixirProject)
-
-    in_tmp(context.test, fn ->
-      assert_raise Mix.ElixirVersionError, ~r/You're trying to run :error on Elixir/, fn ->
-        Mix.Tasks.App.Start.run(["--no-start"])
-      end
-    end)
-  end
-
-  test "does not validate the Elixir version with requirement when disabled", context do
-    Mix.Project.push(WrongElixirProject)
-
-    in_tmp(context.test, fn ->
-      Mix.Tasks.App.Start.run(["--no-start", "--no-elixir-version-check"])
-    end)
-  end
-
-  test "validates compile_env" do
-    Mix.Project.push(MixTest.Case.Sample)
-
-    in_fixture("no_mixfile", fn ->
-      File.mkdir_p!("config")
-
-      File.write!("config/config.exs", """
-      import Config
-      config :sample, :hello, System.get_env("MIX_SAMPLE_HELLO")
-      """)
-
-      File.write!("lib/a.ex", """
-      defmodule A do
-        _ = Application.compile_env(:sample, :hello)
-      end
-      """)
-
-      System.put_env("MIX_SAMPLE_HELLO", "compile")
-      Mix.Tasks.Loadconfig.run([])
-      assert Mix.Tasks.Compile.run([]) == {:ok, []}
-
-      System.put_env("MIX_SAMPLE_HELLO", "runtime")
-      Mix.Tasks.Loadconfig.run([])
-
-      assert capture_io(:stderr, fn ->
-               assert_raise ErlangError, fn -> Mix.Tasks.App.Start.run([]) end
-             end) =~
-               " the application :sample has a different value set for key :hello during runtime compared to compile time"
-
-      # Can start if compile env matches
-      System.put_env("MIX_SAMPLE_HELLO", "compile")
-      Mix.Tasks.Loadconfig.run([])
-      assert Mix.Tasks.App.Start.run([]) == :ok
-    end)
-  after
-    System.delete_env("MIX_SAMPLE_HELLO")
-  end
-
-  describe "private API" do
+  describe "unit tests" do
     test "start does nothing if no apps are given" do
       assert Mix.Tasks.App.Start.start([], :temporary) == :ok
     end

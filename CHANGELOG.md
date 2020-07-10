@@ -239,7 +239,6 @@ Mix also includes a new task, `mix test.coverage`, which generates aggregated co
   * [mix] Introduce `MIX_XDG` as a simpler mechanism to opt-in to the XDG specification
   * [mix] Allow requirements for a Mix task to be listed via the `@requirements` module attribute
   * [mix] Allow optional dependencies to be defined in `:extra_applications` and `:applications`
-  * [mix app.load] Add new task for loading all apps and their dependencies
   * [mix archive.install] Support `--repo` option on hex packages
   * [mix compile] Support the `__mix_recompile__?/0` callback for custom behaviour on when Mix should recompile a given module
   * [mix compile.elixir] Mark modules for path dependencies as "Export dependencies" if they changed but their public interface is the same

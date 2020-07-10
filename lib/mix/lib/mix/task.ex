@@ -44,15 +44,16 @@ defmodule Mix.Task do
   If a task has requirements, they can be listed using the
   `@requirements` attribute. For example:
 
-      @requirements ["compile"]
+      @requirements ["app.config"]
 
-  Tasks typically depend on the `"compile"` task, when they need
-  to access code from the current project, or the "app.start" task,
-  which compiles and starts the current app:
+  Tasks typically depend on the `"app.config"` task, when they
+  need to access code from the current project with all apps
+  already configured, or the "app.start" task, when they also
+  need those apps to be already started:
 
       @requirements ["app.start"]
 
-  Tasks can also be run directly by using `run/2`.
+  You can also run tasks directly with `run/2`.
 
   ## Attributes
 
