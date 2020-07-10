@@ -371,7 +371,7 @@ defmodule Mix.Tasks.Compile.App do
     end
   end
 
-  ## Helpers for manipulating apps
+  ## Helpers for loading and manipulating apps
 
   @doc false
   # Entry point function used by app tracer, app loader, etc.

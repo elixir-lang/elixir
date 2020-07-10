@@ -78,7 +78,7 @@ defmodule Mix.CLI do
   defp run_task(name, args) do
     try do
       ensure_no_slashes(name)
-      Mix.Tasks.Loadconfig.load([])
+      Mix.Tasks.Loadconfig.load_default()
       Mix.Task.run(name, args)
     rescue
       # We only rescue exceptions in the Mix namespace, all
@@ -144,7 +144,7 @@ defmodule Mix.CLI do
     path = Path.join(Mix.Utils.mix_config(), "config.exs")
 
     if File.regular?(path) do
-      Mix.Tasks.Loadconfig.load([path])
+      Mix.Tasks.Loadconfig.load_imports(path)
     end
   end
 
