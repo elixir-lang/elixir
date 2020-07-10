@@ -112,13 +112,6 @@ defmodule Mix.Tasks.Compile do
     Mix.Project.get!()
     Mix.Task.run("loadpaths", args)
 
-    config = Mix.Project.config()
-    validate_compile_env? = "--no-validate-compile-env" not in args
-
-    unless "--no-app-loading" in args do
-      load_apps(config, validate_compile_env?)
-    end
-
     if "--no-compile" in args do
       Mix.Task.reenable("compile")
       :noop
@@ -132,7 +125,7 @@ defmodule Mix.Tasks.Compile do
         |> Enum.map(&Mix.Task.Compiler.normalize(&1, :all))
         |> Enum.reduce({:noop, []}, &merge_diagnostics/2)
 
-      Enum.each(apps(config), &load_app(&1, validate_compile_env?))
+      config = Mix.Project.config()
 
       if config[:consolidate_protocols] and "--no-protocol-consolidation" not in args do
         {consolidate_and_load_protocols(args, config, res), diagnostics}
@@ -168,14 +161,6 @@ defmodule Mix.Tasks.Compile do
     end
   end
 
-  defp apps(config) do
-    cond do
-      Mix.Project.umbrella?(config) -> Enum.map(Mix.Dep.Umbrella.cached(), & &1.app)
-      app = config[:app] -> [app]
-      true -> []
-    end
-  end
-
   @impl true
   def manifests do
     Enum.flat_map(compilers(), fn compiler ->
@@ -187,66 +172,6 @@ defmodule Mix.Tasks.Compile do
         []
       end
     end)
-  end
-
-  ## Application loading
-
-  defp load_apps(config, validate_compile_env?) do
-    {runtime, optional} = Mix.Tasks.Compile.App.project_apps(config)
-
-    %{}
-    |> load_apps(runtime, validate_compile_env?)
-    |> load_apps(optional, validate_compile_env?)
-
-    :ok
-  end
-
-  defp load_apps(seen, apps, validate_compile_env?) do
-    Enum.reduce(apps, seen, fn app, seen ->
-      if Map.has_key?(seen, app) do
-        seen
-      else
-        seen = Map.put(seen, app, true)
-
-        case load_app(app, validate_compile_env?) do
-          :ok ->
-            seen
-            |> load_apps(Application.spec(app, :applications), validate_compile_env?)
-            |> load_apps(Application.spec(app, :included_applications), validate_compile_env?)
-
-          :error ->
-            seen
-        end
-      end
-    end)
-  end
-
-  defp load_app(app, validate_compile_env?) do
-    if Application.spec(app, :vsn) do
-      :ok
-    else
-      name = Atom.to_charlist(app) ++ '.app'
-
-      with [_ | _] = path <- :code.where_is_file(name),
-           {:ok, {:application, _, properties} = application_data} <- consult_app_file(path),
-           :ok <- :application.load(application_data) do
-        if compile_env = validate_compile_env? && properties[:compile_env] do
-          Config.Provider.validate_compile_env(compile_env, false)
-        end
-
-        :ok
-      else
-        _ -> :error
-      end
-    end
-  end
-
-  defp consult_app_file(path) do
-    # The path could be located in an .ez archive, so we use the prim loader.
-    with {:ok, bin, _full_name} <- :erl_prim_loader.get_file(path),
-         {:ok, tokens, _} <- :erl_scan.string(String.to_charlist(bin)) do
-      :erl_parse.parse_term(tokens)
-    end
   end
 
   ## Consolidation handling

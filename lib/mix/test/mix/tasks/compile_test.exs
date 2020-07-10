@@ -277,14 +277,14 @@ defmodule Mix.Tasks.CompileTest do
 
       System.put_env("MIX_SAMPLE_HELLO", "compile")
       Mix.Tasks.Loadconfig.run([])
-      assert Mix.Tasks.Compile.run([]) == {:ok, []}
+      assert Mix.Tasks.Compile.All.run([]) == {:ok, []}
 
       System.put_env("MIX_SAMPLE_HELLO", "runtime")
       Mix.Tasks.Loadconfig.run([])
       Application.unload(:sample)
 
       assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
-               assert_raise ErlangError, fn -> Mix.Tasks.Compile.run([]) end
+               assert_raise ErlangError, fn -> Mix.Tasks.Compile.All.run([]) end
              end) =~
                " the application :sample has a different value set for key :hello during runtime compared to compile time"
 

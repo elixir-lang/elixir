@@ -14,11 +14,16 @@ defmodule Mix.Tasks.Compile.All do
     Mix.Project.get!()
     config = Mix.Project.config()
     compilers = Mix.Tasks.Compile.compilers(config)
+    validate_compile_env? = "--no-validate-compile-env" not in args
 
     # Make sure Mix.Dep is cached to avoid loading dependencies
     # during compilation. It is likely this will be invoked anyway,
     # as both Elixir and app compilers rely on it.
     Mix.Dep.cached()
+
+    unless "--no-app-loading" in args do
+      load_apps(config, validate_compile_env?)
+    end
 
     # Build the project structure so we can write down compiled files.
     Mix.Project.build_structure(config)
@@ -26,6 +31,7 @@ defmodule Mix.Tasks.Compile.All do
     with_logger_app(config, fn ->
       result = do_compile(compilers, args, :noop, [])
       true = Code.prepend_path(Mix.Project.compile_path())
+      load_app(config[:app], validate_compile_env?)
       result
     end)
   end
@@ -75,5 +81,65 @@ defmodule Mix.Tasks.Compile.All do
   defp run_compiler(compiler, args) do
     result = Mix.Task.Compiler.normalize(Mix.Task.run("compile.#{compiler}", args), compiler)
     Enum.reduce(Mix.ProjectStack.pop_after_compiler(compiler), result, & &1.(&2))
+  end
+
+  ## App loading helpers
+
+  defp load_apps(config, validate_compile_env?) do
+    {runtime, optional} = Mix.Tasks.Compile.App.project_apps(config)
+
+    %{}
+    |> load_apps(runtime, validate_compile_env?)
+    |> load_apps(optional, validate_compile_env?)
+
+    :ok
+  end
+
+  defp load_apps(seen, apps, validate_compile_env?) do
+    Enum.reduce(apps, seen, fn app, seen ->
+      if Map.has_key?(seen, app) do
+        seen
+      else
+        seen = Map.put(seen, app, true)
+
+        case load_app(app, validate_compile_env?) do
+          :ok ->
+            seen
+            |> load_apps(Application.spec(app, :applications), validate_compile_env?)
+            |> load_apps(Application.spec(app, :included_applications), validate_compile_env?)
+
+          :error ->
+            seen
+        end
+      end
+    end)
+  end
+
+  defp load_app(app, validate_compile_env?) do
+    if Application.spec(app, :vsn) do
+      :ok
+    else
+      name = Atom.to_charlist(app) ++ '.app'
+
+      with [_ | _] = path <- :code.where_is_file(name),
+           {:ok, {:application, _, properties} = application_data} <- consult_app_file(path),
+           :ok <- :application.load(application_data) do
+        if compile_env = validate_compile_env? && properties[:compile_env] do
+          Config.Provider.validate_compile_env(compile_env, false)
+        end
+
+        :ok
+      else
+        _ -> :error
+      end
+    end
+  end
+
+  defp consult_app_file(path) do
+    # The path could be located in an .ez archive, so we use the prim loader.
+    with {:ok, bin, _full_name} <- :erl_prim_loader.get_file(path),
+         {:ok, tokens, _} <- :erl_scan.string(String.to_charlist(bin)) do
+      :erl_parse.parse_term(tokens)
+    end
   end
 end
