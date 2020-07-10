@@ -280,6 +280,10 @@ defmodule GenServer do
         GenServer.call(__MODULE__, {:add, a, b})
       end
 
+      def subtract(a, b) do
+        GenServer.call(__MODULE__, {:subtract, a, b})
+      end
+
       def handle_call({:add, a, b}, _from, state) do
         {:reply, a + b, state}
       end
