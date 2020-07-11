@@ -35,7 +35,7 @@ match(Fun, Expr, #{current_vars := Current, unused_vars := {_, Counter} = Unused
   {EExpr, EndE}.
 
 def({Meta, Args, Guards, Body}, E) ->
-  {EArgs, EA}   = elixir_expand:expand(Args, E#{context := match, prematch_vars := {#{}, 0}}),
+  {EArgs, EA}   = elixir_expand:expand_args(Args, E#{context := match, prematch_vars := {#{}, 0}}),
   {EGuards, EG} = guard(Guards, EA#{context := guard, prematch_vars := warn}),
   {EBody, EB}   = elixir_expand:expand(Body, EG#{context := nil}),
   elixir_env:check_unused_vars(EB),
