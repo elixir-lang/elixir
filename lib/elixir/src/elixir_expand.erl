@@ -764,17 +764,20 @@ assert_arg_with_no_clauses(Name, Meta, [{Key, Value} | Rest], E) when is_atom(Ke
 assert_arg_with_no_clauses(_Name, _Meta, _Arg, _E) ->
   ok.
 
-expand_local(Meta, Name, Args, #{function := nil} = E) ->
-  form_error(Meta, E, ?MODULE, {undefined_function, Name, Args});
-expand_local(Meta, Name, Args, #{context := Context} = E) when Context == match; Context == guard ->
-  form_error(Meta, E, ?MODULE, {invalid_local_invocation, Context, {Name, Meta, Args}});
-expand_local(Meta, Name, Args, #{module := Module, function := Function} = E) ->
+expand_local(Meta, Name, Args, #{module := Module, function := Function, context := nil} = E)
+    when Function /= nil ->
   assert_no_clauses(Name, Meta, Args, E),
   Arity = length(Args),
   elixir_env:trace({local_function, Meta, Name, Arity}, E),
   elixir_locals:record_local({Name, Arity}, Module, Function, Meta, false),
   {EArgs, EA} = expand_args(Args, E),
-  {{Name, Meta, EArgs}, EA}.
+  {{Name, Meta, EArgs}, EA};
+expand_local(Meta, Name, Args, E) when Name == '|'; Name == '::' ->
+  form_error(Meta, E, ?MODULE, {undefined_function, Name, Args});
+expand_local(Meta, Name, Args, #{function := nil} = E) ->
+  form_error(Meta, E, ?MODULE, {undefined_function, Name, Args});
+expand_local(Meta, Name, Args, #{context := Context} = E) when Context == match; Context == guard ->
+  form_error(Meta, E, ?MODULE, {invalid_local_invocation, Context, {Name, Meta, Args}}).
 
 %% Remote
 
