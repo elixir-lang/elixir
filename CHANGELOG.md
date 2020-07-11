@@ -182,7 +182,39 @@ Another improvement to `mix xref graph` is the addition of `--format cycles`, wh
 
 ## `config/runtime.exs` and `mix app.config`
 
-TODO: expand this section.
+Elixir v1.9 introduced a new configuration file, specific to releases, called `config/releases.exs`. A release is a self-contained artifact with the Erlang VM, Elixir and your application, ready to run in production.
+
+The addition of `config/releases.exs` has been a very useful one but, unfortunately, it applies only to releases. Developers not using releases had only one option to configure their systems, the `config/config.exs` file, which is loaded at compilation time. Foy any dynamic configuration, developers had to resort to third-party tools or workarounds to achieve the desired results.
+
+Elixir v1.11 addresses this issue by introducing a new configuration file, called `config/runtime.exs`. This new configuration file is loaded exactly before your application starts, always after compilation. It is loaded in development, test, and production, regardless if you are using Mix or releases. Therefore it provides a unified API for runtime configuration in Elixir.
+
+`config/runtime.exs` works the same as any other configuration file. However, given `config/runtime.exs` is meant to run with or without Mix, developers must not use `Mix.env()` or `Mix.target()` in `config/runtime.exs`. Instead, they must use the new `config_env()` and `config_target()`, which have been added to the `Config` module.
+
+While `config/releases.exs` will continue to be supported, developers can migrate to `config/runtime.exs` without loss of functionality. For example, a `config/releases.exs` file such as this one
+
+```elixir
+# config/releases.exs
+import Config
+
+config :foo, ...
+config :bar, ...
+```
+
+could run as is as `config/runtime.exs`. However, given `config/runtime.exs` runs in all environments, you may want to restrict part of your configuration to the `:prod` environment:
+
+```elixir
+# config/runtime.exs
+import Config
+
+if config_env() == :prod do
+  config :foo, ...
+  config :bar, ...
+end
+```
+
+If both files are available, releases will pick the now preferred `config/runtime.exs` instead of `config/releases.exs`.
+
+To wrap it all up, `Mix` also includes a new task called `mix app.config`. This task loads all applications and configures them, without starting them. Whenever you write your own Mix tasks, you will typically want to invoke either `mix app.config` or `mix app.start` before running your own code. Which one is better depends if you want your applications running or only configured.
 
 ## Other improvements
 
