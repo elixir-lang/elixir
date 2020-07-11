@@ -63,6 +63,20 @@ defmodule Config.ReaderTest do
                  end
   end
 
+  test "eval!/3" do
+    files = ["configs/good_kw.exs", "configs/good_config.exs", "configs/good_import.exs"]
+
+    for file <- files do
+      file = fixture_path(file)
+      assert Config.Reader.read!(file) == Config.Reader.eval!(file, File.read!(file))
+    end
+
+    file = fixture_path("configs/env.exs")
+
+    assert Config.Reader.read!(file, env: :dev, target: :host) ==
+             Config.Reader.eval!(file, File.read!(file), env: :dev, target: :host)
+  end
+
   test "as a provider" do
     state = Config.Reader.init(fixture_path("configs/good_config.exs"))
     assert Config.Reader.load([my_app: [key: :old_value]], state) == [my_app: [key: :value]]
