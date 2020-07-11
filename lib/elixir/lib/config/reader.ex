@@ -53,6 +53,18 @@ defmodule Config.Reader do
   end
 
   @doc """
+  Evaluates the configuration `contents` for the given `file`.
+
+  Accepts the same options as `read!/2`.
+  """
+  @doc since: "1.11.0"
+  @spec eval!(Path.t(), binary, keyword) :: keyword
+  def eval!(file, contents, opts \\ [])
+      when is_binary(file) and is_binary(contents) and is_list(opts) do
+    Config.__eval__!(Path.expand(file), contents, opts) |> elem(0)
+  end
+
+  @doc """
   Reads the configuration file.
 
   ## Options
@@ -78,7 +90,7 @@ defmodule Config.Reader do
   Reads the given configuration file and returns the configuration
   with its imports.
 
-  See `read!/2` for the list of options. Although note the `:imports`
+  Accepts the same options as `read!/2`. Although note the `:imports`
   option cannot be disabled in `read_imports!/2`.
   """
   @doc since: "1.9.0"

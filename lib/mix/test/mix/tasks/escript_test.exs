@@ -119,19 +119,42 @@ defmodule Mix.Tasks.EscriptTest do
     end)
   end
 
-  test "generate escript with config" do
+  test "generate escript with compile config" do
+    Mix.Project.push(Escript)
+
+    in_fixture("escript_test", fn ->
+      File.mkdir_p!("config")
+
+      File.write!("config/config.exs", ~S"""
+      import Config
+      config :foobar, :value, "COMPILE #{config_env()} TARGET #{config_target()}"
+      """)
+
+      Mix.Tasks.Escript.Build.run([])
+      assert_received {:mix_shell, :info, ["Generated escript escript_test with MIX_ENV=dev"]}
+      assert System.cmd("escript", ["escript_test"]) == {"COMPILE dev TARGET host\n", 0}
+      assert count_abstract_code("escript_test") == 0
+    end)
+  end
+
+  test "generate escript with runtime config" do
     Mix.Project.push(Escript)
 
     in_fixture("escript_test", fn ->
       File.mkdir_p!("config")
 
       File.write!("config/config.exs", """
-      [foobar: [value: "FROM CONFIG", other: %{}]]
+      [foobar: [value: "OLD", other: %{}]]
+      """)
+
+      File.write!("config/config.exs", ~S"""
+      import Config
+      config :foobar, :value, "RUNTIME #{config_env()} TARGET #{config_target()}"
       """)
 
       Mix.Tasks.Escript.Build.run([])
       assert_received {:mix_shell, :info, ["Generated escript escript_test with MIX_ENV=dev"]}
-      assert System.cmd("escript", ["escript_test"]) == {"FROM CONFIG\n", 0}
+      assert System.cmd("escript", ["escript_test"]) == {"RUNTIME dev TARGET host\n", 0}
       assert count_abstract_code("escript_test") == 0
     end)
   end

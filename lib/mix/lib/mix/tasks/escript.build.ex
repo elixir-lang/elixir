@@ -26,8 +26,11 @@ defmodule Mix.Tasks.Escript.Build do
   the `Application` module for more information on systems
   life-cycles.
 
-  By default, this task starts the current application. If this
-  is not desired, set the `:app` configuration to nil.
+  All of the configuration defined in `config/config.exs` will
+  be included as part of the escript. `config/runtime.exs`is also
+  included for Elixir escripts. Once the configuration is loaded,
+  this task starts the current application. If this is not desired,
+  set the `:app` configuration to nil.
 
   This task also removes documentation and debugging chunks from
   the compiled `.beam` files to reduce the size of the escript.
@@ -42,8 +45,8 @@ defmodule Mix.Tasks.Escript.Build do
 
   ## Configuration
 
-  The following option must be specified in your `mix.exs` under `:escript`
-  key:
+  The following option must be specified in your `mix.exs`
+  under the `:escript` key:
 
     * `:main_module` - the module to be invoked once the escript starts.
       The module must contain a function named `main/1` that will receive the
@@ -310,23 +313,29 @@ defmodule Mix.Tasks.Escript.Build do
   end
 
   defp gen_main(project, name, module, app, language) do
-    config =
-      if File.regular?(project[:config_path]) do
-        config = Config.Reader.read!(project[:config_path], env: Mix.env(), target: Mix.target())
+    compile_path = project[:config_path]
+
+    compile_config =
+      if File.regular?(compile_path) do
+        config = Config.Reader.read!(compile_path, env: Mix.env(), target: Mix.target())
         Macro.escape(config)
       else
         []
       end
 
+    runtime_path = compile_path |> Path.dirname() |> Path.join("runtime.exs")
+
+    runtime_config =
+      if File.regular?(runtime_path) do
+        File.read!(runtime_path)
+      end
+
     module_body =
       quote do
-        @module unquote(module)
-        @config unquote(config)
-        @app unquote(app)
-
         @spec main(OptionParser.argv()) :: any
         def main(args) do
-          unquote(main_body_for(language))
+          load_config(unquote(compile_config))
+          unquote(main_body_for(language, module, app, runtime_config))
         end
 
         defp load_config(config) do
@@ -377,15 +386,29 @@ defmodule Mix.Tasks.Escript.Build do
     [{'#{name}.beam', binary}]
   end
 
-  defp main_body_for(:elixir) do
+  defp main_body_for(:elixir, module, app, runtime_config) do
+    runtime_config =
+      if runtime_config do
+        quote do
+          "config/runtime.exs"
+          |> Config.Reader.eval!(
+            unquote(runtime_config),
+            env: unquote(Mix.env()),
+            target: unquote(Mix.target()),
+            imports: :disabled
+          )
+          |> load_config()
+        end
+      end
+
     quote do
-      load_config(@config)
+      unquote(runtime_config)
 
       case :application.ensure_all_started(:elixir) do
         {:ok, _} ->
-          start_app(@app)
+          start_app(unquote(app))
           args = Enum.map(args, &List.to_string(&1))
-          Kernel.CLI.run(fn _ -> @module.main(args) end)
+          Kernel.CLI.run(fn _ -> unquote(module).main(args) end)
 
         error ->
           io_error(["ERROR! Failed to start Elixir.\n", :io_lib.format('error: ~p~n', [error])])
@@ -394,11 +417,10 @@ defmodule Mix.Tasks.Escript.Build do
     end
   end
 
-  defp main_body_for(:erlang) do
+  defp main_body_for(:erlang, module, app, _runtime_config) do
     quote do
-      load_config(@config)
-      start_app(@app)
-      @module.main(args)
+      start_app(unquote(app))
+      unquote(module).main(args)
     end
   end
 end
