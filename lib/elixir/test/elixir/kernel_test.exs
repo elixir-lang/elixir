@@ -365,6 +365,58 @@ defmodule KernelTest do
     assert struct_or_map?(%Macro.Env{}, Macro.Env) == true
   end
 
+  defp exception?(arg) when is_exception(arg), do: true
+  defp exception?(_arg), do: false
+
+  defp exception_or_map?(arg) when is_exception(arg) or is_map(arg), do: true
+  defp exception_or_map?(_arg), do: false
+
+  test "is_exception/1" do
+    assert is_exception(%{}) == false
+    assert is_exception([]) == false
+    assert is_exception(%RuntimeError{}) == true
+    assert is_exception(%{__exception__: "foo"}) == false
+    assert exception?(%RuntimeError{}) == true
+    assert exception?(%{__exception__: "foo"}) == false
+    assert exception?([]) == false
+    assert exception?(%{}) == false
+  end
+
+  test "is_exception/1 and other match works" do
+    assert exception_or_map?(%RuntimeError{}) == true
+    assert exception_or_map?(%{}) == true
+    assert exception_or_map?(10) == false
+  end
+
+  defp exception?(arg, name) when is_exception(arg, name), do: true
+  defp exception?(_arg, _name), do: false
+
+  defp exception_or_map?(arg, name) when is_exception(arg, name) or is_map(arg), do: true
+  defp exception_or_map?(_arg, _name), do: false
+
+  test "is_exception/2" do
+    assert is_exception(%{}, RuntimeError) == false
+    assert is_exception([], RuntimeError) == false
+    assert is_exception(%RuntimeError{}, RuntimeError) == true
+    assert is_exception(%RuntimeError{}, Macro.Env) == false
+    assert exception?(%RuntimeError{}, RuntimeError) == true
+    assert exception?(%RuntimeError{}, Macro.Env) == false
+    assert exception?(%{__exception__: "foo"}, "foo") == false
+    assert exception?(%{__exception__: "foo"}, RuntimeError) == false
+    assert exception?([], RuntimeError) == false
+    assert exception?(%{}, RuntimeError) == false
+
+    assert_raise ArgumentError, "argument error", fn ->
+      is_exception(%{}, not_atom())
+    end
+  end
+
+  test "is_exception/2 and other match works" do
+    assert exception_or_map?(%{}, "foo") == false
+    assert exception_or_map?(%{}, RuntimeError) == true
+    assert exception_or_map?(%RuntimeError{}, RuntimeError) == true
+  end
+
   test "if/2 boolean optimization does not leak variables during expansion" do
     if false do
       :ok
