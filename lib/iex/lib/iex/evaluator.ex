@@ -11,16 +11,21 @@ defmodule IEx.Evaluator do
 
   """
   def init(command, server, leader, opts) do
+    ref = make_ref()
     old_leader = Process.group_leader()
     Process.group_leader(self(), leader)
 
     old_server = Process.get(:iex_server)
     Process.put(:iex_server, server)
 
-    evaluator = Process.get(:iex_evaluator)
-    Process.put(:iex_evaluator, command)
+    old_evaluator = Process.get(:iex_evaluator)
+    Process.put(:iex_evaluator, ref)
 
-    state = loop_state(server, IEx.History.init(), opts)
+    if old_evaluator do
+      send(self(), {:done, old_evaluator})
+    end
+
+    state = loop_state(ref, server, IEx.History.init(), opts)
     command == :ack && :proc_lib.init_ack(self())
 
     try do
@@ -34,16 +39,10 @@ defmodule IEx.Evaluator do
         Process.delete(:iex_server)
       end
 
-      cond do
-        is_nil(evaluator) ->
-          Process.delete(:iex_evaluator)
-
-        evaluator != :ack ->
-          # Ensure propagation to non-root level evaluators
-          send(self(), {:done, server})
-
-        true ->
-          :ok
+      if old_evaluator do
+        Process.put(:iex_evaluator, old_evaluator)
+      else
+        Process.delete(:iex_evaluator)
       end
 
       :ok
@@ -97,7 +96,7 @@ defmodule IEx.Evaluator do
     end
   end
 
-  defp loop(%{server: server} = state) do
+  defp loop(%{server: server, ref: ref} = state) do
     receive do
       {:eval, ^server, code, iex_state} ->
         {result, state} = eval(code, iex_state, state)
@@ -120,6 +119,9 @@ defmodule IEx.Evaluator do
 
       {:done, ^server} ->
         :ok
+
+      {:done, ^ref} ->
+        :ok
     end
   end
 
@@ -140,7 +142,7 @@ defmodule IEx.Evaluator do
         do: var_name
   end
 
-  defp loop_state(server, history, opts) do
+  defp loop_state(ref, server, history, opts) do
     env = opts[:env] || :elixir.env_for_eval(file: "iex")
     env = %{env | prematch_vars: :apply}
     {_, _, env} = :elixir.eval_quoted(quote(do: import(IEx.Helpers)), [], env)
@@ -152,7 +154,8 @@ defmodule IEx.Evaluator do
       env: env,
       server: server,
       history: history,
-      stacktrace: stacktrace
+      stacktrace: stacktrace,
+      ref: ref
     }
 
     case opts[:dot_iex_path] do
