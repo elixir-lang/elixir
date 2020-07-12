@@ -679,15 +679,13 @@ defmodule Calendar.ISO do
   @spec day_of_week(year, month, day, :default | weekday) :: {day_of_week(), 1, 7}
   @impl true
   def day_of_week(year, month, day, starting_on) do
-    day_of_week =
-      date_to_iso_days(year, month, day)
-      |> iso_days_to_day_of_week(day_of_week_offset(starting_on))
-
-    {day_of_week, 1, 7}
+    iso_days = date_to_iso_days(year, month, day)
+    {iso_days_to_day_of_week(iso_days, starting_on), 1, 7}
   end
 
-  defp iso_days_to_day_of_week(iso_days, offset) do
-    Integer.mod(iso_days + offset, 7) + 1
+  @doc false
+  def iso_days_to_day_of_week(iso_days, starting_on) do
+    Integer.mod(iso_days + day_of_week_offset(starting_on), 7) + 1
   end
 
   defp day_of_week_offset(:default), do: 5
