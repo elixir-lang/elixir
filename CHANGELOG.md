@@ -218,7 +218,7 @@ To wrap it all up, `Mix` also includes a new task called `mix app.config`. This 
 
 ## Other improvements
 
-Elixir v1.11 adds the `is_struct/2` guard and also includes support for `map.field` syntax in guards.
+Elixir v1.11 adds the `is_struct/2`, `is_exception/1`, and `is_exception/2` guards and also includes support for `map.field` syntax in guards.
 
 The Calendar module now includes the `Calendar.strftime/3` function, which provides datetime formatting based on the `strftime` format. All Calendar types also got new conversion functions from and to gregorian timestamps, such as: `Date.from_gregorian_days/2` and `NaiveDateTime.to_gregorian_seconds/1`.
 
@@ -246,6 +246,7 @@ Mix also includes a new task, `mix test.coverage`, which generates aggregated co
   * [Config] Allow `import_config` to be disabled for some configuration files
   * [Enum] Allow a sorting function on `Enum.min_max_by/3,4`, including the new `compare/2` conventions
   * [Kernel] Add `is_struct/2` guard
+  * [Kernel] Add `is_exception/1` and `is_exception/2` guards
   * [Kernel] Support `map.field` syntax in guards
   * [Kernel] Add `+++` and `---` with right associativity to the list of custom operators
   * [Kernel.ParallelCompiler] Report individual file compilation times when `profile: :time` is given

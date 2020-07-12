@@ -2301,6 +2301,90 @@ defmodule Kernel do
   end
 
   @doc """
+  Returns true if `term` is an exception; otherwise returns `false`.
+
+  Allowed in guard tests.
+
+  ## Examples
+
+      iex> is_exception(%RuntimeError{})
+      true
+
+      iex> is_exception(%{})
+      false
+
+  """
+  @doc since: "1.11.0", guard: true
+  defmacro is_exception(term) do
+    case __CALLER__.context do
+      nil ->
+        quote do
+          case unquote(term) do
+            %_{__exception__: true} -> true
+            _ -> false
+          end
+        end
+
+      :match ->
+        invalid_match!(:is_exception)
+
+      :guard ->
+        quote do
+          is_map(unquote(term)) and :erlang.is_map_key(:__struct__, unquote(term)) and
+            is_atom(:erlang.map_get(:__struct__, unquote(term))) and
+            :erlang.is_map_key(:__exception__, unquote(term)) and
+            :erlang.map_get(:__exception__, unquote(term)) == true
+        end
+    end
+  end
+
+  @doc """
+  Returns true if `term` is an exception of `name`; otherwise returns `false`.
+
+  Allowed in guard tests.
+
+  ## Examples
+
+      iex> is_exception(%RuntimeError{}, RuntimeError)
+      true
+
+      iex> is_exception(%RuntimeError{}, Macro.Env)
+      false
+
+  """
+  @doc since: "1.11.0", guard: true
+  defmacro is_exception(term, name) do
+    case __CALLER__.context do
+      nil ->
+        quote do
+          case unquote(name) do
+            name when is_atom(name) ->
+              case unquote(term) do
+                %{__struct__: ^name, __exception__: true} -> true
+                _ -> false
+              end
+
+            _ ->
+              raise ArgumentError
+          end
+        end
+
+      :match ->
+        invalid_match!(:is_exception)
+
+      :guard ->
+        quote do
+          is_map(unquote(term)) and
+            (is_atom(unquote(name)) or :fail) and
+            :erlang.is_map_key(:__struct__, unquote(term)) and
+            :erlang.map_get(:__struct__, unquote(term)) == unquote(name) and
+            :erlang.is_map_key(:__exception__, unquote(term)) and
+            :erlang.map_get(:__exception__, unquote(term)) == true
+        end
+    end
+  end
+
+  @doc """
   Gets a value from a nested structure.
 
   Uses the `Access` module to traverse the structures
