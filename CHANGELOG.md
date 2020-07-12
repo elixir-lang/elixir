@@ -184,7 +184,7 @@ Another improvement to `mix xref graph` is the addition of `--format cycles`, wh
 
 Elixir v1.9 introduced a new configuration file, specific to releases, called `config/releases.exs`. A release is a self-contained artifact with the Erlang VM, Elixir and your application, ready to run in production.
 
-The addition of `config/releases.exs` has been a very useful one but, unfortunately, it applies only to releases. Developers not using releases had only one option to configure their systems, the `config/config.exs` file, which is loaded at compilation time. Foy any dynamic configuration, developers had to resort to third-party tools or workarounds to achieve the desired results.
+The addition of `config/releases.exs` has been a very useful one but, unfortunately, it applies only to releases. Developers not using releases had only one option to configure their systems, the `config/config.exs` file, which is loaded at compilation time. For any dynamic configuration, developers had to resort to third-party tools or workarounds to achieve the desired results.
 
 Elixir v1.11 addresses this issue by introducing a new configuration file, called `config/runtime.exs`. This new configuration file is loaded exactly before your application starts, always after compilation. It is loaded in development, test, and production, regardless if you are using Mix or releases. Therefore it provides a unified API for runtime configuration in Elixir.
 
