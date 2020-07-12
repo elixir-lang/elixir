@@ -365,6 +365,29 @@ defmodule KernelTest do
     assert struct_or_map?(%Macro.Env{}, Macro.Env) == true
   end
 
+  defp exception?(arg) when is_exception(arg), do: true
+  defp exception?(_arg), do: false
+
+  defp exception_or_map?(arg) when is_exception(arg) or is_map(arg), do: true
+  defp exception_or_map?(_arg), do: false
+
+  test "is_exception/1" do
+    assert is_exception(%{}) == false
+    assert is_exception([]) == false
+    assert is_exception(%RuntimeError{}) == true
+    assert is_exception(%{__exception__: "foo"}) == false
+    assert exception?(%RuntimeError{}) == true
+    assert exception?(%{__exception__: "foo"}) == false
+    assert exception?([]) == false
+    assert exception?(%{}) == false
+  end
+
+  test "is_exception/1 and other match works" do
+    assert exception_or_map?(%RuntimeError{}) == true
+    assert exception_or_map?(%{}) == true
+    assert exception_or_map?(10) == false
+  end
+
   test "if/2 boolean optimization does not leak variables during expansion" do
     if false do
       :ok
