@@ -684,6 +684,11 @@ defmodule Date do
   calendar (the default), it is an integer from 1 to 7, where
   1 is Monday and 7 is Sunday.
 
+  An optional `starting_on` value may be supplied, which
+  configures the weekday the week starts on. The default value
+  for it is `:default`, which translates to `:monday` for the
+  built-in ISO calendar. Any other weekday may be given to.
+
   ## Examples
 
       iex> Date.day_of_week(~D[2016-10-31])
@@ -695,13 +700,23 @@ defmodule Date do
       iex> Date.day_of_week(~D[-0015-10-30])
       3
 
+      iex> Date.day_of_week(~D[2016-10-31], :sunday)
+      2
+      iex> Date.day_of_week(~D[2016-11-01], :sunday)
+      3
+      iex> Date.day_of_week(~N[2016-11-01 01:23:45], :sunday)
+      3
+      iex> Date.day_of_week(~D[-0015-10-30], :sunday)
+      4
+
   """
   @doc since: "1.4.0"
-  @spec day_of_week(Calendar.date()) :: Calendar.day()
-  def day_of_week(date)
+  @spec day_of_week(Calendar.date(), starting_on :: :default | atom) :: Calendar.day_of_week()
+  def day_of_week(date, starting_on \\ :default)
 
-  def day_of_week(%{calendar: calendar, year: year, month: month, day: day}) do
-    calendar.day_of_week(year, month, day)
+  def day_of_week(%{calendar: calendar, year: year, month: month, day: day}, starting_on) do
+    {day_of_week, _first, _last} = calendar.day_of_week(year, month, day, starting_on)
+    day_of_week
   end
 
   @doc """

@@ -132,7 +132,7 @@ defmodule Calendar.Holocene do
   defdelegate months_in_year(year), to: Calendar.ISO
 
   @impl true
-  defdelegate day_of_week(year, month, day), to: Calendar.ISO
+  defdelegate day_of_week(year, month, day, starting_on), to: Calendar.ISO
 
   @impl true
   defdelegate day_of_year(year, month, day), to: Calendar.ISO

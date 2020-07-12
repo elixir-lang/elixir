@@ -167,8 +167,14 @@ defmodule Calendar do
 
   @doc """
   Calculates the day of the week from the given `year`, `month`, and `day`.
+
+  The `starting_on` represents the starting day of the week. All
+  calendars must support at least the `:default` value. They may
+  also support other values representing their days of the week.
   """
-  @callback day_of_week(year, month, day) :: day_of_week()
+  @callback day_of_week(year, month, day, starting_on :: :default | atom) ::
+              {day_of_week(), first_day_of_week :: non_neg_integer(),
+               last_day_of_week :: non_neg_integer()}
 
   @doc """
   Calculates the day of the year from the given `year`, `month`, and `day`.
