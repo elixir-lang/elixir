@@ -59,6 +59,13 @@ defmodule Date.RangeTest do
     end
   end
 
+  test "works with date-like structs" do
+    range = Date.range(~N[2000-01-01 09:00:00], ~U[2000-01-02 09:00:00Z])
+    assert range.first == ~D[2000-01-01]
+    assert range.last == ~D[2000-01-02]
+    assert Enum.to_list(range) == [~D[2000-01-01], ~D[2000-01-02]]
+  end
+
   test "both dates must have matching calendars" do
     first = ~D[2000-01-01]
     last = Calendar.Holocene.date(12001, 1, 1)
