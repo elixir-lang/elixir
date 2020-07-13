@@ -88,20 +88,20 @@ defmodule Date do
 
   """
   @doc since: "1.5.0"
-  @spec range(Date.t(), Date.t()) :: Date.Range.t()
-  def range(%Date{calendar: calendar} = first, %Date{calendar: calendar} = last) do
+  @spec range(Calendar.date(), Calendar.date()) :: Date.Range.t()
+  def range(%{calendar: calendar} = first, %{calendar: calendar} = last) do
     {first_days, _} = to_iso_days(first)
     {last_days, _} = to_iso_days(last)
 
     %Date.Range{
-      first: first,
-      last: last,
+      first: %Date{calendar: calendar, year: first.year, month: first.month, day: first.day},
+      last: %Date{calendar: calendar, year: last.year, month: last.month, day: last.day},
       first_in_iso_days: first_days,
       last_in_iso_days: last_days
     }
   end
 
-  def range(%Date{}, %Date{}) do
+  def range(%{calendar: _, year: _, month: _, day: _}, %{calendar: _, year: _, month: _, day: _}) do
     raise ArgumentError, "both dates must have matching calendars"
   end
 
