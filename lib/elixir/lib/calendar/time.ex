@@ -489,7 +489,11 @@ defmodule Time do
 
   """
   @doc since: "1.6.0"
+<<<<<<< HEAD
   @spec add(Calendar.time(), integer, time_unit()) :: t
+=======
+  @spec add(Calendar.time(), integer, time_unit()) :: t()
+>>>>>>> 6a49c4288... Add support for :hour and :minute time units
   def add(%{calendar: calendar} = time, number, unit \\ :second) when is_integer(number) do
     total = time_to_microseconds(time) + convert_time_unit(number, unit)
     parts = Integer.mod(total, @parts_per_day)
@@ -702,7 +706,7 @@ defmodule Time do
 
   """
   @doc since: "1.5.0"
-  @spec diff(Calendar.time(), Calendar.time(), time_unit()) :: integer
+  @spec diff(Calendar.time(), Calendar.time(), time_unit()) :: integer()
   def diff(time1, time2, unit \\ :second)
 
   def diff(%{calendar: Calendar.ISO} = time1, %{calendar: Calendar.ISO} = time2, :hour) do
