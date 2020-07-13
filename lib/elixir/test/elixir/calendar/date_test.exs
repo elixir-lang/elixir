@@ -71,14 +71,51 @@ defmodule DateTest do
   end
 
   test "day_of_week/1" do
-    assert Date.day_of_week(~D[2016-10-31]) == 1
-    assert Date.day_of_week(~D[2016-11-01]) == 2
-    assert Date.day_of_week(~D[2016-11-02]) == 3
-    assert Date.day_of_week(~D[2016-11-03]) == 4
-    assert Date.day_of_week(~D[2016-11-04]) == 5
-    assert Date.day_of_week(~D[2016-11-05]) == 6
-    assert Date.day_of_week(~D[2016-11-06]) == 7
-    assert Date.day_of_week(~D[2016-11-07]) == 1
+    assert Date.day_of_week(Calendar.Holocene.date(2016, 10, 31)) == 1
+    assert Date.day_of_week(Calendar.Holocene.date(2016, 11, 01)) == 2
+    assert Date.day_of_week(Calendar.Holocene.date(2016, 11, 02)) == 3
+    assert Date.day_of_week(Calendar.Holocene.date(2016, 11, 03)) == 4
+    assert Date.day_of_week(Calendar.Holocene.date(2016, 11, 04)) == 5
+    assert Date.day_of_week(Calendar.Holocene.date(2016, 11, 05)) == 6
+    assert Date.day_of_week(Calendar.Holocene.date(2016, 11, 06)) == 7
+    assert Date.day_of_week(Calendar.Holocene.date(2016, 11, 07)) == 1
+
+    assert Date.day_of_week(Calendar.Holocene.date(2016, 10, 30), :sunday) == 1
+    assert Date.day_of_week(Calendar.Holocene.date(2016, 10, 31), :sunday) == 2
+    assert Date.day_of_week(Calendar.Holocene.date(2016, 11, 01), :sunday) == 3
+    assert Date.day_of_week(Calendar.Holocene.date(2016, 11, 02), :sunday) == 4
+    assert Date.day_of_week(Calendar.Holocene.date(2016, 11, 03), :sunday) == 5
+    assert Date.day_of_week(Calendar.Holocene.date(2016, 11, 04), :sunday) == 6
+    assert Date.day_of_week(Calendar.Holocene.date(2016, 11, 05), :sunday) == 7
+    assert Date.day_of_week(Calendar.Holocene.date(2016, 11, 06), :sunday) == 1
+  end
+
+  test "beginning_of_week" do
+    assert Date.beginning_of_week(Calendar.Holocene.date(2020, 07, 11)) ==
+             Calendar.Holocene.date(2020, 07, 06)
+
+    assert Date.beginning_of_week(Calendar.Holocene.date(2020, 07, 06)) ==
+             Calendar.Holocene.date(2020, 07, 06)
+
+    assert Date.beginning_of_week(Calendar.Holocene.date(2020, 07, 11), :sunday) ==
+             Calendar.Holocene.date(2020, 07, 05)
+
+    assert Date.beginning_of_week(Calendar.Holocene.date(2020, 07, 11), :saturday) ==
+             Calendar.Holocene.date(2020, 07, 11)
+  end
+
+  test "end_of_week" do
+    assert Date.end_of_week(Calendar.Holocene.date(2020, 07, 11)) ==
+             Calendar.Holocene.date(2020, 07, 12)
+
+    assert Date.end_of_week(Calendar.Holocene.date(2020, 07, 05)) ==
+             Calendar.Holocene.date(2020, 07, 05)
+
+    assert Date.end_of_week(Calendar.Holocene.date(2020, 07, 05), :sunday) ==
+             Calendar.Holocene.date(2020, 07, 11)
+
+    assert Date.end_of_week(Calendar.Holocene.date(2020, 07, 05), :saturday) ==
+             Calendar.Holocene.date(2020, 07, 10)
   end
 
   test "convert/2" do
