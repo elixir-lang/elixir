@@ -20,19 +20,21 @@ These two conditions may seem contradictory. After all, if a module is available
 
 This new compiler check makes sure that all modules that you invoke are listed as part of your dependencies, emitting a warning like below otherwise:
 
-    :ssl.connect/2 defined in application :ssl is used by the current
-    application but the current application does not directly depend
-    on :ssl. To fix this, you must do one of:
+```text
+:ssl.connect/2 defined in application :ssl is used by the current
+application but the current application does not directly depend
+on :ssl. To fix this, you must do one of:
 
-      1. If :ssl is part of Erlang/Elixir, you must include it under
-         :extra_applications inside "def application" in your mix.exs
+  1. If :ssl is part of Erlang/Elixir, you must include it under
+     :extra_applications inside "def application" in your mix.exs
 
-      2. If :ssl is a dependency, make sure it is listed under "def deps"
-         in your mix.exs
+  2. If :ssl is a dependency, make sure it is listed under "def deps"
+     in your mix.exs
 
-      3. In case you don't want to add a requirement to :ssl, you may
-         optionally skip this warning by adding [xref: [exclude: :ssl]
-         to your "def project" in mix.exs
+  3. In case you don't want to add a requirement to :ssl, you may
+     optionally skip this warning by adding [xref: [exclude: :ssl]
+     to your "def project" in mix.exs
+```
 
 This comes with extra benefits in umbrella projects, as it requires child applications to explicitly list their dependencies, completely rejecting cyclic dependencies between siblings.
 
@@ -48,18 +50,20 @@ If there is either a typo on the `:age` field or the `:age` field was not yet de
 
 The compiler would not catch the missing field and an error would only be raised at runtime. With v1.11, Elixir will track the usage of all maps and struct fields within the same function, emitting warnings for cases like above:
 
-    warning: undefined field `age` in expression:
+```text
+warning: undefined field `age` in expression:
 
-        # example.exs:7
-        user.age
+    # example.exs:7
+    user.age
 
-    where "user" was given the type %User{} in:
+where "user" was given the type %User{} in:
 
-        # example.exs:7
-        %User{} = user
+    # example.exs:7
+    %User{} = user
 
-    Conflict found at
-      example.exs:7: Check.drive?/1
+Conflict found at
+  example.exs:7: Check.drive?/1
+```
 
 The compiler also checks binary constructors. Consider you have to send a string over the wire with length-based encoding, where the string is prefixed by its length, up to 4MBs. Your initial attempt may be this:
 
@@ -69,26 +73,28 @@ The compiler also checks binary constructors. Consider you have to send a string
 
 However, the code above has a bug. Each segment given between `<<>>` must be an integer, unless specified otherwise. With Elixir v1.11, the compiler will let you know so:
 
-    warning: incompatible types:
+```text
+warning: incompatible types:
 
-        binary() !~ integer()
+    binary() !~ integer()
 
-    in expression:
+in expression:
 
-        <<byte_size(string)::integer()-size(32), string>>
+    <<byte_size(string)::integer()-size(32), string>>
 
-    where "string" was given the type integer() in:
+where "string" was given the type integer() in:
 
-        # foo.exs:4
-        <<byte_size(string)::integer()-size(32), string>>
+    # foo.exs:4
+    <<byte_size(string)::integer()-size(32), string>>
 
-    where "string" was given the type binary() in:
+where "string" was given the type binary() in:
 
-        # foo.exs:3
-        is_binary(string)
+    # foo.exs:3
+    is_binary(string)
 
-    Conflict found at
-      foo.exs:4: Check.run_length/1
+Conflict found at
+  foo.exs:4: Check.run_length/1
+```
 
 Which can be fixed by adding `::binary` to the second component:
 
@@ -112,25 +118,31 @@ Elixir v1.11 replaces "struct dependencies" by "exports dependencies". In other 
 
 This change allows us to mark `import`s and `require`s as "exports dependencies" instead of "compile time" dependencies. This simplifies the dependency graph considerably. For example, [in the Hex.pm project](https://github.com/hexpm/hexpm), changing the `user.ex` file in Elixir v1.10 would emit this:
 
-    $ touch lib/hexpm/accounts/user.ex && mix compile
-    Compiling 90 files (.ex)
+```text
+$ touch lib/hexpm/accounts/user.ex && mix compile
+Compiling 90 files (.ex)
+```
 
 In Elixir v1.11, we now get:
 
-    $ touch lib/hexpm/accounts/user.ex && mix compile
-    Compiling 16 files (.ex)
+```text
+$ touch lib/hexpm/accounts/user.ex && mix compile
+Compiling 16 files (.ex)
+```
 
 To make things even better, Elixir v1.11 also introduces a more granular file tracking for path dependencies. In previous versions, a module from a path dependency would always be treated as a compile time dependency. This often meant that if you have an umbrella project, changing an application would cause many modules in sibling applications to recompile. Fortunately, Elixir v1.11 will tag modules from dependencies as exports if appropriate, yielding dramatic improvements to those using path dependencies.
 
 To round up the list of compiler enhancements, the `--profile=time` option added in Elixir v1.10 now also includes the time to compile each individual file. For example, in the Plug project, one can now get:
 
-    [profile] lib/plug/conn.ex compiled in 935ms
-    [profile] lib/plug/ssl.ex compiled in 147ms (plus 744ms waiting)
-    [profile] lib/plug/static.ex compiled in 238ms (plus 654ms waiting)
-    [profile] lib/plug/csrf_protection.ex compiled in 237ms (plus 790ms waiting)
-    [profile] lib/plug/debugger.ex compiled in 719ms (plus 947ms waiting)
-    [profile] Finished compilation cycle of 60 modules in 1802ms
-    [profile] Finished group pass check of 60 modules in 75ms
+```text
+[profile] lib/plug/conn.ex compiled in 935ms
+[profile] lib/plug/ssl.ex compiled in 147ms (plus 744ms waiting)
+[profile] lib/plug/static.ex compiled in 238ms (plus 654ms waiting)
+[profile] lib/plug/csrf_protection.ex compiled in 237ms (plus 790ms waiting)
+[profile] lib/plug/debugger.ex compiled in 719ms (plus 947ms waiting)
+[profile] Finished compilation cycle of 60 modules in 1802ms
+[profile] Finished group pass check of 60 modules in 75ms
+```
 
 While implementing those features, we have also made the `--long-compilation-threshold` flag more precise. In previous versions, `--long-compilation-threshold` would consider both the time a file spent to compile and the time spent waiting on other files. In Elixir v1.11, it considers only the compilation time. This means less false positives and you can now effectively get all files that take longer than 2s to compile by passing `--long-compilation-threshold 2`.
 
@@ -140,39 +152,41 @@ To bring visibility to the compiler tracking improvements described in the previ
 
 First we have made the existing `--label` flag to consider transitive dependencies. Using `--sink FILE` and `--label compile` can be a powerful combo to find out which files will change whenever the given `FILE` changes. For example, in the Hex.pm project, we get:
 
-    $ mix xref graph --sink lib/hexpm/accounts/user.ex --label compile
-    lib/hexpm/billing/hexpm.ex
-    └── lib/hexpm/billing/billing.ex (compile)
-    lib/hexpm/billing/local.ex
-    └── lib/hexpm/billing/billing.ex (compile)
-    lib/hexpm/emails/bamboo.ex
-    ├── lib/hexpm/accounts/email.ex (compile)
-    └── lib/hexpm/accounts/user.ex (compile)
-    lib/hexpm/emails/emails.ex
-    └── lib/hexpm_web/views/email_view.ex (compile)
-    lib/hexpm_web/controllers/api/docs_controller.ex
-    └── lib/hexpm_web/controllers/auth_helpers.ex (compile)
-    lib/hexpm_web/controllers/api/key_controller.ex
-    └── lib/hexpm_web/controllers/auth_helpers.ex (compile)
-    lib/hexpm_web/controllers/api/organization_controller.ex
-    └── lib/hexpm_web/controllers/auth_helpers.ex (compile)
-    lib/hexpm_web/controllers/api/organization_user_controller.ex
-    └── lib/hexpm_web/controllers/auth_helpers.ex (compile)
-    lib/hexpm_web/controllers/api/owner_controller.ex
-    └── lib/hexpm_web/controllers/auth_helpers.ex (compile)
-    lib/hexpm_web/controllers/api/package_controller.ex
-    └── lib/hexpm_web/controllers/auth_helpers.ex (compile)
-    lib/hexpm_web/controllers/api/release_controller.ex
-    └── lib/hexpm_web/controllers/auth_helpers.ex (compile)
-    lib/hexpm_web/controllers/api/repository_controller.ex
-    └── lib/hexpm_web/controllers/auth_helpers.ex (compile)
-    lib/hexpm_web/controllers/api/retirement_controller.ex
-    └── lib/hexpm_web/controllers/auth_helpers.ex (compile)
-    lib/hexpm_web/controllers/blog_controller.ex
-    └── lib/hexpm_web/views/blog_view.ex (compile)
-    lib/hexpm_web/endpoint.ex
-    ├── lib/hexpm_web/plug_parser.ex (compile)
-    └── lib/hexpm_web/session.ex (compile)
+```text
+$ mix xref graph --sink lib/hexpm/accounts/user.ex --label compile
+lib/hexpm/billing/hexpm.ex
+└── lib/hexpm/billing/billing.ex (compile)
+lib/hexpm/billing/local.ex
+└── lib/hexpm/billing/billing.ex (compile)
+lib/hexpm/emails/bamboo.ex
+├── lib/hexpm/accounts/email.ex (compile)
+└── lib/hexpm/accounts/user.ex (compile)
+lib/hexpm/emails/emails.ex
+└── lib/hexpm_web/views/email_view.ex (compile)
+lib/hexpm_web/controllers/api/docs_controller.ex
+└── lib/hexpm_web/controllers/auth_helpers.ex (compile)
+lib/hexpm_web/controllers/api/key_controller.ex
+└── lib/hexpm_web/controllers/auth_helpers.ex (compile)
+lib/hexpm_web/controllers/api/organization_controller.ex
+└── lib/hexpm_web/controllers/auth_helpers.ex (compile)
+lib/hexpm_web/controllers/api/organization_user_controller.ex
+└── lib/hexpm_web/controllers/auth_helpers.ex (compile)
+lib/hexpm_web/controllers/api/owner_controller.ex
+└── lib/hexpm_web/controllers/auth_helpers.ex (compile)
+lib/hexpm_web/controllers/api/package_controller.ex
+└── lib/hexpm_web/controllers/auth_helpers.ex (compile)
+lib/hexpm_web/controllers/api/release_controller.ex
+└── lib/hexpm_web/controllers/auth_helpers.ex (compile)
+lib/hexpm_web/controllers/api/repository_controller.ex
+└── lib/hexpm_web/controllers/auth_helpers.ex (compile)
+lib/hexpm_web/controllers/api/retirement_controller.ex
+└── lib/hexpm_web/controllers/auth_helpers.ex (compile)
+lib/hexpm_web/controllers/blog_controller.ex
+└── lib/hexpm_web/views/blog_view.ex (compile)
+lib/hexpm_web/endpoint.ex
+├── lib/hexpm_web/plug_parser.ex (compile)
+└── lib/hexpm_web/session.ex (compile)
+```
 
 All the files at the root will recompile if `lib/hexpm/accounts/user.ex` changes. Their children describe the *why*. For example, the `repository_controller.ex` file will recompile if user changes because it has a compile time dependency on `auth_helpers.ex`, which depends on `user.ex`. This indirect compile time dependency is often the source of recompilations and Elixir v1.11 now makes it trivial to spot them, so they can be eventually addressed.
 
