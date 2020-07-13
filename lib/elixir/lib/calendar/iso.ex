@@ -44,6 +44,7 @@ defmodule Calendar.ISO do
   @type hour :: 0..23
   @type minute :: 0..59
   @type second :: 0..59
+  @type weekday :: :monday | :tuesday | :wednesday | :thursday | :friday | :saturday | :sunday
 
   @typedoc """
   Microseconds with stored precision.
@@ -619,42 +620,82 @@ defmodule Calendar.ISO do
     rem(year, 4) === 0 and (rem(year, 100) !== 0 or rem(year, 400) === 0)
   end
 
+  # TODO: Deprecate me on v1.15
+  @doc false
+  def day_of_week(year, month, day) do
+    day_of_week(year, month, day, :default) |> elem(0)
+  end
+
   @doc """
   Calculates the day of the week from the given `year`, `month`, and `day`.
 
-  It is an integer from 1 to 7, where 1 is Monday and 7 is Sunday.
+  It is an integer from 1 to 7, where 1 is the given `starting_on` weekday.
+  For example, if `starting_on` is set to `:monday`, then 1 is Monday and
+  7 is Sunday.
+
+  `starting_on` can also be `:default`, which is equivalent to `:monday`.
 
   ## Examples
 
-      iex> Calendar.ISO.day_of_week(2016, 10, 31)
-      1
-      iex> Calendar.ISO.day_of_week(2016, 11, 1)
-      2
-      iex> Calendar.ISO.day_of_week(2016, 11, 2)
-      3
-      iex> Calendar.ISO.day_of_week(2016, 11, 3)
-      4
-      iex> Calendar.ISO.day_of_week(2016, 11, 4)
-      5
-      iex> Calendar.ISO.day_of_week(2016, 11, 5)
-      6
-      iex> Calendar.ISO.day_of_week(2016, 11, 6)
-      7
-      iex> Calendar.ISO.day_of_week(-99, 1, 31)
-      4
+      iex> Calendar.ISO.day_of_week(2016, 10, 31, :monday)
+      {1, 1, 7}
+      iex> Calendar.ISO.day_of_week(2016, 11, 1, :monday)
+      {2, 1, 7}
+      iex> Calendar.ISO.day_of_week(2016, 11, 2, :monday)
+      {3, 1, 7}
+      iex> Calendar.ISO.day_of_week(2016, 11, 3, :monday)
+      {4, 1, 7}
+      iex> Calendar.ISO.day_of_week(2016, 11, 4, :monday)
+      {5, 1, 7}
+      iex> Calendar.ISO.day_of_week(2016, 11, 5, :monday)
+      {6, 1, 7}
+      iex> Calendar.ISO.day_of_week(2016, 11, 6, :monday)
+      {7, 1, 7}
+      iex> Calendar.ISO.day_of_week(-99, 1, 31, :monday)
+      {4, 1, 7}
+
+      iex> Calendar.ISO.day_of_week(2016, 10, 31, :sunday)
+      {2, 1, 7}
+      iex> Calendar.ISO.day_of_week(2016, 11, 1, :sunday)
+      {3, 1, 7}
+      iex> Calendar.ISO.day_of_week(2016, 11, 2, :sunday)
+      {4, 1, 7}
+      iex> Calendar.ISO.day_of_week(2016, 11, 3, :sunday)
+      {5, 1, 7}
+      iex> Calendar.ISO.day_of_week(2016, 11, 4, :sunday)
+      {6, 1, 7}
+      iex> Calendar.ISO.day_of_week(2016, 11, 5, :sunday)
+      {7, 1, 7}
+      iex> Calendar.ISO.day_of_week(2016, 11, 6, :sunday)
+      {1, 1, 7}
+      iex> Calendar.ISO.day_of_week(-99, 1, 31, :sunday)
+      {5, 1, 7}
+
+      iex> Calendar.ISO.day_of_week(2016, 10, 31, :saturday)
+      {3, 1, 7}
 
   """
-  @doc since: "1.4.0"
-  @spec day_of_week(year, month, day) :: day_of_week()
+  @doc since: "1.11.0"
+  @spec day_of_week(year, month, day, :default | weekday) :: {day_of_week(), 1, 7}
   @impl true
-  def day_of_week(year, month, day) do
-    date_to_iso_days(year, month, day)
-    |> iso_days_to_day_of_week()
+  def day_of_week(year, month, day, starting_on) do
+    iso_days = date_to_iso_days(year, month, day)
+    {iso_days_to_day_of_week(iso_days, starting_on), 1, 7}
   end
 
-  defp iso_days_to_day_of_week(iso_days) do
-    Integer.mod(iso_days + 5, 7) + 1
+  @doc false
+  def iso_days_to_day_of_week(iso_days, starting_on) do
+    Integer.mod(iso_days + day_of_week_offset(starting_on), 7) + 1
   end
+
+  defp day_of_week_offset(:default), do: 5
+  defp day_of_week_offset(:wednesday), do: 3
+  defp day_of_week_offset(:thursday), do: 2
+  defp day_of_week_offset(:friday), do: 1
+  defp day_of_week_offset(:saturday), do: 0
+  defp day_of_week_offset(:sunday), do: 6
+  defp day_of_week_offset(:monday), do: 5
+  defp day_of_week_offset(:tuesday), do: 4
 
   @doc """
   Calculates the day of the year from the given `year`, `month`, and `day`.
