@@ -723,7 +723,7 @@ defmodule Date do
   Calculates a date that is the first day of the week for the given `date`.
 
   If the day is already the first day of the week, it returns the
-  day itself. For the built-in ISO calendar, the week starts on monday.
+  day itself. For the built-in ISO calendar, the week starts on Monday.
   A weekday rather than `:default` can be given as `starting_on`.
 
   ## Examples
@@ -776,7 +776,7 @@ defmodule Date do
   Calculates a date that is the last day of the week for the given `date`.
 
   If the day is already the last day of the week, it returns the
-  day itself. For the built-in ISO calendar, the week ends on a sunday.
+  day itself. For the built-in ISO calendar, the week ends on Sunday.
   A weekday rather than `:default` can be given as `starting_on`.
 
   ## Examples
