@@ -60,6 +60,11 @@ defmodule Date do
           calendar: Calendar.calendar()
         }
 
+  @typedoc """
+  The unit to be passed to date manipulation functions.
+  """
+  @type date_unit :: :week | :day
+
   @doc """
   Returns a range of dates.
 
@@ -589,6 +594,8 @@ defmodule Date do
   The days are counted as Gregorian days. The date is returned in the same
   calendar as it was given in.
 
+  Alternate units such as `:week` may only be used with `Calendar.ISO` dates.
+
   ## Examples
 
       iex> Date.add(~D[2000-01-03], -2)
@@ -599,11 +606,21 @@ defmodule Date do
       ~D[2000-01-03]
       iex> Date.add(~D[-0010-01-01], -2)
       ~D[-0011-12-30]
+      iex> Date.add(~D[2000-01-01], 3, :day)
+      ~D[2000-01-04]
+      iex> Date.add(~D[2000-01-01], 3, :week)
+      ~D[2000-01-22]
 
   """
   @doc since: "1.5.0"
-  @spec add(Calendar.date(), integer()) :: t
-  def add(%{calendar: Calendar.ISO} = date, days) do
+  @spec add(Calendar.date(), integer(), date_unit()) :: t()
+  def add(date, number, unit \\ :day)
+
+  def add(%{calendar: Calendar.ISO} = date, number, :week) do
+    add(date, number * 7, :day)
+  end
+
+  def add(%{calendar: Calendar.ISO} = date, days, :day) do
     %{year: year, month: month, day: day} = date
 
     {year, month, day} =
@@ -614,7 +631,7 @@ defmodule Date do
     %Date{calendar: Calendar.ISO, year: year, month: month, day: day}
   end
 
-  def add(%{calendar: calendar} = date, days) do
+  def add(%{calendar: calendar} = date, days, :day) do
     {base_days, fraction} = to_iso_days(date)
     from_iso_days({base_days + days, fraction}, calendar)
   end
