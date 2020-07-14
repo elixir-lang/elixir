@@ -83,6 +83,8 @@ defmodule ExUnit do
           total: non_neg_integer
         }
 
+  @type test_id :: {module, name :: atom}
+
   defmodule Test do
     @moduledoc """
     A struct that keeps information about the test.

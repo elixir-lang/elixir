@@ -136,7 +136,7 @@ defmodule ExUnit.Filters do
     * A set of test IDs that failed the last time they ran
 
   """
-  @spec failure_info(Path.t()) :: {MapSet.t(Path.t()), MapSet.t(FailuresManifest.test_id())}
+  @spec failure_info(Path.t()) :: {MapSet.t(Path.t()), MapSet.t(ExUnit.test_id())}
   def failure_info(manifest_file) do
     manifest = FailuresManifest.read(manifest_file)
     {FailuresManifest.files_with_failures(manifest), FailuresManifest.failed_test_ids(manifest)}
