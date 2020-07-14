@@ -704,17 +704,24 @@ defmodule Time do
       iex> Time.diff(~T[12:30:12], ~T[11:00:00], :hour)
       1
 
+      iex> Time.diff(~T[00:01:20], ~T[00:00:40], :minute)
+      0
+
   """
   @doc since: "1.5.0"
   @spec diff(Calendar.time(), Calendar.time(), time_unit()) :: integer()
   def diff(time1, time2, unit \\ :second)
 
   def diff(%{calendar: Calendar.ISO} = time1, %{calendar: Calendar.ISO} = time2, :hour) do
-    time1.hour - time2.hour
+    time1
+    |> diff(time2, :second)
+    |> div(3600)
   end
 
   def diff(%{calendar: Calendar.ISO} = time1, %{calendar: Calendar.ISO} = time2, :minute) do
-    (time1.hour - time2.hour) * 60 + (time1.minute - time2.minute)
+    time1
+    |> diff(time2, :second)
+    |> div(60)
   end
 
   def diff(
