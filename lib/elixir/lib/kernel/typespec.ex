@@ -471,7 +471,7 @@ defmodule Kernel.Typespec do
          _,
          state
        )
-       when is_atom(ctx1) and is_atom(ctx2) and is_integer(unit) and unit >= 0 do
+       when is_atom(ctx1) and is_atom(ctx2) and unit in 1..256 do
     line = line(meta)
     {{:type, line, :binary, [{:integer, line, 0}, {:integer, line(unit_meta), unit}]}, state}
   end
@@ -496,7 +496,7 @@ defmodule Kernel.Typespec do
          state
        )
        when is_atom(ctx1) and is_atom(ctx2) and is_atom(ctx3) and is_integer(size) and
-              is_integer(unit) and size >= 0 and unit >= 0 do
+              size >= 0 and unit in 1..256 do
     args = [{:integer, line(size_meta), size}, {:integer, line(unit_meta), unit}]
     {{:type, line(meta), :binary, args}, state}
   end
@@ -504,7 +504,7 @@ defmodule Kernel.Typespec do
   defp typespec({:<<>>, _meta, _args}, _vars, caller, _state) do
     message =
       "invalid binary specification, expected <<_::size>>, <<_::_*unit>>, " <>
-        "or <<_::size, _::_*unit>> with size and unit being non-negative integers"
+        "or <<_::size, _::_*unit>> with size being non-negative integers, and unit being an integer between 1 and 256"
 
     compile_error(caller, message)
   end
