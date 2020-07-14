@@ -158,4 +158,54 @@ defmodule AccessTest do
              end) == {nil, [1, 2, 3, 4, 5, 6]}
     end
   end
+
+  describe "at!/1" do
+    @test_list [1, 2, 3, 4, 5, 6]
+
+    test "returns a list element when the index is within bounds, with get_in" do
+      assert get_in(@test_list, [Access.at!(5)]) == 6
+      assert get_in(@test_list, [Access.at!(-6)]) == 1
+    end
+
+    test "updates a list element when the index is within bounds, with get_and_update_in" do
+      assert get_and_update_in(@test_list, [Access.at!(5)], fn prev ->
+               {prev, :foo}
+             end) == {6, [1, 2, 3, 4, 5, :foo]}
+
+      assert get_and_update_in(@test_list, [Access.at!(-6)], fn prev ->
+               {prev, :foo}
+             end) == {1, [:foo, 2, 3, 4, 5, 6]}
+    end
+
+    test "raises OutOfBoundsError when out of bounds, with get_in" do
+      assert_raise Enum.OutOfBoundsError, fn ->
+        get_in(@test_list, [Access.at!(6)])
+      end
+
+      assert_raise Enum.OutOfBoundsError, fn ->
+        get_in(@test_list, [Access.at!(-7)])
+      end
+    end
+
+    test "raises OutOfBoundsError when out of bounds, with get_and_update_in" do
+      assert_raise Enum.OutOfBoundsError, fn ->
+        get_and_update_in(@test_list, [Access.at!(6)], fn prev -> {prev, :foo} end)
+      end
+
+      assert_raise Enum.OutOfBoundsError, fn ->
+        get_and_update_in(@test_list, [Access.at!(-7)], fn prev -> {prev, :foo} end)
+      end
+    end
+
+    test "raises when not given a list" do
+      assert_raise RuntimeError, "Access.at!/1 expected a list, got: %{}", fn ->
+        get_in(%{}, [Access.at!(0)])
+      end
+    end
+
+    test "chains" do
+      input = %{list: [%{greeting: "hi"}]}
+      assert get_in(input, [:list, Access.at!(0), :greeting]) == "hi"
+    end
+  end
 end
