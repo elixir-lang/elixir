@@ -385,7 +385,7 @@ defmodule TypespecTest do
         end
       end
 
-      assert_raise CompileError, ~r"invxalid binary specification", fn ->
+      assert_raise CompileError, ~r"invalid binary specification", fn ->
         test_module do
           @type my_type :: <<_::integer>>
         end
