@@ -753,6 +753,10 @@ defmodule DateTime do
   It will return the integer with the given unit,
   according to `System.convert_time_unit/3`.
 
+  If you want to get the current time in Unix seconds,
+  do not do `DateTime.utc_now() |> DateTime.to_unix()`.
+  Simply call `System.os_time(:second)` instead.
+
   ## Examples
 
       iex> 1_464_096_368 |> DateTime.from_unix!() |> DateTime.to_unix()
