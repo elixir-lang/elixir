@@ -1,6 +1,6 @@
 defmodule Mix.Tasks.Compile.Erlang do
   use Mix.Task.Compiler
-  import Mix.Compilers.Erlang
+  alias Mix.Compilers.Erlang
 
   @recursive true
   @manifest "compile.erlang"
@@ -65,9 +65,8 @@ defmodule Mix.Tasks.Compile.Erlang do
   defp do_run([], _, _, _), do: {:noop, []}
 
   defp do_run(files, opts, project, source_paths) do
-    include_path = to_erl_file(project[:erlc_include_path])
-    compile_path = to_erl_file(Mix.Project.compile_path(project))
-
+    include_path = Erlang.to_erl_file(project[:erlc_include_path])
+    compile_path = Erlang.to_erl_file(Mix.Project.compile_path(project))
     erlc_options = project[:erlc_options] || []
 
     unless is_list(erlc_options) do
@@ -79,7 +78,7 @@ defmodule Mix.Tasks.Compile.Erlang do
 
     erlc_options =
       Enum.map(erlc_options, fn
-        {kind, dir} when kind in [:i, :outdir] -> {kind, to_erl_file(dir)}
+        {kind, dir} when kind in [:i, :outdir] -> {kind, Erlang.to_erl_file(dir)}
         opt -> opt
       end)
 
@@ -91,14 +90,14 @@ defmodule Mix.Tasks.Compile.Erlang do
       |> sort_dependencies()
       |> Enum.map(&annotate_target(&1, compile_path, opts[:force]))
 
-    Mix.Compilers.Erlang.compile(manifest(), tuples, opts, fn input, _output ->
+    Erlang.compile(manifest(), tuples, opts, fn input, _output ->
       # We're purging the module because a previous compiler (for example, Phoenix)
       # might have already loaded the previous version of it.
       module = input |> Path.basename(".erl") |> String.to_atom()
       :code.purge(module)
       :code.delete(module)
 
-      file = to_erl_file(Path.rootname(input, ".erl"))
+      file = Erlang.to_erl_file(Path.rootname(input, ".erl"))
 
       case :compile.file(file, erlc_options) do
         {:error, :badarg} ->
@@ -115,7 +114,6 @@ defmodule Mix.Tasks.Compile.Erlang do
 
   @impl true
   def manifests, do: [manifest()]
-
   defp manifest, do: Path.join(Mix.Project.manifest_path(), @manifest)
 
   @impl true
@@ -140,7 +138,7 @@ defmodule Mix.Tasks.Compile.Erlang do
       invalid: false
     }
 
-    case :epp.parse_file(to_erl_file(file), include_paths, []) do
+    case :epp.parse_file(Erlang.to_erl_file(file), include_paths, []) do
       {:ok, forms} ->
         [List.foldl(tl(forms), erl_file, &do_form(file, &1, &2)) | acc]
 
