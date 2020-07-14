@@ -779,8 +779,11 @@ defmodule Time do
 
   ## Helpers
 
-  defp time_unit_to_microseconds(number, :hour), do: convert_time_unit(number * 60 * 60, :second)
-  defp time_unit_to_microseconds(number, :minute), do: convert_time_unit(number * 60, :second)
+  defp time_unit_to_microseconds(number, :hour),
+    do: time_unit_to_microseconds(number * 60 * 60, :second)
+
+  defp time_unit_to_microseconds(number, :minute),
+    do: time_unit_to_microseconds(number * 60, :second)
 
   defp time_unit_to_microseconds(number, unit),
     do: System.convert_time_unit(number, unit, :microsecond)
