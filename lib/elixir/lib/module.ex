@@ -630,7 +630,7 @@ defmodule Module do
 
   It returns a tuple of shape `{:module, module, binary, term}`
   where `module` is the module name, `binary` is the module
-  byte code and `term` is the result of the last expression in
+  bytecode and `term` is the result of the last expression in
   `quoted`.
 
   Similar to `Kernel.defmodule/2`, the binary will only be
