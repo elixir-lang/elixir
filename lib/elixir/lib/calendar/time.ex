@@ -491,7 +491,7 @@ defmodule Time do
   @doc since: "1.6.0"
   @spec add(Calendar.time(), integer, time_unit()) :: t()
   def add(%{calendar: calendar} = time, number, unit \\ :second) when is_integer(number) do
-    total = time_to_microseconds(time) + convert_time_unit(number, unit)
+    total = time_to_microseconds(time) + time_unit_to_microseconds(number, unit)
     parts = Integer.mod(total, @parts_per_day)
     {hour, minute, second, microsecond} = calendar.time_from_day_fraction({parts, @parts_per_day})
 
@@ -779,9 +779,11 @@ defmodule Time do
 
   ## Helpers
 
-  defp convert_time_unit(number, :hour), do: convert_time_unit(number * 60 * 60, :second)
-  defp convert_time_unit(number, :minute), do: convert_time_unit(number * 60, :second)
-  defp convert_time_unit(number, unit), do: System.convert_time_unit(number, unit, :microsecond)
+  defp time_unit_to_microseconds(number, :hour), do: convert_time_unit(number * 60 * 60, :second)
+  defp time_unit_to_microseconds(number, :minute), do: convert_time_unit(number * 60, :second)
+
+  defp time_unit_to_microseconds(number, unit),
+    do: System.convert_time_unit(number, unit, :microsecond)
 
   defp to_day_fraction(%{
          hour: hour,
