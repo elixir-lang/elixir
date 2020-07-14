@@ -666,6 +666,10 @@ defmodule Time do
   additional information about a date or time zone is ignored when calculating
   the difference.
 
+  The `unit` controls the measurement unit for the returned value.
+  The `unit` conversion always truncates lower units. For example, a
+  difference of 90 seconds will be returned as 1 if `:minute` is given.
+
   If the first time value is earlier than the second, a negative number is
   returned. The answer can be returned in any `unit` available from
   `t:time_unit/0`. All units are treated as `Calendar.ISO` units.
