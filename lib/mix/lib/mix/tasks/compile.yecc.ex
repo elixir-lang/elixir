@@ -63,7 +63,6 @@ defmodule Mix.Tasks.Compile.Yecc do
 
   @impl true
   def manifests, do: [manifest()]
-
   defp manifest, do: Path.join(Mix.Project.manifest_path(), @manifest)
 
   @impl true

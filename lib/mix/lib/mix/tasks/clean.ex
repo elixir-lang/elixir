@@ -24,11 +24,15 @@ defmodule Mix.Tasks.Clean do
 
     {opts, _, _} = OptionParser.parse(args, switches: @switches)
 
-    _ =
+    # First we get the tasks and then we clean them.
+    # This is to avoid a task cleaning a compiler module.
+    tasks =
       for compiler <- [:protocols] ++ Mix.Tasks.Compile.compilers(),
           module = Mix.Task.get("compile.#{compiler}"),
           function_exported?(module, :clean, 0),
-          do: module.clean
+          do: module
+
+    Enum.each(tasks, & &1.clean())
 
     build =
       Mix.Project.build_path()
