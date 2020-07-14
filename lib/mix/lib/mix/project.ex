@@ -526,7 +526,7 @@ defmodule Mix.Project do
   end
 
   defp env_path(config) do
-    dir = config[:build_path] || "_build"
+    dir = System.get_env("MIX_BUILD_ROOT") || config[:build_path] || "_build"
     subdir = build_target() <> build_per_environment(config)
     Path.expand(dir <> "/" <> subdir)
   end
