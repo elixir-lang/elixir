@@ -44,7 +44,7 @@ defmodule Supervisor.Spec do
   Notice in this case we don't have to explicitly import
   `Supervisor.Spec` as `use Supervisor` automatically does so.
   Defining a module-based supervisor can be useful, for example,
-  to perform initialization tasks in the `c:init/1` callback.
+  to perform initialization tasks in the `c:Supervisor.init/1` callback.
 
   ## Supervisor and worker options
 
@@ -136,7 +136,7 @@ defmodule Supervisor.Spec do
   supervise and a set of `options`.
 
   Returns a tuple containing the supervisor specification. This tuple can be
-  used as the return value of the `c:init/1` callback when implementing a
+  used as the return value of the `c:Supervisor.init/1` callback when implementing a
   module-based supervisor.
 
   ## Examples

@@ -127,6 +127,7 @@ defmodule ExUnit do
     @type t :: %__MODULE__{name: module, state: ExUnit.state(), tests: [ExUnit.Test.t()]}
   end
 
+  @moduledoc deprecated: "Use TestModule instead"
   defmodule TestCase do
     # TODO: Remove this module on v2.0 (it has been replaced by TestModule)
     @moduledoc false
