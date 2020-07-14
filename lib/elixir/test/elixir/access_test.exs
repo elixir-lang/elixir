@@ -118,12 +118,12 @@ defmodule AccessTest do
       assert get_in(@test_list, [Access.filter(&(&1 > 3))]) == [4, 5, 6]
     end
 
-    test "retains order in get_and_update_in/1" do
+    test "retains order in get_and_update_in" do
       assert get_and_update_in(@test_list, [Access.filter(&(&1 == 3 || &1 == 2))], &{&1 * 2, &1}) ==
                {[4, 6], [1, 2, 3, 4, 5, 6]}
     end
 
-    test "retains order in pop_in/1" do
+    test "retains order in pop_in" do
       assert pop_in(@test_list, [Access.filter(&(&1 == 3 || &1 == 2))]) == {[2, 3], [1, 4, 5, 6]}
     end
 
