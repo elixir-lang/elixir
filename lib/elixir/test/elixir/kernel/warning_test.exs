@@ -83,6 +83,21 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
+  test "unused compiler variable" do
+    output =
+      capture_err(fn ->
+        Code.eval_string("""
+        defmodule Sample do
+          def hello(__MODULE___), do: :ok
+        end
+        """)
+      end)
+
+    assert output =~ "unknown compiler variable \"__MODULE___\""
+  after
+    purge(Sample)
+  end
+
   test "nested unused variable" do
     message = "variable \"x\" is unused"
 
