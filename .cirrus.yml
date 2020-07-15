@@ -9,38 +9,6 @@ test_template: &DEFAULT_TEST_SETTINGS
   # don't cancel the task execution if it's master or a release branch
   auto_cancellation: $CIRRUS_BRANCH != 'master' && $CIRRUS_BRANCH !=~ 'v\d+\.\d+.*'
 
-test_windows_task:
-  <<: *DEFAULT_TEST_SETTINGS
-
-  name: Windows, OTP-${OTP_RELEASE}, Windows Server 2019
-  alias: Windows Stable
-
-  matrix:
-    - env:
-        OS_VERSION: 2019
-        OTP_RELEASE: 22.0
-
-  windows_container:
-    image: fertapric/elixir-ci:otp-win64-${OTP_RELEASE}
-    os_version: ${OS_VERSION}
-    cpu: 4
-    memory: 6GB
-
-  install_script:
-    - rmdir /s /q .git
-    - make compile
-
-  build_info_script: bin/elixir --version
-
-  test_formatted_script:
-    - make test_formatted &&
-      echo "All Elixir source code files are properly formatted."
-
-  test_erlang_script: make --keep-going test_erlang
-
-  test_elixir_script: make --keep-going test_elixir
-
-
 test_freebsd_task:
   <<: *DEFAULT_TEST_SETTINGS
 
