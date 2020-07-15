@@ -9,7 +9,7 @@ env:
   LANG: C.UTF-8
 
 jobs:
-  test:
+  test_linux:
     name: Linux, ${{ matrix.otp_release }}, Ubuntu 16.04
     continue-on-error: ${{ matrix.development }}
     strategy:
@@ -51,6 +51,38 @@ jobs:
       - name: Check reproducible builds
         run: taskset 1 make check_reproducible
         if: matrix.otp_release == 'OTP-23.0'
+
+  test_windows:
+    name: Windows, OTP-${{ matrix.otp_release }}, Windows Server 2019
+    strategy:
+      matrix:
+        otp_release: ['22.0']
+    runs-on: windows-2019
+    steps:
+      - name: Configure Git
+        run: git config --global core.autocrlf input
+      - uses: actions/checkout@v1
+        with:
+          fetch-depth: 50
+      - name: Cache Erlang/OTP package
+        uses: actions/cache@v2
+        with:
+          path: C:\Users\runneradmin\AppData\Local\Temp\chocolatey\erlang
+          key: OTP-${{ matrix.otp_release }}-windows-2019
+      - name: Install Erlang/OTP
+        run: choco install -y erlang --version ${{ matrix.otp_release }}
+      - name: Compile Elixir
+        run: |
+          remove-item '.git' -recurse -force
+          make compile
+      - name: Build info
+        run: bin/elixir --version
+      - name: Check format
+        run: make test_formatted && echo "All Elixir source code files are properly formatted."
+      - name: Erlang test suite
+        run: make --keep-going test_erlang
+      - name: Elixir test suite
+        run: make --keep-going test_elixir
 
   check_posix_compliant:
     name: Check POSIX-compliant
