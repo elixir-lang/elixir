@@ -47,6 +47,9 @@ defmodule Kernel.WarningTest do
     test "does not warn for unnecessary quotes in uppercase atoms/keywords" do
       assert capture_err(fn -> Code.eval_string(~s/:"Foo"/) end) == ""
       assert capture_err(fn -> Code.eval_string(~s/["Foo": :bar]/) end) == ""
+      assert capture_err(fn -> Code.eval_string(~s/:"Foo"/) end) == ""
+      assert capture_err(fn -> Code.eval_string(~s/:"foo@bar"/) end) == ""
+      assert capture_err(fn -> Code.eval_string(~s/:"héllò"/) end) == ""
     end
 
     test "warns for unnecessary quotes" do
