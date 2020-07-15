@@ -1,7 +1,7 @@
 defmodule ExUnit.FailuresManifest do
   @moduledoc false
 
-  @opaque t :: %{optional(ExUnit.test_id) => test_file :: Path.t()}
+  @opaque t :: %{optional(ExUnit.test_id()) => test_file :: Path.t()}
 
   @manifest_vsn 1
 
@@ -15,7 +15,7 @@ defmodule ExUnit.FailuresManifest do
     |> MapSet.new()
   end
 
-  @spec failed_test_ids(t) :: MapSet.t(ExUnit.test_id)
+  @spec failed_test_ids(t) :: MapSet.t(ExUnit.test_id())
   def failed_test_ids(%{} = manifest) do
     manifest
     |> Map.keys()
