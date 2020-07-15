@@ -278,6 +278,13 @@ defmodule Module.TypesTest do
     test "not is_struct/2" do
       assert quoted_fun([var], [not is_struct(var, URI)], var.name) == {:ok, {:var, 0}}
     end
+
+    test "map guards" do
+      assert quoted_fun([var], [is_map(var)], var.foo) == {:ok, {:var, 0}}
+      assert quoted_fun([var], [is_map_key(var, :bar)], var.foo) == {:ok, {:var, 0}}
+      assert quoted_fun([var], [:erlang.map_get(:bar, var)], var.foo) == {:ok, {:var, 0}}
+      assert quoted_fun([var], [map_size(var) == 1], var.foo) == {:ok, {:var, 0}}
+    end
   end
 
   test "format_type/1" do
