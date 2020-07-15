@@ -30,10 +30,10 @@ defmodule ExUnit.Formatter do
   and should be ignored:
 
     * `{:case_started, test_module}` -
-      a test module has started. See `ExUnit.TestCase` for details.
+      a test module has started. See `ExUnit.TestModule` for details.
 
     * `{:case_finished, test_module}` -
-      a test module has finished. See `ExUnit.TestCase` for details.
+      a test module has finished. See `ExUnit.TestModule` for details.
 
   The full ExUnit configuration is passed as the argument to `c:GenServer.init/1` callback when the
   formatters are started. If you need to do runtime configuration of a
