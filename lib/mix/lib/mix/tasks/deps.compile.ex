@@ -30,11 +30,20 @@ defmodule Mix.Tasks.Deps.Compile do
   recompiled without propagating those changes upstream. To ensure
   `b` is included in the compilation step, pass `--include-children`.
 
-  If you want to exclude umbrella applications from building pass
-  `--skip-umbrella-children`.
+  ## Command line options
+
+    * `--force` - force compilation of deps
+    * `--skip-umbrella-children` - skips umbrella applications from compiling
+    * `--skip-local-deps` - skips non-remote dependencies, such as path deps, from compiling
+
   """
 
-  @switches [include_children: :boolean, force: :boolean, skip_umbrella_children: :boolean]
+  @switches [
+    include_children: :boolean,
+    force: :boolean,
+    skip_umbrella_children: :boolean,
+    skip_local_deps: :boolean
+  ]
 
   @impl true
   def run(args) do
@@ -61,13 +70,12 @@ defmodule Mix.Tasks.Deps.Compile do
   def compile(deps, options \\ []) do
     shell = Mix.shell()
     config = Mix.Project.deps_config()
-    skip_umbrella_children = Keyword.get(options, :skip_umbrella_children)
-
     Mix.Task.run("deps.precompile")
 
     compiled =
       deps
-      |> reject_umbrella_children(skip_umbrella_children)
+      |> reject_umbrella_children(options)
+      |> reject_local_deps(options)
       |> Enum.map(fn %Mix.Dep{app: app, status: status, opts: opts, scm: scm} = dep ->
         check_unavailable!(app, status)
         maybe_clean(dep, options)
@@ -324,12 +332,19 @@ defmodule Mix.Tasks.Deps.Compile do
     File.regular?(Path.join(opts[:dest], "Makefile.win"))
   end
 
-  defp reject_umbrella_children(deps, true) do
-    deps
-    |> Enum.reject(fn %{opts: opts} -> Keyword.get(opts, :from_umbrella) == true end)
+  defp reject_umbrella_children(deps, options) do
+    if options[:skip_umbrella_children] do
+      Enum.reject(deps, fn %{opts: opts} -> Keyword.get(opts, :from_umbrella) == true end)
+    else
+      deps
+    end
   end
 
-  defp reject_umbrella_children(deps, _) do
-    deps
+  defp reject_local_deps(deps, options) do
+    if options[:skip_local_deps] do
+      Enum.filter(deps, fn %{scm: scm} -> scm.fetchable? end)
+    else
+      deps
+    end
   end
 end
