@@ -430,9 +430,9 @@ In the examples above, we have used the match operator (`=`) and function clause
 
 Note that the match operator (`=`) does *not* support guards:
 
-    ```elixir
-    {:ok, binary} = File.read("some/file")
-    ```
+```elixir
+{:ok, binary} = File.read("some/file")
+```
 
 ## Custom patterns and guards expressions
 
