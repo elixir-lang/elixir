@@ -45,13 +45,6 @@ defmodule Time do
           calendar: Calendar.calendar()
         }
 
-  @typedoc """
-  The time unit to be passed to time manipulation functions.
-
-  This adds `:hour` and `:minute` to the core `t:System.time_unit/0` type.
-  """
-  @type time_unit :: :hour | :minute | System.time_unit()
-
   @parts_per_day 86_400_000_000
   @seconds_per_day 24 * 60 * 60
 
@@ -476,22 +469,19 @@ defmodule Time do
       ~T[17:30:00.000000]
       iex> Time.add(~T[11:00:00.005], 2400)
       ~T[11:40:00.005000]
+      iex> Time.add(~T[00:00:00], 86_399_999, :millisecond)
+      ~T[23:59:59.999000]
       iex> Time.add(~T[17:10:05], 86400)
       ~T[17:10:05.000000]
       iex> Time.add(~T[23:00:00], -60)
       ~T[22:59:00.000000]
-      iex> Time.add(~T[00:00:00], 86_399_999, :millisecond)
-      ~T[23:59:59.999000]
-      iex> Time.add(~T[10:00:00], 1, :minute)
-      ~T[10:01:00.000000]
-      iex> Time.add(~T[10:00:00], 1, :hour)
-      ~T[11:00:00.000000]
 
   """
   @doc since: "1.6.0"
-  @spec add(Calendar.time(), integer, time_unit()) :: t()
+  @spec add(Calendar.time(), integer, System.time_unit()) :: t
   def add(%{calendar: calendar} = time, number, unit \\ :second) when is_integer(number) do
-    total = time_to_microseconds(time) + time_unit_to_microseconds(number, unit)
+    number = System.convert_time_unit(number, unit, :microsecond)
+    total = time_to_microseconds(time) + number
     parts = Integer.mod(total, @parts_per_day)
     {hour, minute, second, microsecond} = calendar.time_from_day_fraction({parts, @parts_per_day})
 
@@ -666,13 +656,12 @@ defmodule Time do
   additional information about a date or time zone is ignored when calculating
   the difference.
 
-  The `unit` controls the measurement unit for the returned value.
-  The `unit` conversion always truncates lower units. For example, a
-  difference of 90 seconds will be returned as 1 if `:minute` is given.
+  The answer can be returned in any `unit` available from
+  `t:System.time_unit/0`. If the first time value is earlier than
+  the second, a negative number is returned.
 
-  If the first time value is earlier than the second, a negative number is
-  returned. The answer can be returned in any `unit` available from
-  `t:time_unit/0`. All units are treated as `Calendar.ISO` units.
+  This function returns the difference in seconds where seconds
+  are measured according to `Calendar.ISO`.
 
   ## Examples
 
@@ -690,35 +679,13 @@ defmodule Time do
 
       iex> Time.diff(~T[00:29:12], ~T[00:29:10], :microsecond)
       2_000_000
-
       iex> Time.diff(~T[00:29:10], ~T[00:29:12], :microsecond)
       -2_000_000
 
-      iex> Time.diff(~T[12:30:12], ~T[11:00:00], :minute)
-      90
-
-      iex> Time.diff(~T[12:30:12], ~T[11:00:00], :hour)
-      1
-
-      iex> Time.diff(~T[00:01:20], ~T[00:00:40], :minute)
-      0
-
   """
   @doc since: "1.5.0"
-  @spec diff(Calendar.time(), Calendar.time(), time_unit()) :: integer()
+  @spec diff(Calendar.time(), Calendar.time(), System.time_unit()) :: integer
   def diff(time1, time2, unit \\ :second)
-
-  def diff(%{calendar: Calendar.ISO} = time1, %{calendar: Calendar.ISO} = time2, :hour) do
-    time1
-    |> diff(time2, :second)
-    |> div(3600)
-  end
-
-  def diff(%{calendar: Calendar.ISO} = time1, %{calendar: Calendar.ISO} = time2, :minute) do
-    time1
-    |> diff(time2, :second)
-    |> div(60)
-  end
 
   def diff(
         %{
@@ -778,15 +745,6 @@ defmodule Time do
   end
 
   ## Helpers
-
-  defp time_unit_to_microseconds(number, :hour),
-    do: time_unit_to_microseconds(number * 60 * 60, :second)
-
-  defp time_unit_to_microseconds(number, :minute),
-    do: time_unit_to_microseconds(number * 60, :second)
-
-  defp time_unit_to_microseconds(number, unit),
-    do: System.convert_time_unit(number, unit, :microsecond)
 
   defp to_day_fraction(%{
          hour: hour,
