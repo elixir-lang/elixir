@@ -162,6 +162,7 @@ bootstrap_files() ->
      <<"lib/elixir/lib/string/chars.ex">>
     ],
     [
+     <<"lib/elixir/lib/list/chars.ex">>,
      <<"lib/elixir/lib/module/checker.ex">>,
      <<"lib/elixir/lib/module/locals_tracker.ex">>,
      <<"lib/elixir/lib/module/parallel_checker.ex">>,
