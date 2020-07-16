@@ -179,7 +179,7 @@ defmodule Mix.Tasks.DepsTest do
     end)
   end
 
-  test "cleans and recompiles artifacts if --force given" do
+  test "cleans and recompiles artifacts if --force is given" do
     Mix.Project.push(SuccessfulDepsApp)
 
     in_fixture("deps_status", fn ->
@@ -191,15 +191,23 @@ defmodule Mix.Tasks.DepsTest do
     end)
   end
 
-  test "doesn't compile any umbrella apps if --skip-umbrella-children given" do
+  test "doesn't compile any umbrella apps if --skip-umbrella-children is given" do
     in_fixture("umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
-        refute File.exists?("_build/dev/lib/foo/ebin")
-        refute File.exists?("_build/dev/lib/bar/ebin")
         Mix.Tasks.Deps.Compile.run(["--skip-umbrella-children"])
         refute File.exists?("_build/dev/lib/foo/ebin")
         refute File.exists?("_build/dev/lib/bar/ebin")
       end)
+    end)
+  end
+
+  test "doesn't compile any path deps if --skip-local-deps is given" do
+    Mix.Project.push(SuccessfulDepsApp)
+
+    in_fixture("deps_status", fn ->
+      File.rm_rf!("_build/dev/lib/ok/ebin")
+      Mix.Tasks.Deps.Compile.run(["--skip-local-deps"])
+      refute File.exists?("_build/dev/lib/ok/ebin")
     end)
   end
 
