@@ -92,11 +92,13 @@ defmodule Kernel.WarningTest do
         Code.eval_string("""
         defmodule Sample do
           def hello(__MODULE___), do: :ok
+          def world(_R), do: :ok
         end
         """)
       end)
 
     assert output =~ "unknown compiler variable \"__MODULE___\""
+    refute output =~ "unknown compiler variable \"_R\""
   after
     purge(Sample)
   end

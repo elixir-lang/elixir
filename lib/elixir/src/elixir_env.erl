@@ -134,9 +134,9 @@ is_unused_var(Name) ->
     _ -> true
   end.
 
+is_compiler_var([$_]) -> true;
 is_compiler_var([Var | Rest]) when Var =:= $_; Var >= $A, Var =< $Z -> is_compiler_var(Rest);
-is_compiler_var([_ | _]) -> false;
-is_compiler_var([]) -> true.
+is_compiler_var(_) -> false.
 
 format_error({unused_var, Name}) ->
   case atom_to_list(Name) of
