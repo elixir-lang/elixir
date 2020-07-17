@@ -112,26 +112,27 @@ defmodule Mix.Tasks.Compile do
     Mix.Project.get!()
     Mix.Task.run("loadpaths", args)
 
-    if "--no-compile" in args do
-      Mix.Task.reenable("compile")
-      :noop
-    else
-      {opts, _, _} = OptionParser.parse(args, switches: [erl_config: :string])
-      load_erl_config(opts)
+    {opts, _, _} = OptionParser.parse(args, switches: [erl_config: :string])
+    load_erl_config(opts)
 
-      {res, diagnostics} =
-        Mix.Task.run("compile.all", args)
-        |> List.wrap()
-        |> Enum.map(&Mix.Task.Compiler.normalize(&1, :all))
-        |> Enum.reduce({:noop, []}, &merge_diagnostics/2)
+    {res, diagnostics} =
+      Mix.Task.run("compile.all", args)
+      |> List.wrap()
+      |> Enum.map(&Mix.Task.Compiler.normalize(&1, :all))
+      |> Enum.reduce({:noop, []}, &merge_diagnostics/2)
 
-      config = Mix.Project.config()
+    config = Mix.Project.config()
 
-      if config[:consolidate_protocols] and "--no-protocol-consolidation" not in args do
+    cond do
+      "--no-compile" in args ->
+        Mix.Task.reenable("compile")
+        {:noop, []}
+
+      config[:consolidate_protocols] and "--no-protocol-consolidation" not in args ->
         {consolidate_and_load_protocols(args, config, res), diagnostics}
-      else
+
+      true ->
         {res, diagnostics}
-      end
     end
   end
 

@@ -13,7 +13,6 @@ defmodule Mix.Tasks.Compile.All do
   def run(args) do
     Mix.Project.get!()
     config = Mix.Project.config()
-    compilers = Mix.Tasks.Compile.compilers(config)
     validate_compile_env? = "--no-validate-compile-env" not in args
 
     # Make sure Mix.Dep is cached to avoid loading dependencies
@@ -25,15 +24,24 @@ defmodule Mix.Tasks.Compile.All do
       load_apps(config, validate_compile_env?)
     end
 
-    # Build the project structure so we can write down compiled files.
-    Mix.Project.build_structure(config)
+    result =
+      if "--no-compile" in args do
+        Mix.Task.reenable("compile.all")
+        {:noop, []}
+      else
+        # Build the project structure so we can write down compiled files.
+        Mix.Project.build_structure(config)
 
-    with_logger_app(config, fn ->
-      result = do_compile(compilers, args, :noop, [])
-      true = Code.prepend_path(Mix.Project.compile_path())
-      load_app(config[:app], validate_compile_env?)
-      result
-    end)
+        with_logger_app(config, fn ->
+          config
+          |> Mix.Tasks.Compile.compilers()
+          |> compile(args, :noop, [])
+        end)
+      end
+
+    _ = Code.prepend_path(Mix.Project.compile_path())
+    load_app(config[:app], validate_compile_env?)
+    result
   end
 
   defp with_logger_app(config, fun) do
@@ -54,11 +62,11 @@ defmodule Mix.Tasks.Compile.All do
     end
   end
 
-  defp do_compile([], _, status, diagnostics) do
+  defp compile([], _, status, diagnostics) do
     {status, diagnostics}
   end
 
-  defp do_compile([compiler | rest], args, status, diagnostics) do
+  defp compile([compiler | rest], args, status, diagnostics) do
     {new_status, new_diagnostics} = run_compiler(compiler, args)
     diagnostics = diagnostics ++ new_diagnostics
 
@@ -71,10 +79,10 @@ defmodule Mix.Tasks.Compile.All do
         {:error, diagnostics}
 
       :ok ->
-        do_compile(rest, args, :ok, diagnostics)
+        compile(rest, args, :ok, diagnostics)
 
       :noop ->
-        do_compile(rest, args, status, diagnostics)
+        compile(rest, args, status, diagnostics)
     end
   end
 
