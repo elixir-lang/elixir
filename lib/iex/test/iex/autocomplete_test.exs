@@ -312,6 +312,15 @@ defmodule IEx.AutocompleteTest do
     assert expand('f = &Enum.a') == {:yes, [], functions_list}
   end
 
+  test "negation operator completion" do
+    assert expand('!is_bin') == {:yes, 'ary', []}
+  end
+
+  test "pin operator completion" do
+    eval("my_variable = 2")
+    assert expand('^my_va') == {:yes, 'riable', []}
+  end
+
   defmodule SublevelTest.LevelA.LevelB do
   end
 
