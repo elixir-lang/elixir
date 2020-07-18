@@ -2,7 +2,8 @@ PREFIX ?= /usr/local
 TEST_FILES ?= "*_test.exs"
 SHARE_PREFIX ?= $(PREFIX)/share
 MAN_PREFIX ?= $(SHARE_PREFIX)/man
-CANONICAL := master/ # master/ or vMAJOR.MINOR/
+#CANONICAL := vMAJOR.MINOR/
+CANONICAL ?= master/
 ELIXIRC := bin/elixirc --ignore-module-conflict $(ELIXIRC_OPTS)
 ERLC := erlc -I lib/elixir/include
 ERL_MAKE := if [ -n "$(ERLC_OPTS)" ]; then ERL_COMPILER_OPTIONS=$(ERLC_OPTS) erl -make; else erl -make; fi
