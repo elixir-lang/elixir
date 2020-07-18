@@ -35,8 +35,8 @@ defmodule Inspect.Opts do
       Defaults to `Inspect.inspect/2`.
 
     * `:limit` - limits the number of items that are inspected for tuples,
-      bitstrings, maps, lists and any other collection of items. It neither
-      applies to printable strings nor to printable charlists.
+      bitstrings, maps, lists and any other collection of items, with the exception of
+      printable strings and printable charlists which use the `:printable_limit` option.
       If you don't want to limit the number of items to a particular number,
       use `:infinity`. It accepts a positive integer or `:infinity`.
       Defaults to `50`.
