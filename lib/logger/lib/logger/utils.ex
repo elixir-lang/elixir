@@ -162,9 +162,11 @@ defmodule Logger.Utils do
   defp inspect_width(_, width), do: width
 
   defp inspect_data([data | _], opts) do
+    width = if opts.width == :none, do: 80, else: opts.width
+
     data
     |> Inspect.Algebra.to_doc(opts)
-    |> Inspect.Algebra.format(opts.width)
+    |> Inspect.Algebra.format(width)
   end
 
   @doc """
