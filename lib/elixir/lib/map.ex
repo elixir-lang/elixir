@@ -314,7 +314,7 @@ defmodule Map do
       %{a: 1}
 
   """
-  @doc since: "1.11.0"
+  @doc since: "1.5.0"
   @spec replace(map, key, value) :: map
   def replace(map, key, value) do
     case map do
