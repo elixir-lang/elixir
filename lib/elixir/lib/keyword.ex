@@ -431,13 +431,29 @@ defmodule Keyword do
 
       iex> Keyword.keys(a: 1, b: 2)
       [:a, :b]
+
       iex> Keyword.keys(a: 1, b: 2, a: 3)
       [:a, :b, :a]
+
+      iex> Keyword.keys([{:a, 1}, {"b", 2}, {:c, 3}])
+      ** (ArgumentError) expected a keyword list, but an element in the list is not a keyword; got: {"b", 2}
 
   """
   @spec keys(t) :: [key]
   def keys(keywords) when is_list(keywords) do
-    :lists.map(fn {k, _} when is_atom(k) -> k end, keywords)
+    :lists.map(
+      fn
+        {key, _} when is_atom(key) ->
+          key
+
+        element ->
+          raise ArgumentError,
+                "expected a keyword list, but an element in the list is not a keyword; got: #{
+                  inspect(element)
+                }"
+      end,
+      keywords
+    )
   end
 
   @doc """
