@@ -42,7 +42,7 @@ defmodule Supervisor.Spec do
       end
 
   Notice in this case we don't have to explicitly import
-  `Supervisor.Spec` as `use Supervisor` automatically does so.
+  `Supervisor.Spec` since `use Supervisor` automatically does so.
   Defining a module-based supervisor can be useful, for example,
   to perform initialization tasks in the `c:Supervisor.init/1` callback.
 
