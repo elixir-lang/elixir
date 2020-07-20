@@ -157,6 +157,17 @@ defmodule Logger.TranslatorTest do
     Application.put_env(:logger, :translator_inspect_opts, [])
   end
 
+  test "translates GenServer unhandled messages" do
+    {:ok, pid} = GenServer.start(MyGenServer, [])
+
+    capture_log(fn ->
+      send(pid, :unknown_message)
+    end)
+
+    assert_receive {:error, _pid, {Logger, msg, _ts, _meta}}
+    assert to_string(msg) =~ ~r(received unexpected message in handle_info/2: :unknown_message)
+  end
+
   test "translates GenServer crashes on debug" do
     {:ok, pid} = GenServer.start(MyGenServer, :ok)
 
