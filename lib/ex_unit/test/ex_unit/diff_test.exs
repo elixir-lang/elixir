@@ -54,9 +54,9 @@ defmodule ExUnit.DiffTest do
     end
   end
 
-  defmacrop assert_diff({:==, _, [left, right]}, [], []) do
+  defmacrop assert_diff({op, _, [left, right]}, [], []) when op in [:==, :===] do
     quote do
-      assert_diff(unquote(left), unquote(right), [], :expr)
+      assert_diff(unquote(left), unquote(right), [], unquote(op))
     end
   end
 
@@ -76,14 +76,15 @@ defmodule ExUnit.DiffTest do
     end
   end
 
-  defmacrop refute_diff({:==, _, [left, right]}, expected_left, expected_right, []) do
+  defmacrop refute_diff({op, _, [left, right]}, expected_left, expected_right, [])
+            when op in [:==, :===] do
     quote do
       refute_diff(
         unquote(left),
         unquote(right),
         unquote(expected_left),
         unquote(expected_right),
-        :expr
+        unquote(op)
       )
     end
   end
@@ -181,6 +182,20 @@ defmodule ExUnit.DiffTest do
     refute_diff(-1.23 = 1.23, "---1.23", "1.23")
     refute_diff(123.0 = :a, "-123.0-", "+:a+")
     refute_diff(123.0 = 123_512_235, "-123.0-", "+123512235+")
+  end
+
+  test "== / ===" do
+    refute_diff(
+      %{a: 1, b: 2} == %{a: 1.0, b: :two},
+      "%{a: 1, b: -2-}",
+      "%{a: 1.0, b: +:two+}"
+    )
+
+    refute_diff(
+      %{a: 1, b: 2} === %{a: 1.0, b: :two},
+      "%{a: -1-, b: -2-}",
+      "%{a: +1.0+, b: +:two+}"
+    )
   end
 
   test "lists" do

@@ -11,7 +11,7 @@ defmodule ExUnit.AssertionError do
                expr: @no_value,
                args: @no_value,
                doctest: @no_value,
-               context: :expr
+               context: :==
 
   @doc """
   Indicates no meaningful value for a field.
@@ -262,8 +262,9 @@ defmodule ExUnit.Assertions do
     nil
   end
 
-  defp translate_operator(kind, {_, meta, [left, right]} = expr, call, message, true, _caller) do
+  defp translate_operator(kind, {op, meta, [left, right]} = expr, call, message, true, _caller) do
     expr = escape_quoted(kind, meta, expr)
+    context = if op in [:===, :!==], do: :===, else: :==
 
     quote do
       left = unquote(left)
@@ -280,14 +281,16 @@ defmodule ExUnit.Assertions do
           left: left,
           right: right,
           expr: unquote(expr),
-          message: unquote(message)
+          message: unquote(message),
+          context: unquote(context)
         )
       end
     end
   end
 
-  defp translate_operator(kind, {_, meta, [left, right]} = expr, call, message, false, _caller) do
+  defp translate_operator(kind, {op, meta, [left, right]} = expr, call, message, false, _caller) do
     expr = escape_quoted(kind, meta, expr)
+    context = if op in [:===, :!==], do: :===, else: :==
 
     quote do
       left = unquote(left)
@@ -297,7 +300,8 @@ defmodule ExUnit.Assertions do
         left: left,
         right: right,
         expr: unquote(expr),
-        message: unquote(message)
+        message: unquote(message),
+        context: unquote(context)
       )
     end
   end
