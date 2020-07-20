@@ -137,7 +137,7 @@ defmodule Module.LocalsTracker do
   end
 
   defp reachable?(tuple, :defmacrop, reachable, reattached) do
-    # All private micros are unreachable unless they have been
+    # All private macros are unreachable unless they have been
     # reattached and they are reachable.
     :lists.member(tuple, reattached) and Map.has_key?(reachable, tuple)
   end
