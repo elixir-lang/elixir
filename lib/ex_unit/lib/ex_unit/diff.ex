@@ -26,17 +26,17 @@ defmodule ExUnit.Diff do
 
   The `left` side can be a literal or an AST, the `right` should always be a
   value. The `context` should be `{:match, pins}` for pattern matching and
-  `expr` for any other case.
+  `==` and `===` for comparison cases.
   """
   def compute(left, right, context) do
     diff(left, right, context_to_env(context))
   end
 
-  defp context_to_env(:expr),
-    do: %{pins: %{}, context: nil, current_vars: %{}}
-
   defp context_to_env({:match, pins}),
     do: %{pins: Map.new(pins), context: :match, current_vars: %{}}
+
+  defp context_to_env(op) when op in [:==, :===],
+    do: %{pins: %{}, context: op, current_vars: %{}}
 
   # Main entry point for recursive diff
 
@@ -127,6 +127,10 @@ defmodule ExUnit.Diff do
        when is_atom(literal) or is_number(literal) or is_reference(literal) or
               is_pid(literal) or is_function(literal) do
     {%__MODULE__{equivalent?: true, left: literal, right: literal}, env}
+  end
+
+  defp diff_value(left, right, %{context: :==} = env) when left == right and is_number(left) do
+    {%__MODULE__{equivalent?: true, left: left, right: right}, env}
   end
 
   defp diff_value(left, right, env) when is_number(left) and is_number(right) do
