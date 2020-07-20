@@ -156,22 +156,6 @@ defmodule Logger.Translator do
     {:ok, ["Application ", Atom.to_string(app), " exited: " | Application.format_error(reason)]}
   end
 
-  def translate(
-        _min_level,
-        :error,
-        :report,
-        {{GenServer, :no_handle_info}, %{module: mod, message: msg, name: pid}}
-      ) do
-    {:ok,
-     [
-       inspect(mod),
-       ?\s,
-       inspect(pid),
-       "received unexpected message in handle_info/2: ",
-       inspect(msg)
-     ]}
-  end
-
   def translate(min_level, :error, :report, {{:error_logger, :error_report}, data}) do
     report_supervisor(min_level, data)
   end

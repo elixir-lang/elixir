@@ -254,11 +254,15 @@ defmodule Logger.Handler do
     |> :io_lib.build_text()
   end
 
-  defp translate_fallback(:report, {_type, %{} = data}, _meta, _truncate) do
+  defp translate_fallback(:report, {:logger, %{} = data}, _meta, _truncate) do
     Kernel.inspect(Map.to_list(data))
   end
 
-  defp translate_fallback(:report, {_type, data}, _meta, _truncate) do
+  defp translate_fallback(:report, {:logger, data}, _meta, _truncate) do
     Kernel.inspect(data)
+  end
+
+  defp translate_fallback(:report, {label, data}, meta, truncate) do
+    translate_fallback(:report, {:logger, %{label: label, report: data}}, meta, truncate)
   end
 end
