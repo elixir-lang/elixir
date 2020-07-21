@@ -695,11 +695,11 @@ defmodule ExUnit.AssertionsTest do
       """ <> _ = error.message
   end
 
-  test "assert greater than operator" do
+  test "assert greater-than operator" do
     true = assert 2 > 1
   end
 
-  test "assert greater than operator error" do
+  test "assert greater-than operator error" do
     "This should never be tested" = assert 1 > 2
   rescue
     error in [ExUnit.AssertionError] ->

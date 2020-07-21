@@ -1564,8 +1564,8 @@ defmodule Enum do
   In the example above, `max/2` returned March 31st instead of April 1st
   because the structural comparison compares the day before the year.
   For this reason, most structs provide a "compare" function, such as
-  `Date.compare/2`, which receives two structs and returns `:lt` (less than),
-  `:eq` (equal), and `:gt` (greater than). If you pass a module as the
+  `Date.compare/2`, which receives two structs and returns `:lt` (less-than),
+  `:eq` (equal to), and `:gt` (greater-than). If you pass a module as the
   sorting function, Elixir will automatically use the `compare/2` function
   of said module:
 
@@ -1624,8 +1624,8 @@ defmodule Enum do
   The fact this function uses Erlang's term ordering means that the
   comparison is structural and not semantic. Therefore, if you want
   to compare structs, most structs provide a "compare" function, such as
-  `Date.compare/2`, which receives two structs and returns `:lt` (less than),
-  `:eq` (equal), and `:gt` (greater than). If you pass a module as the
+  `Date.compare/2`, which receives two structs and returns `:lt` (less-than),
+  `:eq` (equal to), and `:gt` (greater-than). If you pass a module as the
   sorting function, Elixir will automatically use the `compare/2` function
   of said module:
 
@@ -1738,8 +1738,8 @@ defmodule Enum do
   In the example above, `min/2` returned April 1st instead of March 31st
   because the structural comparison compares the day before the year.
   For this reason, most structs provide a "compare" function, such as
-  `Date.compare/2`, which receives two structs and returns `:lt` (less than),
-  `:eq` (equal), and `:gt` (greater than). If you pass a module as the
+  `Date.compare/2`, which receives two structs and returns `:lt` (less-than),
+  `:eq` (equal to), and `:gt` (greater-than). If you pass a module as the
   sorting function, Elixir will automatically use the `compare/2` function
   of said module:
 
@@ -1798,8 +1798,8 @@ defmodule Enum do
   The fact this function uses Erlang's term ordering means that the
   comparison is structural and not semantic. Therefore, if you want
   to compare structs, most structs provide a "compare" function, such as
-  `Date.compare/2`, which receives two structs and returns `:lt` (less than),
-  `:eq` (equal), and `:gt` (greater than). If you pass a module as the
+  `Date.compare/2`, which receives two structs and returns `:lt` (less-than),
+  `:eq` (equal to), and `:gt` (greater-than). If you pass a module as the
   sorting function, Elixir will automatically use the `compare/2` function
   of said module:
 
@@ -1905,8 +1905,8 @@ defmodule Enum do
   The fact this function uses Erlang's term ordering means that the
   comparison is structural and not semantic. Therefore, if you want
   to compare structs, most structs provide a "compare" function, such as
-  `Date.compare/2`, which receives two structs and returns `:lt` (less than),
-  `:eq` (equal), and `:gt` (greater than). If you pass a module as the
+  `Date.compare/2`, which receives two structs and returns `:lt` (less-than),
+  `:eq` (equal to), and `:gt` (greater-than). If you pass a module as the
   sorting function, Elixir will automatically use the `compare/2` function
   of said module:
 
@@ -2575,8 +2575,8 @@ defmodule Enum do
   we want.
 
   For this reason, most structs provide a "compare" function, such as
-  `Date.compare/2`, which receives two structs and returns `:lt` (less than),
-  `:eq` (equal), and `:gt` (greater than). If you pass a module as the
+  `Date.compare/2`, which receives two structs and returns `:lt` (less-than),
+  `:eq` (equal to), and `:gt` (greater-than). If you pass a module as the
   sorting function, Elixir will automatically use the `compare/2` function
   of said module:
 
