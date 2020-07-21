@@ -362,7 +362,7 @@ defmodule IEx.HelpersTest do
 
       guard: true
 
-      Returns `true` if the two terms are equal.
+      Equal to operator. Returns `true` if the two terms are equal.
       """
 
       def_h = """
