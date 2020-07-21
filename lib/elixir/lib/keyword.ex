@@ -444,27 +444,16 @@ defmodule Keyword do
     try do
       :lists.map(
         fn
-          {key, _} when is_atom(key) ->
-            key
-
-          element ->
-            throw(element)
+          {key, _} when is_atom(key) -> key
+          element -> throw(element)
         end,
         keywords
       )
     catch
       element ->
-        stacktrace =
-          Enum.drop_while(__STACKTRACE__, fn
-            {Keyword, :keys, 1, _} -> false
-            {Keyword, _, _, _} -> true
-          end)
-
-        reraise ArgumentError,
-                "expected a keyword list, but an element in the list is not a two-element tuple with its first element being an atom; got: #{
-                  inspect(element)
-                }",
-                stacktrace
+        raise ArgumentError,
+              "expected a keyword list, but an element in the list is not a two-element tuple with an atom key as first element, " <>
+                "got: #{inspect(element)}"
     end
   end
 
