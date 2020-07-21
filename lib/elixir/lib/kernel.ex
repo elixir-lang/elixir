@@ -1989,7 +1989,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Regular expression or sub-string match operator. Matches the term on the `left`
+  Text-based match operator. Matches the term on the `left`
   against the regular expression or string on the `right`.
 
   If `right` is a regular expression, returns `true` if `left` matches right.
