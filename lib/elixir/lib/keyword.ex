@@ -436,7 +436,7 @@ defmodule Keyword do
       [:a, :b, :a]
 
       iex> Keyword.keys([{:a, 1}, {"b", 2}, {:c, 3}])
-      ** (ArgumentError) expected a keyword list, but an element in the list is not a two-element tuple with an atom as its first element, got: {"b", 2}
+      ** (ArgumentError) expected a keyword list, but an entry in the list is not a two-element tuple with an atom as its first element, got: {"b", 2}
 
   """
   @spec keys(t) :: [key]
@@ -452,7 +452,7 @@ defmodule Keyword do
     catch
       element ->
         raise ArgumentError,
-              "expected a keyword list, but an element in the list is not a two-element tuple with an atom as its first element, " <>
+              "expected a keyword list, but an entry in the list is not a two-element tuple with an atom as its first element, " <>
                 "got: #{inspect(element)}"
     end
   end
