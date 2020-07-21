@@ -431,13 +431,30 @@ defmodule Keyword do
 
       iex> Keyword.keys(a: 1, b: 2)
       [:a, :b]
+
       iex> Keyword.keys(a: 1, b: 2, a: 3)
       [:a, :b, :a]
+
+      iex> Keyword.keys([{:a, 1}, {"b", 2}, {:c, 3}])
+      ** (ArgumentError) expected a keyword list, but an entry in the list is not a two-element tuple with an atom as its first element, got: {"b", 2}
 
   """
   @spec keys(t) :: [key]
   def keys(keywords) when is_list(keywords) do
-    :lists.map(fn {k, _} when is_atom(k) -> k end, keywords)
+    try do
+      :lists.map(
+        fn
+          {key, _} when is_atom(key) -> key
+          element -> throw(element)
+        end,
+        keywords
+      )
+    catch
+      element ->
+        raise ArgumentError,
+              "expected a keyword list, but an entry in the list is not a two-element tuple with an atom as its first element, " <>
+                "got: #{inspect(element)}"
+    end
   end
 
   @doc """
