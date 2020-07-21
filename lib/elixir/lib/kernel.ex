@@ -1193,7 +1193,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Arithmetic addition.
+  Arithmetic addition operator.
 
   Allowed in guard tests. Inlined by the compiler.
 
@@ -1213,7 +1213,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Arithmetic subtraction.
+  Arithmetic subtraction operator.
 
   Allowed in guard tests. Inlined by the compiler.
 
@@ -1233,7 +1233,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Arithmetic unary plus.
+  Arithmetic plus unary operator.
 
   Allowed in guard tests. Inlined by the compiler.
 
@@ -1251,7 +1251,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Arithmetic unary minus.
+  Arithmetic minus unary operator.
 
   Allowed in guard tests. Inlined by the compiler.
 
@@ -1271,7 +1271,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Arithmetic multiplication.
+  Arithmetic multiplication operator.
 
   Allowed in guard tests. Inlined by the compiler.
 
@@ -1291,7 +1291,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Arithmetic division.
+  Arithmetic division operator.
 
   The result is always a float. Use `div/2` and `rem/2` if you want
   an integer division or the remainder.
@@ -1322,7 +1322,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Concatenates a proper list and a term, returning a list.
+  List concatenation operator. Concatenates a proper list and a term, returning a list.
 
   The complexity of `a ++ b` is proportional to `length(a)`, so avoid repeatedly
   appending to lists of arbitrary length, for example, `list ++ [element]`.
@@ -1360,7 +1360,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Removes the first occurrence of an element on the left list
+  List subtraction operator. Removes the first occurrence of an element on the left list
   for each element on the right.
 
   Before Erlang/OTP 22, the complexity of `a -- b` was proportional to
@@ -1391,7 +1391,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Boolean not.
+  Strictly boolean not operator.
 
   `arg` must be a boolean; if it's not, an `ArgumentError` exception is raised.
 
@@ -1411,7 +1411,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if left is less than right.
+  Less-than operator. Returns `true` if left is less than right.
 
   All terms in Elixir can be compared with each other.
 
@@ -1430,7 +1430,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if left is more than right.
+  Greater-than operator. Returns `true` if left is more than right.
 
   All terms in Elixir can be compared with each other.
 
@@ -1449,7 +1449,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if left is less than or equal to right.
+  Less-than or equal to operator. Returns `true` if left is less than or equal to right.
 
   All terms in Elixir can be compared with each other.
 
@@ -1468,7 +1468,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if left is more than or equal to right.
+  Greater-than or equal to operator. Returns `true` if left is more than or equal to right.
 
   All terms in Elixir can be compared with each other.
 
@@ -1487,7 +1487,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if the two terms are equal.
+  Equal to operator. Returns `true` if the two terms are equal.
 
   This operator considers 1 and 1.0 to be equal. For stricter
   semantics, use `===/2` instead.
@@ -1512,7 +1512,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if the two terms are not equal.
+  Not equal to operator. Returns `true` if the two terms are not equal.
 
   This operator considers 1 and 1.0 to be equal. For match
   comparison, use `!==/2` instead.
@@ -1537,7 +1537,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if the two terms are exactly equal.
+  Strictly equal to operator. Returns `true` if the two terms are exactly equal.
 
   The terms are only considered to be exactly equal if they
   have the same value and are of the same type. For example,
@@ -1564,7 +1564,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if the two terms are not exactly equal.
+  Strictly not equal to operator. Returns `true` if the two terms are not exactly equal.
 
   All terms in Elixir can be compared with each other.
 
@@ -1635,7 +1635,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Boolean or.
+  Strictly boolean or operator.
 
   If `left` is `true`, returns `true`; otherwise returns `right`.
 
@@ -1663,7 +1663,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Boolean and.
+  Strictly boolean and operator.
 
   If `left` is `false`, returns `false`; otherwise returns `right`.
 
@@ -1702,7 +1702,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Boolean not.
+  Boolean not operator.
 
   Receives any argument (not just booleans) and returns `true` if the argument
   is `false` or `nil`; returns `false` otherwise.
@@ -1747,7 +1747,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Concatenates two binaries.
+  Binary concatenation operator. Concatenates two binaries.
 
   ## Examples
 
@@ -1989,11 +1989,12 @@ defmodule Kernel do
   end
 
   @doc """
-  Matches the term on the `left` against the regular expression or string on the
-  `right`.
+  Text-based match operator. Matches the term on the `left`
+  against the regular expression or string on the `right`.
 
-  Returns `true` if `left` matches `right` (if it's a regular expression)
-  or contains `right` (if it's a string).
+  If `right` is a regular expression, returns `true` if `left` matches right.
+
+  If `right` is a string, returns `true` if `left` contains `right`.
 
   ## Examples
 
@@ -2003,11 +2004,17 @@ defmodule Kernel do
       iex> "abcd" =~ ~r/e/
       false
 
+      iex> "abcd" =~ ~r//
+      true
+
       iex> "abcd" =~ "bc"
       true
 
       iex> "abcd" =~ "ad"
       false
+
+      iex> "abcd" =~ "abcd"
+      true
 
       iex> "abcd" =~ ""
       true
@@ -3656,7 +3663,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Checks if the element on the left-hand side is a member of the
+  Membership operator. Checks if the element on the left-hand side is a member of the
   collection on the right-hand side.
 
   ## Examples
