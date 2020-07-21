@@ -40,9 +40,9 @@ Elixir provides the following built-in operators that are defined as functions t
   * [`++`](`++/2`) and [`--`](`--/2`) - list concatenation and subtraction
   * [`..`](`../2`) - range creation
   * [`<>`](`<>/2`) - binary concatenation
-  * [`in`](`in/2`) and [`not in`](`in/2`) - shorthands for [`Enum.member?`](`Enum.member?/2`)
+  * [`in`](`in/2`) and [`not in`](`in/2`) - checks if element on the left is or not in the collection on the right
   * [`|>`](`|>/2`) - function pipeline
-  * [`=~`](`=~/2`) - shorthand for [`Regex.match?/2`](`Regex.match?/2`)
+  * [`=~`](`=~/2`) - regular expression or binary matching
   * [`&&`](`&&/2`) and [`and`](`and/2`) - relaxed and strict logical and
   * [`||`](`||/2`) and [`or`](`or/2`) - relaxed and strict logical or
 
