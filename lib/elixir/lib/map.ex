@@ -604,13 +604,14 @@ defmodule Map do
 
   ## Examples
 
-      iex> Map.update(%{a: 1}, :a, 13, fn current_value -> current_value * 2 end)
+      iex> Map.update(%{a: 1}, :a, 13, fn existing_value -> existing_value * 2 end)
       %{a: 2}
-      iex> Map.update(%{a: 1}, :b, 11, fn current_value -> current_value * 2 end)
+      iex> Map.update(%{a: 1}, :b, 11, fn existing_value -> existing_value * 2 end)
       %{a: 1, b: 11}
 
   """
-  @spec update(map, key, default :: value, (current_value :: value -> updated_value :: value)) :: map
+  @spec update(map, key, default :: value, (existing_value :: value -> updated_value :: value)) ::
+          map
   def update(map, key, default, fun) when is_function(fun, 1) do
     case map do
       %{^key => value} ->
