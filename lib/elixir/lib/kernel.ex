@@ -1687,7 +1687,6 @@ defmodule Kernel do
       iex> "yay!" and true
       ** (BadBooleanError) expected a boolean on left-side of "and", got: "yay!"
 
-
   """
   @doc guard: true
   defmacro left and right do
@@ -3038,7 +3037,7 @@ defmodule Kernel do
   end
 
   @doc """
-  At unary operator. Reads and writes attributes of the current module.
+  Module attribute unary operator. Reads and writes attributes of the current module.
 
   The canonical example for attributes is annotating that a module
   implements an OTP behaviour, such as `GenServer`:
