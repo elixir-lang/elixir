@@ -371,7 +371,7 @@ defmodule Kernel.SpecialForms do
   defmacro unquote(:<<>>)(args), do: error!([args])
 
   @doc """
-  Defines a remote call, a call to an anonymous function, or an alias.
+  Dot operator. Defines a remote call, a call to an anonymous function, or an alias.
 
   The dot (`.`) in Elixir can be used for remote calls:
 
@@ -725,7 +725,7 @@ defmodule Kernel.SpecialForms do
   defmacro __STACKTRACE__, do: error!([])
 
   @doc """
-  Accesses an already bound variable in match clauses. Also known as the pin operator.
+  Pin operator. Accesses an already bound variable in match clauses.
 
   ## Examples
 
@@ -757,12 +757,12 @@ defmodule Kernel.SpecialForms do
   defmacro ^var, do: error!([var])
 
   @doc """
-  Matches the value on the right against the pattern on the left.
+  Match operator. Matches the value on the right against the pattern on the left.
   """
   defmacro left = right, do: error!([left, right])
 
   @doc """
-  Used by types and bitstrings to specify types.
+  Type operator. Used by types and bitstrings to specify types.
 
   This operator is used in two distinct occasions in Elixir.
   It is used in typespecs to specify the type of a variable,
@@ -1598,7 +1598,7 @@ defmodule Kernel.SpecialForms do
   defmacro unquote(:__block__)(args), do: error!([args])
 
   @doc """
-  Captures or creates an anonymous function.
+  Caputure operator. Captures or creates an anonymous function.
 
   ## Capture
 
