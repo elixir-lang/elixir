@@ -133,7 +133,7 @@ defmodule Kernel do
     * [Library Guidelines](library-guidelines.md) - general guidelines, anti-patterns,
       and rules for those writing libraries
     * [Naming Conventions](naming-conventions.md) - naming conventions for Elixir code
-    * [Operators](operators.md) - lists all Elixir operators and their precedence
+    * [Operators](operators.md) - lists all Elixir operators and their precedences
     * [Patterns and Guards](patterns-and-guards.md) - an introduction to patterns,
       guards, and extensions
     * [Syntax Reference](syntax-reference.md) - the language syntax reference
@@ -3398,7 +3398,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns a range with the specified `first` and `last` integers.
+  Range creation operator. Returns a range with the specified `first` and `last` integers.
 
   If last is larger than first, the range will be increasing from
   first to last. If first is larger than last, the range will be
