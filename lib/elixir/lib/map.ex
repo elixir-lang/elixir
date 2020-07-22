@@ -604,7 +604,7 @@ defmodule Map do
 
   ## Examples
 
-      iex> Map.update(%{a: 1}, :a, 13, fn existing -> existing * 2 end)
+      iex> Map.update(%{a: 1}, :a, 13, fn existing_value -> existing_value * 2 end)
       %{a: 2}
       iex> Map.update(%{a: 1}, :b, 11, &(&1 * 2))
       %{a: 1, b: 11}
