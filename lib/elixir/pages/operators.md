@@ -33,18 +33,18 @@ Operator                                                                        
 
 Elixir provides the following built-in operators that are defined as functions that can be overridden:
 
-  * [`@`](`@/1`) - module attribute definition and access
   * [`+`](`+/1`) and [`-`](`-/1`) - unary positive/negative
-  * [`!`](`!/1`) and [`not`](`not/1`) - relaxed and strict logical not
-  * [`*`](`*/2`), [`/`](`//2`), [`+`](`+/2`), and [`-`](`-/2`) - arithmetic
+  * [`+`](`+/2`), [`-`](`-/2`), [`*`](`*/2`), and [`/`](`//2`) - basic arithmetic operations
   * [`++`](`++/2`) and [`--`](`--/2`) - list concatenation and subtraction
+  * [`and`](`and/2`) and [`&&`](`&&/2`) - strict and relaxed boolean "and"
+  * [`or`](`or/2`) and [`||`](`||/2`) - strict and relaxed boolean "or"
+  * [`not`](`not/1`) and [`!`](`!/1`) - strict and relaxed boolean "not"
+  * [`in`](`in/2`) and [`not in`](`in/2`) - membership
+  * [`@`](`@/1`) - module attribute definition and access
   * [`..`](`../2`) - range creation
   * [`<>`](`<>/2`) - binary concatenation
-  * [`in`](`in/2`) and [`not in`](`in/2`) - checks if element on the left is or not in the collection on the right
-  * [`|>`](`|>/2`) - function pipeline
-  * [`=~`](`=~/2`) - regular expression or binary matching
-  * [`&&`](`&&/2`) and [`and`](`and/2`) - relaxed and strict logical and
-  * [`||`](`||/2`) and [`or`](`or/2`) - relaxed and strict logical or
+  * [`|>`](`|>/2`) - pipeline
+  * [`=~`](`=~/2`) - text-based match
 
 Many of those can be used in guards; consult the [list of allowed guard functions and operators](patterns-and-guards.md#list-of-allowed-functions-and-operators).
 
@@ -53,11 +53,11 @@ See [Custom and overridden operators](#custom-and-overridden-operators) below fo
 
 Some other operators are special forms and cannot be overridden:
 
-  * [`^`](`^/1`) - pin
-  * [`.`](`./2`) - remote and anonymous calls, and alias join
-  * [`=`](`=/2`) - match
-  * [`&`](`&/1`) - function capture
-  * [`::`](`Kernel.SpecialForms.::/2`) - type
+  * [`^`](`^/1`) - pin operator
+  * [`.`](`./2`) - dot operator
+  * [`=`](`=/2`) - match operatpr
+  * [`&`](`&/1`) - capture operator
+  * [`::`](`Kernel.SpecialForms.::/2`) - type operator
 
 Finally, these operators appear in the precedence table above but are only meaningful within certain constructs:
 
