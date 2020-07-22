@@ -1393,7 +1393,7 @@ defmodule Kernel do
   @doc """
   Strictly boolean "not" operator.
 
-  `arg` must be a boolean; if it's not, an `ArgumentError` exception is raised.
+  `value` must be a boolean; if it's not, an `ArgumentError` exception is raised.
 
   Allowed in guard tests. Inlined by the compiler.
 
@@ -1411,7 +1411,9 @@ defmodule Kernel do
   end
 
   @doc """
-  Less-than operator. Returns `true` if left is less than right.
+  Less-than operator.
+
+  Returns `true` if `left` is less than `right`.
 
   All terms in Elixir can be compared with each other.
 
@@ -1430,7 +1432,9 @@ defmodule Kernel do
   end
 
   @doc """
-  Greater-than operator. Returns `true` if left is more than right.
+  Greater-than operator.
+
+  Returns `true` if `left` is more than `right`.
 
   All terms in Elixir can be compared with each other.
 
@@ -1449,7 +1453,9 @@ defmodule Kernel do
   end
 
   @doc """
-  Less-than or equal to operator. Returns `true` if left is less than or equal to right.
+  Less-than or equal to operator.
+
+  Returns `true` if `left` is less than or equal to `right`.
 
   All terms in Elixir can be compared with each other.
 
@@ -1468,7 +1474,9 @@ defmodule Kernel do
   end
 
   @doc """
-  Greater-than or equal to operator. Returns `true` if left is more than or equal to right.
+  Greater-than or equal to operator.
+
+  Returns `true` if `left` is more than or equal to `right`.
 
   All terms in Elixir can be compared with each other.
 
@@ -1512,7 +1520,9 @@ defmodule Kernel do
   end
 
   @doc """
-  Not equal to operator. Returns `true` if the two terms are not equal.
+  Not equal to operator.
+
+  Returns `true` if the two terms are not equal.
 
   This operator considers 1 and 1.0 to be equal. For match
   comparison, use `!==/2` instead.
@@ -1537,7 +1547,9 @@ defmodule Kernel do
   end
 
   @doc """
-  Strictly equal to operator. Returns `true` if the two terms are exactly equal.
+  Strictly equal to operator.
+
+  Returns `true` if the two terms are exactly equal.
 
   The terms are only considered to be exactly equal if they
   have the same value and are of the same type. For example,
@@ -1564,7 +1576,10 @@ defmodule Kernel do
   end
 
   @doc """
-  Strictly not equal to operator. Returns `true` if the two terms are not exactly equal.
+  Strictly not equal to operator.
+
+  Returns `true` if the two terms are not exactly equal.
+  See `===/2` for a definition of what is considered "exactly equal".
 
   All terms in Elixir can be compared with each other.
 
@@ -1712,7 +1727,7 @@ defmodule Kernel do
   @doc """
   Boolean "not" operator.
 
-  Receives any argument (not just booleans) and returns `true` if the argument
+  Receives any value (not just booleans) and returns `true` if `value`
   is `false` or `nil`; returns `false` otherwise.
 
   Not allowed in guard clauses.
@@ -3037,7 +3052,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Module attribute unary operator. Reads and writes attributes of the current module.
+  Module attribute unary operator. Reads and writes attributes in the current module.
 
   The canonical example for attributes is annotating that a module
   implements an OTP behaviour, such as `GenServer`:
