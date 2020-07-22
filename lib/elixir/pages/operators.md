@@ -40,7 +40,7 @@ Elixir provides the following built-in operators that are defined as functions t
   * [`or`](`or/2`) and [`||`](`||/2`) - strict and relaxed boolean "or"
   * [`not`](`not/1`) and [`!`](`!/1`) - strict and relaxed boolean "not"
   * [`in`](`in/2`) and [`not in`](`in/2`) - membership
-  * [`@`](`@/1`) - module attribute definition and access
+  * [`@`](`@/1`) - module attribute
   * [`..`](`../2`) - range creation
   * [`<>`](`<>/2`) - binary concatenation
   * [`|>`](`|>/2`) - pipeline
@@ -55,7 +55,7 @@ Some other operators are special forms and cannot be overridden:
 
   * [`^`](`^/1`) - pin operator
   * [`.`](`./2`) - dot operator
-  * [`=`](`=/2`) - match operatpr
+  * [`=`](`=/2`) - match operator
   * [`&`](`&/1`) - capture operator
   * [`::`](`Kernel.SpecialForms.::/2`) - type operator
 
