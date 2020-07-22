@@ -246,7 +246,7 @@ store_definition(Check, Kind, Meta, Name, Arity, File, Module, Defaults, Clauses
   {MaxDefaults, FirstMeta} =
     case ets:lookup(Set, {def, Tuple}) of
       [{_, StoredKind, StoredMeta, StoredFile, StoredCheck, {StoredDefaults, LastHasBody, LastDefaults}}] ->
-        check_valid_kind(Meta, File, Name, Arity, Kind, StoredKind),
+        check_valid_kind(Meta, File, Name, Arity, Kind, StoredKind, StoredFile, StoredMeta),
         check_valid_defaults(Meta, File, Name, Arity, Kind, Defaults, StoredDefaults, LastDefaults, HasBody, LastHasBody),
         (Check and StoredCheck) andalso
           check_valid_clause(Meta, File, Name, Arity, Kind, Set, StoredMeta, StoredFile, Clauses),
@@ -304,10 +304,10 @@ default_var(Counter) ->
 
 %% Validations
 
-check_valid_kind(_Meta, _File, _Name, _Arity, Kind, Kind) -> ok;
-check_valid_kind(Meta, File, Name, Arity, Kind, StoredKind) ->
+check_valid_kind(_Meta, _File, _Name, _Arity, Kind, Kind, _StoredFile, _StoredMeta) -> ok;
+check_valid_kind(Meta, File, Name, Arity, Kind, StoredKind, StoredFile, StoredMeta) ->
   elixir_errors:form_error(Meta, File, ?MODULE,
-    {changed_kind, {Name, Arity, StoredKind, Kind}}).
+    {changed_kind, {Name, Arity, StoredKind, Kind, StoredFile, ?line(StoredMeta)}}).
 
 check_valid_clause(Meta, File, Name, Arity, Kind, Set, StoredMeta, StoredFile, Clauses) ->
   case ets:lookup_element(Set, ?last_def, 2) of
@@ -450,8 +450,9 @@ format_error({late_function_head, {Kind, Name, Arity}}) ->
     "    def add(a, b), do: a + b\n",
     [Kind, Name, Arity]);
 
-format_error({changed_kind, {Name, Arity, Previous, Current}}) ->
-  io_lib:format("~ts ~ts/~B already defined as ~ts", [Current, Name, Arity, Previous]);
+format_error({changed_kind, {Name, Arity, Previous, Current, OrigFile, OrigLine}}) ->
+  OrigFileRelative = elixir_utils:relative_to_cwd(OrigFile),
+  io_lib:format("~ts ~ts/~B already defined as ~ts in ~ts:~B", [Current, Name, Arity, Previous, OrigFileRelative, OrigLine]);
 
 format_error({no_alias, Atom}) ->
   io_lib:format("function names should start with lowercase characters or underscore, invalid name ~ts", [Atom]);
