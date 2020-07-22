@@ -888,12 +888,14 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "def defmacro clause change" do
-    assert_eval_raise CompileError, "nofile:3: defmacro foo/1 already defined as def", '''
-    defmodule Kernel.ErrorsTest.DefDefmacroClauseChange do
-      def foo(1), do: 1
-      defmacro foo(x), do: x
-    end
-    '''
+    assert_eval_raise CompileError,
+                      "nofile:3: defmacro foo/1 already defined as def in nofile:2",
+                      '''
+                      defmodule Kernel.ErrorsTest.DefDefmacroClauseChange do
+                        def foo(1), do: 1
+                        defmacro foo(x), do: x
+                      end
+                      '''
   end
 
   test "def defp clause change from another file" do
