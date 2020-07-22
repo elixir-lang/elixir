@@ -1233,7 +1233,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Arithmetic plus unary operator.
+  Arithmetic positive unary operator.
 
   Allowed in guard tests. Inlined by the compiler.
 
@@ -1251,7 +1251,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Arithmetic minus unary operator.
+  Arithmetic negative unary operator.
 
   Allowed in guard tests. Inlined by the compiler.
 
@@ -1391,7 +1391,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Strictly boolean not operator.
+  Strictly boolean "not" operator.
 
   `arg` must be a boolean; if it's not, an `ArgumentError` exception is raised.
 
@@ -1635,7 +1635,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Strictly boolean or operator.
+  Strictly boolean "or" operator.
 
   If `left` is `true`, returns `true`; otherwise returns `right`.
 
@@ -1649,8 +1649,12 @@ defmodule Kernel do
 
       iex> true or false
       true
+
       iex> false or 42
       42
+
+      iex> 42 or false
+      ** (BadBooleanError) expected a boolean on left-side of "or", got: 42
 
   """
   @doc guard: true
@@ -1663,7 +1667,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Strictly boolean and operator.
+  Strictly boolean "and" operator.
 
   If `left` is `false`, returns `false`; otherwise returns `right`.
 
@@ -1676,8 +1680,13 @@ defmodule Kernel do
 
       iex> true and false
       false
+
       iex> true and "yay!"
       "yay!"
+
+      iex> "yay!" and true
+      ** (BadBooleanError) expected a boolean on left-side of "and", got: "yay!"
+
 
   """
   @doc guard: true
@@ -1702,7 +1711,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Boolean not operator.
+  Boolean "not" operator.
 
   Receives any argument (not just booleans) and returns `true` if the argument
   is `false` or `nil`; returns `false` otherwise.
@@ -3029,7 +3038,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Reads and writes attributes of the current module.
+  At unary operator. Reads and writes attributes of the current module.
 
   The canonical example for attributes is annotating that a module
   implements an OTP behaviour, such as `GenServer`:
@@ -3445,6 +3454,8 @@ defmodule Kernel do
   end
 
   @doc """
+  Boolean "and" operator.
+
   Provides a short-circuit operator that evaluates and returns
   the second expression only if the first one evaluates to a truthy value
   (neither `false` nor `nil`). Returns the first expression
@@ -3484,6 +3495,8 @@ defmodule Kernel do
   end
 
   @doc """
+  Boolean "or" operator.
+
   Provides a short-circuit operator that evaluates and returns the second
   expression only if the first one does not evaluate to a truthy value (that is,
   it is either `nil` or `false`). Returns the first expression otherwise.

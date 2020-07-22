@@ -61,7 +61,7 @@ defmodule Bitwise do
   end
 
   @doc """
-  Calculates the bitwise NOT of its argument.
+  Calculates the bitwise NOT of the argument.
 
   Allowed in guard tests. Inlined by the compiler.
 
@@ -81,7 +81,9 @@ defmodule Bitwise do
   end
 
   @doc """
-  Prefix (unary) operator; calculates the bitwise NOT of its argument.
+  Bitwise NOT unary operator.
+
+  Calculates the bitwise NOT of the argument.
 
   Allowed in guard tests. Inlined by the compiler.
 
@@ -118,7 +120,9 @@ defmodule Bitwise do
   end
 
   @doc """
-  Infix operator; calculates the bitwise AND of its arguments.
+  Bitwise AND operator.
+
+  Calculates the bitwise AND of its arguments.
 
   Allowed in guard tests. Inlined by the compiler.
 
@@ -152,7 +156,9 @@ defmodule Bitwise do
   end
 
   @doc """
-  Infix operator; calculates the bitwise OR of its arguments.
+  Bitwise OR operator.
+
+  Calculates the bitwise OR of its arguments.
 
   Allowed in guard tests. Inlined by the compiler.
 
@@ -186,7 +192,9 @@ defmodule Bitwise do
   end
 
   @doc """
-  Infix operator; calculates the bitwise XOR of its arguments.
+  Bitwise XOR operator.
+
+  Calculates the bitwise XOR of its arguments.
 
   Allowed in guard tests. Inlined by the compiler.
 
@@ -229,7 +237,9 @@ defmodule Bitwise do
   end
 
   @doc """
-  Infix operator; calculates the result of an arithmetic left bitshift.
+  Arithmetic left bitshift operator.
+
+  Calculates the result of an arithmetic left bitshift.
 
   Allowed in guard tests. Inlined by the compiler.
 
@@ -281,7 +291,9 @@ defmodule Bitwise do
   end
 
   @doc """
-  Infix operator; calculates the result of an arithmetic right bitshift.
+  Arithmetic right bitshift operator.
+
+  Calculates the result of an arithmetic right bitshift.
 
   Allowed in guard tests. Inlined by the compiler.
 
