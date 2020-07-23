@@ -245,13 +245,13 @@ defmodule Keyword do
   Gets the value from `key` and updates it, all in one pass.
 
   This `fun` argument receives the value of `key` (or `nil` if `key`
-  is not present) and must return a two-element tuple: the "get" value
+  is not present) and must return a two-element tuple: the current value
   (the retrieved value, which can be operated on before being returned)
   and the new value to be stored under `key`. The `fun` may also
   return `:pop`, implying the current value shall be removed from the
   keyword list and returned.
 
-  The returned value is a tuple with the "get" value returned by
+  The returned value is a tuple with the current value returned by
   `fun` and a new keyword list with the updated value under `key`.
 
   ## Examples
@@ -273,7 +273,9 @@ defmodule Keyword do
       {nil, [a: 1]}
 
   """
-  @spec get_and_update(t, key, (value -> {get, value} | :pop)) :: {get, t} when get: term
+  @spec get_and_update(t, key, (value -> {current_value, new_value :: value} | :pop)) ::
+          {current_value, value}
+        when current_value: value
   def get_and_update(keywords, key, fun)
       when is_list(keywords) and is_atom(key),
       do: get_and_update(keywords, [], key, fun)
@@ -310,11 +312,11 @@ defmodule Keyword do
   Gets the value from `key` and updates it. Raises if there is no `key`.
 
   This `fun` argument receives the value of `key` and must return a
-  two-element tuple: the "get" value (the retrieved value, which can be
+  two-element tuple: the current value (the retrieved value, which can be
   operated on before being returned) and the new value to be stored under
   `key`.
 
-  The returned value is a tuple with the "get" value returned by `fun` and a new
+  The returned value is a tuple with the current value returned by `fun` and a new
   keyword list with the updated value under `key`.
 
   ## Examples
@@ -335,7 +337,9 @@ defmodule Keyword do
       {1, []}
 
   """
-  @spec get_and_update!(t, key, (value -> {get, value})) :: {get, t} when get: term
+  @spec get_and_update!(t, key, (value -> {current_value, new_value :: value} | :pop)) ::
+          {current_value, t}
+        when current_value: value
   def get_and_update!(keywords, key, fun) do
     get_and_update!(keywords, key, fun, [])
   end
@@ -856,7 +860,7 @@ defmodule Keyword do
       ** (KeyError) key :b not found in: [a: 1]
 
   """
-  @spec update!(t, key, (value -> value)) :: t
+  @spec update!(t, key, (current_value :: value -> new_value :: value)) :: t
   def update!(keywords, key, fun)
       when is_list(keywords) and is_atom(key) and is_function(fun, 1) do
     update!(keywords, key, fun, keywords)
@@ -877,34 +881,38 @@ defmodule Keyword do
   @doc """
   Updates the `key` in `keywords` with the given function.
 
-  If the `key` does not exist, inserts the given `initial` value.
+  If the `key` does not exist, it inserts the given `default` value.
 
   If there are duplicated keys, they are all removed and only the first one
   is updated.
 
+  The default value will not be passed through the update function.
+
   ## Examples
 
-      iex> Keyword.update([a: 1], :a, 13, &(&1 * 2))
+      iex> Keyword.update([a: 1], :a, 13, fn existing_value -> existing_value * 2 end)
       [a: 2]
-      iex> Keyword.update([a: 1, a: 2], :a, 13, &(&1 * 2))
+
+      iex> Keyword.update([a: 1, a: 2], :a, 13, fn existing_value -> existing_value * 2 end)
       [a: 2]
-      iex> Keyword.update([a: 1], :b, 11, &(&1 * 2))
+
+      iex> Keyword.update([a: 1], :b, 11, fn existing_value -> existing_value * 2 end)
       [a: 1, b: 11]
 
   """
-  @spec update(t, key, value, (value -> value)) :: t
-  def update(keywords, key, initial, fun)
+  @spec update(t, key, default :: value, (existing_value :: value -> updated_value :: value)) :: t
+  def update(keywords, key, default, fun)
 
-  def update([{key, value} | keywords], key, _initial, fun) do
+  def update([{key, value} | keywords], key, _default, fun) do
     [{key, fun.(value)} | delete(keywords, key)]
   end
 
-  def update([{_, _} = e | keywords], key, initial, fun) do
-    [e | update(keywords, key, initial, fun)]
+  def update([{_, _} = e | keywords], key, default, fun) do
+    [e | update(keywords, key, default, fun)]
   end
 
-  def update([], key, initial, _fun) when is_atom(key) do
-    [{key, initial}]
+  def update([], key, default, _fun) when is_atom(key) do
+    [{key, default}]
   end
 
   @doc """
