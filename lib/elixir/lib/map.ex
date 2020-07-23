@@ -599,28 +599,29 @@ defmodule Map do
 
   If `key` is present in `map` with value `value`, `fun` is invoked with
   argument `value` and its result is used as the new value of `key`. If `key` is
-  not present in `map`, `initial` is inserted as the value of `key`. The initial
+  not present in `map`, `default` is inserted as the value of `key`. The default
   value will not be passed through the update function.
 
   ## Examples
 
       iex> Map.update(%{a: 1}, :a, 13, fn existing_value -> existing_value * 2 end)
       %{a: 2}
-      iex> Map.update(%{a: 1}, :b, 11, &(&1 * 2))
+      iex> Map.update(%{a: 1}, :b, 11, fn existing_value -> existing_value * 2 end)
       %{a: 1, b: 11}
 
   """
-  @spec update(map, key, value, (value -> value)) :: map
-  def update(map, key, initial, fun) when is_function(fun, 1) do
+  @spec update(map, key, default :: value, (existing_value :: value -> updated_value :: value)) ::
+          map
+  def update(map, key, default, fun) when is_function(fun, 1) do
     case map do
       %{^key => value} ->
         put(map, key, fun.(value))
 
       %{} ->
-        put(map, key, initial)
+        put(map, key, default)
 
       other ->
-        :erlang.error({:badmap, other}, [map, key, initial, fun])
+        :erlang.error({:badmap, other}, [map, key, default, fun])
     end
   end
 
@@ -807,7 +808,7 @@ defmodule Map do
       ** (KeyError) key :b not found in: %{a: 1}
 
   """
-  @spec update!(map, key, (value -> value)) :: map
+  @spec update!(map, key, (current_value :: value -> new_value :: value)) :: map
   def update!(map, key, fun) when is_function(fun, 1) do
     value = fetch!(map, key)
     put(map, key, fun.(value))
@@ -817,13 +818,13 @@ defmodule Map do
   Gets the value from `key` and updates it, all in one pass.
 
   `fun` is called with the current value under `key` in `map` (or `nil` if `key`
-  is not present in `map`) and must return a two-element tuple: the "get" value
+  is not present in `map`) and must return a two-element tuple: the current value
   (the retrieved value, which can be operated on before being returned) and the
   new value to be stored under `key` in the resulting new map. `fun` may also
   return `:pop`, which means the current value shall be removed from `map` and
   returned (making this function behave like `Map.pop(map, key)`).
 
-  The returned value is a tuple with the "get" value returned by
+  The returned value is a two-element tuple with the current value returned by
   `fun` and a new map with the updated value under `key`.
 
   ## Examples
@@ -845,7 +846,9 @@ defmodule Map do
       {nil, %{a: 1}}
 
   """
-  @spec get_and_update(map, key, (value -> {get, value} | :pop)) :: {get, map} when get: term
+  @spec get_and_update(map, key, (value -> {current_value, new_value :: value} | :pop)) ::
+          {current_value, map}
+        when current_value: value
   def get_and_update(map, key, fun) when is_function(fun, 1) do
     current = get(map, key)
 
@@ -862,7 +865,7 @@ defmodule Map do
   end
 
   @doc """
-  Gets the value from `key` and updates it. Raises if there is no `key`.
+  Gets the value from `key` and updates it, all in one pass. Raises if there is no `key`.
 
   Behaves exactly like `get_and_update/3`, but raises a `KeyError` exception if
   `key` is not present in `map`.
@@ -885,8 +888,9 @@ defmodule Map do
       {1, %{}}
 
   """
-  @spec get_and_update!(map, key, (value -> {get, value} | :pop)) :: {get, map}
-        when get: term
+  @spec get_and_update!(map, key, (value -> {current_value, new_value :: value} | :pop)) ::
+          {current_value, map}
+        when current_value: value
   def get_and_update!(map, key, fun) when is_function(fun, 1) do
     value = fetch!(map, key)
 
