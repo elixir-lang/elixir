@@ -204,7 +204,7 @@ defmodule URI do
     next_pair =
       case :binary.split(undecoded_next_pair, "=") do
         [key, value] -> {decode_www_form(key), decode_www_form(value)}
-        [key] -> {decode_www_form(key), nil}
+        [key] -> {decode_www_form(key), ""}
       end
 
     {next_pair, rest}

@@ -43,7 +43,9 @@ defmodule URITest do
 
     assert URI.decode_query("something=weird%3Dhappening") == %{"something" => "weird=happening"}
 
-    assert URI.decode_query("garbage") == %{"garbage" => nil}
+    assert URI.decode_query("=") == %{"" => ""}
+    assert URI.decode_query("key") == %{"key" => ""}
+    assert URI.decode_query("key=") == %{"key" => ""}
     assert URI.decode_query("=value") == %{"" => "value"}
     assert URI.decode_query("something=weird=happening") == %{"something" => "weird=happening"}
   end
