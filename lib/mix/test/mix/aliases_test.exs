@@ -59,4 +59,22 @@ defmodule Mix.AliasesTest do
              Mix.Task.rerun("help", ["test"]) == "Hello, World!"
            end) =~ "mix test"
   end
+
+  test "run list alias with multiple cmd in umbrella" do
+    Mix.Project.pop()
+
+    in_fixture("umbrella_dep/deps/umbrella", fn ->
+      Mix.Project.in_project(:umbrella, ".", fn _ ->
+        Mix.Task.run("test_cmd", [])
+
+        nl = os_newline()
+        assert_received {:mix_shell, :info, ["==> bar"]}
+        assert_received {:mix_shell, :run, ["hello" <> ^nl]}
+        assert_received {:mix_shell, :run, ["hola" <> ^nl]}
+        assert_received {:mix_shell, :info, ["==> foo"]}
+        assert_received {:mix_shell, :run, ["hello" <> ^nl]}
+        assert_received {:mix_shell, :run, ["hola" <> ^nl]}
+      end)
+    end)
+  end
 end

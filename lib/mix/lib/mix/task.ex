@@ -385,9 +385,14 @@ defmodule Mix.Task do
 
     cond do
       recursive && Mix.Project.umbrella?() ->
-        Mix.ProjectStack.recur(fn ->
-          recur(fn _ -> run(task, args) end)
-        end)
+        res =
+          Mix.ProjectStack.recur(fn ->
+            recur(fn _ -> run(task, args) end)
+          end)
+
+        Mix.TasksServer.delete_many([{:task, task, proj}])
+
+        res
 
       not recursive && Mix.ProjectStack.recursing() ->
         Mix.ProjectStack.on_recursing_root(fn -> run(task, args) end)
