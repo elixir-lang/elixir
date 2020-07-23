@@ -355,13 +355,11 @@ defmodule Mix.Task do
     alias = Mix.Project.config()[:aliases][String.to_atom(task)]
 
     cond do
-      alias && Mix.TasksServer.run({:alias, task, proj}) ->
-        res = run_alias(List.wrap(alias), args, task, :ok)
-        Mix.TasksServer.put({:task, task, proj})
-        res
-
-      Mix.TasksServer.run({:task, task, proj}) ->
+      is_nil(alias) ->
         run_task(proj, task, args)
+
+      Mix.TasksServer.run({:alias, task, proj}) ->
+        run_alias(List.wrap(alias), args, proj, task, :ok)
 
       true ->
         :noop
@@ -369,8 +367,6 @@ defmodule Mix.Task do
   end
 
   defp run_task(proj, task, args) do
-    if Mix.debug?(), do: output_task_debug_info(task, args, proj)
-
     # 1. If the task is available, we run it.
     # 2. Otherwise we compile and load dependencies
     # 3. Finally, we compile the current project in hope it is available.
@@ -378,8 +374,6 @@ defmodule Mix.Task do
       get_task_or_run(proj, task, fn -> Mix.Task.run("deps.loadpaths") end) ||
         get_task_or_run(proj, task, fn -> Mix.Task.run("compile", []) end) ||
         get!(task)
-
-    run_requirements(module)
 
     recursive = recursive(module)
 
@@ -392,8 +386,9 @@ defmodule Mix.Task do
       not recursive && Mix.ProjectStack.recursing() ->
         Mix.ProjectStack.on_recursing_root(fn -> run(task, args) end)
 
-      true ->
-        Mix.TasksServer.put({:task, task, proj})
+      Mix.TasksServer.run({:task, task, proj}) ->
+        if Mix.debug?(), do: output_task_debug_info(task, args, proj)
+        run_requirements(module)
 
         try do
           module.run(args)
@@ -401,13 +396,16 @@ defmodule Mix.Task do
           e in OptionParser.ParseError ->
             Mix.raise("Could not invoke task #{inspect(task)}: " <> Exception.message(e))
         end
+
+      true ->
+        :noop
     end
   end
 
   defp run_requirements(module) do
     Enum.each(requirements(module), fn requirement ->
       [task | args] = OptionParser.split(requirement)
-      Mix.Task.run(task, args)
+      run(task, args)
     end)
   end
 
@@ -435,24 +433,24 @@ defmodule Mix.Task do
     end
   end
 
-  defp run_alias([h | t], alias_args, original_task, _res) when is_binary(h) do
+  defp run_alias([h | t], alias_args, proj, original_task, _res) when is_binary(h) do
     case OptionParser.split(h) do
       [^original_task | args] ->
-        res = Mix.Task.run(original_task, args ++ alias_args)
-        run_alias(t, [], original_task, res)
+        res = run_task(proj, original_task, args ++ alias_args)
+        run_alias(t, [], proj, original_task, res)
 
       [task | args] ->
-        res = Mix.Task.run(task, join_args(args, alias_args, t))
-        run_alias(t, alias_args, original_task, res)
+        res = run(task, join_args(args, alias_args, t))
+        run_alias(t, alias_args, proj, original_task, res)
     end
   end
 
-  defp run_alias([h | t], alias_args, original_task, _res) when is_function(h, 1) do
+  defp run_alias([h | t], alias_args, proj, original_task, _res) when is_function(h, 1) do
     res = h.(join_args([], alias_args, t))
-    run_alias(t, alias_args, original_task, res)
+    run_alias(t, alias_args, proj, original_task, res)
   end
 
-  defp run_alias([], _alias_task, _original_task, res) do
+  defp run_alias([], _alias_task, _proj, _original_task, res) do
     res
   end
 
