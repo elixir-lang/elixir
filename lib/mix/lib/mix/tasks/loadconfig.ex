@@ -21,7 +21,7 @@ defmodule Mix.Tasks.Loadconfig do
   multiple times to load different configs.
   """
 
-  @reserved_apps [:stdlib, :kernel, :elixir]
+  @reserved_apps [:stdlib, :kernel]
 
   @impl true
   def run(args) do
@@ -47,18 +47,18 @@ defmodule Mix.Tasks.Loadconfig do
   @doc false
   def load_imports(file) do
     {config, files} = Config.Reader.read_imports!(file, env: Mix.env(), target: Mix.target())
-    Mix.ProjectStack.loaded_config(persist_apps(config), files)
+    Mix.ProjectStack.loaded_config(persist_apps(config, file), files)
     config
   end
 
   @doc false
   def load_file(file) do
     config = Config.Reader.read!(file, env: Mix.env(), target: Mix.target(), imports: :disabled)
-    Mix.ProjectStack.loaded_config(persist_apps(config), [])
+    Mix.ProjectStack.loaded_config(persist_apps(config, file), [])
     config
   end
 
-  defp persist_apps(config) do
+  defp persist_apps(config, file) do
     Application.put_all_env(config, persistent: true)
     apps = Keyword.keys(config)
 
@@ -70,19 +70,22 @@ defmodule Mix.Tasks.Loadconfig do
         Mix.shell().error("""
         Cannot configure base applications: #{inspect(reserved_apps)}
 
-        These applications are already started by the time Mix loads
-        and therefore these configurations have no effect.
+        These applications are already started by the time Mix loads and
+        therefore these configurations have no effect.
 
-        If you want to configure these applications for a release,
-        wrap them in a condition, such as:
+        If you want to configure these applications for a release, wrap
+        them in a condition, such as:
 
             if System.get_env("RELEASE_MODE") do
               config :kernel, ...
             end
 
-        Alternatively, specify the configuration values in your vm.args file:
+        Alternatively, specify the configuration in your vm.args file:
 
-            -elixir ansi_enabled true
+            -kernel config_key config_value
+
+        This happened when loading #{Path.relative_to_cwd(file)} or
+        one of its imports.
         """)
     end
 

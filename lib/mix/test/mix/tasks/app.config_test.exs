@@ -57,7 +57,7 @@ defmodule Mix.Tasks.App.ConfigTest do
     Application.delete_env(:sample, :vars, persistent: true)
   end
 
-  test "warns if kernel/stdlib/elixir are configured" do
+  test "warns if kernel/stdlib are configured" do
     Mix.Project.push(MixTest.Case.Sample)
 
     in_fixture("no_mixfile", fn ->
@@ -65,13 +65,13 @@ defmodule Mix.Tasks.App.ConfigTest do
 
       File.write!("config/runtime.exs", """
       import Config
-      config :elixir, this_wont: :work
+      config :kernel, this_wont: :work
       """)
 
       Mix.Task.run("loadconfig")
       Mix.Task.run("app.config")
 
-      assert_received {:mix_shell, :error, ["Cannot configure base applications: [:elixir]" <> _]}
+      assert_received {:mix_shell, :error, ["Cannot configure base applications: [:kernel]" <> _]}
     end)
   end
 
