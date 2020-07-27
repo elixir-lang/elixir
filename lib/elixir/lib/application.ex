@@ -667,9 +667,7 @@ defmodule Application do
         "because configuration at #{inspect(key)} was not set"
 
       :undefined ->
-        "because the application was not loaded/started. If your application " <>
-          "depends on #{inspect(app)} at runtime, make sure to load/start it or " <>
-          "list it under :extra_applications in your mix.exs file"
+        "because the application was not loaded nor configured"
     end
   end
 
