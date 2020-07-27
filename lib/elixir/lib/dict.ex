@@ -155,13 +155,13 @@ defmodule Dict do
       end
 
       @deprecated message
-      def update(dict, key, initial, fun) do
+      def update(dict, key, default, fun) do
         case fetch(dict, key) do
           {:ok, value} ->
             put(dict, key, fun.(value))
 
           :error ->
-            put(dict, key, initial)
+            put(dict, key, default)
         end
       end
 
@@ -378,8 +378,8 @@ defmodule Dict do
 
   @deprecated message
   @spec update(t, key, value, (value -> value)) :: t
-  def update(dict, key, initial, fun) do
-    target(dict).update(dict, key, initial, fun)
+  def update(dict, key, default, fun) do
+    target(dict).update(dict, key, default, fun)
   end
 
   @deprecated message

@@ -48,8 +48,8 @@ defmodule HashDict do
   end
 
   @deprecated message
-  def update(%HashDict{root: root, size: size}, key, initial, fun) when is_function(fun, 1) do
-    {root, counter} = do_update(root, key, fn -> initial end, fun, key_hash(key))
+  def update(%HashDict{root: root, size: size}, key, default, fun) when is_function(fun, 1) do
+    {root, counter} = do_update(root, key, fn -> default end, fun, key_hash(key))
     %HashDict{root: root, size: size + counter}
   end
 
@@ -135,25 +135,25 @@ defmodule HashDict do
     end
   end
 
-  defp do_update(node, key, initial, fun, hash) do
+  defp do_update(node, key, default, fun, hash) do
     index = key_mask(hash)
 
     case elem(node, index) do
       [] ->
-        {put_elem(node, index, [key | initial.()]), 1}
+        {put_elem(node, index, [key | default.()]), 1}
 
       [^key | value] ->
         {put_elem(node, index, [key | fun.(value)]), 0}
 
       [k | v] ->
-        n = put_elem(@node_template, key_mask(key_shift(hash)), [key | initial.()])
+        n = put_elem(@node_template, key_mask(key_shift(hash)), [key | default.()])
         {put_elem(node, index, {k, v, n}), 1}
 
       {^key, value, n} ->
         {put_elem(node, index, {key, fun.(value), n}), 0}
 
       {k, v, n} ->
-        {n, counter} = do_update(n, key, initial, fun, key_shift(hash))
+        {n, counter} = do_update(n, key, default, fun, key_shift(hash))
         {put_elem(node, index, {k, v, n}), counter}
     end
   end
