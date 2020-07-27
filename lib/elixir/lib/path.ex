@@ -152,8 +152,8 @@ defmodule Path do
 
   ## Examples
 
-      Path.expand("/foo/bar/../bar")
-      #=> "/foo/bar"
+      Path.expand("/foo/bar/../baz")
+      #=> "/foo/baz"
 
   """
   @spec expand(t) :: binary
