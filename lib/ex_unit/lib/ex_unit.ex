@@ -119,9 +119,12 @@ defmodule ExUnit do
 
     It is received by formatters and contains the following fields:
 
-      * `:file`  - the file of the test module
+      * `:file`  - (since v1.11.0) the file of the test module
+
       * `:name`  - the test module name
+
       * `:state` - the test error state (see `t:ExUnit.state/0`)
+
       * `:tests` - all tests in this module
 
     """
