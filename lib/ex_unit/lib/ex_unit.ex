@@ -119,17 +119,17 @@ defmodule ExUnit do
 
     It is received by formatters and contains the following fields:
 
-      * `:name`  - the test module name
       * `:file`  - the file of the test module
+      * `:name`  - the test module name
       * `:state` - the test error state (see `t:ExUnit.state/0`)
       * `:tests` - all tests in this module
 
     """
-    defstruct [:name, :state, :file, tests: []]
+    defstruct [:file, :name, :state, tests: []]
 
     @type t :: %__MODULE__{
-            name: module,
             file: binary(),
+            name: module,
             state: ExUnit.state(),
             tests: [ExUnit.Test.t()]
           }
