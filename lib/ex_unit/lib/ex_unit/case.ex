@@ -470,7 +470,7 @@ defmodule ExUnit.Case do
   defmacro __before_compile__(_) do
     quote do
       def __ex_unit__ do
-        %ExUnit.TestModule{name: __MODULE__, file: __ENV__.file, tests: @ex_unit_tests}
+        %ExUnit.TestModule{file: __ENV__.file, name: __MODULE__, tests: @ex_unit_tests}
       end
     end
   end
