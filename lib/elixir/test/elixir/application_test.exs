@@ -7,7 +7,7 @@ defmodule ApplicationTest do
   import ExUnit.CaptureIO
 
   test "application environment" do
-    assert_raise ArgumentError, ~r/because the application was not loaded\/started/, fn ->
+    assert_raise ArgumentError, ~r/because the application was not loaded nor configured/, fn ->
       Application.fetch_env!(:unknown, :unknown)
     end
 
@@ -55,7 +55,7 @@ defmodule ApplicationTest do
 
   describe "compile environment" do
     test "invoked at compile time" do
-      assert_raise ArgumentError, ~r/because the application was not loaded\/started/, fn ->
+      assert_raise ArgumentError, ~r/because the application was not loaded nor configured/, fn ->
         compile_env!(:unknown, :unknown)
       end
 
