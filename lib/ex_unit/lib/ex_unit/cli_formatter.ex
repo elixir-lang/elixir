@@ -37,7 +37,7 @@ defmodule ExUnit.CLIFormatter do
   end
 
   def handle_cast({:test_started, %ExUnit.Test{} = test}, config) do
-    if config.trace, do: IO.write(trace_test_started(test))
+    if config.trace, do: IO.write("#{trace_test_started(test)} [#{trace_test_line(test)}]")
     {:noreply, config}
   end
 
@@ -171,20 +171,28 @@ defmodule ExUnit.CLIFormatter do
     "#{format_us(time)}ms"
   end
 
+  defp trace_test_line(%ExUnit.Test{tags: tags}) do
+    "L##{tags.line}"
+  end
+
+  defp trace_test_file_line(%ExUnit.Test{tags: tags}) do
+    "#{tags.file}:#{tags.line}"
+  end
+
   defp trace_test_started(test) do
     "  * #{test.name}"
   end
 
   defp trace_test_result(test) do
-    "\r#{trace_test_started(test)} (#{trace_test_time(test)}) [L#{test.tags[:line]}]"
+    "\r#{trace_test_started(test)} (#{trace_test_time(test)}) [#{trace_test_line(test)}]"
   end
 
   defp trace_test_excluded(test) do
-    "\r#{trace_test_started(test)} (excluded) [L#{test.tags[:line]}]"
+    "\r#{trace_test_started(test)} (excluded) [#{trace_test_line(test)}]"
   end
 
   defp trace_test_skipped(test) do
-    "\r#{trace_test_started(test)} (skipped) [L#{test.tags[:line]}]"
+    "\r#{trace_test_started(test)} (skipped) [#{trace_test_line(test)}]"
   end
 
   defp normalize_us(us) do
@@ -230,8 +238,9 @@ defmodule ExUnit.CLIFormatter do
     |> Enum.map(&format_slow_test/1)
   end
 
-  defp format_slow_test(%ExUnit.Test{name: name, time: time, module: module}) do
-    "  * #{name} (#{format_us(time)}ms) (#{inspect(module)})\n"
+  defp format_slow_test(%ExUnit.Test{time: time, module: module} = test) do
+    "#{trace_test_started(test)} (#{inspect(module)}) (#{format_us(time)}ms) " <>
+      "[#{trace_test_file_line(test)}]\n"
   end
 
   defp extract_slowest_tests(%{slowest: slowest, test_timings: timings} = _config) do
