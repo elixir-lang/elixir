@@ -37,7 +37,7 @@ defmodule ExUnit.CLIFormatter do
   end
 
   def handle_cast({:test_started, %ExUnit.Test{} = test}, config) do
-    if config.trace, do: IO.write("  * #{test.name}")
+    if config.trace, do: IO.write(trace_test_started(test))
     {:noreply, config}
   end
 
@@ -121,9 +121,9 @@ defmodule ExUnit.CLIFormatter do
     {:noreply, config}
   end
 
-  def handle_cast({:module_started, %ExUnit.TestModule{name: name}}, config) do
+  def handle_cast({:module_started, %ExUnit.TestModule{name: name, file: file}}, config) do
     if config.trace() do
-      IO.puts("\n#{inspect(name)}")
+      IO.puts("\n#{inspect(name)} [#{Path.relative_to_cwd(file)}]")
     end
 
     {:noreply, config}
@@ -171,16 +171,20 @@ defmodule ExUnit.CLIFormatter do
     "#{format_us(time)}ms"
   end
 
+  defp trace_test_started(test) do
+    "  * #{test.name}"
+  end
+
   defp trace_test_result(test) do
-    "\r  * #{test.name} (#{trace_test_time(test)})"
+    "\r#{trace_test_started(test)} (#{trace_test_time(test)}) [L#{test.tags[:line]}]"
   end
 
   defp trace_test_excluded(test) do
-    "\r  * #{test.name} (excluded)"
+    "\r#{trace_test_started(test)} (excluded) [L#{test.tags[:line]}]"
   end
 
   defp trace_test_skipped(test) do
-    "\r  * #{test.name} (skipped)"
+    "\r#{trace_test_started(test)} (skipped) [L#{test.tags[:line]}]"
   end
 
   defp normalize_us(us) do
