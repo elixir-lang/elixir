@@ -683,36 +683,68 @@ defmodule Access do
   end
 
   defp at(:get_and_update, data, index, next) when is_list(data) do
-    get_and_update_at(data, index, next, [])
+    get_and_update_at(data, index, next, [], fn -> nil end)
   end
 
   defp at(_op, data, _index, _next) do
     raise "Access.at/1 expected a list, got: #{inspect(data)}"
   end
 
-  defp get_and_update_at([head | rest], 0, next, updates) do
+  defp get_and_update_at([head | rest], 0, next, updates, _default_fun) do
     case next.(head) do
       {get, update} -> {get, :lists.reverse([update | updates], rest)}
       :pop -> {head, :lists.reverse(updates, rest)}
     end
   end
 
-  defp get_and_update_at([_ | _] = list, index, next, updates) when index < 0 do
+  defp get_and_update_at([_ | _] = list, index, next, updates, default_fun) when index < 0 do
     list_length = length(list)
 
     if list_length + index >= 0 do
-      get_and_update_at(list, list_length + index, next, updates)
+      get_and_update_at(list, list_length + index, next, updates, default_fun)
     else
-      {nil, list}
+      {default_fun.(), list}
     end
   end
 
-  defp get_and_update_at([head | rest], index, next, updates) when index > 0 do
-    get_and_update_at(rest, index - 1, next, [head | updates])
+  defp get_and_update_at([head | rest], index, next, updates, default_fun) when index > 0 do
+    get_and_update_at(rest, index - 1, next, [head | updates], default_fun)
   end
 
-  defp get_and_update_at([], _index, _next, updates) do
-    {nil, :lists.reverse(updates)}
+  defp get_and_update_at([], _index, _next, updates, default_fun) do
+    {default_fun.(), :lists.reverse(updates)}
+  end
+
+  @doc ~S"""
+  Same as `at/1` except that it raises `Enum.OutOfBoundsError`
+  if the given index is out of bounds.
+
+  ## Examples
+
+      iex> get_in([:a, :b, :c], [Access.at!(2)])
+      :c
+      iex> get_in([:a, :b, :c], [Access.at!(3)])
+      ** (Enum.OutOfBoundsError) out of bounds error
+
+  """
+  @spec at!(integer) :: access_fun(data :: list, get_value :: term)
+  def at!(index) when is_integer(index) do
+    fn op, data, next -> at!(op, data, index, next) end
+  end
+
+  defp at!(:get, data, index, next) when is_list(data) do
+    case Enum.fetch(data, index) do
+      {:ok, value} -> next.(value)
+      :error -> raise Enum.OutOfBoundsError
+    end
+  end
+
+  defp at!(:get_and_update, data, index, next) when is_list(data) do
+    get_and_update_at(data, index, next, [], fn -> raise Enum.OutOfBoundsError end)
+  end
+
+  defp at!(_op, data, _index, _next) do
+    raise "Access.at!/1 expected a list, got: #{inspect(data)}"
   end
 
   @doc ~S"""
