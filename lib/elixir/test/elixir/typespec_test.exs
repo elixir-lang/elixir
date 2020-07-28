@@ -1183,6 +1183,69 @@ defmodule TypespecTest do
       end)
     end
 
+    test "spec_to_quoted with maps with __struct__ key" do
+      defmodule A do
+        defstruct [:key]
+      end
+
+      defmodule B do
+        defstruct [:key]
+      end
+
+      bytecode =
+        test_module do
+          @spec single_struct(%A{}) :: :ok
+          def single_struct(arg), do: {:ok, arg}
+
+          @spec single_struct_key(%{__struct__: A}) :: :ok
+          def single_struct_key(arg), do: {:ok, arg}
+
+          @spec single_struct_key_type(%{__struct__: atom()}) :: :ok
+          def single_struct_key_type(arg), do: {:ok, arg}
+
+          @spec union_struct(%A{} | %B{}) :: :ok
+          def union_struct(arg), do: {:ok, arg}
+
+          @spec union_struct_key(%{__struct__: A | B}) :: :ok
+          def union_struct_key(arg), do: {:ok, arg}
+
+          @spec union_struct_key_type(%{__struct__: atom() | A | binary()}) :: :ok
+          def union_struct_key_type(arg), do: {:ok, arg}
+        end
+
+      [
+        {{:single_struct, 1}, [ast_single_struct]},
+        {{:single_struct_key, 1}, [ast_single_struct_key]},
+        {{:single_struct_key_type, 1}, [ast_single_struct_key_type]},
+        {{:union_struct, 1}, [ast_union_struct]},
+        {{:union_struct_key, 1}, [ast_union_struct_key]},
+        {{:union_struct_key_type, 1}, [ast_union_struct_key_type]}
+      ] = specs(bytecode)
+
+      assert Code.Typespec.spec_to_quoted(:single_struct, ast_single_struct)
+             |> Macro.to_string() ==
+               "single_struct(%TypespecTest.A{key: term()}) :: :ok"
+
+      assert Code.Typespec.spec_to_quoted(:single_struct_key, ast_single_struct_key)
+             |> Macro.to_string() ==
+               "single_struct_key(%TypespecTest.A{}) :: :ok"
+
+      assert Code.Typespec.spec_to_quoted(:single_struct_key_type, ast_single_struct_key_type)
+             |> Macro.to_string() ==
+               "single_struct_key_type(%{__struct__: atom()}) :: :ok"
+
+      assert Code.Typespec.spec_to_quoted(:union_struct, ast_union_struct) |> Macro.to_string() ==
+               "union_struct(%TypespecTest.A{key: term()} | %TypespecTest.B{key: term()}) :: :ok"
+
+      assert Code.Typespec.spec_to_quoted(:union_struct_key, ast_union_struct_key)
+             |> Macro.to_string() ==
+               "union_struct_key(%{__struct__: TypespecTest.A | TypespecTest.B}) :: :ok"
+
+      assert Code.Typespec.spec_to_quoted(:union_struct_key_type, ast_union_struct_key_type)
+             |> Macro.to_string() ==
+               "union_struct_key_type(%{__struct__: atom() | TypespecTest.A | binary()}) :: :ok"
+    end
+
     test "non-variables are given as arguments" do
       msg = ~r/The type one_bad_variable\/1 has an invalid argument\(s\): String.t\(\)/
 
