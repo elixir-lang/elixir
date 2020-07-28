@@ -117,6 +117,7 @@ defmodule Logger.Handler do
   defp do_log(level, msg, metadata, config) do
     %{level: erl_min_level} = :logger.get_primary_config()
     min_level = erlang_level_to_elixir_level(erl_min_level)
+    %{truncate: truncate} = config
 
     try do
       case msg do
@@ -139,6 +140,9 @@ defmodule Logger.Handler do
            "Failure while translating Erlang's logger event\n",
            Exception.format(:error, e, __STACKTRACE__)
          ], metadata}
+    else
+      :none -> {translate_fallback(msg, metadata, truncate), metadata}
+      other -> other
     end
   end
 
@@ -205,15 +209,9 @@ defmodule Logger.Handler do
   ## Translating helpers
 
   defp translate(level, kind, data, meta, config, min_level) do
-    %{
-      truncate: truncate,
-      translators: translators
-    } = config
+    %{translators: translators} = config
 
-    case do_translate(translators, min_level, level, kind, data, meta) do
-      :none -> {translate_fallback(kind, data, meta, truncate), meta}
-      other -> other
-    end
+    do_translate(translators, min_level, level, kind, data, meta)
   end
 
   defp do_translate([{mod, fun} | t], min_level, level, kind, data, meta) do
@@ -229,12 +227,12 @@ defmodule Logger.Handler do
     :none
   end
 
-  defp translate_fallback(:report, {:logger, data}, %{report_cb: callback} = meta, truncate)
+  defp translate_fallback({:report, data}, %{report_cb: callback} = meta, truncate)
        when is_function(callback, 1) do
-    translate_fallback(:format, callback.(data), meta, truncate)
+    translate_fallback(callback.(data), meta, truncate)
   end
 
-  defp translate_fallback(:report, {:logger, data}, %{report_cb: callback}, _truncate)
+  defp translate_fallback({:report, data}, %{report_cb: callback}, _truncate)
        when is_function(callback, 2) do
     translator_opts =
       struct(Inspect.Opts, Application.fetch_env!(:logger, :translator_inspect_opts))
@@ -248,17 +246,17 @@ defmodule Logger.Handler do
     callback.(data, opts)
   end
 
-  defp translate_fallback(:format, {format, args}, _meta, truncate) do
-    format
-    |> Logger.Utils.scan_inspect(args, truncate)
-    |> :io_lib.build_text()
-  end
-
-  defp translate_fallback(:report, {_type, %{} = data}, _meta, _truncate) do
+  defp translate_fallback({:report, %{} = data}, _meta, _truncate) do
     Kernel.inspect(Map.to_list(data))
   end
 
-  defp translate_fallback(:report, {_type, data}, _meta, _truncate) do
+  defp translate_fallback({:report, data}, _meta, _truncate) do
     Kernel.inspect(data)
+  end
+
+  defp translate_fallback({format, args}, _meta, truncate) do
+    format
+    |> Logger.Utils.scan_inspect(args, truncate)
+    |> :io_lib.build_text()
   end
 end

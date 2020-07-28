@@ -138,6 +138,16 @@ defmodule Logger.HandlerTest do
     assert %{single_line: false} = opts
   end
 
+  test "calls report_cb when passed %{label: term(), report: term()}" do
+    report = %{label: :foo, report: %{bar: 1, baz: 2}}
+
+    assert capture_log(fn -> :logger.error(report, %{report_cb: &format_report/1}) end)
+    assert_received {:format, ^report}
+
+    assert capture_log(fn -> :logger.error(report, %{report_cb: &format_report/2}) end)
+    assert_received {:format, ^report, _opts}
+  end
+
   defp format_report(report) do
     send(self(), {:format, report})
 
