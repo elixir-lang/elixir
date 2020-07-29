@@ -626,6 +626,45 @@ defmodule Map do
   end
 
   @doc """
+  Updates the `key` in `map` with the given function.
+
+  If `key` is present in `map` with value `value`, `fun` is invoked with
+  argument `value` and its result is used as the new value of `key`. If `key`
+  is not present in `map`, `init_fun` is evaluated and its result is inserted
+  as the value of `key`. The computed initial value will not be passed through
+  the update function.
+
+  This is useful if the initial value is very expensive to calculate or
+  generally difficult to setup and teardown again.
+
+  ## Examples
+
+      iex> init_fun = fn ->
+      ...>   # some expensive operation here
+      ...>   13
+      ...> end
+      iex> Map.update_lazy(%{a: 1}, :a, init_fun, fn existing_value -> existing_value * 2 end)
+      %{a: 2}
+      iex> Map.update_lazy(%{a: 1}, :b, init_fun, fn existing_value -> existing_value * 2 end)
+      %{a: 1, b: 13}
+
+  """
+  @spec update_lazy(map, key, (() -> value), (existing_value :: value -> updated_value :: value)) ::
+          map
+  def update_lazy(map, key, init_fun, fun) when is_function(fun, 1) and is_function(init_fun) do
+    case map do
+      %{^key => value} ->
+        put(map, key, fun.(value))
+
+      %{} ->
+        put(map, key, init_fun.())
+
+      other ->
+        :erlang.error({:badmap, other}, [map, key, init_fun, fun])
+    end
+  end
+
+  @doc """
   Returns and removes the value associated with `key` in `map`.
 
   If `key` is present in `map` with value `value`, `{value, new_map}` is

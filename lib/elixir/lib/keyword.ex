@@ -916,6 +916,49 @@ defmodule Keyword do
   end
 
   @doc """
+  Updates the `key` in `keywords` with the given function.
+
+  If the `key` does not exist, `init_fun` is evaluated and its result is
+  inserted as the value of `key`. The computed initial value will not be
+  passed through the update function.
+
+  This is useful if the initial value is very expensive to calculate or
+  generally difficult to setup and teardown again.
+
+  If there are duplicated keys, they are all removed and only the first one
+  is updated.
+
+  ## Examples
+
+      iex> init_fun = fn ->
+      ...>   # some expensive operation here
+      ...>   13
+      ...> end
+      iex> Keyword.update_lazy([a: 1], :a, init_fun, fn existing_value -> existing_value * 2 end)
+      [a: 2]
+      iex> Keyword.update_lazy([a: 1, a: 2], :a, init_fun, fn existing_value -> existing_value * 2 end)
+      [a: 2]
+      iex> Keyword.update_lazy([a: 1], :b, init_fun, fn existing_value -> existing_value * 2 end)
+      [a: 1, b: 13]
+
+  """
+  @spec update_lazy(t, key, (() -> value), (existing_value :: value -> updated_value :: value)) ::
+          t
+  def update_lazy(keywords, key, init_fun, fun)
+
+  def update_lazy([{key, value} | keywords], key, _init_fun, fun) do
+    [{key, fun.(value)} | delete(keywords, key)]
+  end
+
+  def update_lazy([{_, _} = e | keywords], key, init_fun, fun) do
+    [e | update_lazy(keywords, key, init_fun, fun)]
+  end
+
+  def update_lazy([], key, init_fun, _fun) when is_atom(key) do
+    [{key, init_fun.()}]
+  end
+
+  @doc """
   Takes all entries corresponding to the given keys and extracts them into a
   separate keyword list.
 
