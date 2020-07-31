@@ -57,7 +57,7 @@ defmodule Logger do
     * `:debug` - for debug-related messages
 
   For example, `:info` takes precedence over `:debug`. If your log
-  level is set to `:info`, `:info`, `:warning`, and all above it will
+  level is set to `:info` then all `:info`, `:notice` and above will
   be passed to backends. If your log level is set to `:alert`, only
   `:alert` and `:emergency` will be printed.
 
