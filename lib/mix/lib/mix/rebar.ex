@@ -152,18 +152,9 @@ defmodule Mix.Rebar do
     [scm, url | source] = Tuple.to_list(source)
 
     {scm, additional_opts} =
-      case scm do
-        :git_subdir ->
-          case source do
-            [_, sparse_dir | _] ->
-              {:git, [{:sparse, sparse_dir}]}
-
-            _ ->
-              {:git, []}
-          end
-
-        _ ->
-          {:git, []}
+      case {scm, source} do
+        {:git_subdir, [_, sparse_dir | _]} -> {:git, [sparse: sparse_dir]}
+        {_, _} -> {:git, []}
       end
 
     ref =
