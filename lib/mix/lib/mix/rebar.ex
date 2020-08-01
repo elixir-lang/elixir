@@ -151,6 +151,21 @@ defmodule Mix.Rebar do
   defp parse_source(source) do
     [scm, url | source] = Tuple.to_list(source)
 
+    {scm, additional_opts} =
+      case scm do
+        :git_subdir ->
+          case source do
+            [_, sparse_dir | _] ->
+              {:git, [{:sparse, sparse_dir}]}
+
+            _ ->
+              {:git, []}
+          end
+
+        _ ->
+          {:git, []}
+      end
+
     ref =
       case source do
         ["" | _] -> [branch: "HEAD"]
@@ -161,7 +176,7 @@ defmodule Mix.Rebar do
         _ -> []
       end
 
-    [{scm, to_string(url)}] ++ ref
+    [{scm, to_string(url)}] ++ ref ++ additional_opts
   end
 
   defp compile_req(nil) do
