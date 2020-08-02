@@ -641,11 +641,11 @@ defmodule ExUnit.Diff do
     left = load_struct(kw[:__struct__])
 
     if left && Enum.all?(kw, fn {k, _} -> Map.has_key?(left, k) end) do
-      if Macro.quoted_literal?(kw) do
-        {eval_kw, []} = Code.eval_quoted(kw, [])
+      with true <- Macro.quoted_literal?(kw),
+           {eval_kw, []} <- safe_eval(kw) do
         diff_quoted_struct(struct!(left, eval_kw), kw, right, struct1, env)
       else
-        diff_map(kw, right, struct1, maybe_struct(right), env)
+        _ -> diff_map(kw, right, struct1, maybe_struct(right), env)
       end
     else
       diff_map(kw, right, nil, maybe_struct(right), env)
@@ -661,10 +661,9 @@ defmodule ExUnit.Diff do
   end
 
   defp diff_struct(left, kw, right, struct1, struct2, env) do
-    if Inspect.impl_for(left) not in [Inspect.Any, Inspect.Map] do
-      inspect_left = inspect(left)
-      inspect_right = inspect(right)
-
+    with true <- Inspect.impl_for(left) not in [Inspect.Any, Inspect.Map],
+         {:ok, inspect_left} <- safe_inspect(left),
+         {:ok, inspect_right} <- safe_inspect(right) do
       if inspect_left != inspect_right do
         diff_string(inspect_left, inspect_right, :none, env)
       else
@@ -680,7 +679,7 @@ defmodule ExUnit.Diff do
         end
       end
     else
-      diff_map(kw, right, struct1, struct2, env)
+      _ -> diff_map(kw, right, struct1, struct2, env)
     end
   end
 
@@ -1076,5 +1075,17 @@ defmodule ExUnit.Diff do
 
   defp var_context({name, meta, context}) do
     {name, meta[:counter] || context}
+  end
+
+  defp safe_eval(expr) do
+    Code.eval_quoted(expr, [])
+  rescue
+    _ -> :error
+  end
+
+  defp safe_inspect(value) do
+    {:ok, inspect(value, safe: false)}
+  rescue
+    _ -> :error
   end
 end
