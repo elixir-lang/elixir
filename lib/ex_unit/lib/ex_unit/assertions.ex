@@ -715,7 +715,8 @@ defmodule ExUnit.Assertions do
   @doc ~S"""
   Asserts the `exception` is raised during `function` execution with
   the expected `message`, which can be a `Regex` or an exact `String`.
-  Returns the rescued exception, fails otherwise.
+  Returns the rescued exception, fails otherwise. Use `Any` to match
+  all exceptions and only look at the message.
 
   ## Examples
 
@@ -725,6 +726,10 @@ defmodule ExUnit.Assertions do
 
       assert_raise RuntimeError, ~r/^today's lucky number is 0\.\d+!$/, fn ->
         raise "today's lucky number is #{:rand.uniform()}!"
+      end
+
+      assert_raise Any, "something went wrong", fn ->
+        raise ArgumentError, "something went wrong"
       end
 
   """
@@ -749,7 +754,8 @@ defmodule ExUnit.Assertions do
 
   @doc """
   Asserts the `exception` is raised during `function` execution.
-  Returns the rescued exception, fails otherwise.
+  Returns the rescued exception, fails otherwise. Use `Any` to
+  match all exceptions.
 
   ## Examples
 
@@ -766,6 +772,10 @@ defmodule ExUnit.Assertions do
         name = error.__struct__
 
         cond do
+          exception == Any ->
+            check_error_message(name, error)
+            error
+
           name == exception ->
             check_error_message(name, error)
             error
