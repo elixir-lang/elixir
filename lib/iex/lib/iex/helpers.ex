@@ -255,7 +255,9 @@ defmodule IEx.Helpers do
   `file:line` notation. For example, if your editor is called
   `subl`, it will open the file as:
 
-      subl path/to/file:line
+  ```shell-session
+  $ subl path/to/file:line
+  ```
 
   It is important that you choose an editor command that does
   not block nor that attempts to run an editor directly in the
@@ -266,7 +268,9 @@ defmodule IEx.Helpers do
   Custom editors are supported by using the `__FILE__` and
   `__LINE__` notations, for example:
 
-      ELIXIR_EDITOR="my_editor +__LINE__ __FILE__"
+  ```shell-session
+  $ ELIXIR_EDITOR="my_editor +__LINE__ __FILE__"
+  ```
 
   and Elixir will properly interpolate values.
 

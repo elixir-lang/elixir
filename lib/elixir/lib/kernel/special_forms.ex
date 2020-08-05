@@ -362,7 +362,9 @@ defmodule Kernel.SpecialForms do
   and matching. To see optimization output, set the `bin_opt_info` compiler
   option:
 
-      ERL_COMPILER_OPTIONS=bin_opt_info mix compile
+  ```shell-session
+  $ ERL_COMPILER_OPTIONS=bin_opt_info mix compile
+  ```
 
   To learn more about specific optimizations and performance considerations,
   check out

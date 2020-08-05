@@ -194,10 +194,12 @@ defmodule Mix.Tasks.Test do
   For example, to split a test suite into 4 partitions and run them, you would
   use the following commands:
 
-      MIX_TEST_PARTITION=1 mix test --partitions 4
-      MIX_TEST_PARTITION=2 mix test --partitions 4
-      MIX_TEST_PARTITION=3 mix test --partitions 4
-      MIX_TEST_PARTITION=4 mix test --partitions 4
+  ```shell-session
+      $ MIX_TEST_PARTITION=1 mix test --partitions 4
+      $ MIX_TEST_PARTITION=2 mix test --partitions 4
+      $ MIX_TEST_PARTITION=3 mix test --partitions 4
+      $ MIX_TEST_PARTITION=4 mix test --partitions 4
+  ```
 
   The test files are sorted upfront in a round-robin fashion. Note the partition
   itself is given as an environment variable so it can be accessed in config files
@@ -306,7 +308,7 @@ defmodule Mix.Tasks.Test do
 
         1. set MIX_ENV explicitly:
 
-            MIX_ENV=test mix test.another
+            $ MIX_ENV=test mix test.another
 
         2. set the :preferred_cli_env for a command inside "def project" in your mix.exs:
 

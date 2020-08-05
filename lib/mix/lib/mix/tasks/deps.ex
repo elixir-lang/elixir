@@ -121,7 +121,9 @@ defmodule Mix.Tasks.Deps do
   HTTP authentication via URLs, it can be achieved via Git configuration, keeping
   the access rules outside of source control.
 
-      git config --global url."https://YOUR_USER:YOUR_PASS@example.com/".insteadOf "https://example.com/"
+  ```shell-session
+  $ git config --global url."https://YOUR_USER:YOUR_PASS@example.com/".insteadOf "https://example.com/"
+  ```
 
   For more information, see the `git config` documentation:
   https://git-scm.com/docs/git-config#git-config-urlltbasegtinsteadOf

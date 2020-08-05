@@ -7,7 +7,9 @@ defmodule Logger.Formatter do
   This module allows developers to specify a string that
   serves as template for log messages, for example:
 
-      $time $metadata[$level] $message\n
+  ```text
+  $time $metadata[$level] $message\n
+  ```
 
   Will print error messages as:
 

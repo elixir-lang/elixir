@@ -99,7 +99,9 @@ defmodule Mix do
   The environment can be changed via the command line by setting
   the `MIX_ENV` environment variable, for example:
 
-      $ MIX_ENV=prod mix run server.exs
+  ```shell-session
+  $ MIX_ENV=prod mix run server.exs
+  ```
 
   You can also specify that certain dependencies are available only for
   certain environments:
@@ -266,7 +268,9 @@ defmodule Mix do
   Environment variables that are not meant to hold a value (and act basically as
   flags) should be set to either `1` or `true`, for example:
 
-      $ MIX_DEBUG=1 mix compile
+  ```shell-session
+  $ MIX_DEBUG=1 mix compile
+  ```
 
   """
 

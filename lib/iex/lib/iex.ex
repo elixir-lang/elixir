@@ -36,7 +36,9 @@ defmodule IEx do
   explicitly enabled for the current user in the registry by running
   the following command:
 
-      reg add HKCU\Console /v VirtualTerminalLevel /t REG_DWORD /d 1
+  ```reg
+  reg add HKCU\Console /v VirtualTerminalLevel /t REG_DWORD /d 1
+  ```
 
   After running the command above, you must restart your current console.
 
@@ -45,7 +47,9 @@ defmodule IEx do
   It is possible to get shell history by passing some options that enable it
   in the VM. This can be done on a per-need basis when starting IEx:
 
-      iex --erl "-kernel shell_history enabled"
+  ```shell-session
+  iex --erl "-kernel shell_history enabled"
+  ```
 
   If you would rather enable it on your system as a whole, you can use
   the `ERL_AFLAGS` environment variable and make sure that it is set
@@ -53,15 +57,21 @@ defmodule IEx do
 
   On Unix-like / Bash:
 
-      export ERL_AFLAGS="-kernel shell_history enabled"
+  ```shell
+  export ERL_AFLAGS="-kernel shell_history enabled"
+  ```
 
   On Windows:
 
-      set ERL_AFLAGS "-kernel shell_history enabled"
+  ```powershell
+  set ERL_AFLAGS "-kernel shell_history enabled"
+  ```
 
   On Windows 10 / PowerShell:
 
-      $env:ERL_AFLAGS = "-kernel shell_history enabled"
+  ```powershell
+  $env:ERL_AFLAGS = "-kernel shell_history enabled"
+  ```
 
   ## Expressions in IEx
 
@@ -224,8 +234,10 @@ defmodule IEx do
 
   Let's give it a try. First start a new shell:
 
-      $ iex --sname foo
-      iex(foo@HOST)1>
+  ```shell-session
+  $ iex --sname foo
+  iex(foo@HOST)1>
+  ```
 
   The string between the parentheses in the prompt is the name
   of your node. We can retrieve it by calling the `node/0`
@@ -244,8 +256,10 @@ defmodule IEx do
 
   Now, let's start another shell, giving it a name as well:
 
-      $ iex --sname bar
-      iex(bar@HOST)1>
+  ```shell-session
+  $ iex --sname bar
+  iex(bar@HOST)1>
+  ```
 
   If we try to dispatch to `Hello.world`, it won't be available
   as it was defined only in the other shell:
@@ -269,7 +283,9 @@ defmodule IEx do
   In fact, connecting to remote shells is so common that we provide
   a shortcut via the command line as well:
 
-      $ iex --sname baz --remsh foo@HOST
+  ```shell-session
+  $ iex --sname baz --remsh foo@HOST
+  ```
 
   Where "remsh" means "remote shell". In general, Elixir supports:
 
@@ -611,8 +627,10 @@ defmodule IEx do
   the `iex` command and pass the `--trace` to `mix test` to avoid running
   into timeouts:
 
-      iex -S mix test --trace
-      iex -S mix test path/to/file:line --trace
+  ```shell-session
+  iex -S mix test --trace
+  iex -S mix test path/to/file:line --trace
+  ```
 
   """
   defmacro pry() do
@@ -785,8 +803,10 @@ defmodule IEx do
   the `iex` command and pass the `--trace` to `mix test` to avoid running
   into timeouts:
 
-      iex -S mix test --trace
-      iex -S mix test path/to/file:line --trace
+  ```shell-session
+  iex -S mix test --trace
+  iex -S mix test path/to/file:line --trace
+  ```
 
   """
   @doc since: "1.5.0"

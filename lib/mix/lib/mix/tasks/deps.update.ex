@@ -22,8 +22,10 @@ defmodule Mix.Tasks.Deps.Update do
   not touch its children, you can explicitly unlock the single dependency
   and run `mix deps.get`:
 
-      $ mix deps.unlock some_dep
-      $ mix deps.get
+  ```shell-session
+  $ mix deps.unlock some_dep
+  $ mix deps.get
+  ```
 
   ## Command line options
 

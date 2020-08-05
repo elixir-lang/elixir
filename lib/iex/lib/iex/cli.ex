@@ -8,8 +8,8 @@
 #    starts becomes very slow. To verify this feature, just
 #    get an existing project and run:
 #
-#      $ mix clean
-#      $ iex -S mix
+#        $ mix clean
+#        $ iex -S mix
 #
 #    If the printing of data is slower than usual. This particular
 #    bug has arisen;
@@ -17,21 +17,21 @@
 # 2. In some situations, connecting to a remote node via --remsh
 #    is not possible. This can be tested by starting two IEx nodes:
 #
-#      $ iex --sname foo
-#      $ iex --sname bar --remsh foo@localhost
+#        $ iex --sname foo
+#        $ iex --sname bar --remsh foo@localhost
 #
 # 3. When still using --remsh, we need to guarantee the arguments
 #    are processed on the local node and not the remote one. For such,
 #    one can replace the last line above by:
 #
-#      $ iex --sname bar --remsh foo@localhost -e 'IO.inspect node()'
+#        $ iex --sname bar --remsh foo@localhost -e 'IO.inspect node()'
 #
 #    And verify that the local node name is printed.
 #
 # 4. Finally, in some other circumstances, printing messages may become
 #    borked. This can be verified with:
 #
-#      $ iex -e ":logger.info('foo~nbar', [])"
+#        $ iex -e ":logger.info('foo~nbar', [])"
 #
 # By the time those instructions have been written, all tests above pass.
 defmodule IEx.CLI do

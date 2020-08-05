@@ -20,9 +20,11 @@ defmodule Mix.Tasks.Test.Coverage do
   If you partition your tests across multiple runs,
   you can unify the report as shown below:
 
-      MIX_TEST_PARTITION=1 mix test --partitions 2 --cover
-      MIX_TEST_PARTITION=2 mix test --partitions 2 --cover
-      mix test.coverage
+  ```shell-session
+  $ MIX_TEST_PARTITION=1 mix test --partitions 2 --cover
+  $ MIX_TEST_PARTITION=2 mix test --partitions 2 --cover
+  $ mix test.coverage
+  ```
 
   This works because the `--partitions` option
   automatically exports the coverage results.
@@ -41,18 +43,22 @@ defmodule Mix.Tasks.Test.Coverage do
   Of course, if you want to actually partition the tests,
   you can also do:
 
-      # from the umbrella root
-      MIX_TEST_PARTITION=1 mix test --partitions 2 --cover
-      MIX_TEST_PARTITION=2 mix test --partitions 2 --cover
-      mix test.coverage
+  ```shell-session
+  # from the umbrella root
+  $ MIX_TEST_PARTITION=1 mix test --partitions 2 --cover
+  $ MIX_TEST_PARTITION=2 mix test --partitions 2 --cover
+  $ mix test.coverage
+  ```
 
   On the other hand, if you want partitioned tests but
   per-app reports, you can do:
 
-      # from the umbrella root
-      MIX_TEST_PARTITION=1 mix test --partitions 2 --cover
-      MIX_TEST_PARTITION=2 mix test --partitions 2 --cover
-      mix cmd mix test.coverage
+  ```shell-session
+  # from the umbrella root
+  $ MIX_TEST_PARTITION=1 mix test --partitions 2 --cover
+  $ MIX_TEST_PARTITION=2 mix test --partitions 2 --cover
+  $ mix cmd mix test.coverage
+  ```
 
   When running `test.coverage` from the umbrella root, it
   will use the `:test_coverage` configuration from the umbrella

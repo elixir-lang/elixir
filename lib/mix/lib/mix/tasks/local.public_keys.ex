@@ -11,15 +11,21 @@ defmodule Mix.Tasks.Local.PublicKeys do
 
   To list all available keys:
 
-      $ mix local.public_keys
+  ```shell-session
+  $ mix local.public_keys
+  ```
 
   To list all available keys showing the keys themselves:
 
-      $ mix local.public_keys --detailed
+  ```shell-session
+  $ mix local.public_keys --detailed
+  ```
 
   To add a new key:
 
-      $ mix local.public_keys local/path/to/key
+  ```shell-session
+  $ mix local.public_keys local/path/to/key
+  ```
 
   Be careful when adding new keys. Only add keys from sources you
   trust.

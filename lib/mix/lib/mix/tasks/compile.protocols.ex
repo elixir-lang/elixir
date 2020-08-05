@@ -27,11 +27,15 @@ defmodule Mix.Tasks.Compile.Protocols do
   releases, you need to take the generated protocols into
   account. This can be done with:
 
-      $ elixir -pa _build/MIX_ENV/lib/YOUR_APP/consolidated -S mix run
+  ```shell-session
+  $ elixir -pa _build/MIX_ENV/lib/YOUR_APP/consolidated -S mix run
+  ```
 
   Or in umbrellas:
 
-      $ elixir -pa _build/MIX_ENV/consolidated -S mix run
+  ```shell-session
+  $ elixir -pa _build/MIX_ENV/consolidated -S mix run
+  ```
 
   You can verify a protocol is consolidated by checking
   its attributes:
