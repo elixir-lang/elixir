@@ -27,7 +27,7 @@ defmodule Mix.Tasks.Cmd do
     * `--app` - limit running the command to the given app. This option
       may be given multiple times
 
-    * `--cd` - (since v1.11.0) the directory to run the command in
+    * `--cd` - (since v1.10.4) the directory to run the command in
 
   ## Zombie operating system processes
 
