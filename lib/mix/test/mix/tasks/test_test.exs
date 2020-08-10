@@ -409,12 +409,27 @@ defmodule Mix.Tasks.TestTest do
     end
   end
 
-  test "--warnings-as-errors" do
-    in_fixture("test_warnings", fn ->
-      output = mix(["test", "--warnings-as-errors"])
-      assert output =~ "variable \"unused\" is unused"
-      assert output =~ "Compilation failed due to warnings"
-    end)
+  describe "--warnings-as-errors" do
+    test "warning in lib" do
+      in_fixture("test_warnings", fn ->
+        output = mix(["test", "--warnings-as-errors", "test/a_teset_warnings.exs:4"])
+        assert output =~ "variable \"unused_in_lib\" is unused"
+        refute output =~ "unused_in_test"
+        assert output =~ "Compilation failed due to warnings"
+      end)
+    end
+
+    test "warning in test" do
+      in_fixture("test_warnings", fn ->
+        output = mix(["compile"], [{"MIX_ENV", "test"}])
+        assert output =~ "variable \"unused_in_lib\" is unused"
+
+        output = mix(["test", "--warnings-as-errors"])
+        refute output =~ "unused_in_lib"
+        assert output =~ "variable \"unused_in_test\" is unused"
+        assert output =~ "Compilation failed due to warnings"
+      end)
+    end
   end
 
   defp receive_until_match(port, expected, acc) do
