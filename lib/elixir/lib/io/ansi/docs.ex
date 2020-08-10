@@ -592,7 +592,7 @@ defmodule IO.ANSI.Docs do
     line
     |> String.trim(" ")
     |> String.trim("|")
-    |> String.split("|")
+    |> String.split(~r{(?<!\\)\|})
     |> Enum.map(&render_column(&1, options))
   end
 
