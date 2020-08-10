@@ -550,6 +550,20 @@ defmodule IO.ANSI.DocsTest do
       assert format_markdown("a | b | c\nd | e") == "a | b | c\nd | e |  \n\e[0m"
     end
 
+    test "table with escaped \"|\" inside cell" do
+      table = "a | smth\\|smth_else | c\nd | e | f"
+
+      expected =
+        """
+        a | smth|smth_else | c
+        d | e              | f
+        \e[0m
+        """
+        |> String.trim_trailing()
+
+      assert format_markdown(table) == expected
+    end
+
     test "table with last two columns empty" do
       table = """
       AAA |     |     |
