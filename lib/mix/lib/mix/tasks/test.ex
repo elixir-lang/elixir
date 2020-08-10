@@ -34,44 +34,70 @@ defmodule Mix.Tasks.Test do
   ## Command line options
 
     * `--color` - enables color in the output
+
     * `--cover` - runs coverage tool. See "Coverage" section below
+
     * `--exclude` - excludes tests that match the filter
+
     * `--export-coverage` - the name of the file to export coverage results too.
       Only has an effect when used with `--cover`
     * `--failed` - runs only tests that failed the last time they ran
+
     * `--force` - forces compilation regardless of modification times
+
     * `--formatter` - sets the formatter module that will print the results.
       Defaults to ExUnit's built-in CLI formatter
     * `--include` - includes tests that match the filter
+
     * `--listen-on-stdin` - runs tests, and then listens on stdin. Receiving a newline will
       result in the tests being run again. Very useful when combined with `--stale` and
       external commands which produce output on stdout upon file system modifications
     * `--max-cases` - sets the maximum number of tests running asynchronously. Only tests from
+
       different modules run in parallel. Defaults to twice the number of cores
     * `--max-failures` - the suite stops evaluating tests when this number of test
       failures is reached. It runs all tests if omitted
+
     * `--no-archives-check` - does not check archives
+
     * `--no-color` - disables color in the output
+
     * `--no-compile` - does not compile, even if files require compilation
+
     * `--no-deps-check` - does not check dependencies
+
     * `--no-elixir-version-check` - does not check the Elixir version from `mix.exs`
+
     * `--no-start` - does not start applications after compilation
+
     * `--only` - runs only tests that match the filter
+
     * `--partitions` - sets the amount of partitions to split tests in. This option
       requires the `MIX_TEST_PARTITION` environment variable to be set. See the
       "Operating system process partitioning" section for more information
+
     * `--preload-modules` - preloads all modules defined in applications
+
     * `--raise` - raises if the test suite failed
+
     * `--seed` - seeds the random number generator used to randomize the order of tests;
+
       `--seed 0` disables randomization
+
     * `--slowest` - prints timing information for the N slowest tests.
       Automatically sets `--trace` and `--preload-modules`
+
     * `--stale` - runs only tests which reference modules that changed since the
       last time tests were ran with `--stale`. You can read more about this option
       in the "The --stale option" section below
+
     * `--timeout` - sets the timeout for the tests
+
     * `--trace` - runs tests with detailed reporting. Automatically sets `--max-cases` to `1`.
       Note that in trace mode test timeouts will be ignored as timeout is set to `:infinity`
+
+    * `--warnings-as-errors` - (since v1.11.0) treats warnings as errors and return a non-zero
+      exit code
 
   ## Configuration
 
@@ -251,7 +277,8 @@ defmodule Mix.Tasks.Test do
     formatter: :keep,
     slowest: :integer,
     partitions: :integer,
-    preload_modules: :boolean
+    preload_modules: :boolean,
+    warnings_as_errors: :boolean
   ]
 
   @cover [output: "cover", tool: Mix.Tasks.Test.Coverage]
@@ -290,6 +317,10 @@ defmodule Mix.Tasks.Test do
   end
 
   defp do_run(opts, args, files) do
+    if opts[:warnings_as_errors] do
+      Code.compiler_options(warnings_as_errors: true)
+    end
+
     if opts[:listen_on_stdin] do
       System.at_exit(fn _ ->
         IO.gets(:stdio, "")
