@@ -11,7 +11,6 @@ defmodule EEx.Tokenizer do
           | {:eof, line, column}
 
   @spaces [?\s, ?\t]
-  @closing_brackets ')]}'
 
   @doc """
   Tokenizes the given charlist or binary.
@@ -66,13 +65,17 @@ defmodule EEx.Tokenizer do
         error
 
       {:ok, expr, new_line, new_column, rest} ->
-        token = token_name(expr)
+        key =
+          case :elixir_tokenizer.tokenize(expr, 1, file: "eex", check_terminators: false) do
+            {:ok, tokens} -> token_key(tokens)
+            {:error, _} -> :expr
+          end
 
         {rest, new_line, new_column, buffer} =
           trim_if_needed(rest, new_line, new_column, opts, buffer)
 
         acc = tokenize_text(buffer, acc)
-        final = {token, line, column, marker, Enum.reverse(expr)}
+        final = {key, line, column, marker, expr}
         tokenize(rest, new_line, new_column, opts, [], [final | acc])
     end
   end
@@ -103,7 +106,7 @@ defmodule EEx.Tokenizer do
   # Tokenize an expression until we find %>
 
   defp expr([?%, ?> | t], line, column, _opts, buffer) do
-    {:ok, buffer, line, column + 2, t}
+    {:ok, Enum.reverse(buffer), line, column + 2, t}
   end
 
   defp expr('\n' ++ t, line, _column, opts, buffer) do
@@ -118,86 +121,41 @@ defmodule EEx.Tokenizer do
     {:error, line, column, "missing token '%>'"}
   end
 
-  # Receive an expression content and check
-  # if it is a start, middle or an end token.
-  #
-  # Start tokens finish with "do" and "fn ->"
-  # Middle tokens are marked with "->" or keywords
-  # End tokens contain only the end word and optionally
-  # combinations of ")", "]" and "}".
-
-  defp token_name([h | t]) when h in @spaces do
-    token_name(t)
-  end
-
-  defp token_name('od' ++ [h | rest]) when h in @spaces or h in @closing_brackets do
-    case tokenize_rest(rest) do
-      {:ok, [{:end, _} | _]} -> :middle_expr
-      _ -> :start_expr
-    end
-  end
-
-  defp token_name('>-' ++ rest) do
-    case tokenize_rest(rest) do
-      {:ok, [{:end, _} | _]} ->
+  # Receives tokens and check if it is a start, middle or an end token.
+  defp token_key(tokens) do
+    case {tokens, Enum.reverse(tokens)} do
+      {[{:end, _} | _], [{:do, _} | _]} ->
         :middle_expr
 
-      # Check if there is a "fn" token and, if so, it is not
-      # followed by an "end" token. If this is the case, we
-      # are on a start expr.
-      {:ok, tokens} ->
-        tokens = Enum.reverse(tokens)
-        fn_index = fn_index(tokens)
+      {_, [{:do, _} | _]} ->
+        :start_expr
 
-        if fn_index && end_index(tokens) > fn_index do
+      {_, [{:block_identifier, _, _} | _]} ->
+        :middle_expr
+
+      {[{:end, _} | _], [{:stab_op, _, _} | _]} ->
+        :middle_expr
+
+      {_, [{:stab_op, _, _} | reverse_tokens]} ->
+        fn_index = Enum.find_index(reverse_tokens, &match?({:fn, _}, &1)) || :infinity
+        end_index = Enum.find_index(reverse_tokens, &match?({:end, _}, &1)) || :infinity
+
+        if end_index > fn_index do
           :start_expr
         else
           :middle_expr
         end
 
-      _error ->
-        :middle_expr
+      {tokens, _} ->
+        case Enum.drop_while(tokens, &closing_bracket?/1) do
+          [{:end, _} | _] -> :end_expr
+          _ -> :expr
+        end
     end
   end
 
-  defp token_name('esle' ++ t), do: check_spaces(t, :middle_expr)
-  defp token_name('retfa' ++ t), do: check_spaces(t, :middle_expr)
-  defp token_name('hctac' ++ t), do: check_spaces(t, :middle_expr)
-  defp token_name('eucser' ++ t), do: check_spaces(t, :middle_expr)
-
-  defp token_name(rest) do
-    case Enum.drop_while(rest, &(&1 in @spaces or &1 in @closing_brackets)) do
-      'dne' ++ t -> check_spaces(t, :end_expr)
-      _ -> :expr
-    end
-  end
-
-  # Tokenize the remaining passing check_terminators as false,
-  # which relax the tokenizer to not error on unmatched pairs.
-  # If the tokens start with an "end" we have a middle expr.
-  defp tokenize_rest(rest) do
-    :elixir_tokenizer.tokenize(Enum.reverse(rest), 1, file: "eex", check_terminators: false)
-  end
-
-  defp fn_index(tokens) do
-    Enum.find_index(tokens, fn
-      {:fn_paren, _} -> true
-      {:fn, _} -> true
-      _ -> false
-    end)
-  end
-
-  defp end_index(tokens) do
-    Enum.find_index(tokens, &match?({:end, _}, &1)) || :infinity
-  end
-
-  defp check_spaces(string, token) do
-    if Enum.all?(string, &(&1 in @spaces)) do
-      token
-    else
-      :expr
-    end
-  end
+  defp closing_bracket?({closing, _}) when closing in ~w"( [ {"a, do: true
+  defp closing_bracket?(_), do: false
 
   # Tokenize the buffered text by appending
   # it to the given accumulator.
