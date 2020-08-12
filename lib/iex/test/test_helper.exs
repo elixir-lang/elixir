@@ -66,7 +66,7 @@ defmodule IEx.Case do
       server_options = Keyword.put_new(server_options, :dot_iex_path, "")
       IEx.Server.run(server_options)
     end)
-    |> strip_iex
+    |> strip_iex()
   end
 
   defp strip_iex(string) do

@@ -8,7 +8,7 @@ defmodule IEx.ServerTest do
   describe "options" do
     test "prefix" do
       assert capture_io(fn ->
-               IEx.Server.run(prefix: "pry")
+               IEx.Server.run(prefix: "pry", dot_iex_path: "")
              end) =~ "pry(1)> "
     end
 
