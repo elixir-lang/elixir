@@ -2,7 +2,7 @@ defmodule IEx.State do
   @moduledoc false
   # This state is exchanged between IEx.Server and
   # IEx.Evaluator which is why it is a struct.
-  defstruct cache: '', counter: 1, prefix: "iex", on_eof: :stop_evaluator
+  defstruct cache: '', counter: 1, prefix: "iex", on_eof: :stop_evaluator, evaluator_options: []
   @type t :: %__MODULE__{}
 end
 
@@ -223,7 +223,7 @@ defmodule IEx.Server do
     Process.delete(:evaluator)
     Process.exit(evaluator, :kill)
     Process.demonitor(evaluator_ref, [:flush])
-    evaluator = start_evaluator([])
+    evaluator = start_evaluator(state.evaluator_options)
     loop(%{state | cache: ''}, evaluator, Process.monitor(evaluator))
   end
 
@@ -321,7 +321,12 @@ defmodule IEx.Server do
   defp iex_state(opts) do
     prefix = Keyword.get(opts, :prefix, "iex")
     on_eof = Keyword.get(opts, :on_eof, :stop_evaluator)
-    %IEx.State{prefix: prefix, on_eof: on_eof}
+
+    %IEx.State{
+      prefix: prefix,
+      on_eof: on_eof,
+      evaluator_options: Keyword.take(opts, [:dot_iex_path])
+    }
   end
 
   ## IO
