@@ -372,7 +372,6 @@ parser_line(Meta) ->
 
 'string_to_quoted!'(String, StartLine, StartColumn, File, Opts) ->
   case string_to_tokens(String, StartLine, StartColumn, File, Opts) of
-
     {ok, Tokens} ->
       case tokens_to_quoted(Tokens, File, Opts) of
         {ok, Forms} ->

@@ -68,7 +68,7 @@ defmodule EEx.Tokenizer do
         key =
           case :elixir_tokenizer.tokenize(expr, 1, file: "eex", check_terminators: false) do
             {:ok, tokens} -> token_key(tokens)
-            {:error, _} -> :expr
+            {:error, _, _, _} -> :expr
           end
 
         {rest, new_line, new_column, buffer} =

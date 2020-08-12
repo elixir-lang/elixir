@@ -258,8 +258,13 @@ defmodule EEx.TokenizerTest do
     assert_not_trimmed.('  <%= 01 %><%= 23 %>\n')
   end
 
-  test "raise syntax error when there is start mark and no end mark" do
+  test "returns error when there is start mark and no end mark" do
     assert T.tokenize('foo <% :bar', 1, 1, @opts) == {:error, 1, 12, "missing token '%>'"}
     assert T.tokenize('<%# true ', 1, 1, @opts) == {:error, 1, 10, "missing token '%>'"}
+  end
+
+  test "marks invalid expressions as regualr expressions" do
+    assert T.tokenize('<% 1 $ 2 %>', 1, 1, @opts) ==
+             {:ok, [{:expr, 1, 1, [], ' 1 $ 2 '}, {:eof, 1, 12}]}
   end
 end
