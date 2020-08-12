@@ -129,7 +129,9 @@ defmodule CodeTest do
   describe "string_to_quoted/2" do
     test "converts strings to quoted expressions" do
       assert Code.string_to_quoted("1 + 2") == {:ok, {:+, [line: 1], [1, 2]}}
-      assert Code.string_to_quoted("a.1") == {:error, {1, "syntax error before: ", "\"1\""}}
+
+      assert Code.string_to_quoted("a.1") ==
+               {:error, {[line: 1, column: 3], "syntax error before: ", "\"1\""}}
     end
 
     test "converts strings to quoted with column information" do
@@ -143,24 +145,28 @@ defmodule CodeTest do
 
     test "returns an error tuple on hex errors" do
       assert Code.string_to_quoted(~S["\x"]) ==
-               {:error, {1, "missing hex sequence after \\x, expected \\xHH", "\""}}
+               {:error,
+                {[line: 1, column: 2], "missing hex sequence after \\x, expected \\xHH", "\""}}
 
       assert Code.string_to_quoted(~S[:"\x"]) ==
-               {:error, {1, "missing hex sequence after \\x, expected \\xHH", ":\""}}
+               {:error,
+                {[line: 1, column: 1], "missing hex sequence after \\x, expected \\xHH", ":\""}}
 
       assert Code.string_to_quoted(~S["\x": 123]) ==
-               {:error, {1, "missing hex sequence after \\x, expected \\xHH", "\""}}
+               {:error,
+                {[line: 1, column: 2], "missing hex sequence after \\x, expected \\xHH", "\""}}
 
       assert Code.string_to_quoted(~s["""\n\\x\n"""]) ==
-               {:error, {1, "missing hex sequence after \\x, expected \\xHH", "\"\"\""}}
+               {:error,
+                {[line: 1, column: 1], "missing hex sequence after \\x, expected \\xHH", "\"\"\""}}
     end
 
     test "returns an error tuple on interpolation in calls" do
       msg =
         "interpolation is not allowed when calling function/macro. Found interpolation in a call starting with: "
 
-      assert Code.string_to_quoted(".\"\#{}\"") == {:error, {1, msg, "\""}}
-      assert Code.string_to_quoted(".\"a\#{:b}\"c") == {:error, {1, msg, "\""}}
+      assert Code.string_to_quoted(".\"\#{}\"") == {:error, {[line: 1, column: 2], msg, "\""}}
+      assert Code.string_to_quoted(".\"a\#{:b}\"c") == {:error, {[line: 1, column: 2], msg, "\""}}
     end
 
     test "returns an error tuple on long atoms" do
@@ -168,12 +174,14 @@ defmodule CodeTest do
         "@GR{+z]`_XrNla!d<GTZ]iw[s'l2N<5hGD0(.xh&}>0ptDp(amr.oS&<q(FA)5T3=},^{=JnwIOE*DPOslKV KF-kb7NF&Y#Lp3D7l/!s],^hnz1iB |E8~Y'-Rp&*E(O}|zoB#xsE.S/~~'=%H'2HOZu0PCfz6j=eHq5:yk{7&|}zeRONM+KWBCAUKWFw(tv9vkHTu#Ek$&]Q:~>,UbT}v$L|rHHXGV{;W!>avHbD[T-G5xrzR6m?rQPot-37B@"
 
       assert Code.string_to_quoted(~s[:"#{atom}"]) ==
-               {:error, {1, "atom length must be less than system limit: ", atom}}
+               {:error,
+                {[line: 1, column: 1], "atom length must be less than system limit: ", atom}}
     end
 
     test "returns an error tuple when no atom is found with :existing_atoms_only" do
       assert Code.string_to_quoted(":there_is_no_such_atom", existing_atoms_only: true) ==
-               {:error, {1, "unsafe atom does not exist: ", "there_is_no_such_atom"}}
+               {:error,
+                {[line: 1, column: 1], "unsafe atom does not exist: ", "there_is_no_such_atom"}}
     end
 
     test "static_atoms_encoder encodes atoms" do
@@ -229,7 +237,7 @@ defmodule CodeTest do
         {:error, "Invalid atom name"}
       end
 
-      assert {:error, {1, "Invalid atom name: ", "there_is_no_such_atom"}} =
+      assert {:error, {[line: 1, column: 1], "Invalid atom name: ", "there_is_no_such_atom"}} =
                Code.string_to_quoted(":there_is_no_such_atom", static_atoms_encoder: encoder)
     end
 
@@ -239,7 +247,8 @@ defmodule CodeTest do
       encoder = fn atom, _meta -> {:ok, atom} end
 
       assert Code.string_to_quoted(atom, static_atoms_encoder: encoder) ==
-               {:error, {1, "atom length must be less than system limit: ", atom}}
+               {:error,
+                {[line: 1, column: 1], "atom length must be less than system limit: ", atom}}
     end
 
     test "extended static_atoms_encoder" do

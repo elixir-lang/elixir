@@ -21,7 +21,7 @@ defmodule IEx.InteractionTest do
 
   test "invalid input" do
     assert capture_iex("if true do ) false end") =~
-             "** (SyntaxError) iex:1: unexpected token: ). The \"do\" at line 1 is missing terminator \"end\""
+             "** (SyntaxError) iex:1:12: unexpected token: ). The \"do\" at line 1 is missing terminator \"end\""
   end
 
   test "multiple vars" do

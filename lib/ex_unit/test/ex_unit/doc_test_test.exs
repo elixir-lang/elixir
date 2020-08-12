@@ -519,7 +519,7 @@ defmodule ExUnit.DocTestTest do
     assert output =~ """
              1) doctest module ExUnit.DocTestTest.Invalid (1) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
-                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:155: syntax error before: '*'
+                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:155:6: syntax error before: '*'
                 doctest:
                   iex> 1 + * 1
                   1
@@ -610,7 +610,7 @@ defmodule ExUnit.DocTestTest do
     assert output =~ """
              8) doctest ExUnit.DocTestTest.Invalid.a/0 (8) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
-                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:182: syntax error before: '*'
+                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:182:6: syntax error before: '*'
                 doctest:
                   iex> 1 + * 1
                   1
@@ -621,7 +621,7 @@ defmodule ExUnit.DocTestTest do
     assert output =~ """
              9) doctest ExUnit.DocTestTest.Invalid.dedented_past_fence/0 (9) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
-                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:212: unexpected token: "`" (column 5, code point U+0060)
+                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:212:5: unexpected token: "`" (column 5, code point U+0060)
                 doctest:
                   iex> 1 + 2
                   3
@@ -633,7 +633,7 @@ defmodule ExUnit.DocTestTest do
     assert output =~ """
             10) doctest ExUnit.DocTestTest.Invalid.indented_not_enough/0 (10) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
-                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:196: unexpected token: "`" (column 1, code point U+0060)
+                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:196:1: unexpected token: "`" (column 1, code point U+0060)
                 doctest:
                   iex> 1 + 2
                   3
@@ -645,7 +645,7 @@ defmodule ExUnit.DocTestTest do
     assert output =~ """
             11) doctest ExUnit.DocTestTest.Invalid.indented_too_much/0 (11) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
-                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:204: unexpected token: "`" (column 3, code point U+0060)
+                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:204:3: unexpected token: "`" (column 3, code point U+0060)
                 doctest:
                   iex> 1 + 2
                   3
@@ -665,7 +665,7 @@ defmodule ExUnit.DocTestTest do
     assert output =~ """
             13) doctest ExUnit.DocTestTest.Invalid.misplaced_opaque_type/0 (13) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
-                Doctest did not compile, got: (TokenMissingError) test/ex_unit/doc_test_test.exs:224: missing terminator: } (for "{" starting at line 224). If you are planning to assert on the result of an iex> expression which contains a value inspected as #Name<...>, please make sure the inspected value is placed at the beginning of the expression; otherwise Elixir will treat it as a comment due to the leading sign #.
+                Doctest did not compile, got: (TokenMissingError) test/ex_unit/doc_test_test.exs:224:7: missing terminator: } (for "{" starting at line 224). If you are planning to assert on the result of an iex> expression which contains a value inspected as #Name<...>, please make sure the inspected value is placed at the beginning of the expression; otherwise Elixir will treat it as a comment due to the leading sign #.
                 doctest:
                   iex> {:ok, MapSet.new([1, 2, 3])}
                   {:ok, #MapSet<[1, 2, 3]>}
@@ -676,7 +676,7 @@ defmodule ExUnit.DocTestTest do
     assert output =~ """
             14) doctest ExUnit.DocTestTest.Invalid.b/0 (14) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
-                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:188: syntax error before: '*'
+                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:188:6: syntax error before: '*'
                 doctest:
                   iex> 1 + * 1
                   1
@@ -687,7 +687,7 @@ defmodule ExUnit.DocTestTest do
     assert output =~ """
             15) doctest ExUnit.DocTestTest.Invalid.t/0 (15) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
-                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:230: syntax error before: '*'
+                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:230:6: syntax error before: '*'
                 doctest:
                   iex> 1 + * 1
                   1

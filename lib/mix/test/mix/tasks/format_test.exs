@@ -511,7 +511,7 @@ defmodule Mix.Tasks.FormatTest do
       defmodule <%= module %>.Bar do end
       """)
 
-      assert_raise SyntaxError, ~r"a.ex:1: syntax error before: '='", fn ->
+      assert_raise SyntaxError, ~r"a.ex:1:13: syntax error before: '='", fn ->
         Mix.Tasks.Format.run(["a.ex"])
       end
 
@@ -521,7 +521,7 @@ defmodule Mix.Tasks.FormatTest do
 
   test "raises SyntaxError when parsing invalid stdin", context do
     in_tmp(context.test, fn ->
-      assert_raise SyntaxError, ~r"stdin:1: syntax error before: '='", fn ->
+      assert_raise SyntaxError, ~r"stdin:1:13: syntax error before: '='", fn ->
         capture_io("defmodule <%= module %>.Bar do end", fn ->
           Mix.Tasks.Format.run(["-"])
         end)

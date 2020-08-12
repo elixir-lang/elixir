@@ -33,17 +33,17 @@ defmodule Kernel.ErrorsTest do
 
   test "invalid token" do
     assert_eval_raise SyntaxError,
-                      "nofile:1: unexpected token: \"\u200B\" (column 7, code point U+200B)",
+                      "nofile:1:7: unexpected token: \"\u200B\" (column 7, code point U+200B)",
                       '[foo: \u200B]\noops'
   end
 
   test "reserved tokens" do
-    assert_eval_raise SyntaxError, "nofile:1: reserved token: __aliases__", '__aliases__'
-    assert_eval_raise SyntaxError, "nofile:1: reserved token: __block__", '__block__'
+    assert_eval_raise SyntaxError, "nofile:1:1: reserved token: __aliases__", '__aliases__'
+    assert_eval_raise SyntaxError, "nofile:1:1: reserved token: __block__", '__block__'
   end
 
   test "invalid alias terminator" do
-    assert_eval_raise SyntaxError, ~r"nofile:1: unexpected \( after alias Foo", 'Foo()'
+    assert_eval_raise SyntaxError, ~r"nofile:1:5: unexpected \( after alias Foo", 'Foo()'
   end
 
   test "invalid __CALLER__" do
@@ -64,29 +64,29 @@ defmodule Kernel.ErrorsTest do
 
   test "invalid quoted token" do
     assert_eval_raise SyntaxError,
-                      "nofile:1: syntax error before: \"world\"",
+                      "nofile:1:9: syntax error before: \"world\"",
                       '"hello" "world"'
 
     assert_eval_raise SyntaxError,
-                      "nofile:1: syntax error before: 'Foobar'",
+                      "nofile:1:3: syntax error before: 'Foobar'",
                       '1 Foobar'
 
     assert_eval_raise SyntaxError,
-                      "nofile:1: syntax error before: foo",
+                      "nofile:1:5: syntax error before: foo",
                       'Foo.:foo'
 
     assert_eval_raise SyntaxError,
-                      "nofile:1: syntax error before: \"foo\"",
+                      "nofile:1:5: syntax error before: \"foo\"",
                       'Foo.:"foo\#{:bar}"'
 
     assert_eval_raise SyntaxError,
-                      "nofile:1: syntax error before: \"",
+                      "nofile:1:5: syntax error before: \"",
                       'Foo.:"\#{:bar}"'
   end
 
   test "invalid identifier" do
     message = fn name ->
-      "nofile:1: invalid character \"@\" (code point U+0040) in identifier: #{name}"
+      "nofile:1:1: invalid character \"@\" (code point U+0040) in identifier: #{name}"
     end
 
     assert_eval_raise SyntaxError, message.("foo@"), 'foo@'
@@ -94,20 +94,20 @@ defmodule Kernel.ErrorsTest do
     assert_eval_raise SyntaxError, message.("foo@bar"), 'foo@bar'
 
     message = fn name ->
-      "nofile:1: invalid character \"@\" (code point U+0040) in alias: #{name}"
+      "nofile:1:1: invalid character \"@\" (code point U+0040) in alias: #{name}"
     end
 
     assert_eval_raise SyntaxError, message.("Foo@"), 'Foo@'
     assert_eval_raise SyntaxError, message.("Foo@bar"), 'Foo@bar'
 
-    message = "nofile:1: invalid character \"!\" (code point U+0021) in alias: Foo!"
+    message = "nofile:1:1: invalid character \"!\" (code point U+0021) in alias: Foo!"
     assert_eval_raise SyntaxError, message, 'Foo!'
 
-    message = "nofile:1: invalid character \"?\" (code point U+003F) in alias: Foo?"
+    message = "nofile:1:1: invalid character \"?\" (code point U+003F) in alias: Foo?"
     assert_eval_raise SyntaxError, message, 'Foo?'
 
     message =
-      "nofile:1: invalid character \"ó\" (code point U+00F3) in alias (only ASCII characters are allowed): Foó"
+      "nofile:1:1: invalid character \"ó\" (code point U+00F3) in alias (only ASCII characters are allowed): Foó"
 
     assert_eval_raise SyntaxError, message, 'Foó'
 
@@ -128,7 +128,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "kw missing space" do
-    msg = "nofile:1: keyword argument must be followed by space after: foo:"
+    msg = "nofile:1:1: keyword argument must be followed by space after: foo:"
 
     assert_eval_raise SyntaxError, msg, "foo:bar"
     assert_eval_raise SyntaxError, msg, "foo:+"
@@ -137,56 +137,56 @@ defmodule Kernel.ErrorsTest do
 
   test "invalid map start" do
     assert_eval_raise SyntaxError,
-                      "nofile:1: expected %{ to define a map, got: %[",
+                      "nofile:1:7: expected %{ to define a map, got: %[",
                       "{:ok, %[], %{}}"
   end
 
   test "sigil terminator" do
     assert_eval_raise TokenMissingError,
-                      "nofile:3: missing terminator: \" (for sigil ~r\" starting at line 1)",
+                      "nofile:3:1: missing terminator: \" (for sigil ~r\" starting at line 1)",
                       '~r"foo\n\n'
 
     assert_eval_raise TokenMissingError,
-                      "nofile:3: missing terminator: } (for sigil ~r{ starting at line 1)",
+                      "nofile:3:1: missing terminator: } (for sigil ~r{ starting at line 1)",
                       '~r{foo\n\n'
   end
 
   test "dot terminator" do
     assert_eval_raise TokenMissingError,
-                      "nofile:1: missing terminator: \" (for function name starting at line 1)",
+                      "nofile:1:9: missing terminator: \" (for function name starting at line 1)",
                       'foo."bar'
   end
 
   test "string terminator" do
     assert_eval_raise TokenMissingError,
-                      "nofile:1: missing terminator: \" (for string starting at line 1)",
+                      "nofile:1:5: missing terminator: \" (for string starting at line 1)",
                       '"bar'
   end
 
   test "heredoc start" do
     assert_eval_raise SyntaxError,
-                      "nofile:1: heredoc allows only zero or more whitespace characters followed by a new line after \"\"\"",
+                      "nofile:1:1: heredoc allows only zero or more whitespace characters followed by a new line after \"\"\"",
                       '"""bar\n"""'
   end
 
   test "heredoc with incomplete interpolation" do
     assert_eval_raise TokenMissingError,
-                      "nofile:2: missing interpolation terminator: \"}\" (for heredoc starting at line 1)",
+                      "nofile:2:1: missing interpolation terminator: \"}\" (for heredoc starting at line 1)",
                       '"""\n\#{\n"""'
   end
 
   test "heredoc terminator" do
     assert_eval_raise TokenMissingError,
-                      "nofile:2: missing terminator: \"\"\" (for heredoc starting at line 1)",
+                      "nofile:2:1: missing terminator: \"\"\" (for heredoc starting at line 1)",
                       '"""\nbar'
 
     assert_eval_raise SyntaxError,
-                      "nofile:2: invalid location for heredoc terminator, please escape token or move it to its own line: \"\"\"",
+                      "nofile:2:1: invalid location for heredoc terminator, please escape token or move it to its own line: \"\"\"",
                       '"""\nbar"""'
   end
 
   test "unexpected end" do
-    assert_eval_raise SyntaxError, "nofile:1: unexpected reserved word: end", '1 end'
+    assert_eval_raise SyntaxError, "nofile:1:3: unexpected reserved word: end", '1 end'
 
     assert_eval_raise SyntaxError,
                       ~r" HINT: it looks like the \"end\" on line 2 does not have a matching \"do\" defined before it",
@@ -224,7 +224,7 @@ defmodule Kernel.ErrorsTest do
 
   test "missing end" do
     assert_eval_raise TokenMissingError,
-                      "nofile:1: missing terminator: end (for \"do\" starting at line 1)",
+                      "nofile:1:9: missing terminator: end (for \"do\" starting at line 1)",
                       'foo do 1'
 
     assert_eval_raise TokenMissingError,
@@ -256,16 +256,16 @@ defmodule Kernel.ErrorsTest do
 
   test "syntax error" do
     assert_eval_raise SyntaxError,
-                      "nofile:1: syntax error before: '.'",
+                      "nofile:1:2: syntax error before: '.'",
                       '+.foo'
 
     assert_eval_raise SyntaxError,
-                      ~r"nofile:1: syntax error before: after. \"after\" is a reserved word",
+                      ~r"nofile:1:1: syntax error before: after. \"after\" is a reserved word",
                       'after = 1'
   end
 
   test "syntax error before sigil" do
-    msg = fn x -> "nofile:1: syntax error before: sigil ~s starting with content '#{x}'" end
+    msg = fn x -> "nofile:1:9: syntax error before: sigil ~s starting with content '#{x}'" end
 
     assert_eval_raise SyntaxError, msg.("bar baz"), '~s(foo) ~s(bar baz)'
     assert_eval_raise SyntaxError, msg.(""), '~s(foo) ~s()'
@@ -280,7 +280,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "syntax error with do" do
-    assert_eval_raise SyntaxError, ~r/nofile:1: unexpected reserved word: do./, 'if true, do\n'
+    assert_eval_raise SyntaxError, ~r/nofile:1:10: unexpected reserved word: do./, 'if true, do\n'
 
     assert_eval_raise SyntaxError, ~r/nofile:1: unexpected keyword: do:./, 'if true do:\n'
   end
@@ -326,7 +326,7 @@ defmodule Kernel.ErrorsTest do
 
   test "syntax error with no token" do
     assert_eval_raise TokenMissingError,
-                      "nofile:1: missing terminator: ) (for \"(\" starting at line 1)",
+                      "nofile:1:9: missing terminator: ) (for \"(\" starting at line 1)",
                       'case 1 ('
   end
 
@@ -466,9 +466,9 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "literal on map and struct" do
-    assert_eval_raise SyntaxError, "nofile:1: syntax error before: '}'", '%{:a}'
-    assert_eval_raise SyntaxError, "nofile:1: syntax error before: '}'", '%{{:a, :b}}'
-    assert_eval_raise SyntaxError, "nofile:1: syntax error before: '{'", '%{a, b}{a: :b}'
+    assert_eval_raise SyntaxError, "nofile:1:5: syntax error before: '}'", '%{:a}'
+    assert_eval_raise SyntaxError, "nofile:1:11: syntax error before: '}'", '%{{:a, :b}}'
+    assert_eval_raise SyntaxError, "nofile:1:8: syntax error before: '{'", '%{a, b}{a: :b}'
 
     assert_eval_raise CompileError,
                       "nofile:1: expected key-value pairs in a map, got: put_in(foo.bar.baz, nil)",
@@ -710,12 +710,12 @@ defmodule Kernel.ErrorsTest do
 
   test "invalid fn args" do
     assert_eval_raise TokenMissingError,
-                      "nofile:1: missing terminator: end (for \"fn\" starting at line 1)",
+                      "nofile:1:5: missing terminator: end (for \"fn\" starting at line 1)",
                       'fn 1'
   end
 
   test "invalid escape" do
-    assert_eval_raise TokenMissingError, "nofile:1: invalid escape \\ at end of file", '1 \\'
+    assert_eval_raise TokenMissingError, "nofile:1:3: invalid escape \\ at end of file", '1 \\'
   end
 
   test "function local conflict" do
@@ -1028,7 +1028,7 @@ defmodule Kernel.ErrorsTest do
 
   test "interpolation error" do
     assert_eval_raise SyntaxError,
-                      "nofile:1: unexpected token: ). The \"do\" at line 1 is missing terminator \"end\"",
+                      "nofile:1:17: unexpected token: ). The \"do\" at line 1 is missing terminator \"end\"",
                       '"foo\#{case 1 do )}bar"'
   end
 
@@ -1084,32 +1084,32 @@ defmodule Kernel.ErrorsTest do
     ''')
 
     # All invalid examples
-    assert_eval_raise SyntaxError, "nofile:1: syntax error before: ';'", '1+;\n2'
+    assert_eval_raise SyntaxError, "nofile:1:3: syntax error before: ';'", '1+;\n2'
 
-    assert_eval_raise SyntaxError, "nofile:1: syntax error before: ';'", 'max(1, ;2)'
+    assert_eval_raise SyntaxError, "nofile:1:8: syntax error before: ';'", 'max(1, ;2)'
   end
 
   test "new line error" do
     assert_eval_raise SyntaxError,
-                      "nofile:3: unexpectedly reached end of line. The current expression is invalid or incomplete",
+                      "nofile:3:6: unexpectedly reached end of line. The current expression is invalid or incomplete",
                       'if true do\n  foo = [],\n  baz\nend'
   end
 
   test "characters literal are printed correctly in syntax errors" do
-    assert_eval_raise SyntaxError, "nofile:1: syntax error before: ?a", ':ok ?a'
-    assert_eval_raise SyntaxError, "nofile:1: syntax error before: ?\\s", ':ok ?\\s'
-    assert_eval_raise SyntaxError, "nofile:1: syntax error before: ?す", ':ok ?す'
+    assert_eval_raise SyntaxError, "nofile:1:5: syntax error before: ?a", ':ok ?a'
+    assert_eval_raise SyntaxError, "nofile:1:5: syntax error before: ?\\s", ':ok ?\\s'
+    assert_eval_raise SyntaxError, "nofile:1:5: syntax error before: ?す", ':ok ?す'
   end
 
   test "numbers are printed correctly in syntax errors" do
-    assert_eval_raise SyntaxError, "nofile:1: syntax error before: \"12\"", ':ok 12'
-    assert_eval_raise SyntaxError, "nofile:1: syntax error before: \"0b1\"", ':ok 0b1'
-    assert_eval_raise SyntaxError, "nofile:1: syntax error before: \"12.3\"", ':ok 12.3'
+    assert_eval_raise SyntaxError, "nofile:1:5: syntax error before: \"12\"", ':ok 12'
+    assert_eval_raise SyntaxError, "nofile:1:5: syntax error before: \"0b1\"", ':ok 0b1'
+    assert_eval_raise SyntaxError, "nofile:1:5: syntax error before: \"12.3\"", ':ok 12.3'
   end
 
   test "invalid \"fn do expr end\"" do
     assert_eval_raise SyntaxError,
-                      "nofile:1: unexpected reserved word: do. Anonymous functions are written as:\n\n    fn pattern -> expression end",
+                      "nofile:1:4: unexpected reserved word: do. Anonymous functions are written as:\n\n    fn pattern -> expression end",
                       'fn do :ok end'
   end
 
