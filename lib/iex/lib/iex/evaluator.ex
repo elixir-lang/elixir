@@ -230,7 +230,7 @@ defmodule IEx.Evaluator do
   end
 
   defp do_eval(@break_trigger, iex_state, _state) do
-    :elixir_errors.parse_error(iex_state.counter, "iex", "incomplete expression", "")
+    :elixir_errors.parse_error([line: iex_state.counter], "iex", "incomplete expression", "")
   end
 
   defp do_eval(latest_input, iex_state, state) do
@@ -275,9 +275,9 @@ defmodule IEx.Evaluator do
     {%{iex_state | cache: code}, state}
   end
 
-  defp handle_eval({:error, {line, error, token}}, _code, _line, _iex_state, _state) do
+  defp handle_eval({:error, {location, error, token}}, _code, _line, _iex_state, _state) do
     # Encountered malformed expression
-    :elixir_errors.parse_error(line, "iex", error, token)
+    :elixir_errors.parse_error(location, "iex", error, token)
   end
 
   defp update_history(state, counter, _cache, result) do

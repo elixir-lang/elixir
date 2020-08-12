@@ -642,6 +642,7 @@ defmodule Exception do
 
   @doc """
   Formats the given `file` and `line` as shown in stacktraces.
+
   If any of the values are `nil`, they are omitted.
 
   ## Examples
@@ -657,14 +658,42 @@ defmodule Exception do
 
   """
   def format_file_line(file, line, suffix \\ "") do
-    if file do
-      if line && line != 0 do
-        "#{file}:#{line}:#{suffix}"
-      else
-        "#{file}:#{suffix}"
-      end
-    else
+    cond do
+      is_nil(file) -> ""
+      is_nil(line) or line == 0 -> "#{file}:#{suffix}"
+      true -> "#{file}:#{line}:#{suffix}"
+    end
+  end
+
+  @doc """
+  Formats the given `file`, `line`, and `column` as shown in stacktraces.
+
+  If any of the values are `nil`, they are omitted.
+
+  ## Examples
+
+      iex> Exception.format_file_line_column("foo", 1, 2)
+      "foo:1:2:"
+
+      iex> Exception.format_file_line_column("foo", 1, nil)
+      "foo:1:"
+
+      iex> Exception.format_file_line_column("foo", nil, nil)
+      "foo:"
+
+      iex> Exception.format_file_line_column("foo", nil, 2)
+      "foo:"
+
+      iex> Exception.format_file_line_column(nil, nil, nil)
       ""
+
+  """
+  def format_file_line_column(file, line, column, suffix \\ "") do
+    cond do
+      is_nil(file) -> ""
+      is_nil(line) or line == 0 -> "#{file}:#{suffix}"
+      is_nil(column) or column == 0 -> "#{file}:#{line}:#{suffix}"
+      true -> "#{file}:#{line}:#{column}:#{suffix}"
     end
   end
 
@@ -770,21 +799,22 @@ defmodule SystemLimitError do
 end
 
 defmodule SyntaxError do
-  defexception [:file, :line, description: "syntax error"]
+  defexception [:file, :line, :column, description: "syntax error"]
 
   @impl true
-  def message(exception) do
-    Exception.format_file_line(Path.relative_to_cwd(exception.file), exception.line) <>
-      " " <> exception.description
+  def message(%{file: file, line: line, column: column, description: description}) do
+    Exception.format_file_line_column(Path.relative_to_cwd(file), line, column) <>
+      " " <> description
   end
 end
 
 defmodule TokenMissingError do
-  defexception [:file, :line, description: "expression is incomplete"]
+  defexception [:file, :line, :column, description: "expression is incomplete"]
 
   @impl true
-  def message(%{file: file, line: line, description: description}) do
-    Exception.format_file_line(file && Path.relative_to_cwd(file), line) <> " " <> description
+  def message(%{file: file, line: line, column: column, description: description}) do
+    Exception.format_file_line_column(file && Path.relative_to_cwd(file), line, column) <>
+      " " <> description
   end
 end
 

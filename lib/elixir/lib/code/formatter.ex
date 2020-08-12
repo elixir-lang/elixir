@@ -239,8 +239,8 @@ defmodule Code.Formatter do
       {:ok, doc} ->
         doc
 
-      {:error, {line, error, token}} ->
-        :elixir_errors.parse_error(line, Keyword.get(opts, :file, "nofile"), error, token)
+      {:error, {location, error, token}} ->
+        :elixir_errors.parse_error(location, Keyword.get(opts, :file, "nofile"), error, token)
     end
   end
 
