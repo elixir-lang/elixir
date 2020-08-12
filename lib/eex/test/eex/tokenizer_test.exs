@@ -263,7 +263,7 @@ defmodule EEx.TokenizerTest do
     assert T.tokenize('<%# true ', 1, 1, @opts) == {:error, 1, 10, "missing token '%>'"}
   end
 
-  test "marks invalid expressions as regualr expressions" do
+  test "marks invalid expressions as regular expressions" do
     assert T.tokenize('<% 1 $ 2 %>', 1, 1, @opts) ==
              {:ok, [{:expr, 1, 1, [], ' 1 $ 2 '}, {:eof, 1, 12}]}
   end
