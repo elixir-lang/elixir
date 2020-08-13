@@ -104,7 +104,6 @@ The following literals are also supported in typespecs:
                                                   ## Maps
           | %{}                                   # empty map
           | %{key: value_type}                    # map with required key :key of value_type
-          | %{key => value_type}                  # map with required key :key of value_type
           | %{key_type => value_type}             # map with required pairs of key_type and value_type
           | %{required(key_type) => value_type}   # map with required pairs of key_type and value_type
           | %{optional(key_type) => value_type}   # map with optional pairs of key_type and value_type
