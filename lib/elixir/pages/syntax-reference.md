@@ -234,7 +234,7 @@ end
 #=> {:+, [], [1, 2]}
 ```
 
-Notice that `.` is also an operator. Remote calls use the dot in the AST with two arguments, where the second argument is always an atom:
+Note that `.` is also an operator. Remote calls use the dot in the AST with two arguments, where the second argument is always an atom:
 
 ```elixir
 quote do

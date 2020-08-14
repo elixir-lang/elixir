@@ -163,7 +163,7 @@ A map value does not belong to this type if it contains a key that is not in the
 If you want to denote that keys that were not previously defined in the map are allowed,
 it is common to end a map type with `optional(any) => any`.
 
-Notice that the syntactic representation of `map()` is `%{optional(any) => any}`, not `%{}`. The notation `%{}` specifies the singleton type for the empty map.
+Note that the syntactic representation of `map()` is `%{optional(any) => any}`, not `%{}`. The notation `%{}` specifies the singleton type for the empty map.
 
 ### User-defined types
 

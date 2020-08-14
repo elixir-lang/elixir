@@ -438,7 +438,7 @@ defmodule Kernel.SpecialForms do
       ...> end
       {{:., [], [{:__aliases__, [alias: false], [:String]}, :downcase]}, [], ["FOO"]}
 
-  Notice we have an inner tuple, containing the atom `:.` representing
+  Note that we have an inner tuple, containing the atom `:.` representing
   the dot as first element:
 
       {:., [], [{:__aliases__, [alias: false], [:String]}, :downcase]}
@@ -513,7 +513,7 @@ defmodule Kernel.SpecialForms do
       Keyword.values #=> uses MyKeyword.values
       Elixir.Keyword.values #=> uses Keyword.values
 
-  Notice that calling `alias` without the `:as` option automatically
+  Note that calling `alias` without the `:as` option automatically
   sets an alias based on the last part of the module. For example:
 
       alias Foo.Bar.Baz
@@ -617,7 +617,7 @@ defmodule Kernel.SpecialForms do
       import List, only: [flatten: 1]
       import String, except: [split: 2]
 
-  Notice that calling `except` is always exclusive on a previously
+  Note that calling `except` is always exclusive on a previously
   declared `import/2`. If there is no previous import, then it applies
   to all functions and macros in the module. For example:
 
@@ -637,7 +637,7 @@ defmodule Kernel.SpecialForms do
 
   ## Lexical scope
 
-  It is important to notice that `import/2` is lexical. This means you
+  It is important to note that `import/2` is lexical. This means you
   can import specific macros inside specific functions:
 
       defmodule Math do
@@ -1064,7 +1064,7 @@ defmodule Kernel.SpecialForms do
       Hygiene.no_interference()
       #=> %{}
 
-  Notice that, even though the alias `M` is not available
+  Note that, even though the alias `M` is not available
   in the context the macro is expanded, the code above works
   because `M` still expands to `Map`.
 
@@ -1748,7 +1748,7 @@ defmodule Kernel.SpecialForms do
 
   ## Variable handling
 
-  Notice that variables bound in a clause do not leak to the outer context:
+  Note that variables bound in a clause do not leak to the outer context:
 
       case data do
         {:ok, value} -> value

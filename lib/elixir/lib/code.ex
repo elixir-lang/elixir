@@ -171,7 +171,7 @@ defmodule Code do
       # Now unrequire all files
       Code.unrequire_files(Code.required_files())
 
-      # Notice modules are still available
+      # Note that modules are still available
       function_exported?(EExTest.Compiled, :before_compile, 0)
       #=> true
 
@@ -290,7 +290,7 @@ defmodule Code do
       and the second a list of imported macro names and arity; the list
       of function names and arity must be sorted
 
-  Notice that setting any of the values above overrides Elixir's default
+  Note that setting any of the values above overrides Elixir's default
   values. For example, setting `:requires` to `[]` will no longer
   automatically require the `Kernel` module. In the same way setting
   `:macros` will no longer auto-import `Kernel` macros like `Kernel.if/2`,
@@ -375,7 +375,7 @@ defmodule Code do
 
     * `:force_do_end_blocks` (since v1.9.0) - when `true`, converts all
       inline usages of `do: ...`,  `else: ...` and friends into `do/end`
-      blocks. Defaults to `false`. Notice this option is convergent:
+      blocks. Defaults to `false`. Note that this option is convergent:
       once you set it to `true`, all keywords will be converted. If you
       set it to `false` later on, `do/end` blocks won't be converted
       back to keywords.
@@ -894,7 +894,7 @@ defmodule Code do
   If the file was already required, `require_file/2` doesn't do anything and
   returns `nil`.
 
-  Notice that if `require_file/2` is invoked by different processes concurrently,
+  Note that if `require_file/2` is invoked by different processes concurrently,
   the first process to invoke `require_file/2` acquires a lock and the remaining
   ones will block until the file is available. This means that if `require_file/2`
   is called more than once with a given file, that file will be compiled only once.

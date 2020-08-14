@@ -39,7 +39,7 @@ defmodule Keyword do
   in the `Map` module. For example, `Keyword.get/3` will get the first
   entry matching the given key, regardless if duplicated entries exist.
   Similarly, `Keyword.put/3` and `Keyword.delete/2` ensure all duplicated
-  entries for a given key are removed when invoked. Note however that
+  entries for a given key are removed when invoked. Note, however, that
   keyword list operations need to traverse the list in order to find
   keys, so these operations are slower than their map counterparts.
 

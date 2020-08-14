@@ -41,7 +41,7 @@ defmodule Supervisor.Spec do
         end
       end
 
-  Notice in this case we don't have to explicitly import
+  Note that in this case we don't have to explicitly import
   `Supervisor.Spec` since `use Supervisor` automatically does so.
   Defining a module-based supervisor can be useful, for example,
   to perform initialization tasks in the `c:Supervisor.init/1` callback.
@@ -82,7 +82,7 @@ defmodule Supervisor.Spec do
       terminates abnormally, i.e., with an exit reason other than
       `:normal`, `:shutdown` or `{:shutdown, term}`
 
-  Notice that supervisor that reached maximum restart intensity will exit with `:shutdown` reason.
+  Note that supervisor that reached maximum restart intensity will exit with `:shutdown` reason.
   In this case the supervisor will only restart if its child specification was defined with
   the `:restart` option set to `:permanent` (the default).
 

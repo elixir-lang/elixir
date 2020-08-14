@@ -16,7 +16,7 @@ defmodule Regex do
       ~r/foo/iu
 
   Regular expressions created via sigils are pre-compiled and stored
-  in the `.beam` file. Notice this may be a problem if you are precompiling
+  in the `.beam` file. Note that this may be a problem if you are precompiling
   Elixir, see the "Precompilation" section for more information.
 
   A Regex is represented internally as the `Regex` struct. Therefore,

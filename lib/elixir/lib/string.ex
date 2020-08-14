@@ -1421,7 +1421,7 @@ defmodule String do
       iex> String.replace("a,b,c", ~r/,(.)/, ",\\1\\g{1}")
       "a,bb,cc"
 
-  Notice we had to escape the backslash escape character (i.e., we used `\\N`
+  Note that we had to escape the backslash escape character (i.e., we used `\\N`
   instead of just `\N` to escape the backslash; same thing for `\\g{N}`). By
   giving `\0`, one can inject the whole match in the replacement string.
 

@@ -150,7 +150,7 @@ defmodule Inspect.Algebra do
       iex> Inspect.Algebra.format(doc, 80)
       ["a", " ", "b"]
 
-  Notice the break was represented as is, because we haven't reached
+  Note that the break was represented as is, because we haven't reached
   a line limit. Once we do, it is replaced by a newline:
 
       iex> doc = Inspect.Algebra.glue(String.duplicate("a", 20), " ", "b")
@@ -601,7 +601,7 @@ defmodule Inspect.Algebra do
       iex> Inspect.Algebra.format(doc, 80)
       ["a", "\t", "b"]
 
-  Notice the break was represented with the given string, because we didn't
+  Note that the break was represented with the given string, because we didn't
   reach a line limit. Once we do, it is replaced by a newline:
 
       iex> break = Inspect.Algebra.break("\t")

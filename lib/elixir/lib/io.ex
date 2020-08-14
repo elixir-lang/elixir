@@ -599,7 +599,7 @@ defmodule IO do
 
   The operation is Unicode unsafe.
 
-  Notice that this function treats integers in the given IO data as
+  Note that this function treats integers in the given IO data as
   raw bytes and does not perform any kind of encoding conversion.
   If you want to convert from a charlist to a UTF-8-encoded string,
   use `chardata_to_string/1` instead. For more information about
