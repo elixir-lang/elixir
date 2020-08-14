@@ -897,7 +897,7 @@ defmodule List do
     * integers representing Unicode code points
     * a list containing one of these three elements
 
-  Notice that this function expects a list of integers representing
+  Note that this function expects a list of integers representing
   Unicode code points. If you have a list of bytes, you must instead use
   the [`:binary` module](http://www.erlang.org/doc/man/binary.html).
 
@@ -952,7 +952,7 @@ defmodule List do
   Converts a list of integers representing Unicode code points, lists or
   strings into a charlist.
 
-  Notice that this function expects a list of integers representing
+  Note that this function expects a list of integers representing
   Unicode code points. If you have a list of bytes, you must instead use
   the [`:binary` module](http://www.erlang.org/doc/man/binary.html).
 

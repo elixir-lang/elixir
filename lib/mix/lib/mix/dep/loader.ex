@@ -219,7 +219,7 @@ defmodule Mix.Dep.Loader do
     end)
   end
 
-  # Notice we ignore Make dependencies because the
+  # Note that we ignore Make dependencies because the
   # file based heuristic will always figure it out.
   @scm_managers ~w(mix rebar rebar3)a
 

@@ -233,7 +233,7 @@ no_parens_zero_expr -> dot_do_identifier : build_no_parens('$1', nil).
 no_parens_zero_expr -> dot_identifier : build_no_parens('$1', nil).
 
 %% From this point on, we just have constructs that can be
-%% used with the access syntax. Notice that (dot_)identifier
+%% used with the access syntax. Note that (dot_)identifier
 %% is not included in this list simply because the tokenizer
 %% marks identifiers followed by brackets as bracket_identifier.
 access_expr -> bracket_at_expr : '$1'.

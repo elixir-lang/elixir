@@ -21,7 +21,7 @@ defmodule Stream do
       iex> Enum.map(stream, &(&1 + 1))
       [3, 5, 7]
 
-  Notice we started with a range and then we created a stream that is
+  Note that we started with a range and then we created a stream that is
   meant to multiply each element in the range by 2. At this point, no
   computation was done. Only when `Enum.map/2` is called we actually
   enumerate over each element in the range, multiplying it by 2 and adding 1.
@@ -46,7 +46,7 @@ defmodule Stream do
       6
       #=> [2, 4, 6]
 
-  Notice that we first printed each element in the list, then multiplied each
+  Note that we first printed each element in the list, then multiplied each
   element by 2 and finally printed each new value. In this example, the list
   was enumerated three times. Let's see an example with streams:
 
@@ -68,7 +68,7 @@ defmodule Stream do
   its double. In this example, the list was enumerated just once!
 
   That's what we meant when we said earlier that streams are composable,
-  lazy enumerables. Notice we could call `Stream.map/2` multiple times,
+  lazy enumerables. Note that we could call `Stream.map/2` multiple times,
   effectively composing the streams and keeping them lazy. The computations
   are only performed when you call a function from the `Enum` module.
 

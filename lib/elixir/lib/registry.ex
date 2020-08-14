@@ -923,7 +923,7 @@ defmodule Registry do
     key_ets = key_ets || key_ets!(registry, key_partition)
     {pid_server, pid_ets} = pid_ets || pid_ets!(registry, pid_partition)
 
-    # Notice we write first to the pid_ets table because it will
+    # Note that we write first to the pid_ets table because it will
     # always be able to do the cleanup. If we register first to the
     # key one and the process crashes, the key will stay there forever.
     Process.link(pid_server)
@@ -959,7 +959,7 @@ defmodule Registry do
     if :ets.insert_new(key_ets, entry) do
       :ok
     else
-      # Notice we have to call register_key recursively
+      # Note that we have to call register_key recursively
       # because we are always at odds of a race condition.
       case :ets.lookup(key_ets, key) do
         [{^key, {pid, _}} = current] ->

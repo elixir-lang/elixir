@@ -44,7 +44,7 @@ defmodule Mix.Tasks.Deps.Loadpaths do
   # at all dependencies and remove the builds that no longer
   # have a dependency defined for them.
   #
-  # Notice we require the build_path to be nil. If it is not nil,
+  # Note that we require the build_path to be nil. If it is not nil,
   # it means the build_path is shared so we don't delete entries.
   #
   # We also expect env_path to be nil. If it is not nil, it means

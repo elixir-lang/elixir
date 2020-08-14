@@ -84,7 +84,7 @@ defmodule EEx do
 
   will be rendered as `<%= x + 3 %>`.
 
-  Notice that different engines may have different rules
+  Note that different engines may have different rules
   for each tag. Other tags may be added in future versions.
 
   ### Macros
