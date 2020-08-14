@@ -2,7 +2,6 @@ defmodule Mix.Tasks.WillRecompile do
   use Mix.Task
 
   @moduledoc false
-  @recursive true
   @manifest "compile.lock"
 
   @doc """
@@ -16,8 +15,30 @@ defmodule Mix.Tasks.WillRecompile do
   Annotates the current project will recompile.
   """
   def run(_) do
-    path = Mix.Project.manifest_path()
-    File.mkdir_p!(path)
-    File.touch!(manifest(path))
+    config = Mix.Project.config()
+
+    # Slight reimplementation of `manifest_path` because we need to
+    # get manifests for root and children in umbrella case.
+    paths =
+      if Mix.Project.umbrella?(config) do
+        build = Mix.Project.build_path(config)
+
+        children =
+          Enum.map(Mix.Project.apps_paths(config), fn {app, _} ->
+            Path.join([build, "lib", Atom.to_string(app)])
+          end)
+
+        [build | children]
+      else
+        [Mix.Project.app_path(config)]
+      end
+
+    for path <- paths do
+      path = Path.join(path, ".mix")
+      File.mkdir_p!(path)
+      File.touch!(manifest(path))
+    end
+
+    :ok
   end
 end
