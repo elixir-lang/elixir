@@ -13,12 +13,14 @@ defmodule Mix.Tasks.WillRecompileTest do
     end)
   end
 
-  test "marks all projects in umbrella to recompile" do
+  test "marks all projects in umbrella to recompile including the root itself" do
     in_fixture("umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
+        refute File.exists?("_build/dev/.mix/compile.lock")
         refute File.exists?("_build/dev/lib/foo/.mix/compile.lock")
         refute File.exists?("_build/dev/lib/bar/.mix/compile.lock")
         Mix.Task.run("will_recompile")
+        assert File.exists?("_build/dev/.mix/compile.lock")
         assert File.exists?("_build/dev/lib/foo/.mix/compile.lock")
         assert File.exists?("_build/dev/lib/bar/.mix/compile.lock")
       end)
