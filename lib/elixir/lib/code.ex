@@ -829,7 +829,7 @@ defmodule Code do
 
   """
   @spec string_to_quoted(List.Chars.t(), keyword) ::
-          {:ok, Macro.t()} | {:error, {line :: pos_integer, term, term}}
+          {:ok, Macro.t()} | {:error, {location :: keyword, term, term}}
   def string_to_quoted(string, opts \\ []) when is_list(opts) do
     file = Keyword.get(opts, :file, "nofile")
     line = Keyword.get(opts, :line, 1)
