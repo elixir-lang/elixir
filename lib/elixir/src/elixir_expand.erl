@@ -537,7 +537,7 @@ expand_block([H], Acc, Meta, E) ->
 expand_block([H | T], Acc, Meta, E) ->
   {EH, EE} = expand(H, E),
 
-  %% Notice checks rely on the code BEFORE expansion
+  %% Note that checks rely on the code BEFORE expansion
   %% instead of relying on Erlang checks.
   %%
   %% That's because expansion may generate useless
@@ -556,7 +556,7 @@ expand_block([H | T], Acc, Meta, E) ->
 
   expand_block(T, [EH | Acc], Meta, EE).
 
-%% Notice we don't handle atoms on purpose. They are common
+%% Note that we don't handle atoms on purpose. They are common
 %% when unquoting AST and it is unlikely that we would catch
 %% bugs as we don't do binary operations on them like in
 %% strings or numbers.

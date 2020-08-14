@@ -84,7 +84,7 @@ defmodule Mix.Tasks.Profile.Eprof do
   You should be aware that the code being profiled is running in an anonymous
   function which is invoked by [`:eprof` module](http://wwww.erlang.org/doc/man/eprof.html).
   Thus, you'll see some additional entries in your profile output. It is also
-  important to notice that the profiler is stopped as soon as the code has finished running,
+  important to note that the profiler is stopped as soon as the code has finished running,
   and this may need special attention, when: running asynchronous code as function calls which were
   called before the profiler stopped will not be counted; running synchronous code as long
   running computations and a profiler without a proper MFA trace pattern or filter may

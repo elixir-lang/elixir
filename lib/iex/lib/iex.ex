@@ -768,7 +768,7 @@ defmodule IEx do
   `IEx.break!` multiple times with different patterns, only the last
   pattern is kept.
 
-  Notice that, while patterns may be given to macros, remember that
+  Note that, while patterns may be given to macros, remember that
   macros receive ASTs as arguments, and not values. For example, if
   you try to break on a macro with the following pattern:
 

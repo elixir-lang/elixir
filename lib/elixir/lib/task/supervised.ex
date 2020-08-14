@@ -269,7 +269,7 @@ defmodule Task.Supervised do
     receive do
       # The task at position "position" replied with "value". We put the
       # response in the "waiting" map and do nothing, since we'll only act on
-      # this response when the replying task dies (we'll notice in the :down
+      # this response when the replying task dies (we'll see this in the :down
       # message).
       {{^monitor_ref, position}, reply} ->
         %{^position => {pid, :running}} = waiting

@@ -68,7 +68,7 @@ defmodule Supervisor do
       Supervisor.count_children(pid)
       #=> %{active: 1, specs: 1, supervisors: 0, workers: 1}
 
-  Notice that when starting the GenServer, we are registering it
+  Note that when starting the GenServer, we are registering it
   with name `Stack`, which allows us to call it directly and get
   what is on the stack:
 
@@ -433,7 +433,7 @@ defmodule Supervisor do
       restarts in transient mode, and linked processes exit with the same
       reason unless they're trapping exits
 
-  Notice that the supervisor that reaches maximum restart intensity will exit with
+  Note that the supervisor that reaches maximum restart intensity will exit with
   `:shutdown` reason. In this case the supervisor will only be restarted if its
   child specification was defined with the `:restart` option set to `:permanent`
   (the default).

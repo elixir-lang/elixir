@@ -138,7 +138,7 @@ defmodule Mix.Tasks.Xref do
   namely structs and its public definitions. For example, if you import
   a module but only use its functions, it is an export dependency. If
   you use a struct, it is an export dependency too. Export dependencies
-  are only recompiled if the module API changes. Note however compile
+  are only recompiled if the module API changes. Note, however, that compile
   time dependencies have higher precedence than exports. Therefore if
   you import a module and use its macros, it is a compile time dependency.
 

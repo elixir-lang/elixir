@@ -1940,7 +1940,7 @@ defmodule Kernel do
 
   Works like `raise/1` but does not generate a new stacktrace.
 
-  Notice that `__STACKTRACE__` can be used inside catch/rescue
+  Note that `__STACKTRACE__` can be used inside catch/rescue
   to retrieve the current stacktrace.
 
   ## Examples
@@ -3076,7 +3076,7 @@ defmodule Kernel do
   will be available at compile-time. Custom attributes may be configured to
   behave closer to Erlang by using `Module.register_attribute/3`.
 
-  Finally, notice that attributes can also be read inside functions:
+  Finally, note that attributes can also be read inside functions:
 
       defmodule MyServer do
         @my_data 11

@@ -43,7 +43,7 @@ defmodule Protocol do
         def size(tuple), do: tuple_size(tuple)
       end
 
-  Notice we didn't implement it for lists as we don't have the
+  Note that we didn't implement it for lists as we don't have the
   `size` information on lists, rather its value needs to be
   computed with `length`.
 

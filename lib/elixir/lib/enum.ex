@@ -20,7 +20,7 @@ defprotocol Enumerable do
         Enumerable.reduce(enumerable, {:cont, []}, reducer) |> elem(1) |> :lists.reverse()
       end
 
-  Notice the user-supplied function is wrapped into a `t:reducer/0` function.
+  Note that the user-supplied function is wrapped into a `t:reducer/0` function.
   The `t:reducer/0` function must return a tagged tuple after each step,
   as described in the `t:acc/0` type. At the end, `Enumerable.reduce/3`
   returns `t:result/0`.
@@ -2568,7 +2568,7 @@ defmodule Enum do
       iex> Enum.sort(dates)
       [~D[2019-01-01], ~D[2020-03-02], ~D[2019-06-06]]
 
-  Notice the returned result is incorrect, because `sort/1` by default uses
+  Note that the returned result is incorrect, because `sort/1` by default uses
   `<=/2`, which will compare their structure. When comparing structures, the
   fields are compared in alphabetical order, which means the dates above will
   be compared by `day`, `month` and then `year`, which is the opposite of what
@@ -2912,7 +2912,7 @@ defmodule Enum do
   @doc """
   Takes `count` random elements from `enumerable`.
 
-  Notice this function will traverse the whole `enumerable` to
+  Note that this function will traverse the whole `enumerable` to
   get the random sublist.
 
   See `random/1` for notes on implementation and random seed.

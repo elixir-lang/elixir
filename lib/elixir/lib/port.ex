@@ -29,7 +29,7 @@ defmodule Port do
 
   After sending those two messages, we invoked the IEx helper `flush()`,
   which printed all messages received from the port, in this case we got
-  "hello" and "world" back. Notice the messages are in binary because we
+  "hello" and "world" back. Note that the messages are in binary because we
   passed the `:binary` option when opening the port in `Port.open/2`. Without
   such option, it would have yielded a list of bytes.
 
