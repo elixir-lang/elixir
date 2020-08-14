@@ -988,6 +988,7 @@ defmodule System do
   Inlined by the compiler.
   """
   @spec os_time() :: integer
+  @doc since: "1.3.0"
   def os_time do
     :os.system_time()
   end
@@ -999,6 +1000,7 @@ defmodule System do
   with no limitation and is not monotonic.
   """
   @spec os_time(time_unit) :: integer
+  @doc since: "1.3.0"
   def os_time(unit) do
     :os.system_time(normalize_time_unit(unit))
   end
@@ -1015,6 +1017,7 @@ defmodule System do
   Returns the number of schedulers in the VM.
   """
   @spec schedulers :: pos_integer
+  @doc since: "1.3.0"
   def schedulers do
     :erlang.system_info(:schedulers)
   end
@@ -1023,6 +1026,7 @@ defmodule System do
   Returns the number of schedulers online in the VM.
   """
   @spec schedulers_online :: pos_integer
+  @doc since: "1.3.0"
   def schedulers_online do
     :erlang.system_info(:schedulers_online)
   end
