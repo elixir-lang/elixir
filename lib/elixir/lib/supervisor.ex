@@ -108,7 +108,7 @@ defmodule Supervisor do
   The child specification describes how the supervisor starts, shuts down,
   and restarts child processes.
 
-  The child specification is a map which contains 6 elements. The first two keys
+  The child specification is a map containing up to 6 elements. The first two keys
   in the following list are required, and the remaining ones are optional:
 
     * `:id` - any term used to identify the child specification
