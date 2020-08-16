@@ -40,17 +40,31 @@ defmodule Keyword do
   entry matching the given key, regardless if duplicated entries exist.
   Similarly, `Keyword.put/3` and `Keyword.delete/2` ensure all duplicated
   entries for a given key are removed when invoked. Note, however, that
-  keyword list operations need to traverse the list in order to find
+  keyword list operations need to traverse the whole list in order to find
   keys, so these operations are slower than their map counterparts.
 
   A handful of functions exist to handle duplicated keys, for example,
   `get_values/2` returns all values for a given key and `delete_first/2`
   deletes just one of the existing entries.
 
-  The functions in `Keyword` do not guarantee any property when it comes
-  to ordering. However, since a keyword list is simply a list, all the
-  operations defined in `Enum` and `List` can be applied too, especially
-  when ordering is required.
+  Even though lists preserve the user ordering, the functions in
+  `Keyword` do not guarantee any ordering. For example, if you invoke
+  `Keyword.put(opts, new_key, new_value)`, there is no guarantee to
+  where `new_key` will be added (to the front, to the end, or
+  anywhere else).
+
+  Given ordering is not guaranteed, it is not recommended to pattern
+  match on keyword lists either. For example, a function such as:
+
+      def my_function([some_key: value, another_key: another_value])
+
+  will match
+
+      my_function([some_key: :foo, another_key: :bar])
+
+  but it won't match
+
+      my_function([another_key: :bar, some_key: :foo])
 
   Most of the functions in this module work in linear time. This means
   that, the time it takes to perform an operation grows at the same
