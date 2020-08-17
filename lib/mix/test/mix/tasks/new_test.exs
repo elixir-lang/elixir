@@ -227,7 +227,7 @@ defmodule Mix.Tasks.NewTest do
 
   defp assert_file(file, match) do
     cond do
-      Regex.regex?(match) ->
+      is_struct(match, Regex) ->
         assert_file(file, &assert(&1 =~ match))
 
       is_function(match, 1) ->

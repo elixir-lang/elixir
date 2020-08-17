@@ -318,6 +318,7 @@ Mix also includes two new tasks: `mix app.config`, for application runtime confi
 
 #### Elixir
 
+  * [Application] Warn if non-atom keys are given to `put_env`, `get_env`, `fetch_env`, and `delete_env`
   * [Code] Do not send language keyword through the `:static_atoms_encoder` in `Code.string_to_quoted`
   * [Kernel] Validate values given to `:line` in quote to avoid emitting invalid ASTs
   * [Kernel] Report the correct line number when raising inside a macro
@@ -344,6 +345,11 @@ Mix also includes two new tasks: `mix app.config`, for application runtime confi
 
 ### 3. Soft-deprecations (no warnings emitted)
 
+### Elixir
+
+  * [Exception] `Exception.exception?/1` is deprecated in favor of `Kernel.is_exception/1`
+  * [Regex] `Regex.regex?/1` is deprecated in favor of `Kernel.is_struct/2`
+
 ### Logger
 
   * [Logger] `warn` log level is deprecated in favor of `warning`
@@ -356,9 +362,13 @@ Mix also includes two new tasks: `mix app.config`, for application runtime confi
 
 #### Elixir
 
-  * [Application] Deprecate non-atom keys on `put_env`, `get_env`, `fetch_env`, and `delete_env`
   * [Supervisor] Deprecate `Supervisor.start_child/2` and `Supervisor.terminate_child/2` in favor of `DynamicSupervisor`
   * [Supervisor.Spec] Deprecate `Supervisor.Spec.worker/3` and `Supervisor.Spec.supervisor/3` in favor of the new typespecs
+  * [System] Deprecate `System.stracktrace/0` in favor of `__STACKTRACE__`
+
+#### Mix
+
+  * [Mix.Project] Deprecate `Mix.Project.compile/2` in favor of `Mix.Task.run("compile", args)`
 
 ## v1.10
 

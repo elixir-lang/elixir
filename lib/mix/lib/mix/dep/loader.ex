@@ -122,7 +122,7 @@ defmodule Mix.Dep.Loader do
   def vsn_match(nil, _actual, _app), do: {:ok, true}
 
   def vsn_match(req, actual, app) do
-    if Regex.regex?(req) do
+    if is_struct(req, Regex) do
       {:ok, actual =~ req}
     else
       case Version.parse(actual) do
@@ -152,7 +152,7 @@ defmodule Mix.Dep.Loader do
   end
 
   defp with_scm_and_app({app, req} = original) when is_atom(app) do
-    if is_binary(req) or Regex.regex?(req) do
+    if is_binary(req) or is_struct(req, Regex) do
       with_scm_and_app(app, req, [], original)
     else
       invalid_dep_format(original)
@@ -160,7 +160,7 @@ defmodule Mix.Dep.Loader do
   end
 
   defp with_scm_and_app({app, req, opts} = original) when is_atom(app) and is_list(opts) do
-    if is_binary(req) or Regex.regex?(req) do
+    if is_binary(req) or is_struct(req, Regex) do
       with_scm_and_app(app, req, opts, original)
     else
       invalid_dep_format(original)

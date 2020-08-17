@@ -734,7 +734,7 @@ defmodule ExUnit.Assertions do
     match? =
       cond do
         is_binary(message) -> Exception.message(error) == message
-        Regex.regex?(message) -> Exception.message(error) =~ message
+        is_struct(message, Regex) -> Exception.message(error) =~ message
       end
 
     message =

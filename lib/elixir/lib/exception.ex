@@ -46,6 +46,8 @@ defmodule Exception do
   @doc """
   Returns `true` if the given `term` is an exception.
   """
+  # TODO: Remove this on Elixir v1.15
+  @doc deprecated: "Use Kernel.is_exception/1 instead"
   def exception?(term)
   def exception?(%_{__exception__: true}), do: true
   def exception?(_), do: false
