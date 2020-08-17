@@ -19,12 +19,6 @@ defmodule ExceptionTest do
              stacktrace
   end
 
-  test "exception?/1" do
-    assert Exception.exception?(%RuntimeError{})
-    refute Exception.exception?(%Regex{})
-    refute Exception.exception?({})
-  end
-
   test "message/1" do
     defmodule BadException do
       def message(exception) do

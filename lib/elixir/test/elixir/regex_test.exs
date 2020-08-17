@@ -103,14 +103,8 @@ defmodule RegexTest do
     assert Regex.run(~r/[\d ]+/U, "1 2 3 4 5"), ["1"]
   end
 
-  test "regex?/1" do
-    assert Regex.regex?(~r/foo/)
-    refute Regex.regex?(0)
-  end
-
   test "compile/1" do
-    {:ok, regex} = Regex.compile("foo")
-    assert Regex.regex?(regex)
+    {:ok, %Regex{}} = Regex.compile("foo")
     assert {:error, _} = Regex.compile("*foo")
     assert {:error, _} = Regex.compile("foo", "y")
     assert {:error, _} = Regex.compile("foo", "uy")
@@ -122,7 +116,7 @@ defmodule RegexTest do
   end
 
   test "compile!/1" do
-    assert Regex.regex?(Regex.compile!("foo"))
+    assert %Regex{} = Regex.compile!("foo")
 
     assert_raise Regex.CompileError, ~r/position 0$/, fn ->
       Regex.compile!("*foo")
@@ -131,14 +125,12 @@ defmodule RegexTest do
 
   test "recompile/1" do
     new_regex = ~r/foo/
-    {:ok, regex} = Regex.recompile(new_regex)
-    assert Regex.regex?(regex)
-    assert Regex.regex?(Regex.recompile!(new_regex))
+    {:ok, %Regex{}} = Regex.recompile(new_regex)
+    assert %Regex{} = Regex.recompile!(new_regex)
 
     old_regex = Map.delete(~r/foo/, :re_version)
-    {:ok, regex} = Regex.recompile(old_regex)
-    assert Regex.regex?(regex)
-    assert Regex.regex?(Regex.recompile!(old_regex))
+    {:ok, %Regex{}} = Regex.recompile(old_regex)
+    assert %Regex{} = Regex.recompile!(old_regex)
   end
 
   test "opts/1" do
