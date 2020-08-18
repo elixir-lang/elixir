@@ -98,7 +98,6 @@ defmodule ModuleTest do
     contents =
       quote do
         @after_compile __MODULE__
-
         @foo 42
 
         def __after_compile__(%Macro.Env{module: module}, bin) when is_binary(bin) do
@@ -342,6 +341,19 @@ defmodule ModuleTest do
     assert_raise CompileError, fn ->
       {:module, Elixir, _, _} = Module.create(Elixir, contents, __ENV__)
     end
+  end
+
+  @compile {:no_warn_undefined, ModuleTracersSample}
+
+  test "create with propagated tracers" do
+    contents =
+      quote do
+        def world, do: true
+      end
+
+    env = %{__ENV__ | tracers: [:invalid]}
+    {:module, ModuleTracersSample, _, _} = Module.create(ModuleTracersSample, contents, env)
+    assert ModuleTracersSample.world()
   end
 
   @compile {:no_warn_undefined, ModuleHygiene}

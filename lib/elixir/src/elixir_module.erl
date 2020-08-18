@@ -77,7 +77,7 @@ compile(Module, Block, Vars, Env) when is_atom(Module) ->
   MaybeLexEnv =
     case Function of
       nil -> ResetEnv#{module := Module, current_vars := {Read, false}};
-      _   -> ResetEnv#{lexical_tracker := nil, function := nil, module := Module, current_vars := {Read, false}}
+      _   -> ResetEnv#{lexical_tracker := nil, tracers := [], function := nil, module := Module, current_vars := {Read, false}}
     end,
 
   case MaybeLexEnv of
