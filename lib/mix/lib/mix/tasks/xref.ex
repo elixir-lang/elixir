@@ -452,25 +452,22 @@ defmodule Mix.Tasks.Xref do
 
   defp write_graph(file_references, filter, opts) do
     excluded = excluded(opts)
+    source = opts[:source]
+    sink = opts[:sink]
+
+    if source && is_nil(file_references[source]) do
+      Mix.raise("Source could not be found: #{source}")
+    end
+
+    if sink && is_nil(file_references[sink]) do
+      Mix.raise("Sink could not be found: #{sink}")
+    end
 
     file_references =
-      cond do
-        sink = opts[:sink] ->
-          if file_references[sink] do
-            filter_for_sink(file_references, sink, filter)
-          else
-            Mix.raise("Sink could not be found: #{sink}")
-          end
-
-        source = opts[:source] ->
-          if file_references[source] do
-            filter_for_source(file_references, filter)
-          else
-            Mix.raise("Source could not be found: #{source}")
-          end
-
-        true ->
-          file_references
+      if sink = opts[:sink] do
+        filter_for_sink(file_references, sink, filter)
+      else
+        filter_for_source(file_references, filter)
       end
 
     roots =
