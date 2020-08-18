@@ -297,13 +297,11 @@ defmodule Mix.Tasks.XrefTest do
       lib/a.ex
       `-- lib/b.ex (compile)
       lib/b.ex
-      |-- lib/a.ex
-      |-- lib/c.ex
+      |-- lib/d.ex (compile)
       `-- lib/e.ex (compile)
       lib/c.ex
       `-- lib/d.ex (compile)
       lib/d.ex
-      `-- lib/e.ex
       lib/e.ex
       """)
     end
@@ -324,13 +322,12 @@ defmodule Mix.Tasks.XrefTest do
     test "filter by runtime label" do
       assert_graph(~w[--label runtime], """
       lib/a.ex
-      `-- lib/b.ex (compile)
+      `-- lib/c.ex
       lib/b.ex
       |-- lib/a.ex
-      |-- lib/c.ex
-      `-- lib/e.ex (compile)
+      `-- lib/c.ex
       lib/c.ex
-      `-- lib/d.ex (compile)
+      `-- lib/e.ex
       lib/d.ex
       `-- lib/e.ex
       lib/e.ex
