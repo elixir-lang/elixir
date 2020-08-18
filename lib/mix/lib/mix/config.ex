@@ -27,8 +27,8 @@ defmodule Mix.Config do
 
   Once a configuration is written to a file, the functions in this
   module can be used to read and merge said configuration. The `eval!/2`
-  function allows you evaluate a given configuration file and `merge/2`
-  allows to deep merge the results of multiple configurations. Those
+  function allows you to evaluate a given configuration file and the `merge/2`
+  function allows you to deep merge the results of multiple configurations. Those
   functions should not be invoked by users writing configurations but
   rather by library authors.
 
