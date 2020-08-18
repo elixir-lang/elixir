@@ -426,10 +426,12 @@ defmodule Mix.Tasks.XrefTest do
       end
     end
 
-    test "sink and source is error" do
-      assert_raise Mix.Error, "mix xref graph expects only one of --source and --sink", fn ->
-        assert_graph(~w[--source lib/a.ex --sink lib/b.ex], "")
-      end
+    test "sink and source" do
+      assert_graph(~w[--source lib/a.ex --sink lib/b.ex], """
+      lib/a.ex
+      `-- lib/b.ex (compile)
+          `-- lib/a.ex
+      """)
     end
 
     test "with dynamic module" do

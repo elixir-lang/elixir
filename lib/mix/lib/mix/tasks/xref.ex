@@ -85,6 +85,9 @@ defmodule Mix.Tasks.Xref do
       # To get all files that depend on lib/foo.ex at compile time
       mix xref graph --label compile --sink lib/foo.ex --only-nodes
 
+      # To get all paths between two files
+      mix xref graph --source lib/foo.ex --sink lib/bar.ex
+
       # To show general statistics about the graph
       mix xref graph --format stats
 
@@ -450,40 +453,35 @@ defmodule Mix.Tasks.Xref do
   defp write_graph(file_references, filter, opts) do
     excluded = excluded(opts)
 
-    {roots, file_references} =
-      case {opts[:source], opts[:sink]} do
-        {nil, nil} ->
-          roots =
-            file_references |> Enum.map(&{elem(&1, 0), nil}) |> Kernel.--(excluded) |> Map.new()
-
-          {roots, file_references}
-
-        {source, nil} ->
-          if file_references[source] do
-            file_references = filter_for_source(file_references, filter)
-            {%{source => nil}, file_references}
-          else
-            Mix.raise("Source could not be found: #{source}")
-          end
-
-        {nil, sink} ->
+    file_references =
+      cond do
+        sink = opts[:sink] ->
           if file_references[sink] do
-            file_references = filter_for_sink(file_references, sink, filter)
-
-            roots =
-              file_references
-              |> Map.delete(sink)
-              |> Enum.map(&{elem(&1, 0), nil})
-              |> Kernel.--(excluded)
-              |> Map.new()
-
-            {roots, file_references}
+            filter_for_sink(file_references, sink, filter)
           else
             Mix.raise("Sink could not be found: #{sink}")
           end
 
-        {_, _} ->
-          Mix.raise("mix xref graph expects only one of --source and --sink")
+        source = opts[:source] ->
+          if file_references[source] do
+            filter_for_source(file_references, filter)
+          else
+            Mix.raise("Source could not be found: #{source}")
+          end
+
+        true ->
+          file_references
+      end
+
+    roots =
+      if source = opts[:source] do
+        %{source => nil}
+      else
+        file_references
+        |> Map.delete(opts[:sink])
+        |> Enum.map(&{elem(&1, 0), nil})
+        |> Kernel.--(excluded)
+        |> Map.new()
       end
 
     callback = fn {file, type} ->
