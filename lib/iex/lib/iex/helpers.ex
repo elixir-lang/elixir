@@ -789,29 +789,29 @@ defmodule IEx.Helpers do
   defp print_table(list, printer) do
     # print items in multiple columns (2 columns in the worst case)
     lengths = Enum.map(list, &String.length(&1))
-    maxlen = maxlength(lengths)
-    offset = min(maxlen, 30) + 5
+    max_length = max_length(lengths)
+    offset = min(max_length, 30) + 5
     print_table(list, printer, offset)
   end
 
   defp print_table(list, printer, offset) do
-    Enum.reduce(list, 0, fn item, len ->
-      len =
-        if len >= 80 do
+    Enum.reduce(list, 0, fn item, length ->
+      length =
+        if length >= 80 do
           IO.puts("")
           0
         else
-          len
+          length
         end
 
       IO.write(printer.(item, offset))
-      len + offset
+      length + offset
     end)
 
     IO.puts("")
   end
 
-  defp maxlength(list) do
+  defp max_length(list) do
     Enum.reduce(list, 0, &max(&1, &2))
   end
 
