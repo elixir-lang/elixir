@@ -757,12 +757,12 @@ defmodule Regex do
     end
   end
 
-  defp get_index(_string, {pos, _len}) when pos < 0 do
+  defp get_index(_string, {pos, _length}) when pos < 0 do
     ""
   end
 
-  defp get_index(string, {pos, len}) do
-    <<_::size(pos)-binary, res::size(len)-binary, _::binary>> = string
+  defp get_index(string, {pos, length}) do
+    <<_::size(pos)-binary, res::size(length)-binary, _::binary>> = string
     res
   end
 
