@@ -1316,12 +1316,12 @@ defmodule String do
   end
 
   defp pad(kind, string, count, padding) do
-    string_len = length(string)
+    string_length = length(string)
 
-    if string_len >= count do
+    if string_length >= count do
       string
     else
-      filler = build_filler(count - string_len, padding, padding, 0, [])
+      filler = build_filler(count - string_length, padding, padding, 0, [])
 
       case kind do
         :leading -> [filler | string]
@@ -1357,26 +1357,26 @@ defmodule String do
 
   @doc false
   @deprecated "Use String.pad_leading/2 instead"
-  def rjust(subject, len) do
-    rjust(subject, len, ?\s)
+  def rjust(subject, length) do
+    rjust(subject, length, ?\s)
   end
 
   @doc false
   @deprecated "Use String.pad_leading/3 with a binary padding instead"
-  def rjust(subject, len, pad) when is_integer(pad) and is_integer(len) and len >= 0 do
-    pad(:leading, subject, len, [<<pad::utf8>>])
+  def rjust(subject, length, pad) when is_integer(pad) and is_integer(length) and length >= 0 do
+    pad(:leading, subject, length, [<<pad::utf8>>])
   end
 
   @doc false
   @deprecated "Use String.pad_trailing/2 instead"
-  def ljust(subject, len) do
-    ljust(subject, len, ?\s)
+  def ljust(subject, length) do
+    ljust(subject, length, ?\s)
   end
 
   @doc false
   @deprecated "Use String.pad_trailing/3 with a binary padding instead"
-  def ljust(subject, len, pad) when is_integer(pad) and is_integer(len) and len >= 0 do
-    pad(:trailing, subject, len, [<<pad::utf8>>])
+  def ljust(subject, length, pad) when is_integer(pad) and is_integer(length) and length >= 0 do
+    pad(:trailing, subject, length, [<<pad::utf8>>])
   end
 
   @doc ~S"""
@@ -1943,8 +1943,7 @@ defmodule String do
   end
 
   @doc """
-  Returns a substring starting at the offset `start`, and of
-  length `len`.
+  Returns a substring starting at the offset `start`, and of the given `length`.
 
   If the offset is greater than string length, then it returns `""`.
 
@@ -1985,22 +1984,22 @@ defmodule String do
     ""
   end
 
-  def slice(string, start, len) when start >= 0 and len >= 0 do
+  def slice(string, start, length) when start >= 0 and length >= 0 do
     case String.Unicode.split_at(string, start) do
       {_, nil} ->
         ""
 
       {start_bytes, rest} ->
-        {len_bytes, _} = String.Unicode.split_at(rest, len)
+        {len_bytes, _} = String.Unicode.split_at(rest, length)
         binary_part(string, start_bytes, len_bytes)
     end
   end
 
-  def slice(string, start, len) when start < 0 and len >= 0 do
+  def slice(string, start, length) when start < 0 and length >= 0 do
     start = length(string) + start
 
     case start >= 0 do
-      true -> slice(string, start, len)
+      true -> slice(string, start, length)
       false -> ""
     end
   end
