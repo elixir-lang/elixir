@@ -257,7 +257,7 @@ defmodule Mix.Tasks.Test.Coverage do
 
   defp color(percentage, true), do: color(percentage, @default_threshold)
   defp color(_, false), do: ""
-  defp color(percentage, threshold) when percentage > threshold, do: :green
+  defp color(percentage, threshold) when percentage >= threshold, do: :green
   defp color(_, _), do: :red
 
   defp format_number(number, length), do: :io_lib.format("~#{length}.2f", [number])
