@@ -789,6 +789,77 @@ defmodule TypespecTest do
       assert [{:atom, _, Keyword}, {:atom, _, :t}, [{:var, _, :value}]] = kw_with_value_args
     end
 
+    test "@type with a reserved signature" do
+      assert_raise CompileError,
+                   ~r"type required\/1 is a reserved type and it cannot be defined",
+                   fn ->
+                     test_module do
+                       @type required(arg) :: any()
+                     end
+                   end
+
+      assert_raise CompileError,
+                   ~r"type optional\/1 is a reserved type and it cannot be defined",
+                   fn ->
+                     test_module do
+                       @type optional(arg) :: any()
+                     end
+                   end
+
+      assert_raise CompileError,
+                   ~r"type required\/1 is a reserved type and it cannot be defined",
+                   fn ->
+                     test_module do
+                       @typep required(arg) :: any()
+                     end
+                   end
+
+      assert_raise CompileError,
+                   ~r"type optional\/1 is a reserved type and it cannot be defined",
+                   fn ->
+                     test_module do
+                       @typep optional(arg) :: any()
+                     end
+                   end
+
+      assert_raise CompileError,
+                   ~r"type required\/1 is a reserved type and it cannot be defined",
+                   fn ->
+                     test_module do
+                       @opaque required(arg) :: any()
+                     end
+                   end
+
+      assert_raise CompileError,
+                   ~r"type optional\/1 is a reserved type and it cannot be defined",
+                   fn ->
+                     test_module do
+                       @opaque optional(arg) :: any()
+                     end
+                   end
+
+      test_module do
+        assert @type(optional() :: any()) == :ok
+
+        @spec foo(optional()) :: any()
+        def foo(_), do: :ok
+      end
+
+      test_module do
+        assert @typep(optional() :: any()) == :ok
+
+        @spec foo(optional()) :: any()
+        def foo(_), do: :ok
+      end
+
+      test_module do
+        assert @opaque(optional() :: %{}) == :ok
+
+        @spec foo(optional()) :: any()
+        def foo(_), do: :ok
+      end
+    end
+
     test "invalid remote @type with module attribute that does not evaluate to a module" do
       assert_raise CompileError, ~r/\(@foo is "bar"\)/, fn ->
         test_module do
