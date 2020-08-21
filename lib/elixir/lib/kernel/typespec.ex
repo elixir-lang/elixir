@@ -131,11 +131,18 @@ defmodule Kernel.Typespec do
     store_typespec(bag, kind, expr, pos)
   end
 
+  @reserved_signatures [required: 1, optional: 1]
   def deftypespec(kind, expr, line, file, module, pos)
       when kind in [:type, :typep, :opaque] do
     {set, bag} = :elixir_module.data_tables(module)
 
     case type_to_signature(expr) do
+      {name, arity} = signature when signature in @reserved_signatures ->
+        compile_error(
+          :elixir_locals.get_cached_env(pos),
+          "type #{name}/#{arity} is a reserved type and it cannot be defined"
+        )
+
       {name, arity} when kind == :typep ->
         {line, doc} = get_doc_info(set, :typedoc, line)
 
