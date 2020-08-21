@@ -131,7 +131,7 @@ defmodule Kernel.Typespec do
     store_typespec(bag, kind, expr, pos)
   end
 
-  @reserved_signatures [{:required, 1}, {:optional, 1}]
+  @reserved_signatures [required: 1, optional: 1]
   def deftypespec(kind, expr, line, file, module, pos)
       when kind in [:type, :typep, :opaque] do
     {set, bag} = :elixir_module.data_tables(module)
