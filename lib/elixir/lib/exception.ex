@@ -727,7 +727,7 @@ defmodule ArgumentError do
         not is_atom(module) and is_atom(function) and args == [] ->
           "you attempted to apply #{inspect(function)} on #{inspect(module)}. " <>
             "If you are using apply/3, make sure the module is an atom. " <>
-            "If you are using the dot syntax, such as map.field or module.function, " <>
+            "If you are using the dot syntax, such as map.field or module.function(), " <>
             "make sure the left side of the dot is an atom or a map"
 
         not is_atom(module) ->
@@ -986,7 +986,7 @@ defmodule UndefinedFunctionError do
   end
 
   defp hint(nil, _function, 0, _loaded?) do
-    ". If you are using the dot syntax, such as map.field or module.function, " <>
+    ". If you are using the dot syntax, such as map.field or module.function(), " <>
       "make sure the left side of the dot is an atom or a map"
   end
 
