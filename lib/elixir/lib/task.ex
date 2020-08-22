@@ -203,6 +203,9 @@ defmodule Task do
   a list `[pid_n, ..., pid2, pid1]` with at least one entry Where `pid_n` is
   the PID that called the current process, `pid2` called `pid_n`, and `pid2` was
   called by `pid1`.
+
+  If a task crashes, the callers field is included as part of the log message
+  metadata under the `:callers` key.
   """
 
   @doc """
