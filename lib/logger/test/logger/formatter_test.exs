@@ -62,12 +62,17 @@ defmodule Logger.FormatterTest do
           <<104, 111, 115, 116, 0, 0, 0, 0, 80, 0, 0, 0, 0, 0, 0, 0, 0>>
       )
 
-    # ensure the deserialization worked correctly
+    # Ensure the deserialization worked correctly
     assert "#Reference<0.0.0.80>" == inspect(ref)
 
     assert IO.chardata_to_string(format(compiled, :error, nil, nil, meta: :data, ref: ref)) ==
              "meta=data ref=<0.0.0.80> "
 
+    # Also works with to_string
+    format = format(compiled, :error, nil, nil, date: ~D[2020-10-01])
+    assert IO.chardata_to_string(format) == "date=2020-10-01 "
+
+    # And with no metadata
     assert IO.chardata_to_string(format(compiled, :error, nil, nil, [])) == ""
 
     timestamp = {{2014, 12, 30}, {12, 6, 30, 100}}
