@@ -218,5 +218,12 @@ defmodule Logger.Formatter do
     Exception.format_mfa(mod, fun, arity)
   end
 
-  defp metadata(_, _), do: nil
+  defp metadata(_, list) when is_list(list), do: nil
+
+  defp metadata(_, other) do
+    case String.Chars.impl_for(other) do
+      nil -> nil
+      impl -> impl.to_string(other)
+    end
+  end
 end
