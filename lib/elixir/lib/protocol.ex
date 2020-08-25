@@ -47,6 +47,10 @@ defmodule Protocol do
   `size` information on lists, rather its value needs to be
   computed with `length`.
 
+  The data structure you are implementing the protocol for
+  must be the first argument to all functions defined in the
+  protocol.
+
   It is possible to implement protocols for all Elixir types:
 
     * Structs (see below)
