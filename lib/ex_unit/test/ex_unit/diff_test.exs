@@ -26,6 +26,23 @@ defmodule ExUnit.DiffTest do
     end
   end
 
+  defmodule ContainerStruct do
+    defstruct [
+      :field
+    ]
+  end
+
+  defmodule EnforcedStruct do
+    @enforce_keys [
+      :id,
+      :name
+    ]
+    defstruct [
+      :id,
+      :name
+    ]
+  end
+
   defmacrop one, do: 1
 
   defmacrop tuple(a, b) do
@@ -562,6 +579,31 @@ defmodule ExUnit.DiffTest do
     assert_diff(%User{age: ^twenty_one} = %User{age: 21}, [], pins)
     assert_diff(%User{age: age} = %User{age: 21}, [age: 21], pins)
     refute_diff(%User{age: 21} = :a, "-%ExUnit.DiffTest.User{age: 21}-", "+:a+", pins)
+  end
+
+  test "structs with `@enforce_keys`" do
+    assert_diff(%EnforcedStruct{id: 123} = %EnforcedStruct{id: 123, name: "some"}, [])
+
+    refute_diff(
+      %EnforcedStruct{id: 123} = %EnforcedStruct{id: 124, name: "some"},
+      "%ExUnit.DiffTest.EnforcedStruct{id: 12-3-}",
+      "%ExUnit.DiffTest.EnforcedStruct{id: 12+4+, name: \"some\"}"
+    )
+
+    assert_diff(
+      %ContainerStruct{field: %EnforcedStruct{id: 123}} = %ContainerStruct{
+        field: %EnforcedStruct{id: 123, name: "some"}
+      },
+      []
+    )
+
+    refute_diff(
+      %ContainerStruct{field: %EnforcedStruct{id: 123}} = %ContainerStruct{
+        field: %EnforcedStruct{id: 124, name: "some"}
+      },
+      "%ExUnit.DiffTest.EnforcedStruct{id: 12-3-}",
+      "%ExUnit.DiffTest.EnforcedStruct{id: 12+4+, name: \"some\"}"
+    )
   end
 
   test "structs outside of match context" do
