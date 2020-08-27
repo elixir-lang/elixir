@@ -994,26 +994,25 @@ defmodule Logger do
   end
 
   defp macro_log(level, data, metadata, caller) do
-    [{:file, file} | _] = application_and_file = compile_time_application_and_file(caller)
+    [{:file, file} | maybe_application] = compile_time_application_and_file(caller)
 
-    {caller, location} =
+    location =
       case caller do
         %{module: module, function: {fun, arity}, line: line} ->
-          {application_and_file ++ [mfa: {module, fun, arity}, line: line],
-           %{mfa: {module, fun, arity}, file: file, line: line}}
+          %{mfa: {module, fun, arity}, file: file, line: line}
 
         _ ->
-          {application_and_file, %{}}
+          %{}
       end
 
     {compile_metadata, quoted_metadata} =
       if Keyword.keyword?(metadata) do
-        metadata = Keyword.merge(caller, metadata)
-        {Map.new(metadata), escape_metadata(metadata)}
+        metadata = Keyword.merge(maybe_application, metadata)
+        {Map.merge(location, Map.new(metadata)), escape_metadata(metadata)}
       else
         {%{},
          quote do
-           Enum.into(unquote(metadata), unquote(escape_metadata(caller)))
+           Enum.into(unquote(metadata), unquote(escape_metadata(maybe_application)))
          end}
       end
 
