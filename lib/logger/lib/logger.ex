@@ -881,7 +881,10 @@ defmodule Logger do
   defguardp is_msg(msg) when is_binary(msg) or is_list(msg) or is_map(msg)
 
   @doc false
-  def __do_log__(level, fun, metadata) when is_function(fun, 0) and is_map(metadata) do
+  def __do_log__(level, fun, metadata, location \\ %{})
+
+  def __do_log__(level, fun, metadata, location)
+      when is_function(fun, 0) and is_map(metadata) and is_map(location) do
     case fun.() do
       {msg, meta} ->
         __do_log__(level, msg, Enum.into(meta, metadata))
@@ -891,16 +894,17 @@ defmodule Logger do
     end
   end
 
-  def __do_log__(level, msg, metadata) when level in @levels and is_map(metadata) do
+  def __do_log__(level, msg, metadata, location)
+      when level in @levels and is_map(metadata) and is_map(location) do
     if is_msg(msg) do
-      :logger.macro_log(%{}, level, msg, add_elixir_domain(metadata))
+      :logger.macro_log(location, level, msg, add_elixir_domain(metadata))
     else
       # TODO: Remove this branch in Elixir v2.0
       IO.warn(
         "passing #{inspect(msg)} to Logger is deprecated, expected a map, a keyword list, a binary, or an iolist"
       )
 
-      :logger.macro_log(%{}, level, to_string(msg), add_elixir_domain(metadata))
+      :logger.macro_log(location, level, to_string(msg), add_elixir_domain(metadata))
     end
   end
 
@@ -990,15 +994,17 @@ defmodule Logger do
   end
 
   defp macro_log(level, data, metadata, caller) do
-    caller =
-      compile_time_application_and_file(caller) ++
-        case caller do
-          %{module: module, function: {fun, arity}, line: line} ->
-            [mfa: {module, fun, arity}, line: line]
+    [{:file, file} | _] = application_and_file = compile_time_application_and_file(caller)
 
-          _ ->
-            []
-        end
+    {caller, location} =
+      case caller do
+        %{module: module, function: {fun, arity}, line: line} ->
+          {application_and_file ++ [mfa: {module, fun, arity}, line: line],
+           %{mfa: {module, fun, arity}, file: file, line: line}}
+
+        _ ->
+          {application_and_file, %{}}
+      end
 
     {compile_metadata, quoted_metadata} =
       if Keyword.keyword?(metadata) do
@@ -1018,8 +1024,16 @@ defmodule Logger do
     else
       quote do
         case Logger.__should_log__(unquote(level), __MODULE__) do
-          nil -> :ok
-          level -> Logger.__do_log__(level, unquote(data), unquote(quoted_metadata))
+          nil ->
+            :ok
+
+          level ->
+            Logger.__do_log__(
+              level,
+              unquote(data),
+              unquote(quoted_metadata),
+              unquote(Macro.escape(location))
+            )
         end
       end
     end
@@ -1037,7 +1051,7 @@ defmodule Logger do
 
   defp compile_time_application_and_file(%{file: file}) do
     if app = Application.get_env(:logger, :compile_time_application) do
-      [application: app, file: file |> Path.relative_to_cwd() |> String.to_charlist()]
+      [file: file |> Path.relative_to_cwd() |> String.to_charlist(), application: app]
     else
       [file: String.to_charlist(file)]
     end
