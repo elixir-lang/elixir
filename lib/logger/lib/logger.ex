@@ -865,7 +865,7 @@ defmodule Logger do
   def bare_log(level, message_or_fun, metadata \\ []) do
     case __should_log__(level, nil) do
       nil -> :ok
-      level -> __do_log__(level, message_or_fun, Map.new(metadata))
+      level -> __do_log__(level, message_or_fun, %{}, Map.new(metadata))
     end
   end
 
@@ -881,21 +881,19 @@ defmodule Logger do
   defguardp is_msg(msg) when is_binary(msg) or is_list(msg) or is_map(msg)
 
   @doc false
-  def __do_log__(level, fun, metadata, location \\ %{})
-
-  def __do_log__(level, fun, metadata, location)
-      when is_function(fun, 0) and is_map(metadata) and is_map(location) do
+  def __do_log__(level, fun, location, metadata)
+      when is_function(fun, 0) and is_map(location) and is_map(metadata) do
     case fun.() do
       {msg, meta} ->
-        __do_log__(level, msg, Enum.into(meta, metadata))
+        __do_log__(level, msg, location, Enum.into(meta, metadata))
 
       msg ->
-        __do_log__(level, msg, metadata)
+        __do_log__(level, msg, location, metadata)
     end
   end
 
-  def __do_log__(level, msg, metadata, location)
-      when level in @levels and is_map(metadata) and is_map(location) do
+  def __do_log__(level, msg, location, metadata)
+      when level in @levels and is_map(location) and is_map(metadata) do
     if is_msg(msg) do
       :logger.macro_log(location, level, msg, add_elixir_domain(metadata))
     else
@@ -1030,8 +1028,8 @@ defmodule Logger do
             Logger.__do_log__(
               level,
               unquote(data),
-              unquote(quoted_metadata),
-              unquote(Macro.escape(location))
+              unquote(Macro.escape(location)),
+              unquote(quoted_metadata)
             )
         end
       end
