@@ -992,7 +992,7 @@ defmodule Logger do
   end
 
   defp macro_log(level, data, metadata, caller) do
-    [{:file, file} | maybe_application] = compile_time_application_and_file(caller)
+    {maybe_application, file} = compile_time_application_and_file(caller)
 
     location =
       case caller do
@@ -1048,9 +1048,9 @@ defmodule Logger do
 
   defp compile_time_application_and_file(%{file: file}) do
     if app = Application.get_env(:logger, :compile_time_application) do
-      [file: file |> Path.relative_to_cwd() |> String.to_charlist(), application: app]
+      {[application: app], file |> Path.relative_to_cwd() |> String.to_charlist()}
     else
-      [file: String.to_charlist(file)]
+      {[], String.to_charlist(file)}
     end
   end
 
