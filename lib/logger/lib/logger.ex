@@ -865,7 +865,7 @@ defmodule Logger do
   def bare_log(level, message_or_fun, metadata \\ []) do
     case __should_log__(level, nil) do
       nil -> :ok
-      level -> __do_log__(level, message_or_fun, Map.new(metadata))
+      level -> __do_log__(level, message_or_fun, %{}, Map.new(metadata))
     end
   end
 
@@ -881,26 +881,28 @@ defmodule Logger do
   defguardp is_msg(msg) when is_binary(msg) or is_list(msg) or is_map(msg)
 
   @doc false
-  def __do_log__(level, fun, metadata) when is_function(fun, 0) and is_map(metadata) do
+  def __do_log__(level, fun, location, metadata)
+      when is_function(fun, 0) and is_map(location) and is_map(metadata) do
     case fun.() do
       {msg, meta} ->
-        __do_log__(level, msg, Enum.into(meta, metadata))
+        __do_log__(level, msg, location, Enum.into(meta, metadata))
 
       msg ->
-        __do_log__(level, msg, metadata)
+        __do_log__(level, msg, location, metadata)
     end
   end
 
-  def __do_log__(level, msg, metadata) when level in @levels and is_map(metadata) do
+  def __do_log__(level, msg, location, metadata)
+      when level in @levels and is_map(location) and is_map(metadata) do
     if is_msg(msg) do
-      :logger.macro_log(%{}, level, msg, add_elixir_domain(metadata))
+      :logger.macro_log(location, level, msg, add_elixir_domain(metadata))
     else
       # TODO: Remove this branch in Elixir v2.0
       IO.warn(
         "passing #{inspect(msg)} to Logger is deprecated, expected a map, a keyword list, a binary, or an iolist"
       )
 
-      :logger.macro_log(%{}, level, to_string(msg), add_elixir_domain(metadata))
+      :logger.macro_log(location, level, to_string(msg), add_elixir_domain(metadata))
     end
   end
 
@@ -990,24 +992,25 @@ defmodule Logger do
   end
 
   defp macro_log(level, data, metadata, caller) do
-    caller =
-      compile_time_application_and_file(caller) ++
-        case caller do
-          %{module: module, function: {fun, arity}, line: line} ->
-            [mfa: {module, fun, arity}, line: line]
+    {maybe_application, file} = compile_time_application_and_file(caller)
 
-          _ ->
-            []
-        end
+    location =
+      case caller do
+        %{module: module, function: {fun, arity}, line: line} ->
+          %{mfa: {module, fun, arity}, file: file, line: line}
+
+        _ ->
+          %{}
+      end
 
     {compile_metadata, quoted_metadata} =
       if Keyword.keyword?(metadata) do
-        metadata = Keyword.merge(caller, metadata)
-        {Map.new(metadata), escape_metadata(metadata)}
+        metadata = Keyword.merge(maybe_application, metadata)
+        {Map.merge(location, Map.new(metadata)), escape_metadata(metadata)}
       else
         {%{},
          quote do
-           Enum.into(unquote(metadata), unquote(escape_metadata(caller)))
+           Enum.into(unquote(metadata), unquote(escape_metadata(maybe_application)))
          end}
       end
 
@@ -1018,8 +1021,16 @@ defmodule Logger do
     else
       quote do
         case Logger.__should_log__(unquote(level), __MODULE__) do
-          nil -> :ok
-          level -> Logger.__do_log__(level, unquote(data), unquote(quoted_metadata))
+          nil ->
+            :ok
+
+          level ->
+            Logger.__do_log__(
+              level,
+              unquote(data),
+              unquote(Macro.escape(location)),
+              unquote(quoted_metadata)
+            )
         end
       end
     end
@@ -1037,9 +1048,9 @@ defmodule Logger do
 
   defp compile_time_application_and_file(%{file: file}) do
     if app = Application.get_env(:logger, :compile_time_application) do
-      [application: app, file: file |> Path.relative_to_cwd() |> String.to_charlist()]
+      {[application: app], file |> Path.relative_to_cwd() |> String.to_charlist()}
     else
-      [file: String.to_charlist(file)]
+      {[], String.to_charlist(file)}
     end
   end
 
