@@ -264,7 +264,7 @@ defmodule Mix.Task do
   Returns false if the given name is not an alias or if it is not a task.
 
   For more information about task aliasing, take a look at the
-  ["Aliasing"](https://hexdocs.pm/mix/Mix.html#module-aliases) section in the
+  ["Aliases"](https://hexdocs.pm/mix/Mix.html#module-aliases) section in the
   docs for `Mix`.
   """
   @spec alias?(task_name) :: boolean
