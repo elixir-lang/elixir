@@ -589,4 +589,8 @@ defmodule Mix.Dep do
       if is_binary(app), do: String.to_atom(app), else: app
     end)
   end
+
+  def add(app, opts, mix_exs) do
+    Mix.Dep.Adder.add(app, opts, mix_exs)
+  end
 end
