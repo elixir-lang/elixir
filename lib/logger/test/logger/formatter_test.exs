@@ -77,12 +77,12 @@ defmodule Logger.FormatterTest do
              "2014-12-30 12:06:30.100"
   end
 
-  test "format discards unknown formats" do
+  test "format inspects unknown formats" do
     compiled = compile("$metadata $message")
     metadata = [ancestors: [self()], crash_reason: {:some, :tuple}, foo: :bar]
 
-    assert format(compiled, :error, "hello", nil, metadata) ==
-             [["foo", 61, "bar", 32], " ", "hello"]
+    assert to_string(format(compiled, :error, "hello", nil, metadata)) =~
+             ~r(ancestors=\[#PID<\d+\.\d+\.\d+>\] crash_reason={:some, :tuple} foo=bar\s+hello)
   end
 
   test "padding takes account of length of level" do
