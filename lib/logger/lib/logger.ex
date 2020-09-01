@@ -912,37 +912,38 @@ defmodule Logger do
 
   defp add_elixir_domain(metadata), do: Map.put(metadata, :domain, [:elixir])
 
-  messages = [
-    # Airplane 2
-    {"We are also out of coffee", coffee: 0, target: Sun, pilots: 0, computer: :mad},
-    # Red Alert 2
-    {"Kirov reporting", status: :ready, affiliation: CCCP},
-    # Spies like us
-    {"Doctor? Doctor", spies: 2, doctors: 0},
-    # 2001: Space Odyssey
-    {"I'm sorry Dave", emotion: :sorry, receiver: Dave, computer: :mad, model: HAL9000},
-    # Lost in Space
-    {"Danger, Will Robinson", status: :danger, receiver: {Will, Robinson}},
-    # The Graduate
-    {"Mrs. Robinson, you are trying to seduce me",
-     reason: :seduction, from: Benjamin, to: Robinson, status: :married},
-    # Dr. No
-    {"Bond. James Bond.", surname: Bond, name: James, place: :casino},
-    # A Bug's Life
-    {"I'm the only stick with eyeballs", who: :stick, what: :eyeballs}
-  ]
+  translations = %{
+    emergency: :error,
+    alert: :error,
+    critical: :error,
+    warning: :warn,
+    notice: :info
+  }
 
-  for {level, {message, report}} <- Enum.zip(@levels, messages) do
+  for level <- @levels do
+    report = [something: :reported, this: level]
+
+    extra =
+      if translation = translations[level] do
+        """
+
+
+        This is reported as \"#{translation}\" in Elixir's
+        logger backends for backwards compatibility reasons.
+
+        """
+      end
+
     @doc """
     Logs a #{level} message.
 
-    Returns `:ok`.
+    Returns `:ok`.#{extra}
 
     ## Examples
 
     Logging a message (string or iodata):
 
-        Logger.#{level}("#{message}")
+        Logger.#{level}("this is a #{level} message")
 
     Report message (maps or keywords):
 
