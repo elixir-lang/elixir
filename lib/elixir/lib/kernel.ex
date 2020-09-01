@@ -1389,6 +1389,11 @@ defmodule Kernel do
       iex> [1, 2, 3] -- [2] -- [3]
       [1, 3]
 
+  As it is equivalent to:
+
+      iex> [1, 2, 3] -- ([2] -- [3])
+      [1, 3]
+
   """
   @spec list -- list :: list
   def left -- right do
