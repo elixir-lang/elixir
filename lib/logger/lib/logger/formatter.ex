@@ -182,6 +182,7 @@ defmodule Logger.Formatter do
 
   defp metadata(:time, _), do: nil
   defp metadata(:gl, _), do: nil
+  defp metadata(:report_cb, _), do: nil
 
   defp metadata(_, nil), do: nil
   defp metadata(_, string) when is_binary(string), do: string
