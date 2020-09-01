@@ -1385,7 +1385,7 @@ defmodule Kernel do
       [3, 1]
 
   It is important to note that `--/2` is right associative meaning:
-  
+
       iex> [1, 2, 3] -- [2] -- [3]
       [1, 3]
 
