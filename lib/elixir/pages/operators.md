@@ -8,26 +8,26 @@ The following is a list of all operators that Elixir is capable of parsing, orde
 
 Operator                                                                                 | Associativity
 ---------------------------------------------------------------------------------------- | -------------
-`@`                                                                                      | Unary
-`.`                                                                                      | Left to right
-`+` `-` `!` `^` `not` `~~~`                                                              | Unary
-`*` `/`                                                                                  | Left to right
-`+` `-`                                                                                  | Left to right
-`++` `--` `..` `<>` `+++` `---`                                                          | Right to left
+[`@`](`@/1`)                                                                             | Unary
+[`.`](`./2`)                                                                             | Left to right
+[`+`](`+/1`), [`-`](`-/1`), [`!`](`!/1`), [`^`](`^/1`), [`not`](`not/1`), `~~~`          | Unary
+[`*`](`*/2`), [`/`](`//2`)                                                               | Left to right
+[`+`](`+/2`), [`-`](`-/2`)                                                               | Left to right
+[`++`](`++/2`), [`--`](`--/2`), [`..`](`../2`), [`<>`](`<>/2`), `+++`, [`---`](`---/2`)  | Right to left
 `^^^`                                                                                    | Left to right
-`in` `not in`                                                                            | Left to right
-`\|>` `<<<` `>>>` `<<~` `~>>` `<~` `~>` `<~>` `<\|>`                                     | Left to right
-`<` `>` `<=` `>=`                                                                        | Left to right
-`==` `!=` `=~` `===` `!==`                                                               | Left to right
-`&&` `&&&` `and`                                                                         | Left to right
-`\|\|` `\|\|\|` `or`                                                                     | Left to right
-`=`                                                                                      | Right to left
-`&`                                                                                      | Unary
-`=>` (valid syntax only inside `%{}`)                                                    | Right to left
+[`in`](`in/2`), [`not in`](`in/2`)                                                       | Left to right
+[`\|>`](`\|>/2`), `<<<`, `>>>` `<<~` `~>>` `<~` `~>` `<~>` `<\|>`                        | Left to right
+[`<`](`</2`), [`>`](`>/2`), [`<=`](`<=/2`)                                               | Left to right
+[`==`](`==/2`), [`!=`](`!=/2`), [`=~`](`=~/2`), [`===`](`===/2`), [`!==`](`!==/2`)       | Left to right
+[`&&`](`&&/2`), `&&&`, [`and`](`and/2`)                                                  | Left to right
+[`\|\|`](`\|\|/2`), `\|\|\|`, [`or`](`or/2`)                                             | Left to right
+[`=`](`=/2`)                                                                             | Right to left
+[`&`](`&/1`)                                                                             | Unary
+`=>` (valid syntax only inside [`%{}`](`%{}/1`))                                         | Right to left
 `\|`                                                                                     | Right to left
-`::`                                                                                     | Right to left
+[`::`](`::/2`)                                                                           | Right to left
 `when`                                                                                   | Right to left
-`<-` `\\`                                                                                | Left to right
+`<-`, `\\`                                                                               | Left to right
 
 ## General operators
 
