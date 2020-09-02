@@ -309,6 +309,7 @@ Mix also includes two new tasks: `mix app.config`, for application runtime confi
   * [mix test.coverage] Add `mix test.coverage` that aggregates coverage results from umbrellas and OS partitioning
   * [mix xref] Make the `--label` option for `mix xref graph` transitive by default and add `--only-direct` for only direct dependencies
   * [mix xref] Add `--format cycles` support for `mix xref graph`
+  * [mix xref] Add support to `mix xref graph` for using `--source` and `--sink` at the same time
 
 ### 2. Bug fixes
 
