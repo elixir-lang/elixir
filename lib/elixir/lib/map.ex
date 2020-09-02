@@ -433,6 +433,45 @@ defmodule Map do
   end
 
   @doc """
+  Returns a new map by extracting the key-value pairs in `map` where the key
+  is in `keys`. Keys can be nested to traverse recursively nested map
+
+  If `keys` contains keys that are not in `map`, they're simply ignored.
+
+  ## Examples
+
+      iex> Map.take_in(%{a: 1, b: %{c: 10, d: %{e: 5, f: 3}}}, [b: [:c, d: [:f]]])
+      %{b: %{c: 10, d: %{f: 3}}}
+
+  """
+  @spec take_in(map :: map(), keys :: [key | list]) :: map()
+  def take_in(map = %{}, []) when is_map(map), do: map
+
+  def take_in(map = %{}, keys) when is_map(map) and is_list(keys) do
+    Enum.reduce(map, %{}, fn {k, v}, acc ->
+      case v do
+        %{} ->
+          put(acc, k, take_in(v, Keyword.get(keys, k, [])))
+
+        _ ->
+          do_take_in(acc, map, k, keys)
+      end
+    end)
+  end
+
+  def take_in(non_map, _) do
+    :erlang.error({:badmap, non_map})
+  end
+
+  defp do_take_in(acc, map, key, subkeys) do
+    if key in subkeys do
+      put(acc, key, get(map, key))
+    else
+      acc
+    end
+  end
+
+  @doc """
   Gets the value for a specific `key` in `map`.
 
   If `key` is present in `map` with value `value`, then `value` is

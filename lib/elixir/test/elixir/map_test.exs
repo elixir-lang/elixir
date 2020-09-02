@@ -102,6 +102,12 @@ defmodule MapTest do
     assert_raise BadMapError, fn -> Map.take(:foo, []) end
   end
 
+  test "take_in/2" do
+    assert Map.take_in(%{a: 1, b: %{c: 10, d: %{e: 5, f: 3}}}, [b: [d: [:f]]]) == %{b: %{d: %{f: 3}}}
+    assert Map.take_in(%{a: 1, b: %{c: 10, d: %{e: 5, f: 3}}}, []) == %{a: 1, b: %{c: 10, d: %{e: 5, f: 3}}}
+    assert_raise BadMapError, fn -> Map.take_in(:foo, []) end
+  end
+
   test "drop/2" do
     assert Map.drop(%{a: 1, b: 2, c: 3}, [:b, :c]) == %{a: 1}
     assert_raise BadMapError, fn -> Map.drop(:foo, []) end
