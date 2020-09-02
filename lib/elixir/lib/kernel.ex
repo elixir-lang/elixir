@@ -1384,6 +1384,16 @@ defmodule Kernel do
       iex> [1, 2, 3, 2, 1] -- [1, 2, 2]
       [3, 1]
 
+  The `--/2` operator is right associative, meaning:
+
+      iex> [1, 2, 3] -- [2] -- [3]
+      [1, 3]
+
+  As it is equivalent to:
+
+      iex> [1, 2, 3] -- ([2] -- [3])
+      [1, 3]
+
   """
   @spec list -- list :: list
   def left -- right do
