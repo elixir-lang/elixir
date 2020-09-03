@@ -1050,6 +1050,7 @@ defmodule Registry do
       :error
 
   """
+  @doc since: "1.11.0"
   @spec delete_meta(registry, meta_key) :: :ok
   def delete_meta(registry, key) when is_atom(registry) and (is_atom(key) or is_tuple(key)) do
     try do
