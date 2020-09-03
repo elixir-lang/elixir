@@ -106,7 +106,7 @@ defmodule Config.ProviderTest do
     end
 
     test "returns :booted if already booted and prunes config file" do
-      init_and_assert_boot(prune_after_boot: true)
+      init_and_assert_boot(prune_runtime_sys_config_after_boot: true)
       Application.put_all_env(Keyword.take(consult(@sys_config), [:elixir]))
       assert boot() == :booted
       refute_received :restart
@@ -115,7 +115,7 @@ defmodule Config.ProviderTest do
 
     test "returns :booted if already booted and runs validate_compile_env" do
       init_and_assert_boot(
-        prune_after_boot: true,
+        prune_runtime_sys_config_after_boot: true,
         validate_compile_env: [{:elixir, [:unknown], {:ok, :value}}]
       )
 
@@ -135,14 +135,15 @@ defmodule Config.ProviderTest do
 
     test "returns without rebooting" do
       reader = {Config.Reader, fixture_path("configs/kernel.exs")}
-      init = Config.Provider.init([reader], @sys_config, reboot_after_config: false)
+      init = Config.Provider.init([reader], @sys_config, reboot_system_after_config: false)
       Application.put_all_env(init)
 
       assert capture_abort(fn ->
                Provider.boot(fn ->
                  raise "should not be called"
                end)
-             end) =~ "Cannot configure :kernel because :reboot_after_config has been set to false"
+             end) =~
+               "Cannot configure :kernel because :reboot_system_after_config has been set to false"
 
       # Make sure values before and after match
       write_sys_config!(kernel: [elixir_reboot: true])
@@ -167,7 +168,7 @@ defmodule Config.ProviderTest do
   end
 
   defp init_and_assert_boot(opts \\ []) do
-    init(opts)
+    init(opts ++ [reboot_system_after_config: true])
     boot()
     assert_received :restart
   end

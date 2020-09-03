@@ -650,27 +650,28 @@ defmodule Mix.Tasks.Release do
   The following options can be set inside your releases key in your `mix.exs`
   to control how config providers work:
 
-    * `:start_distribution_during_config` - on Erlang/OTP 22+, releases
-      only start the Erlang VM distribution features after the config files
-      are evaluated. You can set it to `true` if you need distribution during
-      configuration. Defaults to `false`.
-
     * `:reboot_system_after_config` - every time your release is configured,
       the system is rebooted to allow the new configuration to take place.
       You can set this option to `false` to disable the rebooting for applications
       that are sensitive to boot time but, in doing so, note you won't be able
-      to configure system applications, such as `:kernel`, `:stdlib` and `:elixir`
-      itself. Defaults to `true`.
+      to configure system applications, such as `:kernel` and `:stdlib`.
+      Defaults to `true` if using the deprecated `config/releases.exs`,
+      `false` otherwise.
 
-    * `:prune_runtime_sys_config_after_boot` - every time your system boots,
-      the release will write a config file to your tmp directory. These
-      configuration files are generally small. But if you are concerned with
-      disk space or if you have other restrictions, you can ask the system to
-      remove said config files after boot. The downside is that you will no
-      longer be able to restart the system internally (neither via
-      `System.restart/0` nor `bin/RELEASE_NAME restart`). If you need a restart,
+    * `:prune_runtime_sys_config_after_boot` - if `:reboot_system_after_config`
+      is set, every time your system boots, the release will write a config file
+      to your tmp directory. These configuration files are generally small.
+      But if you are concerned with disk space or if you have other restrictions,
+      you can ask the system to remove said config files after boot. The downside
+      is that you will no longer be able to restart the system internally (neither
+      via `System.restart/0` nor `bin/RELEASE_NAME restart`). If you need a restart,
       you will have to terminate the Operating System process and start a new
       one. Defaults to `false`.
+
+    * `:start_distribution_during_config` - if `:reboot_system_after_config` is
+      set, releases only start the Erlang VM distribution features after the config
+      files are evaluated. You can set it to `true` if you need distribution during
+      configuration. Defaults to `false` from Erlang/OTP 22+.
 
     * `:config_providers` - a list of tuples with custom config providers.
       See `Config.Provider` for more information. Defaults to `[]`.
@@ -1152,6 +1153,7 @@ defmodule Mix.Tasks.Release do
     version_path = release.version_path
     File.rm_rf!(version_path)
     File.mkdir_p!(version_path)
+    release = maybe_add_config_reader_provider(config, release, version_path)
 
     consolidation_path =
       if config[:consolidate_protocols] do
@@ -1165,7 +1167,6 @@ defmodule Mix.Tasks.Release do
         []
       end
 
-    release = maybe_add_config_reader_provider(config, release, version_path)
     vm_args_path = Path.join(version_path, "vm.args")
     cookie_path = Path.join(release.path, "releases/COOKIE")
     start_erl_path = Path.join(release.path, "releases/start_erl.data")
@@ -1188,20 +1189,27 @@ defmodule Mix.Tasks.Release do
     default_path = config[:config_path] |> Path.dirname() |> Path.join("runtime.exs")
     deprecated_path = config[:config_path] |> Path.dirname() |> Path.join("releases.exs")
 
-    path =
+    {path, reboot?} =
       cond do
         path = opts[:runtime_config_path] ->
-          path
+          {path, false}
 
         File.exists?(default_path) ->
-          default_path
+          if File.exists?(deprecated_path) do
+            IO.warn(
+              "both #{inspect(default_path)} and #{inspect(deprecated_path)} have been " <>
+                "found, but only #{inspect(default_path)} will be used"
+            )
+          end
+
+          {default_path, false}
 
         File.exists?(deprecated_path) ->
           # TODO: Warn from Elixir v1.13 onwards
-          deprecated_path
+          {deprecated_path, true}
 
         true ->
-          nil
+          {nil, false}
       end
 
     cond do
@@ -1211,7 +1219,8 @@ defmodule Mix.Tasks.Release do
         File.cp!(path, Path.join(version_path, "runtime.exs"))
         init = {:system, "RELEASE_ROOT", "/releases/#{release.version}/runtime.exs"}
         opts = [path: init, env: Mix.env(), target: Mix.target(), imports: :disabled]
-        update_in(release.config_providers, &[{Config.Reader, opts} | &1])
+        release = update_in(release.config_providers, &[{Config.Reader, opts} | &1])
+        update_in(release.options, &Keyword.put_new(&1, :reboot_system_after_config, reboot?))
 
       release.config_providers == [] ->
         skipping("runtime configuration (#{default_path} not found)")
@@ -1421,7 +1430,7 @@ defmodule Mix.Tasks.Release do
   defp release_mode(release, env_var) do
     # TODO: Remove otp_release check once we require Erlang/OTP 23+
     otp_gte_23? = :erlang.system_info(:otp_release) >= '23'
-    reboot? = Keyword.get(release.options, :reboot_system_after_config, true)
+    reboot? = Keyword.get(release.options, :reboot_system_after_config, false)
 
     if otp_gte_23? and reboot? and release.config_providers != [] do
       "-elixir -config_provider_reboot_mode #{env_var}"

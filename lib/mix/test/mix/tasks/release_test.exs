@@ -354,9 +354,9 @@ defmodule Mix.Tasks.ReleaseTest do
     end)
   end
 
-  test "assembles a bootable release with runtime configuration" do
+  test "assembles a rebootable release with runtime configuration" do
     in_fixture("release_test", fn ->
-      config = [releases: [runtime_config: []]]
+      config = [releases: [runtime_config: [reboot_system_after_config: true]]]
 
       Mix.Project.in_project(:release_test, ".", config, fn _ ->
         File.write!("config/runtime.exs", """
