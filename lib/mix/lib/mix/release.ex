@@ -429,12 +429,14 @@ defmodule Mix.Release do
 
   defp merge_provider_config(release, sys_config, config_path) do
     {reboot?, extra_config, initial_config} = start_distribution(release)
-    prune_after_boot = Keyword.get(release.options, :prune_runtime_sys_config_after_boot, false)
+
+    prune_runtime_sys_config_after_boot =
+      Keyword.get(release.options, :prune_runtime_sys_config_after_boot, false)
 
     opts = [
       extra_config: initial_config,
-      prune_after_boot: prune_after_boot,
-      reboot_after_config: reboot?,
+      prune_runtime_sys_config_after_boot: prune_runtime_sys_config_after_boot,
+      reboot_system_after_config: reboot?,
       validate_compile_env: validate_compile_env(release)
     ]
 
@@ -458,7 +460,7 @@ defmodule Mix.Release do
   end
 
   defp start_distribution(%{options: opts}) do
-    reboot? = Keyword.get(opts, :reboot_system_after_config, true)
+    reboot? = Keyword.get(opts, :reboot_system_after_config, false)
     early_distribution? = Keyword.get(opts, :start_distribution_during_config, false)
 
     if not reboot? or early_distribution? do

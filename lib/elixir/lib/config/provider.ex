@@ -109,10 +109,12 @@ defmodule Config.Provider do
     :providers,
     :config_path,
     extra_config: [],
-    prune_after_boot: false,
-    reboot_after_config: true,
+    prune_runtime_sys_config_after_boot: false,
+    reboot_system_after_config: false,
     validate_compile_env: false
   ]
+
+  @reserved_apps [:kernel, :stdlib]
 
   @doc """
   Validates a `t:config_path/0`.
@@ -194,7 +196,6 @@ defmodule Config.Provider do
 
   defp boot_providers(path, provider, reboot_config, reboot_fun) do
     validate_no_cyclic_boot!(path)
-    loaded_applications = :application.loaded_applications()
     original_config = read_config!(path)
 
     config =
@@ -202,16 +203,16 @@ defmodule Config.Provider do
       |> Config.__merge__(provider.extra_config)
       |> run_providers(provider)
 
-    if provider.reboot_after_config do
+    if provider.reboot_system_after_config do
       config
       |> Config.__merge__(reboot_config)
       |> write_config!(path)
 
       reboot_fun.()
     else
-      for {app, _, _} <- loaded_applications, config[app] != original_config[app] do
+      for app <- @reserved_apps, config[app] != original_config[app] do
         abort("""
-        Cannot configure #{inspect(app)} because :reboot_after_config has been set \
+        Cannot configure #{inspect(app)} because :reboot_system_after_config has been set \
         to false and #{inspect(app)} has already been loaded, meaning any further \
         configuration won't have an effect.
 
@@ -316,8 +317,8 @@ defmodule Config.Provider do
     Process.sleep(:infinity)
   end
 
-  defp booted_value(%{prune_after_boot: true}, path), do: {:booted, path}
-  defp booted_value(%{prune_after_boot: false}, _path), do: {:booted, nil}
+  defp booted_value(%{prune_runtime_sys_config_after_boot: true}, path), do: {:booted, path}
+  defp booted_value(%{prune_runtime_sys_config_after_boot: false}, _path), do: {:booted, nil}
 
   defp validate_no_cyclic_boot!(path) do
     if System.get_env("ELIXIR_CONFIG_PROVIDER_BOOTED") do

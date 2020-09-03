@@ -70,19 +70,26 @@ defmodule Mix.Tasks.Loadconfig do
         Mix.shell().error("""
         Cannot configure base applications: #{inspect(reserved_apps)}
 
-        These applications are already started by the time Mix loads and
-        therefore these configurations have no effect.
+        These applications are already started by the time the configuration
+        executes and these configurations have no effect.
 
-        If you want to configure these applications for a release, wrap
-        them in a condition, such as:
+        If you want to configure these applications for a release, you can
+        specify them in your vm.args file:
+
+            -kernel config_key config_value
+
+        Alternatively, if you must configure them dynamically, you can wrap
+        them in a conditional block in your config files:
 
             if System.get_env("RELEASE_MODE") do
               config :kernel, ...
             end
 
-        Alternatively, specify the configuration in your vm.args file:
+        and then configure your releases to reboot after configuration:
 
-            -kernel config_key config_value
+            releases: [
+              my_app: [reboot_system_after_config: true]
+            ]
 
         This happened when loading #{Path.relative_to_cwd(file)} or
         one of its imports.
