@@ -1035,6 +1035,34 @@ defmodule Registry do
   end
 
   @doc """
+  Deletes registry metadata for the given `key` in `registry`.
+
+  ## Examples
+
+      iex> Registry.start_link(keys: :unique, name: Registry.DeleteMetaTest)
+      iex> Registry.put_meta(Registry.DeleteMetaTest, :custom_key, "custom_value")
+      :ok
+      iex> Registry.meta(Registry.DeleteMetaTest, :custom_key)
+      {:ok, "custom_value"}
+      iex> Registry.delete_meta(Registry.DeleteMetaTest, :custom_key)
+      :ok
+      iex> Registry.meta(Registry.DeleteMetaTest, :custom_key)
+      :error
+
+  """
+  @doc since: "1.11.0"
+  @spec delete_meta(registry, meta_key) :: :ok
+  def delete_meta(registry, key) when is_atom(registry) and (is_atom(key) or is_tuple(key)) do
+    try do
+      :ets.delete(registry, key)
+      :ok
+    catch
+      :error, :badarg ->
+        raise ArgumentError, "unknown registry: #{inspect(registry)}"
+    end
+  end
+
+  @doc """
   Returns the number of registered keys in a registry.
   It runs in constant time.
 
