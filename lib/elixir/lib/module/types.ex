@@ -418,10 +418,20 @@ defmodule Module.Types do
     hints |> Enum.uniq() |> Enum.reverse() |> Enum.map(&format_message_hint/1)
   end
 
-  defp format_message_hint(:dynamic_dot) do
+  defp format_message_hint(:inferred_dot) do
     """
     HINT: "var.field" (without parentheses) implies "var" is a map() while \
     "var.fun()" (with parentheses) implies "var" is an atom()
+
+    """
+  end
+
+  defp format_message_hint(:inferred_bitstring_spec) do
+    """
+    HINT: all expressions given to binaries are assumed to be of type \
+    integer unless said otherwise. For example, <<expr>> assumes \"expr\" \
+    is an integer. Pass a modifier, such as <<expr::float>> or <<expr::binary>>, \
+    to change the default behaviour.
 
     """
   end
@@ -436,10 +446,13 @@ defmodule Module.Types do
   defp format_type_hint(type, expr) do
     cond do
       dynamic_map_dot?(type, expr) ->
-        {" (due to calling var.field)", :dynamic_dot}
+        {" (due to calling var.field)", :inferred_dot}
 
       dynamic_remote_call?(type, expr) ->
-        {" (due to calling var.fun())", :dynamic_dot}
+        {" (due to calling var.fun())", :inferred_dot}
+
+      inferred_bitstring_spec?(type, expr) ->
+        {[], :inferred_bitstring_spec}
 
       true ->
         :error
@@ -466,6 +479,16 @@ defmodule Module.Types do
     end
   end
 
+  defp inferred_bitstring_spec?(type, expr) do
+    with true <- integer_type?(type),
+         {:<<>>, _, args} <- expr,
+         true <- Enum.any?(args, &match?({:"::", [{:inferred_bitstring_spec, true} | _], _}, &1)) do
+      true
+    else
+      _ -> false
+    end
+  end
+
   ## Formatting helpers
 
   defp indent(string) do
@@ -479,4 +502,7 @@ defmodule Module.Types do
   defp atom_type?(:boolean), do: true
   defp atom_type?({:atom, _}), do: false
   defp atom_type?(_other), do: false
+
+  defp integer_type?(:integer), do: true
+  defp integer_type?(_other), do: false
 end

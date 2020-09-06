@@ -1021,6 +1021,11 @@ defmodule Module.CheckerTest do
           # a.ex:2
           <<foo>>
 
+      HINT: all expressions given to binaries are assumed to be of type \
+      integer unless said otherwise. For example, <<expr>> assumes \"expr\" \
+      is an integer. Pass a modifier, such as <<expr::float>> or <<expr::binary>>, \
+      to change the default behaviour.
+
       Conflict found at
         a.ex:2: A.a/1
 
