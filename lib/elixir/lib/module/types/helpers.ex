@@ -3,6 +3,9 @@ defmodule Module.Types.Helpers do
 
   alias Module.Types.Infer
 
+  @prefix quote(do: ...)
+  @suffix quote(do: ...)
+
   @doc """
   Guard function to check if an AST node is a variable.
   """
@@ -156,7 +159,45 @@ defmodule Module.Types.Helpers do
     end
   end
 
-  def of_binary({:"::", _meta, [expr, specifiers]}, stack, context, fun) do
+  @doc """
+  Handles binaries.
+
+  In the stack, we add nodes such as <<expr>>, <<..., expr>>, etc,
+  based on the position of the expression within the binary.
+  """
+  def of_binary([], _stack, context, _fun) do
+    {:ok, context}
+  end
+
+  def of_binary([head], stack, context, fun) do
+    head_stack = push_expr_stack({:<<>>, meta(head), [head]}, stack)
+    of_binary_segment(head, head_stack, context, fun)
+  end
+
+  def of_binary([head | tail], stack, context, fun) do
+    head_stack = push_expr_stack({:<<>>, meta(head), [head, @suffix]}, stack)
+
+    case of_binary_segment(head, head_stack, context, fun) do
+      {:ok, context} -> of_binary_many(tail, stack, context, fun)
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp of_binary_many([last], stack, context, fun) do
+    last_stack = push_expr_stack({:<<>>, meta(last), [@prefix, last]}, stack)
+    of_binary_segment(last, last_stack, context, fun)
+  end
+
+  defp of_binary_many([head | tail], stack, context, fun) do
+    head_stack = push_expr_stack({:<<>>, meta(head), [@prefix, head, @suffix]}, stack)
+
+    case of_binary_segment(head, head_stack, context, fun) do
+      {:ok, context} -> of_binary_many(tail, stack, context, fun)
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp of_binary_segment({:"::", _meta, [expr, specifiers]}, stack, context, fun) do
     expected_type =
       collect_binary_specifier(specifiers, &binary_type(stack.context, &1)) || :integer
 
@@ -179,17 +220,9 @@ defmodule Module.Types.Helpers do
     end
   end
 
-  def of_binary(expr, stack, context, fun) do
-    case fun.(expr, stack, context) do
-      {:ok, type, context} when type in [:integer, :float, :number, :binary, :dynamic] ->
-        {:ok, context}
-
-      {:ok, type, _context} ->
-        {:error, {:invalid_binary_type, type}}
-
-      {:error, reason} ->
-        {:error, reason}
-    end
+  # TODO: Remove this clause once we properly handle comprehensions
+  defp of_binary_segment({:<-, _, _}, _stack, context, _fun) do
+    {:ok, context}
   end
 
   # Collect binary type specifiers,
@@ -223,9 +256,10 @@ defmodule Module.Types.Helpers do
   defp float_type?({:float, _, _}), do: true
   defp float_type?(_), do: false
 
+  defp meta({_, meta, _}), do: meta
+
   # TODO: Remove this and let multiple when be treated as multiple clauses,
   #       meaning they will be intersection types
-  # TODO
   def guards_to_or([]) do
     []
   end

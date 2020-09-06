@@ -33,13 +33,8 @@ defmodule Module.Types.Pattern do
   end
 
   # <<...>>>
-  def of_pattern({:<<>>, _meta, args} = expr, stack, context) do
-    stack = push_expr_stack(expr, stack)
-
-    result =
-      reduce_ok(args, context, fn expr, context ->
-        of_binary(expr, stack, context, &of_pattern/3)
-      end)
+  def of_pattern({:<<>>, _meta, args}, stack, context) do
+    result = of_binary(args, stack, context, &of_pattern/3)
 
     case result do
       {:ok, context} -> {:ok, :binary, context}

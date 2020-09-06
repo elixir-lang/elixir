@@ -747,15 +747,15 @@ defmodule Module.CheckerTest do
           # a.ex:2
           var = "abc"
 
-      where "var" was given the type binary() in:
-
-          # a.ex:2
-          var = "abc"
-
       where "var" was given the type integer() in:
 
           # a.ex:2
           var = 123
+
+      where "var" was given the type binary() in:
+
+          # a.ex:2
+          var = "abc"
 
       Conflict found at
         a.ex:2: A.a/2
@@ -782,17 +782,17 @@ defmodule Module.CheckerTest do
       in expression:
 
           # a.ex:2
-          <<var::integer(), var::binary()>>
-
-      where "var" was given the type binary() in:
-
-          # a.ex:2
-          <<var::integer(), var::binary()>>
+          <<..., var::binary()>>
 
       where "var" was given the type integer() in:
 
           # a.ex:2
-          <<var::integer(), var::binary()>>
+          <<var::integer(), ...>>
+
+      where "var" was given the type binary() in:
+
+          # a.ex:2
+          <<..., var::binary()>>
 
       Conflict found at
         a.ex:2: A.a/1
@@ -853,15 +853,15 @@ defmodule Module.CheckerTest do
           # a.ex:2
           is_integer(var) and is_binary(var)
 
-      where "var" was given the type binary() in:
-
-          # a.ex:2
-          is_binary(var)
-
       where "var" was given the type integer() in:
 
           # a.ex:2
           is_integer(var)
+
+      where "var" was given the type binary() in:
+
+          # a.ex:2
+          is_binary(var)
 
       Conflict found at
         a.ex:2: A.a/1
@@ -890,20 +890,20 @@ defmodule Module.CheckerTest do
           # a.ex:2
           is_integer(x) and is_binary(y)
 
-      where "x" was given the type integer() in:
+      where "y" was given the same type as "x" in:
 
           # a.ex:2
-          is_integer(x)
+          x = y
 
       where "y" was given the type binary() in:
 
           # a.ex:2
           is_binary(y)
 
-      where "y" was given the same type as "x" in:
+      where "x" was given the type integer() in:
 
           # a.ex:2
-          x = y
+          is_integer(x)
 
       Conflict found at
         a.ex:2: A.a/1
@@ -932,20 +932,20 @@ defmodule Module.CheckerTest do
           # a.ex:2
           is_integer(x) and is_binary(y) and is_boolean(z)
 
-      where "x" was given the type integer() in:
+      where "y" was given the same type as "x" in:
 
           # a.ex:2
-          is_integer(x)
+          x = y
 
       where "y" was given the type binary() in:
 
           # a.ex:2
           is_binary(y)
 
-      where "y" was given the same type as "x" in:
+      where "x" was given the type integer() in:
 
           # a.ex:2
-          x = y
+          is_integer(x)
 
       Conflict found at
         a.ex:2: A.a/2
@@ -974,15 +974,15 @@ defmodule Module.CheckerTest do
           # a.ex:2
           :foo = x
 
-      where "x" was given the type :foo in:
-
-          # a.ex:2
-          :foo = x
-
       where "x" was given the type integer() in:
 
           # a.ex:2
           is_integer(x)
+
+      where "x" was given the type :foo in:
+
+          # a.ex:2
+          :foo = x
 
       Conflict found at
         a.ex:2: A.a/1
@@ -1011,15 +1011,15 @@ defmodule Module.CheckerTest do
           # a.ex:2
           <<foo>>
 
-      where "foo" was given the type integer() in:
-
-          # a.ex:2
-          <<foo>>
-
       where "foo" was given the type binary() in:
 
           # a.ex:2
           is_binary(foo)
+
+      where "foo" was given the type integer() in:
+
+          # a.ex:2
+          <<foo>>
 
       Conflict found at
         a.ex:2: A.a/1
@@ -1046,15 +1046,15 @@ defmodule Module.CheckerTest do
           # a.ex:2
           <<foo::integer()>>
 
-      where "foo" was given the type integer() in:
-
-          # a.ex:2
-          <<foo::integer()>>
-
       where "foo" was given the type binary() in:
 
           # a.ex:2
           is_binary(foo)
+
+      where "foo" was given the type integer() in:
+
+          # a.ex:2
+          <<foo::integer()>>
 
       Conflict found at
         a.ex:2: A.a/1
@@ -1088,15 +1088,15 @@ defmodule Module.CheckerTest do
           # a.ex:4
           :atom = foo
 
-      where "foo" was given the type :atom in:
-
-          # a.ex:4
-          :atom = foo
-
       where "foo" was given the type map() (due to calling var.field) in:
 
           # a.ex:3
           foo.bar
+
+      where "foo" was given the type :atom in:
+
+          # a.ex:4
+          :atom = foo
 
       HINT: "var.field" (without parentheses) implies "var" is a map() while \
       "var.fun()" (with parentheses) implies "var" is an atom()
@@ -1131,15 +1131,15 @@ defmodule Module.CheckerTest do
           # a.ex:4
           module.__struct__
 
-      where "module" was given the type map() (due to calling var.field) in:
-
-          # a.ex:4
-          module.__struct__
-
       where "module" was given the type atom() in:
 
           # a.ex:3
           %module{}
+
+      where "module" was given the type map() (due to calling var.field) in:
+
+          # a.ex:4
+          module.__struct__
 
       HINT: "var.field" (without parentheses) implies "var" is a map() while \
       "var.fun()" (with parentheses) implies "var" is an atom()
@@ -1173,17 +1173,18 @@ defmodule Module.CheckerTest do
           # a.ex:3
           foo.__struct__()
 
-      where "foo" was given the type atom() (due to calling var.fun()) in:
-
-          # a.ex:3
-          foo.__struct__()
-
       where "foo" was given the type map() in:
 
           # a.ex:2
           is_map(foo)
 
-      HINT: "var.field" (without parentheses) implies "var" is a map() while "var.fun()" (with parentheses) implies "var" is an atom()
+      where "foo" was given the type atom() (due to calling var.fun()) in:
+
+          # a.ex:3
+          foo.__struct__()
+
+      HINT: "var.field" (without parentheses) implies "var" is a map() while \
+      "var.fun()" (with parentheses) implies "var" is an atom()
 
       Conflict found at
         a.ex:3: A.a/1

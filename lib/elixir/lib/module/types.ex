@@ -214,6 +214,7 @@ defmodule Module.Types do
       true ->
         simplify_left? = simplify_type?(left, right)
         simplify_right? = simplify_type?(right, left)
+
         {traces, hints} = format_traces(traces, simplify_left? or simplify_right?)
 
         [
@@ -257,7 +258,9 @@ defmodule Module.Types do
   end
 
   defp format_traces(traces, simplify?) do
-    Enum.map_reduce(traces, [], fn
+    traces
+    |> Enum.reverse()
+    |> Enum.map_reduce([], fn
       {var, {:type, type, expr, location}}, hints ->
         {hint, hints} = format_type_hint(type, expr, hints)
 
