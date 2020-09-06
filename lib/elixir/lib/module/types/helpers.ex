@@ -24,6 +24,12 @@ defmodule Module.Types.Helpers do
   def var_name({_name, meta, _context}), do: Keyword.fetch!(meta, :version)
 
   @doc """
+  Returns the AST metadata.
+  """
+  def get_meta({_, meta, _}), do: meta
+  def get_meta(_other), do: []
+
+  @doc """
   Push expression to stack.
 
   The expression stack is used to give the context where a type variable
@@ -81,10 +87,6 @@ defmodule Module.Types.Helpers do
     case fun.(head) do
       {:ok, elem} ->
         do_map_ok(tail, [elem | acc], fun)
-
-      result when elem(result, 0) == :ok ->
-        result = Tuple.delete_at(result, 0)
-        do_map_ok(tail, [result | acc], fun)
 
       {:error, reason} ->
         {:error, reason}
@@ -166,12 +168,12 @@ defmodule Module.Types.Helpers do
   end
 
   def of_binary([head], stack, context, fun) do
-    head_stack = push_expr_stack({:<<>>, meta(head), [head]}, stack)
+    head_stack = push_expr_stack({:<<>>, get_meta(head), [head]}, stack)
     of_binary_segment(head, head_stack, context, fun)
   end
 
   def of_binary([head | tail], stack, context, fun) do
-    head_stack = push_expr_stack({:<<>>, meta(head), [head, @suffix]}, stack)
+    head_stack = push_expr_stack({:<<>>, get_meta(head), [head, @suffix]}, stack)
 
     case of_binary_segment(head, head_stack, context, fun) do
       {:ok, context} -> of_binary_many(tail, stack, context, fun)
@@ -180,12 +182,12 @@ defmodule Module.Types.Helpers do
   end
 
   defp of_binary_many([last], stack, context, fun) do
-    last_stack = push_expr_stack({:<<>>, meta(last), [@prefix, last]}, stack)
+    last_stack = push_expr_stack({:<<>>, get_meta(last), [@prefix, last]}, stack)
     of_binary_segment(last, last_stack, context, fun)
   end
 
   defp of_binary_many([head | tail], stack, context, fun) do
-    head_stack = push_expr_stack({:<<>>, meta(head), [@prefix, head, @suffix]}, stack)
+    head_stack = push_expr_stack({:<<>>, get_meta(head), [@prefix, head, @suffix]}, stack)
 
     case of_binary_segment(head, head_stack, context, fun) do
       {:ok, context} -> of_binary_many(tail, stack, context, fun)
@@ -251,8 +253,6 @@ defmodule Module.Types.Helpers do
 
   defp float_type?({:float, _, _}), do: true
   defp float_type?(_), do: false
-
-  defp meta({_, meta, _}), do: meta
 
   # TODO: Remove this and let multiple when be treated as multiple clauses,
   #       meaning they will be intersection types

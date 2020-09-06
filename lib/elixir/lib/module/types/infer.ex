@@ -525,9 +525,6 @@ defmodule Module.Types.Infer do
     end)
   end
 
-  defp get_meta({_fun, meta, _args}) when is_list(meta), do: meta
-  defp get_meta(_other), do: []
-
   # TODO: We should check if structs have keys that do not belong to them.
   #       This might not be the best place to do it since it will only be
   #       called if the type is unified. A post-pass walking over all
