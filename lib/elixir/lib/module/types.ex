@@ -196,83 +196,39 @@ defmodule Module.Types do
 
   def format_warning({:unable_unify, left, right, {location, expr, traces}}) do
     cond do
-      (match?({:ok, _}, map_dot(expr)) and (map_type?(left) and atom_type?(right))) or
-          (atom_type?(left) and map_type?(right)) ->
-        {:ok, {map, field}} = map_dot(expr)
-
-        """
-        parentheses are required when dynamically invoking zero-arity functions \
-        #{format_expr(expr, location)}\
-        "#{expr_to_string(map)}" is an atom and you attempted to fetch the field \
-        #{field}. Make sure that "#{expr_to_string(map)}" is a map or add parentheses \
-        to invoke a function instead:
-
-            #{indent(expr_to_string(invert_parens(expr)))}
-
-        Conflict found at\
-        """
-
-      (match?({:ok, _}, remote_call(expr)) and (map_type?(left) and atom_type?(right))) or
-          (atom_type?(left) and map_type?(right)) ->
-        {:ok, {module, fun}} = remote_call(expr)
-
-        """
-        parentheses are not allowed when fetching fields from a map \
-        #{format_expr(expr, location)}\
-        "#{expr_to_string(module)}" is a map and you attempted to invoke the function \
-        #{fun}/0. Make sure that "#{expr_to_string(module)}" is an atom or remove \
-        parentheses to fetch a field:
-
-            #{indent(expr_to_string(invert_parens(expr)))}
-
-        Conflict found at\
-        """
-
       map_type?(left) and map_type?(right) and match?({:ok, _}, missing_field(left, right)) ->
         {:ok, atom} = missing_field(left, right)
 
         # Drop the last trace which is the expression map.foo
         traces = Enum.drop(traces, 1)
+        {traces, hints} = format_traces(traces, false)
 
         [
           "undefined field \"#{atom}\" ",
           format_expr(expr, location),
-          format_traces(traces),
+          traces,
+          format_message_hints(hints),
           "Conflict found at"
         ]
 
       true ->
+        simplify_left? = simplify_type?(left, right)
+        simplify_right? = simplify_type?(right, left)
+
+        {traces, hints} = format_traces(traces, simplify_left? or simplify_right?)
+
         [
           "incompatible types:\n\n    ",
-          format_types(left, right),
+          format_type(left, simplify_left?),
+          " !~ ",
+          format_type(right, simplify_right?),
           "\n\n",
           format_expr(expr, location),
-          format_traces(traces),
+          traces,
+          format_message_hints(hints),
           "Conflict found at"
         ]
     end
-  end
-
-  defp map_dot(expr) do
-    with {{:., _meta1, [map, field]}, meta2, []} <- expr,
-         true <- Keyword.get(meta2, :no_parens, false) do
-      {:ok, {map, field}}
-    else
-      _ -> :error
-    end
-  end
-
-  defp remote_call(expr) do
-    with {{:., _meta1, [module, field]}, meta2, []} <- expr,
-         false <- Keyword.get(meta2, :no_parens, false) do
-      {:ok, {module, field}}
-    else
-      _ -> :error
-    end
-  end
-
-  defp invert_parens({{:., meta1, [expr1, expr2]}, meta2, []}) do
-    {{:., meta1, [expr1, expr2]}, Keyword.update(meta2, :no_parens, true, &not/1), []}
   end
 
   defp missing_field(
@@ -297,39 +253,127 @@ defmodule Module.Types do
     end
   end
 
-  defp format_types(left, right) do
-    cond do
-      map_type?(left) and not map_type?(right) ->
-        [format_simplified_map(left), " !~ ", format_type(right)]
-
-      not map_type?(left) and map_type?(right) ->
-        [format_type(left), " !~ ", format_simplified_map(right)]
-
-      true ->
-        [format_type(left), " !~ ", format_type(right)]
-    end
+  defp format_traces([], _simplify?) do
+    {[], []}
   end
 
-  defp map_type?({:map, _}), do: true
-  defp map_type?(_other), do: false
+  defp format_traces(traces, simplify?) do
+    traces
+    |> Enum.reverse()
+    |> Enum.map_reduce([], fn
+      {var, {:type, type, expr, location}}, hints ->
+        {hint, hints} = format_type_hint(type, expr, hints)
 
-  defp atom_type?(:atom), do: true
-  defp atom_type?(:boolean), do: true
-  defp atom_type?({:atom, _}), do: false
-  defp atom_type?(_other), do: false
+        trace = [
+          "where \"",
+          Macro.to_string(var),
+          "\" was given the type ",
+          format_type(type, simplify?),
+          hint,
+          " in:\n\n    # ",
+          format_location(location),
+          "    ",
+          indent(expr_to_string(expr)),
+          "\n\n"
+        ]
 
-  defp format_simplified_map({:map, pairs}) do
+        {trace, hints}
+
+      {var1, {:var, var2, expr, location}}, hints ->
+        trace = [
+          "where \"",
+          Macro.to_string(var1),
+          "\" was given the same type as \"",
+          Macro.to_string(var2),
+          "\" in:\n\n    # ",
+          format_location(location),
+          "    ",
+          indent(expr_to_string(expr)),
+          "\n\n"
+        ]
+
+        {trace, hints}
+    end)
+  end
+
+  defp format_location({file, line, _mfa}) do
+    format_location({file, line})
+  end
+
+  defp format_location({file, line}) do
+    file = Path.relative_to_cwd(file)
+    line = if line, do: [Integer.to_string(line)], else: []
+    [file, ?:, line, ?\n]
+  end
+
+  ## TYPE FORMATTING
+
+  defp simplify_type?(type, other) do
+    map_type?(type) and not map_type?(other)
+  end
+
+  @doc false
+  def format_type({:map, pairs}, true) do
     case List.keyfind(pairs, {:atom, :__struct__}, 1) do
       {:required, {:atom, :__struct__}, {:atom, struct}} ->
         "%#{inspect(struct)}{}"
-
-      {:required, {:atom, :__struct__}, {:var, _} = var} ->
-        "%#{format_type(var)}{}"
 
       _ ->
         "map()"
     end
   end
+
+  def format_type({:union, types}, simplify?) do
+    "#{Enum.map_join(types, " | ", &format_type(&1, simplify?))}"
+  end
+
+  def format_type({:tuple, types}, simplify?) do
+    "{#{Enum.map_join(types, ", ", &format_type(&1, simplify?))}}"
+  end
+
+  def format_type({:list, type}, simplify?) do
+    "[#{format_type(type, simplify?)}]"
+  end
+
+  def format_type({:map, pairs}, false) do
+    case List.keytake(pairs, {:atom, :__struct__}, 1) do
+      {{:required, {:atom, :__struct__}, {:atom, struct}}, pairs} ->
+        "%#{inspect(struct)}{#{format_map_pairs(pairs)}}"
+
+      _ ->
+        "%{#{format_map_pairs(pairs)}}"
+    end
+  end
+
+  def format_type({:atom, literal}, _simplify?) do
+    inspect(literal)
+  end
+
+  def format_type({:var, index}, _simplify?) do
+    "var#{index}"
+  end
+
+  def format_type(atom, _simplify?) when is_atom(atom) do
+    "#{atom}()"
+  end
+
+  defp format_map_pairs(pairs) do
+    {atoms, others} = Enum.split_with(pairs, &match?({:required, {:atom, _}, _}, &1))
+    {required, optional} = Enum.split_with(others, &match?({:required, _, _}, &1))
+
+    Enum.map_join(atoms ++ required ++ optional, ", ", fn
+      {:required, {:atom, atom}, right} ->
+        "#{atom}: #{format_type(right, false)}"
+
+      {:required, left, right} ->
+        "#{format_type(left, false)} => #{format_type(right, false)}"
+
+      {:optional, left, right} ->
+        "optional(#{format_type(left, false)}) => #{format_type(right, false)}"
+    end)
+  end
+
+  ## EXPRESSION FORMATTING
 
   defp format_expr(nil, _location) do
     []
@@ -345,110 +389,11 @@ defmodule Module.Types do
     ]
   end
 
-  defp format_traces([]) do
-    []
-  end
-
-  defp format_traces(traces) do
-    Enum.map(traces, fn
-      {var, {:type, type, expr, location}} ->
-        [
-          "where \"",
-          Macro.to_string(var),
-          "\" was given the type ",
-          Module.Types.format_type(type),
-          " in:\n\n    # ",
-          format_location(location),
-          "    ",
-          indent(expr_to_string(expr)),
-          "\n\n"
-        ]
-
-      {var1, {:var, var2, expr, location}} ->
-        [
-          "where \"",
-          Macro.to_string(var1),
-          "\" was given the same type as \"",
-          Macro.to_string(var2),
-          "\" in:\n\n    # ",
-          format_location(location),
-          "    ",
-          indent(expr_to_string(expr)),
-          "\n\n"
-        ]
-    end)
-  end
-
-  defp format_location({file, line, _mfa}) do
-    format_location({file, line})
-  end
-
-  defp format_location({file, line}) do
-    file = Path.relative_to_cwd(file)
-    line = if line, do: [Integer.to_string(line)], else: []
-    [file, ?:, line, ?\n]
-  end
-
-  @doc false
-  def format_type({:union, types}) do
-    "#{Enum.map_join(types, " | ", &format_type/1)}"
-  end
-
-  def format_type({:tuple, types}) do
-    "{#{Enum.map_join(types, ", ", &format_type/1)}}"
-  end
-
-  def format_type({:list, type}) do
-    "[#{format_type(type)}]"
-  end
-
-  def format_type({:map, pairs}) do
-    case List.keytake(pairs, {:atom, :__struct__}, 1) do
-      {{:required, {:atom, :__struct__}, {:atom, struct}}, pairs} ->
-        "%#{inspect(struct)}{#{format_map_pairs(pairs)}}"
-
-      _ ->
-        "%{#{format_map_pairs(pairs)}}"
-    end
-  end
-
-  def format_type({:atom, literal}) do
-    inspect(literal)
-  end
-
-  def format_type({:var, index}) do
-    "var#{index}"
-  end
-
-  def format_type(atom) when is_atom(atom) do
-    "#{atom}()"
-  end
-
-  defp format_map_pairs(pairs) do
-    {atoms, others} = Enum.split_with(pairs, &match?({:required, {:atom, _}, _}, &1))
-    {required, optional} = Enum.split_with(others, &match?({:required, _, _}, &1))
-
-    Enum.map_join(atoms ++ required ++ optional, ", ", fn
-      {:required, {:atom, atom}, right} ->
-        "#{atom}: #{format_type(right)}"
-
-      {:required, left, right} ->
-        "#{format_type(left)} => #{format_type(right)}"
-
-      {:optional, left, right} ->
-        "optional(#{format_type(left)}) => #{format_type(right)}"
-    end)
-  end
-
   @doc false
   def expr_to_string(expr) do
     expr
     |> reverse_rewrite()
     |> Macro.to_string()
-  end
-
-  defp indent(string) do
-    String.replace(string, "\n", "    \n")
   end
 
   defp reverse_rewrite(guard) do
@@ -466,4 +411,98 @@ defmodule Module.Types do
       {mod, fun, args} -> {{:., [], [mod, fun]}, meta, args}
     end
   end
+
+  ## Hints
+
+  defp format_message_hints(hints) do
+    hints |> Enum.uniq() |> Enum.reverse() |> Enum.map(&format_message_hint/1)
+  end
+
+  defp format_message_hint(:inferred_dot) do
+    """
+    HINT: "var.field" (without parentheses) implies "var" is a map() while \
+    "var.fun()" (with parentheses) implies "var" is an atom()
+
+    """
+  end
+
+  defp format_message_hint(:inferred_bitstring_spec) do
+    """
+    HINT: all expressions given to binaries are assumed to be of type \
+    integer() unless said otherwise. For example, <<expr>> assumes "expr" \
+    is an integer. Pass a modifier, such as <<expr::float>> or <<expr::binary>>, \
+    to change the default behaviour.
+
+    """
+  end
+
+  defp format_type_hint(type, expr, hints) do
+    case format_type_hint(type, expr) do
+      {message, hint} -> {message, [hint | hints]}
+      :error -> {[], hints}
+    end
+  end
+
+  defp format_type_hint(type, expr) do
+    cond do
+      dynamic_map_dot?(type, expr) ->
+        {" (due to calling var.field)", :inferred_dot}
+
+      dynamic_remote_call?(type, expr) ->
+        {" (due to calling var.fun())", :inferred_dot}
+
+      inferred_bitstring_spec?(type, expr) ->
+        {[], :inferred_bitstring_spec}
+
+      true ->
+        :error
+    end
+  end
+
+  defp dynamic_map_dot?(type, expr) do
+    with true <- map_type?(type),
+         {{:., _meta1, [_map, _field]}, meta2, []} <- expr,
+         true <- Keyword.get(meta2, :no_parens, false) do
+      true
+    else
+      _ -> false
+    end
+  end
+
+  defp dynamic_remote_call?(type, expr) do
+    with true <- atom_type?(type),
+         {{:., _meta1, [_module, _field]}, meta2, []} <- expr,
+         false <- Keyword.get(meta2, :no_parens, false) do
+      true
+    else
+      _ -> false
+    end
+  end
+
+  defp inferred_bitstring_spec?(type, expr) do
+    with true <- integer_type?(type),
+         {:<<>>, _, args} <- expr,
+         true <- Enum.any?(args, &match?({:"::", [{:inferred_bitstring_spec, true} | _], _}, &1)) do
+      true
+    else
+      _ -> false
+    end
+  end
+
+  ## Formatting helpers
+
+  defp indent(string) do
+    String.replace(string, "\n", "    \n")
+  end
+
+  defp map_type?({:map, _}), do: true
+  defp map_type?(_other), do: false
+
+  defp atom_type?(:atom), do: true
+  defp atom_type?(:boolean), do: true
+  defp atom_type?({:atom, _}), do: false
+  defp atom_type?(_other), do: false
+
+  defp integer_type?(:integer), do: true
+  defp integer_type?(_other), do: false
 end

@@ -747,15 +747,15 @@ defmodule Module.CheckerTest do
           # a.ex:2
           var = "abc"
 
-      where "var" was given the type binary() in:
-
-          # a.ex:2
-          var = "abc"
-
       where "var" was given the type integer() in:
 
           # a.ex:2
           var = 123
+
+      where "var" was given the type binary() in:
+
+          # a.ex:2
+          var = "abc"
 
       Conflict found at
         a.ex:2: A.a/2
@@ -782,17 +782,17 @@ defmodule Module.CheckerTest do
       in expression:
 
           # a.ex:2
-          <<var::integer(), var::binary()>>
-
-      where "var" was given the type binary() in:
-
-          # a.ex:2
-          <<var::integer(), var::binary()>>
+          <<..., var::binary()>>
 
       where "var" was given the type integer() in:
 
           # a.ex:2
-          <<var::integer(), var::binary()>>
+          <<var::integer(), ...>>
+
+      where "var" was given the type binary() in:
+
+          # a.ex:2
+          <<..., var::binary()>>
 
       Conflict found at
         a.ex:2: A.a/1
@@ -853,15 +853,15 @@ defmodule Module.CheckerTest do
           # a.ex:2
           is_integer(var) and is_binary(var)
 
-      where "var" was given the type binary() in:
-
-          # a.ex:2
-          is_binary(var)
-
       where "var" was given the type integer() in:
 
           # a.ex:2
           is_integer(var)
+
+      where "var" was given the type binary() in:
+
+          # a.ex:2
+          is_binary(var)
 
       Conflict found at
         a.ex:2: A.a/1
@@ -890,20 +890,20 @@ defmodule Module.CheckerTest do
           # a.ex:2
           is_integer(x) and is_binary(y)
 
-      where "x" was given the type integer() in:
+      where "y" was given the same type as "x" in:
 
           # a.ex:2
-          is_integer(x)
+          x = y
 
       where "y" was given the type binary() in:
 
           # a.ex:2
           is_binary(y)
 
-      where "y" was given the same type as "x" in:
+      where "x" was given the type integer() in:
 
           # a.ex:2
-          x = y
+          is_integer(x)
 
       Conflict found at
         a.ex:2: A.a/1
@@ -932,20 +932,20 @@ defmodule Module.CheckerTest do
           # a.ex:2
           is_integer(x) and is_binary(y) and is_boolean(z)
 
-      where "x" was given the type integer() in:
+      where "y" was given the same type as "x" in:
 
           # a.ex:2
-          is_integer(x)
+          x = y
 
       where "y" was given the type binary() in:
 
           # a.ex:2
           is_binary(y)
 
-      where "y" was given the same type as "x" in:
+      where "x" was given the type integer() in:
 
           # a.ex:2
-          x = y
+          is_integer(x)
 
       Conflict found at
         a.ex:2: A.a/2
@@ -974,15 +974,15 @@ defmodule Module.CheckerTest do
           # a.ex:2
           :foo = x
 
-      where \"x\" was given the type :foo in:
-
-          # a.ex:2
-          :foo = x
-
-      where \"x\" was given the type integer() in:
+      where "x" was given the type integer() in:
 
           # a.ex:2
           is_integer(x)
+
+      where "x" was given the type :foo in:
+
+          # a.ex:2
+          :foo = x
 
       Conflict found at
         a.ex:2: A.a/1
@@ -1011,15 +1011,20 @@ defmodule Module.CheckerTest do
           # a.ex:2
           <<foo>>
 
-      where \"foo\" was given the type integer() in:
+      where "foo" was given the type binary() in:
+
+          # a.ex:2
+          is_binary(foo)
+
+      where "foo" was given the type integer() in:
 
           # a.ex:2
           <<foo>>
 
-      where \"foo\" was given the type binary() in:
-
-          # a.ex:2
-          is_binary(foo)
+      HINT: all expressions given to binaries are assumed to be of type \
+      integer() unless said otherwise. For example, <<expr>> assumes "expr" \
+      is an integer. Pass a modifier, such as <<expr::float>> or <<expr::binary>>, \
+      to change the default behaviour.
 
       Conflict found at
         a.ex:2: A.a/1
@@ -1046,15 +1051,15 @@ defmodule Module.CheckerTest do
           # a.ex:2
           <<foo::integer()>>
 
-      where \"foo\" was given the type integer() in:
-
-          # a.ex:2
-          <<foo::integer()>>
-
-      where \"foo\" was given the type binary() in:
+      where "foo" was given the type binary() in:
 
           # a.ex:2
           is_binary(foo)
+
+      where "foo" was given the type integer() in:
+
+          # a.ex:2
+          <<foo::integer()>>
 
       Conflict found at
         a.ex:2: A.a/1
@@ -1088,15 +1093,18 @@ defmodule Module.CheckerTest do
           # a.ex:4
           :atom = foo
 
+      where "foo" was given the type map() (due to calling var.field) in:
+
+          # a.ex:3
+          foo.bar
+
       where "foo" was given the type :atom in:
 
           # a.ex:4
           :atom = foo
 
-      where "foo" was given the type %{bar: var1, optional(dynamic()) => dynamic()} in:
-
-          # a.ex:3
-          foo.bar
+      HINT: "var.field" (without parentheses) implies "var" is a map() while \
+      "var.fun()" (with parentheses) implies "var" is an atom()
 
       Conflict found at
         a.ex:4: A.a/1
@@ -1119,15 +1127,27 @@ defmodule Module.CheckerTest do
       }
 
       warning = """
-      warning: parentheses are required when dynamically invoking zero-arity functions in expression:
+      warning: incompatible types:
+
+          map() !~ atom()
+
+      in expression:
 
           # a.ex:4
           module.__struct__
 
-      "module" is an atom and you attempted to fetch the field __struct__. Make sure that \
-      "module" is a map or add parentheses to invoke a function instead:
+      where "module" was given the type atom() in:
 
-          module.__struct__()
+          # a.ex:3
+          %module{}
+
+      where "module" was given the type map() (due to calling var.field) in:
+
+          # a.ex:4
+          module.__struct__
+
+      HINT: "var.field" (without parentheses) implies "var" is a map() while \
+      "var.fun()" (with parentheses) implies "var" is an atom()
 
       Conflict found at
         a.ex:4: A.a/1
@@ -1149,15 +1169,27 @@ defmodule Module.CheckerTest do
       }
 
       warning = """
-      warning: parentheses are not allowed when fetching fields from a map in expression:
+      warning: incompatible types:
+
+          map() !~ atom()
+
+      in expression:
 
           # a.ex:3
           foo.__struct__()
 
-      "foo" is a map and you attempted to invoke the function __struct__/0. Make sure that \
-      "foo" is an atom or remove parentheses to fetch a field:
+      where "foo" was given the type map() in:
 
-          foo.__struct__
+          # a.ex:2
+          is_map(foo)
+
+      where "foo" was given the type atom() (due to calling var.fun()) in:
+
+          # a.ex:3
+          foo.__struct__()
+
+      HINT: "var.field" (without parentheses) implies "var" is a map() while \
+      "var.fun()" (with parentheses) implies "var" is an atom()
 
       Conflict found at
         a.ex:3: A.a/1
