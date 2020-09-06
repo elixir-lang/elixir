@@ -84,7 +84,7 @@ defmodule Module.Types.PatternTest do
 
       assert {:<<>>, _,
               [
-                {:"::", _, [{:foo, _, nil}, {:integer, _, []}]},
+                {:..., _, _},
                 {:"::", _, [{:foo, _, nil}, {:binary, _, []}]}
               ]} = expr
 
