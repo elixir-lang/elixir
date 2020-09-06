@@ -46,10 +46,6 @@ defmodule Module.Types.Helpers do
       {:ok, acc} ->
         do_reduce_ok(tail, acc, fun)
 
-      result when elem(result, 0) == :ok ->
-        result = Tuple.delete_at(result, 0)
-        do_reduce_ok(tail, result, fun)
-
       {:error, reason} ->
         {:error, reason}
     end
