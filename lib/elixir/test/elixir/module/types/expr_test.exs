@@ -28,7 +28,14 @@ defmodule Module.Types.ExprTest do
   end
 
   defp new_context(vars) do
-    context = Types.context("expr_test.ex", TypesTest, {:test, 0})
+    context =
+      Types.context(
+        "expr_test.ex",
+        TypesTest,
+        {:test, 0},
+        [],
+        Module.ParallelChecker.test_cache()
+      )
 
     Enum.reduce(vars, context, fn var, context ->
       {_type, context} = Infer.new_var(var, context)
@@ -47,7 +54,7 @@ defmodule Module.Types.ExprTest do
     {:ok, Types.lift_type(type, context)}
   end
 
-  defp lift_result({:error, {Types, reason, location}}) do
+  defp lift_result({:error, %{warnings: [{Types, reason, location} | _]}}) do
     {:error, {reason, location}}
   end
 

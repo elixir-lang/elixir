@@ -15,7 +15,7 @@ defmodule Module.TypesTest do
         def_expr(),
         new_context()
       )
-      |> maybe_error()
+      |> lift_result()
     end
   end
 
@@ -27,7 +27,7 @@ defmodule Module.TypesTest do
            {:ok, type, context} <- Types.of_body(body, context) do
         {:ok, Types.lift_type(type, context)}
       else
-        {:error, {Types, reason, location}} ->
+        {:error, %{warnings: [{Types, reason, location} | _]}} ->
           {:error, {reason, location}}
       end
     end
@@ -68,18 +68,18 @@ defmodule Module.TypesTest do
   end
 
   defp new_context() do
-    Types.context("types_test.ex", TypesTest, {:test, 0})
+    Types.context("types_test.ex", TypesTest, {:test, 0}, [], Module.ParallelChecker.test_cache())
   end
 
   defp def_expr() do
     {:def, [], {:test, [], []}}
   end
 
-  defp maybe_error({:ok, types, context}) when is_list(types) do
+  defp lift_result({:ok, types, context}) when is_list(types) do
     {:ok, Types.lift_types(types, context)}
   end
 
-  defp maybe_error({:error, {Types, reason, location}}) do
+  defp lift_result({:error, %{warnings: [{Types, reason, location} | _]}}) do
     {:error, {reason, location}}
   end
 

@@ -476,7 +476,8 @@ defmodule Module.Types.Infer do
     traces = tag_traces(traces, context)
 
     error = {:unable_unify, left, right, {location, stack.last_expr, traces}}
-    {:error, {Module.Types, error, [location]}}
+    context = update_in(context.warnings, &[{Module.Types, error, location} | &1])
+    {:error, context}
   end
 
   # Collect relevant traces from context.traces using stack.unify_stack

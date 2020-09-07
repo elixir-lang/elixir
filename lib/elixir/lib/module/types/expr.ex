@@ -1,6 +1,8 @@
 defmodule Module.Types.Expr do
   @moduledoc false
 
+  alias Module.Types.Remote
+
   import Module.Types.{Helpers, Infer}
   import Module.Types.Pattern, only: [of_guard: 3, of_pattern: 3]
 
@@ -149,7 +151,8 @@ defmodule Module.Types.Expr do
   end
 
   # %Struct{map | ...}
-  def of_expr({:%, _, [module, {:%{}, _, [{:|, _, [_map, args]}]}]} = expr, stack, context) do
+  def of_expr({:%, meta, [module, {:%{}, _, [{:|, _, [_map, args]}]}]} = expr, stack, context) do
+    context = Remote.check(module, :__struct__, 0, meta, context)
     stack = push_expr_stack(expr, stack)
 
     case of_pairs(args, stack, context) do
@@ -173,7 +176,8 @@ defmodule Module.Types.Expr do
   end
 
   # %Struct{...}
-  def of_expr({:%, _meta1, [module, {:%{}, _meta2, args}]} = expr, stack, context) do
+  def of_expr({:%, meta1, [module, {:%{}, _meta2, args}]} = expr, stack, context) do
+    context = Remote.check(module, :__struct__, 0, meta1, context)
     stack = push_expr_stack(expr, stack)
 
     case of_pairs(args, stack, context) do
@@ -216,14 +220,6 @@ defmodule Module.Types.Expr do
       :ok -> {:ok, :dynamic, context}
       {:error, reason} -> {:error, reason}
     end
-  end
-
-  # &Foo.bar/1
-  # &foo/1
-  # & &1
-  def of_expr({:&, _meta, _arg}, _stack, context) do
-    # TODO: Function type
-    {:ok, :dynamic, context}
   end
 
   @try_blocks [:do, :after]
@@ -293,7 +289,7 @@ defmodule Module.Types.Expr do
     end
   end
 
-  # for pat <- expr do expr end
+  # with pat <- expr do expr end
   def of_expr({:with, _meta, clauses} = expr, stack, context) do
     stack = push_expr_stack(expr, stack)
 
@@ -340,7 +336,8 @@ defmodule Module.Types.Expr do
   end
 
   # expr.fun(arg)
-  def of_expr({{:., _meta1, [expr1, fun]}, _meta2, args} = expr2, stack, context) do
+  def of_expr({{:., meta1, [expr1, fun]}, _meta2, args} = expr2, stack, context) do
+    context = Remote.check(expr1, fun, length(args), meta1, context)
     stack = push_expr_stack(expr2, stack)
 
     with {:ok, _expr_type, context} <- of_expr(expr1, stack, context),
@@ -350,6 +347,20 @@ defmodule Module.Types.Expr do
         {:error, reason} -> {:error, reason}
       end
     end
+  end
+
+  # &Foo.bar/1
+  def of_expr({:&, meta, [{:/, _, [{{:., _, [module, fun]}, _, []}, arity]}]}, _stack, context)
+      when is_atom(module) and is_atom(fun) do
+    context = Remote.check(module, fun, arity, meta, context)
+    {:ok, :dynamic, context}
+  end
+
+  # &foo/1
+  # & &1
+  def of_expr({:&, _meta, _arg}, _stack, context) do
+    # TODO: Function type
+    {:ok, :dynamic, context}
   end
 
   # fun(arg)

@@ -13,14 +13,21 @@ defmodule Module.ParallelChecker do
   @spec verify([{map(), binary()}], [{module(), binary()}], pos_integer() | nil) :: [warning()]
   def verify(compiled_modules, runtime_binaries, schedulers \\ nil) do
     compiled_maps = Enum.map(compiled_modules, fn {map, _binary} -> {map.module, map} end)
-    check_modules = compiled_maps ++ runtime_binaries
 
-    schedulers = schedulers || max(:erlang.system_info(:schedulers_online), 2)
-    {:ok, server} = :gen_server.start_link(__MODULE__, [check_modules, self(), schedulers], [])
-    preload_cache(get_ets(server), check_modules)
-    start(server)
+    case compiled_maps ++ runtime_binaries do
+      [] ->
+        []
 
-    collect_results(length(check_modules), [])
+      check_modules ->
+        schedulers = schedulers || max(:erlang.system_info(:schedulers_online), 2)
+
+        {:ok, server} =
+          :gen_server.start_link(__MODULE__, [check_modules, self(), schedulers], [])
+
+        preload_cache(get_ets(server), check_modules)
+        start(server)
+        collect_results(length(check_modules), [])
+    end
   end
 
   defp collect_results(0, warnings) do
@@ -32,6 +39,14 @@ defmodule Module.ParallelChecker do
       {__MODULE__, _module, new_warnings} ->
         collect_results(count - 1, new_warnings ++ warnings)
     end
+  end
+
+  @doc """
+  Test cache.
+  """
+  def test_cache do
+    {:ok, pid} = :gen_server.start_link(__MODULE__, [[], self(), 1], [])
+    {pid, get_ets(pid)}
   end
 
   @doc """
@@ -117,10 +132,6 @@ defmodule Module.ParallelChecker do
 
   def handle_call(:get_ets, _from, %{ets: ets} = state) do
     {:reply, ets, state}
-  end
-
-  def handle_cast(:start, %{modules: []} = state) do
-    {:stop, :normal, state}
   end
 
   def handle_cast(:start, state) do
