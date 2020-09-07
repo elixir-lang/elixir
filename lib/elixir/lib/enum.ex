@@ -1222,15 +1222,16 @@ defmodule Enum do
   """
   @spec intersperse(t, element) :: list
   def intersperse(enumerable, element) do
-    list =
-      enumerable
-      |> reduce([], fn x, acc -> [x, element | acc] end)
-      |> :lists.reverse()
+    if count(enumerable) > 0 do
+      # Head is a superfluous intersperser element
+      [_ | t] =
+        enumerable
+        |> reduce([], fn x, acc -> [x, element | acc] end)
+        |> :lists.reverse()
 
-    # Head is a superfluous intersperser element
-    case list do
-      [] -> []
-      [_ | t] -> t
+      t
+    else
+      []
     end
   end
 
