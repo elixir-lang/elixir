@@ -18,7 +18,7 @@ defmodule Diff do
   )a
 
   @doc """
-  Compares the build artififacts of two build directories.
+  Compares the build artifacts of two build directories.
   """
   @spec compare_dirs(Path.t(), Path.t()) ::
           {
