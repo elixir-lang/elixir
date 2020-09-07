@@ -1221,6 +1221,10 @@ defmodule Enum do
 
   """
   @spec intersperse(t, element) :: list
+  def intersperse(enumerable, element)
+
+  def intersperse(enumerable, element) when count(enumerable) == 0, do: []
+
   def intersperse(enumerable, element) do
     list =
       enumerable
