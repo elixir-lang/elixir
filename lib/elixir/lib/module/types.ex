@@ -7,9 +7,9 @@ defmodule Module.Types do
   @doc """
   Infer function definitions' types.
   """
-  def infer_definitions(file, module, defs) do
+  def infer_definitions(file, module, defs, no_warn_undefined, cache) do
     Enum.flat_map(defs, fn {{fun, _arity} = function, kind, meta, clauses} ->
-      context = context(file, module, function)
+      context = context(with_file_meta(meta, file), module, function, no_warn_undefined, cache)
 
       Enum.flat_map(clauses, fn {_meta, params, guards, body} ->
         def_expr = {kind, meta, [guards_to_expr(guards, {fun, [], params})]}
@@ -18,14 +18,21 @@ defmodule Module.Types do
     end)
   end
 
+  defp with_file_meta(meta, file) do
+    case Keyword.fetch(meta, :file) do
+      {:ok, {meta_file, _}} -> meta_file
+      :error -> file
+    end
+  end
+
   @doc false
   def infer_clause(params, guards, body, def_expr, context) do
     with {:ok, _types, context} <- of_head(params, guards, def_expr, context),
-         {:ok, _type, _context} <- of_body(body, context) do
-      []
+         {:ok, _type, context} <- of_body(body, context) do
+      context.warnings
     else
-      {:error, reason} ->
-        [reason]
+      {:error, context} ->
+        context.warnings
     end
   end
 
@@ -46,7 +53,7 @@ defmodule Module.Types do
   end
 
   @doc false
-  def context(file, module, function) do
+  def context(file, module, function, no_warn_undefined, cache) do
     %{
       # File of module
       file: file,
@@ -54,6 +61,10 @@ defmodule Module.Types do
       module: module,
       # Current function
       function: function,
+      # List of calls to not warn on as undefined
+      no_warn_undefined: no_warn_undefined,
+      # A list of cached modules received from the parallel compiler
+      cache: cache,
       # Expression variable to type variable
       vars: %{},
       # Type variable to expression variable
@@ -70,7 +81,9 @@ defmodule Module.Types do
       # `:guarded` when `is_tuple(x)`
       # `:guarded` when `is_tuple and elem(x, 0)`
       # `:fail` when `elem(x, 0)`
-      guard_sources: %{}
+      guard_sources: %{},
+      # A list with all warnings from the running the code
+      warnings: []
     }
   end
 

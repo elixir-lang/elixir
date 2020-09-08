@@ -18,7 +18,7 @@ defmodule Module.Types.InferTest do
   end
 
   defp new_context() do
-    Types.context("types_test.ex", TypesTest, {:test, 0})
+    Types.context("types_test.ex", TypesTest, {:test, 0}, [], Module.ParallelChecker.test_cache())
   end
 
   defp new_stack() do
@@ -37,7 +37,7 @@ defmodule Module.Types.InferTest do
     {:ok, Types.lift_type(type, context)}
   end
 
-  defp lift_result({:error, {Types, reason, location}}) do
+  defp lift_result({:error, %{warnings: [{Types, reason, location} | _]}}) do
     {:error, {reason, location}}
   end
 
