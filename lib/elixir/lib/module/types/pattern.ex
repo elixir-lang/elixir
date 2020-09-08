@@ -1,6 +1,7 @@
 defmodule Module.Types.Pattern do
   @moduledoc false
 
+  alias Module.Types.Remote
   import Module.Types.{Helpers, Infer}
 
   @doc """
@@ -165,6 +166,22 @@ defmodule Module.Types.Pattern do
     end
   end
 
+  # %Struct{...}
+  def of_pattern({:%, meta1, [module, {:%{}, _meta2, args}]} = expr, stack, context)
+      when is_atom(module) do
+    context = Remote.check(module, :__struct__, 0, meta1, context)
+    stack = push_expr_stack(expr, stack)
+
+    case of_pairs(args, stack, context) do
+      {:ok, pairs, context} ->
+        pairs = [{:required, {:atom, :__struct__}, {:atom, module}} | pairs]
+        {:ok, {:map, pairs}, context}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
   # %_{...}
   def of_pattern(
         {:%, _meta1, [{:_, _meta2, var_context}, {:%{}, _meta3, args}]} = expr,
@@ -192,8 +209,7 @@ defmodule Module.Types.Pattern do
   end
 
   # %var{...}
-  def of_pattern({:%, _meta1, [var, {:%{}, _meta2, args}]} = expr, stack, context)
-      when is_var(var) do
+  def of_pattern({:%, _meta1, [var, {:%{}, _meta2, args}]} = expr, stack, context) do
     stack = push_expr_stack(expr, stack)
 
     with {:ok, pairs, context} <- of_pairs(args, stack, context),
@@ -204,21 +220,6 @@ defmodule Module.Types.Pattern do
           pairs ++ [{:optional, :dynamic, :dynamic}]
 
       {:ok, {:map, pairs}, context}
-    end
-  end
-
-  # %Struct{...}
-  def of_pattern({:%, _meta1, [module, {:%{}, _meta2, args}]} = expr, stack, context)
-      when is_atom(module) do
-    stack = push_expr_stack(expr, stack)
-
-    case of_pairs(args, stack, context) do
-      {:ok, pairs, context} ->
-        pairs = [{:required, {:atom, :__struct__}, {:atom, module}} | pairs]
-        {:ok, {:map, pairs}, context}
-
-      {:error, reason} ->
-        {:error, reason}
     end
   end
 

@@ -51,7 +51,13 @@ defmodule Module.Types.PatternTest do
   end
 
   defp new_context() do
-    Types.context("pattern_test.ex", TypesTest, {:test, 0})
+    Types.context(
+      "pattern_test.ex",
+      TypesTest,
+      {:test, 0},
+      [],
+      Module.ParallelChecker.test_cache()
+    )
   end
 
   defp new_stack() do
@@ -65,7 +71,7 @@ defmodule Module.Types.PatternTest do
     {:ok, Types.lift_type(type, context)}
   end
 
-  defp lift_result({:error, {Types, reason, location}}) do
+  defp lift_result({:error, %{warnings: [{Types, reason, location} | _]}}) do
     {:error, {reason, location}}
   end
 
@@ -80,7 +86,7 @@ defmodule Module.Types.PatternTest do
       assert {:error, {{:unable_unify, :integer, :binary, {_location, expr, traces}}, location}} =
                quoted_pattern(<<foo::integer, foo::binary>>)
 
-      assert location == [{"pattern_test.ex", line, {TypesTest, :test, 0}}]
+      assert location == {"pattern_test.ex", line, {TypesTest, :test, 0}}
 
       assert {:<<>>, _,
               [
@@ -255,7 +261,7 @@ defmodule Module.Types.PatternTest do
     assert {:ok, {:atom, :fail}, _context} = quoted_guard([], :fail)
     assert {:ok, :boolean, _context} = quoted_guard([], is_atom(true or :fail))
 
-    assert {:error, {_, {:unable_unify, :tuple, :boolean, _}, _}} =
+    assert {:error, %{warnings: [{_, {:unable_unify, :tuple, :boolean, _}, _} | _]}} =
              quoted_guard([x], is_tuple(x) and is_boolean(x))
   end
 end
