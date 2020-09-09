@@ -209,7 +209,11 @@ capture_test() ->
    {unary_op, {1, 2, nil}, 'not'},
    {int, {1, 6, 1}, "1"},
    {',', {1, 7, 0}},
-   {int, {1, 9, 2}, "2"}] = tokenize("&not 1, 2").
+   {int, {1, 9, 2}, "2"}] = tokenize("&not 1, 2"),
+  [{capture_op, {1, 1, nil}, '&'},
+   {identifier, {1, 2, nil}, '/'},
+   {mult_op, {1, 3, nil}, '/'},
+   {int, {1, 4, 2}, "2"}] = tokenize("&//2").
 
 vc_merge_conflict_test() ->
   {1, 1, "found an unexpected version control marker, please resolve the conflicts: ", "<<<<<<< HEAD"} =
