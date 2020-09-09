@@ -715,15 +715,14 @@ handle_unary_op([$: | Rest], Line, Column, _Kind, Length, Op, Scope, Tokens) whe
   tokenize(Rest, Line, Column + Length + 1, Scope, [Token | Tokens]);
 
 handle_unary_op(Rest, Line, Column, Kind, Length, Op, Scope, Tokens) ->
-  Token = case {strip_horizontal_space(Rest, 0), Kind} of
-    {{[$/, $/ | _] = Remaining, Extra}, capture_op} ->
-      {capture_op, {Line, Column, nil}, Op};
-    {{[$/ | _] = Remaining, Extra}, _} ->
-      {identifier, {Line, Column, nil}, Op};
+  case {strip_horizontal_space(Rest, 0), Tokens} of
+    {{[$/ | _] = Remaining, Extra}, [{capture_op, _, '&'} | _]} ->
+      Token = {identifier, {Line, Column, nil}, Op},
+      tokenize(Remaining, Line, Column + Length + Extra, Scope, [Token | Tokens]);
     {{Remaining, Extra}, _} ->
-      {Kind, {Line, Column, nil}, Op}
-  end,
-  tokenize(Remaining, Line, Column + Length + Extra, Scope, [Token | Tokens]).
+      Token = {Kind, {Line, Column, nil}, Op},
+      tokenize(Remaining, Line, Column + Length + Extra, Scope, [Token | Tokens])
+  end.
 
 handle_op([$: | Rest], Line, Column, _Kind, Length, Op, Scope, Tokens) when ?is_space(hd(Rest)) ->
   Token = {kw_identifier, {Line, Column, nil}, Op},
