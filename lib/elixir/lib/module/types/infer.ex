@@ -158,104 +158,104 @@ defmodule Module.Types.Infer do
     end
   end
 
-  defp unify_maps(source_pairs, target_pairs, %{context: :pattern} = stack, context) do
+  # * All required keys on each side need to match to the other side.
+  # * All optional keys on each side that do not match must be discarded.
+
+  defp unify_maps(source_pairs, target_pairs, stack, context) do
     source_pairs = expand_struct(source_pairs)
     target_pairs = expand_struct(target_pairs)
 
-    # Since maps in patterns only support literal keys (excluding maps)
-    # we can do exact type match without subtype checking
+    {source_required, source_optional} = split_pairs(source_pairs)
+    {target_required, target_optional} = split_pairs(target_pairs)
 
-    unique_right_pairs =
-      Enum.reject(target_pairs, fn {_kind, key, _value} ->
-        List.keyfind(source_pairs, key, 1)
-      end)
-
-    unique_pairs = source_pairs ++ unique_right_pairs
-
-    # Build union of all unique key-value pairs between the maps
-    result =
-      map_reduce_ok(unique_pairs, context, fn {source_kind, source_key, source_value}, context ->
-        case List.keyfind(target_pairs, source_key, 1) do
-          {target_kind, ^source_key, target_value} ->
-            case unify(source_value, target_value, stack, context) do
-              {:ok, value, context} ->
-                {:ok, {unify_kinds(source_kind, target_kind), source_key, value}, context}
-
-              {:error, reason} ->
-                {:error, reason}
-            end
-
-          nil ->
-            {:ok, {source_kind, source_key, source_value}, context}
-        end
-      end)
-
-    case result do
-      {:ok, pairs, context} -> {:ok, {:map, simplify_struct(pairs)}, context}
-      {:error, reason} -> {:error, reason}
-    end
+    with {:ok, source_required_pairs, context} <-
+           unify_source_required(source_required, target_pairs, source_pairs, stack, context),
+         {:ok, target_required_pairs, context} <-
+           unify_target_required(target_required, source_pairs, target_pairs, stack, context),
+         {:ok, source_optional_pairs, context} <-
+           unify_map_optional(source_optional, target_pairs, source_pairs, stack, context),
+         {:ok, target_optional_pairs, context} <-
+           unify_map_optional(target_optional, source_pairs, target_pairs, stack, context),
+         pairs =
+           [
+             source_required_pairs,
+             target_required_pairs,
+             source_optional_pairs,
+             target_optional_pairs
+           ]
+           |> Enum.concat()
+           # Remove duplicate pairs from matching in both left and right directions
+           |> Enum.uniq()
+           |> simplify_struct(),
+         do: {:ok, {:map, pairs}, context}
   end
 
-  defp unify_maps(source_pairs, target_pairs, %{context: :expr} = stack, context) do
-    source_pairs = expand_struct(source_pairs)
-    target_pairs = expand_struct(target_pairs)
+  defp unify_source_required(source_required, target_pairs, source_pairs, stack, context) do
+    map_reduce_ok(source_required, context, fn {source_key, source_value}, context ->
+      Enum.find_value(target_pairs, fn {target_kind, target_key, target_value} ->
+        with {:ok, key, context} <- unify(source_key, target_key, stack, context) do
+          case unify(source_value, target_value, stack, context) do
+            {:ok, value, context} ->
+              {:ok, {:required, key, value}, context}
 
-    result =
-      flat_map_reduce_ok(source_pairs, context, fn {source_kind, _, _} = source_pair, context ->
-        # Currently we only match on exact and dynamic types
-        # since those are the only we get from map.key
-        with :error <- exact_map_match(source_pair, target_pairs, stack, context),
-             :error <- dynamic_map_match(source_pair, target_pairs, stack, context) do
-          if source_kind == :optional do
-            {:ok, [], context}
-          else
-            source_map = {:map, simplify_struct(source_pairs)}
-            target_map = {:map, simplify_struct(target_pairs)}
-            error({:unable_unify, source_map, target_map}, stack, context)
+            {:error, _reason} ->
+              source_map = {:map, [{:required, source_key, source_value}]}
+              target_map = {:map, [{target_kind, target_key, target_value}]}
+              error({:unable_unify, source_map, target_map}, stack, context)
           end
+        else
+          {:error, _reason} -> nil
         end
-      end)
-
-    case result do
-      {:ok, pairs, context} ->
-        pairs = Enum.uniq_by(pairs ++ target_pairs, fn {_kind, key, _value} -> key end)
-        {:ok, {:map, simplify_struct(pairs)}, context}
-
-      {:error, reason} ->
-        {:error, reason}
-    end
+      end) || error({:unable_unify, {:map, source_pairs}, {:map, target_pairs}}, stack, context)
+    end)
   end
 
-  defp exact_map_match({source_kind, source_key, source_value}, target_pairs, stack, context) do
-    case List.keyfind(target_pairs, source_key, 1) do
-      {target_kind, ^source_key, target_value} ->
-        case unify(source_value, target_value, stack, context) do
-          {:ok, value, context} ->
-            {:ok, [{unify_kinds(source_kind, target_kind), source_key, value}], context}
+  defp unify_target_required(target_required, source_pairs, target_pairs, stack, context) do
+    map_reduce_ok(target_required, context, fn {target_key, target_value}, context ->
+      Enum.find_value(source_pairs, fn {target_kind, source_key, source_value} ->
+        with {:ok, key, context} <- unify(source_key, target_key, stack, context) do
+          case unify(source_value, target_value, stack, context) do
+            {:ok, value, context} ->
+              {:ok, {:required, key, value}, context}
 
-          {:error, reason} ->
-            {:error, reason}
+            {:error, _reason} ->
+              source_map = {:map, [{:required, source_key, source_value}]}
+              target_map = {:map, [{target_kind, target_key, target_value}]}
+              error({:unable_unify, source_map, target_map}, stack, context)
+          end
+        else
+          {:error, _reason} -> nil
         end
-
-      nil ->
-        :error
-    end
+      end) || error({:unable_unify, {:map, source_pairs}, {:map, target_pairs}}, stack, context)
+    end)
   end
 
-  defp dynamic_map_match({source_kind, source_key, source_value}, target_pairs, stack, context) do
-    case dynamic_pair(target_pairs) do
-      {:ok, {_target_kind, target_value}} ->
-        case unify(source_value, target_value, stack, context) do
-          {:ok, value, context} ->
-            {:ok, [{source_kind, source_key, value}], context}
+  defp unify_map_optional(left_optional, right_pairs, left_pairs, stack, context) do
+    flat_map_reduce_ok(left_optional, context, fn {left_key, left_value}, context ->
+      Enum.find_value(right_pairs, fn {kind, right_key, right_value} ->
+        with :optional <- kind,
+             {:ok, key, context} <- unify(left_key, right_key, stack, context) do
+          case unify(left_value, right_value, stack, context) do
+            {:ok, value, context} ->
+              {:ok, [{:optional, key, value}], context}
 
-          {:error, reason} ->
-            {:error, reason}
+            {:error, _reason} ->
+              error({:unable_unify, {:map, left_pairs}, {:map, right_pairs}}, stack, context)
+          end
+        else
+          _ -> nil
         end
+      end) || {:ok, [], context}
+    end)
+  end
 
-      :error ->
-        :error
-    end
+  defp split_pairs(pairs) do
+    {required, optional} =
+      Enum.split_with(pairs, fn {kind, _key, _value} -> kind == :required end)
+
+    required = Enum.map(required, fn {_kind, key, value} -> {key, value} end)
+    optional = Enum.map(optional, fn {_kind, key, value} -> {key, value} end)
+    {required, optional}
   end
 
   @doc """
@@ -467,6 +467,8 @@ defmodule Module.Types.Infer do
   def unify_kinds(:optional, :optional), do: :optional
 
   # Collect relevant information from context and traces to report error
+  # TODO: We should do this lazily since in some cases unification will error
+  #       but we continue attempting unifying other types
   defp error({:unable_unify, left, right}, stack, context) do
     {fun, arity} = context.function
     line = get_meta(stack.last_expr)[:line]
@@ -491,13 +493,11 @@ defmodule Module.Types.Infer do
       |> Enum.uniq()
 
     Enum.flat_map(stack, fn var_index ->
-      case Map.fetch(context.traces, var_index) do
-        {:ok, traces} ->
-          expr_var = Map.fetch!(context.types_to_vars, var_index)
-          Enum.map(traces, &{expr_var, &1})
-
-        _other ->
-          []
+      with {:ok, traces} <- Map.fetch(context.traces, var_index),
+           {:ok, expr_var} <- Map.fetch(context.types_to_vars, var_index) do
+        Enum.map(traces, &{expr_var, &1})
+      else
+        _other -> []
       end
     end)
   end
@@ -564,16 +564,10 @@ defmodule Module.Types.Infer do
     end
   end
 
+  # TODO: Resolve type variables if %{__struct__: var, ...}
   defp fetch_struct_pair(pairs) do
     case Enum.find(pairs, &match?({:required, {:atom, :__struct__}, {:atom, _}}, &1)) do
       {:required, {:atom, :__struct__}, {:atom, module}} -> {:ok, module}
-      nil -> :error
-    end
-  end
-
-  defp dynamic_pair(pairs) do
-    case List.keyfind(pairs, :dynamic, 1) do
-      {kind, :dynamic, type} -> {:ok, {kind, type}}
       nil -> :error
     end
   end
