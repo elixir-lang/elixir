@@ -231,6 +231,11 @@ capture_test() ->
    {mult_op, {1, 4, nil}, '/'},
    {int, {1, 5, 2}, "2"}] = tokenize("&/ /2").
 
+operator_slash_arity_test() ->
+  [{identifier,{1,1,nil},'+'},
+   {mult_op,{1,3,nil},'/'},
+   {int,{1,5,2},"2"}] = tokenize("+ / 2").
+
 vc_merge_conflict_test() ->
   {1, 1, "found an unexpected version control marker, please resolve the conflicts: ", "<<<<<<< HEAD"} =
     tokenize_error("<<<<<<< HEAD\n[1, 2, 3]").
