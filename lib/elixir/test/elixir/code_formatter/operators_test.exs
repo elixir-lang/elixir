@@ -896,6 +896,7 @@ defmodule Code.Formatter.OperatorsTest do
       assert_same "&and/2"
       assert_same "& &&/2"
       assert_same "& &/1"
+      assert_same "&//2"
     end
 
     test "Module.remote/arity" do

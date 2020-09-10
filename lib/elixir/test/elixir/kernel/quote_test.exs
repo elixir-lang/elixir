@@ -263,11 +263,6 @@ defmodule Kernel.QuoteTest do
     assert quote(do: &1.foo) == quote(do: &1.foo)
   end
 
-  test "operators slash arity" do
-    assert {:/, _, [{:+, _, _}, 2]} = quote(do: + / 2)
-    assert {:/, _, [{:&&, _, _}, 3]} = quote(do: && / 3)
-  end
-
   test "pipe precedence" do
     assert {:|>, _, [{:|>, _, [{:foo, _, _}, {:bar, _, _}]}, {:baz, _, _}]} =
              quote(do: foo |> bar |> baz)
