@@ -264,7 +264,7 @@ defmodule Kernel.QuoteTest do
   end
 
   test "operators slash arity" do
-    assert {:/, _, [{:+, _, _}, 2]} = quote(do: + / 2)
+    assert {:&, _, [{:/, _, [{:+, _, _}, 2]}]} = quote(do: & + / 2)
     assert {:/, _, [{:&&, _, _}, 3]} = quote(do: && / 3)
   end
 
