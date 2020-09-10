@@ -67,8 +67,10 @@ defmodule Map do
       iex> %{a: a} = %{:a => 1, "b" => 2, [:c, :e, :e] => 3}
       iex> a
       1
-      iex> %{:c => 3} = %{:a => 1, 2 => :b}
-      ** (MatchError) no match of right hand side value: %{2 => :b, :a => 1}
+
+  But this will raise a match error:
+
+      %{:c => 3} = %{:a => 1, 2 => :b}
 
   Variables can be used as map keys both when writing map literals as well as
   when matching:

@@ -6,7 +6,7 @@ defmodule Module.Types.ExprTest do
   alias Module.Types
   alias Module.Types.Infer
 
-  defmacrop quoted_expr(vars \\ [], body) do
+  defmacro quoted_expr(vars \\ [], body) do
     quote do
       {vars, body} = unquote(Macro.escape(expand_expr(vars, body)))
 
@@ -147,8 +147,8 @@ defmodule Module.Types.ExprTest do
               {:map,
                [
                  {:required, {:atom, :bar}, {:var, 0}},
-                 {:optional, :dynamic, :dynamic},
-                 {:required, {:atom, :foo}, {:var, 1}}
+                 {:required, {:atom, :foo}, {:var, 1}},
+                 {:optional, :dynamic, :dynamic}
                ]}}
 
     assert quoted_expr(
@@ -163,8 +163,8 @@ defmodule Module.Types.ExprTest do
               {:map,
                [
                  {:required, {:atom, :bar}, {:atom, :bar}},
-                 {:optional, :dynamic, :dynamic},
-                 {:required, {:atom, :foo}, {:atom, :foo}}
+                 {:required, {:atom, :foo}, {:atom, :foo}},
+                 {:optional, :dynamic, :dynamic}
                ]}}
 
     assert {:error,
@@ -180,39 +180,83 @@ defmodule Module.Types.ExprTest do
              )
   end
 
-  test "struct field" do
-    assert quoted_expr(%File.Stat{}.mtime) == {:ok, {:atom, nil}}
-    assert quoted_expr(%File.Stat{mtime: 123}.mtime) == {:ok, :integer}
+  defmodule :"Elixir.Module.Types.ExprTest.Struct2" do
+    defstruct [:field]
+  end
+
+  test "map fields and structs" do
+    assert quoted_expr(
+             [map],
+             (
+               %Module.Types.ExprTest.Struct2{} = map
+               map.field
+               map
+             )
+           ) ==
+             {:ok,
+              {:map,
+               [
+                 {:required, {:atom, :field}, {:var, 0}},
+                 {:required, {:atom, :__struct__}, {:atom, Module.Types.ExprTest.Struct2}}
+               ]}}
+
+    assert quoted_expr(
+             [map],
+             (
+               _ = map.field
+               %Module.Types.ExprTest.Struct2{} = map
+             )
+           ) ==
+             {:ok,
+              {:map,
+               [
+                 {:required, {:atom, :field}, {:var, 0}},
+                 {:required, {:atom, :__struct__}, {:atom, Module.Types.ExprTest.Struct2}}
+               ]}}
+
+    assert {:error, {{:unable_unify, _, _, _}, _}} =
+             quoted_expr(
+               [map],
+               (
+                 %Module.Types.ExprTest.Struct2{} = map
+                 map.no_field
+               )
+             )
+
+    assert {:error, {{:unable_unify, _, _, _}, _}} =
+             quoted_expr(
+               [map],
+               (
+                 _ = map.no_field
+                 %Module.Types.ExprTest.Struct2{} = map
+               )
+             )
+  end
+
+  test "map pattern" do
+    assert quoted_expr(%{a: :b} = %{a: :b}) ==
+             {:ok, {:map, [{:required, {:atom, :a}, {:atom, :b}}]}}
 
     assert quoted_expr(
              (
-               map = %File.Stat{}
-               map.mtime
+               a = :a
+               %{^a => :b} = %{:a => :b}
              )
-           ) == {:ok, {:atom, nil}}
-
-    assert quoted_expr(
-             (
-               map = %File.Stat{mtime: 123}
-               map.mtime
-             )
-           ) == {:ok, :integer}
+           ) == {:ok, {:map, [{:required, {:atom, :a}, {:atom, :b}}]}}
 
     assert {:error,
-            {{:unable_unify,
-              {:map, [{:required, {:atom, :foo}, {:var, 0}}, {:optional, :dynamic, :dynamic}]},
-              {:map, [{:required, {:atom, :__struct__}, {:atom, File.Stat}} | _]}, _},
-             _}} = quoted_expr(%File.Stat{}.foo)
+            {{:unable_unify, {:map, [{:required, {:atom, :c}, {:atom, :d}}]},
+              {:map, [{:required, {:atom, :a}, {:atom, :b}}, {:optional, :dynamic, :dynamic}]},
+              _}, _}} = quoted_expr(%{a: :b} = %{c: :d})
 
     assert {:error,
-            {{:unable_unify,
-              {:map, [{:required, {:atom, :foo}, {:var, 1}}, {:optional, :dynamic, :dynamic}]},
-              {:map, [{:required, {:atom, :__struct__}, {:atom, File.Stat}} | _]}, _},
+            {{:unable_unify, {:map, [{:required, {:atom, :b}, {:atom, :error}}]},
+              {:map, [{:required, {:var, 0}, {:atom, :ok}}, {:optional, :dynamic, :dynamic}]}, _},
              _}} =
              quoted_expr(
                (
-                 map = %File.Stat{}
-                 map.foo
+                 a = :a
+                 %{^a => :ok} = %{:b => :error}
                )
              )
   end
