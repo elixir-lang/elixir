@@ -493,8 +493,8 @@ defmodule Module.Types.Infer do
       |> Enum.uniq()
 
     Enum.flat_map(stack, fn var_index ->
-      with {:ok, traces} <- Map.fetch(context.traces, var_index),
-           {:ok, expr_var} <- Map.fetch(context.types_to_vars, var_index) do
+      with %{^var_index => traces} <- context.traces,
+           %{^var_index => expr_var} <- context.types_to_vars do
         Enum.map(traces, &{expr_var, &1})
       else
         _other -> []
