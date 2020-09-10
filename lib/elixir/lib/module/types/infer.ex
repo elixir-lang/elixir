@@ -287,7 +287,7 @@ defmodule Module.Types.Infer do
   end
 
   @doc """
-  Adds a variable to the typing context and returns its type variables.
+  Adds a variable to the typing context and returns its type variable.
   If the variable has already been added, return the existing type variable.
   """
   def new_var(var, context) do
@@ -315,6 +315,11 @@ defmodule Module.Types.Infer do
     end
   end
 
+  @doc """
+  Adds an internal variable to the typing context and returns its type variable.
+  An internal variable is used to help unify complex expressions,
+  it does not belong to a specific AST expression.
+  """
   def add_var(context) do
     type = {:var, context.counter}
     types = Map.put(context.types, context.counter, :unbound)
@@ -543,13 +548,11 @@ defmodule Module.Types.Infer do
   # Tag if trace is for a concrete type or type variable
   defp tag_traces(traces, context) do
     Enum.flat_map(traces, fn {var, {type, expr, location}} ->
-      case type do
-        {:var, var_index} ->
-          var2 = Map.fetch!(context.types_to_vars, var_index)
-          [{var, {:var, var2, expr, location}}]
-
-        _ ->
-          [{var, {:type, type, expr, location}}]
+      with {:var, var_index} <- type,
+           %{^var_index => expr_var} <- context.types_to_vars do
+        [{var, {:var, expr_var, expr, location}}]
+      else
+        _ -> [{var, {:type, type, expr, location}}]
       end
     end)
   end
