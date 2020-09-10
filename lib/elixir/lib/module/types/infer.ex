@@ -189,8 +189,11 @@ defmodule Module.Types.Infer do
            |> simplify_struct() do
       {:ok, {:map, pairs}, context}
     else
-      {:error, :unify} -> error({:unable_unify, {:map, source_pairs}, {:map, target_pairs}}, stack, context)
-      {:error, context} -> {:error, context}
+      {:error, :unify} ->
+        error({:unable_unify, {:map, source_pairs}, {:map, target_pairs}}, stack, context)
+
+      {:error, context} ->
+        {:error, context}
     end
   end
 
