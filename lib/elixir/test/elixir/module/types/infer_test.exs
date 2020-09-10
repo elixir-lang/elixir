@@ -187,6 +187,80 @@ defmodule Module.Types.InferTest do
                {:ok, {:map, [{:optional, {:atom, :foo}, :boolean}]}}
     end
 
+    test "map with subtyped keys" do
+      assert unify_directed_lift(
+               {:map, [{:required, {:atom, :foo}, :integer}]},
+               {:map, [{:required, :atom, :integer}]}
+             ) == {:ok, {:map, [{:required, {:atom, :foo}, :integer}]}}
+
+      assert unify_directed_lift(
+               {:map, [{:optional, {:atom, :foo}, :integer}]},
+               {:map, [{:required, :atom, :integer}]}
+             ) == {:ok, {:map, [{:required, {:atom, :foo}, :integer}]}}
+
+      assert unify_directed_lift(
+               {:map, [{:required, {:atom, :foo}, :integer}]},
+               {:map, [{:optional, :atom, :integer}]}
+             ) == {:ok, {:map, [{:required, {:atom, :foo}, :integer}]}}
+
+      assert unify_directed_lift(
+               {:map, [{:optional, {:atom, :foo}, :integer}]},
+               {:map, [{:optional, :atom, :integer}]}
+             ) == {:ok, {:map, [{:optional, {:atom, :foo}, :integer}]}}
+
+      assert {:error,
+              {{:unable_unify, {:map, [{:required, :atom, :integer}]},
+                {:map, [{:required, {:atom, :foo}, :integer}]}, _},
+               _}} =
+               unify_directed_lift(
+                 {:map, [{:required, :atom, :integer}]},
+                 {:map, [{:required, {:atom, :foo}, :integer}]}
+               )
+
+      assert {:error,
+              {{:unable_unify, {:map, [{:optional, :atom, :integer}]},
+                {:map, [{:required, {:atom, :foo}, :integer}]}, _},
+               _}} =
+               unify_directed_lift(
+                 {:map, [{:optional, :atom, :integer}]},
+                 {:map, [{:required, {:atom, :foo}, :integer}]}
+               )
+
+      assert {:error,
+              {{:unable_unify, {:map, [{:required, :atom, :integer}]},
+                {:map, [{:optional, {:atom, :foo}, :integer}]}, _},
+               _}} =
+               unify_directed_lift(
+                 {:map, [{:required, :atom, :integer}]},
+                 {:map, [{:optional, {:atom, :foo}, :integer}]}
+               )
+
+      assert unify_directed_lift(
+               {:map, [{:optional, :atom, :integer}]},
+               {:map, [{:optional, {:atom, :foo}, :integer}]}
+             ) == {:ok, {:map, []}}
+
+      assert unify_directed_lift(
+               {:map, [{:required, {:atom, :foo}, :integer}]},
+               {:map, [{:required, {:atom, :foo}, :integer}]}
+             ) == {:ok, {:map, [{:required, {:atom, :foo}, :integer}]}}
+
+      assert unify_directed_lift(
+               {:map, [{:required, {:atom, :foo}, :integer}]},
+               {:map, [{:optional, {:atom, :foo}, :integer}]}
+             ) == {:ok, {:map, [{:required, {:atom, :foo}, :integer}]}}
+
+      assert unify_directed_lift(
+               {:map, [{:optional, {:atom, :foo}, :integer}]},
+               {:map, [{:required, {:atom, :foo}, :integer}]}
+             ) == {:ok, {:map, [{:required, {:atom, :foo}, :integer}]}}
+
+      assert unify_directed_lift(
+               {:map, [{:optional, {:atom, :foo}, :integer}]},
+               {:map, [{:optional, {:atom, :foo}, :integer}]}
+             ) == {:ok, {:map, [{:optional, {:atom, :foo}, :integer}]}}
+    end
+
     test "union" do
       assert unify_lift({:union, []}, {:union, []}) == {:ok, {:union, []}}
       assert unify_lift({:union, [:integer]}, {:union, [:integer]}) == {:ok, {:union, [:integer]}}
