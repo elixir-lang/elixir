@@ -8,12 +8,14 @@ defmodule Module.Types do
   Infer function definitions' types.
   """
   def infer_definitions(file, module, defs, no_warn_undefined, cache) do
+    stack = stack()
+
     Enum.flat_map(defs, fn {{fun, _arity} = function, kind, meta, clauses} ->
       context = context(with_file_meta(meta, file), module, function, no_warn_undefined, cache)
 
-      Enum.flat_map(clauses, fn {_meta, params, guards, body} ->
-        def_expr = {kind, meta, [guards_to_expr(guards, {fun, [], params})]}
-        infer_clause(params, guards, body, def_expr, context)
+      Enum.flat_map(clauses, fn {_meta, args, guards, body} ->
+        def_expr = {kind, meta, [guards_to_expr(guards, {fun, [], args})]}
+        infer_definition(args, guards, body, def_expr, stack, context)
       end)
     end)
   end
@@ -25,31 +27,16 @@ defmodule Module.Types do
     end
   end
 
-  @doc false
-  def infer_clause(params, guards, body, def_expr, context) do
-    with {:ok, _types, context} <- of_head(params, guards, def_expr, context),
-         {:ok, _type, context} <- of_body(body, context) do
+  defp infer_definition(args, guards, body, def_expr, stack, context) do
+    head_stack = push_expr_stack(def_expr, stack)
+
+    with {:ok, _types, context} <- Pattern.of_head(args, guards, head_stack, context),
+         {:ok, _type, context} <- Expr.of_expr(body, stack, context) do
       context.warnings
     else
       {:error, {type, error, context}} ->
         [error_to_warning(type, error, context) | context.warnings]
     end
-  end
-
-  @doc false
-  def of_head(params, guards, def_expr, context) do
-    stack = push_expr_stack(def_expr, stack())
-
-    with {:ok, types, context} <-
-           map_reduce_ok(params, context, &Pattern.of_pattern(&1, stack, &2)),
-         # TODO: Check that of_guard/3 returns boolean() | :fail
-         {:ok, _, context} <- Pattern.of_guard(guards_to_or(guards), stack, context),
-         do: {:ok, types, context}
-  end
-
-  @doc false
-  def of_body(body, context) do
-    Expr.of_expr(body, stack(), context)
   end
 
   @doc false
