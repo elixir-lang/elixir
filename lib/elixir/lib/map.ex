@@ -66,7 +66,7 @@ defmodule Map do
       %{foo: "bar"}
       iex> %{a: a} = %{:a => 1, "b" => 2, [:c, :e, :e] => 3}
       iex> a
-      #=> 1
+      1
 
   But this will raise a match error:
 
