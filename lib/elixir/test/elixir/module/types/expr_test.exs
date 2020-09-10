@@ -54,8 +54,8 @@ defmodule Module.Types.ExprTest do
     {:ok, Types.lift_type(type, context)}
   end
 
-  defp lift_result({:error, %{warnings: [{Types, reason, location} | _]}}) do
-    {:error, {reason, location}}
+  defp lift_result({:error, {type, reason, _context}}) do
+    {:error, {type, reason}}
   end
 
   defmodule :"Elixir.Module.Types.ExprTest.Struct" do
@@ -168,10 +168,10 @@ defmodule Module.Types.ExprTest do
                ]}}
 
     assert {:error,
-            {{:unable_unify,
-              {:map, [{:required, {:atom, :bar}, {:var, 1}}, {:optional, :dynamic, :dynamic}]},
-              {:map, [{:required, {:atom, :foo}, {:atom, :foo}}]}, _},
-             _}} =
+            {:unable_unify,
+             {{:map, [{:required, {:atom, :bar}, {:var, 1}}, {:optional, :dynamic, :dynamic}]},
+              {:map, [{:required, {:atom, :foo}, {:atom, :foo}}]},
+              _}}} =
              quoted_expr(
                (
                  map = %{foo: :foo}
@@ -214,7 +214,7 @@ defmodule Module.Types.ExprTest do
                  {:required, {:atom, :__struct__}, {:atom, Module.Types.ExprTest.Struct2}}
                ]}}
 
-    assert {:error, {{:unable_unify, _, _, _}, _}} =
+    assert {:error, {:unable_unify, {_, _, _}}} =
              quoted_expr(
                [map],
                (
@@ -223,7 +223,7 @@ defmodule Module.Types.ExprTest do
                )
              )
 
-    assert {:error, {{:unable_unify, _, _, _}, _}} =
+    assert {:error, {:unable_unify, {_, _, _}}} =
              quoted_expr(
                [map],
                (
@@ -245,14 +245,16 @@ defmodule Module.Types.ExprTest do
            ) == {:ok, {:map, [{:required, {:atom, :a}, {:atom, :b}}]}}
 
     assert {:error,
-            {{:unable_unify, {:map, [{:required, {:atom, :c}, {:atom, :d}}]},
+            {:unable_unify,
+             {{:map, [{:required, {:atom, :c}, {:atom, :d}}]},
               {:map, [{:required, {:atom, :a}, {:atom, :b}}, {:optional, :dynamic, :dynamic}]},
-              _}, _}} = quoted_expr(%{a: :b} = %{c: :d})
+              _}}} = quoted_expr(%{a: :b} = %{c: :d})
 
     assert {:error,
-            {{:unable_unify, {:map, [{:required, {:atom, :b}, {:atom, :error}}]},
-              {:map, [{:required, {:var, 0}, {:atom, :ok}}, {:optional, :dynamic, :dynamic}]}, _},
-             _}} =
+            {:unable_unify,
+             {{:map, [{:required, {:atom, :b}, {:atom, :error}}]},
+              {:map, [{:required, {:var, 0}, {:atom, :ok}}, {:optional, :dynamic, :dynamic}]},
+              _}}} =
              quoted_expr(
                (
                  a = :a
@@ -306,7 +308,7 @@ defmodule Module.Types.ExprTest do
       assert quoted_expr([foo], {<<foo::utf8>>, foo}) ==
                {:ok, {:tuple, [:binary, {:union, [:integer, :binary]}]}}
 
-      assert {:error, {{:unable_unify, :integer, :binary, _}, _}} =
+      assert {:error, {:unable_unify, {:integer, :binary, _}}} =
                quoted_expr(
                  (
                    foo = 0
@@ -314,7 +316,7 @@ defmodule Module.Types.ExprTest do
                  )
                )
 
-      assert {:error, {{:unable_unify, :binary, :integer, _}, _}} =
+      assert {:error, {:unable_unify, {:binary, :integer, _}}} =
                quoted_expr([foo], <<foo::binary-0, foo::integer>>)
     end
   end

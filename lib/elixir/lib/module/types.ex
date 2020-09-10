@@ -31,8 +31,8 @@ defmodule Module.Types do
          {:ok, _type, context} <- of_body(body, context) do
       context.warnings
     else
-      {:error, context} ->
-        context.warnings
+      {:error, {type, error, context}} ->
+        [error_to_warning(type, error, context) | context.warnings]
     end
   end
 
@@ -203,6 +203,63 @@ defmodule Module.Types do
     type = {:var, context.lifted_counter}
     context = %{context | lifted_types: types, lifted_counter: counter}
     {type, context}
+  end
+
+  ## ERROR TO WARNING
+
+  # Collect relevant information from context and traces to report error
+  defp error_to_warning(:unable_unify, {left, right, stack}, context) do
+    {fun, arity} = context.function
+    line = get_meta(stack.last_expr)[:line]
+    location = {context.file, line, {context.module, fun, arity}}
+
+    traces = type_traces(stack, context)
+    traces = tag_traces(traces, context)
+
+    error = {:unable_unify, left, right, {location, stack.last_expr, traces}}
+    {Module.Types, error, location}
+  end
+
+  # Collect relevant traces from context.traces using stack.unify_stack
+  defp type_traces(stack, context) do
+    # TODO: Do we need the unify_stack or is enough to only get the last variable
+    #       in the stack since we get related variables anyway?
+    stack =
+      stack.unify_stack
+      |> Enum.uniq()
+      |> Enum.flat_map(&[&1 | related_variables(&1, context.types)])
+      |> Enum.uniq()
+
+    Enum.flat_map(stack, fn var_index ->
+      with %{^var_index => traces} <- context.traces,
+           %{^var_index => expr_var} <- context.types_to_vars do
+        Enum.map(traces, &{expr_var, &1})
+      else
+        _other -> []
+      end
+    end)
+  end
+
+  defp related_variables(var, types) do
+    Enum.flat_map(types, fn
+      {related_var, {:var, ^var}} ->
+        [related_var | related_variables(related_var, types)]
+
+      _ ->
+        []
+    end)
+  end
+
+  # Tag if trace is for a concrete type or type variable
+  defp tag_traces(traces, context) do
+    Enum.flat_map(traces, fn {var, {type, expr, location}} ->
+      with {:var, var_index} <- type,
+           %{^var_index => expr_var} <- context.types_to_vars do
+        [{var, {:var, expr_var, expr, location}}]
+      else
+        _ -> [{var, {:type, type, expr, location}}]
+      end
+    end)
   end
 
   ## ERROR FORMATTING
