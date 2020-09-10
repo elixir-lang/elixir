@@ -267,7 +267,13 @@ defmodule Exception do
       blame_guard(right, scope, binding)
     ]
 
-    {rewrite_guard_call(op), meta, guards}
+    kernel_op =
+      case op do
+        :orelse -> :or
+        :andalso -> :and
+      end
+
+    {kernel_op, meta, guards}
   end
 
   defp blame_guard(ex_guard, scope, binding) do
@@ -286,32 +292,17 @@ defmodule Exception do
 
   defp rewrite_guard(guard) do
     Macro.prewalk(guard, fn
-      {{:., _, [:erlang, :element]}, _, [{{:., _, [:erlang, :+]}, _, [int, 1]}, arg]} ->
-        {:elem, [], [arg, int]}
-
-      {{:., _, [:erlang, :element]}, _, [int, arg]} when is_integer(int) ->
-        {:elem, [], [arg, int - 1]}
-
-      {:., _, [:erlang, call]} ->
-        rewrite_guard_call(call)
-
-      other ->
-        other
+      {{:., _, [mod, fun]}, meta, args} -> erl_to_ex(mod, fun, args, meta)
+      other -> other
     end)
   end
 
-  defp rewrite_guard_call(:orelse), do: :or
-  defp rewrite_guard_call(:andalso), do: :and
-  defp rewrite_guard_call(:"=<"), do: :<=
-  defp rewrite_guard_call(:"/="), do: :!=
-  defp rewrite_guard_call(:"=:="), do: :===
-  defp rewrite_guard_call(:"=/="), do: :!==
-
-  defp rewrite_guard_call(op) when op in [:band, :bor, :bnot, :bsl, :bsr, :bxor],
-    do: {:., [], [Bitwise, op]}
-
-  defp rewrite_guard_call(op) when op in [:xor, :element, :size], do: {:., [], [:erlang, op]}
-  defp rewrite_guard_call(op), do: op
+  defp erl_to_ex(mod, fun, args, meta) do
+    case :elixir_rewrite.erl_to_ex(mod, fun, args) do
+      {Kernel, fun, args} -> {fun, meta, args}
+      {mod, fun, args} -> {{:., [], [mod, fun]}, meta, args}
+    end
+  end
 
   defp blame_wrap(match?, ast), do: %{match?: match?, node: ast}
 

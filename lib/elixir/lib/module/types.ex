@@ -470,8 +470,6 @@ defmodule Module.Types do
 
   defp reverse_rewrite(guard) do
     Macro.prewalk(guard, fn
-      {:., _, [:erlang, :orelse]} -> :or
-      {:., _, [:erlang, :andalso]} -> :and
       {{:., _, [mod, fun]}, meta, args} -> erl_to_ex(mod, fun, args, meta)
       other -> other
     end)
