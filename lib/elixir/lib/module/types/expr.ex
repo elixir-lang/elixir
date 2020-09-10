@@ -1,10 +1,8 @@
 defmodule Module.Types.Expr do
   @moduledoc false
 
-  alias Module.Types.Remote
-
+  alias Module.Types.{Remote, Pattern}
   import Module.Types.{Helpers, Infer}
-  import Module.Types.Pattern, only: [of_guard: 3, of_pattern: 3]
 
   def of_expr(expr, %{context: stack_context} = stack, context) when stack_context != :expr do
     of_expr(expr, %{stack | context: :expr}, context)
@@ -135,7 +133,7 @@ defmodule Module.Types.Expr do
     stack = push_expr_stack(expr, stack)
 
     with {:ok, left_type, context} <-
-           of_pattern(left_expr, stack, context),
+           Pattern.of_pattern(left_expr, stack, context),
          {:ok, right_type, context} <- of_expr(right_expr, stack, context),
          do: unify(right_type, left_type, %{stack | context: :pattern}, context)
   end
@@ -400,9 +398,9 @@ defmodule Module.Types.Expr do
   defp for_clause({:<-, _, [left, expr]}, stack, context) do
     {pattern, guards} = extract_head([left])
 
-    with {:ok, _pattern_type, context} <- of_pattern(pattern, stack, context),
+    with {:ok, _pattern_type, context} <- Pattern.of_pattern(pattern, stack, context),
          # TODO: Check that of_guard/3 returns a boolean
-         {:ok, _guard_type, context} <- of_guard(guards_to_or(guards), stack, context),
+         {:ok, _guard_type, context} <- Pattern.of_guard(guards_to_or(guards), stack, context),
          {:ok, _expr_type, context} <- of_expr(expr, stack, context),
          do: {:ok, context}
   end
@@ -428,7 +426,7 @@ defmodule Module.Types.Expr do
   end
 
   defp for_option({:do, [{:->, _, [pattern, body]}]}, stack, context) do
-    case of_pattern(pattern, stack, context) do
+    case Pattern.of_pattern(pattern, stack, context) do
       {:ok, _pattern_type, context} -> of_expr_context(body, stack, context)
       {:error, reason} -> {:error, reason}
     end
@@ -441,9 +439,9 @@ defmodule Module.Types.Expr do
   defp with_clause({:<-, _, [left, expr]}, stack, context) do
     {pattern, guards} = extract_head([left])
 
-    with {:ok, _pattern_type, context} <- of_pattern(pattern, stack, context),
+    with {:ok, _pattern_type, context} <- Pattern.of_pattern(pattern, stack, context),
          # TODO: Check that of_guard/3 returns a boolean
-         {:ok, _guard_type, context} <- of_guard(guards_to_or(guards), stack, context),
+         {:ok, _guard_type, context} <- Pattern.of_guard(guards_to_or(guards), stack, context),
          {:ok, _expr_type, context} <- of_expr(expr, stack, context),
          do: {:ok, context}
   end
@@ -472,9 +470,9 @@ defmodule Module.Types.Expr do
       {patterns, guards} = extract_head(head)
 
       with {:ok, _pattern_types, context} <-
-             map_reduce_ok(patterns, context, &of_pattern(&1, stack, &2)),
+             map_reduce_ok(patterns, context, &Pattern.of_pattern(&1, stack, &2)),
            # TODO: Check that of_guard/3 returns a boolean
-           {:ok, _guard_type, context} <- of_guard(guards_to_or(guards), stack, context),
+           {:ok, _guard_type, context} <- Pattern.of_guard(guards_to_or(guards), stack, context),
            {:ok, _expr_type, _context} <- of_expr(body, stack, context),
            do: :ok
     end)
