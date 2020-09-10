@@ -266,6 +266,8 @@ defmodule Module.Types do
     end
   end
 
+  defp missing_field(_, _), do: :error
+
   defp format_traces([], _simplify?) do
     {[], []}
   end

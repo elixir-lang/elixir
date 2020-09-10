@@ -229,9 +229,9 @@ defmodule Module.TypesTest do
                {:ok,
                 [
                   {:map,
-                   [{:optional, :dynamic, :dynamic}, {:required, {:atom, true}, {:atom, false}}]},
+                   [{:required, {:atom, true}, {:atom, false}}, {:optional, :dynamic, :dynamic}]},
                   {:map,
-                   [{:optional, :dynamic, :dynamic}, {:required, {:atom, true}, {:atom, false}}]}
+                   [{:required, {:atom, true}, {:atom, false}}, {:optional, :dynamic, :dynamic}]}
                 ]}
 
       assert quoted_head([%{true: bool}], [is_boolean(bool)]) ==
@@ -246,19 +246,21 @@ defmodule Module.TypesTest do
                   {:map,
                    [
                      {:required, {:atom, false}, {:atom, false}},
-                     {:optional, :dynamic, :dynamic},
-                     {:required, {:atom, true}, {:atom, true}}
+                     {:required, {:atom, true}, {:atom, true}},
+                     {:optional, :dynamic, :dynamic}
                    ]},
                   {:map,
                    [
                      {:required, {:atom, false}, {:atom, false}},
-                     {:optional, :dynamic, :dynamic},
-                     {:required, {:atom, true}, {:atom, true}}
+                     {:required, {:atom, true}, {:atom, true}},
+                     {:optional, :dynamic, :dynamic}
                    ]}
                 ]}
 
-      assert {:error, {{:unable_unify, {:atom, true}, {:atom, false}, _}, _}} =
-               quoted_head([%{true: false} = foo, %{true: true} = foo])
+      assert {:error,
+              {{:unable_unify, {:map, [{:required, {:atom, true}, {:atom, true}}]},
+                {:map, [{:required, {:atom, true}, {:atom, false}}]}, _},
+               _}} = quoted_head([%{true: false} = foo, %{true: true} = foo])
     end
 
     test "struct var guard" do

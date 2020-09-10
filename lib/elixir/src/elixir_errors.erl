@@ -38,9 +38,13 @@ form_error(Meta, File, Module, Desc) ->
 
 -spec form_warn(list(), binary() | #{file := binary(), _ => _}, module(), any()) -> ok.
 form_warn(Meta, File, Module, Desc) when is_list(Meta), is_binary(File) ->
-  do_form_warn(Meta, File, #{}, Module:format_error(Desc));
+  form_warn(Meta, #{file => File}, Module, Desc);
 form_warn(Meta, #{file := File} = E, Module, Desc) when is_list(Meta) ->
-  do_form_warn(Meta, File, E, Module:format_error(Desc)).
+  % Skip warnings during bootstrap, they will be reported during recompilation
+  case elixir_config:get(bootstrap) of
+    true -> ok;
+    false -> do_form_warn(Meta, File, E, Module:format_error(Desc))
+  end.
 
 do_form_warn(Meta, GivenFile, E, Warning) ->
   [{file, File}, {line, Line}] = meta_location(Meta, GivenFile),
