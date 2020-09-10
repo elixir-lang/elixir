@@ -265,7 +265,8 @@ defmodule Module.Types.TempTypesTest do
     quote do
       {patterns, guards, body} = unquote(Macro.escape(expand_expr(patterns, guards, body)))
 
-      with {:ok, _types, context} <- Pattern.of_head(patterns, guards, new_stack(), new_context()),
+      with {:ok, _types, context} <-
+             Pattern.of_head(patterns, guards, new_stack(), new_context()),
            {:ok, type, context} <- Expr.of_expr(body, new_stack(), context) do
         {:ok, Types.lift_type(type, context)}
       else
