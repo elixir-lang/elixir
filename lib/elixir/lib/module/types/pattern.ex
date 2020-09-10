@@ -5,6 +5,17 @@ defmodule Module.Types.Pattern do
   import Module.Types.{Helpers, Infer}
 
   @doc """
+  Handles patterns and guards at once.
+  """
+  def of_head(patterns, guards, stack, context) do
+    with {:ok, types, context} <-
+           map_reduce_ok(patterns, context, &of_pattern(&1, stack, &2)),
+         # TODO: Check that of_guard/3 returns boolean() | :fail
+         {:ok, _, context} <- of_guard(guards_to_or(guards), stack, context),
+         do: {:ok, types, context}
+  end
+
+  @doc """
   Return the type and typing context of a pattern expression or an error
   in case of a typing conflict.
   """

@@ -3,14 +3,15 @@ Code.require_file("../../test_helper.exs", __DIR__)
 defmodule Module.Types.PatternTest do
   use ExUnit.Case, async: true
   import Module.Types.Infer, only: [new_var: 2]
-  import Module.Types.Pattern
+
   alias Module.Types
+  alias Module.Types.Pattern
 
   defmacrop quoted_pattern(patterns) do
     quote do
       {patterns, true} = unquote(Macro.escape(expand_head(patterns, true)))
 
-      of_pattern(patterns, new_stack(), new_context())
+      Pattern.of_pattern(patterns, new_stack(), new_context())
       |> lift_result()
     end
   end
@@ -20,7 +21,7 @@ defmodule Module.Types.PatternTest do
       {vars, guards} = unquote(Macro.escape(expand_head(vars, guards)))
       context = Enum.reduce(vars, new_context(), &(new_var(&1, &2) |> elem(1)))
 
-      of_guard(guards, new_stack(), context)
+      Pattern.of_guard(guards, new_stack(), context)
     end
   end
 
@@ -242,16 +243,18 @@ end
 defmodule Module.Types.TempTypesTest do
   use ExUnit.Case, async: true
   import Bitwise, warn: false
+
   alias Module.Types
+  alias Module.Types.{Expr, Pattern}
 
   defmacrop quoted_head(patterns, guards \\ [true]) do
     quote do
       {patterns, guards} = unquote(Macro.escape(expand_head(patterns, guards)))
 
-      Types.of_head(
+      Pattern.of_head(
         patterns,
         guards,
-        def_expr(),
+        new_stack(),
         new_context()
       )
       |> lift_result()
@@ -262,8 +265,8 @@ defmodule Module.Types.TempTypesTest do
     quote do
       {patterns, guards, body} = unquote(Macro.escape(expand_expr(patterns, guards, body)))
 
-      with {:ok, _types, context} <- Types.of_head(patterns, guards, def_expr(), new_context()),
-           {:ok, type, context} <- Types.of_body(body, context) do
+      with {:ok, _types, context} <- Pattern.of_head(patterns, guards, new_stack(), new_context()),
+           {:ok, type, context} <- Expr.of_expr(body, new_stack(), context) do
         {:ok, Types.lift_type(type, context)}
       else
         {:error, {type, reason, _context}} ->
@@ -304,8 +307,11 @@ defmodule Module.Types.TempTypesTest do
     Types.context("types_test.ex", TypesTest, {:test, 0}, [], Module.ParallelChecker.test_cache())
   end
 
-  defp def_expr() do
-    {:def, [], {:test, [], []}}
+  defp new_stack() do
+    %{
+      Types.stack()
+      | last_expr: {:foo, [], nil}
+    }
   end
 
   defp lift_result({:ok, types, context}) when is_list(types) do
@@ -323,18 +329,18 @@ defmodule Module.Types.TempTypesTest do
       assert quoted_head([a, a]) == {:ok, [{:var, 0}, {:var, 0}]}
 
       assert {:ok, [{:var, 0}, {:var, 0}], _} =
-               Types.of_head(
+               Pattern.of_head(
                  [{:a, [version: 0], :foo}, {:a, [version: 0], :foo}],
                  [],
-                 def_expr(),
+                 new_stack(),
                  new_context()
                )
 
       assert {:ok, [{:var, 0}, {:var, 1}], _} =
-               Types.of_head(
+               Pattern.of_head(
                  [{:a, [version: 0], :foo}, {:a, [version: 1], :foo}],
                  [],
-                 def_expr(),
+                 new_stack(),
                  new_context()
                )
     end

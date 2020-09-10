@@ -469,10 +469,7 @@ defmodule Module.Types.Expr do
     each_ok(clauses, fn {:->, _meta, [head, body]} ->
       {patterns, guards} = extract_head(head)
 
-      with {:ok, _pattern_types, context} <-
-             map_reduce_ok(patterns, context, &Pattern.of_pattern(&1, stack, &2)),
-           # TODO: Check that of_guard/3 returns a boolean
-           {:ok, _guard_type, context} <- Pattern.of_guard(guards_to_or(guards), stack, context),
+      with {:ok, _, context} <- Pattern.of_head(patterns, guards, stack, context),
            {:ok, _expr_type, _context} <- of_expr(body, stack, context),
            do: :ok
     end)
