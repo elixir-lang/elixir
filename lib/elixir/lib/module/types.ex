@@ -4,10 +4,8 @@ defmodule Module.Types do
   import Module.Types.Helpers
   alias Module.Types.{Expr, Pattern}
 
-  @doc """
-  Infer function definitions' types.
-  """
-  def infer_definitions(file, module, defs, no_warn_undefined, cache) do
+  @doc false
+  def warnings(module, file, defs, no_warn_undefined, cache) do
     stack = stack()
 
     Enum.flat_map(defs, fn {{fun, _arity} = function, kind, meta, clauses} ->
@@ -15,7 +13,7 @@ defmodule Module.Types do
 
       Enum.flat_map(clauses, fn {_meta, args, guards, body} ->
         def_expr = {kind, meta, [guards_to_expr(guards, {fun, [], args})]}
-        infer_definition(args, guards, body, def_expr, stack, context)
+        warnings_from_clause(args, guards, body, def_expr, stack, context)
       end)
     end)
   end
@@ -27,7 +25,15 @@ defmodule Module.Types do
     end
   end
 
-  defp infer_definition(args, guards, body, def_expr, stack, context) do
+  defp guards_to_expr([], left) do
+    left
+  end
+
+  defp guards_to_expr([guard | guards], left) do
+    guards_to_expr(guards, {:when, [], [left, guard]})
+  end
+
+  defp warnings_from_clause(args, guards, body, def_expr, stack, context) do
     head_stack = push_expr_stack(def_expr, stack)
 
     with {:ok, _types, context} <- Pattern.of_head(args, guards, head_stack, context),
@@ -95,6 +101,8 @@ defmodule Module.Types do
     }
   end
 
+  ## VARIABLE LIFTING
+
   @doc """
   Lifts type variables to their infered types from the context.
   """
@@ -109,7 +117,9 @@ defmodule Module.Types do
     types
   end
 
-  @doc false
+  @doc """
+  Lifts a single type to its infered type from the context.
+  """
   def lift_type(type, context) do
     context = %{
       types: context.types,
@@ -120,18 +130,6 @@ defmodule Module.Types do
     {type, _context} = do_lift_type(type, context)
     type
   end
-
-  ## GUARDS
-
-  defp guards_to_expr([], left) do
-    left
-  end
-
-  defp guards_to_expr([guard | guards], left) do
-    guards_to_expr(guards, {:when, [], [left, guard]})
-  end
-
-  ## VARIABLE LIFTING
 
   # Lift type variable to its infered (hopefully concrete) types from the context
   defp do_lift_type({:var, var}, context) do
@@ -249,7 +247,7 @@ defmodule Module.Types do
     end)
   end
 
-  ## ERROR FORMATTING
+  ## FORMAT WARNINGS
 
   def format_warning({:unable_unify, left, right, {location, expr, traces}}) do
     cond do

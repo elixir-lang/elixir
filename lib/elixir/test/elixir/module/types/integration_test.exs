@@ -1,6 +1,6 @@
 Code.require_file("../../test_helper.exs", __DIR__)
 
-defmodule Module.Checker.IntegrationTest do
+defmodule Module.Types.IntegrationTest do
   use ExUnit.Case
 
   import ExUnit.CaptureIO

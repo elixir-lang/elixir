@@ -78,8 +78,8 @@ defmodule Mix.Compilers.ApplicationTracer do
       )
 
     warnings
-    |> Module.Checker.group_warnings()
-    |> Module.Checker.emit_warnings()
+    |> Module.ParallelChecker.group_warnings()
+    |> Module.ParallelChecker.emit_warnings()
   end
 
   # ../elixir/ebin/elixir.beam -> elixir
