@@ -371,6 +371,17 @@ defmodule Module.Types.InferTest do
       assert {:error, {{:unable_unify, {:var, 0}, {:tuple, [{:var, 0}]}, _}, _}} =
                unify_lift({:var, 2}, {:tuple, [{:var, 0}]}, context)
     end
+
+    test "error with internal variable" do
+      context = new_context()
+      {var_integer, context} = add_var(context)
+      {var_atom, context} = add_var(context)
+
+      {:ok, _, context} = unify(var_integer, :integer, context)
+      {:ok, _, context} = unify(var_atom, :atom, context)
+
+      assert {:error, _} = unify(var_integer, var_atom, context)
+    end
   end
 
   test "subtype?/3" do
