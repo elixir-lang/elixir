@@ -139,27 +139,48 @@ defmodule Module.Types.Expr do
   end
 
   # %{map | ...}
-  def of_expr({:%{}, _, [{:|, _, [_map, args]}]} = expr, stack, context) do
+  def of_expr({:%{}, _, [{:|, _, [map, args]}]} = expr, stack, context) do
     stack = push_expr_stack(expr, stack)
 
-    case of_pairs(args, stack, context) do
-      {:ok, _pairs, context} -> {:ok, {:map, [{:optional, :dynamic, :dynamic}]}, context}
-      {:error, reason} -> {:error, reason}
+    with {:ok, map_type, context} <- of_expr(map, stack, context),
+         {:ok, arg_pairs, context} <- of_pairs(args, stack, context),
+         arg_pairs = pairs_to_unions(arg_pairs, context),
+         dynamic_value_pairs =
+           Enum.map(arg_pairs, fn {:required, key, _value} -> {:required, key, :dynamic} end),
+         args_type = {:map, dynamic_value_pairs ++ [{:optional, :dynamic, :dynamic}]},
+         {:ok, type, context} <- unify(args_type, map_type, stack, context) do
+      {:map, pairs} = resolve_var(type, context)
+
+      updated_pairs =
+        Enum.reduce(arg_pairs, pairs, fn {:required, key, value}, pairs ->
+          List.keyreplace(pairs, key, 1, {:required, key, value})
+        end)
+
+      {:ok, {:map, updated_pairs}, context}
     end
   end
 
   # %Struct{map | ...}
-  def of_expr({:%, meta, [module, {:%{}, _, [{:|, _, [_map, args]}]}]} = expr, stack, context) do
+  def of_expr({:%, meta, [module, {:%{}, _, [{:|, _, [map, args]}]}]} = expr, stack, context) do
     context = Remote.check(module, :__struct__, 0, meta, context)
     stack = push_expr_stack(expr, stack)
 
-    case of_pairs(args, stack, context) do
-      {:ok, _pairs, context} ->
-        pairs = [{:required, {:atom, :__struct__}, {:atom, module}}]
-        {:ok, {:map, pairs}, context}
+    with {:ok, map_type, context} <- of_expr(map, stack, context),
+         {:ok, arg_pairs, context} <- of_pairs(args, stack, context),
+         arg_pairs = pairs_to_unions(arg_pairs, context),
+         dynamic_value_pairs =
+           Enum.map(arg_pairs, fn {:required, key, _value} -> {:required, key, :dynamic} end),
+         struct_pair = {:required, {:atom, :__struct__}, {:atom, module}},
+         args_type = {:map, [struct_pair] ++ dynamic_value_pairs},
+         {:ok, type, context} <- unify(args_type, map_type, stack, context) do
+      {:map, pairs} = resolve_var(type, context)
 
-      {:error, reason} ->
-        {:error, reason}
+      updated_pairs =
+        Enum.reduce(arg_pairs, pairs, fn {:required, key, value}, pairs ->
+          List.keyreplace(pairs, key, 1, {:required, key, value})
+        end)
+
+      {:ok, {:map, updated_pairs}, context}
     end
   end
 

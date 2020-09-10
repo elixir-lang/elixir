@@ -88,8 +88,10 @@ defmodule Map do
       iex> map = %{one: 1, two: 2}
       iex> %{map | one: "one"}
       %{one: "one", two: 2}
-      iex> %{map | three: 3}
-      ** (KeyError) key :three not found
+
+  When a key is updated that does not exist on the map a key error will be raised:
+
+      %{map | three: 3}
 
   The functions in this module that need to find a specific key work in logarithmic time.
   This means that the time it takes to find keys grows as the map grows, but it's not

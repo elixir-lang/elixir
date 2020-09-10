@@ -263,6 +263,87 @@ defmodule Module.Types.ExprTest do
              )
   end
 
+  test "map update" do
+    assert quoted_expr(
+             (
+               map = %{foo: :a}
+               %{map | foo: :b}
+             )
+           ) ==
+             {:ok, {:map, [{:required, {:atom, :foo}, {:atom, :b}}]}}
+
+    assert quoted_expr([map], %{map | foo: :b}) ==
+             {:ok,
+              {:map, [{:required, {:atom, :foo}, {:atom, :b}}, {:optional, :dynamic, :dynamic}]}}
+
+    assert {:error,
+            {:unable_unify,
+             {{:map, [{:required, {:atom, :bar}, :dynamic}, {:optional, :dynamic, :dynamic}]},
+              {:map, [{:required, {:atom, :foo}, {:atom, :a}}]},
+              _}}} =
+             quoted_expr(
+               (
+                 map = %{foo: :a}
+                 %{map | bar: :b}
+               )
+             )
+  end
+
+  test "struct update" do
+    assert quoted_expr(
+             (
+               map = %Module.Types.ExprTest.Struct2{field: :a}
+               %Module.Types.ExprTest.Struct2{map | field: :b}
+             )
+           ) ==
+             {:ok,
+              {:map,
+               [
+                 {:required, {:atom, :__struct__}, {:atom, Module.Types.ExprTest.Struct2}},
+                 {:required, {:atom, :field}, {:atom, :b}}
+               ]}}
+
+    assert {:error,
+            {:unable_unify,
+             {{:map,
+               [
+                 {:required, {:atom, :__struct__}, {:atom, Module.Types.ExprTest.Struct2}},
+                 {:required, {:atom, :field}, :dynamic}
+               ]}, {:map, [{:required, {:atom, :field}, {:atom, :a}}]},
+              _}}} =
+             quoted_expr(
+               (
+                 map = %{field: :a}
+                 %Module.Types.ExprTest.Struct2{map | field: :b}
+               )
+             )
+
+    assert quoted_expr([map], %Module.Types.ExprTest.Struct2{map | field: :b}) ==
+             {:ok,
+              {:map,
+               [
+                 {:required, {:atom, :__struct__}, {:atom, Module.Types.ExprTest.Struct2}},
+                 {:required, {:atom, :field}, {:atom, :b}}
+               ]}}
+
+    assert {:error,
+            {:unable_unify,
+             {{:map,
+               [{:required, {:atom, :not_field}, :dynamic}, {:optional, :dynamic, :dynamic}]},
+              {:map,
+               [
+                 {:required, {:atom, :__struct__}, {:atom, Module.Types.ExprTest.Struct2}},
+                 {:required, {:atom, :field}, {:atom, nil}}
+               ]},
+              _}}} =
+             quoted_expr(
+               (
+                 map = %Module.Types.ExprTest.Struct2{}
+                 %{map | not_field: :b}
+               )
+             )
+  end
+
   # Use module attribute to avoid formatter adding parentheses
   @mix_module Mix
 
