@@ -1,23 +1,21 @@
 defmodule ExUnit.DocTest do
   @moduledoc """
-  ExUnit.DocTest implements functionality similar to [Python's
-  doctest](https://docs.python.org/2/library/doctest.html).
+  Extract test cases from the documentation.
 
-  It allows us to generate tests from the code
-  examples in a module/function/macro's documentation.
-  To do this, invoke the `doctest/1` macro from within
-  your test case and ensure your code examples are written
-  according to the syntax and guidelines below.
+  Doctests allow us to generate tests from code examples found
+  in `@moduledoc` and `@doc` attributes. To do this, invoke the
+  `doctest/1` macro from within your test case and ensure your
+  code examples are written according to the syntax and guidelines
+  below.
 
   ## Syntax
 
   Every new test starts on a new line, with an `iex>` prefix.
-  Multiline expressions can be used by prefixing subsequent lines with either
-  `...>` (recommended) or `iex>`.
+  Multiline expressions can be used by prefixing subsequent lines
+  with either `...>` (recommended) or `iex>`.
 
   The expected result should start at the next line after the `iex>`
-  or `...>` line(s) and is terminated either by a newline, new
-  `iex>` prefix or the end of the string literal.
+  or `...>` line(s) and it is terminated either by a newline.
 
   ## Examples
 
