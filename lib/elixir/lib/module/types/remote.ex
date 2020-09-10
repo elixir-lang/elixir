@@ -50,7 +50,16 @@ defmodule Module.Types.Remote do
     end
   end
 
-  # TODO: Properly handle protocols
+  # The protocol code dispatches to unknown modules, so we ignore them here.
+  #
+  #     try do
+  #       SomeProtocol.Atom.__impl__
+  #     rescue
+  #       ...
+  #     end
+  #
+  # But for protocols we don't want to traverse the protocol code anyway.
+  # TODO: remove this clause once we no longer traverse the protocol code.
   defp warn_undefined?(_module, :__impl__, 1, _context), do: false
   defp warn_undefined?(_module, :module_info, 0, _context), do: false
   defp warn_undefined?(_module, :module_info, 1, _context), do: false

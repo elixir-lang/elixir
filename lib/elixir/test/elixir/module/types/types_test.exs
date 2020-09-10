@@ -1,6 +1,6 @@
-Code.require_file("../test_helper.exs", __DIR__)
+Code.require_file("../../test_helper.exs", __DIR__)
 
-defmodule Module.TypesTest do
+defmodule Module.Types.TypesTest do
   use ExUnit.Case, async: true
   import Bitwise, warn: false
   alias Module.Types
