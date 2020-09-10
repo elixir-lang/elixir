@@ -25,25 +25,16 @@ defmodule Module.Types.PatternTest do
   end
 
   defp expand_head(patterns, guards) do
-    {_, vars} =
-      Macro.prewalk(patterns, [], fn
-        {:_, _, context} = var, vars when is_atom(context) ->
-          {var, vars}
-
-        {:"::", _, [left, _right]}, vars ->
-          {{:"::", [], [left, nil]}, vars}
-
-        {name, _, context} = var, vars when is_atom(name) and is_atom(context) ->
-          {var, [var | vars]}
-
-        other, vars ->
-          {other, vars}
-      end)
-
     fun =
       quote do
-        fn unquote(patterns) when unquote(guards) -> unquote(vars) end
+        fn unquote(patterns) when unquote(guards) -> :ok end
       end
+
+    fun =
+      Macro.prewalk(fun, fn
+        {var, meta, nil} -> {var, meta, __MODULE__}
+        other -> other
+      end)
 
     {ast, _env} = :elixir_expand.expand(fun, __ENV__)
     {:fn, _, [{:->, _, [[{:when, _, [patterns, guards]}], _]}]} = ast
@@ -79,7 +70,7 @@ defmodule Module.Types.PatternTest do
     defstruct foo: :atom, bar: 123, baz: %{}
   end
 
-  describe "of_pattern/3" do
+  describe "patterns" do
     test "literal" do
       assert quoted_pattern(true) == {:ok, {:atom, true}}
       assert quoted_pattern(false) == {:ok, {:atom, false}}
@@ -229,19 +220,301 @@ defmodule Module.Types.PatternTest do
     end
   end
 
-  test "of_guard/2" do
-    assert {:ok, :boolean, context} = quoted_guard([x], is_tuple(x))
-    assert Types.lift_type({:var, 0}, context) == :tuple
+  describe "guards" do
+    test "of_guard/2" do
+      assert {:ok, :boolean, context} = quoted_guard([x], is_tuple(x))
+      assert Types.lift_type({:var, 0}, context) == :tuple
 
-    assert {:ok, :dynamic, context} = quoted_guard([x], elem(x, 0))
-    assert Types.lift_type({:var, 0}, context) == :tuple
+      assert {:ok, :dynamic, context} = quoted_guard([x], elem(x, 0))
+      assert Types.lift_type({:var, 0}, context) == :tuple
 
-    assert {:ok, {:atom, true}, _context} = quoted_guard([], true)
-    assert {:ok, {:atom, false}, _context} = quoted_guard([], false)
-    assert {:ok, {:atom, :fail}, _context} = quoted_guard([], :fail)
-    assert {:ok, :boolean, _context} = quoted_guard([], is_atom(true or :fail))
+      assert {:ok, {:atom, true}, _context} = quoted_guard([], true)
+      assert {:ok, {:atom, false}, _context} = quoted_guard([], false)
+      assert {:ok, {:atom, :fail}, _context} = quoted_guard([], :fail)
+      assert {:ok, :boolean, _context} = quoted_guard([], is_atom(true or :fail))
 
-    assert {:error, {:unable_unify, {:tuple, :boolean, _}, _}} =
-             quoted_guard([x], is_tuple(x) and is_boolean(x))
+      assert {:error, {:unable_unify, {:tuple, :boolean, _}, _}} =
+               quoted_guard([x], is_tuple(x) and is_boolean(x))
+    end
+  end
+end
+
+defmodule Module.Types.TempTypesTest do
+  use ExUnit.Case, async: true
+  import Bitwise, warn: false
+  alias Module.Types
+
+  defmacrop quoted_head(patterns, guards \\ [true]) do
+    quote do
+      {patterns, guards} = unquote(Macro.escape(expand_head(patterns, guards)))
+
+      Types.of_head(
+        patterns,
+        guards,
+        def_expr(),
+        new_context()
+      )
+      |> lift_result()
+    end
+  end
+
+  defmacrop quoted_fun(patterns, guards \\ [true], body) do
+    quote do
+      {patterns, guards, body} = unquote(Macro.escape(expand_expr(patterns, guards, body)))
+
+      with {:ok, _types, context} <- Types.of_head(patterns, guards, def_expr(), new_context()),
+           {:ok, type, context} <- Types.of_body(body, context) do
+        {:ok, Types.lift_type(type, context)}
+      else
+        {:error, {type, reason, _context}} ->
+          {:error, {type, reason}}
+      end
+    end
+  end
+
+  defp expand_head(patterns, guards) do
+    fun =
+      quote do
+        fn unquote(patterns) when unquote(guards) -> :ok end
+      end
+
+    fun =
+      Macro.prewalk(fun, fn
+        {var, meta, nil} -> {var, meta, __MODULE__}
+        other -> other
+      end)
+
+    {ast, _env} = :elixir_expand.expand(fun, __ENV__)
+    {:fn, _, [{:->, _, [[{:when, _, [patterns, guards]}], _]}]} = ast
+    {patterns, guards}
+  end
+
+  defp expand_expr(patterns, guards, body) do
+    fun =
+      quote do
+        fn unquote(patterns) when unquote(guards) -> unquote(body) end
+      end
+
+    {ast, _env} = :elixir_expand.expand(fun, __ENV__)
+    {:fn, _, [{:->, _, [[{:when, _, [patterns, guards]}], body]}]} = ast
+    {patterns, guards, body}
+  end
+
+  defp new_context() do
+    Types.context("types_test.ex", TypesTest, {:test, 0}, [], Module.ParallelChecker.test_cache())
+  end
+
+  defp def_expr() do
+    {:def, [], {:test, [], []}}
+  end
+
+  defp lift_result({:ok, types, context}) when is_list(types) do
+    {:ok, Types.lift_types(types, context)}
+  end
+
+  defp lift_result({:error, {type, reason, _context}}) do
+    {:error, {type, reason}}
+  end
+
+  describe "of_head/4" do
+    test "variable" do
+      assert quoted_head([a]) == {:ok, [{:var, 0}]}
+      assert quoted_head([a, b]) == {:ok, [{:var, 0}, {:var, 1}]}
+      assert quoted_head([a, a]) == {:ok, [{:var, 0}, {:var, 0}]}
+
+      assert {:ok, [{:var, 0}, {:var, 0}], _} =
+               Types.of_head(
+                 [{:a, [version: 0], :foo}, {:a, [version: 0], :foo}],
+                 [],
+                 def_expr(),
+                 new_context()
+               )
+
+      assert {:ok, [{:var, 0}, {:var, 1}], _} =
+               Types.of_head(
+                 [{:a, [version: 0], :foo}, {:a, [version: 1], :foo}],
+                 [],
+                 def_expr(),
+                 new_context()
+               )
+    end
+
+    test "assignment" do
+      assert quoted_head([x = y, x = y]) == {:ok, [{:var, 0}, {:var, 0}]}
+      assert quoted_head([x = y, y = x]) == {:ok, [{:var, 0}, {:var, 0}]}
+
+      assert quoted_head([x = :foo, x = y, y = z]) ==
+               {:ok, [{:atom, :foo}, {:atom, :foo}, {:atom, :foo}]}
+
+      assert quoted_head([x = y, y = :foo, y = z]) ==
+               {:ok, [{:atom, :foo}, {:atom, :foo}, {:atom, :foo}]}
+
+      assert quoted_head([x = y, y = z, z = :foo]) ==
+               {:ok, [{:atom, :foo}, {:atom, :foo}, {:atom, :foo}]}
+
+      assert {:error, {:unable_unify, {{:tuple, [var: 1]}, {:var, 0}, _}}} =
+               quoted_head([{x} = y, {y} = x])
+    end
+
+    test "guards" do
+      assert quoted_head([x], [is_binary(x)]) == {:ok, [:binary]}
+
+      assert quoted_head([x, y], [is_binary(x) and is_atom(y)]) ==
+               {:ok, [:binary, :atom]}
+
+      assert quoted_head([x], [is_binary(x) or is_atom(x)]) ==
+               {:ok, [{:union, [:binary, :atom]}]}
+
+      assert quoted_head([x, x], [is_integer(x)]) == {:ok, [:integer, :integer]}
+
+      assert quoted_head([x = 123], [is_integer(x)]) == {:ok, [:integer]}
+
+      assert quoted_head([x], [is_boolean(x) or is_atom(x)]) ==
+               {:ok, [:atom]}
+
+      assert quoted_head([x], [is_atom(x) or is_boolean(x)]) ==
+               {:ok, [:atom]}
+
+      assert quoted_head([x], [is_tuple(x) or is_atom(x)]) ==
+               {:ok, [{:union, [:tuple, :atom]}]}
+
+      assert quoted_head([x], [is_boolean(x) and is_atom(x)]) ==
+               {:ok, [:boolean]}
+
+      assert quoted_head([x], [is_atom(x) and is_boolean(x)]) ==
+               {:ok, [:boolean]}
+
+      assert quoted_head([x], [is_atom(x) > :foo]) == {:ok, [var: 0]}
+
+      assert quoted_head([x, x = y, y = z], [is_atom(x)]) ==
+               {:ok, [:atom, :atom, :atom]}
+
+      assert quoted_head([x = y, y, y = z], [is_atom(y)]) ==
+               {:ok, [:atom, :atom, :atom]}
+
+      assert quoted_head([x = y, y = z, z], [is_atom(z)]) ==
+               {:ok, [:atom, :atom, :atom]}
+
+      assert {:error, {:unable_unify, {:binary, :integer, _}}} =
+               quoted_head([x], [is_binary(x) and is_integer(x)])
+
+      assert {:error, {:unable_unify, {:tuple, :atom, _}}} =
+               quoted_head([x], [is_tuple(x) and is_atom(x)])
+
+      assert {:error, {:unable_unify, {:boolean, :tuple, _}}} =
+               quoted_head([x], [is_tuple(is_atom(x))])
+    end
+
+    test "erlang-only guards" do
+      assert quoted_head([x], [:erlang.size(x)]) ==
+               {:ok, [{:union, [:binary, :tuple]}]}
+    end
+
+    test "failing guard functions" do
+      assert quoted_head([x], [length([])]) == {:ok, [{:var, 0}]}
+
+      assert {:error, {:unable_unify, {{:atom, :foo}, {:list, :dynamic}, _}}} =
+               quoted_head([x], [length(:foo)])
+
+      assert {:error, {:unable_unify, {:boolean, {:list, :dynamic}, _}}} =
+               quoted_head([x], [length(is_tuple(x))])
+
+      assert {:error, {:unable_unify, {:boolean, :tuple, _}}} =
+               quoted_head([x], [elem(is_tuple(x), 0)])
+
+      assert {:error, {:unable_unify, {:boolean, :number, _}}} =
+               quoted_head([x], [elem({}, is_tuple(x))])
+
+      assert quoted_head([x], [elem({}, 1)]) == {:ok, [var: 0]}
+
+      assert quoted_head([x], [elem(x, 1) == :foo]) == {:ok, [:tuple]}
+
+      assert quoted_head([x], [is_tuple(x) and elem(x, 1)]) == {:ok, [:tuple]}
+
+      assert quoted_head([x], [length(x) == 0 or elem(x, 1)]) == {:ok, [{:list, :dynamic}]}
+
+      assert quoted_head([x], [
+               (is_list(x) and length(x) == 0) or (is_tuple(x) and elem(x, 1))
+             ]) ==
+               {:ok, [{:union, [{:list, :dynamic}, :tuple]}]}
+
+      assert quoted_head([x], [
+               (length(x) == 0 and is_list(x)) or (elem(x, 1) and is_tuple(x))
+             ]) == {:ok, [{:list, :dynamic}]}
+
+      assert quoted_head([x, y], [elem(x, 1) and is_atom(y)]) == {:ok, [:tuple, :atom]}
+
+      assert quoted_head([x], [elem(x, 1) or is_atom(x)]) == {:ok, [:tuple]}
+
+      assert quoted_head([x, y], [elem(x, 1) or is_atom(y)]) == {:ok, [:tuple, {:var, 0}]}
+
+      assert {:error, {:unable_unify, {:tuple, :atom, _}}} =
+               quoted_head([x], [elem(x, 1) and is_atom(x)])
+    end
+
+    test "map" do
+      assert quoted_head([%{true: false} = foo, %{} = foo]) ==
+               {:ok,
+                [
+                  {:map,
+                   [{:required, {:atom, true}, {:atom, false}}, {:optional, :dynamic, :dynamic}]},
+                  {:map,
+                   [{:required, {:atom, true}, {:atom, false}}, {:optional, :dynamic, :dynamic}]}
+                ]}
+
+      assert quoted_head([%{true: bool}], [is_boolean(bool)]) ==
+               {:ok,
+                [
+                  {:map, [{:required, {:atom, true}, :boolean}, {:optional, :dynamic, :dynamic}]}
+                ]}
+
+      assert quoted_head([%{true: true} = foo, %{false: false} = foo]) ==
+               {:ok,
+                [
+                  {:map,
+                   [
+                     {:required, {:atom, false}, {:atom, false}},
+                     {:required, {:atom, true}, {:atom, true}},
+                     {:optional, :dynamic, :dynamic}
+                   ]},
+                  {:map,
+                   [
+                     {:required, {:atom, false}, {:atom, false}},
+                     {:required, {:atom, true}, {:atom, true}},
+                     {:optional, :dynamic, :dynamic}
+                   ]}
+                ]}
+
+      assert {:error,
+              {:unable_unify,
+               {{:map, [{:required, {:atom, true}, {:atom, true}}]},
+                {:map, [{:required, {:atom, true}, {:atom, false}}]},
+                _}}} = quoted_head([%{true: false} = foo, %{true: true} = foo])
+    end
+
+    test "struct var guard" do
+      assert quoted_head([%var{}], [is_atom(var)]) ==
+               {:ok,
+                [
+                  {:map,
+                   [{:required, {:atom, :__struct__}, :atom}, {:optional, :dynamic, :dynamic}]}
+                ]}
+
+      assert {:error, {:unable_unify, {:atom, :integer, _}}} =
+               quoted_head([%var{}], [is_integer(var)])
+    end
+  end
+
+  describe "of_body/2" do
+    test "not is_struct/2" do
+      assert quoted_fun([var], [not is_struct(var, URI)], var.name) == {:ok, {:var, 0}}
+    end
+
+    test "map guards" do
+      assert quoted_fun([var], [is_map(var)], var.foo) == {:ok, {:var, 0}}
+      assert quoted_fun([var], [is_map_key(var, :bar)], var.foo) == {:ok, {:var, 0}}
+      assert quoted_fun([var], [:erlang.map_get(:bar, var)], var.foo) == {:ok, {:var, 0}}
+      assert quoted_fun([var], [map_size(var) == 1], var.foo) == {:ok, {:var, 0}}
+    end
   end
 end
