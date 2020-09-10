@@ -169,13 +169,13 @@ defmodule Module.Types.Infer do
     {target_required, target_optional} = split_pairs(target_pairs)
 
     with {:ok, source_required_pairs, context} <-
-           unify_source_required(source_required, target_pairs, source_pairs, stack, context),
+           unify_source_required(source_required, target_pairs, stack, context),
          {:ok, target_required_pairs, context} <-
-           unify_target_required(target_required, source_pairs, target_pairs, stack, context),
+           unify_target_required(target_required, source_pairs, stack, context),
          {:ok, source_optional_pairs, context} <-
-           unify_source_optional(source_optional, target_pairs, source_pairs, stack, context),
+           unify_source_optional(source_optional, target_optional, stack, context),
          {:ok, target_optional_pairs, context} <-
-           unify_target_optional(target_optional, source_pairs, target_pairs, stack, context),
+           unify_target_optional(target_optional, source_optional, stack, context),
          pairs =
            [
              source_required_pairs,
@@ -186,11 +186,15 @@ defmodule Module.Types.Infer do
            |> Enum.concat()
            # Remove duplicate pairs from matching in both left and right directions
            |> Enum.uniq()
-           |> simplify_struct(),
-         do: {:ok, {:map, pairs}, context}
+           |> simplify_struct() do
+      {:ok, {:map, pairs}, context}
+    else
+      {:error, :unify} -> error({:unable_unify, {:map, source_pairs}, {:map, target_pairs}}, stack, context)
+      {:error, context} -> {:error, context}
+    end
   end
 
-  defp unify_source_required(source_required, target_pairs, source_pairs, stack, context) do
+  defp unify_source_required(source_required, target_pairs, stack, context) do
     map_reduce_ok(source_required, context, fn {source_key, source_value}, context ->
       Enum.find_value(target_pairs, fn {target_kind, target_key, target_value} ->
         with {:ok, key, context} <- unify(source_key, target_key, stack, context) do
@@ -206,41 +210,42 @@ defmodule Module.Types.Infer do
         else
           {:error, _reason} -> nil
         end
-      end) || error({:unable_unify, {:map, source_pairs}, {:map, target_pairs}}, stack, context)
+      end) || {:error, :unify}
     end)
   end
 
-  defp unify_target_required(target_required, source_pairs, target_pairs, stack, context) do
+  defp unify_target_required(target_required, source_pairs, stack, context) do
     map_reduce_ok(target_required, context, fn {target_key, target_value}, context ->
-      Enum.find_value(source_pairs, fn {target_kind, source_key, source_value} ->
+      Enum.find_value(source_pairs, fn {source_kind, source_key, source_value} ->
         with {:ok, key, context} <- unify(source_key, target_key, stack, context) do
           case unify(source_value, target_value, stack, context) do
             {:ok, value, context} ->
               {:ok, {:required, key, value}, context}
 
             {:error, _reason} ->
-              source_map = {:map, [{:required, source_key, source_value}]}
-              target_map = {:map, [{target_kind, target_key, target_value}]}
+              source_map = {:map, [{source_kind, source_key, source_value}]}
+              target_map = {:map, [{:required, target_key, target_value}]}
               error({:unable_unify, source_map, target_map}, stack, context)
           end
         else
           {:error, _reason} -> nil
         end
-      end) || error({:unable_unify, {:map, source_pairs}, {:map, target_pairs}}, stack, context)
+      end) || {:error, :unify}
     end)
   end
 
-  defp unify_source_optional(source_optional, target_pairs, source_pairs, stack, context) do
+  defp unify_source_optional(source_optional, target_optional, stack, context) do
     flat_map_reduce_ok(source_optional, context, fn {source_key, source_value}, context ->
-      Enum.find_value(target_pairs, fn {kind, target_key, target_value} ->
-        with :optional <- kind,
-             {:ok, key, context} <- unify(source_key, target_key, stack, context) do
+      Enum.find_value(target_optional, fn {target_key, target_value} ->
+        with {:ok, key, context} <- unify(source_key, target_key, stack, context) do
           case unify(source_value, target_value, stack, context) do
             {:ok, value, context} ->
               {:ok, [{:optional, key, value}], context}
 
             {:error, _reason} ->
-              error({:unable_unify, {:map, source_pairs}, {:map, target_pairs}}, stack, context)
+              source_map = {:map, [{:optional, source_key, source_value}]}
+              target_map = {:map, [{:optional, target_key, target_value}]}
+              error({:unable_unify, source_map, target_map}, stack, context)
           end
         else
           _ -> nil
@@ -249,17 +254,18 @@ defmodule Module.Types.Infer do
     end)
   end
 
-  defp unify_target_optional(target_optional, source_pairs, target_pairs, stack, context) do
+  defp unify_target_optional(target_optional, source_optional, stack, context) do
     flat_map_reduce_ok(target_optional, context, fn {target_key, target_value}, context ->
-      Enum.find_value(source_pairs, fn {kind, source_key, source_value} ->
-        with :optional <- kind,
-             {:ok, key, context} <- unify(source_key, target_key, stack, context) do
+      Enum.find_value(source_optional, fn {source_key, source_value} ->
+        with {:ok, key, context} <- unify(source_key, target_key, stack, context) do
           case unify(source_value, target_value, stack, context) do
             {:ok, value, context} ->
               {:ok, [{:optional, key, value}], context}
 
             {:error, _reason} ->
-              error({:unable_unify, {:map, source_pairs}, {:map, target_pairs}}, stack, context)
+              source_map = {:map, [{:optional, source_key, source_value}]}
+              target_map = {:map, [{:optional, target_key, target_value}]}
+              error({:unable_unify, source_map, target_map}, stack, context)
           end
         else
           _ -> nil
