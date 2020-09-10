@@ -90,7 +90,7 @@ defmodule Module.Types.Infer do
     if subtype?(source, target, context) do
       {:ok, source, context}
     else
-      error({:unable_unify, source, target}, stack, context)
+      error(:unable_unify, {source, target, stack}, context)
     end
   end
 
@@ -106,9 +106,9 @@ defmodule Module.Types.Infer do
 
         if recursive_type?(type, [], context) do
           if var_source? do
-            error({:unable_unify, {:var, var}, type}, stack, context)
+            error(:unable_unify, {{:var, var}, type, stack}, context)
           else
-            error({:unable_unify, type, {:var, var}}, stack, context)
+            error(:unable_unify, {type, {:var, var}, stack}, context)
           end
         else
           {:ok, {:var, var}, context}
@@ -151,7 +151,7 @@ defmodule Module.Types.Infer do
       else
         left = {:map, [{:required, {:atom, :__struct__}, left_module}]}
         right = {:map, [{:required, {:atom, :__struct__}, right_module}]}
-        error({:unable_unify, left, right}, stack, context)
+        error(:unable_unify, {left, right, stack}, context)
       end
     else
       _ -> :ok
@@ -190,7 +190,7 @@ defmodule Module.Types.Infer do
       {:ok, {:map, pairs}, context}
     else
       {:error, :unify} ->
-        error({:unable_unify, {:map, source_pairs}, {:map, target_pairs}}, stack, context)
+        error(:unable_unify, {{:map, source_pairs}, {:map, target_pairs}, stack}, context)
 
       {:error, context} ->
         {:error, context}
@@ -208,7 +208,7 @@ defmodule Module.Types.Infer do
             {:error, _reason} ->
               source_map = {:map, [{:required, source_key, source_value}]}
               target_map = {:map, [{target_kind, target_key, target_value}]}
-              error({:unable_unify, source_map, target_map}, stack, context)
+              error(:unable_unify, {source_map, target_map, stack}, context)
           end
         else
           {:error, _reason} -> nil
@@ -228,7 +228,7 @@ defmodule Module.Types.Infer do
             {:error, _reason} ->
               source_map = {:map, [{source_kind, source_key, source_value}]}
               target_map = {:map, [{:required, target_key, target_value}]}
-              error({:unable_unify, source_map, target_map}, stack, context)
+              error(:unable_unify, {source_map, target_map, stack}, context)
           end
         else
           {:error, _reason} -> nil
@@ -248,7 +248,7 @@ defmodule Module.Types.Infer do
             {:error, _reason} ->
               source_map = {:map, [{:optional, source_key, source_value}]}
               target_map = {:map, [{:optional, target_key, target_value}]}
-              error({:unable_unify, source_map, target_map}, stack, context)
+              error(:unable_unify, {source_map, target_map, stack}, context)
           end
         else
           _ -> nil
@@ -268,7 +268,7 @@ defmodule Module.Types.Infer do
             {:error, _reason} ->
               source_map = {:map, [{:optional, source_key, source_value}]}
               target_map = {:map, [{:optional, target_key, target_value}]}
-              error({:unable_unify, source_map, target_map}, stack, context)
+              error(:unable_unify, {source_map, target_map, stack}, context)
           end
         else
           _ -> nil
@@ -499,63 +499,7 @@ defmodule Module.Types.Infer do
   def unify_kinds(_, :required), do: :required
   def unify_kinds(:optional, :optional), do: :optional
 
-  # Collect relevant information from context and traces to report error
-  # TODO: We should do this lazily since in some cases unification will error
-  #       but we continue attempting unifying other types
-  defp error({:unable_unify, left, right}, stack, context) do
-    {fun, arity} = context.function
-    line = get_meta(stack.last_expr)[:line]
-    location = {context.file, line, {context.module, fun, arity}}
-
-    traces = type_traces(stack, context)
-    traces = tag_traces(traces, context)
-
-    error = {:unable_unify, left, right, {location, stack.last_expr, traces}}
-    context = update_in(context.warnings, &[{Module.Types, error, location} | &1])
-    {:error, context}
-  end
-
-  # Collect relevant traces from context.traces using stack.unify_stack
-  defp type_traces(stack, context) do
-    # TODO: Do we need the unify_stack or is enough to only get the last variable
-    #       in the stack since we get related variables anyway?
-    stack =
-      stack.unify_stack
-      |> Enum.uniq()
-      |> Enum.flat_map(&[&1 | related_variables(&1, context.types)])
-      |> Enum.uniq()
-
-    Enum.flat_map(stack, fn var_index ->
-      with %{^var_index => traces} <- context.traces,
-           %{^var_index => expr_var} <- context.types_to_vars do
-        Enum.map(traces, &{expr_var, &1})
-      else
-        _other -> []
-      end
-    end)
-  end
-
-  defp related_variables(var, types) do
-    Enum.flat_map(types, fn
-      {related_var, {:var, ^var}} ->
-        [related_var | related_variables(related_var, types)]
-
-      _ ->
-        []
-    end)
-  end
-
-  # Tag if trace is for a concrete type or type variable
-  defp tag_traces(traces, context) do
-    Enum.flat_map(traces, fn {var, {type, expr, location}} ->
-      with {:var, var_index} <- type,
-           %{^var_index => expr_var} <- context.types_to_vars do
-        [{var, {:var, expr_var, expr, location}}]
-      else
-        _ -> [{var, {:type, type, expr, location}}]
-      end
-    end)
-  end
+  defp error(type, reason, context), do: {:error, {type, reason, context}}
 
   # TODO: We should check if structs have keys that do not belong to them.
   #       This might not be the best place to do it since it will only be
