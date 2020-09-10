@@ -276,6 +276,11 @@ inner_rewrite(erl_to_ex, _Meta, erlang, element, [{{'.', _, [erlang, '+']}, _, [
 inner_rewrite(erl_to_ex, _Meta, erlang, setelement, [{{'.', _, [erlang, '+']}, _, [Index, 1]}, Tuple, Value]) ->
   {?kernel, put_elem, [Tuple, Index, Value]};
 
+inner_rewrite(erl_to_ex, _Meta, erlang, 'orelse', [_, _] = Args) ->
+  {?kernel, 'or', Args};
+inner_rewrite(erl_to_ex, _Meta, erlang, 'andalso', [_, _] = Args) ->
+  {?kernel, 'and', Args};
+
 inner_rewrite(_To, _Meta, Mod, Fun, Args) -> {Mod, Fun, Args}.
 
 increment(_Meta, Number) when is_number(Number) ->
