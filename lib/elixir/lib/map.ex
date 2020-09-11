@@ -89,7 +89,7 @@ defmodule Map do
       iex> %{map | one: "one"}
       %{one: "one", two: 2}
 
-  When a key that does not exist in the map is updated a key error will be raised:
+  When a key that does not exist in the map is updated a `KeyError` exception will be raised:
 
       %{map | three: 3}
 
