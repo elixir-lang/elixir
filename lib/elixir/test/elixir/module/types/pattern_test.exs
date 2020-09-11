@@ -245,7 +245,7 @@ defmodule Module.Types.TempTypesTest do
   import Bitwise, warn: false
 
   alias Module.Types
-  alias Module.Types.{Expr, Pattern}
+  alias Module.Types.Pattern
 
   defmacrop quoted_head(patterns, guards \\ [true]) do
     quote do
@@ -258,21 +258,6 @@ defmodule Module.Types.TempTypesTest do
         new_context()
       )
       |> lift_result()
-    end
-  end
-
-  defmacrop quoted_fun(patterns, guards \\ [true], body) do
-    quote do
-      {patterns, guards, body} = unquote(Macro.escape(expand_expr(patterns, guards, body)))
-
-      with {:ok, _types, context} <-
-             Pattern.of_head(patterns, guards, new_stack(), new_context()),
-           {:ok, type, context} <- Expr.of_expr(body, new_stack(), context) do
-        {:ok, Types.lift_type(type, context)}
-      else
-        {:error, {type, reason, _context}} ->
-          {:error, {type, reason}}
-      end
     end
   end
 
@@ -291,17 +276,6 @@ defmodule Module.Types.TempTypesTest do
     {ast, _env} = :elixir_expand.expand(fun, __ENV__)
     {:fn, _, [{:->, _, [[{:when, _, [patterns, guards]}], _]}]} = ast
     {patterns, guards}
-  end
-
-  defp expand_expr(patterns, guards, body) do
-    fun =
-      quote do
-        fn unquote(patterns) when unquote(guards) -> unquote(body) end
-      end
-
-    {ast, _env} = :elixir_expand.expand(fun, __ENV__)
-    {:fn, _, [{:->, _, [[{:when, _, [patterns, guards]}], body]}]} = ast
-    {patterns, guards, body}
   end
 
   defp new_context() do
@@ -509,19 +483,6 @@ defmodule Module.Types.TempTypesTest do
 
       assert {:error, {:unable_unify, {:atom, :integer, _}}} =
                quoted_head([%var{}], [is_integer(var)])
-    end
-  end
-
-  describe "of_body/2" do
-    test "not is_struct/2" do
-      assert quoted_fun([var], [not is_struct(var, URI)], var.name) == {:ok, {:var, 0}}
-    end
-
-    test "map guards" do
-      assert quoted_fun([var], [is_map(var)], var.foo) == {:ok, {:var, 0}}
-      assert quoted_fun([var], [is_map_key(var, :bar)], var.foo) == {:ok, {:var, 0}}
-      assert quoted_fun([var], [:erlang.map_get(:bar, var)], var.foo) == {:ok, {:var, 0}}
-      assert quoted_fun([var], [map_size(var) == 1], var.foo) == {:ok, {:var, 0}}
     end
   end
 end
