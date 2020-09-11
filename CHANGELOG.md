@@ -56,6 +56,8 @@ warning: undefined field `age` in expression:
     # example.exs:7
     user.age
 
+expected one of the following fields: name, address
+
 where "user" was given the type %User{} in:
 
     # example.exs:7
@@ -91,6 +93,11 @@ where "string" was given the type binary() in:
 
     # foo.exs:3
     is_binary(string)
+
+HINT: all expressions given to binaries are assumed to be of type integer()
+unless said otherwise. For example, <<expr>> assumes "expr" is an integer.
+Pass a modifier, such as <<expr::float>> or <<expr::binary>>, to change the
+default behaviour.
 
 Conflict found at
   foo.exs:4: Check.run_length/1
@@ -267,6 +274,7 @@ Mix also includes two new tasks: `mix app.config`, for application runtime confi
   * [Kernel] Warn if a variable that looks like a compiler variable (such as `__MODULE__`) is unused
   * [Kernel.ParallelCompiler] Report individual file compilation times when `profile: :time` is given
   * [Kernel.ParallelCompiler] Improve precision of `:long_compilation_threshold` so it takes only compilation times into account (and not waiting times)
+  * [Registry] Add `Registry.delete_meta/2`
   * [Task] Add `Task.await_many/2`
 
 #### ExUnit
@@ -288,6 +296,7 @@ Mix also includes two new tasks: `mix app.config`, for application runtime confi
   * [Logger] Add `notice`, `critical`, `alert`, and `emergency` log levels
   * [Logger] Support structured logging by logging maps or keyword lists
   * [Logger] Allow level to be set per module with `Logger.put_module_level/2`
+  * [Logger] Include `erl_level` in Logger's metadata
 
 #### Mix
 
@@ -312,6 +321,7 @@ Mix also includes two new tasks: `mix app.config`, for application runtime confi
   * [mix release] Boot a release under configuration in interactive mode and then swap to embedded mode (if running on Erlang/OTP 23+)
   * [mix release] Add `rel_templates_path` to configure the source of template files such as "env.sh.eex", "vm.args.eex" and "overlays"
   * [mix release] Allow some chunks to be kept in the `:strip_beams` config
+  * [mix test] Allow `:ignore_modules` inside `:test_coverage` option
   * [mix test.coverage] Add `mix test.coverage` that aggregates coverage results from umbrellas and OS partitioning
   * [mix xref] Make the `--label` option for `mix xref graph` transitive by default and add `--only-direct` for only direct dependencies
   * [mix xref] Add `--format cycles` support for `mix xref graph`
@@ -330,6 +340,7 @@ Mix also includes two new tasks: `mix app.config`, for application runtime confi
   * [Kernel] Validate values given to `:line` in quote to avoid emitting invalid ASTs
   * [Kernel] Report the correct line number when raising inside a macro
   * [Kernel] Fix an issue where `elixirc` would not accept paths with backslash (`\`) separators on Windows
+  * [Kernel] Properly parse `&//2` (i.e. the capture of the division operator)
   * [Kernel] Raise `CompileError` when trying to define reserved types
   * [Kernel] Improve compiler error message when using `|` in a `def` signature
   * [Kernel.SpecialForms] Add `|/2` to the list of special forms to avoid inconsistent behaviour on overrides
@@ -353,6 +364,7 @@ Mix also includes two new tasks: `mix app.config`, for application runtime confi
 
   * [mix cmd] Fix a bug where only the first --app option would be executed
   * [mix compile] Fix an issue where new protocol implementations would not propagate when running `mix compile` from an umbrella root
+  * [mix deps.compile] Use `gmake` instead of `make` when compiling deps on NetBSD/DragonFlyBSD
   * [mix release] Load `.app` from dependencies path when it is a project dependency
   * [mix release] Always include "rel/overlays" in the list of overlays directories if available
   * [mix release] Change `erts/bin/erl` binary mode to `0o755`
