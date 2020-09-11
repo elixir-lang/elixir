@@ -251,16 +251,19 @@ defmodule Module.Types do
 
   def format_warning({:unable_unify, left, right, {location, expr, traces}}) do
     cond do
-      map_type?(left) and map_type?(right) and match?({:ok, _}, missing_field(left, right)) ->
-        {:ok, atom} = missing_field(left, right)
+      map_type?(left) and map_type?(right) and match?({:ok, _, _}, missing_field(left, right)) ->
+        {:ok, atom, known_atoms} = missing_field(left, right)
 
         # Drop the last trace which is the expression map.foo
         traces = Enum.drop(traces, 1)
-        {traces, hints} = format_traces(traces, false)
+        {traces, hints} = format_traces(traces, true)
 
         [
           "undefined field \"#{atom}\" ",
           format_expr(expr, location),
+          "expected one of the following fields: ",
+          Enum.map_join(Enum.sort(known_atoms), ", ", & &1),
+          "\n\n",
           traces,
           format_message_hints(hints),
           "Conflict found at"
@@ -290,25 +293,26 @@ defmodule Module.Types do
          {:map, [{:required, {:atom, atom} = type, _}, {:optional, :dynamic, :dynamic}]},
          {:map, fields}
        ) do
-    if List.keymember?(fields, type, 1) do
-      :error
-    else
-      {:ok, atom}
-    end
+    matched_missing_field(fields, type, atom)
   end
 
   defp missing_field(
          {:map, fields},
          {:map, [{:required, {:atom, atom} = type, _}, {:optional, :dynamic, :dynamic}]}
        ) do
-    if List.keymember?(fields, type, 1) do
-      :error
-    else
-      {:ok, atom}
-    end
+    matched_missing_field(fields, type, atom)
   end
 
   defp missing_field(_, _), do: :error
+
+  defp matched_missing_field(fields, type, atom) do
+    if List.keymember?(fields, type, 1) do
+      :error
+    else
+      known_atoms = for {_, {:atom, atom}, _} <- fields, do: atom
+      {:ok, atom, known_atoms}
+    end
+  end
 
   defp format_traces([], _simplify?) do
     {[], []}
