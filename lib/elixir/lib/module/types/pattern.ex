@@ -189,7 +189,7 @@ defmodule Module.Types.Pattern do
       when is_atom(var_context) do
     stack = push_expr_stack(expr, stack)
 
-    with {:ok, {:map, pairs}, context} <- Of.open_map(args, stack, context) do
+    with {:ok, {:map, pairs}, context} <- Of.open_map(args, stack, context, &of_pattern/3) do
       {:ok, {:map, [{:required, {:atom, :__struct__}, :atom} | pairs]}, context}
     end
   end
