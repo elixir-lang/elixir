@@ -169,10 +169,11 @@ defmodule Mix.Tasks.Test.Coverage do
 
   defp generate_cover_results(opts) do
     {:result, ok, _fail} = :cover.analyse(:coverage, :line)
+    ignore = opts[:ignore_modules] || []
 
     modules =
       :cover.modules()
-      |> Enum.filter(&(!Enum.member?(opts[:ignore] || [], &1)))
+      |> Enum.reject(& &1 in ignore)
 
     if summary_opts = Keyword.get(opts, :summary, true) do
       summary(ok, modules, summary_opts)
