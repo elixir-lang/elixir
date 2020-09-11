@@ -157,11 +157,12 @@ defmodule Module.Types.Infer do
            unify_target_optional(target_optional, source_optional, stack, context) do
       # Remove duplicate pairs from matching in both left and right directions
       pairs =
-        (source_required_pairs ++
-           target_required_pairs ++
-           source_optional_pairs ++
-           target_optional_pairs)
-        |> Enum.uniq()
+        Enum.uniq(
+          source_required_pairs ++
+            target_required_pairs ++
+            source_optional_pairs ++
+            target_optional_pairs
+        )
 
       {:ok, {:map, pairs}, context}
     else
