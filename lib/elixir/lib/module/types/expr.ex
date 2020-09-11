@@ -391,10 +391,12 @@ defmodule Module.Types.Expr do
     with {:ok, map_type, context} <- of_expr(map, stack, context),
          {:ok, arg_pairs, context} <- of_pairs(args, stack, context),
          arg_pairs = pairs_to_unions(arg_pairs, context),
+         # Change value types to dynamic to reuse map unification for map updates
          dynamic_value_pairs =
            Enum.map(arg_pairs, fn {:required, key, _value} -> {:required, key, :dynamic} end),
          args_type = {:map, additional_pairs ++ dynamic_value_pairs},
          {:ok, type, context} <- unify(args_type, map_type, stack, context) do
+      # Retrieve map type and overwrite with the new value types from the map update
       {:map, pairs} = resolve_var(type, context)
 
       updated_pairs =
