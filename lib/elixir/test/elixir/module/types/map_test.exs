@@ -24,20 +24,20 @@ defmodule Module.Types.MapTest do
              {:ok,
               {:map,
                [
-                 {:required, {:atom, :__struct__}, {:atom, Module.Types.MapTest.Struct}},
-                 {:required, {:atom, :bar}, :integer},
+                 {:required, {:atom, :foo}, {:atom, :atom}},
                  {:required, {:atom, :baz}, {:map, []}},
-                 {:required, {:atom, :foo}, {:atom, :atom}}
+                 {:required, {:atom, :bar}, :integer},
+                 {:required, {:atom, :__struct__}, {:atom, Module.Types.MapTest.Struct}}
                ]}}
 
     assert quoted_expr(%:"Elixir.Module.Types.MapTest.Struct"{foo: 123, bar: :atom}) ==
              {:ok,
               {:map,
                [
-                 {:required, {:atom, :__struct__}, {:atom, Module.Types.MapTest.Struct}},
-                 {:required, {:atom, :baz}, {:map, []}},
+                 {:required, {:atom, :bar}, {:atom, :atom}},
                  {:required, {:atom, :foo}, :integer},
-                 {:required, {:atom, :bar}, {:atom, :atom}}
+                 {:required, {:atom, :baz}, {:map, []}},
+                 {:required, {:atom, :__struct__}, {:atom, Module.Types.MapTest.Struct}}
                ]}}
   end
 
@@ -190,11 +190,11 @@ defmodule Module.Types.MapTest do
 
     assert quoted_expr([map], %{map | foo: :b}) ==
              {:ok,
-              {:map, [{:optional, :dynamic, :dynamic}, {:required, {:atom, :foo}, {:atom, :b}}]}}
+              {:map, [{:required, {:atom, :foo}, {:atom, :b}}, {:optional, :dynamic, :dynamic}]}}
 
     assert {:error,
             {:unable_unify,
-             {{:map, [{:optional, :dynamic, :dynamic}, {:required, {:atom, :bar}, :dynamic}]},
+             {{:map, [{:required, {:atom, :bar}, :dynamic}, {:optional, :dynamic, :dynamic}]},
               {:map, [{:required, {:atom, :foo}, {:atom, :a}}]},
               _}}} =
              quoted_expr(
@@ -215,17 +215,41 @@ defmodule Module.Types.MapTest do
              {:ok,
               {:map,
                [
-                 {:required, {:atom, :__struct__}, {:atom, Module.Types.MapTest.Struct2}},
-                 {:required, {:atom, :field}, {:atom, :b}}
+                 {:required, {:atom, :field}, {:atom, :b}},
+                 {:required, {:atom, :__struct__}, {:atom, Module.Types.MapTest.Struct2}}
                ]}}
 
+    # TODO: improve error message to translate to MULTIPLE missing fields
     assert {:error,
             {:unable_unify,
              {{:map,
                [
+                 {:required, {:atom, :field}, {:atom, :b}},
+                 {:required, {:atom, :foo}, {:var, 1}},
+                 {:optional, :dynamic, :dynamic}
+               ]},
+              {:map,
+               [
                  {:required, {:atom, :__struct__}, {:atom, Module.Types.MapTest.Struct2}},
                  {:required, {:atom, :field}, :dynamic}
-               ]}, {:map, [{:required, {:atom, :field}, {:atom, :a}}]},
+               ]},
+              _}}} =
+             quoted_expr(
+               [map],
+               (
+                 _ = map.foo
+                 %Module.Types.MapTest.Struct2{map | field: :b}
+               )
+             )
+
+    assert {:error,
+            {:unable_unify,
+             {{:map, [{:required, {:atom, :field}, {:atom, :b}}]},
+              {:map,
+               [
+                 {:required, {:atom, :__struct__}, {:atom, Module.Types.MapTest.Struct2}},
+                 {:required, {:atom, :field}, :dynamic}
+               ]},
               _}}} =
              quoted_expr(
                (
@@ -238,18 +262,18 @@ defmodule Module.Types.MapTest do
              {:ok,
               {:map,
                [
-                 {:required, {:atom, :__struct__}, {:atom, Module.Types.MapTest.Struct2}},
-                 {:required, {:atom, :field}, {:atom, :b}}
+                 {:required, {:atom, :field}, {:atom, :b}},
+                 {:required, {:atom, :__struct__}, {:atom, Module.Types.MapTest.Struct2}}
                ]}}
 
     assert {:error,
             {:unable_unify,
              {{:map,
-               [{:optional, :dynamic, :dynamic}, {:required, {:atom, :not_field}, :dynamic}]},
+               [{:required, {:atom, :not_field}, :dynamic}, {:optional, :dynamic, :dynamic}]},
               {:map,
                [
-                 {:required, {:atom, :__struct__}, {:atom, Module.Types.MapTest.Struct2}},
-                 {:required, {:atom, :field}, {:atom, nil}}
+                 {:required, {:atom, :field}, {:atom, nil}},
+                 {:required, {:atom, :__struct__}, {:atom, Module.Types.MapTest.Struct2}}
                ]},
               _}}} =
              quoted_expr(

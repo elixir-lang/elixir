@@ -1,7 +1,7 @@
 defmodule Module.Types.Expr do
   @moduledoc false
 
-  alias Module.Types.{Remote, Pattern}
+  alias Module.Types.{Of, Pattern}
   import Module.Types.{Helpers, Infer}
 
   def of_expr(expr, %{context: stack_context} = stack, context) when stack_context != :expr do
@@ -35,7 +35,7 @@ defmodule Module.Types.Expr do
 
   # <<...>>>
   def of_expr({:<<>>, _meta, args}, stack, context) do
-    result = of_binary(args, stack, context, &of_expr/3)
+    result = Of.binary(args, stack, context, &of_expr/3)
 
     case result do
       {:ok, context} -> {:ok, :binary, context}
@@ -142,41 +142,47 @@ defmodule Module.Types.Expr do
   def of_expr({:%{}, _, [{:|, _, [map, args]}]} = expr, stack, context) do
     stack = push_expr_stack(expr, stack)
 
-    additional_pairs = [{:optional, :dynamic, :dynamic}]
-    map_update(map, args, additional_pairs, stack, context)
+    with {:ok, map_type, context} <- of_expr(map, stack, context),
+         {:ok, {:map, arg_pairs}, context} <- Of.closed_map(args, stack, context, &of_expr/3),
+         dynamic_value_pairs =
+           Enum.map(arg_pairs, fn {:required, key, _value} -> {:required, key, :dynamic} end),
+         args_type = {:map, dynamic_value_pairs ++ [{:optional, :dynamic, :dynamic}]},
+         {:ok, type, context} <- unify(args_type, map_type, stack, context) do
+      # Retrieve map type and overwrite with the new value types from the map update
+      {:map, pairs} = resolve_var(type, context)
+
+      updated_pairs =
+        Enum.reduce(arg_pairs, pairs, fn {:required, key, value}, pairs ->
+          List.keyreplace(pairs, key, 1, {:required, key, value})
+        end)
+
+      {:ok, {:map, updated_pairs}, context}
+    end
   end
 
   # %Struct{map | ...}
-  def of_expr({:%, meta, [module, {:%{}, _, [{:|, _, [map, args]}]}]} = expr, stack, context) do
-    context = Remote.check(module, :__struct__, 0, meta, context)
+  def of_expr({:%, meta, [module, {:%{}, _, [{:|, _, [_, _]}]} = update]} = expr, stack, context) do
     stack = push_expr_stack(expr, stack)
 
-    additional_pairs = [{:required, {:atom, :__struct__}, {:atom, module}}]
-    map_update(map, args, additional_pairs, stack, context)
+    with {:ok, struct, context} <- Of.struct(module, meta, context),
+         {:ok, update, context} <- of_expr(update, stack, context) do
+      unify(update, struct, stack, context)
+    end
   end
 
   # %{...}
   def of_expr({:%{}, _meta, args} = expr, stack, context) do
     stack = push_expr_stack(expr, stack)
-
-    case of_pairs(args, stack, context) do
-      {:ok, pairs, context} -> {:ok, {:map, pairs_to_unions(pairs, context)}, context}
-      {:error, reason} -> {:error, reason}
-    end
+    Of.closed_map(args, stack, context, &of_expr/3)
   end
 
   # %Struct{...}
   def of_expr({:%, meta1, [module, {:%{}, _meta2, args}]} = expr, stack, context) do
-    context = Remote.check(module, :__struct__, 0, meta1, context)
     stack = push_expr_stack(expr, stack)
 
-    case of_pairs(args, stack, context) do
-      {:ok, pairs, context} ->
-        pairs = [{:required, {:atom, :__struct__}, {:atom, module}} | pairs]
-        {:ok, {:map, pairs}, context}
-
-      {:error, reason} ->
-        {:error, reason}
+    with {:ok, struct, context} <- Of.struct(module, meta1, context),
+         {:ok, map, context} <- Of.open_map(args, stack, context, &of_expr/3) do
+      unify(map, struct, stack, context)
     end
   end
 
@@ -327,7 +333,7 @@ defmodule Module.Types.Expr do
 
   # expr.fun(arg)
   def of_expr({{:., meta1, [expr1, fun]}, _meta2, args} = expr2, stack, context) do
-    context = Remote.check(expr1, fun, length(args), meta1, context)
+    context = Of.remote(expr1, fun, length(args), meta1, context)
     stack = push_expr_stack(expr2, stack)
 
     with {:ok, _expr_type, context} <- of_expr(expr1, stack, context),
@@ -342,7 +348,7 @@ defmodule Module.Types.Expr do
   # &Foo.bar/1
   def of_expr({:&, meta, [{:/, _, [{{:., _, [module, fun]}, _, []}, arity]}]}, _stack, context)
       when is_atom(module) and is_atom(fun) do
-    context = Remote.check(module, fun, arity, meta, context)
+    context = Of.remote(module, fun, arity, meta, context)
     {:ok, :dynamic, context}
   end
 
@@ -360,51 +366,6 @@ defmodule Module.Types.Expr do
     case map_reduce_ok(args, context, &of_expr(&1, stack, &2)) do
       {:ok, _arg_types, context} -> {:ok, :dynamic, context}
       {:error, reason} -> {:error, reason}
-    end
-  end
-
-  defp of_pairs(pairs, stack, context) do
-    map_reduce_ok(pairs, context, fn {key, value}, context ->
-      with {:ok, key_type, context} <- of_expr(key, stack, context),
-           {:ok, value_type, context} <- of_expr(value, stack, context),
-           do: {:ok, {:required, key_type, value_type}, context}
-    end)
-  end
-
-  defp pairs_to_unions(pairs, context) do
-    # We are currently creating overlapping key types
-
-    Enum.reduce(pairs, [], fn {kind_left, key, value_left}, pairs ->
-      case List.keyfind(pairs, key, 1) do
-        {kind_right, ^key, value_right} ->
-          kind = unify_kinds(kind_left, kind_right)
-          value = to_union([value_left, value_right], context)
-          List.keystore(pairs, key, 1, {kind, key, value})
-
-        nil ->
-          [{kind_left, key, value_left} | pairs]
-      end
-    end)
-  end
-
-  defp map_update(map, args, additional_pairs, stack, context) do
-    with {:ok, map_type, context} <- of_expr(map, stack, context),
-         {:ok, arg_pairs, context} <- of_pairs(args, stack, context),
-         arg_pairs = pairs_to_unions(arg_pairs, context),
-         # Change value types to dynamic to reuse map unification for map updates
-         dynamic_value_pairs =
-           Enum.map(arg_pairs, fn {:required, key, _value} -> {:required, key, :dynamic} end),
-         args_type = {:map, additional_pairs ++ dynamic_value_pairs},
-         {:ok, type, context} <- unify(args_type, map_type, stack, context) do
-      # Retrieve map type and overwrite with the new value types from the map update
-      {:map, pairs} = resolve_var(type, context)
-
-      updated_pairs =
-        Enum.reduce(arg_pairs, pairs, fn {:required, key, value}, pairs ->
-          List.keyreplace(pairs, key, 1, {:required, key, value})
-        end)
-
-      {:ok, {:map, updated_pairs}, context}
     end
   end
 
