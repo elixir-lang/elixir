@@ -140,7 +140,6 @@ defmodule Mix.Tasks.TestTest do
                Percentage | Module
                -----------|--------------------------
                   100.00% | Bar
-                  100.00% | Bar.Protocol
                   100.00% | Bar.Protocol.BitString
                -----------|--------------------------
                   100.00% | Total
