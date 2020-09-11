@@ -72,10 +72,7 @@ defmodule Module.Types.Infer do
   end
 
   defp do_unify({:map, source_pairs}, {:map, target_pairs}, stack, context) do
-    case unify_structs(source_pairs, target_pairs, stack, context) do
-      :ok -> unify_maps(source_pairs, target_pairs, stack, context)
-      {:error, reason} -> {:error, reason}
-    end
+    unify_maps(source_pairs, target_pairs, stack, context)
   end
 
   defp do_unify(source, :dynamic, _stack, context) do
@@ -143,28 +140,10 @@ defmodule Module.Types.Infer do
     end
   end
 
-  defp unify_structs(left_pairs, right_pairs, stack, context) do
-    with {:ok, left_module} when is_atom(left_module) <- fetch_struct_pair(left_pairs),
-         {:ok, right_module} when is_atom(right_module) <- fetch_struct_pair(right_pairs) do
-      if left_module == right_module do
-        :ok
-      else
-        left = {:map, [{:required, {:atom, :__struct__}, left_module}]}
-        right = {:map, [{:required, {:atom, :__struct__}, right_module}]}
-        error(:unable_unify, {left, right, stack}, context)
-      end
-    else
-      _ -> :ok
-    end
-  end
-
   # * All required keys on each side need to match to the other side.
   # * All optional keys on each side that do not match must be discarded.
 
   defp unify_maps(source_pairs, target_pairs, stack, context) do
-    source_pairs = expand_struct(source_pairs)
-    target_pairs = expand_struct(target_pairs)
-
     {source_required, source_optional} = split_pairs(source_pairs)
     {target_required, target_optional} = split_pairs(target_pairs)
 
@@ -175,18 +154,16 @@ defmodule Module.Types.Infer do
          {:ok, source_optional_pairs, context} <-
            unify_source_optional(source_optional, target_optional, stack, context),
          {:ok, target_optional_pairs, context} <-
-           unify_target_optional(target_optional, source_optional, stack, context),
-         pairs =
-           [
-             source_required_pairs,
-             target_required_pairs,
-             source_optional_pairs,
-             target_optional_pairs
-           ]
-           |> Enum.concat()
-           # Remove duplicate pairs from matching in both left and right directions
-           |> Enum.uniq()
-           |> simplify_struct() do
+           unify_target_optional(target_optional, source_optional, stack, context) do
+      # Remove duplicate pairs from matching in both left and right directions
+      pairs =
+        Enum.uniq(
+          source_required_pairs ++
+            target_required_pairs ++
+            source_optional_pairs ++
+            target_optional_pairs
+        )
+
       {:ok, {:map, pairs}, context}
     else
       {:error, :unify} ->
@@ -498,55 +475,5 @@ defmodule Module.Types.Infer do
     []
   end
 
-  def unify_kinds(:required, _), do: :required
-  def unify_kinds(_, :required), do: :required
-  def unify_kinds(:optional, :optional), do: :optional
-
   defp error(type, reason, context), do: {:error, {type, reason, context}}
-
-  # TODO: We should check if structs have keys that do not belong to them.
-  #       This might not be the best place to do it since it will only be
-  #       called if the type is unified. A post-pass walking over all
-  #       inferred types might be better.
-  defp expand_struct(pairs) do
-    case fetch_struct_pair(pairs) do
-      {:ok, module} ->
-        struct_pairs =
-          Enum.flat_map(Map.from_struct(module.__struct__()), fn {key, _value} ->
-            if List.keyfind(pairs, {:atom, key}, 1) do
-              []
-            else
-              [{:required, {:atom, key}, :dynamic}]
-            end
-          end)
-
-        pairs ++ struct_pairs
-
-      :error ->
-        pairs
-    end
-  end
-
-  defp simplify_struct(pairs) do
-    case fetch_struct_pair(pairs) do
-      {:ok, module} ->
-        Enum.reduce(Map.from_struct(module.__struct__()), pairs, fn {key, _value}, pairs ->
-          case List.keyfind(pairs, {:atom, key}, 1) do
-            {_, _key, :dynamic} -> List.keydelete(pairs, {:atom, key}, 1)
-            _ -> pairs
-          end
-        end)
-
-      :error ->
-        pairs
-    end
-  end
-
-  # TODO: Resolve type variables if %{__struct__: var, ...}
-  defp fetch_struct_pair(pairs) do
-    case Enum.find(pairs, &match?({:required, {:atom, :__struct__}, {:atom, _}}, &1)) do
-      {:required, {:atom, :__struct__}, {:atom, module}} -> {:ok, module}
-      nil -> :error
-    end
-  end
 end

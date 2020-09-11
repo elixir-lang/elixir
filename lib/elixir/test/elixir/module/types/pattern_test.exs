@@ -137,16 +137,20 @@ defmodule Module.Types.PatternTest do
                {:ok,
                 {:map,
                  [
-                   {:required, {:atom, :__struct__}, {:atom, Module.Types.PatternTest.Struct}}
+                   {:required, {:atom, :__struct__}, {:atom, Module.Types.PatternTest.Struct}},
+                   {:required, {:atom, :bar}, :dynamic},
+                   {:required, {:atom, :baz}, :dynamic},
+                   {:required, {:atom, :foo}, :dynamic}
                  ]}}
 
       assert quoted_pattern(%:"Elixir.Module.Types.PatternTest.Struct"{foo: 123, bar: :atom}) ==
                {:ok,
                 {:map,
                  [
-                   {:required, {:atom, :__struct__}, {:atom, Module.Types.PatternTest.Struct}},
+                   {:required, {:atom, :bar}, {:atom, :atom}},
                    {:required, {:atom, :foo}, :integer},
-                   {:required, {:atom, :bar}, {:atom, :atom}}
+                   {:required, {:atom, :__struct__}, {:atom, Module.Types.PatternTest.Struct}},
+                   {:required, {:atom, :baz}, :dynamic}
                  ]}}
     end
 

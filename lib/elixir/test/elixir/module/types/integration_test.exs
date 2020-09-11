@@ -1217,7 +1217,9 @@ defmodule Module.Types.IntegrationTest do
           # a.ex:4
           map.bar
 
-      where "map" was given the type %{foo: integer()} in:
+      expected one of the following fields: foo
+
+      where "map" was given the type map() in:
 
           # a.ex:3
           map = %{foo: 1}
@@ -1235,7 +1237,7 @@ defmodule Module.Types.IntegrationTest do
         "a.ex" => """
         defmodule A do
           def a(foo) do
-            %File.Stat{} = foo
+            %URI{} = foo
             foo.bar
           end
         end
@@ -1248,10 +1250,12 @@ defmodule Module.Types.IntegrationTest do
           # a.ex:4
           foo.bar
 
-      where "foo" was given the type %File.Stat{} in:
+      expected one of the following fields: __struct__, authority, fragment, host, path, port, query, scheme, userinfo
+
+      where "foo" was given the type %URI{} in:
 
           # a.ex:3
-          %File.Stat{} = foo
+          %URI{} = foo
 
       Conflict found at
         a.ex:4: A.a/1
