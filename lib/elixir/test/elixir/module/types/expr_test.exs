@@ -274,11 +274,11 @@ defmodule Module.Types.ExprTest do
 
     assert quoted_expr([map], %{map | foo: :b}) ==
              {:ok,
-              {:map, [{:required, {:atom, :foo}, {:atom, :b}}, {:optional, :dynamic, :dynamic}]}}
+              {:map, [{:optional, :dynamic, :dynamic}, {:required, {:atom, :foo}, {:atom, :b}}]}}
 
     assert {:error,
             {:unable_unify,
-             {{:map, [{:required, {:atom, :bar}, :dynamic}, {:optional, :dynamic, :dynamic}]},
+             {{:map, [{:optional, :dynamic, :dynamic}, {:required, {:atom, :bar}, :dynamic}]},
               {:map, [{:required, {:atom, :foo}, {:atom, :a}}]},
               _}}} =
              quoted_expr(
@@ -329,7 +329,7 @@ defmodule Module.Types.ExprTest do
     assert {:error,
             {:unable_unify,
              {{:map,
-               [{:required, {:atom, :not_field}, :dynamic}, {:optional, :dynamic, :dynamic}]},
+               [{:optional, :dynamic, :dynamic}, {:required, {:atom, :not_field}, :dynamic}]},
               {:map,
                [
                  {:required, {:atom, :__struct__}, {:atom, Module.Types.ExprTest.Struct2}},

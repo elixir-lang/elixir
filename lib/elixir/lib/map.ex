@@ -68,7 +68,7 @@ defmodule Map do
       iex> a
       1
 
-  But this will raise a match error:
+  But this will raise a `MatchError` exception:
 
       %{:c => 3} = %{:a => 1, 2 => :b}
 
