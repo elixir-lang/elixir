@@ -15,8 +15,8 @@ defmodule Mix.Tasks.Deps.Compile do
     * `mix.exs` - invokes `mix compile`
     * `rebar.config` - invokes `rebar compile`
     * `Makefile.win`- invokes `nmake /F Makefile.win` (only on Windows)
-    * `Makefile` - invokes `gmake` on FreeBSD and OpenBSD, invokes `make`
-      on any other operating system (except on Windows)
+    * `Makefile` - invokes `gmake` on DragonFlyBSD, FreeBSD, NetBSD, and OpenBSD,
+      invokes `make` on any other operating system (except on Windows)
 
   The compilation can be customized by passing a `compile` option
   in the dependency:
@@ -259,7 +259,7 @@ defmodule Mix.Tasks.Deps.Compile do
         {:win32, _} when makefile_win? ->
           "nmake /F Makefile.win"
 
-        {:unix, type} when type in [:freebsd, :openbsd] ->
+        {:unix, type} when type in [:dragonfly, :freebsd, :netbsd, :openbsd] ->
           "gmake"
 
         _ ->
