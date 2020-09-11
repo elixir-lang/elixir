@@ -139,28 +139,20 @@ defmodule Module.Types.Expr do
   end
 
   # %{map | ...}
-  def of_expr({:%{}, _, [{:|, _, [_map, args]}]} = expr, stack, context) do
+  def of_expr({:%{}, _, [{:|, _, [map, args]}]} = expr, stack, context) do
     stack = push_expr_stack(expr, stack)
 
-    case of_pairs(args, stack, context) do
-      {:ok, _pairs, context} -> {:ok, {:map, [{:optional, :dynamic, :dynamic}]}, context}
-      {:error, reason} -> {:error, reason}
-    end
+    additional_pairs = [{:optional, :dynamic, :dynamic}]
+    map_update(map, args, additional_pairs, stack, context)
   end
 
   # %Struct{map | ...}
-  def of_expr({:%, meta, [module, {:%{}, _, [{:|, _, [_map, args]}]}]} = expr, stack, context) do
+  def of_expr({:%, meta, [module, {:%{}, _, [{:|, _, [map, args]}]}]} = expr, stack, context) do
     context = Remote.check(module, :__struct__, 0, meta, context)
     stack = push_expr_stack(expr, stack)
 
-    case of_pairs(args, stack, context) do
-      {:ok, _pairs, context} ->
-        pairs = [{:required, {:atom, :__struct__}, {:atom, module}}]
-        {:ok, {:map, pairs}, context}
-
-      {:error, reason} ->
-        {:error, reason}
-    end
+    additional_pairs = [{:required, {:atom, :__struct__}, {:atom, module}}]
+    map_update(map, args, additional_pairs, stack, context)
   end
 
   # %{...}
@@ -393,6 +385,27 @@ defmodule Module.Types.Expr do
           [{kind_left, key, value_left} | pairs]
       end
     end)
+  end
+
+  defp map_update(map, args, additional_pairs, stack, context) do
+    with {:ok, map_type, context} <- of_expr(map, stack, context),
+         {:ok, arg_pairs, context} <- of_pairs(args, stack, context),
+         arg_pairs = pairs_to_unions(arg_pairs, context),
+         # Change value types to dynamic to reuse map unification for map updates
+         dynamic_value_pairs =
+           Enum.map(arg_pairs, fn {:required, key, _value} -> {:required, key, :dynamic} end),
+         args_type = {:map, additional_pairs ++ dynamic_value_pairs},
+         {:ok, type, context} <- unify(args_type, map_type, stack, context) do
+      # Retrieve map type and overwrite with the new value types from the map update
+      {:map, pairs} = resolve_var(type, context)
+
+      updated_pairs =
+        Enum.reduce(arg_pairs, pairs, fn {:required, key, value}, pairs ->
+          List.keyreplace(pairs, key, 1, {:required, key, value})
+        end)
+
+      {:ok, {:map, updated_pairs}, context}
+    end
   end
 
   defp for_clause({:<-, _, [left, expr]}, stack, context) do

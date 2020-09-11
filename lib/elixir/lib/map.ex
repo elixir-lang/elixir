@@ -68,7 +68,7 @@ defmodule Map do
       iex> a
       1
 
-  But this will raise a match error:
+  But this will raise a `MatchError` exception:
 
       %{:c => 3} = %{:a => 1, 2 => :b}
 
@@ -88,8 +88,10 @@ defmodule Map do
       iex> map = %{one: 1, two: 2}
       iex> %{map | one: "one"}
       %{one: "one", two: 2}
-      iex> %{map | three: 3}
-      ** (KeyError) key :three not found
+
+  When a key that does not exist in the map is updated a `KeyError` exception will be raised:
+
+      %{map | three: 3}
 
   The functions in this module that need to find a specific key work in logarithmic time.
   This means that the time it takes to find keys grows as the map grows, but it's not
