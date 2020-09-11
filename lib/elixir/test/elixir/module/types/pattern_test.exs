@@ -2,7 +2,6 @@ Code.require_file("../../test_helper.exs", __DIR__)
 
 defmodule Module.Types.PatternTest do
   use ExUnit.Case, async: true
-  import Module.Types.Infer, only: [new_var: 2]
 
   alias Module.Types
   alias Module.Types.Pattern
@@ -16,12 +15,12 @@ defmodule Module.Types.PatternTest do
     end
   end
 
-  defmacrop quoted_guard(vars, guards) do
+  defmacrop quoted_head(patterns, guards \\ []) do
     quote do
-      {vars, guards} = unquote(Macro.escape(expand_head(vars, guards)))
-      context = Enum.reduce(vars, new_context(), &(new_var(&1, &2) |> elem(1)))
+      {patterns, guards} = unquote(Macro.escape(expand_head(patterns, guards)))
 
-      Pattern.of_guard(guards, new_stack(), context)
+      Pattern.of_head(patterns, guards, new_stack(), new_context())
+      |> lift_result()
     end
   end
 
@@ -43,13 +42,7 @@ defmodule Module.Types.PatternTest do
   end
 
   defp new_context() do
-    Types.context(
-      "pattern_test.ex",
-      TypesTest,
-      {:test, 0},
-      [],
-      Module.ParallelChecker.test_cache()
-    )
+    Types.context("types_test.ex", TypesTest, {:test, 0}, [], Module.ParallelChecker.test_cache())
   end
 
   defp new_stack() do
@@ -57,6 +50,10 @@ defmodule Module.Types.PatternTest do
       Types.stack()
       | last_expr: {:foo, [], nil}
     }
+  end
+
+  defp lift_result({:ok, types, context}) when is_list(types) do
+    {:ok, Types.lift_types(types, context)}
   end
 
   defp lift_result({:ok, type, context}) do
@@ -67,7 +64,7 @@ defmodule Module.Types.PatternTest do
     {:error, {type, reason}}
   end
 
-  defmodule :"Elixir.Module.Types.InferTest.Struct" do
+  defmodule :"Elixir.Module.Types.PatternTest.Struct" do
     defstruct foo: :atom, bar: 123, baz: %{}
   end
 
@@ -136,18 +133,18 @@ defmodule Module.Types.PatternTest do
     end
 
     test "struct" do
-      assert quoted_pattern(%:"Elixir.Module.Types.InferTest.Struct"{}) ==
+      assert quoted_pattern(%:"Elixir.Module.Types.PatternTest.Struct"{}) ==
                {:ok,
                 {:map,
                  [
-                   {:required, {:atom, :__struct__}, {:atom, Module.Types.InferTest.Struct}}
+                   {:required, {:atom, :__struct__}, {:atom, Module.Types.PatternTest.Struct}}
                  ]}}
 
-      assert quoted_pattern(%:"Elixir.Module.Types.InferTest.Struct"{foo: 123, bar: :atom}) ==
+      assert quoted_pattern(%:"Elixir.Module.Types.PatternTest.Struct"{foo: 123, bar: :atom}) ==
                {:ok,
                 {:map,
                  [
-                   {:required, {:atom, :__struct__}, {:atom, Module.Types.InferTest.Struct}},
+                   {:required, {:atom, :__struct__}, {:atom, Module.Types.PatternTest.Struct}},
                    {:required, {:atom, :foo}, :integer},
                    {:required, {:atom, :bar}, {:atom, :atom}}
                  ]}}
@@ -221,83 +218,7 @@ defmodule Module.Types.PatternTest do
     end
   end
 
-  describe "guards" do
-    test "of_guard/2" do
-      assert {:ok, :boolean, context} = quoted_guard([x], is_tuple(x))
-      assert Types.lift_type({:var, 0}, context) == :tuple
-
-      assert {:ok, :dynamic, context} = quoted_guard([x], elem(x, 0))
-      assert Types.lift_type({:var, 0}, context) == :tuple
-
-      assert {:ok, {:atom, true}, _context} = quoted_guard([], true)
-      assert {:ok, {:atom, false}, _context} = quoted_guard([], false)
-      assert {:ok, {:atom, :fail}, _context} = quoted_guard([], :fail)
-      assert {:ok, :boolean, _context} = quoted_guard([], is_atom(true or :fail))
-
-      assert {:error, {:unable_unify, {:tuple, :boolean, _}, _}} =
-               quoted_guard([x], is_tuple(x) and is_boolean(x))
-    end
-  end
-end
-
-defmodule Module.Types.TempTypesTest do
-  use ExUnit.Case, async: true
-  import Bitwise, warn: false
-
-  alias Module.Types
-  alias Module.Types.Pattern
-
-  defmacrop quoted_head(patterns, guards \\ [true]) do
-    quote do
-      {patterns, guards} = unquote(Macro.escape(expand_head(patterns, guards)))
-
-      Pattern.of_head(
-        patterns,
-        guards,
-        new_stack(),
-        new_context()
-      )
-      |> lift_result()
-    end
-  end
-
-  defp expand_head(patterns, guards) do
-    fun =
-      quote do
-        fn unquote(patterns) when unquote(guards) -> :ok end
-      end
-
-    fun =
-      Macro.prewalk(fun, fn
-        {var, meta, nil} -> {var, meta, __MODULE__}
-        other -> other
-      end)
-
-    {ast, _env} = :elixir_expand.expand(fun, __ENV__)
-    {:fn, _, [{:->, _, [[{:when, _, [patterns, guards]}], _]}]} = ast
-    {patterns, guards}
-  end
-
-  defp new_context() do
-    Types.context("types_test.ex", TypesTest, {:test, 0}, [], Module.ParallelChecker.test_cache())
-  end
-
-  defp new_stack() do
-    %{
-      Types.stack()
-      | last_expr: {:foo, [], nil}
-    }
-  end
-
-  defp lift_result({:ok, types, context}) when is_list(types) do
-    {:ok, Types.lift_types(types, context)}
-  end
-
-  defp lift_result({:error, {type, reason, _context}}) do
-    {:error, {type, reason}}
-  end
-
-  describe "of_head/4" do
+  describe "heads" do
     test "variable" do
       assert quoted_head([a]) == {:ok, [{:var, 0}]}
       assert quoted_head([a, b]) == {:ok, [{:var, 0}, {:var, 1}]}
