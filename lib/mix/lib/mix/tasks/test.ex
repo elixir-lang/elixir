@@ -161,6 +161,8 @@ defmodule Mix.Tasks.Test do
       added to the given file. This option is automatically set via the
       `--export-coverage` option or when using process partitioning.
       See `mix test.coverage` to compile a report from multiple exports.
+    * `:ignore_modules` - modules to ignore from generating reports and
+      in summaries
 
   By default, a very simple wrapper around OTP's `cover` is used as a tool,
   but it can be overridden as follows:
