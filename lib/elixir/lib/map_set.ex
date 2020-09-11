@@ -238,7 +238,7 @@ defmodule MapSet do
     Map.equal?(map1, map2)
   end
 
-  # Elixir v1.5 change the map representation, so on
+  # Elixir v1.5 changed the map representation, so on
   # version mismatch we need to compare the keys directly.
   def equal?(%MapSet{map: map1}, %MapSet{map: map2}) do
     map_size(map1) == map_size(map2) and all_in?(map1, map2)
