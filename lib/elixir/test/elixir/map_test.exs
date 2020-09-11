@@ -225,6 +225,8 @@ defmodule MapTest do
     end
   end
 
+  defp empty_map(), do: %{}
+
   test "structs" do
     assert %ExternalUser{} == %{__struct__: ExternalUser, name: "john", age: 27}
 
@@ -236,10 +238,8 @@ defmodule MapTest do
     %ExternalUser{name: name} = %ExternalUser{}
     assert name == "john"
 
-    map = %{}
-
     assert_raise BadStructError, "expected a struct named MapTest.ExternalUser, got: %{}", fn ->
-      %ExternalUser{map | name: "meg"}
+      %ExternalUser{empty_map() | name: "meg"}
     end
   end
 

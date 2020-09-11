@@ -335,6 +335,9 @@ defmodule Module.Types.Infer do
     {type, context}
   end
 
+  def resolve_var({:var, var}, context), do: resolve_var(Map.fetch!(context.types, var), context)
+  def resolve_var(other, _context), do: other
+
   # Check unify stack to see if variable was already expanded
   defp variable_expanded?(var, stack, context) do
     Enum.any?(stack.unify_stack, &variable_same?(var, &1, context))
