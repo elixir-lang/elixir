@@ -7,7 +7,6 @@ defmodule Module.Types.Infer do
   Unifies two types and returns the unified type and an updated typing context
   or an error in case of a typing conflict.
   """
-  # TODO: handle unions
   def unify(source, target, stack, context) do
     case do_unify(source, target, stack, context) do
       {:ok, type, context} ->
@@ -85,10 +84,17 @@ defmodule Module.Types.Infer do
   end
 
   defp do_unify(source, target, stack, context) do
-    if subtype?(source, target, context) do
-      {:ok, source, context}
-    else
-      error(:unable_unify, {source, target, stack}, context)
+    cond do
+      # This condition exists to handle unions with unbound vars.
+      # TODO: handle unions properly.
+      has_unbound_var?(source, context) or has_unbound_var?(target, context) ->
+        {:ok, source, context}
+
+      subtype?(source, target, context) ->
+        {:ok, source, context}
+
+      true ->
+        error(:unable_unify, {source, target, stack}, context)
     end
   end
 
