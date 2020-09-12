@@ -6,7 +6,7 @@ This page describes the semantics of patterns and guards, where they are all all
 
 ## Patterns
 
-Patterns in Elixir are made of variables, literals, and data-structure specific syntax. One of the most used constructs to perform pattern matching is the match operator (`=`):
+Patterns in Elixir are made of variables, literals, and data-structure specific syntax. One of the most used constructs to perform pattern matching is the match operator ([`=`](`=/2`)):
 
 ```iex
 iex> x = 1
@@ -156,7 +156,7 @@ iex> [head | tail] = []
 ** (MatchError) no match of right hand side value: []
 ```
 
-Given charlists are represented as a list of integers, one can also perform prefix matches on charlists using the list concatenation operator (`++`):
+Given charlists are represented as a list of integers, one can also perform prefix matches on charlists using the list concatenation operator ([`++`](`++/2`)):
 
 ```elixir
 iex> 'hello ' ++ world = 'hello world'
@@ -207,7 +207,7 @@ Finally, note map keys in patterns must always be literals or previously bound v
 
 ### Binaries
 
-Binaries may appear in patterns using the double less-than/greater-than syntax (`<<>>`). A binary in a pattern can match multiple segments at the same, each with different type, size, and unit:
+Binaries may appear in patterns using the double less-than/greater-than syntax ([`<<>>`](`<<>>/1`)). A binary in a pattern can match multiple segments at the same, each with different type, size, and unit:
 
 ```iex
 iex> <<val::unit(8)-size(2)-integer>> = <<123, 56>>
@@ -216,9 +216,9 @@ iex> val
 31544
 ```
 
-See the documentation for `<<>>` for a complete definition of pattern matching for binaries.
+See the documentation for [`<<>>`](`<<>>/1`) for a complete definition of pattern matching for binaries.
 
-Finally, remember that strings in Elixir are UTF-8 encoded binaries. This means that, similar to charlists, prefix matches on strings are also possible with the binary concatenation operator (`<>`):
+Finally, remember that strings in Elixir are UTF-8 encoded binaries. This means that, similar to charlists, prefix matches on strings are also possible with the binary concatenation operator ([`<>`](`<>/2`)):
 
 ```elixir
 iex> "hello " <> world = "hello world"
@@ -380,7 +380,7 @@ Check.empty?({})
 
 ## Where patterns and guards can be used
 
-In the examples above, we have used the match operator (`=`) and function clauses to showcase patterns and guards respectively. Here is the list of the built-in constructs in Elixir that support patterns and guards.
+In the examples above, we have used the match operator ([`=`](`=/2`)) and function clauses to showcase patterns and guards respectively. Here is the list of the built-in constructs in Elixir that support patterns and guards.
 
   * `match?/2`:
 
@@ -428,7 +428,7 @@ In the examples above, we have used the match operator (`=`) and function clause
 
   * custom guards can also be defined with `defguard/1` and `defguardp/1`. A custom guard can only be defined based on existing guards.
 
-Note that the match operator (`=`) does *not* support guards:
+Note that the match operator ([`=`](`=/2`)) does *not* support guards:
 
 ```elixir
 {:ok, binary} = File.read("some/file")
