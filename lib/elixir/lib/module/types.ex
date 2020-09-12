@@ -193,7 +193,7 @@ defmodule Module.Types do
   ## ERROR TO WARNING
 
   # Collect relevant information from context and traces to report error
-  defp error_to_warning(:unable_unify, {left, right, stack}, context) do
+  def error_to_warning(:unable_unify, {left, right, stack}, context) do
     {fun, arity} = context.function
     line = get_meta(stack.last_expr)[:line]
     location = {context.file, line, {context.module, fun, arity}}

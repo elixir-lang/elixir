@@ -23,7 +23,7 @@ defmodule TypeHelper do
     end
   end
 
-  defp expand_expr(patterns, guards, expr, env) do
+  def expand_expr(patterns, guards, expr, env) do
     fun =
       quote do
         fn unquote(patterns) when unquote(guards) -> unquote(expr) end
@@ -34,11 +34,11 @@ defmodule TypeHelper do
     {patterns, guards, body}
   end
 
-  defp new_context() do
+  def new_context() do
     Types.context("types_test.ex", TypesTest, {:test, 0}, [], Module.ParallelChecker.test_cache())
   end
 
-  defp new_stack() do
+  def new_stack() do
     %{
       Types.stack()
       | last_expr: {:foo, [], nil}
