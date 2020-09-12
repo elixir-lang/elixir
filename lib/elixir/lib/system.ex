@@ -1009,6 +1009,7 @@ defmodule System do
   Returns the Erlang/OTP release number.
   """
   @spec otp_release :: String.t()
+  @doc since: "1.3.0"
   def otp_release do
     :erlang.list_to_binary(:erlang.system_info(:otp_release))
   end
