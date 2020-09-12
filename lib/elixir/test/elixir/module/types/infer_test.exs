@@ -386,6 +386,31 @@ defmodule Module.Types.InferTest do
     end
   end
 
+  describe "has_unbound_var?/2" do
+    setup do
+      context = new_context()
+      {unbound_var, context} = add_var(context)
+      {bound_var, context} = add_var(context)
+      {:ok, _, context} = unify(bound_var, :integer, context)
+      %{context: context, unbound_var: unbound_var, bound_var: bound_var}
+    end
+
+    test "returns true when there are unbound vars",
+         %{context: context, unbound_var: unbound_var} do
+      assert has_unbound_var?(unbound_var, context)
+      assert has_unbound_var?({:union, [unbound_var]}, context)
+      assert has_unbound_var?({:tuple, [unbound_var]}, context)
+    end
+
+    test "returns false when there are no unbound vars",
+         %{context: context, bound_var: bound_var} do
+      refute has_unbound_var?(bound_var, context)
+      refute has_unbound_var?({:union, [bound_var]}, context)
+      refute has_unbound_var?({:tuple, [bound_var]}, context)
+      refute has_unbound_var?(:integer, context)
+    end
+  end
+
   test "subtype?/3" do
     assert subtype?({:atom, :foo}, :atom, new_context())
     assert subtype?({:atom, true}, :boolean, new_context())
