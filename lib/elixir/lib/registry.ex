@@ -261,9 +261,8 @@ defmodule Registry do
   end
 
   @doc false
-  def unregister_name({registry, key}) do
-    unregister(registry, key)
-  end
+  def unregister_name({registry, key}), do: unregister(registry, key)
+  def unregister_name({registry, key, _value}), do: unregister(registry, key)
 
   ## Registry API
 

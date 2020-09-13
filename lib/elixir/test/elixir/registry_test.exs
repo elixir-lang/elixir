@@ -863,6 +863,13 @@ defmodule RegistryTest do
     end
   end
 
+  test "unregistration on crash with {registry, key, value} via tuple", %{registry: registry} do
+    name = {:via, Registry, {registry, :name, :value}}
+    spec = %{id: :foo, start: {Agent, :start_link, [fn -> raise "some error" end, [name: name]]}}
+    assert {:error, {error, _childspec}} = start_supervised(spec)
+    assert {%RuntimeError{message: "some error"}, _stacktrace} = error
+  end
+
   defp register_task(registry, key, value) do
     parent = self()
 
