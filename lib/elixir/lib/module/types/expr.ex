@@ -100,10 +100,10 @@ defmodule Module.Types.Expr do
 
   # __STACKTRACE__
   def of_expr({:__STACKTRACE__, _meta, var_context}, _stack, context) when is_atom(var_context) do
-    file = {:tuple, [{:atom, :file}, {:list, :integer}]}
-    line = {:tuple, [{:atom, :line}, :integer]}
+    file = {:tuple, 2, [{:atom, :file}, {:list, :integer}]}
+    line = {:tuple, 2, [{:atom, :line}, :integer]}
     file_line = {:list, {:union, [file, line]}}
-    type = {:list, {:tuple, [:atom, :atom, :integer, file_line]}}
+    type = {:list, {:tuple, 4, [:atom, :atom, :integer, file_line]}}
     {:ok, type, context}
   end
 
@@ -123,7 +123,7 @@ defmodule Module.Types.Expr do
     stack = push_expr_stack(expr, stack)
 
     case map_reduce_ok(exprs, context, &of_expr(&1, stack, &2)) do
-      {:ok, types, context} -> {:ok, {:tuple, types}, context}
+      {:ok, types, context} -> {:ok, {:tuple, length(types), types}, context}
       {:error, reason} -> {:error, reason}
     end
   end

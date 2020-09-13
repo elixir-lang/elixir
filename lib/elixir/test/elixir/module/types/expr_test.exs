@@ -36,9 +36,9 @@ defmodule Module.Types.ExprTest do
   end
 
   test "tuple" do
-    assert quoted_expr({}) == {:ok, {:tuple, []}}
-    assert quoted_expr({:a}) == {:ok, {:tuple, [{:atom, :a}]}}
-    assert quoted_expr({:a, 123}) == {:ok, {:tuple, [{:atom, :a}, :integer]}}
+    assert quoted_expr({}) == {:ok, {:tuple, 0, []}}
+    assert quoted_expr({:a}) == {:ok, {:tuple, 1, [{:atom, :a}]}}
+    assert quoted_expr({:a, 123}) == {:ok, {:tuple, 2, [{:atom, :a}, :integer]}}
   end
 
   # Use module attribute to avoid formatter adding parentheses
@@ -80,11 +80,13 @@ defmodule Module.Types.ExprTest do
                )
              ) == {:ok, :binary}
 
-      assert quoted_expr([foo], {<<foo::integer>>, foo}) == {:ok, {:tuple, [:binary, :integer]}}
-      assert quoted_expr([foo], {<<foo::binary>>, foo}) == {:ok, {:tuple, [:binary, :binary]}}
+      assert quoted_expr([foo], {<<foo::integer>>, foo}) ==
+               {:ok, {:tuple, 2, [:binary, :integer]}}
+
+      assert quoted_expr([foo], {<<foo::binary>>, foo}) == {:ok, {:tuple, 2, [:binary, :binary]}}
 
       assert quoted_expr([foo], {<<foo::utf8>>, foo}) ==
-               {:ok, {:tuple, [:binary, {:union, [:integer, :binary]}]}}
+               {:ok, {:tuple, 2, [:binary, {:union, [:integer, :binary]}]}}
 
       assert {:error, {:unable_unify, {:integer, :binary, _}}} =
                quoted_expr(
@@ -101,8 +103,8 @@ defmodule Module.Types.ExprTest do
 
   test "variables" do
     assert quoted_expr([foo], foo) == {:ok, {:var, 0}}
-    assert quoted_expr([foo], {foo}) == {:ok, {:tuple, [{:var, 0}]}}
-    assert quoted_expr([foo, bar], {foo, bar}) == {:ok, {:tuple, [{:var, 0}, {:var, 1}]}}
+    assert quoted_expr([foo], {foo}) == {:ok, {:tuple, 1, [{:var, 0}]}}
+    assert quoted_expr([foo, bar], {foo, bar}) == {:ok, {:tuple, 2, [{:var, 0}, {:var, 1}]}}
   end
 
   test "pattern match" do
