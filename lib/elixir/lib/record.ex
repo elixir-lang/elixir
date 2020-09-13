@@ -401,6 +401,7 @@ defmodule Record do
     # Using {} here is safe, since it's not valid AST
     default = if Macro.Env.in_match?(caller), do: {:_, [], nil}, else: {}
     {default, keyword} = Keyword.pop(keyword, :_, default)
+    {keyword, exprs} = hoist_expressions(keyword, caller)
 
     {elements, remaining} =
       Enum.map_reduce(fields, keyword, fn {key, field_default}, remaining ->
@@ -413,6 +414,7 @@ defmodule Record do
     case remaining do
       [] ->
         quote(do: {unquote(tag), unquote_splicing(elements)})
+        |> maybe_prepend_reversed_exprs(exprs)
 
       [{key, _} | _] ->
         raise ArgumentError, "record #{inspect(tag)} does not have the key: #{inspect(key)}"
@@ -425,26 +427,44 @@ defmodule Record do
       raise ArgumentError, "cannot invoke update style macro inside match"
     end
 
+    {keyword, exprs} = hoist_expressions(keyword, caller)
+
     if Keyword.has_key?(keyword, :_) do
       message = "updating a record with a default (:_) is equivalent to creating a new record"
       IO.warn(message, Macro.Env.stacktrace(caller))
       create(tag, fields, keyword, caller)
     else
-      case build_updates(keyword, fields, [], [], []) do
-        {updates, [], []} ->
-          build_update(updates, var)
-
-        {updates, vars, exprs} ->
-          quote do
-            {unquote_splicing(:lists.reverse(vars))} = {unquote_splicing(:lists.reverse(exprs))}
-            unquote(build_update(updates, var))
+      updates =
+        Enum.map(keyword, fn {key, value} ->
+          if index = find_index(fields, key, 2) do
+            {index, value}
+          else
+            raise ArgumentError, "record #{inspect(tag)} does not have the key: #{inspect(key)}"
           end
+        end)
 
-        {:error, key} ->
-          raise ArgumentError, "record #{inspect(tag)} does not have the key: #{inspect(key)}"
-      end
+      build_update(updates, var) |> maybe_prepend_reversed_exprs(exprs)
     end
   end
+
+  defp hoist_expressions(keyword, %{context: nil}) do
+    Enum.map_reduce(keyword, [], fn {key, expr}, acc ->
+      if simple_argument?(expr) do
+        {{key, expr}, acc}
+      else
+        var = Macro.var(key, __MODULE__)
+        {{key, var}, [{:=, [], [var, expr]} | acc]}
+      end
+    end)
+  end
+
+  defp hoist_expressions(keyword, _), do: {keyword, []}
+
+  defp maybe_prepend_reversed_exprs(expr, []),
+    do: expr
+
+  defp maybe_prepend_reversed_exprs(expr, exprs),
+    do: {:__block__, [], :lists.reverse([expr | exprs])}
 
   defp build_update(updates, initial) do
     updates
@@ -453,21 +473,6 @@ defmodule Record do
       quote(do: :erlang.setelement(unquote(key), unquote(acc), unquote(value)))
     end)
   end
-
-  defp build_updates([{key, value} | rest], fields, updates, vars, exprs) do
-    if index = find_index(fields, key, 2) do
-      if simple_argument?(value) do
-        build_updates(rest, fields, [{index, value} | updates], vars, exprs)
-      else
-        var = Macro.var(key, __MODULE__)
-        build_updates(rest, fields, [{index, var} | updates], [var | vars], [value | exprs])
-      end
-    else
-      {:error, key}
-    end
-  end
-
-  defp build_updates([], _fields, updates, vars, exprs), do: {updates, vars, exprs}
 
   defp simple_argument?({name, _, ctx}) when is_atom(name) and is_atom(ctx), do: true
   defp simple_argument?(other), do: Macro.quoted_literal?(other)
