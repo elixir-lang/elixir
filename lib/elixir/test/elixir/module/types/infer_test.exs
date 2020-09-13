@@ -78,15 +78,19 @@ defmodule Module.Types.InferTest do
     end
 
     test "tuple" do
-      assert unify_lift({:tuple, []}, {:tuple, []}) == {:ok, {:tuple, []}}
-      assert unify_lift({:tuple, [:integer]}, {:tuple, [:integer]}) == {:ok, {:tuple, [:integer]}}
-      assert unify_lift({:tuple, [:boolean]}, {:tuple, [:atom]}) == {:ok, {:tuple, [:boolean]}}
+      assert unify_lift({:tuple, 0, []}, {:tuple, 0, []}) == {:ok, {:tuple, 0, []}}
 
-      assert {:error, {:unable_unify, {{:tuple, [:integer]}, {:tuple, []}, _}}} =
-               unify_lift({:tuple, [:integer]}, {:tuple, []})
+      assert unify_lift({:tuple, 1, [:integer]}, {:tuple, 1, [:integer]}) ==
+               {:ok, {:tuple, 1, [:integer]}}
+
+      assert unify_lift({:tuple, 1, [:boolean]}, {:tuple, 1, [:atom]}) ==
+               {:ok, {:tuple, 1, [:boolean]}}
+
+      assert {:error, {:unable_unify, {{:tuple, 1, [:integer]}, {:tuple, 0, []}, _}}} =
+               unify_lift({:tuple, 1, [:integer]}, {:tuple, 0, []})
 
       assert {:error, {:unable_unify, {:integer, :atom, _}}} =
-               unify_lift({:tuple, [:integer]}, {:tuple, [:atom]})
+               unify_lift({:tuple, 1, [:integer]}, {:tuple, 1, [:atom]})
     end
 
     test "list" do
@@ -326,26 +330,26 @@ defmodule Module.Types.InferTest do
       assert {{:var, 0}, var_context} = new_var({:foo, [version: 0], nil}, new_context())
       assert {{:var, 1}, var_context} = new_var({:bar, [version: 1], nil}, var_context)
 
-      assert {:ok, {:tuple, [{:var, 0}]}, context} =
-               unify({:tuple, [{:var, 0}]}, {:tuple, [:integer]}, var_context)
+      assert {:ok, {:tuple, 1, [{:var, 0}]}, context} =
+               unify({:tuple, 1, [{:var, 0}]}, {:tuple, 1, [:integer]}, var_context)
 
       assert Types.lift_type({:var, 0}, context) == :integer
 
       assert {:ok, {:var, 0}, context} = unify({:var, 0}, :integer, var_context)
       assert {:ok, {:var, 1}, context} = unify({:var, 1}, :integer, context)
 
-      assert {:ok, {:tuple, [{:var, _}]}, _context} =
-               unify({:tuple, [{:var, 0}]}, {:tuple, [{:var, 1}]}, context)
+      assert {:ok, {:tuple, 1, [{:var, _}]}, _context} =
+               unify({:tuple, 1, [{:var, 0}]}, {:tuple, 1, [{:var, 1}]}, context)
 
-      assert {:ok, {:var, 1}, context} = unify({:var, 1}, {:tuple, [{:var, 0}]}, var_context)
+      assert {:ok, {:var, 1}, context} = unify({:var, 1}, {:tuple, 1, [{:var, 0}]}, var_context)
       assert {:ok, {:var, 0}, context} = unify({:var, 0}, :integer, context)
-      assert Types.lift_type({:var, 1}, context) == {:tuple, [:integer]}
+      assert Types.lift_type({:var, 1}, context) == {:tuple, 1, [:integer]}
 
       assert {:ok, {:var, 0}, context} = unify({:var, 0}, :integer, var_context)
       assert {:ok, {:var, 1}, context} = unify({:var, 1}, :binary, context)
 
       assert {:error, {:unable_unify, {:integer, :binary, _}}} =
-               unify_lift({:tuple, [{:var, 0}]}, {:tuple, [{:var, 1}]}, context)
+               unify_lift({:tuple, 1, [{:var, 0}]}, {:tuple, 1, [{:var, 1}]}, context)
     end
 
     # TODO: Vars inside unions
@@ -364,14 +368,14 @@ defmodule Module.Types.InferTest do
 
       assert {:ok, {:var, _}, context} = unify({:var, 0}, {:var, 1}, var_context)
 
-      assert {:error, {:unable_unify, {{:var, 0}, {:tuple, [{:var, 0}]}, _}}} =
-               unify_lift({:var, 1}, {:tuple, [{:var, 0}]}, context)
+      assert {:error, {:unable_unify, {{:var, 0}, {:tuple, 1, [{:var, 0}]}, _}}} =
+               unify_lift({:var, 1}, {:tuple, 1, [{:var, 0}]}, context)
 
       assert {:ok, {:var, _}, context} = unify({:var, 0}, {:var, 1}, var_context)
       assert {:ok, {:var, _}, context} = unify({:var, 1}, {:var, 2}, context)
 
-      assert {:error, {:unable_unify, {{:var, 0}, {:tuple, [{:var, 0}]}, _}}} =
-               unify_lift({:var, 2}, {:tuple, [{:var, 0}]}, context)
+      assert {:error, {:unable_unify, {{:var, 0}, {:tuple, 1, [{:var, 0}]}, _}}} =
+               unify_lift({:var, 2}, {:tuple, 1, [{:var, 0}]}, context)
     end
 
     test "error with internal variable" do
@@ -399,29 +403,101 @@ defmodule Module.Types.InferTest do
          %{context: context, unbound_var: unbound_var} do
       assert has_unbound_var?(unbound_var, context)
       assert has_unbound_var?({:union, [unbound_var]}, context)
-      assert has_unbound_var?({:tuple, [unbound_var]}, context)
+      assert has_unbound_var?({:tuple, 1, [unbound_var]}, context)
+      assert has_unbound_var?({:list, unbound_var}, context)
+      assert has_unbound_var?({:map, [{:required, unbound_var, :atom}]}, context)
+      assert has_unbound_var?({:map, [{:required, :atom, unbound_var}]}, context)
     end
 
     test "returns false when there are no unbound vars",
          %{context: context, bound_var: bound_var} do
       refute has_unbound_var?(bound_var, context)
       refute has_unbound_var?({:union, [bound_var]}, context)
-      refute has_unbound_var?({:tuple, [bound_var]}, context)
+      refute has_unbound_var?({:tuple, 1, [bound_var]}, context)
       refute has_unbound_var?(:integer, context)
+      refute has_unbound_var?({:list, bound_var}, context)
+      refute has_unbound_var?({:map, [{:required, :atom, :atom}]}, context)
+      refute has_unbound_var?({:map, [{:required, bound_var, :atom}]}, context)
+      refute has_unbound_var?({:map, [{:required, :atom, bound_var}]}, context)
     end
   end
 
-  test "subtype?/3" do
-    assert subtype?({:atom, :foo}, :atom, new_context())
-    assert subtype?({:atom, true}, :boolean, new_context())
-    assert subtype?({:atom, true}, :atom, new_context())
-    assert subtype?(:boolean, :atom, new_context())
+  describe "subtype?/3" do
+    test "with simple types" do
+      assert subtype?({:atom, :foo}, :atom, new_context())
+      assert subtype?({:atom, true}, :boolean, new_context())
+      assert subtype?({:atom, true}, :atom, new_context())
+      assert subtype?(:boolean, :atom, new_context())
 
-    refute subtype?(:integer, :binary, new_context())
-    refute subtype?(:atom, {:atom, :foo}, new_context())
-    refute subtype?(:boolean, {:atom, true}, new_context())
-    refute subtype?(:atom, {:atom, true}, new_context())
-    refute subtype?(:atom, :boolean, new_context())
+      refute subtype?(:integer, :binary, new_context())
+      refute subtype?(:atom, {:atom, :foo}, new_context())
+      refute subtype?(:boolean, {:atom, true}, new_context())
+      refute subtype?(:atom, {:atom, true}, new_context())
+      refute subtype?(:atom, :boolean, new_context())
+    end
+
+    test "with composite types" do
+      assert subtype?({:list, {:atom, :foo}}, {:list, :atom}, new_context())
+      assert subtype?({:tuple, 1, [{:atom, :foo}]}, {:tuple, 1, [:atom]}, new_context())
+
+      refute subtype?({:list, :atom}, {:list, {:atom, :foo}}, new_context())
+      refute subtype?({:tuple, 1, [:atom]}, {:tuple, 1, [{:atom, :foo}]}, new_context())
+      refute subtype?({:tuple, 1, [:atom]}, {:tuple, 2, [:atom, :atom]}, new_context())
+      refute subtype?({:tuple, 2, [:atom, :atom]}, {:tuple, 1, [:atom]}, new_context())
+    end
+
+    test "with maps" do
+      assert subtype?({:map, [{:optional, :atom, :integer}]}, {:map, []}, new_context())
+
+      assert subtype?(
+               {:map, [{:required, :atom, :integer}]},
+               {:map, [{:required, :atom, :integer}]},
+               new_context()
+             )
+
+      assert subtype?(
+               {:map, [{:required, {:atom, :foo}, :integer}]},
+               {:map, [{:required, :atom, :integer}]},
+               new_context()
+             )
+
+      assert subtype?(
+               {:map, [{:required, :integer, {:atom, :foo}}]},
+               {:map, [{:required, :integer, :atom}]},
+               new_context()
+             )
+
+      refute subtype?({:map, [{:required, :atom, :integer}]}, {:map, []}, new_context())
+
+      refute subtype?(
+               {:map, [{:required, :atom, :integer}]},
+               {:map, [{:required, {:atom, :foo}, :integer}]},
+               new_context()
+             )
+
+      refute subtype?(
+               {:map, [{:required, :integer, :atom}]},
+               {:map, [{:required, :integer, {:atom, :foo}}]},
+               new_context()
+             )
+    end
+
+    test "with unions" do
+      assert subtype?({:union, [{:atom, :foo}]}, {:union, [:atom]}, new_context())
+      assert subtype?({:union, [{:atom, :foo}, {:atom, :bar}]}, {:union, [:atom]}, new_context())
+      assert subtype?({:union, [{:atom, :foo}]}, {:union, [:integer, :atom]}, new_context())
+
+      assert subtype?({:atom, :foo}, {:union, [:atom]}, new_context())
+      assert subtype?({:atom, :foo}, {:union, [:integer, :atom]}, new_context())
+
+      assert subtype?({:union, [{:atom, :foo}]}, :atom, new_context())
+      assert subtype?({:union, [{:atom, :foo}, {:atom, :bar}]}, :atom, new_context())
+
+      refute subtype?({:union, [:atom]}, {:union, [{:atom, :foo}]}, new_context())
+      refute subtype?({:union, [:atom]}, {:union, [{:atom, :foo}, :integer]}, new_context())
+      refute subtype?(:atom, {:union, [{:atom, :foo}, :integer]}, new_context())
+      refute subtype?({:union, [:atom]}, {:atom, :foo}, new_context())
+    end
   end
 
   test "to_union/2" do
@@ -439,7 +515,44 @@ defmodule Module.Types.InferTest do
     assert {{:var, 0}, var_context} = new_var({:foo, [version: 0], nil}, new_context())
     assert to_union([{:var, 0}], var_context) == {:var, 0}
 
-    assert to_union([{:tuple, [:integer]}, {:tuple, [:integer]}], new_context()) ==
-             {:tuple, [:integer]}
+    assert to_union([{:tuple, 1, [:integer]}, {:tuple, 1, [:integer]}], new_context()) ==
+             {:tuple, 1, [:integer]}
+  end
+
+  test "format_type/1" do
+    assert format_type(:binary, false) == "binary()"
+    assert format_type({:atom, true}, false) == "true"
+    assert format_type({:atom, :atom}, false) == ":atom"
+    assert format_type({:list, :binary}, false) == "[binary()]"
+    assert format_type({:tuple, 0, []}, false) == "{}"
+    assert format_type({:tuple, 1, [:integer]}, false) == "{integer()}"
+
+    assert format_type({:map, []}, true) == "map()"
+    assert format_type({:map, [{:required, {:atom, :foo}, :atom}]}, true) == "map()"
+
+    assert format_type({:map, []}, false) ==
+             "%{}"
+
+    assert format_type({:map, [{:required, {:atom, :foo}, :atom}]}, false) ==
+             "%{foo: atom()}"
+
+    assert format_type({:map, [{:required, :integer, :atom}]}, false) ==
+             "%{integer() => atom()}"
+
+    assert format_type({:map, [{:optional, :integer, :atom}]}, false) ==
+             "%{optional(integer()) => atom()}"
+
+    assert format_type({:map, [{:optional, {:atom, :foo}, :atom}]}, false) ==
+             "%{optional(:foo) => atom()}"
+
+    assert format_type({:map, [{:required, {:atom, :__struct__}, {:atom, Struct}}]}, false) ==
+             "%Struct{}"
+
+    assert format_type(
+             {:map,
+              [{:required, {:atom, :__struct__}, {:atom, Struct}}, {:required, :integer, :atom}]},
+             false
+           ) ==
+             "%Struct{integer() => atom()}"
   end
 end

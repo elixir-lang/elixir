@@ -105,9 +105,9 @@ defmodule Module.Types.PatternTest do
     end
 
     test "tuple" do
-      assert quoted_pattern({}) == {:ok, {:tuple, []}}
-      assert quoted_pattern({:a}) == {:ok, {:tuple, [{:atom, :a}]}}
-      assert quoted_pattern({:a, 123}) == {:ok, {:tuple, [{:atom, :a}, :integer]}}
+      assert quoted_pattern({}) == {:ok, {:tuple, 0, []}}
+      assert quoted_pattern({:a}) == {:ok, {:tuple, 1, [{:atom, :a}]}}
+      assert quoted_pattern({:a, 123}) == {:ok, {:tuple, 2, [{:atom, :a}, :integer]}}
     end
 
     test "map" do
@@ -190,9 +190,9 @@ defmodule Module.Types.PatternTest do
       assert quoted_pattern(<<123::utf8>>) == {:ok, :binary}
       assert quoted_pattern(<<"foo"::utf8>>) == {:ok, :binary}
 
-      assert quoted_pattern({<<foo::integer>>, foo}) == {:ok, {:tuple, [:binary, :integer]}}
-      assert quoted_pattern({<<foo::binary>>, foo}) == {:ok, {:tuple, [:binary, :binary]}}
-      assert quoted_pattern({<<foo::utf8>>, foo}) == {:ok, {:tuple, [:binary, :integer]}}
+      assert quoted_pattern({<<foo::integer>>, foo}) == {:ok, {:tuple, 2, [:binary, :integer]}}
+      assert quoted_pattern({<<foo::binary>>, foo}) == {:ok, {:tuple, 2, [:binary, :binary]}}
+      assert quoted_pattern({<<foo::utf8>>, foo}) == {:ok, {:tuple, 2, [:binary, :integer]}}
 
       assert {:error, {:unable_unify, {:binary, :integer, _}}} =
                quoted_pattern(<<foo::binary-0, foo::integer>>)
@@ -200,24 +200,24 @@ defmodule Module.Types.PatternTest do
 
     test "variables" do
       assert quoted_pattern(foo) == {:ok, {:var, 0}}
-      assert quoted_pattern({foo}) == {:ok, {:tuple, [{:var, 0}]}}
-      assert quoted_pattern({foo, bar}) == {:ok, {:tuple, [{:var, 0}, {:var, 1}]}}
+      assert quoted_pattern({foo}) == {:ok, {:tuple, 1, [{:var, 0}]}}
+      assert quoted_pattern({foo, bar}) == {:ok, {:tuple, 2, [{:var, 0}, {:var, 1}]}}
 
       assert quoted_pattern(_) == {:ok, :dynamic}
-      assert quoted_pattern({_ = 123, _}) == {:ok, {:tuple, [:integer, :dynamic]}}
+      assert quoted_pattern({_ = 123, _}) == {:ok, {:tuple, 2, [:integer, :dynamic]}}
     end
 
     test "assignment" do
       assert quoted_pattern(x = y) == {:ok, {:var, 0}}
       assert quoted_pattern(x = 123) == {:ok, :integer}
-      assert quoted_pattern({foo}) == {:ok, {:tuple, [{:var, 0}]}}
-      assert quoted_pattern({x = y}) == {:ok, {:tuple, [{:var, 0}]}}
+      assert quoted_pattern({foo}) == {:ok, {:tuple, 1, [{:var, 0}]}}
+      assert quoted_pattern({x = y}) == {:ok, {:tuple, 1, [{:var, 0}]}}
 
       assert quoted_pattern(x = y = 123) == {:ok, :integer}
       assert quoted_pattern(x = 123 = y) == {:ok, :integer}
       assert quoted_pattern(123 = x = y) == {:ok, :integer}
 
-      assert {:error, {:unable_unify, {{:tuple, [var: 0]}, {:var, 0}, _}}} =
+      assert {:error, {:unable_unify, {{:tuple, 1, [var: 0]}, {:var, 0}, _}}} =
                quoted_pattern({x} = x)
     end
   end
@@ -258,7 +258,7 @@ defmodule Module.Types.PatternTest do
       assert quoted_head([x = y, y = z, z = :foo]) ==
                {:ok, [{:atom, :foo}, {:atom, :foo}, {:atom, :foo}]}
 
-      assert {:error, {:unable_unify, {{:tuple, [var: 1]}, {:var, 0}, _}}} =
+      assert {:error, {:unable_unify, {{:tuple, 1, [var: 1]}, {:var, 0}, _}}} =
                quoted_head([{x} = y, {y} = x])
     end
 

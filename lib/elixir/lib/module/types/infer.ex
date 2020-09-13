@@ -3,6 +3,38 @@ defmodule Module.Types.Infer do
 
   import Module.Types.Helpers
 
+  # Those are the simple types known to the system:
+  #
+  #   :dynamic
+  #   {:var, var}
+  #   {:atom, atom} < :atom
+  #   :integer
+  #   :float
+  #   :pid
+  #   :port
+  #   :reference
+  #
+  # Those are the composite types:
+  #
+  #   {:list, type}
+  #   {:tuple, size, [type]} < :tuple
+  #   {:union, [type]}
+  #   {:map, [{:required | :optional, key_type, value_type}]}
+  #
+  # TODO: Those types should be removed:
+  #
+  #   :boolean
+  #   :number
+  #
+  # Once new types are added, they should be considered in:
+  #
+  #   * unify (all)
+  #   * format_type (all)
+  #   * subtype? (subtypes only)
+  #   * has_unbound_var? (composite only)
+  #   * recursive_type? (composite only)
+  #
+
   @doc """
   Unifies two types and returns the unified type and an updated typing context
   or an error in case of a typing conflict.
@@ -51,15 +83,14 @@ defmodule Module.Types.Infer do
     end
   end
 
-  defp do_unify({:tuple, sources}, {:tuple, targets}, stack, context)
-       when length(sources) == length(targets) do
+  defp do_unify({:tuple, n, sources}, {:tuple, n, targets}, stack, context) do
     result =
       map_reduce_ok(Enum.zip(sources, targets), context, fn {source, target}, context ->
         unify(source, target, stack, context)
       end)
 
     case result do
-      {:ok, types, context} -> {:ok, {:tuple, types}, context}
+      {:ok, types, context} -> {:ok, {:tuple, n, types}, context}
       {:error, reason} -> {:error, reason}
     end
   end
@@ -86,8 +117,11 @@ defmodule Module.Types.Infer do
   defp do_unify(source, target, stack, context) do
     cond do
       # This condition exists to handle unions with unbound vars.
-      # TODO: handle unions properly.
-      has_unbound_var?(source, context) or has_unbound_var?(target, context) ->
+      # TODO: handle unions properly. Note we can easily unify
+      # "union < type" even if union has vars as the vars must be
+      # type
+      (match?({:union, _}, source) and has_unbound_var?(source, context)) or
+          (match?({:union, _}, target) and has_unbound_var?(target, context)) ->
         {:ok, source, context}
 
       subtype?(source, target, context) ->
@@ -270,6 +304,8 @@ defmodule Module.Types.Infer do
     {required, optional}
   end
 
+  defp error(type, reason, context), do: {:error, {type, reason, context}}
+
   @doc """
   Adds a variable to the typing context and returns its type variable.
   If the variable has already been added, return the existing type variable.
@@ -405,7 +441,11 @@ defmodule Module.Types.Infer do
     recursive_type?(type, [parent | parents], context)
   end
 
-  defp recursive_type?({:tuple, types} = parent, parents, context) do
+  defp recursive_type?({:union, types} = parent, parents, context) do
+    Enum.any?(types, &recursive_type?(&1, [parent | parents], context))
+  end
+
+  defp recursive_type?({:tuple, _, types} = parent, parents, context) do
     Enum.any?(types, &recursive_type?(&1, [parent | parents], context))
   end
 
@@ -430,11 +470,20 @@ defmodule Module.Types.Infer do
     end
   end
 
-  def has_unbound_var?({:tuple, args}, context),
+  def has_unbound_var?({:tuple, _, args}, context),
     do: Enum.any?(args, &has_unbound_var?(&1, context))
 
   def has_unbound_var?({:union, args}, context),
     do: Enum.any?(args, &has_unbound_var?(&1, context))
+
+  def has_unbound_var?({:list, arg}, context),
+    do: has_unbound_var?(arg, context)
+
+  def has_unbound_var?({:map, pairs}, context) do
+    Enum.any?(pairs, fn {_, key, value} ->
+      has_unbound_var?(key, context) or has_unbound_var?(value, context)
+    end)
+  end
 
   def has_unbound_var?(_type, _context), do: false
 
@@ -447,9 +496,6 @@ defmodule Module.Types.Infer do
     * unbound variables are not subtype of anything
 
   """
-  # TODO: boolean <: false | true
-  # TODO: number <: float | integer
-  # TODO: implement subtype for maps
   def subtype?(type, type, _context), do: true
 
   def subtype?({:var, var}, other, context) do
@@ -467,12 +513,38 @@ defmodule Module.Types.Infer do
   end
 
   def subtype?(_, :dynamic, _context), do: true
-  def subtype?({:atom, boolean}, :boolean, _context) when is_boolean(boolean), do: true
   def subtype?({:atom, atom}, :atom, _context) when is_atom(atom), do: true
+
+  def subtype?({:atom, boolean}, :boolean, _context) when is_boolean(boolean), do: true
   def subtype?(:boolean, :atom, _context), do: true
   def subtype?(:float, :number, _context), do: true
   def subtype?(:integer, :number, _context), do: true
-  def subtype?({:tuple, _}, :tuple, _context), do: true
+
+  # Composite
+
+  def subtype?({:tuple, _, _}, :tuple, _context), do: true
+
+  def subtype?({:tuple, n, left_types}, {:tuple, n, right_types}, context) do
+    left_types
+    |> Enum.zip(right_types)
+    |> Enum.any?(fn {left, right} -> subtype?(left, right, context) end)
+  end
+
+  def subtype?({:map, left_pairs}, {:map, right_pairs}, context) do
+    Enum.all?(left_pairs, fn
+      {:required, left_key, left_value} ->
+        Enum.any?(right_pairs, fn {_, right_key, right_value} ->
+          subtype?(left_key, right_key, context) and subtype?(left_value, right_value, context)
+        end)
+
+      {:optional, _, _} ->
+        true
+    end)
+  end
+
+  def subtype?({:list, left}, {:list, right}, context) do
+    subtype?(left, right, context)
+  end
 
   def subtype?({:union, left_types}, {:union, _} = right_union, context) do
     Enum.all?(left_types, &subtype?(&1, right_union, context))
@@ -480,6 +552,10 @@ defmodule Module.Types.Infer do
 
   def subtype?(left, {:union, right_types}, context) do
     Enum.any?(right_types, &subtype?(left, &1, context))
+  end
+
+  def subtype?({:union, left_types}, right, context) do
+    Enum.all?(left_types, &subtype?(&1, right, context))
   end
 
   def subtype?(_left, _right, _context), do: false
@@ -511,9 +587,11 @@ defmodule Module.Types.Infer do
   end
 
   # Filter subtypes
+  #
   # `boolean() | atom()` => `atom()`
   # `:foo | atom()` => `atom()`
-  # Does not unify `true | false` => `boolean()`
+  #
+  # Does not merge `true | false` => `boolean()`
   defp unique_super_types([type | types], context) do
     types = Enum.reject(types, &subtype?(&1, type, context))
 
@@ -528,5 +606,69 @@ defmodule Module.Types.Infer do
     []
   end
 
-  defp error(type, reason, context), do: {:error, {type, reason, context}}
+  @doc """
+  Formats types.
+
+  The second argument says when complex types such as maps and
+  structs should be simplified and not shown.
+  """
+  def format_type({:map, pairs}, true) do
+    case List.keyfind(pairs, {:atom, :__struct__}, 1) do
+      {:required, {:atom, :__struct__}, {:atom, struct}} ->
+        "%#{inspect(struct)}{}"
+
+      _ ->
+        "map()"
+    end
+  end
+
+  def format_type({:union, types}, simplify?) do
+    "#{Enum.map_join(types, " | ", &format_type(&1, simplify?))}"
+  end
+
+  def format_type({:tuple, _, types}, simplify?) do
+    "{#{Enum.map_join(types, ", ", &format_type(&1, simplify?))}}"
+  end
+
+  def format_type({:list, type}, simplify?) do
+    "[#{format_type(type, simplify?)}]"
+  end
+
+  def format_type({:map, pairs}, false) do
+    case List.keytake(pairs, {:atom, :__struct__}, 1) do
+      {{:required, {:atom, :__struct__}, {:atom, struct}}, pairs} ->
+        "%#{inspect(struct)}{#{format_map_pairs(pairs)}}"
+
+      _ ->
+        "%{#{format_map_pairs(pairs)}}"
+    end
+  end
+
+  def format_type({:atom, literal}, _simplify?) do
+    inspect(literal)
+  end
+
+  def format_type({:var, index}, _simplify?) do
+    "var#{index}"
+  end
+
+  def format_type(atom, _simplify?) when is_atom(atom) do
+    "#{atom}()"
+  end
+
+  defp format_map_pairs(pairs) do
+    {atoms, others} = Enum.split_with(pairs, &match?({:required, {:atom, _}, _}, &1))
+    {required, optional} = Enum.split_with(others, &match?({:required, _, _}, &1))
+
+    Enum.map_join(atoms ++ required ++ optional, ", ", fn
+      {:required, {:atom, atom}, right} ->
+        "#{atom}: #{format_type(right, false)}"
+
+      {:required, left, right} ->
+        "#{format_type(left, false)} => #{format_type(right, false)}"
+
+      {:optional, left, right} ->
+        "optional(#{format_type(left, false)}) => #{format_type(right, false)}"
+    end)
+  end
 end

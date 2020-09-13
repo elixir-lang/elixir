@@ -149,7 +149,7 @@ defmodule Module.Types.Pattern do
     stack = push_expr_stack(expr, stack)
 
     case map_reduce_ok(exprs, context, &of_pattern(&1, stack, &2)) do
-      {:ok, types, context} -> {:ok, {:tuple, types}, context}
+      {:ok, types, context} -> {:ok, {:tuple, length(types), types}, context}
       {:error, reason} -> {:error, reason}
     end
   end
