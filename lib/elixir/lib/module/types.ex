@@ -6,7 +6,7 @@ defmodule Module.Types do
   end
 
   import Module.Types.Helpers
-  alias Module.Types.{Expr, Pattern}
+  alias Module.Types.{Expr, Pattern, Infer}
 
   @doc false
   def warnings(module, file, defs, no_warn_undefined, cache) do
@@ -179,9 +179,9 @@ defmodule Module.Types do
     end
   end
 
-  defp do_lift_type({:tuple, types}, context) do
+  defp do_lift_type({:tuple, n, types}, context) do
     {types, context} = Enum.map_reduce(types, context, &do_lift_type/2)
-    {{:tuple, types}, context}
+    {{:tuple, n, types}, context}
   end
 
   defp do_lift_type({:map, pairs}, context) do
@@ -300,9 +300,9 @@ defmodule Module.Types do
 
         [
           "incompatible types:\n\n    ",
-          format_type(left, simplify_left?),
+          Infer.format_type(left, simplify_left?),
           " !~ ",
-          format_type(right, simplify_right?),
+          Infer.format_type(right, simplify_right?),
           "\n\n",
           format_expr(expr, location),
           traces,
@@ -352,7 +352,7 @@ defmodule Module.Types do
           "where \"",
           Macro.to_string(var),
           "\" was given the type ",
-          format_type(type, simplify?),
+          Infer.format_type(type, simplify?),
           hint,
           " in:\n\n    # ",
           format_location(location),
@@ -390,71 +390,8 @@ defmodule Module.Types do
     [file, ?:, line, ?\n]
   end
 
-  ## TYPE FORMATTING
-
   defp simplify_type?(type, other) do
     map_type?(type) and not map_type?(other)
-  end
-
-  @doc false
-  def format_type({:map, pairs}, true) do
-    case List.keyfind(pairs, {:atom, :__struct__}, 1) do
-      {:required, {:atom, :__struct__}, {:atom, struct}} ->
-        "%#{inspect(struct)}{}"
-
-      _ ->
-        "map()"
-    end
-  end
-
-  def format_type({:union, types}, simplify?) do
-    "#{Enum.map_join(types, " | ", &format_type(&1, simplify?))}"
-  end
-
-  def format_type({:tuple, types}, simplify?) do
-    "{#{Enum.map_join(types, ", ", &format_type(&1, simplify?))}}"
-  end
-
-  def format_type({:list, type}, simplify?) do
-    "[#{format_type(type, simplify?)}]"
-  end
-
-  def format_type({:map, pairs}, false) do
-    case List.keytake(pairs, {:atom, :__struct__}, 1) do
-      {{:required, {:atom, :__struct__}, {:atom, struct}}, pairs} ->
-        "%#{inspect(struct)}{#{format_map_pairs(pairs)}}"
-
-      _ ->
-        "%{#{format_map_pairs(pairs)}}"
-    end
-  end
-
-  def format_type({:atom, literal}, _simplify?) do
-    inspect(literal)
-  end
-
-  def format_type({:var, index}, _simplify?) do
-    "var#{index}"
-  end
-
-  def format_type(atom, _simplify?) when is_atom(atom) do
-    "#{atom}()"
-  end
-
-  defp format_map_pairs(pairs) do
-    {atoms, others} = Enum.split_with(pairs, &match?({:required, {:atom, _}, _}, &1))
-    {required, optional} = Enum.split_with(others, &match?({:required, _, _}, &1))
-
-    Enum.map_join(atoms ++ required ++ optional, ", ", fn
-      {:required, {:atom, atom}, right} ->
-        "#{atom}: #{format_type(right, false)}"
-
-      {:required, left, right} ->
-        "#{format_type(left, false)} => #{format_type(right, false)}"
-
-      {:optional, left, right} ->
-        "optional(#{format_type(left, false)}) => #{format_type(right, false)}"
-    end)
   end
 
   ## EXPRESSION FORMATTING
