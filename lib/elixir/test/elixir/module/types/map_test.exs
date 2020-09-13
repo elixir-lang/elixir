@@ -16,7 +16,7 @@ defmodule Module.Types.MapTest do
     assert quoted_expr([a], %{123 => a}) == {:ok, {:map, [{:required, :integer, {:var, 0}}]}}
 
     assert quoted_expr(%{123 => :foo, 456 => :bar}) ==
-             {:ok, {:map, [{:required, :integer, {:union, [{:atom, :bar}, {:atom, :foo}]}}]}}
+             {:ok, {:map, [{:required, :integer, {:union, [{:atom, :foo}, {:atom, :bar}]}}]}}
   end
 
   test "struct" do
@@ -24,9 +24,9 @@ defmodule Module.Types.MapTest do
              {:ok,
               {:map,
                [
-                 {:required, {:atom, :foo}, {:atom, :atom}},
-                 {:required, {:atom, :baz}, {:map, []}},
                  {:required, {:atom, :bar}, :integer},
+                 {:required, {:atom, :baz}, {:map, []}},
+                 {:required, {:atom, :foo}, {:atom, :atom}},
                  {:required, {:atom, :__struct__}, {:atom, Module.Types.MapTest.Struct}}
                ]}}
 
@@ -34,9 +34,9 @@ defmodule Module.Types.MapTest do
              {:ok,
               {:map,
                [
-                 {:required, {:atom, :bar}, {:atom, :atom}},
-                 {:required, {:atom, :foo}, :integer},
                  {:required, {:atom, :baz}, {:map, []}},
+                 {:required, {:atom, :foo}, :integer},
+                 {:required, {:atom, :bar}, {:atom, :atom}},
                  {:required, {:atom, :__struct__}, {:atom, Module.Types.MapTest.Struct}}
                ]}}
   end
@@ -295,5 +295,73 @@ defmodule Module.Types.MapTest do
       assert quoted_expr([var], [:erlang.map_get(:bar, var)], var.foo) == {:ok, {:var, 0}}
       assert quoted_expr([var], [map_size(var) == 1], var.foo) == {:ok, {:var, 0}}
     end
+  end
+
+  test "with bound var keys" do
+    assert quoted_expr(
+             [atom, bool, true = var],
+             [is_atom(atom) and is_boolean(bool)],
+             %{atom => :atom, bool => :bool, var => true}
+           ) ==
+             {:ok,
+              {:map,
+               [
+                 {:required, {:atom, true}, {:atom, true}},
+                 {:required, :boolean, {:union, [{:atom, :bool}, {:atom, true}]}},
+                 {:required, :atom, {:union, [{:atom, :atom}, {:atom, :bool}, {:atom, true}]}}
+               ]}}
+
+    assert quoted_expr(
+             [atom, bool, true = var],
+             [is_atom(atom) and is_boolean(bool)],
+             %{var => true, bool => :bool, atom => :atom}
+           ) ==
+             {:ok,
+              {:map,
+               [
+                 {:required, {:atom, true}, {:atom, true}},
+                 {:required, :boolean, {:union, [{:atom, :bool}, {:atom, true}]}},
+                 {:required, :atom, {:union, [{:atom, :atom}, {:atom, :bool}, {:atom, true}]}}
+               ]}}
+
+    assert quoted_expr(
+             [atom, bool, true = var],
+             [is_atom(atom) and is_boolean(bool)],
+             %{var => true, atom => :atom, bool => :bool}
+           ) ==
+             {:ok,
+              {:map,
+               [
+                 {:required, {:atom, true}, {:atom, true}},
+                 {:required, :boolean, {:union, [{:atom, :bool}, {:atom, true}]}},
+                 {:required, :atom, {:union, [{:atom, :atom}, {:atom, :bool}, {:atom, true}]}}
+               ]}}
+  end
+
+  test "with unbound var keys" do
+    assert quoted_expr(
+             [var, struct],
+             (
+               map = %{var => :foo}
+               %^var{} = struct
+               map
+             )
+           ) == {:ok, {:map, [{:required, :atom, {:atom, :foo}}]}}
+
+    # If we have multiple keys, the unbound key must become required(dynamic) => dynamic
+    assert quoted_expr(
+             [var, struct],
+             (
+               map = %{var => :foo, :foo => :bar}
+               %^var{} = struct
+               map
+             )
+           ) ==
+             {:ok,
+              {:map,
+               [
+                 {:required, {:atom, :foo}, {:atom, :bar}},
+                 {:required, :dynamic, :dynamic}
+               ]}}
   end
 end

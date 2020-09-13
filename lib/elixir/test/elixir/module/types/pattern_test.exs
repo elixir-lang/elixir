@@ -124,7 +124,7 @@ defmodule Module.Types.PatternTest do
                {:ok,
                 {:map,
                  [
-                   {:required, :integer, {:union, [{:atom, :bar}, {:atom, :foo}]}},
+                   {:required, :integer, {:union, [{:atom, :foo}, {:atom, :bar}]}},
                    {:optional, :dynamic, :dynamic}
                  ]}}
 
@@ -147,8 +147,8 @@ defmodule Module.Types.PatternTest do
                {:ok,
                 {:map,
                  [
-                   {:required, {:atom, :bar}, {:atom, :atom}},
                    {:required, {:atom, :foo}, :integer},
+                   {:required, {:atom, :bar}, {:atom, :atom}},
                    {:required, {:atom, :__struct__}, {:atom, Module.Types.PatternTest.Struct}},
                    {:required, {:atom, :baz}, :dynamic}
                  ]}}
