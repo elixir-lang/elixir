@@ -735,6 +735,7 @@ defmodule File do
       File.rename("samples", "tmp")
 
   """
+  @doc since: "1.1.0"
   @spec rename(Path.t(), Path.t()) :: :ok | {:error, posix}
   def rename(source, destination) do
     :file.rename(source, destination)
