@@ -125,6 +125,40 @@ defmodule RecordTest do
     assert match?(user(_: _), user())
   end
 
+  test "records preserve side-effects order" do
+    user =
+      user(
+        age: send(self(), :age),
+        name: send(self(), :name)
+      )
+
+    assert Process.info(self(), :messages) == {:messages, [:age, :name]}
+
+    _ =
+      user(user,
+        age: send(self(), :update_age),
+        name: send(self(), :update_name)
+      )
+
+    assert Process.info(self(), :messages) ==
+             {:messages, [:age, :name, :update_age, :update_name]}
+  end
+
+  test "nested records preserve side-effects order" do
+    user =
+      user(
+        age:
+          user(
+            age: send(self(), :inner_age),
+            name: send(self(), :inner_name)
+          ),
+        name: send(self(), :name)
+      )
+
+    assert user == {RecordTest, :name, {RecordTest, :inner_name, :inner_age}}
+    assert Process.info(self(), :messages) == {:messages, [:inner_age, :inner_name, :name]}
+  end
+
   Record.defrecord(
     :defaults,
     struct: ~D[2016-01-01],
