@@ -1,6 +1,10 @@
 defmodule Module.Types do
   @moduledoc false
 
+  defmodule Error do
+    defexception [:message]
+  end
+
   import Module.Types.Helpers
   alias Module.Types.{Expr, Pattern}
 
@@ -8,12 +12,31 @@ defmodule Module.Types do
   def warnings(module, file, defs, no_warn_undefined, cache) do
     stack = stack()
 
-    Enum.flat_map(defs, fn {{fun, _arity} = function, kind, meta, clauses} ->
+    Enum.flat_map(defs, fn {{fun, arity} = function, kind, meta, clauses} ->
       context = context(with_file_meta(meta, file), module, function, no_warn_undefined, cache)
 
       Enum.flat_map(clauses, fn {_meta, args, guards, body} ->
         def_expr = {kind, meta, [guards_to_expr(guards, {fun, [], args})]}
-        warnings_from_clause(args, guards, body, def_expr, stack, context)
+
+        try do
+          warnings_from_clause(args, guards, body, def_expr, stack, context)
+        rescue
+          e ->
+            def_expr = {kind, meta, [guards_to_expr(guards, {fun, [], args}), [do: body]]}
+
+            error =
+              Error.exception("""
+              found error while checking types for #{Exception.format_mfa(module, fun, arity)}
+
+              #{Macro.to_string(def_expr)}
+
+              Please report this bug: https://github.com/elixir-lang/elixir/issues
+
+              #{Exception.format_banner(:error, e, __STACKTRACE__)}\
+              """)
+
+            reraise error, __STACKTRACE__
+        end
       end)
     end)
   end

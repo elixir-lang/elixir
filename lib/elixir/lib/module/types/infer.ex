@@ -32,21 +32,21 @@ defmodule Module.Types.Infer do
   end
 
   defp do_unify(type, {:var, var}, stack, context) do
-    case Map.fetch!(context.types, var) do
-      {:var, var_type} ->
+    case context.types do
+      %{^var => {:var, var_type}} ->
         do_unify(type, {:var, var_type}, stack, context)
 
-      _other ->
+      %{} ->
         unify_var(var, type, stack, context, _var_source = false)
     end
   end
 
   defp do_unify({:var, var}, type, stack, context) do
-    case Map.fetch!(context.types, var) do
-      {:var, var_type} ->
+    case context.types do
+      %{^var => {:var, var_type}} ->
         do_unify({:var, var_type}, type, stack, context)
 
-      _other ->
+      %{} ->
         unify_var(var, type, stack, context, _var_source = true)
     end
   end
@@ -84,10 +84,17 @@ defmodule Module.Types.Infer do
   end
 
   defp do_unify(source, target, stack, context) do
-    if subtype?(source, target, context) do
-      {:ok, source, context}
-    else
-      error(:unable_unify, {source, target, stack}, context)
+    cond do
+      # This condition exists to handle unions with unbound vars.
+      # TODO: handle unions properly.
+      has_unbound_var?(source, context) or has_unbound_var?(target, context) ->
+        {:ok, source, context}
+
+      subtype?(source, target, context) ->
+        {:ok, source, context}
+
+      true ->
+        error(:unable_unify, {source, target, stack}, context)
     end
   end
 
@@ -96,8 +103,8 @@ defmodule Module.Types.Infer do
   end
 
   defp unify_var(var, type, stack, context, var_source?) do
-    case Map.fetch!(context.types, var) do
-      :unbound ->
+    case context.types do
+      %{^var => :unbound} ->
         context = refine_var(var, type, stack, context)
         stack = push_unify_stack(var, stack)
 
@@ -111,7 +118,7 @@ defmodule Module.Types.Infer do
           {:ok, {:var, var}, context}
         end
 
-      var_type ->
+      %{^var => var_type} ->
         # Only add trace if the variable wasn't already "expanded"
         context =
           if variable_expanded?(var, stack, context) do
@@ -268,13 +275,15 @@ defmodule Module.Types.Infer do
   If the variable has already been added, return the existing type variable.
   """
   def new_var(var, context) do
-    case Map.fetch(context.vars, var_name(var)) do
-      {:ok, type} ->
+    var_name = var_name(var)
+
+    case context.vars do
+      %{^var_name => type} ->
         {type, context}
 
-      :error ->
+      %{} ->
         type = {:var, context.counter}
-        vars = Map.put(context.vars, var_name(var), type)
+        vars = Map.put(context.vars, var_name, type)
         types_to_vars = Map.put(context.types_to_vars, context.counter, var)
         types = Map.put(context.types, context.counter, :unbound)
         traces = Map.put(context.traces, context.counter, [])
@@ -312,7 +321,16 @@ defmodule Module.Types.Infer do
     {type, context}
   end
 
-  def resolve_var({:var, var}, context), do: resolve_var(Map.fetch!(context.types, var), context)
+  @doc """
+  Resolves a variable raising if it is unbound.
+  """
+  def resolve_var({:var, var}, context) do
+    case context.types do
+      %{^var => :unbound} -> raise "cannot resolve unbound var"
+      %{^var => type} -> resolve_var(type, context)
+    end
+  end
+
   def resolve_var(other, _context), do: other
 
   # Check unify stack to see if variable was already expanded
@@ -321,15 +339,15 @@ defmodule Module.Types.Infer do
   end
 
   defp variable_same?(left, right, context) do
-    case Map.fetch(context.types, left) do
-      {:ok, {:var, new_left}} ->
+    case context.types do
+      %{^left => {:var, new_left}} ->
         variable_same?(new_left, right, context)
 
-      _ ->
-        case Map.fetch(context.types, right) do
-          {:ok, {:var, new_right}} -> variable_same?(left, new_right, context)
-          _ -> false
-        end
+      %{^right => {:var, new_right}} ->
+        variable_same?(left, new_right, context)
+
+      %{} ->
+        false
     end
   end
 
@@ -370,11 +388,11 @@ defmodule Module.Types.Infer do
   # Bad: `{var} = var`
   # Good: `x = y; y = z; z = x`
   defp recursive_type?({:var, var} = parent, parents, context) do
-    case Map.fetch!(context.types, var) do
-      :unbound ->
+    case context.types do
+      %{^var => :unbound} ->
         false
 
-      type ->
+      %{^var => type} ->
         if type in parents do
           not Enum.all?(parents, &match?({:var, _}, &1))
         else
@@ -403,11 +421,52 @@ defmodule Module.Types.Infer do
   end
 
   @doc """
+  Checks if the type has a type var.
+  """
+  def has_unbound_var?({:var, var}, context) do
+    case context.types do
+      %{^var => :unbound} -> true
+      %{^var => type} -> has_unbound_var?(type, context)
+    end
+  end
+
+  def has_unbound_var?({:tuple, args}, context),
+    do: Enum.any?(args, &has_unbound_var?(&1, context))
+
+  def has_unbound_var?({:union, args}, context),
+    do: Enum.any?(args, &has_unbound_var?(&1, context))
+
+  def has_unbound_var?(_type, _context), do: false
+
+  @doc """
   Checks if the first argument is a subtype of the second argument.
-  Only checks for simple and concrete types.
+
+  This function assumes that:
+
+    * dynamic is not considered a subtype of all other types but the top type
+    * unbound variables are not subtype of anything
+
   """
   # TODO: boolean <: false | true
   # TODO: number <: float | integer
+  # TODO: implement subtype for maps
+  def subtype?(type, type, _context), do: true
+
+  def subtype?({:var, var}, other, context) do
+    case context.types do
+      %{^var => :unbound} -> false
+      %{^var => type} -> subtype?(type, other, context)
+    end
+  end
+
+  def subtype?(other, {:var, var}, context) do
+    case context.types do
+      %{^var => :unbound} -> false
+      %{^var => type} -> subtype?(other, type, context)
+    end
+  end
+
+  def subtype?(_, :dynamic, _context), do: true
   def subtype?({:atom, boolean}, :boolean, _context) when is_boolean(boolean), do: true
   def subtype?({:atom, atom}, :atom, _context) when is_atom(atom), do: true
   def subtype?(:boolean, :atom, _context), do: true
@@ -415,18 +474,15 @@ defmodule Module.Types.Infer do
   def subtype?(:integer, :number, _context), do: true
   def subtype?({:tuple, _}, :tuple, _context), do: true
 
-  # TODO: Lift unions to unify/3?
-  def subtype?({:union, left_types}, {:union, right_types} = right_union, context) do
-    # Since we can't unify unions we give up when encountering variables
-    Enum.any?(left_types ++ right_types, &match?({:var, _}, &1)) or
-      Enum.all?(left_types, &subtype?(&1, right_union, context))
+  def subtype?({:union, left_types}, {:union, _} = right_union, context) do
+    Enum.all?(left_types, &subtype?(&1, right_union, context))
   end
 
   def subtype?(left, {:union, right_types}, context) do
     Enum.any?(right_types, &subtype?(left, &1, context))
   end
 
-  def subtype?(left, right, _context), do: left == right
+  def subtype?(_left, _right, _context), do: false
 
   @doc """
   Returns a "simplified" union using `subtype?/3` to remove redundant types.
@@ -436,17 +492,14 @@ defmodule Module.Types.Infer do
   `{boolean()} | {atom()}` will not be merged or types with variables that
   are distinct but equivalent such as `a | b when a ~ b`.
   """
-  # TODO: Translate union of all top types to dynamic()
+  def to_union([type], _context), do: type
+
   def to_union(types, context) when types != [] do
     flat_types = flatten_union(types)
 
-    if :dynamic in flat_types do
-      :dynamic
-    else
-      case unique_super_types(flat_types, context) do
-        [type] -> type
-        types -> {:union, types}
-      end
+    case unique_super_types(flat_types, context) do
+      [type] -> type
+      types -> {:union, types}
     end
   end
 

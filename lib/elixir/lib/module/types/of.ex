@@ -15,7 +15,7 @@ defmodule Module.Types.Of do
   Handles open maps (with dynamic => dynamic).
   """
   def open_map(args, stack, context, fun) do
-    with {:ok, pairs, context} <- of_pairs(args, stack, context, fun) do
+    with {:ok, pairs, context} <- map_pairs(args, stack, context, fun) do
       {:ok, {:map, pairs_to_unions(pairs, context) ++ [{:optional, :dynamic, :dynamic}]}, context}
     end
   end
@@ -24,33 +24,62 @@ defmodule Module.Types.Of do
   Handles closed maps (without dynamic => dynamic).
   """
   def closed_map(args, stack, context, fun) do
-    with {:ok, pairs, context} <- of_pairs(args, stack, context, fun) do
+    with {:ok, pairs, context} <- map_pairs(args, stack, context, fun) do
       {:ok, {:map, pairs_to_unions(pairs, context)}, context}
     end
   end
 
-  defp of_pairs(pairs, stack, context, fun) do
+  defp map_pairs(pairs, stack, context, fun) do
     map_reduce_ok(pairs, context, fn {key, value}, context ->
       with {:ok, key_type, context} <- fun.(key, stack, context),
            {:ok, value_type, context} <- fun.(value, stack, context),
-           do: {:ok, {:required, key_type, value_type}, context}
+           do: {:ok, {key_type, value_type}, context}
     end)
   end
+
+  defp pairs_to_unions([{key, value}], _context), do: [{:required, key, value}]
 
   defp pairs_to_unions(pairs, context) do
-    # We are currently creating overlapping key types
-
-    Enum.reduce(pairs, [], fn {kind_left, key, value_left}, pairs ->
-      case List.keyfind(pairs, key, 1) do
-        {:required, ^key, value_right} ->
-          value = Infer.to_union([value_left, value_right], context)
-          List.keystore(pairs, key, 1, {:required, key, value})
-
-        nil ->
-          [{kind_left, key, value_left} | pairs]
-      end
-    end)
+    case Enum.split_with(pairs, fn {key, _value} -> Infer.has_unbound_var?(key, context) end) do
+      {[], pairs} -> pairs_to_unions(pairs, [], context)
+      {[_ | _], pairs} -> pairs_to_unions([{:dynamic, :dynamic} | pairs], [], context)
+    end
   end
+
+  defp pairs_to_unions([{key, value} | ahead], behind, context) do
+    {matched_ahead, values} = find_matching_values(ahead, key, [], [])
+
+    # In case nothing matches, use the original ahead
+    ahead = matched_ahead || ahead
+
+    all_values =
+      [value | values] ++
+        find_subtype_values(ahead, key, context) ++
+        find_subtype_values(behind, key, context)
+
+    pairs_to_unions(ahead, [{key, Infer.to_union(all_values, context)} | behind], context)
+  end
+
+  defp pairs_to_unions([], acc, context) do
+    acc
+    |> Enum.sort(&Infer.subtype?(elem(&1, 0), elem(&2, 0), context))
+    |> Enum.map(fn {key, value} -> {:required, key, value} end)
+  end
+
+  defp find_subtype_values(pairs, key, context) do
+    for {pair_key, pair_value} <- pairs, Infer.subtype?(pair_key, key, context), do: pair_value
+  end
+
+  defp find_matching_values([{key, value} | ahead], key, acc, values) do
+    find_matching_values(ahead, key, acc, [value | values])
+  end
+
+  defp find_matching_values([{_, _} = pair | ahead], key, acc, values) do
+    find_matching_values(ahead, key, [pair | acc], values)
+  end
+
+  defp find_matching_values([], _key, acc, [_ | _] = values), do: {Enum.reverse(acc), values}
+  defp find_matching_values([], _key, _acc, []), do: {nil, []}
 
   @doc """
   Handles structs.
