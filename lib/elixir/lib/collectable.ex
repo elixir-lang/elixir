@@ -27,8 +27,8 @@ defprotocol Collectable do
 
   ## Examples
 
-  To show how to manually use the `Collectable` protocol, let's play with its
-  implementation for `MapSet`.
+  To show how to manually use the `Collectable` protocol, let's play with a
+  simplified implementation for `MapSet`.
 
       iex> {initial_acc, collector_fun} = Collectable.into(MapSet.new())
       iex> updated_acc = Enum.reduce([1, 2, 3], initial_acc, fn elem, acc ->
@@ -38,20 +38,32 @@ defprotocol Collectable do
       #MapSet<[1, 2, 3]>
 
   To show how the protocol can be implemented, we can again look at the
-  implementation for `MapSet`. In this implementation "collecting" elements
+  simplified implementation for `MapSet`. In this implementation "collecting" elements
   simply means inserting them in the set through `MapSet.put/2`.
 
       defimpl Collectable, for: MapSet do
-        def into(original) do
+        def into(map_set) do
           collector_fun = fn
-            set, {:cont, elem} -> MapSet.put(set, elem)
-            set, :done -> set
-            _set, :halt -> :ok
+            map_set_acc, {:cont, elem} ->
+              MapSet.put(map_set_acc, elem)
+
+            map_set_acc, :done ->
+              map_set_acc
+
+            _map_set_acc, :halt ->
+              :ok
           end
 
-          {original, collector_fun}
+          initial_acc = map_set
+
+          {initial_acc, collector_fun}
         end
       end
+
+  So now we can call `Enum.into/2`:
+
+      iex> Enum.into([1, 2, 3], MapSet.new())
+      #MapSet<[1, 2, 3]>
 
   """
 
@@ -60,8 +72,11 @@ defprotocol Collectable do
   @doc """
   Returns an initial accumulator and a "collector" function.
 
-  The returned function receives a term and a command and injects the term into
-  the collectable on every `{:cont, term}` command.
+  Receives a `collectable` which can be used as the initial accumulator that will
+  be passed to the function.
+
+  The collector function receives a term and a command and injects the term into
+  the collectable accumulator on every `{:cont, term}` command.
 
   `:done` is passed as a command when no further values will be injected. This
   is useful when there's a need to close resources or normalizing values. A
@@ -73,13 +88,13 @@ defprotocol Collectable do
   For examples on how to use the `Collectable` protocol and `into/1` see the
   module documentation.
   """
-  @spec into(t) :: {term, (term, command -> t | term)}
+  @spec into(t) :: {initial_acc :: term, collector :: (term, command -> t | term)}
   def into(collectable)
 end
 
 defimpl Collectable, for: List do
-  def into(original) do
-    if original != [] do
+  def into(list) do
+    if list != [] do
       IO.warn(
         "the Collectable protocol is deprecated for non-empty lists. The behaviour of " <>
           "things like Enum.into/2 or \"for\" comprehensions with an :into option is incorrect " <>
@@ -90,8 +105,8 @@ defimpl Collectable, for: List do
     end
 
     fun = fn
-      list, {:cont, x} -> [x | list]
-      list, :done -> original ++ :lists.reverse(list)
+      list_acc, {:cont, elem} -> [elem | list_acc]
+      list_acc, :done -> list ++ :lists.reverse(list_acc)
       _, :halt -> :ok
     end
 
@@ -100,7 +115,7 @@ defimpl Collectable, for: List do
 end
 
 defimpl Collectable, for: BitString do
-  def into(original) when is_binary(original) do
+  def into(binary) when is_binary(binary) do
     fun = fn
       acc, {:cont, x} when is_binary(x) and is_list(acc) ->
         [acc | x]
@@ -121,10 +136,10 @@ defimpl Collectable, for: BitString do
         :ok
     end
 
-    {[original], fun}
+    {[binary], fun}
   end
 
-  def into(original) when is_bitstring(original) do
+  def into(bitstring) when is_bitstring(bitstring) do
     fun = fn
       acc, {:cont, x} when is_bitstring(x) ->
         <<acc::bitstring, x::bitstring>>
@@ -136,18 +151,23 @@ defimpl Collectable, for: BitString do
         :ok
     end
 
-    {original, fun}
+    {bitstring, fun}
   end
 end
 
 defimpl Collectable, for: Map do
-  def into(original) do
+  def into(map) do
     fun = fn
-      map, {:cont, {k, v}} -> Map.put(map, k, v)
-      map, :done -> map
-      _, :halt -> :ok
+      map_acc, {:cont, {key, value}} ->
+        Map.put(map_acc, key, value)
+
+      map_acc, :done ->
+        map_acc
+
+      _, :halt ->
+        :ok
     end
 
-    {original, fun}
+    {map, fun}
   end
 end
