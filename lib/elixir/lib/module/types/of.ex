@@ -173,7 +173,7 @@ defmodule Module.Types.Of do
     fun.(other)
   end
 
-  defp binary_type(:expr, {:float, _, _}), do: :number
+  defp binary_type(:expr, {:float, _, _}), do: {:union, [:integer, :float]}
   defp binary_type(:expr, {:utf8, _, _}), do: {:union, [:integer, :binary]}
   defp binary_type(:expr, {:utf16, _, _}), do: {:union, [:integer, :binary]}
   defp binary_type(:expr, {:utf32, _, _}), do: {:union, [:integer, :binary]}
