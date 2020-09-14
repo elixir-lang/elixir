@@ -2,7 +2,7 @@
 [
   extras: Path.wildcard("lib/elixir/pages/*.md") ++ ["CHANGELOG.md"],
   groups_for_functions: [
-    Guards: & &1[:guard] == true
+    Guards: &(&1[:guard] == true)
   ],
   skip_undefined_reference_warnings_on: ["lib/elixir/pages/compatibility-and-deprecations.md"],
   groups_for_modules: [
@@ -53,11 +53,11 @@
       StringIO,
       System
     ],
-    "Calendar": [
-      Calendar,
-      Calendar.ISO,
-      Calendar.TimeZoneDatabase,
-      Calendar.UTCOnlyTimeZoneDatabase
+    "Code & Macros": [
+      Code,
+      Kernel.ParallelCompiler,
+      Macro,
+      Macro.Env
     ],
     "Processes & Applications": [
       Agent,
@@ -74,21 +74,23 @@
       Task,
       Task.Supervisor
     ],
+    Calendars: [
+      Calendar,
+      Calendar.ISO,
+      Calendar.TimeZoneDatabase,
+      Calendar.UTCOnlyTimeZoneDatabase
+    ],
     Protocols: [
+      Inspect.Algebra,
+      Inspect.Opts,
+      Protocol
+    ],
+    "Protocol Implementations": [
       Collectable,
       Enumerable,
       Inspect,
-      Inspect.Algebra,
-      Inspect.Opts,
       List.Chars,
-      Protocol,
       String.Chars
-    ],
-    "Code & Macros": [
-      Code,
-      Kernel.ParallelCompiler,
-      Macro,
-      Macro.Env
     ]
 
     ## Automatically detected groups
