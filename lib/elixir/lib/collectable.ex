@@ -105,9 +105,14 @@ defimpl Collectable, for: List do
     end
 
     fun = fn
-      list_acc, {:cont, elem} -> [elem | list_acc]
-      list_acc, :done -> list ++ :lists.reverse(list_acc)
-      _, :halt -> :ok
+      list_acc, {:cont, elem} ->
+        [elem | list_acc]
+
+      list_acc, :done ->
+        list ++ :lists.reverse(list_acc)
+
+      _list_acc, :halt ->
+        :ok
     end
 
     {[], fun}
@@ -132,7 +137,7 @@ defimpl Collectable, for: BitString do
       acc, :done ->
         IO.iodata_to_binary(acc)
 
-      _, :halt ->
+      __acc, :halt ->
         :ok
     end
 
@@ -147,7 +152,7 @@ defimpl Collectable, for: BitString do
       acc, :done ->
         acc
 
-      _, :halt ->
+      _acc, :halt ->
         :ok
     end
 
@@ -164,7 +169,7 @@ defimpl Collectable, for: Map do
       map_acc, :done ->
         map_acc
 
-      _, :halt ->
+      _map_acc, :halt ->
         :ok
     end
 
