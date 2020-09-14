@@ -129,8 +129,8 @@ defmodule Module.Types.Pattern do
   end
 
   # ^var
-  def of_pattern({:^, _meta, [var]}, stack, context) do
-    of_pattern(var, stack, context)
+  def of_pattern({:^, _meta, [var]}, _stack, context) do
+    {:ok, get_var!(var, context), context}
   end
 
   # var
@@ -194,16 +194,11 @@ defmodule Module.Types.Pattern do
     end
   end
 
-  # %^var{...}
-  def of_pattern({:%, meta1, [{:^, _meta2, [var]}, args]}, stack, context) do
-    of_pattern({:%, meta1, [var, args]}, stack, context)
-  end
-
-  # %var{...}
+  # %var{...} and %^var{...}
   def of_pattern({:%, _meta1, [var, {:%{}, _meta2, args}]} = expr, stack, context) do
     stack = push_expr_stack(expr, stack)
 
-    with {var_type, context} = new_var(var, context),
+    with {:ok, var_type, context} = of_pattern(var, stack, context),
          {:ok, _, context} <- unify(var_type, :atom, stack, context),
          {:ok, {:map, pairs}, context} <- Of.open_map(args, stack, context, &of_pattern/3) do
       {:ok, {:map, [{:required, {:atom, :__struct__}, var_type} | pairs]}, context}
