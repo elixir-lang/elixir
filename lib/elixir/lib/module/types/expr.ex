@@ -277,10 +277,19 @@ defmodule Module.Types.Expr do
   # for pat <- expr do expr end
   def of_expr({:for, _meta, args} = expr, stack, context) do
     stack = push_expr_stack(expr, stack)
+    {clauses, [[{:do, block} | opts]]} = Enum.split(args, -1)
 
-    case reduce_ok(args, context, &for_clause(&1, stack, &2)) do
-      {:ok, _context} -> {:ok, :dynamic, context}
-      {:error, reason} -> {:error, reason}
+    with {:ok, context} <- reduce_ok(clauses, context, &for_clause(&1, stack, &2)),
+         {:ok, context} <- reduce_ok(opts, context, &for_option(&1, stack, &2)) do
+      if opts[:reduce] do
+        with :ok <- of_clauses(block, stack, context) do
+          {:ok, :dynamic, context}
+        end
+      else
+        with {:ok, _type, context} <- of_expr(block, stack, context) do
+          {:ok, :dynamic, context}
+        end
+      end
     end
   end
 
@@ -403,17 +412,6 @@ defmodule Module.Types.Expr do
 
   defp for_option({:uniq, _}, _stack, context) do
     {:ok, context}
-  end
-
-  defp for_option({:do, [{:->, _, [pattern, body]}]}, stack, context) do
-    case Pattern.of_pattern(pattern, stack, context) do
-      {:ok, _pattern_type, context} -> of_expr_context(body, stack, context)
-      {:error, reason} -> {:error, reason}
-    end
-  end
-
-  defp for_option({:do, body}, stack, context) do
-    of_expr_context(body, stack, context)
   end
 
   defp with_clause({:<-, _, [left, expr]}, stack, context) do
