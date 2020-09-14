@@ -243,7 +243,7 @@ The Calendar module ships with a new `Calendar.strftime/3` function, which provi
 
 Mix also includes two new tasks: `mix app.config`, for application runtime configuration, and `mix test.coverage`, which generates aggregated coverage reports for umbrella projects and for test suites partitioned across processes.
 
-## v1.11.0-dev
+## v1.11.0-rc.0 (2020-09-14)
 
 ### 1. Enhancements
 
@@ -345,7 +345,9 @@ Mix also includes two new tasks: `mix app.config`, for application runtime confi
   * [Kernel] Improve compiler error message when using `|` in a `def` signature
   * [Kernel.SpecialForms] Add `|/2` to the list of special forms to avoid inconsistent behaviour on overrides
   * [Keyword] Enforce keys to be atoms in `Keyword.keys/1`
-  * [URI] `URI.decode_query/2` emits an empty string for parameters without values, according to https://url.spec.whatwg.org/#application/x-www-form-urlencoded
+  * [Record] Keep lexical ordering when creating records
+  * [Registry] Do not crash when a process with key-value has been registered using `:via` and it fails to start on `init`
+  * [URI] `URI.decode_query/2` emits an empty string for parameters without values, according to [URL's living standard](https://url.spec.whatwg.org/#application/x-www-form-urlencoded) - note this behaviour is not specified in the spec implemented by the URI module, so the living standard was chosen
   * [Version] Add defaults and enforce keys in `Version` struct
 
 #### ExUnit
