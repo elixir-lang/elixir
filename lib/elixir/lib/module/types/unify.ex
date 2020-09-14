@@ -1,4 +1,4 @@
-defmodule Module.Types.Infer do
+defmodule Module.Types.Unify do
   @moduledoc false
 
   import Module.Types.Helpers

@@ -2,7 +2,7 @@ defmodule Module.Types.Expr do
   @moduledoc false
 
   alias Module.Types.{Of, Pattern}
-  import Module.Types.{Helpers, Infer}
+  import Module.Types.{Helpers, Unify}
 
   def of_expr(expr, %{context: stack_context} = stack, context) when stack_context != :expr do
     of_expr(expr, %{stack | context: :expr}, context)

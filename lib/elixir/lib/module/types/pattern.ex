@@ -2,7 +2,7 @@ defmodule Module.Types.Pattern do
   @moduledoc false
 
   alias Module.Types.Of
-  import Module.Types.{Helpers, Infer}
+  import Module.Types.{Helpers, Unify}
 
   @doc """
   Handles patterns and guards at once.
