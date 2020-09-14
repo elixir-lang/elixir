@@ -972,7 +972,7 @@ defmodule Logger do
       Logger.warn("knob turned too far to the right")
 
   """
-  # TODO: Hard deprecate it in favour of `warning/1-2` macro
+  # TODO: Hard deprecate it in favour of `warning/1-2` macro on v1.15
   defmacro warn(message_or_fun, metadata \\ []) do
     maybe_log(:warning, message_or_fun, metadata, __CALLER__)
   end

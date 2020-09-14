@@ -10,15 +10,9 @@
 
 ### 4. Hard-deprecations
 
-#### Elixir
-
-  * [Supervisor] Deprecate `Supervisor.start_child/2` and `Supervisor.terminate_child/2` in favor of `DynamicSupervisor`
-  * [Supervisor.Spec] Deprecate `Supervisor.Spec.worker/3` and `Supervisor.Spec.supervisor/3` in favor of the new typespecs
-  * [System] Deprecate `System.stracktrace/0` in favor of `__STACKTRACE__`
-
 #### Mix
 
-  * [Mix.Project] Deprecate `Mix.Project.compile/2` in favor of `Mix.Task.run("compile", args)`
+  * [mix compile] The `:xref` compiler is deprecated and it has no effect. Please remove it from your mix.exs file.
 
 ## v1.11
 
