@@ -137,39 +137,6 @@ defmodule Module.Types.IntegrationTest do
       assert_warnings(files, warning)
     end
 
-    test "aliases" do
-      files = %{
-        "a.ex" => """
-        defmodule A do
-          alias Enum, as: E
-
-          def a(a, b), do: E.map2(a, b)
-          def b, do: &E.map2/2
-
-          @file "external_source.ex"
-          def c do
-            alias Enum, as: EE
-            &EE.map2/2
-          end
-        end
-        """
-      }
-
-      warning = """
-      warning: Enum.map2/2 is undefined or private. Did you mean one of:
-
-            * map/2
-
-      Found at 3 locations:
-        a.ex:4: A.a/2
-        a.ex:5: A.b/0
-        external_source.ex:10: A.c/0
-
-      """
-
-      assert_warnings(files, warning)
-    end
-
     test "reports missing functions" do
       files = %{
         "a.ex" => """
@@ -277,13 +244,13 @@ defmodule Module.Types.IntegrationTest do
     test "doesn't report missing funcs at compile time" do
       files = %{
         "a.ex" => """
-          Enum.map([], fn _ -> BadReferencer.no_func4() end)
+        Enum.map([], fn _ -> BadReferencer.no_func4() end)
 
-          if function_exported?(List, :flatten, 1) do
-            List.flatten([1, 2, 3])
-          else
-            List.old_flatten([1, 2, 3])
-          end
+        if function_exported?(List, :flatten, 1) do
+          List.flatten([1, 2, 3])
+        else
+          List.old_flatten([1, 2, 3])
+        end
         """
       }
 
@@ -412,35 +379,6 @@ defmodule Module.Types.IntegrationTest do
       """
 
       assert_warnings(files, warning)
-    end
-
-    test "imports" do
-      files = %{
-        "a.ex" => """
-        defmodule A do
-          import Record
-
-          def a(a, b), do: extract(a, b)
-          def b(arg), do: is_record(arg)
-        end
-        """
-      }
-
-      assert_no_warnings(files)
-    end
-
-    test "requires" do
-      files = %{
-        "a.ex" => """
-        defmodule A do
-          require Integer
-
-          def a(a), do: Integer.is_even(a)
-        end
-        """
-      }
-
-      assert_no_warnings(files)
     end
 
     test "do not warn for module defined in local context" do
