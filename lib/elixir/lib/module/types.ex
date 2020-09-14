@@ -6,7 +6,7 @@ defmodule Module.Types do
   end
 
   import Module.Types.Helpers
-  alias Module.Types.{Expr, Pattern, Infer}
+  alias Module.Types.{Expr, Pattern, Unify}
 
   @doc false
   def warnings(module, file, defs, no_warn_undefined, cache) do
@@ -300,9 +300,9 @@ defmodule Module.Types do
 
         [
           "incompatible types:\n\n    ",
-          Infer.format_type(left, simplify_left?),
+          Unify.format_type(left, simplify_left?),
           " !~ ",
-          Infer.format_type(right, simplify_right?),
+          Unify.format_type(right, simplify_right?),
           "\n\n",
           format_expr(expr, location),
           traces,
@@ -352,7 +352,7 @@ defmodule Module.Types do
           "where \"",
           Macro.to_string(var),
           "\" was given the type ",
-          Infer.format_type(type, simplify?),
+          Unify.format_type(type, simplify?),
           hint,
           " in:\n\n    # ",
           format_location(location),

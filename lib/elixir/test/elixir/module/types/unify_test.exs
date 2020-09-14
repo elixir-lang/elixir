@@ -1,8 +1,8 @@
 Code.require_file("../../test_helper.exs", __DIR__)
 
-defmodule Module.Types.InferTest do
+defmodule Module.Types.UnifyTest do
   use ExUnit.Case, async: true
-  import Module.Types.Infer
+  import Module.Types.Unify
   alias Module.Types
 
   defp unify_lift(left, right, context \\ new_context()) do
