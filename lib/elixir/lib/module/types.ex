@@ -57,7 +57,7 @@ defmodule Module.Types do
   end
 
   defp warnings_from_clause(args, guards, body, def_expr, stack, context) do
-    head_stack = push_expr_stack(def_expr, stack)
+    head_stack = Unify.push_expr_stack(def_expr, stack)
 
     with {:ok, _types, context} <- Pattern.of_head(args, guards, head_stack, context),
          {:ok, _type, context} <- Expr.of_expr(body, stack, context) do
