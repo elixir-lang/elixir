@@ -518,8 +518,8 @@ defmodule Module.Types do
   defp map_type?(_other), do: false
 
   defp atom_type?(:atom), do: true
-  defp atom_type?(:boolean), do: true
   defp atom_type?({:atom, _}), do: false
+  defp atom_type?({:union, union}), do: Enum.all?(union, &atom_type?/1)
   defp atom_type?(_other), do: false
 
   defp integer_type?(:integer), do: true

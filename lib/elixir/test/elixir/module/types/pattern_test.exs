@@ -285,10 +285,10 @@ defmodule Module.Types.PatternTest do
                {:ok, [{:union, [:tuple, :atom]}]}
 
       assert quoted_head([x], [is_boolean(x) and is_atom(x)]) ==
-               {:ok, [:boolean]}
+               {:ok, [{:union, [atom: true, atom: false]}]}
 
       assert quoted_head([x], [is_atom(x) and is_boolean(x)]) ==
-               {:ok, [:boolean]}
+               {:ok, [{:union, [atom: true, atom: false]}]}
 
       assert quoted_head([x], [is_atom(x) > :foo]) == {:ok, [var: 0]}
 
@@ -307,7 +307,7 @@ defmodule Module.Types.PatternTest do
       assert {:error, {:unable_unify, {:tuple, :atom, _}}} =
                quoted_head([x], [is_tuple(x) and is_atom(x)])
 
-      assert {:error, {:unable_unify, {:boolean, :tuple, _}}} =
+      assert {:error, {:unable_unify, {{:union, [atom: true, atom: false]}, :tuple, _}}} =
                quoted_head([x], [is_tuple(is_atom(x))])
     end
 
@@ -322,13 +322,16 @@ defmodule Module.Types.PatternTest do
       assert {:error, {:unable_unify, {{:atom, :foo}, {:list, :dynamic}, _}}} =
                quoted_head([x], [length(:foo)])
 
-      assert {:error, {:unable_unify, {:boolean, {:list, :dynamic}, _}}} =
+      assert {:error,
+              {:unable_unify, {{:union, [atom: true, atom: false]}, {:list, :dynamic}, _}}} =
                quoted_head([x], [length(is_tuple(x))])
 
-      assert {:error, {:unable_unify, {:boolean, :tuple, _}}} =
+      assert {:error, {:unable_unify, {{:union, [atom: true, atom: false]}, :tuple, _}}} =
                quoted_head([x], [elem(is_tuple(x), 0)])
 
-      assert {:error, {:unable_unify, {:boolean, :number, _}}} =
+      assert {:error,
+              {:unable_unify,
+               {{:union, [atom: true, atom: false]}, {:union, [:integer, :float]}, _}}} =
                quoted_head([x], [elem({}, is_tuple(x))])
 
       assert quoted_head([x], [elem({}, 1)]) == {:ok, [var: 0]}
@@ -371,7 +374,11 @@ defmodule Module.Types.PatternTest do
       assert quoted_head([%{true: bool}], [is_boolean(bool)]) ==
                {:ok,
                 [
-                  {:map, [{:required, {:atom, true}, :boolean}, {:optional, :dynamic, :dynamic}]}
+                  {:map,
+                   [
+                     {:required, {:atom, true}, {:union, [atom: true, atom: false]}},
+                     {:optional, :dynamic, :dynamic}
+                   ]}
                 ]}
 
       assert quoted_head([%{true: true} = foo, %{false: false} = foo]) ==

@@ -21,11 +21,6 @@ defmodule Module.Types.Unify do
   #   {:union, [type]}
   #   {:map, [{:required | :optional, key_type, value_type}]}
   #
-  # TODO: Those types should be removed:
-  #
-  #   :boolean
-  #   :number
-  #
   # Once new types are added, they should be considered in:
   #
   #   * unify (all)
@@ -514,11 +509,6 @@ defmodule Module.Types.Unify do
 
   def subtype?(_, :dynamic, _context), do: true
   def subtype?({:atom, atom}, :atom, _context) when is_atom(atom), do: true
-
-  def subtype?({:atom, boolean}, :boolean, _context) when is_boolean(boolean), do: true
-  def subtype?(:boolean, :atom, _context), do: true
-  def subtype?(:float, :number, _context), do: true
-  def subtype?(:integer, :number, _context), do: true
 
   # Composite
 

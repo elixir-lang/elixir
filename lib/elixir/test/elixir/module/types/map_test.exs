@@ -307,7 +307,8 @@ defmodule Module.Types.MapTest do
               {:map,
                [
                  {:required, {:atom, true}, {:atom, true}},
-                 {:required, :boolean, {:union, [{:atom, :bool}, {:atom, true}]}},
+                 {:required, {:union, [atom: true, atom: false]},
+                  {:union, [{:atom, :bool}, {:atom, true}]}},
                  {:required, :atom, {:union, [{:atom, :atom}, {:atom, :bool}, {:atom, true}]}}
                ]}}
 
@@ -320,7 +321,8 @@ defmodule Module.Types.MapTest do
               {:map,
                [
                  {:required, {:atom, true}, {:atom, true}},
-                 {:required, :boolean, {:union, [{:atom, :bool}, {:atom, true}]}},
+                 {:required, {:union, [atom: true, atom: false]},
+                  {:union, [{:atom, :bool}, {:atom, true}]}},
                  {:required, :atom, {:union, [{:atom, :atom}, {:atom, :bool}, {:atom, true}]}}
                ]}}
 
@@ -333,7 +335,8 @@ defmodule Module.Types.MapTest do
               {:map,
                [
                  {:required, {:atom, true}, {:atom, true}},
-                 {:required, :boolean, {:union, [{:atom, :bool}, {:atom, true}]}},
+                 {:required, {:union, [atom: true, atom: false]},
+                  {:union, [{:atom, :bool}, {:atom, true}]}},
                  {:required, :atom, {:union, [{:atom, :atom}, {:atom, :bool}, {:atom, true}]}}
                ]}}
   end
