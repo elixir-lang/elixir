@@ -6,10 +6,10 @@ defmodule Module.Types.Of do
   @prefix quote(do: ...)
   @suffix quote(do: ...)
 
-  alias Module.Types.Unify
   alias Module.ParallelChecker
 
   import Module.Types.Helpers
+  import Module.Types.Unify
 
   @doc """
   Handles open maps (with dynamic => dynamic).
@@ -40,7 +40,7 @@ defmodule Module.Types.Of do
   defp pairs_to_unions([{key, value}], _context), do: [{:required, key, value}]
 
   defp pairs_to_unions(pairs, context) do
-    case Enum.split_with(pairs, fn {key, _value} -> Unify.has_unbound_var?(key, context) end) do
+    case Enum.split_with(pairs, fn {key, _value} -> has_unbound_var?(key, context) end) do
       {[], pairs} -> pairs_to_unions(pairs, [], context)
       {[_ | _], pairs} -> pairs_to_unions([{:dynamic, :dynamic} | pairs], [], context)
     end
@@ -57,17 +57,17 @@ defmodule Module.Types.Of do
         find_subtype_values(ahead, key, context) ++
         find_subtype_values(behind, key, context)
 
-    pairs_to_unions(ahead, [{key, Unify.to_union(all_values, context)} | behind], context)
+    pairs_to_unions(ahead, [{key, to_union(all_values, context)} | behind], context)
   end
 
   defp pairs_to_unions([], acc, context) do
     acc
-    |> Enum.sort(&Unify.subtype?(elem(&1, 0), elem(&2, 0), context))
+    |> Enum.sort(&subtype?(elem(&1, 0), elem(&2, 0), context))
     |> Enum.map(fn {key, value} -> {:required, key, value} end)
   end
 
   defp find_subtype_values(pairs, key, context) do
-    for {pair_key, pair_value} <- pairs, Unify.subtype?(pair_key, key, context), do: pair_value
+    for {pair_key, pair_value} <- pairs, subtype?(pair_key, key, context), do: pair_value
   end
 
   defp find_matching_values([{key, value} | ahead], key, acc, values) do
@@ -153,14 +153,9 @@ defmodule Module.Types.Of do
 
       true ->
         with {:ok, type, context} <- fun.(expr, stack, context),
-             {:ok, _type, context} <- Unify.unify(type, expected_type, stack, context),
+             {:ok, _type, context} <- unify(type, expected_type, stack, context),
              do: {:ok, context}
     end
-  end
-
-  # TODO: Remove this clause once we properly handle comprehensions
-  defp binary_segment({:<-, _, _}, _stack, context, _fun) do
-    {:ok, context}
   end
 
   # Collect binary type specifiers,

@@ -109,8 +109,7 @@ defmodule Module.Types.Expr do
 
   # var
   def of_expr(var, _stack, context) when is_var(var) do
-    {type, context} = new_var(var, context)
-    {:ok, type, context}
+    {:ok, get_var!(var, context), context}
   end
 
   # {left, right}
@@ -375,6 +374,13 @@ defmodule Module.Types.Expr do
     with {:ok, _pattern_type, context} <- Pattern.of_pattern(pattern, stack, context),
          # TODO: Check that of_guard/3 returns a boolean
          {:ok, _guard_type, context} <- Pattern.of_guard(guards_to_or(guards), stack, context),
+         {:ok, _expr_type, context} <- of_expr(expr, stack, context),
+         do: {:ok, context}
+  end
+
+  defp for_clause({:<<>>, _, [{:<-, _, [pattern, expr]}]}, stack, context) do
+    # TODO: the compiler guarantees pattern is a binary but we need to check expr is a binary
+    with {:ok, _pattern_type, context} <- Pattern.of_pattern(pattern, stack, context),
          {:ok, _expr_type, context} <- of_expr(expr, stack, context),
          do: {:ok, context}
   end

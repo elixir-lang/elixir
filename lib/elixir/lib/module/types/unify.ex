@@ -302,6 +302,23 @@ defmodule Module.Types.Unify do
   defp error(type, reason, context), do: {:error, {type, reason, context}}
 
   @doc """
+  Push expression to stack.
+
+  The expression stack is used to give the context where a type variable
+  was refined when show a type conflict error.
+  """
+  def push_expr_stack(expr, stack) do
+    %{stack | last_expr: expr}
+  end
+
+  @doc """
+  Gets a variable.
+  """
+  def get_var!(var, context) do
+    Map.fetch!(context.vars, var_name(var))
+  end
+
+  @doc """
   Adds a variable to the typing context and returns its type variable.
   If the variable has already been added, return the existing type variable.
   """
