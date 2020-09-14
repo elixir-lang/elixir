@@ -397,7 +397,7 @@ Mix also includes two new tasks: `mix app.config`, for application runtime confi
 
   * [Supervisor] Deprecate `Supervisor.start_child/2` and `Supervisor.terminate_child/2` in favor of `DynamicSupervisor`
   * [Supervisor.Spec] Deprecate `Supervisor.Spec.worker/3` and `Supervisor.Spec.supervisor/3` in favor of the new typespecs
-  * [System] Deprecate `System.stracktrace/0` in favor of `__STACKTRACE__`
+  * [System] Deprecate `System.stacktrace/0` in favor of `__STACKTRACE__`
 
 #### Mix
 
