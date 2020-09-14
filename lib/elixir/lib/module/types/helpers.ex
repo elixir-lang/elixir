@@ -26,16 +26,6 @@ defmodule Module.Types.Helpers do
   def get_meta(_other), do: []
 
   @doc """
-  Push expression to stack.
-
-  The expression stack is used to give the context where a type variable
-  was refined when show a type conflict error.
-  """
-  def push_expr_stack(expr, stack) do
-    %{stack | last_expr: expr}
-  end
-
-  @doc """
   Like `Enum.reduce/3` but only continues while `fun` returns `{:ok, acc}`
   and stops on `{:error, reason}`.
   """

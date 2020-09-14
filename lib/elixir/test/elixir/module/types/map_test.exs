@@ -297,7 +297,7 @@ defmodule Module.Types.MapTest do
     end
   end
 
-  test "with bound var keys" do
+  test "map creation with bound var keys" do
     assert quoted_expr(
              [atom, bool, true = var],
              [is_atom(atom) and is_boolean(bool)],
@@ -341,7 +341,7 @@ defmodule Module.Types.MapTest do
                ]}}
   end
 
-  test "with unbound var keys" do
+  test "map creation with unbound var keys" do
     assert quoted_expr(
              [var, struct],
              (
