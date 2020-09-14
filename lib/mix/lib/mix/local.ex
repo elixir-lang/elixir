@@ -29,8 +29,6 @@ defmodule Mix.Local do
     |> to_string()
   end
 
-  # TODO: Remove me on Elixir v1.13.
-  # It is private API but we deprecated it to be "nice"
   @deprecated "Use Mix.path_for/1 instead"
   def path_for(:archive), do: Mix.path_for(:archives)
   def path_for(:escript), do: Mix.path_for(:escripts)
