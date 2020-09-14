@@ -240,6 +240,19 @@ defmodule Kernel.ComprehensionTest do
     assert acc == %{1 => 'olleh', 3 => 'olleh'}
   end
 
+  test "for comprehensions with matched reduce" do
+    acc =
+      for entry <- [1, 2, 3], reduce: {:ok, nil} do
+        {:ok, _} ->
+          {:ok, entry}
+
+        {:error, _} = error ->
+          error
+      end
+
+    assert acc == {:ok, 3}
+  end
+
   ## List generators (inlined by the compiler)
 
   test "list for comprehensions" do
