@@ -332,9 +332,9 @@ defmodule Mix.Tasks.Format do
   defp expand_args(files_and_patterns, _dot_formatter, {formatter_opts, subs}) do
     files =
       for file_or_pattern <- files_and_patterns,
-          file <- stdin_or_wildcard(file_or_pattern),
+          files <- stdin_or_wildcard(file_or_pattern),
           uniq: true,
-          do: file
+          do: files
 
     if files == [] do
       Mix.raise(
@@ -360,7 +360,9 @@ defmodule Mix.Tasks.Format do
 
     map =
       for input <- List.wrap(formatter_opts[:inputs]),
-          file <- Path.wildcard(Path.join(prefix ++ [input]), match_dot: true),
+          file <-
+            Path.wildcard(Path.join(prefix ++ [input]), match_dot: true)
+            |> Enum.reject(&File.dir?(&1)),
           do: {expand_relative_to_cwd(file), {dot_formatter, formatter_opts}},
           into: %{}
 
@@ -403,7 +405,9 @@ defmodule Mix.Tasks.Format do
   end
 
   defp stdin_or_wildcard("-"), do: [:stdin]
-  defp stdin_or_wildcard(path), do: path |> Path.expand() |> Path.wildcard(match_dot: true)
+
+  defp stdin_or_wildcard(path),
+    do: path |> Path.expand() |> Path.wildcard(match_dot: true) |> Enum.reject(&File.dir?(&1))
 
   defp read_file(:stdin) do
     {IO.stream(:stdio, :line) |> Enum.to_list() |> IO.iodata_to_binary(), file: "stdin"}

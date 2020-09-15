@@ -229,6 +229,64 @@ defmodule Mix.Tasks.FormatTest do
     end)
   end
 
+  test "Ignore directories that match the formatter input rule", context do
+    write_files = fn ->
+      File.write!("custom_formatter.exs", """
+      [
+        inputs: ["**/*.ex"]
+      ]
+      """)
+
+      File.mkdir_p!("my.ex/")
+
+      File.write!("a.ex", """
+      foo(bar(baz))
+      """)
+
+      File.write!("my.ex/b.ex", """
+      foo(bar(baz))
+      """)
+
+      File.write!("my.ex/c.exs", """
+      foo(bar(baz))
+      """)
+    end
+
+    in_tmp(context.test, fn ->
+      write_files.()
+      Mix.Tasks.Format.run(["**/*.ex"])
+
+      assert File.read!("a.ex") == """
+             foo(bar(baz))
+             """
+
+      assert File.read!("my.ex/b.ex") == """
+             foo(bar(baz))
+             """
+
+      assert File.read!("my.ex/c.exs") == """
+             foo(bar(baz))
+             """
+    end)
+
+    in_tmp(context.test, fn ->
+      write_files.()
+      Mix.Tasks.Format.run(["--dot-formatter", "custom_formatter.exs"])
+
+      assert File.read!("a.ex") == """
+             foo(bar(baz))
+             """
+
+      assert File.read!("my.ex/b.ex") == """
+             foo(bar(baz))
+             """
+
+      assert File.read!("my.ex/c.exs") == """
+             foo(bar(baz))
+             """
+    end)
+  end
+
   test "can read exported configuration from subdirectories", context do
     in_tmp(context.test, fn ->
       File.write!(".formatter.exs", """
