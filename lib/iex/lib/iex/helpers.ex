@@ -71,11 +71,13 @@ defmodule IEx.Helpers do
   Recompiles the current Mix application.
 
   This helper only works when IEx is started with a Mix
-  project, for example, `iex -S mix`. The application is
-  not restarted after compilation, which means any long
-  running process may crash as any changed module will be
-  temporarily removed and recompiled, without going through
-  the proper code changes callback.
+  project, for example, `iex -S mix`. Note this function
+  simply recompiles Elixir modules, without reloading
+  configuration and without restarting applications.
+
+  Therefore, any long running process may crash on recompilation,
+  as changed modules will be temporarily removed and recompiled,
+  without going through the proper code change callback.
 
   If you want to reload a single module, consider using
   `r(ModuleName)` instead.
