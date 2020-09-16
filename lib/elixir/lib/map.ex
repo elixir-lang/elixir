@@ -841,7 +841,7 @@ defmodule Map do
       iex> Map.get_and_update(%{a: 1}, :b, fn current_value ->
       ...>   {current_value, "new value!"}
       ...> end)
-      {nil, %{b: "new value!", a: 1}}
+      {nil, %{a: 1, b: "new value!"}}
 
       iex> Map.get_and_update(%{a: 1}, :a, fn _ -> :pop end)
       {1, %{}}
