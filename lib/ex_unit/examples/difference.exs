@@ -1,4 +1,4 @@
-ExUnit.start [seed: 0]
+ExUnit.start(seed: 0)
 
 defmodule Difference do
   @moduledoc """
@@ -15,7 +15,7 @@ defmodule Difference do
 
   describe "regular context" do
     test "integers" do
-      assert 491512235 == 490512035
+      assert 491_512_235 == 490_512_035
     end
 
     test "floats" do
@@ -134,11 +134,11 @@ defmodule Difference do
     end
 
     test "lists; head and tail" do
-      assert ["Tvo", 1 | [:ok , {}]] = ["Two", :ok, self(), {true}]
+      assert ["Tvo", 1 | [:ok, {}]] = ["Two", :ok, self(), {true}]
     end
 
     test "lists; concat" do
-      assert ["Tvo", 1] ++ [:ok , {}] = ["Two", :ok, self(), {true}]
+      assert ["Tvo", 1] ++ [:ok, {}] = ["Two", :ok, self(), {true}]
     end
 
     test "maps" do
