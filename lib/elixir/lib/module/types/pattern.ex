@@ -324,11 +324,20 @@ defmodule Module.Types.Pattern do
 
   def of_guard({{:., _, [:erlang, :orelse]}, _, [left, right]} = expr, stack, context) do
     stack = push_expr_stack(expr, stack)
-    fresh_context = fresh_context(context)
+    left_var_names = var_names(left)
+    right_var_names = var_names(right)
 
-    with {:ok, left_type, left_context} <- of_guard(left, stack, fresh_context),
-         {:ok, _right_type, right_context} <- of_guard(right, stack, fresh_context),
-         {:ok, context} <- merge_context_or(context, stack, left_context, right_context),
+    with {:ok, left_type, left_context} <- of_guard(left, stack, context),
+         {:ok, _right_type, right_context} <- of_guard(right, stack, context),
+         context =
+           merge_context_or(
+             left_var_names,
+             right_var_names,
+             context,
+             stack,
+             left_context,
+             right_context
+           ),
          {:ok, _, context} <- unify(left_type, @boolean, stack, context),
          do: {:ok, @boolean, context}
   end
@@ -397,14 +406,26 @@ defmodule Module.Types.Pattern do
 
   # var
   def of_guard(var, _stack, context) when is_var(var) do
-    type = Map.fetch!(context.vars, var_name(var))
-    {:ok, type, context}
+    {:ok, get_var!(var, context), context}
   end
 
   # other literals
   def of_guard(expr, stack, context) do
     # Fall back to of_pattern/3 for literals
     of_pattern(expr, stack, context)
+  end
+
+  defp var_names(expr) do
+    {_, vars} =
+      Macro.prewalk(expr, %{}, fn
+        var, acc when is_var(var) ->
+          {var, Map.put(acc, var_name(var), true)}
+
+        other, acc ->
+          {other, acc}
+      end)
+
+    Map.keys(vars)
   end
 
   defp fresh_context(context) do
@@ -490,57 +511,53 @@ defmodule Module.Types.Pattern do
     %{context | traces: traces}
   end
 
-  defp merge_context_or(context, stack, left, right) do
-    context =
-      case {Map.to_list(left.types), Map.to_list(right.types)} do
-        {[{index, :unbound}], [{index, type}]} ->
-          refine_var(index, type, stack, context)
+  defp merge_context_or([var_name], [var_name], context, stack, left, right) do
+    %{^var_name => {:var, index}} = context.vars
+    %{^index => left_type} = left.types
+    %{^index => right_type} = right.types
 
-        {[{index, type}], [{index, :unbound}]} ->
-          refine_var(index, type, stack, context)
+    cond do
+      left_type == :unbound ->
+        refine_var!(index, right_type, stack, context)
 
-        {[{index, left_type}], [{index, right_type}]} ->
-          # Only include right side if left side is from type guard such as is_list(x),
-          # do not refine in case of length(x)
-          left_guard_sources = Map.get(left.guard_sources, index, [])
+      right_type == :unbound ->
+        refine_var!(index, left_type, stack, context)
 
-          if :fail in left_guard_sources do
-            guard_sources = Map.put(context.guard_sources, index, [:fail])
-            context = %{context | guard_sources: guard_sources}
-            refine_var(index, left_type, stack, context)
-          else
-            guard_sources =
-              merge_guard_sources([
-                context.guard_sources,
-                left.guard_sources,
-                right.guard_sources
-              ])
+      true ->
+        # Only include right side if left side is from type guard such as is_list(x),
+        # do not refine in case of length(x)
+        left_guard_sources = Map.get(left.guard_sources, index, [])
 
-            context = %{context | guard_sources: guard_sources}
-            refine_var(index, to_union([left_type, right_type], context), stack, context)
-          end
+        if :fail in left_guard_sources do
+          guard_sources = Map.put(context.guard_sources, index, [:fail])
+          context = %{context | guard_sources: guard_sources}
+          refine_var!(index, left_type, stack, context)
+        else
+          guard_sources =
+            merge_guard_sources([
+              context.guard_sources,
+              left.guard_sources,
+              right.guard_sources
+            ])
 
-        {left_types, _right_types} ->
-          Enum.reduce(left_types, context, fn {index, left_type}, context ->
-            left_guard_sources = Map.get(left.guard_sources, index, [])
+          context = %{context | guard_sources: guard_sources}
+          refine_var!(index, to_union([left_type, right_type], context), stack, context)
+        end
+    end
+  end
 
-            if :fail in left_guard_sources do
-              guard_sources =
-                merge_guard_sources([
-                  context.guard_sources,
-                  left.guard_sources,
-                  right.guard_sources
-                ])
+  # If the variable failed, we can keep them from the left side as is.
+  # If they didn't fail, then we need to restore them to their original value.
+  defp merge_context_or(var_names, _right_var_names, old_context, _stack, new_context, _right) do
+    Enum.reduce(var_names, new_context, fn var_name, context ->
+      %{^var_name => {:var, index}} = new_context.vars
 
-              context = %{context | guard_sources: guard_sources}
-              refine_var(index, left_type, stack, context)
-            else
-              context
-            end
-          end)
+      if :fail in Map.get(new_context.guard_sources, index, []) do
+        context
+      else
+        restore_var!(index, new_context, old_context)
       end
-
-    {:ok, context}
+    end)
   end
 
   defp guard_signature(name, arity) do

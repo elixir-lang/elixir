@@ -134,7 +134,7 @@ defmodule Module.Types.Unify do
   defp unify_var(var, type, stack, context, var_source?) do
     case context.types do
       %{^var => :unbound} ->
-        context = refine_var(var, type, stack, context)
+        context = refine_var!(var, type, stack, context)
         stack = push_unify_stack(var, stack)
 
         if recursive_type?(type, [], context) do
@@ -167,7 +167,7 @@ defmodule Module.Types.Unify do
 
         case unify_result do
           {:ok, var_type, context} ->
-            context = refine_var(var, var_type, stack, context)
+            context = refine_var!(var, var_type, stack, context)
             {:ok, {:var, var}, context}
 
           {:error, reason} ->
@@ -404,9 +404,20 @@ defmodule Module.Types.Unify do
   end
 
   @doc """
+  Restores the variable information from the old context into new context.
+  """
+  def restore_var!(var, new_context, old_context) do
+    %{^var => type} = old_context.types
+    %{^var => trace} = old_context.traces
+    types = Map.put(new_context.types, var, type)
+    traces = Map.put(new_context.traces, var, trace)
+    %{new_context | types: types, traces: traces}
+  end
+
+  @doc """
   Set the type for a variable and add trace.
   """
-  def refine_var(var, type, stack, context) do
+  def refine_var!(var, type, stack, context) do
     types = Map.put(context.types, var, type)
     context = %{context | types: types}
     trace_var(var, type, stack, context)
