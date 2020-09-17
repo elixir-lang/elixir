@@ -580,9 +580,9 @@ defmodule ExUnit.Case do
   end
 
   @doc """
-  Reigsters a test with the given environment.
+  Registers a test with the given environment.
 
-  This function is deprecated in favor of register_test/6 which performs
+  This function is deprecated in favor of `register_test/6` which performs
   better under tight loops by avoiding `__ENV__`.
   """
   @doc deprecated: "Use register_test/6 instead"
