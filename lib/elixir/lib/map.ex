@@ -632,8 +632,8 @@ defmodule Map do
   @doc """
   Removes the value associated with `key` in `map` and returns the value and the updated map.
 
-  If `key` is present in `map`, it returns `{value, new_map}` where `value` is the value of
-  the key and `new_map` is the result of removing `key` from `map`. If `key`
+  If `key` is present in `map`, it returns `{value, updated_map}` where `value` is the value of
+  the key and `updated_map` is the result of removing `key` from `map`. If `key`
   is not present in `map`, `{default, map}` is returned.
 
   ## Examples
@@ -646,7 +646,7 @@ defmodule Map do
       {3, %{a: 1}}
 
   """
-  @spec pop(map, key, value) :: {value, new_map :: map}
+  @spec pop(map, key, default) :: {value, updated_map :: map} | {default, map} when default: value
   def pop(map, key, default \\ nil) do
     case :maps.take(key, map) do
       {_, _} = tuple -> tuple
@@ -655,8 +655,8 @@ defmodule Map do
   end
 
   @doc """
-  Returns and removes the value associated with `key` in `map` or raises
-  if `key` is not present.
+  Removes the value associated with `key` in `map` and returns the value
+  and the updated map, or it raises if `key` is not present.
 
   Behaves the same as `pop/3` but raises if `key` is not present in `map`.
 
@@ -671,7 +671,7 @@ defmodule Map do
 
   """
   @doc since: "1.10.0"
-  @spec pop!(map, key) :: {value, map}
+  @spec pop!(map, key) :: {value, updated_map :: map}
   def pop!(map, key) do
     case :maps.take(key, map) do
       {_, _} = tuple -> tuple
