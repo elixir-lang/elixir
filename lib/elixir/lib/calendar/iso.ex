@@ -8,6 +8,12 @@ defmodule Calendar.ISO do
   applied for all time, consequently the dates give different results
   before the year 1583 from when the Gregorian calendar was adopted.
 
+  Given this is the default calendar used by Elixir, it has one
+  difference compared to the ISO8601 specification in that it allows
+  a whitespace instead of `T` as a seperator between date and times
+  both when parsing and formatting. Strict formatting can be done
+  by using the `to_iso8601` found in `NaiveDateTime` and `DateTime`.
+
   Note that while ISO 8601 allows times and datetimes to specify
   24:00:00 as the zero hour of the next day, this notation is not
   supported by Elixir.
