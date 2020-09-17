@@ -445,23 +445,14 @@ defmodule ExUnit.Case do
   """
   defmacro describe(message, do: block) do
     quote do
-      ExUnit.Case.__describe__(__MODULE__, __ENV__.line, unquote(message))
-
-      try do
+      ExUnit.Case.__describe__(__MODULE__, __ENV__.line, unquote(message), fn ->
         unquote(block)
-      after
-        @ex_unit_describe nil
-        Module.delete_attribute(__MODULE__, :describetag)
-
-        for attribute <- Module.get_attribute(__MODULE__, :ex_unit_registered_describe_attributes) do
-          Module.delete_attribute(__MODULE__, attribute)
-        end
-      end
+      end)
     end
   end
 
   @doc false
-  def __describe__(module, line, message) do
+  def __describe__(module, line, message, fun) do
     if Module.get_attribute(module, :ex_unit_describe) do
       raise "cannot call \"describe\" inside another \"describe\". See the documentation " <>
               "for ExUnit.Case.describe/2 on named setups and how to handle hierarchies"
@@ -485,7 +476,17 @@ defmodule ExUnit.Case do
 
     Module.put_attribute(module, :ex_unit_describe, {line, message})
     Module.put_attribute(module, :ex_unit_used_describes, message)
-    :ok
+
+    try do
+      fun.()
+    after
+      Module.put_attribute(module, :ex_unit_describe, nil)
+      Module.delete_attribute(module, :describetag)
+
+      for attribute <- Module.get_attribute(module, :ex_unit_registered_describe_attributes) do
+        Module.delete_attribute(module, attribute)
+      end
+    end
   end
 
   @doc false
