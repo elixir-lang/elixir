@@ -48,7 +48,10 @@ defmodule IEx.Autocomplete do
       h == ?/ and t != [] and identifier?(hd(t)) ->
         expand_expr(reduce(t), server)
 
-      h in '([{' ->
+      h in ' (' ->
+        expand_help(reduce(expr), server)
+
+      h in '[{' ->
         expand('')
 
       true ->
@@ -122,6 +125,46 @@ defmodule IEx.Autocomplete do
 
       _ ->
         no()
+    end
+  end
+
+  defp get_signatures!(name, aliases) when is_list(aliases) do
+    {:docs_v1, _, _, _, _, _, docs} =
+      aliases
+      |> Module.safe_concat()
+      |> Code.fetch_docs()
+
+    docs
+    |> Enum.filter(&match?({{:function, ^name, _}, _, _, _, _}, &1))
+    |> Enum.map(fn {_, _, [signature], _, _} -> signature end)
+  end
+
+  defp get_signatures!(name, server) when is_atom(server) do
+    {evaluator, server} = server.evaluator()
+    %{functions: funs} = IEx.Evaluator.fields_from_env(evaluator, server, [:functions])
+
+    funs
+    |> Enum.map(fn {module, fs} ->
+      fs
+      |> Enum.filter(&match?({^name, _arity}, &1))
+      |> Enum.map(fn {name, _} -> {module, name} end)
+      |> Enum.uniq()
+      |> Enum.map(fn {module, name} -> get_signatures!(name, [module]) end)
+    end)
+    |> List.flatten
+  end
+
+  defp expand_help(expr, server) do
+    try do
+      case Code.string_to_quoted(expr) do
+        {:ok, {{:., _, [{:__aliases__, _, aliases}, fun]}, _, []}} when is_atom(fun) ->
+          yes("", [get_signatures!(fun, aliases) |> Enum.join("\n")])
+
+        {:ok, {fun, _, _}} when is_atom(fun) ->
+          yes("", [get_signatures!(fun, server) |> Enum.join("\n")])
+      end
+    rescue
+      _ -> no()
     end
   end
 
