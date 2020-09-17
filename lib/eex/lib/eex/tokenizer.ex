@@ -65,10 +65,10 @@ defmodule EEx.Tokenizer do
         error
 
       {:ok, expr, new_line, new_column, rest} ->
-        key =
+        {key, expr} =
           case :elixir_tokenizer.tokenize(expr, 1, file: "eex", check_terminators: false) do
-            {:ok, tokens} -> token_key(tokens)
-            {:error, _, _, _} -> :expr
+            {:ok, tokens} -> token_key(tokens, expr)
+            {:error, _, _, _} -> {:expr, expr}
           end
 
         {rest, new_line, new_column, buffer} =
@@ -122,37 +122,41 @@ defmodule EEx.Tokenizer do
   end
 
   # Receives tokens and check if it is a start, middle or an end token.
-  defp token_key(tokens) do
+  defp token_key(tokens, expr) do
     case {tokens, Enum.reverse(tokens)} do
       {[{:end, _} | _], [{:do, _} | _]} ->
-        :middle_expr
+        {:middle_expr, expr}
 
       {_, [{:do, _} | _]} ->
-        :start_expr
+        {:start_expr, maybe_append_space(expr)}
 
       {_, [{:block_identifier, _, _} | _]} ->
-        :middle_expr
+        {:middle_expr, maybe_append_space(expr)}
 
       {[{:end, _} | _], [{:stab_op, _, _} | _]} ->
-        :middle_expr
+        {:middle_expr, expr}
 
       {_, [{:stab_op, _, _} | reverse_tokens]} ->
         fn_index = Enum.find_index(reverse_tokens, &match?({:fn, _}, &1)) || :infinity
         end_index = Enum.find_index(reverse_tokens, &match?({:end, _}, &1)) || :infinity
 
         if end_index > fn_index do
-          :start_expr
+          {:start_expr, expr}
         else
-          :middle_expr
+          {:middle_expr, expr}
         end
 
       {tokens, _} ->
         case Enum.drop_while(tokens, &closing_bracket?/1) do
-          [{:end, _} | _] -> :end_expr
-          _ -> :expr
+          [{:end, _} | _] -> {:end_expr, expr}
+          _ -> {:expr, expr}
         end
     end
   end
+
+  defp maybe_append_space([?\s]), do: [?\s]
+  defp maybe_append_space([h]), do: [h, ?\s]
+  defp maybe_append_space([h | t]), do: [h | maybe_append_space(t)]
 
   defp closing_bracket?({closing, _}) when closing in ~w"( [ {"a, do: true
   defp closing_bracket?(_), do: false
