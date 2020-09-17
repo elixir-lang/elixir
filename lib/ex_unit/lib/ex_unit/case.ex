@@ -345,9 +345,17 @@ defmodule ExUnit.Case do
 
     var = Macro.escape(var)
     contents = Macro.escape(contents, unquote: true)
+    %{module: mod, file: file, line: line} = __CALLER__
 
-    quote bind_quoted: [var: var, contents: contents, message: message] do
-      name = ExUnit.Case.register_test(__ENV__, :test, message, [])
+    quote bind_quoted: [
+            var: var,
+            contents: contents,
+            message: message,
+            mod: mod,
+            file: file,
+            line: line
+          ] do
+      name = ExUnit.Case.register_test(mod, file, line, :test, message, [])
       def unquote(name)(unquote(var)), do: unquote(contents)
     end
   end
@@ -366,8 +374,10 @@ defmodule ExUnit.Case do
 
   """
   defmacro test(message) do
+    %{module: mod, file: file, line: line} = __CALLER__
+
     quote bind_quoted: binding() do
-      name = ExUnit.Case.register_test(__ENV__, :test, message, [:not_implemented])
+      name = ExUnit.Case.register_test(mod, file, line, :test, message, [:not_implemented])
       def unquote(name)(_), do: flunk("Not implemented")
     end
   end
@@ -508,7 +518,7 @@ defmodule ExUnit.Case do
   display. You can use `ExUnit.plural_rule/2` to set a custom
   pluralization.
   """
-  def register_test(%{module: mod, file: file, line: line}, test_type, name, tags) do
+  def register_test(mod, file, line, test_type, name, tags) do
     unless Module.has_attribute?(mod, :ex_unit_tests) do
       raise "cannot define #{test_type}. Please make sure you have invoked " <>
               "\"use ExUnit.Case\" in the current module"
@@ -567,6 +577,17 @@ defmodule ExUnit.Case do
     end
 
     name
+  end
+
+  @doc """
+  Reigsters a test with the given environment.
+
+  This function is deprecated in favor of register_test/6 which performs
+  better under tight loops by avoiding `__ENV__`.
+  """
+  @doc deprecated: "Use register_test/6 instead"
+  def register_test(%{module: mod, file: file, line: line}, test_type, name, tags) do
+    register_test(mod, file, line, test_type, name, tags)
   end
 
   @doc """
