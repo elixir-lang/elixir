@@ -128,6 +128,17 @@ defmodule EExTest do
 
     test "trim mode with no spaces" do
       string = """
+      <%=if true do%>
+        this
+      <%else%>
+        that
+      <%end%>
+      """
+
+      expected = "\n  this\n"
+      assert_eval(expected, string, [], trim: true)
+
+      string = """
       <%=cond do%>
       <%false ->%>
         this
