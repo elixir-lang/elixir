@@ -2,7 +2,7 @@
   inputs: [
     "lib/*/{lib,unicode,test}/**/*.{ex,exs}",
     "lib/*/*.exs",
-    "lib/ex_unit/examples/*.exs"
+    "lib/ex_unit/examples/*.exs",
     ".formatter.exs"
   ],
   locals_without_parens: [
