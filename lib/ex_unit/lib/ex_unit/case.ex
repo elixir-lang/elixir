@@ -259,39 +259,8 @@ defmodule ExUnit.Case do
     end
 
     quote do
-      unless Module.has_attribute?(__MODULE__, :ex_unit_tests) do
-        tag_check =
-          [:moduletag, :describetag, :tag]
-          |> Enum.any?(&Module.has_attribute?(__MODULE__, &1))
-
-        if tag_check do
-          raise "you must set @tag, @describetag, and @moduletag after the call to \"use ExUnit.Case\""
-        end
-
-        attributes = [
-          :ex_unit_tests,
-          :tag,
-          :describetag,
-          :moduletag,
-          :ex_unit_registered_test_attributes,
-          :ex_unit_registered_describe_attributes,
-          :ex_unit_registered_module_attributes,
-          :ex_unit_used_describes
-        ]
-
-        Enum.each(attributes, &Module.register_attribute(__MODULE__, &1, accumulate: true))
-
-        @before_compile ExUnit.Case
-        @after_compile ExUnit.Case
-        @ex_unit_async false
-        @ex_unit_describe nil
+      unless ExUnit.Case.__register__(__MODULE__, unquote(opts)) do
         use ExUnit.Callbacks
-      end
-
-      async = unquote(opts)[:async]
-
-      if is_boolean(async) do
-        @ex_unit_async async
       end
 
       import ExUnit.Callbacks
@@ -299,6 +268,49 @@ defmodule ExUnit.Case do
       import ExUnit.Case, only: [describe: 2, test: 1, test: 2, test: 3]
       import ExUnit.DocTest
     end
+  end
+
+  @doc false
+  def __register__(module, opts) do
+    registered? = Module.has_attribute?(module, :ex_unit_tests)
+
+    unless registered? do
+      tag_check = Enum.any?([:moduletag, :describetag, :tag], &Module.has_attribute?(module, &1))
+
+      if tag_check do
+        raise "you must set @tag, @describetag, and @moduletag after the call to \"use ExUnit.Case\""
+      end
+
+      attributes = [
+        :ex_unit_tests,
+        :tag,
+        :describetag,
+        :moduletag,
+        :ex_unit_registered_test_attributes,
+        :ex_unit_registered_describe_attributes,
+        :ex_unit_registered_module_attributes,
+        :ex_unit_used_describes
+      ]
+
+      Enum.each(attributes, &Module.register_attribute(module, &1, accumulate: true))
+
+      attributes = [
+        before_compile: ExUnit.Case,
+        after_compile: ExUnit.Case,
+        ex_unit_async: false,
+        ex_unit_describe: nil
+      ]
+
+      Enum.each(attributes, fn {k, v} -> Module.put_attribute(module, k, v) end)
+    end
+
+    async? = opts[:async]
+
+    if is_boolean(async?) do
+      Module.put_attribute(module, :ex_unit_async, async?)
+    end
+
+    registered?
   end
 
   @doc """
