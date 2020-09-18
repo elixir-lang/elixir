@@ -3182,8 +3182,16 @@ defmodule Kernel do
     end
   end
 
-  # @attribute or @attribute()
-  defp do_at(args, _meta, name, function?, env) when is_atom(args) or args == [] do
+  # @attribute()
+  defp do_at([], _meta, name, _function?, env) do
+    IO.warn(
+      "the @#{name}() notation (with parenthesis) is deprecated, please use @#{name} (without parenthesis) instead",
+      Macro.Env.stacktrace(env)
+    )
+  end
+
+  # @attribute
+  defp do_at(args, _meta, name, function?, env) when is_atom(args) do
     line = env.line
     doc_attr? = :lists.member(name, [:moduledoc, :typedoc, :doc])
 
