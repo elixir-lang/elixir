@@ -497,14 +497,11 @@ defmodule IEx.Autocomplete do
 
   defp hidden_fun?({name, arity}, docs) do
     case Enum.find(docs, &match?({{_, ^name, ^arity}, _, _, _, _}, &1)) do
-      nil -> underscored_fun?(name)
-      {_, _, _, :hidden, _} -> true
-      {_, _, _, :none, _} -> underscored_fun?(name)
-      {_, _, _, _, _} -> false
+      nil -> hd(Atom.to_charlist(name)) == ?_
+      {_, _, _, %{}, _} -> false
+      {_, _, _, _, _} -> true
     end
   end
-
-  defp underscored_fun?(name), do: hd(Atom.to_charlist(name)) == ?_
 
   defp ensure_loaded?(Elixir), do: false
   defp ensure_loaded?(mod), do: Code.ensure_loaded?(mod)

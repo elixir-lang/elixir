@@ -478,21 +478,17 @@ defmodule ExUnit.DocTest do
   defp explain_docs_error({:invalid_chunk, _}),
     do: "The documentation chunk in the module is invalid"
 
-  defp extract_from_moduledoc(_, doc, _module) when doc in [:none, :hidden], do: []
-
   defp extract_from_moduledoc(annotation, %{"en" => doc}, module) do
     for test <- extract_tests(:erl_anno.line(annotation), doc, module) do
       normalize_test(test, :moduledoc)
     end
   end
 
+  defp extract_from_moduledoc(_, _doc, _module), do: []
+
   defp extract_from_docs(docs, module) do
     for doc <- docs, doc <- extract_from_doc(doc, module), do: doc
   end
-
-  defp extract_from_doc({{kind, _, _}, _, _, doc, _}, _module)
-       when kind not in [:function, :macro, :type] or doc in [:none, :hidden],
-       do: []
 
   defp extract_from_doc({{_, name, arity}, annotation, _, %{"en" => doc}, _}, module) do
     line = :erl_anno.line(annotation)
@@ -501,6 +497,9 @@ defmodule ExUnit.DocTest do
       normalize_test(test, {name, arity})
     end
   end
+
+  defp extract_from_doc(_doc, _module),
+    do: []
 
   defp extract_tests(line_no, doc, module) do
     all_lines = String.split(doc, "\n", trim: false)
