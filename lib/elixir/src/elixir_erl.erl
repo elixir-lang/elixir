@@ -477,17 +477,25 @@ docs_chunk(Set, Module, Line, Def, Defmacro, Types, Callbacks) ->
       []
   end.
 
-doc_value(Doc) ->
+doc_value(Doc, Name) ->
   case Doc of
-    nil -> none;
-    false -> hidden;
-    Doc -> #{<<"en">> => Doc}
+    false ->
+      hidden;
+    nil ->
+      case erlang:atom_to_list(Name) of
+        [$_ | _] -> none;
+        _ -> #{}
+      end;
+    Doc ->
+      #{<<"en">> => Doc}
   end.
 
 get_moduledoc(Line, Set) ->
   case ets:lookup_element(Set, moduledoc, 2) of
-    nil -> {Line, none};
-    {DocLine, Doc} -> {DocLine, doc_value(Doc)}
+    nil -> {Line, #{}};
+    {DocLine, false} -> {DocLine, hidden};
+    {DocLine, nil} -> {DocLine, #{}};
+    {DocLine, Doc} -> {DocLine, #{<<"en">> => Doc}}
   end.
 
 get_moduledoc_meta(Set) ->
@@ -500,7 +508,7 @@ get_docs(Set, Module, Definitions, Kind) ->
   [{Key,
     erl_anno:new(Line),
     [signature_to_binary(Module, Name, Signature)],
-    doc_value(Doc),
+    doc_value(Doc, Name),
     Meta
    } || {Name, Arity} <- Definitions,
         {Key, _Ctx, Line, Signature, Doc, Meta} <- ets:lookup(Set, {Kind, Name, Arity})].
@@ -509,15 +517,15 @@ get_callback_docs(Set, Callbacks) ->
   [{Key,
     erl_anno:new(Line),
     [],
-    doc_value(Doc),
+    doc_value(Doc, Name),
     Meta
-   } || Callback <- Callbacks, {Key, Line, Doc, Meta} <- ets:lookup(Set, Callback)].
+   } || Callback <- Callbacks, {{_, Name, _} = Key, Line, Doc, Meta} <- ets:lookup(Set, Callback)].
 
 get_type_docs(Set, Types) ->
   [{Key,
     erl_anno:new(Line),
     [],
-    doc_value(Doc),
+    doc_value(Doc, Name),
     Meta
    } || {_Kind, {Name, Arity}, _, _, true} <- Types,
         {Key, Line, Doc, Meta} <- ets:lookup(Set, {type, Name, Arity})].

@@ -420,13 +420,11 @@ defmodule IEx.Introspection do
   defp extract_name_and_arity({{_, name, arity}, _, _, _, _}), do: {name, arity}
 
   defp find_doc_with_content(docs, function, arity) do
-    doc = find_doc(docs, function, arity)
-    if doc != nil and has_content?(doc), do: doc
+    case find_doc(docs, function, arity) do
+      {_, _, _, %{}, _} = doc -> doc
+      _ -> nil
+    end
   end
-
-  defp has_content?({_, _, _, :hidden, _}), do: false
-  defp has_content?({{_, name, _}, _, _, :none, _}), do: hd(Atom.to_charlist(name)) != ?_
-  defp has_content?({_, _, _, _, _}), do: true
 
   defp find_doc(nil, _fun, _arity) do
     nil
@@ -454,7 +452,7 @@ defmodule IEx.Introspection do
          {{kind, fun, arity}, _line, signature, doc, metadata},
          spec
        ) do
-    if callback_module = doc == :none and callback_module(mod, fun, arity) do
+    if callback_module = doc == %{} and callback_module(mod, fun, arity) do
       filter = &match?({_, ^fun, ^arity}, elem(&1, 0))
 
       case get_callback_docs(callback_module, filter) do
@@ -555,7 +553,7 @@ defmodule IEx.Introspection do
         |> Enum.sort()
         |> Enum.flat_map(fn {{_, function, arity}, _specs} = callback ->
           case find_doc(docs, function, arity) do
-            nil -> [{format, format_callback(callback), :none, %{}}]
+            nil -> [{format, format_callback(callback), %{}, %{}}]
             {_, _, _, :hidden, _} -> []
             {_, _, _, doc, metadata} -> [{format, format_callback(callback), doc, metadata}]
           end
@@ -717,7 +715,7 @@ defmodule IEx.Introspection do
       {_, _, _, content, metadata} = Enum.find(docs, &match?({:type, ^type, ^arity}, elem(&1, 0)))
       {format, format_type(typespec), content, metadata}
     else
-      {format, format_type(typespec), :none, %{}}
+      {format, format_type(typespec), %{}, %{}}
     end
   end
 
@@ -779,9 +777,7 @@ defmodule IEx.Introspection do
   end
 
   defp translate_doc(%{"en" => doc}), do: doc
-  defp translate_doc(%{}), do: nil
-  defp translate_doc(:none), do: nil
-  defp translate_doc(:hidden), do: nil
+  defp translate_doc(_), do: nil
 
   defp no_beam(module) do
     case Code.ensure_loaded(module) do
