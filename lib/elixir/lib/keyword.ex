@@ -524,6 +524,8 @@ defmodule Keyword do
   Use `delete_first/2` to delete just the first entry in case of
   duplicated keys.
 
+  Inlined by the compiler.
+
   ## Examples
 
       iex> Keyword.delete([a: 1, b: 2], :a)
