@@ -778,9 +778,10 @@ defmodule IEx.Introspection do
     doc && IO.ANSI.Docs.print(doc, format, opts)
   end
 
+  defp translate_doc(%{"en" => doc}), do: doc
+  defp translate_doc(%{}), do: nil
   defp translate_doc(:none), do: nil
   defp translate_doc(:hidden), do: nil
-  defp translate_doc(%{"en" => doc}), do: doc
 
   defp no_beam(module) do
     case Code.ensure_loaded(module) do
