@@ -51,9 +51,28 @@ defmodule KeywordTest do
     assert Keyword.update!([a: 1, b: 2, c: 3], :b, &(&1 * 2)) == [a: 1, b: 4, c: 3]
   end
 
+  test "replace" do
+    assert Keyword.replace([a: 1, b: 2, a: 3], :a, :new) == [a: :new, b: 2]
+    assert Keyword.replace([a: 1, b: 2, a: 3], :a, 1) == [a: 1, b: 2]
+    assert Keyword.replace([a: 1, b: 2, a: 3, b: 4], :a, 1) == [a: 1, b: 2, b: 4]
+    assert Keyword.replace([a: 1, b: 2, c: 3, b: 4], :b, :new) == [a: 1, b: :new, c: 3]
+    assert Keyword.replace([], :b, :new) == []
+    assert Keyword.replace([a: 1, b: 2, a: 3], :c, :new) == [a: 1, b: 2, a: 3]
+  end
+
   test "replace!" do
     assert Keyword.replace!([a: 1, b: 2, a: 3], :a, :new) == [a: :new, b: 2]
+    assert Keyword.replace!([a: 1, b: 2, a: 3], :a, 1) == [a: 1, b: 2]
+    assert Keyword.replace!([a: 1, b: 2, a: 3, b: 4], :a, 1) == [a: 1, b: 2, b: 4]
     assert Keyword.replace!([a: 1, b: 2, c: 3, b: 4], :b, :new) == [a: 1, b: :new, c: 3]
+
+    assert_raise KeyError, "key :b not found in: []", fn ->
+      Keyword.replace!([], :b, :new)
+    end
+
+    assert_raise KeyError, "key :c not found in: [a: 1, b: 2, a: 3]", fn ->
+      Keyword.replace!([a: 1, b: 2, a: 3], :c, :new)
+    end
   end
 
   test "merge/2" do

@@ -668,20 +668,22 @@ defmodule Keyword do
   @doc since: "1.11.0"
   @spec replace(t, key, value) :: t
   def replace(keywords, key, value) when is_list(keywords) and is_atom(key) do
-    do_replace(keywords, key, value)
+    replace_recursive(keywords, key, value)
   end
 
-  defp do_replace([{key, _} | keywords], key, value) do
-    [{key, value} | delete(keywords, key)]
-  end
+  defp replace_recursive(keywords, key, value, original \\ nil)
 
-  defp do_replace([{_, _} = e | keywords], key, value) do
-    [e | do_replace(keywords, key, value)]
-  end
+  defp replace_recursive([{key, _current_value} | rest_keywords], key, value, _original),
+    do: [{key, value} | delete(rest_keywords, key)]
 
-  defp do_replace([], _key, _value) do
-    []
-  end
+  defp replace_recursive([{_, _} = pair | rest_keywords], key, value, original),
+    do: [pair | replace_recursive(rest_keywords, key, value, original)]
+
+  defp replace_recursive([], _key, _value, nil),
+    do: []
+
+  defp replace_recursive([], key, _value, original),
+    do: raise(KeyError, key: key, term: original)
 
   @doc """
   Puts a value under `key` only if the `key` already exists in `keywords`.
@@ -692,6 +694,7 @@ defmodule Keyword do
 
       iex> Keyword.replace!([a: 1, b: 2, a: 3], :a, :new)
       [a: :new, b: 2]
+
       iex> Keyword.replace!([a: 1, b: 2, c: 3, b: 4], :b, :new)
       [a: 1, b: :new, c: 3]
 
@@ -702,19 +705,7 @@ defmodule Keyword do
   @doc since: "1.5.0"
   @spec replace!(t, key, value) :: t
   def replace!(keywords, key, value) when is_list(keywords) and is_atom(key) do
-    replace!(keywords, key, value, keywords)
-  end
-
-  defp replace!([{key, _} | keywords], key, value, _original) do
-    [{key, value} | delete(keywords, key)]
-  end
-
-  defp replace!([{_, _} = e | keywords], key, value, original) do
-    [e | replace!(keywords, key, value, original)]
-  end
-
-  defp replace!([], key, _value, original) do
-    raise(KeyError, key: key, term: original)
+    replace_recursive(keywords, key, value, keywords)
   end
 
   @doc """
