@@ -850,6 +850,20 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
+  test "parens with module attribute" do
+    assert capture_err(fn ->
+             Code.eval_string("""
+             defmodule Sample do
+               @foo 13
+               @foo()
+             end
+             """)
+           end) =~
+             "the @foo() notation (with parenthesis) is deprecated, please use @foo (without parenthesis) instead"
+  after
+    purge(Sample)
+  end
+
   test "undefined module attribute in function" do
     assert capture_err(fn ->
              Code.eval_string("""

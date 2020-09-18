@@ -10,6 +10,10 @@
 
 ### 4. Hard-deprecations
 
+#### Elixir
+
+  * [Kernel] Deprecate `@foo()` in favor of `@foo`
+
 #### Mix
 
   * [mix compile] The `:xref` compiler is deprecated and it has no effect. Please remove it from your mix.exs file.
