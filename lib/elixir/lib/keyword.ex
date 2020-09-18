@@ -668,10 +668,19 @@ defmodule Keyword do
   @doc since: "1.11.0"
   @spec replace(t, key, value) :: t
   def replace(keywords, key, value) when is_list(keywords) and is_atom(key) do
-    case :lists.keyfind(key, 1, keywords) do
-      {^key, _} -> [{key, value} | delete(keywords, key)]
-      false -> keywords
-    end
+    do_replace(keywords, key, value)
+  end
+
+  defp do_replace([{key, _} | keywords], key, value) do
+    [{key, value} | delete(keywords, key)]
+  end
+
+  defp do_replace([{_, _} = e | keywords], key, value) do
+    [e | do_replace(keywords, key, value)]
+  end
+
+  defp do_replace([], _key, _value) do
+    []
   end
 
   @doc """
@@ -704,7 +713,7 @@ defmodule Keyword do
     [e | replace!(keywords, key, value, original)]
   end
 
-  defp replace!([], key, _value, original) when is_atom(key) do
+  defp replace!([], key, _value, original) do
     raise(KeyError, key: key, term: original)
   end
 
