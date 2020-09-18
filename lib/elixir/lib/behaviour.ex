@@ -111,9 +111,9 @@ defmodule Behaviour do
         end
       end
 
-      defp __behaviour__doc_value(:none), do: nil
-      defp __behaviour__doc_value(:hidden), do: false
       defp __behaviour__doc_value(%{"en" => doc}), do: doc
+      defp __behaviour__doc_value(:hidden), do: false
+      defp __behaviour__doc_value(_), do: nil
 
       import unquote(__MODULE__)
     end
