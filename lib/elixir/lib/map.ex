@@ -322,7 +322,10 @@ defmodule Map do
   @spec replace(map, key, value) :: map
   def replace(map, key, value) do
     case map do
-      %{^key => _value} ->
+      %{^key => ^value} ->
+        map
+
+      %{^key => _current_value} ->
         put(map, key, value)
 
       %{} ->

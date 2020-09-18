@@ -2182,6 +2182,7 @@ defmodule Kernel do
 
       {key, val}, acc ->
         case acc do
+          %{^key => ^val} -> acc
           %{^key => _} -> %{acc | key => val}
           _ -> acc
         end

@@ -45,6 +45,7 @@ defmodule Logger.Handler do
     data =
       Enum.reduce(new_data, old_data, fn {k, v}, acc ->
         case acc do
+          %{^k => ^v} -> acc
           %{^k => _} -> %{acc | k => v}
           %{} -> acc
         end
