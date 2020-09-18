@@ -128,43 +128,54 @@ defmodule IEx.Autocomplete do
     end
   end
 
-  defp get_signatures!(name, aliases) when is_list(aliases) do
-    {:docs_v1, _, _, _, _, _, docs} =
-      aliases
-      |> Module.safe_concat()
-      |> Code.fetch_docs()
+  defp get_signatures(name, module) when is_atom(module) do
+    case Code.fetch_docs(module) do
+      {:docs_v1, _, _, _, _, _, docs} ->
+        docs
+        |> Enum.filter(fn
+          {{type, ^name, _}, _, _, _, _} -> type in [:function, :macro]
+          _ -> false
+        end)
+        |> Enum.map(fn {_, _, [signature], _, _} -> signature end)
 
-    docs
-    |> Enum.filter(&match?({{:function, ^name, _}, _, _, _, _}, &1))
-    |> Enum.map(fn {_, _, [signature], _, _} -> signature end)
+      _ ->
+        :error
+    end
   end
 
-  defp get_signatures!(name, server) when is_atom(server) do
-    {evaluator, server} = server.evaluator()
-    %{functions: funs} = IEx.Evaluator.fields_from_env(evaluator, server, [:functions])
-
-    funs
-    |> Enum.map(fn {module, fs} ->
-      fs
-      |> Enum.filter(&match?({^name, _arity}, &1))
-      |> Enum.map(fn {name, _} -> {module, name} end)
-      |> Enum.uniq()
-      |> Enum.map(fn {module, name} -> get_signatures!(name, [module]) end)
-    end)
-    |> List.flatten
+  defp get_signatures(name, module, fs) when is_atom(module) and is_list(fs) do
+    fs
+    |> Enum.filter(&match?({^name, _arity}, &1))
+    |> Enum.map(fn {name, _} -> {module, name} end)
+    |> Enum.uniq()
+    |> Enum.map(fn {module, name} -> get_signatures(name, module) end)
   end
 
   defp expand_help(expr, server) do
-    try do
+    signatures =
       case Code.string_to_quoted(expr) do
-        {:ok, {{:., _, [{:__aliases__, _, aliases}, fun]}, _, []}} when is_atom(fun) ->
-          yes("", [get_signatures!(fun, aliases) |> Enum.join("\n")])
+        {:ok, {{:., _, [{:__aliases__, _, mod}, fun]}, _, []}} when is_atom(fun) ->
+          with {:ok, mod} <- expand_alias(mod, server) do
+            get_signatures(fun, mod)
+          end
 
         {:ok, {fun, _, _}} when is_atom(fun) ->
-          yes("", [get_signatures!(fun, server) |> Enum.join("\n")])
+          imports_with_modules_from_env(server)
+          |> Enum.map(fn {module, fs} -> get_signatures(fun, module, fs) end)
+          |> List.flatten()
+
+        {:ok, {{:., _, [mod, fun]}, _, []}} when is_atom(mod) and is_atom(fun) ->
+          # XXX {:error, :chunk_not_found} ?
+          get_signatures(fun, mod)
+
+        _ ->
+          :error
       end
-    rescue
-      _ -> no()
+
+    with [_ | _] <- signatures do
+      yes("", [Enum.join(signatures, "\n")])
+    else
+      _ -> expand('')
     end
   end
 
@@ -597,6 +608,16 @@ defmodule IEx.Autocomplete do
          env_fields = IEx.Evaluator.fields_from_env(evaluator, server, [:functions, :macros]),
          %{functions: funs, macros: macros} <- env_fields do
       Enum.flat_map(funs ++ macros, &elem(&1, 1))
+    else
+      _ -> []
+    end
+  end
+
+  defp imports_with_modules_from_env(server) do
+    with {evaluator, server} <- server.evaluator(),
+         env_fields = IEx.Evaluator.fields_from_env(evaluator, server, [:functions, :macros]),
+         %{functions: funs, macros: macros} <- env_fields do
+      funs ++ macros
     else
       _ -> []
     end
