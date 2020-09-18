@@ -897,7 +897,7 @@ defmodule Keyword do
     [pair | update!(keywords, key, fun, original)]
   end
 
-  defp update!([], key, _fun, original) when is_atom(key) do
+  defp update!([], key, _fun, original) do
     raise(KeyError, key: key, term: original)
   end
 
@@ -937,7 +937,7 @@ defmodule Keyword do
     [pair | update_guarded(keywords, key, default, fun)]
   end
 
-  defp update_guarded([], key, default, _fun) when is_atom(key) do
+  defp update_guarded([], key, default, _fun) do
     [{key, default}]
   end
 
