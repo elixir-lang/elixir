@@ -1348,7 +1348,7 @@ defmodule Code do
           | {:error, :module_not_found | :chunk_not_found | {:invalid_chunk, binary}}
         when annotation: :erl_anno.anno(),
              beam_language: :elixir | :erlang | atom(),
-             doc_content: %{required(binary) => binary} | :none | :hidden,
+             doc_content: %{optional(binary) => binary} | :none | :hidden,
              doc_element:
                {{kind :: atom, function_name :: atom, arity}, annotation, signature, doc_content,
                 metadata},
