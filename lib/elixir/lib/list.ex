@@ -300,6 +300,7 @@ defmodule List do
     # us from having to build any lists at all.
     last(tail)
   end
+
   def last([]), do: nil
   def last([head]), do: head
   def last([_ | tail]), do: last(tail)
