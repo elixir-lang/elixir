@@ -291,6 +291,7 @@ defmodule List do
   """
   @spec last([]) :: nil
   @spec last([elem, ...]) :: elem when elem: var
+  def last([_, _, _, _, _, _, _, _ | tail]), do: last(tail)
   def last([]), do: nil
   def last([head]), do: head
   def last([_ | tail]), do: last(tail)
