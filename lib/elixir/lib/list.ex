@@ -291,7 +291,15 @@ defmodule List do
   """
   @spec last([]) :: nil
   @spec last([elem, ...]) :: elem when elem: var
-  def last([_, _, _, _, _, _, _, _ | tail]), do: last(tail)
+  def last([_, _, _, _, _, _, _, _ | [_ | _] = tail]) do
+    # In the function head above we "skip" 8 elements at a time
+    # which reduces the number of recursions and increases
+    # performance for lists with length greater than 8.
+    # The `[_ | _] = tail` pattern keeps us from returning nil
+    # when the length of the list is divisible by 8 and keeps
+    # us from having to build any lists at all.
+    last(tail)
+  end
   def last([]), do: nil
   def last([head]), do: head
   def last([_ | tail]), do: last(tail)
