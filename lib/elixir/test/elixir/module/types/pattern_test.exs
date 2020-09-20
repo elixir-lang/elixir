@@ -308,10 +308,16 @@ defmodule Module.Types.PatternTest do
                {:ok, [{:var, 0}, {:union, [:atom, :integer]}]}
 
       assert quoted_head([x = y], [is_atom(y) or is_integer(y)]) ==
-               {:ok, [{:var, 0}, {:union, [:atom, :integer]}]}
+               {:ok, [{:union, [:atom, :integer]}]}
 
       assert quoted_head([x = y], [is_atom(x) or is_integer(x)]) ==
-               {:ok, [{:var, 0}, {:union, [:atom, :integer]}]}
+               {:ok, [{:union, [:atom, :integer]}]}
+
+      assert quoted_head([x = y], [is_atom(x) or is_integer(x)]) ==
+               {:ok, [{:union, [:atom, :integer]}]}
+
+      assert quoted_head([x], [true == false or is_integer(x)]) ==
+               {:ok, [var: 0]}
 
       assert {:error, {:unable_unify, {:binary, :integer, _}}} =
                quoted_head([x], [is_binary(x) and is_integer(x)])

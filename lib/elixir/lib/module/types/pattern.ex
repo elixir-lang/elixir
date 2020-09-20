@@ -324,20 +324,11 @@ defmodule Module.Types.Pattern do
 
   def of_guard({{:., _, [:erlang, :orelse]}, _, [left, right]} = expr, stack, context) do
     stack = push_expr_stack(expr, stack)
-    left_var_names = var_names(left)
-    right_var_names = var_names(right)
+    var_indexes = collect_var_indexes_from_expr(left, context)
 
     with {:ok, left_type, left_context} <- of_guard(left, stack, context),
          {:ok, _right_type, right_context} <- of_guard(right, stack, context),
-         context =
-           merge_context_or(
-             left_var_names,
-             right_var_names,
-             context,
-             stack,
-             left_context,
-             right_context
-           ),
+         context = merge_context_or(var_indexes, context, stack, left_context, right_context),
          {:ok, _, context} <- unify(left_type, @boolean, stack, context),
          do: {:ok, @boolean, context}
   end
@@ -415,11 +406,13 @@ defmodule Module.Types.Pattern do
     of_pattern(expr, stack, context)
   end
 
-  defp var_names(expr) do
+  defp collect_var_indexes_from_expr(expr, context) do
     {_, vars} =
       Macro.prewalk(expr, %{}, fn
         var, acc when is_var(var) ->
-          {var, Map.put(acc, var_name(var), true)}
+          var_name = var_name(var)
+          %{^var_name => type} = context.vars
+          {var, collect_var_indexes(type, context, acc)}
 
         other, acc ->
           {other, acc}
@@ -511,8 +504,22 @@ defmodule Module.Types.Pattern do
     %{context | traces: traces}
   end
 
-  defp merge_context_or([var_name], [var_name], context, stack, left, right) do
-    %{^var_name => {:var, index}} = context.vars
+  defp merge_context_or(left_indexes, context, stack, left, right) do
+    different =
+      Enum.filter(left_indexes, fn index ->
+        %{^index => left_type} = left.types
+        %{^index => right_type} = right.types
+        left_type != right_type
+      end)
+
+    case different do
+      [] -> left
+      [index] -> merge_context_or_equal(index, context, stack, left, right)
+      [_ | _] -> merge_context_or_diff(left_indexes, context, left)
+    end
+  end
+
+  defp merge_context_or_equal(index, context, stack, left, right) do
     %{^index => left_type} = left.types
     %{^index => right_type} = right.types
 
@@ -548,10 +555,8 @@ defmodule Module.Types.Pattern do
 
   # If the variable failed, we can keep them from the left side as is.
   # If they didn't fail, then we need to restore them to their original value.
-  defp merge_context_or(var_names, _right_var_names, old_context, _stack, new_context, _right) do
-    Enum.reduce(var_names, new_context, fn var_name, context ->
-      %{^var_name => {:var, index}} = new_context.vars
-
+  defp merge_context_or_diff(indexes, old_context, new_context) do
+    Enum.reduce(indexes, new_context, fn index, context ->
       if :fail in Map.get(new_context.guard_sources, index, []) do
         context
       else

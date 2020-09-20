@@ -28,6 +28,7 @@ defmodule Module.Types.Unify do
   #   * subtype? (subtypes only)
   #   * has_unbound_var? (composite only)
   #   * recursive_type? (composite only)
+  #   * collect_vars (composite only)
   #
 
   @doc """
@@ -482,6 +483,41 @@ defmodule Module.Types.Unify do
   defp recursive_type?(_other, _parents, _context) do
     false
   end
+
+  @doc """
+  Collects all type vars recursively.
+  """
+  def collect_var_indexes(type, context, acc \\ %{})
+
+  def collect_var_indexes({:var, var}, context, acc) do
+    case acc do
+      %{^var => _} ->
+        acc
+
+      %{} ->
+        case context.types do
+          %{^var => :unbound} -> Map.put(acc, var, true)
+          %{^var => type} -> collect_var_indexes(type, context, Map.put(acc, var, true))
+        end
+    end
+  end
+
+  def collect_var_indexes({:tuple, _, args}, context, acc),
+    do: Enum.reduce(args, acc, &collect_var_indexes(&1, context, &2))
+
+  def collect_var_indexes({:union, args}, context, acc),
+    do: Enum.reduce(args, acc, &collect_var_indexes(&1, context, &2))
+
+  def collect_var_indexes({:list, arg}, context, acc),
+    do: collect_var_indexes(arg, context, acc)
+
+  def collect_var_indexes({:map, pairs}, context, acc) do
+    Enum.reduce(pairs, acc, fn {_, key, value} ->
+      collect_var_indexes(value, context, collect_var_indexes(key, context, acc))
+    end)
+  end
+
+  def collect_var_indexes(_type, _context, acc), do: acc
 
   @doc """
   Checks if the type has a type var.
