@@ -585,7 +585,7 @@ defmodule Macro do
   @spec struct!(module, Macro.Env.t()) :: %{__struct__: module} when module: module()
   def struct!(module, env) when is_atom(module) do
     if module == env.module do
-      Module.get_attribute(module, :struct)
+      Module.get_attribute(module, :__struct__)
     end || :elixir_map.load_struct([line: env.line], module, [], env)
   end
 

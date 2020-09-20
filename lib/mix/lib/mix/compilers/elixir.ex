@@ -594,7 +594,7 @@ defmodule Mix.Compilers.Elixir do
         defmacros = :lists.sort(Module.definitions_in(module, :defmacro))
 
         struct =
-          case Module.get_attribute(module, :struct) do
+          case Module.get_attribute(module, :__struct__) do
             %{} = entry -> {entry, List.wrap(Module.get_attribute(module, :enforce_keys))}
             _ -> nil
           end

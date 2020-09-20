@@ -4531,7 +4531,7 @@ defmodule Kernel do
             case @enforce_keys do
               [] ->
                 def __struct__(kv) do
-                  Enum.reduce(kv, @struct, fn {key, val}, map ->
+                  Enum.reduce(kv, @__struct__, fn {key, val}, map ->
                     Map.replace!(map, key, val)
                   end)
                 end
@@ -4539,7 +4539,7 @@ defmodule Kernel do
               _ ->
                 def __struct__(kv) do
                   {map, keys} =
-                    Enum.reduce(kv, {@struct, @enforce_keys}, fn {key, val}, {map, keys} ->
+                    Enum.reduce(kv, {@__struct__, @enforce_keys}, fn {key, val}, {map, keys} ->
                       {Map.replace!(map, key, val), List.delete(keys, key)}
                     end)
 
@@ -4561,20 +4561,20 @@ defmodule Kernel do
             _ = @enforce_keys
 
             def __struct__(kv) do
-              :lists.foldl(fn {key, val}, acc -> Map.replace!(acc, key, val) end, @struct, kv)
+              :lists.foldl(fn {key, val}, acc -> Map.replace!(acc, key, val) end, @__struct__, kv)
             end
           end
       end
 
     quote do
-      if Module.has_attribute?(__MODULE__, :struct) do
+      if Module.has_attribute?(__MODULE__, :__struct__) do
         raise ArgumentError,
               "defstruct has already been called for " <>
                 "#{Kernel.inspect(__MODULE__)}, defstruct can only be called once per module"
       end
 
       {struct, keys, derive} = Kernel.Utils.defstruct(__MODULE__, unquote(fields))
-      @struct struct
+      @__struct__ struct
       @enforce_keys keys
 
       case derive do
@@ -4583,7 +4583,7 @@ defmodule Kernel do
       end
 
       def __struct__() do
-        @struct
+        @__struct__
       end
 
       unquote(builder)
