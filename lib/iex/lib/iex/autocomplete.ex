@@ -160,7 +160,7 @@ defmodule IEx.Autocomplete do
           end
 
         {:ok, {fun, _, _}} when is_atom(fun) ->
-          imports_with_modules_from_env(server)
+          imports_from_env(server)
           |> Enum.map(fn {module, fs} -> get_signatures(fun, module, fs) end)
           |> List.flatten()
 
@@ -316,7 +316,7 @@ defmodule IEx.Autocomplete do
 
   defp expand_variable_or_import(hint, server) do
     variables = expand_variable(hint, server)
-    imports = imports_from_env(server)
+    imports = imports_from_env(server) |> Enum.flat_map(&elem(&1, 1))
     module_funs = get_module_funs(Kernel.SpecialForms)
     funs = match_module_funs(imports ++ module_funs, hint)
     format_expansion(variables ++ funs, hint)
@@ -604,16 +604,6 @@ defmodule IEx.Autocomplete do
   ## Evaluator interface
 
   defp imports_from_env(server) do
-    with {evaluator, server} <- server.evaluator(),
-         env_fields = IEx.Evaluator.fields_from_env(evaluator, server, [:functions, :macros]),
-         %{functions: funs, macros: macros} <- env_fields do
-      Enum.flat_map(funs ++ macros, &elem(&1, 1))
-    else
-      _ -> []
-    end
-  end
-
-  defp imports_with_modules_from_env(server) do
     with {evaluator, server} <- server.evaluator(),
          env_fields = IEx.Evaluator.fields_from_env(evaluator, server, [:functions, :macros]),
          %{functions: funs, macros: macros} <- env_fields do
