@@ -390,7 +390,7 @@ warn_unused_attributes(File, DataSet, DataBag, PersistedAttrs) ->
    || [Key, Line] <- ets:select(DataSet, Query)].
 
 get_struct(Set) ->
-  case ets:lookup(Set, struct) of
+  case ets:lookup(Set, '__struct__') of
     [] -> nil;
     [{_, Struct, _}] ->
       case ets:lookup(Set, enforce_keys) of
