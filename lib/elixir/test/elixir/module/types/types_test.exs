@@ -151,7 +151,7 @@ defmodule Module.Types.TypesTest do
              in expression:
 
                  # types_test.ex:1
-                 is_integer(var) and is_binary(var)
+                 is_binary(var)
 
              where "var" was given the type integer() in:
 
@@ -176,7 +176,7 @@ defmodule Module.Types.TypesTest do
              in expression:
 
                  # types_test.ex:1
-                 is_integer(x) and is_binary(y)
+                 is_binary(y)
 
              where "y" was given the same type as "x" in:
 
@@ -206,7 +206,7 @@ defmodule Module.Types.TypesTest do
              in expression:
 
                  # types_test.ex:1
-                 is_integer(x) and is_binary(y) and is_boolean(z)
+                 is_binary(y)
 
              where "y" was given the same type as "x" in:
 

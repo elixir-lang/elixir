@@ -380,9 +380,7 @@ defmodule Module.Types.Expr do
   defp for_clause({:<-, _, [left, expr]}, stack, context) do
     {pattern, guards} = extract_head([left])
 
-    with {:ok, _pattern_type, context} <- Pattern.of_pattern(pattern, stack, context),
-         # TODO: Check that of_guard/3 returns a boolean
-         {:ok, _guard_type, context} <- Pattern.of_guard(guards_to_or(guards), stack, context),
+    with {:ok, _pattern_type, context} <- Pattern.of_head([pattern], guards, stack, context),
          {:ok, _expr_type, context} <- of_expr(expr, stack, context),
          do: {:ok, context}
   end
@@ -417,9 +415,7 @@ defmodule Module.Types.Expr do
   defp with_clause({:<-, _, [left, expr]}, stack, context) do
     {pattern, guards} = extract_head([left])
 
-    with {:ok, _pattern_type, context} <- Pattern.of_pattern(pattern, stack, context),
-         # TODO: Check that of_guard/3 returns a boolean
-         {:ok, _guard_type, context} <- Pattern.of_guard(guards_to_or(guards), stack, context),
+    with {:ok, _pattern_type, context} <- Pattern.of_head([pattern], guards, stack, context),
          {:ok, _expr_type, context} <- of_expr(expr, stack, context),
          do: {:ok, context}
   end
