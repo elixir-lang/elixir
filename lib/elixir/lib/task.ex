@@ -458,8 +458,10 @@ defmodule Task do
     * `:ordered` - whether the results should be returned in the same order
       as the input stream. This option is useful when you have large
       streams and don't want to buffer results before they are delivered.
-      This is also useful when you're using the tasks for side effects.
-      Defaults to `true`.
+      This is also useful when you're using the tasks only for the side effects.
+      Note that regardless of what `:ordered` is set to, the tasks will
+      process asynchronously. If you need to depend on the order of side effects,
+      consider using `Enum.map/2` or `Enum.each/2` instead. Defaults to `true`.
 
     * `:timeout` - the maximum amount of time (in milliseconds or `:infinity`)
       each task is allowed to execute for. Defaults to `5000`.
