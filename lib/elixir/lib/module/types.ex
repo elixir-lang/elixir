@@ -115,9 +115,15 @@ defmodule Module.Types do
       # When false do not add a trace when a type variable is refined,
       # useful when merging contexts where the variables already have traces
       trace: true,
-      # Track if we are in a context where type guard functions should
-      # affect inference
-      type_guards_enabled?: true,
+      # There are two factors that control how we track guards.
+      #
+      # * consider_type_guards?: if type guards should be considered.
+      #   This applies only at the root and root-based "and" and "or" nodes.
+      #
+      # * keep_guarded? - if a guarded clause should remain as guarded
+      #   even on failure. Used on the right side of and.
+      #
+      type_guards: {_consider_type_guards? = true, _keep_guarded? = false},
       # Context used to determine if unification is bi-directional, :expr
       # is directional, :pattern is bi-directional
       context: nil
