@@ -461,7 +461,7 @@ defmodule Task do
       to false disables the need to buffer at the cost of removing ordering.
       This is also useful when you're using the tasks only for the side effects.
       Note that regardless of what `:ordered` is set to, the tasks will
-      process asynchronously. If you need to depend on the order of side effects,
+      process asynchronously. If you need to process elements in order,
       consider using `Enum.map/2` or `Enum.each/2` instead. Defaults to `true`.
 
     * `:timeout` - the maximum amount of time (in milliseconds or `:infinity`)
