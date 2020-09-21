@@ -160,7 +160,7 @@ defmodule Config do
   end
 
   @doc """
-  Returns the environemnt this configuration file is executed on.
+  Returns the environment this configuration file is executed on.
 
   This is most often used to execute conditional code:
 
