@@ -28,6 +28,7 @@ defmodule Module.Types.Unify do
   #   * subtype? (subtypes only)
   #   * has_unbound_var? (composite only)
   #   * recursive_type? (composite only)
+  #   * collect_vars (composite only)
   #
 
   @doc """
@@ -59,23 +60,11 @@ defmodule Module.Types.Unify do
   end
 
   defp do_unify(type, {:var, var}, stack, context) do
-    case context.types do
-      %{^var => {:var, var_type}} ->
-        do_unify(type, {:var, var_type}, stack, context)
-
-      %{} ->
-        unify_var(var, type, stack, context, _var_source = false)
-    end
+    unify_var(var, type, stack, context, _var_source = false)
   end
 
   defp do_unify({:var, var}, type, stack, context) do
-    case context.types do
-      %{^var => {:var, var_type}} ->
-        do_unify({:var, var_type}, type, stack, context)
-
-      %{} ->
-        unify_var(var, type, stack, context, _var_source = true)
-    end
+    unify_var(var, type, stack, context, _var_source = true)
   end
 
   defp do_unify({:tuple, n, sources}, {:tuple, n, targets}, stack, context) do
@@ -134,7 +123,7 @@ defmodule Module.Types.Unify do
   defp unify_var(var, type, stack, context, var_source?) do
     case context.types do
       %{^var => :unbound} ->
-        context = refine_var(var, type, stack, context)
+        context = refine_var!(var, type, stack, context)
         stack = push_unify_stack(var, stack)
 
         if recursive_type?(type, [], context) do
@@ -145,6 +134,31 @@ defmodule Module.Types.Unify do
           end
         else
           {:ok, {:var, var}, context}
+        end
+
+      %{^var => {:var, new_var} = var_type} ->
+        unify_result =
+          if var_source? do
+            unify(var_type, type, stack, context)
+          else
+            unify(type, var_type, stack, context)
+          end
+
+        case unify_result do
+          {:ok, type, context} ->
+            {:ok, type, context}
+
+          {:error, {type, reason, %{traces: error_traces} = error_context}} ->
+            old_var_traces = Map.get(context.traces, new_var, [])
+            new_var_traces = Map.get(error_traces, new_var, [])
+            add_var_traces = Enum.drop(new_var_traces, -length(old_var_traces))
+
+            error_traces =
+              error_traces
+              |> Map.update(var, add_var_traces, &(add_var_traces ++ &1))
+              |> Map.put(new_var, old_var_traces)
+
+            {:error, {type, reason, %{error_context | traces: error_traces}}}
         end
 
       %{^var => var_type} ->
@@ -167,7 +181,7 @@ defmodule Module.Types.Unify do
 
         case unify_result do
           {:ok, var_type, context} ->
-            context = refine_var(var, var_type, stack, context)
+            context = refine_var!(var, var_type, stack, context)
             {:ok, {:var, var}, context}
 
           {:error, reason} ->
@@ -404,9 +418,20 @@ defmodule Module.Types.Unify do
   end
 
   @doc """
+  Restores the variable information from the old context into new context.
+  """
+  def restore_var!(var, new_context, old_context) do
+    %{^var => type} = old_context.types
+    %{^var => trace} = old_context.traces
+    types = Map.put(new_context.types, var, type)
+    traces = Map.put(new_context.traces, var, trace)
+    %{new_context | types: types, traces: traces}
+  end
+
+  @doc """
   Set the type for a variable and add trace.
   """
-  def refine_var(var, type, stack, context) do
+  def refine_var!(var, type, stack, context) do
     types = Map.put(context.types, var, type)
     context = %{context | types: types}
     trace_var(var, type, stack, context)
@@ -471,6 +496,41 @@ defmodule Module.Types.Unify do
   defp recursive_type?(_other, _parents, _context) do
     false
   end
+
+  @doc """
+  Collects all type vars recursively.
+  """
+  def collect_var_indexes(type, context, acc \\ %{})
+
+  def collect_var_indexes({:var, var}, context, acc) do
+    case acc do
+      %{^var => _} ->
+        acc
+
+      %{} ->
+        case context.types do
+          %{^var => :unbound} -> Map.put(acc, var, true)
+          %{^var => type} -> collect_var_indexes(type, context, Map.put(acc, var, true))
+        end
+    end
+  end
+
+  def collect_var_indexes({:tuple, _, args}, context, acc),
+    do: Enum.reduce(args, acc, &collect_var_indexes(&1, context, &2))
+
+  def collect_var_indexes({:union, args}, context, acc),
+    do: Enum.reduce(args, acc, &collect_var_indexes(&1, context, &2))
+
+  def collect_var_indexes({:list, arg}, context, acc),
+    do: collect_var_indexes(arg, context, acc)
+
+  def collect_var_indexes({:map, pairs}, context, acc) do
+    Enum.reduce(pairs, acc, fn {_, key, value} ->
+      collect_var_indexes(value, context, collect_var_indexes(key, context, acc))
+    end)
+  end
+
+  def collect_var_indexes(_type, _context, acc), do: acc
 
   @doc """
   Checks if the type has a type var.

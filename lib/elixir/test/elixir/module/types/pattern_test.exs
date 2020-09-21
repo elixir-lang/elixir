@@ -301,6 +301,33 @@ defmodule Module.Types.PatternTest do
       assert quoted_head([x = y, y = z, z], [is_atom(z)]) ==
                {:ok, [:atom, :atom, :atom]}
 
+      assert quoted_head([x, y], [is_atom(x) or is_integer(y)]) ==
+               {:ok, [{:var, 0}, {:var, 1}]}
+
+      assert quoted_head([x], [is_atom(x) or is_atom(x)]) ==
+               {:ok, [:atom]}
+
+      assert quoted_head([x, y], [(is_atom(x) and is_atom(y)) or (is_atom(x) and is_integer(y))]) ==
+               {:ok, [:atom, union: [:atom, :integer]]}
+
+      assert quoted_head([x, y], [is_atom(x) or is_integer(x)]) ==
+               {:ok, [union: [:atom, :integer], var: 0]}
+
+      assert quoted_head([x, y], [is_atom(y) or is_integer(y)]) ==
+               {:ok, [{:var, 0}, {:union, [:atom, :integer]}]}
+
+      assert quoted_head([x = y], [is_atom(y) or is_integer(y)]) ==
+               {:ok, [{:union, [:atom, :integer]}]}
+
+      assert quoted_head([x = y], [is_atom(x) or is_integer(x)]) ==
+               {:ok, [{:union, [:atom, :integer]}]}
+
+      assert quoted_head([x = y], [is_atom(x) or is_integer(x)]) ==
+               {:ok, [{:union, [:atom, :integer]}]}
+
+      assert quoted_head([x], [true == false or is_integer(x)]) ==
+               {:ok, [var: 0]}
+
       assert {:error, {:unable_unify, {:binary, :integer, _}}} =
                quoted_head([x], [is_binary(x) and is_integer(x)])
 
@@ -351,9 +378,11 @@ defmodule Module.Types.PatternTest do
                (length(x) == 0 and is_list(x)) or (elem(x, 1) and is_tuple(x))
              ]) == {:ok, [{:list, :dynamic}]}
 
-      assert quoted_head([x, y], [elem(x, 1) and is_atom(y)]) == {:ok, [:tuple, :atom]}
-
       assert quoted_head([x], [elem(x, 1) or is_atom(x)]) == {:ok, [:tuple]}
+
+      assert quoted_head([x], [is_atom(x) or elem(x, 1)]) == {:ok, [{:union, [:atom, :tuple]}]}
+
+      assert quoted_head([x, y], [elem(x, 1) and is_atom(y)]) == {:ok, [:tuple, :atom]}
 
       assert quoted_head([x, y], [elem(x, 1) or is_atom(y)]) == {:ok, [:tuple, {:var, 0}]}
 
