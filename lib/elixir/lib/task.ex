@@ -456,8 +456,9 @@ defmodule Task do
       at the same time. Defaults to `System.schedulers_online/0`.
 
     * `:ordered` - whether the results should be returned in the same order
-      as the input stream. This option is useful when you have large
-      streams and don't want to buffer results before they are delivered.
+      as the input stream. When the output is ordered, Elixir may need to
+      buffer results to emit them in the original order. Setting this option
+      to false disables the need to buffer at the cost of removing ordering.
       This is also useful when you're using the tasks only for the side effects.
       Note that regardless of what `:ordered` is set to, the tasks will
       process asynchronously. If you need to depend on the order of side effects,
