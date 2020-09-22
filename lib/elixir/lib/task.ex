@@ -494,6 +494,38 @@ defmodule Task do
       stream = Task.async_stream(collection, Mod, :expensive_fun, [], ordered: false)
       Stream.run(stream)
 
+  ## Attention: async + take
+
+  Given items in an async stream are processed concurrently, doing
+  `async_stream` followed by `Enum.take/2` may cause more items than
+  requested to be processed. Let's see an example:
+
+      1..100
+      |> Task.async_stream(fn i ->
+        Process.sleep(100)
+        IO.puts(to_string(i))
+      end)
+      |> Enum.take(10)
+
+  For a machine with 8 cores, the above will process 16 items instead
+  of 10. The reason is that `async_stream/5` always have 8 elements
+  processing at once. So by the time `Enum` says it got all elements
+  it needed, there are still 6 elements left to be processed.
+
+  The solution here is to use `Stream.take/2` instead of `Enum.take/2`
+  to filter elements before-hand:
+
+      1..100
+      |> Stream.take(10)
+      |> Task.async_stream(fn i ->
+        Process.sleep(100)
+        IO.puts(to_string(i))
+      end)
+      |> Enum.to_list()
+
+  If for some reason you cannot take the elements before hand,
+  you can use `:max_concurrency` to limit how many elements
+  may be over processed at the cost of reducing concurrency.
   """
   @doc since: "1.4.0"
   @spec async_stream(Enumerable.t(), module, atom, [term], keyword) :: Enumerable.t()
