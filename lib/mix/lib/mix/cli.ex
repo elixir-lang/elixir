@@ -78,7 +78,9 @@ defmodule Mix.CLI do
   defp run_task(name, args) do
     try do
       ensure_no_slashes(name)
-      Mix.Tasks.Loadconfig.load_default()
+      # We must go through the task instead of invoking the module directly
+      # because projects like Nerves use this to invoke it early.
+      Mix.Task.run("loadconfig")
       Mix.Task.run(name, args)
     rescue
       # We only rescue exceptions in the Mix namespace, all
