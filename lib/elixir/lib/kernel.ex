@@ -1354,9 +1354,12 @@ defmodule Kernel do
       [1, 2 | 3]
 
   """
-  @spec list ++ term :: maybe_improper_list
-  def left ++ right do
-    :erlang.++(left, right)
+  @spec list ++ list :: list
+  defmacro left ++ right do
+    case __CALLER__.context do
+      :guard -> invalid_guard!("++")
+      _ -> quote(do: :erlang.++(unquote(left), unquote(right)))
+    end
   end
 
   @doc """
@@ -1396,8 +1399,11 @@ defmodule Kernel do
 
   """
   @spec list -- list :: list
-  def left -- right do
-    :erlang.--(left, right)
+  defmacro left -- right do
+    case __CALLER__.context do
+      :guard -> invalid_guard!("--")
+      _ -> quote(do: :erlang.--(unquote(left), unquote(right)))
+    end
   end
 
   @doc """
@@ -5644,16 +5650,9 @@ defmodule Kernel do
 
   defp assert_no_match_or_guard_scope(context, exp) do
     case context do
-      :match ->
-        invalid_match!(exp)
-
-      :guard ->
-        raise ArgumentError,
-              "invalid expression in guard, #{exp} is not allowed in guards. " <>
-                "To learn more about guards, visit: https://hexdocs.pm/elixir/patterns-and-guards.html"
-
-      _ ->
-        :ok
+      :match -> invalid_match!(exp)
+      :guard -> invalid_guard!(exp)
+      _ -> :ok
     end
   end
 
@@ -5661,6 +5660,12 @@ defmodule Kernel do
     raise ArgumentError,
           "invalid expression in match, #{exp} is not allowed in patterns " <>
             "such as function clauses, case clauses or on the left side of the = operator"
+  end
+
+  defp invalid_guard!(exp) do
+    raise ArgumentError,
+          "invalid expression in guard, #{exp} is not allowed in guards. " <>
+            "To learn more about guards, visit: https://hexdocs.pm/elixir/patterns-and-guards.html"
   end
 
   # Helper to handle the :ok | :error tuple returned from :elixir_interpolation.unescape_tokens
