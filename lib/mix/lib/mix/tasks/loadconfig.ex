@@ -33,8 +33,7 @@ defmodule Mix.Tasks.Loadconfig do
     end
   end
 
-  @doc false
-  def load_default do
+  defp load_default do
     config = Mix.Project.config()
 
     if File.regular?(config[:config_path]) or config[:config_path] != "config/config.exs" do
