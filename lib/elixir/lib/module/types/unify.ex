@@ -525,7 +525,7 @@ defmodule Module.Types.Unify do
     do: collect_var_indexes(arg, context, acc)
 
   def collect_var_indexes({:map, pairs}, context, acc) do
-    Enum.reduce(pairs, acc, fn {_, key, value} ->
+    Enum.reduce(pairs, acc, fn {_, key, value}, acc ->
       collect_var_indexes(value, context, collect_var_indexes(key, context, acc))
     end)
   end
