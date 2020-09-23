@@ -27,9 +27,9 @@ guard_op('orelse', 2) ->
 guard_op(Op, Arity) ->
   try erl_internal:op_type(Op, Arity) of
     arith -> true;
-    list  -> true;
     comp  -> true;
     bool  -> true;
+    list  -> false;
     send  -> false
   catch
     _:_ -> false
