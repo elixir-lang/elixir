@@ -310,13 +310,13 @@ defmodule Kernel.GuardTest do
         end
       end
 
-      assert_raise ArgumentError, ~r"invalid expression in guard, \+\+ is not allowed", fn ->
+      assert_raise CompileError, "cannot invoke remote function :erlang.++/2 inside guards", fn ->
         defmodule ListSubtractionUsage do
           defguard foo(list) when list ++ []
         end
       end
 
-      assert_raise ArgumentError, ~r"invalid expression in guard, -- is not allowed", fn ->
+      assert_raise CompileError, "cannot invoke remote function :erlang.--/2 inside guards", fn ->
         defmodule ListSubtractionUsage do
           defguard foo(list) when list -- []
         end
