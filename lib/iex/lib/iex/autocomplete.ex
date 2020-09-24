@@ -48,7 +48,7 @@ defmodule IEx.Autocomplete do
       h == ?/ and t != [] and identifier?(hd(t)) ->
         expand_expr(reduce(t), server)
 
-      h in ' (' ->
+      h in ' (' and t != [] and identifier?(hd(t)) ->
         expand_help(reduce(expr), server)
 
       h in '[{' ->
