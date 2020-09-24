@@ -128,32 +128,6 @@ defmodule IEx.Autocomplete do
     end
   end
 
-  defp format_definition_from_typespec(definition) do
-    case definition do
-      {:"::", _, [x, _]} -> x
-      {:when, _, [{:"::", _, [x, _]} | _]} -> x
-      x -> x
-    end
-    |> Macro.to_string()
-  end
-
-  defp get_signatures_from_specs(module, name) do
-    with {:ok, all_specs} <- Code.Typespec.fetch_specs(module) do
-      all_specs
-      |> Enum.filter(&match?({{^name, _arity}, _specs}, &1))
-      |> Enum.map(fn {{name, _arity}, specs} ->
-        Enum.map(specs, fn spec ->
-          Code.Typespec.spec_to_quoted(name, spec)
-          |> format_definition_from_typespec()
-        end)
-      end)
-      |> List.flatten()
-      |> Enum.uniq()
-    else
-      _ -> :error
-    end
-  end
-
   defp get_signatures(name, module) when is_atom(module) do
     with docs when is_list(docs) <- get_docs(module, [:function, :macro], name) do
       Enum.map(docs, fn {_, _, [signature], _, _} -> signature end)
@@ -184,16 +158,14 @@ defmodule IEx.Autocomplete do
           |> List.flatten()
 
         {:ok, {{:., _, [mod, fun]}, _, []}} when is_atom(mod) and is_atom(fun) ->
-          case get_signatures(fun, mod) do
-            [_ | _] = xs -> xs
-            _ -> get_signatures_from_specs(mod, fun)
-          end
+          get_signatures(fun, mod)
 
         _ ->
           :error
       end
 
-    with [head | tail] <- Enum.sort(signatures, &(String.length(&1) <= String.length(&2))) do
+    with [_ | _] <- signatures do
+      [head | tail] = Enum.sort(signatures, &(String.length(&1) <= String.length(&2)))
       if tail !== [], do: IO.write("\n" <> (tail |> Enum.reverse() |> Enum.join("\n")))
       yes("", [head])
     else
