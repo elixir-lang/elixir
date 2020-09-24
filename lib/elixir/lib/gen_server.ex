@@ -242,8 +242,7 @@ defmodule GenServer do
         end
 
         defp schedule_work do
-          # In 2 hours
-          Process.send_after(self(), :work, 2 * 60 * 60 * 1000)
+          Process.send_after(self(), :work, :timer.hours(2))
         end
       end
 
