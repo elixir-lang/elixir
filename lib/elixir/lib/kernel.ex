@@ -305,6 +305,11 @@ defmodule Kernel do
       iex> binary_part("Hello", 5, -3)
       "llo"
 
+  An ArgumentError is raised when the length is outside of the binary.
+
+    iex> binary_part("Hello", 0, -1)
+    ** (ArgumentError) argument error
+
   """
   @doc guard: true
   @spec binary_part(binary, non_neg_integer, integer) :: binary
