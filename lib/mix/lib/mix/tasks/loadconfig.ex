@@ -29,7 +29,7 @@ defmodule Mix.Tasks.Loadconfig do
 
     case args do
       [] -> load_default()
-      [file] -> load_imports(file)
+      [file] -> load_compile(file)
     end
   end
 
@@ -37,24 +37,32 @@ defmodule Mix.Tasks.Loadconfig do
     config = Mix.Project.config()
 
     if File.regular?(config[:config_path]) or config[:config_path] != "config/config.exs" do
-      load_imports(config[:config_path])
+      load_compile(config[:config_path])
     else
       []
     end
   end
 
   @doc false
-  def load_imports(file) do
+  # Loads compile-time configuration, they support imports, and are not deep merged.
+  def load_compile(file) do
     {config, files} = Config.Reader.read_imports!(file, env: Mix.env(), target: Mix.target())
     Mix.ProjectStack.loaded_config(persist_apps(config, file), files)
     config
   end
 
   @doc false
-  def load_file(file) do
+  # Loads runtime configuration, they do not support imports, and are deep merged.
+  def load_runtime(file) do
     config = Config.Reader.read!(file, env: Mix.env(), target: Mix.target(), imports: :disabled)
-    Mix.ProjectStack.loaded_config(persist_apps(config, file), [])
+    Mix.ProjectStack.loaded_config(persist_apps(hydrate_apps(config), file), [])
     config
+  end
+
+  defp hydrate_apps(config) do
+    for {app, pairs} <- config do
+      hd(Config.Reader.merge([{app, Application.get_all_env(app)}], [{app, pairs}]))
+    end
   end
 
   defp persist_apps(config, file) do
