@@ -6,6 +6,8 @@
 
 ### 2. Bug fixes
 
+  * [Kernel] Public functions without documentation now appear as an empty map on `Code.fetch_docs/1`, unless they start with underscore, where they remain as `:none`. This aligns Elixir's implementation with EEP48
+
 ### 3. Soft-deprecations (no warnings emitted)
 
 ### 4. Hard-deprecations
