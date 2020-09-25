@@ -17,11 +17,13 @@ defmodule Mix.Tasks.App.ConfigTest do
       File.write!("config/config.exs", """
       import Config
       config :sample, from_compile: :compile, from_runtime: :compile
+      config :sample, :nested, from_compile: :compile, from_runtime: :compile
       """)
 
       File.write!("config/runtime.exs", """
       import Config
       config :sample, from_runtime: :runtime
+      config :sample, :nested, from_compile: :compile, from_runtime: :compile
       """)
 
       Mix.Task.run("loadconfig")
@@ -30,10 +32,12 @@ defmodule Mix.Tasks.App.ConfigTest do
       assert Application.get_all_env(:sample) |> Enum.sort() == [
                from_compile: :compile,
                from_env: :env,
-               from_runtime: :runtime
+               from_runtime: :runtime,
+               nested: [from_compile: :compile, from_runtime: :compile]
              ]
     end)
   after
+    Application.delete_env(:sample, :nested, persistent: true)
     Application.delete_env(:sample, :from_env, persistent: true)
     Application.delete_env(:sample, :from_compile, persistent: true)
     Application.delete_env(:sample, :from_runtime, persistent: true)
