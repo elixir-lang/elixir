@@ -359,6 +359,11 @@ defmodule Mix.Tasks.ReleaseTest do
       config = [releases: [runtime_config: [reboot_system_after_config: true]]]
 
       Mix.Project.in_project(:release_test, ".", config, fn _ ->
+        File.write!("config/config.exs", """
+        #{File.read!("config/config.exs")}
+        config :release_test, :runtime, keep: :static, override: :static
+        """)
+
         File.write!("config/runtime.exs", """
         import Config
 
@@ -366,7 +371,11 @@ defmodule Mix.Tasks.ReleaseTest do
           raise "file should not be loaded while assembling release"
         end
 
-        config :release_test, :runtime, {:was_set, config_env(), config_target()}
+        config :release_test, :runtime,
+          override: :runtime,
+          config_env: config_env(),
+          config_target: config_target()
+
         config :release_test, :encoding, {:runtime, :time_μs, :"£", "£", '£'}
         """)
 
@@ -401,7 +410,9 @@ defmodule Mix.Tasks.ReleaseTest do
                  release_mode: "embedded",
                  release_node: "runtime_config",
                  release_vsn: "0.1.0",
-                 runtime_config: {:ok, {:was_set, :dev, :host}},
+                 runtime_config:
+                   {:ok,
+                    [keep: :static, override: :runtime, config_env: :dev, config_target: :host]},
                  static_config: {:ok, :was_set},
                  sys_config_env: sys_config_env,
                  sys_config_init: sys_config_init

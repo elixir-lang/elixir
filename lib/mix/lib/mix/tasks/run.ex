@@ -154,7 +154,13 @@ defmodule Mix.Tasks.Run do
 
   defp process_config(opts) do
     for {:config, value} <- opts do
-      Mix.Tasks.Loadconfig.load_imports(value)
+      # TODO: Remove on v2.0.
+      IO.warn(
+        "the --config flag is deprecated. If you need to handle multiple configurations, " <>
+          "it is preferable to dynamically import them in your config files"
+      )
+
+      Mix.Tasks.Loadconfig.load_compile(value)
     end
 
     :ok

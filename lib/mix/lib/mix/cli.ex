@@ -146,7 +146,7 @@ defmodule Mix.CLI do
     path = Path.join(Mix.Utils.mix_config(), "config.exs")
 
     if File.regular?(path) do
-      Mix.Tasks.Loadconfig.load_imports(path)
+      Mix.Tasks.Loadconfig.load_compile(path)
     end
   end
 
