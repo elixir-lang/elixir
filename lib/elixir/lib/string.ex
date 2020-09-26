@@ -874,7 +874,7 @@ defmodule String do
 
   `mode` may be `:default`, `:ascii` or `:greek`. The `:default` mode considers
   all non-conditional transformations outlined in the Unicode standard. `:ascii`
-  uppercases only the letters A to Z. `:greek` includes the context sensitive
+  capitalizes only the letters A to Z. `:greek` includes the context sensitive
   mappings found in Greek.
 
   ## Examples
