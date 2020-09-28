@@ -762,15 +762,16 @@ defmodule File do
   end
 
   @doc """
-  Copies the contents in `source_file` to `destination_file` preserving its modes.
+  Copies the contents of `source_file` to `destination_file` preserving its modes.
 
-  `source_file` and `destination_file` must be a file or a symbolic link to one,
-  or in the case of destination, a path to a non-existent file. If either one of
-  them is a directory, `{:error, :eisdir}` will be returned.
+  `source_file` must be a file or a symbolic link to one. `destination_file` must
+  be a path to a non-existent file. If either is a directory, `{:error, :eisdir}`
+  will be returned.
 
-  If a file already exists in the destination, it invokes a
-  callback which should return `true` if the existing file
-  should be overwritten, `false` otherwise. The callback defaults to return `true`.
+  The `callback` function is invoked if the `destination_file` already exists.
+  The function receives arguments for `source_file` and `destination_file`;
+  it should return `true` if the existing file should be overwritten, `false` if
+  otherwise. The default callback returns `true`.
 
   The function returns `:ok` in case of success. Otherwise, it returns
   `{:error, reason}`.
