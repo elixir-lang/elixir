@@ -73,16 +73,18 @@ defmodule IEx.Broker do
 
   @doc """
   Client requests a takeover.
+
+  To takeover without prompting the user, use boolean identifier as auto response.
   """
-  @spec take_over(binary, iodata, keyword) ::
+  @spec take_over(iodata | boolean, keyword) ::
           {:ok, server :: pid, group_leader :: pid} | {:error, :no_iex | :refused}
-  def take_over(location, whereami, opts) do
+  def take_over(identifier, opts) do
     case GenServer.whereis(@name) do
       nil ->
         {:error, :no_iex}
 
       _pid ->
-        GenServer.call(@name, {:take_over, location, whereami, opts}, :infinity)
+        GenServer.call(@name, {:take_over, identifier, opts}, :infinity)
     end
   end
 
@@ -99,7 +101,7 @@ defmodule IEx.Broker do
   end
 
   @impl true
-  def handle_call({:take_over, location, whereami, opts}, {_, ref} = from, state) do
+  def handle_call({:take_over, identifier, opts}, {_, ref} = from, state) do
     case servers(state) do
       [] ->
         {:reply, {:error, :no_iex}, state}
@@ -107,7 +109,7 @@ defmodule IEx.Broker do
       servers ->
         server_refs =
           for {server_ref, server_pid} <- servers do
-            send(server_pid, {:take_over, self(), {ref, server_ref}, location, whereami, opts})
+            send(server_pid, {:take_over, self(), {ref, server_ref}, identifier, opts})
             server_ref
           end
 

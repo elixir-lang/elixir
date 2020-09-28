@@ -56,8 +56,8 @@ defmodule IEx.Server do
 
   defp shell_loop(opts, pid, ref) do
     receive do
-      {:take_over, take_pid, take_ref, take_location, take_whereami, take_opts} ->
-        if take_over?(take_pid, take_ref, take_location, take_whereami, take_opts) do
+      {:take_over, take_pid, take_ref, take_identifier, take_opts} ->
+        if take_over?(take_pid, take_ref, take_identifier, take_opts) do
           run_without_registration(take_opts)
         else
           shell_loop(opts, pid, ref)
@@ -183,7 +183,7 @@ defmodule IEx.Server do
   # A take process may also happen if the evaluator dies,
   # then a new evaluator is created to replace the dead one.
   defp handle_take_over(
-         {:take_over, take_pid, take_ref, take_location, take_whereami, take_opts},
+         {:take_over, take_pid, take_ref, take_identifier, take_opts},
          state,
          evaluator,
          evaluator_ref,
@@ -192,7 +192,7 @@ defmodule IEx.Server do
        ) do
     cond do
       evaluator == take_opts[:evaluator] ->
-        IO.puts(IEx.color(:eval_interrupt, "Break reached: #{take_location}#{take_whereami}"))
+        IO.puts(IEx.color(:eval_interrupt, "Break reached: #{take_identifier}"))
 
         if take_over?(take_pid, take_ref, true) do
           kill_input(input)
@@ -201,7 +201,7 @@ defmodule IEx.Server do
           callback.(state)
         end
 
-      take_over?(take_pid, take_ref, take_location, take_whereami, take_opts) ->
+      take_over?(take_pid, take_ref, take_identifier, take_opts) ->
         rerun(take_opts, evaluator, evaluator_ref, input)
 
       true ->
@@ -288,9 +288,14 @@ defmodule IEx.Server do
     callback.(state)
   end
 
-  defp take_over?(take_pid, take_ref, take_location, take_whereami, take_opts) do
+  defp take_over?(take_pid, take_ref, take_identifier, _take_opts)
+       when is_boolean(take_identifier) do
+    take_over?(take_pid, take_ref, take_identifier)
+  end
+
+  defp take_over?(take_pid, take_ref, take_identifier, take_opts) do
     evaluator = take_opts[:evaluator]
-    message = "Request to pry #{inspect(evaluator)} at #{take_location}#{take_whereami}"
+    message = "Request to pry #{inspect(evaluator)} at #{take_identifier}"
     interrupt = IEx.color(:eval_interrupt, "#{message}\nAllow? [Yn] ")
     take_over?(take_pid, take_ref, yes?(IO.gets(:stdio, interrupt)))
   end
