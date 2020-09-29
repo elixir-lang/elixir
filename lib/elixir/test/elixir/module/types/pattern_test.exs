@@ -121,7 +121,7 @@ defmodule Module.Types.PatternTest do
                {:ok,
                 {:map,
                  [
-                   {:required, :integer, {:union, [{:var, 0}, :dynamic]}},
+                   {:required, :integer, {:var, 0}},
                    {:optional, :dynamic, :dynamic}
                  ]}}
 

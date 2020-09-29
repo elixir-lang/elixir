@@ -305,6 +305,46 @@ defmodule Module.Types.TypesTest do
   end
 
   describe "map warnings" do
+    test "handling of non-singleton types in maps" do
+      string =
+        warning(
+          [],
+          (
+            event = %{"type" => "order"}
+            %{"amount" => amount} = event
+            %{"user" => user} = event
+            %{"id" => user_id} = user
+            {:order, user_id, amount}
+          )
+        )
+
+      assert string == """
+             incompatible types:
+
+                 binary() !~ map()
+
+             in expression:
+
+                 # types_test.ex:5
+                 %{"id" => user_id} = user
+
+             where "user" was given the same type as "amount" in:
+
+                 # types_test.ex:4
+                 %{"user" => user} = event
+
+             where "user" was given the type map() in:
+
+                 # types_test.ex:5
+                 %{"id" => user_id} = user
+
+             where "amount" was given the type binary() in:
+
+                 # types_test.ex:3
+                 %{"amount" => amount} = event
+             """
+    end
+
     test "show map() when comparing against non-map" do
       string =
         warning(
