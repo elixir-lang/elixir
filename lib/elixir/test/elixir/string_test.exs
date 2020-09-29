@@ -153,6 +153,10 @@ defmodule StringTest do
     assert String.upcase("olá", :ascii) == "OLá"
   end
 
+  test "upcase/1 with turkic" do
+    assert String.upcase("ıi", :turkic) == "Iİ"
+  end
+
   test "downcase/1" do
     assert String.downcase("123 ABcD 456 EfG HIJ ( %$#) KL MNOP @ QRST = -_ UVWXYZ") ==
              "123 abcd 456 efg hij ( %$#) kl mnop @ qrst = -_ uvwxyz"
@@ -185,6 +189,12 @@ defmodule StringTest do
     assert String.downcase("OLÁ", :ascii) == "olÁ"
   end
 
+  test "downcase/1 with turkic" do
+    assert String.downcase("Iİ", :turkic) == "ıi"
+    assert String.downcase("İ", :turkic) == "i"
+    assert String.downcase("İ") == "i̇"
+  end
+
   test "capitalize/1" do
     assert String.capitalize("") == ""
     assert String.capitalize("abc") == "Abc"
@@ -208,6 +218,11 @@ defmodule StringTest do
   test "capitalize/1 with ascii" do
     assert String.capitalize("àáâ", :ascii) == "àáâ"
     assert String.capitalize("aáA", :ascii) == "Aáa"
+  end
+
+  test "capitalize/1 with turkic" do
+    assert String.capitalize("iii", :turkic) == "İii"
+    assert String.capitalize("ııı", :turkic) == "Iıı"
   end
 
   test "replace_leading/3" do

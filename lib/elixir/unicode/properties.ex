@@ -160,6 +160,27 @@ defmodule String.Casing do
 
   # Downcase
 
+  # Letter I variants for Turkic languages
+  @letter_I <<0x0049::utf8>>
+  @dotless_letter_i <<0x0131::utf8>>
+  @letter_i <<0x0069::utf8>>
+  @letter_I_dot_above <<0x0130::utf8>>
+  @combining_dot_above <<0x0307::utf8>>
+
+  # Turkic İ -> i
+  def downcase(<<unquote(@letter_I), unquote(@combining_dot_above), rest::bits>>, acc, :turkic) do
+    downcase(rest, [@letter_i | acc], :turkic)
+  end
+
+  def downcase(<<unquote(@letter_I_dot_above), rest::bits>>, acc, :turkic) do
+    downcase(rest, [@letter_i | acc], :turkic)
+  end
+
+  # Turkic I -> ı
+  def downcase(<<unquote(@letter_I), rest::bits>>, acc, :turkic) do
+    downcase(rest, [@dotless_letter_i | acc], :turkic)
+  end
+
   @conditional_downcase [
     sigma = <<0x03A3::utf8>>
   ]
@@ -237,6 +258,11 @@ defmodule String.Casing do
 
   # Upcase
 
+  # Turkic i -> İ
+  def upcase(<<unquote(@letter_i), rest::bits>>, acc, :turkic) do
+    upcase(rest, [@letter_I_dot_above | acc], :turkic)
+  end
+
   for {codepoint, upper, _lower, _title} <- codes, upper && upper != codepoint do
     def upcase(<<unquote(codepoint), rest::bits>>, acc, mode) do
       upcase(rest, [unquote(upper) | acc], mode)
@@ -252,6 +278,11 @@ defmodule String.Casing do
   # Titlecase once
 
   def titlecase_once("", _mode), do: {"", ""}
+
+  # Turkic i -> İ
+  def titlecase_once(<<@letter_i, rest::binary>>, :turkic) do
+    {@letter_I_dot_above, rest}
+  end
 
   for {codepoint, _upper, _lower, title} <- codes, title && title != codepoint do
     def titlecase_once(unquote(codepoint) <> rest, _mode) do
