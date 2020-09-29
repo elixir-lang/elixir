@@ -16,9 +16,24 @@ defmodule Module.Types.Of do
   """
   def open_map(args, stack, context, fun) do
     with {:ok, pairs, context} <- map_pairs(args, stack, context, fun) do
+      # If we match on a map such as %{"foo" => "bar"}, we cannot
+      # assert that %{binary() => binary()}, since we are matching
+      # only a single binary of infinite possible values. Therefore,
+      # the correct would be to match it to %{binary() => binary() | var}.
+      #
+      # We can skip this in two cases:
+      #
+      #   1. If the key is a singleton, then we know that it has no
+      #      other value than the current one
+      #
+      #   2. If the value is a variable, then there is no benefit in
+      #      creating another variable, so we can skip it
+      #
+      # For now, we skip generating the var itself and introduce
+      # :dynamic instead.
       pairs =
         for {key, value} <- pairs, not has_unbound_var?(key, context) do
-          if singleton?(key, context) do
+          if singleton?(key, context) or match?({:var, _}, value) do
             {key, value}
           else
             {key, to_union([value, :dynamic], context)}

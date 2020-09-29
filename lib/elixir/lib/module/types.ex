@@ -349,6 +349,7 @@ defmodule Module.Types do
 
   defp format_traces(traces, simplify?) do
     traces
+    |> Enum.uniq()
     |> Enum.reverse()
     |> Enum.map_reduce([], fn
       {var, {:type, type, expr, location}}, hints ->
