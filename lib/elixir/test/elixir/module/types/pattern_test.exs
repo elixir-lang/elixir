@@ -4,7 +4,7 @@ defmodule Module.Types.PatternTest do
   use ExUnit.Case, async: true
 
   alias Module.Types
-  alias Module.Types.Pattern
+  alias Module.Types.{Unify, Pattern}
 
   defmacrop quoted_pattern(patterns) do
     quote do
@@ -53,11 +53,11 @@ defmodule Module.Types.PatternTest do
   end
 
   defp lift_result({:ok, types, context}) when is_list(types) do
-    {:ok, Types.lift_types(types, context)}
+    {:ok, Unify.lift_types(types, context)}
   end
 
   defp lift_result({:ok, type, context}) do
-    {:ok, Types.lift_type(type, context)}
+    {:ok, [type] |> Unify.lift_types(context) |> hd()}
   end
 
   defp lift_result({:error, {type, reason, _context}}) do

@@ -29,6 +29,7 @@ defmodule Module.Types.Unify do
   #   * has_unbound_var? (composite only)
   #   * recursive_type? (composite only)
   #   * collect_vars (composite only)
+  #   * lift_types (composite only)
   #
 
   @doc """
@@ -698,6 +699,90 @@ defmodule Module.Types.Unify do
 
   defp unique_super_types([], _context) do
     []
+  end
+
+  ## Type lifting
+
+  @doc """
+  Lifts type variables to their infered types from the context.
+  """
+  def lift_types(types, context) do
+    context = %{
+      types: context.types,
+      lifted_types: %{},
+      lifted_counter: 0
+    }
+
+    {types, _context} = Enum.map_reduce(types, context, &lift_type/2)
+    types
+  end
+
+  # Lift type variable to its infered (hopefully concrete) types from the context
+  defp lift_type({:var, var}, context) do
+    case context.lifted_types do
+      %{^var => lifted_var} ->
+        {{:var, lifted_var}, context}
+
+      %{} ->
+        case context.types do
+          %{^var => :unbound} ->
+            new_lifted_var(var, context)
+
+          %{^var => type} ->
+            if recursive_type?(type, [], context) do
+              new_lifted_var(var, context)
+            else
+              # Remove visited types to avoid infinite loops
+              # then restore after we are done recursing on vars
+              types = context.types
+              context = put_in(context.types[var], :unbound)
+              {type, context} = lift_type(type, context)
+              {type, %{context | types: types}}
+            end
+
+          %{} ->
+            new_lifted_var(var, context)
+        end
+    end
+  end
+
+  defp lift_type({:union, types}, context) do
+    {types, context} = Enum.map_reduce(types, context, &lift_type/2)
+    {{:union, types}, context}
+  end
+
+  defp lift_type({:tuple, n, types}, context) do
+    {types, context} = Enum.map_reduce(types, context, &lift_type/2)
+    {{:tuple, n, types}, context}
+  end
+
+  defp lift_type({:map, pairs}, context) do
+    {pairs, context} =
+      Enum.map_reduce(pairs, context, fn {kind, key, value}, context ->
+        {key, context} = lift_type(key, context)
+        {value, context} = lift_type(value, context)
+        {{kind, key, value}, context}
+      end)
+
+    {{:map, pairs}, context}
+  end
+
+  defp lift_type({:list, type}, context) do
+    {type, context} = lift_type(type, context)
+    {{:list, type}, context}
+  end
+
+  defp lift_type(other, context) do
+    {other, context}
+  end
+
+  defp new_lifted_var(original_var, context) do
+    types = Map.put(context.lifted_types, original_var, context.lifted_counter)
+    counter = context.lifted_counter + 1
+
+    type = {:var, context.lifted_counter}
+    context = %{context | lifted_types: types, lifted_counter: counter}
+    {type, context}
   end
 
   @doc """
