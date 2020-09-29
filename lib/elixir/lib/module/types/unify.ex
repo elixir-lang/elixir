@@ -98,14 +98,22 @@ defmodule Module.Types.Unify do
     {:ok, target, context}
   end
 
+  defp do_unify({:union, types}, target, stack, context) do
+    unify_result =
+      map_reduce_ok(types, context, fn type, context ->
+        unify(type, target, stack, context)
+      end)
+
+    case unify_result do
+      {:ok, types, context} -> {:ok, to_union(types, context), context}
+      {:error, context} -> {:error, context}
+    end
+  end
+
   defp do_unify(source, target, stack, context) do
     cond do
-      # This condition exists to handle unions with unbound vars.
-      # TODO: handle unions properly. Note we can easily unify
-      # "union < type" even if union has vars as the vars must be
-      # type
-      (match?({:union, _}, source) and has_unbound_var?(source, context)) or
-          (match?({:union, _}, target) and has_unbound_var?(target, context)) ->
+      # TODO: This condition exists to handle unions with unbound vars.
+      match?({:union, _}, target) and has_unbound_var?(target, context) ->
         {:ok, source, context}
 
       subtype?(source, target, context) ->
