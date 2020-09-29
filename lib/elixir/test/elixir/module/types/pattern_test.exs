@@ -118,13 +118,18 @@ defmodule Module.Types.PatternTest do
                 {:map, [{:required, {:atom, :a}, {:atom, :b}}, {:optional, :dynamic, :dynamic}]}}
 
       assert quoted_pattern(%{123 => a}) ==
-               {:ok, {:map, [{:required, :integer, {:var, 0}}, {:optional, :dynamic, :dynamic}]}}
+               {:ok,
+                {:map,
+                 [
+                   {:required, :integer, {:union, [{:var, 0}, :dynamic]}},
+                   {:optional, :dynamic, :dynamic}
+                 ]}}
 
       assert quoted_pattern(%{123 => :foo, 456 => :bar}) ==
                {:ok,
                 {:map,
                  [
-                   {:required, :integer, {:union, [{:atom, :foo}, {:atom, :bar}]}},
+                   {:required, :integer, :dynamic},
                    {:optional, :dynamic, :dynamic}
                  ]}}
 
