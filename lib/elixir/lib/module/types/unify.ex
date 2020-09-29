@@ -500,12 +500,31 @@ defmodule Module.Types.Unify do
   def has_unbound_var?(_type, _context), do: false
 
   @doc """
+  Returns true if it is a singleton type.
+
+  Only atoms are singleton types. Unbound vars are not
+  considered singleton types.
+  """
+  def singleton?({:var, var}, context) do
+    case context.types do
+      %{^var => :unbound} -> false
+      %{^var => type} -> singleton?(type, context)
+    end
+  end
+
+  def singleton?({:atom, _}, _context), do: true
+  def singleton?(_type, _context), do: false
+
+  @doc """
   Checks if the first argument is a subtype of the second argument.
 
   This function assumes that:
 
-    * dynamic is not considered a subtype of all other types but the top type
     * unbound variables are not subtype of anything
+
+    * dynamic is not considered a subtype of all other types but the top type.
+      This allows this function can be used for ordering, in other cases, you
+      may need to check for both sides
 
   """
   def subtype?(type, type, _context), do: true

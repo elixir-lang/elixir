@@ -16,7 +16,17 @@ defmodule Module.Types.Of do
   """
   def open_map(args, stack, context, fun) do
     with {:ok, pairs, context} <- map_pairs(args, stack, context, fun) do
-      {:ok, {:map, pairs_to_unions(pairs, context) ++ [{:optional, :dynamic, :dynamic}]}, context}
+      pairs =
+        for {key, value} <- pairs, not has_unbound_var?(key, context) do
+          if singleton?(key, context) do
+            {key, value}
+          else
+            {key, to_union([value, :dynamic], context)}
+          end
+        end
+
+      triplets = pairs_to_unions(pairs, [], context) ++ [{:optional, :dynamic, :dynamic}]
+      {:ok, {:map, triplets}, context}
     end
   end
 
@@ -25,7 +35,7 @@ defmodule Module.Types.Of do
   """
   def closed_map(args, stack, context, fun) do
     with {:ok, pairs, context} <- map_pairs(args, stack, context, fun) do
-      {:ok, {:map, pairs_to_unions(pairs, context)}, context}
+      {:ok, {:map, closed_to_unions(pairs, context)}, context}
     end
   end
 
@@ -37,9 +47,9 @@ defmodule Module.Types.Of do
     end)
   end
 
-  defp pairs_to_unions([{key, value}], _context), do: [{:required, key, value}]
+  defp closed_to_unions([{key, value}], _context), do: [{:required, key, value}]
 
-  defp pairs_to_unions(pairs, context) do
+  defp closed_to_unions(pairs, context) do
     case Enum.split_with(pairs, fn {key, _value} -> has_unbound_var?(key, context) end) do
       {[], pairs} -> pairs_to_unions(pairs, [], context)
       {[_ | _], pairs} -> pairs_to_unions([{:dynamic, :dynamic} | pairs], [], context)
