@@ -339,7 +339,7 @@ defmodule Module.Types.PatternTest do
       assert {:error, {:unable_unify, {:tuple, :atom, _}}} =
                quoted_head([x], [is_tuple(x) and is_atom(x)])
 
-      assert {:error, {:unable_unify, {{:union, [atom: true, atom: false]}, :tuple, _}}} =
+      assert {:error, {:unable_unify, {{:atom, true}, :tuple, _}}} =
                quoted_head([x], [is_tuple(is_atom(x))])
     end
 
@@ -354,16 +354,13 @@ defmodule Module.Types.PatternTest do
       assert {:error, {:unable_unify, {{:atom, :foo}, {:list, :dynamic}, _}}} =
                quoted_head([x], [length(:foo)])
 
-      assert {:error,
-              {:unable_unify, {{:union, [atom: true, atom: false]}, {:list, :dynamic}, _}}} =
+      assert {:error, {:unable_unify, {{:atom, true}, {:list, :dynamic}, _}}} =
                quoted_head([x], [length(is_tuple(x))])
 
-      assert {:error, {:unable_unify, {{:union, [atom: true, atom: false]}, :tuple, _}}} =
+      assert {:error, {:unable_unify, {{:atom, true}, :tuple, _}}} =
                quoted_head([x], [elem(is_tuple(x), 0)])
 
-      assert {:error,
-              {:unable_unify,
-               {{:union, [atom: true, atom: false]}, {:union, [:integer, :float]}, _}}} =
+      assert {:error, {:unable_unify, {{:atom, true}, {:union, [:integer, :float]}, _}}} =
                quoted_head([x], [elem({}, is_tuple(x))])
 
       assert quoted_head([x], [elem({}, 1)]) == {:ok, [var: 0]}
