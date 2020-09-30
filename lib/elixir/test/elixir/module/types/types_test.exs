@@ -3,7 +3,7 @@ Code.require_file("../../test_helper.exs", __DIR__)
 defmodule Module.Types.TypesTest do
   use ExUnit.Case, async: true
   alias Module.Types
-  alias Module.Types.{Pattern, Expr}
+  alias Module.Types.{Pattern, Expr, Unify}
 
   defmacro warning(patterns \\ [], guards \\ [], body) do
     min_line = min_line(patterns ++ guards ++ [body])
@@ -23,7 +23,7 @@ defmodule Module.Types.TypesTest do
     with {:ok, _types, context} <-
            Pattern.of_head(patterns, guards, TypeHelper.new_stack(), TypeHelper.new_context()),
          {:ok, type, context} <- Expr.of_expr(body, TypeHelper.new_stack(), context) do
-      flunk("expexted error, got: #{inspect(Types.lift_type(type, context))}")
+      flunk("expexted error, got: #{inspect([type] |> Unify.lift_types(context) |> hd())}")
     else
       {:error, {type, reason, context}} ->
         {:error, {type, reason, context}}
@@ -489,6 +489,36 @@ defmodule Module.Types.TypesTest do
 
                  # types_test.ex:3
                  %URI{} = foo
+             """
+    end
+
+    test "expands type variables" do
+      string =
+        warning(
+          [%{foo: key} = event, other_key],
+          [is_integer(key) and is_atom(other_key)],
+          %{foo: ^other_key} = event
+        )
+
+      assert string == """
+             incompatible types:
+
+                 %{foo: integer()} !~ %{foo: atom()}
+
+             in expression:
+
+                 # types_test.ex:3
+                 %{foo: ^other_key} = event
+
+             where "event" was given the type %{foo: integer(), optional(dynamic()) => dynamic()} in:
+
+                 # types_test.ex:1
+                 %{foo: key} = event
+
+             where "event" was given the type %{foo: atom(), optional(dynamic()) => dynamic()} in:
+
+                 # types_test.ex:3
+                 %{foo: ^other_key} = event
              """
     end
   end

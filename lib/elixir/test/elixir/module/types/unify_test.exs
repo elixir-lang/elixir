@@ -34,12 +34,14 @@ defmodule Module.Types.UnifyTest do
   end
 
   defp lift_result({:ok, type, context}) do
-    {:ok, Types.lift_type(type, context)}
+    {:ok, lift_type(type, context)}
   end
 
   defp lift_result({:error, {type, reason, _context}}) do
     {:error, {type, reason}}
   end
+
+  defp lift_type(type, context), do: [type] |> lift_types(context) |> hd()
 
   describe "unify/3" do
     test "literal" do
@@ -286,14 +288,14 @@ defmodule Module.Types.UnifyTest do
       assert {{:var, 1}, var_context} = new_var({:bar, [version: 1], nil}, var_context)
 
       assert {:ok, {:var, 0}, context} = unify({:var, 0}, :integer, var_context)
-      assert Types.lift_type({:var, 0}, context) == :integer
+      assert lift_type({:var, 0}, context) == :integer
 
       assert {:ok, {:var, 0}, context} = unify(:integer, {:var, 0}, var_context)
-      assert Types.lift_type({:var, 0}, context) == :integer
+      assert lift_type({:var, 0}, context) == :integer
 
       assert {:ok, {:var, _}, context} = unify({:var, 0}, {:var, 1}, var_context)
-      assert {:var, _} = Types.lift_type({:var, 0}, context)
-      assert {:var, _} = Types.lift_type({:var, 1}, context)
+      assert {:var, _} = lift_type({:var, 0}, context)
+      assert {:var, _} = lift_type({:var, 1}, context)
 
       assert {:ok, {:var, 0}, context} = unify({:var, 0}, :integer, var_context)
       assert {:ok, {:var, 1}, context} = unify({:var, 1}, :integer, context)
@@ -323,7 +325,7 @@ defmodule Module.Types.UnifyTest do
       assert {:ok, {:tuple, 1, [{:var, 0}]}, context} =
                unify({:tuple, 1, [{:var, 0}]}, {:tuple, 1, [:integer]}, var_context)
 
-      assert Types.lift_type({:var, 0}, context) == :integer
+      assert lift_type({:var, 0}, context) == :integer
 
       assert {:ok, {:var, 0}, context} = unify({:var, 0}, :integer, var_context)
       assert {:ok, {:var, 1}, context} = unify({:var, 1}, :integer, context)
@@ -333,7 +335,7 @@ defmodule Module.Types.UnifyTest do
 
       assert {:ok, {:var, 1}, context} = unify({:var, 1}, {:tuple, 1, [{:var, 0}]}, var_context)
       assert {:ok, {:var, 0}, context} = unify({:var, 0}, :integer, context)
-      assert Types.lift_type({:var, 1}, context) == {:tuple, 1, [:integer]}
+      assert lift_type({:var, 1}, context) == {:tuple, 1, [:integer]}
 
       assert {:ok, {:var, 0}, context} = unify({:var, 0}, :integer, var_context)
       assert {:ok, {:var, 1}, context} = unify({:var, 1}, :binary, context)
@@ -350,12 +352,12 @@ defmodule Module.Types.UnifyTest do
       assert {:ok, {:var, 0}, context} =
                unify({:union, [{:var, 0}, :integer]}, :integer, var_context)
 
-      assert Types.lift_type({:var, 0}, context) == :integer
+      assert lift_type({:var, 0}, context) == :integer
 
       assert {:ok, {:var, 0}, context} =
                unify({:union, [{:var, 0}, :integer]}, {:union, [:integer, :atom]}, var_context)
 
-      assert Types.lift_type({:var, 0}, context) == {:union, [:integer, :atom]}
+      assert lift_type({:var, 0}, context) == {:union, [:integer, :atom]}
 
       assert {:error, {:unable_unify, {:integer, {:union, [:binary, :atom]}, _}}} =
                unify_directed_lift(
