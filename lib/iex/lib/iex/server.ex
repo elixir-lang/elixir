@@ -242,8 +242,8 @@ defmodule IEx.Server do
     end
   end
 
-  defp handle_take_over({:respawn, evaluator}, _state, evaluator, evaluator_ref, input, _callback) do
-    rerun([], evaluator, evaluator_ref, input)
+  defp handle_take_over({:respawn, evaluator}, state, evaluator, evaluator_ref, input, _callback) do
+    rerun(state.evaluator_options, evaluator, evaluator_ref, input)
   end
 
   defp handle_take_over({:continue, evaluator}, state, evaluator, evaluator_ref, input, _callback) do
@@ -254,18 +254,18 @@ defmodule IEx.Server do
 
   defp handle_take_over(
          {:DOWN, evaluator_ref, :process, evaluator, :normal},
-         _state,
+         state,
          evaluator,
          evaluator_ref,
          input,
          _callback
        ) do
-    rerun([], evaluator, evaluator_ref, input)
+    rerun(state.evaluator_options, evaluator, evaluator_ref, input)
   end
 
   defp handle_take_over(
          {:DOWN, evaluator_ref, :process, evaluator, reason},
-         _state,
+         state,
          evaluator,
          evaluator_ref,
          input,
@@ -281,7 +281,7 @@ defmodule IEx.Server do
         io_error("** (IEx.Error) #{type} when printing EXIT message: #{inspect(detail)}")
     end
 
-    rerun([], evaluator, evaluator_ref, input)
+    rerun(state.evaluator_options, evaluator, evaluator_ref, input)
   end
 
   defp handle_take_over(_, state, _evaluator, _evaluator_ref, _input, callback) do
