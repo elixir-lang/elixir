@@ -2,16 +2,15 @@
 
 [![CI](https://github.com/elixir-lang/elixir/workflows/CI/badge.svg?branch=master)](https://github.com/elixir-lang/elixir/actions?query=branch%3Amaster+workflow%3ACI) [![Build status](https://api.cirrus-ci.com/github/elixir-lang/elixir.svg?branch=master)](https://cirrus-ci.com/github/elixir-lang/elixir)
 
-Elixir is a dynamic, functional language designed for building scalable
-and maintainable applications.
+**Elixir** is a **functional, concurrent, general-purpose programming language** that runs on the **BEAM virtual machine** used to implement the **Erlang programming language**.
 
 For more about Elixir, installation and documentation,
 [check Elixir's website](https://elixir-lang.org/).
 
 ## Policies
 
-New releases are announced in the [announcement mailing list][8].
-You can subscribe by sending an email to elixir-lang-ann+subscribe@googlegroups.com and replying to the confirmation email.
+**New releases** are announced in the [announcement mailing list][8].
+You can subscribe by sending an email to **elixir-lang-ann+subscribe@googlegroups.com** and replying to the confirmation email.
 
 All security releases [will be tagged with `[security]`][10]. For more information, please read our [Security Policy][9].
 
@@ -140,22 +139,22 @@ case you are looking for some examples:
 Once a pull request is sent, the Elixir team will review your changes.
 We outline our process below to clarify the roles of everyone involved.
 
-All pull requests must be approved by two committers before being merged into
-the repository. If any changes are necessary, the team will leave appropriate
-comments requesting changes to the code. Unfortunately we cannot guarantee a
+All pull requests must be approved by **two committers** before being merged into
+the repository. If any changes are **necessary**, the team will leave appropriate
+comments requesting changes to the code. **Unfortunately we cannot guarantee a
 pull request will be merged, even when modifications are requested, as the Elixir
-team will re-evaluate the contribution as it changes.
+team will re-evaluate the contribution as it changes**.
 
-Committers may also push style changes directly to your branch. If you would
-rather manage all changes yourself, you can disable "Allow edits from maintainers"
+Committers may also push **style changes** directly to your branch. If you would
+rather manage all changes yourself, you can disable **"Allow edits from maintainers"**
 feature when submitting your pull request.
 
 The Elixir team may optionally assign someone to review a pull request.
 If someone is assigned, they must explicitly approve the code before
 another team member can merge it.
 
-When the review finishes, your pull request will be squashed and merged
-into the repository. If you have carefully organized your commits and
+**When the review finishes, your pull request will be squashed and merged
+into the repository**. If you have carefully organized your commits and
 believe they should be merged without squashing, please mention it in
 a comment.
 
