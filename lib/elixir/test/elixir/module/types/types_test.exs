@@ -443,7 +443,7 @@ defmodule Module.Types.TypesTest do
              """
     end
 
-    test "non-existant map field warning" do
+    test "non-existent map field warning" do
       string =
         warning(
           (
@@ -467,7 +467,7 @@ defmodule Module.Types.TypesTest do
              """
     end
 
-    test "non-existant struct field warning" do
+    test "non-existent struct field warning" do
       string =
         warning(
           [foo],
