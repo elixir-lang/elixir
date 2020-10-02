@@ -62,7 +62,18 @@ defmodule Logger.App do
 
   @doc false
   def config_change(changed, _new, _removed) do
-    Logger.configure(changed)
+    case changed[:level] do
+      nil ->
+        :ok
+
+      level ->
+        :logger.set_primary_config(
+          :level,
+          Logger.Handler.elixir_level_to_erlang_level(level)
+        )
+    end
+
+    ## TODO: propagate config update without blocking calls to application_controller
   end
 
   @doc """
