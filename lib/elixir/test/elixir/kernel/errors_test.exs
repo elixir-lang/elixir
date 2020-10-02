@@ -1235,7 +1235,7 @@ defmodule Kernel.ErrorsTest do
 
     assert_eval_raise CompileError,
                       ~r"nofile:1: misplaced operator |/2",
-                      "defmodule Foo, do: (def bar(1 | 2), do: :ok)"
+                      "defmodule MisplacedOperator, do: (def bar(1 | 2), do: :ok)"
   end
 
   defp bad_remote_call(x), do: x.foo
