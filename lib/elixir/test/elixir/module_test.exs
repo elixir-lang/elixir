@@ -490,10 +490,10 @@ defmodule ModuleTest do
         "tuple, got: {:foo, 256}"
 
     assert_raise ArgumentError, message, fn ->
-      Module.create(Foo, contents, __ENV__)
+      Module.create(MakeOverridable, contents, __ENV__)
     end
   after
-    purge(Foo)
+    purge(MakeOverridable)
   end
 
   test "raise when called with already compiled module" do
