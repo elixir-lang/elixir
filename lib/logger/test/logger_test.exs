@@ -647,7 +647,8 @@ defmodule LoggerTest do
     :ok = Logger.configure(level: :debug)
 
     try do
-      assert Logger.App.config_change([level: :error], [], []) === :ok
+      assert Application.put_env(:logger, :level, :error) === :ok
+      assert :application_controller.config_change(logger: [level: :debug]) === :ok
       assert Logger.level() === :error
     after
       Logger.configure(level: :debug)
