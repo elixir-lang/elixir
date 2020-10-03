@@ -158,7 +158,10 @@ defmodule String.Casing do
         )
     end)
 
-  # Downcase
+  # Sigma variants for Greek
+  @letter_sigma <<0x03A3::utf8>>
+  @letter_small_sigma_final <<0x03C2::utf8>>
+  @letter_small_sigma <<0x03C3::utf8>>
 
   # Letter I variants for Turkic languages
   @letter_I <<0x0049::utf8>>
@@ -167,38 +170,42 @@ defmodule String.Casing do
   @letter_I_dot_above <<0x0130::utf8>>
   @combining_dot_above <<0x0307::utf8>>
 
+  # Downcase
+
   # Turkic İ -> i
-  def downcase(<<unquote(@letter_I), unquote(@combining_dot_above), rest::bits>>, acc, :turkic) do
-    downcase(rest, [@letter_i | acc], :turkic)
+  def downcase(<<unquote(@letter_I_dot_above), rest::bits>>, acc, mode) do
+    char = if mode == :turkic, do: @letter_i, else: <<@letter_i, @combining_dot_above>>
+    downcase(rest, [char | acc], mode)
   end
 
-  def downcase(<<unquote(@letter_I_dot_above), rest::bits>>, acc, :turkic) do
-    downcase(rest, [@letter_i | acc], :turkic)
+  def downcase(<<@letter_I, @combining_dot_above, rest::bits>>, acc, mode) do
+    char = if mode == :turkic, do: @letter_i, else: <<@letter_i, @combining_dot_above>>
+    downcase(rest, [char | acc], mode)
   end
 
   # Turkic I -> ı
-  def downcase(<<unquote(@letter_I), rest::bits>>, acc, :turkic) do
-    downcase(rest, [@dotless_letter_i | acc], :turkic)
+  def downcase(<<@letter_I, rest::bits>>, acc, mode) do
+    char = if mode == :turkic, do: @dotless_letter_i, else: @letter_i
+    downcase(rest, [char | acc], mode)
   end
 
-  @conditional_downcase [
-    sigma = <<0x03A3::utf8>>
-  ]
-
-  def downcase(<<unquote(sigma), rest::bits>>, acc, mode) do
+  # Greek sigma
+  def downcase(<<@letter_sigma, rest::bits>>, acc, mode) do
     downcased =
       if mode == :greek and cased_letter_list?(acc) and not cased_letter_binary?(rest) do
-        <<0x03C2::utf8>>
+        @letter_small_sigma_final
       else
-        <<0x03C3::utf8>>
+        @letter_small_sigma
       end
 
     downcase(rest, [downcased | acc], mode)
   end
 
+  conditional_downcase = [@letter_I, @letter_I_dot_above, @letter_sigma]
+
   for {codepoint, _upper, lower, _title} <- codes,
       lower && lower != codepoint,
-      codepoint not in @conditional_downcase do
+      codepoint not in conditional_downcase do
     def downcase(<<unquote(codepoint), rest::bits>>, acc, mode) do
       downcase(rest, [unquote(lower) | acc], mode)
     end
@@ -259,11 +266,16 @@ defmodule String.Casing do
   # Upcase
 
   # Turkic i -> İ
-  def upcase(<<unquote(@letter_i), rest::bits>>, acc, :turkic) do
-    upcase(rest, [@letter_I_dot_above | acc], :turkic)
+  def upcase(<<@letter_i, rest::bits>>, acc, mode) do
+    char = if mode == :turkic, do: @letter_I_dot_above, else: @letter_I
+    upcase(rest, [char | acc], mode)
   end
 
-  for {codepoint, upper, _lower, _title} <- codes, upper && upper != codepoint do
+  conditional_upcase = [@letter_i]
+
+  for {codepoint, upper, _lower, _title} <- codes,
+      upper && upper != codepoint,
+      codepoint not in conditional_upcase do
     def upcase(<<unquote(codepoint), rest::bits>>, acc, mode) do
       upcase(rest, [unquote(upper) | acc], mode)
     end
@@ -280,11 +292,16 @@ defmodule String.Casing do
   def titlecase_once("", _mode), do: {"", ""}
 
   # Turkic i -> İ
-  def titlecase_once(<<@letter_i, rest::binary>>, :turkic) do
-    {@letter_I_dot_above, rest}
+  def titlecase_once(<<@letter_i, rest::binary>>, mode) do
+    char = if mode == :turkic, do: @letter_I_dot_above, else: @letter_I
+    {char, rest}
   end
 
-  for {codepoint, _upper, _lower, title} <- codes, title && title != codepoint do
+  conditional_titlecase = [@letter_i]
+
+  for {codepoint, _upper, _lower, title} <- codes,
+      title && title != codepoint,
+      codepoint not in conditional_titlecase do
     def titlecase_once(unquote(codepoint) <> rest, _mode) do
       {unquote(title), rest}
     end
