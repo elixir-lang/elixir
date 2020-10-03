@@ -255,12 +255,15 @@ defmodule List do
   end
 
   @doc """
-  Returns the first element in `list` or `nil` if `list` is empty.
+  Returns the first element in `list` or `default` if `list` is empty.
 
   ## Examples
 
       iex> List.first([])
       nil
+
+      iex> List.first([], 1)
+      1
 
       iex> List.first([1])
       1
@@ -269,18 +272,22 @@ defmodule List do
       1
 
   """
-  @spec first([]) :: nil
-  @spec first([elem, ...]) :: elem when elem: var
-  def first([]), do: nil
-  def first([head | _]), do: head
+  @spec first([], any) :: any
+  @spec first([elem, ...], any) :: elem when elem: var
+  def first(list, default \\ nil)
+  def first([], default), do: default
+  def first([head | _], _default), do: head
 
   @doc """
-  Returns the last element in `list` or `nil` if `list` is empty.
+  Returns the last element in `list` or `default` if `list` is empty.
 
   ## Examples
 
       iex> List.last([])
       nil
+
+      iex> List.last([], 1)
+      1
 
       iex> List.last([1])
       1
@@ -289,12 +296,13 @@ defmodule List do
       3
 
   """
-  @spec last([]) :: nil
-  @spec last([elem, ...]) :: elem when elem: var
-  @compile {:inline, last: 1}
-  def last([]), do: nil
-  def last([head]), do: head
-  def last([_ | tail]), do: last(tail)
+  @spec last([], any) :: any
+  @spec last([elem, ...], any) :: elem when elem: var
+  @compile {:inline, last: 2}
+  def last(list, default \\ nil)
+  def last([], default), do: default
+  def last([head], _default), do: head
+  def last([_ | tail], default), do: last(tail, default)
 
   @doc """
   Receives a list of tuples and returns the first tuple
