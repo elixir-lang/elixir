@@ -286,7 +286,7 @@ defmodule String do
   @typedoc "Pattern used in functions like `replace/4` and `split/3`"
   @type pattern :: t | [t] | :binary.cp()
 
-  @conditional_mappings [:greek]
+  @conditional_mappings [:greek, :turkic]
 
   @doc """
   Checks if a string contains only printable characters up to `character_limit`.
@@ -759,10 +759,10 @@ defmodule String do
   @doc """
   Converts all characters in the given string to uppercase according to `mode`.
 
-  `mode` may be `:default`, `:ascii` or `:greek`. The `:default` mode considers
+  `mode` may be `:default`, `:ascii`, `:greek` or `:turkic`. The `:default` mode considers
   all non-conditional transformations outlined in the Unicode standard. `:ascii`
   uppercases only the letters a to z. `:greek` includes the context sensitive
-  mappings found in Greek.
+  mappings found in Greek. `:turkic` properly handles the letter i with the dotless variant.
 
   ## Examples
 
@@ -782,8 +782,16 @@ defmodule String do
       iex> String.upcase("olá", :ascii)
       "OLá"
 
+  And `:turkic` properly handles the letter i with the dotless variant:
+
+      iex> String.upcase("ıi")
+      "II"
+
+      iex> String.upcase("ıi", :turkic)
+      "Iİ"
+
   """
-  @spec upcase(t, :default | :ascii | :greek) :: t
+  @spec upcase(t, :default | :ascii | :greek | :turkic) :: t
   def upcase(string, mode \\ :default)
 
   def upcase("", _mode) do
@@ -811,10 +819,10 @@ defmodule String do
   @doc """
   Converts all characters in the given string to lowercase according to `mode`.
 
-  `mode` may be `:default`, `:ascii` or `:greek`. The `:default` mode considers
+  `mode` may be `:default`, `:ascii`, `:greek` or `:turkic`. The `:default` mode considers
   all non-conditional transformations outlined in the Unicode standard. `:ascii`
   lowercases only the letters A to Z. `:greek` includes the context sensitive
-  mappings found in Greek.
+  mappings found in Greek. `:turkic` properly handles the letter i with the dotless variant.
 
   ## Examples
 
@@ -834,7 +842,7 @@ defmodule String do
       iex> String.downcase("OLÁ", :ascii)
       "olÁ"
 
-  And `:greek` properly handles the context sensitive sigma in Greek:
+  The `:greek` mode properly handles the context sensitive sigma in Greek:
 
       iex> String.downcase("ΣΣ")
       "σσ"
@@ -842,8 +850,16 @@ defmodule String do
       iex> String.downcase("ΣΣ", :greek)
       "σς"
 
+  And `:turkic` properly handles the letter i with the dotless variant:
+
+      iex> String.downcase("Iİ")
+      "ii̇"
+
+      iex> String.downcase("Iİ", :turkic)
+      "ıi"
+
   """
-  @spec downcase(t, :default | :ascii | :greek) :: t
+  @spec downcase(t, :default | :ascii | :greek | :turkic) :: t
   def downcase(string, mode \\ :default)
 
   def downcase("", _mode) do
@@ -872,10 +888,10 @@ defmodule String do
   Converts the first character in the given string to
   uppercase and the remainder to lowercase according to `mode`.
 
-  `mode` may be `:default`, `:ascii` or `:greek`. The `:default` mode considers
+  `mode` may be `:default`, `:ascii`, `:greek` or `:turkic`. The `:default` mode considers
   all non-conditional transformations outlined in the Unicode standard. `:ascii`
   capitalizes only the letters A to Z. `:greek` includes the context sensitive
-  mappings found in Greek.
+  mappings found in Greek. `:turkic` properly handles the letter i with the dotless variant.
 
   ## Examples
 
@@ -889,7 +905,7 @@ defmodule String do
       "Olá"
 
   """
-  @spec capitalize(t, :default | :ascii | :greek) :: t
+  @spec capitalize(t, :default | :ascii | :greek | :turkic) :: t
   def capitalize(string, mode \\ :default)
 
   def capitalize(<<char, rest::binary>>, :ascii) do
