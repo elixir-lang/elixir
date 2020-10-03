@@ -62,11 +62,9 @@ defmodule Logger.App do
 
   @doc false
   def config_change(changed, _new, _removed) do
-    # All other config has already been persisted
-    # NOTE: when sending other config this function might deadlock
+    # All other config has already been persisted, we only need to
+    # update the level and reload the logger state.
     Logger.configure(Keyword.take(changed, [:level]))
-
-    ## TODO: propagate config update without blocking calls to application_controller
   end
 
   @doc """
