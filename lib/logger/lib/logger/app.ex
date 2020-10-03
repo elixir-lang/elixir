@@ -62,7 +62,9 @@ defmodule Logger.App do
 
   @doc false
   def config_change(changed, _new, _removed) do
-    Logger.configure(changed)
+    # All other config has already been persisted, we only need to
+    # update the level and reload the logger state.
+    Logger.configure(Keyword.take(changed, [:level]))
   end
 
   @doc """
