@@ -645,7 +645,7 @@ defmodule String do
   end
 
   @doc ~S"""
-  Returns `true` if `string1` is canonically equivalent to 'string2'.
+  Returns `true` if `string1` is canonically equivalent to `string2`.
 
   It performs Normalization Form Canonical Decomposition (NFD) on the
   strings before comparing them. This function is equivalent to:
