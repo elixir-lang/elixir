@@ -72,12 +72,14 @@ defmodule ListTest do
 
   test "first/1" do
     assert List.first([]) == nil
+    assert List.first([], 1) == 1
     assert List.first([1]) == 1
     assert List.first([1, 2, 3]) == 1
   end
 
   test "last/1" do
     assert List.last([]) == nil
+    assert List.last([], 1) == 1
     assert List.last([1]) == 1
     assert List.last([1, 2, 3]) == 3
   end
