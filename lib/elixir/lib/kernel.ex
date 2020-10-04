@@ -307,7 +307,7 @@ defmodule Kernel do
 
   An `ArgumentError` is raised when the length is outside of the binary:
 
-      iex> binary_part("Hello", 0, 10)
+      binary_part("Hello", 0, 10)
       ** (ArgumentError) argument error
 
   """
