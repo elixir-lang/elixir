@@ -45,7 +45,7 @@ defmodule Map do
       map.foo
       #=> "bar"
       map.non_existing_key
-      #=> ** (KeyError) key :non_existing_key not found in: %{baz: "bong", foo: "bar"}
+      ** (KeyError) key :non_existing_key not found in: %{baz: "bong", foo: "bar"}
 
   > Note: do not add parens when accessing fields, such as in `data.key()`.
   > If parenthesis are used, Elixir will consider it to be a function call
