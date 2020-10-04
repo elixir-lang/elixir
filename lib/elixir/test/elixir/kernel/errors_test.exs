@@ -636,6 +636,22 @@ defmodule Kernel.ErrorsTest do
                         "nofile:1: unknown key :age for struct Kernel.ErrorsTest.GoodStruct",
                         '%#{GoodStruct}{age: 27} = %{}'
     end
+
+    test "enforce @enforce_keys" do
+      defmodule EnforceKeys do
+        @enforce_keys [:foo]
+        defstruct(foo: nil)
+      end
+
+      assert_raise ArgumentError,
+                   "@enforce_keys required keys ([:fo, :bar]) that are not defined in defstruct: [foo: nil]",
+                   fn ->
+                     defmodule EnforceKeysError do
+                       @enforce_keys [:foo, :fo, :bar]
+                       defstruct(foo: nil)
+                     end
+                   end
+    end
   end
 
   test "name for defmodule" do
