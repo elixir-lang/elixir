@@ -108,7 +108,16 @@ defmodule Kernel.Utils do
     :lists.foreach(foreach, enforce_keys)
 
     struct = :maps.put(:__struct__, module, :maps.from_list(fields))
-    {struct, enforce_keys, Module.get_attribute(module, :derive)}
+
+    case enforce_keys -- :maps.keys(struct) do
+      [] ->
+        {struct, enforce_keys, Module.get_attribute(module, :derive)}
+
+      error_keys ->
+        raise ArgumentError,
+              "@enforce_keys required keys (#{inspect(error_keys)}) that are not defined in defstruct: " <>
+                "#{inspect(fields)}"
+    end
   end
 
   defp warn_on_duplicate_struct_key([]) do
