@@ -281,7 +281,8 @@ defmodule Logger do
 
   The available backends by default are:
 
-    * `:console` - logs messages to the console (enabled by default)
+    * `:console` - logs messages to the console (enabled by default).
+      `:console` is simply a shortcut for `Logger.Backends.Console`.
 
   Developers may also implement their own backends, an option that
   is explored in more detail below.
@@ -313,105 +314,6 @@ defmodule Logger do
       config :logger, :debug_backend,
         level: :debug
         # other options
-
-  ### Console backend
-
-  The console backend logs messages by printing them to the console.
-  It supports the following options:
-
-    * `:level` - the level to be logged by this backend.
-      Note that messages are filtered by the general
-      `:level` configuration for the `:logger` application first.
-
-    * `:format` - the format message used to print logs.
-      Defaults to: `"\n$time $metadata[$level] $levelpad$message\n"`.
-      It may also be a `{module, function}` tuple that is invoked
-      with the log level, the message, the current timestamp and
-      the metadata.
-
-    * `:metadata` - the metadata to be printed by `$metadata`.
-      Defaults to an empty list (no metadata).
-      Setting `:metadata` to `:all` prints all metadata. See
-      the "Metadata" section for more information.
-
-    * `:colors` - a keyword list of coloring options.
-
-    * `:device` - the device to log error messages to. Defaults to
-      `:user` but can be changed to something else such as `:standard_error`.
-
-    * `:max_buffer` - maximum events to buffer while waiting
-      for a confirmation from the IO device (default: 32).
-      Once the buffer is full, the backend will block until
-      a confirmation is received.
-
-  The supported keys in the `:colors` keyword list are:
-
-    * `:enabled` - boolean value that allows for switching the
-      coloring on and off. Defaults to: `IO.ANSI.enabled?/0`
-
-    * `:debug` - color for debug messages. Defaults to: `:cyan`
-
-    * `:info` - color for info and notice messages. Defaults to: `:normal`
-
-    * `:warn` - color for warning messages. Defaults to: `:yellow`
-
-    * `:error` - color for error and higher messages. Defaults to: `:red`
-
-  See the `IO.ANSI` module for a list of colors and attributes.
-
-  Here is an example of how to configure the `:console` backend in a
-  `config/config.exs` file:
-
-      config :logger, :console,
-        format: "\n$time $metadata[$level] $levelpad$message\n",
-        metadata: [:user_id]
-
-  ### Custom formatting
-
-  The console backend allows you to customize the format of your
-  log messages with the `:format` option.
-
-  You may set `:format` to either a string or a `{module, function}`
-  tuple if you wish to provide your own format function. Here is an
-  example of how to configure the `:console` backend in a
-  `config/config.exs` file:
-
-      config :logger, :console,
-        format: {MyConsoleLogger, :format}
-
-  And here is an example of how you can define `MyConsoleLogger.format/4`
-  from the above configuration:
-
-      defmodule MyConsoleLogger do
-        def format(level, message, timestamp, metadata) do
-          # Custom formatting logic...
-        end
-      end
-
-  It is extremely important that **the formatting function does
-  not fail**, as it will bring that particular logger instance down,
-  causing your system to temporarily lose messages. If necessary,
-  wrap the function in a `rescue` and log a default message instead:
-
-      defmodule MyConsoleLogger do
-        def format(level, message, timestamp, metadata) do
-          # Custom formatting logic...
-        rescue
-          _ -> "could not format: #{inspect({level, message, metadata})}"
-        end
-      end
-
-  The `{module, function}` will be invoked with four arguments:
-
-    * the log level: an atom
-    * the message: this is usually chardata, but in some cases it
-      may contain invalid data. Since the formatting function should
-      *never* fail, you need to prepare for the message being anything
-    * the current timestamp: a term of type `t:Logger.Formatter.time/0`
-    * the metadata: a keyword list
-
-  You can read more about formatting in `Logger.Formatter`, especially
-  if you want to support custom formatting in a custom backend.
 
   ### Elixir custom backends
 
