@@ -58,6 +58,10 @@ defmodule IEx.Config do
     Application.get_env(:iex, :alive_continuation_prompt, alive_prompt())
   end
 
+  def parser() do
+    Application.get_env(:iex, :parser, {IEx.Evaluator, :parse, []})
+  end
+
   def color(color) do
     color(color, Application.get_env(:iex, :colors, []))
   end
