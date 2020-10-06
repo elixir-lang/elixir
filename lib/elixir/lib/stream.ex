@@ -1584,7 +1584,7 @@ defmodule Stream do
 end
 
 defimpl Enumerable, for: Stream do
-  @compile :inline_list_funs
+  @compile :inline_list_funcs
 
   def count(_lazy), do: {:error, __MODULE__}
 
