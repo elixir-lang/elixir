@@ -255,15 +255,12 @@ defmodule List do
   end
 
   @doc """
-  Returns the first element in `list` or `default` if `list` is empty.
+  Returns the first element in `list` or `nil` if `list` is empty.
 
   ## Examples
 
       iex> List.first([])
       nil
-
-      iex> List.first([], 1)
-      1
 
       iex> List.first([1])
       1
@@ -272,22 +269,41 @@ defmodule List do
       1
 
   """
+  @doc since: "1.0.0"
+  @spec first([]) :: nil
+  @spec first([elem, ...]) :: elem when elem: var
+  def first(list),
+    do: first(list, nil)
+
+  @doc """
+  Returns the first element in `list` or `default` if `list` is empty.
+
+  ## Examples
+
+      iex> List.first([], nil)
+      nil
+
+      iex> List.first([1], nil)
+      1
+
+      iex> List.first([1, 2, 3], nil)
+      1
+
+  """
+  @doc since: "1.12.0"
   @spec first([], any) :: any
   @spec first([elem, ...], any) :: elem when elem: var
-  def first(list, default \\ nil)
+  def first(list, default)
   def first([], default), do: default
   def first([head | _], _default), do: head
 
   @doc """
-  Returns the last element in `list` or `default` if `list` is empty.
+  Returns the last element in `list` or `nil` if `list` is empty.
 
   ## Examples
 
       iex> List.last([])
       nil
-
-      iex> List.last([], 1)
-      1
 
       iex> List.last([1])
       1
@@ -296,10 +312,32 @@ defmodule List do
       3
 
   """
+  @doc since: "1.1.0"
+  @spec last([]) :: nil
+  @spec last([elem, ...]) :: elem when elem: var
+  def last(list),
+    do: last(list, nil)
+
+  @doc """
+  Returns the last element in `list` or `default` if `list` is empty.
+
+  ## Examples
+
+      iex> List.last([], nil)
+      nil
+
+      iex> List.last([1], nil)
+      1
+
+      iex> List.last([1, 2, 3], nil)
+      3
+
+  """
+  @doc since: "1.12.0"
   @spec last([], any) :: any
   @spec last([elem, ...], any) :: elem when elem: var
   @compile {:inline, last: 2}
-  def last(list, default \\ nil)
+  def last(list, default)
   def last([], default), do: default
   def last([head], _default), do: head
   def last([_ | tail], default), do: last(tail, default)
