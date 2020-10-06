@@ -227,7 +227,7 @@ defmodule Mix.Tasks.TestTest do
       in_fixture("test_stale", fn ->
         port = mix_port(~w[test --stale --listen-on-stdin])
 
-        assert receive_until_match(port, "seed", "") =~ "2 tests"
+        assert receive_until_match(port, "failures", "") =~ "2 tests"
 
         Port.command(port, "\n")
 
@@ -255,7 +255,7 @@ defmodule Mix.Tasks.TestTest do
 
         Port.command(port, "\n")
 
-        assert receive_until_match(port, "seed", "") =~ "2 tests"
+        assert receive_until_match(port, "failures", "") =~ "2 tests"
 
         File.write!("test/b_test_stale.exs", """
         defmodule BTest do
@@ -284,7 +284,7 @@ defmodule Mix.Tasks.TestTest do
 
         Port.command(port, "\n")
 
-        assert receive_until_match(port, "seed", "") =~ "2 tests"
+        assert receive_until_match(port, "failures", "") =~ "2 tests"
       end)
     end
   end
@@ -382,23 +382,27 @@ defmodule Mix.Tasks.TestTest do
                Paths given to "mix test" did not match any directory/file: apps/unknown_app/test
                """
 
-        output = mix(["test", "apps/bar/test/bar_tests.exs"])
+        output = mix(["test", "apps/bar/test/bar_tests.exs", "--seed", "1"])
 
         assert output =~ """
                ==> bar
+
+               Randomized with seed 1
                .
                """
 
         refute output =~ "==> foo"
         refute output =~ "Paths given to \"mix test\" did not match any directory/file"
 
-        output = mix(["test", "apps/bar/test/bar_tests.exs:10"])
+        output = mix(["test", "apps/bar/test/bar_tests.exs:10", "--seed", "1"])
 
         assert output =~ """
                ==> bar
                Excluding tags: [:test]
                Including tags: [line: \"10\"]
 
+
+               Randomized with seed 1
                .
                """
 

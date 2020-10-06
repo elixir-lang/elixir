@@ -28,6 +28,7 @@ defmodule ExUnit.CLIFormatter do
   end
 
   def handle_cast({:suite_started, _opts}, config) do
+    IO.puts("\nRandomized with seed #{config.seed}")
     {:noreply, config}
   end
 
@@ -283,8 +284,6 @@ defmodule ExUnit.CLIFormatter do
       config.invalid_counter > 0 -> IO.puts(invalid(message, config))
       true -> IO.puts(success(message, config))
     end
-
-    IO.puts("\nRandomized with seed #{config.seed}")
   end
 
   defp if_true(value, false, _fun), do: value
