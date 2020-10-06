@@ -257,6 +257,8 @@ defmodule List do
   @doc """
   Returns the first element in `list` or `default` if `list` is empty.
 
+  `first/2` has been introduced in Elixir v1.12.0, while `first/1` has been available since v1.0.0.
+
   ## Examples
 
       iex> List.first([])
@@ -280,6 +282,8 @@ defmodule List do
 
   @doc """
   Returns the last element in `list` or `default` if `list` is empty.
+
+  `last/2` has been introduced in Elixir v1.12.0, while `last/1` has been available since v1.0.0.
 
   ## Examples
 
