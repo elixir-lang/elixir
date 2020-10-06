@@ -175,25 +175,11 @@ defmodule Mix.Compilers.ApplicationTracer do
     table
   end
 
-  # TODO: Update from Elixir v1.15 onwards.
-  #
-  # We support extra_applications: [mix: :optional] from v1.11,
-  # so those using IEx, Mix and ExUnit can declare it as an
-  # optional apps under extra_applications from v1.15.
-  #
-  # For Mix, this means removing it from the list below.
-  #
-  # For ExUnit, we always include it but we should no longer
-  # load it. Then only "mix test" will load ex_unit, which
-  # means that ExUnit deps won't warn when testing code but
-  # it will when compiling. Similar for IEx.
-  #
-  # When we do these changes, we should improve the warning
-  # messages for mix/ex_unit/iex to point to optional apps.
   defp extra_apps(config) do
     case Keyword.get(config, :language, :elixir) do
       :elixir ->
         Application.ensure_loaded(:ex_unit)
+        Application.ensure_loaded(:iex)
         [:ex_unit, :iex, :mix]
 
       :erlang ->
