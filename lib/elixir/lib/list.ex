@@ -274,7 +274,6 @@ defmodule List do
       1
 
   """
-  @doc since: "1.12.0"
   @spec first([], any) :: any
   @spec first([elem, ...], any) :: elem when elem: var
   def first(list, default \\ nil)
@@ -301,7 +300,6 @@ defmodule List do
       3
 
   """
-  @doc since: "1.12.0"
   @spec last([], any) :: any
   @spec last([elem, ...], any) :: elem when elem: var
   @compile {:inline, last: 2}
