@@ -356,6 +356,7 @@ defmodule IEx do
     * `:continuation_prompt`
     * `:alive_prompt`
     * `:alive_continuation_prompt`
+    * `:parser`
 
   They are discussed individually in the sections below.
 
@@ -452,6 +453,18 @@ defmodule IEx do
     * `%prefix`  - a prefix given by `IEx.Server`
     * `%node`    - the name of the local node
 
+  ## Parser
+
+  This is an option determining the parser to use for IEx.
+
+  The parser is a "mfargs", which is a tuple with three elements:
+  the module name, the function name, and extra arguments to
+  be appended. The parser receives at least three arguments, the
+  current input as a string, the parsing options as a keyword list,
+  and the buffer as a string. It must return `{:ok, expr, buffer}`
+  or `{:incomplete, buffer}`.
+
+  If the parser raises, the buffer is reset to an empty string.
   """
   @spec configure(keyword()) :: :ok
   def configure(options) do
