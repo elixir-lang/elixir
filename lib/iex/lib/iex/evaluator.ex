@@ -49,6 +49,39 @@ defmodule IEx.Evaluator do
     end
   end
 
+  # If parsing fails, this might be a TokenMissingError which we treat in
+  # a special way (to allow for continuation of an expression on the next
+  # line in IEx).
+  #
+  # The first two clauses provide support for the break-trigger allowing to
+  # break out from a pending incomplete expression. See
+  # https://github.com/elixir-lang/elixir/issues/1089 for discussion.
+  @break_trigger "#iex:break\n"
+
+  @doc false
+  def parse(@break_trigger, _opts, "") do
+    {:incomplete, ""}
+  end
+
+  def parse(@break_trigger, opts, _buffer) do
+    :elixir_errors.parse_error([line: opts[:line]], opts[:file], "incomplete expression", "")
+  end
+
+  def parse(input, opts, buffer) do
+    input = buffer <> input
+
+    case Code.string_to_quoted(input, opts) do
+      {:ok, forms} ->
+        {:ok, forms, ""}
+
+      {:error, {_, _, ""}} ->
+        {:incomplete, input}
+
+      {:error, {location, error, token}} ->
+        :elixir_errors.parse_error(location, opts[:file], error, token)
+    end
+  end
+
   @doc """
   Gets a value out of the binding, using the provided
   variable name and map key path.
@@ -201,49 +234,11 @@ defmodule IEx.Evaluator do
     end
   end
 
-  # Instead of doing just :elixir.eval, we first parse the expression to see
-  # if it's well formed. If parsing succeeds, we evaluate the AST as usual.
-  #
-  # If parsing fails, this might be a TokenMissingError which we treat in
-  # a special way (to allow for continuation of an expression on the next
-  # line in IEx).
-  #
-  # Returns updated state.
-  #
-  # The first two clauses provide support for the break-trigger allowing to
-  # break out from a pending incomplete expression. See
-  # https://github.com/elixir-lang/elixir/issues/1089 for discussion.
-  @break_trigger "#iex:break\n"
-
-  @doc false
-  def parse(@break_trigger, _opts, "") do
-    {:incomplete, ""}
-  end
-
-  @doc false
-  def parse(@break_trigger, opts, _buffer) do
-    :elixir_errors.parse_error([line: opts[:line]], opts[:file], "incomplete expression", "")
-  end
-
-  @doc false
-  def parse(input, opts, buffer) do
-    input = buffer <> input
-
-    case Code.string_to_quoted(input, opts) do
-      {:ok, forms} ->
-        {:ok, forms, ""}
-
-      {:error, {_, _, ""}} ->
-        {:incomplete, input}
-
-      {:error, {location, error, token}} ->
-        :elixir_errors.parse_error(location, opts[:file], error, token)
-    end
-  end
-
   defp eval(code, iex_state, state) do
     try do
-      do_eval(code, iex_state, state)
+      {parser_module, parser_fun, args} = IEx.Config.parser()
+      args = [code, [line: iex_state.counter, file: "iex"], iex_state.buffer | args]
+      do_eval(apply(parser_module, parser_fun, args), iex_state, state)
     catch
       kind, error ->
         print_error(kind, error, __STACKTRACE__)
@@ -251,26 +246,18 @@ defmodule IEx.Evaluator do
     end
   end
 
-  defp do_eval(latest_input, iex_state, state) do
-    line = iex_state.counter
+  defp do_eval({:ok, forms, buffer}, iex_state, state) do
     put_history(state)
     put_whereami(state)
-    {parser_module, parse_method, additional_args} = IEx.Config.parser()
-    arguments = [latest_input, [line: line, file: "iex"], iex_state.buffer | additional_args]
-
-    case apply(parser_module, parse_method, arguments) do
-      {:ok, forms, buffer} ->
-        iex_state = %{iex_state | buffer: buffer, counter: iex_state.counter + 1}
-        {iex_state, handle_eval(forms, line, state)}
-
-      {:incomplete, buffer} ->
-        # Update iex_state.buffer so that IEx continues to add new input to
-        # the unfinished expression in "code"
-        {%{iex_state | buffer: buffer}, state}
-    end
+    state = handle_eval(forms, iex_state.counter, state)
+    {%{iex_state | buffer: buffer, counter: iex_state.counter + 1}, state}
   after
     Process.delete(:iex_history)
     Process.delete(:iex_whereami)
+  end
+
+  defp do_eval({:incomplete, buffer}, iex_state, state) do
+    {%{iex_state | buffer: buffer}, state}
   end
 
   defp put_history(%{history: history}) do
