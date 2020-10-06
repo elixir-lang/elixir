@@ -4,6 +4,19 @@
 
 ### 1. Enhancements
 
+#### Elixir
+
+  * [List] Add default value for `List.first/1` and `List.last/1`
+  * [String] Add `:turkic` mode option to String case functions
+
+#### ExUnit
+
+  * [ExUnit] Intercept SIGQUIT and show a list of all aborted tests as well as intermediate test results
+
+#### IEx
+
+  * [IEx] Make IEx' parser to be configurable to allow special commands
+
 ### 2. Bug fixes
 
   * [Kernel] Public functions without documentation now appear as an empty map on `Code.fetch_docs/1`, unless they start with underscore, where they remain as `:none`. This aligns Elixir's implementation with EEP48
