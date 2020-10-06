@@ -1621,7 +1621,7 @@ defimpl Enumerable, for: Stream do
   defp do_done({reason, [acc | _]}, nil), do: {reason, acc}
 
   defp do_done({reason, [acc | t]}, {done, fun}) do
-    [h | _] = Enum.reverse(t)
+    [h | _] = :lists.reverse(t)
 
     case done.([acc, h], fun) do
       {:cont, [acc | _]} -> {reason, acc}
@@ -1635,7 +1635,7 @@ defimpl Inspect, for: Stream do
   import Inspect.Algebra
 
   def inspect(%{enum: enum, funs: funs}, opts) do
-    inner = [enum: enum, funs: Enum.reverse(funs)]
+    inner = [enum: enum, funs: :lists.reverse(funs)]
     concat(["#Stream<", to_doc(inner, opts), ">"])
   end
 end
