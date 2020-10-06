@@ -243,7 +243,7 @@ The Calendar module ships with a new `Calendar.strftime/3` function, which provi
 
 Mix also includes two new tasks: `mix app.config`, for application runtime configuration, and `mix test.coverage`, which generates aggregated coverage reports for umbrella projects and for test suites partitioned across processes.
 
-## v1.11.0-rc.0 (2020-09-14)
+## v1.11.0 (2020-10-06)
 
 ### 1. Enhancements
 
@@ -284,6 +284,7 @@ Mix also includes two new tasks: `mix app.config`, for application runtime confi
   * [ExUnit] Add `@tag :tmp_dir` support to ExUnit. The temporary directory is automatically created and pruned before each test
   * [ExUnit] Add file and line to ExUnit's `--trace`
   * [ExUnit.Assertion] Allow receive timeouts to be computed at runtime
+  * [ExUnit.Case] Add `register_test/6` to speed up compilation of custom tests
   * [ExUnit.Doctest] Allow users to add tags to doctests
 
 #### IEx
@@ -343,6 +344,7 @@ Mix also includes two new tasks: `mix app.config`, for application runtime confi
   * [Kernel] Properly parse `&//2` (i.e. the capture of the division operator)
   * [Kernel] Raise `CompileError` when trying to define reserved types
   * [Kernel] Improve compiler error message when using `|` in a `def` signature
+  * [Kernel] Improve error message when trying to use invalid list operators in guards
   * [Kernel.SpecialForms] Add `|/2` to the list of special forms to avoid inconsistent behaviour on overrides
   * [Keyword] Enforce keys to be atoms in `Keyword.keys/1`
   * [Record] Keep lexical ordering when creating records
@@ -359,7 +361,7 @@ Mix also includes two new tasks: `mix app.config`, for application runtime confi
 #### IEx
 
   * [IEx] Fix tokenizer emitting repeated warnings in the REPL
-  * [IEx] Ensure `dot_iex_path` is preserved when restarting the evaluator
+  * [IEx] Ensure `--dot-iex` is preserved when restarting the evaluator and after shell respawn
   * [IEx.Pry] Ensure `IEx.pry` can be triggered more than twice when invoked from the same process
 
 #### Mix
