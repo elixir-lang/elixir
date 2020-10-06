@@ -19,11 +19,66 @@ defmodule ExUnitTest do
     end
 
     ExUnit.Server.modules_loaded()
-    configure_and_reload_on_exit(colors: [enabled: false])
+    configure_and_reload_on_exit([])
 
     assert capture_io(fn ->
              assert ExUnit.run() == %{failures: 2, skipped: 0, total: 2, excluded: 0}
            end) =~ "\n2 tests, 2 failures\n"
+  end
+
+  test "prints aborted runs on sigquit", config do
+    Process.register(self(), :aborted_on_sigquit)
+    line = __ENV__.line + 5
+
+    defmodule SleepOnTest do
+      use ExUnit.Case, async: true
+
+      test "true" do
+        send(:aborted_on_sigquit, :sleeping)
+        Process.sleep(:infinity)
+      end
+    end
+
+    defmodule SleepOnSetupAll do
+      use ExUnit.Case, async: true
+
+      setup_all do
+        send(:aborted_on_sigquit, :sleeping)
+        Process.sleep(:infinity)
+      end
+
+      test "true", do: :ok
+    end
+
+    ExUnit.Server.modules_loaded()
+    configure_and_reload_on_exit(max_cases: 8)
+
+    result =
+      capture_io(fn ->
+        {pid, ref} = spawn_monitor(fn -> ExUnit.run() end)
+        assert_receive :sleeping
+        assert_receive :sleeping
+
+        # We are testing implementation details but since this involves
+        # the signal handler, it is truly the only way to test it.
+        send(pid, {ref, self(), :sigquit})
+
+        receive do
+          ^ref -> :ok
+        end
+      end)
+
+    assert result =~ "Aborting test suite, the following have not completed:"
+    assert result =~ ~r"\* ExUnitTest.SleepOnSetupAll \[.*test/ex_unit_test.exs\]"
+    assert result =~ ~r"\* test true \[.*test/ex_unit_test.exs:#{line}\]"
+
+    assert result =~ """
+           Showing results so far...
+
+           0 failures
+
+           Randomized with seed 0
+           """
   end
 
   test "doesn't hang on exits" do
@@ -40,7 +95,7 @@ defmodule ExUnitTest do
     end
 
     ExUnit.Server.modules_loaded()
-    configure_and_reload_on_exit(colors: [enabled: false])
+    configure_and_reload_on_exit([])
 
     assert capture_io(fn ->
              assert ExUnit.run() == %{failures: 1, skipped: 0, total: 1, excluded: 0}
@@ -100,38 +155,25 @@ defmodule ExUnitTest do
       end
     end
 
-    configure_and_reload_on_exit([])
-    ExUnit.start(slowest: 2)
     ExUnit.Server.modules_loaded()
+    configure_and_reload_on_exit(slowest: 2)
 
     output = capture_io(fn -> ExUnit.run() end)
-
     assert output =~ ~r"Top 2 slowest \(\d+\.\d+s\), \d+.\d% of total time:"
     assert output =~ ~r"\* test slowest \(.+ms\)"
     assert output =~ ~r"\* test delayed \(.+ms\)"
   end
 
   test "sets max cases to one with trace enabled" do
-    configure_and_reload_on_exit([])
-    ExUnit.start(trace: true, max_cases: 10, autorun: false)
+    configure_and_reload_on_exit(trace: true, max_cases: 10)
     config = ExUnit.configuration()
     assert config[:trace]
     assert config[:max_cases] == 1
     assert config[:timeout] == 60000
   end
 
-  test "does not set timeout to infinity and the max cases to 1 with trace disabled" do
-    configure_and_reload_on_exit([])
-    ExUnit.start(trace: false, autorun: false)
-    config = ExUnit.configuration()
-    refute config[:trace]
-    assert config[:max_cases] == System.schedulers_online() * 2
-    assert config[:timeout] == 60000
-  end
-
   test "sets trace when slowest is enabled" do
-    configure_and_reload_on_exit([])
-    ExUnit.start(slowest: 10, max_cases: 10, autorun: false)
+    configure_and_reload_on_exit(slowest: 10, max_cases: 10)
     config = ExUnit.configuration()
     assert config[:trace]
     assert config[:slowest] == 10
@@ -267,7 +309,7 @@ defmodule ExUnitTest do
     end)
 
     ExUnit.Server.modules_loaded()
-    configure_and_reload_on_exit(colors: [enabled: false])
+    configure_and_reload_on_exit([])
 
     output =
       capture_io(fn ->
@@ -323,7 +365,7 @@ defmodule ExUnitTest do
     end
 
     ExUnit.Server.modules_loaded()
-    configure_and_reload_on_exit(colors: [enabled: false])
+    configure_and_reload_on_exit([])
 
     output =
       capture_io(fn ->
@@ -355,7 +397,6 @@ defmodule ExUnitTest do
 
     output =
       capture_io(fn ->
-        predictable_ex_unit_start([])
         assert ExUnit.run() == %{failures: 0, skipped: 2, total: 2, excluded: 0}
       end)
 
@@ -421,7 +462,7 @@ defmodule ExUnitTest do
     end
 
     ExUnit.Server.modules_loaded()
-    configure_and_reload_on_exit(colors: [enabled: false])
+    configure_and_reload_on_exit([])
 
     output =
       capture_io(fn ->
@@ -471,8 +512,6 @@ defmodule ExUnitTest do
   end
 
   test "seed is predictable and different for each test" do
-    configure_and_reload_on_exit(seed: 1, colors: [enabled: false])
-
     defmodule PredictableSeedTest do
       use ExUnit.Case, async: true
 
@@ -494,6 +533,7 @@ defmodule ExUnitTest do
     end
 
     ExUnit.Server.modules_loaded()
+    configure_and_reload_on_exit(seed: 1)
 
     assert capture_io(fn ->
              assert ExUnit.run() == %{failures: 0, skipped: 0, total: 3, excluded: 0}
@@ -532,7 +572,6 @@ defmodule ExUnitTest do
 
     output =
       capture_io(fn ->
-        predictable_ex_unit_start([])
         assert ExUnit.run() == %{total: 6, failures: 4, excluded: 1, skipped: 1}
       end)
 
@@ -607,11 +646,10 @@ defmodule ExUnitTest do
       end
 
       ExUnit.Server.modules_loaded()
-      configure_and_reload_on_exit([])
+      configure_and_reload_on_exit(max_failures: 2)
 
       output =
         capture_io(fn ->
-          predictable_ex_unit_start(max_failures: 2)
           assert ExUnit.run() == %{total: 6, failures: 2, skipped: 1, excluded: 1}
         end)
 
@@ -640,11 +678,10 @@ defmodule ExUnitTest do
       end
 
       ExUnit.Server.modules_loaded()
-      configure_and_reload_on_exit([])
+      configure_and_reload_on_exit(max_failures: 3)
 
       output =
         capture_io(fn ->
-          predictable_ex_unit_start(max_failures: 3)
           assert ExUnit.run() == %{total: 8, excluded: 2, failures: 2, skipped: 1}
         end)
 
@@ -676,11 +713,10 @@ defmodule ExUnitTest do
       end
 
       ExUnit.Server.modules_loaded()
-      configure_and_reload_on_exit([])
+      configure_and_reload_on_exit(max_failures: 2)
 
       output =
         capture_io(fn ->
-          predictable_ex_unit_start(max_failures: 2)
           assert ExUnit.run() == %{total: 7, failures: 2, excluded: 2, skipped: 2}
         end)
 
@@ -712,11 +748,10 @@ defmodule ExUnitTest do
       end
 
       ExUnit.Server.modules_loaded()
-      configure_and_reload_on_exit([])
+      configure_and_reload_on_exit(max_failures: 2)
 
       output =
         capture_io(fn ->
-          predictable_ex_unit_start(max_failures: 2)
           assert ExUnit.run() == %{total: 4, failures: 2, excluded: 1, skipped: 1}
         end)
 
@@ -741,11 +776,10 @@ defmodule ExUnitTest do
       end
 
       ExUnit.Server.modules_loaded()
-      configure_and_reload_on_exit([])
+      configure_and_reload_on_exit(max_failures: 1)
 
       output =
         capture_io(fn ->
-          predictable_ex_unit_start(max_failures: 1)
           assert ExUnit.run() == %{total: 1, failures: 1, excluded: 0, skipped: 0}
         end)
 
@@ -784,16 +818,15 @@ defmodule ExUnitTest do
 
   defp configure_and_reload_on_exit(opts) do
     old_opts = ExUnit.configuration()
-    ExUnit.configure(opts)
+
+    ExUnit.configure(
+      Keyword.merge(
+        [autorun: false, seed: 0, colors: [enabled: false], exclude: [:exclude]],
+        opts
+      )
+    )
 
     on_exit(fn -> ExUnit.configure(old_opts) end)
-  end
-
-  # Runs ExUnit.start/1 with common options needed for predictability
-  defp predictable_ex_unit_start(options) do
-    ExUnit.start(
-      options ++ [autorun: false, seed: 0, colors: [enabled: false], exclude: [:exclude]]
-    )
   end
 
   defp max_failures_reached_msg() do

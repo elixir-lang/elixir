@@ -32,7 +32,16 @@ defmodule ExUnit.CLIFormatter do
   end
 
   def handle_cast({:suite_finished, run_us, load_us}, config) do
-    print_suite(config, run_us, load_us)
+    IO.write("\n\n")
+    IO.puts(format_time(run_us, load_us))
+
+    if config.slowest > 0 do
+      IO.write("\n")
+      IO.puts(format_slowest_total(config, run_us))
+      IO.puts(format_slowest_times(config))
+    end
+
+    print_summary(config, false)
     {:noreply, config}
   end
 
@@ -154,10 +163,22 @@ defmodule ExUnit.CLIFormatter do
   end
 
   def handle_cast(:max_failures_reached, config) do
-    "--max-failures reached, aborting test suite"
-    |> failure(config)
-    |> IO.write()
+    IO.write(failure("--max-failures reached, aborting test suite", config))
+    {:noreply, config}
+  end
 
+  def handle_cast({:sigquit, current}, config) do
+    IO.write("\n\n")
+
+    if current == [] do
+      IO.write(failure("Aborting test suite, showing results so far...\n\n", config))
+    else
+      IO.write(failure("Aborting test suite, the following have not completed:\n\n", config))
+      Enum.each(current, &IO.puts(trace_aborted(&1)))
+      IO.write(failure("\nShowing results so far...\n\n", config))
+    end
+
+    print_summary(config, true)
     {:noreply, config}
   end
 
@@ -193,6 +214,14 @@ defmodule ExUnit.CLIFormatter do
 
   defp trace_test_skipped(test) do
     "\r#{trace_test_started(test)} (skipped) [#{trace_test_line(test)}]"
+  end
+
+  defp trace_aborted(%ExUnit.Test{} = test) do
+    "* #{test.name} [#{trace_test_file_line(test)}]"
+  end
+
+  defp trace_aborted(%ExUnit.TestModule{name: name, file: file}) do
+    "* #{inspect(name)} [#{Path.relative_to_cwd(file)}]"
   end
 
   defp normalize_us(us) do
@@ -255,31 +284,27 @@ defmodule ExUnit.CLIFormatter do
 
   ## Printing
 
-  defp print_suite(config, run_us, load_us) do
-    IO.write("\n\n")
-    IO.puts(format_time(run_us, load_us))
-
-    if config.slowest > 0 do
-      IO.write("\n")
-      IO.puts(format_slowest_total(config, run_us))
-      IO.puts(format_slowest_times(config))
-    end
-
-    # singular/plural
+  defp print_summary(config, force_failures?) do
     test_type_counts = format_test_type_counts(config)
     failure_pl = pluralize(config.failure_counter, "failure", "failures")
 
     message =
       "#{test_type_counts}#{config.failure_counter} #{failure_pl}"
-      |> if_true(config.excluded_counter > 0, &(&1 <> ", #{config.excluded_counter} excluded"))
-      |> if_true(config.invalid_counter > 0, &(&1 <> ", #{config.invalid_counter} invalid"))
+      |> if_true(
+        config.excluded_counter > 0,
+        &(&1 <> ", #{config.excluded_counter} excluded")
+      )
+      |> if_true(
+        config.invalid_counter > 0,
+        &(&1 <> ", #{config.invalid_counter} invalid")
+      )
       |> if_true(
         config.skipped_counter > 0,
         &(&1 <> ", " <> skipped("#{config.skipped_counter} skipped", config))
       )
 
     cond do
-      config.failure_counter > 0 -> IO.puts(failure(message, config))
+      config.failure_counter > 0 or force_failures? -> IO.puts(failure(message, config))
       config.invalid_counter > 0 -> IO.puts(invalid(message, config))
       true -> IO.puts(success(message, config))
     end

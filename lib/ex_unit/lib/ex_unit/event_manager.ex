@@ -65,6 +65,10 @@ defmodule ExUnit.EventManager do
     notify(manager, {:module_finished, test_module})
   end
 
+  def sigquit(manager, current) do
+    notify(manager, {:sigquit, current})
+  end
+
   def test_started(manager, test) do
     notify(manager, {:test_started, test})
   end

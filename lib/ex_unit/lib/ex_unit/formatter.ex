@@ -26,6 +26,10 @@ defmodule ExUnit.Formatter do
     * `{:test_finished, test}` -
       a test has finished. See `ExUnit.Test` for details.
 
+    * `{:sigquit, [test | test_module]}` -
+      the VM is going to shutdown. It receives the test cases (or test
+      module in case of `setup_all`) still running.
+
   The formatter will also receive the following events but they are deprecated
   and should be ignored:
 
