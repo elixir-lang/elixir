@@ -208,6 +208,7 @@ defmodule KernelTest do
 
     user = struct(User, name: "meg")
     assert user == %User{name: "meg"}
+    assert struct(user, %{name: "meg"}) == user
 
     assert struct(user, unknown: "key") == user
     assert struct(user, %{name: "john"}) == %User{name: "john"}
