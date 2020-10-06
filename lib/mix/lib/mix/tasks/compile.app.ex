@@ -354,14 +354,15 @@ defmodule Mix.Tasks.Compile.App do
   defp apps_from_runtime_prod_deps(properties, config) do
     included_applications = Keyword.get(properties, :included_applications, [])
 
-    for {app, opts} <- Mix.Dep.deps_opts(config),
+    for {app, opts} <- deps_opts(config),
         runtime_app?(opts),
         app not in included_applications,
         do: {app, if(Keyword.get(opts, :optional, false), do: :optional, else: :required)}
   end
 
   defp runtime_app?(opts) do
-    Keyword.get(opts, :runtime, true) and Keyword.get(opts, :app, true) and matching_only?(opts)
+    Keyword.get(opts, :runtime, true) and Keyword.get(opts, :app, true) and matching_only?(opts) and
+      matching_target?(opts)
   end
 
   defp matching_only?(opts) do
@@ -370,6 +371,22 @@ defmodule Mix.Tasks.Compile.App do
       :error -> true
     end
   end
+
+  defp matching_target?(opts) do
+    case Keyword.fetch(opts, :targets) do
+      {:ok, value} -> Mix.target() in List.wrap(value)
+      :error -> true
+    end
+  end
+
+  defp deps_opts(config) do
+    for config_dep <- Keyword.get(config, :deps, []),
+        do: {elem(config_dep, 0), dep_opts(config_dep)}
+  end
+
+  defp dep_opts({_app, opts}) when is_list(opts), do: opts
+  defp dep_opts({_app, _req, opts}) when is_list(opts), do: opts
+  defp dep_opts(_), do: []
 
   ## Helpers for loading and manipulating apps
 
@@ -386,7 +403,7 @@ defmodule Mix.Tasks.Compile.App do
         Keyword.get(properties, :extra_applications, [])
 
     project_apps(properties, config, extra, fn ->
-      config |> Mix.Dep.deps_opts() |> Keyword.keys()
+      config |> deps_opts() |> Keyword.keys()
     end)
   end
 
