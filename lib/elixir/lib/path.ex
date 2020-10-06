@@ -207,7 +207,7 @@ defmodule Path do
 
       Path.type("D:/usr/local/bin") #=> :absolute
       Path.type("usr/local/bin")    #=> :relative
-      Path.type("D:bar.ex")         #=> :volumerelative
+      Path.type("D:/bar.ex")         #=> :volumerelative
       Path.type("/bar/foo.ex")      #=> :volumerelative
 
   """
