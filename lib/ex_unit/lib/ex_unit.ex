@@ -54,7 +54,7 @@ defmodule ExUnit do
 
   Mix will load the `test_helper.exs` file before executing the tests.
   It is not necessary to `require` the `test_helper.exs` file in your test
-  files. See `Mix.Tasks.Test` for more information.
+  files. Run `mix help test` for more information.
   """
 
   @typedoc """
@@ -351,7 +351,14 @@ defmodule ExUnit do
   @spec run() :: suite_result()
   def run do
     options = persist_defaults(configuration())
-    ExUnit.Runner.run(options, nil)
+    with_signal_handler(fn -> ExUnit.Runner.run(options, nil) end)
+  end
+
+  defp with_signal_handler(fun) do
+    ExUnit.SignalHandler.install(self())
+    fun.()
+  after
+    ExUnit.SignalHandler.uninstall(self())
   end
 
   @doc """

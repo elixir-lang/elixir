@@ -8,7 +8,7 @@ defmodule Mix.Tasks.Test do
   @recursive true
   @preferred_cli_env :test
 
-  @moduledoc """
+  @moduledoc ~S"""
   Runs the tests for a project.
 
   This task starts the current application, loads up
@@ -226,6 +226,15 @@ defmodule Mix.Tasks.Test do
 
   The `--stale` option is extremely useful for software iteration, allowing you to
   run only the relevant tests as you perform changes to the codebase.
+
+  ## Aborting the suite
+
+  It is possible to abort the test suite with `Ctrl+\ `, which sends a SIGQUIT
+  signal to the Erlang VM. ExUnit will intercept this signal to show all tests
+  that have been aborted and print the results collected so far.
+
+  This can be useful in case the suite gets stuck and you don't want to wait
+  until the timeout times passes (which defaults to 30 seconds).
   """
 
   @switches [
