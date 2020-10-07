@@ -161,6 +161,7 @@ defmodule IEx.Autocomplete do
         [head | tail] = Enum.sort(signatures, &(String.length(&1) <= String.length(&2)))
         if tail != [], do: IO.write("\n" <> (tail |> Enum.reverse() |> Enum.join("\n")))
         yes("", [head])
+
       _ ->
         expand('')
     end
