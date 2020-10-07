@@ -130,18 +130,10 @@ defmodule IEx.Autocomplete do
 
   defp get_signatures(name, module) when is_atom(module) do
     with docs when is_list(docs) <- get_docs(module, [:function, :macro], name) do
-      Enum.map(docs, fn {_, _, [signature], _, _} -> signature end)
+      Enum.map(docs, fn {_, _, signatures, _, _} -> Enum.join(signatures, " ") end)
     else
       _ -> :error
     end
-  end
-
-  defp get_signatures(name, module, fs) when is_atom(module) and is_list(fs) do
-    fs
-    |> Enum.filter(&match?({^name, _arity}, &1))
-    |> Enum.map(fn {name, _} -> {module, name} end)
-    |> Enum.uniq()
-    |> Enum.map(fn {module, name} -> get_signatures(name, module) end)
   end
 
   defp expand_help(expr, server) do
@@ -154,8 +146,8 @@ defmodule IEx.Autocomplete do
 
         {:ok, {fun, _, _}} when is_atom(fun) ->
           imports_from_env(server)
-          |> Enum.map(fn {module, fs} -> get_signatures(fun, module, fs) end)
-          |> List.flatten()
+          |> Enum.filter(fn {_, funs} -> List.keymember?(funs, fun, 0) end)
+          |> Enum.flat_map(fn {module, _} -> get_signatures(fun, module) end)
 
         {:ok, {{:., _, [mod, fun]}, _, []}} when is_atom(mod) and is_atom(fun) ->
           get_signatures(fun, mod)
@@ -164,12 +156,13 @@ defmodule IEx.Autocomplete do
           :error
       end
 
-    with [_ | _] <- signatures do
-      [head | tail] = Enum.sort(signatures, &(String.length(&1) <= String.length(&2)))
-      if tail !== [], do: IO.write("\n" <> (tail |> Enum.reverse() |> Enum.join("\n")))
-      yes("", [head])
-    else
-      _ -> expand('')
+    case signatures do
+      [_ | _] ->
+        [head | tail] = Enum.sort(signatures, &(String.length(&1) <= String.length(&2)))
+        if tail != [], do: IO.write("\n" <> (tail |> Enum.reverse() |> Enum.join("\n")))
+        yes("", [head])
+      _ ->
+        expand('')
     end
   end
 
