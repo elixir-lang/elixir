@@ -335,4 +335,25 @@ defmodule ListTest do
       assert List.ascii_printable?('abc' ++ ?d, 3)
     end
   end
+
+  describe "intersection/2" do
+    test "returns the common elements" do
+      list1 = Enum.to_list(1..10)
+      list2 = Enum.to_list(5..15)
+
+      assert List.intersection(list1, list2) == [5, 6, 7, 8, 9, 10]
+      assert List.intersection(list2, list1) == [5, 6, 7, 8, 9, 10]
+      assert List.intersection(list1, [0, 2, 4, 6, 8, 10, 12]) == [2, 4, 6, 8, 10]
+      assert List.intersection(list1, [0, 12, 4, 8, 2, 10, 6]) == [2, 4, 6, 8, 10]
+      assert List.intersection([0, 12, 4, 8, 2, 10, 6], list1) == [4, 8, 2, 10, 6]
+      assert List.intersection(list1, list1) == list1
+    end
+
+    test "when there are no common elements, returns an empty list" do
+      assert List.intersection([1, 2, 3], [4, 5, 6]) == []
+      assert List.intersection([1, 2, 3], []) == []
+      assert List.intersection([], [1, 2, 3]) == []
+      assert List.intersection([], []) == []
+    end
+  end
 end
