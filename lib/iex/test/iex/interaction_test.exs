@@ -158,6 +158,18 @@ defmodule IEx.InteractionTest do
     assert content =~ ~r"\(elixir #{System.version()}\) lib/access\.ex:\d+: Access\.fetch/2"
   end
 
+  test "parser" do
+    defmodule EchoParser do
+      def parse(input, _opts, buffer) do
+        {:ok, input, buffer}
+      end
+    end
+
+    assert capture_iex("foo", parser: {EchoParser, :parse, []}) == "\"foo\""
+  after
+    IEx.configure(parser: {IEx.Evaluator, :parse, []})
+  end
+
   ## .iex file loading
 
   describe ".iex" do
