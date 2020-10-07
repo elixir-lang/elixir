@@ -203,7 +203,7 @@ defmodule Module.Types.Expr do
     stack = push_expr_stack(expr, stack)
 
     with {:ok, _expr_type, context} <- of_expr(case_expr, stack, context),
-         :ok <- of_clauses(clauses, stack, context),
+         {:ok, context} <- of_clauses(clauses, stack, context),
          do: {:ok, :dynamic, context}
   end
 
@@ -212,7 +212,7 @@ defmodule Module.Types.Expr do
     stack = push_expr_stack(expr, stack)
 
     case of_clauses(clauses, stack, context) do
-      :ok -> {:ok, :dynamic, context}
+      {:ok, context} -> {:ok, :dynamic, context}
       {:error, reason} -> {:error, reason}
     end
   end
@@ -224,23 +224,31 @@ defmodule Module.Types.Expr do
   def of_expr({:try, _meta, [blocks]} = expr, stack, context) do
     stack = push_expr_stack(expr, stack)
 
-    result =
-      each_ok(blocks, fn
-        {:rescue, clauses} ->
-          each_ok(clauses, fn
-            {:->, _, [[{:in, _, [var, _exceptions]}], body]} ->
+    {result, context} =
+      reduce_ok(blocks, context, fn
+        {:rescue, clauses}, context ->
+          reduce_ok(clauses, context, fn
+            {:->, _, [[{:in, _, [var, _exceptions]}], body]}, context = acc ->
               {_type, context} = new_pattern_var(var, context)
-              of_expr_ok(body, stack, context)
 
-            {:->, _, [[var], body]} ->
+              with {:ok, context} <- of_expr_context(body, stack, context) do
+                {:ok, keep_warnings(acc, context)}
+              end
+
+            {:->, _, [[var], body]}, context = acc ->
               {_type, context} = new_pattern_var(var, context)
-              of_expr_ok(body, stack, context)
+
+              with {:ok, context} <- of_expr_context(body, stack, context) do
+                {:ok, keep_warnings(acc, context)}
+              end
           end)
 
-        {block, body} when block in @try_blocks ->
-          of_expr_ok(body, stack, context)
+        {block, body}, context = acc when block in @try_blocks ->
+          with {:ok, context} <- of_expr_context(body, stack, context) do
+            {:ok, keep_warnings(acc, context)}
+          end
 
-        {block, clauses} when block in @try_clause_blocks ->
+        {block, clauses}, context when block in @try_clause_blocks ->
           of_clauses(clauses, stack, context)
       end)
 
@@ -254,18 +262,18 @@ defmodule Module.Types.Expr do
   def of_expr({:receive, _meta, [blocks]} = expr, stack, context) do
     stack = push_expr_stack(expr, stack)
 
-    result =
-      each_ok(blocks, fn
-        {:do, {:__block__, _, []}} ->
-          :ok
+    {result, context} =
+      reduce_ok(blocks, context, fn
+        {:do, {:__block__, _, []}}, context ->
+          {:ok, context}
 
-        {:do, clauses} ->
+        {:do, clauses}, context ->
           of_clauses(clauses, stack, context)
 
-        {:after, [{:->, _meta, [head, body]}]} ->
+        {:after, [{:->, _meta, [head, body]}]}, context = acc ->
           with {:ok, _type, context} <- of_expr(head, stack, context),
-               {:ok, _type, _context} <- of_expr(body, stack, context),
-               do: :ok
+               {:ok, _type, context} <- of_expr(body, stack, context),
+               do: {:ok, keep_warnings(acc, context)}
       end)
 
     case result do
@@ -282,7 +290,7 @@ defmodule Module.Types.Expr do
     with {:ok, context} <- reduce_ok(clauses, context, &for_clause(&1, stack, &2)),
          {:ok, context} <- reduce_ok(opts, context, &for_option(&1, stack, &2)) do
       if opts[:reduce] do
-        with :ok <- of_clauses(block, stack, context) do
+        with {:ok, context} <- of_clauses(block, stack, context) do
           {:ok, :dynamic, context}
         end
       else
@@ -437,20 +445,21 @@ defmodule Module.Types.Expr do
   end
 
   defp with_option({:else, clauses}, stack, context) do
-    case of_clauses(clauses, stack, context) do
-      :ok -> {:ok, context}
-      {:error, reason} -> {:error, reason}
-    end
+    of_clauses(clauses, stack, context)
   end
 
   defp of_clauses(clauses, stack, context) do
-    each_ok(clauses, fn {:->, _meta, [head, body]} ->
+    reduce_ok(clauses, context, fn {:->, _meta, [head, body]}, context = acc ->
       {patterns, guards} = extract_head(head)
 
       with {:ok, _, context} <- Pattern.of_head(patterns, guards, stack, context),
-           {:ok, _expr_type, _context} <- of_expr(body, stack, context),
-           do: :ok
+           {:ok, _expr_type, context} <- of_expr(body, stack, context),
+           do: {:ok, keep_warnings(acc, context)}
     end)
+  end
+
+  defp keep_warnings(context, %{warnings: warnings}) do
+    %{context | warnings: warnings}
   end
 
   defp extract_head([{:when, _meta, args}]) do
@@ -475,13 +484,6 @@ defmodule Module.Types.Expr do
   defp of_expr_context(expr, stack, context) do
     case of_expr(expr, stack, context) do
       {:ok, _type, context} -> {:ok, context}
-      {:error, reason} -> {:error, reason}
-    end
-  end
-
-  defp of_expr_ok(expr, stack, context) do
-    case of_expr(expr, stack, context) do
-      {:ok, _type, _context} -> :ok
       {:error, reason} -> {:error, reason}
     end
   end

@@ -23,7 +23,10 @@ defmodule Module.Types.TypesTest do
     with {:ok, _types, context} <-
            Pattern.of_head(patterns, guards, TypeHelper.new_stack(), TypeHelper.new_context()),
          {:ok, type, context} <- Expr.of_expr(body, TypeHelper.new_stack(), context) do
-      flunk("expexted error, got: #{inspect(Types.lift_type(type, context))}")
+      case context.warnings do
+        [warning] -> {:warning, warning}
+        _ -> flunk("expexted error, got: #{inspect(Types.lift_type(type, context))}")
+      end
     else
       {:error, {type, reason, context}} ->
         {:error, {type, reason, context}}
@@ -48,12 +51,18 @@ defmodule Module.Types.TypesTest do
     min
   end
 
+  defp to_warning({:warning, {module, warning, _location}}) do
+    warning
+    |> module.format_warning()
+    |> IO.iodata_to_binary()
+  end
+
   defp to_warning({:error, {type, reason, context}}) do
     {Module.Types, error, _location} = Module.Types.error_to_warning(type, reason, context)
 
     error
     |> Module.Types.format_warning()
-    |> List.to_string()
+    |> IO.iodata_to_binary()
     |> String.trim_trailing("\nConflict found at")
   end
 
@@ -67,6 +76,17 @@ defmodule Module.Types.TypesTest do
     assert Types.expr_to_string(quote(do: :maps.remove(a, b))) == "Map.delete(b, a)"
     assert Types.expr_to_string(quote(do: :erlang.element(1, a))) == "elem(a, 0)"
     assert Types.expr_to_string(quote(do: :erlang.element(:erlang.+(a, 1), b))) == "elem(b, a)"
+  end
+
+  test "undefined function warnings" do
+    assert warning([], URI.unknown("foo")) ==
+             "URI.unknown/1 is undefined or private"
+
+    assert warning([], if(true, do: URI.unknown("foo"))) ==
+             "URI.unknown/1 is undefined or private"
+
+    assert warning([], try(do: :ok, after: URI.unknown("foo"))) ==
+             "URI.unknown/1 is undefined or private"
   end
 
   describe "function head warnings" do
