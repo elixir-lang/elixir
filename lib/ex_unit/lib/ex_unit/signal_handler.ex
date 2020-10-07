@@ -19,7 +19,7 @@ defmodule ExUnit.SignalHandler do
 
   @impl true
   def handle_call(_message, runner) do
-    {:ok, runner}
+    {:ok, :ok, runner}
   end
 
   @impl true
