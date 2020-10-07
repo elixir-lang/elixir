@@ -1598,7 +1598,7 @@ defmodule Kernel.SpecialForms do
   defmacro unquote(:__block__)(args), do: error!([args])
 
   @doc """
-  Caputure operator. Captures or creates an anonymous function.
+  Capture operator. Captures or creates an anonymous function.
 
   ## Capture
 
