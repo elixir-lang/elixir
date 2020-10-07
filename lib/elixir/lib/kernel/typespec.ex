@@ -643,10 +643,7 @@ defmodule Kernel.Typespec do
   end
 
   defp typespec({:__aliases__, _, _} = alias, vars, caller, state) do
-    # We set a function name to avoid tracking
-    # aliases in typespecs as compile time dependencies.
-    atom = Macro.expand(alias, %{caller | function: {:typespec, 0}})
-    typespec(atom, vars, caller, state)
+    typespec(expand_remote(alias, caller), vars, caller, state)
   end
 
   # Handle funs
@@ -734,9 +731,7 @@ defmodule Kernel.Typespec do
 
   # Handle remote calls
   defp typespec({{:., meta, [remote, name]}, _, args} = orig, vars, caller, state) do
-    # We set a function name to avoid tracking
-    # aliases in typespecs as compile time dependencies.
-    remote = Macro.expand(remote, %{caller | function: {:typespec, 0}})
+    remote = expand_remote(remote, caller)
 
     cond do
       not is_atom(remote) ->
@@ -906,6 +901,25 @@ defmodule Kernel.Typespec do
   end
 
   ## Helpers
+
+  # This is a backport of Macro.expand/2 because we want to expand
+  # aliases but we don't them to become compile-time references.
+  defp expand_remote({:__aliases__, _, _} = alias, env) do
+    case :elixir_aliases.expand(alias, env) do
+      receiver when is_atom(receiver) ->
+        receiver
+
+      aliases ->
+        aliases = :lists.map(&Macro.expand_once(&1, env), aliases)
+
+        case :lists.all(&is_atom/1, aliases) do
+          true -> :elixir_aliases.concat(aliases)
+          false -> alias
+        end
+    end
+  end
+
+  defp expand_remote(other, env), do: Macro.expand(other, env)
 
   defp compile_error(caller, desc) do
     raise CompileError, file: caller.file, line: caller.line, description: desc
