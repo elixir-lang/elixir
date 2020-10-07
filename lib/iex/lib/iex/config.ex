@@ -12,7 +12,8 @@ defmodule IEx.Config do
     :continuation_prompt,
     :alive_prompt,
     :alive_continuation_prompt,
-    :width
+    :width,
+    :parser
   ]
 
   # Read API
@@ -203,6 +204,7 @@ defmodule IEx.Config do
   defp validate_option({:alive_prompt, new}) when is_binary(new), do: :ok
   defp validate_option({:alive_continuation_prompt, new}) when is_binary(new), do: :ok
   defp validate_option({:width, new}) when is_integer(new), do: :ok
+  defp validate_option({:parser, tuple}) when tuple_size(tuple) == 3, do: :ok
 
   defp validate_option(option) do
     raise ArgumentError, "invalid configuration #{inspect(option)}"
