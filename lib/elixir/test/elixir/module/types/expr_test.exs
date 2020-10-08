@@ -250,27 +250,43 @@ defmodule Module.Types.ExprTest do
            ) == {:ok, {:var, 0}}
   end
 
-  test "for" do
-    assert quoted_expr(
-             [list],
-             for(
-               foo <- list,
-               is_integer(foo),
-               do: foo == 123
-             )
-           ) == {:ok, :dynamic}
-
-    assert quoted_expr(
-             [list, bar],
-             (
+  describe "for comprehension" do
+    test "with generators and filters" do
+      assert quoted_expr(
+               [list],
                for(
                  foo <- list,
-                 is_integer(bar),
+                 is_integer(foo),
                  do: foo == 123
                )
+             ) == {:ok, :dynamic}
+    end
 
-               bar
-             )
-           ) == {:ok, {:var, 0}}
+    test "with unused return" do
+      assert quoted_expr(
+               [list, bar],
+               (
+                 for(
+                   foo <- list,
+                   is_integer(bar),
+                   do: foo == 123
+                 )
+
+                 bar
+               )
+             ) == {:ok, {:var, 0}}
+    end
+
+    test "with reduce" do
+      assert quoted_expr(
+               [],
+               for(i <- [1, 2, 3], do: (acc -> i + acc), reduce: 0)
+             ) == {:ok, :dynamic}
+
+      assert quoted_expr(
+               [],
+               for(i <- [1, 2, 3], do: (_ -> i), reduce: nil)
+             ) == {:ok, :dynamic}
+    end
   end
 end
