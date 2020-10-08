@@ -64,8 +64,8 @@ defmodule Config do
   ## config/runtime.exs
 
   For runtime configuration, you can use the `config/runtime.exs` file.
-  It is executed after your Mix project is compiled and also before a
-  release (assembled with `mix release`) starts.
+  It is executed right before applications start in both Mix and releases
+  (assembled with `mix release`).
   """
 
   @opts_key {__MODULE__, :opts}
@@ -160,7 +160,10 @@ defmodule Config do
   end
 
   @doc """
-  Returns the environemnt this configuration file is executed on.
+  Returns the environment this configuration file is executed on.
+
+  In Mix projects this function returns the environment this configuration
+  file is executed on. In releases, the environment when `mix release` ran.
 
   This is most often used to execute conditional code:
 
