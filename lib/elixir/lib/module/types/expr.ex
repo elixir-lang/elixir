@@ -289,7 +289,7 @@ defmodule Module.Types.Expr do
 
     with {:ok, context} <- reduce_ok(clauses, context, &for_clause(&1, stack, &2)),
          {:ok, context} <- reduce_ok(opts, context, &for_option(&1, stack, &2)) do
-      if opts[:reduce] do
+      if Keyword.has_key?(opts, :reduce) do
         with {:ok, context} <- of_clauses(block, stack, context) do
           {:ok, :dynamic, context}
         end
