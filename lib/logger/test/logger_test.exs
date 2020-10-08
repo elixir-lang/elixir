@@ -644,15 +644,12 @@ defmodule LoggerTest do
   end
 
   test "updates config on config_change/3" do
-    :ok = Logger.configure(level: :debug)
-
-    try do
-      assert Application.put_env(:logger, :level, :error) === :ok
-      assert :application_controller.config_change(logger: [level: :debug]) === :ok
-      assert Logger.level() === :error
-    after
-      Logger.configure(level: :debug)
-    end
+    assert Application.put_env(:logger, :level, :error) == :ok
+    assert :application_controller.config_change(logger: [level: :debug]) == :ok
+    assert Logger.level() == :error
+  after
+    Application.put_env(:logger, :level, :debug)
+    Logger.configure(level: :debug)
   end
 
   describe "OTP integration" do
