@@ -254,7 +254,7 @@ defmodule Module.Types.Expr do
 
     case result do
       :ok -> {:ok, :dynamic, context}
-      {:error, reason} -> {:error, reason}
+      :error -> {:error, context}
     end
   end
 
@@ -278,7 +278,7 @@ defmodule Module.Types.Expr do
 
     case result do
       :ok -> {:ok, :dynamic, context}
-      {:error, reason} -> {:error, reason}
+      :error -> {:error, context}
     end
   end
 
