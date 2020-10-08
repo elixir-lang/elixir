@@ -160,6 +160,8 @@ defmodule Config do
   end
 
   @doc """
+  Returns the environment this configuration file is executed on.
+
   In Mix projects this function returns the environment this configuration
   file is executed on. In releases, the environment when `mix release` ran.
 
