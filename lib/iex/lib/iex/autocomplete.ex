@@ -48,6 +48,9 @@ defmodule IEx.Autocomplete do
       h == ?/ and t != [] and identifier?(hd(t)) ->
         expand_expr(reduce(t), server)
 
+      h in ' (' and t != [] and identifier?(hd(t)) ->
+        expand_help(reduce(expr), server)
+
       h in '([{' ->
         expand('')
 
@@ -122,6 +125,45 @@ defmodule IEx.Autocomplete do
 
       _ ->
         no()
+    end
+  end
+
+  defp get_signatures(name, module) when is_atom(module) do
+    with docs when is_list(docs) <- get_docs(module, [:function, :macro], name) do
+      Enum.map(docs, fn {_, _, signatures, _, _} -> Enum.join(signatures, " ") end)
+    else
+      _ -> :error
+    end
+  end
+
+  defp expand_help(expr, server) do
+    signatures =
+      case Code.string_to_quoted(expr) do
+        {:ok, {{:., _, [{:__aliases__, _, mod}, fun]}, _, []}} when is_atom(fun) ->
+          with {:ok, mod} <- expand_alias(mod, server) do
+            get_signatures(fun, mod)
+          end
+
+        {:ok, {fun, _, _}} when is_atom(fun) ->
+          imports_from_env(server)
+          |> Enum.filter(fn {_, funs} -> List.keymember?(funs, fun, 0) end)
+          |> Enum.flat_map(fn {module, _} -> get_signatures(fun, module) end)
+
+        {:ok, {{:., _, [mod, fun]}, _, []}} when is_atom(mod) and is_atom(fun) ->
+          get_signatures(fun, mod)
+
+        _ ->
+          :error
+      end
+
+    case signatures do
+      [_ | _] ->
+        [head | tail] = Enum.sort(signatures, &(String.length(&1) <= String.length(&2)))
+        if tail != [], do: IO.write("\n" <> (tail |> Enum.reverse() |> Enum.join("\n")))
+        yes("", [head])
+
+      _ ->
+        expand('')
     end
   end
 
@@ -262,7 +304,7 @@ defmodule IEx.Autocomplete do
 
   defp expand_variable_or_import(hint, server) do
     variables = expand_variable(hint, server)
-    imports = imports_from_env(server)
+    imports = imports_from_env(server) |> Enum.flat_map(&elem(&1, 1))
     module_funs = get_module_funs(Kernel.SpecialForms)
     funs = match_module_funs(imports ++ module_funs, hint)
     format_expansion(variables ++ funs, hint)
@@ -479,10 +521,14 @@ defmodule IEx.Autocomplete do
     end
   end
 
-  defp get_docs(mod, kinds) do
+  defp get_docs(mod, kinds, fun \\ nil) do
     case Code.fetch_docs(mod) do
       {:docs_v1, _, _, _, _, _, docs} ->
-        for {{kind, _, _}, _, _, _, _} = doc <- docs, kind in kinds, do: doc
+        if is_nil(fun) do
+          for {{kind, _, _}, _, _, _, _} = doc <- docs, kind in kinds, do: doc
+        else
+          for {{kind, ^fun, _}, _, _, _, _} = doc <- docs, kind in kinds, do: doc
+        end
 
       {:error, _} ->
         nil
@@ -550,7 +596,7 @@ defmodule IEx.Autocomplete do
     with {evaluator, server} <- server.evaluator(),
          env_fields = IEx.Evaluator.fields_from_env(evaluator, server, [:functions, :macros]),
          %{functions: funs, macros: macros} <- env_fields do
-      Enum.flat_map(funs ++ macros, &elem(&1, 1))
+      funs ++ macros
     else
       _ -> []
     end
