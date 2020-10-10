@@ -85,11 +85,21 @@ defmodule CodeTest do
     assert CodeTest.Sample.eval_quoted_info() == {CodeTest.Sample, "sample.ex", 13}
   end
 
-  test "eval_quoted/2 with a %Macro.Env{} struct as the second argument" do
+  test "eval_quoted/2 with %Macro.Env{} at runtime" do
     alias :lists, as: MyList
+    quoted = quote(do: MyList.flatten([[1, 2, 3]]))
 
-    assert Code.eval_quoted(quote(do: MyList.flatten([[1, 2, 3]])), [], __ENV__) ==
-             {[1, 2, 3], []}
+    assert Code.eval_quoted(quoted, [], __ENV__) == {[1, 2, 3], []}
+
+    # Let's check it discards tracers since the lexical tracker is explicitly nil
+    assert Code.eval_quoted(quoted, [], %{__ENV__ | tracers: [:bad]}) == {[1, 2, 3], []}
+  end
+
+  test "eval_quoted/2 with %Macro.Env{} at compile time" do
+    defmodule CompileTimeEnv do
+      alias String.Chars
+      {"foo", []} = Code.eval_string("Chars.to_string(:foo)", [], __ENV__)
+    end
   end
 
   test "eval_file/1" do
