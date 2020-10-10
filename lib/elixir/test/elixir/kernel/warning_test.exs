@@ -1723,7 +1723,7 @@ defmodule Kernel.WarningTest do
     end
   end
 
-  test "deprecated GenServer super" do
+  test "deprecated GenServer super on callbacks" do
     assert capture_err(fn ->
              Code.eval_string("""
              defmodule Sample do
@@ -1735,6 +1735,22 @@ defmodule Kernel.WarningTest do
              end
              """)
            end) =~ "calling super for GenServer callback handle_call/3 is deprecated"
+  after
+    purge(Sample)
+  end
+
+  test "super is allowed on GenServer.child_spec/1" do
+    refute capture_err(fn ->
+             Code.eval_string("""
+             defmodule Sample do
+               use GenServer
+
+               def child_spec(opts) do
+                 super(opts)
+               end
+             end
+             """)
+           end) =~ "calling super for GenServer callback child_spec/1 is deprecated"
   after
     purge(Sample)
   end
