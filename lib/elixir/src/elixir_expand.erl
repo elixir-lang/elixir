@@ -631,7 +631,13 @@ maybe_warn_underscored_var_access(Meta, Name, Kind, E) ->
 maybe_warn_deprecated_super_in_gen_server_callback(Meta, Function, SuperMeta, E) ->
   case lists:keyfind(context, 1, SuperMeta) of
     {context, 'Elixir.GenServer'} ->
-      elixir_errors:form_warn(Meta, E, ?MODULE, {super_in_genserver, Function});
+      case Function of
+        {child_spec, 1} ->
+          ok;
+
+        _ ->
+          elixir_errors:form_warn(Meta, E, ?MODULE, {super_in_genserver, Function})
+      end;
 
     _ ->
       ok
