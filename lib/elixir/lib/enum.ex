@@ -3242,12 +3242,9 @@ defmodule Enum do
   end
 
   @doc """
-  Zips corresponding elements from a finite collection of enumerables into a new
-
-  Zips two collections together by passing the corresponding element from each collection to the
-  provided fun. Returns a new list that contains the result of that fun for each pair of elements.
-
-  The zipping finishes as soon as any enumerable in the given collection completes.
+  Zips corresponding elements from a finite collection of enumerables into a new enumerable which
+  is built by calling zip_fun with the first element from each enumerable, then the with the
+  second element and so on until any one of the enums runs out of elements.
 
   ## Examples
 
@@ -3257,8 +3254,8 @@ defmodule Enum do
   @spec zip_with(t, (term, term -> term)) :: [term]
   def zip_with([], _fun), do: []
 
-  def zip_with(enumerables, fun) do
-    Stream.zip_with(enumerables, fun)
+  def zip_with(enumerables, zip_fun) do
+    Stream.zip_with(enumerables, zip_fun)
     |> Enum.to_list()
   end
 
