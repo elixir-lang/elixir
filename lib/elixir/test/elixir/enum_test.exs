@@ -1142,6 +1142,42 @@ defmodule EnumTest do
     assert Enum.zip([[], [], [], []]) == []
     assert Enum.zip(%{}) == []
   end
+
+  test "zip_with/3" do
+    assert Enum.zip_with([1, 2], [3, 4], fn a, b -> a * b end) == [3, 8]
+    assert Enum.zip_with([:a, :b], [1, 2], &{&1, &2}) == [{:a, 1}, {:b, 2}]
+    assert Enum.zip_with([:a, :b], [1, 2, 3, 4], &{&1, &2}) == [{:a, 1}, {:b, 2}]
+    assert Enum.zip_with([:a, :b, :c, :d], [1, 2], &{&1, &2}) == [{:a, 1}, {:b, 2}]
+
+    assert Enum.zip_with([], [1], &{&1, &2}) == []
+    assert Enum.zip_with([1], [], &{&1, &2}) == []
+    assert Enum.zip_with([], [], &{&1, &2}) == []
+  end
+
+  test "zip_with/2" do
+    zip_fun = fn items -> List.to_tuple(items) end
+
+    assert Enum.zip_with([[:a, :b], [1, 2], ["foo", "bar"]], zip_fun) == [
+             {:a, 1, "foo"},
+             {:b, 2, "bar"}
+           ]
+
+    assert Enum.zip_with([[:a, :b], [1, 2, 3, 4], ["foo", "bar", "baz", "qux"]], zip_fun) ==
+             [{:a, 1, "foo"}, {:b, 2, "bar"}]
+
+    assert Enum.zip_with([[:a, :b, :c, :d], [1, 2], ["foo", "bar", "baz", "qux"]], zip_fun) ==
+             [{:a, 1, "foo"}, {:b, 2, "bar"}]
+
+    assert Enum.zip_with([[:a, :b, :c, :d], [1, 2, 3, 4], ["foo", "bar"]], zip_fun) ==
+             [{:a, 1, "foo"}, {:b, 2, "bar"}]
+
+    assert Enum.zip_with([1..10, ["foo", "bar"]], zip_fun) == [{1, "foo"}, {2, "bar"}]
+    assert Enum.zip_with([], zip_fun) == []
+    assert Enum.zip_with([[]], zip_fun) == []
+    assert Enum.zip_with([[1]], zip_fun) == [{1}]
+    assert Enum.zip_with([[], [], [], []], zip_fun) == []
+    assert Enum.zip_with(%{}, zip_fun) == []
+  end
 end
 
 defmodule EnumTest.Range do

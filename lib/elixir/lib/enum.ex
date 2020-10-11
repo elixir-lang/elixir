@@ -3214,6 +3214,54 @@ defmodule Enum do
     |> :lists.reverse()
   end
 
+  @doc """
+  Zips two collections together by passing the corresponding element from each collection to the
+  provided fun. Returns a new list that contains the result of that fun for each pair of elements.
+
+  The zipping finishes as soon as any enumerable in the given collection completes.
+
+  ## Examples
+
+      iex> Enum.zip_with([1, 2], [3, 4], fn x, y -> x + y end)
+      [4, 6]
+
+      iex> Enum.zip_with([1, 2], [3, 4, 5, 6], fn x, y -> x + y end)
+      [4, 6]
+
+      iex> Enum.zip_with([1, 2, 5, 6], [3, 4], fn x, y -> x + y end)
+      [4, 6]
+  """
+  @spec zip_with(t, t, (term, term -> term)) :: [term]
+  def zip_with(enumerable1, enumerable2, fun)
+      when is_list(enumerable1) and is_list(enumerable2) do
+    zip_list(enumerable1, enumerable2, fun)
+  end
+
+  def zip_with(enumerable1, enumerable2, fun) do
+    zip_with([enumerable1, enumerable2], fun)
+  end
+
+  @doc """
+  Zips corresponding elements from a finite collection of enumerables into a new
+
+  Zips two collections together by passing the corresponding element from each collection to the
+  provided fun. Returns a new list that contains the result of that fun for each pair of elements.
+
+  The zipping finishes as soon as any enumerable in the given collection completes.
+
+  ## Examples
+
+      iex> Enum.zip_with([[1, 2], [3, 4], [5, 6]], fn [x, y, z] -> x + y + z end)
+      [9, 12]
+  """
+  @spec zip_with(t, (term, term -> term)) :: [term]
+  def zip_with([], _fun), do: []
+
+  def zip_with(enumerables, fun) do
+    Stream.zip_with(enumerables, fun)
+    |> Enum.to_list()
+  end
+
   ## Helpers
 
   @compile {:inline, entry_to_string: 1, reduce: 3, reduce_by: 3, reduce_enumerable: 3}
@@ -3744,13 +3792,16 @@ defmodule Enum do
   end
 
   ## zip
-
-  defp zip_list([h1 | next1], [h2 | next2]) do
-    [{h1, h2} | zip_list(next1, next2)]
+  defp zip_list(enumerable1, enumerable2) do
+    zip_list(enumerable1, enumerable2, fn x, y -> {x, y} end)
   end
 
-  defp zip_list(_, []), do: []
-  defp zip_list([], _), do: []
+  defp zip_list([h1 | next1], [h2 | next2], fun) do
+    [fun.(h1, h2) | zip_list(next1, next2, fun)]
+  end
+
+  defp zip_list(_, [], _fun), do: []
+  defp zip_list([], _, _fun), do: []
 end
 
 defimpl Enumerable, for: List do
