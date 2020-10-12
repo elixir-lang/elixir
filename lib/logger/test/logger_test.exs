@@ -62,7 +62,7 @@ defmodule LoggerTest do
              Logger.add_backend({UnknownBackend, :hello})
   end
 
-  test "logs or writes to stderr on failed backends" do
+  test "logs or writes to stderr on failed call on async mode" do
     assert {:ok, _} = Logger.add_backend({MyBackend, :hello})
 
     assert capture_log(fn ->
@@ -82,6 +82,32 @@ defmodule LoggerTest do
     # Flush logs before reattaching to avoid OTP reports
     Logger.flush()
   after
+    Logger.remove_backend({MyBackend, :hello})
+    Logger.add_backend(:console)
+  end
+
+  test "logs or writes to stderr on failed call on sync mode" do
+    Logger.configure(sync_threshold: 0)
+    assert {:ok, _} = Logger.add_backend({MyBackend, :hello})
+
+    assert capture_log(fn ->
+             :gen_event.call(Logger, {MyBackend, :hello}, :error)
+             wait_for_handler(Logger, {MyBackend, :hello})
+           end) =~
+             ":gen_event handler {LoggerTest.MyBackend, :hello} installed in Logger terminating"
+
+    assert :ok = Logger.remove_backend(:console)
+
+    assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+             :gen_event.call(Logger, {MyBackend, :hello}, :error)
+             wait_for_handler(Logger, {MyBackend, :hello})
+           end) =~
+             ":gen_event handler {LoggerTest.MyBackend, :hello} installed in Logger terminating"
+
+    # Flush logs before reattaching to avoid OTP reports
+    Logger.flush()
+  after
+    Logger.configure(sync_threshold: 20)
     Logger.remove_backend({MyBackend, :hello})
     Logger.add_backend(:console)
   end

@@ -147,8 +147,17 @@ defmodule Logger.Handler do
     end
   end
 
-  defp notify(:sync, msg), do: :gen_event.sync_notify(Logger, msg)
-  defp notify(:async, msg), do: :gen_event.notify(Logger, msg)
+  defp notify(:sync, msg) do
+    pid = Process.whereis(Logger)
+
+    # If we are within the logger process itself,
+    #  we cannot use sync notify as that will deadlock.
+    if pid == self(), do: :gen_event.notify(pid, msg), else: :gen_event.sync_notify(pid, msg)
+  end
+
+  defp notify(:async, msg) do
+    :gen_event.notify(Logger, msg)
+  end
 
   defp truncate(data, n) when is_list(data) do
     Logger.Utils.truncate(data, n)
