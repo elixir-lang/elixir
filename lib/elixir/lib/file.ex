@@ -110,6 +110,7 @@ defmodule File do
 
   @type stream_mode ::
           encoding_mode()
+          | :append
           | :trim_bom
           | {:read_ahead, pos_integer | false}
           | {:delayed_write, non_neg_integer, non_neg_integer}
