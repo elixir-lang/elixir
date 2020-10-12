@@ -1121,22 +1121,23 @@ defmodule Stream do
   def zip(left, right), do: zip([left, right])
 
   @doc """
-  Zips two collections together lazily creating a new enumerable from the result of calling the
-  zip_fun for each set of elements in turn.
+  Lazily zips corresponding elements from two enumerables into a new enumerable, transforming
+  them with zip_fun as it goes.
 
-  The zip_fun will be called with a list containing the first element from the left enumerable and the
-  first element from the right enumerable, then will be called with the second element from each,
-  and so on until either one of the enumerable's completes.
+  The zip_fun will be called with the first element from the left enumerable and the first
+  element from the right enumerable, then with the second element from each, and so on until
+  either one of the enumerables completes.
 
   ## Examples
 
       iex> concat = Stream.concat(1..3, 4..6)
-      iex> Stream.zip_with(concat, concat, fn [a, b] -> a + b end) |> Enum.to_list()
+      iex> Stream.zip_with(concat, concat, fn a, b -> a + b end) |> Enum.to_list()
       [2, 4, 6, 8, 10, 12]
 
   """
-  @spec zip_with(Enumerable.t(), Enumerable.t(), (Enumerable.t() -> term)) :: Enumerable.t()
-  def zip_with(left, right, zip_fun), do: zip_with([left, right], zip_fun)
+  @doc since: "1.12.0"
+  @spec zip_with(Enumerable.t(), Enumerable.t(), (term, term -> term)) :: Enumerable.t()
+  def zip_with(left, right, zip_fun), do: zip_with([left, right], &apply(zip_fun, &1))
 
   @doc """
   Zips corresponding elements from a finite collection of enumerables
@@ -1160,17 +1161,25 @@ defmodule Stream do
   end
 
   @doc """
-  Lazily passes a list to zip_fun containing the first element from each of the enums in enumerables.
-  Then calls zip_fun with the second element from each of the enums and so on until any one of the
-  enums runs out of elements. A new enumerable is lazily built up in this way containing the
-  result of calling that zip_fun repeatedly.
+  Lazily zips corresponding elements from a finite collection of enumerables into a new
+  enumerable, transforming them with zip_fun as it goes.
+
+  The first element from each of the enums in enumerables will be put into a list, then passed to
+  zip_fun. Then the second elements from each of the enums are put into a list and passed to
+  zip_fun, and so on until any one of the enums in enumerables completes. A new enum is returned
+  containing all of the results of calling zip_fun.
 
   ## Examples
 
       iex> concat = Stream.concat(1..3, 4..6)
       iex> Stream.zip_with([concat, concat], fn [a, b] -> a + b end) |> Enum.to_list()
       [2, 4, 6, 8, 10, 12]
+
+      iex> concat = Stream.concat(1..3, 4..6)
+      iex> Stream.zip_with([concat, concat, 1..3], fn [a, b, c] -> a + b + c end) |> Enum.to_list()
+      [3, 6, 9]
   """
+  @doc since: "1.12.0"
   @spec zip_with(enumerables, (Enumerable.t() -> term)) :: Enumerable.t()
         when enumerables: [Enumerable.t()] | Enumerable.t()
   def zip_with(enumerables, zip_fun) do
@@ -1190,9 +1199,7 @@ defmodule Stream do
     do_zip(enum_funs, acc, fun, zip_fun)
   end
 
-  # This implementation of do_zip/3 works for any number of
-  # streams to zip, even if right now zip/2 only zips two streams.
-
+  # This implementation of do_zip/4 works for any number of streams to zip
   defp do_zip(zips, {:halt, acc}, _fun, _zip_fun) do
     do_zip_close(zips)
     {:halted, acc}
@@ -1222,7 +1229,7 @@ defmodule Stream do
     end
   end
 
-  # do_zip_next_tuple/5 computes the next tuple formed by
+  # do_zip_next_tuple/6 computes the next tuple formed by
   # the next element of each zipped stream.
 
   defp do_zip_next_tuple(

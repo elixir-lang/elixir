@@ -3215,10 +3215,13 @@ defmodule Enum do
   end
 
   @doc """
-  Zips two collections together by passing the corresponding element from each collection to the
-  provided fun. Returns a new list that contains the result of that fun for each pair of elements.
+  Zips corresponding elements from two enumerables into a new enumerable, transforming them with
+  zip_fun as it goes.
 
-  The zipping finishes as soon as any enumerable in the given collection completes.
+  The corresponding elements from each collection are passed to the provided zip_fun in turn.
+  Returns a new list that contains the result of calling zip_fun for each pair of elements.
+
+  The zipping finishes as soon as any enumerable runs out of elements.
 
   ## Examples
 
@@ -3231,26 +3234,38 @@ defmodule Enum do
       iex> Enum.zip_with([1, 2, 5, 6], [3, 4], fn x, y -> x + y end)
       [4, 6]
   """
+  @doc since: "1.12.0"
   @spec zip_with(t, t, (term, term -> term)) :: [term]
-  def zip_with(enumerable1, enumerable2, fun)
+  def zip_with(enumerable1, enumerable2, zip_fun)
       when is_list(enumerable1) and is_list(enumerable2) do
-    zip_list(enumerable1, enumerable2, fun)
+    zip_list(enumerable1, enumerable2, zip_fun)
   end
 
-  def zip_with(enumerable1, enumerable2, fun) do
-    zip_with([enumerable1, enumerable2], fun)
+  def zip_with(enumerable1, enumerable2, zip_fun) do
+    # zip_with/2 passes a list to the zip_fun containing the nth element from each enumerable
+    # That's different from zip_with/3 where each element is a different argument to the zip_fun
+    # The apply ensures that zip_fun it gets the right number of arguments.
+    zip_with([enumerable1, enumerable2], &apply(zip_fun, &1))
   end
 
   @doc """
-  Zips corresponding elements from a finite collection of enumerables into a new enumerable which
-  is built by calling zip_fun with the first element from each enumerable, then the with the
-  second element and so on until any one of the enums runs out of elements.
+  Zips corresponding elements from a finite collection of enumerables into a new enumerable,
+  transforming them with zip_fun as it goes.
+
+  The nth element from each enumerable is put into a list then passed to zip_fun. The result of
+  zip_fun determines the nth element in the returned enumerable.
+
+  Zipping finishes as soon as any enumerable runs out of elements.
 
   ## Examples
 
       iex> Enum.zip_with([[1, 2], [3, 4], [5, 6]], fn [x, y, z] -> x + y + z end)
       [9, 12]
+
+      iex> Enum.zip_with([[1, 2], [3, 4]], fn [x, y] -> x + y end)
+      [4, 6]
   """
+  @doc since: "1.12.0"
   @spec zip_with(t, (term, term -> term)) :: [term]
   def zip_with([], _fun), do: []
 
