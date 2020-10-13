@@ -1142,6 +1142,103 @@ defmodule EnumTest do
     assert Enum.zip([[], [], [], []]) == []
     assert Enum.zip(%{}) == []
   end
+
+  test "zip_with/3" do
+    assert Enum.zip_with([1, 2], [3, 4], fn a, b -> a * b end) == [3, 8]
+    assert Enum.zip_with([:a, :b], [1, 2], &{&1, &2}) == [{:a, 1}, {:b, 2}]
+    assert Enum.zip_with([:a, :b], [1, 2, 3, 4], &{&1, &2}) == [{:a, 1}, {:b, 2}]
+    assert Enum.zip_with([:a, :b, :c, :d], [1, 2], &{&1, &2}) == [{:a, 1}, {:b, 2}]
+    assert Enum.zip_with([], [1], &{&1, &2}) == []
+    assert Enum.zip_with([1], [], &{&1, &2}) == []
+    assert Enum.zip_with([], [], &{&1, &2}) == []
+
+    # Ranges
+    assert Enum.zip_with(1..6, 3..4, fn a, b -> a + b end) == [4, 6]
+    assert Enum.zip_with([1, 2, 5, 6], 3..4, fn a, b -> a + b end) == [4, 6]
+    assert Enum.zip_with(fn _, _ -> {:cont, [1, 2]} end, 3..4, fn a, b -> a + b end) == [4, 6]
+    assert Enum.zip_with(1..1, 0..0, fn a, b -> a + b end) == [1]
+
+    # Date.range
+    week_1 = Date.range(~D[2020-10-12], ~D[2020-10-16])
+    week_2 = Date.range(~D[2020-10-19], ~D[2020-10-23])
+
+    result =
+      Enum.zip_with(week_1, week_2, fn a, b ->
+        Date.day_of_week(a) + Date.day_of_week(b)
+      end)
+
+    assert result == [2, 4, 6, 8, 10]
+
+    #  MAPS
+    result = Enum.zip_with(%{a: 7, c: 9}, 3..4, fn {key, value}, b -> {key, value + b} end)
+    assert result == [a: 10, c: 13]
+
+    colour_1 = %{r: 176, g: 175, b: 255}
+    colour_2 = %{r: 12, g: 176, b: 176}
+
+    result = Enum.zip_with(colour_1, colour_2, fn {k, left}, {k, right} -> {k, left + right} end)
+    assert result == [b: 431, g: 351, r: 188]
+  end
+
+  test "zip_with/2" do
+    zip_fun = fn items -> List.to_tuple(items) end
+    result = Enum.zip_with([[:a, :b], [1, 2], ["foo", "bar"]], zip_fun)
+    assert result == [{:a, 1, "foo"}, {:b, 2, "bar"}]
+
+    lots = Enum.zip_with([[:a, :b], [1, 2], ["foo", "bar"], %{a: :b, c: :d}], zip_fun)
+    assert lots == [{:a, 1, "foo", {:a, :b}}, {:b, 2, "bar", {:c, :d}}]
+
+    assert Enum.zip_with([[:a, :b], [1, 2, 3, 4], ["foo", "bar", "baz", "qux"]], zip_fun) ==
+             [{:a, 1, "foo"}, {:b, 2, "bar"}]
+
+    assert Enum.zip_with([[:a, :b, :c, :d], [1, 2], ["foo", "bar", "baz", "qux"]], zip_fun) ==
+             [{:a, 1, "foo"}, {:b, 2, "bar"}]
+
+    assert Enum.zip_with([[:a, :b, :c, :d], [1, 2, 3, 4], ["foo", "bar"]], zip_fun) ==
+             [{:a, 1, "foo"}, {:b, 2, "bar"}]
+
+    assert Enum.zip_with([1..10, ["foo", "bar"]], zip_fun) == [{1, "foo"}, {2, "bar"}]
+    assert Enum.zip_with([], zip_fun) == []
+    assert Enum.zip_with([[]], zip_fun) == []
+    assert Enum.zip_with([[1]], zip_fun) == [{1}]
+    assert Enum.zip_with([[], [], [], []], zip_fun) == []
+    assert Enum.zip_with(%{}, zip_fun) == []
+    assert Enum.zip_with([[1, 2, 5, 6], 3..4], fn [x, y] -> x + y end) == [4, 6]
+
+    # Ranges
+    assert Enum.zip_with([1..6, 3..4], fn [a, b] -> a + b end) == [4, 6]
+    assert Enum.zip_with([[1, 2, 5, 6], 3..4], fn [a, b] -> a + b end) == [4, 6]
+    assert Enum.zip_with([fn _, _ -> {:cont, [1, 2]} end, 3..4], fn [a, b] -> a + b end) == [4, 6]
+    assert Enum.zip_with([1..1, 0..0], fn [a, b] -> a + b end) == [1]
+
+    # Date.range
+    week_1 = Date.range(~D[2020-10-12], ~D[2020-10-16])
+    week_2 = Date.range(~D[2020-10-19], ~D[2020-10-23])
+
+    result =
+      Enum.zip_with([week_1, week_2], fn [a, b] ->
+        Date.day_of_week(a) + Date.day_of_week(b)
+      end)
+
+    assert result == [2, 4, 6, 8, 10]
+
+    #  MAPS
+    result = Enum.zip_with([%{a: 7, c: 9}, 3..4], fn [{key, value}, b] -> {key, value + b} end)
+    assert result == [a: 10, c: 13]
+
+    colour_1 = %{r: 176, g: 175, b: 255}
+    colour_2 = %{r: 12, g: 176, b: 176}
+
+    result =
+      Enum.zip_with([colour_1, colour_2], fn [{k, left}, {k, right}] -> {k, left + right} end)
+
+    assert result == [b: 431, g: 351, r: 188]
+
+    assert Enum.zip_with([%{a: :b, c: :d}, %{e: :f, g: :h}], & &1) == [
+             [a: :b, e: :f],
+             [c: :d, g: :h]
+           ]
+  end
 end
 
 defmodule EnumTest.Range do
