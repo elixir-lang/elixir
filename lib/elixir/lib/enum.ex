@@ -3270,8 +3270,9 @@ defmodule Enum do
   def zip_with([], _fun), do: []
 
   def zip_with(enumerables, zip_fun) do
-    Stream.zip_with(enumerables, zip_fun)
-    |> Enum.to_list()
+    Stream.zip_with(enumerables, zip_fun).({:cont, []}, &{:cont, [&1 | &2]})
+    |> elem(1)
+    |> :lists.reverse()
   end
 
   ## Helpers
