@@ -1169,6 +1169,113 @@ defmodule StreamTest do
              [{1, :a}, {2, :b}, {3, :c}, {4, :a}, {5, :b}, {6, :c}]
   end
 
+  test "zip_with/3" do
+    concat = Stream.concat(1..3, 4..6)
+    cycle = Stream.cycle([:a, :b, :c])
+    zip_fun = &List.to_tuple([&1, &2])
+
+    assert Stream.zip_with(concat, cycle, zip_fun) |> Enum.to_list() ==
+             [{1, :a}, {2, :b}, {3, :c}, {4, :a}, {5, :b}, {6, :c}]
+
+    stream = Stream.concat(1..3, 4..6)
+    other_stream = fn _, _ -> {:cont, [1, 2]} end
+    result = Stream.zip_with(stream, other_stream, fn a, b -> a + b end) |> Enum.to_list()
+    assert result == [2, 4]
+  end
+
+  test "zip_with/2" do
+    concat = Stream.concat(1..3, 4..6)
+    cycle = Stream.cycle([:a, :b, :c])
+    zip_fun = &List.to_tuple/1
+
+    assert Stream.zip_with([concat, cycle], zip_fun) |> Enum.to_list() ==
+             [{1, :a}, {2, :b}, {3, :c}, {4, :a}, {5, :b}, {6, :c}]
+
+    assert Stream.chunk_every([0, 1, 2, 3], 2) |> Stream.zip_with(zip_fun) |> Enum.to_list() ==
+             [{0, 2}, {1, 3}]
+
+    stream = %HaltAcc{acc: 1..3}
+    assert Stream.zip_with([1..3, stream], zip_fun) |> Enum.to_list() == [{1, 1}, {2, 2}, {3, 3}]
+
+    range_cycle = Stream.cycle(1..2)
+
+    assert Stream.zip_with([1..3, range_cycle], zip_fun) |> Enum.to_list() == [
+             {1, 1},
+             {2, 2},
+             {3, 1}
+           ]
+  end
+
+  test "zip_with/2 does not leave streams suspended" do
+    zip_with_fun = &List.to_tuple/1
+
+    stream =
+      Stream.resource(fn -> 1 end, fn acc -> {[acc], acc + 1} end, fn _ ->
+        Process.put(:stream_zip_with, true)
+      end)
+
+    Process.put(:stream_zip_with, false)
+
+    assert Stream.zip_with([[:a, :b, :c], stream], zip_with_fun) |> Enum.to_list() == [
+             a: 1,
+             b: 2,
+             c: 3
+           ]
+
+    assert Process.get(:stream_zip_with)
+
+    Process.put(:stream_zip_with, false)
+
+    assert Stream.zip_with([stream, [:a, :b, :c]], zip_with_fun) |> Enum.to_list() == [
+             {1, :a},
+             {2, :b},
+             {3, :c}
+           ]
+
+    assert Process.get(:stream_zip_with)
+  end
+
+  test "zip_with/2 does not leave streams suspended on halt" do
+    zip_with_fun = &List.to_tuple/1
+
+    stream =
+      Stream.resource(fn -> 1 end, fn acc -> {[acc], acc + 1} end, fn _ ->
+        Process.put(:stream_zip_with, :done)
+      end)
+
+    assert Stream.zip_with([[:a, :b, :c, :d, :e], stream], zip_with_fun) |> Enum.take(3) == [
+             a: 1,
+             b: 2,
+             c: 3
+           ]
+
+    assert Process.get(:stream_zip_with) == :done
+  end
+
+  test "zip_with/2 closes on inner error" do
+    zip_with_fun = &List.to_tuple/1
+    stream = Stream.into([1, 2, 3], %Pdict{})
+
+    stream =
+      Stream.zip_with([stream, Stream.map([:a, :b, :c], fn _ -> throw(:error) end)], zip_with_fun)
+
+    Process.put(:stream_done, false)
+    assert catch_throw(Enum.to_list(stream)) == :error
+    assert Process.get(:stream_done)
+  end
+
+  test "zip_with/2 closes on outer error" do
+    zip_with_fun = &List.to_tuple/1
+
+    stream =
+      Stream.zip_with([Stream.into([1, 2, 3], %Pdict{}), [:a, :b, :c]], zip_with_fun)
+      |> Stream.map(fn _ -> throw(:error) end)
+
+    Process.put(:stream_done, false)
+    assert catch_throw(Enum.to_list(stream)) == :error
+    assert Process.get(:stream_done)
+  end
+
   test "zip/1" do
     concat = Stream.concat(1..3, 4..6)
     cycle = Stream.cycle([:a, :b, :c])
