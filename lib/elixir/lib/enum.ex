@@ -3266,7 +3266,7 @@ defmodule Enum do
       [4, 6]
   """
   @doc since: "1.12.0"
-  @spec zip_with(t, (term, term -> term)) :: [term]
+  @spec zip_with(t, ([term] -> term)) :: [term]
   def zip_with([], _fun), do: []
 
   def zip_with(enumerables, zip_fun) do
