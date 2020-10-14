@@ -1307,7 +1307,7 @@ defmodule Stream do
   def cycle(enumerable)
 
   def cycle([]) do
-    raise ArgumentError, "cannot cycle over empty enumerable"
+    raise ArgumentError, "cannot cycle over an empty enumerable"
   end
 
   def cycle(enumerable) when is_list(enumerable) do
@@ -1356,7 +1356,7 @@ defmodule Stream do
     fn acc ->
       case reduce.(acc) do
         {state, []} when state in [:done, :halted] ->
-          raise ArgumentError, "cannot cycle over empty enumerable"
+          raise ArgumentError, "cannot cycle over an empty enumerable"
 
         other ->
           other
