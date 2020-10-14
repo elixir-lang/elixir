@@ -1105,45 +1105,6 @@ defmodule Stream do
   end
 
   @doc """
-  Zips two enumerables together, lazily.
-
-  The zipping finishes as soon as either enumerable completes.
-
-  ## Examples
-
-      iex> concat = Stream.concat(1..3, 4..6)
-      iex> cycle = Stream.cycle([:a, :b, :c])
-      iex> Stream.zip(concat, cycle) |> Enum.to_list()
-      [{1, :a}, {2, :b}, {3, :c}, {4, :a}, {5, :b}, {6, :c}]
-
-  """
-  @spec zip(Enumerable.t(), Enumerable.t()) :: Enumerable.t()
-  def zip(enumerable1, enumerable2) do
-    zip([enumerable1, enumerable2])
-  end
-
-  @doc """
-  Lazily zips corresponding elements from two enumerables into a new one, transforming them with
-  the `zip_fun` function as it goes.
-
-  The `zip_fun` will be called with the first element from `enumerable1` and the first
-  element from `enumerable2`, then with the second element from each, and so on until
-  either one of the enumerables completes.
-
-  ## Examples
-
-      iex> concat = Stream.concat(1..3, 4..6)
-      iex> Stream.zip_with(concat, concat, fn a, b -> a + b end) |> Enum.to_list()
-      [2, 4, 6, 8, 10, 12]
-
-  """
-  @doc since: "1.12.0"
-  @spec zip_with(Enumerable.t(), Enumerable.t(), (term, term -> term)) :: Enumerable.t()
-  def zip_with(enumerable1, enumerable2, zip_fun) when is_function(zip_fun, 2) do
-    zip_with([enumerable1, enumerable2], &apply(zip_fun, &1))
-  end
-
-  @doc """
   Zips corresponding elements from a finite collection of enumerables
   into one stream of tuples.
 
@@ -1161,6 +1122,24 @@ defmodule Stream do
   @spec zip(enumerables) :: Enumerable.t() when enumerables: [Enumerable.t()] | Enumerable.t()
   def zip(enumerables) do
     zip_with(enumerables, &List.to_tuple(&1))
+  end
+
+  @doc """
+  Zips two enumerables together, lazily.
+
+  The zipping finishes as soon as either enumerable completes.
+
+  ## Examples
+
+      iex> concat = Stream.concat(1..3, 4..6)
+      iex> cycle = Stream.cycle([:a, :b, :c])
+      iex> Stream.zip(concat, cycle) |> Enum.to_list()
+      [{1, :a}, {2, :b}, {3, :c}, {4, :a}, {5, :b}, {6, :c}]
+
+  """
+  @spec zip(Enumerable.t(), Enumerable.t()) :: Enumerable.t()
+  def zip(enumerable1, enumerable2) do
+    zip([enumerable1, enumerable2])
   end
 
   @doc """
@@ -1288,6 +1267,27 @@ defmodule Stream do
 
   defp do_zip_close(zips) do
     :lists.foreach(fn {fun, _, _} -> fun.({:halt, []}) end, zips)
+  end
+
+  @doc """
+  Lazily zips corresponding elements from two enumerables into a new one, transforming them with
+  the `zip_fun` function as it goes.
+
+  The `zip_fun` will be called with the first element from `enumerable1` and the first
+  element from `enumerable2`, then with the second element from each, and so on until
+  either one of the enumerables completes.
+
+  ## Examples
+
+      iex> concat = Stream.concat(1..3, 4..6)
+      iex> Stream.zip_with(concat, concat, fn a, b -> a + b end) |> Enum.to_list()
+      [2, 4, 6, 8, 10, 12]
+
+  """
+  @doc since: "1.12.0"
+  @spec zip_with(Enumerable.t(), Enumerable.t(), (term, term -> term)) :: Enumerable.t()
+  def zip_with(enumerable1, enumerable2, zip_fun) when is_function(zip_fun, 2) do
+    zip_with([enumerable1, enumerable2], &apply(zip_fun, &1))
   end
 
   ## Sources
