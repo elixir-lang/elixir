@@ -3165,10 +3165,10 @@ defmodule Enum do
   end
 
   @doc """
-  Zips corresponding elements from two enumerables into one list
+  Zips corresponding elements from two enumerables into a list
   of tuples.
 
-  The zipping finishes as soon as any enumerable completes.
+  The zipping finishes as soon as either enumerable completes.
 
   ## Examples
 
@@ -3191,7 +3191,7 @@ defmodule Enum do
 
   @doc """
   Zips corresponding elements from a finite collection of enumerables
-  into one list of tuples.
+  into a list of tuples.
 
   The zipping finishes as soon as any enumerable in the given collection completes.
 
@@ -3205,7 +3205,7 @@ defmodule Enum do
 
   """
   @doc since: "1.4.0"
-  @spec zip(enumerables) :: [tuple()] when enumerables: [t()] | t()
+  @spec zip(enumerables) :: [tuple()] when enumerables: [t()]
   def zip([]), do: []
 
   def zip(enumerables) do
@@ -3215,13 +3215,13 @@ defmodule Enum do
   end
 
   @doc """
-  Zips corresponding elements from two enumerables into a new enumerable, transforming them with
-  zip_fun as it goes.
+  Zips corresponding elements from two enumerables into a list, transforming them with
+  the `zip_fun` function as it goes.
 
-  The corresponding elements from each collection are passed to the provided zip_fun in turn.
-  Returns a new list that contains the result of calling zip_fun for each pair of elements.
+  The corresponding elements from each collection are passed to the provided 2-arity `zip_fun` function in turn.
+  Returns a list that contains the result of calling `zip_fun` for each pair of elements.
 
-  The zipping finishes as soon as any enumerable runs out of elements.
+  The zipping finishes as soon as either enumerable runs out of elements.
 
   ## Examples
 
@@ -3233,29 +3233,31 @@ defmodule Enum do
 
       iex> Enum.zip_with([1, 2, 5, 6], [3, 4], fn x, y -> x + y end)
       [4, 6]
+
   """
   @doc since: "1.12.0"
-  @spec zip_with(t, t, (term, term -> term)) :: [term]
+  @spec zip_with(t, t, (enumerable1_elem :: term, enumerable2_elem :: term -> term)) :: [term]
   def zip_with(enumerable1, enumerable2, zip_fun)
-      when is_list(enumerable1) and is_list(enumerable2) do
+      when is_list(enumerable1) and is_list(enumerable2) and is_function(zip_fun, 2) do
     zip_list(enumerable1, enumerable2, zip_fun)
   end
 
-  def zip_with(enumerable1, enumerable2, zip_fun) do
+  def zip_with(enumerable1, enumerable2, zip_fun) when is_function(zip_fun, 2) do
     # zip_with/2 passes a list to the zip_fun containing the nth element from each enumerable
     # That's different from zip_with/3 where each element is a different argument to the zip_fun
-    # The apply ensures that zip_fun it gets the right number of arguments.
+    # apply/2 ensures that zip_fun gets the right number of arguments.
     zip_with([enumerable1, enumerable2], &apply(zip_fun, &1))
   end
 
   @doc """
-  Zips corresponding elements from a finite collection of enumerables into a new enumerable,
-  transforming them with zip_fun as it goes.
+  Zips corresponding elements from a finite collection of enumerables into list, transforming them with
+  the `zip_fun` function as it goes.
 
-  The nth element from each enumerable is put into a list then passed to zip_fun. The result of
-  zip_fun determines the nth element in the returned enumerable.
+  The first element from each of the enums in `enumerables` will be put into a list which is then passed to
+  the 1-arity `zip_fun` function. Then the second elements from each of the enums are put into a list and passed to
+  `zip_fun`, and so on until any one of the enums in `enumerables` runs out of elements.
 
-  Zipping finishes as soon as any enumerable runs out of elements.
+  Returns a list with all the results of calling `zip_fun`.
 
   ## Examples
 
@@ -3264,6 +3266,7 @@ defmodule Enum do
 
       iex> Enum.zip_with([[1, 2], [3, 4]], fn [x, y] -> x + y end)
       [4, 6]
+
   """
   @doc since: "1.12.0"
   @spec zip_with(t, ([term] -> term)) :: [term]
@@ -3809,8 +3812,8 @@ defmodule Enum do
     zip_list(enumerable1, enumerable2, fn x, y -> {x, y} end)
   end
 
-  defp zip_list([h1 | next1], [h2 | next2], fun) do
-    [fun.(h1, h2) | zip_list(next1, next2, fun)]
+  defp zip_list([head1 | next1], [head2 | next2], fun) do
+    [fun.(head1, head2) | zip_list(next1, next2, fun)]
   end
 
   defp zip_list(_, [], _fun), do: []
