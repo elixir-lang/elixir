@@ -511,6 +511,10 @@ defmodule Map do
       3
       iex> Map.get_indifferent(%{"a" => 1}, "a", 7)
       1
+      iex> Map.get_indifferent(%{1920 => "Women's suffrage"}, 1920, "League of Women Voters founded")
+      "Women's suffrage"
+      iex> Map.get_indifferent(%{1945 => "V-E Day"}, 1918, "Wrong war")
+      "Wrong war"
 
   """
   @spec get_indifferent(map, key, value) :: value
@@ -528,6 +532,11 @@ defmodule Map do
   defp try_alt_keytype(map, key, default) when is_binary(key) do
     do_try_alt_keytype(map, key, String.to_atom(key), default)
   end
+
+  defp try_alt_keytype(%{}, key, default), do: default
+
+  defp try_alt_keytype(other, key, default),
+    do: :erlang.error({:badmap, other}, [other, key, default])
 
   defp do_try_alt_keytype(map, key, alt_keytype, default) do
     case map do
