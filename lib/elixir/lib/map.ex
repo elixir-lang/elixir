@@ -439,7 +439,7 @@ defmodule Map do
   @doc """
   Gets the value for a specific `key` in `map`.
 
-  If `key` is present in `map` then its value `value` is
+  If `key` is present in `map`, then its value `value` is
   returned. Otherwise, `default` is returned.
 
   If `default` is not provided, `nil` is used.
@@ -454,12 +454,84 @@ defmodule Map do
       nil
       iex> Map.get(%{a: 1}, :b, 3)
       3
+      iex> Map.get(%{"a" => 1}, "a", 7)
+      1
 
   """
   @spec get(map, key, value) :: value
   def get(map, key, default \\ nil) do
     case map do
       %{^key => value} ->
+        value
+
+      %{} ->
+        default
+
+      other ->
+        :erlang.error({:badmap, other}, [map, key, default])
+    end
+  end
+
+  @doc """
+  Gets the value of a `key` in `map`, checking the `map` for the
+  `key` both as a string and as an atom.
+
+  If `key` is present in `map` exactly as specified in the 2nd parameter
+  value, then its associated `value` is returned immediately.
+
+  If an atom or string `key` was passed in as the 2nd parameter value, it will be
+  converted to the other datatype and the `map` will be re-checked for the presence
+  of an associated `value`, which will be returned if a matching `key` is found.
+
+  Otherwise, `default` will be returned. If no `default` was provided, `nil`
+  will be returned.
+
+  Beware: If you search `map` for a string `key`, `Map.get_indifferent/3` will
+  call `String.to_atom(key)` unless `map` has a matching string `key`. This
+  will create a new atom. Atoms added to the atom table are not garbage collected.
+  The default `:atom_limit` is 1,048,576. You don't want to run out!
+
+  ## Examples
+
+      iex> Map.get_indifferent(%{}, :a)
+      nil
+      iex> Map.get_indifferent(%{a: 1}, :a)
+      1
+      iex> Map.get_indifferent(%{"a": 1}, :a)
+      1
+      iex> Map.get_indifferent(%{a: 1}, "a")
+      1
+      iex> Map.get_indifferent(%{a: 1}, :b)
+      nil
+      iex> Map.get_indifferent(%{a: 1}, :b, 3)
+      3
+      iex> Map.get_indifferent(%{a: 1}, "b")
+      nil
+      iex> Map.get_indifferent(%{"a" => 1}, :b, 3)
+      3
+      iex> Map.get_indifferent(%{"a" => 1}, "a", 7)
+      1
+
+  """
+  @spec get_indifferent(map, key, value) :: value
+  def get_indifferent(map, key, default \\ nil) when is_map(map) do
+    case map do
+      %{^key => value} -> value
+      _other -> try_alt_keytype(map, key, default)
+    end
+  end
+
+  defp try_alt_keytype(map, key, default) when is_atom(key) do
+    do_try_alt_keytype(map, key, Atom.to_string(key), default)
+  end
+
+  defp try_alt_keytype(map, key, default) when is_binary(key) do
+    do_try_alt_keytype(map, key, String.to_atom(key), default)
+  end
+
+  defp do_try_alt_keytype(map, key, alt_keytype, default) do
+    case map do
+      %{^alt_keytype => value} ->
         value
 
       %{} ->
