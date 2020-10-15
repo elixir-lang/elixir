@@ -533,7 +533,7 @@ defmodule Map do
     do_try_alt_keytype(map, key, String.to_atom(key), default)
   end
 
-  defp try_alt_keytype(%{}, key, default), do: default
+  defp try_alt_keytype(%{}, _key, default), do: default
 
   defp try_alt_keytype(other, key, default),
     do: :erlang.error({:badmap, other}, [other, key, default])
