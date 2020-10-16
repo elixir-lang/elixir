@@ -231,9 +231,13 @@ defmodule IO.ANSI.Docs do
       types =
         for {:li, _, lines} <- entries,
             line <- lines,
-            do: ["#{indent}    ", line, ?\n]
+            do: ["#{indent}    ", traverse_erlang_html(line, indent <> "    ", options), ?\n]
 
-      ["#{indent}Typespecs:\n\n", types, ?\n]
+      if types != [] do
+        ["#{indent}Typespecs:\n\n", types, ?\n]
+      else
+        []
+      end
     else
       for {:li, _, lines} <- entries do
         ["#{indent}  ", @bullet_text | handle_erlang_html_text(lines, indent <> "    ", options)]
