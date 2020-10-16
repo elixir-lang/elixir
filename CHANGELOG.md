@@ -6,7 +6,10 @@
 
 #### Elixir
 
+  * [Enum] Add `Enum.zip_with/2` and `Enum.zip_with/3`
   * [List] Add default value for `List.first/1` and `List.last/1`
+  * [Kernel] Do not add runtime dependencies to remotes in typespecs
+  * [Stream] Add `Stream.zip_with/2` and `Stream.zip_with/3`
   * [String] Add `:turkic` mode option to String case functions
 
 #### ExUnit
@@ -15,9 +18,12 @@
 
 #### IEx
 
-  * [IEx] Make IEx' parser to be configurable to allow special commands
+  * [IEx] Make IEx' parser configurable to allow special commands
+  * [IEx] Show function signature when pressing tab after the opening parens of a function
 
 ### 2. Bug fixes
+
+#### Elixir
 
   * [Kernel] Public functions without documentation now appear as an empty map on `Code.fetch_docs/1`, unless they start with underscore, where they remain as `:none`. This aligns Elixir's implementation with EEP48
 
