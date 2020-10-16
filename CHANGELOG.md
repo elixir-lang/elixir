@@ -243,6 +243,30 @@ The Calendar module ships with a new `Calendar.strftime/3` function, which provi
 
 Mix also includes two new tasks: `mix app.config`, for application runtime configuration, and `mix test.coverage`, which generates aggregated coverage reports for umbrella projects and for test suites partitioned across processes.
 
+## v1.11.1 (2020-10-16)
+
+### 1. Bug fixes
+
+#### Elixir
+
+  * [Code] Ignore tracers if lexical tracker is dead or explicitly nil when evaling code with an environment
+  * [GenServer] Do not show warning when using `super` in `GenServer.child_spec/1`
+  * [Kernel] Do not crash when :reduce is set to `nil` in comprehensions
+  * [Kernel] Fix a scenario where undefined function warnings were not being emitted
+
+#### IEx
+
+  * [IEx.Helpers] Properly handle tags inside typespec when showing Erlang docs
+
+#### Logger
+
+  * [Logger] Do not deadlock Logger if handler crashes on sync mode
+
+#### Mix
+
+  * [Mix] Add inet6 fallback to Mix usage of httpc
+  * [mix compile.app] Do not list apps that do not match the current target
+
 ## v1.11.0 (2020-10-06)
 
 ### 1. Enhancements
