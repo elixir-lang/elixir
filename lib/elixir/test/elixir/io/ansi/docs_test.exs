@@ -727,12 +727,25 @@ defmodule IO.ANSI.DocsTest do
     end
 
     test "typespecs" do
+      assert format_erlang([{:ul, [class: "types"], [{:li, [], []}]}]) == ""
+
       assert format_erlang([{:ul, [class: "types"], [{:li, [], ["Hello"]}, {:li, [], ["World"]}]}]) ==
                """
                Typespecs:
 
                    Hello
                    World
+
+               """
+
+      assert format_erlang([
+               {:ul, [class: "types"], [{:li, [], ["Hello", {:code, [], ["World"]}]}]}
+             ]) ==
+               """
+               Typespecs:
+
+                   Hello
+                   \e[36mWorld\e[0m
 
                """
     end
