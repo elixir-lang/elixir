@@ -467,8 +467,9 @@ defmodule Logger do
 
   Erlang/OTP handlers must be listed under your own application:
 
-      config :my_app, :logger,
-        [:handler, :name_of_the_handler, ACustomHandler, configuration = %{}]
+      config :my_app, :logger, [
+        {:handler, :name_of_the_handler, ACustomHandler, configuration = %{}}
+      ]
 
   And then explicitly attached in your `c:Application.start/2` callback:
 
