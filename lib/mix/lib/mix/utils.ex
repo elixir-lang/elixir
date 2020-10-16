@@ -588,7 +588,7 @@ defmodule Mix.Utils do
 
     # Starting an HTTP client profile allows us to scope
     # the effects of using an HTTP proxy to this function
-    {:ok, _pid} = :inets.start(:httpc, [{:profile, :mix}])
+    {:ok, _pid} = :inets.start(:httpc, profile: :mix)
 
     headers = [{'user-agent', 'Mix/#{System.version()}'}]
     request = {:binary.bin_to_list(path), headers}
@@ -601,7 +601,28 @@ defmodule Mix.Utils do
     # If a proxy environment variable was supplied add a proxy to httpc.
     http_options = [relaxed: true] ++ proxy_config(path)
 
-    case :httpc.request(:get, request, http_options, [body_format: :binary], :mix) do
+    case httpc_request(request, http_options) do
+      {:error, {:failed_connect, [{:to_address, _}, {inet, _, reason}]}}
+      when inet in [:inet, :inet6] and reason in [:ehostunreach, :enetunreach] ->
+        :httpc.set_options([ipfamily: fallback(inet)], :mix)
+        request |> httpc_request(http_options) |> httpc_response()
+
+      response ->
+        httpc_response(response)
+    end
+  after
+    :inets.stop(:httpc, :mix)
+  end
+
+  defp fallback(:inet), do: :inet6
+  defp fallback(:inet6), do: :inet
+
+  defp httpc_request(request, http_options) do
+    :httpc.request(:get, request, http_options, [body_format: :binary], :mix)
+  end
+
+  defp httpc_response(response) do
+    case response do
       {:ok, {{_, status, _}, _, body}} when status in 200..299 ->
         {:ok, body}
 
@@ -611,8 +632,6 @@ defmodule Mix.Utils do
       {:error, reason} ->
         {:remote, "httpc request failed with: #{inspect(reason)}"}
     end
-  after
-    :inets.stop(:httpc, :mix)
   end
 
   defp file?(path) do
