@@ -409,24 +409,36 @@ defmodule Mix.Tasks.TestTest do
   end
 
   describe "--warnings-as-errors" do
-    test "warning in lib" do
+    test "fail on warning in tests" do
       in_fixture("test_warnings", fn ->
-        output = mix(["test", "--warnings-as-errors", "test/a_teset_warnings.exs:4"])
+        output = mix(["test", "--warnings-as-errors", "test/with_test_warnings.exs"])
+        assert output =~ "A: warnings_as_errors: false"
         assert output =~ "variable \"unused_in_lib\" is unused"
-        refute output =~ "unused_in_test"
+        assert output =~ "variable \"unused_in_test\" is unused"
         assert output =~ "Compilation failed due to warnings"
       end)
     end
 
-    test "warning in test" do
+    test "does not fail without warning in tests" do
       in_fixture("test_warnings", fn ->
-        output = mix(["compile"], [{"MIX_ENV", "test"}])
+        output = mix(["test", "--warnings-as-errors", "test/without_test_warnings.exs"])
+        assert output =~ "A: warnings_as_errors: false"
         assert output =~ "variable \"unused_in_lib\" is unused"
+        refute output =~ "variable \"unused_in_test\" is unused"
+        refute output =~ "Compilation failed due to warnings"
+      end)
+    end
 
-        output = mix(["test", "--warnings-as-errors"])
-        refute output =~ "unused_in_lib"
-        assert output =~ "variable \"unused_in_test\" is unused"
+    test "warnings as errors for regular compilation" do
+      in_fixture("test_warnings", fn ->
+        output =
+          mix(["do", "compile", "--warnings-as-errors", ",", "test", "--warnings-as-errors"])
+
+        assert output =~ "A: warnings_as_errors: true"
+        assert output =~ "variable \"unused_in_lib\" is unused"
         assert output =~ "Compilation failed due to warnings"
+        # we don't even run tests after failing compilation
+        refute output =~ "variable \"unused_in_test\" is unused"
       end)
     end
   end

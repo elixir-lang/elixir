@@ -96,8 +96,11 @@ defmodule Mix.Tasks.Test do
     * `--trace` - runs tests with detailed reporting. Automatically sets `--max-cases` to `1`.
       Note that in trace mode test timeouts will be ignored as timeout is set to `:infinity`
 
-    * `--warnings-as-errors` - (since v1.11.0) treats warnings as errors and return a non-zero
-      exit code
+    * `--warnings-as-errors` - (since v1.12.0) treats warnings as errors and return a non-zero
+      exit code. This option only concerns tests, i.e. other code would be compiled as is.
+      To treat warnings as errors in both regular and test code, run:
+
+          MIX_ENV=test mix do compile --warnings-as-errors, test --warnings-as-errors
 
   ## Configuration
 
@@ -328,10 +331,6 @@ defmodule Mix.Tasks.Test do
   end
 
   defp do_run(opts, args, files) do
-    if opts[:warnings_as_errors] do
-      Code.compiler_options(warnings_as_errors: true)
-    end
-
     if opts[:listen_on_stdin] do
       System.at_exit(fn _ ->
         IO.gets(:stdio, "")
@@ -359,7 +358,15 @@ defmodule Mix.Tasks.Test do
     # Load ExUnit before we compile anything
     Application.ensure_loaded(:ex_unit)
 
+    old_warnings_as_errors = Code.compiler_options()[:warnings_as_errors]
+    args = args -- ["--warnings-as-errors"]
+
     Mix.Task.run("compile", args)
+
+    if opts[:warnings_as_errors] do
+      Code.put_compiler_option(:warnings_as_errors, true)
+    end
+
     project = Mix.Project.config()
 
     # Start cover after we load deps but before we start the app.
@@ -407,41 +414,45 @@ defmodule Mix.Tasks.Test do
 
     display_warn_test_pattern(test_files, test_pattern, matched_test_files, warn_test_pattern)
 
-    case CT.require_and_run(matched_test_files, test_paths, opts) do
-      {:ok, %{excluded: excluded, failures: failures, total: total}} ->
-        Mix.shell(shell)
-        cover && cover.()
+    result =
+      case CT.require_and_run(matched_test_files, test_paths, opts) do
+        {:ok, %{excluded: excluded, failures: failures, total: total}} ->
+          Mix.shell(shell)
+          cover && cover.()
 
-        cond do
-          failures > 0 and opts[:raise] ->
-            raise_with_shell(shell, "\"mix test\" failed")
+          cond do
+            failures > 0 and opts[:raise] ->
+              raise_with_shell(shell, "\"mix test\" failed")
 
-          failures > 0 ->
-            System.at_exit(fn _ -> exit({:shutdown, 1}) end)
+            failures > 0 ->
+              System.at_exit(fn _ -> exit({:shutdown, 1}) end)
 
-          excluded == total and Keyword.has_key?(opts, :only) ->
-            message = "The --only option was given to \"mix test\" but no test was executed"
-            raise_or_error_at_exit(shell, message, opts)
+            excluded == total and Keyword.has_key?(opts, :only) ->
+              message = "The --only option was given to \"mix test\" but no test was executed"
+              raise_or_error_at_exit(shell, message, opts)
 
-          true ->
-            :ok
-        end
+            true ->
+              :ok
+          end
 
-      :noop ->
-        cond do
-          opts[:stale] ->
-            Mix.shell().info("No stale tests")
+        :noop ->
+          cond do
+            opts[:stale] ->
+              Mix.shell().info("No stale tests")
 
-          files == [] ->
-            Mix.shell().info("There are no tests to run")
+            files == [] ->
+              Mix.shell().info("There are no tests to run")
 
-          true ->
-            message = "Paths given to \"mix test\" did not match any directory/file: "
-            raise_or_error_at_exit(shell, message <> Enum.join(files, ", "), opts)
-        end
+            true ->
+              message = "Paths given to \"mix test\" did not match any directory/file: "
+              raise_or_error_at_exit(shell, message <> Enum.join(files, ", "), opts)
+          end
 
-        :ok
-    end
+          :ok
+      end
+
+    Code.put_compiler_option(:warnings_as_errors, old_warnings_as_errors)
+    result
   end
 
   defp raise_with_shell(shell, message) do
