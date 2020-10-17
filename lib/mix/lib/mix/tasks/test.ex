@@ -358,7 +358,7 @@ defmodule Mix.Tasks.Test do
     # Load ExUnit before we compile anything
     Application.ensure_loaded(:ex_unit)
 
-    old_warnings_as_errors = Code.compiler_options()[:warnings_as_errors]
+    old_warnings_as_errors = Code.get_compiler_option(:warnings_as_errors)
     args = args -- ["--warnings-as-errors"]
 
     Mix.Task.run("compile", args)
