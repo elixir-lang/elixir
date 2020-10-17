@@ -1377,9 +1377,8 @@ defmodule Code do
             # unless it is listed as an extra application.
             case :code.lib_dir(:erts) do
               path when is_list(path) ->
-                [path, "doc", "chunks", "#{module}.chunk"]
-                |> Path.join()
-                |> fetch_docs_from_chunk()
+                path = Path.join([path, "doc", "chunks", "#{module}.chunk"])
+                fetch_docs_from_chunk(path)
 
               {:error, _} ->
                 {:error, :chunk_not_found}
