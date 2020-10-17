@@ -808,11 +808,7 @@ defmodule Mix.Release do
       {:ok, {_, chunks}} ->
         chunks = for {name, chunk} <- chunks, is_binary(chunk), do: {name, chunk}
         {:ok, binary} = :beam_lib.build_module(chunks)
-        {:ok, fd} = :ram_file.open(binary, [:write, :binary])
-        {:ok, _} = :ram_file.compress(fd)
-        {:ok, binary} = :ram_file.get_file(fd)
-        :ok = :ram_file.close(fd)
-        {:ok, binary}
+        {:ok, :zlib.gzip(binary)}
 
       {:error, _, _} = error ->
         error
