@@ -59,11 +59,7 @@ fetch_definitions(File, Module) ->
     error:badarg -> []
   end,
 
-  {All, Private} = fetch_definition(Entries, File, Module, Set, Bag, [], []),
-  Unreachable = elixir_locals:warn_unused_local(File, Module, All, Private),
-  elixir_locals:ensure_no_undefined_local(File, Module, All),
-  elixir_locals:ensure_no_import_conflict(File, Module, All),
-  {All, Unreachable}.
+  fetch_definition(Entries, File, Module, Set, Bag, [], []).
 
 fetch_definition([Tuple | T], File, Module, Set, Bag, All, Private) ->
   [{_, Kind, Meta, _, Check, {MaxDefaults, _, Defaults}}] = ets:lookup(Set, {def, Tuple}),

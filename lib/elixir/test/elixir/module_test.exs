@@ -565,4 +565,16 @@ defmodule ModuleTest do
       end
     end
   end
+
+  test "@on_load" do
+    defmodule OnLoadTest do
+      @on_load :on_load
+
+      defp on_load do
+        :persistent_term.put(__MODULE__, true)
+      end
+    end
+
+    assert :persistent_term.get(OnLoadTest)
+  end
 end

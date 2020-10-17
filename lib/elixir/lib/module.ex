@@ -305,9 +305,9 @@ defmodule Module do
 
   Accepts the function name (as an atom) of a function in the current module or
   `{function_name, 0}` tuple where `function_name` is the name of a function in
-  the current module. The function must be public and have an arity of 0 (no
-  arguments). If the function does not return `:ok`, the loading of the module
-  will be aborted. For example:
+  the current module. The function must have an arity of 0 (no arguments). If
+  the function does not return `:ok`, the loading of the module will be aborted.
+  For example:
 
       defmodule MyModule do
         @on_load :load_check
