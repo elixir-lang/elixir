@@ -330,6 +330,7 @@ defmodule Mix.Tasks.Test do
 
     Mix.Task.run("compile", args)
     project = Mix.Project.config()
+    Code.compiler_options(project[:elixirc_options] || [])
 
     # Start cover after we load deps but before we start the app.
     cover =

@@ -408,6 +408,14 @@ defmodule Mix.Tasks.TestTest do
     end
   end
 
+  test "with elixirc_options: [warnings_as_errors: true]" do
+    in_fixture("test_warnings", fn ->
+      output = mix(["test"])
+      assert output =~ "variable \"unused_in_test\" is unused"
+      assert output =~ "Compilation failed due to warnings"
+    end)
+  end
+
   defp receive_until_match(port, expected, acc) do
     receive do
       {^port, {:data, output}} ->
