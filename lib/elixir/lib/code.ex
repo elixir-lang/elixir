@@ -1373,8 +1373,17 @@ defmodule Code do
       :error ->
         case :code.which(module) do
           :preloaded ->
-            path = Path.join([:code.lib_dir(:erts), "doc", "chunks", "#{module}.chunk"])
-            fetch_docs_from_chunk(path)
+            # The erts directory is not necessarily included in releases
+            # unless it is listed as an extra application.
+            case :code.lib_dir(:erts) do
+              path when is_list(path) ->
+                [path, "doc", "chunks", "#{module}.chunk"]
+                |> Path.join()
+                |> fetch_docs_from_chunk()
+
+              {:error, _} ->
+                {:error, :chunk_not_found}
+            end
 
           _ ->
             {:error, :module_not_found}
