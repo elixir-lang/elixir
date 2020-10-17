@@ -72,9 +72,12 @@ compile(Forms, File, Opts) when is_list(Forms), is_list(Opts), is_binary(File) -
 format_errors([]) ->
   exit({nocompile, "compilation failed but no error was raised"});
 format_errors(Errors) ->
-  lists:foreach(fun ({File, Each}) ->
-    BinFile = elixir_utils:characters_to_binary(File),
-    lists:foreach(fun(Error) -> handle_file_error(BinFile, Error) end, Each)
+  lists:foreach(fun
+    ({File, Each}) when is_list(File) ->
+      BinFile = elixir_utils:characters_to_binary(File),
+      lists:foreach(fun(Error) -> handle_file_error(BinFile, Error) end, Each);
+    ({Mod, Each}) when is_atom(Mod) ->
+      lists:foreach(fun(Error) -> handle_file_error(elixir_aliases:inspect(Mod), Error) end, Each)
   end, Errors).
 
 format_warnings(Opts, Warnings) ->
