@@ -1031,21 +1031,12 @@ defmodule Kernel.ErrorsTest do
 
   test "wrong kind for @on_load attribute" do
     assert_eval_raise CompileError,
-                      "nofile:1: expected @on_load function foo/0 to be defined as \"def\", " <>
-                        "got \"defp\"",
+                      "nofile:1: expected @on_load function foo/0 to be a function, " <>
+                        "got \"defmacro\"",
                       '''
                       defmodule PrivateOnLoadFunction do
                         @on_load :foo
-
-
-                        defp foo do
-                          :ok
-                        end
-
-                        # To avoid warning: function foo/0 is unused
-                        def bar do
-                          foo()
-                        end
+                        defmacro foo, do: :ok
                       end
                       '''
   end
