@@ -567,14 +567,17 @@ defmodule ModuleTest do
   end
 
   test "@on_load" do
+    Process.register(self(), :on_load_test_process)
+
     defmodule OnLoadTest do
       @on_load :on_load
 
       defp on_load do
-        :persistent_term.put(__MODULE__, true)
+        send(:on_load_test_process, :on_loaded)
+        :ok
       end
     end
 
-    assert :persistent_term.get(OnLoadTest)
+    assert_received :on_loaded
   end
 end
