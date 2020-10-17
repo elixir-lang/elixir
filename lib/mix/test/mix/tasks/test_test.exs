@@ -410,7 +410,7 @@ defmodule Mix.Tasks.TestTest do
 
   describe "--warnings-as-errors" do
     test "fail on warning in tests" do
-      in_fixture("test_failed", fn ->
+      in_fixture("test_stale", fn ->
         File.write!("test/warning_test.exs", """
         defmodule WarningTest do
           use ExUnit.Case
