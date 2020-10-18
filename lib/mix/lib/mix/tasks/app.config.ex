@@ -25,6 +25,7 @@ defmodule Mix.Tasks.App.Config do
 
   @switches [preload_modules: :boolean]
 
+  @impl true
   def run(args) do
     Mix.Project.get!()
     Mix.Task.run("compile", args)
