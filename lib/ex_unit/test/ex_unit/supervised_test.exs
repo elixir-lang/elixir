@@ -94,6 +94,12 @@ defmodule ExUnit.SupervisedTest do
     refute Process.alive?(pid)
   end
 
+  test "stops a temporary supervised process" do
+    {:ok, pid} = start_supervised({MyAgent, 0}, restart: :temporary)
+    assert stop_supervised(MyAgent) == :ok
+    refute Process.alive?(pid)
+  end
+
   test "stops! a supervised process" do
     {:ok, pid} = start_supervised({MyAgent, 0})
     assert stop_supervised!(MyAgent) == :ok

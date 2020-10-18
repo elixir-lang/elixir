@@ -463,9 +463,12 @@ defmodule ExUnit.Callbacks do
         {:error, :not_found}
 
       {:ok, sup} ->
-        with :ok <- Supervisor.terminate_child(sup, id),
-             :ok <- Supervisor.delete_child(sup, id),
-             do: :ok
+        with :ok <- Supervisor.terminate_child(sup, id) do
+          # If the terminated child was temporary, delete_child returns {:error, :not_found}.
+          # Since the child was successfully terminated, we treat this result as a success.
+          true = Supervisor.delete_child(sup, id) in [:ok, {:error, :not_found}]
+          :ok
+        end
 
       :error ->
         raise ArgumentError, "stop_supervised/1 can only be invoked from the test process"
