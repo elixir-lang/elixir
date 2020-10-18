@@ -727,6 +727,7 @@ defmodule Access do
       ** (Enum.OutOfBoundsError) out of bounds error
 
   """
+  @doc since: "1.11.0"
   @spec at!(integer) :: access_fun(data :: list, get_value :: term)
   def at!(index) when is_integer(index) do
     fn op, data, next -> at!(op, data, index, next) end
