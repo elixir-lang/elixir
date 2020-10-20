@@ -355,11 +355,11 @@ defmodule Mix.Task do
     alias = Mix.Project.config()[:aliases][String.to_atom(task)]
 
     cond do
-      is_nil(alias) ->
-        run_task(proj, task, args)
-
-      Mix.TasksServer.run({:alias, task, proj}) ->
+      alias && Mix.TasksServer.run({:alias, task, proj}) ->
         run_alias(List.wrap(alias), args, proj, task, :ok)
+
+      !Mix.TasksServer.get({:task, task, proj}) ->
+        run_task(proj, task, args)
 
       true ->
         :noop
@@ -371,8 +371,8 @@ defmodule Mix.Task do
     # 2. Otherwise we compile and load dependencies
     # 3. Finally, we compile the current project in hope it is available.
     module =
-      get_task_or_run(proj, task, fn -> Mix.Task.run("deps.loadpaths") end) ||
-        get_task_or_run(proj, task, fn -> Mix.Task.run("compile", []) end) ||
+      get_task_or_run(proj, task, fn -> run("deps.loadpaths") end) ||
+        get_task_or_run(proj, task, fn -> run("compile", []) end) ||
         get!(task)
 
     recursive = recursive(module)
@@ -450,7 +450,8 @@ defmodule Mix.Task do
     run_alias(t, alias_args, proj, original_task, res)
   end
 
-  defp run_alias([], _alias_task, _proj, _original_task, res) do
+  defp run_alias([], _alias_args, proj, original_task, res) do
+    Mix.TasksServer.put({:task, original_task, proj})
     res
   end
 
