@@ -10,11 +10,14 @@ defmodule Mix.AliasesTest do
           h: "hello",
           p: &inspect/1,
           compile: "hello",
+          cmd: &call_cmd/1,
           help: ["help", "hello"],
           "nested.h": [&Mix.shell().info(inspect(&1)), "h foo bar"]
         ]
       ]
     end
+
+    defp call_cmd(args), do: Mix.Task.run("cmd", args)
   end
 
   setup do
@@ -50,13 +53,18 @@ defmodule Mix.AliasesTest do
     assert Mix.Task.run("compile", []) == :noop
   end
 
-  test "run alias override with recursion" do
+  test "run alias override with name-recursion" do
     assert Mix.Task.rerun("help", []) == "Hello, World!"
     assert_received {:mix_shell, :info, ["mix test" <> _]}
 
     # Arguments are passed to the recursive task and not the last one.
     assert ExUnit.CaptureIO.capture_io(fn ->
-             Mix.Task.rerun("help", ["test"]) == "Hello, World!"
+             Mix.Task.rerun("help", ["test"])
            end) =~ "mix test"
+  end
+
+  test "run alias override with code-recursion" do
+    assert Mix.Task.rerun("cmd", ["echo", "hello"]) == :ok
+    assert_received {:mix_shell, :run, ["hello" <> _]}
   end
 end
