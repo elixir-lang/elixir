@@ -34,44 +34,73 @@ defmodule Mix.Tasks.Test do
   ## Command line options
 
     * `--color` - enables color in the output
+
     * `--cover` - runs coverage tool. See "Coverage" section below
+
     * `--exclude` - excludes tests that match the filter
+
     * `--export-coverage` - the name of the file to export coverage results too.
       Only has an effect when used with `--cover`
     * `--failed` - runs only tests that failed the last time they ran
+
     * `--force` - forces compilation regardless of modification times
+
     * `--formatter` - sets the formatter module that will print the results.
       Defaults to ExUnit's built-in CLI formatter
     * `--include` - includes tests that match the filter
+
     * `--listen-on-stdin` - runs tests, and then listens on stdin. Receiving a newline will
       result in the tests being run again. Very useful when combined with `--stale` and
       external commands which produce output on stdout upon file system modifications
     * `--max-cases` - sets the maximum number of tests running asynchronously. Only tests from
+
       different modules run in parallel. Defaults to twice the number of cores
     * `--max-failures` - the suite stops evaluating tests when this number of test
       failures is reached. It runs all tests if omitted
+
     * `--no-archives-check` - does not check archives
+
     * `--no-color` - disables color in the output
+
     * `--no-compile` - does not compile, even if files require compilation
+
     * `--no-deps-check` - does not check dependencies
+
     * `--no-elixir-version-check` - does not check the Elixir version from `mix.exs`
+
     * `--no-start` - does not start applications after compilation
+
     * `--only` - runs only tests that match the filter
+
     * `--partitions` - sets the amount of partitions to split tests in. This option
       requires the `MIX_TEST_PARTITION` environment variable to be set. See the
       "Operating system process partitioning" section for more information
+
     * `--preload-modules` - preloads all modules defined in applications
+
     * `--raise` - raises if the test suite failed
+
     * `--seed` - seeds the random number generator used to randomize the order of tests;
+
       `--seed 0` disables randomization
+
     * `--slowest` - prints timing information for the N slowest tests.
       Automatically sets `--trace` and `--preload-modules`
+
     * `--stale` - runs only tests which reference modules that changed since the
       last time tests were ran with `--stale`. You can read more about this option
       in the "The --stale option" section below
+
     * `--timeout` - sets the timeout for the tests
+
     * `--trace` - runs tests with detailed reporting. Automatically sets `--max-cases` to `1`.
       Note that in trace mode test timeouts will be ignored as timeout is set to `:infinity`
+
+    * `--warnings-as-errors` - (since v1.12.0) treats warnings as errors and returns a non-zero
+      exit code. This option only applies to test files. To treat warnings as errors during
+      compilation and during tests, run:
+
+          MIX_ENV=test mix do compile --warnings-as-errors, test --warnings-as-errors
 
   ## Configuration
 
@@ -262,7 +291,8 @@ defmodule Mix.Tasks.Test do
     formatter: :keep,
     slowest: :integer,
     partitions: :integer,
-    preload_modules: :boolean
+    preload_modules: :boolean,
+    warnings_as_errors: :boolean
   ]
 
   @cover [output: "cover", tool: Mix.Tasks.Test.Coverage]
@@ -328,7 +358,15 @@ defmodule Mix.Tasks.Test do
     # Load ExUnit before we compile anything
     Application.ensure_loaded(:ex_unit)
 
+    old_warnings_as_errors = Code.get_compiler_option(:warnings_as_errors)
+    args = args -- ["--warnings-as-errors"]
+
     Mix.Task.run("compile", args)
+
+    if opts[:warnings_as_errors] do
+      Code.put_compiler_option(:warnings_as_errors, true)
+    end
+
     project = Mix.Project.config()
 
     # Start cover after we load deps but before we start the app.
@@ -376,41 +414,45 @@ defmodule Mix.Tasks.Test do
 
     display_warn_test_pattern(test_files, test_pattern, matched_test_files, warn_test_pattern)
 
-    case CT.require_and_run(matched_test_files, test_paths, opts) do
-      {:ok, %{excluded: excluded, failures: failures, total: total}} ->
-        Mix.shell(shell)
-        cover && cover.()
+    result =
+      case CT.require_and_run(matched_test_files, test_paths, opts) do
+        {:ok, %{excluded: excluded, failures: failures, total: total}} ->
+          Mix.shell(shell)
+          cover && cover.()
 
-        cond do
-          failures > 0 and opts[:raise] ->
-            raise_with_shell(shell, "\"mix test\" failed")
+          cond do
+            failures > 0 and opts[:raise] ->
+              raise_with_shell(shell, "\"mix test\" failed")
 
-          failures > 0 ->
-            System.at_exit(fn _ -> exit({:shutdown, 1}) end)
+            failures > 0 ->
+              System.at_exit(fn _ -> exit({:shutdown, 1}) end)
 
-          excluded == total and Keyword.has_key?(opts, :only) ->
-            message = "The --only option was given to \"mix test\" but no test was executed"
-            raise_or_error_at_exit(shell, message, opts)
+            excluded == total and Keyword.has_key?(opts, :only) ->
+              message = "The --only option was given to \"mix test\" but no test was executed"
+              raise_or_error_at_exit(shell, message, opts)
 
-          true ->
-            :ok
-        end
+            true ->
+              :ok
+          end
 
-      :noop ->
-        cond do
-          opts[:stale] ->
-            Mix.shell().info("No stale tests")
+        :noop ->
+          cond do
+            opts[:stale] ->
+              Mix.shell().info("No stale tests")
 
-          files == [] ->
-            Mix.shell().info("There are no tests to run")
+            files == [] ->
+              Mix.shell().info("There are no tests to run")
 
-          true ->
-            message = "Paths given to \"mix test\" did not match any directory/file: "
-            raise_or_error_at_exit(shell, message <> Enum.join(files, ", "), opts)
-        end
+            true ->
+              message = "Paths given to \"mix test\" did not match any directory/file: "
+              raise_or_error_at_exit(shell, message <> Enum.join(files, ", "), opts)
+          end
 
-        :ok
-    end
+          :ok
+      end
+
+    Code.put_compiler_option(:warnings_as_errors, old_warnings_as_errors)
+    result
   end
 
   defp raise_with_shell(shell, message) do
