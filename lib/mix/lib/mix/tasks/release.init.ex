@@ -85,7 +85,7 @@ defmodule Mix.Tasks.Release.Init do
 
     SELF=$(readlink "$0" || true)
     if [ -z "$SELF" ]; then SELF="$0"; fi
-    RELEASE_ROOT="$(cd "$(dirname "$SELF")/.." && pwd -P)"
+    RELEASE_ROOT="$(CDPATH='' cd "$(dirname "$SELF")/.." && pwd -P)"
     export RELEASE_ROOT
     export RELEASE_NAME="${RELEASE_NAME:-"<%= @release.name %>"}"
     export RELEASE_VSN="${RELEASE_VSN:-"$(cut -d' ' -f2 "$RELEASE_ROOT/releases/start_erl.data")"}"
