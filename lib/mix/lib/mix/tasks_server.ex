@@ -21,6 +21,10 @@ defmodule Mix.TasksServer do
     Agent.update(@name, &Map.put(&1, tuple, true), @timeout)
   end
 
+  def get(tuple) do
+    Agent.get(@name, &Map.get(&1, tuple), @timeout)
+  end
+
   def delete_many(many) do
     Agent.update(@name, &Map.drop(&1, many), @timeout)
   end
