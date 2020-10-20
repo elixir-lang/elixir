@@ -16,7 +16,8 @@ defmodule Config do
       import_config "#{config_env()}.exs"
 
   `import Config` will import the functions `config/2`, `config/3`
-  and `import_config/1` to help you manage your configuration.
+  `config_env/0`, `config_target/0` and `import_config/1`
+  to help you manage your configuration.
 
   `config/2` and `config/3` are used to define key-value configuration
   for a given application. Once Mix starts, it will automatically
