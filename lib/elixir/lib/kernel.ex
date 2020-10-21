@@ -1670,7 +1670,7 @@ defmodule Kernel do
   If `left` is `true`, returns `true`; otherwise returns `right`.
 
   Requires only the `left` operand to be a boolean since it short-circuits.
-  If the `left` operand is not a boolean, an `ArgumentError` exception is
+  If the `left` operand is not a boolean, a `BadBooleanError` exception is
   raised.
 
   Allowed in guard tests.
@@ -1702,7 +1702,7 @@ defmodule Kernel do
   If `left` is `false`, returns `false`; otherwise returns `right`.
 
   Requires only the `left` operand to be a boolean since it short-circuits. If
-  the `left` operand is not a boolean, an `ArgumentError` exception is raised.
+  the `left` operand is not a boolean, a `BadBooleanError` exception is raised.
 
   Allowed in guard tests.
 
