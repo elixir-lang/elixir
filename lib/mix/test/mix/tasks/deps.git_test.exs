@@ -146,6 +146,7 @@ defmodule Mix.Tasks.DepsGitTest do
       assert File.exists?("deps/git_repo/.fetch")
 
       # Clear tasks to recompile Git repo but unload it so...
+      purge([GitRepo])
       Mix.Task.clear()
       Mix.Tasks.Deps.Compile.run(["git_repo"])
       assert File.exists?("_build/dev/lib/git_repo/ebin")
@@ -404,6 +405,35 @@ defmodule Mix.Tasks.DepsGitTest do
       Mix.Tasks.Deps.Update.run(["deps_on_git_repo"])
       assert File.exists?("deps/git_repo/lib/git_repo.ex")
       assert File.read!("mix.lock") =~ last
+      refute File.exists?("_build/dev/lib/git_repo/.mix/compile.fetch")
+    end)
+  after
+    purge([GitRepo, GitRepo.MixProject])
+  end
+
+  test "fetches children on get" do
+    Mix.Project.push(DepsOnGitApp)
+
+    # Get Git repo first revision
+    [last, first | _] = get_git_repo_revs("deps_on_git_repo")
+
+    in_fixture("no_mixfile", fn ->
+      Mix.Dep.Lock.write(%{deps_on_git_repo: {:git, fixture_path("deps_on_git_repo"), first, []}})
+
+      Mix.Tasks.Deps.Get.run([])
+      assert File.exists?("deps/deps_on_git_repo/mix.exs")
+      refute File.exists?("deps/git_repo/lib/git_repo.ex")
+      assert File.read!("mix.lock") =~ first
+
+      Mix.Task.clear()
+      Mix.State.clear_cache()
+      purge([DepsOnGitRepo.MixProject])
+
+      Mix.Dep.Lock.write(%{deps_on_git_repo: {:git, fixture_path("deps_on_git_repo"), last, []}})
+      Mix.Tasks.Deps.Get.run([])
+      assert File.exists?("deps/git_repo/lib/git_repo.ex")
+      assert File.read!("mix.lock") =~ last
+      refute File.exists?("_build/dev/lib/git_repo/.mix/compile.fetch")
     end)
   after
     purge([GitRepo, GitRepo.MixProject])

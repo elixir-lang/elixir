@@ -65,6 +65,16 @@ defmodule Mix.Dep.Fetcher do
           end
 
         if new do
+          # There is a race condition where if you compile deps
+          # and then immediately update them, we would not detect
+          # a mismatch with .mix/compile.fetch, so we go ahead and
+          # delete all of them.
+          Mix.Project.build_path()
+          |> Path.dirname()
+          |> Path.join("*/lib/#{dep.app}/.mix/compile.fetch")
+          |> Path.wildcard(match_dot: true)
+          |> Enum.each(&File.rm/1)
+
           File.touch!(Path.join(opts[:dest], ".fetch"))
           dep = put_in(dep.opts[:lock], new)
           {dep, [app | acc], Map.put(lock, app, new)}
