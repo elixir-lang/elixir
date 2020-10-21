@@ -19,7 +19,7 @@ defmodule Mix.Tasks.Deps.Clean do
 
   By default this task works across all environments,
   unless `--only` is given which will clean all dependencies
-  leaving only the ones for chosen environment.
+  for the chosen environment.
   """
 
   @switches [unlock: :boolean, all: :boolean, only: :string, unused: :boolean, build: :boolean]
