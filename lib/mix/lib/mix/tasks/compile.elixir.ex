@@ -103,12 +103,13 @@ defmodule Mix.Tasks.Compile.Elixir do
     manifest = manifest()
     configs = [Mix.Project.config_mtime() | Mix.Tasks.Compile.Erlang.manifests()]
     force = opts[:force] || Mix.Utils.stale?(configs, [manifest])
+    {tracers, opts} = pop_tracers(opts)
 
     opts =
       (project[:elixirc_options] || [])
       |> Keyword.merge(opts)
       |> xref_exclude_opts(project)
-      |> tracers_opts()
+      |> tracers_opts(tracers)
       |> profile_opts()
 
     Mix.Compilers.Elixir.compile(manifest, srcs, dest, [:ex], force, opts)
@@ -134,15 +135,19 @@ defmodule Mix.Tasks.Compile.Elixir do
     end
   end
 
-  defp tracers_opts(opts) do
+  defp pop_tracers(opts) do
     case Keyword.pop_values(opts, :tracer) do
       {[], opts} ->
-        opts
+        {[], opts}
 
       {tracers, opts} ->
-        tracers = Enum.map(tracers, &Module.concat([&1]))
-        Keyword.update(opts, :tracers, tracers, &(tracers ++ &1))
+        {Enum.map(tracers, &Module.concat([&1])), opts}
     end
+  end
+
+  defp tracers_opts(opts, tracers) do
+    tracers = tracers ++ Code.get_compiler_option(:tracers)
+    Keyword.update(opts, :tracers, tracers, &(tracers ++ &1))
   end
 
   defp profile_opts(opts) do
