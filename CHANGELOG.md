@@ -14,7 +14,7 @@ Elixir v1.11 builds on top of the recently added compilation tracers to track ap
 
 These two conditions may seem contradictory. After all, if a module is available, it must have come from a dependency. This is not true in two scenarios:
 
-  * Modules from Elixir and Erlang/OTP are always available - even if their applications are not explicitly listed as a dependency
+  * Modules from Elixir and Erlang/OTP are always available - even if their applications are not listed as a dependency
 
   * In an umbrella project, because all child applications are compiled within the same VM, you may have a module from a sibling project available, even if you don't depend on said sibling
 
@@ -36,7 +36,7 @@ on :ssl. To fix this, you must do one of:
      to your "def project" in mix.exs
 ```
 
-This comes with extra benefits in umbrella projects, as it requires child applications to explicitly list their dependencies, completely rejecting cyclic dependencies between siblings.
+This comes with extra benefits in umbrella projects, as it requires applications to depend on the siblings they depend on, which will fail if there are any cyclic dependencies.
 
 ## Compiler checks: data constructors
 
