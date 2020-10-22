@@ -57,6 +57,19 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     Code.put_compiler_option(:tracers, [])
   end
 
+  test "compiles a project with a previously set custom tracer" do
+    Process.register(self(), __MODULE__)
+    Code.put_compiler_option(:tracers, [__MODULE__])
+
+    in_fixture("no_mixfile", fn ->
+      Mix.Tasks.Compile.Elixir.run([])
+      assert_received {:alias_reference, _meta, A}
+      assert_received {:alias_reference, _meta, B}
+    end)
+  after
+    Code.put_compiler_option(:tracers, [])
+  end
+
   test "warns when Logger is used but not depended on" do
     in_fixture("no_mixfile", fn ->
       File.write!("lib/a.ex", """
