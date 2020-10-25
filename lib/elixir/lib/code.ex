@@ -1224,9 +1224,14 @@ defmodule Code do
       iex> Code.ensure_loaded(DoesNotExist)
       {:error, :nofile}
 
+      iex> Code.ensure_loaded(Elixir)
+      {:error, :nofile}
+
   """
   @spec ensure_loaded(module) ::
           {:module, module} | {:error, :embedded | :badfile | :nofile | :on_load_failure}
+  def ensure_loaded(Elixir), do: {:error, :nofile}
+
   def ensure_loaded(module) when is_atom(module) do
     :code.ensure_loaded(module)
   end
@@ -1278,6 +1283,8 @@ defmodule Code do
   @spec ensure_compiled(module) ::
           {:module, module}
           | {:error, :embedded | :badfile | :nofile | :on_load_failure | :unavailable}
+  def ensure_compiled(Elixir), do: {:error, :nofile}
+
   def ensure_compiled(module) when is_atom(module) do
     case :code.ensure_loaded(module) do
       {:error, :nofile} = error ->

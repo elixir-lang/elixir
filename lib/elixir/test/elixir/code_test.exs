@@ -467,11 +467,13 @@ defmodule CodeTest do
   test "ensure_loaded?/1" do
     assert Code.ensure_loaded?(__MODULE__)
     refute Code.ensure_loaded?(Code.NoFile)
+    refute Code.ensure_loaded?(Elixir)
   end
 
   test "ensure_compiled/1" do
     assert Code.ensure_compiled(__MODULE__) == {:module, __MODULE__}
     assert Code.ensure_compiled(Code.NoFile) == {:error, :nofile}
+    assert Code.ensure_compiled(Elixir) == {:error, :nofile}
   end
 
   test "put_compiler_option/2 validates options" do
