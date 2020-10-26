@@ -940,7 +940,7 @@ defmodule System do
   unit before you display them to humans.
 
   To determine how many seconds the `:native` unit represents in your current
-  runtime, you can can call this function to convert 1 second to the `:native`
+  runtime, you can call this function to convert 1 second to the `:native`
   time unit: `System.convert_time_unit(1, :second, :native)`.
   """
   @spec convert_time_unit(integer, time_unit | :native, time_unit | :native) :: integer
