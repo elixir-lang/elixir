@@ -1870,15 +1870,14 @@ defmodule Kernel do
   @doc """
   Raises an exception.
 
-  If the argument `msg` is a binary, it raises a `RuntimeError` exception
-  using the given argument as message.
+  If `message` is a string, it raises a `RuntimeError` exception with it.
 
-  If `msg` is an atom, it just calls `raise/2` with the atom as the first
-  argument and `[]` as the second argument.
+  If `message` is an atom, it just calls `raise/2` with the atom as the first
+  argument and `[]` as the second one.
 
-  If `msg` is an exception struct, it is raised as is.
+  If `message` is an exception struct, it is raised as is.
 
-  If `msg` is anything else, `raise` will fail with an `ArgumentError`
+  If `message` is anything else, `raise` will fail with an `ArgumentError`
   exception.
 
   ## Examples
@@ -1931,8 +1930,8 @@ defmodule Kernel do
   Raises an exception.
 
   Calls the `exception/1` function on the given argument (which has to be a
-  module name like `ArgumentError` or `RuntimeError`) passing `attrs` as the
-  attributes in order to retrieve the exception struct.
+  module name like `ArgumentError` or `RuntimeError`) passing `attributes`
+  in order to retrieve the exception struct.
 
   Any module that contains a call to the `defexception/1` macro automatically
   implements the `c:Exception.exception/1` callback expected by `raise/2`.
