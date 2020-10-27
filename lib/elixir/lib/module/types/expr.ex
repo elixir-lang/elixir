@@ -205,7 +205,7 @@ defmodule Module.Types.Expr do
 
   # (expr; expr)
   def of_expr({:__block__, _meta, exprs}, expected, stack, context) do
-    expected_types = Enum.take(Stream.cycle([:dynamic]), length(exprs) - 1) ++ [expected]
+    expected_types = for(_ <- 1..(length(exprs) - 1), do: :dynamic) ++ [expected]
 
     result =
       map_reduce_ok(Enum.zip(exprs, expected_types), context, fn {expr, expected}, context ->
