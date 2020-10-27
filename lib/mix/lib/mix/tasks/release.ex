@@ -1423,7 +1423,7 @@ defmodule Mix.Tasks.Release do
     end
   end
 
-  defp executable!(path), do: File.chmod!(path, 0o744)
+  defp executable!(path), do: File.chmod!(path, 0o755)
 
   # Helper functions
 
