@@ -147,10 +147,10 @@ defmodule DynamicSupervisor do
           extra_arguments: [term()]
         }
 
-  @typedoc "Option values used by the `start*` functions"
+  @typedoc "Options given to `start_link` functions"
   @type option :: GenServer.option()
 
-  @typedoc "Options given to `start_link/1` and `init/1`"
+  @typedoc "Options given to `start_link` and `init/1` functions"
   @type init_option ::
           {:strategy, strategy()}
           | {:max_restarts, non_neg_integer()}
