@@ -331,8 +331,9 @@ defmodule Module.Types.Expr do
     end
   end
 
-  # fun.(arg)
+  # fun.(args)
   def of_expr({{:., _meta1, [fun]}, _meta2, args} = expr, _expected, stack, context) do
+    # TODO: Use expected type to infer intersection return type
     stack = push_expr_stack(expr, stack)
 
     case of_expr(fun, :dynamic, stack, context) do
@@ -361,6 +362,7 @@ defmodule Module.Types.Expr do
            {:ok, _map_type, context} <- unify(map_field_type, expr_type, stack, context),
            do: {:ok, value_var, context}
     else
+      # TODO: Use expected type to infer intersection return type
       with {:ok, expr_type, context} <- of_expr(expr1, :dynamic, stack, context),
            {:ok, _map_type, context} <- unify(expr_type, :atom, stack, context),
            do: {:ok, :dynamic, context}
@@ -369,6 +371,8 @@ defmodule Module.Types.Expr do
 
   # expr.fun(arg)
   def of_expr({{:., meta1, [expr1, fun]}, _meta2, args} = expr2, _expected, stack, context) do
+    # TODO: Use expected type to infer intersection return type
+
     context = Of.remote(expr1, fun, length(args), meta1, context)
     stack = push_expr_stack(expr2, stack)
 
@@ -403,6 +407,8 @@ defmodule Module.Types.Expr do
   # fun(arg)
   def of_expr({fun, _meta, args} = expr, _expected, stack, context)
       when is_atom(fun) and is_list(args) do
+    # TODO: Use expected type to infer intersection return type
+
     stack = push_expr_stack(expr, stack)
 
     case map_reduce_ok(args, context, &of_expr(&1, :dynamic, stack, &2)) do
