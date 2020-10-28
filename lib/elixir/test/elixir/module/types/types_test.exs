@@ -22,7 +22,7 @@ defmodule Module.Types.TypesTest do
   def __expr__({patterns, guards, body}) do
     with {:ok, _types, context} <-
            Pattern.of_head(patterns, guards, TypeHelper.new_stack(), TypeHelper.new_context()),
-         {:ok, type, context} <- Expr.of_expr(body, TypeHelper.new_stack(), context) do
+         {:ok, type, context} <- Expr.of_expr(body, :dynamic, TypeHelper.new_stack(), context) do
       case context.warnings do
         [warning] -> {:warning, warning}
         _ -> flunk("expexted error, got: #{inspect([type] |> Unify.lift_types(context) |> hd())}")

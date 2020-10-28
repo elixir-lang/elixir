@@ -46,9 +46,7 @@ defmodule Module.Types.Pattern do
 
   # <<...>>>
   def of_pattern({:<<>>, _meta, args}, stack, context) do
-    result = Of.binary(args, stack, context, &of_pattern/3)
-
-    case result do
+    case Of.binary(args, stack, context, &of_pattern_expected/4) do
       {:ok, context} -> {:ok, :binary, context}
       {:error, reason} -> {:error, reason}
     end
@@ -166,7 +164,7 @@ defmodule Module.Types.Pattern do
   # %{...}
   def of_pattern({:%{}, _meta, args} = expr, stack, context) do
     stack = push_expr_stack(expr, stack)
-    Of.open_map(args, stack, context, &of_pattern/3)
+    Of.open_map(args, stack, context, &of_pattern_expected/4)
   end
 
   # %Struct{...}
@@ -175,7 +173,7 @@ defmodule Module.Types.Pattern do
     stack = push_expr_stack(expr, stack)
 
     with {:ok, struct, context} <- Of.struct(module, meta1, context),
-         {:ok, map, context} <- Of.open_map(args, stack, context, &of_pattern/3) do
+         {:ok, map, context} <- Of.open_map(args, stack, context, &of_pattern_expected/4) do
       unify(map, struct, stack, context)
     end
   end
@@ -189,7 +187,8 @@ defmodule Module.Types.Pattern do
       when is_atom(var_context) do
     stack = push_expr_stack(expr, stack)
 
-    with {:ok, {:map, pairs}, context} <- Of.open_map(args, stack, context, &of_pattern/3) do
+    with {:ok, {:map, pairs}, context} <-
+           Of.open_map(args, stack, context, &of_pattern_expected/4) do
       {:ok, {:map, [{:required, {:atom, :__struct__}, :atom} | pairs]}, context}
     end
   end
@@ -200,7 +199,8 @@ defmodule Module.Types.Pattern do
 
     with {:ok, var_type, context} = of_pattern(var, stack, context),
          {:ok, _, context} <- unify(var_type, :atom, stack, context),
-         {:ok, {:map, pairs}, context} <- Of.open_map(args, stack, context, &of_pattern/3) do
+         {:ok, {:map, pairs}, context} <-
+           Of.open_map(args, stack, context, &of_pattern_expected/4) do
       {:ok, {:map, [{:required, {:atom, :__struct__}, var_type} | pairs]}, context}
     end
   end
@@ -208,6 +208,10 @@ defmodule Module.Types.Pattern do
   def unify_kinds(:required, _), do: :required
   def unify_kinds(_, :required), do: :required
   def unify_kinds(:optional, :optional), do: :optional
+
+  defp of_pattern_expected(expr, _expected, stack, context) do
+    of_pattern(expr, stack, context)
+  end
 
   ## GUARDS
 

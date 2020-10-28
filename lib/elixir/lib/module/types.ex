@@ -60,7 +60,7 @@ defmodule Module.Types do
     head_stack = Unify.push_expr_stack(def_expr, stack)
 
     with {:ok, _types, context} <- Pattern.of_head(args, guards, head_stack, context),
-         {:ok, _type, context} <- Expr.of_expr(body, stack, context) do
+         {:ok, _type, context} <- Expr.of_expr(body, :dynamic, stack, context) do
       context.warnings
     else
       {:error, {type, error, context}} ->
