@@ -14,8 +14,8 @@ defmodule Module.Types.Of do
   @doc """
   Handles open maps (with dynamic => dynamic).
   """
-  def open_map(args, stack, context, fun) do
-    with {:ok, pairs, context} <- map_pairs(args, stack, context, fun) do
+  def open_map(args, stack, context, of_fun) do
+    with {:ok, pairs, context} <- map_pairs(args, stack, context, of_fun) do
       # If we match on a map such as %{"foo" => "bar"}, we cannot
       # assert that %{binary() => binary()}, since we are matching
       # only a single binary of infinite possible values. Therefore,
@@ -48,16 +48,16 @@ defmodule Module.Types.Of do
   @doc """
   Handles closed maps (without dynamic => dynamic).
   """
-  def closed_map(args, stack, context, fun) do
-    with {:ok, pairs, context} <- map_pairs(args, stack, context, fun) do
+  def closed_map(args, stack, context, of_fun) do
+    with {:ok, pairs, context} <- map_pairs(args, stack, context, of_fun) do
       {:ok, {:map, closed_to_unions(pairs, context)}, context}
     end
   end
 
-  defp map_pairs(pairs, stack, context, fun) do
+  defp map_pairs(pairs, stack, context, of_fun) do
     map_reduce_ok(pairs, context, fn {key, value}, context ->
-      with {:ok, key_type, context} <- fun.(key, stack, context),
-           {:ok, value_type, context} <- fun.(value, stack, context),
+      with {:ok, key_type, context} <- of_fun.(key, :dynamic, stack, context),
+           {:ok, value_type, context} <- of_fun.(value, :dynamic, stack, context),
            do: {:ok, {key_type, value_type}, context}
     end)
   end
@@ -128,39 +128,39 @@ defmodule Module.Types.Of do
   In the stack, we add nodes such as <<expr>>, <<..., expr>>, etc,
   based on the position of the expression within the binary.
   """
-  def binary([], _stack, context, _fun) do
+  def binary([], _stack, context, _of_fun) do
     {:ok, context}
   end
 
-  def binary([head], stack, context, fun) do
+  def binary([head], stack, context, of_fun) do
     head_stack = push_expr_stack({:<<>>, get_meta(head), [head]}, stack)
-    binary_segment(head, head_stack, context, fun)
+    binary_segment(head, head_stack, context, of_fun)
   end
 
-  def binary([head | tail], stack, context, fun) do
+  def binary([head | tail], stack, context, of_fun) do
     head_stack = push_expr_stack({:<<>>, get_meta(head), [head, @suffix]}, stack)
 
-    case binary_segment(head, head_stack, context, fun) do
-      {:ok, context} -> binary_many(tail, stack, context, fun)
+    case binary_segment(head, head_stack, context, of_fun) do
+      {:ok, context} -> binary_many(tail, stack, context, of_fun)
       {:error, reason} -> {:error, reason}
     end
   end
 
-  defp binary_many([last], stack, context, fun) do
+  defp binary_many([last], stack, context, of_fun) do
     last_stack = push_expr_stack({:<<>>, get_meta(last), [@prefix, last]}, stack)
-    binary_segment(last, last_stack, context, fun)
+    binary_segment(last, last_stack, context, of_fun)
   end
 
-  defp binary_many([head | tail], stack, context, fun) do
+  defp binary_many([head | tail], stack, context, of_fun) do
     head_stack = push_expr_stack({:<<>>, get_meta(head), [@prefix, head, @suffix]}, stack)
 
-    case binary_segment(head, head_stack, context, fun) do
-      {:ok, context} -> binary_many(tail, stack, context, fun)
+    case binary_segment(head, head_stack, context, of_fun) do
+      {:ok, context} -> binary_many(tail, stack, context, of_fun)
       {:error, reason} -> {:error, reason}
     end
   end
 
-  defp binary_segment({:"::", _meta, [expr, specifiers]}, stack, context, fun) do
+  defp binary_segment({:"::", _meta, [expr, specifiers]}, stack, context, of_fun) do
     expected_type =
       collect_binary_specifier(specifiers, &binary_type(stack.context, &1)) || :integer
 
@@ -177,7 +177,7 @@ defmodule Module.Types.Of do
         {:ok, context}
 
       true ->
-        with {:ok, type, context} <- fun.(expr, stack, context),
+        with {:ok, type, context} <- of_fun.(expr, expected_type, stack, context),
              {:ok, _type, context} <- unify(type, expected_type, stack, context),
              do: {:ok, context}
     end

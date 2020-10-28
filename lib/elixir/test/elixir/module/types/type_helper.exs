@@ -15,7 +15,7 @@ defmodule TypeHelper do
   def __expr__({patterns, guards, body}) do
     with {:ok, _types, context} <-
            Pattern.of_head(patterns, guards, new_stack(), new_context()),
-         {:ok, type, context} <- Expr.of_expr(body, new_stack(), context) do
+         {:ok, type, context} <- Expr.of_expr(body, :dynamic, new_stack(), context) do
       {:ok, [type] |> Unify.lift_types(context) |> hd()}
     else
       {:error, {type, reason, _context}} ->
