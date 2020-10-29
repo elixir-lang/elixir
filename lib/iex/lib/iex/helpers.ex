@@ -624,19 +624,6 @@ defmodule IEx.Helpers do
     IO.puts("#{pad_key(key)}#{format_bytes(value)}")
   end
 
-  defp print_allocator(allocated_areas, key, probe) do
-    case List.keyfind(allocated_areas, probe, 0) do
-      {_, allocated, used} ->
-        IO.puts("#{pad_key(key)}#{format_bytes(allocated)} (#{format_bytes(used)} used)")
-
-      {_, allocated} ->
-        IO.puts("#{pad_key(key)}#{format_bytes(allocated)}")
-
-      _ ->
-        IO.puts("#{pad_key(key)}N/A")
-    end
-  end
-
   defp format_bytes(bytes) when is_integer(bytes) do
     cond do
       bytes >= memory_unit(:GB) -> format_bytes(bytes, :GB)
