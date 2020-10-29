@@ -86,5 +86,5 @@ defmodule Mix.NoProjectError do
 end
 
 defmodule Mix.Error do
-  defexception [:message, mix: true]
+  defexception [:message, mix: 1]
 end

@@ -431,9 +431,9 @@ defmodule Mix do
   @doc """
   Raises a Mix error that is nicely formatted.
   """
-  @spec raise(binary) :: no_return
-  def raise(message) when is_binary(message) do
-    Kernel.raise(Mix.Error, mix: true, message: message)
+  @spec raise(binary, keyword) :: no_return
+  def raise(message, opts \\ []) when is_binary(message) do
+    Kernel.raise(Mix.Error, mix: Keyword.get(opts, :code, 1), message: message)
   end
 
   @doc """
