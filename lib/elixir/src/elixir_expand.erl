@@ -469,7 +469,7 @@ expand(Other, E) ->
 escape_env_entries(Meta, #{current_vars := {Read, Write}, unused_vars := {Unused, Version}} = Env0) ->
   Env1 = case Env0 of
     #{function := nil} -> Env0;
-    _ -> Env0#{lexical_tracker := nil}
+    _ -> Env0#{lexical_tracker := nil, tracers := []}
   end,
   Current = {maybe_escape_map(Read), maybe_escape_map(Write)},
   Env2 = Env1#{current_vars := Current, unused_vars := {maybe_escape_map(Unused), Version}},
