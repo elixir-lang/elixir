@@ -19,6 +19,32 @@ defmodule Mix.CLITest do
     end)
   end
 
+  test "Mix.raise/2 can set exit code", %{tmp_dir: tmp_dir} do
+    File.cd!(tmp_dir, fn ->
+      File.mkdir_p!("lib")
+
+      File.write!("mix.exs", """
+      defmodule MyProject do
+        use Mix.Project
+
+        def project do
+          [app: :my_project, version: "0.0.1", aliases: aliases()]
+        end
+
+        defp aliases do
+          [
+            custom: &error(&1, exit_code: 99),
+          ]
+        end
+
+        defp error(_args, opts), do: Mix.raise("oops", opts)
+      end
+      """)
+
+      assert {_, 99} = mix_code(~w[custom])
+    end)
+  end
+
   test "compiles and invokes simple task from CLI", %{tmp_dir: tmp_dir} do
     File.cd!(tmp_dir, fn ->
       File.mkdir_p!("lib")

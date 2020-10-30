@@ -430,10 +430,14 @@ defmodule Mix do
 
   @doc """
   Raises a Mix error that is nicely formatted.
+
+  ## Options
+
+  - `:exit_code` - defines exit code value, defaults to `1`
   """
-  @spec raise(binary, keyword) :: no_return
+  @spec raise(binary, [exit_code: non_neg_integer()]) :: no_return
   def raise(message, opts \\ []) when is_binary(message) do
-    Kernel.raise(Mix.Error, mix: Keyword.get(opts, :code, 1), message: message)
+    Kernel.raise(Mix.Error, mix: Keyword.get(opts, :exit_code, 1), message: message)
   end
 
   @doc """

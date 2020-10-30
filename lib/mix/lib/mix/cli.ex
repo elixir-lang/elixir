@@ -100,7 +100,7 @@ defmodule Mix.CLI do
   end
 
   defp simplified_exception(%name{} = exception, code) do
-    mod = name |> Module.split() |> Enum.at(0, "Mix")
+    mod = name |> Module.split() |> hd()
     Mix.shell().error("** (#{mod}) #{Exception.message(exception)}")
     exit({:shutdown, code})
   end
