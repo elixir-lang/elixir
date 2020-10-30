@@ -294,6 +294,7 @@ defmodule Kernel.ExpansionTest do
     test "__ENV__" do
       env = %{__ENV__ | line: 0}
       assert expand_env(quote(do: __ENV__), env) == {Macro.escape(env), env}
+      assert %{lexical_tracker: nil, tracers: []} = __ENV__
     end
 
     test "__ENV__.accessor" do
@@ -302,6 +303,9 @@ defmodule Kernel.ExpansionTest do
 
       assert expand_env(quote(do: __ENV__.unknown), env) ==
                {quote(do: unquote(Macro.escape(env)).unknown), env}
+
+      assert __ENV__.lexical_tracker == nil
+      assert __ENV__.tracers == []
     end
   end
 
