@@ -6,7 +6,7 @@ defmodule String.Tokenizer do
   {letter_uptitlecase, start, continue, _} =
     data_path
     |> File.read!()
-    |> String.split("\n", trim: true)
+    |> String.split(["\r\n", "\n"], trim: true)
     |> Enum.reduce({[], [], [], nil}, fn line, acc ->
       {letter_uptitlecase, start, continue, first} = acc
       [codepoint, line] = :binary.split(line, ";")

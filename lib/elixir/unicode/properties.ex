@@ -58,7 +58,7 @@ case_ignorable_categories = :binary.compile_pattern(["Mn", "Me", "Cf", "Lm", "Sk
 {codes, cased_letters, case_ignorable, non_breakable, decompositions, combining_classes} =
   data_path
   |> File.read!()
-  |> String.split("\n", trim: true)
+  |> String.split(["\r\n", "\n"], trim: true)
   |> Enum.reduce(acc, fn line, {cacc, lacc, iacc, wacc, dacc, kacc} ->
     [
       codepoint,
