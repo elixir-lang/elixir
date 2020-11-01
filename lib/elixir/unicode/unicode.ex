@@ -19,7 +19,7 @@ defmodule String.Unicode do
   cluster =
     cluster_path
     |> File.read!()
-    |> String.split("\n", trim: true)
+    |> String.split(["\r\n", "\n"], trim: true)
     |> Enum.reduce(%{}, fn line, acc ->
       case Regex.run(regex, line, capture: :all_but_first) do
         ["D800", "DFFF", _class] ->
