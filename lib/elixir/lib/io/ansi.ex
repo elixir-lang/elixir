@@ -242,7 +242,7 @@ defmodule IO.ANSI do
   performed. If you don't want this behaviour, use `format_fragment/2`.
 
   An optional boolean parameter can be passed to enable or disable
-  emitting actual ANSI codes. When `false`, no ANSI codes will emitted.
+  emitting actual ANSI codes. When `false`, no ANSI codes will be emitted.
   By default checks if ANSI is enabled using the `enabled?/0` function.
 
   ## Examples
