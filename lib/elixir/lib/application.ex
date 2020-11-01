@@ -499,7 +499,8 @@ defmodule Application do
   Giving a path is useful to let Elixir know that only certain paths
   in a large configuration are compile time dependent.
   """
-  # TODO: Warn on v1.14 if get_env/fetch_env/fetch_env! is used at compile time instead of compile_env
+  # TODO: Warn on v1.14 if get_env/fetch_env/fetch_env! is used at
+  # compile time instead of compile_env
   @doc since: "1.10.0"
   @spec compile_env(app, key | list, value) :: value
   defmacro compile_env(app, key_or_path, default \\ nil) when is_atom(app) do
@@ -743,6 +744,7 @@ defmodule Application do
   defp maybe_warn_on_app_env_key(_app, key) when is_atom(key),
     do: :ok
 
+  # TODO: Remove this deprecation warning on 2.0+ and allow list lookups as in compile_env.
   defp maybe_warn_on_app_env_key(app, key) do
     message = "passing non-atom as application env key is deprecated, got: #{inspect(key)}"
     IO.warn_once({Application, :key, app, key}, message, _stacktrace_drop_levels = 2)
