@@ -155,13 +155,13 @@ defmodule ProtocolTest do
     assert Sample.__protocol__(:functions) == [ok: 1]
     refute Sample.__protocol__(:consolidated?)
     assert Sample.__protocol__(:impls) == :not_consolidated
-    assert Sample.__info__(:attributes)[:protocol] == [fallback_to_any: false]
+    assert Sample.__info__(:attributes)[:__protocol__] == [fallback_to_any: false]
 
     assert WithAny.__protocol__(:module) == WithAny
     assert WithAny.__protocol__(:functions) == [ok: 1]
     refute WithAny.__protocol__(:consolidated?)
     assert WithAny.__protocol__(:impls) == :not_consolidated
-    assert WithAny.__info__(:attributes)[:protocol] == [fallback_to_any: true]
+    assert WithAny.__info__(:attributes)[:__protocol__] == [fallback_to_any: true]
   end
 
   test "defimpl" do
@@ -169,7 +169,7 @@ defmodule ProtocolTest do
     assert module.__impl__(:for) == ImplStruct
     assert module.__impl__(:target) == module
     assert module.__impl__(:protocol) == Sample
-    assert module.__info__(:attributes)[:protocol_impl] == [protocol: Sample, for: ImplStruct]
+    assert module.__info__(:attributes)[:__impl__] == [protocol: Sample, for: ImplStruct]
   end
 
   test "defimpl with implicit derive" do
@@ -177,7 +177,7 @@ defmodule ProtocolTest do
     assert module.__impl__(:for) == ImplStruct
     assert module.__impl__(:target) == WithAny.Any
     assert module.__impl__(:protocol) == WithAny
-    assert module.__info__(:attributes)[:protocol_impl] == [protocol: WithAny, for: ImplStruct]
+    assert module.__info__(:attributes)[:__impl__] == [protocol: WithAny, for: ImplStruct]
   end
 
   test "defimpl with explicit derive" do
@@ -185,7 +185,7 @@ defmodule ProtocolTest do
     assert module.__impl__(:for) == ImplStruct
     assert module.__impl__(:target) == module
     assert module.__impl__(:protocol) == Derivable
-    assert module.__info__(:attributes)[:protocol_impl] == [protocol: Derivable, for: ImplStruct]
+    assert module.__info__(:attributes)[:__impl__] == [protocol: Derivable, for: ImplStruct]
   end
 
   test "defimpl with multiple for" do

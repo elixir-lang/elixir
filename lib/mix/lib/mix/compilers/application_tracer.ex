@@ -25,6 +25,14 @@ defmodule Mix.Compilers.ApplicationTracer do
     :ok
   end
 
+  # Skip protocol implementations too as the goal of protocols
+  # is to invert the dependency graph. Perhaps it would be best
+  # to skip tracing altogether if env.module is a protocol but
+  # currently there is no cheap way to track this information.
+  def trace({_, _, _, :__impl__, _}, _env) do
+    :ok
+  end
+
   def trace({type, meta, module, function, arity}, env)
       when type in [:remote_function, :remote_macro, :imported_function, :imported_macro] do
     # Unknown modules need to be looked up and filtered later
@@ -52,10 +60,10 @@ defmodule Mix.Compilers.ApplicationTracer do
     warnings =
       :ets.foldl(
         fn {module, function, arity, env_module, env_function, env_file, env_line}, acc ->
-          # If the module is either preloaded, it is always available.
-          # If the module is non existing, the compiler will warn, so we don't.
+          # If the module is preloaded, it is always available, so we skip it.
+          # If the module is non existing, the compiler will warn, so we skip it.
           # If the module belongs to this application (from another compiler), we skip it.
-          # If the module is excluded, we skip it too.
+          # If the module is excluded, we skip it.
           with path when is_list(path) <- :code.which(module),
                {:ok, module_app} <- app(path),
                true <- module_app != app,
