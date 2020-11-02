@@ -101,7 +101,7 @@ defmodule ExUnit.Callbacks do
         setup context do
           IO.puts("Setting up: #{context.test}")
 
-          # We can simply return :ok when we don't want add any extra metadata
+          # We can simply return :ok when we don't want to add any extra metadata
           :ok
         end
 
@@ -134,7 +134,7 @@ defmodule ExUnit.Callbacks do
 
         defp step1(_context), do: [step_one: true]
         defp step2(_context), do: {:ok, step_two: true} # return values with shape of {:ok, keyword() | map()} allowed
-        defp step3(_context), do: :ok  # Context not modified
+        defp step3(_context), do: :ok # Context not modified
 
         test "context was modified", context do
           assert context[:step_one] == true
