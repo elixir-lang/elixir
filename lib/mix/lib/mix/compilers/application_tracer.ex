@@ -25,6 +25,12 @@ defmodule Mix.Compilers.ApplicationTracer do
     :ok
   end
 
+  # Also skip __impl__ calls inside protocols as they are meant
+  # to invert dependencies.
+  def trace({_, _, _, :__impl__, _}, _env) do
+    :ok
+  end
+
   def trace({type, meta, module, function, arity}, env)
       when type in [:remote_function, :remote_macro, :imported_function, :imported_macro] do
     # Unknown modules need to be looked up and filtered later
