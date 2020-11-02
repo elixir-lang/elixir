@@ -343,6 +343,11 @@ defmodule Module.Types.PatternTest do
                quoted_head([x], [is_tuple(is_atom(x))])
     end
 
+    test "multi-clause guards" do
+      assert quoted_head([x], [:erlang.rem(x, 2)]) == {:ok, [:integer]}
+      assert quoted_head([x], [:erlang.rem(x + x, 2)]) == {:ok, {:union, [:integer, :float]}}
+    end
+
     test "erlang-only guards" do
       assert quoted_head([x], [:erlang.size(x)]) ==
                {:ok, [{:union, [:binary, :tuple]}]}
