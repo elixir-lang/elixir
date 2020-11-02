@@ -191,15 +191,17 @@ defmodule Protocol do
       iex> Enumerable.impl_for(42)
       nil
 
-  In addition, every protocol implementation module contains the `__impl__/1` function. The
-  function takes one of the following atoms:
+  In addition, every protocol implementation module contains the `__impl__/1`
+  function. The function takes one of the following atoms:
 
-      * `:for` - returns the module responsible for the data structure of the protocol implementation
+      * `:for` - returns the module responsible for the data structure of the
+        protocol implementation
 
-      * `:protocol` - returns the protocol module for which this implementation is provided
+      * `:protocol` - returns the protocol module for which this implementation
+      is provided
 
-  For example, the module implementing the `Enumerable` protocol for lists is `Enumerable.List`.
-  Therefore, we can invoke `__impl__/1` on this module:
+  For example, the module implementing the `Enumerable` protocol for lists is
+  `Enumerable.List`. Therefore, we can invoke `__impl__/1` on this module:
 
       iex(1)> Enumerable.List.__impl__(:for)
       List
@@ -209,22 +211,17 @@ defmodule Protocol do
 
   ## Consolidation
 
-  In order to cope with code loading in development, protocols in
-  Elixir provide a slow implementation of protocol dispatching specific
-  to development.
-
-  In order to speed up dispatching in production environments, where
-  all implementations are known up-front, Elixir provides a feature
-  called *protocol consolidation*. Consolidation directly links protocols
-  to their implementations in a way that invoking a function from a
+  In order to speed up protocol dispatching, whenever all protocol implementations
+  are known up-front, typically after all Elixir code in a project is compiled,
+  Elixir provides a feature called *protocol consolidation*. Consolidation directly
+  links protocols to their implementations in a way that invoking a function from a
   consolidated protocol is equivalent to invoking two remote functions.
 
-  Protocol consolidation is applied by default to all Mix projects during
-  compilation. This may be an issue during test. For instance, if you want
-  to implement a protocol during test, the implementation will have no
-  effect, as the protocol has already been consolidated. One possible
-  solution is to include compilation directories that are specific to your
-  test environment in your mix.exs:
+  Protocol consolidation is applied by default to all Mix projects during compilation.
+  This may be an issue during test. For instance, if you want to implement a protocol
+  during test, the implementation will have no effect, as the protocol has already been
+  consolidated. One possible solution is to include compilation directories that are
+  specific to your test environment in your mix.exs:
 
       def project do
         ...
@@ -439,7 +436,7 @@ defmodule Protocol do
   @spec extract_protocols([charlist | String.t()]) :: [atom]
   def extract_protocols(paths) do
     extract_matching_by_attribute(paths, 'Elixir.', fn module, attributes ->
-      case attributes[:protocol] do
+      case attributes[:__protocol__] do
         [fallback_to_any: _] -> module
         _ -> nil
       end
@@ -470,7 +467,7 @@ defmodule Protocol do
     prefix = Atom.to_charlist(protocol) ++ '.'
 
     extract_matching_by_attribute(paths, prefix, fn _mod, attributes ->
-      case attributes[:protocol_impl] do
+      case attributes[:__impl__] do
         [protocol: ^protocol, for: for] -> for
         _ -> nil
       end
@@ -561,7 +558,7 @@ defmodule Protocol do
         chunks = :lists.filter(fn {_name, value} -> value != :missing_chunk end, chunks)
         chunks = :lists.map(fn {name, value} -> {List.to_string(name), value} end, chunks)
 
-        case attributes[:protocol] do
+        case attributes[:__protocol__] do
           [fallback_to_any: any] ->
             {:ok, {any, definitions}, specs, {info, chunks}}
 
@@ -795,8 +792,8 @@ defmodule Protocol do
 
       # Store information as an attribute so it
       # can be read without loading the module.
-      Module.register_attribute(__MODULE__, :protocol, persist: true)
-      @protocol [fallback_to_any: !!@fallback_to_any]
+      Module.register_attribute(__MODULE__, :__protocol__, persist: true)
+      @__protocol__ [fallback_to_any: !!@fallback_to_any]
 
       @doc false
       @spec __protocol__(:module) :: __MODULE__
@@ -855,8 +852,8 @@ defmodule Protocol do
 
         unquote(block)
 
-        Module.register_attribute(__MODULE__, :protocol_impl, persist: true)
-        @protocol_impl [protocol: @protocol, for: @for]
+        Module.register_attribute(__MODULE__, :__impl__, persist: true)
+        @__impl__ [protocol: @protocol, for: @for]
 
         unquote(impl)
       end
@@ -897,8 +894,8 @@ defmodule Protocol do
       else
         quoted =
           quote do
-            Module.register_attribute(__MODULE__, :protocol_impl, persist: true)
-            @protocol_impl [protocol: unquote(protocol), for: unquote(for)]
+            Module.register_attribute(__MODULE__, :__impl__, persist: true)
+            @__impl__ [protocol: unquote(protocol), for: unquote(for)]
 
             @doc false
             @spec __impl__(:target) :: unquote(impl)

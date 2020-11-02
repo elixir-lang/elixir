@@ -74,8 +74,8 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     in_fixture("no_mixfile", fn ->
       File.write!("lib/a.ex", """
       defmodule A do
-      require Logger
-      def info, do: Logger.info("hello")
+        require Logger
+        def info, do: Logger.info("hello")
       end
       """)
 
@@ -91,6 +91,21 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert capture_io(:stderr, fn ->
                assert catch_exit(Mix.Task.run("compile", ["--warnings-as-errors", "--force"]))
              end) =~ message
+    end)
+  end
+
+  test "does not warn when __info__ is used but not depended on" do
+    in_fixture("no_mixfile", fn ->
+      File.write!("lib/a.ex", """
+      defmodule A do
+        require Logger
+        def info, do: Logger.__impl__("hello")
+      end
+      """)
+
+      assert capture_io(:stderr, fn ->
+               Mix.Task.run("compile", [])
+             end) == ""
     end)
   end
 
