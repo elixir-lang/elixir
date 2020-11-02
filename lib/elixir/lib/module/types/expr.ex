@@ -140,7 +140,7 @@ defmodule Module.Types.Expr do
     with {:ok, left_type, context} <-
            Pattern.of_pattern(left_expr, stack, context),
          {:ok, right_type, context} <- of_expr(right_expr, left_type, stack, context),
-         do: unify(right_type, left_type, %{stack | context: :pattern}, context)
+         do: unify(right_type, left_type, stack, context)
   end
 
   # %{map | ...}
