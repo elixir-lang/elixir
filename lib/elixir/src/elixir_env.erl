@@ -101,32 +101,30 @@ merge_and_check_unused_vars(E, #{unused_vars := {ClauseUnused, Version}}) ->
   E#{unused_vars := {merge_and_check_unused_vars(Read, Unused, ClauseUnused, E), Version}}.
 
 merge_and_check_unused_vars(Current, Unused, ClauseUnused, E) ->
-  maps:fold(fun({Name, Count} = Key, ClauseValue, Acc) ->
-    Var = {Name, nil},
+  maps:fold(fun
+    ({Name, Count} = Key, false, Acc) ->
+      Var = {Name, nil},
 
-    case Current of
-      %% The parent knows it, so we have to propagate up.
-      #{Var := CurrentCount} when Count =< CurrentCount ->
-        Acc#{Key => ClauseValue};
+      %% The parent knows it, so we have to propagate it was used up.
+      case Current of
+        #{Var := CurrentCount} when Count =< CurrentCount ->
+          Acc#{Key => false};
 
-      %% The parent doesn't know it and we didn't use it
-      #{} when ClauseValue /= false ->
-        {Line, Overridden} = ClauseValue,
-        case is_unused_var(Name) of
-          true ->
-            Warn = {unused_var, Name, Overridden},
-            elixir_errors:form_warn([{line, Line}], E, ?MODULE, Warn);
+        #{} ->
+          Acc
+      end;
 
-          false ->
-            ok
-        end,
+    ({Name, _Count}, {Line, Overridden}, Acc) ->
+      case is_unused_var(Name) of
+        true ->
+          Warn = {unused_var, Name, Overridden},
+          elixir_errors:form_warn([{line, Line}], E, ?MODULE, Warn);
 
-        Acc;
+        false ->
+          ok
+      end,
 
-      %% The parent doesn't know it and we used it
-      #{} ->
-        Acc
-    end
+      Acc
   end, Unused, ClauseUnused).
 
 is_unused_var(Name) ->
