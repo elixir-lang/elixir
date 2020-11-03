@@ -34,6 +34,7 @@
 #### Elixir
 
   * [Kernel] Deprecate `@foo()` in favor of `@foo`
+  * [System] Deprecate `System.stacktrace/0` (it was already deprecated outside of catch/rescue and now it is deprecated everywhere)
 
 #### Mix
 

@@ -97,9 +97,8 @@ dispatch_import(Meta, Name, Args, E, Callback) ->
       Callback()
   end.
 
+%% TODO: Remove this rewrite when we require Erlang/OTP 23+
 dispatch_require(Meta, 'Elixir.System', stacktrace, [], #{contextual_vars := Vars} = E, Callback) ->
-  Message = "System.stacktrace/0 is deprecated, use __STACKTRACE__ instead",
-  elixir_errors:erl_warn(?line(Meta), ?key(E, file), Message),
   case lists:member('__STACKTRACE__', Vars) of
     true -> {{'__STACKTRACE__', [], nil}, E};
     false -> Callback('Elixir.System', stacktrace, [])
