@@ -600,9 +600,17 @@ defmodule System do
   """
   # TODO: Once Erlang/OTP 23 is required, remove conditional, and update @doc accordingly.
   # The warning is emitted by the compiler - so a @doc annotation is enough
+  # Note Elixir may be compiled in an earlier Erlang version but runs on a
+  # newer one, so we need the check at compilation time and runtime.
   @doc deprecated: "Use __STACKTRACE__ instead"
   if function_exported?(:erlang, :get_stacktrace, 0) do
-    def stacktrace, do: apply(:erlang, :get_stacktrace, [])
+    def stacktrace do
+      if function_exported?(:erlang, :get_stacktrace, 0) do
+        apply(:erlang, :get_stacktrace, [])
+      else
+        []
+      end
+    end
   else
     def stacktrace, do: []
   end
