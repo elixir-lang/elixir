@@ -1662,11 +1662,6 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
-  test "System.stacktrace is deprecated outside catch/rescue" do
-    assert capture_err(fn -> Code.eval_string("System.stacktrace()") end) =~
-             "System.stacktrace/0 is deprecated"
-  end
-
   test "unused variable in defguard" do
     assert capture_err(fn ->
              Code.eval_string("""

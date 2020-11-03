@@ -586,23 +586,13 @@ defmodule System do
   @doc """
   Deprecated mechanism to retrieve the last exception stacktrace.
 
-  Accessing the stacktrace outside of a rescue/catch is deprecated.
-  If you want to support only Elixir v1.7+, you must access
-  `__STACKTRACE__/0` inside a rescue/catch. If you want to support
-  earlier Elixir versions, move `System.stacktrace/0` inside a rescue/catch.
-
-  Starting from Erlang/OTP 23, this function will always return an empty list.
-
-  Note that the Erlang VM (and therefore this function) does not
-  return the current stacktrace but rather the stacktrace of the
-  latest exception. To retrieve the stacktrace of the current process,
-  use `Process.info(self(), :current_stacktrace)` instead.
+  Starting from Erlang/OTP 23, this function will always return an
+  empty list.
   """
-  # TODO: Once Erlang/OTP 23 is required, remove conditional, and update @doc accordingly.
-  # The warning is emitted by the compiler - so a @doc annotation is enough
+  # TODO: Remove conditional on Erlang/OTP 23+.
   # Note Elixir may be compiled in an earlier Erlang version but runs on a
   # newer one, so we need the check at compilation time and runtime.
-  @doc deprecated: "Use __STACKTRACE__ instead"
+  @deprecated "Use __STACKTRACE__ instead"
   if function_exported?(:erlang, :get_stacktrace, 0) do
     def stacktrace do
       if function_exported?(:erlang, :get_stacktrace, 0) do
