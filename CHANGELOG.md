@@ -243,6 +243,21 @@ The Calendar module ships with a new `Calendar.strftime/3` function, which provi
 
 Mix also includes two new tasks: `mix app.config`, for application runtime configuration, and `mix test.coverage`, which generates aggregated coverage reports for umbrella projects and for test suites partitioned across processes.
 
+## v1.11.2 (2020-11-03)
+
+### 1. Bug fixes
+
+#### Elixir
+
+  * [Code] Do not crash when getting docs for missing `erts` appdir
+  * [Kernel] Raise meaningful error if `:erlang.is_record` is used in guards
+  * [Kernel] Prune tracers when fetching `__ENV__` inside functions
+
+#### Mix
+
+  * [mix] Fix regression where aliases could not call themselves recursively
+  * [mix compile] Do not discard tracers that are set programatically
+
 ## v1.11.1 (2020-10-16)
 
 ### 1. Bug fixes
