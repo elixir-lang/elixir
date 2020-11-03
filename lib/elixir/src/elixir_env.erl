@@ -92,8 +92,8 @@ reset_unused_vars(#{unused_vars := {_Unused, Version}} = E) ->
   E#{unused_vars := {#{}, Version}}.
 
 check_unused_vars(#{unused_vars := {Unused, _Version}} = E) ->
-  [elixir_errors:form_warn([{line, Line}], E, ?MODULE, {unused_var, Name}) ||
-    {{Name, _}, Line} <- maps:to_list(Unused), Line /= false, is_unused_var(Name)],
+  [elixir_errors:form_warn([{line, Line}], E, ?MODULE, {unused_var, Name, Overridden}) ||
+    {{Name, _}, {Line, Overridden}} <- maps:to_list(Unused), is_unused_var(Name)],
   E.
 
 merge_and_check_unused_vars(E, #{unused_vars := {ClauseUnused, Version}}) ->
@@ -111,10 +111,11 @@ merge_and_check_unused_vars(Current, Unused, ClauseUnused, E) ->
 
       %% The parent doesn't know it and we didn't use it
       #{} when ClauseValue /= false ->
+        {Line, Overridden} = ClauseValue,
         case is_unused_var(Name) of
           true ->
-            Warn = {unused_var, Name},
-            elixir_errors:form_warn([{line, ClauseValue}], E, ?MODULE, Warn);
+            Warn = {unused_var, Name, Overridden},
+            elixir_errors:form_warn([{line, Line}], E, ?MODULE, Warn);
 
           false ->
             ok
@@ -138,10 +139,12 @@ is_compiler_var([$_]) -> true;
 is_compiler_var([Var | Rest]) when Var =:= $_; Var >= $A, Var =< $Z -> is_compiler_var(Rest);
 is_compiler_var(_) -> false.
 
-format_error({unused_var, Name}) ->
+format_error({unused_var, Name, Overridden}) ->
   case atom_to_list(Name) of
     "_" ++ _ ->
       io_lib:format("unknown compiler variable \"~ts\" (expected one of __MODULE__, __ENV__, __DIR__, __CALLER__, __STACKTRACE__)", [Name]);
+    _ when Overridden ->
+      io_lib:format("variable \"~ts\" is unused (there is a variable with the same name in the context, use the pin operator (^) to match on it or prefix this variable with underscore if it is not meant to be used)", [Name]);
     _ ->
       io_lib:format("variable \"~ts\" is unused (if the variable is not meant to be used, prefix it with an underscore)", [Name])
   end.
