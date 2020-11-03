@@ -345,7 +345,7 @@ defmodule Module.Types.PatternTest do
 
     test "nested calls with interesections in guards" do
       assert quoted_head([x], [:erlang.rem(x, 2)]) == {:ok, [:integer]}
-      assert quoted_head([x], [:erlang.rem(x + x, 2)]) == {:ok, {:union, [:integer, :float]}}
+      assert quoted_head([x], [:erlang.rem(x + x, 2)]) == {:ok, [{:union, [:integer, :float]}]}
     end
 
     test "erlang-only guards" do
