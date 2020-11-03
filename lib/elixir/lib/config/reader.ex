@@ -16,7 +16,7 @@ defmodule Config.Reader do
 
   Or if you want to read a custom path inside the release:
 
-      config_provider: [{Config.Reader, {:system, "RELEASE_ROOT", "/config.exs"}}]
+      config_providers: [{Config.Reader, {:system, "RELEASE_ROOT", "/config.exs"}}]
 
   You can also pass a keyword list of options to the reader,
   where the `:path` is a required key:
