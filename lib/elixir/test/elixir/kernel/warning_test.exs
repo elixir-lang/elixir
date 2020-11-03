@@ -86,6 +86,35 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
+  test "unused variable that could be pinned" do
+    output =
+      capture_err(fn ->
+        # Note we use compile_string because eval_string does not emit unused vars warning
+        Code.compile_string("""
+        defmodule Sample do
+          def test do
+            compare_local = "hello"
+            match?(compare_local, "hello")
+
+            compare_nested = "hello"
+            case "hello" do
+              compare_nested -> true
+              _other -> false
+            end
+          end
+        end
+        """)
+      end)
+
+    assert output =~
+             "variable \"compare_local\" is unused (there is a variable with the same name in the context, use the pin operator (^) to match on it or prefix this variable with underscore if it is not meant to be used)"
+
+    assert output =~
+             "variable \"compare_nested\" is unused (there is a variable with the same name in the context, use the pin operator (^) to match on it or prefix this variable with underscore if it is not meant to be used)"
+  after
+    purge(Sample)
+  end
+
   test "unused compiler variable" do
     output =
       capture_err(fn ->

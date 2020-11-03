@@ -335,7 +335,7 @@ expand({Name, Meta, Kind}, #{context := match} = E) when is_atom(Name), is_atom(
 
     %% Variable is being overridden now
     #{Pair := _} ->
-      NewUnused = var_unused(Pair, Meta, Version, Unused),
+      NewUnused = var_unused(Pair, Meta, Version, Unused, true),
       NewReadCurrent = ReadCurrent#{Pair => Version},
       NewWriteCurrent = (WriteCurrent /= false) andalso WriteCurrent#{Pair => Version},
       Var = {Name, [{version, Version} | Meta], Kind},
@@ -344,7 +344,7 @@ expand({Name, Meta, Kind}, #{context := match} = E) when is_atom(Name), is_atom(
     %% Variable defined for the first time
     _ ->
       NewVars = ordsets:add_element(Pair, ?key(E, vars)),
-      NewUnused = var_unused(Pair, Meta, Version, Unused),
+      NewUnused = var_unused(Pair, Meta, Version, Unused, false),
       NewReadCurrent = ReadCurrent#{Pair => Version},
       NewWriteCurrent = (WriteCurrent /= false) andalso WriteCurrent#{Pair => Version},
       Var = {Name, [{version, Version} | Meta], Kind},
@@ -599,9 +599,9 @@ expand_args(Args, E) ->
 
 %% Match/var helpers
 
-var_unused({Name, Kind}, Meta, Version, Unused) ->
+var_unused({Name, Kind}, Meta, Version, Unused, Override) ->
   case (Kind == nil) andalso should_warn(Meta) of
-    true -> Unused#{{Name, Version} => ?line(Meta)};
+    true -> Unused#{{Name, Version} => {?line(Meta), Override}};
     false -> Unused
   end.
 
