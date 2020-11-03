@@ -130,7 +130,7 @@ defmodule Mix.Tasks.Xref do
 
   #### Dependencies types
 
-  ELixir tracks three types of dependencies between modules: compile,
+  Elixir tracks three types of dependencies between modules: compile,
   exports, and runtime. If a module has a compile time dependency on
   another module, the caller module has to be recompiled whenever the
   callee changes. Compile-time dependencies are typically added when
