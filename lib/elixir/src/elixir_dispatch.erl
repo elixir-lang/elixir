@@ -98,7 +98,7 @@ dispatch_import(Meta, Name, Args, E, Callback) ->
   end.
 
 %% TODO: Remove this rewrite when we require Erlang/OTP 23+
-dispatch_require(Meta, 'Elixir.System', stacktrace, [], #{contextual_vars := Vars} = E, Callback) ->
+dispatch_require(_Meta, 'Elixir.System', stacktrace, [], #{contextual_vars := Vars} = E, Callback) ->
   case lists:member('__STACKTRACE__', Vars) of
     true -> {{'__STACKTRACE__', [], nil}, E};
     false -> Callback('Elixir.System', stacktrace, [])
