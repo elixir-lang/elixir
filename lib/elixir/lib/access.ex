@@ -7,7 +7,7 @@ defmodule Access do
 
   `Access` supports keyword lists (`Keyword`) and maps (`Map`) out
   of the box. Keywords supports only atoms keys, keys for maps can
-  be of any type. Both returns `nil` if the key does not exist:
+  be of any type. Both return `nil` if the key does not exist:
 
       iex> keywords = [a: 1, b: 2]
       iex> keywords[:a]
@@ -47,12 +47,11 @@ defmodule Access do
   > `map[key]`, if your map is made of predefined atom keys,
   > you should prefer to access those atom keys with `map.key`
   > instead of `map[key]`, as `map.key` will raise if the key
-  > is missing. This is important because, if a map has a predefined
-  > set of keys and a key is missing, it is most likely a bug
-  > in your software or a typo on the key name. For this reason,
-  > because structs are predefined in nature, they only allow
-  > the `struct.key` syntax and they do not allow the `struct[key]`
-  > access syntax. See the `Map` module for more information.
+  > is missing (which is not supposed to happen if the keys are
+  > predefined). Similarly, since structs are maps and structs
+  > have predefined keys, they only allow the `struct.key`
+  > syntax and they do not allow the `struct[key]` access syntax.
+  > See the `Map` module for more information.
 
   ## Nested data structures
 
@@ -422,7 +421,7 @@ defmodule Access do
   The returned function uses the default value if the key does not exist.
   This can be used to specify defaults and safely traverse missing keys:
 
-      iex> get_in(%{}, [Access.key(:user, %{name: "meg"}), Access.key(:name)])
+      iex> get_in(%{}, [Access.key(:user, %{}), Access.key(:name, "meg")])
       "meg"
 
   Such is also useful when using update functions, allowing us to introduce
