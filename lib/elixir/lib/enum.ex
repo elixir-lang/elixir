@@ -3830,7 +3830,6 @@ defimpl Enumerable, for: List do
   def reduce([], {:cont, acc}, _fun), do: {:done, acc}
   def reduce([head | tail], {:cont, acc}, fun), do: reduce(tail, fun.(head, acc), fun)
 
-  @doc false
   def slice(_list, _start, 0, _size), do: []
   def slice(list, start, count, size) when start + count == size, do: list |> drop(start)
   def slice(list, start, count, _size), do: list |> drop(start) |> take(count)
