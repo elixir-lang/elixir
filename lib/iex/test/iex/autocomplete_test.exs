@@ -9,15 +9,9 @@ defmodule IEx.AutocompleteTest do
     :ok
   end
 
-  defmodule MyServer do
-    def evaluator do
-      {Process.get(:evaluator), self()}
-    end
-  end
-
   defp eval(line) do
     ExUnit.CaptureIO.capture_io(fn ->
-      {evaluator, _} = MyServer.evaluator()
+      evaluator = Process.get(:evaluator)
       Process.group_leader(evaluator, Process.group_leader())
       send(evaluator, {:eval, self(), line <> "\n", %IEx.State{}})
       assert_receive {:evaled, _, _}
@@ -25,7 +19,7 @@ defmodule IEx.AutocompleteTest do
   end
 
   defp expand(expr) do
-    IEx.Autocomplete.expand(Enum.reverse(expr), MyServer)
+    IEx.Autocomplete.expand(Enum.reverse(expr), self())
   end
 
   test "Erlang module completion" do
