@@ -3,6 +3,7 @@ defmodule IEx.Broker do
   @name __MODULE__
 
   @type take_ref :: {takeover_ref :: reference(), server_ref :: reference()}
+  @type shell :: pid | nil
 
   use GenServer
 
@@ -11,7 +12,7 @@ defmodule IEx.Broker do
   @doc """
   Finds the IEx server running inside `:user_drv`, on this node exclusively.
   """
-  @spec shell :: pid | nil
+  @spec shell :: shell()
   def shell() do
     # Locate top group leader when using the "new shell".
     if user = Process.whereis(:user) do
@@ -33,9 +34,9 @@ defmodule IEx.Broker do
   @doc """
   Finds the evaluator and server running inside `:user_drv`, on this node exclusively.
   """
-  @spec evaluator :: {evaluator :: pid, server :: pid} | nil
-  def evaluator() do
-    if pid = shell() do
+  @spec evaluator(shell()) :: {evaluator :: pid, server :: pid} | nil
+  def evaluator(pid \\ shell()) do
+    if pid do
       {:dictionary, dictionary} = Process.info(pid, :dictionary)
       {dictionary[:evaluator], pid}
     end

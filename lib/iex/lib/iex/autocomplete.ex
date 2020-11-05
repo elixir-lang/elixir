@@ -7,7 +7,7 @@ defmodule IEx.Autocomplete do
   """
   def remsh(node) do
     fn e ->
-      case :rpc.call(node, IEx.Autocomplete, :expand, [e]) do
+      case :rpc.call(node, IEx.Autocomplete, :expand, [e, IEx.Broker.shell()]) do
         {:badrpc, _} -> {:no, '', []}
         r -> r
       end
@@ -20,36 +20,36 @@ defmodule IEx.Autocomplete do
   Some of the expansion has to be use the current shell
   environment, which is found via the broker.
   """
-  def expand(expr, server \\ IEx.Broker)
+  def expand(expr, shell \\ IEx.Broker.shell())
 
-  def expand('', server) do
-    expand_variable_or_import("", server)
+  def expand('', shell) do
+    expand_variable_or_import("", shell)
   end
 
-  def expand([h | t] = expr, server) do
+  def expand([h | t] = expr, shell) do
     helper = get_helper(expr)
 
     cond do
       helper == ?t ->
-        expand_custom(expr, server, &get_module_types/1)
+        expand_custom(expr, shell, &get_module_types/1)
 
       helper == ?b ->
-        expand_custom(expr, server, &get_module_callbacks/1)
+        expand_custom(expr, shell, &get_module_callbacks/1)
 
       h == ?. and t != [] ->
-        expand_dot(reduce(t), server)
+        expand_dot(reduce(t), shell)
 
       h == ?: and t == [] ->
         expand_erlang_modules()
 
       identifier?(h) ->
-        expand_expr(reduce(expr), server)
+        expand_expr(reduce(expr), shell)
 
       h == ?/ and t != [] and identifier?(hd(t)) ->
-        expand_expr(reduce(t), server)
+        expand_expr(reduce(t), shell)
 
       h in ' (' and t != [] and identifier?(hd(t)) ->
-        expand_help(reduce(expr), server)
+        expand_help(reduce(expr), shell)
 
       h in '([{' ->
         expand('')
@@ -88,40 +88,40 @@ defmodule IEx.Autocomplete do
     h in ?a..?z or h in ?A..?Z or h in ?0..?9 or h in [?_, ??, ?!]
   end
 
-  defp expand_dot(expr, server) do
+  defp expand_dot(expr, shell) do
     case Code.string_to_quoted(expr) do
       {:ok, atom} when is_atom(atom) ->
-        expand_call(atom, "", server)
+        expand_call(atom, "", shell)
 
       {:ok, {:__aliases__, _, list}} ->
-        expand_elixir_modules(list, "", server)
+        expand_elixir_modules(list, "", shell)
 
       {:ok, {_, _, _} = ast_node} ->
-        expand_call(ast_node, "", server)
+        expand_call(ast_node, "", shell)
 
       _ ->
         no()
     end
   end
 
-  defp expand_expr(expr, server) do
+  defp expand_expr(expr, shell) do
     case Code.string_to_quoted(expr) do
       {:ok, atom} when is_atom(atom) ->
         expand_erlang_modules(Atom.to_string(atom))
 
       {:ok, {atom, _, nil}} when is_atom(atom) ->
-        expand_variable_or_import(Atom.to_string(atom), server)
+        expand_variable_or_import(Atom.to_string(atom), shell)
 
       {:ok, {:__aliases__, _, [root]}} ->
-        expand_elixir_modules([], Atom.to_string(root), server)
+        expand_elixir_modules([], Atom.to_string(root), shell)
 
       {:ok, {:__aliases__, _, [h | _] = list}} when is_atom(h) ->
         hint = Atom.to_string(List.last(list))
         list = Enum.take(list, length(list) - 1)
-        expand_elixir_modules(list, hint, server)
+        expand_elixir_modules(list, hint, shell)
 
       {:ok, {{:., _, [ast_node, fun]}, _, []}} when is_atom(fun) ->
-        expand_call(ast_node, Atom.to_string(fun), server)
+        expand_call(ast_node, Atom.to_string(fun), shell)
 
       _ ->
         no()
@@ -136,16 +136,16 @@ defmodule IEx.Autocomplete do
     end
   end
 
-  defp expand_help(expr, server) do
+  defp expand_help(expr, shell) do
     signatures =
       case Code.string_to_quoted(expr) do
         {:ok, {{:., _, [{:__aliases__, _, mod}, fun]}, _, []}} when is_atom(fun) ->
-          with {:ok, mod} <- expand_alias(mod, server) do
+          with {:ok, mod} <- expand_alias(mod, shell) do
             get_signatures(fun, mod)
           end
 
         {:ok, {fun, _, _}} when is_atom(fun) ->
-          imports_from_env(server)
+          imports_from_env(shell)
           |> Enum.filter(fn {_, funs} -> List.keymember?(funs, fun, 0) end)
           |> Enum.flat_map(fn {module, _} -> get_signatures(fun, module) end)
 
@@ -167,13 +167,13 @@ defmodule IEx.Autocomplete do
     end
   end
 
-  defp expand_custom([?. | expr], server, fun) do
+  defp expand_custom([?. | expr], shell, fun) do
     case Code.string_to_quoted(reduce(expr)) do
       {:ok, atom} when is_atom(atom) ->
         expand_elixir_module_custom(atom, "", fun)
 
       {:ok, {:__aliases__, _, [h | _] = list}} when is_atom(h) ->
-        case expand_alias(list, server) do
+        case expand_alias(list, shell) do
           {:ok, alias} ->
             expand_elixir_module_custom(alias, "", fun)
 
@@ -186,21 +186,21 @@ defmodule IEx.Autocomplete do
     end
   end
 
-  defp expand_custom(expr, server, fun) do
+  defp expand_custom(expr, shell, fun) do
     case Code.string_to_quoted(reduce(expr)) do
       {:ok, atom} when is_atom(atom) ->
         expand_erlang_modules(Atom.to_string(atom))
 
       {:ok, {:__aliases__, _, [root]}} ->
-        expand_elixir_modules([], Atom.to_string(root), server)
+        expand_elixir_modules([], Atom.to_string(root), shell)
 
       {:ok, {:__aliases__, _, [h | _] = list}} when is_atom(h) ->
         hint = Atom.to_string(List.last(list))
         list = Enum.take(list, length(list) - 1)
-        expand_elixir_modules(list, hint, server)
+        expand_elixir_modules(list, hint, shell)
 
       {:ok, {{:., _, [{:__aliases__, _, list}, type]}, _, []}} when is_atom(type) ->
-        case expand_alias(list, server) do
+        case expand_alias(list, shell) do
           {:ok, alias} ->
             expand_elixir_module_custom(alias, Atom.to_string(type), fun)
 
@@ -266,22 +266,22 @@ defmodule IEx.Autocomplete do
   ## Expand calls
 
   # :atom.fun
-  defp expand_call(mod, hint, _server) when is_atom(mod) do
+  defp expand_call(mod, hint, _shell) when is_atom(mod) do
     expand_require(mod, hint)
   end
 
   # Elixir.fun
-  defp expand_call({:__aliases__, _, list}, hint, server) do
-    case expand_alias(list, server) do
+  defp expand_call({:__aliases__, _, list}, hint, shell) do
+    case expand_alias(list, shell) do
       {:ok, alias} -> expand_require(alias, hint)
       :error -> no()
     end
   end
 
   # variable.fun_or_key
-  defp expand_call({_, _, _} = ast_node, hint, server) do
-    case value_from_binding(ast_node, server) do
-      {:ok, mod} when is_atom(mod) -> expand_call(mod, hint, server)
+  defp expand_call({_, _, _} = ast_node, hint, shell) do
+    case value_from_binding(ast_node, shell) do
+      {:ok, mod} when is_atom(mod) -> expand_call(mod, hint, shell)
       {:ok, map} when is_map(map) -> expand_map_field_access(map, hint)
       _otherwise -> no()
     end
@@ -302,16 +302,16 @@ defmodule IEx.Autocomplete do
     format_expansion(match_module_funs(get_module_funs(mod), hint), hint)
   end
 
-  defp expand_variable_or_import(hint, server) do
-    variables = expand_variable(hint, server)
-    imports = imports_from_env(server) |> Enum.flat_map(&elem(&1, 1))
+  defp expand_variable_or_import(hint, shell) do
+    variables = expand_variable(hint, shell)
+    imports = imports_from_env(shell) |> Enum.flat_map(&elem(&1, 1))
     module_funs = get_module_funs(Kernel.SpecialForms)
     funs = match_module_funs(imports ++ module_funs, hint)
     format_expansion(variables ++ funs, hint)
   end
 
-  defp expand_variable(hint, server) do
-    variables_from_binding(hint, server)
+  defp expand_variable(hint, shell) do
+    variables_from_binding(hint, shell)
     |> Enum.sort()
     |> Enum.map(&%{kind: :variable, name: &1})
   end
@@ -330,13 +330,13 @@ defmodule IEx.Autocomplete do
 
   ## Elixir modules
 
-  defp expand_elixir_modules([], hint, server) do
-    aliases = match_aliases(hint, server)
+  defp expand_elixir_modules([], hint, shell) do
+    aliases = match_aliases(hint, shell)
     expand_elixir_modules_from_aliases(Elixir, hint, aliases)
   end
 
-  defp expand_elixir_modules(list, hint, server) do
-    case expand_alias(list, server) do
+  defp expand_elixir_modules(list, hint, shell) do
+    case expand_alias(list, shell) do
       {:ok, alias} -> expand_elixir_modules_from_aliases(alias, hint, [])
       :error -> no()
     end
@@ -349,8 +349,8 @@ defmodule IEx.Autocomplete do
     |> format_expansion(hint)
   end
 
-  defp expand_alias([name | rest], server) when is_atom(name) do
-    case Keyword.fetch(aliases_from_env(server), Module.concat(Elixir, name)) do
+  defp expand_alias([name | rest], shell) when is_atom(name) do
+    case Keyword.fetch(aliases_from_env(shell), Module.concat(Elixir, name)) do
       {:ok, name} when rest == [] -> {:ok, name}
       {:ok, name} -> {:ok, Module.concat([name | rest])}
       :error -> {:ok, Module.concat([name | rest])}
@@ -361,8 +361,8 @@ defmodule IEx.Autocomplete do
     :error
   end
 
-  defp match_aliases(hint, server) do
-    for {alias, _mod} <- aliases_from_env(server),
+  defp match_aliases(hint, shell) do
+    for {alias, _mod} <- aliases_from_env(shell),
         [name] = Module.split(alias),
         String.starts_with?(name, hint) do
       %{kind: :module, type: :alias, name: name}
@@ -592,8 +592,8 @@ defmodule IEx.Autocomplete do
 
   ## Evaluator interface
 
-  defp imports_from_env(server) do
-    with {evaluator, server} <- server.evaluator(),
+  defp imports_from_env(shell) do
+    with {evaluator, server} <- IEx.Broker.evaluator(shell),
          env_fields = IEx.Evaluator.fields_from_env(evaluator, server, [:functions, :macros]),
          %{functions: funs, macros: macros} <- env_fields do
       funs ++ macros
@@ -602,8 +602,8 @@ defmodule IEx.Autocomplete do
     end
   end
 
-  defp aliases_from_env(server) do
-    with {evaluator, server} <- server.evaluator(),
+  defp aliases_from_env(shell) do
+    with {evaluator, server} <- IEx.Broker.evaluator(shell),
          %{aliases: aliases} <- IEx.Evaluator.fields_from_env(evaluator, server, [:aliases]) do
       aliases
     else
@@ -611,16 +611,16 @@ defmodule IEx.Autocomplete do
     end
   end
 
-  defp variables_from_binding(hint, server) do
-    with {evaluator, server} <- server.evaluator() do
+  defp variables_from_binding(hint, shell) do
+    with {evaluator, server} <- IEx.Broker.evaluator(shell) do
       IEx.Evaluator.variables_from_binding(evaluator, server, hint)
     else
       _ -> []
     end
   end
 
-  defp value_from_binding(ast_node, server) do
-    with {evaluator, server} <- server.evaluator(),
+  defp value_from_binding(ast_node, shell) do
+    with {evaluator, server} <- IEx.Broker.evaluator(shell),
          {var, map_key_path} <- extract_from_ast(ast_node, []) do
       IEx.Evaluator.value_from_binding(evaluator, server, var, map_key_path)
     else
