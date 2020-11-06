@@ -24,7 +24,7 @@ When the library is used as a dependency, its [lockfile](https://hexdocs.pm/mix/
 
 On the other hand, contributors of your library, need a deterministic build, which implies the presense of `mix.lock` in the VCS.
 
-The best practice of handling `mix.lock` file therefore would be to keep it in VCS, and run two different CI workflows: the usual deterministic one, and another one, that starts with `mix deps.unlock --all` and always compiles your library and runs tests against latest versions of dependencies. The latter one might be even run nightly or otherwise recurrently to stay notified about any possible issue in regard to dependencies updates.
+The best practice of handling `mix.lock` file therefore would be to keep it in VCS, and run two different Continuous Integration (CI) workflows: the usual deterministic one, and another one, that starts with `mix deps.unlock --all` and always compiles your library and runs tests against latest versions of dependencies. The latter one might be even run nightly or otherwise recurrently to stay notified about any possible issue in regard to dependencies updates.
 
 ## Publishing
 
