@@ -34,6 +34,14 @@ Writing code is only the first of many steps to publish a package. We strongly r
 
 Projects are often made available to other developers [by publishing a Hex package](https://hex.pm/docs/publish). Hex also [supports private packages for organizations](https://hex.pm/pricing). If ExDoc is configured for the Mix project, publishing a package on Hex will also automatically publish the generated documentation to [HexDocs](https://hexdocs.pm).
 
+## Dependency handling
+
+When your library is published and used as a dependency, its [lockfile](https://hexdocs.pm/mix/Mix.Project.html#module-configuration) (usually named `mix.lock`) is _ignored by the host project_. Running `mix deps.get` in the host project attempts to get the latest possible versions of your library’s dependencies, as specified by the requirements in the `deps` section of your `mix.exs`. These versions might be greater than those stored in your `mix.lock` (and hence used in your tests / CI).
+
+On the other hand, contributors of your library, need a deterministic build, which implies the presense of `mix.lock` in your Version Control System (VCS).
+
+The best practice of handling `mix.lock` file therefore would be to keep it in VCS, and run two different Continuous Integration (CI) workflows: the usual deterministic one, and another one, that starts with `mix deps.unlock --all` and always compiles your library and runs tests against latest versions of dependencies. The latter one might be even run nightly or otherwise recurrently to stay notified about any possible issue in regard to dependencies updates.
+
 ## Anti-patterns
 
 In this section we document common anti-patterns to avoid when writing libraries.
