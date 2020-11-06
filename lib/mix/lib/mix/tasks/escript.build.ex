@@ -68,7 +68,7 @@ defmodule Mix.Tasks.Escript.Build do
 
     * `:strip_beams` - if `true` strips BEAM code in the escript to remove chunks
       unnecessary at runtime, such as debug information and documentation.
-      Can be set to [keep: ['Docs', 'Dbgi']] to strip while keeping some chunks
+      Can be set to `[keep: ["Docs", "Dbgi"]]` to strip while keeping some chunks
       that would otherwise be stripped, like docs, and debug info, for instance.
       Defaults to `true`.
 
