@@ -20,7 +20,7 @@ The `mix new` command also allows the `--sup` option to scaffold an application 
 
 ## Dependency handling
 
-When the library is used as a dependency, its [lockfile](https://hexdocs.pm/mix/Mix.Project.html#module-configuration) (usually named `mix.lock`) is _ignored by the host project_. Running `mix deps.get` in the host project attempts to get the latest possible versions of your library’s dependencies, as by pins in your `mix.exs`. These versions might be greater than those stored in your `mix.lock` (and hence used in your tests / CI).
+When the library is used as a dependency, its [lockfile](https://hexdocs.pm/mix/Mix.Project.html#module-configuration) (usually named `mix.lock`) is _ignored by the host project_. Running `mix deps.get` in the host project attempts to get the latest possible versions of your library’s dependencies, as specified by the requirements in the `deps` section of your `mix.exs`. These versions might be greater than those stored in your `mix.lock` (and hence used in your tests / CI).
 
 On the other hand, contributors of your library, need a deterministic build, which implies the presense of `mix.lock` in the VCS.
 
