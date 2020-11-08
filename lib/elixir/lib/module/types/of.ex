@@ -11,6 +11,21 @@ defmodule Module.Types.Of do
   import Module.Types.Helpers
   import Module.Types.Unify
 
+  # There are important assumptions on how we work with maps.
+  #
+  # First, the keys in the map must be ordered by subtyping.
+  #
+  # Second, optional keys must be a superset of the required
+  # keys, i.e. %{required(atom) => integer, optional(:foo) => :bar}
+  # is forbidden.
+  #
+  # Third, in order to preserve co/contra-variance, a supertype
+  # must satisfy its subtypes. I.e. %{foo: :bar, atom() => :baz}
+  # is forbidden, it must be %{foo: :bar, atom() => :baz | :bar}.
+  #
+  # Once we support user declared maps, we need to validate these
+  # assumptions.
+
   @doc """
   Handles open maps (with dynamic => dynamic).
   """
