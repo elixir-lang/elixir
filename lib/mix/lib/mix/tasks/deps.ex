@@ -144,6 +144,10 @@ defmodule Mix.Tasks.Deps do
       [locked at REF]
       STATUS
 
+  For dependencies satisfied by Hex, `REF` is the package checksum.
+
+  For dependencies satisfied by git, `REF` is a commit SHA1, and may include branch or tag information.
+
   It supports the following options:
 
     * `--all` - lists all dependencies, regardless of specified environment
