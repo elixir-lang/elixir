@@ -146,7 +146,8 @@ defmodule Mix.Tasks.Deps do
 
   For dependencies satisfied by Hex, `REF` is the package checksum.
 
-  For dependencies satisfied by git, `REF` is a commit SHA1, and may include branch or tag information.
+  For dependencies satisfied by git, `REF` is the commit object name,
+  and may include branch or tag information.
 
   It supports the following options:
 
