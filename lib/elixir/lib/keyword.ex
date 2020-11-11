@@ -732,10 +732,16 @@ defmodule Keyword do
       iex> Keyword.equal?([a: 1, b: 2, a: 3], [b: 2, a: 3, a: 1])
       true
 
+  Comparison between values is done with `===/3`,
+  which means integers are not equivalent to floats:
+
+      iex> Keyword.equal?([a: 1.0], [a: 1])
+      false
+
   """
   @spec equal?(t, t) :: boolean
   def equal?(left, right) when is_list(left) and is_list(right) do
-    :lists.sort(left) == :lists.sort(right)
+    :lists.sort(left) === :lists.sort(right)
   end
 
   @doc """

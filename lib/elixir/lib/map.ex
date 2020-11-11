@@ -945,11 +945,22 @@ defmodule Map do
   Two maps are considered to be equal if they contain
   the same keys and those keys contain the same values.
 
+  Note this function exists for completeness so the `Map`
+  and `Keyword` modules provide similar APIs. In practice,
+  developers often compare maps using `==/2` or `===/2`
+  directly.
+
   ## Examples
 
       iex> Map.equal?(%{a: 1, b: 2}, %{b: 2, a: 1})
       true
       iex> Map.equal?(%{a: 1, b: 2}, %{b: 1, a: 2})
+      false
+
+  Comparison between keys and values is done with `===/3`,
+  which means integers are not equivalent to floats:
+
+      iex> Map.equal?(%{a: 1.0}, %{a: 1})
       false
 
   """

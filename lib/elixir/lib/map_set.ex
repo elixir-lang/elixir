@@ -223,7 +223,9 @@ defmodule MapSet do
   @doc """
   Checks if two sets are equal.
 
-  The comparison between elements must be done using `===/2`.
+  The comparison between elements is done using `===/2`,
+  which a set with `1` is not equivalent to a set with
+  `1.0`.
 
   ## Examples
 
@@ -231,11 +233,13 @@ defmodule MapSet do
       true
       iex> MapSet.equal?(MapSet.new([1, 2]), MapSet.new([3, 4]))
       false
+      iex> MapSet.equal?(MapSet.new([1]), MapSet.new([1.0]))
+      false
 
   """
   @spec equal?(t, t) :: boolean
   def equal?(%MapSet{map: map1, version: version}, %MapSet{map: map2, version: version}) do
-    Map.equal?(map1, map2)
+    map1 === map2
   end
 
   # Elixir v1.5 changed the map representation, so on
