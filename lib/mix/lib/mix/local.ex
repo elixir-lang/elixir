@@ -34,7 +34,7 @@ defmodule Mix.Local do
   def path_for(:escript), do: Mix.path_for(:escripts)
 
   @doc """
-  Appends archives paths into Erlang code path.
+  Appends archive paths to the Erlang code path.
   """
   def append_archives do
     for archive <- archives_ebins() do
@@ -46,7 +46,18 @@ defmodule Mix.Local do
   end
 
   @doc """
-  Appends Mix paths into Erlang code path.
+  Removes archive paths from Erlang code path.
+  """
+  def remove_archives do
+    for archive <- archives_ebins() do
+      Code.delete_path(archive)
+    end
+
+    :ok
+  end
+
+  @doc """
+  Appends Mix paths to the Erlang code path.
   """
   def append_paths do
     Enum.each(mix_paths(), &Code.append_path(&1))
