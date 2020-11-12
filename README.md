@@ -1,4 +1,4 @@
-# ![Elixir](https://github.com/elixir-lang/elixir-lang.github.com/raw/master/images/logo/logo.png)
+<img src="https://github.com/elixir-lang/elixir-lang.github.com/raw/master/images/logo/logo.png" width="200" alt="Elixir">
 
 [![CI](https://github.com/elixir-lang/elixir/workflows/CI/badge.svg?branch=master)](https://github.com/elixir-lang/elixir/actions?query=branch%3Amaster+workflow%3ACI) [![Build status](https://api.cirrus-ci.com/github/elixir-lang/elixir.svg?branch=master)](https://cirrus-ci.com/github/elixir-lang/elixir)
 
