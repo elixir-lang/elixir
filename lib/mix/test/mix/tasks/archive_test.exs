@@ -19,7 +19,11 @@ defmodule Mix.Tasks.ArchiveTest do
     File.rm_rf!(tmp_path("userhome"))
     System.put_env("MIX_ARCHIVES", tmp_path("userhome/.mix/archives/"))
     Mix.Project.push(ArchiveProject)
-    :ok
+
+    on_exit(fn ->
+      Mix.Local.remove_archives()
+      System.delete_env("MIX_ARCHIVES")
+    end)
   end
 
   test "archive build" do
