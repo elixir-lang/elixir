@@ -815,6 +815,10 @@ defmodule Enum do
     enumerable == []
   end
 
+  def empty?(enumerable) when is_map(enumerable) do
+    enumerable == %{}
+  end
+
   def empty?(enumerable) do
     case Enumerable.slice(enumerable) do
       {:ok, value, _} ->
