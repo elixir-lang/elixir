@@ -976,24 +976,22 @@ defmodule Kernel.WarningTest do
 
   test "eval failure warning" do
     assert capture_err(fn ->
-             assert_raise ArgumentError, fn ->
-               Code.eval_string("""
-               defmodule Sample do
-                 Atom.to_string "abc"
-               end
-               """)
+             Code.eval_string("""
+             defmodule Sample1 do
+               def foo, do: Atom.to_string "abc"
              end
+             """)
            end) =~ ~r"this expression will fail with ArgumentError\n.*nofile:2"
 
     assert capture_err(fn ->
              Code.eval_string("""
-             defmodule Sample do
+             defmodule Sample2 do
                def foo, do: 1 + nil
              end
              """)
            end) =~ ~r"this expression will fail with ArithmeticError\n.*nofile:2"
   after
-    purge([Sample])
+    purge([Sample1, Sample2])
   end
 
   test "undefined function for behaviour" do
