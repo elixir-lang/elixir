@@ -2447,6 +2447,16 @@ defmodule Kernel do
       iex> get_in(users, ["unknown", :age])
       nil
 
+  Note that `get_in` exists mostly for convenience and parity with
+  functionality found in `put_in` and `update_in`. Given Elixir
+  provides pattern matching, it can often be more expressive for
+  deep data traversal, for example:
+
+      case users do
+        %{"unknown" => %{age: age}} -> age
+        _ -> default_value
+      end
+
   ## Functions as keys
 
   If a key is a function, the function will be invoked passing three
