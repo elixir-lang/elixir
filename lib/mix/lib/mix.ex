@@ -435,7 +435,7 @@ defmodule Mix do
 
     * `:exit_code` - defines exit code value, defaults to `1`
   """
-  @spec raise(binary, [exit_code: non_neg_integer()]) :: no_return
+  @spec raise(binary, exit_code: non_neg_integer()) :: no_return
   def raise(message, opts \\ []) when is_binary(message) do
     Kernel.raise(Mix.Error, mix: Keyword.get(opts, :exit_code, 1), message: message)
   end
