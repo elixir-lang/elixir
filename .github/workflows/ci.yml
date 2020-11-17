@@ -33,7 +33,7 @@ jobs:
           mkdir -p otp
           tar zxf otp.tar.gz -C otp --strip-components=1
           otp/Install -minimal $(pwd)/otp
-          echo "::add-path::$(pwd)/otp/bin"
+          echo "$(pwd)/otp/bin" >> $GITHUB_PATH
       - name: Compile Elixir
         run: |
           rm -rf .git
