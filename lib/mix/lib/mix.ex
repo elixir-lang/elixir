@@ -433,7 +433,7 @@ defmodule Mix do
 
   ## Options
 
-  - `:exit_code` - defines exit code value, defaults to `1`
+    * `:exit_code` - defines exit code value, defaults to `1`
   """
   @spec raise(binary, [exit_code: non_neg_integer()]) :: no_return
   def raise(message, opts \\ []) when is_binary(message) do
