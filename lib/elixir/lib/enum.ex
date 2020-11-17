@@ -3617,7 +3617,7 @@ defmodule Enum do
 
   defp slice_count_and_fun(enumerable) do
     case Enumerable.slice(enumerable) do
-      {:ok, count, fun} when is_function(fun) ->
+      {:ok, count, fun} when is_function(fun, 2) ->
         {count, fun}
 
       {:error, module} ->
@@ -3821,8 +3821,13 @@ defmodule Enum do
 end
 
 defimpl Enumerable, for: List do
+  def count([]), do: {:ok, 0}
   def count(_list), do: {:error, __MODULE__}
+
+  def member?([], _value), do: {:ok, false}
   def member?(_list, _value), do: {:error, __MODULE__}
+
+  def slice([]), do: {:ok, 0, fn _, _ -> [] end}
   def slice(_list), do: {:error, __MODULE__}
 
   def reduce(_list, {:halt, acc}, _fun), do: {:halted, acc}
