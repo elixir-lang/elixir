@@ -160,8 +160,12 @@ defmodule MixTest.Case do
   end
 
   def mix(args, envs \\ []) when is_list(args) do
+    mix_code(args, envs) |> elem(0)
+  end
+
+  def mix_code(args, envs \\ []) when is_list(args) do
     args = ["-r", mix_executable(), "--" | args]
-    System.cmd(elixir_executable(), args, stderr_to_stdout: true, env: envs) |> elem(0)
+    System.cmd(elixir_executable(), args, stderr_to_stdout: true, env: envs)
   end
 
   def mix_port(args, envs \\ []) when is_list(args) do

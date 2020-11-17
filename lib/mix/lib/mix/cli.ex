@@ -86,14 +86,23 @@ defmodule Mix.CLI do
       # We only rescue exceptions in the Mix namespace, all
       # others pass through and will explode on the users face
       exception ->
-        if Map.get(exception, :mix, false) and not Mix.debug?() do
-          mod = exception.__struct__ |> Module.split() |> Enum.at(0, "Mix")
-          Mix.shell().error("** (#{mod}) #{Exception.message(exception)}")
-          exit({:shutdown, 1})
-        else
-          reraise exception, __STACKTRACE__
+        case {Mix.debug?(), Map.get(exception, :mix, false)} do
+          {false, true} ->
+            simplified_exception(exception, 1)
+
+          {false, code} when code in 0..255 ->
+            simplified_exception(exception, code)
+
+          _ ->
+            reraise exception, __STACKTRACE__
         end
     end
+  end
+
+  defp simplified_exception(%name{} = exception, code) do
+    mod = name |> Module.split() |> hd()
+    Mix.shell().error("** (#{mod}) #{Exception.message(exception)}")
+    exit({:shutdown, code})
   end
 
   defp env_variable_activated?(name) do
