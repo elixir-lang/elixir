@@ -214,7 +214,9 @@ defmodule EnumTest do
 
   test "empty?/1" do
     assert Enum.empty?([])
+    assert Enum.empty?(%{})
     refute Enum.empty?([1, 2, 3])
+    refute Enum.empty?(%{one: 1})
     refute Enum.empty?(1..3)
   end
 
