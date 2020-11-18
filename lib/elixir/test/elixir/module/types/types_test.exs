@@ -3,7 +3,7 @@ Code.require_file("type_helper.exs", __DIR__)
 defmodule Module.Types.TypesTest do
   use ExUnit.Case, async: true
   alias Module.Types
-  alias Module.Types.{Pattern, Expr, Unify}
+  alias Module.Types.{Pattern, Expr}
 
   defmacro warning(patterns \\ [], guards \\ [], body) do
     min_line = min_line(patterns ++ guards ++ [body])
@@ -13,23 +13,21 @@ defmodule Module.Types.TypesTest do
     expr = TypeHelper.expand_expr(patterns, guards, body, __CALLER__)
 
     quote do
-      unquote(Macro.escape(expr))
-      |> Module.Types.TypesTest.__expr__()
-      |> to_warning()
+      Module.Types.TypesTest.__expr__(unquote(Macro.escape(expr)))
     end
   end
 
   def __expr__({patterns, guards, body}) do
     with {:ok, _types, context} <-
            Pattern.of_head(patterns, guards, TypeHelper.new_stack(), TypeHelper.new_context()),
-         {:ok, type, context} <- Expr.of_expr(body, :dynamic, TypeHelper.new_stack(), context) do
+         {:ok, _type, context} <- Expr.of_expr(body, :dynamic, TypeHelper.new_stack(), context) do
       case context.warnings do
-        [warning] -> {:warning, warning}
-        _ -> flunk("expexted error, got: #{inspect([type] |> Unify.lift_types(context) |> hd())}")
+        [warning] -> to_message(:warning, warning)
+        _ -> :none
       end
     else
       {:error, {type, reason, context}} ->
-        {:error, {type, reason, context}}
+        to_message(:error, {type, reason, context})
     end
   end
 
@@ -51,13 +49,13 @@ defmodule Module.Types.TypesTest do
     min
   end
 
-  defp to_warning({:warning, {module, warning, _location}}) do
+  defp to_message(:warning, {module, warning, _location}) do
     warning
     |> module.format_warning()
     |> IO.iodata_to_binary()
   end
 
-  defp to_warning({:error, {type, reason, context}}) do
+  defp to_message(:error, {type, reason, context}) do
     {Module.Types, error, _location} = Module.Types.error_to_warning(type, reason, context)
 
     error
@@ -540,6 +538,22 @@ defmodule Module.Types.TypesTest do
                  # types_test.ex:3
                  %{foo: ^other_key} = event
              """
+    end
+  end
+
+  describe "regressions" do
+    test "recursive map fields" do
+      assert warning(
+               [queried],
+               with(
+                 true <- is_nil(queried.foo.bar),
+                 _ = queried.foo
+               ) do
+                 %{foo: %{other_id: _other_id} = foo} = queried
+                 %{other_id: id} = foo
+                 %{id: id}
+               end
+             ) == :none
     end
   end
 end
