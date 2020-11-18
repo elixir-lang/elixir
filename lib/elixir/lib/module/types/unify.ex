@@ -189,8 +189,11 @@ defmodule Module.Types.Unify do
           end
 
         case unify_result do
-          {:ok, var_type, context} ->
-            context = refine_var!(var, var_type, stack, context)
+          {:ok, {:var, ^var}, context} ->
+            {:ok, {:var, var}, context}
+
+          {:ok, res_type, context} ->
+            context = refine_var!(var, res_type, stack, context)
             {:ok, {:var, var}, context}
 
           {:error, reason} ->
