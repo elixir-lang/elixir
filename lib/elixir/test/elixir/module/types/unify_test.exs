@@ -350,11 +350,22 @@ defmodule Module.Types.UnifyTest do
       assert {{:var, 2}, var_context} = new_var({:baz, [version: 2], nil}, var_context)
 
       assert {:ok, {:var, _}, context} = unify({:var, 0}, {:var, 1}, var_context)
-      assert {:ok, {:var, _}, _context} = unify({:var, 1}, {:var, 0}, context)
+      assert {:ok, {:var, _}, context} = unify({:var, 1}, {:var, 0}, context)
+      assert context.types[0] == {:var, 1}
+      assert context.types[1] == {:var, 0}
+
+      assert {:ok, {:var, _}, context} = unify({:var, 0}, :tuple, var_context)
+      assert {:ok, {:var, _}, context} = unify({:var, 1}, {:var, 0}, context)
+      assert {:ok, {:var, _}, context} = unify({:var, 0}, {:var, 1}, context)
+      assert context.types[0] == {:var, 1}
+      assert context.types[1] == :tuple
 
       assert {:ok, {:var, _}, context} = unify({:var, 0}, {:var, 1}, var_context)
       assert {:ok, {:var, _}, context} = unify({:var, 1}, {:var, 2}, context)
       assert {:ok, {:var, _}, _context} = unify({:var, 2}, {:var, 0}, context)
+      assert context.types[0] == :unbound
+      assert context.types[1] == {:var, 0}
+      assert context.types[2] == {:var, 1}
 
       assert {:ok, {:var, _}, context} = unify({:var, 0}, {:var, 1}, var_context)
 
