@@ -618,6 +618,24 @@ defmodule EExTest do
       assert EExTest.Compiled.__info__(:attributes)[:external_resource] ==
                [Path.join(__DIR__, "fixtures/eex_template_with_bindings.eex")]
     end
+
+    test "supports t:Path.t() paths" do
+      filename = to_charlist(Path.join(__DIR__, "fixtures/eex_template_with_bindings.eex"))
+      result = EEx.eval_file(filename, bar: 1)
+      assert_normalized_newline_equal("foo 1\n", result)
+    end
+
+    assert_raise EEx.SyntaxError, "my_file.eex:1:12: missing token '%>'", fn ->
+      EEx.compile_string("foo <%= bar", file: "my_file.eex")
+    end
+
+    test "supports overriding file and line through options" do
+      filename = Path.join(__DIR__, "fixtures/eex_template_with_syntax_error.eex")
+
+      assert_raise EEx.SyntaxError, "my_file.eex:11:1: missing token '%>'", fn ->
+        EEx.eval_file(filename, _bindings = [], file: "my_file.eex", line: 10)
+      end
+    end
   end
 
   describe "precompiled" do
