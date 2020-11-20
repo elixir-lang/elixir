@@ -174,8 +174,10 @@ defmodule OptionParserTest do
 
       opts = [aliases: [a: :first, b: :second], switches: [first: :boolean, second: :boolean]]
       assert OptionParser.parse(["-ab"], opts) == {[first: true, second: true], [], []}
+      assert OptionParser.parse(["-ab3"], opts) == {[first: true], [], [{"-b", "3"}]}
       assert OptionParser.parse(["-ab=bar"], opts) == {[first: true], [], [{"-b", "bar"}]}
       assert OptionParser.parse(["-ab3=bar"], opts) == {[first: true], [], [{"-b", "3=bar"}]}
+      assert OptionParser.parse(["-3ab"], opts) == {[], ["-3ab"], []}
     end
   end
 
@@ -292,9 +294,13 @@ defmodule OptionParserTest do
 
     test "correctly handles negative floating-point numbers" do
       opts = [switches: [option: :float], aliases: [o: :option]]
+      assert OptionParser.parse(["arg1", "-o43.2"], opts) == {[option: 43.2], ["arg1"], []}
       assert OptionParser.parse(["arg1", "-o", "-43.2"], opts) == {[option: -43.2], ["arg1"], []}
 
       assert OptionParser.parse(["arg1", "--option=-43.2"], switches: [option: :float]) ==
+               {[option: -43.2], ["arg1"], []}
+
+      assert OptionParser.parse(["arg1", "--option", "-43.2"], opts) ==
                {[option: -43.2], ["arg1"], []}
     end
   end
