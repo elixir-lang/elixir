@@ -428,12 +428,10 @@ defmodule OptionParser do
     end
   end
 
-  # Handles -a, -abc, -abc=something
+  # Handles -a, -abc, -abc=something, -n2
   defp next_with_config(["-" <> option | rest] = argv, config) do
-    %{allow_nonexistent_atoms?: allow_nonexistent_atoms?} = config
     {option, value} = split_option(option)
     original = "-" <> option
-    letters = String.graphemes(option)
 
     cond do
       is_nil(value) and negative_number?(original) ->
@@ -442,20 +440,20 @@ defmodule OptionParser do
       String.contains?(option, ["-", "_"]) ->
         {:undefined, original, value, rest}
 
-      tl(letters) == [] ->
+      String.length(option) == 1 ->
         # We have a regular one-letter alias here
         tagged = tag_oneletter_alias(option, config)
         next_tagged(tagged, value, original, rest, config)
 
       true ->
-        key = get_option_key(option, allow_nonexistent_atoms?)
+        key = get_option_key(option, config.allow_nonexistent_atoms?)
         option_key = config.aliases[key]
 
         if key && option_key do
           IO.warn("multi-letter aliases are deprecated, got: #{inspect(key)}")
           next_tagged({:default, option_key}, value, original, rest, config)
         else
-          next_with_config(expand_multiletter_alias(letters, value) ++ rest, config)
+          next_with_config(expand_multiletter_alias(option, value) ++ rest, config)
         end
     end
   end
@@ -707,13 +705,25 @@ defmodule OptionParser do
     end
   end
 
-  defp expand_multiletter_alias(letters, value) do
+  defp expand_multiletter_alias(options, value) do
+    {options, maybe_integer} =
+      options
+      |> String.to_charlist()
+      |> Enum.split_while(&(&1 not in ?0..?9))
+
     {last, expanded} =
-      letters
+      options
+      |> List.to_string()
+      |> String.graphemes()
       |> Enum.map(&("-" <> &1))
       |> List.pop_at(-1)
 
-    expanded ++ [last <> if(value, do: "=" <> value, else: "")]
+    expanded ++
+      [
+        last <>
+          if(maybe_integer != [], do: "=#{maybe_integer}", else: "") <>
+          if(value, do: "=#{value}", else: "")
+      ]
   end
 
   defp normalize_tag(:negated, option, value, switches) do
