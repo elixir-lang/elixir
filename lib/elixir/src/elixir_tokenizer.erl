@@ -477,8 +477,8 @@ tokenize([$:, H | T] = Original, Line, Column, Scope, Tokens) when ?is_quote(H) 
 
 tokenize([$: | String] = Original, Line, Column, Scope, Tokens) ->
   case tokenize_identifier(String, Line, Column, Scope, false) of
-    {_Kind, Atom, Rest, Length, _Ascii, _Special} ->
-      NewScope = maybe_warn_for_ambiguous_bang_before_equals(atom, Atom, Rest, Scope, Line),
+    {_Kind, Unencoded, Atom, Rest, Length, _Ascii, _Special} ->
+      NewScope = maybe_warn_for_ambiguous_bang_before_equals(atom, Unencoded, Rest, Scope, Line),
       Token = {atom, {Line, Column, nil}, Atom},
       tokenize(Rest, Line, Column + 1 + Length, NewScope, [Token | Tokens]);
     empty ->
@@ -559,7 +559,7 @@ tokenize([$. | T], Line, Column, Scope, Tokens) ->
 
 tokenize(String, Line, Column, Scope, Tokens) ->
   case tokenize_identifier(String, Line, Column, Scope, not previous_was_dot(Tokens)) of
-    {Kind, Atom, Rest, Length, Ascii, Special} ->
+    {Kind, Unencoded, Atom, Rest, Length, Ascii, Special} ->
       HasAt = lists:member($@, Special),
 
       case Rest of
@@ -583,7 +583,7 @@ tokenize(String, Line, Column, Scope, Tokens) ->
           tokenize_alias(Rest, Line, Column, Atom, Length, Ascii, Special, Scope, Tokens);
 
         _ when Kind == identifier ->
-          NewScope = maybe_warn_for_ambiguous_bang_before_equals(identifier, Atom, Rest, Scope, Line),
+          NewScope = maybe_warn_for_ambiguous_bang_before_equals(identifier, Unencoded, Rest, Scope, Line),
           Token = check_call_identifier(Line, Column, Atom, Rest),
           tokenize(Rest, Line, Column + Length, NewScope, [Token | Tokens]);
 
@@ -1142,7 +1142,7 @@ tokenize_identifier(String, Line, Column, Scope, MaybeKeyword) ->
         {keyword, Atom, Type} ->
           {keyword, Atom, Type, Rest, Length};
         {ok, Atom} ->
-          {Kind, Atom, Rest, Length, Ascii, Special};
+          {Kind, Acc, Atom, Rest, Length, Ascii, Special};
         {error, _Reason} = Error ->
           Error
       end;
@@ -1462,11 +1462,11 @@ maybe_warn_too_many_of_same_char(_Token, _Rest, _Line, Scope) ->
   Scope.
 
 %% TODO: Turn into an error on v2.0
-maybe_warn_for_ambiguous_bang_before_equals(Kind, Atom, [$= | _], Scope, Line) ->
+maybe_warn_for_ambiguous_bang_before_equals(Kind, Unencoded, [$= | _], Scope, Line) ->
   {What, Identifier} =
     case Kind of
-      atom -> {"atom", [$: | atom_to_list(Atom)]};
-      identifier -> {"identifier", atom_to_list(Atom)}
+      atom -> {"atom", [$: | Unencoded]};
+      identifier -> {"identifier", Unencoded}
     end,
 
   case lists:last(Identifier) of
