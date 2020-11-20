@@ -224,6 +224,14 @@ defmodule CodeTest do
                Code.string_to_quoted("there_is_no_such_var", static_atoms_encoder: encoder)
     end
 
+    test "static_atoms_encoder ambiguities" do
+      encoder = fn string, _meta -> {:ok, {:atom, string}} end
+
+      # We check a=1 for precedence issues with a!=1, make sure it works
+      assert Code.string_to_quoted!("a = 1", static_atoms_encoder: encoder)
+      assert Code.string_to_quoted!("a=1", static_atoms_encoder: encoder)
+    end
+
     test "static_atoms_encoder does not encode keywords" do
       encoder = fn atom, _meta -> raise "shouldn't be invoked for #{atom}" end
 
