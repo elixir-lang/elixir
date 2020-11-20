@@ -647,13 +647,12 @@ defmodule Regex do
 
   def replace(regex, string, replacement, options)
       when is_binary(string) and is_binary(replacement) and is_list(options) do
-    do_replace(regex, string, precompile_replacement(replacement), options)
+    do_replace(regex, string, replacement, options)
   end
 
   def replace(regex, string, replacement, options)
       when is_binary(string) and is_function(replacement) and is_list(options) do
-    {:arity, arity} = Function.info(replacement, :arity)
-    do_replace(regex, string, {replacement, arity}, options)
+    do_replace(regex, string, replacement, options)
   end
 
   defp do_replace(%Regex{} = regex, string, replacement, options) do
@@ -665,11 +664,17 @@ defmodule Regex do
         string
 
       {:match, [mlist | t]} when is_list(mlist) ->
-        apply_list(string, replacement, [mlist | t]) |> IO.iodata_to_binary()
+        apply_list(string, precompile_replacement(replacement), [mlist | t])
+        |> IO.iodata_to_binary()
 
       {:match, slist} ->
-        apply_list(string, replacement, [slist]) |> IO.iodata_to_binary()
+        apply_list(string, precompile_replacement(replacement), [slist]) |> IO.iodata_to_binary()
     end
+  end
+
+  defp precompile_replacement(replacement) when is_function(replacement) do
+    {:arity, arity} = Function.info(replacement, :arity)
+    {replacement, arity}
   end
 
   defp precompile_replacement(""), do: []
