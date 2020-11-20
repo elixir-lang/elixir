@@ -434,7 +434,7 @@ defmodule OptionParser do
     original = "-" <> option
 
     cond do
-      is_nil(value) and negative_number?(original) ->
+      is_nil(value) and starts_with_number?(option) ->
         {:error, argv}
 
       String.contains?(option, ["-", "_"]) ->
@@ -764,7 +764,7 @@ defmodule OptionParser do
 
   defp value_in_tail?(["-" | _]), do: true
   defp value_in_tail?(["- " <> _ | _]), do: true
-  defp value_in_tail?(["-" <> arg | _]), do: negative_number?("-" <> arg)
+  defp value_in_tail?(["-" <> arg | _]), do: starts_with_number?(arg)
   defp value_in_tail?([]), do: false
   defp value_in_tail?(_), do: true
 
@@ -796,9 +796,8 @@ defmodule OptionParser do
     end
   end
 
-  defp negative_number?(arg) do
-    match?({_, ""}, Float.parse(arg))
-  end
+  defp starts_with_number?(<<char, _::binary>>) when char in ?0..?9, do: true
+  defp starts_with_number?(_), do: false
 
   defp format_errors([_ | _] = errors, opts) do
     types = opts[:switches] || opts[:strict]
