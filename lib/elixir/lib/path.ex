@@ -573,26 +573,14 @@ defmodule Path do
     @moduledoc false
 
     def read_link_info(file) do
-      call({:read_link_info, file})
+      :file.read_link_info(file)
     end
 
     def list_dir(dir) do
-      case call({:list_dir, dir}) do
-        {:ok, files} ->
-          {:ok, for(file <- files, hd(file) != ?., do: file)}
-
-        other ->
-          other
+      case :file.list_dir(dir) do
+        {:ok, files} -> {:ok, for(file <- files, hd(file) != ?., do: file)}
+        other -> other
       end
-    end
-
-    @compile {:inline, call: 1}
-
-    defp call(tuple) do
-      x = :erlang.dt_spread_tag(true)
-      y = :gen_server.call(:file_server_2, tuple)
-      :erlang.dt_restore_tag(x)
-      y
     end
   end
 
