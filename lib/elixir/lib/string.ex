@@ -1179,7 +1179,8 @@ defmodule String do
 
   """
   @spec trim_leading(t, t) :: t
-  def trim_leading(string, to_trim) do
+  def trim_leading(string, to_trim)
+      when is_binary(string) and is_binary(to_trim) do
     replace_leading(string, to_trim, "")
   end
 
