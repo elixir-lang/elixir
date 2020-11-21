@@ -252,7 +252,8 @@ defmodule Mix.Tasks.Xref do
          {:ok, {_, [debug_info: debug_info]}} <- :beam_lib.chunks(path, [:debug_info]),
          {:debug_info_v1, backend, data} <- debug_info,
          {:ok, %{definitions: defs}} <- backend.debug_info(:elixir_v1, module, data, []),
-         do: walk_definitions(module, source, defs)
+         do: walk_definitions(module, source, defs),
+         else: (_ -> [])
   end
 
   defp walk_definitions(module, file, definitions) do
