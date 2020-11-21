@@ -69,11 +69,29 @@ defmodule Mix.Tasks.XrefTest do
       assert_all_calls(files, output)
     end
 
-    defp assert_all_calls(files, expected) do
+    test "returns empty on cover compiled modules" do
+      files = %{
+        "lib/a.ex" => """
+        defmodule A do
+          def a, do: A.a()
+        end
+        """
+      }
+
+      assert_all_calls(files, [], fn ->
+        :cover.start()
+        :cover.compile_beam_directory(to_charlist(Mix.Project.compile_path()))
+      end)
+    after
+      :cover.stop()
+    end
+
+    defp assert_all_calls(files, expected, after_compile \\ fn -> :ok end) do
       in_fixture("no_mixfile", fn ->
         generate_files(files)
 
         Mix.Task.run("compile")
+        after_compile.()
         assert Enum.sort(Mix.Tasks.Xref.calls()) == Enum.sort(expected)
       end)
     end
