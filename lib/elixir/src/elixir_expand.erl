@@ -258,7 +258,7 @@ expand({for, Meta, [_ | _] = Args}, E) ->
         {Args, []}
     end,
 
-  validate_opts(Meta, for, [do, into, uniq, reduce], Block, E),
+  validate_opts(Meta, for, [do, into, uniq, reduce, limit], Block, E),
 
   {Expr, Opts} =
     case lists:keytake(do, 1, Block) of
@@ -273,7 +273,7 @@ expand({for, Meta, [_ | _] = Args}, E) ->
   assert_generator_start(Meta, ECases, E),
 
   {EExpr, EE} =
-    case validate_for_options(EOpts, false, false, false) of
+    case validate_for_options(EOpts, false, false, false, false) of
       {ok, MaybeReduce} -> expand_for_do_block(Meta, Expr, EC, MaybeReduce);
       {error, Error} -> form_error(Meta, E, ?MODULE, Error)
     end,
@@ -702,17 +702,21 @@ generated_case_clauses([{do, Clauses}]) ->
 
 %% Comprehensions
 
-validate_for_options([{into, _} = Pair | Opts], _Into, Uniq, Reduce) ->
-  validate_for_options(Opts, Pair, Uniq, Reduce);
-validate_for_options([{uniq, Boolean} = Pair | Opts], Into, _Uniq, Reduce) when is_boolean(Boolean) ->
-  validate_for_options(Opts, Into, Pair, Reduce);
-validate_for_options([{uniq, Value} | _], _, _, _) ->
+validate_for_options([{into, _} = Pair | Opts], _Into, Uniq, Reduce, Limit) ->
+  validate_for_options(Opts, Pair, Uniq, Reduce, Limit);
+validate_for_options([{limit, Integer} = Pair | Opts], Into, _Uniq, Reduce, Limit) when is_integer(Integer) ->
+validate_for_options(Opts, Into, Pair, Reduce, Limit);
+validate_for_options([{limit, Value} | _], _, _, _, _) ->
+  {error, {for_invalid_limit, Value}};
+validate_for_options([{uniq, Boolean} = Pair | Opts], Into, _Uniq, Reduce, Limit) when is_boolean(Boolean) ->
+  validate_for_options(Opts, Into, Pair, Reduce, Limit);
+validate_for_options([{uniq, Value} | _], _, _, _, _) ->
   {error, {for_invalid_uniq, Value}};
-validate_for_options([{reduce, _} = Pair | Opts], Into, Uniq, _Reduce) ->
-  validate_for_options(Opts, Into, Uniq, Pair);
-validate_for_options([], Into, Uniq, {reduce, _}) when Into /= false; Uniq /= false ->
+validate_for_options([{reduce, _} = Pair | Opts], Into, Uniq, _Reduce, Limit) ->
+  validate_for_options(Opts, Into, Uniq, Pair, Limit);
+validate_for_options([], Into, Uniq, {reduce, _}, _Limit) when Into /= false; Uniq /= false ->
   {error, for_conflicting_reduce_into_uniq};
-validate_for_options([], _Into, _Uniq, Reduce) ->
+validate_for_options([], _Into, _Uniq, Reduce, _Limit) ->
   {ok, Reduce}.
 
 expand_for_do_block(Meta, Expr, E, false) ->
@@ -1104,6 +1108,8 @@ format_error({invalid_args, Construct}) ->
   io_lib:format("invalid arguments for \"~ts\"", [Construct]);
 format_error({for_invalid_uniq, Value}) ->
   io_lib:format(":uniq option for comprehensions only accepts a boolean, got: ~ts", ['Elixir.Macro':to_string(Value)]);
+format_error({for_invalid_limit, Value}) ->
+  io_lib:format(":limit option for comprehensions only accepts an integer, got: ~ts", ['Elixir.Macro':to_string(Value)]);
 format_error(for_conflicting_reduce_into_uniq) ->
   "cannot use :reduce alongside :into/:uniq in comprehension";
 format_error(for_with_reduce_bad_block) ->
