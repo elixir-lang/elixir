@@ -799,6 +799,14 @@ defmodule Kernel.ExpansionTest do
       end
     end
 
+    test "limit option is integer" do
+      message = ~r":limit option for comprehensions only accepts an integer, got: true"
+
+      assert_raise CompileError, message, fn ->
+        expand(quote(do: for(x <- 1..2, limit: true, do: x)))
+      end
+    end
+
     test "raise error on invalid reduce" do
       assert_raise CompileError,
                    ~r"cannot use :reduce alongside :into/:uniq in comprehension",
