@@ -444,6 +444,10 @@ defmodule Module.Types.Expr do
     of_expr_context(expr, :dynamic, stack, context)
   end
 
+  defp for_option({:limit, expr}, stack, context) do
+    of_expr_context(expr, :dynamic, stack, context)
+  end
+
   defp for_option({:reduce, expr}, stack, context) do
     of_expr_context(expr, :dynamic, stack, context)
   end
