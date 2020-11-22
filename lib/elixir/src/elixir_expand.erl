@@ -705,7 +705,7 @@ generated_case_clauses([{do, Clauses}]) ->
 validate_for_options([{into, _} = Pair | Opts], _Into, Uniq, Reduce, Limit) ->
   validate_for_options(Opts, Pair, Uniq, Reduce, Limit);
 validate_for_options([{limit, Integer} = Pair | Opts], Into, _Uniq, Reduce, Limit) when is_integer(Integer) ->
-validate_for_options(Opts, Into, Pair, Reduce, Limit);
+  validate_for_options(Opts, Into, Pair, Reduce, Limit);
 validate_for_options([{limit, Value} | _], _, _, _, _) ->
   {error, {for_invalid_limit, Value}};
 validate_for_options([{uniq, Boolean} = Pair | Opts], Into, _Uniq, Reduce, Limit) when is_boolean(Boolean) ->
