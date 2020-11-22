@@ -35,6 +35,11 @@ defmodule Kernel.ComprehensionTest do
     assert for(x <- enum, do: x * 2) == [2, 4, 6]
   end
 
+  test "for comprehensions with limit" do
+    enum = 1..3
+    assert for(x <- enum, limit: 2, do: x * 2) == [2, 4]
+  end
+
   test "for comprehensions with matching" do
     assert for({_, x} <- 1..3, do: x * 2) == []
   end
