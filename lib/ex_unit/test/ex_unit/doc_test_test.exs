@@ -842,7 +842,7 @@ defmodule ExUnit.DocTestTest do
   end
 
   test "multiple exceptions in one test case is not supported" do
-    message = ~r"multiple exceptions in one doctest case are not supported"
+    message = ~r"multiple exceptions in the same doctest example are not supported"
 
     assert_raise ExUnit.DocTest.Error, message, fn ->
       defmodule NeverCompiled do
