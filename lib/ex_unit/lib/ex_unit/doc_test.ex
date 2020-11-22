@@ -281,7 +281,9 @@ defmodule ExUnit.DocTest do
       raise Error,
         line: line,
         module: module,
-        message: "multiple exceptions in one doctest case are not supported"
+        message:
+          "multiple exceptions in the same doctest example are not supported, " <>
+            "please separate your iex> prompts by multiple newlines to start new examples"
     end
 
     tests =
