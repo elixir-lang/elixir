@@ -800,10 +800,10 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "limit option is integer" do
-      message = ~r":limit option for comprehensions only accepts an integer, got: true"
+      message = ~r":limit option for comprehensions only accepts an integer, got: :ok"
 
       assert_raise CompileError, message, fn ->
-        expand(quote(do: for(x <- 1..2, limit: true, do: x)))
+        expand(quote(do: for(x <- 1..2, limit: :ok, do: x)))
       end
     end
 
