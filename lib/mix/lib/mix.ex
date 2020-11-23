@@ -272,6 +272,8 @@ defmodule Mix do
 
   use Application
 
+  import Kernel, except: [raise: 2]
+
   @doc false
   def start do
     {:ok, _} = Application.ensure_all_started(:mix)
@@ -433,7 +435,7 @@ defmodule Mix do
   """
   @spec raise(binary) :: no_return
   def raise(message) do
-    raise(message, exit_code: 1)
+    __MODULE__.raise(message, exit_code: 1)
   end
 
   @doc """
