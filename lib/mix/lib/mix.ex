@@ -447,7 +447,7 @@ defmodule Mix do
 
   """
   @doc since: "1.12.0"
-  @spec raise(binary, [option]) :: no_return when option: {:exit_code, non_neg_integer()}
+  @spec raise(binary, exit_code: non_neg_integer()) :: no_return
   def raise(message, opts) when is_binary(message) and is_list(opts) do
     Kernel.raise(Mix.Error, mix: Keyword.get(opts, :exit_code, 1), message: message)
   end
