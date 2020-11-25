@@ -347,7 +347,7 @@ defmodule Integer do
 
   """
   @spec to_charlist(integer) :: charlist
-  def to_charlist(integer) do
+  def to_charlist(integer) when is_integer(integer) do
     :erlang.integer_to_list(integer)
   end
 
@@ -371,7 +371,7 @@ defmodule Integer do
 
   """
   @spec to_charlist(integer, 2..36) :: charlist
-  def to_charlist(integer, base) do
+  def to_charlist(integer, base) when is_integer(integer) do
     :erlang.integer_to_list(integer, base)
   end
 
