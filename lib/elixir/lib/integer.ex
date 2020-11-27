@@ -294,7 +294,7 @@ defmodule Integer do
 
   """
   @spec to_string(integer) :: String.t()
-  def to_string(integer) when is_integer(integer) do
+  def to_string(integer) do
     :erlang.integer_to_binary(integer)
   end
 
@@ -319,7 +319,7 @@ defmodule Integer do
 
   """
   @spec to_string(integer, 2..36) :: String.t()
-  def to_string(integer, base) when is_integer(integer) do
+  def to_string(integer, base) do
     :erlang.integer_to_binary(integer, base)
   end
 
@@ -347,7 +347,7 @@ defmodule Integer do
 
   """
   @spec to_charlist(integer) :: charlist
-  def to_charlist(integer) when is_integer(integer) do
+  def to_charlist(integer) do
     :erlang.integer_to_list(integer)
   end
 
@@ -371,7 +371,7 @@ defmodule Integer do
 
   """
   @spec to_charlist(integer, 2..36) :: charlist
-  def to_charlist(integer, base) when is_integer(integer) do
+  def to_charlist(integer, base) do
     :erlang.integer_to_list(integer, base)
   end
 
