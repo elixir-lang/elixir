@@ -894,12 +894,12 @@ defmodule Inspect.Algebra do
     format(width, 0, [{0, :flat, doc}])
   end
 
-  # Type representing the document mode to be rendered
+  # Type representing the document mode to be rendered:
   #
   #   * flat - represents a document with breaks as flats (a break may fit, as it may break)
   #   * break - represents a document with breaks as breaks (a break always fits, since it breaks)
   #
-  # The following modes are exclusive to fitting
+  # The following modes are exclusive to fitting:
   #
   #   * flat_no_break - represents a document with breaks as flat not allowed to enter in break mode
   #   * break_no_flat - represents a document with breaks as breaks not allowed to enter in flat mode
