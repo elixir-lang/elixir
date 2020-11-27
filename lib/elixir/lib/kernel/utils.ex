@@ -189,7 +189,7 @@ defmodule Kernel.Utils do
   that checks for its presence in a guard, then unquotes the variable references as
   appropriate.
 
-  The following code
+  The following code:
 
       expression = quote do: is_integer(value) and rem(value, 2) == 0
       variable_references = [value: Elixir]
