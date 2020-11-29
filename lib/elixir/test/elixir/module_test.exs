@@ -479,6 +479,22 @@ defmodule ModuleTest do
     end
   end
 
+  test "get_definition/2 and delete_definition/2" do
+    in_module do
+      def foo(a, b), do: a + b
+
+      assert {:v1, :def, _,
+              [
+                {_, [{:a, _, nil}, {:b, _, nil}], [],
+                 {{:., _, [:erlang, :+]}, _, [{:a, _, nil}, {:b, _, nil}]}}
+              ]} = Module.get_definition(__MODULE__, {:foo, 2})
+
+      assert Module.delete_definition(__MODULE__, {:foo, 2})
+      assert Module.get_definition(__MODULE__, {:foo, 2}) == nil
+      refute Module.delete_definition(__MODULE__, {:foo, 2})
+    end
+  end
+
   test "make_overridable/2 with invalid arguments" do
     contents =
       quote do

@@ -1062,6 +1062,60 @@ defmodule Module do
   end
 
   @doc """
+  Returns the definition for the given name-arity pair.
+
+  It returns a tuple with the `version`, the `kind`,
+  the definition `metadata`, and a list with each clause.
+  Each clause is a four-element tuple with metadata,
+  the arguments, the guards, and the clause AST.
+
+  The clauses are returned in the Elixir AST but a subset
+  that has already been expanded and normalized. This makes
+  it useful for analyzing code but it cannot be reinjected
+  into the module as it will have lost some of its original
+  context. Given this AST representation is mostly internal,
+  it is versioned and it may change at any time. Therefore,
+  **use this API with caution**.
+  """
+  @spec get_definition(module, definition) ::
+          {:v1, def_kind, meta :: keyword,
+           [{meta :: keyword, arguments :: [Macro.t()], guards :: [Macro.t()], Macro.t()}]}
+  def get_definition(module, {name, arity})
+      when is_atom(module) and is_atom(name) and is_integer(arity) do
+    assert_not_compiled!(__ENV__.function, module, "")
+    {set, bag} = data_tables_for(module)
+
+    case :ets.lookup(set, {:def, {name, arity}}) do
+      [{_key, kind, meta, _, _, _}] ->
+        {:v1, kind, meta, bag_lookup_element(bag, {:clauses, {name, arity}}, 2)}
+
+      [] ->
+        nil
+    end
+  end
+
+  @doc """
+  Deletes a definition from a module.
+
+  It returns true if the definition exists and it was removed,
+  otherwise it returns false.
+  """
+  @spec delete_definition(module, definition) :: boolean()
+  def delete_definition(module, {name, arity})
+      when is_atom(module) and is_atom(name) and is_integer(arity) do
+    assert_not_readonly!(__ENV__.function, module)
+
+    case :elixir_def.take_definition(module, {name, arity}) do
+      false ->
+        false
+
+      _ ->
+        :elixir_locals.yank({name, arity}, module)
+        true
+    end
+  end
+
+  @doc """
   Makes the given functions in `module` overridable.
 
   An overridable function is lazily defined, allowing a
