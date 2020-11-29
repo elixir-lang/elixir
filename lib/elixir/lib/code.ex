@@ -646,6 +646,10 @@ defmodule Code do
   are considered equivalent (the nesting is discarded alongside most of
   user formatting). In such cases, the code formatter will always format to
   the latter.
+
+  ## Newlines
+
+  The formatter converts all newlines in code from `\r\n` to `\n`.
   """
   @doc since: "1.6.0"
   @spec format_string!(binary, keyword) :: iodata
