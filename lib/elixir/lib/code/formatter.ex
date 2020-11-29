@@ -711,7 +711,7 @@ defmodule Code.Formatter do
     {operands, max_line} =
       unwrap_right(right_arg, op, meta, right_context, [{{:root, left_context}, left_arg}])
 
-    operand_to_algebra = fn
+    fun = fn
       {{:root, context}, arg}, _args, state ->
         {doc, state} = binary_operand_to_algebra(arg, context, state, op, op_info, :left, 2)
         {{doc, @empty, 1}, state}
@@ -723,14 +723,7 @@ defmodule Code.Formatter do
     end
 
     {doc, state} =
-      operand_to_algebra_with_comments(
-        operands,
-        meta,
-        min_line,
-        max_line,
-        state,
-        operand_to_algebra
-      )
+      operand_to_algebra_with_comments(operands, meta, min_line, max_line, context, state, fun)
 
     if keyword?(right_arg) and context in [:parens_arg, :no_parens_arg] do
       {wrap_in_parens(doc), state}
@@ -749,7 +742,7 @@ defmodule Code.Formatter do
     {pipes, min_line} =
       unwrap_pipes(left_arg, meta, left_context, [{{op, right_context}, right_arg}])
 
-    operand_to_algebra = fn
+    fun = fn
       {{:root, context}, arg}, _args, state ->
         {doc, state} = binary_operand_to_algebra(arg, context, state, op, op_info, :left, 2)
         {{doc, @empty, 1}, state}
@@ -761,7 +754,7 @@ defmodule Code.Formatter do
         {{concat(op_string, doc), @empty, 1}, state}
     end
 
-    operand_to_algebra_with_comments(pipes, meta, min_line, max_line, state, operand_to_algebra)
+    operand_to_algebra_with_comments(pipes, meta, min_line, max_line, context, state, fun)
   end
 
   defp binary_op_to_algebra(op, op_string, meta, left_arg, right_arg, context, state, nesting) do
@@ -889,9 +882,43 @@ defmodule Code.Formatter do
     {Enum.reverse(acc), line(meta)}
   end
 
-  defp operand_to_algebra_with_comments(operands, meta, min_line, max_line, state, fun) do
+  defp operand_to_algebra_with_comments(operands, meta, min_line, max_line, context, state, fun) do
+    # If we are in a no_parens_one_arg expression, we actually cannot
+    # extract comments from the first operand, because it would rewrite:
+    #
+    #     @spec function(x) ::
+    #             # Comment
+    #             any
+    #           when x: any
+    #
+    # to:
+    #
+    #     @spec # Comment
+    #           function(x) ::
+    #             any
+    #           when x: any
+    #
+    # Instead we get:
+    #
+    #     @spec function(x) ::
+    #             any
+    #           # Comment
+    #           when x: any
+    #
+    # Which may look counter-intuitive but it actually makes sense,
+    # as the closest possible location for the comment is the when
+    # operator.
+    {operands, acc, state} =
+      if context == :no_parens_one_arg do
+        [operand | operands] = operands
+        {doc_triplet, state} = fun.(operand, :unused, state)
+        {operands, [doc_triplet], state}
+      else
+        {operands, [], state}
+      end
+
     {docs, comments?, state} =
-      quoted_to_algebra_with_comments(operands, [], min_line, max_line, state, fun)
+      quoted_to_algebra_with_comments(operands, acc, min_line, max_line, state, fun)
 
     if comments? or eol?(meta) do
       {docs |> Enum.reduce(&line(&2, &1)) |> force_unfit(), state}
