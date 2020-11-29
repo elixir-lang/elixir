@@ -388,6 +388,10 @@ defmodule ExUnit.Assertions do
 
       assert false, "it will never be true"
 
+      assert x == :foo, "expected x to be foo"
+
+      assert match?({:ok, _}, x), "expected x to match {:ok, _}"
+
   """
   def assert(value, message) when is_binary(message) do
     assert(value, message: message)
