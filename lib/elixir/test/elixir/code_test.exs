@@ -318,6 +318,28 @@ defmodule CodeTest do
       assert string_to_quoted.("~S'''\nsigil heredoc\n'''") == args
     end
 
+    test "sigil newlines" do
+      assert {:sigil_s, _, [{:<<>>, _, ["here\ndoc"]}, []]} =
+               Code.string_to_quoted!(~s|~s"here\ndoc"|)
+
+      assert {:sigil_s, _, [{:<<>>, _, ["here\r\ndoc"]}, []]} =
+               Code.string_to_quoted!(~s|~s"here\r\ndoc"|)
+    end
+
+    test "string newlines" do
+      assert Code.string_to_quoted!(~s|"here\ndoc"|) == "here\ndoc"
+      assert Code.string_to_quoted!(~s|"here\r\ndoc"|) == "here\r\ndoc"
+      assert Code.string_to_quoted!(~s|"here\\\ndoc"|) == "heredoc"
+      assert Code.string_to_quoted!(~s|"here\\\r\ndoc"|) == "heredoc"
+    end
+
+    test "heredoc newlines" do
+      assert Code.string_to_quoted!(~s|"""\nhere\ndoc\n"""|) == "here\ndoc\n"
+      assert Code.string_to_quoted!(~s|"""\r\nhere\r\ndoc\r\n"""|) == "here\r\ndoc\r\n"
+      assert Code.string_to_quoted!(~s|"""\nhere\\\ndoc\\\n"""|) == "heredoc"
+      assert Code.string_to_quoted!(~s|"""\r\nhere\\\r\ndoc\\\r\n"""|) == "heredoc"
+    end
+
     test "heredoc indentation" do
       meta = [delimiter: "'''", line: 1]
       args = {:sigil_S, meta, [{:<<>>, [indentation: 2, line: 1], ["  sigil heredoc\n"]}, []]}
