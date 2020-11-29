@@ -1080,6 +1080,7 @@ defmodule Module do
   @spec get_definition(module, definition) ::
           {:v1, def_kind, meta :: keyword,
            [{meta :: keyword, arguments :: [Macro.t()], guards :: [Macro.t()], Macro.t()}]}
+  @doc since: "1.12.0"
   def get_definition(module, {name, arity})
       when is_atom(module) and is_atom(name) and is_integer(arity) do
     assert_not_compiled!(__ENV__.function, module, "")
@@ -1100,6 +1101,7 @@ defmodule Module do
   It returns true if the definition exists and it was removed,
   otherwise it returns false.
   """
+  @doc since: "1.12.0"
   @spec delete_definition(module, definition) :: boolean()
   def delete_definition(module, {name, arity})
       when is_atom(module) and is_atom(name) and is_integer(arity) do
