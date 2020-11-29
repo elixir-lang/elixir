@@ -993,7 +993,7 @@ extract_heredoc_line(Marker, [$\\, Marker | T], Buffer) ->
 extract_heredoc_line(Marker, [Marker, Marker, Marker | _], _) ->
   {error, badterminator};
 extract_heredoc_line(_, "\r\n" ++ Rest, Buffer) ->
-  {ok, [$\n | Buffer], Rest};
+  {ok, [$\n, $\r | Buffer], Rest};
 extract_heredoc_line(_, "\n" ++ Rest, Buffer) ->
   {ok, [$\n | Buffer], Rest};
 extract_heredoc_line(Marker, [H | T], Buffer) ->
