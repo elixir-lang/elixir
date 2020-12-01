@@ -345,7 +345,6 @@ defmodule ExUnit.DiffTest do
 
     refute_diff([:a, :b] ++ [:c] = [:a, :b], "[:a, :b] ++ [-:c-]", "[:a, :b]")
     refute_diff([:a, :c] ++ [:b] = [:a, :b], "[:a, -:c-] ++ [:b]", "[:a, :b]")
-
     refute_diff([:a] ++ [:b] ++ [:c] = [:a, :b], "[:a] ++ [:b] ++ [-:c-]", "[:a, :b]")
 
     assert_diff([:a] ++ :b = [:a | :b], [])
@@ -353,8 +352,14 @@ defmodule ExUnit.DiffTest do
 
     refute_diff([:a, :b] ++ :c = [:a, :b, :c], "[:a, :b] ++ -:c-", "[:a, :b, +:c+]")
     refute_diff([:a] ++ [:b] ++ :c = [:a, :b, :c], "[:a] ++ [:b] ++ -:c-", "[:a, :b, +:c+]")
-
     refute_diff([:a] ++ [:b] = :a, "-[:a] ++ [:b]-", "+:a+")
+  end
+
+  @a [:a]
+  test "concat lists with module attributes" do
+    assert_diff(@a ++ [:b] = [:a, :b], [])
+    refute_diff(@a ++ [:b] = [:a], "[:a] ++ [-:b-]", "[:a]")
+    refute_diff(@a ++ [:b] = [:b], "[-:a-] ++ [:b]", "[:b]")
   end
 
   test "mixed lists" do

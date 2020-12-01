@@ -70,8 +70,14 @@ defmodule ExUnit.Diff do
     diff_quoted(number, right, env)
   end
 
-  defp diff_quoted({:++, _, _} = left, right, env) when is_list(right) do
-    diff_maybe_improper_list(left, right, env)
+  defp diff_quoted({:++, meta, [prefix, suffix]}, right, env) when is_list(right) do
+    case prefix do
+      {_, [expanded: expanded] ++ _, _} ->
+        diff_maybe_improper_list({:++, meta, [expanded, suffix]}, right, env)
+
+      _ ->
+        diff_maybe_improper_list({:++, meta, [prefix, suffix]}, right, env)
+    end
   end
 
   defp diff_quoted({:{}, _, left}, right, env) when is_tuple(right) do
