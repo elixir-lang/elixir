@@ -72,7 +72,8 @@ defmodule Mix.Tasks.Deps do
       other project that depends on the current project won't be forced to
       use the optional dependency. However, if the other project includes
       the optional dependency on its own, the requirements and options
-      specified here will also be applied.
+      specified here will also be applied. Optional dependencies will _not_
+      be started by the application.
 
     * `:only` - the dependency is made available only in the given environments,
       useful when declaring dev- or test-only dependencies; by default the
