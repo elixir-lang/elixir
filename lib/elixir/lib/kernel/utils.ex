@@ -267,7 +267,7 @@ defmodule Kernel.Utils do
                   {new_var, acc}
 
                 %{} ->
-                  generated = String.to_atom("arg" <> Integer.to_string(map_size(acc)))
+                  generated = String.to_atom("arg" <> Integer.to_string(map_size(acc) + 1))
                   new_var = Macro.var(generated, Elixir)
                   {new_var, Map.put(acc, pair, {new_var, var})}
               end
