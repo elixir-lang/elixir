@@ -1507,7 +1507,8 @@ defmodule Module do
           redefining @doc attribute previously set at line #{current_line}.
 
           Please remove the duplicate docs. If instead you want to override a \
-          previously defined @doc, attach the @doc attribute to a function head:
+          previously defined @doc, attach the @doc attribute to a function head \
+          (the function signature not followed by any do-block). For example:
 
               @doc """
               new docs
