@@ -162,7 +162,7 @@ defprotocol Enumerable do
   Otherwise it should return `{:error, __MODULE__}` and a default algorithm
   built on top of `reduce/3` that runs in linear time will be used.
 
-  When not called whithin guards, the [`in`](`in/2`) and [`not in`](`in/2`)
+  When called outside guards, the [`in`](`in/2`) and [`not in`](`in/2`)
   operators work by using this function.
   """
   @spec member?(t, term) :: {:ok, boolean} | {:error, module}
@@ -1681,7 +1681,7 @@ defmodule Enum do
       false
 
 
-  When not called whithin guards, the [`in`](`in/2`) and [`not in`](`in/2`)
+  When called outside guards, the [`in`](`in/2`) and [`not in`](`in/2`)
   operators work by using this function.
   """
   @spec member?(t, element) :: boolean
