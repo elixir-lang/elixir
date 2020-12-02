@@ -717,13 +717,13 @@ defmodule KernelTest do
 
       result = expand_to_string(quote(do: rand() in [1 | some_call()]))
       assert result =~ "var = rand()"
-      assert result =~ "{arg0} = {some_call()}"
-      assert result =~ ":erlang.orelse(:erlang.\"=:=\"(var, 1), :lists.member(var, arg0))"
+      assert result =~ "{arg1} = {some_call()}"
+      assert result =~ ":erlang.orelse(:erlang.\"=:=\"(var, 1), :lists.member(var, arg1))"
 
       result = expand_to_string(quote(do: rand() in [{1}, {2}, {3} | some_call()]))
       assert result =~ "var = rand()"
-      assert result =~ "{arg0, arg1, arg2, arg3} = {{1}, {2}, {3}, some_call()}"
-      assert result =~ ":erlang.orelse(:erlang.\"=:=\"(var, arg2), :lists.member(var, arg3)))"
+      assert result =~ "{arg1, arg2, arg3, arg4} = {{1}, {2}, {3}, some_call()}"
+      assert result =~ ":erlang.orelse(:erlang.\"=:=\"(var, arg3), :lists.member(var, arg4)))"
     end
 
     defp quote_case_in(left, right) do
@@ -742,7 +742,7 @@ defmodule KernelTest do
                """
 
       assert expand_to_string(quote(do: foo in [foo])) =~
-               ~r/{arg0} = {foo}\n\s+:erlang."=:="\(foo, arg0\)\n/
+               ~r/{arg1} = {foo}\n\s+:erlang."=:="\(foo, arg1\)\n/
 
       assert expand_to_string(quote(do: foo in 0..1)) ==
                ":erlang.andalso(:erlang.is_integer(foo), :erlang.andalso(:erlang.>=(foo, 0), :erlang.\"=<\"(foo, 1)))"
