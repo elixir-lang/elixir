@@ -51,7 +51,7 @@ defmodule Float do
 
   `base` must be a float and `exponent` can be any number.
   However, if a negative base and a fractional exponent
-  are given, it raises argument error.
+  are given, it raises `ArithmeticError`.
 
   It always returns a float. See `Integer.pow/2` for
   exponentiation that returns integers.
