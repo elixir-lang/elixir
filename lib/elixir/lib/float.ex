@@ -61,9 +61,9 @@ defmodule Float do
       iex> Float.pow(2.0, 0)
       1.0
       iex> Float.pow(2.0, 1)
-      2
+      2.0
       iex> Float.pow(2.0, 10)
-      1024
+      1024.0
       iex> Float.pow(2.0, -1)
       0.5
       iex> Float.pow(2.0, -3)
