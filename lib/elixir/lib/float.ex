@@ -78,6 +78,8 @@ defmodule Float do
       16.0
 
   """
+  @doc since: "1.12.0"
+  @spec pow(float, number) :: float
   def pow(base, exponent) when is_float(base) and is_number(exponent),
     do: :math.pow(base, exponent)
 

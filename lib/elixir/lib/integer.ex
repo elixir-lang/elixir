@@ -97,6 +97,8 @@ defmodule Integer do
       16
 
   """
+  @doc since: "1.12.0"
+  @spec pow(integer, non_neg_integer) :: integer
   def pow(base, exponent) when is_integer(base) and is_integer(exponent) and exponent >= 0 do
     guarded_pow(base, exponent)
   end
