@@ -73,9 +73,9 @@ defmodule Float do
       5.196152422706632
 
       iex> Float.pow(-2.0, 3)
-      -8
+      -8.0
       iex> Float.pow(-2.0, 4)
-      16
+      16.0
 
   """
   def pow(base, exponent) when is_float(base) and is_number(exponent),
