@@ -96,10 +96,14 @@ defmodule Integer do
       iex> Integer.pow(-2, 4)
       16
 
+      iex> Integer.pow(2, -2)
+      ** (ArithmeticError) bad argument in arithmetic expression
+
   """
   @doc since: "1.12.0"
   @spec pow(integer, non_neg_integer) :: integer
-  def pow(base, exponent) when is_integer(base) and is_integer(exponent) and exponent >= 0 do
+  def pow(base, exponent) when is_integer(base) and is_integer(exponent) do
+    if exponent < 0, do: :erlang.error(:badarith, [base, exponent])
     guarded_pow(base, exponent)
   end
 

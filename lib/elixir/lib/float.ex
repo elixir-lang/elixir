@@ -77,6 +77,9 @@ defmodule Float do
       iex> Float.pow(-2.0, 4)
       16.0
 
+      iex> Float.pow(-1.0, 0.5)
+      ** (ArithmeticError) bad argument in arithmetic expression
+
   """
   @doc since: "1.12.0"
   @spec pow(float, number) :: float
