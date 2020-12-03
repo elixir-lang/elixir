@@ -65,6 +65,49 @@ defmodule Integer do
   defguard is_even(integer) when is_integer(integer) and (integer &&& 1) == 0
 
   @doc """
+  Computes `base` raised to power of `exponent`.
+
+  Both `base` and `exponent` must be integers.
+  The exponent must be zero or positive.
+
+  See `Float.pow/2` for exponentiation of negative
+  exponents as well as floats.
+
+  ## Examples
+
+      iex> Integer.pow(2, 0)
+      1
+      iex> Integer.pow(2, 1)
+      2
+      iex> Integer.pow(2, 10)
+      1024
+      iex> Integer.pow(2, 11)
+      2048
+      iex> Integer.pow(2, 64)
+      0x10000000000000000
+
+      iex> Integer.pow(3, 4)
+      81
+      iex> Integer.pow(4, 3)
+      64
+
+      iex> Integer.pow(-2, 3)
+      -8
+      iex> Integer.pow(-2, 4)
+      16
+
+  """
+  def pow(base, exponent) when is_integer(base) and is_integer(exponent) and exponent >= 0 do
+    guarded_pow(base, exponent)
+  end
+
+  # https://en.wikipedia.org/wiki/Exponentiation_by_squaring
+  defp guarded_pow(_, 0), do: 1
+  defp guarded_pow(b, 1), do: b
+  defp guarded_pow(b, e) when (e &&& 1) == 0, do: guarded_pow(b * b, e >>> 1)
+  defp guarded_pow(b, e), do: b * guarded_pow(b * b, e >>> 1)
+
+  @doc """
   Computes the modulo remainder of an integer division.
 
   `Integer.mod/2` uses floored division, which means that

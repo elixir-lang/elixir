@@ -47,6 +47,41 @@ defmodule Float do
   @type precision_range :: 0..15
 
   @doc """
+  Computes `base` raised to power of `exponent`.
+
+  `base` must be a float and `exponent` can be any number.
+  However, if a negative base and a fractional exponent
+  are given, it raises argument error.
+
+  It always returns a float. See `Integer.pow/2` for
+  exponentiation that returns integers.
+
+  ## Examples
+
+      iex> Float.pow(2.0, 0)
+      1.0
+      iex> Float.pow(2.0, 1)
+      2
+      iex> Float.pow(2.0, 10)
+      1024
+      iex> Float.pow(2.0, -1)
+      0.5
+      iex> Float.pow(2.0, -3)
+      0.125
+
+      iex> Float.pow(3.0, 1.5)
+      5.196152422706632
+
+      iex> Float.pow(-2.0, 3)
+      -8
+      iex> Float.pow(-2.0, 4)
+      16
+
+  """
+  def pow(base, exponent) when is_float(base) and is_number(exponent),
+    do: :math.pow(base, exponent)
+
+  @doc """
   Parses a binary into a float.
 
   If successful, returns a tuple in the form of `{float, remainder_of_binary}`;
