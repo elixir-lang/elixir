@@ -635,12 +635,25 @@ defmodule Enum do
   This means that `count_until/2` may not iterate over each item until count
   is reached. To force enumeration, use `count_until/3`.
 
+  This is useful for checking certain properties of the count of an enumerable
+  without having to actually count the entire enumerable. For example, if you
+  wanted to check that the count was exactly, at least, or more than a value.
+
   ## Examples
 
       iex> Enum.count_until(1..20, 5)
       5
       iex> Enum.count_until(1..20, 50)
       20
+      iex> Enum.count_until(1..10, 10) == 10 # At least 10
+      true
+      iex> Enum.count_until(1..11, 10 + 1) > 10 # More than 10
+      true
+      iex> Enum.count_until(1..5, 10) < 10 # Less than 10
+      true
+      iex> Enum.count_until(1..10, 10 + 1) == 10 # Exactly ten
+      true
+
   """
   @doc since: "1.12.0"
   @spec count_until(t, pos_integer) :: integer
@@ -670,14 +683,16 @@ defmodule Enum do
   @doc """
   Counts the elements in the enumerable for which `fun` returns a truthy value, stopping at `limit`.
 
+  See `count/2` for more information.
+
   ## Examples
       iex> Enum.count_until(1..20, fn x -> rem(x, 2) == 0 end, 7)
       7
       iex> Enum.count_until(1..20, fn x -> rem(x, 2) == 0 end, 11)
       10
   """
- @doc since: "1.12.0"
- @spec count_until(t, (element -> as_boolean(term)), pos_integer) :: integer
+  @doc since: "1.12.0"
+  @spec count_until(t, (element -> as_boolean(term)), pos_integer) :: integer
   def count_until(enumerable, fun, limit) when is_integer(limit) and limit > 0 do
     stop_at = limit - 1
 
