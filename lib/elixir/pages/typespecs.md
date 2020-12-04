@@ -94,8 +94,8 @@ The following literals are also supported in typespecs:
           | 1                             # integer
           | 1..10                         # integer from 1 to 10
 
-                                          ## Lists
-          | [type]                        # list with any number of type elements
+                                          ## Proper lists
+          | [type]                        # proper list with any number of type elements
           | []                            # empty list
           | [...]                         # shorthand for nonempty_list(any())
           | [type, ...]                   # shorthand for nonempty_list(type)

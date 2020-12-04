@@ -1,6 +1,6 @@
 defmodule Keyword do
   @moduledoc """
-  A keyword list is a list that consists exclusively of two-element tuples.
+  A keyword list is a proper list that consists exclusively of two-element tuples.
 
   The first element of these tuples is known as the *key*, and it must be an atom.
   The second element, known as the *value*, can be any term.
