@@ -642,6 +642,8 @@ defmodule Enum do
       iex> Enum.count_until(1..20, 50)
       20
   """
+  @doc since: "1.12.0"
+  @spec count_until(t, pos_integer) :: integer
   def count_until(enumerable, limit) when is_integer(limit) and limit > 0 do
     stop_at = limit - 1
 
