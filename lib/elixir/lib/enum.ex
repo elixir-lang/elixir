@@ -656,7 +656,7 @@ defmodule Enum do
 
   """
   @doc since: "1.12.0"
-  @spec count_until(t, pos_integer) :: integer
+  @spec count_until(t, pos_integer) :: non_neg_integer
   def count_until(enumerable, limit) when is_integer(limit) and limit > 0 do
     stop_at = limit - 1
 
@@ -692,7 +692,7 @@ defmodule Enum do
       10
   """
   @doc since: "1.12.0"
-  @spec count_until(t, (element -> as_boolean(term)), pos_integer) :: integer
+  @spec count_until(t, (element -> as_boolean(term)), pos_integer) :: non_neg_integer
   def count_until(enumerable, fun, limit) when is_integer(limit) and limit > 0 do
     stop_at = limit - 1
 
