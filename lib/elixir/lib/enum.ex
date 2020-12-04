@@ -627,6 +627,74 @@ defmodule Enum do
   end
 
   @doc """
+  Counts the enumerable stopping at `limit`.
+
+
+  If the enumerable implements `c:Enumerable.count/1`, this optimization is
+  not discarded. We simply call it and return the lower of the two numbers.
+  This means that `count_until/2` may not iterate over each item until count
+  is reached. To force enumeration, use `count_until/3`.
+
+  ## Examples
+
+      iex> Enum.count_until(1..20, 5)
+      5
+      iex> Enum.count_until(1..20, 50)
+      20
+  """
+  def count_until(enumerable, limit) when is_integer(limit) and limit > 0 do
+    stop_at = limit - 1
+
+    case Enumerable.count(enumerable) do
+      {:ok, value} ->
+        Kernel.min(value, limit)
+
+      {:error, module} ->
+        enumerable
+        |> module.reduce(
+          {:cont, 0},
+          fn
+            _, ^stop_at ->
+              {:halt, limit}
+
+            _, acc ->
+              {:cont, acc + 1}
+          end
+        )
+        |> elem(1)
+    end
+  end
+
+  @doc """
+  Counts the elements in the enumerable for which `fun` returns a truthy value, stopping at `limit`.
+
+  ## Examples
+      iex> Enum.count_until(1..20, fn x -> rem(x, 2) == 0 end, 7)
+      7
+      iex> Enum.count_until(1..20, fn x -> rem(x, 2) == 0 end, 11)
+      10
+  """
+  def count_until(enumerable, fun, limit) when is_integer(limit) and limit > 0 do
+    stop_at = limit - 1
+
+    reduce_while(enumerable, 0, fn
+      entry, ^stop_at ->
+        if fun.(entry) do
+          {:halt, limit}
+        else
+          {:cont, stop_at}
+        end
+
+      entry, acc ->
+        if fun.(entry) do
+          {:cont, acc + 1}
+        else
+          {:cont, acc}
+        end
+    end)
+  end
+
+  @doc """
   Enumerates the `enumerable`, returning a list where all consecutive
   duplicated elements are collapsed to a single element.
 

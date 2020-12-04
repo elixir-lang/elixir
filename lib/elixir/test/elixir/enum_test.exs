@@ -150,6 +150,19 @@ defmodule EnumTest do
     assert Enum.count([1, true, false, nil], & &1) == 2
   end
 
+  test "count_until/2" do
+    assert Enum.count_until([1, 2, 3], 2) == 2
+    assert Enum.count_until([], 2) == 0
+    assert Enum.count_until([1, 2], 2) == 2
+  end
+
+  test "count_until/3" do
+    assert Enum.count_until([1, 2, 3, 4, 5, 6], fn x -> rem(x, 2) == 0 end, 2) == 2
+    assert Enum.count_until([1, 2], fn x -> rem(x, 2) == 0 end, 2) == 1
+    assert Enum.count_until([1, 2, 3, 4], fn x -> rem(x, 2) == 0 end, 2) == 2
+    assert Enum.count_until([], fn x -> rem(x, 2) == 0 end, 2) == 0
+  end
+
   test "dedup/1" do
     assert Enum.dedup([1, 1, 2, 1, 1, 2, 1]) == [1, 2, 1, 2, 1]
     assert Enum.dedup([2, 1, 1, 2, 1]) == [2, 1, 2, 1]
