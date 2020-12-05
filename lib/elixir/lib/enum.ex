@@ -630,14 +630,14 @@ defmodule Enum do
   Counts the enumerable stopping at `limit`.
 
 
-  If the enumerable implements `c:Enumerable.count/1`, this optimization is
-  not discarded. We simply call it and return the lower of the two numbers.
-  This means that `count_until/2` may not iterate over each item until count
-  is reached. To force enumeration, use `count_until/3`.
-
   This is useful for checking certain properties of the count of an enumerable
   without having to actually count the entire enumerable. For example, if you
   wanted to check that the count was exactly, at least, or more than a value.
+
+  If the enumerable implements `c:Enumerable.count/1`, the enumerable is
+  not traversed and we return the lower of the two numbers. To force
+  enumeration, use `count_until/3` with `fn _ -> true end` as the second
+  argument.
 
   ## Examples
 
@@ -683,9 +683,10 @@ defmodule Enum do
   @doc """
   Counts the elements in the enumerable for which `fun` returns a truthy value, stopping at `limit`.
 
-  See `count/2` for more information.
+  See `count/2` and `count_until/3` for more information.
 
   ## Examples
+
       iex> Enum.count_until(1..20, fn x -> rem(x, 2) == 0 end, 7)
       7
       iex> Enum.count_until(1..20, fn x -> rem(x, 2) == 0 end, 11)
@@ -696,7 +697,7 @@ defmodule Enum do
   def count_until(enumerable, fun, limit) when is_integer(limit) and limit > 0 do
     stop_at = limit - 1
 
-    reduce_while(enumerable, 0, fn
+    Enumerable.reduce(enumerable, {:cont, 0}, fn
       entry, ^stop_at ->
         if fun.(entry) do
           {:halt, limit}
@@ -711,6 +712,7 @@ defmodule Enum do
           {:cont, acc}
         end
     end)
+    |> elem(1)
   end
 
   @doc """
