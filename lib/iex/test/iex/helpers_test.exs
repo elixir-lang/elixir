@@ -382,6 +382,15 @@ defmodule IEx.HelpersTest do
       assert capture_io(fn -> h(def) end) =~ def_h
     end
 
+    test "indents after line break in long specs" do
+      spec =
+        "\n" <>
+          "  @spec ascii_printable?([...], limit) :: boolean()\n" <>
+          "          when limit: :infinity | pos_integer()\n"
+
+      assert capture_io(fn -> h(List.ascii_printable?() / 2) end) =~ spec
+    end
+
     test "prints __info__ documentation" do
       h_output_module = capture_io(fn -> h(Module.__info__()) end)
       assert capture_io(fn -> h(Module.UnlikelyTo.Exist.__info__()) end) == h_output_module

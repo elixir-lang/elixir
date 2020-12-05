@@ -735,9 +735,12 @@ defmodule IEx.Introspection do
     string = "@#{kind} #{Macro.to_string(definition)}"
 
     try do
+      whitespace = String.duplicate(" ", nesting)
+
       string
       |> Code.format_string!(line_length: IEx.width() - 2 * nesting)
       |> IO.iodata_to_binary()
+      |> String.replace("\n", "\n#{whitespace}")
     rescue
       _ -> string
     end
