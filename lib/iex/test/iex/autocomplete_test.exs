@@ -273,7 +273,10 @@ defmodule IEx.AutocompleteTest do
     functions_list = ['take/2', 'take_every/2', 'take_random/2', 'take_while/2']
     assert expand('take') == {:yes, '', functions_list}
 
-    assert expand('count') == {:yes, '', ['count/1', 'count/2', 'count_children/1']}
+    assert expand('count') ==
+             {:yes, '',
+              ['count/1', 'count/2', 'count_children/1', 'count_until/2', 'count_until/3']}
+
     assert expand('der') == {:yes, 'ive', []}
   end
 

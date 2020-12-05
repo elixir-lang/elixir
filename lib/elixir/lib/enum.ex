@@ -627,6 +627,95 @@ defmodule Enum do
   end
 
   @doc """
+  Counts the enumerable stopping at `limit`.
+
+
+  This is useful for checking certain properties of the count of an enumerable
+  without having to actually count the entire enumerable. For example, if you
+  wanted to check that the count was exactly, at least, or more than a value.
+
+  If the enumerable implements `c:Enumerable.count/1`, the enumerable is
+  not traversed and we return the lower of the two numbers. To force
+  enumeration, use `count_until/3` with `fn _ -> true end` as the second
+  argument.
+
+  ## Examples
+
+      iex> Enum.count_until(1..20, 5)
+      5
+      iex> Enum.count_until(1..20, 50)
+      20
+      iex> Enum.count_until(1..10, 10) == 10 # At least 10
+      true
+      iex> Enum.count_until(1..11, 10 + 1) > 10 # More than 10
+      true
+      iex> Enum.count_until(1..5, 10) < 10 # Less than 10
+      true
+      iex> Enum.count_until(1..10, 10 + 1) == 10 # Exactly ten
+      true
+
+  """
+  @doc since: "1.12.0"
+  @spec count_until(t, pos_integer) :: non_neg_integer
+  def count_until(enumerable, limit) when is_integer(limit) and limit > 0 do
+    stop_at = limit - 1
+
+    case Enumerable.count(enumerable) do
+      {:ok, value} ->
+        Kernel.min(value, limit)
+
+      {:error, module} ->
+        enumerable
+        |> module.reduce(
+          {:cont, 0},
+          fn
+            _, ^stop_at ->
+              {:halt, limit}
+
+            _, acc ->
+              {:cont, acc + 1}
+          end
+        )
+        |> elem(1)
+    end
+  end
+
+  @doc """
+  Counts the elements in the enumerable for which `fun` returns a truthy value, stopping at `limit`.
+
+  See `count/2` and `count_until/3` for more information.
+
+  ## Examples
+
+      iex> Enum.count_until(1..20, fn x -> rem(x, 2) == 0 end, 7)
+      7
+      iex> Enum.count_until(1..20, fn x -> rem(x, 2) == 0 end, 11)
+      10
+  """
+  @doc since: "1.12.0"
+  @spec count_until(t, (element -> as_boolean(term)), pos_integer) :: non_neg_integer
+  def count_until(enumerable, fun, limit) when is_integer(limit) and limit > 0 do
+    stop_at = limit - 1
+
+    Enumerable.reduce(enumerable, {:cont, 0}, fn
+      entry, ^stop_at ->
+        if fun.(entry) do
+          {:halt, limit}
+        else
+          {:cont, stop_at}
+        end
+
+      entry, acc ->
+        if fun.(entry) do
+          {:cont, acc + 1}
+        else
+          {:cont, acc}
+        end
+    end)
+    |> elem(1)
+  end
+
+  @doc """
   Enumerates the `enumerable`, returning a list where all consecutive
   duplicated elements are collapsed to a single element.
 
