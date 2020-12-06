@@ -12,11 +12,19 @@ defmodule Mix.State do
   def init() do
     %{
       shell: Mix.Shell.IO,
-      env: String.to_atom(System.get_env("MIX_ENV") || "dev"),
-      target: String.to_atom(System.get_env("MIX_TARGET") || "host"),
+      env: from_env("MIX_ENV", :dev),
+      target: from_env("MIX_TARGET", :host),
       scm: [Mix.SCM.Git, Mix.SCM.Path],
       cache: :ets.new(@name, [:public, :set, :named_table, read_concurrency: true])
     }
+  end
+
+  defp from_env(varname, default) do
+    case System.get_env(varname) do
+      nil -> default
+      "" -> default
+      value -> String.to_atom(value)
+    end
   end
 
   def fetch(key) do
