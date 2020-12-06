@@ -336,6 +336,8 @@ defmodule CodeTest do
     test "heredoc newlines" do
       assert Code.string_to_quoted!(~s|"""\nhere\ndoc\n"""|) == "here\ndoc\n"
       assert Code.string_to_quoted!(~s|"""\r\nhere\r\ndoc\r\n"""|) == "here\r\ndoc\r\n"
+      assert Code.string_to_quoted!(~s|  """\n  here\n  doc\n  """|) == "here\ndoc\n"
+      assert Code.string_to_quoted!(~s|  """\r\n  here\r\n  doc\r\n  """|) == "here\r\ndoc\r\n"
       assert Code.string_to_quoted!(~s|"""\nhere\\\ndoc\\\n"""|) == "heredoc"
       assert Code.string_to_quoted!(~s|"""\r\nhere\\\r\ndoc\\\r\n"""|) == "heredoc"
     end

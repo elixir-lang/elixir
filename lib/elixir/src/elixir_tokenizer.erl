@@ -954,6 +954,7 @@ trim_spaces([], Acc, _Spaces, Warned) ->
   {Acc, Warned}.
 
 trim_space(Rest, 0) -> {Rest, false};
+trim_space([$\r,$\n], _) -> {[$\r,$\n], false};
 trim_space([$\n], _) -> {[$\n], false};
 trim_space([H | T], Spaces) when ?is_horizontal_space(H) -> trim_space(T, Spaces - 1);
 trim_space(Rest, _Spaces) -> {Rest, true}.
