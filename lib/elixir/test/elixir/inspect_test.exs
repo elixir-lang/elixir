@@ -315,6 +315,16 @@ defmodule Inspect.ListTest do
     assert inspect([0], charlists: :as_lists) == "[0]"
   end
 
+  test "opt as tuples" do
+    assert inspect([a: 1], keywords: :as_tuples) == "[{:a, 1}]"
+    assert inspect([a: 1, b: 2], keywords: :as_tuples) == "[{:a, 1}, {:b, 2}]"
+    assert inspect([a: 1, a: 2, b: 2], keywords: :as_tuples) == "[{:a, 1}, {:a, 2}, {:b, 2}]"
+    assert inspect(["123": 1], keywords: :as_tuples) == ~s([{:"123", 1}])
+
+    assert inspect([foo: [1, 2, 3], baz: [4, 5, 6]], keywords: :as_tuples, pretty: true, width: 20) ==
+             "[\n  {:foo, [1, 2, 3]},\n  {:baz, [4, 5, 6]}\n]"
+  end
+
   test "non printable" do
     assert inspect([{:b, 1}, {:a, 1}]) == "[b: 1, a: 1]"
   end

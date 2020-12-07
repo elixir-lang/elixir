@@ -175,6 +175,7 @@ defimpl Inspect, for: List do
     %Inspect.Opts{
       charlists: lists,
       char_lists: lists_deprecated,
+      keywords: keywords,
       printable_limit: printable_limit
     } = opts
 
@@ -213,7 +214,13 @@ defimpl Inspect, for: List do
         IO.iodata_to_binary(inspected)
 
       keyword?(term) ->
-        container_doc(open, term, close, opts, &keyword/2, separator: sep, break: :strict)
+        case keywords do
+          :as_keywords ->
+            container_doc(open, term, close, opts, &keyword/2, separator: sep, break: :strict)
+
+          :as_tuples ->
+            container_doc(open, term, close, opts, &to_doc/2, separator: sep, break: :strict)
+        end
 
       true ->
         container_doc(open, term, close, opts, &to_doc/2, separator: sep)

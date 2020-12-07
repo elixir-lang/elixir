@@ -34,6 +34,10 @@ defmodule Inspect.Opts do
     * `:inspect_fun` (since v1.9.0) - a function to build algebra documents.
       Defaults to `Inspect.inspect/2`.
 
+    * `:keywords` TODO: (since vx.x.x) - when `:as_keywords` all keyword lists are
+      printed in Elixir's syntax sugar [key: :value],  when `:as_tuples` all keyword
+      lists are printed in two-element tuples [{:key, :value}].
+
     * `:limit` - limits the number of items that are inspected for tuples,
       bitstrings, maps, lists and any other collection of items, with the exception of
       printable strings and printable charlists which use the `:printable_limit` option.
@@ -79,6 +83,7 @@ defmodule Inspect.Opts do
             charlists: :infer,
             custom_options: [],
             inspect_fun: &Inspect.inspect/2,
+            keywords: :as_keywords,
             limit: 50,
             pretty: false,
             printable_limit: 4096,
@@ -97,6 +102,7 @@ defmodule Inspect.Opts do
           charlists: :infer | :as_lists | :as_charlists,
           custom_options: keyword,
           inspect_fun: (any, t -> Inspect.Algebra.t()),
+          keywords: :as_keywords | :as_tuples,
           limit: non_neg_integer | :infinity,
           pretty: boolean,
           printable_limit: non_neg_integer | :infinity,
