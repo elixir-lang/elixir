@@ -198,6 +198,30 @@ defmodule Mix.CLITest do
     System.delete_env("MIX_EXS")
   end
 
+  test "env config and target use defaults when empty", %{tmp_dir: tmp_dir} do
+    File.cd!(tmp_dir, fn ->
+      File.write!("custom.exs", """
+      defmodule P do
+        use Mix.Project
+        def project, do: [app: :p, version: "0.1.0"]
+      end
+      """)
+
+      System.put_env("MIX_ENV", "")
+      System.put_env("MIX_TARGET", "")
+      System.put_env("MIX_EXS", "custom.exs")
+
+      output =
+        mix(["run", "-e", "IO.inspect {Mix.env(), Mix.target(), System.argv()}", "--", "a", "b"])
+
+      assert output =~ ~s({:dev, :host, ["a", "b"]})
+    end)
+  after
+    System.delete_env("MIX_ENV")
+    System.delete_env("MIX_TARGET")
+    System.delete_env("MIX_EXS")
+  end
+
   @tag tmp_dir: "new_with_tests"
   test "new with tests and cover", %{tmp_dir: tmp_dir} do
     File.cd!(tmp_dir, fn ->
