@@ -144,7 +144,7 @@ defprotocol Enumerable do
   Retrieves the number of elements in the `enumerable`.
 
   It should return `{:ok, count}` if you can count the number of elements
-  in the `enumerable`.
+  in `enumerable` without traversing it.
 
   Otherwise it should return `{:error, __MODULE__}` and a default algorithm
   built on top of `reduce/3` that runs in linear time will be used.
@@ -156,8 +156,8 @@ defprotocol Enumerable do
   Checks if an `element` exists within the `enumerable`.
 
   It should return `{:ok, boolean}` if you can check the membership of a
-  given element in the `enumerable` with `===/2` without traversing the whole
-  enumerable.
+  given element in `enumerable` with `===/2` without traversing the whole
+  of it.
 
   Otherwise it should return `{:error, __MODULE__}` and a default algorithm
   built on top of `reduce/3` that runs in linear time will be used.
