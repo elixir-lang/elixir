@@ -50,7 +50,7 @@ defmodule EEx.SmartEngineTest do
     assert stderr == ""
   end
 
-  test "show warning when opens a block and then does an assignment" do 
+  test "show warning when opens a block and then does an assignment" do
     stderr =
       ExUnit.CaptureIO.capture_io(:stderr, fn ->
         assert_eval("Foo", ~s/<%if true do %>Foo<% else %>Bar<% end %><% a = "Foo" %><%= a %>/)

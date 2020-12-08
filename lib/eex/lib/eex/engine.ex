@@ -221,7 +221,9 @@ defmodule EEx.Engine do
   end
 
   defp check_for_blocks(ast) do
-    Macro.traverse(ast, %{inside_assign: false, block_count: 0},
+    Macro.traverse(
+      ast,
+      %{inside_assign: false, block_count: 0},
       fn
         {:__block__, _, _} = ast, %{inside_assign: false} = acc ->
           {ast, %{acc | block_count: acc.block_count + 1}}

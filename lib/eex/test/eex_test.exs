@@ -275,8 +275,8 @@ defmodule EExTest do
     end
 
     test "when nested end expression is found without a start expression" do
-      assert_raise EEx.SyntaxError, "nofile:1:30: unexpected end of expression <% end %>", fn ->
-        EEx.compile_string("foo <% if true do %><% end %><% end %>")
+      assert_raise EEx.SyntaxError, "nofile:1:31: unexpected end of expression <% end %>", fn ->
+        EEx.compile_string("foo <%= if true do %><% end %><% end %>")
       end
     end
 
@@ -524,7 +524,7 @@ defmodule EExTest do
        <% "a" in y -> %>
         Good
        <% true -> %>
-        <% if true do %>true<% else %>false<% end %>
+        <%= if true do %>true<% else %>false<% end %>
         Bad
       <% end %>
       """
@@ -578,7 +578,10 @@ defmodule EExTest do
       <%= 789 %>
       """
 
-      assert_eval("123\n\n789\n", string)
+      # supressing the warning emitted due to the unused buffer
+      ExUnit.CaptureIO.capture_io(:stderr, fn ->
+        assert_eval("123\n\n789\n", string)
+      end)
     end
 
     test "inside comprehensions" do
