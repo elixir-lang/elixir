@@ -66,7 +66,7 @@ defprotocol Enumerable do
 
   Returns the accumulator for the next enumeration step.
   """
-  @type reducer :: (term, term -> acc)
+  @type reducer :: (element :: term, current_acc :: acc -> updated_acc :: acc)
 
   @typedoc """
   The result of the reduce operation.
