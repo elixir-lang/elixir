@@ -1192,7 +1192,7 @@ defmodule Kernel.ErrorsTest do
     rescue
       ArgumentError ->
         assert [
-                 {:erlang, :apply, [1, :foo, []], []},
+                 {:erlang, :apply, [1, :foo, []], _},
                  {__MODULE__, :bad_remote_call, 1, [file: _, line: _]} | _
                ] = __STACKTRACE__
     end
