@@ -182,6 +182,13 @@ defmodule RegexTest do
     assert Regex.run(~r"e", "abcd", return: :index) == nil
   end
 
+  test "run/3 with :offset" do
+    assert Regex.run(~r"^foo", "foobar", offset: 0) == ["foo"]
+    assert Regex.run(~r"^foo", "foobar", offset: 2) == nil
+    assert Regex.run(~r"^foo", "foobar", offset: 2, return: :index) == nil
+    assert Regex.run(~r"bar", "foobar", offset: 2, return: :index) == [{3, 3}]
+  end
+
   test "run/3 with regexes compiled in different systems" do
     assert Regex.run(@re_21_3_little, "abcd abce", capture: :all_names) == ["d"]
     assert Regex.run(@re_21_3_big, "abcd abce", capture: :all_names) == ["d"]
@@ -203,6 +210,11 @@ defmodule RegexTest do
     assert Regex.scan(~r/c(?<foo>d)/, "abcd", capture: :all_names) == [["d"]]
     assert Regex.scan(~r/c(?<foo>d)/, "no_match", capture: :all_names) == []
     assert Regex.scan(~r/c(?<foo>d|e)/, "abcd abce", capture: :all_names) == [["d"], ["e"]]
+  end
+
+  test "scan/2 with :offset" do
+    assert Regex.scan(~r"^foo", "foobar", offset: 0) == [["foo"]]
+    assert Regex.scan(~r"^foo", "foobar", offset: 1) == []
   end
 
   test "scan/2 with regexes compiled in different systems" do
