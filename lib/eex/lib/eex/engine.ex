@@ -202,6 +202,9 @@ defmodule EEx.Engine do
 
   def handle_expr(state, "", ast) do
     %{dynamic: dynamic} = state
+
+    check_for_blocks(ast)
+
     %{state | dynamic: [ast | dynamic]}
   end
 
@@ -215,5 +218,31 @@ defmodule EEx.Engine do
   defp check_state!(state) do
     raise "unexpected EEx.Engine state: #{inspect(state)}. " <>
             "This typically means a bug or an outdated EEx.Engine or tool"
+  end
+
+  defp check_for_blocks(ast) do
+    Macro.traverse(ast, %{inside_assign: false, block_count: 0},
+      fn
+        {:__block__, _, _} = ast, %{inside_assign: false} = acc ->
+          {ast, %{acc | block_count: acc.block_count + 1}}
+
+        {:=, _, _} = ast, acc ->
+          {ast, %{acc | inside_assign: true}}
+
+        ast, acc ->
+          {ast, acc}
+      end,
+      fn ast, acc -> {ast, acc} end
+    )
+    |> case do
+      {_ast, %{block_count: block_count}} when block_count > 0 ->
+        line = ast |> elem(1) |> Keyword.get(:line)
+
+        IO.warn("the tag started at #{line} contains blocks. If you are using blocks,
+          you probably need to open the tag with <%= instead of <%")
+
+      _ ->
+        :ok
+    end
   end
 end
