@@ -137,7 +137,7 @@ defmodule Tuple do
       iex> Tuple.product(tuple)
       65025
   """
-  @since 1.12.0
+  @since "1.12.0"
   @spec product(tuple) :: integer()
   def product(tuple), do: product(tuple, tuple_size(tuple) - 1)
 
