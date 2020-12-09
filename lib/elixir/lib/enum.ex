@@ -3232,7 +3232,7 @@ defmodule Enum do
   zero.
 
   If a `function` is given, it will index by invoking the function for each 
-  element and index of the enumerable.
+  element and index (zero-based) of the enumerable.
 
   ## Examples
 
@@ -3244,6 +3244,7 @@ defmodule Enum do
 
       iex> Enum.with_index([:a, :b, :c], fn element, index -> {index, element} end)
       [{0, :a}, {1, :b}, {2, :c}]
+
   """
   @spec with_index(t, integer) :: [{term, integer}]
   @spec with_index(t, (element, index -> value)) :: [value] when value: any
