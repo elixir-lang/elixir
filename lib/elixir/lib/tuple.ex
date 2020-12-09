@@ -138,7 +138,7 @@ defmodule Tuple do
       65025
   """
   @doc since: "1.12.0"
-  @spec product(tuple) :: integer()
+  @spec product(tuple) :: number()
   def product(tuple), do: product(tuple, tuple_size(tuple) - 1)
 
   defp product(tuple, 0), do: elem(tuple, 0)
