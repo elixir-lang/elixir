@@ -296,7 +296,7 @@ defmodule Regex do
       Defaults to `:binary`.
     * `:capture` - what to capture in the result. Check the moduledoc for `Regex`
       to see the possible capture values.
-    * `:offset` - specifies the starting offset to match in the given string.
+    * `:offset` - (since v1.12.0) specifies the starting offset to match in the given string.
       Defaults to zero.
 
   ## Examples
@@ -428,7 +428,7 @@ defmodule Regex do
       Defaults to `:binary`.
     * `:capture` - what to capture in the result. Check the moduledoc for `Regex`
       to see the possible capture values.
-    * `:offset` - specifies the starting offset to match in the given string.
+    * `:offset` - (since v1.12.0) specifies the starting offset to match in the given string.
       Defaults to zero.
 
   ## Examples
