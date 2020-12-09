@@ -129,6 +129,21 @@ defmodule Tuple do
   end
 
   @doc """
+  Computes a product of tuple elements.
+
+  ## Examples
+
+      iex> tuple = {255, 255}
+      iex> Tuple.product(tuple)
+      65025
+  """
+  @spec product(tuple) :: integer()
+  def product(tuple), do: product(tuple, tuple_size(tuple) - 1)
+
+  defp product(tuple, 0), do: elem(tuple, 0)
+  defp product(tuple, index), do: elem(tuple, index) * product(tuple, index - 1)
+
+  @doc """
   Converts a tuple to a list.
 
   Returns a new list with all the tuple elements.
