@@ -1010,6 +1010,27 @@ defmodule EnumTest do
     end
   end
 
+  test "product/1" do
+    assert Enum.product([]) == 1
+    assert Enum.product([1]) == 1
+    assert Enum.product([1, 2, 3, 4, 5]) == 120
+    assert Enum.product([1, -2, 3, 4, 5]) == -120
+    assert Enum.product(1..5) == 120
+    assert Enum.product(11..-17) == Enum.product(-17..11)
+
+    assert_raise ArithmeticError, fn ->
+      Enum.product([{}])
+    end
+
+    assert_raise ArithmeticError, fn ->
+      Enum.product([1, {}])
+    end
+
+    assert_raise ArithmeticError, fn ->
+      Enum.product(%{a: 1, b: 2})
+    end
+  end
+
   test "take/2" do
     assert Enum.take([1, 2, 3], 0) == []
     assert Enum.take([1, 2, 3], 1) == [1]

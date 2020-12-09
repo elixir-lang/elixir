@@ -2907,6 +2907,23 @@ defmodule Enum do
   end
 
   @doc """
+  Returns the product of all elements.
+
+  Raises `ArithmeticError` if `enumerable` contains a non-numeric value.
+
+  ## Examples
+
+      iex> Enum.product([2, 3, 4])
+      24
+
+  """
+  @doc since: "1.12.0"
+  @spec product(t) :: number
+  def product(enumerable) do
+    reduce(enumerable, 1, &*/2)
+  end
+
+  @doc """
   Takes an `amount` of elements from the beginning or the end of the `enumerable`.
 
   If a positive `amount` is given, it takes the `amount` elements from the
