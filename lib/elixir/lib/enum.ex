@@ -3226,7 +3226,7 @@ defmodule Enum do
   Returns the `enumerable` with each element wrapped in a tuple
   alongside its index.
 
-  May receive a function or an offset.
+  May receive a function or an integer offset.
 
   If an `offset` is given, it will index from the given offset instead of from
   zero.
@@ -3245,7 +3245,8 @@ defmodule Enum do
       iex> Enum.with_index([:a, :b, :c], fn element, index -> {index, element} end)
       [{0, :a}, {1, :b}, {2, :c}]
   """
-  @spec with_index(t, integer | (element, index -> any)) :: list
+  @spec with_index(t, integer) :: [{term, integer}]
+  @spec with_index(t, (element, index -> value)) :: [value] when value: any
   def with_index(enumerable, fun_or_offset \\ 0)
 
   def with_index(enumerable, offset) when is_integer(offset) do
@@ -3254,7 +3255,7 @@ defmodule Enum do
     |> elem(0)
   end
 
-  def with_index(enumerable, fun) when is_function(fun) do
+  def with_index(enumerable, fun) when is_function(fun, 2) do
     enumerable
     |> map_reduce(0, fn x, i -> {fun.(x, i), i + 1} end)
     |> elem(0)
