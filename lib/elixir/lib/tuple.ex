@@ -137,7 +137,7 @@ defmodule Tuple do
       iex> Tuple.product(tuple)
       65025
       iex> Tuple.product({})
-      0
+      1
   """
   @doc since: "1.12.0"
   @spec product(tuple) :: number()
