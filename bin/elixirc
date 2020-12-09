@@ -12,6 +12,7 @@ Usage: $(basename "$0") [elixir switches] [compiler switches] [.ex files]
   --ignore-module-conflict  Does not emit warnings if a module was previously defined
   --no-debug-info           Does not attach debug info to compiled modules
   --no-docs                 Does not attach documentation to compiled modules
+  --profile time            Profile the time to compile modules
   --verbose                 Prints compilation status
   --warnings-as-errors      Treats warnings as errors and return non-zero exit code
 
