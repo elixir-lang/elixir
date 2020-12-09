@@ -3226,7 +3226,7 @@ defmodule Enum do
   Returns the `enumerable` with each element wrapped in a tuple
   alongside its index.
 
-  May receive a function or an offset.
+  May receive a function or an integer offset.
 
   If an `offset` is given, it will index from the given offset instead of from
   zero.
