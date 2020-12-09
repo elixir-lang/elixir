@@ -141,11 +141,10 @@ defmodule Tuple do
   """
   @doc since: "1.12.0"
   @spec sum(tuple) :: integer()
-  def sum({}), do: 0
-  def sum(tuple), do: sum(tuple, tuple_size(tuple) - 1)
+  def sum(tuple), do: sum(tuple, tuple_size(tuple))
 
-  defp sum(tuple, 0), do: elem(tuple, 0)
-  defp sum(tuple, index), do: elem(tuple, index) + sum(tuple, index - 1)
+  defp sum(_tuple, 0), do: 0
+  defp sum(tuple, index), do: :erlang.element(index, tuple) + sum(tuple, index - 1)
 
   @doc """
   Converts a tuple to a list.
