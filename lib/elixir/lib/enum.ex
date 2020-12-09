@@ -3245,7 +3245,8 @@ defmodule Enum do
       iex> Enum.with_index([:a, :b, :c], fn element, index -> {index, element} end)
       [{0, :a}, {1, :b}, {2, :c}]
   """
-  @spec with_index(t, integer | (element, index -> any)) :: list
+  @spec with_index(t, integer) :: [{term, integer}]
+  @spec with_index(t, (element, index -> value)) :: [value] when value: any
   def with_index(enumerable, fun_or_offset \\ 0)
 
   def with_index(enumerable, offset) when is_integer(offset) do
