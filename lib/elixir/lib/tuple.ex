@@ -136,9 +136,12 @@ defmodule Tuple do
       iex> tuple = {255, 255}
       iex> Tuple.product(tuple)
       65025
+      iex> Tuple.product({})
+      0
   """
   @doc since: "1.12.0"
   @spec product(tuple) :: number()
+  def product({}), do: 0
   def product(tuple), do: product(tuple, tuple_size(tuple) - 1)
 
   defp product(tuple, 0), do: elem(tuple, 0)
