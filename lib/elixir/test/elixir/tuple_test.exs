@@ -62,4 +62,11 @@ defmodule TupleTest do
     mod = Tuple
     assert mod.delete_at({:foo, :bar, :baz}, 0) == {:bar, :baz}
   end
+
+  test "sum/1" do
+    assert Tuple.sum({255, 255}) == 510
+
+    mod = Tuple
+    assert mod.sum({255, 255}) == 510
+  end
 end

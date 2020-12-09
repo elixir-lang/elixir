@@ -129,6 +129,22 @@ defmodule Tuple do
   end
 
   @doc """
+  Computes a sum of tuple elements.
+
+  ## Examples
+
+      iex> tuple = {255, 255}
+      iex> Tuple.sum(tuple)
+      510
+  """
+  @doc since: "1.12.0"
+  @spec sum(tuple) :: integer()
+  def sum(tuple), do: sum(tuple, tuple_size(tuple) - 1)
+
+  defp sum(tuple, 0), do: elem(tuple, 0)
+  defp sum(tuple, index), do: elem(tuple, index) + sum(tuple, index - 1)
+
+  @doc """
   Converts a tuple to a list.
 
   Returns a new list with all the tuple elements.
