@@ -3226,7 +3226,13 @@ defmodule Enum do
   Returns the `enumerable` with each element wrapped in a tuple
   alongside its index.
 
-  If an `offset` is given, we will index from the given offset instead of from zero.
+  May receive a function or an integer offset.
+
+  If an `offset` is given, it will index from the given offset instead of from
+  zero.
+
+  If a `function` is given, it will index by invoking the function for each 
+  element and index of the enumerable.
 
   ## Examples
 
@@ -3236,21 +3242,23 @@ defmodule Enum do
       iex> Enum.with_index([:a, :b, :c], 3)
       [a: 3, b: 4, c: 5]
 
+      iex> Enum.with_index([:a, :b, :c], fn element, index -> {index, element} end)
+      [{0, :a}, {1, :b}, {2, :c}]
   """
-  @spec with_index(t, integer) :: [{element, index}]
-  def with_index(enumerable, offset \\ 0) do
+  @spec with_index(t, integer) :: [{term, integer}]
+  @spec with_index(t, (element, index -> value)) :: [value] when value: any
+  def with_index(enumerable, fun_or_offset \\ 0)
+
+  def with_index(enumerable, offset) when is_integer(offset) do
     enumerable
-    |> to_list()
-    |> do_with_index(offset)
+    |> map_reduce(offset, fn x, i -> {{x, i}, i + 1} end)
+    |> elem(0)
   end
 
-  @spec do_with_index(list, integer) :: [{element, index}]
-  defp do_with_index([], _) do
-    []
-  end
-
-  defp do_with_index([head | tail], index) do
-    [{head, index} | do_with_index(tail, index + 1)]
+  def with_index(enumerable, fun) when is_function(fun, 2) do
+    enumerable
+    |> map_reduce(0, fn x, i -> {fun.(x, i), i + 1} end)
+    |> elem(0)
   end
 
   @doc """
