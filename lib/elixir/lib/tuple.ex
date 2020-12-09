@@ -135,6 +135,8 @@ defmodule Tuple do
 
       iex> Tuple.sum({255, 255})
       510
+      iex> Tuple.sum({255, 0.0})
+      255.0
       iex> Tuple.sum({})
       0
   """
@@ -152,6 +154,8 @@ defmodule Tuple do
 
       iex> Tuple.product({255, 255})
       65025
+      iex> Tuple.product({255, 1.0})
+      255.0
       iex> Tuple.product({})
       1
   """
