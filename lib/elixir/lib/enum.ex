@@ -3254,7 +3254,7 @@ defmodule Enum do
     |> do_with_index(offset, fn element, index -> {element, index} end)
   end
 
-  def with_index(enumerable, fun) when is_function(fun) do
+  def with_index(enumerable, fun) when is_function(fun, 2) do
     enumerable
     |> to_list()
     |> do_with_index(0, fun)
