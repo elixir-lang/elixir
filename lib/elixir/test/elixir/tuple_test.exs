@@ -62,11 +62,4 @@ defmodule TupleTest do
     mod = Tuple
     assert mod.delete_at({:foo, :bar, :baz}, 0) == {:bar, :baz}
   end
-
-  test "product/1" do
-    assert Tuple.product({255, 255}) == 65025
-
-    mod = Tuple
-    assert mod.product({255, 255}) == 65025
-  end
 end
