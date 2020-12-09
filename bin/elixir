@@ -70,7 +70,7 @@ readlink_f () {
 ERL=""
 
 # Stores erl arguments preserving spaces/quotes (mimics an array)
-erl () {
+erl_set () {
   eval "E${E}=\$1"
   E=$((E + 1))
 }
@@ -137,34 +137,34 @@ while [ $I -le $LENGTH ]; do
         ;;
     --cookie)
         S=2
-        erl "-setcookie"
-        erl "$2"
+        erl_set "-setcookie"
+        erl_set "$2"
         ;;
     --sname|--name)
         S=2
-        erl "$(echo "$1" | cut -c 2-)"
-        erl "$2"
+        erl_set "$(echo "$1" | cut -c 2-)"
+        erl_set "$2"
         ;;
     --erl-config)
         S=2
-        erl "-config"
-        erl "$2"
+        erl_set "-config"
+        erl_set "$2"
         ;;
     --vm-args)
         S=2
-        erl "-args_file"
-        erl "$2"
+        erl_set "-args_file"
+        erl_set "$2"
         ;;
     --boot)
         S=2
-        erl "-boot"
-        erl "$2"
+        erl_set "-boot"
+        erl_set "$2"
         ;;
     --boot-var)
         S=3
-        erl "-boot_var"
-        erl "$2"
-        erl "$3"
+        erl_set "-boot_var"
+        erl_set "$2"
+        erl_set "$3"
         ;;
     --pipe-to)
         S=3
