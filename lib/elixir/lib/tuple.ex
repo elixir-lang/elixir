@@ -129,6 +129,22 @@ defmodule Tuple do
   end
 
   @doc """
+  Computes a sum of tuple elements.
+  ## Examples
+      iex> tuple = {255, 255}
+      iex> Tuple.sum(tuple)
+      510
+      iex> Tuple.sum({})
+      0
+  """
+  @doc since: "1.12.0"
+  @spec sum(tuple) :: integer()
+  def sum(tuple), do: sum(tuple, tuple_size(tuple))
+
+  defp sum(_tuple, 0), do: 0
+  defp sum(tuple, index), do: :erlang.element(index, tuple) + sum(tuple, index - 1)
+
+  @doc """
   Computes a product of tuple elements.
 
   ## Examples
