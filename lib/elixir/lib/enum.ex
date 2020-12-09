@@ -3250,23 +3250,14 @@ defmodule Enum do
 
   def with_index(enumerable, offset) when is_integer(offset) do
     enumerable
-    |> to_list()
-    |> do_with_index(offset, fn element, index -> {element, index} end)
+    |> map_reduce(offset, fn x, i -> {{x, i}, i + 1} end)
+    |> elem(0)
   end
 
   def with_index(enumerable, fun) when is_function(fun) do
     enumerable
-    |> to_list()
-    |> do_with_index(0, fun)
-  end
-
-  @spec do_with_index(list, integer, function) :: list
-  defp do_with_index([], _offset, _fun) do
-    []
-  end
-
-  defp do_with_index([head | tail], index, fun) do
-    [fun.(head, index) | do_with_index(tail, index + 1, fun)]
+    |> map_reduce(0, fn x, i -> {fun.(x, i), i + 1} end)
+    |> elem(0)
   end
 
   @doc """
