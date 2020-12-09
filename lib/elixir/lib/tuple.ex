@@ -130,15 +130,18 @@ defmodule Tuple do
 
   @doc """
   Computes a sum of tuple elements.
+
   ## Examples
-      iex> tuple = {255, 255}
-      iex> Tuple.sum(tuple)
+
+      iex> Tuple.sum({255, 255})
       510
+      iex> Tuple.sum({255, 0.0})
+      255.0
       iex> Tuple.sum({})
       0
   """
   @doc since: "1.12.0"
-  @spec sum(tuple) :: integer()
+  @spec sum(tuple) :: number()
   def sum(tuple), do: sum(tuple, tuple_size(tuple))
 
   defp sum(_tuple, 0), do: 0
@@ -149,9 +152,10 @@ defmodule Tuple do
 
   ## Examples
 
-      iex> tuple = {255, 255}
-      iex> Tuple.product(tuple)
+      iex> Tuple.product({255, 255})
       65025
+      iex> Tuple.product({255, 1.0})
+      255.0
       iex> Tuple.product({})
       1
   """
