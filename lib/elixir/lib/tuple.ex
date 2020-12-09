@@ -141,11 +141,10 @@ defmodule Tuple do
   """
   @doc since: "1.12.0"
   @spec product(tuple) :: number()
-  def product({}), do: 0
-  def product(tuple), do: product(tuple, tuple_size(tuple) - 1)
+  def product(tuple), do: product(tuple, tuple_size(tuple))
 
-  defp product(tuple, 0), do: elem(tuple, 0)
-  defp product(tuple, index), do: elem(tuple, index) * product(tuple, index - 1)
+  defp product(_tuple, 0), do: 1
+  defp product(tuple, index), do: :erlang.element(index, tuple) * product(tuple, index - 1)
 
   @doc """
   Converts a tuple to a list.
