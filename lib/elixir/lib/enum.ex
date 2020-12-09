@@ -2913,8 +2913,12 @@ defmodule Enum do
 
   ## Examples
 
+      iex> Enum.product([])
+      1
       iex> Enum.product([2, 3, 4])
       24
+      iex> Enum.product([2.0, 3.0, 4.0])
+      24.0
 
   """
   @doc since: "1.12.0"
