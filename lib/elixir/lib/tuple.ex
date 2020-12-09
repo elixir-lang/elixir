@@ -136,9 +136,12 @@ defmodule Tuple do
       iex> tuple = {255, 255}
       iex> Tuple.sum(tuple)
       510
+      iex> Tuple.sum({})
+      0
   """
   @doc since: "1.12.0"
   @spec sum(tuple) :: integer()
+  def sum({}), do: 0
   def sum(tuple), do: sum(tuple, tuple_size(tuple) - 1)
 
   defp sum(tuple, 0), do: elem(tuple, 0)
