@@ -296,6 +296,8 @@ defmodule Regex do
       Defaults to `:binary`.
     * `:capture` - what to capture in the result. Check the moduledoc for `Regex`
       to see the possible capture values.
+    * `:offset` - (since v1.12.0) specifies the starting offset to match in the given string.
+      Defaults to zero.
 
   ## Examples
 
@@ -315,8 +317,9 @@ defmodule Regex do
   def run(%Regex{} = regex, string, options) when is_binary(string) do
     return = Keyword.get(options, :return, :binary)
     captures = Keyword.get(options, :capture, :all)
+    offset = Keyword.get(options, :offset, 0)
 
-    case safe_run(regex, string, [{:capture, captures, return}]) do
+    case safe_run(regex, string, [{:capture, captures, return}, {:offset, offset}]) do
       :nomatch -> nil
       :match -> []
       {:match, results} -> results
@@ -425,6 +428,8 @@ defmodule Regex do
       Defaults to `:binary`.
     * `:capture` - what to capture in the result. Check the moduledoc for `Regex`
       to see the possible capture values.
+    * `:offset` - (since v1.12.0) specifies the starting offset to match in the given string.
+      Defaults to zero.
 
   ## Examples
 
@@ -450,7 +455,8 @@ defmodule Regex do
   def scan(%Regex{} = regex, string, options) when is_binary(string) do
     return = Keyword.get(options, :return, :binary)
     captures = Keyword.get(options, :capture, :all)
-    options = [{:capture, captures, return}, :global]
+    offset = Keyword.get(options, :offset, 0)
+    options = [{:capture, captures, return}, :global, {:offset, offset}]
 
     case safe_run(regex, string, options) do
       :match -> []
