@@ -1,7 +1,8 @@
 defmodule IO.ANSI.Docs do
   @moduledoc false
 
-  @bullet_text "• "
+  @bullet_text_unicode "• "
+  @bullet_text_ascii "* "
   @bullets [?*, ?-, ?+]
   @spaces [" ", "\n", "\t"]
 
@@ -219,7 +220,10 @@ defmodule IO.ANSI.Docs do
   end
 
   defp traverse_erlang_html({:dt, _, entries}, indent, options) do
-    ["#{indent}  ", @bullet_text | handle_erlang_html_text(entries, indent <> "    ", options)]
+    [
+      "#{indent}  ",
+      bullet_text(options) | handle_erlang_html_text(entries, indent <> "    ", options)
+    ]
   end
 
   defp traverse_erlang_html({:dd, _, entries}, indent, options) do
@@ -240,7 +244,10 @@ defmodule IO.ANSI.Docs do
       end
     else
       for {:li, _, lines} <- entries do
-        ["#{indent}  ", @bullet_text | handle_erlang_html_text(lines, indent <> "    ", options)]
+        [
+          "#{indent}  ",
+          bullet_text(options) | handle_erlang_html_text(lines, indent <> "    ", options)
+        ]
       end
     end
   end
@@ -424,7 +431,7 @@ defmodule IO.ANSI.Docs do
     case stripped do
       <<bullet, ?\s, item::binary>> when bullet in @bullets ->
         write_text(text, indent, options)
-        process_list(@bullet_text, item, rest, count, indent, options)
+        process_list(bullet_text(options), item, rest, count, indent, options)
 
       <<d1, ?., ?\s, item::binary>> when d1 in ?0..?9 ->
         write_text(text, indent, options)
@@ -928,6 +935,10 @@ defmodule IO.ANSI.Docs do
       "*" -> color(:doc_bold, colors)
       "**" -> color(:doc_bold, colors)
     end
+  end
+
+  defp bullet_text(options) do
+    if options[:enabled], do: @bullet_text_unicode, else: @bullet_text_ascii
   end
 
   defp color(style, colors) do
