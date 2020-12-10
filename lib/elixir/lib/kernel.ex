@@ -3137,7 +3137,15 @@ defmodule Kernel do
 
       not function? and __CALLER__.context == :match ->
         raise ArgumentError,
-              "invalid write attribute syntax, you probably meant to use: @#{name} expression"
+              """
+              invalid write attribute syntax. If you want to define an attribute, don't do this:
+
+                  @foo = :value
+
+              Instead, do this:
+
+                  @foo :value
+              """
 
       # Typespecs attributes are currently special cased by the compiler
       is_list(args) and typespec?(name) ->
@@ -3243,7 +3251,21 @@ defmodule Kernel do
     end
   end
 
-  # All other cases
+  # Error cases
+  defp do_at([{call, meta, ctx_or_args}, [{:do, _} | _] = kw], _meta, name, _function?, _env) do
+    args = if is_atom(ctx_or_args), do: [], else: ctx_or_args
+    code = "\n@#{name} (#{Macro.to_string({call, meta, args ++ [kw]})})"
+
+    raise ArgumentError, """
+    expected 0 or 1 argument for @#{name}, got 2.
+
+    It seems you are trying to use the do-syntax with @module attributes \
+    but the do-block is binding to the attribute name. You probably want \
+    to wrap the argument value in parentheses, like this:
+    #{String.replace(code, "\n", "\n    ")}
+    """
+  end
+
   defp do_at(args, _meta, name, _function?, _env) do
     raise ArgumentError, "expected 0 or 1 argument for @#{name}, got: #{length(args)}"
   end
