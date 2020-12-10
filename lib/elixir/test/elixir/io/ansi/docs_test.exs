@@ -192,6 +192,11 @@ defmodule IO.ANSI.DocsTest do
       assert result == "  • one\n  • two\n  • three\n\e[0m"
     end
 
+    test "* list is converted without ansi" do
+      result = format_markdown("* one\n* two\n* three\n", enabled: false)
+      assert result == "  * one\n  * two\n  * three"
+    end
+
     test "* list surrounded by text is converted" do
       result = format_markdown("Count:\n\n* one\n* two\n* three\n\nDone")
       assert result == "Count:\n\e[0m\n  • one\n  • two\n  • three\n\e[0m\nDone\n\e[0m"
