@@ -1756,30 +1756,48 @@ defmodule String do
 
   """
   @spec chunk(t, :valid | :printable) :: [t]
-
-  def chunk(string, trait)
-
-  def chunk("", _), do: []
-
   def chunk(string, trait) when is_binary(string) and trait in [:valid, :printable] do
-    {cp, _} = next_codepoint(string)
-    pred_fn = make_chunk_pred(trait)
-    do_chunk(string, pred_fn.(cp), pred_fn)
+    chunk_by(string, make_chunk_pred(trait))
   end
 
-  defp do_chunk(string, flag, pred_fn), do: do_chunk(string, [], <<>>, flag, pred_fn)
+  @doc ~S"""
+  Splits the string on every character for which `fun` returns a new value.
+
+  Returns a list of binaries in which each character produces the same output
+  when passed to `fun`.
+
+  ## Examples
+
+      iex> String.chunk_by(" foo   bar ", fn cp -> cp =~ "\s" end)
+      [" ", "foo", "   ", "bar", " "]
+
+      iex> String.chunk_by("Mississippi", &Function.identity/1)
+      ["M", "i", "ss", "i", "ss", "i", "pp", "i"]
+
+      iex> String.chunk_by("Ńaïve", fn cp -> cp < "~" end)
+      ["Ń", "a", "ï", "ve"]
+
+  """
+  @spec chunk_by(t, (codepoint -> any)) :: [t]
+  def chunk_by("", _), do: []
+
+  def chunk_by(string, fun) do
+    {cp, _} = next_codepoint(string)
+    do_chunk(string, fun.(cp), fun)
+  end
+
+  defp do_chunk(string, flag, chunk_fn), do: do_chunk(string, [], <<>>, flag, chunk_fn)
 
   defp do_chunk(<<>>, acc, <<>>, _, _), do: Enum.reverse(acc)
 
   defp do_chunk(<<>>, acc, chunk, _, _), do: Enum.reverse(acc, [chunk])
 
-  defp do_chunk(string, acc, chunk, flag, pred_fn) do
+  defp do_chunk(string, acc, chunk, flag, chunk_fn) do
     {cp, rest} = next_codepoint(string)
 
-    if pred_fn.(cp) != flag do
-      do_chunk(rest, [chunk | acc], cp, not flag, pred_fn)
-    else
-      do_chunk(rest, acc, chunk <> cp, flag, pred_fn)
+    case chunk_fn.(cp) do
+      ^flag -> do_chunk(rest, acc, chunk <> cp, flag, chunk_fn)
+      new_flag -> do_chunk(rest, [chunk | acc], cp, new_flag, chunk_fn)
     end
   end
 

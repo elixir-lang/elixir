@@ -680,6 +680,13 @@ defmodule StringTest do
              [<<6>>, "ab", <<5>>, "cdef", <<3, 0>>]
   end
 
+  test "chunk_by/2" do
+    assert String.chunk_by("", &Function.identity/1) == []
+    assert String.chunk_by("aaa", &(&1 != "a")) == ["aaa"]
+    assert String.chunk_by("ababa", &(&1 == "a")) == ["a", "b", "a", "b", "a"]
+    assert String.chunk_by("abcdef", &(&1 < "d")) == ["abc", "def"]
+  end
+
   test "starts_with?/2" do
     assert String.starts_with?("hello", "he")
     assert String.starts_with?("hello", "hello")
