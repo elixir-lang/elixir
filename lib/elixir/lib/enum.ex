@@ -188,7 +188,8 @@ defprotocol Enumerable do
   will become too expensive.
 
   On the other hand, the `count/1` function in this protocol should be
-  implemented whenever you can count the number of elements in the collection.
+  implemented whenever you can count the number of elements in the collection without
+  traversing it.
   """
   @spec slice(t) ::
           {:ok, size :: non_neg_integer(), slicing_fun()}
