@@ -593,16 +593,6 @@ defmodule KernelTest do
       _ = a
     end
 
-    test "setting attribute with uppercase" do
-      message = "module attributes set via @ cannot start with an uppercase letter"
-
-      assert_raise ArgumentError, message, fn ->
-        defmodule UpcaseAttrSample do
-          @Upper
-        end
-      end
-    end
-
     test "in module body" do
       defmodule InSample do
         @foo [:a, :b]
@@ -780,6 +770,40 @@ defmodule KernelTest do
       assert Kernel.__info__(:module) == Kernel
       assert is_list(Kernel.__info__(:compile))
       assert is_list(Kernel.__info__(:attributes))
+    end
+  end
+
+  describe "@" do
+    test "setting attribute with do-block" do
+      exception =
+        catch_error(
+          defmodule UpcaseAttrSample do
+            @foo quote do
+              :ok
+            end
+          end
+        )
+
+      assert exception.message =~ "expected 0 or 1 argument for @foo, got 2"
+      assert exception.message =~ "You probably want to wrap the argument value in parentheses"
+    end
+
+    test "setting attribute with uppercase" do
+      message = "module attributes set via @ cannot start with an uppercase letter"
+
+      assert_raise ArgumentError, message, fn ->
+        defmodule UpcaseAttrSample do
+          @Upper
+        end
+      end
+    end
+
+    test "matching attribute" do
+      assert_raise ArgumentError, ~r"invalid write attribute syntax", fn ->
+        defmodule MatchAttributeInModule do
+          @foo = 42
+        end
+      end
     end
   end
 
