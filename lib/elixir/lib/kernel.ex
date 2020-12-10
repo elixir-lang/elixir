@@ -3253,7 +3253,12 @@ defmodule Kernel do
 
   # Error cases
   defp do_at([{call, meta, ctx_or_args}, [{:do, _} | _] = kw], _meta, name, _function?, _env) do
-    args = if is_atom(ctx_or_args), do: [], else: ctx_or_args
+    args =
+      case is_atom(ctx_or_args) do
+        true -> []
+        false -> ctx_or_args
+      end
+
     code = "\n@#{name} (#{Macro.to_string({call, meta, args ++ [kw]})})"
 
     raise ArgumentError, """
