@@ -6,7 +6,7 @@ defmodule EEx.Tokenizer do
   @type column :: non_neg_integer
   @type marker :: '=' | '/' | '|' | ''
   @type token ::
-          {:text, content}
+          {:text, line, column, content}
           | {:expr | :start_expr | :middle_expr | :end_expr, line, column, marker, content}
           | {:eof, line, column}
 
@@ -17,7 +17,7 @@ defmodule EEx.Tokenizer do
 
   It returns {:ok, list} with the following tokens:
 
-    * `{:text, content}`
+    * `{:text, line, column, content}`
     * `{:expr, line, column, marker, content}`
     * `{:start_expr, line, column, marker, content}`
     * `{:middle_expr, line, column, marker, content}`
@@ -36,8 +36,11 @@ defmodule EEx.Tokenizer do
   def tokenize(list, line, column, opts)
       when is_list(list) and is_integer(line) and line >= 0 and is_integer(column) and column >= 0 do
     column = opts.indentation + column
-    {list, line, column} = (opts.trim && trim_init(list, line, column)) || {list, line, column}
-    tokenize(list, line, column, opts, [], [])
+
+    {list, line, column} =
+      (opts.trim && trim_init(list, line, column, opts)) || {list, line, column}
+
+    tokenize(list, line, column, opts, [{line, column}], [])
   end
 
   defp tokenize('<%%' ++ t, line, column, opts, buffer, acc) do
@@ -53,7 +56,8 @@ defmodule EEx.Tokenizer do
         {rest, new_line, new_column, buffer} =
           trim_if_needed(rest, new_line, new_column, opts, buffer)
 
-        tokenize(rest, new_line, new_column, opts, buffer, acc)
+        acc = tokenize_text(buffer, acc)
+        tokenize(rest, new_line, new_column, opts, [{new_line, new_column}], acc)
     end
   end
 
@@ -76,7 +80,7 @@ defmodule EEx.Tokenizer do
 
         acc = tokenize_text(buffer, acc)
         final = {key, line, column, marker, expr}
-        tokenize(rest, new_line, new_column, opts, [], [final | acc])
+        tokenize(rest, new_line, new_column, opts, [{new_line, new_column}], [final | acc])
     end
   end
 
@@ -164,49 +168,67 @@ defmodule EEx.Tokenizer do
   # Tokenize the buffered text by appending
   # it to the given accumulator.
 
-  defp tokenize_text([], acc) do
+  defp tokenize_text([{_line, _column}], acc) do
     acc
   end
 
   defp tokenize_text(buffer, acc) do
-    [{:text, Enum.reverse(buffer)} | acc]
+    [{line, column} | buffer] = Enum.reverse(buffer)
+    [{:text, line, column, buffer} | acc]
   end
 
   defp trim_if_needed(rest, line, column, opts, buffer) do
     if opts.trim do
       buffer = trim_left(buffer, 0)
-      {rest, line, column} = trim_right(rest, line, column, 0)
+      {rest, line, column} = trim_right(rest, line, column, 0, opts)
       {rest, line, column, buffer}
     else
       {rest, line, column, buffer}
     end
   end
 
-  defp trim_init([h | t], line, column) when h in @spaces, do: trim_init(t, line, column + 1)
-  defp trim_init([?\r, ?\n | t], line, _column), do: trim_init(t, line + 1, 1)
-  defp trim_init([?\n | t], line, _column), do: trim_init(t, line + 1, 1)
-  defp trim_init([?<, ?% | _] = rest, line, column), do: {rest, line, column}
-  defp trim_init(_, _, _), do: false
+  defp trim_init([h | t], line, column, opts) when h in @spaces,
+    do: trim_init(t, line, column + 1, opts)
+
+  defp trim_init([?\r, ?\n | t], line, _column, opts),
+    do: trim_init(t, line + 1, opts.indentation + 1, opts)
+
+  defp trim_init([?\n | t], line, _column, opts),
+    do: trim_init(t, line + 1, opts.indentation + 1, opts)
+
+  defp trim_init([?<, ?% | _] = rest, line, column, _opts),
+    do: {rest, line, column}
+
+  defp trim_init(_, _, _, _), do: false
 
   defp trim_left(buffer, count) do
-    case trim_whitespace(buffer) do
-      [?\n, ?\r | rest] -> trim_left(rest, count + 1)
-      [?\n | rest] -> trim_left(rest, count + 1)
+    case trim_whitespace(buffer, 0) do
+      {[?\n, ?\r | rest], _} -> trim_left(rest, count + 1)
+      {[?\n | rest], _} -> trim_left(rest, count + 1)
       _ when count > 0 -> [?\n | buffer]
       _ -> buffer
     end
   end
 
-  defp trim_right(rest, line, column, count) do
-    case trim_whitespace(rest) do
-      [?\r, ?\n | rest] -> trim_right(rest, line + 1, 1, count + 1)
-      [?\n | rest] -> trim_right(rest, line + 1, 1, count + 1)
-      [] -> {[], line, column + length(rest)}
-      _ when count > 0 -> {[?\n | rest], line - 1, column}
-      _ -> {rest, line, column}
+  defp trim_right(rest, line, column, last_column, opts) do
+    case trim_whitespace(rest, column) do
+      {[?\r, ?\n | rest], column} ->
+        trim_right(rest, line + 1, opts.indentation + 1, column + 1, opts)
+
+      {[?\n | rest], column} ->
+        trim_right(rest, line + 1, opts.indentation + 1, column, opts)
+
+      {[], column} ->
+        {[], line, column}
+
+      _ when last_column > 0 ->
+        {[?\n | rest], line - 1, last_column}
+
+      _ ->
+        {rest, line, column}
     end
   end
 
-  defp trim_whitespace([h | t]) when h in @spaces, do: trim_whitespace(t)
-  defp trim_whitespace(list), do: list
+  defp trim_whitespace([h | t], column) when h in @spaces, do: trim_whitespace(t, column + 1)
+  defp trim_whitespace(list, column), do: {list, column}
 end
