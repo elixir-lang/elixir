@@ -715,7 +715,7 @@ defmodule GenServer do
           {:debug, debug}
           | {:name, name}
           | {:timeout, timeout}
-          | {:spawn_opt, Process.spawn_opt()}
+          | {:spawn_opt, [Process.spawn_opt()]}
           | {:hibernate_after, timeout}
 
   @typedoc "Debug options supported by the `start*` functions"
