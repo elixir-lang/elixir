@@ -41,7 +41,7 @@ defmodule EEx.Compiler do
   # Generates the buffers by handling each expression from the tokenizer.
   # It returns Macro.t/0 or it raises.
 
-  defp generate_buffer([{:text, chars} | rest], buffer, scope, state) do
+  defp generate_buffer([{:text, _line, _column, chars} | rest], buffer, scope, state) do
     buffer = state.engine.handle_text(buffer, IO.chardata_to_string(chars))
     generate_buffer(rest, buffer, scope, state)
   end
@@ -179,7 +179,7 @@ defmodule EEx.Compiler do
   # Look middle expressions that immediately follow a start_expr
 
   defp look_ahead_middle(
-         [{:text, text}, {:middle_expr, line, _column, _, chars} | rest] = tokens,
+         [{:text, _, _, text}, {:middle_expr, line, _, _, chars} | rest] = tokens,
          start,
          contents
        ) do
