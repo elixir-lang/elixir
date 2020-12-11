@@ -77,6 +77,8 @@ The first column is the version the feature was hard deprecated. The second colu
 
 Version | Deprecated feature                                  | Replaced by (available since)
 :-------| :-------------------------------------------------- | :---------------------------------------------------------------
+[v1.12] | `use EEx.Engine`                                    | Explicitly delegate to EEx.Engine instead (v1.0)
+[v1.12] | `:xref` compiler in Mix                             | Nothing (it always runs as part of the compiler now)
 [v1.11] | `Mix.Project.compile/2`                             | `Mix.Task.run("compile", args)` (v1.0)
 [v1.11] | `Supervisor.Spec.worker/3` and `Supervisor.Spec.supervisor/3` | The new child specs outlined in `Supervisor` (v1.5)
 [v1.11] | `Supervisor.start_child/2` and `Supervisor.terminate_child/2` | `DynamicSupervisor` (v1.6)

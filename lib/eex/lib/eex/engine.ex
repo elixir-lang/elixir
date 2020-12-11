@@ -4,10 +4,8 @@ defmodule EEx.Engine do
 
   An engine needs to implement all callbacks below.
 
-  An engine may also `use EEx.Engine` to get the default behaviour
-  but this is not advised. In such cases, if any of the callbacks
-  are overridden, they must call `super()` to delegate to the
-  underlying `EEx.Engine`.
+  This module also ships with a default engine implementation
+  you can delegate to. See `EEx.SmartEngine` as an example.
   """
 
   @type state :: term
@@ -69,6 +67,7 @@ defmodule EEx.Engine do
   @callback handle_end(state) :: Macro.t()
 
   @doc false
+  @deprecated "Use explicit delegation to EEx.Engine instead"
   defmacro __using__(_) do
     quote do
       @behaviour EEx.Engine
@@ -147,7 +146,7 @@ defmodule EEx.Engine do
     end
   end
 
-  @doc false
+  @doc "Default implementation for `c:init/1`."
   def init(_opts) do
     %{
       binary: [],
@@ -156,18 +155,18 @@ defmodule EEx.Engine do
     }
   end
 
-  @doc false
+  @doc "Default implementation for `c:handle_begin/1`."
   def handle_begin(state) do
     check_state!(state)
     %{state | binary: [], dynamic: []}
   end
 
-  @doc false
+  @doc "Default implementation for `c:handle_end/1`."
   def handle_end(quoted) do
     handle_body(quoted)
   end
 
-  @doc false
+  @doc "Default implementation for `c:handle_body/1`."
   def handle_body(state) do
     check_state!(state)
     %{binary: binary, dynamic: dynamic} = state
@@ -176,14 +175,16 @@ defmodule EEx.Engine do
     {:__block__, [], Enum.reverse(dynamic)}
   end
 
-  @doc false
+  @doc "Default implementation for `c:handle_text/2`."
   def handle_text(state, text) do
+    check_state!(state)
     %{binary: binary} = state
     %{state | binary: [text | binary]}
   end
 
-  @doc false
+  @doc "Default implementation for `c:handle_expr/3`."
   def handle_expr(state, "=", ast) do
+    check_state!(state)
     %{binary: binary, dynamic: dynamic, vars_count: vars_count} = state
     var = Macro.var(:"arg#{vars_count}", __MODULE__)
 

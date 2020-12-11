@@ -33,10 +33,26 @@ defmodule EEx.SmartEngine do
 
   """
 
-  use EEx.Engine
+  @behaviour EEx.Engine
 
-  def handle_expr(buffer, mark, expr) do
+  @impl true
+  defdelegate init(opts), to: EEx.Engine
+
+  @impl true
+  defdelegate handle_body(state), to: EEx.Engine
+
+  @impl true
+  defdelegate handle_begin(state), to: EEx.Engine
+
+  @impl true
+  defdelegate handle_end(state), to: EEx.Engine
+
+  @impl true
+  defdelegate handle_text(state, text), to: EEx.Engine
+
+  @impl true
+  def handle_expr(state, marker, expr) do
     expr = Macro.prewalk(expr, &EEx.Engine.handle_assign/1)
-    super(buffer, mark, expr)
+    EEx.Engine.handle_expr(state, marker, expr)
   end
 end
