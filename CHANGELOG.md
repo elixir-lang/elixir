@@ -43,6 +43,10 @@
 
 ### 4. Hard-deprecations
 
+#### EEx
+
+  * [EEx.Engine] `use EEx.Engine` is deprecated in favor of explicit delegation
+
 #### Elixir
 
   * [Kernel] Deprecate `@foo()` in favor of `@foo`
