@@ -308,11 +308,11 @@ defmodule Float do
     raise ArgumentError, invalid_precision_message(precision)
   end
 
-  defp round(0.0, _precision, _rounding), do: 0.0
+  defp round(0.0 = num, _precision, _rounding), do: num
 
   defp round(float, precision, rounding) do
     <<sign::1, exp::11, significant::52-bitstring>> = <<float::float>>
-    {num, count, _} = decompose(significant, 1)
+    {num, count} = decompose(significant, 1)
     count = count - exp + 1023
 
     cond do
@@ -362,6 +362,22 @@ defmodule Float do
             decimal_to_float(sign, num, den, exp)
         end
     end
+  end
+
+  defp decompose(significant, initial) do
+    decompose(significant, 1, 0, initial)
+  end
+
+  defp decompose(<<1::1, bits::bitstring>>, count, last_count, acc) do
+    decompose(bits, count + 1, count, (acc <<< (count - last_count)) + 1)
+  end
+
+  defp decompose(<<0::1, bits::bitstring>>, count, last_count, acc) do
+    decompose(bits, count + 1, last_count, acc)
+  end
+
+  defp decompose(<<>>, _count, last_count, acc) do
+    {acc, last_count}
   end
 
   defp scale_up(num, boundary, exp) when num >= boundary, do: {num, exp}
@@ -443,54 +459,54 @@ defmodule Float do
   def ratio(0.0), do: {0, 1}
 
   def ratio(float) when is_float(float) do
-    case <<float::float>> do
-      <<sign::1, 0::11, significant::52-bitstring>> ->
-        {num, _, den} = decompose(significant, 0)
-        {sign(sign, num), shift_left(den, 1022)}
+    <<sign::1, exp::11, mantissa::52>> = <<float::float>>
 
-      <<sign::1, exp::11, significant::52-bitstring>> ->
-        {num, _, den} = decompose(significant, 1)
-        num = sign(sign, num)
+    {num, den_exp} =
+      if exp != 0 do
+        # Floats are expressed like this:
+        # (2**52 + mantissa) * 2**(-52 + exp - 1023)
+        #
+        # We compute the root factors of the mantissa so we have this:
+        # (2**52 + mantissa * 2**count) * 2**(-52 + exp - 1023)
+        {mantissa, count} = root_factors(mantissa, 0)
 
-        case exp - 1023 do
-          exp when exp > 0 ->
-            {den, exp} = shift_right(den, exp)
-            {shift_left(num, exp), den}
-
-          exp when exp < 0 ->
-            {num, shift_left(den, -exp)}
-
-          0 ->
-            {num, den}
+        # Now we can move the count around so we have this:
+        # (2**(52-count) + mantissa) * 2**(count + -52 + exp - 1023)
+        if mantissa == 0 do
+          {1, exp - 1023}
+        else
+          num = (1 <<< (52 - count)) + mantissa
+          den_exp = count - 52 + exp - 1023
+          {num, den_exp}
         end
+      else
+        # Subnormals are expressed like this:
+        # (mantissa) * 2**(-52 + 1 - 1023)
+        #
+        # So we compute it to this:
+        # (mantissa * 2**(count)) * 2**(-52 + 1 - 1023)
+        #
+        # Which becomes:
+        # mantissa * 2**(count-1074)
+        root_factors(mantissa, -1074)
+      end
+
+    if den_exp > 0 do
+      {sign(sign, num <<< den_exp), 1}
+    else
+      {sign(sign, num), 1 <<< -den_exp}
     end
   end
 
-  defp decompose(significant, initial) do
-    decompose(significant, 1, 0, 2, 1, initial)
-  end
+  defp root_factors(mantissa, count) when mantissa != 0 and (mantissa &&& 1) == 0,
+    do: root_factors(mantissa >>> 1, count + 1)
 
-  defp decompose(<<1::1, bits::bitstring>>, count, last_count, power, _last_power, acc) do
-    decompose(bits, count + 1, count, power <<< 1, power, shift_left(acc, count - last_count) + 1)
-  end
+  defp root_factors(mantissa, count),
+    do: {mantissa, count}
 
-  defp decompose(<<0::1, bits::bitstring>>, count, last_count, power, last_power, acc) do
-    decompose(bits, count + 1, last_count, power <<< 1, last_power, acc)
-  end
-
-  defp decompose(<<>>, _count, last_count, _power, last_power, acc) do
-    {acc, last_count, last_power}
-  end
-
-  @compile {:inline, sign: 2, shift_left: 2}
+  @compile {:inline, sign: 2}
   defp sign(0, num), do: num
   defp sign(1, num), do: -num
-
-  defp shift_left(num, times), do: num <<< times
-
-  defp shift_right(num, 0), do: {num, 0}
-  defp shift_right(1, times), do: {1, times}
-  defp shift_right(num, times), do: shift_right(num >>> 1, times - 1)
 
   @doc """
   Returns a charlist which corresponds to the text representation
