@@ -622,7 +622,7 @@ defmodule Task do
 
     * `{:DOWN, ref, :process, pid, reason}` - since all tasks are also
       monitored, you will also receive the `:DOWN` message delivered by
-      `Process.monitor/2`. If you receive the `:DOWN` message without a
+      `Process.monitor/1`. If you receive the `:DOWN` message without a
       a reply, it means the task crashed
 
   Another consideration to have in mind is that tasks are always linked
