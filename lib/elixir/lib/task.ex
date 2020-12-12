@@ -44,8 +44,8 @@ defmodule Task do
        no purpose in completing the computation.
 
        If this is not desired, use `Task.start/1` or consider starting
-       the task under a `Task.Supervisor` using `async_nolink` or
-       `start_child`.
+       the task under a `Task.Supervisor` using `Task.Supervisor.async_nolink/3`
+       or `Task.Supervisor.start_child/3`.
 
   `Task.yield/2` is an alternative to `await/2` where the caller will
   temporarily block, waiting until the task replies or crashes. If the
@@ -339,30 +339,14 @@ defmodule Task do
   @doc """
   Starts a task that must be awaited on.
 
-  `fun` must be a zero-arity anonymous function.
-  This function spawns a process that is linked to and monitored
-  by the caller process. A `Task` struct is returned containing
-  the relevant information.
-
-  Read the `Task` module documentation for more information about the
-  general usage of `async/1` and `async/3`.
-
-  See also `async/3`.
-  """
-  @spec async((() -> any)) :: t
-  def async(fun) when is_function(fun, 0) do
-    async(:erlang, :apply, [fun, []])
-  end
-
-  @doc """
-  Starts a task that must be awaited on.
-
-  A `Task` struct is returned containing the relevant information.
-  Developers must eventually call `Task.await/2` or `Task.yield/2`
-  followed by `Task.shutdown/2` on the returned task.
+  `fun` must be a zero-arity anonymous function. This function
+  spawns a process that is linked to and monitored by the caller
+  process. A `Task` struct is returned containing the relevant
+  information. Developers must eventually call `Task.await/2` or
+  `Task.yield/2` followed by `Task.shutdown/2` on the returned task.
 
   Read the `Task` module documentation for more information about
-  the general usage of `async/1` and `async/3`.
+  the general usage of async tasks.
 
   ## Linking
 
@@ -411,11 +395,17 @@ defmodule Task do
       to any supervisor, you may leave dangling tasks in case
       the parent dies.
 
-  ## Message format
+  """
+  @spec async((() -> any)) :: t
+  def async(fun) when is_function(fun, 0) do
+    async(:erlang, :apply, [fun, []])
+  end
 
-  The reply sent by the task will be in the format `{ref, result}`,
-  where `ref` is the monitor reference held by the task struct
-  and `result` is the return value of the task function.
+  @doc """
+  Starts a task that must be awaited on.
+
+  Similar to `async/1` except the function to be started is
+  specified by the given `module`, `function_name`, and `args`.
   """
   @spec async(module, atom, [term]) :: t
   def async(module, function_name, args)
@@ -590,7 +580,7 @@ defmodule Task do
     end
   end
 
-  @doc """
+  @doc ~S"""
   Awaits a task reply and returns it.
 
   In case the task process dies, the current process will exit with the same
@@ -612,19 +602,86 @@ defmodule Task do
   to be able to check multiple times if a long-running task has finished
   its computation, use `yield/2` instead.
 
-  ## Compatibility with OTP behaviours
-
-  It is not recommended to `await` a long-running task inside an OTP
-  behaviour such as `GenServer`. Instead, you should match on the message
-  coming from a task inside your `c:GenServer.handle_info/2` callback. For
-  more information on the format of the message, see the documentation for
-  `async/1`.
-
   ## Examples
 
       iex> task = Task.async(fn -> 1 + 1 end)
       iex> Task.await(task)
       2
+
+  ## Compatibility with OTP behaviours
+
+  It is not recommended to `await` a long-running task inside an OTP
+  behaviour such as `GenServer`. Instead, you should match on the message
+  coming from a task inside your `c:GenServer.handle_info/2` callback.
+
+  A GenServer will receive two messages on `handle_info/2`:
+
+    * `{ref, result}` - the reply message where `ref` is the monitor
+      reference returned by the `task.ref` and `result` is the task
+      result
+
+    * `{:DOWN, ref, :process, pid, reason}` - since all tasks are also
+      monitored, you will also receive the `:DOWN` message delivered by
+      `Process.monitor/2`. If you receive the `:DOWN` message without a
+      a reply, it means the task crashed
+
+  Another consideration to have in mind is that tasks are always linked
+  to their callers and you may not want the GenServer to crash if the
+  task crashes. Therefore, it is preferrable to use `Task.Supervisor.async_nolink/3`
+  instead of `Task.async/1` inside OTP behaviours. For completenes,
+  here is an example of a GenServer that start tasks and handles their
+  results:
+
+      defmodule GenServerTaskExample do
+        use GenServer
+
+        def start_link(opts) do
+          GenServer.start_link(__MODULE__, :ok, opts)
+        end
+
+        def init(_opts) do
+          # We will keep all running tasks in a map
+          {:ok, %{tasks: %{}}}
+        end
+
+        # Imagine we invoke a task from the GenServer to access a URL...
+        def handle_call(:some_message, _from, state) do
+          url = ...
+          task = Task.Supervisor.async_nolink(MyApp.TaskSupervisor, fn -> fetch_url(url) end)
+
+          # After we start the task, we store its reference and the url it is fetching
+          state = put_in(state.tasks[task.ref], url)
+
+          {:reply, :ok, state}
+        end
+
+        # If the task succeeds...
+        def handle_info({ref, result}, state) do
+          # The task succeed so we can cancel the monitoring and discard the DOWN message
+          Process.demonitor(ref, [:flush])
+
+          {url, state} = pop_in(state.tasks[ref])
+          IO.puts "Got #{inspect(result)} for URL #{inspect url}"
+          {:noreply, state}
+        end
+
+        # If the task fails...
+        def handle_info({:DOWN, ref, _, _, reason}, state) do
+          {url, state} = pop_in(state.tasks[ref])
+          IO.puts "URL #{inspect url} failed with reason #{inspect(reason)}"
+          {:noreply, state}
+        end
+      end
+
+  With the server defined, you will want to start the task supervisor
+  above and the GenServer in your supervision tree:
+
+      children = [
+        {Task.Supervisor, name: MyApp.TaskSupervisor},
+        {GenServerTaskExample, name: MyApp.GenServerTaskExample}
+      ]
+
+      Supervisor.start_link(children, strategy: :one_for_one)
 
   """
   @spec await(t, timeout) :: term
