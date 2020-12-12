@@ -48,7 +48,7 @@ defmodule EEx.SmartEngine do
   defdelegate handle_end(state), to: EEx.Engine
 
   @impl true
-  defdelegate handle_text(state, text), to: EEx.Engine
+  defdelegate handle_text(state, meta, text), to: EEx.Engine
 
   @impl true
   def handle_expr(state, marker, expr) do
