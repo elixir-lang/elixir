@@ -4,6 +4,10 @@
 
 ### 1. Enhancements
 
+#### EEx
+
+  * [EEx.Engine] Add `c:EEx.Engine.handle_text/3` callback that receives text metadata
+
 #### Elixir
 
   * [Enum] Add `Enum.zip_with/2` and `Enum.zip_with/3`

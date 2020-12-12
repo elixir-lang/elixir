@@ -681,8 +681,8 @@ defmodule EExTest do
       buffer <> ":END"
     end
 
-    def handle_text(buffer, text) do
-      buffer <> ":TEXT(#{String.trim(text)})"
+    def handle_text(buffer, meta, text) do
+      buffer <> ":TEXT-#{meta[:line]}-#{meta[:column]}(#{String.trim(text)})"
     end
 
     def handle_expr(buffer, "/", expr) do
@@ -700,16 +700,16 @@ defmodule EExTest do
 
   describe "custom engines" do
     test "text" do
-      assert_eval("BODY(INIT:TEXT(foo))", "foo", [], engine: TestEngine)
+      assert_eval("BODY(INIT:TEXT-1-1(foo))", "foo", [], engine: TestEngine)
     end
 
     test "custom marker" do
-      assert_eval("BODY(INIT:TEXT(foo):DIV(:bar))", "foo <%/ :bar %>", [], engine: TestEngine)
+      assert_eval("BODY(INIT:TEXT-1-1(foo):DIV(:bar))", "foo <%/ :bar %>", [], engine: TestEngine)
     end
 
     test "begin/end" do
       assert_eval(
-        ~s[BODY(INIT:TEXT(foo):EQUAL(if do\n  "BEGIN:TEXT(this):END"\nelse\n  "BEGIN:TEXT(that):END"\nend))],
+        ~s[BODY(INIT:TEXT-1-1(foo):EQUAL(if do\n  "BEGIN:TEXT-1-17(this):END"\nelse\n  "BEGIN:TEXT-1-31(that):END"\nend))],
         "foo <%= if do %>this<% else %>that<% end %>",
         [],
         engine: TestEngine

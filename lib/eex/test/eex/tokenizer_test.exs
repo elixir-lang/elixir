@@ -50,7 +50,7 @@ defmodule EEx.TokenizerTest do
     exprs = [
       {:text, 1, 1, 'foo '},
       {:expr, 1, 5, '=', ' bar\n\nbaz '},
-      {:text,  3, 7, '\n'},
+      {:text, 3, 7, '\n'},
       {:expr, 4, 1, '', ' foo '},
       {:text, 4, 10, '\n'},
       {:eof, 5, 1}

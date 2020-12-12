@@ -29,7 +29,8 @@ defmodule EEx.Engine do
 
   It must return the updated state.
   """
-  @callback handle_text(state, text :: String.t()) :: state
+  @callback handle_text(state, [line: pos_integer, column: pos_integer], text :: String.t()) ::
+              state
 
   @doc """
   Called for the dynamic/code parts of a template.
@@ -89,7 +90,7 @@ defmodule EEx.Engine do
       end
 
       def handle_text(state, text) do
-        EEx.Engine.handle_text(state, text)
+        EEx.Engine.handle_text(state, [], text)
       end
 
       def handle_expr(state, marker, expr) do
@@ -175,8 +176,8 @@ defmodule EEx.Engine do
     {:__block__, [], Enum.reverse(dynamic)}
   end
 
-  @doc "Default implementation for `c:handle_text/2`."
-  def handle_text(state, text) do
+  @doc "Default implementation for `c:handle_text/3`."
+  def handle_text(state, _meta, text) do
     check_state!(state)
     %{binary: binary} = state
     %{state | binary: [text | binary]}
