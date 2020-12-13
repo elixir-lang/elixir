@@ -447,12 +447,12 @@ defmodule Record do
     end
   end
 
-  defp hoist_expressions(keyword, %{context: nil}) do
+  defp hoist_expressions(keyword, %{context: nil, module: module}) do
     Enum.map_reduce(keyword, [], fn {key, expr}, acc ->
       if simple_argument?(expr) do
         {{key, expr}, acc}
       else
-        var = Macro.var(key, __MODULE__)
+        var = Macro.unique_var(key, module)
         {{key, var}, [{:=, [], [var, expr]} | acc]}
       end
     end)

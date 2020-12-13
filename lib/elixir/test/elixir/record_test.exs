@@ -156,7 +156,20 @@ defmodule RecordTest do
       )
 
     assert user == {RecordTest, :name, {RecordTest, :inner_name, :inner_age}}
-    assert Process.info(self(), :messages) == {:messages, [:inner_age, :inner_name, :name]}
+    assert for(_ <- 1..3, do: assert_receive(_)) == [:inner_age, :inner_name, :name]
+
+    user =
+      user(
+        name: send(self(), :name),
+        age:
+          user(
+            age: send(self(), :inner_age),
+            name: send(self(), :inner_name)
+          )
+      )
+
+    assert user == {RecordTest, :name, {RecordTest, :inner_name, :inner_age}}
+    assert for(_ <- 1..3, do: assert_receive(_)) == [:name, :inner_age, :inner_name]
   end
 
   Record.defrecord(
