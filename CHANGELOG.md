@@ -243,6 +243,31 @@ The Calendar module ships with a new `Calendar.strftime/3` function, which provi
 
 Mix also includes two new tasks: `mix app.config`, for application runtime configuration, and `mix test.coverage`, which generates aggregated coverage reports for umbrella projects and for test suites partitioned across processes.
 
+## v1.11.3
+
+### 1. Enhancements
+
+#### Elixir
+
+  * [Macro] Add `Macro.unique_var/2` and `Macro.generate_unique_arguments/2`
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [Code] Do not raise when checking for operator ambiguity when `:static_atoms_encoder` is set in `Code.string_to_quoted`
+  * [Kernel] Emit undefined function warnings from `with`
+  * [Record] Make sure nested record names do not clobber each other
+
+#### IEx
+
+  * [IEx.Helpers] Do not use Unicode chars if ANSI is disabled
+
+#### Mix
+
+  * [mix release] Do not use private `ram_file:compress/1`
+  * [mix xref] Do not crash when retrieving calls for modules in memory
+
 ## v1.11.2 (2020-11-03)
 
 ### 1. Bug fixes
