@@ -3253,7 +3253,7 @@ defmodule Enum do
   If an `offset` is given, it will index from the given offset instead of from
   zero.
 
-  If a `function` is given, it will index by invoking the function for each 
+  If a `function` is given, it will index by invoking the function for each
   element and index (zero-based) of the enumerable.
 
   ## Examples
