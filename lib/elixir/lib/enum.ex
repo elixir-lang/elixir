@@ -874,7 +874,6 @@ defmodule Enum do
   @spec each(t, (element -> any)) :: :ok
   def each(enumerable, fun) when is_list(enumerable) do
     :lists.foreach(fun, enumerable)
-    :ok
   end
 
   def each(enumerable, fun) do
