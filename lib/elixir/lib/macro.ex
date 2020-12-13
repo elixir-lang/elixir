@@ -337,8 +337,13 @@ defmodule Macro do
   end
 
   @doc """
-  Generates AST nodes for a given number of required argument variables using
-  `Macro.var/2`.
+  Generates AST nodes for a given number of required argument
+  variables using `Macro.var/2`.
+
+  Note the arguments are not unique. If you later on want
+  to access this same varibles, you can invoke this function
+  with the same inputs. Use `generate_unique_arguments/2` to
+  generate a unique arguments that can't be overridden.
 
   ## Examples
 
@@ -349,18 +354,46 @@ defmodule Macro do
   @doc since: "1.5.0"
   @spec generate_arguments(0, context :: atom) :: []
   @spec generate_arguments(pos_integer, context) :: [{atom, [], context}, ...] when context: atom
-  def generate_arguments(amount, context)
+  def generate_arguments(amount, context), do: generate_arguments(amount, context, &var/2)
 
-  def generate_arguments(0, context) when is_atom(context), do: []
+  @doc """
+  Generates AST nodes for a given number of required argument
+  variables using `Macro.unique_var/2`.
 
-  def generate_arguments(amount, context)
-      when is_integer(amount) and amount > 0 and is_atom(context) do
-    for id <- 1..amount, do: var(String.to_atom("arg" <> Integer.to_string(id)), context)
+  ## Examples
+
+      iex> [var1, var2] = Macro.generate_unique_arguments(2, __MODULE__)
+      iex> {:arg1, [counter: c1], __MODULE__} = var1
+      iex> {:arg2, [counter: c2], __MODULE__} = var2
+      iex> is_integer(c1) and is_integer(c2)
+      true
+
+  """
+  @doc since: "1.11.3"
+  @spec generate_unique_arguments(0, context :: atom) :: []
+  @spec generate_unique_arguments(pos_integer, context) :: [
+          {atom, [counter: integer], context},
+          ...
+        ]
+        when context: atom
+  def generate_unique_arguments(amount, context),
+    do: generate_arguments(amount, context, &unique_var/2)
+
+  defp generate_arguments(0, context, _fun) when is_atom(context), do: []
+
+  defp generate_arguments(amount, context, fun)
+       when is_integer(amount) and amount > 0 and is_atom(context) do
+    for id <- 1..amount, do: fun.(String.to_atom("arg" <> Integer.to_string(id)), context)
   end
 
   @doc """
   Generates an AST node representing the variable given
   by the atoms `var` and `context`.
+
+  Note this variable is not unique. If you later on want
+  to access this same varible, you can invoke `var/2`
+  again with the same argument. Use `unique_var/2` to
+  generate a unique variable that can't be overridden.
 
   ## Examples
 
@@ -381,6 +414,24 @@ defmodule Macro do
   @spec var(var, context) :: {var, [], context} when var: atom, context: atom
   def var(var, context) when is_atom(var) and is_atom(context) do
     {var, [], context}
+  end
+
+  @doc """
+  Generates an AST node representing a unique variable
+  given by the atoms `var` and `context`.
+
+  ## Examples
+
+      iex> {:foo, [counter: c], __MODULE__} = Macro.unique_var(:foo, __MODULE__)
+      iex> is_integer(c)
+      true
+
+  """
+  @doc since: "1.11.3"
+  @spec unique_var(var, context) :: {var, [counter: integer], context}
+        when var: atom, context: atom
+  def unique_var(var, context) when is_atom(var) and is_atom(context) do
+    {var, [counter: :elixir_module.next_counter(context)], context}
   end
 
   @doc """
