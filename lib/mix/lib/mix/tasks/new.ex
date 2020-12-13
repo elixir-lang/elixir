@@ -292,9 +292,8 @@ defmodule Mix.Tasks.New do
   # Ignore package tarball (built via "mix hex.build").
   <%= @app %>-*.tar
   <% end %>
-
-  # Temporary files for e.g. tests
-  /tmp
+  # Temporary files, for example, from tests.
+  /tmp/
   """)
 
   embed_template(:mix_exs, """
