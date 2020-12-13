@@ -69,8 +69,7 @@ defmodule EEx.Compiler do
        ) do
     if mark != '=' do
       message =
-        "the contents of this \"do\" expression won't be output without the \"<%=\" modifier; if this was intentional " <>
-          "(if the block only has side-effects), please move its contents inside the expression"
+        "the contents of this expression won't be output unless the EEx block starts with \"<%=\""
 
       :elixir_errors.erl_warn(start_line, state.file, message)
     end
