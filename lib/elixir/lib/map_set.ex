@@ -57,7 +57,7 @@ defmodule MapSet do
   @opaque t(value) :: %__MODULE__{map: %{optional(value) => []}}
   @type t :: t(term)
 
-  # TODO: Remove version key on v2.0
+  # TODO: Remove version key on Elixir v2.0
   defstruct map: %{}, version: 2
 
   @doc """
