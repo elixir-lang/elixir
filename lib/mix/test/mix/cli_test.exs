@@ -5,6 +5,12 @@ defmodule Mix.CLITest do
 
   @moduletag :tmp_dir
 
+  setup_all do
+    System.delete_env("MIX_ENV")
+    System.delete_env("MIX_TARGET")
+    System.delete_env("MIX_EXS")
+  end
+
   test "default task" do
     in_fixture("no_mixfile", fn ->
       File.write!("mix.exs", """
