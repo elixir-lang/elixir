@@ -43,6 +43,24 @@ defmodule EEx.SmartEngineTest do
     assert_received :found
   end
 
+  test "error with unused \"do\" block without \"<%=\" modifier" do
+    stderr =
+      ExUnit.CaptureIO.capture_io(:stderr, fn ->
+        assert_eval("", "<% if true do %>I'm invisible!<% end %>", assigns: %{})
+      end)
+
+    assert stderr =~ "the contents of this \"do\" expression won't be output"
+  end
+
+  test "no error with \"do\" block with \"<%=\" modifier" do
+    stderr =
+      ExUnit.CaptureIO.capture_io(:stderr, fn ->
+        assert_eval("I've appeared!", "<%= if true do %>I've appeared!<% end %>", assigns: %{})
+      end)
+
+    refute stderr =~ "the contents of this \"do\" expression won't be output"
+  end
+
   defp assert_eval(expected, actual, binding \\ []) do
     result = EEx.eval_string(actual, binding, file: __ENV__.file, engine: EEx.SmartEngine)
     assert result == expected

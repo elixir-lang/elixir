@@ -67,6 +67,14 @@ defmodule EEx.Compiler do
          scope,
          state
        ) do
+    if mark != '=' do
+      message =
+        "the contents of this \"do\" expression won't be output without the \"<%=\" modifier; if this was intentional " <>
+          "(if the block only has side-effects), please move its contents inside the expression"
+
+      :elixir_errors.erl_warn(start_line, state.file, message)
+    end
+
     {contents, line, rest} = look_ahead_middle(rest, start_line, chars)
 
     {contents, rest} =
