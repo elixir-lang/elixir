@@ -326,7 +326,7 @@ defmodule Module.Types.Expr do
     stack = push_expr_stack(expr, stack)
 
     case reduce_ok(clauses, context, &with_clause(&1, stack, &2)) do
-      {:ok, _context} -> {:ok, :dynamic, context}
+      {:ok, context} -> {:ok, :dynamic, context}
       {:error, reason} -> {:error, reason}
     end
   end
