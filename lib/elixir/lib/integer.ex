@@ -461,7 +461,6 @@ defmodule Integer do
 
   defp gcd_positive(0, integer2), do: integer2
   defp gcd_positive(integer1, 0), do: integer1
-  defp gcd_positive(equal, equal), do: equal
   defp gcd_positive(integer1, integer2), do: gcd_positive(integer2, rem(integer1, integer2))
 
   @doc false
