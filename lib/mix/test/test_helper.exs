@@ -20,6 +20,7 @@ System.delete_env("https_proxy")
 System.delete_env("HTTP_PROXY")
 System.delete_env("HTTPS_PROXY")
 System.delete_env("MIX_ENV")
+System.delete_env("MIX_TARGET")
 
 defmodule MixTest.Case do
   use ExUnit.CaseTemplate
