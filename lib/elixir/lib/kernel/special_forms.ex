@@ -1723,19 +1723,21 @@ defmodule Kernel.SpecialForms do
 
   ## Examples
 
-      case thing do
-        {:selector, i, value} when is_integer(i) ->
-          value
-        value ->
-          value
+      case File.read(file) do
+        {:ok, contents} when is_binary(contents) ->
+          String.split(contents, "\n")
+
+        {:error, _reason} ->
+          Logger.warning "could not find #{file}, assuming empty..."
+          []
       end
 
-  In the example above, we match `thing` against each clause "head"
-  and execute the clause "body" corresponding to the first clause
-  that matches.
+  In the example above, we match the result of `File.read/1`
+  against each clause "head" and execute the clause "body"
+  corresponding to the first clause that matches.
 
-  If no clause matches, an error is raised.
-  For this reason, it may be necessary to add a final catch-all clause (like `_`)
+  If no clause matches, an error is raised. For this reason,
+  it may be necessary to add a final catch-all clause (like `_`)
   which will always match.
 
       x = 10
@@ -1743,6 +1745,7 @@ defmodule Kernel.SpecialForms do
       case x do
         0 ->
           "This clause won't match"
+
         _ ->
           "This clause would match any value (x = #{x})"
       end
@@ -1760,8 +1763,7 @@ defmodule Kernel.SpecialForms do
       value
       #=> unbound variable value
 
-  When binding variables with the same names as variables in the outer context,
-  the variables in the outer context are not affected.
+  Variables in the outer context cannot be overridden either:
 
       value = 7
 
@@ -1787,6 +1789,19 @@ defmodule Kernel.SpecialForms do
         _ -> "Will match"
       end
       #=> "Will match"
+
+  ## Using guards to match against multiple values
+
+  While it is not possible to match against multiple patterns in a single
+  clause, it's possible to match against multiple values by using guards:
+
+      case data do
+        value when value in [:one, :two] ->
+          "#{value} has been matched"
+
+        :three ->
+          "three has been matched"
+      end
 
   """
   defmacro case(condition, clauses), do: error!([condition, clauses])
