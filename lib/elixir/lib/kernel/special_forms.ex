@@ -1788,6 +1788,27 @@ defmodule Kernel.SpecialForms do
       end
       #=> "Will match"
 
+
+  ## Using guards to match against multiple values
+
+  It's possible to match against several values using standard pattern
+  matching syntax:
+
+      case data do
+        value when value in [:one, :two] ->
+          "#{value} has been matched"
+        :three ->
+          "three has been matched"
+      end
+
+  The case above will get compiled as follows:
+
+      case data do
+        value when value == :one or value == :two ->
+          "#{value} has been matched"
+        :three ->
+          "three has been matched"
+      end
   """
   defmacro case(condition, clauses), do: error!([condition, clauses])
 
