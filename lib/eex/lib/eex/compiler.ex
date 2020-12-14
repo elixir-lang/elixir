@@ -67,6 +67,13 @@ defmodule EEx.Compiler do
          scope,
          state
        ) do
+    if mark != '=' do
+      message =
+        "the contents of this expression won't be output unless the EEx block starts with \"<%=\""
+
+      :elixir_errors.erl_warn(start_line, state.file, message)
+    end
+
     {contents, line, rest} = look_ahead_middle(rest, start_line, chars)
 
     {contents, rest} =
