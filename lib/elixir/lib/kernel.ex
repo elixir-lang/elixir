@@ -4295,6 +4295,28 @@ defmodule Kernel do
   Note that `\\` can't be used with anonymous functions because they
   can only have a sole arity.
 
+  ### Keyword lists with default arguments
+
+  Functions containing many arguments can benefit from using `Keyword`
+  lists to group and pass attributes as a single value.
+
+     defmodule MyConfiguration do
+       @default_opts [storage: "local"]
+
+       def configure(resource, opts \\ []) do
+         opts = Keyword.merge(@default_opts, opts)
+         storage = opts[:storage]
+         # ...
+       end
+     end
+
+  The difference between using `Map` and `Keyword` to store many
+  arguments is `Keyword`'s keys:
+
+    * must be atoms
+    * can be given more than once
+    * ordered, as specified by the developer
+
   ## Function and variable names
 
   Function and variable names have the following syntax:
