@@ -4,11 +4,11 @@ defmodule Protocol do
 
   A protocol specifies an API that should be defined by its
   implementations. A protocol is defined with `Kernel.defprotocol/2`
-  and its implementations with `Kernel.defimpl/2`.
+  and its implementations with `Kernel.defimpl/3`.
 
-  ## Examples
+  ## A real case
 
-  In Elixir, we have two verbs for checking how many items there
+  In Elixir, we have two nouns for checking how many items there
   are in a data structure: `length` and `size`.  `length` means the
   information must be computed. For example, `length(list)` needs to
   traverse the whole list to calculate its length. On the other hand,
@@ -53,7 +53,7 @@ defmodule Protocol do
 
   It is possible to implement protocols for all Elixir types:
 
-    * Structs (see below)
+    * Structs (see the "Protocols and Structs" section below)
     * `Tuple`
     * `Atom`
     * `List`
@@ -65,7 +65,7 @@ defmodule Protocol do
     * `Map`
     * `Port`
     * `Reference`
-    * `Any` (see below)
+    * `Any` (see the "Fallback to `Any`" section below)
 
   ## Protocols and Structs
 
@@ -79,7 +79,7 @@ defmodule Protocol do
       end
 
   When implementing a protocol for a struct, the `:for` option can
-  be omitted if the `defimpl` call is inside the module that defines
+  be omitted if the `defimpl/3` call is inside the module that defines
   the struct:
 
       defmodule User do
@@ -134,13 +134,13 @@ defmodule Protocol do
         def reverse(term), do: Enum.reverse(term)
       end
 
-  Inside `defimpl/2`, you can use `@protocol` to access the protocol
+  Inside `defimpl/3`, you can use `@protocol` to access the protocol
   being implemented and `@for` to access the module it is being
   defined for.
 
   ## Types
 
-  Defining a protocol automatically defines a type named `t`, which
+  Defining a protocol automatically defines a zero-arity type named `t`, which
   can be used as follows:
 
       @spec print_size(Size.t()) :: :ok
@@ -194,11 +194,11 @@ defmodule Protocol do
   In addition, every protocol implementation module contains the `__impl__/1`
   function. The function takes one of the following atoms:
 
-      * `:for` - returns the module responsible for the data structure of the
-        protocol implementation
+    * `:for` - returns the module responsible for the data structure of the
+      protocol implementation
 
-      * `:protocol` - returns the protocol module for which this implementation
-      is provided
+    * `:protocol` - returns the protocol module for which this implementation
+    is provided
 
   For example, the module implementing the `Enumerable` protocol for lists is
   `Enumerable.List`. Therefore, we can invoke `__impl__/1` on this module:
