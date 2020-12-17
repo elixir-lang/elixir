@@ -44,10 +44,6 @@
 
 ### 2. Bug fixes
 
-#### EEx
-
-  * [EEx.Engine] Properly handle newlines when using CRLF
-
 #### Elixir
 
   * [Kernel] Preserve CRLF on heredocs
