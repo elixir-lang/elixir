@@ -7,17 +7,26 @@
 #### EEx
 
   * [EEx.Engine] Add `c:EEx.Engine.handle_text/3` callback that receives text metadata
+  * [EEx.Engine] Emit warnings for unused "do" expression in EEx
 
 #### Elixir
 
+  * [DateTime] Add `offset` to `DateTime.to_iso8601/2` (now `to_iso8601/3`)
+  * [Enum] Add `Enum.count_until/2` and `Enum.count_until/3`
+  * [Enum] Add `Enum.product/1`
   * [Enum] Add `Enum.zip_with/2` and `Enum.zip_with/3`
+  * [Enum] Add support for functions as the second argument of `Enum.with_index/2`
+  * [Float] Add `Float.pow/2`
+  * [Integer] Add `Integer.pow/2`
   * [List] Add default value for `List.first/1` and `List.last/1`
   * [Kernel] Do not add runtime dependencies to remotes in typespecs
   * [Kernel] When there is an unused variable warning and there is a variable with the same name previously defined, suggest the user may have wanted to use the pin operator
   * [Module] Add `Module.get_definition/2` and `Module.delete_definition/2`
   * [Module] Allow `@on_load` to be a private function
+  * [Regex] Add offset option to `Regex.scan/3` and `Regex.run/3`
   * [Stream] Add `Stream.zip_with/2` and `Stream.zip_with/3`
   * [String] Add `:turkic` mode option to String case functions
+  * [Tuple] Add `Tuple.sum/1` and `Tuple.product/1`
 
 #### ExUnit
 
@@ -31,11 +40,17 @@
 #### Mix
 
   * [Mix] Support `:exit_code` option in `Mix.raise/2`
+  * [Mix] Discard `MIX_ENV` and `MIX_TARGET` values if they are empty strings
 
 ### 2. Bug fixes
 
+#### EEx
+
+  * [EEx.Engine] Properly handle newlines when using CRLF
+
 #### Elixir
 
+  * [Kernel] Preserve CRLF on heredocs
   * [Kernel] Public functions without documentation now appear as an empty map on `Code.fetch_docs/1`, unless they start with underscore, where they remain as `:none`. This aligns Elixir's implementation with EEP48
   * [OptionParser] Properly parse when numbers follow-up aliases, for example, `-ab3` is now parsed as `-a -b 3`
 
