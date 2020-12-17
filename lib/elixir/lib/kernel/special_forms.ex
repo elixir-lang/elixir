@@ -201,7 +201,7 @@ defmodule Kernel.SpecialForms do
       iex> <<"foo"::utf32>>
       <<0, 0, 0, 102, 0, 0, 0, 111, 0, 0, 0, 111>>
 
-  Otherwise we get an `ArgumentError` when construcing the binary:
+  Otherwise we get an `ArgumentError` when constructing the binary:
 
       rest = "oo"
       <<102, rest>>

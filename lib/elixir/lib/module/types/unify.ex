@@ -707,7 +707,7 @@ defmodule Module.Types.Unify do
   ## Type lifting
 
   @doc """
-  Lifts type variables to their infered types from the context.
+  Lifts type variables to their inferred types from the context.
   """
   def lift_types(types, context) do
     context = %{
@@ -720,7 +720,7 @@ defmodule Module.Types.Unify do
     types
   end
 
-  # Lift type variable to its infered (hopefully concrete) types from the context
+  # Lift type variable to its inferred (hopefully concrete) types from the context
   defp lift_type({:var, var}, context) do
     case context.lifted_types do
       %{^var => lifted_var} ->
