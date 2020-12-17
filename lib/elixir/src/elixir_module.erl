@@ -143,9 +143,9 @@ compile(Line, Module, Block, Vars, E) ->
     },
 
     Binary = elixir_erl:compile(ModuleMap),
-    warn_unused_attributes(File, DataSet, DataBag, PersistedAttributes),
     autoload_module(Module, Binary, CompileOpts, NE),
     eval_callbacks(Line, DataBag, after_compile, [NE, Binary], NE),
+    warn_unused_attributes(File, DataSet, DataBag, PersistedAttributes),
     make_module_available(Module, Binary, ModuleMap),
     {module, Module, Binary, Result}
   catch
