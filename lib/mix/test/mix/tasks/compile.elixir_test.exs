@@ -80,7 +80,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       """)
 
       message =
-        "Logger.info/1 defined in application :logger is used by the current application but the current application does not directly depend on :logger"
+        "Logger.info/1 defined in application :logger is used by the current application but the current application does not depend on :logger"
 
       assert capture_io(:stderr, fn ->
                Mix.Task.run("compile", [])

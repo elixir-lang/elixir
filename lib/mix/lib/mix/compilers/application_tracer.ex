@@ -118,8 +118,8 @@ defmodule Mix.Compilers.ApplicationTracer do
   def format_warning({:undefined_app, app, module, function, arity}) do
     """
     #{Exception.format_mfa(module, function, arity)} defined in application :#{app} \
-    is used by the current application but the current application does not directly \
-    depend on :#{app}. To fix this, you must do one of:
+    is used by the current application but the current application does not depend \
+    on :#{app}. To fix this, you must do one of:
 
       1. If :#{app} is part of Erlang/Elixir, you must include it under \
     :extra_applications inside "def application" in your mix.exs
@@ -128,7 +128,7 @@ defmodule Mix.Compilers.ApplicationTracer do
     in your mix.exs
 
       3. In case you don't want to add a requirement to :#{app}, you may \
-    optionally skip this warning by adding [xref: [exclude: #{inspect(module)}]] \
+    optionally skip this warning by adding [xref: [exclude: [#{inspect(module)}]]] \
     to your "def project" in mix.exs
     """
   end
