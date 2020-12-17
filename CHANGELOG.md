@@ -257,7 +257,12 @@ Mix also includes two new tasks: `mix app.config`, for application runtime confi
 
   * [Code] Do not raise when checking for operator ambiguity when `:static_atoms_encoder` is set in `Code.string_to_quoted`
   * [Kernel] Emit undefined function warnings from `with`
+  * [Module] Do not warn for attributes used in `@after_compile`
   * [Record] Make sure nested record names do not clobber each other
+
+#### ExUnit
+
+  * [ExUnit.Assertions] Do not crash if there are macros and module attributes on the left side of `++`
 
 #### IEx
 
