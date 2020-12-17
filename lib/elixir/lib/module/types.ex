@@ -92,7 +92,7 @@ defmodule Module.Types do
       traces: %{},
       # Counter to give type variables unique names
       counter: 0,
-      # Track if a variable was infered from a type guard function such is_tuple/1
+      # Track if a variable was inferred from a type guard function such is_tuple/1
       # or a guard function that fails such as elem/2, possible values are:
       # `:guarded` when `is_tuple(x)`
       # `:guarded` when `is_tuple and elem(x, 0)`
