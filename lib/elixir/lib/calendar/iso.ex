@@ -10,7 +10,7 @@ defmodule Calendar.ISO do
 
   Given this is the default calendar used by Elixir, it has one
   difference compared to the ISO8601 specification in that it allows
-  a whitespace instead of `T` as a seperator between date and times
+  a whitespace instead of `T` as a separator between date and times
   both when parsing and formatting. Strict formatting can be done
   by using the `to_iso8601` found in `NaiveDateTime` and `DateTime`.
 

@@ -128,7 +128,7 @@ defmodule IO.ANSI.DocsTest do
         > normal
         > *italics*
         > `code`
-        > some-extremly-long-word-which-can-not-possibly-fit-into-the-previous-line
+        > some-extremely-long-word-which-can-not-possibly-fit-into-the-previous-line
 
         line2
         """)
@@ -138,7 +138,7 @@ defmodule IO.ANSI.DocsTest do
                line
                \e[0m
                \e[90m> \e[0mnormal \e[1mitalics\e[0m \e[36mcode\e[0m
-               \e[90m> \e[0msome-extremly-long-word-which-can-not-possibly-fit-into-the-previous-line
+               \e[90m> \e[0msome-extremely-long-word-which-can-not-possibly-fit-into-the-previous-line
                \e[0m
                line2
                \e[0m\
@@ -154,7 +154,7 @@ defmodule IO.ANSI.DocsTest do
         > *italics*
         >
         > `code`
-        > some-extremly-long-word-which-can-not-possibly-fit-into-the-previous-line
+        > some-extremely-long-word-which-can-not-possibly-fit-into-the-previous-line
 
         line2
         """)
@@ -166,7 +166,7 @@ defmodule IO.ANSI.DocsTest do
                \e[90m> \e[0mnormal \e[1mitalics\e[0m
                \e[90m> \e[0m
                \e[90m> \e[0m\e[36mcode\e[0m
-               \e[90m> \e[0msome-extremly-long-word-which-can-not-possibly-fit-into-the-previous-line
+               \e[90m> \e[0msome-extremely-long-word-which-can-not-possibly-fit-into-the-previous-line
                \e[0m
                line2
                \e[0m\
