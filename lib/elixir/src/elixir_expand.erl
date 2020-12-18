@@ -833,7 +833,7 @@ rewrite(_, Receiver, DotMeta, Right, Meta, EArgs) ->
   {ok, elixir_rewrite:rewrite(Receiver, DotMeta, Right, Meta, EArgs)}.
 
 maybe_warn_comparison({{'.', _, [erlang, Op]}, Meta, [ELeft, ERight]}, [Left, Right], E)
-    when Op =:= '>'; Op =:= '<'; Op =:= '=<'; Op =:= '>=' ->
+    when Op =:= '>'; Op =:= '<'; Op =:= '=<'; Op =:= '>='; Op =:= min; Op =:= max ->
   case is_struct_comparison(ELeft, ERight, Left, Right) of
     false ->
       case is_nested_comparison(Op, ELeft, ERight, Left, Right) of
@@ -1244,9 +1244,9 @@ format_error({underscored_var_access, Name}) ->
 format_error({struct_comparison, StructExpr}) ->
   String = 'Elixir.Macro':to_string(StructExpr),
   io_lib:format("invalid comparison with struct literal ~ts. Comparison operators "
-                "(>, <, >=, <=) perform structural and not semantic comparison. "
+                "(>, <, >=, <=, min, and max) perform structural and not semantic comparison. "
                 "Comparing with a struct literal is unlikely to give a meaningful result. "
-                "Modules typically define a compare/2 function that can be used for "
+                "Struct modules typically define a compare/2 function that can be used for "
                 "semantic comparison", [String]);
 format_error({nested_comparison, CompExpr}) ->
   String = 'Elixir.Macro':to_string(CompExpr),
