@@ -68,7 +68,7 @@ defmodule Mix.Compilers.Elixir do
 
     stale = changed -- removed
 
-    sources =
+    {sources, removed_modules} =
       removed
       |> Enum.reduce(all_sources, &List.keydelete(&2, &1, source(:source)))
       |> update_stale_sources(stale, sources_stats)
@@ -88,7 +88,7 @@ defmodule Mix.Compilers.Elixir do
 
         # Stores state for keeping track which files were compiled
         # and the dependencies between them.
-        put_compiler_info({modules, exports, sources, modules, %{}})
+        put_compiler_info({modules, exports, sources, modules, removed_modules})
 
         try do
           compile_path(stale, dest, timestamp, opts)
@@ -295,8 +295,13 @@ defmodule Mix.Compilers.Elixir do
           module(module, sources: source_files -- changed)
         end
 
-      sources = update_stale_sources(sources, changed)
-      put_compiler_info({modules, exports, sources, pending_modules, %{}})
+      # If we have a compile time dependency to a module, as soon as its file
+      # change, we will detect the compile time dependency and recompile. However,
+      # the whole goal of pending exports is to delay this decision, so we need to
+      # track which modules were removed and start them as our pending exports and
+      # remove the pending exports as we notice they have not gone stale.
+      {sources, removed_modules} = update_stale_sources(sources, changed)
+      put_compiler_info({modules, exports, sources, pending_modules, removed_modules})
       {:compile, changed, []}
     end
   end
@@ -338,6 +343,7 @@ defmodule Mix.Compilers.Elixir do
 
   defp each_module(file, module, _binary, cwd) do
     {modules, exports, sources, pending_modules, pending_exports} = get_compiler_info()
+
     kind = detect_kind(module)
     file = Path.relative_to(file, cwd)
     external = get_external_resources(module, cwd)
@@ -347,9 +353,9 @@ defmodule Mix.Compilers.Elixir do
 
     pending_exports =
       if old_export && old_export != new_export do
-        Map.put(pending_exports, module, true)
-      else
         pending_exports
+      else
+        Map.delete(pending_exports, module)
       end
 
     {module_sources, existing_module?} =
@@ -463,16 +469,27 @@ defmodule Mix.Compilers.Elixir do
 
   # Store empty sources for the changed ones as the compiler appends data
   defp update_stale_sources(sources, changed) do
-    Enum.reduce(changed, sources, fn file, acc ->
-      {source(size: size), acc} = List.keytake(acc, file, source(:source))
-      [source(source: file, size: size) | acc]
+    Enum.reduce(changed, {sources, %{}}, fn file, {acc_sources, acc_modules} ->
+      {source(size: size, modules: modules), acc_sources} =
+        List.keytake(acc_sources, file, source(:source))
+
+      acc_modules = Enum.reduce(modules, acc_modules, &Map.put(&2, &1, true))
+      {[source(source: file, size: size) | acc_sources], acc_modules}
     end)
   end
 
   defp update_stale_sources(sources, stale, sources_stats) do
-    Enum.reduce(stale, sources, fn file, acc ->
+    Enum.reduce(stale, {sources, %{}}, fn file, {acc_sources, acc_modules} ->
       %{^file => {_, size}} = sources_stats
-      List.keystore(acc, file, source(:source), source(source: file, size: size))
+
+      {modules, acc_sources} =
+        case List.keytake(acc_sources, file, source(:source)) do
+          {source(modules: modules), acc_sources} -> {modules, acc_sources}
+          nil -> {[], acc_sources}
+        end
+
+      acc_modules = Enum.reduce(modules, acc_modules, &Map.put(&2, &1, true))
+      {[source(source: file, size: size) | acc_sources], acc_modules}
     end)
   end
 

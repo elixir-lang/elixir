@@ -421,6 +421,14 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
       purge([A, B])
+
+      # Remove all of the code, we should now get a compilation error
+      File.write!("lib/a.ex", """
+      """)
+
+      assert capture_io(fn ->
+               {:error, _} = Mix.Tasks.Compile.Elixir.run(["--verbose"])
+             end) =~ "A.__struct__/1 is undefined, cannot expand struct A"
     end)
   end
 
