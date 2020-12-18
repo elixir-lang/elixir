@@ -158,24 +158,31 @@ defmodule Kernel do
   evaluate to `true`. A more complete introduction to guards is available
   [in the "Patterns and Guards" page](patterns-and-guards.md).
 
-  ## Inlining
+  ## Structural comparison
 
-  Some of the functions described in this module are inlined by
-  the Elixir compiler into their Erlang counterparts in the
-  [`:erlang` module](http://www.erlang.org/doc/man/erlang.html).
-  Those functions are called BIFs (built-in internal functions)
-  in Erlang-land and they exhibit interesting properties, as some
-  of them are allowed in guards and others are used for compiler
-  optimizations.
+  The comparison functions in this module perform structural comparison.
+  This means structures are compared based on their representation and
+  not on their semantic value. This is specially important for functions
+  that are meant to provide ordering, such as `>/2`, `</2`, `>=/2`,
+  `<=/2`, `min/2`, and `max/2`. For example:
 
-  Most of the inlined functions can be seen in effect when
-  capturing the function:
+      ~D[2017-03-31] > ~D[2017-04-01]
 
-      iex> &Kernel.is_atom/1
-      &:erlang.is_atom/1
+  will return `true` because structural comparison compares the `:day`
+  field before `:month` or `:year`. Therefore, when comparing structs,
+  you often use the `compare/2` function made available by the structs
+  modules themselves:
 
-  Those functions will be explicitly marked in their docs as
-  "inlined by the compiler".
+      iex> Date.compare(~D[2017-03-31], ~D[2017-04-01])
+      :lt
+
+  Alternatively, you can use the functions in the `Enum` module to
+  sort or compute a maximum/minimum:
+
+      iex> Enum.sort([~D[2017-03-31], ~D[2017-04-01]], Date)
+      [~D[2017-03-31], ~D[2017-04-01]]
+      iex> Enum.max([~D[2017-03-31], ~D[2017-04-01]], Date)
+      ~D[2017-04-01]
 
   ## Truthy and falsy values
 
@@ -212,6 +219,24 @@ defmodule Kernel do
       iex> !!nil
       false
 
+  ## Inlining
+
+  Some of the functions described in this module are inlined by
+  the Elixir compiler into their Erlang counterparts in the
+  [`:erlang` module](http://www.erlang.org/doc/man/erlang.html).
+  Those functions are called BIFs (built-in internal functions)
+  in Erlang-land and they exhibit interesting properties, as some
+  of them are allowed in guards and others are used for compiler
+  optimizations.
+
+  Most of the inlined functions can be seen in effect when
+  capturing the function:
+
+      iex> &Kernel.is_atom/1
+      &:erlang.is_atom/1
+
+  Those functions will be explicitly marked in their docs as
+  "inlined by the compiler".
   """
 
   # We need this check only for bootstrap purposes.
@@ -781,9 +806,14 @@ defmodule Kernel do
 
   @doc """
   Returns the biggest of the two given terms according to
-  Erlang's term ordering.
+  their structural comparison.
 
   If the terms compare equal, the first one is returned.
+
+  This performs a structural comparison where all Elixir
+  terms can be compared with each other. See the ["Structural
+  comparison" section](#module-structural-comparison) section
+  for more information.
 
   Inlined by the compiler.
 
@@ -794,16 +824,6 @@ defmodule Kernel do
       iex> max(:a, :b)
       :b
 
-  Using Erlang's term ordering means that comparisons are
-  structural and not semantic. For example, when comparing dates:
-
-      iex> max(~D[2017-03-31], ~D[2017-04-01])
-      ~D[2017-03-31]
-
-  In the example above, `max/2` returned March 31st instead of April 1st
-  because the structural comparison compares the day before the year. In
-  such cases it is common for modules to provide functions such as
-  `Date.compare/2` that perform semantic comparison.
   """
   @spec max(first, second) :: first | second when first: term, second: term
   def max(first, second) do
@@ -812,9 +832,14 @@ defmodule Kernel do
 
   @doc """
   Returns the smallest of the two given terms according to
-  Erlang's term ordering.
+  their structural comparison.
 
   If the terms compare equal, the first one is returned.
+
+  This performs a structural comparison where all Elixir
+  terms can be compared with each other. See the ["Structural
+  comparison" section](#module-structural-comparison) section
+  for more information.
 
   Inlined by the compiler.
 
@@ -825,16 +850,6 @@ defmodule Kernel do
       iex> min("foo", "bar")
       "bar"
 
-  Using Erlang's term ordering means that comparisons are
-  structural and not semantic. For example, when comparing dates:
-
-      iex> min(~D[2017-03-31], ~D[2017-04-01])
-      ~D[2017-04-01]
-
-  In the example above, `min/2` returned April 1st instead of March 31st
-  because the structural comparison compares the day before the year. In
-  such cases it is common for modules to provide functions such as
-  `Date.compare/2` that perform semantic comparison.
   """
   @spec min(first, second) :: first | second when first: term, second: term
   def min(first, second) do
@@ -1430,7 +1445,10 @@ defmodule Kernel do
 
   Returns `true` if `left` is less than `right`.
 
-  All terms in Elixir can be compared with each other.
+  This performs a structural comparison where all Elixir
+  terms can be compared with each other. See the ["Structural
+  comparison" section](#module-structural-comparison) section
+  for more information.
 
   Allowed in guard tests. Inlined by the compiler.
 
@@ -1451,7 +1469,10 @@ defmodule Kernel do
 
   Returns `true` if `left` is more than `right`.
 
-  All terms in Elixir can be compared with each other.
+  This performs a structural comparison where all Elixir
+  terms can be compared with each other. See the ["Structural
+  comparison" section](#module-structural-comparison) section
+  for more information.
 
   Allowed in guard tests. Inlined by the compiler.
 
@@ -1472,7 +1493,10 @@ defmodule Kernel do
 
   Returns `true` if `left` is less than or equal to `right`.
 
-  All terms in Elixir can be compared with each other.
+  This performs a structural comparison where all Elixir
+  terms can be compared with each other. See the ["Structural
+  comparison" section](#module-structural-comparison) section
+  for more information.
 
   Allowed in guard tests. Inlined by the compiler.
 
@@ -1493,7 +1517,10 @@ defmodule Kernel do
 
   Returns `true` if `left` is more than or equal to `right`.
 
-  All terms in Elixir can be compared with each other.
+  This performs a structural comparison where all Elixir
+  terms can be compared with each other. See the ["Structural
+  comparison" section](#module-structural-comparison) section
+  for more information.
 
   Allowed in guard tests. Inlined by the compiler.
 
