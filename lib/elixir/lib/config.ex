@@ -235,6 +235,25 @@ defmodule Config do
     end
   end
 
+  @doc """
+  Works the same as `import_config` but will silently accept missing files.
+  """
+  defmacro import_config_if_exists(file) do
+    quote do
+      Config.__import__(Path.expand(unquote(file), __DIR__))
+      :ok
+    end
+  end
+
+  @doc false
+  @spec __import__(Path.t()) :: {:ok, {term, Code.binding()}} | :no_file
+  def __import__(file) do
+    case File.exists?(file) do
+      true -> __import__!(file)
+      false -> :no_file
+    end
+  end
+
   @doc false
   @spec __import__!(Path.t()) :: {term, Code.binding()}
   def __import__!(file) when is_binary(file) do
