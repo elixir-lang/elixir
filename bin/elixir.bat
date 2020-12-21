@@ -99,18 +99,21 @@ if !par!=="+elixirc" (set parsElixir=!parsElixir! +elixirc && set runMode="elixi
 rem ******* EVAL PARAMETERS ************************
 if ""==!par:-e=! (
   set "VAR=%~1"
+  if not defined VAR (set VAR= )
   set parsElixir=!parsElixir! -e "!VAR:"=\"!"
   shift
   goto startloop
 )
 if ""==!par:--eval=! (
   set "VAR=%~1"
+  if not defined VAR (set VAR= )
   set parsElixir=!parsElixir! --eval "!VAR:"=\"!"
   shift
   goto startloop
 )
 if ""==!par:--rpc-eval=! (
   set "VAR=%~2"
+  if not defined VAR (set VAR= )
   set parsElixir=!parsElixir! --rpc-eval %1 "!VAR:"=\"!"
   shift
   shift
