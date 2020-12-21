@@ -208,6 +208,13 @@ defmodule Mix.Tasks.Deps.Compile do
 
     File.mkdir_p!(dep_path)
     File.write!(config_path, rebar_config(dep))
+
+    # We need to copy symlink in case it is needed for
+    # compiling the dependency itself. Later on we will
+    # build the whole structure and also symlink/copy
+    # priv and ebin.
+    Mix.Utils.symlink_or_copy(Path.join(opts[:dest], "include"), Path.join(dep_path, "include"))
+
     do_command(dep, config, cmd, false, env)
   end
 
