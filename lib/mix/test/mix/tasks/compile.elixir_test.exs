@@ -109,6 +109,22 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   end
 
+  test "generates module-application manifest" do
+    in_fixture("no_mixfile", fn ->
+      Mix.Tasks.Compile.Elixir.run([])
+
+      assert File.regular?("_build/dev/lib/sample/.mix/compile.elixir")
+    end)
+  end
+
+  test "generates module-application manifest even if there isn't any source code" do
+    in_fixture("no_source_code", fn ->
+      Mix.Tasks.Compile.Elixir.run([])
+
+      assert File.regular?("_build/dev/lib/sample/.mix/compile.elixir")
+    end)
+  end
+
   test "recompiles module-application manifest if manifest is outdated" do
     in_fixture("no_mixfile", fn ->
       Mix.Tasks.Compile.Elixir.run(["--force"])
