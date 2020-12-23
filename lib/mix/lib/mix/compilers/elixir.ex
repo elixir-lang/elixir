@@ -123,6 +123,7 @@ defmodule Mix.Compilers.Elixir do
         if not File.exists?(manifest) do
           write_manifest(manifest, [], [], %{}, timestamp)
         end
+
         {:noop, warning_diagnostics(sources)}
     end
   end
