@@ -120,7 +120,9 @@ defmodule Mix.Compilers.Elixir do
         {:ok, warning_diagnostics(sources)}
 
       true ->
-        write_manifest(manifest, [], [], %{}, timestamp)
+        if not File.exists?(manifest) do
+          write_manifest(manifest, [], [], %{}, timestamp)
+        end
         {:noop, warning_diagnostics(sources)}
     end
   end
