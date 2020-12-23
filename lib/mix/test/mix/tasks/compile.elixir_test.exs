@@ -117,8 +117,8 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   end
 
-  test "generates module-application manifest even if there isn't any source code" do
-    in_fixture("no_source_code", fn ->
+  test "generates module-application manifest even if there isn't any Elixir source code" do
+    in_fixture("compile_erlang", fn ->
       Mix.Tasks.Compile.Elixir.run([])
 
       assert File.regular?("_build/dev/lib/sample/.mix/compile.elixir")
