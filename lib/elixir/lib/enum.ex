@@ -509,6 +509,8 @@ defmodule Enum do
       ...> end
       iex> Enum.chunk_while(1..10, [], chunk_fun, after_fun)
       [[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]]
+      iex> Enum.chunk_while([1, 2, 3, 5, 7], [], chunk_fun, after_fun)
+      [[1, 2], [3, 5, 7]]
 
   """
   @doc since: "1.5.0"
