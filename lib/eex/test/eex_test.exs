@@ -256,7 +256,7 @@ defmodule EExTest do
       assert_raise EEx.SyntaxError,
                    "nofile:1:18: unexpected middle of expression <% else %>",
                    fn ->
-                     EEx.compile_string("<% if true %> foo<% else %>bar<% end %>")
+                     EEx.compile_string("<%= if true %>foo<% else %>bar<% end %>")
                    end
     end
 
@@ -267,16 +267,16 @@ defmodule EExTest do
     end
 
     test "when start expression is found without an end expression" do
-      msg = "nofile:2:17: unexpected end of string, expected a closing '<% end %>'"
+      msg = "nofile:2:18: unexpected end of string, expected a closing '<% end %>'"
 
       assert_raise EEx.SyntaxError, msg, fn ->
-        EEx.compile_string("foo\n<% if true do %>")
+        EEx.compile_string("foo\n<%= if true do %>")
       end
     end
 
     test "when nested end expression is found without a start expression" do
-      assert_raise EEx.SyntaxError, "nofile:1:30: unexpected end of expression <% end %>", fn ->
-        EEx.compile_string("foo <% if true do %><% end %><% end %>")
+      assert_raise EEx.SyntaxError, "nofile:1:31: unexpected end of expression <% end %>", fn ->
+        EEx.compile_string("foo <%= if true do %><% end %><% end %>")
       end
     end
 
@@ -524,7 +524,7 @@ defmodule EExTest do
        <% "a" in y -> %>
         Good
        <% true -> %>
-        <% if true do %>true<% else %>false<% end %>
+        <%= if true do %>true<% else %>false<% end %>
         Bad
       <% end %>
       """
@@ -569,18 +569,6 @@ defmodule EExTest do
   end
 
   describe "buffers" do
-    test "unused buffers are kept out" do
-      string = """
-      <%= 123 %>
-      <% if true do %>
-        <%= 456 %>
-      <% end %>
-      <%= 789 %>
-      """
-
-      assert_eval("123\n\n789\n", string)
-    end
-
     test "inside comprehensions" do
       string = """
       <%= for _name <- packages || [] do %>
