@@ -173,10 +173,11 @@ defmodule Kernel.LexicalTracker do
   end
 
   def handle_cast({:add_import, module, fas, line, warn}, state) do
+    to_remove = for {{:import, {^module, _, _}} = key, _} <- state.directives, do: key
+
     directives =
       state.directives
-      |> Enum.reject(&match?({{:import, {^module, _, _}}, _}, &1))
-      |> Map.new()
+      |> Map.drop(to_remove)
       |> add_directive(module, line, warn, :import)
 
     directives =
