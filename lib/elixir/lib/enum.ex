@@ -474,15 +474,25 @@ defmodule Enum do
   @doc """
   Chunks the `enumerable` with fine grained control when every chunk is emitted.
 
-  `chunk_fun` receives the current element and the accumulator and
-  must return `{:cont, chunk, acc}` to emit the given chunk and
-  continue with accumulator or `{:cont, acc}` to not emit any chunk
-  and continue with the return accumulator.
+  `chunk_fun` receives the current element and the accumulator and must return:
 
-  `after_fun` is invoked when iteration is done and must also return
-  `{:cont, chunk, acc}` or `{:cont, acc}`.
+    * `{:cont, chunk, acc}` to emit a chunk and continue with the accumulator
+    * `{:cont, acc}` to not emit any chunk and continue with the accumulator
+    * `{:halt, acc}` to halt chunking over the `enumerable`.
 
-  Returns a list of lists.
+  `after_fun` is invoked with the final accumulator when iteration is
+  finished (or `halt`ed) to handle any trailing elements that were returned
+  as part of an accumulator, but were not emited as a chunk by `chunk_fun`.
+  It must return:
+
+  * `{:cont, chunk, acc}` to emit a chunk. The chunk will be appended to the
+     list of already emitted chunks.
+  * `{:cont, acc}` to not emit a chunk
+
+  (`acc` in `after_fun` return tuple is required by `chunk_every/4` to match
+  on the result, but is ignored.)
+
+  Returns a list of emitted chunks.
 
   ## Examples
 
