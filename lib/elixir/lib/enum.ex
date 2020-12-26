@@ -525,7 +525,7 @@ defmodule Enum do
     {_, {res, acc}} =
       Enumerable.reduce(enumerable, {:cont, {[], acc}}, fn entry, {buffer, acc} ->
         case chunk_fun.(entry, acc) do
-          {:cont, emit, acc} -> {:cont, {[emit | buffer], acc}}
+          {:cont, chunk, acc} -> {:cont, {[chunk | buffer], acc}}
           {:cont, acc} -> {:cont, {buffer, acc}}
           {:halt, acc} -> {:halt, {buffer, acc}}
         end
@@ -533,7 +533,7 @@ defmodule Enum do
 
     case after_fun.(acc) do
       {:cont, _acc} -> :lists.reverse(res)
-      {:cont, elem, _acc} -> :lists.reverse([elem | res])
+      {:cont, chunk, _acc} -> :lists.reverse([chunk | res])
     end
   end
 
