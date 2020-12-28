@@ -4,7 +4,7 @@ defmodule Behaviour do
 
   This module is deprecated. Instead of `defcallback/1` and
   `defmacrocallback/1`, the `@callback` and `@macrocallback`
-  module attributes can be used (respectively). See the
+  module attributes can be used respectively. See the
   documentation for `Module` for more information on these
   attributes.
 
@@ -17,6 +17,7 @@ defmodule Behaviour do
   @doc """
   Defines a function callback according to the given type specification.
   """
+  @deprecated "Use the @callback module attribute instead"
   defmacro defcallback(spec) do
     do_defcallback(:def, split_spec(spec, quote(do: term)))
   end
@@ -24,6 +25,7 @@ defmodule Behaviour do
   @doc """
   Defines a macro callback according to the given type specification.
   """
+  @deprecated "Use the @macrocallback module attribute instead"
   defmacro defmacrocallback(spec) do
     do_defcallback(:defmacro, split_spec(spec, quote(do: Macro.t())))
   end
