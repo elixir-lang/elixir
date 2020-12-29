@@ -1278,6 +1278,16 @@ defmodule KernelTest do
     end
   end
 
+  test "tap/1" do
+    import ExUnit.CaptureIO
+
+    assert capture_io(fn ->
+             tap("foo", &IO.puts/1)
+           end) == "foo\n"
+
+    assert 1 = tap(1, fn x -> x + 1 end)
+  end
+
   test "tl/1" do
     assert tl([:one]) == []
     assert tl([1, 2, 3]) == [2, 3]

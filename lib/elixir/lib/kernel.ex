@@ -1127,6 +1127,27 @@ defmodule Kernel do
   end
 
   @doc """
+  Applies a function over a value returns the initial value.
+
+  Useful for running synchronous side effects when you don't want their
+  result to affect a pipe chain.
+
+  ## Examples
+
+    iex> tap(1, fn x -> x + 1 end)
+    1
+
+    iex> tap(%{a: 1}, &IO.inspect(Map.keys(&1)))
+    %{a: 1}
+  """
+  @doc since: "1.12.0"
+  @spec tap(var, (var -> any)) :: var when var: term
+  def tap(var, fun) when is_function(fun, 1) do
+    fun.(var)
+    var
+  end
+
+  @doc """
   A non-local return from a function.
 
   Check `Kernel.SpecialForms.try/1` for more information.
