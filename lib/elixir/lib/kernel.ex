@@ -2473,7 +2473,7 @@ defmodule Kernel do
   """
   @doc since: "1.12.0"
   @spec then(x, (x -> result)) :: result when result: any(), x: any()
-  def then(x, fun), do: fun.(x)
+  def then(x, fun) when is_function(fun, 1), do: fun.(x)
 
   @doc """
   Gets a value from a nested structure.
