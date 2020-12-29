@@ -1127,6 +1127,33 @@ defmodule Kernel do
   end
 
   @doc """
+  Pipes `value` to the given `fun` and returns the `value` itself.
+
+  Useful for running synchronous side effects in a pipeline.
+
+  ## Examples
+
+      iex> tap(1, fn x -> x + 1 end)
+      1
+
+  Most commonly, this is used in pipelines. For example,
+  let's suppose you want to inspect part of a data structure.
+  You could write:
+
+      %{a: 1}
+      |> Map.update!(:a, & &1 + 2)
+      |> tap(&IO.inspect(&1.a))
+      |> Map.update!(:a, & &1 * 2)
+
+  """
+  @doc since: "1.12.0"
+  @spec tap(x, (x -> any)) :: x when x: var
+  def tap(value, fun) when is_function(fun, 1) do
+    fun.(value)
+    value
+  end
+
+  @doc """
   A non-local return from a function.
 
   Check `Kernel.SpecialForms.try/1` for more information.
