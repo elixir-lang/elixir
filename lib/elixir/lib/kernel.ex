@@ -2456,6 +2456,26 @@ defmodule Kernel do
   end
 
   @doc """
+  Pipes a value into the function.
+
+  Using pipe `|>` operator you cannot use anonymous functions directly.
+  To make them work you need to wrap them into parentheses
+  and call such function like:
+
+      iex> 1 |> (fn x -> x * 2 end).()
+
+  This function makes such code easy to read.
+
+  ### Examples
+
+      iex> 1 |> then(fn x -> x * 2 end)
+      2
+  """
+  @doc since: "1.12.0"
+  @spec then(x, (x -> result)) :: result when result: any(), x: any()
+  def then(x, fun), do: fun.(x)
+
+  @doc """
   Gets a value from a nested structure.
 
   Uses the `Access` module to traverse the structures
