@@ -2459,11 +2459,6 @@ defmodule Kernel do
   Pipes a value into the function.
 
   Using pipe `|>` operator you cannot use anonymous functions directly.
-  To make them work you need to wrap them into parentheses
-  and call such function like:
-
-      iex> 1 |> (fn x -> x * 2 end).()
-
   This function makes such code easy to read.
 
   ### Examples
@@ -3714,6 +3709,12 @@ defmodule Kernel do
   Elixir sees the right-hand side is a function call and pipes
   to it. This means that, if you want to pipe to an anonymous
   or captured function, it must also be explicitly called.
+
+  However since `1.12.0` you can use `then/2` and
+  pass an anonymous function to it without a need for an
+  explicit call, for example:
+
+      1 |> then(fn x -> x * 2 end)
 
   Given the anonymous function:
 
