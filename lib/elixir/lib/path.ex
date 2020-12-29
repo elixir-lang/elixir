@@ -313,11 +313,18 @@ defmodule Path do
       iex> Path.relative_to("/usr/local/foo", "/etc")
       "/usr/local/foo"
 
+      iex> Path.relative_to("/usr/local/foo", "/usr/local/foo")
+      "."
+
   """
   @spec relative_to(t, t) :: binary
   def relative_to(path, from) do
     path = IO.chardata_to_string(path)
     relative_to(split(path), split(from), path)
+  end
+
+  defp relative_to(path, path, _original) do
+    "."
   end
 
   defp relative_to([h | t1], [h | t2], original) do
