@@ -193,7 +193,9 @@ defmodule PathTest do
     assert Path.relative_to("/usr/local/foo", "/usr/local") == "foo"
     assert Path.relative_to("/usr/local/foo", "/") == "usr/local/foo"
     assert Path.relative_to("/usr/local/foo", "/etc") == "/usr/local/foo"
-    assert Path.relative_to("/usr/local/foo", "/usr/local/foo") == "/usr/local/foo"
+    assert Path.relative_to("/usr/local/foo", "/usr/local/foo") == "."
+    assert Path.relative_to("/usr/local/foo/", "/usr/local/foo") == "."
+    assert Path.relative_to("/usr/local/foo", "/usr/local/foo/") == "."
 
     assert Path.relative_to("usr/local/foo", "usr/local") == "foo"
     assert Path.relative_to("usr/local/foo", "etc") == "usr/local/foo"
