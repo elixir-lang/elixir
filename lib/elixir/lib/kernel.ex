@@ -3701,38 +3701,24 @@ defmodule Kernel do
 
       "Hello" |> String.graphemes() |> Enum.reverse()
 
-  The second pitfall is that the `|>` operator works on calls.
-  For example, when you write:
+  The second limitation is that Elixir always pipes to a function
+  call. Therefore, to pipe into an anonymous function, you need the
+  invoke it:
 
-      "Hello" |> some_function()
+      some_fun = &Regex.replace(~r/l/, &1, "L")
+      "Hello" |> some_fun.()
 
-  Elixir sees the right-hand side is a function call and pipes
-  to it. This means that, if you want to pipe to an anonymous
-  or captured function, it must also be explicitly called.
+  Alternatively, you can use `then/2` for the same effect:
 
-  However since `1.12.0` you can use `then/2` and
-  pass an anonymous function to it without a need for an
-  explicit call, for example:
+      some_fun = &Regex.replace(~r/l/, &1, "L")
+      "Hello" |> then(some_fun)
 
-      1 |> then(fn x -> x * 2 end)
+  `then/2` is most commonly used when you want to pipe to a function
+  but the value is expected outside of the first argument, such as
+  above. By replacing `some_fun` by its value, we get:
 
-  Given the anonymous function:
+      "Hello" |> then(&Regex.replace(~r/l/,&1, "L"))
 
-      fun = fn x -> IO.puts(x) end
-      fun.("Hello")
-
-  This won't work as it will rather try to invoke the local
-  function `fun`:
-
-      "Hello" |> fun()
-
-  This works:
-
-      "Hello" |> fun.()
-
-  As you can see, the `|>` operator retains the same semantics
-  as when the pipe is not used since both require the `fun.(...)`
-  notation.
   """
   defmacro left |> right do
     [{h, _} | t] = Macro.unpipe({:|>, [], [left, right]})
