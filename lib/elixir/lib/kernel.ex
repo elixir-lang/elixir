@@ -2472,7 +2472,7 @@ defmodule Kernel do
       2
   """
   @doc since: "1.12.0"
-  @spec then(x, (x -> result)) :: result when result: any, x: var
+  @spec then(x, (x -> result)) :: result when result: var, x: var
   def then(value, fun) when is_function(fun, 1), do: fun.(value)
 
   @doc """
