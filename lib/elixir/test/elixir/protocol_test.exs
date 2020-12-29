@@ -262,6 +262,33 @@ defmodule ProtocolTest do
                    end
                  end
   end
+
+  test "cannot define function definitions inside protocol" do
+    assert_raise CompileError, ~r"undefined function def/2", fn ->
+      defprotocol Foo do
+        def bar(arg), do: arg
+      end
+    end
+
+    assert_raise CompileError, ~r"undefined function defdelegate/2", fn ->
+      defprotocol Foo do
+        defdelegate reverse(list), to: Enum
+      end
+    end
+
+    assert_raise CompileError, ~r"undefined function defmacro/2", fn ->
+      defprotocol Foo do
+        defmacro __using__(options) do
+        end
+      end
+    end
+
+    assert_raise CompileError, ~r"undefined function defguard/1", fn ->
+      defprotocol Foo do
+        defguard is_something(arg) when arg == :something
+      end
+    end
+  end
 end
 
 defmodule Protocol.DebugInfoTest do
