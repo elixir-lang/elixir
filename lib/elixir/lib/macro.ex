@@ -270,7 +270,7 @@ defmodule Macro do
   def pipe(expr, {:fn, _, _}, _integer) do
     raise ArgumentError,
           "cannot pipe #{to_string(expr)} into an anonymous function without" <>
-            " calling the function; use something like (fn ... end).() or" <>
+            " calling the function; use Kernel.then/2 instead or" <>
             " define the anonymous function as a regular private function"
   end
 
