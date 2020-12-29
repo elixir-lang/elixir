@@ -2456,10 +2456,11 @@ defmodule Kernel do
   end
 
   @doc """
-  Pipes a value into the function.
+  Pipes `value` into the given `fun`.
 
-  Using pipe `|>` operator you cannot use anonymous functions directly.
-  This function makes such code easy to read.
+  In other words, it invokes `fun` with `value` as argument.
+  This is most commonly used in pipelines, allowing you
+  to pipe a value to a function outside of its first argument.
 
   ### Examples
 
