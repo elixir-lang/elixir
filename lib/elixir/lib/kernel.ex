@@ -1141,10 +1141,10 @@ defmodule Kernel do
     %{a: 1}
   """
   @doc since: "1.12.0"
-  @spec tap(var, (var -> any)) :: var when var: term
-  def tap(var, fun) when is_function(fun, 1) do
-    fun.(var)
-    var
+  @spec tap(x, (x -> any)) :: x when x: var
+  def tap(value, fun) when is_function(fun, 1) do
+    fun.(value)
+    value
   end
 
   @doc """
