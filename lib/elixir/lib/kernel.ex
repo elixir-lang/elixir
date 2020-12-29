@@ -1127,18 +1127,24 @@ defmodule Kernel do
   end
 
   @doc """
-  Applies a function over a value returns the initial value.
+  Pipes `value` to the given `fun` and returns the `value` itself.
 
-  Useful for running synchronous side effects when you don't want their
-  result to affect a pipe chain.
+  Useful for running synchronous side effects in a pipeline.
 
   ## Examples
 
-    iex> tap(1, fn x -> x + 1 end)
-    1
+      iex> tap(1, fn x -> x + 1 end)
+      1
 
-    iex> tap(%{a: 1}, &IO.inspect(Map.keys(&1)))
-    %{a: 1}
+  Most commonly, this is used in pipelines. For example,
+  let's suppose you want to inspect part of a data structure.
+  You could write:
+
+      %{a: 1}
+      |> Map.update!(:a, & &1 + 2)
+      |> tap(&IO.inspect(&1.a))
+      |> Map.update!(:a, & &1 * 2)
+
   """
   @doc since: "1.12.0"
   @spec tap(x, (x -> any)) :: x when x: var
