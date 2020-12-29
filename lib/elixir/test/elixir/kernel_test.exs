@@ -418,6 +418,14 @@ defmodule KernelTest do
     assert exception_or_map?(%RuntimeError{}, RuntimeError) == true
   end
 
+  test "then/2" do
+    assert 1 |> then(fn x -> x * 2 end) == 2
+
+    assert_raise FunctionClauseError, fn ->
+      1 |> then(fn x, y -> x * y end)
+    end
+  end
+
   test "if/2 boolean optimization does not leak variables during expansion" do
     if false do
       :ok
