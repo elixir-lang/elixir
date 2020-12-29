@@ -189,6 +189,7 @@ defmodule Inspect.Algebra do
   @container_separator ","
   @tail_separator " |"
   @newline "\n"
+  @interpolation_identifier "\#{"
   @next_break_fits :enabled
 
   # Functional interface to "doc" records
@@ -966,6 +967,8 @@ defmodule Inspect.Algebra do
   defp fits?(w, k, b?, [{i, m, doc_nest(x, j, _)} | t]),
     do: fits?(w, k, b?, [{apply_nesting(i, k, j), m, x} | t])
 
+  defp fits?(_w, _k, _b?, [{_i, _m, doc_cons(@interpolation_identifier, _y)} | _t]),
+    do: true
   defp fits?(w, k, b?, [{i, m, doc_cons(x, y)} | t]),
     do: fits?(w, k, b?, [{i, m, x}, {i, m, y} | t])
 
