@@ -678,14 +678,18 @@ defmodule Protocol do
         # We don't allow function definition inside protocols
         import Kernel,
           except: [
-            defmacrop: 1,
-            defmacrop: 2,
-            defmacro: 1,
-            defmacro: 2,
+            def: 1,
+            def: 2,
             defp: 1,
             defp: 2,
-            def: 1,
-            def: 2
+            defdelegate: 2,
+            defexception: 1,
+            defguard: 1,
+            defguardp: 1,
+            defmacro: 1,
+            defmacro: 2,
+            defmacrop: 1,
+            defmacrop: 2
           ]
 
         # Import the new dsl that holds the new def
