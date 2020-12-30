@@ -34,7 +34,7 @@ defmodule IO do
   IO data is a data type that can be used as a more efficient alternative to binaries
   in certain situations.
 
-  A term of type **IO data** is a binary or a list containing bytes (integers in `0..255`)
+  A term of type **IO data** is a binary or a list containing bytes (integers within the `0..255` range)
   or nested IO data. The type is recursive. Let's see an example of one of
   the possible IO data representing the binary `"hello"`:
 
@@ -99,8 +99,8 @@ defmodule IO do
   Erlang and Elixir also have the idea of `t:chardata/0`. Chardata is very
   similar to IO data: the only difference is that integers in IO data represent
   bytes while integers in chardata represent Unicode code points. Bytes
-  (`t:byte/0`) are integers in the `0..255` range, while Unicode code points
-  (`t:char/0`) are integers in the range `0..0x10FFFF`. The `IO` module provides
+  (`t:byte/0`) are integers within the `0..255` range, while Unicode code points
+  (`t:char/0`) are integers within the `0..0x10FFFF` range. The `IO` module provides
   the `chardata_to_string/1` function for chardata as the "counter-part" of the
   `iodata_to_binary/1` function for IO data.
 
