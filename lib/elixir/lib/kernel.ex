@@ -3730,7 +3730,7 @@ defmodule Kernel do
       "Hello" |> String.graphemes() |> Enum.reverse()
 
   The second limitation is that Elixir always pipes to a function
-  call. Therefore, to pipe into an anonymous function, you need the
+  call. Therefore, to pipe into an anonymous function, you need to
   invoke it:
 
       some_fun = &Regex.replace(~r/l/, &1, "L")
