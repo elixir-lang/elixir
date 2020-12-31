@@ -541,9 +541,14 @@ defmodule Macro do
       iex> Macro.decompose_call(quote(do: 42))
       :error
 
+      iex> Macro.decompose_call(quote(do: {:foo, [], []}))
+      :error
+
   """
   @spec decompose_call(t()) :: {atom, [t()]} | {t(), atom, [t()]} | :error
   def decompose_call(ast)
+
+  def decompose_call({:{}, _, args}) when is_list(args), do: :error
 
   def decompose_call({{:., _, [remote, function]}, _, args})
       when is_tuple(remote) or is_atom(remote),
