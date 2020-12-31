@@ -548,7 +548,6 @@ defmodule Macro do
   @spec decompose_call(t()) :: {atom, [t()]} | {t(), atom, [t()]} | :error
   def decompose_call(ast)
 
-  # regular tuples
   def decompose_call({:{}, _, args}) when is_list(args), do: :error
 
   def decompose_call({{:., _, [remote, function]}, _, args})
