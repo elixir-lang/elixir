@@ -272,10 +272,31 @@ defmodule Code.Formatter.LiteralsTest do
       '''
     end
 
+    test "with interpolated function" do
+      assert_same ~S'''
+      """
+      foo
+      #{concat("foo", "bar")}
+      bar
+      """
+      '''
+    end
+
     test "with interpolation on line limit" do
       assert_same ~S'''
                   """
                   one #{"two two"} three
+                  """
+                  ''',
+                  @short_length
+    end
+
+    test "with interpolated function on line limit" do
+      assert_same ~S'''
+                  """
+                  foo
+                  #{concat("foo", "bar")}
+                  bar
                   """
                   ''',
                   @short_length
