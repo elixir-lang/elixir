@@ -76,9 +76,9 @@ defmodule Code.Formatter.GeneralTest do
 
     test "with interpolation on line limit" do
       assert_same ~S"""
-      ~s(one #{"two"} three)
-      """,
-      @short_length
+                  ~s(one #{"two"} three)
+                  """,
+                  @short_length
     end
 
     test "with heredoc syntax" do
@@ -109,11 +109,11 @@ defmodule Code.Formatter.GeneralTest do
 
     test "with heredoc syntax and interpolation on line limit" do
       assert_same ~S"""
-      ~s'''
-      one #{"two two"} three
-      '''
-      """,
-      @short_length
+                  ~s'''
+                  one #{"two two"} three
+                  '''
+                  """,
+                  @short_length
     end
   end
 

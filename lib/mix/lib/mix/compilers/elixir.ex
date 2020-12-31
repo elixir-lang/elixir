@@ -370,10 +370,8 @@ defmodule Mix.Compilers.Elixir do
 
     {source, sources} =
       List.keytake(sources, file, source(:source)) ||
-        Mix.raise(
-          "Could not find source for #{inspect(file)}. Make sure the :elixirc_paths configuration " <>
-            "is a list of relative paths to the current project or absolute paths to external directories"
-        )
+        Mix.raise("Could not find source for #{inspect(file)}. Make sure the :elixirc_paths configuration " <>
+          "is a list of relative paths to the current project or absolute paths to external directories")
 
     source =
       source(
@@ -464,9 +462,7 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp each_long_compilation(file, cwd, threshold) do
-    Mix.shell().info(
-      "Compiling #{Path.relative_to(file, cwd)} (it's taking more than #{threshold}s)"
-    )
+    Mix.shell().info("Compiling #{Path.relative_to(file, cwd)} (it's taking more than #{threshold}s)")
   end
 
   ## Resolution

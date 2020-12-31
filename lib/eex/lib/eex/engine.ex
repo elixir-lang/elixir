@@ -137,11 +137,9 @@ defmodule EEx.Engine do
       :error ->
         keys = Enum.map(assigns, &elem(&1, 0))
 
-        IO.warn(
-          "assign @#{key} not available in EEx template. " <>
-            "Please ensure all assigns are given as options. " <>
-            "Available assigns: #{inspect(keys)}"
-        )
+        IO.warn("assign @#{key} not available in EEx template. " <>
+          "Please ensure all assigns are given as options. " <>
+          "Available assigns: #{inspect(keys)}")
 
         nil
     end
@@ -216,6 +214,6 @@ defmodule EEx.Engine do
 
   defp check_state!(state) do
     raise "unexpected EEx.Engine state: #{inspect(state)}. " <>
-            "This typically means a bug or an outdated EEx.Engine or tool"
+      "This typically means a bug or an outdated EEx.Engine or tool"
   end
 end

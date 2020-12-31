@@ -161,8 +161,7 @@ defmodule FileTest do
       src = tmp_fixture_path("invalid.txt")
       dest = tmp_path("tmp.file")
 
-      message =
-        "could not rename from #{inspect(src)} to #{inspect(dest)}: no such file or directory"
+      message = "could not rename from #{inspect(src)} to #{inspect(dest)}: no such file or directory"
 
       assert_raise File.RenameError, message, fn ->
         File.rename!(src, dest)
@@ -476,8 +475,7 @@ defmodule FileTest do
       src = fixture_path("cp_r")
       dest = tmp_path("tmp.file")
 
-      message =
-        "could not copy from #{inspect(src)} to #{inspect(dest)}: illegal operation on a directory"
+      message = "could not copy from #{inspect(src)} to #{inspect(dest)}: illegal operation on a directory"
 
       assert_raise File.CopyError, message, fn ->
         File.cp!(src, dest)
@@ -705,8 +703,7 @@ defmodule FileTest do
       src = fixture_path("unknown")
       dest = tmp_path("tmp")
 
-      message =
-        "could not copy recursively from #{inspect(src)} to #{inspect(dest)}. #{src}: no such file or directory"
+      message = "could not copy recursively from #{inspect(src)} to #{inspect(dest)}. #{src}: no such file or directory"
 
       assert_raise File.CopyError, message, fn ->
         File.cp_r!(src, dest)
@@ -989,8 +986,7 @@ defmodule FileTest do
       invalid = Path.join(fixture, "test")
       assert File.exists?(fixture)
 
-      message =
-        ~r"\Acould not make directory #{inspect(invalid)}: (not a directory|no such file or directory)"
+      message = ~r"\Acould not make directory #{inspect(invalid)}: (not a directory|no such file or directory)"
 
       assert_raise File.Error, message, fn ->
         File.mkdir!(invalid)
@@ -1076,8 +1072,7 @@ defmodule FileTest do
       invalid = Path.join(fixture, "test")
       assert File.exists?(fixture)
 
-      message =
-        ~r"\Acould not make directory \(with -p\) #{inspect(invalid)}: (not a directory|no such file or directory)"
+      message = ~r"\Acould not make directory \(with -p\) #{inspect(invalid)}: (not a directory|no such file or directory)"
 
       assert_raise File.Error, message, fn ->
         File.mkdir_p!(invalid)
@@ -1169,8 +1164,7 @@ defmodule FileTest do
       File.touch(fixture <> "/file")
 
       # directory is not empty
-      dir_not_empty_message =
-        "could not remove directory #{inspect(fixture)}: directory is not empty"
+      dir_not_empty_message = "could not remove directory #{inspect(fixture)}: directory is not empty"
 
       assert_raise File.Error, dir_not_empty_message, fn ->
         File.rmdir!(fixture)
@@ -1179,8 +1173,7 @@ defmodule FileTest do
       # directory does not exist
       non_existent_dir = fixture <> "/non_existent_dir"
 
-      non_existent_dir_message =
-        ~r"\Acould not remove directory #{inspect(non_existent_dir)}: (not a directory|no such file or directory)"
+      non_existent_dir_message = ~r"\Acould not remove directory #{inspect(non_existent_dir)}: (not a directory|no such file or directory)"
 
       assert_raise File.Error, non_existent_dir_message, fn ->
         File.rmdir!(non_existent_dir)
@@ -1886,8 +1879,7 @@ defmodule FileTest do
   end
 
   test "invalid_cd!" do
-    message =
-      ~r"\Acould not set current working directory to #{inspect(fixture_path("file.txt"))}: (not a directory|no such file or directory|I/O error)"
+    message = ~r"\Acould not set current working directory to #{inspect(fixture_path("file.txt"))}: (not a directory|no such file or directory|I/O error)"
 
     assert_raise File.Error, message, fn ->
       File.cd!(fixture_path("file.txt"))
@@ -1955,8 +1947,7 @@ defmodule FileTest do
   test "touch! raises" do
     fixture = fixture_path("file.txt/bar")
 
-    message =
-      ~r"\Acould not touch #{inspect(fixture)}: (not a directory|no such file or directory)"
+    message = ~r"\Acould not touch #{inspect(fixture)}: (not a directory|no such file or directory)"
 
     assert_raise File.Error, message, fn ->
       File.touch!(fixture)

@@ -101,8 +101,7 @@ defmodule Mix.Tasks.Compile.Erlang do
 
       case :compile.file(file, erlc_options) do
         {:error, :badarg} ->
-          message =
-            "Compiling Erlang #{inspect(file)} failed with ArgumentError, probably because of invalid :erlc_options"
+          message = "Compiling Erlang #{inspect(file)} failed with ArgumentError, probably because of invalid :erlc_options"
 
           Mix.raise(message)
 

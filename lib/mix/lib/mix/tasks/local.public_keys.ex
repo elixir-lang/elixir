@@ -53,9 +53,7 @@ defmodule Mix.Tasks.Local.PublicKeys do
       end
     end
 
-    Mix.shell().info(
-      "Public keys (except in-memory ones) installed at: #{Mix.PublicKey.public_keys_path()}"
-    )
+    Mix.shell().info("Public keys (except in-memory ones) installed at: #{Mix.PublicKey.public_keys_path()}")
   end
 
   defp install(source, opts) do
@@ -75,10 +73,8 @@ defmodule Mix.Tasks.Local.PublicKeys do
 
   defp should_install?(source, dest) do
     if File.exists?(dest) do
-      Mix.shell().yes?(
-        "There is already a public key named #{Path.basename(dest)}.\n" <>
-          "Are you sure you want to replace it?"
-      )
+      Mix.shell().yes?("There is already a public key named #{Path.basename(dest)}.\n" <>
+        "Are you sure you want to replace it?")
     else
       Mix.shell().yes?("Are you sure you want to install public key #{source}?")
     end

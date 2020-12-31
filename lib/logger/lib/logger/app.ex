@@ -101,11 +101,9 @@ defmodule Logger.App do
         level = Logger.Handler.elixir_level_to_erlang_level(app_level)
 
         if erl_level != :notice and erl_level != level do
-          IO.warn(
-            "the level for Erlang's logger was set to #{inspect(erl_level)}, " <>
-              "but Elixir's logger was set to #{inspect(app_level)}. " <>
-              "Elixir's logger value will take higher precedence"
-          )
+          IO.warn("the level for Erlang's logger was set to #{inspect(erl_level)}, " <>
+            "but Elixir's logger was set to #{inspect(app_level)}. " <>
+            "Elixir's logger value will take higher precedence")
         end
 
         :ok = :logger.set_primary_config(:level, level)

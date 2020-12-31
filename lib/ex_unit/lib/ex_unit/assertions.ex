@@ -558,9 +558,8 @@ defmodule ExUnit.Assertions do
       raise ExUnit.AssertionError,
         left: pattern,
         expr: code,
-        message:
-          "Assertion failed, no matching message after #{timeout}ms" <>
-            ExUnit.Assertions.__pins__(pins) <> message,
+        message: "Assertion failed, no matching message after #{timeout}ms" <>
+          ExUnit.Assertions.__pins__(pins) <> message,
         context: {:mailbox, pins, mailbox}
     end
   end
@@ -741,10 +740,9 @@ defmodule ExUnit.Assertions do
         is_struct(message, Regex) -> Exception.message(error) =~ message
       end
 
-    message =
-      "Wrong message for #{inspect(exception)}\n" <>
-        "expected:\n  #{inspect(message)}\n" <>
-        "actual:\n" <> "  #{inspect(Exception.message(error))}"
+    message = "Wrong message for #{inspect(exception)}\n" <>
+      "expected:\n  #{inspect(message)}\n" <>
+      "actual:\n" <> "  #{inspect(Exception.message(error))}"
 
     unless match?, do: flunk(message)
 
@@ -778,9 +776,8 @@ defmodule ExUnit.Assertions do
             reraise(error, __STACKTRACE__)
 
           true ->
-            message =
-              "Expected exception #{inspect(exception)} " <>
-                "but got #{inspect(name)} (#{Exception.message(error)})"
+            message = "Expected exception #{inspect(exception)} " <>
+              "but got #{inspect(name)} (#{Exception.message(error)})"
 
             reraise ExUnit.AssertionError, [message: message], __STACKTRACE__
         end
@@ -793,9 +790,8 @@ defmodule ExUnit.Assertions do
     module.message(error)
   catch
     kind, reason ->
-      message =
-        "Got exception #{inspect(module)} but it failed to produce a message with:\n\n" <>
-          Exception.format(kind, reason, __STACKTRACE__)
+      message = "Got exception #{inspect(module)} but it failed to produce a message with:\n\n" <>
+        Exception.format(kind, reason, __STACKTRACE__)
 
       flunk(message)
   end
@@ -967,9 +963,7 @@ defmodule ExUnit.Assertions do
 
     quote do
       unquote(pattern) = actual ->
-        flunk(
-          "Unexpectedly received message #{inspect(actual)} (which matched #{unquote(binary)})"
-        )
+        flunk("Unexpectedly received message #{inspect(actual)} (which matched #{unquote(binary)})")
     end
   end
 

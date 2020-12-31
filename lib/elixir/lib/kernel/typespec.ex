@@ -146,8 +146,7 @@ defmodule Kernel.Typespec do
         {line, doc} = get_doc_info(set, :typedoc, line)
 
         if doc do
-          warning =
-            "type #{name}/#{arity} is private, @typedoc's are always discarded for private types"
+          warning = "type #{name}/#{arity} is private, @typedoc's are always discarded for private types"
 
           :elixir_errors.erl_warn(line, file, warning)
         end
@@ -717,8 +716,9 @@ defmodule Kernel.Typespec do
     remote = Module.get_attribute(caller.module, attr)
 
     unless is_atom(remote) and remote != nil do
-      message =
-        "invalid remote in typespec: #{Macro.to_string(orig)} (@#{attr} is #{inspect(remote)})"
+      message = "invalid remote in typespec: #{Macro.to_string(orig)} (@#{attr} is #{inspect(
+        remote
+      )})"
 
       compile_error(caller, message)
     end
@@ -1013,11 +1013,10 @@ defmodule Kernel.Typespec do
           :ok
 
         {[?_ | _], :used_multiple} ->
-          warning =
-            "the underscored type variable \"#{name}\" is used more than once in the " <>
-              "type specification. A leading underscore indicates that the value of the " <>
-              "variable should be ignored. If this is intended please rename the variable to " <>
-              "remove the underscore"
+          warning = "the underscored type variable \"#{name}\" is used more than once in the " <>
+            "type specification. A leading underscore indicates that the value of the " <>
+            "variable should be ignored. If this is intended please rename the variable to " <>
+            "remove the underscore"
 
           :elixir_errors.erl_warn(caller.line, caller.file, warning)
 

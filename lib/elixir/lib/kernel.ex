@@ -1850,11 +1850,9 @@ defmodule Kernel do
 
   defp wrap_concatenation(literal, _side, _caller)
        when is_list(literal) or is_atom(literal) or is_integer(literal) or is_float(literal) do
-    :erlang.error(
-      ArgumentError.exception(
-        "expected binary argument in <> operator but got: #{Macro.to_string(literal)}"
-      )
-    )
+    :erlang.error(ArgumentError.exception("expected binary argument in <> operator but got: #{Macro.to_string(
+      literal
+    )}"))
   end
 
   defp wrap_concatenation(other, side, caller) do
@@ -2276,17 +2274,15 @@ defmodule Kernel do
   end
 
   defp validate_struct!(%{__struct__: struct_name}, module, arity) when is_atom(struct_name) do
-    error_message =
-      "expected struct name returned by #{inspect(module)}.__struct__/#{arity} to be " <>
-        "#{inspect(module)}, got: #{inspect(struct_name)}"
+    error_message = "expected struct name returned by #{inspect(module)}.__struct__/#{arity} to be " <>
+      "#{inspect(module)}, got: #{inspect(struct_name)}"
 
     :erlang.error(ArgumentError.exception(error_message))
   end
 
   defp validate_struct!(expr, module, arity) do
-    error_message =
-      "expected #{inspect(module)}.__struct__/#{arity} to return a map with a :__struct__ " <>
-        "key that holds the name of the struct (atom), got: #{inspect(expr)}"
+    error_message = "expected #{inspect(module)}.__struct__/#{arity} to return a map with a :__struct__ " <>
+      "key that holds the name of the struct (atom), got: #{inspect(expr)}"
 
     :erlang.error(ArgumentError.exception(error_message))
   end

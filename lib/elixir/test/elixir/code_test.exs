@@ -184,8 +184,7 @@ defmodule CodeTest do
         "@GR{+z]`_XrNla!d<GTZ]iw[s'l2N<5hGD0(.xh&}>0ptDp(amr.oS&<q(FA)5T3=},^{=JnwIOE*DPOslKV KF-kb7NF&Y#Lp3D7l/!s],^hnz1iB |E8~Y'-Rp&*E(O}|zoB#xsE.S/~~'=%H'2HOZu0PCfz6j=eHq5:yk{7&|}zeRONM+KWBCAUKWFw(tv9vkHTu#Ek$&]Q:~>,UbT}v$L|rHHXGV{;W!>avHbD[T-G5xrzR6m?rQPot-37B@"
 
       assert Code.string_to_quoted(~s[:"#{atom}"]) ==
-               {:error,
-                {[line: 1, column: 1], "atom length must be less than system limit: ", atom}}
+        {:error, {[line: 1, column: 1], "atom length must be less than system limit: ", atom}}
     end
 
     test "returns an error tuple when no atom is found with :existing_atoms_only" do

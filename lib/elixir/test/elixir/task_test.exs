@@ -264,9 +264,8 @@ defmodule TaskTest do
     test "raises when invoked from a non-owner process" do
       task = create_task_in_other_process()
 
-      message =
-        "task #{inspect(task)} must be queried from the owner " <>
-          "but was queried from #{inspect(self())}"
+      message = "task #{inspect(task)} must be queried from the owner " <>
+        "but was queried from #{inspect(self())}"
 
       assert_raise ArgumentError, message, fn -> Task.await(task, 1) end
     end
@@ -397,9 +396,8 @@ defmodule TaskTest do
         bad_task = create_task_in_other_process()
       ]
 
-      message =
-        "task #{inspect(bad_task)} must be queried from the owner " <>
-          "but was queried from #{inspect(self())}"
+      message = "task #{inspect(bad_task)} must be queried from the owner " <>
+        "but was queried from #{inspect(self())}"
 
       assert_raise ArgumentError, message, fn -> Task.await_many(tasks, 1) end
     end
@@ -434,9 +432,8 @@ defmodule TaskTest do
     test "raises when invoked from a non-owner process" do
       task = create_task_in_other_process()
 
-      message =
-        "task #{inspect(task)} must be queried from the owner " <>
-          "but was queried from #{inspect(self())}"
+      message = "task #{inspect(task)} must be queried from the owner " <>
+        "but was queried from #{inspect(self())}"
 
       assert_raise ArgumentError, message, fn -> Task.yield(task, 1) end
     end
@@ -471,9 +468,8 @@ defmodule TaskTest do
     test "raises when invoked from a non-owner process" do
       task = create_task_in_other_process()
 
-      message =
-        "task #{inspect(task)} must be queried from the owner " <>
-          "but was queried from #{inspect(self())}"
+      message = "task #{inspect(task)} must be queried from the owner " <>
+        "but was queried from #{inspect(self())}"
 
       assert_raise ArgumentError, message, fn -> Task.yield_many([task], 1) end
     end
@@ -575,9 +571,8 @@ defmodule TaskTest do
     test "raises when invoked from a non-owner process" do
       task = create_task_in_other_process()
 
-      message =
-        "task #{inspect(task)} must be queried from the owner " <>
-          "but was queried from #{inspect(self())}"
+      message = "task #{inspect(task)} must be queried from the owner " <>
+        "but was queried from #{inspect(self())}"
 
       assert_raise ArgumentError, message, fn -> Task.shutdown(task) end
     end

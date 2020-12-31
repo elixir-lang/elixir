@@ -70,9 +70,8 @@ defmodule Mix.ElixirVersionError do
     actual = opts[:actual]
     expected = opts[:expected]
 
-    message =
-      "You're trying to run #{inspect(target)} on Elixir v#{actual} but it " <>
-        "has declared in its mix.exs file it supports only Elixir #{expected}"
+    message = "You're trying to run #{inspect(target)} on Elixir v#{actual} but it " <>
+      "has declared in its mix.exs file it supports only Elixir #{expected}"
 
     %Mix.ElixirVersionError{target: target, expected: expected, actual: actual, message: message}
   end

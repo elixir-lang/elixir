@@ -596,10 +596,9 @@ defmodule Process do
       :erlang.error(ArgumentError.exception(message), [pid_or_port, name])
 
     :error, :badarg ->
-      message =
-        "could not register #{inspect(pid_or_port)} with " <>
-          "name #{inspect(name)} because it is not alive, the name is already " <>
-          "taken, or it has already been given another name"
+      message = "could not register #{inspect(pid_or_port)} with " <>
+        "name #{inspect(name)} because it is not alive, the name is already " <>
+        "taken, or it has already been given another name"
 
       :erlang.error(ArgumentError.exception(message), [pid_or_port, name])
   end

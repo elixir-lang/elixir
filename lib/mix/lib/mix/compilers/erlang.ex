@@ -150,12 +150,10 @@ defmodule Mix.Compilers.Erlang do
         :ok
 
       {:error, _} ->
-        Mix.raise(
-          "Could not compile #{inspect(Path.relative_to_cwd(input))} because " <>
-            "the application \"#{app}\" could not be found. This may happen if " <>
-            "your package manager broke Erlang into multiple packages and may " <>
-            "be fixed by installing the missing \"erlang-dev\" and \"erlang-#{app}\" packages"
-        )
+        Mix.raise("Could not compile #{inspect(Path.relative_to_cwd(input))} because " <>
+          "the application \"#{app}\" could not be found. This may happen if " <>
+          "your package manager broke Erlang into multiple packages and may " <>
+          "be fixed by installing the missing \"erlang-dev\" and \"erlang-#{app}\" packages")
     end
   end
 
