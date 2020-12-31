@@ -914,10 +914,11 @@ defmodule Protocol do
   @doc false
   def __ensure_defimpl__(protocol, for, env) do
     if Protocol.consolidated?(protocol) do
-      message = "the #{inspect(protocol)} protocol has already been consolidated, an " <>
-        "implementation for #{inspect(for)} has no effect. If you want to " <>
-        "implement protocols after compilation or during tests, check the " <>
-        "\"Consolidation\" section in the Protocol module documentation"
+      message =
+        "the #{inspect(protocol)} protocol has already been consolidated, an " <>
+          "implementation for #{inspect(for)} has no effect. If you want to " <>
+          "implement protocols after compilation or during tests, check the " <>
+          "\"Consolidation\" section in the Protocol module documentation"
 
       IO.warn(message, Macro.Env.stacktrace(env))
     end

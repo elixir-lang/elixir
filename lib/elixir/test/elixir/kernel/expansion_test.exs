@@ -2150,14 +2150,14 @@ defmodule Kernel.ExpansionTest do
 
       # Check expansion happens only once
       assert expand(quote(do: "foo#{message_hello("bar")}")) |> clean_meta([:alignment]) ==
-        quote(do: <<"foo"::binary(), "bar"::binary()>>)
+               quote(do: <<"foo"::binary(), "bar"::binary()>>)
 
       assert_received :hello
       refute_received :hello
 
       # And it also works in match
       assert expand(quote(do: "foo#{bar()}" = "foobar")) |> clean_meta([:alignment]) ==
-        quote(do: <<"foo"::binary(), "bar"::binary()>> = "foobar")
+               quote(do: <<"foo"::binary(), "bar"::binary()>> = "foobar")
     end
 
     test "inlines binaries inside interpolation is isomorphic after manual expansion" do

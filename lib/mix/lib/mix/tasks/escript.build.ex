@@ -150,8 +150,9 @@ defmodule Mix.Tasks.Escript.Build do
     end
 
     unless Code.ensure_loaded?(main) do
-      error_message = "Could not generate escript, module #{main} defined as " <>
-        ":main_module could not be loaded"
+      error_message =
+        "Could not generate escript, module #{main} defined as " <>
+          ":main_module could not be loaded"
 
       Mix.raise(error_message)
     end

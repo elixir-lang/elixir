@@ -177,9 +177,8 @@ defmodule Mix.UtilsTest do
         assert actual_link == expected_link
 
       _ ->
-        msg = "expected symlink_or_copy to return :ok or {:ok, list_of_paths}, got: #{inspect(
-          result
-        )}"
+        msg =
+          "expected symlink_or_copy to return :ok or {:ok, list_of_paths}, got: #{inspect(result)}"
 
         flunk(msg)
     end

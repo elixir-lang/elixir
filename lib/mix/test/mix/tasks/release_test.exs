@@ -256,7 +256,8 @@ defmodule Mix.Tasks.ReleaseTest do
         Mix.Project.in_project(:release_test, ".", config, fn _ ->
           root = Path.absname("_build/#{Mix.env()}/rel/demo")
 
-          erts_dir_from_previous_build = Path.absname("_build/#{Mix.env()}/rel/demo/erts-#{@erts_version}")
+          erts_dir_from_previous_build =
+            Path.absname("_build/#{Mix.env()}/rel/demo/erts-#{@erts_version}")
 
           File.mkdir_p!(erts_dir_from_previous_build)
 

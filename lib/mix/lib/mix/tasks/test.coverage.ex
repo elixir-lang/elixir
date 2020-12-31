@@ -144,10 +144,10 @@ defmodule Mix.Tasks.Test.Coverage do
           :ok
 
         {:error, reason} ->
-          Mix.raise("Failed to cover compile directory #{inspect(
-            Path.relative_to_cwd(compile_path)
-          )} " <>
-            "with reason: #{inspect(reason)}")
+          Mix.raise(
+            "Failed to cover compile directory #{inspect(Path.relative_to_cwd(compile_path))} " <>
+              "with reason: #{inspect(reason)}"
+          )
       end
     end
 

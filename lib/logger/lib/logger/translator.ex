@@ -97,9 +97,10 @@ defmodule Logger.Translator do
     {formatted, reason} = format_reason(reason)
     metadata = [crash_reason: reason] ++ registered_name(name)
 
-    msg = ["Task #{inspect(name)} started from #{inspect(starter)} terminating"] ++
-      [formatted, "\nFunction: #{inspect(function, opts)}"] ++
-      ["\n    Args: #{inspect(args, opts)}"]
+    msg =
+      ["Task #{inspect(name)} started from #{inspect(starter)} terminating"] ++
+        [formatted, "\nFunction: #{inspect(function, opts)}"] ++
+        ["\n    Args: #{inspect(args, opts)}"]
 
     {:ok, msg, metadata}
   end
@@ -114,8 +115,9 @@ defmodule Logger.Translator do
         {formatted, reason} = format_reason(reason)
         metadata = [crash_reason: reason] ++ registered_name(name)
 
-        msg = ["GenServer #{inspect(name)} terminating", formatted] ++
-          ["\nLast message#{format_from(client)}: #{inspect(last, opts)}"]
+        msg =
+          ["GenServer #{inspect(name)} terminating", formatted] ++
+            ["\nLast message#{format_from(client)}: #{inspect(last, opts)}"]
 
         if min_level == :debug do
           msg = [msg, "\nState: #{inspect(state, opts)}" | format_client(client)]

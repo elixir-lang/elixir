@@ -33,7 +33,8 @@ defmodule Kernel.CLITest do
   test "properly parses paths" do
     root = fixture_path("../../..") |> to_charlist
 
-    args = '-pa "#{root}/*" -pz "#{root}/lib/*" -e "IO.inspect(:code.get_path(), limit: :infinity)"'
+    args =
+      '-pa "#{root}/*" -pz "#{root}/lib/*" -e "IO.inspect(:code.get_path(), limit: :infinity)"'
 
     list = elixir(args)
     {path, _} = Code.eval_string(list, [])
@@ -169,7 +170,8 @@ defmodule Kernel.CLI.CompileTest do
     if access != :read_write do
       output = elixirc(compilation_args)
 
-      expected = "(File.Error) could not write to file #{inspect(context.beam_file_path)}: permission denied"
+      expected =
+        "(File.Error) could not write to file #{inspect(context.beam_file_path)}: permission denied"
 
       assert output =~ expected
     end

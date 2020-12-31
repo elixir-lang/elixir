@@ -128,7 +128,9 @@ defmodule Mix.Release do
           version = Application.spec(app, :vsn)
 
           if !version do
-            Mix.raise("Could not find version for #{inspect(app)}, please make sure the application exists")
+            Mix.raise(
+              "Could not find version for #{inspect(app)}, please make sure the application exists"
+            )
           end
 
           to_string(version)
@@ -207,8 +209,10 @@ defmodule Mix.Release do
     else
       found = Keyword.get(config, :releases, [])
 
-      Mix.raise("Unknown release #{inspect(name)}. " <>
-        "The available releases are: #{inspect(Keyword.keys(found))}")
+      Mix.raise(
+        "Unknown release #{inspect(name)}. " <>
+          "The available releases are: #{inspect(Keyword.keys(found))}"
+      )
     end
   end
 
@@ -284,7 +288,9 @@ defmodule Mix.Release do
         if properties[:included] == :maybe do
           put_in(seen[app][:included], included)
         else
-          Mix.raise("#{inspect(app)} is listed both as a regular application and as an included application")
+          Mix.raise(
+            "#{inspect(app)} is listed both as a regular application and as an included application"
+          )
         end
 
       true ->
@@ -583,8 +589,11 @@ defmodule Mix.Release do
     safe_mode? = mode in @safe_modes
 
     if not safe_mode? and mode not in @unsafe_modes do
-      throw({:error, "Unknown mode #{inspect(mode)} for #{inspect(app)}. " <>
-         "Valid modes are: #{inspect(@safe_modes ++ @unsafe_modes)}"})
+      throw(
+        {:error,
+         "Unknown mode #{inspect(mode)} for #{inspect(app)}. " <>
+           "Valid modes are: #{inspect(@safe_modes ++ @unsafe_modes)}"}
+      )
     end
 
     for child <- children do
@@ -592,8 +601,11 @@ defmodule Mix.Release do
 
       cond do
         is_nil(child_mode) ->
-          throw({:error, "Application #{inspect(app)} is listed in the release boot, " <>
-             "but it depends on #{inspect(child)}, which isn't"})
+          throw(
+            {:error,
+             "Application #{inspect(app)} is listed in the release boot, " <>
+               "but it depends on #{inspect(child)}, which isn't"}
+          )
 
         safe_mode? and child_mode in @unsafe_modes ->
           throw(

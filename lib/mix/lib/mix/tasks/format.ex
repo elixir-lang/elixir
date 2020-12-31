@@ -288,13 +288,17 @@ defmodule Mix.Tasks.Format do
         if File.dir?(path) do
           path
         else
-          Mix.raise("Unavailable dependency #{inspect(dep)} given to :import_deps in the formatter configuration. " <>
-            "The dependency cannot be found in the file system, please run \"mix deps.get\" and try again")
+          Mix.raise(
+            "Unavailable dependency #{inspect(dep)} given to :import_deps in the formatter configuration. " <>
+              "The dependency cannot be found in the file system, please run \"mix deps.get\" and try again"
+          )
         end
 
       :error ->
-        Mix.raise("Unknown dependency #{inspect(dep)} given to :import_deps in the formatter configuration. " <>
-          "The dependency is not listed in your mix.exs for environment #{inspect(Mix.env())}")
+        Mix.raise(
+          "Unknown dependency #{inspect(dep)} given to :import_deps in the formatter configuration. " <>
+            "The dependency is not listed in your mix.exs for environment #{inspect(Mix.env())}"
+        )
     end
   end
 
@@ -362,11 +366,13 @@ defmodule Mix.Tasks.Format do
 
     acc =
       Map.merge(acc, map, fn file, {dot_formatter1, _}, {dot_formatter2, formatter_opts} ->
-        Mix.shell().error("Both #{dot_formatter1} and #{dot_formatter2} specify the file " <>
-          "#{Path.relative_to_cwd(file)} in their :inputs option. To resolve the " <>
-          "conflict, the configuration in #{dot_formatter1} will be ignored. " <>
-          "Please change the list of :inputs in one of the formatter files so only " <>
-          "one of them matches #{Path.relative_to_cwd(file)}")
+        Mix.shell().error(
+          "Both #{dot_formatter1} and #{dot_formatter2} specify the file " <>
+            "#{Path.relative_to_cwd(file)} in their :inputs option. To resolve the " <>
+            "conflict, the configuration in #{dot_formatter1} will be ignored. " <>
+            "Please change the list of :inputs in one of the formatter files so only " <>
+            "one of them matches #{Path.relative_to_cwd(file)}"
+        )
 
         {dot_formatter2, formatter_opts}
       end)

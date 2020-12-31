@@ -199,7 +199,9 @@ defmodule Mix.Tasks.Compile.App do
     ensure_present(:version, version)
 
     unless is_binary(version) and match?({:ok, _}, Version.parse(version)) do
-      Mix.raise("Expected :version to be a valid Version, got: #{inspect(version)} (see the Version module for more information)")
+      Mix.raise(
+        "Expected :version to be a valid Version, got: #{inspect(version)} (see the Version module for more information)"
+      )
     end
   end
 

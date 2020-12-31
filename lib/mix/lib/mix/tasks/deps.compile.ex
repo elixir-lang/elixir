@@ -98,8 +98,10 @@ defmodule Mix.Tasks.Deps.Compile do
               do_rebar3(dep, config)
 
             true ->
-              shell.error("Could not compile #{inspect(app)}, no \"mix.exs\", \"rebar.config\" or \"Makefile\" " <>
-                "(pass :compile as an option to customize compilation, set it to \"false\" to do nothing)")
+              shell.error(
+                "Could not compile #{inspect(app)}, no \"mix.exs\", \"rebar.config\" or \"Makefile\" " <>
+                  "(pass :compile as an option to customize compilation, set it to \"false\" to do nothing)"
+              )
 
               false
           end
@@ -137,8 +139,10 @@ defmodule Mix.Tasks.Deps.Compile do
   end
 
   defp check_unavailable!(app, {:unavailable, _}) do
-    Mix.raise("Cannot compile dependency #{inspect(app)} because " <>
-      "it isn't available, run \"mix deps.get\" first")
+    Mix.raise(
+      "Cannot compile dependency #{inspect(app)} because " <>
+        "it isn't available, run \"mix deps.get\" first"
+    )
   end
 
   defp check_unavailable!(_, _) do
@@ -150,10 +154,10 @@ defmodule Mix.Tasks.Deps.Compile do
       config = Mix.Project.config()
 
       if req = old_elixir_req(config) do
-        Mix.shell().error("warning: the dependency #{inspect(dep.app)} requires Elixir #{inspect(
-          req
-        )} " <>
-          "but you are running on v#{System.version()}")
+        Mix.shell().error(
+          "warning: the dependency #{inspect(dep.app)} requires Elixir #{inspect(req)} " <>
+            "but you are running on v#{System.version()}"
+        )
       end
 
       try do
@@ -171,9 +175,11 @@ defmodule Mix.Tasks.Deps.Compile do
         kind, reason ->
           app = dep.app
 
-          Mix.shell().error("could not compile dependency #{inspect(app)}, \"mix compile\" failed. " <>
-            "You can recompile this dependency with \"mix deps.compile #{app}\", update it " <>
-            "with \"mix deps.update #{app}\" or clean it with \"mix deps.clean #{app}\"")
+          Mix.shell().error(
+            "could not compile dependency #{inspect(app)}, \"mix compile\" failed. " <>
+              "You can recompile this dependency with \"mix deps.compile #{app}\", update it " <>
+              "with \"mix deps.update #{app}\" or clean it with \"mix deps.clean #{app}\""
+          )
 
           :erlang.raise(kind, reason, __STACKTRACE__)
       end
@@ -225,16 +231,20 @@ defmodule Mix.Tasks.Deps.Compile do
   defp handle_rebar_not_found(%Mix.Dep{app: app, manager: manager}) do
     shell = Mix.shell()
 
-    shell.info("Could not find \"#{manager}\", which is needed to build dependency #{inspect(app)}")
+    shell.info(
+      "Could not find \"#{manager}\", which is needed to build dependency #{inspect(app)}"
+    )
 
     shell.info("I can install a local copy which is just used by Mix")
 
-    install_question = "Shall I install #{manager}? (if running non-interactively, " <>
-      "use \"mix local.rebar --force\")"
+    install_question =
+      "Shall I install #{manager}? (if running non-interactively, " <>
+        "use \"mix local.rebar --force\")"
 
     unless shell.yes?(install_question) do
-      error_message = "Could not find \"#{manager}\" to compile " <>
-        "dependency #{inspect(app)}, please ensure \"#{manager}\" is available"
+      error_message =
+        "Could not find \"#{manager}\" to compile " <>
+          "dependency #{inspect(app)}, please ensure \"#{manager}\" is available"
 
       Mix.raise(error_message)
     end
@@ -285,9 +295,11 @@ defmodule Mix.Tasks.Deps.Compile do
       env = [{"ERL_LIBS", Path.join(config[:env_path], "lib")} | system_env] ++ env
 
       if Mix.shell().cmd(command, env: env, print_app: print_app?) != 0 do
-        Mix.raise("Could not compile dependency #{inspect(app)}, \"#{command}\" command failed. " <>
-          "You can recompile this dependency with \"mix deps.compile #{app}\", update it " <>
-          "with \"mix deps.update #{app}\" or clean it with \"mix deps.clean #{app}\"")
+        Mix.raise(
+          "Could not compile dependency #{inspect(app)}, \"#{command}\" command failed. " <>
+            "You can recompile this dependency with \"mix deps.compile #{app}\", update it " <>
+            "with \"mix deps.update #{app}\" or clean it with \"mix deps.clean #{app}\""
+        )
       end
     end)
 

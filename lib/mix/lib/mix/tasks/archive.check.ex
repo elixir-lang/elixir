@@ -23,12 +23,16 @@ defmodule Mix.Tasks.Archive.Check do
 
       cond do
         is_nil(vsn) ->
-          Mix.raise("Archive \"#{archive}\" could not be found. " <>
-            "Please make sure the archive is installed locally.")
+          Mix.raise(
+            "Archive \"#{archive}\" could not be found. " <>
+              "Please make sure the archive is installed locally."
+          )
 
         not Version.match?(List.to_string(vsn), req) ->
-          Mix.raise("Archive \"#{archive}-#{vsn}\" does not match requirement #{req}. " <>
-            "Please update your archive version accordingly.")
+          Mix.raise(
+            "Archive \"#{archive}-#{vsn}\" does not match requirement #{req}. " <>
+              "Please update your archive version accordingly."
+          )
 
         true ->
           :ok

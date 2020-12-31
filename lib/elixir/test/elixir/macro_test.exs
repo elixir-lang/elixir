@@ -227,8 +227,9 @@ defmodule MacroTest do
     end
 
     test "does not expand module attributes" do
-      message = "could not call Module.get_attribute/2 because the module #{inspect(__MODULE__)} " <>
-        "is already compiled. Use the Module.__info__/1 callback or Code.fetch_docs/1 instead"
+      message =
+        "could not call Module.get_attribute/2 because the module #{inspect(__MODULE__)} " <>
+          "is already compiled. Use the Module.__info__/1 callback or Code.fetch_docs/1 instead"
 
       assert_raise ArgumentError, message, fn ->
         Macro.expand_once(quote(do: @foo), __ENV__)
@@ -727,10 +728,10 @@ defmodule MacroTest do
 
     test "with fun" do
       assert Macro.to_string(quote(do: foo(1, 2, 3)), fn _, string -> ":#{string}:" end) ==
-        ":foo(:1:, :2:, :3:):"
+               ":foo(:1:, :2:, :3:):"
 
       assert Macro.to_string(quote(do: Bar.foo(1, 2, 3)), fn _, string -> ":#{string}:" end) ==
-        "::Bar:.foo(:1:, :2:, :3:):"
+               "::Bar:.foo(:1:, :2:, :3:):"
     end
   end
 

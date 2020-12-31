@@ -146,20 +146,26 @@ defmodule Mix.Tasks.Escript.Install do
       # If existing executable was changed,
       # it was overridden
       previous_executable && previous_executable != current_executable ->
-        Mix.shell().error("\nwarning: escript #{inspect(executable)} overrides executable " <>
-          "#{inspect(previous_executable)} already in your PATH\n")
+        Mix.shell().error(
+          "\nwarning: escript #{inspect(executable)} overrides executable " <>
+            "#{inspect(previous_executable)} already in your PATH\n"
+        )
 
       # If existing executable didn't change but it is not the one we installed,
       # it is a conflict
       previous_executable && previous_executable != dst ->
-        Mix.shell().error("\nwarning: escript #{inspect(executable)} conflicts with executable " <>
-          "#{inspect(previous_executable)} already in your PATH\n")
+        Mix.shell().error(
+          "\nwarning: escript #{inspect(executable)} conflicts with executable " <>
+            "#{inspect(previous_executable)} already in your PATH\n"
+        )
 
       # If current executable is nil or does not match the one we just installed,
       # PATH is misconfigured
       current_executable != dst ->
-        Mix.shell().error("\nwarning: you must append #{inspect(Mix.path_for(:escripts))} " <>
-          "to your PATH if you want to invoke escripts by name\n")
+        Mix.shell().error(
+          "\nwarning: you must append #{inspect(Mix.path_for(:escripts))} " <>
+            "to your PATH if you want to invoke escripts by name\n"
+        )
 
       true ->
         :ok

@@ -1085,12 +1085,12 @@ defmodule Code do
 
     if key == :parser_options and not Keyword.keyword?(value) do
       raise "compiler option #{inspect(key)} should be a keyword list, " <>
-        "got: #{inspect(value)}"
+              "got: #{inspect(value)}"
     end
 
     if key == :tracers and not Enum.all?(value, &is_atom/1) do
       raise "compiler option #{inspect(key)} should be a list of modules, " <>
-        "got: #{inspect(value)}"
+              "got: #{inspect(value)}"
     end
 
     :elixir_config.put(key, value)

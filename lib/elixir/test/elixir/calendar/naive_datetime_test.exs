@@ -119,9 +119,10 @@ defmodule NaiveDateTimeTest do
     ndt = ~N[2000-04-16 12:34:15.1234]
     ndt = put_in(ndt.calendar, FakeCalendar)
 
-    message = "cannot convert #{inspect(ndt)} to target calendar Calendar.ISO, " <>
-      "reason: #{inspect(ndt.calendar)} and Calendar.ISO have different day rollover moments, " <>
-      "making this conversion ambiguous"
+    message =
+      "cannot convert #{inspect(ndt)} to target calendar Calendar.ISO, " <>
+        "reason: #{inspect(ndt.calendar)} and Calendar.ISO have different day rollover moments, " <>
+        "making this conversion ambiguous"
 
     assert_raise ArgumentError, message, fn ->
       NaiveDateTime.to_iso8601(ndt)

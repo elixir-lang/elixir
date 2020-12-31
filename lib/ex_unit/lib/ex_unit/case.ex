@@ -522,7 +522,7 @@ defmodule ExUnit.Case do
   def register_test(mod, file, line, test_type, name, tags) do
     unless Module.has_attribute?(mod, :ex_unit_tests) do
       raise "cannot define #{test_type}. Please make sure you have invoked " <>
-        "\"use ExUnit.Case\" in the current module"
+              "\"use ExUnit.Case\" in the current module"
     end
 
     registered_attribute_keys = [

@@ -189,7 +189,6 @@ defmodule Inspect.Algebra do
   @container_separator ","
   @tail_separator " |"
   @newline "\n"
-  @interpolation_identifier "\#{"
   @next_break_fits :enabled
 
   # Functional interface to "doc" records
@@ -302,8 +301,9 @@ defmodule Inspect.Algebra do
               res = Inspect.Map.inspect(struct, %{opts | syntax_colors: []})
               res = IO.iodata_to_binary(format(res, :infinity))
 
-              message = "got #{inspect(caught_exception.__struct__)} with message " <>
-                "#{inspect(Exception.message(caught_exception))} while inspecting #{res}"
+              message =
+                "got #{inspect(caught_exception.__struct__)} with message " <>
+                  "#{inspect(Exception.message(caught_exception))} while inspecting #{res}"
 
               exception = Inspect.Error.exception(message: message)
 
@@ -965,13 +965,6 @@ defmodule Inspect.Algebra do
 
   defp fits?(w, k, b?, [{i, m, doc_nest(x, j, _)} | t]),
     do: fits?(w, k, b?, [{apply_nesting(i, k, j), m, x} | t])
-
-  # put string interpolations on the same line always
-  defp fits?(_w, _k, _b?, [
-         {_i, _m, doc_cons(@interpolation_identifier, doc_cons(doc_break(_, _), doc_group(_, _)))}
-         | _t
-       ]),
-       do: true
 
   defp fits?(w, k, b?, [{i, m, doc_cons(x, y)} | t]),
     do: fits?(w, k, b?, [{i, m, x}, {i, m, y} | t])

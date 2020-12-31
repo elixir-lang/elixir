@@ -1484,8 +1484,9 @@ defmodule Module do
   defp compile_doc(_table, _ctx, line, kind, name, arity, _args, _body, doc, _meta, env, _impl)
        when kind in [:defp, :defmacrop] do
     if doc do
-      message = "#{kind} #{name}/#{arity} is private, " <>
-        "@doc attribute is always discarded for private functions/macros/types"
+      message =
+        "#{kind} #{name}/#{arity} is private, " <>
+          "@doc attribute is always discarded for private functions/macros/types"
 
       IO.warn(message, Macro.Env.stacktrace(%{env | line: line}))
     end
@@ -1617,25 +1618,22 @@ defmodule Module do
     Enum.reduce(behaviours, %{}, fn behaviour, acc ->
       cond do
         not is_atom(behaviour) ->
-          message = "@behaviour #{inspect(behaviour)} must be an atom (in module #{inspect(
-            env.module
-          )})"
+          message =
+            "@behaviour #{inspect(behaviour)} must be an atom (in module #{inspect(env.module)})"
 
           IO.warn(message, Macro.Env.stacktrace(env))
           acc
 
         Code.ensure_compiled(behaviour) != {:module, behaviour} ->
-          message = "@behaviour #{inspect(behaviour)} does not exist (in module #{inspect(
-            env.module
-          )})"
+          message =
+            "@behaviour #{inspect(behaviour)} does not exist (in module #{inspect(env.module)})"
 
           IO.warn(message, Macro.Env.stacktrace(env))
           acc
 
         not function_exported?(behaviour, :behaviour_info, 1) ->
-          message = "module #{inspect(behaviour)} is not a behaviour (in module #{inspect(
-            env.module
-          )})"
+          message =
+            "module #{inspect(behaviour)} is not a behaviour (in module #{inspect(env.module)})"
 
           IO.warn(message, Macro.Env.stacktrace(env))
           acc
@@ -1834,10 +1832,11 @@ defmodule Module do
         kind in [:def, :defmacro] do
       with {:ok, {_, behaviour, _}} <- Map.fetch(non_implemented_callbacks, pair),
            true <- missing_impl_in_context?(meta, behaviour, contexts) do
-        message = "module attribute @impl was not set for #{format_definition(kind, pair)} " <>
-          "callback (specified in #{inspect(behaviour)}). " <>
-          "This either means you forgot to add the \"@impl true\" annotation before the " <>
-          "definition or that you are accidentally overriding this callback"
+        message =
+          "module attribute @impl was not set for #{format_definition(kind, pair)} " <>
+            "callback (specified in #{inspect(behaviour)}). " <>
+            "This either means you forgot to add the \"@impl true\" annotation before the " <>
+            "definition or that you are accidentally overriding this callback"
 
         IO.warn(message, Macro.Env.stacktrace(%{env | line: :elixir_utils.get_line(meta)}))
       end
@@ -1901,8 +1900,9 @@ defmodule Module do
 
       [] when is_integer(line) ->
         # TODO: Consider raising instead of warning on v2.0 as it usually cascades
-        error_message = "undefined module attribute @#{key}, " <>
-          "please remove access to @#{key} or explicitly set it before access"
+        error_message =
+          "undefined module attribute @#{key}, " <>
+            "please remove access to @#{key} or explicitly set it before access"
 
         IO.warn(error_message, attribute_stack(module, line))
         nil

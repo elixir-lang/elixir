@@ -28,10 +28,12 @@ defmodule ExUnit.EventManager do
 
   def add_handler({sup, event}, handler, opts) do
     if Code.ensure_loaded?(handler) and function_exported?(handler, :handle_call, 2) do
-      IO.warn("passing GenEvent handlers (#{inspect(handler)} in this case) in " <>
-        "the :formatters option of ExUnit is deprecated, please pass a " <>
-        "GenServer instead. Check the documentation for the ExUnit.Formatter " <>
-        "module for more information")
+      IO.warn(
+        "passing GenEvent handlers (#{inspect(handler)} in this case) in " <>
+          "the :formatters option of ExUnit is deprecated, please pass a " <>
+          "GenServer instead. Check the documentation for the ExUnit.Formatter " <>
+          "module for more information"
+      )
 
       :gen_event.add_handler(event, handler, opts)
     else

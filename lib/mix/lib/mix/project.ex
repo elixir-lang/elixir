@@ -118,8 +118,10 @@ defmodule Mix.Project do
         :ok
 
       {:error, other} when is_binary(other) ->
-        Mix.raise("Trying to load #{inspect(atom)} from #{inspect(file)}" <>
-          " but another project with the same name was already defined at #{inspect(other)}")
+        Mix.raise(
+          "Trying to load #{inspect(atom)} from #{inspect(file)}" <>
+            " but another project with the same name was already defined at #{inspect(other)}"
+        )
     end
   end
 
@@ -297,10 +299,12 @@ defmodule Mix.Project do
         path
 
       File.dir?(path) ->
-        Mix.shell().error("warning: path #{inspect(Path.relative_to_cwd(path))} is a directory but " <>
-          "it has no mix.exs. Mix won't consider this directory as part of your " <>
-          "umbrella application. Please add a \"mix.exs\" or set the \":apps\" key " <>
-          "in your umbrella configuration with all relevant apps names as atoms")
+        Mix.shell().error(
+          "warning: path #{inspect(Path.relative_to_cwd(path))} is a directory but " <>
+            "it has no mix.exs. Mix won't consider this directory as part of your " <>
+            "umbrella application. Please add a \"mix.exs\" or set the \":apps\" key " <>
+            "in your umbrella configuration with all relevant apps names as atoms"
+        )
 
         nil
 

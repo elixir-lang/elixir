@@ -478,7 +478,9 @@ defmodule Mix.Tasks.Test do
     files = Mix.Utils.extract_files(test_files, warn_test_pattern) -- matched_test_files
 
     for file <- files do
-      Mix.shell().info("warning: #{file} does not match #{inspect(test_pattern)} and won't be loaded")
+      Mix.shell().info(
+        "warning: #{file} does not match #{inspect(test_pattern)} and won't be loaded"
+      )
     end
   end
 

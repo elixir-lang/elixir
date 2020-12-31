@@ -183,9 +183,9 @@ defmodule Mix.Tasks.New do
 
   defp check_mod_name_validity!(name) do
     unless name =~ ~r/^[A-Z]\w*(\.[A-Z]\w*)*$/ do
-      Mix.raise("Module name must be a valid Elixir alias (for example: Foo.Bar), got: #{inspect(
-        name
-      )}")
+      Mix.raise(
+        "Module name must be a valid Elixir alias (for example: Foo.Bar), got: #{inspect(name)}"
+      )
     end
   end
 

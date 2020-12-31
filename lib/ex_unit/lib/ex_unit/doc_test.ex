@@ -321,7 +321,8 @@ defmodule ExUnit.DocTest do
         actual ->
           doctest = unquote(doctest)
 
-          expr = "#{unquote(Macro.to_string(last_expr_ast))} === #{unquote(String.trim(expected))}"
+          expr =
+            "#{unquote(Macro.to_string(last_expr_ast))} === #{unquote(String.trim(expected))}"
 
           error = [
             message: "Doctest failed",
@@ -352,8 +353,9 @@ defmodule ExUnit.DocTest do
         actual ->
           doctest = unquote(doctest)
 
-          expr = "inspect(#{unquote(Macro.to_string(last_expr_ast))}) === " <>
-            "#{unquote(String.trim(expected))}"
+          expr =
+            "inspect(#{unquote(Macro.to_string(last_expr_ast))}) === " <>
+              "#{unquote(String.trim(expected))}"
 
           error = [
             message: "Doctest failed",
@@ -406,7 +408,8 @@ defmodule ExUnit.DocTest do
           end
       else
         _ ->
-          message = "Doctest failed: expected exception #{inspect(exception)} but nothing was raised"
+          message =
+            "Doctest failed: expected exception #{inspect(exception)} but nothing was raised"
 
           error = [message: message, doctest: doctest]
           reraise ExUnit.AssertionError, error, stack
@@ -462,8 +465,9 @@ defmodule ExUnit.DocTest do
       {:error, reason} ->
         raise Error,
           module: module,
-          message: "could not retrieve the documentation for module #{inspect(module)}. " <>
-            explain_docs_error(reason)
+          message:
+            "could not retrieve the documentation for module #{inspect(module)}. " <>
+              explain_docs_error(reason)
     end
   end
 
@@ -797,7 +801,8 @@ defmodule ExUnit.DocTest do
   end
 
   defp skip_iex_number("", module, line_no, line) do
-    message = "unknown IEx prompt: #{inspect(line)}.\nAccepted formats are: iex>, iex(1)>, ...>, ...(1)>}"
+    message =
+      "unknown IEx prompt: #{inspect(line)}.\nAccepted formats are: iex>, iex(1)>, ...>, ...(1)>}"
 
     raise Error, line: line_no, module: module, message: message
   end

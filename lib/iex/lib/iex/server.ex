@@ -77,7 +77,9 @@ defmodule IEx.Server do
     Process.flag(:trap_exit, true)
     Process.link(Process.group_leader())
 
-    IO.puts("Interactive Elixir (#{System.version()}) - press Ctrl+C to exit (type h() ENTER for help)")
+    IO.puts(
+      "Interactive Elixir (#{System.version()}) - press Ctrl+C to exit (type h() ENTER for help)"
+    )
 
     evaluator = start_evaluator(opts)
     loop(iex_state(opts), evaluator, Process.monitor(evaluator))
@@ -270,8 +272,10 @@ defmodule IEx.Server do
          _callback
        ) do
     try do
-      io_error("** (EXIT from #{inspect(evaluator)}) shell process exited with reason: " <>
-        Exception.format_exit(reason))
+      io_error(
+        "** (EXIT from #{inspect(evaluator)}) shell process exited with reason: " <>
+          Exception.format_exit(reason)
+      )
     catch
       type, detail ->
         io_error("** (IEx.Error) #{type} when printing EXIT message: #{inspect(detail)}")

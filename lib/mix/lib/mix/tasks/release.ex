@@ -1039,7 +1039,9 @@ defmodule Mix.Tasks.Release do
         run_steps(release)
 
       other ->
-        Mix.raise("Expected step #{inspect(step)} to return a Mix.Release, got: #{inspect(other)}")
+        Mix.raise(
+          "Expected step #{inspect(step)} to return a Mix.Release, got: #{inspect(other)}"
+        )
     end
   end
 
@@ -1194,8 +1196,10 @@ defmodule Mix.Tasks.Release do
 
         File.exists?(default_path) ->
           if File.exists?(deprecated_path) do
-            IO.warn("both #{inspect(default_path)} and #{inspect(deprecated_path)} have been " <>
-              "found, but only #{inspect(default_path)} will be used")
+            IO.warn(
+              "both #{inspect(default_path)} and #{inspect(deprecated_path)} have been " <>
+                "found, but only #{inspect(default_path)} will be used"
+            )
           end
 
           {default_path, false}
@@ -1385,9 +1389,8 @@ defmodule Mix.Tasks.Release do
   end
 
   defp cli_for(:windows, release) do
-    {"env.bat", &env_bat_template(release: &1), [{"#{release.name}.bat", cli_bat_template(
-        release: release
-      )}]}
+    {"env.bat", &env_bat_template(release: &1),
+     [{"#{release.name}.bat", cli_bat_template(release: release)}]}
   end
 
   defp elixir_cli_for(:unix, release) do

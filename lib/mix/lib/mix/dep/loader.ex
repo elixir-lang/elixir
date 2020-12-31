@@ -47,8 +47,10 @@ defmodule Mix.Dep.Loader do
     wrapped = List.wrap(maybe_list_of_atoms)
 
     for entry <- wrapped, not is_atom(entry) do
-      Mix.raise("Expected #{inspect(key)} in dependency to be an atom or a list of atoms, " <>
-        "got: #{inspect(maybe_list_of_atoms)}")
+      Mix.raise(
+        "Expected #{inspect(key)} in dependency to be an atom or a list of atoms, " <>
+          "got: #{inspect(maybe_list_of_atoms)}"
+      )
     end
 
     value not in wrapped
@@ -196,9 +198,9 @@ defmodule Mix.Dep.Loader do
       end
 
     unless scm do
-      Mix.raise("Could not find an SCM for dependency #{inspect(app)} from #{inspect(
-        Mix.Project.get()
-      )}")
+      Mix.raise(
+        "Could not find an SCM for dependency #{inspect(app)} from #{inspect(Mix.Project.get())}"
+      )
     end
 
     %Mix.Dep{
@@ -304,10 +306,12 @@ defmodule Mix.Dep.Loader do
       child_opts =
         if opts[:from_umbrella] do
           if config[:app] != app do
-            Mix.raise("Umbrella app #{inspect(config[:app])} is located at " <>
-              "directory #{app}. Mix requires the directory to match " <>
-              "the application name for umbrella apps. Please rename the " <>
-              "directory or change the application name in the mix.exs file.")
+            Mix.raise(
+              "Umbrella app #{inspect(config[:app])} is located at " <>
+                "directory #{app}. Mix requires the directory to match " <>
+                "the application name for umbrella apps. Please rename the " <>
+                "directory or change the application name in the mix.exs file."
+            )
           end
 
           []

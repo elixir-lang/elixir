@@ -188,7 +188,8 @@ defmodule IEx.InteractionTest do
     test "nested .iex", %{tmp_dir: tmp_dir} do
       write_dot_iex!(tmp_dir, "dot-iex-1", "nested_var = 13\nimport IO")
 
-      path = write_dot_iex!(tmp_dir, "dot-iex", "import_file \"#{tmp_dir}/dot-iex-1\"\nmy_variable=14")
+      path =
+        write_dot_iex!(tmp_dir, "dot-iex", "import_file \"#{tmp_dir}/dot-iex-1\"\nmy_variable=14")
 
       input = "nested_var\nmy_variable\nputs \"hello\""
       assert capture_iex(input, [], dot_iex_path: path) == "13\n14\nhello\n:ok"

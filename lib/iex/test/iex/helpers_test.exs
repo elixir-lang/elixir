@@ -150,7 +150,7 @@ defmodule IEx.HelpersTest do
       System.put_env("ELIXIR_EDITOR", "echo __LINE__:__FILE__")
 
       assert capture_iex("open({#{inspect(__ENV__.file)}, 3})") |> maybe_trim_quotes() ==
-        "3:#{__ENV__.file}"
+               "3:#{__ENV__.file}"
     after
       System.put_env("ELIXIR_EDITOR", @editor)
     end
@@ -282,7 +282,7 @@ defmodule IEx.HelpersTest do
 
     test "opens given {file, line}" do
       assert capture_iex("open({#{inspect(__ENV__.file)}, 3})") |> maybe_trim_quotes() ==
-        "#{__ENV__.file}:3"
+               "#{__ENV__.file}:3"
     end
 
     test "errors when given {file, line} is not available" do

@@ -91,7 +91,8 @@ defmodule IEx.CLI do
       if Node.alive?() do
         case :rpc.call(remote, :code, :ensure_loaded, [IEx]) do
           {:badrpc, reason} ->
-            message = "Could not contact remote node #{remote}, reason: #{inspect(reason)}. Aborting..."
+            message =
+              "Could not contact remote node #{remote}, reason: #{inspect(reason)}. Aborting..."
 
             abort(message)
 

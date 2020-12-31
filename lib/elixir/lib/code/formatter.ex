@@ -1380,7 +1380,7 @@ defmodule Code.Formatter do
   defp list_interpolation_to_algebra([entry | entries], escape, state, acc, last) do
     {{:., _, [Kernel, :to_string]}, meta, [quoted]} = entry
     {doc, state} = block_to_algebra(quoted, line(meta), closing_line(meta), state)
-    doc = surround("\#{", doc, "}")
+    doc = interpolate_doc(doc)
     list_interpolation_to_algebra(entries, escape, state, concat(acc, doc), last)
   end
 
@@ -1397,13 +1397,16 @@ defmodule Code.Formatter do
   defp interpolation_to_algebra([entry | entries], escape, state, acc, last) do
     {:"::", _, [{{:., _, [Kernel, :to_string]}, meta, [quoted]}, {:binary, _, _}]} = entry
     {doc, state} = block_to_algebra(quoted, line(meta), closing_line(meta), state)
-    doc = surround("\#{", doc, "}")
+    doc = interpolate_doc(doc)
     interpolation_to_algebra(entries, escape, state, concat(acc, doc), last)
   end
 
   defp interpolation_to_algebra([], _escape, state, acc, last) do
     {concat(acc, last), state}
   end
+
+  defp interpolate_doc({:doc_force, _t} = doc), do: surround("\#{", doc, "}")
+  defp interpolate_doc(doc), do: surround("\#{", doc, "}") |> format_to_string() |> string()
 
   ## Sigils
 

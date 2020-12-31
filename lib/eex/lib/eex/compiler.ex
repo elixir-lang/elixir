@@ -111,8 +111,9 @@ defmodule EEx.Compiler do
          [_ | _] = scope,
          state
        ) do
-    message = "unexpected beginning of EEx tag \"<%#{modifier}\" on \"<%#{modifier}#{chars}%>\", " <>
-      "please remove \"#{modifier}\" accordingly"
+    message =
+      "unexpected beginning of EEx tag \"<%#{modifier}\" on \"<%#{modifier}#{chars}%>\", " <>
+        "please remove \"#{modifier}\" accordingly"
 
     :elixir_errors.erl_warn(line, state.file, message)
     generate_buffer([{:middle_expr, line, column, '', chars} | t], buffer, scope, state)
@@ -148,8 +149,9 @@ defmodule EEx.Compiler do
          [_ | _] = scope,
          state
        ) do
-    message = "unexpected beginning of EEx tag \"<%#{modifier}\" on end of " <>
-      "expression \"<%#{modifier}#{chars}%>\", please remove \"#{modifier}\" accordingly"
+    message =
+      "unexpected beginning of EEx tag \"<%#{modifier}\" on end of " <>
+        "expression \"<%#{modifier}#{chars}%>\", please remove \"#{modifier}\" accordingly"
 
     :elixir_errors.erl_warn(line, state.file, message)
     generate_buffer([{:end_expr, line, column, '', chars} | t], buffer, scope, state)

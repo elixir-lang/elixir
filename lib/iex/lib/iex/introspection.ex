@@ -97,7 +97,9 @@ defmodule IEx.Introspection do
   def open({module, function}) when is_atom(module) and is_atom(function) do
     case open_mfa(module, function, :*) do
       {_, _, nil} ->
-        puts_error("Could not open: #{inspect(module)}.#{function}. Function/macro is not available.")
+        puts_error(
+          "Could not open: #{inspect(module)}.#{function}. Function/macro is not available."
+        )
 
       {_, _, tuple} ->
         open(tuple)
@@ -113,13 +115,17 @@ defmodule IEx.Introspection do
       when is_atom(module) and is_atom(function) and is_integer(arity) do
     case open_mfa(module, function, arity) do
       {_, _, nil} ->
-        puts_error("Could not open: #{inspect(module)}.#{function}/#{arity}. Function/macro is not available.")
+        puts_error(
+          "Could not open: #{inspect(module)}.#{function}/#{arity}. Function/macro is not available."
+        )
 
       {_, _, tuple} ->
         open(tuple)
 
       :error ->
-        puts_error("Could not open: #{inspect(module)}.#{function}/#{arity}. Module is not available.")
+        puts_error(
+          "Could not open: #{inspect(module)}.#{function}/#{arity}. Module is not available."
+        )
     end
 
     dont_display_result()
@@ -143,9 +149,11 @@ defmodule IEx.Introspection do
         IO.write(IEx.color(:eval_info, :os.cmd(String.to_charlist(command))))
 
       true ->
-        puts_error("Could not open: #{inspect(file)}. " <>
-          "Please set the ELIXIR_EDITOR or EDITOR environment variables with the " <>
-          "command line invocation of your favorite EDITOR.")
+        puts_error(
+          "Could not open: #{inspect(file)}. " <>
+            "Please set the ELIXIR_EDITOR or EDITOR environment variables with the " <>
+            "command line invocation of your favorite EDITOR."
+        )
     end
 
     dont_display_result()
@@ -340,9 +348,9 @@ defmodule IEx.Introspection do
   end
 
   def h(invalid) do
-    puts_error("The \"h\" helper expects a Module, Module.fun or Module.fun/arity, got: #{inspect(
-      invalid
-    )}")
+    puts_error(
+      "The \"h\" helper expects a Module, Module.fun or Module.fun/arity, got: #{inspect(invalid)}"
+    )
 
     puts_error(
       "If instead of accessing documentation you would like more information about a value " <>
@@ -774,7 +782,9 @@ defmodule IEx.Introspection do
   defp no_beam(module) do
     case Code.ensure_loaded(module) do
       {:module, _} ->
-        puts_error("Beam code not available for #{inspect(module)} or debug info is missing, cannot load typespecs")
+        puts_error(
+          "Beam code not available for #{inspect(module)} or debug info is missing, cannot load typespecs"
+        )
 
       {:error, reason} ->
         puts_error("Could not load module #{inspect(module)}, got: #{reason}")

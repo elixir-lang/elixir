@@ -431,7 +431,7 @@ defmodule ExUnit.Callbacks do
 
       {:error, reason} ->
         raise "failed to start child with the spec #{inspect(child_spec_or_module)}.\n" <>
-          "Reason: #{start_supervised_error(reason)}"
+                "Reason: #{start_supervised_error(reason)}"
     end
   end
 
@@ -549,12 +549,12 @@ defmodule ExUnit.Callbacks do
 
   defp raise_merge_failed!(mod, return_value) do
     raise "expected ExUnit callback in #{inspect(mod)} to return :ok | keyword | map, " <>
-      "got #{inspect(return_value)} instead"
+            "got #{inspect(return_value)} instead"
   end
 
   defp raise_merge_reserved!(mod, key, value) do
     raise "ExUnit callback in #{inspect(mod)} is trying to set " <>
-      "reserved field #{inspect(key)} to #{inspect(value)}"
+            "reserved field #{inspect(key)} to #{inspect(value)}"
   end
 
   defp escape(contents) do

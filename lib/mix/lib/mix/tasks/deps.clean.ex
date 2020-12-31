@@ -88,7 +88,9 @@ defmodule Mix.Tasks.Deps.Clean do
   end
 
   defp maybe_warn_for_invalid_path([], dependency) do
-    Mix.shell().error("warning: the dependency #{dependency} is not present in the build directory")
+    Mix.shell().error(
+      "warning: the dependency #{dependency} is not present in the build directory"
+    )
 
     []
   end
