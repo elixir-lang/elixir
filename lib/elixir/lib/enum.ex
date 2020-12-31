@@ -1327,8 +1327,8 @@ defmodule Enum do
   Inserts the given `enumerable` into a `collectable`.
 
   Note that passing a non-empty list as the `collectable` is deprecated. If you're collecting
-  into a non-empty keyword list, consider using `Keyword.merge/2`. If you're collecting into a
-  non-empty list, consider something like `to_list(enumerable) ++ collectable`.
+  into a non-empty keyword list, consider using `Keyword.merge(collectable, Enum.to_list(enumerable))`.
+  If you're collecting into a non-empty list, consider something like `Enum.to_list(enumerable) ++ collectable`.
 
   ## Examples
 
