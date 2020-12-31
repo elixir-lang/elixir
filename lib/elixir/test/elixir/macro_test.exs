@@ -769,6 +769,8 @@ defmodule MacroTest do
     assert Macro.decompose_call(quote(do: :foo.foo(1, 2, 3))) == {:foo, :foo, [1, 2, 3]}
     assert Macro.decompose_call(quote(do: 1.(1, 2, 3))) == :error
     assert Macro.decompose_call(quote(do: "some string")) == :error
+    assert Macro.decompose_call(quote(do: {:foo, :bar, :baz})) == :error
+    assert Macro.decompose_call(quote(do: {:foo, :bar, :baz, 42})) == :error
   end
 
   describe "env" do
