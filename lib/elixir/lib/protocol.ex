@@ -200,6 +200,8 @@ defmodule Protocol do
     * `:protocol` - returns the protocol module for which this implementation
     is provided
 
+    * `:target` - returns the protocol implementation module
+
   For example, the module implementing the `Enumerable` protocol for lists is
   `Enumerable.List`. Therefore, we can invoke `__impl__/1` on this module:
 
@@ -208,6 +210,9 @@ defmodule Protocol do
 
       iex(2)> Enumerable.List.__impl__(:protocol)
       Enumerable
+
+      iex(3)> Enumerable.List.__impl__(:target)
+      Enumerable.List
 
   ## Consolidation
 
