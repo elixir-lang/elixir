@@ -1378,9 +1378,9 @@ defmodule Code.Formatter do
   end
 
   defp list_interpolation_to_algebra([entry | entries], escape, state, acc, last) do
-    {{:., _, [Kernel, :to_string]}, meta, [quoted]} = entry
-    {doc, state} = block_to_algebra(quoted, line(meta), closing_line(meta), state)
-    doc = surround("\#{", doc, "}")
+    {{:., _, [Kernel, :to_string]}, _meta, [quoted]} = entry
+    {doc, state} = block_to_algebra(quoted, @max_line, @min_line, state)
+    doc = surround("\#{", doc, "}") |> format_to_string() |> string()
     list_interpolation_to_algebra(entries, escape, state, concat(acc, doc), last)
   end
 
@@ -1395,9 +1395,9 @@ defmodule Code.Formatter do
   end
 
   defp interpolation_to_algebra([entry | entries], escape, state, acc, last) do
-    {:"::", _, [{{:., _, [Kernel, :to_string]}, meta, [quoted]}, {:binary, _, _}]} = entry
-    {doc, state} = block_to_algebra(quoted, line(meta), closing_line(meta), state)
-    doc = surround("\#{", doc, "}")
+    {:"::", _, [{{:., _, [Kernel, :to_string]}, _meta, [quoted]}, {:binary, _, _}]} = entry
+    {doc, state} = block_to_algebra(quoted, @max_line, @min_line, state)
+    doc = surround("\#{", doc, "}") |> format_to_string() |> string()
     interpolation_to_algebra(entries, escape, state, concat(acc, doc), last)
   end
 
