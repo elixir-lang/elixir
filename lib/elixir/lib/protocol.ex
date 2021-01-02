@@ -715,7 +715,14 @@ defmodule Protocol do
     quote bind_quoted: [built_in: __built_in__()] do
       any_impl_for =
         if @fallback_to_any do
-          quote do: unquote(__MODULE__.Any).__impl__(:target)
+          quote do
+            try do
+              unquote(__MODULE__.Any).__impl__(:target)
+            rescue
+              UndefinedFunctionError ->
+                nil
+            end
+          end
         else
           nil
         end
@@ -765,29 +772,8 @@ defmodule Protocol do
 
       @doc false
       @spec impl_for!(term) :: atom
-      if any_impl_for do
-        Kernel.def impl_for!(data) do
-          try do
-            impl_for(data)
-          rescue
-            UndefinedFunctionError ->
-              raise_impl_for(data)
-          else
-            nil ->
-              raise_impl_for(data)
-
-            result ->
-              result
-          end
-        end
-      else
-        Kernel.def impl_for!(data) do
-          impl_for(data) || raise_impl_for(data)
-        end
-      end
-
-      Kernel.defp raise_impl_for(value) do
-        raise(Protocol.UndefinedError, protocol: __MODULE__, value: value)
+      Kernel.def impl_for!(data) do
+        impl_for(data) || raise(Protocol.UndefinedError, protocol: __MODULE__, value: data)
       end
 
       # Internal handler for Structs
