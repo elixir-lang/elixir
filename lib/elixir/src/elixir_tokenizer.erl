@@ -1137,7 +1137,7 @@ tokenize_continue(Rest, Acc, Length, Special) ->
 tokenize_identifier(String, Line, Column, Scope, MaybeKeyword) ->
   case (Scope#elixir_tokenizer.identifier_tokenizer):tokenize(String) of
     {Kind, Acc, Rest, Length, Ascii, Special} ->
-      Keyword = MaybeKeyword andalso ((Rest == []) orelse (hd(Rest) /= $:)),
+      Keyword = MaybeKeyword andalso maybe_keyword(Rest),
 
       case keyword_or_unsafe_to_atom(Keyword, Acc, Line, Column, Scope) of
         {keyword, Atom, Type} ->
@@ -1160,6 +1160,11 @@ tokenize_identifier(String, Line, Column, Scope, MaybeKeyword) ->
     {error, empty} ->
       empty
   end.
+
+maybe_keyword([]) -> true;
+maybe_keyword([$:, $: | _]) -> true;
+maybe_keyword([$: | _]) -> false;
+maybe_keyword(_) -> true.
 
 list_to_codepoint_hex(List) ->
   [io_lib:format(" 0x~4.16.0B", [Codepoint]) || Codepoint <- List].
