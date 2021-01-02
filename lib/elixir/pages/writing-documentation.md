@@ -127,11 +127,18 @@ Conveniently, Elixir allows developers to hide modules and functions from the do
       end
     end
 
-However, keep in mind that adding `@doc false` does not make the function private. The function above can still be invoked as `MyApp.Sample.add(1, 2)`. Not only that, if `MyApp.Sample` is imported, the `add/2` function will also be imported into the caller. For those reasons, be cautious when adding `@doc false` to functions, instead use one of these two options:
+In case you don't want to hide a whole module, you can hide functions individually:
+
+    defmodule MyApp.Sample do
+      @doc false
+      def add(a, b), do: a + b
+    end
+
+However, keep in mind `@moduledoc false` or `@doc false` do not make a function private. The function above can still be invoked as `MyApp.Sample.add(1, 2)`. Not only that, if `MyApp.Sample` is imported, the `add/2` function will also be imported into the caller. For those reasons, be cautious when adding `@doc false` to functions, instead use one of these two options:
 
   * Move the undocumented function to a module with `@moduledoc false`, like `MyApp.Hidden`, ensuring the function won't be accidentally exposed or imported. Remember you can use `@moduledoc false` to hide a whole module and still document each function with `@doc`. Tools will still ignore the module.
 
-  * Start the function name with one or two underscores, for example, `__add__/2`, and add `@doc false`. The compiler does not import functions with leading underscores and they hint to anyone reading the code of their intended private usage.
+  * Start the function name with one or two underscores, for example, `__add__/2`. Functions starting with underscore are autoamtically treated as hidden, although you can also be explicit and add `@doc false`. The compiler does not import functions with leading underscores and they hint to anyone reading the code of their intended private usage.
 
 ## Code.fetch_docs/1
 
