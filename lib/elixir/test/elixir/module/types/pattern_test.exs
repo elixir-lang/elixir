@@ -441,6 +441,14 @@ defmodule Module.Types.PatternTest do
                 _}}} = quoted_head([%{true: false} = foo, %{true: true} = foo])
     end
 
+    test "binary in guards" do
+      assert quoted_head([a, b], [byte_size(a <> b) > 0]) ==
+               {:ok, [:binary, :binary]}
+
+      assert quoted_head([map], [byte_size(map.a <> map.b) > 0]) ==
+               {:ok, [map: [{:optional, :dynamic, :dynamic}]]}
+    end
+
     test "struct var guard" do
       assert quoted_head([%var{}], [is_atom(var)]) ==
                {:ok,

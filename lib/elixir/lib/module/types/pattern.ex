@@ -24,103 +24,6 @@ defmodule Module.Types.Pattern do
     of_pattern(pattern, %{stack | context: :pattern}, context)
   end
 
-  # :atom
-  def of_pattern(atom, _stack, context) when is_atom(atom) do
-    {:ok, {:atom, atom}, context}
-  end
-
-  # 12
-  def of_pattern(literal, _stack, context) when is_integer(literal) do
-    {:ok, :integer, context}
-  end
-
-  # 1.2
-  def of_pattern(literal, _stack, context) when is_float(literal) do
-    {:ok, :float, context}
-  end
-
-  # "..."
-  def of_pattern(literal, _stack, context) when is_binary(literal) do
-    {:ok, :binary, context}
-  end
-
-  # <<...>>>
-  def of_pattern({:<<>>, _meta, args}, stack, context) do
-    case Of.binary(args, stack, context, &of_pattern_expected/4) do
-      {:ok, context} -> {:ok, :binary, context}
-      {:error, reason} -> {:error, reason}
-    end
-  end
-
-  # left | []
-  def of_pattern({:|, _meta, [left_expr, []]} = expr, stack, context) do
-    stack = push_expr_stack(expr, stack)
-    of_pattern(left_expr, stack, context)
-  end
-
-  # left | right
-  def of_pattern({:|, _meta, [left_expr, right_expr]} = expr, stack, context) do
-    stack = push_expr_stack(expr, stack)
-
-    case of_pattern(left_expr, stack, context) do
-      {:ok, left, context} ->
-        case of_pattern(right_expr, stack, context) do
-          {:ok, {:list, right}, context} ->
-            {:ok, to_union([left, right], context), context}
-
-          {:ok, right, context} ->
-            {:ok, to_union([left, right], context), context}
-
-          {:error, reason} ->
-            {:error, reason}
-        end
-
-      {:error, reason} ->
-        {:error, reason}
-    end
-  end
-
-  # []
-  def of_pattern([], _stack, context) do
-    {:ok, {:list, :dynamic}, context}
-  end
-
-  # [expr, ...]
-  def of_pattern(exprs, stack, context) when is_list(exprs) do
-    stack = push_expr_stack(exprs, stack)
-
-    case map_reduce_ok(exprs, context, &of_pattern(&1, stack, &2)) do
-      {:ok, types, context} -> {:ok, {:list, to_union(types, context)}, context}
-      {:error, reason} -> {:error, reason}
-    end
-  end
-
-  # left ++ right
-  def of_pattern(
-        {{:., _meta1, [:erlang, :++]}, _meta2, [left_expr, right_expr]} = expr,
-        stack,
-        context
-      ) do
-    stack = push_expr_stack(expr, stack)
-
-    case of_pattern(left_expr, stack, context) do
-      {:ok, {:list, left}, context} ->
-        case of_pattern(right_expr, stack, context) do
-          {:ok, {:list, right}, context} ->
-            {:ok, {:list, to_union([left, right], context)}, context}
-
-          {:ok, right, context} ->
-            {:ok, {:list, to_union([left, right], context)}, context}
-
-          {:error, reason} ->
-            {:error, reason}
-        end
-
-      {:error, reason} ->
-        {:error, reason}
-    end
-  end
-
   # _
   def of_pattern({:_, _meta, atom}, _stack, context) when is_atom(atom) do
     {:ok, :dynamic, context}
@@ -137,21 +40,6 @@ defmodule Module.Types.Pattern do
     {:ok, type, context}
   end
 
-  # {left, right}
-  def of_pattern({left, right}, stack, context) do
-    of_pattern({:{}, [], [left, right]}, stack, context)
-  end
-
-  # {...}
-  def of_pattern({:{}, _meta, exprs} = expr, stack, context) do
-    stack = push_expr_stack(expr, stack)
-
-    case map_reduce_ok(exprs, context, &of_pattern(&1, stack, &2)) do
-      {:ok, types, context} -> {:ok, {:tuple, length(types), types}, context}
-      {:error, reason} -> {:error, reason}
-    end
-  end
-
   # left = right
   def of_pattern({:=, _meta, [left_expr, right_expr]} = expr, stack, context) do
     stack = push_expr_stack(expr, stack)
@@ -159,23 +47,6 @@ defmodule Module.Types.Pattern do
     with {:ok, left_type, context} <- of_pattern(left_expr, stack, context),
          {:ok, right_type, context} <- of_pattern(right_expr, stack, context),
          do: unify(left_type, right_type, stack, context)
-  end
-
-  # %{...}
-  def of_pattern({:%{}, _meta, args} = expr, stack, context) do
-    stack = push_expr_stack(expr, stack)
-    Of.open_map(args, stack, context, &of_pattern_expected/4)
-  end
-
-  # %Struct{...}
-  def of_pattern({:%, meta1, [module, {:%{}, _meta2, args}]} = expr, stack, context)
-      when is_atom(module) do
-    stack = push_expr_stack(expr, stack)
-
-    with {:ok, struct, context} <- Of.struct(module, meta1, context),
-         {:ok, map, context} <- Of.open_map(args, stack, context, &of_pattern_expected/4) do
-      unify(map, struct, stack, context)
-    end
   end
 
   # %_{...}
@@ -186,31 +57,28 @@ defmodule Module.Types.Pattern do
       )
       when is_atom(var_context) do
     stack = push_expr_stack(expr, stack)
+    expected_fun = fn arg, _expected, stack, context -> of_pattern(arg, stack, context) end
 
-    with {:ok, {:map, pairs}, context} <-
-           Of.open_map(args, stack, context, &of_pattern_expected/4) do
+    with {:ok, {:map, pairs}, context} <- Of.open_map(args, stack, context, expected_fun) do
       {:ok, {:map, [{:required, {:atom, :__struct__}, :atom} | pairs]}, context}
     end
   end
 
   # %var{...} and %^var{...}
-  def of_pattern({:%, _meta1, [var, {:%{}, _meta2, args}]} = expr, stack, context) do
+  def of_pattern({:%, _meta1, [var, {:%{}, _meta2, args}]} = expr, stack, context)
+      when not is_atom(var) do
     stack = push_expr_stack(expr, stack)
+    expected_fun = fn arg, _expected, stack, context -> of_pattern(arg, stack, context) end
 
     with {:ok, var_type, context} = of_pattern(var, stack, context),
          {:ok, _, context} <- unify(var_type, :atom, stack, context),
-         {:ok, {:map, pairs}, context} <-
-           Of.open_map(args, stack, context, &of_pattern_expected/4) do
+         {:ok, {:map, pairs}, context} <- Of.open_map(args, stack, context, expected_fun) do
       {:ok, {:map, [{:required, {:atom, :__struct__}, var_type} | pairs]}, context}
     end
   end
 
-  def unify_kinds(:required, _), do: :required
-  def unify_kinds(_, :required), do: :required
-  def unify_kinds(:optional, :optional), do: :optional
-
-  defp of_pattern_expected(expr, _expected, stack, context) do
-    of_pattern(expr, stack, context)
+  def of_pattern(expr, stack, context) do
+    of_shared(expr, stack, context, &of_pattern/3)
   end
 
   ## GUARDS
@@ -410,10 +278,8 @@ defmodule Module.Types.Pattern do
     {:ok, get_var!(var, context), context}
   end
 
-  # other literals
   def of_guard(expr, stack, context) do
-    # Fall back to of_pattern/3 for literals
-    of_pattern(expr, stack, context)
+    of_shared(expr, stack, context, &of_guard/3)
   end
 
   defp collect_var_indexes_from_expr(expr, context) do
@@ -517,5 +383,141 @@ defmodule Module.Types.Pattern do
 
   defp type_guard?(name) do
     name in @type_guards
+  end
+
+  ## Shared
+
+  # :atom
+  defp of_shared(atom, _stack, context, _fun) when is_atom(atom) do
+    {:ok, {:atom, atom}, context}
+  end
+
+  # 12
+  defp of_shared(literal, _stack, context, _fun) when is_integer(literal) do
+    {:ok, :integer, context}
+  end
+
+  # 1.2
+  defp of_shared(literal, _stack, context, _fun) when is_float(literal) do
+    {:ok, :float, context}
+  end
+
+  # "..."
+  defp of_shared(literal, _stack, context, _fun) when is_binary(literal) do
+    {:ok, :binary, context}
+  end
+
+  # <<...>>>
+  defp of_shared({:<<>>, _meta, args}, stack, context, fun) do
+    expected_fun = fn arg, _expected, stack, context -> fun.(arg, stack, context) end
+
+    case Of.binary(args, stack, context, expected_fun) do
+      {:ok, context} -> {:ok, :binary, context}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  # left | []
+  defp of_shared({:|, _meta, [left_expr, []]} = expr, stack, context, fun) do
+    stack = push_expr_stack(expr, stack)
+    fun.(left_expr, stack, context)
+  end
+
+  # left | right
+  defp of_shared({:|, _meta, [left_expr, right_expr]} = expr, stack, context, fun) do
+    stack = push_expr_stack(expr, stack)
+
+    case fun.(left_expr, stack, context) do
+      {:ok, left, context} ->
+        case fun.(right_expr, stack, context) do
+          {:ok, {:list, right}, context} ->
+            {:ok, to_union([left, right], context), context}
+
+          {:ok, right, context} ->
+            {:ok, to_union([left, right], context), context}
+
+          {:error, reason} ->
+            {:error, reason}
+        end
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  # []
+  defp of_shared([], _stack, context, _fun) do
+    {:ok, {:list, :dynamic}, context}
+  end
+
+  # [expr, ...]
+  defp of_shared(exprs, stack, context, fun) when is_list(exprs) do
+    stack = push_expr_stack(exprs, stack)
+
+    case map_reduce_ok(exprs, context, &fun.(&1, stack, &2)) do
+      {:ok, types, context} -> {:ok, {:list, to_union(types, context)}, context}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  # left ++ right
+  defp of_shared(
+         {{:., _meta1, [:erlang, :++]}, _meta2, [left_expr, right_expr]} = expr,
+         stack,
+         context,
+         fun
+       ) do
+    stack = push_expr_stack(expr, stack)
+
+    case fun.(left_expr, stack, context) do
+      {:ok, {:list, left}, context} ->
+        case fun.(right_expr, stack, context) do
+          {:ok, {:list, right}, context} ->
+            {:ok, {:list, to_union([left, right], context)}, context}
+
+          {:ok, right, context} ->
+            {:ok, {:list, to_union([left, right], context)}, context}
+
+          {:error, reason} ->
+            {:error, reason}
+        end
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  # {left, right}
+  defp of_shared({left, right}, stack, context, fun) do
+    of_shared({:{}, [], [left, right]}, stack, context, fun)
+  end
+
+  # {...}
+  defp of_shared({:{}, _meta, exprs} = expr, stack, context, fun) do
+    stack = push_expr_stack(expr, stack)
+
+    case map_reduce_ok(exprs, context, &fun.(&1, stack, &2)) do
+      {:ok, types, context} -> {:ok, {:tuple, length(types), types}, context}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  # %{...}
+  defp of_shared({:%{}, _meta, args} = expr, stack, context, fun) do
+    stack = push_expr_stack(expr, stack)
+    expected_fun = fn arg, _expected, stack, context -> fun.(arg, stack, context) end
+    Of.open_map(args, stack, context, expected_fun)
+  end
+
+  # %Struct{...}
+  defp of_shared({:%, meta1, [module, {:%{}, _meta2, args}]} = expr, stack, context, fun)
+       when is_atom(module) do
+    stack = push_expr_stack(expr, stack)
+    expected_fun = fn arg, _expected, stack, context -> fun.(arg, stack, context) end
+
+    with {:ok, struct, context} <- Of.struct(module, meta1, context),
+         {:ok, map, context} <- Of.open_map(args, stack, context, expected_fun) do
+      unify(map, struct, stack, context)
+    end
   end
 end

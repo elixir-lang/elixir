@@ -36,9 +36,7 @@ defmodule Module.Types.Expr do
 
   # <<...>>>
   def of_expr({:<<>>, _meta, args}, _expected, stack, context) do
-    result = Of.binary(args, stack, context, &of_expr/4)
-
-    case result do
+    case Of.binary(args, stack, context, &of_expr/4) do
       {:ok, context} -> {:ok, :binary, context}
       {:error, reason} -> {:error, reason}
     end
