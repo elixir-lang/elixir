@@ -116,6 +116,17 @@ defmodule EnumTest do
              [[0], [1, 2], [3, 4], [5, 6], [7, 8], [9, 10]]
 
     assert Enum.chunk_while([5, 7, 9, 11], [], chunk_fun, after_fun) == [[5, 7, 9]]
+
+    assert Enum.chunk_while([1, 2, 3, 5, 7], [], chunk_fun, after_fun) == [[1, 2], [3, 5, 7]]
+
+    chunk_fn2 = fn
+      -1, acc -> {:cont, acc, 0}
+      i, acc -> {:cont, acc + i}
+    end
+
+    after_fn2 = fn acc -> {:cont, acc, 0} end
+
+    assert Enum.chunk_while([1, -1, 2, 3, -1, 4, 5, 6], 0, chunk_fn2, after_fn2) == [1, 5, 15]
   end
 
   test "concat/1" do
