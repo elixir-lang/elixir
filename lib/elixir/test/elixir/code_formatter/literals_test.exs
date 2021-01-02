@@ -215,7 +215,8 @@ defmodule Code.Formatter.LiteralsTest do
     test "with interpolation on line limit" do
       assert_same ~S"""
                   'one #{"two"} three'
-                  """, @short_length
+                  """,
+                  @short_length
     end
 
     test "literal new lines don't count towards line limit" do
@@ -276,7 +277,8 @@ defmodule Code.Formatter.LiteralsTest do
                   """
                   one #{"two two"} three
                   """
-                  ''', @short_length
+                  ''',
+                  @short_length
     end
 
     test "nested with empty lines" do
