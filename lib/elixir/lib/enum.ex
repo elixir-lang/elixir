@@ -485,12 +485,12 @@ defmodule Enum do
   as part of an accumulator, but were not emited as a chunk by `chunk_fun`.
   It must return:
 
-  * `{:cont, chunk, acc}` to emit a chunk. The chunk will be appended to the
-     list of already emitted chunks.
-  * `{:cont, acc}` to not emit a chunk
+    * `{:cont, chunk, acc}` to emit a chunk. The chunk will be appended to the
+      list of already emitted chunks.
+    * `{:cont, acc}` to not emit a chunk
 
-  (`acc` in `after_fun` return tuple is required by `chunk_every/4` to match
-  on the result, but is ignored.)
+  The `acc` in `after_fun` is required in order to mirror the tuple format
+  from `chunk_fun` but it will be discarded since the traversal is complete.
 
   Returns a list of emitted chunks.
 
