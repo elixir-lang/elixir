@@ -25,6 +25,13 @@ defmodule ProtocolTest do
 
   @with_any_binary with_any_binary
 
+  {_, _, with_fallback_to_any_without_any_binary, _} =
+    defprotocol WithFallbackToAnyWithoutAny do
+      @fallback_to_any true
+      @doc "Ok"
+      def ok(term)
+    end
+
   defprotocol Derivable do
     def ok(a)
   end
@@ -103,12 +110,24 @@ defmodule ProtocolTest do
     assert WithAny.impl_for(self()) == WithAny.Any
   end
 
-  test "protocol not implemented" do
-    message = "protocol ProtocolTest.Sample not implemented for :foo of type Atom"
+  describe "protocol not implemented" do
+    test "@falback_to_any false" do
+      message = "protocol ProtocolTest.Sample not implemented for :foo of type Atom"
 
-    assert_raise Protocol.UndefinedError, message, fn ->
-      sample = Sample
-      sample.ok(:foo)
+      assert_raise Protocol.UndefinedError, message, fn ->
+        sample = Sample
+        sample.ok(:foo)
+      end
+    end
+
+    test "@falback_to_any true" do
+      message =
+        "protocol ProtocolTest.WithFallbackToAnyWithoutAny not implemented for :foo of type Atom"
+
+      assert_raise Protocol.UndefinedError, message, fn ->
+        sample = WithFallbackToAnyWithoutAny
+        sample.ok(:foo)
+      end
     end
   end
 

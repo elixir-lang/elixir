@@ -767,12 +767,27 @@ defmodule Protocol do
       @spec impl_for!(term) :: atom
       if any_impl_for do
         Kernel.def impl_for!(data) do
-          impl_for(data)
+          try do
+            impl_for(data)
+          rescue
+            UndefinedFunctionError ->
+              raise_impl_for(data)
+          else
+            nil ->
+              raise_impl_for(data)
+
+            result ->
+              result
+          end
         end
       else
         Kernel.def impl_for!(data) do
-          impl_for(data) || raise(Protocol.UndefinedError, protocol: __MODULE__, value: data)
+          impl_for(data) || raise_impl_for(data)
         end
+      end
+
+      Kernel.defp raise_impl_for(value) do
+        raise(Protocol.UndefinedError, protocol: __MODULE__, value: value)
       end
 
       # Internal handler for Structs
