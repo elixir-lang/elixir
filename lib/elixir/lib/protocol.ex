@@ -720,7 +720,9 @@ defmodule Protocol do
               unquote(__MODULE__.Any).__impl__(:target)
             rescue
               UndefinedFunctionError ->
-                nil
+                reraise Protocol.UndefinedError,
+                        [protocol: unquote(__MODULE__), value: :how_do_i_pass_this_value?],
+                        __STACKTRACE__
             end
           end
         else
