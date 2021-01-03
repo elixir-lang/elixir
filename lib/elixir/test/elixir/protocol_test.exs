@@ -205,14 +205,9 @@ defmodule ProtocolTest do
     msg = "defimpl/3 expects a :for option when declared outside a module"
 
     assert_raise ArgumentError, msg, fn ->
-      ast =
-        quote do
-          defimpl Sample do
-            def ok(_term), do: true
-          end
-        end
-
-      Code.eval_quoted(ast, [], %{__ENV__ | module: nil})
+      defimpl Sample do
+        def ok(_term), do: true
+      end
     end
   end
 
