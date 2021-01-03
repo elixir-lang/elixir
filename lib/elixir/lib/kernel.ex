@@ -4841,9 +4841,8 @@ defmodule Kernel do
   defmacro defimpl(name, opts, do_block \\ []) do
     merged = Keyword.merge(opts, do_block)
     merged = Keyword.put_new(merged, :for, __CALLER__.module)
-    for_option = Keyword.fetch!(merged, :for)
 
-    if for_option == nil do
+    if Keyword.fetch!(merged, :for) == nil do
       raise ArgumentError, "defimpl/3 expects a :for option when declared outside a module"
     end
 
