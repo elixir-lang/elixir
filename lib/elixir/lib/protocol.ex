@@ -177,7 +177,7 @@ defmodule Protocol do
     * `impl_for/1` - returns the module that implements the protocol for the given argument,
       `nil` otherwise
 
-    * `impl_for!/1` - same as above but raises an error if an implementation is
+    * `impl_for!/1` - same as above but raises `Protocol.UndefinedError` if an implementation is
       not found
 
   For example, for the `Enumerable` protocol we have:
