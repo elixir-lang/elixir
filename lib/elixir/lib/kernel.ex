@@ -4843,7 +4843,7 @@ defmodule Kernel do
     merged = Keyword.put_new(merged, :for, __CALLER__.module)
     for_option = Keyword.fetch!(merged, :for)
 
-    if for_option == nil or for_option == [] do
+    if for_option == nil do
       raise ArgumentError, "defimpl/3 expects a :for option when declared outside a module"
     end
 

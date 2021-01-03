@@ -214,17 +214,6 @@ defmodule ProtocolTest do
 
       Code.eval_quoted(ast, [], %{__ENV__ | module: nil})
     end
-
-    assert_raise ArgumentError, msg, fn ->
-      ast =
-        quote do
-          defimpl Sample, for: [] do
-            def ok(_term), do: true
-          end
-        end
-
-      Code.eval_quoted(ast, [], %{__ENV__ | module: nil})
-    end
   end
 
   defp get_callbacks(beam, name, arity) do
