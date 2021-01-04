@@ -201,6 +201,21 @@ defmodule ProtocolTest do
     assert Multi.test(:a) == :a
   end
 
+  test "defimpl without :for option when ouside a module" do
+    msg = "defimpl/3 expects a :for option when declared outside a module"
+
+    assert_raise ArgumentError, msg, fn ->
+      ast =
+        quote do
+          defimpl Sample do
+            def ok(_term), do: true
+          end
+        end
+
+      Code.eval_quoted(ast, [], %{__ENV__ | module: nil})
+    end
+  end
+
   defp get_callbacks(beam, name, arity) do
     {:ok, callbacks} = Code.Typespec.fetch_callbacks(beam)
     List.keyfind(callbacks, {name, arity}, 0) |> elem(1)
