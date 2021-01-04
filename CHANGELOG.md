@@ -243,7 +243,7 @@ The Calendar module ships with a new `Calendar.strftime/3` function, which provi
 
 Mix also includes two new tasks: `mix app.config`, for application runtime configuration, and `mix test.coverage`, which generates aggregated coverage reports for umbrella projects and for test suites partitioned across processes.
 
-## v1.11.3
+## v1.11.3 (2021-01-04)
 
 ### 1. Enhancements
 
@@ -257,6 +257,7 @@ Mix also includes two new tasks: `mix app.config`, for application runtime confi
 
   * [Code] Do not raise when checking for operator ambiguity when `:static_atoms_encoder` is set in `Code.string_to_quoted`
   * [Kernel] Emit undefined function warnings from `with`
+  * [Kernel] Do not fail type checking when literals are used in guards
   * [Module] Do not warn for attributes used in `@after_compile`
   * [Record] Make sure nested record names do not clobber each other
 
@@ -270,6 +271,7 @@ Mix also includes two new tasks: `mix app.config`, for application runtime confi
 
 #### Mix
 
+  * [mix deps.compile] Fix compatibility with rebar v3.14
   * [mix release] Do not use private `ram_file:compress/1`
   * [mix xref] Do not crash when retrieving calls for modules in memory
 
