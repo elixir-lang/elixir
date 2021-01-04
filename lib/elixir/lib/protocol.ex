@@ -394,17 +394,19 @@ defmodule Protocol do
       end
 
       Derivable.ok(%ImplStruct{})
-      {:ok, %ImplStruct{a: 0, b: 0}, %ImplStruct{a: 0, b: 0}, []}
+      #=> {:ok, %ImplStruct{a: 0, b: 0}, %ImplStruct{a: 0, b: 0}, []}
 
-  Explicit derivations can now be called via `__deriving__`:
+  Explicit derivations can now be called via `__deriving__/3`:
 
-      # Explicitly derived via `__deriving__`
+      # Explicitly derived via `__deriving__/3`
       Derivable.ok(%ImplStruct{a: 1, b: 1})
+      #=> {:ok, %ImplStruct{a: 1, b: 1}, %ImplStruct{a: 0, b: 0}, []}
 
-      # Explicitly derived by API via `__deriving__`
+      # Explicitly derived by API via `__deriving__/3`
       require Protocol
       Protocol.derive(Derivable, ImplStruct, :oops)
       Derivable.ok(%ImplStruct{a: 1, b: 1})
+      #=> {:ok, %ImplStruct{a: 1, b: 1}, %ImplStruct{a: 0, b: 0}, :oops}
 
   """
   defmacro derive(protocol, module, options \\ []) do
