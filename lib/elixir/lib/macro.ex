@@ -341,7 +341,7 @@ defmodule Macro do
   variables using `Macro.var/2`.
 
   Note the arguments are not unique. If you later on want
-  to access this same varibles, you can invoke this function
+  to access this same variables, you can invoke this function
   with the same inputs. Use `generate_unique_arguments/2` to
   generate a unique arguments that can't be overridden.
 
@@ -391,7 +391,7 @@ defmodule Macro do
   by the atoms `var` and `context`.
 
   Note this variable is not unique. If you later on want
-  to access this same varible, you can invoke `var/2`
+  to access this same variables, you can invoke `var/2`
   again with the same argument. Use `unique_var/2` to
   generate a unique variable that can't be overridden.
 
