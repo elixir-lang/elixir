@@ -64,7 +64,7 @@ defmodule IEx.Evaluator do
     |> ++ -- <= >= <> > < && || == != =~
     * /
   )
-  @leading_binary "<<"
+  @leading_false_positives ["<<"]
 
   {lbo_before, lbo_after} =
     Enum.split_with(@leading_binary_operators, &String.starts_with?(&1, @leading_binary))
