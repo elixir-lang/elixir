@@ -86,6 +86,7 @@ defmodule IEx.Evaluator do
 
   Enum.each(lbo_before ++ @leading_false_positives ++ lbo_after, fn op ->
     prefix = if op in @leading_false_positives, do: "", else: "v() "
+
     def parse(unquote(op) <> input, opts, "", leading_spaces) do
       parse(input, opts, unquote(prefix) <> leading_spaces <> unquote(op))
     end

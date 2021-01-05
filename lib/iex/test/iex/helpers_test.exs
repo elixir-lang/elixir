@@ -1119,6 +1119,7 @@ defmodule IEx.HelpersTest do
       assert capture_iex("1\n < 2") =~ "true"
       assert capture_iex("1\n < 1") =~ "false"
       assert capture_iex("1\n <= 1") =~ "true"
+
       assert capture_iex("1\n == 1.0") =~ "true"
       assert capture_iex("1\n === 1") =~ "true"
       assert capture_iex("1\n === 1.0") =~ "false"
