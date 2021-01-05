@@ -67,7 +67,7 @@ defmodule IEx.Evaluator do
   @leading_false_positives ["<<"]
 
   {lbo_before, lbo_after} =
-    Enum.split_with(@leading_binary_operators, &String.starts_with?(&1, @leading_binary))
+    Enum.split_with(@leading_binary_operators, &String.starts_with?(&1, @leading_false_positives))
 
   @doc false
   def parse(input, opts, buffer, leading_spaces \\ "")
@@ -84,19 +84,10 @@ defmodule IEx.Evaluator do
     parse(input, opts, "", leading_spaces <> @space)
   end
 
-  Enum.each(lbo_before, fn op ->
+  Enum.each(lbo_before ++ @leading_false_positives ++ lbo_after, fn op ->
+    prefix = if op in @leading_false_positives, do: "", else: "v() "
     def parse(unquote(op) <> input, opts, "", leading_spaces) do
-      parse(input, opts, "v() " <> leading_spaces <> unquote(op))
-    end
-  end)
-
-  def parse(@leading_binary <> input, opts, "", leading_spaces) do
-    parse(input, opts, leading_spaces <> @leading_binary)
-  end
-
-  Enum.each(lbo_after, fn op ->
-    def parse(unquote(op) <> input, opts, "", leading_spaces) do
-      parse(input, opts, "v() " <> leading_spaces <> unquote(op))
+      parse(input, opts, unquote(prefix) <> leading_spaces <> unquote(op))
     end
   end)
 
