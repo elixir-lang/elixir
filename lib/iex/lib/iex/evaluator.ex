@@ -59,27 +59,36 @@ defmodule IEx.Evaluator do
   @break_trigger "#iex:break\n"
 
   @space " "
-  @leading_pipe "|>"
+  @leading_binary_operators ~w(|> * / ++ -- <= >= <> > < && || === !== == != =~ or and in)
+  @leading_binary "<<"
 
   @doc false
-  def parse(@break_trigger, _opts, "") do
+  def parse(input, opts, buffer, leading_spaces \\ "")
+
+  def parse(@break_trigger, _opts, "", _leading_spaces) do
     {:incomplete, ""}
   end
 
-  def parse(@break_trigger, opts, _buffer) do
+  def parse(@break_trigger, opts, _buffer, _leading_spaces) do
     :elixir_errors.parse_error([line: opts[:line]], opts[:file], "incomplete expression", "")
   end
 
-  def parse(@space <> input, opts, "") do
-    parse(input, opts, "")
+  def parse(@space <> input, opts, "", leading_spaces) do
+    parse(input, opts, "", leading_spaces <> @space)
   end
 
-  def parse(@leading_pipe <> input, opts, "") do
-    parse("v() " <> @leading_pipe <> input, opts, "")
+  def parse(@leading_binary <> input, opts, "", leading_spaces) do
+    parse(input, opts, leading_spaces <> @leading_binary)
   end
 
-  def parse(input, opts, buffer) do
-    input = buffer <> input
+  Enum.each(@leading_binary_operators, fn op ->
+    def parse(unquote(op) <> input, opts, "", leading_spaces) do
+      parse("v() " <> leading_spaces <> unquote(op) <> input, opts)
+    end
+  end)
+
+  def parse(input, opts, buffer, leading_spaces) do
+    input = buffer <> leading_spaces <> input
 
     case Code.string_to_quoted(input, opts) do
       {:ok, forms} ->

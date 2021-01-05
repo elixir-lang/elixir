@@ -1111,9 +1111,21 @@ defmodule IEx.HelpersTest do
     end
   end
 
-  describe "iex|1> |>" do
+  describe "iex> |> (and other binary operators)" do
     test "passes previous result to the pipe" do
       assert capture_iex("42\n  |> IO.puts()") =~ "42"
+      assert capture_iex("42\n*2\n/ 14\n in [6] \n||:bar\n&&:foo") =~ ":foo"
+      assert capture_iex("[1]\n++[2]\n-- [1]\n == [2]") =~ "true"
+      assert capture_iex("1\n < 2") =~ "true"
+      assert capture_iex("1\n < 1") =~ "false"
+      assert capture_iex("1\n <= 1") =~ "true"
+      assert capture_iex("1\n == 1.0") =~ "true"
+      assert capture_iex("1\n === 1") =~ "true"
+      assert capture_iex("1\n === 1.0") =~ "false"
+      assert capture_iex("~s|foo|\n =~ ~r|f|") =~ "true"
+
+      assert capture_iex("42\n <<rest::binary>> = ~s|foo|\nrest") =~ "foo"
+
       assert capture_iex("|> IO.puts()") =~ "(RuntimeError) v(-1) is out of bounds"
     end
   end
