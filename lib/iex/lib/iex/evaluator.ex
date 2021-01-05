@@ -59,7 +59,7 @@ defmodule IEx.Evaluator do
   @break_trigger "#iex:break\n"
 
   @space " "
-  @leading_binary_operators ["not in", "or", "and", "in"] ++ ~w(
+  @leading_binary_operators ["not in ", "or ", "and ", "in "] ++ ~w(
     ^^^ <<< >>> <<~ ~>> <~ ~> <~> <|> &&& ||| === !==
     |> ++ -- <= >= <> > < && || == != =~
     * /

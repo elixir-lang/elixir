@@ -1125,7 +1125,7 @@ defmodule IEx.HelpersTest do
       assert capture_iex("~s|foo|\n =~ ~r|f|") =~ "true"
 
       assert capture_iex("42\n or false") =~ "expected a boolean on left-side of \"or\", got: 42"
-      assert capture_iex("42\n orion false") =~ "syntax error before: orion"
+      assert capture_iex("42\n orion false") =~ "undefined function orion/1"
 
       assert capture_iex("42\n <<rest::binary>> = ~s|foo|\nrest") =~ "foo"
 
