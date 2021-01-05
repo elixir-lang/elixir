@@ -58,17 +58,32 @@ defmodule IEx.Evaluator do
   # https://github.com/elixir-lang/elixir/issues/1089 for discussion.
   @break_trigger "#iex:break\n"
 
+  @space " "
+  @pipe_operators ~w(|> ~>> <<~ ~> <~ <~> <|>)
+
   @doc false
-  def parse(@break_trigger, _opts, "") do
+  def parse(input, opts, buffer, leading_spaces \\ "")
+
+  def parse(@break_trigger, _opts, "", _leading_spaces) do
     {:incomplete, ""}
   end
 
-  def parse(@break_trigger, opts, _buffer) do
+  def parse(@break_trigger, opts, _buffer, _leading_spaces) do
     :elixir_errors.parse_error([line: opts[:line]], opts[:file], "incomplete expression", "")
   end
 
-  def parse(input, opts, buffer) do
-    input = buffer <> input
+  def parse(@space <> input, opts, "", leading_spaces) do
+    parse(input, opts, "", leading_spaces <> @space)
+  end
+
+  Enum.each(@pipe_operators, fn op ->
+    def parse(unquote(op) <> input, opts, "", leading_spaces) do
+      parse(input, opts, "v() " <> leading_spaces <> unquote(op))
+    end
+  end)
+
+  def parse(input, opts, buffer, leading_spaces) do
+    input = buffer <> leading_spaces <> input
 
     case Code.string_to_quoted(input, opts) do
       {:ok, forms} ->
