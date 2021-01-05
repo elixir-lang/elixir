@@ -83,7 +83,7 @@ defmodule IEx.Evaluator do
 
   Enum.each(@leading_binary_operators, fn op ->
     def parse(unquote(op) <> input, opts, "", leading_spaces) do
-      parse("v() " <> leading_spaces <> unquote(op) <> input, opts)
+      parse(input, opts, "v() " <> leading_spaces <> unquote(op))
     end
   end)
 
