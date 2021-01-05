@@ -1111,6 +1111,13 @@ defmodule IEx.HelpersTest do
     end
   end
 
+  describe "iex|1> |>" do
+    test "passes previous result to the pipe" do
+      assert capture_iex("42\n  |> IO.puts()") =~ "42"
+      assert capture_iex("|> IO.puts()") =~ "(RuntimeError) v(-1) is out of bounds"
+    end
+  end
+
   describe "c" do
     test "compiles a file" do
       assert_raise UndefinedFunctionError, ~r"function Sample\.run/0 is undefined", fn ->

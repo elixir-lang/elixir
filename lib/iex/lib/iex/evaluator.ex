@@ -58,6 +58,9 @@ defmodule IEx.Evaluator do
   # https://github.com/elixir-lang/elixir/issues/1089 for discussion.
   @break_trigger "#iex:break\n"
 
+  @space " "
+  @leading_pipe "|>"
+
   @doc false
   def parse(@break_trigger, _opts, "") do
     {:incomplete, ""}
@@ -65,6 +68,14 @@ defmodule IEx.Evaluator do
 
   def parse(@break_trigger, opts, _buffer) do
     :elixir_errors.parse_error([line: opts[:line]], opts[:file], "incomplete expression", "")
+  end
+
+  def parse(@space <> input, opts, "") do
+    parse(input, opts, "")
+  end
+
+  def parse(@leading_pipe <> input, opts, "") do
+    parse("v() " <> @leading_pipe <> input, opts, "")
   end
 
   def parse(input, opts, buffer) do
