@@ -62,7 +62,8 @@ defmodule IEx.Evaluator do
   @leading_binary_operators ["not in", "or", "and", "in"] ++ ~w(
     ^^^ <<< >>> <<~ ~>> <~ ~> <~> <|> &&& ||| === !==
     |> ++ -- <= >= <> > < && || == != =~
-    * /)
+    * /
+  )
   @leading_binary "<<"
 
   {lbo_before, lbo_after} =
