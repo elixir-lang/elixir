@@ -1126,6 +1126,8 @@ defmodule IEx.HelpersTest do
 
       assert capture_iex("42\n <<rest::binary>> = ~s|foo|\nrest") =~ "foo"
 
+      assert capture_iex("import Bitwise\n 1\n <<< 2") =~ "4"
+
       assert capture_iex("|> IO.puts()") =~ "(RuntimeError) v(-1) is out of bounds"
     end
   end

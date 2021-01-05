@@ -59,8 +59,14 @@ defmodule IEx.Evaluator do
   @break_trigger "#iex:break\n"
 
   @space " "
-  @leading_binary_operators ~w(|> * / ++ -- <= >= <> > < && || === !== == != =~ or and in)
+  @leading_binary_operators ["not in", "or", "and", "in"] ++ ~w(
+    ^^^ <<< >>> <<~ ~>> <~ ~> <~> <|> &&& ||| === !==
+    |> ++ -- <= >= <> > < && || == != =~
+    * /)
   @leading_binary "<<"
+
+  {lbo_before, lbo_after} =
+    Enum.split_with(@leading_binary_operators, &String.starts_with?(&1, @leading_binary))
 
   @doc false
   def parse(input, opts, buffer, leading_spaces \\ "")
@@ -77,11 +83,17 @@ defmodule IEx.Evaluator do
     parse(input, opts, "", leading_spaces <> @space)
   end
 
+  Enum.each(lbo_before, fn op ->
+    def parse(unquote(op) <> input, opts, "", leading_spaces) do
+      parse(input, opts, "v() " <> leading_spaces <> unquote(op))
+    end
+  end)
+
   def parse(@leading_binary <> input, opts, "", leading_spaces) do
     parse(input, opts, leading_spaces <> @leading_binary)
   end
 
-  Enum.each(@leading_binary_operators, fn op ->
+  Enum.each(lbo_after, fn op ->
     def parse(unquote(op) <> input, opts, "", leading_spaces) do
       parse(input, opts, "v() " <> leading_spaces <> unquote(op))
     end
