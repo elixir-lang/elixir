@@ -60,8 +60,6 @@ defmodule IEx.Evaluator do
 
   @space " "
   @pipe_operators ~w(|> ~>> <<~ ~> <~ <~> <|>)
-  {lbo_before, lbo_after} =
-    Enum.split_with(@leading_binary_operators, &String.starts_with?(&1, @leading_binary))
 
   @doc false
   def parse(input, opts, buffer, leading_spaces \\ "")
