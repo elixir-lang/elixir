@@ -1113,25 +1113,11 @@ defmodule IEx.HelpersTest do
 
   describe "iex> |> (and other binary operators)" do
     test "passes previous result to the pipe" do
-      assert capture_iex("42\n  |> IO.puts()") =~ "42"
-      assert capture_iex("42\n*2\n/ 14\n in [6] \n||:bar\n&&:foo") =~ ":foo"
-      assert capture_iex("[1]\n++[2]\n-- [1]\n == [2]") =~ "true"
-      assert capture_iex("1\n < 2") =~ "true"
-      assert capture_iex("1\n < 1") =~ "false"
-      assert capture_iex("1\n <= 1") =~ "true"
+      Enum.each([:~>>, :<<~, :~>, :<~, :<~>, :<|>], fn op ->
+        assert capture_iex("42\n  #{op} IO.puts()") =~ "undefined function #{op}/2"
+      end)
 
-      assert capture_iex("1\n == 1.0") =~ "true"
-      assert capture_iex("1\n === 1") =~ "true"
-      assert capture_iex("1\n === 1.0") =~ "false"
-      assert capture_iex("~s|foo|\n =~ ~r|f|") =~ "true"
-
-      assert capture_iex("42\n or false") =~ "expected a boolean on left-side of \"or\", got: 42"
-      assert capture_iex("42\n orion false") =~ "undefined function orion/1"
-
-      assert capture_iex("42\n <<rest::binary>> = ~s|foo|\nrest") =~ "foo"
-
-      assert capture_iex("import Bitwise\n 1\n <<< 2") =~ "4"
-
+      assert capture_iex("42\n |> IO.inspect(label: \"foo\")") =~ "foo: 42"
       assert capture_iex("|> IO.puts()") =~ "(RuntimeError) v(-1) is out of bounds"
     end
   end

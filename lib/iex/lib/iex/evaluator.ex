@@ -59,15 +59,7 @@ defmodule IEx.Evaluator do
   @break_trigger "#iex:break\n"
 
   @space " "
-  @leading_binary_operators ["not in ", "or ", "and ", "in "] ++ ~w(
-    ^^^ <<< >>> <<~ ~>> <~ ~> <~> <|> &&& ||| === !==
-    |> ++ -- <= >= <> > < && || == != =~
-    * /
-  )
-  @leading_false_positives ["<<"]
-
-  {lbo_before, lbo_after} =
-    Enum.split_with(@leading_binary_operators, &String.starts_with?(&1, @leading_false_positives))
+  @pipe_operators ~w(|> ~>> <<~ ~> <~ <~> <|>)
 
   @doc false
   def parse(input, opts, buffer, leading_spaces \\ "")
@@ -84,11 +76,9 @@ defmodule IEx.Evaluator do
     parse(input, opts, "", leading_spaces <> @space)
   end
 
-  Enum.each(lbo_before ++ @leading_false_positives ++ lbo_after, fn op ->
-    prefix = if op in @leading_false_positives, do: "", else: "v() "
-
+  Enum.each(@pipe_operators, fn op ->
     def parse(unquote(op) <> input, opts, "", leading_spaces) do
-      parse(input, opts, unquote(prefix) <> leading_spaces <> unquote(op))
+      parse(input, opts, "v() " <> leading_spaces <> unquote(op))
     end
   end)
 
