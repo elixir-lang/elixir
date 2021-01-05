@@ -1111,6 +1111,17 @@ defmodule IEx.HelpersTest do
     end
   end
 
+  describe "iex> |> (and other binary operators)" do
+    test "passes previous result to the pipe" do
+      Enum.each([:~>>, :<<~, :~>, :<~, :<~>, :<|>], fn op ->
+        assert capture_iex("42\n  #{op} IO.puts()") =~ "undefined function #{op}/2"
+      end)
+
+      assert capture_iex("42\n |> IO.inspect(label: \"foo\")") =~ "foo: 42"
+      assert capture_iex("|> IO.puts()") =~ "(RuntimeError) v(-1) is out of bounds"
+    end
+  end
+
   describe "c" do
     test "compiles a file" do
       assert_raise UndefinedFunctionError, ~r"function Sample\.run/0 is undefined", fn ->
