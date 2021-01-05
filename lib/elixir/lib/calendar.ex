@@ -453,7 +453,7 @@ defmodule Calendar do
   b      | Abbreviated month name                                                  | Jan
   B      | Full month name                                                         | January
   c      | Preferred date+time representation                                      | 2018-10-17 12:34:56
-  d      | Day of the month                                                        | 01, 12
+  d      | Day of the month                                                        | 01, 31
   f      | Microseconds *(does not support width and padding modifiers)*           | 000000, 999999, 0123
   H      | Hour using a 24-hour clock                                              | 00, 23
   I      | Hour using a 12-hour clock                                              | 01, 12
@@ -484,6 +484,9 @@ defmodule Calendar do
 
       iex> Calendar.strftime(~U[2019-08-26 13:52:06.0Z], "%a, %B %d %Y")
       "Mon, August 26 2019"
+
+      iex> Calendar.strftime(~U[2020-04-02 13:52:06.0Z], "%B %-d, %Y")
+      "April 2, 2020"
 
       iex> Calendar.strftime(~U[2019-08-26 13:52:06.0Z], "%c")
       "2019-08-26 13:52:06"
