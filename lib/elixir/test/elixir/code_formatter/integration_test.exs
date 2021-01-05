@@ -309,6 +309,14 @@ defmodule Code.Formatter.IntegrationTest do
     """
   end
 
+  test "do/end inside binary" do
+    assert_same """
+    <<if true do
+        "hello"
+      end::binary>>
+    """
+  end
+
   test "anonymous function with parens around integer argument" do
     bad = """
     fn (1) -> "hello" end

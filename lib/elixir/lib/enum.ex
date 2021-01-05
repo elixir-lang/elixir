@@ -474,15 +474,25 @@ defmodule Enum do
   @doc """
   Chunks the `enumerable` with fine grained control when every chunk is emitted.
 
-  `chunk_fun` receives the current element and the accumulator and
-  must return `{:cont, chunk, acc}` to emit the given chunk and
-  continue with accumulator or `{:cont, acc}` to not emit any chunk
-  and continue with the return accumulator.
+  `chunk_fun` receives the current element and the accumulator and must return:
 
-  `after_fun` is invoked when iteration is done and must also return
-  `{:cont, chunk, acc}` or `{:cont, acc}`.
+    * `{:cont, chunk, acc}` to emit a chunk and continue with the accumulator
+    * `{:cont, acc}` to not emit any chunk and continue with the accumulator
+    * `{:halt, acc}` to halt chunking over the `enumerable`.
 
-  Returns a list of lists.
+  `after_fun` is invoked with the final accumulator when iteration is
+  finished (or `halt`ed) to handle any trailing elements that were returned
+  as part of an accumulator, but were not emited as a chunk by `chunk_fun`.
+  It must return:
+
+    * `{:cont, chunk, acc}` to emit a chunk. The chunk will be appended to the
+      list of already emitted chunks.
+    * `{:cont, acc}` to not emit a chunk
+
+  The `acc` in `after_fun` is required in order to mirror the tuple format
+  from `chunk_fun` but it will be discarded since the traversal is complete.
+
+  Returns a list of emitted chunks.
 
   ## Examples
 
@@ -499,6 +509,8 @@ defmodule Enum do
       ...> end
       iex> Enum.chunk_while(1..10, [], chunk_fun, after_fun)
       [[1, 2], [3, 4], [5, 6], [7, 8], [9, 10]]
+      iex> Enum.chunk_while([1, 2, 3, 5, 7], [], chunk_fun, after_fun)
+      [[1, 2], [3, 5, 7]]
 
   """
   @doc since: "1.5.0"
@@ -513,7 +525,7 @@ defmodule Enum do
     {_, {res, acc}} =
       Enumerable.reduce(enumerable, {:cont, {[], acc}}, fn entry, {buffer, acc} ->
         case chunk_fun.(entry, acc) do
-          {:cont, emit, acc} -> {:cont, {[emit | buffer], acc}}
+          {:cont, chunk, acc} -> {:cont, {[chunk | buffer], acc}}
           {:cont, acc} -> {:cont, {buffer, acc}}
           {:halt, acc} -> {:halt, {buffer, acc}}
         end
@@ -521,7 +533,7 @@ defmodule Enum do
 
     case after_fun.(acc) do
       {:cont, _acc} -> :lists.reverse(res)
-      {:cont, elem, _acc} -> :lists.reverse([elem | res])
+      {:cont, chunk, _acc} -> :lists.reverse([chunk | res])
     end
   end
 
@@ -1327,8 +1339,8 @@ defmodule Enum do
   Inserts the given `enumerable` into a `collectable`.
 
   Note that passing a non-empty list as the `collectable` is deprecated. If you're collecting
-  into a non-empty keyword list, consider using `Keyword.merge/2`. If you're collecting into a
-  non-empty list, consider something like `to_list(enumerable) ++ collectable`.
+  into a non-empty keyword list, consider using `Keyword.merge(collectable, Enum.to_list(enumerable))`.
+  If you're collecting into a non-empty list, consider something like `Enum.to_list(enumerable) ++ collectable`.
 
   ## Examples
 

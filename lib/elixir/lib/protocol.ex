@@ -177,7 +177,7 @@ defmodule Protocol do
     * `impl_for/1` - returns the module that implements the protocol for the given argument,
       `nil` otherwise
 
-    * `impl_for!/1` - same as above but raises an error if an implementation is
+    * `impl_for!/1` - same as above but raises `Protocol.UndefinedError` if an implementation is
       not found
 
   For example, for the `Enumerable` protocol we have:
@@ -394,17 +394,19 @@ defmodule Protocol do
       end
 
       Derivable.ok(%ImplStruct{})
-      {:ok, %ImplStruct{a: 0, b: 0}, %ImplStruct{a: 0, b: 0}, []}
+      #=> {:ok, %ImplStruct{a: 0, b: 0}, %ImplStruct{a: 0, b: 0}, []}
 
-  Explicit derivations can now be called via `__deriving__`:
+  Explicit derivations can now be called via `__deriving__/3`:
 
-      # Explicitly derived via `__deriving__`
+      # Explicitly derived via `__deriving__/3`
       Derivable.ok(%ImplStruct{a: 1, b: 1})
+      #=> {:ok, %ImplStruct{a: 1, b: 1}, %ImplStruct{a: 0, b: 0}, []}
 
-      # Explicitly derived by API via `__deriving__`
+      # Explicitly derived by API via `__deriving__/3`
       require Protocol
       Protocol.derive(Derivable, ImplStruct, :oops)
       Derivable.ok(%ImplStruct{a: 1, b: 1})
+      #=> {:ok, %ImplStruct{a: 1, b: 1}, %ImplStruct{a: 0, b: 0}, :oops}
 
   """
   defmacro derive(protocol, module, options \\ []) do

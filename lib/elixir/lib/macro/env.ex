@@ -97,7 +97,7 @@ defmodule Macro.Env do
           line: line,
           macro_aliases: macro_aliases,
           macros: macros,
-          module: atom,
+          module: module,
           prematch_vars: prematch_vars,
           unused_vars: unused_vars,
           requires: requires,
