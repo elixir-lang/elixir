@@ -632,7 +632,9 @@ defmodule GenServer do
   node is disconnected.
 
   Therefore it is not guaranteed that `c:terminate/2` is called when a `GenServer`
-  exits. For such reasons, we usually recommend important clean-up rules to
+  exits: if the `GenServer` itself crashes, `c:terminate/2` will not be called,
+  whether exits are being trapped or not.
+  For such reasons, we usually recommend important clean-up rules to
   happen in separated processes either by use of monitoring or by links
   themselves. There is no cleanup needed when the `GenServer` controls a `port` (for example,
   `:gen_tcp.socket`) or `t:File.io_device/0`, because these will be closed on
