@@ -310,7 +310,7 @@ defmodule String do
 
   """
   @spec printable?(t, 0) :: true
-  @spec printable?(t, pos_integer | :infinity) :: boolean
+  @spec printable?(t, non_neg_integer | :infinity) :: boolean
   def printable?(string, character_limit \\ :infinity)
       when is_binary(string) and
              (character_limit == :infinity or
