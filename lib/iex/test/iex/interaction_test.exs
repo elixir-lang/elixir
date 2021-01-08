@@ -181,7 +181,9 @@ defmodule IEx.InteractionTest do
     @tag :tmp_dir
     test "single .iex", %{tmp_dir: tmp_dir} do
       path = write_dot_iex!(tmp_dir, "dot-iex", "my_variable = 144")
-      assert capture_iex("my_variable", [], dot_iex_path: path) == "144"
+
+      assert capture_iex("my_variable", [], dot_iex_path: path) ==
+               "Loaded tmp/IEx.InteractionTest/test-.iex-single-.iex/dot-iex\n144"
     end
 
     @tag :tmp_dir
@@ -192,7 +194,9 @@ defmodule IEx.InteractionTest do
         write_dot_iex!(tmp_dir, "dot-iex", "import_file \"#{tmp_dir}/dot-iex-1\"\nmy_variable=14")
 
       input = "nested_var\nmy_variable\nputs \"hello\""
-      assert capture_iex(input, [], dot_iex_path: path) == "13\n14\nhello\n:ok"
+
+      assert capture_iex(input, [], dot_iex_path: path) ==
+               "Loaded tmp/IEx.InteractionTest/test-.iex-nested-.iex/dot-iex\n13\n14\nhello\n:ok"
     end
 
     @tag :tmp_dir
