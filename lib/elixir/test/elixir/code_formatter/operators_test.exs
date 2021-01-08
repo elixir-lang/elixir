@@ -122,7 +122,6 @@ defmodule Code.Formatter.OperatorsTest do
 
     test "not in" do
       assert_format "not(foo in bar)", "not (foo in bar)"
-      assert_format "not(foo in bar)", "foo not in bar", rename_deprecated_at: "1.5.0"
 
       assert_same "foo not in bar"
       assert_same "(not foo) in bar"
