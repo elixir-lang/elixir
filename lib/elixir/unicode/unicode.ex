@@ -304,15 +304,17 @@ defmodule String.Unicode do
     nil
   end
 
-  def codepoints(binary) when is_binary(binary) do
-    do_codepoints(next_codepoint(binary))
+  def codepoints(string) when is_binary(string) do
+    do_codepoints(string)
   end
 
-  defp do_codepoints({c, rest}) do
-    [c | do_codepoints(next_codepoint(rest))]
+  defp do_codepoints(<<codepoint::utf8, rest::bits>>) do
+    [<<codepoint::utf8>> | do_codepoints(rest)]
   end
 
-  defp do_codepoints(nil) do
-    []
+  defp do_codepoints(<<byte, rest::bits>>) do
+    [<<byte>> | do_codepoints(rest)]
   end
+
+  defp do_codepoints(<<>>), do: []
 end
