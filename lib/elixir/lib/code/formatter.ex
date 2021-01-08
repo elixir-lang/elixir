@@ -247,18 +247,6 @@ defmodule Code.Formatter do
   defp state(comments, opts) do
     force_do_end_blocks = Keyword.get(opts, :force_do_end_blocks, false)
 
-    rename_deprecated_at =
-      if version = opts[:rename_deprecated_at] do
-        case Version.parse(version) do
-          {:ok, parsed} ->
-            parsed
-
-          :error ->
-            raise ArgumentError,
-                  "invalid version #{inspect(version)} given to :rename_deprecated_at"
-        end
-      end
-
     locals_without_parens =
       Keyword.get(opts, :locals_without_parens, []) ++ @locals_without_parens
 
@@ -266,7 +254,6 @@ defmodule Code.Formatter do
       force_do_end_blocks: force_do_end_blocks,
       locals_without_parens: locals_without_parens,
       operand_nesting: 2,
-      rename_deprecated_at: rename_deprecated_at,
       comments: comments
     }
   end
@@ -522,10 +509,8 @@ defmodule Code.Formatter do
   # not(left in right)
   # left not in right
   defp quoted_to_algebra({:not, meta, [{:in, _, [left, right]} = arg]}, context, state) do
-    %{rename_deprecated_at: since} = state
-
     # TODO: Remove metadata and always rewrite to left not in right in Elixir v2.0.
-    if meta[:operator] == :"not in" || (since && Version.match?(since, "~> 1.5")) do
+    if meta[:operator] == :"not in" do
       binary_op_to_algebra(:in, "not in", meta, left, right, context, state)
     else
       unary_op_to_algebra(:not, meta, arg, context, state)
@@ -985,7 +970,7 @@ defmodule Code.Formatter do
        )
        when is_atom(fun) and is_integer(arity) do
     {target_doc, state} = remote_target_to_algebra(target, state)
-    fun = remote_fun_to_algebra(target, fun, arity, state)
+    fun = Code.Identifier.inspect_as_function(fun)
     {target_doc |> nest(1) |> concat(string(".#{fun}/#{arity}")), state}
   end
 
@@ -1030,7 +1015,7 @@ defmodule Code.Formatter do
   defp remote_to_algebra({{:., _, [target, fun]}, meta, args}, context, state)
        when is_atom(fun) do
     {target_doc, state} = remote_target_to_algebra(target, state)
-    fun = remote_fun_to_algebra(target, fun, length(args), state)
+    fun = Code.Identifier.inspect_as_function(fun)
     remote_doc = target_doc |> concat(".") |> concat(string(fun))
 
     if args == [] and not remote_target_is_a_module?(target) and not meta?(meta, :closing) do
@@ -1065,38 +1050,6 @@ defmodule Code.Formatter do
       _ -> false
     end
   end
-
-  defp remote_fun_to_algebra(target, fun, arity, state) do
-    %{rename_deprecated_at: since} = state
-
-    atom_target =
-      case since && target do
-        {:__aliases__, _, [alias | _] = aliases} when is_atom(alias) ->
-          Module.concat(aliases)
-
-        {:__block__, _, [atom]} when is_atom(atom) ->
-          atom
-
-        _ ->
-          nil
-      end
-
-    with {fun, requirement} <- deprecated(atom_target, fun, arity),
-         true <- Version.match?(since, requirement) do
-      fun
-    else
-      _ -> Code.Identifier.inspect_as_function(fun)
-    end
-  end
-
-  # We can only rename functions in the same module because
-  # introducing a new module may be wrong due to aliases.
-  defp deprecated(Enum, :partition, 2), do: {"split_with", "~> 1.4"}
-  defp deprecated(Code, :unload_files, 2), do: {"unrequire_files", "~> 1.7"}
-  defp deprecated(Code, :loaded_files, 2), do: {"required_files", "~> 1.7"}
-  defp deprecated(Kernel.ParallelCompiler, :files, 2), do: {"compile", "~> 1.6"}
-  defp deprecated(Kernel.ParallelCompiler, :files_to_path, 2), do: {"compile_to_path", "~> 1.6"}
-  defp deprecated(_, _, _), do: :error
 
   defp remote_target_to_algebra({:fn, _, [_ | _]} = quoted, state) do
     # This change is not semantically required but for beautification.

@@ -368,11 +368,6 @@ defmodule Code do
       that name. The formatter already includes a list of functions
       and this option augments this list.
 
-    * `:rename_deprecated_at` - rename all known deprecated functions
-      at the given version to their non-deprecated equivalent. It
-      expects a valid `Version` which is usually the minimum Elixir
-      version supported by the project.
-
     * `:force_do_end_blocks` (since v1.9.0) - when `true`, converts all
       inline usages of `do: ...`,  `else: ...` and friends into `do/end`
       blocks. Defaults to `false`. Note that this option is convergent:
@@ -386,8 +381,6 @@ defmodule Code do
 
   First, the formatter never changes the semantics of the code by
   default. This means the input AST and the output AST are equivalent.
-  Optional behaviour, such as `:rename_deprecated_at`, is allowed to
-  break this guarantee.
 
   The second principle is to provide as little configuration as possible.
   This eases the formatter adoption by removing contention points while
