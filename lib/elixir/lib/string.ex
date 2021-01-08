@@ -1712,11 +1712,12 @@ defmodule String do
 
   """
   @spec valid?(t) :: boolean
-  def valid?(string)
-
-  def valid?(<<_::utf8, t::binary>>), do: valid?(t)
-  def valid?(<<>>), do: true
+  def valid?(<<string::binary>>), do: valid_utf8?(string)
   def valid?(_), do: false
+
+  defp valid_utf8?(<<_::utf8, rest::bits>>), do: valid_utf8?(rest)
+  defp valid_utf8?(<<>>), do: true
+  defp valid_utf8?(_), do: false
 
   @doc false
   @deprecated "Use String.valid?/1 instead"
