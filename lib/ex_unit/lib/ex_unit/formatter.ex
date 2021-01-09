@@ -10,9 +10,9 @@ defmodule ExUnit.Formatter do
     * `{:suite_started, opts}` -
       the suite has started with the specified options to the runner.
 
-    * `{:suite_finished, run_us, load_us}` -
-      the suite has finished. `run_us` and `load_us` are the run and load
-      times in microseconds respectively.
+    * `{:suite_finished, times_us}` -
+      the suite has finished. Returns several measurements in microseconds
+      for running the suite. See `t:times_us` for more information.
 
     * `{:module_started, test_module}` -
       a test module has started. See `ExUnit.TestModule` for details.
@@ -48,8 +48,24 @@ defmodule ExUnit.Formatter do
 
   @type id :: term
   @type test :: ExUnit.Test.t()
-  @type run_us :: pos_integer
-  @type load_us :: pos_integer | nil
+
+  @typedoc """
+  The times spent on several parts of the test suite.
+
+  The following properties can be computed:
+
+      sync = run - (async || 0)
+      total = run + (load || 0)
+
+  `async` is nil when there are no async tests.
+  `load` is nil when the test suite is running and loading
+  tests concurrently.
+  """
+  @type times_us :: %{
+          run: pos_integer,
+          async: pos_integer | nil,
+          load: pos_integer | nil
+        }
 
   import Exception, only: [format_stacktrace_entry: 1, format_file_line: 3]
 
@@ -64,38 +80,42 @@ defmodule ExUnit.Formatter do
   @doc """
   Formats time taken running the test suite.
 
-  It receives the time spent running the tests and
-  optionally the time spent loading the test suite.
-
   ## Examples
 
-      iex> format_time(10000, nil)
-      "Finished in 0.01 seconds"
+      iex> format_times(%{run: 10000, async: nil, load: nil})
+      "Finished in 0.01 seconds (0.00s async, 0.01s sync)"
 
-      iex> format_time(10000, 20000)
-      "Finished in 0.03 seconds (0.02s on load, 0.01s on tests)"
+      iex> format_times(%{run: 10000, async: nil, load: 20000})
+      "Finished in 0.03 seconds (0.02s on load, 0.00s async, 0.01s sync)"
 
-      iex> format_time(10000, 200_000)
-      "Finished in 0.2 seconds (0.2s on load, 0.01s on tests)"
+      iex> format_times(%{run: 10000, async: nil, load: 200_000})
+      "Finished in 0.2 seconds (0.2s on load, 0.00s async, 0.01s sync)"
+
+      iex> format_times(%{run: 100_000, async: 50000, load: 200_000})
+      "Finished in 0.3 seconds (0.2s on load, 0.05s async, 0.05s sync)"
 
   """
-  @spec format_time(run_us, load_us) :: String.t()
-  def format_time(run_us, nil) do
-    "Finished in #{run_us |> normalize_us |> format_us} seconds"
-  end
-
-  def format_time(run_us, load_us) do
-    run_us = run_us |> normalize_us
-    load_us = load_us |> normalize_us
+  @spec format_times(times_us) :: String.t()
+  def format_times(times) do
+    run_us = normalize_us(times.run)
+    load_us = normalize_us(times.load)
+    async_us = normalize_us(times.async)
+    sync_us = run_us - async_us
     total_us = run_us + load_us
 
+    maybe_load =
+      if times.load do
+        "#{format_us(load_us)}s on load, "
+      else
+        ""
+      end
+
     "Finished in #{format_us(total_us)} seconds " <>
-      "(#{format_us(load_us)}s on load, #{format_us(run_us)}s on tests)"
+      "(#{maybe_load}#{format_us(async_us)}s async, #{format_us(sync_us)}s sync)"
   end
 
-  defp normalize_us(us) do
-    div(us, 10000)
-  end
+  defp normalize_us(nil), do: 0
+  defp normalize_us(us), do: div(us, 10000)
 
   defp format_us(us) do
     if us < 10 do
@@ -104,6 +124,12 @@ defmodule ExUnit.Formatter do
       us = div(us, 10)
       "#{div(us, 10)}.#{rem(us, 10)}"
     end
+  end
+
+  # Deprecate me on Elixir v1.16
+  @doc false
+  def format_time(run, load) do
+    format_times(%{run: run, load: load, async: nil})
   end
 
   @doc """

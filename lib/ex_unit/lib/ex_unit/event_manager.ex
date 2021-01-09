@@ -49,8 +49,8 @@ defmodule ExUnit.EventManager do
     notify(manager, {:suite_started, opts})
   end
 
-  def suite_finished(manager, run_us, load_us) do
-    notify(manager, {:suite_finished, run_us, load_us})
+  def suite_finished(manager, times_us) do
+    notify(manager, {:suite_finished, times_us})
   end
 
   def module_started(manager, test_module) do
