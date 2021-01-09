@@ -706,7 +706,7 @@ defmodule Mix.Release do
     SELF=$(readlink "$0" || true)
     if [ -z "$SELF" ]; then SELF="$0"; fi
     BINDIR="$(cd "$(dirname "$SELF")" && pwd -P)"
-    ROOTDIR="${ROOTDIR:-"$(dirname "$(dirname "$BINDIR")")"}"
+    ROOTDIR="${ERL_ROOTDIR:-"$(dirname "$(dirname "$BINDIR")")"}"
     EMU=beam
     PROGNAME=$(echo "$0" | sed 's/.*\///')
     export EMU
