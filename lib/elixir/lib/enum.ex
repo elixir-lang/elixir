@@ -482,7 +482,7 @@ defmodule Enum do
 
   `after_fun` is invoked with the final accumulator when iteration is
   finished (or `halt`ed) to handle any trailing elements that were returned
-  as part of an accumulator, but were not emited as a chunk by `chunk_fun`.
+  as part of an accumulator, but were not emitted as a chunk by `chunk_fun`.
   It must return:
 
     * `{:cont, chunk, acc}` to emit a chunk. The chunk will be appended to the
