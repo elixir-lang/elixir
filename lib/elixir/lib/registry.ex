@@ -354,13 +354,20 @@ defmodule Registry do
             "expected :listeners to be a list of named processes, got: #{inspect(listeners)}"
     end
 
+    compressed = Keyword.get(options, :compressed, false)
+
+    unless is_boolean(compressed) do
+      raise ArgumentError,
+            "expected :compressed to be a boolean, got: #{inspect(compressed)}"
+    end
+
     # The @info format must be kept in sync with Registry.Partition optimization.
     entries = [
       {@all_info, {keys, partitions, nil, nil, listeners}},
       {@key_info, {keys, partitions, nil}} | meta
     ]
 
-    Registry.Supervisor.start_link(keys, name, partitions, listeners, entries)
+    Registry.Supervisor.start_link(keys, name, partitions, listeners, entries, compressed)
   end
 
   @doc false
@@ -1339,12 +1346,12 @@ defmodule Registry.Supervisor do
   @moduledoc false
   use Supervisor
 
-  def start_link(kind, registry, partitions, listeners, entries) do
-    arg = {kind, registry, partitions, listeners, entries}
+  def start_link(kind, registry, partitions, listeners, entries, compressed) do
+    arg = {kind, registry, partitions, listeners, entries, compressed}
     Supervisor.start_link(__MODULE__, arg, name: registry)
   end
 
-  def init({kind, registry, partitions, listeners, entries}) do
+  def init({kind, registry, partitions, listeners, entries, compressed}) do
     ^registry = :ets.new(registry, [:set, :public, :named_table, read_concurrency: true])
     true = :ets.insert(registry, entries)
 
@@ -1352,7 +1359,7 @@ defmodule Registry.Supervisor do
       for i <- 0..(partitions - 1) do
         key_partition = Registry.Partition.key_name(registry, i)
         pid_partition = Registry.Partition.pid_name(registry, i)
-        arg = {kind, registry, i, partitions, key_partition, pid_partition, listeners}
+        arg = {kind, registry, i, partitions, key_partition, pid_partition, listeners, compressed}
 
         %{
           id: pid_partition,
@@ -1412,9 +1419,9 @@ defmodule Registry.Partition do
 
   ## Callbacks
 
-  def init({kind, registry, i, partitions, key_partition, pid_partition, listeners}) do
+  def init({kind, registry, i, partitions, key_partition, pid_partition, listeners, compressed}) do
     Process.flag(:trap_exit, true)
-    key_ets = init_key_ets(kind, key_partition)
+    key_ets = init_key_ets(kind, key_partition, compressed)
     pid_ets = init_pid_ets(kind, pid_partition)
 
     # If we have only one partition, we do an optimization which
@@ -1435,17 +1442,18 @@ defmodule Registry.Partition do
 
   # The key partition is a set for unique keys,
   # duplicate bag for duplicate ones.
-  defp init_key_ets(:unique, key_partition) do
-    :ets.new(key_partition, [:set, :public, read_concurrency: true, write_concurrency: true])
+  defp init_key_ets(:unique, key_partition, compressed) do
+    opts = [:set, :public, read_concurrency: true, write_concurrency: true]
+    :ets.new(key_partition, compression_opt(opts, compressed))
   end
 
-  defp init_key_ets(:duplicate, key_partition) do
-    :ets.new(key_partition, [
-      :duplicate_bag,
-      :public,
-      read_concurrency: true,
-      write_concurrency: true
-    ])
+  defp init_key_ets(:duplicate, key_partition, compressed) do
+    opts = [:duplicate_bag, :public, read_concurrency: true, write_concurrency: true]
+    :ets.new(key_partition, compression_opt(opts, compressed))
+  end
+
+  defp compression_opt(opts, compressed) do
+    if compressed, do: [:compressed] ++ opts, else: opts
   end
 
   # A process can always have multiple keys, so the
