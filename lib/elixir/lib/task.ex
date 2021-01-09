@@ -627,7 +627,7 @@ defmodule Task do
 
   Another consideration to have in mind is that tasks started by `Task.async/1`
   are always linked to their callers and you may not want the GenServer to
-  crash if the task crashes. Therefore, it is preferrable to instead use
+  crash if the task crashes. Therefore, it is preferable to instead use
   `Task.Supervisor.async_nolink/3` inside OTP behaviours. For completeness, here
   is an example of a GenServer that start tasks and handles their results:
 

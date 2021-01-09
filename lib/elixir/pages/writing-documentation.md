@@ -138,7 +138,7 @@ However, keep in mind `@moduledoc false` or `@doc false` do not make a function 
 
   * Move the undocumented function to a module with `@moduledoc false`, like `MyApp.Hidden`, ensuring the function won't be accidentally exposed or imported. Remember you can use `@moduledoc false` to hide a whole module and still document each function with `@doc`. Tools will still ignore the module.
 
-  * Start the function name with one or two underscores, for example, `__add__/2`. Functions starting with underscore are autoamtically treated as hidden, although you can also be explicit and add `@doc false`. The compiler does not import functions with leading underscores and they hint to anyone reading the code of their intended private usage.
+  * Start the function name with one or two underscores, for example, `__add__/2`. Functions starting with underscore are automatically treated as hidden, although you can also be explicit and add `@doc false`. The compiler does not import functions with leading underscores and they hint to anyone reading the code of their intended private usage.
 
 ## Code.fetch_docs/1
 
