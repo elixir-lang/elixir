@@ -595,7 +595,7 @@ defmodule Mix.ReleaseTest do
       assert File.exists?(destination)
 
       assert File.read!(Path.join(destination, "bin/erl")) =~
-               ~s|ROOTDIR="$(dirname "$(dirname "$BINDIR")")"|
+               ~s|ROOTDIR="${ROOTDIR:-"$(dirname "$(dirname "$BINDIR")")"}|
 
       unless match?({:win32, _}, :os.type()) do
         assert File.lstat!(Path.join(destination, "bin/erl")).mode |> rem(0o1000) == 0o755
