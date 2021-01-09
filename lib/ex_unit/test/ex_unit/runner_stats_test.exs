@@ -74,7 +74,7 @@ defmodule ExUnit.RunnerStatsTest do
 
     fun.(pid)
 
-    GenServer.cast(pid, {:suite_finished, 0, 0})
+    GenServer.cast(pid, {:suite_finished, %{}})
     RunnerStats.stats(pid)
   end
 

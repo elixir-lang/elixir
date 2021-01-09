@@ -11,20 +11,26 @@ defmodule ExUnit.Runner do
     {:ok, manager} = EM.start_link()
     {:ok, stats_pid} = EM.add_handler(manager, ExUnit.RunnerStats, opts)
     config = configure(opts, manager, self(), stats_pid)
-
     :erlang.system_flag(:backtrace_depth, Keyword.fetch!(opts, :stacktrace_depth))
 
-    {run_us, _} =
-      :timer.tc(fn ->
-        EM.suite_started(config.manager, opts)
-        loop(config, :async, %{})
-      end)
+    start_time = System.monotonic_time()
+    EM.suite_started(config.manager, opts)
+    async_stop_time = loop(config, :async, %{}, false)
+    stop_time = System.monotonic_time()
 
     if max_failures_reached?(config) do
       EM.max_failures_reached(config.manager)
     end
 
-    EM.suite_finished(config.manager, run_us, load_us)
+    async_us =
+      if async_stop_time do
+        System.convert_time_unit(async_stop_time - start_time, :native, :microsecond)
+      end
+
+    run_us = System.convert_time_unit(stop_time - start_time, :native, :microsecond)
+    times_us = %{async: async_us, load: load_us, run: run_us}
+    EM.suite_finished(config.manager, times_us)
+
     stats = ExUnit.RunnerStats.stats(stats_pid)
     EM.stop(config.manager)
     after_suite_callbacks = Application.fetch_env!(:ex_unit, :after_suite)
@@ -59,36 +65,36 @@ defmodule ExUnit.Runner do
     |> Keyword.put(:include, include)
   end
 
-  defp loop(config, :async, running) do
+  defp loop(config, :async, running, async_once?) do
     available = config.max_cases - map_size(running)
 
     cond do
       # No modules available, wait for one
       available <= 0 ->
-        wait_until_available(config, :async, running)
+        wait_until_available(config, :async, running, async_once?)
 
       # Slots are available, start with async modules
       modules = ExUnit.Server.take_async_modules(available) ->
-        spawn_modules(config, modules, :async, running)
+        spawn_modules(config, modules, :async, running, true)
 
       true ->
         modules = ExUnit.Server.take_sync_modules()
-        loop(config, modules, running)
+        loop(config, modules, running, async_once? and System.monotonic_time())
     end
   end
 
-  defp loop(config, modules, running) do
+  defp loop(config, modules, running, async_stop_time) do
     case modules do
       _ when running != %{} ->
-        wait_until_available(config, modules, running)
+        wait_until_available(config, modules, running, async_stop_time)
 
       # So we can start all sync modules
       [head | tail] ->
-        spawn_modules(config, [head], tail, running)
+        spawn_modules(config, [head], tail, running, async_stop_time)
 
       # No more modules, we are done!
       [] ->
-        config
+        async_stop_time
     end
   end
 
@@ -100,7 +106,7 @@ defmodule ExUnit.Runner do
   #
   # Otherwise, whenever a module has finished executing, update
   # the runnig modules and attempt to spawn new ones.
-  defp wait_until_available(config, modules, running) do
+  defp wait_until_available(config, modules, running, async_timing) do
     receive do
       {ref, pid, :sigquit} ->
         sigquit(config, ref, pid, running)
@@ -111,21 +117,21 @@ defmodule ExUnit.Runner do
             sigquit(config, ref, pid, running)
 
           {:DOWN, ref, _, _, _} when is_map_key(running, ref) ->
-            loop(config, modules, Map.delete(running, ref))
+            loop(config, modules, Map.delete(running, ref), async_timing)
         end
     end
   end
 
-  defp spawn_modules(config, [], modules_remaining, running) do
-    loop(config, modules_remaining, running)
+  defp spawn_modules(config, [], modules_remaining, running, async_timing) do
+    loop(config, modules_remaining, running, async_timing)
   end
 
-  defp spawn_modules(config, [module | modules], modules_remaining, running) do
+  defp spawn_modules(config, [module | modules], modules_remaining, running, async_timing) do
     if max_failures_reached?(config) do
-      loop(config, modules_remaining, running)
+      loop(config, modules_remaining, running, async_timing)
     else
       {pid, ref} = spawn_monitor(fn -> run_module(config, module) end)
-      spawn_modules(config, modules, modules_remaining, Map.put(running, ref, pid))
+      spawn_modules(config, modules, modules_remaining, Map.put(running, ref, pid), async_timing)
     end
   end
 

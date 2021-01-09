@@ -75,7 +75,7 @@ defmodule ExUnit.RunnerStats do
     {:noreply, state}
   end
 
-  def handle_cast({:suite_finished, _, _}, %{failures_manifest_file: file} = state)
+  def handle_cast({:suite_finished, _}, %{failures_manifest_file: file} = state)
       when is_binary(file) do
     FailuresManifest.write!(state.failures_manifest, file)
     {:noreply, state}
