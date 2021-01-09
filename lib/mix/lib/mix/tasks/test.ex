@@ -31,6 +31,80 @@ defmodule Mix.Tasks.Test do
       # To run a given test file on my_app from the umbrella root
       mix test apps/my_app/test/some/particular/file_test.exs
 
+  ## Understanding test results
+
+  When you run your test suite, it prints results as they run with
+  a summary at the end, as seen below:
+
+      $ mix test
+      ...
+
+        1) test greets the world (FooTest)
+           test/foo_test.exs:5
+           Assertion with == failed
+           code:  assert Foo.hello() == :world!
+           left:  :world
+           right: :world!
+           stacktrace:
+             test/foo_test.exs:6: (test)
+
+      ........
+
+      Finished in 0.05 seconds (0.00s async, 0.05s sync)
+      1 doctest, 11 tests, 1 failure
+
+      Randomized with seed 646219
+
+  For each test, the test suite will print a dot. Failed tests
+  are printed immediately in the format described in the next
+  section.
+
+  After all tests run, we print the suite summary. The first
+  line contains the total time spent on the suite, followed
+  by how much time was spent on async tests (defined with
+  `use ExUnit.Case, async: true`) vs sync ones:
+
+      Finished in 0.05 seconds (0.00s async, 0.05s sync)
+
+  Developers want to minimize the time spent on sync tests
+  whenever possible, as sync tests run serially and async
+  tests run concurrently.
+
+  Finally, how many tests we have run, how many of them
+  failed, how many were invalid, etc.
+
+  ### Understanding test failures
+
+  First it contains the failure counter, followed by the test
+  name and the module the test was defined:
+
+      1) test greets the world (FooTest)
+
+  The next line contains the exact location of the test in the
+  `FILE:LINE` format:
+
+      test/foo_test.exs:5
+
+  If you want to re-run only this test, all you need to do is to
+  copy the line above and past it in front of `mix test`:
+
+      mix test test/foo_test.exs:5
+
+  Then we show the error message, code snippet, and general information
+  about the failed test:
+
+      Assertion with == failed
+      code:  assert Foo.hello() == :world!
+      left:  :world
+      right: :world!
+
+  If your terminal supports coloring (see the  "Coloring" section below),
+  a diff is typically shown between `left` and `right` sides. Finally,
+  we print the stacktrace of the failure:
+
+      stacktrace:
+        test/foo_test.exs:6: (test)
+
   ## Command line options
 
     * `--color` - enables color in the output
@@ -117,6 +191,17 @@ defmodule Mix.Tasks.Test do
 
     * `:test_coverage` - a set of options to be passed down to the coverage
       mechanism
+
+  ## Coloring
+
+  Coloring is enabled by default on most Unix terminals. They are also
+  available on Windows consoles from Windows 10, although it must be
+  explicitly enabled for the current user in the registry by running
+  the following command:
+
+      reg add HKCU\Console /v VirtualTerminalLevel /t REG_DWORD /d 1
+
+  After running the command above, you must restart your current console.
 
   ## Filters
 
