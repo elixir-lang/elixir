@@ -863,6 +863,12 @@ defmodule RegistryTest do
     end
   end
 
+  test "raises if :compressed is not a boolean" do
+    assert_raise ArgumentError, ~r/expected :compressed to be a boolean, got/, fn ->
+      Registry.start_link(keys: :unique, name: :name, compressed: :fail)
+    end
+  end
+
   test "unregistration on crash with {registry, key, value} via tuple", %{registry: registry} do
     name = {:via, Registry, {registry, :name, :value}}
     spec = %{id: :foo, start: {Agent, :start_link, [fn -> raise "some error" end, [name: name]]}}
