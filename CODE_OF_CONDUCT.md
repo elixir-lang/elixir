@@ -51,7 +51,7 @@ Instances of abusive, harassing, or otherwise unacceptable behavior may be repor
 
 **The goal of the Code of Conduct is to resolve conflicts in the most harmonious way possible**. We hope that in most cases issues may be resolved through polite discussion and mutual agreement. Bannings and other forceful measures are to be employed only as a last resort. **Do not** post about the issue publicly or try to rally sentiment against a particular individual or group.
 
-## Acknowledgements
+## Acknowledgments
 
 This document was based on the Code of Conduct from the Go project with parts derived from Django's Code of Conduct, Rust's Code of Conduct and the Contributor Covenant.
 
