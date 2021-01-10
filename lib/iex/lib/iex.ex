@@ -98,42 +98,36 @@ defmodule IEx do
 
   ## Pasting multiline expressions into IEx
 
-  IEx evaluates its input line by line in an eagerly fashion which means
-  that if at the end of a line the code seen so far is a complete expression
-  IEx will evaluate it at that point. This behaviour may produce errors for
-  expressions that have been formatted across multiple lines which is often
-  the case for piped expressions. Consider the following expression using
-  the `|>/2` operator:
+  IEx evaluates its input line by line in an eager fashion. If at the end of a
+  line the code seen so far is a complete expression, IEx will evaluate it at
+  that point.
 
-      iex(1)> [1, [2], 3] |> List.flatten()
-      [1, 2, 3]
+      iex(1)> [1, [2], 3]
+      [1, [2], 3]
 
-  When written in multiline form and pasted into IEx this valid expression
-  produces a syntax error:
+  To prevent this behaviour breaking valid code where the subsequent line
+  begins with a pipe operator, (`|>/2` `~>>` `<<~` `~>` `<~` `<~>` `<|>`),
+  IEx automatically treats such lines as if they were prepended with
+  `IEx.Helpers.v/0`, which returns the value of the previous expression, if
+  available.
 
       iex(1)> [1, [2], 3]
       [1, [2], 3]
       iex(2)> |> List.flatten()
-      ** (SyntaxError) iex:2: syntax error before: '|>'
-
-  As IEx evaluates its input line by line, it will first encounter
-  `[1, [2], 3]`. As a list is a valid expression, IEx will evaluate
-  it immediately before looking at the next input line. Only then
-  will IEx attempt to evaluate the now incomplete expression
-  `|> List.flatten()`, which on its own is missing its left operand.
-  The evaluation thus fails with the above syntax error.
-
-  In order to help IEx understand that an expression consists of multiple
-  lines we can wrap it into parentheses:
-
-      iex(1)> (
-      ...(1)> [1, [2], 3]
-      ...(1)> |> List.flatten()
-      ...(1)> )
       [1, 2, 3]
 
-  Note that this not only works with single expressions but also with
-  arbitrary code blocks.
+  The above is equivalent to:
+
+      iex(1)> [1, [2], 3]
+      [1, [2], 3]
+      iex(2)> v() |> List.flatten()
+      [1, 2, 3]
+
+  If there are no previous expressions in the history, the pipe operator will
+  fail:
+
+      iex(1)> |> List.flatten()
+      ** (RuntimeError) v(-1) is out of bounds
 
   ## The BREAK menu
 
