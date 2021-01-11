@@ -248,7 +248,7 @@ defmodule Mix.Compilers.Elixir do
     verbose = opts[:verbose] || false
 
     compile_opts = [
-      each_cycle: fn -> each_cycle(dest) end,
+      each_cycle: fn -> each_cycle(dest, timestamp) end,
       each_file: &each_file(&1, &2, cwd, verbose),
       each_module: &each_module(&1, &2, &3, cwd),
       each_long_compilation: &each_long_compilation(&1, cwd, long_compilation_threshold),
@@ -279,11 +279,18 @@ defmodule Mix.Compilers.Elixir do
     Mix.ProjectStack.compile_env(all_compile_env)
   end
 
-  defp each_cycle(compile_path) do
+  defp each_cycle(compile_path, timestamp) do
     {modules, _exports, sources, pending_modules, pending_exports} = get_compiler_info()
 
     {pending_modules, exports, changed} =
       update_stale_entries(pending_modules, sources, [], %{}, pending_exports, compile_path)
+
+    # For each changed file, mark it as changed.
+    # If compilation fails mid-cycle, they will
+    # be picked next time around.
+    for file <- changed do
+      File.touch!(file, timestamp)
+    end
 
     if changed == [] do
       runtime_modules = dependent_runtime_modules(sources, modules, pending_modules)
