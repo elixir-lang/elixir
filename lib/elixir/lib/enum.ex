@@ -1364,11 +1364,7 @@ defmodule Enum do
     to_list(enumerable)
   end
 
-  def into(%_{} = enumerable, collectable) do
-    into_protocol(enumerable, collectable)
-  end
-
-  def into(enumerable, %_{} = collectable) do
+  def into(enumerable, collectable) when is_struct(enumerable) or is_struct(collectable) do
     into_protocol(enumerable, collectable)
   end
 
