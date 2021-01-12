@@ -104,7 +104,7 @@ defmodule Mix.Tasks.Release.Init do
     export RELEASE_BOOT_SCRIPT_CLEAN="${RELEASE_BOOT_SCRIPT_CLEAN:-"start_clean"}"
 
     rand () {
-      od -t xS -N 2 -A n /dev/urandom | tr -d " \n"
+      dd count=1 bs=2 if=/dev/urandom 2> /dev/null | od -x | awk 'NR==1{print $2}'
     }
 
     release_distribution () {
