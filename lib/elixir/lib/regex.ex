@@ -649,19 +649,8 @@ defmodule Regex do
 
   """
   @spec replace(t, String.t(), String.t() | (... -> String.t()), [term]) :: String.t()
-  def replace(regex, string, replacement, options \\ [])
-
-  def replace(regex, string, replacement, options)
-      when is_binary(string) and is_binary(replacement) and is_list(options) do
-    do_replace(regex, string, replacement, options)
-  end
-
-  def replace(regex, string, replacement, options)
-      when is_binary(string) and is_function(replacement) and is_list(options) do
-    do_replace(regex, string, replacement, options)
-  end
-
-  defp do_replace(%Regex{} = regex, string, replacement, options) do
+  def replace(%Regex{} = regex, string, replacement, options \\ [])
+      when is_binary(string) and is_list(options) do
     opts = if Keyword.get(options, :global) != false, do: [:global], else: []
     opts = [{:capture, :all, :index} | opts]
 
@@ -674,7 +663,8 @@ defmodule Regex do
         |> IO.iodata_to_binary()
 
       {:match, slist} ->
-        apply_list(string, precompile_replacement(replacement), [slist]) |> IO.iodata_to_binary()
+        apply_list(string, precompile_replacement(replacement), [slist])
+        |> IO.iodata_to_binary()
     end
   end
 
