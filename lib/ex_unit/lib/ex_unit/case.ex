@@ -316,8 +316,8 @@ defmodule ExUnit.Case do
   @doc """
   Defines a test with `message`.
 
-  The test may also define a `var` or map, which will pattern match
-  on the test context. For more information on contexts, see
+  The test may also define a pattern, which will matched
+  against the test context. For more information on contexts, see
   `ExUnit.Callbacks`.
 
   ## Examples
