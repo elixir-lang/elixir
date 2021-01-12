@@ -171,6 +171,7 @@ defmodule SystemTest do
     end
   end
 
+  @tag :unix
   test "vm signals" do
     assert System.trap_signal(:sigquit, :example, fn -> :ok end) == {:ok, :example}
     assert System.trap_signal(:sigquit, :example, fn -> :ok end) == {:error, :already_registered}
