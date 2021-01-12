@@ -23,9 +23,8 @@ defmodule ExUnit.Runner do
     end
 
     async_us =
-      if async_stop_time do
+      async_stop_time &&
         System.convert_time_unit(async_stop_time - start_time, :native, :microsecond)
-      end
 
     run_us = System.convert_time_unit(stop_time - start_time, :native, :microsecond)
     times_us = %{async: async_us, load: load_us, run: run_us}
@@ -79,7 +78,7 @@ defmodule ExUnit.Runner do
 
       true ->
         modules = ExUnit.Server.take_sync_modules()
-        loop(config, modules, running, async_once? and System.monotonic_time())
+        loop(config, modules, running, async_once?)
     end
   end
 
@@ -90,13 +89,17 @@ defmodule ExUnit.Runner do
 
       # So we can start all sync modules
       [head | tail] ->
-        spawn_modules(config, [head], tail, running, async_stop_time)
+        spawn_modules(config, [head], tail, running, async_stop_time(async_stop_time))
 
       # No more modules, we are done!
       [] ->
-        async_stop_time
+        async_stop_time(async_stop_time)
     end
   end
+
+  defp async_stop_time(false = _async_once?), do: nil
+  defp async_stop_time(true = _async_once?), do: System.monotonic_time()
+  defp async_stop_time(async_stop_time), do: async_stop_time
 
   # Loop expecting down messages from the spawned modules.
   #
