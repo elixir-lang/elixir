@@ -53,7 +53,7 @@
   * [Kernel] Preserve CRLF on heredocs
   * [Kernel] Public functions without documentation now appear as an empty map on `Code.fetch_docs/1`, unless they start with underscore, where they remain as `:none`. This aligns Elixir's implementation with EEP48
   * [Kernel] Do not crash when complex literals (binaries and maps) are used in guards
-  * [Macro] `Macro.decompose_call/2` now also consider tuples with more than 2 elements to not be valid calls
+  * [Macro] `Macro.decompose_call/1` now also consider tuples with more than 2 elements to not be valid calls
   * [OptionParser] Properly parse when numbers follow-up aliases, for example, `-ab3` is now parsed as `-a -b 3`
   * [Path] Fix `Path.relative_to/2` when referencing self
 
