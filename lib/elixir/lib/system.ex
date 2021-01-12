@@ -482,6 +482,11 @@ defmodule System do
   The given `fun` receives no arguments and it must return
   `:ok`.
 
+  It returns `{:ok, id}` in case of success,
+  `{:error, :already_registered}` in case the id has already
+  been registered for the given signal, or `{:error, :not_sup}`
+  in case trapping exists is not supported by the current OS.
+
   The first time a signal is trapped, it will override the
   default behaviour from the operating system. If the same
   signal is trapped multiple times, subsequent functions
@@ -514,8 +519,9 @@ defmodule System do
   it may disable Elixir traps (or Elixir may override your configuration).
   """
   @doc since: "1.12.0"
-  @spec trap_signal(signal, (() -> :ok)) :: {:ok, reference()}
-  @spec trap_signal(signal, id, (() -> :ok)) :: {:ok, id} | {:error, :already_registered}
+  @spec trap_signal(signal, (() -> :ok)) :: {:ok, reference()} | {:error, :not_sup}
+  @spec trap_signal(signal, id, (() -> :ok)) ::
+          {:ok, id} | {:error, :already_registered} | {:error, :not_sup}
         when id: term()
   def trap_signal(signal, id \\ make_ref(), fun)
       when signal in @signals and is_function(fun, 0) do
@@ -525,9 +531,17 @@ defmodule System do
       if {SignalHandler, gen_id} in signal_handlers() do
         {:error, :already_registered}
       else
-        :ok = :gen_event.add_handler(:erl_signal_server, {SignalHandler, gen_id}, {signal, fun})
-        :os.set_signal(signal, :handle)
-        {:ok, id}
+        try do
+          :os.set_signal(signal, :handle)
+        rescue
+          _ -> {:error, :not_sup}
+        else
+          :ok ->
+            :ok =
+              :gen_event.add_handler(:erl_signal_server, {SignalHandler, gen_id}, {signal, fun})
+
+            {:ok, id}
+        end
       end
     end)
   end

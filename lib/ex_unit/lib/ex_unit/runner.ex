@@ -11,20 +11,22 @@ defmodule ExUnit.Runner do
     id = {__MODULE__, runner}
 
     try do
-      System.trap_signal(:sigquit, id, fn ->
-        ref = Process.monitor(runner)
-        send(runner, {ref, self(), :sigquit})
+      # It may fail on Windows, so we ignore the result.
+      _ =
+        System.trap_signal(:sigquit, id, fn ->
+          ref = Process.monitor(runner)
+          send(runner, {ref, self(), :sigquit})
 
-        receive do
-          ^ref -> :ok
-          {:DOWN, ^ref, _, _, _} -> :ok
-        after
-          5_000 -> :ok
-        end
+          receive do
+            ^ref -> :ok
+            {:DOWN, ^ref, _, _, _} -> :ok
+          after
+            5_000 -> :ok
+          end
 
-        Process.demonitor(ref, [:flush])
-        :ok
-      end)
+          Process.demonitor(ref, [:flush])
+          :ok
+        end)
 
       run_with_trap(opts, load_us)
     after
