@@ -192,9 +192,9 @@ defmodule SystemTest do
     parent = self()
 
     assert System.trap_signal(:sighup, :example, fn ->
-      send(parent, :sighup_called)
-      :ok
-    end) == {:ok, :example}
+             send(parent, :sighup_called)
+             :ok
+           end) == {:ok, :example}
 
     {"", 0} = System.cmd("kill", ["-s", "hup", System.pid()])
 
