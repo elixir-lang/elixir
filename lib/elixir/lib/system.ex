@@ -463,6 +463,15 @@ defmodule System do
   @doc """
   Traps the given `signal` to execute the `fun`.
 
+  **Important**: Trapping signals may have strong implications
+  on how a system shuts down and behave in production and
+  therefore it is extremely discouraged for libraries to
+  set their own traps. Instead, they should redirect users
+  to configure them themselves. The only cases where it is
+  acceptable for libraries to set their own traps is when
+  using Elixir in script mode, such as in `.exs` files and
+  via Mix tasks.
+
   An optional `id` that uniquely identifies the function
   can be given, otherwise a unique one is automatically
   generated. If a previously registered `id` is given,
@@ -491,10 +500,18 @@ defmodule System do
   default behaviour above will be executed after all user
   signals.
 
-  **Important**: all signals run from a single process,
-  therefore, blocking the `fun` will block subsequent traps.
-  It is also not possible to add or remove traps from within
-  a trap itself.
+  ## Implementation notes
+
+  All signals run from a single process. Therefore, blocking the
+  `fun` will block subsequent traps. It is also not possible to add
+  or remove traps from within a trap itself.
+
+  Internally, this functionality is built on top of `:os.set_signal/2`.
+  When you register a trap, Elixir automatically sets it to `:handle`
+  and it reverts it back to `:default` once all traps are removed
+  (except for `:sigquit`, `:sigterm`, and `:sigusr1` which are always
+  handled). If you or a library call `:os.set_signal/2` directly,
+  it may disable Elixir traps (or Elixir may override your configuration).
   """
   @doc since: "1.12.0"
   @spec trap_signal(signal, (() -> :ok)) :: {:ok, reference()}
