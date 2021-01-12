@@ -496,11 +496,12 @@ defmodule System do
   It is also not possible to add or remove traps from within
   a trap itself.
   """
+  @doc since: "1.12.0"
   @spec trap_signal(signal, (() -> :ok)) :: {:ok, reference()}
   @spec trap_signal(signal, id, (() -> :ok)) :: {:ok, id} | {:error, :already_registered}
         when id: term()
-  def trap_signal(signal, id \\ make_ref(), handler)
-      when signal in @signals and is_function(handler, 0) do
+  def trap_signal(signal, id \\ make_ref(), fun)
+      when signal in @signals and is_function(fun, 0) do
     :elixir_config.serial(fn ->
       gen_id = {signal, id}
 
@@ -508,7 +509,7 @@ defmodule System do
         {:error, :already_registered}
       else
         :ok =
-          :gen_event.add_handler(:erl_signal_server, {SignalHandler, gen_id}, {signal, handler})
+          :gen_event.add_handler(:erl_signal_server, {SignalHandler, gen_id}, {signal, fun})
 
         :os.set_signal(signal, :handle)
         {:ok, id}
@@ -519,6 +520,8 @@ defmodule System do
   @doc """
   Removes a previously registered `signal` with `id`.
   """
+  @doc since: "1.12.0"
+  @spec untrap_signal(signal, id) :: :ok | {:error, :not_found} when id: term
   def untrap_signal(signal, id) when signal in @signals do
     :elixir_config.serial(fn ->
       gen_id = {signal, id}
