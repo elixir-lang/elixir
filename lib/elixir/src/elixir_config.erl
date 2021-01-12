@@ -1,6 +1,6 @@
 -module(elixir_config).
 -compile({no_auto_import, [get/1]}).
--export([new/1, delete/1, put/2, get/1, get/2, update/2, get_and_put/2, warn/2]).
+-export([new/1, delete/1, put/2, get/1, get/2, update/2, get_and_put/2, warn/2, serial/1]).
 -export([start_link/0, init/1, handle_call/3, handle_cast/2]).
 -behaviour(gen_server).
 
@@ -24,6 +24,9 @@ get_and_put(Key, Value) ->
 
 update(Key, Fun) ->
   gen_server:call(?MODULE, {update, Key, Fun}).
+
+serial(Fun) ->
+  gen_server:call(?MODULE, {serial, Fun}).
 
 %% Used to guarantee warnings are emitted only once per caller.
 warn(Key, [{Mod, Fun, ArgsOrArity, _} | _]) ->
@@ -54,6 +57,8 @@ start_link() ->
 init(Tab) ->
   {ok, Tab}.
 
+handle_call({serial, Fun}, _From, Tab) ->
+  {reply, Fun(), Tab};
 handle_call({put, Key, Value}, _From, Tab) ->
   ets:insert(Tab, {Key, Value}),
   {reply, ok, Tab};
