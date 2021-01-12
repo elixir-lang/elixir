@@ -476,7 +476,7 @@ defmodule System do
 
   For lower level control over signals, see `:os.set_signal/2`.
   """
-  @spec on_signal(signal, (() -> :ok) :: {:ok, reference()}
+  @spec on_signal(signal, (() -> :ok)) :: {:ok, reference()}
   @spec on_signal(signal, id, (() -> :ok)) :: {:ok, id} | {:error, :already_registered}
         when id: term()
   def on_signal(signal, id \\ make_ref(), handler)
