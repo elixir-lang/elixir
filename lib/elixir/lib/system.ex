@@ -463,9 +463,11 @@ defmodule System do
   Executes the given `fun`, identified by `id`, whenever
   there is a `signal`.
 
-  The `id` is used exclusively to remove the signal. The
-  same `id` can be given multiple times and each addition
-  has to be removed explicitly (and in the order
+  The `id` uniquely identifies the function. If an `id` is
+  not given, one is automatically generated and returned.
+  Giving a previously registered `id` causes this function
+  to return an error tuple. The `id` can be used to remove
+  a registered signal by calling `delete_on_signal/1`.
 
   Each call to this function prepends the given `fun` to
   execute whenever `signal` is invoked. This means that
@@ -474,6 +476,7 @@ defmodule System do
 
   For lower level control over signals, see `:os.set_signal/2`.
   """
+  @spec on_signal(signal, (() -> :ok) :: {:ok, reference()}
   @spec on_signal(signal, id, (() -> :ok)) :: {:ok, id} | {:error, :already_registered}
         when id: term()
   def on_signal(signal, id \\ make_ref(), handler)
