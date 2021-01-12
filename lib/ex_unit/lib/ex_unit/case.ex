@@ -329,7 +329,9 @@ defmodule ExUnit.Case do
   """
   defmacro test(message, var \\ quote(do: _), contents) do
     unless is_tuple(var) do
-      raise "expected map or variable as context, got: #{inspect(Macro.to_string(var))}"
+      raise ArgumentError,
+            "test context is always a map. The pattern " <>
+              "#{inspect(Macro.to_string(var))} will never match"
     end
 
     contents =

@@ -114,15 +114,17 @@ defmodule ExUnit.CaseTest do
   end
 
   test "raises when context is a keyword list" do
-    assert_raise RuntimeError, "expected map or variable as context, got: \"[conn: conn]\"", fn ->
-      defmodule KeywordContextTest do
-        use ExUnit.Case
+    assert_raise ArgumentError,
+                 "test context is always a map. The pattern \"[conn: conn]\" will never match",
+                 fn ->
+                   defmodule KeywordContextTest do
+                     use ExUnit.Case
 
-        test "I made a typo", conn: conn do
-          assert true
-        end
-      end
-    end
+                     test "I made a typo", conn: conn do
+                       assert true
+                     end
+                   end
+                 end
   end
 end
 
