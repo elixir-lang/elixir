@@ -81,6 +81,21 @@ defmodule System do
           | :nanosecond
           | pos_integer
 
+  @type signal ::
+          :sighup
+          | :sigquit
+          | :sigabrt
+          | :sigalrm
+          | :sigterm
+          | :sigusr1
+          | :sigusr2
+          | :sigchld
+          | :sigstop
+          | :sigtstp
+
+  @signals [:sighup, :sigquit, :sigabrt, :sigalrm, :sigterm] ++
+             [:sigusr1, :sigusr2, :sigchld, :sigstop, :sigtstp]
+
   @base_dir :filename.join(__DIR__, "../../..")
   @version_file :filename.join(@base_dir, "VERSION")
 
@@ -409,13 +424,76 @@ defmodule System do
 
   The function must receive the exit status code as an argument.
 
-  If the VM terminates programmatically, via `System.stop/1` or `System.halt/1`,
-  the `at_exit/1` callbacks are not executed.
+  If the VM terminates programmatically, via `System.stop/1`, `System.halt/1`,
+  or exit signals, the `at_exit/1` callbacks are not executed.
   """
   @spec at_exit((non_neg_integer -> any)) :: :ok
   def at_exit(fun) when is_function(fun, 1) do
     :elixir_config.update(:at_exit, &[fun | &1])
     :ok
+  end
+
+  defmodule SignalHandler do
+    @moduledoc false
+    @behaviour :gen_event
+
+    @impl true
+    def init({event, fun}) do
+      {:ok, {event, fun}}
+    end
+
+    @impl true
+    def handle_call(_message, state) do
+      {:ok, :ok, state}
+    end
+
+    @impl true
+    def handle_event(signal, {event, fun}) do
+      if signal == event, do: :ok = fun.()
+      {:ok, {event, fun}}
+    end
+
+    @impl true
+    def handle_info(_, {event, fun}) do
+      {:ok, {event, fun}}
+    end
+  end
+
+  @doc """
+  Executes the given `fun`, identified by `id`, whenever
+  there is a `signal`.
+
+  The `id` is used exclusively to remove the signal. The
+  same `id` can be given multiple times and each addition
+  has to be removed explicitly (and in the order
+
+  Each call to this function prepends the given `fun` to
+  execute whenever `signal` is invoked. This means that
+  registering a callback that runs on `:sigquit` won't stop
+  the system from aborting. The `fun` must return `:ok`.
+
+  For lower level control over signals, see `:os.set_signal/2`.
+  """
+  @spec on_signal(signal, id, (() -> :ok)) :: {:ok, id} | {:error, :already_registered}
+        when id: term()
+  def on_signal(signal, id \\ make_ref(), handler)
+      when signal in @signals and is_function(handler, 0) do
+    if {SignalHandler, id} in :gen_event.which_handlers(:erl_signal_server) do
+      {:error, :already_registered}
+    else
+      :ok = :gen_event.add_handler(:erl_signal_server, {SignalHandler, id}, {signal, handler})
+      {:ok, id}
+    end
+  end
+
+  @doc """
+  Removes the signal callback identified by `id`.
+  """
+  def delete_on_signal(id) do
+    case :gen_event.delete_handler(:erl_signal_server, {SignalHandler, id}, :delete) do
+      :ok -> :ok
+      {:error, :module_not_found} -> {:error, :not_found}
+    end
   end
 
   @doc """

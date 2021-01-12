@@ -171,6 +171,20 @@ defmodule SystemTest do
     end
   end
 
+  test "on_signal/3" do
+    assert System.on_signal(:sigquit, :example, fn -> :ok end) == {:ok, :example}
+    assert System.on_signal(:sigquit, :example, fn -> :ok end) == {:error, :already_registered}
+    assert {:ok, ref} = System.on_signal(:sigquit, fn -> :ok end)
+
+    assert System.delete_on_signal(:example) == :ok
+    assert System.on_signal(:sigquit, :example, fn -> :ok end) == {:ok, :example}
+    assert System.on_signal(:sigquit, ref, fn -> :ok end) == {:error, :already_registered}
+    assert System.delete_on_signal(:example) == :ok
+    assert System.delete_on_signal(ref) == :ok
+    assert System.delete_on_signal(:example) == {:error, :not_found}
+    assert System.delete_on_signal(ref) == {:error, :not_found}
+  end
+
   test "find_executable/1" do
     assert System.find_executable("erl")
     assert is_binary(System.find_executable("erl"))
