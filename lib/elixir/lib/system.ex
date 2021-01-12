@@ -525,9 +525,7 @@ defmodule System do
       if {SignalHandler, gen_id} in signal_handlers() do
         {:error, :already_registered}
       else
-        :ok =
-          :gen_event.add_handler(:erl_signal_server, {SignalHandler, gen_id}, {signal, fun})
-
+        :ok = :gen_event.add_handler(:erl_signal_server, {SignalHandler, gen_id}, {signal, fun})
         :os.set_signal(signal, :handle)
         {:ok, id}
       end
