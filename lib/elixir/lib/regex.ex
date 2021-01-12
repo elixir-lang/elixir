@@ -649,7 +649,8 @@ defmodule Regex do
 
   """
   @spec replace(t, String.t(), String.t() | (... -> String.t()), [term]) :: String.t()
-  def replace(%Regex{} = regex, string, replacement, options \\ []) do
+  def replace(%Regex{} = regex, string, replacement, options \\ [])
+      when is_binary(string) and is_list(options) do
     opts = if Keyword.get(options, :global) != false, do: [:global], else: []
     opts = [{:capture, :all, :index} | opts]
 
