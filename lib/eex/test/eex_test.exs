@@ -87,7 +87,11 @@ defmodule EExTest do
       expected = "123\n456\n789"
       assert_eval(expected, string, [], trim: true)
 
-      string = "<%= 123 %> \n  <%= 456 %>  \n  <%= 789 %>"
+      string = "<%= 123 %> \n\n456\n\n  <%= 789 %>"
+      expected = "123\n456\n789"
+      assert_eval(expected, string, [], trim: true)
+
+      string = "<%= 123 %> \n  \n456\n  \n  <%= 789 %>"
       expected = "123\n456\n789"
       assert_eval(expected, string, [], trim: true)
 
