@@ -81,6 +81,22 @@ defmodule System do
           | :nanosecond
           | pos_integer
 
+  @type signal ::
+          :sigabrt
+          | :sigalrm
+          | :sigchld
+          | :sighup
+          | :sigquit
+          | :sigstop
+          | :sigterm
+          | :sigtstp
+          | :sigusr1
+          | :sigusr2
+
+  @vm_signals [:sigquit, :sigterm, :sigusr1]
+  @os_signals [:sighup, :sigabrt, :sigalrm, :sigusr2, :sigchld, :sigstop, :sigtstp]
+  @signals @vm_signals ++ @os_signals
+
   @base_dir :filename.join(__DIR__, "../../..")
   @version_file :filename.join(@base_dir, "VERSION")
 
@@ -409,13 +425,157 @@ defmodule System do
 
   The function must receive the exit status code as an argument.
 
-  If the VM terminates programmatically, via `System.stop/1` or `System.halt/1`,
-  the `at_exit/1` callbacks are not executed.
+  If the VM terminates programmatically, via `System.stop/1`, `System.halt/1`,
+  or exit signals, the `at_exit/1` callbacks are not executed.
   """
   @spec at_exit((non_neg_integer -> any)) :: :ok
   def at_exit(fun) when is_function(fun, 1) do
     :elixir_config.update(:at_exit, &[fun | &1])
     :ok
+  end
+
+  defmodule SignalHandler do
+    @moduledoc false
+    @behaviour :gen_event
+
+    @impl true
+    def init({event, fun}) do
+      {:ok, {event, fun}}
+    end
+
+    @impl true
+    def handle_call(_message, state) do
+      {:ok, :ok, state}
+    end
+
+    @impl true
+    def handle_event(signal, {event, fun}) do
+      if signal == event, do: :ok = fun.()
+      {:ok, {event, fun}}
+    end
+
+    @impl true
+    def handle_info(_, {event, fun}) do
+      {:ok, {event, fun}}
+    end
+  end
+
+  @doc """
+  Traps the given `signal` to execute the `fun`.
+
+  **Important**: Trapping signals may have strong implications
+  on how a system shuts down and behave in production and
+  therefore it is extremely discouraged for libraries to
+  set their own traps. Instead, they should redirect users
+  to configure them themselves. The only cases where it is
+  acceptable for libraries to set their own traps is when
+  using Elixir in script mode, such as in `.exs` files and
+  via Mix tasks.
+
+  An optional `id` that uniquely identifies the function
+  can be given, otherwise a unique one is automatically
+  generated. If a previously registered `id` is given,
+  this function returns an error tuple. The `id` can be
+  used to remove a registered signal by calling
+  `untrap_signal/2`.
+
+  The given `fun` receives no arguments and it must return
+  `:ok`.
+
+  It returns `{:ok, id}` in case of success,
+  `{:error, :already_registered}` in case the id has already
+  been registered for the given signal, or `{:error, :not_sup}`
+  in case trapping exists is not supported by the current OS.
+
+  The first time a signal is trapped, it will override the
+  default behaviour from the operating system. If the same
+  signal is trapped multiple times, subsequent functions
+  given to `trap_signal` will execute *first*. In other
+  words, you can consider each function is prepended to
+  the signal handler.
+
+  By default, the Erlang VM register traps to the three
+  signals:
+
+    * `:sigstop` - gracefully shuts down the VM with `stop/0`
+    * `:sigquit` - halts the VM via `halt/0`
+    * `:sigusr1` - halts the VM via status code of 1
+
+  Therefore, if you add traps to the signals above, the
+  default behaviour above will be executed after all user
+  signals.
+
+  ## Implementation notes
+
+  All signals run from a single process. Therefore, blocking the
+  `fun` will block subsequent traps. It is also not possible to add
+  or remove traps from within a trap itself.
+
+  Internally, this functionality is built on top of `:os.set_signal/2`.
+  When you register a trap, Elixir automatically sets it to `:handle`
+  and it reverts it back to `:default` once all traps are removed
+  (except for `:sigquit`, `:sigterm`, and `:sigusr1` which are always
+  handled). If you or a library call `:os.set_signal/2` directly,
+  it may disable Elixir traps (or Elixir may override your configuration).
+  """
+  @doc since: "1.12.0"
+  @spec trap_signal(signal, (() -> :ok)) :: {:ok, reference()} | {:error, :not_sup}
+  @spec trap_signal(signal, id, (() -> :ok)) ::
+          {:ok, id} | {:error, :already_registered} | {:error, :not_sup}
+        when id: term()
+  def trap_signal(signal, id \\ make_ref(), fun)
+      when signal in @signals and is_function(fun, 0) do
+    :elixir_config.serial(fn ->
+      gen_id = {signal, id}
+
+      if {SignalHandler, gen_id} in signal_handlers() do
+        {:error, :already_registered}
+      else
+        try do
+          :os.set_signal(signal, :handle)
+        rescue
+          _ -> {:error, :not_sup}
+        else
+          :ok ->
+            :ok =
+              :gen_event.add_handler(:erl_signal_server, {SignalHandler, gen_id}, {signal, fun})
+
+            {:ok, id}
+        end
+      end
+    end)
+  end
+
+  @doc """
+  Removes a previously registered `signal` with `id`.
+  """
+  @doc since: "1.12.0"
+  @spec untrap_signal(signal, id) :: :ok | {:error, :not_found} when id: term
+  def untrap_signal(signal, id) when signal in @signals do
+    :elixir_config.serial(fn ->
+      gen_id = {signal, id}
+
+      case :gen_event.delete_handler(:erl_signal_server, {SignalHandler, gen_id}, :delete) do
+        :ok ->
+          if not trapping?(signal) do
+            :os.set_signal(signal, :default)
+          end
+
+          :ok
+
+        {:error, :module_not_found} ->
+          {:error, :not_found}
+      end
+    end)
+  end
+
+  defp trapping?(signal) do
+    signal in @vm_signals or
+      Enum.any?(signal_handlers(), &match?({_, {^signal, _}}, &1))
+  end
+
+  defp signal_handlers do
+    :gen_event.which_handlers(:erl_signal_server)
   end
 
   @doc """

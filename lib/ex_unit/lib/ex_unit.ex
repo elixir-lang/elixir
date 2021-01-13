@@ -351,14 +351,7 @@ defmodule ExUnit do
   @spec run() :: suite_result()
   def run do
     options = persist_defaults(configuration())
-    with_signal_handler(fn -> ExUnit.Runner.run(options, nil) end)
-  end
-
-  defp with_signal_handler(fun) do
-    ExUnit.SignalHandler.install(self())
-    fun.()
-  after
-    ExUnit.SignalHandler.uninstall(self())
+    ExUnit.Runner.run(options, nil)
   end
 
   @doc """

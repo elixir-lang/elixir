@@ -171,6 +171,39 @@ defmodule SystemTest do
     end
   end
 
+  @tag :unix
+  test "vm signals" do
+    assert System.trap_signal(:sigquit, :example, fn -> :ok end) == {:ok, :example}
+    assert System.trap_signal(:sigquit, :example, fn -> :ok end) == {:error, :already_registered}
+    assert {:ok, ref} = System.trap_signal(:sigquit, fn -> :ok end)
+
+    assert System.untrap_signal(:sigquit, :example) == :ok
+    assert System.trap_signal(:sigquit, :example, fn -> :ok end) == {:ok, :example}
+    assert System.trap_signal(:sigquit, ref, fn -> :ok end) == {:error, :already_registered}
+
+    assert System.untrap_signal(:sigusr1, :example) == {:error, :not_found}
+    assert System.untrap_signal(:sigquit, :example) == :ok
+    assert System.untrap_signal(:sigquit, :example) == {:error, :not_found}
+    assert System.untrap_signal(:sigquit, ref) == :ok
+    assert System.untrap_signal(:sigquit, ref) == {:error, :not_found}
+  end
+
+  @tag :unix
+  test "os signals" do
+    parent = self()
+
+    assert System.trap_signal(:sighup, :example, fn ->
+             send(parent, :sighup_called)
+             :ok
+           end) == {:ok, :example}
+
+    {"", 0} = System.cmd("kill", ["-s", "hup", System.pid()])
+
+    assert_receive :sighup_called
+  after
+    System.untrap_signal(:sighup, :example)
+  end
+
   test "find_executable/1" do
     assert System.find_executable("erl")
     assert is_binary(System.find_executable("erl"))

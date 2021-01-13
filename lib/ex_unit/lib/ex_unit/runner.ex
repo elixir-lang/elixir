@@ -7,6 +7,34 @@ defmodule ExUnit.Runner do
   @current_key __MODULE__
 
   def run(opts, load_us) when (is_integer(load_us) or is_nil(load_us)) and is_list(opts) do
+    runner = self()
+    id = {__MODULE__, runner}
+
+    try do
+      # It may fail on Windows, so we ignore the result.
+      _ =
+        System.trap_signal(:sigquit, id, fn ->
+          ref = Process.monitor(runner)
+          send(runner, {ref, self(), :sigquit})
+
+          receive do
+            ^ref -> :ok
+            {:DOWN, ^ref, _, _, _} -> :ok
+          after
+            5_000 -> :ok
+          end
+
+          Process.demonitor(ref, [:flush])
+          :ok
+        end)
+
+      run_with_trap(opts, load_us)
+    after
+      System.untrap_signal(:sigquit, id)
+    end
+  end
+
+  defp run_with_trap(opts, load_us) do
     opts = normalize_opts(opts)
     {:ok, manager} = EM.start_link()
     {:ok, stats_pid} = EM.add_handler(manager, ExUnit.RunnerStats, opts)
