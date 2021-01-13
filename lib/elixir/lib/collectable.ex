@@ -144,7 +144,7 @@ defimpl Collectable, for: BitString do
     {[binary], fun}
   end
 
-  def into(bitstring) when is_bitstring(bitstring) do
+  def into(bitstring) do
     fun = fn
       acc, {:cont, x} when is_bitstring(x) ->
         <<acc::bitstring, x::bitstring>>
