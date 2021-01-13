@@ -477,7 +477,7 @@ defmodule System do
   generated. If a previously registered `id` is given,
   this function returns an error tuple. The `id` can be
   used to remove a registered signal by calling
-  `untrap_signal/1`.
+  `untrap_signal/2`.
 
   The given `fun` receives no arguments and it must return
   `:ok`.
