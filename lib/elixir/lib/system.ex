@@ -82,16 +82,16 @@ defmodule System do
           | pos_integer
 
   @type signal ::
-          :sighup
-          | :sigquit
-          | :sigabrt
+          :sigabrt
           | :sigalrm
+          | :sigchld
+          | :sighup
+          | :sigquit
+          | :sigstop
           | :sigterm
+          | :sigtstp
           | :sigusr1
           | :sigusr2
-          | :sigchld
-          | :sigstop
-          | :sigtstp
 
   @vm_signals [:sigquit, :sigterm, :sigusr1]
   @os_signals [:sighup, :sigabrt, :sigalrm, :sigusr2, :sigchld, :sigstop, :sigtstp]
