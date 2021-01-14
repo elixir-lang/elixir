@@ -625,7 +625,7 @@ defmodule Module.Types.Unify do
   def subtype?({:tuple, n, left_types}, {:tuple, n, right_types}, context) do
     left_types
     |> Enum.zip(right_types)
-    |> Enum.any?(fn {left, right} -> subtype?(left, right, context) end)
+    |> Enum.all?(fn {left, right} -> subtype?(left, right, context) end)
   end
 
   def subtype?({:map, left_pairs}, {:map, right_pairs}, context) do
