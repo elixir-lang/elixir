@@ -33,6 +33,17 @@ defmodule Module.Types.ExprTest do
       assert quoted_expr([123, 456 | 789]) == {:ok, {:list, :integer}}
       assert quoted_expr([123 | "foo"]) == {:ok, {:list, {:union, [:integer, :binary]}}}
     end
+
+    test "keyword" do
+      assert quoted_expr(a: 1, b: 2) ==
+               {:ok,
+                {:list,
+                 {:union,
+                  [
+                    {:tuple, 2, [{:atom, :a}, :integer]},
+                    {:tuple, 2, [{:atom, :b}, :integer]}
+                  ]}}}
+    end
   end
 
   test "tuple" do
