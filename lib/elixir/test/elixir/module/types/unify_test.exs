@@ -591,6 +591,12 @@ defmodule Module.Types.UnifyTest do
       refute subtype?({:tuple, 1, [:atom]}, {:tuple, 1, [{:atom, :foo}]}, new_context())
       refute subtype?({:tuple, 1, [:atom]}, {:tuple, 2, [:atom, :atom]}, new_context())
       refute subtype?({:tuple, 2, [:atom, :atom]}, {:tuple, 1, [:atom]}, new_context())
+
+      refute subtype?(
+               {:tuple, 2, [{:atom, :a}, :integer]},
+               {:tuple, 2, [{:atom, :b}, :integer]},
+               new_context()
+             )
     end
 
     test "with maps" do
