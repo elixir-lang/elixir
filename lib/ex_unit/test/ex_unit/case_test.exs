@@ -112,6 +112,10 @@ defmodule ExUnit.CaseTest do
       end
     end
   end
+end
+
+defmodule ExUnit.CaseTestSync do
+  use ExUnit.Case
 
   test "raises when context is a keyword list" do
     import ExUnit.CaptureIO
