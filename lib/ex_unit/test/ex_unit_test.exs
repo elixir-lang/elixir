@@ -791,6 +791,25 @@ defmodule ExUnitTest do
         assert ExUnit.run() == %{total: 0, failures: 0, excluded: 0, skipped: 0}
       end)
     end
+
+    test "warns and errors when context is not a map" do
+      assert capture_io(:stderr, fn ->
+               defmodule ContextTest do
+                 use ExUnit.Case, async: true
+
+                 test "I made a typo", conn: conn do
+                   assert true
+                 end
+               end
+             end) =~ "test context is always a map. The pattern \"[conn: conn]\" will never match"
+
+      ExUnit.Server.modules_loaded()
+      configure_and_reload_on_exit([])
+
+      assert capture_io(fn ->
+               assert ExUnit.run() == %{failures: 1, skipped: 0, total: 1, excluded: 0}
+             end) =~ "** (FunctionClauseError) no function clause matching"
+    end
   end
 
   ##  Helpers
