@@ -188,8 +188,7 @@ defmodule Module.Types.Pattern do
     with {:ok, left_type, context} <- of_guard(left, stack, context),
          {:ok, _, context} <- unify(left_type, @boolean, stack, context),
          {:ok, right_type, context} <- of_guard(right, keep_guarded(stack), context),
-         {:ok, _, context} <- unify(right_type, @boolean, stack, context),
-         do: {:ok, @boolean, context}
+         do: {:ok, to_union([@boolean, right_type], context), context}
   end
 
   def of_guard({{:., _, [:erlang, :orelse]}, _, [left, right]} = expr, stack, context) do
