@@ -114,24 +114,6 @@ defmodule ExUnit.CaseTest do
   end
 end
 
-defmodule ExUnit.CaseTestSync do
-  use ExUnit.Case
-
-  test "raises when context is a keyword list" do
-    import ExUnit.CaptureIO
-
-    assert capture_io(:stderr, fn ->
-             defmodule KeywordContextTest do
-               use ExUnit.Case
-
-               test "I made a typo", conn: conn do
-                 assert true
-               end
-             end
-           end) =~ "test context is always a map. The pattern \"[conn: conn]\" will never match"
-  end
-end
-
 defmodule ExUnit.DoubleCaseTest1 do
   use ExUnit.Case, async: true
   use ExUnit.Case
