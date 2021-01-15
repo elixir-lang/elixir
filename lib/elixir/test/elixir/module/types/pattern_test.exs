@@ -343,6 +343,15 @@ defmodule Module.Types.PatternTest do
                quoted_head([x], [is_tuple(is_atom(x))])
     end
 
+    test "guard and" do
+      assert quoted_head([], [(true and 1) > 0]) == {:ok, []}
+
+      assert quoted_head(
+               [struct],
+               [is_map_key(struct, :map) and map_size(:erlang.map_get(:map, struct))]
+             ) == {:ok, [{:map, [{:optional, :dynamic, :dynamic}]}]}
+    end
+
     test "nested calls with interesections in guards" do
       assert quoted_head([x], [:erlang.rem(x, 2)]) == {:ok, [:integer]}
       assert quoted_head([x], [:erlang.rem(x + x, 2)]) == {:ok, [{:union, [:integer, :float]}]}
