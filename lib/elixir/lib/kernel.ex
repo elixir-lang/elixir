@@ -1147,10 +1147,11 @@ defmodule Kernel do
 
   """
   @doc since: "1.12.0"
-  @spec tap(value, (value -> any)) :: value when value: var
-  def tap(value, fun) when is_function(fun, 1) do
-    fun.(value)
-    value
+  defmacro tap(value, fun) do
+    quote bind_quoted: [fun: fun, value: value] do
+      fun.(value)
+      value
+    end
   end
 
   @doc """
@@ -2495,8 +2496,11 @@ defmodule Kernel do
       2
   """
   @doc since: "1.12.0"
-  @spec then(value, (value -> result)) :: result when value: var, result: var
-  def then(value, fun) when is_function(fun, 1), do: fun.(value)
+  defmacro then(value, fun) do
+    quote do
+      unquote(fun).(unquote(value))
+    end
+  end
 
   @doc """
   Gets a value from a nested structure.

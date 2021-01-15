@@ -421,7 +421,7 @@ defmodule KernelTest do
   test "then/2" do
     assert 1 |> then(fn x -> x * 2 end) == 2
 
-    assert_raise FunctionClauseError, fn ->
+    assert_raise BadArityError, fn ->
       1 |> then(fn x, y -> x * y end)
     end
   end
