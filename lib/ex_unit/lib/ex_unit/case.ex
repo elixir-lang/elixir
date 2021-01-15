@@ -329,9 +329,10 @@ defmodule ExUnit.Case do
   """
   defmacro test(message, var \\ quote(do: _), contents) do
     unless is_tuple(var) do
-      raise ArgumentError,
-            "test context is always a map. The pattern " <>
-              "#{inspect(Macro.to_string(var))} will never match"
+      IO.warn(
+        "test context is always a map. The pattern " <>
+          "#{inspect(Macro.to_string(var))} will never match"
+      )
     end
 
     contents =
