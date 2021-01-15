@@ -331,7 +331,8 @@ defmodule ExUnit.Case do
     unless is_tuple(var) do
       IO.warn(
         "test context is always a map. The pattern " <>
-          "#{inspect(Macro.to_string(var))} will never match"
+          "#{inspect(Macro.to_string(var))} will never match",
+        Macro.Env.stacktrace(__CALLER__)
       )
     end
 
