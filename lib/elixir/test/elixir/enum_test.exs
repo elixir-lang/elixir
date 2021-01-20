@@ -1698,6 +1698,8 @@ defmodule EnumTest.Range do
     assert Enum.slice(1..5, 5..5) == []
     assert Enum.slice(1..5, 6..5) == []
     assert Enum.slice(1..5, 6..0) == []
+    assert Enum.slice(1..5, -3..0) == []
+    assert Enum.slice(1..5, -3..1) == []
     assert Enum.slice(1..5, -6..0) == []
     assert Enum.slice(1..5, -6..5) == []
     assert Enum.slice(1..5, -5..-1) == [1, 2, 3, 4, 5]
