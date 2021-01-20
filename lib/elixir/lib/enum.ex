@@ -2535,7 +2535,7 @@ defmodule Enum do
   @spec slice(t, Range.t()) :: list
   def slice(enumerable, index_range)
 
-  def slice(enumerable, first..last) when last >= first and last >= 0 do
+  def slice(enumerable, first..last) when last >= first and last >= 0 and first >= 0 do
     slice_any(enumerable, first, last - first + 1)
   end
 
