@@ -236,6 +236,19 @@ defmodule EnumTest do
     end
   end
 
+  test "every?/2" do
+    assert Enum.every?([:some, :some, :some], fn v -> v == :some end)
+    refute Enum.every?([:some, :other, :some], fn v -> v == :some end)
+
+    assert Enum.every?([2, 4, 6], fn x -> x < 10 end)
+    refute Enum.every?([2, 4, 6], fn x -> x > 10 end)
+
+    assert Enum.every?([true, true, true])
+    refute Enum.every?([false, false, false])
+
+    refute Enum.every?([])
+  end
+
   test "empty?/1" do
     assert Enum.empty?([])
     assert Enum.empty?(%{})

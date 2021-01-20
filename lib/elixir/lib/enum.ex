@@ -374,6 +374,58 @@ defmodule Enum do
   end
 
   @doc """
+  Returns `true` if `fun.(element)` is truthy for all elements in `enumerable`.
+
+  Iterates over the `enumerable` and invokes `fun` on each element. When an invocation
+  of `fun` returns a falsy value (neither `false` nor `nil`) iteration stops
+  immediately and `false` is returned. In all other cases `true` is returned.
+
+  ## Examples
+
+      iex> Enum.every?([2, 4, 6], fn x -> rem(x, 2) == 1 end)
+      false
+
+      iex> Enum.every?([2, 3, 4], fn x -> rem(x, 2) == 1 end)
+      false
+
+      iex> Enum.every?([2, 4, 6], fn x -> x < 10 end)
+      true
+
+      iex> Enum.every?([])
+      false
+
+  If no function is given, the truthiness of each element is checked during iteration.
+  When an element has a falsy value (neither `false` nor `nil`) iteration stops
+  immediately and `false` is returned. In all other cases `true` is returned.
+
+      iex> Enum.every?([false, false, false])
+      false
+
+      iex> Enum.every?([false, true, false])
+      false
+
+      iex> Enum.every?([2, 4, 6], fn x -> x < 10 end)
+      true
+
+      iex> Enum.every?([])
+      false
+  """
+  @spec every?(t, (element -> as_boolean(term))) :: boolean
+
+  def every?(enumerable, fun \\ fn x -> x end)
+
+  def every?(enumerable, fun) when is_list(enumerable) do
+    every_list(enumerable, fun)
+  end
+
+  def every?(enumerable, fun) do
+    Enumerable.reduce(enumerable, {:cont, true}, fn entry, _ ->
+      if fun.(entry), do: {:cont, true}, else: {:halt, false}
+    end)
+    |> elem(1)
+  end
+
+  @doc """
   Finds the element at the given `index` (zero-based).
 
   Returns `default` if `index` is out of bounds.
@@ -3535,6 +3587,24 @@ defmodule Enum do
   end
 
   defp any_list([], _) do
+    false
+  end
+
+  ## every?
+
+  defp every_list([_], _) do
+    true
+  end
+
+  defp every_list([h | t], fun) do
+    if fun.(h) do
+      every_list(t, fun)
+    else
+      false
+    end
+  end
+
+  defp every_list([], _) do
     false
   end
 
