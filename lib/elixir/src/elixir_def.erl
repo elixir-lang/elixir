@@ -162,28 +162,51 @@ store_definition(Kind, CheckClauses, Call, Body, Pos) ->
 store_definition(Meta, Kind, CheckClauses, Name, Arity, DefaultsArgs, Guards, Body, File, ER) ->
   Module = ?key(ER, module),
   Tuple = {Name, Arity},
-  E = env_for_expansion(Kind, Tuple, ER),
 
-  {Args, Defaults} = unpack_defaults(Kind, Meta, Name, DefaultsArgs, E),
-  Clauses = [elixir_clauses:def(Clause, E) ||
-             Clause <- def_to_clauses(Kind, Meta, Args, Guards, Body, E)],
+  case is_definition_needed(Module, Tuple, Meta) of
+    false ->
+      ok;
 
-  DefaultsLength = length(Defaults),
-  elixir_locals:record_defaults(Tuple, Kind, Module, DefaultsLength, Meta),
-  check_previous_defaults(Meta, Module, Name, Arity, Kind, DefaultsLength, E),
+    true ->
+      E = env_for_expansion(Kind, Tuple, ER),
 
-  store_definition(CheckClauses, Kind, Meta, Name, Arity, File,
-                   Module, DefaultsLength, Clauses),
-  [store_definition(false, Kind, Meta, Name, length(DefaultArgs), File,
-                    Module, 0, [Default]) || {_, DefaultArgs, _, _} = Default <- Defaults],
+      {Args, Defaults} = unpack_defaults(Kind, Meta, Name, DefaultsArgs, E),
+      Clauses = [elixir_clauses:def(Clause, E) ||
+      Clause <- def_to_clauses(Kind, Meta, Args, Guards, Body, E)],
 
-  run_on_definition_callbacks(Kind, Module, Name, DefaultsArgs, Guards, Body, E),
+      DefaultsLength = length(Defaults),
+      elixir_locals:record_defaults(Tuple, Kind, Module, DefaultsLength, Meta),
+      check_previous_defaults(Meta, Module, Name, Arity, Kind, DefaultsLength, E),
+
+      store_definition(CheckClauses, Kind, Meta, Name, Arity, File,
+                       Module, DefaultsLength, Clauses),
+      [store_definition(false, Kind, Meta, Name, length(DefaultArgs), File,
+                        Module, 0, [Default]) || {_, DefaultArgs, _, _} = Default <- Defaults],
+
+      run_on_definition_callbacks(Kind, Module, Name, DefaultsArgs, Guards, Body, E)
+  end,
   Tuple.
 
 env_for_expansion(Kind, Tuple, E) when Kind =:= defmacro; Kind =:= defmacrop ->
   E#{function := Tuple, contextual_vars := ['__CALLER__']};
 env_for_expansion(_Kind, Tuple, E) ->
   E#{function := Tuple, contextual_vars := []}.
+
+is_definition_needed(Module, Tuple, Meta) ->
+  {Set, _Bag} = elixir_module:data_tables(Module),
+  case {ets:lookup_element(Set, if_available, 2), Meta} of
+    {nil, _} ->
+      true;
+    {Mod, [{line, Line}]} ->
+      ets:insert(Set, {if_available, nil, nil}),
+      case code:ensure_loaded(Mod) of
+        {module, Mod} ->
+          true;
+        _ ->
+          ets:insert(Set, {{conditionally_skipped, Tuple}, Line}),
+          false
+      end
+  end.
 
 retrieve_location(Location, Module) ->
   {Set, _} = elixir_module:data_tables(Module),

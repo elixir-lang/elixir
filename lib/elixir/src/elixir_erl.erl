@@ -416,11 +416,17 @@ spec_for_macro(Else) ->
   Else.
 
 validate_spec_for_existing_function(ModuleMap, NameAndArity, Line) ->
-  #{definitions := Defs, file := File} = ModuleMap,
-
+  #{definitions := Defs, file := File, module := Module} = ModuleMap,
   case lists:keymember(NameAndArity, 1, Defs) of
     true -> ok;
-    false -> form_error(#{line => Line, file => File}, {spec_for_undefined_function, NameAndArity})
+    false ->
+      {Set, _Bag} = elixir_module:data_tables(Module),
+      case ets:lookup(Set, {conditionally_skipped, NameAndArity}) of
+        [{{conditionally_skipped, _}, _}] ->
+          form_warn(#{line => Line, file => File}, {spec_for_excluded_function, NameAndArity});
+        [] ->
+          form_error(#{line => Line, file => File}, {spec_for_undefined_function, NameAndArity})
+      end
   end.
 
 % Attributes
@@ -578,6 +584,9 @@ behaviour_info_exports(false) -> [].
 form_error(#{line := Line, file := File}, Error) ->
   elixir_errors:form_error([{line, Line}], File, ?MODULE, Error).
 
+form_warn(#{line := Line, file := File}, Error) ->
+  elixir_errors:form_warn([{line, Line}], File, ?MODULE, Error).
+
 format_error({ill_defined_optional_callback, Callback}) ->
   io_lib:format("invalid optional callback ~ts. @optional_callbacks expects a "
                 "keyword list of callback names and arities", ['Elixir.Kernel':inspect(Callback)]);
@@ -589,4 +598,6 @@ format_error({callbacks_but_also_behaviour_info, {Type, Fun, Arity}}) ->
   io_lib:format("cannot define @~ts attribute for ~ts/~B when behaviour_info/1 is defined",
                 [Type, Fun, Arity]);
 format_error({spec_for_undefined_function, {Name, Arity}}) ->
-  io_lib:format("spec for undefined function ~ts/~B", [Name, Arity]).
+  io_lib:format("spec for undefined function ~ts/~B", [Name, Arity]);
+format_error({spec_for_excluded_function, {Name, Arity}}) ->
+  io_lib:format("spec for conditionally excluded function ~ts/~B", [Name, Arity]).

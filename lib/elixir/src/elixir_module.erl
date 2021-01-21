@@ -300,6 +300,7 @@ build(Line, File, Module) ->
     {optional_callbacks, [], accumulate},
 
     % Others
+    {if_available, nil, nil},
     {?counter_attr, 0}
   ]),
 
