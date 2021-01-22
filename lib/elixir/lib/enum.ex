@@ -300,7 +300,7 @@ defmodule Enum do
   As the last example shows, `Enum.all?/2` returns `true` if `enumerable` is
   empty, regardless of `fun`. In an empty enumerable there is no element for
   which `fun` returns a falsy value, so the result must be `true`. This is a
-  standard mathematical argument for empty collections.
+  well-defined logical argument for empty collections.
 
   If no function is given, the truthiness of each element is checked during iteration.
   When an element has a falsy value (`false` or `nil`) iteration stops immediately and
