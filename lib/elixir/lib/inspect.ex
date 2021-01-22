@@ -454,16 +454,17 @@ defimpl Inspect, for: Any do
   end
 
   def inspect(map, name, opts) do
-    # Use the :limit option and an extra element to force
-    # `container_doc/6` to append "...".
-    opts = %{opts | limit: min(opts.limit, map_size(map))}
-    map = Map.to_list(map) ++ ["..."]
-
+    map = Map.to_list(map) ++ [:...]
     open = color("#" <> name <> "<", :map, opts)
     sep = color(",", :map, opts)
     close = color(">", :map, opts)
 
-    container_doc(open, map, close, opts, &Inspect.List.keyword/2, separator: sep, break: :strict)
+    fun = fn
+      {key, value}, opts -> Inspect.List.keyword({key, value}, opts)
+      :..., _opts -> "..."
+    end
+
+    container_doc(open, map, close, opts, fun, separator: sep, break: :strict)
   end
 end
 
