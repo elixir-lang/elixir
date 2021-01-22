@@ -282,9 +282,9 @@ defmodule Enum do
   @doc """
   Returns `true` if `fun.(element)` is truthy for all elements in `enumerable`.
 
-  Iterates over the `enumerable` and invokes `fun` on each element. When an invocation
-  of `fun` returns a falsy value (`false` or `nil`) iteration stops immediately and
-  `false` is returned. In all other cases `true` is returned.
+  Iterates over `enumerable` and invokes `fun` on each element. If `fun` ever
+  returns a falsy value (`false` or `nil`), iteration stops immediately and
+  `false` is returned. Otherwise, `true` is returned.
 
   ## Examples
 
@@ -294,8 +294,13 @@ defmodule Enum do
       iex> Enum.all?([2, 3, 4], fn x -> rem(x, 2) == 0 end)
       false
 
-      iex> Enum.all?([], fn x -> x > 0 end)
+      iex> Enum.all?([], fn x -> nil end)
       true
+
+  As the last example shows, `Enum.all?/2` returns `true` if `enumerable` is
+  empty, regardless of `fun`. In an empty enumerable there is no element for
+  which `fun` returns a falsy value, so the result must be `true`. This is a
+  standard mathematical argument for empty collections.
 
   If no function is given, the truthiness of each element is checked during iteration.
   When an element has a falsy value (`false` or `nil`) iteration stops immediately and
