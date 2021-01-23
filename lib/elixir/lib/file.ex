@@ -1609,8 +1609,8 @@ defmodule File do
 
   The `line_or_bytes` argument configures how the file is read when
   streaming, by `:line` (default) or by a given number of bytes. When
-  using the `:line` option line breaks are normalized to just linefeeds -
-  see `:file.read_line/1`.
+  using the `:line` option, CRLF line breaks (`"\r\n"`) are normalized
+  to LF (`"\n"`).
 
   Operating the stream can fail on open for the same reasons as
   `File.open!/2`. Note that the file is automatically opened each time streaming
