@@ -294,7 +294,7 @@ defmodule Enum do
       iex> Enum.all?([2, 3, 4], fn x -> rem(x, 2) == 0 end)
       false
 
-      iex> Enum.all?([], fn x -> nil end)
+      iex> Enum.all?([], fn _ -> nil end)
       true
 
   As the last example shows, `Enum.all?/2` returns `true` if `enumerable` is
