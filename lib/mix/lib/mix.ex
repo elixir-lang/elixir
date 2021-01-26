@@ -464,4 +464,110 @@ defmodule Mix do
   def path_for(:escripts) do
     Path.join(Mix.Utils.mix_home(), "escripts")
   end
+
+  @doc """
+  Installs and starts dependencies.
+
+  The given `deps` should be in the same format as defined in a regular Mix
+  project. See `mix help deps` for more information. As a shortcut, an atom
+  can be given as dependency to mean the latest version, e.g.: specifying
+  `:decimal` is the same as `{:decimal, ">= 0.0.0"}`.
+
+  After each successful installation, a given set of dependencies is cached
+  so starting another VM and calling `Mix.install` with the same dependencies
+  will avoid unnecessary downloads and compilations.
+
+  This function can only be called outside of a Mix project and only once in a
+  given VM.
+
+  **Note:** this feature is currently experimental and it may change
+  in future releases.
+
+  ## Options
+
+    * `:force` - if `true`, removes install cache. This is useful when you want
+      to update your dependencies or your install got into an inconsistent state
+      (Default: `false`)
+
+    * `:verbose` - if `true`, prints additional debugging information
+      (Default: `false`)
+
+  ## Examples
+
+      Mix.install([
+        :decimal,
+        {:jason, "~> 1.0"}
+      ])
+
+  """
+  @doc since: "1.12.0"
+  def install(deps, opts \\ [])
+
+  def install(deps, opts) when is_list(deps) and is_list(opts) do
+    Mix.start()
+
+    if Mix.Project.get() do
+      Mix.raise("Mix.install/2 cannot be used inside a Mix project")
+    end
+
+    if Mix.State.get(:install_called?) do
+      Mix.raise("Mix.install/2 can only be called once")
+    end
+
+    id = deps |> :erlang.term_to_binary() |> :erlang.md5() |> Base.encode16(case: :lower)
+    tmp_dir = System.tmp_dir()
+    version = "elixir-#{System.version()}-erts-#{:erlang.system_info(:version)}"
+    dir = Path.join([tmp_dir, "mix_installs", version, id])
+
+    if opts[:verbose] do
+      Mix.shell().info("using #{dir}")
+    end
+
+    if opts[:force] do
+      File.rm_rf!(dir)
+    end
+
+    deps =
+      Enum.map(deps, fn
+        dep when is_atom(dep) -> {dep, ">= 0.0.0"}
+        dep -> dep
+      end)
+
+    config = [
+      version: "0.1.0",
+      build_per_environment: true,
+      build_path: "_build",
+      lockfile: "mix.lock",
+      deps_path: "deps",
+      deps: deps,
+      app: :mix_install,
+      erlc_paths: ["src"],
+      elixirc_paths: ["lib"],
+      consolidate_protocols: false
+    ]
+
+    :ok = Mix.ProjectStack.push(__MODULE__.InstallProject, config, "nofile")
+    :ok = Mix.Local.append_archives()
+
+    if File.dir?(dir) do
+      File.cd!(dir, fn ->
+        Mix.Task.run("deps.loadpaths")
+      end)
+    else
+      File.mkdir_p!(dir)
+
+      File.cd!(dir, fn ->
+        Mix.Task.run("deps.get")
+        Mix.Task.run("deps.compile")
+      end)
+    end
+
+    for app <- Mix.Project.deps_apps() do
+      Application.ensure_all_started(app)
+    end
+
+    Mix.ProjectStack.pop()
+    Mix.State.put(:install_called?, true)
+    :ok
+  end
 end
