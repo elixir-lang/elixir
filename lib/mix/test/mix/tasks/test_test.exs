@@ -23,7 +23,7 @@ defmodule Mix.Tasks.TestTest do
       assert ex_unit_opts_from_given(only: "focus", include: "special") == only
     end
 
-    test "translates :color into list containing an enabled key/value pair" do
+    test "translates :color into list containing an enabled key-value pair" do
       assert ex_unit_opts_from_given(color: false) == [colors: [enabled: false]]
       assert ex_unit_opts_from_given(color: true) == [colors: [enabled: true]]
     end

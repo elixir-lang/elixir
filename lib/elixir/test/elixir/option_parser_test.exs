@@ -42,7 +42,7 @@ defmodule OptionParserTest do
              {:undefined, "--no-hello_world", nil, []}
   end
 
-  test "parses more than one key/value options using switches" do
+  test "parses more than one key-value pair options using switches" do
     opts = [switches: [source: :string, docs: :string]]
 
     assert OptionParser.parse(["--source", "from_docs/", "--docs", "show"], opts) ==
@@ -57,7 +57,7 @@ defmodule OptionParserTest do
     assert OptionParser.parse(["--no-bool"], strict: []) == {[], [], [{"--no-bool", nil}]}
   end
 
-  test "parses more than one key/value options using strict" do
+  test "parses more than one key-value pair options using strict" do
     opts = [strict: [source: :string, docs: :string]]
 
     assert OptionParser.parse(["--source", "from_docs/", "--docs", "show"], opts) ==
@@ -442,7 +442,7 @@ defmodule OptionsParserDeprecationsTest do
     end)
   end
 
-  test "parses more than one key/value options" do
+  test "parses more than one key-value pair options" do
     assert_deprecated(fn ->
       assert OptionParser.parse(["--source", "from_docs/", "--docs", "show"]) ==
                {[source: "from_docs/", docs: "show"], [], []}
