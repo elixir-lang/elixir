@@ -558,8 +558,12 @@ defmodule Mix do
 
       File.cd!(dir, fn ->
         Mix.Task.run("deps.get")
-        Mix.Task.run("compile")
+        Mix.Task.run("deps.compile")
       end)
+    end
+
+    for app <- Mix.Project.deps_apps() do
+      Application.ensure_all_started(app)
     end
 
     Mix.ProjectStack.pop()

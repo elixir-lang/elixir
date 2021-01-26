@@ -58,6 +58,7 @@ defmodule MixTest do
     assert_received {:mix_shell, :info, ["Generated install_test app"]}
     refute_received _
 
+    assert Application.ensure_all_started(:install_test) == {:ok, []}
     assert apply(InstallTest, :hello, []) == :world
   after
     :code.purge(InstalTest)
