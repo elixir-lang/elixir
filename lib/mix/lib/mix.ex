@@ -479,7 +479,7 @@ defmodule Mix do
 
   This function can only be called outside of a Mix project and only once in a
   given VM.
-  
+
   **Note:** this feature is currently experimental and it may change
   in future releases.
 
