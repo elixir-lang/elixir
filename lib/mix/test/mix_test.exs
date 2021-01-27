@@ -62,7 +62,7 @@ defmodule MixTest do
     assert :install_test in started_apps
     assert apply(InstallTest, :hello, []) == :world
   after
-    :code.purge(InstalTest)
+    :code.purge(InstallTest)
     :code.delete(InstallTest)
     Application.stop(:install_test)
     Application.unload(:install_test)
