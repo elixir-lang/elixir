@@ -59,7 +59,8 @@ defmodule Mix.TaskTest do
     Mix.shell(Mix.Shell.IO)
     Mix.debug(true)
 
-    assert ExUnit.CaptureIO.capture_io(fn -> Mix.Task.run("hello") end) =~ "** Running mix hello"
+    assert ExUnit.CaptureIO.capture_io(fn -> Mix.Task.run("hello") end) =~
+             ~r"-> Running mix hello\n<- Ran mix hello in \d+ms"
   after
     Mix.shell(Mix.Shell.Process)
     Mix.debug(false)
