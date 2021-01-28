@@ -87,11 +87,11 @@ defmodule Mix.CLITest do
       assert contents =~ "This won't appear"
 
       contents = mix(~w[my_hello], [{"MIX_DEBUG", "1"}])
-      assert contents =~ "** Running mix my_hello (inside MyProject)"
+      assert contents =~ "-> Running mix my_hello (inside MyProject)"
       assert contents =~ "** (Mix.Error) oops"
 
       contents = mix(~w[my_hello], [{"MIX_DEBUG", "0"}])
-      refute contents =~ "** Running mix my_hello (inside MyProject)"
+      refute contents =~ "-> Running mix my_hello (inside MyProject)"
       refute contents =~ "** (Mix.Error) oops"
     end)
   end
