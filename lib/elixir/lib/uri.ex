@@ -82,17 +82,18 @@ defmodule URI do
 
   You can specify one of the following `encoding` strategies:
 
-    * `:rfc_3986` - (recommended) keys and values are encoded following
-      [RFC 3986](https://tools.ietf.org/html/rfc3986) specifications.
     * `:www_form` - (default) keys and values are URL encoded as per
-      `encode_www_form/1`. Same as `:rfc_3986`, except for encoding " " as "+"
-      instead of "%20".
+      `encode_www_form/1`. This is the format typically used by browsers
+      on query strings and form data. It encodes " " as "+".
+
+    * `:rfc_3986` - the same as `:www_form` except it encodes " " as
+      "%20" according [RFC 3986](https://tools.ietf.org/html/rfc3986).
+      This is the best option if you are encoding a non-http related
+      scheme, since encoding spaces as "+" can be ambiguous to URI
+      parsers. This can inadvertently lead to spaces being interpreted
+      as literal plus signs.
 
   Encoding defaults to `:www_form` for backward compatibility.
-
-  The main reason for recommending `:rfc_3986` is that encoding spaces as "+"
-  can be ambiguous to URI parsers. This can inadvertently lead to spaces being
-  interpreted as literal plus signs.
 
   ## Examples
 
@@ -322,6 +323,10 @@ defmodule URI do
   @doc """
   Encodes `string` as "x-www-form-urlencoded".
 
+  Note "x-www-form-urlencoded" is not specified as part of
+  RFC 3986. However, it is a commonly used format to encode
+  query strings and form data by browsers.
+
   ## Example
 
       iex> URI.encode_www_form("put: it+й")
@@ -368,6 +373,10 @@ defmodule URI do
 
   @doc """
   Decodes `string` as "x-www-form-urlencoded".
+
+  Note "x-www-form-urlencoded" is not specified as part of
+  RFC 3986. However, it is a commonly used format to encode
+  query strings and form data by browsers.
 
   ## Examples
 
