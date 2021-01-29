@@ -172,7 +172,7 @@ defmodule ExUnit.Runner do
   def prune_stacktrace([{ExUnit.Assertions, _, _, _} | t]), do: prune_stacktrace(t)
 
   # As soon as we see a Runner, it is time to ignore the stacktrace
-  def  prune_stacktrace([{ExUnit.Runner, _, _, _} | _]), do: []
+  def prune_stacktrace([{ExUnit.Runner, _, _, _} | _]), do: []
 
   # All other cases
   def prune_stacktrace([h | t]), do: [h | prune_stacktrace(t)]
