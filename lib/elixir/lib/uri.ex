@@ -82,16 +82,16 @@ defmodule URI do
 
   You can specify one of the following `encoding` strategies:
 
-    * `:rfc3986` - (recommended) keys and values are encoded following
-      [RFC3986](https://tools.ietf.org/html/rfc3986) specifications.
+    * `:rfc_3986` - (recommended) keys and values are encoded following
+      [RFC 3986](https://tools.ietf.org/html/rfc3986) specifications.
     * `:www_form` - (default) keys and values are URL encoded as per
-      `encode_www_form/1`. Same as RFC3986, except for encoding " " as "+"
+      `encode_www_form/1`. Same as `:rfc_3986`, except for encoding " " as "+"
       instead of "%20".
 
   Encoding defaults to `:www_form` for backward compatibility.
 
-  The main reason for recommending `:rfc3986` is that encoding spaces as "+" can
-  be ambiguous to URI parsers. This can inadvertently lead to spaces being
+  The main reason for recommending `:rfc_3986` is that encoding spaces as "+"
+  can be ambiguous to URI parsers. This can inadvertently lead to spaces being
   interpreted as literal plus signs.
 
   ## Examples
@@ -105,14 +105,14 @@ defmodule URI do
       "key=value+with+spaces"
 
       iex> query = %{"key" => "value with spaces"}
-      iex> URI.encode_query(query, :rfc3986)
+      iex> URI.encode_query(query, :rfc_3986)
       "key=value%20with%20spaces"
 
       iex> URI.encode_query(%{key: [:a, :list]})
       ** (ArgumentError) encode_query/2 values cannot be lists, got: [:a, :list]
 
   """
-  @spec encode_query(Enum.t(), :rfc3986 | :www_form) :: binary
+  @spec encode_query(Enum.t(), :rfc_3986 | :www_form) :: binary
   def encode_query(enumerable, encoding \\ :www_form) do
     Enum.map_join(enumerable, "&", &encode_kv_pair(&1, encoding))
   end
@@ -125,7 +125,7 @@ defmodule URI do
     raise ArgumentError, "encode_query/2 values cannot be lists, got: #{inspect(value)}"
   end
 
-  defp encode_kv_pair({key, value}, :rfc3986) do
+  defp encode_kv_pair({key, value}, :rfc_3986) do
     encode(Kernel.to_string(key), &char_unreserved?/1) <>
       "=" <> encode(Kernel.to_string(value), &char_unreserved?/1)
   end

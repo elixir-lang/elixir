@@ -23,13 +23,13 @@ defmodule URITest do
     assert URI.encode_query([{"foo", "bar"}, {"baz", "quux"}]) == "foo=bar&baz=quux"
 
     assert URI.encode_query([{"foo z", :bar}]) == "foo+z=bar"
-    assert URI.encode_query([{"foo z", :bar}], :rfc3986) == "foo%20z=bar"
+    assert URI.encode_query([{"foo z", :bar}], :rfc_3986) == "foo%20z=bar"
     assert URI.encode_query([{"foo z", :bar}], :www_form) == "foo+z=bar"
 
     assert URI.encode_query([{"foo[]", "+=/?&# Ñ"}]) ==
              "foo%5B%5D=%2B%3D%2F%3F%26%23+%C3%91"
 
-    assert URI.encode_query([{"foo[]", "+=/?&# Ñ"}], :rfc3986) ==
+    assert URI.encode_query([{"foo[]", "+=/?&# Ñ"}], :rfc_3986) ==
              "foo%5B%5D=%2B%3D%2F%3F%26%23%20%C3%91"
 
     assert URI.encode_query([{"foo[]", "+=/?&# Ñ"}], :www_form) ==
