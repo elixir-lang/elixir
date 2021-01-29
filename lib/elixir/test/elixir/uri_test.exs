@@ -18,26 +18,16 @@ defmodule URITest do
     assert URI.encode_www_form("/\n+/ゆ") == "%2F%0A%2B%2F%E3%82%86"
   end
 
-  test "encode_query/1" do
+  test "encode_query/1,2" do
     assert URI.encode_query([{:foo, :bar}, {:baz, :quux}]) == "foo=bar&baz=quux"
     assert URI.encode_query([{"foo", "bar"}, {"baz", "quux"}]) == "foo=bar&baz=quux"
+
     assert URI.encode_query([{"foo z", :bar}]) == "foo+z=bar"
-
-    assert_raise ArgumentError, fn ->
-      URI.encode_query([{"foo", 'bar'}])
-    end
-
-    assert_raise ArgumentError, fn ->
-      URI.encode_query([{'foo', "bar"}])
-    end
-  end
-
-  test "encode_query/2" do
-    assert URI.encode_query([{:foo, :bar}, {:baz, :quux}], :rfc3986) == "foo=bar&baz=quux"
-    assert URI.encode_query([{"foo", "bar"}, {"baz", "quux"}], :rfc3986) == "foo=bar&baz=quux"
-
     assert URI.encode_query([{"foo z", :bar}], :rfc3986) == "foo%20z=bar"
     assert URI.encode_query([{"foo z", :bar}], :www_form) == "foo+z=bar"
+
+    assert URI.encode_query([{"foo[]", "+=/?&# Ñ"}]) ==
+             "foo%5B%5D=%2B%3D%2F%3F%26%23+%C3%91"
 
     assert URI.encode_query([{"foo[]", "+=/?&# Ñ"}], :rfc3986) ==
              "foo%5B%5D=%2B%3D%2F%3F%26%23%20%C3%91"
@@ -46,11 +36,11 @@ defmodule URITest do
              "foo%5B%5D=%2B%3D%2F%3F%26%23+%C3%91"
 
     assert_raise ArgumentError, fn ->
-      URI.encode_query([{"foo", 'bar'}], :rfc3986)
+      URI.encode_query([{"foo", 'bar'}])
     end
 
     assert_raise ArgumentError, fn ->
-      URI.encode_query([{'foo', "bar"}], :rfc3986)
+      URI.encode_query([{'foo', "bar"}])
     end
   end
 

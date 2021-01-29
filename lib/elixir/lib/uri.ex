@@ -71,19 +71,7 @@ defmodule URI do
   end
 
   @doc """
-  Encodes an enumerable into a query string.
-
-  This function is deprecated. Use `encode_query/2` with `:www_form` as second
-  argument value to achieve the same result.
-  """
-  @doc deprecated: "Use URI.encode_query/2 instead"
-  @spec encode_query(Enum.t()) :: binary
-  def encode_query(enumerable) do
-    encode_query(enumerable, :www_form)
-  end
-
-  @doc """
-  Encodes an enumerable into a query string.
+  Encodes `enumerable` into a query string using `encoding`.
 
   Takes an enumerable that enumerates as a list of two-element
   tuples (for instance, a map or a keyword list) and returns a string
@@ -92,12 +80,15 @@ defmodule URI do
   Keys and values can be any term that implements the `String.Chars`
   protocol with the exception of lists, which are explicitly forbidden.
 
-  You must specify one of the following `encoding` strategies:
+  You can specify one of the following `encoding` strategies:
 
     * `:rfc3986` - (recommended) keys and values are encoded following
       [RFC3986](https://tools.ietf.org/html/rfc3986) specifications.
-    * `:www_form` - keys and values are URL encoded as per `encode_www_form/1`.
-      Same as RFC3986, except for encoding " " as "+" instead of "%20".
+    * `:www_form` - (default) keys and values are URL encoded as per
+      `encode_www_form/1`. Same as RFC3986, except for encoding " " as "+"
+      instead of "%20".
+
+  Encoding defaults to `:www_form` for backward compatibility.
 
   The main reason for recommending `:rfc3986` is that encoding spaces as "+" can
   be ambiguous to URI parsers. This can inadvertently lead to spaces being
@@ -105,24 +96,24 @@ defmodule URI do
 
   ## Examples
 
-      iex> hd = %{"foo" => 1, "bar" => 2}
-      iex> URI.encode_query(hd, :rfc3986)
+      iex> query = %{"foo" => 1, "bar" => 2}
+      iex> URI.encode_query(query)
       "bar=2&foo=1"
+
+      iex> query = %{"key" => "value with spaces"}
+      iex> URI.encode_query(query)
+      "key=value+with+spaces"
 
       iex> query = %{"key" => "value with spaces"}
       iex> URI.encode_query(query, :rfc3986)
       "key=value%20with%20spaces"
 
-      iex> query = %{"key" => "value with spaces"}
-      iex> URI.encode_query(query, :www_form)
-      "key=value+with+spaces"
-
-      iex> URI.encode_query(%{key: [:a, :list]}, :rfc3986)
+      iex> URI.encode_query(%{key: [:a, :list]})
       ** (ArgumentError) encode_query/2 values cannot be lists, got: [:a, :list]
 
   """
   @spec encode_query(Enum.t(), :rfc3986 | :www_form) :: binary
-  def encode_query(enumerable, encoding) do
+  def encode_query(enumerable, encoding \\ :www_form) do
     Enum.map_join(enumerable, "&", &encode_kv_pair(&1, encoding))
   end
 
