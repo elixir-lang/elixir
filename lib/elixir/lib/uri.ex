@@ -174,7 +174,10 @@ defmodule URI do
   def decode_query(query, map \\ %{}, encoding \\ :www_form)
 
   def decode_query(query, %_{} = dict, encoding) when is_binary(query) do
-    IO.warn("URI.decode_query/2 is deprecated, please use URI.decode_query/1")
+    IO.warn(
+      "URI.decode_query/3 expects the second argument to be a map, other usage is deprecated"
+    )
+
     decode_query_into_dict(query, dict, encoding)
   end
 
@@ -183,7 +186,10 @@ defmodule URI do
   end
 
   def decode_query(query, dict, encoding) when is_binary(query) do
-    IO.warn("URI.decode_query/2 is deprecated, please use URI.decode_query/1")
+    IO.warn(
+      "URI.decode_query/3 expects the second argument to be a map, other usage is deprecated"
+    )
+
     decode_query_into_dict(query, dict, encoding)
   end
 
