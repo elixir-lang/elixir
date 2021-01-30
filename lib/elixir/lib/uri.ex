@@ -135,12 +135,24 @@ defmodule URI do
   end
 
   @doc """
-  Decodes a query string into a map.
+  Decodes `query` into a map.
 
   Given a query string in the form of `key1=value1&key2=value2...`, this
   function inserts each key-value pair in the query string as one entry in the
   given `map`. Keys and values in the resulting map will be binaries. Keys and
   values will be percent-unescaped.
+
+  You can specify one of the following `encoding` options:
+
+    * `:www_form` - (default, since v1.12.0) keys and values are decoded as per
+      `decode_www_form/1`. This is the format typically used by browsers on
+      query strings and form data. It decodes "+" as " ".
+
+    * `:rfc_3986` - (since v1.12.0) keys and values are decoded as per
+      `decode/1`. The result is the same as `:www_form` except for leaving "+"
+      as is in line with [RFC 3986](https://tools.ietf.org/html/rfc3986).
+
+  Encoding defaults to `:www_form` for backward compatibility.
 
   Use `query_decoder/1` if you want to iterate over each value manually.
 
@@ -202,6 +214,18 @@ defmodule URI do
   given `query`.
 
   Key and value in each tuple will be binaries and will be percent-unescaped.
+
+  You can specify one of the following `encoding` options:
+
+    * `:www_form` - (default, since v1.12.0) keys and values are decoded as per
+      `decode_www_form/1`. This is the format typically used by browsers on
+      query strings and form data. It decodes "+" as " ".
+
+    * `:rfc_3986` - (since v1.12.0) keys and values are decoded as per
+      `decode/1`. The result is the same as `:www_form` except for leaving "+"
+      as is in line with [RFC 3986](https://tools.ietf.org/html/rfc3986).
+
+  Encoding defaults to `:www_form` for backward compatibility.
 
   ## Examples
 
