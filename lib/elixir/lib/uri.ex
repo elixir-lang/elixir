@@ -153,43 +153,48 @@ defmodule URI do
       iex> URI.decode_query("percent=oh+yes%21", %{"starting" => "map"})
       %{"percent" => "oh yes!", "starting" => "map"}
 
+      iex> URI.decode_query("percent=oh+yes%21", %{}, :rfc_3986)
+      %{"percent" => "oh+yes!"}
+
   """
-  @spec decode_query(binary, %{optional(binary) => binary}) :: %{optional(binary) => binary}
-  def decode_query(query, map \\ %{})
+  @spec decode_query(binary, %{optional(binary) => binary}, :rfc_3986 | :www_form) :: %{
+          optional(binary) => binary
+        }
+  def decode_query(query, map \\ %{}, encoding \\ :www_form)
 
-  def decode_query(query, %_{} = dict) when is_binary(query) do
+  def decode_query(query, %_{} = dict, encoding) when is_binary(query) do
     IO.warn("URI.decode_query/2 is deprecated, please use URI.decode_query/1")
-    decode_query_into_dict(query, dict)
+    decode_query_into_dict(query, dict, encoding)
   end
 
-  def decode_query(query, map) when is_binary(query) and is_map(map) do
-    decode_query_into_map(query, map)
+  def decode_query(query, map, encoding) when is_binary(query) and is_map(map) do
+    decode_query_into_map(query, map, encoding)
   end
 
-  def decode_query(query, dict) when is_binary(query) do
+  def decode_query(query, dict, encoding) when is_binary(query) do
     IO.warn("URI.decode_query/2 is deprecated, please use URI.decode_query/1")
-    decode_query_into_dict(query, dict)
+    decode_query_into_dict(query, dict, encoding)
   end
 
-  defp decode_query_into_map(query, map) do
-    case decode_next_query_pair(query) do
+  defp decode_query_into_map(query, map, encoding) do
+    case decode_next_query_pair(query, encoding) do
       nil ->
         map
 
       {{key, value}, rest} ->
-        decode_query_into_map(rest, Map.put(map, key, value))
+        decode_query_into_map(rest, Map.put(map, key, value), encoding)
     end
   end
 
-  defp decode_query_into_dict(query, dict) do
-    case decode_next_query_pair(query) do
+  defp decode_query_into_dict(query, dict, encoding) do
+    case decode_next_query_pair(query, encoding) do
       nil ->
         dict
 
       {{key, value}, rest} ->
         # Avoid warnings about Dict being deprecated
         dict_module = Dict
-        decode_query_into_dict(rest, dict_module.put(dict, key, value))
+        decode_query_into_dict(rest, dict_module.put(dict, key, value), encoding)
     end
   end
 
@@ -204,20 +209,23 @@ defmodule URI do
       iex> URI.query_decoder("foo=1&bar=2") |> Enum.to_list()
       [{"foo", "1"}, {"bar", "2"}]
 
-      iex> URI.query_decoder("food=bread%26butter&drinks=tap%20water") |> Enum.to_list()
-      [{"food", "bread&butter"}, {"drinks", "tap water"}]
+      iex> URI.query_decoder("food=bread%26butter&drinks=tap%20water+please") |> Enum.to_list()
+      [{"food", "bread&butter"}, {"drinks", "tap water please"}]
+
+      iex> URI.query_decoder("food=bread%26butter&drinks=tap%20water+please", :rfc_3986) |> Enum.to_list()
+      [{"food", "bread&butter"}, {"drinks", "tap water+please"}]
 
   """
-  @spec query_decoder(binary) :: Enumerable.t()
-  def query_decoder(query) when is_binary(query) do
-    Stream.unfold(query, &decode_next_query_pair/1)
+  @spec query_decoder(binary, :rfc_3986 | :www_form) :: Enumerable.t()
+  def query_decoder(query, encoding \\ :www_form) when is_binary(query) do
+    Stream.unfold(query, &decode_next_query_pair(&1, encoding))
   end
 
-  defp decode_next_query_pair("") do
+  defp decode_next_query_pair("", _encoding) do
     nil
   end
 
-  defp decode_next_query_pair(query) do
+  defp decode_next_query_pair(query, encoding) do
     {undecoded_next_pair, rest} =
       case :binary.split(query, "&") do
         [next_pair, rest] -> {next_pair, rest}
@@ -226,11 +234,22 @@ defmodule URI do
 
     next_pair =
       case :binary.split(undecoded_next_pair, "=") do
-        [key, value] -> {decode_www_form(key), decode_www_form(value)}
-        [key] -> {decode_www_form(key), ""}
+        [key, value] ->
+          {decode_with_encoding(key, encoding), decode_with_encoding(value, encoding)}
+
+        [key] ->
+          {decode_with_encoding(key, encoding), ""}
       end
 
     {next_pair, rest}
+  end
+
+  defp decode_with_encoding(string, :www_form) do
+    decode_www_form(string)
+  end
+
+  defp decode_with_encoding(string, :rfc_3986) do
+    decode(string)
   end
 
   @doc ~s"""
