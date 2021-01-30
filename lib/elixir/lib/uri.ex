@@ -82,11 +82,11 @@ defmodule URI do
 
   You can specify one of the following `encoding` strategies:
 
-    * `:www_form` - (default) keys and values are URL encoded as per
+    * `:www_form` - (default, since v1.12.0) keys and values are URL encoded as per
       `encode_www_form/1`. This is the format typically used by browsers
       on query strings and form data. It encodes " " as "+".
 
-    * `:rfc_3986` - the same as `:www_form` except it encodes " " as
+    * `:rfc_3986` - (since v1.12.0) the same as `:www_form` except it encodes " " as
       "%20" according [RFC 3986](https://tools.ietf.org/html/rfc3986).
       This is the best option if you are encoding a non-http related
       scheme, since encoding spaces as "+" can be ambiguous to URI
