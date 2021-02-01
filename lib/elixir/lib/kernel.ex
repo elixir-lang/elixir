@@ -5225,7 +5225,7 @@ defmodule Kernel do
           opts
       end
 
-    quote bind_quoted: [funs: funs, opts: opts] do
+    quote bind_quoted: [funs: funs, opts: opts], context: __CALLER__.module do
       target =
         Keyword.get(opts, :to) || raise ArgumentError, "expected to: to be given as argument"
 

@@ -865,6 +865,15 @@ defmodule KernelTest do
       assert my_get(%{"foo" => "bar"}, "foo") == "bar"
       assert my_get(%{}, "foo", "not_found") == "not_found"
     end
+
+    test "context" do
+      {:defdelegate, meta, _} =
+        quote do
+          defdelegate reverse(list), to: Enum
+        end
+
+      assert Keyword.get(meta, :context) == KernelTest
+    end
   end
 
   describe "defmodule" do
