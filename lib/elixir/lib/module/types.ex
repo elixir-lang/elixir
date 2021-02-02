@@ -133,13 +133,24 @@ defmodule Module.Types do
   ## ERROR TO WARNING
 
   # Collect relevant information from context and traces to report error
+  def error_to_warning(:unable_apply, {args, signature, stack}, context) do
+    {fun, arity} = context.function
+    line = get_meta(stack.last_expr)[:line]
+    location = {context.file, line, {context.module, fun, arity}}
+
+    traces = type_traces(stack, context)
+    {[signature | args], traces} = lift_all_types([signature | args], traces, context)
+    error = {:unable_apply, args, signature, {location, stack.last_expr, traces}}
+    {Module.Types, error, location}
+  end
+
   def error_to_warning(:unable_unify, {left, right, stack}, context) do
     {fun, arity} = context.function
     line = get_meta(stack.last_expr)[:line]
     location = {context.file, line, {context.module, fun, arity}}
 
     traces = type_traces(stack, context)
-    {left, right, traces} = lift_all_types(left, right, traces, context)
+    {[left, right], traces} = lift_all_types([left, right], traces, context)
     error = {:unable_unify, left, right, {location, stack.last_expr, traces}}
     {Module.Types, error, location}
   end
@@ -183,17 +194,18 @@ defmodule Module.Types do
     end
   end
 
-  defp lift_all_types(left, right, traces, context) do
-    all_types = [left, right] ++ for({:type, _, type, _, _} <- traces, do: type)
-    [left, right | all_types] = Unify.lift_types(all_types, context)
+  defp lift_all_types(types, traces, context) do
+    trace_types = for({:type, _, type, _, _} <- traces, do: type)
+    {types, lift_context} = Unify.lift_types(types, context)
+    {trace_types, _lift_context} = Unify.lift_types(trace_types, lift_context)
 
     {traces, []} =
-      Enum.map_reduce(traces, all_types, fn
+      Enum.map_reduce(traces, trace_types, fn
         {:type, var, _, expr, location}, [type | acc] -> {{:type, var, type, expr, location}, acc}
         other, acc -> {other, acc}
       end)
 
-    {left, right, traces}
+    {types, traces}
   end
 
   ## FORMAT WARNINGS

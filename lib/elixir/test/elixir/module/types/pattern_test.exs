@@ -53,11 +53,13 @@ defmodule Module.Types.PatternTest do
   end
 
   defp lift_result({:ok, types, context}) when is_list(types) do
-    {:ok, Unify.lift_types(types, context)}
+    {types, _context} = Unify.lift_types(types, context)
+    {:ok, types}
   end
 
   defp lift_result({:ok, type, context}) do
-    {:ok, [type] |> Unify.lift_types(context) |> hd()}
+    {[type], _context} = Unify.lift_types([type], context)
+    {:ok, type}
   end
 
   defp lift_result({:error, {type, reason, _context}}) do

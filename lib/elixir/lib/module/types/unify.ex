@@ -10,6 +10,7 @@ defmodule Module.Types.Unify do
   #   {:atom, atom} < :atom
   #   :integer
   #   :float
+  #   :binary
   #   :pid
   #   :port
   #   :reference
@@ -20,6 +21,7 @@ defmodule Module.Types.Unify do
   #   {:tuple, size, [type]} < :tuple
   #   {:union, [type]}
   #   {:map, [{:required | :optional, key_type, value_type}]}
+  #   [{params, return}]
   #
   # Once new types are added, they should be considered in:
   #
@@ -28,8 +30,9 @@ defmodule Module.Types.Unify do
   #   * subtype? (subtypes only)
   #   * has_unbound_var? (composite only)
   #   * recursive_type? (composite only)
-  #   * collect_vars (composite only)
+  #   * collect_var_indexes (composite only)
   #   * lift_types (composite only)
+  #   * expand_union (composite only)
   #
 
   @doc """
@@ -325,7 +328,7 @@ defmodule Module.Types.Unify do
     {required, optional}
   end
 
-  defp error(type, reason, context), do: {:error, {type, reason, context}}
+  def error(type, reason, context), do: {:error, {type, reason, context}}
 
   @doc """
   Push expression to stack.
@@ -505,6 +508,12 @@ defmodule Module.Types.Unify do
     end)
   end
 
+  defp recursive_type?(signature, parents, context) when is_list(signature) do
+    Enum.any?(signature, fn {args, return} ->
+      Enum.any?([return | args], &recursive_type?(&1, [signature | parents], context))
+    end)
+  end
+
   defp recursive_type?(_other, _parents, _context) do
     false
   end
@@ -542,6 +551,12 @@ defmodule Module.Types.Unify do
     end)
   end
 
+  def collect_var_indexes(signature, context, acc) when is_list(signature) do
+    Enum.reduce(signature, acc, fn {params, return}, acc ->
+      Enum.reduce([return | params], acc, &collect_var_indexes(&1, context, &2))
+    end)
+  end
+
   def collect_var_indexes(_type, _context, acc), do: acc
 
   @doc """
@@ -566,6 +581,12 @@ defmodule Module.Types.Unify do
   def has_unbound_var?({:map, pairs}, context) do
     Enum.any?(pairs, fn {_, key, value} ->
       has_unbound_var?(key, context) or has_unbound_var?(value, context)
+    end)
+  end
+
+  def has_unbound_var?(signature, context) when is_list(signature) do
+    Enum.any?(signature, fn {params, return} ->
+      Enum.any?([return | params], &has_unbound_var?(&1, context))
     end)
   end
 
@@ -709,6 +730,10 @@ defmodule Module.Types.Unify do
   @doc """
   Lifts type variables to their inferred types from the context.
   """
+  def lift_types(types, %{lifted_types: _} = context) do
+    Enum.map_reduce(types, context, &lift_type/2)
+  end
+
   def lift_types(types, context) do
     context = %{
       types: context.types,
@@ -716,8 +741,7 @@ defmodule Module.Types.Unify do
       lifted_counter: 0
     }
 
-    {types, _context} = Enum.map_reduce(types, context, &lift_type/2)
-    types
+    Enum.map_reduce(types, context, &lift_type/2)
   end
 
   # Lift type variable to its inferred (hopefully concrete) types from the context
@@ -775,6 +799,16 @@ defmodule Module.Types.Unify do
     {{:list, type}, context}
   end
 
+  defp lift_type(signature, context) when is_list(signature) do
+    signature =
+      Enum.map_reduce(signature, context, fn {args, return}, context ->
+        {[return | args], context} = Enum.map_reduce([return | args], context, &lift_type/2)
+        {{args, return}, context}
+      end)
+
+    {signature, context}
+  end
+
   defp lift_type(other, context) do
     {other, context}
   end
@@ -787,6 +821,68 @@ defmodule Module.Types.Unify do
     context = %{context | lifted_types: types, lifted_counter: counter}
     {type, context}
   end
+
+  # TODO: Figure out function expansion
+
+  def expand_union({:tuple, num, types}) do
+    to_union_simple(expand_union_tuple(types, num, []))
+  end
+
+  def expand_union({:list, type}) do
+    case expand_union(type) do
+      {:union, union_types} -> to_union_simple(Enum.map(union_types, &{:list, &1}))
+      _type -> {:list, type}
+    end
+  end
+
+  def expand_union({:map, pairs}) do
+    to_union_simple(expand_union_map(pairs, []))
+  end
+
+  def expand_union(type) do
+    type
+  end
+
+  defp expand_union_tuple([type | types], num, acc) do
+    case expand_union(type) do
+      {:union, union_types} ->
+        Enum.flat_map(union_types, &expand_union_tuple(types, num, [&1 | acc]))
+
+      type ->
+        expand_union_tuple(types, num, [type | acc])
+    end
+  end
+
+  defp expand_union_tuple([], num, acc) do
+    [{:tuple, num, Enum.reverse(acc)}]
+  end
+
+  defp expand_union_map([{kind, key, value} | pairs], acc) do
+    case expand_union(key) do
+      {:union, union_types} ->
+        Enum.flat_map(union_types, &expand_union_map_value(kind, &1, value, pairs, acc))
+
+      type ->
+        expand_union_map_value(kind, type, value, pairs, acc)
+    end
+  end
+
+  defp expand_union_map([], acc) do
+    [{:map, Enum.reverse(acc)}]
+  end
+
+  defp expand_union_map_value(kind, key, value, pairs, acc) do
+    case expand_union(value) do
+      {:union, union_types} ->
+        Enum.flat_map(union_types, &expand_union_map(pairs, [{kind, key, &1} | acc]))
+
+      value ->
+        expand_union_map(pairs, [{kind, key, value} | acc])
+    end
+  end
+
+  defp to_union_simple([type]), do: type
+  defp to_union_simple(types) when types != [], do: {:union, types}
 
   @doc """
   Formats types.
@@ -832,6 +928,14 @@ defmodule Module.Types.Unify do
 
   def format_type({:var, index}, _simplify?) do
     "var#{index + 1}"
+  end
+
+  def format_type(signature, simplify?) when is_list(signature) do
+    Enum.map_join(signature, "; ", fn {params, return} ->
+      params = Enum.map_join(params, &format_type(&1, simplify?), ", ")
+      return = format_type(return, simplify?)
+      "((#{params}) -> #{return})"
+    end)
   end
 
   def format_type(atom, _simplify?) when is_atom(atom) do
