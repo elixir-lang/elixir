@@ -5248,7 +5248,9 @@ defmodule Kernel do
 
         @doc delegate_to: {target, as, :erlang.length(as_args)}
 
-        def unquote(name)(unquote_splicing(args)) do
+        # Build the call AST by hand so it doesn't get a
+        # context and it warns on things like missing @impl
+        def unquote({name, [line: __ENV__.line], args}) do
           unquote(target).unquote(as)(unquote_splicing(as_args))
         end
       end

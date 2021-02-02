@@ -16,6 +16,11 @@ defmodule Kernel.ImplTest do
     on_exit(fn -> purge(Kernel.ImplTest.ImplAttributes) end)
   end
 
+  defprotocol AProtocol do
+    def foo(term)
+    def bar(term)
+  end
+
   defmodule Behaviour do
     @callback foo() :: any
   end
@@ -495,11 +500,15 @@ defmodule Kernel.ImplTest do
       capture_err(fn ->
         Code.eval_string("""
         defmodule Kernel.ImplTest.ImplAttributes do
+          @behaviour Kernel.ImplTest.Behaviour
           use Kernel.ImplTest.UseBehaviourWithoutImpl
 
           @impl true
           def bar_without_impl(), do: :overridden
           def baz_without_impl(), do: :overridden
+
+          defdelegate foo(), to: __MODULE__, as: :baz
+          def baz(), do: :ok
         end
         """)
       end)
@@ -507,7 +516,28 @@ defmodule Kernel.ImplTest do
     assert message =~
              "module attribute @impl was not set for function baz_without_impl/0 callback"
 
+    assert message =~
+             "module attribute @impl was not set for function foo/0 callback"
+
     refute message =~ "foo_without_impl/0"
+  end
+
+  test "warns only for non-generated functions in non-generated @impl in protocols" do
+    message =
+      capture_err(fn ->
+        Code.eval_string("""
+        defimpl  Kernel.ImplTest.AProtocol, for: List do
+          @impl true
+          def foo(_list), do: :ok
+
+          defdelegate bar(list), to: __MODULE__, as: :baz
+          def baz(_list), do: :ok
+        end
+        """)
+      end)
+
+    assert message =~
+             "module attribute @impl was not set for function bar/1 callback"
   end
 
   test "warns only for generated functions in generated @impl" do
