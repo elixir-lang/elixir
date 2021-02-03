@@ -182,6 +182,16 @@ defmodule ExUnit.AssertionsTest do
     assert vec(x: ^x, y: ^y) = vec(x: x, y: y, z: z)
   end
 
+  @test_mod_attribute %{key: :value}
+  test "assert match with module attribute" do
+    try do
+      assert {@test_mod_attribute, 1} = Value.tuple()
+    rescue
+      error in [ExUnit.AssertionError] ->
+        assert "{%{key: :value}, 1}" == Macro.to_string(error.left)
+    end
+  end
+
   test "assert match with pinned variable" do
     a = 1
     {2, 1} = assert {2, ^a} = Value.tuple()
