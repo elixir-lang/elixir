@@ -90,6 +90,11 @@ defmodule Kernel.ParallelCompiler do
     spawn_workers(files, :compile, options)
   end
 
+  @doc """
+  Compiles the given files and writes resulting BEAM files into path.
+
+  See `compile/2` for more information.
+  """
   @doc since: "1.6.0"
   def compile_to_path(files, path, options \\ []) when is_binary(path) and is_list(options) do
     spawn_workers(files, {:compile, path}, options)
