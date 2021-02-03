@@ -190,6 +190,8 @@ defmodule Calendar.ISO do
   @doc """
   Parses a date string.
 
+  Supports both ISO-8601 calendar dates and ordinal dates.
+
   ## Examples
 
       iex> Calendar.ISO.parse_date("2015-01-23")
@@ -199,6 +201,15 @@ defmodule Calendar.ISO do
       iex> Calendar.ISO.parse_date("2015:01:23")
       {:error, :invalid_format}
       iex> Calendar.ISO.parse_date("2015-01-32")
+      {:error, :invalid_date}
+
+      iex> Calendar.ISO.parse_date("2015-105")
+      {:ok, {2015, 4, 15}}
+      iex> Calendar.ISO.parse_date("-2015-105")
+      {:ok, {-2015, 4, 15}}
+      iex> Calendar.ISO.parse_date("2015:105")
+      {:error, :invalid_format}
+      iex> Calendar.ISO.parse_date("2015-367")
       {:error, :invalid_date}
 
   """
@@ -229,6 +240,8 @@ defmodule Calendar.ISO do
   @doc """
   Parses a naive datetime string.
 
+  The date part of the string supports both ISO-8601 calendar dates and ordinal dates.
+
   ## Examples
 
       iex> Calendar.ISO.parse_naive_datetime("2015-01-23 23:50:07")
@@ -238,6 +251,13 @@ defmodule Calendar.ISO do
       iex> Calendar.ISO.parse_naive_datetime("2015-01-23T23:50:07Z")
       {:ok, {2015, 1, 23, 23, 50, 7, {0, 0}}}
 
+      iex> Calendar.ISO.parse_naive_datetime("2015-105 23:50:07")
+      {:ok, {2015, 4, 15, 23, 50, 7, {0, 0}}}
+      iex> Calendar.ISO.parse_naive_datetime("2015-105T23:50:07")
+      {:ok, {2015, 4, 15, 23, 50, 7, {0, 0}}}
+      iex> Calendar.ISO.parse_naive_datetime("2015:105T23:50:07Z")
+      {:ok, {2015, 4, 15, 23, 50, 7, {0, 0}}}
+
       iex> Calendar.ISO.parse_naive_datetime("2015-01-23 23:50:07.0")
       {:ok, {2015, 1, 23, 23, 50, 7, {0, 1}}}
       iex> Calendar.ISO.parse_naive_datetime("2015-01-23 23:50:07,0123456")
@@ -246,6 +266,15 @@ defmodule Calendar.ISO do
       {:ok, {2015, 1, 23, 23, 50, 7, {12345, 6}}}
       iex> Calendar.ISO.parse_naive_datetime("2015-01-23T23:50:07.123Z")
       {:ok, {2015, 1, 23, 23, 50, 7, {123000, 3}}}
+
+      iex> Calendar.ISO.parse_naive_datetime("2015-105 23:50:07.0")
+      {:ok, {2015, 4, 15, 23, 50, 7, {0, 1}}}
+      iex> Calendar.ISO.parse_naive_datetime("2015-105 23:50:07,0123456")
+      {:ok, {2015, 4, 15, 23, 50, 7, {12345, 6}}}
+      iex> Calendar.ISO.parse_naive_datetime("2015-105 23:50:07.0123456")
+      {:ok, {2015, 4, 15, 23, 50, 7, {12345, 6}}}
+      iex> Calendar.ISO.parse_naive_datetime("2015-105T23:50:07.123Z")
+      {:ok, {2015, 4, 15, 23, 50, 7, {123000, 3}}}
 
       iex> Calendar.ISO.parse_naive_datetime("2015-01-23P23:50:07")
       {:error, :invalid_format}
@@ -307,22 +336,31 @@ defmodule Calendar.ISO do
   @doc """
   Parses a UTC datetime string.
 
+  The date part of the string supports both ISO-8601 calendar dates and ordinal dates.
+
   ## Examples
 
       iex> Calendar.ISO.parse_utc_datetime("2015-01-23T23:50:07Z")
       {:ok, {2015, 1, 23, 23, 50, 7, {0, 0}}, 0}
-
       iex> Calendar.ISO.parse_utc_datetime("2015-01-23T23:50:07.123+02:30")
       {:ok, {2015, 1, 23, 21, 20, 7, {123000, 3}}, 9000}
-
       iex> Calendar.ISO.parse_utc_datetime("2015-01-23T23:50:07,123+02:30")
       {:ok, {2015, 1, 23, 21, 20, 7, {123000, 3}}, 9000}
-
       iex> Calendar.ISO.parse_utc_datetime("-2015-01-23T23:50:07Z")
       {:ok, {-2015, 1, 23, 23, 50, 7, {0, 0}}, 0}
-
       iex> Calendar.ISO.parse_utc_datetime("-2015-01-23T23:50:07,123+02:30")
       {:ok, {-2015, 1, 23, 21, 20, 7, {123000, 3}}, 9000}
+
+      iex> Calendar.ISO.parse_utc_datetime("2015-105T23:50:07Z")
+      {:ok, {2015, 4, 15, 23, 50, 7, {0, 0}}, 0}
+      iex> Calendar.ISO.parse_utc_datetime("2015-105T23:50:07.123+02:30")
+      {:ok, {2015, 4, 15, 21, 20, 7, {123000, 3}}, 9000}
+      iex> Calendar.ISO.parse_utc_datetime("2015-105T23:50:07,123+02:30")
+      {:ok, {2015, 4, 15, 21, 20, 7, {123000, 3}}, 9000}
+      iex> Calendar.ISO.parse_utc_datetime("-2015-105T23:50:07Z")
+      {:ok, {-2015, 4, 15, 23, 50, 7, {0, 0}}, 0}
+      iex> Calendar.ISO.parse_utc_datetime("-2015-105T23:50:07,123+02:30")
+      {:ok, {-2015, 4, 15, 21, 20, 7, {123000, 3}}, 9000}
 
       iex> Calendar.ISO.parse_utc_datetime("2015-01-23P23:50:07")
       {:error, :invalid_format}
