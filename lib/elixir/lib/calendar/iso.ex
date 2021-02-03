@@ -87,7 +87,7 @@ defmodule Calendar.ISO do
   # on ~D[0001-01-01] which is 366 days later.
   @iso_epoch 366
 
-  [match_date, guard_date, read_date] =
+  [match_calendar_date, guard_calendar_date, read_calendar_date] =
     quote do
       [
         <<y1, y2, y3, y4, ?-, m1, m2, ?-, d1, d2>>,
@@ -98,6 +98,19 @@ defmodule Calendar.ISO do
           (y1 - ?0) * 1000 + (y2 - ?0) * 100 + (y3 - ?0) * 10 + (y4 - ?0),
           (m1 - ?0) * 10 + (m2 - ?0),
           (d1 - ?0) * 10 + (d2 - ?0)
+        }
+      ]
+    end
+
+  [match_ordinal_date, guard_ordinal_date, read_ordinal_date] =
+    quote do
+      [
+        <<y1, y2, y3, y4, ?-, d1, d2, d3>>,
+        y1 >= ?0 and y1 <= ?9 and y2 >= ?0 and y2 <= ?9 and y3 >= ?0 and y3 <= ?9 and y4 >= ?0 and
+          y4 <= ?9 and d1 >= ?0 and d1 <= ?9 and d2 >= ?0 and d2 <= ?9 and d3 >= ?0 and d3 <= ?9,
+        {
+          (y1 - ?0) * 1000 + (y2 - ?0) * 100 + (y3 - ?0) * 10 + (y4 - ?0),
+          (d1 - ?0) * 100 + (d2 - ?0) * 10 + (d3 - ?0)
         }
       ]
     end
@@ -222,8 +235,8 @@ defmodule Calendar.ISO do
     do: parse_date(string, 1)
 
   defp parse_date(string, multiplier) do
-    with unquote(match_date) <- string, true <- unquote(guard_date) do
-      {year, month, day} = unquote(read_date)
+    with unquote(match_calendar_date) <- string, true <- unquote(guard_calendar_date) do
+      {year, month, day} = unquote(read_calendar_date)
       year = multiplier * year
 
       if valid_date?(year, month, day) do
@@ -310,11 +323,11 @@ defmodule Calendar.ISO do
     do: parse_naive_datetime(string, 1)
 
   defp parse_naive_datetime(string, multiplier) do
-    with <<unquote(match_date), sep, unquote(match_time), rest::binary>> <- string,
-         true <- unquote(guard_date) and sep in @sep and unquote(guard_time),
+    with <<unquote(match_calendar_date), sep, unquote(match_time), rest::binary>> <- string,
+         true <- unquote(guard_calendar_date) and sep in @sep and unquote(guard_time),
          {microsecond, rest} <- parse_microsecond(rest),
          {_offset, ""} <- parse_offset(rest) do
-      {year, month, day} = unquote(read_date)
+      {year, month, day} = unquote(read_calendar_date)
       {hour, minute, second} = unquote(read_time)
       year = multiplier * year
 
@@ -383,11 +396,11 @@ defmodule Calendar.ISO do
     do: parse_utc_datetime(string, 1)
 
   defp parse_utc_datetime(string, multiplier) do
-    with <<unquote(match_date), sep, unquote(match_time), rest::binary>> <- string,
-         true <- unquote(guard_date) and sep in @sep and unquote(guard_time),
+    with <<unquote(match_calendar_date), sep, unquote(match_time), rest::binary>> <- string,
+         true <- unquote(guard_calendar_date) and sep in @sep and unquote(guard_time),
          {microsecond, rest} <- parse_microsecond(rest),
          {offset, ""} <- parse_offset(rest) do
-      {year, month, day} = unquote(read_date)
+      {year, month, day} = unquote(read_calendar_date)
       {hour, minute, second} = unquote(read_time)
       year = multiplier * year
 
