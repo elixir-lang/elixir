@@ -696,6 +696,9 @@ defmodule ExUnit.Assertions do
       {:__aliases__, _, _} = expr ->
         Macro.expand(expr, caller)
 
+      {:@, _, [{attribute, _, _}]} ->
+        caller.module |> Module.get_attribute(attribute) |> Macro.escape()
+
       {left, meta, right} = expr ->
         case Macro.expand(expr, caller) do
           ^expr -> expr
