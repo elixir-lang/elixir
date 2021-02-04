@@ -234,20 +234,55 @@ defmodule Calendar.ISO do
   def parse_date(string) when is_binary(string),
     do: parse_date(string, 1)
 
-  defp parse_date(string, multiplier) do
-    with unquote(match_calendar_date) <- string, true <- unquote(guard_calendar_date) do
-      {year, month, day} = unquote(read_calendar_date)
-      year = multiplier * year
+  defp parse_date(unquote(match_calendar_date), multiplier) when unquote(guard_calendar_date) do
+    {year, month, day} = unquote(read_calendar_date)
+    year = multiplier * year
 
-      if valid_date?(year, month, day) do
-        {:ok, {year, month, day}}
-      else
-        {:error, :invalid_date}
-      end
+    validate_parsed_date(year, month, day)
+  end
+
+  defp parse_date(unquote(match_ordinal_date), multiplier) when unquote(guard_ordinal_date) do
+    {year, ordinal_day} = unquote(read_ordinal_date)
+    year = multiplier * year
+
+    if ordinal_day > days_in_year(year) do
+      {:error, :invalid_date}
     else
-      _ ->
-        {:error, :invalid_format}
+      {year, month, day} = calendar_day_of_year(year, ordinal_day)
+      validate_parsed_date(year, month, day)
     end
+  end
+
+  defp parse_date(_, _) do
+    {:error, :invalid_format}
+  end
+
+  defp validate_parsed_date(year, month, day) do
+    if valid_date?(year, month, day) do
+      {:ok, {year, month, day}}
+    else
+      {:error, :invalid_date}
+    end
+  end
+
+  defp calendar_day_of_year(year, ordinal_day) do
+    calendar_day_of_year(year, 1, ordinal_day)
+  end
+
+  defp calendar_day_of_year(year, month, ordinal_day) do
+    days_in_month = days_in_month(year, month)
+
+    if ordinal_day > days_in_month do
+      calendar_day_of_year(year, month + 1, ordinal_day - days_in_month)
+    else
+      {year, month, ordinal_day}
+    end
+  end
+
+  defp days_in_year(year) do
+    months_in_year(year)
+    |> Range.new(1)
+    |> Enum.reduce(0, fn month, days -> days + days_in_month(year, month) end)
   end
 
   @doc """
