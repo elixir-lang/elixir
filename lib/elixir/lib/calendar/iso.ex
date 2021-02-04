@@ -303,7 +303,7 @@ defmodule Calendar.ISO do
       {:ok, {2015, 4, 15, 23, 50, 7, {0, 0}}}
       iex> Calendar.ISO.parse_naive_datetime("2015-105T23:50:07")
       {:ok, {2015, 4, 15, 23, 50, 7, {0, 0}}}
-      iex> Calendar.ISO.parse_naive_datetime("2015:105T23:50:07Z")
+      iex> Calendar.ISO.parse_naive_datetime("2015-105T23:50:07Z")
       {:ok, {2015, 4, 15, 23, 50, 7, {0, 0}}}
 
       iex> Calendar.ISO.parse_naive_datetime("2015-01-23 23:50:07.0")
@@ -357,27 +357,60 @@ defmodule Calendar.ISO do
   def parse_naive_datetime(string) when is_binary(string),
     do: parse_naive_datetime(string, 1)
 
-  defp parse_naive_datetime(string, multiplier) do
-    with <<unquote(match_calendar_date), sep, unquote(match_time), rest::binary>> <- string,
-         true <- unquote(guard_calendar_date) and sep in @sep and unquote(guard_time),
-         {microsecond, rest} <- parse_microsecond(rest),
+  defp parse_naive_datetime(
+         <<unquote(match_calendar_date), sep, unquote(match_time), rest::binary>>,
+         multiplier
+       )
+       when unquote(guard_calendar_date) and sep in @sep and unquote(guard_time) do
+    with {microsecond, rest} <- parse_microsecond(rest),
          {_offset, ""} <- parse_offset(rest) do
       {year, month, day} = unquote(read_calendar_date)
       {hour, minute, second} = unquote(read_time)
       year = multiplier * year
 
-      cond do
-        not valid_date?(year, month, day) ->
-          {:error, :invalid_date}
+      validate_parsed_naive_datetime(year, month, day, hour, minute, second, microsecond)
+    else
+      _ -> {:error, :invalid_format}
+    end
+  end
 
-        not valid_time?(hour, minute, second, microsecond) ->
-          {:error, :invalid_time}
+  defp parse_naive_datetime(
+         <<unquote(match_ordinal_date), sep, unquote(match_time), rest::binary>>,
+         multiplier
+       )
+       when unquote(guard_ordinal_date) and sep in @sep and unquote(guard_time) do
+    with {microsecond, rest} <- parse_microsecond(rest),
+         {_offset, ""} <- parse_offset(rest) do
+      {year, ordinal_day} = unquote(read_ordinal_date)
 
-        true ->
-          {:ok, {year, month, day, hour, minute, second, microsecond}}
+      if ordinal_day > days_in_year(year) do
+        {:error, :invalid_date}
+      else
+        {year, month, day} = calendar_day_of_year(year, ordinal_day)
+        {hour, minute, second} = unquote(read_time)
+        year = multiplier * year
+
+        validate_parsed_naive_datetime(year, month, day, hour, minute, second, microsecond)
       end
     else
       _ -> {:error, :invalid_format}
+    end
+  end
+
+  defp parse_naive_datetime(_, _) do
+    {:error, :invalid_format}
+  end
+
+  defp validate_parsed_naive_datetime(year, month, day, hour, minute, second, microsecond) do
+    cond do
+      not valid_date?(year, month, day) ->
+        {:error, :invalid_date}
+
+      not valid_time?(hour, minute, second, microsecond) ->
+        {:error, :invalid_time}
+
+      true ->
+        {:ok, {year, month, day, hour, minute, second, microsecond}}
     end
   end
 
