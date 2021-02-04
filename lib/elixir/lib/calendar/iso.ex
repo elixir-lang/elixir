@@ -463,46 +463,80 @@ defmodule Calendar.ISO do
   def parse_utc_datetime(string) when is_binary(string),
     do: parse_utc_datetime(string, 1)
 
-  defp parse_utc_datetime(string, multiplier) do
-    with <<unquote(match_calendar_date), sep, unquote(match_time), rest::binary>> <- string,
-         true <- unquote(guard_calendar_date) and sep in @sep and unquote(guard_time),
-         {microsecond, rest} <- parse_microsecond(rest),
+  defp parse_utc_datetime(
+         <<unquote(match_calendar_date), sep, unquote(match_time), rest::binary>>,
+         multiplier
+       )
+       when unquote(guard_calendar_date) and sep in @sep and unquote(guard_time) do
+    with {microsecond, rest} <- parse_microsecond(rest),
          {offset, ""} <- parse_offset(rest) do
       {year, month, day} = unquote(read_calendar_date)
       {hour, minute, second} = unquote(read_time)
       year = multiplier * year
 
-      cond do
-        not valid_date?(year, month, day) ->
-          {:error, :invalid_date}
+      validate_parsed_utc_datetime(year, month, day, hour, minute, second, microsecond, offset)
+    else
+      _ ->
+        {:error, :invalid_format}
+    end
+  end
 
-        not valid_time?(hour, minute, second, microsecond) ->
-          {:error, :invalid_time}
+  defp parse_utc_datetime(
+         <<unquote(match_ordinal_date), sep, unquote(match_time), rest::binary>>,
+         multiplier
+       )
+       when unquote(guard_ordinal_date) and sep in @sep and unquote(guard_time) do
+    with {microsecond, rest} <- parse_microsecond(rest),
+         {offset, ""} <- parse_offset(rest) do
+      {year, ordinal_day} = unquote(read_ordinal_date)
 
-        offset == 0 ->
-          {:ok, {year, month, day, hour, minute, second, microsecond}, offset}
+      if ordinal_day > days_in_year(year) do
+        {:error, :invalid_date}
+      else
+        {year, month, day} = calendar_day_of_year(year, ordinal_day)
+        {hour, minute, second} = unquote(read_time)
+        year = multiplier * year
 
-        is_nil(offset) ->
-          {:error, :missing_offset}
-
-        true ->
-          day_fraction = time_to_day_fraction(hour, minute, second, {0, 0})
-
-          {{year, month, day}, {hour, minute, second, _}} =
-            case add_day_fraction_to_iso_days({0, day_fraction}, -offset, 86400) do
-              {0, day_fraction} ->
-                {{year, month, day}, time_from_day_fraction(day_fraction)}
-
-              {extra_days, day_fraction} ->
-                base_days = date_to_iso_days(year, month, day)
-                {date_from_iso_days(base_days + extra_days), time_from_day_fraction(day_fraction)}
-            end
-
-          {:ok, {year, month, day, hour, minute, second, microsecond}, offset}
+        validate_parsed_utc_datetime(year, month, day, hour, minute, second, microsecond, offset)
       end
     else
       _ ->
         {:error, :invalid_format}
+    end
+  end
+
+  defp parse_utc_datetime(_, _) do
+    {:error, :invalid_format}
+  end
+
+  defp validate_parsed_utc_datetime(year, month, day, hour, minute, second, microsecond, offset) do
+    cond do
+      not valid_date?(year, month, day) ->
+        {:error, :invalid_date}
+
+      not valid_time?(hour, minute, second, microsecond) ->
+        {:error, :invalid_time}
+
+      offset == 0 ->
+        {:ok, {year, month, day, hour, minute, second, microsecond}, offset}
+
+      is_nil(offset) ->
+        {:error, :missing_offset}
+
+      true ->
+        day_fraction = time_to_day_fraction(hour, minute, second, {0, 0})
+
+        {{year, month, day}, {hour, minute, second, _}} =
+          case add_day_fraction_to_iso_days({0, day_fraction}, -offset, 86400) do
+            {0, day_fraction} ->
+              {{year, month, day}, time_from_day_fraction(day_fraction)}
+
+            {extra_days, day_fraction} ->
+              base_days = date_to_iso_days(year, month, day)
+              {date_from_iso_days(base_days + extra_days), time_from_day_fraction(day_fraction)}
+          end
+
+        {:ok, {year, month, day, hour, minute, second, microsecond}, offset}
     end
   end
 
