@@ -890,7 +890,7 @@ defmodule Calendar.ISO do
       iex> Calendar.ISO.date_to_string(2015, 2, 28, :basic)
       "20150228"
       iex> Calendar.ISO.date_to_string(-99, 1, 31, :basic)
-      "-00990131"
+      ** (ArgumentError) ISO8601 does not support formatting dates with negative years to the basic format, got: -99
 
   """
   @doc since: "1.4.0"
@@ -907,6 +907,12 @@ defmodule Calendar.ISO do
   end
 
   defp date_to_string_guarded(year, month, day, :basic) do
+    if year < 0 do
+      raise ArgumentError,
+            "ISO8601 does not support formatting dates with negative years to the basic format, " <>
+              "got: #{inspect(year)}"
+    end
+
     zero_pad(year, 4) <> zero_pad(month, 2) <> zero_pad(day, 2)
   end
 

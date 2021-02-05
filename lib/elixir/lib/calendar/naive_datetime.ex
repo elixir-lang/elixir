@@ -706,11 +706,9 @@ defmodule NaiveDateTime do
   Converts the given naive datetime to
   [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601).
 
-  By default, `NaiveDateTime.to_iso8601/2` returns naive datetimes formatted in the "extended"
-  format, for human readability. It also supports the "basic" format through passing the `:basic` option.
-
-  Only supports converting naive datetimes which are in the ISO calendar,
-  attempting to convert naive datetimes from other calendars will raise.
+  By default, `NaiveDateTime.to_iso8601/2` returns naive datetimes formatted
+  in the "extended" format, for human readability. It also supports the "basic"
+  format through passing the `:basic` option.
 
   ### Examples
 
