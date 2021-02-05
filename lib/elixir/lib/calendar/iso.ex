@@ -237,6 +237,9 @@ defmodule Calendar.ISO do
   def parse_date("-" <> string) when is_binary(string),
     do: parse_date(string, -1)
 
+  def parse_date("+" <> string) when is_binary(string),
+    do: parse_date(string, 1)
+
   def parse_date(string) when is_binary(string),
     do: parse_date(string, 1)
 
@@ -307,6 +310,9 @@ defmodule Calendar.ISO do
   def parse_naive_datetime("-" <> string) when is_binary(string),
     do: parse_naive_datetime(string, -1)
 
+  def parse_naive_datetime("+" <> string) when is_binary(string),
+    do: parse_naive_datetime(string, 1)
+
   def parse_naive_datetime(string) when is_binary(string),
     do: parse_naive_datetime(string, 1)
 
@@ -370,6 +376,9 @@ defmodule Calendar.ISO do
   @impl true
   def parse_utc_datetime("-" <> string) when is_binary(string),
     do: parse_utc_datetime(string, -1)
+
+  def parse_utc_datetime("+" <> string) when is_binary(string),
+    do: parse_utc_datetime(string, 1)
 
   def parse_utc_datetime(string) when is_binary(string),
     do: parse_utc_datetime(string, 1)
