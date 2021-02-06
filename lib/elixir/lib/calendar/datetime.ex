@@ -890,14 +890,11 @@ defmodule DateTime do
 
   @doc """
   Converts the given datetime to
-  [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601) format.
+  [ISO 8601:2019](https://en.wikipedia.org/wiki/ISO_8601) format.
 
-  By default, `DateTime.to_iso8601/2` returns datetimes formatted in the "extended"
-  format, for human readability. It also supports the "basic" format through passing the `:basic` option.
-
-  Only supports converting datetimes which are in the ISO calendar,
-  attempting to convert datetimes from other calendars will raise.
-  You can also optionally specify an offset for the formatted string.
+  By default, `DateTime.to_iso8601/2` returns naive datetimes formatted
+  in the "extended" format, for human readability. It also supports
+  the "basic" format through passing the `:basic` option.
 
   WARNING: the ISO 8601 datetime format does not contain the time zone nor
   its abbreviation, which means information is lost when converting to such
@@ -1017,7 +1014,7 @@ defmodule DateTime do
 
   @doc """
   Parses the extended "Date and time of day" format described by
-  [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601).
+  [ISO 8601:2019](https://en.wikipedia.org/wiki/ISO_8601).
 
   Since ISO 8601 does not include the proper time zone, the given
   string will be converted to UTC and its offset in seconds will be
@@ -1027,9 +1024,6 @@ defmodule DateTime do
   As specified in the standard, the separator "T" may be omitted if
   desired as there is no ambiguity within this function.
 
-  The year parsed by this function is limited to four digits and,
-  while ISO 8601 allows datetimes to specify 24:00:00 as the zero
-  hour of the next day, this notation is not supported by Elixir.
   Note leap seconds are not supported by the built-in Calendar.ISO.
 
   ## Examples

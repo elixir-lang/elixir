@@ -273,7 +273,7 @@ defmodule Date do
 
   @doc """
   Parses the extended "Dates" format described by
-  [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601).
+  [ISO 8601:2019](https://en.wikipedia.org/wiki/ISO_8601).
 
   The year parsed by this function is limited to four digits.
 
@@ -298,7 +298,7 @@ defmodule Date do
 
   @doc """
   Parses the extended "Dates" format described by
-  [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601).
+  [ISO 8601:2019](https://en.wikipedia.org/wiki/ISO_8601).
 
   Raises if the format is invalid.
 
@@ -323,14 +323,11 @@ defmodule Date do
 
   @doc """
   Converts the given `date` to
-  [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601).
+  [ISO 8601:2019](https://en.wikipedia.org/wiki/ISO_8601).
 
-  By default, `Date.to_iso8601/2` returns dates formatted in the "extended"
-  format, for human readability. It also supports the "basic" format through passing the `:basic` option.
-
-  Only supports converting dates which are in the ISO calendar,
-  or other calendars in which the days also start at midnight.
-  Attempting to convert dates from other calendars will raise an `ArgumentError`.
+  By default, `Date.to_iso8601/2` returns naive datetimes formatted
+  in the "extended" format, for human readability. It also supports
+  the "basic" format through passing the `:basic` option.
 
   ### Examples
 
