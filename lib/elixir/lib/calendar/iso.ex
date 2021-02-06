@@ -38,11 +38,13 @@ defmodule Calendar.ISO do
   ### Features
 
   The standard library supports a minimal set of possible ISO 8601 features.
-  Specifically, the parser only supports calendar dates and the extended format.
+  Specifically, the parser only supports calendar dates.
 
-  However, you can still format datetimes with `NaiveDateTime.to_iso8601/2`
-  and `DateTime.to_iso8601/2` to produce either basic or extended formatted strings.
-  `Calendar.strftime/2` allows you to format datetimes however else you desire.
+  By default both `:basic` and `:extended` formats can be parsed. You can specify
+  which one you want to parse if you need to refuse the other format.
+  `NaiveDateTime.to_iso8601/2` and `DateTime.to_iso8601/2` allow you to produce
+  either basic or extended formatted strings, and `Calendar.strftime/2` allows
+  you to format datetimes however else you desire.
 
   Other optional ISO 8601 features; such as ordinal dates, week dates, and reduced
   precision (except for milliseconds); are not supported by the parser or formatters.
@@ -51,11 +53,18 @@ defmodule Calendar.ISO do
 
   #### Examples
 
-  Only the extended format is supported in parsing; the basic format is not.
+  Both basic and extended formats are supported in parsing.
 
+      iex> Calendar.ISO.parse_naive_datetime("20150123 235007.0123456")
+      {:ok, {2015, 1, 23, 23, 50, 7, {12345, 6}}}
       iex> Calendar.ISO.parse_naive_datetime("2015-01-23 23:50:07.0123456")
       {:ok, {2015, 1, 23, 23, 50, 7, {12345, 6}}}
-      iex> Calendar.ISO.parse_naive_datetime("20150123T235007.0123456")
+
+  Parsing can be restricted to specific variations.
+
+      iex> Calendar.ISO.parse_utc_datetime("20150123 235007Z", :basic)
+      {:ok, {2015, 1, 23, 23, 50, 7, {0, 0}}, 0}
+      iex> Calendar.ISO.parse_utc_datetime("20150123 235007Z", :extended)
       {:error, :invalid_format}
 
   Only calendar dates are supported in parsing; ordinal and week dates are not.
@@ -174,7 +183,15 @@ defmodule Calendar.ISO do
   @microseconds_per_second 1_000_000
   @parts_per_day @seconds_per_day * @microseconds_per_second
 
-  @sep [?\s, ?T]
+  @formats [:any, :basic, :extended]
+  @default_format :any
+  @basic_formats [:any, :basic]
+  @ext_formats [:any, :extended]
+
+  @datetime_sep [?\s, ?T]
+  @ext_date_sep ?-
+  @ext_time_sep ?:
+
   @days_per_nonleap_year 365
   @days_per_leap_year 366
 
@@ -183,31 +200,33 @@ defmodule Calendar.ISO do
   # on ~D[0001-01-01] which is 366 days later.
   @iso_epoch 366
 
-  [match_date, guard_date, read_date] =
+  [match_basic_date, match_ext_date, guard_date, read_date] =
     quote do
       [
-        <<y1, y2, y3, y4, ?-, m1, m2, ?-, d1, d2>>,
+        <<y1, y2, y3, y4, m1, m2, d1, d2>>,
+        <<y1, y2, y3, y4, @ext_date_sep, m1, m2, @ext_date_sep, d1, d2>>,
         y1 >= ?0 and y1 <= ?9 and y2 >= ?0 and y2 <= ?9 and y3 >= ?0 and y3 <= ?9 and y4 >= ?0 and
           y4 <= ?9 and m1 >= ?0 and m1 <= ?9 and m2 >= ?0 and m2 <= ?9 and d1 >= ?0 and d1 <= ?9 and
           d2 >= ?0 and d2 <= ?9,
         {
-          (y1 - ?0) * 1000 + (y2 - ?0) * 100 + (y3 - ?0) * 10 + (y4 - ?0),
-          (m1 - ?0) * 10 + (m2 - ?0),
-          (d1 - ?0) * 10 + (d2 - ?0)
+          List.to_integer([y1, y2, y3, y4]),
+          List.to_integer([m1, m2]),
+          List.to_integer([d1, d2])
         }
       ]
     end
 
-  [match_time, guard_time, read_time] =
+  [match_basic_time, match_ext_time, guard_time, read_time] =
     quote do
       [
-        <<h1, h2, ?:, i1, i2, ?:, s1, s2>>,
+        <<h1, h2, i1, i2, s1, s2>>,
+        <<h1, h2, @ext_time_sep, i1, i2, @ext_time_sep, s1, s2>>,
         h1 >= ?0 and h1 <= ?9 and h2 >= ?0 and h2 <= ?9 and i1 >= ?0 and i1 <= ?9 and i2 >= ?0 and
           i2 <= ?9 and s1 >= ?0 and s1 <= ?9 and s2 >= ?0 and s2 <= ?9,
         {
-          (h1 - ?0) * 10 + (h2 - ?0),
-          (i1 - ?0) * 10 + (i2 - ?0),
-          (s1 - ?0) * 10 + (s2 - ?0)
+          List.to_integer([h1, h2]),
+          List.to_integer([i1, i2]),
+          List.to_integer([s1, s2])
         }
       ]
     end
@@ -345,8 +364,9 @@ defmodule Calendar.ISO do
     do: parse_naive_datetime(string, 1)
 
   defp parse_naive_datetime(string, multiplier) do
-    with <<unquote(match_date), sep, unquote(match_time), rest::binary>> <- string,
-         true <- unquote(guard_date) and sep in @sep and unquote(guard_time),
+    with <<unquote(match_ext_date), datetime_sep, unquote(match_ext_time), rest::binary>> <-
+           string,
+         true <- unquote(guard_date) and datetime_sep in @datetime_sep and unquote(guard_time),
          {microsecond, rest} <- parse_microsecond(rest),
          {_offset, ""} <- parse_offset(rest) do
       {year, month, day} = unquote(read_date)
@@ -398,8 +418,9 @@ defmodule Calendar.ISO do
     do: parse_utc_datetime(string, 1)
 
   defp parse_utc_datetime(string, multiplier) do
-    with <<unquote(match_date), sep, unquote(match_time), rest::binary>> <- string,
-         true <- unquote(guard_date) and sep in @sep and unquote(guard_time),
+    with <<unquote(match_ext_date), datetime_sep, unquote(match_ext_time), rest::binary>> <-
+           string,
+         true <- unquote(guard_date) and datetime_sep in @datetime_sep and unquote(guard_time),
          {microsecond, rest} <- parse_microsecond(rest),
          {offset, ""} <- parse_offset(rest) do
       {year, month, day} = unquote(read_date)
