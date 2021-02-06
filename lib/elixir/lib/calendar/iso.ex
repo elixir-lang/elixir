@@ -280,10 +280,7 @@ defmodule Calendar.ISO do
 
       iex> Calendar.ISO.parse_date("2015-01-23")
       {:ok, {2015, 1, 23}}
-      iex> Calendar.ISO.parse_date("-2015-01-23")
-      {:ok, {-2015, 1, 23}}
-      iex> Calendar.ISO.parse_date("+2015-01-23")
-      {:ok, {2015, 1, 23}}
+
       iex> Calendar.ISO.parse_date("2015:01:23")
       {:error, :invalid_format}
       iex> Calendar.ISO.parse_date("2015-01-32")
