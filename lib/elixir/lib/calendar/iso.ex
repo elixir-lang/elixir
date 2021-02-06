@@ -126,7 +126,7 @@ defmodule Calendar.ISO do
       {:ok, {-2015, 1, 23, 23, 50, 7, {0, 0}}, 0}
       iex> Calendar.ISO.parse_utc_datetime("+2015-01-23 23:50:07Z")
       {:ok, {2015, 1, 23, 23, 50, 7, {0, 0}}, 0}
-      
+
   """
 
   @behaviour Calendar
@@ -214,9 +214,9 @@ defmodule Calendar.ISO do
           y4 <= ?9 and m1 >= ?0 and m1 <= ?9 and m2 >= ?0 and m2 <= ?9 and d1 >= ?0 and d1 <= ?9 and
           d2 >= ?0 and d2 <= ?9,
         {
-          List.to_integer([y1, y2, y3, y4]),
-          List.to_integer([m1, m2]),
-          List.to_integer([d1, d2])
+          (y1 - ?0) * 1000 + (y2 - ?0) * 100 + (y3 - ?0) * 10 + (y4 - ?0),
+          (m1 - ?0) * 10 + (m2 - ?0),
+          (d1 - ?0) * 10 + (d2 - ?0)
         }
       ]
     end
@@ -229,9 +229,9 @@ defmodule Calendar.ISO do
         h1 >= ?0 and h1 <= ?9 and h2 >= ?0 and h2 <= ?9 and i1 >= ?0 and i1 <= ?9 and i2 >= ?0 and
           i2 <= ?9 and s1 >= ?0 and s1 <= ?9 and s2 >= ?0 and s2 <= ?9,
         {
-          List.to_integer([h1, h2]),
-          List.to_integer([i1, i2]),
-          List.to_integer([s1, s2])
+          (h1 - ?0) * 10 + (h2 - ?0),
+          (i1 - ?0) * 10 + (i2 - ?0),
+          (s1 - ?0) * 10 + (s2 - ?0)
         }
       ]
     end
@@ -339,7 +339,7 @@ defmodule Calendar.ISO do
 
       iex> Calendar.ISO.parse_date("2015-01-23")
       {:ok, {2015, 1, 23}}
-      
+
       iex> Calendar.ISO.parse_date("2015:01:23")
       {:error, :invalid_format}
       iex> Calendar.ISO.parse_date("2015-01-32")
