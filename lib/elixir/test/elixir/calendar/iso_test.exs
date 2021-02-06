@@ -308,14 +308,87 @@ defmodule Calendar.ISOTest do
   end
 
   describe "parse_utc_datetime/1" do
-    test "recognizes various errors" do
+    test "rejects strings with formatting errors" do
+      assert Calendar.ISO.parse_utc_datetime("2015:01:23 23-50-07Z") == {:error, :invalid_format}
+      assert Calendar.ISO.parse_utc_datetime("2015-01-23P23:50:07Z") == {:error, :invalid_format}
+
+      assert Calendar.ISO.parse_utc_datetime("2015-01-23 23:50:07A") == {:error, :invalid_format}
+    end
+
+    test "recognizes invalid dates, times, and offsets" do
+      assert Calendar.ISO.parse_utc_datetime("2015-01-23 23:50:07") == {:error, :missing_offset}
+      assert Calendar.ISO.parse_utc_datetime("2015-01-23 23:50:61Z") == {:error, :invalid_time}
+      assert Calendar.ISO.parse_utc_datetime("2015-01-32 23:50:07Z") == {:error, :invalid_date}
+    end
+
+    test "interprets offset data" do
+      assert Calendar.ISO.parse_utc_datetime("2015-01-23T23:50:07.123+02:30") ==
+               {:ok, {2015, 1, 23, 21, 20, 7, {123_000, 3}}, 9000}
+
+      assert Calendar.ISO.parse_utc_datetime("2015-01-23T23:50:07.123+00:00") ==
+               {:ok, {2015, 1, 23, 23, 50, 7, {123_000, 3}}, 0}
+
+      assert Calendar.ISO.parse_utc_datetime("2015-01-23T23:50:07.123-02:30") ==
+               {:ok, {2015, 1, 24, 2, 20, 7, {123_000, 3}}, -9000}
+
       assert Calendar.ISO.parse_utc_datetime("2015-01-23T23:50:07.123-00:00") ==
                {:error, :invalid_format}
 
-      assert Calendar.ISO.parse_utc_datetime("2015-01-23P23:50:07") == {:error, :invalid_format}
-      assert Calendar.ISO.parse_utc_datetime("2015-01-23T23:50:07") == {:error, :missing_offset}
-      assert Calendar.ISO.parse_utc_datetime("2015-01-23 23:50:61") == {:error, :invalid_time}
-      assert Calendar.ISO.parse_utc_datetime("2015-01-32 23:50:07") == {:error, :invalid_date}
+      assert Calendar.ISO.parse_utc_datetime("2015-01-23T23:50:07.123-00:60") ==
+               {:error, :invalid_format}
+
+      assert Calendar.ISO.parse_utc_datetime("2015-01-23T23:50:07.123-24:00") ==
+               {:error, :invalid_format}
+    end
+
+    test "supports both spaces and 'T' as datetime separators" do
+      assert Calendar.ISO.parse_utc_datetime("2015-01-23 23:50:07Z") ==
+               {:ok, {2015, 1, 23, 23, 50, 7, {0, 0}}, 0}
+
+      assert Calendar.ISO.parse_utc_datetime("2015-01-23T23:50:07Z") ==
+               {:ok, {2015, 1, 23, 23, 50, 7, {0, 0}}, 0}
+    end
+
+    test "supports basic and extended formats by default" do
+      assert Calendar.ISO.parse_utc_datetime("20150123 235007.123Z") ==
+               {:ok, {2015, 1, 23, 23, 50, 7, {123_000, 3}}, 0}
+
+      assert Calendar.ISO.parse_utc_datetime("2015-01-23 23:50:07.123Z") ==
+               {:ok, {2015, 1, 23, 23, 50, 7, {123_000, 3}}, 0}
+    end
+
+    test "errors on mixed basic and extended formats" do
+      assert Calendar.ISO.parse_utc_datetime("20150123 23:50:07.123Z") ==
+               {:error, :invalid_format}
+
+      assert Calendar.ISO.parse_utc_datetime("2015-01-23 235007.123Z") ==
+               {:error, :invalid_format}
+    end
+  end
+
+  describe "parse_utc_datetime/2" do
+    test "allows accepting either format" do
+      assert Calendar.ISO.parse_utc_datetime("20150123 235007.123Z", :any) ==
+               {:ok, {2015, 1, 23, 23, 50, 7, {123_000, 3}}, 0}
+
+      assert Calendar.ISO.parse_utc_datetime("2015-01-23 23:50:07.123Z", :any) ==
+               {:ok, {2015, 1, 23, 23, 50, 7, {123_000, 3}}, 0}
+    end
+
+    test "allows enforcing basic formats" do
+      assert Calendar.ISO.parse_utc_datetime("20150123 235007.123Z", :basic) ==
+               {:ok, {2015, 1, 23, 23, 50, 7, {123_000, 3}}, 0}
+
+      assert Calendar.ISO.parse_utc_datetime("2015-01-23 23:50:07.123Z", :basic) ==
+               {:error, :invalid_format}
+    end
+
+    test "allows enforcing extended formats" do
+      assert Calendar.ISO.parse_utc_datetime("20150123 235007.123Z", :extended) ==
+               {:error, :invalid_format}
+
+      assert Calendar.ISO.parse_utc_datetime("2015-01-23 23:50:07.123Z", :extended) ==
+               {:ok, {2015, 1, 23, 23, 50, 7, {123_000, 3}}, 0}
     end
   end
 end

@@ -456,15 +456,25 @@ defmodule Calendar.ISO do
   def parse_naive_datetime(string, format) when is_binary(string) and format in @formats,
     do: do_parse_naive_datetime(string, 1, format)
 
-  defp do_parse_naive_datetime(<<unquote(match_basic_date), datetime_sep, unquote(match_basic_time), rest::binary>>, multiplier, format)
-        when unquote(guard_date) and datetime_sep in @datetime_seps and unquote(guard_time) and format in @basic_formats do
+  defp do_parse_naive_datetime(
+         <<unquote(match_basic_date), datetime_sep, unquote(match_basic_time), rest::binary>>,
+         multiplier,
+         format
+       )
+       when unquote(guard_date) and datetime_sep in @datetime_seps and unquote(guard_time) and
+              format in @basic_formats do
     {year, month, day} = unquote(read_date)
     {hour, minute, second} = unquote(read_time)
     parse_formatted_naive_datetime(year, month, day, hour, minute, second, rest, multiplier)
   end
 
-  defp do_parse_naive_datetime(<<unquote(match_ext_date), datetime_sep, unquote(match_ext_time), rest::binary>>, multiplier, format)
-        when unquote(guard_date) and datetime_sep in @datetime_seps and unquote(guard_time) and format in @ext_formats do
+  defp do_parse_naive_datetime(
+         <<unquote(match_ext_date), datetime_sep, unquote(match_ext_time), rest::binary>>,
+         multiplier,
+         format
+       )
+       when unquote(guard_date) and datetime_sep in @datetime_seps and unquote(guard_time) and
+              format in @ext_formats do
     {year, month, day} = unquote(read_date)
     {hour, minute, second} = unquote(read_time)
     parse_formatted_naive_datetime(year, month, day, hour, minute, second, rest, multiplier)
@@ -495,7 +505,7 @@ defmodule Calendar.ISO do
   end
 
   @doc """
-  Parses a UTC datetime string.
+  Parses a UTC datetime `string`.
 
   For more information on supported strings, see how this
   module implements [ISO 8601](#module-iso-8601-compliance).
@@ -514,25 +524,72 @@ defmodule Calendar.ISO do
   """
   @doc since: "1.10.0"
   @impl true
-  def parse_utc_datetime("-" <> string) when is_binary(string),
-    do: parse_utc_datetime(string, -1)
-
-  def parse_utc_datetime("+" <> string) when is_binary(string),
-    do: parse_utc_datetime(string, 1)
-
   def parse_utc_datetime(string) when is_binary(string),
-    do: parse_utc_datetime(string, 1)
+    do: parse_utc_datetime(string, @default_format)
 
-  defp parse_utc_datetime(string, multiplier) do
-    with <<unquote(match_ext_date), datetime_sep, unquote(match_ext_time), rest::binary>> <-
-           string,
-         true <- unquote(guard_date) and datetime_sep in @datetime_seps and unquote(guard_time),
-         {microsecond, rest} <- parse_microsecond(rest),
+  @doc """
+  Parses a UTC datetime `string` according to a given `format`.
+
+  Formats can one of: `:any`, `:basic`, or `:extended`.
+
+  For more information on supported strings, see how this
+  module implements [ISO 8601](#module-iso-8601-compliance).
+
+  ## Examples
+
+      iex> Calendar.ISO.parse_utc_datetime("2015-01-23 23:50:07Z")
+      {:ok, {2015, 1, 23, 23, 50, 7, {0, 0}}, 0}
+
+      iex> Calendar.ISO.parse_utc_datetime("2015-01-23 23:50:07+02:30")
+      {:ok, {2015, 1, 23, 21, 20, 7, {0, 0}}, 9000}
+
+      iex> Calendar.ISO.parse_utc_datetime("2015-01-23 23:50:07")
+      {:error, :missing_offset}
+
+  """
+  @doc since: "1.12.0"
+  def parse_utc_datetime("-" <> string, format) when is_binary(string) and format in @formats,
+    do: do_parse_utc_datetime(string, -1, format)
+
+  def parse_utc_datetime("+" <> string, format) when is_binary(string) and format in @formats,
+    do: do_parse_utc_datetime(string, 1, format)
+
+  def parse_utc_datetime(string, format) when is_binary(string) and format in @formats,
+    do: do_parse_utc_datetime(string, 1, format)
+
+  defp do_parse_utc_datetime(
+         <<unquote(match_basic_date), datetime_sep, unquote(match_basic_time), rest::binary>>,
+         multiplier,
+         format
+       )
+       when unquote(guard_date) and datetime_sep in @datetime_seps and unquote(guard_time) and
+              format in @basic_formats do
+    {year, month, day} = unquote(read_date)
+    {hour, minute, second} = unquote(read_time)
+    parse_formatted_utc_datetime(year, month, day, hour, minute, second, rest, multiplier)
+  end
+
+  defp do_parse_utc_datetime(
+         <<unquote(match_ext_date), datetime_sep, unquote(match_ext_time), rest::binary>>,
+         multiplier,
+         format
+       )
+       when unquote(guard_date) and datetime_sep in @datetime_seps and unquote(guard_time) and
+              format in @ext_formats do
+    {year, month, day} = unquote(read_date)
+    {hour, minute, second} = unquote(read_time)
+    parse_formatted_utc_datetime(year, month, day, hour, minute, second, rest, multiplier)
+  end
+
+  defp do_parse_utc_datetime(_, _, _) do
+    {:error, :invalid_format}
+  end
+
+  defp parse_formatted_utc_datetime(year, month, day, hour, minute, second, rest, multiplier) do
+    year = multiplier * year
+
+    with {microsecond, rest} <- parse_microsecond(rest),
          {offset, ""} <- parse_offset(rest) do
-      {year, month, day} = unquote(read_date)
-      {hour, minute, second} = unquote(read_time)
-      year = multiplier * year
-
       cond do
         not valid_date?(year, month, day) ->
           {:error, :invalid_date}
@@ -562,8 +619,7 @@ defmodule Calendar.ISO do
           {:ok, {year, month, day, hour, minute, second, microsecond}, offset}
       end
     else
-      _ ->
-        {:error, :invalid_format}
+      _ -> {:error, :invalid_format}
     end
   end
 
