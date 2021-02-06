@@ -379,33 +379,14 @@ defmodule Calendar.ISO do
 
   ## Examples
 
-      iex> Calendar.ISO.parse_utc_datetime("2015-01-23T23:50:07Z")
+      iex> Calendar.ISO.parse_utc_datetime("2015-01-23 23:50:07Z")
       {:ok, {2015, 1, 23, 23, 50, 7, {0, 0}}, 0}
 
-      iex> Calendar.ISO.parse_utc_datetime("2015-01-23T23:50:07.123+02:30")
-      {:ok, {2015, 1, 23, 21, 20, 7, {123000, 3}}, 9000}
+      iex> Calendar.ISO.parse_utc_datetime("2015-01-23 23:50:07+02:30")
+      {:ok, {2015, 1, 23, 21, 20, 7, {0, 0}}, 9000}
 
-      iex> Calendar.ISO.parse_utc_datetime("2015-01-23T23:50:07,123+02:30")
-      {:ok, {2015, 1, 23, 21, 20, 7, {123000, 3}}, 9000}
-
-      iex> Calendar.ISO.parse_utc_datetime("-2015-01-23T23:50:07Z")
-      {:ok, {-2015, 1, 23, 23, 50, 7, {0, 0}}, 0}
-
-      iex> Calendar.ISO.parse_utc_datetime("-2015-01-23T23:50:07,123+02:30")
-      {:ok, {-2015, 1, 23, 21, 20, 7, {123000, 3}}, 9000}
-      iex> Calendar.ISO.parse_utc_datetime("+2015-01-23T23:50:07Z")
-      {:ok, {2015, 1, 23, 23, 50, 7, {0, 0}}, 0}
-
-      iex> Calendar.ISO.parse_utc_datetime("2015-01-23P23:50:07")
-      {:error, :invalid_format}
-      iex> Calendar.ISO.parse_utc_datetime("2015-01-23T23:50:07")
+      iex> Calendar.ISO.parse_utc_datetime("2015-01-23 23:50:07")
       {:error, :missing_offset}
-      iex> Calendar.ISO.parse_utc_datetime("2015-01-23 23:50:61")
-      {:error, :invalid_time}
-      iex> Calendar.ISO.parse_utc_datetime("2015-01-32 23:50:07")
-      {:error, :invalid_date}
-      iex> Calendar.ISO.parse_utc_datetime("2015-01-23T23:50:07.123-00:00")
-      {:error, :invalid_format}
 
   """
   @doc since: "1.10.0"

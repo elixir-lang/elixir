@@ -192,4 +192,14 @@ defmodule Calendar.ISOTest do
       assert Calendar.ISO.parse_naive_datetime("2015-01-23T23:50:07.123-24:00") == {:error, :invalid_format}
     end
   end
+
+  describe "parse_utc_datetime/1" do
+    test "recognizes various errors" do
+      Calendar.ISO.parse_utc_datetime("2015-01-23T23:50:07.123-00:00") == {:error, :invalid_format}
+      Calendar.ISO.parse_utc_datetime("2015-01-23P23:50:07") == {:error, :invalid_format}
+      Calendar.ISO.parse_utc_datetime("2015-01-23T23:50:07") == {:error, :missing_offset}
+      Calendar.ISO.parse_utc_datetime("2015-01-23 23:50:61") == {:error, :invalid_time}
+      Calendar.ISO.parse_utc_datetime("2015-01-32 23:50:07") == {:error, :invalid_date}
+    end
+  end
 end
