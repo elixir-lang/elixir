@@ -38,10 +38,10 @@ defmodule Calendar.ISO do
   ### Features
 
   The standard library supports a minimal set of possible ISO 8601 features.
-  Specifically, the parser only supports calendar dates.
+  Specifically, the parser only supports calendar dates, and defaults to
+  only parsing extended-formatted date/times.
 
-  By default both `:basic` and `:extended` formats can be parsed. You can specify
-  which one you want to parse if you need to refuse the other format.
+  You can ask to parse only basic-formatted date/times instead, or both.
   `NaiveDateTime.to_iso8601/2` and `DateTime.to_iso8601/2` allow you to produce
   either basic or extended formatted strings, and `Calendar.strftime/2` allows
   you to format datetimes however else you desire.
@@ -53,19 +53,24 @@ defmodule Calendar.ISO do
 
   #### Examples
 
-  Both basic and extended formats are supported in parsing.
+  Only the the extended format is supported by default in parsing functions.
 
-      iex> Calendar.ISO.parse_naive_datetime("20150123 235007.0123456Z")
-      {:ok, {2015, 1, 23, 23, 50, 7, {12345, 6}}}
-      iex> Calendar.ISO.parse_utc_datetime("2015-01-23 23:50:07.0123456Z")
-      {:ok, {2015, 1, 23, 23, 50, 7, {12345, 6}}, 0}
+      iex> Calendar.ISO.parse_naive_datetime("2015-01-23 23:50:07")
+      {:ok, {2015, 1, 23, 23, 50, 7, {0, 0}}}
+      iex> Calendar.ISO.parse_naive_datetime("20150123 235007")
+      {:error, :invalid_format}
 
-  Parsing can be restricted to specific variations.
+  Parsing can be restricted to basic or extend formats or relaxed to all variations.
 
       iex> Calendar.ISO.parse_naive_datetime("20150123 235007Z", :basic)
       {:ok, {2015, 1, 23, 23, 50, 7, {0, 0}}}
-      iex> Calendar.ISO.parse_utc_datetime("20150123 235007Z", :extended)
+      iex> Calendar.ISO.parse_naive_datetime("20150123 235007Z", :extended)
       {:error, :invalid_format}
+
+      iex> Calendar.ISO.parse_naive_datetime("2015-01-23 23:50:07", :any)
+      {:ok, {2015, 1, 23, 23, 50, 7, {0, 0}}}
+      iex> Calendar.ISO.parse_naive_datetime("20150123 235007", :any)
+      {:ok, {2015, 1, 23, 23, 50, 7, {0, 0}}}
 
   Only calendar dates are supported in parsing; ordinal and week dates are not.
 
@@ -184,7 +189,7 @@ defmodule Calendar.ISO do
   @parts_per_day @seconds_per_day * @microseconds_per_second
 
   @formats [:any, :basic, :extended]
-  @default_format :any
+  @default_format :extended
   @basic_formats [:any, :basic]
   @ext_formats [:any, :extended]
 
@@ -249,15 +254,13 @@ defmodule Calendar.ISO do
   defguardp is_std_offset(offset) when is_integer(offset)
 
   @doc """
-  Parses a time `string`.
+  Parses a time `string` in the `:extended` format.
 
   For more information on supported strings, see how this
   module implements [ISO 8601](#module-iso-8601-compliance).
 
   ## Examples
 
-      iex> Calendar.ISO.parse_time("235007")
-      {:ok, {23, 50, 7, {0, 0}}}
       iex> Calendar.ISO.parse_time("23:50:07")
       {:ok, {23, 50, 7, {0, 0}}}
 
@@ -282,12 +285,12 @@ defmodule Calendar.ISO do
 
   ## Examples
 
-      iex> Calendar.ISO.parse_time("23:50:07", :any)
+      iex> Calendar.ISO.parse_time("235007", :any)
       {:ok, {23, 50, 7, {0, 0}}}
-      iex> Calendar.ISO.parse_time("23:50:07", :basic)
+      iex> Calendar.ISO.parse_time("235007", :basic)
+      {:ok, {23, 50, 7, {0, 0}}}
+      iex> Calendar.ISO.parse_time("235007", :extended)
       {:error, :invalid_format}
-      iex> Calendar.ISO.parse_time("23:50:07", :extended)
-      {:ok, {23, 50, 7, {0, 0}}}
 
   """
   @doc since: "1.12.0"
@@ -327,15 +330,13 @@ defmodule Calendar.ISO do
   end
 
   @doc """
-  Parses a date `string`.
+  Parses a date `string` in the `:extended` format.
 
   For more information on supported strings, see how this
   module implements [ISO 8601](#module-iso-8601-compliance).
 
   ## Examples
 
-      iex> Calendar.ISO.parse_date("20150123")
-      {:ok, {2015, 1, 23}}
       iex> Calendar.ISO.parse_date("2015-01-23")
       {:ok, {2015, 1, 23}}
       
@@ -360,12 +361,12 @@ defmodule Calendar.ISO do
 
   ## Examples
 
-      iex> Calendar.ISO.parse_date("2015-01-23", :any)
+      iex> Calendar.ISO.parse_date("20150123", :any)
       {:ok, {2015, 1, 23}}
-      iex> Calendar.ISO.parse_date("2015-01-23", :basic)
+      iex> Calendar.ISO.parse_date("20150123", :basic)
+      {:ok, {2015, 1, 23}}
+      iex> Calendar.ISO.parse_date("20150123", :extended)
       {:error, :invalid_format}
-      iex> Calendar.ISO.parse_date("2015-01-23", :extended)
-      {:ok, {2015, 1, 23}}
 
   """
   @doc since: "1.12.0"
@@ -405,7 +406,7 @@ defmodule Calendar.ISO do
   end
 
   @doc """
-  Parses a naive datetime `string`.
+  Parses a naive datetime `string` in the `:extended` format.
 
   For more information on supported strings, see how this
   module implements [ISO 8601](#module-iso-8601-compliance).
@@ -415,6 +416,8 @@ defmodule Calendar.ISO do
       iex> Calendar.ISO.parse_naive_datetime("2015-01-23 23:50:07")
       {:ok, {2015, 1, 23, 23, 50, 7, {0, 0}}}
       iex> Calendar.ISO.parse_naive_datetime("2015-01-23 23:50:07Z")
+      {:ok, {2015, 1, 23, 23, 50, 7, {0, 0}}}
+      iex> Calendar.ISO.parse_naive_datetime("2015-01-23 23:50:07-02:30")
       {:ok, {2015, 1, 23, 23, 50, 7, {0, 0}}}
 
       iex> Calendar.ISO.parse_naive_datetime("2015-01-23 23:50:07.0")
@@ -438,12 +441,12 @@ defmodule Calendar.ISO do
 
   ## Examples
 
-      iex> Calendar.ISO.parse_naive_datetime("2015-01-23 23:50:07", :any)
+      iex> Calendar.ISO.parse_naive_datetime("20150123 235007", :any)
       {:ok, {2015, 1, 23, 23, 50, 7, {0, 0}}}
-      iex> Calendar.ISO.parse_naive_datetime("2015-01-23 23:50:07", :basic)
+      iex> Calendar.ISO.parse_naive_datetime("20150123 235007", :basic)
+      {:ok, {2015, 1, 23, 23, 50, 7, {0, 0}}}
+      iex> Calendar.ISO.parse_naive_datetime("20150123 235007", :extended)
       {:error, :invalid_format}
-      iex> Calendar.ISO.parse_naive_datetime("2015-01-23 23:50:07", :extended)
-      {:ok, {2015, 1, 23, 23, 50, 7, {0, 0}}}
 
   """
   @doc since: "1.12.0"
@@ -505,7 +508,7 @@ defmodule Calendar.ISO do
   end
 
   @doc """
-  Parses a UTC datetime `string`.
+  Parses a UTC datetime `string` in the `:extended` format.
 
   For more information on supported strings, see how this
   module implements [ISO 8601](#module-iso-8601-compliance).
@@ -537,14 +540,12 @@ defmodule Calendar.ISO do
 
   ## Examples
 
-      iex> Calendar.ISO.parse_utc_datetime("2015-01-23 23:50:07Z")
+      iex> Calendar.ISO.parse_utc_datetime("20150123 235007Z", :any)
       {:ok, {2015, 1, 23, 23, 50, 7, {0, 0}}, 0}
-
-      iex> Calendar.ISO.parse_utc_datetime("2015-01-23 23:50:07+02:30")
-      {:ok, {2015, 1, 23, 21, 20, 7, {0, 0}}, 9000}
-
-      iex> Calendar.ISO.parse_utc_datetime("2015-01-23 23:50:07")
-      {:error, :missing_offset}
+      iex> Calendar.ISO.parse_utc_datetime("20150123 235007Z", :basic)
+      {:ok, {2015, 1, 23, 23, 50, 7, {0, 0}}, 0}
+      iex> Calendar.ISO.parse_utc_datetime("20150123 235007Z", :extended)
+      {:error, :invalid_format}
 
   """
   @doc since: "1.12.0"

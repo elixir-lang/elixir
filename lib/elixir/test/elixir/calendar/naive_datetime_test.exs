@@ -60,6 +60,10 @@ defmodule NaiveDateTimeTest do
                  fn -> Code.eval_string("~N[2001-01-01T12:34:65]") end
 
     assert_raise ArgumentError,
+                 ~s/cannot parse "20010101 123456" as NaiveDateTime for Calendar.ISO, reason: :invalid_format/,
+                 fn -> Code.eval_string(~s{~N[20010101 123456]}) end
+
+    assert_raise ArgumentError,
                  ~s/cannot parse "2001-01-01 12:34:56 notalias" as NaiveDateTime for Calendar.ISO, reason: :invalid_format/,
                  fn -> Code.eval_string("~N[2001-01-01 12:34:56 notalias]") end
 

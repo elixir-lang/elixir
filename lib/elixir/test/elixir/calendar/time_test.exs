@@ -18,6 +18,10 @@ defmodule TimeTest do
                  fn -> Code.eval_string("~T[12:34:65]") end
 
     assert_raise ArgumentError,
+                 ~s/cannot parse "123456" as Time for Calendar.ISO, reason: :invalid_format/,
+                 fn -> Code.eval_string("~T[123456]") end
+
+    assert_raise ArgumentError,
                  ~s/cannot parse "12:34:56 notalias" as Time for Calendar.ISO, reason: :invalid_format/,
                  fn -> Code.eval_string("~T[12:34:56 notalias]") end
 

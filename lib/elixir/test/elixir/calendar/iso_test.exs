@@ -121,8 +121,8 @@ defmodule Calendar.ISOTest do
   end
 
   describe "parse_date/1" do
-    test "supports both basic and extended formats by default" do
-      assert Calendar.ISO.parse_date("20150123") == {:ok, {2015, 1, 23}}
+    test "supports both only extended format by default" do
+      assert Calendar.ISO.parse_date("20150123") == {:error, :invalid_format}
       assert Calendar.ISO.parse_date("2015-01-23") == {:ok, {2015, 1, 23}}
     end
   end
@@ -145,8 +145,8 @@ defmodule Calendar.ISOTest do
   end
 
   describe "parse_time/1" do
-    test "supports both basic and extended formats" do
-      assert Calendar.ISO.parse_time("235007") == {:ok, {23, 50, 7, {0, 0}}}
+    test "supports only extended format by default" do
+      assert Calendar.ISO.parse_time("235007") == {:error, :invalid_format}
       assert Calendar.ISO.parse_time("23:50:07") == {:ok, {23, 50, 7, {0, 0}}}
     end
 
@@ -264,9 +264,9 @@ defmodule Calendar.ISOTest do
                {:ok, {2015, 1, 23, 23, 50, 7, {0, 0}}}
     end
 
-    test "supports basic and extended formats by default" do
+    test "supports only extended format by default" do
       assert Calendar.ISO.parse_naive_datetime("20150123 235007.123") ==
-               {:ok, {2015, 1, 23, 23, 50, 7, {123_000, 3}}}
+               {:error, :invalid_format}
 
       assert Calendar.ISO.parse_naive_datetime("2015-01-23 23:50:07.123") ==
                {:ok, {2015, 1, 23, 23, 50, 7, {123_000, 3}}}
@@ -349,9 +349,9 @@ defmodule Calendar.ISOTest do
                {:ok, {2015, 1, 23, 23, 50, 7, {0, 0}}, 0}
     end
 
-    test "supports basic and extended formats by default" do
+    test "supports only extended format by default" do
       assert Calendar.ISO.parse_utc_datetime("20150123 235007.123Z") ==
-               {:ok, {2015, 1, 23, 23, 50, 7, {123_000, 3}}, 0}
+               {:error, :invalid_format}
 
       assert Calendar.ISO.parse_utc_datetime("2015-01-23 23:50:07.123Z") ==
                {:ok, {2015, 1, 23, 23, 50, 7, {123_000, 3}}, 0}
@@ -389,6 +389,26 @@ defmodule Calendar.ISOTest do
 
       assert Calendar.ISO.parse_utc_datetime("2015-01-23 23:50:07.123Z", :extended) ==
                {:ok, {2015, 1, 23, 23, 50, 7, {123_000, 3}}, 0}
+    end
+
+    test "errors on mixed basic and extended formats" do
+      assert Calendar.ISO.parse_utc_datetime("20150123 23:50:07.123Z", :any) ==
+               {:error, :invalid_format}
+
+      assert Calendar.ISO.parse_utc_datetime("20150123 23:50:07.123Z", :basic) ==
+               {:error, :invalid_format}
+
+      assert Calendar.ISO.parse_utc_datetime("20150123 23:50:07.123Z", :extended) ==
+               {:error, :invalid_format}
+
+      assert Calendar.ISO.parse_utc_datetime("2015-01-23 235007.123Z", :any) ==
+               {:error, :invalid_format}
+
+      assert Calendar.ISO.parse_utc_datetime("2015-01-23 235007.123Z", :basic) ==
+               {:error, :invalid_format}
+
+      assert Calendar.ISO.parse_utc_datetime("2015-01-23 235007.123Z", :extended) ==
+               {:error, :invalid_format}
     end
   end
 end
