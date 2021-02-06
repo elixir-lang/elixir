@@ -14,11 +14,6 @@ defmodule Calendar.ISO do
   to selectively implement most parts of it. The choices Elixir makes here
   are catalogued below.
 
-  ### Deviations
-
-  ISO 8601 allows times and datetimes to specify 24:00:00 as the zero hour of the next day.
-  This notation is not supported by Elixir.
-
   ### Additions
 
   ISO 8601 does not allow a whitespace instead of `T` as a separator
