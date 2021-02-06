@@ -249,15 +249,18 @@ defmodule Calendar.ISO do
   defguardp is_std_offset(offset) when is_integer(offset)
 
   @doc """
-  Parses a time string.
+  Parses a time `string`.
 
   For more information on supported strings, see how this
   module implements [ISO 8601](#module-iso-8601-compliance).
 
   ## Examples
 
+      iex> Calendar.ISO.parse_time("235007")
+      {:ok, {23, 50, 7, {0, 0}}}
       iex> Calendar.ISO.parse_time("23:50:07")
       {:ok, {23, 50, 7, {0, 0}}}
+
       iex> Calendar.ISO.parse_time("23:50:07Z")
       {:ok, {23, 50, 7, {0, 0}}}
       iex> Calendar.ISO.parse_time("T23:50:07Z")
@@ -266,19 +269,53 @@ defmodule Calendar.ISO do
   """
   @doc since: "1.10.0"
   @impl true
-  def parse_time("T" <> string) when is_binary(string),
-    do: do_parse_time(string)
-
   def parse_time(string) when is_binary(string),
-    do: do_parse_time(string)
+    do: parse_time(string, @default_format)
 
-  defp do_parse_time(string) do
-    with <<unquote(match_time), rest::binary>> <- string,
-         true <- unquote(guard_time),
-         {microsecond, rest} <- parse_microsecond(rest),
+  @doc """
+  Parses a time `string` according to a given `format`.
+
+  Formats can one of: `:any`, `:basic`, or `:extended`.
+
+  For more information on supported strings, see how this
+  module implements [ISO 8601](#module-iso-8601-compliance).
+
+  ## Examples
+
+      iex> Calendar.ISO.parse_time("23:50:07", :any)
+      {:ok, {23, 50, 7, {0, 0}}}
+      iex> Calendar.ISO.parse_time("23:50:07", :basic)
+      {:error, :invalid_format}
+      iex> Calendar.ISO.parse_time("23:50:07", :extended)
+      {:ok, {23, 50, 7, {0, 0}}}
+
+  """
+  @doc since: "1.12.0"
+  def parse_time("T" <> string, format) when is_binary(string) and format in @formats,
+    do: do_parse_time(string, format)
+
+  def parse_time(string, format) when is_binary(string) and format in @formats,
+    do: do_parse_time(string, format)
+
+  defp do_parse_time(<<unquote(match_basic_time), rest::binary>>, format)
+       when unquote(guard_time) and format in @basic_formats do
+    {hour, minute, second} = unquote(read_time)
+    parse_formatted_time(hour, minute, second, rest)
+  end
+
+  defp do_parse_time(<<unquote(match_ext_time), rest::binary>>, format)
+       when unquote(guard_time) and format in @ext_formats do
+    {hour, minute, second} = unquote(read_time)
+    parse_formatted_time(hour, minute, second, rest)
+  end
+
+  defp do_parse_time(time, format) do
+    {:error, :invalid_format}
+  end
+
+  defp parse_formatted_time(hour, minute, second, rest) do
+    with {microsecond, rest} <- parse_microsecond(rest),
          {_offset, ""} <- parse_offset(rest) do
-      {hour, minute, second} = unquote(read_time)
-
       if valid_time?(hour, minute, second, microsecond) do
         {:ok, {hour, minute, second, microsecond}}
       else

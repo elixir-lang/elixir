@@ -121,7 +121,12 @@ defmodule Calendar.ISOTest do
   end
 
   describe "parse_time/1" do
-    test "ignores timezone data but requires valid ones" do
+    test "supports both basic and extended formats" do
+      assert Calendar.ISO.parse_time("235007") == {:ok, {23, 50, 7, {0, 0}}}
+      assert Calendar.ISO.parse_time("23:50:07") == {:ok, {23, 50, 7, {0, 0}}}
+    end
+
+    test "ignores offset data but requires valid ones" do
       assert Calendar.ISO.parse_time("23:50:07Z") == {:ok, {23, 50, 7, {0, 0}}}
       assert Calendar.ISO.parse_time("23:50:07+01:00") == {:ok, {23, 50, 7, {0, 0}}}
 
@@ -173,6 +178,23 @@ defmodule Calendar.ISOTest do
       assert Calendar.ISO.parse_time("23:59:61") == {:error, :invalid_time}
       assert Calendar.ISO.parse_time("23:61:59") == {:error, :invalid_time}
       assert Calendar.ISO.parse_time("25:59:59") == {:error, :invalid_time}
+    end
+  end
+
+  describe "parse_time/2" do
+    test "allows enforcing basic formats" do
+      assert Calendar.ISO.parse_time("235007", :basic) == {:ok, {23, 50, 7, {0, 0}}}
+      assert Calendar.ISO.parse_time("23:50:07", :basic) == {:error, :invalid_format}
+    end
+
+    test "allows enforcing extended formats" do
+      assert Calendar.ISO.parse_time("235007", :extended) == {:error, :invalid_format}
+      assert Calendar.ISO.parse_time("23:50:07", :extended) == {:ok, {23, 50, 7, {0, 0}}}
+    end
+
+    test "allows accepting either format" do
+      assert Calendar.ISO.parse_time("235007", :any) == {:ok, {23, 50, 7, {0, 0}}}
+      assert Calendar.ISO.parse_time("23:50:07", :any) == {:ok, {23, 50, 7, {0, 0}}}
     end
   end
 
