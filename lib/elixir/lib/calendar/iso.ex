@@ -30,11 +30,12 @@ defmodule Calendar.ISO do
 
   ### Features
 
-  The standard library supports a minimalistic set of possible ISO 8601 features.
+  The standard library supports a minimal set of possible ISO 8601 features.
   Specifically, the parser only supports calendar dates and the extended format.
 
   However, you can still format datetimes with `NaiveDateTime.to_iso8601/2`
   and `DateTime.to_iso8601/2` to produce either basic or extended formatted strings.
+  `Calendar.strftime/2` allows you to format datetimes however else you desire.
 
   Other optional ISO 8601 features; such as ordinal dates, week dates,
   durations, time intervals, truncated representations, and reduced precision;
@@ -45,8 +46,8 @@ defmodule Calendar.ISO do
   The parser and formatter adopt one ISO 8601 extension: extended year notation.
 
   This allows dates to be prefixed with a `+` or `-` sign, extending the range of
-  expressible years from the default (`0000..9999`) to `-9999..9999`. Years are still
-  restricted to four digits.
+  expressible years from the default (`0000..9999`) to `-9999..9999`. Elixir still
+  restricts years in this format to four digits.
   """
 
   @behaviour Calendar
