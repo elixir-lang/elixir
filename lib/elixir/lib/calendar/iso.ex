@@ -33,7 +33,7 @@ defmodule Calendar.ISO do
   `Calendar.strftime/2` allows you to format datetimes however else you desire.
 
   Other optional ISO 8601 features; such as ordinal dates, week dates,
-  durations, time intervals, truncated representations, and reduced precision;
+  durations, time intervals, and reduced precision;
   are not supported by the parser or formatters.
 
   ### Extensions
