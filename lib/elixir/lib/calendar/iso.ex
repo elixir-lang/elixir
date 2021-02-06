@@ -322,43 +322,13 @@ defmodule Calendar.ISO do
 
       iex> Calendar.ISO.parse_naive_datetime("2015-01-23 23:50:07")
       {:ok, {2015, 1, 23, 23, 50, 7, {0, 0}}}
-      iex> Calendar.ISO.parse_naive_datetime("2015-01-23T23:50:07")
-      {:ok, {2015, 1, 23, 23, 50, 7, {0, 0}}}
-      iex> Calendar.ISO.parse_naive_datetime("2015-01-23T23:50:07Z")
+      iex> Calendar.ISO.parse_naive_datetime("2015-01-23 23:50:07Z")
       {:ok, {2015, 1, 23, 23, 50, 7, {0, 0}}}
 
       iex> Calendar.ISO.parse_naive_datetime("2015-01-23 23:50:07.0")
       {:ok, {2015, 1, 23, 23, 50, 7, {0, 1}}}
       iex> Calendar.ISO.parse_naive_datetime("2015-01-23 23:50:07,0123456")
       {:ok, {2015, 1, 23, 23, 50, 7, {12345, 6}}}
-      iex> Calendar.ISO.parse_naive_datetime("2015-01-23 23:50:07.0123456")
-      {:ok, {2015, 1, 23, 23, 50, 7, {12345, 6}}}
-      iex> Calendar.ISO.parse_naive_datetime("2015-01-23T23:50:07.123Z")
-      {:ok, {2015, 1, 23, 23, 50, 7, {123000, 3}}}
-
-      iex> Calendar.ISO.parse_naive_datetime("2015-01-23P23:50:07")
-      {:error, :invalid_format}
-      iex> Calendar.ISO.parse_naive_datetime("2015:01:23 23-50-07")
-      {:error, :invalid_format}
-      iex> Calendar.ISO.parse_naive_datetime("2015-01-23 23:50:07A")
-      {:error, :invalid_format}
-      iex> Calendar.ISO.parse_naive_datetime("2015-01-23 23:50:61")
-      {:error, :invalid_time}
-      iex> Calendar.ISO.parse_naive_datetime("2015-01-32 23:50:07")
-      {:error, :invalid_date}
-
-      iex> Calendar.ISO.parse_naive_datetime("2015-01-23T23:50:07.123+02:30")
-      {:ok, {2015, 1, 23, 23, 50, 7, {123000, 3}}}
-      iex> Calendar.ISO.parse_naive_datetime("2015-01-23T23:50:07.123+00:00")
-      {:ok, {2015, 1, 23, 23, 50, 7, {123000, 3}}}
-      iex> Calendar.ISO.parse_naive_datetime("2015-01-23T23:50:07.123-02:30")
-      {:ok, {2015, 1, 23, 23, 50, 7, {123000, 3}}}
-      iex> Calendar.ISO.parse_naive_datetime("2015-01-23T23:50:07.123-00:00")
-      {:error, :invalid_format}
-      iex> Calendar.ISO.parse_naive_datetime("2015-01-23T23:50:07.123-00:60")
-      {:error, :invalid_format}
-      iex> Calendar.ISO.parse_naive_datetime("2015-01-23T23:50:07.123-24:00")
-      {:error, :invalid_format}
 
   """
   @doc since: "1.10.0"

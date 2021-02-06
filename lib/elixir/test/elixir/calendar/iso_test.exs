@@ -124,12 +124,12 @@ defmodule Calendar.ISOTest do
 
   describe "parse_time/1" do
     test "supports either comma or period millisecond delimiters" do
-      assert Calendar.ISO.parse_time("23:50:07,0123456") == {:ok, {23, 50, 7, {12345, 6}}}
-      assert Calendar.ISO.parse_time("23:50:07.0123456") == {:ok, {23, 50, 7, {12345, 6}}}
+      assert Calendar.ISO.parse_time("23:50:07,012345") == {:ok, {23, 50, 7, {12345, 6}}}
+      assert Calendar.ISO.parse_time("23:50:07.012345") == {:ok, {23, 50, 7, {12345, 6}}}
     end
 
     test "supports only millisecond reduced precision" do
-      assert Calendar.ISO.parse_time("23:50:07.0123456") == {:ok, {23, 50, 7, {12345, 6}}}
+      assert Calendar.ISO.parse_time("23:50:07.012345") == {:ok, {23, 50, 7, {12345, 6}}}
       assert Calendar.ISO.parse_time("23:50:07") == {:ok, {23, 50, 7, {0,0}}}
       assert Calendar.ISO.parse_time("23:50") == {:error, :invalid_format}
       assert Calendar.ISO.parse_time("23") == {:error, :invalid_format}
@@ -168,5 +168,28 @@ defmodule Calendar.ISOTest do
       assert Calendar.ISO.parse_time("25:59:59") == {:error, :invalid_time}
     end
 
+  end
+
+  describe "parse_naive_datetime/1" do
+    test "rejects strings with formatting errors" do
+      Calendar.ISO.parse_naive_datetime("2015:01:23 23-50-07") == {:error, :invalid_format}
+      Calendar.ISO.parse_naive_datetime("2015-01-23P23:50:07") == {:error, :invalid_format}
+      Calendar.ISO.parse_naive_datetime("2015-01-23 23:50:07A") == {:error, :invalid_format}
+    end
+
+    test "recognizes invalid dates and times" do
+      Calendar.ISO.parse_naive_datetime("2015-01-23 23:50:61") == {:error, :invalid_time}
+      Calendar.ISO.parse_naive_datetime("2015-01-32 23:50:07") == {:error, :invalid_date}
+    end
+
+    test "ignores timezone data but requires valid ones" do
+      assert Calendar.ISO.parse_naive_datetime("2015-01-23T23:50:07.123+02:30") == {:ok, {2015, 1, 23, 23, 50, 7, {123000, 3}}}
+      assert Calendar.ISO.parse_naive_datetime("2015-01-23T23:50:07.123+00:00") == {:ok, {2015, 1, 23, 23, 50, 7, {123000, 3}}}
+      assert Calendar.ISO.parse_naive_datetime("2015-01-23T23:50:07.123-02:30") == {:ok, {2015, 1, 23, 23, 50, 7, {123000, 3}}}
+
+      assert Calendar.ISO.parse_naive_datetime("2015-01-23T23:50:07.123-00:00") == {:error, :invalid_format}
+      assert Calendar.ISO.parse_naive_datetime("2015-01-23T23:50:07.123-00:60") == {:error, :invalid_format}
+      assert Calendar.ISO.parse_naive_datetime("2015-01-23T23:50:07.123-24:00") == {:error, :invalid_format}
+    end
   end
 end
