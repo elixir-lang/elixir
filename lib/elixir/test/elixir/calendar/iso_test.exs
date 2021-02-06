@@ -120,6 +120,30 @@ defmodule Calendar.ISOTest do
     Calendar.ISO.date_from_iso_days(iso_days)
   end
 
+  describe "parse_date/1" do
+    test "supports both basic and extended formats by default" do
+      assert Calendar.ISO.parse_date("20150123") == {:ok, {2015, 1, 23}}
+      assert Calendar.ISO.parse_date("2015-01-23") == {:ok, {2015, 1, 23}}
+    end
+  end
+
+  describe "parse_date/2" do
+    test "allows enforcing basic formats" do
+      assert Calendar.ISO.parse_date("20150123", :basic) == {:ok, {2015, 1, 23}}
+      assert Calendar.ISO.parse_date("2015-01-23", :basic) == {:error, :invalid_format}
+    end
+
+    test "allows enforcing extended formats" do
+      assert Calendar.ISO.parse_date("20150123", :extended) == {:error, :invalid_format}
+      assert Calendar.ISO.parse_date("2015-01-23", :extended) == {:ok, {2015, 1, 23}}
+    end
+
+    test "allows accepting either format" do
+      assert Calendar.ISO.parse_date("20150123", :any) == {:ok, {2015, 1, 23}}
+      assert Calendar.ISO.parse_date("2015-01-23", :any) == {:ok, {2015, 1, 23}}
+    end
+  end
+
   describe "parse_time/1" do
     test "supports both basic and extended formats" do
       assert Calendar.ISO.parse_time("235007") == {:ok, {23, 50, 7, {0, 0}}}

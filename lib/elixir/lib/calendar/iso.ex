@@ -327,13 +327,15 @@ defmodule Calendar.ISO do
   end
 
   @doc """
-  Parses a date string.
+  Parses a date `string`.
 
   For more information on supported strings, see how this
   module implements [ISO 8601](#module-iso-8601-compliance).
 
   ## Examples
 
+      iex> Calendar.ISO.parse_date("20150123")
+      {:ok, {2015, 1, 23}}
       iex> Calendar.ISO.parse_date("2015-01-23")
       {:ok, {2015, 1, 23}}
       
@@ -345,28 +347,60 @@ defmodule Calendar.ISO do
   """
   @doc since: "1.10.0"
   @impl true
-  def parse_date("-" <> string) when is_binary(string),
-    do: parse_date(string, -1)
-
-  def parse_date("+" <> string) when is_binary(string),
-    do: parse_date(string, 1)
-
   def parse_date(string) when is_binary(string),
-    do: parse_date(string, 1)
+    do: parse_date(string, @default_format)
 
-  defp parse_date(string, multiplier) do
-    with unquote(match_date) <- string, true <- unquote(guard_date) do
-      {year, month, day} = unquote(read_date)
-      year = multiplier * year
+  @doc """
+  Parses a date `string` according to a given `format`.
 
-      if valid_date?(year, month, day) do
-        {:ok, {year, month, day}}
-      else
-        {:error, :invalid_date}
-      end
+  Formats can one of: `:any`, `:basic`, or `:extended`.
+
+  For more information on supported strings, see how this
+  module implements [ISO 8601](#module-iso-8601-compliance).
+
+  ## Examples
+
+      iex> Calendar.ISO.parse_date("2015-01-23", :any)
+      {:ok, {2015, 1, 23}}
+      iex> Calendar.ISO.parse_date("2015-01-23", :basic)
+      {:error, :invalid_format}
+      iex> Calendar.ISO.parse_date("2015-01-23", :extended)
+      {:ok, {2015, 1, 23}}
+
+  """
+  @doc since: "1.12.0"
+  def parse_date("-" <> string, format) when is_binary(string) and format in @formats,
+    do: do_parse_date(string, format, -1)
+
+  def parse_date("+" <> string, format) when is_binary(string) and format in @formats,
+    do: do_parse_date(string, format, 1)
+
+  def parse_date(string, format) when is_binary(string) and format in @formats,
+    do: do_parse_date(string, format, 1)
+
+  defp do_parse_date(unquote(match_basic_date), format, multiplier)
+       when unquote(guard_date) and format in @basic_formats do
+    {year, month, day} = unquote(read_date)
+    parse_formatted_date(year, month, day, multiplier)
+  end
+
+  defp do_parse_date(unquote(match_ext_date), format, multiplier)
+       when unquote(guard_date) and format in @ext_formats do
+    {year, month, day} = unquote(read_date)
+    parse_formatted_date(year, month, day, multiplier)
+  end
+
+  defp do_parse_date(_, _, _) do
+    {:error, :invalid_format}
+  end
+
+  defp parse_formatted_date(year, month, day, multiplier) do
+    year = multiplier * year
+
+    if valid_date?(year, month, day) do
+      {:ok, {year, month, day}}
     else
-      _ ->
-        {:error, :invalid_format}
+      {:error, :invalid_date}
     end
   end
 
