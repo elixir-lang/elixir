@@ -8,15 +8,111 @@ defmodule Calendar.ISO do
   applied for all time, consequently the dates give different results
   before the year 1583 from when the Gregorian calendar was adopted.
 
-  Given this is the default calendar used by Elixir, it has one
-  difference compared to the ISO8601 specification in that it allows
-  a whitespace instead of `T` as a separator between date and times
-  both when parsing and formatting. Strict formatting can be done
-  by using the `to_iso8601` found in `NaiveDateTime` and `DateTime`.
+  ## ISO 8601 compliance
 
-  Note that while ISO 8601 allows times and datetimes to specify
-  24:00:00 as the zero hour of the next day, this notation is not
-  supported by Elixir.
+  The ISO 8601 specification is feature-rich, but allows applications
+  to selectively implement most parts of it. The choices Elixir makes here
+  are catalogued below.
+
+  ### Additions
+
+  ISO 8601 does not allow a whitespace instead of `T` as a separator
+  between date and times, both when parsing and formatting.
+  This is a common enough representation, Elixir allows it during parsing.
+
+  The formatting of dates in `NaiveDateTime.to_iso8601/1` and `DateTime.to_iso8601/1`
+  do produce specification-compliant string representations using the `T` separator.
+
+  #### Examples
+
+      iex> Calendar.ISO.parse_naive_datetime("2015-01-23 23:50:07.0123456")
+      {:ok, {2015, 1, 23, 23, 50, 7, {12345, 6}}}
+      iex> Calendar.ISO.parse_naive_datetime("2015-01-23T23:50:07.0123456")
+      {:ok, {2015, 1, 23, 23, 50, 7, {12345, 6}}}
+
+      iex> Calendar.ISO.parse_utc_datetime("2015-01-23 23:50:07.0123456Z")
+      {:ok, {2015, 1, 23, 23, 50, 7, {12345, 6}}, 0}
+      iex> Calendar.ISO.parse_utc_datetime("2015-01-23T23:50:07.0123456Z")
+      {:ok, {2015, 1, 23, 23, 50, 7, {12345, 6}}, 0}
+
+  ### Features
+
+  The standard library supports a minimal set of possible ISO 8601 features.
+  Specifically, the parser only supports calendar dates and the extended format.
+
+  However, you can still format datetimes with `NaiveDateTime.to_iso8601/2`
+  and `DateTime.to_iso8601/2` to produce either basic or extended formatted strings.
+  `Calendar.strftime/2` allows you to format datetimes however else you desire.
+
+  Other optional ISO 8601 features; such as ordinal dates, week dates, and reduced
+  precision (except for milliseconds); are not supported by the parser or formatters.
+
+  No functions exist to parse ISO 8601 durations or time intervals.
+
+  #### Examples
+
+  Only the extended format is supported in parsing; the basic format is not.
+
+      iex> Calendar.ISO.parse_naive_datetime("2015-01-23 23:50:07.0123456")
+      {:ok, {2015, 1, 23, 23, 50, 7, {12345, 6}}}
+      iex> Calendar.ISO.parse_naive_datetime("20150123T235007.0123456")
+      {:error, :invalid_format}
+
+  Only calendar dates are supported in parsing; ordinal and week dates are not.
+
+      iex> Calendar.ISO.parse_date("2015-04-15")
+      {:ok, {2015, 4, 15}}
+      iex> Calendar.ISO.parse_date("2015-105")
+      {:error, :invalid_format}
+      iex> Calendar.ISO.parse_date("2015-W16")
+      {:error, :invalid_format}
+      iex> Calendar.ISO.parse_date("2015-W016-3")
+      {:error, :invalid_format}
+
+  Reduced precision is supported for only milliseconds;
+  years, months, days, hours, minutes, and seconds must be fully specified.
+
+      iex> Calendar.ISO.parse_date("2015-04-15")
+      {:ok, {2015, 4, 15}}
+      iex> Calendar.ISO.parse_date("2015-04")
+      {:error, :invalid_format}
+      iex> Calendar.ISO.parse_date("2015")
+      {:error, :invalid_format}
+
+      iex> Calendar.ISO.parse_time("23:50:07.0123456")
+      {:ok, {23, 50, 7, {12345, 6}}}
+      iex> Calendar.ISO.parse_time("23:50:07")
+      {:ok, {23, 50, 7, {0, 0}}}
+      iex> Calendar.ISO.parse_time("23:50")
+      {:error, :invalid_format}
+      iex> Calendar.ISO.parse_time("23")
+      {:error, :invalid_format}
+
+  ### Extensions
+
+  The parser and formatter adopt one ISO 8601 extension: extended year notation.
+
+  This allows dates to be prefixed with a `+` or `-` sign, extending the range of
+  expressible years from the default (`0000..9999`) to `-9999..9999`. Elixir still
+  restricts years in this format to four digits.
+
+  #### Examples
+
+      iex> Calendar.ISO.parse_date("-2015-01-23")
+      {:ok, {-2015, 1, 23}}
+      iex> Calendar.ISO.parse_date("+2015-01-23")
+      {:ok, {2015, 1, 23}}
+
+      iex> Calendar.ISO.parse_naive_datetime("-2015-01-23 23:50:07")
+      {:ok, {-2015, 1, 23, 23, 50, 7, {0, 0}}}
+      iex> Calendar.ISO.parse_naive_datetime("+2015-01-23 23:50:07")
+      {:ok, {2015, 1, 23, 23, 50, 7, {0, 0}}}
+
+      iex> Calendar.ISO.parse_utc_datetime("-2015-01-23 23:50:07Z")
+      {:ok, {-2015, 1, 23, 23, 50, 7, {0, 0}}, 0}
+      iex> Calendar.ISO.parse_utc_datetime("+2015-01-23 23:50:07Z")
+      {:ok, {2015, 1, 23, 23, 50, 7, {0, 0}}, 0}
+
   """
 
   @behaviour Calendar
@@ -136,6 +232,9 @@ defmodule Calendar.ISO do
   @doc """
   Parses a time string.
 
+  For more information on supported strings, see how this
+  module implements [ISO 8601](#module-iso-8601-compliance).
+
   ## Examples
 
       iex> Calendar.ISO.parse_time("23:50:07")
@@ -190,6 +289,9 @@ defmodule Calendar.ISO do
   @doc """
   Parses a date string.
 
+  For more information on supported strings, see how this
+  module implements [ISO 8601](#module-iso-8601-compliance).
+
   ## Examples
 
       iex> Calendar.ISO.parse_date("2015-01-23")
@@ -228,6 +330,9 @@ defmodule Calendar.ISO do
 
   @doc """
   Parses a naive datetime string.
+
+  For more information on supported strings, see how this
+  module implements [ISO 8601](#module-iso-8601-compliance).
 
   ## Examples
 
@@ -306,6 +411,9 @@ defmodule Calendar.ISO do
 
   @doc """
   Parses a UTC datetime string.
+
+  For more information on supported strings, see how this
+  module implements [ISO 8601](#module-iso-8601-compliance).
 
   ## Examples
 
