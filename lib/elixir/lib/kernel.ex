@@ -2556,6 +2556,27 @@ defmodule Kernel do
   The `Access` module ships with many convenience accessor functions,
   like the `all` anonymous function defined above. See `Access.all/0`,
   `Access.key/2`, and others as examples.
+
+  ## Working with structs
+
+  By default, structs do implement the `Access` behaviour required
+  by this function. Therefore, you can't do this:
+
+      get_in(some_struct, [:some_key, :nested_key])
+
+  The good news is that structs have predefined shape. Therefore,
+  you can write instead:
+
+      some_struct.some_key.nested_key
+
+  If, by any chance, `some_key` can return nil, you can always
+  fallback to pattern matching to provide nested struct handling:
+
+      case some_struct do
+        %{some_key: %{nested_key: value}} -> value
+        %{} -> nil
+      end
+
   """
   @spec get_in(Access.t(), nonempty_list(term)) :: term
   def get_in(data, keys)
