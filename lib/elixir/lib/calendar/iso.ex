@@ -1,8 +1,8 @@
 defmodule Calendar.ISO do
   @moduledoc """
-  A calendar implementation that follows to ISO 8601.
+  The default calendar implementation, a Gregorian calendar following ISO 8601.
 
-  This calendar implements the proleptic Gregorian calendar and
+  This calendar implements a proleptic Gregorian calendar and
   is therefore compatible with the calendar used in most countries
   today. The proleptic means the Gregorian rules for leap years are
   applied for all time, consequently the dates give different results
@@ -280,7 +280,7 @@ defmodule Calendar.ISO do
 
       iex> Calendar.ISO.parse_date("2015-01-23")
       {:ok, {2015, 1, 23}}
-
+      
       iex> Calendar.ISO.parse_date("2015:01:23")
       {:error, :invalid_format}
       iex> Calendar.ISO.parse_date("2015-01-32")
@@ -291,6 +291,9 @@ defmodule Calendar.ISO do
   @impl true
   def parse_date("-" <> string) when is_binary(string),
     do: parse_date(string, -1)
+
+  def parse_date("+" <> string) when is_binary(string),
+    do: parse_date(string, 1)
 
   def parse_date(string) when is_binary(string),
     do: parse_date(string, 1)
@@ -334,6 +337,9 @@ defmodule Calendar.ISO do
   @impl true
   def parse_naive_datetime("-" <> string) when is_binary(string),
     do: parse_naive_datetime(string, -1)
+
+  def parse_naive_datetime("+" <> string) when is_binary(string),
+    do: parse_naive_datetime(string, 1)
 
   def parse_naive_datetime(string) when is_binary(string),
     do: parse_naive_datetime(string, 1)
@@ -384,6 +390,9 @@ defmodule Calendar.ISO do
   @impl true
   def parse_utc_datetime("-" <> string) when is_binary(string),
     do: parse_utc_datetime(string, -1)
+
+  def parse_utc_datetime("+" <> string) when is_binary(string),
+    do: parse_utc_datetime(string, 1)
 
   def parse_utc_datetime(string) when is_binary(string),
     do: parse_utc_datetime(string, 1)
@@ -934,7 +943,7 @@ defmodule Calendar.ISO do
       iex> Calendar.ISO.date_to_string(2015, 2, 28, :basic)
       "20150228"
       iex> Calendar.ISO.date_to_string(-99, 1, 31, :basic)
-      "-00990131"
+      ** (ArgumentError) ISO8601 does not support formatting dates with negative years to the basic format, got: -99
 
   """
   @doc since: "1.4.0"
@@ -951,6 +960,12 @@ defmodule Calendar.ISO do
   end
 
   defp date_to_string_guarded(year, month, day, :basic) do
+    if year < 0 do
+      raise ArgumentError,
+            "ISO8601 does not support formatting dates with negative years to the basic format, " <>
+              "got: #{inspect(year)}"
+    end
+
     zero_pad(year, 4) <> zero_pad(month, 2) <> zero_pad(day, 2)
   end
 

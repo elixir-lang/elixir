@@ -39,8 +39,6 @@ defmodule Calendar.ISOTest do
     test "regular use" do
       assert Calendar.ISO.date_to_string(1000, 1, 1, :basic) == "10000101"
       assert Calendar.ISO.date_to_string(1000, 1, 1, :extended) == "1000-01-01"
-
-      assert Calendar.ISO.date_to_string(-123, 1, 1, :basic) == "-01230101"
       assert Calendar.ISO.date_to_string(-123, 1, 1, :extended) == "-0123-01-01"
     end
 
