@@ -249,9 +249,6 @@ defmodule Calendar.ISO do
   For more information on supported strings, see how this
   module implements [ISO 8601](#module-iso-8601-compliance).
 
-  For more information on supported strings, see how this
-  module implements [ISO 8601](#module-iso-8601-compliance).
-
   ## Examples
 
       iex> Calendar.ISO.parse_time("23:50:07")
@@ -326,9 +323,6 @@ defmodule Calendar.ISO do
   For more information on supported strings, see how this
   module implements [ISO 8601](#module-iso-8601-compliance).
 
-  For more information on supported strings, see how this
-  module implements [ISO 8601](#module-iso-8601-compliance).
-
   ## Examples
 
       iex> Calendar.ISO.parse_date("2015-01-23")
@@ -397,9 +391,6 @@ defmodule Calendar.ISO do
 
   @doc """
   Parses a naive datetime `string` in the `:extended` format.
-
-  For more information on supported strings, see how this
-  module implements [ISO 8601](#module-iso-8601-compliance).
 
   For more information on supported strings, see how this
   module implements [ISO 8601](#module-iso-8601-compliance).
@@ -498,9 +489,6 @@ defmodule Calendar.ISO do
 
   @doc """
   Parses a UTC datetime `string` in the `:extended` format.
-
-  For more information on supported strings, see how this
-  module implements [ISO 8601](#module-iso-8601-compliance).
 
   For more information on supported strings, see how this
   module implements [ISO 8601](#module-iso-8601-compliance).
