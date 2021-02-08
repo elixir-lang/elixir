@@ -135,6 +135,11 @@ custom_format(sys_core_fold, nomatch_guard) ->
   "this check/guard will always yield the same result";
 
 %% Handle literal eval failures
+custom_format(sys_core_fold, {eval_failure, _Call, Error}) ->
+  #{'__struct__' := Struct} = 'Elixir.Exception':normalize(error, Error),
+  ["this expression will fail with ", elixir_aliases:inspect(Struct)];
+
+%% TODO: remove when we require OTP 24
 custom_format(sys_core_fold, {eval_failure, Error}) ->
   #{'__struct__' := Struct} = 'Elixir.Exception':normalize(error, Error),
   ["this expression will fail with ", elixir_aliases:inspect(Struct)];
