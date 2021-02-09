@@ -1542,7 +1542,7 @@ defmodule File do
   executes the given function and then reverts back
   to the previous path regardless of whether there is an exception.
 
-  The current working directory is temporarilly set for the BEAM globally. This
+  The current working directory is temporarily set for the BEAM globally. This
   can lead to race conditions if multiple processes are changing the current
   working directory concurrently. To run an external command in a given
   directory without changing the global current working directory, use the
