@@ -941,6 +941,25 @@ defmodule DateTimeTest do
                  microsecond: {123_456, 6}
                }
     end
+
+    test "add/2 with non erlang time_units" do
+      dt = DateTime.from_naive!(~N[2018-08-28 00:00:00], "Etc/UTC")
+
+      assert DateTime.add(dt, 4, :day) == %DateTime{
+               calendar: Calendar.ISO,
+               year: 2018,
+               month: 9,
+               day: 1,
+               hour: 0,
+               minute: 0,
+               second: 0,
+               std_offset: 0,
+               time_zone: "Etc/UTC",
+               zone_abbr: "UTC",
+               utc_offset: 0,
+               microsecond: {0, 0}
+             }
+    end
   end
 
   describe "to_iso8601" do

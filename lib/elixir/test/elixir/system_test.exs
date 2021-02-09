@@ -257,8 +257,10 @@ defmodule SystemTest do
   end
 
   test "convert_time_unit/3" do
-    time = System.monotonic_time(:nanosecond)
-    assert abs(System.convert_time_unit(time, :nanosecond, :microsecond)) < abs(time)
+    assert System.convert_time_unit(1, :second, :day) == 0
+    assert System.convert_time_unit(1, :second, :millisecond) == 1000
+    assert System.convert_time_unit(30, :minute, :second) == 1800
+    assert System.convert_time_unit(1, :day, :minute) == 1440
   end
 
   test "schedulers/0" do

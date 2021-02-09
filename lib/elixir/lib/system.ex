@@ -65,8 +65,12 @@ defmodule System do
   @typedoc """
   The time unit to be passed to functions like `monotonic_time/1` and others.
 
-  The `:second`, `:millisecond`, `:microsecond` and `:nanosecond` time
-  units controls the return value of the functions that accept a time unit.
+  The `:day`, `:hour`, `:minute`, `:second`, `:millisecond`, `:microsecond`
+  and `:nanosecond` time units controls the return value of the functions
+  that accept a time unit.
+
+  Note that `:day`, `:hour`, and `:minute` where added in Elixir v1.11.4 and
+  will throw an error in earlier versions.
 
   A time unit can also be a strictly positive integer. In this case, it
   represents the "parts per second": the time will be returned in `1 /
@@ -75,7 +79,10 @@ defmodule System do
   in 1/1000 seconds - milliseconds).
   """
   @type time_unit ::
-          :second
+          :day
+          | :hour
+          | :minute
+          | :second
           | :millisecond
           | :microsecond
           | :nanosecond
@@ -1055,7 +1062,8 @@ defmodule System do
   """
   @spec monotonic_time(time_unit) :: integer
   def monotonic_time(unit) do
-    :erlang.monotonic_time(normalize_time_unit(unit))
+    {conversion_ratio, erlang_unit} = normalize_time_unit(unit)
+    :erlang.monotonic_time(erlang_unit) * conversion_ratio
   end
 
   @doc """
@@ -1081,7 +1089,8 @@ defmodule System do
   """
   @spec system_time(time_unit) :: integer
   def system_time(unit) do
-    :erlang.system_time(normalize_time_unit(unit))
+    {conversion_ratio, erlang_unit} = normalize_time_unit(unit)
+    :erlang.system_time(erlang_unit) * conversion_ratio
   end
 
   @doc """
@@ -1103,8 +1112,17 @@ defmodule System do
   """
   @spec convert_time_unit(integer, time_unit | :native, time_unit | :native) :: integer
   def convert_time_unit(time, from_unit, to_unit) do
-    :erlang.convert_time_unit(time, normalize_time_unit(from_unit), normalize_time_unit(to_unit))
+    {from_conversion_ratio, from_erlang_unit} = normalize_time_unit(from_unit)
+    {to_conversion_ratio, to_erlang_unit} = normalize_time_unit(to_unit)
+
+    divide_conversion_ratio(
+      :erlang.convert_time_unit(time, from_erlang_unit, to_erlang_unit) * from_conversion_ratio,
+      to_conversion_ratio
+    )
   end
+
+  defp divide_conversion_ratio(time, 1), do: time
+  defp divide_conversion_ratio(time, conversion_ratio), do: trunc(time / conversion_ratio)
 
   @doc """
   Returns the current time offset between the Erlang VM monotonic
@@ -1132,7 +1150,8 @@ defmodule System do
   """
   @spec time_offset(time_unit) :: integer
   def time_offset(unit) do
-    :erlang.time_offset(normalize_time_unit(unit))
+    {conversion_ratio, erlang_unit} = normalize_time_unit(unit)
+    :erlang.time_offset(erlang_unit) * conversion_ratio
   end
 
   @doc """
@@ -1160,7 +1179,8 @@ defmodule System do
   @spec os_time(time_unit) :: integer
   @doc since: "1.3.0"
   def os_time(unit) do
-    :os.system_time(normalize_time_unit(unit))
+    {conversion_ratio, erlang_unit} = normalize_time_unit(unit)
+    :os.system_time(erlang_unit) * conversion_ratio
   end
 
   @doc """
@@ -1229,27 +1249,31 @@ defmodule System do
     end
   end
 
-  defp normalize_time_unit(:native), do: :native
+  defp normalize_time_unit(:native), do: {1, :native}
 
-  defp normalize_time_unit(:second), do: :second
-  defp normalize_time_unit(:millisecond), do: :millisecond
-  defp normalize_time_unit(:microsecond), do: :microsecond
-  defp normalize_time_unit(:nanosecond), do: :nanosecond
+  defp normalize_time_unit(:day), do: {86400, :second}
+  defp normalize_time_unit(:hour), do: {3600, :second}
+  defp normalize_time_unit(:minute), do: {60, :second}
 
-  defp normalize_time_unit(:seconds), do: warn(:seconds, :second)
-  defp normalize_time_unit(:milliseconds), do: warn(:milliseconds, :millisecond)
-  defp normalize_time_unit(:microseconds), do: warn(:microseconds, :microsecond)
-  defp normalize_time_unit(:nanoseconds), do: warn(:nanoseconds, :nanosecond)
+  defp normalize_time_unit(:second), do: {1, :second}
+  defp normalize_time_unit(:millisecond), do: {1, :millisecond}
+  defp normalize_time_unit(:microsecond), do: {1, :microsecond}
+  defp normalize_time_unit(:nanosecond), do: {1, :nanosecond}
 
-  defp normalize_time_unit(:milli_seconds), do: warn(:milli_seconds, :millisecond)
-  defp normalize_time_unit(:micro_seconds), do: warn(:micro_seconds, :microsecond)
-  defp normalize_time_unit(:nano_seconds), do: warn(:nano_seconds, :nanosecond)
+  defp normalize_time_unit(:seconds), do: {1, warn(:seconds, :second)}
+  defp normalize_time_unit(:milliseconds), do: {1, warn(:milliseconds, :millisecond)}
+  defp normalize_time_unit(:microseconds), do: {1, warn(:microseconds, :microsecond)}
+  defp normalize_time_unit(:nanoseconds), do: {1, warn(:nanoseconds, :nanosecond)}
 
-  defp normalize_time_unit(unit) when is_integer(unit) and unit > 0, do: unit
+  defp normalize_time_unit(:milli_seconds), do: {1, warn(:milli_seconds, :millisecond)}
+  defp normalize_time_unit(:micro_seconds), do: {1, warn(:micro_seconds, :microsecond)}
+  defp normalize_time_unit(:nano_seconds), do: {1, warn(:nano_seconds, :nanosecond)}
+
+  defp normalize_time_unit(unit) when is_integer(unit) and unit > 0, do: {1, unit}
 
   defp normalize_time_unit(other) do
     raise ArgumentError,
-          "unsupported time unit. Expected :second, :millisecond, " <>
+          "unsupported time unit. Expected :day, :hour, :minute, :second, :millisecond, " <>
             ":microsecond, :nanosecond, or a positive integer, " <> "got #{inspect(other)}"
   end
 
@@ -1257,7 +1281,7 @@ defmodule System do
     IO.warn_once(
       {__MODULE__, unit},
       "deprecated time unit: #{inspect(unit)}. A time unit should be " <>
-        ":second, :millisecond, :microsecond, :nanosecond, or a positive integer",
+        ":day, :hour, :minute, :second, :millisecond, :microsecond, :nanosecond, or a positive integer",
       _stacktrace_drop_levels = 4
     )
 
