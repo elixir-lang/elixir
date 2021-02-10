@@ -135,9 +135,9 @@ custom_format(sys_core_fold, nomatch_guard) ->
   "this check/guard will always yield the same result";
 
 %% Handle literal eval failures
-custom_format(sys_core_fold, {eval_failure, {_, {Name, Arity}}, Error}) ->
+custom_format(sys_core_fold, {eval_failure, {Mod, Name, Arity}, Error}) ->
   #{'__struct__' := Struct} = 'Elixir.Exception':normalize(error, Error),
-  Call = io_lib:format("~s/~p", [Name, Arity]),
+  Call = io_lib:format("~s.~s/~p", [elixir_aliases:inspect(Mod), Name, Arity]),
   ["the call to " ++ Call ++ " will fail with ", elixir_aliases:inspect(Struct)];
 
 %% TODO: remove when we require OTP 24
