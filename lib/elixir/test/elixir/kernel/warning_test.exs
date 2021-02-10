@@ -977,7 +977,7 @@ defmodule Kernel.WarningTest do
   # TODO: Simplify when we require OTP 24
   if System.otp_release() >= "24" do
     @argument_error_message "the call to :erlang.atom_to_binary/2"
-    @arithmetic_error_message "the call to :erlang.+/2"
+    @arithmetic_error_message "the call to +/2"
   else
     @argument_error_message "this expression"
     @arithmetic_error_message "this expression"

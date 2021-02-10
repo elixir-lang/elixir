@@ -137,8 +137,13 @@ custom_format(sys_core_fold, nomatch_guard) ->
 %% Handle literal eval failures
 custom_format(sys_core_fold, {eval_failure, {Mod, Name, Arity}, Error}) ->
   #{'__struct__' := Struct} = 'Elixir.Exception':normalize(error, Error),
-  Call = io_lib:format("~s.~s/~p", [elixir_aliases:inspect(Mod), Name, Arity]),
-  ["the call to " ++ Call ++ " will fail with ", elixir_aliases:inspect(Struct)];
+  {ExMod, ExName, ExArgs} = elixir_rewrite:erl_to_ex(Mod, Name, lists:duplicate(Arity, nil)),
+  Call = 'Elixir.Exception':format_mfa(ExMod, ExName, length(ExArgs)),
+  Trimmed = case Call of
+              <<"Kernel.", Rest/binary>> -> Rest;
+              _ -> Call
+            end,
+  ["the call to ", Trimmed, " will fail with ", elixir_aliases:inspect(Struct)];
 
 %% TODO: remove when we require OTP 24
 custom_format(sys_core_fold, {eval_failure, Error}) ->
