@@ -152,7 +152,7 @@ defmodule Kernel.LexicalTrackerTest do
   end
 
   test "defdelegate with literal does not add compile dependency" do
-    {{compile, _structs, _runtime, _}, _binding} =
+    {{compile, _exports, _runtime, _}, _binding} =
       Code.eval_string("""
       defmodule Kernel.LexicalTrackerTest.Defdelegate do
         defdelegate a, to: A
@@ -166,5 +166,19 @@ defmodule Kernel.LexicalTrackerTest do
 
     refute A in compile
     assert B in compile
+  end
+
+  test "Macro.struct! adds an export dependency" do
+    {{compile, exports, runtime, _}, _binding} =
+      Code.eval_string("""
+      defmodule Kernel.LexicalTrackerTest.MacroStruct do
+        Macro.struct!(:"Elixir.URI", __ENV__)
+        Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
+      end |> elem(3)
+      """)
+
+    refute URI in compile
+    assert URI in exports
+    refute URI in runtime
   end
 end

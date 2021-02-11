@@ -1,5 +1,5 @@
 -module(elixir_map).
--export([expand_map/3, expand_struct/4, format_error/1, load_struct/4]).
+-export([expand_map/3, expand_struct/4, format_error/1, load_struct/5]).
 -import(elixir_errors, [form_error/4, form_warn/4]).
 -include("elixir.hrl").
 
@@ -22,22 +22,15 @@ expand_struct(Meta, Left, {'%{}', MapMeta, MapArgs}, #{context := Context} = E) 
     true when is_atom(ELeft) ->
       case extract_struct_assocs(Meta, ERight, E) of
         {expand, MapMeta, Assocs} when Context /= match -> %% Expand
-          Struct = load_struct(Meta, ELeft, [Assocs], EE),
-          assert_struct_keys(Meta, ELeft, Struct, Assocs, EE),
-
           AssocKeys = [K || {K, _} <- Assocs],
-          elixir_env:trace({struct_expansion, Meta, ELeft, AssocKeys}, E),
-
+          Struct = load_struct(Meta, ELeft, [Assocs], AssocKeys, EE),
           Keys = ['__struct__'] ++ AssocKeys,
           WithoutKeys = maps:to_list(maps:without(Keys, Struct)),
           StructAssocs = elixir_quote:escape(WithoutKeys, default, false),
           {{'%', Meta, [ELeft, {'%{}', MapMeta, StructAssocs ++ Assocs}]}, EE};
 
         {_, _, Assocs} -> %% Update or match
-          Struct = load_struct(Meta, ELeft, [], EE),
-          assert_struct_keys(Meta, ELeft, Struct, Assocs, EE),
-          AssocKeys = [K || {K, _} <- Assocs],
-          elixir_env:trace({struct_expansion, Meta, ELeft, AssocKeys}, E),
+          _ = load_struct(Meta, ELeft, [], [K || {K, _} <- Assocs], EE),
           {{'%', Meta, [ELeft, ERight]}, EE}
       end;
 
@@ -134,7 +127,7 @@ validate_struct({Var, _Meta, Ctx}, match) when is_atom(Var), is_atom(Ctx) -> tru
 validate_struct(Atom, _) when is_atom(Atom) -> true;
 validate_struct(_, _) -> false.
 
-load_struct(Meta, Name, Args, E) ->
+load_struct(Meta, Name, Args, Keys, E) ->
   %% We also include the current module because it won't be present
   %% in context module in case the module name is defined dynamically.
   InContext = lists:member(Name, [?key(E, module) | ?key(E, context_modules)]),
@@ -163,7 +156,10 @@ load_struct(Meta, Name, Args, E) ->
     end
   of
     #{'__struct__' := Name} = Struct ->
+      assert_struct_keys(Meta, Name, Struct, Keys, E),
+      elixir_env:trace({struct_expansion, Meta, Name, Keys}, E),
       Struct;
+
     #{'__struct__' := StructName} when is_atom(StructName) ->
       form_error(Meta, E, ?MODULE, {struct_name_mismatch, Name, Arity, StructName});
     Other ->
@@ -190,10 +186,10 @@ wait_for_struct(Module) ->
   is_pid(erlang:get(elixir_compiler_pid)) andalso
     ('Elixir.Kernel.ErrorHandler':ensure_compiled(Module, struct, hard) =:= found).
 
-assert_struct_keys(Meta, Name, Struct, Assocs, E) ->
+assert_struct_keys(Meta, Name, Struct, Keys, E) ->
   [begin
      form_error(Meta, E, ?MODULE, {unknown_key_for_struct, Name, Key})
-   end || {Key, _} <- Assocs, not maps:is_key(Key, Struct)].
+   end || Key <- Keys, not maps:is_key(Key, Struct)].
 
 format_error({update_syntax_in_wrong_context, Context, Expr}) ->
   io_lib:format("cannot use map/struct update syntax in ~ts, got: ~ts",
