@@ -1666,6 +1666,14 @@ defmodule Enum do
   end
 
   @doc false
+  def max(list = [_ | _]), do: :lists.max(list)
+
+  @doc false
+  def max(list = [_ | _], empty_fallback) when is_function(empty_fallback, 0) do
+    :lists.max(list)
+  end
+
+  @doc false
   @spec max(t, (() -> empty_result)) :: element | empty_result when empty_result: any
   def max(enumerable, empty_fallback) when is_function(empty_fallback, 0) do
     max(enumerable, &>=/2, empty_fallback)
@@ -1835,6 +1843,14 @@ defmodule Enum do
         end)
         |> elem(1)
     end
+  end
+
+  @doc false
+  def min(list = [_ | _]), do: :lists.min(list)
+
+  @doc false
+  def min(list = [_ | _], empty_fallback) when is_function(empty_fallback, 0) do
+    :lists.min(list)
   end
 
   @doc false
