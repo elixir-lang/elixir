@@ -19,8 +19,13 @@ defmodule Map do
   in a map literal, the last one prevails.
 
   When the key in a key-value pair is an atom, the `key: value` shorthand syntax
-  can be used (as in many other special forms), provided key-value pairs are put at
-  the end:
+  can be used (as in many other special forms):
+
+      iex> %{a: 1, b: 2}
+      %{a: 1, b: 2}
+
+  If you want to mix the shorthand syntax with `=>`, the shorthand syntax must come
+  at the end:
 
       iex> %{"hello" => "world", a: 1, b: 2}
       %{:a => 1, :b => 2, "hello" => "world"}
