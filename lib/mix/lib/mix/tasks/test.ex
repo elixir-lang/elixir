@@ -115,20 +115,23 @@ defmodule Mix.Tasks.Test do
 
     * `--export-coverage` - the name of the file to export coverage results too.
       Only has an effect when used with `--cover`
+
     * `--failed` - runs only tests that failed the last time they ran
 
     * `--force` - forces compilation regardless of modification times
 
     * `--formatter` - sets the formatter module that will print the results.
       Defaults to ExUnit's built-in CLI formatter
+
     * `--include` - includes tests that match the filter
 
     * `--listen-on-stdin` - runs tests, and then listens on stdin. Receiving a newline will
       result in the tests being run again. Very useful when combined with `--stale` and
       external commands which produce output on stdout upon file system modifications
-    * `--max-cases` - sets the maximum number of tests running asynchronously. Only tests from
 
+    * `--max-cases` - sets the maximum number of tests running asynchronously. Only tests from
       different modules run in parallel. Defaults to twice the number of cores
+
     * `--max-failures` - the suite stops evaluating tests when this number of test
       failures is reached. It runs all tests if omitted
 
@@ -155,7 +158,6 @@ defmodule Mix.Tasks.Test do
     * `--raise` - raises if the test suite failed
 
     * `--seed` - seeds the random number generator used to randomize the order of tests;
-
       `--seed 0` disables randomization
 
     * `--slowest` - prints timing information for the N slowest tests.
@@ -173,7 +175,6 @@ defmodule Mix.Tasks.Test do
     * `--warnings-as-errors` - (since v1.12.0) treats warnings as errors and returns a non-zero
       exit code. This option only applies to test files. To treat warnings as errors during
       compilation and during tests, run:
-
           MIX_ENV=test mix do compile --warnings-as-errors, test --warnings-as-errors
 
   ## Configuration
