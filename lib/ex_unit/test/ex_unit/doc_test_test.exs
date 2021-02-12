@@ -80,6 +80,12 @@ defmodule ExUnit.DocTestTest.GoodModule do
   #MapSet<[:a, :b, :c]>
   """
   def inspect2_test, do: :ok
+
+  @doc """
+  iex> (fn() -> throw :bad end).()
+  ** (throw) :bad
+  """
+  def throw_test, do: :ok
 end
 |> ExUnit.BeamHelpers.write_beam()
 
@@ -91,6 +97,14 @@ defmodule ExUnit.DocTestTest.MultipleExceptions do
   ** (ArithmeticError) bad argument in arithmetic expression
   """
   def two_exceptions, do: :ok
+
+  @doc """
+  iex> (fn() -> throw :foo end).()
+  ** (throw) :foo
+  iex> (fn() -> throw :bar end).()
+  ** (throw) :bar
+  """
+  def two_throws, do: :ok
 end
 |> ExUnit.BeamHelpers.write_beam()
 
@@ -175,6 +189,9 @@ defmodule ExUnit.DocTestTest.Invalid do
 
       iex> raise "oops"
       ** (RuntimeError) hello
+
+      iex> throw :foo
+      ** (throw) :bar
 
   """
 

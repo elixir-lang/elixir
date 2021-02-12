@@ -374,6 +374,44 @@ defmodule ExUnit.DocTest do
     end
   end
 
+  defp test_case_content(expr, {:error, :throw, message}, location, stack, formatted) do
+    doctest = "\n" <> formatted <> "\n** (throw) #{inspect(message)}"
+    expr_ast = string_to_quoted(location, stack, expr, doctest)
+
+    quote do
+      stack = unquote(stack)
+      doctest = unquote(doctest)
+      message = unquote(message)
+
+      try do
+        unquote(expr_ast)
+      catch
+        actual_message ->
+          message =
+            cond do
+              inspect(actual_message) != message ->
+                "Doctest failed: wrong message for throw\n" <>
+                  "expected:\n" <>
+                  "  #{inspect(message)}\n" <>
+                  "actual:\n" <> "  #{inspect(actual_message)}"
+
+              true ->
+                nil
+            end
+
+          if message do
+            reraise ExUnit.AssertionError, [message: message, doctest: doctest], stack
+          end
+      else
+        _ ->
+          message = "Doctest failed: expected throw #{inspect(message)} but nothing was thrown"
+
+          error = [message: message, doctest: doctest]
+          reraise ExUnit.AssertionError, error, stack
+      end
+    end
+  end
+
   defp test_case_content(expr, {:error, exception, message}, location, stack, formatted) do
     doctest = "\n" <> formatted <> "\n** (#{inspect(exception)}) #{inspect(message)}"
     expr_ast = string_to_quoted(location, stack, expr, doctest)
@@ -827,6 +865,9 @@ defmodule ExUnit.DocTest do
     case string do
       "" ->
         :test
+
+      "** (throw) " <> error ->
+        {:error, :throw, error}
 
       "** (" <> error ->
         [mod, message] = :binary.split(error, ")")
