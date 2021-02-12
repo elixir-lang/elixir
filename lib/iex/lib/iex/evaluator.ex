@@ -58,34 +58,33 @@ defmodule IEx.Evaluator do
   # https://github.com/elixir-lang/elixir/issues/1089 for discussion.
   @break_trigger "#iex:break\n"
 
-  @space " "
-  @pipe_operators ~w(|> ~>> <<~ ~> <~ <~> <|>)
+  @op_tokens [:or_op, :and_op, :comp_op, :rel_op, :arrow_op, :in_op] ++
+               [:three_op, :concat_op, :dual_op, :mult_op]
 
   @doc false
-  def parse(input, opts, buffer, leading_spaces \\ "")
+  def parse(input, opts, buffer)
 
-  def parse(@break_trigger, _opts, "", _leading_spaces) do
+  def parse(@break_trigger, _opts, "") do
     {:incomplete, ""}
   end
 
-  def parse(@break_trigger, opts, _buffer, _leading_spaces) do
+  def parse(@break_trigger, opts, _buffer) do
     :elixir_errors.parse_error([line: opts[:line]], opts[:file], "incomplete expression", "")
   end
 
-  def parse(@space <> input, opts, "", leading_spaces) do
-    parse(input, opts, "", leading_spaces <> @space)
-  end
+  def parse(input, opts, buffer) do
+    input = buffer <> input
+    file = Keyword.get(opts, :file, "nofile")
+    line = Keyword.get(opts, :line, 1)
+    column = Keyword.get(opts, :column, 1)
+    charlist = String.to_charlist(input)
 
-  Enum.each(@pipe_operators, fn op ->
-    def parse(unquote(op) <> input, opts, "", leading_spaces) do
-      parse(input, opts, "v() " <> leading_spaces <> unquote(op))
-    end
-  end)
+    result =
+      with {:ok, tokens} <- :elixir.string_to_tokens(charlist, line, column, file, opts) do
+        :elixir.tokens_to_quoted(adjust_operator(tokens, line, column, file, opts), file, opts)
+      end
 
-  def parse(input, opts, buffer, leading_spaces) do
-    input = buffer <> leading_spaces <> input
-
-    case Code.string_to_quoted(input, opts) do
+    case result do
       {:ok, forms} ->
         {:ok, forms, ""}
 
@@ -93,9 +92,17 @@ defmodule IEx.Evaluator do
         {:incomplete, input}
 
       {:error, {location, error, token}} ->
-        :elixir_errors.parse_error(location, opts[:file], error, token)
+        :elixir_errors.parse_error(location, file, error, token)
     end
   end
+
+  defp adjust_operator([{op_type, _, _} | _] = tokens, line, column, file, opts)
+       when op_type in @op_tokens do
+    {:ok, prefix} = :elixir.string_to_tokens('v(-1)', line, column, file, opts)
+    prefix ++ tokens
+  end
+
+  defp adjust_operator(tokens, _line, _column, _file, _opts), do: tokens
 
   @doc """
   Gets a value out of the binding, using the provided
