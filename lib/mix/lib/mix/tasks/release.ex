@@ -208,7 +208,7 @@ defmodule Mix.Tasks.Release do
   the service and then start it from the release root as follows:
 
       bin/demo install
-      erts-VSN/bin/erlsrv.exs start demo_demo
+      erts-VSN/bin/erlsrv.exe start demo_demo
 
   The name of the service is `demo_demo` because the name is built
   by concatenating the node name with the release name. Since Elixir
