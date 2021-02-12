@@ -974,6 +974,15 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
+  # TODO: Simplify when we require OTP 24
+  if System.otp_release() >= "24" do
+    @argument_error_message "the call to :erlang.atom_to_binary/2"
+    @arithmetic_error_message "the call to +/2"
+  else
+    @argument_error_message "this expression"
+    @arithmetic_error_message "this expression"
+  end
+
   test "eval failure warning" do
     assert capture_err(fn ->
              Code.eval_string("""
@@ -981,7 +990,7 @@ defmodule Kernel.WarningTest do
                def foo, do: Atom.to_string "abc"
              end
              """)
-           end) =~ ~r"this expression will fail with ArgumentError\n.*nofile:2"
+           end) =~ "#{@argument_error_message} will fail with ArgumentError\n  nofile:2"
 
     assert capture_err(fn ->
              Code.eval_string("""
@@ -989,7 +998,7 @@ defmodule Kernel.WarningTest do
                def foo, do: 1 + nil
              end
              """)
-           end) =~ ~r"this expression will fail with ArithmeticError\n.*nofile:2"
+           end) =~ "#{@arithmetic_error_message} will fail with ArithmeticError\n  nofile:2"
   after
     purge([Sample1, Sample2])
   end
