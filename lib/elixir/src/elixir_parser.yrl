@@ -48,10 +48,15 @@ Rootsymbol grammar.
 %% one coming from empty_paren on stab.
 Expect 3.
 
-%% Changes in ops and precedence should be reflected on lib/elixir/lib/code/identifier.ex
-%% and lib/elixir/pages/operators.md
-%% Note though the operator => in practice has lower precedence than all others,
-%% its entry in the table is only to support the %{user | foo => bar} syntax.
+%% Changes in ops and precedence should be reflected on:
+%%
+%%   1. lib/elixir/lib/code/identifier.ex
+%%   2. lib/elixir/pages/operators.md
+%%   3. lib/iex/lib/iex/evaluator.ex
+%%
+%% Note though the operator => in practice has lower precedence
+%% than all others, its entry in the table is only to support the
+%% %{user | foo => bar} syntax.
 Left       5 do.
 Right     10 stab_op_eol.     %% ->
 Left      20 ','.
