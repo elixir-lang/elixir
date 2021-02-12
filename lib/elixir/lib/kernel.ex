@@ -2559,7 +2559,7 @@ defmodule Kernel do
 
   ## Working with structs
 
-  By default, structs do implement the `Access` behaviour required
+  By default, structs do not implement the `Access` behaviour required
   by this function. Therefore, you can't do this:
 
       get_in(some_struct, [:some_key, :nested_key])
