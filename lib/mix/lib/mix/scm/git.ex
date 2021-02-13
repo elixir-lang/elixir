@@ -332,7 +332,7 @@ defmodule Mix.SCM.Git do
 
   # Attempt to set the current working directory by default.
   # This addresses an issue changing the working directory when executing from
-  # within a slave node since file I/O is done through the master node.
+  # within a secondary node since file I/O is done through the main node.
   defp cmd_opts(opts) do
     case File.cwd() do
       {:ok, cwd} -> Keyword.put(opts, :cd, cwd)
