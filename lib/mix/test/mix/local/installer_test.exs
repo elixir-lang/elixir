@@ -36,22 +36,22 @@ defmodule Mix.Local.InstallerTest do
   end
 
   test "parse_args Git branch" do
-    args = ["git", "https://example.com/user/repo.git", "branch", "not_master"]
-    opts = [branch: "not_master", git: "https://example.com/user/repo.git", submodules: nil]
+    args = ["git", "https://example.com/user/repo.git", "branch", "not_main"]
+    opts = [branch: "not_main", git: "https://example.com/user/repo.git", submodules: nil]
 
     assert Mix.Local.Installer.parse_args(args, []) == {:fetcher, {:"new package", opts}}
   end
 
   test "parse_args Git ref" do
-    args = ["git", "https://example.com/user/repo.git", "ref", "not_master"]
-    opts = [ref: "not_master", git: "https://example.com/user/repo.git", submodules: nil]
+    args = ["git", "https://example.com/user/repo.git", "ref", "not_main"]
+    opts = [ref: "not_main", git: "https://example.com/user/repo.git", submodules: nil]
 
     assert Mix.Local.Installer.parse_args(args, []) == {:fetcher, {:"new package", opts}}
   end
 
   test "parse_args Git tag" do
-    args = ["git", "https://example.com/user/repo.git", "tag", "not_master"]
-    opts = [tag: "not_master", git: "https://example.com/user/repo.git", submodules: nil]
+    args = ["git", "https://example.com/user/repo.git", "tag", "not_main"]
+    opts = [tag: "not_main", git: "https://example.com/user/repo.git", submodules: nil]
 
     assert Mix.Local.Installer.parse_args(args, []) == {:fetcher, {:"new package", opts}}
   end
