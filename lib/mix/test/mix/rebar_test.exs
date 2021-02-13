@@ -101,11 +101,11 @@ defmodule Mix.RebarTest do
       assert parse_dep({:git_rebar, {:pkg, :rebar_fork}}) ==
                {:git_rebar, ">= 0.0.0", override: true, hex: :rebar_fork}
 
-      assert parse_dep({:git_rebar, '0.1..*', {:git, @git_rebar_charlist, :master}}) ==
-               {:git_rebar, ~r"0.1..*", override: true, git: @git_rebar_string, ref: "master"}
+      assert parse_dep({:git_rebar, '0.1..*', {:git, @git_rebar_charlist, :main}}) ==
+               {:git_rebar, ~r"0.1..*", override: true, git: @git_rebar_string, ref: "main"}
 
-      assert parse_dep({:git_rebar, {:git, @git_rebar_charlist, :master}}) ==
-               {:git_rebar, ">= 0.0.0", override: true, git: @git_rebar_string, ref: "master"}
+      assert parse_dep({:git_rebar, {:git, @git_rebar_charlist, :main}}) ==
+               {:git_rebar, ">= 0.0.0", override: true, git: @git_rebar_string, ref: "main"}
 
       assert parse_dep({:git_rebar, '0.1..*', {:git, @git_rebar_charlist}, [:raw]}) ==
                {:git_rebar, ~r"0.1..*", override: true, git: @git_rebar_string, compile: false}
@@ -199,7 +199,7 @@ defmodule Mix.RebarTest do
       assert Enum.find(deps, fn %Mix.Dep{app: app, opts: opts} ->
                if app == :git_rebar do
                  assert Enum.find(opts, &match?({:git, _}, &1))
-                 assert Enum.find(opts, &match?({:ref, "master"}, &1))
+                 assert Enum.find(opts, &match?({:ref, "main"}, &1))
                  true
                end
              end)
