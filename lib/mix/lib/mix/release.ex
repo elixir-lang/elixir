@@ -780,7 +780,10 @@ defmodule Mix.Release do
              {:ok, binary} <- strip_beam(File.read!(source_file), strip_options) do
           File.write!(target_file, binary)
         else
-          _ -> File.copy(source_file, target_file)
+          _ ->
+            # Use File.cp!/3 to preserve file mode for any executables stored
+            # in the ebin directory.
+            File.cp!(source_file, target_file)
         end
       end
 
