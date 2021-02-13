@@ -379,10 +379,14 @@ defmodule Task.Supervisor do
   @doc """
   Starts a task as a child of the given `supervisor`.
 
+      Task.Supervisor.start_child(MyTaskSypervisor, fn ->
+        IO.puts "I am running in a task"
+      end)
+
   Note that the spawned process is not linked to the caller, but
   only to the supervisor. This command is useful in case the
-  task needs to perform side-effects (like I/O) and does not need
-  to report back to the caller.
+  task needs to perform side-effects (like I/O) and you have no
+  interest on its results nor if it completes successfully.
 
   ## Options
 
