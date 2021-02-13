@@ -647,6 +647,19 @@ defmodule Mix.ReleaseTest do
       File.mkdir_p!(source)
       refute copy_ebin(release([]), source, tmp_path("mix_release"))
     end
+
+    test "preserves file mode" do
+      source = tmp_path("source_ebin")
+      source_so_path = Path.join(source, "libtest_nif.so")
+
+      File.mkdir_p!(source)
+      File.touch!(source_so_path)
+      File.chmod!(source_so_path, 0o755)
+
+      assert copy_ebin(release([]), source, tmp_path("mix_release"))
+
+      assert mode!(source_so_path) == mode!(tmp_path("mix_release/libtest_nif.so"))
+    end
   end
 
   describe "copy_app/2" do
@@ -759,6 +772,10 @@ defmodule Mix.ReleaseTest do
 
   defp size!(path) do
     File.stat!(path).size
+  end
+
+  defp mode!(path) do
+    File.stat!(path).mode
   end
 
   defp release(config) do
