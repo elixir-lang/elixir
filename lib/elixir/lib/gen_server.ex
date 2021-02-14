@@ -605,8 +605,7 @@ defmodule GenServer do
   does one of the following:
 
     * returns a `:stop` tuple
-    * raises
-    * calls `Kernel.exit/1`
+    * raises (via `Kernel.raise/2`) or exits (via `Kernel.exit/1`)
     * returns an invalid value
 
   If part of a supervision tree, a `GenServer` will receive an exit
