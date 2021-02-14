@@ -14,8 +14,8 @@ defmodule ExUnit.DocTest do
   Multiline expressions can be used by prefixing subsequent lines
   with either `...>` (recommended) or `iex>`.
 
-  The expected result should start at the next line after the `iex>`
-  or `...>` line(s) and it is terminated either by a newline.
+  The expected result should start the line after the `iex>`
+  and `...>` line(s) and be terminated by a newline.
 
   ## Examples
 
