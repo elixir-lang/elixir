@@ -600,15 +600,13 @@ defmodule GenServer do
   `reason` is exit reason and `state` is the current state of the `GenServer`.
   The return value is ignored.
 
-  `c:terminate/2` is called if a callback (except `c:init/1`) does one of the
-  following:
+  `c:terminate/2` is called if the `GenServer` traps exits (using `Process.flag/2`)
+  *and* the parent process sends and exit signal, or a callback (except `c:init/1`)
+  does one of the following:
 
     * returns a `:stop` tuple
-    * raises
-    * calls `Kernel.exit/1`
+    * raises (via `Kernel.raise/2`) or exits (via `Kernel.exit/1`)
     * returns an invalid value
-    * the `GenServer` traps exits (using `Process.flag/2`) *and* the parent
-      process sends an exit signal
 
   If part of a supervision tree, a `GenServer` will receive an exit
   signal when the tree is shutting down. The exit signal is based on
