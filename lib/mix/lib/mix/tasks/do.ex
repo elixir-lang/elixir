@@ -8,8 +8,6 @@ defmodule Mix.Tasks.Do do
 
   The comma should be followed by a space.
 
-  This task is automatically reenabled, so it can be called multiple times.
-
   ## Examples
 
   The example below prints the available compilers and
@@ -17,6 +15,14 @@ defmodule Mix.Tasks.Do do
 
       mix do compile --list, deps
 
+  Note however that the majority of Mix tasks are only
+  executed once per invocation. So for example, the following
+  command will only compile once:
+
+      mix do compile, some_other_command, compile
+
+  When `compile` is executed again, Mix will notice the task
+  has already ran, and skip it.
   """
 
   @impl true
