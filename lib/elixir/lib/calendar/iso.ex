@@ -200,9 +200,8 @@ defmodule Calendar.ISO do
       [
         <<y1, y2, y3, y4, m1, m2, d1, d2>>,
         <<y1, y2, y3, y4, @ext_date_sep, m1, m2, @ext_date_sep, d1, d2>>,
-        y1 >= ?0 and y1 <= ?9 and y2 >= ?0 and y2 <= ?9 and y3 >= ?0 and y3 <= ?9 and y4 >= ?0 and
-          y4 <= ?9 and m1 >= ?0 and m1 <= ?9 and m2 >= ?0 and m2 <= ?9 and d1 >= ?0 and d1 <= ?9 and
-          d2 >= ?0 and d2 <= ?9,
+        y1 in ?0..?9 and y2 in ?0..?9 and y3 in ?0..?9 and y4 in ?0..?9 and
+          m1 in ?0..?9 and m2 in ?0..?9 and d1 in ?0..?9 and d2 in ?0..?9,
         {
           (y1 - ?0) * 1000 + (y2 - ?0) * 100 + (y3 - ?0) * 10 + (y4 - ?0),
           (m1 - ?0) * 10 + (m2 - ?0),
@@ -216,8 +215,8 @@ defmodule Calendar.ISO do
       [
         <<h1, h2, i1, i2, s1, s2>>,
         <<h1, h2, @ext_time_sep, i1, i2, @ext_time_sep, s1, s2>>,
-        h1 >= ?0 and h1 <= ?9 and h2 >= ?0 and h2 <= ?9 and i1 >= ?0 and i1 <= ?9 and i2 >= ?0 and
-          i2 <= ?9 and s1 >= ?0 and s1 <= ?9 and s2 >= ?0 and s2 <= ?9,
+        h1 in ?0..?9 and h2 in ?0..?9 and i1 in ?0..?9 and i2 in ?0..?9 and s1 in ?0..?9 and
+          s2 in ?0..?9,
         {
           (h1 - ?0) * 10 + (h2 - ?0),
           (i1 - ?0) * 10 + (i2 - ?0),

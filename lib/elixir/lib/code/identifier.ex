@@ -111,16 +111,16 @@ defmodule Code.Identifier do
   defp valid_alias?('Elixir' ++ rest), do: valid_alias_piece?(rest)
   defp valid_alias?(_other), do: false
 
-  defp valid_alias_piece?([?., char | rest]) when char >= ?A and char <= ?Z,
+  defp valid_alias_piece?([?., char | rest]) when char in ?A..?Z,
     do: valid_alias_piece?(trim_leading_while_valid_identifier(rest))
 
   defp valid_alias_piece?([]), do: true
   defp valid_alias_piece?(_other), do: false
 
   defp trim_leading_while_valid_identifier([char | rest])
-       when char >= ?a and char <= ?z
-       when char >= ?A and char <= ?Z
-       when char >= ?0 and char <= ?9
+       when char in ?a..?z
+       when char in ?A..?Z
+       when char in ?0..?9
        when char == ?_ do
     trim_leading_while_valid_identifier(rest)
   end

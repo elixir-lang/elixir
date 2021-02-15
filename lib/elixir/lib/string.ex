@@ -812,7 +812,7 @@ defmodule String do
     String.Casing.upcase(string, [], mode)
   end
 
-  defp upcase_ascii(<<char, rest::bits>>) when char >= ?a and char <= ?z,
+  defp upcase_ascii(<<char, rest::bits>>) when char in ?a..?z,
     do: [char - 32 | upcase_ascii(rest)]
 
   defp upcase_ascii(<<char, rest::bits>>), do: [char | upcase_ascii(rest)]
@@ -880,7 +880,7 @@ defmodule String do
     String.Casing.downcase(string, [], mode)
   end
 
-  defp downcase_ascii(<<char, rest::bits>>) when char >= ?A and char <= ?Z,
+  defp downcase_ascii(<<char, rest::bits>>) when char in ?A..?Z,
     do: [char + 32 | downcase_ascii(rest)]
 
   defp downcase_ascii(<<char, rest::bits>>), do: [char | downcase_ascii(rest)]
@@ -911,7 +911,7 @@ defmodule String do
   def capitalize(string, mode \\ :default)
 
   def capitalize(<<char, rest::binary>>, :ascii) do
-    char = if char >= ?a and char <= ?z, do: char - 32, else: char
+    char = if char in ?a..?z, do: char - 32, else: char
     <<char>> <> downcase(rest, :ascii)
   end
 
