@@ -601,7 +601,7 @@ defmodule GenServer do
   The return value is ignored.
 
   `c:terminate/2` is called if the `GenServer` traps exits (using `Process.flag/2`)
-  *and* the parent process sends and exit signal, or a callback (except `c:init/1`)
+  *and* the parent process sends an exit signal, or a callback (except `c:init/1`)
   does one of the following:
 
     * returns a `:stop` tuple
