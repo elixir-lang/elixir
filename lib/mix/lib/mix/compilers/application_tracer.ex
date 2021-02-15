@@ -7,11 +7,22 @@ defmodule Mix.Compilers.ApplicationTracer do
   def init({stale_deps, opts}) do
     config = Mix.Project.config()
     manifest = manifest(config)
+    modified = Mix.Utils.last_modified(manifest)
 
-    if Mix.Utils.stale?([Mix.Project.config_mtime()], [manifest]) do
-      build_manifest(config, manifest)
-    else
-      read_manifest(manifest, stale_deps) || build_manifest(config, manifest)
+    cond do
+      Mix.Utils.stale?([Mix.Project.config_mtime()], [modified]) ->
+        build_manifest(config, manifest)
+
+      table = read_manifest(manifest, stale_deps) ->
+        for %{app: app, scm: scm, opts: opts} <- Mix.Dep.cached(),
+            not scm.fetchable?,
+            Mix.Utils.last_modified(Path.join([opts[:build], "ebin", "#{app}.app"])) > modified do
+          delete_app(table, app)
+          store_app(table, app)
+        end
+
+      true ->
+        build_manifest(config, manifest)
     end
 
     setup_warnings_table(config)
@@ -204,9 +215,7 @@ defmodule Mix.Compilers.ApplicationTracer do
       Map.has_key?(seen, app) ->
         seen
 
-      modules = Application.spec(app, :modules) ->
-        :ets.insert(table, Enum.map(modules, &{&1}))
-
+      store_app(table, app) ->
         seen
         |> Map.put(app, true)
         |> store_apps(table, Application.spec(app, :applications))
@@ -214,6 +223,19 @@ defmodule Mix.Compilers.ApplicationTracer do
 
       true ->
         seen
+    end
+  end
+
+  defp delete_app(table, app) do
+    :ets.match_delete(table, {:"$_", app})
+  end
+
+  defp store_app(table, app) do
+    if modules = Application.spec(app, :modules) do
+      :ets.insert(table, Enum.map(modules, &{&1, app}))
+      true
+    else
+      false
     end
   end
 end
