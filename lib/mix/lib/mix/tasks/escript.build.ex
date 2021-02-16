@@ -313,17 +313,17 @@ defmodule Mix.Tasks.Escript.Build do
   end
 
   defp gen_main(project, name, module, app, language) do
-    compile_path = project[:config_path]
+    config_path = project[:config_path]
 
     compile_config =
-      if File.regular?(compile_path) do
-        config = Config.Reader.read!(compile_path, env: Mix.env(), target: Mix.target())
+      if File.regular?(config_path) do
+        config = Config.Reader.read!(config_path, env: Mix.env(), target: Mix.target())
         Macro.escape(config)
       else
         []
       end
 
-    runtime_path = compile_path |> Path.dirname() |> Path.join("runtime.exs")
+    runtime_path = config_path |> Path.dirname() |> Path.join("runtime.exs")
 
     runtime_config =
       if File.regular?(runtime_path) do
@@ -334,8 +334,7 @@ defmodule Mix.Tasks.Escript.Build do
       quote do
         @spec main(OptionParser.argv()) :: any
         def main(args) do
-          load_config(unquote(compile_config))
-          unquote(main_body_for(language, module, app, runtime_config))
+          unquote(main_body_for(language, module, app, compile_config, runtime_config))
         end
 
         defp load_config(config) do
@@ -386,28 +385,32 @@ defmodule Mix.Tasks.Escript.Build do
     [{'#{name}.beam', binary}]
   end
 
-  defp main_body_for(:elixir, module, app, runtime_config) do
-    runtime_config =
+  defp main_body_for(:elixir, module, app, compile_config, runtime_config) do
+    config =
       if runtime_config do
         quote do
-          "config/runtime.exs"
-          |> Config.Reader.eval!(
-            unquote(runtime_config),
-            env: unquote(Mix.env()),
-            target: unquote(Mix.target()),
-            imports: :disabled
-          )
-          |> load_config()
+          runtime_config =
+            Config.Reader.eval!(
+              "config/runtime.exs",
+              unquote(runtime_config),
+              env: unquote(Mix.env()),
+              target: unquote(Mix.target()),
+              imports: :disabled
+            )
+
+          Config.Reader.merge(unquote(compile_config), runtime_config)
         end
+      else
+        compile_config
       end
 
     quote do
-      unquote(runtime_config)
-
       case :application.ensure_all_started(:elixir) do
         {:ok, _} ->
-          start_app(unquote(app))
           args = Enum.map(args, &List.to_string(&1))
+          System.argv(args)
+          load_config(unquote(config))
+          start_app(unquote(app))
           Kernel.CLI.run(fn _ -> unquote(module).main(args) end)
 
         error ->
@@ -417,8 +420,9 @@ defmodule Mix.Tasks.Escript.Build do
     end
   end
 
-  defp main_body_for(:erlang, module, app, _runtime_config) do
+  defp main_body_for(:erlang, module, app, compile_config, _runtime_config) do
     quote do
+      load_config(unquote(compile_config))
       start_app(unquote(app))
       unquote(module).main(args)
     end
