@@ -271,18 +271,7 @@ defmodule Mix.Compilers.Erlang do
   defp to_diagnostics(warnings_or_errors, severity) do
     for {file, issues} <- warnings_or_errors,
         {line, module, data} <- issues do
-      position =
-        case line do
-          # TODO: remove when we require OTP 24
-          line when is_integer(line) and line >= 1 ->
-            line
-
-          {line, _column} when is_integer(line) and line >= 1 ->
-            line
-
-          _ ->
-            nil
-        end
+      position = line(line)
 
       %Mix.Task.Compiler.Diagnostic{
         file: Path.absname(file),
@@ -299,7 +288,12 @@ defmodule Mix.Compilers.Erlang do
     for {_, warnings} <- entries,
         {file, issues} <- warnings,
         {line, module, message} <- issues do
-      IO.puts("#{file}:#{line}: Warning: #{module.format_error(message)}")
+      IO.puts("#{file}:#{line(line)}: Warning: #{module.format_error(message)}")
     end
   end
+
+  defp line({line, _column}) when is_integer(line) and line >= 1, do: line
+  # TODO: remove when we require OTP 24
+  defp line(line) when is_integer(line) and line >= 1, do: line
+  defp line(_), do: nil
 end

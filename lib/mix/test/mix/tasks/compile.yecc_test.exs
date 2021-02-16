@@ -23,10 +23,12 @@ defmodule Mix.Tasks.Compile.YeccTest do
         assert %Mix.Task.Compiler.Diagnostic{
                  compiler_name: "yecc",
                  file: ^file,
-                 message: "syntax error before: '.'",
+                 message: message,
                  position: 1,
                  severity: :error
                } = diagnostic
+
+        assert message =~ "syntax error before: "
       end)
 
       assert File.regular?("src/test_ok.erl")
