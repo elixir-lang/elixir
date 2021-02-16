@@ -477,6 +477,7 @@ defmodule Mix.UmbrellaTest do
   test "reloads app in app tracer if .app changes" do
     in_fixture("umbrella_dep/deps/umbrella/apps", fn ->
       deps = [{:foo, in_umbrella: true}]
+
       Mix.Project.in_project(:bar, "bar", [deps: deps], fn _ ->
         Mix.Task.run("compile", ["--verbose"])
         mtime = File.stat!("../foo/lib/foo.ex").mtime
