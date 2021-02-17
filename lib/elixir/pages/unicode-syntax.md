@@ -39,7 +39,9 @@ Unicode atoms in Elixir follow the identifier rule above with the following modi
   * `<Start>` additionally includes the code point `_` (005F)
   * `<Continue>` additionally includes the code point `@` (0040)
 
-> Note that all Elixir operators are also valid atoms. Therefore `:+`, `:@`, `:|>`, and others are all valid atoms. Atoms can also be quoted, which allows any character, such as `:"hello world"`. The full description of valid atoms is available in the Syntax Reference, this document covers only the rules for identifier-based atoms.
+This document covers only the rules for identifier-based atoms. Atoms can also be quoted, which allows any characters, such as `:'🌢 Elixir'`. The full description of valid atoms is available in the ["Atoms" section in the syntax reference](syntax-reference.html#atoms).
+
+> Note that all Elixir operators are also valid atoms. Therefore `:+`, `:@`, `:|>`, and others are all valid atoms.
 
 ### Variables
 
