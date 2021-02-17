@@ -178,7 +178,7 @@ end
 
 That's because by reading the application in the module body and storing it in a module attribute, we are effectively reading the configuration at compile-time, which may become an issue when configuring the system later.
 
-If, for some reason, you must read the application environment at compile time, use `Application.compile_env/2`. Read [the "Compile-time environment" section of the Application docs](Application.html#module-compile-time-environment) for more information.
+If, for some reason, you must read the application environment at compile time, use `Application.compile_env/2`. Read [the "Compile-time environment" section of the `Application` module documentation](Application.html#module-compile-time-environment) for more information.
 
 ### Avoid `use` when an `import` is enough
 
@@ -226,7 +226,7 @@ While there are situations where `use SomeModule` is necessary, `use` should be 
 
 Although the previous section could be summarized as "avoid macros", both topics are important enough to deserve their own sections.
 
-To quote [the official guide on Macros](https://elixir-lang.org/getting-started/meta/macros.html):
+To quote [the official guide on macros](https://elixir-lang.org/getting-started/meta/macros.html):
 
 > Even though Elixir attempts its best to provide a safe environment for macros, the major responsibility of writing clean code with macros falls on developers. Macros are harder to write than ordinary Elixir functions and it's considered to be bad style to use them when they're not necessary. So write macros responsibly.
 >
