@@ -109,8 +109,9 @@ defmodule DateTime do
       {:ok, ~U[2016-05-24 13:26:08.003Z]}
 
   When the datetime is ambiguous - for instance during changing from summer
-  to winter time - the two possible valid datetimes are returned. First the one
-  that happens first, then the one that happens after.
+  to winter time - the two possible valid datetimes are returned in a tuple.
+  The first datetime is also the one which comes first chronologically, while
+  the second one comes last.
 
       iex> {:ambiguous, first_dt, second_dt} = DateTime.new(~D[2018-10-28], ~T[02:30:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
       iex> first_dt
@@ -139,7 +140,7 @@ defmodule DateTime do
   @doc since: "1.11.0"
   @spec new(Date.t(), Time.t(), Calendar.time_zone(), Calendar.time_zone_database()) ::
           {:ok, t}
-          | {:ambiguous, t, t}
+          | {:ambiguous, first_datetime :: t, second_datetime :: t}
           | {:gap, t, t}
           | {:error,
              :incompatible_calendars | :time_zone_not_found | :utc_only_time_zone_database}
@@ -364,8 +365,9 @@ defmodule DateTime do
       {:ok, ~U[2016-05-24 13:26:08.003Z]}
 
   When the datetime is ambiguous - for instance during changing from summer
-  to winter time - the two possible valid datetimes are returned. First the one
-  that happens first, then the one that happens after.
+  to winter time - the two possible valid datetimes are returned in a tuple.
+  The first datetime is also the one which comes first chronologically, while
+  the second one comes last.
 
       iex> {:ambiguous, first_dt, second_dt} = DateTime.from_naive(~N[2018-10-28 02:30:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
       iex> first_dt
@@ -416,7 +418,7 @@ defmodule DateTime do
           Calendar.time_zone_database()
         ) ::
           {:ok, t}
-          | {:ambiguous, t, t}
+          | {:ambiguous, first_datetime :: t, second_datetime :: t}
           | {:gap, t, t}
           | {:error,
              :incompatible_calendars | :time_zone_not_found | :utc_only_time_zone_database}
