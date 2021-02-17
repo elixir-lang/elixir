@@ -312,7 +312,16 @@ defmodule Task.Supervised do
           stream_deliver({:cont, acc}, max + 1, spawned, delivered, waiting, next, config)
         else
           pair = deliver_now(result, acc, next, config)
-          stream_reduce(pair, max + 1, spawned, delivered + 1, waiting, next, config)
+
+          stream_reduce(
+            pair,
+            max + 1,
+            spawned,
+            delivered + 1,
+            Map.delete(waiting, position),
+            next,
+            config
+          )
         end
 
       # The monitor process died. We just cleanup the messages from the monitor
