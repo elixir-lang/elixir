@@ -75,7 +75,7 @@ defmodule Mix.Tasks.Test do
 
   ### Understanding test failures
 
-  First it contains the failure counter, followed by the test
+  First, it contains the failure counter, followed by the test
   name and the module the test was defined:
 
       1) test greets the world (FooTest)
