@@ -83,7 +83,7 @@ $(PARSER): lib/elixir/src/elixir_parser.yrl
 
 # Since Mix depends on EEx and EEx depends on Mix,
 # we first compile EEx without the .app file,
-# then Mix and then compile EEx fully
+# then Mix, and then compile EEx fully
 elixir: stdlib lib/eex/ebin/Elixir.EEx.beam mix ex_unit logger eex iex
 
 stdlib: $(KERNEL) VERSION

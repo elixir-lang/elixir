@@ -49,7 +49,7 @@ After
 .Nm
 starts, it seeks the file
 .Pa .iex.exs
-and, in a case of success, executes the code from the file in the context of the shell. At first the search starts in the current working directory, then, if necessary, it continues in the home directory.
+and, in a case of success, executes the code from the file in the context of the shell. At first the search starts in the current working directory; then, if necessary, it continues in the home directory.
 .El
 .Sh SEE ALSO
 .Xr elixir 1 ,
