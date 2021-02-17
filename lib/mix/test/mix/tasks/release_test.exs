@@ -327,7 +327,7 @@ defmodule Mix.Tasks.ReleaseTest do
                  protocols_consolidated?: true,
                  release_name: "release_test",
                  release_node: "release_test",
-                 release_prog: "release_test",
+                 release_prog: "release_test" <> ext,
                  release_root: release_root,
                  release_vsn: "0.1.0",
                  root_dir: root_dir,
@@ -344,12 +344,14 @@ defmodule Mix.Tasks.ReleaseTest do
           assert root_dir =~ ~r"_build/dev/rel/(release_test|RELEAS~1)$"
           assert String.ends_with?(sys_config_env, "releases\\0.1.0\\sys")
           assert String.ends_with?(sys_config_init, "releases\\0.1.0\\sys")
+          assert ext == ".bat"
         else
           assert app_dir == Path.join(root, "lib/release_test-0.1.0")
           assert release_root == root
           assert root_dir == root
           assert sys_config_env == Path.join(root, "releases/0.1.0/sys")
           assert sys_config_init == Path.join(root, "releases/0.1.0/sys")
+          assert ext == ""
         end
       end)
     end)
@@ -410,7 +412,7 @@ defmodule Mix.Tasks.ReleaseTest do
                  release_name: "runtime_config",
                  release_mode: "embedded",
                  release_node: "runtime_config",
-                 release_prog: "runtime_config",
+                 release_prog: "runtime_config" <> ext,
                  release_vsn: "0.1.0",
                  runtime_config:
                    {:ok,
@@ -423,9 +425,11 @@ defmodule Mix.Tasks.ReleaseTest do
         if match?({:win32, _}, :os.type()) do
           assert sys_config_env =~ "tmp\\runtime_config-0.1.0"
           assert sys_config_init =~ "tmp\\runtime_config-0.1.0"
+          assert ext == ".bat"
         else
           assert sys_config_env =~ "tmp/runtime_config-0.1.0"
           assert sys_config_init =~ "tmp/runtime_config-0.1.0"
+          assert ext == ""
         end
       end)
     end)
@@ -446,7 +450,6 @@ defmodule Mix.Tasks.ReleaseTest do
                  protocols_consolidated?: true,
                  release_name: "no_dist",
                  release_node: "no_dist",
-                 release_prog: "no_dist",
                  release_vsn: "0.1.0"
                } = wait_until_decoded(Path.join(root, "RELEASE_BOOTED"))
       end)
@@ -486,7 +489,7 @@ defmodule Mix.Tasks.ReleaseTest do
                  protocols_consolidated?: true,
                  release_name: "demo",
                  release_node: "demo",
-                 release_prog: "demo",
+                 release_prog: "demo" <> ext,
                  release_root: release_root,
                  release_vsn: "0.2.0",
                  root_dir: root_dir,
@@ -497,9 +500,11 @@ defmodule Mix.Tasks.ReleaseTest do
         if match?({:win32, _}, :os.type()) do
           assert String.ends_with?(app_dir, "demo/lib/release_test-0.1.0")
           assert String.ends_with?(release_root, "demo")
+          assert ext == ".bat"
         else
           assert app_dir == Path.join(root, "lib/release_test-0.1.0")
           assert release_root == root
+          assert ext == ""
         end
 
         assert root_dir == :code.root_dir() |> to_string()
@@ -643,7 +648,7 @@ defmodule Mix.Tasks.ReleaseTest do
                  protocols_consolidated?: true,
                  release_name: "eval",
                  release_node: "eval",
-                 release_prog: "eval",
+                 release_prog: "eval" <> ext,
                  release_root: release_root,
                  release_vsn: "0.1.0",
                  runtime_config: {:ok, :was_set},
@@ -652,8 +657,10 @@ defmodule Mix.Tasks.ReleaseTest do
 
         if match?({:win32, _}, :os.type()) do
           assert String.ends_with?(release_root, "eval")
+          assert ext == ".bat"
         else
           assert release_root == root
+          assert ext == ""
         end
       end)
     end)
@@ -679,7 +686,6 @@ defmodule Mix.Tasks.ReleaseTest do
                  protocols_consolidated?: true,
                  release_name: "permanent2",
                  release_node: "permanent2",
-                 release_prog: "permanent2",
                  release_root: ^root,
                  release_vsn: "0.1.0",
                  root_dir: root_dir,
