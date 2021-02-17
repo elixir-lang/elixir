@@ -147,6 +147,11 @@ defmodule Kernel.DialyzerTest do
     assert_dialyze_no_warnings!(context)
   end
 
+  test "no warning on is_struct/2", context do
+    copy_beam!(context, Dialyzer.IsStruct)
+    assert_dialyze_no_warnings!(context)
+  end
+
   defp copy_beam!(context, module) do
     name = "#{module}.beam"
     File.cp!(Path.join(context.base_dir, name), Path.join(context.outdir, name))

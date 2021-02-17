@@ -341,7 +341,6 @@ defmodule KernelTest do
   defp struct_or_map?(arg, name) when is_struct(arg, name) or is_map(arg), do: true
   defp struct_or_map?(_arg, _name), do: false
 
-  defp atom(), do: Macro.Env
   defp not_atom(), do: "not atom"
 
   test "is_struct/2" do
@@ -355,7 +354,6 @@ defmodule KernelTest do
     assert struct?(%{__struct__: "foo"}, Macro.Env) == false
     assert struct?([], Macro.Env) == false
     assert struct?(%{}, Macro.Env) == false
-    assert struct?(%Macro.Env{}, atom()) == true
 
     assert_raise ArgumentError, "argument error", fn ->
       is_struct(%{}, not_atom())

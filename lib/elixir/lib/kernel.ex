@@ -2373,22 +2373,17 @@ defmodule Kernel do
   defmacro is_struct(term, name) do
     case __CALLER__.context do
       nil ->
-        case Macro.expand(name, __CALLER__) do
-          name when is_atom(name) ->
-            quote do
-              match?(%{__struct__: unquote(name)}, unquote(term))
-            end
-
-          _ ->
-            quote do
-              case unquote(name) do
-                name when is_atom(name) ->
-                  match?(%{__struct__: ^name}, unquote(term))
-
-                _ ->
-                  raise ArgumentError
+        quote generated: true do
+          case unquote(name) do
+            name when is_atom(name) ->
+              case unquote(term) do
+                %{__struct__: ^name} -> true
+                _ -> false
               end
-            end
+
+            _ ->
+              raise ArgumentError
+          end
         end
 
       :match ->
