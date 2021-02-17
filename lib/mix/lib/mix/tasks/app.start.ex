@@ -10,9 +10,9 @@ defmodule Mix.Tasks.App.Start do
   and that the current project has been compiled. Then, the current
   application is started as a temporary application, unless
   `:start_permanent` is set to `true` in your project configuration
-  or the `--permanent` option is given. Then, it's started as permanent,
-  which guarantees the node will shut down if the application
-  crashes permanently.
+  or the `--permanent` option is given. Setting it to permanent
+  guarantees the node will shut down if the application terminates
+  (typically because its root supervisor has terminated).
 
   ## Configuration
 
