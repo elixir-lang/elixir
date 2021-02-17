@@ -17,6 +17,7 @@ defmodule ReleaseTest do
       release_node: System.get_env("RELEASE_NODE"),
       release_root: System.get_env("RELEASE_ROOT"),
       release_vsn: System.get_env("RELEASE_VSN"),
+      release_prog: System.get_env("RELEASE_PROG"),
       root_dir: :code.root_dir() |> to_string(),
       runtime_config: Application.fetch_env(:release_test, :runtime),
       static_config: Application.fetch_env(:release_test, :static),
