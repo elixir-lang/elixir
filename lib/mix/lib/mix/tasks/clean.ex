@@ -24,7 +24,7 @@ defmodule Mix.Tasks.Clean do
 
     {opts, _, _} = OptionParser.parse(args, switches: @switches)
 
-    # First we get the tasks and then we clean them.
+    # First, we get the tasks. After that, we clean them.
     # This is to avoid a task cleaning a compiler module.
     tasks =
       for compiler <- [:protocols] ++ Mix.Tasks.Compile.compilers(),
