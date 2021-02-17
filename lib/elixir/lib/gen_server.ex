@@ -507,7 +507,7 @@ defmodule GenServer do
   occurs as with a `:reply` tuple.
 
   Returning `{:stop, reason, reply, new_state}` stops the loop and `c:terminate/2`
-  is called with reason `reason` and state `new_state`. Then the `reply` is sent
+  is called with reason `reason` and state `new_state`. Then, the `reply` is sent
   as the response to call and the process exits with reason `reason`.
 
   Returning `{:stop, reason, new_state}` is similar to

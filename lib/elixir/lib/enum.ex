@@ -2247,7 +2247,7 @@ defmodule Enum do
   Raises `Enum.EmptyError` if `enumerable` is empty.
 
   The first element of the `enumerable` is used as the initial value
-  of the accumulator. Then the function is invoked with the next
+  of the accumulator. Then, the function is invoked with the next
   element and the accumulator. The result returned by the function
   is used as the accumulator for the next iteration, recursively.
   When the `enumerable` is done, the last accumulator is returned.
@@ -2542,7 +2542,7 @@ defmodule Enum do
   Returns a subset list of the given `enumerable` by `index_range`.
 
   `index_range` must be a `Range`. Given an `enumerable`, it drops
-  elements before `index_range.first` (zero-base), then takes elements
+  elements before `index_range.first` (zero-base), then it takes elements
   until element `index_range.last` (inclusively).
 
   Indexes are normalized, meaning that negative indexes will be counted
@@ -2605,8 +2605,8 @@ defmodule Enum do
   Returns a subset list of the given `enumerable`, from `start_index` (zero-based)
   with `amount` number of elements if available.
 
-  Given an `enumerable`, it drops elements right before element `start_index`,
-  then takes `amount` of elements, returning as many elements as possible if
+  Given an `enumerable`, it drops elements right before element `start_index`;
+  then, it takes `amount` of elements, returning as many elements as possible if
   there are not enough elements.
 
   A negative `start_index` can be passed, which means the `enumerable` is
@@ -3434,7 +3434,7 @@ defmodule Enum do
   the `zip_fun` function as it goes.
 
   The first element from each of the enums in `enumerables` will be put into a list which is then passed to
-  the 1-arity `zip_fun` function. Then the second elements from each of the enums are put into a list and passed to
+  the 1-arity `zip_fun` function. Then, the second elements from each of the enums are put into a list and passed to
   `zip_fun`, and so on until any one of the enums in `enumerables` runs out of elements.
 
   Returns a list with all the results of calling `zip_fun`.
