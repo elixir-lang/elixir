@@ -34,12 +34,12 @@ Elixir does not allow the use of ZWJ or ZWNJ in identifiers and therefore does n
 
 ### Atoms
 
-Unquoted unicode identifier-based atoms in Elixir follow the identifier rule above with the following modifications:
+Unicode atoms in Elixir follow the identifier rule above with the following modifications:
 
   * `<Start>` additionally includes the code point `_` (005F)
   * `<Continue>` additionally includes the code point `@` (0040)
 
-> Note that all Elixir operators are also valid atoms. Therefore `:+`, `:@`, `:|>`, and others are all valid atoms. The full description of valid atoms is available in the Syntax Reference, this document covers only the rules for identifier-based atoms.
+> Note that all Elixir operators are also valid atoms. Therefore `:+`, `:@`, `:|>`, and others are all valid atoms. Atoms can also be quoted, which allows any character, such as `:"hello world"`. The full description of valid atoms is available in the Syntax Reference, this document covers only the rules for identifier-based atoms.
 
 ### Variables
 
