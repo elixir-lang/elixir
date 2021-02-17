@@ -438,7 +438,7 @@ tokenize([$:, H | T] = Original, Line, Column, Scope, Tokens) when ?is_quote(H) 
         true ->
           WarnMsg = io_lib:format(
             "found quoted atom \"~ts\" but the quotes are not required. "
-            "Atoms made exclusively of ASCII letters, numbers, and underscores "
+            "Atoms made exclusively of ASCII letters, numbers, and underscores which may optionally end with ! or ?"
             "do not require quotes",
             [hd(Parts)]
           ),
