@@ -39,7 +39,7 @@ defmodule Config.Provider do
         end
       end
 
-  Then when specifying your release, you can specify the provider in
+  Then, when specifying your release, you can specify the provider in
   the release configuration:
 
       releases: [
@@ -93,7 +93,7 @@ defmodule Config.Provider do
   Loads configuration (typically during system boot).
 
   It receives the current `config` and the `state` returned by
-  `c:init/1`. Then you typically read the extra configuration
+  `c:init/1`. Then, you typically read the extra configuration
   from an external source and merge it into the received `config`.
   Merging should be done with `Config.Reader.merge/2`, as it
   performs deep merge. It should return the updated config.

@@ -12,7 +12,7 @@ defmodule Mix.Tasks.Test do
   Runs the tests for a project.
 
   This task starts the current application, loads up
-  `test/test_helper.exs` and then requires all files matching the
+  `test/test_helper.exs` and then, requires all files matching the
   `test/**/*_test.exs` pattern in parallel.
 
   A list of files and/or directories can be given after the task

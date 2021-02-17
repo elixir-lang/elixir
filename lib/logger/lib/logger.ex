@@ -57,7 +57,7 @@ defmodule Logger do
     * `:debug` - for debug-related messages
 
   For example, `:info` takes precedence over `:debug`. If your log
-  level is set to `:info` then all `:info`, `:notice` and above will
+  level is set to `:info`, then all `:info`, `:notice` and above will
   be passed to backends. If your log level is set to `:alert`, only
   `:alert` and `:emergency` will be printed.
 
@@ -426,7 +426,7 @@ defmodule Logger do
         {:handler, :name_of_the_handler, ACustomHandler, configuration = %{}}
       ]
 
-  And then explicitly attached in your `c:Application.start/2` callback:
+  And then, explicitly attached in your `c:Application.start/2` callback:
 
       :logger.add_handlers(:my_app)
 
@@ -640,7 +640,7 @@ defmodule Logger do
   Gets logging level for given module.
 
   Returned value will be the effective value used. If no value
-  was set for given module then it will not be present in
+  was set for given module, then it will not be present in
   the returned list.
   """
   @doc since: "1.11.0"

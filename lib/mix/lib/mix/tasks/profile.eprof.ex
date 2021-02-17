@@ -10,7 +10,7 @@ defmodule Mix.Tasks.Profile.Eprof do
   when you want to discover the bottlenecks related to this.
 
   Before running the code, it invokes the `app.start` task which compiles
-  and loads your project. Then the target expression is profiled, together
+  and loads your project. After that, the target expression is profiled together
   with all matching function calls using the Erlang trace BIFs. The tracing of
   the function calls for that is enabled when the profiling is begun, and
   disabled when profiling is stopped.

@@ -10,7 +10,7 @@ defmodule Mix.Tasks.Profile.Fprof do
   sequential code.
 
   Before running the code, it invokes the `app.start` task which compiles
-  and loads your project. Then the target expression is profiled, together
+  and loads your project. After that, the target expression is profiled, together
   with all processes which are spawned by it. Other processes (for example, those
   residing in the OTP application supervision tree) are not profiled.
 
