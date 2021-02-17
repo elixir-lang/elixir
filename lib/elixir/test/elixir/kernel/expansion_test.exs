@@ -2388,13 +2388,13 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "raises for invalid size * unit for floats" do
-      message = ~r"float requires size\*unit to be 32 or 64 \(default\), got: 128"
+      message = ~r"float requires size\*unit to be 16, 32, or 64 \(default\), got: 128"
 
       assert_raise CompileError, message, fn ->
         expand(quote(do: <<12.3::32*4>>))
       end
 
-      message = ~r"float requires size\*unit to be 32 or 64 \(default\), got: 256"
+      message = ~r"float requires size\*unit to be 16, 32, or 64 \(default\), got: 256"
 
       assert_raise CompileError, message, fn ->
         expand(quote(do: <<12.3::256>>))

@@ -319,7 +319,7 @@ build_spec(Meta, _Size, Unit, Type, _Endianness, Sign, Spec, E) when Type == bin
 build_spec(Meta, Size, Unit, Type, Endianness, Sign, Spec, E) when Type == integer; Type == float ->
   NumberSize = number_size(Size, Unit),
   if
-    Type == float, is_integer(NumberSize), NumberSize /= 32, NumberSize /= 64 ->
+    Type == float, is_integer(NumberSize), NumberSize /= 16, NumberSize /= 32, NumberSize /= 64 ->
       form_error(Meta, E, ?MODULE, {bittype_float_size, NumberSize});
     Size == default, Unit /= default ->
       form_error(Meta, E, ?MODULE, bittype_unit);
@@ -372,7 +372,7 @@ format_error(bittype_signed) ->
 format_error(bittype_unit) ->
   "integer and float types require a size specifier if the unit specifier is given";
 format_error({bittype_float_size, Other}) ->
-  io_lib:format("float requires size*unit to be 32 or 64 (default), got: ~p", [Other]);
+  io_lib:format("float requires size*unit to be 16, 32, or 64 (default), got: ~p", [Other]);
 format_error({invalid_literal, Literal}) ->
   io_lib:format("invalid literal ~ts in <<>>", ['Elixir.Macro':to_string(Literal)]);
 format_error({undefined_bittype, Expr}) ->
