@@ -98,4 +98,4 @@
 
 ## v1.11
 
-The CHANGELOG for v1.11 releases can be found [in the v1.11 branch](https://github.com/elixir-lang/elixir/blob/v1.11/CHANGELOG.md).
+The CHANGELOG for v1.11 releases can be found in the [v1.11 branch](https://github.com/elixir-lang/elixir/blob/v1.11/CHANGELOG.md).

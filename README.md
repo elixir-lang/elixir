@@ -63,7 +63,7 @@ For proposing new features, please start a discussion in the
 to argue and explain why a feature is useful and how it will impact the
 codebase and the community.
 
-Once a proposal is accepted, it will be added to [the issue tracker][2].
+Once a proposal is accepted, it will be added to the [issue tracker][2].
 The issue tracker focuses on *actionable items* and it holds a list of
 upcoming enhancements and pending bugs. All entries in the tracker are
 tagged for clarity and to ease collaboration.
@@ -123,7 +123,7 @@ make clean_elixir compile
 
 Similarly, if you can't get Elixir to compile or the tests to pass after
 updating an existing checkout, run `make clean compile`. You can check
-[the official build status on Cirrus CI](https://cirrus-ci.com/github/elixir-lang/elixir).
+the [official build status on Cirrus CI](https://cirrus-ci.com/github/elixir-lang/elixir).
 More tasks can be found by reading the [Makefile](Makefile).
 
 With tests running and passing, you are ready to contribute to Elixir and

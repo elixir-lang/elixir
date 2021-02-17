@@ -98,7 +98,7 @@ Parentheses for non-qualified calls are optional, except for zero-arity calls, w
 
 ### Operators
 
-As many programming languages, Elixir also support operators as non-qualified calls with their precedence and associativity rules. Constructs such as `=`, `when`, `&` and `@` are simply treated as operators. See [the Operators page](operators.md) for a full reference.
+As many programming languages, Elixir also support operators as non-qualified calls with their precedence and associativity rules. Constructs such as `=`, `when`, `&` and `@` are simply treated as operators. See the [operators page](operators.md) for a full reference.
 
 ### Qualified calls (remote calls)
 

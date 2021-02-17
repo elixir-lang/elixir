@@ -156,7 +156,7 @@ defmodule Kernel do
   or equal to 16. Guards also support joining multiple conditions with
   `and` and `or`. The whole guard is true if all guard expressions will
   evaluate to `true`. A more complete introduction to guards is available
-  [in the "Patterns and Guards" page](patterns-and-guards.md).
+  in the ["Patterns and guards" page](patterns-and-guards.md).
 
   ## Structural comparison
 
