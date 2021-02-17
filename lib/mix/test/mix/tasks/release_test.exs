@@ -327,6 +327,7 @@ defmodule Mix.Tasks.ReleaseTest do
                  protocols_consolidated?: true,
                  release_name: "release_test",
                  release_node: "release_test",
+                 release_prog: "release_test",
                  release_root: release_root,
                  release_vsn: "0.1.0",
                  root_dir: root_dir,
@@ -409,6 +410,7 @@ defmodule Mix.Tasks.ReleaseTest do
                  release_name: "runtime_config",
                  release_mode: "embedded",
                  release_node: "runtime_config",
+                 release_prog: "runtime_config",
                  release_vsn: "0.1.0",
                  runtime_config:
                    {:ok,
@@ -444,6 +446,7 @@ defmodule Mix.Tasks.ReleaseTest do
                  protocols_consolidated?: true,
                  release_name: "no_dist",
                  release_node: "no_dist",
+                 release_prog: "no_dist",
                  release_vsn: "0.1.0"
                } = wait_until_decoded(Path.join(root, "RELEASE_BOOTED"))
       end)
@@ -483,6 +486,7 @@ defmodule Mix.Tasks.ReleaseTest do
                  protocols_consolidated?: true,
                  release_name: "demo",
                  release_node: "demo",
+                 release_prog: "demo",
                  release_root: release_root,
                  release_vsn: "0.2.0",
                  root_dir: root_dir,
@@ -639,6 +643,7 @@ defmodule Mix.Tasks.ReleaseTest do
                  protocols_consolidated?: true,
                  release_name: "eval",
                  release_node: "eval",
+                 release_prog: "eval",
                  release_root: release_root,
                  release_vsn: "0.1.0",
                  runtime_config: {:ok, :was_set},
@@ -674,6 +679,7 @@ defmodule Mix.Tasks.ReleaseTest do
                  protocols_consolidated?: true,
                  release_name: "permanent2",
                  release_node: "permanent2",
+                 release_prog: "permanent2",
                  release_root: ^root,
                  release_vsn: "0.1.0",
                  root_dir: root_dir,

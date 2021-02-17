@@ -756,6 +756,8 @@ defmodule Mix.Tasks.Release do
       release. The custom value must be an existing release version in
       the `releases/` directory
 
+    * `RELEASE_PROG` - the command line executable used to start the release
+
   The following variables can be set before you invoke the release or
   inside `env.sh` and `env.bat`:
 
