@@ -110,8 +110,8 @@ defmodule DateTime do
 
   When the datetime is ambiguous - for instance during changing from summer
   to winter time - the two possible valid datetimes are returned in a tuple.
-  The first datetime is also the one who comes first chronologically, while the
-  second one comes last.
+  The first datetime is also the one which comes first chronologically, while
+  the second one comes last.
 
       iex> {:ambiguous, first_dt, second_dt} = DateTime.new(~D[2018-10-28], ~T[02:30:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
       iex> first_dt
@@ -366,8 +366,8 @@ defmodule DateTime do
 
   When the datetime is ambiguous - for instance during changing from summer
   to winter time - the two possible valid datetimes are returned in a tuple.
-  The first datetime is also the one who comes first chronologically, while the
-  second one comes last.
+  The first datetime is also the one which comes first chronologically, while
+  the second one comes last.
 
       iex> {:ambiguous, first_dt, second_dt} = DateTime.from_naive(~N[2018-10-28 02:30:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
       iex> first_dt
