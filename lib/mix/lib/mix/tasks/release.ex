@@ -970,7 +970,7 @@ defmodule Mix.Tasks.Release do
   Once `.appup`s are created, the next step is to create a `.relup`
   file with all instructions necessary to update the release itself.
   Erlang documentation does provide a chapter on
-  [Creating and Upgrading a Target System](http://erlang.org/doc/system_principles/create_target.html).
+  [Creating and upgrading a target system](http://erlang.org/doc/system_principles/create_target.html).
   [Learn You Some Erlang has a chapter on hot code upgrades](https://learnyousomeerlang.com/relups).
 
   Overall, there are many steps, complexities and assumptions made

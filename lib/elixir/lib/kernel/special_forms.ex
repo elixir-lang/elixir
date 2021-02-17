@@ -365,8 +365,8 @@ defmodule Kernel.SpecialForms do
       ERL_COMPILER_OPTIONS=bin_opt_info mix compile
 
   To learn more about specific optimizations and performance considerations,
-  check out
-  [Erlang's Efficiency Guide on handling binaries](http://www.erlang.org/doc/efficiency_guide/binaryhandling.html).
+  check out the
+  ["Constructing and matching binaries" chapter of the Erlang's Efficiency Guide](http://www.erlang.org/doc/efficiency_guide/binaryhandling.html).
   """
   defmacro unquote(:<<>>)(args), do: error!([args])
 
