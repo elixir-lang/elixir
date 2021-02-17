@@ -312,6 +312,7 @@ defmodule Task.Supervised do
           stream_deliver({:cont, acc}, max + 1, spawned, delivered, waiting, next, config)
         else
           pair = deliver_now(result, acc, next, config)
+          waiting = Map.delete(waiting, position)
           stream_reduce(pair, max + 1, spawned, delivered + 1, waiting, next, config)
         end
 
