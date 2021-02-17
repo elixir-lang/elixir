@@ -223,7 +223,7 @@ defmodule IEx do
   First of all, we can only connect to a shell if we give names
   both to the current shell and the shell we want to connect to.
 
-  Let's give it a try. First start a new shell:
+  Let's give it a try. First, start a new shell:
 
       $ iex --sname foo
       iex(foo@HOST)1>

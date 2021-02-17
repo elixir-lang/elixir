@@ -6,7 +6,7 @@ defmodule Mix.Tasks.App.Start do
   @moduledoc """
   Starts all registered apps.
 
-  First this task guarantees that all dependencies are in place
+  First, this task guarantees that all dependencies are in place
   and that the current project has been compiled. Then, the current
   application is started as a temporary application, unless
   `:start_permanent` is set to `true` in your project configuration
