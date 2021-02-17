@@ -392,15 +392,8 @@ defmodule Task.Supervised do
             :erlang.raise(kind, reason, __STACKTRACE__)
         else
           pair ->
-            stream_deliver(
-              pair,
-              max,
-              spawned,
-              delivered + 1,
-              Map.delete(waiting, delivered),
-              next,
-              config
-            )
+            waiting = Map.delete(waiting, delivered)
+            stream_deliver(pair, max, spawned, delivered + 1, waiting, next, config)
         end
 
       %{} ->
