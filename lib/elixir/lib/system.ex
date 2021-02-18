@@ -43,7 +43,7 @@ defmodule System do
       system time may not match in case of time warps although the VM works towards
       aligning them. This time is not monotonic (i.e., it may decrease)
       as its behaviour is configured [by the VM time warp
-      mode](http://www.erlang.org/doc/apps/erts/time_correction.html#Time_Warp_Modes);
+      mode](https://erlang.org/doc/apps/erts/time_correction.html#Time_Warp_Modes);
 
     * `monotonic_time/0` - a monotonically increasing time provided
       by the Erlang VM.
@@ -58,7 +58,7 @@ defmodule System do
 
   For a more complete rundown on the VM support for different
   times, see the [chapter on time and time
-  correction](http://www.erlang.org/doc/apps/erts/time_correction.html)
+  correction](https://erlang.org/doc/apps/erts/time_correction.html)
   in the Erlang docs.
   """
 
