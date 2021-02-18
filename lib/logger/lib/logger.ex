@@ -16,7 +16,7 @@ defmodule Logger do
       performant when required but also apply backpressure
       when under stress.
 
-    * Integrates with Erlang's [`:logger`](http://erlang.org/doc/man/logger.html)
+    * Integrates with Erlang's [`:logger`](`:logger`)
       to convert terms to Elixir syntax.
 
   Logging is useful for tracking when an event of interest happens in your
@@ -320,7 +320,7 @@ defmodule Logger do
   Any developer can create their own `Logger` backend. Since `Logger`
   is an event manager powered by `:gen_event`, writing a new backend
   is a matter of creating an event handler, as described in the
-  [`:gen_event`](http://erlang.org/doc/man/gen_event.html) documentation.
+  [`:gen_event`](`:gen_event`) documentation.
 
   From now on, we will be using the term "event handler" to refer
   to your custom backend, as we head into implementation details.

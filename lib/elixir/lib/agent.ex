@@ -241,7 +241,7 @@ defmodule Agent do
   and the start function will return `{:error, :timeout}`.
 
   If the `:debug` option is present, the corresponding function in the
-  [`:sys` module](http://www.erlang.org/doc/man/sys.html) will be invoked.
+  [`:sys` module](`:sys`) will be invoked.
 
   If the `:spawn_opt` option is present, its value will be passed as options
   to the underlying process as in `Process.spawn/4`.
