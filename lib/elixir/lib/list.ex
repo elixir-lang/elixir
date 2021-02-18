@@ -912,7 +912,7 @@ defmodule List do
 
   Note that this function expects a list of integers representing
   Unicode code points. If you have a list of bytes, you must instead use
-  the [`:binary` module](http://www.erlang.org/doc/man/binary.html).
+  the [`:binary` module](`:binary`).
 
   ## Examples
 
@@ -967,7 +967,7 @@ defmodule List do
 
   Note that this function expects a list of integers representing
   Unicode code points. If you have a list of bytes, you must instead use
-  the [`:binary` module](http://www.erlang.org/doc/man/binary.html).
+  the [`:binary` module](`:binary`).
 
   ## Examples
 

@@ -122,7 +122,7 @@ Version | Deprecated feature                                  | Replaced by (ava
 [v1.5]  | `Atom.to_char_list/1`                               | `Atom.to_charlist/1` (v1.3)
 [v1.5]  | `Enum.filter_map/3`                                 | `Enum.filter/2` + `Enum.map/2` or [`for`](`Kernel.SpecialForms.for/1`) comprehensions (v1.0)
 [v1.5]  | `Float.to_char_list/1`                              | `Float.to_charlist/1` (v1.3)
-[v1.5]  | `GenEvent` module                                   | `Supervisor` and `GenServer` (v1.0);<br/>[`GenStage`](https://hex.pm/packages/gen_stage) (v1.3);<br/>[`:gen_event`](http://www.erlang.org/doc/man/gen_event.html) (Erlang/OTP 17)
+[v1.5]  | `GenEvent` module                                   | `Supervisor` and `GenServer` (v1.0);<br/>[`GenStage`](https://hex.pm/packages/gen_stage) (v1.3);<br/>[`:gen_event`](`:gen_event`) (Erlang/OTP 17)
 [v1.5]  | `<%=` in middle and end expressions in `EEx`        | Use `<%` (`<%=` is allowed only in start expressions) (v1.0)
 [v1.5]  | `:as_char_lists` value in `t:Inspect.Opts.t/0` type | `:as_charlists` value (v1.3)
 [v1.5]  | `:char_lists` key in `t:Inspect.Opts.t/0` type      | `:charlists` key (v1.3)

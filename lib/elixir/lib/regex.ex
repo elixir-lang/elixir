@@ -4,7 +4,7 @@ defmodule Regex do
 
   Regex is based on PCRE (Perl Compatible Regular Expressions) and
   built on top of Erlang's `:re` module. More information can be found
-  in the [`:re` module documentation](http://www.erlang.org/doc/man/re.html).
+  in the [`:re` module documentation](`:re`).
 
   Regular expressions in Elixir can be created using the sigils
   `~r` (see `Kernel.sigil_r/2`) or `~R` (see `Kernel.sigil_R/2`):
