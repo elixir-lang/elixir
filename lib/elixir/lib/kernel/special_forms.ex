@@ -1550,8 +1550,15 @@ defmodule Kernel.SpecialForms do
       ...> else
       ...>   :error ->
       ...>     {:error, :wrong_data}
+      ...>
+      ...>   _other_error ->
+      ...>     :unexpected_error
       ...> end
       {:error, :wrong_data}
+
+  The `else` block works like a `case` clause: it can have multiple clauses,
+  and the first match will be used. Variables bound inside `with` (such as
+  `width` in this example) are not available in the `else` block.
 
   If an `else` block is used and there are no matching clauses, a `WithClauseError`
   exception is raised.
