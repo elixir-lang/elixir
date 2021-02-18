@@ -133,7 +133,7 @@ defmodule String do
     * `Kernel.bit_size/1` and `Kernel.byte_size/1` - size related functions
     * `Kernel.is_bitstring/1` and `Kernel.is_binary/1` - type-check function
     * Plus a number of functions for working with binaries (bytes)
-      in the [`:binary` module](http://www.erlang.org/doc/man/binary.html)
+      in the [`:binary` module](`:binary`)
 
   There are many situations where using the `String` module can
   be avoided in favor of binary functions or pattern matching.
@@ -2309,7 +2309,7 @@ defmodule String do
   strings.
 
   In case you need to work with bytes, take a look at the
-  [`:binary` module](http://www.erlang.org/doc/man/binary.html).
+  [`:binary` module](`:binary`).
 
   ## Examples
 

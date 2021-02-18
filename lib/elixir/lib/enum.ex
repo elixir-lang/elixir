@@ -2180,7 +2180,7 @@ defmodule Enum do
 
   Raises `Enum.EmptyError` if `enumerable` is empty.
 
-  This function uses Erlang's [`:rand` module](http://www.erlang.org/doc/man/rand.html) to calculate
+  This function uses Erlang's [`:rand` module](`:rand`) to calculate
   the random value. Check its documentation for setting a
   different random algorithm or a different seed.
 
@@ -2509,7 +2509,7 @@ defmodule Enum do
   @doc """
   Returns a list with the elements of `enumerable` shuffled.
 
-  This function uses Erlang's [`:rand` module](http://www.erlang.org/doc/man/rand.html) to calculate
+  This function uses Erlang's [`:rand` module](`:rand`) to calculate
   the random value. Check its documentation for setting a
   different random algorithm or a different seed.
 
