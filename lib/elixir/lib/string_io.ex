@@ -415,7 +415,7 @@ defmodule StringIO do
   defp list_to_binary(data, :unicode) when is_list(data), do: List.to_string(data)
   defp list_to_binary(data, :latin1) when is_list(data), do: :erlang.list_to_binary(data)
 
-  # From http://erlang.org/doc/apps/stdlib/io_protocol.html: result can be any
+  # From https://erlang.org/doc/apps/stdlib/io_protocol.html: result can be any
   # Erlang term, but if it is a list(), the I/O server can convert it to a binary().
   defp get_until_result(data, encoding) when is_list(data), do: list_to_binary(data, encoding)
   defp get_until_result(data, _), do: data
