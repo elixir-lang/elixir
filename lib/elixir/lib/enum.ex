@@ -780,8 +780,18 @@ defmodule Enum do
 
   """
   @spec dedup(t) :: list
+  def dedup(enumerable) when is_list(enumerable) do
+    dedup_list(enumerable, []) |> :lists.reverse()
+  end
+
   def dedup(enumerable) do
-    dedup_by(enumerable, fn x -> x end)
+    Enum.reduce(enumerable, [], fn x, acc ->
+      case acc do
+        [^x, _] -> acc
+        _ -> [x | acc]
+      end
+    end)
+    |> :lists.reverse()
   end
 
   @doc """
@@ -3609,6 +3619,22 @@ defmodule Enum do
 
   defp any_list([], _) do
     false
+  end
+
+  # dedup
+
+  defp dedup_list([value | tail], acc) do
+    acc =
+      case acc do
+        [^value | _] -> acc
+        _ -> [value | acc]
+      end
+
+    dedup_list(tail, acc)
+  end
+
+  defp dedup_list([], acc) do
+    acc
   end
 
   ## drop
