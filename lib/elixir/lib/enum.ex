@@ -1365,6 +1365,13 @@ defmodule Enum do
 
   """
   @spec intersperse(t, element) :: list
+  def intersperse(enumerable, element) when is_list(enumerable) do
+    case enumerable do
+      [] -> []
+      list -> intersperse_non_empty_list(list, element)
+    end
+  end
+
   def intersperse(enumerable, element) do
     list =
       enumerable
@@ -3733,6 +3740,14 @@ defmodule Enum do
 
   defp flat_map_list([], _fun) do
     []
+  end
+
+  ## intersperse
+
+  defp intersperse_non_empty_list([head], _separator), do: [head]
+
+  defp intersperse_non_empty_list([head | rest], separator) do
+    [head, separator | intersperse_non_empty_list(rest, separator)]
   end
 
   ## map_intersperse
