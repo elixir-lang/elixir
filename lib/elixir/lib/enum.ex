@@ -1350,7 +1350,7 @@ defmodule Enum do
   end
 
   @doc """
-  Intersperses `element` between each element of the enumeration.
+  Intersperses `separator` between each element of the enumeration.
 
   ## Examples
 
@@ -1365,20 +1365,20 @@ defmodule Enum do
 
   """
   @spec intersperse(t, element) :: list
-  def intersperse(enumerable, element) when is_list(enumerable) do
+  def intersperse(enumerable, separator) when is_list(enumerable) do
     case enumerable do
       [] -> []
-      list -> intersperse_non_empty_list(list, element)
+      list -> intersperse_non_empty_list(list, separator)
     end
   end
 
-  def intersperse(enumerable, element) do
+  def intersperse(enumerable, separator) do
     list =
       enumerable
-      |> reduce([], fn x, acc -> [x, element | acc] end)
+      |> reduce([], fn x, acc -> [x, separator | acc] end)
       |> :lists.reverse()
 
-    # Head is a superfluous intersperser element
+    # Head is a superfluous separator
     case list do
       [] -> []
       [_ | t] -> t
