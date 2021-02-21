@@ -2494,6 +2494,15 @@ defmodule Enum do
 
   """
   @spec scan(t, (element, any -> any)) :: list
+  def scan(enumerable, fun)
+
+  def scan([], _fun), do: []
+
+  def scan([elem | rest], fun) do
+    scanned = scan_list(rest, elem, fun)
+    [elem | scanned]
+  end
+
   def scan(enumerable, fun) do
     {res, _} = reduce(enumerable, {[], :first}, R.scan2(fun))
     :lists.reverse(res)
@@ -2511,6 +2520,10 @@ defmodule Enum do
 
   """
   @spec scan(t, any, (element, any -> any)) :: list
+  def scan(enumerable, acc, fun) when is_list(enumerable) do
+    scan_list(enumerable, acc, fun)
+  end
+
   def scan(enumerable, acc, fun) do
     {res, _} = reduce(enumerable, {[], acc}, R.scan3(fun))
     :lists.reverse(res)
@@ -3784,6 +3797,15 @@ defmodule Enum do
 
   defp head_slice([elem | rest], count, acc) do
     head_slice(rest, count - 1, [elem | acc])
+  end
+
+  ## scan
+
+  defp scan_list([], _acc, _fun), do: []
+
+  defp scan_list([elem | rest], acc, fun) do
+    acc = fun.(elem, acc)
+    [acc | scan_list(rest, acc, fun)]
   end
 
   ## shuffle
