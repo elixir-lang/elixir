@@ -1595,7 +1595,7 @@ defmodule String do
   @compile {:inline, duplicate: 2}
 
   @doc """
-  Returns a string `subject` duplicated `n` times.
+  Returns a string `subject` repeated `n` times.
 
   Inlined by the compiler.
 
