@@ -1514,6 +1514,10 @@ defmodule Enum do
     |> IO.iodata_to_binary()
   end
 
+  def join(enumerable, joiner) when is_list(enumerable) and is_binary(joiner) do
+    join_list(enumerable, joiner)
+  end
+
   def join(enumerable, joiner) when is_binary(joiner) do
     reduced =
       reduce(enumerable, :first, fn
@@ -3748,6 +3752,22 @@ defmodule Enum do
 
   defp intersperse_non_empty_list([head | rest], separator) do
     [head, separator | intersperse_non_empty_list(rest, separator)]
+  end
+
+  ## join
+
+  defp join_list([], _joiner), do: ""
+
+  defp join_list(list, joiner) do
+    join_non_empty_list(list, joiner, [])
+    |> :lists.reverse()
+    |> IO.iodata_to_binary()
+  end
+
+  defp join_non_empty_list([first], _joiner, acc), do: [entry_to_string(first) | acc]
+
+  defp join_non_empty_list([first | rest], joiner, acc) do
+    join_non_empty_list(rest, joiner, [joiner, entry_to_string(first) | acc])
   end
 
   ## map_intersperse
