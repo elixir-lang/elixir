@@ -1508,14 +1508,14 @@ defmodule Enum do
   @spec join(t, String.t()) :: String.t()
   def join(enumerable, joiner \\ "")
 
-  def join(enumerable, joiner) when is_list(enumerable) and is_binary(joiner) do
-    join_list(enumerable, joiner)
-  end
-
   def join(enumerable, "") do
     enumerable
     |> map(&entry_to_string(&1))
     |> IO.iodata_to_binary()
+  end
+
+  def join(enumerable, joiner) when is_list(enumerable) and is_binary(joiner) do
+    join_list(enumerable, joiner)
   end
 
   def join(enumerable, joiner) when is_binary(joiner) do
@@ -3759,18 +3759,9 @@ defmodule Enum do
   defp join_list([], _joiner), do: ""
 
   defp join_list(list, joiner) do
-    case joiner do
-      "" -> do_join_list(list, [])
-      _ -> join_non_empty_list(list, joiner, [])
-    end
+    join_non_empty_list(list, joiner, [])
     |> :lists.reverse()
     |> IO.iodata_to_binary()
-  end
-
-  defp do_join_list([], acc), do: acc
-
-  defp do_join_list([first | rest], acc) do
-    do_join_list(rest, [entry_to_string(first) | acc])
   end
 
   defp join_non_empty_list([first], _joiner, acc), do: [entry_to_string(first) | acc]
