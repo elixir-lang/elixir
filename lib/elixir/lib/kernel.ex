@@ -276,6 +276,10 @@ defmodule Kernel do
   Invokes the given anonymous function `fun` with the list of
   arguments `args`.
 
+  If the number of arguments is known at compile time, prefer
+  `fun.(arg_1, arg_2, ..., arg_n)` as it is clearer than
+  `apply(fun, [arg_1, arg_2, ..., arg_n])`.
+
   Inlined by the compiler.
 
   ## Examples
@@ -296,6 +300,10 @@ defmodule Kernel do
   `apply/3` is used to invoke functions where the module, function
   name or arguments are defined dynamically at runtime. For this
   reason, you can't invoke macros using `apply/3`, only functions.
+
+  If the number of arguments and the function name are known at compile time,
+  prefer `module.function(arg_1, arg_2, ..., arg_n)` as it is clearer than
+  `apply(module, :function, [arg_1, arg_2, ..., arg_n])`.
 
   Inlined by the compiler.
 
