@@ -480,7 +480,6 @@ defmodule Mix.UmbrellaTest do
 
       Mix.Project.in_project(:bar, "bar", [deps: deps], fn _ ->
         Mix.Task.run("compile", ["--verbose"])
-        mtime = File.stat!("../foo/lib/foo.ex").mtime
 
         File.write!("../foo/lib/foo.ex", """
         defmodule Foo.VeryNew do
@@ -496,6 +495,8 @@ defmodule Mix.UmbrellaTest do
 
         Mix.Task.clear()
         Application.unload(:foo)
+
+        mtime = File.stat!("_build/dev/lib/bar/.mix/compile.elixir").mtime
         ensure_touched("../foo/lib/foo.ex", mtime)
 
         assert Mix.Task.run("compile", ["--verbose"]) == {:ok, []}
