@@ -276,7 +276,7 @@ defmodule Kernel do
   Invokes the given anonymous function `fun` with the list of
   arguments `args`.
 
-  If the number of arguments and the function name are known at compile time,
+  If the number of arguments is known at compile time,
   use `fun.(arg_1, arg_2, ..., arg_n)` instead of
   `apply(fun, [arg_1, arg_2, ..., arg_n])`.
 
