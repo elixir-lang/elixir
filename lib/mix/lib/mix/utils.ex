@@ -443,7 +443,7 @@ defmodule Mix.Utils do
             {:error, reason} ->
               reason = IO.iodata_to_binary(:file.format_error(reason))
 
-              Mix.error("""
+              Mix.raise("""
               Cannot remove symlink #{inspect(target)} due to reason: #{reason}"
 
                 * Make sure you have permission to access the _build directory
