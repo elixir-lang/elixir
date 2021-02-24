@@ -91,7 +91,7 @@ defmodule Mix.Tasks.Profile.Fprof do
   ## Caveats
 
   You should be aware that the code being profiled is running in an anonymous
-  function which is invoked by [`:fprof` module](http://wwww.erlang.org/doc/man/fprof.html).
+  function which is invoked by [`:fprof` module](https://erlang.org/doc/man/fprof.html).
   Thus, you'll see some additional entries in your profile output,
   such as `:fprof` calls, an anonymous
   function with high ACC time, or an `:undefined` function which represents
