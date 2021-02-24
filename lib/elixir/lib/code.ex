@@ -306,21 +306,33 @@ defmodule Code do
 
   ## Examples
 
-      iex> Code.eval_string("a + b", [a: 1, b: 2], file: __ENV__.file, line: __ENV__.line)
-      {3, [a: 1, b: 2]}
+      iex> {result, binding} = Code.eval_string("a + b", [a: 1, b: 2], file: __ENV__.file, line: __ENV__.line)
+      iex> result
+      3
+      iex> Enum.sort(binding)
+      [a: 1, b: 2]
 
-      iex> Code.eval_string("c = a + b", [a: 1, b: 2], __ENV__)
-      {3, [a: 1, b: 2, c: 3]}
+      iex> {result, binding} = Code.eval_string("c = a + b", [a: 1, b: 2], __ENV__)
+      iex> result
+      3
+      iex> Enum.sort(binding)
+      [a: 1, b: 2, c: 3]
 
-      iex> Code.eval_string("a = a + b", [a: 1, b: 2])
-      {3, [a: 3, b: 2]}
+      iex> {result, binding} = Code.eval_string("a = a + b", [a: 1, b: 2])
+      iex> result
+      3
+      iex> Enum.sort(binding)
+      [a: 3, b: 2]
 
   For convenience, you can pass `__ENV__/0` as the `opts` argument and
   all imports, requires and aliases defined in the current environment
   will be automatically carried over:
 
-      iex> Code.eval_string("a + b", [a: 1, b: 2], __ENV__)
-      {3, [a: 1, b: 2]}
+      iex> {result, binding} = Code.eval_string("a + b", [a: 1, b: 2], __ENV__)
+      iex> result
+      3
+      iex> Enum.sort(binding)
+      [a: 1, b: 2]
 
   """
   @spec eval_string(List.Chars.t(), binding, Macro.Env.t() | keyword) :: {term, binding}
@@ -679,15 +691,21 @@ defmodule Code do
   ## Examples
 
       iex> contents = quote(do: var!(a) + var!(b))
-      iex> Code.eval_quoted(contents, [a: 1, b: 2], file: __ENV__.file, line: __ENV__.line)
-      {3, [a: 1, b: 2]}
+      iex> {result, binding} = Code.eval_quoted(contents, [a: 1, b: 2], file: __ENV__.file, line: __ENV__.line)
+      iex> result
+      3
+      iex> Enum.sort(binding)
+      [a: 1, b: 2]
 
   For convenience, you can pass `__ENV__/0` as the `opts` argument and
   all options will be automatically extracted from the current environment:
 
       iex> contents = quote(do: var!(a) + var!(b))
-      iex> Code.eval_quoted(contents, [a: 1, b: 2], __ENV__)
-      {3, [a: 1, b: 2]}
+      iex> {result, binding} = Code.eval_quoted(contents, [a: 1, b: 2], __ENV__)
+      iex> result
+      3
+      iex> Enum.sort(binding)
+      [a: 1, b: 2]
 
   """
   @spec eval_quoted(Macro.t(), binding, Macro.Env.t() | keyword) :: {term, binding}

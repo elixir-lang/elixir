@@ -72,7 +72,7 @@ dump_binding(Binding, #{current_vars := {ExVars, _}}, #elixir_erl{var_names=ErlV
 
       ErlName = maps:get(Version, ErlVars),
       Value = find_binding(ErlName, Binding),
-      orddict:store(Key, Value, Acc);
+      [{Key, Value} | Acc];
     (_, _, Acc) ->
       Acc
   end, [], ExVars).
