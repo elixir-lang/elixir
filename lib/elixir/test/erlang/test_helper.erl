@@ -4,8 +4,6 @@
   atom_test,
   control_test,
   function_test,
-  match_test,
-  operators_test,
   string_test,
   tokenizer_test
 ]).
