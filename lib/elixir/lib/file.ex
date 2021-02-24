@@ -1352,7 +1352,7 @@ defmodule File do
 
     * `:delayed_write`, `:raw`, `:ram`, `:read_ahead`, `:sync`, `{:encoding, ...}`,
       `{:read_ahead, pos_integer}`, `{:delayed_write, non_neg_integer, non_neg_integer}` -
-      for more information about these options see `:file.open/2`.
+      for more information about these options see [`:file.open/2`](https://erlang.org/doc/man/file.html#open-2).
 
   This function returns:
 
