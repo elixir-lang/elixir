@@ -48,7 +48,7 @@ load_binding(Binding, #{current_vars := {ExVars, _}}, #elixir_erl{var_names=ErlV
   %% TODO: Remove me once we require Erlang/OTP 24+
   %% Also revisit dump_binding below.
   Mod =
-    case erlang:system_info(otp_release) >= '24' of
+    case erlang:system_info(otp_release) >= "24" of
       true -> maps;
       false -> orddict
     end,
