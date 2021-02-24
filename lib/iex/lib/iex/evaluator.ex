@@ -59,7 +59,7 @@ defmodule IEx.Evaluator do
   @break_trigger "#iex:break\n"
 
   @op_tokens [:or_op, :and_op, :comp_op, :rel_op, :arrow_op, :in_op] ++
-               [:three_op, :concat_op, :dual_op, :mult_op]
+               [:three_op, :concat_op, :mult_op]
 
   @doc false
   def parse(input, opts, buffer)

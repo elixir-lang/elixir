@@ -1117,6 +1117,8 @@ defmodule IEx.HelpersTest do
         assert capture_iex("42\n  #{op} IO.puts()") =~ "undefined function #{op}/2"
       end)
 
+      assert capture_iex("+42") =~ "42"
+      assert capture_iex("-42") =~ "-42"
       assert capture_iex("42\n |> IO.inspect(label: \"foo\")") =~ "foo: 42"
       assert capture_iex("[42]\n++ [24]\n|> IO.inspect(label: \"foo\")") =~ "foo: [42, 24]"
       assert capture_iex("|> IO.puts()") =~ "(RuntimeError) v(-1) is out of bounds"
