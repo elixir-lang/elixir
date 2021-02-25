@@ -597,6 +597,9 @@ defmodule System do
     end
   end
 
+  # TODO: Remove this once we require Erlang/OTP 24+
+  @compile {:no_warn_undefined, {:os, :env, 0}}
+
   @doc """
   Returns all system environment variables.
 
