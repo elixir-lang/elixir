@@ -675,26 +675,31 @@ defmodule Module.Types.UnifyTest do
   end
 
   test "expand_union/1" do
-    assert expand_union(:binary) == :binary
-    assert expand_union({:atom, :foo}) == {:atom, :foo}
-    assert expand_union({:union, [:binary, {:atom, :foo}]}) == {:union, [:binary, {:atom, :foo}]}
+    assert expand_union(:binary) == [:binary]
+    assert expand_union({:atom, :foo}) == [{:atom, :foo}]
+    assert expand_union({:union, [:binary, {:atom, :foo}]}) == [:binary, {:atom, :foo}]
+
+    assert expand_union({:union, [{:union, [:integer, :binary]}, {:atom, :foo}]}) == [
+             :integer,
+             :binary,
+             {:atom, :foo}
+           ]
 
     assert expand_union({:tuple, 2, [:binary, {:atom, :foo}]}) ==
-             {:tuple, 2, [:binary, {:atom, :foo}]}
+             [{:tuple, 2, [:binary, {:atom, :foo}]}]
 
     assert expand_union({:tuple, 1, [{:union, [:binary, :integer]}]}) ==
-             {:union, [{:tuple, 1, [:binary]}, {:tuple, 1, [:integer]}]}
+             [{:tuple, 1, [:binary]}, {:tuple, 1, [:integer]}]
 
     assert expand_union(
              {:tuple, 2, [{:union, [:binary, :integer]}, {:union, [:binary, :integer]}]}
            ) ==
-             {:union,
-              [
-                {:tuple, 2, [:binary, :binary]},
-                {:tuple, 2, [:binary, :integer]},
-                {:tuple, 2, [:integer, :binary]},
-                {:tuple, 2, [:integer, :integer]}
-              ]}
+             [
+               {:tuple, 2, [:binary, :binary]},
+               {:tuple, 2, [:binary, :integer]},
+               {:tuple, 2, [:integer, :binary]},
+               {:tuple, 2, [:integer, :integer]}
+             ]
   end
 
   test "format_type/1" do

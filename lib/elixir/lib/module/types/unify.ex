@@ -21,7 +21,7 @@ defmodule Module.Types.Unify do
   #   {:tuple, size, [type]} < :tuple
   #   {:union, [type]}
   #   {:map, [{:required | :optional, key_type, value_type}]}
-  #   [{params, return}]
+  #   {:fun, [{params, return}]}
   #
   # Once new types are added, they should be considered in:
   #
@@ -33,6 +33,7 @@ defmodule Module.Types.Unify do
   #   * collect_var_indexes (composite only)
   #   * lift_types (composite only)
   #   * expand_union (composite only)
+  #   * walk (composite only)
   #
 
   @doc """
@@ -508,9 +509,9 @@ defmodule Module.Types.Unify do
     end)
   end
 
-  defp recursive_type?(signature, parents, context) when is_list(signature) do
-    Enum.any?(signature, fn {args, return} ->
-      Enum.any?([return | args], &recursive_type?(&1, [signature | parents], context))
+  defp recursive_type?({:fun, clauses}, parents, context) do
+    Enum.any?(clauses, fn {args, return} ->
+      Enum.any?([return | args], &recursive_type?(&1, [clauses | parents], context))
     end)
   end
 
@@ -551,8 +552,8 @@ defmodule Module.Types.Unify do
     end)
   end
 
-  def collect_var_indexes(signature, context, acc) when is_list(signature) do
-    Enum.reduce(signature, acc, fn {params, return}, acc ->
+  def collect_var_indexes({:fun, clauses}, context, acc) do
+    Enum.reduce(clauses, acc, fn {params, return}, acc ->
       Enum.reduce([return | params], acc, &collect_var_indexes(&1, context, &2))
     end)
   end
@@ -584,8 +585,8 @@ defmodule Module.Types.Unify do
     end)
   end
 
-  def has_unbound_var?(signature, context) when is_list(signature) do
-    Enum.any?(signature, fn {params, return} ->
+  def has_unbound_var?({:fun, clauses}, context) do
+    Enum.any?(clauses, fn {params, return} ->
       Enum.any?([return | params], &has_unbound_var?(&1, context))
     end)
   end
@@ -799,14 +800,14 @@ defmodule Module.Types.Unify do
     {{:list, type}, context}
   end
 
-  defp lift_type(signature, context) when is_list(signature) do
-    signature =
-      Enum.map_reduce(signature, context, fn {args, return}, context ->
+  defp lift_type({:fun, clauses}, context) do
+    clauses =
+      Enum.map_reduce(clauses, context, fn {args, return}, context ->
         {[return | args], context} = Enum.map_reduce([return | args], context, &lift_type/2)
         {{args, return}, context}
       end)
 
-    {signature, context}
+    {{:fun, clauses}, context}
   end
 
   defp lift_type(other, context) do
@@ -823,28 +824,37 @@ defmodule Module.Types.Unify do
   end
 
   # TODO: Figure out function expansion
+  # TODO: Flatten across type variables
 
-  def expand_union({:tuple, num, types}) do
-    to_union_simple(expand_union_tuple(types, num, []))
-  end
-
-  def expand_union({:list, type}) do
-    case expand_union(type) do
-      {:union, union_types} -> to_union_simple(Enum.map(union_types, &{:list, &1}))
-      _type -> {:list, type}
-    end
-  end
-
-  def expand_union({:map, pairs}) do
-    to_union_simple(expand_union_map(pairs, []))
+  def expand_union({:union, types}) do
+    Enum.flat_map(types, &expand_union/1)
   end
 
   def expand_union(type) do
+    List.wrap(do_expand_union(type))
+  end
+
+  def do_expand_union({:tuple, num, types}) do
+    expand_union_tuple(types, num, [])
+  end
+
+  def do_expand_union({:list, type}) do
+    case do_expand_union(type) do
+      {:union, union_types} -> Enum.map(union_types, &{:list, &1})
+      _type -> [{:list, type}]
+    end
+  end
+
+  def do_expand_union({:map, pairs}) do
+    expand_union_map(pairs, [])
+  end
+
+  def do_expand_union(type) do
     type
   end
 
   defp expand_union_tuple([type | types], num, acc) do
-    case expand_union(type) do
+    case do_expand_union(type) do
       {:union, union_types} ->
         Enum.flat_map(union_types, &expand_union_tuple(types, num, [&1 | acc]))
 
@@ -858,7 +868,7 @@ defmodule Module.Types.Unify do
   end
 
   defp expand_union_map([{kind, key, value} | pairs], acc) do
-    case expand_union(key) do
+    case do_expand_union(key) do
       {:union, union_types} ->
         Enum.flat_map(union_types, &expand_union_map_value(kind, &1, value, pairs, acc))
 
@@ -872,7 +882,7 @@ defmodule Module.Types.Unify do
   end
 
   defp expand_union_map_value(kind, key, value, pairs, acc) do
-    case expand_union(value) do
+    case do_expand_union(value) do
       {:union, union_types} ->
         Enum.flat_map(union_types, &expand_union_map(pairs, [{kind, key, &1} | acc]))
 
@@ -880,9 +890,6 @@ defmodule Module.Types.Unify do
         expand_union_map(pairs, [{kind, key, value} | acc])
     end
   end
-
-  defp to_union_simple([type]), do: type
-  defp to_union_simple(types) when types != [], do: {:union, types}
 
   @doc """
   Formats types.
@@ -930,8 +937,8 @@ defmodule Module.Types.Unify do
     "var#{index + 1}"
   end
 
-  def format_type(signature, simplify?) when is_list(signature) do
-    Enum.map_join(signature, "; ", fn {params, return} ->
+  def format_type({:fun, clauses}, simplify?) do
+    Enum.map_join(clauses, "; ", fn {params, return} ->
       params = Enum.map_join(params, &format_type(&1, simplify?), ", ")
       return = format_type(return, simplify?)
       "((#{params}) -> #{return})"
@@ -956,5 +963,46 @@ defmodule Module.Types.Unify do
       {:optional, left, right} ->
         "optional(#{format_type(left, false)}) => #{format_type(right, false)}"
     end)
+  end
+
+  def walk({:map, pairs}, acc, fun) do
+    {pairs, acc} =
+      Enum.map_reduce(pairs, acc, fn {kind, key, value}, acc ->
+        {key, acc} = walk(key, acc, fun)
+        {value, acc} = walk(value, acc, fun)
+        {{kind, key, value}, acc}
+      end)
+
+    fun.({:map, pairs}, acc)
+  end
+
+  def walk({:union, types}, acc, fun) do
+    {types, acc} = Enum.map_reduce(types, acc, &walk(&1, &2, fun))
+    fun.({:union, types}, acc)
+  end
+
+  def walk({:tuple, num, types}, acc, fun) do
+    {types, acc} = Enum.map_reduce(types, acc, &walk(&1, &2, fun))
+    fun.({:tuple, num, types}, acc)
+  end
+
+  def walk({:list, type}, acc, fun) do
+    type = walk(type, acc, fun)
+    fun.({:list, type}, acc)
+  end
+
+  def walk({:fun, clauses}, acc, fun) do
+    {clauses, acc} =
+      Enum.map_reduce(clauses, acc, fn {params, return}, acc ->
+        {params, acc} = Enum.map_reduce(params, acc, &walk(&1, &2, fun))
+        {return, acc} = walk(return, acc, fun)
+        {{params, return}, acc}
+      end)
+
+    fun.({:fun, clauses}, acc)
+  end
+
+  def walk(type, acc, fun) do
+    fun.(type, acc)
   end
 end

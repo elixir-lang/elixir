@@ -267,8 +267,10 @@ defmodule Module.Types.Pattern do
         {:ok, return_type, %{context | guard_sources: guard_sources}}
       end
     else
-      [{_param_types, return_type}] = signature
-      {:ok, return_type, context}
+      case map_reduce_ok(args, context, &of_guard(&1, :dynamic, stack, &2)) do
+        {:ok, arg_types, context} -> unify_call(arg_types, signature, expected, stack, context)
+        {:error, reason} -> {:error, reason}
+      end
     end
   end
 
@@ -301,21 +303,105 @@ defmodule Module.Types.Pattern do
     Map.keys(vars)
   end
 
-  defp unify_call(args, signature, _expected, stack, context) do
-    Enum.find_value(signature, fn {params, return} ->
-      result =
-        reduce_ok(Enum.zip(args, params), context, fn {arg, param}, context ->
-          case unify(arg, param, stack, context) do
-            {:ok, _, context} -> {:ok, context}
-            {:error, reason} -> {:error, reason}
-          end
-        end)
+  defp unify_call([], [{[], return}], _expected, _stack, context) do
+    {:ok, return, context}
+  end
 
-      case result do
-        {:ok, context} -> {:ok, return, context}
-        {:error, _reason} -> nil
-      end
-    end) || error(:unable_apply, {args, signature, stack}, context)
+  defp unify_call(args, [{params, _return} | _] = clauses, _expected, stack, context)
+       when length(args) != length(params) do
+    error(:unable_apply, {args, clauses, stack}, context)
+  end
+
+  defp unify_call(args, clauses, _expected, stack, context) do
+    expanded_args =
+      args
+      |> Enum.map(&expand_union/1)
+      |> cartesian_product()
+
+    clauses =
+      Enum.map(clauses, fn {params, return} ->
+        {Enum.map(params, &var_to_dynamic/1), return}
+      end)
+
+    result =
+      flat_map_ok(expanded_args, fn expanded_args ->
+        result =
+          Enum.flat_map(clauses, fn {params, return} ->
+            result =
+              map_ok(Enum.zip(expanded_args, params), fn {arg, param} ->
+                case unify(arg, param, stack, context) do
+                  {:ok, _type, context} -> {:ok, context}
+                  {:error, reason} -> {:error, reason}
+                end
+              end)
+
+            case result do
+              {:ok, contexts} -> [{return, contexts}]
+              {:error, _reason} -> []
+            end
+          end)
+
+        if result != [] do
+          {:ok, result}
+        else
+          {:error, args}
+        end
+      end)
+
+    case result do
+      {:ok, returns_contexts} ->
+        {success_returns, contexts} = Enum.unzip(returns_contexts)
+        contexts = Enum.concat(contexts)
+        indexes = Enum.uniq(Enum.flat_map(args, &collect_var_indexes_from_type/1))
+
+        result =
+          map_reduce_ok(indexes, context, fn index, context ->
+            union = to_union(Enum.map(contexts, &Map.fetch!(&1.types, index)), context)
+            unify({:var, index}, union, stack, context)
+          end)
+
+        case result do
+          {:ok, _types, context} -> {:ok, to_union(success_returns, context), context}
+          {:error, reason} -> {:error, reason}
+        end
+
+      {:error, args} ->
+        error(:unable_apply, {args, clauses, stack}, context)
+    end
+  end
+
+  defp cartesian_product(lists) do
+    List.foldr(lists, [[]], fn list, acc ->
+      for elem_list <- list,
+          list_acc <- acc,
+          do: [elem_list | list_acc]
+    end)
+  end
+
+  defp var_to_dynamic(type) do
+    {type, _acc} =
+      walk(type, :ok, fn
+        {:var, _index}, :ok ->
+          {:dynamic, :ok}
+
+        other, :ok ->
+          {other, :ok}
+      end)
+
+    type
+  end
+
+  defp collect_var_indexes_from_type(type) do
+    {_type, indexes} =
+      walk(type, [], fn
+        {:var, index}, indexes ->
+          {{:var, index}, [index | indexes]}
+
+        other, indexes ->
+          {other, indexes}
+      end)
+
+    indexes
   end
 
   defp merge_context_or(left_indexes, right_indexes, context, stack, left, right) do

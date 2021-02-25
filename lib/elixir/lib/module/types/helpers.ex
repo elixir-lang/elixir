@@ -101,6 +101,22 @@ defmodule Module.Types.Helpers do
 
   defp do_map_reduce_ok([], {list, acc}, _fun), do: {:ok, Enum.reverse(list), acc}
 
+  def flat_map_ok(list, fun) do
+    do_flat_map_ok(list, [], fun)
+  end
+
+  defp do_flat_map_ok([head | tail], acc, fun) do
+    case fun.(head) do
+      {:ok, elem} ->
+        do_flat_map_ok(tail, [elem | acc], fun)
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp do_flat_map_ok([], acc, _fun), do: {:ok, Enum.reverse(Enum.concat(acc))}
+
   def flat_map_reduce_ok(list, acc, fun) do
     do_flat_map_reduce_ok(list, {[], acc}, fun)
   end

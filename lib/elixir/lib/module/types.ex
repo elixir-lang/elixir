@@ -210,6 +210,10 @@ defmodule Module.Types do
 
   ## FORMAT WARNINGS
 
+  def format_warning({:unable_apply, args, signature, {location, expr, _traces}}) do
+    inspect({:unable_apply, args, signature, location, Macro.to_string(expr)})
+  end
+
   def format_warning({:unable_unify, left, right, {location, expr, traces}}) do
     cond do
       map_type?(left) and map_type?(right) and match?({:ok, _, _}, missing_field(left, right)) ->
