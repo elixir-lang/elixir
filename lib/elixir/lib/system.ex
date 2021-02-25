@@ -604,12 +604,21 @@ defmodule System do
   Variable names and their values are strings.
   """
   @spec get_env() :: %{optional(String.t()) => String.t()}
-  def get_env do
-    Enum.into(:os.getenv(), %{}, fn var ->
-      var = IO.chardata_to_string(var)
-      [k, v] = String.split(var, "=", parts: 2)
-      {k, v}
-    end)
+
+  if function_exported?(:os, :env, 0) do
+    def get_env do
+      Map.new(:os.env(), fn {k, v} ->
+        {IO.chardata_to_string(k), IO.chardata_to_string(v)}
+      end)
+    end
+  else
+    def get_env do
+      Enum.into(:os.getenv(), %{}, fn var ->
+        var = IO.chardata_to_string(var)
+        [k, v] = String.split(var, "=", parts: 2)
+        {k, v}
+      end)
+    end
   end
 
   @doc """
