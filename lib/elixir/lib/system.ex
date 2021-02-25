@@ -597,19 +597,29 @@ defmodule System do
     end
   end
 
+  # TODO: Remove this once we require Erlang/OTP 24+
+  @compile {:no_warn_undefined, {:os, :env, 0}}
+
   @doc """
   Returns all system environment variables.
 
   The returned value is a map containing name-value pairs.
   Variable names and their values are strings.
   """
+  # TODO: Remove this once we require Erlang/OTP 24+
   @spec get_env() :: %{optional(String.t()) => String.t()}
   def get_env do
-    Enum.into(:os.getenv(), %{}, fn var ->
-      var = IO.chardata_to_string(var)
-      [k, v] = String.split(var, "=", parts: 2)
-      {k, v}
-    end)
+    if function_exported?(:os, :env, 0) do
+      Map.new(:os.env(), fn {k, v} ->
+        {IO.chardata_to_string(k), IO.chardata_to_string(v)}
+      end)
+    else
+      Enum.into(:os.getenv(), %{}, fn var ->
+        var = IO.chardata_to_string(var)
+        [k, v] = String.split(var, "=", parts: 2)
+        {k, v}
+      end)
+    end
   end
 
   @doc """
