@@ -52,7 +52,7 @@ defmodule GenServer do
       GenServer.call(pid, :pop)
       #=> :world
 
-  We start our `Stack` by calling `start_link/2`, passing the module
+  We start our `Stack` by calling `start_link/3`, passing the module
   with the server implementation and its initial argument (a list
   representing the stack containing the element `:hello`). We can primarily
   interact with the server by sending two types of messages. **call**
