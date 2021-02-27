@@ -10,7 +10,7 @@ defmodule Mix.Tasks.Profile.Fprof do
   sequential code.
 
   Before running the code, it invokes the `app.start` task which compiles
-  and loads your project. Then the target expression is profiled, together
+  and loads your project. After that, the target expression is profiled, together
   with all processes which are spawned by it. Other processes (for example, those
   residing in the OTP application supervision tree) are not profiled.
 
@@ -86,12 +86,12 @@ defmodule Mix.Tasks.Profile.Fprof do
   the total time spent in the function was 50ms.
 
   For a detailed explanation it's worth reading the analysis in
-  [Erlang/OTP documentation for fprof](http://www.erlang.org/doc/man/fprof.html#analysis).
+  [Erlang/OTP documentation for fprof](https://erlang.org/doc/man/fprof.html#analysis).
 
   ## Caveats
 
   You should be aware that the code being profiled is running in an anonymous
-  function which is invoked by [`:fprof` module](http://wwww.erlang.org/doc/man/fprof.html).
+  function which is invoked by [`:fprof` module](https://erlang.org/doc/man/fprof.html).
   Thus, you'll see some additional entries in your profile output,
   such as `:fprof` calls, an anonymous
   function with high ACC time, or an `:undefined` function which represents

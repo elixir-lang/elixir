@@ -636,13 +636,15 @@ defmodule Macro do
   expanding structs defined under the module being compiled.
 
   It will raise `CompileError` if the struct is not available.
+  From Elixir v1.12, calling this function also adds an export
+  dependency on the given struct.
   """
   @doc since: "1.8.0"
   @spec struct!(module, Macro.Env.t()) :: %{__struct__: module} when module: module()
   def struct!(module, env) when is_atom(module) do
     if module == env.module do
       Module.get_attribute(module, :__struct__)
-    end || :elixir_map.load_struct([line: env.line], module, [], env)
+    end || :elixir_map.load_struct([line: env.line], module, [], [], env)
   end
 
   @doc """
@@ -1669,7 +1671,8 @@ defmodule Macro do
   end
 
   defp do_underscore(<<h, t, rest::binary>>, _)
-       when h >= ?A and h <= ?Z and not (t >= ?A and t <= ?Z) and t != ?. and t != ?_ do
+       when h >= ?A and h <= ?Z and not (t >= ?A and t <= ?Z) and not (t >= ?0 and t <= ?9) and
+              t != ?. and t != ?_ do
     <<?_, to_lower_char(h), t>> <> do_underscore(rest, t)
   end
 

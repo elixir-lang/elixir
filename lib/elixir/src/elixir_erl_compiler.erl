@@ -135,6 +135,17 @@ custom_format(sys_core_fold, nomatch_guard) ->
   "this check/guard will always yield the same result";
 
 %% Handle literal eval failures
+custom_format(sys_core_fold, {eval_failure, {Mod, Name, Arity}, Error}) ->
+  #{'__struct__' := Struct} = 'Elixir.Exception':normalize(error, Error),
+  {ExMod, ExName, ExArgs} = elixir_rewrite:erl_to_ex(Mod, Name, lists:duplicate(Arity, nil)),
+  Call = 'Elixir.Exception':format_mfa(ExMod, ExName, length(ExArgs)),
+  Trimmed = case Call of
+              <<"Kernel.", Rest/binary>> -> Rest;
+              _ -> Call
+            end,
+  ["the call to ", Trimmed, " will fail with ", elixir_aliases:inspect(Struct)];
+
+%% TODO: remove when we require OTP 24
 custom_format(sys_core_fold, {eval_failure, Error}) ->
   #{'__struct__' := Struct} = 'Elixir.Exception':normalize(error, Error),
   ["this expression will fail with ", elixir_aliases:inspect(Struct)];

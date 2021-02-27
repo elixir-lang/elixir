@@ -2387,17 +2387,49 @@ defmodule Kernel.ExpansionTest do
       end
     end
 
-    test "raises for invalid size * unit for floats" do
-      message = ~r"float requires size\*unit to be 32 or 64 \(default\), got: 128"
+    # TODO: Simplify when we require OTP 24
+    if System.otp_release() >= "24" do
+      test "16-bit floats" do
+        import Kernel, except: [-: 2]
 
-      assert_raise CompileError, message, fn ->
-        expand(quote(do: <<12.3::32*4>>))
+        assert expand(quote(do: <<12.3::float-16>>)) |> clean_meta([:alignment]) ==
+                 quote(do: <<12.3::float()-size(16)>>)
       end
 
-      message = ~r"float requires size\*unit to be 32 or 64 \(default\), got: 256"
+      test "raises for invalid size * unit for floats" do
+        message = ~r"float requires size\*unit to be 16, 32, or 64 \(default\), got: 128"
 
-      assert_raise CompileError, message, fn ->
-        expand(quote(do: <<12.3::256>>))
+        assert_raise CompileError, message, fn ->
+          expand(quote(do: <<12.3::32*4>>))
+        end
+
+        message = ~r"float requires size\*unit to be 16, 32, or 64 \(default\), got: 256"
+
+        assert_raise CompileError, message, fn ->
+          expand(quote(do: <<12.3::256>>))
+        end
+      end
+    else
+      test "16-bit floats" do
+        message = ~r"float requires size\*unit to be 32 or 64 \(default\), got: 16"
+
+        assert_raise CompileError, message, fn ->
+          expand(quote(do: <<12.3::16>>))
+        end
+      end
+
+      test "raises for invalid size * unit for floats" do
+        message = ~r"float requires size\*unit to be 32 or 64 \(default\), got: 128"
+
+        assert_raise CompileError, message, fn ->
+          expand(quote(do: <<12.3::32*4>>))
+        end
+
+        message = ~r"float requires size\*unit to be 32 or 64 \(default\), got: 256"
+
+        assert_raise CompileError, message, fn ->
+          expand(quote(do: <<12.3::256>>))
+        end
       end
     end
 

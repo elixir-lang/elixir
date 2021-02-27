@@ -127,19 +127,19 @@ defmodule Kernel do
   Elixir documentation also includes supporting documents under the
   "Pages" section. Those are:
 
-    * [Compatibility and Deprecations](compatibility-and-deprecations.md) - lists
+    * [Compatibility and deprecations](compatibility-and-deprecations.md) - lists
       compatibility between every Elixir version and Erlang/OTP, release schema;
       lists all deprecated functions, when they were deprecated and alternatives
-    * [Library Guidelines](library-guidelines.md) - general guidelines, anti-patterns,
+    * [Library guidelines](library-guidelines.md) - general guidelines, anti-patterns,
       and rules for those writing libraries
-    * [Naming Conventions](naming-conventions.md) - naming conventions for Elixir code
+    * [Naming conventions](naming-conventions.md) - naming conventions for Elixir code
     * [Operators](operators.md) - lists all Elixir operators and their precedences
-    * [Patterns and Guards](patterns-and-guards.md) - an introduction to patterns,
+    * [Patterns and guards](patterns-and-guards.md) - an introduction to patterns,
       guards, and extensions
-    * [Syntax Reference](syntax-reference.md) - the language syntax reference
+    * [Syntax reference](syntax-reference.md) - the language syntax reference
     * [Typespecs](typespecs.md)- types and function specifications, including list of types
-    * [Unicode Syntax](unicode-syntax.md) - outlines Elixir support for Unicode
-    * [Writing Documentation](writing-documentation.md) - guidelines for writing
+    * [Unicode syntax](unicode-syntax.md) - outlines Elixir support for Unicode
+    * [Writing documentation](writing-documentation.md) - guidelines for writing
       documentation in Elixir
 
   ## Guards
@@ -156,7 +156,7 @@ defmodule Kernel do
   or equal to 16. Guards also support joining multiple conditions with
   `and` and `or`. The whole guard is true if all guard expressions will
   evaluate to `true`. A more complete introduction to guards is available
-  [in the "Patterns and Guards" page](patterns-and-guards.md).
+  in the [Patterns and guards](patterns-and-guards.md) page.
 
   ## Structural comparison
 
@@ -223,7 +223,7 @@ defmodule Kernel do
 
   Some of the functions described in this module are inlined by
   the Elixir compiler into their Erlang counterparts in the
-  [`:erlang` module](http://www.erlang.org/doc/man/erlang.html).
+  [`:erlang`](`:erlang`) module.
   Those functions are called BIFs (built-in internal functions)
   in Erlang-land and they exhibit interesting properties, as some
   of them are allowed in guards and others are used for compiler
@@ -276,6 +276,10 @@ defmodule Kernel do
   Invokes the given anonymous function `fun` with the list of
   arguments `args`.
 
+  If the number of arguments is known at compile time, prefer
+  `fun.(arg_1, arg_2, ..., arg_n)` as it is clearer than
+  `apply(fun, [arg_1, arg_2, ..., arg_n])`.
+
   Inlined by the compiler.
 
   ## Examples
@@ -296,6 +300,10 @@ defmodule Kernel do
   `apply/3` is used to invoke functions where the module, function
   name or arguments are defined dynamically at runtime. For this
   reason, you can't invoke macros using `apply/3`, only functions.
+
+  If the number of arguments and the function name are known at compile time,
+  prefer `module.function(arg_1, arg_2, ..., arg_n)` as it is clearer than
+  `apply(module, :function, [arg_1, arg_2, ..., arg_n])`.
 
   Inlined by the compiler.
 
@@ -2373,7 +2381,7 @@ defmodule Kernel do
   defmacro is_struct(term, name) do
     case __CALLER__.context do
       nil ->
-        quote do
+        quote generated: true do
           case unquote(name) do
             name when is_atom(name) ->
               case unquote(term) do
@@ -2556,6 +2564,27 @@ defmodule Kernel do
   The `Access` module ships with many convenience accessor functions,
   like the `all` anonymous function defined above. See `Access.all/0`,
   `Access.key/2`, and others as examples.
+
+  ## Working with structs
+
+  By default, structs do not implement the `Access` behaviour required
+  by this function. Therefore, you can't do this:
+
+      get_in(some_struct, [:some_key, :nested_key])
+
+  The good news is that structs have predefined shape. Therefore,
+  you can write instead:
+
+      some_struct.some_key.nested_key
+
+  If, by any chance, `some_key` can return nil, you can always
+  fallback to pattern matching to provide nested struct handling:
+
+      case some_struct do
+        %{some_key: %{nested_key: value}} -> value
+        %{} -> nil
+      end
+
   """
   @spec get_in(Access.t(), nonempty_list(term)) :: term
   def get_in(data, keys)
@@ -5248,7 +5277,9 @@ defmodule Kernel do
 
         @doc delegate_to: {target, as, :erlang.length(as_args)}
 
-        def unquote(name)(unquote_splicing(args)) do
+        # Build the call AST by hand so it doesn't get a
+        # context and it warns on things like missing @impl
+        def unquote({name, [line: __ENV__.line], args}) do
           unquote(target).unquote(as)(unquote_splicing(as_args))
         end
       end

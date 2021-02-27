@@ -387,15 +387,16 @@ defmodule Mix.Task do
         Mix.ProjectStack.on_recursing_root(fn -> run(task, args) end)
 
       Mix.TasksServer.run({:task, task, proj}) ->
-        if Mix.debug?(), do: output_task_debug_info(task, args, proj)
         run_requirements(module)
 
-        try do
-          module.run(args)
-        rescue
-          e in OptionParser.ParseError ->
-            Mix.raise("Could not invoke task #{inspect(task)}: " <> Exception.message(e))
-        end
+        with_debug(task, args, proj, fn ->
+          try do
+            module.run(args)
+          rescue
+            e in OptionParser.ParseError ->
+              Mix.raise("Could not invoke task #{inspect(task)}: " <> Exception.message(e))
+          end
+        end)
 
       true ->
         :noop
@@ -409,8 +410,16 @@ defmodule Mix.Task do
     end)
   end
 
-  defp output_task_debug_info(task, args, proj) do
-    Mix.shell().info("** Running mix " <> task_to_string(task, args) <> project_to_string(proj))
+  defp with_debug(task, args, proj, fun) do
+    if Mix.debug?() do
+      shell = Mix.shell()
+      shell.info(["-> Running mix ", task_to_string(task, args), project_to_string(proj)])
+      {time, res} = :timer.tc(fun)
+      shell.info(["<- Ran mix ", task, " in ", Integer.to_string(div(time, 1000)), "ms"])
+      res
+    else
+      fun.()
+    end
   end
 
   defp project_to_string(nil), do: ""

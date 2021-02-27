@@ -501,7 +501,7 @@ defmodule Mix.Compilers.Elixir do
   end
 
   # This function receives the manifest entries and some source
-  # files that have changed. It then, recursively, figures out
+  # files that have changed. Then it recursively figures out
   # all the files that changed (via the module dependencies) and
   # return the non-changed entries and the removed sources.
   defp update_stale_entries(modules, _sources, [], stale_mods, stale_exports, _compile_path)

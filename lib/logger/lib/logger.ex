@@ -16,7 +16,7 @@ defmodule Logger do
       performant when required but also apply backpressure
       when under stress.
 
-    * Integrates with Erlang's [`:logger`](http://erlang.org/doc/man/logger.html)
+    * Integrates with Erlang's [`:logger`](`:logger`)
       to convert terms to Elixir syntax.
 
   Logging is useful for tracking when an event of interest happens in your
@@ -57,7 +57,7 @@ defmodule Logger do
     * `:debug` - for debug-related messages
 
   For example, `:info` takes precedence over `:debug`. If your log
-  level is set to `:info` then all `:info`, `:notice` and above will
+  level is set to `:info`, then all `:info`, `:notice` and above will
   be passed to backends. If your log level is set to `:alert`, only
   `:alert` and `:emergency` will be printed.
 
@@ -320,7 +320,7 @@ defmodule Logger do
   Any developer can create their own `Logger` backend. Since `Logger`
   is an event manager powered by `:gen_event`, writing a new backend
   is a matter of creating an event handler, as described in the
-  [`:gen_event`](http://erlang.org/doc/man/gen_event.html) documentation.
+  [`:gen_event`](`:gen_event`) documentation.
 
   From now on, we will be using the term "event handler" to refer
   to your custom backend, as we head into implementation details.
@@ -426,7 +426,7 @@ defmodule Logger do
         {:handler, :name_of_the_handler, ACustomHandler, configuration = %{}}
       ]
 
-  And then explicitly attached in your `c:Application.start/2` callback:
+  And then, explicitly attached in your `c:Application.start/2` callback:
 
       :logger.add_handlers(:my_app)
 
@@ -640,7 +640,7 @@ defmodule Logger do
   Gets logging level for given module.
 
   Returned value will be the effective value used. If no value
-  was set for given module then it will not be present in
+  was set for given module, then it will not be present in
   the returned list.
   """
   @doc since: "1.11.0"

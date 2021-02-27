@@ -18,10 +18,22 @@ defmodule URITest do
     assert URI.encode_www_form("/\n+/ゆ") == "%2F%0A%2B%2F%E3%82%86"
   end
 
-  test "encode_query/1" do
+  test "encode_query/1,2" do
     assert URI.encode_query([{:foo, :bar}, {:baz, :quux}]) == "foo=bar&baz=quux"
     assert URI.encode_query([{"foo", "bar"}, {"baz", "quux"}]) == "foo=bar&baz=quux"
+
     assert URI.encode_query([{"foo z", :bar}]) == "foo+z=bar"
+    assert URI.encode_query([{"foo z", :bar}], :rfc_3986) == "foo%20z=bar"
+    assert URI.encode_query([{"foo z", :bar}], :www_form) == "foo+z=bar"
+
+    assert URI.encode_query([{"foo[]", "+=/?&# Ñ"}]) ==
+             "foo%5B%5D=%2B%3D%2F%3F%26%23+%C3%91"
+
+    assert URI.encode_query([{"foo[]", "+=/?&# Ñ"}], :rfc_3986) ==
+             "foo%5B%5D=%2B%3D%2F%3F%26%23%20%C3%91"
+
+    assert URI.encode_query([{"foo[]", "+=/?&# Ñ"}], :www_form) ==
+             "foo%5B%5D=%2B%3D%2F%3F%26%23+%C3%91"
 
     assert_raise ArgumentError, fn ->
       URI.encode_query([{"foo", 'bar'}])
@@ -32,7 +44,7 @@ defmodule URITest do
     end
   end
 
-  test "decode_query/1,2" do
+  test "decode_query/1,2,3" do
     assert URI.decode_query("", %{}) == %{}
 
     assert URI.decode_query("safe=off", %{"cookie" => "foo"}) ==
@@ -40,6 +52,9 @@ defmodule URITest do
 
     assert URI.decode_query("q=search%20query&cookie=ab%26cd&block+buster=") ==
              %{"block buster" => "", "cookie" => "ab&cd", "q" => "search query"}
+
+    assert URI.decode_query("q=search%20query&cookie=ab%26cd&block+buster=", %{}, :rfc_3986) ==
+             %{"block+buster" => "", "cookie" => "ab&cd", "q" => "search query"}
 
     assert URI.decode_query("something=weird%3Dhappening") == %{"something" => "weird=happening"}
 
@@ -50,9 +65,13 @@ defmodule URITest do
     assert URI.decode_query("something=weird=happening") == %{"something" => "weird=happening"}
   end
 
-  test "query_decoder/1" do
-    decoder = URI.query_decoder("q=search%20query&cookie=ab%26cd&block%20buster=")
+  test "query_decoder/1,2" do
+    decoder = URI.query_decoder("q=search%20query&cookie=ab%26cd&block+buster=")
     expected = [{"q", "search query"}, {"cookie", "ab&cd"}, {"block buster", ""}]
+    assert Enum.map(decoder, & &1) == expected
+
+    decoder = URI.query_decoder("q=search%20query&cookie=ab%26cd&block+buster=", :rfc_3986)
+    expected = [{"q", "search query"}, {"cookie", "ab&cd"}, {"block+buster", ""}]
     assert Enum.map(decoder, & &1) == expected
   end
 

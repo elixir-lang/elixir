@@ -280,26 +280,12 @@ defmodule Enum do
   end
 
   @doc """
-  Returns `true` if `fun.(element)` is truthy for all elements in `enumerable`.
+  Returns `true` if  all elements in `enumerable` are truthy.
 
-  Iterates over the `enumerable` and invokes `fun` on each element. When an invocation
-  of `fun` returns a falsy value (`false` or `nil`) iteration stops immediately and
-  `false` is returned. In all other cases `true` is returned.
+  When an element has a falsy value (`false` or `nil`) iteration stops immediately
+  and `false` is returned. In all other cases `true` is returned.
 
   ## Examples
-
-      iex> Enum.all?([2, 4, 6], fn x -> rem(x, 2) == 0 end)
-      true
-
-      iex> Enum.all?([2, 3, 4], fn x -> rem(x, 2) == 0 end)
-      false
-
-      iex> Enum.all?([], fn x -> x > 0 end)
-      true
-
-  If no function is given, the truthiness of each element is checked during iteration.
-  When an element has a falsy value (`false` or `nil`) iteration stops immediately and
-  `false` is returned. In all other cases `true` is returned.
 
       iex> Enum.all?([1, 2, 3])
       true
@@ -311,10 +297,43 @@ defmodule Enum do
       true
 
   """
+  @spec all?(t) :: boolean
+  def all?(enumerable) when is_list(enumerable) do
+    all_list(enumerable)
+  end
+
+  def all?(enumerable) do
+    Enumerable.reduce(enumerable, {:cont, true}, fn entry, _ ->
+      if entry, do: {:cont, true}, else: {:halt, false}
+    end)
+    |> elem(1)
+  end
+
+  @doc """
+  Returns `true` if `fun.(element)` is truthy for all elements in `enumerable`.
+
+  Iterates over `enumerable` and invokes `fun` on each element. If `fun` ever
+  returns a falsy value (`false` or `nil`), iteration stops immediately and
+  `false` is returned. Otherwise, `true` is returned.
+
+  ## Examples
+
+      iex> Enum.all?([2, 4, 6], fn x -> rem(x, 2) == 0 end)
+      true
+
+      iex> Enum.all?([2, 3, 4], fn x -> rem(x, 2) == 0 end)
+      false
+
+      iex> Enum.all?([], fn _ -> nil end)
+      true
+
+  As the last example shows, `Enum.all?/2` returns `true` if `enumerable` is
+  empty, regardless of `fun`. In an empty enumerable there is no element for
+  which `fun` returns a falsy value, so the result must be `true`. This is a
+  well-defined logical argument for empty collections.
+
+  """
   @spec all?(t, (element -> as_boolean(term))) :: boolean
-
-  def all?(enumerable, fun \\ fn x -> x end)
-
   def all?(enumerable, fun) when is_list(enumerable) do
     all_list(enumerable, fun)
   end
@@ -322,6 +341,36 @@ defmodule Enum do
   def all?(enumerable, fun) do
     Enumerable.reduce(enumerable, {:cont, true}, fn entry, _ ->
       if fun.(entry), do: {:cont, true}, else: {:halt, false}
+    end)
+    |> elem(1)
+  end
+
+  @doc """
+  Returns `true` if at least one element in `enumerable` is truthy.
+
+  When an element has a truthy value (neither `false` nor `nil`) iteration stops
+  immediately and `true` is returned. In all other cases `false` is returned.
+
+  ## Examples
+
+      iex> Enum.any?([false, false, false])
+      false
+
+      iex> Enum.any?([false, true, false])
+      true
+
+      iex> Enum.any?([])
+      false
+
+  """
+  @spec any?(t) :: boolean
+  def any?(enumerable) when is_list(enumerable) do
+    any_list(enumerable)
+  end
+
+  def any?(enumerable) do
+    Enumerable.reduce(enumerable, {:cont, false}, fn entry, _ ->
+      if entry, do: {:halt, true}, else: {:cont, false}
     end)
     |> elem(1)
   end
@@ -344,24 +393,8 @@ defmodule Enum do
       iex> Enum.any?([], fn x -> x > 0 end)
       false
 
-  If no function is given, the truthiness of each element is checked during iteration.
-  When an element has a truthy value (neither `false` nor `nil`) iteration stops
-  immediately and `true` is returned. In all other cases `false` is returned.
-
-      iex> Enum.any?([false, false, false])
-      false
-
-      iex> Enum.any?([false, true, false])
-      true
-
-      iex> Enum.any?([])
-      false
-
   """
   @spec any?(t, (element -> as_boolean(term))) :: boolean
-
-  def any?(enumerable, fun \\ fn x -> x end)
-
   def any?(enumerable, fun) when is_list(enumerable) do
     any_list(enumerable, fun)
   end
@@ -747,8 +780,18 @@ defmodule Enum do
 
   """
   @spec dedup(t) :: list
+  def dedup(enumerable) when is_list(enumerable) do
+    dedup_list(enumerable, []) |> :lists.reverse()
+  end
+
   def dedup(enumerable) do
-    dedup_by(enumerable, fn x -> x end)
+    Enum.reduce(enumerable, [], fn x, acc ->
+      case acc do
+        [^x, _] -> acc
+        _ -> [x | acc]
+      end
+    end)
+    |> :lists.reverse()
   end
 
   @doc """
@@ -1307,7 +1350,7 @@ defmodule Enum do
   end
 
   @doc """
-  Intersperses `element` between each element of the enumeration.
+  Intersperses `separator` between each element of the enumeration.
 
   ## Examples
 
@@ -1322,13 +1365,20 @@ defmodule Enum do
 
   """
   @spec intersperse(t, element) :: list
-  def intersperse(enumerable, element) do
+  def intersperse(enumerable, separator) when is_list(enumerable) do
+    case enumerable do
+      [] -> []
+      list -> intersperse_non_empty_list(list, separator)
+    end
+  end
+
+  def intersperse(enumerable, separator) do
     list =
       enumerable
-      |> reduce([], fn x, acc -> [x, element | acc] end)
+      |> reduce([], fn x, acc -> [x, separator | acc] end)
       |> :lists.reverse()
 
-    # Head is a superfluous intersperser element
+    # Head is a superfluous separator
     case list do
       [] -> []
       [_ | t] -> t
@@ -1462,6 +1512,10 @@ defmodule Enum do
     enumerable
     |> map(&entry_to_string(&1))
     |> IO.iodata_to_binary()
+  end
+
+  def join(enumerable, joiner) when is_list(enumerable) and is_binary(joiner) do
+    join_list(enumerable, joiner)
   end
 
   def join(enumerable, joiner) when is_binary(joiner) do
@@ -1630,6 +1684,14 @@ defmodule Enum do
       end)
 
     {:lists.reverse(list), acc}
+  end
+
+  @doc false
+  def max(list = [_ | _]), do: :lists.max(list)
+
+  @doc false
+  def max(list = [_ | _], empty_fallback) when is_function(empty_fallback, 0) do
+    :lists.max(list)
   end
 
   @doc false
@@ -1802,6 +1864,14 @@ defmodule Enum do
         end)
         |> elem(1)
     end
+  end
+
+  @doc false
+  def min(list = [_ | _]), do: :lists.min(list)
+
+  @doc false
+  def min(list = [_ | _], empty_fallback) when is_function(empty_fallback, 0) do
+    :lists.min(list)
   end
 
   @doc false
@@ -2131,7 +2201,7 @@ defmodule Enum do
 
   Raises `Enum.EmptyError` if `enumerable` is empty.
 
-  This function uses Erlang's [`:rand` module](http://www.erlang.org/doc/man/rand.html) to calculate
+  This function uses Erlang's [`:rand` module](`:rand`) to calculate
   the random value. Check its documentation for setting a
   different random algorithm or a different seed.
 
@@ -2198,7 +2268,7 @@ defmodule Enum do
   Raises `Enum.EmptyError` if `enumerable` is empty.
 
   The first element of the `enumerable` is used as the initial value
-  of the accumulator. Then the function is invoked with the next
+  of the accumulator. Then, the function is invoked with the next
   element and the accumulator. The result returned by the function
   is used as the accumulator for the next iteration, recursively.
   When the `enumerable` is done, the last accumulator is returned.
@@ -2277,7 +2347,7 @@ defmodule Enum do
   operation cannot be expressed by any of the functions in the `Enum`
   module, developers will most likely resort to `reduce/3`.
   """
-  @spec reduce(t, any, (element, acc -> acc)) :: acc
+  @spec reduce(t, acc, (element, acc -> acc)) :: acc
   def reduce(enumerable, acc, fun) when is_list(enumerable) do
     :lists.foldl(fun, acc, enumerable)
   end
@@ -2435,6 +2505,15 @@ defmodule Enum do
 
   """
   @spec scan(t, (element, any -> any)) :: list
+  def scan(enumerable, fun)
+
+  def scan([], _fun), do: []
+
+  def scan([elem | rest], fun) do
+    scanned = scan_list(rest, elem, fun)
+    [elem | scanned]
+  end
+
   def scan(enumerable, fun) do
     {res, _} = reduce(enumerable, {[], :first}, R.scan2(fun))
     :lists.reverse(res)
@@ -2452,6 +2531,10 @@ defmodule Enum do
 
   """
   @spec scan(t, any, (element, any -> any)) :: list
+  def scan(enumerable, acc, fun) when is_list(enumerable) do
+    scan_list(enumerable, acc, fun)
+  end
+
   def scan(enumerable, acc, fun) do
     {res, _} = reduce(enumerable, {[], acc}, R.scan3(fun))
     :lists.reverse(res)
@@ -2460,7 +2543,7 @@ defmodule Enum do
   @doc """
   Returns a list with the elements of `enumerable` shuffled.
 
-  This function uses Erlang's [`:rand` module](http://www.erlang.org/doc/man/rand.html) to calculate
+  This function uses Erlang's [`:rand` module](`:rand`) to calculate
   the random value. Check its documentation for setting a
   different random algorithm or a different seed.
 
@@ -2493,7 +2576,7 @@ defmodule Enum do
   Returns a subset list of the given `enumerable` by `index_range`.
 
   `index_range` must be a `Range`. Given an `enumerable`, it drops
-  elements before `index_range.first` (zero-base), then takes elements
+  elements before `index_range.first` (zero-base), then it takes elements
   until element `index_range.last` (inclusively).
 
   Indexes are normalized, meaning that negative indexes will be counted
@@ -2535,7 +2618,7 @@ defmodule Enum do
   @spec slice(t, Range.t()) :: list
   def slice(enumerable, index_range)
 
-  def slice(enumerable, first..last) when last >= first and last >= 0 do
+  def slice(enumerable, first..last) when last >= first and last >= 0 and first >= 0 do
     slice_any(enumerable, first, last - first + 1)
   end
 
@@ -2556,8 +2639,8 @@ defmodule Enum do
   Returns a subset list of the given `enumerable`, from `start_index` (zero-based)
   with `amount` number of elements if available.
 
-  Given an `enumerable`, it drops elements right before element `start_index`,
-  then takes `amount` of elements, returning as many elements as possible if
+  Given an `enumerable`, it drops elements right before element `start_index`;
+  then, it takes `amount` of elements, returning as many elements as possible if
   there are not enough elements.
 
   A negative `start_index` can be passed, which means the `enumerable` is
@@ -3385,7 +3468,7 @@ defmodule Enum do
   the `zip_fun` function as it goes.
 
   The first element from each of the enums in `enumerables` will be put into a list which is then passed to
-  the 1-arity `zip_fun` function. Then the second elements from each of the enums are put into a list and passed to
+  the 1-arity `zip_fun` function. Then, the second elements from each of the enums are put into a list and passed to
   `zip_fun`, and so on until any one of the enums in `enumerables` runs out of elements.
 
   Returns a list with all the results of calling `zip_fun`.
@@ -3512,6 +3595,18 @@ defmodule Enum do
 
   ## all?
 
+  defp all_list([h | t]) do
+    if h do
+      all_list(t)
+    else
+      false
+    end
+  end
+
+  defp all_list([]) do
+    true
+  end
+
   defp all_list([h | t], fun) do
     if fun.(h) do
       all_list(t, fun)
@@ -3526,6 +3621,18 @@ defmodule Enum do
 
   ## any?
 
+  defp any_list([h | t]) do
+    if h do
+      true
+    else
+      any_list(t)
+    end
+  end
+
+  defp any_list([]) do
+    false
+  end
+
   defp any_list([h | t], fun) do
     if fun.(h) do
       true
@@ -3536,6 +3643,22 @@ defmodule Enum do
 
   defp any_list([], _) do
     false
+  end
+
+  # dedup
+
+  defp dedup_list([value | tail], acc) do
+    acc =
+      case acc do
+        [^value | _] -> acc
+        _ -> [value | acc]
+      end
+
+    dedup_list(tail, acc)
+  end
+
+  defp dedup_list([], acc) do
+    acc
   end
 
   ## drop
@@ -3623,6 +3746,30 @@ defmodule Enum do
     []
   end
 
+  ## intersperse
+
+  defp intersperse_non_empty_list([head], _separator), do: [head]
+
+  defp intersperse_non_empty_list([head | rest], separator) do
+    [head, separator | intersperse_non_empty_list(rest, separator)]
+  end
+
+  ## join
+
+  defp join_list([], _joiner), do: ""
+
+  defp join_list(list, joiner) do
+    join_non_empty_list(list, joiner, [])
+    |> :lists.reverse()
+    |> IO.iodata_to_binary()
+  end
+
+  defp join_non_empty_list([first], _joiner, acc), do: [entry_to_string(first) | acc]
+
+  defp join_non_empty_list([first | rest], joiner, acc) do
+    join_non_empty_list(rest, joiner, [joiner, entry_to_string(first) | acc])
+  end
+
   ## map_intersperse
 
   defp map_intersperse_list([], _, _),
@@ -3685,6 +3832,15 @@ defmodule Enum do
 
   defp head_slice([elem | rest], count, acc) do
     head_slice(rest, count - 1, [elem | acc])
+  end
+
+  ## scan
+
+  defp scan_list([], _acc, _fun), do: []
+
+  defp scan_list([elem | rest], acc, fun) do
+    acc = fun.(elem, acc)
+    [acc | scan_list(rest, acc, fun)]
   end
 
   ## shuffle

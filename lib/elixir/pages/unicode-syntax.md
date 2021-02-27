@@ -18,13 +18,13 @@ where `<Start>` uses the same categories as the spec but restricts them to the N
 
 > characters derived from the Unicode General Category of uppercase letters, lowercase letters, titlecase letters, modifier letters, other letters, letter numbers, plus `Other_ID_Start`, minus `Pattern_Syntax` and `Pattern_White_Space` code points
 >
-> In set notation: `[\p{L}\p{Nl}\p{Other_ID_Start}-\p{Pattern_Syntax}-\p{Pattern_White_Space}]`
+> In set notation: `[\p{L}\p{Nl}\p{Other_ID_Start}-\p{Pattern_Syntax}-\p{Pattern_White_Space}]`.
 
 and `<Continue>` uses the same categories as the spec but restricts them to the NFC form (see R6):
 
 > ID_Start characters, plus characters having the Unicode General Category of nonspacing marks, spacing combining marks, decimal number, connector punctuation, plus `Other_ID_Continue`, minus `Pattern_Syntax` and `Pattern_White_Space` code points.
 >
-> In set notation: `[\p{ID_Start}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\p{Other_ID_Continue}-\p{Pattern_Syntax}-\p{Pattern_White_Space}]`
+> In set notation: `[\p{ID_Start}\p{Mn}\p{Mc}\p{Nd}\p{Pc}\p{Other_ID_Continue}-\p{Pattern_Syntax}-\p{Pattern_White_Space}]`.
 
 `<Ending>` is an addition specific to Elixir that includes only the code points `?` (003F) and `!` (0021).
 
@@ -36,17 +36,19 @@ Elixir does not allow the use of ZWJ or ZWNJ in identifiers and therefore does n
 
 Unicode atoms in Elixir follow the identifier rule above with the following modifications:
 
-  * `<Start>` includes the code point `_` (005F)
-  * `<Continue>` includes the code point `@` (0040)
+  * `<Start>` additionally includes the code point `_` (005F)
+  * `<Continue>` additionally includes the code point `@` (0040)
 
-> Note that all Elixir operators are also valid atoms. Therefore `:+`, `:@`, `:|>`, and others are all valid atoms. The full description of valid atoms is available in the Syntax Reference, this document covers only the rules for identifier-based atoms.
+Note atoms can also be quoted, which allows any characters, such as `:"hello elixir"`. All Elixir operators are also valid atoms (`:+`, `:@`, `:|>`, etc.). The full description of valid atoms is available in the ["Atoms" section in the syntax reference](syntax-reference.html#atoms).
 
 ### Variables
 
 Variables in Elixir follow the identifier rule above with the following modifications:
 
-  * `<Start>` includes the code point `_` (005F)
-  * `<Start>` must not include Lu (letter uppercase) and Lt (letter titlecase) characters
+  * `<Start>` additionally includes the code point `_` (005F)
+  * `<Start>` additionally excludes Lu (letter uppercase) and Lt (letter titlecase) characters
+
+In set notation: `[\u{005F}\p{Ll}\p{Lm}\p{Lo}\p{Nl}\p{Other_ID_Start}-\p{Pattern_Syntax}-\p{Pattern_White_Space}]`.
 
 ## R3. Pattern_White_Space and Pattern_Syntax Characters
 

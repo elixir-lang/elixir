@@ -29,7 +29,7 @@ For the many different ways to install Elixir,
 [see our installation instructions on the website](https://elixir-lang.org/install.html).
 To compile from source, you can follow the steps below.
 
-First, [install Erlang](https://elixir-lang.org/install.html#installing-erlang). Then clone this repository to your machine, compile and test it:
+First, [install Erlang](https://elixir-lang.org/install.html#installing-erlang). After that, clone this repository to your machine, compile and test it:
 
 ```sh
 git clone https://github.com/elixir-lang/elixir.git
@@ -131,9 +131,9 @@ With tests running and passing, you are ready to contribute to Elixir and
 We have saved some excellent pull requests we have received in the past in
 case you are looking for some examples:
 
-* [Implement Enum.member? - Pull Request](https://github.com/elixir-lang/elixir/pull/992)
-* [Add String.valid? - Pull Request](https://github.com/elixir-lang/elixir/pull/1058)
-* [Implement capture_io for ExUnit - Pull Request](https://github.com/elixir-lang/elixir/pull/1059)
+* [Implement Enum.member? - Pull request](https://github.com/elixir-lang/elixir/pull/992)
+* [Add String.valid? - Pull request](https://github.com/elixir-lang/elixir/pull/1058)
+* [Implement capture_io for ExUnit - Pull request](https://github.com/elixir-lang/elixir/pull/1059)
 
 ### Reviewing changes
 

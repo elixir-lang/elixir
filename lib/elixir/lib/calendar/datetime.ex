@@ -109,8 +109,9 @@ defmodule DateTime do
       {:ok, ~U[2016-05-24 13:26:08.003Z]}
 
   When the datetime is ambiguous - for instance during changing from summer
-  to winter time - the two possible valid datetimes are returned. First the one
-  that happens first, then the one that happens after.
+  to winter time - the two possible valid datetimes are returned in a tuple.
+  The first datetime is also the one which comes first chronologically, while
+  the second one comes last.
 
       iex> {:ambiguous, first_dt, second_dt} = DateTime.new(~D[2018-10-28], ~T[02:30:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
       iex> first_dt
@@ -139,7 +140,7 @@ defmodule DateTime do
   @doc since: "1.11.0"
   @spec new(Date.t(), Time.t(), Calendar.time_zone(), Calendar.time_zone_database()) ::
           {:ok, t}
-          | {:ambiguous, t, t}
+          | {:ambiguous, first_datetime :: t, second_datetime :: t}
           | {:gap, t, t}
           | {:error,
              :incompatible_calendars | :time_zone_not_found | :utc_only_time_zone_database}
@@ -364,8 +365,9 @@ defmodule DateTime do
       {:ok, ~U[2016-05-24 13:26:08.003Z]}
 
   When the datetime is ambiguous - for instance during changing from summer
-  to winter time - the two possible valid datetimes are returned. First the one
-  that happens first, then the one that happens after.
+  to winter time - the two possible valid datetimes are returned in a tuple.
+  The first datetime is also the one which comes first chronologically, while
+  the second one comes last.
 
       iex> {:ambiguous, first_dt, second_dt} = DateTime.from_naive(~N[2018-10-28 02:30:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
       iex> first_dt
@@ -416,7 +418,7 @@ defmodule DateTime do
           Calendar.time_zone_database()
         ) ::
           {:ok, t}
-          | {:ambiguous, t, t}
+          | {:ambiguous, first_datetime :: t, second_datetime :: t}
           | {:gap, t, t}
           | {:error,
              :incompatible_calendars | :time_zone_not_found | :utc_only_time_zone_database}
@@ -890,7 +892,7 @@ defmodule DateTime do
 
   @doc """
   Converts the given datetime to
-  [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601) format.
+  [ISO 8601:2019](https://en.wikipedia.org/wiki/ISO_8601) format.
 
   By default, `DateTime.to_iso8601/2` returns datetimes formatted in the "extended"
   format, for human readability. It also supports the "basic" format through passing the `:basic` option.
@@ -1017,7 +1019,7 @@ defmodule DateTime do
 
   @doc """
   Parses the extended "Date and time of day" format described by
-  [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601).
+  [ISO 8601:2019](https://en.wikipedia.org/wiki/ISO_8601).
 
   Since ISO 8601 does not include the proper time zone, the given
   string will be converted to UTC and its offset in seconds will be
@@ -1027,9 +1029,6 @@ defmodule DateTime do
   As specified in the standard, the separator "T" may be omitted if
   desired as there is no ambiguity within this function.
 
-  The year parsed by this function is limited to four digits and,
-  while ISO 8601 allows datetimes to specify 24:00:00 as the zero
-  hour of the next day, this notation is not supported by Elixir.
   Note leap seconds are not supported by the built-in Calendar.ISO.
 
   ## Examples

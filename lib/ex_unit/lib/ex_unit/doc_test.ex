@@ -14,8 +14,8 @@ defmodule ExUnit.DocTest do
   Multiline expressions can be used by prefixing subsequent lines
   with either `...>` (recommended) or `iex>`.
 
-  The expected result should start at the next line after the `iex>`
-  or `...>` line(s) and it is terminated either by a newline.
+  The expected result should start the line after the `iex>`
+  and `...>` line(s) and be terminated by a newline.
 
   ## Examples
 
@@ -345,27 +345,31 @@ defmodule ExUnit.DocTest do
 
     quote do
       expected = unquote(expected_ast)
+      value = unquote(expr_ast)
 
-      case inspect(unquote(expr_ast)) do
-        ^expected ->
+      result =
+        try do
+          inspect(value, safe: false)
+        rescue
+          e -> {[message: Exception.message(e)], ExUnit.Runner.prune_stacktrace(__STACKTRACE__)}
+        else
+          ^expected -> :ok
+          actual -> {[left: actual, right: expected, message: "Doctest failed"], []}
+        end
+
+      case result do
+        :ok ->
           :ok
 
-        actual ->
+        {extra, stack} ->
           doctest = unquote(doctest)
 
           expr =
             "inspect(#{unquote(Macro.to_string(last_expr_ast))}) === " <>
               "#{unquote(String.trim(expected))}"
 
-          error = [
-            message: "Doctest failed",
-            doctest: doctest,
-            expr: expr,
-            left: actual,
-            right: expected
-          ]
-
-          reraise ExUnit.AssertionError, error, unquote(stack)
+          error = [doctest: doctest, expr: expr] ++ extra
+          reraise ExUnit.AssertionError, error, stack ++ unquote(stack)
       end
     end
   end

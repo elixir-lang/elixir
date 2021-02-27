@@ -1168,7 +1168,7 @@ defmodule Stream do
   enumerable, transforming them with the `zip_fun` function as it goes.
 
   The first element from each of the enums in `enumerables` will be put into a list which is then passed to
-  the 1-arity `zip_fun` function. Then the second elements from each of the enums are put into a list and passed to
+  the 1-arity `zip_fun` function. Then, the second elements from each of the enums are put into a list and passed to
   `zip_fun`, and so on until any one of the enums in `enumerables` completes.
 
   Returns a new enumerable with the results of calling `zip_fun`.

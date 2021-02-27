@@ -699,11 +699,11 @@ defmodule ExUnit.Case do
         @module_fixtures {:post, insert: false}
 
         test "using custom attribute", context do
-          assert context.registered.fixtures == [{:post, insert: false}, :user]
+          assert context.registered.module_fixtures == [{:post, insert: false}, :user]
         end
 
         test "still using custom attribute", context do
-          assert context.registered.fixtures == [{:post, insert: false}, :user]
+          assert context.registered.module_fixtures == [{:post, insert: false}, :user]
         end
       end
 

@@ -4,7 +4,7 @@ defmodule Regex do
 
   Regex is based on PCRE (Perl Compatible Regular Expressions) and
   built on top of Erlang's `:re` module. More information can be found
-  in the [`:re` module documentation](http://www.erlang.org/doc/man/re.html).
+  in the [`:re` module documentation](`:re`).
 
   Regular expressions in Elixir can be created using the sigils
   `~r` (see `Kernel.sigil_r/2`) or `~R` (see `Kernel.sigil_R/2`):
@@ -107,7 +107,6 @@ defmodule Regex do
 
     * alnum - Letters and digits
     * alpha - Letters
-    * ascii - Character codes 0-127
     * blank - Space or tab only
     * cntrl - Control characters
     * digit - Decimal digits (same as \\d)
@@ -119,6 +118,11 @@ defmodule Regex do
     * upper - Uppercase letters
     * word  - "Word" characters (same as \w)
     * xdigit - Hexadecimal digits
+   
+  There is another character class, `ascii`, that erroneously matches
+  Latin-1 characters instead of the 0-127 range specified by POSIX. This
+  cannot be fixed without altering the behaviour of other classes, so we
+  recommend matching the range with `[\\0-\x7f]` instead.
 
   Note the behaviour of those classes may change according to the Unicode
   and other modifiers:

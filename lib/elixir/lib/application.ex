@@ -163,7 +163,7 @@ defmodule Application do
   In the sections above, we have configured an application in the
   `application/0` section of the `mix.exs` file. Ultimately, Mix will use
   this configuration to create an [*application resource
-  file*](http://erlang.org/doc/man/app.html), which is a file called
+  file*](https://erlang.org/doc/man/application.html), which is a file called
   `APP_NAME.app`. For example, the application resource file of the OTP
   application `ex_unit` is called `ex_unit.app`.
 
@@ -267,11 +267,10 @@ defmodule Application do
   ## Further information
 
   For further details on applications please check the documentation of the
-  [`application`](http://www.erlang.org/doc/man/application.html) Erlang module,
-  and the
-  [Applications](http://www.erlang.org/doc/design_principles/applications.html)
+  [`:application` Erlang module](`:application`), and the
+  [Applications](https://erlang.org/doc/design_principles/applications.html)
   section of the [OTP Design Principles User's
-  Guide](http://erlang.org/doc/design_principles/users_guide.html).
+  Guide](https://erlang.org/doc/design_principles/users_guide.html).
   """
 
   @doc """
@@ -889,7 +888,7 @@ defmodule Application do
       #=> "bar-123"
 
   For more information on code paths, check the `Code` module in
-  Elixir and also Erlang's [`:code` module](http://www.erlang.org/doc/man/code.html).
+  Elixir and also Erlang's [`:code` module](`:code`).
   """
   @spec app_dir(app) :: String.t()
   def app_dir(app) when is_atom(app) do

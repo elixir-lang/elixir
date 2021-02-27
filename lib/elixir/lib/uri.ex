@@ -71,54 +71,88 @@ defmodule URI do
   end
 
   @doc """
-  Encodes an enumerable into a query string.
+  Encodes `enumerable` into a query string using `encoding`.
 
   Takes an enumerable that enumerates as a list of two-element
   tuples (for instance, a map or a keyword list) and returns a string
-  in the form of `key1=value1&key2=value2...` where keys and
-  values are URL encoded as per `encode_www_form/1`.
+  in the form of `key1=value1&key2=value2...`.
 
   Keys and values can be any term that implements the `String.Chars`
   protocol with the exception of lists, which are explicitly forbidden.
 
+  You can specify one of the following `encoding` strategies:
+
+    * `:www_form` - (default, since v1.12.0) keys and values are URL encoded as
+      per `encode_www_form/1`. This is the format typically used by browsers on
+      query strings and form data. It encodes " " as "+".
+
+    * `:rfc_3986` - (since v1.12.0) the same as `:www_form` except it encodes
+      " " as "%20" according [RFC 3986](https://tools.ietf.org/html/rfc3986).
+      This is the best option if you are encoding in a non-browser situation,
+      since encoding spaces as "+" can be ambiguous to URI parsers. This can
+      inadvertently lead to spaces being interpreted as literal plus signs.
+
+  Encoding defaults to `:www_form` for backward compatibility.
+
   ## Examples
 
-      iex> hd = %{"foo" => 1, "bar" => 2}
-      iex> URI.encode_query(hd)
+      iex> query = %{"foo" => 1, "bar" => 2}
+      iex> URI.encode_query(query)
       "bar=2&foo=1"
 
       iex> query = %{"key" => "value with spaces"}
       iex> URI.encode_query(query)
       "key=value+with+spaces"
 
+      iex> query = %{"key" => "value with spaces"}
+      iex> URI.encode_query(query, :rfc_3986)
+      "key=value%20with%20spaces"
+
       iex> URI.encode_query(%{key: [:a, :list]})
-      ** (ArgumentError) encode_query/1 values cannot be lists, got: [:a, :list]
+      ** (ArgumentError) encode_query/2 values cannot be lists, got: [:a, :list]
 
   """
-  @spec encode_query(Enum.t()) :: binary
-  def encode_query(enumerable) do
-    Enum.map_join(enumerable, "&", &encode_kv_pair/1)
+  @spec encode_query(Enum.t(), :rfc_3986 | :www_form) :: binary
+  def encode_query(enumerable, encoding \\ :www_form) do
+    Enum.map_join(enumerable, "&", &encode_kv_pair(&1, encoding))
   end
 
-  defp encode_kv_pair({key, _}) when is_list(key) do
-    raise ArgumentError, "encode_query/1 keys cannot be lists, got: #{inspect(key)}"
+  defp encode_kv_pair({key, _}, _encoding) when is_list(key) do
+    raise ArgumentError, "encode_query/2 keys cannot be lists, got: #{inspect(key)}"
   end
 
-  defp encode_kv_pair({_, value}) when is_list(value) do
-    raise ArgumentError, "encode_query/1 values cannot be lists, got: #{inspect(value)}"
+  defp encode_kv_pair({_, value}, _encoding) when is_list(value) do
+    raise ArgumentError, "encode_query/2 values cannot be lists, got: #{inspect(value)}"
   end
 
-  defp encode_kv_pair({key, value}) do
+  defp encode_kv_pair({key, value}, :rfc_3986) do
+    encode(Kernel.to_string(key), &char_unreserved?/1) <>
+      "=" <> encode(Kernel.to_string(value), &char_unreserved?/1)
+  end
+
+  defp encode_kv_pair({key, value}, :www_form) do
     encode_www_form(Kernel.to_string(key)) <> "=" <> encode_www_form(Kernel.to_string(value))
   end
 
   @doc """
-  Decodes a query string into a map.
+  Decodes `query` into a map.
 
   Given a query string in the form of `key1=value1&key2=value2...`, this
   function inserts each key-value pair in the query string as one entry in the
   given `map`. Keys and values in the resulting map will be binaries. Keys and
   values will be percent-unescaped.
+
+  You can specify one of the following `encoding` options:
+
+    * `:www_form` - (default, since v1.12.0) keys and values are decoded as per
+      `decode_www_form/1`. This is the format typically used by browsers on
+      query strings and form data. It decodes "+" as " ".
+
+    * `:rfc_3986` - (since v1.12.0) keys and values are decoded as per
+      `decode/1`. The result is the same as `:www_form` except for leaving "+"
+      as is in line with [RFC 3986](https://tools.ietf.org/html/rfc3986).
+
+  Encoding defaults to `:www_form` for backward compatibility.
 
   Use `query_decoder/1` if you want to iterate over each value manually.
 
@@ -130,43 +164,54 @@ defmodule URI do
       iex> URI.decode_query("percent=oh+yes%21", %{"starting" => "map"})
       %{"percent" => "oh yes!", "starting" => "map"}
 
+      iex> URI.decode_query("percent=oh+yes%21", %{}, :rfc_3986)
+      %{"percent" => "oh+yes!"}
+
   """
-  @spec decode_query(binary, %{optional(binary) => binary}) :: %{optional(binary) => binary}
-  def decode_query(query, map \\ %{})
+  @spec decode_query(binary, %{optional(binary) => binary}, :rfc_3986 | :www_form) :: %{
+          optional(binary) => binary
+        }
+  def decode_query(query, map \\ %{}, encoding \\ :www_form)
 
-  def decode_query(query, %_{} = dict) when is_binary(query) do
-    IO.warn("URI.decode_query/2 is deprecated, please use URI.decode_query/1")
-    decode_query_into_dict(query, dict)
+  def decode_query(query, %_{} = dict, encoding) when is_binary(query) do
+    IO.warn(
+      "URI.decode_query/3 expects the second argument to be a map, other usage is deprecated"
+    )
+
+    decode_query_into_dict(query, dict, encoding)
   end
 
-  def decode_query(query, map) when is_binary(query) and is_map(map) do
-    decode_query_into_map(query, map)
+  def decode_query(query, map, encoding) when is_binary(query) and is_map(map) do
+    decode_query_into_map(query, map, encoding)
   end
 
-  def decode_query(query, dict) when is_binary(query) do
-    IO.warn("URI.decode_query/2 is deprecated, please use URI.decode_query/1")
-    decode_query_into_dict(query, dict)
+  def decode_query(query, dict, encoding) when is_binary(query) do
+    IO.warn(
+      "URI.decode_query/3 expects the second argument to be a map, other usage is deprecated"
+    )
+
+    decode_query_into_dict(query, dict, encoding)
   end
 
-  defp decode_query_into_map(query, map) do
-    case decode_next_query_pair(query) do
+  defp decode_query_into_map(query, map, encoding) do
+    case decode_next_query_pair(query, encoding) do
       nil ->
         map
 
       {{key, value}, rest} ->
-        decode_query_into_map(rest, Map.put(map, key, value))
+        decode_query_into_map(rest, Map.put(map, key, value), encoding)
     end
   end
 
-  defp decode_query_into_dict(query, dict) do
-    case decode_next_query_pair(query) do
+  defp decode_query_into_dict(query, dict, encoding) do
+    case decode_next_query_pair(query, encoding) do
       nil ->
         dict
 
       {{key, value}, rest} ->
         # Avoid warnings about Dict being deprecated
         dict_module = Dict
-        decode_query_into_dict(rest, dict_module.put(dict, key, value))
+        decode_query_into_dict(rest, dict_module.put(dict, key, value), encoding)
     end
   end
 
@@ -176,25 +221,40 @@ defmodule URI do
 
   Key and value in each tuple will be binaries and will be percent-unescaped.
 
+  You can specify one of the following `encoding` options:
+
+    * `:www_form` - (default, since v1.12.0) keys and values are decoded as per
+      `decode_www_form/1`. This is the format typically used by browsers on
+      query strings and form data. It decodes "+" as " ".
+
+    * `:rfc_3986` - (since v1.12.0) keys and values are decoded as per
+      `decode/1`. The result is the same as `:www_form` except for leaving "+"
+      as is in line with [RFC 3986](https://tools.ietf.org/html/rfc3986).
+
+  Encoding defaults to `:www_form` for backward compatibility.
+
   ## Examples
 
       iex> URI.query_decoder("foo=1&bar=2") |> Enum.to_list()
       [{"foo", "1"}, {"bar", "2"}]
 
-      iex> URI.query_decoder("food=bread%26butter&drinks=tap%20water") |> Enum.to_list()
-      [{"food", "bread&butter"}, {"drinks", "tap water"}]
+      iex> URI.query_decoder("food=bread%26butter&drinks=tap%20water+please") |> Enum.to_list()
+      [{"food", "bread&butter"}, {"drinks", "tap water please"}]
+
+      iex> URI.query_decoder("food=bread%26butter&drinks=tap%20water+please", :rfc_3986) |> Enum.to_list()
+      [{"food", "bread&butter"}, {"drinks", "tap water+please"}]
 
   """
-  @spec query_decoder(binary) :: Enumerable.t()
-  def query_decoder(query) when is_binary(query) do
-    Stream.unfold(query, &decode_next_query_pair/1)
+  @spec query_decoder(binary, :rfc_3986 | :www_form) :: Enumerable.t()
+  def query_decoder(query, encoding \\ :www_form) when is_binary(query) do
+    Stream.unfold(query, &decode_next_query_pair(&1, encoding))
   end
 
-  defp decode_next_query_pair("") do
+  defp decode_next_query_pair("", _encoding) do
     nil
   end
 
-  defp decode_next_query_pair(query) do
+  defp decode_next_query_pair(query, encoding) do
     {undecoded_next_pair, rest} =
       case :binary.split(query, "&") do
         [next_pair, rest] -> {next_pair, rest}
@@ -203,11 +263,22 @@ defmodule URI do
 
     next_pair =
       case :binary.split(undecoded_next_pair, "=") do
-        [key, value] -> {decode_www_form(key), decode_www_form(value)}
-        [key] -> {decode_www_form(key), ""}
+        [key, value] ->
+          {decode_with_encoding(key, encoding), decode_with_encoding(value, encoding)}
+
+        [key] ->
+          {decode_with_encoding(key, encoding), ""}
       end
 
     {next_pair, rest}
+  end
+
+  defp decode_with_encoding(string, :www_form) do
+    decode_www_form(string)
+  end
+
+  defp decode_with_encoding(string, :rfc_3986) do
+    decode(string)
   end
 
   @doc ~s"""
@@ -300,6 +371,10 @@ defmodule URI do
   @doc """
   Encodes `string` as "x-www-form-urlencoded".
 
+  Note "x-www-form-urlencoded" is not specified as part of
+  RFC 3986. However, it is a commonly used format to encode
+  query strings and form data by browsers.
+
   ## Example
 
       iex> URI.encode_www_form("put: it+й")
@@ -346,6 +421,10 @@ defmodule URI do
 
   @doc """
   Decodes `string` as "x-www-form-urlencoded".
+
+  Note "x-www-form-urlencoded" is not specified as part of
+  RFC 3986. However, it is a commonly used format to encode
+  query strings and form data by browsers.
 
   ## Examples
 

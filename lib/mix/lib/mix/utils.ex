@@ -436,7 +436,26 @@ defmodule Mix.Utils do
           :ok
 
         {:ok, _} ->
-          File.rm!(target)
+          case File.rm(target) do
+            :ok ->
+              :ok
+
+            {:error, reason} ->
+              reason = IO.iodata_to_binary(:file.format_error(reason))
+
+              Mix.raise("""
+              Cannot remove symlink #{inspect(target)} due to reason: #{reason}"
+
+                * Make sure you have permission to access the _build directory
+                  (you may have the wrong permission if you change users or ran as admin)
+
+                * If you are using Windows, avoid using substitute drives,
+                  as they don't play well with symlinks
+
+                * In case the issue continues, consider removing the _build directory
+              """)
+          end
+
           do_symlink_or_copy(source, target, link)
 
         {:error, :enoent} ->

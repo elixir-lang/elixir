@@ -225,6 +225,7 @@ end)
 ## Generate Git repo fixtures
 System.cmd("git", ~w[config --global user.email "mix@example.com"])
 System.cmd("git", ~w[config --global user.name "mix-repo"])
+System.cmd("git", ~w[config --global init.defaultBranch main])
 
 # Git repo
 target = Path.expand("fixtures/git_repo", __DIR__)
@@ -241,9 +242,9 @@ unless File.dir?(target) do
     System.cmd("git", ~w[init])
     System.cmd("git", ~w[add .])
     System.cmd("git", ~w[commit -m "bad"])
-    System.cmd("git", ~w[checkout -q -b main])
-    System.cmd("git", ~w[symbolic-ref HEAD refs/heads/main])
-    System.cmd("git", ~w[branch -d master])
+    System.cmd("git", ~w[checkout -q -b development])
+    System.cmd("git", ~w[symbolic-ref HEAD refs/heads/development])
+    System.cmd("git", ~w[branch -d main])
   end)
 
   File.write!(Path.join(target, "mix.exs"), """

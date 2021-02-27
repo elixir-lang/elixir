@@ -438,7 +438,7 @@ tokenize([$:, H | T] = Original, Line, Column, Scope, Tokens) when ?is_quote(H) 
         true ->
           WarnMsg = io_lib:format(
             "found quoted atom \"~ts\" but the quotes are not required. "
-            "Atoms made exclusively of ASCII letters, numbers, and underscore "
+            "Atoms made exclusively of ASCII letters, numbers, underscores, and optionally ending with ! or ? "
             "do not require quotes",
             [hd(Parts)]
           ),
@@ -675,7 +675,7 @@ handle_strings(T, Line, Column, H, Scope, Tokens) ->
             "found quoted keyword \"~ts\" but the quotes are not required. "
             "Note that keywords are always atoms, even when quoted. "
             "Similar to atoms, keywords made exclusively of ASCII "
-            "letters, numbers, and underscore do not require quotes",
+            "letters, numbers, and underscores do not require quotes",
             [hd(Parts)]
           ),
           prepend_warning({Line, Scope#elixir_tokenizer.file, WarnMsg}, Scope);
@@ -768,7 +768,7 @@ handle_dot([$., H | T] = Original, Line, Column, DotInfo, Scope, Tokens) when ?i
         true ->
           WarnMsg = io_lib:format(
             "found quoted call \"~ts\" but the quotes are not required. "
-            "Calls made exclusively of Unicode letters, numbers, and underscore "
+            "Calls made exclusively of Unicode letters, numbers, and underscores "
             "do not require quotes",
             [Part]
           ),

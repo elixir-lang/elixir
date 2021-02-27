@@ -598,7 +598,7 @@ defmodule NaiveDateTime do
 
   @doc """
   Parses the extended "Date and time of day" format described by
-  [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601).
+  [ISO 8601:2019](https://en.wikipedia.org/wiki/ISO_8601).
 
   Time zone offset may be included in the string but they will be
   simply discarded as such information is not included in naive date
@@ -607,9 +607,6 @@ defmodule NaiveDateTime do
   As specified in the standard, the separator "T" may be omitted if
   desired as there is no ambiguity within this function.
 
-  The year parsed by this function is limited to four digits and,
-  while ISO 8601 allows datetimes to specify 24:00:00 as the zero
-  hour of the next day, this notation is not supported by Elixir.
   Note leap seconds are not supported by the built-in Calendar.ISO.
 
   ## Examples
@@ -676,7 +673,7 @@ defmodule NaiveDateTime do
 
   @doc """
   Parses the extended "Date and time of day" format described by
-  [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601).
+  [ISO 8601:2019](https://en.wikipedia.org/wiki/ISO_8601).
 
   Raises if the format is invalid.
 
@@ -704,7 +701,7 @@ defmodule NaiveDateTime do
 
   @doc """
   Converts the given naive datetime to
-  [ISO 8601:2004](https://en.wikipedia.org/wiki/ISO_8601).
+  [ISO 8601:2019](https://en.wikipedia.org/wiki/ISO_8601).
 
   By default, `NaiveDateTime.to_iso8601/2` returns naive datetimes formatted in the "extended"
   format, for human readability. It also supports the "basic" format through passing the `:basic` option.

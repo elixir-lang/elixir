@@ -166,6 +166,18 @@ defmodule ExUnit.Runner do
     end
   end
 
+  ## stacktrace
+
+  # Assertions can pop-up in the middle of the stack
+  def prune_stacktrace([{ExUnit.Assertions, _, _, _} | t]), do: prune_stacktrace(t)
+
+  # As soon as we see a Runner, it is time to ignore the stacktrace
+  def prune_stacktrace([{ExUnit.Runner, _, _, _} | _]), do: []
+
+  # All other cases
+  def prune_stacktrace([h | t]), do: [h | prune_stacktrace(t)]
+  def prune_stacktrace([]), do: []
+
   ## sigquit
 
   defp sigquit(config, ref, pid, running) do
@@ -569,14 +581,4 @@ defmodule ExUnit.Runner do
   defp failed(kind, reason, stack) do
     {:failed, [{kind, Exception.normalize(kind, reason, stack), stack}]}
   end
-
-  # Assertions can pop-up in the middle of the stack
-  defp prune_stacktrace([{ExUnit.Assertions, _, _, _} | t]), do: prune_stacktrace(t)
-
-  # As soon as we see a Runner, it is time to ignore the stacktrace
-  defp prune_stacktrace([{ExUnit.Runner, _, _, _} | _]), do: []
-
-  # All other cases
-  defp prune_stacktrace([h | t]), do: [h | prune_stacktrace(t)]
-  defp prune_stacktrace([]), do: []
 end

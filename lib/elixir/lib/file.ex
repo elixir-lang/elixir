@@ -1542,6 +1542,12 @@ defmodule File do
   executes the given function and then reverts back
   to the previous path regardless of whether there is an exception.
 
+  The current working directory is temporarily set for the BEAM globally. This
+  can lead to race conditions if multiple processes are changing the current
+  working directory concurrently. To run an external command in a given
+  directory without changing the global current working directory, use the
+  `:cd` option of `System.cmd/3` and `Port.open/2`.
+
   Raises an error if retrieving or changing the current
   directory fails.
   """
@@ -1608,7 +1614,9 @@ defmodule File do
   which means it can be used both for read and write.
 
   The `line_or_bytes` argument configures how the file is read when
-  streaming, by `:line` (default) or by a given number of bytes.
+  streaming, by `:line` (default) or by a given number of bytes. When
+  using the `:line` option, CRLF line breaks (`"\r\n"`) are normalized
+  to LF (`"\n"`).
 
   Operating the stream can fail on open for the same reasons as
   `File.open!/2`. Note that the file is automatically opened each time streaming

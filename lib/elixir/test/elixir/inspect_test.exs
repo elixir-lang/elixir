@@ -518,6 +518,9 @@ defmodule Inspect.MapTest do
 
     assert inspect(struct, pretty: true, width: 1) ==
              "#Inspect.MapTest.StructWithOnlyOption<\n  b: 2,\n  c: 3,\n  ...\n>"
+
+    struct = %{struct | c: [1, 2, 3, 4]}
+    assert inspect(struct) == "#Inspect.MapTest.StructWithOnlyOption<b: 2, c: [1, 2, 3, 4], ...>"
   end
 
   defmodule StructWithEmptyOnlyOption do

@@ -41,7 +41,7 @@ defmodule Mix.Tasks.Release.Init do
   @doc false
   def vm_args_text,
     do: ~S"""
-    ## Customize flags given to the VM: http://erlang.org/doc/man/erl.html
+    ## Customize flags given to the VM: https://erlang.org/doc/man/erl.html
     ## -mode/-name/-sname/-setcookie are configured via env vars, do not set them here
 
     ## Number of dirty schedulers doing IO work (file, sockets, and others)
@@ -91,6 +91,7 @@ defmodule Mix.Tasks.Release.Init do
     export RELEASE_VSN="${RELEASE_VSN:-"$(cut -d' ' -f2 "$RELEASE_ROOT/releases/start_erl.data")"}"
     export RELEASE_COMMAND="$1"
     export RELEASE_MODE="${RELEASE_MODE:-"embedded"}"
+    export RELEASE_PROG="${RELEASE_PROG:-"$(echo "$0" | sed 's/.*\///')"}"
 
     REL_VSN_DIR="$RELEASE_ROOT/releases/$RELEASE_VSN"
     . "$REL_VSN_DIR/env.sh"
@@ -275,6 +276,7 @@ defmodule Mix.Tasks.Release.Init do
     if not defined RELEASE_NAME (set RELEASE_NAME=<%= @release.name %>)
     if not defined RELEASE_VSN (for /f "tokens=1,2" %%K in ('type "!RELEASE_ROOT!\releases\start_erl.data"') do (set ERTS_VSN=%%K) && (set RELEASE_VSN=%%L))
     if not defined RELEASE_MODE (set RELEASE_MODE=embedded)
+    if not defined RELEASE_PROG (set RELEASE_PROG=%~nx0)
     set RELEASE_COMMAND=%~1
     set REL_VSN_DIR=!RELEASE_ROOT!\releases\!RELEASE_VSN!
     call "!REL_VSN_DIR!\env.bat"

@@ -18,8 +18,12 @@ defmodule DateTest do
                  fn -> Code.eval_string("~D[2000-50-50]") end
 
     assert_raise ArgumentError,
-                 ~s/cannot parse "2000-50-50 notalias" as Date for Calendar.ISO, reason: :invalid_format/,
-                 fn -> Code.eval_string("~D[2000-50-50 notalias]") end
+                 ~s/cannot parse "2000-04-15 notalias" as Date for Calendar.ISO, reason: :invalid_format/,
+                 fn -> Code.eval_string("~D[2000-04-15 notalias]") end
+
+    assert_raise ArgumentError,
+                 ~s/cannot parse "20010415" as Date for Calendar.ISO, reason: :invalid_format/,
+                 fn -> Code.eval_string(~s{~D[20010415]}) end
 
     assert_raise ArgumentError,
                  ~s/cannot parse "20001-50-50" as Date for Calendar.Holocene, reason: :invalid_date/,

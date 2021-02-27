@@ -5,7 +5,7 @@ defmodule Mix.SCM.GitTest do
 
   test "formats the lock" do
     assert Mix.SCM.Git.format_lock(lock()) == "abcdef0"
-    assert Mix.SCM.Git.format_lock(lock(branch: "master")) == "abcdef0 (branch: master)"
+    assert Mix.SCM.Git.format_lock(lock(branch: "main")) == "abcdef0 (branch: main)"
     assert Mix.SCM.Git.format_lock(lock(tag: "v0.12.0")) == "abcdef0 (tag: v0.12.0)"
     assert Mix.SCM.Git.format_lock(lock(ref: "abcdef0")) == "abcdef0 (ref)"
   end
@@ -14,8 +14,8 @@ defmodule Mix.SCM.GitTest do
     assert Mix.SCM.Git.equal?([git: "foo"], git: "foo")
     refute Mix.SCM.Git.equal?([git: "foo"], git: "bar")
 
-    assert Mix.SCM.Git.equal?([git: "foo", branch: "master"], git: "foo", branch: "master")
-    refute Mix.SCM.Git.equal?([git: "foo", branch: "master"], git: "foo", branch: "other")
+    assert Mix.SCM.Git.equal?([git: "foo", branch: "main"], git: "foo", branch: "main")
+    refute Mix.SCM.Git.equal?([git: "foo", branch: "main"], git: "foo", branch: "other")
   end
 
   test "lock should not be taken into account when considering deps equal as the lock is shared" do
@@ -46,17 +46,17 @@ defmodule Mix.SCM.GitTest do
              "https://****:****@github.com/elixir-lang/some_dep.git"
 
     assert_raise Mix.Error, ~r/[*]{4}:[*]{4}/, fn ->
-      Mix.SCM.Git.accepts_options(nil, git: url, branch: "master", branch: "develop")
+      Mix.SCM.Git.accepts_options(nil, git: url, branch: "main", branch: "develop")
     end
   end
 
   test "raises about conflicting Git checkout options" do
     assert_raise Mix.Error, ~r/You should specify only one of branch, ref or tag/, fn ->
-      Mix.SCM.Git.accepts_options(nil, git: "/repo", branch: "master", tag: "0.1.0")
+      Mix.SCM.Git.accepts_options(nil, git: "/repo", branch: "main", tag: "0.1.0")
     end
 
     assert_raise Mix.Error, ~r/You should specify only one of branch, ref or tag/, fn ->
-      Mix.SCM.Git.accepts_options(nil, git: "/repo", branch: "master", branch: "develop")
+      Mix.SCM.Git.accepts_options(nil, git: "/repo", branch: "main", branch: "develop")
     end
   end
 

@@ -474,6 +474,37 @@ defmodule Mix.UmbrellaTest do
     end)
   end
 
+  test "reloads app in app tracer if .app changes" do
+    in_fixture("umbrella_dep/deps/umbrella/apps", fn ->
+      deps = [{:foo, in_umbrella: true}]
+
+      Mix.Project.in_project(:bar, "bar", [deps: deps], fn _ ->
+        Mix.Task.run("compile", ["--verbose"])
+
+        File.write!("../foo/lib/foo.ex", """
+        defmodule Foo.VeryNew do
+          def hello, do: :ok
+        end
+        """)
+
+        File.write!("lib/bar.ex", """
+        defmodule Bar.VeryNew do
+          def hello, do: Foo.VeryNew.hello()
+        end
+        """)
+
+        Mix.Task.clear()
+        Application.unload(:foo)
+
+        mtime = File.stat!("_build/dev/lib/bar/.mix/compile.elixir").mtime
+        ensure_touched("../foo/lib/foo.ex", mtime)
+
+        assert Mix.Task.run("compile", ["--verbose"]) == {:ok, []}
+        assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
+      end)
+    end)
+  end
+
   test "reconsolidates after path dependency changes" do
     in_fixture("umbrella_dep/deps/umbrella/apps", fn ->
       Mix.Project.in_project(:bar, "bar", fn _ ->

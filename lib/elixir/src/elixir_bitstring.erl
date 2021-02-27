@@ -319,8 +319,13 @@ build_spec(Meta, _Size, Unit, Type, _Endianness, Sign, Spec, E) when Type == bin
 build_spec(Meta, Size, Unit, Type, Endianness, Sign, Spec, E) when Type == integer; Type == float ->
   NumberSize = number_size(Size, Unit),
   if
-    Type == float, is_integer(NumberSize), NumberSize /= 32, NumberSize /= 64 ->
-      form_error(Meta, E, ?MODULE, {bittype_float_size, NumberSize});
+    Type == float, is_integer(NumberSize) ->
+      case valid_float_size(NumberSize) of
+        true ->
+          add_spec(Type, add_spec(Endianness, add_spec(Sign, Spec)));
+        false ->
+          form_error(Meta, E, ?MODULE, {bittype_float_size, NumberSize})
+      end;
     Size == default, Unit /= default ->
       form_error(Meta, E, ?MODULE, bittype_unit);
     true ->
@@ -330,6 +335,12 @@ build_spec(Meta, Size, Unit, Type, Endianness, Sign, Spec, E) when Type == integ
 number_size(Size, default) when is_integer(Size) -> Size;
 number_size(Size, Unit) when is_integer(Size) -> Size * Unit;
 number_size(Size, _) -> Size.
+
+%% TODO: Simplify when we require OTP 24
+valid_float_size(16) -> erlang:system_info(otp_release) >= "24";
+valid_float_size(32) -> true;
+valid_float_size(64) -> true;
+valid_float_size(_) -> false.
 
 add_spec(default, Spec) -> Spec;
 add_spec(Key, Spec) -> [{Key, [], []} | Spec].
@@ -372,7 +383,12 @@ format_error(bittype_signed) ->
 format_error(bittype_unit) ->
   "integer and float types require a size specifier if the unit specifier is given";
 format_error({bittype_float_size, Other}) ->
-  io_lib:format("float requires size*unit to be 32 or 64 (default), got: ~p", [Other]);
+  Message =
+    case erlang:system_info(otp_release) >= "24" of
+      true -> "16, 32, or 64";
+      false -> "32 or 64"
+    end,
+  io_lib:format("float requires size*unit to be ~s (default), got: ~p", [Message, Other]);
 format_error({invalid_literal, Literal}) ->
   io_lib:format("invalid literal ~ts in <<>>", ['Elixir.Macro':to_string(Literal)]);
 format_error({undefined_bittype, Expr}) ->

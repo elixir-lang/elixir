@@ -2,7 +2,7 @@ defmodule Code do
   @moduledoc ~S"""
   Utilities for managing code compilation, code evaluation, and code loading.
 
-  This module complements Erlang's [`:code` module](http://www.erlang.org/doc/man/code.html)
+  This module complements Erlang's [`:code` module](`:code`)
   to add behaviour which is specific to Elixir. Almost all of the functions in this module
   have global side effects on the behaviour of Elixir.
 
@@ -306,21 +306,33 @@ defmodule Code do
 
   ## Examples
 
-      iex> Code.eval_string("a + b", [a: 1, b: 2], file: __ENV__.file, line: __ENV__.line)
-      {3, [a: 1, b: 2]}
+      iex> {result, binding} = Code.eval_string("a + b", [a: 1, b: 2], file: __ENV__.file, line: __ENV__.line)
+      iex> result
+      3
+      iex> Enum.sort(binding)
+      [a: 1, b: 2]
 
-      iex> Code.eval_string("c = a + b", [a: 1, b: 2], __ENV__)
-      {3, [a: 1, b: 2, c: 3]}
+      iex> {result, binding} = Code.eval_string("c = a + b", [a: 1, b: 2], __ENV__)
+      iex> result
+      3
+      iex> Enum.sort(binding)
+      [a: 1, b: 2, c: 3]
 
-      iex> Code.eval_string("a = a + b", [a: 1, b: 2])
-      {3, [a: 3, b: 2]}
+      iex> {result, binding} = Code.eval_string("a = a + b", [a: 1, b: 2])
+      iex> result
+      3
+      iex> Enum.sort(binding)
+      [a: 3, b: 2]
 
   For convenience, you can pass `__ENV__/0` as the `opts` argument and
   all imports, requires and aliases defined in the current environment
   will be automatically carried over:
 
-      iex> Code.eval_string("a + b", [a: 1, b: 2], __ENV__)
-      {3, [a: 1, b: 2]}
+      iex> {result, binding} = Code.eval_string("a + b", [a: 1, b: 2], __ENV__)
+      iex> result
+      3
+      iex> Enum.sort(binding)
+      [a: 1, b: 2]
 
   """
   @spec eval_string(List.Chars.t(), binding, Macro.Env.t() | keyword) :: {term, binding}
@@ -679,15 +691,21 @@ defmodule Code do
   ## Examples
 
       iex> contents = quote(do: var!(a) + var!(b))
-      iex> Code.eval_quoted(contents, [a: 1, b: 2], file: __ENV__.file, line: __ENV__.line)
-      {3, [a: 1, b: 2]}
+      iex> {result, binding} = Code.eval_quoted(contents, [a: 1, b: 2], file: __ENV__.file, line: __ENV__.line)
+      iex> result
+      3
+      iex> Enum.sort(binding)
+      [a: 1, b: 2]
 
   For convenience, you can pass `__ENV__/0` as the `opts` argument and
   all options will be automatically extracted from the current environment:
 
       iex> contents = quote(do: var!(a) + var!(b))
-      iex> Code.eval_quoted(contents, [a: 1, b: 2], __ENV__)
-      {3, [a: 1, b: 2]}
+      iex> {result, binding} = Code.eval_quoted(contents, [a: 1, b: 2], __ENV__)
+      iex> result
+      3
+      iex> Enum.sort(binding)
+      [a: 1, b: 2]
 
   """
   @spec eval_quoted(Macro.t(), binding, Macro.Env.t() | keyword) :: {term, binding}
@@ -1323,7 +1341,7 @@ defmodule Code do
   file.
 
   It returns the term stored in the documentation chunk in the format defined by
-  [EEP 48](http://erlang.org/eep/eeps/eep-0048.html) or `{:error, reason}` if
+  [EEP 48](https://erlang.org/eep/eeps/eep-0048.html) or `{:error, reason}` if
   the chunk is not available.
 
   ## Examples
@@ -1426,7 +1444,7 @@ defmodule Code do
   @doc ~S"""
   Deprecated function to retrieve old documentation format.
 
-  Elixir v1.7 adopts [EEP 48](http://erlang.org/eep/eeps/eep-0048.html)
+  Elixir v1.7 adopts [EEP 48](https://erlang.org/eep/eeps/eep-0048.html)
   which is a new documentation format meant to be shared across all
   BEAM languages. The old format, used by `Code.get_docs/2`, is no
   longer available, and therefore this function always returns `nil`.

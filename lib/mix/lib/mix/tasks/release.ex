@@ -171,8 +171,8 @@ defmodule Mix.Tasks.Release do
       bin/RELEASE_NAME daemon
 
   In daemon mode, the system is started on the background via
-  [run_erl](http://erlang.org/doc/man/run_erl.html). You may also
-  want to enable [heart](http://erlang.org/doc/man/heart.html)
+  [`run_erl`](https://erlang.org/doc/man/run_erl.html). You may also
+  want to enable [`heart`](https://erlang.org/doc/man/heart.html)
   in daemon mode so it automatically restarts the system in case
   of crashes. See the generated `releases/RELEASE_VSN/env.sh` file.
 
@@ -195,7 +195,7 @@ defmodule Mix.Tasks.Release do
 
   While daemons are not available on Windows, it is possible to install a
   released system as a service on Windows with the help of
-  [erlsrv](http://erlang.org/doc/man/erlsrv.html). This can be done by
+  [`erlsrv`](https://erlang.org/doc/man/erlsrv.html). This can be done by
   running:
 
       bin/RELEASE_NAME install
@@ -208,7 +208,7 @@ defmodule Mix.Tasks.Release do
   the service and then start it from the release root as follows:
 
       bin/demo install
-      erts-VSN/bin/erlsrv.exs start demo_demo
+      erts-VSN/bin/erlsrv.exe start demo_demo
 
   The name of the service is `demo_demo` because the name is built
   by concatenating the node name with the release name. Since Elixir
@@ -392,7 +392,7 @@ defmodule Mix.Tasks.Release do
 
     * `:strip_beams` - controls if BEAM files should have their debug information,
       documentation chunks, and other non-essential metadata removed. Defaults to
-      `true`. May be set to `false` to disable striping. Also accepts
+      `true`. May be set to `false` to disable stripping. Also accepts
       `[keep: ["Docs", "Dbgi"]]` to keep certain chunks that are usually stripped.
 
     * `:cookie` - a string representing the Erlang Distribution cookie. If this
@@ -533,7 +533,7 @@ defmodule Mix.Tasks.Release do
   called `@release`, with the `Mix.Release` struct.
 
   The `vm.args` file may contain any of the VM flags accepted by the [`erl`
-  command](http://erlang.org/doc/man/erl.html).
+  command](https://erlang.org/doc/man/erl.html).
 
   The `env.sh` and `env.bat` is used to set environment variables.
   In there, you can set vars such as `RELEASE_NODE`, `RELEASE_COOKIE`,
@@ -756,6 +756,8 @@ defmodule Mix.Tasks.Release do
       release. The custom value must be an existing release version in
       the `releases/` directory
 
+    * `RELEASE_PROG` - the command line executable used to start the release
+
   The following variables can be set before you invoke the release or
   inside `env.sh` and `env.bat`:
 
@@ -962,13 +964,13 @@ defmodule Mix.Tasks.Release do
   hot code upgrade it. This is one of the many steps necessary
   to perform hot code upgrades and it must be taken into account by
   every process and application being upgraded in the system.
-  The [`.appup` cookbook](http://erlang.org/doc/design_principles/appup_cookbook.html)
+  The [`.appup` cookbook](https://erlang.org/doc/design_principles/appup_cookbook.html)
   provides a good reference and more examples.
 
   Once `.appup`s are created, the next step is to create a `.relup`
   file with all instructions necessary to update the release itself.
   Erlang documentation does provide a chapter on
-  [Creating and Upgrading a Target System](http://erlang.org/doc/system_principles/create_target.html).
+  [Creating and upgrading a target system](https://erlang.org/doc/system_principles/create_target.html).
   [Learn You Some Erlang has a chapter on hot code upgrades](https://learnyousomeerlang.com/relups).
 
   Overall, there are many steps, complexities and assumptions made

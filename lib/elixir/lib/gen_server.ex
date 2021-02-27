@@ -61,7 +61,7 @@ defmodule GenServer do
 
   Every time you do a `GenServer.call/3`, the client will send a message
   that must be handled by the `c:handle_call/3` callback in the GenServer.
-  A `cast/2` message must be handled by `c:handle_cast/2`. There are 7 possible
+  A `cast/2` message must be handled by `c:handle_cast/2`. There are 8 possible
   callbacks to be implemented when you use a `GenServer`. The only required
   callback is `c:init/1`.
 
@@ -163,12 +163,12 @@ defmodule GenServer do
       using `Process.register/2`.
 
     * `{:global, term}` - the GenServer is registered globally with the given
-      term using the functions in the [`:global` module](http://www.erlang.org/doc/man/global.html).
+      term using the functions in the [`:global` module](`:global`).
 
     * `{:via, module, term}` - the GenServer is registered with the given
       mechanism and name. The `:via` option expects a module that exports
       `register_name/2`, `unregister_name/1`, `whereis_name/1` and `send/2`.
-      One such example is the [`:global` module](http://www.erlang.org/doc/man/global.html) which uses these functions
+      One such example is the [`:global` module](`:global`) which uses these functions
       for keeping the list of names of processes and their associated PIDs
       that are available globally for a network of Elixir nodes. Elixir also
       ships with a local, decentralized and scalable registry called `Registry`
@@ -312,14 +312,14 @@ defmodule GenServer do
 
   ## Debugging with the :sys module
 
-  GenServers, as [special processes](http://erlang.org/doc/design_principles/spec_proc.html),
-  can be debugged using the [`:sys` module](http://www.erlang.org/doc/man/sys.html).
+  GenServers, as [special processes](https://erlang.org/doc/design_principles/spec_proc.html),
+  can be debugged using the [`:sys` module](`:sys`).
   Through various hooks, this module allows developers to introspect the state of
   the process and trace system events that happen during its execution, such as
   received messages, sent replies and state changes.
 
   Let's explore the basic functions from the
-  [`:sys` module](http://www.erlang.org/doc/man/sys.html) used for debugging:
+  [`:sys` module](`:sys`) used for debugging:
 
     * `:sys.get_state/2` - allows retrieval of the state of the process.
       In the case of a GenServer process, it will be the callback module state,
@@ -401,8 +401,8 @@ defmodule GenServer do
   in Erlang can also provide extra insight.
 
     * [GenServer - Elixir's Getting Started Guide](https://elixir-lang.org/getting-started/mix-otp/genserver.html)
-    * [`:gen_server` module documentation](http://www.erlang.org/doc/man/gen_server.html)
-    * [gen_server Behaviour - OTP Design Principles](http://www.erlang.org/doc/design_principles/gen_server_concepts.html)
+    * [`:gen_server` module documentation](`:gen_server`)
+    * [gen_server Behaviour - OTP Design Principles](https://erlang.org/doc/design_principles/gen_server_concepts.html)
     * [Clients and Servers - Learn You Some Erlang for Great Good!](http://learnyousomeerlang.com/clients-and-servers)
 
   """
@@ -507,7 +507,7 @@ defmodule GenServer do
   occurs as with a `:reply` tuple.
 
   Returning `{:stop, reason, reply, new_state}` stops the loop and `c:terminate/2`
-  is called with reason `reason` and state `new_state`. Then the `reply` is sent
+  is called with reason `reason` and state `new_state`. Then, the `reply` is sent
   as the response to call and the process exits with reason `reason`.
 
   Returning `{:stop, reason, new_state}` is similar to
@@ -600,15 +600,13 @@ defmodule GenServer do
   `reason` is exit reason and `state` is the current state of the `GenServer`.
   The return value is ignored.
 
-  `c:terminate/2` is called if a callback (except `c:init/1`) does one of the
-  following:
+  `c:terminate/2` is called if the `GenServer` traps exits (using `Process.flag/2`)
+  *and* the parent process sends an exit signal, or a callback (except `c:init/1`)
+  does one of the following:
 
     * returns a `:stop` tuple
-    * raises
-    * calls `Kernel.exit/1`
+    * raises (via `Kernel.raise/2`) or exits (via `Kernel.exit/1`)
     * returns an invalid value
-    * the `GenServer` traps exits (using `Process.flag/2`) *and* the parent
-      process sends an exit signal
 
   If part of a supervision tree, a `GenServer` will receive an exit
   signal when the tree is shutting down. The exit signal is based on
@@ -894,7 +892,7 @@ defmodule GenServer do
       milliseconds initializing or it will be terminated and the start function
       will return `{:error, :timeout}`
 
-    * `:debug` - if present, the corresponding function in the [`:sys` module](http://www.erlang.org/doc/man/sys.html) is invoked
+    * `:debug` - if present, the corresponding function in the [`:sys` module](`:sys`) is invoked
 
     * `:spawn_opt` - if present, its value is passed as options to the
       underlying process as in `Process.spawn/4`

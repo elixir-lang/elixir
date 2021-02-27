@@ -231,6 +231,13 @@ defmodule ExUnit.DocTestTest.Invalid do
       1
   """
   @type t :: any()
+
+  @doc """
+      # This will fail to inspect
+      iex> ExUnit.DocTestTest.Haiku.new(:this, :is, {:not, :a, :haiku})
+      #Haiku<:this_wont_be_asserted>
+  """
+  def raising_inspect, do: :ok
 end
 |> ExUnit.BeamHelpers.write_beam()
 
@@ -380,8 +387,7 @@ defmodule ExUnit.DocTestTest.Haiku do
       >
 
   """
-  def new(first, second, third, author \\ "")
-      when is_binary(first) and is_binary(second) and is_binary(third) and is_binary(author) do
+  def new(first, second, third, author \\ "") do
     %__MODULE__{
       first_phrase: first,
       second_phrase: second,
@@ -673,8 +679,12 @@ defmodule ExUnit.DocTestTest do
                   test/ex_unit/doc_test_test.exs:224: ExUnit.DocTestTest.Invalid (module)
            """
 
+    assert output =~ "14) doctest ExUnit.DocTestTest.Invalid.raising_inspect/0"
+    assert output =~ "iex> ExUnit.DocTestTest.Haiku.new(:this, :is, {:not, :a, :haiku})"
+    assert output =~ "test/ex_unit/doc_test_test.exs:237: ExUnit.DocTestTest.Invalid (module)"
+
     assert output =~ """
-            14) doctest ExUnit.DocTestTest.Invalid.b/0 (14) (ExUnit.DocTestTest.ActuallyCompiled)
+            15) doctest ExUnit.DocTestTest.Invalid.b/0 (15) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
                 Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:188:6: syntax error before: '*'
                 doctest:
@@ -685,7 +695,7 @@ defmodule ExUnit.DocTestTest do
            """
 
     assert output =~ """
-            15) doctest ExUnit.DocTestTest.Invalid.t/0 (15) (ExUnit.DocTestTest.ActuallyCompiled)
+            16) doctest ExUnit.DocTestTest.Invalid.t/0 (16) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
                 Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:230:6: syntax error before: '*'
                 doctest:
@@ -703,7 +713,7 @@ defmodule ExUnit.DocTestTest do
     end
 
     doctest_line = __ENV__.line - 3
-    starting_line = ExUnit.DocTestTest.PatternMatching.starting_line() + 12
+    starting_line = ExUnit.DocTestTest.PatternMatching.starting_line() + 18
 
     ExUnit.configure(seed: 0, colors: [enabled: false])
     ExUnit.Server.modules_loaded()

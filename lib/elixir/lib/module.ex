@@ -235,7 +235,7 @@ defmodule Module do
       end
 
   For the list of supported warnings, see
-  [`:dialyzer` module](http://www.erlang.org/doc/man/dialyzer.html).
+  [`:dialyzer` module](`:dialyzer`).
 
   Multiple uses of `@dialyzer` will accumulate instead of overriding
   previous ones.

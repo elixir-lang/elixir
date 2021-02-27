@@ -45,11 +45,22 @@ build_name(Name, Count) -> list_to_atom("_" ++ atom_to_list(Name) ++ "@" ++ inte
 %% BINDINGS
 
 load_binding(Binding, #{current_vars := {ExVars, _}}, #elixir_erl{var_names=ErlVars}) ->
-  lists:foldl(fun({Key, Value}, Acc) ->
-    Version = maps:get(Key, ExVars),
-    Name = maps:get(Version, ErlVars),
-    orddict:store(Name, Value, Acc)
-  end, [], Binding).
+  %% TODO: Remove me once we require Erlang/OTP 24+
+  %% Also revisit dump_binding below.
+  Mod =
+    case erlang:system_info(otp_release) >= "24" of
+      true -> maps;
+      false -> orddict
+    end,
+
+  KV =
+    lists:foldl(fun({Key, Value}, Acc) ->
+      Version = maps:get(Key, ExVars),
+      Name = maps:get(Version, ErlVars),
+      [{Name, Value} | Acc]
+    end, [], Binding),
+
+  Mod:from_list(KV).
 
 dump_binding(Binding, #{current_vars := {ExVars, _}}, #elixir_erl{var_names=ErlVars}) ->
   maps:fold(fun
@@ -60,13 +71,19 @@ dump_binding(Binding, #{current_vars := {ExVars, _}}, #elixir_erl{var_names=ErlV
       end,
 
       ErlName = maps:get(Version, ErlVars),
-
-      Value = case orddict:find(ErlName, Binding) of
-        {ok, V} -> V;
-        error -> nil
-      end,
-
-      orddict:store(Key, Value, Acc);
+      Value = find_binding(ErlName, Binding),
+      [{Key, Value} | Acc];
     (_, _, Acc) ->
       Acc
   end, [], ExVars).
+
+find_binding(ErlName, Binding = #{}) ->
+  case Binding of
+    #{ErlName := V} -> V;
+    _ -> nil
+  end;
+find_binding(ErlName, Binding) ->
+  case orddict:find(ErlName, Binding) of
+    {ok, V} -> V;
+    error -> nil
+  end.

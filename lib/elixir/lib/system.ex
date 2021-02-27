@@ -43,7 +43,7 @@ defmodule System do
       system time may not match in case of time warps although the VM works towards
       aligning them. This time is not monotonic (i.e., it may decrease)
       as its behaviour is configured [by the VM time warp
-      mode](http://www.erlang.org/doc/apps/erts/time_correction.html#Time_Warp_Modes);
+      mode](https://erlang.org/doc/apps/erts/time_correction.html#Time_Warp_Modes);
 
     * `monotonic_time/0` - a monotonically increasing time provided
       by the Erlang VM.
@@ -58,7 +58,7 @@ defmodule System do
 
   For a more complete rundown on the VM support for different
   times, see the [chapter on time and time
-  correction](http://www.erlang.org/doc/apps/erts/time_correction.html)
+  correction](https://erlang.org/doc/apps/erts/time_correction.html)
   in the Erlang docs.
   """
 
@@ -597,19 +597,29 @@ defmodule System do
     end
   end
 
+  # TODO: Remove this once we require Erlang/OTP 24+
+  @compile {:no_warn_undefined, {:os, :env, 0}}
+
   @doc """
   Returns all system environment variables.
 
   The returned value is a map containing name-value pairs.
   Variable names and their values are strings.
   """
+  # TODO: Remove this once we require Erlang/OTP 24+
   @spec get_env() :: %{optional(String.t()) => String.t()}
   def get_env do
-    Enum.into(:os.getenv(), %{}, fn var ->
-      var = IO.chardata_to_string(var)
-      [k, v] = String.split(var, "=", parts: 2)
-      {k, v}
-    end)
+    if function_exported?(:os, :env, 0) do
+      Map.new(:os.env(), fn {k, v} ->
+        {IO.chardata_to_string(k), IO.chardata_to_string(v)}
+      end)
+    else
+      Enum.into(:os.getenv(), %{}, fn var ->
+        var = IO.chardata_to_string(var)
+        [k, v] = String.split(var, "=", parts: 2)
+        {k, v}
+      end)
+    end
   end
 
   @doc """

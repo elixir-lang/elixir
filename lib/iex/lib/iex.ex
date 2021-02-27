@@ -106,10 +106,9 @@ defmodule IEx do
       [1, [2], 3]
 
   To prevent this behaviour breaking valid code where the subsequent line
-  begins with a pipe operator, (`|>/2` `~>>` `<<~` `~>` `<~` `<~>` `<|>`),
-  IEx automatically treats such lines as if they were prepended with
-  `IEx.Helpers.v/0`, which returns the value of the previous expression, if
-  available.
+  begins with a binary operator, such as `|>/2` or `++/2` , IEx automatically
+  treats such lines as if they were prepended with `IEx.Helpers.v/0`, which
+  returns the value of the previous expression, if available.
 
       iex(1)> [1, [2], 3]
       [1, [2], 3]
@@ -128,6 +127,14 @@ defmodule IEx do
 
       iex(1)> |> List.flatten()
       ** (RuntimeError) v(-1) is out of bounds
+
+  Note however the above does not work for `+/2` and `-/2`, as they
+  are ambiguous with the unary `+/1` and `-/1`:
+
+      iex(1)> 1
+      1
+      iex(2)> + 2
+      2
 
   ## The BREAK menu
 
@@ -216,7 +223,7 @@ defmodule IEx do
   First of all, we can only connect to a shell if we give names
   both to the current shell and the shell we want to connect to.
 
-  Let's give it a try. First start a new shell:
+  Let's give it a try. First, start a new shell:
 
       $ iex --sname foo
       iex(foo@HOST)1>

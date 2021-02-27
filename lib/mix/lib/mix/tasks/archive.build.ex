@@ -6,7 +6,7 @@ defmodule Mix.Tasks.Archive.Build do
 
   @moduledoc """
   Builds an archive according to the specification of the
-  [Erlang Archive Format](http://www.erlang.org/doc/man/code.html).
+  [Erlang archive format](`:code`).
 
   Archives are meant to contain small projects, usually installed
   locally. Archives may be installed into a Mix environment by

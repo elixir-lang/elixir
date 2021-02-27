@@ -133,7 +133,6 @@ defmodule Mix.Tasks.EscriptTest do
       Mix.Tasks.Escript.Build.run([])
       assert_received {:mix_shell, :info, ["Generated escript escript_test with MIX_ENV=dev"]}
       assert System.cmd("escript", ["escript_test"]) == {"COMPILE dev TARGET host\n", 0}
-      assert count_abstract_code("escript_test") == 0
     end)
   end
 
@@ -144,18 +143,23 @@ defmodule Mix.Tasks.EscriptTest do
       File.mkdir_p!("config")
 
       File.write!("config/config.exs", """
-      [foobar: [value: "OLD", other: %{}]]
+      [foobar: [value: "OLD", nesting: [config: true, runtime: false]]]
       """)
 
-      File.write!("config/config.exs", ~S"""
+      File.write!("config/runtime.exs", ~S"""
       import Config
-      config :foobar, :value, "RUNTIME #{config_env()} TARGET #{config_target()}"
+      config :foobar, :value, "RUNTIME #{config_env()} TARGET #{config_target()} ARGV #{System.argv()}"
+      config :foobar, :nesting, runtime: true
       """)
 
       Mix.Tasks.Escript.Build.run([])
       assert_received {:mix_shell, :info, ["Generated escript escript_test with MIX_ENV=dev"]}
-      assert System.cmd("escript", ["escript_test"]) == {"RUNTIME dev TARGET host\n", 0}
-      assert count_abstract_code("escript_test") == 0
+
+      assert System.cmd("escript", ["escript_test", "--foo", "--bar"]) ==
+               {"RUNTIME dev TARGET host ARGV --foo--bar\n", 0}
+
+      assert System.cmd("escript", ["escript_test", "--nesting"]) ==
+               {"[config: true, runtime: true]\n", 0}
     end)
   end
 
@@ -270,7 +274,9 @@ defmodule Mix.Tasks.EscriptTest do
 
       message = "Generated escript escript_test_consolidated with MIX_ENV=dev"
       assert_received {:mix_shell, :info, [^message]}
-      assert System.cmd("escript", ["escript_test_consolidated", "Enumerable"]) == {"true\n", 0}
+
+      assert System.cmd("escript", ["escript_test_consolidated", "--protocol", "Enumerable"]) ==
+               {"true\n", 0}
     end)
   end
 

@@ -12,6 +12,7 @@
 #### Elixir
 
   * [Code] Do not add newlines around interpolation on code formatting. Note this means formatted code that has interpolation after the line length on Elixir v1.12 won't be considered as formatted on earlier Elixir versions
+  * [Calendar] Support basic datetime format in `Calendar.ISO` parsing functions
   * [DateTime] Add `offset` to `DateTime.to_iso8601/2` (now `to_iso8601/3`)
   * [Enum] Add `Enum.count_until/2` and `Enum.count_until/3`
   * [Enum] Add `Enum.product/1`
@@ -24,35 +25,46 @@
   * [Kernel] Add `Kernel.tap/2` and `Kernel.then/2`
   * [Kernel] Do not add runtime dependencies to remotes in typespecs
   * [Kernel] When there is an unused variable warning and there is a variable with the same name previously defined, suggest the user may have wanted to use the pin operator
+  * [Macro] Add export dependencies on `Macro.struct!/2`
   * [Module] Add `Module.get_definition/2` and `Module.delete_definition/2`
   * [Module] Allow `@on_load` to be a private function
   * [Regex] Add offset option to `Regex.scan/3` and `Regex.run/3`
+  * [Registry] Support compression on `Registry` tables
   * [Stream] Add `Stream.zip_with/2` and `Stream.zip_with/3`
   * [String] Add `:turkic` mode option to String case functions
+  * [System] Add `System.trap_signal/3` and `System.untrap_signal/2`
   * [Tuple] Add `Tuple.sum/1` and `Tuple.product/1`
+  * [URI] Add functions for RFC3986 compliant encoding and decoding of queries
 
 #### ExUnit
 
   * [ExUnit] Intercept SIGQUIT and show a list of all aborted tests as well as intermediate test results
+  * [ExUnit] Interpolate module attributes in match assertions diffs
+  * [ExUnit] Print how much time is spent on `async` vs `sync` tests
 
 #### IEx
 
   * [IEx] Make IEx' parser configurable to allow special commands
   * [IEx] Show function signature when pressing tab after the opening parens of a function
+  * [IEx] If an IEx expression starts with a binary operator, such as `|>`, automatically pipe in the result of the last expression
 
 #### Mix
 
+  * [Mix] Add `Mix.install/2` for dynamically installing a list of dependencies
   * [Mix] Support `:exit_code` option in `Mix.raise/2`
   * [Mix] Discard `MIX_ENV` and `MIX_TARGET` values if they are empty strings
+  * [Mix] Print the time taken to execute a task with on `MIX_DEBUG=1`
 
 ### 2. Bug fixes
 
 #### Elixir
 
   * [CLI] Ensure `-e ""` (with an empty string) parses correctly on Windows
+  * [Inspect] Do not override user supplied `:limit` option for derived implementations
   * [Kernel] Preserve CRLF on heredocs
   * [Kernel] Public functions without documentation now appear as an empty map on `Code.fetch_docs/1`, unless they start with underscore, where they remain as `:none`. This aligns Elixir's implementation with EEP48
   * [Kernel] Do not crash when complex literals (binaries and maps) are used in guards
+  * [Kernel] Properly parse keywords (such as `end`) followed by the `::` operator
   * [Macro] `Macro.decompose_call/1` now also consider tuples with more than 2 elements to not be valid calls
   * [OptionParser] Properly parse when numbers follow-up aliases, for example, `-ab3` is now parsed as `-a -b 3`
   * [Path] Fix `Path.relative_to/2` when referencing self
@@ -65,6 +77,7 @@
 
   * [mix compile.elixir] Ensure that a manifest is generated even with no source code
   * [mix compile.elixir] Make sure export dependencies trigger recompilation when removed
+  * [mix release] Improve compliance of release scripts with stripped down Linux installations
 
 ### 3. Soft-deprecations (no warnings emitted)
 
