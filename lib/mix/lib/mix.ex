@@ -208,7 +208,7 @@ defmodule Mix do
   powerful aliases mixed with Mix tasks can be.
 
   Mix tasks are designed to run only once. This prevents the same task
-  to be executed multiple times. For example, if there are several tasks
+  from being executed multiple times. For example, if there are several tasks
   depending on `mix compile`, the code will be compiled once. Tasks can
   be executed again if they are explicitly reenabled using `Mix.Task.reenable/1`:
 
