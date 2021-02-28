@@ -1219,7 +1219,7 @@ defmodule EnumTest do
 
     assert result == [2, 4, 6, 8, 10]
 
-    #  MAPS
+    # MAPS
     result = Enum.zip_with(%{a: 7, c: 9}, 3..4, fn {key, value}, b -> {key, value + b} end)
     assert result == [a: 10, c: 13]
 
@@ -1272,7 +1272,7 @@ defmodule EnumTest do
 
     assert result == [2, 4, 6, 8, 10]
 
-    #  MAPS
+    # MAPS
     result = Enum.zip_with([%{a: 7, c: 9}, 3..4], fn [{key, value}, b] -> {key, value + b} end)
     assert result == [a: 10, c: 13]
 
