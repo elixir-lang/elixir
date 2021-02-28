@@ -248,7 +248,7 @@ defmodule Mix.Tasks.Release do
   the following must be the same between the host and the target:
 
     * Target architecture (for example, x86_64 or ARM)
-    * Target vendor + operating system  (for example, Windows, Linux, or Darwin/macOS)
+    * Target vendor + operating system (for example, Windows, Linux, or Darwin/macOS)
     * Target ABI (for example, musl or gnu)
 
   This is often represented in the form of target triples, for example,
@@ -396,7 +396,7 @@ defmodule Mix.Tasks.Release do
       `[keep: ["Docs", "Dbgi"]]` to keep certain chunks that are usually stripped.
 
     * `:cookie` - a string representing the Erlang Distribution cookie. If this
-      option is not set, a random cookie is  written to the `releases/COOKIE` file
+      option is not set, a random cookie is written to the `releases/COOKIE` file
       when the first release is assembled. At runtime, we will first attempt
       to fetch the cookie from the `RELEASE_COOKIE` environment variable and
       then we'll read the `releases/COOKIE` file.
@@ -926,7 +926,7 @@ defmodule Mix.Tasks.Release do
   If you were to perform a hot code upgrade in such an application, it would
   crash, because in the initial version the state was just a counter
   but in the new version the state is a tuple. Furthermore, you changed
-  the format of the `call` message from `:bump` to  `{:bump, by}` and
+  the format of the `call` message from `:bump` to `{:bump, by}` and
   the process may have both old and new messages temporarily mixed, so
   we need to handle both. The final version would be:
 
