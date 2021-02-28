@@ -118,7 +118,7 @@ defmodule Regex do
     * upper - Uppercase letters
     * word  - "Word" characters (same as \w)
     * xdigit - Hexadecimal digits
-   
+
   There is another character class, `ascii`, that erroneously matches
   Latin-1 characters instead of the 0-127 range specified by POSIX. This
   cannot be fixed without altering the behaviour of other classes, so we
