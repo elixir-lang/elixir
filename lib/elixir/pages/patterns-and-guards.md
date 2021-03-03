@@ -1,12 +1,12 @@
 # Patterns and Guards
 
-Elixir provides pattern matching, which allows us to assert on the shape or extract values from data-structures. Patterns are often augmented with guards, which give developers the ability to perform more complex checks, albeit limited.
+Elixir provides pattern matching, which allows us to assert on the shape or extract values from data structures. Patterns are often augmented with guards, which give developers the ability to perform more complex checks, albeit limited.
 
 This page describes the semantics of patterns and guards, where they are all allowed, and how to extend them.
 
 ## Patterns
 
-Patterns in Elixir are made of variables, literals, and data-structure specific syntax. One of the most used constructs to perform pattern matching is the match operator ([`=`](`=/2`)):
+Patterns in Elixir are made of variables, literals, and data structure specific syntax. One of the most used constructs to perform pattern matching is the match operator ([`=`](`=/2`)):
 
 ```iex
 iex> x = 1
@@ -33,7 +33,7 @@ iex> 1 = y
 
 In other words, patterns are allowed only on the left side of `=`. The right side of `=` follows the regular evaluation semantics of the language.
 
-Now let's cover the pattern matching rules for each construct and then for each relevant data-types.
+Now let's cover the pattern matching rules for each construct and then for each relevant data types.
 
 ### Variables
 
