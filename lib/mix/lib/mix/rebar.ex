@@ -123,7 +123,7 @@ defmodule Mix.Rebar do
   # Translate a Rebar dependency declaration to a Mix declaration
   # From http://www.rebar3.org/docs/dependencies#section-declaring-dependencies
   defp parse_dep(app) when is_atom(app) do
-    {app, ">= 0.0.0", override: true}
+    {app, nil, override: true}
   end
 
   defp parse_dep({app, req}) when is_list(req) do
@@ -141,7 +141,13 @@ defmodule Mix.Rebar do
   defp parse_dep({app, req, source, opts}) do
     source = parse_source(source)
     compile = if :proplists.get_value(:raw, opts, false), do: [compile: false], else: []
-    {app, compile_req(req), [override: true] ++ source ++ compile}
+    opts = [override: true] ++ source ++ compile
+
+    if req do
+      {app, compile_req(req), opts}
+    else
+      {app, opts}
+    end
   end
 
   defp parse_source({:pkg, pkg}) do
@@ -168,10 +174,6 @@ defmodule Mix.Rebar do
       end
 
     [{scm, to_string(url)}] ++ ref ++ additional_opts
-  end
-
-  defp compile_req(nil) do
-    ">= 0.0.0"
   end
 
   defp compile_req(req) do
