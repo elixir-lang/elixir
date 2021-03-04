@@ -99,13 +99,13 @@ defmodule Mix.RebarTest do
                {:git_rebar, "~> 1.0", override: true, hex: :rebar_fork}
 
       assert parse_dep({:git_rebar, {:pkg, :rebar_fork}}) ==
-               {:git_rebar, ">= 0.0.0", override: true, hex: :rebar_fork}
+               {:git_rebar, override: true, hex: :rebar_fork}
 
       assert parse_dep({:git_rebar, '0.1..*', {:git, @git_rebar_charlist, :main}}) ==
                {:git_rebar, ~r"0.1..*", override: true, git: @git_rebar_string, ref: "main"}
 
       assert parse_dep({:git_rebar, {:git, @git_rebar_charlist, :main}}) ==
-               {:git_rebar, ">= 0.0.0", override: true, git: @git_rebar_string, ref: "main"}
+               {:git_rebar, override: true, git: @git_rebar_string, ref: "main"}
 
       assert parse_dep({:git_rebar, '0.1..*', {:git, @git_rebar_charlist}, [:raw]}) ==
                {:git_rebar, ~r"0.1..*", override: true, git: @git_rebar_string, compile: false}
