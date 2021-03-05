@@ -731,6 +731,12 @@ defmodule Mix.Tasks.Release do
         start_erl.data
       tmp/
 
+  We document this structure for completeness. In practice, developers
+  should not modify any of those files after the release is assembled.
+  Instead use env scripts, custom config provider, overlays, and all
+  other mechanisms described in this guide to configure how your release
+  works.
+
   ## Environment variables
 
   The system sets different environment variables. The following variables
