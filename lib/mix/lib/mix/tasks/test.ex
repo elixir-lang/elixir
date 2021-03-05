@@ -113,7 +113,7 @@ defmodule Mix.Tasks.Test do
 
     * `--exclude` - excludes tests that match the filter
 
-    * `--export-coverage` - the name of the file to export coverage results too.
+    * `--export-coverage` - the name of the file to export coverage results to.
       Only has an effect when used with `--cover`
 
     * `--failed` - runs only tests that failed the last time they ran
