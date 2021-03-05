@@ -1330,6 +1330,10 @@ defmodule Enum.EmptyError do
   defexception message: "empty error"
 end
 
+defmodule Enum.NotFoundError do
+  defexception message: "not found error"
+end
+
 defmodule File.Error do
   defexception [:reason, :path, action: ""]
 

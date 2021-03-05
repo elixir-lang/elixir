@@ -1110,6 +1110,35 @@ defmodule Enum do
   end
 
   @doc """
+  Similar to `find/3` but raises if no matching value is found.
+
+  ## Examples
+
+      iex> Enum.find!([2, 3, 4], fn x -> rem(x, 2) == 1 end)
+      3
+
+      iex> Enum.find!([2, 4, 6], fn x -> rem(x, 2) == 1 end)
+      ** (Enum.NotFoundError) not found error
+
+  """
+  @spec find!(t, (element -> any)) :: element
+  def find!(enumerable, fun)
+
+  def find!(enumerable, fun) when is_list(enumerable) do
+    find_list!(enumerable, fun)
+  end
+
+  def find!(enumerable, fun) do
+    Enumerable.reduce(enumerable, {:cont, :not_found}, fn entry, _ ->
+      if fun.(entry), do: {:halt, entry}, else: {:cont, :not_found}
+    end)
+    |> case do
+      {:done, :not_found} -> raise Enum.NotFoundError
+      {:halted, entry} -> entry
+    end
+  end
+
+  @doc """
   Similar to `find/3`, but returns the index (zero-based)
   of the element instead of the element itself.
 
@@ -3707,6 +3736,20 @@ defmodule Enum do
 
   defp find_list([], default, _) do
     default
+  end
+
+  ## find!
+
+  defp find_list!([head | tail], fun) do
+    if fun.(head) do
+      head
+    else
+      find_list!(tail, fun)
+    end
+  end
+
+  defp find_list!([], _) do
+    raise Enum.NotFoundError
   end
 
   ## find_index

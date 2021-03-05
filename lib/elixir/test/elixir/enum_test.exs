@@ -291,6 +291,14 @@ defmodule EnumTest do
     assert Enum.find([2, 3, 4], fn x -> rem(x, 2) == 1 end) == 3
   end
 
+  test "find!/2" do
+    assert_raise Enum.NotFoundError,
+                 "not found error",
+                 fn -> Enum.find!([2, 4, 6], fn x -> rem(x, 2) == 1 end) end
+
+    assert Enum.find!([2, 3, 4], fn x -> rem(x, 2) == 1 end) == 3
+  end
+
   test "find_index/2" do
     assert Enum.find_index([2, 4, 6], fn x -> rem(x, 2) == 1 end) == nil
     assert Enum.find_index([2, 3, 4], fn x -> rem(x, 2) == 1 end) == 1
@@ -1487,6 +1495,15 @@ defmodule EnumTest.Range do
     assert Enum.find(2..6, fn x -> rem(x, 2) == 1 end) == 3
     assert Enum.find(2..6, fn _ -> false end) == nil
     assert Enum.find(2..6, 0, fn _ -> false end) == 0
+  end
+
+  test "find!/2" do
+    assert Enum.find!(2..6, fn x -> rem(x, 2) == 0 end) == 2
+    assert Enum.find!(2..6, fn x -> rem(x, 2) == 1 end) == 3
+
+    assert_raise Enum.NotFoundError, "not found error", fn ->
+      Enum.find!(2..6, fn _ -> false end)
+    end
   end
 
   test "find_index/2" do
