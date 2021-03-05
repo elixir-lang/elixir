@@ -1121,6 +1121,7 @@ defmodule Enum do
       ** (Enum.NotFoundError) not found error
 
   """
+  @doc since: "1.12.0"
   @spec find!(t, (element -> any)) :: element
   def find!(enumerable, fun)
 
