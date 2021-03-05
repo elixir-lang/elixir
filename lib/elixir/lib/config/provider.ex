@@ -26,7 +26,7 @@ defmodule Config.Provider do
       releases: [
         demo: [
           config_providers: [
-            {:system, "RELEASE_ROOT", "/extra_config.exs"}
+            {Config.Reader, {:system, "RELEASE_ROOT", "/extra_config.exs"}}
           ]
         ]
       ]
