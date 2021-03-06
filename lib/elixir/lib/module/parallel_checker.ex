@@ -369,28 +369,23 @@ defmodule Module.ParallelChecker do
   end
 
   defp cache_info(ets, module, exports, deprecated, mode) do
-    exports =
-      Enum.map(exports, fn {{fun, arity}, kind} ->
-        reason = Map.get(deprecated, {fun, arity})
-        :ets.insert(ets, {{:export, module, {fun, arity}}, kind, reason})
-
-        {{fun, arity}, kind}
-      end)
+    Enum.each(exports, fn {{fun, arity}, kind} ->
+      reason = Map.get(deprecated, {fun, arity})
+      :ets.insert(ets, {{:export, module, {fun, arity}}, kind, reason})
+      {{fun, arity}, kind}
+    end)
 
     :ets.insert(ets, {{:cached, module}, mode})
   end
 
   defp cache_chunk(ets, module, exports) do
-    exports =
-      Enum.map(exports, fn {{fun, arity}, %{kind: kind, deprecated_reason: reason}} ->
-        :ets.insert(ets, {{:export, module, {fun, arity}}, kind, reason})
+    Enum.each(exports, fn {{fun, arity}, %{kind: kind, deprecated_reason: reason}} ->
+      :ets.insert(ets, {{:export, module, {fun, arity}}, kind, reason})
 
-        {{fun, arity}, kind}
-      end)
+      {{fun, arity}, kind}
+    end)
 
     :ets.insert(ets, {{:export, module, {:__info__, 1}}, :def, nil})
-    exports = [{{:__info__, 1}, :def} | exports]
-
     :ets.insert(ets, {{:cached, module}, :elixir})
   end
 
