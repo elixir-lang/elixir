@@ -722,16 +722,8 @@ defmodule URI do
   defp remove_dot_segments([head | tail], acc), do: remove_dot_segments(tail, [head | acc])
 
   defp path_to_segments(path) do
-    [head | tail] = String.split(path, "/")
-    reverse_and_discard_empty(tail, [head])
+    path |> String.split("/") |> Enum.reverse()
   end
-
-  defp reverse_and_discard_empty([], acc), do: acc
-  defp reverse_and_discard_empty([head], acc), do: [head | acc]
-  defp reverse_and_discard_empty(["" | tail], acc), do: reverse_and_discard_empty(tail, acc)
-
-  defp reverse_and_discard_empty([head | tail], acc),
-    do: reverse_and_discard_empty(tail, [head | acc])
 end
 
 defimpl String.Chars, for: URI do
