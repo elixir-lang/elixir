@@ -461,6 +461,13 @@ defmodule ExceptionTest do
                  "you intend to invoke this macro"
     end
 
+    if :erlang.system_info(:otp_release) >= '23' do
+      test "annotates undefined function clause error with otp obsolete hints" do
+        assert blame_message(:erlang, & &1.hash(1, 2)) ==
+                 "function :erlang.hash/2 is undefined or private, use erlang:phash2/2 instead"
+      end
+    end
+
     test "annotates undefined function clause error with nil hints" do
       assert blame_message(nil, & &1.foo) ==
                "function nil.foo/0 is undefined. If you are using the dot syntax, " <>
