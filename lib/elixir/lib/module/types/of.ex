@@ -289,7 +289,7 @@ defmodule Module.Types.Of do
 
       {:deprecated, string, removal} when is_list(string) and is_list(removal) ->
         reason = string |> List.to_string() |> String.capitalize()
-        reason = "It will be removed in #{removal}. #{string}"
+        reason = "It will be removed in #{removal}. #{reason}"
         warn(meta, context, {:deprecated, module, fun, arity, reason})
 
       _ ->
