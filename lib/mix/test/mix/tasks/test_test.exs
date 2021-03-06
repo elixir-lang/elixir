@@ -133,6 +133,8 @@ defmodule Mix.Tasks.TestTest do
       in_fixture("umbrella_test", fn ->
         output = mix(["test", "--cover"])
 
+        assert output =~ "3 tests, 0 failures"
+
         # For bar, we do regular --cover and also test protocols
         assert output =~ """
                Generating cover results ...
@@ -144,6 +146,8 @@ defmodule Mix.Tasks.TestTest do
                -----------|--------------------------
                   100.00% | Total
                """
+
+        assert output =~ "1 test, 0 failures"
 
         # For foo, we do regular --cover and test it does not include bar
         assert output =~ """
@@ -386,7 +390,7 @@ defmodule Mix.Tasks.TestTest do
 
         assert output =~ """
                ==> bar
-               .
+               ...
                """
 
         refute output =~ "==> foo"

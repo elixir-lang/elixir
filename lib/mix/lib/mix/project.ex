@@ -138,6 +138,7 @@ defmodule Mix.Project do
       build_embedded: config[:build_embedded],
       build_per_environment: config[:build_per_environment],
       consolidate_protocols: false,
+      consolidation_path: consolidation_path(config),
       deps_path: deps_path(config),
       env_path: build_path(config)
     ]
@@ -646,11 +647,12 @@ defmodule Mix.Project do
   """
   @spec consolidation_path(keyword) :: Path.t()
   def consolidation_path(config \\ config()) do
-    if umbrella?(config) do
-      Path.join(build_path(config), "consolidated")
-    else
-      Path.join(app_path(config), "consolidated")
-    end
+    config[:consolidation_path] ||
+      if umbrella?(config) do
+        Path.join(build_path(config), "consolidated")
+      else
+        Path.join(app_path(config), "consolidated")
+      end
   end
 
   @doc false

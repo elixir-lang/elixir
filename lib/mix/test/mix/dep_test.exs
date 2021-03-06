@@ -6,6 +6,7 @@ defmodule Mix.DepTest do
   defmodule DepsApp do
     def project do
       [
+        app: :deps_app,
         deps: [
           {:ok, "0.1.0", path: "deps/ok"},
           {:invalidvsn, "0.2.0", path: "deps/invalidvsn"},
