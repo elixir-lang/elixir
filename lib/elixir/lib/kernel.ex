@@ -3897,8 +3897,8 @@ defmodule Kernel do
 
   This is the same AST as `not(left in right)`.
 
-  Additionally, `Macro.to_string/2` will translate all occurrences of
-  this AST to `left not in right`.
+  Additionally, `Macro.to_string/2` and `Code.format_string/1`
+  will translate all occurrences of this AST to `left not in right`.
   """
   @doc guard: true
   defmacro left in right do
