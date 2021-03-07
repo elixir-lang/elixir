@@ -508,13 +508,8 @@ defmodule Code.Formatter do
 
   # not(left in right)
   # left not in right
-  defp quoted_to_algebra({:not, meta, [{:in, _, [left, right]} = arg]}, context, state) do
-    # TODO: Remove metadata and always rewrite to left not in right in Elixir v2.0.
-    if meta[:operator] == :"not in" do
-      binary_op_to_algebra(:in, "not in", meta, left, right, context, state)
-    else
-      unary_op_to_algebra(:not, meta, arg, context, state)
-    end
+  defp quoted_to_algebra({:not, meta, [{:in, _, [left, right]}]}, context, state) do
+    binary_op_to_algebra(:in, "not in", meta, left, right, context, state)
   end
 
   defp quoted_to_algebra({:fn, meta, [_ | _] = clauses}, _context, state) do
