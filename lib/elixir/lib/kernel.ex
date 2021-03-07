@@ -3179,7 +3179,9 @@ defmodule Kernel do
   end
 
   @doc """
-  Module attribute unary operator. Reads and writes attributes in the current module.
+  Module attribute unary operator.
+
+  Reads and writes attributes in the current module.
 
   The canonical example for attributes is annotating that a module
   implements an OTP behaviour, such as `GenServer`:
@@ -3222,6 +3224,39 @@ defmodule Kernel do
   its current value. In other words, the value is read at compilation
   time and not at runtime. Check the `Module` module for other functions
   to manipulate module attributes.
+
+  ## Compile-time considerations
+
+  One thing to keep in mind is that references to other modules, even
+  in module attributes, generate compile-time dependencies to said
+  modules.
+
+  For example, take this common pattern:
+
+      @values [:foo, :bar, :baz]
+
+      def handle_arg(arg) when arg in @values do
+        ...
+      end
+
+  While the above is fine, imagine if instead you have actual
+  module names in the module attribute, like this:
+
+      @values [Foo, Bar, Baz]
+
+      def handle_arg(arg) when arg in @values do
+        ...
+      end
+
+  The code above will define a compile-time dependency on the modules
+  `Foo`, `Bar`, and `Baz`, in a way that, if any of them change, the
+  current module will have to recompile. In such cases, it may be
+  preferred to avoid the module attribute altogether:
+
+      def handle_arg(arg) when arg in [Foo, Bar, Baz] do
+        ...
+      end
+
   """
   defmacro @expr
 
