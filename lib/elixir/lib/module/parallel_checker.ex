@@ -4,6 +4,7 @@ defmodule Module.ParallelChecker do
   @type cache() :: {pid(), :ets.tid()}
   @type warning() :: term()
   @type kind() :: :def | :defmacro
+  @type mode() :: :elixir | :erlang
 
   @doc """
   Receives pairs of module maps and BEAM binaries. In parallel it verifies
@@ -67,7 +68,7 @@ defmodule Module.ParallelChecker do
   or if the function does not exist return `{:error, :function}`.
   """
   @spec fetch_export(cache(), module(), atom(), arity()) ::
-          {:ok, kind(), binary() | nil} | {:error, :function | :module}
+          {:ok, mode(), kind(), binary() | nil} | {:error, :function | :module}
   def fetch_export({_server, ets}, module, fun, arity) do
     case :ets.lookup(ets, {:cached, module}) do
       [{_key, false}] ->
