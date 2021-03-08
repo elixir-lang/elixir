@@ -500,8 +500,8 @@ defmodule Date do
     end
   end
 
-  def compare(date1, date2) do
-    if Calendar.compatible_calendars?(date1.calendar, date2.calendar) do
+  def compare(%{calendar: calendar1} = date1, %{calendar: calendar2} = date2) do
+    if Calendar.compatible_calendars?(calendar1, calendar2) do
       case {to_iso_days(date1), to_iso_days(date2)} do
         {first, second} when first > second -> :gt
         {first, second} when first < second -> :lt
