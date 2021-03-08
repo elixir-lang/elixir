@@ -478,10 +478,14 @@ defmodule Macro do
   end
 
   defp do_traverse_args(args, acc, pre, post) when is_list(args) do
-    Enum.map_reduce(args, acc, fn x, acc ->
-      {x, acc} = pre.(x, acc)
-      do_traverse(x, acc, pre, post)
-    end)
+    :lists.mapfoldl(
+      fn x, acc ->
+        {x, acc} = pre.(x, acc)
+        do_traverse(x, acc, pre, post)
+      end,
+      acc,
+      args
+    )
   end
 
   @doc """
