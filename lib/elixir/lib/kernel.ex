@@ -3336,6 +3336,8 @@ defmodule Kernel do
         end
 
       true ->
+        arg = expand_attribute(name, arg, env)
+
         quote do
           Module.__put_attribute__(__MODULE__, unquote(name), unquote(arg), unquote(line))
         end
@@ -3412,6 +3414,23 @@ defmodule Kernel do
   defp do_at(args, _meta, name, _function?, _env) do
     raise ArgumentError, "expected 0 or 1 argument for @#{name}, got: #{length(args)}"
   end
+
+  defp expand_attribute(:compile, arg, env) do
+    Macro.prewalk(arg, fn
+      # {:no_warn_undefined, alias}
+      {elem, {:__aliases__, _, _} = alias} ->
+        {elem, Macro.expand(alias, %{env | function: {:__info__, 1}})}
+
+      # {alias, fun, arity}
+      {:{}, meta, [{:__aliases__, _, _} = alias, fun, arity]} ->
+        {:{}, meta, [Macro.expand(alias, %{env | function: {:__info__, 1}}), fun, arity]}
+
+      node ->
+        node
+    end)
+  end
+
+  defp expand_attribute(_, arg, _), do: arg
 
   defp typespec?(:type), do: true
   defp typespec?(:typep), do: true
