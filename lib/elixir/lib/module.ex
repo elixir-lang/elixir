@@ -2030,20 +2030,13 @@ defmodule Module do
   end
 
   defp preprocess_attribute(:impl, value) do
-    case value do
-      _ when is_boolean(value) ->
-        value
-
-      module when is_atom(module) and module != nil ->
-        # Attempt to compile behaviour but ignore failure (will warn later)
-        _ = Code.ensure_compiled(module)
-        value
-
-      _ ->
-        raise ArgumentError,
-              "@impl is a built-in module attribute that marks the next definition " <>
-                "as a callback implementation. It should be a module or a boolean, " <>
-                "got: #{inspect(value)}"
+    if is_boolean(value) or (is_atom(value) and value != nil) do
+      value
+    else
+      raise ArgumentError,
+            "@impl is a built-in module attribute that marks the next definition " <>
+              "as a callback implementation. It should be a module or a boolean, " <>
+              "got: #{inspect(value)}"
     end
   end
 
