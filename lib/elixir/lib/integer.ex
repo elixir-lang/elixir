@@ -275,7 +275,7 @@ defmodule Integer do
       ** (ArgumentError) invalid base 38
 
   """
-  @spec parse(binary, 2..36) :: {integer, binary} | :error
+  @spec parse(binary, 2..36) :: {integer, remainder_of_binary :: binary} | :error
   def parse(binary, base \\ 10)
 
   def parse(_binary, base) when base not in 2..36 do
