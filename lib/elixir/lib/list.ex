@@ -235,7 +235,7 @@ defmodule List do
 
   """
   @spec foldl([elem], acc, (elem, acc -> acc)) :: acc when elem: var, acc: var
-  def foldl(list, acc, fun) when is_list(list) and is_function(fun) do
+  def foldl(list, acc, fun) when is_list(list) and is_function(fun, 2) do
     :lists.foldl(fun, acc, list)
   end
 
@@ -250,7 +250,7 @@ defmodule List do
 
   """
   @spec foldr([elem], acc, (elem, acc -> acc)) :: acc when elem: var, acc: var
-  def foldr(list, acc, fun) when is_list(list) and is_function(fun) do
+  def foldr(list, acc, fun) when is_list(list) and is_function(fun, 2) do
     :lists.foldr(fun, acc, list)
   end
 
@@ -691,7 +691,8 @@ defmodule List do
 
   """
   @spec update_at([elem], integer, (elem -> any)) :: list when elem: var
-  def update_at(list, index, fun) when is_list(list) and is_function(fun) and is_integer(index) do
+  def update_at(list, index, fun)
+      when is_list(list) and is_function(fun, 1) and is_integer(index) do
     if index < 0 do
       case length(list) + index do
         index when index < 0 -> list
@@ -1058,7 +1059,7 @@ defmodule List do
   @spec myers_difference(list, list, (term, term -> script | nil)) :: script
         when script: [{:eq | :ins | :del | :diff, list}]
   def myers_difference(list1, list2, diff_script)
-      when is_list(list1) and is_list(list2) and is_function(diff_script) do
+      when is_list(list1) and is_list(list2) and is_function(diff_script, 2) do
     myers_difference_with_diff_script(list1, list2, diff_script)
   end
 

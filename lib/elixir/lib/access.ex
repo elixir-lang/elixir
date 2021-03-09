@@ -795,7 +795,7 @@ defmodule Access do
   """
   @doc since: "1.6.0"
   @spec filter((term -> boolean)) :: access_fun(data :: list, get_value :: list)
-  def filter(func) when is_function(func) do
+  def filter(func) when is_function(func, 1) do
     fn op, data, next -> filter(op, data, func, next) end
   end
 

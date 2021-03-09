@@ -1292,7 +1292,7 @@ defmodule Enum do
   """
   @doc since: "1.10.0"
   @spec frequencies_by(t, (element -> any)) :: map
-  def frequencies_by(enumerable, key_fun) when is_function(key_fun) do
+  def frequencies_by(enumerable, key_fun) when is_function(key_fun, 1) do
     reduce(enumerable, %{}, fn entry, acc ->
       key = key_fun.(entry)
 
@@ -1323,7 +1323,7 @@ defmodule Enum do
   @spec group_by(t, (element -> any), (element -> any)) :: map
   def group_by(enumerable, key_fun, value_fun \\ fn x -> x end)
 
-  def group_by(enumerable, key_fun, value_fun) when is_function(key_fun) do
+  def group_by(enumerable, key_fun, value_fun) when is_function(key_fun, 1) do
     reduce(reverse(enumerable), %{}, fn entry, acc ->
       key = key_fun.(entry)
       value = value_fun.(entry)
