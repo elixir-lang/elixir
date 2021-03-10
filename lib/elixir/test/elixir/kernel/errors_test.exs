@@ -1013,6 +1013,16 @@ defmodule Kernel.ErrorsTest do
                       'defmodule Test do @compile {:inline, foo: 1} end'
   end
 
+  test "invalid @dialyzer options" do
+    assert_eval_raise CompileError,
+                      "nofile:1: undefined function foo/1 given to @dialyzer :nowarn_function",
+                      'defmodule Test do @dialyzer {:nowarn_function, {:foo, 1}} end'
+
+    assert_eval_raise ArgumentError,
+                      "invalid value for @dialyzer attribute: :not_an_option",
+                      'defmodule Test do @dialyzer :not_an_option end'
+  end
+
   test "@on_load attribute format" do
     assert_raise ArgumentError, ~r/should be an atom or a {atom, 0} tuple/, fn ->
       defmodule BadOnLoadAttribute do
