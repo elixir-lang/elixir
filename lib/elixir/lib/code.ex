@@ -370,9 +370,8 @@ defmodule Code do
 
     * `:line_length` - the line length to aim for when formatting
       the document. Defaults to 98. Note this value is used as
-      reference but it is not enforced by the formatter as sometimes
-      user intervention is required. See "Running the formatter"
-      section
+      guideline but there are situations where it is not enforced.
+      See the "Line length" section below for more information
 
     * `:locals_without_parens` - a keyword list of name and arity
       pairs that should be kept without parens whenever possible.
@@ -383,9 +382,9 @@ defmodule Code do
     * `:force_do_end_blocks` (since v1.9.0) - when `true`, converts all
       inline usages of `do: ...`,  `else: ...` and friends into `do/end`
       blocks. Defaults to `false`. Note that this option is convergent:
-      once you set it to `true`, all keywords will be converted. If you
-      set it to `false` later on, `do/end` blocks won't be converted
-      back to keywords.
+      once you set it to `true`, **all keywords** will be converted.
+      If you set it to `false` later on, `do/end` blocks won't be
+      converted back to keywords.
 
   ## Design principles
 
@@ -418,29 +417,8 @@ defmodule Code do
   do not recommend to run the formatter blindly in an existing codebase.
   Instead you should format and sanity check each formatted file.
 
-  Let's see some examples. The code below:
-
-      "this is a very long string ... #{inspect(some_value)}"
-
-  may be formatted as:
-
-      "this is a very long string ... #{
-        inspect(some_value)
-      }"
-
-  This happens because the only place the formatter can introduce a
-  new line without changing the code semantics is in the interpolation.
-  In those scenarios, we recommend developers to directly adjust the
-  code. Here we can use the binary concatenation operator `<>/2`:
-
-      "this is a very long string " <>
-        "... #{inspect(some_value)}"
-
-  The string concatenation makes the code fit on a single line and also
-  gives more options to the formatter.
-
-  A similar example is when the formatter breaks a function definition
-  over multiple clauses:
+  For example, the formatter may break a long function definition over
+  multiple clauses:
 
       def my_function(
         %User{name: name, age: age, ...},
@@ -504,6 +482,40 @@ defmodule Code do
   optimal formatting. To help better understand how to control the formatter,
   we describe in the next sections the cases where the formatter keeps the
   user encoding and how to control multiline expressions.
+
+  ## Line length
+
+  Another point about the formatter is that the `:line_length` configuration
+  is a guideline. In many cases, it is not possible for the formatter to break
+  your code apart, which means it will go over the line length. For example,
+  if you have a long string:
+
+      "this is a very long string that will go over the line length"
+
+  The formatter doesn't know how to break it apart without changing the
+  code underlying syntax representation, so it is up to you to step in:
+
+      "this is a very long string " <>
+         "that will go over the line length"
+
+  The string concatenation makes the code fit on a single line and also
+  gives more options to the formatter.
+
+  This may also appear in do/end blocks, where the `do` keyword (or `->`)
+  may go over the line lenth because there is no opportunity for the
+  formatter to introduce a line break in a readable way. For example,
+  if you do:
+
+      case very_long_expression() do
+
+  And only the `do` keyword is above the line length, Elixir **will not**
+  emit this:
+
+      case very_long_expression()
+      do
+
+  So it prefers to not touch the line at all and leave `do` above the
+  line limit.
 
   ## Keeping user's formatting
 
