@@ -2084,8 +2084,43 @@ defmodule Module do
     end
   end
 
+  defp preprocess_attribute(:dialyzer, value) do
+    # From https://github.com/erlang/otp/blob/master/lib/stdlib/src/erl_lint.erl
+    :lists.foreach(
+      fn attr ->
+        if not valid_dialyzer_attribute?(attr) do
+          raise ArgumentError, "invalid value for @dialyzer attribute: #{inspect(attr)}"
+        end
+      end,
+      List.wrap(value)
+    )
+
+    value
+  end
+
   defp preprocess_attribute(_key, value) do
     value
+  end
+
+  defp valid_dialyzer_attribute?({:nowarn_function, fun_arities}) do
+    :lists.all(
+      fn
+        {fun, arity} when is_atom(fun) and is_integer(arity) -> true
+        _ -> false
+      end,
+      List.wrap(fun_arities)
+    )
+  end
+
+  defp valid_dialyzer_attribute?(attr) do
+    :lists.member(
+      attr,
+      [:no_return, :no_unused, :no_improper_lists, :no_fun_app] ++
+        [:no_match, :no_opaque, :no_fail_call, :no_contracts] ++
+        [:no_behaviours, :no_undefined_callbacks, :unmatched_returns] ++
+        [:error_handling, :race_conditions, :no_missing_calls] ++
+        [:specdiffs, :overspecs, :underspecs, :unknown, :no_underspecs]
+    )
   end
 
   defp preprocess_doc_meta([], _module, _line, map), do: map
