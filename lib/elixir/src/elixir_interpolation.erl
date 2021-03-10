@@ -27,22 +27,6 @@ extract(Line, Column, _Scope, _Interpol, [Last | Remaining], Buffer, Output, Las
 
 %% Going through the string
 
-extract(Line, _Column, Scope, true, [$\\, $\n | Rest], Buffer, Output, Last) ->
-  NewBuffer =
-    case Scope#elixir_tokenizer.unescape of
-      true -> Buffer;
-      false -> [$\n, $\\ |  Buffer]
-    end,
-  extract(Line+1, 1, Scope, true, Rest, NewBuffer, Output, Last);
-
-extract(Line, _Column, Scope, true, [$\\, $\r, $\n | Rest], Buffer, Output, Last) ->
-  NewBuffer =
-    case Scope#elixir_tokenizer.unescape of
-      true -> Buffer;
-      false -> [$\n, $\r, $\\ |  Buffer]
-    end,
-  extract(Line+1, 1, Scope, true, Rest, NewBuffer, Output, Last);
-
 extract(Line, _Column, Scope, Interpol, [$\n | Rest], Buffer, Output, Last) ->
   extract(Line+1, 1, Scope, Interpol, Rest, [$\n | Buffer], Output, Last);
 
@@ -109,6 +93,18 @@ unescape_chars(<<$\\, $u, Rest/binary>>, Map, Acc) ->
   case Map(unicode) of
     true  -> unescape_unicode(Rest, Map, Acc);
     false -> unescape_chars(Rest, Map, <<Acc/binary, $\\, $u>>)
+  end;
+
+unescape_chars(<<$\\, $\n, Rest/binary>>, Map, Acc) ->
+  case Map(newline) of
+    true  -> unescape_chars(Rest, Map, Acc);
+    false -> unescape_chars(Rest, Map, <<Acc/binary, $\\, $\n>>)
+  end;
+
+unescape_chars(<<$\\, $\r, $\n, Rest/binary>>, Map, Acc) ->
+  case Map(newline) of
+    true  -> unescape_chars(Rest, Map, Acc);
+    false -> unescape_chars(Rest, Map, <<Acc/binary, $\\, $\r, $\n>>)
   end;
 
 unescape_chars(<<$\\, Escaped, Rest/binary>>, Map, Acc) ->
@@ -198,6 +194,7 @@ append_codepoint(Rest, Map, List, Acc, Base) ->
       error('Elixir.ArgumentError':exception([{message, Msg}]))
   end.
 
+unescape_map(newline) -> true;
 unescape_map(unicode) -> true;
 unescape_map(hex) -> true;
 unescape_map($0) -> 0;
