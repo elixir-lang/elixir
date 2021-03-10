@@ -5,6 +5,15 @@ defmodule StringTest do
 
   doctest String
 
+  test "heredoc with heredoc inside interpolation" do
+    assert """
+           1
+           #{"""
+           2
+           """}
+           """ == "1\n2\n\n"
+  end
+
   test "next_codepoint/1" do
     assert String.next_codepoint("ésoj") == {"é", "soj"}
     assert String.next_codepoint(<<255>>) == {<<255>>, ""}

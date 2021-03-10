@@ -172,16 +172,16 @@ defmodule Kernel.ErrorsTest do
   test "heredoc with incomplete interpolation" do
     assert_eval_raise TokenMissingError,
                       "nofile:2:1: missing interpolation terminator: \"}\" (for heredoc starting at line 1)",
-                      '"""\n\#{\n"""'
+                      '"""\n\#{\n'
   end
 
   test "heredoc terminator" do
     assert_eval_raise TokenMissingError,
-                      "nofile:2:1: missing terminator: \"\"\" (for heredoc starting at line 1)",
+                      "nofile:2:4: missing terminator: \"\"\" (for heredoc starting at line 1)",
                       '"""\nbar'
 
-    assert_eval_raise SyntaxError,
-                      "nofile:2:1: invalid location for heredoc terminator, please escape token or move it to its own line: \"\"\"",
+    assert_eval_raise TokenMissingError,
+                      "nofile:2:7: missing terminator: \"\"\" (for heredoc starting at line 1)",
                       '"""\nbar"""'
   end
 
