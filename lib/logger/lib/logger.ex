@@ -249,7 +249,7 @@ defmodule Logger do
   `Logger.metadata/1` applies to both, and so on.
 
   Elixir also supports formatting Erlang reports using Elixir syntax.
-  This can be controlled with two configurations:
+  This can be controlled with three configurations:
 
     * `:handle_otp_reports` - redirects OTP reports to `Logger` so
       they are formatted in Elixir terms. This effectively disables
@@ -262,6 +262,10 @@ defmodule Logger do
       in Erlang syntax until the Logger application kicks in.
       Defaults to `false`. This option only has an effect if
       `:handle_otp_reports` is true.
+
+    * `:use_erlang_default_handler` - add logging filter to `:default`
+      handler defined by the OTP. This option only has an effect if
+      `:handle_otp_reports` is false.
 
   For example, to configure `Logger` to redirect all Erlang messages using a
   `config/config.exs` file:

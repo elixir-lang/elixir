@@ -9,6 +9,7 @@ defmodule Logger.App do
   def start(_type, _args) do
     start_options = Application.get_env(:logger, :start_options)
     otp_reports? = Application.fetch_env!(:logger, :handle_otp_reports)
+    use_erlang_default? = Application.fetch_env!(:logger, :use_erlang_default_handler)
     config = Logger.Counter.new()
 
     children = [
@@ -29,6 +30,16 @@ defmodule Logger.App do
           if otp_reports? do
             delete_erlang_handler()
           else
+            # Make default handler log messages sent from Elixir
+            if use_erlang_default? do
+              _ =
+                :logger.add_handler_filter(
+                  :default,
+                  :elixir_filter,
+                  {&:logger_filters.domain/2, {:log, :sub, [:elixir]}}
+                )
+            end
+
             []
           end
 
