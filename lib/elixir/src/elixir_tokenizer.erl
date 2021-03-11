@@ -493,8 +493,19 @@ tokenize([$: | String] = Original, Line, Column, Scope, Tokens) ->
 
 tokenize([H | T], Line, Column, Scope, Tokens) when ?is_digit(H) ->
   case tokenize_number(T, [H], 1, false) of
-    {error, Reason, Number} ->
-      {error, {Line, Column, Reason, Number}, T, Tokens};
+    {error, Reason, Original} ->
+      {error, {Line, Column, Reason, Original}, T, Tokens};
+    {[I | _], _Number, Original, _Length} when ?is_upcase(I); ?is_downcase(I); I == $_ ->
+      Msg =
+        io_lib:format(
+          "invalid character ~ts after number ~ts. If you intended to write a number, "
+          "make sure to add the proper punctuation character after the number (space, comma, etc). "
+          "If you meant to write an identifier, note that identifiers in Elixir cannot start with numbers. "
+          "Unexpected token: ",
+          [[I], Original]
+        ),
+
+      {error, {Line, Column, Msg, [I]}, T, Tokens};
     {Rest, Number, Original, Length} when is_integer(Number) ->
       Token = {int, {Line, Column, Number}, Original},
       tokenize(Rest, Line, Column + Length, Scope, [Token | Tokens]);
