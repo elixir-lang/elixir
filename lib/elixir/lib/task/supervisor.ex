@@ -379,7 +379,7 @@ defmodule Task.Supervisor do
   @doc """
   Starts a task as a child of the given `supervisor`.
 
-      Task.Supervisor.start_child(MyTaskSypervisor, fn ->
+      Task.Supervisor.start_child(MyTaskSupervisor, fn ->
         IO.puts "I am running in a task"
       end)
 
