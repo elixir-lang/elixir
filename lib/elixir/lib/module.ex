@@ -1918,7 +1918,7 @@ defmodule Module do
   def __put_attribute__(module, key, value, line) when is_atom(key) do
     assert_not_readonly!(__ENV__.function, module)
     {set, bag} = data_tables_for(module)
-    value = preprocess_attribute(key, value)
+    value = preprocess_attribute(key, value, module, line)
     put_attribute(module, key, value, line, set, bag)
     :ok
   end
@@ -1992,7 +1992,8 @@ defmodule Module do
 
   ## Helpers
 
-  defp preprocess_attribute(key, value) when key in [:moduledoc, :typedoc, :doc] do
+  defp preprocess_attribute(key, value, _module, _line)
+       when key in [:moduledoc, :typedoc, :doc] do
     case value do
       {line, doc} when is_integer(line) and (is_binary(doc) or doc == false or is_nil(doc)) ->
         value
@@ -2013,7 +2014,7 @@ defmodule Module do
     end
   end
 
-  defp preprocess_attribute(:on_load, value) do
+  defp preprocess_attribute(:on_load, value, _module, _line) do
     case value do
       _ when is_atom(value) ->
         {value, 0}
@@ -2029,7 +2030,7 @@ defmodule Module do
     end
   end
 
-  defp preprocess_attribute(:impl, value) do
+  defp preprocess_attribute(:impl, value, _module, _line) do
     if is_boolean(value) or (is_atom(value) and value != nil) do
       value
     else
@@ -2040,35 +2041,36 @@ defmodule Module do
     end
   end
 
-  defp preprocess_attribute(:before_compile, atom) when is_atom(atom),
+  defp preprocess_attribute(:before_compile, atom, _module, _line) when is_atom(atom),
     do: {atom, :__before_compile__}
 
-  defp preprocess_attribute(:after_compile, atom) when is_atom(atom),
+  defp preprocess_attribute(:after_compile, atom, _module, _line) when is_atom(atom),
     do: {atom, :__after_compile__}
 
-  defp preprocess_attribute(:on_definition, atom) when is_atom(atom),
+  defp preprocess_attribute(:on_definition, atom, _module, _line) when is_atom(atom),
     do: {atom, :__on_definition__}
 
-  defp preprocess_attribute(key, _value)
+  defp preprocess_attribute(key, _value, _module, _line)
        when key in [:type, :typep, :opaque, :spec, :callback, :macrocallback] do
     raise ArgumentError,
           "attributes type, typep, opaque, spec, callback, and macrocallback " <>
             "must be set directly via the @ notation"
   end
 
-  defp preprocess_attribute(:external_resource, value) when not is_binary(value) do
+  defp preprocess_attribute(:external_resource, value, _module, _line)
+       when not is_binary(value) do
     raise ArgumentError,
           "@external_resource is a built-in module attribute used for specifying file " <>
             "dependencies. It should be a string the path to a file, got: #{inspect(value)}"
   end
 
-  defp preprocess_attribute(:deprecated, value) when not is_binary(value) do
+  defp preprocess_attribute(:deprecated, value, _module, _line) when not is_binary(value) do
     raise ArgumentError,
           "@deprecated is a built-in module attribute that annotates a definition as deprecated. " <>
             "It should be a string with the reason for the deprecation, got: #{inspect(value)}"
   end
 
-  defp preprocess_attribute(:file, value) do
+  defp preprocess_attribute(:file, value, _module, _line) do
     case value do
       _ when is_binary(value) ->
         value
@@ -2084,12 +2086,13 @@ defmodule Module do
     end
   end
 
-  defp preprocess_attribute(:dialyzer, value) do
+  defp preprocess_attribute(:dialyzer, value, module, line) do
     # From https://github.com/erlang/otp/blob/master/lib/stdlib/src/erl_lint.erl
     :lists.foreach(
       fn attr ->
         if not valid_dialyzer_attribute?(attr) do
-          raise ArgumentError, "invalid value for @dialyzer attribute: #{inspect(attr)}"
+          message = "invalid value for @dialyzer attribute: #{inspect(attr)}"
+          IO.warn(message, attribute_stack(module, line))
         end
       end,
       List.wrap(value)
@@ -2098,7 +2101,7 @@ defmodule Module do
     value
   end
 
-  defp preprocess_attribute(_key, value) do
+  defp preprocess_attribute(_key, value, _module, _line) do
     value
   end
 
