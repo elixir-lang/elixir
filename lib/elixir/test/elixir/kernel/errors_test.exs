@@ -1018,9 +1018,10 @@ defmodule Kernel.ErrorsTest do
                       "nofile:1: undefined function foo/1 given to @dialyzer :nowarn_function",
                       'defmodule Test do @dialyzer {:nowarn_function, {:foo, 1}} end'
 
-    assert_eval_raise ArgumentError,
-                      "invalid value for @dialyzer attribute: :not_an_option",
-                      'defmodule Test do @dialyzer :not_an_option end'
+    # TODO: Make this an error on Elixir v1.15
+    # assert_eval_raise ArgumentError,
+    #                   "invalid value for @dialyzer attribute: :not_an_option",
+    #                   'defmodule Test do @dialyzer :not_an_option end'
   end
 
   test "@on_load attribute format" do
