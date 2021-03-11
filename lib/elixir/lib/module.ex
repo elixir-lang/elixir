@@ -2102,14 +2102,15 @@ defmodule Module do
     value
   end
 
-  defp valid_dialyzer_attribute?({:nowarn_function, fun_arities}) do
-    :lists.all(
-      fn
-        {fun, arity} when is_atom(fun) and is_integer(arity) -> true
-        _ -> false
-      end,
-      List.wrap(fun_arities)
-    )
+  defp valid_dialyzer_attribute?({key, fun_arities}) when is_atom(key) do
+    (key == :nowarn_function or valid_dialyzer_attribute?(key)) and
+      :lists.all(
+        fn
+          {fun, arity} when is_atom(fun) and is_integer(arity) -> true
+          _ -> false
+        end,
+        List.wrap(fun_arities)
+      )
   end
 
   defp valid_dialyzer_attribute?(attr) do

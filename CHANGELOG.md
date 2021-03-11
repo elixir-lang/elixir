@@ -30,7 +30,7 @@
   * [Kernel] Show removal and deprecated tips from Erlang/OTP
   * [Macro] Add export dependencies on `Macro.struct!/2`
   * [Macro] Support `:newline` to customize newlines escaping in `Macro.unescape_string/2`
-  * [Module] Warn on invalid `@dialyzer` attributes
+  * [Module] Raise on invalid `@dialyzer` attributes
   * [Module] Add `Module.get_definition/2` and `Module.delete_definition/2`
   * [Module] Allow `@on_load` to be a private function
   * [Regex] Add offset option to `Regex.scan/3` and `Regex.run/3`

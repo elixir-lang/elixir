@@ -211,10 +211,10 @@ validate_on_load_attribute(false, _Module, Private, _File, _Line) -> Private.
 validate_dialyzer_attribute({dialyzer, Dialyzer}, Defs, File, Line) ->
   [case lists:keyfind(Fun, 1, Defs) of
     false ->
-      elixir_errors:form_error([{line, Line}], File, ?MODULE, {bad_dialyzer, nowarn_function, Fun});
+      elixir_errors:form_error([{line, Line}], File, ?MODULE, {bad_dialyzer, Key, Fun});
     _ ->
       ok
-   end || {nowarn_function, Funs} <- lists:flatten([Dialyzer]), Fun <- lists:flatten([Funs])];
+   end || {Key, Funs} <- lists:flatten([Dialyzer]), Fun <- lists:flatten([Funs])];
 validate_dialyzer_attribute(false, _Defs, _File, _Line) ->
   ok.
 
@@ -507,8 +507,8 @@ format_error({module_in_definition, Module, File, Line}) ->
     [elixir_aliases:inspect(Module), elixir_utils:relative_to_cwd(File), Line]);
 format_error({bad_inline, {Name, Arity}}) ->
   io_lib:format("inlined function ~ts/~B undefined", [Name, Arity]);
-format_error({bad_dialyzer, nowarn_function, {Name, Arity}}) ->
-  io_lib:format("undefined function ~ts/~B given to @dialyzer :nowarn_function", [Name, Arity]);
+format_error({bad_dialyzer, Key, {Name, Arity}}) ->
+  io_lib:format("undefined function ~ts/~B given to @dialyzer :~ts", [Name, Arity, Key]);
 format_error({undefined_on_load, {Name, Arity}}) ->
   io_lib:format("@on_load function ~ts/~B is undefined", [Name, Arity]);
 format_error({wrong_kind_on_load, {Name, Arity}, WrongKind}) ->
