@@ -146,6 +146,15 @@ defmodule KernelTest do
   end
 
   # Note we use `==` in assertions so `assert` does not rewrite `match?/2`.
+  test "reshape/3" do
+    a = List.first([0])
+    assert reshape(1, b when b > a, b) == 1
+    assert binding() == [a: 0]
+
+    assert is_nil(reshape(-1, b when b > a, b))
+    assert binding() == [a: 0]
+  end
+
   test "match?/2" do
     a = List.first([0])
     assert match?(b when b > a, 1) == true

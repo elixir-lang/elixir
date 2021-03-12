@@ -3179,6 +3179,57 @@ defmodule Kernel do
   end
 
   @doc """
+  A convenience macro that allows reshaping the input for convenient use in pipelines.
+
+  ## Examples
+
+      iex> reshape({1, 2}, {one, _}, one)
+      1
+
+      iex> map = %{a: 1, b: 2}
+      iex> reshape(map, %{a: value}, value)
+      1
+
+      iex> a = 1
+      iex> reshape(1, ^a, a)
+      1
+
+  `reshape/3` is very useful within pipelines to avoid the necessity to break it:
+
+      iex> list = [a: 1, b: 2, a: 3]
+      iex> list
+      ...> |> Enum.map(&reshape(&1, {_, v}, v))
+      ...> |> Enum.sum()
+      6
+
+  However, variables assigned in the reshape arguments will not be available
+  outside of the function call:
+
+      iex> reshape(1, x, x)
+      1
+      iex> binding()
+      []
+
+  The function will return `nil` if the expression does not match the pattern
+  given as the second parameter.
+
+  """
+  defmacro reshape(expr, pattern, result) do
+    success =
+      quote do
+        unquote(pattern) -> unquote(result)
+      end
+
+    failure =
+      quote generated: true do
+        _ -> nil
+      end
+
+    {:case, [], [expr, [do: success ++ failure]]}
+  end
+
+  @doc since: "1.12.0"
+  @doc """
   Module attribute unary operator.
 
   Reads and writes attributes in the current module.
