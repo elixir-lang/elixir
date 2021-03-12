@@ -2030,20 +2030,13 @@ defmodule Module do
   end
 
   defp preprocess_attribute(:impl, value) do
-    case value do
-      _ when is_boolean(value) ->
-        value
-
-      module when is_atom(module) and module != nil ->
-        # Attempt to compile behaviour but ignore failure (will warn later)
-        _ = Code.ensure_compiled(module)
-        value
-
-      _ ->
-        raise ArgumentError,
-              "@impl is a built-in module attribute that marks the next definition " <>
-                "as a callback implementation. It should be a module or a boolean, " <>
-                "got: #{inspect(value)}"
+    if is_boolean(value) or (is_atom(value) and value != nil) do
+      value
+    else
+      raise ArgumentError,
+            "@impl is a built-in module attribute that marks the next definition " <>
+              "as a callback implementation. It should be a module or a boolean, " <>
+              "got: #{inspect(value)}"
     end
   end
 
@@ -2091,8 +2084,44 @@ defmodule Module do
     end
   end
 
+  defp preprocess_attribute(:dialyzer, value) do
+    # From https://github.com/erlang/otp/blob/master/lib/stdlib/src/erl_lint.erl
+    :lists.foreach(
+      fn attr ->
+        if not valid_dialyzer_attribute?(attr) do
+          raise ArgumentError, "invalid value for @dialyzer attribute: #{inspect(attr)}"
+        end
+      end,
+      List.wrap(value)
+    )
+
+    value
+  end
+
   defp preprocess_attribute(_key, value) do
     value
+  end
+
+  defp valid_dialyzer_attribute?({key, fun_arities}) when is_atom(key) do
+    (key == :nowarn_function or valid_dialyzer_attribute?(key)) and
+      :lists.all(
+        fn
+          {fun, arity} when is_atom(fun) and is_integer(arity) -> true
+          _ -> false
+        end,
+        List.wrap(fun_arities)
+      )
+  end
+
+  defp valid_dialyzer_attribute?(attr) do
+    :lists.member(
+      attr,
+      [:no_return, :no_unused, :no_improper_lists, :no_fun_app] ++
+        [:no_match, :no_opaque, :no_fail_call, :no_contracts] ++
+        [:no_behaviours, :no_undefined_callbacks, :unmatched_returns] ++
+        [:error_handling, :race_conditions, :no_missing_calls] ++
+        [:specdiffs, :overspecs, :underspecs, :unknown, :no_underspecs]
+    )
   end
 
   defp preprocess_doc_meta([], _module, _line, map), do: map

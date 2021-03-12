@@ -172,16 +172,16 @@ defmodule Kernel.ErrorsTest do
   test "heredoc with incomplete interpolation" do
     assert_eval_raise TokenMissingError,
                       "nofile:2:1: missing interpolation terminator: \"}\" (for heredoc starting at line 1)",
-                      '"""\n\#{\n"""'
+                      '"""\n\#{\n'
   end
 
   test "heredoc terminator" do
     assert_eval_raise TokenMissingError,
-                      "nofile:2:1: missing terminator: \"\"\" (for heredoc starting at line 1)",
+                      "nofile:2:4: missing terminator: \"\"\" (for heredoc starting at line 1)",
                       '"""\nbar'
 
-    assert_eval_raise SyntaxError,
-                      "nofile:2:1: invalid location for heredoc terminator, please escape token or move it to its own line: \"\"\"",
+    assert_eval_raise TokenMissingError,
+                      "nofile:2:7: missing terminator: \"\"\" (for heredoc starting at line 1)",
                       '"""\nbar"""'
   end
 
@@ -1013,6 +1013,20 @@ defmodule Kernel.ErrorsTest do
                       'defmodule Test do @compile {:inline, foo: 1} end'
   end
 
+  test "invalid @dialyzer options" do
+    assert_eval_raise CompileError,
+                      "nofile:1: undefined function foo/1 given to @dialyzer :nowarn_function",
+                      'defmodule Test do @dialyzer {:nowarn_function, {:foo, 1}} end'
+
+    assert_eval_raise CompileError,
+                      "nofile:1: undefined function foo/1 given to @dialyzer :no_opaque",
+                      'defmodule Test do @dialyzer {:no_opaque, {:foo, 1}} end'
+
+    assert_eval_raise ArgumentError,
+                      "invalid value for @dialyzer attribute: :not_an_option",
+                      'defmodule Test do @dialyzer :not_an_option end'
+  end
+
   test "@on_load attribute format" do
     assert_raise ArgumentError, ~r/should be an atom or a {atom, 0} tuple/, fn ->
       defmodule BadOnLoadAttribute do
@@ -1127,6 +1141,10 @@ defmodule Kernel.ErrorsTest do
     assert_eval_raise SyntaxError, "nofile:1:5: syntax error before: \"12\"", ':ok 12'
     assert_eval_raise SyntaxError, "nofile:1:5: syntax error before: \"0b1\"", ':ok 0b1'
     assert_eval_raise SyntaxError, "nofile:1:5: syntax error before: \"12.3\"", ':ok 12.3'
+
+    assert_eval_raise SyntaxError,
+                      ~r"nofile:1:1: invalid character _ after number 123_456",
+                      '123_456_foo'
   end
 
   test "invalid \"fn do expr end\"" do

@@ -108,77 +108,99 @@ defmodule Kernel.LexicalTrackerTest do
     assert D.collect_unused_aliases(config[:pid]) == []
   end
 
-  test "does not tag aliases nor types" do
-    Code.eval_string("""
-    defmodule Kernel.LexicalTrackerTest.AliasTypespecs do
-      alias Foo.Bar, as: Bar, warn: false
-      @type bar :: Foo.Bar | Foo.Bar.t
-      @opaque bar2 :: Foo.Bar.t
-      @typep bar3 :: Foo.Bar.t
-      @callback foo :: Foo.Bar.t
-      @macrocallback foo2(Foo.Bar.t) :: Foo.Bar.t
-      @spec foo(bar3) :: Foo.Bar.t
-      def foo(_), do: :ok
+  describe "references" do
+    test "typespecs do not tag aliases nor types" do
+      Code.eval_string("""
+      defmodule Kernel.LexicalTrackerTest.AliasTypespecs do
+        alias Foo.Bar, as: Bar, warn: false
+        @type bar :: Foo.Bar | Foo.Bar.t
+        @opaque bar2 :: Foo.Bar.t
+        @typep bar3 :: Foo.Bar.t
+        @callback foo :: Foo.Bar.t
+        @macrocallback foo2(Foo.Bar.t) :: Foo.Bar.t
+        @spec foo(bar3) :: Foo.Bar.t
+        def foo(_), do: :ok
 
-      # References from specs are processed only late
-      @after_compile __MODULE__
-      def __after_compile__(env, _) do
-        send(self(), {:references, Kernel.LexicalTracker.references(env.lexical_tracker)})
+        # References from specs are processed only late
+        @after_compile __MODULE__
+        def __after_compile__(env, _) do
+          send(self(), {:references, Kernel.LexicalTracker.references(env.lexical_tracker)})
+        end
       end
+      """)
+
+      assert_received {:references, {compile, _exports, runtime, _}}
+
+      refute Elixir.Bar in runtime
+      refute Elixir.Bar in compile
+
+      refute Foo.Bar in runtime
+      refute Foo.Bar in compile
     end
-    """)
 
-    assert_received {:references, {compile, _exports, runtime, _}}
+    test "@compile adds a runtime dependency" do
+      {{compile, exports, runtime, _}, _binding} =
+        Code.eval_string("""
+        defmodule Kernel.LexicalTrackerTest.Compile do
+          @compile {:no_warn_undefined, String}
+          @compile {:no_warn_undefined, {Enum, :concat, 1}}
+          Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
+        end |> elem(3)
+        """)
 
-    refute Elixir.Bar in runtime
-    refute Elixir.Bar in compile
+      refute String in compile
+      refute String in exports
+      assert String in runtime
 
-    refute Foo.Bar in runtime
-    refute Foo.Bar in compile
-  end
+      refute Enum in compile
+      refute Enum in exports
+      assert Enum in runtime
+    end
 
-  test "does not tag imports" do
-    {{compile, exports, runtime, _}, _binding} =
-      Code.eval_string("""
-      defmodule Kernel.LexicalTrackerTest.Imports do
-        import String, warn: false
-        Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
-      end |> elem(3)
-      """)
+    test "defdelegate with literal adds runtime dependency" do
+      {{compile, _exports, runtime, _}, _binding} =
+        Code.eval_string("""
+        defmodule Kernel.LexicalTrackerTest.Defdelegate do
+          defdelegate a, to: A
 
-    refute String in compile
-    assert String in exports
-    refute String in runtime
-  end
+          opts = [to: B]
+          defdelegate b, opts
 
-  test "defdelegate with literal does not add compile dependency" do
-    {{compile, _exports, _runtime, _}, _binding} =
-      Code.eval_string("""
-      defmodule Kernel.LexicalTrackerTest.Defdelegate do
-        defdelegate a, to: A
+          Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
+        end |> elem(3)
+        """)
 
-        opts = [to: B]
-        defdelegate b, opts
+      refute A in compile
+      assert B in compile
+      assert A in runtime
+    end
 
-        Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
-      end |> elem(3)
-      """)
+    test "imports adds an export dependency" do
+      {{compile, exports, runtime, _}, _binding} =
+        Code.eval_string("""
+        defmodule Kernel.LexicalTrackerTest.Imports do
+          import String, warn: false
+          Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
+        end |> elem(3)
+        """)
 
-    refute A in compile
-    assert B in compile
-  end
+      refute String in compile
+      assert String in exports
+      refute String in runtime
+    end
 
-  test "Macro.struct! adds an export dependency" do
-    {{compile, exports, runtime, _}, _binding} =
-      Code.eval_string("""
-      defmodule Kernel.LexicalTrackerTest.MacroStruct do
-        Macro.struct!(:"Elixir.URI", __ENV__)
-        Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
-      end |> elem(3)
-      """)
+    test "Macro.struct! adds an export dependency" do
+      {{compile, exports, runtime, _}, _binding} =
+        Code.eval_string("""
+        defmodule Kernel.LexicalTrackerTest.MacroStruct do
+          Macro.struct!(:"Elixir.URI", __ENV__)
+          Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
+        end |> elem(3)
+        """)
 
-    refute URI in compile
-    assert URI in exports
-    refute URI in runtime
+      refute URI in compile
+      assert URI in exports
+      refute URI in runtime
+    end
   end
 end

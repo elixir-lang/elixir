@@ -16,35 +16,22 @@ extract(Line, Column, Raw, Interpol, String, Last) ->
 
 %% Terminators
 
-extract(Line, Column, _Scope, _Interpol, [], Buffer, Output, none) ->
-  finish_extraction(Line, Column, Buffer, Output, []);
-
 extract(Line, Column, _Scope, _Interpol, [], _Buffer, _Output, Last) ->
   {error, {string, Line, Column, io_lib:format("missing terminator: ~ts", [[Last]]), []}};
 
-extract(Line, Column, _Scope, _Interpol, [Last | Remaining], Buffer, Output, Last) ->
-  finish_extraction(Line, Column + 1, Buffer, Output, Remaining);
+extract(Line, Column, _Scope, _Interpol, [Last | Rest], Buffer, Output, Last) ->
+  finish_extraction(Line, Column + 1, Buffer, Output, Rest);
 
 %% Going through the string
 
-extract(Line, _Column, Scope, true, [$\\, $\n | Rest], Buffer, Output, Last) ->
-  NewBuffer =
-    case Scope#elixir_tokenizer.unescape of
-      true -> Buffer;
-      false -> [$\n, $\\ |  Buffer]
-    end,
-  extract(Line+1, 1, Scope, true, Rest, NewBuffer, Output, Last);
+extract(Line, _Column, Scope, Interpol, [$\\, $\r, $\n | Rest], Buffer, Output, Last) ->
+  extract_nl(Line, Scope, Interpol, Rest, [$\n, $\r, $\\ | Buffer], Output, Last);
 
-extract(Line, _Column, Scope, true, [$\\, $\r, $\n | Rest], Buffer, Output, Last) ->
-  NewBuffer =
-    case Scope#elixir_tokenizer.unescape of
-      true -> Buffer;
-      false -> [$\n, $\r, $\\ |  Buffer]
-    end,
-  extract(Line+1, 1, Scope, true, Rest, NewBuffer, Output, Last);
+extract(Line, _Column, Scope, Interpol, [$\\, $\n | Rest], Buffer, Output, Last) ->
+  extract_nl(Line, Scope, Interpol, Rest, [$\n, $\\ | Buffer], Output, Last);
 
 extract(Line, _Column, Scope, Interpol, [$\n | Rest], Buffer, Output, Last) ->
-  extract(Line+1, 1, Scope, Interpol, Rest, [$\n | Buffer], Output, Last);
+  extract_nl(Line, Scope, Interpol, Rest, [$\n | Buffer], Output, Last);
 
 extract(Line, Column, Scope, Interpol, [$\\, Last | Rest], Buffer, Output, Last) ->
   extract(Line, Column+2, Scope, Interpol, Rest, [Last | Buffer], Output, Last);
@@ -71,6 +58,23 @@ extract(Line, Column, Scope, Interpol, [$\\, Char | Rest], Buffer, Output, Last)
 
 extract(Line, Column, Scope, Interpol, [Char | Rest], Buffer, Output, Last) ->
   extract(Line, Column + 1, Scope, Interpol, Rest, [Char | Buffer], Output, Last).
+
+%% Handle newlines. Heredocs require special attention
+
+extract_nl(Line, Scope, Interpol, Rest, Buffer, Output, [H,H,H] = Last) ->
+  case strip_horizontal_space(Rest, Buffer, 1) of
+    {[H,H,H|NewRest], _NewBuffer, Column} ->
+      finish_extraction(Line + 1, Column + 3, Buffer, Output, NewRest);
+    {NewRest, NewBuffer, Column} ->
+      extract(Line + 1, Column, Scope, Interpol, NewRest, NewBuffer, Output, Last)
+  end;
+extract_nl(Line, Scope, Interpol, Rest, Buffer, Output, Last) ->
+  extract(Line + 1, 1, Scope, Interpol, Rest, Buffer, Output, Last).
+
+strip_horizontal_space([H | T], Buffer, Counter) when H =:= $\s; H =:= $\t ->
+  strip_horizontal_space(T, [H | Buffer], Counter + 1);
+strip_horizontal_space(T, Buffer, Counter) ->
+  {T, Buffer, Counter}.
 
 %% Unescape a series of tokens as returned by extract.
 
@@ -109,6 +113,18 @@ unescape_chars(<<$\\, $u, Rest/binary>>, Map, Acc) ->
   case Map(unicode) of
     true  -> unescape_unicode(Rest, Map, Acc);
     false -> unescape_chars(Rest, Map, <<Acc/binary, $\\, $u>>)
+  end;
+
+unescape_chars(<<$\\, $\n, Rest/binary>>, Map, Acc) ->
+  case Map(newline) of
+    true  -> unescape_chars(Rest, Map, Acc);
+    false -> unescape_chars(Rest, Map, <<Acc/binary, $\\, $\n>>)
+  end;
+
+unescape_chars(<<$\\, $\r, $\n, Rest/binary>>, Map, Acc) ->
+  case Map(newline) of
+    true  -> unescape_chars(Rest, Map, Acc);
+    false -> unescape_chars(Rest, Map, <<Acc/binary, $\\, $\r, $\n>>)
   end;
 
 unescape_chars(<<$\\, Escaped, Rest/binary>>, Map, Acc) ->
@@ -198,6 +214,7 @@ append_codepoint(Rest, Map, List, Acc, Base) ->
       error('Elixir.ArgumentError':exception([{message, Msg}]))
   end.
 
+unescape_map(newline) -> true;
 unescape_map(unicode) -> true;
 unescape_map(hex) -> true;
 unescape_map($0) -> 0;

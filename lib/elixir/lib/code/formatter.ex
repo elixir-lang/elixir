@@ -508,13 +508,8 @@ defmodule Code.Formatter do
 
   # not(left in right)
   # left not in right
-  defp quoted_to_algebra({:not, meta, [{:in, _, [left, right]} = arg]}, context, state) do
-    # TODO: Remove metadata and always rewrite to left not in right in Elixir v2.0.
-    if meta[:operator] == :"not in" do
-      binary_op_to_algebra(:in, "not in", meta, left, right, context, state)
-    else
-      unary_op_to_algebra(:not, meta, arg, context, state)
-    end
+  defp quoted_to_algebra({:not, meta, [{:in, _, [left, right]}]}, context, state) do
+    binary_op_to_algebra(:in, "not in", meta, left, right, context, state)
   end
 
   defp quoted_to_algebra({:fn, meta, [_ | _] = clauses}, _context, state) do
@@ -1333,7 +1328,7 @@ defmodule Code.Formatter do
   defp list_interpolation_to_algebra([entry | entries], escape, state, acc, last) do
     {{:., _, [Kernel, :to_string]}, _meta, [quoted]} = entry
     {doc, state} = block_to_algebra(quoted, @max_line, @min_line, state)
-    doc = surround("\#{", doc, "}") |> format_to_string() |> string()
+    doc = surround("\#{", doc, "}") |> interpolation_to_string()
     list_interpolation_to_algebra(entries, escape, state, concat(acc, doc), last)
   end
 
@@ -1350,12 +1345,23 @@ defmodule Code.Formatter do
   defp interpolation_to_algebra([entry | entries], escape, state, acc, last) do
     {:"::", _, [{{:., _, [Kernel, :to_string]}, _meta, [quoted]}, {:binary, _, _}]} = entry
     {doc, state} = block_to_algebra(quoted, @max_line, @min_line, state)
-    doc = surround("\#{", doc, "}") |> format_to_string() |> string()
+    doc = surround("\#{", doc, "}") |> interpolation_to_string()
     interpolation_to_algebra(entries, escape, state, concat(acc, doc), last)
   end
 
   defp interpolation_to_algebra([], _escape, state, acc, last) do
     {concat(acc, last), state}
+  end
+
+  defp interpolation_to_string(doc) do
+    [head | tail] =
+      doc
+      |> format_to_string()
+      |> String.split("\n")
+
+    Enum.reduce(tail, string(head), fn line, acc ->
+      concat([acc, line(), string(line)])
+    end)
   end
 
   ## Sigils

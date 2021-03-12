@@ -992,11 +992,23 @@ defmodule UndefinedFunctionError do
 
   @doc false
   def hint_for_loaded_module(module, function, arity, exports) do
-    if macro_exported?(module, function, arity) do
-      ". However there is a macro with the same name and arity. " <>
-        "Be sure to require #{inspect(module)} if you intend to invoke this macro"
-    else
-      IO.iodata_to_binary(did_you_mean(module, function, exports))
+    cond do
+      macro_exported?(module, function, arity) ->
+        ". However there is a macro with the same name and arity. " <>
+          "Be sure to require #{inspect(module)} if you intend to invoke this macro"
+
+      message = otp_obsolete(module, function, arity) ->
+        ", #{message}"
+
+      true ->
+        IO.iodata_to_binary(did_you_mean(module, function, exports))
+    end
+  end
+
+  defp otp_obsolete(module, function, arity) do
+    case :otp_internal.obsolete(module, function, arity) do
+      {:removed, [_ | _] = string} -> string
+      _ -> nil
     end
   end
 

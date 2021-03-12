@@ -176,7 +176,11 @@ defmodule Mix.Config do
   """
   @doc deprecated: "Use Config.Reader.read_imports!/2 instead"
   def eval!(file, imported_paths \\ []) do
-    Config.Reader.read_imports!(file, imports: imported_paths)
+    Config.Reader.read_imports!(file,
+      imports: imported_paths,
+      env: Mix.env(),
+      target: Mix.target()
+    )
   end
 
   @doc """
@@ -195,7 +199,7 @@ defmodule Mix.Config do
   @doc deprecated: "Use Config.Reader.read!/2 instead"
   @spec read!(Path.t(), [Path.t()]) :: keyword
   def read!(file, imported_paths \\ []) do
-    Config.Reader.read!(file, imports: imported_paths)
+    Config.Reader.read!(file, imports: imported_paths, env: Mix.env(), target: Mix.target())
   end
 
   @doc """

@@ -120,7 +120,7 @@ defmodule Mix do
 
   Aliases are shortcuts or tasks specific to the current project.
 
-  In the "Mix.Task" section, we have defined a task that would be
+  In the [Mix.Task section](#module-mix-task), we have defined a task that would be
   available to everyone using our project as a dependency. What if
   we wanted the task to only be available for our project? Just
   define an alias:
@@ -151,7 +151,7 @@ defmodule Mix do
   In the example above, we have defined two aliases. One is `mix c`
   which is a shortcut for `mix compile`. The other is named
   `mix hello`, which is the equivalent to the `Mix.Tasks.Hello`
-  we have defined in the "Mix.Task" section.
+  we have defined in the [Mix.Task section](#module-mix-task).
 
   Aliases may also be lists, specifying multiple tasks to be run
   consecutively:
@@ -208,7 +208,7 @@ defmodule Mix do
   powerful aliases mixed with Mix tasks can be.
 
   Mix tasks are designed to run only once. This prevents the same task
-  to be executed multiple times. For example, if there are several tasks
+  from being executed multiple times. For example, if there are several tasks
   depending on `mix compile`, the code will be compiled once. Tasks can
   be executed again if they are explicitly reenabled using `Mix.Task.reenable/1`:
 

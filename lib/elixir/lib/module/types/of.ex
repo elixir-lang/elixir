@@ -249,12 +249,12 @@ defmodule Module.Types.Of do
 
   defp check_export(module, fun, arity, meta, context) do
     case ParallelChecker.fetch_export(context.cache, module, fun, arity) do
-      {:ok, :def, reason} ->
-        check_deprecated(module, fun, arity, reason, meta, context)
+      {:ok, mode, :def, reason} ->
+        check_deprecated(mode, module, fun, arity, reason, meta, context)
 
-      {:ok, :defmacro, reason} ->
+      {:ok, mode, :defmacro, reason} ->
         context = warn(meta, context, {:unrequired_module, module, fun, arity})
-        check_deprecated(module, fun, arity, reason, meta, context)
+        check_deprecated(mode, module, fun, arity, reason, meta, context)
 
       {:error, :module} ->
         if warn_undefined?(module, fun, arity, context) do
@@ -273,11 +273,27 @@ defmodule Module.Types.Of do
     end
   end
 
-  defp check_deprecated(module, fun, arity, reason, meta, context) do
+  defp check_deprecated(:elixir, module, fun, arity, reason, meta, context) do
     if reason do
       warn(meta, context, {:deprecated, module, fun, arity, reason})
     else
       context
+    end
+  end
+
+  defp check_deprecated(:erlang, module, fun, arity, _reason, meta, context) do
+    case :otp_internal.obsolete(module, fun, arity) do
+      {:deprecated, string} when is_list(string) ->
+        reason = string |> List.to_string() |> String.capitalize()
+        warn(meta, context, {:deprecated, module, fun, arity, reason})
+
+      {:deprecated, string, removal} when is_list(string) and is_list(removal) ->
+        reason = string |> List.to_string() |> String.capitalize()
+        reason = "It will be removed in #{removal}. #{reason}"
+        warn(meta, context, {:deprecated, module, fun, arity, reason})
+
+      _ ->
+        context
     end
   end
 

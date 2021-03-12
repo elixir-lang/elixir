@@ -59,12 +59,12 @@ The notation to represent the union of types is the pipe `|`. For example, the t
           | non_neg_integer()       # 0, 1, 2, 3, ...
           | pos_integer()           # 1, 2, 3, ...
 
-                                                        ## Lists
-          | list(type)                                  # proper list ([]-terminated)
-          | nonempty_list(type)                         # non-empty proper list
-          | maybe_improper_list(type1, type2)           # proper or improper list
-          | nonempty_improper_list(type1, type2)        # improper list
-          | nonempty_maybe_improper_list(type1, type2)  # non-empty proper or improper list
+                                                                          ## Lists
+          | list(type)                                                    # proper list ([]-terminated)
+          | nonempty_list(type)                                           # non-empty proper list
+          | maybe_improper_list(content_type, termination_type)           # proper or improper list
+          | nonempty_improper_list(content_type, termination_type)        # improper list
+          | nonempty_maybe_improper_list(content_type, termination_type)  # non-empty proper or improper list
 
           | Literals                # Described in section "Literals"
           | BuiltIn                 # Described in section "Built-in types"

@@ -309,31 +309,17 @@ defmodule ExUnit.DocTest do
     doctest = "\n" <> formatted <> "\n" <> expected
     expr_ast = string_to_quoted(location, stack, expr, doctest) |> insert_assertions()
     expected_ast = string_to_quoted(location, stack, expected, doctest)
-    last_expr_ast = last_expr(expr_ast)
+    last_expr = Macro.to_string(last_expr(expr_ast))
 
     quote do
+      value = unquote(expr_ast)
       expected = unquote(expected_ast)
+      formatted = unquote(formatted)
+      last_expr = unquote(last_expr)
+      expected_expr = unquote(expected)
+      stack = unquote(stack)
 
-      case unquote(expr_ast) do
-        ^expected ->
-          :ok
-
-        actual ->
-          doctest = unquote(doctest)
-
-          expr =
-            "#{unquote(Macro.to_string(last_expr_ast))} === #{unquote(String.trim(expected))}"
-
-          error = [
-            message: "Doctest failed",
-            doctest: doctest,
-            expr: expr,
-            left: actual,
-            right: expected
-          ]
-
-          reraise ExUnit.AssertionError, error, unquote(stack)
-      end
+      ExUnit.DocTest.__test__(value, expected, formatted, last_expr, expected_expr, stack)
     end
   end
 
@@ -341,36 +327,17 @@ defmodule ExUnit.DocTest do
     doctest = "\n" <> formatted <> "\n" <> expected
     expr_ast = string_to_quoted(location, stack, expr, doctest) |> insert_assertions()
     expected_ast = string_to_quoted(location, stack, expected, doctest)
-    last_expr_ast = last_expr(expr_ast)
+    last_expr = Macro.to_string(last_expr(expr_ast))
 
     quote do
-      expected = unquote(expected_ast)
       value = unquote(expr_ast)
+      expected = unquote(expected_ast)
+      formatted = unquote(formatted)
+      last_expr = unquote(last_expr)
+      expected_expr = unquote(expected)
+      stack = unquote(stack)
 
-      result =
-        try do
-          inspect(value, safe: false)
-        rescue
-          e -> {[message: Exception.message(e)], ExUnit.Runner.prune_stacktrace(__STACKTRACE__)}
-        else
-          ^expected -> :ok
-          actual -> {[left: actual, right: expected, message: "Doctest failed"], []}
-        end
-
-      case result do
-        :ok ->
-          :ok
-
-        {extra, stack} ->
-          doctest = unquote(doctest)
-
-          expr =
-            "inspect(#{unquote(Macro.to_string(last_expr_ast))}) === " <>
-              "#{unquote(String.trim(expected))}"
-
-          error = [doctest: doctest, expr: expr] ++ extra
-          reraise ExUnit.AssertionError, error, stack ++ unquote(stack)
-      end
+      ExUnit.DocTest.__inspect__(value, expected, formatted, last_expr, expected_expr, stack)
     end
   end
 
@@ -380,44 +347,93 @@ defmodule ExUnit.DocTest do
 
     quote do
       stack = unquote(stack)
-      exception = unquote(exception)
-      doctest = unquote(doctest)
       message = unquote(message)
+      formatted = unquote(formatted)
+      exception = unquote(exception)
+      ExUnit.DocTest.__error__(fn -> unquote(expr_ast) end, message, exception, formatted, stack)
+    end
+  end
 
+  @doc false
+  def __test__(value, expected, formatted, last_expr, expected_expr, stack) do
+    case value do
+      ^expected ->
+        :ok
+
+      _ ->
+        error = [
+          message: "Doctest failed",
+          doctest: "\n" <> formatted <> "\n" <> expected_expr,
+          expr: "#{last_expr} === #{String.trim(expected_expr)}",
+          left: value,
+          right: expected
+        ]
+
+        reraise ExUnit.AssertionError, error, stack
+    end
+  end
+
+  @doc false
+  def __inspect__(value, expected, formatted, last_expr, expected_expr, parent_stack) do
+    result =
       try do
-        unquote(expr_ast)
+        inspect(value, safe: false)
       rescue
-        error ->
-          actual_exception = error.__struct__
-          actual_message = Exception.message(error)
-
-          message =
-            cond do
-              actual_exception != exception ->
-                "Doctest failed: expected exception #{inspect(exception)} but got " <>
-                  "#{inspect(actual_exception)} with message #{inspect(actual_message)}"
-
-              actual_message != message ->
-                "Doctest failed: wrong message for #{inspect(actual_exception)}\n" <>
-                  "expected:\n" <>
-                  "  #{inspect(message)}\n" <>
-                  "actual:\n" <> "  #{inspect(actual_message)}"
-
-              true ->
-                nil
-            end
-
-          if message do
-            reraise ExUnit.AssertionError, [message: message, doctest: doctest], stack
-          end
+        e ->
+          stack = Enum.drop(__STACKTRACE__, 1)
+          {[message: Exception.message(e)], ExUnit.Runner.prune_stacktrace(stack)}
       else
-        _ ->
-          message =
-            "Doctest failed: expected exception #{inspect(exception)} but nothing was raised"
-
-          error = [message: message, doctest: doctest]
-          reraise ExUnit.AssertionError, error, stack
+        ^expected -> :ok
+        actual -> {[left: actual, right: expected, message: "Doctest failed"], []}
       end
+
+    case result do
+      :ok ->
+        :ok
+
+      {extra, stack} ->
+        doctest = "\n" <> formatted <> "\n" <> expected_expr
+        expr = "inspect(#{last_expr}) === #{String.trim(expected_expr)}"
+        error = [doctest: doctest, expr: expr] ++ extra
+        reraise ExUnit.AssertionError, error, stack ++ parent_stack
+    end
+  end
+
+  @doc false
+  def __error__(fun, message, exception, formatted, stack) do
+    try do
+      fun.()
+    rescue
+      error ->
+        actual_exception = error.__struct__
+        actual_message = Exception.message(error)
+
+        failed =
+          cond do
+            actual_exception != exception ->
+              "Doctest failed: expected exception #{inspect(exception)} but got " <>
+                "#{inspect(actual_exception)} with message #{inspect(actual_message)}"
+
+            actual_message != message ->
+              "Doctest failed: wrong message for #{inspect(actual_exception)}\n" <>
+                "expected:\n" <>
+                "  #{inspect(message)}\n" <>
+                "actual:\n" <> "  #{inspect(actual_message)}"
+
+            true ->
+              nil
+          end
+
+        if failed do
+          doctest = "\n" <> formatted <> "\n** (#{inspect(exception)}) #{inspect(message)}"
+          reraise ExUnit.AssertionError, [message: failed, doctest: doctest], stack
+        end
+    else
+      _ ->
+        doctest = "\n" <> formatted <> "\n** (#{inspect(exception)}) #{inspect(message)}"
+        failed = "Doctest failed: expected exception #{inspect(exception)} but nothing was raised"
+        error = [message: failed, doctest: doctest]
+        reraise ExUnit.AssertionError, error, stack
     end
   end
 

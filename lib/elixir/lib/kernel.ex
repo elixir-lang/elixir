@@ -3179,7 +3179,9 @@ defmodule Kernel do
   end
 
   @doc """
-  Module attribute unary operator. Reads and writes attributes in the current module.
+  Module attribute unary operator.
+
+  Reads and writes attributes in the current module.
 
   The canonical example for attributes is annotating that a module
   implements an OTP behaviour, such as `GenServer`:
@@ -3222,6 +3224,39 @@ defmodule Kernel do
   its current value. In other words, the value is read at compilation
   time and not at runtime. Check the `Module` module for other functions
   to manipulate module attributes.
+
+  ## Compile-time considerations
+
+  One thing to keep in mind is that references to other modules, even
+  in module attributes, generate compile-time dependencies to said
+  modules.
+
+  For example, take this common pattern:
+
+      @values [:foo, :bar, :baz]
+
+      def handle_arg(arg) when arg in @values do
+        ...
+      end
+
+  While the above is fine, imagine if instead you have actual
+  module names in the module attribute, like this:
+
+      @values [Foo, Bar, Baz]
+
+      def handle_arg(arg) when arg in @values do
+        ...
+      end
+
+  The code above will define a compile-time dependency on the modules
+  `Foo`, `Bar`, and `Baz`, in a way that, if any of them change, the
+  current module will have to recompile. In such cases, it may be
+  preferred to avoid the module attribute altogether:
+
+      def handle_arg(arg) when arg in [Foo, Bar, Baz] do
+        ...
+      end
+
   """
   defmacro @expr
 
@@ -3301,6 +3336,8 @@ defmodule Kernel do
         end
 
       true ->
+        arg = expand_attribute(name, arg, env)
+
         quote do
           Module.__put_attribute__(__MODULE__, unquote(name), unquote(arg), unquote(line))
         end
@@ -3377,6 +3414,23 @@ defmodule Kernel do
   defp do_at(args, _meta, name, _function?, _env) do
     raise ArgumentError, "expected 0 or 1 argument for @#{name}, got: #{length(args)}"
   end
+
+  defp expand_attribute(:compile, arg, env) do
+    Macro.prewalk(arg, fn
+      # {:no_warn_undefined, alias}
+      {elem, {:__aliases__, _, _} = alias} ->
+        {elem, Macro.expand(alias, %{env | function: {:__info__, 1}})}
+
+      # {alias, fun, arity}
+      {:{}, meta, [{:__aliases__, _, _} = alias, fun, arity]} ->
+        {:{}, meta, [Macro.expand(alias, %{env | function: {:__info__, 1}}), fun, arity]}
+
+      node ->
+        node
+    end)
+  end
+
+  defp expand_attribute(_, arg, _), do: arg
 
   defp typespec?(:type), do: true
   defp typespec?(:typep), do: true
@@ -3897,8 +3951,8 @@ defmodule Kernel do
 
   This is the same AST as `not(left in right)`.
 
-  Additionally, `Macro.to_string/2` will translate all occurrences of
-  this AST to `left not in right`.
+  Additionally, `Macro.to_string/2` and `Code.format_string/1`
+  will translate all occurrences of this AST to `left not in right`.
   """
   @doc guard: true
   defmacro left in right do

@@ -118,7 +118,7 @@ defmodule Regex do
     * upper - Uppercase letters
     * word  - "Word" characters (same as \w)
     * xdigit - Hexadecimal digits
-   
+
   There is another character class, `ascii`, that erroneously matches
   Latin-1 characters instead of the 0-127 range specified by POSIX. This
   cannot be fixed without altering the behaviour of other classes, so we
@@ -828,6 +828,7 @@ defmodule Regex do
 
   @doc false
   # Unescape map function used by Macro.unescape_string.
+  def unescape_map(:newline), do: true
   def unescape_map(?f), do: ?\f
   def unescape_map(?n), do: ?\n
   def unescape_map(?r), do: ?\r

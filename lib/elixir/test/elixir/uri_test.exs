@@ -450,5 +450,11 @@ defmodule URITest do
     base = URI.parse("http://example.com/foo#fragment1")
     assert URI.merge(base, "#fragment2") |> to_string == "http://example.com/foo#fragment2"
     assert URI.merge(base, "") |> to_string == "http://example.com/foo"
+
+    page_url = "https://example.com/guide/"
+    image_url = "https://images.example.com/t/1600x/https://images.example.com/foo.jpg"
+
+    assert URI.merge(URI.parse(page_url), URI.parse(image_url)) |> to_string ==
+             "https://images.example.com/t/1600x/https://images.example.com/foo.jpg"
   end
 end
