@@ -43,11 +43,8 @@ defmodule Mix.Compilers.Elixir do
       stale_local_deps(manifest, modified, all_local_exports)
 
     prev_paths = for source(source: source) <- all_sources, into: MapSet.new(), do: source
-
-    removed =
-      prev_paths
-      |> MapSet.difference(all_paths)
-      |> MapSet.to_list()
+    removed = prev_paths |> MapSet.difference(all_paths) |> MapSet.to_list()
+    {sources, removed_modules} = remove_removed_sources(all_sources, removed)
 
     {modules, exports, changed, sources_stats} =
       if force do
@@ -61,7 +58,7 @@ defmodule Mix.Compilers.Elixir do
           prev_paths,
           removed,
           stale_local_mods,
-          stale_local_exports,
+          Map.merge(stale_local_exports, removed_modules),
           dest
         )
       end
@@ -69,9 +66,7 @@ defmodule Mix.Compilers.Elixir do
     stale = changed -- removed
 
     {sources, removed_modules} =
-      removed
-      |> Enum.reduce(all_sources, &List.keydelete(&2, &1, source(:source)))
-      |> update_stale_sources(stale, sources_stats)
+      update_stale_sources(sources, stale, removed_modules, sources_stats)
 
     if opts[:all_warnings], do: show_warnings(sources)
 
@@ -208,8 +203,8 @@ defmodule Mix.Compilers.Elixir do
           into: %{},
           do: {module, true}
 
-    # Plus the sources that have changed on disk or any modules associated with them need to
-    # be recompiled
+    # Sources that have changed on disk or
+    # any modules associated with them need to be recompiled
     changed =
       for source(source: source, external: external, size: size, modules: modules) <-
             all_sources,
@@ -474,19 +469,21 @@ defmodule Mix.Compilers.Elixir do
 
   ## Resolution
 
-  # Store empty sources for the changed ones as the compiler appends data
-  defp update_stale_sources(sources, changed) do
-    Enum.reduce(changed, {sources, %{}}, fn file, {acc_sources, acc_modules} ->
-      {source(size: size, modules: modules), acc_sources} =
+  defp remove_removed_sources(sources, removed) do
+    Enum.reduce(removed, {sources, %{}}, fn file, {acc_sources, acc_modules} ->
+      {source(modules: modules), acc_sources} =
         List.keytake(acc_sources, file, source(:source))
 
       acc_modules = Enum.reduce(modules, acc_modules, &Map.put(&2, &1, true))
-      {[source(source: file, size: size) | acc_sources], acc_modules}
+      {acc_sources, acc_modules}
     end)
   end
 
-  defp update_stale_sources(sources, stale, sources_stats) do
-    Enum.reduce(stale, {sources, %{}}, fn file, {acc_sources, acc_modules} ->
+  # Initial definition of empty records for changed sources
+  # as the compiler appends data. This may include new files,
+  # so we rely on sources_stats to avoid multiple FS lookups.
+  defp update_stale_sources(sources, stale, removed_modules, sources_stats) do
+    Enum.reduce(stale, {sources, removed_modules}, fn file, {acc_sources, acc_modules} ->
       %{^file => {_, size}} = sources_stats
 
       {modules, acc_sources} =
@@ -494,6 +491,18 @@ defmodule Mix.Compilers.Elixir do
           {source(modules: modules), acc_sources} -> {modules, acc_sources}
           nil -> {[], acc_sources}
         end
+
+      acc_modules = Enum.reduce(modules, acc_modules, &Map.put(&2, &1, true))
+      {[source(source: file, size: size) | acc_sources], acc_modules}
+    end)
+  end
+
+  # Define empty records for the sources that needs
+  # to be recompiled (but were not changed on disk)
+  defp update_stale_sources(sources, changed) do
+    Enum.reduce(changed, {sources, %{}}, fn file, {acc_sources, acc_modules} ->
+      {source(size: size, modules: modules), acc_sources} =
+        List.keytake(acc_sources, file, source(:source))
 
       acc_modules = Enum.reduce(modules, acc_modules, &Map.put(&2, &1, true))
       {[source(source: file, size: size) | acc_sources], acc_modules}
@@ -680,8 +689,8 @@ defmodule Mix.Compilers.Elixir do
       _ ->
         {[], [], %{}}
     else
-      {@manifest_vsn, modules, sources, local_structs} ->
-        {modules, sources, local_structs}
+      {@manifest_vsn, modules, sources, local_exports} ->
+        {modules, sources, local_exports}
 
       # From v5 and later
       {vsn, modules, _sources} when is_integer(vsn) ->
