@@ -54,6 +54,8 @@ defmodule Mix.Tasks.Compile.Yecc do
       Mix.raise(":yecc_options should be a list of options, got: #{inspect(options)}")
     end
 
+    opts = [parallel: true] ++ opts
+
     Erlang.compile(manifest(), mappings, :yrl, :erl, opts, fn input, output ->
       Erlang.ensure_application!(:parsetools, input)
       options = options ++ @forced_opts ++ [parserfile: Erlang.to_erl_file(output)]

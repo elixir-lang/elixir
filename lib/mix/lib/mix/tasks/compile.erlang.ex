@@ -74,15 +74,7 @@ defmodule Mix.Tasks.Compile.Erlang do
     end
 
     erlc_options =
-      erlc_options ++
-        [
-          :debug_info,
-          :return,
-          :report,
-          :no_spawn_compiler_process,
-          outdir: compile_path,
-          i: include_path
-        ]
+      erlc_options ++ [:debug_info, :return, :report, outdir: compile_path, i: include_path]
 
     erlc_options =
       Enum.map(erlc_options, fn
@@ -92,10 +84,10 @@ defmodule Mix.Tasks.Compile.Erlang do
 
     compile_path = Path.relative_to(compile_path, File.cwd!())
 
-    erls = scan_sources(files, include_path, source_paths)
-    tuples = Enum.map(erls, &annotate_target(&1, compile_path, opts[:force]))
-    parallel = Enum.map(find_parallel(erls), & &1.file)
-    opts = opts ++ [parallel: MapSet.new(parallel)]
+    {erls, tuples} =
+      Enum.unzip(scan_sources(files, include_path, source_paths, compile_path, opts))
+
+    opts = [parallel: MapSet.new(find_parallel(erls))] ++ opts
 
     Erlang.compile(manifest(), tuples, opts, fn input, _output ->
       # We're purging the module because a previous compiler (for example, Phoenix)
@@ -131,18 +123,18 @@ defmodule Mix.Tasks.Compile.Erlang do
 
   ## Internal helpers
 
-  defp scan_sources(files, include_path, source_paths) do
+  defp scan_sources(files, include_path, source_paths, compile_path, opts) do
     include_paths = [include_path | source_paths]
 
     files
-    |> Task.async_stream(&scan_source(&1, include_paths))
+    |> Task.async_stream(&scan_source(&1, include_paths, compile_path, opts))
     |> Enum.flat_map(fn
-      {:ok, {:ok, forms}} -> [forms]
+      {:ok, {:ok, erl_file, target_tuple}} -> [{erl_file, target_tuple}]
       {:ok, :error} -> []
     end)
   end
 
-  defp scan_source(file, include_paths) do
+  defp scan_source(file, include_paths, compile_path, opts) do
     erl_file = %{
       file: file,
       module: module_from_artifact(file),
@@ -154,7 +146,9 @@ defmodule Mix.Tasks.Compile.Erlang do
 
     case :epp.parse_file(Erlang.to_erl_file(file), include_paths, []) do
       {:ok, forms} ->
-        {:ok, List.foldl(tl(forms), erl_file, &do_form(file, &1, &2))}
+        erl_file = List.foldl(tl(forms), erl_file, &do_form(file, &1, &2))
+        target_tuple = annotate_target(erl_file, compile_path, opts[:force])
+        {:ok, erl_file, target_tuple}
 
       {:error, _error} ->
         :error
@@ -189,7 +183,10 @@ defmodule Mix.Tasks.Compile.Erlang do
 
   defp find_parallel(erls) do
     serial = MapSet.new(find_dependencies(erls))
-    Enum.reject(erls, &(&1.module in serial))
+
+    erls
+    |> Enum.reject(&(&1.module in serial))
+    |> Enum.map(& &1.file)
   end
 
   defp find_dependencies(erls) do
