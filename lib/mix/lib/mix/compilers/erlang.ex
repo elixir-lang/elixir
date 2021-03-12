@@ -119,11 +119,21 @@ defmodule Mix.Compilers.Erlang do
       # and what not).
       Code.prepend_path(Mix.Project.compile_path())
 
+      parallel_sources = opts[:parallel] || MapSet.new()
+
+      {parallel, serial} =
+        Enum.split_with(stale, fn {source, _target} -> source in parallel_sources end)
+
+      serial_results = Enum.map(serial, &do_compile(&1, callback, timestamp, verbose))
+
+      parallel_results =
+        parallel
+        |> Task.async_stream(&do_compile(&1, callback, timestamp, verbose), timeout: :infinity)
+        |> Enum.map(fn {:ok, result} -> result end)
+
       # Compile stale files and print the results
       {status, new_entries, warnings, errors} =
-        stale
-        |> Enum.map(&do_compile(&1, callback, timestamp, verbose))
-        |> Enum.reduce({:ok, [], [], []}, &combine_results/2)
+        Enum.reduce(serial_results ++ parallel_results, {:ok, [], [], []}, &combine_results/2)
 
       write_manifest(manifest, entries ++ new_entries, timestamp)
 
