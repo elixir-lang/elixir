@@ -282,6 +282,9 @@ defmodule Mix.Tasks.New do
 
   # Ignore .fetch files in case you like to edit your project deps locally.
   /.fetch
+  
+  # Ignore the .elixir_ls cache
+  /.elixir_ls
 
   # If the VM crashes, it generates a dump, let's ignore it too.
   erl_crash.dump
