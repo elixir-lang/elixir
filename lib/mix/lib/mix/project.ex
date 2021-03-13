@@ -137,7 +137,7 @@ defmodule Mix.Project do
     [
       build_embedded: config[:build_embedded],
       build_per_environment: config[:build_per_environment],
-      consolidate_protocols: false,
+      consolidate_protocols: config[:consolidate_protocols],
       consolidation_path: consolidation_path(config),
       deps_path: deps_path(config),
       env_path: build_path(config)

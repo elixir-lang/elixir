@@ -76,7 +76,7 @@ defmodule Mix.Tasks.Test.Coverage do
     config = Mix.Project.config()
     test_coverage = config[:test_coverage] || []
     {cover_paths, compile_paths} = apps_paths(config, test_coverage)
-    pid = cover_compile(compile_paths)
+    pid = cover_compile(config, compile_paths)
 
     case Enum.flat_map(cover_paths, &Path.wildcard(Path.join(&1, "*.coverdata"))) do
       [] ->
@@ -119,7 +119,7 @@ defmodule Mix.Tasks.Test.Coverage do
   @doc false
   def start(compile_path, opts) do
     Mix.shell().info("Cover compiling modules ...")
-    cover_compile([compile_path])
+    cover_compile(Mix.Project.config(), [compile_path])
 
     if name = opts[:export] do
       fn ->
@@ -134,12 +134,12 @@ defmodule Mix.Tasks.Test.Coverage do
     end
   end
 
-  defp cover_compile(compile_paths) do
+  defp cover_compile(config, compile_paths) do
     _ = :cover.stop()
     {:ok, pid} = :cover.start()
 
     for compile_path <- compile_paths do
-      case :cover.compile_beam(beams(compile_path)) do
+      case :cover.compile_beam(beams(config, compile_path)) do
         results when is_list(results) ->
           :ok
 
@@ -155,8 +155,8 @@ defmodule Mix.Tasks.Test.Coverage do
   end
 
   # Pick beams from the compile_path but if by any chance it is a protocol,
-  # gets its consolidated file instead.
-  defp beams(dir) do
+  # gets its consolidated file instead if protocol consolidation is enabled.
+  defp beams(config, dir) do
     consolidation_dir = Mix.Project.consolidation_path()
 
     consolidated =
@@ -166,7 +166,11 @@ defmodule Mix.Tasks.Test.Coverage do
       end
 
     for file <- File.ls!(dir), Path.extname(file) == ".beam" do
-      dir = if file in consolidated, do: consolidation_dir, else: dir
+      dir =
+        if config[:consolidate_protocols] and file in consolidated,
+          do: consolidation_dir,
+          else: dir
+
       String.to_charlist(Path.join(dir, file))
     end
   end
