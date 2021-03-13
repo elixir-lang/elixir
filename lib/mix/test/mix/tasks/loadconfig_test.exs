@@ -83,6 +83,117 @@ defmodule Mix.Tasks.LoadconfigTest do
     end)
   end
 
+  describe "kernel.logger" do
+    test "sets logger level to configured value", context do
+      Mix.Project.push(MixTest.Case.Sample)
+
+      in_tmp(context.test, fn ->
+        write_config("""
+        [kernel: [logger_level: :warning]]
+        """)
+
+        Mix.Task.run("loadconfig", [])
+        assert %{level: :warning} = :logger.get_primary_config()
+      end)
+    end
+
+    test "remove default handler when unset", context do
+      Mix.Project.push(MixTest.Case.Sample)
+
+      assert :ok = :logger.add_handler(:default, :logger_std_h, %{})
+
+      try do
+        in_tmp(context.test, fn ->
+          write_config("""
+          [kernel: [logger: [{:handler, :default, :undefined}]]]
+          """)
+
+          Mix.Task.run("loadconfig", [])
+          assert {:error, {:not_found, :default}} = :logger.get_handler_config(:default)
+        end)
+      after
+        :logger.remove_handler(:default)
+      end
+    end
+
+    test "replace default handler if set", context do
+      Mix.Project.push(MixTest.Case.Sample)
+
+      assert :ok = :logger.add_handler(:default, :logger_std_h, %{})
+
+      try do
+        in_tmp(context.test, fn ->
+          write_config("""
+          [kernel: [logger: [{:handler, :default, :logger_disk_log_h, %{}}]]]
+          """)
+
+          Mix.Task.run("loadconfig", [])
+          assert {:ok, %{module: :logger_disk_log_h}} = :logger.get_handler_config(:default)
+        end)
+      after
+        :logger.remove_handler(:default)
+      end
+    end
+
+    test "add new handler if set", context do
+      Mix.Project.push(MixTest.Case.Sample)
+
+      try do
+        in_tmp(context.test, fn ->
+          write_config("""
+          [kernel: [logger: [{:handler, :foo_bar, :logger_std_h, %{}}]]]
+          """)
+
+          Mix.Task.run("loadconfig", [])
+          assert {:ok, _} = :logger.get_handler_config(:foo_bar)
+        end)
+      after
+        :logger.remove_handler(:foo_bar)
+      end
+    end
+
+    test "primary filters are set", context do
+      Mix.Project.push(MixTest.Case.Sample)
+
+      primary_config = :logger.get_primary_config()
+
+      try do
+        in_tmp(context.test, fn ->
+          write_config("""
+          [kernel: [logger: [
+            {:filters, :log, [test: {&:logger_filters.remote_gl/2, :log}]}
+          ]]]
+          """)
+
+          Mix.Task.run("loadconfig", [])
+          assert %{filter_default: :log, filters: filters} = :logger.get_primary_config()
+          assert :test in Keyword.keys(filters)
+        end)
+      after
+        :logger.set_primary_config(primary_config)
+      end
+    end
+
+    test "sets module levels", context do
+      Mix.Project.push(MixTest.Case.Sample)
+
+      try do
+        in_tmp(context.test, fn ->
+          write_config("""
+          [kernel: [logger: [
+            {:module_level, :emergency, [FooBar]}
+          ]]]
+          """)
+
+          Mix.Task.run("loadconfig", [])
+          assert [{FooBar, :emergency}] = :logger.get_module_level()
+        end)
+      after
+        :logger.unset_module_level()
+      end
+    end
+  end
+
   defp write_config(path \\ "config/config.exs", contents) do
     File.mkdir_p!(Path.dirname(path))
     File.write!(path, contents)

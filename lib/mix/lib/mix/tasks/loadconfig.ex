@@ -21,8 +21,6 @@ defmodule Mix.Tasks.Loadconfig do
   multiple times to load different configs.
   """
 
-  @reserved_apps [:stdlib, :kernel]
-
   @impl true
   def run(args) do
     Mix.Task.reenable("loadconfig")
@@ -69,13 +67,13 @@ defmodule Mix.Tasks.Loadconfig do
     Application.put_all_env(config, persistent: true)
     apps = Keyword.keys(config)
 
-    case Enum.filter(@reserved_apps, &(&1 in apps)) do
+    case Enum.filter(config, &check_app/1) do
       [] ->
         :ok
 
       reserved_apps ->
         Mix.shell().error("""
-        Cannot configure base applications: #{inspect(reserved_apps)}
+        Cannot configure base applications: #{inspect(Keyword.keys(reserved_apps))}
 
         These applications are already started by the time the configuration
         executes and these configurations have no effect.
@@ -104,5 +102,43 @@ defmodule Mix.Tasks.Loadconfig do
     end
 
     apps
+  end
+
+  defp check_app({:kernel, opts}) do
+    {logger_opts, rest} = Keyword.split(opts, [:logger, :logger_level])
+
+    case Keyword.fetch(logger_opts, :logger_level) do
+      {:ok, level} -> :logger.update_primary_config(%{level: level})
+      _ -> :ok
+    end
+
+    setup_logger(Keyword.get(logger_opts, :logger, []))
+
+    rest != []
+  end
+
+  defp check_app({:stdlib, _}), do: true
+  defp check_app(_app_config), do: false
+
+  defp setup_logger(entries) when is_list(entries), do: Enum.each(entries, &install/1)
+
+  defp install({:handler, :default, :undefined}) do
+    :logger.remove_handler(:default)
+  end
+
+  defp install({:handler, handler_id, module, handler_config}) do
+    if handler_id == :default, do: :logger.remove_handler(handler_id)
+
+    :logger.add_handler(handler_id, module, handler_config)
+  end
+
+  defp install({:filters, filter_default, filters}) do
+    for {id, filter} <- filters, do: :logger.add_primary_filter(id, filter)
+
+    :logger.update_primary_config(%{filter_default: filter_default})
+  end
+
+  defp install({:module_level, level, modules}) do
+    for module <- modules, do: :logger.set_module_level(module, level)
   end
 end
