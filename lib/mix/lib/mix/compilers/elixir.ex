@@ -471,8 +471,7 @@ defmodule Mix.Compilers.Elixir do
 
   defp remove_removed_sources(sources, removed) do
     Enum.reduce(removed, {sources, %{}}, fn file, {acc_sources, acc_modules} ->
-      {source(modules: modules), acc_sources} =
-        List.keytake(acc_sources, file, source(:source))
+      {source(modules: modules), acc_sources} = List.keytake(acc_sources, file, source(:source))
 
       acc_modules = Enum.reduce(modules, acc_modules, &Map.put(&2, &1, true))
       {acc_sources, acc_modules}
