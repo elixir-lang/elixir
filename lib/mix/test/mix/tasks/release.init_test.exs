@@ -7,10 +7,12 @@ defmodule Mix.Tasks.Release.InitTest do
     in_tmp("release_init", fn ->
       Mix.Task.run("release.init", [])
       assert_received {:mix_shell, :info, ["* creating rel/vm.args.eex"]}
+      assert_received {:mix_shell, :info, ["* creating rel/remote.vm.args.eex"]}
       assert_received {:mix_shell, :info, ["* creating rel/env.sh.eex"]}
       assert_received {:mix_shell, :info, ["* creating rel/env.bat.eex"]}
 
       assert File.exists?("rel/vm.args.eex")
+      assert File.exists?("rel/remote.vm.args.eex")
       assert File.exists?("rel/env.sh.eex")
       assert File.exists?("rel/env.bat.eex")
     end)
@@ -21,6 +23,7 @@ defmodule Mix.Tasks.Release.InitTest do
       Mix.Task.run("release.init", ["--force", "--quiet"])
       Mix.Task.run("release.init", ["--force", "--quiet"])
       refute_received {:mix_shell, :info, ["* creating rel/vm.args.eex"]}
+      refute_received {:mix_shell, :info, ["* creating rel/remote.vm.args.eex"]}
       refute_received {:mix_shell, :info, ["* creating rel/env.sh.eex"]}
       refute_received {:mix_shell, :info, ["* creating rel/env.bat.eex"]}
     end)

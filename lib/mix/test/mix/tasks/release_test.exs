@@ -15,7 +15,7 @@ defmodule Mix.Tasks.ReleaseTest do
           File.mkdir_p!("rel/overlays/empty/directory")
           File.write!("rel/overlays/hello", "world")
 
-          for file <- ~w(rel/vm.args.eex rel/env.sh.eex rel/env.bat.eex) do
+          for file <- ~w(rel/vm.args.eex rel/remote.vm.args.eex rel/env.sh.eex rel/env.bat.eex) do
             File.write!(file, """
             #{file} FOR <%= @release.name %>
             """)
@@ -33,6 +33,9 @@ defmodule Mix.Tasks.ReleaseTest do
 
           assert root |> Path.join("releases/0.1.0/vm.args") |> File.read!() ==
                    "rel/vm.args.eex FOR release_test\n"
+
+          assert root |> Path.join("releases/0.1.0/remote.vm.args") |> File.read!() ==
+                   "rel/remote.vm.args.eex FOR release_test\n"
 
           assert root |> Path.join("empty/directory") |> File.dir?()
           assert root |> Path.join("hello") |> File.read!() == "world"
@@ -52,7 +55,8 @@ defmodule Mix.Tasks.ReleaseTest do
           File.mkdir_p!("custom_rel/overlays/empty/directory")
           File.write!("custom_rel/overlays/hello", "world")
 
-          for file <- ~w(custom_rel/vm.args.eex custom_rel/env.sh.eex custom_rel/env.bat.eex) do
+          for file <-
+                ~w(custom_rel/vm.args.eex custom_rel/remote.vm.args.eex custom_rel/env.sh.eex custom_rel/env.bat.eex) do
             File.write!(file, """
             #{file} FOR <%= @release.name %>
             """)
@@ -70,6 +74,9 @@ defmodule Mix.Tasks.ReleaseTest do
 
           assert root |> Path.join("releases/0.1.0/vm.args") |> File.read!() ==
                    "custom_rel/vm.args.eex FOR release_test\n"
+
+          assert root |> Path.join("releases/0.1.0/remote.vm.args") |> File.read!() ==
+                   "custom_rel/remote.vm.args.eex FOR release_test\n"
 
           assert root |> Path.join("empty/directory") |> File.dir?()
           assert root |> Path.join("hello") |> File.read!() == "world"
@@ -208,6 +215,7 @@ defmodule Mix.Tasks.ReleaseTest do
           assert "bin/demo" in files
           assert "releases/0.1.0/sys.config" in files
           assert "releases/0.1.0/vm.args" in files
+          assert "releases/0.1.0/remote.vm.args" in files
           assert "releases/COOKIE" in files
           assert "releases/start_erl.data" in files
           assert "hello" in files
@@ -303,6 +311,7 @@ defmodule Mix.Tasks.ReleaseTest do
         assert root |> Path.join("releases/0.1.0/env.sh") |> File.exists?()
         assert root |> Path.join("releases/0.1.0/env.bat") |> File.exists?()
         assert root |> Path.join("releases/0.1.0/vm.args") |> File.exists?()
+        assert root |> Path.join("releases/0.1.0/remote.vm.args") |> File.exists?()
 
         assert root
                |> Path.join("releases/0.1.0/sys.config")
@@ -477,6 +486,7 @@ defmodule Mix.Tasks.ReleaseTest do
         assert root |> Path.join("releases/0.2.0/demo.rel") |> File.exists?()
         assert root |> Path.join("releases/0.2.0/sys.config") |> File.exists?()
         assert root |> Path.join("releases/0.2.0/vm.args") |> File.exists?()
+        assert root |> Path.join("releases/0.2.0/remote.vm.args") |> File.exists?()
 
         # Assert runtime
         open_port(Path.join(root, "bin/demo"), ['start'])

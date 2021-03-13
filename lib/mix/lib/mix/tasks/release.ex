@@ -449,8 +449,8 @@ defmodule Mix.Tasks.Release do
           ]
 
     * `:rel_templates_path` - the path to find template files that are copied to
-      the release, such as "vm.args.eex", "env.sh.eex" (or "env.bat.eex"), and
-      "overlays". Defaults to "rel" in the project root.
+      the release, such as "vm.args.eex", "remote.vm.args.eex", "env.sh.eex"
+      (or "env.bat.eex"), and "overlays". Defaults to "rel" in the project root.
 
     * `:overlays` - a list of directories with extra files to be copied
       as is to the release. The "overlays" directory at `:rel_templates_path`
@@ -520,20 +520,16 @@ defmodule Mix.Tasks.Release do
   ### vm.args and env.sh (env.bat)
 
   Developers may want to customize the VM flags and environment variables
-  given when the release starts. This is typically done by customizing
-  two files inside your release: `releases/RELEASE_VSN/vm.args` and
-  `releases/RELEASE_VSN/env.sh` (or `env.bat` on Windows).
+  given when the release starts. The simplest way to customize those files
+  is by running `mix release.init`. The Mix task will copy custom
+  `rel/vm.args.eex`, `rel/remote.vm.args.eex`,  `rel/env.sh.eex`, and
+  `rel/env.bat.eex` files to your project root. You can modify those files
+  and they will be evaluated every time you perform a new release. Those
+  files are regular EEx templates and they have a single assign, called
+  `@release`, with the `Mix.Release` struct.
 
-  However, instead of modifying those files after the release is built,
-  the simplest way to customize those files is by running `mix release.init`.
-  The Mix task will copy custom `rel/vm.args.eex`, `rel/env.sh.eex`, and
-  `rel/env.bat.eex` files to your project root. You can modify those
-  files and they will be evaluated every time you perform a new release.
-  Those files are regular EEx templates and they have a single assign,
-  called `@release`, with the `Mix.Release` struct.
-
-  The `vm.args` file may contain any of the VM flags accepted by the [`erl`
-  command](https://erlang.org/doc/man/erl.html).
+  The `vm.args` and `remote.vm.args` files may contain any of the VM flags
+  accepted by the [`erl` command](https://erlang.org/doc/man/erl.html).
 
   The `env.sh` and `env.bat` is used to set environment variables.
   In there, you can set vars such as `RELEASE_NODE`, `RELEASE_COOKIE`,
@@ -543,10 +539,10 @@ defmodule Mix.Tasks.Release do
   `RELEASE_COMMAND` have already been set, so you can rely on them.
   See the section on environment variables for more information.
 
-  Furthermore, while `vm.args` is static, you can use `env.sh` and
-  `env.bat` to dynamically set VM options. For example, if you want
-  to make sure the Erlang Distribution listens only on a given port
-  known at runtime, you can set the following:
+  Furthermore, while the `vm.args` files are static, you can use
+  `env.sh` and `env.bat` to dynamically set VM options. For example,
+  if you want to make sure the Erlang Distribution listens only on
+  a given port known at runtime, you can set the following:
 
       case $RELEASE_COMMAND in
         start*|daemon*)
@@ -691,9 +687,11 @@ defmodule Mix.Tasks.Release do
       detect you are inside a release, you can check for release specific
       environment variables, such as `RELEASE_NODE` or `RELEASE_MODE`
 
-    * `rel/vm.args.eex` - a template file that is copied into every release
-      and provides static configuration of the Erlang Virtual Machine and
-      other runtime flags
+    * `rel/vm.args.eex` and `rel/remote.vm.args.eex` - template files that
+      are copied into every release and provides static configuration of the
+      Erlang Virtual Machine and other runtime flags. `vm.args` runs on
+      `start`, `daemon`, and `eval` commands. `remote.vm.args` configures
+      the VM for `remote` and `rpc` commands
 
     * `rel/env.sh.eex` and `rel/env.bat.eex` - template files that are copied
       into every release and are executed on every command to set up environment
@@ -720,6 +718,7 @@ defmodule Mix.Tasks.Release do
           env.sh
           iex
           iex.bat
+          remote.vm.args
           runtime.exs
           start.boot
           start.script
@@ -779,6 +778,9 @@ defmodule Mix.Tasks.Release do
 
     * `RELEASE_VM_ARGS` - the location of the vm.args file. It can be set
       to a custom path
+
+    * `RELEASE_REMOTE_VM_ARGS` - the location of the remote.vm.args file.
+      It can be set to a custom path
 
     * `RELEASE_TMP` - the directory in the release to write temporary
       files to. It can be set to a custom directory. It defaults to
@@ -1176,12 +1178,14 @@ defmodule Mix.Tasks.Release do
       end
 
     vm_args_path = Path.join(version_path, "vm.args")
+    remote_vm_args_path = Path.join(version_path, "remote.vm.args")
     cookie_path = Path.join(release.path, "releases/COOKIE")
     start_erl_path = Path.join(release.path, "releases/start_erl.data")
     config_provider_path = {:system, "RELEASE_SYS_CONFIG", ".config"}
 
     with :ok <- make_boot_scripts(release, version_path, consolidation_path),
          :ok <- make_vm_args(release, vm_args_path),
+         :ok <- make_vm_args(release, remote_vm_args_path),
          :ok <- Mix.Release.make_sys_config(release, sys_config, config_provider_path),
          :ok <- Mix.Release.make_cookie(release, cookie_path),
          :ok <- Mix.Release.make_start_erl(release, start_erl_path) do
@@ -1267,7 +1271,7 @@ defmodule Mix.Tasks.Release do
   end
 
   defp make_vm_args(release, path) do
-    vm_args_template = Mix.Release.rel_templates_path(release, "vm.args.eex")
+    vm_args_template = Mix.Release.rel_templates_path(release, "#{Path.basename(path)}.eex")
 
     if File.exists?(vm_args_template) do
       copy_template(vm_args_template, path, [release: release], force: true)
