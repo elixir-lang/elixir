@@ -217,6 +217,7 @@ defmodule Mix.Tasks.TestTest do
         # All tests should be run if we try it again with no failing tests.
         # This prevents `mix test --failed` from passing in cases where
         # `mix test` had a compilation error before having failing tests.
+        # It also provides a better workflow as you can always run with --failed.
         output = mix(["test", "--failed"])
         assert output =~ "No pending --failed tests, re-running all available tests..."
         assert output =~ "4 tests, 0 failures"
