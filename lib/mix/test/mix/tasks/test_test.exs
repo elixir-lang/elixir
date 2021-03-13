@@ -215,7 +215,9 @@ defmodule Mix.Tasks.TestTest do
         assert mix(["test", "--failed"]) =~ "2 tests, 0 failures"
 
         # Nothing should get run if we try it again since everything is passing.
-        assert mix(["test", "--failed"]) =~ "There are no tests to run"
+        output = mix(["test", "--failed"])
+        assert output =~ "No pending --failed tests, re-running all available tests..."
+        assert output =~ "4 tests, 0 failures"
 
         # `--failed` and `--stale` cannot be combined
         output = mix(["test", "--failed", "--stale"])
