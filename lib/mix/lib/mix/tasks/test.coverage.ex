@@ -155,7 +155,8 @@ defmodule Mix.Tasks.Test.Coverage do
   end
 
   # Pick beams from the compile_path but if by any chance it is a protocol,
-  # gets its consolidated file instead.
+  # gets its path from the code server (which will most likely point to
+  # the consolidation directory as long as it is enabled).
   defp beams(dir) do
     consolidation_dir = Mix.Project.consolidation_path()
 
@@ -166,8 +167,12 @@ defmodule Mix.Tasks.Test.Coverage do
       end
 
     for file <- File.ls!(dir), Path.extname(file) == ".beam" do
-      dir = if file in consolidated, do: consolidation_dir, else: dir
-      String.to_charlist(Path.join(dir, file))
+      with true <- file in consolidated,
+           [_ | _] = path <- :code.which(file |> Path.rootname() |> String.to_atom()) do
+        path
+      else
+        _ -> String.to_charlist(Path.join(dir, file))
+      end
     end
   end
 
