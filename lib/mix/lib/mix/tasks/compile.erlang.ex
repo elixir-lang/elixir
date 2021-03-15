@@ -127,7 +127,10 @@ defmodule Mix.Tasks.Compile.Erlang do
     include_paths = [include_path | source_paths]
 
     files
-    |> Task.async_stream(&scan_source(&1, include_paths, compile_path, opts))
+    |> Task.async_stream(&scan_source(&1, include_paths, compile_path, opts),
+      timeout: :infinity,
+      ordered: false
+    )
     |> Enum.flat_map(fn
       {:ok, {:ok, erl_file, target_tuple}} -> [{erl_file, target_tuple}]
       {:ok, :error} -> []
