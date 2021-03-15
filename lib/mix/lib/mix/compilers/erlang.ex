@@ -12,6 +12,15 @@ defmodule Mix.Compilers.Erlang do
 
   `mappings` should be a list of tuples in the form of `{src, dest}` paths.
 
+  ## Options
+
+    * `:force` - forces compilation regardless of modification times
+
+    * `:parallel` - if `true` all files will be compiled in parallel,
+      otherwise the given list of source file names will be compiled
+      in parallel, all other files are compiled serially before the
+      parallel files
+
   ## Examples
 
   For example, a simple compiler for Lisp Flavored Erlang
@@ -74,6 +83,16 @@ defmodule Mix.Compilers.Erlang do
   A `manifest` file and a `callback` to be invoked for each src/dest pair
   must be given. A src/dest pair where destination is `nil` is considered
   to be up to date and won't be (re-)compiled.
+
+  ## Options
+
+    * `:force` - forces compilation regardless of modification times
+
+    * `:parallel` - if `true` all files will be compiled in parallel,
+      otherwise the given list of source file names will be compiled
+      in parallel, all other files are compiled serially before the
+      parallel files
+
   """
   def compile(manifest, mappings, opts \\ [], callback) do
     compile(manifest, mappings, :erl, opts, callback)
@@ -119,11 +138,26 @@ defmodule Mix.Compilers.Erlang do
       # and what not).
       Code.prepend_path(Mix.Project.compile_path())
 
+      {parallel, serial} =
+        case opts[:parallel] || false do
+          true -> {stale, []}
+          false -> {[], stale}
+          parallel -> Enum.split_with(stale, fn {source, _target} -> source in parallel end)
+        end
+
+      serial_results = Enum.map(serial, &do_compile(&1, callback, timestamp, verbose))
+
+      parallel_results =
+        parallel
+        |> Task.async_stream(&do_compile(&1, callback, timestamp, verbose),
+          timeout: :infinity,
+          ordered: false
+        )
+        |> Enum.map(fn {:ok, result} -> result end)
+
       # Compile stale files and print the results
       {status, new_entries, warnings, errors} =
-        stale
-        |> Enum.map(&do_compile(&1, callback, timestamp, verbose))
-        |> Enum.reduce({:ok, [], [], []}, &combine_results/2)
+        Enum.reduce(serial_results ++ parallel_results, {:ok, [], [], []}, &combine_results/2)
 
       write_manifest(manifest, entries ++ new_entries, timestamp)
 
