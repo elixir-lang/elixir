@@ -36,8 +36,7 @@ defmodule MixTest do
       assert_received {:mix_shell, :info, ["Generated install_test app"]}
       refute_received _
 
-      started_apps = Enum.map(Application.started_applications(), &elem(&1, 0))
-      assert :install_test in started_apps
+      assert List.keyfind(Application.started_applications(), :install_test, 0)
       assert apply(InstallTest, :hello, []) == :world
     end
 
