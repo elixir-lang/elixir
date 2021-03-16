@@ -15,7 +15,7 @@ defmodule List do
       iex> [1, true, 2, false, 3, true] -- [true, false]
       [1, 2, 3, true]
 
-  An element can be prepended to a list with the pipe (`|`) syntax:
+  An element can be prepended to a list using `|`:
 
       iex> new = 0
       iex> list = [1, 2, 3]
