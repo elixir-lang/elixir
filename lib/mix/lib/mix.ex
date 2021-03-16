@@ -492,6 +492,9 @@ defmodule Mix do
     * `:verbose` - if `true`, prints additional debugging information
       (Default: `false`)
 
+    * `:consolidate_protocols` - if `true`, runs protocol
+      consolidation via the `mix compile.protocols` task (Default: `true`)
+
   ## Examples
 
       Mix.install([
@@ -543,24 +546,22 @@ defmodule Mix do
       app: :mix_install,
       erlc_paths: ["src"],
       elixirc_paths: ["lib"],
-      consolidate_protocols: false
+      consolidate_protocols: Keyword.get(opts, :consolidate_protocols, true)
     ]
 
     :ok = Mix.ProjectStack.push(__MODULE__.InstallProject, config, "nofile")
     :ok = Mix.Local.append_archives()
 
-    if File.dir?(dir) do
-      File.cd!(dir, fn ->
-        Mix.Task.run("deps.loadpaths")
-      end)
-    else
-      File.mkdir_p!(dir)
+    dir? = File.dir?(dir)
+    File.mkdir_p!(dir)
 
-      File.cd!(dir, fn ->
+    File.cd!(dir, fn ->
+      unless dir? do
         Mix.Task.run("deps.get")
-        Mix.Task.run("deps.compile")
-      end)
-    end
+      end
+
+      Mix.Task.run("compile")
+    end)
 
     for app <- Mix.Project.deps_apps() do
       Application.ensure_all_started(app)

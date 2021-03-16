@@ -20,51 +20,90 @@ defmodule MixTest do
     Mix.debug(false)
   end
 
-  @tag :tmp_dir
-  test "install", %{tmp_dir: tmp_dir} do
-    tmp_dir = Path.expand(tmp_dir)
-    File.mkdir_p!("#{tmp_dir}/install_test/lib")
+  describe "install" do
+    @describetag :tmp_dir
+    setup :test_project
 
-    File.write!("#{tmp_dir}/install_test/mix.exs", """
-    defmodule InstallTest.MixProject do
-      use Mix.Project
-
-      def project do
-        [
-          app: :install_test,
-          version: "0.1.0"
-        ]
-      end
-    end
-    """)
-
-    File.write!("#{tmp_dir}/install_test/lib/install_test.ex", """
-    defmodule InstallTest do
-      def hello do
-        :world
-      end
-    end
-    """)
-
-    Mix.install(
-      [
+    test "default options", %{tmp_dir: tmp_dir} do
+      Mix.install([
         {:install_test, path: Path.join(tmp_dir, "install_test")}
-      ],
-      force: true
-    )
+      ])
 
-    assert_received {:mix_shell, :info, ["==> install_test"]}
-    assert_received {:mix_shell, :info, ["Compiling 1 file (.ex)"]}
-    assert_received {:mix_shell, :info, ["Generated install_test app"]}
-    refute_received _
+      assert Protocol.consolidated?(InstallTest.Protocol)
 
-    started_apps = Enum.map(Application.started_applications(), &elem(&1, 0))
-    assert :install_test in started_apps
-    assert apply(InstallTest, :hello, []) == :world
-  after
-    :code.purge(InstallTest)
-    :code.delete(InstallTest)
-    Application.stop(:install_test)
-    Application.unload(:install_test)
+      assert_received {:mix_shell, :info, ["==> install_test"]}
+      assert_received {:mix_shell, :info, ["Compiling 1 file (.ex)"]}
+      assert_received {:mix_shell, :info, ["Generated install_test app"]}
+      refute_received _
+
+      assert List.keyfind(Application.started_applications(), :install_test, 0)
+      assert apply(InstallTest, :hello, []) == :world
+    end
+
+    test "can't call twice in the same VM", %{tmp_dir: tmp_dir} do
+      Mix.install([
+        {:install_test, path: Path.join(tmp_dir, "install_test")}
+      ])
+
+      assert_raise Mix.Error, "Mix.install/2 can only be called once", fn ->
+        Mix.install([
+          {:install_test, path: Path.join(tmp_dir, "install_test")}
+        ])
+      end
+    end
+
+    test "consolidate_protocols: false", %{tmp_dir: tmp_dir} do
+      Mix.install(
+        [
+          {:install_test, path: Path.join(tmp_dir, "install_test")}
+        ],
+        consolidate_protocols: false
+      )
+
+      refute Protocol.consolidated?(InstallTest.Protocol)
+    end
+
+    defp test_project(%{tmp_dir: tmp_dir}) do
+      path = :code.get_path()
+
+      on_exit(fn ->
+        :code.set_path(path)
+        purge([InstallTest, InstallTest.MixProject, InstallTest.Protocol])
+        Application.stop(:install_test)
+        Application.unload(:install_test)
+      end)
+
+      Mix.State.put(:install_called?, false)
+
+      tmp_dir = Path.expand(tmp_dir)
+      File.mkdir_p!("#{tmp_dir}/install_test/lib")
+
+      File.write!("#{tmp_dir}/install_test/mix.exs", """
+      defmodule InstallTest.MixProject do
+        use Mix.Project
+
+        def project do
+          [
+            app: :install_test,
+            version: "0.1.0"
+          ]
+        end
+      end
+      """)
+
+      File.write!("#{tmp_dir}/install_test/lib/install_test.ex", """
+      defmodule InstallTest do
+        def hello do
+          :world
+        end
+      end
+
+      defprotocol InstallTest.Protocol do
+        def foo(x)
+      end
+      """)
+
+      [tmp_dir: tmp_dir]
+    end
   end
 end
