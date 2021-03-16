@@ -308,9 +308,11 @@ defmodule Protocol do
   end
 
   defp assert_protocol!(module, extra) do
-    case Code.ensure_compiled(module) do
-      {:module, ^module} -> :ok
-      _ -> raise ArgumentError, "#{inspect(module)} is not available" <> extra
+    try do
+      Code.ensure_compiled!(module)
+    rescue
+      e in ArgumentError ->
+        raise ArgumentError, e.message <> extra
     end
 
     try do
@@ -337,9 +339,11 @@ defmodule Protocol do
   defp assert_impl!(protocol, base, extra) do
     impl = Module.concat(protocol, base)
 
-    case Code.ensure_compiled(impl) do
-      {:module, ^impl} -> :ok
-      _ -> raise ArgumentError, "#{inspect(impl)} is not available" <> extra
+    try do
+      Code.ensure_compiled!(impl)
+    rescue
+      e in ArgumentError ->
+        raise ArgumentError, e.message <> extra
     end
 
     try do
