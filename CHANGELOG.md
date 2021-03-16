@@ -76,7 +76,7 @@
   * [Kernel] Do not crash when complex literals (binaries and maps) are used in guards
   * [Kernel] Properly parse keywords (such as `end`) followed by the `::` operator
   * [Macro] `Macro.decompose_call/1` now also consider tuples with more than 2 elements to not be valid calls
-  * [Macro] Fix `Macro.underscore/2` for digit preceded by capitals: "FOO10" now becomes "foo10" instead of "fo_o123"
+  * [Macro] Fix `Macro.underscore/1` for digit preceded by capitals: "FOO10" now becomes "foo10" instead of "fo_o123"
   * [OptionParser] Properly parse when numbers follow-up aliases, for example, `-ab3` is now parsed as `-a -b 3`
   * [Path] Fix `Path.relative_to/2` when referencing self
   * [Task] Ensure `Task.async_stream/2` with `ordered: false` discard results as they are emitted, instead of needlessly accumulating inside the stream manager
