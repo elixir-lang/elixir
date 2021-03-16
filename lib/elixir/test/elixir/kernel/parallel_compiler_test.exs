@@ -205,6 +205,28 @@ defmodule Kernel.ParallelCompilerTest do
              end) =~ "== Compilation error"
     end
 
+    test "does not deadlock on missing import/struct dependencies" do
+      [missing_import, depends_on] =
+        write_tmp(
+          "import_and_structs",
+          missing_import: """
+          defmodule MissingStruct do
+            import Unknown.Module
+          end
+          """,
+          depends_on_missing_struct: """
+          %MissingStruct{}
+          """
+        )
+
+      assert capture_io(fn ->
+               assert {:error, [{^missing_import, 2, msg}], []} =
+                        Kernel.ParallelCompiler.compile([missing_import, depends_on])
+
+               assert msg =~ "module Unknown.Module is not loaded and could not be found"
+             end) =~ "== Compilation error"
+    end
+
     test "handles deadlocks" do
       [foo, bar] =
         write_tmp(

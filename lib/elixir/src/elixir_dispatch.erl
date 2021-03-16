@@ -308,9 +308,6 @@ format_error({deprecated, Mod, Fun, Arity, Message}) ->
 
 %% INTROSPECTION
 
-is_ensure_loaded(Receiver) ->
-  code:ensure_loaded(Receiver) == {module, Receiver}.
-
 %% Do not try to get macros from Erlang. Speeds up compilation a bit.
 get_macros(erlang, _) -> [];
 
@@ -333,9 +330,9 @@ get_macros(Receiver, true) ->
 %% Deprecations checks only happen at the module body,
 %% so in there we can try to at least load the module.
 get_deprecations(Receiver) ->
-  case is_ensure_loaded(Receiver) of
-    true -> get_info(Receiver, deprecated);
-    false -> []
+  case code:ensure_loaded(Receiver) of
+    {module, Receiver} -> get_info(Receiver, deprecated);
+    _ -> []
   end.
 
 get_info(Receiver, Key) ->
