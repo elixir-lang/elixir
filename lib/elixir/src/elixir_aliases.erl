@@ -76,20 +76,37 @@ expand({'__aliases__', _Meta, List}, _Aliases, _E) ->
 %% Ensure a module is loaded before its usage.
 
 ensure_loaded(_Meta, 'Elixir.Kernel', _E) -> ok;
-ensure_loaded(Meta, Ref, E) ->
-  try
-    Ref:module_info(module)
-  catch
-    error:undef ->
-      Kind = case lists:member(Ref, ?key(E, context_modules)) of
-        true  ->
-          case ?key(E, module) of
-            Ref -> circular_module;
-            _ -> scheduled_module
-          end;
-        false -> unloaded_module
-      end,
-      elixir_errors:form_error(Meta, E, ?MODULE, {Kind, Ref})
+ensure_loaded(Meta, Module, E) ->
+  case code:ensure_loaded(Module) of
+    {module, Module} ->
+      ok;
+
+    _ ->
+      case wait_for_module(Module) of
+        found ->
+          ok;
+
+        Wait ->
+          Kind = case lists:member(Module, ?key(E, context_modules)) of
+            true ->
+              case ?key(E, module) of
+                Module -> circular_module;
+                _ -> scheduled_module
+              end;
+            false when Wait == deadlock ->
+              deadlock_module;
+            false ->
+              unloaded_module
+          end,
+
+          elixir_errors:form_error(Meta, E, ?MODULE, {Kind, Module})
+      end
+  end.
+
+wait_for_module(Module) ->
+  case is_pid(erlang:get(elixir_compiler_pid)) of
+    true -> 'Elixir.Kernel.ErrorHandler':ensure_compiled(Module, module, hard);
+    false -> not_found
   end.
 
 %% Receives an atom and returns the last bit as an alias.
@@ -143,6 +160,12 @@ lookup(Else, Dict, Counter) ->
 
 format_error({unloaded_module, Module}) ->
   io_lib:format("module ~ts is not loaded and could not be found", [inspect(Module)]);
+
+format_error({deadlock_module, Module}) ->
+  io_lib:format("module ~ts is not loaded and could not be found. "
+                "This may be happening because the module you are trying to load "
+                "directly or indirectly depends on the current module",
+                [inspect(Module)]);
 
 format_error({scheduled_module, Module}) ->
   io_lib:format(

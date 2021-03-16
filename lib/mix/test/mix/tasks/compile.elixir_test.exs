@@ -759,13 +759,13 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     in_fixture("no_mixfile", fn ->
       File.write!("lib/a.ex", """
       defmodule A do
-        import B
+        B.__info__(:module)
       end
       """)
 
       File.write!("lib/b.ex", """
       defmodule B do
-        import A
+        A.__info__(:module)
       end
       """)
 
