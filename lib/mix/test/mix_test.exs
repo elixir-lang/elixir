@@ -39,8 +39,6 @@ defmodule MixTest do
       started_apps = Enum.map(Application.started_applications(), &elem(&1, 0))
       assert :install_test in started_apps
       assert apply(InstallTest, :hello, []) == :world
-    after
-      purge()
     end
 
     test "can't call twice in the same VM", %{tmp_dir: tmp_dir} do
@@ -53,8 +51,6 @@ defmodule MixTest do
           {:install_test, path: Path.join(tmp_dir, "install_test")}
         ])
       end
-    after
-      purge()
     end
 
     test "consolidate_protocols: false", %{tmp_dir: tmp_dir} do
@@ -66,11 +62,18 @@ defmodule MixTest do
       )
 
       refute Protocol.consolidated?(InstallTest.Protocol)
-    after
-      purge()
     end
 
     defp test_project(%{tmp_dir: tmp_dir}) do
+      path = :code.get_path()
+
+      on_exit(fn ->
+        :code.set_path(path)
+        purge([InstallTest, InstallTest.MixProject, InstallTest.Protocol])
+        Application.stop(:install_test)
+        Application.unload(:install_test)
+      end)
+
       Mix.State.put(:install_called?, false)
 
       tmp_dir = Path.expand(tmp_dir)
@@ -102,16 +105,6 @@ defmodule MixTest do
       """)
 
       [tmp_dir: tmp_dir]
-    end
-
-    defp purge() do
-      for module <- [InstallTest, InstallTest.MixProject, InstallTest.Protocol] do
-        :code.delete(module)
-        :code.purge(module)
-      end
-
-      Application.stop(:install_test)
-      Application.unload(:install_test)
     end
   end
 end
