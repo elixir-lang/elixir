@@ -106,8 +106,8 @@ defmodule MixTest do
 
     defp purge() do
       for module <- [InstallTest, InstallTest.MixProject, InstallTest.Protocol] do
-        :code.purge(module)
         :code.delete(module)
+        :code.purge(module)
       end
 
       Application.stop(:install_test)
