@@ -269,7 +269,7 @@ defmodule ProtocolTest do
 
   test "cannot derive without any implementation" do
     assert_raise ArgumentError,
-                 ~r"#{inspect(Sample.Any)} is not available, cannot derive #{inspect(Sample)}",
+                 ~r"could not load module #{inspect(Sample.Any)} due to reason :nofile, cannot derive #{inspect(Sample)}",
                  fn ->
                    defmodule NotCompiled do
                      @derive [Sample]

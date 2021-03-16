@@ -501,9 +501,25 @@ defmodule CodeTest do
     refute Code.ensure_loaded?(Code.NoFile)
   end
 
+  test "ensure_loaded!/1" do
+    assert Code.ensure_loaded!(__MODULE__) == __MODULE__
+
+    assert_raise ArgumentError, "could not load module Code.NoFile due to reason :nofile", fn ->
+      Code.ensure_loaded!(Code.NoFile)
+    end
+  end
+
   test "ensure_compiled/1" do
     assert Code.ensure_compiled(__MODULE__) == {:module, __MODULE__}
     assert Code.ensure_compiled(Code.NoFile) == {:error, :nofile}
+  end
+
+  test "ensure_compiled!/1" do
+    assert Code.ensure_compiled!(__MODULE__) == __MODULE__
+
+    assert_raise ArgumentError, "could not load module Code.NoFile due to reason :nofile", fn ->
+      Code.ensure_compiled!(Code.NoFile)
+    end
   end
 
   test "put_compiler_option/2 validates options" do

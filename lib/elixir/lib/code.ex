@@ -1277,6 +1277,21 @@ defmodule Code do
   end
 
   @doc """
+  Same as `ensure_loaded/1` but raises if the module cannot be loaded.
+  """
+  @spec ensure_loaded!(module) :: module
+  def ensure_loaded!(module) do
+    case ensure_loaded(module) do
+      {:module, module} ->
+        module
+
+      {:error, reason} ->
+        raise ArgumentError,
+              "could not load module #{inspect(module)} due to reason #{inspect(reason)}"
+    end
+  end
+
+  @doc """
   Ensures the given module is compiled and loaded.
 
   If the module is already loaded, it works as no-op. If the module was
@@ -1306,10 +1321,32 @@ defmodule Code do
           {:module, module}
           | {:error, :embedded | :badfile | :nofile | :on_load_failure | :unavailable}
   def ensure_compiled(module) when is_atom(module) do
+    ensure_compiled(module, :soft)
+  end
+
+  @doc """
+  Same as `ensure_compiled/1` but raises if the module cannot be compiled.
+
+  This is the preferred function to use if you want to ensure a module
+  is compiled and you want to raise in case it isn't.
+  """
+  @spec ensure_compiled!(module) :: module
+  def ensure_compiled!(module) do
+    case ensure_compiled(module, :hard) do
+      {:module, module} ->
+        module
+
+      {:error, reason} ->
+        raise ArgumentError,
+              "could not load module #{inspect(module)} due to reason #{inspect(reason)}"
+    end
+  end
+
+  defp ensure_compiled(module, mode) do
     case :code.ensure_loaded(module) do
       {:error, :nofile} = error ->
         if can_await_module_compilation?() do
-          case Kernel.ErrorHandler.ensure_compiled(module, :module, :soft) do
+          case Kernel.ErrorHandler.ensure_compiled(module, :module, mode) do
             :found -> {:module, module}
             :deadlock -> {:error, :unavailable}
             :not_found -> {:error, :nofile}
