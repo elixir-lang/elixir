@@ -243,6 +243,21 @@ The Calendar module ships with a new `Calendar.strftime/3` function, which provi
 
 Mix also includes two new tasks: `mix app.config`, for application runtime configuration, and `mix test.coverage`, which generates aggregated coverage reports for umbrella projects and for test suites partitioned across processes.
 
+## v1.11.4 (2021-03-16)
+
+This release introduces fixes for better support of Erlang/OTP 24+.
+
+### 1. Enhancements
+
+#### Elixir
+
+  * [Kernel] Update formatting when printing warnings and errors from Erlang/OTP 24+
+  * [Kernel] Support float-16 on bitstrings
+
+#### Mix
+
+  * [mix local.rebar] This task will now install rebar3 version 3.14.4, compiled with Erlang/OTP 21
+
 ## v1.11.3 (2021-01-04)
 
 ### 1. Enhancements
