@@ -493,7 +493,7 @@ defmodule Mix do
       (Default: `false`)
 
     * `:consolidate_protocols` - if `true`, runs protocol
-      consolidation via the `mix compile.protocols` task. (Default: `true`)
+      consolidation via the `mix compile.protocols` task (Default: `true`)
 
   ## Examples
 
