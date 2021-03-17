@@ -214,6 +214,7 @@ defmodule Mix.Tasks.Deps.Compile do
     # build the whole structure and also symlink/copy
     # priv and ebin.
     Mix.Utils.symlink_or_copy(Path.join(opts[:dest], "include"), Path.join(dep_path, "include"))
+    Mix.Utils.symlink_or_copy(Path.join(opts[:dest], "priv"), Path.join(dep_path, "priv"))
 
     do_command(dep, config, cmd, false, env)
   end
