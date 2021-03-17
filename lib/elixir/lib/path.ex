@@ -685,14 +685,9 @@ defmodule Path do
 
   defp resolve_home(rest) do
     case {rest, major_os_type()} do
-      {"\\" <> _, :win32} ->
-        System.user_home!() <> rest
-
-      {"/" <> _, _} ->
-        System.user_home!() <> rest
-
-      _ ->
-        expand_user_home(rest)
+      {"\\" <> _, :win32} -> System.user_home!() <> rest
+      {"/" <> _, _} -> System.user_home!() <> rest
+      _ -> expand_user_home(rest)
     end
   end
 
