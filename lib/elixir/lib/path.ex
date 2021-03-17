@@ -685,9 +685,26 @@ defmodule Path do
 
   defp resolve_home(rest) do
     case {rest, major_os_type()} do
-      {"\\" <> _, :win32} -> System.user_home!() <> rest
-      {"/" <> _, _} -> System.user_home!() <> rest
-      _ -> "~" <> rest
+      {"\\" <> _, :win32} ->
+        System.user_home!() <> rest
+
+      {"/" <> _, _} ->
+        System.user_home!() <> rest
+
+      _ ->
+        expand_user_home(rest)
+    end
+  end
+
+  defp expand_user_home(from_user) do
+    [user | rest] = String.split(from_user, "/")
+    rest = Enum.join(rest, "/")
+    user_home = "/home/" <> user
+
+    if File.dir?(user_home) do
+      user_home <> "/" <> rest
+    else
+      "~" <> from_user
     end
   end
 
