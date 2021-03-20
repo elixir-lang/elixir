@@ -3492,6 +3492,104 @@ defmodule Enum do
     |> :lists.reverse()
   end
 
+  # def reduce(_list, {:halt, acc}, _fun), do: {:halted, acc}
+  # def reduce(list, {:suspend, acc}, fun), do: {:suspended, acc, &reduce(list, &1, fun)}
+  # def reduce([], {:cont, acc}, _fun), do: {:done, acc}
+  # def reduce([head | tail], {:cont, acc}, fun), do: reduce(tail, fun.(head, acc), fun)
+
+  # ## zip
+  # defp zip_list(enumerable1, enumerable2) do
+  #   zip_list(enumerable1, enumerable2, fn x, y -> {x, y} end)
+  # end
+
+  # defp zip_list([head1 | next1], [head2 | next2], fun) do
+  #   [fun.(head1, head2) | zip_list(next1, next2, fun)]
+  # end
+
+  # defp zip_list(_, [], _fun), do: []
+  # defp zip_list([], _, _fun), do: []
+
+  def zip_reduce(left, right, acc, reducer) do
+    non_stop_reducer = &({:cont, reducer.(&1, &2, &3)})
+    enum_zip_reduce_while(left, right, {:cont, acc}, non_stop_reducer)
+  end
+
+  @doc """
+  Reduces over two enumerables halting if the accumulator returns {:halt, value} or if
+  either of the enumerables is empty.
+
+  ### Examples
+
+      iex> zip_reduce_while([1], [2], [], fn left, right, acc -> {:cont, [left + right | acc ]} end)
+      [3]
+
+      iex> zip_reduce_while([1, 2], [2, 2], [], fn left, right, acc ->
+      ...> if left <= 1, do: [left + right | acc], else: {:halt, acc}
+      ...> end)
+      [3]
+
+      iex> left  = [1, 2]
+      ...> right = [3, 4]
+      ...> {:suspended, acc, cont} =
+      ...>   zip_reduce_while(left, right, {:cont, []}, fn l, r, acc ->
+      ...>   {:suspend, [l + r | acc]}
+      ...> end)
+      ...> {:suspended, acc, cont} = cont.({:cont, acc})
+      ...> cont.({:cont, acc})
+      [6, 4]
+  """
+  def enum_zip_reduce_while(left, right, acc, reducer) do
+    enumerable_zip_reduce_while(left, right, {:cont, acc}, reducer) |> elem(1)
+  end
+
+  @doc """
+  Reduces over two enumerables halting if the accumulator returns {:halt, value} or if
+  either of the enumerables is empty.
+
+  The reducer will receive 3 args, the left enumerable's element, the right enumberable's
+  element and the accumulator. It should return one of:
+
+    * `{:halt, value}` - This will halt the reduction and return `{:halted, value}`
+    * `{:suspect, value}` - This will halt the reduction returning `{:suspended, value, continuation}`
+      where continuation is a function that accepts an acc and will continue with the next step
+      in the paused reduction.
+    * `{:cont, value}` - This will continue to the next step of the reduction.
+
+  ### Examples
+
+      iex> enumerable_zip_reduce_while([1], [2], [], fn l, r, acc -> {:cont, [l + r | acc ]} end)
+      {:done, [3]}
+
+      iex> enumerable_zip_reduce_while([1, 2], [2, 2], [], fn l, r, acc ->
+      ...> if l <= 1, do: [l + r | acc], else: {:halt, acc}
+      ...> end)
+      {:halted, [3]}
+
+      iex> left  = [1, 2]
+      ...> right = [3, 4]
+      ...> {:suspended, acc, cont} =
+      ...>   enumerable_zip_reduce_while(left, right, {:cont, []}, fn l, r, acc ->
+      ...>     {:suspend, [l + r | acc]}
+      ...>   end)
+      ...> {:suspended, acc, cont} = cont.({:cont, acc})
+      ...> cont.({:cont, acc})
+      {:done, [6, 4]}
+  """
+  # This is low level reduce_while but has different semantics from the Enum.reduce_while.
+  # This is more like Enumerable.reduce_while (which Enum.reduce_while uses.)
+  def enumerable_zip_reduce_while(_left, _right, {:halt, acc}, _), do: {:halted, acc}
+
+  def enumerable_zip_reduce_while(left, right, {:suspend, acc}, reducer) do
+    {:suspended, acc, &enumerable_zip_reduce_while(left, right, &1, reducer)}
+  end
+
+  def enumerable_zip_reduce_while([], _right, {:cont, acc}, reducer), do: {:done, acc}
+  def enumerable_zip_reduce_while(_left, [], {:cont, acc}, reducer), do: {:done, acc}
+
+  def enumerable_zip_reduce_while([left_head | left_tail], [right_head | right_tail], {:cont, acc}, reducer) do
+    enumerable_zip_reduce_while(left_tail, right_tail, reducer.(left_head, right_head, acc), reducer)
+  end
+
   ## Helpers
 
   @compile {:inline, entry_to_string: 1, reduce: 3, reduce_by: 3, reduce_enumerable: 3}
