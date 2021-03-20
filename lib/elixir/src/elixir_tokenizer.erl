@@ -815,8 +815,9 @@ handle_call_identifier(Rest, Line, Column, DotInfo, Length, Op, Scope, Tokens) -
 handle_space_sensitive_tokens([Sign, NotMarker | T], Line, Column, Scope, [{Identifier, _, _} = H | Tokens]) when
     ?dual_op(Sign),
     not(?is_space(NotMarker)),
-    NotMarker =/= $(, NotMarker =/= $[, NotMarker =/= $<, NotMarker =/= ${,                  %% containers
+    NotMarker =/= $(, NotMarker =/= $[, NotMarker =/= $<, NotMarker =/= ${,                   %% containers
     NotMarker =/= $%, NotMarker =/= $+, NotMarker =/= $-, NotMarker =/= $/, NotMarker =/= $>, %% operators
+    NotMarker =/= $:, %% keywords
     Identifier == identifier ->
   Rest = [NotMarker | T],
   DualOpToken = {dual_op, {Line, Column, nil}, list_to_atom([Sign])},
