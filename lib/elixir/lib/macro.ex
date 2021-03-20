@@ -725,8 +725,8 @@ defmodule Macro do
   and return a version with it unescaped.
   """
   @spec unescape_string(String.t()) :: String.t()
-  def unescape_string(chars) do
-    :elixir_interpolation.unescape_chars(chars)
+  def unescape_string(string) do
+    :elixir_interpolation.unescape_string(string)
   end
 
   @doc ~S"""
@@ -772,25 +772,23 @@ defmodule Macro do
 
   """
   @spec unescape_string(String.t(), (non_neg_integer -> non_neg_integer | false)) :: String.t()
-  def unescape_string(chars, map) do
-    :elixir_interpolation.unescape_chars(chars, map)
+  def unescape_string(string, map) do
+    :elixir_interpolation.unescape_string(string, map)
   end
 
   @doc false
   @deprecated "Traverse over the arguments using Enum.map/2 instead"
   def unescape_tokens(tokens) do
-    case :elixir_interpolation.unescape_tokens(tokens) do
-      {:ok, unescaped_tokens} -> unescaped_tokens
-      {:error, reason} -> raise ArgumentError, to_string(reason)
+    for token <- tokens do
+      if is_binary(token), do: unescape_string(token), else: token
     end
   end
 
   @doc false
   @deprecated "Traverse over the arguments using Enum.map/2 instead"
   def unescape_tokens(tokens, map) do
-    case :elixir_interpolation.unescape_tokens(tokens, map) do
-      {:ok, unescaped_tokens} -> unescaped_tokens
-      {:error, reason} -> raise ArgumentError, to_string(reason)
+    for token <- tokens do
+      if is_binary(token), do: unescape_string(token, map), else: token
     end
   end
 

@@ -1,7 +1,7 @@
 % Handle string and string-like interpolations.
 -module(elixir_interpolation).
--export([extract/6, unescape_chars/1, unescape_chars/2,
-unescape_tokens/1, unescape_tokens/2, unescape_map/1]).
+-export([extract/6, unescape_string/1, unescape_string/2,
+unescape_tokens/1, unescape_map/1]).
 -include("elixir.hrl").
 -define(is_hex(S), ((S >= $0 andalso S =< $9) orelse
                     (S >= $A andalso S =< $F) orelse
@@ -79,13 +79,10 @@ strip_horizontal_space(T, Buffer, Counter) ->
 %% Unescape a series of tokens as returned by extract.
 
 unescape_tokens(Tokens) ->
-  unescape_tokens(Tokens, fun unescape_map/1).
-
-unescape_tokens(Tokens, Map) ->
-  try [unescape_token(Token, Map) || Token <- Tokens] of
+  try [unescape_token(Token, fun unescape_map/1) || Token <- Tokens] of
     Unescaped -> {ok, Unescaped}
   catch
-    {error, _Reason} = Error -> Error
+    {error, _Reason, _Token} = Error -> Error
   end.
 
 unescape_token(Token, Map) when is_list(Token) ->
@@ -95,10 +92,21 @@ unescape_token(Token, Map) when is_binary(Token) ->
 unescape_token(Other, _Map) ->
   Other.
 
-% Unescape chars. For instance, "\" "n" (two chars) needs to be converted to "\n" (one char).
+% Unescape string. This is called by Elixir. Wrapped by convenience.
 
-unescape_chars(String) ->
-  unescape_chars(String, fun unescape_map/1).
+unescape_string(String) ->
+  unescape_string(String, fun unescape_map/1).
+
+unescape_string(String, Map) ->
+  try
+    unescape_chars(String, Map)
+  catch
+    {error, Reason, _} ->
+      Message = elixir_utils:characters_to_binary(Reason),
+      error('Elixir.ArgumentError':exception([{message, Message}]))
+  end.
+
+% Unescape chars. For instance, "\" "n" (two chars) needs to be converted to "\n" (one char).
 
 unescape_chars(String, Map) ->
   unescape_chars(String, Map, <<>>).
@@ -175,7 +183,7 @@ unescape_hex(<<${, A, B, C, D, E, F, $}, Rest/binary>>, Map, Acc) when ?is_hex(A
   append_codepoint(Rest, Map, [A, B, C, D, E, F], Acc, 16);
 
 unescape_hex(<<_/binary>>, _Map, _Acc) ->
-  throw({error, "missing hex sequence after \\x, expected \\xHH"}).
+  throw({error, "invalid hex escape character, expected \\xHH where H is a hexadecimal digit", "\\x"}).
 
 %% Finish deprecated sequences
 
@@ -201,8 +209,7 @@ unescape_unicode(<<${, A, B, C, D, E, F, $}, Rest/binary>>, Map, Acc) when ?is_h
   append_codepoint(Rest, Map, [A, B, C, D, E, F], Acc, 16);
 
 unescape_unicode(<<_/binary>>, _Map, _Acc) ->
-  Msg = <<"invalid Unicode sequence after \\u, expected \\uHHHH or \\u{H*}">>,
-  error('Elixir.ArgumentError':exception([{message, Msg}])).
+  throw({error, "invalid Unicode escape character, expected \\uHHHH or \\u{H*} where H is a hexadecimal digit", "\\u"}).
 
 append_codepoint(Rest, Map, List, Acc, Base) ->
   Codepoint = list_to_integer(List, Base),
@@ -210,8 +217,7 @@ append_codepoint(Rest, Map, List, Acc, Base) ->
     Binary -> unescape_chars(Rest, Map, Binary)
   catch
     error:badarg ->
-      Msg = <<"invalid or reserved Unicode code point ", (integer_to_binary(Codepoint))/binary>>,
-      error('Elixir.ArgumentError':exception([{message, Msg}]))
+      throw({error, "invalid or reserved Unicode code point \\u{" ++ List ++ "}", "\\u"})
   end.
 
 unescape_map(newline) -> true;

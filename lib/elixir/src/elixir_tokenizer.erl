@@ -448,7 +448,7 @@ tokenize([$:, H | T] = Original, Line, Column, Scope, Tokens) when ?is_quote(H) 
           Scope
       end,
 
-      case unescape_tokens(Parts, NewScope) of
+      case unescape_tokens(Parts, Line, Column, NewScope) of
         {ok, [Part]} when is_binary(Part) ->
           case unsafe_to_atom(Part, Line, Column, Scope) of
             {ok, Atom} ->
@@ -467,8 +467,8 @@ tokenize([$:, H | T] = Original, Line, Column, Scope, Tokens) when ?is_quote(H) 
           Token = {Key, {Line, Column, nil}, Unescaped},
           tokenize(Rest, NewLine, NewColumn, NewScope, [Token | Tokens]);
 
-        {error, Msg} ->
-          {error, {Line, Column, Msg, [$:, H]}, Rest, Tokens}
+        {error, Reason} ->
+          {error, Reason, Rest, Tokens}
       end;
 
     {error, Reason} ->
@@ -661,13 +661,13 @@ handle_char(_)  -> false.
 handle_heredocs(T, Line, Column, H, Scope, Tokens) ->
   case extract_heredoc_with_interpolation(Line, Column, Scope, true, T, H) of
     {ok, NewLine, NewColumn, Parts, Rest, NewScope} ->
-      case unescape_tokens(Parts, NewScope) of
+      case unescape_tokens(Parts, Line, Column, NewScope) of
         {ok, Unescaped} ->
           Token = {heredoc_type(H), {Line, Column, nil}, Unescaped},
           tokenize(Rest, NewLine, NewColumn, NewScope, [Token | Tokens]);
 
-        {error, Msg} ->
-          {error, {Line, Column, Msg, [H, H, H]}, Rest, Tokens}
+        {error, Reason} ->
+          {error, Reason, Rest, Tokens}
       end;
 
     {error, Reason} ->
@@ -695,7 +695,7 @@ handle_strings(T, Line, Column, H, Scope, Tokens) ->
           Scope
       end,
 
-      case unescape_tokens(Parts, NewScope) of
+      case unescape_tokens(Parts, Line, Column, NewScope) of
         {ok, Unescaped} ->
           Key = case Scope#elixir_tokenizer.existing_atoms_only of
             true  -> kw_identifier_safe;
@@ -704,22 +704,20 @@ handle_strings(T, Line, Column, H, Scope, Tokens) ->
           Token = {Key, {Line, Column - 1, nil}, Unescaped},
           tokenize(Rest, NewLine, NewColumn + 1, NewScope, [Token | Tokens]);
 
-        {error, Msg} ->
-          {error, {Line, Column, Msg, [H]}, Rest, Tokens}
+        {error, Reason} ->
+          {error, Reason, Rest, Tokens}
       end;
 
     {NewLine, NewColumn, Parts, Rest} ->
-      case unescape_tokens(Parts, Scope) of
+      case unescape_tokens(Parts, Line, Column, Scope) of
         {ok, Unescaped} ->
           Token = {string_type(H), {Line, Column - 1, nil}, Unescaped},
           tokenize(Rest, NewLine, NewColumn, Scope, [Token | Tokens]);
 
-        {error, Msg} ->
-          {error, {Line, Column, Msg, [H]}, Rest, Tokens}
+        {error, Reason} ->
+          {error, Reason, Rest, Tokens}
       end
   end.
-
-
 
 handle_unary_op([$: | Rest], Line, Column, _Kind, Length, Op, Scope, Tokens) when ?is_space(hd(Rest)) ->
   Token = {kw_identifier, {Line, Column, nil}, Op},
@@ -962,9 +960,15 @@ maybe_heredoc_warn(Line, Scope, Marker) ->
 
 extract_heredoc_head([[$\n|H]|T]) -> [H|T].
 
-unescape_tokens(Tokens, #elixir_tokenizer{unescape=true}) ->
-  elixir_interpolation:unescape_tokens(Tokens);
-unescape_tokens(Tokens, #elixir_tokenizer{unescape=false}) ->
+unescape_tokens(Tokens, Line, Column, #elixir_tokenizer{unescape=true}) ->
+  case elixir_interpolation:unescape_tokens(Tokens) of
+    {ok, Result} ->
+      {ok, Result};
+
+    {error, Message, Token} ->
+      {error, {Line, Column, Message ++ ". Syntax error after: ", Token}}
+  end;
+unescape_tokens(Tokens, _Line, _Column, #elixir_tokenizer{unescape=false}) ->
   {ok, tokens_to_binary(Tokens)}.
 
 tokens_to_binary(Tokens) ->

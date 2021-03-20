@@ -21,6 +21,12 @@ defmodule KernelTest do
     end
   end
 
+  test "op ambiguity" do
+    max = 1
+    assert max == 1
+    assert max(1, 2) == 2
+  end
+
   describe "=/2" do
     test "can be reassigned" do
       var = 1
