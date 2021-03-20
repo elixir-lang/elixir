@@ -3,6 +3,18 @@ Code.require_file("../test_helper.exs", __DIR__)
 defmodule Kernel.ParserTest do
   use ExUnit.Case, async: true
 
+  describe "unary ops" do
+    test "in keywords" do
+      assert parse!("f(!: :ok)") == {:f, [line: 1], [[!: :ok]]}
+      assert parse!("f @: :ok") == {:f, [line: 1], [[@: :ok]]}
+    end
+
+    test "ambiguous ops in keywords" do
+      assert parse!("f(+: :ok)") == {:f, [line: 1], [[+: :ok]]}
+      assert parse!("f +: :ok") == {:f, [line: 1], [[+: :ok]]}
+    end
+  end
+
   describe "strings/sigils" do
     test "delimiter information for sigils is included" do
       string_to_quoted = &Code.string_to_quoted!(&1, token_metadata: false)
