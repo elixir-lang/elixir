@@ -5389,7 +5389,7 @@ defmodule Kernel do
   defmacro sigil_s(term, modifiers)
 
   defmacro sigil_s({:<<>>, _, [piece]}, []) when is_binary(piece) do
-    :elixir_interpolation.unescape_chars(piece)
+    :elixir_interpolation.unescape_string(piece)
   end
 
   defmacro sigil_s({:<<>>, line, pieces}, []) do
@@ -5441,7 +5441,7 @@ defmodule Kernel do
   # We can skip the runtime conversion if we are
   # creating a binary made solely of series of chars.
   defmacro sigil_c({:<<>>, _meta, [string]}, []) when is_binary(string) do
-    String.to_charlist(:elixir_interpolation.unescape_chars(string))
+    String.to_charlist(:elixir_interpolation.unescape_string(string))
   end
 
   defmacro sigil_c({:<<>>, _meta, pieces}, []) do
@@ -5468,7 +5468,7 @@ defmodule Kernel do
   defmacro sigil_r(term, modifiers)
 
   defmacro sigil_r({:<<>>, _meta, [string]}, options) when is_binary(string) do
-    binary = :elixir_interpolation.unescape_chars(string, &Regex.unescape_map/1)
+    binary = :elixir_interpolation.unescape_string(string, &Regex.unescape_map/1)
     regex = Regex.compile!(binary, :binary.list_to_bin(options))
     Macro.escape(regex)
   end
@@ -5770,7 +5770,7 @@ defmodule Kernel do
   defmacro sigil_w(term, modifiers)
 
   defmacro sigil_w({:<<>>, _meta, [string]}, modifiers) when is_binary(string) do
-    split_words(:elixir_interpolation.unescape_chars(string), modifiers, __CALLER__)
+    split_words(:elixir_interpolation.unescape_string(string), modifiers, __CALLER__)
   end
 
   defmacro sigil_w({:<<>>, meta, pieces}, modifiers) do
@@ -5885,24 +5885,35 @@ defmodule Kernel do
   end
 
   # Helper to handle the :ok | :error tuple returned from :elixir_interpolation.unescape_tokens
+  # We need to do this for bootstrapping purposes, actual code can use Macro.unescape_string.
   defp unescape_tokens(tokens) do
-    case :elixir_interpolation.unescape_tokens(tokens) do
-      {:ok, unescaped_tokens} -> unescaped_tokens
-      {:error, reason} -> raise ArgumentError, to_string(reason)
-    end
+    :lists.map(
+      fn token ->
+        case is_binary(token) do
+          true -> :elixir_interpolation.unescape_string(token)
+          false -> token
+        end
+      end,
+      tokens
+    )
   end
 
   defp unescape_tokens(tokens, unescape_map) do
-    case :elixir_interpolation.unescape_tokens(tokens, unescape_map) do
-      {:ok, unescaped_tokens} -> unescaped_tokens
-      {:error, reason} -> raise ArgumentError, to_string(reason)
-    end
+    :lists.map(
+      fn token ->
+        case is_binary(token) do
+          true -> :elixir_interpolation.unescape_string(token, unescape_map)
+          false -> token
+        end
+      end,
+      tokens
+    )
   end
 
   defp unescape_list_tokens(tokens) do
     escape = fn
       {:"::", _, [expr, _]} -> expr
-      binary when is_binary(binary) -> :elixir_interpolation.unescape_chars(binary)
+      binary when is_binary(binary) -> :elixir_interpolation.unescape_string(binary)
     end
 
     :lists.map(escape, tokens)
