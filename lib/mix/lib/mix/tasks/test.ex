@@ -126,9 +126,9 @@ defmodule Mix.Tasks.Test do
 
     * `--include` - includes tests that match the filter
 
-    * `--listen-on-stdin` - runs tests, and then listens on stdin. Receiving a newline will
-      result in the tests being run again. Very useful when combined with `--stale` and
-      external commands which produce output on stdout upon file system modifications
+    * `--listen-on-stdin` - runs tests, and then listens on stdin. It will
+      re-run tests once a newline is received. See the "File system watchers"
+      section below
 
     * `--max-cases` - sets the maximum number of tests running asynchronously. Only tests from
       different modules run in parallel. Defaults to twice the number of cores
@@ -342,6 +342,18 @@ defmodule Mix.Tasks.Test do
 
   The `--stale` option is extremely useful for software iteration, allowing you to
   run only the relevant tests as you perform changes to the codebase.
+
+  ## File-system watchers
+
+  You can integrate `mix test` with filesystem watchers through the command line
+  via the `--listen-on-stdin` option. For example, you can use [fswatch](https://github.com/emcrisostomo/fswatch)
+  or similar to emit newlines whenever there is a change, which will cause your test
+  suite to re-run:
+
+      fswatch lib test | mix test --listen-on-stdin
+
+  This can be combined with the `--stale` option to re-run only the test files that
+  have changed as well as the tests that have gone stale due to changes in `lib`.
 
   ## Aborting the suite
 
