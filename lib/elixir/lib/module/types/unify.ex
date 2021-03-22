@@ -987,7 +987,7 @@ defmodule Module.Types.Unify do
   end
 
   def walk({:list, type}, acc, fun) do
-    type = walk(type, acc, fun)
+    {type, acc} = walk(type, acc, fun)
     fun.({:list, type}, acc)
   end
 

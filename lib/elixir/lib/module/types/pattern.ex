@@ -234,17 +234,25 @@ defmodule Module.Types.Pattern do
     signature = guard_signature(guard, length(args))
     type_guard? = type_guard?(guard)
     {consider_type_guards?, keep_guarded?} = stack.type_guards
+    arg_stack = %{stack | type_guards: {false, keep_guarded?}}
 
     # Only check type guards in the context of and/or/not,
     # a type guard in the context of is_tuple(x) > :foo
     # should not affect the inference of x
-    if not type_guard? or consider_type_guards? do
-      arg_stack = %{stack | type_guards: {false, keep_guarded?}}
+    cond do
+      not type_guard? ->
+        with {:ok, arg_types, context} <-
+              map_reduce_ok(args, context, &of_guard(&1, :dynamic, arg_stack, &2)),
+            {:ok, return_type, context} <-
+              unify_call(arg_types, signature, expected, stack, context) do
+          {:ok, return_type, context}
+        end
 
-      with {:ok, arg_types, context} <-
-             map_reduce_ok(args, context, &of_guard(&1, :dynamic, arg_stack, &2)),
-           {:ok, return_type, context} <-
-             unify_call(arg_types, signature, expected, stack, context) do
+      consider_type_guards? ->
+        with {:ok, arg_types, context} <-
+          map_reduce_ok(args, context, &of_guard(&1, :dynamic, arg_stack, &2)),
+        {:ok, return_type, context} <-
+          unify_type_guard_call(arg_types, signature, stack, context) do
         {arg_types, guard_sources} =
           case arg_types do
             [{:var, index} | rest_arg_types] when type_guard? ->
@@ -255,22 +263,22 @@ defmodule Module.Types.Pattern do
               {arg_types, context.guard_sources}
           end
 
-        guard_sources =
-          Enum.reduce(arg_types, guard_sources, fn
-            {:var, index}, guard_sources ->
-              Map.update(guard_sources, index, :fail, &guarded_if_keep_guarded(&1, keep_guarded?))
+          guard_sources =
+            Enum.reduce(arg_types, guard_sources, fn
+              {:var, index}, guard_sources ->
+                Map.update(guard_sources, index, :fail, &guarded_if_keep_guarded(&1, keep_guarded?))
 
-            _, guard_sources ->
-              guard_sources
-          end)
+              _, guard_sources ->
+                guard_sources
+            end)
 
-        {:ok, return_type, %{context | guard_sources: guard_sources}}
-      end
-    else
-      case map_reduce_ok(args, context, &of_guard(&1, :dynamic, stack, &2)) do
-        {:ok, arg_types, context} -> unify_call(arg_types, signature, expected, stack, context)
-        {:error, reason} -> {:error, reason}
-      end
+          {:ok, return_type, %{context | guard_sources: guard_sources}}
+        end
+
+      true ->
+        # Assume type guard
+        [{_params, return_type}] = signature
+        {:ok, return_type, context}
     end
   end
 
@@ -301,6 +309,21 @@ defmodule Module.Types.Pattern do
       end)
 
     Map.keys(vars)
+  end
+
+  defp unify_type_guard_call(args, [{params, return}], stack, context) do
+    result =
+      reduce_ok(Enum.zip(args, params), context, fn {arg, param}, context ->
+        case unify(arg, param, stack, context) do
+          {:ok, _, context} -> {:ok, context}
+          {:error, reason} -> {:error, reason}
+        end
+      end)
+
+    case result do
+      {:ok, context} -> {:ok, return, context}
+      {:error, reason} -> {:error, reason}
+    end
   end
 
   defp unify_call([], [{[], return}], _expected, _stack, context) do
@@ -356,8 +379,16 @@ defmodule Module.Types.Pattern do
 
         result =
           map_reduce_ok(indexes, context, fn index, context ->
-            union = to_union(Enum.map(contexts, &Map.fetch!(&1.types, index)), context)
-            unify({:var, index}, union, stack, context)
+            union =
+              contexts
+              |> Enum.map(&Map.fetch!(&1.types, index))
+              |> Enum.reject(&(&1 == :unbound))
+
+            if union == [] do
+              {:ok, {:var, index}, context}
+            else
+              unify({:var, index}, to_union(union, context), stack, context)
+            end
           end)
 
         case result do
@@ -366,6 +397,7 @@ defmodule Module.Types.Pattern do
         end
 
       {:error, args} ->
+        IO.inspect clauses
         error(:unable_apply, {args, clauses, stack}, context)
     end
   end

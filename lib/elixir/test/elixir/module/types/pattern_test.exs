@@ -367,16 +367,16 @@ defmodule Module.Types.PatternTest do
     test "failing guard functions" do
       assert quoted_head([x], [length([])]) == {:ok, [{:var, 0}]}
 
-      assert {:error, {:unable_unify, {{:atom, :foo}, {:list, :dynamic}, _}}} =
+      assert {:error, {:unable_apply, {[{:atom, :foo}], [{[{:list, :dynamic}], :integer}], _}}} =
                quoted_head([x], [length(:foo)])
 
-      assert {:error, {:unable_unify, {{:atom, true}, {:list, :dynamic}, _}}} =
+      assert {:error, {:unable_apply, {[{:union, [{:atom, true}, {:atom, false}]}], [{[{:list, :dynamic}], :integer}], _}}} =
                quoted_head([x], [length(is_tuple(x))])
 
-      assert {:error, {:unable_unify, {{:atom, true}, :tuple, _}}} =
+      assert {:error, {:unable_apply, {[:integer, {:union, [{:atom, true}, {:atom, false}]}], [{[:integer, :tuple], :dynamic}], _}}} =
                quoted_head([x], [elem(is_tuple(x), 0)])
 
-      assert {:error, {:unable_unify, {{:atom, true}, {:union, [:integer, :float]}, _}}} =
+      assert {:error, {:unable_apply, {[{:union, [{:atom, true}, {:atom, false}]}, :integer], [{[:integer, :integer], :integer}, {[union: [:integer, :float], union: [:integer, :float]], :float}], _}}} =
                quoted_head([x], [elem({}, is_tuple(x))])
 
       assert quoted_head([x], [elem({}, 1)]) == {:ok, [var: 0]}
