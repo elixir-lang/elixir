@@ -3631,26 +3631,25 @@ defmodule Kernel do
   end
 
   @doc """
-  Range creation operator. Returns a range with the specified `first` and `last` integers.
+  Creates a range from `first` to `last`.
 
-  If last is larger than first, the range will be increasing from
-  first to last. If first is larger than last, the range will be
-  decreasing from first to last. If first is equal to last, the range
-  will contain one element, which is the number itself.
+  If last is more than first, the range will be increasing from
+  first to last. If first is equal to last, the range will contain
+  one element, which is the number itself.
+
+  If first is less than last, the range will be decreasing from first
+  to last, albeit this behaviour is deprecated. Instead prefer to
+  explicitly list the step with `first..last//-1`.
 
   ## Examples
 
       iex> 0 in 1..3
       false
-
-      iex> 1 in 1..3
-      true
-
       iex> 2 in 1..3
       true
 
-      iex> 3 in 1..3
-      true
+      iex> Enum.to_list(1..3)
+      [1, 2, 3]
 
   """
   defmacro first..last do
@@ -3658,6 +3657,9 @@ defmodule Kernel do
       true ->
         first = Macro.expand(first, __CALLER__)
         last = Macro.expand(last, __CALLER__)
+        validate_range!(first, last)
+        # TODO: Deprecate me inside match in all occasions
+        # TODO: Deprecate me inside guard when sides are not integers
         range(__CALLER__.context, first, last)
 
       false ->
@@ -3665,16 +3667,10 @@ defmodule Kernel do
     end
   end
 
-  defp range(_context, first, last) when is_integer(first) and is_integer(last) do
-    {:%{}, [], [__struct__: Elixir.Range, first: first, last: last]}
-  end
-
-  defp range(_context, first, last)
-       when is_float(first) or is_float(last) or is_atom(first) or is_atom(last) or
-              is_binary(first) or is_binary(last) or is_list(first) or is_list(last) do
-    raise ArgumentError,
-          "ranges (first..last) expect both sides to be integers, " <>
-            "got: #{Macro.to_string({:.., [], [first, last]})}"
+  defp range(_context, first, last) when is_integer(first) and is_integer(last),
+    # TODO: Deprecate me if step is negative
+    step = if first <= last, do: 1, else: -1
+    {:%{}, [], [__struct__: Elixir.Range, first: first, last: last, step: step]}
   end
 
   defp range(nil, first, last) do
@@ -3682,7 +3678,73 @@ defmodule Kernel do
   end
 
   defp range(_, first, last) do
-    {:%{}, [], [__struct__: Elixir.Range, first: first, last: last]}
+    step = quote do
+       min(unquote(first) <= unquote(last) and 1, unquote(first) > unquote(last) and -1)
+    end
+
+    {:%{}, [], [__struct__: Elixir.Range, first: first, last: last, step: step]}
+  end
+
+  @doc """
+  Creates a range from `first` to `last` with `step`.
+
+  ## Examples
+
+      iex> 0 in 1..3//1
+      false
+      iex> 2 in 1..3//1
+      true
+      iex> 2 in 1..3//2
+      false
+
+      iex> Enum.to_list(1..3//1)
+      [1, 2, 3]
+      iex> Enum.to_list(1..3//2)
+      [1, 2, 3]
+      iex> Enum.to_list(3..1//-1)
+      [3, 2, 1]
+      iex> Enum.to_list(1..0//1)
+      []
+
+  """
+  defmacro first..last//step do
+    case bootstrapped?(Macro) do
+      true ->
+        first = Macro.expand(first, __CALLER__)
+        last = Macro.expand(last, __CALLER__)
+        step = Macro.expand(step, __CALLER__)
+        validate_range!(first, last)
+        validate_step!(step)
+        range(__CALLER__.context, first, last, step)
+
+      false ->
+        range(__CALLER__.context, first, last, step)
+    end
+  end
+
+  defp range(context, first, last, step)
+       when is_integer(first) and is_integer(last) and is_integer(step)
+       when context != nil do
+    {:%{}, [], [__struct__: Elixir.Range, first: first, last: last, step: step]}
+  end
+
+  defp range(nil, first, last, step) do
+    quote(do: Elixir.Range.new(unquote(first), unquote(last), unquote(step))
+  end
+
+  defp validate_range!(first, last) do
+       when is_float(first) or is_float(last) or is_atom(first) or is_atom(last) or
+              is_binary(first) or is_binary(last) or is_list(first) or is_list(last) do
+    raise ArgumentError,
+          "ranges (first..last//step) expect both sides to be integers, " <>
+            "got: #{Macro.to_string({:.., [], [first, last]})}"
+  end
+
+  defp validate_step!(step) do
+       when is_float(step) or is_atom(step) or is_binary(step) or is_list(step) or step == 0 do
+    raise ArgumentError,
+          "ranges (first..last//step) expect the step to be an integer different than zero, " <>
+            "got: #{Macro.to_string(step)}"
   end
 
   @doc """

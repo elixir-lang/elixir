@@ -40,9 +40,13 @@ defmodule Range do
   not materialize the whole list of integers.
   """
 
-  defstruct first: nil, last: nil
+  @enforce_keys [:first, :last, :step]
+  defstruct first: nil, last: nil, step: nil
 
-  @type t :: %__MODULE__{first: integer, last: integer}
+  @type first :: integer
+  @type last :: integer
+  @type step :: pos_integer | neg_integer
+  @type t :: %__MODULE__{first: first, last: last, step: step}
   @type t(first, last) :: %__MODULE__{first: first, last: last}
 
   @doc """
@@ -56,13 +60,36 @@ defmodule Range do
   """
   @spec new(integer, integer) :: t
   def new(first, last) when is_integer(first) and is_integer(last) do
-    %Range{first: first, last: last}
+    # TODO: Deprecate inferring a range with step of -1
+    step = if first <= last, do: 1, else: -1
+    %Range{first: first, last: last, step: step}
   end
 
   def new(first, last) do
     raise ArgumentError,
           "ranges (first..last) expect both sides to be integers, " <>
             "got: #{inspect(first)}..#{inspect(last)}"
+  end
+
+  @doc """
+  Creates a new range with step.
+
+  ## Examples
+
+      iex> Range.new(-100, 100, 2)
+      -100..100//2
+
+  """
+  @spec new(integer, integer, integer) :: t
+  def new(first, last, step)
+      when is_integer(first) and is_integer(last) and is_integer(step) and step != 0 do
+    %Range{first: first, last: last, step: step}
+  end
+
+  def new(first, last, step) do
+    raise ArgumentError,
+          "ranges (first..last//step) expect both sides to be integers and the step to be an integer " <>
+            "different than zero, got: #{inspect(first)}..#{inspect(last)}//#{inspect(step)}"
   end
 
   @doc """
@@ -93,7 +120,7 @@ defmodule Range do
   defp normalize(first, last), do: {first, last}
 
   @doc false
-  @deprecated "Pattern match on first..last instead"
+  @deprecated "Pattern match on first..last//step instead"
   def range?(term)
   def range?(first..last) when is_integer(first) and is_integer(last), do: true
   def range?(_), do: false
@@ -162,7 +189,11 @@ end
 defimpl Inspect, for: Range do
   import Inspect.Algebra
 
-  def inspect(first..last, opts) do
+  def inspect(first..last//1, opts) do
     concat([to_doc(first, opts), "..", to_doc(last, opts)])
+  end
+
+  def inspect(first..last//step, opts) do
+    concat([to_doc(first, opts), "..", to_doc(last, opts), "//", to_doc(step, opts)])
   end
 end
