@@ -191,22 +191,8 @@ defmodule Bitwise do
     :erlang.bxor(left, right)
   end
 
-  @doc """
-  Bitwise XOR operator.
-
-  Calculates the bitwise XOR of its arguments.
-
-  Allowed in guard tests. Inlined by the compiler.
-
-  ## Examples
-
-      iex> 9 ^^^ 3
-      10
-
-  """
-  @doc guard: true
-  @spec integer ^^^ integer :: integer
-  def left ^^^ right do
+  @doc false
+  def unquote(:^^^)(left, right) do
     :erlang.bxor(left, right)
   end
 

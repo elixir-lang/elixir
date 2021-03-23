@@ -7,27 +7,26 @@ This document covers operators in Elixir, how they are parsed, how they can be d
 The following is a list of all operators that Elixir is capable of parsing, ordered from higher to lower precedence, alongside their associativity:
 
 Operator                                                                                 | Associativity
----------------------------------------------------------------------------------------- | -------------
-`@`                                                                                      | Unary
-`.`                                                                                      | Left to right
-`+` `-` `!` `^` `not` `~~~`                                                              | Unary
-`*` `/`                                                                                  | Left to right
-`+` `-`                                                                                  | Left to right
-`++` `--` `..` `<>` `+++` `---`                                                          | Right to left
-`^^^`                                                                                    | Left to right
-`in` `not in`                                                                            | Left to right
-`\|>` `<<<` `>>>` `<<~` `~>>` `<~` `~>` `<~>` `<\|>`                                     | Left to right
-`<` `>` `<=` `>=`                                                                        | Left to right
-`==` `!=` `=~` `===` `!==`                                                               | Left to right
-`&&` `&&&` `and`                                                                         | Left to right
-`\|\|` `\|\|\|` `or`                                                                     | Left to right
-`=`                                                                                      | Right to left
-`&`                                                                                      | Unary
-`=>` (valid syntax only inside `%{}`)                                                    | Right to left
-`\|`                                                                                     | Right to left
-`::`                                                                                     | Right to left
-`when`                                                                                   | Right to left
-`<-` `\\`                                                                                | Left to right
+------------------------------------------------------| -------------
+`@`                                                   | Unary
+`.`                                                   | Left
+`+` `-` `!` `^` `not` `~~~`                           | Unary
+`*` `/`                                               | Left
+`+` `-`                                               | Left
+`++` `--` `+++` `---` `..` `<>`                       | Right
+`in` `not in`                                         | Left
+`\|>` `<<<` `>>>` `<<~` `~>>` `<~` `~>` `<~>` `<\|>`  | Left
+`<` `>` `<=` `>=`                                     | Left
+`==` `!=` `=~` `===` `!==`                            | Left
+`&&` `&&&` `and`                                      | Left
+`\|\|` `\|\|\|` `or`                                  | Left
+`=`                                                   | Right
+`&`                                                   | Unary
+`=>` (valid syntax only inside `%{}`)                 | Right
+`\|`                                                  | Right
+`::`                                                  | Right
+`when`                                                | Right
+`<-` `\\`                                             | Left
 
 ## General operators
 
@@ -155,41 +154,12 @@ The following is a table of all the operators that Elixir is capable of parsing,
   * `~>`
   * `<~>`
   * `<|>`
-  * `^^^`
   * `+++`
   * `---`
   * `~~~`
 
-The following operators are used by the `Bitwise` module when imported: [`&&&`](`Bitwise.&&&/2`), [`^^^`](`Bitwise.^^^/2`), [`<<<`](`Bitwise.<<</2`), [`>>>`](`Bitwise.>>>/2`), [`|||`](`Bitwise.|||/2`), [`~~~`](`Bitwise.~~~/1`). See the documentation for `Bitwise` for more information.
+The following operators are used by the `Bitwise` module when imported: [`&&&`](`Bitwise.&&&/2`), [`<<<`](`Bitwise.<<</2`), [`>>>`](`Bitwise.>>>/2`), [`|||`](`Bitwise.|||/2`), [`~~~`](`Bitwise.~~~/1`). See the documentation for `Bitwise` for more information.
 
-### Redefining existing operators
+Note the Elixir community generally discourages custom operators. They can be hard to read and even more to understand, as they don't have a descriptive name like functions do. That said, some specific cases or custom domain specific languages (DSLs) may justify these practices.
 
-The operators that Elixir uses (for example, `+`) can be defined by any module and used in place of the ones defined by Elixir, provided they're specifically not imported from `Kernel` (which is imported everywhere by default). For example:
-
-```elixir
-defmodule WrongMath do
-  # Let's make math wrong by changing the meaning of +:
-  def a + b, do: a - b
-end
-```
-
-Now, we will get an error if we try to use this operator "out of the box":
-
-```elixir
-iex> import WrongMath
-iex> 1 + 2
-** (CompileError) iex:11: function +/2 imported from both WrongMath and Kernel, call is ambiguous
-```
-
-So, as mentioned above, we need to explicitly *not* import `+/2` from `Kernel`:
-
-```elixir
-iex> import WrongMath
-iex> import Kernel, except: [+: 2]
-iex> 1 + 2
--1
-```
-
-### Final note
-
-While it's possible to define unused operators (such as `<~>`) and to "override" predefined operators (such as `+`), the Elixir community generally discourages this. Custom-defined operators can be really hard to read and even more to understand, as they don't have a descriptive name like functions do. That said, some specific cases or custom domain specific languages (DSLs) may justify these practices.
+It is also possible replace predefined operators, such as `+`, but doing so is extremely discouraged.
