@@ -97,6 +97,8 @@ handle_file_warning(true, _File, {_Line, sys_core_fold, {nomatch_shadow, _}}) ->
 
 %% Those we implement ourselves
 handle_file_warning(_, _File, {_Line, v3_core, {map_key_repeated, _}}) -> ok;
+handle_file_warning(_, _File, {_Line, sys_core_fold, {ignored, useless_building}}) -> ok;
+%% TODO: remove when we require Erlang/OTP 24
 handle_file_warning(_, _File, {_Line, sys_core_fold, useless_building}) -> ok;
 
 %% Ignore all linting errors (only come up on parse transforms)
@@ -115,11 +117,11 @@ handle_file_error(File, {Line, Module, Desc}) ->
   elixir_errors:compile_error([{line, Line}], File, Message).
 
 %% Mention the capture operator in make_fun
-custom_format(sys_core_fold, {no_effect, {erlang, make_fun, 3}}) ->
+custom_format(sys_core_fold, {ignored, {no_effect, {erlang, make_fun, 3}}}) ->
   "the result of the capture operator & (:erlang.make_fun/3) is never used";
 
 %% Make no_effect clauses pretty
-custom_format(sys_core_fold, {no_effect, {erlang, F, A}}) ->
+custom_format(sys_core_fold, {ignored, {no_effect, {erlang, F, A}}}) ->
   {Fmt, Args} = case erl_internal:comp_op(F, A) of
     true -> {"use of operator ~ts has no effect", [elixir_utils:erlang_comparison_op_to_elixir(F)]};
     false ->
@@ -130,12 +132,20 @@ custom_format(sys_core_fold, {no_effect, {erlang, F, A}}) ->
   end,
   io_lib:format(Fmt, Args);
 
-%% Rewrite nomatch_guard to be more generic it can happen inside if, unless, and the like
-custom_format(sys_core_fold, nomatch_guard) ->
+%% Rewrite nomatch to be more generic, it can happen inside if, unless, and the like
+custom_format(sys_core_fold, {nomatch, X}) when X == guard; X == no_clause ->
   "this check/guard will always yield the same result";
 
+custom_format(sys_core_fold, {nomatch, {shadow, Line, {ErlName, ErlArity}}}) ->
+  {Name, Arity} = elixir_utils:erl_fa_to_elixir_fa(ErlName, ErlArity),
+
+  io_lib:format(
+    "this clause for ~ts/~B cannot match because a previous clause at line ~B always matches",
+    [Name, Arity, Line]
+  );
+
 %% Handle literal eval failures
-custom_format(sys_core_fold, {eval_failure, {Mod, Name, Arity}, Error}) ->
+custom_format(sys_core_fold, {failed, {eval_failure, {Mod, Name, Arity}, Error}}) ->
   #{'__struct__' := Struct} = 'Elixir.Exception':normalize(error, Error),
   {ExMod, ExName, ExArgs} = elixir_rewrite:erl_to_ex(Mod, Name, lists:duplicate(Arity, nil)),
   Call = 'Elixir.Exception':format_mfa(ExMod, ExName, length(ExArgs)),
@@ -146,17 +156,15 @@ custom_format(sys_core_fold, {eval_failure, {Mod, Name, Arity}, Error}) ->
   ["the call to ", Trimmed, " will fail with ", elixir_aliases:inspect(Struct)];
 
 %% TODO: remove when we require OTP 24
+custom_format(sys_core_fold, {nomatch_shadow, Line, FA}) ->
+  custom_format(sys_core_fold, {nomatch, {shadow, Line, FA}});
+custom_format(sys_core_fold, nomatch_guard) ->
+  custom_format(sys_core_fold, {nomatch, guard});
+custom_format(sys_core_fold, {no_effect, X}) ->
+  custom_format(sys_core_fold, {ignored, {no_effect, X}});
 custom_format(sys_core_fold, {eval_failure, Error}) ->
   #{'__struct__' := Struct} = 'Elixir.Exception':normalize(error, Error),
   ["this expression will fail with ", elixir_aliases:inspect(Struct)];
-
-custom_format(sys_core_fold, {nomatch_shadow,Line,{ErlName,ErlArity}}) ->
-  {Name, Arity} = elixir_utils:erl_fa_to_elixir_fa(ErlName, ErlArity),
-
-  io_lib:format(
-    "this clause for ~ts/~B cannot match because a previous clause at line ~B always matches",
-    [Name, Arity, Line]
-  );
 
 custom_format([], Desc) ->
   io_lib:format("~p", [Desc]);
