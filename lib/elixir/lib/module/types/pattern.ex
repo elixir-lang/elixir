@@ -230,55 +230,32 @@ defmodule Module.Types.Pattern do
 
   # fun(args)
   def of_guard({{:., _, [:erlang, guard]}, _, args} = expr, expected, stack, context) do
-    stack = push_expr_stack(expr, stack)
-    signature = guard_signature(guard, length(args))
     type_guard? = type_guard?(guard)
     {consider_type_guards?, keep_guarded?} = stack.type_guards
-    arg_stack = %{stack | type_guards: {false, keep_guarded?}}
+    # TODO: Handle no matching signature
+    signature = guard_signature(guard, length(args))
 
     # Only check type guards in the context of and/or/not,
     # a type guard in the context of is_tuple(x) > :foo
     # should not affect the inference of x
-    cond do
-      not type_guard? ->
-        with {:ok, arg_types, context} <-
-              map_reduce_ok(args, context, &of_guard(&1, :dynamic, arg_stack, &2)),
-            {:ok, return_type, context} <-
-              unify_call(arg_types, signature, expected, stack, context) do
-          {:ok, return_type, context}
-        end
+    if not type_guard? or consider_type_guards? do
+      stack = push_expr_stack(expr, stack)
+      param_unions = signature_to_param_unions(signature, context)
+      arg_stack = %{stack | type_guards: {false, keep_guarded?}}
 
-      consider_type_guards? ->
-        with {:ok, arg_types, context} <-
-          map_reduce_ok(args, context, &of_guard(&1, :dynamic, arg_stack, &2)),
-        {:ok, return_type, context} <-
-          unify_type_guard_call(arg_types, signature, stack, context) do
-        {arg_types, guard_sources} =
-          case arg_types do
-            [{:var, index} | rest_arg_types] when type_guard? ->
-              guard_sources = Map.put_new(context.guard_sources, index, :guarded)
-              {rest_arg_types, guard_sources}
-
-            _ ->
-              {arg_types, context.guard_sources}
-          end
-
-          guard_sources =
-            Enum.reduce(arg_types, guard_sources, fn
-              {:var, index}, guard_sources ->
-                Map.update(guard_sources, index, :fail, &guarded_if_keep_guarded(&1, keep_guarded?))
-
-              _, guard_sources ->
-                guard_sources
-            end)
-
-          {:ok, return_type, %{context | guard_sources: guard_sources}}
-        end
-
-      true ->
-        # Assume type guard
-        [{_params, return_type}] = signature
-        {:ok, return_type, context}
+      with {:ok, arg_types, context} <-
+             map_reduce_ok(Enum.zip(args, param_unions), context, fn {arg, param}, context ->
+               of_guard(arg, param, arg_stack, context)
+             end),
+           {:ok, return_type, context} <-
+             unify_call(arg_types, signature, expected, stack, context, type_guard?) do
+        guard_sources = guard_sources(arg_types, type_guard?, keep_guarded?, context)
+        {:ok, return_type, %{context | guard_sources: guard_sources}}
+      end
+    else
+      # Assume type guard
+      [{_params, return_type}] = signature
+      {:ok, return_type, context}
     end
   end
 
@@ -296,6 +273,33 @@ defmodule Module.Types.Pattern do
     of_shared(expr, stack, context, &of_guard(&1, :dynamic, &2, &3))
   end
 
+  defp signature_to_param_unions(signature, context) do
+    signature
+    |> Enum.map(fn {params, _return} -> params end)
+    |> zip_many()
+    |> Enum.map(&to_union(&1, context))
+  end
+
+  defp guard_sources(arg_types, type_guard?, keep_guarded?, context) do
+    {arg_types, guard_sources} =
+      case arg_types do
+        [{:var, index} | rest_arg_types] when type_guard? ->
+          guard_sources = Map.put_new(context.guard_sources, index, :guarded)
+          {rest_arg_types, guard_sources}
+
+        _ ->
+          {arg_types, context.guard_sources}
+      end
+
+    Enum.reduce(arg_types, guard_sources, fn
+      {:var, index}, guard_sources ->
+        Map.update(guard_sources, index, :fail, &guarded_if_keep_guarded(&1, keep_guarded?))
+
+      _, guard_sources ->
+        guard_sources
+    end)
+  end
+
   defp collect_var_indexes_from_expr(expr, context) do
     {_, vars} =
       Macro.prewalk(expr, %{}, fn
@@ -311,19 +315,12 @@ defmodule Module.Types.Pattern do
     Map.keys(vars)
   end
 
-  defp unify_type_guard_call(args, [{params, return}], stack, context) do
-    result =
-      reduce_ok(Enum.zip(args, params), context, fn {arg, param}, context ->
-        case unify(arg, param, stack, context) do
-          {:ok, _, context} -> {:ok, context}
-          {:error, reason} -> {:error, reason}
-        end
-      end)
+  defp unify_call(args, clauses, _expected, stack, context, true = _type_guard?) do
+    unify_type_guard_call(args, clauses, stack, context)
+  end
 
-    case result do
-      {:ok, context} -> {:ok, return, context}
-      {:error, reason} -> {:error, reason}
-    end
+  defp unify_call(args, clauses, expected, stack, context, false = _type_guard?) do
+    unify_call(args, clauses, expected, stack, context)
   end
 
   defp unify_call([], [{[], return}], _expected, _stack, context) do
@@ -335,14 +332,16 @@ defmodule Module.Types.Pattern do
     error(:unable_apply, {args, clauses, stack}, context)
   end
 
-  defp unify_call(args, clauses, _expected, stack, context) do
+  defp unify_call(args, signature, expected, stack, context) do
     expanded_args =
       args
       |> Enum.map(&expand_union/1)
       |> cartesian_product()
 
     clauses =
-      Enum.map(clauses, fn {params, return} ->
+      signature
+      |> filter_clauses(expected, stack, context)
+      |> Enum.map(fn {params, return} ->
         {Enum.map(params, &var_to_dynamic/1), return}
       end)
 
@@ -397,8 +396,22 @@ defmodule Module.Types.Pattern do
         end
 
       {:error, args} ->
-        IO.inspect clauses
-        error(:unable_apply, {args, clauses, stack}, context)
+        error(:unable_apply, {args, signature, stack}, context)
+    end
+  end
+
+  defp unify_type_guard_call(args, [{params, return}], stack, context) do
+    result =
+      reduce_ok(Enum.zip(args, params), context, fn {arg, param}, context ->
+        case unify(arg, param, stack, context) do
+          {:ok, _, context} -> {:ok, context}
+          {:error, reason} -> {:error, reason}
+        end
+      end)
+
+    case result do
+      {:ok, context} -> {:ok, return, context}
+      {:error, reason} -> {:error, reason}
     end
   end
 
@@ -509,6 +522,19 @@ defmodule Module.Types.Pattern do
 
   defp guard_signature(name, arity) do
     Map.fetch!(@guard_functions, {name, arity})
+  end
+
+  defp filter_clauses(signature, expected, stack, context) do
+    clauses =
+      Enum.filter(signature, fn {_params, return} ->
+        match?({:ok, _type, _context}, unify(return, expected, stack, context))
+      end)
+
+    if clauses == [] do
+      signature
+    else
+      clauses
+    end
   end
 
   defp type_guard?(name) do

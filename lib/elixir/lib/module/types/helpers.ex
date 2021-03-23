@@ -155,4 +155,26 @@ defmodule Module.Types.Helpers do
   def guards_to_or(guards) do
     Enum.reduce(guards, fn guard, acc -> {{:., [], [:erlang, :orelse]}, [], [guard, acc]} end)
   end
+
+  def zip_many(list) do
+    zip_many(list, [], [[]])
+  end
+
+  defp zip_many([], [], [[] | acc]) do
+    acc
+    |> Enum.map(&Enum.reverse/1)
+    |> Enum.reverse()
+  end
+
+  defp zip_many([], remain, [last | acc]) do
+    zip_many(Enum.reverse(remain), [], [[] | [last | acc]])
+  end
+
+  defp zip_many([[] | _], remain, [last | acc]) do
+    zip_many(Enum.reverse(remain), [], [last | acc])
+  end
+
+  defp zip_many([[elem | list1] | list2], remain, [last | acc]) do
+    zip_many(list2, [list1 | remain], [[elem | last] | acc])
+  end
 end

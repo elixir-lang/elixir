@@ -356,7 +356,7 @@ defmodule Module.Types.PatternTest do
 
     test "nested calls with interesections in guards" do
       assert quoted_head([x], [:erlang.rem(x, 2)]) == {:ok, [:integer]}
-      assert quoted_head([x], [:erlang.rem(x + x, 2)]) == {:ok, [{:union, [:integer, :float]}]}
+      assert quoted_head([x], [:erlang.rem(x + x, 2)]) == {:ok, [:integer]}
     end
 
     test "erlang-only guards" do
@@ -370,14 +370,23 @@ defmodule Module.Types.PatternTest do
       assert {:error, {:unable_apply, {[{:atom, :foo}], [{[{:list, :dynamic}], :integer}], _}}} =
                quoted_head([x], [length(:foo)])
 
-      assert {:error, {:unable_apply, {[{:union, [{:atom, true}, {:atom, false}]}], [{[{:list, :dynamic}], :integer}], _}}} =
+      assert {:error,
+              {:unable_apply,
+               {[{:union, [{:atom, true}, {:atom, false}]}], [{[{:list, :dynamic}], :integer}], _}}} =
                quoted_head([x], [length(is_tuple(x))])
 
-      assert {:error, {:unable_apply, {[:integer, {:union, [{:atom, true}, {:atom, false}]}], [{[:integer, :tuple], :dynamic}], _}}} =
-               quoted_head([x], [elem(is_tuple(x), 0)])
+      assert {:error,
+              {:unable_apply,
+               {[:integer, {:union, [{:atom, true}, {:atom, false}]}],
+                [{[:integer, :tuple], :dynamic}], _}}} = quoted_head([x], [elem(is_tuple(x), 0)])
 
-      assert {:error, {:unable_apply, {[{:union, [{:atom, true}, {:atom, false}]}, :integer], [{[:integer, :integer], :integer}, {[union: [:integer, :float], union: [:integer, :float]], :float}], _}}} =
-               quoted_head([x], [elem({}, is_tuple(x))])
+      assert {:error,
+              {:unable_apply,
+               {[{:union, [{:atom, true}, {:atom, false}]}, :integer],
+                [
+                  {[:integer, :integer], :integer},
+                  {[union: [:integer, :float], union: [:integer, :float]], :float}
+                ], _}}} = quoted_head([x], [elem({}, is_tuple(x))])
 
       assert quoted_head([x], [elem({}, 1)]) == {:ok, [var: 0]}
 
