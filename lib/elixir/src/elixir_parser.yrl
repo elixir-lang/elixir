@@ -74,7 +74,7 @@ Left     160 rel_op_eol.      %% <, >, <=, >=
 Left     170 arrow_op_eol.    %% |>, <<<, >>>, <<~, ~>>, <~, ~>, <~>, <|>
 Left     180 in_op_eol.       %% in, not in
 Left     190 three_op_eol.    %% ^^^
-Right    200 concat_op_eol.   %% ++, --, .., <>, +++, ---
+Right    200 concat_op_eol.   %% ++, --, +++, ---, .., <>
 Left     210 dual_op_eol.     %% +, -
 Left     220 mult_op_eol.     %% *, /
 Nonassoc 300 unary_op_eol.    %% +, -, !, ^, not, ~~~

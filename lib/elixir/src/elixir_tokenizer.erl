@@ -743,8 +743,19 @@ handle_op(Rest, Line, Column, Kind, Length, Op, Scope, Tokens) ->
       Token = {identifier, {Line, Column, nil}, Op},
       tokenize(Remaining, Line, Column + Length + Extra, Scope, [Token | Tokens]);
     {Remaining, Extra} ->
+      NewScope =
+        %% TODO: Remove this deprecation and fix precedence on Elixir v2.0
+        case Op of
+          '^^^' ->
+            Msg = "^^^ is deprecated. It is typically used as xor but it has the wrong precedence, use Bitwise.xor/2 instead",
+            prepend_warning({Line, Scope#elixir_tokenizer.file, Msg}, Scope);
+
+          _ ->
+            Scope
+        end,
+
       Token = {Kind, {Line, Column, previous_was_eol(Tokens)}, Op},
-      tokenize(Remaining, Line, Column + Length + Extra, Scope, add_token_with_eol(Token, Tokens))
+      tokenize(Remaining, Line, Column + Length + Extra, NewScope, add_token_with_eol(Token, Tokens))
   end.
 
 % ## Three Token Operators

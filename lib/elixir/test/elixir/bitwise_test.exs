@@ -48,10 +48,6 @@ defmodule Bitwise.OperatorsTest do
     assert (0 ||| 1) == 1
   end
 
-  test "bxor (^^^)" do
-    assert 1 ^^^ 1 == 0
-  end
-
   test "bsl (<<<)" do
     assert 1 <<< 1 == 2
   end

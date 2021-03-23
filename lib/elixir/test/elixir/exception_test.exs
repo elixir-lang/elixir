@@ -553,9 +553,6 @@ defmodule ExceptionTest do
 
         assert blame_message(:foo, &bxor(&1, 10)) ==
                  "bad argument in arithmetic expression: Bitwise.bxor(:foo, 10)"
-
-        assert blame_message(:foo, &(&1 ^^^ 10)) ==
-                 "bad argument in arithmetic expression: Bitwise.bxor(:foo, 10)"
       end
 
       test "annotates bsl arithmetic errors" do
