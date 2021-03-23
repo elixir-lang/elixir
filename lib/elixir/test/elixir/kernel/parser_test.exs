@@ -15,6 +15,46 @@ defmodule Kernel.ParserTest do
     end
   end
 
+  describe "ternary ops" do
+    test "root" do
+      assert parse!("1..2//3") == {:..//, [line: 1], [1, 2, 3]}
+      assert parse!("(1..2)//3") == {:..//, [line: 1], [1, 2, 3]}
+    end
+
+    test "with do-blocks" do
+      assert parse!("foo do end..bar do end//baz do end") == {
+               :..//,
+               [line: 1],
+               [
+                 {:foo, [line: 1], [[do: {:__block__, [], []}]]},
+                 {:bar, [line: 1], [[do: {:__block__, [], []}]]},
+                 {:baz, [line: 1], [[do: {:__block__, [], []}]]}
+               ]
+             }
+    end
+
+    test "with no parens" do
+      assert parse!("1..foo do end//bar bat, baz") == {
+               :..//,
+               [line: 1],
+               [
+                 1,
+                 {:foo, [line: 1], [[do: {:__block__, [], []}]]},
+                 {:bar, [line: 1], [{:bat, [line: 1], nil}, {:baz, [line: 1], nil}]}
+               ]
+             }
+    end
+
+    test "errors" do
+      msg =
+        ~r/the range step operator \(\/\/\) must immediatelly follow the range definition operator \(\.\.\)/
+
+      assert_syntax_error(msg, "foo..bar baz//bat")
+      assert_syntax_error(msg, "foo++bar//bat")
+      assert_syntax_error(msg, "foo..(bar//bat)")
+    end
+  end
+
   describe "strings/sigils" do
     test "delimiter information for sigils is included" do
       string_to_quoted = &Code.string_to_quoted!(&1, token_metadata: false)

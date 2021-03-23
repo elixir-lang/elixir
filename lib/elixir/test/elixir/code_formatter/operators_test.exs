@@ -110,6 +110,16 @@ defmodule Code.Formatter.OperatorsTest do
     end
   end
 
+  describe "ternary without space" do
+    test "formats without spaces" do
+      assert_format "1 .. 2 // 3", "1..2//3"
+    end
+
+    test "never breaks" do
+      assert_same "123_456_789..987_654_321//147_268_369", @short_length
+    end
+  end
+
   describe "binary without newline" do
     test "formats without spaces" do
       assert_same "1 in 2"

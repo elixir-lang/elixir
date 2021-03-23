@@ -37,13 +37,14 @@ defmodule Code.Identifier do
       op in [:"::"] -> {:right, 60}
       op in [:|] -> {:right, 70}
       op in [:=] -> {:right, 100}
-      op in [:||, :|||, :or] -> {:left, 130}
-      op in [:&&, :&&&, :and] -> {:left, 140}
-      op in [:==, :!=, :=~, :===, :!==] -> {:left, 150}
-      op in [:<, :<=, :>=, :>] -> {:left, 160}
-      op in [:|>, :<<<, :>>>, :<~, :~>, :<<~, :~>>, :<~>, :<|>] -> {:left, 170}
-      op in [:in] -> {:left, 180}
-      op in [:^^^] -> {:left, 190}
+      op in [:||, :|||, :or] -> {:left, 120}
+      op in [:&&, :&&&, :and] -> {:left, 130}
+      op in [:==, :!=, :=~, :===, :!==] -> {:left, 140}
+      op in [:<, :<=, :>=, :>] -> {:left, 150}
+      op in [:|>, :<<<, :>>>, :<~, :~>, :<<~, :~>>, :<~>, :<|>] -> {:left, 160}
+      op in [:in] -> {:left, 170}
+      op in [:^^^] -> {:left, 180}
+      op in [:"//"] -> {:right, 190}
       op in [:++, :--, :.., :<>, :+++, :---] -> {:right, 200}
       op in [:+, :-] -> {:left, 210}
       op in [:*, :/] -> {:left, 220}
@@ -68,10 +69,11 @@ defmodule Code.Identifier do
       the ambiguity between the atom and the keyword identifier
 
     * `:not_callable` - an atom that cannot be used as a function call after the
-      `.` operator (for example, `:<<>>` is not callable because `Foo.<<>>` is a
-      syntax error); this category includes atoms like `:Foo`, since they are
-      valid identifiers but they need quotes to be used in function calls
-      (`Foo."Bar"`)
+      `.` operator. Those are typically AST nodes that are special forms (such as
+      `:%{}` and `:<<>>>`) as well as nodes that are ambiguous in calls (such as
+      `:..` and `:...`). This category also includes atoms like `:Foo`, since
+      they are valid identifiers but they need quotes to be used in function
+      calls (`Foo."Bar"`)
 
     * `:other` - any other atom (these are usually escaped when inspected, like
       `:"foo and bar"`)
@@ -81,10 +83,10 @@ defmodule Code.Identifier do
     charlist = Atom.to_charlist(atom)
 
     cond do
-      atom in [:%, :%{}, :{}, :<<>>, :..., :.., :., :->] ->
+      atom in [:%, :%{}, :{}, :<<>>, :..., :.., :., :..//, :->] ->
         :not_callable
 
-      atom in [:"::"] ->
+      atom in [:"::", :"//"] ->
         :not_atomable
 
       unary_op(atom) != :error or binary_op(atom) != :error ->
