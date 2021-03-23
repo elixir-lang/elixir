@@ -1197,31 +1197,6 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
-  test "with and do clauses emit errors, else clauses do not" do
-    assert capture_err(fn ->
-             Code.compile_string("""
-             with {:first, int} when is_integer(int) <- {:second, Integer.gcd(2, 4)} do
-               int
-             end
-             """)
-           end) =~ "this clause cannot match"
-
-    assert capture_err(fn ->
-             Code.compile_string("""
-             with {:first, int1} when is_integer(int1) <- {:first, Integer.gcd(2, 4)},
-                  {:second, int2} when is_integer(int2) <- {:second, Integer.gcd(2, 4)} do
-               {:ok, int1 + int2}
-             else
-               {:first, nil} -> {:error, "first number is not integer"}
-               {:second, nil} -> {:error, "second number is not integer"}
-             end
-             """)
-           end) == ""
-  after
-    purge(Sample1)
-    purge(Sample2)
-  end
-
   test "warning on code point escape" do
     assert capture_err(fn ->
              Code.eval_string("? ")
