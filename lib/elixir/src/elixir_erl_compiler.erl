@@ -98,7 +98,7 @@ handle_file_warning(true, _File, {_Line, sys_core_fold, {nomatch_shadow, _}}) ->
 %% Those we implement ourselves
 handle_file_warning(_, _File, {_Line, v3_core, {map_key_repeated, _}}) -> ok;
 handle_file_warning(_, _File, {_Line, sys_core_fold, {ignored, useless_building}}) -> ok;
-%% TODO: remove when we require OTP 24
+%% TODO: remove when we require Erlang/OTP 24
 handle_file_warning(_, _File, {_Line, sys_core_fold, useless_building}) -> ok;
 
 %% Ignore all linting errors (only come up on parse transforms)
@@ -133,7 +133,7 @@ custom_format(sys_core_fold, {ignored, {no_effect, {erlang, F, A}}}) ->
   io_lib:format(Fmt, Args);
 
 %% Rewrite nomatch to be more generic, it can happen inside if, unless, and the like
-custom_format(sys_core_fold, {nomatch, X}) when X == guard orelse X == no_clause ->
+custom_format(sys_core_fold, {nomatch, X}) when X == guard; X == no_clause ->
   "this check/guard will always yield the same result";
 
 custom_format(sys_core_fold, {nomatch, {shadow, Line, {ErlName, ErlArity}}}) ->
