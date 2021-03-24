@@ -3707,6 +3707,7 @@ defmodule Kernel do
       []
 
   """
+  @doc since: "1.12.0"
   defmacro first..last//step do
     case bootstrapped?(Macro) do
       true ->
