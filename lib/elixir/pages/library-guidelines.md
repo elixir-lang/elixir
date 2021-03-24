@@ -180,6 +180,12 @@ That's because by reading the application in the module body and storing it in a
 
 If, for some reason, you must read the application environment at compile time, use `Application.compile_env/2`. Read [the "Compile-time environment" section of the `Application` module documentation](Application.html#module-compile-time-environment) for more information.
 
+### Avoid defining modules that are not in your "namespace"
+
+Even though Elixir does not formally have the concept of namespaces, a library should use its name as a "prefix" for all of its modules (except for special cases like mix tasks). For example if the library name is `MyLib`, then all of its modules should start with the `MyLib` prefix, for example `MyLib.User`, `MyLib.SubModule`, and `MyLib.Application`.
+
+This is important because the BEAM can only load one instance of a module at a time. So if there are multiple libraries that define the same module, then they are incompatible with each other due to this limitation. By always using the library name as a prefix this is avoided since this avoids module name clashes due to the unique prefix.
+
 ### Avoid `use` when an `import` is enough
 
 A library should not provide `use MyLib` functionality if all `use MyLib` does is to `import`/`alias` the module itself. For example, this is an anti-pattern:
