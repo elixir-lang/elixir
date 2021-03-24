@@ -15,7 +15,7 @@ defmodule Range do
       iex> Enum.to_list(3..1//-1)
       [3, 2, 1]
 
-  Intenrally, ranges are represented as structs:
+  Internally, ranges are represented as structs:
 
       iex> range = 1..9//2
       1..9//2
@@ -209,7 +209,7 @@ defmodule Range do
           false
 
         true ->
-          # We need to find the first intersection of two arithmethetical
+          # We need to find the first intersection of two arithmetic
           # progressions and see if they belong within the ranges
           # https://math.stackexchange.com/questions/1656120/formula-to-find-the-first-intersection-of-two-arithmetic-progressions
           {gcd, u, v} = Integer.extended_gcd(-step1, step2)

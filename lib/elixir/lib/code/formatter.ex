@@ -12,7 +12,7 @@ defmodule Code.Formatter do
   @empty empty()
   @ampersand_prec Code.Identifier.unary_op(:&) |> elem(1)
 
-  # Operator that are composed of multiple binary operators
+  # Operators that are composed of multiple binary operators
   @multi_binary_operators [:..//]
 
   # Operators that do not have space between operands

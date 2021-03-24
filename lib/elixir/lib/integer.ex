@@ -466,7 +466,7 @@ defmodule Integer do
   @doc """
   Returns the extended greatest common divisor of the two given integers.
 
-  It uses the Extended Euclidean algorithm to return a three-element with the `gcd`
+  It uses the Extended Euclidean algorithm to return a three-element tuple with the `gcd`
   and the coefficients `m` and `n` of Bézout's identity such that:
 
       gcd(a, b) = m*a + n*b
