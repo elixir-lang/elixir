@@ -381,6 +381,12 @@ defmodule ExUnit.DiffTest do
 
   test "lists outside of match context" do
     refute_diff(
+      [%_{i_will: :fail}, %_{i_will: :fail_too}] = [],
+      "[-%_{i_will: :fail}-, -%_{i_will: :fail_too}-]",
+      "[]"
+    )
+
+    refute_diff(
       [:a, {:|, [], [:b, :c]}] == [:a, :b | :c],
       "[:a, -{:|, [], [:b, :c]}-]",
       "[:a, +:b+ | +:c+]"
