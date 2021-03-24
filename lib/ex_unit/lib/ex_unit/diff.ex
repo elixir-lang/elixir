@@ -11,8 +11,8 @@ defmodule ExUnit.Diff do
   #
   # When meta `:diff` is `true`, the AST inside of it has no equivalent on the
   # other side and should be rendered in a different color. If the AST is a
-  # literal and doesn't contain meta, the `:diff` meta will be place in a wrapping
-  # block.
+  # literal and doesn't contain meta, the `:diff` meta will be placed in a
+  # wrapping block.
 
   alias Code.Identifier
   alias Inspect.Algebra
@@ -913,6 +913,11 @@ defmodule ExUnit.Diff do
 
   defp safe_to_algebra({a, b}, diff_wrapper) do
     container_to_algebra("{", [a, b], "}", diff_wrapper, &to_algebra/2)
+  end
+
+  defp safe_to_algebra({:%, _, [{:_, _, _}, {:%{}, _, list}]}, diff_wrapper) do
+    open = Algebra.concat(["%", "_", "{"])
+    container_to_algebra(open, list, "}", diff_wrapper, select_map_item_to_algebra(list))
   end
 
   defp safe_to_algebra({:%, _, [struct, {:%{}, _, list}]}, diff_wrapper) do
