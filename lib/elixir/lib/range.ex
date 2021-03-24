@@ -3,21 +3,31 @@ defmodule Range do
   Ranges represent a sequence of one or many, ascending
   or descending, consecutive integers.
 
-  Ranges can be either increasing (`first <= last`) or
-  decreasing (`first > last`). Ranges are also always
-  inclusive.
+  Ranges are always inclusive and they may have custom
+  steps. The most common form of creating and matching
+  on ranges is via the `../2` and `..///3` macros,
+  auto-imported from `Kernel`:
 
-  A range is represented internally as a struct. However,
-  the most common form of creating and matching on ranges
-  is via the `../2` macro, auto-imported from `Kernel`:
+      iex> Enum.to_list(1..3)
+      [1, 2, 3]
+      iex> Enum.to_list(1..3//2)
+      [1, 3]
+      iex> Enum.to_list(3..1//-1)
+      [3, 2, 1]
 
-      iex> range = 1..3
-      1..3
-      iex> first..last = range
+  Intenrally, ranges are represented as structs:
+
+      iex> range = 1..9//2
+      1..9//2
+      iex> first..last//step = range
       iex> first
       1
       iex> last
-      3
+      9
+      iex> step
+      2
+      iex> range.step
+      2
 
   A range implements the `Enumerable` protocol, which means
   functions in the `Enum` module can be used to work with
@@ -60,7 +70,7 @@ defmodule Range do
   """
   @spec new(integer, integer) :: t
   def new(first, last) when is_integer(first) and is_integer(last) do
-    # TODO: Deprecate inferring a range with step of -1
+    # TODO: Deprecate inferring a range with step of -1 on Elixir v1.16
     step = if first <= last, do: 1, else: -1
     %Range{first: first, last: last, step: step}
   end
@@ -91,6 +101,36 @@ defmodule Range do
           "ranges (first..last//step) expect both sides to be integers and the step to be an integer " <>
             "different than zero, got: #{inspect(first)}..#{inspect(last)}//#{inspect(step)}"
   end
+
+  @doc """
+  Returns the size of the range.
+
+  ## Examples
+
+      iex> Range.size(1..10)
+      10
+      iex> Range.size(1..10//2)
+      5
+      iex> Range.size(1..10//3)
+      4
+      iex> Range.size(1..10//-1)
+      0
+
+      iex> Range.size(10..1)
+      10
+      iex> Range.size(10..1//-1)
+      10
+      iex> Range.size(10..1//-2)
+      5
+      iex> Range.size(10..1//-3)
+      4
+      iex> Range.size(10..1//1)
+      0
+
+  """
+  def size(first..last//step) when step > 0 and first > last, do: 0
+  def size(first..last//step) when step < 0 and first < last, do: 0
+  def size(first..last//step), do: abs(div(last - first, step)) + 1
 
   @doc """
   Checks if two ranges are disjoint.
@@ -127,63 +167,50 @@ defmodule Range do
 end
 
 defimpl Enumerable, for: Range do
-  def reduce(first..last, acc, fun) do
-    reduce(first, last, acc, fun, _up? = last >= first)
+  def reduce(first..last//step, acc, fun) do
+    reduce(first, last, acc, fun, step)
   end
 
-  defp reduce(_first, _last, {:halt, acc}, _fun, _up?) do
+  defp reduce(_first, _last, {:halt, acc}, _fun, _step) do
     {:halted, acc}
   end
 
-  defp reduce(first, last, {:suspend, acc}, fun, up?) do
-    {:suspended, acc, &reduce(first, last, &1, fun, up?)}
+  defp reduce(first, last, {:suspend, acc}, fun, step) do
+    {:suspended, acc, &reduce(first, last, &1, fun, step)}
   end
 
-  defp reduce(first, last, {:cont, acc}, fun, _up? = true) when first <= last do
-    reduce(first + 1, last, fun.(first, acc), fun, _up? = true)
-  end
-
-  defp reduce(first, last, {:cont, acc}, fun, _up? = false) when first >= last do
-    reduce(first - 1, last, fun.(first, acc), fun, _up? = false)
+  defp reduce(first, last, {:cont, acc}, fun, step)
+       when step > 0 and first <= last
+       when step < 0 and first >= last do
+    reduce(first + step, last, fun.(first, acc), fun, step)
   end
 
   defp reduce(_, _, {:cont, acc}, _fun, _up) do
     {:done, acc}
   end
 
-  def member?(first..last, value) when is_integer(value) do
+  def member?(first..last//step, value) when is_integer(value) do
     if first <= last do
-      {:ok, first <= value and value <= last}
+      {:ok, first <= value and value <= last and rem(value - first, step) == 0}
     else
-      {:ok, last <= value and value <= first}
+      {:ok, last <= value and value <= first and rem(value - first, step) == 0}
     end
   end
 
-  def member?(_.._, _value) do
+  def member?(_, _value) do
     {:ok, false}
   end
 
-  def count(first..last) do
-    if first <= last do
-      {:ok, last - first + 1}
-    else
-      {:ok, first - last + 1}
-    end
+  def count(range) do
+    {:ok, Range.size(range)}
   end
 
-  def slice(first..last) do
-    if first <= last do
-      {:ok, last - first + 1, &slice_asc(first + &1, &2)}
-    else
-      {:ok, first - last + 1, &slice_desc(first - &1, &2)}
-    end
+  def slice(first.._//step = range) do
+    {:ok, Range.size(range), &slice(first + &1 * step, step, &2)}
   end
 
-  defp slice_asc(current, 1), do: [current]
-  defp slice_asc(current, remaining), do: [current | slice_asc(current + 1, remaining - 1)]
-
-  defp slice_desc(current, 1), do: [current]
-  defp slice_desc(current, remaining), do: [current | slice_desc(current - 1, remaining - 1)]
+  defp slice(current, _step, 1), do: [current]
+  defp slice(current, step, remaining), do: [current | slice(current + step, step, remaining - 1)]
 end
 
 defimpl Inspect, for: Range do

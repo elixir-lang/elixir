@@ -3658,8 +3658,6 @@ defmodule Kernel do
         first = Macro.expand(first, __CALLER__)
         last = Macro.expand(last, __CALLER__)
         validate_range!(first, last)
-        # TODO: Deprecate me inside match in all occasions
-        # TODO: Deprecate me inside guard when sides are not integers
         range(__CALLER__.context, first, last)
 
       false ->
@@ -3667,8 +3665,8 @@ defmodule Kernel do
     end
   end
 
-  defp range(_context, first, last) when is_integer(first) and is_integer(last),
-    # TODO: Deprecate me if step is negative
+  defp range(_context, first, last) when is_integer(first) and is_integer(last) do
+    # TODO: Deprecate inferring a range with step of -1 on Elixir v1.16
     step = if first <= last, do: 1, else: -1
     {:%{}, [], [__struct__: Elixir.Range, first: first, last: last, step: step]}
   end
@@ -3677,12 +3675,14 @@ defmodule Kernel do
     quote(do: Elixir.Range.new(unquote(first), unquote(last)))
   end
 
-  defp range(_, first, last) do
-    step = quote do
-       min(unquote(first) <= unquote(last) and 1, unquote(first) > unquote(last) and -1)
-    end
+  defp range(:guard, first, last) do
+    # TODO: Deprecate me inside guard when sides are not integers on Elixir v1.16
+    {:%{}, [], [__struct__: Elixir.Range, first: first, last: last, step: nil]}
+  end
 
-    {:%{}, [], [__struct__: Elixir.Range, first: first, last: last, step: step]}
+  defp range(:match, first, last) do
+    # TODO: Deprecate me inside match in all occasions (including literals) on Elixir v1.16
+    {:%{}, [], [__struct__: Elixir.Range, first: first, last: last]}
   end
 
   @doc """
@@ -3700,7 +3700,7 @@ defmodule Kernel do
       iex> Enum.to_list(1..3//1)
       [1, 2, 3]
       iex> Enum.to_list(1..3//2)
-      [1, 2, 3]
+      [1, 3]
       iex> Enum.to_list(3..1//-1)
       [3, 2, 1]
       iex> Enum.to_list(1..0//1)
@@ -3729,10 +3729,10 @@ defmodule Kernel do
   end
 
   defp range(nil, first, last, step) do
-    quote(do: Elixir.Range.new(unquote(first), unquote(last), unquote(step))
+    quote(do: Elixir.Range.new(unquote(first), unquote(last), unquote(step)))
   end
 
-  defp validate_range!(first, last) do
+  defp validate_range!(first, last)
        when is_float(first) or is_float(last) or is_atom(first) or is_atom(last) or
               is_binary(first) or is_binary(last) or is_list(first) or is_list(last) do
     raise ArgumentError,
@@ -3740,12 +3740,16 @@ defmodule Kernel do
             "got: #{Macro.to_string({:.., [], [first, last]})}"
   end
 
-  defp validate_step!(step) do
+  defp validate_range!(_, _), do: :ok
+
+  defp validate_step!(step)
        when is_float(step) or is_atom(step) or is_binary(step) or is_list(step) or step == 0 do
     raise ArgumentError,
           "ranges (first..last//step) expect the step to be an integer different than zero, " <>
             "got: #{Macro.to_string(step)}"
   end
+
+  defp validate_step!(_), do: :ok
 
   @doc """
   Boolean "and" operator.
@@ -4054,13 +4058,13 @@ defmodule Kernel do
             end
         end
 
-      {:%{}, _meta, [__struct__: Elixir.Range, first: first, last: last]} ->
-        in_var(in_body?, left, &in_range(&1, expand.(first), expand.(last)))
+      {:%{}, _meta, [__struct__: Elixir.Range, first: first, last: last, step: step]} ->
+        in_var(in_body?, left, &in_range(&1, expand.(first), expand.(last), expand.(step)))
 
       right when in_body? ->
         quote(do: Elixir.Enum.member?(unquote(right), unquote(left)))
 
-      %{__struct__: Elixir.Range, first: _, last: _} ->
+      %{__struct__: Elixir.Range, first: _, last: _, step: _} ->
         raise ArgumentError, "non-literal range in guard should be escaped with Macro.escape/2"
 
       right ->
@@ -4125,43 +4129,73 @@ defmodule Kernel do
     {var, {index + 1, [{var, elem} | ast]}}
   end
 
-  defp in_range(left, first, last) do
-    case is_integer(first) and is_integer(last) do
-      true ->
-        in_range_literal(left, first, last)
-
-      false ->
-        quote do
-          :erlang.is_integer(unquote(left)) and :erlang.is_integer(unquote(first)) and
-            :erlang.is_integer(unquote(last)) and
-            ((:erlang."=<"(unquote(first), unquote(last)) and
-                unquote(increasing_compare(left, first, last))) or
-               (:erlang.<(unquote(last), unquote(first)) and
-                  unquote(decreasing_compare(left, first, last))))
-        end
-    end
-  end
-
-  defp in_range_literal(left, first, first) do
+  defp in_range(left, first, last, nil) do
+    # TODO: nil steps are only supported due to x..y in guards. Remove me on Elixir 2.0.
     quote do
-      :erlang."=:="(unquote(left), unquote(first))
+      :erlang.is_integer(unquote(left)) and :erlang.is_integer(unquote(first)) and
+        :erlang.is_integer(unquote(last)) and
+        ((:erlang."=<"(unquote(first), unquote(last)) and
+            unquote(increasing_compare(left, first, last))) or
+           (:erlang.<(unquote(last), unquote(first)) and
+              unquote(decreasing_compare(left, first, last))))
     end
   end
 
-  defp in_range_literal(left, first, last) when first < last do
+  defp in_range(left, first, last, step) when is_integer(step) do
+    in_range_literal(left, first, last, step)
+  end
+
+  defp in_range(left, first, last, step) do
+    quoted =
+      quote do
+        :erlang.is_integer(unquote(left)) and :erlang.is_integer(unquote(first)) and
+          :erlang.is_integer(unquote(last)) and
+          ((:erlang.>(unquote(step), 0) and
+              unquote(increasing_compare(left, first, last))) or
+             (:erlang.<(unquote(step), 0) and
+                unquote(decreasing_compare(left, first, last))))
+      end
+
+    in_range_step(quoted, left, first, step)
+  end
+
+  defp in_range_literal(left, first, first, _step) when is_integer(first) do
+    quote do: :erlang."=:="(unquote(left), unquote(first))
+  end
+
+  defp in_range_literal(left, first, last, step) when step > 0 do
+    quoted =
+      quote do
+        :erlang.andalso(
+          :erlang.is_integer(unquote(left)),
+          unquote(increasing_compare(left, first, last))
+        )
+      end
+
+    in_range_step(quoted, left, first, step)
+  end
+
+  defp in_range_literal(left, first, last, step) when step < 0 do
+    quoted =
+      quote do
+        :erlang.andalso(
+          :erlang.is_integer(unquote(left)),
+          unquote(decreasing_compare(left, first, last))
+        )
+      end
+
+    in_range_step(quoted, left, first, step)
+  end
+
+  defp in_range_step(quoted, _left, _first, step) when step == 1 or step == -1 do
+    quoted
+  end
+
+  defp in_range_step(quoted, left, first, step) do
     quote do
       :erlang.andalso(
-        :erlang.is_integer(unquote(left)),
-        unquote(increasing_compare(left, first, last))
-      )
-    end
-  end
-
-  defp in_range_literal(left, first, last) do
-    quote do
-      :erlang.andalso(
-        :erlang.is_integer(unquote(left)),
-        unquote(decreasing_compare(left, first, last))
+        unquote(quoted),
+        :erlang."=:="(:erlang.rem(unquote(left) - unquote(first), unquote(step)), 0)
       )
     end
   end
