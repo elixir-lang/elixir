@@ -47,7 +47,7 @@ defmodule Kernel.ParserTest do
 
     test "errors" do
       msg =
-        ~r/the range step operator \(\/\/\) must immediatelly follow the range definition operator \(\.\.\)/
+        ~r/the range step operator \(\/\/\) must immediately follow the range definition operator \(\.\.\)/
 
       assert_syntax_error(msg, "foo..bar baz//bat")
       assert_syntax_error(msg, "foo++bar//bat")
