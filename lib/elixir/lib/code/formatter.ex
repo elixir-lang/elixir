@@ -12,6 +12,9 @@ defmodule Code.Formatter do
   @empty empty()
   @ampersand_prec Code.Identifier.unary_op(:&) |> elem(1)
 
+  # Operator that are composed of multiple binary operators
+  @multi_binary_operators [:..//]
+
   # Operators that do not have space between operands
   @no_space_binary_operators [:.., :"//"]
 
@@ -2087,21 +2090,16 @@ defmodule Code.Formatter do
 
   defp binary_operator?(quoted) do
     case quoted do
-      {op, _, [_, _]} when is_atom(op) ->
-        Code.Identifier.binary_op(op) != :error
-
-      _ ->
-        false
+      {op, _, [_, _, _]} when op in @multi_binary_operators -> true
+      {op, _, [_, _]} when is_atom(op) -> Code.Identifier.binary_op(op) != :error
+      _ -> false
     end
   end
 
   defp unary_operator?(quoted) do
     case quoted do
-      {op, _, [_]} when is_atom(op) ->
-        Code.Identifier.unary_op(op) != :error
-
-      _ ->
-        false
+      {op, _, [_]} when is_atom(op) -> Code.Identifier.unary_op(op) != :error
+      _ -> false
     end
   end
 

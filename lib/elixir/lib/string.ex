@@ -2079,6 +2079,11 @@ defmodule String do
   """
   @spec slice(t, Range.t()) :: t
   def slice(string, first..last//step = range) when is_binary(string) do
+    # TODO: There are two features we can add to slicing ranges:
+    # 1. We can allow the step to be any positive number
+    # 2. We can allow slice and reverse at the same time. However, we can't
+    #    implement so right now. First we will have to raise if a decreasing
+    #    range is given on Elixir v2.0.
     if step == 1 or (step == -1 and first > last) do
       slice_range(string, first, last)
     else

@@ -3633,11 +3633,11 @@ defmodule Kernel do
   @doc """
   Creates a range from `first` to `last`.
 
-  If last is more than first, the range will be increasing from
+  If first is less than last, the range will be increasing from
   first to last. If first is equal to last, the range will contain
   one element, which is the number itself.
 
-  If first is less than last, the range will be decreasing from first
+  If first is more than last, the range will be decreasing from first
   to last, albeit this behaviour is deprecated. Instead prefer to
   explicitly list the step with `first..last//-1`.
 

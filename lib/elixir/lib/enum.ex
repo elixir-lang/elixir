@@ -675,7 +675,6 @@ defmodule Enum do
   @doc """
   Counts the enumerable stopping at `limit`.
 
-
   This is useful for checking certain properties of the count of an enumerable
   without having to actually count the entire enumerable. For example, if you
   wanted to check that the count was exactly, at least, or more than a value.
@@ -2614,6 +2613,11 @@ defmodule Enum do
   @doc since: "1.6.0"
   @spec slice(t, Range.t()) :: list
   def slice(enumerable, first..last//step = index_range) do
+    # TODO: There are two features we can add to slicing ranges:
+    # 1. We can allow the step to be any positive number
+    # 2. We can allow slice and reverse at the same time. However, we can't
+    #    implement so right now. First we will have to raise if a decreasing
+    #    range is given on Elixir v2.0.
     if step == 1 or (step == -1 and first > last) do
       slice_range(enumerable, first, last)
     else
@@ -3003,10 +3007,10 @@ defmodule Enum do
   @spec sum(t) :: number
   def sum(enumerable)
 
-  def sum(first..last//_step = range) do
+  def sum(first..last//step = range) do
     range
     |> Range.size()
-    |> Kernel.*(first + last)
+    |> Kernel.*(first + last - rem(last - first, step))
     |> div(2)
   end
 
