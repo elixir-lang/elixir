@@ -12,8 +12,11 @@ defmodule Code.Formatter do
   @empty empty()
   @ampersand_prec Code.Identifier.unary_op(:&) |> elem(1)
 
+  # Operators that are composed of multiple binary operators
+  @multi_binary_operators [:..//]
+
   # Operators that do not have space between operands
-  @no_space_binary_operators [:..]
+  @no_space_binary_operators [:.., :"//"]
 
   # Operators that do not have newline between operands (as well as => and keywords)
   @no_newline_binary_operators [:\\, :in]
@@ -319,7 +322,7 @@ defmodule Code.Formatter do
     {next_eol, comments, doc}
   end
 
-  # Special AST nodes from compiler feedback.
+  # Special AST nodes from compiler feedback
 
   defp quoted_to_algebra({{:special, :clause_args}, _meta, [args]}, _context, state) do
     {doc, state} = clause_args_to_algebra(args, state)
@@ -510,6 +513,11 @@ defmodule Code.Formatter do
   # left not in right
   defp quoted_to_algebra({:not, meta, [{:in, _, [left, right]}]}, context, state) do
     binary_op_to_algebra(:in, "not in", meta, left, right, context, state)
+  end
+
+  # 1..2//3
+  defp quoted_to_algebra({:..//, meta, [left, middle, right]}, context, state) do
+    quoted_to_algebra({:"//", meta, [{:.., meta, [left, middle]}, right]}, context, state)
   end
 
   defp quoted_to_algebra({:fn, meta, [_ | _] = clauses}, _context, state) do
@@ -2027,8 +2035,6 @@ defmodule Code.Formatter do
     {wrap_in_parens_if_operator(doc, ast), state}
   end
 
-  # TODO: We can remove this workaround once we remove
-  # ?rearrange_uop from the parser on v2.0.
   defp wrap_in_parens_if_operator(doc, {:__block__, _, [expr]}) do
     wrap_in_parens_if_operator(doc, expr)
   end
@@ -2084,21 +2090,16 @@ defmodule Code.Formatter do
 
   defp binary_operator?(quoted) do
     case quoted do
-      {op, _, [_, _]} when is_atom(op) ->
-        Code.Identifier.binary_op(op) != :error
-
-      _ ->
-        false
+      {op, _, [_, _, _]} when op in @multi_binary_operators -> true
+      {op, _, [_, _]} when is_atom(op) -> Code.Identifier.binary_op(op) != :error
+      _ -> false
     end
   end
 
   defp unary_operator?(quoted) do
     case quoted do
-      {op, _, [_]} when is_atom(op) ->
-        Code.Identifier.unary_op(op) != :error
-
-      _ ->
-        false
+      {op, _, [_]} when is_atom(op) -> Code.Identifier.unary_op(op) != :error
+      _ -> false
     end
   end
 

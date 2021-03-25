@@ -969,7 +969,7 @@ defmodule Macro do
 
   def to_string({target, _, args} = ast, fun) when is_list(args) do
     with :error <- unary_call(ast, fun),
-         :error <- binary_call(ast, fun),
+         :error <- op_call(ast, fun),
          :error <- sigil_call(ast, fun) do
       {list, last} = split_last(args)
 
@@ -1143,7 +1143,14 @@ defmodule Macro do
     :error
   end
 
-  defp binary_call({op, _, [left, right]} = ast, fun) when is_atom(op) do
+  defp op_call({:..//, _, [left, middle, right]} = ast, fun) do
+    left = op_to_string(left, fun, :.., :left)
+    middle = op_to_string(middle, fun, :.., :right)
+    right = op_to_string(right, fun, :"//", :right)
+    {:ok, fun.(ast, left <> ".." <> middle <> "//" <> right)}
+  end
+
+  defp op_call({op, _, [left, right]} = ast, fun) when is_atom(op) do
     case Identifier.binary_op(op) do
       {_, _} ->
         left = op_to_string(left, fun, op, :left)
@@ -1156,7 +1163,7 @@ defmodule Macro do
     end
   end
 
-  defp binary_call(_, _) do
+  defp op_call(_, _) do
     :error
   end
 

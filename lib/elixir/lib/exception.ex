@@ -252,8 +252,8 @@ defmodule Exception do
 
   defp rewrite_arg(arg) do
     Macro.prewalk(arg, fn
-      {:%{}, meta, [__struct__: Range, first: first, last: last]} ->
-        {:.., meta, [first, last]}
+      {:%{}, meta, [__struct__: Range, first: first, last: last, step: step]} ->
+        {:..//, meta, [first, last, step]}
 
       other ->
         other

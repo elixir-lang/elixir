@@ -675,7 +675,6 @@ defmodule Enum do
   @doc """
   Counts the enumerable stopping at `limit`.
 
-
   This is useful for checking certain properties of the count of an enumerable
   without having to actually count the entire enumerable. For example, if you
   wanted to check that the count was exactly, at least, or more than a value.
@@ -2026,8 +2025,13 @@ defmodule Enum do
         when empty_result: any
   def min_max(enumerable, empty_fallback \\ fn -> raise Enum.EmptyError end)
 
-  def min_max(first..last, empty_fallback) when is_function(empty_fallback, 0) do
-    {Kernel.min(first, last), Kernel.max(first, last)}
+  def min_max(first..last//step = range, empty_fallback) when is_function(empty_fallback, 0) do
+    if Range.empty?(range) do
+      empty_fallback.()
+    else
+      last = last - rem(last - first, step)
+      {Kernel.min(first, last), Kernel.max(first, last)}
+    end
   end
 
   def min_max(enumerable, empty_fallback) when is_function(empty_fallback, 0) do
@@ -2352,12 +2356,8 @@ defmodule Enum do
     :lists.foldl(fun, acc, enumerable)
   end
 
-  def reduce(first..last, acc, fun) do
-    if first <= last do
-      reduce_range_inc(first, last, acc, fun)
-    else
-      reduce_range_dec(first, last, acc, fun)
-    end
+  def reduce(first..last//step, acc, fun) do
+    reduce_range(first, last, step, acc, fun)
   end
 
   def reduce(%_{} = enumerable, acc, fun) do
@@ -2616,13 +2616,25 @@ defmodule Enum do
   """
   @doc since: "1.6.0"
   @spec slice(t, Range.t()) :: list
-  def slice(enumerable, index_range)
+  def slice(enumerable, first..last//step = index_range) do
+    # TODO: There are two features we can add to slicing ranges:
+    # 1. We can allow the step to be any positive number
+    # 2. We can allow slice and reverse at the same time. However, we can't
+    #    implement so right now. First we will have to raise if a decreasing
+    #    range is given on Elixir v2.0.
+    if step == 1 or (step == -1 and first > last) do
+      slice_range(enumerable, first, last)
+    else
+      raise ArgumentError,
+            "Enum.slice/2 does not accept ranges with custom steps, got: #{inspect(index_range)}"
+    end
+  end
 
-  def slice(enumerable, first..last) when last >= first and last >= 0 and first >= 0 do
+  defp slice_range(enumerable, first, last) when last >= first and last >= 0 and first >= 0 do
     slice_any(enumerable, first, last - first + 1)
   end
 
-  def slice(enumerable, first..last) do
+  defp slice_range(enumerable, first, last) do
     {count, fun} = slice_count_and_fun(enumerable)
     first = if first >= 0, do: first, else: first + count
     last = if last >= 0, do: last, else: last + count
@@ -2989,12 +3001,21 @@ defmodule Enum do
       iex> Enum.sum([1, 2, 3])
       6
 
+      iex> Enum.sum(1..10)
+      55
+
+      iex> Enum.sum(1..10//2)
+      25
+
   """
   @spec sum(t) :: number
   def sum(enumerable)
 
-  def sum(first..last) do
-    div((last + first) * (abs(last - first) + 1), 2)
+  def sum(first..last//step = range) do
+    range
+    |> Range.size()
+    |> Kernel.*(first + last - rem(last - first, step))
+    |> div(2)
   end
 
   def sum(enumerable) do
@@ -3507,10 +3528,16 @@ defmodule Enum do
     empty.()
   end
 
-  defp aggregate(first..last, fun, _empty) do
-    case fun.(first, last) do
-      true -> first
-      false -> last
+  defp aggregate(first..last//step = range, fun, empty) do
+    if Range.empty?(range) do
+      empty.()
+    else
+      last = last - rem(last - first, step)
+
+      case fun.(first, last) do
+        true -> first
+        false -> last
+      end
     end
   end
 
@@ -3783,20 +3810,14 @@ defmodule Enum do
 
   ## reduce
 
-  defp reduce_range_inc(first, first, acc, fun) do
-    fun.(first, acc)
+  defp reduce_range(first, last, step, acc, fun)
+       when step > 0 and first <= last
+       when step < 0 and first >= last do
+    reduce_range(first + step, last, step, fun.(first, acc), fun)
   end
 
-  defp reduce_range_inc(first, last, acc, fun) do
-    reduce_range_inc(first + 1, last, fun.(first, acc), fun)
-  end
-
-  defp reduce_range_dec(first, first, acc, fun) do
-    fun.(first, acc)
-  end
-
-  defp reduce_range_dec(first, last, acc, fun) do
-    reduce_range_dec(first - 1, last, fun.(first, acc), fun)
+  defp reduce_range(_first, _last, _step, acc, _fun) do
+    acc
   end
 
   defp reduce_enumerable(enumerable, acc, fun) do

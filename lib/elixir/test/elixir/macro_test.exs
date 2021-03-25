@@ -578,6 +578,10 @@ defmodule MacroTest do
     test "range" do
       assert Macro.to_string(quote(do: unquote(-1..+2))) == "-1..2"
       assert Macro.to_string(quote(do: Foo.integer()..3)) == "Foo.integer()..3"
+      assert Macro.to_string(quote(do: unquote(-1..+2//-3))) == "-1..2//-3"
+
+      assert Macro.to_string(quote(do: Foo.integer()..3//Bar.bat())) ==
+               "Foo.integer()..3//Bar.bat()"
     end
 
     test "when" do

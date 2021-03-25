@@ -254,4 +254,15 @@ defmodule IntegerTest do
     assert Integer.gcd(-3, 0) == 3
     assert Integer.gcd(0, 0) == 0
   end
+
+  test "extended_gcd" do
+    # Poor's man properby based testing
+    for _ <- 1..100 do
+      left = :rand.uniform(1000)
+      right = :rand.uniform(1000)
+      {gcd, m, n} = Integer.extended_gcd(left, right)
+      assert Integer.gcd(left, right) == gcd
+      assert m * left + n * right == gcd
+    end
+  end
 end
