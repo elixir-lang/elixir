@@ -36,19 +36,17 @@
 -define(unary_op3(T1, T2, T3),
   T1 =:= $~, T2 =:= $~, T3 =:= $~).
 
--define(list_op(T1, T2),
-  T1 =:= $+, T2 =:= $+;
-  T1 =:= $-, T2 =:= $-).
-
 -define(concat_op(T1, T2),
-  T1 =:= $<, T2 =:= $>;
-  T1 =:= $., T2 =:= $.).
+  T1 =:= $+, T2 =:= $+;
+  T1 =:= $-, T2 =:= $-;
+  T1 =:= $., T2 =:= $.;
+  T1 =:= $<, T2 =:= $>).
 
 -define(concat_op3(T1, T2, T3),
   T1 =:= $+, T2 =:= $+, T3 =:= $+;
   T1 =:= $-, T2 =:= $-, T3 =:= $-).
 
--define(three_op(T1, T2, T3),
+-define(xor_op3(T1, T2, T3),
   T1 =:= $^, T2 =:= $^, T3 =:= $^).
 
 -define(mult_op(T),
@@ -86,6 +84,9 @@
 -define(comp_op3(T1, T2, T3),
   T1 =:= $=, T2 =:= $=, T3 =:= $=;
   T1 =:= $!, T2 =:= $=, T3 =:= $=).
+
+-define(ternary_op(T1, T2),
+  T1 =:= $/, T2 =:= $/).
 
 -define(and_op(T1, T2),
   T1 =:= $&, T2 =:= $&).
@@ -279,6 +280,8 @@ tokenize("%:" ++ Rest, Line, Column, Scope, Tokens) when ?is_space(hd(Rest)) ->
   tokenize(Rest, Line, Column + 2, Scope, [{kw_identifier, {Line, Column, nil}, '%'} | Tokens]);
 tokenize("{}:" ++ Rest, Line, Column, Scope, Tokens) when ?is_space(hd(Rest)) ->
   tokenize(Rest, Line, Column + 3, Scope, [{kw_identifier, {Line, Column, nil}, '{}'} | Tokens]);
+tokenize("..//:" ++ Rest, Line, Column, Scope, Tokens) when ?is_space(hd(Rest)) ->
+  tokenize(Rest, Line, Column + 5, Scope, [{kw_identifier, {Line, Column, nil}, '..//'} | Tokens]);
 
 tokenize(":..." ++ Rest, Line, Column, Scope, Tokens) ->
   tokenize(Rest, Line, Column + 4, Scope, [{atom, {Line, Column, nil}, '...'} | Tokens]);
@@ -290,18 +293,20 @@ tokenize(":%" ++ Rest, Line, Column, Scope, Tokens) ->
   tokenize(Rest, Line, Column + 2, Scope, [{atom, {Line, Column, nil}, '%'} | Tokens]);
 tokenize(":{}" ++ Rest, Line, Column, Scope, Tokens) ->
   tokenize(Rest, Line, Column + 3, Scope, [{atom, {Line, Column, nil}, '{}'} | Tokens]);
+tokenize(":..//" ++ Rest, Line, Column, Scope, Tokens) ->
+  tokenize(Rest, Line, Column + 5, Scope, [{atom, {Line, Column, nil}, '..//'} | Tokens]);
 
 % ## Three Token Operators
 tokenize([$:, T1, T2, T3 | Rest], Line, Column, Scope, Tokens) when
     ?unary_op3(T1, T2, T3); ?comp_op3(T1, T2, T3); ?and_op3(T1, T2, T3); ?or_op3(T1, T2, T3);
-    ?arrow_op3(T1, T2, T3); ?three_op(T1, T2, T3); ?concat_op3(T1, T2, T3) ->
+    ?arrow_op3(T1, T2, T3); ?xor_op3(T1, T2, T3); ?concat_op3(T1, T2, T3) ->
   Token = {atom, {Line, Column, nil}, list_to_atom([T1, T2, T3])},
   tokenize(Rest, Line, Column + 4, Scope, [Token | Tokens]);
 
 % ## Two Token Operators
 tokenize([$:, T1, T2 | Rest], Line, Column, Scope, Tokens) when
     ?comp_op2(T1, T2); ?rel_op2(T1, T2); ?and_op(T1, T2); ?or_op(T1, T2);
-    ?arrow_op(T1, T2); ?in_match_op(T1, T2); ?concat_op(T1, T2); ?list_op(T1, T2);
+    ?arrow_op(T1, T2); ?in_match_op(T1, T2); ?concat_op(T1, T2);
     ?stab_op(T1, T2); ?type_op(T1, T2) ->
   Token = {atom, {Line, Column, nil}, list_to_atom([T1, T2])},
   tokenize(Rest, Line, Column + 3, Scope, [Token | Tokens]);
@@ -313,7 +318,7 @@ tokenize([$:, T | Rest], Line, Column, Scope, Tokens) when
   Token = {atom, {Line, Column, nil}, list_to_atom([T])},
   tokenize(Rest, Line, Column + 2, Scope, [Token | Tokens]);
 
-% Stand-alone tokens
+% ## Stand-alone tokens
 
 tokenize("..." ++ Rest, Line, Column, Scope, Tokens) ->
   NewScope = maybe_warn_too_many_of_same_char("...", Rest, Line, Scope),
@@ -322,6 +327,23 @@ tokenize("..." ++ Rest, Line, Column, Scope, Tokens) ->
 
 tokenize("=>" ++ Rest, Line, Column, Scope, Tokens) ->
   Token = {assoc_op, {Line, Column, previous_was_eol(Tokens)}, '=>'},
+  tokenize(Rest, Line, Column + 2, Scope, add_token_with_eol(Token, Tokens));
+
+tokenize("..//" ++ Rest = String, Line, Column, Scope, [{capture_op, _, _} | _] = Tokens) ->
+  case strip_horizontal_space(Rest, 0) of
+    {[$/ | _] = Remaining, Extra} ->
+      Token = {identifier, {Line, Column, nil}, '..//'},
+      tokenize(Remaining, Line, Column + 4 + Extra, Scope, [Token | Tokens]);
+    {_, _} ->
+      unexpected_token(String, Line, Column, Tokens)
+  end;
+
+% ## Ternary operator
+
+tokenize([T1, T2 | Rest], Line, Column, Scope, Tokens)
+    when ?ternary_op(T1, T2), element(1, hd(Tokens)) /= capture_op ->
+  Op = list_to_atom([T1, T2]),
+  Token = {ternary_op, {Line, Column, previous_was_eol(Tokens)}, Op},
   tokenize(Rest, Line, Column + 2, Scope, add_token_with_eol(Token, Tokens));
 
 % ## Three token operators
@@ -339,9 +361,9 @@ tokenize([T1, T2, T3 | Rest], Line, Column, Scope, Tokens) when ?or_op3(T1, T2, 
   NewScope = maybe_warn_too_many_of_same_char([T1, T2, T3], Rest, Line, Scope),
   handle_op(Rest, Line, Column, or_op, 3, list_to_atom([T1, T2, T3]), NewScope, Tokens);
 
-tokenize([T1, T2, T3 | Rest], Line, Column, Scope, Tokens) when ?three_op(T1, T2, T3) ->
+tokenize([T1, T2, T3 | Rest], Line, Column, Scope, Tokens) when ?xor_op3(T1, T2, T3) ->
   NewScope = maybe_warn_too_many_of_same_char([T1, T2, T3], Rest, Line, Scope),
-  handle_op(Rest, Line, Column, three_op, 3, list_to_atom([T1, T2, T3]), NewScope, Tokens);
+  handle_op(Rest, Line, Column, xor_op, 3, list_to_atom([T1, T2, T3]), NewScope, Tokens);
 
 tokenize([T1, T2, T3 | Rest], Line, Column, Scope, Tokens) when ?concat_op3(T1, T2, T3) ->
   NewScope = maybe_warn_too_many_of_same_char([T1, T2, T3], Rest, Line, Scope),
@@ -374,10 +396,6 @@ tokenize([T | Rest], Line, Column, Scope, Tokens) when T =:= $); T =:= $}; T =:=
 % ## Two Token Operators
 tokenize([T1, T2 | Rest], Line, Column, Scope, Tokens) when ?concat_op(T1, T2) ->
   handle_op(Rest, Line, Column, concat_op, 2, list_to_atom([T1, T2]), Scope, Tokens);
-
-tokenize([T1, T2 | Rest], Line, Column, Scope, Tokens) when ?list_op(T1, T2) ->
-  NewScope = maybe_warn_too_many_of_same_char([T1, T2], Rest, Line, Scope),
-  handle_op(Rest, Line, Column, concat_op, 2, list_to_atom([T1, T2]), NewScope, Tokens);
 
 tokenize([T1, T2 | Rest], Line, Column, Scope, Tokens) when ?arrow_op(T1, T2) ->
   handle_op(Rest, Line, Column, arrow_op, 2, list_to_atom([T1, T2]), Scope, Tokens);
@@ -761,13 +779,13 @@ handle_op(Rest, Line, Column, Kind, Length, Op, Scope, Tokens) ->
 % ## Three Token Operators
 handle_dot([$., T1, T2, T3 | Rest], Line, Column, DotInfo, Scope, Tokens) when
     ?unary_op3(T1, T2, T3); ?comp_op3(T1, T2, T3); ?and_op3(T1, T2, T3); ?or_op3(T1, T2, T3);
-    ?arrow_op3(T1, T2, T3); ?three_op(T1, T2, T3); ?concat_op3(T1, T2, T3) ->
+    ?arrow_op3(T1, T2, T3); ?xor_op3(T1, T2, T3); ?concat_op3(T1, T2, T3) ->
   handle_call_identifier(Rest, Line, Column, DotInfo, 3, list_to_atom([T1, T2, T3]), Scope, Tokens);
 
 % ## Two Token Operators
 handle_dot([$., T1, T2 | Rest], Line, Column, DotInfo, Scope, Tokens) when
     ?comp_op2(T1, T2); ?rel_op2(T1, T2); ?and_op(T1, T2); ?or_op(T1, T2);
-    ?arrow_op(T1, T2); ?in_match_op(T1, T2); ?concat_op(T1, T2); ?list_op(T1, T2); ?type_op(T1, T2) ->
+    ?arrow_op(T1, T2); ?in_match_op(T1, T2); ?concat_op(T1, T2); ?type_op(T1, T2) ->
   handle_call_identifier(Rest, Line, Column, DotInfo, 2, list_to_atom([T1, T2]), Scope, Tokens);
 
 % ## Single Token Operators

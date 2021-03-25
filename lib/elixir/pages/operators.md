@@ -22,7 +22,7 @@ Operator                                                                        
 `\|\|` `\|\|\|` `or`                                  | Left
 `=`                                                   | Right
 `&`                                                   | Unary
-`=>` (valid syntax only inside `%{}`)                 | Right
+`=>` (valid only inside `%{}`)                        | Right
 `\|`                                                  | Right
 `::`                                                  | Right
 `when`                                                | Right

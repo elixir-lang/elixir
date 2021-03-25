@@ -28,54 +28,46 @@ defmodule RangeTest do
     end)
   end
 
-  test "precedence" do
-    assert Enum.to_list(1..(3 + 2)) == [1, 2, 3, 4, 5]
-    assert 1..3 |> Enum.to_list() == [1, 2, 3]
+  test "new" do
+    assert Range.new(1, 3) == 1..3//1
+    assert Range.new(3, 1) == 3..1//-1
+    assert Range.new(1, 3, 2) == 1..3//2
+    assert Range.new(3, 1, -2) == 3..1//-2
   end
 
   test "op" do
     assert (1..3).first == 1
     assert (1..3).last == 3
-  end
-
-  test "enum" do
-    refute Enum.empty?(1..1)
-
-    assert Enum.member?(1..3, 2)
-    refute Enum.member?(1..3, 0)
-    refute Enum.member?(1..3, 4)
-    refute Enum.member?(3..1, 0)
-    refute Enum.member?(3..1, 4)
-
-    assert Enum.count(1..3) == 3
-    assert Enum.count(3..1) == 3
-
-    assert Enum.map(1..3, &(&1 * 2)) == [2, 4, 6]
-    assert Enum.map(3..1, &(&1 * 2)) == [6, 4, 2]
+    assert (1..3).step == 1
+    assert (3..1).step == -1
+    assert (1..3//2).step == 2
   end
 
   test "inspect" do
     assert inspect(1..3) == "1..3"
-    assert inspect(3..1) == "3..1"
+    assert inspect(3..1) == "3..1//-1"
   end
 
-  test "integer only" do
+  test "limits are integer only" do
     first = 1.0
     last = 3.0
     message = "ranges (first..last) expect both sides to be integers, got: 1.0..3.0"
-
-    assert_raise ArgumentError, message, fn ->
-      Enum.map(first..last, &(&1 * 2))
-    end
+    assert_raise ArgumentError, message, fn -> first..last end
 
     first = []
     last = []
     message = "ranges (first..last) expect both sides to be integers, got: []..[]"
+    assert_raise ArgumentError, message, fn -> first..last end
+  end
 
-    assert_raise ArgumentError, message, fn ->
-      first..last
-      Enum.map(first..last, & &1)
-    end
+  test "step is a non-zero integer" do
+    step = 1.0
+    message = ~r"the step to be an integer different than zero"
+    assert_raise ArgumentError, message, fn -> 1..3//step end
+
+    step = 0
+    message = ~r"the step to be an integer different than zero"
+    assert_raise ArgumentError, message, fn -> 1..3//step end
   end
 
   describe "disjoint?" do

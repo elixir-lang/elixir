@@ -2078,24 +2078,30 @@ defmodule String do
 
   """
   @spec slice(t, Range.t()) :: t
-
-  def slice(string, range)
-
-  def slice("", _.._), do: ""
-
-  def slice(string, first..-1) when is_binary(string) and is_integer(first) and first >= 0 do
-    case String.Unicode.split_at(string, first) do
-      {_, nil} ->
-        ""
-
-      {start_bytes, _} ->
-        binary_part(string, start_bytes, byte_size(string) - start_bytes)
+  def slice(string, first..last//step = range) when is_binary(string) do
+    # TODO: There are two features we can add to slicing ranges:
+    # 1. We can allow the step to be any positive number
+    # 2. We can allow slice and reverse at the same time. However, we can't
+    #    implement so right now. First we will have to raise if a decreasing
+    #    range is given on Elixir v2.0.
+    if step == 1 or (step == -1 and first > last) do
+      slice_range(string, first, last)
+    else
+      raise ArgumentError,
+            "String.slice/2 does not accept ranges with custom steps, got: #{inspect(range)}"
     end
   end
 
-  def slice(string, first..last)
-      when is_binary(string) and is_integer(first) and is_integer(last) and first >= 0 and
-             last >= 0 do
+  defp slice_range("", _, _), do: ""
+
+  defp slice_range(string, first, -1) when first >= 0 do
+    case String.Unicode.split_at(string, first) do
+      {_, nil} -> ""
+      {start_bytes, _} -> binary_part(string, start_bytes, byte_size(string) - start_bytes)
+    end
+  end
+
+  defp slice_range(string, first, last) when first >= 0 and last >= 0 do
     if last >= first do
       slice(string, first, last - first + 1)
     else
@@ -2103,10 +2109,8 @@ defmodule String do
     end
   end
 
-  def slice(string, first..last)
-      when is_binary(string) and is_integer(first) and is_integer(last) do
-    {bytes, length} = do_acc_bytes(next_grapheme_size(string), [], 0)
-
+  defp slice_range(string, first, last) do
+    {bytes, length} = acc_bytes(next_grapheme_size(string), [], 0)
     first = add_if_negative(first, length)
     last = add_if_negative(last, length)
 
@@ -2116,21 +2120,25 @@ defmodule String do
       last = min(last + 1, length)
       bytes = Enum.drop(bytes, length - last)
       first = last - first
-      {length_bytes, start_bytes} = Enum.split(bytes, first)
-      binary_part(string, Enum.sum(start_bytes), Enum.sum(length_bytes))
+      {length_bytes, start_bytes} = split_bytes(bytes, 0, first)
+      binary_part(string, start_bytes, length_bytes)
     end
+  end
+
+  defp acc_bytes({size, rest}, bytes, length) do
+    acc_bytes(next_grapheme_size(rest), [size | bytes], length + 1)
+  end
+
+  defp acc_bytes(nil, bytes, length) do
+    {bytes, length}
   end
 
   defp add_if_negative(value, to_add) when value < 0, do: value + to_add
   defp add_if_negative(value, _to_add), do: value
 
-  defp do_acc_bytes({size, rest}, bytes, length) do
-    do_acc_bytes(next_grapheme_size(rest), [size | bytes], length + 1)
-  end
-
-  defp do_acc_bytes(nil, bytes, length) do
-    {bytes, length}
-  end
+  defp split_bytes(rest, acc, 0), do: {acc, Enum.sum(rest)}
+  defp split_bytes([], acc, _), do: {acc, 0}
+  defp split_bytes([head | tail], acc, count), do: split_bytes(tail, head + acc, count - 1)
 
   @doc """
   Returns `true` if `string` starts with any of the prefixes given.

@@ -463,6 +463,58 @@ defmodule Integer do
   defp gcd_positive(integer1, 0), do: integer1
   defp gcd_positive(integer1, integer2), do: gcd_positive(integer2, rem(integer1, integer2))
 
+  @doc """
+  Returns the extended greatest common divisor of the two given integers.
+
+  It uses the Extended Euclidean algorithm to return a three-element tuple with the `gcd`
+  and the coefficients `m` and `n` of Bézout's identity such that:
+
+      gcd(a, b) = m*a + n*b
+
+  By convention, `extended_gcd(0, 0)` returns `{0, 0, 0}`.
+
+  ## Examples
+
+      iex> Integer.extended_gcd(240, 46)
+      {2, -9, 47}
+      iex> Integer.extended_gcd(46, 240)
+      {2, 47, -9}
+      iex> Integer.extended_gcd(-46, 240)
+      {2, -47, -9}
+      iex> Integer.extended_gcd(-46, -240)
+      {2, -47, 9}
+
+      iex> Integer.extended_gcd(14, 21)
+      {7, -1, 1}
+
+      iex> Integer.extended_gcd(10, 0)
+      {10, 1, 0}
+      iex> Integer.extended_gcd(0, 10)
+      {10, 0, 1}
+      iex> Integer.extended_gcd(0, 0)
+      {0, 0, 0}
+
+  """
+  @doc since: "1.12.0"
+  @spec extended_gcd(integer, integer) :: {non_neg_integer, integer, integer}
+  def extended_gcd(0, 0), do: {0, 0, 0}
+  def extended_gcd(0, n), do: {n, 0, 1}
+  def extended_gcd(n, 0), do: {n, 1, 0}
+
+  def extended_gcd(integer1, integer2) when is_integer(integer1) and is_integer(integer2) do
+    extended_gcd(integer2, integer1, 0, 1, 1, 0)
+  end
+
+  defp extended_gcd(r1, r0, s1, s0, t1, t0) do
+    div = div(r0, r1)
+
+    case r0 - div * r1 do
+      0 when r1 > 0 -> {r1, s1, t1}
+      0 when r1 < 0 -> {-r1, -s1, -t1}
+      r2 -> extended_gcd(r2, r1, s0 - div * s1, s1, t0 - div * t1, t1)
+    end
+  end
+
   @doc false
   @deprecated "Use Integer.to_charlist/1 instead"
   def to_char_list(integer), do: Integer.to_charlist(integer)
