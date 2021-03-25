@@ -765,7 +765,7 @@ handle_op(Rest, Line, Column, Kind, Length, Op, Scope, Tokens) ->
         %% TODO: Remove this deprecation and fix precedence on Elixir v2.0
         case Op of
           '^^^' ->
-            Msg = "^^^ is deprecated. It is typically used as xor but it has the wrong precedence, use Bitwise.xor/2 instead",
+            Msg = "^^^ is deprecated. It is typically used as xor but it has the wrong precedence, use Bitwise.bxor/2 instead",
             prepend_warning({Line, Scope#elixir_tokenizer.file, Msg}, Scope);
 
           _ ->
