@@ -57,7 +57,14 @@ defmodule Mix.Tasks.App.Config do
   end
 
   defp check_configured() do
-    for app <- Mix.ProjectStack.config_apps(), is_nil(Application.spec(app, :vsn)) do
+    for app <- Mix.ProjectStack.config_apps(),
+        # Application.spec is a quick check that doesn't involve
+        # a separate process, so we try that first.
+        is_nil(Application.spec(app, :vsn)),
+        # Then we fallback to checking the :code.lib_dir for apps
+        # with runtime: false, which is still reasonably fast as
+        # the code server also uses a ETS table
+        :code.lib_dir(app) == {:error, :bad_name} do
       Mix.shell().error("""
       You have configured application #{inspect(app)} in your configuration file,
       but the application is not available.
