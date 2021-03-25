@@ -84,4 +84,20 @@ defmodule Date.RangeTest do
     assert last in range
     assert Enum.count(range) == 367
   end
+
+  test "step is a non-zero integer" do
+    step = 1.0
+    message = ~r"the step must be an integer different than zero"
+
+    assert_raise ArgumentError, message, fn ->
+      Date.range(~D[2000-01-01], ~D[2000-01-31], step)
+    end
+
+    step = 0
+    message = ~r"the step must be an integer different than zero"
+
+    assert_raise ArgumentError, message, fn ->
+      Date.range(~D[2000-01-01], ~D[2000-01-31], step)
+    end
+  end
 end
