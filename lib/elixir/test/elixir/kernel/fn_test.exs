@@ -8,23 +8,17 @@ defmodule Kernel.FnTest do
     assert (fn +1 -> true end).(1)
   end
 
+  defp fun_match(x) do
+    fn
+      ^x -> true
+      _ -> false
+    end
+  end
+
   test "pin operator on match" do
-    x = 1
-
-    refute (fn
-              ^x -> true
-              _ -> false
-            end).(0)
-
-    assert (fn
-              ^x -> true
-              _ -> false
-            end).(1)
-
-    refute (fn
-              ^x -> true
-              _ -> false
-            end).(1.0)
+    refute fun_match(1).(0)
+    assert fun_match(1).(1)
+    refute fun_match(1).(1.0)
   end
 
   test "guards with no args" do

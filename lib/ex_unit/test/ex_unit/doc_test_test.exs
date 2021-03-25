@@ -47,17 +47,17 @@ defmodule ExUnit.DocTestTest.GoodModule do
   def single_context, do: :ok
 
   @doc """
-  iex> 1 + (fn() -> "" end).()
-  ** (ArithmeticError) bad argument in arithmetic expression
+  iex> raise "message"
+  ** (RuntimeError) message
 
-  iex> 2 + (fn() -> :a end).()
-  ** (ArithmeticError) bad argument in arithmetic expression
+  iex> raise "message"
+  ** (RuntimeError) message
   """
   def two_exceptions, do: :ok
 
   @doc """
-  iex> 1 + (fn() -> :a end).()
-  ** (ArithmeticError) bad argument in arithmetic expression
+  iex> raise "message"
+  ** (RuntimeError) message
   """
   def exception_test, do: :ok
 
