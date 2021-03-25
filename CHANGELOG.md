@@ -20,8 +20,9 @@
   * [Enum] Add `Enum.zip_with/2` and `Enum.zip_with/3`
   * [Enum] Add support for functions as the second argument of `Enum.with_index/2`
   * [Float] Add `Float.pow/2`
-  * [Integer] Add `Integer.pow/2`
+  * [Integer] Add `Integer.pow/2` and `Integer.extended_gcd/2`
   * [List] Add default value for `List.first/1` and `List.last/1`
+  * [Kernel] Add `start..stop//step` as support for stepped ranges
   * [Kernel] Also warn for literal structs on `min/2` and `max/2`
   * [Kernel] Add `Kernel.tap/2` and `Kernel.then/2`
   * [Kernel] Do not add runtime dependencies to remotes in typespecs
@@ -33,6 +34,8 @@
   * [Module] Raise on invalid `@dialyzer` attributes
   * [Module] Add `Module.get_definition/2` and `Module.delete_definition/2`
   * [Module] Allow `@on_load` to be a private function
+  * [Module] Validate `@dialyzer` related module attributes
+  * [Range] Add `Range.new/3`, `Range.empty?/1`, and `Range.size/1`
   * [Regex] Add offset option to `Regex.scan/3` and `Regex.run/3`
   * [Registry] Support compression on `Registry` tables
   * [Stream] Add `Stream.zip_with/2` and `Stream.zip_with/3`
@@ -43,7 +46,7 @@
 
 #### ExUnit
 
-  * [ExUnit] Intercept SIGQUIT and show a list of all aborted tests as well as intermediate test results
+  * [ExUnit] Intercept SIGQUIT (via Ctrl+\\) and show a list of all aborted tests as well as intermediate test results
   * [ExUnit] Interpolate module attributes in match assertions diffs
   * [ExUnit] Print how much time is spent on `async` vs `sync` tests
   * [ExUnit] Improve error messages for doctests
@@ -61,8 +64,10 @@
   * [Mix] Support `:exit_code` option in `Mix.raise/2`
   * [Mix] Discard `MIX_ENV` and `MIX_TARGET` values if they are empty strings
   * [Mix] Print the time taken to execute a task with on `MIX_DEBUG=1`
+  * [mix compile.erlang] Compile multiple files in parallel
   * [mix escript.build] Deep merge configuration and ensure argv is set when executing `config/runtime.exs`
   * [mix release] Add `RELEASE_PROG` to releases with the name of the executable starting the release
+  * [mix test] Run all available tests if there are no pending `--failed` tests. This provides a better workflow as you no longer need to toggle the `--failed` flag between runs
 
 ### 2. Bug fixes
 
@@ -82,6 +87,10 @@
   * [Task] Ensure `Task.async_stream/2` with `ordered: false` discard results as they are emitted, instead of needlessly accumulating inside the stream manager
   * [URI] Do not discard empty paths on `URI.merge/2`
 
+#### ExUnit
+
+  * [ExUnit.Diff] Fix cases where the diffing algorithm would fail to print a pattern correct
+
 #### IEx
 
   * [IEx] Fix auto-completion inside remote shells
@@ -89,13 +98,18 @@
 #### Mix
 
   * [mix compile.elixir] Ensure that a manifest is generated even with no source code
-  * [mix compile.elixir] Make sure export dependencies trigger recompilation when removed
+  * [mix compile.elixir] Make sure export dependencies trigger recompilation when the dependency is removed as well as when the whole file is removed
   * [mix compile.elixir] Do not emit false positive warnings when a path dependency adds a module that is then used by the current application
   * [mix test] Ensure protocols within the current project are consolidated when `--cover` is given
   * [mix release] Improve compliance of release scripts with stripped down Linux installations
   * [mix release] Preserve file mode when copying non-beam ebin files
 
 ### 3. Soft-deprecations (no warnings emitted)
+
+#### Elixir
+
+  * [Kernel] Using `start..stop` to match on ranges is soft-deprecated and will warn on future Elixir versions. Use `start..stop//step` instead
+  * [Kernel] Using `start..stop` to create decreasing ranges is soft-deprecated and will warn on future versions. However, note this will only warn if the right-side is a variable. For example, `1..-2` and `x..-1` won't warn, but `1..x` or `x..y` will
 
 ### 4. Hard-deprecations
 
@@ -105,6 +119,7 @@
 
 #### Elixir
 
+  * [Kernel] The binary operator `^^^` is deprecated. If you are using `Bitwise.^^^/2`, use `Bitwise.bxor/2` instead
   * [Kernel] Deprecate `@foo()` in favor of `@foo`
   * [System] Deprecate `System.stacktrace/0` (it was already deprecated outside of catch/rescue and now it is deprecated everywhere)
 
