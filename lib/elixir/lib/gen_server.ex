@@ -425,7 +425,7 @@ defmodule GenServer do
   `c:handle_call/3` for more information on hibernation.
 
   Returning `{:ok, state, {:continue, continue}}` is similar to
-  `{:ok, state}` except that immediately after entering the loop
+  `{:ok, state}` except that immediately after entering the loop,
   the `c:handle_continue/2` callback will be invoked with the value
   `continue` as first argument.
 
@@ -472,8 +472,8 @@ defmodule GenServer do
 
   Returning `{:reply, reply, new_state, :hibernate}` is similar to
   `{:reply, reply, new_state}` except the process is hibernated and will
-  continue the loop once a message is in its message queue. If a message is
-  already in the message queue this will be immediately. Hibernating a
+  continue the loop once a message is in its message queue. However, if a message is
+  already in the message queue, the process will continue the loop immediately. Hibernating a
   `GenServer` causes garbage collection and leaves a continuous heap that
   minimises the memory used by the process.
 
