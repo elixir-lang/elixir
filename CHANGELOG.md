@@ -37,7 +37,7 @@
   * [Module] Validate `@dialyzer` related module attributes
   * [Range] Add `Range.new/3`, `Range.empty?/1`, and `Range.size/1`
   * [Regex] Add offset option to `Regex.scan/3` and `Regex.run/3`
-  * [Registry] Support compression on `Registry` tables
+  * [Registry] Support `:compression` on `Registry` tables
   * [Stream] Add `Stream.zip_with/2` and `Stream.zip_with/3`
   * [String] Add `:turkic` mode option to String case functions
   * [System] Add `System.trap_signal/3` and `System.untrap_signal/2`
@@ -67,6 +67,7 @@
   * [mix compile.erlang] Compile multiple files in parallel
   * [mix escript.build] Deep merge configuration and ensure argv is set when executing `config/runtime.exs`
   * [mix release] Add `RELEASE_PROG` to releases with the name of the executable starting the release
+  * [mix release] Support `remote.vm.args` to customize how the connecting VM boots
   * [mix test] Run all available tests if there are no pending `--failed` tests. This provides a better workflow as you no longer need to toggle the `--failed` flag between runs
 
 ### 2. Bug fixes
@@ -97,9 +98,10 @@
 
 #### Mix
 
+  * [mix app.config] Do not emit false positive warnings when configured dependencies that have `runtime: false` set
   * [mix compile.elixir] Ensure that a manifest is generated even with no source code
   * [mix compile.elixir] Make sure export dependencies trigger recompilation when the dependency is removed as well as when the whole file is removed
-  * [mix compile.elixir] Do not emit false positive warnings when a path dependency adds a module that is then used by the current application
+  * [mix compile.elixir] Do not emit false positive warnings when a path dependency adds a module that is then used by the current application in the same `mix compile` cycle
   * [mix test] Ensure protocols within the current project are consolidated when `--cover` is given
   * [mix release] Improve compliance of release scripts with stripped down Linux installations
   * [mix release] Preserve file mode when copying non-beam ebin files
