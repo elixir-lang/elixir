@@ -39,7 +39,7 @@
   * [String] Add `:turkic` mode option to String case functions
   * [System] Add `System.trap_signal/3` and `System.untrap_signal/2`
   * [Tuple] Add `Tuple.sum/1` and `Tuple.product/1`
-  * [URI] Add functions for RFC3986 compliant encoding and decoding of queries
+  * [URI] Support RFC3986 compliant encoding and decoding of queries via the `:rfc3986` option
 
 #### ExUnit
 

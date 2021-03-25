@@ -86,7 +86,7 @@ defmodule URI do
       per `encode_www_form/1`. This is the format typically used by browsers on
       query strings and form data. It encodes " " as "+".
 
-    * `:rfc_3986` - (since v1.12.0) the same as `:www_form` except it encodes
+    * `:rfc3986` - (since v1.12.0) the same as `:www_form` except it encodes
       " " as "%20" according [RFC 3986](https://tools.ietf.org/html/rfc3986).
       This is the best option if you are encoding in a non-browser situation,
       since encoding spaces as "+" can be ambiguous to URI parsers. This can
@@ -105,14 +105,14 @@ defmodule URI do
       "key=value+with+spaces"
 
       iex> query = %{"key" => "value with spaces"}
-      iex> URI.encode_query(query, :rfc_3986)
+      iex> URI.encode_query(query, :rfc3986)
       "key=value%20with%20spaces"
 
       iex> URI.encode_query(%{key: [:a, :list]})
       ** (ArgumentError) encode_query/2 values cannot be lists, got: [:a, :list]
 
   """
-  @spec encode_query(Enum.t(), :rfc_3986 | :www_form) :: binary
+  @spec encode_query(Enum.t(), :rfc3986 | :www_form) :: binary
   def encode_query(enumerable, encoding \\ :www_form) do
     Enum.map_join(enumerable, "&", &encode_kv_pair(&1, encoding))
   end
@@ -125,7 +125,7 @@ defmodule URI do
     raise ArgumentError, "encode_query/2 values cannot be lists, got: #{inspect(value)}"
   end
 
-  defp encode_kv_pair({key, value}, :rfc_3986) do
+  defp encode_kv_pair({key, value}, :rfc3986) do
     encode(Kernel.to_string(key), &char_unreserved?/1) <>
       "=" <> encode(Kernel.to_string(value), &char_unreserved?/1)
   end
@@ -148,7 +148,7 @@ defmodule URI do
       `decode_www_form/1`. This is the format typically used by browsers on
       query strings and form data. It decodes "+" as " ".
 
-    * `:rfc_3986` - (since v1.12.0) keys and values are decoded as per
+    * `:rfc3986` - (since v1.12.0) keys and values are decoded as per
       `decode/1`. The result is the same as `:www_form` except for leaving "+"
       as is in line with [RFC 3986](https://tools.ietf.org/html/rfc3986).
 
@@ -164,11 +164,11 @@ defmodule URI do
       iex> URI.decode_query("percent=oh+yes%21", %{"starting" => "map"})
       %{"percent" => "oh yes!", "starting" => "map"}
 
-      iex> URI.decode_query("percent=oh+yes%21", %{}, :rfc_3986)
+      iex> URI.decode_query("percent=oh+yes%21", %{}, :rfc3986)
       %{"percent" => "oh+yes!"}
 
   """
-  @spec decode_query(binary, %{optional(binary) => binary}, :rfc_3986 | :www_form) :: %{
+  @spec decode_query(binary, %{optional(binary) => binary}, :rfc3986 | :www_form) :: %{
           optional(binary) => binary
         }
   def decode_query(query, map \\ %{}, encoding \\ :www_form)
@@ -227,7 +227,7 @@ defmodule URI do
       `decode_www_form/1`. This is the format typically used by browsers on
       query strings and form data. It decodes "+" as " ".
 
-    * `:rfc_3986` - (since v1.12.0) keys and values are decoded as per
+    * `:rfc3986` - (since v1.12.0) keys and values are decoded as per
       `decode/1`. The result is the same as `:www_form` except for leaving "+"
       as is in line with [RFC 3986](https://tools.ietf.org/html/rfc3986).
 
@@ -241,11 +241,11 @@ defmodule URI do
       iex> URI.query_decoder("food=bread%26butter&drinks=tap%20water+please") |> Enum.to_list()
       [{"food", "bread&butter"}, {"drinks", "tap water please"}]
 
-      iex> URI.query_decoder("food=bread%26butter&drinks=tap%20water+please", :rfc_3986) |> Enum.to_list()
+      iex> URI.query_decoder("food=bread%26butter&drinks=tap%20water+please", :rfc3986) |> Enum.to_list()
       [{"food", "bread&butter"}, {"drinks", "tap water+please"}]
 
   """
-  @spec query_decoder(binary, :rfc_3986 | :www_form) :: Enumerable.t()
+  @spec query_decoder(binary, :rfc3986 | :www_form) :: Enumerable.t()
   def query_decoder(query, encoding \\ :www_form) when is_binary(query) do
     Stream.unfold(query, &decode_next_query_pair(&1, encoding))
   end
@@ -277,7 +277,7 @@ defmodule URI do
     decode_www_form(string)
   end
 
-  defp decode_with_encoding(string, :rfc_3986) do
+  defp decode_with_encoding(string, :rfc3986) do
     decode(string)
   end
 
