@@ -242,13 +242,14 @@ defmodule Module.Types.Pattern do
       stack = push_expr_stack(expr, stack)
       param_unions = signature_to_param_unions(signature, context)
       arg_stack = %{stack | type_guards: {false, keep_guarded?}}
+      mfa = {:erlang, guard, length(args)}
 
       with {:ok, arg_types, context} <-
              map_reduce_ok(Enum.zip(args, param_unions), context, fn {arg, param}, context ->
                of_guard(arg, param, arg_stack, context)
              end),
            {:ok, return_type, context} <-
-             unify_call(arg_types, signature, expected, stack, context, type_guard?) do
+             unify_call(arg_types, signature, expected, mfa, stack, context, type_guard?) do
         guard_sources = guard_sources(arg_types, type_guard?, keep_guarded?, context)
         {:ok, return_type, %{context | guard_sources: guard_sources}}
       end
@@ -315,24 +316,24 @@ defmodule Module.Types.Pattern do
     Map.keys(vars)
   end
 
-  defp unify_call(args, clauses, _expected, stack, context, true = _type_guard?) do
+  defp unify_call(args, clauses, _expected, _mfa, stack, context, true = _type_guard?) do
     unify_type_guard_call(args, clauses, stack, context)
   end
 
-  defp unify_call(args, clauses, expected, stack, context, false = _type_guard?) do
-    unify_call(args, clauses, expected, stack, context)
+  defp unify_call(args, clauses, expected, mfa, stack, context, false = _type_guard?) do
+    unify_call(args, clauses, expected, mfa, stack, context)
   end
 
-  defp unify_call([], [{[], return}], _expected, _stack, context) do
+  defp unify_call([], [{[], return}], _expected, _mfa, _stack, context) do
     {:ok, return, context}
   end
 
-  defp unify_call(args, [{params, _return} | _] = clauses, _expected, stack, context)
+  defp unify_call(args, [{params, _return} | _], _expected, _mfa, _stack, context)
        when length(args) != length(params) do
-    error(:unable_apply, {args, clauses, stack}, context)
+    {:ok, :dynamic, context}
   end
 
-  defp unify_call(args, signature, expected, stack, context) do
+  defp unify_call(args, signature, expected, mfa, stack, context) do
     expanded_args =
       args
       |> Enum.map(&expand_union/1)
@@ -396,7 +397,7 @@ defmodule Module.Types.Pattern do
         end
 
       {:error, args} ->
-        error(:unable_apply, {args, signature, stack}, context)
+        error(:unable_apply, {mfa, args, signature, stack}, context)
     end
   end
 

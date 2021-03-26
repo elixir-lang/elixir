@@ -354,9 +354,26 @@ defmodule Module.Types.PatternTest do
              ) == {:ok, [{:map, [{:optional, :dynamic, :dynamic}]}]}
     end
 
+    test "interesection functions" do
+      assert quoted_head([x], [+x]) == {:ok, [{:union, [:integer, :float]}]}
+      assert quoted_head([x], [x + 1]) == {:ok, [{:union, [:integer, :float]}]}
+      assert quoted_head([x], [x + 1.0]) == {:ok, [{:union, [:integer, :float]}]}
+    end
+
     test "nested calls with interesections in guards" do
       assert quoted_head([x], [:erlang.rem(x, 2)]) == {:ok, [:integer]}
       assert quoted_head([x], [:erlang.rem(x + x, 2)]) == {:ok, [:integer]}
+
+      assert quoted_head([x], [:erlang.bnot(+x)]) == {:ok, [:integer]}
+      assert quoted_head([x], [:erlang.bnot(x + 1)]) == {:ok, [:integer]}
+
+      assert {:error,
+              {:unable_apply,
+               {_, [{:var, 0}, :float],
+                [
+                  {[:integer, :integer], :integer},
+                  {[union: [:integer, :float], union: [:integer, :float]], :float}
+                ], _}}} = quoted_head([x], [:erlang.bnot(x + 1.0)])
     end
 
     test "erlang-only guards" do
@@ -367,22 +384,24 @@ defmodule Module.Types.PatternTest do
     test "failing guard functions" do
       assert quoted_head([x], [length([])]) == {:ok, [{:var, 0}]}
 
-      assert {:error, {:unable_apply, {[{:atom, :foo}], [{[{:list, :dynamic}], :integer}], _}}} =
+      assert {:error,
+              {:unable_apply,
+               {{:erlang, :length, 1}, [{:atom, :foo}], [{[{:list, :dynamic}], :integer}], _}}} =
                quoted_head([x], [length(:foo)])
 
       assert {:error,
               {:unable_apply,
-               {[{:union, [{:atom, true}, {:atom, false}]}], [{[{:list, :dynamic}], :integer}], _}}} =
-               quoted_head([x], [length(is_tuple(x))])
+               {_, [{:union, [{:atom, true}, {:atom, false}]}], [{[{:list, :dynamic}], :integer}],
+                _}}} = quoted_head([x], [length(is_tuple(x))])
 
       assert {:error,
               {:unable_apply,
-               {[:integer, {:union, [{:atom, true}, {:atom, false}]}],
+               {_, [:integer, {:union, [{:atom, true}, {:atom, false}]}],
                 [{[:integer, :tuple], :dynamic}], _}}} = quoted_head([x], [elem(is_tuple(x), 0)])
 
       assert {:error,
               {:unable_apply,
-               {[{:union, [{:atom, true}, {:atom, false}]}, :integer],
+               {_, [{:union, [{:atom, true}, {:atom, false}]}, :integer],
                 [
                   {[:integer, :integer], :integer},
                   {[union: [:integer, :float], union: [:integer, :float]], :float}

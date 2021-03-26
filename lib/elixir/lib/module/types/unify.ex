@@ -938,11 +938,15 @@ defmodule Module.Types.Unify do
   end
 
   def format_type({:fun, clauses}, simplify?) do
-    Enum.map_join(clauses, "; ", fn {params, return} ->
-      params = Enum.map_join(params, &format_type(&1, simplify?), ", ")
-      return = format_type(return, simplify?)
-      "((#{params}) -> #{return})"
-    end)
+    format =
+      Enum.map_join(clauses, "; ", fn {params, return} ->
+        params = Enum.map_join(params, ", ", &format_type(&1, simplify?))
+        params = if params == "", do: params, else: "#{params} "
+        return = format_type(return, simplify?)
+        "#{params}-> #{return}"
+      end)
+
+    "(#{format})"
   end
 
   def format_type(atom, _simplify?) when is_atom(atom) do

@@ -737,5 +737,14 @@ defmodule Module.Types.UnifyTest do
              false
            ) ==
              "%Struct{integer() => atom()}"
+
+    assert format_type({:fun, [{[], :dynamic}]}, false) == "(-> dynamic())"
+    assert format_type({:fun, [{[:integer], :dynamic}]}, false) == "(integer() -> dynamic())"
+
+    assert format_type({:fun, [{[:integer, :float], :dynamic}]}, false) ==
+             "(integer(), float() -> dynamic())"
+
+    assert format_type({:fun, [{[:integer], :dynamic}, {[:integer], :dynamic}]}, false) ==
+             "(integer() -> dynamic(); integer() -> dynamic())"
   end
 end
