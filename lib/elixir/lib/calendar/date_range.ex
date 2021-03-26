@@ -36,7 +36,7 @@ defmodule Date.Range do
       {days, _} = Date.to_iso_days(date)
 
       cond do
-        size(range) == 0 ->
+        empty?(range) ->
           {:ok, false}
 
         first_days <= last_days ->
@@ -134,6 +134,24 @@ defmodule Date.Range do
 
     defp size(%Date.Range{first_in_iso_days: first_days, last_in_iso_days: last_days, step: step}),
       do: abs(div(last_days - first_days, step)) + 1
+
+    defp empty?(%Date.Range{
+           first_in_iso_days: first_days,
+           last_in_iso_days: last_days,
+           step: step
+         })
+         when step > 0 and first_days > last_days,
+         do: true
+
+    defp empty?(%Date.Range{
+           first_in_iso_days: first_days,
+           last_in_iso_days: last_days,
+           step: step
+         })
+         when step < 0 and first_days < last_days,
+         do: true
+
+    defp empty?(%Date.Range{}), do: false
   end
 
   defimpl Inspect do
