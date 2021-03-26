@@ -5,7 +5,10 @@ defmodule Date.RangeTest do
   use ExUnit.Case, async: true
 
   @asc_range Date.range(~D[2000-01-01], ~D[2001-01-01])
+  @asc_range_2 Date.range(~D[2000-01-01], ~D[2001-01-01], 2)
   @desc_range Date.range(~D[2001-01-01], ~D[2000-01-01])
+  @desc_range_2 Date.range(~D[2001-01-01], ~D[2000-01-01], -2)
+  @empty_range Date.range(~D[2001-01-01], ~D[2000-01-01], 1)
 
   describe "Enum.member?/2" do
     test "for ascending range" do
@@ -14,6 +17,9 @@ defmodule Date.RangeTest do
       assert Enum.member?(@asc_range, ~D[2001-01-01])
       refute Enum.member?(@asc_range, ~D[2002-01-01])
       refute Enum.member?(@asc_range, Calendar.Holocene.date(12000, 1, 1))
+
+      assert Enum.member?(@asc_range_2, ~D[2000-01-03])
+      refute Enum.member?(@asc_range_2, ~D[2000-01-02])
     end
 
     test "for descending range" do
@@ -21,17 +27,30 @@ defmodule Date.RangeTest do
       assert Enum.member?(@desc_range, ~D[2000-01-01])
       assert Enum.member?(@desc_range, ~D[2001-01-01])
       refute Enum.member?(@desc_range, ~D[1999-01-01])
-      refute Enum.member?(@asc_range, Calendar.Holocene.date(12000, 1, 1))
+      refute Enum.member?(@desc_range, Calendar.Holocene.date(12000, 1, 1))
+
+      assert Enum.member?(@desc_range_2, ~D[2000-12-30])
+      refute Enum.member?(@desc_range_2, ~D[2000-12-29])
+    end
+
+    test "empty range" do
+      refute Enum.member?(@empty_range, @empty_range.first)
     end
   end
 
   describe "Enum.count/1" do
     test "for ascending range" do
       assert Enum.count(@asc_range) == 367
+      assert Enum.count(@asc_range_2) == 184
     end
 
     test "for descending range" do
       assert Enum.count(@desc_range) == 367
+      assert Enum.count(@desc_range_2) == 184
+    end
+
+    test "for empty range" do
+      assert Enum.count(@empty_range) == 0
     end
   end
 
@@ -39,23 +58,40 @@ defmodule Date.RangeTest do
     test "for ascending range" do
       assert Enum.slice(@asc_range, 3, 3) == [~D[2000-01-04], ~D[2000-01-05], ~D[2000-01-06]]
       assert Enum.slice(@asc_range, -3, 3) == [~D[2000-12-30], ~D[2000-12-31], ~D[2001-01-01]]
+
+      assert Enum.slice(@asc_range_2, 3, 3) == [~D[2000-01-07], ~D[2000-01-09], ~D[2000-01-11]]
+      assert Enum.slice(@asc_range_2, -3, 3) == [~D[2000-12-28], ~D[2000-12-30], ~D[2001-01-01]]
     end
 
     test "for descending range" do
       assert Enum.slice(@desc_range, 3, 3) == [~D[2000-12-29], ~D[2000-12-28], ~D[2000-12-27]]
       assert Enum.slice(@desc_range, -3, 3) == [~D[2000-01-03], ~D[2000-01-02], ~D[2000-01-01]]
+
+      assert Enum.slice(@desc_range_2, 3, 3) == [~D[2000-12-26], ~D[2000-12-24], ~D[2000-12-22]]
+      assert Enum.slice(@desc_range_2, -3, 3) == [~D[2000-01-05], ~D[2000-01-03], ~D[2000-01-01]]
+    end
+
+    test "for empty range" do
+      assert Enum.slice(@empty_range, 3, 3) == []
+      assert Enum.slice(@empty_range, -3, 3) == []
     end
   end
 
   describe "Enum.reduce/3" do
     test "for ascending range" do
-      range = Date.range(~D[2000-01-01], ~D[2000-01-03])
-      assert Enum.to_list(range) == [~D[2000-01-01], ~D[2000-01-02], ~D[2000-01-03]]
+      assert Enum.take(@asc_range, 3) == [~D[2000-01-01], ~D[2000-01-02], ~D[2000-01-03]]
+
+      assert Enum.take(@asc_range_2, 3) == [~D[2000-01-01], ~D[2000-01-03], ~D[2000-01-05]]
     end
 
     test "for descending range" do
-      range = Date.range(~D[2000-01-03], ~D[2000-01-01])
-      assert Enum.to_list(range) == [~D[2000-01-03], ~D[2000-01-02], ~D[2000-01-01]]
+      assert Enum.take(@desc_range, 3) == [~D[2001-01-01], ~D[2000-12-31], ~D[2000-12-30]]
+
+      assert Enum.take(@desc_range_2, 3) == [~D[2001-01-01], ~D[2000-12-30], ~D[2000-12-28]]
+    end
+
+    test "for empty range" do
+      assert Enum.take(@empty_range, 3) == []
     end
   end
 
@@ -64,6 +100,11 @@ defmodule Date.RangeTest do
     assert range.first == ~D[2000-01-01]
     assert range.last == ~D[2000-01-02]
     assert Enum.to_list(range) == [~D[2000-01-01], ~D[2000-01-02]]
+
+    range = Date.range(~N[2000-01-01 09:00:00], ~U[2000-01-03 09:00:00Z], 2)
+    assert range.first == ~D[2000-01-01]
+    assert range.last == ~D[2000-01-03]
+    assert Enum.to_list(range) == [~D[2000-01-01], ~D[2000-01-03]]
   end
 
   test "both dates must have matching calendars" do
@@ -83,5 +124,21 @@ defmodule Date.RangeTest do
     assert first in range
     assert last in range
     assert Enum.count(range) == 367
+  end
+
+  test "step is a non-zero integer" do
+    step = 1.0
+    message = ~r"the step must be an integer different than zero"
+
+    assert_raise ArgumentError, message, fn ->
+      Date.range(~D[2000-01-01], ~D[2000-01-31], step)
+    end
+
+    step = 0
+    message = ~r"the step must be an integer different than zero"
+
+    assert_raise ArgumentError, message, fn ->
+      Date.range(~D[2000-01-01], ~D[2000-01-31], step)
+    end
   end
 end
