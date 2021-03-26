@@ -2052,19 +2052,24 @@ defmodule String do
       iex> String.slice("elixir", 1..10)
       "lixir"
 
-      iex> String.slice("elixir", 10..3)
-      ""
-
       iex> String.slice("elixir", -4..-1)
-      "ixir"
-
-      iex> String.slice("elixir", 2..-1)
       "ixir"
 
       iex> String.slice("elixir", -4..6)
       "ixir"
 
-      iex> String.slice("elixir", -1..-4)
+  For ranges where `start > stop`, you need to explicit
+  mark them as increasing:
+
+      iex> String.slice("elixir", 2..-1//1)
+      "ixir"
+
+      iex> String.slice("elixir", 1..-2//1)
+      "lixi"
+
+  If values are out of bounds, it returns an empty string:
+
+      iex> String.slice("elixir", 10..3)
       ""
 
       iex> String.slice("elixir", -10..-7)
@@ -2079,6 +2084,7 @@ defmodule String do
   """
   @spec slice(t, Range.t()) :: t
   def slice(string, first..last//step = range) when is_binary(string) do
+    # TODO: Deprecate negative steps on Elixir v1.16
     # TODO: There are two features we can add to slicing ranges:
     # 1. We can allow the step to be any positive number
     # 2. We can allow slice and reverse at the same time. However, we can't

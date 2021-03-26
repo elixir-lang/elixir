@@ -3641,6 +3641,8 @@ defmodule Kernel do
   to last, albeit this behaviour is deprecated. Instead prefer to
   explicitly list the step with `first..last//-1`.
 
+  See the `Range` module for more information.
+
   ## Examples
 
       iex> 0 in 1..3
@@ -3666,7 +3668,7 @@ defmodule Kernel do
   end
 
   defp range(_context, first, last) when is_integer(first) and is_integer(last) do
-    # TODO: Deprecate inferring a range with step of -1 on Elixir v1.16
+    # TODO: Deprecate inferring a range with step of -1 on Elixir v1.17
     step = if first <= last, do: 1, else: -1
     {:%{}, [], [__struct__: Elixir.Range, first: first, last: last, step: step]}
   end
@@ -3676,17 +3678,19 @@ defmodule Kernel do
   end
 
   defp range(:guard, first, last) do
-    # TODO: Deprecate me inside guard when sides are not integers on Elixir v1.16
+    # TODO: Deprecate me inside guard when sides are not integers on Elixir v1.17
     {:%{}, [], [__struct__: Elixir.Range, first: first, last: last, step: nil]}
   end
 
   defp range(:match, first, last) do
-    # TODO: Deprecate me inside match in all occasions (including literals) on Elixir v1.16
+    # TODO: Deprecate me inside match in all occasions (including literals) on Elixir v1.17
     {:%{}, [], [__struct__: Elixir.Range, first: first, last: last]}
   end
 
   @doc """
   Creates a range from `first` to `last` with `step`.
+
+  See the `Range` module for more information.
 
   ## Examples
 
