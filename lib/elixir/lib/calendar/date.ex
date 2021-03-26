@@ -83,8 +83,8 @@ defmodule Date do
       366
       iex> Enum.member?(range, ~D[2001-02-01])
       true
-      iex> Enum.reduce(range, 0, fn _date, acc -> acc - 1 end)
-      -366
+      iex> Enum.take(range, 3)
+      [~D[2001-01-01], ~D[2001-01-02], ~D[2001-01-03]]
 
   """
   @doc since: "1.5.0"
@@ -92,17 +92,59 @@ defmodule Date do
   def range(%{calendar: calendar} = first, %{calendar: calendar} = last) do
     {first_days, _} = to_iso_days(first)
     {last_days, _} = to_iso_days(last)
-
-    %Date.Range{
-      first: %Date{calendar: calendar, year: first.year, month: first.month, day: first.day},
-      last: %Date{calendar: calendar, year: last.year, month: last.month, day: last.day},
-      first_in_iso_days: first_days,
-      last_in_iso_days: last_days
-    }
+    # TODO: Deprecate inferring a range with step of -1 on Elixir v1.16
+    step = if first_days <= last_days, do: 1, else: -1
+    range(first, first_days, last, last_days, calendar, step)
   end
 
   def range(%{calendar: _, year: _, month: _, day: _}, %{calendar: _, year: _, month: _, day: _}) do
     raise ArgumentError, "both dates must have matching calendars"
+  end
+
+  @doc """
+  Returns a range of dates with step.
+
+  ## Examples
+
+      iex> range = Date.range(~D[2001-01-01], ~D[2002-01-01], 2)
+      iex> range
+      #DateRange<~D[2001-01-01], ~D[2002-01-01], 2>
+      iex> Enum.count(range)
+      183
+      iex> Enum.member?(range, ~D[2001-01-03])
+      true
+      iex> Enum.take(range, 3)
+      [~D[2001-01-01], ~D[2001-01-03], ~D[2001-01-05]]
+
+  """
+  @doc since: "1.12.0"
+  @spec range(Calendar.date(), Calendar.date(), step :: pos_integer | neg_integer) ::
+          Date.Range.t()
+  def range(%{calendar: calendar} = first, %{calendar: calendar} = last, step)
+      when is_integer(step) and step != 0 do
+    {first_days, _} = to_iso_days(first)
+    {last_days, _} = to_iso_days(last)
+    range(first, first_days, last, last_days, calendar, step)
+  end
+
+  def range(
+        %{calendar: _, year: _, month: _, day: _} = first,
+        %{calendar: _, year: _, month: _, day: _} = last,
+        step
+      ) do
+    raise ArgumentError,
+          "both dates must have matching calendar and the step must be an integer " <>
+            "different than zero, got: #{inspect(first)}, #{inspect(last)}, #{step}"
+  end
+
+  defp range(first, first_days, last, last_days, calendar, step) do
+    %Date.Range{
+      first: %Date{calendar: calendar, year: first.year, month: first.month, day: first.day},
+      last: %Date{calendar: calendar, year: last.year, month: last.month, day: last.day},
+      first_in_iso_days: first_days,
+      last_in_iso_days: last_days,
+      step: step
+    }
   end
 
   @doc """
@@ -659,11 +701,12 @@ defmodule Date do
     end
   end
 
-  defp to_iso_days(%{calendar: Calendar.ISO, year: year, month: month, day: day}) do
+  @doc false
+  def to_iso_days(%{calendar: Calendar.ISO, year: year, month: month, day: day}) do
     {Calendar.ISO.date_to_iso_days(year, month, day), {0, 86_400_000_000}}
   end
 
-  defp to_iso_days(%{calendar: calendar, year: year, month: month, day: day}) do
+  def to_iso_days(%{calendar: calendar, year: year, month: month, day: day}) do
     calendar.naive_datetime_to_iso_days(year, month, day, 0, 0, 0, {0, 0})
   end
 
