@@ -718,7 +718,7 @@ build_op(AST, {_Kind, Location, '//'}, Right) ->
       {'..//', Meta, [Left, Middle, Right]};
 
     _ ->
-      return_error(meta_from_location(Location), "the range step operator (//) must immediately follow the range definition operator (..), for example: 1..9//2. Syntax error before: ", "'//'")
+      return_error(meta_from_location(Location), "the range step operator (//) must immediately follow the range definition operator (..), for example: 1..9//2. If you wanted to define a default argument, use (\\\\) instead. Syntax error before: ", "'//'")
   end;
 
 build_op({UOp, _, [Left]}, {_Kind, Location, 'in'}, Right) when ?rearrange_uop(UOp) ->
