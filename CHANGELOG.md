@@ -111,7 +111,7 @@
 #### Elixir
 
   * [Kernel] Using `start..stop` to match on ranges is soft-deprecated and will warn on future Elixir versions. Use `start..stop//step` instead
-  * [Kernel] Using `start..stop` to create decreasing ranges is soft-deprecated and will warn on future versions. However, note this will only warn if the right-side is a variable. For example, `1..-2` and `x..-1` won't warn, but `1..x` or `x..y` will
+  * [Kernel] Using `start..stop` to create decreasing ranges is soft-deprecated and will warn on future versions. Use `start..stop//-1` instead
 
 ### 4. Hard-deprecations
 
