@@ -260,11 +260,16 @@ defimpl Enumerable, for: Range do
     {:done, acc}
   end
 
-  def member?(first..last//step, value) when is_integer(value) do
-    if first <= last do
-      {:ok, first <= value and value <= last and rem(value - first, step) == 0}
-    else
-      {:ok, last <= value and value <= first and rem(value - first, step) == 0}
+  def member?(first..last//step = range, value) when is_integer(value) do
+    cond do
+      Range.empty?(range) ->
+        {:ok, false}
+
+      first <= last ->
+        {:ok, first <= value and value <= last and rem(value - first, step) == 0}
+
+      true ->
+        {:ok, last <= value and value <= first and rem(value - first, step) == 0}
     end
   end
 

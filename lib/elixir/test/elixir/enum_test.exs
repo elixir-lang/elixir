@@ -1219,7 +1219,7 @@ defmodule EnumTest do
 
     assert result == [2, 4, 6, 8, 10]
 
-    # MAPS
+    # Maps
     result = Enum.zip_with(%{a: 7, c: 9}, 3..4, fn {key, value}, b -> {key, value + b} end)
     assert result == [a: 10, c: 13]
 
@@ -1272,7 +1272,7 @@ defmodule EnumTest do
 
     assert result == [2, 4, 6, 8, 10]
 
-    # MAPS
+    # Maps
     result = Enum.zip_with([%{a: 7, c: 9}, 3..4], fn [{key, value}, b] -> {key, value + b} end)
     assert result == [a: 10, c: 13]
 
@@ -1651,6 +1651,13 @@ defmodule EnumTest.Range do
     refute Enum.member?(1..10//2, 10)
     assert Enum.member?(1..2//2, 1)
     refute Enum.member?(1..2//2, 2)
+
+    assert Enum.member?(-1..-9//-2, -1)
+    assert Enum.member?(-1..-9//-2, -9)
+    refute Enum.member?(-1..-9//-2, -8)
+
+    refute Enum.member?(1..0//1, 1)
+    refute Enum.member?(0..1//-1, 1)
   end
 
   test "min/1" do
