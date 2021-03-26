@@ -182,9 +182,11 @@ If, for some reason, you must read the application environment at compile time, 
 
 ### Avoid defining modules that are not in your "namespace"
 
-Even though Elixir does not formally have the concept of namespaces, a library should use its name as a "prefix" for all of its modules (except for special cases like mix tasks). For example if the library name is `MyLib`, then all of its modules should start with the `MyLib` prefix, for example `MyLib.User`, `MyLib.SubModule`, and `MyLib.Application`.
+Even though Elixir does not formally have the concept of namespaces, a library should use its name as a "prefix" for all of its modules (except for special cases like mix tasks). For example if the library's OTP application name is `:my_lib`, then all of its modules should start with the `MyLib` prefix, for example `MyLib.User`, `MyLib.SubModule`, and `MyLib.Application`.
 
-This is important because the BEAM can only load one instance of a module at a time. So if there are multiple libraries that define the same module, then they are incompatible with each other due to this limitation. By always using the library name as a prefix this is avoided since this avoids module name clashes due to the unique prefix.
+This is important because the Erlang VM can only load one instance of a module at a time. So if there are multiple libraries that define the same module, then they are incompatible with each other due to this limitation. By always using the library name as a prefix, it avoids module name clashes due to the unique prefix.
+
+Furthermore, when writing a library that is extension of another library, you should avoid defining modules inside the parent's library namespace. For example, if you are writing a package that adds authentication to [`Plug`](https://github.com/elixir-plug/plug) called `plug_auth`, the modules should be namespaced under `PlugAuth` instead of `Plug.Auth`, so it avoid conflicts with `Plug` if it were to ever define its own authentication functionality.
 
 ### Avoid `use` when an `import` is enough
 
