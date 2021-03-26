@@ -262,7 +262,7 @@ defimpl Enumerable, for: Range do
 
   def member?(first..last//step = range, value) when is_integer(value) do
     cond do
-      Range.size(range) == 0 ->
+      Range.empty?(range) ->
         {:ok, false}
 
       first <= last ->
