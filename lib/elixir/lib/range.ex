@@ -50,7 +50,7 @@ defmodule Range do
   from `first` to `last` decreasing by `step` where all values
   `v` must be `first >= v and v >= last`. Therefore, a range
   `0..10//-1` is an empty range because there is no value `v`
-  that is `10 >= v and v >= 0`.
+  that is `0 >= v and v >= 10`.
 
   ## Representation
 
