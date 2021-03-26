@@ -35,10 +35,15 @@ defmodule Date.Range do
       step = range.step
       {days, _} = Date.to_iso_days(date)
 
-      if first_days <= last_days do
-        {:ok, first_days <= days and days <= last_days and rem(days - first_days, step) == 0}
-      else
-        {:ok, last_days <= days and days <= first_days and rem(days - first_days, step) == 0}
+      cond do
+        size(range) == 0 ->
+          {:ok, false}
+
+        first_days <= last_days ->
+          {:ok, first_days <= days and days <= last_days and rem(days - first_days, step) == 0}
+
+        true ->
+          {:ok, last_days <= days and days <= first_days and rem(days - first_days, step) == 0}
       end
     end
 
