@@ -29,10 +29,10 @@ defmodule Date.Range do
     def member?(%{first: %{calendar: calendar}} = range, %Date{calendar: calendar} = date) do
       %{
         first_in_iso_days: first_days,
-        last_in_iso_days: last_days
+        last_in_iso_days: last_days,
+        step: step
       } = range
 
-      step = range.step
       {days, _} = Date.to_iso_days(date)
 
       cond do
