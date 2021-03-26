@@ -30,6 +30,56 @@ defmodule Code do
   file, without tracking. `eval_file/2` should be used when you are interested in
   the result of evaluating the file rather than the modules it defines.
 
+  ## Code loading on the Erlang VM
+
+  Erlang has two modes to load code: interactive and embedded.
+
+  By default, the Erlang VM runs in interactive mode, where modules
+  are loaded as needed. In embedded mode the opposite happens, as all
+  modules need to be loaded upfront or explicitly.
+
+  You can use `ensure_loaded/1` (as well as `ensure_lodead?/1` and
+  `ensure_lodead!/1`) to check if a module is loaded before using it and
+  act.
+
+  ## `ensure_compiled/1` and `ensure_compiled!/1`
+
+  Elixir also includes `ensure_compiled/1` and `ensure_compiled!/1`
+  functions that are a superset of `ensure_loaded/1`.
+
+  Since Elixir's compilation happens in parallel, in some situations
+  you may need to use a module that was not yet compiled, therefore
+  it can't even be loaded.
+
+  When invoked, `ensure_compiled/1` and `ensure_compiled!/1` halt the
+  compilation of the caller until the module becomes available. Note
+  the distinction between `ensure_compiled/1` and `ensure_compiled!/1`
+  is important: if you are using `ensure_compiled!/1`, you are
+  indicating to the compiler that you can only continue if said module
+  is available.
+
+  If you are using `Code.ensure_compiled/1`, you are implying you may
+  continue without the module and therefore Elixir may return
+  `{:error, :unavailable}` for cases where the module is not yet available
+  (but may be available later on).
+
+  For those reasons, developers must typically use `Code.ensure_compiled!/1`.
+  In particular, do not do this:
+
+      case Code.ensure_compiled(module) do
+        {:module, _} -> module
+        {:error, _} -> raise ...
+      end
+
+  Finally, note you only need `ensure_compiled!/1` to check for modules
+  being defined within the same project. It does not apply to modules from
+  dependencies as dependencies are always compiled upfront.
+
+  In most cases, `ensure_loaded/1` is enough. `ensure_compiled!/1`
+  must be used in rare cases, usually involving macros that need to
+  invoke a module for callback information. The use of `ensure_compiled/1`
+  is even less likely.
+
   ## Compilation tracers
 
   Elixir supports compilation tracers, which allows modules to observe constructs
@@ -1209,39 +1259,7 @@ defmodule Code do
   If it succeeds in loading the module, it returns `{:module, module}`.
   If not, returns `{:error, reason}` with the error reason.
 
-  ## Code loading on the Erlang VM
-
-  Erlang has two modes to load code: interactive and embedded.
-
-  By default, the Erlang VM runs in interactive mode, where modules
-  are loaded as needed. In embedded mode the opposite happens, as all
-  modules need to be loaded upfront or explicitly.
-
-  Therefore, this function is used to check if a module is loaded
-  before using it and allows one to react accordingly. For example, the `URI`
-  module uses this function to check if a specific parser exists for a given
-  URI scheme.
-
-  ## `ensure_compiled/1`
-
-  Elixir also contains an `ensure_compiled/1` function that is a
-  superset of `ensure_loaded/1`.
-
-  Since Elixir's compilation happens in parallel, in some situations
-  you may need to use a module that was not yet compiled, therefore
-  it can't even be loaded.
-
-  When invoked, `ensure_compiled/1` halts the compilation of the caller
-  until the module given to `ensure_compiled/1` becomes available or
-  all files for the current project have been compiled. If compilation
-  finishes and the module is not available, an error tuple is returned.
-
-  `ensure_compiled/1` does not apply to dependencies, as dependencies
-  must be compiled upfront.
-
-  In most cases, `ensure_loaded/1` is enough. `ensure_compiled/1`
-  must be used in rare cases, usually involving macros that need to
-  invoke a module for callback information.
+  See the module documentation for more information on code loading.
 
   ## Examples
 
@@ -1292,30 +1310,28 @@ defmodule Code do
   end
 
   @doc """
-  Ensures the given module is compiled and loaded.
+  Similar to `ensure_compiled!/1` but indicates you can continue without said module.
 
-  If the module is already loaded, it works as no-op. If the module was
-  not compiled yet, `ensure_compiled/1` halts the compilation of the caller
-  until the module given to `ensure_compiled/1` becomes available or
-  all files for the current project have been compiled. If compilation
-  finishes and the module is not available, an error tuple is returned.
-
-  Given this function halts compilation, use it carefully. In particular,
-  avoid using it to guess which modules are in the system. Overuse of this
-  function can also lead to deadlocks, where two modules check at the same time
-  if the other is compiled. This returns a specific unavailable error code,
-  where we cannot successfully verify a module is available or not.
+  While `ensure_compiled!/1` indicates to the Elixir compiler you can
+  only continue when said module is available, this function indicates
+  you may continue compilation without said module.
 
   If it succeeds in loading the module, it returns `{:module, module}`.
   If not, returns `{:error, reason}` with the error reason.
-
   If the module being checked is currently in a compiler deadlock,
   this function returns `{:error, :unavailable}`. Unavailable doesn't
   necessarily mean the module doesn't exist, just that it is not currently
   available, but it (or may not) become available in the future.
 
-  Check `ensure_loaded/1` for more information on module loading
-  and when to use `ensure_loaded/1` or `ensure_compiled/1`.
+  Therefore, if you can only continue if the module is available, use
+  `ensure_compiled!/1` instead. In particular, do not do this:
+
+      case Code.ensure_compiled(module) do
+        {:module, _} -> module
+        {:error, _} -> raise ...
+      end
+
+  See the module documentation for more information on code loading.
   """
   @spec ensure_compiled(module) ::
           {:module, module}
@@ -1325,11 +1341,24 @@ defmodule Code do
   end
 
   @doc """
-  Same as `ensure_compiled/1` but raises if the module cannot be compiled.
+  Ensures the given module is compiled and loaded.
 
-  This is the preferred function to use if you want to ensure a module
-  is compiled and you want to raise in case it isn't.
+  If the module is already loaded, it works as no-op. If the module was
+  not compiled yet, `ensure_compiled!/1` halts the compilation of the caller
+  until the module given to `ensure_compiled!/1` becomes available or
+  all files for the current project have been compiled. If compilation
+  finishes and the module is not available or is in a deadlock, an error
+  is raised.
+
+  Given this function halts compilation, use it carefully. In particular,
+  avoid using it to guess which modules are in the system. Overuse of this
+  function can also lead to deadlocks, where two modules check at the same time
+  if the other is compiled. This returns a specific unavailable error code,
+  where we cannot successfully verify a module is available or not.
+
+  See the module documentation for more information on code loading.
   """
+  @doc since: "1.12.0"
   @spec ensure_compiled!(module) :: module
   def ensure_compiled!(module) do
     case ensure_compiled(module, :hard) do
