@@ -83,8 +83,8 @@ defmodule Date do
       366
       iex> Enum.member?(range, ~D[2001-02-01])
       true
-      iex> Enum.reduce(range, 0, fn _date, acc -> acc - 1 end)
-      -366
+      iex> Enum.take(range, 3)
+      [~D[2001-01-01], ~D[2001-01-02], ~D[2001-01-03]]
 
   """
   @doc since: "1.5.0"
@@ -106,8 +106,15 @@ defmodule Date do
 
   ## Examples
 
-      iex> Date.range(~D[1999-01-01], ~D[2000-01-01], 2)
-      #DateRange<~D[1999-01-01], ~D[2000-01-01], 2>
+      iex> range = Date.range(~D[2001-01-01], ~D[2002-01-01], 2)
+      iex> range
+      #DateRange<~D[2001-01-01], ~D[2002-01-01], 2>
+      iex> Enum.count(range)
+      183
+      iex> Enum.member?(range, ~D[2001-01-03])
+      true
+      iex> Enum.take(range, 3)
+      [~D[2001-01-01], ~D[2001-01-03], ~D[2001-01-05]]
 
   """
   @doc since: "1.12.0"
