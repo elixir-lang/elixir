@@ -1,11 +1,12 @@
 defmodule Range do
   @moduledoc """
-  Ranges represent a sequence of one or many, ascending
+  Ranges represent a sequence of zero, one or many, ascending
   or descending, consecutive integers.
 
-  Ranges are always inclusive and they may have custom
-  steps. The most common form of creating and matching
-  on ranges is via the `../2` and `..///3` macros,
+  Ranges are always inclusive and they may have custom steps.
+  The most common form of creating and matching on ranges is
+  via the `start..stop` and `start..stop//step` notations,
+  defined respectively as the `../2` and `..///3` macros
   auto-imported from `Kernel`:
 
       iex> Enum.to_list(1..3)
@@ -14,6 +15,44 @@ defmodule Range do
       [1, 3]
       iex> Enum.to_list(3..1//-1)
       [3, 2, 1]
+
+  Ranges may also have a single element:
+
+      iex> Enum.to_list(1..1)
+      [1]
+      iex> Enum.to_list(1..1//2)
+      [1]
+
+  Or even no elements at all:
+
+      iex> Enum.to_list(10..0//1)
+      []
+      iex> Enum.to_list(0..10//-1)
+      []
+
+  When defining a range without steps, the step will be
+  defined based on the start and stop position of the
+  range, If `start >= stop`, it will be an increasing range
+  with step of 1. Otherwise, it is a decreasing range.
+  Note however implicitly decreasing ranges are deprecated.
+  Therefore, if you need a decreasing range from `3` to `1`,
+  prefer to write `3..1//-1` instead.
+
+  ## Definition
+
+  An increasing range `first..last//step` is a range from
+  `first` to `last` increasing by `step` where all values
+  `v` must be `first <= v and v <= last`. Therefore, a range
+  `10..0//1` is an empty range because there is no value `v`
+  that is `10 <= v and v <= 0`.
+
+  Similarly, a decreasing range `first..last//-step` is a range
+  from `first` to `last` decreasing by `step` where all values
+  `v` must be `first >= v and v >= last`. Therefore, a range
+  `0..10//-1` is an empty range because there is no value `v`
+  that is `10 >= v and v >= 0`.
+
+  ## Representation
 
   Internally, ranges are represented as structs:
 
@@ -62,6 +101,14 @@ defmodule Range do
   @doc """
   Creates a new range.
 
+  If first is less than last, the range will be increasing from
+  first to last. If first is equal to last, the range will contain
+  one element, which is the number itself.
+
+  If first is more than last, the range will be decreasing from first
+  to last, albeit this behaviour is deprecated. Instead prefer to
+  explicitly list the step `new/3`.
+
   ## Examples
 
       iex> Range.new(-100, 100)
@@ -70,7 +117,7 @@ defmodule Range do
   """
   @spec new(integer, integer) :: t
   def new(first, last) when is_integer(first) and is_integer(last) do
-    # TODO: Deprecate inferring a range with step of -1 on Elixir v1.16
+    # TODO: Deprecate inferring a range with step of -1 on Elixir v1.17
     step = if first <= last, do: 1, else: -1
     %Range{first: first, last: last, step: step}
   end
