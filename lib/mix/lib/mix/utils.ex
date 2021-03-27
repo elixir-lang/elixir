@@ -32,6 +32,23 @@ defmodule Mix.Utils do
     mix_home_xdg_lookup(:user_config)
   end
 
+  @doc """
+  Gets possible location of Mix cache.
+
+  Possible locations:
+
+   * `XDG_CONFIG_HOME/mix` (if `MIX_XDG` is set)
+   * `:filename.basedir(:user_cache, "mix")`
+
+  """
+  def mix_cache do
+    if System.get_env("MIX_XDG") in ["1", "true"] do
+      :filename.basedir(:user_cache, "mix", %{os: :linux})
+    else
+      :filename.basedir(:user_cache, "mix")
+    end
+  end
+
   defp mix_home_xdg_lookup(xdg) do
     cond do
       dir = System.get_env("MIX_HOME") ->
