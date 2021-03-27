@@ -619,7 +619,7 @@ defmodule Map do
       %{a: 1, b: 11}
 
   """
-  @spec update(map, key, default :: value, (existing_value :: value -> updated_value :: value)) ::
+  @spec update(map, key, default :: value, (existing_value :: value -> new_value :: value)) ::
           map
   def update(map, key, default, fun) when is_function(fun, 1) do
     case map do
@@ -817,7 +817,7 @@ defmodule Map do
       ** (KeyError) key :b not found in: %{a: 1}
 
   """
-  @spec update!(map, key, (existing_value :: value -> updated_value :: value)) :: map
+  @spec update!(map, key, (existing_value :: value -> new_value :: value)) :: map
   def update!(map, key, fun) when is_function(fun, 1) do
     value = fetch!(map, key)
     put(map, key, fun.(value))
@@ -855,8 +855,8 @@ defmodule Map do
       {nil, %{a: 1}}
 
   """
-  @spec get_and_update(map, key, (value -> {current_value, new_value :: value} | :pop)) ::
-          {current_value, map}
+  @spec get_and_update(map, key, (value | nil -> {current_value, new_value :: value} | :pop)) ::
+          {current_value, new_map :: map}
         when current_value: value
   def get_and_update(map, key, fun) when is_function(fun, 1) do
     current = get(map, key)
@@ -897,7 +897,7 @@ defmodule Map do
       {1, %{}}
 
   """
-  @spec get_and_update!(map, key, (value -> {current_value, new_value :: value} | :pop)) ::
+  @spec get_and_update!(map, key, (value | nil -> {current_value, new_value :: value} | :pop)) ::
           {current_value, map}
         when current_value: value
   def get_and_update!(map, key, fun) when is_function(fun, 1) do

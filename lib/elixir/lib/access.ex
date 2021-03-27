@@ -99,16 +99,16 @@ defmodule Access do
   @type key :: any
   @type value :: any
 
-  @type get_fun(data, get_value) ::
+  @type get_fun(data, current_value) ::
           (:get, data, (term -> term) ->
-             {get_value, new_data :: container})
+             {current_value, new_data :: container})
 
-  @type get_and_update_fun(data, get_value) ::
+  @type get_and_update_fun(data, current_value) ::
           (:get_and_update, data, (term -> term) ->
-             {get_value, new_data :: container} | :pop)
+             {current_value, new_data :: container} | :pop)
 
-  @type access_fun(data, get_value) ::
-          get_fun(data, get_value) | get_and_update_fun(data, get_value)
+  @type access_fun(data, current_value) ::
+          get_fun(data, current_value) | get_and_update_fun(data, current_value)
 
   @doc """
   Invoked in order to access the value stored under `key` in the given term `term`.
@@ -134,16 +134,16 @@ defmodule Access do
 
   The implementation of this callback should invoke `fun` with the value under
   `key` in the passed structure `data`, or with `nil` if `key` is not present in it.
-  This function must return either `{get_value, update_value}` or `:pop`.
+  This function must return either `{current_value, new_value}` or `:pop`.
 
-  If the passed function returns `{get_value, update_value}`,
-  the return value of this callback should be `{get_value, new_data}`, where:
+  If the passed function returns `{current_value, new_value}`,
+  the return value of this callback should be `{current_value, new_data}`, where:
 
-    * `get_value` is the retrieved value (which can be operated on before being returned)
+    * `current_value` is the retrieved value (which can be operated on before being returned)
 
-    * `update_value` is the new value to be stored under `key`
+    * `new_value` is the new value to be stored under `key`
 
-    * `new_data` is `data` after updating the value of `key` with `update_value`.
+    * `new_data` is `data` after updating the value of `key` with `new_value`.
 
   If the passed function returns `:pop`, the return value of this callback
   must be `{value, new_data}` where `value` is the value under `key`
@@ -152,8 +152,9 @@ defmodule Access do
   See the implementations of `Map.get_and_update/3` or `Keyword.get_and_update/3`
   for more examples.
   """
-  @callback get_and_update(data, key, (value -> {get_value, value} | :pop)) :: {get_value, data}
-            when get_value: var, data: container | any_container
+  @callback get_and_update(data, key, (value | nil -> {current_value, new_value :: value} | :pop)) ::
+              {current_value, new_data :: data}
+            when current_value: value, data: container | any_container
 
   @doc """
   Invoked to "pop" the value under `key` out of the given data structure.
@@ -320,9 +321,9 @@ defmodule Access do
   a struct that implements the `Access` behaviour).
 
   The `fun` argument receives the value of `key` (or `nil` if `key` is not
-  present in `container`) and must return a two-element tuple `{get_value, update_value}`:
-  the "get" value `get_value` (the retrieved value, which can be operated on before
-  being returned) and the new value to be stored under `key` (`update_value`).
+  present in `container`) and must return a two-element tuple `{current_value, new_value}`:
+  the "get" value `current_value` (the retrieved value, which can be operated on before
+  being returned) and the new value to be stored under `key` (`new_value`).
   `fun` may also return `:pop`, which means the current value
   should be removed from the container and returned.
 
@@ -337,8 +338,9 @@ defmodule Access do
       {1, [a: 2]}
 
   """
-  @spec get_and_update(data, key, (value -> {get_value, value} | :pop)) :: {get_value, data}
-        when get_value: var, data: container
+  @spec get_and_update(data, key, (value | nil -> {current_value, new_value :: value} | :pop)) ::
+          {current_value, new_data :: data}
+        when current_value: var, data: container
   def get_and_update(container, key, fun)
 
   def get_and_update(%module{} = container, key, fun) do
@@ -451,7 +453,7 @@ defmodule Access do
       ** (BadMapError) expected a map, got: []
 
   """
-  @spec key(key, term) :: access_fun(data :: struct | map, get_value :: term)
+  @spec key(key, term) :: access_fun(data :: struct | map, current_value :: term)
   def key(key, default \\ nil) do
     fn
       :get, data, next ->
@@ -495,7 +497,7 @@ defmodule Access do
       ** (RuntimeError) Access.key!/1 expected a map/struct, got: []
 
   """
-  @spec key!(key) :: access_fun(data :: struct | map, get_value :: term)
+  @spec key!(key) :: access_fun(data :: struct | map, current_value :: term)
   def key!(key) do
     fn
       :get, %{} = data, next ->
@@ -543,7 +545,7 @@ defmodule Access do
       ** (RuntimeError) Access.elem/1 expected a tuple, got: %{}
 
   """
-  @spec elem(non_neg_integer) :: access_fun(data :: tuple, get_value :: term)
+  @spec elem(non_neg_integer) :: access_fun(data :: tuple, current_value :: term)
   def elem(index) when is_integer(index) and index >= 0 do
     pos = index + 1
 
@@ -597,7 +599,7 @@ defmodule Access do
       ** (RuntimeError) Access.all/0 expected a list, got: %{}
 
   """
-  @spec all() :: access_fun(data :: list, get_value :: list)
+  @spec all() :: access_fun(data :: list, current_value :: list)
   def all() do
     &all/3
   end
@@ -672,7 +674,7 @@ defmodule Access do
       ** (RuntimeError) Access.at/1 expected a list, got: %{}
 
   """
-  @spec at(integer) :: access_fun(data :: list, get_value :: term)
+  @spec at(integer) :: access_fun(data :: list, current_value :: term)
   def at(index) when is_integer(index) do
     fn op, data, next -> at(op, data, index, next) end
   end
@@ -727,7 +729,7 @@ defmodule Access do
 
   """
   @doc since: "1.11.0"
-  @spec at!(integer) :: access_fun(data :: list, get_value :: term)
+  @spec at!(integer) :: access_fun(data :: list, current_value :: term)
   def at!(index) when is_integer(index) do
     fn op, data, next -> at!(op, data, index, next) end
   end
@@ -794,7 +796,7 @@ defmodule Access do
 
   """
   @doc since: "1.6.0"
-  @spec filter((term -> boolean)) :: access_fun(data :: list, get_value :: list)
+  @spec filter((term -> boolean)) :: access_fun(data :: list, current_value :: list)
   def filter(func) when is_function(func) do
     fn op, data, next -> filter(op, data, func, next) end
   end

@@ -2661,8 +2661,8 @@ defmodule Kernel do
   The `fun` argument receives the value of `key` (or `nil` if `key`
   is not present) and must return one of the following values:
 
-    * a two-element tuple `{get_value, new_value}`. In this case,
-      `get_value` is the retrieved value which can possibly be operated on before
+    * a two-element tuple `{current_value, new_value}`. In this case,
+      `current_value` is the retrieved value which can possibly be operated on before
       being returned. `new_value` is the new value to be stored under `key`.
 
     * `:pop`, which implies that the current value under `key`
@@ -2716,13 +2716,14 @@ defmodule Kernel do
   `Access.key/2`, and others as examples.
   """
   @spec get_and_update_in(
-          structure :: Access.t(),
+          structure,
           keys,
-          (term -> {get_value, update_value} | :pop)
-        ) :: {get_value, structure :: Access.t()}
-        when keys: nonempty_list(any),
-             get_value: var,
-             update_value: term
+          (term | nil -> {current_value, new_value} | :pop)
+        ) :: {current_value, new_structure :: structure}
+        when structure: Access.t(),
+             keys: nonempty_list(any),
+             current_value: Access.value(),
+             new_value: Access.value()
   def get_and_update_in(data, keys, fun)
 
   def get_and_update_in(data, [head], fun) when is_function(head, 3),
