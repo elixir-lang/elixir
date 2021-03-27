@@ -287,8 +287,8 @@ defmodule Keyword do
       {nil, [a: 1]}
 
   """
-  @spec get_and_update(t, key, (value -> {current_value, new_value :: value} | :pop)) ::
-          {current_value, value}
+  @spec get_and_update(t, key, (value | nil -> {current_value, new_value :: value} | :pop)) ::
+          {current_value, new_keywords :: t}
         when current_value: value
   def get_and_update(keywords, key, fun)
       when is_list(keywords) and is_atom(key),
@@ -351,8 +351,8 @@ defmodule Keyword do
       {1, []}
 
   """
-  @spec get_and_update!(t, key, (value -> {current_value, new_value :: value} | :pop)) ::
-          {current_value, t}
+  @spec get_and_update!(t, key, (value | nil -> {current_value, new_value :: value} | :pop)) ::
+          {current_value, new_keywords :: t}
         when current_value: value
   def get_and_update!(keywords, key, fun) do
     get_and_update!(keywords, key, fun, [])
@@ -929,7 +929,7 @@ defmodule Keyword do
       [a: 1, b: 11]
 
   """
-  @spec update(t, key, default :: value, (existing_value :: value -> updated_value :: value)) :: t
+  @spec update(t, key, default :: value, (existing_value :: value -> new_value :: value)) :: t
   def update(keywords, key, default, fun)
       when is_list(keywords) and is_atom(key) and is_function(fun, 1) do
     update_guarded(keywords, key, default, fun)
