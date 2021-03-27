@@ -1,5 +1,89 @@
 # Changelog for Elixir v1.12
 
+Elixir v1.12 is out with improvements to scripting, tighter Erlang/OTP 24 integration, stepped ranges, and dozen of new functions across the standard library. Overall this is a small release, which continues our tradition of bringing Elixir developers quality of live improvements every 6 months.
+
+## Scripting improvements: `Mix.install/2` and `System.trap_signal/3`
+
+Elixir v1.12 brings new conveniences for those using Elixir for scripting (via `.exs` files). Elixir has been capable of managing dependencies for a quite long time, but it could only be done within Mix projects. In particular, the Elixir team is wary of global dependencies as any scripts that rely on system packages are brittle and hard to reproduce whenever your system changes.
+
+`Mix.install/2` is meant to be a sweetspot between single-file scripts and full-blown Mix projects. With `Mix.install/2`, you can list your dependencies on top of your scripts. When you execute the script for the first time, Elixir will download, compile, and cache your dependencies before running your script. Future invocations of the script will simply read the compiled artefacts from the cache:
+
+```elixir
+Mix.install([:jason])
+IO.puts Jason.encode!(%{hello: :world})
+```
+
+`Mix.install/2` also performs protocol consolidation, which gives script developers an option to execute their code in the most performant format possible.
+
+Another improvement to scripting is the ability to trap exit signals via `System.trap_signal/3`. All you need is the signal name and a callback that will be invoked when the signal triggers. For example, ExUnit leverages this functionality to print all currently running tests when you abort the test suite via SIGQUIT (`Ctrl+\\ `):
+
+```
+$ mix test
+............................................
+...........^\
+
+Aborting test suite, the following have not completed:
+
+* test query building [test/ecto/query_test.exs:48]
+* test placeholders in Repo.insert_all [test/ecto/repo_test.exs:502]
+
+Showing results so far...
+
+78 doctests, 1042 tests, 0 failures
+```
+
+This is particularly useful when your tests get stuck and you want to know which one is the culprit.
+
+**Important**: Trapping signals may have strong implications on how a system shuts down and behave in production and therefore it is extremely discouraged for libraries to set their own traps. Instead, they should redirect users to configure them themselves. The only cases where it is acceptable for libraries to set their own traps is when using Elixir in script mode, such as in `.exs` files and via Mix tasks.
+
+## Tighter Erlang/OTP 24 integration
+
+Erlang/OTP 24 ships with JIT compilation support and Elixir developers don't have to do anything to reap its benefits. There are many other features in Erlang/OTP 24 to look forwards to and Elixir v1.12 provides integration with many of them: such as support for 16bit floats in bitstrings as well as performance improvements in the compiler and during code evaluation.
+
+Another excellent feature in Erlang/OTP 24 is the implementation of [EEP 54](http://erlang.org/eeps/eep-0054.html), which provides extended error information for many functions in Erlang's stdlib. Elixir v1.12 fully leverages this feature to improve reporting for errors coming from Erlang. For example, in earlier OTP versions, inserting an invalid argument into a ETS table that no longer exists would simply error with `ArgumentError`:
+
+```
+Interactive Elixir (1.11.0)
+iex(1)> ets = :ets.new(:example, [])
+#Reference<0.3845811859.2669281281.223553>
+iex(2)> :ets.delete(ets)
+true
+iex(3)> :ets.insert(ets, :should_be_a_tuple)
+** (ArgumentError) argument error
+    (stdlib 3.15) :ets.insert(#Reference<0.3845811859.2669281281.223553>, :should_be_a_tuple)
+```
+
+However, in Elixir v1.12 with Erlang/OTP 24:
+
+```
+Interactive Elixir (1.12.0)
+iex(1)> ets = :ets.new(:example, [])
+#Reference<0.105641012.1058144260.76455>
+iex(2)> :ets.delete(ets)
+true
+iex(3)> :ets.insert(ets, :should_be_a_tuple)
+** (ArgumentError) errors were found at the given arguments:
+
+  * 1st argument: the table identifier does not refer to an existing ETS table
+  * 2nd argument: not a tuple
+
+    (stdlib 3.15) :ets.insert(#Reference<0.105641012.1058144260.76455>, :should_be_a_tuple)
+```
+
+## Stepped ranges
+
+Elixir has support for ranges from before its v1.0 release. Ranges support only integers and are inclusive, using the mathematic notation `a..b`. Ranges in Elixir are either increasing `1..10` or decreasing `10..1` and the direction of the range was always inferred from the starting and stop positions.
+
+Unfortunately, due to this inference, it is not possible to have empty ranges. For example, if you want to create a list of `n` elements, you can express it with a range from `1..n`, as `1..0` is a decreasing range with two elements.
+
+Elixir v1.12 supports stepped ranges via the `first..last//step` notation. For example: `1..10/2` will emit the numbers `1`, `3`, `5`, `7`, and `9`. You can consider the `//` operator to be a "range modulo" operation, as it effectively divides the number of elements in the range by `step`. Steps can be either positive (increasing ranges) or negative (decreasing ranges). Stepped ranges bring more expressive power to Elixir ranges and they elegantly solve the empty range problem, as they allow the direction of the steps to be explicitly declared instead of inferred.
+
+As of Elixir v1.12, implicitly decreasing ranges are soft-deprecated and warnings will be emitted in future Elixir versions based on our [deprecation policy](https://hexdocs.pm/elixir/compatibility-and-deprecations.html#deprecations).
+
+## Additional functions
+
+Elixir v1.12 has the additional of many functions across the standard library. The `Enum` module received additions such as `Enum.count_until/2`, `Enum.product/1`, `Enum.zip_with/2`, and more. The `Integer` module now includes `Integer.pow/2` and `Integer.extended_gcd/2`. The `Range` module now deals with stepped ranges and includes new convenience functions such as `Range.empty?/1` and `Range.size/1`. Finally, the `Kernel` module got two new functions, `Kernel.then/2` and `Kernel.tap/2`, which are specially useful in `|>` pipelines.
+
 ## v1.12.0-dev
 
 ### 1. Enhancements
@@ -14,11 +98,13 @@
   * [Code] Do not add newlines around interpolation on code formatting. Note this means formatted code that has interpolation after the line length on Elixir v1.12 won't be considered as formatted on earlier Elixir versions
   * [Calendar] Support basic datetime format in `Calendar.ISO` parsing functions
   * [Code] Improve evaluation performance on systems running on Erlang/OTP 24+
+  * [Date] Support steps via `Date.range/3`
   * [DateTime] Add `offset` to `DateTime.to_iso8601/2` (now `to_iso8601/3`)
   * [Enum] Add `Enum.count_until/2` and `Enum.count_until/3`
   * [Enum] Add `Enum.product/1`
   * [Enum] Add `Enum.zip_with/2` and `Enum.zip_with/3`
   * [Enum] Add support for functions as the second argument of `Enum.with_index/2`
+  * [Exception] Show `error_info` data for exceptions coming from Erlang
   * [Float] Add `Float.pow/2`
   * [Integer] Add `Integer.pow/2` and `Integer.extended_gcd/2`
   * [List] Add default value for `List.first/1` and `List.last/1`
