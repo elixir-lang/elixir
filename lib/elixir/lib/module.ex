@@ -724,9 +724,6 @@ defmodule Module do
 
   ## Examples
 
-      iex> Module.safe_concat([Module, Unknown])
-      ** (ArgumentError) argument error
-
       iex> Module.safe_concat([List, Chars])
       List.Chars
 
@@ -744,9 +741,6 @@ defmodule Module do
   It handles charlists, binaries and atoms.
 
   ## Examples
-
-      iex> Module.safe_concat(Module, Unknown)
-      ** (ArgumentError) argument error
 
       iex> Module.safe_concat(List, Chars)
       List.Chars

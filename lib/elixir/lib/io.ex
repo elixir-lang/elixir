@@ -108,8 +108,8 @@ defmodule IO do
   argument error. For example, let's try to put a code point that is not
   representable with one byte, like `?π`, inside IO data:
 
-      iex> IO.iodata_to_binary(["The symbol for pi is: ", ?π])
-      ** (ArgumentError) argument error
+      IO.iodata_to_binary(["The symbol for pi is: ", ?π])
+      #=> ** (ArgumentError) argument error
 
   If we use chardata instead, it will work as expected:
 
