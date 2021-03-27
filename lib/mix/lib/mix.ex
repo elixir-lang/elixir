@@ -472,8 +472,8 @@ defmodule Mix do
 
   The given `deps` should be in the same format as defined in a regular Mix
   project. See `mix help deps` for more information. As a shortcut, an atom
-  can be given as dependency to mean the latest version, i.e.: specifying
-  `:decimal` is the same as `{:decimal, ">= 0.0.0"}`.
+  can be given as dependency to mean the latest version. In other words,
+  specifying `:decimal` is the same as `{:decimal, ">= 0.0.0"}`.
 
   After each successful installation, a given set of dependencies is cached
   so starting another VM and calling `Mix.install/2` with the same dependencies
