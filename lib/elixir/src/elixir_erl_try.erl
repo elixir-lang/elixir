@@ -2,7 +2,8 @@
 -export([clauses/3]).
 -include("elixir.hrl").
 -define(REQUIRES_STACKTRACE,
-        ['Elixir.FunctionClauseError', 'Elixir.UndefinedFunctionError', 'Elixir.KeyError']).
+        ['Elixir.FunctionClauseError', 'Elixir.UndefinedFunctionError',
+         'Elixir.KeyError', 'Elixir.ArgumentError', 'Elixir.SystemLimitError']).
 
 clauses(_Meta, Args, S) ->
   Catch = elixir_erl_clauses:get_clauses('catch', Args, 'catch'),

@@ -1343,10 +1343,7 @@ defmodule KernelTest do
   test "tl/1" do
     assert tl([:one]) == []
     assert tl([1, 2, 3]) == [2, 3]
-
-    assert_raise ArgumentError, "argument error", fn ->
-      tl(empty_list())
-    end
+    assert_raise ArgumentError, fn -> tl(empty_list()) end
 
     assert tl([:a | :b]) == :b
     assert tl([:a, :b | :c]) == [:b | :c]
@@ -1354,11 +1351,7 @@ defmodule KernelTest do
 
   test "hd/1" do
     assert hd([1, 2, 3, 4]) == 1
-
-    assert_raise ArgumentError, "argument error", fn ->
-      hd(empty_list())
-    end
-
+    assert_raise ArgumentError, fn -> hd(empty_list()) end
     assert hd([1 | 2]) == 1
   end
 

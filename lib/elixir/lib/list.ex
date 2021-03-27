@@ -831,9 +831,6 @@ defmodule List do
       iex> List.to_existing_atom('🌢 Elixir')
       :"🌢 Elixir"
 
-      iex> List.to_existing_atom('this_atom_will_never_exist')
-      ** (ArgumentError) argument error
-
   """
   @spec to_existing_atom(charlist) :: atom
   def to_existing_atom(charlist) do

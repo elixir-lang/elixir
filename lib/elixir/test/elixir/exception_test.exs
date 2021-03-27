@@ -231,7 +231,9 @@ defmodule ExceptionTest do
 
       return = {:ok, {{:foo, 1, 1}, []}}
       {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
-      assert Exception.format_exit(reason) == "bad supervisor configuration, invalid strategy: :foo"
+
+      assert Exception.format_exit(reason) ==
+               "bad supervisor configuration, invalid strategy: :foo"
 
       return = {:ok, {{:one_for_one, :foo, 1}, []}}
       {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
@@ -261,7 +263,9 @@ defmodule ExceptionTest do
 
       return = {:ok, {{:one_for_one, 1, 1}, [{:child, {:m, :f, []}, :foo, 1, :worker, []}]}}
       {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
-      assert Exception.format_exit(reason) =~ "bad child specification, invalid restart type: :foo"
+
+      assert Exception.format_exit(reason) =~
+               "bad child specification, invalid restart type: :foo"
 
       return = {
         :ok,
@@ -275,7 +279,9 @@ defmodule ExceptionTest do
       {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
       assert Exception.format_exit(reason) =~ "bad child specification, invalid child type: :foo"
 
-      return = {:ok, {{:one_for_one, 1, 1}, [{:child, {:m, :f, []}, :temporary, 1, :worker, :foo}]}}
+      return =
+        {:ok, {{:one_for_one, 1, 1}, [{:child, {:m, :f, []}, :temporary, 1, :worker, :foo}]}}
+
       {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
       assert Exception.format_exit(reason) =~ "bad child specification, invalid modules: :foo"
 
@@ -705,8 +711,6 @@ defmodule ExceptionTest do
     end
   end
 
-  ## Exception messages
-
   describe "exception messages" do
     import Exception, only: [message: 1]
 
@@ -766,6 +770,47 @@ defmodule ExceptionTest do
 
     test "ErlangError" do
       assert %ErlangError{original: :sample} |> message == "Erlang error: :sample"
+    end
+  end
+
+  if :erlang.system_info(:otp_release) >= '24' do
+    describe "error_info" do
+      test "badarg on erlang" do
+        assert message(:erlang, & &1.element("foo", "bar")) == """
+               errors were found at the given arguments:
+
+                 * 1st argument: not an integer
+                 * 2nd argument: not a tuple
+               """
+      end
+
+      test "badarg on ets" do
+        ets = :ets.new(:foo, [])
+        :ets.delete(ets)
+
+        assert message(:ets, & &1.insert(ets, 1)) == """
+               errors were found at the given arguments:
+
+                 * 1st argument: the table identifier does not refer to an existing ETS table
+                 * 2nd argument: not a tuple
+               """
+      end
+
+      test "system_limit on counters" do
+        assert message(:counters, & &1.new(123_456_789_123_456_789_123_456_789, [])) == """
+               a system limit has been reached due to errors at the given arguments:
+
+                 * 1st argument: counters array size reached a system limit
+               """
+      end
+
+      defp message(arg, fun) do
+        try do
+          fun.(arg)
+        rescue
+          e -> Exception.message(e)
+        end
+      end
     end
   end
 end

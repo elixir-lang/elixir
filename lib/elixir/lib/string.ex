@@ -2384,9 +2384,6 @@ defmodule String do
       iex> String.to_existing_atom("my_atom")
       :my_atom
 
-      iex> String.to_existing_atom("this_atom_will_never_exist")
-      ** (ArgumentError) argument error
-
   """
   @spec to_existing_atom(String.t()) :: atom
   def to_existing_atom(string) when is_binary(string) do

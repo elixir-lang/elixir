@@ -535,11 +535,13 @@ defmodule Kernel do
       hd([1, 2, 3, 4])
       #=> 1
 
-      hd([])
-      ** (ArgumentError) argument error
-
       hd([1 | 2])
       #=> 1
+
+  Giving it an empty list raises:
+
+      tl([])
+      #=> ** (ArgumentError) argument error
 
   """
   @doc guard: true
@@ -1186,9 +1188,6 @@ defmodule Kernel do
       tl([1, 2, 3, :go])
       #=> [2, 3, :go]
 
-      tl([])
-      ** (ArgumentError) argument error
-
       tl([:one])
       #=> []
 
@@ -1197,6 +1196,11 @@ defmodule Kernel do
 
       tl([:a | %{b: 1}])
       #=> %{b: 1}
+
+  Giving it an empty list raises:
+
+      tl([])
+      #=> ** (ArgumentError) argument error
 
   """
   @doc guard: true
