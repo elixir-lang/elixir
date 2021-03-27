@@ -156,17 +156,17 @@ defmodule ExUnit.CaseTest.TmpDir do
   @moduletag :tmp_dir
 
   test "default path", context do
-    assert context.tmp_dir == "tmp/ExUnit.CaseTest.TmpDir/test-default-path"
+    assert context.tmp_dir == Path.expand("tmp/ExUnit.CaseTest.TmpDir/test-default-path")
     assert File.ls!(context.tmp_dir) == []
   end
 
   test "escapes foo?/0", context do
-    assert context.tmp_dir == "tmp/ExUnit.CaseTest.TmpDir/test-escapes-foo--0"
+    assert context.tmp_dir == Path.expand("tmp/ExUnit.CaseTest.TmpDir/test-escapes-foo--0")
   end
 
   @tag tmp_dir: "foo/bar"
   test "custom path", context do
-    assert context.tmp_dir == "tmp/ExUnit.CaseTest.TmpDir/test-custom-path/foo/bar"
+    assert context.tmp_dir == Path.expand("tmp/ExUnit.CaseTest.TmpDir/test-custom-path/foo/bar")
   end
 
   @tag tmp_dir: false

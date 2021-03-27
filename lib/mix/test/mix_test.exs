@@ -75,7 +75,6 @@ defmodule MixTest do
 
       Mix.State.put(:install_called?, false)
 
-      tmp_dir = Path.expand(tmp_dir)
       File.mkdir_p!("#{tmp_dir}/install_test/lib")
 
       File.write!("#{tmp_dir}/install_test/mix.exs", """
