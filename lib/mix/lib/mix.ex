@@ -252,7 +252,7 @@ defmodule Mix do
     * `MIX_HOME` - path to Mix's home directory, stores configuration files and scripts used by Mix
       (default: `~/.mix`)
     * `MIX_INSTALL_DIR` - (since v1.12.0) specifies directory where `Mix.install/2` keeps
-      installs cache.
+      installs cache
     * `MIX_PATH` - appends extra code paths
     * `MIX_QUIET` - does not print information messages to the terminal
     * `MIX_REBAR` - path to rebar command that overrides the one Mix installs
@@ -521,10 +521,8 @@ defmodule Mix do
     end
 
     installs_root =
-      case System.fetch_env("MIX_INSTALL_DIR") do
-        {:ok, dir} -> dir
-        :error -> Path.join(Mix.Utils.mix_cache(), "installs")
-      end
+      System.get_env("MIX_INSTALL_DIR") ||
+        Path.join(Mix.Utils.mix_cache(), "installs")
 
     id = deps |> :erlang.term_to_binary() |> :erlang.md5() |> Base.encode16(case: :lower)
     version = "elixir-#{System.version()}-erts-#{:erlang.system_info(:version)}"
