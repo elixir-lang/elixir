@@ -3432,8 +3432,9 @@ defmodule Enum do
   Zips corresponding elements from two enumerables into a list, transforming them with
   the `zip_fun` function as it goes.
 
-  The corresponding elements from each collection are passed to the provided 2-arity `zip_fun` function in turn.
-  Returns a list that contains the result of calling `zip_fun` for each pair of elements.
+  The corresponding elements from each collection are passed to the provided 2-arity `zip_fun`
+  function in turn. Returns a list that contains the result of calling `zip_fun` for each pair of
+  elements.
 
   The zipping finishes as soon as either enumerable runs out of elements.
 
@@ -3467,9 +3468,10 @@ defmodule Enum do
   Zips corresponding elements from a finite collection of enumerables into list, transforming them with
   the `zip_fun` function as it goes.
 
-  The first element from each of the enums in `enumerables` will be put into a list which is then passed to
-  the 1-arity `zip_fun` function. Then, the second elements from each of the enums are put into a list and passed to
-  `zip_fun`, and so on until any one of the enums in `enumerables` runs out of elements.
+  The first element from each of the enums in `enumerables` will be put into a list which is then
+  passed to the 1-arity `zip_fun` function. Then, the second elements from each of the enums are
+  put into a list and passed to `zip_fun`, and so on until any one of the enums in `enumerables`
+  runs out of elements.
 
   Returns a list with all the results of calling `zip_fun`.
 
@@ -3492,102 +3494,277 @@ defmodule Enum do
     |> :lists.reverse()
   end
 
-  # def reduce(_list, {:halt, acc}, _fun), do: {:halted, acc}
-  # def reduce(list, {:suspend, acc}, fun), do: {:suspended, acc, &reduce(list, &1, fun)}
-  # def reduce([], {:cont, acc}, _fun), do: {:done, acc}
-  # def reduce([head | tail], {:cont, acc}, fun), do: reduce(tail, fun.(head, acc), fun)
-
-  # ## zip
-  # defp zip_list(enumerable1, enumerable2) do
-  #   zip_list(enumerable1, enumerable2, fn x, y -> {x, y} end)
-  # end
-
-  # defp zip_list([head1 | next1], [head2 | next2], fun) do
-  #   [fun.(head1, head2) | zip_list(next1, next2, fun)]
-  # end
-
-  # defp zip_list(_, [], _fun), do: []
-  # defp zip_list([], _, _fun), do: []
-
-  def zip_reduce(left, right, acc, reducer) do
-    non_stop_reducer = &({:cont, reducer.(&1, &2, &3)})
-    enum_zip_reduce_while(left, right, {:cont, acc}, non_stop_reducer)
-  end
-
   @doc """
-  Reduces over two enumerables halting if the accumulator returns {:halt, value} or if
-  either of the enumerables is empty.
+  Reduces a over two enumerables halting as soon as either enumerable is empty.
+
+  ### Zipping Maps
+
+  It's important to remember that zipping inherently relies on order. If you zip two lists you get
+  the element at the index from each list in turn. If we zip two maps together it's tempting to
+  think that you will get the given key in the left map and the matching key in the right map, but
+  there is no such guarantee because map keys are not ordered! Consider the following:
+
+  ```elixir
+  left =  %{:a => 1, 1 => 3}
+  right = %{:a => 1, :b => :c}
+  Enum.zip(left, right)
+  # [{{1, 3}, {:a, 1}}, {{:a, 1}, {:b, :c}}]
+  ```
+  As you can see `:a` does not get paired with `:a`. If this is what you want, you should use
+  `Map.merge/3`
 
   ### Examples
 
-      iex> zip_reduce_while([1], [2], [], fn left, right, acc -> {:cont, [left + right | acc ]} end)
-      [3]
+      iex> Enum.zip_reduce([1, 2], [3, 4], 0, fn x, y, acc -> x + y + acc end)
+      10
 
-      iex> zip_reduce_while([1, 2], [2, 2], [], fn left, right, acc ->
-      ...> if left <= 1, do: [left + right | acc], else: {:halt, acc}
-      ...> end)
-      [3]
-
-      iex> left  = [1, 2]
-      ...> right = [3, 4]
-      ...> {:suspended, acc, cont} =
-      ...>   zip_reduce_while(left, right, {:cont, []}, fn l, r, acc ->
-      ...>   {:suspend, [l + r | acc]}
-      ...> end)
-      ...> {:suspended, acc, cont} = cont.({:cont, acc})
-      ...> cont.({:cont, acc})
+      iex> Enum.zip_reduce([1, 2], [3, 4], [], fn x, y, acc -> [x + y |acc] end)
       [6, 4]
   """
-  def enum_zip_reduce_while(left, right, acc, reducer) do
-    enumerable_zip_reduce_while(left, right, {:cont, acc}, reducer) |> elem(1)
+  def zip_reduce(left, right, acc, reducer) when is_list(left) and is_list(right) do
+    non_stop_reducer = &{:cont, reducer.(&1, &2, &3)}
+
+    fast_enumerable_zip_reduce_while(left, right, {:cont, acc}, non_stop_reducer)
+    |> elem(1)
+  end
+
+  def zip_reduce(left, right, acc, reducer) do
+    non_stop_reducer = fn [l, r], acc -> {:cont, reducer.(l, r, acc)} end
+    enumerable_zip_reduce_while([left, right], {:cont, acc}, non_stop_reducer) |> elem(1)
   end
 
   @doc """
-  Reduces over two enumerables halting if the accumulator returns {:halt, value} or if
+  Reduces a over all of the given enums, halting as soon as either enumerable is empty.
+
+  An element is taken from each enum in turn and is passed to the reducer as a list.
+
+  ### Zipping Maps
+
+  It's important to remember that zipping inherently relies on order. If you zip two lists you get
+  the element at the index from each list in turn. If we zip two maps together it's tempting to
+  think that you will get the given key in the left map and the matching key in the right map, but
+  there is no such guarantee because map keys are not ordered! Consider the following:
+
+  ```elixir
+  left =  %{:a => 1, 1 => 3}
+  right = %{:a => 1, :b => :c}
+  Enum.zip(left, right)
+  # [{{1, 3}, {:a, 1}}, {{:a, 1}, {:b, :c}}]
+  ```
+  As you can see `:a` does not get paired with `:a`. If this is what you want, you should use
+  `Map.merge/3`
+
+  ### Examples
+
+      iex> enums = [[1, 1], [2, 2], [3, 3]]
+      ...>  Enum.zip_reduce(enums, [], fn elements, acc ->
+      ...>    [List.to_tuple(elements) | acc]
+      ...> end)
+      [{1, 2, 3}, {1, 2, 3}]
+
+      iex> enums = [[1, 2], %{a: 3, b: 4}, [5, 6]]
+      ...> Enum.zip_reduce(enums, [], fn elements, acc ->
+      ...>   [List.to_tuple(elements) | acc]
+      ...> end)
+      [{2, {:b, 4}, 6}, {1, {:a, 3}, 5}]
+  """
+  def zip_reduce(enums, acc, reducer) do
+    # turn the enums into Enumerable fns that take consume the thing off of it
+    non_stop_reducer = &{:cont, reducer.(&1, &2)}
+    enumerable_zip_reduce_while(enums, {:cont, acc}, non_stop_reducer) |> elem(1)
+  end
+
+  @doc """
+  Reduces over two enumerables halting if the accumulator returns `{:halt, value}` or if
   either of the enumerables is empty.
 
   The reducer will receive 3 args, the left enumerable's element, the right enumberable's
   element and the accumulator. It should return one of:
 
     * `{:halt, value}` - This will halt the reduction and return `{:halted, value}`
-    * `{:suspect, value}` - This will halt the reduction returning `{:suspended, value, continuation}`
+    * `{:suspend, value}` - This will halt the reduction returning `{:suspended, value, continuation}`
       where continuation is a function that accepts an acc and will continue with the next step
       in the paused reduction.
-    * `{:cont, value}` - This will continue to the next step of the reduction.
+    * `{:cont, value}` - This will continue with the next step of the reduction.
 
   ### Examples
 
-      iex> enumerable_zip_reduce_while([1], [2], [], fn l, r, acc -> {:cont, [l + r | acc ]} end)
+      iex> reducer = fn left, right, acc -> {:cont, [left + right | acc ]} end
+      ...> Enum.zip_reduce_while([1], [2], [], reducer)
+      [3]
+
+      iex> Enum.zip_reduce_while([1, 2], [2, 2], [], fn left, right, acc ->
+      ...>   if left <= 1, do: {:cont, [left + right | acc]}, else: {:halt, acc}
+      ...> end)
+      [3]
+
+      iex> left  = [1, 2]
+      ...> right = [3, 4]
+      ...> Enum.zip_reduce_while(left, right, [], fn l, r, acc ->
+      ...>  {:suspend, [l + r | acc]}
+      ...> end)
+      [4]
+  """
+  def zip_reduce_while(left, right, acc, reducer) when is_list(left) and is_list(right) do
+    fast_enumerable_zip_reduce_while(left, right, {:cont, acc}, reducer) |> elem(1)
+  end
+
+  def zip_reduce_while(left, right, acc, reducer) do
+    reduce = fn [l, r], acc -> reducer.(l, r, acc) end
+    enumerable_zip_reduce_while([left, right], {:cont, acc}, reduce) |> elem(1)
+  end
+
+  @doc """
+  Reduces over all enumerables halting if the accumulator returns `{:halt, value}` or if
+  any of the enumerables is empty.
+
+  The reducer will receive 2 args, a list of the yielded elements and the accumulator.
+  It should return one of:
+
+    * `{:halt, value}` - This will halt the reduction and return `value`
+    * `{:suspend, value}` - This will halt the reduction returning `value`
+    * `{:cont, value}` - This will continue with the next step of the reduction.
+
+  ### Examples
+
+      iex> enums = [[1, 2],[3, 4]]
+      ...> reducer = fn values, acc -> {:cont, Enum.sum(values) + acc} end
+      ...> Enum.zip_reduce_while(enums, 0, reducer)
+      10
+
+      iex> enums = [[1, 2],[3, 4]]
+      ...> reducer = fn values, acc -> {:suspend, [Enum.sum(values) | acc]} end
+      ...> Enum.zip_reduce_while(enums, [], reducer)
+      [4]
+
+      iex> enums = [[1, 2],[3, 4]]
+      ...> reducer = fn values, acc -> {:halt, [Enum.sum(values)  |acc]} end
+      ...> Enum.zip_reduce_while(enums, [], reducer)
+      [4]
+  """
+  def zip_reduce_while(enums, acc, reducer) do
+    enumerable_zip_reduce_while(enums, {:cont, acc}, reducer) |> elem(1)
+  end
+
+  def enumerable_zip_reduce_while(enums, acc, reducer) do
+    enum_funs =
+      Enum.map(enums, fn enum ->
+        # The acc here basically doesn't matter as it gets ignored in the step
+        &Enumerable.reduce(enum, &1, fn x, _acc -> {:suspend, x} end)
+      end)
+
+    unwrap_continue(acc, enum_funs, &do_zip(enum_funs, &1, reducer))
+  end
+
+  defp do_zip(enums, acc, reducer) do
+    try do
+      take_a_step(enums, acc, reducer)
+    catch
+      kind, reason ->
+        close_zips(enums)
+        :erlang.raise(kind, reason, __STACKTRACE__)
+    end
+  end
+
+  defp take_a_step(enums, acc, reducer) do
+    Enum.reduce_while(enums, {[], []}, fn enum, {yielded_elems, next_steps} ->
+      case enum.({:cont, :ignored}) do
+        {:suspended, yielded_elem, cont} ->
+          {:cont, {[yielded_elem | yielded_elems], [cont | next_steps]}}
+
+        # If one is finished they all are so we halt
+        {:done, _} ->
+          {:halt, :halt}
+      end
+    end)
+    |> case do
+      {elements, next_enums} ->
+        next_enums = :lists.reverse(next_enums)
+        new_acc = reducer.(:lists.reverse(elements), acc)
+        unwrap_continue(new_acc, next_enums, &do_zip(next_enums, &1, reducer))
+
+      :halt ->
+        close_zips(enums)
+        {:done, acc}
+    end
+  end
+
+  defp unwrap_continue({:cont, acc}, _zips, continue), do: continue.(acc)
+
+  defp unwrap_continue({:halt, acc}, zips, _continue) do
+    close_zips(zips)
+    {:halted, acc}
+  end
+
+  defp unwrap_continue({:suspend, acc}, zips, continue) do
+    {:suspended, acc, &unwrap_continue(&1, zips, continue)}
+  end
+
+  # defp unwrap_continue(acc, _zips, _continue) do
+  # raise "Incorrect accumulator"
+  # end
+
+  defp close_zips(zips), do: :lists.foreach(fn enum -> enum.({:halt, []}) end, zips)
+
+  @doc """
+  Reduces over two enumerables halting if the accumulator returns `{:halt, value}` or if
+  either of the enumerables is empty.
+
+  The reducer will receive 3 args, the left enumerable's element, the right enumberable's
+  element and the accumulator. It should return one of:
+
+    * `{:halt, value}` - This will halt the reduction and return `{:halted, value}`
+    * `{:suspend, value}` - This will halt the reduction returning `{:suspended, value, continuation}`
+      where continuation is a function that accepts an acc and will continue with the next step
+      in the paused reduction.
+    * `{:cont, value}` - This will continue with the next step of the reduction.
+
+  ### Examples
+
+      iex> reducer = fn l, r, acc -> {:cont, [l + r | acc ]} end
+      ...> fast_enumerable_zip_reduce_while([1], [2], {:cont, []}, reducer)
       {:done, [3]}
 
-      iex> enumerable_zip_reduce_while([1, 2], [2, 2], [], fn l, r, acc ->
-      ...> if l <= 1, do: [l + r | acc], else: {:halt, acc}
+      iex> fast_enumerable_zip_reduce_while([1, 2], [2, 2], {:cont, []}, fn l, r, acc ->
+      ...>   if l <= 1, do: {:cont, [l + r | acc]}, else: {:halt, acc}
       ...> end)
       {:halted, [3]}
 
       iex> left  = [1, 2]
       ...> right = [3, 4]
       ...> {:suspended, acc, cont} =
-      ...>   enumerable_zip_reduce_while(left, right, {:cont, []}, fn l, r, acc ->
+      ...>   fast_enumerable_zip_reduce_while(left, right, {:cont, []}, fn l, r, acc ->
       ...>     {:suspend, [l + r | acc]}
       ...>   end)
       ...> {:suspended, acc, cont} = cont.({:cont, acc})
       ...> cont.({:cont, acc})
       {:done, [6, 4]}
   """
-  # This is low level reduce_while but has different semantics from the Enum.reduce_while.
-  # This is more like Enumerable.reduce_while (which Enum.reduce_while uses.)
-  def enumerable_zip_reduce_while(_left, _right, {:halt, acc}, _), do: {:halted, acc}
 
-  def enumerable_zip_reduce_while(left, right, {:suspend, acc}, reducer) do
-    {:suspended, acc, &enumerable_zip_reduce_while(left, right, &1, reducer)}
+  # This is analagous to Enumerable.reduce_while. It's quicker than the general solution
+  # so we can get a speed up if we know we are working on lists exclusively.
+
+  def fast_enumerable_zip_reduce_while(_left, _right, {:halt, acc}, _), do: {:halted, acc}
+
+  def fast_enumerable_zip_reduce_while(left, right, {:suspend, acc}, reducer) do
+    {:suspended, acc, &fast_enumerable_zip_reduce_while(left, right, &1, reducer)}
   end
 
-  def enumerable_zip_reduce_while([], _right, {:cont, acc}, reducer), do: {:done, acc}
-  def enumerable_zip_reduce_while(_left, [], {:cont, acc}, reducer), do: {:done, acc}
+  def fast_enumerable_zip_reduce_while([], _right, {:cont, acc}, _), do: {:done, acc}
+  def fast_enumerable_zip_reduce_while(_left, [], {:cont, acc}, _), do: {:done, acc}
 
-  def enumerable_zip_reduce_while([left_head | left_tail], [right_head | right_tail], {:cont, acc}, reducer) do
-    enumerable_zip_reduce_while(left_tail, right_tail, reducer.(left_head, right_head, acc), reducer)
+  def fast_enumerable_zip_reduce_while(
+        [left_head | left_tail],
+        [right_head | right_tail],
+        {:cont, acc},
+        reducer
+      ) do
+    fast_enumerable_zip_reduce_while(
+      left_tail,
+      right_tail,
+      reducer.(left_head, right_head, acc),
+      reducer
+    )
   end
 
   ## Helpers

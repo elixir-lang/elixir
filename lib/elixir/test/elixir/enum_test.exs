@@ -2,7 +2,7 @@ Code.require_file("test_helper.exs", __DIR__)
 
 defmodule EnumTest do
   use ExUnit.Case, async: true
-  doctest Enum
+  doctest Enum, import: true
 
   defp assert_runs_enumeration_only_once(enum_fun) do
     enumerator =
@@ -14,6 +14,133 @@ defmodule EnumTest do
     enum_fun.(enumerator)
     assert_received :element
     refute_received :element
+  end
+
+  describe "zip_reduce/4" do
+    test "two non lists" do
+      left = %{a: 1}
+      right = %{b: 2}
+      reducer = fn {_, x}, {_, y}, acc -> [x + y | acc] end
+      assert Enum.zip_reduce(left, right, [], reducer) == [3]
+    end
+
+    test "lists" do
+      assert Enum.zip_reduce([1, 2], [3, 4], 0, fn x, y, acc -> x + y + acc end) == 10
+      assert Enum.zip_reduce([1, 2], [3, 4], [], fn x, y, acc -> [x + y | acc] end) == [6, 4]
+    end
+  end
+
+  describe "zip_reduce/3" do
+    test "lists work" do
+      enums = [[1, 1], [2, 2], [3, 3]]
+
+      result =
+        Enum.zip_reduce(enums, [], fn elements, acc ->
+          [List.to_tuple(elements) | acc]
+        end)
+
+      assert result == [{1, 2, 3}, {1, 2, 3}]
+    end
+
+    test "mix and match" do
+      enums = [[1, 2], %{a: 3, b: 4}, [5, 6]]
+
+      result =
+        Enum.zip_reduce(enums, [], fn elements, acc ->
+          [List.to_tuple(elements) | acc]
+        end)
+
+      assert result == [{2, {:b, 4}, 6}, {1, {:a, 3}, 5}]
+    end
+  end
+
+  describe "zip_reduce_while/4" do
+    test "lists" do
+      left = [1, 2]
+      right = [3, 4]
+      reducer = fn x, y, acc -> {:cont, x + y + acc} end
+      assert Enum.zip_reduce_while(left, right, 0, reducer) == 10
+
+      left = [1, 2]
+      right = [3, 4]
+      reducer = fn x, y, acc -> {:cont, [x + y | acc]} end
+      assert Enum.zip_reduce_while(left, right, [], reducer) == [6, 4]
+
+      # Suspending the reduction
+      left = [1, 2]
+      right = [3, 4]
+
+      result =
+        Enum.zip_reduce_while(left, right, [], fn l, r, acc ->
+          {:suspend, [l + r | acc]}
+        end)
+
+      assert result == [4]
+
+      # Halting the reduction
+      left = [1, 2]
+      right = [3, 4]
+      reducer = fn x, y, acc -> {:halt, [x + y | acc]} end
+      assert Enum.zip_reduce_while(left, right, [], reducer) == [4]
+    end
+
+    test "two non lists" do
+      left = %{a: 1}
+      right = %{b: 2}
+      reducer = fn {_, x}, {_, y}, acc -> {:cont, [x + y | acc]} end
+      assert Enum.zip_reduce_while(left, right, [], reducer) == [3]
+    end
+  end
+
+  describe "zip_reduce_while/3" do
+    test "lists" do
+      enums = [[1, 2], [3, 4]]
+      reducer = fn values, acc -> {:cont, Enum.sum(values) + acc} end
+      assert Enum.zip_reduce_while(enums, 0, reducer) == 10
+
+      reducer = fn values, acc -> {:cont, [Enum.sum(values) | acc]} end
+      assert Enum.zip_reduce_while(enums, [], reducer) == [6, 4]
+
+      # Suspending the reduction
+      reducer = fn values, acc -> {:suspend, [Enum.sum(values) | acc]} end
+      result = Enum.zip_reduce_while(enums, [], reducer)
+      assert result == [4]
+
+      # Halting the reduction
+      reducer = fn values, acc -> {:halt, [Enum.sum(values) | acc]} end
+      assert Enum.zip_reduce_while(enums, [], reducer) == [4]
+    end
+
+    test "non lists" do
+      enums = [%{a: 1, b: 2}, %{c: 3, d: 4}]
+
+      reducer = fn values, acc ->
+        {:cont, Enum.sum(Enum.map(values, &elem(&1, 1))) + acc}
+      end
+
+      assert Enum.zip_reduce_while(enums, 0, reducer) == 10
+
+      reducer = fn values, acc ->
+        {:cont, [Enum.sum(Enum.map(values, &elem(&1, 1))) | acc]}
+      end
+
+      assert Enum.zip_reduce_while(enums, [], reducer) == [6, 4]
+
+      # Suspending the reduction
+      reducer = fn values, acc ->
+        {:suspend, [Enum.sum(Enum.map(values, &elem(&1, 1))) | acc]}
+      end
+
+      result = Enum.zip_reduce_while(enums, [], reducer)
+      assert result == [4]
+
+      # Halting the reduction
+      reducer = fn values, acc ->
+        {:halt, [Enum.sum(Enum.map(values, &elem(&1, 1))) | acc]}
+      end
+
+      assert Enum.zip_reduce_while(enums, [], reducer) == [4]
+    end
   end
 
   test "all?/2" do
