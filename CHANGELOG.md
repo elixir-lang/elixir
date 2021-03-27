@@ -19,8 +19,8 @@ Another improvement to scripting is the ability to trap exit signals via `System
 
 ```
 $ mix test
-............................................
-...........^\
+.......................................................................
+.....................^\
 
 Aborting test suite, the following have not completed:
 
@@ -72,11 +72,11 @@ iex(3)> :ets.insert(ets, :should_be_a_tuple)
 
 ## Stepped ranges
 
-Elixir has support for ranges from before its v1.0 release. Ranges support only integers and are inclusive, using the mathematic notation `a..b`. Ranges in Elixir are either increasing `1..10` or decreasing `10..1` and the direction of the range was always inferred from the starting and stop positions.
+Elixir has support for ranges from before its v1.0 release. Ranges support only integers and are inclusive, using the mathematic notation `a..b`. Ranges in Elixir are either increasing `1..10` or decreasing `10..1` and the direction of the range was always inferred from the starting and stop positions. Ranges are always lazy as its values are emitted as they are enumerated rather than being computed upfront.
 
 Unfortunately, due to this inference, it is not possible to have empty ranges. For example, if you want to create a list of `n` elements, you can express it with a range from `1..n`, as `1..0` is a decreasing range with two elements.
 
-Elixir v1.12 supports stepped ranges via the `first..last//step` notation. For example: `1..10//2` will emit the numbers `1`, `3`, `5`, `7`, and `9`. You can consider the `//` operator to be a "range modulo" operation, as it effectively divides the number of elements in the range by `step`. Steps can be either positive (increasing ranges) or negative (decreasing ranges). Stepped ranges bring more expressive power to Elixir ranges and they elegantly solve the empty range problem, as they allow the direction of the steps to be explicitly declared instead of inferred.
+Elixir v1.12 supports stepped ranges via the `first..last//step` notation. For example: `1..10//2` will emit the numbers `1`, `3`, `5`, `7`, and `9`. You can consider the `//` operator to perform "range division", as it effectively divides and rounds up the number of elements in the range by `step`. Steps can be either positive (increasing ranges) or negative (decreasing ranges). Stepped ranges bring more expressive power to Elixir ranges and they elegantly solve the empty range problem, as they allow the direction of the steps to be explicitly declared instead of inferred.
 
 As of Elixir v1.12, implicitly decreasing ranges are soft-deprecated and warnings will be emitted in future Elixir versions based on our [deprecation policy](https://hexdocs.pm/elixir/compatibility-and-deprecations.html#deprecations).
 
