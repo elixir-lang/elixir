@@ -394,7 +394,7 @@ defmodule ExUnit.Runner do
   defp create_tmp_dir!(test, extra_path, context) do
     module = escape_path(inspect(test.module))
     name = escape_path(to_string(test.name))
-    path = Path.join(["tmp", module, name, extra_path])
+    path = ["tmp", module, name, extra_path] |> Path.join() |> Path.expand()
     File.rm_rf!(path)
     File.mkdir_p!(path)
     Map.put(context, :tmp_dir, path)
