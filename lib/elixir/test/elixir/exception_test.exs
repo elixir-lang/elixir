@@ -185,222 +185,222 @@ defmodule ExceptionTest do
              ~r"#Function<\d+\.\d+/0 in ExceptionTest\.\"test format_fa/2\"/1>/1"
   end
 
-  ## Format exits
+  describe "format_exit/1" do
+    test "with atom/tuples" do
+      assert Exception.format_exit(:bye) == ":bye"
+      assert Exception.format_exit(:noconnection) == "no connection"
+      assert Exception.format_exit({:nodedown, :node@host}) == "no connection to node@host"
+      assert Exception.format_exit(:timeout) == "time out"
+      assert Exception.format_exit(:noproc) |> String.starts_with?("no process:")
+      assert Exception.format_exit(:killed) == "killed"
+      assert Exception.format_exit(:normal) == "normal"
+      assert Exception.format_exit(:shutdown) == "shutdown"
+      assert Exception.format_exit(:calling_self) == "process attempted to call itself"
+      assert Exception.format_exit({:shutdown, :bye}) == "shutdown: :bye"
 
-  test "format_exit/1" do
-    assert Exception.format_exit(:bye) == ":bye"
-    assert Exception.format_exit(:noconnection) == "no connection"
-    assert Exception.format_exit({:nodedown, :node@host}) == "no connection to node@host"
-    assert Exception.format_exit(:timeout) == "time out"
-    assert Exception.format_exit(:noproc) |> String.starts_with?("no process:")
-    assert Exception.format_exit(:killed) == "killed"
-    assert Exception.format_exit(:normal) == "normal"
-    assert Exception.format_exit(:shutdown) == "shutdown"
-    assert Exception.format_exit(:calling_self) == "process attempted to call itself"
-    assert Exception.format_exit({:shutdown, :bye}) == "shutdown: :bye"
+      assert Exception.format_exit({:badarg, [{:not_a_real_module, :function, 0, []}]}) ==
+               "an exception was raised:\n    ** (ArgumentError) argument error\n        :not_a_real_module.function/0"
 
-    assert Exception.format_exit({:badarg, [{:not_a_real_module, :function, 0, []}]}) ==
-             "an exception was raised:\n    ** (ArgumentError) argument error\n        :not_a_real_module.function/0"
+      assert Exception.format_exit({:bad_call, :request}) == "bad call: :request"
+      assert Exception.format_exit({:bad_cast, :request}) == "bad cast: :request"
 
-    assert Exception.format_exit({:bad_call, :request}) == "bad call: :request"
-    assert Exception.format_exit({:bad_cast, :request}) == "bad cast: :request"
+      assert Exception.format_exit({:start_spec, :unexpected}) ==
+               "bad child specification, got: :unexpected"
 
-    assert Exception.format_exit({:start_spec, :unexpected}) ==
-             "bad child specification, got: :unexpected"
+      assert Exception.format_exit({:supervisor_data, :unexpected}) ==
+               "bad supervisor configuration, got: :unexpected"
+    end
 
-    assert Exception.format_exit({:supervisor_data, :unexpected}) ==
-             "bad supervisor configuration, got: :unexpected"
-  end
+    defmodule Sup do
+      def start_link(fun), do: :supervisor.start_link(__MODULE__, fun)
 
-  defmodule Sup do
-    def start_link(fun), do: :supervisor.start_link(__MODULE__, fun)
+      def init(fun), do: fun.()
+    end
 
-    def init(fun), do: fun.()
-  end
+    test "with supervisor errors" do
+      Process.flag(:trap_exit, true)
 
-  test "format_exit/1 with supervisor errors" do
-    Process.flag(:trap_exit, true)
+      {:error, reason} = __MODULE__.Sup.start_link(fn -> :foo end)
 
-    {:error, reason} = __MODULE__.Sup.start_link(fn -> :foo end)
+      assert Exception.format_exit(reason) ==
+               "#{inspect(__MODULE__.Sup)}.init/1 returned a bad value: :foo"
 
-    assert Exception.format_exit(reason) ==
-             "#{inspect(__MODULE__.Sup)}.init/1 returned a bad value: :foo"
+      return = {:ok, {:foo, []}}
+      {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
+      assert Exception.format_exit(reason) == "bad supervisor configuration, invalid type: :foo"
 
-    return = {:ok, {:foo, []}}
-    {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
-    assert Exception.format_exit(reason) == "bad supervisor configuration, invalid type: :foo"
+      return = {:ok, {{:foo, 1, 1}, []}}
+      {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
+      assert Exception.format_exit(reason) == "bad supervisor configuration, invalid strategy: :foo"
 
-    return = {:ok, {{:foo, 1, 1}, []}}
-    {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
-    assert Exception.format_exit(reason) == "bad supervisor configuration, invalid strategy: :foo"
+      return = {:ok, {{:one_for_one, :foo, 1}, []}}
+      {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
 
-    return = {:ok, {{:one_for_one, :foo, 1}, []}}
-    {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
+      assert Exception.format_exit(reason) ==
+               "bad supervisor configuration, invalid max_restarts (intensity): :foo"
 
-    assert Exception.format_exit(reason) ==
-             "bad supervisor configuration, invalid max_restarts (intensity): :foo"
+      return = {:ok, {{:one_for_one, 1, :foo}, []}}
+      {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
 
-    return = {:ok, {{:one_for_one, 1, :foo}, []}}
-    {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
+      assert Exception.format_exit(reason) ==
+               "bad supervisor configuration, invalid max_seconds (period): :foo"
 
-    assert Exception.format_exit(reason) ==
-             "bad supervisor configuration, invalid max_seconds (period): :foo"
+      return = {:ok, {{:simple_one_for_one, 1, 1}, :foo}}
+      {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
+      assert Exception.format_exit(reason) == "bad child specification, invalid children: :foo"
 
-    return = {:ok, {{:simple_one_for_one, 1, 1}, :foo}}
-    {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
-    assert Exception.format_exit(reason) == "bad child specification, invalid children: :foo"
+      return = {:ok, {{:one_for_one, 1, 1}, [:foo]}}
+      {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
 
-    return = {:ok, {{:one_for_one, 1, 1}, [:foo]}}
-    {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
+      assert Exception.format_exit(reason) ==
+               "bad child specification, invalid child specification: :foo"
 
-    assert Exception.format_exit(reason) ==
-             "bad child specification, invalid child specification: :foo"
+      return = {:ok, {{:one_for_one, 1, 1}, [{:child, :foo, :temporary, 1, :worker, []}]}}
+      {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
+      assert Exception.format_exit(reason) == "bad child specification, invalid mfa: :foo"
 
-    return = {:ok, {{:one_for_one, 1, 1}, [{:child, :foo, :temporary, 1, :worker, []}]}}
-    {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
-    assert Exception.format_exit(reason) == "bad child specification, invalid mfa: :foo"
+      return = {:ok, {{:one_for_one, 1, 1}, [{:child, {:m, :f, []}, :foo, 1, :worker, []}]}}
+      {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
+      assert Exception.format_exit(reason) =~ "bad child specification, invalid restart type: :foo"
 
-    return = {:ok, {{:one_for_one, 1, 1}, [{:child, {:m, :f, []}, :foo, 1, :worker, []}]}}
-    {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
-    assert Exception.format_exit(reason) =~ "bad child specification, invalid restart type: :foo"
-
-    return = {
-      :ok,
-      {{:one_for_one, 1, 1}, [{:child, {:m, :f, []}, :temporary, :foo, :worker, []}]}
-    }
-
-    {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
-    assert Exception.format_exit(reason) =~ "bad child specification, invalid shutdown: :foo"
-
-    return = {:ok, {{:one_for_one, 1, 1}, [{:child, {:m, :f, []}, :temporary, 1, :foo, []}]}}
-    {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
-    assert Exception.format_exit(reason) =~ "bad child specification, invalid child type: :foo"
-
-    return = {:ok, {{:one_for_one, 1, 1}, [{:child, {:m, :f, []}, :temporary, 1, :worker, :foo}]}}
-    {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
-    assert Exception.format_exit(reason) =~ "bad child specification, invalid modules: :foo"
-
-    return = {
-      :ok,
-      {{:one_for_one, 1, 1}, [{:child, {:m, :f, []}, :temporary, 1, :worker, [{:foo}]}]}
-    }
-
-    {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
-    assert Exception.format_exit(reason) =~ "bad child specification, invalid module: {:foo}"
-
-    return = {
-      :ok,
-      {
-        {:one_for_one, 1, 1},
-        [
-          {:child, {:m, :f, []}, :permanent, 1, :worker, []},
-          {:child, {:m, :f, []}, :permanent, 1, :worker, []}
-        ]
+      return = {
+        :ok,
+        {{:one_for_one, 1, 1}, [{:child, {:m, :f, []}, :temporary, :foo, :worker, []}]}
       }
-    }
 
-    {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
+      {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
+      assert Exception.format_exit(reason) =~ "bad child specification, invalid shutdown: :foo"
 
-    assert Exception.format_exit(reason) =~
-             "bad child specification, more than one child specification has the id: :child"
+      return = {:ok, {{:one_for_one, 1, 1}, [{:child, {:m, :f, []}, :temporary, 1, :foo, []}]}}
+      {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
+      assert Exception.format_exit(reason) =~ "bad child specification, invalid child type: :foo"
 
-    return = {
-      :ok,
-      {{:one_for_one, 1, 1}, [{:child, {Kernel, :exit, [:foo]}, :temporary, 1, :worker, []}]}
-    }
+      return = {:ok, {{:one_for_one, 1, 1}, [{:child, {:m, :f, []}, :temporary, 1, :worker, :foo}]}}
+      {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
+      assert Exception.format_exit(reason) =~ "bad child specification, invalid modules: :foo"
 
-    {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
-
-    assert Exception.format_exit(reason) ==
-             "shutdown: failed to start child: :child\n    ** (EXIT) :foo"
-
-    return = {
-      :ok,
-      {
-        {:one_for_one, 1, 1},
-        [{:child, {Kernel, :apply, [fn -> {:error, :foo} end, []]}, :temporary, 1, :worker, []}]
+      return = {
+        :ok,
+        {{:one_for_one, 1, 1}, [{:child, {:m, :f, []}, :temporary, 1, :worker, [{:foo}]}]}
       }
-    }
 
-    {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
+      {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
+      assert Exception.format_exit(reason) =~ "bad child specification, invalid module: {:foo}"
 
-    assert Exception.format_exit(reason) ==
-             "shutdown: failed to start child: :child\n    ** (EXIT) :foo"
-  end
+      return = {
+        :ok,
+        {
+          {:one_for_one, 1, 1},
+          [
+            {:child, {:m, :f, []}, :permanent, 1, :worker, []},
+            {:child, {:m, :f, []}, :permanent, 1, :worker, []}
+          ]
+        }
+      }
 
-  test "format_exit/1 with call" do
-    reason =
-      try do
-        :gen_server.call(:does_not_exist, :hello)
-      catch
-        :exit, reason -> reason
-      end
+      {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
 
-    expected_to_start_with =
-      "exited in: :gen_server.call(:does_not_exist, :hello)\n    ** (EXIT) no process:"
+      assert Exception.format_exit(reason) =~
+               "bad child specification, more than one child specification has the id: :child"
 
-    assert Exception.format_exit(reason) |> String.starts_with?(expected_to_start_with)
-  end
+      return = {
+        :ok,
+        {{:one_for_one, 1, 1}, [{:child, {Kernel, :exit, [:foo]}, :temporary, 1, :worker, []}]}
+      }
 
-  test "format_exit/1 with nested calls" do
-    Process.flag(:trap_exit, true)
-    # Fake reason to prevent error_logger printing to stdout
-    exit_fun = fn -> receive do: (_ -> exit(:normal)) end
+      {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
 
-    outer_pid =
-      spawn_link(fn ->
-        Process.flag(:trap_exit, true)
+      assert Exception.format_exit(reason) ==
+               "shutdown: failed to start child: :child\n    ** (EXIT) :foo"
 
-        receive do
-          _ ->
-            :gen_event.call(spawn_link(exit_fun), :handler, :hello)
+      return = {
+        :ok,
+        {
+          {:one_for_one, 1, 1},
+          [{:child, {Kernel, :apply, [fn -> {:error, :foo} end, []]}, :temporary, 1, :worker, []}]
+        }
+      }
+
+      {:error, reason} = __MODULE__.Sup.start_link(fn -> return end)
+
+      assert Exception.format_exit(reason) ==
+               "shutdown: failed to start child: :child\n    ** (EXIT) :foo"
+    end
+
+    test "with call" do
+      reason =
+        try do
+          :gen_server.call(:does_not_exist, :hello)
+        catch
+          :exit, reason -> reason
         end
-      end)
 
-    reason =
-      try do
-        :gen_server.call(outer_pid, :hi)
-      catch
-        :exit, reason -> reason
-      end
+      expected_to_start_with =
+        "exited in: :gen_server.call(:does_not_exist, :hello)\n    ** (EXIT) no process:"
 
-    formatted = Exception.format_exit(reason)
-    assert formatted =~ ~r"exited in: :gen_server\.call\(#PID<\d+\.\d+\.\d+>, :hi\)\n"
+      assert Exception.format_exit(reason) |> String.starts_with?(expected_to_start_with)
+    end
 
-    assert formatted =~
-             ~r"\s{4}\*\* \(EXIT\) exited in: :gen_event\.call\(#PID<\d+\.\d+\.\d+>, :handler, :hello\)\n"
+    test "with nested calls" do
+      Process.flag(:trap_exit, true)
+      # Fake reason to prevent error_logger printing to stdout
+      exit_fun = fn -> receive do: (_ -> exit(:normal)) end
 
-    assert formatted =~ ~r"\s{8}\*\* \(EXIT\) normal"
-  end
+      outer_pid =
+        spawn_link(fn ->
+          Process.flag(:trap_exit, true)
 
-  test "format_exit/1 with nested calls and exception" do
-    Process.flag(:trap_exit, true)
-    # Fake reason to prevent error_logger printing to stdout
-    exit_reason = {%ArgumentError{}, [{:not_a_real_module, :function, 0, []}]}
-    exit_fun = fn -> receive do: (_ -> exit(exit_reason)) end
+          receive do
+            _ ->
+              :gen_event.call(spawn_link(exit_fun), :handler, :hello)
+          end
+        end)
 
-    outer_pid =
-      spawn_link(fn ->
-        Process.flag(:trap_exit, true)
-        :gen_event.call(spawn_link(exit_fun), :handler, :hello)
-      end)
+      reason =
+        try do
+          :gen_server.call(outer_pid, :hi)
+        catch
+          :exit, reason -> reason
+        end
 
-    reason =
-      try do
-        :gen_server.call(outer_pid, :hi)
-      catch
-        :exit, reason -> reason
-      end
+      formatted = Exception.format_exit(reason)
+      assert formatted =~ ~r"exited in: :gen_server\.call\(#PID<\d+\.\d+\.\d+>, :hi\)\n"
 
-    formatted = Exception.format_exit(reason)
-    assert formatted =~ ~r"exited in: :gen_server\.call\(#PID<\d+\.\d+\.\d+>, :hi\)\n"
+      assert formatted =~
+               ~r"\s{4}\*\* \(EXIT\) exited in: :gen_event\.call\(#PID<\d+\.\d+\.\d+>, :handler, :hello\)\n"
 
-    assert formatted =~
-             ~r"\s{4}\*\* \(EXIT\) exited in: :gen_event\.call\(#PID<\d+\.\d+\.\d+>, :handler, :hello\)\n"
+      assert formatted =~ ~r"\s{8}\*\* \(EXIT\) normal"
+    end
 
-    assert formatted =~ ~r"\s{8}\*\* \(EXIT\) an exception was raised:\n"
-    assert formatted =~ ~r"\s{12}\*\* \(ArgumentError\) argument error\n"
-    assert formatted =~ ~r"\s{16}:not_a_real_module\.function/0"
+    test "format_exit/1 with nested calls and exception" do
+      Process.flag(:trap_exit, true)
+      # Fake reason to prevent error_logger printing to stdout
+      exit_reason = {%ArgumentError{}, [{:not_a_real_module, :function, 0, []}]}
+      exit_fun = fn -> receive do: (_ -> exit(exit_reason)) end
+
+      outer_pid =
+        spawn_link(fn ->
+          Process.flag(:trap_exit, true)
+          :gen_event.call(spawn_link(exit_fun), :handler, :hello)
+        end)
+
+      reason =
+        try do
+          :gen_server.call(outer_pid, :hi)
+        catch
+          :exit, reason -> reason
+        end
+
+      formatted = Exception.format_exit(reason)
+      assert formatted =~ ~r"exited in: :gen_server\.call\(#PID<\d+\.\d+\.\d+>, :hi\)\n"
+
+      assert formatted =~
+               ~r"\s{4}\*\* \(EXIT\) exited in: :gen_event\.call\(#PID<\d+\.\d+\.\d+>, :handler, :hello\)\n"
+
+      assert formatted =~ ~r"\s{8}\*\* \(EXIT\) an exception was raised:\n"
+      assert formatted =~ ~r"\s{12}\*\* \(ArgumentError\) argument error\n"
+      assert formatted =~ ~r"\s{16}:not_a_real_module\.function/0"
+    end
   end
 
   describe "blaming" do
@@ -427,6 +427,24 @@ defmodule ExceptionTest do
       assert blame_message(123, &apply(Kernel, :+, &1)) ==
                "you attempted to apply :+ on module Kernel with arguments 123. " <>
                  "Arguments (the third argument of apply) must always be a list"
+    end
+
+    test "annotates function clause errors" do
+      assert blame_message(Access, & &1.fetch(:foo, :bar)) =~ """
+             no function clause matching in Access.fetch/2
+
+             The following arguments were given to Access.fetch/2:
+
+                 # 1
+                 :foo
+
+                 # 2
+                 :bar
+
+             Attempted function clauses (showing 5 out of 5):
+
+                 def fetch(-%module{} = container-, key)
+             """
     end
 
     test "annotates undefined function error with suggestions" do
@@ -459,6 +477,21 @@ defmodule ExceptionTest do
                "function Integer.is_odd/1 is undefined or private. However there is " <>
                  "a macro with the same name and arity. Be sure to require Integer if " <>
                  "you intend to invoke this macro"
+    end
+
+    test "annotates undefined function clause error with callback hints hints" do
+      defmodule Behaviour do
+        @callback callback() :: :ok
+        @optional_callbacks callback: 0
+      end
+
+      defmodule Implementation do
+        @behaviour Behaviour
+      end
+
+      assert blame_message(Implementation, & &1.callback()) ==
+               "function ExceptionTest.Implementation.callback/0 is undefined or private" <>
+                 ", but the behaviour ExceptionTest.Behaviour expects it to be present"
     end
 
     if :erlang.system_info(:otp_release) >= '23' do
@@ -509,81 +542,79 @@ defmodule ExceptionTest do
       assert message =~ "* :scheme"
     end
 
-    if :erlang.system_info(:otp_release) >= '21' do
-      test "annotates +/1 arithmetic errors" do
-        assert blame_message(:foo, &(+&1)) == "bad argument in arithmetic expression: +(:foo)"
-      end
+    test "annotates +/1 arithmetic errors" do
+      assert blame_message(:foo, &(+&1)) == "bad argument in arithmetic expression: +(:foo)"
+    end
 
-      test "annotates -/1 arithmetic errors" do
-        assert blame_message(:foo, &(-&1)) == "bad argument in arithmetic expression: -(:foo)"
-      end
+    test "annotates -/1 arithmetic errors" do
+      assert blame_message(:foo, &(-&1)) == "bad argument in arithmetic expression: -(:foo)"
+    end
 
-      test "annotates div arithmetic errors" do
-        assert blame_message(0, &div(10, &1)) ==
-                 "bad argument in arithmetic expression: div(10, 0)"
-      end
+    test "annotates div arithmetic errors" do
+      assert blame_message(0, &div(10, &1)) ==
+               "bad argument in arithmetic expression: div(10, 0)"
+    end
 
-      test "annotates rem arithmetic errors" do
-        assert blame_message(0, &rem(10, &1)) ==
-                 "bad argument in arithmetic expression: rem(10, 0)"
-      end
+    test "annotates rem arithmetic errors" do
+      assert blame_message(0, &rem(10, &1)) ==
+               "bad argument in arithmetic expression: rem(10, 0)"
+    end
 
-      test "annotates band arithmetic errors" do
-        use Bitwise
+    test "annotates band arithmetic errors" do
+      use Bitwise
 
-        assert blame_message(:foo, &band(&1, 10)) ==
-                 "bad argument in arithmetic expression: Bitwise.band(:foo, 10)"
+      assert blame_message(:foo, &band(&1, 10)) ==
+               "bad argument in arithmetic expression: Bitwise.band(:foo, 10)"
 
-        assert blame_message(:foo, &(&1 &&& 10)) ==
-                 "bad argument in arithmetic expression: Bitwise.band(:foo, 10)"
-      end
+      assert blame_message(:foo, &(&1 &&& 10)) ==
+               "bad argument in arithmetic expression: Bitwise.band(:foo, 10)"
+    end
 
-      test "annotates bor arithmetic errors" do
-        use Bitwise
+    test "annotates bor arithmetic errors" do
+      use Bitwise
 
-        assert blame_message(:foo, &bor(&1, 10)) ==
-                 "bad argument in arithmetic expression: Bitwise.bor(:foo, 10)"
+      assert blame_message(:foo, &bor(&1, 10)) ==
+               "bad argument in arithmetic expression: Bitwise.bor(:foo, 10)"
 
-        assert blame_message(:foo, &(&1 ||| 10)) ==
-                 "bad argument in arithmetic expression: Bitwise.bor(:foo, 10)"
-      end
+      assert blame_message(:foo, &(&1 ||| 10)) ==
+               "bad argument in arithmetic expression: Bitwise.bor(:foo, 10)"
+    end
 
-      test "annotates bxor arithmetic errors" do
-        use Bitwise
+    test "annotates bxor arithmetic errors" do
+      use Bitwise
 
-        assert blame_message(:foo, &bxor(&1, 10)) ==
-                 "bad argument in arithmetic expression: Bitwise.bxor(:foo, 10)"
-      end
+      assert blame_message(:foo, &bxor(&1, 10)) ==
+               "bad argument in arithmetic expression: Bitwise.bxor(:foo, 10)"
+    end
 
-      test "annotates bsl arithmetic errors" do
-        use Bitwise
+    test "annotates bsl arithmetic errors" do
+      use Bitwise
 
-        assert blame_message(:foo, &bsl(10, &1)) ==
-                 "bad argument in arithmetic expression: Bitwise.bsl(10, :foo)"
+      assert blame_message(:foo, &bsl(10, &1)) ==
+               "bad argument in arithmetic expression: Bitwise.bsl(10, :foo)"
 
-        assert blame_message(:foo, &(10 <<< &1)) ==
-                 "bad argument in arithmetic expression: Bitwise.bsl(10, :foo)"
-      end
+      assert blame_message(:foo, &(10 <<< &1)) ==
+               "bad argument in arithmetic expression: Bitwise.bsl(10, :foo)"
+    end
 
-      test "annotates bsr arithmetic errors" do
-        use Bitwise
+    test "annotates bsr arithmetic errors" do
+      use Bitwise
 
-        assert blame_message(:foo, &bsr(10, &1)) ==
-                 "bad argument in arithmetic expression: Bitwise.bsr(10, :foo)"
+      assert blame_message(:foo, &bsr(10, &1)) ==
+               "bad argument in arithmetic expression: Bitwise.bsr(10, :foo)"
 
-        assert blame_message(:foo, &(10 >>> &1)) ==
-                 "bad argument in arithmetic expression: Bitwise.bsr(10, :foo)"
-      end
+      assert blame_message(:foo, &(10 >>> &1)) ==
+               "bad argument in arithmetic expression: Bitwise.bsr(10, :foo)"
+    end
 
-      test "annotates bnot arithmetic errors" do
-        use Bitwise
+    test "annotates bnot arithmetic errors" do
+      use Bitwise
 
-        assert blame_message(:foo, &bnot(&1)) ==
-                 "bad argument in arithmetic expression: Bitwise.bnot(:foo)"
+      assert blame_message(:foo, &bnot(&1)) ==
+               "bad argument in arithmetic expression: Bitwise.bnot(:foo)"
 
-        assert blame_message(:foo, &(~~~&1)) ==
-                 "bad argument in arithmetic expression: Bitwise.bnot(:foo)"
-      end
+      assert blame_message(:foo, &(~~~&1)) ==
+               "bad argument in arithmetic expression: Bitwise.bnot(:foo)"
     end
 
     defp blame_message(arg, fun) do
@@ -594,8 +625,10 @@ defmodule ExceptionTest do
           Exception.blame(:error, e, __STACKTRACE__) |> elem(0) |> Exception.message()
       end
     end
+  end
 
-    test "annotates function clause errors" do
+  describe "blaming unit tests" do
+    test "annotates clauses errors" do
       args = [%{}, :key, nil]
 
       {exception, stack} =
@@ -724,83 +757,11 @@ defmodule ExceptionTest do
              |> message == "function nil.bar/0 is undefined"
     end
 
-    test "UndefinedFunctionError for a callback" do
-      defmodule Behaviour do
-        @callback callback() :: :ok
-        @optional_callbacks callback: 0
-      end
-
-      defmodule Implementation do
-        @behaviour Behaviour
-      end
-
-      assert Exception.blame(:error, :undef, [{Implementation, :callback, 0, []}])
-             |> elem(0)
-             |> message ==
-               "function ExceptionTest.Implementation.callback/0 is undefined or private" <>
-                 ", but the behaviour ExceptionTest.Behaviour expects it to be present"
-    end
-
     test "FunctionClauseError" do
       assert %FunctionClauseError{} |> message == "no function clause matches"
 
       assert %FunctionClauseError{module: Foo, function: :bar, arity: 1}
              |> message == "no function clause matching in Foo.bar/1"
-    end
-
-    test "FunctionClauseError with blame" do
-      {exception, _} =
-        Exception.blame(:error, :function_clause, [{Access, :fetch, [:foo, :bar], [line: 13]}])
-
-      assert message(exception) =~ """
-             no function clause matching in Access.fetch/2
-
-             The following arguments were given to Access.fetch/2:
-
-                 # 1
-                 :foo
-
-                 # 2
-                 :bar
-
-             Attempted function clauses (showing 5 out of 5):
-
-                 def fetch(-%module{} = container-, key)
-             """
-    end
-
-    test "FunctionClauseError with blame and more than 10 clauses" do
-      {exception, _} =
-        Exception.blame(:error, :function_clause, [
-          {Macro, :to_string, [:invalid, :invalid], []}
-        ])
-
-      assert message(exception) =~ """
-             no function clause matching in Macro.to_string/2
-
-             The following arguments were given to Macro.to_string/2:
-
-                 # 1
-                 :invalid
-
-                 # 2
-                 :invalid
-
-             Attempted function clauses (showing 10 out of 25):
-
-                 def to_string(-{var, _, context} = ast-, fun) when -is_atom(var)- and -is_atom(context)-
-                 def to_string(-{:__aliases__, _, refs} = ast-, fun)
-                 def to_string(-{:__block__, _, [expr]} = ast-, fun)
-                 def to_string(-{:__block__, _, _} = ast-, fun)
-                 def to_string(-{:<<>>, _, parts} = ast-, fun)
-                 def to_string(-{:{}, _, args} = ast-, fun)
-                 def to_string(-{:%{}, _, args} = ast-, fun)
-                 def to_string(-{:%, _, [struct_name, map]} = ast-, fun)
-                 def to_string(-{:fn, _, [{:->, _, [_, tuple]}] = arrow} = ast-, fun) when -not(is_tuple(tuple))- or -elem(tuple, 0) != :__block__-
-                 def to_string(-{:fn, _, [{:->, _, _}] = block} = ast-, fun)
-                 ...
-                 (15 clauses not shown)
-             """
     end
 
     test "ErlangError" do
