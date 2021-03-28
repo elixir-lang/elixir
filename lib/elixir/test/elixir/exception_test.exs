@@ -731,6 +731,11 @@ defmodule ExceptionTest do
       assert %ArgumentError{message: "unexpected comté"} |> message == "unexpected comté"
     end
 
+    test "KeyError" do
+      assert %KeyError{} |> message == "key nil not found"
+      assert %KeyError{message: "key missed"} |> message == "key missed"
+    end
+
     test "Enum.OutOfBoundsError" do
       assert %Enum.OutOfBoundsError{} |> message == "out of bounds error"
 
