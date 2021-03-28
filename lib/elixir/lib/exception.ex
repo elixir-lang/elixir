@@ -1255,6 +1255,10 @@ defmodule KeyError do
   end
 
   @impl true
+  def blame(exception = %{message: message}, stacktrace) when is_binary(message) do
+    {exception, stacktrace}
+  end
+
   def blame(exception = %{term: nil}, stacktrace) do
     message = message(exception.key, exception.term)
     {%{exception | message: message}, stacktrace}
