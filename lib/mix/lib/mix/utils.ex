@@ -37,7 +37,7 @@ defmodule Mix.Utils do
 
   Possible locations:
 
-   * `XDG_CONFIG_HOME/mix` (if `MIX_XDG` is set)
+   * `XDG_CACHE_HOME/mix` (if `MIX_XDG` is set)
    * `:filename.basedir(:user_cache, "mix")`
 
   """
@@ -45,6 +45,7 @@ defmodule Mix.Utils do
     if System.get_env("MIX_XDG") in ["1", "true"] do
       :filename.basedir(:user_cache, "mix", %{os: :linux})
     else
+      # Only on Linux this would be affected by XDG_CACHE_HOME
       :filename.basedir(:user_cache, "mix")
     end
   end
