@@ -33,13 +33,23 @@ defmodule EnumTest do
   describe "zip_reduce/3" do
     test "lists work" do
       enums = [[1, 1], [2, 2], [3, 3]]
-      result = Enum.zip_reduce(enums, [], fn elements, acc -> [elements | acc] end)
+
+      result =
+        Enum.zip_reduce(enums, [], fn elements, acc ->
+          [List.to_tuple(elements) | acc]
+        end)
+
       assert result == [{1, 2, 3}, {1, 2, 3}]
     end
 
     test "mix and match" do
       enums = [[1, 2], %{a: 3, b: 4}, [5, 6]]
-      result = Enum.zip_reduce(enums, [], fn elements, acc -> [elements | acc] end)
+
+      result =
+        Enum.zip_reduce(enums, [], fn elements, acc ->
+          [List.to_tuple(elements) | acc]
+        end)
+
       assert result == [{2, {:b, 4}, 6}, {1, {:a, 3}, 5}]
     end
   end
@@ -85,19 +95,19 @@ defmodule EnumTest do
   describe "zip_reduce_while/3" do
     test "lists" do
       enums = [[1, 2], [3, 4]]
-      reducer = fn values, acc -> {:cont, Enum.sum(Tuple.to_list(values)) + acc} end
+      reducer = fn values, acc -> {:cont, Enum.sum(values) + acc} end
       assert Enum.zip_reduce_while(enums, 0, reducer) == 10
 
-      reducer = fn values, acc -> {:cont, [Enum.sum(Tuple.to_list(values)) | acc]} end
+      reducer = fn values, acc -> {:cont, [Enum.sum(values) | acc]} end
       assert Enum.zip_reduce_while(enums, [], reducer) == [6, 4]
 
       # Suspending the reduction
-      reducer = fn values, acc -> {:suspend, [Enum.sum(Tuple.to_list(values)) | acc]} end
+      reducer = fn values, acc -> {:suspend, [Enum.sum(values) | acc]} end
       result = Enum.zip_reduce_while(enums, [], reducer)
       assert result == [4]
 
       # Halting the reduction
-      reducer = fn values, acc -> {:halt, [Enum.sum(Tuple.to_list(values)) | acc]} end
+      reducer = fn values, acc -> {:halt, [Enum.sum(values) | acc]} end
       assert Enum.zip_reduce_while(enums, [], reducer) == [4]
     end
 
@@ -105,14 +115,12 @@ defmodule EnumTest do
       enums = [%{a: 1, b: 2}, %{c: 3, d: 4}]
 
       reducer = fn values, acc ->
-        values = Tuple.to_list(values)
         {:cont, Enum.sum(Enum.map(values, &elem(&1, 1))) + acc}
       end
 
       assert Enum.zip_reduce_while(enums, 0, reducer) == 10
 
       reducer = fn values, acc ->
-        values = Tuple.to_list(values)
         {:cont, [Enum.sum(Enum.map(values, &elem(&1, 1))) | acc]}
       end
 
@@ -120,7 +128,6 @@ defmodule EnumTest do
 
       # Suspending the reduction
       reducer = fn values, acc ->
-        values = Tuple.to_list(values)
         {:suspend, [Enum.sum(Enum.map(values, &elem(&1, 1))) | acc]}
       end
 
@@ -129,7 +136,6 @@ defmodule EnumTest do
 
       # Halting the reduction
       reducer = fn values, acc ->
-        values = Tuple.to_list(values)
         {:halt, [Enum.sum(Enum.map(values, &elem(&1, 1))) | acc]}
       end
 

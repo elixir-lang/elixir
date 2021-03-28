@@ -3526,8 +3526,8 @@ defmodule Enum do
   end
 
   def zip_reduce(left, right, acc, reducer) do
-    non_stop_reducer = fn {l, r}, acc -> {:cont, reducer.(l, r, acc)} end
-    Stream.zip([left, right]).({:cont, acc}, non_stop_reducer) |> elem(1)
+    non_stop_reducer = fn [l, r], acc -> {:cont, reducer.(l, r, acc)} end
+    Stream.zip_with([left, right], & &1).({:cont, acc}, non_stop_reducer) |> elem(1)
   end
 
   @doc """
@@ -3555,19 +3555,19 @@ defmodule Enum do
 
       iex> enums = [[1, 1], [2, 2], [3, 3]]
       ...>  Enum.zip_reduce(enums, [], fn elements, acc ->
-      ...>    [elements | acc]
+      ...>    [List.to_tuple(elements) | acc]
       ...> end)
       [{1, 2, 3}, {1, 2, 3}]
 
       iex> enums = [[1, 2], %{a: 3, b: 4}, [5, 6]]
       ...> Enum.zip_reduce(enums, [], fn elements, acc ->
-      ...>   [elements | acc]
+      ...>   [List.to_tuple(elements) | acc]
       ...> end)
       [{2, {:b, 4}, 6}, {1, {:a, 3}, 5}]
   """
   def zip_reduce(enums, acc, reducer) do
     non_stop_reducer = &{:cont, reducer.(&1, &2)}
-    Stream.zip(enums).({:cont, acc}, non_stop_reducer) |> elem(1)
+    Stream.zip_with(enums, & &1).({:cont, acc}, non_stop_reducer) |> elem(1)
   end
 
   @doc """
@@ -3603,8 +3603,8 @@ defmodule Enum do
   end
 
   def zip_reduce_while(left, right, acc, reducer) do
-    reduce = fn {l, r}, acc -> reducer.(l, r, acc) end
-    Stream.zip([left, right]).({:cont, acc}, reduce) |> elem(1)
+    reduce = fn [l, r], acc -> reducer.(l, r, acc) end
+    Stream.zip_with([left, right], & &1).({:cont, acc}, reduce) |> elem(1)
   end
 
   @doc """
@@ -3615,28 +3615,27 @@ defmodule Enum do
   It should return one of:
 
     * `{:halt, value}` - This will halt the reduction and return `value`
-    * `{:suspend, value}` - This will halt the reduction returning `value`
     * `{:cont, value}` - This will continue with the next step of the reduction.
 
   ## Examples
 
       iex> enums = [[1, 2],[3, 4]]
-      ...> reducer = fn values, acc -> {:cont, Enum.sum(Tuple.to_list(values)) + acc} end
+      ...> reducer = fn values, acc -> {:cont, Enum.sum(values) + acc} end
       ...> Enum.zip_reduce_while(enums, 0, reducer)
       10
 
       iex> enums = [[1, 2],[3, 4]]
-      ...> reducer = fn values, acc -> {:suspend, [Enum.sum(Tuple.to_list(values)) | acc]} end
+      ...> reducer = fn values, acc -> {:suspend, [Enum.sum(values) | acc]} end
       ...> Enum.zip_reduce_while(enums, [], reducer)
       [4]
 
       iex> enums = [[1, 2],[3, 4]]
-      ...> reducer = fn values, acc -> {:halt, [Enum.sum(Tuple.to_list(values))  |acc]} end
+      ...> reducer = fn values, acc -> {:halt, [Enum.sum(values)  |acc]} end
       ...> Enum.zip_reduce_while(enums, [], reducer)
       [4]
   """
   def zip_reduce_while(enums, acc, reducer) do
-    Stream.zip(enums).({:cont, acc}, reducer) |> elem(1)
+    Stream.zip_with(enums, & &1).({:cont, acc}, reducer) |> elem(1)
   end
 
   # This speeds things up when zip reducing two lists.
