@@ -3396,8 +3396,8 @@ defmodule Enum do
   @spec zip(t, t) :: [{any, any}]
   def zip(enumerable1, enumerable2) when is_list(enumerable1) and is_list(enumerable2) do
     reducer = fn l, r, acc -> {:cont, [{l, r} | acc]} end
-    zip_reduce_while_list(enumerable1, enumerable2, {:cont, []}, reducer)
-    |> elem(1)
+
+    zip_reduce_while(enumerable1, enumerable2, [], reducer)
     |> :lists.reverse()
   end
 
@@ -3425,8 +3425,7 @@ defmodule Enum do
   def zip([]), do: []
 
   def zip(enumerables) do
-    Stream.zip(enumerables).({:cont, []}, &{:cont, [&1 | &2]})
-    |> elem(1)
+    zip_reduce_while(enumerables, [], &{:cont, [List.to_tuple(&1) | &2]})
     |> :lists.reverse()
   end
 
@@ -3454,19 +3453,11 @@ defmodule Enum do
   """
   @doc since: "1.12.0"
   @spec zip_with(t, t, (enumerable1_elem :: term, enumerable2_elem :: term -> term)) :: [term]
-  def zip_with(enumerable1, enumerable2, zip_fun)
-      when is_list(enumerable1) and is_list(enumerable2) and is_function(zip_fun, 2) do
-    reducer = fn l, r, acc -> {:cont, [zip_fun.(l, r) | acc]} end
-    zip_reduce_while_list(enumerable1, enumerable2, {:cont, []}, reducer)
-    |> elem(1)
-    |> :lists.reverse()
-  end
-
   def zip_with(enumerable1, enumerable2, zip_fun) when is_function(zip_fun, 2) do
-    # zip_with/2 passes a list to the zip_fun containing the nth element from each enumerable
-    # That's different from zip_with/3 where each element is a different argument to the zip_fun
-    # apply/2 ensures that zip_fun gets the right number of arguments.
-    zip_with([enumerable1, enumerable2], &apply(zip_fun, &1))
+    reducer = fn l, r, acc -> {:cont, [zip_fun.(l, r) | acc]} end
+
+    zip_reduce_while(enumerable1, enumerable2, [], reducer)
+    |> :lists.reverse()
   end
 
   @doc """
@@ -3494,8 +3485,9 @@ defmodule Enum do
   def zip_with([], _fun), do: []
 
   def zip_with(enumerables, zip_fun) do
-    Stream.zip_with(enumerables, zip_fun).({:cont, []}, &{:cont, [&1 | &2]})
-    |> elem(1)
+    reducer = fn values, acc -> {:cont, [zip_fun.(values) | acc]} end
+
+    zip_reduce_while(enumerables, [], reducer)
     |> :lists.reverse()
   end
 
@@ -3525,15 +3517,15 @@ defmodule Enum do
       iex> Enum.zip_reduce([1, 2], [3, 4], [], fn x, y, acc -> [x + y |acc] end)
       [6, 4]
   """
-  def zip_reduce(left, right, acc, reducer) when is_list(left) and is_list(right) do
+  def zip_reduce(left, right, acc, reducer) do
     non_stop_reducer = &{:cont, reducer.(&1, &2, &3)}
-    zip_reduce_while_list(left, right, {:cont, acc}, non_stop_reducer) |> elem(1)
+    zip_reduce_while(left, right, acc, non_stop_reducer)
   end
 
-  def zip_reduce(left, right, acc, reducer) do
-    non_stop_reducer = fn [l, r], acc -> {:cont, reducer.(l, r, acc)} end
-    Stream.zip_with([left, right], & &1).({:cont, acc}, non_stop_reducer) |> elem(1)
-  end
+  # def zip_reduce(left, right, acc, reducer) do
+  #   non_stop_reducer = fn [l, r], acc -> {:cont, reducer.(l, r, acc)} end
+  #   Stream.zip_with([left, right], & &1).({:cont, acc}, non_stop_reducer) |> elem(1)
+  # end
 
   @doc """
   Reduces a over all of the given enums, halting as soon as either enumerable is empty.
@@ -3572,7 +3564,7 @@ defmodule Enum do
   """
   def zip_reduce(enums, acc, reducer) do
     non_stop_reducer = &{:cont, reducer.(&1, &2)}
-    Stream.zip_with(enums, & &1).({:cont, acc}, non_stop_reducer) |> elem(1)
+    zip_reduce_while(enums, acc, non_stop_reducer)
   end
 
   @doc """
@@ -3635,10 +3627,12 @@ defmodule Enum do
       [4]
 
       iex> enums = [[1, 2],[3, 4]]
-      ...> reducer = fn values, acc -> {:halt, [Enum.sum(values)  |acc]} end
+      ...> reducer = fn values, acc -> {:halt, [Enum.sum(values) | acc]} end
       ...> Enum.zip_reduce_while(enums, [], reducer)
       [4]
   """
+  def zip_reduce_while([], acc, _reducer), do: acc
+
   def zip_reduce_while(enums, acc, reducer) do
     Stream.zip_with(enums, & &1).({:cont, acc}, reducer) |> elem(1)
   end
