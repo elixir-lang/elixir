@@ -731,7 +731,7 @@ defmodule ExceptionTest do
       assert %ArgumentError{message: "unexpected comté"} |> message == "unexpected comté"
     end
 
-    test "" do
+    test "KeyError" do
       assert %KeyError{} |> message == "key nil not found"
       assert %KeyError{message: "key missed"} |> message == "key missed"
     end
