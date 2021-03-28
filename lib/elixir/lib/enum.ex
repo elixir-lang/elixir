@@ -2024,8 +2024,11 @@ defmodule Enum do
   @spec min_max(t, (() -> empty_result)) :: {element, element} | empty_result
         when empty_result: any
   def min_max(enumerable, empty_fallback \\ fn -> raise Enum.EmptyError end)
+      when is_function(empty_fallback, 0) do
+    min_max_half_guarded(enumerable, empty_fallback)
+  end
 
-  def min_max(first..last//step = range, empty_fallback) when is_function(empty_fallback, 0) do
+  defp min_max_half_guarded(first..last//step = range, empty_fallback) do
     if Range.empty?(range) do
       empty_fallback.()
     else
@@ -2034,7 +2037,12 @@ defmodule Enum do
     end
   end
 
-  def min_max(enumerable, empty_fallback) when is_function(empty_fallback, 0) do
+  # Fallback for stepless range format
+  defp min_max_half_guarded(first..last, empty_fallback) do
+    min_max_half_guarded(first..last//1, empty_fallback)
+  end
+
+  defp min_max_half_guarded(enumerable, empty_fallback) do
     first_fun = &[&1 | &1]
 
     reduce_fun = fn entry, [min | max] ->
@@ -2360,6 +2368,11 @@ defmodule Enum do
     reduce_range(first, last, step, acc, fun)
   end
 
+  # Fallback for stepless range format
+  def reduce(first..last, acc, fun) do
+    reduce(first..last//1, acc, fun)
+  end
+
   def reduce(%_{} = enumerable, acc, fun) do
     reduce_enumerable(enumerable, acc, fun)
   end
@@ -2632,6 +2645,11 @@ defmodule Enum do
       raise ArgumentError,
             "Enum.slice/2 does not accept ranges with custom steps, got: #{inspect(index_range)}"
     end
+  end
+
+  # Fallback for stepless range format
+  def slice(enumerable, first..last) do
+    slice(enumerable, first..last//1)
   end
 
   defp slice_range(enumerable, first, last) when last >= first and last >= 0 and first >= 0 do
@@ -3020,6 +3038,11 @@ defmodule Enum do
     |> Range.size()
     |> Kernel.*(first + last - rem(last - first, step))
     |> div(2)
+  end
+
+  # Fallback for stepless range format
+  def sum(first..last) do
+    sum(first..last//1)
   end
 
   def sum(enumerable) do
@@ -3543,6 +3566,11 @@ defmodule Enum do
         false -> last
       end
     end
+  end
+
+  # Fallback for stepless range format
+  defp aggregate(first..last, fun, empty) do
+    aggregate(first..last//1, fun, empty)
   end
 
   defp aggregate(enumerable, fun, empty) do

@@ -273,6 +273,11 @@ defmodule Range do
     end
   end
 
+  # Fallback for stepless range format
+  def disjoint?(first1..last1, first2..last2) do
+    disjoint?(first1..last1//1, first2..last2//1)
+  end
+
   @compile inline: [normalize: 3, empty?: 1]
   defp normalize(first, last, step) when first > last, do: {last, first, -step}
   defp normalize(first, last, step), do: {first, last, step}
@@ -280,13 +285,31 @@ defmodule Range do
   @doc false
   @deprecated "Pattern match on first..last//step instead"
   def range?(term)
-  def range?(first..last) when is_integer(first) and is_integer(last), do: true
-  def range?(_), do: false
+
+  def range?(first..last//step)
+      when is_integer(first) and is_integer(last) and is_integer(step) and step != 0 do
+    true
+  end
+
+  # Fallback for stepless range format
+  def range?(first..last = range)
+      when is_integer(first) and is_integer(last) and not is_map_key(range, :step) do
+    true
+  end
+
+  def range?(_) do
+    false
+  end
 end
 
 defimpl Enumerable, for: Range do
   def reduce(first..last//step, acc, fun) do
     reduce(first, last, acc, fun, step)
+  end
+
+  # Fallback for stepless range format
+  def reduce(first..last, acc, fun) do
+    reduce(first..last//1, acc, fun)
   end
 
   defp reduce(_first, _last, {:halt, acc}, _fun, _step) do
@@ -320,16 +343,31 @@ defimpl Enumerable, for: Range do
     end
   end
 
+  # Fallback for stepless range format
+  def member?(first..last, value) when is_integer(value) do
+    member?(first..last//1, value)
+  end
+
   def member?(_, _value) do
     {:ok, false}
   end
 
-  def count(range) do
+  def count(_first.._last//_step = range) do
     {:ok, Range.size(range)}
+  end
+
+  # Fallback for stepless range format
+  def count(first..last) do
+    {:ok, Range.size(first..last//1)}
   end
 
   def slice(first.._//step = range) do
     {:ok, Range.size(range), &slice(first + &1 * step, step, &2)}
+  end
+
+  # Fallback for stepless range format
+  def slice(first..last) do
+    __MODULE__.slice(first..last//1)
   end
 
   defp slice(current, _step, 1), do: [current]
@@ -345,5 +383,10 @@ defimpl Inspect, for: Range do
 
   def inspect(first..last//step, opts) do
     concat([to_doc(first, opts), "..", to_doc(last, opts), "//", to_doc(step, opts)])
+  end
+
+  # Fallback for stepless range format
+  def inspect(first..last, opts) do
+    __MODULE__.inspect(first..last//1, opts)
   end
 end
