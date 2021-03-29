@@ -46,7 +46,7 @@ defmodule EnumTest do
 
   describe "zip_reduce/3" do
     test "when enums empty" do
-      assert Enum.zip_reduce([], 0, fn x, y, acc -> x + y + acc end) == 0
+      assert Enum.zip_reduce([], 0, fn _, acc -> acc end) == 0
     end
 
     test "lists work" do
@@ -73,17 +73,6 @@ defmodule EnumTest do
       right = [3, 4]
       reducer = fn x, y, acc -> {:cont, [x + y | acc]} end
       assert Enum.zip_reduce_while(left, right, [], reducer) == [6, 4]
-
-      # Suspending the reduction
-      left = [1, 2]
-      right = [3, 4]
-
-      result =
-        Enum.zip_reduce_while(left, right, [], fn l, r, acc ->
-          {:suspend, [l + r | acc]}
-        end)
-
-      assert result == [4]
 
       # Halting the reduction
       left = [1, 2]
