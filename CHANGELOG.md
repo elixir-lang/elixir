@@ -104,7 +104,7 @@ Elixir v1.12 has the additional of many functions across the standard library. T
   * [DateTime] Add `offset` to `DateTime.to_iso8601/2` (now `to_iso8601/3`)
   * [Enum] Add `Enum.count_until/2` and `Enum.count_until/3`
   * [Enum] Add `Enum.product/1`
-  * [Enum] Add `Enum.zip_with/2` and `Enum.zip_with/3`
+  * [Enum] Add `Enum.zip_with/2`, `Enum.zip_with/3`, `Enum.zip_reduce/3`, and `Enum.zip_reduce/4`
   * [Enum] Add support for functions as the second argument of `Enum.with_index/2`
   * [Exception] Show `error_info` data for exceptions coming from Erlang
   * [Float] Add `Float.pow/2`
@@ -178,6 +178,7 @@ Elixir v1.12 has the additional of many functions across the standard library. T
 
 #### ExUnit
 
+  * [ExUnit.Case] Make `@tag tmp_dir` an absolute directory, avoiding inconsistencies if the test changes the current working directory
   * [ExUnit.Diff] Fix cases where the diffing algorithm would fail to print a pattern correct
 
 #### IEx
