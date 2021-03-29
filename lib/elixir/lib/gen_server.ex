@@ -585,8 +585,6 @@ defmodule GenServer do
 
   This callback is optional. If one is not implemented, the server will fail
   if a continue instruction is used.
-
-  This callback is only supported on Erlang/OTP 21+.
   """
   @callback handle_continue(continue :: term, state :: term) ::
               {:noreply, new_state}
@@ -1038,18 +1036,8 @@ defmodule GenServer do
   is unknown whether the destination `server` successfully
   handled the message.
 
-  `c:handle_cast/2` will be called on the server to handle
-  the request. In case the `server` is on a node which is
-  not yet connected to the caller one, the semantics differ
-  depending on the used Erlang/OTP version.
-
   `server` can be any of the values described in the "Name registration"
   section of the documentation for this module.
-
-  Before Erlang/OTP 21, the call is going to block until a
-  connection happens. This was done to guarantee ordering.
-  Starting with Erlang/OTP 21, both Erlang and Elixir do
-  not block the call.
   """
   @spec cast(server, term) :: :ok
   def cast(server, request)

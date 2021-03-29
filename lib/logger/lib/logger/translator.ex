@@ -34,8 +34,6 @@ defmodule Logger.Translator do
   """
   def translate(min_level, level, kind, message)
 
-  ## Erlang/OTP 21 and after
-
   def translate(min_level, _level, :report, {:logger, %{label: label} = report}) do
     case label do
       {:gen_server, :terminate} ->
