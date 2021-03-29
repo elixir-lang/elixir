@@ -1,7 +1,7 @@
 defmodule Range do
   @moduledoc """
   Ranges represent a sequence of zero, one or many, ascending
-  or descending, consecutive integers.
+  or descending integers with a common difference called step.
 
   Ranges are always inclusive and they may have custom steps.
   The most common form of creating and matching on ranges is
