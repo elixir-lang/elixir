@@ -43,9 +43,9 @@ defmodule Mix.Utils do
   """
   def mix_cache do
     if System.get_env("MIX_XDG") in ["1", "true"] do
+      # XDG lookups are only done for linux OS
       :filename.basedir(:user_cache, "mix", %{os: :linux})
     else
-      # Only on Linux this would be affected by XDG_CACHE_HOME
       :filename.basedir(:user_cache, "mix")
     end
   end
