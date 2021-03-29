@@ -94,13 +94,9 @@ environments
 .Pq see above
 are not enough to solve the problem.
 .It Ev MIX_HOME
-Stores configuration files and scripts shared by multiple
-.Nm
-implementations.
-.Pp
-See the
-.Sy Mix.Utils.mix_home/0
-function.
+path to Mix's home directory, stores configuration files and scripts used by Mix
+.It MIX_INSTALL_DIR
+Specifies directory where Mix.install/2 keeps installs cache
 .It Ev MIX_PATH
 Allows expanding the code path. If the MIX_PATH environment variable has a value which consists of multiple paths, they must be colon-separated
 .Pq for Unix-like operating systems

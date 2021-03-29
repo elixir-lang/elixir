@@ -22,12 +22,19 @@ defmodule MixTest do
 
   describe "install" do
     @describetag :tmp_dir
+
+    setup %{tmp_dir: tmp_dir} do
+      System.put_env("MIX_INSTALL_DIR", Path.join(tmp_dir, "installs"))
+    end
+
     setup :test_project
 
     test "default options", %{tmp_dir: tmp_dir} do
       Mix.install([
         {:install_test, path: Path.join(tmp_dir, "install_test")}
       ])
+
+      assert File.dir?(Path.join(tmp_dir, "installs"))
 
       assert Protocol.consolidated?(InstallTest.Protocol)
 

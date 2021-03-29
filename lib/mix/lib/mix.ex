@@ -251,6 +251,8 @@ defmodule Mix do
     * `MIX_EXS` - changes the full path to the `mix.exs` file
     * `MIX_HOME` - path to Mix's home directory, stores configuration files and scripts used by Mix
       (default: `~/.mix`)
+    * `MIX_INSTALL_DIR` - (since v1.12.0) specifies directory where `Mix.install/2` keeps
+      installs cache
     * `MIX_PATH` - appends extra code paths
     * `MIX_QUIET` - does not print information messages to the terminal
     * `MIX_REBAR` - path to rebar command that overrides the one Mix installs
@@ -470,12 +472,13 @@ defmodule Mix do
 
   The given `deps` should be in the same format as defined in a regular Mix
   project. See `mix help deps` for more information. As a shortcut, an atom
-  can be given as dependency to mean the latest version, e.g.: specifying
-  `:decimal` is the same as `{:decimal, ">= 0.0.0"}`.
+  can be given as dependency to mean the latest version. In other words,
+  specifying `:decimal` is the same as `{:decimal, ">= 0.0.0"}`.
 
   After each successful installation, a given set of dependencies is cached
-  so starting another VM and calling `Mix.install` with the same dependencies
-  will avoid unnecessary downloads and compilations.
+  so starting another VM and calling `Mix.install/2` with the same dependencies
+  will avoid unnecessary downloads and compilations. The location of the cache
+  directory can be controlled using the `MIX_INSTALL_DIR` environment variable.
 
   This function can only be called outside of a Mix project and only once in a
   given VM.
@@ -517,10 +520,13 @@ defmodule Mix do
       Mix.raise("Mix.install/2 can only be called once")
     end
 
+    installs_root =
+      System.get_env("MIX_INSTALL_DIR") ||
+        Path.join(Mix.Utils.mix_cache(), "installs")
+
     id = deps |> :erlang.term_to_binary() |> :erlang.md5() |> Base.encode16(case: :lower)
-    tmp_dir = System.tmp_dir()
     version = "elixir-#{System.version()}-erts-#{:erlang.system_info(:version)}"
-    dir = Path.join([tmp_dir, "mix_installs", version, id])
+    dir = Path.join([installs_root, version, id])
 
     if opts[:verbose] do
       Mix.shell().info("using #{dir}")
