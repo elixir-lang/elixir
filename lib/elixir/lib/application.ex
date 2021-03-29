@@ -694,9 +694,6 @@ defmodule Application do
     :application.set_env(app, key, value, opts)
   end
 
-  # TODO: Remove this once we support Erlang/OTP 22+ exclusively.
-  @compile {:no_warn_undefined, {:application, :set_env, 2}}
-
   @doc """
   Puts the environment for multiple apps at the same time.
 
@@ -705,28 +702,14 @@ defmodule Application do
     * have the same application listed more than once
     * have the same key inside the same application listed more than once
 
-  If those conditions are not met, the behaviour is undefined
-  (on Erlang/OTP 21 and earlier) or will raise (on Erlang/OTP 22
-  and later).
+  If those conditions are not met, it will raise.
 
   It receives the same options as `put_env/4`. Returns `:ok`.
   """
   @doc since: "1.9.0"
   @spec put_all_env([{app, [{key, value}]}], timeout: timeout, persistent: boolean) :: :ok
   def put_all_env(config, opts \\ []) when is_list(config) and is_list(opts) do
-    # TODO: Remove function exported? check when we require Erlang/OTP 22+
-    if function_exported?(:application, :set_env, 2) do
-      :application.set_env(config, opts)
-    else
-      for app_keyword <- config,
-          {app, keyword} = app_keyword,
-          key_value <- keyword,
-          {key, value} = key_value do
-        :application.set_env(app, key, value, opts)
-      end
-
-      :ok
-    end
+    :application.set_env(config, opts)
   end
 
   @doc """

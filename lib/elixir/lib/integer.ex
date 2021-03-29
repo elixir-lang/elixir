@@ -318,18 +318,17 @@ defmodule Integer do
 
   defp count_digits_nosign(<<_::bits>>, _, count), do: count
 
-  # TODO: Remove Integer.to_string/1 once the minimum supported version is
-  #       Erlang/OTP 22, since it is covered by the now BIF Integer.to_string/2.
-  #       Please reapply commit 2622fd6b0aa419a983a899a1fbdb5deefba3d85d.
   @doc """
   Returns a binary which corresponds to the text representation
   of `integer` in the given `base`.
 
-  `base` can be an integer between 2 and 36. If no `base` is given, it defaults to `10`.
+  `base` can be an integer between 2 and 36. If no `base` is given,
+  it defaults to `10`.
 
   Inlined by the compiler.
 
   ## Examples
+
       iex> Integer.to_string(123)
       "123"
 
@@ -357,13 +356,12 @@ defmodule Integer do
     :erlang.integer_to_binary(integer, base)
   end
 
-  # TODO: Remove Integer.to_charlist/1 once the minimum supported version is
-  #       Erlang/OTP 22, since it is covered by the now BIF Integer.to_charlist/2.
-  #       Please reapply commit 2622fd6b0aa419a983a899a1fbdb5deefba3d85d.
   @doc """
-  Returns a charlist which corresponds to the text representation of `integer` in the given `base`.
+  Returns a charlist which corresponds to the text representation
+  of `integer` in the given `base`.
 
-  `base` can be an integer between 2 and 36. If no `base` is given, it defaults to `10`.
+  `base` can be an integer between 2 and 36. If no `base` is given,
+  it defaults to `10`.
 
   Inlined by the compiler.
 
