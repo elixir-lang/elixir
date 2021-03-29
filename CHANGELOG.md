@@ -15,6 +15,8 @@ IO.puts Jason.encode!(%{hello: :world})
 
 `Mix.install/2` also performs protocol consolidation, which gives script developers an option to execute their code in the most performant format possible.
 
+**Note:** `Mix.install/2` is currently experimental and it may change in future releases.
+
 Another improvement to scripting is the ability to trap exit signals via `System.trap_signal/3`. All you need is the signal name and a callback that will be invoked when the signal triggers. For example, ExUnit leverages this functionality to print all currently running tests when you abort the test suite via SIGQUIT (`Ctrl+\\ `):
 
 ```
