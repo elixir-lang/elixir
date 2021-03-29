@@ -3463,18 +3463,19 @@ defmodule Enum do
 
   ## Zipping Maps
 
-  It's important to remember that zipping inherently relies on order. If you zip two lists you get
-  the element at the index from each list in turn. If we zip two maps together it's tempting to
-  think that you will get the given key in the left map and the matching key in the right map, but
-  there is no such guarantee because map keys are not ordered! Consider the following:
+  It's important to remember that zipping inherently relies on order.
+  If you zip two lists you get the element at the index from each list in turn.
+  If we zip two maps together it's tempting to think that you will get the given
+  key in the left map and the matching key in the right map, but there is no such
+  guarantee because map keys are not ordered! Consider the following:
 
       left =  %{:a => 1, 1 => 3}
       right = %{:a => 1, :b => :c}
       Enum.zip(left, right)
       # [{{1, 3}, {:a, 1}}, {{:a, 1}, {:b, :c}}]
 
-  As you can see `:a` does not get paired with `:a`. If this is what you want, you should use
-  `Map.merge/3`
+  As you can see `:a` does not get paired with `:a`. If this is what you want,
+  you should use `Map.merge/3`.
 
   ## Examples
 
@@ -3503,30 +3504,16 @@ defmodule Enum do
   end
 
   @doc """
-  Zips corresponding elements from a finite collection of enumerables into list, transforming them with
-  the `zip_fun` function as it goes.
+  Zips corresponding elements from a finite collection of enumerables
+  into list, transforming them with the `zip_fun` function as it goes.
 
-  The first element from each of the enums in `enumerables` will be put into a list which is then
-  passed to the 1-arity `zip_fun` function. Then, the second elements from each of the enums are
-  put into a list and passed to `zip_fun`, and so on until any one of the enums in `enumerables`
-  runs out of elements.
+  The first element from each of the enums in `enumerables` will be put
+  into a list which is then passed to the 1-arity `zip_fun` function.
+  Then, the second elements from each of the enums are put into a list
+  and passed to `zip_fun`, and so on until any one of the enums in
+  `enumerables` runs out of elements.
 
   Returns a list with all the results of calling `zip_fun`.
-
-  ## Zipping Maps
-
-  It's important to remember that zipping inherently relies on order. If you zip two lists you get
-  the element at the index from each list in turn. If we zip two maps together it's tempting to
-  think that you will get the given key in the left map and the matching key in the right map, but
-  there is no such guarantee because map keys are not ordered! Consider the following:
-
-      left =  %{:a => 1, 1 => 3}
-      right = %{:a => 1, :b => :c}
-      Enum.zip(left, right)
-      # [{{1, 3}, {:a, 1}}, {{:a, 1}, {:b, :c}}]
-
-  As you can see `:a` does not get paired with `:a`. If this is what you want, you should use
-  `Map.merge/3`
 
   ## Examples
 
@@ -3549,29 +3536,14 @@ defmodule Enum do
   end
 
   @doc """
-  Reduces a over two enumerables halting as soon as either enumerable is empty.
-
-  ## Zipping Maps
-
-  It's important to remember that zipping inherently relies on order. If you zip two lists you get
-  the element at the index from each list in turn. If we zip two maps together it's tempting to
-  think that you will get the given key in the left map and the matching key in the right map, but
-  there is no such guarantee because map keys are not ordered! Consider the following:
-
-      left =  %{:a => 1, 1 => 3}
-      right = %{:a => 1, :b => :c}
-      Enum.zip(left, right)
-      # [{{1, 3}, {:a, 1}}, {{:a, 1}, {:b, :c}}]
-
-  As you can see `:a` does not get paired with `:a`. If this is what you want, you should use
-  `Map.merge/3`
+  Reduces over two enumerables halting as soon as either enumerable is empty.
 
   ## Examples
 
       iex> Enum.zip_reduce([1, 2], [3, 4], 0, fn x, y, acc -> x + y + acc end)
       10
 
-      iex> Enum.zip_reduce([1, 2], [3, 4], [], fn x, y, acc -> [x + y |acc] end)
+      iex> Enum.zip_reduce([1, 2], [3, 4], [], fn x, y, acc -> [x + y | acc] end)
       [6, 4]
   """
   @doc since: "1.12.0"
@@ -3592,21 +3564,6 @@ defmodule Enum do
 
   The reducer will receive 2 args, a list of elements (one from each enum) and the
   accumulator.
-
-  ## Zipping Maps
-
-  It's important to remember that zipping inherently relies on order. If you zip two lists you get
-  the element at the index from each list in turn. If we zip two maps together it's tempting to
-  think that you will get the given key in the left map and the matching key in the right map, but
-  there is no such guarantee because map keys are not ordered! Consider the following:
-
-      left =  %{:a => 1, 1 => 3}
-      right = %{:a => 1, :b => :c}
-      Enum.zip(left, right)
-      # [{{1, 3}, {:a, 1}}, {{:a, 1}, {:b, :c}}]
-
-  As you can see `:a` does not get paired with `:a`. If this is what you want, you should use
-  `Map.merge/3`
 
   ## Examples
 
@@ -3632,29 +3589,15 @@ defmodule Enum do
   end
 
   @doc """
-  Reduces over two enumerables halting if the accumulator returns `{:halt, value}` or if
-  either of the enumerables is empty.
+  Reduces over two enumerables halting if the accumulator returns
+  `{:halt, value}` or if either of the enumerables is empty.
 
-  The reducer will receive 3 args, the left enumerable's element, the right enumberable's
-  element and the accumulator. It should return one of:
+  The reducer will receive 3 args, the left enumerable's element,
+  the right enumberable's element and the accumulator. It should
+  return one of:
 
     * `{:halt, value}` - This will halt the reduction and return `value`
-    * `{:cont, value}` - This will continue with the next step of the reduction.
-
-  ## Zipping Maps
-
-  It's important to remember that zipping inherently relies on order. If you zip two lists you get
-  the element at the index from each list in turn. If we zip two maps together it's tempting to
-  think that you will get the given key in the left map and the matching key in the right map, but
-  there is no such guarantee because map keys are not ordered! Consider the following:
-
-      left =  %{:a => 1, 1 => 3}
-      right = %{:a => 1, :b => :c}
-      Enum.zip(left, right)
-      # [{{1, 3}, {:a, 1}}, {{:a, 1}, {:b, :c}}]
-
-  As you can see `:a` does not get paired with `:a`. If this is what you want, you should use
-  `Map.merge/3`
+    * `{:cont, value}` - This will continue with the next step of the reduction
 
   ## Examples
 
@@ -3683,29 +3626,14 @@ defmodule Enum do
   end
 
   @doc """
-  Reduces over all enumerables halting if the accumulator returns `{:halt, value}` or if
-  any of the enumerables is empty.
+  Reduces over all enumerables halting if the accumulator returns
+  `{:halt, value}` or if any of the enumerables is empty.
 
-  The reducer will receive 2 args, a list of the yielded elements and the accumulator.
-  It should return one of:
+  The reducer will receive 2 args, a list of the yielded elements
+  and the accumulator. It should return one of:
 
     * `{:halt, value}` - This will halt the reduction and return `value`
-    * `{:cont, value}` - This will continue with the next step of the reduction.
-
-  ## Zipping Maps
-
-  It's important to remember that zipping inherently relies on order. If you zip two lists you get
-  the element at the index from each list in turn. If we zip two maps together it's tempting to
-  think that you will get the given key in the left map and the matching key in the right map, but
-  there is no such guarantee because map keys are not ordered! Consider the following:
-
-      left =  %{:a => 1, 1 => 3}
-      right = %{:a => 1, :b => :c}
-      Enum.zip(left, right)
-      # [{{1, 3}, {:a, 1}}, {{:a, 1}, {:b, :c}}]
-
-  As you can see `:a` does not get paired with `:a`. If this is what you want, you should use
-  `Map.merge/3`
+    * `{:cont, value}` - This will continue with the next step of the reduction
 
   ## Examples
 
