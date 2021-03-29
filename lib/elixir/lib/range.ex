@@ -146,8 +146,8 @@ defmodule Range do
 
   def new(first, last, step) do
     raise ArgumentError,
-          "ranges (first..last//step) expect both sides to be integers and the step to be an integer " <>
-            "different than zero, got: #{inspect(first)}..#{inspect(last)}//#{inspect(step)}"
+          "ranges (first..last//step) expect both sides to be integers and the step to be a " <>
+            "non-zero integer, got: #{inspect(first)}..#{inspect(last)}//#{inspect(step)}"
   end
 
   @doc """

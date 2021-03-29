@@ -62,11 +62,11 @@ defmodule RangeTest do
 
   test "step is a non-zero integer" do
     step = 1.0
-    message = ~r"the step to be an integer different than zero"
+    message = ~r"the step to be a non-zero integer"
     assert_raise ArgumentError, message, fn -> 1..3//step end
 
     step = 0
-    message = ~r"the step to be an integer different than zero"
+    message = ~r"the step to be a non-zero integer"
     assert_raise ArgumentError, message, fn -> 1..3//step end
   end
 
