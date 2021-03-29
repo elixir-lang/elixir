@@ -3755,7 +3755,7 @@ defmodule Kernel do
   defp validate_step!(step)
        when is_float(step) or is_atom(step) or is_binary(step) or is_list(step) or step == 0 do
     raise ArgumentError,
-          "ranges (first..last//step) expect the step to be an integer different than zero, " <>
+          "ranges (first..last//step) expect the step to be a non-zero integer, " <>
             "got: #{Macro.to_string(step)}"
   end
 
