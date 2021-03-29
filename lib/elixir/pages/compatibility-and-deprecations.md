@@ -8,12 +8,12 @@ Elixir applies bug fixes only to the latest minor branch. Security patches are a
 
 Elixir version | Support
 :------------- | :-----------------------------
-1.12           | Development
-1.11           | Bug fixes and security patches
+1.13           | Development
+1.12           | Bug fixes and security patches
+1.11           | Security patches only
 1.10           | Security patches only
 1.9            | Security patches only
 1.8            | Security patches only
-1.7            | Security patches only
 
 New releases are announced in the read-only [announcements mailing list](https://groups.google.com/group/elixir-lang-ann). All security releases [will be tagged with `[security]`](https://groups.google.com/forum/#!searchin/elixir-lang-ann/%5Bsecurity%5D%7Csort:date).
 
@@ -43,19 +43,20 @@ Erlang/OTP versioning is independent from the versioning of Elixir. Each version
 
 Elixir version | Supported Erlang/OTP versions
 :------------- | :-------------------------------
-1.0            | 17 - 17 (and Erlang/OTP 18 from v1.0.5)
-1.1            | 17 - 18
-1.2            | 18 - 18 (and Erlang/OTP 19 from v1.2.6)
-1.3            | 18 - 19
-1.4            | 18 - 19 (and Erlang/OTP 20 from v1.4.5)
-1.5            | 18 - 20
-1.6            | 19 - 20 (and Erlang/OTP 21 from v1.6.6)
-1.7            | 19 - 22
-1.8            | 20 - 22
-1.9            | 20 - 22
-1.10           | 21 - 22 (and Erlang/OTP 23 from v1.10.3)
+1.13           | 22 - 24
+1.12           | 21 - 24
 1.11           | 21 - 23
-1.12           | 21 - 23
+1.10           | 21 - 22 (and Erlang/OTP 23 from v1.10.3)
+1.9            | 20 - 22
+1.8            | 20 - 22
+1.7            | 19 - 22
+1.6            | 19 - 20 (and Erlang/OTP 21 from v1.6.6)
+1.5            | 18 - 20
+1.4            | 18 - 19 (and Erlang/OTP 20 from v1.4.5)
+1.3            | 18 - 19
+1.2            | 18 - 18 (and Erlang/OTP 19 from v1.2.6)
+1.1            | 17 - 18
+1.0            | 17 - 17 (and Erlang/OTP 18 from v1.0.5)
 
 While Elixir often adds compatibility to new Erlang/OTP versions on released branches, such as support for Erlang/OTP 20 in v1.4.5, those releases usually contain the minimum changes for Elixir to run without errors. Only the next minor release, in this case v1.5.0, does effectively leverage the new features provided by the latest Erlang/OTP release.
 
@@ -77,6 +78,8 @@ The first column is the version the feature was hard deprecated. The second colu
 
 Version | Deprecated feature                                  | Replaced by (available since)
 :-------| :-------------------------------------------------- | :---------------------------------------------------------------
+[v1.12] | `^^^/2`                                             | Use `bxor/2` instead (v1.0)
+[v1.12] | `@foo()` to read module attributes                  | Remove the parenthesis (v1.0)
 [v1.12] | `use EEx.Engine`                                    | Explicitly delegate to EEx.Engine instead (v1.0)
 [v1.12] | `:xref` compiler in Mix                             | Nothing (it always runs as part of the compiler now)
 [v1.11] | `Mix.Project.compile/2`                             | `Mix.Task.run("compile", args)` (v1.0)
