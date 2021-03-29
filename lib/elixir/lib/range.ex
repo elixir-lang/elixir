@@ -96,7 +96,7 @@ defmodule Range do
   @type last :: integer
   @type step :: pos_integer | neg_integer
   @type t :: %__MODULE__{first: first, last: last, step: step}
-  @type t(first, last) :: %__MODULE__{first: first, last: last}
+  @type t(first, last) :: %__MODULE__{first: first, last: last, step: step}
 
   @doc """
   Creates a new range.
