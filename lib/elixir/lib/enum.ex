@@ -3420,10 +3420,7 @@ defmodule Enum do
   """
   @spec zip(t, t) :: [{any, any}]
   def zip(enumerable1, enumerable2) when is_list(enumerable1) and is_list(enumerable2) do
-    reducer = fn l, r, acc -> {:cont, [{l, r} | acc]} end
-
-    zip_reduce_while(enumerable1, enumerable2, [], reducer)
-    |> :lists.reverse()
+    zip_list(enumerable1, enumerable2)
   end
 
   def zip(enumerable1, enumerable2) do
@@ -3492,7 +3489,12 @@ defmodule Enum do
 
   """
   @doc since: "1.12.0"
-  @spec zip_with(t, t, (enumerable1_elem :: term, enumerable2_elem :: term -> term)) :: [term]
+  @spec zip_with(t, t, (enum1_elem :: term, enum2_elem :: term -> term)) :: [term]
+  def zip_with(enumerable1, enumerable2, zip_fun)
+      when is_list(enumerable1) and is_list(enumerable2) and is_function(zip_fun, 2) do
+    zip_list(enumerable1, enumerable2, zip_fun)
+  end
+
   def zip_with(enumerable1, enumerable2, zip_fun) when is_function(zip_fun, 2) do
     reducer = fn l, r, acc -> {:cont, [zip_fun.(l, r) | acc]} end
 
@@ -3572,7 +3574,15 @@ defmodule Enum do
       iex> Enum.zip_reduce([1, 2], [3, 4], [], fn x, y, acc -> [x + y |acc] end)
       [6, 4]
   """
-  def zip_reduce(left, right, acc, reducer) do
+  @doc since: "1.12.0"
+  @spec zip_reduce(t, t, acc, (enum1_elem :: term, enum2_elem :: term, acc -> acc)) :: acc
+        when acc: term
+  def zip_reduce(left, right, acc, reducer)
+      when is_list(left) and is_list(right) and is_function(reducer, 3) do
+    zip_reduce_list(left, right, acc, reducer)
+  end
+
+  def zip_reduce(left, right, acc, reducer) when is_function(reducer, 3) do
     non_stop_reducer = &{:cont, reducer.(&1, &2, &3)}
     zip_reduce_while(left, right, acc, non_stop_reducer)
   end
@@ -3612,7 +3622,11 @@ defmodule Enum do
       ...> end)
       [{2, {:b, 4}, 6}, {1, {:a, 3}, 5}]
   """
-  def zip_reduce(enums, acc, reducer) do
+  @doc since: "1.12.0"
+  @spec zip_reduce(t, acc, ([term], acc -> acc)) :: acc when acc: term
+  def zip_reduce([], acc, reducer) when is_function(reducer, 2), do: acc
+
+  def zip_reduce(enums, acc, reducer) when is_function(reducer, 2) do
     non_stop_reducer = &{:cont, reducer.(&1, &2)}
     zip_reduce_while(enums, acc, non_stop_reducer)
   end
@@ -3653,18 +3667,17 @@ defmodule Enum do
       ...> end)
       [3]
 
-      iex> left  = [1, 2]
-      ...> right = [3, 4]
-      ...> Enum.zip_reduce_while(left, right, [], fn l, r, acc ->
-      ...>  {:suspend, [l + r | acc]}
-      ...> end)
-      [4]
   """
-  def zip_reduce_while(left, right, acc, reducer) when is_list(left) and is_list(right) do
-    zip_reduce_while_list(left, right, {:cont, acc}, reducer) |> elem(1)
+  @doc since: "1.12.0"
+  @spec zip_reduce_while(t, t, acc, (enum1_elem :: term, enum2_elem :: term, acc -> acc)) ::
+          {:cont | :halt, acc}
+        when acc: term
+  def zip_reduce_while(left, right, acc, reducer)
+      when is_list(left) and is_list(right) and is_function(reducer, 3) do
+    zip_reduce_while_list(left, right, {:cont, acc}, reducer)
   end
 
-  def zip_reduce_while(left, right, acc, reducer) do
+  def zip_reduce_while(left, right, acc, reducer) when is_function(reducer, 3) do
     reduce = fn [l, r], acc -> reducer.(l, r, acc) end
     Stream.zip_with([left, right], & &1).({:cont, acc}, reduce) |> elem(1)
   end
@@ -3711,24 +3724,12 @@ defmodule Enum do
       ...> Enum.zip_reduce_while(enums, [], reducer)
       [4]
   """
-  def zip_reduce_while([], acc, _reducer), do: acc
+  @doc since: "1.12.0"
+  @spec zip_reduce_while([t], acc, ([term], acc -> acc)) :: {:cont | :halt, acc} when acc: term
+  def zip_reduce_while([], acc, reducer) when is_function(reducer, 2), do: acc
 
-  def zip_reduce_while(enums, acc, reducer) do
+  def zip_reduce_while(enums, acc, reducer) when is_function(reducer, 2) do
     Stream.zip_with(enums, & &1).({:cont, acc}, reducer) |> elem(1)
-  end
-
-  # This speeds things up when zip reducing two lists.
-  defp zip_reduce_while_list(_left, _right, {:halt, acc}, _), do: {:halted, acc}
-
-  defp zip_reduce_while_list(left, right, {:suspend, acc}, reducer) do
-    {:suspended, acc, &zip_reduce_while_list(left, right, &1, reducer)}
-  end
-
-  defp zip_reduce_while_list([], _right, {:cont, acc}, _), do: {:done, acc}
-  defp zip_reduce_while_list(_left, [], {:cont, acc}, _), do: {:done, acc}
-
-  defp zip_reduce_while_list([l_head | l_tail], [r_head | r_tail], {:cont, acc}, reducer) do
-    zip_reduce_while_list(l_tail, r_tail, reducer.(l_head, r_head, acc), reducer)
   end
 
   ## Helpers
@@ -4331,6 +4332,34 @@ defmodule Enum do
 
   defp uniq_list([], _set, _fun) do
     []
+  end
+
+  ## zip
+
+  defp zip_list(enumerable1, enumerable2) do
+    zip_list(enumerable1, enumerable2, fn x, y -> {x, y} end)
+  end
+
+  defp zip_list([head1 | next1], [head2 | next2], fun) do
+    [fun.(head1, head2) | zip_list(next1, next2, fun)]
+  end
+
+  defp zip_list(_, [], _fun), do: []
+  defp zip_list([], _, _fun), do: []
+
+  defp zip_reduce_list([head1 | next1], [head2 | next2], acc, fun) do
+    zip_reduce_list(next1, next2, fun.(head1, head2, acc), fun)
+  end
+
+  defp zip_reduce_list(_, [], acc, _fun), do: acc
+  defp zip_reduce_list([], _, acc, _fun), do: acc
+
+  defp zip_reduce_while_list(_left, _right, {:halt, acc}, _), do: acc
+  defp zip_reduce_while_list([], _right, {:cont, acc}, _), do: acc
+  defp zip_reduce_while_list(_left, [], {:cont, acc}, _), do: acc
+
+  defp zip_reduce_while_list([l_head | l_tail], [r_head | r_tail], {:cont, acc}, reducer) do
+    zip_reduce_while_list(l_tail, r_tail, reducer.(l_head, r_head, acc), reducer)
   end
 end
 
