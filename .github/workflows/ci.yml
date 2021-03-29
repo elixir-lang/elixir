@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        otp_release: ['OTP-23.0', 'OTP-22.3', 'OTP-22.0', 'OTP-21.3.8', 'OTP-21.0']
+        otp_release: ['OTP-23.0', 'OTP-22.3', 'OTP-22.0']
         development: [false]
         include:
           - otp_release: master
