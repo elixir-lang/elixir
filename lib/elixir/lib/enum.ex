@@ -3447,7 +3447,7 @@ defmodule Enum do
   def zip([]), do: []
 
   def zip(enumerables) do
-    zip_reduce_while(enumerables, [], &{:cont, [List.to_tuple(&1) | &2]})
+    zip_reduce(enumerables, [], &[List.to_tuple(&1) | &2])
     |> :lists.reverse()
   end
 
@@ -3497,9 +3497,7 @@ defmodule Enum do
   end
 
   def zip_with(enumerable1, enumerable2, zip_fun) when is_function(zip_fun, 2) do
-    reducer = fn l, r, acc -> {:cont, [zip_fun.(l, r) | acc]} end
-
-    zip_reduce_while(enumerable1, enumerable2, [], reducer)
+    zip_reduce(enumerable1, enumerable2, [], fn l, r, acc -> [zip_fun.(l, r) | acc] end)
     |> :lists.reverse()
   end
 
@@ -3529,14 +3527,18 @@ defmodule Enum do
   def zip_with([], _fun), do: []
 
   def zip_with(enumerables, zip_fun) do
-    reducer = fn values, acc -> {:cont, [zip_fun.(values) | acc]} end
-
-    zip_reduce_while(enumerables, [], reducer)
+    zip_reduce(enumerables, [], fn values, acc -> [zip_fun.(values) | acc] end)
     |> :lists.reverse()
   end
 
   @doc """
   Reduces over two enumerables halting as soon as either enumerable is empty.
+
+  In practice, the behaviour provided by this function can be achieved with:
+
+      Enum.reduce(Stream.zip(left, right), acc, reducer)
+
+  But `zip_reduce/4` exists for convenience purposes.
 
   ## Examples
 
@@ -3555,8 +3557,8 @@ defmodule Enum do
   end
 
   def zip_reduce(left, right, acc, reducer) when is_function(reducer, 3) do
-    non_stop_reducer = &{:cont, reducer.(&1, &2, &3)}
-    zip_reduce_while(left, right, acc, non_stop_reducer)
+    reduce = fn [l, r], acc -> {:cont, reducer.(l, r, acc)} end
+    Stream.zip_with([left, right], & &1).({:cont, acc}, reduce) |> elem(1)
   end
 
   @doc """
@@ -3564,6 +3566,12 @@ defmodule Enum do
 
   The reducer will receive 2 args, a list of elements (one from each enum) and the
   accumulator.
+
+  In practice, the behaviour provided by this function can be achieved with:
+
+      Enum.reduce(Stream.zip(enums), acc, reducer)
+
+  But `zip_reduce/4` exists for convenience purposes.
 
   ## Examples
 
@@ -3584,80 +3592,7 @@ defmodule Enum do
   def zip_reduce([], acc, reducer) when is_function(reducer, 2), do: acc
 
   def zip_reduce(enums, acc, reducer) when is_function(reducer, 2) do
-    non_stop_reducer = &{:cont, reducer.(&1, &2)}
-    zip_reduce_while(enums, acc, non_stop_reducer)
-  end
-
-  @doc """
-  Reduces over two enumerables halting if the accumulator returns
-  `{:halt, value}` or if either of the enumerables is empty.
-
-  The reducer will receive 3 args, the left enumerable's element,
-  the right enumberable's element and the accumulator. It should
-  return one of:
-
-    * `{:halt, value}` - This will halt the reduction and return `value`
-    * `{:cont, value}` - This will continue with the next step of the reduction
-
-  ## Examples
-
-      iex> reducer = fn left, right, acc -> {:cont, [left + right | acc ]} end
-      ...> Enum.zip_reduce_while([1], [2], [], reducer)
-      [3]
-
-      iex> Enum.zip_reduce_while([1, 2], [2, 2], [], fn left, right, acc ->
-      ...>   if left <= 1, do: {:cont, [left + right | acc]}, else: {:halt, acc}
-      ...> end)
-      [3]
-
-  """
-  @doc since: "1.12.0"
-  @spec zip_reduce_while(t, t, acc, (enum1_elem :: term, enum2_elem :: term, acc -> acc)) ::
-          {:cont | :halt, acc}
-        when acc: term
-  def zip_reduce_while(left, right, acc, reducer)
-      when is_list(left) and is_list(right) and is_function(reducer, 3) do
-    zip_reduce_while_list(left, right, {:cont, acc}, reducer)
-  end
-
-  def zip_reduce_while(left, right, acc, reducer) when is_function(reducer, 3) do
-    reduce = fn [l, r], acc -> reducer.(l, r, acc) end
-    Stream.zip_with([left, right], & &1).({:cont, acc}, reduce) |> elem(1)
-  end
-
-  @doc """
-  Reduces over all enumerables halting if the accumulator returns
-  `{:halt, value}` or if any of the enumerables is empty.
-
-  The reducer will receive 2 args, a list of the yielded elements
-  and the accumulator. It should return one of:
-
-    * `{:halt, value}` - This will halt the reduction and return `value`
-    * `{:cont, value}` - This will continue with the next step of the reduction
-
-  ## Examples
-
-      iex> enums = [[1, 2],[3, 4]]
-      ...> reducer = fn values, acc -> {:cont, Enum.sum(values) + acc} end
-      ...> Enum.zip_reduce_while(enums, 0, reducer)
-      10
-
-      iex> enums = [[1, 2],[3, 4]]
-      ...> reducer = fn values, acc -> {:suspend, [Enum.sum(values) | acc]} end
-      ...> Enum.zip_reduce_while(enums, [], reducer)
-      [4]
-
-      iex> enums = [[1, 2],[3, 4]]
-      ...> reducer = fn values, acc -> {:halt, [Enum.sum(values) | acc]} end
-      ...> Enum.zip_reduce_while(enums, [], reducer)
-      [4]
-  """
-  @doc since: "1.12.0"
-  @spec zip_reduce_while([t], acc, ([term], acc -> acc)) :: {:cont | :halt, acc} when acc: term
-  def zip_reduce_while([], acc, reducer) when is_function(reducer, 2), do: acc
-
-  def zip_reduce_while(enums, acc, reducer) when is_function(reducer, 2) do
-    Stream.zip_with(enums, & &1).({:cont, acc}, reducer) |> elem(1)
+    Stream.zip_with(enums, & &1).({:cont, acc}, &{:cont, reducer.(&1, &2)}) |> elem(1)
   end
 
   ## Helpers
@@ -4281,14 +4216,6 @@ defmodule Enum do
 
   defp zip_reduce_list(_, [], acc, _fun), do: acc
   defp zip_reduce_list([], _, acc, _fun), do: acc
-
-  defp zip_reduce_while_list(_left, _right, {:halt, acc}, _), do: acc
-  defp zip_reduce_while_list([], _right, {:cont, acc}, _), do: acc
-  defp zip_reduce_while_list(_left, [], {:cont, acc}, _), do: acc
-
-  defp zip_reduce_while_list([l_head | l_tail], [r_head | r_tail], {:cont, acc}, reducer) do
-    zip_reduce_while_list(l_tail, r_tail, reducer.(l_head, r_head, acc), reducer)
-  end
 end
 
 defimpl Enumerable, for: List do
