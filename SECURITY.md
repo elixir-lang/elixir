@@ -6,8 +6,8 @@ Elixir applies bug fixes only to the latest minor branch. Security patches are a
 
 | Elixir version | Support
 | -------------- | ------------------------------
-| 1.12           | Development
-| 1.11           | Bug fixes and security patches
+| 1.12           | Bug fixes and security patches
+| 1.11           | Security patches only
 | 1.10           | Security patches only
 | 1.9            | Security patches only
 | 1.8            | Security patches only
