@@ -119,6 +119,11 @@ defmodule Mix.Tasks.Test.Coverage do
   @doc false
   def start(compile_path, opts) do
     Mix.shell().info("Cover compiling modules ...")
+
+    if Keyword.get(opts, :local_only, true) do
+      :cover.local_only()
+    end
+
     cover_compile([compile_path])
 
     if name = opts[:export] do
