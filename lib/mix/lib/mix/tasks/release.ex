@@ -667,7 +667,7 @@ defmodule Mix.Tasks.Release do
     * `:start_distribution_during_config` - if `:reboot_system_after_config` is
       set, releases only start the Erlang VM distribution features after the config
       files are evaluated. You can set it to `true` if you need distribution during
-      configuration. Defaults to `false` from Erlang/OTP 22+.
+      configuration. Defaults to `false`.
 
     * `:config_providers` - a list of tuples with custom config providers.
       See `Config.Provider` for more information. Defaults to `[]`.
@@ -769,9 +769,10 @@ defmodule Mix.Tasks.Release do
     * `RELEASE_COOKIE` - the release cookie. By default uses the value
       in `releases/COOKIE`. It can be set to a custom value
 
-    * `RELEASE_NODE` - the release node name, in the format `name@host`.
-      It can be set to a custom value. The name part must be made only
-      of letters, digits, underscores, and hyphens
+    * `RELEASE_NODE` - the release node name, in the format `name` or
+      optionally `name@host` if running in distributed mode. It can be
+      set to a custom value. The name part must be made only of letters,
+      digits, underscores, and hyphens
 
     * `RELEASE_SYS_CONFIG` - the location of the sys.config file. It can
       be set to a custom path and it must not include the `.config` extension
@@ -794,9 +795,7 @@ defmodule Mix.Tasks.Release do
       May be `name` (long names), `sname` (short names) or `none`
       (distribution is not started automatically). Defaults to
       `sname` which allows access only within the current system.
-      `name` allows external connections. If `name` is used and you are
-      not running on Erlang/OTP 22 or later, you must set `RELEASE_NODE`
-      to `RELEASE_NAME@127.0.0.1` with an IP or a known host
+      `name` allows external connections
 
     * `RELEASE_BOOT_SCRIPT` - the name of the boot script to use when starting
       the release. This script is used when running commands such as `start` and
