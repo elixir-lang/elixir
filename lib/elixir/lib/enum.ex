@@ -2224,8 +2224,7 @@ defmodule Enum do
   ## Examples
 
   The examples below use the `:exsss` pseudorandom algorithm since it's
-  the default from Erlang/OTP 22. If you are using `:exsplus`,
-  then please update, as this algorithm is deprecated since Erlang/OTP 20.
+  the default from Erlang/OTP 22:
 
       # Although not necessary, let's seed the random algorithm
       iex> :rand.seed(:exsss, {100, 101, 102})
@@ -2551,8 +2550,7 @@ defmodule Enum do
   ## Examples
 
   The examples below use the `:exsss` pseudorandom algorithm since it's
-  the default from Erlang/OTP 22. If you are using `:exsplus`,
-  then please update, as this algorithm is deprecated since Erlang/OTP 20.
+  the default from Erlang/OTP 22:
 
       # Although not necessary, let's seed the random algorithm
       iex> :rand.seed(:exsss, {1, 2, 3})
