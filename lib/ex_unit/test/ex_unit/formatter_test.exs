@@ -153,8 +153,9 @@ defmodule ExUnit.FormatterTest do
       end
 
     failure = [{{:EXIT, self()}, {error, stack}, []}]
+    format = trim_multiline_whitespace(format_test_failure(test(), failure, 1, 80, &formatter/2))
 
-    assert trim_multiline_whitespace(format_test_failure(test(), failure, 1, 80, &formatter/2)) =~
+    assert format =~
              """
                1) world (Hello)
                   test/ex_unit/formatter_test.exs:1
@@ -174,6 +175,8 @@ defmodule ExUnit.FormatterTest do
 
                            def fetch(%module{} = container, key)
              """
+
+    assert format =~ ~r"lib/access.ex:\d+: Access.fetch/2"
   end
 
   test "formats test EXITs with assertion errors" do
