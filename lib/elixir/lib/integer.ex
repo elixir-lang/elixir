@@ -116,7 +116,7 @@ defmodule Integer do
   @doc """
   Computes the modulo remainder of an integer division.
 
-  `Integer.mod/2` uses floored division, which means that
+  This function performs a [floored division](`floor_div/2`), which means that
   the result will always have the sign of the `divisor`.
 
   Raises an `ArithmeticError` exception if one of the arguments is not an
@@ -148,8 +148,8 @@ defmodule Integer do
   Raises an `ArithmeticError` exception if one of the arguments is not an
   integer, or when the `divisor` is `0`.
 
-  `Integer.floor_div/2` performs *floored* integer division. This means that
-  the result is always rounded towards negative infinity.
+  This function performs a *floored* integer division, which means that
+  the result will always be rounded towards negative infinity.
 
   If you want to perform truncated integer division (rounding towards zero),
   use `Kernel.div/2` instead.
@@ -436,7 +436,7 @@ defmodule Integer do
   @doc """
   Returns the extended greatest common divisor of the two given integers.
 
-  It uses the Extended Euclidean algorithm to return a three-element tuple with the `gcd`
+  This function uses the extended Euclidean algorithm to return a three-element tuple with the `gcd`
   and the coefficients `m` and `n` of Bézout's identity such that:
 
       gcd(a, b) = m*a + n*b
