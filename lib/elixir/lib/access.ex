@@ -99,16 +99,15 @@ defmodule Access do
   @type key :: any
   @type value :: any
 
-  @type get_fun(data, current_value) ::
-          (:get, data, (term -> term) ->
-             {current_value, new_data :: container})
+  @type get_fun(data) ::
+          (:get, data, (term -> term) -> new_data :: container)
 
   @type get_and_update_fun(data, current_value) ::
           (:get_and_update, data, (term -> term) ->
              {current_value, new_data :: container} | :pop)
 
   @type access_fun(data, current_value) ::
-          get_fun(data, current_value) | get_and_update_fun(data, current_value)
+          get_fun(data) | get_and_update_fun(data, current_value)
 
   @doc """
   Invoked in order to access the value stored under `key` in the given term `term`.
