@@ -831,7 +831,7 @@ defmodule Module.Types.Unify do
   end
 
   def format_type({:var, index}, _simplify?) do
-    "var#{index}"
+    "var#{index + 1}"
   end
 
   def format_type(atom, _simplify?) when is_atom(atom) do
