@@ -144,14 +144,14 @@ defmodule Module.Types.TypesTest do
       assert string == """
              incompatible types:
 
-                 {var0} !~ var0
+                 {var1} !~ var1
 
              in expression:
 
                  # types_test.ex:1
                  {var} = var
 
-             where "var" was given the type {var0} in:
+             where "var" was given the type {var1} in:
 
                  # types_test.ex:1
                  {var} = var
