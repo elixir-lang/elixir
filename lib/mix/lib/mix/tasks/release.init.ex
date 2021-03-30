@@ -72,11 +72,10 @@ defmodule Mix.Tasks.Release.Init do
     #     ;;
     # esac
 
-    # Set the release to work across nodes. If using the long name format like
-    # the one below (my_app@127.0.0.1), you need to also uncomment the
-    # RELEASE_DISTRIBUTION variable below. Must be "sname", "name" or "none".
+    # Set the release to work across nodes.
+    # RELEASE_DISTRIBUTION must be "sname" (local), "name" (distributed) or "none".
     # export RELEASE_DISTRIBUTION=name
-    # export RELEASE_NODE=<%= @release.name %>@127.0.0.1
+    # export RELEASE_NODE=<%= @release.name %>
     """
 
   @doc false
@@ -260,11 +259,10 @@ defmodule Mix.Tasks.Release.Init do
   def env_bat_text,
     do: ~S"""
     @echo off
-    rem Set the release to work across nodes. If using the long name format like
-    rem the one below (my_app@127.0.0.1), you need to also uncomment the
-    rem RELEASE_DISTRIBUTION variable below. Must be "sname", "name" or "none".
+    rem Set the release to work across nodes.
+    rem RELEASE_DISTRIBUTION must be "sname" (local), "name" (distributed) or "none".
     rem set RELEASE_DISTRIBUTION=name
-    rem set RELEASE_NODE=<%= @release.name %>@127.0.0.1
+    rem set RELEASE_NODE=<%= @release.name %>
     """
 
   @doc false
