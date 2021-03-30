@@ -732,6 +732,64 @@ defmodule Registry do
   end
 
   @doc """
+  Reads the values for the given `key` for `pid` in `registry`.
+
+  For unique registries, it is either an empty list or a list
+  with a single element. For duplicate registries, it is a list
+  with zero, one, or multiple elements.
+
+  ## Examples
+
+  In the example below we register the current process and look it up
+  both from itself and other processes:
+
+      iex> Registry.start_link(keys: :unique, name: Registry.UniqueLookupTest)
+      iex> Registry.values(Registry.UniqueLookupTest, "hello", self())
+      []
+      iex> {:ok, _} = Registry.register(Registry.UniqueLookupTest, "hello", :world)
+      iex> Registry.values(Registry.UniqueLookupTest, "hello", self())
+      [:world]
+      iex> Task.async(fn -> Registry.values(Registry.UniqueLookupTest, "hello", self()) end) |> Task.await()
+      []
+      iex> parent = self()
+      iex> Task.async(fn -> Registry.values(Registry.UniqueLookupTest, "hello", parent) end) |> Task.await()
+      [:world]
+
+  The same applies to duplicate registries:
+
+      iex> Registry.start_link(keys: :duplicate, name: Registry.DuplicateLookupTest)
+      iex> Registry.values(Registry.DuplicateLookupTest, "hello", self())
+      []
+      iex> {:ok, _} = Registry.register(Registry.DuplicateLookupTest, "hello", :world)
+      iex> Registry.values(Registry.DuplicateLookupTest, "hello", self())
+      [:world]
+      iex> {:ok, _} = Registry.register(Registry.DuplicateLookupTest, "hello", :another)
+      iex> Enum.sort(Registry.values(Registry.DuplicateLookupTest, "hello", self()))
+      [:another, :world]
+
+  """
+  @doc since: "1.12.0"
+  @spec values(registry, key, pid) :: [value]
+  def values(registry, key, pid) when is_atom(registry) do
+    case key_info!(registry) do
+      {:unique, partitions, key_ets} ->
+        key_ets = key_ets || key_ets!(registry, key, partitions)
+
+        case safe_lookup_second(key_ets, key) do
+          {^pid, value} ->
+            [value]
+
+          _ ->
+            []
+        end
+
+      {:duplicate, partitions, key_ets} ->
+        key_ets = key_ets || key_ets!(registry, pid, partitions)
+        for {^pid, value} <- safe_lookup_second(key_ets, key), do: value
+    end
+  end
+
+  @doc """
   Unregisters all entries for the given `key` associated to the current
   process in `registry`.
 
