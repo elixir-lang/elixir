@@ -5,9 +5,8 @@ defmodule Range do
 
   Ranges are always inclusive and they may have custom steps.
   The most common form of creating and matching on ranges is
-  via the [`start..stop`](`../2`) and [`start..stop//step`](`..///3`) notations,
-  defined respectively as the `../2` and `..///3` macros
-  auto-imported from `Kernel`:
+  via the [`first..last`](`../2`) and [`first..last//step`](`..///3`)
+  notations, auto-imported from `Kernel`:
 
       iex> Enum.to_list(1..3)
       [1, 2, 3]
