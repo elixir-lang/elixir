@@ -189,20 +189,12 @@ defmodule Mix.Tasks.Xref do
     min_cycle_size: :integer
   ]
 
-  @compile_args [
-    "--no-compile",
-    "--no-deps-check",
-    "--no-archives-check",
-    "--no-elixir-version-check"
-  ]
-
   @impl true
   def run(args) do
-    compile_args = for arg when arg in @compile_args <- args, do: arg
-    {opts, args} = OptionParser.parse!(args, strict: @switches)
-
-    Mix.Task.run("compile", compile_args)
+    Mix.Task.run("compile", args)
     Mix.Task.reenable("xref")
+
+    {opts, args} = OptionParser.parse!(args, strict: @switches)
 
     case args do
       ["callers", callee] ->
