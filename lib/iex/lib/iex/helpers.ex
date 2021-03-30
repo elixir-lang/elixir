@@ -616,7 +616,7 @@ defmodule IEx.Helpers do
     IO.puts("#{pad_key(key)}#{min} / #{max} (#{percentage}% used)")
   end
 
-  defp get_stat(:ets_count), do: length(:ets.all())
+  defp get_stat(:ets_count), do: :erlang.system_info(:ets_count)
   defp get_stat(other), do: :erlang.system_info(other)
 
   defp print_memory(key, memory) do
