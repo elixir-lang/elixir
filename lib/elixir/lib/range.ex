@@ -29,10 +29,10 @@ defmodule Range do
       iex> Enum.to_list(0..10//-1)
       []
 
-  When defining a range without steps, the step will be
-  defined based on the start and stop position of the
-  range, If `start >= stop`, it will be an increasing range
-  with step of 1. Otherwise, it is a decreasing range.
+  When defining a range without a step, the step will be
+  defined based on the first and last position of the
+  range, If `first >= last`, it will be an increasing range
+  with a step of 1. Otherwise, it is a decreasing range.
   Note however implicitly decreasing ranges are deprecated.
   Therefore, if you need a decreasing range from `3` to `1`,
   prefer to write `3..1//-1` instead.
@@ -120,7 +120,7 @@ defmodule Range do
 
   @spec new(limit, limit) :: t
   def new(first, last) when is_integer(first) and is_integer(last) do
-    # TODO: Deprecate inferring a range with step of -1 on Elixir v1.17
+    # TODO: Deprecate inferring a range with a step of -1 on Elixir v1.17
     step = if first <= last, do: 1, else: -1
     %Range{first: first, last: last, step: step}
   end
