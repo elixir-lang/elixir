@@ -958,6 +958,10 @@ defmodule Enum do
     enumerable == []
   end
 
+  def empty?(_.._//_ = range) do
+    Range.__empty__?(range)
+  end
+
   def empty?(enumerable) do
     case Enumerable.slice(enumerable) do
       {:ok, value, _} ->
@@ -2026,7 +2030,7 @@ defmodule Enum do
   def min_max(enumerable, empty_fallback \\ fn -> raise Enum.EmptyError end)
 
   def min_max(first..last//step = range, empty_fallback) when is_function(empty_fallback, 0) do
-    if Range.empty?(range) do
+    if Range.__empty__?(range) do
       empty_fallback.()
     else
       last = last - rem(last - first, step)
@@ -3611,7 +3615,7 @@ defmodule Enum do
   end
 
   defp aggregate(first..last//step = range, fun, empty) do
-    if Range.empty?(range) do
+    if Range.__empty__?(range) do
       empty.()
     else
       last = last - rem(last - first, step)
