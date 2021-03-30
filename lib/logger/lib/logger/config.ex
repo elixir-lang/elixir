@@ -5,8 +5,6 @@ defmodule Logger.Config do
   @name __MODULE__
   @update_counter_message {__MODULE__, :update_counter}
 
-  alias Logger.Counter
-
   def configure(options) do
     :gen_event.call(Logger, @name, {:configure, options})
   end
@@ -76,6 +74,8 @@ defmodule Logger.Config do
     {:ok, state}
   end
 
+  @counter_pos 1
+
   defp update_counter({counter, log, discard_threshold, discard_period}, periodic_check?) do
     # If length is more than the total, it means the counter is behind,
     # due to non-log messages, so we need to increase the counter.
@@ -88,9 +88,9 @@ defmodule Logger.Config do
     # deliver the message yet. Those bumps will be lost. At the same time,
     # we are careful to read the counter first here, so if the counter is
     # bumped after we read from it, those bumps won't be lost.
-    total = Counter.read(counter)
+    total = :counters.get(counter, @counter_pos)
     {:message_queue_len, length} = Process.info(self(), :message_queue_len)
-    Counter.add(counter, length - total)
+    :counters.add(counter, @counter_pos, length - total)
 
     # In case we are logging but we reached the threshold, we log that we
     # started discarding messages. This can only be reverted by the periodic
@@ -128,7 +128,6 @@ defmodule Logger.Config do
     {:ok, %{config: data}} = :logger.get_handler_config(Logger)
     translators = fun.(data.translators)
     Application.put_env(:logger, :translators, translators)
-    # TODO: Use update_handler_config on Erlang/OTP 22+.
-    :ok = :logger.set_handler_config(Logger, :config, %{data | translators: translators})
+    :ok = :logger.update_handler_config(Logger, :config, translators: translators)
   end
 end
