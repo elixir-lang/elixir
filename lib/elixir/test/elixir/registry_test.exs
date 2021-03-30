@@ -36,10 +36,12 @@ defmodule RegistryTest do
         {:ok, pid} = Registry.register(registry, "hello", :value)
         assert is_pid(pid)
         assert Registry.keys(registry, self()) == ["hello"]
+        assert Registry.values(registry, "hello", self()) == [:value]
 
         assert {:error, {:already_registered, pid}} = Registry.register(registry, "hello", :value)
         assert pid == self()
         assert Registry.keys(registry, self()) == ["hello"]
+        assert Registry.values(registry, "hello", self()) == [:value]
 
         {:ok, pid} = Registry.register(registry, "world", :value)
         assert is_pid(pid)
@@ -49,11 +51,15 @@ defmodule RegistryTest do
       test "has unique registrations across processes", %{registry: registry} do
         {_, task} = register_task(registry, "hello", :value)
         Process.link(Process.whereis(registry))
+        assert Registry.keys(registry, task) == ["hello"]
+        assert Registry.values(registry, "hello", task) == [:value]
 
         assert {:error, {:already_registered, ^task}} =
                  Registry.register(registry, "hello", :recent)
 
         assert Registry.keys(registry, self()) == []
+        assert Registry.values(registry, "hello", self()) == []
+
         {:links, links} = Process.info(self(), :links)
         assert Process.whereis(registry) in links
       end
@@ -433,14 +439,28 @@ defmodule RegistryTest do
         {:ok, pid} = Registry.register(registry, "hello", :value)
         assert is_pid(pid)
         assert Registry.keys(registry, self()) == ["hello"]
+        assert Registry.values(registry, "hello", self()) == [:value]
 
         assert {:ok, pid} = Registry.register(registry, "hello", :value)
         assert is_pid(pid)
         assert Registry.keys(registry, self()) == ["hello", "hello"]
+        assert Registry.values(registry, "hello", self()) == [:value, :value]
 
         {:ok, pid} = Registry.register(registry, "world", :value)
         assert is_pid(pid)
         assert Registry.keys(registry, self()) |> Enum.sort() == ["hello", "hello", "world"]
+      end
+
+      test "has duplicate registrations across processes", %{registry: registry} do
+        {_, task} = register_task(registry, "hello", :world)
+        assert Registry.keys(registry, self()) == []
+        assert Registry.keys(registry, task) == ["hello"]
+        assert Registry.values(registry, "hello", self()) == []
+        assert Registry.values(registry, "hello", task) == [:world]
+
+        assert {:ok, _pid} = Registry.register(registry, "hello", :value)
+        assert Registry.keys(registry, self()) == ["hello"]
+        assert Registry.values(registry, "hello", self()) == [:value]
       end
 
       test "compares using matches", %{registry: registry} do
