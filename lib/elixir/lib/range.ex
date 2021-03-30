@@ -68,6 +68,10 @@ defmodule Range do
       iex> range.step
       2
 
+  You can access the range fields (`first`, `last`, and `step`)
+  directly but you should not modify nor create ranges by hand.
+  Instead use the proper operators or `new/2` and `new/3`.
+
   A range implements the `Enumerable` protocol, which means
   functions in the `Enum` module can be used to work with
   ranges:
