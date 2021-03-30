@@ -40,14 +40,14 @@ defmodule Range do
   ## Definition
 
   An increasing range `first..last//step` is a range from
-  `first` to `last` increasing by `step` where all values
-  `v` must be `first <= v and v <= last`. Therefore, a range
+  `first` to `last` increasing by `step` where  `step` must be a positive
+  integer and all values `v` must be `first <= v and v <= last`. Therefore, a range
   `10..0//1` is an empty range because there is no value `v`
   that is `10 <= v and v <= 0`.
 
-  Similarly, a decreasing range `first..last//-step` is a range
-  from `first` to `last` decreasing by `step` where all values
-  `v` must be `first >= v and v >= last`. Therefore, a range
+  Similarly, a decreasing range `first..last//step` is a range
+  from `first` to `last` decreasing by `step` where `step` must be a negative
+  integer and  values `v` must be `first >= v and v >= last`. Therefore, a range
   `0..10//-1` is an empty range because there is no value `v`
   that is `0 >= v and v >= 10`.
 
