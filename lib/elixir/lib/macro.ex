@@ -1737,6 +1737,9 @@ defmodule Macro do
   defp do_camelize(<<?_, h, t::binary>>) when h >= ?a and h <= ?z,
     do: <<to_upper_char(h)>> <> do_camelize(t)
 
+  defp do_camelize(<<p, ?_, h, t::binary>>) when p >= ?0 and p <= ?9 and h >= ?0 and h <= ?9,
+    do: <<p, ?_, h>> <> do_camelize(t)
+
   defp do_camelize(<<?_, h, t::binary>>) when h >= ?0 and h <= ?9, do: <<h>> <> do_camelize(t)
   defp do_camelize(<<?_>>), do: <<>>
   defp do_camelize(<<?/, t::binary>>), do: <<?.>> <> camelize(t)
