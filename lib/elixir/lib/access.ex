@@ -100,8 +100,7 @@ defmodule Access do
   @type value :: any
 
   @type get_fun(data, current_value) ::
-          (:get, data, (term -> term) ->
-             {current_value, new_data :: container})
+          (:get, data, (term -> term) -> new_data :: container)
 
   @type get_and_update_fun(data, current_value) ::
           (:get_and_update, data, (term -> term) ->
