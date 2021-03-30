@@ -34,7 +34,7 @@ defmodule Mix.Compilers.Elixir do
     # change to files are still picked up by the compiler. This
     # timestamp is used when writing BEAM files and the manifest.
     timestamp = System.os_time(:second)
-    all_paths = MapSet.new(Mix.Utils.extract_files(srcs, exts))
+    all_paths = Mix.Utils.extract_files(srcs, exts)
 
     {all_modules, all_sources, all_local_exports} = parse_manifest(manifest, dest)
     modified = Mix.Utils.last_modified(manifest)
@@ -42,8 +42,8 @@ defmodule Mix.Compilers.Elixir do
     {stale_local_deps, stale_local_mods, stale_local_exports, all_local_exports} =
       stale_local_deps(manifest, modified, all_local_exports)
 
-    prev_paths = for source(source: source) <- all_sources, into: MapSet.new(), do: source
-    removed = prev_paths |> MapSet.difference(all_paths) |> MapSet.to_list()
+    prev_paths = for source(source: source) <- all_sources, do: source
+    removed = prev_paths -- all_paths
     {sources, removed_modules} = remove_removed_sources(all_sources, removed)
 
     {modules, exports, changed, sources_stats} =
@@ -157,8 +157,6 @@ defmodule Mix.Compilers.Elixir do
 
   defp compiler_info_from_force(manifest, all_paths, all_modules, dest) do
     # A config, path dependency or manifest has changed, let's just compile everything
-    all_paths = MapSet.to_list(all_paths)
-
     for module(module: module) <- all_modules,
         do: remove_and_purge(beam_path(dest, module), module)
 
@@ -187,10 +185,7 @@ defmodule Mix.Compilers.Elixir do
          dest
        ) do
     # Otherwise let's start with the new sources
-    new_paths =
-      all_paths
-      |> MapSet.difference(prev_paths)
-      |> MapSet.to_list()
+    new_paths = all_paths -- prev_paths
 
     sources_stats =
       for path <- new_paths,
