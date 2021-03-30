@@ -257,11 +257,11 @@ translate({{'.', _, [Expr]}, Meta, Args}, S) when is_list(Args) ->
 %% Literals
 
 translate(List, S) when is_list(List) ->
-  translate_list(List, S, []);
+  translate_list(List, S, [], 0);
 
 translate({Left, Right}, S) ->
-  {TArgs, SE} = translate_args([Left, Right], S),
-  {{tuple, 0, TArgs}, SE};
+  {[TLeft, TRight], SE} = translate_args([Left, Right], S),
+  {{tuple, binary_ann(TLeft, TRight), [TLeft, TRight]}, SE};
 
 translate(Other, S) ->
   {elixir_erl:elixir_to_erl(Other), S}.
@@ -274,19 +274,31 @@ translate_case(Meta, Expr, Opts, S) ->
   {TClauses, SC} = elixir_erl_clauses:clauses(Clauses, SE),
   {{'case', ?ann(Meta), TExpr, TClauses}, SC}.
 
-translate_list([{'|', _, [_, _]=Args}], Acc, List) ->
+translate_list([{'|', _, [_, _]=Args}], Acc, List, Ann) ->
   {[TLeft, TRight], TAcc} = lists:mapfoldl(fun translate/2, Acc, Args),
-  {build_list([TLeft | List], TRight), TAcc};
-translate_list([H | T], Acc, List) ->
+  TAnn = if Ann == 0 -> binary_ann(TLeft, TRight); true -> Ann end,
+  {build_list([TLeft | List], TRight, TAnn), TAcc};
+translate_list([H | T], Acc, List, Ann) ->
   {TH, TAcc} = translate(H, Acc),
-  translate_list(T, TAcc, [TH | List]);
-translate_list([], Acc, List) ->
-  {build_list(List, {nil, 0}), Acc}.
+  TAnn = if Ann == 0 -> element(2, TH); true -> Ann end,
+  translate_list(T, TAcc, [TH | List], TAnn);
+translate_list([], Acc, List, Ann) ->
+  {build_list(List, {nil, 0}, Ann), Acc}.
 
-build_list([H | T], Acc) ->
-  build_list(T, {cons, 0, H, Acc});
-build_list([], Acc) ->
+build_list([H | T], Acc, Ann) ->
+  build_list(T, {cons, Ann, H, Acc}, Ann);
+build_list([], Acc, _Ann) ->
   Acc.
+
+binary_ann(Left, Right) ->
+  AnnLeft = element(2, Right),
+  AnnRight = element(2, Left),
+
+  if
+    AnnLeft /= 0 -> AnnLeft;
+    AnnRight /= 0 -> AnnRight;
+    true -> 0
+  end.
 
 %% Pack a list of expressions from a block.
 unblock({'block', _, Exprs}) -> Exprs;
