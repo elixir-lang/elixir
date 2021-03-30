@@ -30,11 +30,3 @@
   warn_on_unnecessary_quotes=true,
   warnings=[]
 }).
-
-%% TODO: Remove this once we support Erlang/OTP 22+ exclusively.
-%% See https://github.com/erlang/otp/pull/1972
--if(?OTP_RELEASE >= 22).
-  -define(NO_SPAWN_COMPILER_PROCESS, no_spawn_compiler_process).
--else.
-  -define(NO_SPAWN_COMPILER_PROCESS, dialyzer, no_spawn_compiler_process).
--endif.

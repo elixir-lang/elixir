@@ -1,6 +1,5 @@
 defmodule Logger.Handler do
   @moduledoc false
-  alias Logger.Counter
 
   @internal_keys [:counter]
 
@@ -27,9 +26,6 @@ defmodule Logger.Handler do
   def adding_handler(config) do
     {:ok, update_in(config.config, &Map.merge(default_config(), &1))}
   end
-
-  # TODO: Remove this once we support Erlang/OTP 22+ exclusively.
-  def changing_config(current, new), do: changing_config(:set, current, new)
 
   def changing_config(
         op,
@@ -169,13 +165,16 @@ defmodule Logger.Handler do
   defp truncate(data, n) when is_binary(data), do: Logger.Utils.truncate(data, n)
   defp truncate(data, n), do: Logger.Utils.truncate(to_string(data), n)
 
+  @counter_pos 1
+
   defp threshold(config) do
     %{
       counter: counter,
       thresholds: {sync, discard}
     } = config
 
-    value = Counter.bump(counter)
+    :counters.add(counter, @counter_pos, 1)
+    value = :counters.get(counter, @counter_pos)
 
     cond do
       value >= discard -> :discard
