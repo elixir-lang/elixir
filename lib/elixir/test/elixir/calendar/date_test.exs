@@ -13,6 +13,10 @@ defmodule DateTest do
     assert ~D[20001-01-01 Calendar.Holocene] ==
              %Date{calendar: Calendar.Holocene, year: 20001, month: 1, day: 1}
 
+    {now1, now2} = {Date.utc_today(), ~D[]}
+    # to be safe running at midnight
+    assert Date.diff(now1, now2) <= 1
+
     assert_raise ArgumentError,
                  ~s/cannot parse "2000-50-50" as Date for Calendar.ISO, reason: :invalid_date/,
                  fn -> Code.eval_string("~D[2000-50-50]") end

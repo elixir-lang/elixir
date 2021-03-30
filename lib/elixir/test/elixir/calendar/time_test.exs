@@ -13,6 +13,9 @@ defmodule TimeTest do
     assert ~T[12:34:56 Calendar.Holocene] ==
              %Time{calendar: Calendar.Holocene, hour: 12, minute: 34, second: 56}
 
+    {now1, now2} = {Time.utc_now(), ~T[]}
+    assert Time.diff(now1, now2) <= 2
+
     assert_raise ArgumentError,
                  ~s/cannot parse "12:34:65" as Time for Calendar.ISO, reason: :invalid_time/,
                  fn -> Code.eval_string("~T[12:34:65]") end

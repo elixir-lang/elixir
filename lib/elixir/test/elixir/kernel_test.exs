@@ -1399,6 +1399,9 @@ defmodule KernelTest do
              zone_abbr: "UTC"
            }
 
+    {now1, now2} = {DateTime.utc_now(), ~U[]}
+    assert DateTime.diff(now1, now2) <= 2
+
     assert_raise ArgumentError, ~r"reason: :invalid_format", fn ->
       Code.eval_string(~s{~U[2015-01-13 13:00]})
     end

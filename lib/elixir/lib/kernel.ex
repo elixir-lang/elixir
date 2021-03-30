@@ -5635,8 +5635,16 @@ defmodule Kernel do
       iex> ~D[2015-01-13]
       ~D[2015-01-13]
 
+  `~D` might be also called with empty content, returning the current date in UTC.
+  It’s a syntactic sugar for `Date.utc_today/0`.
   """
   defmacro sigil_D(date_string, modifiers)
+
+  defmacro sigil_D({:<<>>, _, [""]}, []) do
+    quote do
+      Date.utc_today()
+    end
+  end
 
   defmacro sigil_D({:<<>>, _, [string]}, []) do
     {{:ok, {year, month, day}}, calendar} = parse_with_calendar!(string, :parse_date, "Date")
@@ -5675,8 +5683,29 @@ defmodule Kernel do
       iex> ~T[13:00:07.001]
       ~T[13:00:07.001]
 
+  `~T` might be called with empty content to get to the current UTC time,
+  with the precision specified by a modifier.
+
+  ## Examples
+      iex> now_without_milliseconds = ~T[]s
+      ...> now_without_milliseconds.microsecond
+      {0, 0}
+
   """
   defmacro sigil_T(time_string, modifiers)
+
+  defmacro sigil_T({:<<>>, _, [""]}, modifiers) do
+    truncate_to =
+      case modifiers do
+        [?s] -> :second
+        [?m] -> :millisecond
+        [] -> :microsecond
+      end
+
+    quote bind_quoted: [truncate_to: truncate_to] do
+      Time.utc_now() |> Time.truncate(truncate_to)
+    end
+  end
 
   defmacro sigil_T({:<<>>, _, [string]}, []) do
     {{:ok, {hour, minute, second, microsecond}}, calendar} =
@@ -5780,9 +5809,29 @@ defmodule Kernel do
       iex> ~U[2015-01-13T13:00:07.001+00:00]
       ~U[2015-01-13 13:00:07.001Z]
 
+  `~U` might be called with empty content to get to the current UTC datetime,
+  with the precision specified by a modifier.
+
+  ## Examples
+      iex> now_without_milliseconds = ~U[]s
+      ...> now_without_milliseconds.microsecond
+      {0, 0}
   """
   @doc since: "1.9.0"
   defmacro sigil_U(datetime_string, modifiers)
+
+  defmacro sigil_U({:<<>>, _, [""]}, modifiers) do
+    truncate_to =
+      case modifiers do
+        [?s] -> :second
+        [?m] -> :millisecond
+        [] -> :microsecond
+      end
+
+    quote bind_quoted: [truncate_to: truncate_to] do
+      DateTime.utc_now() |> DateTime.truncate(truncate_to)
+    end
+  end
 
   defmacro sigil_U({:<<>>, _, [string]}, []) do
     {{:ok, {year, month, day, hour, minute, second, microsecond}, offset}, calendar} =
