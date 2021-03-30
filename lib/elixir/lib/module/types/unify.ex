@@ -830,7 +830,7 @@ defmodule Module.Types.Unify do
     inspect(literal)
   end
 
-  def format_type({:var, index}, _simplify?) when is_integer(index) do
+  def format_type({:var, index}, _simplify?) do
     "var#{index + 1}"
   end
 
