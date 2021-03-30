@@ -118,6 +118,7 @@ defmodule Range do
       -100..100
 
   """
+
   @spec new(limit, limit) :: t
   def new(first, last) when is_integer(first) and is_integer(last) do
     # TODO: Deprecate inferring a range with step of -1 on Elixir v1.17
