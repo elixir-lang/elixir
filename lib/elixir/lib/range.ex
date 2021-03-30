@@ -96,10 +96,9 @@ defmodule Range do
   @enforce_keys [:first, :last, :step]
   defstruct first: nil, last: nil, step: nil
 
-  @type first :: integer
-  @type last :: integer
+  @type limit :: integer
   @type step :: pos_integer | neg_integer
-  @type t :: %__MODULE__{first: first, last: last, step: step}
+  @type t :: %__MODULE__{first: limit, last: limit, step: step}
   @type t(first, last) :: %__MODULE__{first: first, last: last, step: step}
 
   @doc """
@@ -119,7 +118,8 @@ defmodule Range do
       -100..100
 
   """
-  @spec new(first, last) :: t
+
+  @spec new(limit, limit) :: t
   def new(first, last) when is_integer(first) and is_integer(last) do
     # TODO: Deprecate inferring a range with step of -1 on Elixir v1.17
     step = if first <= last, do: 1, else: -1
@@ -142,7 +142,7 @@ defmodule Range do
 
   """
   @doc since: "1.12.0"
-  @spec new(first, last, step) :: t
+  @spec new(limit, limit, step) :: t
   def new(first, last, step)
       when is_integer(first) and is_integer(last) and is_integer(step) and step != 0 do
     %Range{first: first, last: last, step: step}
