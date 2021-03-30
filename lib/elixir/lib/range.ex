@@ -151,26 +151,6 @@ defmodule Range do
   end
 
   @doc """
-  Checks if the range is empty.
-
-  ## Examples
-
-      iex> Range.empty?(1..0//1)
-      true
-      iex> Range.empty?(0..1//-1)
-      true
-      iex> Range.empty?(1..0)
-      false
-      iex> Range.empty?(0..1)
-      false
-
-  """
-  @doc since: "1.12.0"
-  def empty?(first..last//step) when step > 0 and first > last, do: true
-  def empty?(first..last//step) when step < 0 and first < last, do: true
-  def empty?(_.._//_), do: false
-
-  @doc """
   Returns the size of the range.
 
   ## Examples
@@ -242,7 +222,7 @@ defmodule Range do
   @doc since: "1.8.0"
   @spec disjoint?(t, t) :: boolean
   def disjoint?(first1..last1//step1 = range1, first2..last2//step2 = range2) do
-    if empty?(range1) or empty?(range2) do
+    if size(range1) == 0 or size(range2) == 0 do
       true
     else
       {first1, last1, step1} = normalize(first1, last1, step1)
@@ -273,7 +253,7 @@ defmodule Range do
     end
   end
 
-  @compile inline: [normalize: 3, empty?: 1]
+  @compile inline: [normalize: 3]
   defp normalize(first, last, step) when first > last, do: {last, first, -step}
   defp normalize(first, last, step), do: {first, last, step}
 
@@ -309,7 +289,7 @@ defimpl Enumerable, for: Range do
 
   def member?(first..last//step = range, value) when is_integer(value) do
     cond do
-      Range.empty?(range) ->
+      Range.size(range) == 0 ->
         {:ok, false}
 
       first <= last ->

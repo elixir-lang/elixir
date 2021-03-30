@@ -2026,11 +2026,13 @@ defmodule Enum do
   def min_max(enumerable, empty_fallback \\ fn -> raise Enum.EmptyError end)
 
   def min_max(first..last//step = range, empty_fallback) when is_function(empty_fallback, 0) do
-    if Range.empty?(range) do
-      empty_fallback.()
-    else
-      last = last - rem(last - first, step)
-      {Kernel.min(first, last), Kernel.max(first, last)}
+    case Range.size(range) do
+      0 ->
+        empty_fallback.()
+
+      _ ->
+        last = last - rem(last - first, step)
+        {Kernel.min(first, last), Kernel.max(first, last)}
     end
   end
 
@@ -3611,15 +3613,17 @@ defmodule Enum do
   end
 
   defp aggregate(first..last//step = range, fun, empty) do
-    if Range.empty?(range) do
-      empty.()
-    else
-      last = last - rem(last - first, step)
+    case Range.size(range) do
+      0 ->
+        empty.()
 
-      case fun.(first, last) do
-        true -> first
-        false -> last
-      end
+      _ ->
+        last = last - rem(last - first, step)
+
+        case fun.(first, last) do
+          true -> first
+          false -> last
+        end
     end
   end
 

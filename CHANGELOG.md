@@ -84,7 +84,7 @@ As of Elixir v1.12, implicitly decreasing ranges are soft-deprecated and warning
 
 ## Additional functions
 
-Elixir v1.12 has the additional of many functions across the standard library. The `Enum` module received additions such as `Enum.count_until/2`, `Enum.product/1`, `Enum.zip_with/2`, and more. The `Integer` module now includes `Integer.pow/2` and `Integer.extended_gcd/2`. The `Range` module now deals with stepped ranges and includes new convenience functions such as `Range.empty?/1` and `Range.size/1`. Finally, the `Kernel` module got two new functions, `Kernel.then/2` and `Kernel.tap/2`, which are specially useful in `|>` pipelines.
+Elixir v1.12 has the additional of many functions across the standard library. The `Enum` module received additions such as `Enum.count_until/2`, `Enum.product/1`, `Enum.zip_with/2`, and more. The `Integer` module now includes `Integer.pow/2` and `Integer.extended_gcd/2`. Finally, the `Kernel` module got two new functions, `Kernel.then/2` and `Kernel.tap/2`, which are specially useful in `|>` pipelines.
 
 ## v1.12.0-dev
 
@@ -123,7 +123,7 @@ Elixir v1.12 has the additional of many functions across the standard library. T
   * [Module] Add `Module.get_definition/2` and `Module.delete_definition/2`
   * [Module] Allow `@on_load` to be a private function
   * [Module] Validate `@dialyzer` related module attributes
-  * [Range] Add `Range.new/3`, `Range.empty?/1`, and `Range.size/1`
+  * [Range] Add `Range.new/3` and `Range.size/1`
   * [Regex] Add offset option to `Regex.scan/3` and `Regex.run/3`
   * [Registry] Support `:compression` on `Registry` tables
   * [Stream] Add `Stream.zip_with/2` and `Stream.zip_with/3`
