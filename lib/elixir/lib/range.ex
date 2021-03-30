@@ -5,7 +5,7 @@ defmodule Range do
 
   Ranges are always inclusive and they may have custom steps.
   The most common form of creating and matching on ranges is
-  via the `start..stop` and `start..stop//step` notations,
+  via the [`start..stop`](`../2`) and [`start..stop//step`](`..///3`) notations,
   defined respectively as the `../2` and `..///3` macros
   auto-imported from `Kernel`:
 
@@ -104,13 +104,13 @@ defmodule Range do
   @doc """
   Creates a new range.
 
-  If first is less than last, the range will be increasing from
-  first to last. If first is equal to last, the range will contain
+  If `first` is less than `last`, the range will be increasing from
+  `first` to `last`. If `first` is equal to `last`, the range will contain
   one element, which is the number itself.
 
-  If first is more than last, the range will be decreasing from first
-  to last, albeit this behaviour is deprecated. Instead prefer to
-  explicitly list the step `new/3`.
+  If `first` is greater than `last`, the range will be decreasing from `first`
+  to `last`, albeit this behaviour is deprecated. Therefore, it is advised to
+  explicitly list the step with `new/3`.
 
   ## Examples
 
@@ -133,7 +133,7 @@ defmodule Range do
   end
 
   @doc """
-  Creates a new range with step.
+  Creates a new range with `step`.
 
   ## Examples
 
@@ -155,7 +155,7 @@ defmodule Range do
   end
 
   @doc """
-  Returns the size of the range.
+  Returns the size of `range`.
 
   ## Examples
 
@@ -181,6 +181,7 @@ defmodule Range do
 
   """
   @doc since: "1.12.0"
+  def size(range)
   def size(first..last//step) when step > 0 and first > last, do: 0
   def size(first..last//step) when step < 0 and first < last, do: 0
   def size(first..last//step), do: abs(div(last - first, step)) + 1
