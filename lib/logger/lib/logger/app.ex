@@ -9,7 +9,7 @@ defmodule Logger.App do
   def start(_type, _args) do
     start_options = Application.get_env(:logger, :start_options)
     otp_reports? = Application.fetch_env!(:logger, :handle_otp_reports)
-    config = Logger.Counter.new()
+    counter = :counters.new(1, [:atomics])
 
     children = [
       %{
@@ -17,13 +17,13 @@ defmodule Logger.App do
         start: {:gen_event, :start_link, [{:local, Logger}, start_options]},
         modules: :dynamic
       },
-      {Logger.Watcher, {Logger.Config, config}},
+      {Logger.Watcher, {Logger.Config, counter}},
       Logger.BackendSupervisor
     ]
 
     case Supervisor.start_link(children, strategy: :rest_for_one, name: Logger.Supervisor) do
       {:ok, sup} ->
-        primary_config = add_elixir_handler(otp_reports?, config)
+        primary_config = add_elixir_handler(otp_reports?, counter)
 
         default_handlers =
           if otp_reports? do
@@ -33,10 +33,9 @@ defmodule Logger.App do
           end
 
         handlers = [{:primary, primary_config} | default_handlers]
-        {:ok, sup, {config, handlers}}
+        {:ok, sup, handlers}
 
       {:error, _} = error ->
-        Logger.Counter.delete(config)
         error
     end
   end
@@ -47,12 +46,10 @@ defmodule Logger.App do
   end
 
   @doc false
-  def stop({config, handlers}) do
+  def stop(handlers) do
     _ = :logger.remove_handler(Logger)
     _ = :logger.remove_primary_filter(:process_disabled)
-
     add_handlers(handlers)
-    Logger.Counter.delete(config)
 
     :logger.add_primary_filter(
       :silence_logger_exit,
