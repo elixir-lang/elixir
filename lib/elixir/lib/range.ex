@@ -119,7 +119,7 @@ defmodule Range do
       -100..100
 
   """
-  @spec new(integer, integer) :: t
+  @spec new(first, last) :: t
   def new(first, last) when is_integer(first) and is_integer(last) do
     # TODO: Deprecate inferring a range with step of -1 on Elixir v1.17
     step = if first <= last, do: 1, else: -1
@@ -142,7 +142,7 @@ defmodule Range do
 
   """
   @doc since: "1.12.0"
-  @spec new(integer, integer, integer) :: t
+  @spec new(first, last, step) :: t
   def new(first, last, step)
       when is_integer(first) and is_integer(last) and is_integer(step) and step != 0 do
     %Range{first: first, last: last, step: step}
