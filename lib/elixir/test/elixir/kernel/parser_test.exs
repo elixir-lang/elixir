@@ -780,6 +780,32 @@ defmodule Kernel.ParserTest do
     end
   end
 
+  describe "down to Erlang" do
+    test "contains of non-literals" do
+      assert to_erl!("{:ok, make_ref()}") ==
+               {:tuple, 1,
+                [
+                  {:atom, 0, :ok},
+                  {:call, 1, {:remote, 1, {:atom, 0, :erlang}, {:atom, 1, :make_ref}}, []}
+                ]}
+
+      assert to_erl!("[:ok, make_ref()]") ==
+               {:cons, 1, {:atom, 0, :ok},
+                {:cons, 1,
+                 {:call, 1, {:remote, 1, {:atom, 0, :erlang}, {:atom, 1, :make_ref}}, []},
+                 {nil, 0}}}
+    end
+
+    defp to_erl!(code) do
+      {expr, _, _} =
+        code
+        |> Code.string_to_quoted!()
+        |> :elixir.quoted_to_erl(:elixir.env_for_eval([]))
+
+      expr
+    end
+  end
+
   defp parse!(string), do: Code.string_to_quoted!(string)
 
   defp assert_token_missing(given_message, string) do
