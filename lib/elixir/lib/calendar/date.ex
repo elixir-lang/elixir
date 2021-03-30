@@ -92,7 +92,7 @@ defmodule Date do
   def range(%{calendar: calendar} = first, %{calendar: calendar} = last) do
     {first_days, _} = to_iso_days(first)
     {last_days, _} = to_iso_days(last)
-    # TODO: Deprecate inferring a range with step of -1 on Elixir v1.16
+    # TODO: Deprecate inferring a range with a step of -1 on Elixir v1.16
     step = if first_days <= last_days, do: 1, else: -1
     range(first, first_days, last, last_days, calendar, step)
   end
@@ -102,7 +102,7 @@ defmodule Date do
   end
 
   @doc """
-  Returns a range of dates with step.
+  Returns a range of dates with a step.
 
   ## Examples
 
