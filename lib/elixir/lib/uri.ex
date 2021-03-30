@@ -5,6 +5,10 @@ defmodule URI do
   This module provides functions for working with URIs (for example, parsing
   URIs or encoding query strings). The functions in this module are implemented
   according to [RFC 3986](https://tools.ietf.org/html/rfc3986).
+
+  URIs are structs behind the scenes. You can access the URI fields directly
+  but you should not create a new `URI` directly via the struct syntax. Instead
+  use the functions in this module.
   """
 
   defstruct scheme: nil,

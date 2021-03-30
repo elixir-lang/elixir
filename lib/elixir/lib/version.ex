@@ -30,7 +30,9 @@ defmodule Version do
 
   The version is represented by the `Version` struct and fields
   are named according to SemVer 2.0: `:major`, `:minor`, `:patch`,
-  `:pre`, and `:build`.
+  `:pre`, and `:build`. You can read those fields but you should
+  not create a new `Version` directly via the struct syntax. Instead
+  use the functions in this module.
 
   ## Requirements
 
