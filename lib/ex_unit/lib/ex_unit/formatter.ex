@@ -231,7 +231,7 @@ defmodule ExUnit.Formatter do
       {header, wrapped_reason, wrapped_stack} ->
         struct = Exception.normalize(:error, wrapped_reason, wrapped_stack)
 
-        {formatted_reason, _} =
+        {formatted_reason, wrapped_stack} =
           format_exception(test, struct, wrapped_stack, width, formatter, @counter_padding)
 
         formatted_stack = format_stacktrace(wrapped_stack, test.module, test.name, formatter)
