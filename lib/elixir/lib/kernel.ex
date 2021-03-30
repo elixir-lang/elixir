@@ -3673,7 +3673,7 @@ defmodule Kernel do
   end
 
   defp range(_context, first, last) when is_integer(first) and is_integer(last) do
-    # TODO: Deprecate inferring a range with step of -1 on Elixir v1.17
+    # TODO: Deprecate inferring a range with a step of -1 on Elixir v1.17
     step = if first <= last, do: 1, else: -1
     {:%{}, [], [__struct__: Elixir.Range, first: first, last: last, step: step]}
   end
