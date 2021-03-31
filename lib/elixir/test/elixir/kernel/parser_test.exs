@@ -17,13 +17,13 @@ defmodule Kernel.ParserTest do
 
   describe "ternary ops" do
     test "root" do
-      assert parse!("1..2//3") == {:..//, [line: 1], [1, 2, 3]}
-      assert parse!("(1..2)//3") == {:..//, [line: 1], [1, 2, 3]}
+      assert parse!("1..2//3") == {:"..//", [line: 1], [1, 2, 3]}
+      assert parse!("(1..2)//3") == {:"..//", [line: 1], [1, 2, 3]}
     end
 
     test "with do-blocks" do
       assert parse!("foo do end..bar do end//baz do end") == {
-               :..//,
+               :"..//",
                [line: 1],
                [
                  {:foo, [line: 1], [[do: {:__block__, [], []}]]},
@@ -35,7 +35,7 @@ defmodule Kernel.ParserTest do
 
     test "with no parens" do
       assert parse!("1..foo do end//bar bat, baz") == {
-               :..//,
+               :"..//",
                [line: 1],
                [
                  1,
