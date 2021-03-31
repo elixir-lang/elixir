@@ -587,6 +587,38 @@ defmodule Mix.Tasks.XrefTest do
       end)
     end
 
+    test "compiles project first by default" do
+      in_fixture("no_mixfile", fn ->
+        File.write!("lib/a.ex", """
+        defmodule A do
+          def a, do: :ok
+        end
+        """)
+
+        Mix.Tasks.Xref.run(["graph"])
+
+        assert "Compiling" <> _ = receive_until_no_messages([])
+      end)
+    end
+
+    test "passes args over to compile task" do
+      in_fixture("no_mixfile", fn ->
+        File.write!("lib/a.ex", """
+        defmodule A do
+          def a, do: :ok
+        end
+        """)
+
+        Mix.Task.run("compile")
+        Mix.Task.reenable("compile")
+        Mix.shell().flush()
+
+        Mix.Tasks.Xref.run(["graph", "--no-compile"])
+
+        refute String.starts_with?(receive_until_no_messages([]), "Compiling")
+      end)
+    end
+
     defp assert_graph(opts \\ [], expected) do
       in_fixture("no_mixfile", fn ->
         File.write!("lib/a.ex", """

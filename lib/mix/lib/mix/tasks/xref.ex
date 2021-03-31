@@ -191,9 +191,10 @@ defmodule Mix.Tasks.Xref do
 
   @impl true
   def run(args) do
-    {opts, args} = OptionParser.parse!(args, strict: @switches)
     Mix.Task.run("compile", args)
     Mix.Task.reenable("xref")
+
+    {opts, args} = OptionParser.parse!(args, strict: @switches)
 
     case args do
       ["callers", callee] ->
