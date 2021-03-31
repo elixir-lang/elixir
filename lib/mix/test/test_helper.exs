@@ -238,7 +238,7 @@ unless File.dir?(target) do
   """)
 
   File.cd!(target, fn ->
-    System.cmd("git", ~w[init])
+    System.cmd("git", ~w[-c init.defaultBranch=main init])
     System.cmd("git", ~w[add .])
     System.cmd("git", ~w[commit -m "bad"])
     System.cmd("git", ~w[checkout -q -b main])
@@ -329,7 +329,7 @@ unless File.dir?(target) do
   """)
 
   File.cd!(target, fn ->
-    System.cmd("git", ~w[init])
+    System.cmd("git", ~w[-c init.defaultBranch=main init])
     System.cmd("git", ~w[add .])
     System.cmd("git", ~w[commit -m without-dep])
     System.cmd("git", ~w[checkout -q -b main])
@@ -384,7 +384,7 @@ unless File.dir?(target) do
   """)
 
   File.cd!(target, fn ->
-    System.cmd("git", ~w[init])
+    System.cmd("git", ~w[-c init.defaultBranch=main init])
     System.cmd("git", ~w[add .])
     System.cmd("git", ~w[commit -m "ok"])
     System.cmd("git", ~w[checkout -q -b main])
