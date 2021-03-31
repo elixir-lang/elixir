@@ -444,10 +444,10 @@ defmodule ExUnit.Runner do
     exec_on_exit(test, test_pid, timeout)
   end
 
-  defp spawn_test_monitor(config, test, parent_pid, context) do
+  defp spawn_test_monitor(%{seed: seed}, test, parent_pid, context) do
     spawn_monitor(fn ->
       ExUnit.OnExitHandler.register(self())
-      generate_test_seed(config, test)
+      generate_test_seed(seed, test)
 
       {time, test} =
         :timer.tc(fn ->
@@ -519,7 +519,7 @@ defmodule ExUnit.Runner do
 
   ## Helpers
 
-  defp generate_test_seed(%{seed: seed}, %ExUnit.Test{module: module, name: name}) do
+  defp generate_test_seed(seed, %ExUnit.Test{module: module, name: name}) do
     :rand.seed(@rand_algorithm, {:erlang.phash2(module), :erlang.phash2(name), seed})
   end
 
