@@ -181,6 +181,61 @@ defmodule LoggerTest do
     assert capture_log(fn -> assert PerModuleLevels.debug() == :ok end) =~ "debug_msg"
   end
 
+  test "per-modules levels" do
+    modules =
+      for n <- 1..2 do
+        name = Module.concat([__MODULE__, PerModulesLevels, to_string(n)])
+
+        defmodule name do
+          def debug, do: Logger.debug("debug_msg")
+
+          def error, do: Logger.error("error_msg")
+        end
+
+        name
+      end
+
+    for module <- modules do
+      assert capture_log(fn -> assert module.debug() == :ok end) =~ "debug_msg"
+      assert capture_log(fn -> assert module.error() == :ok end) =~ "error_msg"
+    end
+
+    Logger.put_module_level(modules, :error)
+
+    for module <- modules do
+      assert capture_log(fn -> assert module.debug() == :ok end) =~ ""
+      assert capture_log(fn -> Logger.debug("outer_debug_msg") end) =~ "outer_debug_msg"
+      assert capture_log(fn -> assert module.error() == :ok end) =~ "error_msg"
+    end
+
+    Logger.put_module_level(modules, :debug)
+
+    for module <- modules do
+      assert capture_log(:error, fn -> assert module.debug() == :ok end) =~ "debug_msg"
+      assert capture_log(:error, fn -> Logger.debug("outer_debug_msg") end) == ""
+      assert capture_log(fn -> assert module.error() == :ok end) =~ "error_msg"
+    end
+
+    Logger.delete_module_level(modules)
+
+    for module <- modules do
+      assert capture_log(fn -> assert module.debug() == :ok end) =~ "debug_msg"
+      assert capture_log(fn -> assert module.error() == :ok end) =~ "error_msg"
+    end
+
+    Logger.put_module_level(modules, :error)
+
+    for module <- modules do
+      assert capture_log(fn -> assert module.debug() == :ok end) == ""
+    end
+
+    Logger.delete_all_module_levels()
+
+    for module <- modules do
+      assert capture_log(fn -> assert module.debug() == :ok end) =~ "debug_msg"
+    end
+  end
+
   test "process metadata" do
     assert Logger.metadata(data: true) == :ok
     assert Logger.metadata() == [data: true]
