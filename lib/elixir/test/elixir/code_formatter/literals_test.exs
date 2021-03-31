@@ -107,6 +107,14 @@ defmodule Code.Formatter.LiteralsTest do
       assert_format ~S[:"++"], ~S[:++]
     end
 
+    test "quoted operators" do
+      assert_same ~S[:"::"]
+      assert_same ~S[:"..//"]
+      assert_format ~S[:..//], ~S[:"..//"]
+      assert_format ~S{[..//: 1]}, ~S{["..//": 1]}
+      assert_same ~S{["..//": 1]}
+    end
+
     test "uses double quotes even when single quotes are used" do
       assert_format ~S[:'foo bar'], ~S[:"foo bar"]
     end
