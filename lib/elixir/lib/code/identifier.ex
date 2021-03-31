@@ -83,7 +83,7 @@ defmodule Code.Identifier do
     charlist = Atom.to_charlist(atom)
 
     cond do
-      atom in [:%, :%{}, :{}, :<<>>, :..., :.., :., :..//, :->] ->
+      atom in [:%, :%{}, :{}, :<<>>, :..., :.., :., :"..//", :->] ->
         :not_callable
 
       atom in [:"::", :"//"] ->

@@ -13,7 +13,7 @@ defmodule Code.Formatter do
   @ampersand_prec Code.Identifier.unary_op(:&) |> elem(1)
 
   # Operators that are composed of multiple binary operators
-  @multi_binary_operators [:..//]
+  @multi_binary_operators [:"..//"]
 
   # Operators that do not have space between operands
   @no_space_binary_operators [:.., :"//"]
@@ -516,7 +516,7 @@ defmodule Code.Formatter do
   end
 
   # 1..2//3
-  defp quoted_to_algebra({:..//, meta, [left, middle, right]}, context, state) do
+  defp quoted_to_algebra({:"..//", meta, [left, middle, right]}, context, state) do
     quoted_to_algebra({:"//", meta, [{:.., meta, [left, middle]}, right]}, context, state)
   end
 

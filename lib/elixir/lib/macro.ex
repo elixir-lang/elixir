@@ -1143,7 +1143,7 @@ defmodule Macro do
     :error
   end
 
-  defp op_call({:..//, _, [left, middle, right]} = ast, fun) do
+  defp op_call({:"..//", _, [left, middle, right]} = ast, fun) do
     left = op_to_string(left, fun, :.., :left)
     middle = op_to_string(middle, fun, :.., :right)
     right = op_to_string(right, fun, :"//", :right)
