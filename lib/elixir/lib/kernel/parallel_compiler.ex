@@ -230,7 +230,7 @@ defmodule Kernel.ParallelCompiler do
   defp maybe_check_modules(result, runtime_modules, state) do
     %{schedulers: schedulers, profile: profile} = state
 
-    if :elixir_config.get(:bootstrap) do
+    if :elixir_config.static(:bootstrap) do
       []
     else
       compiled_modules = checker_compiled_modules(result)

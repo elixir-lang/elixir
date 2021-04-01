@@ -117,7 +117,7 @@ spawned_compile(#{module := Module, line := Line} = Map) ->
   {Set, Bag} = elixir_module:data_tables(Module),
 
   TranslatedTypespecs =
-    case elixir_config:get(bootstrap) andalso
+    case elixir_config:static(bootstrap) andalso
           (code:ensure_loaded(?typespecs) /= {module, ?typespecs}) of
       true -> {[], [], [], [], []};
       false -> ?typespecs:translate_typespecs_for_module(Set, Bag)

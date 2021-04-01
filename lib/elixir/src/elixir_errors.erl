@@ -41,7 +41,7 @@ form_warn(Meta, File, Module, Desc) when is_list(Meta), is_binary(File) ->
   form_warn(Meta, #{file => File}, Module, Desc);
 form_warn(Meta, #{file := File} = E, Module, Desc) when is_list(Meta) ->
   % Skip warnings during bootstrap, they will be reported during recompilation
-  case elixir_config:get(bootstrap) of
+  case elixir_config:static(bootstrap) of
     true -> ok;
     false -> do_form_warn(Meta, File, E, Module:format_error(Desc))
   end.

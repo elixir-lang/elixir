@@ -55,10 +55,6 @@ start(_Type, _Args) ->
     {argv, []},
     {no_halt, false},
 
-    %% Static options
-    {bootstrap, false},
-    {identifier_tokenizer, Tokenizer},
-
     %% Compiler options
     {docs, true},
     {ignore_module_conflict, false},
@@ -70,6 +66,8 @@ start(_Type, _Args) ->
     {tracers, []}
     | URIConfig
   ],
+
+  elixir_config:static(#{bootstrap => false, identifier_tokenizer => Tokenizer}),
 
   Tab = elixir_config:new(Config),
   case elixir_sup:start_link() of

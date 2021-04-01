@@ -16,7 +16,7 @@
 setup({DataSet, _DataBag}) ->
   ets:insert(DataSet, {?cache, 0, nil}),
 
-  case elixir_config:get(bootstrap) of
+  case elixir_config:static(bootstrap) of
     false -> ets:insert(DataSet, {?locals, true});
     true -> ok
   end,
