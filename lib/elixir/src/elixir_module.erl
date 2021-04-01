@@ -125,7 +125,7 @@ compile(Line, Module, Block, Vars, E) ->
     elixir_locals:stop({DataSet, DataBag}),
     make_readonly(Module),
 
-    (not elixir_config:get(bootstrap)) andalso
+    (not elixir_config:static(bootstrap)) andalso
      'Elixir.Module':check_behaviours_and_impls(E, DataSet, DataBag, AllDefinitions),
 
     RawCompileOpts = bag_lookup_element(DataBag, {accumulate, compile}, 2),
@@ -225,7 +225,7 @@ is_behaviour(DataBag) ->
 %% exception message suggesting the current module is not loaded. This is
 %% misleading so use a custom reason.
 compile_undef(Module, Fun, Arity, Stack) ->
-  case elixir_config:get(bootstrap) of
+  case elixir_config:static(bootstrap) of
     false ->
       Opts = [{module, Module}, {function, Fun}, {arity, Arity},
               {reason, 'function not available'}],
@@ -320,7 +320,7 @@ build(Line, File, Module) ->
   ets:insert(DataBag, [{persisted_attributes, Attr} || Attr <- Persisted]),
 
   OnDefinition =
-    case elixir_config:get(bootstrap) of
+    case elixir_config:static(bootstrap) of
       false -> {'Elixir.Module', compile_definition_attributes};
       _ -> {elixir_module, delete_definition_attributes}
     end,

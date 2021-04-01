@@ -117,7 +117,7 @@ allows_fast_compilation(_) ->
 
 bootstrap() ->
   {ok, _} = application:ensure_all_started(elixir),
-  elixir_config:put(bootstrap, true),
+  elixir_config:static(#{bootstrap => true}),
   elixir_config:put(docs, false),
   elixir_config:put(relative_paths, false),
   elixir_config:put(ignore_module_conflict, true),
@@ -125,7 +125,6 @@ bootstrap() ->
   elixir_config:put(parser_options, []),
   {Init, Main} = bootstrap_files(),
   [bootstrap_file(File) || File <- [<<"lib/elixir/lib/kernel.ex">> | Init]],
-  elixir_config:put(bootstrap, true),
   elixir_config:put(docs, true),
   [bootstrap_file(File) || File <- [<<"lib/elixir/lib/kernel.ex">> | Main]].
 
