@@ -243,8 +243,7 @@ defmodule Logger.Handler do
 
   defp translate_fallback({:report, data}, %{report_cb: callback}, _truncate)
        when is_function(callback, 2) do
-    translator_opts =
-      struct(Inspect.Opts, Application.fetch_env!(:logger, :translator_inspect_opts))
+    translator_opts = Inspect.Opts.new(Application.fetch_env!(:logger, :translator_inspect_opts))
 
     opts = %{
       depth: translator_opts.limit,
