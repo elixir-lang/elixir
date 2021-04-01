@@ -1,10 +1,12 @@
 # How to update the Unicode files
 #
-# 1. Update PropList.txt by copying original as is
-# 2. Update SpecialCasing.txt by copying original and removing conditional mappings
-# 3. Update GraphemeBreakProperty.txt by copying original as is
-# 4. Copy Extended_Pictographic from emoji-data at the end of GraphemeBreakProperty.txt
-# 5. Update GraphemeBreakTest.txt by copying original as is
+# Unicode files can be found in https://www.unicode.org/Public/
+#
+# 1. Replace PropList.txt by copying original
+# 2. Replace SpecialCasing.txt by copying original and removing conditional mappings
+# 3. Replace GraphemeBreakTest.tx by copying original auxiliary/GraphemeBreakTest.txt
+# 4. Replace GraphemeBreakProperty.txt by copying original auxiliary/GraphemeBreakProperty.txt
+# 5. Append Extended_Pictographic from emoji/emoji-data.txt to the end of GraphemeBreakProperty.txt
 # 6. Update String.Unicode.version/0 and on String module docs
 # 7. make unicode
 # 8. elixir lib/elixir/unicode/graphemes_test.exs
