@@ -144,11 +144,12 @@ defmodule Inspect.Opts do
 
       Inspect.Opts.default_inspect_fun(fn
         %{address: _} = map, opts ->
-          fun.(%{map | address: "[REDACTED]"}, opts)
+          previous_fun.(%{map | address: "[REDACTED]"}, opts)
 
         value, opts ->
-          fun.(map, opts)
+          previous_fun.(value, opts)
       end)
+
   """
   @doc since: "1.13.0"
   @spec default_inspect_fun((term, t -> Inspect.Algebra.t())) :: :ok
