@@ -119,7 +119,7 @@ defmodule Inspect.Opts do
   Returns the default inspect function.
   """
   @doc since: "1.13.0"
-  @spec default_inspect_fun() :: (term, t -> Inspect.Algebra.t)
+  @spec default_inspect_fun() :: (term, t -> Inspect.Algebra.t())
   def default_inspect_fun do
     :persistent_term.get({__MODULE__, :inspect_fun}, &Inspect.inspect/2)
   end
@@ -151,7 +151,7 @@ defmodule Inspect.Opts do
       end)
   """
   @doc since: "1.13.0"
-  @spec default_inspect_fun((term, t -> Inspect.Algebra.t)) :: :ok
+  @spec default_inspect_fun((term, t -> Inspect.Algebra.t())) :: :ok
   def default_inspect_fun(fun) when is_function(fun, 2) do
     :persistent_term.put({__MODULE__, :inspect_fun}, fun)
   end
