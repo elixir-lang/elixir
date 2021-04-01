@@ -223,8 +223,9 @@ Enum.each(fixtures, fn fixture ->
 end)
 
 ## Generate Git repo fixtures
-System.cmd("git", ~w[config --global user.email "mix@example.com"])
-System.cmd("git", ~w[config --global user.name "mix-repo"])
+System.cmd("git", ~w[config --global user.email mix@example.com])
+System.cmd("git", ~w[config --global user.name mix-repo])
+System.cmd("git", ~w[config --global init.defaultBranch not-main])
 
 # Git repo
 target = Path.expand("fixtures/git_repo", __DIR__)
