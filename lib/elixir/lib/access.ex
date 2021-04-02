@@ -445,9 +445,6 @@ defmodule Access do
 
   An error is raised if the accessed structure is not a map or a struct:
 
-      iex> get_in(nil, [Access.key(:foo)])
-      ** (BadMapError) expected a map, got: nil
-
       iex> get_in([], [Access.key(:foo)])
       ** (BadMapError) expected a map, got: []
 

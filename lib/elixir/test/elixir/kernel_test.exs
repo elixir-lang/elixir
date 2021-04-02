@@ -939,7 +939,7 @@ defmodule KernelTest do
       map = %{"fruits" => ["banana", "apple", "orange"]}
       assert get_in(map, ["fruits", by_index(0)]) == "banana"
       assert get_in(map, ["fruits", by_index(3)]) == nil
-      assert get_in(map, ["unknown", by_index(3)]) == :oops
+      assert get_in(map, ["unknown", by_index(3)]) == nil
 
       assert_raise FunctionClauseError, fn ->
         get_in(users, [])
@@ -1153,11 +1153,14 @@ defmodule KernelTest do
 
     def by_index(index) do
       fn
-        _, nil, next ->
-          next.(:oops)
+        :get, nil, _next ->
+          raise "won't be invoked"
 
         :get, data, next ->
           next.(Enum.at(data, index))
+
+        :get_and_update, nil, next ->
+          next.(:oops)
 
         :get_and_update, data, next ->
           current = Enum.at(data, index)
