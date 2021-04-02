@@ -1087,8 +1087,6 @@ defmodule Macro do
           "\#{" <> to_string(arg, fun) <> "}"
 
         binary when is_binary(binary) ->
-          binary = inspect_no_limit(binary)
-          binary = binary_part(binary, 1, byte_size(binary) - 2)
           escape_sigil(binary, left)
       end)
 
