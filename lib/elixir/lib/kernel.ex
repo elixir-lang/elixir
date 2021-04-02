@@ -2520,47 +2520,66 @@ defmodule Kernel do
       iex> get_in(users, ["john", :age])
       27
 
-  In case any of the keys returns `nil`, `nil` will be returned:
+  `get_in/2` can also use the accessors in the `Access` module
+  to traverse more complex data structures. For example, here we
+  use `Access.all/0` to traverse a list:
+
+      iex> users = [%{name: "john", age: 27}, %{name: "meg", age: 23}]
+      iex> get_in(users, [Access.all(), :age])
+      [27, 23]
+
+  In case any of the components returns `nil`, `nil` will be returned
+  and `get_in/2` won't traverse any futher:
 
       iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
       iex> get_in(users, ["unknown", :age])
       nil
 
-  Note that `get_in` exists mostly for convenience and parity with
-  functionality found in `put_in` and `update_in`. Given Elixir
-  provides pattern matching, it can often be more expressive for
-  deep data traversal, for example:
+      iex> users = nil
+      iex> get_in(users, [Access.all(), :age])
+      nil
+
+  The main feature of `get_in/2` is precisely that it aborts traversal
+  when a `nil` value is found. Unless you need nil-safety, you are likely
+  better off by writing "regular" Elixir code:
+
+      iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
+      iex> users["john"][:age]
+      27
+
+      iex> users = [%{name: "john", age: 27}, %{name: "meg", age: 23}]
+      iex> Enum.map(users, fn user -> user[:age] end)
+      [27, 23]
+
+  Alternatively, if you need to access complex data-structures, you can
+  use pattern matching:
 
       case users do
-        %{"unknown" => %{age: age}} -> age
+        %{"john" => %{age: age}} -> age
         _ -> default_value
       end
 
   ## Functions as keys
 
-  If a key is a function, the function will be invoked passing three
-  arguments:
+  If a key given to `get_in/2` is a function, the function will be invoked
+  passing three arguments:
 
     * the operation (`:get`)
     * the data to be accessed
     * a function to be invoked next
 
   This means `get_in/2` can be extended to provide custom lookups.
-  In the example below, we use a function to get all the maps inside
-  a list:
+  That's precisely how the `Access.all/0` key in the previous section
+  behaves. For example, we can manually implement such traversal as
+  follows:
 
       iex> users = [%{name: "john", age: 27}, %{name: "meg", age: 23}]
       iex> all = fn :get, data, next -> Enum.map(data, next) end
       iex> get_in(users, [all, :age])
       [27, 23]
 
-  If the previous value before invoking the function is `nil`,
-  the function *will* receive `nil` as a value and must handle it
-  accordingly.
-
-  The `Access` module ships with many convenience accessor functions,
-  like the `all` anonymous function defined above. See `Access.all/0`,
-  `Access.key/2`, and others as examples.
+  The `Access` module ships with many convenience accessor functions.
+  See `Access.all/0`, `Access.key/2`, and others as examples.
 
   ## Working with structs
 
@@ -2586,11 +2605,10 @@ defmodule Kernel do
   @spec get_in(Access.t(), nonempty_list(term)) :: term
   def get_in(data, keys)
 
+  def get_in(nil, [_ | _]), do: nil
+
   def get_in(data, [h]) when is_function(h), do: h.(:get, data, & &1)
   def get_in(data, [h | t]) when is_function(h), do: h.(:get, data, &get_in(&1, t))
-
-  def get_in(nil, [_]), do: nil
-  def get_in(nil, [_ | t]), do: get_in(nil, t)
 
   def get_in(data, [h]), do: Access.get(data, h)
   def get_in(data, [h | t]), do: get_in(Access.get(data, h), t)
@@ -2609,8 +2627,12 @@ defmodule Kernel do
       iex> put_in(users, ["john", :age], 28)
       %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
-  In case any of the entries in the middle returns `nil`,
-  an error will be raised when trying to access it next.
+  If any of the intermediate values are nil, it will raise:
+
+      iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
+      iex> put_in(users, ["jane", :age], "oops")
+      ** (ArgumentError) could not put/update key :age on a nil value
+
   """
   @spec put_in(Access.t(), nonempty_list(term), term) :: Access.t()
   def put_in(data, [_ | _] = keys, value) do
@@ -2637,8 +2659,13 @@ defmodule Kernel do
       iex> update_in(users, ["john", :age], &(&1 + 1))
       %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
-  In case any of the entries in the middle returns `nil`,
-  an error will be raised when trying to access it next.
+  Note the current value given to the anonymous function may be `nil`.
+  If any of the intermediate values are nil, it will raise:
+
+      iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
+      iex> update_in(users, ["jane", :age], & &1 + 1)
+      ** (ArgumentError) could not put/update key :age on a nil value
+
   """
   @spec update_in(Access.t(), nonempty_list(term), (term -> term)) :: Access.t()
   def update_in(data, [_ | _] = keys, fun) when is_function(fun) do
@@ -2675,6 +2702,13 @@ defmodule Kernel do
       iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
       iex> get_and_update_in(users, ["john", :age], &{&1, &1 + 1})
       {27, %{"john" => %{age: 28}, "meg" => %{age: 23}}}
+
+  Note the current value given to the anonymous function may be `nil`.
+  If any of the intermediate values are nil, it will raise:
+
+      iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
+      iex> get_and_update_in(users, ["jane", :age], &{&1, &1 + 1})
+      ** (ArgumentError) could not put/update key :age on a nil value
 
   ## Functions as keys
 
