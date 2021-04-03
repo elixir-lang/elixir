@@ -130,7 +130,7 @@ defmodule String.Tokenizer do
   defp unicode_start?(_), do: false
 
   unless {13312, 19903} in range do
-    raise "CHECK: CJK Ideograph not in range"
+    raise "CHECK: CJK Ideograph not in range. Make sure all properties are listed."
   end
 
   for {first, last} <- rangify.(unicode_continue) do
