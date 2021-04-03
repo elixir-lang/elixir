@@ -126,6 +126,7 @@ Elixir v1.12 has the additional of many functions across the standard library. T
   * [Range] Add `Range.new/3` and `Range.size/1`
   * [Regex] Add offset option to `Regex.scan/3` and `Regex.run/3`
   * [Registry] Support `:compression` on `Registry` tables
+  * [Registry] Support `Registry.values/3` for reading values under a given key-pid pair
   * [Stream] Add `Stream.zip_with/2` and `Stream.zip_with/3`
   * [String] Add `:turkic` mode option to String case functions
   * [System] Add `System.trap_signal/3` and `System.untrap_signal/2`
@@ -170,7 +171,9 @@ Elixir v1.12 has the additional of many functions across the standard library. T
   * [Kernel] Do not crash when complex literals (binaries and maps) are used in guards
   * [Kernel] Properly parse keywords (such as `end`) followed by the `::` operator
   * [Macro] `Macro.decompose_call/1` now also consider tuples with more than 2 elements to not be valid calls
-  * [Macro] Fix `Macro.underscore/1` for digit preceded by capitals: "FOO10" now becomes "foo10" instead of "fo_o10"
+  * [Macro] Fix `Macro.to_string/1` double-escaping of escape characters in sigils
+  * [Macro] Fix `Macro.underscore/1` on digits preceded by capitals: "FOO10" now becomes "foo10" instead of "fo_o10"
+  * [Macro] Preserve underscores between digits on `Macro.underscore/1`
   * [OptionParser] Properly parse when numbers follow-up aliases, for example, `-ab3` is now parsed as `-a -b 3`
   * [Path] Fix `Path.relative_to/2` when referencing self
   * [Task] Ensure `Task.async_stream/2` with `ordered: false` discard results as they are emitted, instead of needlessly accumulating inside the stream manager
