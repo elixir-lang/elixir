@@ -336,7 +336,7 @@ number_size(Size, default) when is_integer(Size) -> Size;
 number_size(Size, Unit) when is_integer(Size) -> Size * Unit;
 number_size(Size, _) -> Size.
 
-%% TODO: Simplify when we require OTP 24
+%% TODO: Simplify when we require Erlang/OTP 24
 valid_float_size(16) -> erlang:system_info(otp_release) >= "24";
 valid_float_size(32) -> true;
 valid_float_size(64) -> true;

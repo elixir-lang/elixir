@@ -327,7 +327,7 @@ defmodule Mix.Compilers.Erlang do
   end
 
   defp line({line, _column}) when is_integer(line) and line >= 1, do: line
-  # TODO: remove when we require OTP 24
+  # TODO: remove when we require Erlang/OTP 24
   defp line(line) when is_integer(line) and line >= 1, do: line
   defp line(_), do: nil
 end

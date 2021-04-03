@@ -2387,7 +2387,7 @@ defmodule Kernel.ExpansionTest do
       end
     end
 
-    # TODO: Simplify when we require OTP 24
+    # TODO: Simplify when we require Erlang/OTP 24
     if System.otp_release() >= "24" do
       test "16-bit floats" do
         import Kernel, except: [-: 2]

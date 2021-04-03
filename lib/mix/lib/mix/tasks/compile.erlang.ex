@@ -99,7 +99,7 @@ defmodule Mix.Tasks.Compile.Erlang do
       file = Erlang.to_erl_file(Path.rootname(input, ".erl"))
 
       case :compile.file(file, erlc_options) do
-        # TODO: Don't handle {:error, :badarg} when we require OTP 24
+        # TODO: Don't handle {:error, :badarg} when we require Erlang/OTP 24
         error when error == :error or error == {:error, :badarg} ->
           message =
             "Compiling Erlang file #{inspect(file)} failed, probably because of invalid :erlc_options"
