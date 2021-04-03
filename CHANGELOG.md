@@ -11,7 +11,6 @@ Elixir v1.13 requires Erlang/OTP 22+.
 #### Elixir
 
   * [Kernel] Make `get_in` consistently abort when `nil` values are found
-  * [String] Update to Unicode 13.0
 
 #### ExUnit
 
