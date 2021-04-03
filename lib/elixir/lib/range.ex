@@ -39,17 +39,41 @@ defmodule Range do
 
   ## Definition
 
+  A single-element range `first..last//step` is a rangewhere
+  `first == last` and `step` must be either a positive or a
+  negative integer. For example `5..5//1`, and `-10..-10//1`.
+
+      iex> 5..5//1 |> Enum.to_list()
+      [5]
+
+      iex> -10..-10//1 |> Enum.to_list()
+      [-10]
+
   An increasing range `first..last//step` is a range from
   `first` to `last` increasing by `step` where  `step` must be a positive
-  integer and all values `v` must be `first <= v and v <= last`. Therefore, a range
+  integer and all values `v` must be `first <= v and v < last`. Therefore, a range
   `10..0//1` is an empty range because there is no value `v`
-  that is `10 <= v and v <= 0`.
+  that is `10 <= v and v < 0`.
+
+      iex> 3..5//1 |> Enum.to_list()
+      [3, 4, 5]
+
+      iex> 10..0//1 |> Enum.to_list()
+      []
+
 
   Similarly, a decreasing range `first..last//step` is a range
   from `first` to `last` decreasing by `step` where `step` must be a negative
-  integer and  values `v` must be `first >= v and v >= last`. Therefore, a range
+  integer and  values `v` must be `first >= v and v > last`. Therefore, a range
   `0..10//-1` is an empty range because there is no value `v`
-  that is `0 >= v and v >= 10`.
+  that is `0 >= v and v > 10`.
+
+      iex> 6..4//-1 |> Enum.to_list()
+      [6, 5, 4]
+
+      iex> 0..10//-1 |> Enum.to_list()
+      []
+
 
   ## Representation
 
