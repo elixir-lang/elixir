@@ -131,6 +131,7 @@ Elixir v1.12 has the additional of many functions across the standard library. T
   * [Registry] Support `Registry.values/3` for reading values under a given key-pid pair
   * [Stream] Add `Stream.zip_with/2` and `Stream.zip_with/3`
   * [String] Add `:turkic` mode option to String case functions
+  * [String] Update to Unicode 13.0
   * [System] Add `System.trap_signal/3` and `System.untrap_signal/2`
   * [Tuple] Add `Tuple.sum/1` and `Tuple.product/1`
   * [URI] Support RFC3986 compliant encoding and decoding of queries via the `:rfc3986` option
