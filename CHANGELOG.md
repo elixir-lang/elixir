@@ -102,7 +102,7 @@ Elixir v1.12 has the additional of many functions across the standard library. T
   * [Code] Do not add newlines around interpolation on code formatting. Note this means formatted code that has interpolation after the line length on Elixir v1.12 won't be considered as formatted on earlier Elixir versions
   * [Calendar] Support basic datetime format in `Calendar.ISO` parsing functions
   * [Code] Improve evaluation performance on systems running on Erlang/OTP 24+
-  * [Date] Support steps via `Date.range/3`
+  * [Date.Range] Support steps via `Date.range/3`
   * [DateTime] Add `offset` to `DateTime.to_iso8601/2` (now `to_iso8601/3`)
   * [Enum] Add `Enum.count_until/2` and `Enum.count_until/3`
   * [Enum] Add `Enum.product/1`
