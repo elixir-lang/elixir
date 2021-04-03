@@ -155,7 +155,7 @@ custom_format(sys_core_fold, {failed, {eval_failure, {Mod, Name, Arity}, Error}}
             end,
   ["the call to ", Trimmed, " will fail with ", elixir_aliases:inspect(Struct)];
 
-%% TODO: remove when we require OTP 24
+%% TODO: remove when we require Erlang/OTP 24
 custom_format(sys_core_fold, {nomatch_shadow, Line, FA}) ->
   custom_format(sys_core_fold, {nomatch, {shadow, Line, FA}});
 custom_format(sys_core_fold, nomatch_guard) ->
