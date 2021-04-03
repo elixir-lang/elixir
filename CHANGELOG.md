@@ -2,6 +2,8 @@
 
 Elixir v1.12 is out with improvements to scripting, tighter Erlang/OTP 24 integration, stepped ranges, and dozen of new functions across the standard library. Overall this is a small release, which continues our tradition of bringing Elixir developers quality of live improvements every 6 months.
 
+This is the last release to support Erlang/OTP 21.
+
 ## Scripting improvements: `Mix.install/2` and `System.trap_signal/3`
 
 Elixir v1.12 brings new conveniences for those using Elixir for scripting (via `.exs` files). Elixir has been capable of managing dependencies for a quite long time, but it could only be done within Mix projects. In particular, the Elixir team is wary of global dependencies as any scripts that rely on system packages are brittle and hard to reproduce whenever your system changes.
