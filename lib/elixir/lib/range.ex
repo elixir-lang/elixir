@@ -49,6 +49,10 @@ defmodule Range do
       iex> -10..-10//1 |> Enum.to_list()
       [-10]
 
+      # Regardless the step the range will not be empty
+      iex> 5..5//-42 |> Enum.to_list()
+      [5]
+
   An increasing range `first..last//step` is a range from
   `first` to `last` increasing by `step` where  `step` must be a positive
   integer and all values `v` must be `first <= v and v < last`. Therefore, a range

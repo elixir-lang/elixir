@@ -70,6 +70,13 @@ defmodule RangeTest do
     assert_raise ArgumentError, message, fn -> 1..3//step end
   end
 
+  test "single-element ranges" do
+    assert Enum.to_list(10..10//1) == [10]
+    assert Enum.to_list(10..10//-1) == [10]
+    assert Enum.to_list(10..10//42) == [10]
+    assert Enum.to_list(10..10//-42)== [10]
+  end
+
   describe "disjoint?" do
     test "returns true for disjoint ranges" do
       assert_disjoint(1..5, 6..9)
