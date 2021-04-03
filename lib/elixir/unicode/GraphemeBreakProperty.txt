@@ -1456,8 +1456,8 @@ D789..D7A3    ; LVT # Lo  [27] HANGUL SYLLABLE HIG..HANGUL SYLLABLE HIH
 #
 # For documentation and usage, see http://www.unicode.org/reports/tr51
 #
-# Format: 
-# <codepoint(s)> ; <property> # <comments> 
+# Format:
+# <codepoint(s)> ; <property> # <comments>
 # Note: there is no guarantee as to the structure of whitespace or comments
 #
 # Characters and sequences are listed in code point order. Users should be shown a more natural order.
@@ -1465,7 +1465,7 @@ D789..D7A3    ; LVT # Lo  [27] HANGUL SYLLABLE HIG..HANGUL SYLLABLE HIH
 
 # ================================================
 
-# All omitted code points have Extended_Pictographic=No 
+# All omitted code points have Extended_Pictographic=No
 # @missing: 0000..10FFFF  ; Extended_Pictographic ; No
 
 00A9          ; Extended_Pictographic# E0.6   [1] (©️)       copyright

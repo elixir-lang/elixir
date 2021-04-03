@@ -129,7 +129,7 @@ defmodule String.Tokenizer do
 
   defp unicode_start?(_), do: false
 
-  unless {13312, 19893} in range do
+  unless {13312, 19903} in range do
     raise "CHECK: CJK Ideograph not in range"
   end
 
