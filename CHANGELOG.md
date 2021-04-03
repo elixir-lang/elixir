@@ -76,7 +76,7 @@ iex(3)> :ets.insert(ets, :should_be_a_tuple)
 
 ## Stepped ranges
 
-Elixir has support for ranges from before its v1.0 release. Ranges support only integers and are inclusive, using the mathematic notation `a..b`. Ranges in Elixir are either increasing `1..10` or decreasing `10..1` and the direction of the range was always inferred from the starting and stop positions. Ranges are always lazy as its values are emitted as they are enumerated rather than being computed upfront.
+Elixir has support for ranges from before its v1.0 release. Ranges support only integers and are inclusive, using the mathematic notation `a..b`. Ranges in Elixir are either increasing `1..10` or decreasing `10..1` and the direction of the range was always inferred from the first and last positions. Ranges are always lazy as its values are emitted as they are enumerated rather than being computed upfront.
 
 Unfortunately, due to this inference, it is not possible to have empty ranges. For example, if you want to create a list of `n` elements, you can express it with a range from `1..n`, as `1..0` is a decreasing range with two elements.
 
@@ -112,7 +112,7 @@ Elixir v1.12 has the additional of many functions across the standard library. T
   * [Float] Add `Float.pow/2`
   * [Integer] Add `Integer.pow/2` and `Integer.extended_gcd/2`
   * [List] Add default value for `List.first/1` and `List.last/1`
-  * [Kernel] Add `start..stop//step` as support for stepped ranges
+  * [Kernel] Add `first..last//step` as support for stepped ranges
   * [Kernel] Also warn for literal structs on `min/2` and `max/2`
   * [Kernel] Add `Kernel.tap/2` and `Kernel.then/2`
   * [Kernel] Do not add runtime dependencies to remotes in typespecs
@@ -205,8 +205,8 @@ Elixir v1.12 has the additional of many functions across the standard library. T
 
 #### Elixir
 
-  * [Kernel] Using `start..stop` to match on ranges is soft-deprecated and will warn on future Elixir versions. Use `start..stop//step` instead
-  * [Kernel] Using `start..stop` to create decreasing ranges is soft-deprecated and will warn on future versions. Use `start..stop//-1` instead
+  * [Kernel] Using `first..last` to match on ranges is soft-deprecated and will warn on future Elixir versions. Use `first..last//step` instead
+  * [Kernel] Using `first..last` to create decreasing ranges is soft-deprecated and will warn on future versions. Use `first..last//-1` instead
 
 ### 4. Hard-deprecations
 
