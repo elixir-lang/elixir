@@ -1,6 +1,16 @@
 # Returns config for Elixir docs
+
+canonical = System.fetch_env!("CANONICAL")
+
 [
   extras: Path.wildcard("lib/elixir/pages/*.md") ++ ["CHANGELOG.md"],
+  deps: [
+    eex: "https://hexdocs.pm/eex/#{canonical}",
+    ex_unit: "https://hexdocs.pm/ex_unit/#{canonical}",
+    iex: "https://hexdocs.pm/iex/#{canonical}",
+    logger: "https://hexdocs.pm/logger/#{canonical}",
+    mix: "https://hexdocs.pm/mix/#{canonical}"
+  ],
   groups_for_functions: [
     Guards: &(&1[:guard] == true)
   ],
