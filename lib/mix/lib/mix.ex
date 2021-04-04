@@ -561,6 +561,7 @@ defmodule Mix do
       app: :mix_install,
       erlc_paths: ["src"],
       elixirc_paths: ["lib"],
+      compilers: [],
       consolidate_protocols: Keyword.get(opts, :consolidate_protocols, true)
     ]
 
