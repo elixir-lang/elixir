@@ -540,6 +540,23 @@ defmodule Task do
   If for some reason you cannot take the elements before hand,
   you can use `:max_concurrency` to limit how many elements
   may be over processed at the cost of reducing concurrency.
+
+  ## First async task to complete
+
+  Given a list of async functions, you can get the result of the first async task to complete.
+
+      [
+        &heavy_call_1/0,
+        &heavy_call_2/0,
+        &heavy_call_3/0
+      ]
+      |> Task.async_stream(fn fun -> fun.() end, ordered: false)
+      |> Stream.filter(&match?({:ok, _}, &1))
+      |> Stream.take(1)
+      |> Enum.to_list()
+
+  First use `Stream.filter/2` to filter the completed tasks, and then use `Stream.take/2` to take the first item of the stream.
+
   """
   @doc since: "1.4.0"
   @spec async_stream(Enumerable.t(), module, atom, [term], keyword) :: Enumerable.t()
