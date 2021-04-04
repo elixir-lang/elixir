@@ -480,8 +480,8 @@ defmodule Mix do
   will avoid unnecessary downloads and compilations. The location of the cache
   directory can be controlled using the `MIX_INSTALL_DIR` environment variable.
 
-  This function can only be called outside of a Mix project and only once in a
-  given VM.
+  This function can only be called outside of a Mix project and only with the
+  same dependencies in the given VM.
 
   **Note:** this feature is currently experimental and it may change
   in future releases.
@@ -516,8 +516,17 @@ defmodule Mix do
       Mix.raise("Mix.install/2 cannot be used inside a Mix project")
     end
 
-    if Mix.State.get(:install_called?) do
-      Mix.raise("Mix.install/2 can only be called once")
+    force? = !!opts[:force]
+
+    case Mix.State.get(:installed) do
+      nil ->
+        :ok
+
+      ^deps when not force? ->
+        :ok
+
+      _ ->
+        Mix.raise("Mix.install/2 can only be called with the same dependencies in the given VM")
     end
 
     installs_root =
@@ -532,7 +541,7 @@ defmodule Mix do
       Mix.shell().info("using #{dir}")
     end
 
-    if opts[:force] do
+    if force? do
       File.rm_rf!(dir)
     end
 
@@ -574,7 +583,7 @@ defmodule Mix do
     end
 
     Mix.ProjectStack.pop()
-    Mix.State.put(:install_called?, true)
+    Mix.State.put(:installed, deps)
     :ok
   end
 end
