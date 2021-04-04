@@ -516,6 +516,12 @@ defmodule Mix do
       Mix.raise("Mix.install/2 cannot be used inside a Mix project")
     end
 
+    deps =
+      Enum.map(deps, fn
+        dep when is_atom(dep) -> {dep, ">= 0.0.0"}
+        dep -> dep
+      end)
+
     force? = !!opts[:force]
 
     case Mix.State.get(:installed) do
@@ -544,12 +550,6 @@ defmodule Mix do
     if force? do
       File.rm_rf!(dir)
     end
-
-    deps =
-      Enum.map(deps, fn
-        dep when is_atom(dep) -> {dep, ">= 0.0.0"}
-        dep -> dep
-      end)
 
     config = [
       version: "0.1.0",
