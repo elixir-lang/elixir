@@ -47,14 +47,40 @@ defmodule MixTest do
       assert apply(InstallTest, :hello, []) == :world
     end
 
-    test "can't call twice in the same VM", %{tmp_dir: tmp_dir} do
+    test "call with same deps in the same VM", %{tmp_dir: tmp_dir} do
       Mix.install([
         {:install_test, path: Path.join(tmp_dir, "install_test")}
       ])
 
-      assert_raise Mix.Error, "Mix.install/2 can only be called once", fn ->
+      Mix.install([
+        {:install_test, path: Path.join(tmp_dir, "install_test")}
+      ])
+    end
+
+    test "can't call with same deps and force", %{tmp_dir: tmp_dir} do
+      Mix.install([
+        {:install_test, path: Path.join(tmp_dir, "install_test")}
+      ])
+
+      assert_raise Mix.Error, ~r"Mix.install/2 can only be called", fn ->
+        Mix.install(
+          [
+            {:install_test, path: Path.join(tmp_dir, "install_test")}
+          ],
+          force: true
+        )
+      end
+    end
+
+    test "can't call with different deps in the same VM", %{tmp_dir: tmp_dir} do
+      Mix.install([
+        {:install_test, path: Path.join(tmp_dir, "install_test")}
+      ])
+
+      assert_raise Mix.Error, ~r"Mix.install/2 can only be called", fn ->
         Mix.install([
-          {:install_test, path: Path.join(tmp_dir, "install_test")}
+          {:install_test, path: Path.join(tmp_dir, "install_test")},
+          :foo
         ])
       end
     end
@@ -80,7 +106,7 @@ defmodule MixTest do
         Application.unload(:install_test)
       end)
 
-      Mix.State.put(:install_called?, false)
+      Mix.State.put(:installed, nil)
 
       File.mkdir_p!("#{tmp_dir}/install_test/lib")
 
