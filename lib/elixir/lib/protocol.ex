@@ -688,8 +688,6 @@ defmodule Protocol do
             def: 2,
             defp: 1,
             defp: 2,
-            defdelegate: 2,
-            defexception: 1,
             defguard: 1,
             defguardp: 1,
             defmacro: 1,
