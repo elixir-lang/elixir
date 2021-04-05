@@ -304,12 +304,12 @@ defmodule Module.Types.IntegrationTest do
 
       warning = """
       warning: A2.no_func/0 is undefined (module A2 is not available or is yet to be defined)
-      Found at 2 locations:
+      Invalid call found at 2 locations:
         a.ex:8: A.d/0
         external_source.ex:5: A.b/0
 
       warning: A.no_func/0 is undefined or private
-      Found at 2 locations:
+      Invalid call found at 2 locations:
         a.ex:2: A.a/0
         a.ex:7: A.c/0
 
@@ -623,13 +623,13 @@ defmodule Module.Types.IntegrationTest do
       warnings = [
         """
         warning: A.__struct__/0 is deprecated. oops
-        Found at 2 locations:
+        Invalid call found at 2 locations:
           a.ex:4: A.match/1
           a.ex:5: A.build/1
         """,
         """
         warning: A.__struct__/0 is deprecated. oops
-        Found at 2 locations:
+        Invalid call found at 2 locations:
           b.ex:2: B.match/1
           b.ex:3: B.build/1
 
