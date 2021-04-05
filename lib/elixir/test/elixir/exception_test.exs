@@ -455,13 +455,13 @@ defmodule ExceptionTest do
 
     test "annotates undefined function error with suggestions" do
       assert blame_message(Enum, & &1.map(:ok)) == """
-             function Enum.map/1 is undefined or private. Did you mean one of:
+             function Enum.map/1 is undefined or private. Did you mean:
 
                    * map/2
              """
 
       assert blame_message(Enum, & &1.man(:ok)) == """
-             function Enum.man/1 is undefined or private. Did you mean one of:
+             function Enum.man/1 is undefined or private. Did you mean:
 
                    * map/2
                    * max/1
@@ -471,7 +471,7 @@ defmodule ExceptionTest do
              """
 
       assert blame_message(:erlang, & &1.gt_cookie()) == """
-             function :erlang.gt_cookie/0 is undefined or private. Did you mean one of:
+             function :erlang.gt_cookie/0 is undefined or private. Did you mean:
 
                    * get_cookie/0
                    * set_cookie/2
@@ -517,7 +517,7 @@ defmodule ExceptionTest do
       message = blame_message(%{first: nil, second: nil}, fn map -> map.firts end)
 
       assert message == """
-             key :firts not found in: %{first: nil, second: nil}. Did you mean one of:
+             key :firts not found in: %{first: nil, second: nil}. Did you mean:
 
                    * :first
              """
@@ -535,7 +535,7 @@ defmodule ExceptionTest do
         blame_message([first: nil, second: nil], fn kwlist -> Keyword.fetch!(kwlist, :firts) end)
 
       assert message == """
-             key :firts not found in: [first: nil, second: nil]. Did you mean one of:
+             key :firts not found in: [first: nil, second: nil]. Did you mean:
 
                    * :first
              """
@@ -544,7 +544,7 @@ defmodule ExceptionTest do
     test "annotates key error with suggestions for structs" do
       message = blame_message(%URI{}, fn map -> map.schema end)
       assert message =~ "key :schema not found in: %URI{"
-      assert message =~ "Did you mean one of:"
+      assert message =~ "Did you mean:"
       assert message =~ "* :scheme"
     end
 
