@@ -176,7 +176,7 @@ defmodule Module.ParallelChecker do
 
   defp format_locations(locations) do
     [
-      "Found at #{length(locations)} locations:\n",
+      "Invalid call found at #{length(locations)} locations:\n",
       Enum.map(locations, &format_location/1)
     ]
   end
