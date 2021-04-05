@@ -12,11 +12,11 @@ test_template: &DEFAULT_TEST_SETTINGS
 test_freebsd_task:
   <<: *DEFAULT_TEST_SETTINGS
 
-  name: FreeBSD 12.2
+  name: FreeBSD 13.0
   alias: FreeBSD Stable
 
   freebsd_instance:
-    image_family: freebsd-12-2
+    image_family: freebsd-13-0
     cpu: 8
     memory: 7424Mi
 
