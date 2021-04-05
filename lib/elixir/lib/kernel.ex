@@ -1146,13 +1146,12 @@ defmodule Kernel do
       iex> tap(1, fn x -> x + 1 end)
       1
 
-  Most commonly, this is used in pipelines. For example,
-  let's suppose you want to inspect part of a data structure.
-  You could write:
+  Most commonly, this is used in pipelines. For example, let's suppose you
+  want to add logging to a pipeline of operations. You could write:
 
       %{a: 1}
       |> Map.update!(:a, & &1 + 2)
-      |> tap(&IO.inspect(&1.a))
+      |> tap(&Logger.info("Sum: " <> inspect(&1.a)))
       |> Map.update!(:a, & &1 * 2)
 
   """
