@@ -553,7 +553,7 @@ defmodule Task do
       |> Task.async_stream(fn fun -> fun.() end, ordered: false)
       |> Stream.filter(&match?({:ok, _}, &1))
       |> Stream.take(1)
-      |> Enum.to_list()
+      |> Enum.at(0)
 
   First use `Stream.filter/2` to filter the completed tasks, and then use `Stream.take/2` to take the first item of the stream.
 
