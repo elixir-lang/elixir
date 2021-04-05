@@ -23,9 +23,10 @@ test_freebsd_task:
   env:
     CHECK_REPRODUCIBLE: true
     LC_ALL: en_US.UTF-8
+    PATH: $PATH:/usr/local/lib/erlang22/bin
 
   install_script:
-    - pkg install -y erlang git gmake
+    - pkg install -y erlang-runtime22 git gmake
     - rm -rf .git
     - gmake compile
 
