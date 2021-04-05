@@ -554,7 +554,7 @@ defmodule Task do
       |> Stream.filter(&match?({:ok, _}, &1))
       |> Enum.at(0)
 
-  First use `Stream.filter/2` to filter the completed tasks, and then use `Stream.take/2` to take the first item of the stream.
+  First use `Stream.filter/2` to filter the completed tasks, and then use `Enum.at/2` to retrieve the first item emitted by the stream.
 
   """
   @doc since: "1.4.0"
