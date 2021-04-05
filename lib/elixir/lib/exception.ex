@@ -1033,7 +1033,7 @@ defmodule UndefinedFunctionError do
 
     case result do
       [] -> []
-      suggestions -> [". Did you mean one of:\n\n" | Enum.map(suggestions, &format_fa/1)]
+      suggestions -> [". Did you mean:\n\n" | Enum.map(suggestions, &format_fa/1)]
     end
   end
 
@@ -1297,7 +1297,7 @@ defmodule KeyError do
 
     case suggestions do
       [] -> []
-      suggestions -> [". Did you mean one of:\n\n" | format_suggestions(suggestions)]
+      suggestions -> [". Did you mean:\n\n" | format_suggestions(suggestions)]
     end
   end
 
