@@ -20,6 +20,10 @@ Elixir v1.13 requires Erlang/OTP 22+.
 
 ### 2. Bug fixes
 
+#### Elixir
+
+  * [Protocol] Add `defdelegate` to the list of unallowed macros inside protocols as protocols do not allow function definitions
+
 ### 3. Soft-deprecations (no warnings emitted)
 
 ### 4. Hard-deprecations
