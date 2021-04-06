@@ -334,15 +334,10 @@ defmodule Module.Types.Expr do
     # TODO: Use expected type to infer intersection return type
     stack = push_expr_stack(expr, stack)
 
-    case of_expr(fun, :dynamic, stack, context) do
-      {:ok, _fun_type, context} ->
-        case map_reduce_ok(args, context, &of_expr(&1, :dynamic, stack, &2)) do
-          {:ok, _arg_types, context} -> {:ok, :dynamic, context}
-          {:error, reason} -> {:error, reason}
-        end
-
-      {:error, reason} ->
-        {:error, reason}
+    with {:ok, _fun_type, context} <- of_expr(fun, :dynamic, stack, context),
+         {:ok, _arg_types, context} <-
+           map_reduce_ok(args, context, &of_expr(&1, :dynamic, stack, &2)) do
+      {:ok, :dynamic, context}
     end
   end
 
@@ -375,11 +370,10 @@ defmodule Module.Types.Expr do
     stack = push_expr_stack(expr2, stack)
 
     with {:ok, _expr_type, context} <- of_expr(expr1, :dynamic, stack, context),
-         {:ok, _fun_type, context} <- of_expr(fun, :dynamic, stack, context) do
-      case map_reduce_ok(args, context, &of_expr(&1, :dynamic, stack, &2)) do
-        {:ok, _arg_types, context} -> {:ok, :dynamic, context}
-        {:error, reason} -> {:error, reason}
-      end
+         {:ok, _fun_type, context} <- of_expr(fun, :dynamic, stack, context),
+         {:ok, _arg_types, context} <-
+           map_reduce_ok(args, context, &of_expr(&1, :dynamic, stack, &2)) do
+      {:ok, :dynamic, context}
     end
   end
 
