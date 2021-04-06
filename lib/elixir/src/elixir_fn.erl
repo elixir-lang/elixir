@@ -162,6 +162,7 @@ handle_capture_possible_warning(Meta, DotMeta, Mod, Fun, Arity, E) ->
     false -> ok
   end.
 
+%% TODO: Raise on Elixir v2.0
 format_error({parens_remote_capture, Mod, Fun}) ->
   io_lib:format("extra parentheses on a remote function capture &~ts.~ts()/0 have been "
                  "deprecated. Please remove the parentheses: &~ts.~ts/0",
@@ -185,6 +186,9 @@ format_error({unallowed_capture_arg, Integer}) ->
   io_lib:format("capture &~B is not allowed", [Integer]);
 format_error({invalid_args_for_capture, Arg}) ->
   Message =
-    "invalid args for &, expected an expression in the format of &Mod.fun/arity, "
-    "&local/arity or a capture containing at least one argument as &1, got: ~ts",
+    "invalid args for &, expected one of:\n\n"
+    "  * &Mod.fun/arity to capture a remote function, such as &Enum.map/2\n"
+    "  * &fun/arity to capture a local or imported function, such as &is_atom/1\n"
+    "  * &some_code(&1, ...) containing at least one argument as &1, such as &List.flatten(&1)\n\n"
+    "Got: ~ts",
   io_lib:format(Message, ['Elixir.Macro':to_string(Arg)]).

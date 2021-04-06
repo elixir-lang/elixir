@@ -973,10 +973,7 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "fails on other types" do
-      message =
-        ~r"invalid args for &, expected an expression in the format of &Mod.fun/arity, &local/arity or a capture containing at least one argument as &1, got: :foo"
-
-      assert_raise CompileError, message, fn ->
+      assert_raise CompileError, ~r"invalid args for &, expected one of:", fn ->
         expand(quote(do: &:foo))
       end
     end
@@ -990,10 +987,7 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "fails when no captures" do
-      message =
-        ~r"invalid args for &, expected an expression in the format of &Mod.fun/arity, &local/arity or a capture containing at least one argument as &1, got: foo()"
-
-      assert_raise CompileError, message, fn ->
+      assert_raise CompileError, ~r"invalid args for &, expected one of:", fn ->
         expand(quote(do: &foo()))
       end
     end
