@@ -414,7 +414,7 @@ end
 
 ### Optional parentheses
 
-Elixir provides optional parentheses for non-qualified and qualified calls.
+Elixir provides optional parentheses:
 
 ```elixir
 quote do
@@ -423,15 +423,9 @@ end
 #=> {:sum, [], [1, 2, 3]}
 ```
 
-The above is treated the same as `sum(1, 2, 3)` by the parser.
+The above is treated the same as `sum(1, 2, 3)` by the parser. You can remove the parentheses on all calls with at least one argument.
 
-The same applies to qualified calls such as `Foo.bar(1, 2, 3)`, which is equivalent to `Foo.bar 1, 2, 3`. There are, however, some situations where parentheses are required:
-
-  * when calling anonymous functions, such as `f.(1, 2)`;
-
-  * for non-qualified calls with no arguments, such as `sum()`. Removing the parentheses for `sum` causes it to be represented as the variable `sum`;
-
-  * for dynamic qualified calls with no arguments. `data.key` means accessing a field named `key` in the map given by `data`. `mod.fun()`, with parens, means calling a function named `fun` in the module `mod`;
+You can also skip parentheses on qualified calls, such as `Foo.bar 1, 2, 3`. Parentheses are required when invoking anonymous functions, such as `f.(1, 2, 3)`.
 
 In practice, developers prefer to add parentheses to most of their calls. They are skipped mainly in Elixir's control-flow constructs, such as `defmodule`, `if`, `case`, etc, and in certain DSLs.
 
