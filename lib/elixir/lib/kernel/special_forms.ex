@@ -1519,9 +1519,9 @@ defmodule Kernel.SpecialForms do
       iex> width
       nil
 
-  The behaviour of any expression in a clause is the same as outside.
-  For example, `=` will raise a `MatchError` instead of returning the
-  non-matched value:
+  The behaviour of any expression in a clause is the same as if it was
+  written outside of `with`. For example, `=` will raise a `MatchError`
+  instead of returning the non-matched value:
 
       with :foo = :bar, do: :ok
       ** (MatchError) no match of right hand side value: :bar
@@ -1539,6 +1539,8 @@ defmodule Kernel.SpecialForms do
       {:ok, 150}
 
   The choice between parens and no parens is a matter of preference.
+
+  ## Else clauses
 
   An `else` option can be given to modify what is being returned from
   `with` in the case of a failed match:
@@ -1562,6 +1564,48 @@ defmodule Kernel.SpecialForms do
 
   If an `else` block is used and there are no matching clauses, a `WithClauseError`
   exception is raised.
+
+  ### Beware!
+
+  Keep in mind that, one of potential drawback of `with` is that all
+  failure clauses are flattened into a single `else` block. For example,
+  take this code that checks if a given path points to an Elixir file
+  and that it exists before creating a backup copy:
+
+      with ".ex" <- Path.extname(path),
+           true <- File.exists?(path) do
+        backup_path = path <> ".backup"
+        File.cp!(path, backup_path)
+        {:ok, backup_path}
+      else
+        binary when is_binary(binary) ->
+          {:error, :invalid_extension}
+
+        false ->
+          {:error, :missing_file}
+      end
+
+  Note how we are having to reconstruct the result types of `Path.extname/1`
+  and `File.exists?/1` to build error messages. In this case, it is better
+  to change the with clauses to already return the desired format, like this:
+
+      with :ok <- validate_extension(path),
+           :ok <- validate_exists(path) do
+        backup_path = path <> ".backup"
+        File.cp!(path, backup_path)
+        {:ok, backup_path}
+      end
+
+      defp validate_extname(path) do
+        if Path.extname(path) == ".ex", do: :ok, else: {:error, :invalid_extension}
+      end
+
+      defp validate_exists(path) do
+        if File.exists?(path), do: :ok, else: {:error, :missing_file}
+      end
+
+  Note how the code above is better organized and clearer once we
+  make sure each clause in `with` returns a normalize format.
   """
   defmacro with(args), do: error!([args])
 
