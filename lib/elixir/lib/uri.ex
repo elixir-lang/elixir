@@ -631,19 +631,20 @@ defmodule URI do
   used if the `:host` is `nil`. Otherwise, the `:userinfo`, `:host`, and `:port` will
   be used.
 
-      iex> URI.to_string(%URI{authority: "foo@example.com:80"})
-      "//foo@example.com:80"
+      iex> URI.to_string(%URI{scheme: "http", authority: "foo@example.com:80"})
+      "http://foo@example.com:80"
 
-      iex> URI.to_string(%URI{userinfo: "bar", host: "example.org", port: 81})
-      "//bar@example.org:81"
+      iex> URI.to_string(%URI{scheme: "http", userinfo: "bar", host: "example.org", port: 81})
+      "http://bar@example.org:81"
 
       iex> URI.to_string(%URI{
+      ...>   scheme: "http",
       ...>   authority: "foo@example.com:80",
       ...>   userinfo: "bar",
       ...>   host: "example.org",
       ...>   port: 81
       ...> })
-      "//bar@example.org:81"
+      "http://bar@example.org:81"
 
   """
   @spec to_string(t) :: binary
@@ -737,6 +738,10 @@ defimpl String.Chars, for: URI do
     raise ArgumentError,
           ":path in URI must be nil or an absolute path if :host or :authority are given, " <>
             "got: #{inspect(uri)}"
+  end
+
+  def to_string(%{scheme: nil}) do
+    raise ArgumentError, ":scheme is required and cannot be nil"
   end
 
   def to_string(%{scheme: scheme, port: port, path: path, query: query, fragment: fragment} = uri) do

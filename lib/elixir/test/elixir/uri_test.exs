@@ -359,25 +359,22 @@ defmodule URITest do
     assert to_string(URI.parse("http://google.com/elixir")) == "http://google.com/elixir"
     assert to_string(URI.parse("http://google.com?q=lol")) == "http://google.com?q=lol"
     assert to_string(URI.parse("http://google.com?q=lol#omg")) == "http://google.com?q=lol#omg"
-    assert to_string(URI.parse("//google.com/elixir")) == "//google.com/elixir"
-    assert to_string(URI.parse("//google.com:8080/elixir")) == "//google.com:8080/elixir"
-    assert to_string(URI.parse("//user:password@google.com/")) == "//user:password@google.com/"
     assert to_string(URI.parse("http://[2001:db8::]:8080")) == "http://[2001:db8::]:8080"
     assert to_string(URI.parse("http://[2001:db8::]")) == "http://[2001:db8::]"
 
     assert URI.to_string(URI.parse("http://google.com")) == "http://google.com"
     assert URI.to_string(URI.parse("gid:hello/123")) == "gid:hello/123"
 
-    assert URI.to_string(URI.parse("//user:password@google.com/")) ==
-             "//user:password@google.com/"
+    assert URI.to_string(URI.parse("http://user:password@google.com/")) ==
+             "http://user:password@google.com/"
 
     assert_raise ArgumentError,
                  ~r":path in URI must be nil or an absolute path if :host or :authority are given",
-                 fn -> %URI{authority: "foo.com", path: "hello/123"} |> URI.to_string() end
+                 fn -> %URI{scheme: "http", authority: "foo.com", path: "hello/123"} |> URI.to_string() end
 
     assert_raise ArgumentError,
-                 ~r":path in URI must be nil or an absolute path if :host or :authority are given",
-                 fn -> %URI{host: "foo.com", path: "hello/123"} |> URI.to_string() end
+                ~r":scheme is required and cannot be nil",
+                fn -> %URI{host: "foo.com", path: "/hello/123"} |> URI.to_string() end
   end
 
   test "merge/2" do
