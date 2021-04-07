@@ -289,31 +289,24 @@ defmodule Logger do
 
   The initial backends are loaded via the `:backends` configuration,
   which must be set before the `:logger` application is started.
-  Backends can also be added dynamically through `add_backend/2`.
+  However, it preferred to add and remove backends via `add_backend/2`
+  the `remove_backend/2` function. This is often done in your
+  `c:Application.start/2` callback:
 
-  For example, to add multiple backends to your application, modify your
-  configuration:
+      @impl true
+      def start(_type, _args) do
+        Logger.add_backend(MyCustomBackend)
 
-      config :logger,
-        backends: [:console, MyCustomBackend]
+  The backend can be configured either on the `add_backend/2` call:
 
-  Multiple instances of the same backend can be specified by adding tuples
-  in the format `{BackendModuleName, :backend_name}`:
+      @impl true
+      def start(_type, _args) do
+        Logger.add_backend(MyCustomBackend, some_config: ...)
 
-      config :logger,
-        backends: [
-          :console,
-          {MyCustomBackend, :error_backend},
-          {MyCustomBackend, :debug_backend}
-        ]
+  Or in your config files:
 
-      config :logger, :error_backend,
-        level: :error
-        # other options
-
-      config :logger, :debug_backend,
-        level: :debug
-        # other options
+      config :logger, MyCustomBackend,
+        some_config: ...
 
   ### Elixir custom backends
 
@@ -413,12 +406,8 @@ defmodule Logger do
       responsibility to implement it
 
   The good news is that developers can use third-party implementations of
-  both Elixir backends and Erlang handlers.
-
-  Elixir backends can be configured directly under the `:logger` application
-  in your `config/config.exs`:
-
-      config :logger, backends: [ACustomBackend]
+  both Elixir backends and Erlang handlers. We have already covered Elixir
+  backends, so let's see how to add Erlang/OTP handlers.
 
   Erlang/OTP handlers must be listed under your own application:
 
