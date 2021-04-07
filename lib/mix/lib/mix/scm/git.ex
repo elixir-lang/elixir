@@ -270,8 +270,11 @@ defmodule Mix.SCM.Git do
       {response, 0} ->
         response
 
-      {response, _} ->
+      {response, _} when is_binary(response) ->
         Mix.raise("Command \"git #{Enum.join(args, " ")}\" failed with reason: #{response}")
+
+      {_, _} ->
+        Mix.raise("Command \"git #{Enum.join(args, " ")}\" failed")
     end
   end
 
