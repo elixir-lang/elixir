@@ -79,7 +79,7 @@ fetch_definition([Tuple | T], File, Module, Set, Bag, All, Private) ->
       fetch_definition(T, File, Module, Set, Bag, NewAll, NewPrivate)
   catch
     error:badarg ->
-      check_bodiless_function(Check, Meta, File, Module, Kind, Tuple),
+      elixir_errors:form_error(Meta, File, ?MODULE, {function_head, Kind, Tuple}),
       fetch_definition(T, File, Module, Set, Bag, All, Private)
   end;
 
@@ -337,12 +337,6 @@ check_valid_defaults(Meta, File, Name, Arity, Kind, 0, _, LastDefaults, true, tr
 % Clause without defaults
 check_valid_defaults(_Meta, _File, _Name, _Arity, _Kind, 0, _StoredDefaults, _LastDefaults, _HasBody, _LastHasBody) ->
   ok.
-
-check_bodiless_function(Check, _Meta, _File, Module, _Kind, _Tuple)
-    when Check == false; Module == 'Elixir.Module' ->
-  ok;
-check_bodiless_function(_Check, Meta, File, _Module, Kind, Tuple) ->
-  elixir_errors:form_error(Meta, File, ?MODULE, {function_head, Kind, Tuple}).
 
 check_args_for_function_head(Meta, Args, E) ->
   [begin
