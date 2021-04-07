@@ -177,6 +177,22 @@ defmodule Kernel.ErrorsTest do
                         def foo
                       end
                       '''
+
+    assert_eval_raise CompileError,
+                      "nofile:10: implementation not provided for predefined def example/2",
+                      '''
+                      defmodule Kernel.ErrorsTest.FunctionTemplate do
+                        defmacro __using__(_) do
+                          quote do
+                            def example(foo, bar \\\\ [])
+                          end
+                        end
+                      end
+
+                      defmodule Kernel.ErrorsTest.UseFunctionTemplate do
+                        use Kernel.ErrorsTest.FunctionTemplate
+                      end
+                      '''
   end
 
   test "guard without definition" do
