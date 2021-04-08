@@ -375,6 +375,9 @@ defmodule URITest do
     assert_raise ArgumentError,
                 ~r":scheme is required and cannot be nil",
                 fn -> %URI{host: "foo.com", path: "/hello/123"} |> URI.to_string() end
+    assert_raise ArgumentError,
+                ~r":scheme is required and cannot be nil",
+                fn -> %URI{scheme: "", host: "foo.com", path: "/hello/123"} |> URI.to_string() end
   end
 
   test "merge/2" do

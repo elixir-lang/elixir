@@ -740,7 +740,7 @@ defimpl String.Chars, for: URI do
             "got: #{inspect(uri)}"
   end
 
-  def to_string(%{scheme: nil}) do
+  def to_string(%{scheme: scheme}) when is_nil(scheme) or scheme == "" do
     raise ArgumentError, ":scheme is required and cannot be nil"
   end
 
