@@ -90,9 +90,6 @@ defmodule String.Chars.URITest do
   test "uri" do
     uri = URI.parse("http://google.com")
     assert String.Chars.to_string(uri) == "http://google.com"
-
-    uri_no_host = URI.parse("/foo/bar")
-    assert String.Chars.to_string(uri_no_host) == "/foo/bar"
   end
 end
 
