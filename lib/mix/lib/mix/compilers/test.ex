@@ -34,7 +34,7 @@ defmodule Mix.Compilers.Test do
     if test_files == [] do
       :noop
     else
-      task = Task.async(ExUnit, :run, [])
+      task = ExUnit.async_run()
 
       try do
         case Kernel.ParallelCompiler.require(test_files, parallel_require_callbacks) do
@@ -42,8 +42,7 @@ defmodule Mix.Compilers.Test do
           {:error, _, _} -> exit({:shutdown, 1})
         end
 
-        ExUnit.Server.modules_loaded()
-        %{failures: failures} = results = Task.await(task, :infinity)
+        %{failures: failures} = results = ExUnit.await_run(task)
 
         if failures == 0 do
           agent_write_manifest(stale_manifest_pid)

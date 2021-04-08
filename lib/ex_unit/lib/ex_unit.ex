@@ -356,6 +356,31 @@ defmodule ExUnit do
   end
 
   @doc """
+  Starts tests asynchronously while test cases are still loading.
+
+  It returns a task that must be given to `await_run/0` when a result
+  is desired.
+  """
+  @doc since: "1.12.0"
+  @spec async_run() :: Task.t()
+  def async_run() do
+    Task.async(fn ->
+      options = persist_defaults(configuration())
+      ExUnit.Runner.run(options, nil)
+    end)
+  end
+
+  @doc """
+  Awaits for a test suite that has been started with `async_run/0`.
+  """
+  @doc since: "1.12.0"
+  @spec await_run(Task.t()) :: suite_result()
+  def await_run(task) do
+    ExUnit.Server.modules_loaded()
+    Task.await(task, :infinity)
+  end
+
+  @doc """
   Sets a callback to be executed after the completion of a test suite.
 
   Callbacks set with `after_suite/1` must accept a single argument, which is a
