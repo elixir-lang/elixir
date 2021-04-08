@@ -466,14 +466,13 @@ defmodule URI do
   defp hex_to_dec(_n), do: throw(:malformed_uri)
 
   @doc """
-  Parses a well-formed URI reference into its components.
+  Parses a well-formed URI into its components.
 
-  Note this function expects a well-formed URI and does not perform
-  any validation. See the "Examples" section below for examples of how
-  `URI.parse/1` can be used to parse a wide range of URIs.
-
-  This function uses the parsing regular expression as defined
-  in [RFC 3986, Appendix B](https://tools.ietf.org/html/rfc3986#appendix-B).
+  This function can parse both absolute and relative URLs. You can check
+  if a URI is absolute or relative by checking if the `scheme` field is
+  nil or not. Furthermore, this function expects both absolute and
+  relative URIs to be well-formed and does not perform any validation.
+  See the "Examples" section below.
 
   When a URI is given without a port, the value returned by
   `URI.default_port/1` for the URI's scheme is used for the `:port` field.
