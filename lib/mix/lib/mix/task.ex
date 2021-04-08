@@ -40,6 +40,9 @@ defmodule Mix.Task do
   Define the `@shortdoc` attribute if you wish to make the task
   publicly visible on `mix help`. Omit this attribute if you do
   not want your task to be listed via `mix help`.
+  The `@moduledoc` attribute may override `@shortdoc`. The task
+  will not appear in `mix help` if documentation for the entire
+  module is hidden with `@moduledoc false`.
 
   If a task has requirements, they can be listed using the
   `@requirements` attribute. For example:
