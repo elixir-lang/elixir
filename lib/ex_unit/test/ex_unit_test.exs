@@ -27,7 +27,8 @@ defmodule ExUnitTest do
     ExUnit.Server.modules_loaded()
 
     assert capture_io(fn ->
-             assert ExUnit.run() == %{failures: 0, skipped: 0, total: 0, excluded: 0}
+             assert ExUnit.async_run() |> ExUnit.await_run() ==
+                      %{failures: 0, skipped: 0, total: 0, excluded: 0}
            end) =~ "\n0 failures\n"
   end
 
