@@ -373,10 +373,10 @@ defmodule URITest do
                  fn -> %URI{scheme: "http", authority: "foo.com", path: "hello/123"} |> URI.to_string() end
 
     assert_raise ArgumentError,
-                ~r":scheme is required and cannot be nil",
+                ~r":scheme is required and cannot be nil or empty",
                 fn -> %URI{host: "foo.com", path: "/hello/123"} |> URI.to_string() end
     assert_raise ArgumentError,
-                ~r":scheme is required and cannot be nil",
+                ~r":scheme is required and cannot be nil or empty",
                 fn -> %URI{scheme: "", host: "foo.com", path: "/hello/123"} |> URI.to_string() end
   end
 

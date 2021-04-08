@@ -741,7 +741,7 @@ defimpl String.Chars, for: URI do
   end
 
   def to_string(%{scheme: scheme}) when is_nil(scheme) or scheme == "" do
-    raise ArgumentError, ":scheme is required and cannot be nil"
+    raise ArgumentError, ":scheme is required and cannot be nil or empty"
   end
 
   def to_string(%{scheme: scheme, port: port, path: path, query: query, fragment: fragment} = uri) do
