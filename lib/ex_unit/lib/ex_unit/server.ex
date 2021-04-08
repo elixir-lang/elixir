@@ -58,6 +58,10 @@ defmodule ExUnit.Server do
     {:reply, state.sync_modules, %{state | sync_modules: [], loaded: System.monotonic_time()}}
   end
 
+  def handle_call(:modules_loaded, _from, %{loaded: :done} = state) do
+    {:reply, 0, state}
+  end
+
   def handle_call(:modules_loaded, _from, %{loaded: loaded} = state) when is_integer(loaded) do
     diff = System.convert_time_unit(System.monotonic_time() - loaded, :native, :microsecond)
     {:reply, diff, take_modules(%{state | loaded: :done})}
