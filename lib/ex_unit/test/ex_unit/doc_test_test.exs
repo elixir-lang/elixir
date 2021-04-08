@@ -477,7 +477,6 @@ defmodule ExUnit.DocTestTest do
       doctest ExUnit.DocTestTest.SomewhatGoodModuleWithOnly, only: [one: 0, two: 0], import: true
     end
 
-    ExUnit.Server.modules_loaded()
     assert capture_io(fn -> ExUnit.run() end) =~ "2 doctests, 1 failure"
   end
 
@@ -487,7 +486,6 @@ defmodule ExUnit.DocTestTest do
       doctest ExUnit.DocTestTest.SomewhatGoodModuleWithOnly, only: [], import: true
     end
 
-    ExUnit.Server.modules_loaded()
     output = capture_io(fn -> ExUnit.run() end)
 
     assert output =~ "0 failures"
@@ -500,7 +498,6 @@ defmodule ExUnit.DocTestTest do
       doctest ExUnit.DocTestTest.SomewhatGoodModuleWithOnly, tags: [skip: true], import: true
     end
 
-    ExUnit.Server.modules_loaded()
     output = capture_io(fn -> ExUnit.run() end)
 
     assert output =~ "0 failures"
@@ -519,7 +516,6 @@ defmodule ExUnit.DocTestTest do
     doctest_line = __ENV__.line - 3
 
     ExUnit.configure(seed: 0, colors: [enabled: false])
-    ExUnit.Server.modules_loaded()
     output = capture_io(fn -> ExUnit.run() end)
 
     assert output =~ """
@@ -716,7 +712,6 @@ defmodule ExUnit.DocTestTest do
     starting_line = ExUnit.DocTestTest.PatternMatching.starting_line() + 18
 
     ExUnit.configure(seed: 0, colors: [enabled: false])
-    ExUnit.Server.modules_loaded()
     output = capture_io(fn -> ExUnit.run() end)
 
     assert output =~ """
@@ -818,7 +813,6 @@ defmodule ExUnit.DocTestTest do
       doctest ExUnit.DocTestTest.Numbered
     end
 
-    ExUnit.Server.modules_loaded()
     assert capture_io(fn -> ExUnit.run() end) =~ "1 doctest, 0 failures"
   end
 
@@ -847,7 +841,6 @@ defmodule ExUnit.DocTestTest do
       end
     end
 
-    ExUnit.Server.modules_loaded()
     assert capture_io(fn -> ExUnit.run() end) =~ "2 doctests, 0 failures"
   end
 

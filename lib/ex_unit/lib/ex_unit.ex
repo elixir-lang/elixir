@@ -350,6 +350,7 @@ defmodule ExUnit do
   """
   @spec run() :: suite_result()
   def run do
+    _ = ExUnit.Server.modules_loaded()
     options = persist_defaults(configuration())
     ExUnit.Runner.run(options, nil)
   end
