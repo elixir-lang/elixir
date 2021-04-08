@@ -5,7 +5,7 @@ defmodule ExUnitTest do
 
   import ExUnit.CaptureIO
 
-  test "supports many runs" do
+  test "supports many runs and loads" do
     defmodule SampleTest do
       use ExUnit.Case
 
@@ -18,12 +18,17 @@ defmodule ExUnitTest do
       end
     end
 
-    ExUnit.Server.modules_loaded()
     configure_and_reload_on_exit([])
 
     assert capture_io(fn ->
              assert ExUnit.run() == %{failures: 2, skipped: 0, total: 2, excluded: 0}
            end) =~ "\n2 tests, 2 failures\n"
+
+    ExUnit.Server.modules_loaded()
+
+    assert capture_io(fn ->
+             assert ExUnit.run() == %{failures: 0, skipped: 0, total: 0, excluded: 0}
+           end) =~ "\n0 failures\n"
   end
 
   test "prints aborted runs on sigquit", config do
@@ -50,7 +55,6 @@ defmodule ExUnitTest do
       test "true", do: :ok
     end
 
-    ExUnit.Server.modules_loaded()
     configure_and_reload_on_exit(max_cases: 8)
 
     result =
@@ -94,7 +98,6 @@ defmodule ExUnitTest do
       end
     end
 
-    ExUnit.Server.modules_loaded()
     configure_and_reload_on_exit([])
 
     assert capture_io(fn ->
@@ -112,8 +115,6 @@ defmodule ExUnitTest do
       end
     end
 
-    ExUnit.Server.modules_loaded()
-
     output = capture_io(fn -> ExUnit.run() end)
     assert output =~ "** (ExUnit.TimeoutError) test timed out after 10ms"
     assert output =~ ~r"\(elixir #{System.version()}\) lib/process\.ex:\d+: Process\.sleep/1"
@@ -129,7 +130,6 @@ defmodule ExUnitTest do
     end
 
     ExUnit.configure(timeout: 5)
-    ExUnit.Server.modules_loaded()
     output = capture_io(fn -> ExUnit.run() end)
     assert output =~ "** (ExUnit.TimeoutError) test timed out after 5ms"
   after
@@ -155,7 +155,6 @@ defmodule ExUnitTest do
       end
     end
 
-    ExUnit.Server.modules_loaded()
     configure_and_reload_on_exit(slowest: 2)
 
     output = capture_io(fn -> ExUnit.run() end)
@@ -273,7 +272,6 @@ defmodule ExUnitTest do
       end
     end
 
-    ExUnit.Server.modules_loaded()
     output = capture_io(&ExUnit.run/0)
     assert output =~ "[debug] two\n"
     refute output =~ "[debug] one\n"
@@ -308,7 +306,6 @@ defmodule ExUnitTest do
       end
     end)
 
-    ExUnit.Server.modules_loaded()
     configure_and_reload_on_exit([])
 
     output =
@@ -364,7 +361,6 @@ defmodule ExUnitTest do
       test "this is not implemented yet"
     end
 
-    ExUnit.Server.modules_loaded()
     configure_and_reload_on_exit([])
 
     output =
@@ -392,7 +388,6 @@ defmodule ExUnitTest do
       test "this will also raise", do: raise("oops")
     end
 
-    ExUnit.Server.modules_loaded()
     configure_and_reload_on_exit([])
 
     output =
@@ -461,7 +456,6 @@ defmodule ExUnitTest do
       test "sample", do: :ok
     end
 
-    ExUnit.Server.modules_loaded()
     configure_and_reload_on_exit([])
 
     output =
@@ -483,8 +477,6 @@ defmodule ExUnitTest do
       test "sample", do: :ok
     end
 
-    ExUnit.Server.modules_loaded()
-
     output =
       capture_io(fn ->
         assert ExUnit.run() == %{failures: 1, skipped: 0, total: 1, excluded: 0}
@@ -503,8 +495,6 @@ defmodule ExUnitTest do
 
       test "sample", do: :ok
     end
-
-    ExUnit.Server.modules_loaded()
 
     capture_io(fn ->
       assert ExUnit.run() == %{failures: 0, skipped: 0, total: 1, excluded: 0}
@@ -532,7 +522,6 @@ defmodule ExUnitTest do
       end
     end
 
-    ExUnit.Server.modules_loaded()
     configure_and_reload_on_exit(seed: 1)
 
     assert capture_io(fn ->
@@ -567,7 +556,6 @@ defmodule ExUnitTest do
       test "excluded #{__ENV__.line}", do: assert(false)
     end
 
-    ExUnit.Server.modules_loaded()
     configure_and_reload_on_exit([])
 
     output =
@@ -590,8 +578,6 @@ defmodule ExUnitTest do
           send(:after_suite_test_process, :in_first_test)
         end
       end
-
-      ExUnit.Server.modules_loaded()
 
       ExUnit.after_suite(fn _ -> send(:after_suite_test_process, :first_after_suite) end)
       ExUnit.after_suite(fn result -> send(:after_suite_test_process, result) end)
@@ -645,7 +631,6 @@ defmodule ExUnitTest do
         test "excluded #{__ENV__.line}", do: assert(false)
       end
 
-      ExUnit.Server.modules_loaded()
       configure_and_reload_on_exit(max_failures: 2)
 
       output =
@@ -677,7 +662,6 @@ defmodule ExUnitTest do
         test "excluded #{__ENV__.line}", do: assert(false)
       end
 
-      ExUnit.Server.modules_loaded()
       configure_and_reload_on_exit(max_failures: 3)
 
       output =
@@ -712,7 +696,6 @@ defmodule ExUnitTest do
         test "excluded #{__ENV__.line}", do: assert(true)
       end
 
-      ExUnit.Server.modules_loaded()
       configure_and_reload_on_exit(max_failures: 2)
 
       output =
@@ -747,7 +730,6 @@ defmodule ExUnitTest do
         test "excluded #{__ENV__.line}", do: assert(false)
       end
 
-      ExUnit.Server.modules_loaded()
       configure_and_reload_on_exit(max_failures: 2)
 
       output =
@@ -775,7 +757,6 @@ defmodule ExUnitTest do
         test "error", do: assert(false)
       end
 
-      ExUnit.Server.modules_loaded()
       configure_and_reload_on_exit(max_failures: 1)
 
       output =
@@ -787,7 +768,6 @@ defmodule ExUnitTest do
       assert output =~ "\n1 test, 1 failure\n"
 
       capture_io(fn ->
-        ExUnit.Server.modules_loaded()
         assert ExUnit.run() == %{total: 0, failures: 0, excluded: 0, skipped: 0}
       end)
     end
@@ -803,7 +783,6 @@ defmodule ExUnitTest do
                end
              end) =~ "test context is always a map. The pattern \"[conn: conn]\" will never match"
 
-      ExUnit.Server.modules_loaded()
       configure_and_reload_on_exit([])
 
       assert capture_io(fn ->
