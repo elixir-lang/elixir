@@ -370,14 +370,20 @@ defmodule URITest do
 
     assert_raise ArgumentError,
                  ~r":path in URI must be nil or an absolute path if :host or :authority are given",
-                 fn -> %URI{scheme: "http", authority: "foo.com", path: "hello/123"} |> URI.to_string() end
+                 fn ->
+                   %URI{scheme: "http", authority: "foo.com", path: "hello/123"}
+                   |> URI.to_string()
+                 end
 
     assert_raise ArgumentError,
-                ~r":scheme is required and cannot be nil or empty",
-                fn -> %URI{host: "foo.com", path: "/hello/123"} |> URI.to_string() end
+                 ~r":scheme is required and cannot be nil or empty",
+                 fn -> %URI{host: "foo.com", path: "/hello/123"} |> URI.to_string() end
+
     assert_raise ArgumentError,
-                ~r":scheme is required and cannot be nil or empty",
-                fn -> %URI{scheme: "", host: "foo.com", path: "/hello/123"} |> URI.to_string() end
+                 ~r":scheme is required and cannot be nil or empty",
+                 fn ->
+                   %URI{scheme: "", host: "foo.com", path: "/hello/123"} |> URI.to_string()
+                 end
   end
 
   test "merge/2" do
