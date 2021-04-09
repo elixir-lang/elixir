@@ -622,7 +622,7 @@ defmodule Logger do
 
   """
   @doc since: "1.11.0"
-  @spec put_module_level(module(), level() | :all | :none) :: :ok | {:error, term()}
+  @spec put_module_level(module() | [module()], level() | :all | :none) :: :ok | {:error, term()}
   defdelegate put_module_level(mod, level), to: :logger, as: :set_module_level
 
   @doc """
@@ -649,6 +649,32 @@ defmodule Logger do
   @doc since: "1.11.0"
   @spec delete_all_module_levels() :: :ok
   defdelegate delete_all_module_levels(), to: :logger, as: :unset_module_level
+
+  @doc """
+  Puts logging level for modules in given application.
+
+  This will take priority over the primary level set, so it can be
+  used to increase or decrease verbosity of some parts of the project.
+
+  Equivalent of:
+
+      appname |> Application.spec(:modules) |> Logger.put_module_level(level)
+  """
+  @doc since: "1.13.0"
+  @spec put_application_level(atom(), level()) :: :ok | {:error, :not_loaded}
+  defdelegate put_application_level(appname, level), to: :logger, as: :set_application_level
+
+  @doc """
+  Deletes logging level for all modules in given application to primary level
+
+  Equivalent of:
+
+      appname |> Application.spec(:modules) |> Logger.delete_module_level()
+  """
+  @doc since: "1.13.0"
+  @spec delete_application_level(application) :: :ok | {:error, {:not_loaded, application}}
+        when application: atom()
+  defdelegate delete_application_level(appname), to: :logger, as: :unset_application_level
 
   @doc """
   Adds a new backend.
