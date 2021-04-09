@@ -62,12 +62,7 @@ defmodule Module.Types.UnifyTest do
       assert {:error, {:unable_unify, {:integer, :atom, _}}} = unify_lift(:integer, :atom)
     end
 
-    test "subtype undirected" do
-      assert unify_lift(:atom, {:atom, true}) == {:ok, {:atom, true}}
-      assert unify_lift({:atom, true}, :atom) == {:ok, {:atom, true}}
-    end
-
-    test "subtype directed" do
+    test "atom subtype" do
       assert unify_directed_lift({:atom, true}, :atom) == {:ok, {:atom, true}}
       assert {:error, _} = unify_directed_lift(:atom, {:atom, true})
     end
@@ -399,7 +394,7 @@ defmodule Module.Types.UnifyTest do
       assert unify_lift({:union, [:integer, :atom]}, {:union, [:atom, :integer]}) ==
                {:ok, {:union, [:integer, :atom]}}
 
-      assert unify_lift({:union, [:atom]}, {:union, [{:atom, :bar}]}) ==
+      assert unify_lift({:union, [{:atom, :bar}]}, {:union, [:atom]}) ==
                {:ok, {:atom, :bar}}
 
       assert {:error, {:unable_unify, {:integer, {:union, [:atom]}, _}}} =

@@ -294,9 +294,6 @@ defmodule Module.Types.PatternTest do
       assert quoted_head([x], [is_boolean(x) and is_atom(x)]) ==
                {:ok, [{:union, [atom: true, atom: false]}]}
 
-      assert quoted_head([x], [is_atom(x) and is_boolean(x)]) ==
-               {:ok, [{:union, [atom: true, atom: false]}]}
-
       assert quoted_head([x], [is_atom(x) > :foo]) == {:ok, [var: 0]}
 
       assert quoted_head([x, x = y, y = z], [is_atom(x)]) ==
@@ -343,6 +340,10 @@ defmodule Module.Types.PatternTest do
 
       assert {:error, {:unable_unify, {{:atom, true}, :tuple, _}}} =
                quoted_head([x], [is_tuple(is_atom(x))])
+    end
+
+    test "guard downcast" do
+      assert {:error, _} = quoted_head([x], [is_atom(x) and is_boolean(x)])
     end
 
     test "guard and" do

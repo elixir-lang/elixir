@@ -41,23 +41,7 @@ defmodule Module.Types.Unify do
   or an error in case of a typing conflict.
   """
   def unify(source, target, stack, context) do
-    case do_unify(source, target, stack, context) do
-      {:ok, type, context} ->
-        {:ok, type, context}
-
-      {:error, reason} ->
-        if stack.context == :pattern do
-          case do_unify(target, source, stack, context) do
-            {:ok, type, context} ->
-              {:ok, type, context}
-
-            {:error, _} ->
-              {:error, reason}
-          end
-        else
-          {:error, reason}
-        end
-    end
+    do_unify(source, target, stack, context)
   end
 
   defp do_unify(same, same, _stack, context) do

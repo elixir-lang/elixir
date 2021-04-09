@@ -101,6 +101,10 @@ defmodule Module.Types.Helpers do
 
   defp do_map_reduce_ok([], {list, acc}, _fun), do: {:ok, Enum.reverse(list), acc}
 
+  @doc """
+  Like `Enum.flat_map/2` but only continues while `fun` returns `{:ok, list}`
+  and stops on `{:error, reason}`.
+  """
   def flat_map_ok(list, fun) do
     do_flat_map_ok(list, [], fun)
   end
@@ -117,6 +121,10 @@ defmodule Module.Types.Helpers do
 
   defp do_flat_map_ok([], acc, _fun), do: {:ok, Enum.reverse(Enum.concat(acc))}
 
+  @doc """
+  Like `Enum.flat_map_reduce/3` but only continues while `fun` returns `{:ok, list, acc}`
+  and stops on `{:error, reason}`.
+  """
   def flat_map_reduce_ok(list, acc, fun) do
     do_flat_map_reduce_ok(list, {[], acc}, fun)
   end
@@ -146,6 +154,10 @@ defmodule Module.Types.Helpers do
     end
   end
 
+  @doc """
+  Combines a list of guard expressions `when x when y when z` to an expression
+  combined with `or`, `x or y or z`.
+  """
   # TODO: Remove this and let multiple when be treated as multiple clauses,
   #       meaning they will be intersection types
   def guards_to_or([]) do
@@ -156,8 +168,11 @@ defmodule Module.Types.Helpers do
     Enum.reduce(guards, fn guard, acc -> {{:., [], [:erlang, :orelse]}, [], [guard, acc]} end)
   end
 
-  def zip_many(list) do
-    zip_many(list, [], [[]])
+  @doc """
+  Like `Enum.zip/1` but will zip multiple lists together instead of only two.
+  """
+  def zip_many(lists) do
+    zip_many(lists, [], [[]])
   end
 
   defp zip_many([], [], [[] | acc]) do
