@@ -205,6 +205,43 @@ iex> %{} = %{name: "meg"}
 
 Finally, note map keys in patterns must always be literals or previously bound variables matched with the pin operator.
 
+### Structs
+
+Structs may appear in patterns using the percentage sign, the struct module name or a variable followed by the curly brackets syntax (`%{}`).
+
+Given the following struct:
+
+```elixir
+defmodule User do
+  defstruct [:name]
+end
+```
+
+Here is an example where all keys match:
+
+```iex
+iex> %User{name: name} = %User{name: "meg"}
+%User{name: "meg"}
+iex> name
+"meg"
+```
+
+If an unknown key is given, there will be an error:
+
+```iex
+iex> %User{type: type} = %User{name: "meg"}
+** (CompileError) iex:6: unknown key :type for struct User
+```
+
+The struct name can be extracted when putting a variable instead of a module name:
+
+```
+iex> %struct_name{} = %User{name: "meg"}
+%User{name: "meg"}
+iex> struct_name
+User
+```
+
 ### Binaries
 
 Binaries may appear in patterns using the double less-than/greater-than syntax ([`<<>>`](`<<>>/1`)). A binary in a pattern can match multiple segments at the same, each with different type, size, and unit:
