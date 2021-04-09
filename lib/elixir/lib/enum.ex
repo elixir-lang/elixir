@@ -786,7 +786,7 @@ defmodule Enum do
   def dedup(enumerable) do
     Enum.reduce(enumerable, [], fn x, acc ->
       case acc do
-        [^x, _] -> acc
+        [^x | _] -> acc
         _ -> [x | acc]
       end
     end)

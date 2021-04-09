@@ -230,6 +230,18 @@ defmodule EnumTest do
     assert Enum.dedup([nil]) == [nil]
   end
 
+  test "dedup/1 with streams" do
+    dedup_stream = fn list -> list |> Stream.map(& &1) |> Enum.dedup() end
+
+    assert dedup_stream.([1, 1, 2, 1, 1, 2, 1]) == [1, 2, 1, 2, 1]
+    assert dedup_stream.([2, 1, 1, 2, 1]) == [2, 1, 2, 1]
+    assert dedup_stream.([1, 2, 3, 4]) == [1, 2, 3, 4]
+    assert dedup_stream.([1, 1.0, 2.0, 2]) == [1, 1.0, 2.0, 2]
+    assert dedup_stream.([]) == []
+    assert dedup_stream.([nil, nil, true, {:value, true}]) == [nil, true, {:value, true}]
+    assert dedup_stream.([nil]) == [nil]
+  end
+
   test "dedup_by/2" do
     assert Enum.dedup_by([{1, :x}, {2, :y}, {2, :z}, {1, :x}], fn {x, _} -> x end) ==
              [{1, :x}, {2, :y}, {1, :x}]
