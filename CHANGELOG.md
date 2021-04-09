@@ -10,11 +10,16 @@ Elixir v1.13 requires Erlang/OTP 22+.
 
 #### Elixir
 
+  * [Inspect] Allow default inspect fun to be set globally with `Inspect.Opts.default_inspect_fun/1`
   * [Kernel] Make `get_in` consistently abort when `nil` values are found
 
 #### ExUnit
 
 #### IEx
+
+#### Logger
+
+  * [Logger] Add `Logger.put_application_level/2`
 
 #### Mix
 
