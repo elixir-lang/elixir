@@ -226,7 +226,7 @@ iex> name
 "meg"
 ```
 
-If an unknown property is given, there will be an error:
+If an unknown key is given, there will be an error:
 
 ```iex
 iex> %User{type: type} = %User{name: "meg"}
@@ -235,6 +235,7 @@ iex> %User{type: type} = %User{name: "meg"}
 
 The struct name can be extracted when putting a variable instead of a module name:
 
+```
 iex> %struct_name{} = %User{name: "meg"}
 %User{name: "meg"}
 iex> struct_name
