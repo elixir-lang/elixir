@@ -1,5 +1,28 @@
 Code.require_file("../test_helper.exs", __DIR__)
 
+defmodule Inspect.OptsTest do
+  use ExUnit.Case
+
+  test "new" do
+    opts = Inspect.Opts.new(limit: 13, pretty: true)
+    assert opts.limit == 13
+    assert opts.pretty
+  end
+
+  test "default_inspect_fun" do
+    assert Inspect.Opts.default_inspect_fun() == (&Inspect.inspect/2)
+
+    assert Inspect.Opts.default_inspect_fun(fn
+             :rewrite_atom, _ -> "rewritten_atom"
+             value, opts -> Inspect.inspect(value, opts)
+           end) == :ok
+
+    assert inspect(:rewrite_atom) == "rewritten_atom"
+  after
+    Inspect.Opts.default_inspect_fun(&Inspect.inspect/2)
+  end
+end
+
 defmodule Inspect.AlgebraTest do
   use ExUnit.Case, async: true
 

@@ -32,7 +32,7 @@ defmodule Inspect.Opts do
       to pass the custom options through.
 
     * `:inspect_fun` (since v1.9.0) - a function to build algebra documents.
-      Defaults to `Inspect.inspect/2`.
+      Defaults to `Inspect.Opts.default_inspect_fun/0`.
 
     * `:limit` - limits the number of items that are inspected for tuples,
       bitstrings, maps, lists and any other collection of items, with the exception of
@@ -105,6 +105,62 @@ defmodule Inspect.Opts do
           syntax_colors: [{color_key, IO.ANSI.ansidata()}],
           width: non_neg_integer | :infinity
         }
+
+  @doc """
+  Builds an `Inspect.Opts` struct.
+  """
+  @doc since: "1.13.0"
+  @spec new(keyword()) :: t
+  def new(opts) do
+    struct(%Inspect.Opts{inspect_fun: default_inspect_fun()}, opts)
+  end
+
+  @doc """
+  Returns the default inspect function.
+  """
+  @doc since: "1.13.0"
+  @spec default_inspect_fun() :: (term, t -> Inspect.Algebra.t())
+  def default_inspect_fun do
+    :persistent_term.get({__MODULE__, :inspect_fun}, &Inspect.inspect/2)
+  end
+
+  @doc """
+  Sets the default inspect function.
+
+  Set this option with care as it will change how all values
+  in the system are inspected. The main use of this functionality
+  is to provide an entry point to filter inspected values,
+  in order for entities to comply with rules and legislations
+  on data security and data privacy.
+
+  It is **extremely discouraged** for libraries to set their own
+  function as this must be controlled by applications. Libraries
+  should instead define their own structs with custom inspect
+  implementations. If a library must change the default inspect
+  function, then it is best to define to ask users of your library
+  to explicitly call `default_inspect_fun/1` with your function of
+  choice.
+
+  The default is `Inspect.inspect/2`.
+
+  ## Examples
+
+      previous_fun = Inspect.Opts.default_inspect_fun()
+
+      Inspect.Opts.default_inspect_fun(fn
+        %{address: _} = map, opts ->
+          previous_fun.(%{map | address: "[REDACTED]"}, opts)
+
+        value, opts ->
+          previous_fun.(value, opts)
+      end)
+
+  """
+  @doc since: "1.13.0"
+  @spec default_inspect_fun((term, t -> Inspect.Algebra.t())) :: :ok
+  def default_inspect_fun(fun) when is_function(fun, 2) do
+    :persistent_term.put({__MODULE__, :inspect_fun}, fun)
+  end
 end
 
 defmodule Inspect.Error do
