@@ -88,7 +88,26 @@ As of Elixir v1.12, implicitly decreasing ranges are soft-deprecated and warning
 
 Elixir v1.12 has the additional of many functions across the standard library. The `Enum` module received additions such as `Enum.count_until/2`, `Enum.product/1`, `Enum.zip_with/2`, and more. The `Integer` module now includes `Integer.pow/2` and `Integer.extended_gcd/2`. Finally, the `Kernel` module got two new functions, `Kernel.then/2` and `Kernel.tap/2`, which are specially useful in `|>` pipelines.
 
-## v1.12.0 (2021-04-03)
+## v1.12.0-rc.1
+
+### 1. Enhancenets
+
+#### Elixir
+
+  * [String] Update to Unicode 13.0
+
+#### ExUnit
+
+  * [ExUnit] Add `ExUnit.async_run/0` and `ExUnit.await_run/1`
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [Kernel] Do not ignore unimplemented signatures from generated functions
+  * [Protocol] Do not forbid `defdelegate` and `defexception` in protocol bodies - the restriction for `defdelegate` will be added back on v1.13 though (regression)
+
+## v1.12.0-rc.0 (2021-04-03)
 
 ### 1. Enhancements
 
