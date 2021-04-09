@@ -236,6 +236,16 @@ defmodule LoggerTest do
     end
   end
 
+  test "per-application levels" do
+    assert Logger.get_module_level(EEx) == []
+    Logger.put_application_level(:eex, :notice)
+    assert Logger.get_module_level(EEx) == [{EEx, :notice}]
+    Logger.put_module_level(EEx, :alert)
+    assert Logger.get_module_level(EEx) == [{EEx, :alert}]
+  after
+    Logger.delete_all_module_levels()
+  end
+
   test "process metadata" do
     assert Logger.metadata(data: true) == :ok
     assert Logger.metadata() == [data: true]
