@@ -48,7 +48,7 @@ defmodule Mix.Shell.Quiet do
       the prompt instead. Defaults to `:yes`.
 
   """
-  defdelegate yes?(message, options), to: Mix.Shell.IO
+  defdelegate yes?(message, options \\ []), to: Mix.Shell.IO
 
   @doc """
   Executes the given command quietly without outputting anything.
