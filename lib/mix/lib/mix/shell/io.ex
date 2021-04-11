@@ -57,9 +57,9 @@ defmodule Mix.Shell.IO do
 
   ## Options
 
-  * `:default` - (:yes or :no) if `:yes` pressing Enter
-    accepts the prompt; if `:no` pressing Enter rejects
-    the prompt instead. Defaults to `:yes`.
+    * `:default` - (:yes or :no) if `:yes` pressing Enter
+      accepts the prompt; if `:no` pressing Enter rejects
+      the prompt instead. Defaults to `:yes`.
 
   ## Examples
 
