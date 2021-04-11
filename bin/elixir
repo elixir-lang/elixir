@@ -211,7 +211,7 @@ if [ "$OS" != "Windows_NT" ] && [ -z "$NO_COLOR" ]; then
 fi
 
 ERTS_BIN=
-set -- "$ERTS_BIN$ERL_EXEC" -pa "$SCRIPT_PATH"/../lib/*/ebin $ELIXIR_ERL_OPTIONS $ERL "$@"
+set -- "$ERTS_BIN$ERL_EXEC" -pa "$SCRIPT_PATH"/../lib/*/ebin "$ELIXIR_ERL_OPTIONS" "$ERL" "$@"
 
 if [ -n "$RUN_ERL_PIPE" ]; then
   ESCAPED=""
