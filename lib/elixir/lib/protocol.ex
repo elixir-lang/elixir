@@ -262,6 +262,7 @@ defmodule Protocol do
 
   defmacro def({name, _, args}) when is_atom(name) and is_list(args) do
     arity = length(args)
+    min_arity = arity - count_default_args(args)
 
     type_args = :lists.map(fn _ -> quote(do: term) end, :lists.seq(2, arity))
     type_args = [quote(do: t) | type_args]
@@ -271,13 +272,37 @@ defmodule Protocol do
     call_args = :lists.map(varify, :lists.seq(2, arity))
     call_args = [quote(do: term) | call_args]
 
+    additional_functions =
+      :lists.foldl(
+        fn current_arity, acc ->
+          [{name, current_arity} | acc]
+        end,
+        [],
+        :lists.seq(min_arity, arity) |> :lists.reverse()
+      )
+
+    callbacks_ast =
+      :lists.map(
+        fn current_arity ->
+          current_type_args = :lists.sublist(type_args, 1, current_arity) |> Macro.escape()
+
+          quote bind_quoted: [current_arity: current_arity, current_type_args: current_type_args] do
+            # Copy spec as callback if possible,
+            # otherwise generate a dummy callback
+            Module.spec_to_callback(__MODULE__, {name, current_arity}) ||
+              @callback unquote(name)(unquote_splicing(current_type_args)) :: term
+          end
+        end,
+        :lists.seq(min_arity, arity)
+      )
+
     quote do
       name = unquote(name)
       arity = unquote(arity)
 
-      @functions [{name, arity} | @functions]
+      @functions @functions ++ unquote(Macro.escape(additional_functions))
 
-      # Generate a fake definition with the user
+      # Generate a function head with the user
       # signature that will be used by docs
       Kernel.def(unquote(name)(unquote_splicing(args)))
 
@@ -286,15 +311,27 @@ defmodule Protocol do
         impl_for!(term).unquote(name)(unquote_splicing(call_args))
       end
 
-      # Copy spec as callback if possible,
-      # otherwise generate a dummy callback
-      Module.spec_to_callback(__MODULE__, {name, arity}) ||
-        @callback unquote(name)(unquote_splicing(type_args)) :: term
+      unquote(callbacks_ast)
     end
   end
 
   defmacro def(_) do
     raise ArgumentError, "invalid arguments for def inside defprotocol"
+  end
+
+  defp count_default_args(args) do
+    fun = fn
+      {:\\, _meta, [{_name, _, _}, _]} -> true
+      _ -> false
+    end
+
+    :lists.foldl(
+      fn arg, acc ->
+        if(fun.(arg), do: acc + 1, else: acc)
+      end,
+      0,
+      args
+    )
   end
 
   @doc """

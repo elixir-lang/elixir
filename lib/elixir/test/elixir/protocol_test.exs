@@ -12,6 +12,9 @@ defmodule ProtocolTest do
       @deprecated "Reason"
       @spec ok(t) :: boolean
       def ok(term)
+
+      @spec ok_with_options(t, keyword) :: boolean
+      def ok_with_options(term, options \\ [])
     end
 
   @sample_binary sample_binary
@@ -70,6 +73,10 @@ defmodule ProtocolTest do
 
       def ok(struct) do
         Unknown.undefined(struct)
+      end
+
+      def ok_with_options(struct, options \\ []) do
+        Unknown.undefined({struct, options})
       end
     end
   end
@@ -146,13 +153,19 @@ defmodule ProtocolTest do
     assert [{:type, 13, :fun, args}] = get_callbacks(@sample_binary, :ok, 1)
     assert args == [{:type, 13, :product, [{:user_type, 13, :t, []}]}, {:type, 13, :boolean, []}]
 
-    assert [{:type, 23, :fun, args}] = get_callbacks(@with_any_binary, :ok, 1)
-    assert args == [{:type, 23, :product, [{:user_type, 23, :t, []}]}, {:type, 23, :term, []}]
+    assert [{:type, 26, :fun, args}] = get_callbacks(@with_any_binary, :ok, 1)
+    assert args == [{:type, 26, :product, [{:user_type, 0, :t, []}]}, {:type, 26, :term, []}]
   end
 
   test "protocol defines functions and attributes" do
     assert Sample.__protocol__(:module) == Sample
-    assert Sample.__protocol__(:functions) == [ok: 1]
+
+    assert Sample.__protocol__(:functions) == [
+             {:ok, 1},
+             {:ok_with_options, 1},
+             {:ok_with_options, 2}
+           ]
+
     refute Sample.__protocol__(:consolidated?)
     assert Sample.__protocol__(:impls) == :not_consolidated
     assert Sample.__info__(:attributes)[:__protocol__] == [fallback_to_any: false]

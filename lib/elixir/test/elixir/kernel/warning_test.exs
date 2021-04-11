@@ -1150,6 +1150,41 @@ defmodule Kernel.WarningTest do
     purge([Sample1, Sample1.Atom])
   end
 
+  test "undefined function for protocol when defined with default arguments" do
+    assert capture_err(fn ->
+             Code.eval_string(~S"""
+             defprotocol SampleWithDefArgs do
+               def foo(term, options \\ [])
+             end
+
+             defimpl SampleWithDefArgs, for: Atom do
+               def foo(term, options) do
+                 {term, options}
+               end
+             end
+             """)
+           end) =~
+             "function foo/1 required by protocol SampleWithDefArgs is not implemented (in module SampleWithDefArgs.Atom)"
+
+    assert capture_err(fn ->
+             Code.eval_string(~S"""
+             defprotocol SampleWithDefArgsAndOptionalCallback do
+               def foo(term, options \\ [])
+
+               @optional_callbacks [foo: 1]
+             end
+
+             defimpl SampleWithDefArgsAndOptionalCallback, for: Atom do
+               def foo(term, options) do
+                 {term, options}
+               end
+             end
+             """)
+           end) == ""
+  after
+    purge([Sample1, Sample1.Atom])
+  end
+
   test "overridden def name" do
     assert capture_err(fn ->
              Code.eval_string("""
