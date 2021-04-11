@@ -68,7 +68,6 @@ defmodule Mix.Shell.IO do
       end
 
   """
-  @spec yes?(String.t(), default: :yes | :no) :: boolean()
   def yes?(message, options \\ []) do
     default = Keyword.get(options, :default, :yes)
 
