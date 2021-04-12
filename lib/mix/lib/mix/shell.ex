@@ -44,7 +44,7 @@ defmodule Mix.Shell do
   @doc """
   Prompts the user for confirmation.
   """
-  @callback yes?(message :: binary) :: boolean
+  @callback yes?(message :: binary, options :: keyword) :: boolean
 
   @doc """
   Prints the current application to the shell if

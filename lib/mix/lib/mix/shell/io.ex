@@ -46,10 +46,20 @@ defmodule Mix.Shell.IO do
   end
 
   @doc """
-  Prints a message and asks the user if they want to proceed.
+  Prints a message and asks the user to confirm if they
+  want to proceed. The user must type and submit one of
+  "y", "yes", "Y", "YES" or "Yes".
 
-  The user must press Enter or type one of "y", "yes", "Y", "YES"
-  or "Yes".
+  The user may also press Enter; this can be configured
+  to either accept or reject the prompt. The latter case
+  may be useful for a potentially dangerous operation that
+  should require explicit confirmation from the user.
+
+  ## Options
+
+    * `:default` - (:yes or :no) if `:yes` pressing Enter
+      accepts the prompt; if `:no` pressing Enter rejects
+      the prompt instead. Defaults to `:yes`.
 
   ## Examples
 
@@ -58,10 +68,26 @@ defmodule Mix.Shell.IO do
       end
 
   """
-  def yes?(message) do
+  def yes?(message, options \\ []) do
+    default = Keyword.get(options, :default, :yes)
+
+    unless default in [:yes, :no] do
+      raise ArgumentError,
+            "expected :default to be either :yes or :no, got: #{inspect(default)}"
+    end
+
+    answers = ["y", "Y", "yes", "YES", "Yes"]
+
+    {prompt, accepted_answers} =
+      case default do
+        :yes -> {" [Yn] ", ["" | answers]}
+        :no -> {" [yN] ", answers}
+      end
+
     print_app()
-    answer = IO.gets(message <> " [Yn] ")
-    is_binary(answer) and String.trim(answer) in ["", "y", "Y", "yes", "YES", "Yes"]
+
+    answer = IO.gets(message <> prompt)
+    is_binary(answer) and String.trim(answer) in accepted_answers
   end
 
   defp red(message) do

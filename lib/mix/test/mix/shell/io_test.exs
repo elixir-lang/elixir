@@ -18,7 +18,7 @@ defmodule Mix.Shell.IOTest do
            end) =~ "hello"
   end
 
-  test "asks the user with yes?" do
+  test "asks the user with yes? with implicit default option" do
     assert capture_io("\n", fn -> yes?("Ok?") end) == "Ok? [Yn] "
     assert capture_io("\n", fn -> assert yes?("Ok?") end)
     assert capture_io("Yes", fn -> assert yes?("Ok?") end)
@@ -27,6 +27,36 @@ defmodule Mix.Shell.IOTest do
 
     assert capture_io("n", fn -> refute yes?("Ok?") end)
     assert capture_io("", fn -> refute yes?("Ok?") end)
+  end
+
+  test "asks the user with yes? using :yes as default option" do
+    assert capture_io("\n", fn -> yes?("Ok?", default: :yes) end) == "Ok? [Yn] "
+    assert capture_io("\n", fn -> assert yes?("Ok?", default: :yes) end)
+    assert capture_io("Yes", fn -> assert yes?("Ok?", default: :yes) end)
+    assert capture_io("yes", fn -> assert yes?("Ok?", default: :yes) end)
+    assert capture_io("y", fn -> assert yes?("Ok?", default: :yes) end)
+
+    assert capture_io("n", fn -> refute yes?("Ok?") end)
+    assert capture_io("", fn -> refute yes?("Ok?") end)
+  end
+
+  test "asks the user with yes? using :no as default option" do
+    assert capture_io("\n", fn -> yes?("Ok?", default: :no) end) == "Ok? [yN] "
+    assert capture_io("Yes", fn -> assert yes?("Ok?", default: :no) end)
+    assert capture_io("yes", fn -> assert yes?("Ok?", default: :no) end)
+    assert capture_io("y", fn -> assert yes?("Ok?", default: :no) end)
+
+    assert capture_io("\n", fn -> refute yes?("Ok?", default: :no) end)
+    assert capture_io("n", fn -> refute yes?("Ok?", default: :no) end)
+    assert capture_io("", fn -> refute yes?("Ok?", default: :no) end)
+  end
+
+  test "asks the user with yes? and raise exception where default option is not valid" do
+    message = "expected :default to be either :yes or :no, got: :other"
+
+    assert_raise ArgumentError, message, fn ->
+      capture_io("\n", fn -> yes?("Ok?", default: :other) end)
+    end
   end
 
   test "runs a given command" do
