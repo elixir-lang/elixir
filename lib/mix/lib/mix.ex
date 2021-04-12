@@ -565,26 +565,29 @@ defmodule Mix do
       consolidate_protocols: Keyword.get(opts, :consolidate_protocols, true)
     ]
 
-    :ok = Mix.ProjectStack.push(__MODULE__.InstallProject, config, "nofile")
     :ok = Mix.Local.append_archives()
+    :ok = Mix.ProjectStack.push(__MODULE__.InstallProject, config, "nofile")
 
-    dir? = File.dir?(dir)
-    File.mkdir_p!(dir)
+    try do
+      dir? = File.dir?(dir)
+      File.mkdir_p!(dir)
 
-    File.cd!(dir, fn ->
-      unless dir? do
-        Mix.Task.run("deps.get")
+      File.cd!(dir, fn ->
+        unless dir? do
+          Mix.Task.run("deps.get")
+        end
+
+        Mix.Task.run("compile")
+      end)
+
+      for app <- Mix.Project.deps_apps() do
+        Application.ensure_all_started(app)
       end
 
-      Mix.Task.run("compile")
-    end)
-
-    for app <- Mix.Project.deps_apps() do
-      Application.ensure_all_started(app)
+      Mix.State.put(:installed, deps)
+      :ok
+    after
+      Mix.ProjectStack.pop()
     end
-
-    Mix.ProjectStack.pop()
-    Mix.State.put(:installed, deps)
-    :ok
   end
 end
