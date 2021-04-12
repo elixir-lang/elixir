@@ -3,6 +3,10 @@ Code.require_file("test_helper.exs", __DIR__)
 defmodule ExceptionTest do
   use ExUnit.Case, async: true
 
+  defp capture_err(fun) do
+    ExUnit.CaptureIO.capture_io(:stderr, fun)
+  end
+
   doctest Exception
 
   test "raising preserves the stacktrace" do
@@ -15,7 +19,7 @@ defmodule ExceptionTest do
 
     file = __ENV__.file |> Path.relative_to_cwd() |> String.to_charlist()
 
-    assert {__MODULE__, :"test raising preserves the stacktrace", _, [file: ^file, line: 11]} =
+    assert {__MODULE__, :"test raising preserves the stacktrace", _, [file: ^file, line: 15]} =
              stacktrace
   end
 
@@ -485,19 +489,38 @@ defmodule ExceptionTest do
                  "you intend to invoke this macro"
     end
 
-    test "annotates undefined function clause error with callback hints hints" do
-      defmodule Behaviour do
-        @callback callback() :: :ok
-        @optional_callbacks callback: 0
-      end
+    test "annotates undefined function clause error with callback hints" do
+      capture_err(fn ->
+        Code.eval_string("""
+          defmodule Behaviour do
+            @callback callback() :: :ok
+          end
 
-      defmodule Implementation do
-        @behaviour Behaviour
-      end
+          defmodule Implementation do
+            @behaviour Behaviour
+          end
+        """)
+      end)
 
       assert blame_message(Implementation, & &1.callback()) ==
-               "function ExceptionTest.Implementation.callback/0 is undefined or private" <>
-                 ", but the behaviour ExceptionTest.Behaviour expects it to be present"
+               "function Implementation.callback/0 is undefined or private" <>
+                 ", but the behaviour Behaviour expects it to be present"
+    end
+
+    test "does not annotate undefined function clause error with callback hints when callback is optional" do
+      defmodule BehaviourWithOptional do
+        @callback callback() :: :ok
+        @callback optional() :: :ok
+        @optional_callbacks callback: 0, optional: 0
+      end
+
+      defmodule ImplementationWithOptional do
+        @behaviour BehaviourWithOptional
+        def callback(), do: :ok
+      end
+
+      assert blame_message(ImplementationWithOptional, & &1.optional()) ==
+               "function ExceptionTest.ImplementationWithOptional.optional/0 is undefined or private"
     end
 
     if :erlang.system_info(:otp_release) >= '23' do

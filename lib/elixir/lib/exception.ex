@@ -1064,7 +1064,9 @@ defmodule UndefinedFunctionError do
   end
 
   defp expects_callback?(behaviour, function, arity) do
-    callbacks = behaviour.behaviour_info(:callbacks)
+    callbacks =
+      behaviour.behaviour_info(:callbacks) -- behaviour.behaviour_info(:optional_callbacks)
+
     Enum.member?(callbacks, {function, arity})
   end
 
