@@ -133,19 +133,19 @@ defmodule Mix.Shell.Process do
 
   ## Example
 
-      # Send the response to self() first so that yes?/1 will be able to read it
+      # Send the response to self() first so that yes?/2 will be able to read it
       send(self(), {:mix_shell_input, :yes?, true})
       Mix.shell().yes?("Are you sure you want to continue?")
 
   """
-  def yes?(message) do
+  def yes?(message, _options \\ []) do
     print_app()
     send(message_target(), {:mix_shell, :yes?, [message]})
 
     receive do
       {:mix_shell_input, :yes?, response} -> response
     after
-      0 -> raise "no shell process input given for yes?/1"
+      0 -> raise "no shell process input given for yes?/2"
     end
   end
 

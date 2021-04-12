@@ -32,12 +32,23 @@ defmodule Mix.Shell.Quiet do
   defdelegate prompt(message), to: Mix.Shell.IO
 
   @doc """
-  Prints a message and asks the user if they want to proceed.
+  Prints a message and asks the user to confirm if they
+  want to proceed. The user must type and submit one of
+  "y", "yes", "Y", "YES" or "Yes".
 
-  The user must press Enter or type one of "y", "yes", "Y", "YES" or
-  "Yes".
+  The user may also press Enter; this can be configured
+  to either accept or reject the prompt. The latter case
+  may be useful for a potentially dangerous operation that
+  should require explicit confirmation from the user.
+
+  ## Options
+
+    * `:default` - (:yes or :no) if `:yes` pressing Enter
+      accepts the prompt; if `:no` pressing Enter rejects
+      the prompt instead. Defaults to `:yes`.
+
   """
-  defdelegate yes?(message), to: Mix.Shell.IO
+  defdelegate yes?(message, options \\ []), to: Mix.Shell.IO
 
   @doc """
   Executes the given command quietly without outputting anything.
