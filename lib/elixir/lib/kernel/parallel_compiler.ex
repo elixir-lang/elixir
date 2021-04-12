@@ -398,7 +398,7 @@ defmodule Kernel.ParallelCompiler do
     deadlocked =
       deadlocked(waiting, :soft, false) ||
         deadlocked(waiting, :soft, true) || deadlocked(waiting, :hard, false) ||
-        without_definition(waiting)
+        without_definition(waiting, files)
 
     if deadlocked do
       spawn_workers(deadlocked, spawned, waiting, files, result, warnings, state)
@@ -457,9 +457,13 @@ defmodule Kernel.ParallelCompiler do
   defp each_cycle_return({kind, modules}), do: {kind, modules, []}
   defp each_cycle_return(modules) when is_list(modules), do: {:compile, modules, []}
 
-  defp without_definition(waiting) do
+  # The goal of this function is to find leaves in the dependency graph,
+  # i.e. to find code that depends on code that we know is not being defined.
+  # Note that not all files have been compile yet, so they may not be in waiting.
+  defp without_definition(waiting, files) do
     nillify_empty(
-      for {_, _, ref, on, _, _} <- waiting,
+      for %{pid: pid} <- files,
+          {_, ^pid, ref, on, _, _} <- List.wrap(List.keyfind(waiting, pid, 1)),
           not defining?(on, waiting),
           do: {ref, :not_found}
     )
