@@ -226,11 +226,11 @@ iex> name
 "meg"
 ```
 
-If an unknown key is given, there will be an error:
+If an unknown key is given, the compiler will raise an error:
 
 ```iex
 iex> %User{type: type} = %User{name: "meg"}
-** (CompileError) iex:6: unknown key :type for struct User
+** (CompileError) iex: unknown key :type for struct User
 ```
 
 The struct name can be extracted when putting a variable instead of a module name:
