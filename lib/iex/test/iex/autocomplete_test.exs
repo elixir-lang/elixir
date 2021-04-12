@@ -403,10 +403,23 @@ defmodule IEx.AutocompleteTest do
   @tag :tmp_dir
   test "path completion inside strings", %{tmp_dir: dir} do
     File.cd!(dir)
-    dir |> Path.join("file1") |> File.touch()
-    assert expand('".') == {:yes, '/file1"', ['file2', 'file1']}
-    dir |> Path.join("file2") |> File.touch()
-    assert expand('".') == {:yes, [], []}
+
+    try do
+      File.touch("./single")
+      assert expand('".') == {:yes, '/single"', []}
+    after
+      File.rm("./single")
+    end
+
+    try do
+      File.touch("./file1")
+      File.touch("./file2")
+      assert expand('".') == {:yes, '/file', ['file2', 'file1']}
+    after
+      File.rm("./file1")
+      File.rm("./file2")
+    end
+
     assert {:yes, [], [_ | _]} = expand('"/')
   end
 end
