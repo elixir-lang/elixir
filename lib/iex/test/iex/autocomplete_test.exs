@@ -399,4 +399,14 @@ defmodule IEx.AutocompleteTest do
     assert expand('take(') == {:yes, '', ['take(enumerable, amount)']}
     assert expand('derive(') == {:yes, '', ['derive(protocol, module, options \\\\ [])']}
   end
+
+  @tag :tmp_dir
+  test "path completion inside strings", %{tmp_dir: dir} do
+    File.cd!(dir)
+    dir |> Path.join("file1") |> File.touch()
+    assert expand('".') == {:yes, '/file1"', ['file2', 'file1']}
+    dir |> Path.join("file2") |> File.touch()
+    assert expand('".') == {:yes, [], []}
+    assert {:yes, [], [_ | _]} = expand('"/')
+  end
 end

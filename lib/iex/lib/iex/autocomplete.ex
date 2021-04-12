@@ -61,7 +61,13 @@ defmodule IEx.Autocomplete do
       # {:module_attribute, charlist}
       # :none
       _ ->
-        no()
+        path = path_fragment(code)
+
+        if path != [] do
+          expand_path(path)
+        else
+          no()
+        end
     end
   end
 
@@ -562,5 +568,102 @@ defmodule IEx.Autocomplete do
 
   defp extract_from_ast(_ast_node, _acc) do
     :error
+  end
+
+  defp path_fragment(expr), do: path_fragment(:possible_path, expr, [])
+  defp path_fragment(:assume_not_path, [], acc), do: acc
+
+  defp path_fragment(:assume_not_path, [?" | rest], acc),
+    do: path_fragment(:assume_path, rest, acc)
+
+  defp path_fragment(:assume_not_path, [_ | rest], acc),
+    do: path_fragment(:assume_not_path, rest, acc)
+
+  defp path_fragment(:assume_path, [], _acc), do: []
+
+  defp path_fragment(:assume_path, [?" | rest], acc),
+    do: path_fragment(:assume_not_path, rest, acc)
+
+  defp path_fragment(:assume_path, [_ | rest], acc),
+    do: path_fragment(:assume_path, rest, acc)
+
+  defp path_fragment(:possible_path, [], _acc), do: []
+
+  defp path_fragment(:possible_path, [?", ?\\ | rest], acc) do
+    path_fragment(:possible_path, rest, [?\\, ?" | acc])
+  end
+
+  defp path_fragment(:possible_path, [?{, ?# | _rest], _acc), do: []
+
+  defp path_fragment(:possible_path, [?" | rest], acc) do
+    path_fragment(:assume_not_path, rest, acc)
+  end
+
+  defp path_fragment(:possible_path, [h | rest], acc) do
+    path_fragment(:possible_path, rest, [h | acc])
+  end
+
+  defp expand_path(path) do
+    fragment = to_string(path)
+    possible_paths = find_possible_paths(fragment)
+    expand_path(fragment, possible_paths)
+  end
+
+  defp expand_path(path_fragment, possible_paths) do
+    expansions =
+      Enum.map(possible_paths, fn {path, dir?} ->
+        {completion_part(path_fragment, path, dir?), to_charlist(Path.basename(path))}
+      end)
+
+    case expansions do
+      [] ->
+        no()
+
+      [{unique, _}] ->
+        {:yes, unique, []}
+
+      list ->
+        {completions, filenames} = Enum.unzip(list)
+        hint = Enum.reduce(completions, &common_prefix/2)
+        {:yes, hint, filenames}
+    end
+  end
+
+  defp completion_part(already_entered, full_path, dir?) do
+    part = full_path |> String.replace_prefix(already_entered, "") |> to_charlist()
+
+    if dir? do
+      part ++ '/'
+    else
+      part ++ '"'
+    end
+  end
+
+  defp prefix_from_dir(".", <<c, _::binary>>) when c != ?., do: ""
+  defp prefix_from_dir(dir, _fragment), do: dir
+
+  defp common_prefix(a, b, acc \\ [])
+  defp common_prefix([h | t1], [h | t2], acc), do: common_prefix(t1, t2, [h | acc])
+  defp common_prefix(_, _, acc), do: Enum.reverse(acc)
+
+  defp ls_prefix(fragment) do
+    dir = Path.dirname(fragment)
+    prefix = prefix_from_dir(dir, fragment)
+
+    case File.ls(dir) do
+      {:ok, list} ->
+        list
+        |> Enum.map(&Path.join(prefix, &1))
+        |> Enum.filter(&String.starts_with?(&1, fragment))
+
+      _ ->
+        []
+    end
+  end
+
+  defp find_possible_paths(path_fragment) do
+    path_fragment
+    |> ls_prefix()
+    |> Enum.map(fn path -> {path, File.dir?(path)} end)
   end
 end
