@@ -37,7 +37,7 @@ defmodule Path do
       #=> "D:/usr/local/../x"
 
   """
-  @spec absname(t) :: binary
+  @spec absname(t) :: String.t()
   def absname(path) do
     absname(path, File.cwd!())
   end
@@ -60,7 +60,7 @@ defmodule Path do
       "bar/../x"
 
   """
-  @spec absname(t, t) :: binary
+  @spec absname(t, t) :: String.t()
   def absname(path, relative_to) do
     path = IO.chardata_to_string(path)
 
@@ -156,7 +156,7 @@ defmodule Path do
       #=> "/foo/baz"
 
   """
-  @spec expand(t) :: binary
+  @spec expand(t) :: String.t()
   def expand(path) do
     expand_dot(absname(expand_home(path), File.cwd!()))
   end
@@ -185,7 +185,7 @@ defmodule Path do
       #=> "/foo/bar"
 
   """
-  @spec expand(t, t) :: binary
+  @spec expand(t, t) :: String.t()
   def expand(path, relative_to) do
     expand_dot(absname(absname(expand_home(path), expand_home(relative_to)), File.cwd!()))
   end
@@ -237,7 +237,7 @@ defmodule Path do
       Path.relative("/bar/foo.ex")      #=> "bar/foo.ex"
 
   """
-  @spec relative(t) :: binary
+  @spec relative(t) :: String.t()
   def relative(name) do
     relative(name, major_os_type())
   end
@@ -317,7 +317,7 @@ defmodule Path do
       "."
 
   """
-  @spec relative_to(t, t) :: binary
+  @spec relative_to(t, t) :: String.t()
   def relative_to(path, from) do
     path = IO.chardata_to_string(path)
     relative_to(split(path), split(from), path)
@@ -346,7 +346,7 @@ defmodule Path do
   If, for some reason, the current working directory
   cannot be retrieved, this function returns the given `path`.
   """
-  @spec relative_to_cwd(t) :: binary
+  @spec relative_to_cwd(t) :: String.t()
   def relative_to_cwd(path) do
     case :file.get_cwd() do
       {:ok, base} -> relative_to(path, IO.chardata_to_string(base))
@@ -370,7 +370,7 @@ defmodule Path do
       ""
 
   """
-  @spec basename(t) :: binary
+  @spec basename(t) :: String.t()
   def basename(path) do
     :filename.basename(IO.chardata_to_string(path))
   end
@@ -394,7 +394,7 @@ defmodule Path do
       "bar.old"
 
   """
-  @spec basename(t, t) :: binary
+  @spec basename(t, t) :: String.t()
   def basename(path, extension) do
     :filename.basename(IO.chardata_to_string(path), IO.chardata_to_string(extension))
   end
@@ -417,7 +417,7 @@ defmodule Path do
       "."
 
   """
-  @spec dirname(t) :: binary
+  @spec dirname(t) :: String.t()
   def dirname(path) do
     :filename.dirname(IO.chardata_to_string(path))
   end
@@ -434,7 +434,7 @@ defmodule Path do
       ""
 
   """
-  @spec extname(t) :: binary
+  @spec extname(t) :: String.t()
   def extname(path) do
     :filename.extension(IO.chardata_to_string(path))
   end
@@ -451,7 +451,7 @@ defmodule Path do
       "/foo/bar"
 
   """
-  @spec rootname(t) :: binary
+  @spec rootname(t) :: String.t()
   def rootname(path) do
     :filename.rootname(IO.chardata_to_string(path))
   end
@@ -471,7 +471,7 @@ defmodule Path do
       "/foo/bar.erl"
 
   """
-  @spec rootname(t, t) :: binary
+  @spec rootname(t, t) :: String.t()
   def rootname(path, extension) do
     :filename.rootname(IO.chardata_to_string(path), IO.chardata_to_string(extension))
   end
@@ -494,7 +494,7 @@ defmodule Path do
       "/foo/bar"
 
   """
-  @spec join(nonempty_list(t)) :: binary
+  @spec join(nonempty_list(t)) :: String.t()
   def join([name1, name2 | rest]), do: join([join(name1, name2) | rest])
   def join([name]), do: IO.chardata_to_string(name)
 
@@ -522,7 +522,7 @@ defmodule Path do
       "foobar/fiz"
 
   """
-  @spec join(t, t) :: binary
+  @spec join(t, t) :: String.t()
   def join(left, right) do
     left = IO.chardata_to_string(left)
     os_type = major_os_type()
@@ -570,7 +570,7 @@ defmodule Path do
       ["/", "foo", "bar"]
 
   """
-  @spec split(t) :: [binary]
+  @spec split(t) :: [String.t()]
 
   def split(path) do
     :filename.split(IO.chardata_to_string(path))
@@ -646,7 +646,7 @@ defmodule Path do
       Path.wildcard("projects/*/ebin/**/*.{beam,app}")
 
   """
-  @spec wildcard(t, keyword) :: [binary]
+  @spec wildcard(t, keyword) :: [String.t()]
   def wildcard(glob, opts \\ []) do
     mod = if Keyword.get(opts, :match_dot), do: :file, else: Path.Wildcard
 
