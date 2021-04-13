@@ -580,15 +580,17 @@ defmodule IEx.Autocomplete do
   defp collect_path_fragment([?" | t], acc), do: return_path_fragment(t, acc)
   defp collect_path_fragment([h | t], acc), do: collect_path_fragment(t, [h | acc])
 
-  # scan the rest of the `expr`, returns `acc` if no other `"` is found, 
+  # scans the rest of the `expr`, returns `acc` if no other `"` is found, 
   # fallback to `discard_path_fragment` otherwise
   defp return_path_fragment([], acc), do: acc
+  defp return_path_fragment([?", ?\\ | t], acc), do: return_path_fragment(t, [?\\, ?" | acc])
   defp return_path_fragment([?" | t], acc), do: discard_path_fragment(t, acc)
   defp return_path_fragment([_ | t], acc), do: return_path_fragment(t, acc)
 
-  # scan the rest of the `expr`, discards `acc` if no other `"` is found, 
+  # scans the rest of the `expr`, discards `acc` if no other `"` is found, 
   # fallback to `return_path_fragment` otherwise
   defp discard_path_fragment([], _acc), do: []
+  defp discard_path_fragment([?", ?\\ | t], acc), do: discard_path_fragment(t, [?\\, ?" | acc])
   defp discard_path_fragment([?" | t], acc), do: return_path_fragment(t, acc)
   defp discard_path_fragment([_ | t], acc), do: discard_path_fragment(t, acc)
 
