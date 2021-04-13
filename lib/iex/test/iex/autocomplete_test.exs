@@ -404,45 +404,36 @@ defmodule IEx.AutocompleteTest do
   test "path completion inside strings", %{tmp_dir: dir} do
     File.cd!(dir)
 
-    try do
-      File.touch("./single1")
-      File.touch("./file1")
-      File.touch("./file2")
-      File.mkdir("./dir")
-      File.touch("./dir/file3")
-      File.touch("./dir/file4")
+    File.touch("./single1")
+    File.touch("./file1")
+    File.touch("./file2")
+    File.mkdir("./dir")
+    File.touch("./dir/file3")
+    File.touch("./dir/file4")
 
-      assert expand('".') == {:yes, '/', ['file2', 'single1', 'dir', 'file1']}
-      assert expand('"./sin') == {:yes, 'gle1"', []}
-      assert expand('"./fi') == {:yes, 'le', ['file2', 'file1']}
-      assert expand('"./d') == {:yes, 'ir/', []}
-      assert expand('"./dir/') == {:yes, 'file', ['file3', 'file4']}
-      assert expand('"./dir/#\{Str') == {:yes, '', ['Stream', 'String', 'StringIO']}
+    assert expand('".') == {:yes, '/', ['file2', 'single1', 'dir', 'file1']}
+    assert expand('"./sin') == {:yes, 'gle1"', []}
+    assert expand('"./fi') == {:yes, 'le', ['file2', 'file1']}
+    assert expand('"./d') == {:yes, 'ir/', []}
+    assert expand('"./dir/') == {:yes, 'file', ['file3', 'file4']}
+    assert expand('"./dir/#\{Str') == {:yes, '', ['Stream', 'String', 'StringIO']}
 
-      {:yes, [], list} = expand('"/')
-      assert is_list(list)
+    {:yes, [], list} = expand('"/')
+    assert is_list(list)
 
-      case :os.type() do
-        {:win32, _} ->
-          assert 'Users' in list
-          assert 'Windows' in list
+    case :os.type() do
+      {:win32, _} ->
+        assert 'Users' in list
+        assert 'Windows' in list
 
-        _ ->
-          assert 'bin' in list
-          assert 'etc' in list
-          assert 'opt' in list
-          assert 'var' in list
-      end
-
-      default_expand = expand('{')
-      assert expand('"./dir/#\{') == default_expand
-    after
-      File.rm("./single1")
-      File.rm("./file1")
-      File.rm("./file2")
-      File.rm("./dir/file3")
-      File.rm("./dir/file4")
-      File.rm("./dir")
+      _ ->
+        assert 'bin' in list
+        assert 'etc' in list
+        assert 'opt' in list
+        assert 'var' in list
     end
+
+    default_expand = expand('{')
+    assert expand('"./dir/#\{') == default_expand
   end
 end
