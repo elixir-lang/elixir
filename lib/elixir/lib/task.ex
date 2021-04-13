@@ -69,8 +69,8 @@ defmodule Task do
         {Task.Supervisor, name: MyApp.TaskSupervisor}
       ], strategy: :one_for_one)
 
-  And now you can use async/await once again passig the name of
-  the supervisor isntead of the pid:
+  And now you can use async/await by passing the name of
+  the supervisor instead of the pid:
 
       Task.Supervisor.async(MyApp.TaskSupervisor, fn ->
         # Do something
@@ -79,22 +79,21 @@ defmodule Task do
 
   We encourage developers to rely on supervised tasks as much as
   possible. Supervised tasks enable a huge variety of patterns
-  which allows you explicit control on how to handle the results,
+  that allow you explicit control on how to handle the results,
   errors, and timeouts. Here is a summary:
 
-    * Use `Task.Supervisor.start_child/2` to start a fire-and-forget
-      task and you don't care about its results nor about if it completes
-      successfully
+    * Using `Task.Supervisor.start_child/2` allows you to start a fire-and-forget
+      task that you don't care about its results or if it completes successfully or not.
 
-    * Use `Task.Supervisor.async/2` + `Task.await/2` allows you to execute
+    * Using `Task.Supervisor.async/2` + `Task.await/2` allows you to execute
       tasks concurrently and retrieve its result. If the task fails,
-      the caller will also fail
+      the caller will also fail.
 
-    * Use `Task.Supervisor.async_nolink/2` + `Task.yield/2` + `Task.shutdown/2`
+    * Using `Task.Supervisor.async_nolink/2` + `Task.yield/2` + `Task.shutdown/2`
       allows you to execute tasks concurrently and retrieve their results
       or the reason they failed within a given time frame. If the task fails,
-      the caller won't fail: you will receive the error reason either on
-      `yield` or `shutdown`
+      the caller won't fail. You will receive the error reason either on
+      `yield` or `shutdown`.
 
   See the `Task.Supervisor` module for details on the supported operations.
 
