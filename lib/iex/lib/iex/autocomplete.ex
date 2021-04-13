@@ -570,35 +570,27 @@ defmodule IEx.Autocomplete do
     :error
   end
 
-  defp path_fragment(expr), do: path_fragment(:possible_path, expr, [])
-  defp path_fragment(:assume_not_path, [], acc), do: acc
+  defp path_fragment(expr), do: collect_path_fragment(expr, [])
 
-  defp path_fragment(:assume_not_path, [?" | rest], acc),
-    do: path_fragment(:assume_path, rest, acc)
+  # collects the fragment and store it on `acc`, calls `return_path_fragment` 
+  # when it finds a `"`, discards `acc` otherwise
+  defp collect_path_fragment([], _acc), do: []
+  defp collect_path_fragment([?", ?\\ | t], acc), do: collect_path_fragment(t, [?\\, ?" | acc])
+  defp collect_path_fragment([?{, ?# | _rest], _acc), do: []
+  defp collect_path_fragment([?" | t], acc), do: return_path_fragment(t, acc)
+  defp collect_path_fragment([h | t], acc), do: collect_path_fragment(t, [h | acc])
 
-  defp path_fragment(:assume_not_path, [_ | rest], acc),
-    do: path_fragment(:assume_not_path, rest, acc)
+  # scan the rest of the `expr`, returns `acc` if no other `"` is found, 
+  # fallback to `discard_path_fragment` otherwise
+  defp return_path_fragment([], acc), do: acc
+  defp return_path_fragment([?" | t], acc), do: discard_path_fragment(t, acc)
+  defp return_path_fragment([_ | t], acc), do: return_path_fragment(t, acc)
 
-  defp path_fragment(:assume_path, [], _acc), do: []
-
-  defp path_fragment(:assume_path, [?" | rest], acc),
-    do: path_fragment(:assume_not_path, rest, acc)
-
-  defp path_fragment(:assume_path, [_ | rest], acc),
-    do: path_fragment(:assume_path, rest, acc)
-
-  defp path_fragment(:possible_path, [], _acc), do: []
-
-  defp path_fragment(:possible_path, [?", ?\\ | rest], acc), 
-    do: path_fragment(:possible_path, rest, [?\\, ?" | acc])
-
-  defp path_fragment(:possible_path, [?{, ?# | _rest], _acc), do: []
-
-  defp path_fragment(:possible_path, [?" | rest], acc), 
-    do: path_fragment(:assume_not_path, rest, acc)
-
-  defp path_fragment(:possible_path, [h | rest], acc), 
-    do: path_fragment(:possible_path, rest, [h | acc])
+  # scan the rest of the `expr`, discards `acc` if no other `"` is found, 
+  # fallback to `return_path_fragment` otherwise
+  defp discard_path_fragment([], _acc), do: []
+  defp discard_path_fragment([?" | t], acc), do: return_path_fragment(t, acc)
+  defp discard_path_fragment([_ | t], acc), do: discard_path_fragment(t, acc)
 
   defp expand_path(path_fragment) do
     path_fragment = to_string(path_fragment)
