@@ -589,24 +589,21 @@ defmodule IEx.Autocomplete do
 
   defp path_fragment(:possible_path, [], _acc), do: []
 
-  defp path_fragment(:possible_path, [?", ?\\ | rest], acc) do
-    path_fragment(:possible_path, rest, [?\\, ?" | acc])
-  end
+  defp path_fragment(:possible_path, [?", ?\\ | rest], acc), 
+    do: path_fragment(:possible_path, rest, [?\\, ?" | acc])
 
   defp path_fragment(:possible_path, [?{, ?# | _rest], _acc), do: []
 
-  defp path_fragment(:possible_path, [?" | rest], acc) do
-    path_fragment(:assume_not_path, rest, acc)
-  end
+  defp path_fragment(:possible_path, [?" | rest], acc), 
+    do: path_fragment(:assume_not_path, rest, acc)
 
-  defp path_fragment(:possible_path, [h | rest], acc) do
-    path_fragment(:possible_path, rest, [h | acc])
-  end
+  defp path_fragment(:possible_path, [h | rest], acc), 
+    do: path_fragment(:possible_path, rest, [h | acc])
 
-  defp expand_path(path) do
-    fragment = to_string(path)
-    possible_paths = find_possible_paths(fragment)
-    expand_path(fragment, possible_paths)
+  defp expand_path(path_fragment) do
+    path_fragment = to_string(path_fragment)
+    possible_paths = find_possible_paths(path_fragment)
+    expand_path(path_fragment, possible_paths)
   end
 
   defp expand_path(path_fragment, possible_paths) do
@@ -646,15 +643,15 @@ defmodule IEx.Autocomplete do
   defp common_prefix([h | t1], [h | t2], acc), do: common_prefix(t1, t2, [h | acc])
   defp common_prefix(_, _, acc), do: Enum.reverse(acc)
 
-  defp ls_prefix(fragment) do
-    dir = Path.dirname(fragment)
-    prefix = prefix_from_dir(dir, fragment)
+  defp ls_prefix(path_fragment) do
+    dir = Path.dirname(path_fragment)
+    prefix = prefix_from_dir(dir, path_fragment)
 
     case File.ls(dir) do
       {:ok, list} ->
         list
-        |> Enum.map(&Path.join(prefix, &1))
-        |> Enum.filter(&String.starts_with?(&1, fragment))
+        |> Stream.map(&Path.join(prefix, &1))
+        |> Stream.filter(&String.starts_with?(&1, path_fragment))
 
       _ ->
         []
