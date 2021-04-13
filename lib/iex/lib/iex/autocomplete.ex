@@ -603,7 +603,7 @@ defmodule IEx.Autocomplete do
   defp expand_path(path_fragment, possible_paths) do
     expansions =
       Enum.map(possible_paths, fn {path, dir?} ->
-        {completion_part(path_fragment, path, dir?), to_charlist(Path.basename(path))}
+        {completion_part(path_fragment, path, dir?), String.to_charlist(Path.basename(path))}
       end)
 
     case expansions do
@@ -611,12 +611,12 @@ defmodule IEx.Autocomplete do
         no()
 
       [{unique, _}] ->
-        {:yes, to_charlist(unique), []}
+        {:yes, String.to_charlist(unique), []}
 
       list ->
         {completions, filenames} = Enum.unzip(list)
         common_prefix_size = :binary.longest_common_prefix(completions)
-        hint = completions |> hd() |> binary_part(0, common_prefix_size) |> to_charlist()
+        hint = completions |> hd() |> binary_part(0, common_prefix_size) |> String.to_charlist()
         {:yes, hint, filenames}
     end
   end
