@@ -595,7 +595,7 @@ defmodule IEx.Autocomplete do
   defp discard_path_fragment([_ | t], acc), do: discard_path_fragment(t, acc)
 
   defp expand_path(path_fragment) do
-    path_fragment = to_string(path_fragment)
+    path_fragment = List.to_string(path_fragment)
     possible_paths = find_possible_paths(path_fragment)
     expand_path(path_fragment, possible_paths)
   end
@@ -611,31 +611,28 @@ defmodule IEx.Autocomplete do
         no()
 
       [{unique, _}] ->
-        {:yes, unique, []}
+        {:yes, to_charlist(unique), []}
 
       list ->
         {completions, filenames} = Enum.unzip(list)
-        hint = Enum.reduce(completions, &common_prefix/2)
+        common_prefix_size = :binary.longest_common_prefix(completions)
+        hint = completions |> hd() |> binary_part(0, common_prefix_size) |> to_charlist()
         {:yes, hint, filenames}
     end
   end
 
   defp completion_part(already_entered, full_path, dir?) do
-    part = full_path |> String.replace_prefix(already_entered, "") |> to_charlist()
+    part = String.replace_prefix(full_path, already_entered, "")
 
     if dir? do
-      part ++ '/'
+      part <> "/"
     else
-      part ++ '"'
+      part <> "\""
     end
   end
 
   defp prefix_from_dir(".", <<c, _::binary>>) when c != ?., do: ""
   defp prefix_from_dir(dir, _fragment), do: dir
-
-  defp common_prefix(a, b, acc \\ [])
-  defp common_prefix([h | t1], [h | t2], acc), do: common_prefix(t1, t2, [h | acc])
-  defp common_prefix(_, _, acc), do: Enum.reverse(acc)
 
   defp ls_prefix(path_fragment) do
     dir = Path.dirname(path_fragment)
@@ -644,8 +641,8 @@ defmodule IEx.Autocomplete do
     case File.ls(dir) do
       {:ok, list} ->
         list
-        |> Stream.map(&Path.join(prefix, &1))
-        |> Stream.filter(&String.starts_with?(&1, path_fragment))
+        |> Enum.map(&Path.join(prefix, &1))
+        |> Enum.filter(&String.starts_with?(&1, path_fragment))
 
       _ ->
         []
