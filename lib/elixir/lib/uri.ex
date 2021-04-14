@@ -477,6 +477,11 @@ defmodule URI do
   When a URI is given without a port, the value returned by
   `URI.default_port/1` for the URI's scheme is used for the `:port` field.
 
+  When a URI hostname is an IPv6 literal, it has the `[]` unwrapped before
+  being stored in the `:host` field. This doesn't match the formal grammar
+  for hostnames, which requires the `[]` to be preserved, according to
+  [RFC 3986, appendix A](https://tools.ietf.org/html/rfc3986#appendix-A)
+
   If a `%URI{}` struct is given to this function, this function returns it
   unmodified.
 
@@ -530,6 +535,17 @@ defmodule URI do
         userinfo: nil
       }
 
+      iex> URI.parse("//[fe80::]/")
+      %URI{
+        authority: "[fe80::]",
+        fragment: nil,
+        host: "fe80::",
+        path: "/",
+        port: nil,
+        query: nil,
+        scheme: nil,
+        userinfo: nil
+      }
   """
   @spec parse(t | binary) :: t
   def parse(%URI{} = uri), do: uri
@@ -588,6 +604,9 @@ defmodule URI do
   defp nillify_query(_other), do: nil
 
   # Split an authority into its userinfo, host and port parts.
+  #
+  # Note that the host field is returned *without* [] even if, according to
+  # RFC3986 grammar, a native IPv6 address requires them.
   defp split_authority("") do
     {nil, nil, nil, nil}
   end
