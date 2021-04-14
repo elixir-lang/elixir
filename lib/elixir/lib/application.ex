@@ -611,10 +611,18 @@ defmodule Application do
 
   Our database engine used by `:my_app` needs to know what databases exist, and
   what the database configurations are. The database engine can make a call to
-  `get_env(:my_app, :my_app_databases)` to retrieve the list of databases (specified
-  by module names). Our database engine can then traverse each repository in the
-  list and then call `get_env(:my_app, Databases.RepoOne)` and so forth to retrieve
-  the configuration of each one.
+  `Application.get_env(:my_app, :my_app_databases, [])` to retrieve the list of
+  databases (specified by module names).
+
+  The engine can then traverse each repository in the list and call
+  `Application.get_env(:my_app, Databases.RepoOne)` and so forth to retrieve the
+  configuration of each one. In this case, each configuration will be a keyword
+  list, so you can use the functions in the `Keyword` module or even the `Access`
+  module to traverse it, for example:
+
+      config = Application.get_env(:my_app, Databases.RepoOne)
+      config[:ip]
+
   """
   @spec get_env(app, key, value) :: value
   def get_env(app, key, default \\ nil) when is_atom(app) do
