@@ -611,14 +611,17 @@ defmodule Mix.Tasks.ReleaseTest do
         Mix.Task.run("release")
         script = Path.join(root, "bin/permanent1")
 
-        open_port(script, ['start'])
+        env = [{"RELEASE_DISTRIBUTION", "name"}, {"RELEASE_NODE", "permanent1@127.0.0.1"}]
+        open_port(script, ['start'], env)
         wait_until_decoded(Path.join(root, "RELEASE_BOOTED"))
-        assert System.cmd(script, ["rpc", "ReleaseTest.hello_world()"]) == {"hello world\n", 0}
 
-        assert {pid, 0} = System.cmd(script, ["pid"])
+        assert System.cmd(script, ["rpc", "ReleaseTest.hello_world()"], env: env) ==
+                 {"hello world\n", 0}
+
+        assert {pid, 0} = System.cmd(script, ["pid"], env: env)
         assert pid != "\n"
 
-        assert System.cmd(script, ["stop"]) == {"", 0}
+        assert System.cmd(script, ["stop"], env: env) == {"", 0}
       end)
     end)
   end
@@ -686,16 +689,17 @@ defmodule Mix.Tasks.ReleaseTest do
         Mix.Task.run("release")
 
         script = Path.join(root, "bin/permanent2")
-        open_port(script, ['daemon_iex'])
+        env = [{"RELEASE_DISTRIBUTION", "name"}, {"RELEASE_NODE", "permanent2@127.0.0.1"}]
+        open_port(script, ['daemon_iex'], env)
 
         assert %{
                  app_dir: app_dir,
                  cookie_env: "abcdefghij",
                  mode: :embedded,
-                 node: release_node("permanent2"),
+                 node: :"permanent2@127.0.0.1",
                  protocols_consolidated?: true,
                  release_name: "permanent2",
-                 release_node: "permanent2",
+                 release_node: "permanent2@127.0.0.1",
                  release_root: ^root,
                  release_vsn: "0.1.0",
                  root_dir: root_dir,
@@ -712,11 +716,13 @@ defmodule Mix.Tasks.ReleaseTest do
 
         assert wait_until(fn ->
                  File.read!(Path.join(root, "tmp/log/erlang.log.1")) =~
-                   "iex(permanent2@#{@hostname})1> "
+                   "iex(permanent2@127.0.0.1)1> "
                end)
 
-        assert System.cmd(script, ["rpc", "ReleaseTest.hello_world()"]) == {"hello world\n", 0}
-        assert System.cmd(script, ["stop"]) == {"", 0}
+        assert System.cmd(script, ["rpc", "ReleaseTest.hello_world()"], env: env) ==
+                 {"hello world\n", 0}
+
+        assert System.cmd(script, ["stop"], env: env) == {"", 0}
       end)
     end)
   end
@@ -741,6 +747,7 @@ defmodule Mix.Tasks.ReleaseTest do
   end
 
   defp open_port(command, args, env \\ []) do
+    env = for {k, v} <- env, do: {to_charlist(k), to_charlist(v)}
     Port.open({:spawn_executable, to_charlist(command)}, [:hide, args: args, env: env])
   end
 
