@@ -285,6 +285,8 @@ defmodule URITest do
         "1080::8:800:200C:417A",
         # multicast
         "FF01::101",
+        # link-local
+        "fe80::",
         # abbreviated
         "2607:f3f0:2:0:216:3cff:fef0:174a",
         # mixed hex case
