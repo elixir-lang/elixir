@@ -278,7 +278,7 @@ $(TEST_EBIN)/%.beam: $(TEST_ERL)/%.erl
 	$(Q) mkdir -p $(TEST_EBIN)
 	$(Q) $(ERLC) -o $(TEST_EBIN) $<
 
-test_elixir: test_stdlib test_ex_unit test_logger test_mix test_eex test_iex
+test_elixir: test_stdlib test_ex_unit test_logger test_eex test_iex test_mix
 
 test_stdlib: compile
 	@ echo "==> elixir (ex_unit)"
