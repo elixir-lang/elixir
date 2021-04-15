@@ -336,7 +336,7 @@ defmodule Mix.Local.Installer do
       end
       """)
 
-      with_mix_env_prod(fn ->
+      with_reset_prod_env(fn ->
         Mix.ProjectStack.on_clean_slate(fn ->
           Mix.Project.in_project(:mix_local_installer, tmp_path, in_fetcher)
 
@@ -376,14 +376,17 @@ defmodule Mix.Local.Installer do
     end
   end
 
-  defp with_mix_env_prod(fun) do
+  defp with_reset_prod_env(fun) do
     previous_env = Mix.env()
+    deps_path = System.get_env("MIX_DEPS_PATH")
 
     try do
+      System.delete_env("MIX_DEPS_PATH")
       Mix.env(:prod)
       fun.()
     after
       Mix.env(previous_env)
+      deps_path && System.put_env("MIX_DEPS_PATH", deps_path)
     end
   end
 end
