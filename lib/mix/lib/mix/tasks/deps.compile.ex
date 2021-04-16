@@ -58,7 +58,7 @@ defmodule Mix.Tasks.Deps.Compile do
       {opts, [], _} ->
         # Because this command may be invoked explicitly with
         # deps.compile, we simply try to compile any available
-        # dependency.
+        # or local dependency.
         compile(filter_available_and_local_deps(deps), opts)
 
       {opts, tail, _} ->
