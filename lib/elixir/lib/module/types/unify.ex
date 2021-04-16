@@ -40,23 +40,19 @@ defmodule Module.Types.Unify do
   Unifies two types and returns the unified type and an updated typing context
   or an error in case of a typing conflict.
   """
-  def unify(source, target, stack, context) do
-    do_unify(source, target, stack, context)
-  end
-
-  defp do_unify(same, same, _stack, context) do
+  def unify(same, same, _stack, context) do
     {:ok, same, context}
   end
 
-  defp do_unify(type, {:var, var}, stack, context) do
+  def unify(type, {:var, var}, stack, context) do
     unify_var(var, type, stack, context, _var_source = false)
   end
 
-  defp do_unify({:var, var}, type, stack, context) do
+  def unify({:var, var}, type, stack, context) do
     unify_var(var, type, stack, context, _var_source = true)
   end
 
-  defp do_unify({:tuple, n, sources}, {:tuple, n, targets}, stack, context) do
+  def unify({:tuple, n, sources}, {:tuple, n, targets}, stack, context) do
     result =
       map_reduce_ok(Enum.zip(sources, targets), context, fn {source, target}, context ->
         unify(source, target, stack, context)
@@ -68,26 +64,26 @@ defmodule Module.Types.Unify do
     end
   end
 
-  defp do_unify({:list, source}, {:list, target}, stack, context) do
+  def unify({:list, source}, {:list, target}, stack, context) do
     case unify(source, target, stack, context) do
       {:ok, type, context} -> {:ok, {:list, type}, context}
       {:error, reason} -> {:error, reason}
     end
   end
 
-  defp do_unify({:map, source_pairs}, {:map, target_pairs}, stack, context) do
+  def unify({:map, source_pairs}, {:map, target_pairs}, stack, context) do
     unify_maps(source_pairs, target_pairs, stack, context)
   end
 
-  defp do_unify(source, :dynamic, _stack, context) do
+  def unify(source, :dynamic, _stack, context) do
     {:ok, source, context}
   end
 
-  defp do_unify(:dynamic, target, _stack, context) do
+  def unify(:dynamic, target, _stack, context) do
     {:ok, target, context}
   end
 
-  defp do_unify({:union, types}, target, stack, context) do
+  def unify({:union, types}, target, stack, context) do
     unify_result =
       map_reduce_ok(types, context, fn type, context ->
         unify(type, target, stack, context)
@@ -99,7 +95,7 @@ defmodule Module.Types.Unify do
     end
   end
 
-  defp do_unify(source, target, stack, context) do
+  def unify(source, target, stack, context) do
     cond do
       # TODO: This condition exists to handle unions with unbound vars.
       match?({:union, _}, target) and has_unbound_var?(target, context) ->
@@ -113,11 +109,11 @@ defmodule Module.Types.Unify do
     end
   end
 
-  defp unify_var(var, :dynamic, _stack, context, _var_source?) do
+  def unify_var(var, :dynamic, _stack, context, _var_source?) do
     {:ok, {:var, var}, context}
   end
 
-  defp unify_var(var, type, stack, context, var_source?) do
+  def unify_var(var, type, stack, context, var_source?) do
     case context.types do
       %{^var => :unbound} ->
         context = refine_var!(var, type, stack, context)
@@ -193,7 +189,7 @@ defmodule Module.Types.Unify do
   # * All required keys on each side need to match to the other side.
   # * All optional keys on each side that do not match must be discarded.
 
-  defp unify_maps(source_pairs, target_pairs, stack, context) do
+  def unify_maps(source_pairs, target_pairs, stack, context) do
     {source_required, source_optional} = split_pairs(source_pairs)
     {target_required, target_optional} = split_pairs(target_pairs)
 
@@ -224,7 +220,7 @@ defmodule Module.Types.Unify do
     end
   end
 
-  defp unify_source_required(source_required, target_pairs, stack, context) do
+  def unify_source_required(source_required, target_pairs, stack, context) do
     map_reduce_ok(source_required, context, fn {source_key, source_value}, context ->
       Enum.find_value(target_pairs, fn {target_kind, target_key, target_value} ->
         with {:ok, key, context} <- unify(source_key, target_key, stack, context) do
@@ -244,7 +240,7 @@ defmodule Module.Types.Unify do
     end)
   end
 
-  defp unify_target_required(target_required, source_pairs, stack, context) do
+  def unify_target_required(target_required, source_pairs, stack, context) do
     map_reduce_ok(target_required, context, fn {target_key, target_value}, context ->
       Enum.find_value(source_pairs, fn {source_kind, source_key, source_value} ->
         with {:ok, key, context} <- unify(source_key, target_key, stack, context) do
@@ -264,7 +260,7 @@ defmodule Module.Types.Unify do
     end)
   end
 
-  defp unify_source_optional(source_optional, target_optional, stack, context) do
+  def unify_source_optional(source_optional, target_optional, stack, context) do
     flat_map_reduce_ok(source_optional, context, fn {source_key, source_value}, context ->
       Enum.find_value(target_optional, fn {target_key, target_value} ->
         with {:ok, key, context} <- unify(source_key, target_key, stack, context) do
@@ -284,7 +280,7 @@ defmodule Module.Types.Unify do
     end)
   end
 
-  defp unify_target_optional(target_optional, source_optional, stack, context) do
+  def unify_target_optional(target_optional, source_optional, stack, context) do
     flat_map_reduce_ok(target_optional, context, fn {target_key, target_value}, context ->
       Enum.find_value(source_optional, fn {source_key, source_value} ->
         with {:ok, key, context} <- unify(source_key, target_key, stack, context) do
@@ -953,6 +949,9 @@ defmodule Module.Types.Unify do
     end)
   end
 
+  @doc """
+  Performs a depth-first, pre-order traversal of the type tree using an accumulator.
+  """
   def walk({:map, pairs}, acc, fun) do
     {pairs, acc} =
       Enum.map_reduce(pairs, acc, fn {kind, key, value}, acc ->

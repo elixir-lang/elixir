@@ -327,7 +327,7 @@ defmodule Module.Types.TypesTest do
       assert string == """
              incompatible arguments passed to function: Kernel.rem/2:
 
-                 var0, float()
+                 var1, float()
 
              expected types:
 
