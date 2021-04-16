@@ -40,12 +40,13 @@ defmodule IEx.Helpers do
     * `pid/3`          - creates a PID with the 3 integer arguments passed
     * `port/1`         - creates a port from a string
     * `port/2`         - creates a port with the 2 non-negative integers passed
-    * `ref/1`          - creates a reference from a string
-    * `ref/4`          - creates a reference with the 4 integer arguments passed
     * `pwd/0`          - prints the current working directory
     * `r/1`            - recompiles the given module's source file
     * `recompile/0`    - recompiles the current project
+    * `ref/1`          - creates a reference from a string
+    * `ref/4`          - creates a reference with the 4 integer arguments passed
     * `runtime_info/0` - prints runtime info (versions, memory usage, stats)
+    * `t/1`            - prints the types for the given module or function
     * `v/0`            - retrieves the last value from the history
     * `v/1`            - retrieves the nth value from the history
 
