@@ -424,6 +424,20 @@ defmodule KernelTest do
     assert exception_or_map?(%RuntimeError{}, RuntimeError) == true
   end
 
+  test "is_tuple/2" do
+    assert is_tuple({}, 0)
+    assert is_tuple({:foo}, 1)
+    refute is_tuple({}, 1)
+    refute is_tuple(:foo, 0)
+
+    assert tuple?({:foo})
+    refute tuple?({})
+    refute tuple?(:foo)
+  end
+
+  defp tuple?(term) when is_tuple(term, 1), do: true
+  defp tuple?(_term), do: false
+
   test "then/2" do
     assert 1 |> then(fn x -> x * 2 end) == 2
 

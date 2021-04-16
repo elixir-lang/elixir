@@ -734,6 +734,30 @@ defmodule Kernel do
   end
 
   @doc """
+  Returns `true` if `term` is a tuple with `size` number of elements;
+  otherwise returns `false`.
+
+  Allowed in guard tests.
+  """
+  @doc since: "1.13.0", guard: true
+  defmacro is_tuple(term, size) do
+    case __CALLER__.context do
+      nil ->
+        quote bind_quoted: [term: term, size: size] do
+          is_tuple(term) and tuple_size(term) == size
+        end
+
+      :match ->
+        invalid_match!(:is_tuple)
+
+      :guard ->
+        quote do
+          is_tuple(unquote(term)) and tuple_size(unquote(term)) == unquote(size)
+        end
+    end
+  end
+
+  @doc """
   Returns `true` if `term` is a map; otherwise returns `false`.
 
   Allowed in guard tests. Inlined by the compiler.
