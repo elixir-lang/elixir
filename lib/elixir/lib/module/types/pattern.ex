@@ -232,7 +232,6 @@ defmodule Module.Types.Pattern do
   def of_guard({{:., _, [:erlang, guard]}, _, args} = expr, expected, stack, context) do
     type_guard? = type_guard?(guard)
     {consider_type_guards?, keep_guarded?} = stack.type_guards
-    # TODO: Handle no matching signature
     signature = guard_signature(guard, length(args))
 
     # Only check type guards in the context of and/or/not,
@@ -254,9 +253,10 @@ defmodule Module.Types.Pattern do
         {:ok, return_type, %{context | guard_sources: guard_sources}}
       end
     else
-      # Assume type guard
-      [{_params, return_type}] = signature
-      {:ok, return_type, context}
+      # Assume that type guards always return boolean
+      boolean = {:union, [atom: true, atom: false]}
+      [{_params, ^boolean}] = signature
+      {:ok, boolean, context}
     end
   end
 
@@ -281,6 +281,8 @@ defmodule Module.Types.Pattern do
     |> Enum.map(&to_union(&1, context))
   end
 
+  # Collect guard sources from argument types, see type context documentation
+  # for more information
   defp guard_sources(arg_types, type_guard?, keep_guarded?, context) do
     {arg_types, guard_sources} =
       case arg_types do
@@ -328,16 +330,26 @@ defmodule Module.Types.Pattern do
     {:ok, return, context}
   end
 
-  defp unify_call(args, [{params, _return} | _], _expected, _mfa, _stack, context)
-       when length(args) != length(params) do
-    {:ok, :dynamic, context}
-  end
-
   defp unify_call(args, signature, expected, mfa, stack, context) do
+    # Given the arguments:
+    # foo | bar, {:ok, baz | bat}
+
+    # Expand unions in arguments:
+    # foo | bar, {:ok, baz} | {:ok, bat}
+
+    # Permute arguments:
+    # foo, {:ok, baz}
+    # foo, {:ok, bat}
+    # bar, {:ok, baz}
+    # bar, {:ok, bat}
+
     expanded_args =
       args
       |> Enum.map(&expand_union/1)
       |> cartesian_product()
+
+    # Remove clauses that do not match the expected type
+    # Ignore type variables in parameters by changing them to dynamic
 
     clauses =
       signature
@@ -346,6 +358,12 @@ defmodule Module.Types.Pattern do
         {Enum.map(params, &var_to_dynamic/1), return}
       end)
 
+    # For each permuted argument find the clauses they match
+    # All arguments must match at least one clause, but all clauses
+    # do not need to match
+    # Collect the return values from clauses that matched and collect
+    # the type contexts from unifying argument and parameter to
+    # infer type variables in arguments
     result =
       flat_map_ok(expanded_args, fn expanded_args ->
         result =
@@ -377,6 +395,8 @@ defmodule Module.Types.Pattern do
         contexts = Enum.concat(contexts)
         indexes = Enum.uniq(Enum.flat_map(args, &collect_var_indexes_from_type/1))
 
+        # Build unions from collected type contexts to unify with
+        # type variables from arguments
         result =
           map_reduce_ok(indexes, context, fn index, context ->
             union =
@@ -526,16 +546,9 @@ defmodule Module.Types.Pattern do
   end
 
   defp filter_clauses(signature, expected, stack, context) do
-    clauses =
-      Enum.filter(signature, fn {_params, return} ->
-        match?({:ok, _type, _context}, unify(return, expected, stack, context))
-      end)
-
-    if clauses == [] do
-      signature
-    else
-      clauses
-    end
+    Enum.filter(signature, fn {_params, return} ->
+      match?({:ok, _type, _context}, unify(return, expected, stack, context))
+    end)
   end
 
   defp type_guard?(name) do

@@ -176,9 +176,7 @@ defmodule Module.Types.Helpers do
   end
 
   defp zip_many([], [], [[] | acc]) do
-    acc
-    |> Enum.map(&Enum.reverse/1)
-    |> Enum.reverse()
+    map_reverse(acc, [], &Enum.reverse/1)
   end
 
   defp zip_many([], remain, [last | acc]) do
@@ -192,4 +190,7 @@ defmodule Module.Types.Helpers do
   defp zip_many([[elem | list1] | list2], remain, [last | acc]) do
     zip_many(list2, [list1 | remain], [[elem | last] | acc])
   end
+
+  defp map_reverse([], acc, _fun), do: acc
+  defp map_reverse([head | tail], acc, fun), do: map_reverse(tail, [fun.(head) | acc], fun)
 end

@@ -806,6 +806,11 @@ defmodule Module.Types.Unify do
   # TODO: Figure out function expansion
   # TODO: Flatten across type variables
 
+  @doc """
+  Expand unions so that all unions are at the top level.
+
+      {integer() | float()} => {integer()} | {float()}
+  """
   def expand_union({:union, types}) do
     Enum.flat_map(types, &expand_union/1)
   end

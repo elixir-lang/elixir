@@ -486,5 +486,5 @@ defmodule Module.Types do
   defp integer_type?(_other), do: false
 
   defp call_to_mfa({{:., _, [mod, fun]}, _, args}), do: {mod, fun, length(args)}
-  defp call_to_mfa({fun, _, args}), do: {Kernel, fun, length(args)}
+  defp call_to_mfa({fun, _, args}) when is_atom(fun), do: {Kernel, fun, length(args)}
 end
