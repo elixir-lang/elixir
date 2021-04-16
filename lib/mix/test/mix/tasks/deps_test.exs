@@ -45,6 +45,18 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
+  defmodule MissingLocalDepsApp do
+    def project do
+      [
+        app: :missing_local_deps,
+        version: "0.1.0",
+        deps: [
+          {:ok, path: "missing/dep"}
+        ]
+      ]
+    end
+  end
+
   ## deps
 
   test "prints list of dependencies and their status" do
@@ -209,6 +221,18 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Tasks.Deps.Compile.run(["--skip-local-deps"])
       refute File.exists?("_build/dev/lib/ok/ebin")
     end)
+  end
+
+  test "checks if local dependencies are available before compiling" do
+    Mix.Project.push(MissingLocalDepsApp)
+
+    error_message =
+      "Cannot compile dependency :ok because it isn't available, please ensure the dependency " <>
+        "is at \"missing/dep\""
+
+    assert_raise Mix.Error, error_message, fn ->
+      Mix.Tasks.Deps.Compile.run([])
+    end
   end
 
   ## deps.loadpaths
