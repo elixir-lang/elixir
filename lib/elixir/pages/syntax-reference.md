@@ -374,6 +374,28 @@ end
 #=> {:fn, [], [{:->, [], [[1, 2], 3]}, {:->, [], [[4, 5], 6]}]}
 ```
 
+### Access syntax
+
+The access syntax (`foo[:bar]`) is represented by a `{:., [], [Access, :get]}` call, and the arguments are the ones used to call `Access.get/3`:
+
+```elixir
+quote do
+  foo[:bar]
+end
+#=> {{:., [], [Access, :get]}, [], [{:foo, [], Elixir}, :bar]}
+```
+
+### Multi alias
+
+Multi alias (`Foo.{Bar, Baz}`) is represented by a `{:., [], [base_alias, :{}]}` call, where the `base_alias` represents the left hand side of the dot, and the arguments represent the elements inside the curly braces:
+
+```elixir
+quote do
+  Foo.{Bar, Baz}
+end
+#=> {{:., [], [{:__aliases__, [], [:Foo]}, :{}]}, [], [{:__aliases__, [], [:Bar]}, {:__aliases__, [], [:Baz]}]}
+```
+
 ## Syntactic sugar
 
 All of the constructs above are part of Elixir's syntax and have their own representation as part of the Elixir AST. This section will discuss the remaining constructs that "desugar" to one of the constructs explored above. In other words, the constructs below can be represented in more than one way in your Elixir code and retain AST equivalence.
