@@ -233,17 +233,23 @@ defmodule Code do
     * `{:alias_or_dot, charlist}` - the autocompletion is an alias or a dot
      call, such as `Hello.` or `Hello.World.`
 
-    * `{:dot, inside_dot | dot, charlist}` - the autocompletion is a dot.
+    * `{:dot, inside_dot, charlist}` - the autocompletion is a dot
       where `inside_dot` is either a `{:var, charlist}`, `{:alias, charlist}`,
-      `{:unquoted_atom, charlist}` or a `:dot` itself. If a var is given,
+      `{:unquoted_atom, charlist}` or a `dot` itself. If a var is given,
       this may either be a remote call or a map field access. Examples are
       `Hello.wor`, `:hello.wor`, `hello.wor`, `Hello.nested.wor`, and
       `hello.nested.wor`
 
-    * `{:dot_call, inside_dot | dot, charlist}` - the autocompletion is a dot
+    * `{:dot_arity, inside_dot, charlist}` - the autocompletion is a dot arity
+      where `inside_dot` is either a `{:var, charlist}`, `{:alias, charlist}`,
+      `{:unquoted_atom, charlist}` or a `dot` itself. If a var is given,
+      it must be a remote arity. Examples are `Hello.world/`, `:hello.world/`,
+      and `hello.world/2`
+
+    * `{:dot_call, inside_dot, charlist}` - the autocompletion is a dot
       call. This means parentheses or space have been added after the expression.
       where `inside_dot` is either a `{:var, charlist}`, `{:alias, charlist}`,
-      `{:unquoted_atom, charlist}` or a `:dot` itself. If a var is given,
+      `{:unquoted_atom, charlist}` or a `dot` itself. If a var is given,
       it must be a remote call. Examples are `Hello.world(`, `:hello.world(`,
       `Hello.world `, `hello.world(`, and `hello.world `
 
@@ -252,6 +258,9 @@ defmodule Code do
 
     * `{:local_or_var, charlist}` - the autocompletion is a variable or a local
       (import or local) call, such as `hello_wor`
+
+    * `{:local_arity, charlist}` - the autocompletion is a local (import or local)
+      call, such as `hello_world/`
 
     * `{:local_call, charlist}` - the autocompletion is a local (import or local)
       call, such as `hello_world(` and `hello_world `
@@ -272,15 +281,15 @@ defmodule Code do
   @spec autocomplete(List.Chars.t(), keyword()) ::
           {:alias, charlist}
           | {:alias_or_dot, charlist}
-          | dot
-          | dot_call
+          | {:dot, inside_dot, charlist}
+          | {:dot_arity, inside_dot, charlist}
+          | {:dot_call, inside_dot, charlist}
           | {:local_or_var, charlist}
+          | {:local_arity, charlist}
           | {:local_call, charlist}
           | :none
           | {:unquoted_atom, charlist}
-        when dot: {:dot, inside_dot | dot, charlist},
-             dot_call: {:dot_call, inside_dot | dot_call, charlist},
-             inside_dot: {:var, charlist} | {:alias, charlist} | {:unquoted_atom, charlist}
+        when inside_dot: {:var, charlist} | {:alias, charlist} | {:unquoted_atom, charlist} | {:dot, inside_dot, charlist}
   def autocomplete(string, opts \\ [])
 
   def autocomplete(binary, opts) when is_binary(binary) and is_list(opts) do
@@ -320,7 +329,6 @@ defmodule Code do
   @non_identifier @closing_identifier ++
                     @operators ++ @non_closing_punctuation ++ @closing_punctuation ++ @space
 
-  # TODO: Add arity selector
   defp do_autocomplete(list, _opts) do
     reverse = Enum.reverse(list)
 
@@ -342,6 +350,14 @@ defmodule Code do
       # It is a local or remote call with parens
       {[?( | rest], _} ->
         call_to_autocomplete(rest)
+
+      # A local arity definition
+      {[?/ | rest], _} ->
+        case identifier_to_autocomplete(rest) do
+          {:local_or_var, acc} -> {:local_arity, acc}
+          {:dot, base, acc} -> {:dot_arity, base, acc}
+          _ -> :none
+        end
 
       # Starting a new expression
       {[h | _], _} when h in @operators_and_non_closing_puctuation ->

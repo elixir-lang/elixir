@@ -31,6 +31,7 @@ defmodule CodeTest do
 
     test "local_or_var" do
       assert Code.autocomplete("hello_wo") == {:local_or_var, 'hello_wo'}
+      assert Code.autocomplete("hello/wor") == {:local_or_var, 'wor'}
       assert Code.autocomplete("hello..wor") == {:local_or_var, 'wor'}
       assert Code.autocomplete("hello::wor") == {:local_or_var, 'wor'}
       assert Code.autocomplete("[hello_wo") == {:local_or_var, 'hello_wo'}
@@ -54,12 +55,22 @@ defmodule CodeTest do
       assert Code.autocomplete("nested.map.wor") == {:dot, {:dot, {:var, 'nested'}, 'map'}, 'wor'}
     end
 
+    test "local_arity" do
+      assert Code.autocomplete("hello/") == {:local_arity, 'hello'}
+    end
+
     test "local_call" do
       assert Code.autocomplete("hello\s") == {:local_call, 'hello'}
       assert Code.autocomplete("hello\t") == {:local_call, 'hello'}
       assert Code.autocomplete("hello(") == {:local_call, 'hello'}
       assert Code.autocomplete("hello(\s") == {:local_call, 'hello'}
       assert Code.autocomplete("hello(\t") == {:local_call, 'hello'}
+    end
+
+    test "dot_arity" do
+      assert Code.autocomplete("Foo.hello/") == {:dot_arity, {:alias, 'Foo'}, 'hello'}
+      assert Code.autocomplete(":foo.hello/") == {:dot_arity, {:unquoted_atom, 'foo'}, 'hello'}
+      assert Code.autocomplete("foo.hello/") == {:dot_arity, {:var, 'foo'}, 'hello'}
     end
 
     test "dot_call" do
