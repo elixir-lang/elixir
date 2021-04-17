@@ -728,53 +728,51 @@ defmodule Protocol do
   end
 
   # TODO: Convert the following warnings into errors future Elixir versions
-  defmacro __before_compile__(env) do
-    quote bind_quoted: [env: Macro.escape(env)] do
-      # Callbacks
-      callbacks =
-        :lists.map(
-          &Protocol.__callback_ast_to_fa__/1,
-          Module.get_attribute(__MODULE__, :callback)
-        )
-
-      functions = Module.get_attribute(__MODULE__, :functions)
-
+  def __before_compile__(env) do
+    # Callbacks
+    callbacks =
       :lists.map(
-        fn {name, arity} ->
-          Protocol.__warn__(
-            "cannot define @callback #{name}/#{arity} inside protocol, use def/1 to outline your protocol definition",
-            env
-          )
-        end,
-        callbacks -- functions
+        &Protocol.__callback_ast_to_fa__/1,
+        Module.get_attribute(env.module, :callback)
       )
 
-      # Macro Callbacks
-      macrocallbacks =
-        :lists.map(
-          &Protocol.__callback_ast_to_fa__/1,
-          Module.get_attribute(__MODULE__, :macrocallback)
-        )
+    functions = Module.get_attribute(env.module, :functions)
 
-      :lists.map(
-        fn {name, arity} ->
-          Protocol.__warn__(
-            "cannot define @macrocallback #{name}/#{arity} inside protocol, use def/1 to outline your protocol definition",
-            env
-          )
-        end,
-        macrocallbacks
-      )
-
-      # Optional Callbacks
-      optional_callbacks = Module.get_attribute(__MODULE__, :optional_callbacks)
-
-      if length(optional_callbacks) > 0 do
+    :lists.map(
+      fn {name, arity} ->
         Protocol.__warn__(
-          "cannot define @optional_callbacks inside protocol, all of the protocol definitions are required",
+          "cannot define @callback #{name}/#{arity} inside protocol, use def/1 to outline your protocol definition",
           env
         )
-      end
+      end,
+      callbacks -- functions
+    )
+
+    # Macro Callbacks
+    macrocallbacks =
+      :lists.map(
+        &Protocol.__callback_ast_to_fa__/1,
+        Module.get_attribute(env.module, :macrocallback)
+      )
+
+    :lists.map(
+      fn {name, arity} ->
+        Protocol.__warn__(
+          "cannot define @macrocallback #{name}/#{arity} inside protocol, use def/1 to outline your protocol definition",
+          env
+        )
+      end,
+      macrocallbacks
+    )
+
+    # Optional Callbacks
+    optional_callbacks = Module.get_attribute(env.module, :optional_callbacks)
+
+    if length(optional_callbacks) > 0 do
+      Protocol.__warn__(
+        "cannot define @optional_callbacks inside protocol, all of the protocol definitions are required",
+        env
+      )
     end
   end
 
