@@ -273,8 +273,8 @@ defmodule Code do
   ## Limitations
 
     * There is no autocompletion of operators
-    * The current algorithm only consider the last line of the input
-    * Autocompletion does not track strings, sigils, etc
+    * The current algorithm only considers the last line of the input
+    * Autocompletion does not track strings, sigils, etc.
     * Arguments of functions calls are not currently recognized
 
   """
