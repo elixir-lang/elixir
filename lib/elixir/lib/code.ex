@@ -394,7 +394,7 @@ defmodule Code do
       {:alias, false, '::' ++ _, _} -> :none
       {kind, _, '::' ++ _, acc} -> alias_or_local_or_var(kind, acc)
       # Now handle atoms, any other atom is unexpected
-      {_kind, _, ':' ++ _, acc} -> unquoted_atom(acc)
+      {_kind, _, ':' ++ _, acc} -> {:unquoted_atom, acc}
       {:atom, _, _, _} -> :none
       # Parse .. first to avoid ambiguity with dots
       {:alias, false, _, _} -> :none
@@ -420,8 +420,6 @@ defmodule Code do
   defp alias_or_local_or_var(:alias, acc), do: {:alias, acc}
   defp alias_or_local_or_var(:identifier, acc), do: {:local_or_var, acc}
   defp alias_or_local_or_var(_, _), do: :none
-
-  defp unquoted_atom(acc), do: {:unquoted_atom, acc}
 
   defp identifier([?? | rest]), do: check_identifier(rest, [??])
   defp identifier([?! | rest]), do: check_identifier(rest, [?!])
