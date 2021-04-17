@@ -209,9 +209,9 @@ defmodule Code do
   @doc """
   Receives a string and returns an auto-complete suggestion.
 
-  This function provides a best-effort for autocompletion but
-  may still be innacurate in many cases. See the "Limitations"
-  section.
+  This function provides a best-effort for autocompletion which
+  may not be accurate under certain circumstances. See the
+  "Limitations" section below.
 
   Consider adding a catch-all clause when handling the return
   type of this function as new autocompletion tips may be added
