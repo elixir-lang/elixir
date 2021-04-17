@@ -275,7 +275,7 @@ defmodule Protocol do
       name = unquote(name)
       arity = unquote(arity)
 
-      @functions [{name, arity} | @functions]
+      @functions {name, arity}
 
       # Generate a fake definition with the user
       # signature that will be used by docs
@@ -681,6 +681,8 @@ defmodule Protocol do
   def __protocol__(name, do: block) do
     quote do
       defmodule unquote(name) do
+        Module.register_attribute(__MODULE__, :functions, accumulate: true)
+
         # We don't allow function definition inside protocols
         import Kernel,
           except: [
@@ -703,8 +705,6 @@ defmodule Protocol do
         # Compile with debug info for consolidation
         @compile :debug_info
 
-        # Set up a clear slate to store defined functions
-        @functions []
         @fallback_to_any false
 
         # Invoke the user given block
