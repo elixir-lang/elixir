@@ -67,7 +67,7 @@ defmodule Path do
 
     case type(path) do
       :relative ->
-        absname_join(relative_to, path)
+        absname_join([relative_to, path])
 
       :absolute ->
         absname_join([path])
@@ -81,11 +81,11 @@ defmodule Path do
   # Absolute path on current drive
   defp absname_vr(["/" | rest], [volume | _], _relative), do: absname_join([volume | rest])
 
-  # Relative to current directory on current drive.
+  # Relative to current directory on current drive
   defp absname_vr([<<x, ?:>> | rest], [<<x, _::binary>> | _], relative),
     do: absname(absname_join(rest), relative)
 
-  # Relative to current directory on another drive.
+  # Relative to current directory on another drive
   defp absname_vr([<<x, ?:>> | name], _, _relative) do
     cwd =
       case :file.get_cwd([x, ?:]) do
@@ -98,25 +98,25 @@ defmodule Path do
 
   @slash [?/, ?\\]
 
-  # Joins a list
-  defp absname_join([name1, name2 | rest]), do: absname_join([absname_join(name1, name2) | rest])
+  defp absname_join([]), do: ""
+  defp absname_join(list), do: absname_join(list, major_os_type())
 
-  defp absname_join([name]),
-    do: do_absname_join(IO.chardata_to_string(name), <<>>, [], major_os_type())
+  defp absname_join([name1, name2 | rest], os_type) do
+    joined = do_absname_join(IO.chardata_to_string(name1), relative(name2), [], os_type)
+    absname_join([joined | rest], os_type)
+  end
 
-  # Joins two paths
-  defp absname_join(left, right),
-    do: do_absname_join(IO.chardata_to_string(left), relative(right), [], major_os_type())
+  defp absname_join([name], os_type) do
+    do_absname_join(IO.chardata_to_string(name), <<>>, [], os_type)
+  end
 
   defp do_absname_join(<<uc_letter, ?:, rest::binary>>, relativename, [], :win32)
-       when uc_letter in ?A..?Z do
-    do_absname_join(rest, relativename, [?:, uc_letter + ?a - ?A], :win32)
-  end
+       when uc_letter in ?A..?Z,
+       do: do_absname_join(rest, relativename, [?:, uc_letter + ?a - ?A], :win32)
 
   defp do_absname_join(<<c1, c2, rest::binary>>, relativename, [], :win32)
-       when c1 in @slash and c2 in @slash do
-    do_absname_join(rest, relativename, '//', :win32)
-  end
+       when c1 in @slash and c2 in @slash,
+       do: do_absname_join(rest, relativename, '//', :win32)
 
   defp do_absname_join(<<?\\, rest::binary>>, relativename, result, :win32),
     do: do_absname_join(<<?/, rest::binary>>, relativename, result, :win32)
