@@ -207,7 +207,7 @@ defmodule Code do
   end
 
   @doc """
-  Receives a string and returns an auto-complete suggestion.
+  Receives a string and returns an autocompletion context.
 
   This function provides a best-effort for autocompletion which
   may not be accurate under certain circumstances. See the
@@ -219,10 +219,10 @@ defmodule Code do
 
   ## Examples
 
-      iex> Code.autocomplete("")
+      iex> Code.autocompletion("")
       :expr
 
-      iex> Code.autocomplete("hello_wor")
+      iex> Code.autocompletion("hello_wor")
       {:local_or_var, 'hello_wor'}
 
   ## Return values
@@ -278,12 +278,13 @@ defmodule Code do
     * Arguments of functions calls are not currently recognized
 
   """
-  @spec autocomplete(List.Chars.t(), keyword()) ::
+  @spec autocompletion(List.Chars.t(), keyword()) ::
           {:alias, charlist}
           | {:alias_or_dot, charlist}
           | {:dot, inside_dot, charlist}
           | {:dot_arity, inside_dot, charlist}
           | {:dot_call, inside_dot, charlist}
+          | :expr
           | {:local_or_var, charlist}
           | {:local_arity, charlist}
           | {:local_call, charlist}
@@ -294,9 +295,9 @@ defmodule Code do
                | {:alias, charlist}
                | {:unquoted_atom, charlist}
                | {:dot, inside_dot, charlist}
-  def autocomplete(string, opts \\ [])
+  def autocompletion(string, opts \\ [])
 
-  def autocomplete(binary, opts) when is_binary(binary) and is_list(opts) do
+  def autocompletion(binary, opts) when is_binary(binary) and is_list(opts) do
     binary =
       case :binary.matches(binary, "\n") do
         [] ->
@@ -307,20 +308,20 @@ defmodule Code do
           binary_part(binary, position + 1, byte_size(binary) - position - 1)
       end
 
-    do_autocomplete(String.to_charlist(binary), opts)
+    do_autocompletion(String.to_charlist(binary), opts)
   end
 
-  def autocomplete(charlist, opts) when is_list(charlist) and is_list(opts) do
+  def autocompletion(charlist, opts) when is_list(charlist) and is_list(opts) do
     chunked = Enum.chunk_by(charlist, &(&1 == ?\n))
 
     case List.last(chunked, []) do
-      [?\n] -> do_autocomplete([], opts)
-      rest -> do_autocomplete(rest, opts)
+      [?\n] -> do_autocompletion([], opts)
+      rest -> do_autocompletion(rest, opts)
     end
   end
 
-  def autocomplete(other, opts) do
-    autocomplete(to_charlist(other), opts)
+  def autocompletion(other, opts) do
+    autocompletion(to_charlist(other), opts)
   end
 
   @operators '\\<>+-*/:=|&~^@'
@@ -333,7 +334,7 @@ defmodule Code do
   @non_identifier @closing_identifier ++
                     @operators ++ @non_closing_punctuation ++ @closing_punctuation ++ @space
 
-  defp do_autocomplete(list, _opts) do
+  defp do_autocompletion(list, _opts) do
     reverse = Enum.reverse(list)
 
     case strip_spaces(reverse, 0) do
@@ -343,7 +344,7 @@ defmodule Code do
 
       # Start of a dot or alias
       {[?. | rest], _} ->
-        case identifier_to_autocomplete(rest) do
+        case identifier_to_autocompletion(rest) do
           {:alias, prev} -> {:alias_or_dot, prev}
           {:local_or_var, prev} -> {:dot, {:var, prev}, []}
           {:unquoted_atom, _} = prev -> {:dot, prev, []}
@@ -353,11 +354,11 @@ defmodule Code do
 
       # It is a local or remote call with parens
       {[?( | rest], _} ->
-        call_to_autocomplete(rest)
+        call_to_autocompletion(rest)
 
       # A local arity definition
       {[?/ | rest], _} ->
-        case identifier_to_autocomplete(rest) do
+        case identifier_to_autocompletion(rest) do
           {:local_or_var, acc} -> {:local_arity, acc}
           {:dot, base, acc} -> {:dot_arity, base, acc}
           _ -> :none
@@ -369,26 +370,26 @@ defmodule Code do
 
       # It is a local or remote call without parens
       {rest, spaces} when spaces > 0 ->
-        call_to_autocomplete(rest)
+        call_to_autocompletion(rest)
 
       # It is an identifier
       _ ->
-        identifier_to_autocomplete(reverse)
+        identifier_to_autocompletion(reverse)
     end
   end
 
   defp strip_spaces([h | rest], count) when h in @space, do: strip_spaces(rest, count + 1)
   defp strip_spaces(rest, count), do: {rest, count}
 
-  defp call_to_autocomplete(reverse) do
-    case identifier_to_autocomplete(reverse) do
+  defp call_to_autocompletion(reverse) do
+    case identifier_to_autocompletion(reverse) do
       {:local_or_var, acc} -> {:local_call, acc}
       {:dot, base, acc} -> {:dot_call, base, acc}
       _ -> :none
     end
   end
 
-  defp identifier_to_autocomplete(reverse) do
+  defp identifier_to_autocompletion(reverse) do
     case identifier(reverse) do
       # Parse :: first to avoid ambiguity atoms
       {:alias, false, '::' ++ _, _} -> :none
@@ -407,7 +408,7 @@ defmodule Code do
   end
 
   defp alias_or_dot(kind, rest, acc) do
-    case {kind, identifier_to_autocomplete(rest)} do
+    case {kind, identifier_to_autocompletion(rest)} do
       {:alias, {:alias, prev}} -> {:alias, prev ++ '.' ++ acc}
       {:identifier, {:local_or_var, prev}} -> {:dot, {:var, prev}, acc}
       {:identifier, {:unquoted_atom, _} = prev} -> {:dot, prev, acc}
