@@ -58,8 +58,8 @@ defmodule Mix.Tasks.Deps.Compile do
       {opts, [], _} ->
         # Because this command may be invoked explicitly with
         # deps.compile, we simply try to compile any available
-        # dependency.
-        compile(Enum.filter(deps, &Mix.Dep.available?/1), opts)
+        # or local dependency.
+        compile(filter_available_and_local_deps(deps), opts)
 
       {opts, tail, _} ->
         compile(Mix.Dep.filter_by_name(tail, deps, opts), opts)
@@ -77,7 +77,7 @@ defmodule Mix.Tasks.Deps.Compile do
       |> reject_umbrella_children(options)
       |> reject_local_deps(options)
       |> Enum.map(fn %Mix.Dep{app: app, status: status, opts: opts, scm: scm} = dep ->
-        check_unavailable!(app, status)
+        check_unavailable!(app, scm, status)
         maybe_clean(dep, options)
 
         compiled? =
@@ -138,14 +138,22 @@ defmodule Mix.Tasks.Deps.Compile do
     end
   end
 
-  defp check_unavailable!(app, {:unavailable, _}) do
-    Mix.raise(
-      "Cannot compile dependency #{inspect(app)} because " <>
-        "it isn't available, run \"mix deps.get\" first"
-    )
+  defp check_unavailable!(app, scm, {:unavailable, path}) do
+    if scm.fetchable? do
+      Mix.raise(
+        "Cannot compile dependency #{inspect(app)} because " <>
+          "it isn't available, run \"mix deps.get\" first"
+      )
+    else
+      Mix.raise(
+        "Cannot compile dependency #{inspect(app)} because " <>
+          "it isn't available, please ensure the dependency is at " <>
+          inspect(Path.relative_to_cwd(path))
+      )
+    end
   end
 
-  defp check_unavailable!(_, _) do
+  defp check_unavailable!(_, _, _) do
     :ok
   end
 
@@ -352,6 +360,12 @@ defmodule Mix.Tasks.Deps.Compile do
     else
       deps
     end
+  end
+
+  defp filter_available_and_local_deps(deps) do
+    Enum.filter(deps, fn dep ->
+      Mix.Dep.available?(dep) or not dep.scm.fetchable?
+    end)
   end
 
   defp reject_local_deps(deps, options) do
