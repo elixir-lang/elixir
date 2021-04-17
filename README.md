@@ -27,9 +27,10 @@ privately at elixir-security@googlegroups.com**.
 
 For the many different ways to install Elixir,
 [see our installation instructions on the website](https://elixir-lang.org/install.html).
-To compile from source, you can follow the steps below.
+However, if you want to contribute to Elixir, you will need to compile from source.
 
-First, [install Erlang](https://elixir-lang.org/install.html#installing-erlang). After that, clone this repository to your machine, compile and test it:
+First, [install Erlang](https://elixir-lang.org/install.html#installing-erlang).
+After that, clone this repository to your machine, compile and test it:
 
 ```sh
 git clone https://github.com/elixir-lang/elixir.git
@@ -41,20 +42,12 @@ make clean test
 [this article includes important notes for compiling Elixir from source
 on Windows](https://github.com/elixir-lang/elixir/wiki/Windows).
 
+In case you want to use this Elixir version as your system version,
+you need to add the `bin` directory to [your PATH environment variable](https://elixir-lang.org/install.html#setting-path-environment-variable).
+
 If Elixir fails to build (specifically when pulling in a new version via
 `git`), be sure to remove any previous build artifacts by running
 `make clean`, then `make test`.
-
-If tests pass, you can use Interactive Elixir by running `bin/iex` in your terminal.
-
-However, if tests fail, it is likely that you have an outdated Erlang/OTP version
-(Elixir requires Erlang/OTP 22.0 or later). You can check your Erlang/OTP version
-by calling `erl` in the command line. You will see some information similar to:
-
-    Erlang/OTP 22 [erts-9.0] [smp:2:2] [async-threads:10] [kernel-poll:false]
-
-If you have properly set up your dependencies and tests still fail,
-you may want to open up a bug report, as explained next.
 
 ## Proposing new features
 
@@ -123,7 +116,7 @@ make clean_elixir compile
 
 Similarly, if you can't get Elixir to compile or the tests to pass after
 updating an existing checkout, run `make clean compile`. You can check
-[the official build status on Cirrus CI](https://cirrus-ci.com/github/elixir-lang/elixir).
+[the official build status](https://github.com/elixir-lang/elixir/actions/workflows/ci.yml).
 More tasks can be found by reading the [Makefile](Makefile).
 
 With tests running and passing, you are ready to contribute to Elixir and
