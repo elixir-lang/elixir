@@ -374,6 +374,17 @@ end
 #=> {:fn, [], [{:->, [], [[1, 2], 3]}, {:->, [], [[4, 5], 6]}]}
 ```
 
+### Qualified tuples
+
+Qualified tuples (`foo.{bar, baz}`) is represented by a `{:., [], [expr, :{}]}` call, where the `expr` represents the left hand side of the dot, and the arguments represent the elements inside the curly braces. This is used in Elixir to provide multi aliases:
+
+```elixir
+quote do
+  Foo.{Bar, Baz}
+end
+#=> {{:., [], [{:__aliases__, [], [:Foo]}, :{}]}, [], [{:__aliases__, [], [:Bar]}, {:__aliases__, [], [:Baz]}]}
+```
+
 ## Syntactic sugar
 
 All of the constructs above are part of Elixir's syntax and have their own representation as part of the Elixir AST. This section will discuss the remaining constructs that "desugar" to one of the constructs explored above. In other words, the constructs below can be represented in more than one way in your Elixir code and retain AST equivalence.
