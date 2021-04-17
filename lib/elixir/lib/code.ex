@@ -289,7 +289,11 @@ defmodule Code do
           | {:local_call, charlist}
           | :none
           | {:unquoted_atom, charlist}
-        when inside_dot: {:var, charlist} | {:alias, charlist} | {:unquoted_atom, charlist} | {:dot, inside_dot, charlist}
+        when inside_dot:
+               {:var, charlist}
+               | {:alias, charlist}
+               | {:unquoted_atom, charlist}
+               | {:dot, inside_dot, charlist}
   def autocomplete(string, opts \\ [])
 
   def autocomplete(binary, opts) when is_binary(binary) and is_list(opts) do
