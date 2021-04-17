@@ -681,6 +681,8 @@ defmodule Protocol do
   def __protocol__(name, do: block) do
     quote do
       defmodule unquote(name) do
+        @before_compile Protocol
+
         # We don't allow function definition inside protocols
         import Kernel,
           except: [
@@ -713,6 +715,64 @@ defmodule Protocol do
         # Finalize expansion
         unquote(after_defprotocol())
       end
+    end
+  end
+
+  defp callback_ast_to_fa({kind, {:"::", _, [{name, _, args}, _return]}, _pos})
+       when kind in [:callback, :macrocallback] do
+    {name, length(args)}
+  end
+
+  defp warn(message, env) do
+    IO.warn(message, Macro.Env.stacktrace(env))
+  end
+
+  # TODO: Convert the following warnings into errors future Elixir versions
+  def __before_compile__(env) do
+    # Callbacks
+    callbacks =
+      :lists.map(
+        &callback_ast_to_fa/1,
+        Module.get_attribute(env.module, :callback)
+      )
+
+    functions = Module.get_attribute(env.module, :functions)
+
+    :lists.map(
+      fn {name, arity} ->
+        warn(
+          "cannot define @callback #{name}/#{arity} inside protocol, use def/1 to outline your protocol definition",
+          env
+        )
+      end,
+      callbacks -- functions
+    )
+
+    # Macro Callbacks
+    macrocallbacks =
+      :lists.map(
+        &callback_ast_to_fa/1,
+        Module.get_attribute(env.module, :macrocallback)
+      )
+
+    :lists.map(
+      fn {name, arity} ->
+        warn(
+          "cannot define @macrocallback #{name}/#{arity} inside protocol, use def/1 to outline your protocol definition",
+          env
+        )
+      end,
+      macrocallbacks
+    )
+
+    # Optional Callbacks
+    optional_callbacks = Module.get_attribute(env.module, :optional_callbacks)
+
+    if length(optional_callbacks) > 0 do
+      warn(
+        "cannot define @optional_callbacks inside protocol, all of the protocol definitions are required",
+        env
+      )
     end
   end
 
