@@ -374,17 +374,6 @@ end
 #=> {:fn, [], [{:->, [], [[1, 2], 3]}, {:->, [], [[4, 5], 6]}]}
 ```
 
-### Access syntax
-
-The access syntax (`foo[:bar]`) is represented by a `{:., [], [Access, :get]}` call, and the arguments are the ones used to call `Access.get/3`:
-
-```elixir
-quote do
-  foo[:bar]
-end
-#=> {{:., [], [Access, :get]}, [], [{:foo, [], Elixir}, :bar]}
-```
-
 ### Multi alias
 
 Multi alias (`Foo.{Bar, Baz}`) is represented by a `{:., [], [base_alias, :{}]}` call, where the `base_alias` represents the left hand side of the dot, and the arguments represent the elements inside the curly braces:
