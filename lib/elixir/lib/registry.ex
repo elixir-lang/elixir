@@ -1381,7 +1381,6 @@ defmodule Registry do
     end
   end
 
-  @doc false
   def __unregister__(table, match, pos) do
     key = :erlang.element(pos, match)
 

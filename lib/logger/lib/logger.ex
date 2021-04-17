@@ -786,7 +786,6 @@ defmodule Logger do
     end
   end
 
-  @doc false
   def __should_log__(level, module) do
     level = Logger.Handler.elixir_level_to_erlang_level(level)
 
@@ -797,7 +796,6 @@ defmodule Logger do
 
   defguardp is_msg(msg) when is_binary(msg) or is_list(msg) or is_map(msg)
 
-  @doc false
   def __do_log__(level, fun, location, metadata)
       when is_function(fun, 0) and is_map(location) and is_map(metadata) do
     case fun.() do

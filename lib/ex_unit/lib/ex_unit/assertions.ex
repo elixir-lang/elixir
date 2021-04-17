@@ -306,7 +306,6 @@ defmodule ExUnit.Assertions do
     end
   end
 
-  @doc false
   def __equal__?(left, right) do
     left === right
   end
@@ -344,7 +343,6 @@ defmodule ExUnit.Assertions do
     {ExUnit.AssertionError.no_value(), expr}
   end
 
-  @doc false
   def __match__(left, right, code, check, caller) do
     left = __expand_pattern__(left, caller)
     vars = collect_vars_from_pattern(left)
@@ -525,7 +523,6 @@ defmodule ExUnit.Assertions do
   @indent "\n  "
   @max_mailbox_length 10
 
-  @doc false
   def __timeout__(timeout, _) when is_integer(timeout) and timeout >= 0, do: timeout
 
   def __timeout__(nil, key), do: Application.fetch_env!(:ex_unit, key)
@@ -533,7 +530,6 @@ defmodule ExUnit.Assertions do
   def __timeout__(timeout, _),
     do: raise(ArgumentError, "timeout must be a non-negative integer, got: #{inspect(timeout)}")
 
-  @doc false
   def __timeout__(pattern, code, pins, pattern_finder, timeout) do
     {:messages, messages} = Process.info(self(), :messages)
 
@@ -565,7 +561,6 @@ defmodule ExUnit.Assertions do
     end
   end
 
-  @doc false
   def __pins__(pins) do
     pins
     |> Enum.filter(fn {{_, ctx}, _} -> ctx == nil end)
@@ -680,7 +675,6 @@ defmodule ExUnit.Assertions do
     for {name, meta, context} <- vars, do: {name, [generated: true] ++ meta, context}
   end
 
-  @doc false
   def __expand_pattern__({:when, meta, [left, right]}, caller) do
     left = prewalk_expand_pattern(left, Macro.Env.to_match(caller))
     right = prewalk_expand_pattern(right, %{caller | context: :guard})

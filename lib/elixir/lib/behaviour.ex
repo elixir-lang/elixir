@@ -87,7 +87,6 @@ defmodule Behaviour do
 
   defp ensure_not_default(_), do: :ok
 
-  @doc false
   defmacro __using__(_) do
     quote do
       warning =
@@ -97,7 +96,6 @@ defmodule Behaviour do
 
       IO.warn(warning)
 
-      @doc false
       def __behaviour__(:callbacks) do
         __MODULE__.behaviour_info(:callbacks)
       end

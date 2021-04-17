@@ -220,7 +220,6 @@ defmodule ExUnit.DocTest do
     [require, tests]
   end
 
-  @doc false
   def __file__(module) do
     source =
       module.__info__(:compile)[:source] ||
@@ -229,7 +228,6 @@ defmodule ExUnit.DocTest do
     "(for doctest at) " <> Path.relative_to_cwd(source)
   end
 
-  @doc false
   def __doctests__(module, opts) do
     do_import = Keyword.get(opts, :import, false)
 
@@ -354,7 +352,6 @@ defmodule ExUnit.DocTest do
     end
   end
 
-  @doc false
   def __test__(value, expected, formatted, last_expr, expected_expr, stack) do
     case value do
       ^expected ->
@@ -373,7 +370,6 @@ defmodule ExUnit.DocTest do
     end
   end
 
-  @doc false
   def __inspect__(value, expected, formatted, last_expr, expected_expr, parent_stack) do
     result =
       try do
@@ -399,7 +395,6 @@ defmodule ExUnit.DocTest do
     end
   end
 
-  @doc false
   def __error__(fun, message, exception, formatted, stack) do
     try do
       fun.()
@@ -892,7 +887,6 @@ defmodule ExUnit.DocTest do
   defp insert_match_assertion(ast),
     do: ast
 
-  @doc false
   defmacro __assert__({:=, _, [left, right]} = assertion) do
     code = Macro.escape(assertion, prune_metadata: true)
     ExUnit.Assertions.__match__(left, right, code, :ok, __CALLER__)

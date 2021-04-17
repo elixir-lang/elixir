@@ -439,7 +439,6 @@ defmodule Supervisor do
   (the default).
   """
 
-  @doc false
   defmacro __using__(opts) do
     quote location: :keep, bind_quoted: [opts: opts] do
       import Supervisor.Spec

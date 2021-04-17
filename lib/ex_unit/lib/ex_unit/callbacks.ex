@@ -161,7 +161,6 @@ defmodule ExUnit.Callbacks do
       end
   """
 
-  @doc false
   defmacro __using__(_) do
     quote do
       @ex_unit_describe nil
@@ -173,7 +172,6 @@ defmodule ExUnit.Callbacks do
     end
   end
 
-  @doc false
   defmacro __before_compile__(env) do
     [compile_callbacks(env, :setup), compile_callbacks(env, :setup_all)]
   end
@@ -494,7 +492,6 @@ defmodule ExUnit.Callbacks do
 
   @reserved [:case, :file, :line, :test, :async, :registered, :describe]
 
-  @doc false
   def __callback__(callback, describe) do
     for k <- List.wrap(callback) do
       if not is_atom(k) do
@@ -508,7 +505,6 @@ defmodule ExUnit.Callbacks do
     |> Enum.reverse()
   end
 
-  @doc false
   def __merge__(mod, context, value) do
     merge(mod, context, value, value)
   end

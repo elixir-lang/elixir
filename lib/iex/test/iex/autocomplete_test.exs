@@ -126,7 +126,6 @@ defmodule IEx.AutocompleteTest do
 
         def _do_fizz(a \\ :a, b, c \\ :c), do: {a, b, c}
 
-        @doc false
         def __fizz__(a \\ :a, b, c \\ :c), do: {a, b, c}
 
         @doc "bar/0 doc"

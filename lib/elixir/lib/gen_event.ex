@@ -86,7 +86,6 @@ defmodule GenEvent do
   message = "Use one of the alternatives described in the documentation for the GenEvent module"
 
   @deprecated message
-  @doc false
   defmacro __using__(_) do
     deprecation_message =
       "the GenEvent module is deprecated, see its documentation for alternatives"

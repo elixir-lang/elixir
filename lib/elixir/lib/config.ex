@@ -296,7 +296,6 @@ defmodule Config do
     Code.eval_string(contents, [], file: file)
   end
 
-  @doc false
   def __merge__(config1, config2) when is_list(config1) and is_list(config2) do
     Keyword.merge(config1, config2, fn _, app1, app2 ->
       Keyword.merge(app1, app2, &deep_merge/3)

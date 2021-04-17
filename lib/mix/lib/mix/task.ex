@@ -88,7 +88,6 @@ defmodule Mix.Task do
   """
   @callback run(command_line_args :: [binary]) :: any
 
-  @doc false
   defmacro __using__(_opts) do
     quote do
       Enum.each(

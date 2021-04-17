@@ -251,7 +251,6 @@ defmodule ExUnit.Case do
 
   @reserved [:module, :file, :line, :test, :async, :registered, :describe]
 
-  @doc false
   defmacro __using__(opts) do
     unless Process.whereis(ExUnit.Server) do
       raise "cannot use ExUnit.Case without starting the ExUnit application, " <>
@@ -270,7 +269,6 @@ defmodule ExUnit.Case do
     end
   end
 
-  @doc false
   def __register__(module, opts) do
     registered? = Module.has_attribute?(module, :ex_unit_tests)
 
@@ -459,7 +457,6 @@ defmodule ExUnit.Case do
     end
   end
 
-  @doc false
   def __describe__(module, line, message, fun) do
     if Module.get_attribute(module, :ex_unit_describe) do
       raise "cannot call \"describe\" inside another \"describe\". See the documentation " <>
@@ -497,7 +494,6 @@ defmodule ExUnit.Case do
     end
   end
 
-  @doc false
   defmacro __before_compile__(_) do
     quote do
       def __ex_unit__ do
@@ -506,7 +502,6 @@ defmodule ExUnit.Case do
     end
   end
 
-  @doc false
   def __after_compile__(%{module: module}, _) do
     if Module.get_attribute(module, :ex_unit_async) do
       ExUnit.Server.add_async_module(module)

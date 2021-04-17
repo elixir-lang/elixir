@@ -52,7 +52,6 @@ defmodule Mix.Config do
 
   """
 
-  @doc false
   defmacro __using__(_) do
     quote do
       import Mix.Config, only: [config: 2, config: 3, import_config: 1]
@@ -146,7 +145,6 @@ defmodule Mix.Config do
     end
   end
 
-  @doc false
   def __import__!(path_or_wildcard, dir) do
     path_or_wildcard = Path.expand(path_or_wildcard, dir)
 

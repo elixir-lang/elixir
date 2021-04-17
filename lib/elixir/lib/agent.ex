@@ -198,7 +198,6 @@ defmodule Agent do
     }
   end
 
-  @doc false
   defmacro __using__(opts) do
     quote location: :keep, bind_quoted: [opts: opts] do
       unless Module.has_attribute?(__MODULE__, :doc) do

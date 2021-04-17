@@ -113,7 +113,6 @@ defmodule Mix.Task.Compiler do
     Mix.ProjectStack.prepend_after_compiler(name, fun)
   end
 
-  @doc false
   defmacro __using__(_opts) do
     quote do
       Enum.each(

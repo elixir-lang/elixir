@@ -93,7 +93,6 @@ defmodule Mix.Project do
   to the escript generated with `mix escript.build`, and so on.
   """
 
-  @doc false
   defmacro __using__(_) do
     quote do
       @after_compile Mix.Project
@@ -101,7 +100,6 @@ defmodule Mix.Project do
   end
 
   # Invoked after each Mix.Project is compiled.
-  @doc false
   def __after_compile__(env, _binary) do
     push(env.module, env.file)
   end

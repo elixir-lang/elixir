@@ -362,7 +362,6 @@ defmodule Application do
 
   @optional_callbacks start_phase: 3, prep_stop: 1, config_change: 3
 
-  @doc false
   defmacro __using__(_) do
     quote location: :keep do
       @behaviour Application
@@ -512,7 +511,6 @@ defmodule Application do
     end
   end
 
-  @doc false
   def __compile_env__(app, key_or_path, default, env) do
     case fetch_compile_env(app, key_or_path, env) do
       {:ok, value} -> value
@@ -538,7 +536,6 @@ defmodule Application do
     end
   end
 
-  @doc false
   def __compile_env__!(app, key_or_path, env) do
     case fetch_compile_env(app, key_or_path, env) do
       {:ok, value} ->

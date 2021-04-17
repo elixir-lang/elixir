@@ -15,7 +15,6 @@ defmodule File.Stream do
 
   @type t :: %__MODULE__{}
 
-  @doc false
   def __build__(path, modes, line_or_bytes) do
     raw = :lists.keyfind(:encoding, 1, modes) == false
 

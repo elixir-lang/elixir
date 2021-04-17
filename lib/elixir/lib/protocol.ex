@@ -677,7 +677,6 @@ defmodule Protocol do
 
   ## Definition callbacks
 
-  @doc false
   def __protocol__(name, do: block) do
     quote do
       defmodule unquote(name) do
@@ -816,13 +815,11 @@ defmodule Protocol do
     end
   end
 
-  @doc false
   def __functions_spec__([]), do: []
 
   def __functions_spec__([head | tail]),
     do: [:lists.foldl(&{:|, [], [&1, &2]}, head, tail), quote(do: ...)]
 
-  @doc false
   def __impl__(protocol, opts) do
     do_defimpl(protocol, :lists.keysort(1, opts))
   end
@@ -869,7 +866,6 @@ defmodule Protocol do
     end
   end
 
-  @doc false
   def __derive__(derives, for, %Macro.Env{} = env) when is_atom(for) do
     struct = Macro.struct!(for, env)
 
@@ -920,7 +916,6 @@ defmodule Protocol do
     end)
   end
 
-  @doc false
   def __ensure_defimpl__(protocol, for, env) do
     if Protocol.consolidated?(protocol) do
       message =
@@ -937,7 +932,6 @@ defmodule Protocol do
 
   ## Helpers
 
-  @doc false
   def __built_in__ do
     [
       is_tuple: Tuple,

@@ -41,7 +41,6 @@ defmodule Bitwise do
   All functions in this module are inlined by the compiler.
   """
 
-  @doc false
   defmacro __using__(options) do
     except =
       cond do

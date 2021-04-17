@@ -29,7 +29,6 @@ defmodule ExUnit.CaseTemplate do
 
   """
 
-  @doc false
   defmacro __using__(_) do
     quote do
       use ExUnit.Callbacks
@@ -45,7 +44,6 @@ defmodule ExUnit.CaseTemplate do
     end
   end
 
-  @doc false
   def __proxy__(module, opts) do
     quote do
       use ExUnit.Case, unquote(opts)

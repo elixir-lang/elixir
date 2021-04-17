@@ -290,7 +290,6 @@ defmodule Record do
     end
   end
 
-  @doc false
   def __validate__(module, name, fields) do
     error_on_duplicate_record(module, name)
     # TODO: Make it raise on v2.0
@@ -323,7 +322,6 @@ defmodule Record do
   end
 
   # Normalizes of record fields to have default values.
-  @doc false
   def __fields__(type, fields) do
     normalizer_fun = fn
       {key, value} when is_atom(key) ->
@@ -347,7 +345,6 @@ defmodule Record do
   end
 
   # Callback invoked from record/0 and record/1 macros.
-  @doc false
   def __access__(tag, fields, args, caller) do
     cond do
       is_atom(args) ->
@@ -374,7 +371,6 @@ defmodule Record do
   end
 
   # Callback invoked from the record/2 macro.
-  @doc false
   def __access__(tag, fields, record, args, caller) do
     cond do
       is_atom(args) ->
@@ -493,7 +489,6 @@ defmodule Record do
   defp find_index([], _k, _i), do: nil
 
   # Returns a keyword list of the record
-  @doc false
   def __keyword__(tag, fields, record) do
     if is_record(record, tag) do
       [_tag | values] = Tuple.to_list(record)

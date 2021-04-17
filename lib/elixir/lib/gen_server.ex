@@ -738,7 +738,6 @@ defmodule GenServer do
   """
   @type from :: {pid, tag :: term}
 
-  @doc false
   defmacro __using__(opts) do
     quote location: :keep, bind_quoted: [opts: opts] do
       @behaviour GenServer
