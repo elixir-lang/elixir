@@ -374,9 +374,9 @@ end
 #=> {:fn, [], [{:->, [], [[1, 2], 3]}, {:->, [], [[4, 5], 6]}]}
 ```
 
-### Multi alias
+### Qualified tuples
 
-Multi alias (`Foo.{Bar, Baz}`) is represented by a `{:., [], [base_alias, :{}]}` call, where the `base_alias` represents the left hand side of the dot, and the arguments represent the elements inside the curly braces:
+Qualified tuples (`foo.{bar, baz}`) is represented by a `{:., [], [expr, :{}]}` call, where the `expr` represents the left hand side of the dot, and the arguments represent the elements inside the curly braces. This is used in Elixir to provide multi aliases:
 
 ```elixir
 quote do
