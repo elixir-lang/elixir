@@ -223,7 +223,7 @@ defmodule Code do
       :expr
 
       iex> Code.autocomplete("hello_wor")
-      {:var, 'hello_wor'}
+      {:local_or_var, 'hello_wor'}
 
   ## Return values
 
