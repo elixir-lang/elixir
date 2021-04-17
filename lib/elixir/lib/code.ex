@@ -207,6 +207,226 @@ defmodule Code do
   end
 
   @doc """
+  Receives a string and returns an auto-complete suggestion.
+
+  This function provides a best-effort for autocompletion but
+  may still be innacurate in many cases. See the "Limitations"
+  section.
+
+  Consider adding a catch-all clause when handling the return
+  type of this function as new autocompletion tips may be added
+  in the future.
+
+  ## Examples
+
+      iex> Code.autocomplete("")
+      :expr
+
+      iex> Code.autocomplete("hello_wor")
+      {:var, 'hello_wor'}
+
+  ## Return values
+
+    * `{:alias, charlist}` - the autocompletion is an alias, potentially
+      a nested one, such as `Hello.Wor` or `HelloWor`
+
+    * `{:alias_or_dot, charlist}` - the autocompletion is an alias or a dot
+     call, such as `Hello.` or `Hello.World.`
+
+    * `{:dot, inside_dot | dot, charlist}` - the autocompletion is a dot.
+      where `inside_dot` is either a `{:var, charlist}`, `{:alias, charlist}`,
+      `{:unquoted_atom, charlist}` or a `:dot` itself. If a var is given,
+      this may either be a remote call or a map field access. Examples are
+      `Hello.wor`, `:hello.wor`, `hello.wor`, `Hello.nested.wor`, and
+      `hello.nested.wor`
+
+    * `{:dot_call, inside_dot | dot, charlist}` - the autocompletion is a dot
+      call. This means parentheses or space have been added after the expression.
+      where `inside_dot` is either a `{:var, charlist}`, `{:alias, charlist}`,
+      `{:unquoted_atom, charlist}` or a `:dot` itself. If a var is given,
+      it must be a remote call. Examples are `Hello.world(`, `:hello.world(`,
+      `Hello.world `, `hello.world(`, and `hello.world `
+
+    * `:expr` - may be any expression. Autocompletion may suggest an alias,
+      local or var
+
+    * `{:local_or_var, charlist}` - the autocompletion is a variable or a local
+      (import or local) call, such as `hello_wor`
+
+    * `{:local_call, charlist}` - the autocompletion is a local (import or local)
+      call, such as `hello_world(` and `hello_world `
+
+    * `:none` - no autocompletion possible
+
+    * `:unquoted_atom` - the autocompletion is an unquoted atom. This can be either
+      previous atoms or all available `:erlang` modules
+
+  ## Limitations
+
+    * There is no autocompletion of operators
+    * The current algorithm only consider the last line of the input
+    * Autocompletion does not track strings, sigils, etc
+    * Arguments of functions calls are not currently recognized
+
+  """
+  @spec autocomplete(List.Chars.t(), keyword()) ::
+          {:alias, charlist}
+          | {:alias_or_dot, charlist}
+          | dot
+          | dot_call
+          | {:local_or_var, charlist}
+          | {:local_call, charlist}
+          | :none
+          | {:unquoted_atom, charlist}
+        when dot: {:dot, inside_dot | dot, charlist},
+             dot_call: {:dot_call, inside_dot | dot_call, charlist},
+             inside_dot: {:var, charlist} | {:alias, charlist} | {:unquoted_atom, charlist}
+  def autocomplete(string, opts \\ [])
+
+  def autocomplete(binary, opts) when is_binary(binary) and is_list(opts) do
+    binary =
+      case :binary.matches(binary, "\n") do
+        [] ->
+          binary
+
+        matches ->
+          {position, _} = List.last(matches)
+          binary_part(binary, position + 1, byte_size(binary) - position - 1)
+      end
+
+    binary
+    |> String.to_charlist()
+    |> do_autocomplete(opts)
+  end
+
+  def autocomplete(charlist, opts) when is_list(charlist) and is_list(opts) do
+    charlist
+    |> Enum.chunk_by(&(&1 == ?\n))
+    |> List.last([])
+    |> case do
+      [?\n] -> do_autocomplete([], opts)
+      rest -> do_autocomplete(rest, opts)
+    end
+  end
+
+  def autocomplete(other, opts) do
+    other
+    |> to_charlist()
+    |> autocomplete(opts)
+  end
+
+  @operators '\\<>+-*/:=|&~^@'
+  @non_closing_punctuation '.,([{;'
+  @closing_punctuation ')]}'
+  @space '\t\s'
+  @closing_identifier '?!'
+
+  @operators_and_non_closing_puctuation @operators ++ @non_closing_punctuation
+  @non_identifier @closing_identifier ++
+                    @operators ++ @non_closing_punctuation ++ @closing_punctuation ++ @space
+
+  # TODO: Add arity selector
+  defp do_autocomplete(list, _opts) do
+    reverse = Enum.reverse(list)
+
+    case strip_spaces(reverse, 0) do
+      # It is empty
+      {[], _} ->
+        :expr
+
+      # Start of a dot or alias
+      {[?. | rest], _} ->
+        case identifier_to_autocomplete(rest) do
+          {:alias, prev} -> {:alias_or_dot, prev}
+          {:local_or_var, prev} -> {:dot, {:var, prev}, []}
+          {:unquoted_atom, _} = prev -> {:dot, prev, []}
+          {:dot, _, _} = prev -> {:dot, prev, []}
+          _ -> :none
+        end
+
+      # It is a local or remote call with parens
+      {[?( | rest], _} ->
+        call_to_autocomplete(rest)
+
+      # Starting a new expression
+      {[h | _], _} when h in @operators_and_non_closing_puctuation ->
+        :expr
+
+      # It is a local or remote call without parens
+      {rest, spaces} when spaces > 0 ->
+        call_to_autocomplete(rest)
+
+      # It is an identifier
+      _ ->
+        identifier_to_autocomplete(reverse)
+    end
+  end
+
+  defp strip_spaces([h | rest], count) when h in @space, do: strip_spaces(rest, count + 1)
+  defp strip_spaces(rest, count), do: {rest, count}
+
+  defp call_to_autocomplete(reverse) do
+    case identifier_to_autocomplete(reverse) do
+      {:local_or_var, acc} -> {:local_call, acc}
+      {:dot, base, acc} -> {:dot_call, base, acc}
+      _ -> :none
+    end
+  end
+
+  defp identifier_to_autocomplete(reverse) do
+    case identifier(reverse) do
+      # Parse :: first to avoid ambiguity atoms
+      {:alias, false, '::' ++ _, _} -> :none
+      {kind, _, '::' ++ _, acc} -> alias_or_local_or_var(kind, acc)
+      # Now handle atoms, any other atom is unexpected
+      {_kind, _, ':' ++ _, acc} -> unquoted_atom(acc)
+      {:atom, _, _, _} -> :none
+      # Parse .. first to avoid ambiguity with dots
+      {:alias, false, _, _} -> :none
+      {kind, _, '..' ++ _, acc} -> alias_or_local_or_var(kind, acc)
+      # Everything else
+      {kind, _, '.' ++ rest, acc} -> alias_or_dot(kind, rest, acc)
+      {kind, _, _, acc} -> alias_or_local_or_var(kind, acc)
+      :none -> :none
+    end
+  end
+
+  defp alias_or_dot(kind, rest, acc) do
+    case {kind, identifier_to_autocomplete(rest)} do
+      {:alias, {:alias, prev}} -> {:alias, prev ++ '.' ++ acc}
+      {:identifier, {:local_or_var, prev}} -> {:dot, {:var, prev}, acc}
+      {:identifier, {:unquoted_atom, _} = prev} -> {:dot, prev, acc}
+      {:identifier, {:alias, _} = prev} -> {:dot, prev, acc}
+      {:identifier, {:dot, _, _} = prev} -> {:dot, prev, acc}
+      _ -> :none
+    end
+  end
+
+  defp alias_or_local_or_var(:alias, acc), do: {:alias, acc}
+  defp alias_or_local_or_var(:identifier, acc), do: {:local_or_var, acc}
+  defp alias_or_local_or_var(_, _), do: :none
+
+  defp unquoted_atom(acc), do: {:unquoted_atom, acc}
+
+  defp identifier([?? | rest]), do: check_identifier(rest, [??])
+  defp identifier([?! | rest]), do: check_identifier(rest, [?!])
+  defp identifier(rest), do: check_identifier(rest, [])
+
+  defp check_identifier([h | _], _acc) when h in @non_identifier, do: :none
+  defp check_identifier(rest, acc), do: rest_identifier(rest, acc)
+
+  defp rest_identifier([h | rest], acc) when h not in @non_identifier do
+    rest_identifier(rest, [h | acc])
+  end
+
+  defp rest_identifier(rest, acc) do
+    case String.Tokenizer.tokenize(acc) do
+      {kind, _, [], _, ascii_only?, _} -> {kind, ascii_only?, rest, acc}
+      _ -> :none
+    end
+  end
+
+  @doc """
   Removes files from the required files list.
 
   The modules defined in the file are not removed;

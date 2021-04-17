@@ -21,6 +21,113 @@ defmodule CodeTest do
 
   Code.eval_quoted(contents, [], file: "sample.ex", line: 13)
 
+  describe "autocomplete/2" do
+    test "expressions" do
+      assert Code.autocomplete([]) == :expr
+      assert Code.autocomplete("++") == :expr
+      assert Code.autocomplete(",") == :expr
+      assert Code.autocomplete("[") == :expr
+    end
+
+    test "local_or_var" do
+      assert Code.autocomplete("hello_wo") == {:local_or_var, 'hello_wo'}
+      assert Code.autocomplete("hello..wor") == {:local_or_var, 'wor'}
+      assert Code.autocomplete("hello::wor") == {:local_or_var, 'wor'}
+      assert Code.autocomplete("[hello_wo") == {:local_or_var, 'hello_wo'}
+
+      assert Code.autocomplete("hellò_wó") == {:local_or_var, 'hellò_wó'}
+    end
+
+    test "alias_or_dot" do
+      assert Code.autocomplete("Hello.") == {:alias_or_dot, 'Hello'}
+      assert Code.autocomplete("Hello.World.") == {:alias_or_dot, 'Hello.World'}
+    end
+
+    test "dot" do
+      assert Code.autocomplete("hello.") == {:dot, {:var, 'hello'}, ''}
+      assert Code.autocomplete(":hello.") == {:dot, {:unquoted_atom, 'hello'}, ''}
+      assert Code.autocomplete("nested.map.") == {:dot, {:dot, {:var, 'nested'}, 'map'}, ''}
+
+      assert Code.autocomplete("Hello.wor") == {:dot, {:alias, 'Hello'}, 'wor'}
+      assert Code.autocomplete("hello.wor") == {:dot, {:var, 'hello'}, 'wor'}
+      assert Code.autocomplete(":hello.wor") == {:dot, {:unquoted_atom, 'hello'}, 'wor'}
+      assert Code.autocomplete("nested.map.wor") == {:dot, {:dot, {:var, 'nested'}, 'map'}, 'wor'}
+    end
+
+    test "local_call" do
+      assert Code.autocomplete("hello\s") == {:local_call, 'hello'}
+      assert Code.autocomplete("hello\t") == {:local_call, 'hello'}
+      assert Code.autocomplete("hello(") == {:local_call, 'hello'}
+      assert Code.autocomplete("hello(\s") == {:local_call, 'hello'}
+      assert Code.autocomplete("hello(\t") == {:local_call, 'hello'}
+    end
+
+    test "dot_call" do
+      assert Code.autocomplete("Foo.hello\s") == {:dot_call, {:alias, 'Foo'}, 'hello'}
+      assert Code.autocomplete("Foo.hello\t") == {:dot_call, {:alias, 'Foo'}, 'hello'}
+      assert Code.autocomplete("Foo.hello(") == {:dot_call, {:alias, 'Foo'}, 'hello'}
+      assert Code.autocomplete("Foo.hello(\s") == {:dot_call, {:alias, 'Foo'}, 'hello'}
+      assert Code.autocomplete("Foo.hello(\t") == {:dot_call, {:alias, 'Foo'}, 'hello'}
+
+      assert Code.autocomplete(":foo.hello\s") == {:dot_call, {:unquoted_atom, 'foo'}, 'hello'}
+      assert Code.autocomplete(":foo.hello\t") == {:dot_call, {:unquoted_atom, 'foo'}, 'hello'}
+      assert Code.autocomplete(":foo.hello(") == {:dot_call, {:unquoted_atom, 'foo'}, 'hello'}
+      assert Code.autocomplete(":foo.hello(\s") == {:dot_call, {:unquoted_atom, 'foo'}, 'hello'}
+      assert Code.autocomplete(":foo.hello(\t") == {:dot_call, {:unquoted_atom, 'foo'}, 'hello'}
+
+      assert Code.autocomplete("foo.hello\s") == {:dot_call, {:var, 'foo'}, 'hello'}
+      assert Code.autocomplete("foo.hello\t") == {:dot_call, {:var, 'foo'}, 'hello'}
+      assert Code.autocomplete("foo.hello(") == {:dot_call, {:var, 'foo'}, 'hello'}
+      assert Code.autocomplete("foo.hello(\s") == {:dot_call, {:var, 'foo'}, 'hello'}
+      assert Code.autocomplete("foo.hello(\t") == {:dot_call, {:var, 'foo'}, 'hello'}
+    end
+
+    test "alias" do
+      assert Code.autocomplete("HelloWor") == {:alias, 'HelloWor'}
+      assert Code.autocomplete("Hello.Wor") == {:alias, 'Hello.Wor'}
+      assert Code.autocomplete("Hello::Wor") == {:alias, 'Wor'}
+      assert Code.autocomplete("Hello..Wor") == {:alias, 'Wor'}
+    end
+
+    test "unquoted atom" do
+      assert Code.autocomplete(":HelloWor") == {:unquoted_atom, 'HelloWor'}
+      assert Code.autocomplete(":HelloWór") == {:unquoted_atom, 'HelloWór'}
+      assert Code.autocomplete(":hello_wor") == {:unquoted_atom, 'hello_wor'}
+      assert Code.autocomplete(":Óla_mundo") == {:unquoted_atom, 'Óla_mundo'}
+      assert Code.autocomplete("foo:hello_wor") == {:unquoted_atom, 'hello_wor'}
+    end
+
+    test "none" do
+      # Containers
+      assert Code.autocomplete(")") == :none
+      assert Code.autocomplete("}") == :none
+
+      # Numbers
+      assert Code.autocomplete("123") == :none
+      assert Code.autocomplete("123?") == :none
+      assert Code.autocomplete("123!") == :none
+      assert Code.autocomplete("123var?") == :none
+      assert Code.autocomplete("0x") == :none
+
+      # Dots
+      assert Code.autocomplete("Mundo.Óla") == :none
+      assert Code.autocomplete(":hello.World") == :none
+
+      # Aliases
+      assert Code.autocomplete("Hello::Wór") == :none
+      assert Code.autocomplete("ÓlaMundo") == :none
+      assert Code.autocomplete("HelloWór") == :none
+      assert Code.autocomplete("Hello(") == :none
+      assert Code.autocomplete("Hello ") == :none
+      assert Code.autocomplete("hello.World") == :none
+    end
+
+    test "newlines" do
+      assert Code.autocomplete("this+does-not*matter\nHello.") == {:alias_or_dot, 'Hello'}
+      assert Code.autocomplete('this+does-not*matter\nHello.') == {:alias_or_dot, 'Hello'}
+    end
+  end
+
   describe "eval_string/1,2,3" do
     test "correctly evaluates a string of code" do
       assert Code.eval_string("1 + 2") == {3, []}
