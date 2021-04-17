@@ -254,15 +254,20 @@ defmodule GenServer do
   a timeout value in milliseconds; if not, `:infinity` is assumed.
   The timeout can be used to detect a lull in incoming messages.
 
-  If the process has no messages waiting when the timeout is set and the
-  number of given milliseconds pass without any message arriving,
-  then `handle_info/2` will be called with `:timeout` as the first argument.
-  The timeout is cleared if any message is waiting or arrives before the
-  given timeout.
+  The `timeout()` value is used as follows:
 
-  Because a message may arrive before the timeout is set, even a timeout of `0`
-  milliseconds is not guaranteed to execute. To take another action immediately
-  and unconditionally, use a `:continue` instruction.
+    * If the process has any message already waiting when the `timeout()` value
+      is returned, the timeout is ignored and the waiting message is handled as
+      usual. This means that even a timeout of `0` milliseconds is not guaranteed
+      to execute (if you want take another action immediately and unconditionally,
+      use a `:continue` instruction instead).
+
+    * If any message arrives before the specified number of milliseconds
+      elapse, the timeout is cleared and that message is handled as usual.
+
+    * Otherwise, when the specified number of milliseconds have elapsed with no
+      message arriving, `handle_info/2` is called with `:timeout` as the first
+      argument.
 
   ## When (not) to use a GenServer
 
