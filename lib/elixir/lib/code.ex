@@ -294,25 +294,20 @@ defmodule Code do
           binary_part(binary, position + 1, byte_size(binary) - position - 1)
       end
 
-    binary
-    |> String.to_charlist()
-    |> do_autocomplete(opts)
+    do_autocomplete(String.to_charlist(binary), opts)
   end
 
   def autocomplete(charlist, opts) when is_list(charlist) and is_list(opts) do
-    charlist
-    |> Enum.chunk_by(&(&1 == ?\n))
-    |> List.last([])
-    |> case do
+    chunked = Enum.chunk_by(charlist, &(&1 == ?\n))
+
+    case List.last(chunked, []) do
       [?\n] -> do_autocomplete([], opts)
       rest -> do_autocomplete(rest, opts)
     end
   end
 
   def autocomplete(other, opts) do
-    other
-    |> to_charlist()
-    |> autocomplete(opts)
+    autocomplete(to_charlist(other), opts)
   end
 
   @operators '\\<>+-*/:=|&~^@'
