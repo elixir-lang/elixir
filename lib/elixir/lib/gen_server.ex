@@ -259,7 +259,7 @@ defmodule GenServer do
     * If the process has any message already waiting when the `timeout()` value
       is returned, the timeout is ignored and the waiting message is handled as
       usual. This means that even a timeout of `0` milliseconds is not guaranteed
-      to execute (if you want take another action immediately and unconditionally,
+      to execute (if you want to take another action immediately and unconditionally,
       use a `:continue` instruction instead).
 
     * If any message arrives before the specified number of milliseconds
