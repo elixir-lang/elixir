@@ -27,6 +27,10 @@ defmodule CodeTest do
       assert Code.cursor_context("++") == :expr
       assert Code.cursor_context(",") == :expr
       assert Code.cursor_context("[") == :expr
+      assert Code.cursor_context("\n") == :expr
+      assert Code.cursor_context('\n') == :expr
+      assert Code.cursor_context("\n\n") == :expr
+      assert Code.cursor_context('\n\n') == :expr
     end
 
     test "local_or_var" do

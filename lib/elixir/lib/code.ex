@@ -321,7 +321,7 @@ defmodule Code do
     chunked = Enum.chunk_by(charlist, &(&1 == ?\n))
 
     case List.last(chunked, []) do
-      [?\n] -> do_cursor_context([], opts)
+      [?\n | _] -> do_cursor_context([], opts)
       rest -> do_cursor_context(rest, opts)
     end
   end
