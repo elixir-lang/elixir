@@ -110,7 +110,7 @@ defmodule Kernel.ErrorsTest do
 
   test "undefined function" do
     assert_eval_raise CompileError,
-                      "hello.ex:4: undefined function bar/0",
+                      "hello.ex:4: undefined function bar/0 (expected Kernel.ErrorsTest.BadForm to define such a function or for it to be imported, but none are available)",
                       '''
                       defmodule Kernel.ErrorsTest.BadForm do
                         @file "hello.ex"
@@ -139,7 +139,7 @@ defmodule Kernel.ErrorsTest do
 
     assert capture_io(:stderr, fn ->
              assert_eval_raise CompileError,
-                               "nofile:3: undefined function bar/1",
+                               "nofile:3: undefined function bar/1 (expected Kernel.ErrorsTest.BadForm to define such a function or for it to be imported, but none are available)",
                                '''
                                defmodule Kernel.ErrorsTest.BadForm do
                                  def foo do
@@ -151,22 +151,26 @@ defmodule Kernel.ErrorsTest do
                                '''
            end) =~ "undefined function baz/2"
 
-    assert_eval_raise CompileError, "nofile:8: undefined function baz/0", '''
-    defmodule Sample do
-      def foo do
-        bar()
-      end
+    assert_eval_raise CompileError,
+                      "nofile:8: undefined function baz/0 (expected Sample to define such a function or for it to be imported, but none are available)",
+                      '''
+                      defmodule Sample do
+                        def foo do
+                          bar()
+                        end
 
-      defoverridable [foo: 0]
-      def foo do
-        baz()
-      end
-    end
-    '''
+                        defoverridable [foo: 0]
+                        def foo do
+                          baz()
+                        end
+                      end
+                      '''
   end
 
   test "undefined non-local function" do
-    assert_eval_raise CompileError, "nofile:1: undefined function call/2", 'call foo, do: :foo'
+    assert_eval_raise CompileError,
+                      "nofile:1: undefined function call/2 (there is no such import)",
+                      'call foo, do: :foo'
   end
 
   test "function without definition" do
@@ -765,7 +769,7 @@ defmodule Kernel.ErrorsTest do
 
   test "@on_load attribute with undefined function" do
     assert_eval_raise CompileError,
-                      "nofile:1: @on_load function foo/0 is undefined",
+                      "nofile:1: undefined function foo/0 given to @on_load",
                       'defmodule UndefinedOnLoadFunction do @on_load :foo end'
   end
 

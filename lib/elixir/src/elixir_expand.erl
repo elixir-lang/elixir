@@ -1229,7 +1229,7 @@ format_error({undefined_function, '::', [_, _]}) ->
   "    <<size::32-integer, letter::utf8, rest::binary>>\n\n"
   "It is also used in typespecs, such as @type and @spec, to describe inputs and outputs";
 format_error({undefined_function, Name, Args}) ->
-  io_lib:format("undefined function ~ts/~B", [Name, length(Args)]);
+  io_lib:format("undefined function ~ts/~B (there is no such import)", [Name, length(Args)]);
 format_error({underscored_var_repeat, Name, Kind}) ->
   io_lib:format("the underscored variable \"~ts\"~ts appears more than once in a "
                 "match. This means the pattern will only match if all \"~ts\" bind "
@@ -1259,7 +1259,7 @@ format_error({nested_comparison, CompExpr}) ->
                 "     x < y and y < z\n\n"
                 "You wrote: ~ts", [String]);
 format_error({undefined_local_capture, Fun, Arity}) ->
-  io_lib:format("undefined function ~ts/~B", [Fun, Arity]);
+  io_lib:format("undefined function ~ts/~B (there is no such import)", [Fun, Arity]);
 format_error(env_not_allowed) ->
   "__ENV__ is not allowed inside a match";
 format_error(caller_not_allowed) ->
