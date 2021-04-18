@@ -91,7 +91,7 @@ defmodule EEx.TokenizerTest do
     assert T.tokenize('<%%% a <%%= b %> c %>', 1, 1, @opts) == {:ok, exprs}
   end
 
-  test "eex comments" do
+  test "EEx comments" do
     exprs = [
       {:text, 1, 1, 'foo '},
       {:eof, 1, 16}
@@ -100,7 +100,7 @@ defmodule EEx.TokenizerTest do
     assert T.tokenize('foo <%# true %>', 1, 1, @opts) == {:ok, exprs}
   end
 
-  test "eex comments with do/end" do
+  test "EEx comments with do/end" do
     exprs = [
       {:text, 1, 1, 'foo '},
       {:text, 1, 19, 'bar'},
@@ -110,7 +110,7 @@ defmodule EEx.TokenizerTest do
     assert T.tokenize('foo <%# true do %>bar<%# end %>', 1, 1, @opts) == {:ok, exprs}
   end
 
-  test "elixir comments" do
+  test "Elixir comments" do
     exprs = [
       {:text, 1, 1, 'foo '},
       {:expr, 1, 5, [], ' true # this is a boolean '},
@@ -120,7 +120,7 @@ defmodule EEx.TokenizerTest do
     assert T.tokenize('foo <% true # this is a boolean %>', 1, 1, @opts) == {:ok, exprs}
   end
 
-  test "elixir comments with do/end" do
+  test "Elixir comments with do/end" do
     exprs = [
       {:start_expr, 1, 1, [], ' if true do # startif '},
       {:text, 1, 27, 'text'},
