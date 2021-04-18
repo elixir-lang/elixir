@@ -57,6 +57,17 @@ defmodule MixTest do
       ])
     end
 
+    test "can't call with Elixir version mismatch", %{tmp_dir: tmp_dir} do
+      assert_raise Mix.Error, ~r"Mix.install/2 declared it supports only Elixir ~> 2.0", fn ->
+        Mix.install(
+          [
+            {:install_test, path: Path.join(tmp_dir, "install_test")}
+          ],
+          elixir: "~> 2.0"
+        )
+      end
+    end
+
     test "can't call with same deps and force", %{tmp_dir: tmp_dir} do
       Mix.install([
         {:install_test, path: Path.join(tmp_dir, "install_test")}
