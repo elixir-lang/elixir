@@ -207,46 +207,52 @@ defmodule Code do
   end
 
   @doc """
-  Receives a string and returns an autocompletion context.
+  Receives a string and returns the cursor context.
 
-  This function provides a best-effort for autocompletion which
-  may not be accurate under certain circumstances. See the
-  "Limitations" section below.
+  This function receives a string with incomplete Elixir code,
+  representing a cursor position, and based on the string, it
+  provides contextual information about said position. The
+  return of this function can then be used to provide tips,
+  suggestions, and autocompletion functionality.
+
+  This function provides a best-effort detection and may not be
+  accurate under certain circumstances. See the "Limitations"
+  section below.
 
   Consider adding a catch-all clause when handling the return
-  type of this function as new autocompletion tips may be added
-  in the future.
+  type of this function as new cursor information may be added
+  in future releases.
 
   ## Examples
 
-      iex> Code.autocompletion("")
+      iex> Code.cursor_context("")
       :expr
 
-      iex> Code.autocompletion("hello_wor")
+      iex> Code.cursor_context("hello_wor")
       {:local_or_var, 'hello_wor'}
 
   ## Return values
 
-    * `{:alias, charlist}` - the autocompletion is an alias, potentially
+    * `{:alias, charlist}` - the context is an alias, potentially
       a nested one, such as `Hello.Wor` or `HelloWor`
 
-    * `{:alias_or_dot, charlist}` - the autocompletion is an alias or a dot
+    * `{:alias_or_dot, charlist}` - the context is an alias or a dot
      call, such as `Hello.` or `Hello.World.`
 
-    * `{:dot, inside_dot, charlist}` - the autocompletion is a dot
+    * `{:dot, inside_dot, charlist}` - the context is a dot
       where `inside_dot` is either a `{:var, charlist}`, `{:alias, charlist}`,
       `{:unquoted_atom, charlist}` or a `dot` itself. If a var is given,
       this may either be a remote call or a map field access. Examples are
       `Hello.wor`, `:hello.wor`, `hello.wor`, `Hello.nested.wor`, and
       `hello.nested.wor`
 
-    * `{:dot_arity, inside_dot, charlist}` - the autocompletion is a dot arity
+    * `{:dot_arity, inside_dot, charlist}` - the context is a dot arity
       where `inside_dot` is either a `{:var, charlist}`, `{:alias, charlist}`,
       `{:unquoted_atom, charlist}` or a `dot` itself. If a var is given,
       it must be a remote arity. Examples are `Hello.world/`, `:hello.world/`,
       and `hello.world/2`
 
-    * `{:dot_call, inside_dot, charlist}` - the autocompletion is a dot
+    * `{:dot_call, inside_dot, charlist}` - the context is a dot
       call. This means parentheses or space have been added after the expression.
       where `inside_dot` is either a `{:var, charlist}`, `{:alias, charlist}`,
       `{:unquoted_atom, charlist}` or a `dot` itself. If a var is given,
@@ -256,29 +262,29 @@ defmodule Code do
     * `:expr` - may be any expression. Autocompletion may suggest an alias,
       local or var
 
-    * `{:local_or_var, charlist}` - the autocompletion is a variable or a local
+    * `{:local_or_var, charlist}` - the context is a variable or a local
       (import or local) call, such as `hello_wor`
 
-    * `{:local_arity, charlist}` - the autocompletion is a local (import or local)
+    * `{:local_arity, charlist}` - the context is a local (import or local)
       call, such as `hello_world/`
 
-    * `{:local_call, charlist}` - the autocompletion is a local (import or local)
+    * `{:local_call, charlist}` - the context is a local (import or local)
       call, such as `hello_world(` and `hello_world `
 
-    * `:none` - no autocompletion possible
+    * `:none` - no context possible
 
-    * `:unquoted_atom` - the autocompletion is an unquoted atom. This can be either
+    * `:unquoted_atom` - the context is an unquoted atom. This can be either
       previous atoms or all available `:erlang` modules
 
   ## Limitations
 
-    * There is no autocompletion of operators
+    * There is no context for operators
     * The current algorithm only considers the last line of the input
-    * Autocompletion does not track strings, sigils, etc.
+    * Context does not yet track strings, sigils, etc.
     * Arguments of functions calls are not currently recognized
 
   """
-  @spec autocompletion(List.Chars.t(), keyword()) ::
+  @spec cursor_context(List.Chars.t(), keyword()) ::
           {:alias, charlist}
           | {:alias_or_dot, charlist}
           | {:dot, inside_dot, charlist}
@@ -295,9 +301,9 @@ defmodule Code do
                | {:alias, charlist}
                | {:unquoted_atom, charlist}
                | {:dot, inside_dot, charlist}
-  def autocompletion(string, opts \\ [])
+  def cursor_context(string, opts \\ [])
 
-  def autocompletion(binary, opts) when is_binary(binary) and is_list(opts) do
+  def cursor_context(binary, opts) when is_binary(binary) and is_list(opts) do
     binary =
       case :binary.matches(binary, "\n") do
         [] ->
@@ -308,20 +314,20 @@ defmodule Code do
           binary_part(binary, position + 1, byte_size(binary) - position - 1)
       end
 
-    do_autocompletion(String.to_charlist(binary), opts)
+    do_cursor_context(String.to_charlist(binary), opts)
   end
 
-  def autocompletion(charlist, opts) when is_list(charlist) and is_list(opts) do
+  def cursor_context(charlist, opts) when is_list(charlist) and is_list(opts) do
     chunked = Enum.chunk_by(charlist, &(&1 == ?\n))
 
     case List.last(chunked, []) do
-      [?\n] -> do_autocompletion([], opts)
-      rest -> do_autocompletion(rest, opts)
+      [?\n] -> do_cursor_context([], opts)
+      rest -> do_cursor_context(rest, opts)
     end
   end
 
-  def autocompletion(other, opts) do
-    autocompletion(to_charlist(other), opts)
+  def cursor_context(other, opts) do
+    cursor_context(to_charlist(other), opts)
   end
 
   @operators '\\<>+-*/:=|&~^@'
@@ -334,7 +340,7 @@ defmodule Code do
   @non_identifier @closing_identifier ++
                     @operators ++ @non_closing_punctuation ++ @closing_punctuation ++ @space
 
-  defp do_autocompletion(list, _opts) do
+  defp do_cursor_context(list, _opts) do
     reverse = Enum.reverse(list)
 
     case strip_spaces(reverse, 0) do
@@ -344,7 +350,7 @@ defmodule Code do
 
       # Start of a dot or alias
       {[?. | rest], _} ->
-        case identifier_to_autocompletion(rest) do
+        case identifier_to_cursor_context(rest) do
           {:alias, prev} -> {:alias_or_dot, prev}
           {:local_or_var, prev} -> {:dot, {:var, prev}, []}
           {:unquoted_atom, _} = prev -> {:dot, prev, []}
@@ -354,11 +360,11 @@ defmodule Code do
 
       # It is a local or remote call with parens
       {[?( | rest], _} ->
-        call_to_autocompletion(rest)
+        call_to_cursor_context(rest)
 
       # A local arity definition
       {[?/ | rest], _} ->
-        case identifier_to_autocompletion(rest) do
+        case identifier_to_cursor_context(rest) do
           {:local_or_var, acc} -> {:local_arity, acc}
           {:dot, base, acc} -> {:dot_arity, base, acc}
           _ -> :none
@@ -370,26 +376,26 @@ defmodule Code do
 
       # It is a local or remote call without parens
       {rest, spaces} when spaces > 0 ->
-        call_to_autocompletion(rest)
+        call_to_cursor_context(rest)
 
       # It is an identifier
       _ ->
-        identifier_to_autocompletion(reverse)
+        identifier_to_cursor_context(reverse)
     end
   end
 
   defp strip_spaces([h | rest], count) when h in @space, do: strip_spaces(rest, count + 1)
   defp strip_spaces(rest, count), do: {rest, count}
 
-  defp call_to_autocompletion(reverse) do
-    case identifier_to_autocompletion(reverse) do
+  defp call_to_cursor_context(reverse) do
+    case identifier_to_cursor_context(reverse) do
       {:local_or_var, acc} -> {:local_call, acc}
       {:dot, base, acc} -> {:dot_call, base, acc}
       _ -> :none
     end
   end
 
-  defp identifier_to_autocompletion(reverse) do
+  defp identifier_to_cursor_context(reverse) do
     case identifier(reverse) do
       # Parse :: first to avoid ambiguity atoms
       {:alias, false, '::' ++ _, _} -> :none
@@ -408,7 +414,7 @@ defmodule Code do
   end
 
   defp alias_or_dot(kind, rest, acc) do
-    case {kind, identifier_to_autocompletion(rest)} do
+    case {kind, identifier_to_cursor_context(rest)} do
       {:alias, {:alias, prev}} -> {:alias, prev ++ '.' ++ acc}
       {:identifier, {:local_or_var, prev}} -> {:dot, {:var, prev}, acc}
       {:identifier, {:unquoted_atom, _} = prev} -> {:dot, prev, acc}

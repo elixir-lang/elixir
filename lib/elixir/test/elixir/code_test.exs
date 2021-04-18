@@ -21,123 +21,123 @@ defmodule CodeTest do
 
   Code.eval_quoted(contents, [], file: "sample.ex", line: 13)
 
-  describe "autocompletion/2" do
+  describe "cursor_context/2" do
     test "expressions" do
-      assert Code.autocompletion([]) == :expr
-      assert Code.autocompletion("++") == :expr
-      assert Code.autocompletion(",") == :expr
-      assert Code.autocompletion("[") == :expr
+      assert Code.cursor_context([]) == :expr
+      assert Code.cursor_context("++") == :expr
+      assert Code.cursor_context(",") == :expr
+      assert Code.cursor_context("[") == :expr
     end
 
     test "local_or_var" do
-      assert Code.autocompletion("hello_wo") == {:local_or_var, 'hello_wo'}
-      assert Code.autocompletion("hello/wor") == {:local_or_var, 'wor'}
-      assert Code.autocompletion("hello..wor") == {:local_or_var, 'wor'}
-      assert Code.autocompletion("hello::wor") == {:local_or_var, 'wor'}
-      assert Code.autocompletion("[hello_wo") == {:local_or_var, 'hello_wo'}
+      assert Code.cursor_context("hello_wo") == {:local_or_var, 'hello_wo'}
+      assert Code.cursor_context("hello/wor") == {:local_or_var, 'wor'}
+      assert Code.cursor_context("hello..wor") == {:local_or_var, 'wor'}
+      assert Code.cursor_context("hello::wor") == {:local_or_var, 'wor'}
+      assert Code.cursor_context("[hello_wo") == {:local_or_var, 'hello_wo'}
 
-      assert Code.autocompletion("hellò_wó") == {:local_or_var, 'hellò_wó'}
+      assert Code.cursor_context("hellò_wó") == {:local_or_var, 'hellò_wó'}
     end
 
     test "alias_or_dot" do
-      assert Code.autocompletion("Hello.") == {:alias_or_dot, 'Hello'}
-      assert Code.autocompletion("Hello.World.") == {:alias_or_dot, 'Hello.World'}
+      assert Code.cursor_context("Hello.") == {:alias_or_dot, 'Hello'}
+      assert Code.cursor_context("Hello.World.") == {:alias_or_dot, 'Hello.World'}
     end
 
     test "dot" do
-      assert Code.autocompletion("hello.") == {:dot, {:var, 'hello'}, ''}
-      assert Code.autocompletion(":hello.") == {:dot, {:unquoted_atom, 'hello'}, ''}
-      assert Code.autocompletion("nested.map.") == {:dot, {:dot, {:var, 'nested'}, 'map'}, ''}
+      assert Code.cursor_context("hello.") == {:dot, {:var, 'hello'}, ''}
+      assert Code.cursor_context(":hello.") == {:dot, {:unquoted_atom, 'hello'}, ''}
+      assert Code.cursor_context("nested.map.") == {:dot, {:dot, {:var, 'nested'}, 'map'}, ''}
 
-      assert Code.autocompletion("Hello.wor") == {:dot, {:alias, 'Hello'}, 'wor'}
-      assert Code.autocompletion("hello.wor") == {:dot, {:var, 'hello'}, 'wor'}
-      assert Code.autocompletion(":hello.wor") == {:dot, {:unquoted_atom, 'hello'}, 'wor'}
+      assert Code.cursor_context("Hello.wor") == {:dot, {:alias, 'Hello'}, 'wor'}
+      assert Code.cursor_context("hello.wor") == {:dot, {:var, 'hello'}, 'wor'}
+      assert Code.cursor_context(":hello.wor") == {:dot, {:unquoted_atom, 'hello'}, 'wor'}
 
-      assert Code.autocompletion("nested.map.wor") ==
+      assert Code.cursor_context("nested.map.wor") ==
                {:dot, {:dot, {:var, 'nested'}, 'map'}, 'wor'}
     end
 
     test "local_arity" do
-      assert Code.autocompletion("hello/") == {:local_arity, 'hello'}
+      assert Code.cursor_context("hello/") == {:local_arity, 'hello'}
     end
 
     test "local_call" do
-      assert Code.autocompletion("hello\s") == {:local_call, 'hello'}
-      assert Code.autocompletion("hello\t") == {:local_call, 'hello'}
-      assert Code.autocompletion("hello(") == {:local_call, 'hello'}
-      assert Code.autocompletion("hello(\s") == {:local_call, 'hello'}
-      assert Code.autocompletion("hello(\t") == {:local_call, 'hello'}
+      assert Code.cursor_context("hello\s") == {:local_call, 'hello'}
+      assert Code.cursor_context("hello\t") == {:local_call, 'hello'}
+      assert Code.cursor_context("hello(") == {:local_call, 'hello'}
+      assert Code.cursor_context("hello(\s") == {:local_call, 'hello'}
+      assert Code.cursor_context("hello(\t") == {:local_call, 'hello'}
     end
 
     test "dot_arity" do
-      assert Code.autocompletion("Foo.hello/") == {:dot_arity, {:alias, 'Foo'}, 'hello'}
-      assert Code.autocompletion(":foo.hello/") == {:dot_arity, {:unquoted_atom, 'foo'}, 'hello'}
-      assert Code.autocompletion("foo.hello/") == {:dot_arity, {:var, 'foo'}, 'hello'}
+      assert Code.cursor_context("Foo.hello/") == {:dot_arity, {:alias, 'Foo'}, 'hello'}
+      assert Code.cursor_context(":foo.hello/") == {:dot_arity, {:unquoted_atom, 'foo'}, 'hello'}
+      assert Code.cursor_context("foo.hello/") == {:dot_arity, {:var, 'foo'}, 'hello'}
     end
 
     test "dot_call" do
-      assert Code.autocompletion("Foo.hello\s") == {:dot_call, {:alias, 'Foo'}, 'hello'}
-      assert Code.autocompletion("Foo.hello\t") == {:dot_call, {:alias, 'Foo'}, 'hello'}
-      assert Code.autocompletion("Foo.hello(") == {:dot_call, {:alias, 'Foo'}, 'hello'}
-      assert Code.autocompletion("Foo.hello(\s") == {:dot_call, {:alias, 'Foo'}, 'hello'}
-      assert Code.autocompletion("Foo.hello(\t") == {:dot_call, {:alias, 'Foo'}, 'hello'}
+      assert Code.cursor_context("Foo.hello\s") == {:dot_call, {:alias, 'Foo'}, 'hello'}
+      assert Code.cursor_context("Foo.hello\t") == {:dot_call, {:alias, 'Foo'}, 'hello'}
+      assert Code.cursor_context("Foo.hello(") == {:dot_call, {:alias, 'Foo'}, 'hello'}
+      assert Code.cursor_context("Foo.hello(\s") == {:dot_call, {:alias, 'Foo'}, 'hello'}
+      assert Code.cursor_context("Foo.hello(\t") == {:dot_call, {:alias, 'Foo'}, 'hello'}
 
-      assert Code.autocompletion(":foo.hello\s") == {:dot_call, {:unquoted_atom, 'foo'}, 'hello'}
-      assert Code.autocompletion(":foo.hello\t") == {:dot_call, {:unquoted_atom, 'foo'}, 'hello'}
-      assert Code.autocompletion(":foo.hello(") == {:dot_call, {:unquoted_atom, 'foo'}, 'hello'}
-      assert Code.autocompletion(":foo.hello(\s") == {:dot_call, {:unquoted_atom, 'foo'}, 'hello'}
-      assert Code.autocompletion(":foo.hello(\t") == {:dot_call, {:unquoted_atom, 'foo'}, 'hello'}
+      assert Code.cursor_context(":foo.hello\s") == {:dot_call, {:unquoted_atom, 'foo'}, 'hello'}
+      assert Code.cursor_context(":foo.hello\t") == {:dot_call, {:unquoted_atom, 'foo'}, 'hello'}
+      assert Code.cursor_context(":foo.hello(") == {:dot_call, {:unquoted_atom, 'foo'}, 'hello'}
+      assert Code.cursor_context(":foo.hello(\s") == {:dot_call, {:unquoted_atom, 'foo'}, 'hello'}
+      assert Code.cursor_context(":foo.hello(\t") == {:dot_call, {:unquoted_atom, 'foo'}, 'hello'}
 
-      assert Code.autocompletion("foo.hello\s") == {:dot_call, {:var, 'foo'}, 'hello'}
-      assert Code.autocompletion("foo.hello\t") == {:dot_call, {:var, 'foo'}, 'hello'}
-      assert Code.autocompletion("foo.hello(") == {:dot_call, {:var, 'foo'}, 'hello'}
-      assert Code.autocompletion("foo.hello(\s") == {:dot_call, {:var, 'foo'}, 'hello'}
-      assert Code.autocompletion("foo.hello(\t") == {:dot_call, {:var, 'foo'}, 'hello'}
+      assert Code.cursor_context("foo.hello\s") == {:dot_call, {:var, 'foo'}, 'hello'}
+      assert Code.cursor_context("foo.hello\t") == {:dot_call, {:var, 'foo'}, 'hello'}
+      assert Code.cursor_context("foo.hello(") == {:dot_call, {:var, 'foo'}, 'hello'}
+      assert Code.cursor_context("foo.hello(\s") == {:dot_call, {:var, 'foo'}, 'hello'}
+      assert Code.cursor_context("foo.hello(\t") == {:dot_call, {:var, 'foo'}, 'hello'}
     end
 
     test "alias" do
-      assert Code.autocompletion("HelloWor") == {:alias, 'HelloWor'}
-      assert Code.autocompletion("Hello.Wor") == {:alias, 'Hello.Wor'}
-      assert Code.autocompletion("Hello::Wor") == {:alias, 'Wor'}
-      assert Code.autocompletion("Hello..Wor") == {:alias, 'Wor'}
+      assert Code.cursor_context("HelloWor") == {:alias, 'HelloWor'}
+      assert Code.cursor_context("Hello.Wor") == {:alias, 'Hello.Wor'}
+      assert Code.cursor_context("Hello::Wor") == {:alias, 'Wor'}
+      assert Code.cursor_context("Hello..Wor") == {:alias, 'Wor'}
     end
 
     test "unquoted atom" do
-      assert Code.autocompletion(":HelloWor") == {:unquoted_atom, 'HelloWor'}
-      assert Code.autocompletion(":HelloWór") == {:unquoted_atom, 'HelloWór'}
-      assert Code.autocompletion(":hello_wor") == {:unquoted_atom, 'hello_wor'}
-      assert Code.autocompletion(":Óla_mundo") == {:unquoted_atom, 'Óla_mundo'}
-      assert Code.autocompletion("foo:hello_wor") == {:unquoted_atom, 'hello_wor'}
+      assert Code.cursor_context(":HelloWor") == {:unquoted_atom, 'HelloWor'}
+      assert Code.cursor_context(":HelloWór") == {:unquoted_atom, 'HelloWór'}
+      assert Code.cursor_context(":hello_wor") == {:unquoted_atom, 'hello_wor'}
+      assert Code.cursor_context(":Óla_mundo") == {:unquoted_atom, 'Óla_mundo'}
+      assert Code.cursor_context("foo:hello_wor") == {:unquoted_atom, 'hello_wor'}
     end
 
     test "none" do
       # Containers
-      assert Code.autocompletion(")") == :none
-      assert Code.autocompletion("}") == :none
+      assert Code.cursor_context(")") == :none
+      assert Code.cursor_context("}") == :none
 
       # Numbers
-      assert Code.autocompletion("123") == :none
-      assert Code.autocompletion("123?") == :none
-      assert Code.autocompletion("123!") == :none
-      assert Code.autocompletion("123var?") == :none
-      assert Code.autocompletion("0x") == :none
+      assert Code.cursor_context("123") == :none
+      assert Code.cursor_context("123?") == :none
+      assert Code.cursor_context("123!") == :none
+      assert Code.cursor_context("123var?") == :none
+      assert Code.cursor_context("0x") == :none
 
       # Dots
-      assert Code.autocompletion("Mundo.Óla") == :none
-      assert Code.autocompletion(":hello.World") == :none
+      assert Code.cursor_context("Mundo.Óla") == :none
+      assert Code.cursor_context(":hello.World") == :none
 
       # Aliases
-      assert Code.autocompletion("Hello::Wór") == :none
-      assert Code.autocompletion("ÓlaMundo") == :none
-      assert Code.autocompletion("HelloWór") == :none
-      assert Code.autocompletion("Hello(") == :none
-      assert Code.autocompletion("Hello ") == :none
-      assert Code.autocompletion("hello.World") == :none
+      assert Code.cursor_context("Hello::Wór") == :none
+      assert Code.cursor_context("ÓlaMundo") == :none
+      assert Code.cursor_context("HelloWór") == :none
+      assert Code.cursor_context("Hello(") == :none
+      assert Code.cursor_context("Hello ") == :none
+      assert Code.cursor_context("hello.World") == :none
     end
 
     test "newlines" do
-      assert Code.autocompletion("this+does-not*matter\nHello.") == {:alias_or_dot, 'Hello'}
-      assert Code.autocompletion('this+does-not*matter\nHello.') == {:alias_or_dot, 'Hello'}
+      assert Code.cursor_context("this+does-not*matter\nHello.") == {:alias_or_dot, 'Hello'}
+      assert Code.cursor_context('this+does-not*matter\nHello.') == {:alias_or_dot, 'Hello'}
     end
   end
 
