@@ -36,6 +36,8 @@ defmodule CodeTest do
 
     test "local_or_var" do
       assert Code.cursor_context("hello_wo") == {:local_or_var, 'hello_wo'}
+      assert Code.cursor_context("hello_world?") == {:local_or_var, 'hello_world?'}
+      assert Code.cursor_context("hello_world!") == {:local_or_var, 'hello_world!'}
       assert Code.cursor_context("hello/wor") == {:local_or_var, 'wor'}
       assert Code.cursor_context("hello..wor") == {:local_or_var, 'wor'}
       assert Code.cursor_context("hello::wor") == {:local_or_var, 'wor'}
@@ -57,6 +59,7 @@ defmodule CodeTest do
       assert Code.cursor_context("Hello.wor") == {:dot, {:alias, 'Hello'}, 'wor'}
       assert Code.cursor_context("hello.wor") == {:dot, {:var, 'hello'}, 'wor'}
       assert Code.cursor_context(":hello.wor") == {:dot, {:unquoted_atom, 'hello'}, 'wor'}
+      assert Code.cursor_context("@hello.wor") == {:dot, {:module_attribute, 'hello'}, 'wor'}
 
       assert Code.cursor_context("nested.map.wor") ==
                {:dot, {:dot, {:var, 'nested'}, 'map'}, 'wor'}
@@ -78,6 +81,7 @@ defmodule CodeTest do
       assert Code.cursor_context("Foo.hello/") == {:dot_arity, {:alias, 'Foo'}, 'hello'}
       assert Code.cursor_context(":foo.hello/") == {:dot_arity, {:unquoted_atom, 'foo'}, 'hello'}
       assert Code.cursor_context("foo.hello/") == {:dot_arity, {:var, 'foo'}, 'hello'}
+      assert Code.cursor_context("@f.hello/") == {:dot_arity, {:module_attribute, 'f'}, 'hello'}
     end
 
     test "dot_call" do
@@ -98,6 +102,12 @@ defmodule CodeTest do
       assert Code.cursor_context("foo.hello(") == {:dot_call, {:var, 'foo'}, 'hello'}
       assert Code.cursor_context("foo.hello(\s") == {:dot_call, {:var, 'foo'}, 'hello'}
       assert Code.cursor_context("foo.hello(\t") == {:dot_call, {:var, 'foo'}, 'hello'}
+
+      assert Code.cursor_context("@f.hello\s") == {:dot_call, {:module_attribute, 'f'}, 'hello'}
+      assert Code.cursor_context("@f.hello\t") == {:dot_call, {:module_attribute, 'f'}, 'hello'}
+      assert Code.cursor_context("@f.hello(") == {:dot_call, {:module_attribute, 'f'}, 'hello'}
+      assert Code.cursor_context("@f.hello(\s") == {:dot_call, {:module_attribute, 'f'}, 'hello'}
+      assert Code.cursor_context("@f.hello(\t") == {:dot_call, {:module_attribute, 'f'}, 'hello'}
     end
 
     test "alias" do
@@ -114,6 +124,11 @@ defmodule CodeTest do
       assert Code.cursor_context(":hello_wor") == {:unquoted_atom, 'hello_wor'}
       assert Code.cursor_context(":Óla_mundo") == {:unquoted_atom, 'Óla_mundo'}
       assert Code.cursor_context("foo:hello_wor") == {:unquoted_atom, 'hello_wor'}
+    end
+
+    test "module attribute" do
+      assert Code.cursor_context("@") == {:module_attribute, ''}
+      assert Code.cursor_context("@hello_wo") == {:module_attribute, 'hello_wo'}
     end
 
     test "none" do
@@ -136,6 +151,7 @@ defmodule CodeTest do
       assert Code.cursor_context("Hello::Wór") == :none
       assert Code.cursor_context("ÓlaMundo") == :none
       assert Code.cursor_context("HelloWór") == :none
+      assert Code.cursor_context("@Hello") == :none
       assert Code.cursor_context("Hello(") == :none
       assert Code.cursor_context("Hello ") == :none
       assert Code.cursor_context("hello.World") == :none

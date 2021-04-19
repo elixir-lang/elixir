@@ -241,23 +241,24 @@ defmodule Code do
 
     * `{:dot, inside_dot, charlist}` - the context is a dot
       where `inside_dot` is either a `{:var, charlist}`, `{:alias, charlist}`,
-      `{:unquoted_atom, charlist}` or a `dot` itself. If a var is given,
-      this may either be a remote call or a map field access. Examples are
-      `Hello.wor`, `:hello.wor`, `hello.wor`, `Hello.nested.wor`, and
-      `hello.nested.wor`
+      `{:module_attribute, charlist}`, `{:unquoted_atom, charlist}` or a `dot
+       itself. If a var is given, this may either be a remote call or a map
+       field access. Examples are `Hello.wor`, `:hello.wor`, `hello.wor`,
+       `Hello.nested.wor`, `hello.nested.wor`, and `@hello.world`
 
     * `{:dot_arity, inside_dot, charlist}` - the context is a dot arity
       where `inside_dot` is either a `{:var, charlist}`, `{:alias, charlist}`,
-      `{:unquoted_atom, charlist}` or a `dot` itself. If a var is given,
-      it must be a remote arity. Examples are `Hello.world/`, `:hello.world/`,
-      and `hello.world/2`
+      `{:module_attribute, charlist}`, `{:unquoted_atom, charlist}` or a `dot`
+      itself. If a var is given, it must be a remote arity. Examples are
+      `Hello.world/`, `:hello.world/`, `hello.world/2`, and `@hello.world/2
 
     * `{:dot_call, inside_dot, charlist}` - the context is a dot
       call. This means parentheses or space have been added after the expression.
       where `inside_dot` is either a `{:var, charlist}`, `{:alias, charlist}`,
-      `{:unquoted_atom, charlist}` or a `dot` itself. If a var is given,
-      it must be a remote call. Examples are `Hello.world(`, `:hello.world(`,
-      `Hello.world `, `hello.world(`, and `hello.world `
+      `{:module_attribute, charlist}`, `{:unquoted_atom, charlist}` or a `dot`
+      itself. If a var is given, it must be a remote call. Examples are
+      `Hello.world(`, `:hello.world(`, `Hello.world `, `hello.world(`, `hello.world `,
+      and `@hello.world(`
 
     * `:expr` - may be any expression. Autocompletion may suggest an alias,
       local or var
@@ -351,6 +352,9 @@ defmodule Code do
       {[?: | _], 0} ->
         {:unquoted_atom, ''}
 
+      {[?@ | _], 0} ->
+        {:module_attribute, ''}
+
       # Start of a dot or alias
       {[?. | rest], _} ->
         case identifier_to_cursor_context(rest) do
@@ -400,7 +404,7 @@ defmodule Code do
 
   defp identifier_to_cursor_context(reverse) do
     case identifier(reverse) do
-      # Parse :: first to avoid ambiguity atoms
+      # Parse :: first to avoid ambiguity with atoms
       {:alias, false, '::' ++ _, _} -> :none
       {kind, _, '::' ++ _, acc} -> alias_or_local_or_var(kind, acc)
       # Now handle atoms, any other atom is unexpected
@@ -409,6 +413,9 @@ defmodule Code do
       # Parse .. first to avoid ambiguity with dots
       {:alias, false, _, _} -> :none
       {kind, _, '..' ++ _, acc} -> alias_or_local_or_var(kind, acc)
+      # Module attributes
+      {:alias, _, '@' ++ _, _} -> :none
+      {:identifier, _, '@' ++ _, acc} -> {:module_attribute, acc}
       # Everything else
       {kind, _, '.' ++ rest, acc} -> alias_or_dot(kind, rest, acc)
       {kind, _, _, acc} -> alias_or_local_or_var(kind, acc)
@@ -423,6 +430,7 @@ defmodule Code do
       {:identifier, {:unquoted_atom, _} = prev} -> {:dot, prev, acc}
       {:identifier, {:alias, _} = prev} -> {:dot, prev, acc}
       {:identifier, {:dot, _, _} = prev} -> {:dot, prev, acc}
+      {:identifier, {:module_attribute, _} = prev} -> {:dot, prev, acc}
       _ -> :none
     end
   end
