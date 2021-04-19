@@ -478,9 +478,11 @@ defmodule URI do
   `URI.default_port/1` for the URI's scheme is used for the `:port` field.
 
   When a URI hostname is an IPv6 literal, it has the `[]` unwrapped before
-  being stored in the `:host` field. This doesn't match the formal grammar
-  for hostnames, which requires the `[]` to be preserved, according to
-  [RFC 3986, appendix A](https://tools.ietf.org/html/rfc3986#appendix-A)
+  being stored in the `:host` field. Note this doesn't match the formal
+  grammar for hostnames, which preserves the `[]` around the IP. You can
+  parse the IP address by calling `:inet.parse_address/1` (remember to
+  call `String.to_charlist/1` to convert the host to a charlist before
+  calling `:inet`).
 
   If a `%URI{}` struct is given to this function, this function returns it
   unmodified.
