@@ -498,6 +498,9 @@ defmodule Mix do
     * `:consolidate_protocols` - if `true`, runs protocol
       consolidation via the `mix compile.protocols` task (Default: `true`)
 
+    * `:elixir` - if set, ensures the current Elixir version matches the given
+      version requirement (Default: `nil`)
+
   ## Examples
 
       Mix.install([
@@ -514,6 +517,16 @@ defmodule Mix do
 
     if Mix.Project.get() do
       Mix.raise("Mix.install/2 cannot be used inside a Mix project")
+    end
+
+    elixir_requirement = opts[:elixir]
+    elixir_version = System.version()
+
+    if !!elixir_requirement and not Version.match?(elixir_version, elixir_requirement) do
+      Mix.raise(
+        "Mix.install/2 declared it supports only Elixir #{elixir_requirement} " <>
+          "but you're running on Elixir #{elixir_version}"
+      )
     end
 
     deps =
