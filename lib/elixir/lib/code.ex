@@ -552,7 +552,7 @@ defmodule Code do
   gives more options to the formatter.
 
   This may also appear in do/end blocks, where the `do` keyword (or `->`)
-  may go over the line lenth because there is no opportunity for the
+  may go over the line length because there is no opportunity for the
   formatter to introduce a line break in a readable way. For example,
   if you do:
 
