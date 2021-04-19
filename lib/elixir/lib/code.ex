@@ -295,13 +295,15 @@ defmodule Code do
           | {:local_or_var, charlist}
           | {:local_arity, charlist}
           | {:local_call, charlist}
+          | {:module_attribute, charlist}
           | :none
           | {:unquoted_atom, charlist}
         when inside_dot:
-               {:var, charlist}
-               | {:alias, charlist}
-               | {:unquoted_atom, charlist}
+               {:alias, charlist}
                | {:dot, inside_dot, charlist}
+               | {:module_attribute, charlist}
+               | {:unquoted_atom, charlist}
+               | {:var, charlist}
   def cursor_context(string, opts \\ [])
 
   def cursor_context(binary, opts) when is_binary(binary) and is_list(opts) do
