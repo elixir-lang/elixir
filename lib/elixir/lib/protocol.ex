@@ -723,6 +723,13 @@ defmodule Protocol do
     {name, length(args)}
   end
 
+  defp callback_ast_to_fa(
+         {kind, {:when, _, [{:"::", _, [{name, _, args}, _return]}, _vars]}, _pos}
+       )
+       when kind in [:callback, :macrocallback] do
+    {name, length(args)}
+  end
+
   defp warn(message, env) do
     IO.warn(message, Macro.Env.stacktrace(env))
   end
