@@ -272,6 +272,9 @@ defmodule Code do
     * `{:local_call, charlist}` - the context is a local (import or local)
       call, such as `hello_world(` and `hello_world `
 
+    * `{:module_attribute, charlist}` - the context is a module attribute, such
+      as `@hello_wor`
+
     * `:none` - no context possible
 
     * `:unquoted_atom` - the context is an unquoted atom. This can be either
