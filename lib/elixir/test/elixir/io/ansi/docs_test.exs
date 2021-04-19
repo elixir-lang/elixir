@@ -487,6 +487,16 @@ defmodule IO.ANSI.DocsTest do
       assert format_markdown("  [id]: //example.com\n  [Elixir]:  https://elixir-lang.org") ==
                "  [id]: //example.com\n  [Elixir]:  https://elixir-lang.org"
     end
+
+    test "autolinks" do
+      result =
+        format_markdown(
+          "Visit <https://en.wikipedia.org/wiki/ANSI_escape_code> for more information"
+        )
+
+      assert result ==
+               "Visit https://en.wikipedia.org/wiki/ANSI_escape_code for more information\n\e[0m"
+    end
   end
 
   describe "markdown tables" do

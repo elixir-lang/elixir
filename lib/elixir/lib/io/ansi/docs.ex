@@ -785,8 +785,14 @@ defmodule IO.ANSI.Docs do
 
   defp handle_links(text) do
     text
+    |> trim_lt_gt_signs_in_link
     |> remove_square_brackets_in_link
     |> escape_underlines_in_link
+  end
+
+  defp trim_lt_gt_signs_in_link(text) do
+    # Regular expression adapted from https://tools.ietf.org/html/rfc3986#appendix-B
+    Regex.replace(~r{<([a-z][a-z0-9\+\-\.]*://\S*)>}i, text, "\\1", global: false)
   end
 
   defp escape_underlines_in_link(text) do
