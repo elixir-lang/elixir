@@ -628,6 +628,12 @@ defmodule Module do
       },
       optional_callbacks: %{
         doc: "Specifies which behaviour callbacks and macro behaviour callbacks are optional."
+      },
+      derive: %{
+        doc: "Derive the `Any` implementation of the given protocol."
+      },
+      enforce_keys: %{
+        doc: "Ensures the given keys are always set when building the struct."
       }
     }
   end
