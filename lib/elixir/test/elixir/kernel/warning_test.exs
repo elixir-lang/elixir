@@ -1158,10 +1158,16 @@ defmodule Kernel.WarningTest do
             @spec with_specs(any(), keyword()) :: tuple()
             def with_specs(term, options \\ [])
 
+            @spec with_specs_and_when(any(), opts) :: tuple() when opts: keyword
+            def with_specs_and_when(term, options \\ [])
+
             def without_specs(term, options \\ [])
 
             @callback foo(term) :: {:ok, term}
             @callback foo(term, keyword) :: {:ok, term, keyword}
+
+            @callback foo_when(x) :: {:ok, x} when x: term
+            @callback foo_when(x, opts) :: {:ok, x, opts} when x: term, opts: keyword
 
             @macrocallback bar(term) :: {:ok, term}
             @macrocallback bar(term, keyword) :: {:ok, term, keyword}
@@ -1177,6 +1183,12 @@ defmodule Kernel.WarningTest do
 
     assert message =~
              "cannot define @callback foo/2 inside protocol, use def/1 to outline your protocol definition\n  nofile:1"
+
+    assert message =~
+             "cannot define @callback foo_when/1 inside protocol, use def/1 to outline your protocol definition\n  nofile:1"
+
+    assert message =~
+             "cannot define @callback foo_when/2 inside protocol, use def/1 to outline your protocol definition\n  nofile:1"
 
     assert message =~
              "cannot define @macrocallback bar/1 inside protocol, use def/1 to outline your protocol definition\n  nofile:1"
