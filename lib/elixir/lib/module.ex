@@ -551,7 +551,7 @@ defmodule Module do
 
   ## Examples
 
-      iex> map = Module.builtin_attributes()
+      iex> map = Module.reserved_attributes()
       iex> Map.has_key?(map, :moduledoc)
       true
       iex> Map.has_key?(map, :doc)
