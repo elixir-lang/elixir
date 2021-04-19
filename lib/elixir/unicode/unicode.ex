@@ -8,7 +8,7 @@
 # 4. Replace GraphemeBreakTest.txt by copying original auxiliary/GraphemeBreakTest.txt
 # 5. Replace GraphemeBreakProperty.txt by copying original auxiliary/GraphemeBreakProperty.txt
 # 6. Append Extended_Pictographic from emoji/emoji-data.txt to the end of GraphemeBreakProperty.txt
-# 7. Update String.Unicode.version/0 and on String module docs
+# 7. Update String.Unicode.version/0 and on String module docs (version and link)
 # 8. make unicode
 # 9. elixir lib/elixir/unicode/graphemes_test.exs
 
