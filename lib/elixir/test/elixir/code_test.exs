@@ -27,6 +27,7 @@ defmodule CodeTest do
       assert Code.cursor_context("++") == :expr
       assert Code.cursor_context(",") == :expr
       assert Code.cursor_context("[") == :expr
+      assert Code.cursor_context("hello: ") == :expr
       assert Code.cursor_context("\n") == :expr
       assert Code.cursor_context('\n') == :expr
       assert Code.cursor_context("\n\n") == :expr
@@ -107,6 +108,7 @@ defmodule CodeTest do
     end
 
     test "unquoted atom" do
+      assert Code.cursor_context(":") == {:unquoted_atom, ''}
       assert Code.cursor_context(":HelloWor") == {:unquoted_atom, 'HelloWor'}
       assert Code.cursor_context(":HelloWór") == {:unquoted_atom, 'HelloWór'}
       assert Code.cursor_context(":hello_wor") == {:unquoted_atom, 'hello_wor'}

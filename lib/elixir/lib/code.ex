@@ -348,6 +348,9 @@ defmodule Code do
       {[], _} ->
         :expr
 
+      {[?: | _], 0} ->
+        {:unquoted_atom, ''}
+
       # Start of a dot or alias
       {[?. | rest], _} ->
         case identifier_to_cursor_context(rest) do
