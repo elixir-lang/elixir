@@ -544,7 +544,7 @@ defmodule Module do
   @callback __info__(:module) :: module()
 
   @doc """
-  Returns information about built-in module attributes used by Elixir.
+  Returns information about module attributes used by Elixir.
 
   See the "Module attributes" section in the module documentation for more
   information on each attribute.
@@ -559,7 +559,7 @@ defmodule Module do
 
   """
   @doc since: "1.13.0"
-  def builtin_attributes() do
+  def reserved_attributes() do
     %{
       after_compile: %{
         doc: "A hook that will be invoked right after the current module is compiled."
