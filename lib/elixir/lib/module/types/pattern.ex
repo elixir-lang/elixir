@@ -345,7 +345,7 @@ defmodule Module.Types.Pattern do
 
     expanded_args =
       args
-      |> Enum.map(&expand_union/1)
+      |> Enum.map(&flatten_union/1)
       |> cartesian_product()
 
     # Remove clauses that do not match the expected type

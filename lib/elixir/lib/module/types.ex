@@ -216,7 +216,12 @@ defmodule Module.Types do
     {module, function, ^arity} = call_to_mfa(erl_to_ex(module, function, mfa_args, []))
     format_mfa = Exception.format_mfa(module, function, arity)
     {traces, [] = _hints} = format_traces(traces, false)
-    clauses = Enum.map(signature, &String.slice(Unify.format_type({:fun, [&1]}, false), 1..-2))
+
+    clauses =
+      Enum.map(
+        signature,
+        &String.slice(IO.iodata_to_binary(Unify.format_type({:fun, [&1]}, false)), 1..-2)
+      )
 
     [
       "incompatible arguments passed to function: #{format_mfa}:\n\n    ",

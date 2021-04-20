@@ -39,6 +39,10 @@ defmodule Module.Types.UnifyTest do
     type
   end
 
+  defp format_type_string(type, simplify?) do
+    IO.iodata_to_binary(format_type(type, simplify?))
+  end
+
   describe "unify/3" do
     test "literal" do
       assert unify_lift({:atom, :foo}, {:atom, :foo}) == {:ok, {:atom, :foo}}
@@ -662,24 +666,24 @@ defmodule Module.Types.UnifyTest do
              {:tuple, 1, [:integer]}
   end
 
-  test "expand_union/1" do
-    assert expand_union(:binary) == [:binary]
-    assert expand_union({:atom, :foo}) == [{:atom, :foo}]
-    assert expand_union({:union, [:binary, {:atom, :foo}]}) == [:binary, {:atom, :foo}]
+  test "flatten_union/1" do
+    assert flatten_union(:binary) == [:binary]
+    assert flatten_union({:atom, :foo}) == [{:atom, :foo}]
+    assert flatten_union({:union, [:binary, {:atom, :foo}]}) == [:binary, {:atom, :foo}]
 
-    assert expand_union({:union, [{:union, [:integer, :binary]}, {:atom, :foo}]}) == [
+    assert flatten_union({:union, [{:union, [:integer, :binary]}, {:atom, :foo}]}) == [
              :integer,
              :binary,
              {:atom, :foo}
            ]
 
-    assert expand_union({:tuple, 2, [:binary, {:atom, :foo}]}) ==
+    assert flatten_union({:tuple, 2, [:binary, {:atom, :foo}]}) ==
              [{:tuple, 2, [:binary, {:atom, :foo}]}]
 
-    assert expand_union({:tuple, 1, [{:union, [:binary, :integer]}]}) ==
+    assert flatten_union({:tuple, 1, [{:union, [:binary, :integer]}]}) ==
              [{:tuple, 1, [:binary]}, {:tuple, 1, [:integer]}]
 
-    assert expand_union(
+    assert flatten_union(
              {:tuple, 2, [{:union, [:binary, :integer]}, {:union, [:binary, :integer]}]}
            ) ==
              [
@@ -691,48 +695,50 @@ defmodule Module.Types.UnifyTest do
   end
 
   test "format_type/1" do
-    assert format_type(:binary, false) == "binary()"
-    assert format_type({:atom, true}, false) == "true"
-    assert format_type({:atom, :atom}, false) == ":atom"
-    assert format_type({:list, :binary}, false) == "[binary()]"
-    assert format_type({:tuple, 0, []}, false) == "{}"
-    assert format_type({:tuple, 1, [:integer]}, false) == "{integer()}"
+    assert format_type_string(:binary, false) == "binary()"
+    assert format_type_string({:atom, true}, false) == "true"
+    assert format_type_string({:atom, :atom}, false) == ":atom"
+    assert format_type_string({:list, :binary}, false) == "[binary()]"
+    assert format_type_string({:tuple, 0, []}, false) == "{}"
+    assert format_type_string({:tuple, 1, [:integer]}, false) == "{integer()}"
 
-    assert format_type({:map, []}, true) == "map()"
-    assert format_type({:map, [{:required, {:atom, :foo}, :atom}]}, true) == "map()"
+    assert format_type_string({:map, []}, true) == "map()"
+    assert format_type_string({:map, [{:required, {:atom, :foo}, :atom}]}, true) == "map()"
 
-    assert format_type({:map, []}, false) ==
+    assert format_type_string({:map, []}, false) ==
              "%{}"
 
-    assert format_type({:map, [{:required, {:atom, :foo}, :atom}]}, false) ==
+    assert format_type_string({:map, [{:required, {:atom, :foo}, :atom}]}, false) ==
              "%{foo: atom()}"
 
-    assert format_type({:map, [{:required, :integer, :atom}]}, false) ==
+    assert format_type_string({:map, [{:required, :integer, :atom}]}, false) ==
              "%{integer() => atom()}"
 
-    assert format_type({:map, [{:optional, :integer, :atom}]}, false) ==
+    assert format_type_string({:map, [{:optional, :integer, :atom}]}, false) ==
              "%{optional(integer()) => atom()}"
 
-    assert format_type({:map, [{:optional, {:atom, :foo}, :atom}]}, false) ==
+    assert format_type_string({:map, [{:optional, {:atom, :foo}, :atom}]}, false) ==
              "%{optional(:foo) => atom()}"
 
-    assert format_type({:map, [{:required, {:atom, :__struct__}, {:atom, Struct}}]}, false) ==
+    assert format_type_string({:map, [{:required, {:atom, :__struct__}, {:atom, Struct}}]}, false) ==
              "%Struct{}"
 
-    assert format_type(
+    assert format_type_string(
              {:map,
               [{:required, {:atom, :__struct__}, {:atom, Struct}}, {:required, :integer, :atom}]},
              false
            ) ==
              "%Struct{integer() => atom()}"
 
-    assert format_type({:fun, [{[], :dynamic}]}, false) == "(-> dynamic())"
-    assert format_type({:fun, [{[:integer], :dynamic}]}, false) == "(integer() -> dynamic())"
+    assert format_type_string({:fun, [{[], :dynamic}]}, false) == "(-> dynamic())"
 
-    assert format_type({:fun, [{[:integer, :float], :dynamic}]}, false) ==
+    assert format_type_string({:fun, [{[:integer], :dynamic}]}, false) ==
+             "(integer() -> dynamic())"
+
+    assert format_type_string({:fun, [{[:integer, :float], :dynamic}]}, false) ==
              "(integer(), float() -> dynamic())"
 
-    assert format_type({:fun, [{[:integer], :dynamic}, {[:integer], :dynamic}]}, false) ==
+    assert format_type_string({:fun, [{[:integer], :dynamic}, {[:integer], :dynamic}]}, false) ==
              "(integer() -> dynamic(); integer() -> dynamic())"
   end
 

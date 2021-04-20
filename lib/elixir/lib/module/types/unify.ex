@@ -28,11 +28,10 @@ defmodule Module.Types.Unify do
   #   * unify (all)
   #   * format_type (all)
   #   * subtype? (subtypes only)
-  #   * has_unbound_var? (composite only)
   #   * recursive_type? (composite only)
   #   * collect_var_indexes (composite only)
   #   * lift_types (composite only)
-  #   * expand_union (composite only)
+  #   * flatten_union (composite only)
   #   * walk (composite only)
   #
 
@@ -502,76 +501,54 @@ defmodule Module.Types.Unify do
   @doc """
   Collects all type vars recursively.
   """
-  def collect_var_indexes(type, context, acc \\ %{})
+  def collect_var_indexes(type, context, acc \\ %{}) do
+    {_type, indexes} =
+      walk(type, acc, fn
+        {:var, var}, acc ->
+          case acc do
+            %{^var => _} ->
+              {{:var, var}, acc}
 
-  def collect_var_indexes({:var, var}, context, acc) do
-    case acc do
-      %{^var => _} ->
-        acc
+            %{} ->
+              case context.types do
+                %{^var => :unbound} ->
+                  {{:var, var}, Map.put(acc, var, true)}
 
-      %{} ->
-        case context.types do
-          %{^var => :unbound} -> Map.put(acc, var, true)
-          %{^var => type} -> collect_var_indexes(type, context, Map.put(acc, var, true))
-        end
-    end
+                %{^var => type} ->
+                  {{:var, var}, collect_var_indexes(type, context, Map.put(acc, var, true))}
+              end
+          end
+
+        other, acc ->
+          {other, acc}
+      end)
+
+    indexes
   end
-
-  def collect_var_indexes({:tuple, _, args}, context, acc),
-    do: Enum.reduce(args, acc, &collect_var_indexes(&1, context, &2))
-
-  def collect_var_indexes({:union, args}, context, acc),
-    do: Enum.reduce(args, acc, &collect_var_indexes(&1, context, &2))
-
-  def collect_var_indexes({:list, arg}, context, acc),
-    do: collect_var_indexes(arg, context, acc)
-
-  def collect_var_indexes({:map, pairs}, context, acc) do
-    Enum.reduce(pairs, acc, fn {_, key, value}, acc ->
-      collect_var_indexes(value, context, collect_var_indexes(key, context, acc))
-    end)
-  end
-
-  def collect_var_indexes({:fun, clauses}, context, acc) do
-    Enum.reduce(clauses, acc, fn {params, return}, acc ->
-      Enum.reduce([return | params], acc, &collect_var_indexes(&1, context, &2))
-    end)
-  end
-
-  def collect_var_indexes(_type, _context, acc), do: acc
 
   @doc """
   Checks if the type has a type var.
   """
-  def has_unbound_var?({:var, var}, context) do
-    case context.types do
-      %{^var => :unbound} -> true
-      %{^var => type} -> has_unbound_var?(type, context)
-    end
-  end
+  def has_unbound_var?(type, context) do
+    walk(type, :ok, fn
+      {:var, var}, acc ->
+        case context.types do
+          %{^var => :unbound} ->
+            throw(:has_unbound_var?)
 
-  def has_unbound_var?({:tuple, _, args}, context),
-    do: Enum.any?(args, &has_unbound_var?(&1, context))
+          %{^var => type} ->
+            has_unbound_var?(type, context)
+            {{:var, var}, acc}
+        end
 
-  def has_unbound_var?({:union, args}, context),
-    do: Enum.any?(args, &has_unbound_var?(&1, context))
-
-  def has_unbound_var?({:list, arg}, context),
-    do: has_unbound_var?(arg, context)
-
-  def has_unbound_var?({:map, pairs}, context) do
-    Enum.any?(pairs, fn {_, key, value} ->
-      has_unbound_var?(key, context) or has_unbound_var?(value, context)
+      other, acc ->
+        {other, acc}
     end)
-  end
 
-  def has_unbound_var?({:fun, clauses}, context) do
-    Enum.any?(clauses, fn {params, return} ->
-      Enum.any?([return | params], &has_unbound_var?(&1, context))
-    end)
+    false
+  catch
+    :throw, :has_unbound_var? -> true
   end
-
-  def has_unbound_var?(_type, _context), do: false
 
   @doc """
   Returns true if it is a singleton type.
@@ -671,17 +648,15 @@ defmodule Module.Types.Unify do
   def to_union([type], _context), do: type
 
   def to_union(types, context) when types != [] do
-    flat_types = flatten_union(types)
-
-    case unique_super_types(flat_types, context) do
+    case unique_super_types(unnest_unions(types), context) do
       [type] -> type
       types -> {:union, types}
     end
   end
 
-  defp flatten_union(types) do
+  defp unnest_unions(types) do
     Enum.flat_map(types, fn
-      {:union, types} -> flatten_union(types)
+      {:union, types} -> unnest_unions(types)
       type -> [type]
     end)
   end
@@ -811,68 +786,68 @@ defmodule Module.Types.Unify do
 
       {integer() | float()} => {integer()} | {float()}
   """
-  def expand_union({:union, types}) do
-    Enum.flat_map(types, &expand_union/1)
+  def flatten_union({:union, types}) do
+    Enum.flat_map(types, &flatten_union/1)
   end
 
-  def expand_union(type) do
-    List.wrap(do_expand_union(type))
+  def flatten_union(type) do
+    List.wrap(do_flatten_union(type))
   end
 
-  def do_expand_union({:tuple, num, types}) do
-    expand_union_tuple(types, num, [])
+  def do_flatten_union({:tuple, num, types}) do
+    flatten_union_tuple(types, num, [])
   end
 
-  def do_expand_union({:list, type}) do
-    case do_expand_union(type) do
+  def do_flatten_union({:list, type}) do
+    case do_flatten_union(type) do
       {:union, union_types} -> Enum.map(union_types, &{:list, &1})
       _type -> [{:list, type}]
     end
   end
 
-  def do_expand_union({:map, pairs}) do
-    expand_union_map(pairs, [])
+  def do_flatten_union({:map, pairs}) do
+    flatten_union_map(pairs, [])
   end
 
-  def do_expand_union(type) do
+  def do_flatten_union(type) do
     type
   end
 
-  defp expand_union_tuple([type | types], num, acc) do
-    case do_expand_union(type) do
+  defp flatten_union_tuple([type | types], num, acc) do
+    case do_flatten_union(type) do
       {:union, union_types} ->
-        Enum.flat_map(union_types, &expand_union_tuple(types, num, [&1 | acc]))
+        Enum.flat_map(union_types, &flatten_union_tuple(types, num, [&1 | acc]))
 
       type ->
-        expand_union_tuple(types, num, [type | acc])
+        flatten_union_tuple(types, num, [type | acc])
     end
   end
 
-  defp expand_union_tuple([], num, acc) do
+  defp flatten_union_tuple([], num, acc) do
     [{:tuple, num, Enum.reverse(acc)}]
   end
 
-  defp expand_union_map([{kind, key, value} | pairs], acc) do
-    case do_expand_union(key) do
+  defp flatten_union_map([{kind, key, value} | pairs], acc) do
+    case do_flatten_union(key) do
       {:union, union_types} ->
-        Enum.flat_map(union_types, &expand_union_map_value(kind, &1, value, pairs, acc))
+        Enum.flat_map(union_types, &flatten_union_map_value(kind, &1, value, pairs, acc))
 
       type ->
-        expand_union_map_value(kind, type, value, pairs, acc)
+        flatten_union_map_value(kind, type, value, pairs, acc)
     end
   end
 
-  defp expand_union_map([], acc) do
+  defp flatten_union_map([], acc) do
     [{:map, Enum.reverse(acc)}]
   end
 
-  defp expand_union_map_value(kind, key, value, pairs, acc) do
-    case do_expand_union(value) do
+  defp flatten_union_map_value(kind, key, value, pairs, acc) do
+    case do_flatten_union(value) do
       {:union, union_types} ->
-        Enum.flat_map(union_types, &expand_union_map(pairs, [{kind, key, &1} | acc]))
+        Enum.flat_map(union_types, &flatten_union_map(pairs, [{kind, key, &1} | acc]))
 
       value ->
-        expand_union_map(pairs, [{kind, key, value} | acc])
+        flatten_union_map(pairs, [{kind, key, value} | acc])
     end
   end
 
@@ -885,7 +860,7 @@ defmodule Module.Types.Unify do
   def format_type({:map, pairs}, true) do
     case List.keyfind(pairs, {:atom, :__struct__}, 1) do
       {:required, {:atom, :__struct__}, {:atom, struct}} ->
-        "%#{inspect(struct)}{}"
+        ["%", inspect(struct), "{}"]
 
       _ ->
         "map()"
@@ -893,24 +868,31 @@ defmodule Module.Types.Unify do
   end
 
   def format_type({:union, types}, simplify?) do
-    "#{Enum.map_join(types, " | ", &format_type(&1, simplify?))}"
+    types
+    |> Enum.map(&format_type(&1, simplify?))
+    |> Enum.intersperse(" | ")
   end
 
   def format_type({:tuple, _, types}, simplify?) do
-    "{#{Enum.map_join(types, ", ", &format_type(&1, simplify?))}}"
+    format =
+      types
+      |> Enum.map(&format_type(&1, simplify?))
+      |> Enum.intersperse(", ")
+
+    ["{", format, "}"]
   end
 
   def format_type({:list, type}, simplify?) do
-    "[#{format_type(type, simplify?)}]"
+    ["[", format_type(type, simplify?), "]"]
   end
 
   def format_type({:map, pairs}, false) do
     case List.keytake(pairs, {:atom, :__struct__}, 1) do
       {{:required, {:atom, :__struct__}, {:atom, struct}}, pairs} ->
-        "%#{inspect(struct)}{#{format_map_pairs(pairs)}}"
+        ["%", inspect(struct), "{", format_map_pairs(pairs), "}"]
 
       _ ->
-        "%{#{format_map_pairs(pairs)}}"
+        ["%{", format_map_pairs(pairs), "}"]
     end
   end
 
@@ -919,39 +901,41 @@ defmodule Module.Types.Unify do
   end
 
   def format_type({:var, index}, _simplify?) do
-    "var#{index + 1}"
+    ["var", Integer.to_string(index + 1)]
   end
 
   def format_type({:fun, clauses}, simplify?) do
     format =
-      Enum.map_join(clauses, "; ", fn {params, return} ->
-        params = Enum.map_join(params, ", ", &format_type(&1, simplify?))
-        params = if params == "", do: params, else: "#{params} "
+      Enum.map(clauses, fn {params, return} ->
+        params = Enum.intersperse(Enum.map(params, &format_type(&1, simplify?)), ", ")
+        params = if params == [], do: params, else: [params, " "]
         return = format_type(return, simplify?)
-        "#{params}-> #{return}"
+        [params, "-> ", return]
       end)
 
-    "(#{format})"
+    ["(", Enum.intersperse(format, "; "), ")"]
   end
 
   def format_type(atom, _simplify?) when is_atom(atom) do
-    "#{atom}()"
+    [Atom.to_string(atom), "()"]
   end
 
   defp format_map_pairs(pairs) do
     {atoms, others} = Enum.split_with(pairs, &match?({:required, {:atom, _}, _}, &1))
     {required, optional} = Enum.split_with(others, &match?({:required, _, _}, &1))
 
-    Enum.map_join(atoms ++ required ++ optional, ", ", fn
+    (atoms ++ required ++ optional)
+    |> Enum.map(fn
       {:required, {:atom, atom}, right} ->
-        "#{atom}: #{format_type(right, false)}"
+        [Atom.to_string(atom), ": ", format_type(right, false)]
 
       {:required, left, right} ->
-        "#{format_type(left, false)} => #{format_type(right, false)}"
+        [format_type(left, false), " => ", format_type(right, false)]
 
       {:optional, left, right} ->
-        "optional(#{format_type(left, false)}) => #{format_type(right, false)}"
+        ["optional(", format_type(left, false), ") => ", format_type(right, false)]
     end)
+    |> Enum.intersperse(", ")
   end
 
   @doc """
