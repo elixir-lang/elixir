@@ -730,10 +730,17 @@ defmodule Protocol do
     {{name, length(args)}, meta}
   end
 
+  defp callback_ast_to_fa({kind, _, _pos}) when kind in [:callback, :macrocallback] do
+    {nil, nil}
+  end
+
   defp callback_metas(module, kind)
        when kind in [:callback, :macrocallback] do
-    :lists.map(&callback_ast_to_fa/1, Module.get_attribute(module, kind))
-    |> :maps.from_list()
+    metas =
+      :lists.map(&callback_ast_to_fa/1, Module.get_attribute(module, kind))
+      |> :maps.from_list()
+
+    :maps.remove(nil, metas)
   end
 
   defp get_callback_line(fa, metas),
