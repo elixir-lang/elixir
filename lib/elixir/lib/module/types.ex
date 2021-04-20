@@ -133,13 +133,24 @@ defmodule Module.Types do
   ## ERROR TO WARNING
 
   # Collect relevant information from context and traces to report error
+  def error_to_warning(:unable_apply, {mfa, args, signature, stack}, context) do
+    {fun, arity} = context.function
+    line = get_meta(stack.last_expr)[:line]
+    location = {context.file, line, {context.module, fun, arity}}
+
+    traces = type_traces(stack, context)
+    {[signature | args], traces} = lift_all_types([signature | args], traces, context)
+    error = {:unable_apply, mfa, args, signature, {location, stack.last_expr, traces}}
+    {Module.Types, error, location}
+  end
+
   def error_to_warning(:unable_unify, {left, right, stack}, context) do
     {fun, arity} = context.function
     line = get_meta(stack.last_expr)[:line]
     location = {context.file, line, {context.module, fun, arity}}
 
     traces = type_traces(stack, context)
-    {left, right, traces} = lift_all_types(left, right, traces, context)
+    {[left, right], traces} = lift_all_types([left, right], traces, context)
     error = {:unable_unify, left, right, {location, stack.last_expr, traces}}
     {Module.Types, error, location}
   end
@@ -183,58 +194,82 @@ defmodule Module.Types do
     end
   end
 
-  defp lift_all_types(left, right, traces, context) do
-    all_types = [left, right] ++ for({:type, _, type, _, _} <- traces, do: type)
-    [left, right | all_types] = Unify.lift_types(all_types, context)
+  defp lift_all_types(types, traces, context) do
+    trace_types = for({:type, _, type, _, _} <- traces, do: type)
+    {types, lift_context} = Unify.lift_types(types, context)
+    {trace_types, _lift_context} = Unify.lift_types(trace_types, lift_context)
 
     {traces, []} =
-      Enum.map_reduce(traces, all_types, fn
+      Enum.map_reduce(traces, trace_types, fn
         {:type, var, _, expr, location}, [type | acc] -> {{:type, var, type, expr, location}, acc}
         other, acc -> {other, acc}
       end)
 
-    {left, right, traces}
+    {types, traces}
   end
 
   ## FORMAT WARNINGS
 
+  def format_warning({:unable_apply, mfa, args, signature, {location, expr, traces}}) do
+    {module, function, arity} = mfa
+    mfa_args = Macro.generate_arguments(arity, __MODULE__)
+    {module, function, ^arity} = call_to_mfa(erl_to_ex(module, function, mfa_args, []))
+    format_mfa = Exception.format_mfa(module, function, arity)
+    {traces, [] = _hints} = format_traces(traces, false)
+
+    clauses =
+      Enum.map(
+        signature,
+        &String.slice(IO.iodata_to_binary(Unify.format_type({:fun, [&1]}, false)), 1..-2)
+      )
+
+    [
+      "incompatible arguments passed to function: #{format_mfa}:\n\n    ",
+      Enum.map_join(args, ", ", &Unify.format_type(&1, false)),
+      "\n\nexpected types:\n\n    ",
+      indent(Enum.join(clauses, "\n")),
+      "\n\n",
+      format_expr(expr, location),
+      traces,
+      "Conflict found at"
+    ]
+  end
+
   def format_warning({:unable_unify, left, right, {location, expr, traces}}) do
-    cond do
-      map_type?(left) and map_type?(right) and match?({:ok, _, _}, missing_field(left, right)) ->
-        {:ok, atom, known_atoms} = missing_field(left, right)
+    if map_type?(left) and map_type?(right) and match?({:ok, _, _}, missing_field(left, right)) do
+      {:ok, atom, known_atoms} = missing_field(left, right)
 
-        # Drop the last trace which is the expression map.foo
-        traces = Enum.drop(traces, 1)
-        {traces, hints} = format_traces(traces, true)
+      # Drop the last trace which is the expression map.foo
+      traces = Enum.drop(traces, 1)
+      {traces, hints} = format_traces(traces, true)
 
-        [
-          "undefined field \"#{atom}\" ",
-          format_expr(expr, location),
-          "expected one of the following fields: ",
-          Enum.map_join(Enum.sort(known_atoms), ", ", & &1),
-          "\n\n",
-          traces,
-          format_message_hints(hints),
-          "Conflict found at"
-        ]
+      [
+        "undefined field \"#{atom}\" ",
+        format_expr(expr, location),
+        "expected one of the following fields: ",
+        Enum.map_join(Enum.sort(known_atoms), ", ", & &1),
+        "\n\n",
+        traces,
+        format_message_hints(hints),
+        "Conflict found at"
+      ]
+    else
+      simplify_left? = simplify_type?(left, right)
+      simplify_right? = simplify_type?(right, left)
 
-      true ->
-        simplify_left? = simplify_type?(left, right)
-        simplify_right? = simplify_type?(right, left)
+      {traces, hints} = format_traces(traces, simplify_left? or simplify_right?)
 
-        {traces, hints} = format_traces(traces, simplify_left? or simplify_right?)
-
-        [
-          "incompatible types:\n\n    ",
-          Unify.format_type(left, simplify_left?),
-          " !~ ",
-          Unify.format_type(right, simplify_right?),
-          "\n\n",
-          format_expr(expr, location),
-          traces,
-          format_message_hints(hints),
-          "Conflict found at"
-        ]
+      [
+        "incompatible types:\n\n    ",
+        Unify.format_type(left, simplify_left?),
+        " !~ ",
+        Unify.format_type(right, simplify_right?),
+        "\n\n",
+        format_expr(expr, location),
+        traces,
+        format_message_hints(hints),
+        "Conflict found at"
+      ]
     end
   end
 
@@ -361,7 +396,10 @@ defmodule Module.Types do
   ## Hints
 
   defp format_message_hints(hints) do
-    hints |> Enum.uniq() |> Enum.reverse() |> Enum.map(&format_message_hint/1)
+    hints
+    |> Enum.uniq()
+    |> Enum.reverse()
+    |> Enum.map(&format_message_hint/1)
   end
 
   defp format_message_hint(:inferred_dot) do
@@ -451,4 +489,7 @@ defmodule Module.Types do
 
   defp integer_type?(:integer), do: true
   defp integer_type?(_other), do: false
+
+  defp call_to_mfa({{:., _, [mod, fun]}, _, args}), do: {mod, fun, length(args)}
+  defp call_to_mfa({fun, _, args}) when is_atom(fun), do: {Kernel, fun, length(args)}
 end

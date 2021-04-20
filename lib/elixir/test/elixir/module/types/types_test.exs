@@ -320,6 +320,25 @@ defmodule Module.Types.TypesTest do
                  <<foo::integer()>>
              """
     end
+
+    test "function call" do
+      string = warning([foo], [rem(foo, 2.0) == 0], foo)
+
+      assert string == """
+             incompatible arguments passed to function: Kernel.rem/2:
+
+                 var1, float()
+
+             expected types:
+
+                 integer(), integer() -> integer()
+
+             in expression:
+
+                 # types_test.ex:1
+                 rem(foo, 2.0)
+             """
+    end
   end
 
   describe "map warnings" do
