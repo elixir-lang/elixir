@@ -6,8 +6,8 @@ This document covers operators in Elixir, how they are parsed, how they can be d
 
 The following is a list of all operators that Elixir is capable of parsing, ordered from higher to lower precedence, alongside their associativity:
 
-Operator                                                                                 | Associativity
-------------------------------------------------------| -------------
+Operator                                              | Associativity
+----------------------------------------------------- | -------------
 `@`                                                   | Unary
 `.`                                                   | Left
 `+` `-` `!` `^` `not` `~~~`                           | Unary
