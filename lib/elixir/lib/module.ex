@@ -568,7 +568,7 @@ defmodule Module do
       true
 
   """
-  @doc since: "1.13.0"
+  @doc since: "1.12.0"
   def reserved_attributes() do
     %{
       after_compile: %{
