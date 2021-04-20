@@ -236,9 +236,6 @@ defmodule Code do
     * `{:alias, charlist}` - the context is an alias, potentially
       a nested one, such as `Hello.Wor` or `HelloWor`
 
-    * `{:alias_or_dot, charlist}` - the context is an alias or a dot
-     call, such as `Hello.` or `Hello.World.`
-
     * `{:dot, inside_dot, charlist}` - the context is a dot
       where `inside_dot` is either a `{:var, charlist}`, `{:alias, charlist}`,
       `{:module_attribute, charlist}`, `{:unquoted_atom, charlist}` or a `dot
@@ -290,7 +287,6 @@ defmodule Code do
   """
   @spec cursor_context(List.Chars.t(), keyword()) ::
           {:alias, charlist}
-          | {:alias_or_dot, charlist}
           | {:dot, inside_dot, charlist}
           | {:dot_arity, inside_dot, charlist}
           | {:dot_call, inside_dot, charlist}
@@ -336,7 +332,7 @@ defmodule Code do
     cursor_context(to_charlist(other), opts)
   end
 
-  @operators '\\<>+-*/:=|&~^@'
+  @operators '\\<>+-*/:=|&~^@%'
   @non_closing_punctuation '.,([{;'
   @closing_punctuation ')]}'
   @space '\t\s'
@@ -360,15 +356,8 @@ defmodule Code do
       {[?@ | _], 0} ->
         {:module_attribute, ''}
 
-      # Start of a dot or alias
       {[?. | rest], _} ->
-        case identifier_to_cursor_context(rest) do
-          {:alias, prev} -> {:alias_or_dot, prev}
-          {:local_or_var, prev} -> {:dot, {:var, prev}, []}
-          {:unquoted_atom, _} = prev -> {:dot, prev, []}
-          {:dot, _, _} = prev -> {:dot, prev, []}
-          _ -> :none
-        end
+        dot(rest, '')
 
       # It is a local or remote call with parens
       {[?( | rest], _} ->
@@ -422,20 +411,27 @@ defmodule Code do
       {:alias, _, '@' ++ _, _} -> :none
       {:identifier, _, '@' ++ _, acc} -> {:module_attribute, acc}
       # Everything else
-      {kind, _, '.' ++ rest, acc} -> alias_or_dot(kind, rest, acc)
+      {:alias, _, '.' ++ rest, acc} -> nested_alias(rest, acc)
+      {:identifier, _, '.' ++ rest, acc} -> dot(rest, acc)
       {kind, _, _, acc} -> alias_or_local_or_var(kind, acc)
       :none -> :none
     end
   end
 
-  defp alias_or_dot(kind, rest, acc) do
-    case {kind, identifier_to_cursor_context(rest)} do
-      {:alias, {:alias, prev}} -> {:alias, prev ++ '.' ++ acc}
-      {:identifier, {:local_or_var, prev}} -> {:dot, {:var, prev}, acc}
-      {:identifier, {:unquoted_atom, _} = prev} -> {:dot, prev, acc}
-      {:identifier, {:alias, _} = prev} -> {:dot, prev, acc}
-      {:identifier, {:dot, _, _} = prev} -> {:dot, prev, acc}
-      {:identifier, {:module_attribute, _} = prev} -> {:dot, prev, acc}
+  defp nested_alias(rest, acc) do
+    case identifier_to_cursor_context(rest) do
+      {:alias, prev} -> {:alias, prev ++ '.' ++ acc}
+      _ -> :none
+    end
+  end
+
+  defp dot(rest, acc) do
+    case identifier_to_cursor_context(rest) do
+      {:local_or_var, prev} -> {:dot, {:var, prev}, acc}
+      {:unquoted_atom, _} = prev -> {:dot, prev, acc}
+      {:alias, _} = prev -> {:dot, prev, acc}
+      {:dot, _, _} = prev -> {:dot, prev, acc}
+      {:module_attribute, _} = prev -> {:dot, prev, acc}
       _ -> :none
     end
   end

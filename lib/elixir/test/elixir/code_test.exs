@@ -46,16 +46,13 @@ defmodule CodeTest do
       assert Code.cursor_context("hellò_wó") == {:local_or_var, 'hellò_wó'}
     end
 
-    test "alias_or_dot" do
-      assert Code.cursor_context("Hello.") == {:alias_or_dot, 'Hello'}
-      assert Code.cursor_context("Hello.World.") == {:alias_or_dot, 'Hello.World'}
-    end
-
     test "dot" do
       assert Code.cursor_context("hello.") == {:dot, {:var, 'hello'}, ''}
       assert Code.cursor_context(":hello.") == {:dot, {:unquoted_atom, 'hello'}, ''}
       assert Code.cursor_context("nested.map.") == {:dot, {:dot, {:var, 'nested'}, 'map'}, ''}
 
+      assert Code.cursor_context("Hello.") == {:dot, {:alias, 'Hello'}, ''}
+      assert Code.cursor_context("Hello.World.") == {:dot, {:alias, 'Hello.World'}, ''}
       assert Code.cursor_context("Hello.wor") == {:dot, {:alias, 'Hello'}, 'wor'}
       assert Code.cursor_context("hello.wor") == {:dot, {:var, 'hello'}, 'wor'}
       assert Code.cursor_context(":hello.wor") == {:dot, {:unquoted_atom, 'hello'}, 'wor'}
@@ -115,6 +112,7 @@ defmodule CodeTest do
       assert Code.cursor_context("Hello.Wor") == {:alias, 'Hello.Wor'}
       assert Code.cursor_context("Hello::Wor") == {:alias, 'Wor'}
       assert Code.cursor_context("Hello..Wor") == {:alias, 'Wor'}
+      assert Code.cursor_context("%Hello.Wor") == {:alias, 'Hello.Wor'}
     end
 
     test "unquoted atom" do
@@ -158,8 +156,8 @@ defmodule CodeTest do
     end
 
     test "newlines" do
-      assert Code.cursor_context("this+does-not*matter\nHello.") == {:alias_or_dot, 'Hello'}
-      assert Code.cursor_context('this+does-not*matter\nHello.') == {:alias_or_dot, 'Hello'}
+      assert Code.cursor_context("this+does-not*matter\nHello.") == {:dot, {:alias, 'Hello'}, ''}
+      assert Code.cursor_context('this+does-not*matter\nHello.') == {:dot, {:alias, 'Hello'}, ''}
     end
   end
 
