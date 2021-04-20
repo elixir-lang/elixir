@@ -335,15 +335,15 @@ defmodule Module do
         @vsn "1.0"
       end
 
-  ### Struct attributes
+  ### `@derive`
 
-    * `@derive` - derives an implementation for the given protocol for the
-      struct defined in the current module
+  Derives an implementation for the given protocol for the struct defined in
+  the current module. See `Kernel.defstruct/1 for more information.
 
-    * `@enforce_keys` - ensures the given keys are always set when building
-      the struct defined in the current module
+  ### `@enforce_keys`
 
-  See `Kernel.defstruct/1` for more information on building and using structs.
+  Ensures the given keys are always set when building the struct defined in
+  the current module. See `Kernel.defstruct/1` for more information.
 
   ### Typespec attributes
 
