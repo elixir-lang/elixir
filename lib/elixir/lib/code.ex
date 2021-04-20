@@ -285,6 +285,7 @@ defmodule Code do
     * Arguments of functions calls are not currently recognized
 
   """
+  @doc since: "1.12.0"
   @spec cursor_context(List.Chars.t(), keyword()) ::
           {:alias, charlist}
           | {:dot, inside_dot, charlist}
