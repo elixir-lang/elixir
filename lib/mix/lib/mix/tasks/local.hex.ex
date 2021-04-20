@@ -25,7 +25,8 @@ defmodule Mix.Tasks.Local.Hex do
       intended to avoid repeatedly reinstalling Hex in automation when a script
       may be run multiple times
 
-  If both options are set, `--force` takes precedence.
+  If both options are set, the shell prompt is skipped and Hex is not
+  re-installed if it was already installed.
 
   ## Mirrors
 
