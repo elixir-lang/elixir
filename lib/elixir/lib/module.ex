@@ -335,6 +335,16 @@ defmodule Module do
         @vsn "1.0"
       end
 
+  ### Struct attributes
+
+    * `@derive` - derives an implementation for the given protocol for the
+      struct defined in the current module
+
+    * `@enforce_keys` - ensures the given keys are always set when building
+      the struct defined in the current module
+
+  See `Kernel.defstruct/1` for more information on building and using structs.
+
   ### Typespec attributes
 
   The following attributes are part of typespecs and are also built-in in
@@ -542,6 +552,103 @@ defmodule Module do
   @callback __info__(:macros) :: keyword()
   @callback __info__(:md5) :: binary()
   @callback __info__(:module) :: module()
+
+  @doc """
+  Returns information about module attributes used by Elixir.
+
+  See the "Module attributes" section in the module documentation for more
+  information on each attribute.
+
+  ## Examples
+
+      iex> map = Module.reserved_attributes()
+      iex> Map.has_key?(map, :moduledoc)
+      true
+      iex> Map.has_key?(map, :doc)
+      true
+
+  """
+  @doc since: "1.12.0"
+  def reserved_attributes() do
+    %{
+      after_compile: %{
+        doc: "A hook that will be invoked right after the current module is compiled."
+      },
+      before_compile: %{
+        doc: "A hook that will be invoked before the module is compiled."
+      },
+      behaviour: %{
+        doc: "Specifies that the current module implements a given behaviour."
+      },
+      on_definition: %{
+        doc:
+          "A hook that will be invoked when each function or macro in the current module is defined."
+      },
+      impl: %{
+        doc: "Declares an implementation of a callback function or macro."
+      },
+      compile: %{
+        doc: "Defines options for module compilation."
+      },
+      deprecated: %{
+        doc: "Provides the deprecation reason for a function."
+      },
+      moduledoc: %{
+        doc: "Provides documentation for the current module."
+      },
+      doc: %{
+        doc: "Provides documentation for a function/macro/callback."
+      },
+      typedoc: %{
+        doc: "Provides documentation for a type."
+      },
+      dialyzer: %{
+        doc: "Defines Dialyzer warnings to request or suppress."
+      },
+      external_resource: %{
+        doc: "Specifies an external resource for the current module."
+      },
+      file: %{
+        doc:
+          "Changes the filename used in stacktraces for the function or macro that follows the attribute."
+      },
+      on_load: %{
+        doc: "A hook that will be invoked whenever the module is loaded."
+      },
+      vsn: %{
+        doc: "Specify the module version."
+      },
+      type: %{
+        doc: "Defines a type to be used in `@spec`."
+      },
+      typep: %{
+        doc: "Defines a private type to be used in `@spec`."
+      },
+      opaque: %{
+        doc: "Defines an opaque type to be used in `@spec`."
+      },
+      spec: %{
+        doc: "Provides a specification for a function."
+      },
+      callback: %{
+        doc: "Provides a specification for a behaviour callback."
+      },
+      macrocallback: %{
+        doc: "Provides a specification for a macro behaviour callback."
+      },
+      optional_callbacks: %{
+        doc: "Specifies which behaviour callbacks and macro behaviour callbacks are optional."
+      },
+      derive: %{
+        doc:
+          "Derives an implementation for the given protocol for the struct defined in the current module."
+      },
+      enforce_keys: %{
+        doc:
+          "Ensures the given keys are always set when building the struct defined in the current module."
+      }
+    }
+  end
 
   @doc """
   Checks if a module is open.
