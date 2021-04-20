@@ -28,7 +28,6 @@ defmodule IEx.AutocompleteTest do
 
   test "Erlang module no completion" do
     assert expand(':unknown') == {:no, '', []}
-    assert expand('Enum:') == {:no, '', []}
   end
 
   test "Erlang module multiple values completion" do
@@ -383,14 +382,6 @@ defmodule IEx.AutocompleteTest do
   after
     :code.purge(:"Elixir.IEx.AutocompleteTest.Unicodé")
     :code.delete(:"Elixir.IEx.AutocompleteTest.Unicodé")
-  end
-
-  test "no signature help" do
-    default_expand = expand('[')
-
-    assert expand('(') == default_expand
-    assert expand('x(') == default_expand
-    assert expand('Foo.x(') == default_expand
   end
 
   test "signature help for functions and macros" do
