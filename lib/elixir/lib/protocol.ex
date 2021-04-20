@@ -718,55 +718,64 @@ defmodule Protocol do
     end
   end
 
-  defp callback_ast_to_fa({kind, {:"::", _, [{name, _, args}, _return]}, _pos})
+  defp callback_ast_to_fa({kind, {:"::", meta, [{name, _, args}, _return]}, _pos})
        when kind in [:callback, :macrocallback] do
-    {name, length(args)}
+    {{name, length(args)}, meta}
   end
 
   defp callback_ast_to_fa(
-         {kind, {:when, _, [{:"::", _, [{name, _, args}, _return]}, _vars]}, _pos}
+         {kind, {:when, _, [{:"::", meta, [{name, _, args}, _return]}, _vars]}, _pos}
        )
        when kind in [:callback, :macrocallback] do
-    {name, length(args)}
+    {{name, length(args)}, meta}
   end
 
-  defp warn(message, env) do
+  defp callback_metas(module, kind)
+       when kind in [:callback, :macrocallback] do
+    :lists.map(&callback_ast_to_fa/1, Module.get_attribute(module, kind))
+    |> :maps.from_list()
+  end
+
+  defp get_callback_line(fa, metas),
+    do: :maps.get(fa, metas, [])[:line]
+
+  defp warn(message, env, nil) do
     IO.warn(message, Macro.Env.stacktrace(env))
+  end
+
+  defp warn(message, env, line) when is_integer(line) do
+    stacktrace = :maps.update(:line, line, env) |> Macro.Env.stacktrace()
+    IO.warn(message, stacktrace)
   end
 
   # TODO: Convert the following warnings into errors future Elixir versions
   def __before_compile__(env) do
     # Callbacks
-    callbacks =
-      :lists.map(
-        &callback_ast_to_fa/1,
-        Module.get_attribute(env.module, :callback)
-      )
-
+    callback_metas = callback_metas(env.module, :callback)
+    callbacks = :maps.keys(callback_metas)
     functions = Module.get_attribute(env.module, :functions)
 
     :lists.map(
-      fn {name, arity} ->
+      fn {name, arity} = fa ->
         warn(
           "cannot define @callback #{name}/#{arity} inside protocol, use def/1 to outline your protocol definition",
-          env
+          env,
+          get_callback_line(fa, callback_metas)
         )
       end,
       callbacks -- functions
     )
 
     # Macro Callbacks
-    macrocallbacks =
-      :lists.map(
-        &callback_ast_to_fa/1,
-        Module.get_attribute(env.module, :macrocallback)
-      )
+    macrocallback_metas = callback_metas(env.module, :macrocallback)
+    macrocallbacks = :maps.keys(macrocallback_metas)
 
     :lists.map(
-      fn {name, arity} ->
+      fn {name, arity} = fa ->
         warn(
           "cannot define @macrocallback #{name}/#{arity} inside protocol, use def/1 to outline your protocol definition",
-          env
+          env,
+          get_callback_line(fa, macrocallback_metas)
         )
       end,
       macrocallbacks
@@ -778,7 +787,8 @@ defmodule Protocol do
     if length(optional_callbacks) > 0 do
       warn(
         "cannot define @optional_callbacks inside protocol, all of the protocol definitions are required",
-        env
+        env,
+        nil
       )
     end
   end
