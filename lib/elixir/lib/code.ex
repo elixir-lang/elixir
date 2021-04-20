@@ -238,10 +238,10 @@ defmodule Code do
 
     * `{:dot, inside_dot, charlist}` - the context is a dot
       where `inside_dot` is either a `{:var, charlist}`, `{:alias, charlist}`,
-      `{:module_attribute, charlist}`, `{:unquoted_atom, charlist}` or a `dot
-       itself. If a var is given, this may either be a remote call or a map
-       field access. Examples are `Hello.wor`, `:hello.wor`, `hello.wor`,
-       `Hello.nested.wor`, `hello.nested.wor`, and `@hello.world`
+      `{:module_attribute, charlist}`, `{:unquoted_atom, charlist}` or a `dot`
+      itself. If a var is given, this may either be a remote call or a map
+      field access. Examples are `Hello.wor`, `:hello.wor`, `hello.wor`,
+      `Hello.nested.wor`, `hello.nested.wor`, and `@hello.world`
 
     * `{:dot_arity, inside_dot, charlist}` - the context is a dot arity
       where `inside_dot` is either a `{:var, charlist}`, `{:alias, charlist}`,
