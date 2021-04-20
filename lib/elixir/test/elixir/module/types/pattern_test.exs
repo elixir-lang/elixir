@@ -53,11 +53,13 @@ defmodule Module.Types.PatternTest do
   end
 
   defp lift_result({:ok, types, context}) when is_list(types) do
-    {:ok, Unify.lift_types(types, context)}
+    {types, _context} = Unify.lift_types(types, context)
+    {:ok, types}
   end
 
   defp lift_result({:ok, type, context}) do
-    {:ok, [type] |> Unify.lift_types(context) |> hd()}
+    {[type], _context} = Unify.lift_types([type], context)
+    {:ok, type}
   end
 
   defp lift_result({:error, {type, reason, _context}}) do
@@ -292,9 +294,6 @@ defmodule Module.Types.PatternTest do
       assert quoted_head([x], [is_boolean(x) and is_atom(x)]) ==
                {:ok, [{:union, [atom: true, atom: false]}]}
 
-      assert quoted_head([x], [is_atom(x) and is_boolean(x)]) ==
-               {:ok, [{:union, [atom: true, atom: false]}]}
-
       assert quoted_head([x], [is_atom(x) > :foo]) == {:ok, [var: 0]}
 
       assert quoted_head([x, x = y, y = z], [is_atom(x)]) ==
@@ -343,6 +342,10 @@ defmodule Module.Types.PatternTest do
                quoted_head([x], [is_tuple(is_atom(x))])
     end
 
+    test "guard downcast" do
+      assert {:error, _} = quoted_head([x], [is_atom(x) and is_boolean(x)])
+    end
+
     test "guard and" do
       assert quoted_head([], [(true and 1) > 0]) == {:ok, []}
 
@@ -352,9 +355,26 @@ defmodule Module.Types.PatternTest do
              ) == {:ok, [{:map, [{:optional, :dynamic, :dynamic}]}]}
     end
 
+    test "interesection functions" do
+      assert quoted_head([x], [+x]) == {:ok, [{:union, [:integer, :float]}]}
+      assert quoted_head([x], [x + 1]) == {:ok, [{:union, [:integer, :float]}]}
+      assert quoted_head([x], [x + 1.0]) == {:ok, [{:union, [:integer, :float]}]}
+    end
+
     test "nested calls with interesections in guards" do
       assert quoted_head([x], [:erlang.rem(x, 2)]) == {:ok, [:integer]}
-      assert quoted_head([x], [:erlang.rem(x + x, 2)]) == {:ok, [{:union, [:integer, :float]}]}
+      assert quoted_head([x], [:erlang.rem(x + x, 2)]) == {:ok, [:integer]}
+
+      assert quoted_head([x], [:erlang.bnot(+x)]) == {:ok, [:integer]}
+      assert quoted_head([x], [:erlang.bnot(x + 1)]) == {:ok, [:integer]}
+
+      assert {:error,
+              {:unable_apply,
+               {_, [{:var, 0}, :float],
+                [
+                  {[:integer, :integer], :integer},
+                  {[union: [:integer, :float], union: [:integer, :float]], :float}
+                ], _}}} = quoted_head([x], [:erlang.bnot(x + 1.0)])
     end
 
     test "erlang-only guards" do
@@ -365,17 +385,28 @@ defmodule Module.Types.PatternTest do
     test "failing guard functions" do
       assert quoted_head([x], [length([])]) == {:ok, [{:var, 0}]}
 
-      assert {:error, {:unable_unify, {{:atom, :foo}, {:list, :dynamic}, _}}} =
+      assert {:error,
+              {:unable_apply,
+               {{:erlang, :length, 1}, [{:atom, :foo}], [{[{:list, :dynamic}], :integer}], _}}} =
                quoted_head([x], [length(:foo)])
 
-      assert {:error, {:unable_unify, {{:atom, true}, {:list, :dynamic}, _}}} =
-               quoted_head([x], [length(is_tuple(x))])
+      assert {:error,
+              {:unable_apply,
+               {_, [{:union, [{:atom, true}, {:atom, false}]}], [{[{:list, :dynamic}], :integer}],
+                _}}} = quoted_head([x], [length(is_tuple(x))])
 
-      assert {:error, {:unable_unify, {{:atom, true}, :tuple, _}}} =
-               quoted_head([x], [elem(is_tuple(x), 0)])
+      assert {:error,
+              {:unable_apply,
+               {_, [:integer, {:union, [{:atom, true}, {:atom, false}]}],
+                [{[:integer, :tuple], :dynamic}], _}}} = quoted_head([x], [elem(is_tuple(x), 0)])
 
-      assert {:error, {:unable_unify, {{:atom, true}, {:union, [:integer, :float]}, _}}} =
-               quoted_head([x], [elem({}, is_tuple(x))])
+      assert {:error,
+              {:unable_apply,
+               {_, [{:union, [{:atom, true}, {:atom, false}]}, :integer],
+                [
+                  {[:integer, :integer], :integer},
+                  {[union: [:integer, :float], union: [:integer, :float]], :float}
+                ], _}}} = quoted_head([x], [elem({}, is_tuple(x))])
 
       assert quoted_head([x], [elem({}, 1)]) == {:ok, [var: 0]}
 
