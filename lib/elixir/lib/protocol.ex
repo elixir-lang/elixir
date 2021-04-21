@@ -275,7 +275,7 @@ defmodule Protocol do
       name = unquote(name)
       arity = unquote(arity)
 
-      @_functions [{name, arity} | @_functions]
+      @__functions__ [{name, arity} | @__functions__]
 
       # Generate a fake definition with the user
       # signature that will be used by docs
@@ -706,7 +706,7 @@ defmodule Protocol do
         @compile :debug_info
 
         # Set up a clear slate to store defined functions
-        @_functions []
+        @__functions__ []
         @fallback_to_any false
 
         # Invoke the user given block
@@ -753,7 +753,7 @@ defmodule Protocol do
     # Callbacks
     callback_metas = callback_metas(env.module, :callback)
     callbacks = :maps.keys(callback_metas)
-    functions = Module.get_attribute(env.module, :_functions)
+    functions = Module.get_attribute(env.module, :__functions__)
 
     :lists.map(
       fn {name, arity} = fa ->
@@ -883,11 +883,11 @@ defmodule Protocol do
 
       @doc false
       @spec __protocol__(:module) :: __MODULE__
-      @spec __protocol__(:functions) :: unquote(Protocol.__functions_spec__(@_functions))
+      @spec __protocol__(:functions) :: unquote(Protocol.__functions_spec__(@__functions__))
       @spec __protocol__(:consolidated?) :: boolean
       @spec __protocol__(:impls) :: :not_consolidated | {:consolidated, [module]}
       Kernel.def(__protocol__(:module), do: __MODULE__)
-      Kernel.def(__protocol__(:functions), do: unquote(:lists.sort(@_functions)))
+      Kernel.def(__protocol__(:functions), do: unquote(:lists.sort(@__functions__)))
       Kernel.def(__protocol__(:consolidated?), do: false)
       Kernel.def(__protocol__(:impls), do: :not_consolidated)
     end
