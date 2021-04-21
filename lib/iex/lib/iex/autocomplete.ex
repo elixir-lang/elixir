@@ -21,9 +21,9 @@ defmodule IEx.Autocomplete do
   environment, which is found via the broker.
   """
   def expand(code , shell \\ IEx.Broker.shell()) do
-    case expand_code(code, shell) do
-      {:yes, _, _} = result -> result
-      _ -> expand_path(code)
+    case path_fragment(code) do
+      [] -> expand_code(code, shell)
+      path -> expand_path(code)
     end
   end
 
@@ -595,16 +595,10 @@ defmodule IEx.Autocomplete do
   defp discard_path_fragment([?" | t], acc), do: return_path_fragment(t, acc)
   defp discard_path_fragment([_ | t], acc), do: discard_path_fragment(t, acc)
 
-  defp expand_path(code) do
-    case path_fragment(code) do
-      [] ->
-        no()
-
-      path_fragment ->
-        path_fragment = List.to_string(path_fragment)
-        possible_paths = find_possible_paths(path_fragment)
-        expand_path(path_fragment, possible_paths)
-    end
+  defp expand_path(path_fragment) do
+    path_fragment = List.to_string(path_fragment)
+    possible_paths = find_possible_paths(path_fragment)
+    expand_path(path_fragment, possible_paths)
   end
 
   defp expand_path(path_fragment, possible_paths) do
