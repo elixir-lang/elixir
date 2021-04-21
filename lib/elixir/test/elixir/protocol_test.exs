@@ -277,6 +277,18 @@ defmodule ProtocolTest do
                    end
                  end
   end
+
+  test "malformed @callback raises with CompileError" do
+    assert_raise CompileError,
+                 "nofile:2: type specification missing return type: foo(term)",
+                 fn ->
+                   Code.eval_string("""
+                   defprotocol WithMalformedCallback do
+                     @callback foo(term)
+                   end
+                   """)
+                 end
+  end
 end
 
 defmodule Protocol.DebugInfoTest do
