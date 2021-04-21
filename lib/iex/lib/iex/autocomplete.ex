@@ -152,7 +152,7 @@ defmodule IEx.Autocomplete do
   end
 
   defp expand_dot_path({:var, var}, shell) do
-    value_from_binding({List.to_atom(var), [], nil}, shell)
+    value_from_binding(List.to_atom(var), shell)
   end
 
   defp expand_dot_path({:alias, var}, shell) do
@@ -539,28 +539,11 @@ defmodule IEx.Autocomplete do
     end
   end
 
-  defp value_from_binding(ast_node, shell) do
-    with {evaluator, server} <- IEx.Broker.evaluator(shell),
-         {var, map_key_path} <- extract_from_ast(ast_node, []) do
-      IEx.Evaluator.value_from_binding(evaluator, server, var, map_key_path)
+  defp value_from_binding(var_name, shell) do
+    with {evaluator, server} <- IEx.Broker.evaluator(shell) do
+      IEx.Evaluator.value_from_binding(evaluator, server, var_name, [])
     else
       _ -> :error
     end
-  end
-
-  defp extract_from_ast(var_name, acc) when is_atom(var_name) do
-    {var_name, acc}
-  end
-
-  defp extract_from_ast({var_name, _, nil}, acc) when is_atom(var_name) do
-    {var_name, acc}
-  end
-
-  defp extract_from_ast({{:., _, [ast_node, fun]}, _, []}, acc) when is_atom(fun) do
-    extract_from_ast(ast_node, [fun | acc])
-  end
-
-  defp extract_from_ast(_ast_node, _acc) do
-    :error
   end
 end
