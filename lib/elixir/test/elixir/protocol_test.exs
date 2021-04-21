@@ -283,9 +283,9 @@ defmodule ProtocolTest do
                  "nofile:2: type specification missing return type: foo(term)",
                  fn ->
                    Code.eval_string("""
-                     defprotocol WithMalformedCallback do
-                       @callback foo(term)
-                     end
+                   defprotocol WithMalformedCallback do
+                     @callback foo(term)
+                   end
                    """)
                  end
   end
