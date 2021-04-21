@@ -482,7 +482,7 @@ defmodule IEx.Autocomplete do
   ## Ad-hoc conversions
 
   defp to_entries(%{kind: kind, name: name})
-       when kind in [:map_key, :module, :variable] do
+       when kind in [:map_key, :module, :variable, :dir, :file] do
     [name]
   end
 
@@ -491,7 +491,7 @@ defmodule IEx.Autocomplete do
   end
 
   defp to_uniq_entries(%{kind: kind})
-       when kind in [:map_key, :module, :variable] do
+       when kind in [:map_key, :module, :variable, :dir, :file] do
     []
   end
 
@@ -507,8 +507,16 @@ defmodule IEx.Autocomplete do
     format_hint(name, hint) <> "."
   end
 
+  defp to_hint(%{kind: :dir, name: name}, hint) when name == hint do
+    format_hint(name, name) <> "/"
+  end
+
+  defp to_hint(%{kind: :file, name: name}, hint) when name == hint do
+    format_hint(name, name) <> "\""
+  end
+
   defp to_hint(%{kind: kind, name: name}, hint)
-       when kind in [:function, :map_key, :module, :variable] do
+       when kind in [:function, :map_key, :module, :variable, :dir, :file] do
     format_hint(name, hint)
   end
 
@@ -571,60 +579,45 @@ defmodule IEx.Autocomplete do
     :error
   end
 
-  defp path_fragment(expr), do: collect_path_fragment(expr, [])
-
-  # collects the fragment and store it on `acc`, calls `return_path_fragment` 
-  # when it finds a `"`, discards `acc` otherwise
-  defp collect_path_fragment([], _acc), do: []
-  defp collect_path_fragment([?{, ?# | _rest], _acc), do: []
-  defp collect_path_fragment([?", ?\\ | t], acc), do: collect_path_fragment(t, [?\\, ?" | acc])
-  defp collect_path_fragment([?/, ?., ?" | _], acc), do: [?., ?/ | acc]
-  defp collect_path_fragment([?/, ?" | _], acc), do: [?/ | acc]
-  defp collect_path_fragment([?" | _], _acc), do: []
-  defp collect_path_fragment([h | t], acc), do: collect_path_fragment(t, [h | acc])
+  defp path_fragment(expr), do: path_fragment(expr, [])
+  defp path_fragment([], _acc), do: []
+  defp path_fragment([?{, ?# | _rest], _acc), do: []
+  defp path_fragment([?", ?\\ | t], acc), do: path_fragment(t, [?\\, ?" | acc])
+  defp path_fragment([?/, ?., ?" | _], acc), do: [?., ?/ | acc]
+  defp path_fragment([?/, ?" | _], acc), do: [?/ | acc]
+  defp path_fragment([?" | _], _acc), do: []
+  defp path_fragment([h | t], acc), do: path_fragment(t, [h | acc])
 
   defp expand_path(path_fragment) do
-    path_fragment = List.to_string(path_fragment)
-    possible_paths = find_possible_paths(path_fragment)
-    expand_path(path_fragment, possible_paths)
+    path = List.to_string(path_fragment)
+    dir = Path.dirname(path_fragment)
+
+    path
+    |> ls_prefix(dir)
+    |> Enum.map(fn path -> 
+      %{
+        kind: (if File.dir?(path), do: :dir, else: :file), 
+        name: Path.basename(path)
+      } 
+    end)
+    |> format_expansion(path_hint(path, dir))
   end
 
-  defp expand_path(path_fragment, possible_paths) do
-    expansions =
-      Enum.map(possible_paths, fn {path, dir?} ->
-        {completion_part(path_fragment, path, dir?), String.to_charlist(Path.basename(path))}
-      end)
+  defp path_hint(path, dir) do
+    path_size = byte_size(path)
+    dir_size = byte_size(dir)
 
-    case expansions do
-      [] ->
-        no()
-
-      [{unique, _}] ->
-        {:yes, String.to_charlist(unique), []}
-
-      list ->
-        {completions, filenames} = Enum.unzip(list)
-        common_prefix_size = :binary.longest_common_prefix(completions)
-        hint = completions |> hd() |> binary_part(0, common_prefix_size) |> String.to_charlist()
-        {:yes, hint, filenames}
-    end
-  end
-
-  defp completion_part(already_entered, full_path, dir?) do
-    part = String.replace_prefix(full_path, already_entered, "")
-
-    if dir? do
-      part <> "/"
+    if path_size == dir_size do
+      ""
     else
-      part <> "\""
+      binary_part(path, dir_size + 1, path_size - (dir_size + 1))
     end
   end
 
   defp prefix_from_dir(".", <<c, _::binary>>) when c != ?., do: ""
   defp prefix_from_dir(dir, _fragment), do: dir
 
-  defp ls_prefix(path_fragment) do
-    dir = Path.dirname(path_fragment)
+  defp ls_prefix(path_fragment, dir) do
     prefix = prefix_from_dir(dir, path_fragment)
 
     case File.ls(dir) do
@@ -636,11 +629,5 @@ defmodule IEx.Autocomplete do
       _ ->
         []
     end
-  end
-
-  defp find_possible_paths(path_fragment) do
-    path_fragment
-    |> ls_prefix()
-    |> Enum.map(fn path -> {path, File.dir?(path)} end)
   end
 end
