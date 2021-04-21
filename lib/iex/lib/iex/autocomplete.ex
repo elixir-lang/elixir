@@ -23,7 +23,7 @@ defmodule IEx.Autocomplete do
   def expand(code , shell \\ IEx.Broker.shell()) do
     case path_fragment(code) do
       [] -> expand_code(code, shell)
-      path -> expand_path(code)
+      path -> expand_path(path)
     end
   end
 
@@ -576,24 +576,12 @@ defmodule IEx.Autocomplete do
   # collects the fragment and store it on `acc`, calls `return_path_fragment` 
   # when it finds a `"`, discards `acc` otherwise
   defp collect_path_fragment([], _acc), do: []
-  defp collect_path_fragment([?", ?\\ | t], acc), do: collect_path_fragment(t, [?\\, ?" | acc])
   defp collect_path_fragment([?{, ?# | _rest], _acc), do: []
-  defp collect_path_fragment([?" | t], acc), do: return_path_fragment(t, acc)
+  defp collect_path_fragment([?", ?\\ | t], acc), do: collect_path_fragment(t, [?\\, ?" | acc])
+  defp collect_path_fragment([?/, ?., ?" | _], acc), do: [?., ?/ | acc]
+  defp collect_path_fragment([?/, ?" | _], acc), do: [?/ | acc]
+  defp collect_path_fragment([?" | _], _acc), do: []
   defp collect_path_fragment([h | t], acc), do: collect_path_fragment(t, [h | acc])
-
-  # scans the rest of the `expr`, returns `acc` if no other `"` is found, 
-  # fallback to `discard_path_fragment` otherwise
-  defp return_path_fragment([], acc), do: acc
-  defp return_path_fragment([?", ?\\ | t], acc), do: return_path_fragment(t, [?\\, ?" | acc])
-  defp return_path_fragment([?" | t], acc), do: discard_path_fragment(t, acc)
-  defp return_path_fragment([_ | t], acc), do: return_path_fragment(t, acc)
-
-  # scans the rest of the `expr`, discards `acc` if no other `"` is found, 
-  # fallback to `return_path_fragment` otherwise
-  defp discard_path_fragment([], _acc), do: []
-  defp discard_path_fragment([?", ?\\ | t], acc), do: discard_path_fragment(t, [?\\, ?" | acc])
-  defp discard_path_fragment([?" | t], acc), do: return_path_fragment(t, acc)
-  defp discard_path_fragment([_ | t], acc), do: discard_path_fragment(t, acc)
 
   defp expand_path(path_fragment) do
     path_fragment = List.to_string(path_fragment)

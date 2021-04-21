@@ -411,7 +411,7 @@ defmodule IEx.AutocompleteTest do
     File.touch("./dir/file3")
     File.touch("./dir/file4")
 
-    assert expand('".') == {:yes, '/', ['file2', 'single1', 'dir', 'file1']}
+    assert expand('"./') == {:yes, '', ['file2', 'single1', 'dir', 'file1']}
     assert expand('"./sin') == {:yes, 'gle1"', []}
     assert expand('"./fi') == {:yes, 'le', ['file2', 'file1']}
     assert expand('"./d') == {:yes, 'ir/', []}
@@ -433,7 +433,7 @@ defmodule IEx.AutocompleteTest do
         assert 'var' in list
     end
 
-    default_expand = expand('{')
-    assert expand('"./dir/#\{') == default_expand
+    assert expand('"./dir/#\{') == expand('{')
+    assert expand('Path.join("./foo", is_') == expand('is_')
   end
 end
