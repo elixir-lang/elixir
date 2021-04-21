@@ -20,7 +20,14 @@ defmodule IEx.Autocomplete do
   Some of the expansion has to be use the current shell
   environment, which is found via the broker.
   """
-  def expand(code, shell \\ IEx.Broker.shell()) do
+  def expand(code , shell \\ IEx.Broker.shell()) do
+    case expand_code(code, shell) do
+      {:yes, _, _} = result -> result
+      _ -> expand_path(code)
+    end
+  end
+
+  defp expand_code(code, shell) do
     code = Enum.reverse(code)
     helper = get_helper(code)
 
@@ -61,13 +68,7 @@ defmodule IEx.Autocomplete do
       # {:module_attribute, charlist}
       # :none
       _ ->
-        path = path_fragment(code)
-
-        if path != [] do
-          expand_path(path)
-        else
-          no()
-        end
+        no()
     end
   end
 
@@ -594,10 +595,16 @@ defmodule IEx.Autocomplete do
   defp discard_path_fragment([?" | t], acc), do: return_path_fragment(t, acc)
   defp discard_path_fragment([_ | t], acc), do: discard_path_fragment(t, acc)
 
-  defp expand_path(path_fragment) do
-    path_fragment = List.to_string(path_fragment)
-    possible_paths = find_possible_paths(path_fragment)
-    expand_path(path_fragment, possible_paths)
+  defp expand_path(code) do
+    case path_fragment(code) do
+      [] ->
+        no()
+
+      path_fragment ->
+        path_fragment = List.to_string(path_fragment)
+        possible_paths = find_possible_paths(path_fragment)
+        expand_path(path_fragment, possible_paths)
+    end
   end
 
   defp expand_path(path_fragment, possible_paths) do
