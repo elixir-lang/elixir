@@ -402,36 +402,25 @@ defmodule IEx.AutocompleteTest do
 
   @tag :tmp_dir
   test "path completion inside strings", %{tmp_dir: dir} do
-    File.cd!(dir)
+    dir |> Path.join("single1") |> File.touch()
+    dir |> Path.join("file1") |> File.touch()
+    dir |> Path.join("file2") |> File.touch()
+    dir |> Path.join("dir") |> File.mkdir()
+    dir |> Path.join("dir/file3") |> File.touch()
+    dir |> Path.join("dir/file4") |> File.touch()
 
-    File.touch("./single1")
-    File.touch("./file1")
-    File.touch("./file2")
-    File.mkdir("./dir")
-    File.touch("./dir/file3")
-    File.touch("./dir/file4")
+    assert expand('"#{dir}/') == {:yes, '', ['file2', 'single1', 'dir', 'file1']}
+    assert expand('"#{dir}/sin') == {:yes, 'gle1"', []}
+    assert expand('"#{dir}/fi') == {:yes, 'le', ['file2', 'file1']}
+    assert expand('"#{dir}/d') == {:yes, 'ir/', []}
+    assert expand('"#{dir}/dir/') == {:yes, 'file', ['file3', 'file4']}
+    assert expand('"#{dir}/dir/#\{Str') == {:yes, '', ['Stream', 'String', 'StringIO']}
 
-    assert expand('"./') == {:yes, '', ['file2', 'single1', 'dir', 'file1']}
-    assert expand('"./sin') == {:yes, 'gle1"', []}
-    assert expand('"./fi') == {:yes, 'le', ['file2', 'file1']}
-    assert expand('"./d') == {:yes, 'ir/', []}
-    assert expand('"./dir/') == {:yes, 'file', ['file3', 'file4']}
-    assert expand('"./dir/#\{Str') == {:yes, '', ['Stream', 'String', 'StringIO']}
+    {:yes, [], list} = expand('"./')
+    assert list == "./" |> File.ls!() |> Enum.map(&String.to_charlist/1)
 
     {:yes, [], list} = expand('"/')
-    assert is_list(list)
-
-    case :os.type() do
-      {:win32, _} ->
-        assert 'Users' in list
-        assert 'Windows' in list
-
-      _ ->
-        assert 'bin' in list
-        assert 'etc' in list
-        assert 'opt' in list
-        assert 'var' in list
-    end
+    assert list == "/" |> File.ls!() |> Enum.map(&String.to_charlist/1)
 
     assert expand('"./dir/#\{') == expand('{')
     assert expand('Path.join("./foo", is_') == expand('is_')
