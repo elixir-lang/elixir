@@ -406,27 +406,33 @@ defmodule IEx.AutocompleteTest do
     dir |> Path.join("file1") |> File.touch()
     dir |> Path.join("file2") |> File.touch()
     dir |> Path.join("dir") |> File.mkdir()
-    dir |> Path.join("dir/file3") |> File.touch()
-    dir |> Path.join("dir/file4") |> File.touch()
+    [dir, "dir", "file3"] |> Path.join() |> File.touch()
+    [dir, "dir", "file4"] |> Path.join() |> File.touch()
 
-    assert expand('"#{dir}/') == {:yes, '', ['file2', 'single1', 'dir', 'file1']}
+    assert expand('"#{dir}/') == path_autocompletion(dir)
     assert expand('"#{dir}/sin') == {:yes, 'gle1', []}
     assert expand('"#{dir}/single1') == {:yes, '"', []}
     assert expand('"#{dir}/fi') == {:yes, 'le', []}
-    assert expand('"#{dir}/file') == {:yes, '', ['file2', 'file1']}
+    assert expand('"#{dir}/file') == path_autocompletion(dir, "file")
     assert expand('"#{dir}/d') == {:yes, 'ir', []}
     assert expand('"#{dir}/dir') == {:yes, '/', []}
     assert expand('"#{dir}/dir/') == {:yes, 'file', []}
-    assert expand('"#{dir}/dir/file') == {:yes, '', ['file3', 'file4']}
-    assert expand('"#{dir}/dir/#\{Str') == {:yes, '', ['Stream', 'String', 'StringIO']}
+    assert expand('"#{dir}/dir/file') == dir |> Path.join("dir") |> path_autocompletion("file")
+    assert expand('"./') == path_autocompletion(".")
+    assert expand('"/') == path_autocompletion("/")
+    assert expand('"./#\{') == expand('{')
+    assert expand('"./#\{Str') == expand('{Str')
+    assert expand('Path.join("./", is_') == expand('is_')
+  end
 
-    {:yes, [], list} = expand('"./')
-    assert list == "./" |> File.ls!() |> Enum.map(&String.to_charlist/1)
-
-    {:yes, [], list} = expand('"/')
-    assert list == "/" |> File.ls!() |> Enum.map(&String.to_charlist/1)
-
-    assert expand('"./dir/#\{') == expand('{')
-    assert expand('Path.join("./foo", is_') == expand('is_')
+  defp path_autocompletion(dir, hint \\ "") do
+    dir
+    |> File.ls!()
+    |> Stream.filter(&String.starts_with?(&1, hint))
+    |> Enum.map(&String.to_charlist/1)
+    |> case do
+      [] -> {:no, '', []}
+      list -> {:yes, '', list}
+    end
   end
 end
