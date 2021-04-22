@@ -20,7 +20,7 @@ defmodule IEx.Autocomplete do
   Some of the expansion has to be use the current shell
   environment, which is found via the broker.
   """
-  def expand(code , shell \\ IEx.Broker.shell()) do
+  def expand(code, shell \\ IEx.Broker.shell()) do
     case path_fragment(code) do
       [] -> expand_code(code, shell)
       path -> expand_path(path)
@@ -594,11 +594,11 @@ defmodule IEx.Autocomplete do
 
     path
     |> ls_prefix(dir)
-    |> Enum.map(fn path -> 
+    |> Enum.map(fn path ->
       %{
-        kind: (if File.dir?(path), do: :dir, else: :file), 
+        kind: if(File.dir?(path), do: :dir, else: :file),
         name: Path.basename(path)
-      } 
+      }
     end)
     |> format_expansion(path_hint(path, dir))
   end
