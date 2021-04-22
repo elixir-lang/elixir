@@ -2160,7 +2160,7 @@ defmodule Module do
   defp preprocess_attribute(:external_resource, value) when not is_binary(value) do
     raise ArgumentError,
           "@external_resource is a built-in module attribute used for specifying file " <>
-            "dependencies. It should be a string the path to a file, got: #{inspect(value)}"
+            "dependencies. It should be a string path to a file, got: #{inspect(value)}"
   end
 
   defp preprocess_attribute(:deprecated, value) when not is_binary(value) do
