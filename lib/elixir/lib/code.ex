@@ -247,7 +247,7 @@ defmodule Code do
       where `inside_dot` is either a `{:var, charlist}`, `{:alias, charlist}`,
       `{:module_attribute, charlist}`, `{:unquoted_atom, charlist}` or a `dot`
       itself. If a var is given, it must be a remote arity. Examples are
-      `Hello.world/`, `:hello.world/`, `hello.world/2`, and `@hello.world/2
+      `Hello.world/`, `:hello.world/`, `hello.world/2`, and `@hello.world/2`
 
     * `{:dot_call, inside_dot, charlist}` - the context is a dot
       call. This means parentheses or space have been added after the expression.
