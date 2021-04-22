@@ -87,6 +87,8 @@ assert_timeout = String.to_integer(System.get_env("ELIXIR_ASSERT_TIMEOUT") || "5
 epmd_exclude = if match?({:win32, _}, :os.type()), do: [epmd: true], else: []
 os_exclude = if PathHelpers.windows?(), do: [unix: true], else: [windows: true]
 
+:test_helper.cover_compile()
+
 ExUnit.start(
   trace: "--trace" in System.argv(),
   assert_receive_timeout: assert_timeout,

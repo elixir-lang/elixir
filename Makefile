@@ -286,7 +286,7 @@ test_stdlib: compile
 	$(Q) if [ "$(OS)" = "Windows_NT" ]; then \
 		cd lib/elixir && cmd //C call ../../bin/elixir.bat -r "test/elixir/test_helper.exs" -pr "test/elixir/**/$(TEST_FILES)"; \
 	else \
-		cd lib/elixir && ../../bin/elixir -r "test/elixir/test_helper.exs" -pr "test/elixir/**/$(TEST_FILES)"; \
+		cd lib/elixir && ../../bin/elixir -r "test/elixir/test_helper.exs" -r "test/elixir/**/$(TEST_FILES)" -pa "test/ebin"; \
 	fi
 
 #==> Dialyzer tasks

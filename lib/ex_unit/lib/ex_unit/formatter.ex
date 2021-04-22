@@ -110,7 +110,10 @@ defmodule ExUnit.Formatter do
         ""
       end
 
-    "Finished in #{format_us(total_us)} seconds " <>
+    :test_helper.maybe_write_coverdata()
+    :test_helper.analyze()
+
+    "Finished up in #{format_us(total_us)} seconds " <>
       "(#{maybe_load}#{format_us(async_us)}s async, #{format_us(sync_us)}s sync)"
   end
 
