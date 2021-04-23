@@ -78,9 +78,9 @@ iex(3)> :ets.insert(ets, :should_be_a_tuple)
 
 Elixir has support for ranges from before its v1.0 release. Ranges support only integers and are inclusive, using the mathematic notation `a..b`. Ranges in Elixir are either increasing `1..10` or decreasing `10..1` and the direction of the range was always inferred from the first and last positions. Ranges are always lazy as its values are emitted as they are enumerated rather than being computed upfront.
 
-Unfortunately, due to this inference, it is not possible to have empty ranges. For example, if you want to create a list of `n` elements, you can express it with a range from `1..n`, as `1..0` is a decreasing range with two elements.
+Unfortunately, due to this inference, it is not possible to have empty ranges. For example, if you want to create a list of `n` elements, you cannot express it with a range from `1..n`, as `1..0` (for `n=0`) is a decreasing range with two elements.
 
-Elixir v1.12 supports stepped ranges via the `first..last//step` notation. For example: `1..10//2` will emit the numbers `1`, `3`, `5`, `7`, and `9`. You can consider the `//` operator to perform "range division", as it effectively divides and rounds up the number of elements in the range by `step`. Steps can be either positive (increasing ranges) or negative (decreasing ranges). Stepped ranges bring more expressive power to Elixir ranges and they elegantly solve the empty range problem, as they allow the direction of the steps to be explicitly declared instead of inferred.
+Elixir v1.12 supports stepped ranges via the `first..last//step` notation. For example: `1..10//2` will emit the numbers `1`, `3`, `5`, `7`, and `9`. You can consider the `//` operator as an equivalent to "range division", as it effectively divides the number of elements in the range by `step`, rounding up on inexact scenarios. Steps can be either positive (increasing ranges) or negative (decreasing ranges). Stepped ranges bring more expressive power to Elixir ranges and they elegantly solve the empty range problem, as they allow the direction of the steps to be explicitly declared instead of inferred.
 
 As of Elixir v1.12, implicitly decreasing ranges are soft-deprecated and warnings will be emitted in future Elixir versions based on our [deprecation policy](https://hexdocs.pm/elixir/compatibility-and-deprecations.html#deprecations).
 
@@ -90,10 +90,12 @@ Elixir v1.12 has the additional of many functions across the standard library. T
 
 ## v1.12.0-rc.1
 
-### 1. Enhancenets
+### 1. Enhancements
 
 #### Elixir
 
+  * [Code] Add `Code.cursor_context/2` to return the context of a code snippet
+  * [Module] Add `Module.reserved_attributes/0` to list all reserved attributes by the language
   * [String] Update to Unicode 13.0
 
 #### ExUnit
@@ -105,6 +107,7 @@ Elixir v1.12 has the additional of many functions across the standard library. T
 #### Elixir
 
   * [Kernel] Do not ignore unimplemented signatures from generated functions
+  * [Path] Do not crash when a volume is given to `Path.absname/1`, such as "c:"
   * [Protocol] Do not forbid `defdelegate` and `defexception` in protocol bodies - the restriction for `defdelegate` will be added back on v1.13 though (regression)
 
 ## v1.12.0-rc.0 (2021-04-03)
