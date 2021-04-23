@@ -17,8 +17,8 @@ defprotocol Collectable do
 
   This design is intentional. `Enumerable` was designed to support infinite
   collections, resources and other structures with fixed shape. For example,
-  it doesn't make sense to insert values into a range, as it has a fixed
-  shape where just the range limits are stored.
+  it doesn't make sense to insert values into a `Range`, as it has a
+  fixed shape where only the range limits and step are stored.
 
   The `Collectable` module was designed to fill the gap left by the
   `Enumerable` protocol. `Collectable.into/1` can be seen as the opposite of
