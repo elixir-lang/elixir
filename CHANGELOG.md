@@ -17,6 +17,8 @@ Elixir v1.13 requires Erlang/OTP 22+.
 
 #### IEx
 
+  * [IEx.Autocomplete] Add `Path` autocompletion
+
 #### Logger
 
   * [Logger] Add `Logger.put_application_level/2`
@@ -28,6 +30,13 @@ Elixir v1.13 requires Erlang/OTP 22+.
 #### Elixir
 
   * [Protocol] Add `defdelegate` to the list of unallowed macros inside protocols as protocols do not allow function definitions
+  * [Protocol] Warn if `@callback`, `@macrocallback` and `@optional_callbacks` are defined inside protocol
+
+#### Mix
+
+  * [mix deps] Raise if local dep is unavailable while compiling
+  * [mix local.install] Do not respect `MIX_DEPS_PATH` for install commands
+  * [Mix.Shell] Add `default` option to `Mix.Shell.yes?`
 
 ### 3. Soft-deprecations (no warnings emitted)
 
