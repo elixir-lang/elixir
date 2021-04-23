@@ -158,21 +158,28 @@ defmodule IEx.Autocomplete do
     end
   end
 
-  defp expand_dot_path({:var, var}, shell) do
-    value_from_binding({List.to_atom(var), [], nil}, shell)
+  defp expand_dot_path(path, shell) do
+    case do_expand_dot_path(path, shell) do
+      {:ok, [_ | _] = path} -> value_from_binding(Enum.reverse(path), shell)
+      other -> other
+    end
   end
 
-  defp expand_dot_path({:alias, var}, shell) do
+  defp do_expand_dot_path({:var, var}, _shell) do
+    {:ok, [List.to_atom(var)]}
+  end
+
+  defp do_expand_dot_path({:alias, var}, shell) do
     var |> List.to_string() |> String.split(".") |> value_from_alias(shell)
   end
 
-  defp expand_dot_path({:unquoted_atom, var}, _shell) do
+  defp do_expand_dot_path({:unquoted_atom, var}, _shell) do
     {:ok, List.to_atom(var)}
   end
 
-  defp expand_dot_path({:dot, parent, call}, shell) do
-    case expand_dot_path(parent, shell) do
-      {:ok, %{} = map} -> Map.fetch(map, List.to_atom(call))
+  defp do_expand_dot_path({:dot, parent, call}, shell) do
+    case do_expand_dot_path(parent, shell) do
+      {:ok, [_ | _] = path} -> {:ok, [List.to_atom(call) | path]}
       _ -> :error
     end
   end
@@ -554,30 +561,15 @@ defmodule IEx.Autocomplete do
     end
   end
 
-  defp value_from_binding(ast_node, shell) do
-    with {evaluator, server} <- IEx.Broker.evaluator(shell),
-         {var, map_key_path} <- extract_from_ast(ast_node, []) do
-      IEx.Evaluator.value_from_binding(evaluator, server, var, map_key_path)
+  defp value_from_binding([var | path], shell) do
+    with {evaluator, server} <- IEx.Broker.evaluator(shell) do
+      IEx.Evaluator.value_from_binding(evaluator, server, var, path)
     else
       _ -> :error
     end
   end
 
-  defp extract_from_ast(var_name, acc) when is_atom(var_name) do
-    {var_name, acc}
-  end
-
-  defp extract_from_ast({var_name, _, nil}, acc) when is_atom(var_name) do
-    {var_name, acc}
-  end
-
-  defp extract_from_ast({{:., _, [ast_node, fun]}, _, []}, acc) when is_atom(fun) do
-    extract_from_ast(ast_node, [fun | acc])
-  end
-
-  defp extract_from_ast(_ast_node, _acc) do
-    :error
-  end
+  ## Path helpers
 
   defp path_fragment(expr), do: path_fragment(expr, [])
   defp path_fragment([], _acc), do: []

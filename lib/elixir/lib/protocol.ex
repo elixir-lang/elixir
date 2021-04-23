@@ -275,7 +275,7 @@ defmodule Protocol do
       name = unquote(name)
       arity = unquote(arity)
 
-      @functions [{name, arity} | @functions]
+      @__functions__ [{name, arity} | @__functions__]
 
       # Generate a fake definition with the user
       # signature that will be used by docs
@@ -706,7 +706,7 @@ defmodule Protocol do
         @compile :debug_info
 
         # Set up a clear slate to store defined functions
-        @functions []
+        @__functions__ []
         @fallback_to_any false
 
         # Invoke the user given block
@@ -720,19 +720,23 @@ defmodule Protocol do
 
   defp callback_ast_to_fa({kind, {:"::", meta, [{name, _, args}, _return]}, _pos})
        when kind in [:callback, :macrocallback] do
-    {{name, length(args)}, meta}
+    [{{name, length(args)}, meta}]
   end
 
   defp callback_ast_to_fa(
          {kind, {:when, _, [{:"::", meta, [{name, _, args}, _return]}, _vars]}, _pos}
        )
        when kind in [:callback, :macrocallback] do
-    {{name, length(args)}, meta}
+    [{{name, length(args)}, meta}]
+  end
+
+  defp callback_ast_to_fa({kind, _, _pos}) when kind in [:callback, :macrocallback] do
+    []
   end
 
   defp callback_metas(module, kind)
        when kind in [:callback, :macrocallback] do
-    :lists.map(&callback_ast_to_fa/1, Module.get_attribute(module, kind))
+    :lists.flatmap(&callback_ast_to_fa/1, Module.get_attribute(module, kind))
     |> :maps.from_list()
   end
 
@@ -753,7 +757,7 @@ defmodule Protocol do
     # Callbacks
     callback_metas = callback_metas(env.module, :callback)
     callbacks = :maps.keys(callback_metas)
-    functions = Module.get_attribute(env.module, :functions)
+    functions = Module.get_attribute(env.module, :__functions__)
 
     :lists.map(
       fn {name, arity} = fa ->
@@ -883,11 +887,11 @@ defmodule Protocol do
 
       @doc false
       @spec __protocol__(:module) :: __MODULE__
-      @spec __protocol__(:functions) :: unquote(Protocol.__functions_spec__(@functions))
+      @spec __protocol__(:functions) :: unquote(Protocol.__functions_spec__(@__functions__))
       @spec __protocol__(:consolidated?) :: boolean
       @spec __protocol__(:impls) :: :not_consolidated | {:consolidated, [module]}
       Kernel.def(__protocol__(:module), do: __MODULE__)
-      Kernel.def(__protocol__(:functions), do: unquote(:lists.sort(@functions)))
+      Kernel.def(__protocol__(:functions), do: unquote(:lists.sort(@__functions__)))
       Kernel.def(__protocol__(:consolidated?), do: false)
       Kernel.def(__protocol__(:impls), do: :not_consolidated)
     end
