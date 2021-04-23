@@ -11,7 +11,6 @@ env:
 jobs:
   test_linux:
     name: Linux, ${{ matrix.otp_release }}, Ubuntu 16.04
-    continue-on-error: ${{ matrix.development }}
     strategy:
       fail-fast: false
       matrix:
@@ -47,8 +46,10 @@ jobs:
         run: dialyzer -pa lib/elixir/ebin --build_plt --output_plt elixir.plt --apps lib/elixir/ebin/elixir.beam lib/elixir/ebin/Elixir.Kernel.beam
       - name: Erlang test suite
         run: make test_erlang
+        continue-on-error: ${{ matrix.development }}
       - name: Elixir test suite
         run: make test_elixir
+        continue-on-error: ${{ matrix.development }}
       - name: Check reproducible builds
         run: taskset 1 make check_reproducible
         if: matrix.otp_release == 'OTP-23.0'
