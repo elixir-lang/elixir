@@ -21,6 +21,13 @@ defmodule IEx.Autocomplete do
   environment, which is found via the broker.
   """
   def expand(code, shell \\ IEx.Broker.shell()) do
+    case path_fragment(code) do
+      [] -> expand_code(code, shell)
+      path -> expand_path(path)
+    end
+  end
+
+  defp expand_code(code, shell) do
     code = Enum.reverse(code)
     helper = get_helper(code)
 
@@ -482,7 +489,7 @@ defmodule IEx.Autocomplete do
   ## Ad-hoc conversions
 
   defp to_entries(%{kind: kind, name: name})
-       when kind in [:map_key, :module, :variable] do
+       when kind in [:map_key, :module, :variable, :dir, :file] do
     [name]
   end
 
@@ -491,7 +498,7 @@ defmodule IEx.Autocomplete do
   end
 
   defp to_uniq_entries(%{kind: kind})
-       when kind in [:map_key, :module, :variable] do
+       when kind in [:map_key, :module, :variable, :dir, :file] do
     []
   end
 
@@ -507,8 +514,16 @@ defmodule IEx.Autocomplete do
     format_hint(name, hint) <> "."
   end
 
+  defp to_hint(%{kind: :dir, name: name}, hint) when name == hint do
+    format_hint(name, name) <> "/"
+  end
+
+  defp to_hint(%{kind: :file, name: name}, hint) when name == hint do
+    format_hint(name, name) <> "\""
+  end
+
   defp to_hint(%{kind: kind, name: name}, hint)
-       when kind in [:function, :map_key, :module, :variable] do
+       when kind in [:function, :map_key, :module, :variable, :dir, :file] do
     format_hint(name, hint)
   end
 
@@ -551,6 +566,60 @@ defmodule IEx.Autocomplete do
       IEx.Evaluator.value_from_binding(evaluator, server, var, path)
     else
       _ -> :error
+    end
+  end
+
+  ## Path helpers
+
+  defp path_fragment(expr), do: path_fragment(expr, [])
+  defp path_fragment([], _acc), do: []
+  defp path_fragment([?{, ?# | _rest], _acc), do: []
+  defp path_fragment([?", ?\\ | t], acc), do: path_fragment(t, [?\\, ?" | acc])
+  defp path_fragment([?/, ?., ?" | _], acc), do: [?., ?/ | acc]
+  defp path_fragment([?/, ?" | _], acc), do: [?/ | acc]
+  defp path_fragment([?" | _], _acc), do: []
+  defp path_fragment([h | t], acc), do: path_fragment(t, [h | acc])
+
+  defp expand_path(path_fragment) do
+    path = List.to_string(path_fragment)
+    dir = Path.dirname(path_fragment)
+
+    path
+    |> ls_prefix(dir)
+    |> Enum.map(fn path ->
+      %{
+        kind: if(File.dir?(path), do: :dir, else: :file),
+        name: Path.basename(path)
+      }
+    end)
+    |> format_expansion(path_hint(path, dir))
+  end
+
+  defp path_hint(path, dir) do
+    path_size = byte_size(path)
+    dir_size = byte_size(dir)
+
+    if path_size == dir_size do
+      ""
+    else
+      binary_part(path, dir_size + 1, path_size - (dir_size + 1))
+    end
+  end
+
+  defp prefix_from_dir(".", <<c, _::binary>>) when c != ?., do: ""
+  defp prefix_from_dir(dir, _fragment), do: dir
+
+  defp ls_prefix(path_fragment, dir) do
+    prefix = prefix_from_dir(dir, path_fragment)
+
+    case File.ls(dir) do
+      {:ok, list} ->
+        list
+        |> Enum.map(&Path.join(prefix, &1))
+        |> Enum.filter(&String.starts_with?(&1, path_fragment))
+
+      _ ->
+        []
     end
   end
 end
