@@ -355,14 +355,21 @@ defmodule Logger.Translator do
     []
   end
 
-  defp child_debug(:debug, restart_type: restart, shutdown: shutdown, child_type: type) do
-    ["\nRestart: ", inspect(restart), "\nShutdown: ", inspect(shutdown)] ++
-      ["\nType: ", inspect(type)]
+  defp child_debug(:debug, opts) do
+    for {key, value} <- opts do
+      child_debug_key(key, value)
+    end
   end
 
   defp child_debug(_min_level, _child) do
     []
   end
+
+  defp child_debug_key(:restart_type, value), do: ["\nRestart: " | inspect(value)]
+  defp child_debug_key(:shutdown, value), do: ["\nShutdown: " | inspect(value)]
+  defp child_debug_key(:child_type, value), do: ["\nType: " | inspect(value)]
+  defp child_debug_key(:significant, value), do: if(value, do: "\nSignificant: true", else: [])
+  defp child_debug_key(_, _), do: []
 
   defp report_crash(min_level, [[{:initial_call, initial_call} | crashed], linked]) do
     mfa = initial_call_to_mfa(initial_call)
