@@ -33,6 +33,10 @@ Elixir v1.13 requires Erlang/OTP 22+.
 
 ### 4. Hard-deprecations
 
+#### Elixir
+
+  * [System] Deprecate `System.get_pid/0`. Use `System.pid/0` instead
+
 ## v1.12
 
 The CHANGELOG for v1.12 releases can be found [in the v1.12 branch](https://github.com/elixir-lang/elixir/blob/v1.12/CHANGELOG.md).
