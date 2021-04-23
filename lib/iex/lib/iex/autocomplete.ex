@@ -575,6 +575,10 @@ defmodule IEx.Autocomplete do
   defp path_fragment([], _acc), do: []
   defp path_fragment([?{, ?# | _rest], _acc), do: []
   defp path_fragment([?", ?\\ | t], acc), do: path_fragment(t, [?\\, ?" | acc])
+
+  defp path_fragment([?/, ?:, x, ?" | _], acc) when x in ?a..?z or x in ?A..?Z,
+    do: [x, ?:, ?/ | acc]
+
   defp path_fragment([?/, ?., ?" | _], acc), do: [?., ?/ | acc]
   defp path_fragment([?/, ?" | _], acc), do: [?/ | acc]
   defp path_fragment([?" | _], _acc), do: []

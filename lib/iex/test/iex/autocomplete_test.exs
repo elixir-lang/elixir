@@ -406,8 +406,14 @@ defmodule IEx.AutocompleteTest do
     dir |> Path.join("file1") |> File.touch()
     dir |> Path.join("file2") |> File.touch()
     dir |> Path.join("dir") |> File.mkdir()
-    [dir, "dir", "file3"] |> Path.join() |> File.touch()
-    [dir, "dir", "file4"] |> Path.join() |> File.touch()
+    dir |> Path.join("dir/file3") |> File.touch()
+    dir |> Path.join("dir/file4") |> File.touch()
+
+    assert expand('"./') == path_autocompletion(".")
+    assert expand('"/') == path_autocompletion("/")
+    assert expand('"./#\{') == expand('{')
+    assert expand('"./#\{Str') == expand('{Str')
+    assert expand('Path.join("./", is_') == expand('is_')
 
     assert expand('"#{dir}/') == path_autocompletion(dir)
     assert expand('"#{dir}/sin') == {:yes, 'gle1', []}
@@ -418,11 +424,6 @@ defmodule IEx.AutocompleteTest do
     assert expand('"#{dir}/dir') == {:yes, '/', []}
     assert expand('"#{dir}/dir/') == {:yes, 'file', []}
     assert expand('"#{dir}/dir/file') == dir |> Path.join("dir") |> path_autocompletion("file")
-    assert expand('"./') == path_autocompletion(".")
-    assert expand('"/') == path_autocompletion("/")
-    assert expand('"./#\{') == expand('{')
-    assert expand('"./#\{Str') == expand('{Str')
-    assert expand('Path.join("./", is_') == expand('is_')
   end
 
   defp path_autocompletion(dir, hint \\ "") do
