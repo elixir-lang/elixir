@@ -88,29 +88,7 @@ As of Elixir v1.12, implicitly decreasing ranges are soft-deprecated and warning
 
 Elixir v1.12 has the additional of many functions across the standard library. The `Enum` module received additions such as `Enum.count_until/2`, `Enum.product/1`, `Enum.zip_with/2`, and more. The `Integer` module now includes `Integer.pow/2` and `Integer.extended_gcd/2`. Finally, the `Kernel` module got two new functions, `Kernel.then/2` and `Kernel.tap/2`, which are specially useful in `|>` pipelines.
 
-## v1.12.0-rc.1 (2021-04-24)
-
-### 1. Enhancements
-
-#### Elixir
-
-  * [Code] Add `Code.cursor_context/2` to return the context of a code snippet
-  * [Module] Add `Module.reserved_attributes/0` to list all reserved attributes by the language
-  * [String] Update to Unicode 13.0
-
-#### ExUnit
-
-  * [ExUnit] Add `ExUnit.async_run/0` and `ExUnit.await_run/1`
-
-### 2. Bug fixes
-
-#### Elixir
-
-  * [Kernel] Do not ignore unimplemented signatures from generated functions
-  * [Path] Do not crash when a volume is given to `Path.absname/1`, such as "c:"
-  * [Protocol] Do not forbid `defdelegate` and `defexception` in protocol bodies - the restriction for `defdelegate` will be added back on v1.13 though (regression)
-
-## v1.12.0-rc.0 (2021-04-03)
+## v1.12.0
 
 ### 1. Enhancements
 
@@ -121,6 +99,7 @@ Elixir v1.12 has the additional of many functions across the standard library. T
 
 #### Elixir
 
+  * [Code] Add `Code.cursor_context/2` to return the context of a code snippet
   * [Code] Do not add newlines around interpolation on code formatting. Note this means formatted code that has interpolation after the line length on Elixir v1.12 won't be considered as formatted on earlier Elixir versions
   * [Calendar] Support basic datetime format in `Calendar.ISO` parsing functions
   * [Code] Improve evaluation performance on systems running on Erlang/OTP 24+
@@ -147,12 +126,14 @@ Elixir v1.12 has the additional of many functions across the standard library. T
   * [Module] Add `Module.get_definition/2` and `Module.delete_definition/2`
   * [Module] Allow `@on_load` to be a private function
   * [Module] Validate `@dialyzer` related module attributes
+  * [Module] Add `Module.reserved_attributes/0` to list all reserved attributes by the language
   * [Range] Add `Range.new/3` and `Range.size/1`
   * [Regex] Add offset option to `Regex.scan/3` and `Regex.run/3`
   * [Registry] Support `:compression` on `Registry` tables
   * [Registry] Support `Registry.values/3` for reading values under a given key-pid pair
   * [Stream] Add `Stream.zip_with/2` and `Stream.zip_with/3`
   * [String] Add `:turkic` mode option to String case functions
+  * [String] Update to Unicode 13.0
   * [System] Add `System.trap_signal/3` and `System.untrap_signal/2`
   * [Tuple] Add `Tuple.sum/1` and `Tuple.product/1`
   * [URI] Support RFC3986 compliant encoding and decoding of queries via the `:rfc3986` option
@@ -164,6 +145,7 @@ Elixir v1.12 has the additional of many functions across the standard library. T
   * [ExUnit] Print how much time is spent on `async` vs `sync` tests
   * [ExUnit] Improve error messages for doctests
   * [ExUnit] Compile doctests faster (often by two times)
+  * [ExUnit] Add `ExUnit.async_run/0` and `ExUnit.await_run/1`
 
 #### IEx
 
@@ -194,12 +176,14 @@ Elixir v1.12 has the additional of many functions across the standard library. T
   * [Kernel] Public functions without documentation now appear as an empty map on `Code.fetch_docs/1`, unless they start with underscore, where they remain as `:none`. This aligns Elixir's implementation with EEP48
   * [Kernel] Do not crash when complex literals (binaries and maps) are used in guards
   * [Kernel] Properly parse keywords (such as `end`) followed by the `::` operator
+  * [Kernel] Do not ignore unimplemented signatures from generated functions
   * [Macro] `Macro.decompose_call/1` now also consider tuples with more than 2 elements to not be valid calls
   * [Macro] Fix `Macro.to_string/1` double-escaping of escape characters in sigils
   * [Macro] Fix `Macro.underscore/1` on digits preceded by capitals: "FOO10" now becomes "foo10" instead of "fo_o10"
   * [Macro] Preserve underscores between digits on `Macro.underscore/1`
   * [OptionParser] Properly parse when numbers follow-up aliases, for example, `-ab3` is now parsed as `-a -b 3`
   * [Path] Fix `Path.relative_to/2` when referencing self
+  * [Path] Do not crash when a volume is given to `Path.absname/1`, such as "c:"
   * [Task] Ensure `Task.async_stream/2` with `ordered: false` discard results as they are emitted, instead of needlessly accumulating inside the stream manager
   * [URI] Do not discard empty paths on `URI.merge/2`
 
