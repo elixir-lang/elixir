@@ -490,6 +490,32 @@ defmodule Macro do
 
   @doc """
   Performs a depth-first, pre-order traversal of quoted expressions.
+
+  Returns a new ast where each node is the result of invoking `fun` on each
+  corresponding node of `ast`.
+
+  ## Examples
+
+      defmodule Example do
+        def swap_operator({:+, meta, children}), do: {:*, meta, children}
+        def swap_operator({:*, meta, children}), do: {:+, meta, children}
+        def swap_operator(node), do: node
+      end
+
+      import Example
+
+      {:ok, ast} = Code.string_to_quoted("5 + 3 * 7")
+      #=> {:ok, {:+, _, [5, {:*, _, [3, 7]}]}}
+
+      new_ast = Macro.prewalk(ast, &swap_operator(&1))
+      #=> {:*, _, [5, {:+, _, [3, 7]}]}
+
+      Code.eval_quoted(ast)
+      #=> {26, []}
+
+      Code.eval_quoted(new_ast)
+      #=> {50, []}
+
   """
   @spec prewalk(t, (t -> t)) :: t
   def prewalk(ast, fun) when is_function(fun, 1) do
