@@ -12,7 +12,7 @@ test_template: &DEFAULT_TEST_SETTINGS
 test_freebsd_task:
   <<: *DEFAULT_TEST_SETTINGS
 
-  name: FreeBSD 13.0
+  name: FreeBSD 13.0, OTP-${OTP_VERSION}
   alias: FreeBSD Stable
 
   freebsd_instance:
@@ -21,12 +21,15 @@ test_freebsd_task:
     memory: 7424Mi
 
   env:
-    CHECK_REPRODUCIBLE: true
     LC_ALL: en_US.UTF-8
-    PATH: $PATH:/usr/local/lib/erlang22/bin
+    PATH: "${PATH}:/usr/local/lib/erlang${OTP_VERSION}/bin"
+    matrix:
+      - OTP_VERSION: 23
+        LAST_STABLE_FREEBSD_OTP_RELEASE: true
+      - OTP_VERSION: 22
 
   install_script:
-    - pkg install -y erlang-runtime22 git gmake
+    - pkg install -y erlang-runtime${OTP_VERSION} git gmake
     - rm -rf .git
     - gmake compile
 
@@ -43,8 +46,8 @@ test_freebsd_task:
   test_elixir_script: gmake test_elixir
 
   check_reproducible_script: |
-    if [ -n "$CHECK_REPRODUCIBLE" ]; then
+    if [ -n "$LAST_STABLE_FREEBSD_OTP_RELEASE" ]; then
       gmake check_reproducible
     else
-      echo "The reproducibility of the build is only checked in the last stable Erlang/OTP version."
+      echo "The reproducibility of the build is only checked in the last stable Erlang/OTP release."
     fi

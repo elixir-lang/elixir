@@ -129,6 +129,14 @@ install: compile
 	done
 	$(MAKE) install_man
 
+define DIFF
+	$(Q) if [ "$(OS)" = "Windows_NT" ]; then \
+		cmd //C call ./bin/elixir lib/elixir/diff.exs $(1) $(2); \
+	else \
+		bin/elixir lib/elixir/diff.exs $(1) $(2); \
+	fi
+endef
+
 check_reproducible: compile
 	$(Q) echo "==> Checking for reproducible builds..."
 	$(Q) rm -rf lib/*/tmp/ebin_reproducible/
@@ -147,12 +155,12 @@ check_reproducible: compile
 	$(Q) mv lib/mix/ebin/* lib/mix/tmp/ebin_reproducible/
 	SOURCE_DATE_EPOCH=$(call READ_SOURCE_DATE_EPOCH) $(MAKE) compile
 	$(Q) echo "Diffing..."
-	$(Q) bin/elixir lib/elixir/diff.exs lib/elixir/ebin/ lib/elixir/tmp/ebin_reproducible/
-	$(Q) bin/elixir lib/elixir/diff.exs lib/eex/ebin/ lib/eex/tmp/ebin_reproducible/
-	$(Q) bin/elixir lib/elixir/diff.exs lib/ex_unit/ebin/ lib/ex_unit/tmp/ebin_reproducible/
-	$(Q) bin/elixir lib/elixir/diff.exs lib/iex/ebin/ lib/iex/tmp/ebin_reproducible/
-	$(Q) bin/elixir lib/elixir/diff.exs lib/logger/ebin/ lib/logger/tmp/ebin_reproducible/
-	$(Q) bin/elixir lib/elixir/diff.exs lib/mix/ebin/ lib/mix/tmp/ebin_reproducible/
+	$(call DIFF,lib/elixir/ebin/,lib/elixir/tmp/ebin_reproducible/)
+	$(call DIFF,lib/eex/ebin/,lib/eex/tmp/ebin_reproducible/)
+	$(call DIFF,lib/ex_unit/ebin/,lib/ex_unit/tmp/ebin_reproducible/)
+	$(call DIFF,lib/iex/ebin/,lib/iex/tmp/ebin_reproducible/)
+	$(call DIFF,lib/logger/ebin/,lib/logger/tmp/ebin_reproducible/)
+	$(call DIFF,lib/mix/ebin/,lib/mix/tmp/ebin_reproducible/)
 	$(Q) echo "Builds are reproducible"
 
 clean:

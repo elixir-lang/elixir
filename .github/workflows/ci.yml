@@ -10,16 +10,21 @@ env:
 
 jobs:
   test_linux:
-    name: Linux, ${{ matrix.otp_release }}, Ubuntu 16.04
+    name: Linux, ${{ matrix.otp_label || matrix.otp_release }}, Ubuntu 16.04
+    env:
+      LAST_STABLE_LINUX_OTP_RELEASE: OTP-23.3
     strategy:
       fail-fast: false
       matrix:
-        otp_release: ['OTP-23.3', 'OTP-23.0', 'OTP-22.3', 'OTP-22.0']
+        # NOTE: When adding a new latest OTP version, please update LAST_STABLE_LINUX_OTP_RELEASE above
+        otp_release: [OTP-23.3, OTP-23.0, OTP-22.3, OTP-22.0]
         development: [false]
         include:
           - otp_release: master
+            otp_label: OTP-master
             development: true
           - otp_release: maint
+            otp_label: OTP-maint
             development: true
     runs-on: ubuntu-16.04
     steps:
@@ -51,14 +56,17 @@ jobs:
         run: make test_elixir
         continue-on-error: ${{ matrix.development }}
       - name: Check reproducible builds
+        if: matrix.otp_release == env.LAST_STABLE_LINUX_OTP_RELEASE
         run: taskset 1 make check_reproducible
-        if: matrix.otp_release == 'OTP-23.0'
 
   test_windows:
     name: Windows, OTP-${{ matrix.otp_release }}, Windows Server 2019
+    env:
+      LAST_STABLE_WINDOWS_OTP_RELEASE: '22.3'
     strategy:
       matrix:
-        otp_release: ['22.3']
+        # NOTE: When adding a new latest OTP version, please update LAST_STABLE_WINDOWS_OTP_RELEASE above
+        otp_release: ['22.3', '22.0']
     runs-on: windows-2019
     steps:
       - name: Configure Git
@@ -87,6 +95,9 @@ jobs:
         run: |
           del c:/Windows/System32/drivers/etc/hosts
           make --keep-going test_elixir
+      - name: Check reproducible builds
+        if: matrix.otp_release == env.LAST_STABLE_WINDOWS_OTP_RELEASE
+        run: make check_reproducible
 
   check_posix_compliant:
     name: Check POSIX-compliant
@@ -95,7 +106,7 @@ jobs:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 50
-      - name: Install Shellcheck
+      - name: Install ShellCheck
         run: |
           sudo apt update
           sudo apt install -y shellcheck
