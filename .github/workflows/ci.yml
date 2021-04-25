@@ -84,7 +84,9 @@ jobs:
       - name: Erlang test suite
         run: make --keep-going test_erlang
       - name: Elixir test suite
-        run: make --keep-going test_elixir
+        run: |
+          del c:/Windows/System32/drivers/etc/hosts
+          make --keep-going test_elixir
 
   check_posix_compliant:
     name: Check POSIX-compliant
