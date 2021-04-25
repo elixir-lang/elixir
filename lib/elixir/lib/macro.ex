@@ -496,25 +496,16 @@ defmodule Macro do
 
   ## Examples
 
-      defmodule Example do
-        def swap_operator({:+, meta, children}), do: {:*, meta, children}
-        def swap_operator({:*, meta, children}), do: {:+, meta, children}
-        def swap_operator(node), do: node
-      end
-
-      import Example
-
-      {:ok, ast} = Code.string_to_quoted("5 + 3 * 7")
-      #=> {:ok, {:+, _, [5, {:*, _, [3, 7]}]}}
-
-      new_ast = Macro.prewalk(ast, &swap_operator(&1))
-      #=> {:*, _, [5, {:+, _, [3, 7]}]}
-
-      Code.eval_quoted(ast)
-      #=> {26, []}
-
-      Code.eval_quoted(new_ast)
-      #=> {50, []}
+      iex> ast = quote do: 5 + 3 * 7
+      iex> new_ast = Macro.prewalk(ast, fn
+      ...>   {:+, meta, children} -> {:*, meta, children}
+      ...>   {:*, meta, children} -> {:+, meta, children}
+      ...>   other -> other
+      ...> end)
+      iex> Code.eval_quoted(ast)
+      {26, []}
+      iex> Code.eval_quoted(new_ast)
+      {50, []}
 
   """
   @spec prewalk(t, (t -> t)) :: t
