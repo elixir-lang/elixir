@@ -4,6 +4,12 @@ defmodule Bar do
   end
 end
 
+defmodule Bar.Ignore do
+  def world do
+    :hello
+  end
+end
+
 defprotocol Bar.Protocol do
   def to_uppercase(string)
 end
