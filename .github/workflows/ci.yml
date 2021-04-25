@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        otp_release: ['OTP-23.0', 'OTP-22.3', 'OTP-22.0']
+        otp_release: ['OTP-23.3', 'OTP-23.0', 'OTP-22.3', 'OTP-22.0']
         development: [false]
         include:
           - otp_release: master
@@ -58,7 +58,7 @@ jobs:
     name: Windows, OTP-${{ matrix.otp_release }}, Windows Server 2019
     strategy:
       matrix:
-        otp_release: ['22.0']
+        otp_release: ['22.3']
     runs-on: windows-2019
     steps:
       - name: Configure Git
@@ -84,7 +84,9 @@ jobs:
       - name: Erlang test suite
         run: make --keep-going test_erlang
       - name: Elixir test suite
-        run: make --keep-going test_elixir
+        run: |
+          del c:/Windows/System32/drivers/etc/hosts
+          make --keep-going test_elixir
 
   check_posix_compliant:
     name: Check POSIX-compliant
