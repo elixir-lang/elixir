@@ -490,6 +490,23 @@ defmodule Macro do
 
   @doc """
   Performs a depth-first, pre-order traversal of quoted expressions.
+
+  Returns a new ast where each node is the result of invoking `fun` on each
+  corresponding node of `ast`.
+
+  ## Examples
+
+      iex> ast = quote do: 5 + 3 * 7
+      iex> new_ast = Macro.prewalk(ast, fn
+      ...>   {:+, meta, children} -> {:*, meta, children}
+      ...>   {:*, meta, children} -> {:+, meta, children}
+      ...>   other -> other
+      ...> end)
+      iex> Code.eval_quoted(ast)
+      {26, []}
+      iex> Code.eval_quoted(new_ast)
+      {50, []}
+
   """
   @spec prewalk(t, (t -> t)) :: t
   def prewalk(ast, fun) when is_function(fun, 1) do
