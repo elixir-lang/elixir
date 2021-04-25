@@ -83,6 +83,7 @@ defmodule Kernel.CLI.RPCTest do
   end
 
   test "invokes command on remote node without host" do
+    IO.puts File.read! "c:/Windows/System32/drivers/etc/hosts"
     node = "cli-rpc#{System.unique_integer()}"
     assert elixir('--name #{node}@127.0.0.1 --rpc-eval #{node} "IO.puts :ok"') == "ok\n"
   end
