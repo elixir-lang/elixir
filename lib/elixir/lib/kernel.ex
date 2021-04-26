@@ -2497,8 +2497,8 @@ defmodule Kernel do
 
   ### Examples
 
-      iex> 1 |> then(fn x -> x * 2 end)
-      2
+      iex> 1 |> then(fn x -> Enum.drop(["a", "b", "c"], x) end)
+      ["b", "c"]
   """
   @doc since: "1.12.0"
   defmacro then(value, fun) do
