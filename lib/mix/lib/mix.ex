@@ -582,12 +582,12 @@ defmodule Mix do
     :ok = Mix.ProjectStack.push(__MODULE__.InstallProject, config, "nofile")
 
     try do
-      dir? = File.dir?(dir)
+      run_deps? = not File.dir?(Path.join(dir, "_build"))
       File.mkdir_p!(dir)
 
       File.cd!(dir, fn ->
-        unless dir? do
-          Mix.Task.run("deps.get")
+        if run_deps? do
+          Mix.Task.rerun("deps.get")
         end
 
         Mix.Task.run("compile")
