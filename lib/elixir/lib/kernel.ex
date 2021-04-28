@@ -4039,15 +4039,10 @@ defmodule Kernel do
 
       when x === 1 or x === 2 or x === 3
 
-  When using ranges:
-
-      when x in 1..3
-
-  translates to:
-
-      when is_integer(x) and x >= 1 and x <= 3
-
-  Note that only integers can be considered inside a range by `in`.
+  However, this construct will be inneficient for large lists, and will even
+  fail to compile if the list has more than 1024 elements. In such cases, it
+  is best to stop using guards and use a more appropriate data structure, such
+  as `MapSet`.
 
   ### AST considerations
 
