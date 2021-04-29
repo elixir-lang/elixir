@@ -4039,8 +4039,7 @@ defmodule Kernel do
 
       when x === 1 or x === 2 or x === 3
 
-  However, this construct will be inneficient for large lists, and will even
-  fail to compile if the list has more than 1024 elements. In such cases, it
+  However, this construct will be inneficient for large lists. In such cases, it
   is best to stop using guards and use a more appropriate data structure, such
   as `MapSet`.
 
