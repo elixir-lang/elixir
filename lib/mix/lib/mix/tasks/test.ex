@@ -159,7 +159,8 @@ defmodule Mix.Tasks.Test do
     * `--raise` - raises if the test suite failed
 
     * `--seed` - seeds the random number generator used to randomize the order of tests;
-      `--seed 0` disables randomization
+      `--seed 0` disables randomization so the tests in a single file will always be ran
+      in the same order they were defined in
 
     * `--slowest` - prints timing information for the N slowest tests.
       Automatically sets `--trace` and `--preload-modules`
