@@ -721,11 +721,20 @@ defmodule String do
       iex> String.normalize("leña", :nfc)
       "leña"
 
-      iex> String.normalize("ﬁ", :nfkd)
-      "fi"
+      iex> String.normalize("ẛ̣", :nfkd)
+      "ṩ"
 
-      iex> String.normalize("fi", :nfkc)
-      "fi"
+      iex> String.normalize("ẛ̣", :nfkd) <> <<0>>
+      <<115, 204, 163, 204, 135, 0>>
+
+      iex> String.normalize("ẛ̣", :nfkc)
+      "ṩ"
+
+      iex> String.normalize("ẛ̣", :nfkc) <> <<0>>
+      <<225, 185, 169, 0>>
+
+      iex> String.normalize("2⁵", :nfkc)
+      "25"
 
   """
   def normalize(string, form)
