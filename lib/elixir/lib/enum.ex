@@ -3349,6 +3349,15 @@ defmodule Enum do
 
   """
   @spec unzip(t) :: {[element], [element]}
+
+  def unzip([_ | _] = list) do
+    :lists.reverse(list) |> unzip([], [])
+  end
+
+  def unzip([]) do
+    {[], []}
+  end
+
   def unzip(enumerable) do
     {list1, list2} =
       reduce(enumerable, {[], []}, fn {el1, el2}, {list1, list2} ->
@@ -3356,6 +3365,14 @@ defmodule Enum do
       end)
 
     {:lists.reverse(list1), :lists.reverse(list2)}
+  end
+
+  defp unzip([{el1, el2} | reversed_list], list1, list2) do
+    unzip(reversed_list, [el1 | list1], [el2 | list2])
+  end
+
+  defp unzip([], list1, list2) do
+    {list1, list2}
   end
 
   @doc """
