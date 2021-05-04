@@ -198,6 +198,15 @@ defmodule Kernel.QuoteTest do
 
     map = %{foo: :default}
     assert %{map | unquote_splicing(foo: :bar)} == %{foo: :bar}
+
+    assert Code.eval_string("quote do: %{unquote_splicing foo: :bar}") ==
+             {{:%{}, [], [foo: :bar]}, []}
+
+    assert Code.eval_string("quote do: %{:baz => :bat, unquote_splicing foo: :bar}") ==
+             {{:%{}, [], [{:baz, :bat}, {:foo, :bar}]}, []}
+
+    assert Code.eval_string("quote do: %{foo bar | baz}") ==
+             {{:%{}, [], [{:foo, [], [{:|, [], [{:bar, [], Elixir}, {:baz, [], Elixir}]}]}]}, []}
   end
 
   test "when" do
