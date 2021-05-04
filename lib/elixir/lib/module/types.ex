@@ -476,7 +476,7 @@ defmodule Module.Types do
   ## Formatting helpers
 
   defp indent(string) do
-    String.replace(string, "\n", "    \n")
+    String.replace(string, "\n", "\n    ")
   end
 
   defp map_type?({:map, _}), do: true

@@ -339,6 +339,26 @@ defmodule Module.Types.TypesTest do
                  rem(foo, 2.0)
              """
     end
+
+    test "operator call" do
+      string = warning([foo], [foo - :bar == 0], foo)
+
+      assert string == """
+             incompatible arguments passed to function: Kernel.-/2:
+
+                 var1, :bar
+
+             expected types:
+
+                 integer(), integer() -> integer()
+                 integer() | float(), integer() | float() -> float()
+
+             in expression:
+
+                 # types_test.ex:1
+                 foo - :bar
+             """
+    end
   end
 
   describe "map warnings" do
