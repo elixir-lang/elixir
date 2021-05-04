@@ -881,6 +881,52 @@ defmodule System do
   end
 
   @doc ~S"""
+  Executes the given `command` in the current OS shell.
+
+  **Important**: Use this function with care. In particular, **never
+  pass user input to this function**, as the user would be able to
+  execute any code directly on the machine. Generally speaking,
+  prefer to use `cmd/3` over this function.
+
+  ## Examples
+
+      iex> System.shell("echo hello")
+      {"hello\n", 0}
+
+  ## Options
+
+  It accepts the same options as `cmd/3`.
+  """
+  @spec shell(binary, keyword) :: {Collectable.t(), exit_status :: non_neg_integer}
+  def shell(command, opts) when is_binary(command) do
+    assert_no_null_byte!(command, "System.shell/2")
+
+    # Finding shell command logic from :os.cmd in OTP
+    # https://github.com/erlang/otp/blob/8deb96fb1d017307e22d2ab88968b9ef9f1b71d0/lib/kernel/src/os.erl#L184
+    command =
+      case :os.type() do
+        {:unix, _} ->
+          command =
+            command
+            |> String.replace("\"", "\\\"")
+            |> String.to_charlist()
+
+          'sh -c "' ++ command ++ '"'
+
+        {:win32, osname} ->
+          command = '"' ++ String.to_charlist(command) ++ '"'
+
+          case {System.get_env("COMSPEC"), osname} do
+            {nil, :windows} -> 'command.com /s /c ' ++ command
+            {nil, _} -> 'cmd /s /c ' ++ command
+            {cmd, _} -> '#{cmd} /s /c ' ++ command
+          end
+      end
+
+    do_cmd({:spawn, command}, [], opts)
+  end
+
+  @doc ~S"""
   Executes the given `command` with `args`.
 
   `command` is expected to be an executable available in PATH
@@ -963,7 +1009,7 @@ defmodule System do
   ## Shell commands
 
   If you desire to execute a trusted command inside a shell, with pipes,
-  redirecting and so on, please check `:os.cmd/1`.
+  redirecting and so on, please check `shell/2`.
   """
   @spec cmd(binary, [binary], keyword) :: {Collectable.t(), exit_status :: non_neg_integer}
   def cmd(command, args, opts \\ []) when is_binary(command) and is_list(args) do
@@ -982,11 +1028,15 @@ defmodule System do
         :os.find_executable(cmd) || :erlang.error(:enoent, [command, args, opts])
       end
 
-    {into, opts} = cmd_opts(opts, [:use_stdio, :exit_status, :binary, :hide, args: args], "")
+    do_cmd({:spawn_executable, cmd}, [args: args], opts)
+  end
+
+  defp do_cmd(port_init, base_opts, opts) do
+    {into, opts} = cmd_opts(opts, [:use_stdio, :exit_status, :binary, :hide] ++ base_opts, "")
     {initial, fun} = Collectable.into(into)
 
     try do
-      do_cmd(Port.open({:spawn_executable, cmd}, opts), initial, fun)
+      do_port(Port.open(port_init, opts), initial, fun)
     catch
       kind, reason ->
         fun.(initial, :halt)
@@ -996,17 +1046,18 @@ defmodule System do
     end
   end
 
-  defp do_cmd(port, acc, fun) do
+  defp do_port(port, acc, fun) do
     receive do
       {^port, {:data, data}} ->
-        do_cmd(port, fun.(acc, {:cont, data}), fun)
+        do_port(port, fun.(acc, {:cont, data}), fun)
 
       {^port, {:exit_status, status}} ->
         {acc, status}
     end
   end
 
-  defp cmd_opts([{:into, any} | t], opts, _into), do: cmd_opts(t, opts, any)
+  defp cmd_opts([{:into, any} | t], opts, _into),
+    do: cmd_opts(t, opts, any)
 
   defp cmd_opts([{:cd, bin} | t], opts, into) when is_binary(bin),
     do: cmd_opts(t, [{:cd, bin} | opts], into)
@@ -1017,7 +1068,8 @@ defmodule System do
   defp cmd_opts([{:stderr_to_stdout, true} | t], opts, into),
     do: cmd_opts(t, [:stderr_to_stdout | opts], into)
 
-  defp cmd_opts([{:stderr_to_stdout, false} | t], opts, into), do: cmd_opts(t, opts, into)
+  defp cmd_opts([{:stderr_to_stdout, false} | t], opts, into),
+    do: cmd_opts(t, opts, into)
 
   defp cmd_opts([{:parallelism, bool} | t], opts, into) when is_boolean(bool),
     do: cmd_opts(t, [{:parallelism, bool} | opts], into)
@@ -1028,7 +1080,8 @@ defmodule System do
   defp cmd_opts([{key, val} | _], _opts, _into),
     do: raise(ArgumentError, "invalid option #{inspect(key)} with value #{inspect(val)}")
 
-  defp cmd_opts([], opts, into), do: {into, opts}
+  defp cmd_opts([], opts, into),
+    do: {into, opts}
 
   defp validate_env(enum) do
     Enum.map(enum, fn
