@@ -717,6 +717,12 @@ defmodule TaskTest do
       [ok: :ok] = Task.async_stream([1], fn _ -> :ok end, timeout: :infinity) |> Enum.to_list()
     end
 
+    test "does not allow streaming with max_concurrency = 0" do
+      assert_raise ArgumentError, ":max_concurrency must be an integer greater than zero", fn ->
+        Task.async_stream([1], fn _ -> :ok end, max_concurrency: 0) |> Enum.to_list()
+      end
+    end
+
     test "streams with fake down messages on the inbox" do
       parent = self()
 
