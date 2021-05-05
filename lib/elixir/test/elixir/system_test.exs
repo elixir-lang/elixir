@@ -96,22 +96,21 @@ defmodule SystemTest do
     end
 
     test "cmd/3 (with options)" do
-      assert {["hello\r\n"], 0} =
-               System.cmd(
-                 "cmd",
-                 ~w[/c echo hello],
-                 into: [],
-                 cd: File.cwd!(),
-                 env: %{"foo" => "bar", "baz" => nil},
-                 arg0: "echo",
-                 stderr_to_stdout: true,
-                 parallelism: true
-               )
+      opts = [
+        into: [],
+        cd: File.cwd!(),
+        env: %{"foo" => "bar", "baz" => nil},
+        arg0: "echo",
+        stderr_to_stdout: true,
+        parallelism: true
+      ]
+
+      assert {["hello\r\n"], 0} = System.cmd("cmd", ~w[/c echo hello], opts)
     end
 
     @echo "echo-elixir-test"
     @tag :tmp_dir
-    test "cmd/2 with absolute and relative paths", config do
+    test "cmd/3 with absolute and relative paths", config do
       echo = Path.join(config.tmp_dir, @echo)
       File.mkdir_p!(Path.dirname(echo))
       File.cp!(System.find_executable("cmd"), echo)
@@ -127,6 +126,22 @@ defmodule SystemTest do
         assert {"hello\r\n", 0} =
                  System.cmd(Path.join(File.cwd!(), @echo), ~w[/c echo hello], [{:arg0, "echo"}])
       end)
+    end
+
+    test "shell/1" do
+      assert {"hello\r\n", 0} = System.shell("echo hello")
+    end
+
+    test "shell/2 (with options)" do
+      opts = [
+        into: [],
+        cd: File.cwd!(),
+        env: %{"foo" => "bar", "baz" => nil},
+        stderr_to_stdout: true,
+        parallelism: true
+      ]
+
+      assert {["bar\r\n"], 0} = System.shell("echo %foo%", opts)
     end
   end
 
@@ -152,7 +167,7 @@ defmodule SystemTest do
 
     @echo "echo-elixir-test"
     @tag :tmp_dir
-    test "cmd/2 with absolute and relative paths", config do
+    test "cmd/3 with absolute and relative paths", config do
       echo = Path.join(config.tmp_dir, @echo)
       File.mkdir_p!(Path.dirname(echo))
       File.cp!(System.find_executable("echo"), echo)
@@ -168,6 +183,21 @@ defmodule SystemTest do
         assert {"hello\n", 0} =
                  System.cmd(Path.join(File.cwd!(), @echo), ["hello"], [{:arg0, "echo"}])
       end)
+    end
+
+    test "shell/1" do
+      assert {"hello\n", 0} = System.shell("echo hello")
+    end
+
+    test "shell/2 (with options)" do
+      opts = [
+        into: [],
+        cd: File.cwd!(),
+        env: %{"foo" => "bar", "baz" => nil},
+        stderr_to_stdout: true
+      ]
+
+      assert {["bar\n"], 0} = System.shell("echo $foo", opts)
     end
   end
 

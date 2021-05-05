@@ -898,10 +898,10 @@ defmodule System do
 
   ## Options
 
-  It accepts the same options as `cmd/3`.
+  It accepts the same options as `cmd/3`, except for `arg0`.
   """
   @spec shell(binary, keyword) :: {Collectable.t(), exit_status :: non_neg_integer}
-  def shell(command, opts) when is_binary(command) do
+  def shell(command, opts \\ []) when is_binary(command) do
     assert_no_null_byte!(command, "System.shell/2")
 
     # Finding shell command logic from :os.cmd in OTP
