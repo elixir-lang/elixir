@@ -718,7 +718,7 @@ defmodule TaskTest do
     end
 
     test "does not allow streaming with max_concurrency = 0" do
-      assert_raise ArgumentError, fn ->
+      assert_raise ArgumentError, ":max_concurrency must be greater than zero", fn ->
         Task.async_stream([1], fn _ -> :ok end, max_concurrency: 0) |> Enum.to_list()
       end
     end

@@ -178,8 +178,9 @@ defmodule Task.Supervised do
     next = &Enumerable.reduce(enumerable, &1, fn x, acc -> {:suspend, [x | acc]} end)
     max_concurrency = Keyword.get(options, :max_concurrency, System.schedulers_online())
 
-    (is_integer(max_concurrency) && max_concurrency > 0) ||
-      raise ArgumentError, "max_concurrency supplied must be greater than zero!"
+    if is_integer(max_concurrency) and max_concurrency <= 0 do
+      raise ArgumentError, ":max_concurrency must be greater than zero"
+    end
 
     ordered? = Keyword.get(options, :ordered, true)
     timeout = Keyword.get(options, :timeout, 5000)
