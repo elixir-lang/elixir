@@ -917,7 +917,7 @@ defmodule System do
           'sh -c "' ++ command ++ '"'
 
         {:win32, osname} ->
-          command = '"' ++ String.to_charlist(command) ++ '"'
+          command = String.to_charlist(command)
 
           case {System.get_env("COMSPEC"), osname} do
             {nil, :windows} -> 'command.com /s /c ' ++ command
