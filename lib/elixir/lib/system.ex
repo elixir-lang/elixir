@@ -881,12 +881,15 @@ defmodule System do
   end
 
   @doc ~S"""
-  Executes the given `command` in the current OS shell.
+  Executes the given `command` in the OS shell.
+
+  It uses `sh` for Unix-like systems and `cmd` for Windows.
 
   **Important**: Use this function with care. In particular, **never
-  pass user input to this function**, as the user would be able to
-  execute any code directly on the machine. Generally speaking,
-  prefer to use `cmd/3` over this function.
+  pass untrusted user input to this function**, as the user would be
+  able to perform "command injection attacks" by executing any code
+  directly on the machine. Generally speaking, prefer to use `cmd/3`
+  over this function.
 
   ## Examples
 
