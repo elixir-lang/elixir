@@ -901,6 +901,7 @@ defmodule System do
 
   It accepts the same options as `cmd/3`, except for `arg0`.
   """
+  @doc since: "1.12.0"
   @spec shell(binary, keyword) :: {Collectable.t(), exit_status :: non_neg_integer}
   def shell(command, opts \\ []) when is_binary(command) do
     assert_no_null_byte!(command, "System.shell/2")
