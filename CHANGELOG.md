@@ -1,7 +1,5 @@
 # Changelog for Elixir v1.13
 
-Elixir v1.13 requires Erlang/OTP 22+.
-
 ## v1.13.0-dev
 
 ### 1. Enhancements
@@ -17,7 +15,7 @@ Elixir v1.13 requires Erlang/OTP 22+.
 
 #### IEx
 
-  * [IEx.Autocomplete] Add `Path` autocompletion
+  * [IEx.Autocomplete] Add path autocompletion whenever when the cursor follows `"./` or `"/` or `"DRIVER:` where `DRIVER` is a single letter
 
 #### Logger
 
@@ -29,6 +27,7 @@ Elixir v1.13 requires Erlang/OTP 22+.
 
 #### Elixir
 
+  * [Kernel] Allow `unquote_splicing` inside `%{...}` without parens
   * [Protocol] Add `defdelegate` to the list of unallowed macros inside protocols as protocols do not allow function definitions
   * [Protocol] Warn if `@callback`, `@macrocallback` and `@optional_callbacks` are defined inside protocol
 
