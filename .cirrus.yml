@@ -12,20 +12,21 @@ test_template: &DEFAULT_TEST_SETTINGS
 test_freebsd_task:
   <<: *DEFAULT_TEST_SETTINGS
 
-  name: FreeBSD 12.2
+  name: FreeBSD 13.0
   alias: FreeBSD Stable
 
   freebsd_instance:
-    image_family: freebsd-12-2
+    image_family: freebsd-13-0
     cpu: 8
     memory: 7424Mi
 
   env:
     CHECK_REPRODUCIBLE: true
     LC_ALL: en_US.UTF-8
+    PATH: $PATH:/usr/local/lib/erlang22/bin
 
   install_script:
-    - pkg install -y erlang git gmake
+    - pkg install -y erlang-runtime22 git gmake
     - rm -rf .git
     - gmake compile
 
