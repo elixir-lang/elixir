@@ -896,7 +896,7 @@ defmodule System do
       iex> System.shell("echo hello")
       {"hello\n", 0}
 
-  If you want to stream the devices to IO as they come:
+  If you want to stream the output to Standard IO as it arrives:
 
       iex> System.shell("echo hello", into: IO.stream())
       hello
@@ -968,7 +968,7 @@ defmodule System do
       iex> System.cmd("echo", ["hello"], env: [{"MIX_ENV", "test"}])
       {"hello\n", 0}
 
-  If you want to stream the devices to IO as they come:
+  If you want to stream the output to Standard IO as it arrives:
 
       iex> System.cmd("echo", ["hello"], into: IO.stream())
       hello
