@@ -509,6 +509,16 @@ defmodule IO do
   end
 
   @doc """
+  Returns a line-based `IO.Stream` on `:stdio`.
+
+  This is equivalent to:
+
+      IO.stream(:stdio, :line)
+
+  """
+  def stream, do: stream(:stdio, :line)
+
+  @doc """
   Converts the IO `device` into an `IO.Stream`.
 
   An `IO.Stream` implements both `Enumerable` and
@@ -533,11 +543,21 @@ defmodule IO do
 
   """
   @spec stream(device, :line | pos_integer) :: Enumerable.t()
-  def stream(device, line_or_codepoints)
+  def stream(device \\ :stdio, line_or_codepoints)
       when line_or_codepoints == :line
       when is_integer(line_or_codepoints) and line_or_codepoints > 0 do
     IO.Stream.__build__(map_dev(device), false, line_or_codepoints)
   end
+
+  @doc """
+  Returns a raw, line-based `IO.Stream` on `:stdio`. The operation is Unicode unsafe.
+
+  This is equivalent to:
+
+      IO.binstream(:stdio, :line)
+
+  """
+  def binstream, do: binstream(:stdio, :line)
 
   @doc """
   Converts the IO `device` into an `IO.Stream`. The operation is Unicode unsafe.
@@ -547,18 +567,16 @@ defmodule IO do
   and write.
 
   The `device` is iterated by the given number of bytes or line by line if
-  `:line` is given.
-  This reads from the IO device as a raw binary.
+  `:line` is given. This reads from the IO device as a raw binary.
 
   Note that an IO stream has side effects and every time
   you go over the stream you may get different results.
 
   Finally, do not use this function on IO devices in Unicode
   mode as it will return the wrong result.
-
   """
   @spec binstream(device, :line | pos_integer) :: Enumerable.t()
-  def binstream(device, line_or_bytes)
+  def binstream(device \\ :stdio, line_or_bytes)
       when line_or_bytes == :line
       when is_integer(line_or_bytes) and line_or_bytes > 0 do
     IO.Stream.__build__(map_dev(device), true, line_or_bytes)
