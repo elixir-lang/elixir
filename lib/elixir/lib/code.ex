@@ -1212,9 +1212,14 @@ defmodule Code do
   def load_file(file, relative_to \\ nil) when is_binary(file) do
     file = find_file(file, relative_to)
     :elixir_code_server.call({:acquire, file})
-    loaded = :elixir_compiler.file(file, fn _, _ -> :ok end)
+
+    loaded =
+      Module.ParallelChecker.verify(fn ->
+        :elixir_compiler.file(file, fn _, _ -> :ok end)
+      end)
+
     :elixir_code_server.cast({:required, file})
-    verify_loaded(loaded)
+    loaded
   end
 
   @doc """
@@ -1258,9 +1263,13 @@ defmodule Code do
         nil
 
       :proceed ->
-        loaded = :elixir_compiler.file(file, fn _, _ -> :ok end)
+        loaded =
+          Module.ParallelChecker.verify(fn ->
+            :elixir_compiler.file(file, fn _, _ -> :ok end)
+          end)
+
         :elixir_code_server.cast({:required, file})
-        verify_loaded(loaded)
+        loaded
     end
   end
 
@@ -1465,7 +1474,7 @@ defmodule Code do
   @spec compile_string(List.Chars.t(), binary) :: [{module, binary}]
   def compile_string(string, file \\ "nofile") when is_binary(file) do
     loaded = :elixir_compiler.string(to_charlist(string), file, fn _, _ -> :ok end)
-    Enum.map(loaded, fn {module, _map, binary} -> {module, binary} end)
+    Enum.map(loaded, &elem(&1, 0))
   end
 
   @doc """
@@ -1479,7 +1488,7 @@ defmodule Code do
   @spec compile_quoted(Macro.t(), binary) :: [{module, binary}]
   def compile_quoted(quoted, file \\ "nofile") when is_binary(file) do
     loaded = :elixir_compiler.quoted(quoted, file, fn _, _ -> :ok end)
-    Enum.map(loaded, fn {module, _map, binary} -> {module, binary} end)
+    Enum.map(loaded, &elem(&1, 0))
   end
 
   @doc """
@@ -1499,8 +1508,9 @@ defmodule Code do
   @doc since: "1.7.0"
   @spec compile_file(binary, nil | binary) :: [{module, binary}]
   def compile_file(file, relative_to \\ nil) when is_binary(file) do
-    loaded = :elixir_compiler.file(find_file(file, relative_to), fn _, _ -> :ok end)
-    verify_loaded(loaded)
+    Module.ParallelChecker.verify(fn ->
+      :elixir_compiler.file(find_file(file, relative_to), fn _, _ -> :ok end)
+    end)
   end
 
   @doc """
@@ -1805,11 +1815,5 @@ defmodule Code do
     else
       raise Code.LoadError, file: file
     end
-  end
-
-  defp verify_loaded(loaded) do
-    maps_binaries = Enum.map(loaded, fn {_module, map, binary} -> {map, binary} end)
-    Module.ParallelChecker.verify(maps_binaries, [])
-    Enum.map(loaded, fn {module, _map, binary} -> {module, binary} end)
   end
 end

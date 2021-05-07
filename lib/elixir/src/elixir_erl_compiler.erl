@@ -1,15 +1,15 @@
 -module(elixir_erl_compiler).
--export([spawn/2, forms/3, noenv_forms/3, erl_to_core/2, format_error/1]).
+-export([spawn/1, forms/3, noenv_forms/3, erl_to_core/2, format_error/1]).
 -include("elixir.hrl").
 
-spawn(Fun, Args) ->
+spawn(Fun) ->
   CompilerPid = get(elixir_compiler_pid),
 
   {_, Ref} =
     spawn_monitor(fun() ->
       put(elixir_compiler_pid, CompilerPid),
 
-      try apply(Fun, Args) of
+      try Fun() of
         Result -> exit({ok, Result})
       catch
         Kind:Reason:Stack ->

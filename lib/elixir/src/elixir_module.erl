@@ -105,51 +105,59 @@ compile(Line, Module, Block, Vars, E) ->
     put_compiler_modules([Module | CompilerModules]),
     elixir_env:trace({defmodule, [{line, Line}]}, E),
     {Result, NE} = eval_form(Line, Module, DataBag, Block, Vars, E),
+    CheckerInfo = get(elixir_checker_info),
 
-    PersistedAttributes = ets:lookup_element(DataBag, persisted_attributes, 2),
-    Attributes = attributes(DataSet, DataBag, PersistedAttributes),
-    {AllDefinitions, Private} = elixir_def:fetch_definitions(File, Module),
+    {Binary, PersistedAttributes, Autoload, CheckerPid} =
+      elixir_erl_compiler:spawn(fun() ->
+        PersistedAttributes = ets:lookup_element(DataBag, persisted_attributes, 2),
+        Attributes = attributes(DataSet, DataBag, PersistedAttributes),
+        {AllDefinitions, Private} = elixir_def:fetch_definitions(File, Module),
 
-    OnLoadAttribute = lists:keyfind(on_load, 1, Attributes),
-    NewPrivate = validate_on_load_attribute(OnLoadAttribute, AllDefinitions, Private, File, Line),
+        OnLoadAttribute = lists:keyfind(on_load, 1, Attributes),
+        NewPrivate = validate_on_load_attribute(OnLoadAttribute, AllDefinitions, Private, File, Line),
 
-    DialyzerAttribute = lists:keyfind(dialyzer, 1, Attributes),
-    validate_dialyzer_attribute(DialyzerAttribute, AllDefinitions, File, Line),
+        DialyzerAttribute = lists:keyfind(dialyzer, 1, Attributes),
+        validate_dialyzer_attribute(DialyzerAttribute, AllDefinitions, File, Line),
 
-    Unreachable = elixir_locals:warn_unused_local(File, Module, AllDefinitions, NewPrivate),
-    elixir_locals:ensure_no_undefined_local(File, Module, AllDefinitions),
-    elixir_locals:ensure_no_import_conflict(File, Module, AllDefinitions),
+        Unreachable = elixir_locals:warn_unused_local(File, Module, AllDefinitions, NewPrivate),
+        elixir_locals:ensure_no_undefined_local(File, Module, AllDefinitions),
+        elixir_locals:ensure_no_import_conflict(File, Module, AllDefinitions),
 
-    %% We stop tracking locals here to avoid race conditions in case after_load
-    %% evaluates code in a separate process that may write to locals table.
-    elixir_locals:stop({DataSet, DataBag}),
-    make_readonly(Module),
+        %% We stop tracking locals here to avoid race conditions in case after_load
+        %% evaluates code in a separate process that may write to locals table.
+        elixir_locals:stop({DataSet, DataBag}),
+        make_readonly(Module),
 
-    (not elixir_config:static(bootstrap)) andalso
-     'Elixir.Module':check_behaviours_and_impls(E, DataSet, DataBag, AllDefinitions),
+        (not elixir_config:static(bootstrap)) andalso
+         'Elixir.Module':check_behaviours_and_impls(E, DataSet, DataBag, AllDefinitions),
 
-    RawCompileOpts = bag_lookup_element(DataBag, {accumulate, compile}, 2),
-    CompileOpts = validate_compile_opts(RawCompileOpts, AllDefinitions, Unreachable, File, Line),
+        RawCompileOpts = bag_lookup_element(DataBag, {accumulate, compile}, 2),
+        CompileOpts = validate_compile_opts(RawCompileOpts, AllDefinitions, Unreachable, File, Line),
 
-    ModuleMap = #{
-      struct => get_struct(DataSet),
-      module => Module,
-      line => Line,
-      file => File,
-      relative_file => elixir_utils:relative_to_cwd(File),
-      attributes => Attributes,
-      definitions => AllDefinitions,
-      unreachable => Unreachable,
-      compile_opts => CompileOpts,
-      deprecated => get_deprecated(DataBag),
-      is_behaviour => is_behaviour(DataBag)
-    },
+        ModuleMap = #{
+          struct => get_struct(DataSet),
+          module => Module,
+          line => Line,
+          file => File,
+          relative_file => elixir_utils:relative_to_cwd(File),
+          attributes => Attributes,
+          definitions => AllDefinitions,
+          unreachable => Unreachable,
+          compile_opts => CompileOpts,
+          deprecated => get_deprecated(DataBag),
+          is_behaviour => is_behaviour(DataBag)
+        },
 
-    Binary = elixir_erl:compile(ModuleMap),
-    autoload_module(Module, Binary, CompileOpts, NE),
+        Binary = elixir_erl:compile(ModuleMap),
+        Autoload = proplists:get_value(autoload, CompileOpts, true),
+        CheckerPid = spawn_parallel_checker(CheckerInfo, Module, ModuleMap),
+        {Binary, PersistedAttributes, Autoload, CheckerPid}
+      end),
+
+    Autoload andalso code:load_binary(Module, beam_location(Module), Binary),
     eval_callbacks(Line, DataBag, after_compile, [NE, Binary], NE),
     warn_unused_attributes(File, DataSet, DataBag, PersistedAttributes),
-    make_module_available(Module, Binary, ModuleMap),
+    make_module_available(Module, Binary, CheckerPid),
     {module, Module, Binary, Result}
   catch
     error:undef:Stacktrace ->
@@ -427,15 +435,7 @@ bag_lookup_element(Table, Name, Pos) ->
     error:badarg -> []
   end.
 
-%% Takes care of autoloading the module if configured.
-
-autoload_module(Module, Binary, Opts, E) ->
-  case proplists:get_value(autoload, Opts, true) of
-    true  -> code:load_binary(Module, beam_location(E), Binary);
-    false -> ok
-  end.
-
-beam_location(#{module := Module}) ->
+beam_location(Module) ->
   case get(elixir_compiler_dest) of
     Dest when is_binary(Dest) ->
       filename:join(elixir_utils:characters_to_list(Dest), atom_to_list(Module) ++ ".beam");
@@ -445,10 +445,15 @@ beam_location(#{module := Module}) ->
 
 %% Integration with elixir_compiler that makes the module available
 
-make_module_available(Module, Binary, ModuleMap) ->
+spawn_parallel_checker(undefined, _Module, _ModuleMap) ->
+  nil;
+spawn_parallel_checker({Pid, Ets}, Module, ModuleMap) ->
+  'Elixir.Module.ParallelChecker':spawn(Pid, Ets, Module, ModuleMap).
+
+make_module_available(Module, Binary, CheckerPid) ->
   case get(elixir_module_binaries) of
     Current when is_list(Current) ->
-      put(elixir_module_binaries, [{Module, ModuleMap, Binary} | Current]);
+      put(elixir_module_binaries, [{{Module, Binary}, CheckerPid} | Current]);
     _ ->
       ok
   end,
@@ -458,7 +463,7 @@ make_module_available(Module, Binary, ModuleMap) ->
       ok;
     PID ->
       Ref = make_ref(),
-      PID ! {module_available, self(), Ref, get(elixir_compiler_file), Module, Binary, ModuleMap},
+      PID ! {module_available, self(), Ref, get(elixir_compiler_file), Module, Binary, CheckerPid},
       receive {Ref, ack} -> ok end
   end.
 

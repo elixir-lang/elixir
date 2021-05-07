@@ -55,7 +55,7 @@ compile(Quoted, ArgsList, E) ->
   elixir_env:check_unused_vars(EE),
 
   {Module, Fun, Purgeable} =
-    elixir_erl_compiler:spawn(fun spawned_compile/2, [Expanded, E]),
+    elixir_erl_compiler:spawn(fun() -> spawned_compile(Expanded, E) end),
 
   {dispatch(Module, Fun, Args, Purgeable), EE}.
 
@@ -185,7 +185,7 @@ bootstrap_files() ->
     ]
   }.
 
-binary_to_path({ModuleName, _ModuleMap, Binary}, CompilePath) ->
+binary_to_path({{ModuleName, Binary}, _Info}, CompilePath) ->
   Path = filename:join(CompilePath, atom_to_list(ModuleName) ++ ".beam"),
   case file:write_file(Path, Binary) of
     ok -> Path;
