@@ -210,4 +210,9 @@ defmodule IOTest do
     assert capture_io(fn -> IO.inspect(1, label: "foo") end) == "foo: 1\n"
     assert capture_io(fn -> IO.inspect(1, label: :foo) end) == "foo: 1\n"
   end
+
+  test "stream" do
+    assert IO.stream() == IO.stream(:stdio, :line)
+    assert IO.binstream() == IO.binstream(:stdio, :line)
+  end
 end
