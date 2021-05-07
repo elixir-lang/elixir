@@ -7,27 +7,127 @@ defmodule Module.ParallelChecker do
   @type mode() :: :elixir | :erlang
 
   @doc """
+  Initializes the parallel checker table.
+  """
+  def init do
+    :ets.new(:checker_cache, [:set, :public, {:read_concurrency, true}])
+  end
+
+  @doc """
+  Gets the parallel checker ets table.
+  """
+  def ets() do
+    {_, ets} = :erlang.get(:elixir_checker_info)
+    ets
+  end
+
+  @doc """
+  Stores the parallel checker information.
+  """
+  def put(pid, ets) do
+    :erlang.put(:elixir_checker_info, {pid, ets})
+  end
+
+  @doc """
+  Spawns a process that runs the parallel checker.
+  """
+  def spawn(pid, ets, module, info) do
+    ref = make_ref()
+
+    spawned =
+      spawn(fn ->
+        Process.link(pid)
+        mon_ref = Process.monitor(pid)
+
+        receive do
+          {^ref, :cache} ->
+            loaded_info =
+              if is_map(info) do
+                cache_from_module_map(ets, info)
+                info
+              else
+                info = File.read!(info)
+                cache_from_chunk(ets, module, info)
+                info
+              end
+
+            send(pid, {ref, :cached})
+
+            receive do
+              {^ref, :check, coordinator} ->
+                warnings = check_module(module, loaded_info, {coordinator, ets})
+                send(pid, {__MODULE__, module, warnings})
+                send(coordinator, {__MODULE__, :done})
+            end
+
+          {:DOWN, ^mon_ref, _, _, _} ->
+            :ok
+        end
+      end)
+
+    {spawned, ref}
+  end
+
+  @doc """
+  Verifies the given compilation function. See `verify/4`.
+  """
+  def verify(fun) do
+    case :erlang.get(:elixir_compiler_pid) do
+      :undefined ->
+        previous = :erlang.get(:elixir_checker_info)
+
+        try do
+          ets = init()
+          put(self(), ets)
+
+          {result, compile_info} = Enum.unzip(fun.())
+          _ = verify(compile_info, [], ets)
+          result
+        after
+          if previous != :undefined do
+            :erlang.put(:elixir_checker_info, previous)
+          else
+            :erlang.erase(:elixir_checker_info)
+          end
+        end
+
+      _ ->
+        # If we are during compilation, then they will be
+        # reported to the compiler, which will validate them.
+        Enum.map(fun.(), &elem(&1, 0))
+    end
+  end
+
+  @doc """
   Receives pairs of module maps and BEAM binaries. In parallel it verifies
   the modules and adds the ExCk chunk to the binaries. Returns the updated
-  binaries and a list of warnings from the verification.
+  list of warnings from the verification.
   """
-  @spec verify([{map(), binary()}], [{module(), binary()}], pos_integer() | nil) :: [warning()]
-  def verify(compiled_modules, runtime_binaries, schedulers \\ nil) do
-    compiled_maps = Enum.map(compiled_modules, fn {map, _binary} -> {map.module, map} end)
+  @spec verify([{pid(), reference()}], [{module(), binary()}], :ets.tab(), pos_integer() | nil) ::
+          [warning()]
+  def verify(compiled_info, runtime_files, ets, schedulers \\ nil) do
+    runtime_info =
+      for {module, file} <- runtime_files do
+        spawn(self(), ets, module, file)
+      end
 
-    case compiled_maps ++ runtime_binaries do
+    case compiled_info ++ runtime_info do
       [] ->
         []
 
-      check_modules ->
-        schedulers = schedulers || max(:erlang.system_info(:schedulers_online), 2)
+      modules ->
+        for {pid, ref} <- modules do
+          send(pid, {ref, :cache})
+        end
 
-        {:ok, server} =
-          :gen_server.start_link(__MODULE__, [check_modules, self(), schedulers], [])
+        for {_pid, ref} <- modules do
+          receive do
+            {^ref, :cached} -> :ok
+          end
+        end
 
-        preload_cache(get_ets(server), check_modules)
-        start(server)
-        collect_results(length(check_modules), [])
+        {:ok, _} = :gen_server.start_link(__MODULE__, [modules, ets, schedulers], [])
+        collect_results(length(modules), [])
     end
   end
 
@@ -46,8 +146,9 @@ defmodule Module.ParallelChecker do
   Test cache.
   """
   def test_cache do
-    {:ok, pid} = :gen_server.start_link(__MODULE__, [[], self(), 1], [])
-    {pid, get_ets(pid)}
+    ets = init()
+    {:ok, pid} = :gen_server.start_link(__MODULE__, [[], ets, 1], [])
+    {pid, ets}
   end
 
   @doc """
@@ -98,8 +199,8 @@ defmodule Module.ParallelChecker do
 
   ## Module checking
 
-  defp check_module(module, cache) do
-    case extract_definitions(module) do
+  defp check_module(module, info, cache) do
+    case extract_definitions(module, info) do
       {:ok, module, file, definitions, no_warn_undefined} ->
         Module.Types.warnings(module, file, definitions, no_warn_undefined, cache)
         |> group_warnings()
@@ -110,7 +211,7 @@ defmodule Module.ParallelChecker do
     end
   end
 
-  defp extract_definitions({module, module_map}) when is_map(module_map) do
+  defp extract_definitions(module, module_map) when is_map(module_map) do
     no_warn_undefined =
       module_map.compile_opts
       |> extract_no_warn_undefined()
@@ -119,11 +220,11 @@ defmodule Module.ParallelChecker do
     {:ok, module, module_map.file, module_map.definitions, no_warn_undefined}
   end
 
-  defp extract_definitions({module, binary}) when is_binary(binary) do
+  defp extract_definitions(module, binary) when is_binary(binary) do
     with {:ok, {_, [debug_info: chunk]}} <- :beam_lib.chunks(binary, [:debug_info]),
          {:debug_info_v1, backend, data} <- chunk,
          {:ok, module_map} <- backend.debug_info(:elixir_v1, module, data, []) do
-      extract_definitions({module, module_map})
+      extract_definitions(module, module_map)
     else
       _ -> :error
     end
@@ -204,106 +305,7 @@ defmodule Module.ParallelChecker do
     IO.puts(:stderr, [:elixir_errors.warning_prefix(), message])
   end
 
-  ## Server callbacks
-
-  def init([modules, send_results, schedulers]) do
-    ets = :ets.new(:checker_cache, [:set, :public, {:read_concurrency, true}])
-
-    state = %{
-      ets: ets,
-      waiting: %{},
-      send_results: send_results,
-      modules: modules,
-      spawned: 0,
-      schedulers: schedulers
-    }
-
-    {:ok, state}
-  end
-
-  def handle_call({:lock, module}, from, %{waiting: waiting} = state) do
-    case waiting do
-      %{^module => froms} ->
-        waiting = Map.put(state.waiting, module, [from | froms])
-        {:noreply, %{state | waiting: waiting}}
-
-      %{} ->
-        waiting = Map.put(state.waiting, module, [])
-        {:reply, true, %{state | waiting: waiting}}
-    end
-  end
-
-  def handle_call({:unlock, module}, _from, %{waiting: waiting} = state) do
-    froms = Map.fetch!(waiting, module)
-    Enum.each(froms, &:gen_server.reply(&1, false))
-    waiting = Map.delete(waiting, module)
-    {:reply, :ok, %{state | waiting: waiting}}
-  end
-
-  def handle_call(:get_ets, _from, %{ets: ets} = state) do
-    {:reply, ets, state}
-  end
-
-  def handle_cast(:start, state) do
-    {:noreply, spawn_checkers(state)}
-  end
-
-  def handle_info({__MODULE__, :done}, state) do
-    state = %{state | spawned: state.spawned - 1}
-
-    if state.spawned == 0 and state.modules == [] do
-      {:stop, :normal, state}
-    else
-      state = spawn_checkers(state)
-      {:noreply, state}
-    end
-  end
-
-  defp lock(server, module) do
-    :gen_server.call(server, {:lock, module}, :infinity)
-  end
-
-  defp unlock(server, module) do
-    :gen_server.call(server, {:unlock, module})
-  end
-
-  defp get_ets(server) do
-    :gen_server.call(server, :get_ets)
-  end
-
-  defp start(server) do
-    :gen_server.cast(server, :start)
-  end
-
-  defp preload_cache(ets, modules) do
-    Enum.each(modules, fn
-      {_module, map} when is_map(map) -> cache_from_module_map(ets, map)
-      {module, binary} when is_binary(binary) -> cache_from_chunk(ets, module, binary)
-    end)
-  end
-
-  defp spawn_checkers(%{modules: []} = state) do
-    state
-  end
-
-  defp spawn_checkers(%{spawned: spawned, schedulers: schedulers} = state)
-       when spawned >= schedulers do
-    state
-  end
-
-  defp spawn_checkers(%{modules: [{module, _} = verify | modules]} = state) do
-    parent = self()
-    ets = state.ets
-    send_results_pid = state.send_results
-
-    spawn_link(fn ->
-      warnings = check_module(verify, {parent, ets})
-      send(send_results_pid, {__MODULE__, module, warnings})
-      send(parent, {__MODULE__, :done})
-    end)
-
-    spawn_checkers(%{state | modules: modules, spawned: state.spawned + 1})
-  end
+  ## Cache
 
   defp cache_module({server, ets}, module) do
     if lock(server, module) do
@@ -409,5 +411,74 @@ defmodule Module.ParallelChecker do
         []
       end
     end)
+  end
+
+  ## Server callbacks
+
+  def init([modules, ets, schedulers]) do
+    state = %{
+      ets: ets,
+      waiting: %{},
+      modules: modules,
+      spawned: 0,
+      schedulers: schedulers || max(:erlang.system_info(:schedulers_online), 2)
+    }
+
+    {:ok, state, {:continue, :start}}
+  end
+
+  def handle_continue(:start, state) do
+    {:noreply, run_checkers(state)}
+  end
+
+  def handle_call({:lock, module}, from, %{waiting: waiting} = state) do
+    case waiting do
+      %{^module => froms} ->
+        waiting = Map.put(state.waiting, module, [from | froms])
+        {:noreply, %{state | waiting: waiting}}
+
+      %{} ->
+        waiting = Map.put(state.waiting, module, [])
+        {:reply, true, %{state | waiting: waiting}}
+    end
+  end
+
+  def handle_call({:unlock, module}, _from, %{waiting: waiting} = state) do
+    froms = Map.fetch!(waiting, module)
+    Enum.each(froms, &:gen_server.reply(&1, false))
+    waiting = Map.delete(waiting, module)
+    {:reply, :ok, %{state | waiting: waiting}}
+  end
+
+  def handle_info({__MODULE__, :done}, state) do
+    state = %{state | spawned: state.spawned - 1}
+
+    if state.spawned == 0 and state.modules == [] do
+      {:stop, :normal, state}
+    else
+      {:noreply, run_checkers(state)}
+    end
+  end
+
+  defp lock(server, module) do
+    :gen_server.call(server, {:lock, module}, :infinity)
+  end
+
+  defp unlock(server, module) do
+    :gen_server.call(server, {:unlock, module})
+  end
+
+  defp run_checkers(%{modules: []} = state) do
+    state
+  end
+
+  defp run_checkers(%{spawned: spawned, schedulers: schedulers} = state)
+       when spawned >= schedulers do
+    state
+  end
+
+  defp run_checkers(%{modules: [{pid, ref} | modules]} = state) do
+    send(pid, {ref, :check, self()})
+    run_checkers(%{state | modules: modules, spawned: state.spawned + 1})
   end
 end

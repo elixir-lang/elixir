@@ -110,10 +110,7 @@ consolidate(Map, TypeSpecs, Chunks) ->
 
 %% Dynamic compilation hook, used in regular compiler
 
-compile(Map) ->
-  elixir_erl_compiler:spawn(fun spawned_compile/1, [Map]).
-
-spawned_compile(#{module := Module, line := Line} = Map) ->
+compile(#{module := Module, line := Line} = Map) ->
   {Set, Bag} = elixir_module:data_tables(Module),
 
   TranslatedTypespecs =

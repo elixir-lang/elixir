@@ -1288,7 +1288,7 @@ defmodule Module do
     behaviour_definitions = bag_lookup_element(bag, {:accumulate, :behaviour}, 2)
 
     cond do
-      Code.ensure_compiled(behaviour) != {:module, behaviour} ->
+      not Code.ensure_loaded?(behaviour) ->
         {:error, "it was not defined"}
 
       not function_exported?(behaviour, :behaviour_info, 1) ->
@@ -1718,14 +1718,7 @@ defmodule Module do
   defp check_behaviours(env, behaviours) do
     Enum.reduce(behaviours, %{}, fn behaviour, acc ->
       cond do
-        not is_atom(behaviour) ->
-          message =
-            "@behaviour #{inspect(behaviour)} must be an atom (in module #{inspect(env.module)})"
-
-          IO.warn(message, Macro.Env.stacktrace(env))
-          acc
-
-        Code.ensure_compiled(behaviour) != {:module, behaviour} ->
+        not Code.ensure_loaded?(behaviour) ->
           message =
             "@behaviour #{inspect(behaviour)} does not exist (in module #{inspect(env.module)})"
 
@@ -2111,6 +2104,15 @@ defmodule Module do
               "@#{key} is a built-in module attribute for documentation. When set dynamically, " <>
                 "it should be {line, doc} (where \"doc\" is either false, nil, a string, or a keyword list), " <>
                 "got: #{inspect(value)}"
+    end
+  end
+
+  defp preprocess_attribute(:behaviour, value) do
+    if is_atom(value) do
+      Code.ensure_compiled(value)
+      value
+    else
+      raise ArgumentError, "@behaviour expects a module, got: #{inspect(value)}"
     end
   end
 
