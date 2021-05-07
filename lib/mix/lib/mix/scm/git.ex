@@ -280,7 +280,7 @@ defmodule Mix.SCM.Git do
 
   defp default_into() do
     case Mix.shell() do
-      Mix.Shell.IO -> IO.stream(:stdio, :line)
+      Mix.Shell.IO -> IO.stream()
       _ -> ""
     end
   end

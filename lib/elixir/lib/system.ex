@@ -896,6 +896,12 @@ defmodule System do
       iex> System.shell("echo hello")
       {"hello\n", 0}
 
+  If you want to stream the devices to IO as they come:
+
+      iex> System.shell("echo hello", into: IO.stream())
+      hello
+      {%IO.Stream{}, 0}
+
   ## Options
 
   It accepts the same options as `cmd/3`, except for `arg0`.
@@ -962,7 +968,9 @@ defmodule System do
       iex> System.cmd("echo", ["hello"], env: [{"MIX_ENV", "test"}])
       {"hello\n", 0}
 
-      iex> System.cmd("echo", ["hello"], into: IO.stream(:stdio, :line))
+  If you want to stream the devices to IO as they come:
+
+      iex> System.cmd("echo", ["hello"], into: IO.stream())
       hello
       {%IO.Stream{}, 0}
 
