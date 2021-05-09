@@ -25,7 +25,7 @@ defmodule Mix.Compilers.Test do
   def require_and_run(matched_test_files, test_paths, opts) do
     stale = opts[:stale]
 
-    {test_files, stale_manifest_pid, parallel_require_callbacks} =
+    {test_files, stale_manifest_pid, parallel_require_opts} =
       if stale do
         set_up_stale(matched_test_files, test_paths, opts)
       else
@@ -36,9 +36,10 @@ defmodule Mix.Compilers.Test do
       :noop
     else
       task = ExUnit.async_run()
+      parallel_require_opts = profile_opts(parallel_require_opts, opts)
 
       try do
-        case Kernel.ParallelCompiler.require(test_files, parallel_require_callbacks) do
+        case Kernel.ParallelCompiler.require(test_files, parallel_require_opts) do
           {:ok, _, _} -> :ok
           {:error, _, _} -> exit({:shutdown, 1})
         end
@@ -153,6 +154,14 @@ defmodule Mix.Compilers.Test do
       Enum.reduce(changed, sources, &List.keystore(&2, &1, source(:source), source(source: &1)))
 
     sources
+  end
+
+  defp profile_opts(target, opts) do
+    if Keyword.get(opts, :profile_require) == "time" do
+      Keyword.put(target, :profile, :time)
+    else
+      target
+    end
   end
 
   ## Manifest
