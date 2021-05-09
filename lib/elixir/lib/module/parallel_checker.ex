@@ -1,37 +1,47 @@
 defmodule Module.ParallelChecker do
   @moduledoc false
 
+  import Kernel, except: [spawn: 3]
+
   @type cache() :: {pid(), :ets.tid()}
   @type warning() :: term()
   @type kind() :: :def | :defmacro
   @type mode() :: :elixir | :erlang
 
   @doc """
-  Initializes the parallel checker table.
+  Initializes the parallel checker process.
   """
-  def init do
-    :ets.new(:checker_cache, [:set, :public, {:read_concurrency, true}])
+  def start_link(schedulers \\ nil) do
+    :gen_server.start_link(__MODULE__, schedulers, [])
   end
 
   @doc """
-  Gets the parallel checker ets table.
+  Stops the parallel checker process.
   """
-  def ets() do
-    {_, ets} = :erlang.get(:elixir_checker_info)
-    ets
+  def stop(checker) do
+    send(checker, {__MODULE__, :stop})
+    :ok
+  end
+
+  @doc """
+  Gets the parallel checker data from pdict.
+  """
+  def get do
+    {_, checker} = :erlang.get(:elixir_checker_info)
+    checker
   end
 
   @doc """
   Stores the parallel checker information.
   """
-  def put(pid, ets) do
-    :erlang.put(:elixir_checker_info, {pid, ets})
+  def put(pid, checker) do
+    :erlang.put(:elixir_checker_info, {pid, checker})
   end
 
   @doc """
   Spawns a process that runs the parallel checker.
   """
-  def spawn(pid, ets, module, info) do
+  def spawn({pid, checker}, module, info) do
     ref = make_ref()
 
     spawned =
@@ -40,7 +50,7 @@ defmodule Module.ParallelChecker do
         mon_ref = Process.monitor(pid)
 
         receive do
-          {^ref, :cache} ->
+          {^ref, :cache, ets} ->
             loaded_info =
               if is_map(info) do
                 cache_from_module_map(ets, info)
@@ -51,13 +61,13 @@ defmodule Module.ParallelChecker do
                 info
               end
 
-            send(pid, {ref, :cached})
+            send(checker, {ref, :cached})
 
             receive do
-              {^ref, :check, coordinator} ->
-                warnings = check_module(module, loaded_info, {coordinator, ets})
+              {^ref, :check} ->
+                warnings = check_module(module, loaded_info, {checker, ets})
                 send(pid, {__MODULE__, module, warnings})
-                send(coordinator, {__MODULE__, :done})
+                send(checker, {__MODULE__, :done})
             end
 
           {:DOWN, ^mon_ref, _, _, _} ->
@@ -75,13 +85,12 @@ defmodule Module.ParallelChecker do
     case :erlang.get(:elixir_compiler_pid) do
       :undefined ->
         previous = :erlang.get(:elixir_checker_info)
+        {:ok, checker} = start_link()
+        put(self(), checker)
 
         try do
-          ets = init()
-          put(self(), ets)
-
           {result, compile_info} = Enum.unzip(fun.())
-          _ = verify(compile_info, [], ets)
+          _ = verify(checker, compile_info, [])
           result
         after
           if previous != :undefined do
@@ -89,6 +98,8 @@ defmodule Module.ParallelChecker do
           else
             :erlang.erase(:elixir_checker_info)
           end
+
+          stop(checker)
         end
 
       _ ->
@@ -103,42 +114,26 @@ defmodule Module.ParallelChecker do
   the modules and adds the ExCk chunk to the binaries. Returns the updated
   list of warnings from the verification.
   """
-  @spec verify([{pid(), reference()}], [{module(), binary()}], :ets.tab(), pos_integer() | nil) ::
-          [warning()]
-  def verify(compiled_info, runtime_files, ets, schedulers \\ nil) do
+  @spec verify(pid(), [{pid(), reference()}], [{module(), binary()}]) :: [warning()]
+  def verify(checker, compiled_info, runtime_files) do
     runtime_info =
       for {module, file} <- runtime_files do
-        spawn(self(), ets, module, file)
+        spawn({self(), checker}, module, file)
       end
 
-    case compiled_info ++ runtime_info do
-      [] ->
-        []
-
-      modules ->
-        for {pid, ref} <- modules do
-          send(pid, {ref, :cache})
-        end
-
-        for {_pid, ref} <- modules do
-          receive do
-            {^ref, :cached} -> :ok
-          end
-        end
-
-        {:ok, _} = :gen_server.start_link(__MODULE__, [modules, ets, schedulers], [])
-        collect_results(length(modules), [])
-    end
+    modules = compiled_info ++ runtime_info
+    :gen_server.cast(checker, {:start, modules})
+    collect_results(modules, [])
   end
 
-  defp collect_results(0, warnings) do
+  defp collect_results([], warnings) do
     warnings
   end
 
-  defp collect_results(count, warnings) do
+  defp collect_results([_ | modules], warnings) do
     receive do
       {__MODULE__, _module, new_warnings} ->
-        collect_results(count - 1, new_warnings ++ warnings)
+        collect_results(modules, new_warnings ++ warnings)
     end
   end
 
@@ -146,9 +141,8 @@ defmodule Module.ParallelChecker do
   Test cache.
   """
   def test_cache do
-    ets = init()
-    {:ok, pid} = :gen_server.start_link(__MODULE__, [[], ets, 1], [])
-    {pid, ets}
+    {:ok, checker} = start_link()
+    {checker, :gen_server.call(checker, :ets)}
   end
 
   @doc """
@@ -413,22 +407,32 @@ defmodule Module.ParallelChecker do
     end)
   end
 
+  defp lock(server, module) do
+    :gen_server.call(server, {:lock, module}, :infinity)
+  end
+
+  defp unlock(server, module) do
+    :gen_server.call(server, {:unlock, module})
+  end
+
   ## Server callbacks
 
-  def init([modules, ets, schedulers]) do
+  def init(schedulers) do
+    ets = :ets.new(__MODULE__, [:set, :public, {:read_concurrency, true}])
+
     state = %{
       ets: ets,
       waiting: %{},
-      modules: modules,
+      modules: [],
       spawned: 0,
       schedulers: schedulers || max(:erlang.system_info(:schedulers_online), 2)
     }
 
-    {:ok, state, {:continue, :start}}
+    {:ok, state}
   end
 
-  def handle_continue(:start, state) do
-    {:noreply, run_checkers(state)}
+  def handle_call(:ets, _from, state) do
+    {:reply, state.ets, state}
   end
 
   def handle_call({:lock, module}, from, %{waiting: waiting} = state) do
@@ -452,20 +456,25 @@ defmodule Module.ParallelChecker do
 
   def handle_info({__MODULE__, :done}, state) do
     state = %{state | spawned: state.spawned - 1}
+    {:noreply, run_checkers(state)}
+  end
 
-    if state.spawned == 0 and state.modules == [] do
-      {:stop, :normal, state}
-    else
-      {:noreply, run_checkers(state)}
+  def handle_info({__MODULE__, :stop}, state) do
+    {:stop, :normal, state}
+  end
+
+  def handle_cast({:start, modules}, %{ets: ets} = state) do
+    for {pid, ref} <- modules do
+      send(pid, {ref, :cache, ets})
     end
-  end
 
-  defp lock(server, module) do
-    :gen_server.call(server, {:lock, module}, :infinity)
-  end
+    for {_pid, ref} <- modules do
+      receive do
+        {^ref, :cached} -> :ok
+      end
+    end
 
-  defp unlock(server, module) do
-    :gen_server.call(server, {:unlock, module})
+    {:noreply, run_checkers(%{state | modules: modules})}
   end
 
   defp run_checkers(%{modules: []} = state) do
@@ -478,7 +487,7 @@ defmodule Module.ParallelChecker do
   end
 
   defp run_checkers(%{modules: [{pid, ref} | modules]} = state) do
-    send(pid, {ref, :check, self()})
+    send(pid, {ref, :check})
     run_checkers(%{state | modules: modules, spawned: state.spawned + 1})
   end
 end

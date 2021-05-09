@@ -447,8 +447,8 @@ beam_location(Module) ->
 
 spawn_parallel_checker(undefined, _Module, _ModuleMap) ->
   nil;
-spawn_parallel_checker({Pid, Ets}, Module, ModuleMap) ->
-  'Elixir.Module.ParallelChecker':spawn(Pid, Ets, Module, ModuleMap).
+spawn_parallel_checker(CheckerInfo, Module, ModuleMap) ->
+  'Elixir.Module.ParallelChecker':spawn(CheckerInfo, Module, ModuleMap).
 
 make_module_available(Module, Binary, CheckerPid) ->
   case get(elixir_module_binaries) of
