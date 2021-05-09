@@ -20,7 +20,7 @@ defmodule Kernel.ParallelCompiler do
       file = :erlang.get(:elixir_compiler_file)
       dest = :erlang.get(:elixir_compiler_dest)
       {:error_handler, error_handler} = :erlang.process_info(self(), :error_handler)
-      checker = Module.ParallelChecker.ets()
+      checker = Module.ParallelChecker.get()
 
       Task.async(fn ->
         send(parent, {:async, self()})
@@ -148,10 +148,34 @@ defmodule Kernel.ParallelCompiler do
   defp spawn_workers(files, output, options) do
     {:module, _} = :code.ensure_loaded(Kernel.ErrorHandler)
     schedulers = max(:erlang.system_info(:schedulers_online), 2)
-    beam_timestamp = Keyword.get(options, :beam_timestamp)
+    {:ok, checker} = Module.ParallelChecker.start_link(schedulers)
+
+    try do
+      outcome = spawn_workers(schedulers, checker, files, output, options)
+      {outcome, Code.get_compiler_option(:warnings_as_errors)}
+    else
+      {{:ok, _, [_ | _] = warnings}, true} ->
+        message = "Compilation failed due to warnings while using the --warnings-as-errors option"
+        IO.puts(:stderr, message)
+        {:error, warnings, []}
+
+      {{:ok, outcome, warnings}, _} ->
+        beam_timestamp = Keyword.get(options, :beam_timestamp)
+        {:ok, write_module_binaries(outcome, output, beam_timestamp), warnings}
+
+      {{:error, errors, warnings}, true} ->
+        {:error, errors ++ warnings, []}
+
+      {{:error, errors, warnings}, _} ->
+        {:error, errors, warnings}
+    after
+      Module.ParallelChecker.stop(checker)
+    end
+  end
+
+  defp spawn_workers(schedulers, checker, files, output, options) do
     threshold = Keyword.get(options, :long_compilation_threshold, 10) * 1000
     timer_ref = Process.send_after(self(), :threshold_check, threshold)
-    checker = Module.ParallelChecker.init()
 
     {outcome, state} =
       spawn_workers(files, 0, [], [], %{}, [], %{
@@ -176,21 +200,7 @@ defmodule Kernel.ParallelCompiler do
       0 -> :ok
     end
 
-    case {outcome, Code.get_compiler_option(:warnings_as_errors)} do
-      {{:ok, _, [_ | _] = warnings}, true} ->
-        message = "Compilation failed due to warnings while using the --warnings-as-errors option"
-        IO.puts(:stderr, message)
-        {:error, warnings, []}
-
-      {{:ok, outcome, warnings}, _} ->
-        {:ok, write_module_binaries(outcome, output, beam_timestamp), warnings}
-
-      {{:error, errors, warnings}, true} ->
-        {:error, errors ++ warnings, []}
-
-      {{:error, errors, warnings}, _} ->
-        {:error, errors, warnings}
-    end
+    outcome
   end
 
   defp each_file(fun) when is_function(fun, 1), do: fn file, _ -> fun.(file) end
@@ -232,7 +242,7 @@ defmodule Kernel.ParallelCompiler do
   end
 
   defp maybe_check_modules(result, runtime_modules, state) do
-    %{schedulers: schedulers, profile: profile, checker: checker} = state
+    %{profile: profile, checker: checker} = state
 
     compiled_modules =
       for {{:module, _module}, {_binary, info}} <- result,
@@ -245,7 +255,7 @@ defmodule Kernel.ParallelCompiler do
           do: {module, path}
 
     profile_checker(profile, compiled_modules, runtime_modules, fn ->
-      Module.ParallelChecker.verify(compiled_modules, runtime_modules, checker, schedulers)
+      Module.ParallelChecker.verify(checker, compiled_modules, runtime_modules)
     end)
   end
 
