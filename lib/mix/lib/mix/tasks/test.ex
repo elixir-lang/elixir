@@ -156,6 +156,8 @@ defmodule Mix.Tasks.Test do
 
     * `--preload-modules` - preloads all modules defined in applications
 
+    * `--profile-require` - profiles the time spent to require test files
+
     * `--raise` - raises if the test suite failed
 
     * `--seed` - seeds the random number generator used to randomize the order of tests;
@@ -266,20 +268,25 @@ defmodule Mix.Tasks.Test do
   The `:test_coverage` configuration accepts the following options:
 
     * `:output` - the output directory for cover results. Defaults to `"cover"`
+
     * `:tool` - the coverage tool
+
     * `:summary` - summary output configuration; can be either a boolean
       or a keyword list. When a keyword list is passed, it can specify a
       `:threshold`, which is a boolean or numeric value that enables coloring
       of code coverage results in red or green depending on whether the
       percentage is below or above the specified threshold, respectively.
       Defaults to `[threshold: 90]`
+
     * `:export` - a file name to export results to instead of generating
       the result on the fly. The `.coverdata` extension is automatically
       added to the given file. This option is automatically set via the
       `--export-coverage` option or when using process partitioning.
-      See `mix test.coverage` to compile a report from multiple exports.
+      See `mix test.coverage` to compile a report from multiple exports
+
     * `:ignore_modules` - modules to ignore from generating reports and
       in summaries
+
     * `:local_only` - by default coverage only tracks local calls, set this
       option to false if you plan to run coverage across nodes
 
@@ -394,7 +401,8 @@ defmodule Mix.Tasks.Test do
     slowest: :integer,
     partitions: :integer,
     preload_modules: :boolean,
-    warnings_as_errors: :boolean
+    warnings_as_errors: :boolean,
+    profile_require: :string
   ]
 
   @cover [output: "cover", tool: Mix.Tasks.Test.Coverage]
