@@ -398,5 +398,11 @@ defmodule IEx.AutocompleteTest do
 
     assert expand('take(') == {:yes, '', ['take(enumerable, amount)']}
     assert expand('derive(') == {:yes, '', ['derive(protocol, module, options \\\\ [])']}
+
+    defmodule NoDocs do
+      def sample(a), do: a
+    end
+
+    assert {:yes, [], [_ | _]} = expand('NoDocs.sample(')
   end
 end
