@@ -1215,7 +1215,9 @@ defmodule Code.Formatter.CallsTest do
     end
 
     test "with keywords" do
-      assert_format "expr[foo: bar, baz: bat]", "expr[[foo: bar, baz: bat]]"
+      assert_format "expr[[]]", "expr[[]]"
+      assert_format "expr[foo: bar, baz: bat]", "expr[foo: bar, baz: bat]"
+      assert_format "expr[[foo: bar, baz: bat]]", "expr[[foo: bar, baz: bat]]"
     end
   end
 end

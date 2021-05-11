@@ -285,9 +285,9 @@ number -> char : handle_number(?exprs('$1'), '$1', number_value('$1')).
 parens_call -> dot_call_identifier call_args_parens : build_parens('$1', '$2', {[], []}).
 parens_call -> dot_call_identifier call_args_parens call_args_parens : build_nested_parens('$1', '$2', '$3', {[], []}).
 
-bracket_arg -> open_bracket kw close_bracket : build_list('$1', '$2', '$3').
-bracket_arg -> open_bracket container_expr close_bracket : build_list('$1', '$2', '$3').
-bracket_arg -> open_bracket container_expr ',' close_bracket : build_list('$1', '$2', '$4').
+bracket_arg -> open_bracket kw close_bracket : build_access_arg('$1', '$2', '$3').
+bracket_arg -> open_bracket container_expr close_bracket : build_access_arg('$1', '$2', '$3').
+bracket_arg -> open_bracket container_expr ',' close_bracket : build_access_arg('$1', '$2', '$4').
 
 bracket_expr -> dot_bracket_identifier bracket_arg : build_access(build_no_parens('$1', nil), '$2').
 bracket_expr -> access_expr bracket_arg : build_access('$1', '$2').
@@ -882,8 +882,10 @@ build_fn(Fn, Stab, End) ->
 
 %% Access
 
-build_access(Expr, {List, Location}) ->
-  Meta = meta_from_location(Location),
+build_access_arg(Left, Args, Right) ->
+  {Args, newlines_pair(Left, Right) ++ meta_from_token(Left)}.
+
+build_access(Expr, {List, Meta}) ->
   {{'.', Meta, ['Elixir.Access', get]}, Meta, [Expr, List]}.
 
 %% Interpolation aware
