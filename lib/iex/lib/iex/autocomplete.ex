@@ -135,7 +135,7 @@ defmodule IEx.Autocomplete do
     with docs when is_list(docs) <- get_docs(module, [:function, :macro], name) do
       Enum.map(docs, fn {_, _, signatures, _, _} -> Enum.join(signatures, " ") end)
     else
-      _ -> :error
+      _ -> []
     end
   end
 
