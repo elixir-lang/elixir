@@ -358,6 +358,30 @@ defmodule Code.Formatter.CommentsTest do
     end
   end
 
+  describe "access" do
+    test "before and after single arg" do
+      assert_same ~S"""
+      foo[
+        # bar
+        baz
+        # bat
+      ]
+      """
+    end
+
+    test "before and after keywords" do
+      assert_same ~S"""
+      foo[
+        # bar
+        one: :two,
+        # baz
+        three: :four
+        # bat
+      ]
+      """
+    end
+  end
+
   describe "calls" do
     test "local with parens inside before and after" do
       assert_same ~S"""

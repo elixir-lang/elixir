@@ -393,10 +393,17 @@ defmodule Code.Formatter do
   end
 
   # foo[bar]
-  defp quoted_to_algebra({{:., _, [Access, :get]}, meta, [target | args]}, _context, state) do
+  defp quoted_to_algebra({{:., _, [Access, :get]}, meta, [target, arg]}, _context, state) do
     {target_doc, state} = remote_target_to_algebra(target, state)
-    {call_doc, state} = list_to_algebra(meta, args, state)
-    {concat(target_doc, call_doc), state}
+
+    {access_doc, state} =
+      if keyword?(arg) do
+        list_to_algebra(meta, arg, state)
+      else
+        list_to_algebra(meta, [arg], state)
+      end
+
+    {concat(target_doc, access_doc), state}
   end
 
   # %Foo{}
