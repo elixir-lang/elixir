@@ -449,6 +449,14 @@ defmodule Mix.Tasks.XrefTest do
       """)
     end
 
+    test "shortest sink and source" do
+      assert_graph(~w[--source lib/a.ex --sink lib/e.ex --shortest], """
+      lib/a.ex
+      `-- lib/b.ex (compile)
+          `-- lib/e.ex (compile)
+      """)
+    end
+
     test "with dynamic module" do
       in_fixture("no_mixfile", fn ->
         File.write!("lib/a.ex", """

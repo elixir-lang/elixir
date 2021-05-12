@@ -56,6 +56,9 @@ defmodule Mix.Tasks.Xref do
     * `--sink` - displays all files that reference the given file
       (directly or indirectly)
 
+    * `--shortest` - displays the shortest path between the source
+      and sink
+
     * `--min-cycle-size` - controls the minimum cycle size on formats
       like `stats` and `cycles`
 
@@ -184,6 +187,7 @@ defmodule Mix.Tasks.Xref do
     label: :string,
     only_nodes: :boolean,
     only_direct: :boolean,
+    shortest: :boolean,
     sink: :string,
     source: :string,
     min_cycle_size: :integer
@@ -460,6 +464,7 @@ defmodule Mix.Tasks.Xref do
     excluded = excluded(opts)
     source = opts[:source]
     sink = opts[:sink]
+    shortest = opts[:shortest]
 
     if source && is_nil(file_references[source]) do
       Mix.raise("Source could not be found: #{source}")
@@ -469,15 +474,24 @@ defmodule Mix.Tasks.Xref do
       Mix.raise("Sink could not be found: #{sink}")
     end
 
+    if shortest && !(source && sink) do
+      Mix.raise("Option `--shortest` requires `--sink` and `--source` options")
+    end
+
     file_references =
-      if sink = opts[:sink] do
-        filter_for_sink(file_references, sink, filter)
-      else
-        filter_for_source(file_references, filter)
+      cond do
+        shortest ->
+          filter_for_shortest(file_references, source, sink, filter)
+
+        sink ->
+          filter_for_sink(file_references, sink, filter)
+
+        true ->
+          filter_for_source(file_references, filter)
       end
 
     roots =
-      if source = opts[:source] do
+      if source do
         %{source => nil}
       else
         file_references
@@ -549,6 +563,27 @@ defmodule Mix.Tasks.Xref do
         end
       end)
     end
+  end
+
+  defp path_to_references([source | [next | _] = rest], file_references, into) do
+    ref = file_references[source] |> List.keyfind(next, 0)
+    into = Map.put(into, source, [ref])
+    path_to_references(rest, file_references, into)
+  end
+
+  defp path_to_references([_sink], _file_references, into), do: into
+  defp path_to_references(false, _file_references, %{}), do: %{}
+
+  defp shortest_path(file_references, source, sink) do
+    with_digraph(file_references, fn digraph ->
+      :digraph.get_short_path(digraph, source, sink)
+      |> path_to_references(file_references, %{})
+    end)
+  end
+
+  defp filter_for_shortest(file_references, source, sink, filter) do
+    filter_for_source(file_references, filter)
+    |> shortest_path(source, sink)
   end
 
   defp filter_for_sink(file_references, sink, filter) do
