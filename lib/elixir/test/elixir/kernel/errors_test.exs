@@ -215,6 +215,24 @@ defmodule Kernel.ErrorsTest do
                       'foo = 1; %{put_in(foo.bar.baz, nil), foo}'
   end
 
+  test "expression after keyword lists" do
+    assert_eval_raise SyntaxError,
+                      ~r"unexpected expression after keyword list",
+                      'call foo: 1, :bar'
+
+    assert_eval_raise SyntaxError,
+                      ~r"unexpected expression after keyword list",
+                      'call(foo: 1, :bar)'
+
+    assert_eval_raise SyntaxError,
+                      ~r"unexpected expression after keyword list",
+                      '[foo: 1, :bar]'
+
+    assert_eval_raise SyntaxError,
+                      ~r"unexpected expression after keyword list",
+                      '%{foo: 1, :bar => :bar}'
+  end
+
   test "struct fields on defstruct" do
     assert_eval_raise ArgumentError, "struct field names must be atoms, got: 1", '''
     defmodule Kernel.ErrorsTest.StructFieldsOnDefstruct do
