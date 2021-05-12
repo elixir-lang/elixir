@@ -20,7 +20,7 @@ Nonterminals
   call_args_no_parens_comma_expr call_args_no_parens_all call_args_no_parens_many
   call_args_no_parens_many_strict
   stab stab_eoe stab_expr stab_op_eol_and_expr stab_parens_many
-  kw_eol kw_base kw call_args_no_parens_kw_expr call_args_no_parens_kw
+  kw_eol kw_base kw_data kw_call call_args_no_parens_kw_expr call_args_no_parens_kw
   dot_op dot_alias dot_bracket_identifier dot_call_identifier
   dot_identifier dot_op_identifier dot_do_identifier dot_paren_identifier
   do_block fn_eoe do_eoe end_eoe block_eoe block_item block_list
@@ -285,7 +285,7 @@ number -> char : handle_number(?exprs('$1'), '$1', number_value('$1')).
 parens_call -> dot_call_identifier call_args_parens : build_parens('$1', '$2', {[], []}).
 parens_call -> dot_call_identifier call_args_parens call_args_parens : build_nested_parens('$1', '$2', '$3', {[], []}).
 
-bracket_arg -> open_bracket kw close_bracket : build_access_arg('$1', '$2', '$3').
+bracket_arg -> open_bracket kw_data close_bracket : build_access_arg('$1', '$2', '$3').
 bracket_arg -> open_bracket container_expr close_bracket : build_access_arg('$1', '$2', '$3').
 bracket_arg -> open_bracket container_expr ',' close_bracket : build_access_arg('$1', '$2', '$4').
 
@@ -513,7 +513,7 @@ container_args_base -> container_args_base ',' container_expr : ['$3' | '$1'].
 
 container_args -> container_args_base : reverse('$1').
 container_args -> container_args_base ',' : reverse('$1').
-container_args -> container_args_base ',' kw : reverse(['$3' | '$1']).
+container_args -> container_args_base ',' kw_call : reverse(['$3' | '$1']).
 
 % Function calls with parentheses
 
@@ -528,16 +528,16 @@ call_args_parens -> open_paren ')' :
                       {newlines_pair('$1', '$2'), []}.
 call_args_parens -> open_paren no_parens_expr close_paren :
                       {newlines_pair('$1', '$3'), ['$2']}.
-call_args_parens -> open_paren kw_base close_paren :
-                      {newlines_pair('$1', '$3'), [reverse('$2')]}.
-call_args_parens -> open_paren kw_base ',' close_paren :
-                      warn_trailing_comma('$3'), {newlines_pair('$1', '$4'), [reverse('$2')]}.
+call_args_parens -> open_paren kw_call close_paren :
+                      {newlines_pair('$1', '$3'), ['$2']}.
+call_args_parens -> open_paren kw_call ',' close_paren :
+                      warn_trailing_comma('$3'), {newlines_pair('$1', '$4'), ['$2']}.
 call_args_parens -> open_paren call_args_parens_base close_paren :
                       {newlines_pair('$1', '$3'), reverse('$2')}.
-call_args_parens -> open_paren call_args_parens_base ',' kw_base close_paren :
-                      {newlines_pair('$1', '$5'), reverse([reverse('$4') | '$2'])}.
-call_args_parens -> open_paren call_args_parens_base ',' kw_base ',' close_paren :
-                      warn_trailing_comma('$5'), {newlines_pair('$1', '$6'), reverse([reverse('$4') | '$2'])}.
+call_args_parens -> open_paren call_args_parens_base ',' kw_call close_paren :
+                      {newlines_pair('$1', '$5'), reverse(['$4' | '$2'])}.
+call_args_parens -> open_paren call_args_parens_base ',' kw_call ',' close_paren :
+                      warn_trailing_comma('$5'), {newlines_pair('$1', '$6'), reverse(['$4' | '$2'])}.
 
 % KV
 
@@ -551,21 +551,27 @@ kw_eol -> kw_identifier_unsafe eol : build_quoted_atom('$1', false, [{format, ke
 kw_base -> kw_eol container_expr : [{'$1', '$2'}].
 kw_base -> kw_base ',' kw_eol container_expr : [{'$3', '$4'} | '$1'].
 
-kw -> kw_base : reverse('$1').
-kw -> kw_base ',' : reverse('$1').
+kw_call -> kw_base : reverse('$1').
+kw_call -> kw_base ',' : reverse('$1').
+kw_call -> kw_base ',' matched_expr : error_bad_keyword_call_follow_up('$2').
+
+kw_data -> kw_base : reverse('$1').
+kw_data -> kw_base ',' : reverse('$1').
+kw_data -> kw_base ',' matched_expr : error_bad_keyword_data_follow_up('$2').
 
 call_args_no_parens_kw_expr -> kw_eol matched_expr : {'$1', '$2'}.
 call_args_no_parens_kw_expr -> kw_eol no_parens_expr : {'$1', '$2'}.
 
 call_args_no_parens_kw -> call_args_no_parens_kw_expr : ['$1'].
 call_args_no_parens_kw -> call_args_no_parens_kw_expr ',' call_args_no_parens_kw : ['$1' | '$3'].
+call_args_no_parens_kw -> call_args_no_parens_kw_expr ',' matched_expr : error_bad_keyword_call_follow_up('$2').
 
 % Lists
 
-list_args -> kw : '$1'.
+list_args -> kw_data : '$1'.
 list_args -> container_args_base : reverse('$1').
 list_args -> container_args_base ',' : reverse('$1').
-list_args -> container_args_base ',' kw : reverse('$1', '$3').
+list_args -> container_args_base ',' kw_data : reverse('$1', '$3').
 
 list -> open_bracket ']' : build_list('$1', [], '$2').
 list -> open_bracket list_args close_bracket : build_list('$1', '$2', '$3').
@@ -595,8 +601,8 @@ assoc_expr -> parens_call : '$1'.
 assoc_update -> matched_expr pipe_op_eol assoc_expr : {'$2', '$1', ['$3']}.
 assoc_update -> unmatched_expr pipe_op_eol assoc_expr : {'$2', '$1', ['$3']}.
 
-assoc_update_kw -> matched_expr pipe_op_eol kw : {'$2', '$1', '$3'}.
-assoc_update_kw -> unmatched_expr pipe_op_eol kw : {'$2', '$1', '$3'}.
+assoc_update_kw -> matched_expr pipe_op_eol kw_data : {'$2', '$1', '$3'}.
+assoc_update_kw -> unmatched_expr pipe_op_eol kw_data : {'$2', '$1', '$3'}.
 
 assoc_base -> assoc_expr : ['$1'].
 assoc_base -> assoc_base ',' assoc_expr : ['$3' | '$1'].
@@ -607,9 +613,9 @@ assoc -> assoc_base ',' : reverse('$1').
 map_op -> '%{}' : '$1'.
 map_op -> '%{}' eol : '$1'.
 
-map_close -> kw close_curly : {'$1', '$2'}.
+map_close -> kw_data close_curly : {'$1', '$2'}.
 map_close -> assoc close_curly : {'$1', '$2'}.
-map_close -> assoc_base ',' kw close_curly : {reverse('$1', '$3'), '$4'}.
+map_close -> assoc_base ',' kw_data close_curly : {reverse('$1', '$3'), '$4'}.
 
 map_args -> open_curly '}' : build_map('$1', [], '$2').
 map_args -> open_curly map_close : build_map('$1', element(1, '$2'), element(2, '$2')).
@@ -1052,6 +1058,24 @@ error_bad_atom(Token) ->
   return_error(meta_from_token(Token), "atom cannot be followed by an alias. "
     "If the '.' was meant to be part of the atom's name, "
     "the atom name must be quoted. Syntax error before: ", "'.'").
+
+error_bad_keyword_call_follow_up(Token) ->
+  return_error(meta_from_token(Token),
+    "unexpected expression after keyword list. Keyword lists must always come as the last argument. Therefore, this is not allowed:\n\n"
+    "    function_call(1, some: :option, 2)\n\n"
+    "Instead, wrap the keyword in brackets:\n\n"
+    "    function_call(1, [some: :option], 2)\n\n"
+    "Syntax error after: ", "','").
+
+error_bad_keyword_data_follow_up(Token) ->
+  return_error(meta_from_token(Token),
+    "unexpected expression after keyword list. Keyword lists must always come last in lists and maps. Therefore, this is not allowed:\n\n"
+    "    [some: :value, :another]\n"
+    "    %{some: :value, another => value}\n\n"
+    "Instead, reorder it to be the last entry:\n\n"
+    "    [:another, some: :value]\n"
+    "    %{another => value, some: :value}\n\n"
+    "Syntax error after: ", "','").
 
 error_no_parens_strict(Token) ->
   return_error(meta_from_token(Token), "unexpected parentheses. If you are making a "
