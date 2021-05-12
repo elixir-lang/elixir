@@ -2491,7 +2491,7 @@ defmodule Kernel do
   @doc """
   Pipes `value` into the given `fun`.
 
-  In other words, it invokes `fun` with `value` as argument.
+  In other words, it invokes `fun` with `value` as the argument.
   This is most commonly used in pipelines, allowing you
   to pipe a value to a function outside of its first argument.
 
@@ -2507,6 +2507,27 @@ defmodule Kernel do
   defmacro then(value, fun) do
     quote do
       unquote(fun).(unquote(value))
+    end
+  end
+
+  @doc """
+  Pipes `value` into the given `fun` when `predicate` is truthy.
+
+  When the `predicate` is truthy `fun` will be called with `value`,
+  otherwise `value` is returned as is.
+  This is most commonly used in pipelines, allowing you
+  to pipe a value to a function outside of its first argument.
+
+  ### Examples
+
+      iex> opts = [flag: true]
+      iex> 1 |> then?(opts[:flag], & &1 + 10)
+      11
+  """
+  @doc since: "1.12.0"
+  defmacro then?(value, predicate, fun) do
+    quote bind_quoted: [value: value, predicate: predicate, fun: fun] do
+      if predicate, do: fun.(value), else: value
     end
   end
 
@@ -5440,7 +5461,8 @@ defmodule Kernel do
 
     quote bind_quoted: [funs: funs, opts: opts] do
       target =
-        Keyword.get(opts, :to) || raise ArgumentError, "expected to: to be given as argument"
+        Keyword.get(opts, :to) ||
+          raise(ArgumentError, "expected `:to` to be given as an argument")
 
       if is_list(funs) do
         IO.warn(
