@@ -57,6 +57,37 @@ defmodule Kernel.RaiseTest do
     end
   end
 
+  test "raise preserves the stacktrace" do
+    stacktrace =
+      try do
+        raise "a"
+      rescue
+        _ -> hd(__STACKTRACE__)
+      end
+
+    file = __ENV__.file |> Path.relative_to_cwd() |> String.to_charlist()
+
+    assert {__MODULE__, :"test raise preserves the stacktrace", _, [file: ^file, line: 63] ++ _} =
+             stacktrace
+  end
+
+  if :erlang.system_info(:otp_release) >= '24' do
+    test "raise with error_info" do
+      {exception, stacktrace} =
+        try do
+          raise "a"
+        rescue
+          e -> {e, __STACKTRACE__}
+        end
+
+      assert [{__MODULE__, _, _, meta} | _] = stacktrace
+      assert meta[:error_info] == %{module: Exception}
+
+      assert Exception.format_error(exception, stacktrace) ==
+               %{general: "a", reason: "#Elixir.RuntimeError"}
+    end
+  end
+
   test "reraise message" do
     try do
       reraise "message", @trace

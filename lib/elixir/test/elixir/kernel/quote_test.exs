@@ -349,7 +349,7 @@ defmodule Kernel.QuoteTest.ErrorsTest do
       RuntimeError ->
         mod = Kernel.QuoteTest.ErrorsTest
         file = __ENV__.file |> Path.relative_to_cwd() |> String.to_charlist()
-        assert [{^mod, :will_raise, 2, [file: ^file, line: @line]} | _] = __STACKTRACE__
+        assert [{^mod, :will_raise, 2, [file: ^file, line: @line] ++ _} | _] = __STACKTRACE__
     else
       _ -> flunk("expected failure")
     end
@@ -363,7 +363,7 @@ defmodule Kernel.QuoteTest.ErrorsTest do
       RuntimeError ->
         mod = Kernel.QuoteTest.ErrorsTest
         file = __ENV__.file |> Path.relative_to_cwd() |> String.to_charlist()
-        assert [{^mod, _, _, [file: ^file, line: @line]} | _] = __STACKTRACE__
+        assert [{^mod, _, _, [file: ^file, line: @line] ++ _} | _] = __STACKTRACE__
     else
       _ -> flunk("expected failure")
     end

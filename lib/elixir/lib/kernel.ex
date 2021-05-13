@@ -1963,26 +1963,35 @@ defmodule Kernel do
         false -> message
       end
 
+    fun =
+      case :erlang.system_info(:otp_release) >= '24' do
+        true ->
+          fn x ->
+            quote do
+              :erlang.error(unquote(x), :none, error_info: %{module: Exception})
+            end
+          end
+
+        false ->
+          fn x ->
+            quote do
+              :erlang.error(unquote(x))
+            end
+          end
+      end
+
     case message do
       message when is_binary(message) ->
-        quote do
-          :erlang.error(RuntimeError.exception(unquote(message)))
-        end
+        fun.(quote do: RuntimeError.exception(unquote(message)))
 
       {:<<>>, _, _} = message ->
-        quote do
-          :erlang.error(RuntimeError.exception(unquote(message)))
-        end
+        fun.(quote do: RuntimeError.exception(unquote(message)))
 
       alias when is_atom(alias) ->
-        quote do
-          :erlang.error(unquote(alias).exception([]))
-        end
+        fun.(quote do: unquote(alias).exception([]))
 
       _ ->
-        quote do
-          :erlang.error(Kernel.Utils.raise(unquote(message)))
-        end
+        fun.(quote do: Kernel.Utils.raise(unquote(message)))
     end
   end
 

@@ -9,20 +9,6 @@ defmodule ExceptionTest do
 
   doctest Exception
 
-  test "raising preserves the stacktrace" do
-    stacktrace =
-      try do
-        raise "a"
-      rescue
-        _ -> hd(__STACKTRACE__)
-      end
-
-    file = __ENV__.file |> Path.relative_to_cwd() |> String.to_charlist()
-
-    assert {__MODULE__, :"test raising preserves the stacktrace", _, [file: ^file, line: 15]} =
-             stacktrace
-  end
-
   test "message/1" do
     defmodule BadException do
       def message(exception) do
