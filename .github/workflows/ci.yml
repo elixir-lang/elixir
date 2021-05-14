@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        otp_release: ['OTP-23.3', 'OTP-23.0', 'OTP-22.3', 'OTP-22.0']
+        otp_release: ['OTP-24.0', 'OTP-23.3', 'OTP-23.0', 'OTP-22.3', 'OTP-22.0']
         development: [false]
         include:
           - otp_release: master
@@ -52,7 +52,7 @@ jobs:
         continue-on-error: ${{ matrix.development }}
       - name: Check reproducible builds
         run: taskset 1 make check_reproducible
-        if: matrix.otp_release == 'OTP-23.0'
+        if: matrix.otp_release == 'OTP-24.0'
 
   test_windows:
     name: Windows, OTP-${{ matrix.otp_release }}, Windows Server 2019
