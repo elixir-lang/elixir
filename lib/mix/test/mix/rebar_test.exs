@@ -252,6 +252,25 @@ defmodule Mix.RebarTest do
       end)
     end
 
+    test "gets and compiles dependencies with build_embedded" do
+      Mix.ProjectStack.post_config(build_embedded: true)
+      Mix.Project.push(RebarAsDep)
+
+      in_tmp("get and compile dependencies with build_embedded", fn ->
+        Mix.Tasks.Deps.Get.run([])
+        assert_received {:mix_shell, :info, ["* Getting git_rebar " <> _]}
+
+        Mix.Tasks.Deps.Compile.run([])
+        assert_received {:mix_shell, :run, ["===> Compiling git_rebar\n"]}
+        assert_received {:mix_shell, :run, ["===> Compiling rebar_dep\n"]}
+        assert :git_rebar.any_function() == :ok
+        assert :rebar_dep.any_function() == :ok
+
+        assert File.exists?("_build/dev/lib/git_rebar/ebin/git_rebar.beam")
+        assert File.exists?("_build/dev/lib/git_rebar/ebin/git_rebar.app")
+      end)
+    end
+
     # We run only on Unix because Windows has a hard time
     # removing the Rebar executable after executed.
     @tag [unix: true]

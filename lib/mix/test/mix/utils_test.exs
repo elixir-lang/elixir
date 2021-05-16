@@ -110,6 +110,9 @@ defmodule Mix.UtilsTest do
 
     System.put_env("HTTPS_PROXY", "https://example.com")
     assert Mix.Utils.proxy_config("https://example.com") == []
+  after
+    System.delete_env("http_proxy")
+    System.delete_env("https_proxy")
   end
 
   # 10.0.0.0 is a non-routable address
