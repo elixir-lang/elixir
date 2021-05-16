@@ -72,7 +72,7 @@ defmodule Mix.RebarTest do
     test "loads rebar.config" do
       path = MixTest.Case.fixture_path("rebar_dep")
       config = Mix.Rebar.load_config(path)
-      assert config[:sub_dirs] == ['apps/*']
+      assert config[:erl_opts] == [:warnings_as_errors]
       assert config[:SCRIPT] == 'rebar.config.script'
     end
 
@@ -159,26 +159,6 @@ defmodule Mix.RebarTest do
       assert config[:project_plugins] == [:remove_me]
       assert dep_config[:erl_opts] == []
       refute dep_config[:project_plugins]
-    end
-  end
-
-  describe "recur/1" do
-    test "recurs over sub dirs" do
-      path = MixTest.Case.fixture_path("rebar_dep")
-
-      File.cd!(path, fn ->
-        config = Mix.Rebar.load_config(path)
-
-        Mix.Rebar.recur(config, fn config ->
-          if config[:sub_dirs] == ['from_apps_another'] do
-            Process.put(:inside_apps_another, true)
-          end
-        end)
-      end)
-
-      unless Process.get(:inside_apps_another) do
-        flunk("Expected inside_apps_another to return true")
-      end
     end
   end
 

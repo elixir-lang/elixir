@@ -327,19 +327,13 @@ defmodule Mix.Tasks.Deps.Compile do
     true
   end
 
-  defp build_structure(%Mix.Dep{opts: opts} = dep, config) do
-    build_path = Path.dirname(opts[:build])
-
-    Enum.each(Mix.Dep.source_paths(dep), fn {source, base} ->
-      app = Path.join(build_path, base)
-
-      File.cd!(source, fn ->
-        config = Keyword.put(config, :app_path, app)
-        Mix.Project.build_structure(config, symlink_ebin: true)
-      end)
-
-      Code.prepend_path(Path.join(app, "ebin"))
+  defp build_structure(%Mix.Dep{opts: opts}, config) do
+    File.cd!(opts[:dest], fn ->
+      config = Keyword.put(config, :app_path, opts[:build])
+      Mix.Project.build_structure(config, symlink_ebin: true)
     end)
+
+    Code.prepend_path(Path.join(opts[:build], "ebin"))
   end
 
   defp old_elixir_req(config) do
