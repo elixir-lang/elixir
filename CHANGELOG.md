@@ -74,6 +74,8 @@ iex(3)> :ets.insert(ets, :should_be_a_tuple)
     (stdlib 3.15) :ets.insert(#Reference<0.105641012.1058144260.76455>, :should_be_a_tuple)
 ```
 
+Finally, note Rebar v2 no longer works on Erlang/OTP 24+. Mix defaults to Rebar v3 since v1.4, so no changes should be necessary by the huge majority of developers. However, if you are explicitly setting `manager: :rebar` in your dependency, you want to move to Rebar v3 by removing the `:manager` option. Support for unsupported Rebar versions will be removed from Mix in the future.
+
 ## Stepped ranges
 
 Elixir has support for ranges from before its v1.0 release. Ranges support only integers and are inclusive, using the mathematic notation `a..b`. Ranges in Elixir are either increasing `1..10` or decreasing `10..1` and the direction of the range was always inferred from the first and last positions. Ranges are always lazy as its values are emitted as they are enumerated rather than being computed upfront.
