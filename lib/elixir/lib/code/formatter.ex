@@ -265,7 +265,14 @@ defmodule Code.Formatter do
 
   defp preserve_comments(line, _column, tokens, comment, rest) do
     comments = Process.get(:code_formatter_comments)
-    comment = {line, {previous_eol(tokens), next_eol(rest, 0)}, format_comment(comment, [])}
+
+    comment = %{
+      line: line,
+      previous_eol: previous_eol(tokens),
+      next_eol: next_eol(rest, 0),
+      text: format_comment(comment, [])
+    }
+
     Process.put(:code_formatter_comments, [comment | comments])
   end
 
@@ -298,14 +305,14 @@ defmodule Code.Formatter do
   end
 
   # If there is a no new line before, we can't gather all followup comments.
-  defp gather_comments([{line, {nil, next_eol}, doc} | comments]) do
-    comment = {line, {@newlines, next_eol}, doc}
+  defp gather_comments([%{previous_eol: nil} = comment | comments]) do
+    comment = %{comment | previous_eol: @newlines}
     [comment | gather_comments(comments)]
   end
 
-  defp gather_comments([{line, {previous_eol, next_eol}, doc} | comments]) do
+  defp gather_comments([%{line: line, next_eol: next_eol, text: doc} = comment | comments]) do
     {next_eol, comments, doc} = gather_followup_comments(line + 1, next_eol, comments, doc)
-    comment = {line, {previous_eol, next_eol}, doc}
+    comment = %{comment | next_eol: next_eol, text: doc}
     [comment | gather_comments(comments)]
   end
 
@@ -313,7 +320,12 @@ defmodule Code.Formatter do
     []
   end
 
-  defp gather_followup_comments(line, _, [{line, {previous_eol, next_eol}, text} | comments], doc)
+  defp gather_followup_comments(
+         line,
+         _,
+         [%{line: line, previous_eol: previous_eol, next_eol: next_eol, text: text} | comments],
+         doc
+       )
        when previous_eol != nil do
     gather_followup_comments(line + 1, next_eol, comments, line(doc, text))
   end
@@ -1915,7 +1927,7 @@ defmodule Code.Formatter do
   defp quoted_to_algebra_with_comments(args, acc, min_line, max_line, state, fun) do
     {pre_comments, state} =
       get_and_update_in(state.comments, fn comments ->
-        Enum.split_while(comments, fn {line, _, _} -> line <= min_line end)
+        Enum.split_while(comments, fn %{line: line} -> line <= min_line end)
       end)
 
     {docs, comments?, state} =
@@ -1946,8 +1958,8 @@ defmodule Code.Formatter do
     each_quoted_to_algebra_with_comments(args, acc, max_line, state, comments?, fun)
   end
 
-  defp extract_comments_before(max, acc, [{line, _, _} = comment | rest], _) when line < max do
-    {_, {previous, next}, doc} = comment
+  defp extract_comments_before(max, acc, [%{line: line} = comment | rest], _) when line < max do
+    %{previous_eol: previous, next_eol: next, text: doc} = comment
     acc = [{doc, @empty, next} | add_previous_to_acc(acc, previous)]
     extract_comments_before(max, acc, rest, true)
   end
@@ -1962,7 +1974,7 @@ defmodule Code.Formatter do
   defp add_previous_to_acc(acc, _previous),
     do: acc
 
-  defp extract_comments_trailing(min, max, acc, [{line, _, doc_comment} | rest], _)
+  defp extract_comments_trailing(min, max, acc, [%{line: line, text: doc_comment} | rest], _)
        when line >= min and line <= max do
     acc = [{doc_comment, @empty, 1} | acc]
     extract_comments_trailing(min, max, acc, rest, true)
@@ -1974,7 +1986,7 @@ defmodule Code.Formatter do
 
   # If the document is immediately followed by comment which is followed by newlines,
   # its newlines wouldn't have considered the comment, so we need to adjust it.
-  defp adjust_trailing_newlines({doc, next_line, newlines}, doc_end, [{line, _, _} | _])
+  defp adjust_trailing_newlines({doc, next_line, newlines}, doc_end, [%{line: line} | _])
        when newlines > 1 and line == doc_end + 1 do
     {doc, next_line, 1}
   end
@@ -2181,7 +2193,7 @@ defmodule Code.Formatter do
       (
         min_line = line(meta)
         max_line = closing_line(meta)
-        Enum.any?(comments, fn {line, _, _} -> line > min_line and line < max_line end)
+        Enum.any?(comments, fn %{line: line} -> line > min_line and line < max_line end)
       )
   end
 
@@ -2206,8 +2218,8 @@ defmodule Code.Formatter do
         {{_, arg_meta, _}, _} = hd(arg)
         first_line = line(arg_meta)
 
-        case Enum.drop_while(comments, fn {line, _, _} -> line <= block_line end) do
-          [{line, _, _} | _] when line <= first_line ->
+        case Enum.drop_while(comments, fn %{line: line} -> line <= block_line end) do
+          [%{line: line} | _] when line <= first_line ->
             {false, block}
 
           _ ->
