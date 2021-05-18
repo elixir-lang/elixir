@@ -210,42 +210,39 @@ defmodule Code.Formatter do
         comments
         |> Enum.map(&format_comment/1)
         |> gather_comments()
-        |> state(opts)
 
-      {doc, _} = block_to_algebra(forms, @min_line, @max_line, state)
-      {:ok, doc}
+      {:ok, {forms, comments}}
     end
   end
 
   @doc """
-  Converts `string` to an algebra document.
+  Converts `string` to a quoted expression and a list of comments.
 
   Raises if the `string` cannot be parsed.
 
-  See `Code.format_string!/2` for the list of options.
+  See `Code.string_to_quoted_with_comments!/2` for the list of options.
   """
-  def to_algebra!(string, opts \\ []) do
-    case to_algebra(string, opts) do
-      {:ok, doc} ->
-        doc
+  def string_to_quoted_with_comments!(string, opts \\ []) do
+    case string_to_quoted_with_comments(string, opts) do
+      {:ok, forms_and_comments} ->
+        forms_and_comments
 
       {:error, {location, error, token}} ->
         :elixir_errors.parse_error(location, Keyword.get(opts, :file, "nofile"), error, token)
     end
   end
 
-  defp state(comments, opts) do
-    force_do_end_blocks = Keyword.get(opts, :force_do_end_blocks, false)
+  @doc """
+  Converts the quoted expression into an algebra document
+  """
+  def quoted_expression_to_algebra(quoted, opts \\ []) do
+    comments = Keyword.get(opts, :comments, [])
 
-    locals_without_parens =
-      Keyword.get(opts, :locals_without_parens, []) ++ @locals_without_parens
+    state = state(comments, opts)
 
-    %{
-      force_do_end_blocks: force_do_end_blocks,
-      locals_without_parens: locals_without_parens,
-      operand_nesting: 2,
-      comments: comments
-    }
+    {doc, _} = block_to_algebra(quoted, @min_line, @max_line, state)
+
+    {:ok, doc}
   end
 
   defp format_comment(%{text: text} = comment) do

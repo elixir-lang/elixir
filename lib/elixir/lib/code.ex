@@ -1308,6 +1308,24 @@ defmodule Code do
   defp previous_eol_count(_), do: 0
 
   @doc """
+  Converts a quoted expression to an algebra document.
+
+  Supports both regular AST and the extended AST documented in
+  `string_to_quoted_with_comments/2`.
+
+  ## Options
+
+    * `:comments` - the list of comments associated with the quoted expression.
+      Defaults to `[]`.
+  """
+  @spec quoted_to_algebra(Macro.t(), keyword) :: Inspect.Algebra.t()
+  def quoted_to_algebra(quoted, opts \\ []) do
+    quoted
+    |> Code.Normalizer.normalize()
+    |> Code.Formatter.quoted_expression_to_algebra(opts)
+  end
+
+  @doc """
   Evals the given file.
 
   Accepts `relative_to` as an argument to tell where the file is located.
