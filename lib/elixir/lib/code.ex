@@ -30,10 +30,10 @@ defmodule Code do
   file, without tracking. `eval_file/2` should be used when you are interested in
   the result of evaluating the file rather than the modules it defines.
 
-  The three functions above work with Elixir source. If you want to
-  load a compiled file (typically found below the _build directory of
-  a Mix project, with the extension .beam), see the Erlang functions
-  :code.load_file/1 and :code.load_binary/3.
+  The functions above work with Elixir source. If you want to work
+  with modules compiled to bytecode, which have the `.beam` extension
+  and are typically found below the _build directory of a Mix project,
+  see the functions in Erlang's [`:code`](`:code`) module.
 
   ## Code loading on the Erlang VM
 
