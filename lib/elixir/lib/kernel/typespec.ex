@@ -1022,7 +1022,11 @@ defmodule Kernel.Typespec do
           :elixir_errors.erl_warn(caller.line, caller.file, warning)
 
         {_, :used_once} ->
-          compile_error(caller, "type variable #{name} is unused")
+          compile_error(
+            caller,
+            "type variable #{name} is used only once. Type variables in typespecs " <>
+              "must be referenced at least twice, otherwise it is equivalent to term()"
+          )
 
         _ ->
           :ok
