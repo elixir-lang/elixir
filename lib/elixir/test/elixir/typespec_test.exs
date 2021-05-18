@@ -133,7 +133,7 @@ defmodule TypespecTest do
     end
 
     test "type variable unused (singleton type variable)" do
-      assert_raise CompileError, ~r"type variable x is unused", fn ->
+      assert_raise CompileError, ~r"type variable x is used only once", fn ->
         test_module do
           @type foo(x) :: integer
         end
@@ -168,8 +168,8 @@ defmodule TypespecTest do
       end
     end
 
-    test "spec variable unused (singleton type variable)" do
-      assert_raise CompileError, ~r"type variable x is unused", fn ->
+    test "spec variable used only once (singleton type variable)" do
+      assert_raise CompileError, ~r"type variable x is used only once", fn ->
         test_module do
           @spec foo(x, integer) :: integer when x: var
           def foo(x, y), do: x + y
