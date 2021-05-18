@@ -366,17 +366,13 @@ defmodule Mix.Dep.Loader do
     |> elem(0)
   end
 
-  defp rebar_children(root_config, manager, dest) do
+  defp rebar_children(config, manager, dest) do
     from = Path.absname(Path.join(dest, "rebar.config"))
+    overrides = overrides(manager, config)
 
-    Mix.Rebar.recur(root_config, fn config ->
-      overrides = overrides(manager, config)
-
-      config
-      |> Mix.Rebar.deps()
-      |> Enum.map(fn dep -> %{to_dep(dep, from, manager) | extra: overrides} end)
-    end)
-    |> Enum.concat()
+    config
+    |> Mix.Rebar.deps()
+    |> Enum.map(fn dep -> %{to_dep(dep, from, manager) | extra: overrides} end)
   end
 
   defp overrides(:rebar3, config), do: config[:overrides] || []

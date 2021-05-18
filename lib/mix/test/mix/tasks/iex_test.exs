@@ -1,6 +1,6 @@
 Code.require_file("../../test_helper.exs", __DIR__)
 
-defmodule Mix.Tasks.IexTest do
+defmodule Mix.Tasks.IExTest do
   use MixTest.Case, async: true
 
   test "raises error message about correct usage", context do

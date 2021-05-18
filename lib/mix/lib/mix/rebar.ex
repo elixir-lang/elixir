@@ -102,24 +102,6 @@ defmodule Mix.Rebar do
     end
   end
 
-  @doc """
-  Runs `fun` for the given config and for each `sub_dirs` in the
-  given Rebar config.
-
-  `sub_dirs` is only supported in Rebar 2. In Rebar 3, the equivalent
-  to umbrella apps cannot be used as dependencies, so we don't need
-  to worry about such cases in Mix.
-  """
-  def recur(config, fun) do
-    subs =
-      (config[:sub_dirs] || [])
-      |> Enum.flat_map(&Path.wildcard(&1))
-      |> Enum.filter(&File.dir?(&1))
-      |> Enum.flat_map(&recur(load_config(&1), fun))
-
-    [fun.(config) | subs]
-  end
-
   # Translate a Rebar dependency declaration to a Mix declaration
   # From http://www.rebar3.org/docs/dependencies#section-declaring-dependencies
   defp parse_dep(app) when is_atom(app) do

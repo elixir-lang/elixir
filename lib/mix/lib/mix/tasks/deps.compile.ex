@@ -106,8 +106,6 @@ defmodule Mix.Tasks.Deps.Compile do
               false
           end
 
-        unless Mix.Dep.mix?(dep), do: build_structure(dep, config)
-
         # We should touch fetchable dependencies even if they
         # did not compile otherwise they will always be marked
         # as stale, even when there is nothing to do.
@@ -198,6 +196,8 @@ defmodule Mix.Tasks.Deps.Compile do
     lib_path = Path.join(config[:env_path], "lib")
     cmd = "#{rebar_cmd(dep)} compile skip_deps=true deps_dir=#{inspect(lib_path)}"
     do_command(dep, config, cmd, false)
+    build_structure(dep, config)
+    true
   end
 
   defp do_rebar3(%Mix.Dep{opts: opts} = dep, config) do
@@ -217,20 +217,22 @@ defmodule Mix.Tasks.Deps.Compile do
     File.mkdir_p!(dep_path)
     File.write!(config_path, rebar_config(dep))
 
-    # We need to copy/symlink include/priv in case it is
-    # needed for compiling the dependency itself. Later on
-    # we will build the whole structure and also symlink/copy
-    # ebin.
+    # For Rebar3, we need to build the structure before we run the
+    # command given that REBAR_BARE_COMPILER_OUTPUT_DIR writes directly
+    # to _build.
     #
-    # Note both configurations are necessary when using the
-    # bare compiler with compiler output dir, otherwise includes
-    # and priv files can't be found. For example, without those
-    # options, we were unable to compile certifi, which uses
-    # both parse transforms and reads from priv at compilation.
-    Mix.Utils.symlink_or_copy(Path.join(opts[:dest], "include"), Path.join(dep_path, "include"))
-    Mix.Utils.symlink_or_copy(Path.join(opts[:dest], "priv"), Path.join(dep_path, "priv"))
+    # TODO: We still symlink ebin, for backwards compatibility, which
+    # partially negates the effects of REBAR_BARE_COMPILER_OUTPUT_DIR
+    # if an ebin diretory exists, so we should consider disabling it in
+    # future releases.
+    File.cd!(opts[:dest], fn ->
+      config = Keyword.put(config, :app_path, dep_path)
+      Mix.Project.build_structure(config, symlink_ebin: true)
+    end)
 
     do_command(dep, config, cmd, false, env)
+    Code.prepend_path(Path.join(dep_path, "ebin"))
+    true
   end
 
   defp rebar_config(dep) do
@@ -271,6 +273,8 @@ defmodule Mix.Tasks.Deps.Compile do
   defp do_make(dep, config) do
     command = make_command(dep)
     do_command(dep, config, command, true, [{"IS_DEP", "1"}])
+    build_structure(dep, config)
+    true
   end
 
   defp make_command(dep) do
@@ -298,6 +302,8 @@ defmodule Mix.Tasks.Deps.Compile do
   defp do_compile(%Mix.Dep{opts: opts} = dep, config) do
     if command = opts[:compile] do
       do_command(dep, config, command, true)
+      build_structure(dep, config)
+      true
     else
       false
     end
@@ -321,21 +327,13 @@ defmodule Mix.Tasks.Deps.Compile do
     true
   end
 
-  defp build_structure(%Mix.Dep{opts: opts} = dep, config) do
-    build_path = Path.dirname(opts[:build])
-
-    Enum.each(Mix.Dep.source_paths(dep), fn {source, base} ->
-      app = Path.join(build_path, base)
-      build_structure(source, app, config)
-      Code.prepend_path(Path.join(app, "ebin"))
-    end)
-  end
-
-  defp build_structure(dest, build, config) do
-    File.cd!(dest, fn ->
-      config = Keyword.put(config, :app_path, build)
+  defp build_structure(%Mix.Dep{opts: opts}, config) do
+    File.cd!(opts[:dest], fn ->
+      config = Keyword.put(config, :app_path, opts[:build])
       Mix.Project.build_structure(config, symlink_ebin: true)
     end)
+
+    Code.prepend_path(Path.join(opts[:build], "ebin"))
   end
 
   defp old_elixir_req(config) do

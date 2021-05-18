@@ -369,16 +369,22 @@ end
 target = Path.expand("fixtures/git_rebar", __DIR__)
 
 unless File.dir?(target) do
+  File.mkdir_p!(Path.join(target, "ebin"))
   File.mkdir_p!(Path.join(target, "src"))
 
-  File.write!(Path.join([target, "src", "git_rebar.app.src"]), """
+  # This is used to test that the built-in ebin is ignored
+  # when build_embedded is true.
+  File.write!(Path.join(target, "ebin/.unused"), """
+  """)
+
+  File.write!(Path.join(target, "src/git_rebar.app.src"), """
   {application, git_rebar,
     [
       {vsn, "0.1.0"}
     ]}.
   """)
 
-  File.write!(Path.join([target, "src", "git_rebar.erl"]), """
+  File.write!(Path.join(target, "src/git_rebar.erl"), """
   -module(git_rebar).
   -export([any_function/0]).
   any_function() -> ok.
