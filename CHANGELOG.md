@@ -103,6 +103,7 @@ Elixir v1.12 has the additional of many functions across the standard library. T
 
   * [Code] Add `Code.cursor_context/2` to return the context of a code snippet
   * [Code] Do not add newlines around interpolation on code formatting. Note this means formatted code that has interpolation after the line length on Elixir v1.12 won't be considered as formatted on earlier Elixir versions
+  * [Code] Do not add brackets when keywords is used in the access syntax
   * [Calendar] Support basic datetime format in `Calendar.ISO` parsing functions
   * [Code] Improve evaluation performance on systems running on Erlang/OTP 24+
   * [Date] Support steps via `Date.range/3`
@@ -114,6 +115,7 @@ Elixir v1.12 has the additional of many functions across the standard library. T
   * [Exception] Show `error_info` data for exceptions coming from Erlang
   * [Float] Add `Float.pow/2`
   * [Integer] Add `Integer.pow/2` and `Integer.extended_gcd/2`
+  * [IO] Add `IO.stream/0` and `IO.binstream/0` which default to STDIO with line orientation
   * [List] Add default value for `List.first/1` and `List.last/1`
   * [Kernel] Add `first..last//step` as support for stepped ranges
   * [Kernel] Also warn for literal structs on `min/2` and `max/2`
@@ -137,6 +139,7 @@ Elixir v1.12 has the additional of many functions across the standard library. T
   * [String] Add `:turkic` mode option to String case functions
   * [String] Update to Unicode 13.0
   * [System] Add `System.trap_signal/3` and `System.untrap_signal/2`
+  * [System] Add `System.shell/2` to invoke a command that is interpreted by the shell
   * [Tuple] Add `Tuple.sum/1` and `Tuple.product/1`
   * [URI] Support RFC3986 compliant encoding and decoding of queries via the `:rfc3986` option
 
@@ -179,6 +182,7 @@ Elixir v1.12 has the additional of many functions across the standard library. T
   * [Kernel] Do not crash when complex literals (binaries and maps) are used in guards
   * [Kernel] Properly parse keywords (such as `end`) followed by the `::` operator
   * [Kernel] Do not ignore unimplemented signatures from generated functions
+  * [Kernel] Improve error message when an expression follows a keyword list without brackets
   * [Macro] `Macro.decompose_call/1` now also consider tuples with more than 2 elements to not be valid calls
   * [Macro] Fix `Macro.to_string/1` double-escaping of escape characters in sigils
   * [Macro] Fix `Macro.underscore/1` on digits preceded by capitals: "FOO10" now becomes "foo10" instead of "fo_o10"
@@ -187,6 +191,7 @@ Elixir v1.12 has the additional of many functions across the standard library. T
   * [Path] Fix `Path.relative_to/2` when referencing self
   * [Path] Do not crash when a volume is given to `Path.absname/1`, such as "c:"
   * [Task] Ensure `Task.async_stream/2` with `ordered: false` discard results as they are emitted, instead of needlessly accumulating inside the stream manager
+  * [Task] Raise if `:max_concurrency` is set to 0 on streaming operations
   * [URI] Do not discard empty paths on `URI.merge/2`
 
 #### ExUnit
