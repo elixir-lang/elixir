@@ -1,6 +1,9 @@
 defmodule Mix.Utils do
   @moduledoc false
 
+  # For bootstrapping purposes
+  @compile {:no_warn_undefined, Logger}
+
   @doc """
   Gets the Mix home.
 
