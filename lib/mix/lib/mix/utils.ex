@@ -638,17 +638,24 @@ defmodule Mix.Utils do
     # If a proxy environment variable was supplied add a proxy to httpc.
     http_options = [relaxed: true] ++ proxy_config(path)
 
-    case httpc_request(request, http_options) do
-      {:error, {:failed_connect, [{:to_address, _}, {inet, _, reason}]}}
-      when inet in [:inet, :inet6] and reason in [:ehostunreach, :enetunreach] ->
-        :httpc.set_options([ipfamily: fallback(inet)], :mix)
-        request |> httpc_request(http_options) |> httpc_response()
+    # Silence the warning from OTP as we verify the contents
+    level = Logger.level()
+    Logger.configure(level: :error)
 
-      response ->
-        httpc_response(response)
+    try do
+      case httpc_request(request, http_options) do
+        {:error, {:failed_connect, [{:to_address, _}, {inet, _, reason}]}}
+        when inet in [:inet, :inet6] and reason in [:ehostunreach, :enetunreach] ->
+          :httpc.set_options([ipfamily: fallback(inet)], :mix)
+          request |> httpc_request(http_options) |> httpc_response()
+
+        response ->
+          httpc_response(response)
+      end
+    after
+      Logger.configure(level: level)
+      :inets.stop(:httpc, :mix)
     end
-  after
-    :inets.stop(:httpc, :mix)
   end
 
   defp fallback(:inet), do: :inet6
