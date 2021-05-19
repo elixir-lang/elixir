@@ -197,6 +197,11 @@ defmodule Code.Formatter do
   """
   def to_algebra(string, opts \\ []) when is_binary(string) and is_list(opts) do
     with {:ok, forms, comments} <- Code.string_to_quoted_with_comments(string, opts) do
+      comments =
+        comments
+        |> Enum.map(&format_comment/1)
+        |> gather_comments()
+
       state = state(comments, opts)
 
       {doc, _} = block_to_algebra(forms, @min_line, @max_line, state)
@@ -231,6 +236,54 @@ defmodule Code.Formatter do
       operand_nesting: 2,
       comments: comments
     }
+  end
+
+  defp format_comment(%{text: text} = comment) do
+    %{comment | text: format_comment_text(text, "")}
+  end
+
+  defp format_comment_text("##" <> rest, acc), do: format_comment_text("#" <> rest, "#" <> acc)
+
+  defp format_comment_text("#!", acc), do: reverse_with_prefix(acc, "#!")
+  defp format_comment_text("#! " <> _ = rest, acc), do: reverse_with_prefix(acc, rest)
+  defp format_comment_text("#!" <> rest, acc), do: reverse_with_prefix(acc, "#! " <> rest)
+
+  defp format_comment_text("#", acc), do: reverse_with_prefix(acc, "#")
+  defp format_comment_text("# " <> _ = rest, acc), do: reverse_with_prefix(acc, rest)
+  defp format_comment_text("#" <> rest, acc), do: reverse_with_prefix(acc, "# " <> rest)
+
+  defp reverse_with_prefix(acc, prefix) do
+    String.reverse(acc) <> prefix
+  end
+
+  # If there is a no new line before, we can't gather all followup comments.
+  defp gather_comments([%{previous_eol: nil} = comment | comments]) do
+    comment = %{comment | previous_eol: @newlines}
+    [comment | gather_comments(comments)]
+  end
+
+  defp gather_comments([%{line: line, next_eol: next_eol, text: doc} = comment | comments]) do
+    {next_eol, comments, doc} = gather_followup_comments(line + 1, next_eol, comments, doc)
+    comment = %{comment | next_eol: next_eol, text: doc}
+    [comment | gather_comments(comments)]
+  end
+
+  defp gather_comments([]) do
+    []
+  end
+
+  defp gather_followup_comments(
+         line,
+         _,
+         [%{line: line, previous_eol: previous_eol, next_eol: next_eol, text: text} | comments],
+         doc
+       )
+       when previous_eol != nil do
+    gather_followup_comments(line + 1, next_eol, comments, line(doc, text))
+  end
+
+  defp gather_followup_comments(_line, next_eol, comments, doc) do
+    {next_eol, comments, doc}
   end
 
   # Special AST nodes from compiler feedback

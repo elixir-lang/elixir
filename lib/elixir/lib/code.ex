@@ -1277,10 +1277,7 @@ defmodule Code do
 
     with {:ok, tokens} <- :elixir.string_to_tokens(charlist, line, 1, file, tokenizer_options),
          {:ok, forms} <- :elixir.tokens_to_quoted(tokens, file, parser_options) do
-      comments =
-        Process.get(:code_formatter_comments)
-        |> Enum.reverse()
-        |> gather_comments()
+      comments = Enum.reverse(Process.get(:code_formatter_comments))
 
       {:ok, forms, comments}
     end
@@ -1315,7 +1312,7 @@ defmodule Code do
       line: line,
       previous_eol: previous_eol(tokens),
       next_eol: next_eol(rest, 0),
-      text: format_comment(comment, [])
+      text: List.to_string(comment)
     }
 
     Process.put(:code_formatter_comments, [comment | comments])
@@ -1334,50 +1331,6 @@ defmodule Code do
 
   defp previous_eol([]), do: 1
   defp previous_eol(_), do: nil
-
-  defp format_comment('##' ++ rest, acc), do: format_comment([?# | rest], [?# | acc])
-
-  defp format_comment('#!', acc), do: reverse_to_string(acc, '#!')
-  defp format_comment('#! ' ++ _ = rest, acc), do: reverse_to_string(acc, rest)
-  defp format_comment('#!' ++ rest, acc), do: reverse_to_string(acc, [?#, ?!, ?\s, rest])
-
-  defp format_comment('#', acc), do: reverse_to_string(acc, '#')
-  defp format_comment('# ' ++ _ = rest, acc), do: reverse_to_string(acc, rest)
-  defp format_comment('#' ++ rest, acc), do: reverse_to_string(acc, [?#, ?\s, rest])
-
-  defp reverse_to_string(acc, prefix) do
-    acc |> Enum.reverse(prefix) |> List.to_string()
-  end
-
-  # If there is a no new line before, we can't gather all followup comments.
-  defp gather_comments([%{previous_eol: nil} = comment | comments]) do
-    comment = %{comment | previous_eol: 2}
-    [comment | gather_comments(comments)]
-  end
-
-  defp gather_comments([%{line: line, next_eol: next_eol, text: doc} = comment | comments]) do
-    {next_eol, comments, doc} = gather_followup_comments(line + 1, next_eol, comments, doc)
-    comment = %{comment | next_eol: next_eol, text: doc}
-    [comment | gather_comments(comments)]
-  end
-
-  defp gather_comments([]) do
-    []
-  end
-
-  defp gather_followup_comments(
-         line,
-         _,
-         [%{line: line, previous_eol: previous_eol, next_eol: next_eol, text: text} | comments],
-         doc
-       )
-       when previous_eol != nil do
-    gather_followup_comments(line + 1, next_eol, comments, Inspect.Algebra.line(doc, text))
-  end
-
-  defp gather_followup_comments(_line, next_eol, comments, doc) do
-    {next_eol, comments, doc}
-  end
 
   @doc """
   Evals the given file.
