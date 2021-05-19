@@ -10,6 +10,7 @@
 
   * [Inspect] Allow default inspect fun to be set globally with `Inspect.Opts.default_inspect_fun/1`
   * [Kernel] Make `get_in` consistently abort when `nil` values are found
+  * [Kernel] Improve compilation times by reducing the amount of copies of the AST across compiler processes
 
 #### ExUnit
 
@@ -22,6 +23,9 @@
   * [Logger] Add `Logger.put_application_level/2`
 
 #### Mix
+
+  * [mix rebar] No longer support `sub_dirs` in Rebar 2 to help migration towards Rebar 3
+  * [mix test] Support `--profile-require=time` to profile the time loading test files themselves
 
 ### 2. Bug fixes
 
