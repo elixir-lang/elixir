@@ -192,49 +192,21 @@ defmodule Code.Formatter do
 
   @doc """
   Converts `string` to an algebra document.
-
   Returns `{:ok, doc}` or `{:error, parser_error}`.
-
   See `Code.format_string!/2` for the list of options.
   """
   def to_algebra(string, opts \\ []) when is_binary(string) and is_list(opts) do
-    file = Keyword.get(opts, :file, "nofile")
-    line = Keyword.get(opts, :line, 1)
-    charlist = String.to_charlist(string)
-
-    Process.put(:code_formatter_comments, [])
-
-    tokenizer_options = [
-      unescape: false,
-      preserve_comments: &preserve_comments/5,
-      warn_on_unnecessary_quotes: false
-    ]
-
-    parser_options = [
-      literal_encoder: &{:ok, {:__block__, &2, [&1]}},
-      token_metadata: true
-    ]
-
-    with {:ok, tokens} <- :elixir.string_to_tokens(charlist, line, 1, file, tokenizer_options),
-         {:ok, forms} <- :elixir.tokens_to_quoted(tokens, file, parser_options) do
-      state =
-        Process.get(:code_formatter_comments)
-        |> Enum.reverse()
-        |> gather_comments()
-        |> state(opts)
+    with {:ok, forms, comments} <- Code.string_to_quoted_with_comments(string, opts) do
+      state = state(comments, opts)
 
       {doc, _} = block_to_algebra(forms, @min_line, @max_line, state)
       {:ok, doc}
     end
-  after
-    Process.delete(:code_formatter_comments)
   end
 
   @doc """
   Converts `string` to an algebra document.
-
   Raises if the `string` cannot be parsed.
-
   See `Code.format_string!/2` for the list of options.
   """
   def to_algebra!(string, opts \\ []) do
@@ -259,79 +231,6 @@ defmodule Code.Formatter do
       operand_nesting: 2,
       comments: comments
     }
-  end
-
-  # Code comment handling
-
-  defp preserve_comments(line, _column, tokens, comment, rest) do
-    comments = Process.get(:code_formatter_comments)
-
-    comment = %{
-      line: line,
-      previous_eol: previous_eol(tokens),
-      next_eol: next_eol(rest, 0),
-      text: format_comment(comment, [])
-    }
-
-    Process.put(:code_formatter_comments, [comment | comments])
-  end
-
-  defp next_eol('\s' ++ rest, count), do: next_eol(rest, count)
-  defp next_eol('\t' ++ rest, count), do: next_eol(rest, count)
-  defp next_eol('\n' ++ rest, count), do: next_eol(rest, count + 1)
-  defp next_eol('\r\n' ++ rest, count), do: next_eol(rest, count + 1)
-  defp next_eol(_, count), do: count
-
-  defp previous_eol([{token, {_, _, count}} | _])
-       when token in [:eol, :",", :";"] and count > 0 do
-    count
-  end
-
-  defp previous_eol([]), do: 1
-  defp previous_eol(_), do: nil
-
-  defp format_comment('##' ++ rest, acc), do: format_comment([?# | rest], [?# | acc])
-
-  defp format_comment('#!', acc), do: reverse_to_string(acc, '#!')
-  defp format_comment('#! ' ++ _ = rest, acc), do: reverse_to_string(acc, rest)
-  defp format_comment('#!' ++ rest, acc), do: reverse_to_string(acc, [?#, ?!, ?\s, rest])
-
-  defp format_comment('#', acc), do: reverse_to_string(acc, '#')
-  defp format_comment('# ' ++ _ = rest, acc), do: reverse_to_string(acc, rest)
-  defp format_comment('#' ++ rest, acc), do: reverse_to_string(acc, [?#, ?\s, rest])
-
-  defp reverse_to_string(acc, prefix) do
-    acc |> Enum.reverse(prefix) |> List.to_string()
-  end
-
-  # If there is a no new line before, we can't gather all followup comments.
-  defp gather_comments([%{previous_eol: nil} = comment | comments]) do
-    comment = %{comment | previous_eol: @newlines}
-    [comment | gather_comments(comments)]
-  end
-
-  defp gather_comments([%{line: line, next_eol: next_eol, text: doc} = comment | comments]) do
-    {next_eol, comments, doc} = gather_followup_comments(line + 1, next_eol, comments, doc)
-    comment = %{comment | next_eol: next_eol, text: doc}
-    [comment | gather_comments(comments)]
-  end
-
-  defp gather_comments([]) do
-    []
-  end
-
-  defp gather_followup_comments(
-         line,
-         _,
-         [%{line: line, previous_eol: previous_eol, next_eol: next_eol, text: text} | comments],
-         doc
-       )
-       when previous_eol != nil do
-    gather_followup_comments(line + 1, next_eol, comments, line(doc, text))
-  end
-
-  defp gather_followup_comments(_line, next_eol, comments, doc) do
-    {next_eol, comments, doc}
   end
 
   # Special AST nodes from compiler feedback
