@@ -134,6 +134,7 @@ defmodule Mix.Tasks.Archive.Install do
       Code.delete_path(Mix.Local.archive_ebin(path))
     end)
 
+    Mix.Task.run("loadconfig")
     Mix.Task.run("archive.build", [])
     src
   end

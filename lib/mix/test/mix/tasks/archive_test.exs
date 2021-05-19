@@ -137,6 +137,23 @@ defmodule Mix.Tasks.ArchiveTest do
 
   test "archive.install from Git" do
     in_fixture("git_repo", fn ->
+      File.mkdir_p!("config")
+
+      File.write!("config/config.exs", """
+      import Config
+      config :git_repo, :archive_config, true
+      """)
+
+      File.write!("lib/git_repo.ex", """
+      true = Application.compile_env!(:git_repo, :archive_config)
+
+      defmodule GitRepo do
+        def hello do
+          "World"
+        end
+      end
+      """)
+
       send(self(), {:mix_shell_input, :yes?, true})
       Mix.Tasks.Archive.Install.run(["git", File.cwd!()])
 
