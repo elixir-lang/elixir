@@ -116,6 +116,7 @@ defmodule Mix.Tasks.Escript.Install do
 
   @impl true
   def build(_spec, _opts) do
+    Mix.Task.run("loadconfig")
     Mix.Task.run("escript.build", [])
     Mix.Local.name_for(:escripts, Mix.Project.config())
   end

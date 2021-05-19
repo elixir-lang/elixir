@@ -361,7 +361,16 @@ defmodule Mix.Tasks.EscriptTest do
 
   test "escript.install from Git" do
     in_fixture("git_repo", fn ->
+      File.mkdir_p!("config")
+
+      File.write!("config/config.exs", """
+      import Config
+      config :git_repo, :escript_config, true
+      """)
+
       File.write!("lib/git_repo.ex", """
+      true = Application.compile_env!(:git_repo, :escript_config)
+
       defmodule GitRepo do
         def main(_argv) do
           IO.puts("TEST")
