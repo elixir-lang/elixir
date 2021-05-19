@@ -257,7 +257,7 @@ defmodule Code.Formatter do
   end
 
   # If there is a no new line before, we can't gather all followup comments.
-  defp gather_comments([%{previous_eol: nil} = comment | comments]) do
+  defp gather_comments([%{previous_eol: 0} = comment | comments]) do
     comment = %{comment | previous_eol: @newlines}
     [comment | gather_comments(comments)]
   end
@@ -278,7 +278,7 @@ defmodule Code.Formatter do
          [%{line: line, previous_eol: previous_eol, next_eol: next_eol, text: text} | comments],
          doc
        )
-       when previous_eol != nil do
+       when previous_eol != 0 do
     gather_followup_comments(line + 1, next_eol, comments, line(doc, text))
   end
 

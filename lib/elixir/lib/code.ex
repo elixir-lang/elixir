@@ -1330,7 +1330,7 @@ defmodule Code do
   end
 
   defp previous_eol([]), do: 1
-  defp previous_eol(_), do: nil
+  defp previous_eol(_), do: 0
 
   @doc """
   Evals the given file.
