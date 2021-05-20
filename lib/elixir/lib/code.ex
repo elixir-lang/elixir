@@ -1206,9 +1206,10 @@ defmodule Code do
   Returns `{:ok, quoted_form, comments}` if it succeeds,
   `{:error, {line, error, token}}` otherwise.
 
-  Comments are maps containing information about the line they were found, its
+  Comments are maps containing information about the line they were found, their
   contents, and how many end of lines were found between the comment and the
   closest tokens:
+
       iex> Code.string_to_quoted_with_comments("\""
       ...> :foo
       ...>
@@ -1220,6 +1221,11 @@ defmodule Code do
       {:ok, :foo, [
         %{line: 3, previous_eol: 2, next_eol: 3, text: "\# Hello, world!"},
         %{line: 6, previous_eol: 3, next_eol: 1, text: "\# Some more comments!"},
+      ]}
+
+      iex> Code.string_to_quoted_with_comments(":foo # :bar")
+      {:ok, :foo, [
+        %{line: 1, previous_eol: 0, next_eol: 0, text: "\# :bar"}
       ]}
 
   Check `string_to_quoted/2` for options information.
