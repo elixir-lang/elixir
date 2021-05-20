@@ -265,14 +265,18 @@ defmodule Code.Formatter do
   end
 
   # If there is a no new line before, we can't gather all followup comments.
-  defp gather_comments([%{previous_eol: 0} = comment | comments]) do
-    comment = %{comment | previous_eol: @newlines}
+  defp gather_comments([%{previous_eol_count: 0} = comment | comments]) do
+    comment = %{comment | previous_eol_count: @newlines}
     [comment | gather_comments(comments)]
   end
 
-  defp gather_comments([%{line: line, next_eol: next_eol, text: doc} = comment | comments]) do
-    {next_eol, comments, doc} = gather_followup_comments(line + 1, next_eol, comments, doc)
-    comment = %{comment | next_eol: next_eol, text: doc}
+  defp gather_comments([
+         %{line: line, next_eol_count: next_eol_count, text: doc} = comment | comments
+       ]) do
+    {next_eol_count, comments, doc} =
+      gather_followup_comments(line + 1, next_eol_count, comments, doc)
+
+    comment = %{comment | next_eol_count: next_eol_count, text: doc}
     [comment | gather_comments(comments)]
   end
 
@@ -283,15 +287,23 @@ defmodule Code.Formatter do
   defp gather_followup_comments(
          line,
          _,
-         [%{line: line, previous_eol: previous_eol, next_eol: next_eol, text: text} | comments],
+         [
+           %{
+             line: line,
+             previous_eol_count: previous_eol_count,
+             next_eol_count: next_eol_count,
+             text: text
+           }
+           | comments
+         ],
          doc
        )
-       when previous_eol != 0 do
-    gather_followup_comments(line + 1, next_eol, comments, line(doc, text))
+       when previous_eol_count != 0 do
+    gather_followup_comments(line + 1, next_eol_count, comments, line(doc, text))
   end
 
-  defp gather_followup_comments(_line, next_eol, comments, doc) do
-    {next_eol, comments, doc}
+  defp gather_followup_comments(_line, next_eol_count, comments, doc) do
+    {next_eol_count, comments, doc}
   end
 
   # Special AST nodes from compiler feedback
@@ -1919,7 +1931,7 @@ defmodule Code.Formatter do
   end
 
   defp extract_comments_before(max, acc, [%{line: line} = comment | rest], _) when line < max do
-    %{previous_eol: previous, next_eol: next, text: doc} = comment
+    %{previous_eol_count: previous, next_eol_count: next, text: doc} = comment
     acc = [{doc, @empty, next} | add_previous_to_acc(acc, previous)]
     extract_comments_before(max, acc, rest, true)
   end
