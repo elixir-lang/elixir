@@ -196,6 +196,14 @@ defmodule Code.Formatter do
   See `Code.format_string!/2` for the list of options.
   """
   def to_algebra(string, opts \\ []) when is_binary(string) and is_list(opts) do
+    opts =
+      Keyword.merge(opts,
+        unescape: false,
+        warn_on_unnecessary_quotes: false,
+        literal_encoder: &{:ok, {:__block__, &2, [&1]}},
+        token_metadata: true
+      )
+
     with {:ok, forms, comments} <- Code.string_to_quoted_with_comments(string, opts) do
       comments =
         comments

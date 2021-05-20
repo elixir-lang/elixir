@@ -1206,32 +1206,6 @@ defmodule Code do
   Returns `{:ok, quoted_form, comments}` if it succeeds,
   `{:error, {line, error, token}}` otherwise.
 
-  The AST returned differs from regular AST in that literals are wrapped in
-  a block to preserve their metadata. For example, the literal `"foo"` will be
-  converted to `{:__block__, [line: 1, delimiter: "\"", token: "\"foo\""], ["foo"]}`.
-
-  In some cases the wrapping is not uniform, for example in the case of keyword
-  lists the wrapping may change if the square were ommitted:
-      iex> Code.string_to_quoted_with_comments("[foo: :bar]")
-      {:ok, {
-        :__block__, [closing: [line: 1], line: 1], [[
-          {{:__block__, [format: :keyword, line: 1], [:foo]}, {:__block__, [line: 1], [:bar]}}
-        ]]
-      }, []}
-
-      iex> Code.string_to_quoted_with_comments("a when foo: :bar")
-      {:ok, {
-        :when, [line: 1], [
-          {:a, [line: 1], nil},
-          [
-            {{:__block__, [format: :keyword, line: 1], [:foo]}, {:__block__, [line: 1], [:bar]}}
-          ]
-        ]
-      }, []}
-
-  Note that in the second example the outer wrapping of the keyword list is
-  omitted.
-
   Comments are maps containing information about the line they were found, its
   contents, and how many end of lines were found between the comment and the
   closest tokens:
@@ -1243,16 +1217,12 @@ defmodule Code do
       ...>
       ...> # Some more comments!
       ...> "\"")
-      {:ok, {:__block__, [line: 1], [:foo]}, [
+      {:ok, :foo, [
         %{line: 3, previous_eol: 2, next_eol: 3, text: "\# Hello, world!"},
         %{line: 6, previous_eol: 3, next_eol: 1, text: "\# Some more comments!"},
       ]}
 
-  ## Options
-    * `:file` - the filename to be reported in case of parsing errors.
-      Defaults to "nofile".
-    * `:line` - the starting line of the string being parsed.
-      Defaults to 1.
+  Check `string_to_quoted/2` for options information.
   """
   @spec string_to_quoted_with_comments(List.Chars.t(), keyword) ::
           {:ok, Macro.t(), map()} | {:error, {location :: keyword, term, term}}
@@ -1260,23 +1230,17 @@ defmodule Code do
       when is_binary(string) and is_list(opts) do
     file = Keyword.get(opts, :file, "nofile")
     line = Keyword.get(opts, :line, 1)
+    column = Keyword.get(opts, :column, 1)
+
     charlist = String.to_charlist(string)
 
     Process.put(:code_formatter_comments, [])
 
-    tokenizer_options = [
-      unescape: false,
-      preserve_comments: &preserve_comments/5,
-      warn_on_unnecessary_quotes: false
-    ]
+    opts = Keyword.merge(opts, preserve_comments: &preserve_comments/5)
 
-    parser_options = [
-      literal_encoder: &{:ok, {:__block__, &2, [&1]}},
-      token_metadata: true
-    ]
-
-    with {:ok, tokens} <- :elixir.string_to_tokens(charlist, line, 1, file, tokenizer_options),
-         {:ok, forms} <- :elixir.tokens_to_quoted(tokens, file, parser_options) do
+    with {:ok, tokens} <-
+           :elixir.string_to_tokens(charlist, line, column, file, opts),
+         {:ok, forms} <- :elixir.tokens_to_quoted(tokens, file, opts) do
       comments = Enum.reverse(Process.get(:code_formatter_comments))
 
       {:ok, forms, comments}
@@ -1292,7 +1256,7 @@ defmodule Code do
   otherwise. The exception is a `TokenMissingError` in case a token is missing
   (usually because the expression is incomplete), `SyntaxError` otherwise.
 
-  Check `string_to_quoted_with_comments/2` for options information.
+  Check `string_to_quoted/2` for options information.
   """
   @spec string_to_quoted_with_comments!(List.Chars.t(), keyword) :: {Macro.t(), map()}
   def string_to_quoted_with_comments!(string, opts \\ []) do
