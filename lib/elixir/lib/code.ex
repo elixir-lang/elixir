@@ -1238,11 +1238,11 @@ defmodule Code do
     line = Keyword.get(opts, :line, 1)
     column = Keyword.get(opts, :column, 1)
 
-    charlist = String.to_charlist(string)
+    charlist = to_charlist(string)
 
     Process.put(:code_formatter_comments, [])
 
-    opts = Keyword.merge(opts, preserve_comments: &preserve_comments/5)
+    opts = [preserve_comments: &preserve_comments/5] ++ opts
 
     with {:ok, tokens} <-
            :elixir.string_to_tokens(charlist, line, column, file, opts),
