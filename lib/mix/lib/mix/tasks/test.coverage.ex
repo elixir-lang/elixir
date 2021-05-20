@@ -206,16 +206,12 @@ defmodule Mix.Tasks.Test.Coverage do
     html(modules, opts)
   end
 
-  defp ignored?(_, []), do: false
-  defp ignored?(mod, [mod | _]), do: true
-
-  defp ignored?(mod, [%Regex{} = re | rest]) do
-    name = inspect(mod)
-
-    Regex.match?(re, name) || ignored?(mod, rest)
+  defp ignored?(mod, ignores) do
+    Enum.any?(ignores, &ignored_any?(mod, &1))
   end
 
-  defp ignored?(mod, [_ | rest]), do: ignored?(mod, rest)
+  defp ignored_any?(mod, %Regex{} = re), do: Regex.match?(re, inspect(mod))
+  defp ignored_any?(mod, other), do: mod == other
 
   defp html(modules, opts) do
     output = Keyword.get(opts, :output, "cover")
