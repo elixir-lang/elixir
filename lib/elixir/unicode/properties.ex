@@ -138,7 +138,7 @@ defmodule String.Casing do
   codes =
     special_path
     |> File.read!()
-    |> String.split("\n", trim: true)
+    |> String.split(["\r\n", "\n"], trim: true)
     |> Enum.reduce(codes, fn
       "", acc ->
         acc
@@ -325,7 +325,7 @@ defmodule String.Break do
   whitespace =
     prop_path
     |> File.read!()
-    |> String.split("\n")
+    |> String.split(["\r\n", "\n"])
     |> Enum.reduce([], fn line, acc ->
       case :binary.split(line, ";") do
         [<<first::4-bytes, "..", last::4-bytes, _::binary>>, <<" White_Space", _::binary>>] ->

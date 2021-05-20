@@ -47,7 +47,7 @@ defmodule String.Tokenizer do
   {start, continue, patterns} =
     prop_path
     |> File.read!()
-    |> String.split("\n", trim: true)
+    |> String.split(["\r\n", "\n"], trim: true)
     |> Enum.reduce({start, continue, []}, fn line, acc ->
       [codepoints | category] = :binary.split(line, ";")
 
