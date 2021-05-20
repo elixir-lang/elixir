@@ -285,7 +285,8 @@ defmodule Mix.Tasks.Test do
       See `mix test.coverage` to compile a report from multiple exports
 
     * `:ignore_modules` - modules to ignore from generating reports and
-      in summaries
+      in summaries. It is a list of module names as atoms and regular
+      expressions that are matched against the module names
 
     * `:local_only` - by default coverage only tracks local calls, set this
       option to false if you plan to run coverage across nodes
