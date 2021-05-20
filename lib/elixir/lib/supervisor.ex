@@ -284,7 +284,7 @@ defmodule Supervisor do
   supervisor gives you more direct control over how the supervisor
   is initialized. Instead of calling `Supervisor.start_link/2` with
   a list of children that are automatically initialized, we manually
-  initialized the children by calling `Supervisor.init/2` inside its
+  initialize the children by calling `Supervisor.init/2` inside its
   `c:init/1` callback.
 
   `use Supervisor` also defines a `child_spec/1` function which allows
