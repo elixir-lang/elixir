@@ -22,21 +22,13 @@ defmodule Code.Normalizer do
     quoted
   end
 
-  defp do_normalize({:__block__, meta, args} = quoted, _parent_meta) do
-    if Keyword.has_key?(meta, :format) do
-      quoted
-    else
-      {:__block__, meta, Enum.map(args, &do_normalize(&1, meta))}
-    end
+  # Only normalize the first argument of an alias if it's not an atom
+  defp do_normalize({:__aliases, meta, [first | rest]}, _parent_meta) when not is_atom(first) do
+    first = do_normalize(first, meta)
+    {:__aliases__, meta, [first | rest]}
   end
 
-  # Skip aliases so the module segment atoms don't get wrapped
   defp do_normalize({:__aliases__, _, _} = quoted, _parent_meta) do
-    quoted
-  end
-
-  # Skip qualified tuples left hand side
-  defp do_normalize({:., _, [_, :{}]} = quoted, _parent_meta) do
     quoted
   end
 
