@@ -192,25 +192,25 @@ defmodule Code.Formatter do
 
   @doc """
   Converts `string` to an algebra document.
+
   Returns `{:ok, doc}` or `{:error, parser_error}`.
+
   See `Code.format_string!/2` for the list of options.
   """
   def to_algebra(string, opts \\ []) when is_binary(string) and is_list(opts) do
-    opts =
-      Keyword.merge(opts,
-        unescape: false,
-        warn_on_unnecessary_quotes: false,
-        literal_encoder: &{:ok, {:__block__, &2, [&1]}},
-        token_metadata: true
-      )
+    to_quoted_opts = [
+      unescape: false,
+      warn_on_unnecessary_quotes: false,
+      literal_encoder: &{:ok, {:__block__, &2, [&1]}},
+      token_metadata: true
+    ]
 
-    with {:ok, forms, comments} <- Code.string_to_quoted_with_comments(string, opts) do
-      comments =
+    with {:ok, forms, comments} <- Code.string_to_quoted_with_comments(string, to_quoted_opts) do
+      state =
         comments
         |> Enum.map(&format_comment/1)
         |> gather_comments()
-
-      state = state(comments, opts)
+        |> state(opts)
 
       {doc, _} = block_to_algebra(forms, @min_line, @max_line, state)
       {:ok, doc}
@@ -219,7 +219,9 @@ defmodule Code.Formatter do
 
   @doc """
   Converts `string` to an algebra document.
+
   Raises if the `string` cannot be parsed.
+
   See `Code.format_string!/2` for the list of options.
   """
   def to_algebra!(string, opts \\ []) do
@@ -270,9 +272,9 @@ defmodule Code.Formatter do
     [comment | gather_comments(comments)]
   end
 
-  defp gather_comments([
-         %{line: line, next_eol_count: next_eol_count, text: doc} = comment | comments
-       ]) do
+  defp gather_comments([comment | comments]) do
+    %{line: line, next_eol_count: next_eol_count, text: doc} = comment
+
     {next_eol_count, comments, doc} =
       gather_followup_comments(line + 1, next_eol_count, comments, doc)
 
@@ -284,21 +286,9 @@ defmodule Code.Formatter do
     []
   end
 
-  defp gather_followup_comments(
-         line,
-         _,
-         [
-           %{
-             line: line,
-             previous_eol_count: previous_eol_count,
-             next_eol_count: next_eol_count,
-             text: text
-           }
-           | comments
-         ],
-         doc
-       )
-       when previous_eol_count != 0 do
+  defp gather_followup_comments(line, _, [%{line: line} = comment | comments], doc)
+       when comment.previous_eol_count != 0 do
+    %{next_eol_count: next_eol_count, text: text} = comment
     gather_followup_comments(line + 1, next_eol_count, comments, line(doc, text))
   end
 
