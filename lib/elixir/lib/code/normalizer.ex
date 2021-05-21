@@ -331,14 +331,14 @@ defmodule Code.Normalizer do
 
     module_atom? = module_atom?(left)
 
+    left = do_normalize(left, parent_meta)
+    right = do_normalize(right, parent_meta)
+
     pair =
       if keyword? and not module_atom? do
-        {_, _, [{left, right}]} = do_normalize({left, right}, parent_meta)
         left = Macro.update_meta(left, &Keyword.put(&1, :format, :keyword))
         {left, right}
       else
-        left = do_normalize(left, parent_meta)
-        right = do_normalize(right, parent_meta)
         {:__block__, [line: parent_meta[:line]], [{left, right}]}
       end
 
