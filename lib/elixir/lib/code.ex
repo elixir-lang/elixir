@@ -1207,6 +1207,7 @@ defmodule Code do
   `{:error, {line, error, token}}` otherwise.
 
   Comments are maps with the following fields:
+
     * `:line` - The line number the source code
 
     * `:text` - The full text of the comment, incluing the leading `#`
@@ -1214,6 +1215,10 @@ defmodule Code do
     * `:previous_eol_count` - How many end of lines there are between the comment and the previous ast node or comment
 
     * `:next_eol_count` - How many end of lines there are between the comment and the next ast node or comment
+
+  Check `string_to_quoted/2` for options information.
+
+  ## Examples
 
       iex> Code.string_to_quoted_with_comments("\""
       ...> :foo
@@ -1233,27 +1238,22 @@ defmodule Code do
         %{line: 1, previous_eol_count: 0, next_eol_count: 0, text: "\# :bar"}
       ]}
 
-  Check `string_to_quoted/2` for options information.
   """
   @spec string_to_quoted_with_comments(List.Chars.t(), keyword) ::
           {:ok, Macro.t(), map()} | {:error, {location :: keyword, term, term}}
   def string_to_quoted_with_comments(string, opts \\ [])
       when is_binary(string) and is_list(opts) do
+    charlist = to_charlist(string)
     file = Keyword.get(opts, :file, "nofile")
     line = Keyword.get(opts, :line, 1)
     column = Keyword.get(opts, :column, 1)
 
-    charlist = to_charlist(string)
-
     Process.put(:code_formatter_comments, [])
-
     opts = [preserve_comments: &preserve_comments/5] ++ opts
 
-    with {:ok, tokens} <-
-           :elixir.string_to_tokens(charlist, line, column, file, opts),
+    with {:ok, tokens} <- :elixir.string_to_tokens(charlist, line, column, file, opts),
          {:ok, forms} <- :elixir.tokens_to_quoted(tokens, file, opts) do
       comments = Enum.reverse(Process.get(:code_formatter_comments))
-
       {:ok, forms, comments}
     end
   after
