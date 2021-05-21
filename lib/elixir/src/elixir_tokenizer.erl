@@ -120,8 +120,7 @@ tokenize(String, Line, Column, #elixir_tokenizer{} = Scope) ->
   tokenize(String, Line, Column, Scope, []);
 
 tokenize(String, Line, Column, Opts) ->
-  IdentifierTokenizer =
-    elixir_config:static(identifier_tokenizer),
+  IdentifierTokenizer = elixir_config:identifier_tokenizer(),
 
   Scope =
     lists:foldl(fun

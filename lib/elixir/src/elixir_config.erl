@@ -1,14 +1,17 @@
 -module(elixir_config).
 -compile({no_auto_import, [get/1]}).
 -export([new/1, warn/2, serial/1]).
--export([static/1, delete/1, put/2, get/1, get/2, update/2, get_and_put/2]).
+-export([static/1, is_bootstrap/0, identifier_tokenizer/0]).
+-export([delete/1, put/2, get/1, get/2, update/2, get_and_put/2]).
 -export([start_link/0, init/1, handle_call/3, handle_cast/2]).
 -behaviour(gen_server).
 
 static(Map) when is_map(Map) ->
-  persistent_term:put(?MODULE, maps:merge(persistent_term:get(?MODULE, #{}), Map));
-static(Key) when is_atom(Key) ->
-  maps:get(Key, persistent_term:get(?MODULE)).
+  persistent_term:put(?MODULE, maps:merge(persistent_term:get(?MODULE, #{}), Map)).
+is_bootstrap() ->
+  maps:get(bootstrap, persistent_term:get(?MODULE, #{}), false).
+identifier_tokenizer() ->
+  maps:get(identifier_tokenizer, persistent_term:get(?MODULE, #{}), 'Elixir.String.Tokenizer').
 
 get(Key) ->
   [{_, Value}] = ets:lookup(?MODULE, Key),
