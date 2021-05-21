@@ -83,6 +83,34 @@ defmodule CodeFormatterHelpers do
   end
 end
 
+defmodule CodeNormalizerHelpers do
+  defmacro assert_same(good, opts \\ []) do
+    quote bind_quoted: [good: good, opts: opts], location: :keep do
+      line_length = Keyword.get(opts, :line_length, 98)
+      good = String.trim(good)
+
+      expected = IO.iodata_to_binary(Code.format_string!(good, opts))
+
+      quoted_opts =
+        [
+          literal_encoder: &{:ok, {:__block__, &2, [&1]}},
+          token_metadata: true,
+          unescape: false
+        ] ++ opts
+
+      {:ok, quoted, comments} = Code.string_to_quoted_with_comments(good, quoted_opts)
+
+      {:ok, doc} = Code.quoted_to_algebra(quoted, comments: comments)
+
+      actual =
+        Inspect.Algebra.format(doc, line_length)
+        |> IO.iodata_to_binary()
+
+      assert actual == expected
+    end
+  end
+end
+
 assert_timeout = String.to_integer(System.get_env("ELIXIR_ASSERT_TIMEOUT") || "500")
 epmd_exclude = if match?({:win32, _}, :os.type()), do: [epmd: true], else: []
 os_exclude = if PathHelpers.windows?(), do: [unix: true], else: [windows: true]

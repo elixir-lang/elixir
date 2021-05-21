@@ -17,9 +17,19 @@ defmodule Code.Normalizer do
     do_normalize(quoted, line: line)
   end
 
-  # Skip already wrapped blocks
+  # Skip normalized literals
   defp do_normalize({:__block__, _, [literal]} = quoted, _parent_meta) when is_literal(literal) do
     quoted
+  end
+
+  # Skip normalized charlists
+  defp do_normalize({:__block__, meta, [charlist]} = quoted, parent_meta)
+       when is_list(charlist) do
+    if Keyword.has_key?(meta, :delimiter) do
+      quoted
+    else
+      do_normalize(charlist, parent_meta)
+    end
   end
 
   # Only normalize the first argument of an alias if it's not an atom
@@ -68,6 +78,19 @@ defmodule Code.Normalizer do
     {:<<>>, meta, parts}
   end
 
+  # Skip atoms with interpolations
+  defp do_normalize(
+         {{:., _, [:erlang, :binary_to_atom]}, _, [{:<<>>, _, _}, :utf8]} = quoted,
+         _parent_meta
+       ) do
+    quoted
+  end
+
+  # Skip charlists with interpolations
+  defp do_normalize({{:., _, [List, :to_charlist]}, _, _} = quoted, _parent_meta) do
+    quoted
+  end
+
   # Don't normalize the `Access` atom in access syntax
   defp do_normalize({:., meta, [Access, :get]}, parent_meta) do
     meta = patch_meta_line(meta, parent_meta)
@@ -80,7 +103,9 @@ defmodule Code.Normalizer do
   defp do_normalize({:., meta, [left, right]}, parent_meta) do
     meta = patch_meta_line(meta, parent_meta)
 
-    {:., meta, [do_normalize(left, meta), right]}
+    left = do_normalize(left, meta)
+
+    {:., meta, [left, right]}
   end
 
   # A list of left to right arrows is not considered as a list literal, so it's
@@ -227,19 +252,17 @@ defmodule Code.Normalizer do
         meta
       end
 
-    case List.last(args) do
-      [{:do, _} | _] ->
-        meta =
-          if Keyword.has_key?(meta, :do) do
-            meta
-          else
-            line = parent_meta[:line]
-            [do: [line: line], end: [line: line]]
-          end
+    cond do
+      Keyword.has_key?(meta, :do) ->
+        normalize_kw_blocks(form, meta, args)
+
+      match?([{:do, _} | _], List.last(args)) ->
+        line = parent_meta[:line]
+        meta = [do: [line: line], end: [line: line]]
 
         normalize_kw_blocks(form, meta, args)
 
-      _ ->
+      true ->
         args = Enum.map(args, &do_normalize(&1, meta))
 
         {form, meta, args}

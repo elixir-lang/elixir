@@ -1,7 +1,9 @@
-Code.require_file("test_helper.exs", __DIR__)
+Code.require_file("../test_helper.exs", __DIR__)
 
-defmodule Code.NormalizerTest do
+defmodule Code.Normalizer.GeneralTest do
   use ExUnit.Case, async: true
+
+  import CodeNormalizerHelpers
 
   defp quoted_to_string(quoted) do
     {:ok, doc} = Code.quoted_to_algebra(quoted)
@@ -10,7 +12,7 @@ defmodule Code.NormalizerTest do
     |> IO.iodata_to_binary()
   end
 
-  describe "to_string/1" do
+  describe "quoted_to_algebra/2" do
     test "variable" do
       assert quoted_to_string(quote(do: foo)) == "foo"
     end
@@ -428,6 +430,10 @@ defmodule Code.NormalizerTest do
       assert quoted_to_string(quote(do: "foo#{bar}baz")) == ~S["foo#{bar}baz"]
     end
 
+    test "atom with interpolation" do
+      assert quoted_to_string(quote(do: :"foo#{bar}baz")) == ~S[:"foo#{bar}baz"]
+    end
+
     test "bit syntax" do
       ast = quote(do: <<1::8*4>>)
       assert quoted_to_string(ast) == "<<1::8*4>>"
@@ -471,6 +477,77 @@ defmodule Code.NormalizerTest do
       assert quoted_to_string(quote(do: {x, a: b})) == "{x, [a: b]}"
       assert quoted_to_string(quote(do: foo(else: a))) == "foo(else: a)"
       assert quoted_to_string(quote(do: foo(catch: a))) == "foo(catch: a)"
+    end
+  end
+
+  describe "preserves formatting for sigils" do
+    test "without interpolation" do
+      assert_same ~S[~s(foo)]
+      assert_same ~S[~s{foo bar}]
+      assert_same ~S[~r/Bar Baz/]
+      assert_same ~S[~w<>]
+      assert_same ~S[~W()]
+    end
+
+    test "with escapes" do
+      assert_same ~S[~s(foo \) bar)]
+      assert_same ~S[~s(f\a\b\ro)]
+
+      assert_same ~S"""
+      ~S(foo\
+      bar)
+      """
+    end
+
+    test "with nested new lines" do
+      assert_same ~S"""
+      foo do
+        ~S(foo\
+      bar)
+      end
+      """
+
+      assert_same ~S"""
+      foo do
+        ~s(#{bar}
+      )
+      end
+      """
+    end
+
+    test "with interpolation" do
+      assert_same ~S[~s(one #{2} three)]
+    end
+
+    test "with modifiers" do
+      assert_same ~S[~w(one two three)a]
+      assert_same ~S[~z(one two three)foo]
+    end
+
+    test "with heredoc syntax" do
+      assert_same ~S"""
+      ~s'''
+      one\a
+      #{:two}\r
+      three\0
+      '''
+      """
+
+      assert_same ~S'''
+      ~s"""
+      one\a
+      #{:two}\r
+      three\0
+      """
+      '''
+    end
+
+    test "with heredoc syntax and modifier" do
+      assert_same ~S"""
+      ~s'''
+      foo
+      '''rsa
+      """
     end
   end
 end
