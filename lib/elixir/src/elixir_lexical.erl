@@ -6,7 +6,7 @@
 -define(tracker, 'Elixir.Kernel.LexicalTracker').
 
 run(#{tracers := Tracers} = E, ExecutionCallback, AfterExecutionCallback) ->
-  case elixir_config:static(bootstrap) of
+  case elixir_config:is_bootstrap() of
     false ->
       {ok, Pid} = ?tracker:start_link(),
       LexEnv = E#{lexical_tracker := Pid, tracers := [?MODULE | Tracers]},

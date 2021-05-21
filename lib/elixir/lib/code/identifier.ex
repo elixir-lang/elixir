@@ -96,7 +96,7 @@ defmodule Code.Identifier do
         :alias
 
       true ->
-        case :elixir_config.static(:identifier_tokenizer).tokenize(charlist) do
+        case :elixir_config.identifier_tokenizer().tokenize(charlist) do
           {kind, _acc, [], _, _, special} ->
             if kind == :identifier and not :lists.member(?@, special) do
               :callable_local
