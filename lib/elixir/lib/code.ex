@@ -1100,6 +1100,11 @@ defmodule Code do
     * `:columns` - when `true`, attach a `:column` key to the quoted
       metadata. Defaults to `false`.
 
+    * `:unescape` - when `false`, preserves escaped sequences. For example,
+      `"null byte\\t\\x00"` will be kept as is instead of being converted to a
+      bit string literal. This is useful in combination with
+      `quoted_to_algebra/2`. Defaults to `true`.
+
     * `:existing_atoms_only` - when `true`, raises an error
       when non-existing atoms are found by the tokenizer.
       Defaults to `false`.
@@ -1310,8 +1315,25 @@ defmodule Code do
   @doc """
   Converts a quoted expression to an algebra document.
 
-  Supports both regular AST and the extended AST documented in
-  `string_to_quoted_with_comments/2`.
+  The elixir AST does not contain metadata for literals like strings, lists, or
+  tuples with two elements, which means that the produced algebra document will
+  not respect all of the user preferences and comments may be misplaced.
+  To get better results, you can use the `:token_metadata`, `:escape` and
+  `:literal_encoder` options to `string_to_quoted/2` to provide additional
+  information to the formatter:
+
+      [
+        literal_encoder: &{:ok, {:__block__, &2, [&1]}},
+        token_metadata: true,
+        unescape: false
+      ]
+
+  This will produce an AST that contains information such as `do` blocks start
+  and end lines or sigil delimiters, and by wrapping literals in blocks they can
+  now hold metadata like line number, string delimiter and escaped sequences, or
+  integer formatting(ie `0x2a` instead of `47`). This is especially useful if
+  you're doing source code manipulation, where it's important to preserve user
+  choices and comments placing.
 
   ## Options
 
