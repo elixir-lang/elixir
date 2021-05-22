@@ -512,6 +512,11 @@ defmodule Code.Normalizer.GeneralTest do
       assert quoted_to_string(quote(do: :"a\nb\tc")) == ~S/:"a\nb\tc"/
     end
 
+    test "atoms with non printable characters" do
+      assert quoted_to_string(quote(do: :"\x00\x01\x10"), escape: false) == ~s/:"\0\x01\x10"/
+      assert quoted_to_string(quote(do: :"\x00\x01\x10")) == ~S/:"\0\x01\x10"/
+    end
+
     test "atoms with interpolations" do
       assert quoted_to_string(quote(do: :"foo\n#{bar}\tbaz"), escape: false) ==
                ~s[:"foo\n\#{bar}\tbaz"]
