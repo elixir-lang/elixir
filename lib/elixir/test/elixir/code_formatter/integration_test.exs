@@ -548,6 +548,16 @@ defmodule Code.Formatter.IntegrationTest do
     """
   end
 
+  test "multiline expression inside interpolation" do
+    bad = """
+    Logger.info("Example: #{inspect(%{a: 1, b: 2})}")
+    """
+
+    assert_format bad, """
+    Logger.info("Example: #{inspect(%{a: 1, b: 2})}")
+    """
+  end
+
   test "comment inside operator with when" do
     bad = """
     raise function(x) ::
