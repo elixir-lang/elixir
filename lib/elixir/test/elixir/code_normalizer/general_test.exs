@@ -526,7 +526,9 @@ defmodule Code.Normalizer.GeneralTest do
       assert quoted_to_string(quote(do: :"foo\"bar"), escape: false) == ~S[:"foo\"bar"]
       assert quoted_to_string(quote(do: :"foo\"bar")) == ~S[:"foo\\"bar"]
 
-      assert quoted_to_string(quote(do: :"foo#{~s/\n/}bar"), escape: false) == ~S[:"foo#{~s/\n/}bar"]
+      assert quoted_to_string(quote(do: :"foo#{~s/\n/}bar"), escape: false) ==
+               ~S[:"foo#{~s/\n/}bar"]
+
       assert quoted_to_string(quote(do: :"foo#{~s/\n/}bar")) == ~S[:"foo#{~s/\n/}bar"]
 
       assert quoted_to_string(quote(do: :"one\n\"#{2}\"\nthree"), escape: false) ==
