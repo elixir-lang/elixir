@@ -549,11 +549,16 @@ defmodule Code.Formatter.IntegrationTest do
   end
 
   test "multiline expression inside interpolation" do
-    bad = """
-    Logger.info("Example: #{inspect(%{a: 1, b: 2})}")
+    bad = ~S"""
+    Logger.info("Example: #{
+      inspect(%{
+        a: 1,
+        b: 2
+      })
+    }")
     """
 
-    assert_format bad, """
+    assert_format bad, ~S"""
     Logger.info("Example: #{inspect(%{a: 1, b: 2})}")
     """
   end
