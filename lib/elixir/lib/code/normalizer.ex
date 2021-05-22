@@ -232,7 +232,7 @@ defmodule Code.Normalizer do
 
   # Lists
   defp do_normalize(list, state) when is_list(list) do
-    if !Enum.empty?(list) and List.ascii_printable?(list) do
+    if list != [] and List.ascii_printable?(list) do
       # It's a charlist
       {:__block__, [line: state.parent_meta[:line], delimiter: "'"], [list]}
     else
