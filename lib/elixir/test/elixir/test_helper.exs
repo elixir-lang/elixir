@@ -91,16 +91,18 @@ defmodule CodeNormalizerHelpers do
 
       expected = IO.iodata_to_binary(Code.format_string!(good, opts))
 
-      quoted_opts =
+      to_quoted_opts =
         [
           literal_encoder: &{:ok, {:__block__, &2, [&1]}},
           token_metadata: true,
           unescape: false
         ] ++ opts
 
-      {:ok, quoted, comments} = Code.string_to_quoted_with_comments(good, quoted_opts)
+      {quoted, comments} = Code.string_to_quoted_with_comments!(good, to_quoted_opts)
 
-      {:ok, doc} = Code.quoted_to_algebra(quoted, comments: comments)
+      to_algebra_opts = [comments: comments] ++ opts
+
+      doc = Code.quoted_to_algebra(quoted, to_algebra_opts)
 
       actual =
         Inspect.Algebra.format(doc, line_length)
