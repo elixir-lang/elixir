@@ -562,5 +562,13 @@ defmodule Code.Normalizer.GeneralTest do
       assert quoted_to_string(quote(do: "\x00\x01\x10"), escape: false) == ~s|"\0\x01\x10"|
       assert quoted_to_string(quote(do: "\x00\x01\x10")) == ~s|"\\0\\x01\\x10"|
     end
+
+    test "charlists" do
+      assert quoted_to_string(quote(do: '\a\b\e\n\r\t\v'), escape: false) ==
+               ~s|'\a\b\e\n\r\t\v'|
+
+      assert quoted_to_string(quote(do: '\a\b\e\n\r\t\v')) ==
+               ~s|'\\a\\b\\e\\n\\r\\t\\v'|
+    end
   end
 end
