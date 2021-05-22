@@ -1264,7 +1264,7 @@ defmodule Code do
 
   """
   @spec string_to_quoted_with_comments(List.Chars.t(), keyword) ::
-          {:ok, Macro.t(), map()} | {:error, {location :: keyword, term, term}}
+          {:ok, Macro.t(), list(map())} | {:error, {location :: keyword, term, term}}
   def string_to_quoted_with_comments(string, opts \\ [])
       when is_binary(string) and is_list(opts) do
     charlist = to_charlist(string)
@@ -1293,7 +1293,7 @@ defmodule Code do
 
   Check `string_to_quoted/2` for options information.
   """
-  @spec string_to_quoted_with_comments!(List.Chars.t(), keyword) :: {Macro.t(), map()}
+  @spec string_to_quoted_with_comments!(List.Chars.t(), keyword) :: {Macro.t(), list(map())}
   def string_to_quoted_with_comments!(string, opts \\ []) do
     case string_to_quoted_with_comments(string, opts) do
       {:ok, forms, comments} ->
