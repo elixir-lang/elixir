@@ -234,6 +234,13 @@ defmodule Code.Normalizer do
   defp do_normalize(list, state) when is_list(list) do
     if !Enum.empty?(list) and List.ascii_printable?(list) do
       # It's a charlist
+      list =
+        if state.escape == true do
+          {string, _} = Code.Identifier.escape(IO.chardata_to_string(list), ?')
+          IO.iodata_to_binary(string) |> to_charlist()
+        else
+          list
+        end
       {:__block__, [line: state.parent_meta[:line], delimiter: "'"], [list]}
     else
       meta = [line: state.parent_meta[:line], closing: [line: state.parent_meta[:line]]]
