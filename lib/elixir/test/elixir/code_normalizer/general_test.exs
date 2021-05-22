@@ -5,8 +5,8 @@ defmodule Code.Normalizer.GeneralTest do
 
   import CodeNormalizerHelpers
 
-  defp quoted_to_string(quoted) do
-    {:ok, doc} = Code.quoted_to_algebra(quoted)
+  defp quoted_to_string(quoted, opts \\ []) do
+    doc = Code.quoted_to_algebra(quoted, opts)
 
     Inspect.Algebra.format(doc, 98)
     |> IO.iodata_to_binary()
@@ -549,5 +549,12 @@ defmodule Code.Normalizer.GeneralTest do
       '''rsa
       """
     end
+  end
+
+  test "quoted_to_algebra/2 escapes strings" do
+    quoted = quote do
+      "foo\nbar"
+    end
+    assert quoted_to_string(quoted, escape: true) == "\"foo\\nbar\""
   end
 end

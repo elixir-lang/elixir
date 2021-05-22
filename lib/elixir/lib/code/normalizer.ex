@@ -13,66 +13,72 @@ defmodule Code.Normalizer do
   """
   def normalize(quoted, opts \\ []) do
     line = Keyword.get(opts, :line, 1)
+    escape = Keyword.get(opts, :escape, true)
 
-    do_normalize(quoted, line: line)
+    state = %{
+      escape: escape,
+      parent_meta: [line: line]
+    }
+
+    do_normalize(quoted, state)
   end
 
   # Skip normalized literals
-  defp do_normalize({:__block__, _, [literal]} = quoted, _parent_meta) when is_literal(literal) do
+  defp do_normalize({:__block__, _, [literal]} = quoted, _state) when is_literal(literal) do
     quoted
   end
 
   # Skip normalized charlists
-  defp do_normalize({:__block__, meta, [charlist]} = quoted, parent_meta)
+  defp do_normalize({:__block__, meta, [charlist]} = quoted, state)
        when is_list(charlist) do
     if Keyword.has_key?(meta, :delimiter) do
       quoted
     else
-      do_normalize(charlist, parent_meta)
+      do_normalize(charlist, state)
     end
   end
 
   # Only normalize the first argument of an alias if it's not an atom
-  defp do_normalize({:__aliases, meta, [first | rest]}, parent_meta) when not is_atom(first) do
-    meta = patch_meta_line(meta, parent_meta)
-    first = do_normalize(first, meta)
+  defp do_normalize({:__aliases, meta, [first | rest]}, state) when not is_atom(first) do
+    meta = patch_meta_line(meta, state.parent_meta)
+    first = do_normalize(first, %{state | paret_meta: meta})
     {:__aliases__, meta, [first | rest]}
   end
 
-  defp do_normalize({:__aliases__, _, _} = quoted, _parent_meta) do
+  defp do_normalize({:__aliases__, _, _} = quoted, _state) do
     quoted
   end
 
   # Skip captured arguments like &1
-  defp do_normalize({:&, meta, [term]}, parent_meta) when is_integer(term) do
-    meta = patch_meta_line(meta, parent_meta)
+  defp do_normalize({:&, meta, [term]}, state) when is_integer(term) do
+    meta = patch_meta_line(meta, state.parent_meta)
     {:&, meta, [term]}
   end
 
   # Ranges
-  defp do_normalize(left..right//step, parent_meta) do
-    left = do_normalize(left, parent_meta)
-    right = do_normalize(right, parent_meta)
+  defp do_normalize(left..right//step, state) do
+    left = do_normalize(left, state)
+    right = do_normalize(right, state)
 
-    meta = [line: parent_meta[:line]]
+    meta = [line: state.parent_meta[:line]]
 
     if step == 1 do
       {:.., meta, [left, right]}
     else
-      step = do_normalize(step, parent_meta)
+      step = do_normalize(step, state)
       {:"..//", meta, [left, right, step]}
     end
   end
 
   # Bit containers
-  defp do_normalize({:<<>>, meta, parts} = quoted, parent_meta) do
-    meta = patch_meta_line(meta, parent_meta)
+  defp do_normalize({:<<>>, meta, parts} = quoted, state) do
+    meta = patch_meta_line(meta, state.parent_meta)
 
     parts =
       if interpolated?(quoted) do
-        normalize_interpolation_parts(parts, meta)
+        normalize_interpolation_parts(parts, %{state | parent_meta: meta})
       else
-        Enum.map(parts, &do_normalize(&1, meta))
+        Enum.map(parts, &do_normalize(&1, %{state | parent_meta: meta}))
       end
 
     {:<<>>, meta, parts}
@@ -81,53 +87,53 @@ defmodule Code.Normalizer do
   # Skip atoms with interpolations
   defp do_normalize(
          {{:., _, [:erlang, :binary_to_atom]}, _, [{:<<>>, _, _}, :utf8]} = quoted,
-         _parent_meta
+         _state
        ) do
     quoted
   end
 
   # Skip charlists with interpolations
-  defp do_normalize({{:., _, [List, :to_charlist]}, _, _} = quoted, _parent_meta) do
+  defp do_normalize({{:., _, [List, :to_charlist]}, _, _} = quoted, _state) do
     quoted
   end
 
   # Don't normalize the `Access` atom in access syntax
-  defp do_normalize({:., meta, [Access, :get]}, parent_meta) do
-    meta = patch_meta_line(meta, parent_meta)
+  defp do_normalize({:., meta, [Access, :get]}, state) do
+    meta = patch_meta_line(meta, state.parent_meta)
     {:., meta, [Access, :get]}
   end
 
   # Only normalize the left side of the dot operator
   # The right hand side is an atom in the AST but it's not an atom literal, so
   # it should not be wrapped
-  defp do_normalize({:., meta, [left, right]}, parent_meta) do
-    meta = patch_meta_line(meta, parent_meta)
+  defp do_normalize({:., meta, [left, right]}, state) do
+    meta = patch_meta_line(meta, state.parent_meta)
 
-    left = do_normalize(left, meta)
+    left = do_normalize(left, %{state | parent_meta: meta})
 
     {:., meta, [left, right]}
   end
 
   # A list of left to right arrows is not considered as a list literal, so it's
   # not wrapped
-  defp do_normalize([{:->, _, _} | _] = quoted, parent_meta) do
-    Enum.map(quoted, &do_normalize(&1, parent_meta))
+  defp do_normalize([{:->, _, _} | _] = quoted, state) do
+    Enum.map(quoted, &do_normalize(&1, state))
   end
 
   # left -> right
-  defp do_normalize({:->, meta, [left, right]}, parent_meta) do
-    meta = patch_meta_line(meta, parent_meta)
+  defp do_normalize({:->, meta, [left, right]}, state) do
+    meta = patch_meta_line(meta, state.parent_meta)
 
-    left = Enum.map(left, &do_normalize(&1, meta))
-    right = do_normalize(right, meta)
+    left = Enum.map(left, &do_normalize(&1, %{state | parent_meta: meta}))
+    right = do_normalize(right, %{state | parent_meta: meta})
     {:->, meta, [left, right]}
   end
 
   # Maps
-  defp do_normalize({:%{}, meta, args}, parent_meta) do
+  defp do_normalize({:%{}, meta, args}, state) do
     meta =
       if meta == [] do
-        line = parent_meta[:line]
+        line = state.parent_meta[:line]
         [line: line, closing: [line: line]]
       else
         meta
@@ -137,56 +143,64 @@ defmodule Code.Normalizer do
       case args do
         [{:|, pipe_meta, [left, right]}] ->
           left = do_normalize(left, meta)
-          {_, _, right} = do_normalize(right, meta)
+          {_, _, right} = do_normalize(right, %{state | parent_meta: meta})
           [{:|, pipe_meta, [left, right]}]
 
         [{_, _, _} = call] ->
-          [do_normalize(call, meta)]
+          [do_normalize(call, %{state | parent_meta: meta})]
 
         args ->
-          normalize_map_args(args, meta)
+          normalize_map_args(args, %{state | parent_meta: meta})
       end
 
     {:%{}, meta, args}
   end
 
   # Sigils
-  defp do_normalize({sigil, meta, [{:<<>>, _, _} = string, modifiers]} = quoted, parent_meta)
+  defp do_normalize({sigil, meta, [{:<<>>, _, _} = string, modifiers]} = quoted, state)
        when is_atom(sigil) do
     case Atom.to_string(sigil) do
       <<"sigil_", _name>> ->
-        {sigil, meta, [do_normalize(string, meta), modifiers]}
+        {sigil, meta, [do_normalize(string, %{state | parent_meta: meta}), modifiers]}
 
       _ ->
-        normalize_call(quoted, parent_meta)
+        normalize_call(quoted, state)
     end
   end
 
   # Calls
-  defp do_normalize({_, _, args} = quoted, parent_meta) when is_list(args) do
-    normalize_call(quoted, parent_meta)
+  defp do_normalize({_, _, args} = quoted, state) when is_list(args) do
+    normalize_call(quoted, state)
   end
 
   # Integers, floats, atoms
-  defp do_normalize(x, parent_meta) when is_literal(x) do
-    meta = [line: parent_meta[:line]]
+  defp do_normalize(literal, state) when is_literal(literal) do
+    meta = [line: state.parent_meta[:line]]
 
     meta =
-      if not is_atom(x) do
-        Keyword.put(meta, :token, Macro.to_string(x))
+      if is_integer(literal) or is_float(literal) do
+        Keyword.put(meta, :token, inspect(literal))
       else
         meta
       end
 
     meta =
-      if not is_nil(parent_meta[:format]) do
-        Keyword.put(meta, :format, parent_meta[:format])
+      if not is_nil(state.parent_meta[:format]) do
+        Keyword.put(meta, :format, state.parent_meta[:format])
       else
         meta
       end
 
-    if module_atom?(x) do
-      "Elixir." <> segments = Atom.to_string(x)
+    literal =
+      if is_binary(literal) and state.escape do
+        {string, _} = Code.Identifier.escape(literal, ?")
+        IO.iodata_to_binary(string)
+      else
+        literal
+      end
+
+    if module_atom?(literal) do
+      "Elixir." <> segments = Atom.to_string(literal)
 
       segments =
         segments
@@ -195,58 +209,58 @@ defmodule Code.Normalizer do
 
       {:__aliases__, meta, segments}
     else
-      {:__block__, meta, [x]}
+      {:__block__, meta, [literal]}
     end
   end
 
   # 2-tuples
-  defp do_normalize({left, right}, parent_meta) do
-    meta = [line: parent_meta[:line]]
+  defp do_normalize({left, right}, state) do
+    meta = [line: state.parent_meta[:line]]
 
-    left_parent_meta =
+    left_state =
       if is_atom(left) and not module_atom?(left) do
-        Keyword.put(parent_meta, :format, :keyword)
+        %{state | parent_meta: Keyword.put(state.parent_meta, :format, :keyword)}
       else
-        meta
+        %{state | parent_meta: meta}
       end
 
     {:__block__, meta,
      [
-       {do_normalize(left, left_parent_meta), do_normalize(right, parent_meta)}
+       {do_normalize(left, left_state), do_normalize(right, state)}
      ]}
   end
 
   # Lists
-  defp do_normalize(list, parent_meta) when is_list(list) do
+  defp do_normalize(list, state) when is_list(list) do
     if !Enum.empty?(list) and List.ascii_printable?(list) do
       # It's a charlist
-      {:__block__, [line: parent_meta[:line], delimiter: "'"], [list]}
+      {:__block__, [line: state.parent_meta[:line], delimiter: "'"], [list]}
     else
-      meta = [line: parent_meta[:line], closing: [line: parent_meta[:line]]]
+      meta = [line: state.parent_meta[:line], closing: [line: state.parent_meta[:line]]]
 
-      args = normalize_list_elements(list, parent_meta)
+      args = normalize_list_elements(list, state)
 
       {:__block__, meta, [args]}
     end
   end
 
   # Everything else
-  defp do_normalize(quoted, _parent_meta) do
+  defp do_normalize(quoted, _state) do
     quoted
   end
 
-  defp normalize_call({form, meta, args}, parent_meta) do
+  defp normalize_call({form, meta, args}, state) do
     # Only normalize the form if it's a qualified call
     form =
       if is_atom(form) do
         form
       else
-        do_normalize(form, meta)
+        do_normalize(form, %{state | parent_meta: meta})
       end
 
     meta =
       if meta == [] do
-        line = parent_meta[:line]
+        line = state.parent_meta[:line]
         [line: line, closing: [line: line]]
       else
         meta
@@ -254,29 +268,29 @@ defmodule Code.Normalizer do
 
     cond do
       Keyword.has_key?(meta, :do) ->
-        normalize_kw_blocks(form, meta, args)
+        normalize_kw_blocks(form, meta, args, state)
 
       match?([{:do, _} | _], List.last(args)) ->
-        line = parent_meta[:line]
+        line = state.parent_meta[:line]
         meta = [do: [line: line], end: [line: line]]
 
-        normalize_kw_blocks(form, meta, args)
+        normalize_kw_blocks(form, meta, args, state)
 
       true ->
-        args = Enum.map(args, &do_normalize(&1, meta))
+        args = Enum.map(args, &do_normalize(&1, %{state | parent_meta: state.parent_meta}))
 
         {form, meta, args}
     end
   end
 
-  defp normalize_interpolation_parts(parts, _meta) do
+  defp normalize_interpolation_parts(parts, state) do
     Enum.map(parts, fn
       {:"::", interpolation_meta,
        [
          {{:., dot_meta, [Kernel, :to_string]}, middle_meta, [middle]},
          {:binary, binary_meta, context}
        ]} ->
-        middle = do_normalize(middle, dot_meta)
+        middle = do_normalize(middle, %{state | parent_meta: dot_meta})
 
         {:"::", interpolation_meta,
          [
@@ -289,32 +303,32 @@ defmodule Code.Normalizer do
     end)
   end
 
-  defp normalize_map_args([{key, value} | rest], parent_meta) do
+  defp normalize_map_args([{key, value} | rest], state) do
     key =
       cond do
         is_atom(key) and not module_atom?(key) ->
-          meta = [format: :keyword, line: parent_meta[:line]]
+          meta = [format: :keyword, line: state.parent_meta[:line]]
           {:__block__, meta, [key]}
 
         true ->
-          do_normalize(key, parent_meta)
+          do_normalize(key, state)
       end
 
-    value = do_normalize(value, parent_meta)
+    value = do_normalize(value, state)
 
-    [{key, value} | normalize_map_args(rest, parent_meta)]
+    [{key, value} | normalize_map_args(rest, state)]
   end
 
   defp normalize_map_args([], _) do
     []
   end
 
-  defp normalize_kw_blocks(form, meta, args) do
+  defp normalize_kw_blocks(form, meta, args, state) do
     {kw_blocks, leading_args} = List.pop_at(args, -1)
 
     kw_blocks =
       Enum.map(kw_blocks, fn {tag, block} ->
-        block = do_normalize(block, meta)
+        block = do_normalize(block, %{state | parent_meta: meta})
 
         block =
           case block do
@@ -332,19 +346,19 @@ defmodule Code.Normalizer do
         {tag, block}
       end)
 
-    {_, _, [leading_args]} = do_normalize(leading_args, meta)
+    {_, _, [leading_args]} = do_normalize(leading_args, %{state | parent_meta: meta})
 
     {form, meta, leading_args ++ [kw_blocks]}
   end
 
-  defp normalize_list_elements(elems, parent_meta, keyword? \\ false)
+  defp normalize_list_elements(elems, state, keyword? \\ false)
 
-  defp normalize_list_elements([[{_, _, [{_, _}]}] = first | rest], parent_meta, keyword?) do
+  defp normalize_list_elements([[{_, _, [{_, _}]}] = first | rest], state, keyword?) do
     # Skip already normalized 2-tuples
-    [first | normalize_list_elements(rest, parent_meta, keyword?)]
+    [first | normalize_list_elements(rest, state, keyword?)]
   end
 
-  defp normalize_list_elements([{left, right} | rest], parent_meta, keyword?) do
+  defp normalize_list_elements([{left, right} | rest], state, keyword?) do
     keyword? =
       if not keyword? do
         Enum.empty?(rest) or Inspect.List.keyword?(rest)
@@ -354,25 +368,25 @@ defmodule Code.Normalizer do
 
     module_atom? = module_atom?(left)
 
-    left = do_normalize(left, parent_meta)
-    right = do_normalize(right, parent_meta)
+    left = do_normalize(left, state)
+    right = do_normalize(right, state)
 
     pair =
       if keyword? and not module_atom? do
         left = Macro.update_meta(left, &Keyword.put(&1, :format, :keyword))
         {left, right}
       else
-        {:__block__, [line: parent_meta[:line]], [{left, right}]}
+        {:__block__, [line: state.parent_meta[:line]], [{left, right}]}
       end
 
-    [pair | normalize_list_elements(rest, parent_meta, keyword?)]
+    [pair | normalize_list_elements(rest, state, keyword?)]
   end
 
-  defp normalize_list_elements([first | rest], parent_meta, keyword?) do
-    [do_normalize(first, parent_meta) | normalize_list_elements(rest, parent_meta, keyword?)]
+  defp normalize_list_elements([first | rest], state, keyword?) do
+    [do_normalize(first, state) | normalize_list_elements(rest, state, keyword?)]
   end
 
-  defp normalize_list_elements([], _parent_meta, _keyword?) do
+  defp normalize_list_elements([], _state, _keyword?) do
     []
   end
 
