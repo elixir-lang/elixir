@@ -232,7 +232,7 @@ defmodule Code.Normalizer do
     if list != [] and List.ascii_printable?(list) do
       # It's a charlist
       list =
-        if state.escape == true do
+        if state.escape do
           {string, _} = Code.Identifier.escape(IO.chardata_to_string(list), ?')
           IO.iodata_to_binary(string) |> to_charlist()
         else
