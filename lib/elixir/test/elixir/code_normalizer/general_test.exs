@@ -480,6 +480,69 @@ defmodule Code.Normalizer.GeneralTest do
     end
   end
 
+  describe "quoted_to_algebra/2 escapes" do
+    test "strings with slash escapes" do
+      assert quoted_to_string(quote(do: "\a\b\d\e\f\n\r\t\v"), escape: false) ==
+               ~s/"\a\b\d\e\f\n\r\t\v"/
+
+      assert quoted_to_string(quote(do: "\a\b\d\e\f\n\r\t\v")) ==
+               ~s/"\\a\\b\\d\\e\\f\\n\\r\\t\\v"/
+    end
+
+    test "strings with non printable characters" do
+      assert quoted_to_string(quote(do: "\x00\x01\x10"), escape: false) == ~s/"\x00\x01\x10"/
+      assert quoted_to_string(quote(do: "\x00\x01\x10")) == ~s/"<<0, 1, 16>>"/
+    end
+
+    test "charlists with slash escapes" do
+      assert quoted_to_string(quote(do: '\a\b\e\n\r\t\v'), escape: false) ==
+               ~s/'\a\b\e\n\r\t\v'/
+
+      assert quoted_to_string(quote(do: '\a\b\e\n\r\t\v')) ==
+               ~s/'\\a\\b\\e\\n\\r\\t\\v'/
+    end
+
+    test "charlists with non printable characters" do
+      assert quoted_to_string(quote(do: '\x00\x01\x10'), escape: false) == ~S/[0, 1, 16]/
+      assert quoted_to_string(quote(do: '\x00\x01\x10')) == ~S/[0, 1, 16]/
+    end
+
+    test "atoms" do
+      assert quoted_to_string(quote(do: :"a\nb\tc"), escape: false) == ~s/:"a\nb\tc"/
+      assert quoted_to_string(quote(do: :"a\nb\tc")) == ~S/:"a\nb\tc"/
+    end
+
+    test "atoms with interpolations" do
+      assert quoted_to_string(quote(do: :"foo\n#{bar}\tbaz"), escape: false) ==
+               ~s[:"foo\n\#{bar}\tbaz"]
+
+      assert quoted_to_string(quote(do: :"foo\n#{bar}\tbaz")) == ~S[:"foo\n#{bar}\tbaz"]
+
+      assert quoted_to_string(quote(do: :"foo\"bar"), escape: false) == ~s[:"foo\\"bar"]
+      assert quoted_to_string(quote(do: :"foo\"bar")) == ~S[:"foo\\"bar"]
+
+      assert quoted_to_string(quote(do: :"one\n\"#{2}\"\nthree"), escape: false) ==
+               ~s[:"one\n\\"\#{2}\\"\nthree"]
+
+      assert quoted_to_string(quote(do: :"one\n\"#{2}\"\nthree")) == ~S[:"one\n\\"#{2}\\"\nthree"]
+    end
+  end
+
+  describe "quoted_to_algebra/2 does not escape" do
+    test "sigils" do
+      assert quoted_to_string(quote(do: ~s/a\nb\tc/), escape: false) == ~S"~s/a\nb\tc/"
+      assert quoted_to_string(quote(do: ~s/a\nb\tc/)) == ~S"~s/a\nb\tc/"
+
+      assert quoted_to_string(quote(do: ~s/\a\b\d\e\f\n\r\t\v/), escape: false) ==
+               ~S"~s/\a\b\d\e\f\n\r\t\v/"
+
+      assert quoted_to_string(quote(do: ~s/\a\b\d\e\f\n\r\t\v/)) == ~S"~s/\a\b\d\e\f\n\r\t\v/"
+
+      assert quoted_to_string(quote(do: ~s/\x00\x01\x10/), escape: false) == ~S"~s/\x00\x01\x10/"
+      assert quoted_to_string(quote(do: ~s/\x00\x01\x10/)) == ~S"~s/\x00\x01\x10/"
+    end
+  end
+
   describe "preserves formatting for sigils" do
     test "without interpolation" do
       assert_same ~S[~s(foo)]
@@ -548,27 +611,6 @@ defmodule Code.Normalizer.GeneralTest do
       foo
       '''rsa
       """
-    end
-  end
-
-  describe "quoted_to_algebra/2 escapes" do
-    test "strings" do
-      assert quoted_to_string(quote(do: "\a\b\d\e\f\n\r\t\v"), escape: false) ==
-               ~s|"\a\b\d\e\f\n\r\t\v"|
-
-      assert quoted_to_string(quote(do: "\a\b\d\e\f\n\r\t\v")) ==
-               ~s|"\\a\\b\\d\\e\\f\\n\\r\\t\\v"|
-
-      assert quoted_to_string(quote(do: "\x00\x01\x10"), escape: false) == ~s|"\0\x01\x10"|
-      assert quoted_to_string(quote(do: "\x00\x01\x10")) == ~s|"\\0\\x01\\x10"|
-    end
-
-    test "charlists" do
-      assert quoted_to_string(quote(do: '\a\b\e\n\r\t\v'), escape: false) ==
-               ~s|'\a\b\e\n\r\t\v'|
-
-      assert quoted_to_string(quote(do: '\a\b\e\n\r\t\v')) ==
-               ~s|'\\a\\b\\e\\n\\r\\t\\v'|
     end
   end
 end

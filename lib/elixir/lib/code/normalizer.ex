@@ -17,7 +17,8 @@ defmodule Code.Normalizer do
 
     state = %{
       escape: escape,
-      parent_meta: [line: line]
+      parent_meta: [line: line],
+      escape_interpolation: false
     }
 
     do_normalize(quoted, state)
@@ -84,12 +85,22 @@ defmodule Code.Normalizer do
     {:<<>>, meta, parts}
   end
 
-  # Skip atoms with interpolations
+  # Atoms with interpolations
   defp do_normalize(
-         {{:., _, [:erlang, :binary_to_atom]}, _, [{:<<>>, _, _}, :utf8]} = quoted,
-         _state
+         {{:., dot_meta, [:erlang, :binary_to_atom]}, call_meta, [{:<<>>, _, _} = string, :utf8]},
+         state
        ) do
-    quoted
+    dot_meta = patch_meta_line(dot_meta, state.parent_meta)
+    call_meta = patch_meta_line(call_meta, dot_meta)
+
+    string =
+      if state.escape do
+        do_normalize(string, %{state | escape_interpolation: true})
+      else
+        do_normalize(string, state)
+      end
+
+    {{:., dot_meta, [:erlang, :binary_to_atom]}, call_meta, [string, :utf8]}
   end
 
   # Skip charlists with interpolations
@@ -161,6 +172,8 @@ defmodule Code.Normalizer do
        when is_atom(sigil) do
     case Atom.to_string(sigil) do
       <<"sigil_", _name>> ->
+        meta = patch_meta_line(meta, state.parent_meta)
+
         {sigil, meta, [do_normalize(string, %{state | parent_meta: meta}), modifiers]}
 
       _ ->
@@ -191,13 +204,7 @@ defmodule Code.Normalizer do
         meta
       end
 
-    literal =
-      if is_binary(literal) and state.escape == true do
-        {string, _} = Code.Identifier.escape(literal, ?")
-        IO.iodata_to_binary(string)
-      else
-        literal
-      end
+    literal = maybe_escape_literal(literal, state)
 
     if module_atom?(literal) do
       "Elixir." <> segments = Atom.to_string(literal)
@@ -241,6 +248,7 @@ defmodule Code.Normalizer do
         else
           list
         end
+
       {:__block__, [line: state.parent_meta[:line], delimiter: "'"], [list]}
     else
       meta = [line: state.parent_meta[:line], closing: [line: state.parent_meta[:line]]]
@@ -306,7 +314,11 @@ defmodule Code.Normalizer do
          ]}
 
       part ->
-        part
+        if state.escape_interpolation do
+          maybe_escape_literal(part, state)
+        else
+          part
+        end
     end)
   end
 
@@ -395,6 +407,26 @@ defmodule Code.Normalizer do
 
   defp normalize_list_elements([], _state, _keyword?) do
     []
+  end
+
+  defp maybe_escape_literal(string, %{escape: true}) when is_binary(string) do
+    if String.printable?(string) do
+      {string, _} = Code.Identifier.escape(string, ?")
+      IO.iodata_to_binary(string)
+    else
+      String.trim(inspect(string), "\"")
+    end
+  end
+
+  defp maybe_escape_literal(atom, %{escape: true} = state) when is_atom(atom) do
+    atom
+    |> Atom.to_string()
+    |> maybe_escape_literal(state)
+    |> String.to_atom()
+  end
+
+  defp maybe_escape_literal(term, _) do
+    term
   end
 
   defp patch_meta_line([], parent_meta) do

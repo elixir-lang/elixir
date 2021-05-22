@@ -87,7 +87,7 @@ defmodule CodeNormalizerHelpers do
   defmacro assert_same(good, opts \\ []) do
     quote bind_quoted: [good: good, opts: opts], location: :keep do
       assert IO.iodata_to_binary(Code.format_string!(good, opts)) ==
-        CodeNormalizerHelpers.string_to_string(good, opts)
+               CodeNormalizerHelpers.string_to_string(good, opts)
     end
   end
 
@@ -104,7 +104,7 @@ defmodule CodeNormalizerHelpers do
 
     {quoted, comments} = Code.string_to_quoted_with_comments!(good, to_quoted_opts)
 
-    to_algebra_opts = [comments: comments] ++ opts
+    to_algebra_opts = [comments: comments, escape: false] ++ opts
 
     quoted
     |> Code.quoted_to_algebra(to_algebra_opts)
