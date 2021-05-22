@@ -17,8 +17,7 @@ defmodule Code.Normalizer do
 
     state = %{
       escape: escape,
-      parent_meta: [line: line],
-      escape_interpolation: false
+      parent_meta: [line: line]
     }
 
     do_normalize(quoted, state)
@@ -72,17 +71,8 @@ defmodule Code.Normalizer do
   end
 
   # Bit containers
-  defp do_normalize({:<<>>, meta, parts} = quoted, state) do
-    meta = patch_meta_line(meta, state.parent_meta)
-
-    parts =
-      if interpolated?(quoted) do
-        normalize_interpolation_parts(parts, %{state | parent_meta: meta})
-      else
-        Enum.map(parts, &do_normalize(&1, %{state | parent_meta: meta}))
-      end
-
-    {:<<>>, meta, parts}
+  defp do_normalize({:<<>>, _, _} = quoted, state) do
+    normalize_bitstring(quoted, state)
   end
 
   # Atoms with interpolations
@@ -95,9 +85,9 @@ defmodule Code.Normalizer do
 
     string =
       if state.escape do
-        do_normalize(string, %{state | escape_interpolation: true})
+        normalize_bitstring(string, state, true)
       else
-        do_normalize(string, state)
+        normalize_bitstring(string, state)
       end
 
     {{:., dot_meta, [:erlang, :binary_to_atom]}, call_meta, [string, :utf8]}
@@ -298,7 +288,20 @@ defmodule Code.Normalizer do
     end
   end
 
-  defp normalize_interpolation_parts(parts, state) do
+  defp normalize_bitstring({:<<>>, meta, parts} = quoted, state, escape_interpolation \\ false) do
+    meta = patch_meta_line(meta, state.parent_meta)
+
+    parts =
+      if interpolated?(quoted) do
+        normalize_interpolation_parts(parts, %{state | parent_meta: meta}, escape_interpolation)
+      else
+        Enum.map(parts, &do_normalize(&1, %{state | parent_meta: meta}))
+      end
+
+    {:<<>>, meta, parts}
+  end
+
+  defp normalize_interpolation_parts(parts, state, escape_interpolation) do
     Enum.map(parts, fn
       {:"::", interpolation_meta,
        [
@@ -314,7 +317,7 @@ defmodule Code.Normalizer do
          ]}
 
       part ->
-        if state.escape_interpolation do
+        if escape_interpolation do
           maybe_escape_literal(part, state)
         else
           part
@@ -410,12 +413,8 @@ defmodule Code.Normalizer do
   end
 
   defp maybe_escape_literal(string, %{escape: true}) when is_binary(string) do
-    if String.printable?(string) do
-      {string, _} = Code.Identifier.escape(string, ?")
-      IO.iodata_to_binary(string)
-    else
-      inspect(string)
-    end
+    {string, _} = Code.Identifier.escape(string, ?")
+    IO.iodata_to_binary(string)
   end
 
   defp maybe_escape_literal(atom, %{escape: true} = state) when is_atom(atom) do
