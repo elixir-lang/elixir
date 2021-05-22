@@ -1360,6 +1360,11 @@ defmodule Code do
 
     * `:comments` - the list of comments associated with the quoted expression.
       Defaults to `[]`.
+
+    * `:escape` - when `true`, escaped sequences like `\n` will be escaped into
+      `\\n`. If the `:unescape` option was set to `false` when using
+      `string_to_quoted/2`, setting this option to `false` will prevent it from
+      escaping the sequences twice. Defaults to `true`.
   """
   @spec quoted_to_algebra(Macro.t(), keyword) :: Inspect.Algebra.t()
   def quoted_to_algebra(quoted, opts \\ []) do
