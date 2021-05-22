@@ -551,12 +551,16 @@ defmodule Code.Normalizer.GeneralTest do
     end
   end
 
-  test "quoted_to_algebra/2 escapes strings" do
-    quoted =
-      quote do
-        "foo\nbar"
-      end
+  describe "quoted_to_algebra/2 escapes" do
+    test "strings" do
+      assert quoted_to_string(quote(do: "\a\b\d\e\f\n\r\t\v"), escape: false) ==
+               ~s|"\a\b\d\e\f\n\r\t\v"|
 
-    assert quoted_to_string(quoted, escape: true) == "\"foo\\nbar\""
+      assert quoted_to_string(quote(do: "\a\b\d\e\f\n\r\t\v")) ==
+               ~s|"\\a\\b\\d\\e\\f\\n\\r\\t\\v"|
+
+      assert quoted_to_string(quote(do: "\x00\x01\x10"), escape: false) == ~s|"\0\x01\x10"|
+      assert quoted_to_string(quote(do: "\x00\x01\x10")) == ~s|"\\0\\x01\\x10"|
+    end
   end
 end

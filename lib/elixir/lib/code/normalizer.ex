@@ -192,7 +192,7 @@ defmodule Code.Normalizer do
       end
 
     literal =
-      if is_binary(literal) and state.escape do
+      if is_binary(literal) and state.escape == true do
         {string, _} = Code.Identifier.escape(literal, ?")
         IO.iodata_to_binary(string)
       else

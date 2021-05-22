@@ -1360,7 +1360,7 @@ defmodule Code do
   @spec quoted_to_algebra(Macro.t(), keyword) :: Inspect.Algebra.t()
   def quoted_to_algebra(quoted, opts \\ []) do
     quoted
-    |> Code.Normalizer.normalize()
+    |> Code.Normalizer.normalize(opts)
     |> Code.Formatter.to_algebra(opts)
   end
 
