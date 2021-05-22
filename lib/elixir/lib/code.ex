@@ -1117,10 +1117,12 @@ defmodule Code do
     * `:columns` - when `true`, attach a `:column` key to the quoted
       metadata. Defaults to `false`.
 
-    * `:unescape` - when `false`, preserves escaped sequences. For example,
-      `"null byte\\t\\x00"` will be kept as is instead of being converted to a
-      bit string literal. This is useful in combination with
-      `quoted_to_algebra/2`. Defaults to `true`.
+    * `:unescape` (since v1.10.0) - when `false`, preserves escaped sequences.
+      For example, `"null byte\\t\\x00"` will be kept as is instead of being
+      converted to a bitstring literal. Note if you set this option to false, the
+      resulting AST is no longer valid, but it can be useful to analyze/transform
+      source code, typically in in combination with `quoted_to_algebra/2`.
+      Defaults to `true`.
 
     * `:existing_atoms_only` - when `true`, raises an error
       when non-existing atoms are found by the tokenizer.
@@ -1262,7 +1264,7 @@ defmodule Code do
 
   """
   @spec string_to_quoted_with_comments(List.Chars.t(), keyword) ::
-          {:ok, Macro.t(), map()} | {:error, {location :: keyword, term, term}}
+          {:ok, Macro.t(), list(map())} | {:error, {location :: keyword, term, term}}
   def string_to_quoted_with_comments(string, opts \\ [])
       when is_binary(string) and is_list(opts) do
     charlist = to_charlist(string)
@@ -1291,7 +1293,7 @@ defmodule Code do
 
   Check `string_to_quoted/2` for options information.
   """
-  @spec string_to_quoted_with_comments!(List.Chars.t(), keyword) :: {Macro.t(), map()}
+  @spec string_to_quoted_with_comments!(List.Chars.t(), keyword) :: {Macro.t(), list(map())}
   def string_to_quoted_with_comments!(string, opts \\ []) do
     case string_to_quoted_with_comments(string, opts) do
       {:ok, forms, comments} ->
@@ -1332,10 +1334,10 @@ defmodule Code do
   @doc """
   Converts a quoted expression to an algebra document.
 
-  The elixir AST does not contain metadata for literals like strings, lists, or
+  The Elixir AST does not contain metadata for literals like strings, lists, or
   tuples with two elements, which means that the produced algebra document will
   not respect all of the user preferences and comments may be misplaced.
-  To get better results, you can use the `:token_metadata`, `:escape` and
+  To get better results, you can use the `:token_metadata`, `:unescape` and
   `:literal_encoder` options to `string_to_quoted/2` to provide additional
   information to the formatter:
 
@@ -1348,9 +1350,11 @@ defmodule Code do
   This will produce an AST that contains information such as `do` blocks start
   and end lines or sigil delimiters, and by wrapping literals in blocks they can
   now hold metadata like line number, string delimiter and escaped sequences, or
-  integer formatting(ie `0x2a` instead of `47`). This is especially useful if
-  you're doing source code manipulation, where it's important to preserve user
-  choices and comments placing.
+  integer formatting (such as `0x2a` instead of `47`). However, **note this AST is
+  not valid**. If you evaluate it, it won't have the same semantics as the regular
+  Elixir AST due to the `:unescape` and `:literal_encoder` options. However,
+  those options are useful if you're doing source code manipulation, where it's
+  important to preserve user choices and comments placing.
 
   ## Options
 
