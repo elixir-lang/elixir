@@ -552,9 +552,11 @@ defmodule Code.Normalizer.GeneralTest do
   end
 
   test "quoted_to_algebra/2 escapes strings" do
-    quoted = quote do
-      "foo\nbar"
-    end
+    quoted =
+      quote do
+        "foo\nbar"
+      end
+
     assert quoted_to_string(quoted, escape: true) == "\"foo\\nbar\""
   end
 end
