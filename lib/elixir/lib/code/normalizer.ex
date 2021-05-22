@@ -414,7 +414,7 @@ defmodule Code.Normalizer do
       {string, _} = Code.Identifier.escape(string, ?")
       IO.iodata_to_binary(string)
     else
-      String.trim(inspect(string), "\"")
+      inspect(string)
     end
   end
 
