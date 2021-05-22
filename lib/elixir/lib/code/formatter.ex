@@ -257,6 +257,7 @@ defmodule Code.Formatter do
       force_do_end_blocks: force_do_end_blocks,
       locals_without_parens: locals_without_parens,
       operand_nesting: 2,
+      skip_eol: false,
       comments: comments
     }
   end
@@ -528,7 +529,7 @@ defmodule Code.Formatter do
   end
 
   defp quoted_to_algebra({:fn, meta, [_ | _] = clauses}, _context, state) do
-    anon_fun_to_algebra(clauses, line(meta), closing_line(meta), state, eol?(meta))
+    anon_fun_to_algebra(clauses, line(meta), closing_line(meta), state, eol?(meta, state))
   end
 
   defp quoted_to_algebra({fun, meta, args}, context, state) when is_atom(fun) and is_list(args) do
@@ -777,7 +778,7 @@ defmodule Code.Formatter do
           concat(concat(group(left), op_string), group(right))
 
         true ->
-          eol? = eol?(meta)
+          eol? = eol?(meta, state)
 
           next_break_fits? =
             op in @next_break_fits_operators and next_break_fits?(right_arg, state) and not eol?
@@ -919,7 +920,7 @@ defmodule Code.Formatter do
     {docs, comments?, state} =
       quoted_to_algebra_with_comments(operands, acc, min_line, max_line, state, fun)
 
-    if comments? or eol?(meta) do
+    if comments? or eol?(meta, state) do
       {docs |> Enum.reduce(&line(&2, &1)) |> force_unfit(), state}
     else
       {docs |> Enum.reduce(&glue(&2, &1)), state}
@@ -1155,7 +1156,7 @@ defmodule Code.Formatter do
       end
 
     args = if keyword?, do: left ++ right, else: left ++ [right]
-    many_eol? = match?([_, _ | _], args) and eol?(meta)
+    many_eol? = match?([_, _ | _], args) and eol?(meta, state)
     no_generators? = no_generators?(args)
     to_algebra_fun = &quoted_to_algebra(&1, context, &2)
 
@@ -1346,8 +1347,7 @@ defmodule Code.Formatter do
 
   defp list_interpolation_to_algebra([entry | entries], escape, state, acc, last) do
     {{:., _, [Kernel, :to_string]}, _meta, [quoted]} = entry
-    {doc, state} = block_to_algebra(quoted, @max_line, @min_line, state)
-    doc = surround("\#{", doc, "}") |> interpolation_to_string()
+    {doc, state} = interpolation_to_string(quoted, state)
     list_interpolation_to_algebra(entries, escape, state, concat(acc, doc), last)
   end
 
@@ -1363,13 +1363,18 @@ defmodule Code.Formatter do
 
   defp interpolation_to_algebra([entry | entries], escape, state, acc, last) do
     {:"::", _, [{{:., _, [Kernel, :to_string]}, _meta, [quoted]}, {:binary, _, _}]} = entry
-    {doc, state} = block_to_algebra(quoted, @max_line, @min_line, state)
-    doc = surround("\#{", doc, "}") |> interpolation_to_string()
+    {doc, state} = interpolation_to_string(quoted, state)
     interpolation_to_algebra(entries, escape, state, concat(acc, doc), last)
   end
 
   defp interpolation_to_algebra([], _escape, state, acc, last) do
     {concat(acc, last), state}
+  end
+
+  defp interpolation_to_string(quoted, %{skip_eol: skip_eol} = state) do
+    {doc, state} = block_to_algebra(quoted, @max_line, @min_line, %{state | skip_eol: true})
+    doc = interpolation_to_string(surround("\#{", doc, "}"))
+    {doc, %{state | skip_eol: skip_eol}}
   end
 
   defp interpolation_to_string(doc) do
@@ -1421,7 +1426,7 @@ defmodule Code.Formatter do
 
   defp bitstring_to_algebra(meta, args, state) do
     last = length(args) - 1
-    join = if eol?(meta), do: :line, else: :flex_break
+    join = if eol?(meta, state), do: :line, else: :flex_break
     to_algebra_fun = &bitstring_segment_to_algebra(&1, &2, last)
 
     {args_doc, join, state} =
@@ -1489,7 +1494,7 @@ defmodule Code.Formatter do
   ## Literals
 
   defp list_to_algebra(meta, args, state) do
-    join = if eol?(meta), do: :line, else: :break
+    join = if eol?(meta, state), do: :line, else: :break
     fun = &quoted_to_algebra(&1, :parens_arg, &2)
 
     {args_doc, _join, state} =
@@ -1499,7 +1504,7 @@ defmodule Code.Formatter do
   end
 
   defp map_to_algebra(meta, name_doc, [{:|, _, [left, right]}], state) do
-    join = if eol?(meta), do: :line, else: :break
+    join = if eol?(meta, state), do: :line, else: :break
     fun = &quoted_to_algebra(&1, :parens_arg, &2)
     {left_doc, state} = fun.(left, state)
 
@@ -1516,7 +1521,7 @@ defmodule Code.Formatter do
   end
 
   defp map_to_algebra(meta, name_doc, args, state) do
-    join = if eol?(meta), do: :line, else: :break
+    join = if eol?(meta, state), do: :line, else: :break
     fun = &quoted_to_algebra(&1, :parens_arg, &2)
 
     {args_doc, _join, state} =
@@ -1527,7 +1532,7 @@ defmodule Code.Formatter do
   end
 
   defp tuple_to_algebra(meta, args, join, state) do
-    join = if eol?(meta), do: :line, else: join
+    join = if eol?(meta, state), do: :line, else: join
     fun = &quoted_to_algebra(&1, :parens_arg, &2)
 
     {args_doc, join, state} =
@@ -1709,7 +1714,7 @@ defmodule Code.Formatter do
       |> glue(body_doc)
       |> nest(2)
       |> glue("end")
-      |> maybe_force_clauses(clauses)
+      |> maybe_force_clauses(clauses, state)
       |> group()
 
     {doc, state}
@@ -1743,7 +1748,7 @@ defmodule Code.Formatter do
       |> glue(body_doc)
       |> nest(2)
       |> glue("end")
-      |> maybe_force_clauses(clauses)
+      |> maybe_force_clauses(clauses, state)
       |> group()
 
     {doc, state}
@@ -1771,7 +1776,7 @@ defmodule Code.Formatter do
       "(() -> "
       |> concat(nest(body_doc, :cursor))
       |> concat(")")
-      |> maybe_force_clauses(clauses)
+      |> maybe_force_clauses(clauses, state)
       |> group()
 
     {doc, state}
@@ -1792,7 +1797,7 @@ defmodule Code.Formatter do
       |> group()
       |> concat(break() |> concat(body_doc) |> nest(2))
       |> wrap_in_parens()
-      |> maybe_force_clauses(clauses)
+      |> maybe_force_clauses(clauses, state)
       |> group()
 
     {doc, state}
@@ -1811,8 +1816,8 @@ defmodule Code.Formatter do
 
   ## Clauses
 
-  defp maybe_force_clauses(doc, clauses) do
-    if Enum.any?(clauses, fn {:->, meta, _} -> eol?(meta) end) do
+  defp maybe_force_clauses(doc, clauses, state) do
+    if Enum.any?(clauses, fn {:->, meta, _} -> eol?(meta, state) end) do
       force_unfit(doc)
     else
       doc
@@ -1835,7 +1840,7 @@ defmodule Code.Formatter do
         {doc_acc, state_acc}
       end)
 
-    {clauses_doc |> maybe_force_clauses([clause | clauses]) |> group(), state}
+    {clauses_doc |> maybe_force_clauses([clause | clauses], state) |> group(), state}
   end
 
   defp clauses_to_algebra(other, min_line, max_line, state) do
@@ -2176,8 +2181,8 @@ defmodule Code.Formatter do
     false
   end
 
-  defp eol_or_comments?(meta, %{comments: comments}) do
-    eol?(meta) or
+  defp eol_or_comments?(meta, %{comments: comments} = state) do
+    eol?(meta, state) or
       (
         min_line = line(meta)
         max_line = closing_line(meta)
@@ -2264,9 +2269,8 @@ defmodule Code.Formatter do
   defp keyword_key?(_),
     do: false
 
-  defp eol?(meta) do
-    Keyword.get(meta, :newlines, 0) > 0
-  end
+  defp eol?(_meta, %{skip_eol: true}), do: false
+  defp eol?(meta, _state), do: Keyword.get(meta, :newlines, 0) > 0
 
   defp meta?(meta, key) do
     is_list(meta[key])
