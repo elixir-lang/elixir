@@ -491,7 +491,7 @@ defmodule Code.Normalizer.GeneralTest do
 
     test "strings with non printable characters" do
       assert quoted_to_string(quote(do: "\x00\x01\x10"), escape: false) == ~s/"\x00\x01\x10"/
-      assert quoted_to_string(quote(do: "\x00\x01\x10")) == ~s/"<<0, 1, 16>>"/
+      assert quoted_to_string(quote(do: "\x00\x01\x10")) == ~S/"\0\x01\x10"/
     end
 
     test "charlists with slash escapes" do
@@ -520,6 +520,9 @@ defmodule Code.Normalizer.GeneralTest do
 
       assert quoted_to_string(quote(do: :"foo\"bar"), escape: false) == ~S[:"foo\"bar"]
       assert quoted_to_string(quote(do: :"foo\"bar")) == ~S[:"foo\\"bar"]
+
+      assert quoted_to_string(quote(do: :"foo#{~s/\n/}bar"), escape: false) == ~S[:"foo#{~s/\n/}bar"]
+      assert quoted_to_string(quote(do: :"foo#{~s/\n/}bar")) == ~S[:"foo#{~s/\n/}bar"]
 
       assert quoted_to_string(quote(do: :"one\n\"#{2}\"\nthree"), escape: false) ==
                ~s[:"one\n\\"\#{2}\\"\nthree"]
