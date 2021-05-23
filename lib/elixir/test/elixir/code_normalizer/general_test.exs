@@ -511,7 +511,9 @@ defmodule Code.Normalizer.GeneralTest do
       assert quoted_to_string(quote(do: 'one #{2} three'), escape: false) == ~S/'one #{2} three'/
       assert quoted_to_string(quote(do: 'one #{2} three')) == ~S/'one #{2} three'/
 
-      assert quoted_to_string(quote(do: 'one\n\'#{2}\'\nthree'), escape: false) == ~s['one\n\\'\#{2}\\'\nthree']
+      assert quoted_to_string(quote(do: 'one\n\'#{2}\'\nthree'), escape: false) ==
+               ~s['one\n\\'\#{2}\\'\nthree']
+
       assert quoted_to_string(quote(do: 'one\n\'#{2}\'\nthree')) == ~S['one\n\'#{2}\'\nthree']
     end
 

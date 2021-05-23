@@ -95,19 +95,20 @@ defmodule Code.Normalizer do
 
   # Charlists with interpolations
   defp do_normalize({{:., dot_meta, [List, :to_charlist]}, call_meta, [parts]}, state) do
-    parts = Enum.map(parts, fn
-      {{:., part_dot_meta, [Kernel, :to_string]}, part_call_meta, args} ->
-        {_, _, [args]} = do_normalize(args, state)
+    parts =
+      Enum.map(parts, fn
+        {{:., part_dot_meta, [Kernel, :to_string]}, part_call_meta, args} ->
+          args = normalize_args(args, state)
 
-        {{:., part_dot_meta, [Kernel, :to_string]}, part_call_meta, args}
+          {{:., part_dot_meta, [Kernel, :to_string]}, part_call_meta, args}
 
-      part ->
-        if state.escape do
-          maybe_escape_literal(part, state)
-        else
-          part
-        end
-    end)
+        part ->
+          if state.escape do
+            maybe_escape_literal(part, state)
+          else
+            part
+          end
+      end)
 
     {{:., dot_meta, [List, :to_charlist]}, call_meta, [parts]}
   end
@@ -158,7 +159,7 @@ defmodule Code.Normalizer do
       case args do
         [{:|, pipe_meta, [left, right]}] ->
           left = do_normalize(left, meta)
-          {_, _, right} = do_normalize(right, %{state | parent_meta: meta})
+          right = normalize_args(right, %{state | parent_meta: meta})
           [{:|, pipe_meta, [left, right]}]
 
         [{_, _, _} = call] ->
@@ -257,7 +258,7 @@ defmodule Code.Normalizer do
     else
       meta = [line: state.parent_meta[:line], closing: [line: state.parent_meta[:line]]]
 
-      args = normalize_list_elements(list, state)
+      args = normalize_args(list, state)
 
       {:__block__, meta, [args]}
     end
@@ -382,19 +383,19 @@ defmodule Code.Normalizer do
         {tag, block}
       end)
 
-    {_, _, [leading_args]} = do_normalize(leading_args, %{state | parent_meta: meta})
+    leading_args = normalize_args(leading_args, %{state | parent_meta: meta})
 
     {form, meta, leading_args ++ [kw_blocks]}
   end
 
-  defp normalize_list_elements(elems, state, keyword? \\ false)
+  defp normalize_args(elems, state, keyword? \\ false)
 
-  defp normalize_list_elements([[{_, _, [{_, _}]}] = first | rest], state, keyword?) do
+  defp normalize_args([[{_, _, [{_, _}]}] = first | rest], state, keyword?) do
     # Skip already normalized 2-tuples
-    [first | normalize_list_elements(rest, state, keyword?)]
+    [first | normalize_args(rest, state, keyword?)]
   end
 
-  defp normalize_list_elements([{left, right} | rest], state, keyword?) do
+  defp normalize_args([{left, right} | rest], state, keyword?) do
     keyword? =
       if not keyword? do
         Enum.empty?(rest) or Inspect.List.keyword?(rest)
@@ -415,14 +416,14 @@ defmodule Code.Normalizer do
         {:__block__, [line: state.parent_meta[:line]], [{left, right}]}
       end
 
-    [pair | normalize_list_elements(rest, state, keyword?)]
+    [pair | normalize_args(rest, state, keyword?)]
   end
 
-  defp normalize_list_elements([first | rest], state, keyword?) do
-    [do_normalize(first, state) | normalize_list_elements(rest, state, keyword?)]
+  defp normalize_args([first | rest], state, keyword?) do
+    [do_normalize(first, state) | normalize_args(rest, state, keyword?)]
   end
 
-  defp normalize_list_elements([], _state, _keyword?) do
+  defp normalize_args([], _state, _keyword?) do
     []
   end
 
