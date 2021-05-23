@@ -191,47 +191,20 @@ defmodule Code.Formatter do
   end
 
   @doc """
-  Converts `string` to an algebra document.
-
-  Returns `{:ok, doc}` or `{:error, parser_error}`.
-
-  See `Code.format_string!/2` for the list of options.
+  Converts the quoted expression into an algebra document
   """
-  def to_algebra(string, opts \\ []) when is_binary(string) and is_list(opts) do
-    to_quoted_opts = [
-      unescape: false,
-      warn_on_unnecessary_quotes: false,
-      literal_encoder: &{:ok, {:__block__, &2, [&1]}},
-      token_metadata: true
-    ]
+  def to_algebra(quoted, opts \\ []) do
+    comments = Keyword.get(opts, :comments, [])
 
-    with {:ok, forms, comments} <- Code.string_to_quoted_with_comments(string, to_quoted_opts) do
-      state =
-        comments
-        |> Enum.map(&format_comment/1)
-        |> gather_comments()
-        |> state(opts)
+    state =
+      comments
+      |> Enum.map(&format_comment/1)
+      |> gather_comments()
+      |> state(opts)
 
-      {doc, _} = block_to_algebra(forms, @min_line, @max_line, state)
-      {:ok, doc}
-    end
-  end
+    {doc, _} = block_to_algebra(quoted, @min_line, @max_line, state)
 
-  @doc """
-  Converts `string` to an algebra document.
-
-  Raises if the `string` cannot be parsed.
-
-  See `Code.format_string!/2` for the list of options.
-  """
-  def to_algebra!(string, opts \\ []) do
-    case to_algebra(string, opts) do
-      {:ok, doc} ->
-        doc
-
-      {:error, {location, error, token}} ->
-        :elixir_errors.parse_error(location, Keyword.get(opts, :file, "nofile"), error, token)
-    end
+    doc
   end
 
   defp state(comments, opts) do
