@@ -980,8 +980,25 @@ defmodule Code do
   @spec format_string!(binary, keyword) :: iodata
   def format_string!(string, opts \\ []) when is_binary(string) and is_list(opts) do
     line_length = Keyword.get(opts, :line_length, 98)
-    algebra = Code.Formatter.to_algebra!(string, opts)
-    Inspect.Algebra.format(algebra, line_length)
+
+    to_quoted_opts =
+      [
+        unescape: false,
+        warn_on_unnecessary_quotes: false,
+        literal_encoder: &{:ok, {:__block__, &2, [&1]}},
+        token_metadata: true
+      ] ++ opts
+
+    {forms, comments} = string_to_quoted_with_comments!(string, to_quoted_opts)
+
+    to_algebra_opts =
+      [
+        comments: comments
+      ] ++ opts
+
+    doc = Code.Formatter.to_algebra(forms, to_algebra_opts)
+
+    Inspect.Algebra.format(doc, line_length)
   end
 
   @doc """
@@ -1099,6 +1116,13 @@ defmodule Code do
 
     * `:columns` - when `true`, attach a `:column` key to the quoted
       metadata. Defaults to `false`.
+
+    * `:unescape` (since v1.10.0) - when `false`, preserves escaped sequences.
+      For example, `"null byte\\t\\x00"` will be kept as is instead of being
+      converted to a bitstring literal. Note if you set this option to false, the
+      resulting AST is no longer valid, but it can be useful to analyze/transform
+      source code, typically in in combination with `quoted_to_algebra/2`.
+      Defaults to `true`.
 
     * `:existing_atoms_only` - when `true`, raises an error
       when non-existing atoms are found by the tokenizer.
@@ -1240,7 +1264,7 @@ defmodule Code do
 
   """
   @spec string_to_quoted_with_comments(List.Chars.t(), keyword) ::
-          {:ok, Macro.t(), map()} | {:error, {location :: keyword, term, term}}
+          {:ok, Macro.t(), list(map())} | {:error, {location :: keyword, term, term}}
   def string_to_quoted_with_comments(string, opts \\ [])
       when is_binary(string) and is_list(opts) do
     charlist = to_charlist(string)
@@ -1269,11 +1293,11 @@ defmodule Code do
 
   Check `string_to_quoted/2` for options information.
   """
-  @spec string_to_quoted_with_comments!(List.Chars.t(), keyword) :: {Macro.t(), map()}
+  @spec string_to_quoted_with_comments!(List.Chars.t(), keyword) :: {Macro.t(), list(map())}
   def string_to_quoted_with_comments!(string, opts \\ []) do
     case string_to_quoted_with_comments(string, opts) do
-      {:ok, forms_and_comments} ->
-        forms_and_comments
+      {:ok, forms, comments} ->
+        {forms, comments}
 
       {:error, {location, error, token}} ->
         :elixir_errors.parse_error(location, Keyword.get(opts, :file, "nofile"), error, token)
@@ -1306,6 +1330,48 @@ defmodule Code do
 
   defp previous_eol_count([]), do: 1
   defp previous_eol_count(_), do: 0
+
+  @doc """
+  Converts a quoted expression to an algebra document.
+
+  The Elixir AST does not contain metadata for literals like strings, lists, or
+  tuples with two elements, which means that the produced algebra document will
+  not respect all of the user preferences and comments may be misplaced.
+  To get better results, you can use the `:token_metadata`, `:unescape` and
+  `:literal_encoder` options to `string_to_quoted/2` to provide additional
+  information to the formatter:
+
+      [
+        literal_encoder: &{:ok, {:__block__, &2, [&1]}},
+        token_metadata: true,
+        unescape: false
+      ]
+
+  This will produce an AST that contains information such as `do` blocks start
+  and end lines or sigil delimiters, and by wrapping literals in blocks they can
+  now hold metadata like line number, string delimiter and escaped sequences, or
+  integer formatting (such as `0x2a` instead of `47`). However, **note this AST is
+  not valid**. If you evaluate it, it won't have the same semantics as the regular
+  Elixir AST due to the `:unescape` and `:literal_encoder` options. However,
+  those options are useful if you're doing source code manipulation, where it's
+  important to preserve user choices and comments placing.
+
+  ## Options
+
+    * `:comments` - the list of comments associated with the quoted expression.
+      Defaults to `[]`.
+
+    * `:escape` - when `true`, escaped sequences like `\n` will be escaped into
+      `\\n`. If the `:unescape` option was set to `false` when using
+      `string_to_quoted/2`, setting this option to `false` will prevent it from
+      escaping the sequences twice. Defaults to `true`.
+  """
+  @spec quoted_to_algebra(Macro.t(), keyword) :: Inspect.Algebra.t()
+  def quoted_to_algebra(quoted, opts \\ []) do
+    quoted
+    |> Code.Normalizer.normalize(opts)
+    |> Code.Formatter.to_algebra(opts)
+  end
 
   @doc """
   Evals the given file.
