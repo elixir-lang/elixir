@@ -428,7 +428,7 @@ defmodule Code.Normalizer do
   end
 
   defp maybe_escape_literal(string, %{escape: true}) when is_binary(string) do
-    {string, _} = Code.Identifier.escape(string, nil)
+    {string, _} = Code.Identifier.escape(string, -1)
     IO.iodata_to_binary(string)
   end
 
