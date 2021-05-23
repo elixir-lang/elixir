@@ -287,19 +287,39 @@ defmodule Code.Normalizer do
       end
 
     cond do
-      Keyword.has_key?(meta, :do) ->
+      Keyword.has_key?(meta, :do) or match?([{{:__block__, _, [:do]}, _} | _], List.last(args)) ->
+        # def foo do :ok end
+        # def foo, do: :ok
         normalize_kw_blocks(form, meta, args, state)
 
       match?([{:do, _} | _], List.last(args)) ->
+        # Non normalized kw blocks
         line = state.parent_meta[:line]
-        meta = [do: [line: line], end: [line: line]]
+        meta = meta ++ [do: [line: line], end: [line: line]]
 
-        normalize_kw_blocks(form, meta, args, state)
+        normalize_kw_blocks(form, meta, args, state) |> IO.inspect()
 
       true ->
-        args = Enum.map(args, &do_normalize(&1, %{state | parent_meta: state.parent_meta}))
+        args = normalize_args(args, %{state | parent_meta: state.parent_meta})
 
-        {form, meta, args}
+        {last_arg, leading_args} = List.pop_at(args, -1)
+
+        last_args =
+          case List.last(args) do
+            {:__block__, _, [[{{:__block__, key_meta, _}, _}] | _] = last_args} ->
+              if key_meta[:format] == :keyword do
+                last_args
+              else
+                [last_arg]
+              end
+
+            nil -> []
+
+            _ ->
+              [last_arg]
+          end
+
+        {form, meta, leading_args ++ last_args}
     end
   end
 
