@@ -93,9 +93,23 @@ defmodule Code.Normalizer do
     {{:., dot_meta, [:erlang, :binary_to_atom]}, call_meta, [string, :utf8]}
   end
 
-  # Skip charlists with interpolations
-  defp do_normalize({{:., _, [List, :to_charlist]}, _, _} = quoted, _state) do
-    quoted
+  # Charlists with interpolations
+  defp do_normalize({{:., dot_meta, [List, :to_charlist]}, call_meta, [parts]}, state) do
+    parts = Enum.map(parts, fn
+      {{:., part_dot_meta, [Kernel, :to_string]}, part_call_meta, args} ->
+        {_, _, [args]} = do_normalize(args, state)
+
+        {{:., part_dot_meta, [Kernel, :to_string]}, part_call_meta, args}
+
+      part ->
+        if state.escape do
+          maybe_escape_literal(part, state)
+        else
+          part
+        end
+    end)
+
+    {{:., dot_meta, [List, :to_charlist]}, call_meta, [parts]}
   end
 
   # Don't normalize the `Access` atom in access syntax

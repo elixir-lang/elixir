@@ -507,6 +507,14 @@ defmodule Code.Normalizer.GeneralTest do
       assert quoted_to_string(quote(do: '\x00\x01\x10')) == ~S/[0, 1, 16]/
     end
 
+    test "charlists with interpolations" do
+      assert quoted_to_string(quote(do: 'one #{2} three'), escape: false) == ~S/'one #{2} three'/
+      assert quoted_to_string(quote(do: 'one #{2} three')) == ~S/'one #{2} three'/
+
+      assert quoted_to_string(quote(do: 'one\n\'#{2}\'\nthree'), escape: false) == ~s['one\n\\'\#{2}\\'\nthree']
+      assert quoted_to_string(quote(do: 'one\n\'#{2}\'\nthree')) == ~S['one\n\'#{2}\'\nthree']
+    end
+
     test "atoms" do
       assert quoted_to_string(quote(do: :"a\nb\tc"), escape: false) == ~s/:"a\nb\tc"/
       assert quoted_to_string(quote(do: :"a\nb\tc")) == ~S/:"a\nb\tc"/
