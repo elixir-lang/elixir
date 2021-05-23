@@ -989,7 +989,7 @@ defmodule Code do
         token_metadata: true
       ] ++ opts
 
-    {forms, comments} = Code.string_to_quoted_with_comments!(string, to_quoted_opts)
+    {forms, comments} = string_to_quoted_with_comments!(string, to_quoted_opts)
 
     to_algebra_opts =
       [
