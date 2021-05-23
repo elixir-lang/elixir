@@ -313,7 +313,8 @@ defmodule Code.Normalizer do
                 [last_arg]
               end
 
-            nil -> []
+            nil ->
+              []
 
             _ ->
               [last_arg]
