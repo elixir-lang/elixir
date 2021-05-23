@@ -1,9 +1,35 @@
 Code.require_file("../test_helper.exs", __DIR__)
 
-defmodule Code.Normalizer.LiteralsTest do
+defmodule Code.Normalizer.FormatterASTTest do
   use ExUnit.Case, async: true
 
-  import CodeNormalizerHelpers
+  defmacro assert_same(good, opts \\ []) do
+    quote bind_quoted: [good: good, opts: opts], location: :keep do
+      assert IO.iodata_to_binary(Code.format_string!(good, opts)) ==
+               string_to_string(good, opts)
+    end
+  end
+
+  def string_to_string(good, opts) do
+    line_length = Keyword.get(opts, :line_length, 98)
+    good = String.trim(good)
+
+    to_quoted_opts =
+      [
+        literal_encoder: &{:ok, {:__block__, &2, [&1]}},
+        token_metadata: true,
+        unescape: false
+      ] ++ opts
+
+    {quoted, comments} = Code.string_to_quoted_with_comments!(good, to_quoted_opts)
+
+    to_algebra_opts = [comments: comments, escape: false] ++ opts
+
+    quoted
+    |> Code.quoted_to_algebra(to_algebra_opts)
+    |> Inspect.Algebra.format(line_length)
+    |> IO.iodata_to_binary()
+  end
 
   describe "integers" do
     test "in decimal base" do
@@ -298,6 +324,136 @@ defmodule Code.Normalizer.LiteralsTest do
       "
       three
       '''
+      """
+    end
+  end
+
+  describe "preserves formatting for sigils" do
+    test "without interpolation" do
+      assert_same ~S[~s(foo)]
+      assert_same ~S[~s{foo bar}]
+      assert_same ~S[~r/Bar Baz/]
+      assert_same ~S[~w<>]
+      assert_same ~S[~W()]
+    end
+
+    test "with escapes" do
+      assert_same ~S[~s(foo \) bar)]
+      assert_same ~S[~s(f\a\b\ro)]
+
+      assert_same ~S"""
+      ~S(foo\
+      bar)
+      """
+    end
+
+    test "with nested new lines" do
+      assert_same ~S"""
+      foo do
+        ~S(foo\
+      bar)
+      end
+      """
+
+      assert_same ~S"""
+      foo do
+        ~s(#{bar}
+      )
+      end
+      """
+    end
+
+    test "with interpolation" do
+      assert_same ~S[~s(one #{2} three)]
+    end
+
+    test "with modifiers" do
+      assert_same ~S[~w(one two three)a]
+      assert_same ~S[~z(one two three)foo]
+    end
+
+    test "with heredoc syntax" do
+      assert_same ~S"""
+      ~s'''
+      one\a
+      #{:two}\r
+      three\0
+      '''
+      """
+
+      assert_same ~S'''
+      ~s"""
+      one\a
+      #{:two}\r
+      three\0
+      """
+      '''
+    end
+
+    test "with heredoc syntax and modifier" do
+      assert_same ~S"""
+      ~s'''
+      foo
+      '''rsa
+      """
+    end
+  end
+
+  describe "preserves comments formatting" do
+    test "before and after expressions" do
+      assert_same """
+      # before comment
+      :hello
+      """
+
+      assert_same """
+      :hello
+      # after comment
+      """
+
+      assert_same """
+      # before comment
+      :hello
+      # after comment
+      """
+    end
+
+    test "empty comment" do
+      assert_same """
+      #
+      :foo
+      """
+    end
+
+    test "before and after expressions with newlines" do
+      assert_same """
+      # before comment
+      # second line
+
+      :hello
+
+      # middle comment 1
+
+      #
+
+      # middle comment 2
+
+      :world
+
+      # after comment
+      # second line
+      """
+    end
+
+    test "interpolation with comment outside before and after" do
+      assert_same ~S"""
+      # comment
+      IO.puts("Hello #{world}")
+      """
+
+      assert_same ~S"""
+      IO.puts("Hello #{world}")
+      # comment
       """
     end
   end

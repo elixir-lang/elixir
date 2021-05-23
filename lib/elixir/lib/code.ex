@@ -1263,6 +1263,7 @@ defmodule Code do
       ]}
 
   """
+  @doc since: "1.13.0"
   @spec string_to_quoted_with_comments(List.Chars.t(), keyword) ::
           {:ok, Macro.t(), list(map())} | {:error, {location :: keyword, term, term}}
   def string_to_quoted_with_comments(string, opts \\ [])
@@ -1331,8 +1332,18 @@ defmodule Code do
   defp previous_eol_count([]), do: 1
   defp previous_eol_count(_), do: 0
 
-  @doc """
+  @doc ~S"""
   Converts a quoted expression to an algebra document.
+
+  The algebra document can be converted into a string by calling:
+
+      doc
+      |> Inspect.Algebra.format(:infinity)
+      |> IO.iodata_to_binary()
+
+  For a high-level function that does the same, see `Macro.to_string/1`.
+
+  ## Formatting considerations
 
   The Elixir AST does not contain metadata for literals like strings, lists, or
   tuples with two elements, which means that the produced algebra document will
@@ -1366,6 +1377,7 @@ defmodule Code do
       `string_to_quoted/2`, setting this option to `false` will prevent it from
       escaping the sequences twice. Defaults to `true`.
   """
+  @doc since: "1.13.0"
   @spec quoted_to_algebra(Macro.t(), keyword) :: Inspect.Algebra.t()
   def quoted_to_algebra(quoted, opts \\ []) do
     quoted
