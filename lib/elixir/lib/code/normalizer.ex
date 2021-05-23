@@ -233,7 +233,7 @@ defmodule Code.Normalizer do
       # It's a charlist
       list =
         if state.escape do
-          {string, _} = Code.Identifier.escape(IO.chardata_to_string(list), ?')
+          {string, _} = Code.Identifier.escape(IO.chardata_to_string(list), -1)
           IO.iodata_to_binary(string) |> to_charlist()
         else
           list
@@ -413,7 +413,7 @@ defmodule Code.Normalizer do
   end
 
   defp maybe_escape_literal(string, %{escape: true}) when is_binary(string) do
-    {string, _} = Code.Identifier.escape(string, ?")
+    {string, _} = Code.Identifier.escape(string, nil)
     IO.iodata_to_binary(string)
   end
 
