@@ -297,7 +297,7 @@ defmodule Code.Normalizer do
         line = state.parent_meta[:line]
         meta = meta ++ [do: [line: line], end: [line: line]]
 
-        normalize_kw_blocks(form, meta, args, state) |> IO.inspect()
+        normalize_kw_blocks(form, meta, args, state)
 
       true ->
         args = normalize_args(args, %{state | parent_meta: state.parent_meta})
