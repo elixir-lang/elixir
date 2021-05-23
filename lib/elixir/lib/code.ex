@@ -1370,7 +1370,9 @@ defmodule Code do
   ## Options
 
     * `:comments` - the list of comments associated with the quoted expression.
-      Defaults to `[]`.
+      Defaults to `[]`. It is recommended that both `:token_metadata` and
+      `:literal_encoder` options are given to `string_to_quoted_with_comments/2`
+      in order to get proper placement for comments
 
     * `:escape` - when `true`, escaped sequences like `\n` will be escaped into
       `\\n`. If the `:unescape` option was set to `false` when using
