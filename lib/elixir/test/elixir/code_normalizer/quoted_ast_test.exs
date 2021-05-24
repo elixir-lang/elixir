@@ -209,6 +209,20 @@ defmodule Code.Normalizer.QuotedASTTest do
       assert quoted_to_string(quoted) <> "\n" == expected
     end
 
+    test "case if else" do
+      expected = """
+      case (if foo do
+              bar
+            else
+              baz
+            end) do
+      end
+      """
+
+      assert quoted_to_string(quote(do: case if(foo, do: bar, else: baz) do end)) <> "\n" == expected
+    end
+
+
     test "try" do
       quoted =
         quote do
@@ -325,6 +339,8 @@ defmodule Code.Normalizer.QuotedASTTest do
       assert quoted_to_string(quote(do: (x when y -> z))) == "(x when y -> z)"
       assert quoted_to_string(quote(do: (x, y when z -> w))) == "(x, y when z -> w)"
       assert quoted_to_string(quote(do: (x, y when z -> w))) == "(x, y when z -> w)"
+      assert quoted_to_string(quote(do: (x, y when z -> w))) == "(x, y when z -> w)"
+      assert quoted_to_string(quote(do: (x when y: z))) == "x when y: z"
     end
 
     test "nested" do
@@ -456,6 +472,10 @@ defmodule Code.Normalizer.QuotedASTTest do
       assert quoted_to_string(quote(do: "#{"abc"}")) == ~S/"#{"abc"}"/
     end
 
+    test "catch-all" do
+      assert quoted_to_string(quote do: {unquote(self())}) == "{#{inspect(self())}}"
+    end
+
     test "last arg keyword list" do
       assert quoted_to_string(quote(do: foo([]))) == "foo([])"
       assert quoted_to_string(quote(do: foo(x: y))) == "foo(x: y)"
@@ -468,6 +488,7 @@ defmodule Code.Normalizer.QuotedASTTest do
       assert quoted_to_string(quote(do: {x, a: b})) == "{x, [a: b]}"
       assert quoted_to_string(quote(do: foo(else: a))) == "foo(else: a)"
       assert quoted_to_string(quote(do: foo(catch: a))) == "foo(catch: a)"
+      assert quoted_to_string(quote(do: foo |> [bar: :baz])) == "foo |> [bar: :baz]"
     end
   end
 
