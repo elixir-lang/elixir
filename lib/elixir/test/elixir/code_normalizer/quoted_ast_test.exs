@@ -395,6 +395,11 @@ defmodule Code.Normalizer.QuotedASTTest do
       assert quoted_to_string(quote(do: (& &1).(:x))) == "(& &1).(:x)"
     end
 
+    test "operators" do
+      assert quoted_to_string(quote(do: foo |> {1, 2})) == "foo |> {1, 2}"
+      assert quoted_to_string(quote(do: foo |> {:map, arg})) == "foo |> {:map, arg}"
+    end
+
     test "containers" do
       assert quoted_to_string(quote(do: {})) == "{}"
       assert quoted_to_string(quote(do: [])) == "[]"
@@ -446,14 +451,13 @@ defmodule Code.Normalizer.QuotedASTTest do
       assert quoted_to_string(quote(do: [a: a, b: b])) == "[a: a, b: b]"
       assert quoted_to_string(quote(do: [a: 1, b: 1 + 2])) == "[a: 1, b: 1 + 2]"
       assert quoted_to_string(quote(do: ["a.b": 1, c: 1 + 2])) == "[\"a.b\": 1, c: 1 + 2]"
+
+      # Not keyword lists
+      assert quoted_to_string(quote(do: [{binary(), integer()}])) == "[{binary(), integer()}]"
     end
 
     test "interpolation" do
       assert quoted_to_string(quote(do: "foo#{bar}baz")) == ~S["foo#{bar}baz"]
-    end
-
-    test "atom with interpolation" do
-      assert quoted_to_string(quote(do: :"foo#{bar}baz")) == ~S[:"foo#{bar}baz"]
     end
 
     test "bit syntax" do
@@ -547,6 +551,10 @@ defmodule Code.Normalizer.QuotedASTTest do
     test "atoms" do
       assert quoted_to_string(quote(do: :"a\nb\tc"), escape: false) == ~s/:"a\nb\tc"/
       assert quoted_to_string(quote(do: :"a\nb\tc")) == ~S/:"a\nb\tc"/
+
+      assert quoted_to_string(quote(do: :"Elixir.Foo")) == "Foo"
+      assert quoted_to_string(quote(do: :"Elixir.Foo.Bar")) == "Foo.Bar"
+      assert quoted_to_string(quote(do: :"Elixir.foobar")) == ~S/:"Elixir.foobar"/
     end
 
     test "atoms with non printable characters" do
