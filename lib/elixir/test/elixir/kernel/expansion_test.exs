@@ -957,7 +957,7 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "fails on block" do
-      message = ~r"invalid args for &, block expressions are not allowed, got: \(\n  1\n  2\n\)"
+      message = ~r"invalid args for &, block expressions are not allowed, got: 1\n2"
 
       assert_raise CompileError, message, fn ->
         code =
@@ -993,7 +993,7 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "fails on nested capture" do
-      assert_raise CompileError, ~r"nested captures via & are not allowed: &\(&1\)", fn ->
+      assert_raise CompileError, ~r"nested captures via & are not allowed: & &1", fn ->
         expand(quote(do: &(& &1)))
       end
     end

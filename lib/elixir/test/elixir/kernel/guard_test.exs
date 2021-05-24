@@ -427,10 +427,8 @@ defmodule Kernel.GuardTest do
              """
 
       assert expand_defguard_to_string(:with_unused_vars, args, nil) == """
-             (
-               {arg1, arg2} = {1 + 1, 2 + 2}
-               :erlang.+(arg1, arg2)
-             )
+             {arg1, arg2} = {1 + 1, 2 + 2}
+             :erlang.+(arg1, arg2)
              """
     end
 

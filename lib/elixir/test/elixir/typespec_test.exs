@@ -1449,33 +1449,33 @@ defmodule TypespecTest do
         case type do
           # These cases do not translate directly to their own string version.
           {:basic_list_type, _, _} ->
-            assert ast_string == "@type(basic_list_type() :: [integer()])"
+            assert ast_string == "@type basic_list_type() :: [integer()]"
 
           {:basic_nonempty_list_type, _, _} ->
-            assert ast_string == "@type(basic_nonempty_list_type() :: [integer(), ...])"
+            assert ast_string == "@type basic_nonempty_list_type() :: [integer(), ...]"
 
           {:literal_empty_bitstring, _, _} ->
-            assert ast_string == "@type(literal_empty_bitstring() :: <<_::0>>)"
+            assert ast_string == "@type literal_empty_bitstring() :: <<_::0>>"
 
           {:literal_keyword_list_fixed_key, _, _} ->
-            assert ast_string == "@type(literal_keyword_list_fixed_key() :: [{:key, integer()}])"
+            assert ast_string == "@type literal_keyword_list_fixed_key() :: [{:key, integer()}]"
 
           {:literal_keyword_list_fixed_key2, _, _} ->
-            assert ast_string == "@type(literal_keyword_list_fixed_key2() :: [{:key, integer()}])"
+            assert ast_string == "@type literal_keyword_list_fixed_key2() :: [{:key, integer()}]"
 
           {:literal_struct_all_fields_any_type, _, _} ->
             assert ast_string ==
-                     "@type(literal_struct_all_fields_any_type() :: %TypespecTest.SomeStruct{key: term()})"
+                     "@type literal_struct_all_fields_any_type() :: %TypespecTest.SomeStruct{key: term()}"
 
           {:literal_struct_all_fields_key_type, _, _} ->
             assert ast_string ==
-                     "@type(literal_struct_all_fields_key_type() :: %TypespecTest.SomeStruct{key: integer()})"
+                     "@type literal_struct_all_fields_key_type() :: %TypespecTest.SomeStruct{key: integer()}"
 
           {:built_in_fun, _, _} ->
-            assert ast_string == "@type(built_in_fun() :: (... -> any()))"
+            assert ast_string == "@type built_in_fun() :: (... -> any())"
 
           {:built_in_nonempty_list, _, _} ->
-            assert ast_string == "@type(built_in_nonempty_list() :: [...])"
+            assert ast_string == "@type built_in_nonempty_list() :: [...]"
 
           _ ->
             assert ast_string == Macro.to_string(definition)
