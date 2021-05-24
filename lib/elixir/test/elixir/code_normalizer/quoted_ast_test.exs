@@ -85,6 +85,9 @@ defmodule Code.Normalizer.QuotedASTTest do
       assert quoted_to_string(quote(do: ~S["'(123)'"])) == ~S/~S["'(123)'"]/
       assert quoted_to_string(quote(do: ~s"#{"foo"}")) == ~S/~s"#{"foo"}"/
 
+      assert quoted_to_string(quote(do: ~S["'(123)'"]) |> strip_metadata()) == ~S/~S"\"'(123)'\""/
+      assert quoted_to_string(quote(do: ~s"#{"foo"}") |> strip_metadata()) == ~S/~s"#{"foo"}"/
+
       assert quoted_to_string(
                quote do
                  ~s"""
@@ -124,6 +127,13 @@ defmodule Code.Normalizer.QuotedASTTest do
                  """
                end
              ) == ~s[~S"""\n"123"\n"""]
+    end
+
+    test "tuple" do
+      assert quoted_to_string(quote do: {1, 2}) == "{1, 2}"
+      assert quoted_to_string(quote do: {1}) == "{1}"
+      assert quoted_to_string(quote do: {1, 2, 3}) == "{1, 2, 3}"
+      assert quoted_to_string(quote do: {1, 2, 3, foo: :bar}) == "{1, 2, 3, [foo: :bar]}"
     end
 
     test "tuple call" do
@@ -578,6 +588,10 @@ defmodule Code.Normalizer.QuotedASTTest do
       assert quoted_to_string(quote(do: ~s/\x00\x01\x10/), escape: false) == ~S"~s/\x00\x01\x10/"
       assert quoted_to_string(quote(do: ~s/\x00\x01\x10/)) == ~S"~s/\x00\x01\x10/"
     end
+  end
+
+  defp strip_metadata(ast) do
+    Macro.prewalk(ast, &Macro.update_meta(&1, fn _ -> [] end))
   end
 
   defp quoted_to_string(quoted, opts \\ []) do

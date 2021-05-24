@@ -177,7 +177,10 @@ defmodule Code.Normalizer do
        when is_atom(sigil) do
     case Atom.to_string(sigil) do
       <<"sigil_", _name>> ->
-        meta = patch_meta_line(meta, state.parent_meta)
+        meta =
+          meta
+          |> patch_meta_line(state.parent_meta)
+          |> Keyword.put_new(:delimiter, "\"")
 
         {sigil, meta, [do_normalize(string, %{state | parent_meta: meta}), modifiers]}
 
