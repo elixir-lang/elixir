@@ -219,9 +219,14 @@ defmodule Code.Normalizer.QuotedASTTest do
       end
       """
 
-      assert quoted_to_string(quote(do: case if(foo, do: bar, else: baz) do end)) <> "\n" == expected
+      assert quoted_to_string(
+               quote(
+                 do:
+                   case if(foo, do: bar, else: baz) do
+                   end
+               )
+             ) <> "\n" == expected
     end
-
 
     test "try" do
       quoted =

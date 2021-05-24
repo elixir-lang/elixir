@@ -1042,9 +1042,14 @@ defmodule Code.Formatter do
   defp local_to_algebra(fun, meta, args, context, state) when is_atom(fun) do
     skip_parens =
       cond do
-        meta?(meta, :closing) -> :skip_if_only_do_end
-        local_without_parens?(fun, length(args), state.locals_without_parens) -> :skip_unless_many_args
-        true -> :skip_if_do_end
+        meta?(meta, :closing) ->
+          :skip_if_only_do_end
+
+        local_without_parens?(fun, length(args), state.locals_without_parens) ->
+          :skip_unless_many_args
+
+        true ->
+          :skip_if_do_end
       end
 
     {{call_doc, state}, wrap_in_parens?} =
