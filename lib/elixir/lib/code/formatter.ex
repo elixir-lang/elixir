@@ -191,7 +191,7 @@ defmodule Code.Formatter do
   end
 
   @doc """
-  Converts the quoted expression into an algebra document
+  Converts the quoted expression into an algebra document.
   """
   def to_algebra(quoted, opts \\ []) do
     comments = Keyword.get(opts, :comments, [])
@@ -205,6 +205,16 @@ defmodule Code.Formatter do
     {doc, _} = block_to_algebra(quoted, @min_line, @max_line, state)
 
     doc
+  end
+
+  @doc """
+  Checks if a function is a local without parens.
+  """
+  def local_without_parens?(fun, arity, locals_without_parens \\ @locals_without_parens) do
+    arity > 0 and
+      Enum.any?(locals_without_parens, fn {key, val} ->
+        key == fun and (val == :* or val == arity)
+      end)
   end
 
   defp state(comments, opts) do
@@ -543,6 +553,11 @@ defmodule Code.Formatter do
       end)
 
     {doc, state}
+  end
+
+  # #PID's and #Ref's may appear on regular AST
+  defp quoted_to_algebra(unknown, _context, state) do
+    {inspect(unknown), state}
   end
 
   ## Blocks
@@ -1028,7 +1043,7 @@ defmodule Code.Formatter do
     skip_parens =
       cond do
         meta?(meta, :closing) -> :skip_if_only_do_end
-        local_without_parens?(fun, args, state) -> :skip_unless_many_args
+        local_without_parens?(fun, length(args), state.locals_without_parens) -> :skip_unless_many_args
         true -> :skip_if_do_end
       end
 
@@ -1206,15 +1221,6 @@ defmodule Code.Formatter do
     else
       {doc, state}
     end
-  end
-
-  defp local_without_parens?(fun, args, %{locals_without_parens: locals_without_parens}) do
-    length = length(args)
-
-    length > 0 and
-      Enum.any?(locals_without_parens, fn {key, val} ->
-        key == fun and (val == :* or val == length)
-      end)
   end
 
   defp no_generators?(args) do
