@@ -646,7 +646,7 @@ defmodule Kernel.ParserTest do
       assert interpret.("f 1 + g h 2, 3") == "f(1 + g(h(2, 3)))"
 
       assert interpret.("assert [] = TestRepo.all from p in Post, where: p.title in ^[]") ==
-               "assert([] = TestRepo.all(from(p in Post, where: p.title in ^[])))"
+               "assert [] = TestRepo.all(from(p in Post, where: p.title in ^[]))"
     end
 
     test "invalid atom dot alias" do

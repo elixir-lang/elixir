@@ -732,15 +732,10 @@ defmodule IEx.Introspection do
   ## Helpers
 
   defp format_typespec(definition, kind, nesting) do
-    string = "@#{kind} #{Macro.to_string(definition)}"
-
-    try do
-      string
-      |> Code.format_string!(line_length: IEx.width() - 2 * nesting)
-      |> IO.iodata_to_binary()
-    rescue
-      _ -> string
-    end
+    {:@, [], [{kind, [], [definition]}]}
+    |> Code.quoted_to_algebra()
+    |> Inspect.Algebra.format(IEx.Config.width())
+    |> IO.iodata_to_binary()
     |> color_prefix_with_line()
     |> indent(nesting)
   end

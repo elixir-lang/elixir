@@ -328,7 +328,7 @@ defmodule IEx.Evaluator do
         %FunctionClauseError{} ->
           {_, inspect_opts} = pop_in(IEx.inspect_opts()[:syntax_colors][:reset])
           banner = Exception.format_banner(kind, reason, stacktrace)
-          blame = FunctionClauseError.blame(blamed, &inspect(&1, inspect_opts), &blame_match/2)
+          blame = FunctionClauseError.blame(blamed, &inspect(&1, inspect_opts), &blame_match/1)
           [IEx.color(:eval_error, banner), pad(blame)]
 
         _ ->
@@ -343,9 +343,8 @@ defmodule IEx.Evaluator do
     "    " <> String.replace(string, "\n", "\n    ")
   end
 
-  defp blame_match(%{match?: true, node: node}, _), do: Macro.to_string(node)
-  defp blame_match(%{match?: false, node: node}, _), do: blame_ansi(:blame_diff, "-", node)
-  defp blame_match(_, string), do: string
+  defp blame_match(%{match?: true, node: node}), do: Macro.to_string(node)
+  defp blame_match(%{match?: false, node: node}), do: blame_ansi(:blame_diff, "-", node)
 
   defp blame_ansi(color, no_ansi, node) do
     case IEx.Config.color(color) do

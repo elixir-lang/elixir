@@ -696,9 +696,9 @@ defmodule IEx.HelpersTest do
     test "lists all callbacks for an Erlang module" do
       output = capture_io(fn -> b(:gen_server) end)
 
-      assert output =~ "@callback handle_cast(request :: term(), state :: term()) ::"
-      assert output =~ "@callback handle_info(info :: :timeout | term(), state :: term()) ::"
       assert output =~ "@callback init(args :: term()) ::"
+      assert output =~ "@callback handle_cast("
+      assert output =~ "@callback handle_info("
     end
 
     test "lists all macrocallbacks for a module" do
@@ -780,7 +780,7 @@ defmodule IEx.HelpersTest do
                "@callback message(t()) :: String.t()\n\n"
 
       assert capture_io(fn -> b(:gen_server.handle_cast() / 2) end) =~
-               "@callback handle_cast(request :: term(), state :: term()) ::"
+               "@callback handle_cast("
     end
 
     test "prints callback documentation metadata" do

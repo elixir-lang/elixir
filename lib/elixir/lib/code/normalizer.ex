@@ -12,7 +12,7 @@ defmodule Code.Normalizer do
   by the formatter.
   """
   def normalize(quoted, opts \\ []) do
-    line = Keyword.get(opts, :line, 1)
+    line = Keyword.get(opts, :line, nil)
     escape = Keyword.get(opts, :escape, true)
 
     state = %{
@@ -39,9 +39,9 @@ defmodule Code.Normalizer do
   end
 
   # Only normalize the first argument of an alias if it's not an atom
-  defp do_normalize({:__aliases, meta, [first | rest]}, state) when not is_atom(first) do
+  defp do_normalize({:__aliases__, meta, [first | rest]}, state) when not is_atom(first) do
     meta = patch_meta_line(meta, state.parent_meta)
-    first = do_normalize(first, %{state | paret_meta: meta})
+    first = do_normalize(first, %{state | parent_meta: meta})
     {:__aliases__, meta, [first | rest]}
   end
 
@@ -59,8 +59,7 @@ defmodule Code.Normalizer do
   defp do_normalize(left..right//step, state) do
     left = do_normalize(left, state)
     right = do_normalize(right, state)
-
-    meta = [line: state.parent_meta[:line]]
+    meta = line_meta(state)
 
     if step == 1 do
       {:.., meta, [left, right]}
@@ -197,13 +196,13 @@ defmodule Code.Normalizer do
 
   # Numbers
   defp do_normalize(number, state) when is_number(number) do
-    meta = [token: inspect(number), line: state.parent_meta[:line]]
+    meta = [token: inspect(number)] ++ line_meta(state)
     {:__block__, meta, [number]}
   end
 
   # Atom, Strings
   defp do_normalize(literal, state) when is_atom(literal) or is_binary(literal) do
-    meta = [line: state.parent_meta[:line]]
+    meta = line_meta(state)
     literal = maybe_escape_literal(literal, state)
 
     if is_atom(literal) and Code.Identifier.classify(literal) == :alias do
@@ -222,7 +221,7 @@ defmodule Code.Normalizer do
 
   # 2-tuples
   defp do_normalize({left, right}, state) do
-    meta = [line: state.parent_meta[:line]]
+    meta = line_meta(state)
     {:__block__, meta, [{do_normalize(left, state), do_normalize(right, state)}]}
   end
 
@@ -238,9 +237,15 @@ defmodule Code.Normalizer do
           list
         end
 
-      {:__block__, [line: state.parent_meta[:line], delimiter: "'"], [list]}
+      {:__block__, [delimiter: "'"] ++ line_meta(state), [list]}
     else
-      meta = [line: state.parent_meta[:line], closing: [line: state.parent_meta[:line]]]
+      meta =
+        if line = state.parent_meta[:line] do
+          [line: line, closing: [line: line]]
+        else
+          []
+        end
+
       args = normalize_kw_args(list, state)
       {:__block__, meta, [args]}
     end
@@ -264,7 +269,8 @@ defmodule Code.Normalizer do
       end
 
     meta =
-      if is_nil(meta[:no_parens]) and not Code.Formatter.local_without_parens?(form, arity) do
+      if is_nil(meta[:no_parens]) and is_nil(meta[:closing]) and
+           not Code.Formatter.local_without_parens?(form, arity) do
         [closing: [line: meta[:line]]] ++ meta
       else
         meta
@@ -403,7 +409,7 @@ defmodule Code.Normalizer do
 
     left =
       if keyword? do
-        meta = [format: :keyword, line: state.parent_meta[:line]]
+        meta = [format: :keyword] ++ line_meta(state)
         {:__block__, meta, [maybe_escape_literal(left, state)]}
       else
         do_normalize(left, state)
@@ -416,7 +422,7 @@ defmodule Code.Normalizer do
            :keyword <- meta[:format] do
         {left, right}
       else
-        _ -> {:__block__, [line: state.parent_meta[:line]], [{left, right}]}
+        _ -> {:__block__, line_meta(state), [{left, right}]}
       end
 
     [pair | normalize_kw_args(rest, state, keyword?)]
@@ -469,5 +475,13 @@ defmodule Code.Normalizer do
 
   defp interpolated?(_) do
     false
+  end
+
+  defp line_meta(state) do
+    if line = state.parent_meta[:line] do
+      [line: line]
+    else
+      []
+    end
   end
 end

@@ -178,6 +178,8 @@ bootstrap_files() ->
      <<"lib/elixir/lib/access.ex">>,
      <<"lib/elixir/lib/io.ex">>,
      <<"lib/elixir/lib/system.ex">>,
+     <<"lib/elixir/lib/code/formatter.ex">>,
+     <<"lib/elixir/lib/code/normalizer.ex">>,
      <<"lib/elixir/lib/kernel/cli.ex">>,
      <<"lib/elixir/lib/kernel/error_handler.ex">>,
      <<"lib/elixir/lib/kernel/parallel_compiler.ex">>,
