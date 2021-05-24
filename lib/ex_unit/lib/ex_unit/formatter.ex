@@ -197,7 +197,7 @@ defmodule ExUnit.Formatter do
   defp format_exception(test, %FunctionClauseError{} = struct, stack, _width, formatter, _pad) do
     {blamed, stack} = Exception.blame(:error, struct, stack)
     banner = Exception.format_banner(:error, struct)
-    blamed = FunctionClauseError.blame(blamed, &inspect/1, &blame_match(&1, &2, formatter))
+    blamed = FunctionClauseError.blame(blamed, &inspect/1, &blame_match(&1, formatter))
     message = error_info(banner, formatter) <> "\n" <> pad(String.trim_leading(blamed, "\n"))
     {message <> format_code(test, stack, formatter), stack}
   end
@@ -292,14 +292,11 @@ defmodule ExUnit.Formatter do
     nil
   end
 
-  defp blame_match(%{match?: true, node: node}, _, _formatter),
+  defp blame_match(%{match?: true, node: node}, _formatter),
     do: Macro.to_string(node)
 
-  defp blame_match(%{match?: false, node: node}, _, formatter),
+  defp blame_match(%{match?: false, node: node}, formatter),
     do: formatter.(:blame_diff, Macro.to_string(node))
-
-  defp blame_match(_, string, _formatter),
-    do: string
 
   defp format_meta(fields, formatter, padding, padding_size) do
     for {label, value} <- fields, has_value?(value) do

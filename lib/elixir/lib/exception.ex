@@ -1108,7 +1108,7 @@ defmodule FunctionClauseError do
 
       %{module: module, function: function, arity: arity} ->
         formatted = Exception.format_mfa(module, function, arity)
-        blamed = blame(exception, &inspect/1, &blame_match/2)
+        blamed = blame(exception, &inspect/1, &blame_match/1)
         "no function clause matching in #{formatted}" <> blamed
     end
   end
@@ -1130,30 +1130,39 @@ defmodule FunctionClauseError do
     end
   end
 
-  defp blame_match(%{match?: true, node: node}, _), do: Macro.to_string(node)
-  defp blame_match(%{match?: false, node: node}, _), do: "-" <> Macro.to_string(node) <> "-"
-  defp blame_match(_, string), do: string
+  defp blame_match(%{match?: true, node: node}), do: Macro.to_string(node)
+  defp blame_match(%{match?: false, node: node}), do: "-" <> Macro.to_string(node) <> "-"
 
   @doc false
   def blame(%{args: nil}, _, _) do
     ""
   end
 
-  def blame(exception, inspect_fun, ast_fun) do
+  def blame(exception, inspect_fun, fun) do
     %{module: module, function: function, arity: arity, kind: kind, args: args, clauses: clauses} =
       exception
 
     mfa = Exception.format_mfa(module, function, arity)
 
     format_clause_fun = fn {args, guards} ->
-      code = Enum.reduce(guards, {function, [], args}, &{:when, [], [&2, &1]})
-      "    #{kind} " <> Macro.to_string(code, ast_fun) <> "\n"
+      fun_prefix = "    #{kind} "
+      guard_prefix = String.duplicate(" ", byte_size(fun_prefix)) <> " when "
+
+      args = Enum.map_join(args, ", ", fun)
+      guards = Enum.map(guards, &[guard_prefix | clause_to_string(&1, fun)])
+
+      "#{fun_prefix}#{function}(#{args})#{guards}\n"
     end
 
     "\n\nThe following arguments were given to #{mfa}:\n" <>
       "#{format_args(args, inspect_fun)}" <>
       "#{format_clauses(clauses, format_clause_fun, @clause_limit)}"
   end
+
+  defp clause_to_string({op, _, [left, right]}, fun),
+    do: clause_to_string(left, fun) <> " #{op} " <> clause_to_string(right, fun)
+
+  defp clause_to_string(node, fun), do: fun.(node)
 
   defp format_args(args, inspect_fun) do
     args

@@ -727,14 +727,8 @@ defmodule KernelTest do
                ":erlang.andalso(:erlang.is_integer(var), :erlang.andalso(:erlang.>=(var, 1), :erlang.\"=<\"(var, 2)))"
 
       # Empty list
-      assert expand_to_string(quote(do: :x in [])) =~
-               ~S"""
-                 _ = :x
-                 false
-               """
-
-      assert expand_to_string(quote(do: :x in []), :guard) ==
-               "false"
+      assert expand_to_string(quote(do: :x in [])) =~ "_ = :x\nfalse"
+      assert expand_to_string(quote(do: :x in []), :guard) == "false"
 
       # Lists
       result = expand_to_string(quote(do: rand() in [1, 2]))

@@ -88,7 +88,7 @@ defmodule Kernel.CLI do
       case blamed do
         %FunctionClauseError{} ->
           formatted = Exception.format_banner(kind, reason, stacktrace)
-          padded_blame = pad(FunctionClauseError.blame(blamed, &inspect/1, &blame_match/2))
+          padded_blame = pad(FunctionClauseError.blame(blamed, &inspect/1, &blame_match/1))
           [formatted, padded_blame]
 
         _ ->
@@ -176,9 +176,8 @@ defmodule Kernel.CLI do
     IO.write(:stderr, format_error(kind, reason, stacktrace))
   end
 
-  defp blame_match(%{match?: true, node: node}, _), do: blame_ansi(:normal, "+", node)
-  defp blame_match(%{match?: false, node: node}, _), do: blame_ansi(:red, "-", node)
-  defp blame_match(_, string), do: string
+  defp blame_match(%{match?: true, node: node}), do: blame_ansi(:normal, "+", node)
+  defp blame_match(%{match?: false, node: node}), do: blame_ansi(:red, "-", node)
 
   defp blame_ansi(color, no_ansi, node) do
     if IO.ANSI.enabled?() do

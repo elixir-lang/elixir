@@ -2188,7 +2188,7 @@ defmodule Code.Formatter do
   end
 
   defp force_args?(args) do
-    match?([_, _ | _], args) and force_args?(args, MapSet.new())
+    match?([_ | _], args) and force_args?(args, MapSet.new())
   end
 
   defp force_args?([[arg | _] | args], lines) do
@@ -2198,18 +2198,19 @@ defmodule Code.Formatter do
   defp force_args?([arg | args], lines) do
     line =
       case arg do
-        {{_, meta, _}, _} -> line(meta)
-        {_, meta, _} -> line(meta)
+        {{_, meta, _}, _} -> meta[:line]
+        {_, meta, _} -> meta[:line]
       end
 
-    if MapSet.member?(lines, line) do
-      false
-    else
-      force_args?(args, MapSet.put(lines, line))
+    cond do
+      # Line may be missing from non-formatter AST
+      is_nil(line) -> force_args?(args, lines)
+      MapSet.member?(lines, line) -> false
+      true -> force_args?(args, MapSet.put(lines, line))
     end
   end
 
-  defp force_args?([], _lines), do: true
+  defp force_args?([], lines), do: MapSet.size(lines) >= 2
 
   defp force_keyword(doc, arg) do
     if force_args?(arg), do: force_unfit(doc), else: doc

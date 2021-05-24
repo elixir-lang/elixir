@@ -545,7 +545,7 @@ signature_to_binary(Module, '__struct__', []) ->
   <<"%", ('Elixir.Kernel':inspect(Module))/binary, "{}">>;
 
 signature_to_binary(_, Name, Signature) ->
-  'Elixir.Macro':to_string({Name, [], Signature}).
+  'Elixir.Macro':to_string({Name, [{closing, []}], Signature}).
 
 checker_chunk(#{definitions := Definitions, deprecated := Deprecated, is_behaviour := IsBehaviour}) ->
   DeprecatedMap = maps:from_list(Deprecated),
