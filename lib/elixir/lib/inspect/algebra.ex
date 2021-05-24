@@ -555,7 +555,11 @@ defmodule Inspect.Algebra do
   @doc since: "1.6.0"
   @spec string(String.t()) :: doc_string
   def string(string) when is_binary(string) do
-    doc_string(string, String.length(string))
+    if function_exported?(String.Unicode, :length, 1) do
+      doc_string(string, String.Unicode.length(string))
+    else
+      doc_string(string, byte_size(string))
+    end
   end
 
   @doc ~S"""
