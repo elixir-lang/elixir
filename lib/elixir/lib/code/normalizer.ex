@@ -130,17 +130,16 @@ defmodule Code.Normalizer do
     {:., meta, [left, right]}
   end
 
-  # A list of left to right arrows is not considered as a list literal, so it's
-  # not wrapped
+  # A list of left to right arrows is not considered as a list literal, so it's not wrapped
   defp do_normalize([{:->, _, _} | _] = quoted, state) do
-    Enum.map(quoted, &do_normalize(&1, state))
+    normalize_args(quoted, state)
   end
 
   # left -> right
   defp do_normalize({:->, meta, [left, right]}, state) do
     meta = patch_meta_line(meta, state.parent_meta)
 
-    left = Enum.map(left, &do_normalize(&1, %{state | parent_meta: meta}))
+    left = normalize_args(left, %{state | parent_meta: meta})
     right = do_normalize(right, %{state | parent_meta: meta})
     {:->, meta, [left, right]}
   end
@@ -155,18 +154,20 @@ defmodule Code.Normalizer do
         meta
       end
 
+    state = %{state | parent_meta: meta}
+
     args =
       case args do
         [{:|, pipe_meta, [left, right]}] ->
-          left = do_normalize(left, meta)
-          right = normalize_args(right, %{state | parent_meta: meta})
+          left = do_normalize(left, state)
+          right = normalize_map_args(right, state)
           [{:|, pipe_meta, [left, right]}]
 
         [{_, _, _} = call] ->
-          [do_normalize(call, %{state | parent_meta: meta})]
+          [do_normalize(call, state)]
 
         args ->
-          normalize_map_args(args, %{state | parent_meta: meta})
+          normalize_map_args(args, state)
       end
 
     {:%{}, meta, args}
@@ -194,27 +195,18 @@ defmodule Code.Normalizer do
     normalize_call(quoted, state)
   end
 
-  # Integers, floats, atoms
-  defp do_normalize(literal, state) when is_literal(literal) do
+  # Numbers
+  defp do_normalize(number, state) when is_number(number) do
+    meta = [token: inspect(number), line: state.parent_meta[:line]]
+    {:__block__, meta, [number]}
+  end
+
+  # Atom, Strings
+  defp do_normalize(literal, state) when is_atom(literal) or is_binary(literal) do
     meta = [line: state.parent_meta[:line]]
-
-    meta =
-      if is_integer(literal) or is_float(literal) do
-        Keyword.put(meta, :token, inspect(literal))
-      else
-        meta
-      end
-
-    meta =
-      if not is_nil(state.parent_meta[:format]) do
-        Keyword.put(meta, :format, state.parent_meta[:format])
-      else
-        meta
-      end
-
     literal = maybe_escape_literal(literal, state)
 
-    if module_atom?(literal) do
+    if is_atom(literal) and Code.Identifier.classify(literal) == :alias do
       "Elixir." <> segments = Atom.to_string(literal)
 
       segments =
@@ -231,18 +223,7 @@ defmodule Code.Normalizer do
   # 2-tuples
   defp do_normalize({left, right}, state) do
     meta = [line: state.parent_meta[:line]]
-
-    left_state =
-      if is_atom(left) and not module_atom?(left) do
-        %{state | parent_meta: Keyword.put(state.parent_meta, :format, :keyword)}
-      else
-        %{state | parent_meta: meta}
-      end
-
-    {:__block__, meta,
-     [
-       {do_normalize(left, left_state), do_normalize(right, state)}
-     ]}
+    {:__block__, meta, [{do_normalize(left, state), do_normalize(right, state)}]}
   end
 
   # Lists
@@ -260,9 +241,7 @@ defmodule Code.Normalizer do
       {:__block__, [line: state.parent_meta[:line], delimiter: "'"], [list]}
     else
       meta = [line: state.parent_meta[:line], closing: [line: state.parent_meta[:line]]]
-
-      args = normalize_args(list, state)
-
+      args = normalize_kw_args(list, state)
       {:__block__, meta, [args]}
     end
   end
@@ -301,12 +280,10 @@ defmodule Code.Normalizer do
         # Non normalized kw blocks
         line = state.parent_meta[:line]
         meta = meta ++ [do: [line: line], end: [line: line]]
-
         normalize_kw_blocks(form, meta, args, state)
 
       allow_keyword?(form, arity) ->
         args = normalize_args(args, %{state | parent_meta: state.parent_meta})
-
         {last_arg, leading_args} = List.pop_at(args, -1, [])
 
         last_args =
@@ -346,7 +323,16 @@ defmodule Code.Normalizer do
       if interpolated?(quoted) do
         normalize_interpolation_parts(parts, %{state | parent_meta: meta}, escape_interpolation)
       else
-        Enum.map(parts, &do_normalize(&1, %{state | parent_meta: meta}))
+        state = %{state | parent_meta: meta}
+
+        Enum.map(parts, fn part ->
+          with {:"::", meta, [left, _]} <- part,
+               true <- meta[:inferred_bitstring_spec] do
+            do_normalize(left, state)
+          else
+            _ -> do_normalize(part, state)
+          end
+        end)
       end
 
     {:<<>>, meta, parts}
@@ -376,24 +362,11 @@ defmodule Code.Normalizer do
     end)
   end
 
-  defp normalize_map_args([{key, value} | rest], state) do
-    key =
-      cond do
-        is_atom(key) and not module_atom?(key) ->
-          meta = [format: :keyword, line: state.parent_meta[:line]]
-          {:__block__, meta, [key]}
-
-        true ->
-          do_normalize(key, state)
-      end
-
-    value = do_normalize(value, state)
-
-    [{key, value} | normalize_map_args(rest, state)]
-  end
-
-  defp normalize_map_args([], _) do
-    []
+  defp normalize_map_args(args, state) do
+    Enum.map(normalize_kw_args(args, state), fn
+      {:__block__, _, [{_, _} = pair]} -> pair
+      pair -> pair
+    end)
   end
 
   defp normalize_kw_blocks(form, meta, args, state) do
@@ -420,47 +393,45 @@ defmodule Code.Normalizer do
       end)
 
     leading_args = normalize_args(leading_args, %{state | parent_meta: meta})
-
     {form, meta, leading_args ++ [kw_blocks]}
   end
 
-  defp normalize_args(elems, state, keyword? \\ false)
+  defp normalize_kw_args(elems, state, keyword? \\ false)
 
-  defp normalize_args([[{_, _, [{_, _}]}] = first | rest], state, keyword?) do
-    # Skip already normalized 2-tuples
-    [first | normalize_args(rest, state, keyword?)]
-  end
+  defp normalize_kw_args([{left, right} | rest] = current, state, keyword?) do
+    keyword? = keyword? or Inspect.List.keyword?(current)
 
-  defp normalize_args([{left, right} | rest], state, keyword?) do
-    keyword? =
-      if not keyword? do
-        Enum.empty?(rest) or Inspect.List.keyword?(rest)
+    left =
+      if keyword? do
+        meta = [format: :keyword, line: state.parent_meta[:line]]
+        {:__block__, meta, [maybe_escape_literal(left, state)]}
       else
-        keyword?
+        do_normalize(left, state)
       end
 
-    module_atom? = module_atom?(left)
-
-    left = do_normalize(left, state)
     right = do_normalize(right, state)
 
     pair =
-      if keyword? and not module_atom? do
-        left = Macro.update_meta(left, &Keyword.put(&1, :format, :keyword))
+      with {:__block__, meta, _} <- left,
+           :keyword <- meta[:format] do
         {left, right}
       else
-        {:__block__, [line: state.parent_meta[:line]], [{left, right}]}
+        _ -> {:__block__, [line: state.parent_meta[:line]], [{left, right}]}
       end
 
-    [pair | normalize_args(rest, state, keyword?)]
+    [pair | normalize_kw_args(rest, state, keyword?)]
   end
 
-  defp normalize_args([first | rest], state, keyword?) do
-    [do_normalize(first, state) | normalize_args(rest, state, keyword?)]
+  defp normalize_kw_args([first | rest], state, keyword?) do
+    [do_normalize(first, state) | normalize_kw_args(rest, state, keyword?)]
   end
 
-  defp normalize_args([], _state, _keyword?) do
+  defp normalize_kw_args([], _state, _keyword?) do
     []
+  end
+
+  defp normalize_args(args, state) do
+    Enum.map(args, &do_normalize(&1, state))
   end
 
   defp maybe_escape_literal(string, %{escape: true}) when is_binary(string) do
@@ -485,10 +456,6 @@ defmodule Code.Normalizer do
 
   defp patch_meta_line(meta, _) do
     meta
-  end
-
-  defp module_atom?(term) do
-    is_atom(term) and match?('Elixir.' ++ _, Atom.to_charlist(term))
   end
 
   # Check if we have an interpolated string.
