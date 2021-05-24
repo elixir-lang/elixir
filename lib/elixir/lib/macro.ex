@@ -812,6 +812,25 @@ defmodule Macro do
   @doc """
   Converts the given expression AST to a string.
 
+  This function discards all formatting of the original code.
+  See `Code.quoted_to_algebra/2` as a lower level function
+  with more control around formatting.
+
+  ## Examples
+
+      iex> Macro.to_string(quote(do: foo.bar(1, 2, 3)))
+      "foo.bar(1, 2, 3)"
+
+  """
+  @spec to_string(t()) :: String.t()
+  def to_string(tree) do
+    doc = Inspect.Algebra.format(Code.quoted_to_algebra(tree), :infinity)
+    IO.iodata_to_binary(doc)
+  end
+
+  @doc """
+  Converts the given expression AST to a string.
+
   The given `fun` is called for every node in the AST with two arguments: the
   AST of the node being printed and the string representation of that same
   node. The return value of this function is used as the final string
@@ -821,19 +840,17 @@ defmodule Macro do
 
   ## Examples
 
-      iex> Macro.to_string(quote(do: foo.bar(1, 2, 3)))
-      "foo.bar(1, 2, 3)"
-
-      iex> Macro.to_string(quote(do: 1 + 2), fn
-      ...>   1, _string -> "one"
-      ...>   2, _string -> "two"
-      ...>   _ast, string -> string
-      ...> end)
-      "one + two"
+      Macro.to_string(quote(do: 1 + 2), fn
+        1, _string -> "one"
+        2, _string -> "two"
+        _ast, string -> string
+      end)
+      #=> "one + two"
 
   """
+  @deprecated "Use Macro.to_string/1 instead"
   @spec to_string(t(), (t(), String.t() -> String.t())) :: String.t()
-  def to_string(tree, fun \\ fn _ast, string -> string end)
+  def to_string(tree, fun)
 
   # Variables
   def to_string({var, _, context} = ast, fun) when is_atom(var) and is_atom(context) do

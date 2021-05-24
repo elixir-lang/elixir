@@ -11,6 +11,19 @@ defmodule Code.Normalizer.QuotedASTTest do
     test "local call" do
       assert quoted_to_string(quote(do: foo(1, 2, 3))) == "foo(1, 2, 3)"
       assert quoted_to_string(quote(do: foo([1, 2, 3]))) == "foo([1, 2, 3])"
+
+      # Mixing literals and non-literals
+      assert quoted_to_string(quote(do: foo(a, 2))) == "foo(a, 2)"
+      assert quoted_to_string(quote(do: foo(1, b))) == "foo(1, b)"
+
+      # Mixing literals and non-literals with line
+      assert quoted_to_string(quote(line: __ENV__.line, do: foo(a, 2))) == "foo(a, 2)"
+      assert quoted_to_string(quote(line: __ENV__.line, do: foo(1, b))) == "foo(1, b)"
+    end
+
+    test "local call no parens" do
+      assert quoted_to_string({:def, [], [1, 2]}) == "def 1, 2"
+      assert quoted_to_string({:def, [closing: []], [1, 2]}) == "def(1, 2)"
     end
 
     test "remote call" do
@@ -56,6 +69,7 @@ defmodule Code.Normalizer.QuotedASTTest do
     test "aliases call" do
       assert quoted_to_string(quote(do: Foo.Bar.baz(1, 2, 3))) == "Foo.Bar.baz(1, 2, 3)"
       assert quoted_to_string(quote(do: Foo.Bar.baz([1, 2, 3]))) == "Foo.Bar.baz([1, 2, 3])"
+      assert quoted_to_string(quote(do: ?0.Bar.baz([1, 2, 3]))) == "48.Bar.baz([1, 2, 3])"
       assert quoted_to_string(quote(do: Foo.bar(<<>>, []))) == "Foo.bar(<<>>, [])"
     end
 

@@ -555,7 +555,8 @@ defmodule Inspect.Algebra do
   @doc since: "1.6.0"
   @spec string(String.t()) :: doc_string
   def string(string) when is_binary(string) do
-    doc_string(string, String.length(string))
+    # Use :string for bootstrap reasons
+    doc_string(string, :string.length(string))
   end
 
   @doc ~S"""

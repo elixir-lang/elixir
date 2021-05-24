@@ -707,7 +707,7 @@ defmodule ExceptionTest do
       {:ok, :def, clauses} = Exception.blame_mfa(Blaming, :even_and_odd, [1, 1])
 
       assert annotated_clauses_to_string(clauses) == [
-               "{[+foo+, +bar+], [+is_integer(foo)+ and -Bitwise.band(foo, 1) == 0- and (+is_integer(bar)+ and +Bitwise.band(bar, 1) == 1+)]}"
+               "{[+foo+, +bar+], [+is_integer(foo)+ and -Bitwise.band(foo, 1) == 0- and +is_integer(bar)+ and +Bitwise.band(bar, 1) == 1+]}"
              ]
 
       {:ok, :defmacro, clauses} = Exception.blame_mfa(Kernel, :!, [true])
@@ -719,19 +719,21 @@ defmodule ExceptionTest do
     end
 
     defp annotated_clauses_to_string(clauses) do
-      Enum.map(clauses, fn args_and_clauses ->
-        Macro.to_string(args_and_clauses, fn
-          %{match?: true, node: node}, _string ->
-            "+" <> Macro.to_string(node) <> "+"
-
-          %{match?: false, node: node}, _string ->
-            "-" <> Macro.to_string(node) <> "-"
-
-          _node, string ->
-            string
-        end)
+      Enum.map(clauses, fn {args, clauses} ->
+        args = Enum.map_join(args, ", ", &arg_to_string/1)
+        clauses = Enum.map_join(clauses, ", ", &clause_to_string/1)
+        "{[#{args}], [#{clauses}]}"
       end)
     end
+
+    defp arg_to_string(%{match?: true, node: node}), do: "+" <> Macro.to_string(node) <> "+"
+    defp arg_to_string(%{match?: false, node: node}), do: "-" <> Macro.to_string(node) <> "-"
+
+    defp clause_to_string({op, _, [left, right]}),
+      do: clause_to_string(left) <> " #{op} " <> clause_to_string(right)
+
+    defp clause_to_string(other),
+      do: arg_to_string(other)
   end
 
   describe "exception messages" do

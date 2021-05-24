@@ -73,7 +73,7 @@ defmodule ExUnit.AssertionsTest do
       "This should never be tested" = assert Value.falsy()
     rescue
       error in [ExUnit.AssertionError] ->
-        "assert(Value.falsy())" = error.expr |> Macro.to_string()
+        "assert Value.falsy()" = error.expr |> Macro.to_string()
         "Expected truthy, got nil" = error.message
     end
   end
@@ -107,7 +107,7 @@ defmodule ExUnit.AssertionsTest do
       error in [ExUnit.AssertionError] ->
         1 = error.right
         2 = error.left
-        "assert(1 + 1 == 1)" = error.expr |> Macro.to_string()
+        "assert 1 + 1 == 1" = error.expr |> Macro.to_string()
     end
   end
 
@@ -118,7 +118,7 @@ defmodule ExUnit.AssertionsTest do
       error in [ExUnit.AssertionError] ->
         1 = error.left
         2 = error.right
-        "assert(1 == 1 + 1)" = error.expr |> Macro.to_string()
+        "assert 1 == 1 + 1" = error.expr |> Macro.to_string()
     end
   end
 
@@ -147,7 +147,7 @@ defmodule ExUnit.AssertionsTest do
       raise "refute was supposed to fail"
     rescue
       error in [ExUnit.AssertionError] ->
-        "refute(Value.truthy())" = Macro.to_string(error.expr)
+        "refute Value.truthy()" = Macro.to_string(error.expr)
         "Expected false or nil, got :truthy" = error.message
     end
   end
@@ -203,7 +203,7 @@ defmodule ExUnit.AssertionsTest do
         "match (=) failed\n" <> "The following variables were pinned:\n" <> "  a = 1" =
           error.message
 
-        "assert({^a, 1} = Value.tuple())" = Macro.to_string(error.expr)
+        "assert {^a, 1} = Value.tuple()" = Macro.to_string(error.expr)
     end
   end
 
@@ -216,7 +216,7 @@ defmodule ExUnit.AssertionsTest do
     rescue
       error in [ExUnit.AssertionError] ->
         "match (=) failed" = error.message
-        "assert({^var!(a, Elixir), 1} = Value.tuple())" = Macro.to_string(error.expr)
+        "assert {^var!(a, Elixir), 1} = Value.tuple()" = Macro.to_string(error.expr)
     end
   end
 
@@ -228,7 +228,7 @@ defmodule ExUnit.AssertionsTest do
     rescue
       error in [ExUnit.AssertionError] ->
         "match (match?) failed" = error.message
-        "assert(match?({:ok, _}, error(true)))" = Macro.to_string(error.expr)
+        "assert match?({:ok, _}, error(true))" = Macro.to_string(error.expr)
         "{:error, true}" = Macro.to_string(error.right)
     end
   end
@@ -242,8 +242,7 @@ defmodule ExUnit.AssertionsTest do
       error in [ExUnit.AssertionError] ->
         "match (match?) failed" = error.message
 
-        "assert(match?(tuple when not(is_tuple(tuple)), error(true)))" =
-          Macro.to_string(error.expr)
+        "assert match?(tuple when not is_tuple(tuple), error(true))" = Macro.to_string(error.expr)
 
         "{:error, true}" = Macro.to_string(error.right)
     end
@@ -257,7 +256,7 @@ defmodule ExUnit.AssertionsTest do
     rescue
       error in [ExUnit.AssertionError] ->
         "match (match?) succeeded, but should have failed" = error.message
-        "refute(match?({:error, _}, error(true)))" = Macro.to_string(error.expr)
+        "refute match?({:error, _}, error(true))" = Macro.to_string(error.expr)
         "{:error, true}" = Macro.to_string(error.right)
     end
   end
@@ -271,7 +270,7 @@ defmodule ExUnit.AssertionsTest do
       error in [ExUnit.AssertionError] ->
         "match (match?) failed\nThe following variables were pinned:\n  a = 1" = error.message
 
-        "assert(match?({^a, 1}, Value.tuple()))" = Macro.to_string(error.expr)
+        "assert match?({^a, 1}, Value.tuple())" = Macro.to_string(error.expr)
     end
   end
 
@@ -288,7 +287,7 @@ defmodule ExUnit.AssertionsTest do
           a = 2\
         """ = error.message
 
-        "refute(match?({^a, 1}, Value.tuple()))" = Macro.to_string(error.expr)
+        "refute match?({^a, 1}, Value.tuple())" = Macro.to_string(error.expr)
     end
   end
 
@@ -385,7 +384,7 @@ defmodule ExUnit.AssertionsTest do
         Showing 1 of 1 message in the mailbox\
         """ = error.message
 
-        "assert_received({:status, ^status})" = Macro.to_string(error.expr)
+        "assert_received {:status, ^status}" = Macro.to_string(error.expr)
         "{:status, ^status}" = Macro.to_string(error.left)
     end
   end
@@ -405,7 +404,7 @@ defmodule ExUnit.AssertionsTest do
         Showing 1 of 1 message in the mailbox\
         """ = error.message
 
-        "assert_received({:status, ^status, ^status})" = Macro.to_string(error.expr)
+        "assert_received {:status, ^status, ^status}" = Macro.to_string(error.expr)
         "{:status, ^status, ^status}" = Macro.to_string(error.left)
         "\n\nAssertion failed" <> _ = Exception.message(error)
     end
@@ -428,7 +427,7 @@ defmodule ExUnit.AssertionsTest do
         Showing 1 of 1 message in the mailbox\
         """ = error.message
 
-        "assert_received({:status, ^status, ^other_status})" = Macro.to_string(error.expr)
+        "assert_received {:status, ^status, ^other_status}" = Macro.to_string(error.expr)
         "{:status, ^status, ^other_status}" = Macro.to_string(error.left)
     end
   end
@@ -441,7 +440,7 @@ defmodule ExUnit.AssertionsTest do
         "Assertion failed, no matching message after 0ms\nThe process mailbox is empty." =
           error.message
 
-        "assert_received(:hello)" = Macro.to_string(error.expr)
+        "assert_received :hello" = Macro.to_string(error.expr)
     end
   end
 
@@ -457,7 +456,7 @@ defmodule ExUnit.AssertionsTest do
         Showing 1 of 1 message in the mailbox\
         """ = error.message
 
-        "assert_received(:hello)" = Macro.to_string(error.expr)
+        "assert_received :hello" = Macro.to_string(error.expr)
         ":hello" = Macro.to_string(error.left)
     end
   end
@@ -474,7 +473,7 @@ defmodule ExUnit.AssertionsTest do
         Showing 10 of 11 messages in the mailbox\
         """ = error.message
 
-        "assert_received(x when x == :hello)" = Macro.to_string(error.expr)
+        "assert_received x when x == :hello" = Macro.to_string(error.expr)
         "x when x == :hello" = Macro.to_string(error.left)
     end
   end
@@ -522,7 +521,7 @@ defmodule ExUnit.AssertionsTest do
       error in [ExUnit.AssertionError] ->
         'foo' = error.left
         'bar' = error.right
-        "assert('foo' in 'bar')" = Macro.to_string(error.expr)
+        "assert 'foo' in 'bar'" = Macro.to_string(error.expr)
     end
   end
 
@@ -537,7 +536,7 @@ defmodule ExUnit.AssertionsTest do
       error in [ExUnit.AssertionError] ->
         'foo' = error.left
         ['foo', 'bar'] = error.right
-        "refute('foo' in ['foo', 'bar'])" = Macro.to_string(error.expr)
+        "refute 'foo' in ['foo', 'bar']" = Macro.to_string(error.expr)
     end
   end
 
@@ -556,7 +555,7 @@ defmodule ExUnit.AssertionsTest do
     rescue
       error in [ExUnit.AssertionError] ->
         "match (=) failed" = error.message
-        "assert({:ok, _} = error(true))" = Macro.to_string(error.expr)
+        "assert {:ok, _} = error(true)" = Macro.to_string(error.expr)
         "{:error, true}" = Macro.to_string(error.right)
     end
   end
@@ -567,7 +566,7 @@ defmodule ExUnit.AssertionsTest do
     rescue
       error in [ExUnit.AssertionError] ->
         "match (=) failed" = error.message
-        "assert({:ok, _x} = nil)" = Macro.to_string(error.expr)
+        "assert {:ok, _x} = nil" = Macro.to_string(error.expr)
         "nil" = Macro.to_string(error.right)
     end
   end
@@ -578,7 +577,7 @@ defmodule ExUnit.AssertionsTest do
     rescue
       error in [ExUnit.AssertionError] ->
         "Expected truthy, got nil" = error.message
-        "assert(_x = nil)" = Macro.to_string(error.expr)
+        "assert _x = nil" = Macro.to_string(error.expr)
     end
   end
 
@@ -587,7 +586,7 @@ defmodule ExUnit.AssertionsTest do
       "This should never be tested" = refute _ = ok(true)
     rescue
       error in [ExUnit.AssertionError] ->
-        "refute(_ = ok(true))" = Macro.to_string(error.expr)
+        "refute _ = ok(true)" = Macro.to_string(error.expr)
         "Expected false or nil, got {:ok, true}" = error.message
     end
   end
@@ -715,7 +714,7 @@ defmodule ExUnit.AssertionsTest do
     error in [ExUnit.AssertionError] ->
       1 = error.left
       2 = error.right
-      "assert(1 > 2)" = Macro.to_string(error.expr)
+      "assert 1 > 2" = Macro.to_string(error.expr)
   end
 
   test "assert less or equal than operator" do
@@ -726,7 +725,7 @@ defmodule ExUnit.AssertionsTest do
     "This should never be tested" = assert 2 <= 1
   rescue
     error in [ExUnit.AssertionError] ->
-      "assert(2 <= 1)" = Macro.to_string(error.expr)
+      "assert 2 <= 1" = Macro.to_string(error.expr)
       2 = error.left
       1 = error.right
   end
