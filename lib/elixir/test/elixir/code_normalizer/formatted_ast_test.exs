@@ -328,6 +328,22 @@ defmodule Code.Normalizer.FormatterASTTest do
     end
   end
 
+  describe "keyword list" do
+    test "blocks" do
+      assert_same ~S"""
+      defmodule Example do
+        def sample, do: :ok
+      end
+      """
+    end
+
+    test "omitting brackets" do
+      assert_same ~S"""
+      @type foo :: a when b: :c
+      """
+    end
+  end
+
   describe "preserves formatting for sigils" do
     test "without interpolation" do
       assert_same ~S[~s(foo)]
