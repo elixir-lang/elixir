@@ -28,15 +28,34 @@ defmodule Code.Normalizer do
     quoted
   end
 
-  # Skip normalized charlists
-  defp do_normalize({:__block__, meta, [charlist] = args} = quoted, state)
+  # Normalized single-expression blocks
+  # For example:
+  #
+  #     def deps() do
+  #       [
+  #         {:dep, "~> 1.2"}
+  #       ]
+  #     end
+  defp do_normalize({:__block__, meta, [[{:__block__, inner_meta, args}]]}, state) do
+    meta = patch_meta_line(meta, state.parent_meta)
+    inner_meta = patch_meta_line(inner_meta, meta)
+
+    {:__block__, meta, [[{:__block__, inner_meta, normalize_args(args, %{state | parent_meta: inner_meta})}]]}
+  end
+
+  # Normalized charlists
+  defp do_normalize({:__block__, meta, [charlist]} = quoted, state)
        when is_list(charlist) do
     if Keyword.has_key?(meta, :delimiter) do
+      # If it's a charlist, skip it
       quoted
     else
-      # If it's not a charlist, only normalize the args
+      # If it's a regular list, then normalize the args
       meta = patch_meta_line(meta, state.parent_meta)
-      {:__block__, meta, normalize_args(args, %{state | parent_meta: meta})}
+
+      args = normalize_args([charlist], %{state | parent_meta: meta})
+
+      {:__block__, meta, args}
     end
   end
 
