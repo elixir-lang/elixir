@@ -45,8 +45,8 @@ defmodule Code.Normalizer do
   end
 
   # Normalized lists
-  defp do_normalize({:__block__, meta, [charlist]} = quoted, state)
-       when is_list(charlist) do
+  defp do_normalize({:__block__, meta, [list]} = quoted, state)
+       when is_list(list) do
     if Keyword.has_key?(meta, :delimiter) do
       # If it's a charlist, skip it
       quoted
@@ -54,7 +54,7 @@ defmodule Code.Normalizer do
       # If it's a regular list, then normalize the args
       meta = patch_meta_line(meta, state.parent_meta)
 
-      args = normalize_args([charlist], %{state | parent_meta: meta})
+      args = normalize_args([list], %{state | parent_meta: meta})
 
       {:__block__, meta, args}
     end
