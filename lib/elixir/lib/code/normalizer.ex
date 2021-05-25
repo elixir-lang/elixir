@@ -28,22 +28,6 @@ defmodule Code.Normalizer do
     quoted
   end
 
-  # Normalized single-expression blocks
-  # For example:
-  #
-  #     def deps() do
-  #       [
-  #         {:dep, "~> 1.2"}
-  #       ]
-  #     end
-  defp do_normalize({:__block__, meta, [[{:__block__, inner_meta, args}]]}, state) do
-    meta = patch_meta_line(meta, state.parent_meta)
-    inner_meta = patch_meta_line(inner_meta, meta)
-
-    {:__block__, meta,
-     [[{:__block__, inner_meta, normalize_args(args, %{state | parent_meta: inner_meta})}]]}
-  end
-
   # Normalized lists
   defp do_normalize({:__block__, meta, [list]} = quoted, state)
        when is_list(list) do
@@ -56,6 +40,14 @@ defmodule Code.Normalizer do
       args = normalize_args([list], %{state | parent_meta: meta})
       {:__block__, meta, args}
     end
+  end
+
+  # Normalized 2-tuples
+  defp do_normalize({:__block__, meta, [{left, right}]}, state) do
+    meta = patch_meta_line(meta, state)
+    left = do_normalize(left, %{state | parent_meta: meta})
+    right = do_normalize(right, %{state | parent_meta: meta})
+    {:__block__, meta, [{left, right}]}
   end
 
   # Only normalize the first argument of an alias if it's not an atom
