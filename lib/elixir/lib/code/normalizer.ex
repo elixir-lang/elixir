@@ -43,21 +43,11 @@ defmodule Code.Normalizer do
   end
 
   # Normalized 2-tuples
-  defp do_normalize({:__block__, meta, [{left, right}] = args}, state) do
+  defp do_normalize({:__block__, meta, [{left, right}]}, state) do
     meta = patch_meta_line(meta, state)
-
-    if Keyword.has_key?(meta, :closing) do
-      # This field is only set if it's already normalized, so just normalize
-      # the left and right
-      left = do_normalize(left, %{state | parent_meta: meta})
-      right = do_normalize(right, %{state | parent_meta: meta})
-      {:__block__, meta, [{left, right}]}
-    else
-      # Otherwise it's just a block with a regular 2-tuple inside, so normalize
-      # the arguments as usual
-      args = normalize_args(args, %{state | parent_meta: meta})
-      {:__block__, meta, args}
-    end
+    left = do_normalize(left, %{state | parent_meta: meta})
+    right = do_normalize(right, %{state | parent_meta: meta})
+    {:__block__, meta, [{left, right}]}
   end
 
   # Only normalize the first argument of an alias if it's not an atom
@@ -243,7 +233,7 @@ defmodule Code.Normalizer do
 
   # 2-tuples
   defp do_normalize({left, right}, state) do
-    meta = [closing: meta_line(state)] ++ meta_line(state)
+    meta = meta_line(state)
     {:__block__, meta, [{do_normalize(left, state), do_normalize(right, state)}]}
   end
 
