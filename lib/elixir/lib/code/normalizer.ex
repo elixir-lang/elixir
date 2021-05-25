@@ -40,10 +40,11 @@ defmodule Code.Normalizer do
     meta = patch_meta_line(meta, state.parent_meta)
     inner_meta = patch_meta_line(inner_meta, meta)
 
-    {:__block__, meta, [[{:__block__, inner_meta, normalize_args(args, %{state | parent_meta: inner_meta})}]]}
+    {:__block__, meta,
+     [[{:__block__, inner_meta, normalize_args(args, %{state | parent_meta: inner_meta})}]]}
   end
 
-  # Normalized charlists
+  # Normalized lists
   defp do_normalize({:__block__, meta, [charlist]} = quoted, state)
        when is_list(charlist) do
     if Keyword.has_key?(meta, :delimiter) do
