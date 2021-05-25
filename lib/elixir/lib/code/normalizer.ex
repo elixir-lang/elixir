@@ -28,22 +28,6 @@ defmodule Code.Normalizer do
     quoted
   end
 
-  # Normalized single-expression blocks
-  # For example:
-  #
-  #     def deps() do
-  #       [
-  #         {:dep, "~> 1.2"}
-  #       ]
-  #     end
-  defp do_normalize({:__block__, meta, [[{:__block__, inner_meta, args}]]}, state) do
-    meta = patch_meta_line(meta, state.parent_meta)
-    inner_meta = patch_meta_line(inner_meta, meta)
-
-    {:__block__, meta,
-     [[{:__block__, inner_meta, normalize_args(args, %{state | parent_meta: inner_meta})}]]}
-  end
-
   # Normalized lists
   defp do_normalize({:__block__, meta, [list]} = quoted, state)
        when is_list(list) do
@@ -54,6 +38,24 @@ defmodule Code.Normalizer do
       # If it's a regular list, then normalize the args
       meta = patch_meta_line(meta, state.parent_meta)
       args = normalize_args([list], %{state | parent_meta: meta})
+      {:__block__, meta, args}
+    end
+  end
+
+  # Normalized 2-tuples
+  defp do_normalize({:__block__, meta, [{left, right}] = args}, state) do
+    meta = patch_meta_line(meta, state)
+
+    if Keyword.has_key?(meta, :closing) do
+      # This field is only set if it's already normalized, so just normalize
+      # the left and right
+      left = do_normalize(left, %{state | parent_meta: meta})
+      right = do_normalize(right, %{state | parent_meta: meta})
+      {:__block__, meta, [{left, right}]}
+    else
+      # Otherwise it's just a block with a regular 2-tuple inside, so normalize
+      # the arguments as usual
+      args = normalize_args(args, %{state | parent_meta: meta})
       {:__block__, meta, args}
     end
   end
@@ -241,7 +243,7 @@ defmodule Code.Normalizer do
 
   # 2-tuples
   defp do_normalize({left, right}, state) do
-    meta = meta_line(state)
+    meta = [closing: meta_line(state)] ++ meta_line(state)
     {:__block__, meta, [{do_normalize(left, state), do_normalize(right, state)}]}
   end
 
