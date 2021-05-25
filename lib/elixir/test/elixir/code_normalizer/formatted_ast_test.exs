@@ -478,6 +478,16 @@ defmodule Code.Normalizer.FormatterASTTest do
       defp sample do
         [
           # comment
+          {:a, "~> 1.2"}
+        ]
+      end
+      """
+
+      assert_same ~S"""
+      defp sample do
+        [
+          # comment
+          {:a, "~> 1.2"},
           {:b, "~> 1.2"}
         ]
       end
