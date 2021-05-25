@@ -53,9 +53,7 @@ defmodule Code.Normalizer do
     else
       # If it's a regular list, then normalize the args
       meta = patch_meta_line(meta, state.parent_meta)
-
       args = normalize_args([list], %{state | parent_meta: meta})
-
       {:__block__, meta, args}
     end
   end
@@ -81,7 +79,7 @@ defmodule Code.Normalizer do
   defp do_normalize(left..right//step, state) do
     left = do_normalize(left, state)
     right = do_normalize(right, state)
-    meta = line_meta(state)
+    meta = meta_line(state)
 
     if step == 1 do
       {:.., meta, [left, right]}
@@ -218,13 +216,13 @@ defmodule Code.Normalizer do
 
   # Numbers
   defp do_normalize(number, state) when is_number(number) do
-    meta = [token: inspect(number)] ++ line_meta(state)
+    meta = [token: inspect(number)] ++ meta_line(state)
     {:__block__, meta, [number]}
   end
 
   # Atom, Strings
   defp do_normalize(literal, state) when is_atom(literal) or is_binary(literal) do
-    meta = line_meta(state)
+    meta = meta_line(state)
     literal = maybe_escape_literal(literal, state)
 
     if is_atom(literal) and Code.Identifier.classify(literal) == :alias do
@@ -243,7 +241,7 @@ defmodule Code.Normalizer do
 
   # 2-tuples
   defp do_normalize({left, right}, state) do
-    meta = line_meta(state)
+    meta = meta_line(state)
     {:__block__, meta, [{do_normalize(left, state), do_normalize(right, state)}]}
   end
 
@@ -259,7 +257,7 @@ defmodule Code.Normalizer do
           list
         end
 
-      {:__block__, [delimiter: "'"] ++ line_meta(state), [list]}
+      {:__block__, [delimiter: "'"] ++ meta_line(state), [list]}
     else
       meta =
         if line = state.parent_meta[:line] do
@@ -431,7 +429,7 @@ defmodule Code.Normalizer do
 
     left =
       if keyword? do
-        meta = [format: :keyword] ++ line_meta(state)
+        meta = [format: :keyword] ++ meta_line(state)
         {:__block__, meta, [maybe_escape_literal(left, state)]}
       else
         do_normalize(left, state)
@@ -444,7 +442,7 @@ defmodule Code.Normalizer do
            :keyword <- meta[:format] do
         {left, right}
       else
-        _ -> {:__block__, line_meta(state), [{left, right}]}
+        _ -> {:__block__, meta_line(state), [{left, right}]}
       end
 
     [pair | normalize_kw_args(rest, state, keyword?)]
@@ -478,14 +476,6 @@ defmodule Code.Normalizer do
     term
   end
 
-  defp patch_meta_line([], parent_meta) do
-    [line: parent_meta[:line]]
-  end
-
-  defp patch_meta_line(meta, _) do
-    meta
-  end
-
   # Check if we have an interpolated string.
   defp interpolated?({:<<>>, _, [_ | _] = parts}) do
     Enum.all?(parts, fn
@@ -499,7 +489,16 @@ defmodule Code.Normalizer do
     false
   end
 
-  defp line_meta(state) do
+  defp patch_meta_line(meta, parent_meta) do
+    with nil <- meta[:line],
+         line when is_integer(line) <- parent_meta[:line] do
+      [line: line] ++ meta
+    else
+      _ -> meta
+    end
+  end
+
+  defp meta_line(state) do
     if line = state.parent_meta[:line] do
       [line: line]
     else
