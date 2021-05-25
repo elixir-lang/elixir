@@ -42,10 +42,6 @@ defmodule String.Unicode do
       end
     end)
 
-  # for {k, v} <- cluster do
-  #   IO.puts "#{k}:#{length(v)}"
-  # end
-
   # Don't break CRLF
   def next_grapheme_size(<<?\r, ?\n, rest::binary>>) do
     {2, rest}
