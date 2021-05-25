@@ -42,6 +42,10 @@ defmodule String.Unicode do
       end
     end)
 
+  # for {k, v} <- cluster do
+  #   IO.puts "#{k}:#{length(v)}"
+  # end
+
   # Don't break CRLF
   def next_grapheme_size(<<?\r, ?\n, rest::binary>>) do
     {2, rest}
@@ -73,49 +77,46 @@ defmodule String.Unicode do
     end
   end
 
-  # Handle Hangul L
-  for codepoint <- cluster["L"] do
-    def next_grapheme_size(<<unquote(codepoint), rest::binary>>) do
-      next_hangul_l_size(rest, unquote(byte_size(codepoint)))
-    end
+  def next_grapheme_size(rest) do
+    next_pictographic_size(rest, 0)
   end
 
-  # Handle Hangul V
-  for codepoint <- cluster["LV"] ++ cluster["V"] do
-    def next_grapheme_size(<<unquote(codepoint), rest::binary>>) do
-      next_hangul_v_size(rest, unquote(byte_size(codepoint)))
-    end
-  end
-
-  # Handle Hangul T
-  for codepoint <- cluster["LVT"] ++ cluster["T"] do
-    def next_grapheme_size(<<unquote(codepoint), rest::binary>>) do
-      next_hangul_t_size(rest, unquote(byte_size(codepoint)))
-    end
-  end
-
-  # Handle Extended Pictographic
+  # Handle Pictographic (always after zwj, falls back to extend size)
   for codepoint <- cluster["Extended_Pictographic"] do
-    def next_grapheme_size(<<unquote(codepoint), rest::binary>>) do
-      next_extend_size(rest, unquote(byte_size(codepoint)), :emoji)
+    defp next_pictographic_size(<<unquote(codepoint), rest::binary>>, size) do
+      next_extend_size(rest, size + unquote(byte_size(codepoint)), :emoji)
     end
   end
 
-  # Handle extended entries
-  def next_grapheme_size(<<cp::utf8, rest::binary>>) do
-    case cp do
-      x when x <= 0x07FF -> next_extend_size(rest, 2, :other)
-      x when x <= 0xFFFF -> next_extend_size(rest, 3, :other)
-      _ -> next_extend_size(rest, 4, :other)
+  defp next_pictographic_size(all, 0) do
+    case all do
+      <<cp::utf8, rest::binary>> ->
+        case cp do
+          _ when cp <= 0x07FF ->
+            next_extend_size(rest, 2, :other)
+
+          _ ->
+            case next_hangul(all, 0) do
+              {:l, rest, size} -> next_hangul_l_size(rest, size)
+              {:v, rest, size} -> next_hangul_v_size(rest, size)
+              {:lv, rest, size} -> next_hangul_v_size(rest, size)
+              {:t, rest, size} -> next_hangul_t_size(rest, size)
+              {:lvt, rest, size} -> next_hangul_t_size(rest, size)
+              _ when cp <= 0xFFFF -> next_extend_size(rest, 3, :other)
+              _ -> next_extend_size(rest, 4, :other)
+            end
+        end
+
+      <<_, rest::binary>> ->
+        {1, rest}
+
+      <<>> ->
+        nil
     end
   end
 
-  def next_grapheme_size(<<_, rest::binary>>) do
-    {1, rest}
-  end
-
-  def next_grapheme_size(<<>>) do
-    nil
+  defp next_pictographic_size(rest, size) do
+    next_extend_size(rest, size, :other)
   end
 
   # Handle hanguls
@@ -190,6 +191,10 @@ defmodule String.Unicode do
   end
 
   # Handle Extend+SpacingMark+ZWJ
+  defp next_extend_size(<<cp, _::binary>> = rest, size, _maker) when cp <= 0x007F do
+    {size, rest}
+  end
+
   for codepoint <- cluster["Extend"] do
     defp next_extend_size(<<unquote(codepoint), rest::binary>>, size, marker) do
       next_extend_size(rest, size + unquote(byte_size(codepoint)), keep_emoji(marker))
@@ -213,17 +218,6 @@ defmodule String.Unicode do
 
   defp next_extend_size(rest, size, _) do
     {size, rest}
-  end
-
-  # Handle Pictographic (always after zwj, falls back to extend size)
-  for codepoint <- cluster["Extended_Pictographic"] do
-    defp next_pictographic_size(<<unquote(codepoint), rest::binary>>, size) do
-      next_extend_size(rest, size + unquote(byte_size(codepoint)), :emoji)
-    end
-  end
-
-  defp next_pictographic_size(rest, size) do
-    next_extend_size(rest, size, :other)
   end
 
   defp keep_emoji(:emoji), do: :emoji
