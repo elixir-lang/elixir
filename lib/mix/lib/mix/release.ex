@@ -418,12 +418,40 @@ defmodule Mix.Release do
         :ok
 
       {:error, reason} ->
-        {:error,
-         "Could not read configuration file. It likely has invalid configuration terms " <>
-           "such as functions, references, and pids. Please make sure your configuration " <>
-           "is made of numbers, atoms, strings, maps, tuples and lists. Reason: #{inspect(reason)}"}
+        invalid =
+          for {app, kv} <- sys_config,
+              {key, value} <- kv,
+              not valid_config?(value),
+              do: """
+
+              Application: #{inspect(app)}
+              Key: #{inspect(key)}
+              Value: #{inspect(value)}
+              """
+
+        message =
+          case invalid do
+            [] ->
+              "Could not read configuration file. Reason: #{inspect(reason)}"
+
+            _ ->
+              "Could not read configuration file. It has invalid configuration terms " <>
+                "such as functions, references, and pids. Please make sure your configuration " <>
+                "is made of numbers, atoms, strings, maps, tuples and lists. The following entries " <>
+                "are wrong:\n#{Enum.join(invalid)}"
+          end
+
+        {:error, message}
     end
   end
+
+  defp valid_config?(n) when is_number(n), do: true
+  defp valid_config?(a) when is_atom(a), do: true
+  defp valid_config?(b) when is_binary(b), do: true
+  defp valid_config?(l) when is_list(l), do: Enum.all?(l, &valid_config?/1)
+  defp valid_config?(m) when is_map(m), do: Enum.all?(m, &valid_config?/1)
+  defp valid_config?(t) when is_tuple(t), do: Enum.all?(Tuple.to_list(t), &valid_config?/1)
+  defp valid_config?(_), do: false
 
   defp merge_provider_config(%{config_providers: []}, sys_config, _), do: {sys_config, false}
 

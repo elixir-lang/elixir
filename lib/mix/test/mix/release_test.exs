@@ -584,7 +584,7 @@ defmodule Mix.ReleaseTest do
 
     test "errors on bad config" do
       assert {:error, "Could not read configuration file." <> _} =
-               make_sys_config(release([]), [foo: self()], "unused/runtime/path")
+               make_sys_config(release([]), [foo: [bar: self()]], "unused/runtime/path")
     end
   end
 
