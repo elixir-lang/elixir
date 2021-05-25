@@ -930,7 +930,7 @@ defmodule Supervisor do
   """
   @spec which_children(supervisor) :: [
           # inlining module() | :dynamic here because :supervisor.modules() is not exported
-          {term() | :undefined, child | :restarting, :worker | :supervisor, module() | :dynamic}
+          {term() | :undefined, child | :restarting, :worker | :supervisor, [module()] | :dynamic}
         ]
   def which_children(supervisor) do
     call(supervisor, :which_children)
