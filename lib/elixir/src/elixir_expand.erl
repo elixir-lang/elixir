@@ -69,7 +69,17 @@ expand({alias, Meta, [Ref, Opts]}, E) ->
 
   if
     is_atom(ERef) ->
-      {ERef, expand_alias(Meta, true, ERef, EOpts, ET)};
+      case lists:keyfind(as, 1, Opts) of
+        {as, _} ->
+          {ERef, expand_alias(Meta, true, ERef, EOpts, ET)};
+        _->
+          case atom_to_list(ERef) of
+            "Elixir." ++ ([FirstLetter | _]) when FirstLetter >= $A, FirstLetter =< $Z ->
+              {ERef, expand_alias(Meta, true, ERef, EOpts, ET)};
+            _ ->
+              form_error(Meta, E, ?MODULE, {invalid_alias_module, Ref})
+          end
+      end;
     true ->
       form_error(Meta, E, ?MODULE, {expected_compile_time_module, alias, Ref})
   end;
@@ -1116,6 +1126,9 @@ format_error(unhandled_arrow_op) ->
   "unhandled operator ->";
 format_error(as_in_multi_alias_call) ->
   ":as option is not supported by multi-alias call";
+format_error({invalid_alias_module, Ref}) ->
+  io_lib:format("invalid alias module, expected an Elixir module, got: ~ts. To alias other BEAM languages modules, use the :as option",
+                ['Elixir.Macro':to_string(Ref)]);
 format_error({expected_compile_time_module, Kind, GivenTerm}) ->
   io_lib:format("invalid argument for ~ts, expected a compile time atom or alias, got: ~ts",
                 [Kind, 'Elixir.Macro':to_string(GivenTerm)]);

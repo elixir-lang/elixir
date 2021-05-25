@@ -154,6 +154,13 @@ defmodule Kernel.ExpansionTest do
       assert_raise CompileError, message, fn ->
         expand(quote(do: alias(:lists, as: :"Elixir.foobar")))
       end
+
+      message =
+        ~r"invalid alias module, expected an Elixir module, got: :lists. To alias other BEAM languages modules, use the :as option"
+
+      assert_raise CompileError, message, fn ->
+        expand(quote(do: alias(:lists)))
+      end
     end
 
     test "invalid expansion" do
