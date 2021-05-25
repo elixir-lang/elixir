@@ -29,12 +29,14 @@ defmodule Code.Normalizer do
   end
 
   # Skip normalized charlists
-  defp do_normalize({:__block__, meta, [charlist]} = quoted, state)
+  defp do_normalize({:__block__, meta, [charlist] = args} = quoted, state)
        when is_list(charlist) do
     if Keyword.has_key?(meta, :delimiter) do
       quoted
     else
-      do_normalize(charlist, state)
+      # If it's not a charlist, only normalize the args
+      meta = patch_meta_line(meta, state.parent_meta)
+      {:__block__, meta, normalize_args(args, %{state | parent_meta: meta})}
     end
   end
 
