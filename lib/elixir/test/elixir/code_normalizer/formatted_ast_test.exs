@@ -472,5 +472,16 @@ defmodule Code.Normalizer.FormatterASTTest do
       # comment
       """
     end
+
+    test "blocks with keyword list" do
+      assert_same ~S"""
+      defp sample do
+        [
+          # comment
+          {:b, "~> 1.2"}
+        ]
+      end
+      """
+    end
   end
 end
