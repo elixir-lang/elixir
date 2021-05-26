@@ -96,6 +96,20 @@ defmodule MixTest do
       end
     end
 
+    test "install after errors", %{tmp_dir: tmp_dir} do
+      assert_raise Mix.Error, "Can't continue due to errors on dependencies", fn ->
+        Mix.install([
+          {:bad, path: Path.join(tmp_dir, "bad")}
+        ])
+      end
+
+      Mix.install([
+        {:install_test, path: Path.join(tmp_dir, "install_test")}
+      ])
+
+      assert apply(InstallTest, :hello, []) == :world
+    end
+
     test "consolidate_protocols: false", %{tmp_dir: tmp_dir} do
       Mix.install(
         [
