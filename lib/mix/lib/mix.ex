@@ -531,8 +531,17 @@ defmodule Mix do
 
     deps =
       Enum.map(deps, fn
-        dep when is_atom(dep) -> {dep, ">= 0.0.0"}
-        dep -> dep
+        dep when is_atom(dep) ->
+          {dep, ">= 0.0.0"}
+
+        {app, opts} when is_atom(app) and is_list(opts) ->
+          {app, maybe_expand_path_dep(opts)}
+
+        {app, requirement, opts} when is_atom(app) and is_binary(requirement) and is_list(opts) ->
+          {app, requirement, maybe_expand_path_dep(opts)}
+
+        other ->
+          other
       end)
 
     force? = !!opts[:force]
@@ -601,6 +610,14 @@ defmodule Mix do
       :ok
     after
       Mix.ProjectStack.pop()
+    end
+  end
+
+  defp maybe_expand_path_dep(opts) do
+    if Keyword.has_key?(opts, :path) do
+      Keyword.update!(opts, :path, &Path.expand/1)
+    else
+      opts
     end
   end
 end
