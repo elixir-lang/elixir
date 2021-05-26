@@ -580,9 +580,10 @@ defmodule Mix do
 
     :ok = Mix.Local.append_archives()
     :ok = Mix.ProjectStack.push(__MODULE__.InstallProject, config, "nofile")
+    build_dir = Path.join(dir, "_build")
 
     try do
-      run_deps? = not File.dir?(Path.join(dir, "_build"))
+      run_deps? = not File.dir?(build_dir)
       File.mkdir_p!(dir)
 
       File.cd!(dir, fn ->
@@ -590,7 +591,8 @@ defmodule Mix do
           Mix.Task.rerun("deps.get")
         end
 
-        Mix.Task.run("compile")
+        Mix.Task.rerun("deps.loadpaths")
+        Mix.Task.rerun("compile")
       end)
 
       for app <- Mix.Project.deps_apps() do
