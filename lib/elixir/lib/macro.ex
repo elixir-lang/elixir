@@ -1602,7 +1602,7 @@ defmodule Macro do
   @doc """
   Returns `true` if the given quoted expression represents a quoted literal.
 
-  Atoms, numbers, and functions are always literals. Binaries, lists, tuples,
+  Atoms and numbers are always literals. Binaries, lists, tuples,
   maps, and structs are only literals if all of their terms are also literals.
 
   ## Examples
