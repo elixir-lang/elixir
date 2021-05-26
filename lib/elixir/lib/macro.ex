@@ -1602,7 +1602,7 @@ defmodule Macro do
   @doc """
   Returns `true` if the given quoted expression represents a quoted literal.
 
-  Atoms, numbers, and functions are always literals. Binaries, lists, tuples,
+  Atoms and numbers are always literals. Binaries, lists, tuples,
   maps, and structs are only literals if all of their terms are also literals.
 
   ## Examples
@@ -1639,7 +1639,7 @@ defmodule Macro do
   def quoted_literal?(list) when is_list(list), do: Enum.all?(list, &quoted_literal?/1)
 
   def quoted_literal?(term),
-    do: is_atom(term) or is_number(term) or is_binary(term) or is_function(term)
+    do: is_atom(term) or is_number(term) or is_binary(term)
 
   @doc """
   Receives an AST node and expands it until it can no longer
