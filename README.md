@@ -183,13 +183,12 @@ and `mix` under the `doc` directory. If you are planning to contribute documenta
   * [Issue tracker][2]
   * [Changelog][7]
   * [Security Policy][9]
-  * **[#elixir-lang][4]** on [Freenode][5] IRC
+  * **[#elixir]** on [Libera.Chat][5] IRC
 
   [1]: CODE_OF_CONDUCT.md
   [2]: https://github.com/elixir-lang/elixir/issues
   [3]: https://groups.google.com/group/elixir-lang-core
-  [4]: https://webchat.freenode.net/?channels=#elixir-lang
-  [5]: https://www.freenode.net
+  [5]: https://libera.chat
   [6]: https://elixir-lang.org/docs.html
   [7]: CHANGELOG.md
   [8]: https://groups.google.com/group/elixir-lang-ann
