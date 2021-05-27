@@ -1127,7 +1127,7 @@ format_error(unhandled_arrow_op) ->
 format_error(as_in_multi_alias_call) ->
   ":as option is not supported by multi-alias call";
 format_error({invalid_alias_module, Ref}) ->
-  io_lib:format("invalid alias module, expected an Elixir module, got: ~ts. To alias other BEAM languages modules, use the :as option",
+  io_lib:format("alias cannot be inferred automatically for module: ~ts, please use the :as option. Implicit aliasing is only supported with Elixir modules",
                 ['Elixir.Macro':to_string(Ref)]);
 format_error({expected_compile_time_module, Kind, GivenTerm}) ->
   io_lib:format("invalid argument for ~ts, expected a compile time atom or alias, got: ~ts",

@@ -156,7 +156,7 @@ defmodule Kernel.ExpansionTest do
       end
 
       message =
-        ~r"invalid alias module, expected an Elixir module, got: :lists. To alias non-Elixir modules, use the :as option"
+        ~r"alias cannot be inferred automatically for module: :lists, please use the :as option"
 
       assert_raise CompileError, message, fn ->
         expand(quote(do: alias(:lists)))
