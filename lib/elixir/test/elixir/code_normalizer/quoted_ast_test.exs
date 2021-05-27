@@ -12,6 +12,9 @@ defmodule Code.Normalizer.QuotedASTTest do
       assert quoted_to_string(quote(do: foo(1, 2, 3))) == "foo(1, 2, 3)"
       assert quoted_to_string(quote(do: foo([1, 2, 3]))) == "foo([1, 2, 3])"
 
+      assert quoted_to_string(quote(do: foo(1, 2, 3)), locals_without_parens: [foo: 3]) ==
+               "foo 1, 2, 3"
+
       # Mixing literals and non-literals
       assert quoted_to_string(quote(do: foo(a, 2))) == "foo(a, 2)"
       assert quoted_to_string(quote(do: foo(1, b))) == "foo(1, b)"
