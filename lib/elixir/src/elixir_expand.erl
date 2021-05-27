@@ -69,17 +69,7 @@ expand({alias, Meta, [Ref, Opts]}, E) ->
 
   if
     is_atom(ERef) ->
-      case lists:keyfind(as, 1, Opts) of
-        {as, _} ->
-          {ERef, expand_alias(Meta, true, ERef, EOpts, ET)};
-        _->
-          case atom_to_list(ERef) of
-            "Elixir." ++ ([FirstLetter | _]) when FirstLetter >= $A, FirstLetter =< $Z ->
-              {ERef, expand_alias(Meta, true, ERef, EOpts, ET)};
-            _ ->
-              form_error(Meta, E, ?MODULE, {invalid_alias_module, Ref})
-          end
-      end;
+      {ERef, expand_alias(Meta, true, ERef, EOpts, ET)};
     true ->
       form_error(Meta, E, ?MODULE, {expected_compile_time_module, alias, Ref})
   end;
@@ -952,9 +942,14 @@ expand_as({as, Atom}, Meta, _IncludeByDefault, _Ref, E) when is_atom(Atom), not 
     _ ->
       form_error(Meta, E, ?MODULE, {invalid_alias_for_as, not_alias, Atom})
   end;
-expand_as(false, _Meta, IncludeByDefault, Ref, _E) ->
-  if IncludeByDefault -> elixir_aliases:last(Ref);
-     true -> Ref
+expand_as(false, Meta, IncludeByDefault, Ref, E) ->
+  if 
+    IncludeByDefault -> 
+      case elixir_aliases:last(Ref) of
+        {ok, NewRef} -> NewRef;
+        error -> form_error(Meta, E, ?MODULE, {invalid_alias_module, Ref})
+      end;
+    true -> Ref
   end;
 expand_as({as, Other}, Meta, _IncludeByDefault, _Ref, E) ->
   form_error(Meta, E, ?MODULE, {invalid_alias_for_as, not_alias, Other}).
