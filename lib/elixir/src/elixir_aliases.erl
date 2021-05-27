@@ -112,8 +112,13 @@ wait_for_module(Module) ->
 %% Receives an atom and returns the last bit as an alias.
 
 last(Atom) ->
-  Last = last(lists:reverse(atom_to_list(Atom)), []),
-  list_to_atom("Elixir." ++ Last).
+  case atom_to_list(Atom) of
+    ("Elixir." ++ [FirstLetter | _]) = List when FirstLetter >= $A, FirstLetter =< $Z ->
+      Last = last(lists:reverse(List), []),
+      {ok, list_to_atom("Elixir." ++ Last)};
+    _ ->
+      error
+  end.
 
 last([$. | _], Acc) -> Acc;
 last([H | T], Acc)  -> last(T, [H | Acc]);
