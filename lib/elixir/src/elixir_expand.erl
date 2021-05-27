@@ -942,9 +942,14 @@ expand_as({as, Atom}, Meta, _IncludeByDefault, _Ref, E) when is_atom(Atom), not 
     _ ->
       form_error(Meta, E, ?MODULE, {invalid_alias_for_as, not_alias, Atom})
   end;
-expand_as(false, _Meta, IncludeByDefault, Ref, _E) ->
-  if IncludeByDefault -> elixir_aliases:last(Ref);
-     true -> Ref
+expand_as(false, Meta, IncludeByDefault, Ref, E) ->
+  if 
+    IncludeByDefault -> 
+      case elixir_aliases:last(Ref) of
+        {ok, NewRef} -> NewRef;
+        error -> form_error(Meta, E, ?MODULE, {invalid_alias_module, Ref})
+      end;
+    true -> Ref
   end;
 expand_as({as, Other}, Meta, _IncludeByDefault, _Ref, E) ->
   form_error(Meta, E, ?MODULE, {invalid_alias_for_as, not_alias, Other}).
@@ -1116,6 +1121,9 @@ format_error(unhandled_arrow_op) ->
   "unhandled operator ->";
 format_error(as_in_multi_alias_call) ->
   ":as option is not supported by multi-alias call";
+format_error({invalid_alias_module, Ref}) ->
+  io_lib:format("alias cannot be inferred automatically for module: ~ts, please use the :as option. Implicit aliasing is only supported with Elixir modules",
+                ['Elixir.Macro':to_string(Ref)]);
 format_error({expected_compile_time_module, Kind, GivenTerm}) ->
   io_lib:format("invalid argument for ~ts, expected a compile time atom or alias, got: ~ts",
                 [Kind, 'Elixir.Macro':to_string(GivenTerm)]);
