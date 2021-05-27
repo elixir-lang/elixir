@@ -469,7 +469,7 @@ tokenize([$:, H | T] = Original, Line, Column, Scope, Tokens) when ?is_quote(H) 
         {ok, [Part]} when is_binary(Part) ->
           case unsafe_to_atom(Part, Line, Column, Scope) of
             {ok, Atom} ->
-              Token = {atom, {Line, Column, nil}, Atom},
+              Token = {atom_quoted, {Line, Column, nil}, Atom},
               tokenize(Rest, NewLine, NewColumn, NewScope, [Token | Tokens]);
 
             {error, Reason} ->

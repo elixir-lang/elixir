@@ -61,7 +61,7 @@ unquoted_atom_test() ->
   [{atom, {1, 1, nil}, '&&'}] = tokenize(":&&").
 
 quoted_atom_test() ->
-  [{atom, {1, 1, nil}, 'foo bar'}] = tokenize(":\"foo bar\"").
+  [{atom_quoted, {1, 1, nil}, 'foo bar'}] = tokenize(":\"foo bar\"").
 
 oversized_atom_test() ->
   OversizedAtom = string:copies("a", 256),

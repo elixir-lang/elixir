@@ -23,31 +23,10 @@ defmodule Code.Normalizer do
     do_normalize(quoted, state)
   end
 
-  # Skip normalized literals
-  defp do_normalize({:__block__, _, [literal]} = quoted, _state) when is_literal(literal) do
-    quoted
-  end
-
-  # Normalized lists
-  defp do_normalize({:__block__, meta, [list]} = quoted, state)
-       when is_list(list) do
-    if Keyword.has_key?(meta, :delimiter) do
-      # If it's a charlist, skip it
-      quoted
-    else
-      # If it's a regular list, then normalize the args
-      meta = patch_meta_line(meta, state.parent_meta)
-      args = normalize_args([list], %{state | parent_meta: meta})
-      {:__block__, meta, args}
-    end
-  end
-
-  # Normalized 2-tuples
-  defp do_normalize({:__block__, meta, [{left, right}]}, state) do
-    meta = patch_meta_line(meta, state)
-    left = do_normalize(left, %{state | parent_meta: meta})
-    right = do_normalize(right, %{state | parent_meta: meta})
-    {:__block__, meta, [{left, right}]}
+  # Wrapped literals should receive the block meta
+  defp do_normalize({:__block__, meta, [literal]}, state)
+       when not is_tuple(literal) or tuple_size(literal) == 2 do
+    normalize_literal(literal, meta, state)
   end
 
   # Only normalize the first argument of an alias if it's not an atom
@@ -206,18 +185,28 @@ defmodule Code.Normalizer do
     normalize_call(quoted, state)
   end
 
+  # Literals
+  defp do_normalize(quoted, state) do
+    normalize_literal(quoted, [], state)
+  end
+
   # Numbers
-  defp do_normalize(number, state) when is_number(number) do
-    meta = [token: inspect(number)] ++ meta_line(state)
+  defp normalize_literal(number, meta, state) when is_number(number) do
+    meta =
+      meta
+      |> Keyword.put_new(:token, inspect(number))
+      |> patch_meta_line(state.parent_meta)
+
     {:__block__, meta, [number]}
   end
 
   # Atom, Strings
-  defp do_normalize(literal, state) when is_atom(literal) or is_binary(literal) do
-    meta = meta_line(state)
+  defp normalize_literal(literal, meta, state) when is_atom(literal) or is_binary(literal) do
+    meta = patch_meta_line(meta, state.parent_meta)
     literal = maybe_escape_literal(literal, state)
 
-    if is_atom(literal) and Code.Identifier.classify(literal) == :alias do
+    if is_atom(literal) and Code.Identifier.classify(literal) == :alias and
+         is_nil(meta[:delimiter]) do
       "Elixir." <> segments = Atom.to_string(literal)
 
       segments =
@@ -232,13 +221,14 @@ defmodule Code.Normalizer do
   end
 
   # 2-tuples
-  defp do_normalize({left, right}, state) do
-    meta = meta_line(state)
+  defp normalize_literal({left, right}, meta, state) do
+    meta = patch_meta_line(meta, state.parent_meta)
+    state = %{state | parent_meta: meta}
     {:__block__, meta, [{do_normalize(left, state), do_normalize(right, state)}]}
   end
 
   # Lists
-  defp do_normalize(list, state) when is_list(list) do
+  defp normalize_literal(list, meta, state) when is_list(list) do
     if list != [] and List.ascii_printable?(list) do
       # It's a charlist
       list =
@@ -249,22 +239,27 @@ defmodule Code.Normalizer do
           list
         end
 
-      {:__block__, [delimiter: "'"] ++ meta_line(state), [list]}
+      meta =
+        meta
+        |> Keyword.put_new(:delimiter, "'")
+        |> patch_meta_line(state.parent_meta)
+
+      {:__block__, meta, [list]}
     else
       meta =
         if line = state.parent_meta[:line] do
-          [line: line, closing: [line: line]]
+          meta
+          |> Keyword.put_new(:closing, line: line)
+          |> patch_meta_line(state.parent_meta)
         else
-          []
+          meta
         end
 
-      args = normalize_kw_args(list, state)
-      {:__block__, meta, [args]}
+      {:__block__, meta, [normalize_kw_args(list, state)]}
     end
   end
 
-  # Everything else
-  defp do_normalize(quoted, _state) do
+  defp normalize_literal(quoted, _meta, _state) do
     quoted
   end
 
