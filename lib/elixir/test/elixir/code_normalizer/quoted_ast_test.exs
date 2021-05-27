@@ -494,6 +494,11 @@ defmodule Code.Normalizer.QuotedASTTest do
       assert quoted_to_string(ast) == "for <<(a::4 <- <<1, 2>>)>> do\n  a\nend"
     end
 
+    test "integer/float" do
+      assert quoted_to_string(1) == "1"
+      assert quoted_to_string({:__block__, [], [1]}) == "1"
+    end
+
     test "charlist" do
       assert quoted_to_string(quote(do: [])) == "[]"
       assert quoted_to_string(quote(do: 'abc')) == "'abc'"
@@ -532,6 +537,12 @@ defmodule Code.Normalizer.QuotedASTTest do
 
       assert quoted_to_string(quote(do: "\a\b\d\e\f\n\r\t\v")) ==
                ~s/"\\a\\b\\d\\e\\f\\n\\r\\t\\v"/
+
+      assert quoted_to_string({:__block__, [], ["\a\b\d\e\f\n\r\t\v"]}, escape: false) ==
+               ~s/"\a\b\d\e\f\n\r\t\v"/
+
+      assert quoted_to_string({:__block__, [], ["\a\b\d\e\f\n\r\t\v"]}) ==
+               ~s/"\\a\\b\\d\\e\\f\\n\\r\\t\\v"/
     end
 
     test "strings with non printable characters" do
@@ -544,6 +555,12 @@ defmodule Code.Normalizer.QuotedASTTest do
                ~s/'\a\b\e\n\r\t\v'/
 
       assert quoted_to_string(quote(do: '\a\b\e\n\r\t\v')) ==
+               ~s/'\\a\\b\\e\\n\\r\\t\\v'/
+
+      assert quoted_to_string({:__block__, [], ['\a\b\e\n\r\t\v']}, escape: false) ==
+               ~s/'\a\b\e\n\r\t\v'/
+
+      assert quoted_to_string({:__block__, [], ['\a\b\e\n\r\t\v']}) ==
                ~s/'\\a\\b\\e\\n\\r\\t\\v'/
     end
 
@@ -565,6 +582,9 @@ defmodule Code.Normalizer.QuotedASTTest do
     test "atoms" do
       assert quoted_to_string(quote(do: :"a\nb\tc"), escape: false) == ~s/:"a\nb\tc"/
       assert quoted_to_string(quote(do: :"a\nb\tc")) == ~S/:"a\nb\tc"/
+
+      assert quoted_to_string({:__block__, [], [:"a\nb\tc"]}, escape: false) == ~s/:"a\nb\tc"/
+      assert quoted_to_string({:__block__, [], [:"a\nb\tc"]}) == ~S/:"a\nb\tc"/
 
       assert quoted_to_string(quote(do: :"Elixir.Foo")) == "Foo"
       assert quoted_to_string(quote(do: :"Elixir.Foo.Bar")) == "Foo.Bar"

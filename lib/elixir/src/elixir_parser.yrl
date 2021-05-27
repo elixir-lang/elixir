@@ -31,7 +31,7 @@ Terminals
   identifier kw_identifier kw_identifier_safe kw_identifier_unsafe bracket_identifier
   paren_identifier do_identifier block_identifier
   fn 'end' alias
-  atom atom_safe atom_unsafe bin_string list_string sigil
+  atom atom_quoted atom_safe atom_unsafe bin_string list_string sigil
   bin_heredoc list_heredoc
   dot_call_op op_identifier
   comp_op at_op unary_op and_op or_op arrow_op match_op in_op in_match_op
@@ -272,8 +272,9 @@ access_expr -> list_heredoc : build_list_heredoc('$1').
 access_expr -> bit_string : '$1'.
 access_expr -> sigil : build_sigil('$1').
 access_expr -> atom : handle_literal(?exprs('$1'), '$1').
-access_expr -> atom_safe : build_quoted_atom('$1', true, []).
-access_expr -> atom_unsafe : build_quoted_atom('$1', false, []).
+access_expr -> atom_quoted : handle_literal(?exprs('$1'), '$1', delimiter(<<$">>)).
+access_expr -> atom_safe : build_quoted_atom('$1', true, delimiter(<<$">>)).
+access_expr -> atom_unsafe : build_quoted_atom('$1', false, delimiter(<<$">>)).
 access_expr -> dot_alias : '$1'.
 access_expr -> parens_call : '$1'.
 
@@ -627,6 +628,7 @@ map_args -> open_curly assoc_update_kw close_curly : build_map_update('$1', '$2'
 
 struct_op -> '%' : '$1'.
 struct_expr -> atom : handle_literal(?exprs('$1'), '$1', []).
+struct_expr -> atom_quoted : handle_literal(?exprs('$1'), '$1', delimiter(<<$">>)).
 struct_expr -> dot_alias : '$1'.
 struct_expr -> dot_identifier : build_identifier('$1', nil).
 struct_expr -> at_op_eol struct_expr : build_unary_op('$1', '$2').
