@@ -512,6 +512,7 @@ defmodule Code.Normalizer.QuotedASTTest do
 
     test "catch-all" do
       assert quoted_to_string(quote do: {unquote(self())}) == "{#{inspect(self())}}"
+      assert quoted_to_string(quote do: foo(unquote(self()))) == "foo(#{inspect(self())})"
     end
 
     test "last arg keyword list" do
