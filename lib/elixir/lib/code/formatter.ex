@@ -208,9 +208,16 @@ defmodule Code.Formatter do
   end
 
   @doc """
+  Lists all default locals without parens.
+  """
+  def locals_without_parens do
+    @locals_without_parens
+  end
+
+  @doc """
   Checks if a function is a local without parens.
   """
-  def local_without_parens?(fun, arity, locals_without_parens \\ @locals_without_parens) do
+  def local_without_parens?(fun, arity, locals_without_parens) do
     arity > 0 and
       Enum.any?(locals_without_parens, fn {key, val} ->
         key == fun and (val == :* or val == arity)
@@ -219,13 +226,11 @@ defmodule Code.Formatter do
 
   defp state(comments, opts) do
     force_do_end_blocks = Keyword.get(opts, :force_do_end_blocks, false)
-
-    locals_without_parens =
-      Keyword.get(opts, :locals_without_parens, []) ++ @locals_without_parens
+    locals_without_parens = Keyword.get(opts, :locals_without_parens, [])
 
     %{
       force_do_end_blocks: force_do_end_blocks,
-      locals_without_parens: locals_without_parens,
+      locals_without_parens: locals_without_parens ++ locals_without_parens(),
       operand_nesting: 2,
       skip_eol: false,
       comments: comments

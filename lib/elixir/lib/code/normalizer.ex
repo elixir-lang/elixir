@@ -14,10 +14,12 @@ defmodule Code.Normalizer do
   def normalize(quoted, opts \\ []) do
     line = Keyword.get(opts, :line, nil)
     escape = Keyword.get(opts, :escape, true)
+    locals_without_parens = Keyword.get(opts, :locals_without_parens, [])
 
     state = %{
       escape: escape,
-      parent_meta: [line: line]
+      parent_meta: [line: line],
+      locals_without_parens: locals_without_parens ++ Code.Formatter.locals_without_parens()
     }
 
     do_normalize(quoted, state)
@@ -283,7 +285,7 @@ defmodule Code.Normalizer do
 
     meta =
       if is_nil(meta[:no_parens]) and is_nil(meta[:closing]) and
-           not Code.Formatter.local_without_parens?(form, arity) do
+           not Code.Formatter.local_without_parens?(form, arity, state.locals_without_parens) do
         [closing: [line: meta[:line]]] ++ meta
       else
         meta

@@ -1333,7 +1333,7 @@ defmodule Code do
   defp previous_eol_count(_), do: 0
 
   @doc ~S"""
-  Converts a quoted expression to an algebra document.
+  Converts a quoted expression to an algebra document using Elixir's formatter rules.
 
   The algebra document can be converted into a string by calling:
 
@@ -1378,6 +1378,12 @@ defmodule Code do
       `\\n`. If the `:unescape` option was set to `false` when using
       `string_to_quoted/2`, setting this option to `false` will prevent it from
       escaping the sequences twice. Defaults to `true`.
+
+    * `:locals_without_parens` - a keyword list of name and arity
+      pairs that should be kept without parens whenever possible.
+      The arity may be the atom `:*`, which implies all arities of
+      that name. The formatter already includes a list of functions
+      and this option augments this list.
   """
   @doc since: "1.13.0"
   @spec quoted_to_algebra(Macro.t(), keyword) :: Inspect.Algebra.t()
