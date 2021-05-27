@@ -185,6 +185,11 @@ defmodule Code.Normalizer do
     normalize_call(quoted, state)
   end
 
+  # Vars
+  defp do_normalize({_, _, context} = quoted, _state) when is_atom(context) do
+    quoted
+  end
+
   # Literals
   defp do_normalize(quoted, state) do
     normalize_literal(quoted, [], state)
@@ -259,8 +264,9 @@ defmodule Code.Normalizer do
     end
   end
 
-  defp normalize_literal(quoted, _meta, _state) do
-    quoted
+  # Probably an invalid value, wrap it and send it upstream
+  defp normalize_literal(quoted, meta, _state) do
+    {:__block__, meta, [quoted]}
   end
 
   defp normalize_call({form, meta, args}, state) do
