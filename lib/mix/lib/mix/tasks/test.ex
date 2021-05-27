@@ -116,8 +116,7 @@ defmodule Mix.Tasks.Test do
     * `--export-coverage` - the name of the file to export coverage results to.
       Only has an effect when used with `--cover`
 
-    * `--failed` - runs only tests that failed the last time they ran.
-      If there are no pending --failed tests, `mix test` will run all available tests
+    * `--failed` - runs only tests that failed the last time they ran
 
     * `--force` - forces compilation regardless of modification times
 
@@ -713,13 +712,7 @@ defmodule Mix.Tasks.Test do
       end
 
       {allowed_files, failed_ids} = ExUnit.Filters.failure_info(manifest_file)
-
-      if MapSet.size(failed_ids) == 0 do
-        Mix.shell().info("No pending --failed tests, re-running all available tests...")
-        {opts, nil}
-      else
-        {Keyword.put(opts, :only_test_ids, failed_ids), allowed_files}
-      end
+      {Keyword.put(opts, :only_test_ids, failed_ids), allowed_files}
     else
       {opts, nil}
     end
