@@ -12,6 +12,20 @@ defmodule Kernel.RaiseTest do
   @compile {:no_warn_undefined, DoNotExist}
   @trace [{:foo, :bar, 0, []}]
 
+  test "raise preserves the stacktrace" do
+    stacktrace =
+      try do
+        raise "a"
+      rescue
+        _ -> hd(__STACKTRACE__)
+      end
+
+    file = __ENV__.file |> Path.relative_to_cwd() |> String.to_charlist()
+
+    assert {__MODULE__, :"test raise preserves the stacktrace", _, [file: ^file, line: 18] ++ _} =
+             stacktrace
+  end
+
   test "raise message" do
     assert_raise RuntimeError, "message", fn ->
       raise "message"
@@ -55,20 +69,6 @@ defmodule Kernel.RaiseTest do
       var = struct()
       raise var
     end
-  end
-
-  test "raise preserves the stacktrace" do
-    stacktrace =
-      try do
-        raise "a"
-      rescue
-        _ -> hd(__STACKTRACE__)
-      end
-
-    file = __ENV__.file |> Path.relative_to_cwd() |> String.to_charlist()
-
-    assert {__MODULE__, :"test raise preserves the stacktrace", _, [file: ^file, line: 63] ++ _} =
-             stacktrace
   end
 
   if :erlang.system_info(:otp_release) >= '24' do
