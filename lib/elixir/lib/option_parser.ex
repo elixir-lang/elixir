@@ -596,9 +596,11 @@ defmodule OptionParser do
           raise ArgumentError, ":switches and :strict cannot be given together"
 
         switches = opts[:switches] ->
+          validate_switches(switches)
           {switches, false}
 
         strict = opts[:strict] ->
+          validate_switches(strict)
           {strict, true}
 
         true ->
@@ -612,6 +614,20 @@ defmodule OptionParser do
       strict?: strict?,
       switches: switches
     }
+  end
+
+  defp validate_switches(switches) do
+    Enum.map(switches, &validate_switch/1)
+  end
+
+  defp validate_switch({_name, type_or_type_and_modifiers}) do
+    valid = [:boolean, :count, :integer, :float, :string, :keep]
+    invalid = List.wrap(type_or_type_and_modifiers) -- valid
+
+    if invalid != [] do
+      raise ArgumentError,
+            "invalid switch types/modifiers: " <> Enum.map_join(invalid, ", ", &inspect/1)
+    end
   end
 
   defp validate_option(value, kinds) do
