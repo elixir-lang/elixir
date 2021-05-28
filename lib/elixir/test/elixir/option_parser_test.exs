@@ -85,6 +85,16 @@ defmodule OptionParserTest do
     end
   end
 
+  test "parse/2 raises an exception on invalid switch types/modifiers" do
+    assert_raise ArgumentError, "invalid switch types/modifiers: :bad", fn ->
+      OptionParser.parse(["--elixir"], switches: [ex: :bad])
+    end
+
+    assert_raise ArgumentError, "invalid switch types/modifiers: :bad, :bad_modifier", fn ->
+      OptionParser.parse(["--elixir"], switches: [ex: [:bad, :bad_modifier]])
+    end
+  end
+
   test "parse!/2 raises an exception for an unknown option using strict" do
     assert_raise OptionParser.ParseError, "1 error found!\n--doc : Unknown option", fn ->
       argv = ["--source", "from_docs/", "--doc", "show"]
