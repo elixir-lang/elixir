@@ -43,10 +43,16 @@ defmodule Exception do
   @callback blame(t, stacktrace) :: {t, stacktrace}
   @optional_callbacks [blame: 2]
 
+  @doc false
+  # Callback for formatting Erlang exceptions
+  def format_error(%struct{} = exception, _stacktrace) do
+    %{general: message(exception), reason: "#" <> Atom.to_string(struct)}
+  end
+
   @doc """
   Returns `true` if the given `term` is an exception.
   """
-  # TODO: Remove this on Elixir v1.15
+  # TODO: Deprecate this on Elixir v1.15
   @doc deprecated: "Use Kernel.is_exception/1 instead"
   def exception?(term)
   def exception?(%_{__exception__: true}), do: true
