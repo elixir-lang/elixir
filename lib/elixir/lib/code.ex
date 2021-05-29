@@ -815,12 +815,14 @@ defmodule Code do
   if you do:
 
       case very_long_expression() do
+      end
 
   And only the `do` keyword is above the line length, Elixir **will not**
   emit this:
 
       case very_long_expression()
       do
+      end
 
   So it prefers to not touch the line at all and leave `do` above the
   line limit.
@@ -1106,7 +1108,7 @@ defmodule Code do
   ## Options
 
     * `:file` - the filename to be reported in case of parsing errors.
-      Defaults to "nofile".
+      Defaults to `"nofile"`.
 
     * `:line` - the starting line of the string being parsed.
       Defaults to 1.
@@ -1206,7 +1208,7 @@ defmodule Code do
   @doc """
   Converts the given string to its quoted form.
 
-  It returns the ast if it succeeds,
+  It returns the AST if it succeeds,
   raises an exception otherwise. The exception is a `TokenMissingError`
   in case a token is missing (usually because the expression is incomplete),
   `SyntaxError` otherwise.
@@ -1234,11 +1236,11 @@ defmodule Code do
 
     * `:line` - The line number the source code
 
-    * `:text` - The full text of the comment, incluing the leading `#`
+    * `:text` - The full text of the comment, including the leading `#`
 
-    * `:previous_eol_count` - How many end of lines there are between the comment and the previous ast node or comment
+    * `:previous_eol_count` - How many end of lines there are between the comment and the previous AST node or comment
 
-    * `:next_eol_count` - How many end of lines there are between the comment and the next ast node or comment
+    * `:next_eol_count` - How many end of lines there are between the comment and the next AST node or comment
 
   Check `string_to_quoted/2` for options information.
 
@@ -1286,9 +1288,9 @@ defmodule Code do
   end
 
   @doc """
-  Converts the given string to its quoted form and a list of commnents.
+  Converts the given string to its quoted form and a list of comments.
 
-  Returns the ast and a list of comments if it succeeds, raises an exception
+  Returns the AST and a list of comments if it succeeds, raises an exception
   otherwise. The exception is a `TokenMissingError` in case a token is missing
   (usually because the expression is incomplete), `SyntaxError` otherwise.
 
@@ -1394,7 +1396,7 @@ defmodule Code do
   end
 
   @doc """
-  Evals the given file.
+  Evaluates the given file.
 
   Accepts `relative_to` as an argument to tell where the file is located.
 
