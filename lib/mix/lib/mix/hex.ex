@@ -13,7 +13,7 @@ defmodule Mix.Hex do
       true
     else
       shell = Mix.shell()
-      shell.info("Could not find Hex, which is needed to build dependency #{inspect(app)}")
+      shell.info("Could not find Hex, which is needed to build dependencies #{inspect(app)}")
 
       confirm_message =
         "Shall I install Hex? (if running non-interactively, use \"mix local.hex --force\")"
