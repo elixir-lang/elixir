@@ -881,4 +881,20 @@ defmodule StringTest do
     # FB13;FB13;FB13;0574 0576;0574 0576;
     assert String.normalize("\u0574\u0576", :nfkc) == "\u0574\u0576"
   end
+
+  # The way carriage return works makes it problematic in many
+  # cases which we test here.
+  test "carriage return" do
+    assert String.at("\r\t\v", 0) == "\r"
+    assert String.at("\r\t\v", 1) == "\t"
+    assert String.at("\r\t\v", 2) == "\v"
+
+    assert String.next_grapheme("\r\t\v") == {"\r", "\t\v"}
+    assert String.next_grapheme("\t\v") == {"\t", "\v"}
+    assert String.next_grapheme("\v") == {"\v", ""}
+
+    assert String.length("\r\t\v") == 3
+    assert String.next_grapheme("\r\t\v") == {"\r", "\t\v"}
+    assert String.split("\r\t\v", "") == ["", "\r", "\t", "\v", ""]
+  end
 end
