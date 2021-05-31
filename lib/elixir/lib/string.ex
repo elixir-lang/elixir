@@ -1968,8 +1968,6 @@ defmodule String do
       <<cp::utf8, rest::bitstring>> -> length(rest, cp, acc)
       <<_, rest::bitstring>> -> length(rest, acc + 1)
       <<>> -> acc
-      [cp | rest] -> length(rest, cp, acc)
-      [] -> acc
     end
   end
 
@@ -1979,9 +1977,17 @@ defmodule String do
 
   defp length(rest, cp, acc) do
     case :unicode_util.gc([cp | rest]) do
-      [_] -> acc + 1
-      [_ | rest] -> length(rest, acc + 1)
-      {:error, <<_, rest::bitstring>>} -> length(rest, acc + 1)
+      [_ | rest] ->
+        case :unicode_util.cp(rest) do
+          [cp | rest] -> length(rest, cp, acc + 1)
+          [] -> acc + 1
+        end
+
+      [] ->
+        acc
+
+      {:error, <<_, rest::bitstring>>} ->
+        length(rest, acc + 1)
     end
   end
 
