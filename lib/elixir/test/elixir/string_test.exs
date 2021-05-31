@@ -888,12 +888,17 @@ defmodule StringTest do
     assert String.at("\r\t\v", 0) == "\r"
     assert String.at("\r\t\v", 1) == "\t"
     assert String.at("\r\t\v", 2) == "\v"
+    assert String.at("\xFF\r\t\v", 1) == "\r"
+    assert String.at("\r\xFF\t\v", 2) == "\t"
+    assert String.at("\r\t\xFF\v", 3) == "\v"
 
     assert String.next_grapheme("\r\t\v") == {"\r", "\t\v"}
     assert String.next_grapheme("\t\v") == {"\t", "\v"}
     assert String.next_grapheme("\v") == {"\v", ""}
 
     assert String.length("\r\t\v") == 3
+    assert String.length("\r\xFF\t\v") == 4
+    assert String.length("\r\t\xFF\v") == 4
     assert String.next_grapheme("\r\t\v") == {"\r", "\t\v"}
     assert String.split("\r\t\v", "") == ["", "\r", "\t", "\v", ""]
   end

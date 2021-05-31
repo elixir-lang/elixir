@@ -1962,32 +1962,11 @@ defmodule String do
   @spec length(t) :: non_neg_integer
   def length(string) when is_binary(string), do: length(string, 0)
 
-  @compile {:inline, length: 2}
   defp length(gcs, acc) do
-    case gcs do
-      <<cp::utf8, rest::bitstring>> -> length(rest, cp, acc)
-      <<_, rest::bitstring>> -> length(rest, acc + 1)
-      <<>> -> acc
-    end
-  end
-
-  defp length(<<cp2::utf8, rest::bitstring>>, cp1, acc)
-       when cp1 <= 255 and cp2 <= 255 and cp1 != ?\r,
-       do: length(rest, cp2, acc + 1)
-
-  defp length(rest, cp, acc) do
-    case :unicode_util.gc([cp | rest]) do
-      [_ | rest] ->
-        case :unicode_util.cp(rest) do
-          [cp | rest] -> length(rest, cp, acc + 1)
-          [] -> acc + 1
-        end
-
-      [] ->
-        acc
-
-      {:error, <<_, rest::bitstring>>} ->
-        length(rest, acc + 1)
+    case :unicode_util.gc(gcs) do
+      [_ | rest] -> length(rest, acc + 1)
+      [] -> acc
+      {:error, <<_, rest::bitstring>>} -> length(rest, acc + 1)
     end
   end
 
@@ -2738,7 +2717,6 @@ defmodule String do
   ## Helpers
 
   @compile {:inline,
-            byte_size_remaining_at: 2,
             codepoint_byte_size: 1,
             grapheme_byte_size: 1,
             grapheme_to_binary: 1,
@@ -2750,34 +2728,11 @@ defmodule String do
   end
 
   defp byte_size_remaining_at(binary, n) do
-    case binary do
-      <<cp::utf8, rest::bitstring>> -> byte_size_remaining_at(rest, cp, n)
-      <<_, rest::bitstring>> -> byte_size_remaining_at(rest, n - 1)
-      <<>> -> nil
-    end
-  end
-
-  defp byte_size_remaining_at(rest, cp, 0),
-    do: byte_size(rest) + codepoint_byte_size(cp)
-
-  defp byte_size_remaining_at(<<cp2::utf8, rest::bitstring>>, cp1, n)
-       when cp1 <= 255 and cp2 <= 255 and cp1 != ?\r,
-       do: byte_size_remaining_at(rest, cp2, n - 1)
-
-  defp byte_size_remaining_at(rest, cp, n) do
-    case :unicode_util.gc([cp | rest]) do
-      [_ | gcs] ->
-        case :unicode_util.cp(gcs) do
-          [cp | rest] -> byte_size_remaining_at(rest, cp, n - 1)
-          [] when n == 1 -> 0
-          [] -> nil
-        end
-
-      [] ->
-        0
-
-      {:error, <<_, bin::bitstring>>} ->
-        byte_size_remaining_at(bin, n - 1)
+    case :unicode_util.gc(binary) do
+      [_] -> 0
+      [_ | rest] -> byte_size_remaining_at(rest, n - 1)
+      [] -> 0
+      {:error, <<_, bin::bitstring>>} -> byte_size_remaining_at(bin, n - 1)
     end
   end
 
