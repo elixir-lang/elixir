@@ -892,6 +892,9 @@ defmodule StringTest do
     assert String.at("\r\xFF\t\v", 2) == "\t"
     assert String.at("\r\t\xFF\v", 3) == "\v"
 
+    assert String.last("\r\t\v") == "\v"
+    assert String.last("\r\xFF\t\xFF\v") == "\v"
+
     assert String.next_grapheme("\r\t\v") == {"\r", "\t\v"}
     assert String.next_grapheme("\t\v") == {"\t", "\v"}
     assert String.next_grapheme("\v") == {"\v", ""}
@@ -899,7 +902,8 @@ defmodule StringTest do
     assert String.length("\r\t\v") == 3
     assert String.length("\r\xFF\t\v") == 4
     assert String.length("\r\t\xFF\v") == 4
-    assert String.next_grapheme("\r\t\v") == {"\r", "\t\v"}
+
+    assert String.bag_distance("\r\t\xFF\v", "\xFF\r\n\xFF") == 0.25
     assert String.split("\r\t\v", "") == ["", "\r", "\t", "\v", ""]
   end
 end

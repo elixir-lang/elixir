@@ -511,7 +511,7 @@ defmodule String do
       [gc] -> [grapheme_to_binary(gc) | split_empty(<<>>, trim, count - 1)]
       [gc | rest] -> [grapheme_to_binary(gc) | split_empty(rest, trim, count - 1)]
       [] -> split_empty("", trim, 1)
-      {:error, <<byte, rest::bitstring>>} -> [<<byte>> | split_empty(rest, trim, count - 1)]
+      {:error, <<byte, rest::bits>>} -> [<<byte>> | split_empty(rest, trim, count - 1)]
     end
   end
 
@@ -1535,7 +1535,7 @@ defmodule String do
       [] ->
         reverse_characters_to_binary(acc)
 
-      {:error, <<byte, rest::bitstring>>} ->
+      {:error, <<byte, rest::bits>>} ->
         reverse_characters_to_binary(acc) <>
           <<byte>> <> intersperse_bin(rest, replacement, [replacement])
     end
@@ -1549,7 +1549,7 @@ defmodule String do
       [] ->
         reverse_characters_to_binary(acc)
 
-      {:error, <<byte, rest::bitstring>>} ->
+      {:error, <<byte, rest::bits>>} ->
         reverse_characters_to_binary(acc) <>
           <<byte>> <> intersperse_fun(rest, replacement, [replacement.("")])
     end
@@ -1613,7 +1613,7 @@ defmodule String do
   defp do_reverse([], acc),
     do: :unicode.characters_to_binary(acc)
 
-  defp do_reverse({:error, <<byte, rest::bitstring>>}, acc),
+  defp do_reverse({:error, <<byte, rest::bits>>}, acc),
     do: :unicode.characters_to_binary(acc) <> <<byte>> <> do_reverse(:unicode_util.gc(rest), [])
 
   @doc """
@@ -1852,7 +1852,7 @@ defmodule String do
     case :unicode_util.gc(gcs) do
       [gc | rest] -> [grapheme_to_binary(gc) | do_graphemes(rest)]
       [] -> []
-      {:error, <<byte, rest::bitstring>>} -> [<<byte>> | do_graphemes(rest)]
+      {:error, <<byte, rest::bits>>} -> [<<byte>> | do_graphemes(rest)]
     end
   end
 
@@ -1879,7 +1879,7 @@ defmodule String do
       [gc] -> {grapheme_to_binary(gc), <<>>}
       [gc | rest] -> {grapheme_to_binary(gc), rest}
       [] -> nil
-      {:error, <<byte, rest::bitstring>>} -> {<<byte>>, rest}
+      {:error, <<byte, rest::bits>>} -> {<<byte>>, rest}
     end
   end
 
@@ -1891,7 +1891,7 @@ defmodule String do
       [gc] -> {grapheme_byte_size(gc), <<>>}
       [gc | rest] -> {grapheme_byte_size(gc), rest}
       [] -> nil
-      {:error, <<_, rest::bitstring>>} -> {1, rest}
+      {:error, <<_, rest::bits>>} -> {1, rest}
     end
   end
 
@@ -1916,7 +1916,7 @@ defmodule String do
     case :unicode_util.gc(string) do
       [gc | _] -> grapheme_to_binary(gc)
       [] -> nil
-      {:error, <<byte, _::bitstring>>} -> <<byte>>
+      {:error, <<byte, _::bits>>} -> <<byte>>
     end
   end
 
@@ -1945,7 +1945,7 @@ defmodule String do
   defp do_last([gc | rest], _), do: do_last(:unicode_util.gc(rest), gc)
   defp do_last([], acc) when is_binary(acc), do: acc
   defp do_last([], acc), do: :unicode.characters_to_binary([acc])
-  defp do_last({:error, <<byte, rest::bitstring>>}, _), do: do_last(rest, <<byte>>)
+  defp do_last({:error, <<byte, rest::bits>>}, _), do: do_last(:unicode_util.gc(rest), <<byte>>)
 
   @doc """
   Returns the number of Unicode graphemes in a UTF-8 string.
@@ -1966,7 +1966,7 @@ defmodule String do
     case :unicode_util.gc(gcs) do
       [_ | rest] -> length(rest, acc + 1)
       [] -> acc
-      {:error, <<_, rest::bitstring>>} -> length(rest, acc + 1)
+      {:error, <<_, rest::bits>>} -> length(rest, acc + 1)
     end
   end
 
@@ -2197,7 +2197,7 @@ defmodule String do
   defp acc_bytes([], bytes, length),
     do: {bytes, length}
 
-  defp acc_bytes({:error, <<_, rest::bitstring>>}, bytes, length),
+  defp acc_bytes({:error, <<_, rest::bits>>}, bytes, length),
     do: acc_bytes(:unicode_util.gc(rest), [1 | bytes], length + 1)
 
   defp add_if_negative(value, to_add) when value < 0, do: value + to_add
@@ -2564,21 +2564,16 @@ defmodule String do
 
   defp string_to_bag(string, bag, length) do
     case :unicode_util.gc(string) do
-      [gc | rest] ->
-        bag =
-          case bag do
-            %{^gc => current} -> %{bag | gc => current + 1}
-            %{} -> Map.put(bag, gc, 1)
-          end
+      [gc | rest] ->  string_to_bag(rest, bag_store(bag, gc), length + 1)
+      [] -> {bag, length}
+      {:error, <<byte, rest::bits>>} -> string_to_bag(rest, bag_store(bag, <<byte>>), length + 1)
+    end
+  end
 
-        string_to_bag(rest, bag, length + 1)
-
-      [] ->
-        {bag, length}
-
-      # Let's not count mismatched bytes in the bag
-      {:error, <<_, rest::bitstring>>} ->
-        string_to_bag(rest, bag, length + 1)
+  defp bag_store(bag, gc) do
+    case bag do
+      %{^gc => current} -> %{bag | gc => current + 1}
+      %{} -> Map.put(bag, gc, 1)
     end
   end
 
@@ -2732,7 +2727,7 @@ defmodule String do
       [_] -> 0
       [_ | rest] -> byte_size_remaining_at(rest, n - 1)
       [] -> 0
-      {:error, <<_, bin::bitstring>>} -> byte_size_remaining_at(bin, n - 1)
+      {:error, <<_, bin::bits>>} -> byte_size_remaining_at(bin, n - 1)
     end
   end
 
@@ -2764,7 +2759,7 @@ defmodule String do
       [] ->
         {:lists.reverse(acc), length}
 
-      {:error, <<byte, rest::bitstring>>} ->
+      {:error, <<byte, rest::bits>>} ->
         graphemes_and_length(rest, [<<byte>> | acc], length + 1)
     end
   end
