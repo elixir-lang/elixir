@@ -882,8 +882,8 @@ defmodule StringTest do
     assert String.normalize("\u0574\u0576", :nfkc) == "\u0574\u0576"
   end
 
-  # The way carriage return works makes it problematic in many
-  # cases which we test here.
+  # Carriage return can be a grapheme cluster if followed by
+  # newline so we test some corner cases here.
   test "carriage return" do
     assert String.at("\r\t\v", 0) == "\r"
     assert String.at("\r\t\v", 1) == "\t"
