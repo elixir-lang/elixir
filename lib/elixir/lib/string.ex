@@ -2564,7 +2564,7 @@ defmodule String do
 
   defp string_to_bag(string, bag, length) do
     case :unicode_util.gc(string) do
-      [gc | rest] ->  string_to_bag(rest, bag_store(bag, gc), length + 1)
+      [gc | rest] -> string_to_bag(rest, bag_store(bag, gc), length + 1)
       [] -> {bag, length}
       {:error, <<byte, rest::bits>>} -> string_to_bag(rest, bag_store(bag, <<byte>>), length + 1)
     end
