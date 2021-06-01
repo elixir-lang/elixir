@@ -531,7 +531,7 @@ signature_to_binary(_Module, Name, _Signature) when Name == '__aliases__'; Name 
   <<(atom_to_binary(Name, utf8))/binary, "(args)">>;
 
 signature_to_binary(_Module, fn, _Signature) ->
-  <<"fn">>;
+  <<"fn(clauses)">>;
 
 signature_to_binary(_Module, Name, _Signature)
     when Name == '__CALLER__'; Name == '__DIR__'; Name == '__ENV__';
