@@ -507,9 +507,11 @@ defmodule String do
   defp split_empty(string, _, 1), do: [string]
 
   defp split_empty(string, trim, count) do
-    case next_grapheme(string) do
-      {h, t} -> [h | split_empty(t, trim, count - 1)]
-      nil -> split_empty("", trim, 1)
+    case :unicode_util.gc(string) do
+      [gc] -> [grapheme_to_binary(gc) | split_empty(<<>>, trim, count - 1)]
+      [gc | rest] -> [grapheme_to_binary(gc) | split_empty(rest, trim, count - 1)]
+      [] -> split_empty("", trim, 1)
+      {:error, <<byte, rest::bits>>} -> [<<byte>> | split_empty(rest, trim, count - 1)]
     end
   end
 
@@ -642,8 +644,13 @@ defmodule String do
   end
 
   defp do_split_at(string, position) do
-    {byte_size, rest} = String.Unicode.split_at(string, position)
-    {binary_part(string, 0, byte_size), rest || ""}
+    if remaining = byte_size_remaining_at(string, position) do
+      start = byte_size(string) - remaining
+      <<left::size(start)-binary, right::size(remaining)-binary>> = string
+      {left, right}
+    else
+      {string, ""}
+    end
   end
 
   @doc ~S"""
@@ -801,7 +808,7 @@ defmodule String do
   end
 
   def upcase(string, :default) when is_binary(string) do
-    String.Casing.upcase(string, [], :default)
+    String.Unicode.upcase(string, [], :default)
   end
 
   def upcase(string, :ascii) when is_binary(string) do
@@ -809,7 +816,7 @@ defmodule String do
   end
 
   def upcase(string, mode) when is_binary(string) and mode in @conditional_mappings do
-    String.Casing.upcase(string, [], mode)
+    String.Unicode.upcase(string, [], mode)
   end
 
   defp upcase_ascii(<<char, rest::bits>>) when char >= ?a and char <= ?z,
@@ -869,7 +876,7 @@ defmodule String do
   end
 
   def downcase(string, :default) when is_binary(string) do
-    String.Casing.downcase(string, [], :default)
+    String.Unicode.downcase(string, [], :default)
   end
 
   def downcase(string, :ascii) when is_binary(string) do
@@ -877,7 +884,7 @@ defmodule String do
   end
 
   def downcase(string, mode) when is_binary(string) and mode in @conditional_mappings do
-    String.Casing.downcase(string, [], mode)
+    String.Unicode.downcase(string, [], mode)
   end
 
   defp downcase_ascii(<<char, rest::bits>>) when char >= ?A and char <= ?Z,
@@ -916,7 +923,7 @@ defmodule String do
   end
 
   def capitalize(string, mode) when is_binary(string) do
-    {char, rest} = String.Casing.titlecase_once(string, mode)
+    {char, rest} = String.Unicode.titlecase_once(string, mode)
     char <> downcase(rest, mode)
   end
 
@@ -1482,7 +1489,7 @@ defmodule String do
   defp replace_guarded(subject, "", replacement_binary, options)
        when is_binary(replacement_binary) do
     if Keyword.get(options, :global, true) do
-      IO.iodata_to_binary([replacement_binary | intersperse_bin(subject, replacement_binary)])
+      intersperse_bin(subject, replacement_binary, [replacement_binary])
     else
       replacement_binary <> subject
     end
@@ -1490,7 +1497,7 @@ defmodule String do
 
   defp replace_guarded(subject, "", replacement_fun, options) do
     if Keyword.get(options, :global, true) do
-      IO.iodata_to_binary([replacement_fun.("") | intersperse_fun(subject, replacement_fun)])
+      intersperse_fun(subject, replacement_fun, [replacement_fun.("")])
     else
       IO.iodata_to_binary([replacement_fun.("") | subject])
     end
@@ -1520,17 +1527,31 @@ defmodule String do
     end
   end
 
-  defp intersperse_bin(subject, replacement) do
-    case next_grapheme(subject) do
-      {current, rest} -> [current, replacement | intersperse_bin(rest, replacement)]
-      nil -> []
+  defp intersperse_bin(subject, replacement, acc) do
+    case :unicode_util.gc(subject) do
+      [current | rest] ->
+        intersperse_bin(rest, replacement, [replacement, current | acc])
+
+      [] ->
+        reverse_characters_to_binary(acc)
+
+      {:error, <<byte, rest::bits>>} ->
+        reverse_characters_to_binary(acc) <>
+          <<byte>> <> intersperse_bin(rest, replacement, [replacement])
     end
   end
 
-  defp intersperse_fun(subject, replacement) do
-    case next_grapheme(subject) do
-      {current, rest} -> [current, replacement.("") | intersperse_fun(rest, replacement)]
-      nil -> []
+  defp intersperse_fun(subject, replacement, acc) do
+    case :unicode_util.gc(subject) do
+      [current | rest] ->
+        intersperse_fun(rest, replacement, [replacement.(""), current | acc])
+
+      [] ->
+        reverse_characters_to_binary(acc)
+
+      {:error, <<byte, rest::bits>>} ->
+        reverse_characters_to_binary(acc) <>
+          <<byte>> <> intersperse_fun(rest, replacement, [replacement.("")])
     end
   end
 
@@ -1583,16 +1604,17 @@ defmodule String do
   """
   @spec reverse(t) :: t
   def reverse(string) when is_binary(string) do
-    do_reverse(next_grapheme(string), [])
+    do_reverse(:unicode_util.gc(string), [])
   end
 
-  defp do_reverse({grapheme, rest}, acc) do
-    do_reverse(next_grapheme(rest), [grapheme | acc])
-  end
+  defp do_reverse([grapheme | rest], acc),
+    do: do_reverse(:unicode_util.gc(rest), [grapheme | acc])
 
-  defp do_reverse(nil, acc), do: IO.iodata_to_binary(acc)
+  defp do_reverse([], acc),
+    do: :unicode.characters_to_binary(acc)
 
-  @compile {:inline, duplicate: 2}
+  defp do_reverse({:error, <<byte, rest::bits>>}, acc),
+    do: :unicode.characters_to_binary(acc) <> <<byte>> <> do_reverse(:unicode_util.gc(rest), [])
 
   @doc """
   Returns a string `subject` repeated `n` times.
@@ -1611,6 +1633,7 @@ defmodule String do
       "abcabc"
 
   """
+  @compile {:inline, duplicate: 2}
   @spec duplicate(t, non_neg_integer) :: t
   def duplicate(subject, n) when is_binary(subject) and is_integer(n) and n >= 0 do
     :binary.copy(subject, n)
@@ -1643,7 +1666,19 @@ defmodule String do
 
   """
   @spec codepoints(t) :: [codepoint]
-  defdelegate codepoints(string), to: String.Unicode
+  def codepoints(string) when is_binary(string) do
+    do_codepoints(string)
+  end
+
+  defp do_codepoints(<<codepoint::utf8, rest::bits>>) do
+    [<<codepoint::utf8>> | do_codepoints(rest)]
+  end
+
+  defp do_codepoints(<<byte, rest::bits>>) do
+    [<<byte>> | do_codepoints(rest)]
+  end
+
+  defp do_codepoints(<<>>), do: []
 
   @doc ~S"""
   Returns the next code point in a string.
@@ -1686,9 +1721,10 @@ defmodule String do
   Binary pattern matching, however, is simpler and more efficient,
   so pick the option that better suits your use case.
   """
-  @compile {:inline, next_codepoint: 1}
   @spec next_codepoint(t) :: {codepoint, t} | nil
-  defdelegate next_codepoint(string), to: String.Unicode
+  def next_codepoint(<<cp::utf8, rest::binary>>), do: {<<cp::utf8>>, rest}
+  def next_codepoint(<<byte, rest::binary>>), do: {<<byte>>, rest}
+  def next_codepoint(<<>>), do: nil
 
   @doc ~S"""
   Checks whether `string` contains only valid characters.
@@ -1808,10 +1844,17 @@ defmodule String do
       ["é"]
 
   """
+  @compile {:inline, graphemes: 1}
   @spec graphemes(t) :: [grapheme]
-  defdelegate graphemes(string), to: String.Unicode
+  def graphemes(string) when is_binary(string), do: do_graphemes(string)
 
-  @compile {:inline, next_grapheme: 1, next_grapheme_size: 1}
+  defp do_graphemes(gcs) do
+    case :unicode_util.gc(gcs) do
+      [gc | rest] -> [grapheme_to_binary(gc) | do_graphemes(rest)]
+      [] -> []
+      {:error, <<byte, rest::bits>>} -> [<<byte>> | do_graphemes(rest)]
+    end
+  end
 
   @doc """
   Returns the next grapheme in a string.
@@ -1829,32 +1872,28 @@ defmodule String do
       nil
 
   """
+  @compile {:inline, next_grapheme: 1}
   @spec next_grapheme(t) :: {grapheme, t} | nil
-  def next_grapheme(binary) when is_binary(binary) do
-    case next_grapheme_size(binary) do
-      {size, rest} -> {binary_part(binary, 0, size), rest}
-      nil -> nil
+  def next_grapheme(string) when is_binary(string) do
+    case :unicode_util.gc(string) do
+      [gc] -> {grapheme_to_binary(gc), <<>>}
+      [gc | rest] -> {grapheme_to_binary(gc), rest}
+      [] -> nil
+      {:error, <<byte, rest::bits>>} -> {<<byte>>, rest}
     end
   end
 
-  @doc """
-  Returns the size (in bytes) of the next grapheme.
-
-  The result is a tuple with the next grapheme size in bytes and
-  the remainder of the string or `nil` in case the string
-  reached its end.
-
-  ## Examples
-
-      iex> String.next_grapheme_size("olá")
-      {1, "lá"}
-
-      iex> String.next_grapheme_size("")
-      nil
-
-  """
+  @doc false
+  @deprecated "Use String.next_grapheme/1 instead"
   @spec next_grapheme_size(t) :: {pos_integer, t} | nil
-  defdelegate next_grapheme_size(string), to: String.Unicode
+  def next_grapheme_size(string) when is_binary(string) do
+    case :unicode_util.gc(string) do
+      [gc] -> {grapheme_byte_size(gc), <<>>}
+      [gc | rest] -> {grapheme_byte_size(gc), rest}
+      [] -> nil
+      {:error, <<_, rest::bits>>} -> {1, rest}
+    end
+  end
 
   @doc """
   Returns the first grapheme from a UTF-8 string,
@@ -1874,9 +1913,10 @@ defmodule String do
   """
   @spec first(t) :: grapheme | nil
   def first(string) when is_binary(string) do
-    case next_grapheme(string) do
-      {char, _} -> char
-      nil -> nil
+    case :unicode_util.gc(string) do
+      [gc | _] -> grapheme_to_binary(gc)
+      [] -> nil
+      {:error, <<byte, _::bits>>} -> <<byte>>
     end
   end
 
@@ -1884,7 +1924,12 @@ defmodule String do
   Returns the last grapheme from a UTF-8 string,
   `nil` if the string is empty.
 
+  It traverses the whole string to find its last grapheme.
+
   ## Examples
+
+      iex> String.last("")
+      nil
 
       iex> String.last("elixir")
       "r"
@@ -1894,15 +1939,13 @@ defmodule String do
 
   """
   @spec last(t) :: grapheme | nil
-  def last(string) when is_binary(string) do
-    do_last(next_grapheme(string), nil)
-  end
+  def last(""), do: nil
+  def last(string) when is_binary(string), do: do_last(:unicode_util.gc(string), nil)
 
-  defp do_last({char, rest}, _) do
-    do_last(next_grapheme(rest), char)
-  end
-
-  defp do_last(nil, last_char), do: last_char
+  defp do_last([gc | rest], _), do: do_last(:unicode_util.gc(rest), gc)
+  defp do_last([], acc) when is_binary(acc), do: acc
+  defp do_last([], acc), do: :unicode.characters_to_binary([acc])
+  defp do_last({:error, <<byte, rest::bits>>}, _), do: do_last(:unicode_util.gc(rest), <<byte>>)
 
   @doc """
   Returns the number of Unicode graphemes in a UTF-8 string.
@@ -1917,7 +1960,15 @@ defmodule String do
 
   """
   @spec length(t) :: non_neg_integer
-  defdelegate length(string), to: String.Unicode
+  def length(string) when is_binary(string), do: length(string, 0)
+
+  defp length(gcs, acc) do
+    case :unicode_util.gc(gcs) do
+      [_ | rest] -> length(rest, acc + 1)
+      [] -> acc
+      {:error, <<_, rest::bits>>} -> length(rest, acc + 1)
+    end
+  end
 
   @doc """
   Returns the grapheme at the `position` of the given UTF-8 `string`.
@@ -1957,9 +2008,10 @@ defmodule String do
   end
 
   defp do_at(string, position) do
-    case String.Unicode.split_at(string, position) do
-      {_, nil} -> nil
-      {_, rest} -> first(rest)
+    if left = byte_size_remaining_at(string, position) do
+      string
+      |> binary_part(byte_size(string) - left, left)
+      |> first()
     end
   end
 
@@ -2008,14 +2060,7 @@ defmodule String do
   def slice(string, start, length)
       when is_binary(string) and is_integer(start) and is_integer(length) and start >= 0 and
              length >= 0 do
-    case String.Unicode.split_at(string, start) do
-      {_, nil} ->
-        ""
-
-      {start_bytes, rest} ->
-        {len_bytes, _} = String.Unicode.split_at(rest, length)
-        binary_part(string, start_bytes, len_bytes)
-    end
+    do_slice(string, start, length)
   end
 
   def slice(string, start, length)
@@ -2024,8 +2069,22 @@ defmodule String do
     start = length(string) + start
 
     case start >= 0 do
-      true -> slice(string, start, length)
+      true -> do_slice(string, start, length)
       false -> ""
+    end
+  end
+
+  defp do_slice(string, start, length) do
+    if from_start = byte_size_remaining_at(string, start) do
+      rest = binary_part(string, byte_size(string) - from_start, from_start)
+
+      if from_end = byte_size_remaining_at(rest, length) do
+        binary_part(rest, 0, from_start - from_end)
+      else
+        rest
+      end
+    else
+      ""
     end
   end
 
@@ -2101,9 +2160,10 @@ defmodule String do
   defp slice_range("", _, _), do: ""
 
   defp slice_range(string, first, -1) when first >= 0 do
-    case String.Unicode.split_at(string, first) do
-      {_, nil} -> ""
-      {start_bytes, _} -> binary_part(string, start_bytes, byte_size(string) - start_bytes)
+    if left = byte_size_remaining_at(string, first) do
+      binary_part(string, byte_size(string) - left, left)
+    else
+      ""
     end
   end
 
@@ -2116,7 +2176,7 @@ defmodule String do
   end
 
   defp slice_range(string, first, last) do
-    {bytes, length} = acc_bytes(next_grapheme_size(string), [], 0)
+    {bytes, length} = acc_bytes(:unicode_util.gc(string), [], 0)
     first = add_if_negative(first, length)
     last = add_if_negative(last, length)
 
@@ -2131,13 +2191,14 @@ defmodule String do
     end
   end
 
-  defp acc_bytes({size, rest}, bytes, length) do
-    acc_bytes(next_grapheme_size(rest), [size | bytes], length + 1)
-  end
+  defp acc_bytes([gc | rest], bytes, length),
+    do: acc_bytes(:unicode_util.gc(rest), [grapheme_byte_size(gc) | bytes], length + 1)
 
-  defp acc_bytes(nil, bytes, length) do
-    {bytes, length}
-  end
+  defp acc_bytes([], bytes, length),
+    do: {bytes, length}
+
+  defp acc_bytes({:error, <<_, rest::bits>>}, bytes, length),
+    do: acc_bytes(:unicode_util.gc(rest), [1 | bytes], length + 1)
 
   defp add_if_negative(value, to_add) when value < 0, do: value + to_add
   defp add_if_negative(value, _to_add), do: value
@@ -2502,18 +2563,17 @@ defmodule String do
   end
 
   defp string_to_bag(string, bag, length) do
-    case next_grapheme(string) do
-      {char, rest} ->
-        bag =
-          case bag do
-            %{^char => current} -> %{bag | char => current + 1}
-            %{} -> Map.put(bag, char, 1)
-          end
+    case :unicode_util.gc(string) do
+      [gc | rest] -> string_to_bag(rest, bag_store(bag, gc), length + 1)
+      [] -> {bag, length}
+      {:error, <<byte, rest::bits>>} -> string_to_bag(rest, bag_store(bag, <<byte>>), length + 1)
+    end
+  end
 
-        string_to_bag(rest, bag, length + 1)
-
-      nil ->
-        {bag, length}
+  defp bag_store(bag, gc) do
+    case bag do
+      %{^gc => current} -> %{bag | gc => current + 1}
+      %{} -> Map.put(bag, gc, 1)
     end
   end
 
@@ -2558,8 +2618,8 @@ defmodule String do
   def jaro_distance("", _string), do: 0.0
 
   def jaro_distance(string1, string2) when is_binary(string1) and is_binary(string2) do
-    {chars1, len1} = chars_and_length(string1)
-    {chars2, len2} = chars_and_length(string2)
+    {chars1, len1} = graphemes_and_length(string1)
+    {chars2, len2} = graphemes_and_length(string2)
 
     case match(chars1, len1, chars2, len2) do
       {0, _trans} ->
@@ -2568,12 +2628,6 @@ defmodule String do
       {comm, trans} ->
         (comm / len1 + comm / len2 + (comm - trans) / comm) / 3
     end
-  end
-
-  @compile {:inline, chars_and_length: 1}
-  defp chars_and_length(string) do
-    chars = graphemes(string)
-    {chars, Kernel.length(chars)}
   end
 
   defp match(chars1, len1, chars2, len2) do
@@ -2654,4 +2708,62 @@ defmodule String do
   @deprecated "Use String.to_charlist/1 instead"
   @spec to_char_list(t) :: charlist
   def to_char_list(string), do: String.to_charlist(string)
+
+  ## Helpers
+
+  @compile {:inline,
+            codepoint_byte_size: 1,
+            grapheme_byte_size: 1,
+            grapheme_to_binary: 1,
+            graphemes_and_length: 1,
+            reverse_characters_to_binary: 1}
+
+  defp byte_size_remaining_at(binary, 0) do
+    byte_size(binary)
+  end
+
+  defp byte_size_remaining_at(binary, n) do
+    case :unicode_util.gc(binary) do
+      [_] -> 0
+      [_ | rest] -> byte_size_remaining_at(rest, n - 1)
+      [] -> 0
+      {:error, <<_, bin::bits>>} -> byte_size_remaining_at(bin, n - 1)
+    end
+  end
+
+  defp codepoint_byte_size(cp) when cp <= 0x00FF, do: 1
+  defp codepoint_byte_size(cp) when cp <= 0x07FF, do: 2
+  defp codepoint_byte_size(cp) when cp <= 0xFFFF, do: 3
+  defp codepoint_byte_size(_), do: 4
+
+  defp grapheme_to_binary(cp) when is_integer(cp), do: <<cp::utf8>>
+  defp grapheme_to_binary(gc), do: :unicode.characters_to_binary(gc)
+
+  defp grapheme_byte_size(cp) when is_integer(cp), do: codepoint_byte_size(cp)
+  defp grapheme_byte_size(cps), do: grapheme_byte_size(cps, 0)
+
+  defp grapheme_byte_size([cp | cps], acc),
+    do: grapheme_byte_size(cps, acc + codepoint_byte_size(cp))
+
+  defp grapheme_byte_size([], acc),
+    do: acc
+
+  defp graphemes_and_length(string),
+    do: graphemes_and_length(string, [], 0)
+
+  defp graphemes_and_length(string, acc, length) do
+    case :unicode_util.gc(string) do
+      [gc | rest] ->
+        graphemes_and_length(rest, [gc | acc], length + 1)
+
+      [] ->
+        {:lists.reverse(acc), length}
+
+      {:error, <<byte, rest::bits>>} ->
+        graphemes_and_length(rest, [<<byte>> | acc], length + 1)
+    end
+  end
+
+  defp reverse_characters_to_binary(acc),
+    do: acc |> :lists.reverse() |> :unicode.characters_to_binary()
 end
