@@ -42,7 +42,7 @@ defmodule Mix.Tasks.Compile.All do
 
     app = config[:app]
     _ = Code.prepend_path(Mix.Project.compile_path())
-    load_app(app, %{app => true}, lib_path, validate_compile_env?)
+    load_app(app, lib_path, validate_compile_env?)
     result
   end
 
@@ -99,16 +99,16 @@ defmodule Mix.Tasks.Compile.All do
     {runtime, optional} = Mix.Tasks.Compile.App.project_apps(config)
     parent = self()
     opts = [ordered: false, timeout: :infinity]
-    deps = for dep <- Mix.Dep.cached(), into: %{}, do: {dep.app, true}
+    deps = for dep <- Mix.Dep.cached(), into: %{}, do: {dep.app, lib_path}
 
-    stream_apps(runtime ++ optional)
-    |> Task.async_stream(&load_app(&1, parent, deps, lib_path, validate_compile_env?), opts)
+    stream_apps(runtime ++ optional, deps)
+    |> Task.async_stream(&load_stream_app(&1, parent, validate_compile_env?), opts)
     |> Stream.run()
   end
 
-  defp load_app(app, parent, deps, lib_path, validate_compile_env?) do
+  defp load_stream_app({app, lib_path}, parent, validate_compile_env?) do
     children =
-      case load_app(app, deps, lib_path, validate_compile_env?) do
+      case load_app(app, lib_path, validate_compile_env?) do
         :ok ->
           Application.spec(app, :applications) ++ Application.spec(app, :included_applications)
 
@@ -120,37 +120,37 @@ defmodule Mix.Tasks.Compile.All do
     :ok
   end
 
-  defp stream_apps(initial) do
-    Stream.unfold({initial, %{}, %{}}, &stream_app/1)
+  defp stream_apps(initial, deps) do
+    Stream.unfold({initial, %{}, %{}, deps}, &stream_app/1)
   end
 
   # We already processed this app, skip it.
-  defp stream_app({[app | apps], seen, done}) when is_map_key(seen, app) do
-    stream_app({apps, seen, done})
+  defp stream_app({[app | apps], seen, done, deps}) when is_map_key(seen, app) do
+    stream_app({apps, seen, done, deps})
   end
 
   # We haven't processed this app, emit it.
-  defp stream_app({[app | apps], seen, done}) do
-    {app, {apps, Map.put(seen, app, true), done}}
+  defp stream_app({[app | apps], seen, done, deps}) do
+    {{app, deps[app]}, {apps, Map.put(seen, app, true), done, deps}}
   end
 
   # We have processed all apps and all seen have been done.
-  defp stream_app({[], seen, done}) when map_size(seen) == map_size(done) do
+  defp stream_app({[], seen, done, _deps}) when map_size(seen) == map_size(done) do
     nil
   end
 
   # We have processed all apps but there is work being done.
-  defp stream_app({[], seen, done}) do
+  defp stream_app({[], seen, done, deps}) do
     receive do
-      {:done, app, children} -> stream_app({children, seen, Map.put(done, app, true)})
+      {:done, app, children} -> stream_app({children, seen, Map.put(done, app, true), deps})
     end
   end
 
-  defp load_app(app, deps, lib_path, validate_compile_env?) do
+  defp load_app(app, lib_path, validate_compile_env?) do
     if Application.spec(app, :vsn) do
       :ok
     else
-      with {:ok, bin} <- read_app(app, deps, lib_path),
+      with {:ok, bin} <- read_app(app, lib_path),
            {:ok, {:application, _, properties} = application_data} <- consult_app_file(bin),
            :ok <- :application.load(application_data) do
         if compile_env = validate_compile_env? && properties[:compile_env] do
@@ -164,17 +164,17 @@ defmodule Mix.Tasks.Compile.All do
     end
   end
 
-  # Optimize the ones coming from deps by avoiding code/erl_prim_loader
-  defp read_app(app, deps, lib_path) when is_map_key(deps, app) do
-    File.read("#{lib_path}/#{app}/ebin/#{app}.app")
-  end
-
-  defp read_app(app, _deps, _lib_path) do
+  # The app didn't come from a dep, go through the slow path (code/erl_prim_loader)
+  defp read_app(app, nil) do
     name = Atom.to_charlist(app) ++ '.app'
 
     with [_ | _] = path <- :code.where_is_file(name),
          {:ok, bin, _full_name} <- :erl_prim_loader.get_file(path),
          do: {:ok, bin}
+  end
+
+  defp read_app(app, lib_path) do
+    File.read("#{lib_path}/#{app}/ebin/#{app}.app")
   end
 
   defp consult_app_file(bin) do
