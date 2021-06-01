@@ -104,14 +104,16 @@ defmodule Mix.Tasks.Compile.All do
   end
 
   defp load_app(app, parent, validate_compile_env?) do
-    case load_app(app, validate_compile_env?) do
-      :ok ->
-        send(parent, {:done, app, Application.spec(app, :applications) ++ Application.spec(app, :included_applications)})
+    children =
+      case load_app(app, validate_compile_env?) do
+        :ok ->
+          Application.spec(app, :applications) ++ Application.spec(app, :included_applications)
 
-      :error ->
-        send(parent, {:done, app, []})
-    end
+        :error ->
+          []
+      end
 
+    send(parent, {:done, app, children})
     :ok
   end
 
