@@ -95,32 +95,50 @@ defmodule Mix.Tasks.Compile.All do
 
   defp load_apps(config, validate_compile_env?) do
     {runtime, optional} = Mix.Tasks.Compile.App.project_apps(config)
+    parent = self()
+    opts = [ordered: false, timeout: :infinity]
 
-    %{}
-    |> load_apps(runtime, validate_compile_env?)
-    |> load_apps(optional, validate_compile_env?)
+    stream_apps(runtime ++ optional)
+    |> Task.async_stream(&load_app(&1, parent, validate_compile_env?), opts)
+    |> Stream.run()
+  end
+
+  defp load_app(app, parent, validate_compile_env?) do
+    case load_app(app, validate_compile_env?) do
+      :ok ->
+        send(parent, {:done, app, Application.spec(app, :applications) ++ Application.spec(app, :included_applications)})
+
+      :error ->
+        send(parent, {:done, app, []})
+    end
 
     :ok
   end
 
-  defp load_apps(seen, apps, validate_compile_env?) do
-    Enum.reduce(apps, seen, fn app, seen ->
-      if Map.has_key?(seen, app) do
-        seen
-      else
-        seen = Map.put(seen, app, true)
+  defp stream_apps(initial) do
+    Stream.unfold({initial, %{}, %{}}, &stream_app/1)
+  end
 
-        case load_app(app, validate_compile_env?) do
-          :ok ->
-            seen
-            |> load_apps(Application.spec(app, :applications), validate_compile_env?)
-            |> load_apps(Application.spec(app, :included_applications), validate_compile_env?)
+  # We already processed this app, skip it.
+  defp stream_app({[app | apps], seen, done}) when is_map_key(seen, app) do
+    stream_app({apps, seen, done})
+  end
 
-          :error ->
-            seen
-        end
-      end
-    end)
+  # We haven't processed this app, emit it.
+  defp stream_app({[app | apps], seen, done}) do
+    {app, {apps, Map.put(seen, app, true), done}}
+  end
+
+  # We have processed all apps and all seen have been done.
+  defp stream_app({[], seen, done}) when map_size(seen) == map_size(done) do
+    nil
+  end
+
+  # We have processed all apps but there is work being done.
+  defp stream_app({[], seen, done}) do
+    receive do
+      {:done, app, children} -> stream_app({children, seen, Map.put(done, app, true)})
+    end
   end
 
   defp load_app(app, validate_compile_env?) do
