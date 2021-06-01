@@ -223,9 +223,9 @@ translate({{'.', _, [Left, Right]}, Meta, []}, S) when is_tuple(Left), is_atom(R
   Ann = ?ann(Meta),
   TRight = {atom, Ann, Right},
 
-  {Var, SV} = elixir_erl_var:build('_', SL),
-  TVar = {var, Ann, Var},
   Generated = erl_anno:set_generated(true, Ann),
+  {Var, SV} = elixir_erl_var:build('_', SL),
+  TVar = {var, Generated, Var},
   TError = {tuple, Ann, [{atom, Ann, badkey}, TRight, TVar]},
 
   {{'case', Generated, TLeft, [
