@@ -70,7 +70,7 @@ defmodule Task do
       ], strategy: :one_for_one)
 
   And now you can use async/await once again passig the name of
-  the supervisor isntead of the pid:
+  the supervisor instead of the pid:
 
       Task.Supervisor.async(MyApp.TaskSupervisor, fn ->
         # Do something
