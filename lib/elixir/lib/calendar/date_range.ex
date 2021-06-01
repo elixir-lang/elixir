@@ -23,6 +23,7 @@ defmodule Date.Range do
 
   @typep iso_days() :: Calendar.iso_days()
 
+  @enforce_keys [:first, :last, :first_in_iso_days, :last_in_iso_days, :step]
   defstruct [:first, :last, :first_in_iso_days, :last_in_iso_days, :step]
 
   defimpl Enumerable do
