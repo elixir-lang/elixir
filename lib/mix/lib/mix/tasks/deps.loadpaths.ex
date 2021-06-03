@@ -4,7 +4,7 @@ defmodule Mix.Tasks.Deps.Loadpaths do
   import Mix.Dep, only: [format_dep: 1, format_status: 1, check_lock: 1]
 
   @moduledoc """
-  Checks and loads all dependencies along the way.
+  Checks, compiles, and loads all dependencies along the way.
 
   If there is an invalid dependency, its status is printed
   before aborting.
@@ -14,15 +14,21 @@ defmodule Mix.Tasks.Deps.Loadpaths do
 
   ## Command line options
 
-    * `--no-deps-check` - does not check or compile deps, only load available ones
     * `--no-compile` - does not compile dependencies
-    * `--no-load-deps` - does not load deps from the code path
+    * `--no-deps-check` - does not check or compile deps, only load available ones
+    * `--no-elixir-version-check` - does not check Elixir version
+    * `--no-load-deps` - does not add deps loadpaths to the code path
 
   """
 
   @impl true
   def run(args) do
     all = Mix.Dep.load_and_cache()
+    config = Mix.Project.config()
+
+    unless "--no-elixir-version-check" in args do
+      check_elixir_version(config)
+    end
 
     unless "--no-deps-check" in args do
       deps_check(all, "--no-compile" in args)
@@ -36,7 +42,24 @@ defmodule Mix.Tasks.Deps.Loadpaths do
           path
         end
 
-      prune_deps(load_paths, "--no-deps-check" in args)
+      prune_deps(config, load_paths, "--no-deps-check" in args)
+    end
+  end
+
+  defp check_elixir_version(config) do
+    if req = config[:elixir] do
+      case Version.parse_requirement(req) do
+        {:ok, req} ->
+          unless Version.match?(System.version(), req) do
+            raise Mix.ElixirVersionError,
+              target: config[:app] || Mix.Project.get(),
+              expected: req,
+              actual: System.version()
+          end
+
+        :error ->
+          Mix.raise("Invalid Elixir version requirement #{req} in mix.exs file")
+      end
     end
   end
 
@@ -50,9 +73,7 @@ defmodule Mix.Tasks.Deps.Loadpaths do
   # We also expect env_path to be nil. If it is not nil, it means
   # it was set by a parent application and the parent application
   # should be the one doing the pruning.
-  defp prune_deps(load_paths, no_check?) do
-    config = Mix.Project.config()
-
+  defp prune_deps(config, load_paths, no_check?) do
     shared_build? =
       no_check? or config[:build_path] != nil or config[:build_per_environment] == false
 
@@ -119,7 +140,7 @@ defmodule Mix.Tasks.Deps.Loadpaths do
 
   # Those are compiled by umbrella.
   defp from_umbrella?(dep) do
-    dep.opts()[:from_umbrella]
+    dep.opts[:from_umbrella]
   end
 
   # Every local dependency (i.e. that are not fetchable)
