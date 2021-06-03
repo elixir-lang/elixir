@@ -49,7 +49,7 @@ defmodule Mix.Tasks.Compile do
     * `--erl-config` - path to an Erlang term file that will be loaded as Mix config
     * `--force` - forces compilation
     * `--list` - lists all enabled compilers
-    * `--no-app-loading` - does not load applications (including from deps) before compiling
+    * `--no-app-loading` - does not load .app resource files (including from deps) before compiling
     * `--no-archives-check` - skips checking of archives
     * `--no-compile` - does not actually compile, only loads code and perform checks
     * `--no-deps-check` - skips checking of dependencies
