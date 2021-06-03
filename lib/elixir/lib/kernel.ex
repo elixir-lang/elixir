@@ -540,7 +540,7 @@ defmodule Kernel do
 
   Giving it an empty list raises:
 
-      tl([])
+      hd([])
       #=> ** (ArgumentError) argument error
 
   """
