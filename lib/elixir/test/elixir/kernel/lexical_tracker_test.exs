@@ -138,6 +138,26 @@ defmodule Kernel.LexicalTrackerTest do
       refute Foo.Bar in compile
     end
 
+    test "typespecs track structs as exports" do
+      Code.eval_string("""
+      defmodule Kernel.LexicalTrackerTest.StructTypespecs do
+        @type uri :: %URI{}
+
+        # References from specs are processed only late
+        @after_compile __MODULE__
+        def __after_compile__(env, _) do
+          send(self(), {:references, Kernel.LexicalTracker.references(env.lexical_tracker)})
+        end
+      end
+      """)
+
+      assert_received {:references, {compile, exports, runtime, _}}
+
+      assert URI in runtime
+      assert URI in exports
+      refute URI in compile
+    end
+
     test "@compile adds a runtime dependency" do
       {{compile, exports, runtime, _}, _binding} =
         Code.eval_string("""
