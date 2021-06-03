@@ -553,9 +553,7 @@ defmodule Kernel.Typespec do
   end
 
   defp typespec({:%, _, [name, {:%{}, meta, fields}]}, vars, caller, state) do
-    # We cannot set a function name to avoid tracking
-    # as a compile time dependency, because for structs it actually is one.
-    module = Macro.expand(name, caller)
+    module = Macro.expand(name, %{caller | function: {:__info__, 1}})
 
     struct =
       module
