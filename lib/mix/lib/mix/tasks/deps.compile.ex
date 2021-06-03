@@ -169,7 +169,6 @@ defmodule Mix.Tasks.Deps.Compile do
       try do
         options = [
           "--from-mix-deps-compile",
-          "--no-app-loading",
           "--no-archives-check",
           "--no-warnings-as-errors"
         ]
