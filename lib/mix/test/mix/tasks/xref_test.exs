@@ -324,6 +324,19 @@ defmodule Mix.Tasks.XrefTest do
       """)
     end
 
+    test "filter by compile-connected label" do
+      assert_graph(~w[--label compile-connected], """
+      lib/a.ex
+      `-- lib/b.ex (compile)
+      lib/b.ex
+      `-- lib/d.ex (compile)
+      lib/c.ex
+      `-- lib/d.ex (compile)
+      lib/d.ex
+      lib/e.ex
+      """)
+    end
+
     test "filter by compile label with only direct" do
       assert_graph(~w[--label compile --only-direct], """
       lib/a.ex
