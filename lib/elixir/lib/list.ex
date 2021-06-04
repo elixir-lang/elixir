@@ -229,6 +229,46 @@ defmodule List do
   end
 
   @doc """
+  Append the given `list` of nested lists to create one list.
+
+  ## Examples
+
+      iex> List.append([[1, 2], [3, 4]])
+      [1, 2, 3, 4]
+
+      iex> List.append([[1, 2], [3], [4, 5]])
+      [1, 2, 3, 4, 5]
+
+      iex> List.append([[], [1, 2], []])
+      [1, 2]
+
+  """
+  @spec append(deep_list) :: list when deep_list: [list()]
+  def append(list) do
+    :lists.append(list)
+  end
+
+  @doc """
+  Append `tail` list to the given `list`.
+
+  ## Examples
+
+      iex> List.append([1, 2, 3], [4, 5, 6])
+      [1, 2, 3, 4, 5, 6]
+
+      iex> List.append([], [1, 2 ,3])
+      [1, 2, 3]
+
+      iex> List.append([1, 2, 3], [])
+      [1, 2, 3]
+
+  """
+  @spec append(list(), list()) :: list()
+  def append(list, tail) do
+    :lists.append(list, tail)
+  end
+
+  @doc """
   Folds (reduces) the given list from the left with
   a function. Requires an accumulator.
 

@@ -52,6 +52,20 @@ defmodule ListTest do
     assert List.flatten([1, [], 2], [3, [], 4]) == [1, 2, 3, [], 4]
   end
 
+  test "append/1" do
+    assert List.append([1, 2], [3, 4]) == [1, 2, 3, 4]
+    assert List.append([[1, 2], []]) == [1, 2]
+    assert List.append([[], [1, 2]]) == [1, 2]
+    assert List.append([[1, 2], [3], [4], [5]]) == [1, 2, 3, 4, 5]
+  end
+
+  test "append/2" do
+    assert List.append([1, 2, 3], [4, 5]) == [1, 2, 3, 4, 5]
+    assert List.append([1, [2], 3], [4, 5]) == [1, [2], 3, 4, 5]
+    assert List.append([[1, [2], 3]], [4, 5]) == [[1, [2], 3], 4, 5]
+    assert List.append([1, [], 2], [3, [], 4]) == [1, [], 2, 3, [], 4]
+  end
+
   test "foldl/3" do
     assert List.foldl([1, 2, 3], 0, fn x, y -> x + y end) == 6
     assert List.foldl([1, 2, 3], 10, fn x, y -> x + y end) == 16
