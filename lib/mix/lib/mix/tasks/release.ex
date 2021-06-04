@@ -638,10 +638,10 @@ defmodule Mix.Tasks.Release do
 
   Releases also supports custom mechanisms, called config providers, to load
   any sort of runtime configuration to the system while it boots. For instance,
-  if you need to access a vault or load configuration from a JSON file, it
-  can be achieved with config providers. The runtime configuration outlined
-  in the previous section, which is handled by the `Config.Reader` provider.
-  See the `Config.Provider` module for more information and more examples.
+  if you need to access a vault or load configuration from a JSON file, it can
+  be achieved with config providers. The runtime configuration outlined in the
+  previous section is handled by the `Config.Reader` provider. See the
+  `Config.Provider` module for more information and more examples.
 
   The following options can be set inside your releases key in your `mix.exs`
   to control how config providers work:
