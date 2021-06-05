@@ -355,19 +355,12 @@ defmodule Kernel.ParserTest do
                    :bar
                  ]}, [no_parens: true, line: 3, column: 1], []}
 
-      assert string_to_quoted.(~s[Integer.\nis_odd(1)]) ==
-               {{:., [line: 1, column: 8],
+      assert string_to_quoted.(~s[Foo.\nbar(1)]) ==
+               {{:., [line: 1, column: 4],
                  [
-                   {:__aliases__, [last: [line: 1, column: 1], line: 1, column: 1], [:Integer]},
-                   :is_odd
-                 ]}, [closing: [line: 2, column: 9], line: 2, column: 1], [1]}
-
-      assert string_to_quoted.(~s[Integer.\nparse("1")]) ==
-               {{:., [line: 1, column: 8],
-                 [
-                   {:__aliases__, [last: [line: 1, column: 1], line: 1, column: 1], [:Integer]},
-                   :parse
-                 ]}, [closing: [line: 2, column: 10], line: 2, column: 1], ["1"]}
+                   {:__aliases__, [last: [line: 1, column: 1], line: 1, column: 1], [:Foo]},
+                   :bar
+                 ]}, [closing: [line: 2, column: 6], line: 2, column: 1], [1]}
     end
 
     test "adds metadata for the last alias segment" do
