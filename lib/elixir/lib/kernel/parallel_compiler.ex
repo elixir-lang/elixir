@@ -16,25 +16,28 @@ defmodule Kernel.ParallelCompiler do
   """
   @doc since: "1.6.0"
   def async(fun) when is_function(fun, 0) do
-    if parent = :erlang.get(:elixir_compiler_pid) do
-      file = :erlang.get(:elixir_compiler_file)
-      dest = :erlang.get(:elixir_compiler_dest)
-      {:error_handler, error_handler} = :erlang.process_info(self(), :error_handler)
-      checker = Module.ParallelChecker.get()
+    case :erlang.get(:elixir_compiler_info) do
+      {compiler, _} ->
+        file = :erlang.get(:elixir_compiler_file)
+        dest = :erlang.get(:elixir_compiler_dest)
 
-      Task.async(fn ->
-        send(parent, {:async, self()})
-        Module.ParallelChecker.put(parent, checker)
-        :erlang.put(:elixir_compiler_pid, parent)
-        :erlang.put(:elixir_compiler_file, file)
-        dest != :undefined and :erlang.put(:elixir_compiler_dest, dest)
-        :erlang.process_flag(:error_handler, error_handler)
-        fun.()
-      end)
-    else
-      raise ArgumentError,
-            "cannot spawn parallel compiler task because " <>
-              "the current file is not being compiled/required"
+        {:error_handler, error_handler} = :erlang.process_info(self(), :error_handler)
+        checker = Module.ParallelChecker.get()
+
+        Task.async(fn ->
+          send(compiler, {:async, self()})
+          Module.ParallelChecker.put(compiler, checker)
+          :erlang.put(:elixir_compiler_info, {compiler, self()})
+          :erlang.put(:elixir_compiler_file, file)
+          dest != :undefined and :erlang.put(:elixir_compiler_dest, dest)
+          :erlang.process_flag(:error_handler, error_handler)
+          fun.()
+        end)
+
+      :undefined ->
+        raise ArgumentError,
+              "cannot spawn parallel compiler task because " <>
+                "the current file is not being compiled/required"
     end
   end
 
@@ -294,9 +297,9 @@ defmodule Kernel.ParallelCompiler do
   defp spawn_workers([{ref, found} | t], spawned, waiting, files, result, warnings, state) do
     {files, waiting} =
       case List.keytake(waiting, ref, 2) do
-        {{_kind, pid, ^ref, _on, _defining, _deadlock}, waiting} ->
+        {{_kind, pid, ^ref, file_pid, _on, _defining, _deadlock}, waiting} ->
           send(pid, {ref, found})
-          {update_timing(files, pid, :waiting), waiting}
+          {update_timing(files, file_pid, :waiting), waiting}
 
         nil ->
           # In case the waiting process died (for example, it was an async process),
@@ -315,7 +318,7 @@ defmodule Kernel.ParallelCompiler do
     {pid, ref} =
       :erlang.spawn_monitor(fn ->
         Module.ParallelChecker.put(parent, checker)
-        :erlang.put(:elixir_compiler_pid, parent)
+        :erlang.put(:elixir_compiler_info, {parent, self()})
         :erlang.put(:elixir_compiler_file, file)
 
         try do
@@ -369,7 +372,7 @@ defmodule Kernel.ParallelCompiler do
   defp spawn_workers(
          [],
          1,
-         [{_, pid, ref, _, _, _}] = waiting,
+         [{_, pid, ref, _, _, _, _}] = waiting,
          [%{pid: pid}] = files,
          result,
          warnings,
@@ -463,11 +466,11 @@ defmodule Kernel.ParallelCompiler do
 
   # The goal of this function is to find leaves in the dependency graph,
   # i.e. to find code that depends on code that we know is not being defined.
-  # Note that not all files have been compile yet, so they may not be in waiting.
+  # Note that not all files have been compiled yet, so they may not be in waiting.
   defp without_definition(waiting, files) do
     nillify_empty(
       for %{pid: pid} <- files,
-          {_, ^pid, ref, on, _, _} <- List.wrap(List.keyfind(waiting, pid, 1)),
+          {_, _, ref, ^pid, on, _, _} <- waiting,
           not defining?(on, waiting),
           do: {ref, :not_found}
     )
@@ -475,14 +478,14 @@ defmodule Kernel.ParallelCompiler do
 
   defp deadlocked(waiting, type, defining?) do
     nillify_empty(
-      for {_, _, ref, on, _, ^type} <- waiting,
+      for {_, _, ref, _, on, _, ^type} <- waiting,
           defining?(on, waiting) == defining?,
           do: {ref, :deadlock}
     )
   end
 
   defp defining?(on, waiting) do
-    Enum.any?(waiting, fn {_, _, _, _, defining, _} -> on in defining end)
+    Enum.any?(waiting, fn {_, _, _, _, _, defining, _} -> on in defining end)
   end
 
   defp nillify_empty([]), do: nil
@@ -499,7 +502,7 @@ defmodule Kernel.ParallelCompiler do
 
       {:available, kind, module} ->
         available =
-          for {^kind, _, ref, ^module, _defining, _deadlock} <- waiting,
+          for {^kind, _, ref, _, ^module, _defining, _deadlock} <- waiting,
               do: {ref, :found}
 
         result = Map.put(result, {kind, module}, true)
@@ -512,28 +515,28 @@ defmodule Kernel.ParallelCompiler do
         send(child, {ref, :ack})
 
         available =
-          for {:module, _, ref, ^module, _defining, _deadlock} <- waiting,
+          for {:module, _, ref, _, ^module, _defining, _deadlock} <- waiting,
               do: {ref, :found}
 
         result = Map.put(result, {:module, module}, {binary, checker_info})
         spawn_workers(available ++ queue, spawned, waiting, files, result, warnings, state)
 
       # If we are simply requiring files, we do not add to waiting.
-      {:waiting, _kind, child, ref, _on, _defining, _deadlock} when output == :require ->
+      {:waiting, _kind, child, ref, _file_pid, _on, _defining, _deadlock} when output == :require ->
         send(child, {ref, :not_found})
         spawn_workers(queue, spawned, waiting, files, result, warnings, state)
 
-      {:waiting, kind, child, ref, on, defining, deadlock?} ->
+      {:waiting, kind, child_pid, ref, file_pid, on, defining, deadlock?} ->
         # If we already got what we were waiting for, do not put it on waiting.
         # If we're waiting on ourselves, send :found so that we can crash with
         # a better error.
         {files, waiting} =
           if Map.has_key?(result, {kind, on}) or on in defining do
-            send(child, {ref, :found})
+            send(child_pid, {ref, :found})
             {files, waiting}
           else
-            files = update_timing(files, child, :compiling)
-            {files, [{kind, child, ref, on, defining, deadlock?} | waiting]}
+            files = update_timing(files, file_pid, :compiling)
+            {files, [{kind, child_pid, ref, file_pid, on, defining, deadlock?} | waiting]}
           end
 
         spawn_workers(queue, spawned, waiting, files, result, warnings, state)
@@ -672,7 +675,7 @@ defmodule Kernel.ParallelCompiler do
         {:current_stacktrace, stacktrace} = Process.info(pid, :current_stacktrace)
         Process.exit(pid, :kill)
 
-        {kind, ^pid, _, on, _, _} = List.keyfind(waiting, pid, 1)
+        {kind, ^pid, _, _, on, _, _} = List.keyfind(waiting, pid, 1)
         description = "deadlocked waiting on #{kind} #{inspect(on)}"
         error = CompileError.exception(description: description, file: nil, line: nil)
         print_error(file, :error, error, stacktrace)

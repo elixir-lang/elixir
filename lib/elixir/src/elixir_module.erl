@@ -458,10 +458,10 @@ make_module_available(Module, Binary, CheckerPid) ->
       ok
   end,
 
-  case get(elixir_compiler_pid) of
+  case get(elixir_compiler_info) of
     undefined ->
       ok;
-    PID ->
+    {PID, _} ->
       Ref = make_ref(),
       PID ! {module_available, self(), Ref, get(elixir_compiler_file), Module, Binary, CheckerPid},
       receive {Ref, ack} -> ok end

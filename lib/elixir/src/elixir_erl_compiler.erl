@@ -3,11 +3,11 @@
 -include("elixir.hrl").
 
 spawn(Fun) ->
-  CompilerPid = get(elixir_compiler_pid),
+  CompilerInfo = get(elixir_compiler_info),
 
   {_, Ref} =
     spawn_monitor(fun() ->
-      put(elixir_compiler_pid, CompilerPid),
+      put(elixir_compiler_info, CompilerInfo),
 
       try Fun() of
         Result -> exit({ok, Result})

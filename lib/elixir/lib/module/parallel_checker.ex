@@ -79,10 +79,12 @@ defmodule Module.ParallelChecker do
   end
 
   @doc """
-  Verifies the given compilation function. See `verify/4`.
+  Verifies the given compilation function
+  by starting a checker if one does not exist.
+  See `verify/3`.
   """
   def verify(fun) do
-    case :erlang.get(:elixir_compiler_pid) do
+    case :erlang.get(:elixir_compiler_info) do
       :undefined ->
         previous = :erlang.get(:elixir_checker_info)
         {:ok, checker} = start_link()

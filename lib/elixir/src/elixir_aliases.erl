@@ -104,9 +104,9 @@ ensure_loaded(Meta, Module, E) ->
   end.
 
 wait_for_module(Module) ->
-  case is_pid(erlang:get(elixir_compiler_pid)) of
-    true -> 'Elixir.Kernel.ErrorHandler':ensure_compiled(Module, module, hard);
-    false -> not_found
+  case erlang:get(elixir_compiler_info) of
+    undefined -> not_found;
+    _ -> 'Elixir.Kernel.ErrorHandler':ensure_compiled(Module, module, hard)
   end.
 
 %% Receives an atom and returns the last bit as an alias.

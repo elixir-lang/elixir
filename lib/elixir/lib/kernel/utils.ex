@@ -137,9 +137,9 @@ defmodule Kernel.Utils do
   Announcing callback for defstruct.
   """
   def announce_struct(module) do
-    case :erlang.get(:elixir_compiler_pid) do
+    case :erlang.get(:elixir_compiler_info) do
       :undefined -> :ok
-      pid -> send(pid, {:available, :struct, module})
+      {pid, _} -> send(pid, {:available, :struct, module})
     end
   end
 
