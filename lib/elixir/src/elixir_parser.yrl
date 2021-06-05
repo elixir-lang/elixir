@@ -830,7 +830,7 @@ build_alias({'alias', Location, Alias}) ->
   Meta = meta_from_location(Location),
   MetaWithExtra =
     case ?token_metadata() of
-      true -> lists:keystore(last, 1, Meta, {last, meta_from_location(Location)});
+      true -> [{last, meta_from_location(Location)} | Meta];
       false -> Meta
     end,
   {'__aliases__', MetaWithExtra, [Alias]}.
@@ -848,7 +848,7 @@ build_dot_alias(Dot, Expr, {'alias', SegmentLocation, Right}) ->
   Meta = meta_from_token(Dot),
   MetaWithExtra =
     case ?token_metadata() of
-      true -> lists:keystore(last, 1, Meta, {last, meta_from_location(SegmentLocation)});
+      true -> [{last, meta_from_location(SegmentLocation)} | Meta];
       false -> Meta
     end,
   {'__aliases__', MetaWithExtra, [Expr, Right]}.

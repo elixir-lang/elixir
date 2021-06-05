@@ -352,13 +352,13 @@ defmodule Kernel.ParserTest do
     test "adds metadata for the last alias segment" do
       string_to_quoted = &Code.string_to_quoted!(&1, token_metadata: true)
 
-      assert string_to_quoted.("Foo") == {:__aliases__, [line: 1, last: [line: 1]], [:Foo]}
+      assert string_to_quoted.("Foo") == {:__aliases__, [last: [line: 1], line: 1], [:Foo]}
 
       assert string_to_quoted.("Foo.\nBar\n.\nBaz") ==
-               {:__aliases__, [line: 1, last: [line: 4]], [:Foo, :Bar, :Baz]}
+               {:__aliases__, [last: [line: 4], line: 1], [:Foo, :Bar, :Baz]}
 
       assert string_to_quoted.("foo.\nBar\n.\nBaz") ==
-               {:__aliases__, [line: 1, last: [line: 4]], [{:foo, [line: 1], nil}, :Bar, :Baz]}
+               {:__aliases__, [last: [line: 4], line: 1], [{:foo, [line: 1], nil}, :Bar, :Baz]}
     end
   end
 
