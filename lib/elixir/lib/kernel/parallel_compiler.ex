@@ -630,13 +630,13 @@ defmodule Kernel.ParallelCompiler do
         data = maybe_warn_long_compilation(data, state)
 
         if state.profile != :none do
-          compiling = System.convert_time_unit(data.compiling, :native, :millisecond)
-          waiting = System.convert_time_unit(data.waiting, :native, :millisecond)
-          extra = if waiting > 0, do: " (plus #{waiting}ms waiting)", else: ""
+          compiling = to_padded_ms(data.compiling)
+          waiting = to_padded_ms(data.waiting)
+          relative = Path.relative_to_cwd(data.file)
 
           IO.puts(
             :stderr,
-            "[profile] #{Path.relative_to_cwd(data.file)} compiled in #{compiling}ms" <> extra
+            "[profile] #{compiling}ms compiling + #{waiting}ms waiting for #{relative}"
           )
         end
 
@@ -645,6 +645,13 @@ defmodule Kernel.ParallelCompiler do
         false
       end
     end)
+  end
+
+  defp to_padded_ms(time) do
+    time
+    |> System.convert_time_unit(:native, :millisecond)
+    |> Integer.to_string()
+    |> String.pad_leading(6, " ")
   end
 
   defp discard_down(pid) do
