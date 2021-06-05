@@ -348,6 +348,18 @@ defmodule Kernel.ParserTest do
                    :bar
                  ]}, [no_parens: true, identifier_location: [line: 2], line: 1], []}
     end
+
+    test "adds metadata for the last alias segment" do
+      string_to_quoted = &Code.string_to_quoted!(&1, token_metadata: true)
+
+      assert string_to_quoted.("Foo") == {:__aliases__, [line: 1, last: [line: 1]], [:Foo]}
+
+      assert string_to_quoted.("Foo.\nBar\n.\nBaz") ==
+               {:__aliases__, [line: 1, last: [line: 4]], [:Foo, :Bar, :Baz]}
+
+      assert string_to_quoted.("foo.\nBar\n.\nBaz") ==
+               {:__aliases__, [line: 1, last: [line: 4]], [{:foo, [line: 1], nil}, :Bar, :Baz]}
+    end
   end
 
   describe "token missing errors" do

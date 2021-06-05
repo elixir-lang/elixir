@@ -827,14 +827,31 @@ end_of_expression(Location) ->
 %% Dots
 
 build_alias({'alias', Location, Alias}) ->
-  {'__aliases__', meta_from_location(Location), [Alias]}.
+  Meta = meta_from_location(Location),
+  MetaWithExtra =
+    case ?token_metadata() of
+      true -> lists:keystore(last, 1, Meta, {last, meta_from_location(Location)});
+      false -> Meta
+    end,
+  {'__aliases__', MetaWithExtra, [Alias]}.
 
-build_dot_alias(_Dot, {'__aliases__', Meta, Left}, {'alias', _, Right}) ->
-  {'__aliases__', Meta, Left ++ [Right]};
+build_dot_alias(_Dot, {'__aliases__', Meta, Left}, {'alias', SegmentLocation, Right}) ->
+  MetaWithExtra =
+    case ?token_metadata() of
+      true -> lists:keystore(last, 1, Meta, {last, meta_from_location(SegmentLocation)});
+      false -> Meta
+    end,
+  {'__aliases__', MetaWithExtra, Left ++ [Right]};
 build_dot_alias(_Dot, Atom, Right) when is_atom(Atom) ->
   error_bad_atom(Right);
-build_dot_alias(Dot, Expr, {'alias', _, Right}) ->
-  {'__aliases__', meta_from_token(Dot), [Expr, Right]}.
+build_dot_alias(Dot, Expr, {'alias', SegmentLocation, Right}) ->
+  Meta = meta_from_token(Dot),
+  MetaWithExtra =
+    case ?token_metadata() of
+      true -> lists:keystore(last, 1, Meta, {last, meta_from_location(SegmentLocation)});
+      false -> Meta
+    end,
+  {'__aliases__', MetaWithExtra, [Expr, Right]}.
 
 build_dot_container(Dot, Left, Right, Extra) ->
   Meta = meta_from_token(Dot),
