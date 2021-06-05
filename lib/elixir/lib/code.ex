@@ -1763,6 +1763,7 @@ defmodule Code do
   @doc """
   Same as `ensure_loaded/1` but raises if the module cannot be loaded.
   """
+  @doc since: "1.12.0"
   @spec ensure_loaded!(module) :: module
   def ensure_loaded!(module) do
     case ensure_loaded(module) do
