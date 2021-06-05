@@ -337,6 +337,17 @@ defmodule Kernel.ParserTest do
                    ]}
                 ]}
     end
+
+    test "adds identifier_location for qualified identifiers" do
+      string_to_quoted = &Code.string_to_quoted!(&1, token_metadata: true)
+
+      assert string_to_quoted.("foo.\nbar") ==
+               {{:., [line: 1],
+                 [
+                   {:foo, [line: 1], nil},
+                   :bar
+                 ]}, [no_parens: true, identifier_location: [line: 2], line: 1], []}
+    end
   end
 
   describe "token missing errors" do
