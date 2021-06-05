@@ -827,21 +827,40 @@ end_of_expression(Location) ->
 %% Dots
 
 build_alias({'alias', Location, Alias}) ->
-  {'__aliases__', meta_from_location(Location), [Alias]}.
+  Meta = meta_from_location(Location),
+  MetaWithExtra =
+    case ?token_metadata() of
+      true -> [{last, meta_from_location(Location)} | Meta];
+      false -> Meta
+    end,
+  {'__aliases__', MetaWithExtra, [Alias]}.
 
-build_dot_alias(_Dot, {'__aliases__', Meta, Left}, {'alias', _, Right}) ->
-  {'__aliases__', Meta, Left ++ [Right]};
+build_dot_alias(_Dot, {'__aliases__', Meta, Left}, {'alias', SegmentLocation, Right}) ->
+  MetaWithExtra =
+    case ?token_metadata() of
+      true -> lists:keystore(last, 1, Meta, {last, meta_from_location(SegmentLocation)});
+      false -> Meta
+    end,
+  {'__aliases__', MetaWithExtra, Left ++ [Right]};
 build_dot_alias(_Dot, Atom, Right) when is_atom(Atom) ->
   error_bad_atom(Right);
-build_dot_alias(Dot, Expr, {'alias', _, Right}) ->
-  {'__aliases__', meta_from_token(Dot), [Expr, Right]}.
+build_dot_alias(Dot, Expr, {'alias', SegmentLocation, Right}) ->
+  Meta = meta_from_token(Dot),
+  MetaWithExtra =
+    case ?token_metadata() of
+      true -> [{last, meta_from_location(SegmentLocation)} | Meta];
+      false -> Meta
+    end,
+  {'__aliases__', MetaWithExtra, [Expr, Right]}.
 
 build_dot_container(Dot, Left, Right, Extra) ->
   Meta = meta_from_token(Dot),
   {{'.', Meta, [Left, '{}']}, Extra ++ Meta, Right}.
 
-build_dot(Dot, Left, Right) ->
-  {'.', meta_from_token(Dot), [Left, extract_identifier(Right)]}.
+build_dot(Dot, Left, {_, Location, _} = Right) ->
+  Meta = meta_from_token(Dot),
+  IdentifierLocation = meta_from_location(Location),
+  {'.', Meta, IdentifierLocation, [Left, extract_identifier(Right)]}.
 
 extract_identifier({Kind, _, Identifier}) when
     Kind == identifier; Kind == bracket_identifier; Kind == paren_identifier;
@@ -865,6 +884,12 @@ build_no_parens_do_block(Expr, Args, {BlockMeta, Block}) ->
 
 build_no_parens(Expr, Args) ->
   build_identifier(Expr, Args).
+
+build_identifier({'.', Meta, IdentifierLocation, DotArgs}, nil) ->
+  {{'.', Meta, DotArgs}, [{no_parens, true} | IdentifierLocation], []};
+
+build_identifier({'.', Meta, IdentifierLocation, DotArgs}, Args) ->
+  {{'.', Meta, DotArgs}, IdentifierLocation, Args};
 
 build_identifier({'.', Meta, _} = Dot, nil) ->
   {Dot, [{no_parens, true} | Meta], []};
