@@ -339,14 +339,35 @@ defmodule Kernel.ParserTest do
     end
 
     test "adds identifier_location for qualified identifiers" do
-      string_to_quoted = &Code.string_to_quoted!(&1, token_metadata: true)
+      string_to_quoted = &Code.string_to_quoted!(&1, token_metadata: true, columns: true)
 
       assert string_to_quoted.("foo.\nbar") ==
-               {{:., [line: 1],
+               {{:., [line: 1, column: 4],
                  [
-                   {:foo, [line: 1], nil},
+                   {:foo, [line: 1, column: 1], nil},
                    :bar
-                 ]}, [no_parens: true, identifier_location: [line: 2], line: 1], []}
+                 ]}, [no_parens: true, line: 2, column: 1], []}
+
+      assert string_to_quoted.("foo\n.\nbar") ==
+               {{:., [line: 2, column: 1],
+                 [
+                   {:foo, [line: 1, column: 1], nil},
+                   :bar
+                 ]}, [no_parens: true, line: 3, column: 1], []}
+
+      assert string_to_quoted.(~s[Integer.\nis_odd(1)]) ==
+               {{:., [line: 1, column: 8],
+                 [
+                   {:__aliases__, [last: [line: 1, column: 1], line: 1, column: 1], [:Integer]},
+                   :is_odd
+                 ]}, [closing: [line: 2, column: 9], line: 2, column: 1], [1]}
+
+      assert string_to_quoted.(~s[Integer.\nparse("1")]) ==
+               {{:., [line: 1, column: 8],
+                 [
+                   {:__aliases__, [last: [line: 1, column: 1], line: 1, column: 1], [:Integer]},
+                   :parse
+                 ]}, [closing: [line: 2, column: 10], line: 2, column: 1], ["1"]}
     end
 
     test "adds metadata for the last alias segment" do

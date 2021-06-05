@@ -857,16 +857,10 @@ build_dot_container(Dot, Left, Right, Extra) ->
   Meta = meta_from_token(Dot),
   {{'.', Meta, [Left, '{}']}, Extra ++ Meta, Right}.
 
-build_dot(Dot, Left, {_, IdentifierLocation, _} = Right) ->
-  Meta =
-    case ?token_metadata() of
-      true ->
-        IdentifierMeta = {identifier_location, meta_from_location(IdentifierLocation)},
-        [IdentifierMeta | meta_from_token(Dot)];
-      false ->
-        meta_from_token(Dot)
-    end,
-  {'.', Meta, [Left, extract_identifier(Right)]}.
+build_dot(Dot, Left, {_, Location, _} = Right) ->
+  Meta = meta_from_token(Dot),
+  IdentifierLocation = meta_from_location(Location),
+  {'.', Meta, IdentifierLocation, [Left, extract_identifier(Right)]}.
 
 extract_identifier({Kind, _, Identifier}) when
     Kind == identifier; Kind == bracket_identifier; Kind == paren_identifier;
@@ -891,13 +885,17 @@ build_no_parens_do_block(Expr, Args, {BlockMeta, Block}) ->
 build_no_parens(Expr, Args) ->
   build_identifier(Expr, Args).
 
-build_identifier({'.', Meta, DotArgs}, nil) ->
-  DotMeta = lists:keydelete(identifier_location, 1, Meta),
-  {{'.', DotMeta, DotArgs}, [{no_parens, true} | Meta], []};
+build_identifier({'.', Meta, IdentifierLocation, DotArgs}, nil) ->
+  {{'.', Meta, DotArgs}, [{no_parens, true} | IdentifierLocation], []};
 
-build_identifier({'.', Meta, DotArgs}, Args) ->
-  DotMeta = lists:keydelete(identifier_location, 1, Meta),
-  {{'.', DotMeta, DotArgs}, Meta, Args};
+build_identifier({'.', Meta, IdentifierLocation, DotArgs}, Args) ->
+  {{'.', Meta, DotArgs}, IdentifierLocation, Args};
+
+build_identifier({'.', Meta, _} = Dot, nil) ->
+  {Dot, [{no_parens, true} | Meta], []};
+
+build_identifier({'.', Meta, _} = Dot, Args) ->
+  {Dot, Meta, Args};
 
 build_identifier({op_identifier, Location, Identifier}, [Arg]) ->
   {Identifier, [{ambiguous_op, nil} | meta_from_location(Location)], [Arg]};
