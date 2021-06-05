@@ -801,7 +801,7 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, #{context := Context} = E, E
       AttachedDotMeta = attach_context_module(Receiver, DotMeta, E),
 
       is_atom(Receiver) andalso
-        elixir_env:trace({remote_function, DotMeta, Receiver, Right, length(Args)}, E),
+        elixir_env:trace({remote_function, Meta, Receiver, Right, length(Args)}, E),
 
       {EArgs, {EA, _}} = lists:mapfoldl(fun expand_arg/2, {EL, E}, Args),
 

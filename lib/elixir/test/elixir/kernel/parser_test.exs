@@ -337,6 +337,43 @@ defmodule Kernel.ParserTest do
                    ]}
                 ]}
     end
+
+    test "adds identifier_location for qualified identifiers" do
+      string_to_quoted = &Code.string_to_quoted!(&1, token_metadata: true, columns: true)
+
+      assert string_to_quoted.("foo.\nbar") ==
+               {{:., [line: 1, column: 4],
+                 [
+                   {:foo, [line: 1, column: 1], nil},
+                   :bar
+                 ]}, [no_parens: true, line: 2, column: 1], []}
+
+      assert string_to_quoted.("foo\n.\nbar") ==
+               {{:., [line: 2, column: 1],
+                 [
+                   {:foo, [line: 1, column: 1], nil},
+                   :bar
+                 ]}, [no_parens: true, line: 3, column: 1], []}
+
+      assert string_to_quoted.(~s[Foo.\nbar(1)]) ==
+               {{:., [line: 1, column: 4],
+                 [
+                   {:__aliases__, [last: [line: 1, column: 1], line: 1, column: 1], [:Foo]},
+                   :bar
+                 ]}, [closing: [line: 2, column: 6], line: 2, column: 1], [1]}
+    end
+
+    test "adds metadata for the last alias segment" do
+      string_to_quoted = &Code.string_to_quoted!(&1, token_metadata: true)
+
+      assert string_to_quoted.("Foo") == {:__aliases__, [last: [line: 1], line: 1], [:Foo]}
+
+      assert string_to_quoted.("Foo.\nBar\n.\nBaz") ==
+               {:__aliases__, [last: [line: 4], line: 1], [:Foo, :Bar, :Baz]}
+
+      assert string_to_quoted.("foo.\nBar\n.\nBaz") ==
+               {:__aliases__, [last: [line: 4], line: 1], [{:foo, [line: 1], nil}, :Bar, :Baz]}
+    end
   end
 
   describe "token missing errors" do

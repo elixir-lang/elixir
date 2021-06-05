@@ -102,11 +102,11 @@ defmodule Kernel.TracersTest do
 
     assert_receive {{:remote_macro, meta, Integer, :is_odd, 1}, _}
     assert meta[:line] == 2
-    assert meta[:column] == 15
+    assert meta[:column] == 16
 
     assert_receive {{:remote_function, meta, Integer, :parse, 1}, _}
     assert meta[:line] == 3
-    assert meta[:column] == 18
+    assert meta[:column] == 19
   end
 
   test "traces remote via captures" do
