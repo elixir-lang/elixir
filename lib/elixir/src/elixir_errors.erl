@@ -170,9 +170,9 @@ print_warning(Message) ->
   ok.
 
 send_warning(Line, File, Message) ->
-  case get(elixir_compiler_pid) of
+  case get(elixir_compiler_info) of
     undefined -> ok;
-    CompilerPid -> CompilerPid ! {warning, File, Line, Message}
+    {CompilerPid, _} -> CompilerPid ! {warning, File, Line, Message}
   end,
   ok.
 

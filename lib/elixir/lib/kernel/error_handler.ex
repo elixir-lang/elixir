@@ -30,10 +30,10 @@ defmodule Kernel.ErrorHandler do
   end
 
   def ensure_compiled(module, kind, deadlock) do
-    parent = :erlang.get(:elixir_compiler_pid)
+    {compiler_pid, file_pid} = :erlang.get(:elixir_compiler_info)
     ref = :erlang.make_ref()
     modules = :elixir_module.compiler_modules()
-    send(parent, {:waiting, kind, self(), ref, module, modules, deadlock})
+    send(compiler_pid, {:waiting, kind, self(), ref, file_pid, module, modules, deadlock})
     :erlang.garbage_collect(self())
 
     receive do
