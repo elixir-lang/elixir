@@ -25,6 +25,49 @@ defmodule ExUnit.RunnerStatsTest do
 
       assert stats == %{total: 10, failures: 2, skipped: 1, excluded: 4}
     end
+
+    test "invalidates successful tests when a module fails" do
+      module_tests_a = [
+        {:test_a1, :passed},
+        {:test_a2, :skipped},
+        {:test_a3, :failed},
+        {:test_a4, :invalid},
+        {:test_a5, :excluded}
+      ]
+
+      module_tests_b = [
+        {:test_b1, :passed},
+        {:test_b2, :failed},
+        {:test_b3, :failed},
+        {:test_b4, :passed},
+        {:test_b5, :passed}
+      ]
+
+      tests = module_tests_a ++ module_tests_b
+
+      stats =
+        simulate_suite([], fn formatter ->
+          for {test_name, status} <- tests do
+            simulate_test(formatter, test_name, status)
+          end
+
+          simulate_module_finished(
+            formatter,
+            :module_a,
+            :passed,
+            module_tests_a
+          )
+
+          simulate_module_finished(
+            formatter,
+            :module_b,
+            :failed,
+            module_tests_b
+          )
+        end)
+
+      assert stats == %{total: 10, failures: 7, skipped: 1, excluded: 1}
+    end
   end
 
   describe "when no failures manifest path option is provided" do
@@ -87,6 +130,29 @@ defmodule ExUnit.RunnerStatsTest do
          name: test_name,
          tags: %{file: __ENV__.file},
          state: state_for(status)
+       }}
+    )
+  end
+
+  defp simulate_module_finished(formatter, module_name, status, tests) do
+    tests =
+      for {test_name, status} <- tests do
+        %ExUnit.Test{
+          module: TestModule,
+          name: test_name,
+          tags: %{file: __ENV__.file},
+          state: state_for(status)
+        }
+      end
+
+    GenServer.cast(
+      formatter,
+      {:module_finished,
+       %ExUnit.TestModule{
+         file: __ENV__.file,
+         name: module_name,
+         state: state_for(status),
+         tests: tests
        }}
     )
   end

@@ -81,6 +81,25 @@ defmodule ExUnit.RunnerStats do
     {:noreply, state}
   end
 
+  def handle_cast(
+        {:module_finished, %ExUnit.TestModule{state: {:failed, _}} = test_module},
+        state
+      ) do
+    # The failed tests have already been added to the manifest,
+    # so we should only invalidate the successful tests
+    successful_tests = Enum.filter(test_module.tests, &is_nil(&1.state))
+
+    state =
+      Enum.reduce(successful_tests, state, fn test, acc ->
+        acc
+        |> Map.update!(:failures_manifest, &FailuresManifest.put_test(&1, test))
+        |> Map.update!(:failures, &(&1 + 1))
+        |> Map.update!(:passed, &(&1 - 1))
+      end)
+
+    {:noreply, state}
+  end
+
   def handle_cast(_, state) do
     {:noreply, state}
   end
