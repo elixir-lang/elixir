@@ -596,7 +596,7 @@ defmodule Mix.Tasks.Xref do
 
   defp invert_references(file_references, fun) do
     Enum.reduce(file_references, %{}, fn {file, references}, acc ->
-      Enum.reduce(references, acc, fn {file_reference, type}=reference, acc ->
+      Enum.reduce(references, acc, fn {file_reference, type} = reference, acc ->
         if fun.(reference) do
           Map.update(acc, file_reference, [{file, type}], &[{file, type} | &1])
         else
