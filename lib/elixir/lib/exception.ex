@@ -733,7 +733,7 @@ defmodule ArgumentError do
 
         not is_atom(function) ->
           "you attempted to apply #{inspect(function)} on module #{inspect(module)}. " <>
-            "However `#{inspect(function)}` is not a function. Functions (the second argument " <>
+            "However #{inspect(function)} is not a function. Functions (the second argument " <>
             "of apply) must always be an atom"
 
         not is_list(args) ->

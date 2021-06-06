@@ -418,7 +418,7 @@ defmodule ExceptionTest do
                  "map.field or module.function(), make sure the left side of the dot is an atom or a map"
 
       assert blame_message([], &apply(Kernel, &1, [1, 2])) ==
-               "you attempted to apply [] on module Kernel. However `[]` is not a function. Functions " <>
+               "you attempted to apply [] on module Kernel. However [] is not a function. Functions " <>
                  "(the second argument of apply) must always be an atom"
 
       assert blame_message(123, &apply(Kernel, :+, &1)) ==
