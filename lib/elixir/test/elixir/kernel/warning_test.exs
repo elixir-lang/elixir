@@ -1249,13 +1249,11 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
-  test "no warning on necessary code point escape" do
-    assert capture_err(fn ->
-             Code.eval_string("?\\n")
-           end) == ""
-  end
-
   test "warning on unnecessary code point escape" do
+    assert capture_err(fn ->
+             Code.eval_string("?\\n + ?\\\\")
+           end) == ""
+
     assert capture_err(fn ->
              Code.eval_string("?\\w")
            end) =~ "unknown escape sequence ?\\w, use ?w instead"
