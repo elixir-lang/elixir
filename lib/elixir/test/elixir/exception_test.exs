@@ -408,20 +408,21 @@ defmodule ExceptionTest do
 
     test "annotates badarg on apply" do
       assert blame_message([], & &1.foo) ==
-               "you attempted to apply :foo on []. If you are using apply/3, make sure " <>
+               "you attempted to apply a function named :foo on []. If you are using Kernel.apply/3, make sure " <>
                  "the module is an atom. If you are using the dot syntax, such as " <>
                  "map.field or module.function(), make sure the left side of the dot is an atom or a map"
 
       assert blame_message([], &apply(&1, :foo, [])) ==
-               "you attempted to apply :foo on []. If you are using apply/3, make sure " <>
+               "you attempted to apply a function named :foo on []. If you are using Kernel.apply/3, make sure " <>
                  "the module is an atom. If you are using the dot syntax, such as " <>
                  "map.field or module.function(), make sure the left side of the dot is an atom or a map"
 
       assert blame_message([], &apply(Kernel, &1, [1, 2])) ==
-               "you attempted to apply [] on module Kernel. Functions (the second argument of apply) must always be an atom"
+               "you attempted to apply a function named [] on module Kernel. However [] is not a valid function name. " <>
+                 "Function names (the second argument of apply) must always be an atom"
 
       assert blame_message(123, &apply(Kernel, :+, &1)) ==
-               "you attempted to apply :+ on module Kernel with arguments 123. " <>
+               "you attempted to apply a function named :+ on module Kernel with arguments 123. " <>
                  "Arguments (the third argument of apply) must always be a list"
     end
 
