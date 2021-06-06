@@ -411,7 +411,7 @@ defmodule Mix.Tasks.Xref do
   defp label_filter(other), do: Mix.raise("unknown --label #{other}")
 
   defp file_references(:compile_connected, _opts) do
-    Mix.raise("Option `only-connected` can not be used with `compile-connected` format")
+    Mix.raise("Option --only-direct cannot be used with --label compile-connected")
   end
   defp file_references(filter, opts) do
     module_sources =
