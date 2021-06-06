@@ -183,6 +183,11 @@ defmodule Mix.Tasks.Xref do
 
   Those options are shared across all modes:
 
+    * `--fail-above` - generates a failure if the relevant metric is above the
+      given threshold. This metric is the number of references, except for
+      `--format cycles` where it is the number of cycles, and `--format stats`
+      which has none.
+
     * `--include-siblings` - includes dependencies that have `:in_umbrella` set
       to true in the current project in the reports. This can be used to find
       callers or to analyze graphs between projects
@@ -204,6 +209,7 @@ defmodule Mix.Tasks.Xref do
     deps_check: :boolean,
     elixir_version_check: :boolean,
     exclude: :keep,
+    fail_above: :integer,
     format: :string,
     include_siblings: :boolean,
     label: :string,
@@ -384,13 +390,21 @@ defmodule Mix.Tasks.Xref do
       Mix.shell().info([file, " (", type, ")"])
     end
 
+    check_failure(:references, length(file_callers), opts[:fail_above])
+  end
+
+  defp check_failure(found, count, max_count)
+       when not is_nil(max_count) and count > max_count do
+    Mix.raise("Too many #{found} (found: #{count}, permitted: #{max_count})")
+  end
+
+  defp check_failure(_, _, _) do
     :ok
   end
 
   defp graph(opts) do
     {direct_filter, transitive_filter} = label_filter(opts[:label])
     write_graph(file_references(direct_filter, opts), transitive_filter, opts)
-    :ok
   end
 
   ## Callers
@@ -515,35 +529,47 @@ defmodule Mix.Tasks.Xref do
       {{file, type}, Enum.sort(children -- excluded)}
     end
 
-    case opts[:format] do
-      "dot" ->
-        Mix.Utils.write_dot_graph!(
-          "xref_graph.dot",
-          "xref graph",
-          Enum.sort(roots),
-          callback,
-          opts
-        )
+    {found, count} =
+      case opts[:format] do
+        "dot" ->
+          Mix.Utils.write_dot_graph!(
+            "xref_graph.dot",
+            "xref graph",
+            Enum.sort(roots),
+            callback,
+            opts
+          )
 
-        """
-        Generated "xref_graph.dot" in the current directory. To generate a PNG:
+          """
+          Generated "xref_graph.dot" in the current directory. To generate a PNG:
 
-           dot -Tpng xref_graph.dot -o xref_graph.png
+             dot -Tpng xref_graph.dot -o xref_graph.png
 
-        For more options see http://www.graphviz.org/.
-        """
-        |> String.trim_trailing()
-        |> Mix.shell().info()
+          For more options see http://www.graphviz.org/.
+          """
+          |> String.trim_trailing()
+          |> Mix.shell().info()
 
-      "stats" ->
-        print_stats(file_references, opts)
+          {:references, count_references(file_references)}
 
-      "cycles" ->
-        print_cycles(file_references, opts)
+        "stats" ->
+          print_stats(file_references, opts)
+          {:stats, 0}
 
-      _ ->
-        Mix.Utils.print_tree(Enum.sort(roots), callback, opts)
-    end
+        "cycles" ->
+          {:cycles, print_cycles(file_references, opts)}
+
+        _ ->
+          Mix.Utils.print_tree(Enum.sort(roots), callback, opts)
+
+          {:references, count_references(file_references)}
+      end
+
+    check_failure(found, count, opts[:fail_above])
+  end
+
+  defp count_references(file_references) do
+    Enum.reduce(file_references, 0, fn {_, refs}, total -> total + length(refs) end)
   end
 
   defp connected?([_ | _]), do: true
@@ -698,6 +724,7 @@ defmodule Mix.Tasks.Xref do
       case graph |> cycles(opts) |> Enum.sort(:desc) do
         [] ->
           shell.info("No cycles found")
+          0
 
         cycles ->
           shell.info("#{length(cycles)} cycles found. Showing them in decreasing size:\n")
@@ -711,6 +738,8 @@ defmodule Mix.Tasks.Xref do
 
             shell.info("")
           end
+
+          length(cycles)
       end
     end)
   end

@@ -98,27 +98,35 @@ defmodule Mix.Tasks.XrefTest do
   end
 
   describe "mix xref callers MODULE" do
-    test "prints callers of specified Module" do
-      files = %{
-        "lib/a.ex" => """
-        defmodule A do
-          def a, do: :ok
-        end
-        """,
-        "lib/b.ex" => """
-        defmodule B do
-          def b, do: A.a()
-        end
-        """
-      }
-
-      output = """
-      Compiling 2 files (.ex)
-      Generated sample app
-      lib/b.ex (runtime)
+    @callers_files %{
+      "lib/a.ex" => """
+      defmodule A do
+        def a, do: :ok
+      end
+      """,
+      "lib/b.ex" => """
+      defmodule B do
+        def b, do: A.a()
+      end
       """
+    }
 
-      assert_callers("A", files, output)
+    @callers_output """
+    Compiling 2 files (.ex)
+    Generated sample app
+    lib/b.ex (runtime)
+    """
+
+    test "prints callers of specified Module" do
+      assert_callers("A", @callers_files, @callers_output)
+    end
+
+    test "filter by compile-connected label with fail-above" do
+      message = "Too many references (found: 1, permitted: 0)"
+
+      assert_raise Mix.Error, message, fn ->
+        assert_callers(~w[--fail-above 0], "A", @callers_files, @callers_output)
+      end
     end
 
     test "handles aliases" do
@@ -203,14 +211,14 @@ defmodule Mix.Tasks.XrefTest do
       end)
     end
 
-    defp assert_callers(module, files, expected) do
+    defp assert_callers(opts \\ [], module, files, expected) do
       in_fixture("no_mixfile", fn ->
         for {file, contents} <- files do
           File.write!(file, contents)
         end
 
         capture_io(:stderr, fn ->
-          assert Mix.Task.run("xref", ["callers", module]) == :ok
+          assert Mix.Task.run("xref", opts ++ ["callers", module]) == :ok
         end)
 
         assert ^expected = receive_until_no_messages([])
@@ -270,6 +278,23 @@ defmodule Mix.Tasks.XrefTest do
           lib/b.ex
 
       """)
+    end
+
+    test "cycles with `--fail-above`" do
+      message = "Too many cycles (found: 1, permitted: 0)"
+
+      assert_raise Mix.Error, message, fn ->
+        assert_graph(["--format", "cycles", "--fail-above", "0"], """
+        1 cycles found. Showing them in decreasing size:
+
+        Cycle of length 3:
+
+            lib/b.ex
+            lib/a.ex
+            lib/b.ex
+
+        """)
+      end
     end
 
     test "cycles with min cycle size" do
@@ -335,6 +360,23 @@ defmodule Mix.Tasks.XrefTest do
       lib/d.ex
       lib/e.ex
       """)
+    end
+
+    test "filter by compile-connected label with fail-above" do
+      message = "Too many references (found: 3, permitted: 2)"
+
+      assert_raise Mix.Error, message, fn ->
+        assert_graph(~w[--label compile-connected --fail-above 2], """
+        lib/a.ex
+        `-- lib/b.ex (compile)
+        lib/b.ex
+        `-- lib/d.ex (compile)
+        lib/c.ex
+        `-- lib/d.ex (compile)
+        lib/d.ex
+        lib/e.ex
+        """)
+      end
     end
 
     test "filter by compile-direct label" do
