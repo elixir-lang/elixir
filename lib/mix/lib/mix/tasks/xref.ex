@@ -413,6 +413,7 @@ defmodule Mix.Tasks.Xref do
   defp file_references(:compile_connected, _opts) do
     Mix.raise("Option --only-direct cannot be used with --label compile-connected")
   end
+
   defp file_references(filter, opts) do
     module_sources =
       for manifest_path <- manifests(opts),
@@ -536,9 +537,11 @@ defmodule Mix.Tasks.Xref do
   defp connected?(_), do: false
 
   defp filter_fn(_file_references, :all), do: fn _ -> true end
+
   defp filter_fn(file_references, :compile_connected) do
     fn {key, type} -> type == :compile && connected?(file_references[key]) end
   end
+
   defp filter_fn(_file_references, filter), do: fn {_, type} -> type == filter end
 
   defp filter_for_source(file_references, :all), do: file_references
