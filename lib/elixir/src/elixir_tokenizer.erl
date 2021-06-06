@@ -237,8 +237,16 @@ tokenize([$~, S, H | _] = Original, Line, Column, _Scope, Tokens) when ?is_upcas
 
 tokenize([$?, $\\, H | T], Line, Column, Scope, Tokens) ->
   Char = elixir_interpolation:unescape_map(H),
+  NewScope = if
+    H =:= Char, H =/= $\\ ->
+      Msg = io_lib:format("unknown escape sequence ?\\~tc, use ?~tc instead",
+                          [H, H]),
+      prepend_warning({Line, Scope#elixir_tokenizer.file, Msg}, Scope);
+    true ->
+      Scope
+  end,
   Token = {char, {Line, Column, [$?, $\\, H]}, Char},
-  tokenize(T, Line, Column + 3, Scope, [Token | Tokens]);
+  tokenize(T, Line, Column + 3, NewScope, [Token | Tokens]);
 
 tokenize([$?, Char | T], Line, Column, Scope, Tokens) ->
   NewScope = case handle_char(Char) of
