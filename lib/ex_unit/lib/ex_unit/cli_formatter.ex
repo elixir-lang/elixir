@@ -146,13 +146,18 @@ defmodule ExUnit.CLIFormatter do
         {:module_finished, %ExUnit.TestModule{state: {:failed, failures}} = test_module},
         config
       ) do
-    tests_length = length(test_module.tests)
+    # The failed tests have already contributed to the counter,
+    # so we should only add the successful tests to the count
+    config =
+      update_in(config.failure_counter, fn counter ->
+        counter + Enum.count(test_module.tests, &is_nil(&1.state))
+      end)
 
     formatted =
       format_test_all_failure(
         test_module,
         failures,
-        config.failure_counter + tests_length,
+        config.failure_counter,
         config.width,
         &formatter(&1, &2, config)
       )

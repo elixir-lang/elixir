@@ -150,6 +150,27 @@ defmodule ExUnit.CallbacksTest do
     assert capture_io(fn -> ExUnit.run() end) =~ ">) killed"
   end
 
+  test "invalidates all tests when on_exit errors within setup_all" do
+    defmodule InvalidatesTestsOnExitErrorTest do
+      use ExUnit.Case
+
+      setup_all do
+        on_exit(fn -> raise "boom" end)
+        :ok
+      end
+
+      test "succeeds" do
+        assert true
+      end
+
+      test "fails" do
+        assert false
+      end
+    end
+
+    assert capture_io(fn -> ExUnit.run() end) =~ "2 tests, 2 failures"
+  end
+
   defp no_formatters! do
     ExUnit.configure(formatters: [])
     on_exit(fn -> ExUnit.configure(formatters: [ExUnit.CLIFormatter]) end)
