@@ -41,8 +41,11 @@ defmodule Mix.Tasks.Xref do
 
     * `--label` - only shows relationships with the given label.
       By default, it keeps all labels that are transitive.
-      The labels are "compile", "export" and "runtime". See
-      "Dependencies types" section below
+      The labels are "compile", "export" and "runtime".
+      The label modifier "compile-connected" can be used to
+      find modules that have at least one compile dependency
+      between them, excluding the compile time dependency
+      themselves. See "Dependencies types" section below.
 
     * `--only-nodes` - only shows the node names (no edges).
       Generally useful with the `--sink` flag
@@ -152,7 +155,8 @@ defmodule Mix.Tasks.Xref do
   Runtime dependencies are added whenever you invoke another module
   inside a function. Modules with runtime dependencies do not have
   to be compiled when the callee changes, unless there is a transitive
-  compile or export time dependency between them.
+  compile or export time dependency between them. The option
+  `label --compile-connected` can be used to find such cases.
 
   ## Shared options
 
@@ -403,7 +407,12 @@ defmodule Mix.Tasks.Xref do
   defp label_filter("compile"), do: :compile
   defp label_filter("export"), do: :export
   defp label_filter("runtime"), do: nil
+  defp label_filter("compile-connected"), do: :compile_connected
   defp label_filter(other), do: Mix.raise("unknown --label #{other}")
+
+  defp file_references(:compile_connected, _opts) do
+    Mix.raise("Option --only-direct cannot be used with --label compile-connected")
+  end
 
   defp file_references(filter, opts) do
     module_sources =
@@ -524,16 +533,29 @@ defmodule Mix.Tasks.Xref do
     end
   end
 
+  defp connected?([_ | _]), do: true
+  defp connected?(_), do: false
+
+  defp filter_fn(_file_references, :all), do: fn _ -> true end
+
+  defp filter_fn(file_references, :compile_connected) do
+    fn {key, type} -> type == :compile && connected?(file_references[key]) end
+  end
+
+  defp filter_fn(_file_references, filter), do: fn {_, type} -> type == filter end
+
   defp filter_for_source(file_references, :all), do: file_references
 
   defp filter_for_source(file_references, filter) do
+    fun = filter_fn(file_references, filter)
+
     Enum.reduce(file_references, %{}, fn {key, _}, acc ->
-      {children, _} = filter_for_source(file_references, key, %{}, %{}, filter)
+      {children, _} = filter_for_source(file_references, key, %{}, %{}, fun)
       Map.put(acc, key, children |> Map.delete(key) |> Map.to_list())
     end)
   end
 
-  defp filter_for_source(references, key, acc, seen, filter) do
+  defp filter_for_source(references, key, acc, seen, filter_fn) do
     nodes = references[key]
 
     if is_nil(nodes) || seen[key] do
@@ -541,18 +563,18 @@ defmodule Mix.Tasks.Xref do
     else
       seen = Map.put(seen, key, true)
 
-      Enum.reduce(nodes, {acc, seen}, fn {child_key, type}, {acc, seen} ->
-        if type == filter do
+      Enum.reduce(nodes, {acc, seen}, fn {child_key, type} = reference, {acc, seen} ->
+        if filter_fn.(reference) do
           {Map.put(acc, child_key, type), Map.put(seen, child_key, true)}
         else
-          filter_for_source(references, child_key, acc, seen, filter)
+          filter_for_source(references, child_key, acc, seen, filter_fn)
         end
       end)
     end
   end
 
   defp filter_for_sink(file_references, sink, filter) do
-    fun = if filter == :all, do: fn _ -> true end, else: fn type -> type == filter end
+    fun = filter_fn(file_references, filter)
 
     file_references
     |> invert_references(fn _ -> true end)
@@ -574,9 +596,9 @@ defmodule Mix.Tasks.Xref do
 
   defp invert_references(file_references, fun) do
     Enum.reduce(file_references, %{}, fn {file, references}, acc ->
-      Enum.reduce(references, acc, fn {reference, type}, acc ->
-        if fun.(type) do
-          Map.update(acc, reference, [{file, type}], &[{file, type} | &1])
+      Enum.reduce(references, acc, fn {file_reference, type} = reference, acc ->
+        if fun.(reference) do
+          Map.update(acc, file_reference, [{file, type}], &[{file, type} | &1])
         else
           acc
         end
