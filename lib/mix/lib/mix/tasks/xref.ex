@@ -42,10 +42,10 @@ defmodule Mix.Tasks.Xref do
     * `--label` - only shows relationships with the given label.
       By default, it keeps all labels that are transitive.
       The labels are "compile", "export" and "runtime".
-      Use "compile-connected" to restrict the relationships that
-      are compile-time *and* towards files that themselves have
-      other dependencies of any type.
-      See "Dependencies types" section below.
+      The label modifier "compile-connected" can be used to
+      find modules that have at least one compile dependency
+      between them, excluding the compile time dependency
+      themselves. See "Dependencies types" section below.
 
     * `--only-nodes` - only shows the node names (no edges).
       Generally useful with the `--sink` flag
