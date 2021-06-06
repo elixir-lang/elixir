@@ -11,24 +11,22 @@ defmodule Mix.Tasks.Xref do
   @moduledoc """
   Prints cross reference information between modules.
 
-  This task is automatically reenabled, so you can print information
-  multiple times in the same Mix invocation.
-
-  ## Xref modes
-
   The `xref` task expects a mode as first argument:
 
       mix xref MODE
 
   All available modes are discussed below.
 
-  ### callers CALLEE
+  This task is automatically reenabled, so you can print
+  information multiple times in the same Mix invocation.
+
+  ## mix xref callers CALLEE
 
   Prints all callers of the given `MODULE`. Example:
 
       mix xref callers MyMod
 
-  ### graph
+  ## mix xref graph
 
   Prints a file dependency graph where an edge from `A` to `B` indicates
   that `A` (source) depends on `B` (sink).
@@ -41,17 +39,13 @@ defmodule Mix.Tasks.Xref do
 
     * `--label` - only shows relationships with the given label.
       By default, it keeps all labels that are transitive.
-      The labels are "compile", "export" and "runtime".
-      The label modifier "compile-connected" can be used to
-      find modules that have at least one compile dependency
-      between them, excluding the compile time dependency
-      themselves. See "Dependencies types" section below.
+      The labels are "compile", "export" and "runtime" and
+      there are two additional label modifiers "compile-direct"
+      and "compile-connected". See "Dependencies types" section
+      below.
 
     * `--only-nodes` - only shows the node names (no edges).
       Generally useful with the `--sink` flag
-
-    * `--only-direct` - the `--label` option will restrict itself
-      to only direct dependencies instead of transitive ones
 
     * `--source` - displays all files that the given source file
       references (directly or indirectly)
@@ -84,7 +78,7 @@ defmodule Mix.Tasks.Xref do
   property, for example:
 
       # To get all files and their direct compile time dependencies
-      mix xref graph --label compile --only-direct
+      mix xref graph --label compile-direct
 
       # To get the tree that depend on lib/foo.ex at compile time
       mix xref graph --label compile --sink lib/foo.ex
@@ -101,11 +95,29 @@ defmodule Mix.Tasks.Xref do
       # To limit statistics only to certain labels
       mix xref graph --format stats --label compile
 
-  #### Understanding the printed graph
+  ### Understanding the printed graph
 
   When `mix xref graph` runs, it will print a tree of the following
-  format:
+  format. Imagine the following code:
 
+      # lib/a.ex
+      defmodule A do
+        IO.puts B.hello()
+      end
+
+      # lib/b.ex
+      defmodule B do
+        def hello, do: C.world()
+      end
+
+      # lib/c.ex
+      defmodule C do
+        def world, do: "hello world"
+      end
+
+  It will print:
+
+      $ mix xref graph
       lib/a.ex
       `-- lib/b.ex (compile)
           `-- lib/c.ex
@@ -115,10 +127,11 @@ defmodule Mix.Tasks.Xref do
   problematic because if `lib/c.ex` changes, `lib/a.ex` also has to
   recompile due to this indirect compile time dependency.
 
-  The flags `--source` or `--sink` does not change how you read the
-  graph. For example, if we use the `--sink lib/c.ex` flag, we would
-  see the same tree:
+  The flags `--source` or `--sink` filters the graph but does not
+  ultimately change how you read it. For example, if we use the
+  `--sink lib/c.ex` flag, we would see the same tree:
 
+      $ mix xref graph --sink lib/c.ex
       lib/a.ex
       `-- lib/b.ex (compile)
           `-- lib/c.ex
@@ -128,6 +141,7 @@ defmodule Mix.Tasks.Xref do
   `lib/c.ex` but `lib/a.ex` still has an indirect compile time dependency
   on `lib/c.ex` via `lib/b.ex`:
 
+      $ mix xref graph --sink lib/c.ex --label compile
       lib/a.ex
       `-- lib/b.ex (compile)
 
@@ -135,7 +149,7 @@ defmodule Mix.Tasks.Xref do
   find all files that will change once the sink changes, alongside the
   transitive dependencies that will cause said recompilations.
 
-  #### Dependencies types
+  ### Dependencies types
 
   Elixir tracks three types of dependencies between modules: compile,
   exports, and runtime. If a module has a compile time dependency on
@@ -156,7 +170,14 @@ defmodule Mix.Tasks.Xref do
   inside a function. Modules with runtime dependencies do not have
   to be compiled when the callee changes, unless there is a transitive
   compile or export time dependency between them. The option
-  `label --compile-connected` can be used to find such cases.
+  `--label compile-connected` can be used to find such cases.
+
+  Overall, there are two label modifiers: "compile-connected" and
+  "compile-direct". The label modifier "compile-connected" can be
+  used to find files that have at least one compile dependency
+  between them, excluding the compile time dependency itself.
+  "compile-direct" only shows direct compile time dependencies,
+  removing the transitive aspect.
 
   ## Shared options
 
@@ -187,7 +208,6 @@ defmodule Mix.Tasks.Xref do
     include_siblings: :boolean,
     label: :string,
     only_nodes: :boolean,
-    only_direct: :boolean,
     sink: :string,
     source: :string,
     min_cycle_size: :integer
@@ -239,7 +259,7 @@ defmodule Mix.Tasks.Xref do
   information from. To get the function calls of each child in an umbrella,
   execute the function at the root of each individual application.
   """
-  # TODO: Remove on v2.0
+  # TODO: Deprecate me on v1.14
   @doc deprecated: "Use compilation tracers described in the Code module"
   @spec calls(keyword()) :: [
           %{
@@ -368,11 +388,7 @@ defmodule Mix.Tasks.Xref do
   end
 
   defp graph(opts) do
-    filter = label_filter(opts[:label])
-
-    {direct_filter, transitive_filter} =
-      if opts[:only_direct], do: {filter, :all}, else: {:all, filter}
-
+    {direct_filter, transitive_filter} = label_filter(opts[:label])
     write_graph(file_references(direct_filter, opts), transitive_filter, opts)
     :ok
   end
@@ -403,16 +419,13 @@ defmodule Mix.Tasks.Xref do
     |> Enum.flat_map(&[{&1, nil}, {&1, :compile}, {&1, :export}])
   end
 
-  defp label_filter(nil), do: :all
-  defp label_filter("compile"), do: :compile
-  defp label_filter("export"), do: :export
-  defp label_filter("runtime"), do: nil
-  defp label_filter("compile-connected"), do: :compile_connected
+  defp label_filter(nil), do: {:all, :all}
+  defp label_filter("compile"), do: {:all, :compile}
+  defp label_filter("export"), do: {:all, :export}
+  defp label_filter("runtime"), do: {:all, nil}
+  defp label_filter("compile-connected"), do: {:all, :compile_connected}
+  defp label_filter("compile-direct"), do: {:compile, :all}
   defp label_filter(other), do: Mix.raise("unknown --label #{other}")
-
-  defp file_references(:compile_connected, _opts) do
-    Mix.raise("Option --only-direct cannot be used with --label compile-connected")
-  end
 
   defp file_references(filter, opts) do
     module_sources =

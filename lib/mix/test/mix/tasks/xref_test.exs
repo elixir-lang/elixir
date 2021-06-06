@@ -337,8 +337,8 @@ defmodule Mix.Tasks.XrefTest do
       """)
     end
 
-    test "filter by compile label with only direct" do
-      assert_graph(~w[--label compile --only-direct], """
+    test "filter by compile-direct label" do
+      assert_graph(~w[--label compile-direct], """
       lib/a.ex
       `-- lib/b.ex (compile)
       lib/b.ex
@@ -359,19 +359,6 @@ defmodule Mix.Tasks.XrefTest do
       `-- lib/c.ex
       lib/c.ex
       `-- lib/e.ex
-      lib/d.ex
-      `-- lib/e.ex
-      lib/e.ex
-      """)
-    end
-
-    test "filter by runtime label with only direct" do
-      assert_graph(~w[--label runtime --only-direct], """
-      lib/a.ex
-      lib/b.ex
-      |-- lib/a.ex
-      `-- lib/c.ex
-      lib/c.ex
       lib/d.ex
       `-- lib/e.ex
       lib/e.ex
@@ -399,8 +386,8 @@ defmodule Mix.Tasks.XrefTest do
       """)
     end
 
-    test "source with compile label and only direct" do
-      assert_graph(~w[--source lib/a.ex --label compile --only-direct], """
+    test "source with compile-direct label" do
+      assert_graph(~w[--source lib/a.ex --label compile-direct], """
       lib/a.ex
       `-- lib/b.ex (compile)
           `-- lib/e.ex (compile)
@@ -439,8 +426,8 @@ defmodule Mix.Tasks.XrefTest do
       """)
     end
 
-    test "sink with compile label and only direct" do
-      assert_graph(~w[--sink lib/e.ex --label compile --only-direct], """
+    test "sink with compile-direct label" do
+      assert_graph(~w[--sink lib/e.ex --label compile-direct], """
       lib/a.ex
       `-- lib/b.ex (compile)
       lib/b.ex
