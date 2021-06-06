@@ -722,8 +722,8 @@ defmodule ArgumentError do
       cond do
         # Note that args may be an empty list even if they were supplied
         not is_atom(module) and is_atom(function) and args == [] ->
-          "you attempted to apply #{inspect(function)} on #{inspect(module)}. " <>
-            "If you are using apply/3, make sure the module is an atom. " <>
+          "you attempted to apply the function #{inspect(function)} on #{inspect(module)}. " <>
+            "If you are using Kernel.apply/3, make sure the module is an atom. " <>
             "If you are using the dot syntax, such as map.field or module.function(), " <>
             "make sure the left side of the dot is an atom or a map"
 
@@ -733,10 +733,11 @@ defmodule ArgumentError do
 
         not is_atom(function) ->
           "you attempted to apply #{inspect(function)} on module #{inspect(module)}. " <>
-            "Functions (the second argument of apply) must always be an atom"
+            "However `#{inspect(function)}` is not a function. Functions (the second argument " <>
+            "of apply) must always be an atom"
 
         not is_list(args) ->
-          "you attempted to apply #{inspect(function)} on module #{inspect(module)} " <>
+          "you attempted to apply the function #{inspect(function)} on module #{inspect(module)} " <>
             "with arguments #{inspect(args)}. Arguments (the third argument of apply) must always be a list"
       end
 
