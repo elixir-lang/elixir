@@ -167,7 +167,7 @@ defmodule ExUnit.Diff do
   end
 
   defp diff_value(left, right, env) when is_binary(left) and is_binary(right) do
-    diff_string(left, right, ?\", env)
+    diff_string(left, right, ?", env)
   end
 
   defp diff_value(left, right, env) do
@@ -751,7 +751,7 @@ defmodule ExUnit.Diff do
   end
 
   defp diff_string_concat(left, nil, indexes, _left_length, right, env) do
-    {parsed_diff, parsed_post_env} = diff_string(left, right, ?\", env)
+    {parsed_diff, parsed_post_env} = diff_string(left, right, ?", env)
     left_diff = rebuild_concat_string(parsed_diff.left, nil, indexes)
 
     diff = %__MODULE__{parsed_diff | left: left_diff}
@@ -760,7 +760,7 @@ defmodule ExUnit.Diff do
 
   defp diff_string_concat(left, quoted, indexes, left_length, right, env) do
     {parsed_right, continue_right} = String.split_at(right, left_length)
-    {parsed_diff, parsed_post_env} = diff_string(left, parsed_right, ?\", env)
+    {parsed_diff, parsed_post_env} = diff_string(left, parsed_right, ?", env)
     {quoted_diff, quoted_post_env} = diff(quoted, continue_right, parsed_post_env)
 
     diff =
