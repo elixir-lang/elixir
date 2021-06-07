@@ -214,8 +214,8 @@ defmodule Mix.Tasks.Xref do
     include_siblings: :boolean,
     label: :string,
     only_nodes: :boolean,
-    sink: :string,
-    source: :string,
+    sink: :keep,
+    source: :keep,
     min_cycle_size: :integer
   ]
 
@@ -492,35 +492,42 @@ defmodule Mix.Tasks.Xref do
         into: %{}
   end
 
+  defp get_files(what, opts, file_references) do
+    files = Keyword.get_values(opts, what)
+
+    case files -- Map.keys(file_references) do
+      [_ | _] = missing ->
+        Mix.raise(
+          "#{Macro.camelize(to_string(what))}s could not be found: #{Enum.join(missing, ", ")}"
+        )
+
+      _ ->
+        :ok
+    end
+
+    if files == [], do: nil, else: files
+  end
+
   defp write_graph(file_references, filter, opts) do
     excluded = excluded(opts)
-    source = opts[:source]
-    sink = opts[:sink]
-
-    if source && is_nil(file_references[source]) do
-      Mix.raise("Source could not be found: #{source}")
-    end
-
-    if sink && is_nil(file_references[sink]) do
-      Mix.raise("Sink could not be found: #{sink}")
-    end
+    sources = get_files(:source, opts, file_references)
+    sinks = get_files(:sink, opts, file_references)
 
     file_references =
-      if sink = opts[:sink] do
-        filter_for_sink(file_references, sink, filter)
+      if sinks do
+        filter_for_sinks(file_references, sinks, filter)
       else
         filter_for_source(file_references, filter)
       end
 
     roots =
-      if source = opts[:source] do
-        %{source => nil}
+      if sources do
+        file_to_roots(sources)
       else
         file_references
-        |> Map.delete(opts[:sink])
+        |> Map.drop(sinks || [])
         |> Enum.map(&{elem(&1, 0), nil})
         |> Kernel.--(excluded)
-        |> Map.new()
       end
 
     callback = fn {file, type} ->
@@ -612,12 +619,16 @@ defmodule Mix.Tasks.Xref do
     end
   end
 
-  defp filter_for_sink(file_references, sink, filter) do
+  defp file_to_roots(files) do
+    Enum.map(files, &{&1, nil})
+  end
+
+  defp filter_for_sinks(file_references, sinks, filter) do
     fun = filter_fn(file_references, filter)
 
     file_references
     |> invert_references(fn _ -> true end)
-    |> depends_on_sink([{sink, nil}], %{})
+    |> depends_on_sink(file_to_roots(sinks), %{})
     |> invert_references(fun)
   end
 

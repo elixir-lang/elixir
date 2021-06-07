@@ -407,15 +407,16 @@ defmodule Mix.Tasks.XrefTest do
       """)
     end
 
-    test "source" do
-      assert_graph(~w[--source lib/a.ex], """
+    test "sources" do
+      assert_graph(~w[--source lib/a.ex --source lib/c.ex], """
       lib/a.ex
       `-- lib/b.ex (compile)
           |-- lib/a.ex
           |-- lib/c.ex
-          |   `-- lib/d.ex (compile)
-          |       `-- lib/e.ex
           `-- lib/e.ex (compile)
+      lib/c.ex
+      `-- lib/d.ex (compile)
+          `-- lib/e.ex
       """)
     end
 
@@ -436,9 +437,9 @@ defmodule Mix.Tasks.XrefTest do
       """)
     end
 
-    test "invalid source" do
-      assert_raise Mix.Error, "Source could not be found: lib/a2.ex", fn ->
-        assert_graph(~w[--source lib/a2.ex], "")
+    test "invalid sources" do
+      assert_raise Mix.Error, "Sources could not be found: lib/a2.ex, lib/a3.ex", fn ->
+        assert_graph(~w[--source lib/a2.ex --source lib/a.ex --source lib/a3.ex], "")
       end
     end
 
@@ -477,9 +478,18 @@ defmodule Mix.Tasks.XrefTest do
       """)
     end
 
+    test "multiple sinks" do
+      assert_graph(~w[--sink lib/a.ex --sink lib/c.ex], """
+      lib/b.ex
+      |-- lib/a.ex
+      |   `-- lib/b.ex (compile)
+      `-- lib/c.ex
+      """)
+    end
+
     test "invalid sink" do
-      assert_raise Mix.Error, "Sink could not be found: lib/b2.ex", fn ->
-        assert_graph(~w[--sink lib/b2.ex], "")
+      assert_raise Mix.Error, "Sinks could not be found: lib/b2.ex, lib/b3.ex", fn ->
+        assert_graph(~w[--sink lib/b2.ex --sink lib/b.ex --sink lib/b3.ex], "")
       end
     end
 
