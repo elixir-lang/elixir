@@ -491,8 +491,7 @@ defmodule Mix.Tasks.Xref do
         :ok
     end
 
-    # remap [] to nil
-    with [] <- files, do: nil
+    if files == [], do: nil, else: files
   end
 
   defp write_graph(file_references, filter, opts) do
