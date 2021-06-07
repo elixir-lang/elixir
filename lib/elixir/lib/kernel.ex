@@ -5603,7 +5603,7 @@ defmodule Kernel do
       iex> Regex.match?(~r/a#{:b}c/, "abc")
       true
 
-  While the `r` sigil allows parens and brackets to be used as delimiters,
+  While the `~r` sigil allows parens and brackets to be used as delimiters,
   it is preferred to use `"` or `/` to avoid escaping conflicts with reserved
   regex characters:
 
