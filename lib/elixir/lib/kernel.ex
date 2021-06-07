@@ -5554,7 +5554,7 @@ defmodule Kernel do
     quote(do: List.to_charlist(unquote(unescape_list_tokens(pieces))))
   end
 
-  @doc """
+  @doc ~S"""
   Handles the sigil `~r` for regular expressions.
 
   It returns a regular expression pattern, unescaping characters and replacing
@@ -5564,12 +5564,15 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> Regex.match?(~r(foo), "foo")
+      iex> Regex.match?(~r/foo/, "foo")
       true
 
       iex> Regex.match?(~r/a#{:b}c/, "abc")
       true
 
+  While the `~r` sigil allows parens and brackets to be used as delimiters,
+  it is preferred to use `"` or `/` to avoid escaping conflicts with reserved
+  regex characters.
   """
   defmacro sigil_r(term, modifiers)
 
