@@ -5605,13 +5605,7 @@ defmodule Kernel do
 
   While the `~r` sigil allows parens and brackets to be used as delimiters,
   it is preferred to use `"` or `/` to avoid escaping conflicts with reserved
-  regex characters:
-
-      iex> Regex.match?(~r(\(foo\)), "(foo)")
-      ** (Regex.CompileError) unmatched parentheses at position 5
-      iex> Regex.match?(~r/\(foo\)/, "(foo)")
-      true
-
+  regex characters.
   """
   defmacro sigil_r(term, modifiers)
 
