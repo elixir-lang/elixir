@@ -53,7 +53,6 @@ defmodule Kernel.BinaryTest do
 
   test "UTF-8 char" do
     assert ?ゆ == 12422
-    assert ?\ゆ == 12422
   end
 
   test "size outside match" do
