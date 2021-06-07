@@ -5603,16 +5603,15 @@ defmodule Kernel do
       iex> Regex.match?(~r/a#{:b}c/, "abc")
       true
 
-  Note that using `~r()` might raise an exception if you try to escape
-  parentheses, so typically `~r//` or `~r""` are preferred. `~r[]` also works
-  fine:
+  While the `r` sigil allows parens and brackets to be used as delimiters,
+  it is preferred to use `"` or `/` to avoid escaping conflicts with reserved
+  regex characters:
 
       iex> Regex.match?(~r(\(foo\)), "(foo)")
       ** (Regex.CompileError) unmatched parentheses at position 5
       iex> Regex.match?(~r/\(foo\)/, "(foo)")
       true
-      iex> Regex.match?(~r[\(foo\)], "(foo)")
-      true
+
   """
   defmacro sigil_r(term, modifiers)
 
