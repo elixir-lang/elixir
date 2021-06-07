@@ -5587,7 +5587,7 @@ defmodule Kernel do
     quote(do: List.to_charlist(unquote(unescape_list_tokens(pieces))))
   end
 
-  @doc """
+  @doc ~S"""
   Handles the sigil `~r` for regular expressions.
 
   It returns a regular expression pattern, unescaping characters and replacing
