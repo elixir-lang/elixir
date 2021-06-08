@@ -739,6 +739,74 @@ defmodule Kernel.ExpansionTest do
       assert expand(before_expansion) |> clean_meta([:alignment]) == after_expansion
     end
 
+    test "variables inside generator args do not leak" do
+      before_expansion =
+        quote do
+          for(
+            b <-
+              (
+                a = 1
+                [2]
+              ),
+            do: {a, b}
+          )
+
+          a
+        end
+
+      after_expansion =
+        quote do
+          for(
+            b <-
+              (
+                a = 1
+                [2]
+              ),
+            do: {a(), b}
+          )
+
+          a()
+        end
+
+      assert expand(before_expansion) == after_expansion
+
+      before_expansion =
+        quote do
+          for(
+            b <-
+              (
+                a = 1
+                [2]
+              ),
+            d <-
+              (
+                c = 3
+                [4]
+              ),
+            do: {a, b, c, d}
+          )
+        end
+
+      after_expansion =
+        quote do
+          for(
+            b <-
+              (
+                a = 1
+                [2]
+              ),
+            d <-
+              (
+                c = 3
+                [4]
+              ),
+            do: {a(), b, c(), d}
+          )
+        end
+
+      assert expand(before_expansion) == after_expansion
+    end
+
     test "variables inside filters are available in blocks" do
       assert expand(quote(do: for(a <- b, c = a, do: c))) ==
                quote(do: for(a <- b(), c = a, do: c))
@@ -849,6 +917,74 @@ defmodule Kernel.ExpansionTest do
         quote do
           with({foo} <- {bar()}, do: baz = :ok)
           baz()
+        end
+
+      assert expand(before_expansion) == after_expansion
+    end
+
+    test "variables inside args expression do not leak" do
+      before_expansion =
+        quote do
+          with(
+            b <-
+              (
+                a = 1
+                2
+              ),
+            do: {a, b}
+          )
+
+          a
+        end
+
+      after_expansion =
+        quote do
+          with(
+            b <-
+              (
+                a = 1
+                2
+              ),
+            do: {a(), b}
+          )
+
+          a()
+        end
+
+      assert expand(before_expansion) == after_expansion
+
+      before_expansion =
+        quote do
+          with(
+            b <-
+              (
+                a = 1
+                2
+              ),
+            d <-
+              (
+                c = 3
+                4
+              ),
+            do: {a, b, c, d}
+          )
+        end
+
+      after_expansion =
+        quote do
+          with(
+            b <-
+              (
+                a = 1
+                2
+              ),
+            d <-
+              (
+                c = 3
+                4
+              ),
+            do: {a(), b, c(), d}
+          )
         end
 
       assert expand(before_expansion) == after_expansion

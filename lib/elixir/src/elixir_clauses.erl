@@ -1,7 +1,7 @@
 %% Handle code related to args, guard and -> matching for case,
 %% fn, receive and friends. try is handled in elixir_try.
 -module(elixir_clauses).
--export([match/4, clause/5, def/2, head/2, head/3,
+-export([match/4, clause/5, def/2, head/2,
          'case'/3, 'receive'/3, 'try'/3, 'cond'/3, with/3,
          format_error/1]).
 -import(elixir_errors, [form_error/4, form_warn/4]).
@@ -50,21 +50,20 @@ clause(_Meta, _Kind, Fun, {'->', Meta, [Left, Right]}, E) ->
 clause(Meta, Kind, _Fun, _, E) ->
   form_error(Meta, E, ?MODULE, {bad_or_missing_clauses, Kind}).
 
-head(Args, E) ->
-  head(Args, E, E).
-head([{'when', Meta, [_ | _] = All}], AfterE, BeforeE) ->
+head([{'when', Meta, [_ | _] = All}], E) ->
   {Args, Guard} = elixir_utils:split_last(All),
+  Prematch = ?key(E, prematch_vars),
 
   {{EArgs, EGuard}, EG} =
     match(fun(ok, EM) ->
       {EArgs, EA} = elixir_expand:expand_args(Args, EM),
-      {EGuard, EG} = guard(Guard, EA#{context := guard, prematch_vars := ?key(BeforeE, prematch_vars)}),
+      {EGuard, EG} = guard(Guard, EA#{context := guard, prematch_vars := Prematch}),
       {{EArgs, EGuard}, EG}
-    end, ok, AfterE, BeforeE),
+    end, ok, E, E),
 
   {[{'when', Meta, EArgs ++ [EGuard]}], EG};
-head(Args, AfterE, BeforeE) ->
-  match(fun elixir_expand:expand_args/2, Args, AfterE, BeforeE).
+head(Args, E) ->
+  match(fun elixir_expand:expand_args/2, Args, E, E).
 
 guard({'when', Meta, [Left, Right]}, E) ->
   {ELeft, EL}  = guard(Left, E),
@@ -177,11 +176,10 @@ with(Meta, Args, E) ->
 
   {{with, Meta, EExprs ++ [[{do, EDo} | EOpts]]}, E3}.
 
-expand_with({'<-', Meta, [{Name, _, Ctx}, _] = Args}, Acc) when is_atom(Name), is_atom(Ctx) ->
-  expand_with({'=', Meta, Args}, Acc);
 expand_with({'<-', Meta, [Left, Right]}, {E, _HasMatch}) ->
   {ERight, ER} = elixir_expand:expand(Right, E),
-  {[ELeft], EL}  = head([Left], ER, E),
+  EM = elixir_env:reset_read(ER, E),
+  {[ELeft], EL} = head([Left], EM),
   {{'<-', Meta, [ELeft, ERight]}, {EL, true}};
 expand_with(Expr, {E, HasMatch}) ->
   {EExpr, EE} = elixir_expand:expand(Expr, E),

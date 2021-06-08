@@ -133,6 +133,19 @@ defmodule Kernel.ComprehensionTest do
     assert for({_, _} = x <- [foo: :bar], do: x) == [foo: :bar]
   end
 
+  test "for comprehensions with shadowing" do
+    assert for(
+             a <-
+               (
+                 b = 1
+                 _ = b
+                 [1]
+               ),
+             b <- [2],
+             do: a + b
+           ) == [3]
+  end
+
   test "for comprehensions with binary, enum generators and filters" do
     assert for(x <- [1, 2, 3], <<(y <- <<4, 5, 6>>)>>, y / 2 == x, do: x * y) == [8, 18]
   end
