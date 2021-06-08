@@ -182,7 +182,7 @@ list_string_with_the_end_of_line_slash_test() ->
 char_test() ->
   {99, []} = eval("?1 + ?2"),
   {10, []} = eval("?\\n"),
-  {40, []} = eval("?\\(").
+  {40, []} = eval("?(").
 
 %% Binaries
 
