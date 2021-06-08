@@ -107,7 +107,6 @@ defmodule Logger.Translator do
     case message do
       # This is no longer emitted by Erlang/OTP but it may be
       # manually emitted by libraries like connection.
-      # TODO: Remove this translation on Elixir v1.14
       {'** Generic server ' ++ _, [name, last, state, reason | client]} ->
         opts = Application.get_env(:logger, :translator_inspect_opts)
         {formatted, reason} = format_reason(reason)

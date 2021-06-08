@@ -3,7 +3,6 @@ Code.require_file("../test_helper.exs", __DIR__)
 defmodule Mix.ConfigTest do
   use MixTest.Case, async: true
 
-  doctest Mix.Config
   import Mix.Config
 
   setup do
@@ -63,49 +62,18 @@ defmodule Mix.ConfigTest do
   end
 
   test "import_config/1" do
-    import_config fixture_path("configs/good_config.exs")
+    import_config fixture_path("config.exs")
     assert config() == [my_app: [key: :value]]
-    assert files() == [fixture_path("configs/good_config.exs")]
+    assert files() == [fixture_path("config.exs")]
   end
 
   test "import_config/1 with wildcards" do
-    import_config fixture_path("configs/good_con*.exs")
+    import_config fixture_path("confi*.exs")
     assert config() == [my_app: [key: :value]]
   end
 
   test "import_config/1 with wildcard with no matches" do
     import_config fixture_path("configs/nonexistent_*.exs")
     assert config() == []
-  end
-
-  test "eval!/2" do
-    assert Mix.Config.eval!(fixture_path("configs/good_kw.exs")) ==
-             {[my_app: [key: :value]], [fixture_path("configs/good_kw.exs")]}
-
-    assert Mix.Config.eval!(fixture_path("configs/good_config.exs")) ==
-             {[my_app: [key: :value]], [fixture_path("configs/good_config.exs")]}
-
-    assert Mix.Config.eval!(fixture_path("configs/good_import.exs")) ==
-             {[my_app: [key: :value]],
-              [fixture_path("configs/good_config.exs"), fixture_path("configs/good_import.exs")]}
-  end
-
-  test "read!/2" do
-    assert Mix.Config.read!(fixture_path("configs/good_kw.exs")) ==
-             [my_app: [key: :value]]
-
-    assert Mix.Config.read!(fixture_path("configs/good_config.exs")) ==
-             [my_app: [key: :value]]
-
-    assert Mix.Config.read!(fixture_path("configs/good_import.exs")) ==
-             [my_app: [key: :value]]
-  end
-
-  test "persist/1" do
-    assert Application.get_env(:my_app, :key) == nil
-    Mix.Config.persist(my_app: [key: :value])
-    assert Application.get_env(:my_app, :key) == :value
-  after
-    Application.delete_env(:my_app, :key)
   end
 end

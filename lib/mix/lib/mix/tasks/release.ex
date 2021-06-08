@@ -1216,7 +1216,7 @@ defmodule Mix.Tasks.Release do
           {default_path, false}
 
         File.exists?(deprecated_path) ->
-          # TODO: Warn from Elixir v1.13 onwards
+          # TODO: Warn from Elixir v1.14 onwards
           {deprecated_path, true}
 
         true ->

@@ -1,5 +1,5 @@
 defmodule Mix.Config do
-  # TODO: Convert them to hard deprecations on v1.13
+  # TODO: Convert them to hard deprecations on v1.15
 
   @moduledoc deprecated: "Use Config and Config.Reader instead"
   @moduledoc ~S"""
@@ -53,6 +53,7 @@ defmodule Mix.Config do
   """
 
   @doc false
+  @deprecated "Use the Config module instead"
   defmacro __using__(_) do
     quote do
       import Mix.Config, only: [config: 2, config: 3, import_config: 1]
@@ -174,7 +175,7 @@ defmodule Mix.Config do
 
   It returns a tuple with the configuration and the imported paths.
   """
-  @doc deprecated: "Use Config.Reader.read_imports!/2 instead"
+  @deprecated "Use Config.Reader.read_imports!/2 instead"
   def eval!(file, imported_paths \\ []) do
     Config.Reader.read_imports!(file,
       imports: imported_paths,
@@ -196,7 +197,7 @@ defmodule Mix.Config do
       subsystem: Mix.Config.read!("rel/subsystem.exs")
 
   """
-  @doc deprecated: "Use Config.Reader.read!/2 instead"
+  @deprecated "Use Config.Reader.read!/2 instead"
   @spec read!(Path.t(), [Path.t()]) :: keyword
   def read!(file, imported_paths \\ []) do
     Config.Reader.read!(file, imports: imported_paths, env: Mix.env(), target: Mix.target())
@@ -222,7 +223,7 @@ defmodule Mix.Config do
       [app1: [], app2: []]
 
   """
-  @doc deprecated: "Use Config.Reader.merge/2 instead"
+  @deprecated "Use Config.Reader.merge/2 instead"
   def merge(config1, config2) do
     Config.__merge__(config1, config2)
   end
@@ -244,13 +245,13 @@ defmodule Mix.Config do
       #=> [:logger, :my_app]
 
   """
-  @doc deprecated: "Use Application.put_all_env/2 instead"
+  @deprecated "Use Application.put_all_env/2 instead"
   def persist(config) do
     Application.put_all_env(config, persistent: true)
   end
 
   @doc false
-  @deprecated "Use eval!/2 instead"
+  @deprecated "Use the Config.Reader module instead"
   def read_wildcard!(path, loaded_paths \\ []) do
     paths =
       if String.contains?(path, ~w(* ? [ {)) do

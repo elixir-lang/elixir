@@ -606,7 +606,6 @@ defmodule System do
   The returned value is a map containing name-value pairs.
   Variable names and their values are strings.
   """
-  # TODO: Remove this once we require Erlang/OTP 24+
   @spec get_env() :: %{optional(String.t()) => String.t()}
   def get_env do
     if function_exported?(:os, :env, 0) do
