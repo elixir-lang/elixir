@@ -3574,9 +3574,10 @@ defmodule Enum do
   end
 
   @doc """
-  Reduces a over all of the given enums, halting as soon as any enumerable is empty.
+  Reduces over all of the given enumerables, halting as soon as any enumerable is 
+  empty.
 
-  The reducer will receive 2 args, a list of elements (one from each enum) and the
+  The reducer will receive 2 args: a list of elements (one from each enum) and the
   accumulator.
 
   In practice, the behaviour provided by this function can be achieved with:
