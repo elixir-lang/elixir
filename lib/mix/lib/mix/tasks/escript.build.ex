@@ -162,12 +162,18 @@ defmodule Mix.Tasks.Escript.Build do
     # Need to keep :strip_beam option for backward compatibility so
     # check for correct :strip_beams, then :strip_beam, then
     # use default true if neither are present.
-    #
-    # TODO: Deprecate :strip_beam option on v1.13
     strip_options =
       escript_opts
       |> Keyword.get_lazy(:strip_beams, fn ->
-        Keyword.get(escript_opts, :strip_beam, true)
+        if Keyword.get(escript_opts, :strip_beam, true) do
+          true
+        else
+          IO.warn(
+            ":strip_beam option in escript.build is deprecated. Please use :strip_beams instead"
+          )
+
+          false
+        end
       end)
       |> parse_strip_beams_options()
 

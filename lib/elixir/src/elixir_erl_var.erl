@@ -46,7 +46,7 @@ build_name(Name, Count) -> list_to_atom("_" ++ atom_to_list(Name) ++ "@" ++ inte
 
 load_binding(Binding, #{current_vars := {ExVars, _}}, #elixir_erl{var_names=ErlVars}) ->
   %% TODO: Remove me once we require Erlang/OTP 24+
-  %% Also revisit dump_binding below.
+  %% Also revisit dump_binding below and remove the vars field for simplicity.
   Mod =
     case erlang:system_info(otp_release) >= "24" of
       true -> maps;

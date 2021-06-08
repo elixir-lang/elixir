@@ -222,7 +222,7 @@ defmodule Mix.Tasks.Deps.Compile do
     # TODO: We still symlink ebin, for backwards compatibility, which
     # partially negates the effects of REBAR_BARE_COMPILER_OUTPUT_DIR
     # if an ebin diretory exists, so we should consider disabling it in
-    # future releases.
+    # future releases when rebar3 v3.14+ is reasonable adopted.
     File.cd!(opts[:dest], fn ->
       config = Keyword.put(config, :app_path, dep_path)
       Mix.Project.build_structure(config, symlink_ebin: true)

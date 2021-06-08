@@ -814,7 +814,6 @@ defmodule Logger do
     if is_msg(msg) do
       :logger.macro_log(location, level, msg, add_elixir_domain(metadata))
     else
-      # TODO: Remove this branch in Elixir v2.0
       IO.warn(
         "passing #{inspect(msg)} to Logger is deprecated, expected a map, a keyword list, a binary, or an iolist"
       )

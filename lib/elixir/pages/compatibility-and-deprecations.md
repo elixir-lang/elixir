@@ -78,6 +78,8 @@ The first column is the version the feature was hard deprecated. The second colu
 
 Version | Deprecated feature                                  | Replaced by (available since)
 :-------| :-------------------------------------------------- | :---------------------------------------------------------------
+[v1.13] | `Mix.Config`                                        | Use `Config` instead (v1.9)
+[v1.13] | `:strip_beam` config to `mix escript.build`         | Use `:strip_beams` instead (v1.9)
 [v1.13] | `Macro.to_string/2`                                 | Use `Macro.to_string/1` instead (v1.0)
 [v1.13] | `System.get_pid/0`                                  | Use `System.pid/0` instead (v1.9)
 [v1.12] | `^^^/2`                                             | Use `bxor/2` instead (v1.0)
