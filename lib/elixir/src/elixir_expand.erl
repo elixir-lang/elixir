@@ -245,6 +245,7 @@ expand({'try', Meta, [Opts]}, E) ->
 
 expand({for, Meta, [_ | _] = Args}, E) ->
   assert_no_match_or_guard_scope(Meta, "for", E),
+
   {Cases, Block} =
     case elixir_utils:split_last(Args) of
       {OuterCases, OuterOpts} when is_list(OuterOpts) ->
@@ -984,15 +985,17 @@ expand_aliases({'__aliases__', Meta, _} = Alias, E, Report) ->
 
 expand_for({'<-', Meta, [Left, Right]}, E) ->
   {ERight, ER} = expand(Right, E),
-  {[ELeft], EL} = elixir_clauses:head([Left], ER, E),
+  EM = elixir_env:reset_read(ER, E),
+  {[ELeft], EL} = elixir_clauses:head([Left], EM),
   {{'<-', Meta, [ELeft, ERight]}, EL};
 expand_for({'<<>>', Meta, Args} = X, E) when is_list(Args) ->
   case elixir_utils:split_last(Args) of
     {LeftStart, {'<-', OpMeta, [LeftEnd, Right]}} ->
       {ERight, ER} = expand(Right, E),
+      EM = elixir_env:reset_read(ER, E),
       {ELeft, EL} = elixir_clauses:match(fun(BArg, BE) ->
         elixir_bitstring:expand(Meta, BArg, BE, true)
-      end, LeftStart ++ [LeftEnd], ER, E),
+      end, LeftStart ++ [LeftEnd], EM, EM),
       {{'<<>>', [], [{'<-', OpMeta, [ELeft, ERight]}]}, EL};
     _ ->
       expand(X, E)
