@@ -507,10 +507,21 @@ defmodule Application do
       raise "Application.compile_env/3 cannot be called inside functions, only in the module body"
     end
 
+    key_or_path = expand_key_or_path(key_or_path, __CALLER__)
+
     quote do
       Application.__compile_env__(unquote(app), unquote(key_or_path), unquote(default), __ENV__)
     end
   end
+
+  defp expand_key_or_path({:__aliases__, _, _} = alias, env),
+    do: Macro.expand(alias, %{env | function: {:__info__, 1}})
+
+  defp expand_key_or_path(list, env) when is_list(list),
+    do: Enum.map(list, &expand_key_or_path(&1, env))
+
+  defp expand_key_or_path(other, _env),
+    do: other
 
   @doc false
   def __compile_env__(app, key_or_path, default, env) do
@@ -532,6 +543,8 @@ defmodule Application do
     if __CALLER__.function do
       raise "Application.compile_env!/2 cannot be called inside functions, only in the module body"
     end
+
+    key_or_path = expand_key_or_path(key_or_path, __CALLER__)
 
     quote do
       Application.__compile_env__!(unquote(app), unquote(key_or_path), __ENV__)

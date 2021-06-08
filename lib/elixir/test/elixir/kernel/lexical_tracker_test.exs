@@ -222,5 +222,20 @@ defmodule Kernel.LexicalTrackerTest do
       assert URI in exports
       refute URI in runtime
     end
+
+    test "compile_env! does not add a compile dependency" do
+      {{compile, exports, runtime, _}, _binding} =
+        Code.eval_string("""
+        defmodule Kernel.LexicalTrackerTest.CompileEnvStruct do
+          Application.compile_env(:elixir, URI)
+          Application.compile_env(:elixir, [:foo, URI, :bar])
+          Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
+        end |> elem(3)
+        """)
+
+      refute URI in compile
+      refute URI in exports
+      assert URI in runtime
+    end
   end
 end
