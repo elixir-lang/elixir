@@ -10,7 +10,7 @@ env:
 
 jobs:
   test_linux:
-    name: Linux, ${{ matrix.otp_release }}, Ubuntu 16.04
+    name: Linux, ${{ matrix.otp_release }}, Ubuntu 18.04
     strategy:
       fail-fast: false
       matrix:
@@ -21,7 +21,7 @@ jobs:
             development: true
           - otp_release: maint
             development: true
-    runs-on: ubuntu-16.04
+    runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
         with:
@@ -29,7 +29,7 @@ jobs:
       - name: Install Erlang/OTP
         run: |
           cd $RUNNER_TEMP
-          wget -O otp.tar.gz https://repo.hex.pm/builds/otp/ubuntu-16.04/${{ matrix.otp_release }}.tar.gz
+          wget -O otp.tar.gz https://repo.hex.pm/builds/otp/ubuntu-18.04/${{ matrix.otp_release }}.tar.gz
           mkdir -p otp
           tar zxf otp.tar.gz -C otp --strip-components=1
           otp/Install -minimal $(pwd)/otp
@@ -90,7 +90,7 @@ jobs:
 
   check_posix_compliant:
     name: Check POSIX-compliant
-    runs-on: ubuntu-16.04
+    runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
         with:
