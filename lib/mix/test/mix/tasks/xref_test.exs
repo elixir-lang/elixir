@@ -303,6 +303,12 @@ defmodule Mix.Tasks.XrefTest do
       """)
     end
 
+    test "bad format" do
+      assert_raise Mix.Error, "Unknown format \"bad\"", fn ->
+        assert_graph(["--format", "bad"])
+      end
+    end
+
     test "exclude many" do
       assert_graph(~w[--exclude lib/c.ex --exclude lib/b.ex], """
       lib/a.ex

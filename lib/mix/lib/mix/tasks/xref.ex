@@ -566,10 +566,13 @@ defmodule Mix.Tasks.Xref do
         "cycles" ->
           {:cycles, print_cycles(file_references, opts)}
 
-        _ ->
+        other when other in [nil, "plain", "pretty"] ->
           Mix.Utils.print_tree(Enum.sort(roots), callback, opts)
 
           {:references, count_references(file_references)}
+
+        other ->
+          Mix.raise("Unknown format #{inspect(other)}")
       end
 
     check_failure(found, count, opts[:fail_above])
