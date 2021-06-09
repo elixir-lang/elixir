@@ -439,7 +439,7 @@ defmodule Mix.Tasks.Xref do
   defp label_filter("runtime"), do: {:all, nil}
   defp label_filter("compile-connected"), do: {:all, :compile_connected}
   defp label_filter("compile-direct"), do: {:compile, :all}
-  defp label_filter(other), do: Mix.raise("unknown --label #{other}")
+  defp label_filter(other), do: Mix.raise("Unknown --label #{other}")
 
   defp file_references(filter, opts) do
     module_sources =
@@ -572,7 +572,7 @@ defmodule Mix.Tasks.Xref do
           {:references, count_references(file_references)}
 
         other ->
-          Mix.raise("Unknown format #{inspect(other)}")
+          Mix.raise("Unknown --format #{other}")
       end
 
     check_failure(found, count, opts[:fail_above])
