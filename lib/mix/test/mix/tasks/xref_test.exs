@@ -305,7 +305,7 @@ defmodule Mix.Tasks.XrefTest do
 
     test "bad format" do
       assert_raise Mix.Error, "Unknown format \"bad\"", fn ->
-        assert_graph(["--format", "bad"])
+        assert_graph(["--format", "bad"], "")
       end
     end
 
