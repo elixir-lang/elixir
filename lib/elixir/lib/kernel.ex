@@ -554,6 +554,18 @@ defmodule Kernel do
   Returns `true` if `term` is an atom; otherwise returns `false`.
 
   Allowed in guard tests. Inlined by the compiler.
+
+  ## Examples
+
+      iex> is_atom(false)
+      true
+
+      iex> is_atom(:name)
+      true
+
+      iex> is_atom("true")
+      false
+
   """
   @doc guard: true
   @spec is_atom(term) :: boolean
@@ -606,6 +618,18 @@ defmodule Kernel do
   a boolean); otherwise returns `false`.
 
   Allowed in guard tests. Inlined by the compiler.
+
+  ## Examples
+
+      iex> is_boolean(false)
+      true
+
+      iex> is_boolean(true)
+      true
+
+      iex> is_boolean(:test)
+      false
+
   """
   @doc guard: true
   @spec is_boolean(term) :: boolean
@@ -628,6 +652,15 @@ defmodule Kernel do
   Returns `true` if `term` is a function; otherwise returns `false`.
 
   Allowed in guard tests. Inlined by the compiler.
+
+  ## Examples
+
+      iex> is_function(fn x -> x + x end)
+      true
+
+      iex> is_function("not a function")
+      false
+
   """
   @doc guard: true
   @spec is_function(term) :: boolean
