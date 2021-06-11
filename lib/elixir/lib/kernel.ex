@@ -563,11 +563,11 @@ defmodule Kernel do
       iex> is_atom(:name)
       true
 
-      iex> is_atom("true")
-      false
-
       iex> is_atom(AnAtom)
       true
+
+      iex> is_atom("true")
+      false
 
   """
   @doc guard: true
