@@ -566,6 +566,9 @@ defmodule Kernel do
       iex> is_atom("true")
       false
 
+      iex> is_atom(AnAtom)
+      true
+
   """
   @doc guard: true
   @spec is_atom(term) :: boolean
