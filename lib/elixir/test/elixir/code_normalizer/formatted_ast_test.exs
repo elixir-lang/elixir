@@ -344,6 +344,22 @@ defmodule Code.Normalizer.FormatterASTTest do
     end
   end
 
+  describe "preserves user choice on parenthesis" do
+    test "in functions with do blocks" do
+      assert_same(~S"""
+      foo Bar do
+        :ok
+      end
+      """)
+
+      assert_same(~S"""
+      foo(Bar) do
+        :ok
+      end
+      """)
+    end
+  end
+
   describe "preserves formatting for sigils" do
     test "without interpolation" do
       assert_same ~S[~s(foo)]
