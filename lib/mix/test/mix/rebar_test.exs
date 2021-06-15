@@ -111,6 +111,8 @@ defmodule Mix.RebarTest do
 
       assert parse_dep({:git_rebar, '', {:git, @git_rebar_charlist, {:ref, '64691eb'}}}) ==
                {:git_rebar, ~r"", override: true, git: @git_rebar_string, ref: "64691eb"}
+
+      assert parse_dep(:git_rebar) == {:git_rebar, override: true}
     end
   end
 
