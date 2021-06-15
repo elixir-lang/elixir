@@ -105,7 +105,7 @@ defmodule Mix.Rebar do
   # Translate a Rebar dependency declaration to a Mix declaration
   # From http://www.rebar3.org/docs/dependencies#section-declaring-dependencies
   defp parse_dep(app) when is_atom(app) do
-    {app, nil, override: true}
+    {app, override: true}
   end
 
   defp parse_dep({app, req}) when is_list(req) do
