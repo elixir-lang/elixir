@@ -1883,6 +1883,8 @@ defmodule Kernel do
   @doc """
   Binary concatenation operator. Concatenates two binaries.
 
+  Raises an `ArgumentError` if one of the sides aren't binaries.
+
   ## Examples
 
       iex> "foo" <> "bar"
@@ -1895,12 +1897,27 @@ defmodule Kernel do
       iex> x
       "bar"
 
-  `x <> "bar" = "foobar"` would have resulted in a `CompileError` exception.
+  `x <> "bar" = "foobar"` would result in an `ArgumentError` exception.
 
   """
   defmacro left <> right do
     concats = extract_concatenations({:<>, [], [left, right]}, __CALLER__)
-    quote(do: <<unquote_splicing(concats)>>)
+
+    case __CALLER__.context do
+      nil ->
+        quote do
+          case {unquote(left), unquote(right)} do
+            {x, y} when is_binary(x) and is_binary(y) ->
+              <<unquote_splicing(concats)>>
+
+            _ ->
+              :erlang.error(ArgumentError.exception("expected binary argument in <> operator"))
+          end
+        end
+
+      _ ->
+        quote(do: <<unquote_splicing(concats)>>)
+    end
   end
 
   # Extracts concatenations in order to optimize many

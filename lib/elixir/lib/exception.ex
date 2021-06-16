@@ -1550,16 +1550,6 @@ defmodule ErlangError do
     {nil, nil, nil}
   end
 
-  defp error_info(:badarg, [{:erlang, :byte_size, _, _} | _]) do
-    {:ok,
-     """
-       * 1st argument: not a bitstring
-
-     This typically happens when calling Kernel.byte_size/1 with an invalid argument
-     or when performing binary concatenation with <> and one of the arguments is not a binary\
-     """}
-  end
-
   defp error_info(erl_exception, stacktrace) do
     with [{module, _, args_or_arity, opts} | _] <- stacktrace,
          %{} = error_info <- opts[:error_info] do
