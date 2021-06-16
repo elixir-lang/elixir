@@ -1883,6 +1883,8 @@ defmodule Kernel do
   @doc """
   Binary concatenation operator. Concatenates two binaries.
 
+  Raises an `ArgumentError` if one of the sides aren't binaries.
+
   ## Examples
 
       iex> "foo" <> "bar"
@@ -1895,7 +1897,7 @@ defmodule Kernel do
       iex> x
       "bar"
 
-  `x <> "bar" = "foobar"` would have resulted in a `CompileError` exception.
+  `x <> "bar" = "foobar"` would result in an `ArgumentError` exception.
 
   """
   defmacro left <> right do
