@@ -2485,12 +2485,6 @@ defmodule Kernel.ExpansionTest do
     test "merges binaries" do
       import Kernel, except: [-: 2]
 
-      assert expand(quote(do: "foo" <> x)) |> clean_meta([:alignment]) ==
-               quote(do: <<"foo"::binary(), x()::binary()>>)
-
-      assert expand(quote(do: "foo" <> <<x::size(4), y::size(4)>>)) |> clean_meta([:alignment]) ==
-               quote(do: <<"foo"::binary(), x()::integer()-size(4), y()::integer()-size(4)>>)
-
       assert expand(quote(do: <<"foo", <<x::size(4), y::size(4)>>::binary>>))
              |> clean_meta([:alignment]) ==
                quote(do: <<"foo"::binary(), x()::integer()-size(4), y()::integer()-size(4)>>)

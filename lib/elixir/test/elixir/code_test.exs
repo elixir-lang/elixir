@@ -205,17 +205,17 @@ defmodule CodeTest do
       end
     end
 
-    test "raises streamlined argument errors" do
+    test "raises ArgumentError for <> operator" do
       assert_raise ArgumentError,
-                   ~r"argument error while evaluating at line 1",
+                   ~r"expected binary argument in <> operator",
                    fn -> Code.eval_string("a <> b", a: :a, b: :b) end
 
       assert_raise ArgumentError,
-                   ~r"argument error while evaluating example.ex at line 1",
+                   ~r"expected binary argument in <> operator",
                    fn -> Code.eval_string("a <> b", [a: :a, b: :b], file: "example.ex") end
 
       assert_raise ArgumentError,
-                   ~r"argument error while evaluating example.ex between lines 1 and 2",
+                   ~r"expected binary argument in <> operator",
                    fn -> Code.eval_string("a <>\nb", [a: :a, b: :b], file: "example.ex") end
     end
   end

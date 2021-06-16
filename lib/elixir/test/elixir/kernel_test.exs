@@ -83,6 +83,46 @@ defmodule KernelTest do
     end
   end
 
+  describe "<>/2" do
+    test "works with literal binaries" do
+      assert "concate" <> "nation" == "concatenation"
+      assert "123" <> "456" == "123456"
+    end
+
+    test "works with runtime binaries" do
+      a = "concate"
+      b = "nation"
+
+      assert a <> b == "concatenation"
+      assert b <> a == "nationconcate"
+      assert b <> b == "nationnation"
+
+      defmodule Test.Utils do
+        def concate_string(a, b), do: a <> b
+      end
+
+      assert Test.Utils.concate_string("it ", "works!") == "it works!"
+      assert Test.Utils.concate_string(a, b) == "concatenation"
+    end
+
+    test "fails with non-binaries but a sweet error" do
+      a = "concate"
+      b = 2
+
+      assert_raise ArgumentError, "expected binary argument in <> operator", fn ->
+        a <> b
+      end
+
+      assert_raise ArgumentError, "expected binary argument in <> operator", fn ->
+        b <> a
+      end
+
+      assert_raise ArgumentError, "expected binary argument in <> operator", fn ->
+        b <> b
+      end
+    end
+  end
+
   test "=~/2" do
     assert "abcd" =~ ~r/c(d)/ == true
     assert "abcd" =~ ~r/e/ == false
