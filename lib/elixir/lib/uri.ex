@@ -439,20 +439,21 @@ defmodule URI do
   @spec decode_www_form(binary) :: binary
   def decode_www_form(string) when is_binary(string) do
     unpercent(string, "", true)
-  catch
-    :malformed_uri ->
-      raise ArgumentError, "malformed URI #{inspect(string)}"
   end
 
   defp unpercent(<<?+, tail::binary>>, acc, spaces = true) do
     unpercent(tail, <<acc::binary, ?\s>>, spaces)
   end
 
-  defp unpercent(<<?%, hex1, hex2, tail::binary>>, acc, spaces) do
-    unpercent(tail, <<acc::binary, bsl(hex_to_dec(hex1), 4) + hex_to_dec(hex2)>>, spaces)
+  defp unpercent(<<?%, tail::binary>>, acc, spaces) do
+    with <<hex1, hex2, tail::binary>> <- tail,
+         dec1 when is_integer(dec1) <- hex_to_dec(hex1),
+         dec2 when is_integer(dec2) <- hex_to_dec(hex2) do
+      unpercent(tail, <<acc::binary, bsl(dec1, 4) + dec2>>, spaces)
+    else
+      _ -> unpercent(tail, <<acc::binary, ?%>>, spaces)
+    end
   end
-
-  defp unpercent(<<?%, _::binary>>, _acc, _spaces), do: throw(:malformed_uri)
 
   defp unpercent(<<head, tail::binary>>, acc, spaces) do
     unpercent(tail, <<acc::binary, head>>, spaces)
@@ -460,10 +461,11 @@ defmodule URI do
 
   defp unpercent(<<>>, acc, _spaces), do: acc
 
+  @compile {:inline, hex_to_dec: 1}
   defp hex_to_dec(n) when n in ?A..?F, do: n - ?A + 10
   defp hex_to_dec(n) when n in ?a..?f, do: n - ?a + 10
   defp hex_to_dec(n) when n in ?0..?9, do: n - ?0
-  defp hex_to_dec(_n), do: throw(:malformed_uri)
+  defp hex_to_dec(_n), do: nil
 
   @doc """
   Parses a well-formed URI into its components.
