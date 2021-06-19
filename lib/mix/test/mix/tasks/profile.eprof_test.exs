@@ -12,7 +12,7 @@ defmodule Mix.Tasks.Profile.EprofTest do
     in_tmp(context.test, fn ->
       assert capture_io(fn ->
                Eprof.run(["-e", @expr])
-             end) =~ ~r(String\.Chars\.Integer\.to_string\/1\s+\d)
+             end) =~ ~r/String\.Chars\.Integer\.to_string\/1\s+\d/
     end)
   end
 
@@ -20,7 +20,7 @@ defmodule Mix.Tasks.Profile.EprofTest do
     in_tmp(context.test, fn ->
       assert capture_io(fn ->
                Eprof.run(["-e", "spawn(fn -> #{@expr} end)"])
-             end) =~ ~r(String\.Chars\.Integer\.to_string\/1\s+\d)
+             end) =~ ~r/String\.Chars\.Integer\.to_string\/1\s+\d/
     end)
   end
 
@@ -31,7 +31,7 @@ defmodule Mix.Tasks.Profile.EprofTest do
 
       assert capture_io(fn ->
                Eprof.run([profile_script_name])
-             end) =~ ~r(String\.Chars\.Integer\.to_string\/1\s+\d)
+             end) =~ ~r/String\.Chars\.Integer\.to_string\/1\s+\d/
     end)
   end
 
@@ -47,7 +47,7 @@ defmodule Mix.Tasks.Profile.EprofTest do
     in_tmp(context.test, fn ->
       assert capture_io(fn ->
                Eprof.run(["--sort", "calls", "-e", @expr])
-             end) =~ ~r(erlang\.apply\/2.*String\.Chars\.Integer\.to_string\/1)s
+             end) =~ ~r/erlang\.apply\/2.*String\.Chars\.Integer\.to_string\/1/s
     end)
   end
 
@@ -55,7 +55,7 @@ defmodule Mix.Tasks.Profile.EprofTest do
     in_tmp(context.test, fn ->
       refute capture_io(fn ->
                Eprof.run(["--matching", "Enum", "-e", @expr])
-             end) =~ ~r(String\.Chars\.Integer\.to_string\/1)
+             end) =~ ~r/String\.Chars\.Integer\.to_string\/1/
     end)
   end
 
@@ -63,7 +63,7 @@ defmodule Mix.Tasks.Profile.EprofTest do
     in_tmp(context.test, fn ->
       refute capture_io(fn ->
                Eprof.run(["--matching", "Enum.each", "-e", @expr])
-             end) =~ ~r(anonymous fn\/3 in Enum\.each\/2)
+             end) =~ ~r/anonymous fn\/3 in Enum\.each\/2/
     end)
   end
 
@@ -71,7 +71,7 @@ defmodule Mix.Tasks.Profile.EprofTest do
     in_tmp(context.test, fn ->
       assert capture_io(fn ->
                Eprof.run(["--matching", "Enum.each/8", "-e", @expr])
-             end) =~ ~r(Profile done over 0 matching functions)
+             end) =~ ~r/Profile done over 0 matching functions/
     end)
   end
 

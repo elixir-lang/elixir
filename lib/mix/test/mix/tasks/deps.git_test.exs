@@ -507,7 +507,7 @@ defmodule Mix.Tasks.DepsGitTest do
 
   defp get_git_repo_revs(repo) do
     File.cd!(fixture_path(repo), fn ->
-      Regex.split(~r(\r?\n), System.cmd("git", ["log", "--format=%H"]) |> elem(0))
+      Regex.split(~r/\r?\n/, System.cmd("git", ["log", "--format=%H"]) |> elem(0))
     end)
   end
 end

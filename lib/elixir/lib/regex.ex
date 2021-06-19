@@ -371,7 +371,7 @@ defmodule Regex do
 
   ## Examples
 
-      iex> Regex.source(~r(foo))
+      iex> Regex.source(~r/foo/)
       "foo"
 
   """
@@ -385,7 +385,7 @@ defmodule Regex do
 
   ## Examples
 
-      iex> Regex.opts(~r(foo)m)
+      iex> Regex.opts(~r/foo/m)
       "m"
 
   """

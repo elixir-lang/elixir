@@ -12,7 +12,7 @@ defmodule Mix.Tasks.Profile.CprofTest do
     in_tmp(context.test, fn ->
       assert capture_io(fn ->
                Cprof.run(["-e", @expr])
-             end) =~ ~r(String\.Chars\.Integer\.to_string\/1 *\d)
+             end) =~ ~r/String\.Chars\.Integer\.to_string\/1 *\d/
     end)
   end
 
@@ -24,7 +24,7 @@ defmodule Mix.Tasks.Profile.CprofTest do
 
       assert capture_io(fn ->
                Cprof.run([profile_script_name])
-             end) =~ ~r(String\.Chars\.Integer\.to_string\/1 *\d)
+             end) =~ ~r/String\.Chars\.Integer\.to_string\/1 *\d/
     end)
   end
 
@@ -32,7 +32,7 @@ defmodule Mix.Tasks.Profile.CprofTest do
     in_tmp(context.test, fn ->
       refute capture_io(fn ->
                Cprof.run(["--limit", "5", "-e", @expr])
-             end) =~ ~r(:erlang\.trace_pattern\/3 *\d)
+             end) =~ ~r/:erlang\.trace_pattern\/3 *\d/
     end)
   end
 
@@ -40,7 +40,7 @@ defmodule Mix.Tasks.Profile.CprofTest do
     in_tmp(context.test, fn ->
       refute capture_io(fn ->
                Cprof.run(["--module", "Enum", "-e", @expr])
-             end) =~ ~r(String\.Chars\.Integer\.to_string\/1 *\d)
+             end) =~ ~r/String\.Chars\.Integer\.to_string\/1 *\d/
     end)
   end
 
@@ -48,7 +48,7 @@ defmodule Mix.Tasks.Profile.CprofTest do
     in_tmp(context.test, fn ->
       refute capture_io(fn ->
                Cprof.run(["--matching", "Enum", "-e", @expr])
-             end) =~ ~r(String\.Chars\.Integer\.to_string\/1 *\d)
+             end) =~ ~r/String\.Chars\.Integer\.to_string\/1 *\d/
     end)
   end
 
@@ -56,7 +56,7 @@ defmodule Mix.Tasks.Profile.CprofTest do
     in_tmp(context.test, fn ->
       refute capture_io(fn ->
                Cprof.run(["--matching", "Enum.each", "-e", @expr])
-             end) =~ ~r(anonymous fn\/3 in Enum\.each\/2 *\d)
+             end) =~ ~r/anonymous fn\/3 in Enum\.each\/2 *\d/
     end)
   end
 
@@ -64,7 +64,7 @@ defmodule Mix.Tasks.Profile.CprofTest do
     in_tmp(context.test, fn ->
       assert capture_io(fn ->
                Cprof.run(["--matching", "Enum.each/8", "-e", @expr])
-             end) =~ ~r(Profile done over 0 matching functions)
+             end) =~ ~r/Profile done over 0 matching functions/
     end)
   end
 
