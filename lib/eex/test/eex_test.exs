@@ -719,7 +719,7 @@ defmodule EExTest do
   end
 
   describe "parser options" do
-    test "are used" do
+    test "customizes parsed code" do
       atoms_encoder = fn "not_jose", _ -> {:ok, :jose} end
 
       assert_eval("valid", "<%= not_jose %>", [jose: "valid"],
