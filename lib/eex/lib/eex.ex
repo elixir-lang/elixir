@@ -51,6 +51,7 @@ defmodule EEx do
     * `:parser_options` - allow customizing the parsed code that is generated.
       See `Code.string_to_quoted/2` for available options. Note that the options
       `:file`, `:line` and `:column` are ignored if passed in.
+      Defaults to `Code.get_compiler_option(:parser_options)` (which defaults to `[]` if not set).
 
   ## Engine
 
