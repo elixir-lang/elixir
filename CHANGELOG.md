@@ -6,7 +6,7 @@
 
 #### EEx
 
-  * [Code] Added `:parser_options` to EEx functions
+  * [Code] Add `:parser_options` to EEx functions
 
 #### Elixir
 
