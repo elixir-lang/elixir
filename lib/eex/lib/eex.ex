@@ -48,6 +48,9 @@ defmodule EEx do
     * `:trim` - if `true`, trims whitespace left and right of quotation as
       long as at least one newline is present. All subsequent newlines and
       spaces are removed but one newline is retained. Defaults to `false`.
+    * `:parser_options` - allow customizing the parsed code that is generated.
+      See `Code.string_to_quoted/2` for available options. Note that the options
+      `:file`, `:line` and `:column` are ignored if passed in.
 
   ## Engine
 
