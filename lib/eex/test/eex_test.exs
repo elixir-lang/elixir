@@ -718,6 +718,16 @@ defmodule EExTest do
     end
   end
 
+  describe "parser options" do
+    test "customizes parsed code" do
+      atoms_encoder = fn "not_jose", _ -> {:ok, :jose} end
+
+      assert_eval("valid", "<%= not_jose %>", [jose: "valid"],
+        parser_options: [static_atoms_encoder: atoms_encoder]
+      )
+    end
+  end
+
   defp assert_eval(expected, actual, binding \\ [], opts \\ []) do
     opts = Keyword.merge([file: __ENV__.file, engine: opts[:engine] || EEx.Engine], opts)
     result = EEx.eval_string(actual, binding, opts)

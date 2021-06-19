@@ -6,6 +6,8 @@
 
 #### EEx
 
+  * [Code] Add `:parser_options` to EEx functions
+
 #### Elixir
 
   * [Code] Add `Code.string_to_quoted_with_comments/2` and `Code.quoted_to_algebra/2`
