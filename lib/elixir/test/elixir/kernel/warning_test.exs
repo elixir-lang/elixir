@@ -1263,6 +1263,10 @@ defmodule Kernel.WarningTest do
     assert capture_err(fn ->
              Code.eval_string("? ")
            end) =~ "found ? followed by code point 0x20 (space), please use ?\\s instead"
+
+    assert capture_err(fn ->
+             Code.eval_string("?\\ ")
+           end) =~ "found ?\\ followed by code point 0x20 (space), please use ?\\s instead"
   end
 
   test "duplicated docs in the same clause" do
