@@ -3780,7 +3780,7 @@ defmodule Enum do
 
   defp concat_enum(enum) do
     fun = &[&1 | &2]
-    enum |> Enum.reduce([], &Enum.reduce(&1, &2, fun)) |> :lists.reverse()
+    enum |> reduce([], &reduce(&1, &2, fun)) |> :lists.reverse()
   end
 
   # dedup
