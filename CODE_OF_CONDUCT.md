@@ -41,7 +41,7 @@ Explicit enforcement of the Code of Conduct applies to the official mediums oper
 
 * The [official GitHub projects][1] and code reviews.
 * The official elixir-lang mailing lists.
-* The **[#elixir-lang][2]** IRC channel on [Freenode][3].
+* The **[#elixir][2]** IRC channel on [Libera.Chat][3].
 
 Other Elixir activities (such as conferences, meetups, and unofficial forums) are encouraged to adopt this Code of Conduct. Such groups must provide their own contact information.
 
@@ -56,5 +56,5 @@ Instances of abusive, harassing, or otherwise unacceptable behavior may be repor
 This document was based on the Code of Conduct from the Go project with parts derived from Django's Code of Conduct, Rust's Code of Conduct and the Contributor Covenant.
 
 [1]: https://github.com/elixir-lang/
-[2]: https://webchat.freenode.net/?channels=#elixir-lang
-[3]: https://www.freenode.net
+[2]: https://web.libera.chat/#elixir
+[3]: https://libera.chat/
