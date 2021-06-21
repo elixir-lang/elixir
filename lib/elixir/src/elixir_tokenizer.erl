@@ -237,14 +237,25 @@ tokenize([$~, S, H | _] = Original, Line, Column, _Scope, Tokens) when ?is_upcas
 
 tokenize([$?, $\\, H | T], Line, Column, Scope, Tokens) ->
   Char = elixir_interpolation:unescape_map(H),
+
   NewScope = if
     H =:= Char, H =/= $\\ ->
-      Msg = io_lib:format("unknown escape sequence ?\\~tc, use ?~tc instead",
-                          [H, H]),
+      Msg =
+        case handle_char(Char) of
+          {Escape, Name} ->
+            io_lib:format("found ?\\ followed by code point 0x~.16B (~ts), please use ?~ts instead",
+                          [Char, Name, Escape]);
+
+          false ->
+            io_lib:format("unknown escape sequence ?\\~tc, use ?~tc instead", [H, H])
+        end,
+
       prepend_warning({Line, Scope#elixir_tokenizer.file, Msg}, Scope);
+
     true ->
       Scope
   end,
+
   Token = {char, {Line, Column, [$?, $\\, H]}, Char},
   tokenize(T, Line, Column + 3, NewScope, [Token | Tokens]);
 
