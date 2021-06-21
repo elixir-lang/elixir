@@ -47,8 +47,8 @@ defmodule Record do
 
   ## Options
 
-  This function accepts the following options, which are exclusive to each other
-  (i.e., only one of them can be used in the same call):
+  This function requires one of the following options, which are exclusive to each
+  other (i.e., only one of them can be used in the same call):
 
     * `:from` - (binary representing a path to a file) path to the Erlang file
       that contains the record definition to extract; with this option, this
@@ -59,6 +59,8 @@ defmodule Record do
       file that contains the record definition to extract; with this option,
       this function uses the same path lookup used by the `-include_lib`
       attribute used in Erlang modules.
+
+  It additionally accepts the following optional, non-exclusive options:
 
     * `:includes` - (a list of directories as binaries) if the record being
       extracted depends on relative includes, this option allows developers
@@ -105,21 +107,8 @@ defmodule Record do
 
   ## Options
 
-  This function accepts the following options, which are exclusive to each other
-  (i.e., only one of them can be used in the same call):
+  Accepts the same options as listed for `Record.extract/2`.
 
-    * `:from` - (binary representing a path to a file) path to the Erlang file
-      that contains the record definitions to extract; with this option, this
-      function uses the same path lookup used by the `-include` attribute used in
-      Erlang modules.
-
-    * `:from_lib` - (binary representing a path to a file) path to the Erlang
-      file that contains the record definitions to extract; with this option,
-      this function uses the same path lookup used by the `-include_lib`
-      attribute used in Erlang modules.
-
-  These options are expected to be literals (including the binary values) at
-  compile time.
   """
   @spec extract_all(keyword) :: [{name :: atom, keyword}]
   def extract_all(opts) when is_list(opts) do
