@@ -599,8 +599,11 @@ defmodule Enum do
   """
   @spec concat(t) :: t
   def concat(enumerables) do
-    fun = &[&1 | &2]
-    enumerables |> reduce([], &reduce(&1, &2, fun)) |> :lists.reverse()
+    if is_list(enumerables) and :lists.all(&is_list/1, enumerables) do
+      concat_list(enumerables)
+    else
+      concat_enum(enumerables)
+    end
   end
 
   @doc """
@@ -625,7 +628,7 @@ defmodule Enum do
   end
 
   def concat(left, right) do
-    concat([left, right])
+    concat_enum([left, right])
   end
 
   @doc """
@@ -3767,6 +3770,17 @@ defmodule Enum do
 
   defp any_list([], _) do
     false
+  end
+
+  ## concat
+
+  defp concat_list(enumerables) do
+    :lists.append(enumerables)
+  end
+
+  defp concat_enum(enumerables) do
+    fun = &[&1 | &2]
+    enumerables |> reduce([], &reduce(&1, &2, fun)) |> :lists.reverse()
   end
 
   # dedup
