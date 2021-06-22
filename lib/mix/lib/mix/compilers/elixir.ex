@@ -174,7 +174,7 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp compiler_info_from_updated(
-         modified,
+         _modified,
          all_paths,
          all_modules,
          all_sources,
@@ -201,12 +201,9 @@ defmodule Mix.Compilers.Elixir do
     # Sources that have changed on disk or
     # any modules associated with them need to be recompiled
     changed =
-      for source(source: source, external: external, size: size, modules: modules) <-
+      for source(source: source, external: external, modules: modules) <-
             all_sources,
-          {last_mtime, last_size} = Map.fetch!(sources_stats, source),
-          times = Enum.map(external, &(sources_stats |> Map.fetch!(&1) |> elem(0))),
-          size != last_size or Mix.Utils.stale?([last_mtime | times], [modified]) or
-            Enum.any?(modules, &Map.has_key?(modules_to_recompile, &1)),
+          Enum.any?(modules, &Map.has_key?(modules_to_recompile, &1)),
           do: source
 
     changed = new_paths ++ changed
