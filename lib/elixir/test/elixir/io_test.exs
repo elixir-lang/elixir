@@ -62,12 +62,23 @@ defmodule IOTest do
     assert 'F' == IO.getn(file, "λ")
     assert 'OO' == IO.getn(file, "", 2)
     assert '\n' == IO.getn(file, "λ", 99)
+    assert :eof == IO.getn(file, "λ", 1)
+    assert File.close(file) == :ok
+  end
+
+  test "getn with eof" do
+    {:ok, file} = File.open(Path.expand('fixtures/file.txt', __DIR__), [:charlist])
+    assert 'F' == IO.getn(file, "λ")
+    assert 'OO\n' == IO.getn(file, "", :eof)
+    assert :eof == IO.getn(file, "", :eof)
     assert File.close(file) == :ok
   end
 
   test "getn with UTF-8 and binary" do
     {:ok, file} = File.open(Path.expand('fixtures/utf8.txt', __DIR__), [:utf8])
     assert "Русский" == IO.getn(file, "", 7)
+    assert "\n日\n" == IO.getn(file, "", :eof)
+    assert :eof == IO.getn(file, "", :eof)
     assert File.close(file) == :ok
   end
 
@@ -85,17 +96,24 @@ defmodule IOTest do
     assert File.close(file) == :ok
   end
 
-  test "readall" do
+  test "read with all" do
     {:ok, file} = File.open(Path.expand('fixtures/file.txt', __DIR__))
     assert "FOO\n" == IO.read(file, :all)
     assert "" == IO.read(file, :all)
     assert File.close(file) == :ok
   end
 
-  test "readall with UTF-8 and binary" do
+  test "read with eof" do
+    {:ok, file} = File.open(Path.expand('fixtures/file.txt', __DIR__))
+    assert "FOO\n" == IO.read(file, :eof)
+    assert :eof == IO.read(file, :eof)
+    assert File.close(file) == :ok
+  end
+
+  test "read with eof and UTF-8 and binary" do
     {:ok, file} = File.open(Path.expand('fixtures/utf8.txt', __DIR__), [:utf8])
-    assert "Русский\n日\n" == IO.read(file, :all)
-    assert "" == IO.read(file, :all)
+    assert "Русский\n日\n" == IO.read(file, :eof)
+    assert :eof == IO.read(file, :eof)
     assert File.close(file) == :ok
   end
 
@@ -113,14 +131,21 @@ defmodule IOTest do
     assert File.close(file) == :ok
   end
 
-  test "binreadall" do
+  test "binread with all" do
     {:ok, file} = File.open(Path.expand('fixtures/utf8.txt', __DIR__))
     assert "Русский\n日\n" == IO.binread(file, :all)
     assert "" == IO.binread(file, :all)
     assert File.close(file) == :ok
   end
 
-  test "binreadline" do
+  test "binread with eof" do
+    {:ok, file} = File.open(Path.expand('fixtures/utf8.txt', __DIR__))
+    assert "Русский\n日\n" == IO.binread(file, :eof)
+    assert :eof == IO.binread(file, :eof)
+    assert File.close(file) == :ok
+  end
+
+  test "binread with line" do
     {:ok, file} = File.open(Path.expand('fixtures/utf8.txt', __DIR__))
     assert "Русский\n" == IO.binread(file, :line)
     assert "日\n" == IO.binread(file, :line)
