@@ -1307,11 +1307,12 @@ defmodule Code do
     end
   end
 
-  defp preserve_comments(line, _column, tokens, comment, rest) do
+  defp preserve_comments(line, column, tokens, comment, rest) do
     comments = Process.get(:code_formatter_comments)
 
     comment = %{
       line: line,
+      column: column,
       previous_eol_count: previous_eol_count(tokens),
       next_eol_count: next_eol_count(rest, 0),
       text: List.to_string(comment)
