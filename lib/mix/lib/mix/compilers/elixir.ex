@@ -221,6 +221,15 @@ defmodule Mix.Compilers.Elixir do
         dest
       )
 
+    # Now sort the files so the ones changed more recently come first.
+    # We do an optimized version of sort_by since we don't care about
+    # stable sorting.
+    changed =
+      changed
+      |> Enum.map(&{-elem(Map.fetch!(sources_stats, &1), 0), &1})
+      |> Enum.sort()
+      |> Enum.map(&elem(&1, 1))
+
     {modules, exports, changed, sources_stats}
   end
 
