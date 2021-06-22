@@ -944,8 +944,8 @@ expand_as({as, Atom}, Meta, _IncludeByDefault, _Ref, E) when is_atom(Atom), not 
       form_error(Meta, E, ?MODULE, {invalid_alias_for_as, not_alias, Atom})
   end;
 expand_as(false, Meta, IncludeByDefault, Ref, E) ->
-  if 
-    IncludeByDefault -> 
+  if
+    IncludeByDefault ->
       case elixir_aliases:last(Ref) of
         {ok, NewRef} -> NewRef;
         error -> form_error(Meta, E, ?MODULE, {invalid_alias_module, Ref})
