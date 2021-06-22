@@ -1255,13 +1255,13 @@ defmodule Code do
       ...> # Some more comments!
       ...> "\"")
       {:ok, :foo, [
-        %{line: 3, previous_eol_count: 2, next_eol_count: 3, text: "\# Hello, world!"},
-        %{line: 6, previous_eol_count: 3, next_eol_count: 1, text: "\# Some more comments!"},
+        %{line: 3, column: 1, previous_eol_count: 2, next_eol_count: 3, text: "\# Hello, world!"},
+        %{line: 6, column: 1, previous_eol_count: 3, next_eol_count: 1, text: "\# Some more comments!"},
       ]}
 
       iex> Code.string_to_quoted_with_comments(":foo # :bar")
       {:ok, :foo, [
-        %{line: 1, previous_eol_count: 0, next_eol_count: 0, text: "\# :bar"}
+        %{line: 1, column: 6, previous_eol_count: 0, next_eol_count: 0, text: "\# :bar"}
       ]}
 
   """
@@ -1307,11 +1307,12 @@ defmodule Code do
     end
   end
 
-  defp preserve_comments(line, _column, tokens, comment, rest) do
+  defp preserve_comments(line, column, tokens, comment, rest) do
     comments = Process.get(:code_formatter_comments)
 
     comment = %{
       line: line,
+      column: column,
       previous_eol_count: previous_eol_count(tokens),
       next_eol_count: next_eol_count(rest, 0),
       text: List.to_string(comment)
