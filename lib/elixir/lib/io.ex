@@ -127,9 +127,8 @@ defmodule IO do
   @doc """
   Reads from the IO `device`.
 
-  The `device` is iterated by the given number of characters or line by line if
-  `:line` is given.
-  Alternatively, if `:all` is given, then whole `device` is returned.
+  The `device` is iterated by the given number of characters, line by line if
+  `:line` is given, or until `:eof`.
 
   It returns:
 
@@ -141,14 +140,24 @@ defmodule IO do
       for instance, `{:error, :estale}` if reading from an
       NFS volume
 
-  If `:all` is given, `:eof` is never returned, but an
-  empty string in case the device has reached EOF.
   """
-  @spec read(device, :all | :line | non_neg_integer) :: chardata | nodata
+  @spec read(device, :eof | :line | non_neg_integer) :: chardata | nodata
   def read(device \\ :stdio, line_or_chars)
 
+  # TODO: Deprecate me on v1.17
   def read(device, :all) do
-    do_read_all(map_dev(device), :empty)
+    with :eof <- read(device, :eof) do
+      with [_ | _] = opts <- :io.getopts(device),
+           false <- Keyword.get(opts, :binary, true) do
+        ''
+      else
+        _ -> ""
+      end
+    end
+  end
+
+  def read(device, :eof) do
+    getn(device, '', :eof)
   end
 
   def read(device, :line) do
@@ -159,35 +168,11 @@ defmodule IO do
     :io.get_chars(map_dev(device), '', count)
   end
 
-  defp do_read_all(mapped_dev, acc) do
-    case :io.get_line(mapped_dev, "") do
-      line when is_binary(line) or is_list(line) -> do_read_all(mapped_dev, concat(acc, line))
-      :eof -> read_eof(mapped_dev, acc)
-      other -> other
-    end
-  end
-
-  defp concat(:empty, line), do: line
-  defp concat(acc, line) when is_binary(acc), do: acc <> line
-  defp concat(acc, line) when is_list(acc), do: acc ++ line
-
-  defp read_eof(device, :empty) do
-    with [_ | _] = opts <- :io.getopts(device),
-         false <- Keyword.get(opts, :binary, true) do
-      ''
-    else
-      _ -> ""
-    end
-  end
-
-  defp read_eof(_device, acc), do: acc
-
   @doc """
   Reads from the IO `device`. The operation is Unicode unsafe.
 
-  The `device` is iterated by the given number of bytes or line by line if
-  `:line` is given.
-  Alternatively, if `:all` is given, then whole `device` is returned.
+  The `device` is iterated by the given number of bytes, line by line if
+  `:line` is given, or until `:eof`.
 
   It returns:
 
@@ -199,17 +184,19 @@ defmodule IO do
       for instance, `{:error, :estale}` if reading from an
       NFS volume
 
-  If `:all` is given, `:eof` is never returned, but an
-  empty string in case the device has reached EOF.
-
   Note: do not use this function on IO devices in Unicode mode
   as it will return the wrong result.
   """
-  @spec binread(device, :all | :line | non_neg_integer) :: iodata | nodata
+  @spec binread(device, :eof | :line | non_neg_integer) :: iodata | nodata
   def binread(device \\ :stdio, line_or_chars)
 
+  # TODO: Deprecate me on v1.17
   def binread(device, :all) do
-    do_binread_all(map_dev(device), "")
+    with :eof <- binread(device, :eof), do: ""
+  end
+
+  def binread(device, :eof) do
+    binread_eof(map_dev(device), "")
   end
 
   def binread(device, :line) do
@@ -227,10 +214,10 @@ defmodule IO do
   end
 
   @read_all_size 4096
-  defp do_binread_all(mapped_dev, acc) do
+  defp binread_eof(mapped_dev, acc) do
     case :file.read(mapped_dev, @read_all_size) do
-      {:ok, data} -> do_binread_all(mapped_dev, acc <> data)
-      :eof -> acc
+      {:ok, data} -> binread_eof(mapped_dev, acc <> data)
+      :eof -> if acc == "", do: :eof, else: acc
       other -> other
     end
   end
@@ -447,9 +434,16 @@ defmodule IO do
   See `IO.getn/3` for a description of return values.
 
   """
-  @spec getn(device | chardata | String.Chars.t(), pos_integer | chardata | String.Chars.t()) ::
+  @spec getn(
+          device | chardata | String.Chars.t(),
+          pos_integer | :eof | chardata | String.Chars.t()
+        ) ::
           chardata | nodata
   def getn(prompt, count \\ 1)
+
+  def getn(prompt, :eof) do
+    getn(:stdio, prompt, :eof)
+  end
 
   def getn(prompt, count) when is_integer(count) and count > 0 do
     getn(:stdio, prompt, count)
@@ -477,10 +471,33 @@ defmodule IO do
       NFS volume
 
   """
-  @spec getn(device, chardata | String.Chars.t(), pos_integer) :: chardata | nodata
+  @spec getn(device, chardata | String.Chars.t(), pos_integer | :eof) :: chardata | nodata
+  def getn(device, prompt, :eof) do
+    request = {:get_until, :unicode, to_chardata(prompt), __MODULE__, :__eof__, []}
+    device = map_dev(device)
+
+    case :io.request(device, request) do
+      list when is_list(list) ->
+        with [_ | _] = opts <- :io.getopts(device),
+             false <- Keyword.get(opts, :binary, true) do
+          list
+        else
+          _ -> :unicode.characters_to_binary(list)
+        end
+
+      other ->
+        other
+    end
+  end
+
   def getn(device, prompt, count) when is_integer(count) and count > 0 do
     :io.get_chars(map_dev(device), to_chardata(prompt), count)
   end
+
+  @doc false
+  def __eof__([], :eof), do: {:done, :eof, []}
+  def __eof__(state, :eof), do: {:done, :lists.reverse(state), []}
+  def __eof__(state, data), do: {:more, :lists.reverse(data, state)}
 
   @doc ~S"""
   Reads a line from the IO `device`.
