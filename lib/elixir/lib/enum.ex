@@ -4,7 +4,7 @@ defprotocol Enumerable do
 
   When you invoke a function in the `Enum` module, the first argument
   is usually a collection that must implement this protocol.
-  For example, the expression `Enum.map([1, 2, 3], &(&1 * 2))` 
+  For example, the expression `Enum.map([1, 2, 3], &(&1 * 2))`
   invokes `Enumerable.reduce/3` to perform the reducing operation that
   builds a mapped list by calling the mapping function `&(&1 * 2)` on
   every element in the collection and consuming the element with an
@@ -3577,7 +3577,7 @@ defmodule Enum do
   end
 
   @doc """
-  Reduces over all of the given enumerables, halting as soon as any enumerable is 
+  Reduces over all of the given enumerables, halting as soon as any enumerable is
   empty.
 
   The reducer will receive 2 args: a list of elements (one from each enum) and the
