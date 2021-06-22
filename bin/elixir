@@ -85,6 +85,7 @@ starts_with () {
 
 ERL_EXEC="erl"
 MODE="elixir"
+CERL_ARGS=""
 I=1
 E=0
 LENGTH=$#
@@ -179,6 +180,15 @@ while [ $I -le $LENGTH ]; do
     --werl)
         if [ "$OS" = "Windows_NT" ]; then ERL_EXEC="werl"; fi
         ;;
+    --cerl)
+        if ! [ -x "$(command -v cerl)" ]; then
+          echo 'Error: cerl not found in path.' >&2
+          exit 1
+        fi
+        S=2
+        ERL_EXEC="$(which cerl)"
+        CERL_ARGS="$2"
+        ;;
     *)
         while [ $I -le $LENGTH ]; do
           I=$((I + 1))
@@ -211,7 +221,7 @@ if [ "$OS" != "Windows_NT" ] && [ -z "$NO_COLOR" ]; then
 fi
 
 ERTS_BIN=
-set -- "$ERTS_BIN$ERL_EXEC" -pa "$SCRIPT_PATH"/../lib/*/ebin $ELIXIR_ERL_OPTIONS $ERL "$@"
+set -- "$ERTS_BIN$ERL_EXEC" $CERL_ARGS -pa "$SCRIPT_PATH"/../lib/*/ebin $ELIXIR_ERL_OPTIONS $ERL "$@"
 
 if [ -n "$RUN_ERL_PIPE" ]; then
   ESCAPED=""
@@ -221,7 +231,7 @@ if [ -n "$RUN_ERL_PIPE" ]; then
   mkdir -p "$RUN_ERL_PIPE"
   mkdir -p "$RUN_ERL_LOG"
   ERL_EXEC="run_erl"
-  set -- "$ERTS_BIN$ERL_EXEC" -daemon "$RUN_ERL_PIPE/" "$RUN_ERL_LOG/" "$ESCAPED"
+  set -- "$ERTS_BIN$ERL_EXEC" $CERL_ARGS -daemon "$RUN_ERL_PIPE/" "$RUN_ERL_LOG/" "$ESCAPED"
 fi
 
 if [ -n "$ELIXIR_CLI_DRY_RUN" ]; then
