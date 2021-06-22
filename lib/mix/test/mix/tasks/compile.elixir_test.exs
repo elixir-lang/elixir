@@ -257,8 +257,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       Mix.shell().flush
       purge([A, B])
 
-      future = {{2038, 1, 1}, {0, 0, 0}}
-      File.touch!("lib/b.ex", future)
+      force_recompilation("lib/b.ex")
       Mix.Tasks.Compile.Elixir.run(["--verbose"])
 
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
@@ -283,7 +282,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
       Code.put_compiler_option(:ignore_module_conflict, true)
       Code.compile_file("lib/b.ex")
-      File.touch!("lib/a.ex", {{2038, 1, 1}, {0, 0, 0}})
+      force_recompilation("lib/a.ex")
 
       Mix.Tasks.Compile.Elixir.run(["--verbose"])
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
@@ -472,8 +471,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
       purge([A, B])
 
-      future = {{2038, 1, 1}, {0, 0, 0}}
-      File.touch!("lib/a.ex", future)
+      force_recompilation("lib/a.ex")
 
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
@@ -615,8 +613,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       Mix.shell().flush
       purge([A, B])
 
-      future = {{2038, 1, 1}, {0, 0, 0}}
-      File.touch!("lib/a.ex", future)
+      force_recompilation("lib/a.ex")
       Mix.Tasks.Compile.Elixir.run(["--verbose"])
 
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
