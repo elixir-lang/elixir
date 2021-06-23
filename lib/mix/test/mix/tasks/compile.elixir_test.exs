@@ -195,7 +195,39 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   end
 
-  test "compiles mtime changed files" do
+  test "compiles mtime changed files if content changed but not length" do
+    in_fixture("no_mixfile", fn ->
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+
+      Mix.shell().flush
+      purge([A, B])
+
+      same_length_content = "lib/a.ex" |> File.read!() |> String.replace("A", "Z")
+      File.write!("lib/a.ex", same_length_content)
+      future = {{2038, 1, 1}, {0, 0, 0}}
+      File.touch!("lib/a.ex", future)
+      Mix.Tasks.Compile.Elixir.run(["--verbose"])
+
+      message =
+        "warning: mtime (modified time) for \"lib/a.ex\" was set to the future, resetting to now"
+
+      assert_received {:mix_shell, :error, [^message]}
+
+      message =
+        "warning: mtime (modified time) for \"lib/b.ex\" was set to the future, resetting to now"
+
+      refute_received {:mix_shell, :error, [^message]}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+
+      File.touch!("_build/dev/lib/sample/.mix/compile.elixir", future)
+      assert Mix.Tasks.Compile.Elixir.run([]) == {:noop, []}
+    end)
+  end
+
+  test "does not recompile mtime changed but identical files" do
     in_fixture("no_mixfile", fn ->
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
@@ -217,7 +249,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
         "warning: mtime (modified time) for \"lib/b.ex\" was set to the future, resetting to now"
 
       refute_received {:mix_shell, :error, [^message]}
-      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
 
       File.touch!("_build/dev/lib/sample/.mix/compile.elixir", future)

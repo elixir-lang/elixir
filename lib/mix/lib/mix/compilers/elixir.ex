@@ -1,7 +1,7 @@
 defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
-  @manifest_vsn 8
+  @manifest_vsn 9
 
   import Record
 
@@ -10,6 +10,7 @@ defmodule Mix.Compilers.Elixir do
   defrecord :source,
     source: nil,
     size: 0,
+    digest: nil,
     compile_references: [],
     export_references: [],
     runtime_references: [],
@@ -201,12 +202,13 @@ defmodule Mix.Compilers.Elixir do
     # Sources that have changed on disk or
     # any modules associated with them need to be recompiled
     changed =
-      for source(source: source, external: external, size: size, modules: modules) <-
+      for source(source: source, external: external, size: size, digest: digest, modules: modules) <-
             all_sources,
           {last_mtime, last_size} = Map.fetch!(sources_stats, source),
           times = Enum.map(external, &(sources_stats |> Map.fetch!(&1) |> elem(0))),
-          size != last_size or Mix.Utils.stale?([last_mtime | times], [modified]) or
-            Enum.any?(modules, &Map.has_key?(modules_to_recompile, &1)),
+          Enum.any?(modules, &Map.has_key?(modules_to_recompile, &1)) or
+            Mix.Utils.stale?(times, [modified]) or
+            (size != last_size or (last_mtime > modified and digest != digest(source))),
           do: source
 
     changed = new_paths ++ changed
@@ -239,6 +241,12 @@ defmodule Mix.Compilers.Elixir do
         Map.put_new_lazy(map, file, fn -> Mix.Utils.last_modified_and_size(file) end)
       end)
     end)
+  end
+
+  defp digest(file) do
+    file
+    |> File.read!()
+    |> :erlang.md5()
   end
 
   defp compile_path(stale, dest, timestamp, opts) do
@@ -455,6 +463,7 @@ defmodule Mix.Compilers.Elixir do
     source =
       source(
         source,
+        digest: digest(file),
         compile_references: compile_references,
         export_references: export_references,
         runtime_references: runtime_references,
@@ -504,11 +513,11 @@ defmodule Mix.Compilers.Elixir do
   # to be recompiled (but were not changed on disk)
   defp update_stale_sources(sources, changed) do
     Enum.reduce(changed, {sources, %{}}, fn file, {acc_sources, acc_modules} ->
-      {source(size: size, modules: modules), acc_sources} =
+      {source(size: size, digest: digest, modules: modules), acc_sources} =
         List.keytake(acc_sources, file, source(:source))
 
       acc_modules = Enum.reduce(modules, acc_modules, &Map.put(&2, &1, true))
-      {[source(source: file, size: size) | acc_sources], acc_modules}
+      {[source(source: file, size: size, digest: digest) | acc_sources], acc_modules}
     end)
   end
 
