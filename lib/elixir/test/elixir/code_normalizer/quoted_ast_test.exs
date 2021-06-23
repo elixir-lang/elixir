@@ -469,6 +469,10 @@ defmodule Code.Normalizer.QuotedASTTest do
       assert quoted_to_string(quote(do: [a: 1, b: 1 + 2])) == "[a: 1, b: 1 + 2]"
       assert quoted_to_string(quote(do: ["a.b": 1, c: 1 + 2])) == "[\"a.b\": 1, c: 1 + 2]"
 
+      tuple = {{:__block__, [format: :keyword], [:a]}, {:b, [], nil}}
+      assert quoted_to_string([tuple, :foo, tuple]) == "[{:a, b}, :foo, a: b]"
+      assert quoted_to_string([tuple, :foo, {:c, :d}, tuple]) == "[{:a, b}, :foo, c: :d, a: b]"
+
       # Not keyword lists
       assert quoted_to_string(quote(do: [{binary(), integer()}])) == "[{binary(), integer()}]"
     end
