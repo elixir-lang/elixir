@@ -77,7 +77,7 @@ require_function(Meta, Receiver, Name, Arity, E) ->
   end.
 
 remote_function(Meta, Receiver, Name, Arity, E) ->
-  check_deprecated(Meta, Receiver, Name, Arity, E),
+  check_deprecated(Meta, function, Receiver, Name, Arity, E),
 
   case elixir_rewrite:inline(Receiver, Name, Arity) of
     {AR, AN} -> {remote, AR, AN, Arity};
@@ -161,7 +161,7 @@ do_expand_import(Meta, {Name, Arity} = Tuple, Args, Module, E, Result) ->
       elixir_locals:record_import(Tuple, Receiver, Module, ?key(E, function)),
       {ok, Receiver, Name, Args};
     {macro, Receiver} ->
-      check_deprecated(Meta, Receiver, Name, Arity, E),
+      check_deprecated(Meta, macro, Receiver, Name, Arity, E),
       elixir_env:trace({imported_macro, Meta, Receiver, Name, Arity}, E),
       elixir_locals:record_import(Tuple, Receiver, Module, ?key(E, function)),
       {ok, Receiver, expand_macro_named(Meta, Receiver, Name, Arity, Args, E)};
@@ -180,17 +180,18 @@ do_expand_import(Meta, {Name, Arity} = Tuple, Args, Module, E, Result) ->
   end.
 
 expand_require(Meta, Receiver, {Name, Arity} = Tuple, Args, E) ->
-  check_deprecated(Meta, Receiver, Name, Arity, E),
   Required = (Receiver == ?key(E, module)) orelse required(Meta) orelse is_element(Receiver, ?key(E, requires)),
 
   case is_element(Tuple, get_macros(Receiver, Required)) of
     true when Required ->
+      check_deprecated(Meta, macro, Receiver, Name, Arity, E),
       elixir_env:trace({remote_macro, Meta, Receiver, Name, Arity}, E),
       {ok, Receiver, expand_macro_named(Meta, Receiver, Name, Arity, Args, E)};
     true ->
       Info = {unrequired_module, {Receiver, Name, length(Args)}},
       elixir_errors:form_error(Meta, E, ?MODULE, Info);
     false ->
+      check_deprecated(Meta, function, Receiver, Name, Arity, E),
       error
   end.
 
@@ -361,12 +362,13 @@ elixir_imported_macros() ->
     error:undef -> []
   end.
 
-check_deprecated(_, erlang, _, _, _) ->
-  ok;
-check_deprecated(_, ?kernel, _, _, _) ->
-  ok;
-check_deprecated(Meta, Receiver, Name, Arity, E) ->
-  case (?key(E, function) == nil) andalso get_deprecations(Receiver) of
+check_deprecated(_, _, erlang, _, _, _) -> ok;
+check_deprecated(_, _, elixir_def, _, _, _) -> ok;
+check_deprecated(_, _, elixir_module, _, _, _) -> ok;
+check_deprecated(_, _, ?kernel, _, _, _) -> ok;
+check_deprecated(Meta, Kind, Receiver, Name, Arity, E) ->
+  %% Any compile time behaviour cannot be verified by the runtime group pass.
+  case ((?key(E, function) == nil) or (Kind == macro)) andalso get_deprecations(Receiver) of
     [_ | _] = Deprecations ->
       case lists:keyfind({Name, Arity}, 1, Deprecations) of
         {_, Message} ->

@@ -663,6 +663,31 @@ defmodule Module.Types.IntegrationTest do
 
       assert_warnings(files, warning)
     end
+
+    test "reports macro" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          @deprecated "oops"
+          defmacro a, do: :ok
+        end
+        """,
+        "b.ex" => """
+        defmodule B do
+          require A
+          def b, do: A.a()
+        end
+        """
+      }
+
+      warning = """
+      warning: A.a/0 is deprecated. oops
+        b.ex:3: B.b/0
+
+      """
+
+      assert_warnings(files, warning)
+    end
   end
 
   defp assert_warnings(files, expected) when is_binary(expected) do
