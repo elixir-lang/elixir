@@ -105,7 +105,9 @@ defmodule Macro.Env do
           vars: vars
         }
 
+  # Define the __struct__ callbacks by hand for bootstrap reasons.
   # TODO: Remove :vars field on v2.0
+  @doc false
   def __struct__ do
     %{
       __struct__: __MODULE__,
@@ -130,6 +132,7 @@ defmodule Macro.Env do
     }
   end
 
+  @doc false
   def __struct__(kv) do
     Enum.reduce(kv, __struct__(), fn {k, v}, acc -> :maps.update(k, v, acc) end)
   end
