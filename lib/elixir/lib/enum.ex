@@ -3435,7 +3435,7 @@ defmodule Enum do
   """
   @spec zip(t, t) :: [{any, any}]
   def zip(enumerable1, enumerable2) when is_list(enumerable1) and is_list(enumerable2) do
-    zip_list(enumerable1, enumerable2)
+    zip_list(enumerable1, enumerable2, [])
   end
 
   def zip(enumerable1, enumerable2) do
@@ -3508,7 +3508,7 @@ defmodule Enum do
   @spec zip_with(t, t, (enum1_elem :: term, enum2_elem :: term -> term)) :: [term]
   def zip_with(enumerable1, enumerable2, zip_fun)
       when is_list(enumerable1) and is_list(enumerable2) and is_function(zip_fun, 2) do
-    zip_list(enumerable1, enumerable2, zip_fun)
+    zip_with_list(enumerable1, enumerable2, zip_fun)
   end
 
   def zip_with(enumerable1, enumerable2, zip_fun) when is_function(zip_fun, 2) do
@@ -4228,16 +4228,19 @@ defmodule Enum do
 
   ## zip
 
-  defp zip_list(enumerable1, enumerable2) do
-    zip_list(enumerable1, enumerable2, fn x, y -> {x, y} end)
+  defp zip_list([head1 | next1], [head2 | next2], acc) do
+    zip_list(next1, next2, [{head1, head2} | acc])
   end
 
-  defp zip_list([head1 | next1], [head2 | next2], fun) do
-    [fun.(head1, head2) | zip_list(next1, next2, fun)]
+  defp zip_list([], _, acc), do: :lists.reverse(acc)
+  defp zip_list(_, [], acc), do: :lists.reverse(acc)
+
+  defp zip_with_list([head1 | next1], [head2 | next2], fun) do
+    [fun.(head1, head2) | zip_with_list(next1, next2, fun)]
   end
 
-  defp zip_list(_, [], _fun), do: []
-  defp zip_list([], _, _fun), do: []
+  defp zip_with_list(_, [], _fun), do: []
+  defp zip_with_list([], _, _fun), do: []
 
   defp zip_reduce_list([head1 | next1], [head2 | next2], acc, fun) do
     zip_reduce_list(next1, next2, fun.(head1, head2, acc), fun)
