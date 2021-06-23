@@ -4228,13 +4228,12 @@ defmodule Enum do
 
   ## zip
 
-  defp zip_list(list1, list2, acc) when list1 == [] or list2 == [] do
-    :lists.reverse(acc)
-  end
-
   defp zip_list([head1 | next1], [head2 | next2], acc) do
     zip_list(next1, next2, [{head1, head2} | acc])
   end
+
+  defp zip_list([], _, acc), do: :lists.reverse(acc)
+  defp zip_list(_, [], acc), do: :lists.reverse(acc)
 
   defp zip_with_list([head1 | next1], [head2 | next2], fun) do
     [fun.(head1, head2) | zip_with_list(next1, next2, fun)]
