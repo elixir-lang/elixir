@@ -78,6 +78,7 @@ set SCRIPT_PATH=%~dp0
 
 rem Designates the path to the ERTS system
 set ERTS_BIN=
+set ERTS_BIN=!ERTS_BIN!
 
 rem Recursive loop called for each parameter that parses the cmd line parameters
 :startloop

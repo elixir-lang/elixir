@@ -210,7 +210,11 @@ if [ "$OS" != "Windows_NT" ] && [ -z "$NO_COLOR" ]; then
   if test -t 1 -a -t 2; then ERL="-elixir ansi_enabled true $ERL"; fi
 fi
 
+# One MAY change ERTS_BIN= but you MUST NOT change
+# ERTS_BIN=$ERTS_BIN as it is handled by Elixir releases.
 ERTS_BIN=
+ERTS_BIN="$ERTS_BIN"
+
 set -- "$ERTS_BIN$ERL_EXEC" -pa "$SCRIPT_PATH"/../lib/*/ebin $ELIXIR_ERL_OPTIONS $ERL "$@"
 
 if [ -n "$RUN_ERL_PIPE" ]; then

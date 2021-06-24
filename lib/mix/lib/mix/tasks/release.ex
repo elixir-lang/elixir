@@ -1426,9 +1426,11 @@ defmodule Mix.Tasks.Release do
     ]
   end
 
+  @erts_bin [~s[ERTS_BIN="$ERTS_BIN"], ~s[ERTS_BIN=!ERTS_BIN!]]
+
   defp replace_erts_bin(contents, release, new_path) do
     if release.erts_source do
-      String.replace(contents, ~s[ERTS_BIN=], ~s[ERTS_BIN=#{new_path}])
+      String.replace(contents, @erts_bin, ~s[ERTS_BIN=#{new_path}])
     else
       contents
     end
