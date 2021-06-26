@@ -396,6 +396,8 @@ defmodule EnumTest do
   test "into/2" do
     assert Enum.into([a: 1, b: 2], %{}) == %{a: 1, b: 2}
     assert Enum.into([a: 1, b: 2], %{c: 3}) == %{a: 1, b: 2, c: 3}
+    assert Enum.into(MapSet.new([a: 1, b: 2]), %{}) == %{a: 1, b: 2}
+    assert Enum.into(MapSet.new([a: 1, b: 2]), %{c: 3}) == %{a: 1, b: 2, c: 3}
     assert Enum.into(%{a: 1, b: 2}, []) == [a: 1, b: 2]
     assert Enum.into(1..3, []) == [1, 2, 3]
     assert Enum.into(["H", "i"], "") == "Hi"
