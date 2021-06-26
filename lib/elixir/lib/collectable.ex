@@ -94,10 +94,11 @@ end
 
 defimpl Collectable, for: List do
   def into(list) do
+    # TODO: Change the behaviour so the into always comes last on Elixir v2.0
     if list != [] do
       IO.warn(
         "the Collectable protocol is deprecated for non-empty lists. The behaviour of " <>
-          "things like Enum.into/2 or \"for\" comprehensions with an :into option is incorrect " <>
+          "Enum.into/2 and \"for\" comprehensions with an :into option is incorrect " <>
           "when collecting into non-empty lists. If you're collecting into a non-empty keyword " <>
           "list, consider using Keyword.merge/2 instead. If you're collecting into a non-empty " <>
           "list, consider concatenating the two lists with the ++ operator."
