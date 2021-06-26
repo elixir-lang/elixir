@@ -216,18 +216,8 @@ defmodule Map do
   @spec new(Enumerable.t(), (term -> {key, value})) :: map
   def new(enumerable, transform) when is_function(transform, 1) do
     enumerable
-    |> Enum.to_list()
-    |> new_transform(transform, [])
-  end
-
-  defp new_transform([], _fun, acc) do
-    acc
-    |> :lists.reverse()
+    |> Enum.map(transform)
     |> :maps.from_list()
-  end
-
-  defp new_transform([element | rest], fun, acc) do
-    new_transform(rest, fun, [fun.(element) | acc])
   end
 
   @doc """

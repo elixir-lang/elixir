@@ -405,7 +405,7 @@ defmodule EnumTest do
     assert Enum.into([1, 2, 3], [], fn x -> x * 2 end) == [2, 4, 6]
     assert Enum.into([1, 2, 3], "numbers: ", &to_string/1) == "numbers: 123"
 
-    assert_raise FunctionClauseError, fn ->
+    assert_raise MatchError, fn ->
       Enum.into([2, 3], %{a: 1}, & &1)
     end
   end

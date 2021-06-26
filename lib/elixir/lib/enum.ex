@@ -1421,28 +1421,35 @@ defmodule Enum do
     into_protocol(enumerable, collectable)
   end
 
-  def into(%{} = enumerable, %{} = collectable) do
-    Map.merge(collectable, enumerable)
-  end
-
-  def into(enumerable, %{} = collectable) when is_list(enumerable) do
-    Map.merge(collectable, :maps.from_list(enumerable))
-  end
-
   def into(enumerable, %{} = collectable) do
-    reduce(enumerable, collectable, fn {key, val}, acc ->
-      Map.put(acc, key, val)
-    end)
+    if map_size(collectable) == 0 do
+      into_map(enumerable)
+    else
+      into_map(enumerable, collectable)
+    end
   end
 
   def into(enumerable, collectable) do
     into_protocol(enumerable, collectable)
   end
 
+  defp into_map(%{} = enumerable), do: enumerable
+  defp into_map(enumerable) when is_list(enumerable), do: :maps.from_list(enumerable)
+  defp into_map(enumerable), do: enumerable |> Enum.to_list() |> :maps.from_list(enumerable)
+
+  defp into_map(%{} = enumerable, collectable),
+    do: Map.merge(collectable, enumerable)
+
+  defp into_map(enumerable, collectable) when is_list(enumerable),
+    do: Map.merge(collectable, :maps.from_list(enumerable))
+
+  defp into_map(enumerable, collectable),
+    do: Enum.reduce(enumerable, collectable, fn {key, val}, acc -> Map.put(acc, key, val) end)
+
   defp into_protocol(enumerable, collectable) do
     {initial, fun} = Collectable.into(collectable)
 
-    into(enumerable, initial, fun, fn entry, acc ->
+    into_protocol(enumerable, initial, fun, fn entry, acc ->
       fun.(acc, {:cont, entry})
     end)
   end
@@ -1461,20 +1468,42 @@ defmodule Enum do
 
   """
   @spec into(Enumerable.t(), Collectable.t(), (term -> term)) :: Collectable.t()
-
   def into(enumerable, collectable, transform) when is_list(collectable) do
     collectable ++ map(enumerable, transform)
   end
 
+  def into(%_{} = enumerable, collectable, transform) do
+    into_protocol(enumerable, collectable, transform)
+  end
+
+  def into(enumerable, %_{} = collectable, transform) do
+    into_protocol(enumerable, collectable, transform)
+  end
+
+  def into(enumerable, %{} = collectable, transform) do
+    if map_size(collectable) == 0 do
+      enumerable |> Enum.map(transform) |> :maps.from_list()
+    else
+      Enum.reduce(enumerable, collectable, fn entry, acc ->
+        {key, val} = transform.(entry)
+        Map.put(acc, key, val)
+      end)
+    end
+  end
+
   def into(enumerable, collectable, transform) do
+    into_protocol(enumerable, collectable, transform)
+  end
+
+  defp into_protocol(enumerable, collectable, transform) do
     {initial, fun} = Collectable.into(collectable)
 
-    into(enumerable, initial, fun, fn entry, acc ->
+    into_protocol(enumerable, initial, fun, fn entry, acc ->
       fun.(acc, {:cont, transform.(entry)})
     end)
   end
 
-  defp into(enumerable, initial, fun, callback) do
+  defp into_protocol(enumerable, initial, fun, callback) do
     try do
       reduce(enumerable, initial, callback)
     catch
