@@ -1469,6 +1469,10 @@ defmodule Enum do
 
   """
   @spec into(Enumerable.t(), Collectable.t(), (term -> term)) :: Collectable.t()
+  def into(enumerable, [], transform) do
+    Enum.map(enumerable, transform)
+  end
+
   def into(%_{} = enumerable, collectable, transform) do
     into_protocol(enumerable, collectable, transform)
   end
