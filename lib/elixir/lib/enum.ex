@@ -1387,9 +1387,10 @@ defmodule Enum do
   @doc """
   Inserts the given `enumerable` into a `collectable`.
 
-  Note that passing a non-empty list as the `collectable` is deprecated. If you're collecting
-  into a non-empty keyword list, consider using `Keyword.merge(collectable, Enum.to_list(enumerable))`.
-  If you're collecting into a non-empty list, consider something like `Enum.to_list(enumerable) ++ collectable`.
+  Note that passing a non-empty list as the `collectable` is deprecated.
+  If you're collecting into a non-empty keyword list, consider using
+  `Keyword.merge(collectable, Enum.to_list(enumerable))`. If you're collecting
+  into a non-empty list, consider something like `Enum.to_list(enumerable) ++ collectable`.
 
   ## Examples
 
@@ -1460,7 +1461,7 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.into([2, 3], [3], fn x -> x * 3 end)
+      iex> Enum.into([1, 2, 3], [], fn x -> x * 3 end)
       [3, 6, 9]
 
       iex> Enum.into(%{a: 1, b: 2}, %{c: 3}, fn {k, v} -> {k, v * 2} end)
@@ -1468,10 +1469,6 @@ defmodule Enum do
 
   """
   @spec into(Enumerable.t(), Collectable.t(), (term -> term)) :: Collectable.t()
-  def into(enumerable, collectable, transform) when is_list(collectable) do
-    collectable ++ map(enumerable, transform)
-  end
-
   def into(%_{} = enumerable, collectable, transform) do
     into_protocol(enumerable, collectable, transform)
   end
