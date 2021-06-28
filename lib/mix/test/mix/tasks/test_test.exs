@@ -68,12 +68,12 @@ defmodule Mix.Tasks.TestTest do
         assert_stale_run_output("2 tests, 0 failures")
 
         set_all_mtimes()
-        File.touch!("lib/b.ex")
+        force_recompilation("lib/b.ex")
 
         assert_stale_run_output("1 test, 0 failures")
 
         set_all_mtimes()
-        File.touch!("lib/a.ex")
+        force_recompilation("lib/a.ex")
 
         assert_stale_run_output("2 tests, 0 failures")
       end)
