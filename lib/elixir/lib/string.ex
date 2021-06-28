@@ -644,13 +644,10 @@ defmodule String do
   end
 
   defp do_split_at(string, position) do
-    if remaining = byte_size_remaining_at(string, position) do
-      start = byte_size(string) - remaining
-      <<left::size(start)-binary, right::size(remaining)-binary>> = string
-      {left, right}
-    else
-      {string, ""}
-    end
+    remaining = byte_size_remaining_at(string, position)
+    start = byte_size(string) - remaining
+    <<left::size(start)-binary, right::size(remaining)-binary>> = string
+    {left, right}
   end
 
   @doc ~S"""
@@ -2008,11 +2005,11 @@ defmodule String do
   end
 
   defp do_at(string, position) do
-    if left = byte_size_remaining_at(string, position) do
-      string
-      |> binary_part(byte_size(string) - left, left)
-      |> first()
-    end
+    left = byte_size_remaining_at(string, position)
+
+    string
+    |> binary_part(byte_size(string) - left, left)
+    |> first()
   end
 
   @doc """
@@ -2075,17 +2072,11 @@ defmodule String do
   end
 
   defp do_slice(string, start, length) do
-    if from_start = byte_size_remaining_at(string, start) do
-      rest = binary_part(string, byte_size(string) - from_start, from_start)
+    from_start = byte_size_remaining_at(string, start)
+    rest = binary_part(string, byte_size(string) - from_start, from_start)
 
-      if from_end = byte_size_remaining_at(rest, length) do
-        binary_part(rest, 0, from_start - from_end)
-      else
-        rest
-      end
-    else
-      ""
-    end
+    from_end = byte_size_remaining_at(rest, length)
+    binary_part(rest, 0, from_start - from_end)
   end
 
   @doc """
@@ -2160,11 +2151,8 @@ defmodule String do
   defp slice_range("", _, _), do: ""
 
   defp slice_range(string, first, -1) when first >= 0 do
-    if left = byte_size_remaining_at(string, first) do
-      binary_part(string, byte_size(string) - left, left)
-    else
-      ""
-    end
+    left = byte_size_remaining_at(string, first)
+    binary_part(string, byte_size(string) - left, left)
   end
 
   defp slice_range(string, first, last) when first >= 0 and last >= 0 do
