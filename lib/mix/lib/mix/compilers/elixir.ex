@@ -463,7 +463,8 @@ defmodule Mix.Compilers.Elixir do
     source =
       source(
         source,
-        digest: digest(file),
+        # We preserve the digest if the file is recompiled but not changed
+        digest: source(source, :digest) || digest(file),
         compile_references: compile_references,
         export_references: export_references,
         runtime_references: runtime_references,
