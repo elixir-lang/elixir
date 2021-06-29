@@ -1018,6 +1018,7 @@ defmodule GenServer do
       nil ->
         exit({:noproc, {__MODULE__, :call, [server, request, timeout]}})
 
+      # TODO: remove this clause when we require Erlang/OTP 25+
       pid when pid == self() ->
         exit({:calling_self, {__MODULE__, :call, [server, request, timeout]}})
 
