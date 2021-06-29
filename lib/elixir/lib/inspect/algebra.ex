@@ -592,7 +592,7 @@ defmodule Inspect.Algebra do
   Colors a document if the `color_key` has a color in the options.
   """
   @doc since: "1.4.0"
-  @spec color(t, Inspect.Opts.color_key(), Inspect.Opts.t()) :: doc_color
+  @spec color(t, Inspect.Opts.color_key(), Inspect.Opts.t()) :: t
   def color(doc, color_key, %Inspect.Opts{syntax_colors: syntax_colors}) when is_doc(doc) do
     if precolor = Keyword.get(syntax_colors, color_key) do
       postcolor = Keyword.get(syntax_colors, :reset, :reset)
