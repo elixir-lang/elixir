@@ -132,7 +132,10 @@ defmodule Map do
   defdelegate keys(map), to: :maps
 
   @doc """
-  Returns all values from `map`.
+  Returns all values from `map`. Please note, that maps in `erlang` and `elixir`
+  are not ordered, meaning that the order of values would not be defined.
+
+  To retrieve a list of values in a predicted order, use `values/2`.
 
   Inlined by the compiler.
 
@@ -144,6 +147,21 @@ defmodule Map do
   """
   @spec values(map) :: [value]
   defdelegate values(map), to: :maps
+
+  @doc """
+  Returns all values from `map` for the keys given as the second argument.
+  The order of values is preserved.
+
+  ## Examples
+
+      iex> Map.values(%{a: 1, b: 2}, [:b, :a])
+      [2, 1]
+
+  """
+  @spec values(map, [key]) :: [value]
+  def values(map, keys) when is_map(map) and is_list(keys) do
+    for key <- keys, {:ok, value} <- [Map.fetch(map, key)], do: value
+  end
 
   @doc """
   Converts `map` to a list.

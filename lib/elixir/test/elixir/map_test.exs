@@ -247,6 +247,17 @@ defmodule MapTest do
     end
   end
 
+  test "values/2 preserving order" do
+    list = Enum.to_list(1..100)
+    map = list |> Enum.zip(list) |> Map.new()
+    reversed = Enum.reverse(list)
+
+    assert Map.values(map, list) == list
+    assert Map.values(map, [:unexpected | list]) == list
+    assert Map.values(map, [50]) == [50]
+    assert Map.values(map, reversed) == reversed
+  end
+
   defp empty_map(), do: %{}
 
   test "structs" do
