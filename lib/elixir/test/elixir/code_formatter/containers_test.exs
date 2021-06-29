@@ -205,6 +205,12 @@ defmodule Code.Formatter.ContainersTest do
       assert_format ~S(["Foo": 1, "Bar": 2]), ~S([Foo: 1, Bar: 2])
     end
 
+    test "with operators keyword lists" do
+      assert_same ~S([.: :.])
+      assert_same ~S([..: :..])
+      assert_same ~S([...: :...])
+    end
+
     test "preserves user choice even when it fits" do
       assert_same """
       [
