@@ -9,6 +9,7 @@ defmodule BarTest do
     assert Bar.Ignore.world() == :hello
   end
 
+  @tag :maybe_skip
   test "works with protocols" do
     assert Bar.Protocol.to_uppercase("foo") == "FOO"
   end

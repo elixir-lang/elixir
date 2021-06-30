@@ -131,7 +131,9 @@ defmodule Mix.Tasks.TestTest do
   describe "--cover" do
     test "reports the coverage of each app's modules in an umbrella" do
       in_fixture("umbrella_test", fn ->
-        output = mix(["test", "--cover"])
+        # This fixture by default results in coverage above the default threshold
+        # which should result in an exit status of 0.
+        assert {output, 0} = mix_code(["test", "--cover"])
 
         assert output =~ "4 tests, 0 failures"
 
@@ -159,6 +161,10 @@ defmodule Mix.Tasks.TestTest do
                -----------|--------------------------
                   100.00% | Total
                """
+
+        # We skip a test in bar to force coverage below the default threshold 
+        # which should result in an exit status of 1.
+        assert {_, 1} = mix_code(["test", "--cover", "--exclude", "maybe_skip"])
       end)
     end
 
