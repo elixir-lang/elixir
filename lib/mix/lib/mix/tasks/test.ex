@@ -275,9 +275,9 @@ defmodule Mix.Tasks.Test do
       `:threshold`, which is a boolean or numeric value that enables coloring
       of code coverage results in red or green depending on whether the
       percentage is below or above the specified threshold, respectively.
-      If summary is true or a threshold value is set the task will exit with status
-      of 1.
-      Defaults to `[threshold: 90]`
+      Defaults to `[threshold: 90]`.  The task will exit with status of 1 if
+      the total coverage is below the threshold, unless `:summary` is set
+      to false.
 
     * `:export` - a file name to export results to instead of generating
       the result on the fly. The `.coverdata` extension is automatically
