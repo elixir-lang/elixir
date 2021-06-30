@@ -159,6 +159,8 @@ defmodule Mix.Tasks.TestTest do
                -----------|--------------------------
                   100.00% | Total
                """
+
+        assert {_, 1} = mix_code(["test", "--cover", "--exclude", "maybe_skip"])
       end)
     end
 
@@ -181,24 +183,6 @@ defmodule Mix.Tasks.TestTest do
                -----------|--------------------------
                   100.00% | Total
                """
-      end)
-    end
-
-    test "exits with signal 1 when coverage is below threshold" do
-      in_fixture("cover_threshold_below_test", fn ->
-        assert {_, 1} = mix_code(["test", "--cover"])
-      end)
-    end
-
-    test "exits with signal 0 when coverage is equal to or above threshold" do
-      in_fixture("umbrella_test", fn ->
-        assert {_, 0} = mix_code(["test", "--cover"])
-      end)
-    end
-
-    test "exits with signal 0 when summary is false" do
-      in_fixture("cover_threshold_off_test", fn ->
-        assert {_, 0} = mix_code(["test", "--cover"])
       end)
     end
   end
