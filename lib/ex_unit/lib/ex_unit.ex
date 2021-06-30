@@ -205,9 +205,9 @@ defmodule ExUnit do
           options = persist_defaults(configuration())
           %{failures: failures} = ExUnit.Runner.run(options, time)
 
-          System.at_exit(fn _ ->
-            if failures > 0, do: exit({:shutdown, 1})
-          end)
+          if failures > 0 do
+            System.at_exit(fn _ -> exit({:shutdown, 1}) end)
+          end
 
         _ ->
           :ok
