@@ -228,6 +228,14 @@ defmodule Mix.Tasks.Test.Coverage do
     {module_results, totals} = gather_coverage(results, keep)
     module_results = Enum.sort(module_results, :desc)
     print_summary(module_results, totals, summary_opts)
+
+    case totals < threshold(summary_opts) do
+      true ->
+        exit({:shutdown, 1})
+
+      false ->
+        :ok
+    end
   end
 
   defp gather_coverage(results, keep) do
@@ -278,10 +286,8 @@ defmodule Mix.Tasks.Test.Coverage do
   end
 
   defp display({percentage, name}, opts) do
-    threshold = Keyword.get(opts, :threshold, @default_threshold)
-
     Mix.shell().info([
-      color(percentage, threshold),
+      color(percentage, threshold(opts)),
       format_number(percentage, 9),
       "%",
       :reset,
@@ -299,4 +305,8 @@ defmodule Mix.Tasks.Test.Coverage do
 
   defp format_name(name) when is_binary(name), do: name
   defp format_name(mod) when is_atom(mod), do: inspect(mod)
+
+  defp threshold(true), do: @default_threshold
+  defp threshold(false), do: 0
+  defp threshold(opts), do: Keyword.get(opts, :threshold, @default_threshold)
 end
