@@ -227,7 +227,7 @@ defmodule Mix.Tasks.Test.Coverage do
   defp summary(results, keep, summary_opts) do
     {module_results, totals} = gather_coverage(results, keep)
     module_results = Enum.sort(module_results, :desc)
-    print_summary(module_results, totals, threshold, summary_opts)
+    print_summary(module_results, totals, summary_opts)
 
     if totals < get_threshold(summary_opts) do
       System.at_exit(fn _ -> exit({:shutdown, 1}) end)
