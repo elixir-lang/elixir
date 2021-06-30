@@ -736,30 +736,10 @@ defmodule KernelTest do
       assert result =~ ":erlang.orelse(:erlang.\"=:=\"(var, 1), :erlang.\"=:=\"(var, 2))"
 
       result = expand_to_string(quote(do: rand() in [1 | [2]]))
-      assert result =~ "var = rand()"
-      assert result =~ ":erlang.orelse(:erlang.\"=:=\"(var, 1), :erlang.\"=:=\"(var, 2))"
-
-      result = expand_to_string(quote(do: rand() in [1, 2 | [3]]))
-      assert result =~ "var = rand()"
-
-      assert result =~
-               ":erlang.orelse(:erlang.\"=:=\"(var, 1), :erlang.orelse(:erlang.\"=:=\"(var, 2), :erlang.\"=:=\"(var, 3)))"
-
-      result = expand_to_string(quote(do: rand() in [1 | [2 | [3]]]))
-      assert result =~ "var = rand()"
-
-      assert result =~
-               ":erlang.orelse(:erlang.\"=:=\"(var, 1), :erlang.orelse(:erlang.\"=:=\"(var, 2), :erlang.\"=:=\"(var, 3)))"
+      assert result =~ ":lists.member(rand(), [1 | [2]]"
 
       result = expand_to_string(quote(do: rand() in [1 | some_call()]))
-      assert result =~ "var = rand()"
-      assert result =~ "{arg1} = {some_call()}"
-      assert result =~ ":erlang.orelse(:erlang.\"=:=\"(var, 1), :lists.member(var, arg1))"
-
-      result = expand_to_string(quote(do: rand() in [{1}, {2}, {3} | some_call()]))
-      assert result =~ "var = rand()"
-      assert result =~ "{arg1, arg2, arg3, arg4} = {{1}, {2}, {3}, some_call()}"
-      assert result =~ ":erlang.orelse(:erlang.\"=:=\"(var, arg3), :lists.member(var, arg4)))"
+      assert result =~ ":lists.member(rand(), [1 | some_call()]"
     end
 
     defp quote_case_in(left, right) do
@@ -771,11 +751,11 @@ defmodule KernelTest do
     end
 
     test "is optimized" do
-      assert expand_to_string(quote(do: foo in [])) =~
+      assert expand_to_string(quote(do: foo in [])) ==
                "_ = foo\nfalse"
 
-      assert expand_to_string(quote(do: foo in [foo])) =~
-               "{arg1} = {foo}\n:erlang.\"=:=\"(foo, arg1)"
+      assert expand_to_string(quote(do: foo in [1, 2, 3])) ==
+               ":erlang.orelse(:erlang.orelse(:erlang.\"=:=\"(foo, 1), :erlang.\"=:=\"(foo, 2)), :erlang.\"=:=\"(foo, 3))"
 
       assert expand_to_string(quote(do: foo in 0..1)) ==
                ":erlang.andalso(:erlang.is_integer(foo), :erlang.andalso(:erlang.>=(foo, 0), :erlang.\"=<\"(foo, 1)))"
