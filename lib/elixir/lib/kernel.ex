@@ -4121,22 +4121,12 @@ defmodule Kernel do
           false
         end
 
-      [head | tail] = list when not in_body? ->
-        in_list(left, head, tail, expand, list, in_body?)
-
-      [_ | _] = list when in_body? ->
-        case ensure_evaled(list, {0, []}, expand) do
-          {[head | tail], {_, []}} ->
-            in_var(in_body?, left, &in_list(&1, head, tail, expand, list, in_body?))
-
-          {[head | tail], {_, vars_values}} ->
-            {vars, values} = :lists.unzip(:lists.reverse(vars_values))
-            is_in_list = &in_list(&1, head, tail, expand, list, in_body?)
-
-            quote do
-              {unquote_splicing(vars)} = {unquote_splicing(values)}
-              unquote(in_var(in_body?, left, is_in_list))
-            end
+      [head | tail] = list ->
+        # We only expand lists in the body if they are relatively
+        # short and it is made only of literal expressions.
+        case not in_body? or small_literal_list?(right) do
+          true -> in_var(in_body?, left, &in_list(&1, head, tail, expand, list, in_body?))
+          false -> quote(do: :lists.member(unquote(left), unquote(right)))
         end
 
       {:%{}, _meta, [__struct__: Elixir.Range, first: first, last: last, step: step]} ->
@@ -4173,42 +4163,11 @@ defmodule Kernel do
     end
   end
 
-  # Called as ensure_evaled(list, {0, []}). Note acc is reversed.
-  defp ensure_evaled(list, acc, expand) do
-    fun = fn
-      {:|, meta, [head, tail]}, acc ->
-        {head, acc} = ensure_evaled_element(head, acc)
-        {tail, acc} = ensure_evaled_tail(expand.(tail), acc, expand)
-        {{:|, meta, [head, tail]}, acc}
-
-      elem, acc ->
-        ensure_evaled_element(elem, acc)
-    end
-
-    :lists.mapfoldl(fun, acc, list)
+  defp small_literal_list?(list) when is_list(list) and length(list) <= 32 do
+    :lists.all(fn x -> is_binary(x) or is_atom(x) or is_number(x) end, list)
   end
 
-  defp ensure_evaled_element(elem, acc)
-       when is_number(elem) or is_atom(elem) or is_binary(elem) do
-    {elem, acc}
-  end
-
-  defp ensure_evaled_element(elem, acc) do
-    ensure_evaled_var(elem, acc)
-  end
-
-  defp ensure_evaled_tail(elem, acc, expand) when is_list(elem) do
-    ensure_evaled(elem, acc, expand)
-  end
-
-  defp ensure_evaled_tail(elem, acc, _expand) do
-    ensure_evaled_var(elem, acc)
-  end
-
-  defp ensure_evaled_var(elem, {index, ast}) do
-    var = {String.to_atom("arg" <> Integer.to_string(index + 1)), [], __MODULE__}
-    {var, {index + 1, [{var, elem} | ast]}}
-  end
+  defp small_literal_list?(_list), do: false
 
   defp in_range(left, first, last, nil) do
     # TODO: nil steps are only supported due to x..y in guards. Remove me on Elixir 2.0.
