@@ -224,7 +224,8 @@ defmodule IEx.Evaluator do
       if path do
         [path]
       else
-        Enum.map([".iex.exs", "~/.iex.exs"], &Path.expand/1)
+        xdg_config = Path.join(:filename.basedir(:user_config, :elixir, %{os: :linux}), "iex.exs")
+        Enum.map([".iex.exs", xdg_config, "~/.iex.exs"], &Path.expand/1)
       end
 
     path = Enum.find(candidates, &File.regular?/1)
