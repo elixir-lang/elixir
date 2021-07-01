@@ -241,8 +241,8 @@ defmodule Task do
   """
   @type t :: %__MODULE__{
           pid: pid() | nil,
-          ref: reference() | nil,
-          owner: pid() | nil
+          ref: reference(),
+          owner: pid()
         }
 
   defguardp is_timeout(timeout)
