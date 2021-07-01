@@ -90,18 +90,30 @@ As of Elixir v1.12, implicitly decreasing ranges are soft-deprecated and warning
 
 Elixir v1.12 has the additional of many functions across the standard library. The `Enum` module received additions such as `Enum.count_until/2`, `Enum.product/1`, `Enum.zip_with/2`, and more. The `Integer` module now includes `Integer.pow/2` and `Integer.extended_gcd/2`. Finally, the `Kernel` module got two new functions, `Kernel.then/2` and `Kernel.tap/2`, which are specially useful in `|>` pipelines.
 
-## v1.12.2 (2021-06-??)
+## v1.12.2 (2021-07-01)
 
-### 1. Enhancements
+### 1. Bug fixes
 
 #### Elixir
 
-  * [Application] Do not add compile time deps on args to `Application.compile_env/2` and `Application.compile_env!/2`
-  * [elixirc] Change the output of --profile time to make it easier to detect outliers
+  * [Kernel] Ensure deprecated macros emit warnings
 
 #### Mix
 
-  * [mix compile] [mix run] [mix test] Speed up the time taken to load dependencies. This should make the usage of Mix inside projects quite more responsive
+  * [mix deps] Ensure unconstrained rebar deps generate valid mix specifications
+
+### 2. Enhancements
+
+#### Elixir
+
+  * [elixirc] Change the output of `--profile time` to make it easier to detect outliers
+  * [Application] Do not add compile time deps on args to `Application.compile_env/2` and `Application.compile_env!/2`
+  * [Enum] Optimize `Enum.into/3` and `Map.new/2`
+
+#### Mix
+
+  * [mix compile] Compile most recently changed files first
+  * [mix compile, mix run, mix test] Speed up the time taken to load dependencies. This should make the usage of Mix inside projects quite more responsive
 
 ## v1.12.1 (2021-05-28)
 
