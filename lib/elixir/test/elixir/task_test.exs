@@ -148,6 +148,15 @@ defmodule TaskTest do
     assert_receive :done
   end
 
+  test "completed/1" do
+    task = Task.completed(:done)
+    assert task.__struct__ == Task
+
+    refute task.pid
+
+    assert Task.await(task) == :done
+  end
+
   test "start_link/1" do
     parent = self()
     fun = fn -> wait_and_send(parent, :done) end
