@@ -134,7 +134,6 @@ defmodule Mix.Tasks.TestTest do
         # This fixture by default results in coverage above the default threshold
         # which should result in an exit status of 0.
         assert {output, 0} = mix_code(["test", "--cover"])
-
         assert output =~ "4 tests, 0 failures"
 
         # For bar, we do regular --cover and also test protocols
@@ -164,7 +163,11 @@ defmodule Mix.Tasks.TestTest do
 
         # We skip a test in bar to force coverage below the default threshold 
         # which should result in an exit status of 1.
-        assert {_, 1} = mix_code(["test", "--cover", "--exclude", "maybe_skip"])
+        assert {_, code} = mix_code(["test", "--cover", "--exclude", "maybe_skip"])
+
+        unless windows?() do
+          assert code == 1
+        end
       end)
     end
 
