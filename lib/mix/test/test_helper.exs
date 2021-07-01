@@ -153,11 +153,12 @@ defmodule MixTest.Case do
     end
   end
 
-  def os_newline do
-    case :os.type() do
-      {:win32, _} -> "\r\n"
-      _ -> "\n"
-    end
+  if match?({:win32, _}, :os.type()) do
+    def windows?, do: true
+    def os_newline, do: "\r\n"
+  else
+    def windows?, do: false
+    def os_newline, do: "\n"
   end
 
   def mix(args, envs \\ []) when is_list(args) do

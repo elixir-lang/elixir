@@ -84,7 +84,7 @@ defmodule Mix.UtilsTest do
     end)
   end
 
-  @tag unix: true
+  @tag :unix
   test "symlink or copy erases wrong symlinks" do
     in_fixture("archive", fn ->
       File.mkdir_p!("_build/archive")
