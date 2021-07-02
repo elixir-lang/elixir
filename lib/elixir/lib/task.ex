@@ -472,6 +472,7 @@ defmodule Task do
   with mixed asynchrony, when a group of inputs will be handled partially
   synchronously and partially asynchronously.
   """
+  @doc since: "1.13.0"
   @spec completed(any) :: t
   def completed(result) do
     ref = make_ref()
