@@ -240,18 +240,19 @@ tokenize([$?, $\\, H | T], Line, Column, Scope, Tokens) ->
 
   NewScope = if
     H =:= Char, H =/= $\\ ->
-      Msg =
-        case handle_char(Char) of
-          {Escape, Name} ->
-            io_lib:format("found ?\\ followed by code point 0x~.16B (~ts), please use ?~ts instead",
-                          [Char, Name, Escape]);
+      case handle_char(Char) of
+        {Escape, Name} ->
+          Msg = io_lib:format("found ?\\ followed by code point 0x~.16B (~ts), please use ?~ts instead",
+                              [Char, Name, Escape]),
+          prepend_warning({Line, Scope#elixir_tokenizer.file, Msg}, Scope);
 
-          false ->
-            io_lib:format("unknown escape sequence ?\\~tc, use ?~tc instead", [H, H])
-        end,
+        false when ?is_downcase(H); ?is_upcase(H) ->
+          Msg = io_lib:format("unknown escape sequence ?\\~tc, use ?~tc instead", [H, H]),
+          prepend_warning({Line, Scope#elixir_tokenizer.file, Msg}, Scope);
 
-      prepend_warning({Line, Scope#elixir_tokenizer.file, Msg}, Scope);
-
+        false ->
+          Scope
+      end;
     true ->
       Scope
   end,
