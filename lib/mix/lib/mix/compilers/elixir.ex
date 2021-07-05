@@ -710,11 +710,15 @@ defmodule Mix.Compilers.Elixir do
       {@manifest_vsn, modules, sources, local_exports} ->
         {modules, sources, local_exports}
 
-      # From v5 and later
+      # v8-v* (v1.11)
+      {vsn, modules, _sources, _local_exports} when is_integer(vsn) ->
+        purge_old_manifest(compile_path, modules)
+
+      # v5-v7 (v1.10)
       {vsn, modules, _sources} when is_integer(vsn) ->
         purge_old_manifest(compile_path, modules)
 
-      # From v4 and before
+      # v1-v4
       [vsn | data] when is_integer(vsn) ->
         purge_old_manifest(compile_path, data)
 
