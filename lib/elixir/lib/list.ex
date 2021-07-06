@@ -340,6 +340,36 @@ defmodule List do
   end
 
   @doc """
+  Receives a list of tuples and returns the first tuple
+  where the element at `position` in the tuple matches the
+  given `key`.
+
+  If no matching tuple is found, an error is raised.
+
+  ## Examples
+
+      iex> List.keyfind!([a: 1, b: 2], :a, 0)
+      {:a, 1}
+
+      iex> List.keyfind!([a: 1, b: 2], 2, 1)
+      {:b, 2}
+
+      iex> List.keyfind!([a: 1, b: 2], :c, 0)
+      ** (KeyError) key :c at position 0 not found in: [a: 1, b: 2]
+
+  """
+  @doc since: "1.13.0"
+  @spec keyfind!([tuple], any, non_neg_integer) :: any
+  def keyfind!(list, key, position) do
+    :lists.keyfind(key, position + 1, list) ||
+      raise KeyError,
+        key: key,
+        term: list,
+        message:
+          "key #{inspect(key)} at position #{inspect(position)} not found in: #{inspect(list)}"
+  end
+
+  @doc """
   Receives a list of tuples and returns `true` if there is
   a tuple where the element at `position` in the tuple matches
   the given `key`.
