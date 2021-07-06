@@ -277,6 +277,14 @@ Elixir v1.12 has the additional of many functions across the standard library. T
 
   * [mix compile] The `:xref` compiler is deprecated and it has no effect. Please remove it from your mix.exs file.
 
+### 5. Backwards incompatible changes
+
+A backward incompatible change was found on Elixir v1.12.0 after the release. This was not planned and it is documented below:
+
+#### ExUnit
+
+  * [ExUnit.Formatter] `{:suite_finished, load_time, run_time}` message has been updated to `{:suite_finished, %{load: load_time, run: run_time, async: async_time}}`
+
 ## v1.11
 
 The CHANGELOG for v1.11 releases can be found [in the v1.11 branch](https://github.com/elixir-lang/elixir/blob/v1.11/CHANGELOG.md).
