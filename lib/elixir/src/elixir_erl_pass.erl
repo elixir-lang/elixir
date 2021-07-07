@@ -36,8 +36,9 @@ translate({'=', Meta, [Left, Right]}, S) ->
 %% Containers
 
 translate({'{}', Meta, Args}, S) when is_list(Args) ->
-  {TArgs, SE} = translate_args(Args, S),
-  {{tuple, ?ann(Meta), TArgs}, SE};
+  Ann = ?ann(Meta),
+  {TArgs, SE} = translate_args(Args, Ann, S),
+  {{tuple, Ann, TArgs}, SE};
 
 translate({'%{}', Meta, Args}, S) when is_list(Args) ->
   translate_map(Meta, Args, S);
@@ -69,11 +70,12 @@ translate({'__STACKTRACE__', Meta, Atom}, S = #elixir_erl{stacktrace=Var}) when 
   {{var, ?ann(Meta), Var}, S};
 
 translate({'super', Meta, Args}, S) when is_list(Args) ->
+  Ann = ?ann(Meta),
+
   %% In the expanded AST, super is used to invoke a function
   %% in the current module originated from a default clause
   %% or a super call.
-  {TArgs, SA} = translate_args(Args, S),
-  Ann = ?ann(Meta),
+  {TArgs, SA} = translate_args(Args, Ann, S),
   {super, {Kind, Name}} = lists:keyfind(super, 1, Meta),
 
   if
@@ -206,7 +208,7 @@ translate({Name, Meta, Kind}, S) when is_atom(Name), is_atom(Kind) ->
 
 translate({Name, Meta, Args}, S) when is_atom(Name), is_list(Meta), is_list(Args) ->
   Ann = ?ann(Meta),
-  {TArgs, NS} = translate_args(Args, S),
+  {TArgs, NS} = translate_args(Args, Ann, S),
   {{call, Ann, {atom, Ann, Name}, TArgs}, NS};
 
 %% Remote calls
@@ -250,18 +252,19 @@ translate({{'.', _, [Left, Right]}, Meta, Args}, S)
 %% Anonymous function calls
 
 translate({{'.', _, [Expr]}, Meta, Args}, S) when is_list(Args) ->
+  Ann = ?ann(Meta),
   {TExpr, SE} = translate(Expr, S),
-  {TArgs, SA} = translate_args(Args, SE),
-  {{call, ?ann(Meta), TExpr, TArgs}, SA};
+  {TArgs, SA} = translate_args(Args, Ann, SE),
+  {{call, Ann, TExpr, TArgs}, SA};
 
 %% Literals
-
-translate(List, S) when is_list(List) ->
-  translate_list(List, S, [], 0);
 
 translate({Left, Right}, S) ->
   {[TLeft, TRight], SE} = translate_args([Left, Right], S),
   {{tuple, binary_ann(TLeft, TRight), [TLeft, TRight]}, SE};
+
+translate(List, S) when is_list(List) ->
+  translate_list(List, S, [], 0);
 
 translate(Other, S) ->
   {elixir_erl:elixir_to_erl(Other), S}.
@@ -309,6 +312,16 @@ translate_fn_match(Arg, S) ->
   {TArg, TS#elixir_erl{extra=S#elixir_erl.extra}}.
 
 %% Translate args
+
+translate_args(Args, Ann, S) ->
+  lists:mapfoldl(fun
+    (Arg, SA) when is_list(Arg) ->
+      translate_list(Arg, SA, [], Ann);
+    (Arg, SA) when is_tuple(Arg) ->
+      translate(Arg, SA);
+    (Arg, SA) ->
+      {elixir_erl:elixir_to_erl(Arg, Ann), SA}
+  end, S, Args).
 
 translate_args(Args, S) ->
   lists:mapfoldl(fun translate/2, S, Args).
@@ -389,7 +402,7 @@ translate_with_else(Meta, [], S) ->
 translate_with_else(Meta, [{else, [{'->', _, [[{Var, VarMeta, Kind}], Clause]}]}], S) when is_atom(Var), is_atom(Kind) ->
   Ann = ?ann(?generated(Meta)),
   {ElseVarErl, SV} = elixir_erl_var:translate(VarMeta, Var, Kind, S#elixir_erl{context=match}),
-  {TranslatedClause, SC} = elixir_erl_pass:translate(Clause, SV#elixir_erl{context=nil}),
+  {TranslatedClause, SC} = translate(Clause, SV#elixir_erl{context=nil}),
   {{clause, Ann, [ElseVarErl], [], [TranslatedClause]}, SC};
 translate_with_else(Meta, [{else, Else}], S) ->
   Generated = ?generated(Meta),
@@ -401,7 +414,7 @@ translate_with_else(Meta, [{else, Else}], S) ->
   GeneratedElse = [build_generated_clause(Generated, ElseClause) || ElseClause <- Else],
 
   Case = {'case', Generated, [ElseVarEx, [{do, GeneratedElse ++ [RaiseClause]}]]},
-  {TranslatedCase, SC} = elixir_erl_pass:translate(Case, SV),
+  {TranslatedCase, SC} = translate(Case, SV),
   {{clause, ?ann(Generated), [ElseVarErl], [], [TranslatedCase]}, SC}.
 
 build_generated_clause(Generated, {'->', _, [Args, Clause]}) ->
@@ -425,19 +438,19 @@ concat_guards(Meta, Expr, [Guard | Tail]) ->
 
 translate_with_do([{'<-', Meta, [Left, Expr]} | Rest], Do, Else, S) ->
   {Args, Guards} = elixir_utils:extract_guards(Left),
-  {TExpr, SR} = elixir_erl_pass:translate(Expr, S),
-  {TArgs, SA} = elixir_erl_clauses:match(fun elixir_erl_pass:translate/2, Args, SR),
+  {TExpr, SR} = translate(Expr, S),
+  {TArgs, SA} = elixir_erl_clauses:match(fun translate/2, Args, SR),
   TGuards = elixir_erl_clauses:guards(Guards, SA#elixir_erl.extra_guards, SA),
   {TBody, SB} = translate_with_do(Rest, Do, Else, SA#elixir_erl{extra_guards=[]}),
 
   Clause = {clause, ?ann(Meta), [TArgs], TGuards, unblock(TBody)},
   {{'case', ?ann(?generated(Meta)), TExpr, [Clause, Else]}, SB};
 translate_with_do([Expr | Rest], Do, Else, S) ->
-  {TExpr, TS} = elixir_erl_pass:translate(Expr, S),
+  {TExpr, TS} = translate(Expr, S),
   {TRest, RS} = translate_with_do(Rest, Do, Else, TS),
   {{block, 0, [TExpr | unblock(TRest)]}, RS};
 translate_with_do([], Do, _Else, S) ->
-  elixir_erl_pass:translate(Do, S).
+  translate(Do, S).
 
 %% Maps and structs
 
@@ -563,7 +576,7 @@ translate_remote('Elixir.String.Chars', to_string, Meta, [Arg], S) ->
 translate_remote(maps, put, Meta, [Key, Value, Map], S) ->
   Ann = ?ann(Meta),
 
-  case translate_args([Key, Value, Map], S) of
+  case translate_args([Key, Value, Map], Ann, S) of
     {[TKey, TValue, {map, _, InnerMap, Pairs}], TS} ->
       {{map, Ann, InnerMap, Pairs ++ [{map_field_assoc, Ann, TKey, TValue}]}, TS};
 
@@ -576,7 +589,7 @@ translate_remote(maps, put, Meta, [Key, Value, Map], S) ->
 translate_remote(maps, merge, Meta, [Map1, Map2], S) ->
   Ann = ?ann(Meta),
 
-  case translate_args([Map1, Map2], S) of
+  case translate_args([Map1, Map2], Ann, S) of
     {[{map, _, Pairs1}, {map, _, Pairs2}], TS} ->
       {{map, Ann, Pairs1 ++ Pairs2}, TS};
 
