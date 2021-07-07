@@ -1,6 +1,6 @@
 %% Compiler backend to Erlang.
 -module(elixir_erl).
--export([elixir_to_erl/1, definition_to_anonymous/4, compile/1, consolidate/3,
+-export([elixir_to_erl/1, elixir_to_erl/2, definition_to_anonymous/4, compile/1, consolidate/3,
          get_ann/1, debug_info/4, scope/2, format_error/1]).
 -include("elixir.hrl").
 -define(typespecs, 'Elixir.Kernel.Typespec').
