@@ -31,10 +31,7 @@ defmodule Mix.SCM.Git do
   end
 
   def accepts_options(_app, opts) do
-    opts =
-      opts
-      |> Keyword.put(:checkout, opts[:dest])
-      |> sparse_opts()
+    opts = Keyword.put(opts, :checkout, opts[:dest])
 
     cond do
       gh = opts[:github] ->
@@ -135,18 +132,10 @@ defmodule Mix.SCM.Git do
     get_lock(opts)
   end
 
-  defp sparse_opts(opts) do
-    if opts[:sparse] do
-      dest = Path.join(opts[:dest], opts[:sparse])
-      Keyword.put(opts, :dest, dest)
-    else
-      opts
-    end
-  end
-
   defp sparse_toggle(opts) do
     cond do
       sparse = opts[:sparse] ->
+        sparse = if is_list(sparse), do: Enum.join(sparse, "\n"), else: sparse
         sparse_check(git_version())
         git!(["--git-dir=.git", "config", "core.sparsecheckout", "true"])
         File.mkdir_p!(".git/info")

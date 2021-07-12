@@ -499,6 +499,64 @@ defmodule Mix.Tasks.DepsGitTest do
     purge([GitRepo, GitRepo.MixProject])
   end
 
+  describe "sparse checkout patterns" do
+    @describetag :git_sparse
+
+    test "gets and updates Git repos with sparse checkout pattern" do
+      sparse_pattern = "sparse_dir/**/*.ex*"
+      Process.put(:git_repo_opts, sparse: sparse_pattern)
+      Mix.Project.push(GitApp)
+
+      in_fixture("no_mixfile", fn ->
+        Mix.Tasks.Deps.Get.run([])
+        message = "* Getting git_repo (#{fixture_path("git_repo")})"
+        assert_received {:mix_shell, :info, [^message]}
+        refute File.exists?("deps/git_repo/mix.exs")
+        assert File.exists?("deps/git_repo/sparse_dir/mix.exs")
+        refute File.exists?("deps/git_repo/sparse_dir/lib/to_be_excluded")
+        assert File.read!("mix.lock") =~ "sparse: \"#{sparse_pattern}\""
+      end)
+    end
+
+    test "gets and updates Git repos with sparse checkout multi-line pattern" do
+      Process.put(:git_repo_opts, sparse: "sparse_dir/mix.exs\nsparse_dir/lib/git_sparse_repo.ex")
+      Mix.Project.push(GitApp)
+
+      in_fixture("no_mixfile", fn ->
+        Mix.Tasks.Deps.Get.run([])
+        message = "* Getting git_repo (#{fixture_path("git_repo")})"
+        assert_received {:mix_shell, :info, [^message]}
+        refute File.exists?("deps/git_repo/mix.exs")
+        assert File.exists?("deps/git_repo/sparse_dir/mix.exs")
+        refute File.exists?("deps/git_repo/sparse_dir/lib/to_be_excluded")
+
+        assert File.read!("mix.lock") =~
+                 "sparse: \"sparse_dir/mix.exs\\nsparse_dir/lib/git_sparse_repo.ex\""
+      end)
+    end
+
+    test "gets and updates Git repos with sparse checkout patterns list" do
+      sparse = [
+        "sparse_dir/mix.exs",
+        "sparse_dir/lib/git_sparse_repo.ex"
+      ]
+
+      Process.put(:git_repo_opts, sparse: sparse)
+      Mix.Project.push(GitApp)
+
+      in_fixture("no_mixfile", fn ->
+        Mix.Tasks.Deps.Get.run([])
+        message = "* Getting git_repo (#{fixture_path("git_repo")})"
+        assert_received {:mix_shell, :info, [^message]}
+        refute File.exists?("deps/git_repo/mix.exs")
+        assert File.exists?("deps/git_repo/sparse_dir/mix.exs")
+        refute File.exists?("deps/git_repo/sparse_dir/lib/to_be_excluded")
+
+        assert File.read!("mix.lock") =~ "sparse: #{inspect(sparse)}"
+      end)
+    end
+  end
+
   defp refresh(post_config) do
     %{name: name, file: file} = Mix.Project.pop()
     Mix.ProjectStack.post_config(post_config)

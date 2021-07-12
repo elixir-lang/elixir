@@ -307,6 +307,8 @@ unless File.dir?(target) do
   end
   """)
 
+  File.write!(Path.join(subdir, "lib/to_be_excluded"), "## Auto-generated empty fixture")
+
   File.cd!(target, fn ->
     System.cmd("git", ~w[add .])
     System.cmd("git", ~w[commit -m "lib"])
