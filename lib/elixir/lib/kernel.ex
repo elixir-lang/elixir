@@ -3245,7 +3245,7 @@ defmodule Kernel do
       iex> binding()
       []
 
-  Furthermore, please exercise caution when using the pin operator.
+  Furthermore, remember the pin operator matches _values_, not _patterns_:
 
       match?(%{x: 1}, %{x: 1, y: 2})
       #=> true
@@ -3254,10 +3254,10 @@ defmodule Kernel do
       match?(^attrs, %{x: 1, y: 2})
       #=> false
 
-  As a reminder, the pin operator binds _values,_ not _patterns_ (on the BEAM,
-  patterns cannot be stored or composed in variables, as patterns are not a data
-  type). Such behaviour is not specific to `Kernel.match/2`. The following code
-  will throw an exception:
+  The pin operator will check if the values are equal, using `===/2`, while
+  patterns have their own rules when matching maps, lists, and so forth.
+  Such behaviour is not specific to `match?/2`. The following code also
+  throws an exception:
 
       attrs = %{x: 1}
       ^attrs = %{x: 1, y: 2}
