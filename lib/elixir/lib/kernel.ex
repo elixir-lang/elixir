@@ -3245,6 +3245,24 @@ defmodule Kernel do
       iex> binding()
       []
 
+  Furthermore, remember the pin operator matches _values_, not _patterns_:
+
+      match?(%{x: 1}, %{x: 1, y: 2})
+      #=> true
+
+      attrs = %{x: 1}
+      match?(^attrs, %{x: 1, y: 2})
+      #=> false
+
+  The pin operator will check if the values are equal, using `===/2`, while
+  patterns have their own rules when matching maps, lists, and so forth.
+  Such behaviour is not specific to `match?/2`. The following code also
+  throws an exception:
+
+      attrs = %{x: 1}
+      ^attrs = %{x: 1, y: 2}
+      #=> (MatchError) no match of right hand side value: %{x: 1, y: 2}
+
   """
   defmacro match?(pattern, expr) do
     success =
