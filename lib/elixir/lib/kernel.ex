@@ -3245,6 +3245,23 @@ defmodule Kernel do
       iex> binding()
       []
 
+  Furthermore, please exercise caution when using the pin operator.
+
+      iex> match?(%{x: 1}, %{x: 1, y: 2})
+      true
+      iex> attrs = %{x: 1}
+      iex> match?(^attrs, %{x: 1, y: 2})
+      false
+
+  As a reminder, the pin operator binds _values,_ not _patterns_ (on the BEAM,
+  patterns cannot be stored or composed in variables, as patterns are not a data
+  type). Such behavior is not specific to `Kernel.match/2`. The following code
+  will throw an exception:
+
+      iex> attrs = %{x: 1}
+      iex> ^attrs = %{x: 1, y: 2}
+      ** (MatchError) no match of right hand side value: %{x: 1, y: 2}
+
   """
   defmacro match?(pattern, expr) do
     success =
