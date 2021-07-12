@@ -185,6 +185,12 @@ defmodule Range do
   def size(first..last//step) when step < 0 and first < last, do: 0
   def size(first..last//step), do: abs(div(last - first, step)) + 1
 
+  # TODO: Remove me on v2.0
+  def size(%{__struct__: Range, first: first, last: last} = range) do
+    step = if first <= last, do: 1, else: -1
+    size(Map.put(range, :step, step))
+  end
+
   @doc """
   Checks if two ranges are disjoint.
 
@@ -273,6 +279,12 @@ defimpl Enumerable, for: Range do
     reduce(first, last, acc, fun, step)
   end
 
+  # TODO: Remove me on v2.0
+  def reduce(%{__struct__: Range, first: first, last: last} = range, acc, fun) do
+    step = if first <= last, do: 1, else: -1
+    reduce(Map.put(range, :step, step), acc, fun)
+  end
+
   defp reduce(_first, _last, {:halt, acc}, _fun, _step) do
     {:halted, acc}
   end
@@ -304,6 +316,13 @@ defimpl Enumerable, for: Range do
     end
   end
 
+  # TODO: Remove me on v2.0
+  def member?(%{__struct__: Range, first: first, last: last} = range, value)
+      when is_integer(value) do
+    step = if first <= last, do: 1, else: -1
+    member?(Map.put(range, :step, step), value)
+  end
+
   def member?(_, _value) do
     {:ok, false}
   end
@@ -316,12 +335,19 @@ defimpl Enumerable, for: Range do
     {:ok, Range.size(range), &slice(first + &1 * step, step, &2)}
   end
 
+  # TODO: Remove me on v2.0
+  def slice(%{__struct__: Range, first: first, last: last} = range) do
+    step = if first <= last, do: 1, else: -1
+    slice(Map.put(range, :step, step))
+  end
+
   defp slice(current, _step, 1), do: [current]
   defp slice(current, step, remaining), do: [current | slice(current + step, step, remaining - 1)]
 end
 
 defimpl Inspect, for: Range do
   import Inspect.Algebra
+  import Kernel, except: [inspect: 2]
 
   def inspect(first..last//1, opts) do
     concat([to_doc(first, opts), "..", to_doc(last, opts)])
@@ -329,5 +355,11 @@ defimpl Inspect, for: Range do
 
   def inspect(first..last//step, opts) do
     concat([to_doc(first, opts), "..", to_doc(last, opts), "//", to_doc(step, opts)])
+  end
+
+  # TODO: Remove me on v2.0
+  def inspect(%{__struct__: Range, first: first, last: last} = range, opts) do
+    step = if first <= last, do: 1, else: -1
+    inspect(Map.put(range, :step, step), opts)
   end
 end
