@@ -2148,6 +2148,12 @@ defmodule String do
     end
   end
 
+  # TODO: Remove me on v2.0
+  def slice(string, %{__struct__: Range, first: first, last: last} = range) do
+    step = if first <= last, do: 1, else: -1
+    slice(string, Map.put(range, :step, step))
+  end
+
   defp slice_range("", _, _), do: ""
 
   defp slice_range(string, first, -1) when first >= 0 do

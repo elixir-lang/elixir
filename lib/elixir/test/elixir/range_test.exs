@@ -94,4 +94,29 @@ defmodule RangeTest do
       assert Range.disjoint?(1..1, 1..1) == false
     end
   end
+
+  describe "old ranges" do
+    test "enum" do
+      asc = %{__struct__: Range, first: 1, last: 3}
+      desc = %{__struct__: Range, first: 3, last: 1}
+
+      assert Enum.to_list(asc) == [1, 2, 3]
+      assert Enum.member?(asc, 2)
+      assert Enum.count(asc) == 3
+      assert Enum.drop(asc, 1) == [2, 3]
+
+      assert Enum.to_list(desc) == [3, 2, 1]
+      assert Enum.member?(desc, 2)
+      assert Enum.count(desc) == 3
+      assert Enum.drop(desc, 1) == [2, 1]
+    end
+
+    test "string" do
+      asc = %{__struct__: Range, first: 1, last: 3}
+      desc = %{__struct__: Range, first: 3, last: 1}
+
+      assert String.slice("elixir", asc) == "lix"
+      assert String.slice("elixir", desc) == ""
+    end
+  end
 end
