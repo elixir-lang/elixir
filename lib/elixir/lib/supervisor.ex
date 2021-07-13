@@ -515,6 +515,7 @@ defmodule Supervisor do
           required(:id) => atom() | term(),
           required(:start) => {module(), atom(), [term()]},
           optional(:restart) => :permanent | :transient | :temporary,
+          optional(:significant) => boolean(),
           optional(:shutdown) => timeout() | :brutal_kill,
           optional(:type) => :worker | :supervisor,
           optional(:modules) => [module()] | :dynamic
