@@ -2551,8 +2551,7 @@ defmodule Kernel.ExpansionTest do
         expand(code)
       end
 
-      message =
-        ~r["a -1\.\.\(a \+ 1\)" looks like a function call but there is a variable named "a"]
+      message = ~r["a -1\.\.a \+ 1" looks like a function call but there is a variable named "a"]
 
       assert_raise CompileError, message, fn ->
         code =
