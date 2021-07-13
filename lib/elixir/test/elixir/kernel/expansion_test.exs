@@ -2675,14 +2675,26 @@ defmodule Kernel.ExpansionTest do
 
   describe "op ambiguity" do
     test "raises when a call is ambiguous" do
+      # We use string_to_quoted! here to avoid the formatter adding parentheses
       message = ~r["a -1" looks like a function call but there is a variable named "a"]
 
       assert_raise CompileError, message, fn ->
-        # We use string_to_quoted! here to avoid the formatter adding parentheses to "a -1".
         code =
           Code.string_to_quoted!("""
           a = 1
           a -1
+          """)
+
+        expand(code)
+      end
+
+      message = ~r["a -1..a+1" looks like a function call but there is a variable named "a"]
+
+      assert_raise CompileError, message, fn ->
+        code =
+          Code.string_to_quoted!("""
+          a = 1
+          a -1 .. a + 1
           """)
 
         expand(code)
