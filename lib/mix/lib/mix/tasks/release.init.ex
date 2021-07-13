@@ -88,23 +88,36 @@ defmodule Mix.Tasks.Release.Init do
     if [ -z "$SELF" ]; then SELF="$0"; fi
     RELEASE_ROOT="$(CDPATH='' cd "$(dirname "$SELF")/.." && pwd -P)"
     export RELEASE_ROOT
-    export RELEASE_NAME="${RELEASE_NAME:-"<%= @release.name %>"}"
-    export RELEASE_VSN="${RELEASE_VSN:-"$(cut -d' ' -f2 "$RELEASE_ROOT/releases/start_erl.data")"}"
-    export RELEASE_COMMAND="$1"
-    export RELEASE_MODE="${RELEASE_MODE:-"embedded"}"
-    export RELEASE_PROG="${RELEASE_PROG:-"$(echo "$0" | sed 's/.*\///')"}"
+    RELEASE_NAME="${RELEASE_NAME:-"<%= @release.name %>"}"
+    export RELEASE_NAME
+    RELEASE_VSN="${RELEASE_VSN:-"$(cut -d' ' -f2 "$RELEASE_ROOT/releases/start_erl.data")"}"
+    export RELEASE_VSN
+    RELEASE_COMMAND="$1"
+    export RELEASE_COMMAND
+    RELEASE_MODE="${RELEASE_MODE:-"embedded"}"
+    export RELEASE_MODE
+    RELEASE_PROG="${RELEASE_PROG:-"$(echo "$0" | sed 's/.*\///')"}"
+    export RELEASE_PROG
 
     REL_VSN_DIR="$RELEASE_ROOT/releases/$RELEASE_VSN"
     . "$REL_VSN_DIR/env.sh"
 
-    export RELEASE_COOKIE="${RELEASE_COOKIE:-"$(cat "$RELEASE_ROOT/releases/COOKIE")"}"
-    export RELEASE_NODE="${RELEASE_NODE:-"$RELEASE_NAME"}"
-    export RELEASE_TMP="${RELEASE_TMP:-"$RELEASE_ROOT/tmp"}"
-    export RELEASE_VM_ARGS="${RELEASE_VM_ARGS:-"$REL_VSN_DIR/vm.args"}"
-    export RELEASE_REMOTE_VM_ARGS="${RELEASE_REMOTE_VM_ARGS:-"$REL_VSN_DIR/remote.vm.args"}"
-    export RELEASE_DISTRIBUTION="${RELEASE_DISTRIBUTION:-"sname"}"
-    export RELEASE_BOOT_SCRIPT="${RELEASE_BOOT_SCRIPT:-"start"}"
-    export RELEASE_BOOT_SCRIPT_CLEAN="${RELEASE_BOOT_SCRIPT_CLEAN:-"start_clean"}"
+    RELEASE_COOKIE="${RELEASE_COOKIE:-"$(cat "$RELEASE_ROOT/releases/COOKIE")"}"
+    export RELEASE_COOKIE
+    RELEASE_NODE="${RELEASE_NODE:-"$RELEASE_NAME"}"
+    export RELEASE_NODE
+    RELEASE_TMP="${RELEASE_TMP:-"$RELEASE_ROOT/tmp"}"
+    export RELEASE_TMP
+    RELEASE_VM_ARGS="${RELEASE_VM_ARGS:-"$REL_VSN_DIR/vm.args"}"
+    export RELEASE_VM_ARGS
+    RELEASE_REMOTE_VM_ARGS="${RELEASE_REMOTE_VM_ARGS:-"$REL_VSN_DIR/remote.vm.args"}"
+    export RELEASE_REMOTE_VM_ARGS
+    RELEASE_DISTRIBUTION="${RELEASE_DISTRIBUTION:-"sname"}"
+    export RELEASE_DISTRIBUTION
+    RELEASE_BOOT_SCRIPT="${RELEASE_BOOT_SCRIPT:-"start"}"
+    export RELEASE_BOOT_SCRIPT
+    RELEASE_BOOT_SCRIPT_CLEAN="${RELEASE_BOOT_SCRIPT_CLEAN:-"start_clean"}"
+    export RELEASE_BOOT_SCRIPT_CLEAN
 
     rand () {
       dd count=1 bs=2 if=/dev/urandom 2> /dev/null | od -x | awk 'NR==1{print $2}'
@@ -116,11 +129,6 @@ defmodule Mix.Tasks.Release.Init do
           ;;
 
         name | sname)
-          if [ "$RELEASE_COOKIE" = "" ]; then
-            echo "ERROR: $RELEASE_COOKIE cannot be empty" >&2
-            exit 1
-          fi
-
           echo "--$RELEASE_DISTRIBUTION $1"
           ;;
 
