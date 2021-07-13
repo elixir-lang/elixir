@@ -116,6 +116,11 @@ defmodule Mix.Tasks.Release.Init do
           ;;
 
         name | sname)
+          if [ "$RELEASE_COOKIE" = "" ]; then
+            echo "ERROR: $RELEASE_COOKIE cannot be empty" >&2
+            exit 1
+          fi
+
           echo "--$RELEASE_DISTRIBUTION $1"
           ;;
 
