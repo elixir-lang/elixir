@@ -2066,6 +2066,12 @@ defmodule Enum do
     end
   end
 
+  # TODO: Remove me on v2.0
+  def min_max(%{__struct__: Range, first: first, last: last} = range, empty_fallback) do
+    step = if first <= last, do: 1, else: -1
+    min_max(Map.put(range, :step, step), empty_fallback)
+  end
+
   def min_max(enumerable, empty_fallback) when is_function(empty_fallback, 0) do
     first_fun = &[&1 | &1]
 
@@ -2390,6 +2396,12 @@ defmodule Enum do
     reduce_range(first, last, step, acc, fun)
   end
 
+  # TODO: Remove me on v2.0
+  def reduce(%{__struct__: Range, first: first, last: last} = range, acc, fun) do
+    step = if first <= last, do: 1, else: -1
+    reduce(Map.put(range, :step, step), acc, fun)
+  end
+
   def reduce(%_{} = enumerable, acc, fun) do
     reduce_enumerable(enumerable, acc, fun)
   end
@@ -2660,6 +2672,12 @@ defmodule Enum do
       raise ArgumentError,
             "Enum.slice/2 does not accept ranges with custom steps, got: #{inspect(index_range)}"
     end
+  end
+
+  # TODO: Remove me on v2.0
+  def slice(enumerable, %{__struct__: Range, first: first, last: last} = index_range) do
+    step = if first <= last, do: 1, else: -1
+    slice(enumerable, Map.put(index_range, :step, step))
   end
 
   defp slice_range(enumerable, first, last) when last >= first and last >= 0 and first >= 0 do
@@ -3048,6 +3066,12 @@ defmodule Enum do
     |> Range.size()
     |> Kernel.*(first + last - rem(last - first, step))
     |> div(2)
+  end
+
+  # TODO: Remove me on v2.0
+  def sum(%{__struct__: Range, first: first, last: last} = range) do
+    step = if first <= last, do: 1, else: -1
+    sum(Map.put(range, :step, step))
   end
 
   def sum(enumerable) do
@@ -3669,6 +3693,12 @@ defmodule Enum do
           false -> last
         end
     end
+  end
+
+  # TODO: Remove me on v2.0
+  defp aggregate(%{__struct__: Range, first: first, last: last} = range, fun, empty) do
+    step = if first <= last, do: 1, else: -1
+    aggregate(Map.put(range, :step, step), fun, empty)
   end
 
   defp aggregate(enumerable, fun, empty) do
