@@ -104,11 +104,23 @@ defmodule RangeTest do
       assert Enum.member?(asc, 2)
       assert Enum.count(asc) == 3
       assert Enum.drop(asc, 1) == [2, 3]
+      assert Enum.slice([1, 2, 3, 4, 5, 6], asc) == [2, 3, 4]
+      # testing private Enum.aggregate
+      assert Enum.max(asc) == 3
+      assert Enum.sum(asc) == 6
+      assert Enum.min_max(asc) == {1, 3}
+      assert Enum.reduce(asc, 0, fn a, b -> a + b end) == 6
 
       assert Enum.to_list(desc) == [3, 2, 1]
       assert Enum.member?(desc, 2)
       assert Enum.count(desc) == 3
       assert Enum.drop(desc, 1) == [2, 1]
+      assert Enum.slice([1, 2, 3, 4, 5, 6], desc) == []
+      # testing private Enum.aggregate
+      assert Enum.max(desc) == 3
+      assert Enum.sum(desc) == 6
+      assert Enum.min_max(desc) == {1, 3}
+      assert Enum.reduce(desc, 0, fn a, b -> a + b end) == 6
     end
 
     test "string" do
