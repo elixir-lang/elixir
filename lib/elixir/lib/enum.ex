@@ -2066,12 +2066,6 @@ defmodule Enum do
     end
   end
 
-  # TODO: Remove me on v2.0
-  def min_max(%{__struct__: Range, first: first, last: last} = range, empty_fallback) do
-    step = if first <= last, do: 1, else: -1
-    min_max(Map.put(range, :step, step), empty_fallback)
-  end
-
   def min_max(enumerable, empty_fallback) when is_function(empty_fallback, 0) do
     first_fun = &[&1 | &1]
 
@@ -2394,12 +2388,6 @@ defmodule Enum do
 
   def reduce(first..last//step, acc, fun) do
     reduce_range(first, last, step, acc, fun)
-  end
-
-  # TODO: Remove me on v2.0
-  def reduce(%{__struct__: Range, first: first, last: last} = range, acc, fun) do
-    step = if first <= last, do: 1, else: -1
-    reduce(Map.put(range, :step, step), acc, fun)
   end
 
   def reduce(%_{} = enumerable, acc, fun) do
@@ -3068,12 +3056,6 @@ defmodule Enum do
     |> div(2)
   end
 
-  # TODO: Remove me on v2.0
-  def sum(%{__struct__: Range, first: first, last: last} = range) do
-    step = if first <= last, do: 1, else: -1
-    sum(Map.put(range, :step, step))
-  end
-
   def sum(enumerable) do
     reduce(enumerable, 0, &+/2)
   end
@@ -3693,12 +3675,6 @@ defmodule Enum do
           false -> last
         end
     end
-  end
-
-  # TODO: Remove me on v2.0
-  defp aggregate(%{__struct__: Range, first: first, last: last} = range, fun, empty) do
-    step = if first <= last, do: 1, else: -1
-    aggregate(Map.put(range, :step, step), fun, empty)
   end
 
   defp aggregate(enumerable, fun, empty) do
