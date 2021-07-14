@@ -261,11 +261,6 @@ defmodule Exception do
       {:%{}, meta, [__struct__: Range, first: first, last: last, step: step]} ->
         {:"..//", meta, [first, last, step]}
 
-      # TODO: Remove me on v2.0
-      {:%{}, meta, [__struct__: Range, first: first, last: last]} ->
-        step = if first <= last, do: 1, else: -1
-        {:"..//", meta, [first, last, step]}
-
       other ->
         other
     end)
