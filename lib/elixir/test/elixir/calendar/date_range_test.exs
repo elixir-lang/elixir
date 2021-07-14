@@ -141,4 +141,71 @@ defmodule Date.RangeTest do
       Date.range(~D[2000-01-01], ~D[2000-01-31], step)
     end
   end
+
+  describe "old date ranges" do
+    test "inspect" do
+      asc = %{
+        __struct__: Date.Range,
+        first: ~D[2021-07-14],
+        first_in_iso_days: 738_350,
+        last: ~D[2021-07-17],
+        last_in_iso_days: 738_353
+      }
+
+      desc = %{
+        __struct__: Date.Range,
+        first: ~D[2021-07-17],
+        first_in_iso_days: 738_353,
+        last: ~D[2021-07-14],
+        last_in_iso_days: 738_350
+      }
+
+      assert inspect(asc) == "#DateRange<~D[2021-07-14], ~D[2021-07-17]>"
+      assert inspect(desc) == "#DateRange<~D[2021-07-17], ~D[2021-07-14], -1>"
+    end
+
+    test "enumerable" do
+      asc = %{
+        __struct__: Date.Range,
+        first: ~D[2021-07-14],
+        first_in_iso_days: 738_350,
+        last: ~D[2021-07-17],
+        last_in_iso_days: 738_353
+      }
+
+      desc = %{
+        __struct__: Date.Range,
+        first: ~D[2021-07-17],
+        first_in_iso_days: 738_353,
+        last: ~D[2021-07-14],
+        last_in_iso_days: 738_350
+      }
+
+      # member? implementations tests also empty?
+      assert Enumerable.member?(asc, ~D[2021-07-15])
+      assert {:ok, 4, _} = Enumerable.slice(asc)
+
+      assert Enum.reduce(asc, [], fn x, acc -> [x | acc] end) == [
+               ~D[2021-07-17],
+               ~D[2021-07-16],
+               ~D[2021-07-15],
+               ~D[2021-07-14]
+             ]
+
+      assert Enum.count(asc) == 4
+
+      # member? implementations tests also empty?
+      assert Enumerable.member?(desc, ~D[2021-07-15])
+      assert {:ok, 4, _} = Enumerable.slice(desc)
+
+      assert Enum.reduce(desc, [], fn x, acc -> [x | acc] end) == [
+               ~D[2021-07-14],
+               ~D[2021-07-15],
+               ~D[2021-07-16],
+               ~D[2021-07-17]
+             ]
+
+      assert Enum.count(desc) == 4
+    end
+  end
 end

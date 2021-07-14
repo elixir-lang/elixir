@@ -2662,6 +2662,12 @@ defmodule Enum do
     end
   end
 
+  # TODO: Remove me on v2.0
+  def slice(enumerable, %{__struct__: Range, first: first, last: last} = index_range) do
+    step = if first <= last, do: 1, else: -1
+    slice(enumerable, Map.put(index_range, :step, step))
+  end
+
   defp slice_range(enumerable, first, last) when last >= first and last >= 0 and first >= 0 do
     slice_any(enumerable, first, last - first + 1)
   end
