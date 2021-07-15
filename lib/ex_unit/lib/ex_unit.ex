@@ -246,7 +246,7 @@ defmodule ExUnit do
       filter;
 
     * `:exit_code` - specifies an alternate exit code to use when the test suite
-      fails;
+      fails. Defaults to 2;
 
     * `:failures_manifest_file` - specifies a path to the file used to store failures
       between runs;
