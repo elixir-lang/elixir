@@ -475,6 +475,8 @@ defmodule Mix.Tasks.TestTest do
   end
 
   describe "--exit-code" do
+    @describetag :unix
+
     test "returns custom exit code" do
       in_fixture("test_failed", fn ->
         {output, exit_code} = mix_code(["test", "--exit-code", "5"])
