@@ -113,6 +113,9 @@ defmodule Mix.Tasks.Test do
 
     * `--exclude` - excludes tests that match the filter
 
+    * `--exit-status` - use an alternate exit status to use when the test suite
+      fails (default is 2).
+
     * `--export-coverage` - the name of the file to export coverage results to.
       Only has an effect when used with `--cover`
 
@@ -404,7 +407,8 @@ defmodule Mix.Tasks.Test do
     partitions: :integer,
     preload_modules: :boolean,
     warnings_as_errors: :boolean,
-    profile_require: :string
+    profile_require: :string,
+    exit_status: :integer
   ]
 
   @cover [output: "cover", tool: Mix.Tasks.Test.Coverage]
@@ -532,7 +536,9 @@ defmodule Mix.Tasks.Test do
             raise_with_shell(shell, "\"mix test\" failed")
 
           failures > 0 ->
-            System.at_exit(fn _ -> exit({:shutdown, 1}) end)
+            System.at_exit(fn _ ->
+              exit({:shutdown, Keyword.fetch!(ex_unit_opts, :exit_status)})
+            end)
 
           excluded == total and Keyword.has_key?(opts, :only) ->
             message = "The --only option was given to \"mix test\" but no test was executed"
@@ -601,7 +607,8 @@ defmodule Mix.Tasks.Test do
     :slowest,
     :failures_manifest_file,
     :only_test_ids,
-    :test_location_relative_path
+    :test_location_relative_path,
+    :exit_status
   ]
 
   @doc false
@@ -615,6 +622,7 @@ defmodule Mix.Tasks.Test do
       |> filter_opts(:only)
       |> formatter_opts()
       |> color_opts()
+      |> exit_status_opts()
       |> Keyword.take(@option_keys)
       |> default_opts()
 
@@ -754,6 +762,10 @@ defmodule Mix.Tasks.Test do
       :error ->
         opts
     end
+  end
+
+  defp exit_status_opts(opts) do
+    Keyword.put_new(opts, :exit_status, 2)
   end
 
   defp require_test_helper(shell, dir) do

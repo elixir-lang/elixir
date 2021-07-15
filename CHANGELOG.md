@@ -37,6 +37,7 @@
   * [mix rebar] No longer support `sub_dirs` in Rebar 2 to help migration towards Rebar 3
   * [mix test] Support `--profile-require=time` to profile the time loading test files themselves
   * [mix test] Allow filtering modules from coverage using regex
+  * [mix test] Allow the exit status of ExUnit to be configured and set the default to 2
   * [mix xref] Support multiple sinks and sources in `mix xref graph`
   * [mix xref] Add `--fail-above` option to `mix xref`
   * [mix xref] Add `--label compile-connected` to `mix xref`
