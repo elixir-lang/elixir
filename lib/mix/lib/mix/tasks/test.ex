@@ -174,7 +174,7 @@ defmodule Mix.Tasks.Test do
       Note that in trace mode test timeouts will be ignored as timeout is set to `:infinity`
 
     * `--warnings-as-errors` - (since v1.12.0) treats warnings as errors and returns a non-zero
-      exit code. This option only applies to test files. To treat warnings as errors during
+      exit status. This option only applies to test files. To treat warnings as errors during
       compilation and during tests, run:
           MIX_ENV=test mix do compile --warnings-as-errors, test --warnings-as-errors
 

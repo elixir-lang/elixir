@@ -20,7 +20,7 @@ defmodule Mix.CLITest do
   end
 
   @tag :unix
-  test "Mix.raise/2 can set exit code", %{tmp_dir: tmp_dir} do
+  test "Mix.raise/2 can set exit status", %{tmp_dir: tmp_dir} do
     File.cd!(tmp_dir, fn ->
       File.mkdir_p!("lib")
 
@@ -34,7 +34,7 @@ defmodule Mix.CLITest do
 
         defp aliases do
           [
-            custom: &error(&1, exit_code: 99),
+            custom: &error(&1, exit_status: 99),
           ]
         end
 

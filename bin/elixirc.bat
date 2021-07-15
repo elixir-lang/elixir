@@ -23,7 +23,7 @@ echo   --no-debug-info           Does not attach debug info to compiled modules
 echo   --no-docs                 Does not attach documentation to compiled modules
 echo   --profile time            Profile the time to compile modules
 echo   --verbose                 Prints compilation status
-echo   --warnings-as-errors      Treats warnings as errors and returns non-zero exit code
+echo   --warnings-as-errors      Treats warnings as errors and returns non-zero exit status
 echo.
 echo ** Options given after -- are passed down to the executed code
 echo ** Options can be passed to the Erlang runtime using ELIXIR_ERL_OPTIONS
