@@ -3325,11 +3325,39 @@ defmodule Kernel do
   time and not at runtime. Check the `Module` module for other functions
   to manipulate module attributes.
 
-  ## Compile-time considerations
+  ## Attention! Multiple references of the same attribute
 
-  One thing to keep in mind is that references to other modules, even
-  in module attributes, generate compile-time dependencies to said
-  modules.
+  As mentioned above, every time you read a module attribute, a snapshot
+  of its current value is taken. Therefore, if you are storing large
+  values inside module attributes (for example, embedding external files
+  in module attributes), you should avoid referencing the same attribute
+  multiple times. For example, don't do this:
+
+      @files %{
+        example1: File.read!("lib/example1.data"),
+        example2: File.read!("lib/example2.data")
+      }
+
+      def example1, do: @files[:example1]
+      def example2, do: @files[:example2]
+
+  In the above, each reference to `@files` may end-up with a complete
+  and individual copy of the whole `@files` module attribute. Instead,
+  reference the module attribute once in a private function:
+
+      @files %{
+        example1: File.read!("lib/example1.data"),
+        example2: File.read!("lib/example2.data")
+      }
+
+      defp files(), do: @files
+      def example1, do: files()[:example1]
+      def example2, do: files()[:example2]
+
+  ## Attention! Compile-time dependencies
+
+  Keep in mind references to other modules, even in module attributes,
+  generate compile-time dependencies to said modules.
 
   For example, take this common pattern:
 
