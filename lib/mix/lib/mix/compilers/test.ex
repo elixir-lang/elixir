@@ -37,16 +37,27 @@ defmodule Mix.Compilers.Test do
     else
       task = ExUnit.async_run()
       parallel_require_opts = profile_opts(parallel_require_opts, opts)
+      warnings_as_errors? = Keyword.get(opts, :warnings_as_errors, false)
 
       try do
-        case Kernel.ParallelCompiler.require(test_files, parallel_require_opts) do
-          {:ok, _, _} -> :ok
-          {:error, _, _} -> exit({:shutdown, 1})
-        end
+        failed? =
+          case Kernel.ParallelCompiler.require(test_files, parallel_require_opts) do
+            {:ok, [_ | _], _} when warnings_as_errors? -> true
+            {:ok, _, _} -> false
+            {:error, _, _} -> exit({:shutdown, 1})
+          end
 
         %{failures: failures} = results = ExUnit.await_run(task)
 
         if failures == 0 do
+          if failed? do
+            message =
+              "\nERROR! Test suite aborted after successful execution due to warnings while using the --warnings-as-errors option"
+
+            IO.puts(:stderr, IO.ANSI.format([:red, message]))
+            exit({:shutdown, 1})
+          end
+
           agent_write_manifest(stale_manifest_pid)
         end
 
