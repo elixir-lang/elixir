@@ -113,7 +113,7 @@ defmodule Mix.Tasks.Test do
 
     * `--exclude` - excludes tests that match the filter
 
-    * `--exit-code` - use an alternate exit code to use when the test suite
+    * `--exit-status` - use an alternate exit status to use when the test suite
       fails (default is 2).
 
     * `--export-coverage` - the name of the file to export coverage results to.
@@ -179,7 +179,7 @@ defmodule Mix.Tasks.Test do
       Note that in trace mode test timeouts will be ignored as timeout is set to `:infinity`
 
     * `--warnings-as-errors` - (since v1.12.0) treats warnings as errors and returns a non-zero
-      exit code. This option only applies to test files. To treat warnings as errors during
+      exit status. This option only applies to test files. To treat warnings as errors during
       compilation and during tests, run:
           MIX_ENV=test mix do compile --warnings-as-errors, test --warnings-as-errors
 
@@ -408,7 +408,7 @@ defmodule Mix.Tasks.Test do
     preload_modules: :boolean,
     warnings_as_errors: :boolean,
     profile_require: :string,
-    exit_code: :integer
+    exit_status: :integer
   ]
 
   @cover [output: "cover", tool: Mix.Tasks.Test.Coverage]
@@ -536,7 +536,9 @@ defmodule Mix.Tasks.Test do
             raise_with_shell(shell, "\"mix test\" failed")
 
           failures > 0 ->
-            System.at_exit(fn _ -> exit({:shutdown, Keyword.fetch!(ex_unit_opts, :exit_code)}) end)
+            System.at_exit(fn _ ->
+              exit({:shutdown, Keyword.fetch!(ex_unit_opts, :exit_status)})
+            end)
 
           excluded == total and Keyword.has_key?(opts, :only) ->
             message = "The --only option was given to \"mix test\" but no test was executed"
@@ -606,7 +608,7 @@ defmodule Mix.Tasks.Test do
     :failures_manifest_file,
     :only_test_ids,
     :test_location_relative_path,
-    :exit_code
+    :exit_status
   ]
 
   @doc false
@@ -620,7 +622,7 @@ defmodule Mix.Tasks.Test do
       |> filter_opts(:only)
       |> formatter_opts()
       |> color_opts()
-      |> exit_code_opts()
+      |> exit_status_opts()
       |> Keyword.take(@option_keys)
       |> default_opts()
 
@@ -762,13 +764,13 @@ defmodule Mix.Tasks.Test do
     end
   end
 
-  defp exit_code_opts(opts) do
-    case Keyword.fetch(opts, :exit_code) do
-      {:ok, _code} ->
+  defp exit_status_opts(opts) do
+    case Keyword.fetch(opts, :exit_status) do
+      {:ok, _status} ->
         opts
 
       :error ->
-        Keyword.put(opts, :exit_code, 2)
+        Keyword.put(opts, :exit_status, 2)
     end
   end
 

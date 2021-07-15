@@ -792,19 +792,19 @@ defmodule ExUnitTest do
     end
   end
 
-  describe ":exit_code" do
+  describe ":exit_status" do
     test "defaults value to 2" do
       configure_and_reload_on_exit([])
       ExUnit.start(autorun: false)
       config = ExUnit.configuration()
-      assert config[:exit_code] == 2
+      assert config[:exit_status] == 2
     end
 
-    test "sets value of :exit_code" do
+    test "sets value of :exit_status" do
       configure_and_reload_on_exit([])
-      ExUnit.start(exit_code: 5, autorun: false)
+      ExUnit.start(exit_status: 5, autorun: false)
       config = ExUnit.configuration()
-      assert config[:exit_code] == 5
+      assert config[:exit_status] == 5
     end
   end
 
