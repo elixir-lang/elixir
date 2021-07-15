@@ -52,7 +52,7 @@ defmodule Mix.Tasks.Compile.Elixir do
     * `--debug-info` (`--no-debug-info`) - attaches (or not) debug info to compiled modules
     * `--ignore-module-conflict` - does not emit warnings if a module was previously defined
     * `--warnings-as-errors` - treats warnings in the current project as errors and
-      return a non-zero exit code
+      return a non-zero exit status
     * `--long-compilation-threshold N` - sets the "long compilation" threshold
       (in seconds) to `N` (see the docs for `Kernel.ParallelCompiler.compile/2`)
     * `--profile` - if set to `time`, outputs timing information of compilation steps
