@@ -319,7 +319,6 @@ defmodule ExUnit do
     |> put_seed()
     |> put_slowest()
     |> put_max_cases()
-    |> put_exit_status()
   end
 
   @doc """
@@ -459,10 +458,6 @@ defmodule ExUnit do
     else
       opts
     end
-  end
-
-  defp put_exit_status(opts) do
-    Keyword.put_new(opts, :exit_status, 2)
   end
 
   defp max_cases(opts) do
