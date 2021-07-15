@@ -206,7 +206,7 @@ defmodule ExUnit do
           %{failures: failures} = ExUnit.Runner.run(options, time)
 
           if failures > 0 do
-            System.at_exit(fn _ -> exit({:shutdown, 1}) end)
+            System.at_exit(fn _ -> exit({:shutdown, Keyword.fetch!(options, :exit_code)}) end)
           end
 
         _ ->
@@ -244,6 +244,9 @@ defmodule ExUnit do
 
     * `:exclude` - specifies which tests are run by skipping tests that match the
       filter;
+
+    * `:exit_code` - specifies an alternate exit code to use when the test suite
+      fails;
 
     * `:failures_manifest_file` - specifies a path to the file used to store failures
       between runs;
@@ -316,6 +319,7 @@ defmodule ExUnit do
     |> put_seed()
     |> put_slowest()
     |> put_max_cases()
+    |> put_exit_code()
   end
 
   @doc """
@@ -455,6 +459,10 @@ defmodule ExUnit do
     else
       opts
     end
+  end
+
+  defp put_exit_code(opts) do
+    Keyword.put_new(opts, :exit_code, 2)
   end
 
   defp max_cases(opts) do

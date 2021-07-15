@@ -792,6 +792,22 @@ defmodule ExUnitTest do
     end
   end
 
+  describe ":exit_code" do
+    test "defaults value to 2" do
+      configure_and_reload_on_exit([])
+      ExUnit.start(autorun: false)
+      config = ExUnit.configuration()
+      assert config[:exit_code] == 2
+    end
+
+    test "sets value of :exit_code" do
+      configure_and_reload_on_exit([])
+      ExUnit.start(exit_code: 5, autorun: false)
+      config = ExUnit.configuration()
+      assert config[:exit_code] == 5
+    end
+  end
+
   ##  Helpers
 
   defp run_with_filter(filters, cases) do

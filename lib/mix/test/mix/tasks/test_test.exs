@@ -32,9 +32,14 @@ defmodule Mix.Tasks.TestTest do
       assert ex_unit_opts_from_given(formatter: "A.B") == [formatters: [A.B]]
     end
 
+    test "accepts custom :exit_code" do
+      assert {:exit_code, 5} in ex_unit_opts(exit_code: 5)
+    end
+
     test "includes some default options" do
       assert ex_unit_opts([]) == [
                autorun: false,
+               exit_code: 2,
                failures_manifest_file:
                  Path.join(Mix.Project.manifest_path(), ".mix_test_failures")
              ]
@@ -48,7 +53,7 @@ defmodule Mix.Tasks.TestTest do
     defp ex_unit_opts_from_given(passed) do
       passed
       |> ex_unit_opts()
-      |> Keyword.drop([:failures_manifest_file, :autorun])
+      |> Keyword.drop([:failures_manifest_file, :autorun, :exit_code])
     end
   end
 
@@ -465,6 +470,16 @@ defmodule Mix.Tasks.TestTest do
         refute output =~ "Test suite aborted after successful execution"
         output = mix(["test", "--failed"])
         assert output =~ "2 failures"
+      end)
+    end
+  end
+
+  describe "--exit-code" do
+    test "returns custom exit code" do
+      in_fixture("test_failed", fn ->
+        {output, exit_code} = mix_code(["test", "--exit-code", "5"])
+        assert output =~ "2 failures"
+        assert exit_code == 5
       end)
     end
   end
