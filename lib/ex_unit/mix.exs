@@ -23,6 +23,7 @@ defmodule ExUnit.MixProject do
         capture_log: false,
         colors: [],
         exclude: [],
+        exit_status: 2,
         formatters: [ExUnit.CLIFormatter],
         include: [],
         max_failures: :infinity,

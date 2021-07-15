@@ -206,7 +206,7 @@ defmodule ExUnit do
           %{failures: failures} = ExUnit.Runner.run(options, time)
 
           if failures > 0 do
-            System.at_exit(fn _ -> exit({:shutdown, 1}) end)
+            System.at_exit(fn _ -> exit({:shutdown, Keyword.fetch!(options, :exit_status)}) end)
           end
 
         _ ->
@@ -244,6 +244,9 @@ defmodule ExUnit do
 
     * `:exclude` - specifies which tests are run by skipping tests that match the
       filter;
+
+    * `:exit_status` - specifies an alternate exit status to use when the test
+      suite fails. Defaults to 2;
 
     * `:failures_manifest_file` - specifies a path to the file used to store failures
       between runs;
