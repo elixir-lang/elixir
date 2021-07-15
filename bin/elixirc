@@ -14,7 +14,7 @@ Usage: $(basename "$0") [elixir switches] [compiler switches] [.ex files]
   --no-docs                 Does not attach documentation to compiled modules
   --profile time            Profile the time to compile modules
   --verbose                 Prints compilation status
-  --warnings-as-errors      Treats warnings as errors and return non-zero exit code
+  --warnings-as-errors      Treats warnings as errors and return non-zero exit status
 
 Options given after -- are passed down to the executed code.
 Options can be passed to the Erlang runtime using \$ELIXIR_ERL_OPTIONS.
