@@ -765,13 +765,7 @@ defmodule Mix.Tasks.Test do
   end
 
   defp exit_status_opts(opts) do
-    case Keyword.fetch(opts, :exit_status) do
-      {:ok, _status} ->
-        opts
-
-      :error ->
-        Keyword.put(opts, :exit_status, 2)
-    end
+    Keyword.put_new(opts, :exit_status, 2)
   end
 
   defp require_test_helper(shell, dir) do
