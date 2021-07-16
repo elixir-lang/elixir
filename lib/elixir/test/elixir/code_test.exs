@@ -56,6 +56,9 @@ defmodule CodeTest do
       assert Code.cursor_context("Hello.wor") == {:dot, {:alias, 'Hello'}, 'wor'}
       assert Code.cursor_context("hello.wor") == {:dot, {:var, 'hello'}, 'wor'}
       assert Code.cursor_context(":hello.wor") == {:dot, {:unquoted_atom, 'hello'}, 'wor'}
+      assert Code.cursor_context(":hell@o.wor") == {:dot, {:unquoted_atom, 'hell@o'}, 'wor'}
+      assert Code.cursor_context(":he@ll@o.wor") == {:dot, {:unquoted_atom, 'he@ll@o'}, 'wor'}
+      assert Code.cursor_context(":hell@@o.wor") == {:dot, {:unquoted_atom, 'hell@@o'}, 'wor'}
       assert Code.cursor_context("@hello.wor") == {:dot, {:module_attribute, 'hello'}, 'wor'}
 
       assert Code.cursor_context("nested.map.wor") ==
@@ -121,6 +124,8 @@ defmodule CodeTest do
       assert Code.cursor_context(":HelloWór") == {:unquoted_atom, 'HelloWór'}
       assert Code.cursor_context(":hello_wor") == {:unquoted_atom, 'hello_wor'}
       assert Code.cursor_context(":Óla_mundo") == {:unquoted_atom, 'Óla_mundo'}
+      assert Code.cursor_context(":Ol@_mundo") == {:unquoted_atom, 'Ol@_mundo'}
+      assert Code.cursor_context(":Ol@") == {:unquoted_atom, 'Ol@'}
       assert Code.cursor_context("foo:hello_wor") == {:unquoted_atom, 'hello_wor'}
     end
 
@@ -153,6 +158,10 @@ defmodule CodeTest do
       assert Code.cursor_context("Hello(") == :none
       assert Code.cursor_context("Hello ") == :none
       assert Code.cursor_context("hello.World") == :none
+
+      # Identifier
+      assert Code.cursor_context("foo@bar") == :none
+      assert Code.cursor_context("@foo@bar") == :none
     end
 
     test "newlines" do
