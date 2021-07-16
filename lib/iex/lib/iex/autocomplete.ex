@@ -163,6 +163,10 @@ defmodule IEx.Autocomplete do
     {:ok, List.to_atom(var)}
   end
 
+  defp expand_dot_path({:module_attribute, _}, _shell) do
+    :error
+  end
+
   defp expand_dot_path({:dot, parent, call}, shell) do
     case expand_dot_path(parent, shell) do
       {:ok, %{} = map} -> Map.fetch(map, List.to_atom(call))
