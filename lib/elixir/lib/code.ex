@@ -415,7 +415,7 @@ defmodule Code do
       {kind, _, '..' ++ _, acc} -> alias_or_local_or_var(kind, acc)
       # Module attributes
       {:alias, _, '@' ++ _, _} -> :none
-      {:identifier, _, '@' ++ _, acc} -> {:module_attribute, acc}
+      {:identifier, _, '@', acc} -> {:module_attribute, acc}
       # Everything else
       {:alias, _, '.' ++ rest, acc} -> nested_alias(rest, acc)
       {:identifier, _, '.' ++ rest, acc} -> dot(rest, acc)
@@ -452,6 +452,12 @@ defmodule Code do
 
   defp check_identifier([h | _], _acc) when h in @non_identifier, do: :none
   defp check_identifier(rest, acc), do: rest_identifier(rest, acc)
+
+  # @ needs a special clause because it is an operator only if at word start,
+  # but can be used at middle of atoms
+  defp rest_identifier([?@ = h, s | rest], acc) do
+    rest_identifier([s | rest], [h | acc])
+  end
 
   defp rest_identifier([h | rest], acc) when h not in @non_identifier do
     rest_identifier(rest, [h | acc])
