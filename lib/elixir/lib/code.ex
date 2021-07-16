@@ -338,7 +338,7 @@ defmodule Code do
     cursor_context(to_charlist(other), opts)
   end
 
-  @operators '\\<>+-*/:=|&~^@%'
+  @operators '\\<>+-*/:=|&~^%'
   @non_closing_punctuation '.,([{;'
   @closing_punctuation ')]}'
   @space '\t\s'
@@ -358,9 +358,6 @@ defmodule Code do
 
       {[?: | _], 0} ->
         {:unquoted_atom, ''}
-
-      {[?@ | _], 0} ->
-        {:module_attribute, ''}
 
       {[?. | rest], _} ->
         dot(rest, '')
@@ -404,6 +401,8 @@ defmodule Code do
 
   defp identifier_to_cursor_context(reverse) do
     case identifier(reverse) do
+      # Module attributes
+      {:module_attribute, acc} -> {:module_attribute, acc}
       # Parse :: first to avoid ambiguity with atoms
       {:alias, false, '::' ++ _, _} -> :none
       {kind, _, '::' ++ _, acc} -> alias_or_local_or_var(kind, acc)
@@ -413,9 +412,6 @@ defmodule Code do
       # Parse .. first to avoid ambiguity with dots
       {:alias, false, _, _} -> :none
       {kind, _, '..' ++ _, acc} -> alias_or_local_or_var(kind, acc)
-      # Module attributes
-      {:alias, _, '@' ++ _, _} -> :none
-      {:identifier, _, '@' ++ _, acc} -> {:module_attribute, acc}
       # Everything else
       {:alias, _, '.' ++ rest, acc} -> nested_alias(rest, acc)
       {:identifier, _, '.' ++ rest, acc} -> dot(rest, acc)
@@ -457,10 +453,29 @@ defmodule Code do
     rest_identifier(rest, [h | acc])
   end
 
-  defp rest_identifier(rest, acc) do
-    case String.Tokenizer.tokenize(acc) do
-      {kind, _, [], _, ascii_only?, _} -> {kind, ascii_only?, rest, acc}
+  defp rest_identifier(rest, [?@ | acc]) do
+    case tokenize_identifier(rest, acc) do
+      {:identifier, _ascii_only?, _rest, acc} -> {:module_attribute, acc}
+      :none when acc == [] -> {:module_attribute, acc}
       _ -> :none
+    end
+  end
+
+  defp rest_identifier(rest, acc) do
+    tokenize_identifier(rest, acc)
+  end
+
+  defp tokenize_identifier(rest, acc) do
+    case String.Tokenizer.tokenize(acc) do
+      {kind, _, [], _, ascii_only?, extra} ->
+        if ?@ in extra and not match?([?: | _], rest) do
+          :none
+        else
+          {kind, ascii_only?, rest, acc}
+        end
+
+      _ ->
+        :none
     end
   end
 
