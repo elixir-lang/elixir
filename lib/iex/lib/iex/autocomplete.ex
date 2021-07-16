@@ -177,6 +177,10 @@ defmodule IEx.Autocomplete do
     {:ok, List.to_atom(var)}
   end
 
+  defp do_expand_dot_path({:module_attribute, _}, _shell) do
+    :error
+  end
+
   defp do_expand_dot_path({:dot, parent, call}, shell) do
     case do_expand_dot_path(parent, shell) do
       {:ok, [_ | _] = path} -> {:ok, [List.to_atom(call) | path]}
