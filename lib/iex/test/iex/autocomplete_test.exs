@@ -161,6 +161,7 @@ defmodule IEx.AutocompleteTest do
     assert expand('Xyz') == {:no, '', []}
     assert expand('x.Foo') == {:no, '', []}
     assert expand('x.Foo.get_by') == {:no, '', []}
+    assert expand('@foo.bar') == {:no, '', []}
   end
 
   test "Elixir root submodule completion" do
@@ -221,21 +222,21 @@ defmodule IEx.AutocompleteTest do
     assert expand('map.f') == {:no, '', []}
   end
 
-  test "autocompletion off a bound variable only works for modules and maps" do
+  test "bound variables for modules and maps" do
     eval("num = 5; map = %{nested: %{num: 23}}")
     assert expand('num.print') == {:no, '', []}
     assert expand('map.nested.num.f') == {:no, '', []}
     assert expand('map.nested.num.key.f') == {:no, '', []}
   end
 
-  test "autocompletion using access syntax does is not supported" do
+  test "access syntax is not supported" do
     eval("map = %{nested: %{deeply: %{num: 23}}}")
     assert expand('map[:nested][:deeply].n') == {:no, '', []}
     assert expand('map[:nested].deeply.n') == {:no, '', []}
     assert expand('map.nested.[:deeply].n') == {:no, '', []}
   end
 
-  test "autocompletion off of unbound variables is not supported" do
+  test "unbound variables is not supported" do
     eval("num = 5")
     assert expand('other_var.f') == {:no, '', []}
     assert expand('a.b.c.d') == {:no, '', []}
