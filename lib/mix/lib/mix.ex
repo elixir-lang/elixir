@@ -451,7 +451,15 @@ defmodule Mix do
   @doc since: "1.12.3"
   @spec raise(binary, exit_status: non_neg_integer()) :: no_return
   def raise(message, opts) when is_binary(message) and is_list(opts) do
-    status = opts[:exit_status] || 1
+    status =
+      opts[:exit_status] ||
+        if exit_code = opts[:exit_code] do
+          IO.warn(":exit_code is deprecated, use :exit_status instead")
+          exit_code
+        else
+          1
+        end
+
     Kernel.raise(Mix.Error, mix: status, message: message)
   end
 
