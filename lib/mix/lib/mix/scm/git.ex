@@ -2,10 +2,12 @@ defmodule Mix.SCM.Git do
   @behaviour Mix.SCM
   @moduledoc false
 
+  @impl true
   def fetchable? do
     true
   end
 
+  @impl true
   def format(opts) do
     if rev = get_opts_rev(opts) do
       "#{redact_uri(opts[:git])} - #{rev}"
@@ -14,6 +16,7 @@ defmodule Mix.SCM.Git do
     end
   end
 
+  @impl true
   def format_lock(opts) do
     case opts[:lock] do
       {:git, _, lock_rev, lock_opts} ->
@@ -30,6 +33,7 @@ defmodule Mix.SCM.Git do
     end
   end
 
+  @impl true
   def accepts_options(_app, opts) do
     opts =
       opts
@@ -53,6 +57,7 @@ defmodule Mix.SCM.Git do
     end
   end
 
+  @impl true
   def checked_out?(opts) do
     # Are we inside a Git repository?
     opts[:checkout]
@@ -60,6 +65,7 @@ defmodule Mix.SCM.Git do
     |> File.regular?()
   end
 
+  @impl true
   def lock_status(opts) do
     assert_git!()
     lock = opts[:lock]
@@ -84,14 +90,17 @@ defmodule Mix.SCM.Git do
     end
   end
 
+  @impl true
   def equal?(opts1, opts2) do
     opts1[:git] == opts2[:git] and get_lock_opts(opts1) == get_lock_opts(opts2)
   end
 
+  @impl true
   def managers(_opts) do
     []
   end
 
+  @impl true
   def checkout(opts) do
     assert_git!()
     path = opts[:checkout]
@@ -105,6 +114,7 @@ defmodule Mix.SCM.Git do
     end)
   end
 
+  @impl true
   def update(opts) do
     assert_git!()
     path = opts[:checkout]
