@@ -35,17 +35,18 @@ defmodule Mix.SCM.Git do
       opts
       |> Keyword.put(:checkout, opts[:dest])
       |> sparse_opts()
+      |> subdir_opts()
 
     cond do
       gh = opts[:github] ->
         opts
         |> Keyword.delete(:github)
         |> Keyword.put(:git, "https://github.com/#{gh}.git")
-        |> validate_git_options
+        |> validate_git_options()
 
       opts[:git] ->
         opts
-        |> validate_git_options
+        |> validate_git_options()
 
       true ->
         nil
@@ -97,6 +98,9 @@ defmodule Mix.SCM.Git do
     File.rm_rf!(path)
     File.mkdir_p!(path)
 
+    # for :subdir
+    File.mkdir_p!(opts[:dest])
+
     File.cd!(path, fn ->
       git!(~w[-c core.hooksPath='' init --quiet])
       git!(["--git-dir=.git", "remote", "add", "origin", opts[:git]])
@@ -138,6 +142,15 @@ defmodule Mix.SCM.Git do
   defp sparse_opts(opts) do
     if opts[:sparse] do
       dest = Path.join(opts[:dest], opts[:sparse])
+      Keyword.put(opts, :dest, dest)
+    else
+      opts
+    end
+  end
+
+  defp subdir_opts(opts) do
+    if opts[:subdir] do
+      dest = Path.join(opts[:dest], opts[:subdir])
       Keyword.put(opts, :dest, dest)
     else
       opts
@@ -215,7 +228,7 @@ defmodule Mix.SCM.Git do
   defp get_lock_rev(_, _), do: nil
 
   defp get_lock_opts(opts) do
-    lock_opts = Keyword.take(opts, [:branch, :ref, :tag, :sparse])
+    lock_opts = Keyword.take(opts, [:branch, :ref, :tag, :sparse, :subdir])
 
     if opts[:submodules] do
       lock_opts ++ [submodules: true]
