@@ -117,6 +117,9 @@ defmodule Mix.Tasks.Deps do
     * `:submodules` - when `true`, initialize submodules for the repo
     * `:sparse` - checkout a single directory inside the Git repository and use it
       as your Mix dependency. Search "sparse Git checkouts" for more information.
+    * `:subdir` - (since v1.13.0) search for the project in the given directory
+      relative to the git checkout. This is similar to `:sparse` option but instead
+      of a doing a sparse checkout it does a full checkout.
 
   If your Git repository requires authentication, such as basic username:password
   HTTP authentication via URLs, it can be achieved via Git configuration, keeping

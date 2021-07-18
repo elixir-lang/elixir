@@ -94,6 +94,18 @@ defmodule Mix.Tasks.DepsGitTest do
     end)
   end
 
+  test "gets and updates Git repos with subdir" do
+    Process.put(:git_repo_opts, subdir: "subdir")
+    Mix.Project.push(GitApp)
+
+    in_fixture("no_mixfile", fn ->
+      Mix.Tasks.Deps.Get.run([])
+      message = "* Getting git_repo (#{fixture_path("git_repo")})"
+      assert_received {:mix_shell, :info, [^message]}
+      assert File.read!("mix.lock") =~ "subdir: \"subdir\""
+    end)
+  end
+
   test "handles invalid .git directory" do
     Mix.Project.push(GitApp)
 
