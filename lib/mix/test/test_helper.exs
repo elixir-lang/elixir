@@ -280,6 +280,33 @@ unless File.dir?(target) do
   end
   """)
 
+  ## Sparse
+  subdir = Path.join(target, "sparse_dir")
+  File.mkdir_p!(Path.join(subdir, "lib"))
+
+  File.write!(Path.join(subdir, "mix.exs"), """
+  ## Auto-generated fixture
+  defmodule GitSparseRepo.MixProject do
+    use Mix.Project
+
+    def project do
+      [
+        app: :git_sparse_repo,
+        version: "0.1.0"
+      ]
+    end
+  end
+  """)
+
+  File.write!(Path.join(subdir, "lib/git_sparse_repo.ex"), """
+  ## Auto-generated fixture
+  defmodule GitSparseRepo do
+    def hello do
+      "World"
+    end
+  end
+  """)
+
   File.cd!(target, fn ->
     System.cmd("git", ~w[add .])
     System.cmd("git", ~w[commit -m "lib"])
