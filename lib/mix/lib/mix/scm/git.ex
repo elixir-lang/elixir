@@ -96,9 +96,6 @@ defmodule Mix.SCM.Git do
     assert_git!()
     path = opts[:checkout]
     File.rm_rf!(path)
-    File.mkdir_p!(path)
-
-    # for :subdir
     File.mkdir_p!(opts[:dest])
 
     File.cd!(path, fn ->
