@@ -703,7 +703,7 @@ handle_heredocs(T, Line, Column, H, Scope, Tokens) ->
     {ok, NewLine, NewColumn, Parts, Rest, NewScope} ->
       case unescape_tokens(Parts, Line, Column, NewScope) of
         {ok, Unescaped} ->
-          Token = {heredoc_type(H), {Line, Column, nil}, Unescaped},
+          Token = {heredoc_type(H), {Line, Column, nil}, NewColumn - 4, Unescaped},
           tokenize(Rest, NewLine, NewColumn, NewScope, [Token | Tokens]);
 
         {error, Reason} ->
