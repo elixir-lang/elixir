@@ -937,11 +937,21 @@ meta_with_indentation(Meta, nil) ->
 meta_with_indentation(Meta, Indentation) ->
   [{indentation, Indentation} | Meta].
 
-build_bin_heredoc({bin_heredoc, Location, Args}) ->
-  build_bin_string({bin_string, Location, Args}, delimiter(<<$", $", $">>)).
+build_bin_heredoc({bin_heredoc, Location, Indentation, Args}) ->
+  ExtraMeta =
+    case ?token_metadata() of
+      true -> [{delimiter, <<$", $", $">>}, {indentation, Indentation}];
+      false -> []
+    end,
+  build_bin_string({bin_string, Location, Args}, ExtraMeta).
 
-build_list_heredoc({list_heredoc, Location, Args}) ->
-  build_list_string({list_string, Location, Args}, delimiter(<<$', $', $'>>)).
+build_list_heredoc({list_heredoc, Location, Indentation, Args}) ->
+  ExtraMeta =
+    case ?token_metadata() of
+      true -> [{delimiter, <<$', $', $'>>}, {indentation, Indentation}];
+      false -> []
+    end,
+  build_list_string({list_string, Location, Args}, ExtraMeta).
 
 build_bin_string({bin_string, _Location, [H]} = Token, ExtraMeta) when is_binary(H) ->
   handle_literal(H, Token, ExtraMeta);
