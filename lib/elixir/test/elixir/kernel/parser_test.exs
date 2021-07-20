@@ -322,10 +322,10 @@ defmodule Kernel.ParserTest do
                 [[{:__block__, [token: "1", line: 1], [1]}]]}
 
       assert string_to_quoted.(~s("""\nhello\n""")) ==
-               {:__block__, [delimiter: ~s["""], line: 1], ["hello\n"]}
+               {:__block__, [delimiter: ~s["""], indentation: 0, line: 1], ["hello\n"]}
 
       assert string_to_quoted.("'''\nhello\n'''") ==
-               {:__block__, [delimiter: ~s['''], line: 1], ['hello\n']}
+               {:__block__, [delimiter: ~s['''], indentation: 0, line: 1], ['hello\n']}
 
       assert string_to_quoted.(~s[fn (1) -> "hello" end]) ==
                {:fn, [closing: [line: 1], line: 1],
