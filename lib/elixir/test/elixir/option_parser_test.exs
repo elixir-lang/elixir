@@ -96,8 +96,15 @@ defmodule OptionParserTest do
   end
 
   test "parse!/2 raises an exception for an unknown option using strict" do
-    assert_raise OptionParser.ParseError, "1 error found!\n--doc : Unknown option", fn ->
+    msg = "1 error found!\n--doc : Unknown option. Did you mean --docs?"
+
+    assert_raise OptionParser.ParseError, msg, fn ->
       argv = ["--source", "from_docs/", "--doc", "show"]
+      OptionParser.parse!(argv, strict: [source: :string, docs: :string])
+    end
+
+    assert_raise OptionParser.ParseError, "1 error found!\n--foo : Unknown option", fn ->
+      argv = ["--source", "from_docs/", "--foo", "show"]
       OptionParser.parse!(argv, strict: [source: :string, docs: :string])
     end
   end
