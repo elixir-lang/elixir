@@ -148,8 +148,7 @@ tokenize(String, Line, Opts) ->
   tokenize(String, Line, 1, Opts).
 
 tokenize([], _Line, _Column, #elixir_tokenizer{terminators=[], warnings = Warnings}, Tokens) ->
-  [elixir_errors:erl_warn(Line, File, Msg) || {Line, File, Msg} <- lists:reverse(Warnings)],
-  {ok, lists:reverse(Tokens)};
+  {ok, lists:reverse(Warnings), lists:reverse(Tokens)};
 
 tokenize([], EndLine, Column, Scope, Tokens) ->
   #elixir_tokenizer{terminators=[{Start, StartLine, _} | _]} = Scope,
