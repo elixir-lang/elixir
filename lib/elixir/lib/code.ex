@@ -362,6 +362,9 @@ defmodule Code do
   @non_identifier @trailing_identifier ++
                     @operators ++ @starter_punctuation ++ @non_starter_punctuation ++ @space
 
+  @incomplete_operators ['^^', '~~', '~']
+  @textual_operators ['when', 'not', 'and', 'or']
+
   defp do_cursor_context(list, _opts) do
     reverse = Enum.reverse(list)
 
@@ -433,7 +436,7 @@ defmodule Code do
       {:alias, _, '.' ++ rest, acc} -> nested_alias(rest, acc)
       {:identifier, _, '.' ++ rest, acc} -> dot(rest, acc)
       {:alias, _, _, acc} -> {:alias, acc}
-      {:identifier, _, _, acc} when call_op? and acc in ~w(when and or not)c -> {:operator, acc}
+      {:identifier, _, _, acc} when call_op? and acc in @textual_operators -> {:operator, acc}
       {:identifier, _, _, acc} -> {:local_or_var, acc}
       :none -> :none
     end
@@ -503,8 +506,6 @@ defmodule Code do
   defp operator([h | rest], acc, call_op?) when h in @operators do
     operator(rest, [h | acc], call_op?)
   end
-
-  @incomplete_operators ~w'^^ ~~ ~'c
 
   defp operator(_rest, acc, call_op?) when acc in @incomplete_operators do
     if call_op?, do: :none, else: {:operator, acc}
