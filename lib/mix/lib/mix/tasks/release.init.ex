@@ -6,12 +6,13 @@ defmodule Mix.Tasks.Release.Init do
   @moduledoc """
   Generates sample files for releases.
 
-      mix release.init
-      * creating rel/vm.args.eex
-      * creating rel/remote.vm.args.eex
-      * creating rel/env.sh.eex
-      * creating rel/env.bat.eex
-
+  ```bash
+  $ mix release.init
+  * creating rel/vm.args.eex
+  * creating rel/remote.vm.args.eex
+  * creating rel/env.sh.eex
+  * creating rel/env.bat.eex
+  ```
   """
 
   import Mix.Generator
