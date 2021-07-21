@@ -828,7 +828,15 @@ defmodule OptionParser do
     if type = get_type(option, opts, types) do
       "#{option} : Missing argument of type #{type}"
     else
-      "#{option} : Unknown option"
+      msg = "#{option} : Unknown option"
+
+      case did_you_mean(option, types) do
+        {similar, score} when score > 0.8 ->
+          msg <> ". Did you mean --#{similar}?"
+
+        _ ->
+          msg
+      end
     end
   end
 
@@ -846,5 +854,17 @@ defmodule OptionParser do
     else
       types[key]
     end
+  end
+
+  defp did_you_mean(option, types) do
+    key = String.trim_leading(option, "-")
+    Enum.reduce(types, {nil, 0}, &max_similar(&1, key, &2))
+  end
+
+  defp max_similar({source, _}, target, {_, current} = best) do
+    source = Atom.to_string(source)
+
+    score = String.jaro_distance(source, target)
+    if score < current, do: best, else: {source, score}
   end
 end
