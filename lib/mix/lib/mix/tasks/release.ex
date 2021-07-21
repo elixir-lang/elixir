@@ -584,7 +584,7 @@ defmodule Mix.Tasks.Release do
 
   On Windows, your `env.bat` would look like this:
 
-  ```text
+  ```bash
   IF NOT %RELEASE_COMMAND:start=%==%RELEASE_COMMAND% (
     set ELIXIR_ERL_OPTIONS="-kernel inet_dist_listen_min %BEAM_PORT% inet_dist_listen_max %BEAM_PORT%"
   )
