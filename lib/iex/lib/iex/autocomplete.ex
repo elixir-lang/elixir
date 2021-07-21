@@ -45,10 +45,10 @@ defmodule IEx.Autocomplete do
         expand_typespecs(expansion, shell, &get_module_types/1)
 
       {:dot, path, hint} ->
-        expand_dot(path, List.to_string(hint), shell)
+        expand_dot(path, List.to_string(hint), false, shell)
 
       {:dot_arity, path, hint} ->
-        expand_dot(path, List.to_string(hint), shell)
+        expand_dot(path, List.to_string(hint), true, shell)
 
       {:dot_call, path, hint} ->
         expand_dot_call(path, List.to_atom(hint), shell)
@@ -60,10 +60,19 @@ defmodule IEx.Autocomplete do
         expand_local_or_var(List.to_string(local_or_var), shell)
 
       {:local_arity, local} ->
-        expand_local(List.to_string(local), shell)
+        expand_local(List.to_string(local), true, shell)
 
       {:local_call, local} ->
         expand_local_call(List.to_atom(local), shell)
+
+      {:operator, operator} ->
+        expand_local_or_var(List.to_string(operator), shell)
+
+      {:operator_arity, operator} ->
+        expand_local(List.to_string(operator), true, shell)
+
+      {:operator_call, _operator} ->
+        expand_local_or_var("", shell)
 
       # {:module_attribute, charlist}
       # :none
@@ -105,7 +114,7 @@ defmodule IEx.Autocomplete do
       {:ok, mod} when is_atom(mod) ->
         mod
         |> fun.()
-        |> match_module_funs(hint)
+        |> match_module_funs(hint, false)
         |> format_expansion(hint)
 
       _ ->
@@ -149,43 +158,43 @@ defmodule IEx.Autocomplete do
 
   ## Expand dot
 
-  defp expand_dot(path, hint, shell) do
+  defp expand_dot(path, hint, exact?, shell) do
     case expand_dot_path(path, shell) do
       {:ok, mod} when is_atom(mod) and hint == "" -> expand_aliases(mod, "", [], true)
-      {:ok, mod} when is_atom(mod) -> expand_require(mod, hint)
+      {:ok, mod} when is_atom(mod) -> expand_require(mod, hint, exact?)
       {:ok, map} when is_map(map) -> expand_map_field_access(map, hint)
       _ -> no()
     end
   end
 
+  defp expand_dot_path({:unquoted_atom, var}, _shell) do
+    {:ok, List.to_atom(var)}
+  end
+
   defp expand_dot_path(path, shell) do
-    case do_expand_dot_path(path, shell) do
+    case recur_expand_dot_path(path, shell) do
       {:ok, [_ | _] = path} -> value_from_binding(Enum.reverse(path), shell)
       other -> other
     end
   end
 
-  defp do_expand_dot_path({:var, var}, _shell) do
+  defp recur_expand_dot_path({:var, var}, _shell) do
     {:ok, [List.to_atom(var)]}
   end
 
-  defp do_expand_dot_path({:alias, var}, shell) do
+  defp recur_expand_dot_path({:alias, var}, shell) do
     var |> List.to_string() |> String.split(".") |> value_from_alias(shell)
   end
 
-  defp do_expand_dot_path({:unquoted_atom, var}, _shell) do
-    {:ok, List.to_atom(var)}
-  end
-
-  defp do_expand_dot_path({:module_attribute, _}, _shell) do
-    :error
-  end
-
-  defp do_expand_dot_path({:dot, parent, call}, shell) do
-    case do_expand_dot_path(parent, shell) do
+  defp recur_expand_dot_path({:dot, parent, call}, shell) do
+    case recur_expand_dot_path(parent, shell) do
       {:ok, [_ | _] = path} -> {:ok, [List.to_atom(call) | path]}
       _ -> :error
     end
+  end
+
+  defp recur_expand_dot_path(_, _shell) do
+    :error
   end
 
   defp expand_map_field_access(map, hint) do
@@ -195,24 +204,24 @@ defmodule IEx.Autocomplete do
     end
   end
 
-  defp expand_require(mod, hint) do
-    format_expansion(match_module_funs(get_module_funs(mod), hint), hint)
+  defp expand_require(mod, hint, exact?) do
+    format_expansion(match_module_funs(get_module_funs(mod), hint, exact?), hint)
   end
 
   ## Expand local or var
 
   defp expand_local_or_var(hint, shell) do
-    format_expansion(match_var(hint, shell) ++ match_local(hint, shell), hint)
+    format_expansion(match_var(hint, shell) ++ match_local(hint, false, shell), hint)
   end
 
-  defp expand_local(hint, shell) do
-    format_expansion(match_local(hint, shell), hint)
+  defp expand_local(hint, exact?, shell) do
+    format_expansion(match_local(hint, exact?, shell), hint)
   end
 
-  defp match_local(hint, shell) do
+  defp match_local(hint, exact?, shell) do
     imports = imports_from_env(shell) |> Enum.flat_map(&elem(&1, 1))
     module_funs = get_module_funs(Kernel.SpecialForms)
-    match_module_funs(imports ++ module_funs, hint)
+    match_module_funs(imports ++ module_funs, hint, exact?)
   end
 
   defp match_var(hint, shell) do
@@ -255,7 +264,9 @@ defmodule IEx.Autocomplete do
   defp expand_aliases(mod, hint, aliases, include_funs?) do
     aliases
     |> Kernel.++(match_elixir_modules(mod, hint))
-    |> Kernel.++(if include_funs?, do: match_module_funs(get_module_funs(mod), hint), else: [])
+    |> Kernel.++(
+      if include_funs?, do: match_module_funs(get_module_funs(mod), hint, false), else: []
+    )
     |> format_expansion(hint)
   end
 
@@ -389,8 +400,10 @@ defmodule IEx.Autocomplete do
     :ets.match(:ac_tab, {{:loaded, :"$1"}, :_})
   end
 
-  defp match_module_funs(funs, hint) do
-    for {fun, arity} <- funs, name = Atom.to_string(fun), String.starts_with?(name, hint) do
+  defp match_module_funs(funs, hint, exact?) do
+    for {fun, arity} <- funs,
+        name = Atom.to_string(fun),
+        if(exact?, do: name == hint, else: String.starts_with?(name, hint)) do
       %{
         kind: :function,
         name: name,

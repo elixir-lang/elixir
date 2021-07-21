@@ -79,11 +79,6 @@ defmodule IEx.AutocompleteTest do
     assert expand('t(String.grap') == {:yes, 'heme', []}
   end
 
-  test "do not activate Elixir helper completion no operators" do
-    assert expand('t = String.co') == {:yes, '', ['codepoints/1', 'contains?/2']}
-    assert expand('t > String.grap') == {:yes, 'hemes', []}
-  end
-
   test "Elixir completion with self" do
     assert expand('Enumerable') == {:yes, '.', []}
   end
@@ -184,6 +179,17 @@ defmodule IEx.AutocompleteTest do
   test "function completion with arity" do
     assert expand('String.printable?') == {:yes, '', ['printable?/1', 'printable?/2']}
     assert expand('String.printable?/') == {:yes, '', ['printable?/1', 'printable?/2']}
+
+    assert expand('Enum.count') ==
+             {:yes, '', ['count/1', 'count/2', 'count_until/2', 'count_until/3']}
+
+    assert expand('Enum.count/') == {:yes, '', ['count/1', 'count/2']}
+  end
+
+  test "operator completion" do
+    assert expand('+') == {:yes, '', ['+/1', '+/2', '++/2']}
+    assert expand('+/') == {:yes, '', ['+/1', '+/2']}
+    assert expand('++/') == {:yes, '', ['++/2']}
   end
 
   test "function completion using a variable bound to a module" do
@@ -270,14 +276,18 @@ defmodule IEx.AutocompleteTest do
   test "completion of manually imported functions and macros" do
     eval("import Enum; import Supervisor, only: [count_children: 1]; import Protocol")
 
-    functions_list = ['take/2', 'take_every/2', 'take_random/2', 'take_while/2']
-    assert expand('take') == {:yes, '', functions_list}
+    assert expand('der') == {:yes, 'ive', []}
+
+    assert expand('take') ==
+             {:yes, '', ['take/2', 'take_every/2', 'take_random/2', 'take_while/2']}
+
+    assert expand('take/') == {:yes, '', ['take/2']}
 
     assert expand('count') ==
              {:yes, '',
               ['count/1', 'count/2', 'count_children/1', 'count_until/2', 'count_until/3']}
 
-    assert expand('der') == {:yes, 'ive', []}
+    assert expand('count/') == {:yes, '', ['count/1', 'count/2']}
   end
 
   defmacro define_var do
@@ -299,23 +309,6 @@ defmodule IEx.AutocompleteTest do
     assert expand('Test :zl') == {:yes, 'ib', []}
     assert expand('[:zl') == {:yes, 'ib', []}
     assert expand('{:zl') == {:yes, 'ib', []}
-  end
-
-  test "ampersand completion" do
-    assert expand('&Enu') == {:yes, 'm', []}
-
-    functions_list = ['all?/1', 'all?/2', 'any?/1', 'any?/2', 'at/2', 'at/3']
-    assert expand('&Enum.a') == {:yes, [], functions_list}
-    assert expand('f = &Enum.a') == {:yes, [], functions_list}
-  end
-
-  test "negation operator completion" do
-    assert expand('!is_bin') == {:yes, 'ary', []}
-  end
-
-  test "pin operator completion" do
-    eval("my_variable = 2")
-    assert expand('^my_va') == {:yes, 'riable', []}
   end
 
   defmodule SublevelTest.LevelA.LevelB do

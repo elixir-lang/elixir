@@ -5,7 +5,7 @@ tokenize(String) ->
   tokenize(String, []).
 
 tokenize(String, Opts) ->
-  {ok, Result} = elixir_tokenizer:tokenize(String, 1, Opts),
+  {ok, _Warnings, Result} = elixir_tokenizer:tokenize(String, 1, Opts),
   Result.
 
 tokenize_error(String) ->
