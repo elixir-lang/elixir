@@ -857,7 +857,7 @@ defmodule OptionParser do
   end
 
   defp did_you_mean(option, types) do
-    key = String.trim_leading(option, "-")
+    key = option |> String.trim_leading("-") |> String.replace("-", "_")
     Enum.reduce(types, {nil, 0}, &max_similar(&1, key, &2))
   end
 
@@ -865,6 +865,7 @@ defmodule OptionParser do
     source = Atom.to_string(source)
 
     score = String.jaro_distance(source, target)
-    if score < current, do: best, else: {source, score}
+    option = String.replace(source, "_", "-")
+    if score < current, do: best, else: {option, score}
   end
 end
