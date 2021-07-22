@@ -1152,13 +1152,9 @@ defmodule FunctionClauseError do
     mfa = Exception.format_mfa(module, function, arity)
 
     format_clause_fun = fn {args, guards} ->
-      fun_prefix = "    #{kind} "
-      guard_prefix = String.duplicate(" ", byte_size(fun_prefix)) <> " when "
-
       args = Enum.map_join(args, ", ", fun)
-      guards = Enum.map(guards, &[guard_prefix | clause_to_string(&1, fun)])
-
-      "#{fun_prefix}#{function}(#{args})#{guards}\n"
+      base = "    #{kind} #{function}(#{args})"
+      Enum.reduce(guards, base, &"#{&2} when #{clause_to_string(&1, fun)}") <> "\n"
     end
 
     "\n\nThe following arguments were given to #{mfa}:\n" <>
