@@ -167,6 +167,10 @@ defmodule CodeTest do
       assert Code.eval_string("two = 1 + 1") == {2, [two: 2]}
     end
 
+    test "keeps bindings on optimized evals" do
+      assert Code.eval_string("import Enum", x: 1) == {Enum, [x: 1]}
+    end
+
     test "supports a %Macro.Env{} struct as the third argument" do
       assert {3, _} = Code.eval_string("a + b", [a: 1, b: 2], __ENV__)
     end
