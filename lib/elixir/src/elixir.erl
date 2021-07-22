@@ -250,7 +250,7 @@ eval_forms(Tree, RawBinding, OE) ->
 
   case Erl of
     {atom, _, Atom} ->
-      {Atom, Binding, NewE};
+      {Atom, RawBinding, NewE};
 
     _  ->
       Exprs =
