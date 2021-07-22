@@ -159,7 +159,7 @@ defmodule ExUnit.DocTest do
       module = Keyword.fetch!(opts, :module)
       message = Keyword.fetch!(opts, :message)
 
-      file = module.__info__(:compile)[:source] |> Path.relative_to_cwd()
+      file = module.module_info(:compile)[:source] |> Path.relative_to_cwd()
       info = Exception.format_file_line(file, opts[:line])
       %__MODULE__{message: info <> " " <> message}
     end
@@ -223,7 +223,7 @@ defmodule ExUnit.DocTest do
   @doc false
   def __file__(module) do
     source =
-      module.__info__(:compile)[:source] ||
+      module.module_info(:compile)[:source] ||
         raise "#{inspect(module)} does not have compile-time source information"
 
     "(for doctest at) " <> Path.relative_to_cwd(source)
@@ -273,7 +273,7 @@ defmodule ExUnit.DocTest do
   end
 
   defp test_content(%{exprs: exprs, line: line}, module, do_import) do
-    file = module.__info__(:compile)[:source] |> Path.relative_to_cwd()
+    file = module.module_info(:compile)[:source] |> Path.relative_to_cwd()
     location = [line: line, file: file]
     stack = Macro.escape([{module, :__MODULE__, 0, location}])
 
