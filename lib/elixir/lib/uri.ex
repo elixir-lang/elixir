@@ -418,9 +418,6 @@ defmodule URI do
   @spec decode(binary) :: binary
   def decode(uri) do
     unpercent(uri, "", false)
-  catch
-    :malformed_uri ->
-      raise ArgumentError, "malformed URI #{inspect(uri)}"
   end
 
   @doc """
