@@ -43,7 +43,7 @@ defmodule ExUnit.Runner do
 
     start_time = System.monotonic_time()
     EM.suite_started(config.manager, opts)
-    async_stop_time = loop(config, :async, %{}, false)
+    async_stop_time = async_loop(config, %{}, false)
     stop_time = System.monotonic_time()
 
     if max_failures_reached?(config) do
@@ -92,44 +92,42 @@ defmodule ExUnit.Runner do
     |> Keyword.put(:include, include)
   end
 
-  defp loop(config, :async, running, async_once?) do
+  defp async_loop(config, running, async_once?) do
     available = config.max_cases - map_size(running)
 
     cond do
       # No modules available, wait for one
       available <= 0 ->
-        wait_until_available(config, :async, running, async_once?)
+        running = wait_until_available(config, running)
+        async_loop(config, running, async_once?)
 
       # Slots are available, start with async modules
       modules = ExUnit.Server.take_async_modules(available) ->
-        spawn_modules(config, modules, :async, running, true)
+        running = spawn_modules(config, modules, running)
+        async_loop(config, running, true)
 
       true ->
-        modules = ExUnit.Server.take_sync_modules()
-        loop(config, modules, running, async_once?)
+        sync_modules = ExUnit.Server.take_sync_modules()
+
+        # Wait for all async modules
+        0 =
+          running
+          |> Enum.reduce(running, fn _, acc -> wait_until_available(config, acc) end)
+          |> map_size()
+
+        async_stop_time = if async_once?, do: System.monotonic_time(), else: nil
+
+        # Run all sync modules directly
+        for module <- sync_modules do
+          running = spawn_modules(config, [module], %{})
+          running != %{} and wait_until_available(config, running)
+        end
+
+        async_stop_time
     end
   end
 
-  defp loop(config, modules, running, async_stop_time) do
-    case modules do
-      _ when running != %{} ->
-        wait_until_available(config, modules, running, async_stop_time)
-
-      # So we can start all sync modules
-      [head | tail] ->
-        spawn_modules(config, [head], tail, running, async_stop_time(async_stop_time))
-
-      # No more modules, we are done!
-      [] ->
-        async_stop_time(async_stop_time)
-    end
-  end
-
-  defp async_stop_time(false = _async_once?), do: nil
-  defp async_stop_time(true = _async_once?), do: System.monotonic_time()
-  defp async_stop_time(async_stop_time), do: async_stop_time
-
-  # Loop expecting down messages from the spawned modules.
+  # Expect down messages from the spawned modules.
   #
   # We first look at the sigquit signal because we don't want
   # to spawn new test cases when we know we will have to handle
@@ -137,7 +135,7 @@ defmodule ExUnit.Runner do
   #
   # Otherwise, whenever a module has finished executing, update
   # the runnig modules and attempt to spawn new ones.
-  defp wait_until_available(config, modules, running, async_timing) do
+  defp wait_until_available(config, running) do
     receive do
       {ref, pid, :sigquit} ->
         sigquit(config, ref, pid, running)
@@ -148,25 +146,25 @@ defmodule ExUnit.Runner do
             sigquit(config, ref, pid, running)
 
           {:DOWN, ref, _, _, _} when is_map_key(running, ref) ->
-            loop(config, modules, Map.delete(running, ref), async_timing)
+            Map.delete(running, ref)
         end
     end
   end
 
-  defp spawn_modules(config, [], modules_remaining, running, async_timing) do
-    loop(config, modules_remaining, running, async_timing)
+  defp spawn_modules(_config, [], running) do
+    running
   end
 
-  defp spawn_modules(config, [module | modules], modules_remaining, running, async_timing) do
+  defp spawn_modules(config, [module | modules], running) do
     if max_failures_reached?(config) do
-      loop(config, modules_remaining, running, async_timing)
+      running
     else
       {pid, ref} = spawn_monitor(fn -> run_module(config, module) end)
-      spawn_modules(config, modules, modules_remaining, Map.put(running, ref, pid), async_timing)
+      spawn_modules(config, modules, Map.put(running, ref, pid))
     end
   end
 
-  ## stacktrace
+  ## Stacktrace
 
   # Assertions can pop-up in the middle of the stack
   def prune_stacktrace([{ExUnit.Assertions, _, _, _} | t]), do: prune_stacktrace(t)
