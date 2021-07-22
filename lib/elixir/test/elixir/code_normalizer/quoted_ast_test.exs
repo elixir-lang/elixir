@@ -431,6 +431,10 @@ defmodule Code.Normalizer.QuotedASTTest do
       assert quoted_to_string(quote(do: [1, 2, 3])) == "[1, 2, 3]"
     end
 
+    test "false positive containers" do
+      assert quoted_to_string({:%{}, [], nil}) == "%{}"
+    end
+
     test "struct" do
       assert quoted_to_string(quote(do: %Test{})) == "%Test{}"
       assert quoted_to_string(quote(do: %Test{foo: 1, bar: 1})) == "%Test{foo: 1, bar: 1}"

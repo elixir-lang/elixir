@@ -123,7 +123,7 @@ defmodule Code.Normalizer do
   end
 
   # A list of left to right arrows is not considered as a list literal, so it's not wrapped
-  defp do_normalize([{:->, _, _} | _] = quoted, state) do
+  defp do_normalize([{:->, _, [_ | _]} | _] = quoted, state) do
     normalize_args(quoted, state)
   end
 
@@ -137,7 +137,7 @@ defmodule Code.Normalizer do
   end
 
   # Maps
-  defp do_normalize({:%{}, meta, args}, state) do
+  defp do_normalize({:%{}, meta, args}, state) when is_list(args) do
     meta =
       if meta == [] do
         line = state.parent_meta[:line]
