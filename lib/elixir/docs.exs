@@ -96,6 +96,7 @@ canonical = System.fetch_env!("CANONICAL")
     ],
     "Code & Macros": [
       Code,
+      Code.Fragment,
       Kernel.ParallelCompiler,
       Macro,
       Macro.Env

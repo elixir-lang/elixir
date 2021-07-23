@@ -12,6 +12,7 @@
 
   * [Code] Add `Code.string_to_quoted_with_comments/2` and `Code.quoted_to_algebra/2`
   * [Code] Add more `:token_metadata` to aliases and remote calls when parsing strings
+  * [Code] Add `Code.Fragment` module to provide best-effort information from code fragments. The module currently provides an updated `Code.Fragment.cursor_context/2` with operator support and `Code.Fragment.surround_context/2` which looks at a given position in a fragment and find its surrounding delimiters
   * [Exception] Better format Elixir exceptions in Erlang
   * [Inspect] Allow default inspect fun to be set globally with `Inspect.Opts.default_inspect_fun/1`
   * [Kernel] Make `get_in` consistently abort when `nil` values are found
@@ -72,12 +73,14 @@
 
 #### Elixir
 
+  * [Code] `Code.cursor_context/2` has been deprecated in favor of `Code.Fragment.cursor_context/2`
   * [Macro] `Macro.to_string/2` is deprecated, use `Macro.to_string/1` instead
   * [System] Deprecate `System.get_pid/0`, use `System.pid/0` instead
 
 #### Mix
 
   * [mix escript.build] `:strip_beam` option is deprecated in favor of `:strip_beams`
+  * [Mix] `:exit_code` in `Mix.raise/2` has been deprecated in favor of `:exit_status`
   * [Mix.Config] `Mix.Config` is deprecated in favor of `Config` module
 
 ## v1.12
