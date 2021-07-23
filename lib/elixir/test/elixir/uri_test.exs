@@ -452,5 +452,19 @@ defmodule URITest do
 
     assert URI.merge(URI.parse(page_url), URI.parse(image_url)) |> to_string ==
              "https://images.example.com/t/1600x/https://images.example.com/foo.jpg"
+
+    # Without authority
+
+    assert URI.merge(
+             %{URI.parse("http://google.com/foo") | authority: nil},
+             "http://example.com/baz"
+           )
+           |> to_string == "http://example.com/baz"
+
+    assert URI.merge(
+             %{URI.parse("http://google.com/foo") | authority: nil},
+             %{URI.parse("http://example.com/baz") | authority: nil}
+           )
+           |> to_string == "http://example.com/baz"
   end
 end

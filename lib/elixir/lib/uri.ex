@@ -686,7 +686,7 @@ defmodule URI do
   @spec merge(t | binary, t | binary) :: t
   def merge(uri, rel)
 
-  def merge(%URI{authority: nil}, _rel) do
+  def merge(%URI{host: nil}, _rel) do
     raise ArgumentError, "you must merge onto an absolute URI"
   end
 
@@ -694,7 +694,7 @@ defmodule URI do
     %{rel | path: remove_dot_segments_from_path(rel.path)}
   end
 
-  def merge(base, %URI{authority: authority} = rel) when authority != nil do
+  def merge(base, %URI{host: host} = rel) when host != nil do
     %{rel | scheme: base.scheme, path: remove_dot_segments_from_path(rel.path)}
   end
 
