@@ -553,7 +553,7 @@ defmodule Keyword do
   @doc """
   Deletes the first entry in the keyword list under a specific `key`.
 
-  If the `key` does not exist, the keyword list is returned unchanged.
+  If the `key` does not exist, it returns the keyword list unchanged.
 
   ## Examples
 
