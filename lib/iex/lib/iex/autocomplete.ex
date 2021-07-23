@@ -31,7 +31,7 @@ defmodule IEx.Autocomplete do
     code = Enum.reverse(code)
     helper = get_helper(code)
 
-    case Code.cursor_context(code) do
+    case Code.Fragment.cursor_context(code) do
       {:alias, alias} ->
         expand_aliases(List.to_string(alias), shell)
 
