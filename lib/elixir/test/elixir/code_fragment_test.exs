@@ -32,6 +32,9 @@ defmodule CodeFragmentTest do
       assert CF.cursor_context("[hello_wo") == {:local_or_var, 'hello_wo'}
       assert CF.cursor_context("'hello_wo") == {:local_or_var, 'hello_wo'}
       assert CF.cursor_context("hellò_wó") == {:local_or_var, 'hellò_wó'}
+      assert CF.cursor_context("hello? world") == {:local_or_var, 'world'}
+      assert CF.cursor_context("hello! world") == {:local_or_var, 'world'}
+      assert CF.cursor_context("hello: world") == {:local_or_var, 'world'}
     end
 
     test "dot" do
@@ -68,8 +71,10 @@ defmodule CodeFragmentTest do
 
     test "dot_arity" do
       assert CF.cursor_context("Foo.hello/") == {:dot_arity, {:alias, 'Foo'}, 'hello'}
-      assert CF.cursor_context("foo.hello/") == {:dot_arity, {:var, 'foo'}, 'hello'}
       assert CF.cursor_context("Foo.+/") == {:dot_arity, {:alias, 'Foo'}, '+'}
+      assert CF.cursor_context("Foo . hello /") == {:dot_arity, {:alias, 'Foo'}, 'hello'}
+      assert CF.cursor_context("Foo . + /") == {:dot_arity, {:alias, 'Foo'}, '+'}
+      assert CF.cursor_context("foo.hello/") == {:dot_arity, {:var, 'foo'}, 'hello'}
       assert CF.cursor_context(":foo.hello/") == {:dot_arity, {:unquoted_atom, 'foo'}, 'hello'}
       assert CF.cursor_context("@f.hello/") == {:dot_arity, {:module_attribute, 'f'}, 'hello'}
     end
@@ -80,6 +85,9 @@ defmodule CodeFragmentTest do
       assert CF.cursor_context("Foo.hello(") == {:dot_call, {:alias, 'Foo'}, 'hello'}
       assert CF.cursor_context("Foo.hello(\s") == {:dot_call, {:alias, 'Foo'}, 'hello'}
       assert CF.cursor_context("Foo.hello(\t") == {:dot_call, {:alias, 'Foo'}, 'hello'}
+      assert CF.cursor_context("Foo . hello (") == {:dot_call, {:alias, 'Foo'}, 'hello'}
+      assert CF.cursor_context("Foo . hello (\s") == {:dot_call, {:alias, 'Foo'}, 'hello'}
+      assert CF.cursor_context("Foo . hello (\t") == {:dot_call, {:alias, 'Foo'}, 'hello'}
 
       assert CF.cursor_context(":foo.hello\s") == {:dot_call, {:unquoted_atom, 'foo'}, 'hello'}
       assert CF.cursor_context(":foo.hello\t") == {:dot_call, {:unquoted_atom, 'foo'}, 'hello'}
@@ -105,6 +113,9 @@ defmodule CodeFragmentTest do
       assert CF.cursor_context("Foo.+(") == {:dot_call, {:alias, 'Foo'}, '+'}
       assert CF.cursor_context("Foo.+(\s") == {:dot_call, {:alias, 'Foo'}, '+'}
       assert CF.cursor_context("Foo.+(\t") == {:dot_call, {:alias, 'Foo'}, '+'}
+      assert CF.cursor_context("Foo . + (") == {:dot_call, {:alias, 'Foo'}, '+'}
+      assert CF.cursor_context("Foo . + (\s") == {:dot_call, {:alias, 'Foo'}, '+'}
+      assert CF.cursor_context("Foo . + (\t") == {:dot_call, {:alias, 'Foo'}, '+'}
     end
 
     test "alias" do
@@ -144,6 +155,7 @@ defmodule CodeFragmentTest do
       assert CF.cursor_context("<~") == {:operator, '<~'}
       assert CF.cursor_context("=~") == {:operator, '=~'}
       assert CF.cursor_context("<~>") == {:operator, '<~>'}
+      assert CF.cursor_context("::") == {:operator, '::'}
 
       assert CF.cursor_context("+ ") == {:operator_call, '+'}
       assert CF.cursor_context("++ ") == {:operator_call, '++'}
@@ -154,6 +166,7 @@ defmodule CodeFragmentTest do
       assert CF.cursor_context("<~ ") == {:operator_call, '<~'}
       assert CF.cursor_context("=~ ") == {:operator_call, '=~'}
       assert CF.cursor_context("<~> ") == {:operator_call, '<~>'}
+      assert CF.cursor_context(":: ") == {:operator_call, '::'}
 
       assert CF.cursor_context("+/") == {:operator_arity, '+'}
       assert CF.cursor_context("++/") == {:operator_arity, '++'}
@@ -164,6 +177,7 @@ defmodule CodeFragmentTest do
       assert CF.cursor_context("<~/") == {:operator_arity, '<~'}
       assert CF.cursor_context("=~/") == {:operator_arity, '=~'}
       assert CF.cursor_context("<~>/") == {:operator_arity, '<~>'}
+      assert CF.cursor_context("::/") == {:operator_arity, '::'}
 
       # Unknown operators altogether
       assert CF.cursor_context("***") == :none
@@ -187,10 +201,13 @@ defmodule CodeFragmentTest do
       assert CF.cursor_context("^^ ") == :none
 
       assert CF.cursor_context("Foo.~") == {:dot, {:alias, 'Foo'}, '~'}
+      assert CF.cursor_context("Foo . ~") == {:dot, {:alias, 'Foo'}, '~'}
       assert CF.cursor_context("Foo.~~") == {:dot, {:alias, 'Foo'}, '~~'}
+      assert CF.cursor_context("Foo . ~~") == {:dot, {:alias, 'Foo'}, '~~'}
       assert CF.cursor_context("Foo.~ ") == :none
       assert CF.cursor_context("Foo.~~ ") == :none
       assert CF.cursor_context("Foo.^^") == {:dot, {:alias, 'Foo'}, '^^'}
+      assert CF.cursor_context("Foo . ^^") == {:dot, {:alias, 'Foo'}, '^^'}
       assert CF.cursor_context("Foo.^^ ") == :none
     end
 

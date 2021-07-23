@@ -152,9 +152,9 @@ defmodule Code.Fragment do
     cursor_context(to_charlist(other), opts)
   end
 
-  @operators '\\<>+-*/:=|&~^%.!'
+  @operators '\\<>+-*/:=|&~^%!'
   @starter_punctuation ',([{;'
-  @non_starter_punctuation ')]}"\''
+  @non_starter_punctuation ')]}"\'.'
   @space '\t\s'
   @trailing_identifier '?!'
 
@@ -176,19 +176,18 @@ defmodule Code.Fragment do
       # Two-digit containers
       {[?<, ?< | rest], _} when rest == [] or hd(rest) != ?< -> :expr
       # Ambiguity around :
-      {[?: | _], 0} -> {:unquoted_atom, ''}
-      {[?:, next | _], _} when next != ?: -> :expr
+      {[?: | rest], spaces} when rest == [] or hd(rest) != ?: -> unquoted_atom_or_expr(spaces)
       # Dots
       {[?.], _} -> :none
       {[?. | rest], _} when hd(rest) not in '.:' -> dot(rest, '')
       # It is a local or remote call with parens
-      {[?( | rest], _} -> call_to_cursor_context(rest)
+      {[?( | rest], spaces} -> call_to_cursor_context(strip_spaces(rest, spaces + 1))
       # A local arity definition
-      {[?/ | rest], _} -> arity_to_cursor_context(rest)
+      {[?/ | rest], spaces} -> arity_to_cursor_context(strip_spaces(rest, spaces + 1))
       # Starting a new expression
       {[h | _], _} when h in @starter_punctuation -> :expr
       # It is a local or remote call without parens
-      {rest, spaces} when spaces > 0 -> call_to_cursor_context(rest)
+      {rest, spaces} when spaces > 0 -> call_to_cursor_context({rest, spaces})
       # It is an identifier
       _ -> identifier_to_cursor_context(reverse, false)
     end
@@ -197,7 +196,10 @@ defmodule Code.Fragment do
   defp strip_spaces([h | rest], count) when h in @space, do: strip_spaces(rest, count + 1)
   defp strip_spaces(rest, count), do: {rest, count}
 
-  defp arity_to_cursor_context(reverse) do
+  defp unquoted_atom_or_expr(0), do: {:unquoted_atom, ''}
+  defp unquoted_atom_or_expr(_), do: :expr
+
+  defp arity_to_cursor_context({reverse, _}) do
     case identifier_to_cursor_context(reverse, true) do
       {:local_or_var, acc} -> {:local_arity, acc}
       {:operator, acc} -> {:operator_arity, acc}
@@ -206,7 +208,7 @@ defmodule Code.Fragment do
     end
   end
 
-  defp call_to_cursor_context(reverse) do
+  defp call_to_cursor_context({reverse, _}) do
     case identifier_to_cursor_context(reverse, true) do
       {:local_or_var, acc} -> {:local_call, acc}
       {:dot, base, acc} -> {:dot_call, base, acc}
@@ -215,33 +217,87 @@ defmodule Code.Fragment do
     end
   end
 
+  defp identifier_to_cursor_context([?., ?., ?: | _], _), do: {:unquoted_atom, '..'}
+  defp identifier_to_cursor_context([?., ?., ?. | _], _), do: {:local_or_var, '...'}
+  defp identifier_to_cursor_context([?., ?: | _], _), do: {:unquoted_atom, '.'}
+  defp identifier_to_cursor_context([?., ?. | _], _), do: {:operator, '..'}
+
   defp identifier_to_cursor_context(reverse, call_op?) do
     case identifier(reverse) do
-      # Operators and module attributes
-      :maybe_operator -> operator(reverse, [], call_op?)
-      {:module_attribute, acc} -> {:module_attribute, acc}
-      # Ignore identifiers leading to a question mark
-      {_, _, '?' ++ _, _} -> :none
-      # Parse :: first to avoid ambiguity with atoms
-      {:alias, false, '::' ++ _, _} -> :none
-      {kind, _, '::' ++ _, acc} -> alias_or_local_or_var(kind, acc)
-      # Now handle atoms, any other atom is unexpected, and then ignore non-ascii aliases
-      {_kind, _, ':' ++ _, acc} -> {:unquoted_atom, acc}
-      {:atom, _, _, _} -> :none
-      {:alias, false, _, _} -> :none
-      # Parse .. first to avoid ambiguity with dots
-      {kind, _, '..' ++ _, acc} -> alias_or_local_or_var(kind, acc)
-      # Everything else
-      {:alias, _, '.' ++ rest, acc} -> nested_alias(rest, acc)
-      {:identifier, _, '.' ++ rest, acc} -> dot(rest, acc)
-      {:alias, _, _, acc} -> {:alias, acc}
-      {:identifier, _, _, acc} when call_op? and acc in @textual_operators -> {:operator, acc}
-      {:identifier, _, _, acc} -> {:local_or_var, acc}
       :none -> :none
+      :operator -> operator(reverse, [], call_op?)
+      {:module_attribute, acc} -> {:module_attribute, acc}
+      {:unquoted_atom, acc} -> {:unquoted_atom, acc}
+      {:alias, '.' ++ rest, acc} when rest == [] or hd(rest) != ?. -> nested_alias(rest, acc)
+      {:identifier, '.' ++ rest, acc} when rest == [] or hd(rest) != ?. -> dot(rest, acc)
+      {:alias, _, acc} -> {:alias, acc}
+      {:identifier, _, acc} when call_op? and acc in @textual_operators -> {:operator, acc}
+      {:identifier, _, acc} -> {:local_or_var, acc}
+    end
+  end
+
+  defp identifier([?? | rest]), do: check_identifier(rest, [??])
+  defp identifier([?! | rest]), do: check_identifier(rest, [?!])
+  defp identifier(rest), do: check_identifier(rest, [])
+
+  defp check_identifier([h | _], _acc) when h in @operators, do: :operator
+  defp check_identifier([h | _], _acc) when h in @non_identifier, do: :none
+  defp check_identifier([], _acc), do: :operator
+  defp check_identifier(rest, acc), do: rest_identifier(rest, acc)
+
+  defp rest_identifier([h | rest], acc) when h not in @non_identifier do
+    rest_identifier(rest, [h | acc])
+  end
+
+  defp rest_identifier(rest, [?@ | acc]) do
+    case tokenize_identifier(rest, acc) do
+      {:identifier, _rest, acc} -> {:module_attribute, acc}
+      :none when acc == [] -> {:module_attribute, ''}
+      _ -> :none
+    end
+  end
+
+  defp rest_identifier([?: | rest], acc) when rest == [] or hd(rest) != ?: do
+    case String.Tokenizer.tokenize(acc) do
+      {_, _, [], _, _, _} -> {:unquoted_atom, acc}
+      _ -> :none
+    end
+  end
+
+  defp rest_identifier([?? | _], _acc) do
+    :none
+  end
+
+  defp rest_identifier(rest, acc) do
+    tokenize_identifier(rest, acc)
+  end
+
+  defp tokenize_identifier(rest, acc) do
+    case String.Tokenizer.tokenize(acc) do
+      # Not actually an atom cause rest is not a :
+      {:atom, _, _, _, _, _} ->
+        :none
+
+      # Aliases must be ascii only
+      {:alias, _, _, _, false, _} ->
+        :none
+
+      {kind, _, [], _, _, extra} ->
+        if ?@ in extra do
+          :none
+        else
+          {rest, _} = strip_spaces(rest, 0)
+          {kind, rest, acc}
+        end
+
+      _ ->
+        :none
     end
   end
 
   defp nested_alias(rest, acc) do
+    {rest, _} = strip_spaces(rest, 0)
+
     case identifier_to_cursor_context(rest, true) do
       {:alias, prev} -> {:alias, prev ++ '.' ++ acc}
       _ -> :none
@@ -249,6 +305,8 @@ defmodule Code.Fragment do
   end
 
   defp dot(rest, acc) do
+    {rest, _} = strip_spaces(rest, 0)
+
     case identifier_to_cursor_context(rest, true) do
       {:local_or_var, prev} -> {:dot, {:var, prev}, acc}
       {:unquoted_atom, _} = prev -> {:dot, prev, acc}
@@ -259,78 +317,37 @@ defmodule Code.Fragment do
     end
   end
 
-  defp alias_or_local_or_var(:alias, acc), do: {:alias, acc}
-  defp alias_or_local_or_var(:identifier, acc), do: {:local_or_var, acc}
-  defp alias_or_local_or_var(_, _), do: :none
-
-  defp identifier([?? | rest]), do: check_identifier(rest, [??])
-  defp identifier([?! | rest]), do: check_identifier(rest, [?!])
-  defp identifier(rest), do: check_identifier(rest, [])
-
-  defp check_identifier([h | _], _acc) when h in @operators, do: :maybe_operator
-  defp check_identifier([h | _], _acc) when h in @non_identifier, do: :none
-  defp check_identifier([], _acc), do: :maybe_operator
-  defp check_identifier(rest, acc), do: rest_identifier(rest, acc)
-
-  defp rest_identifier([h | rest], acc) when h not in @non_identifier do
-    rest_identifier(rest, [h | acc])
-  end
-
-  defp rest_identifier(rest, [?@ | acc]) do
-    case tokenize_identifier(rest, acc) do
-      {:identifier, _ascii_only?, _rest, acc} -> {:module_attribute, acc}
-      :none when acc == [] -> {:module_attribute, ''}
-      _ -> :none
-    end
-  end
-
-  defp rest_identifier(rest, acc) do
-    tokenize_identifier(rest, acc)
-  end
-
-  defp tokenize_identifier(rest, acc) do
-    case String.Tokenizer.tokenize(acc) do
-      {kind, _, [], _, ascii_only?, extra} ->
-        if ?@ in extra and not match?([?: | _], rest) do
-          :none
-        else
-          {kind, ascii_only?, rest, acc}
-        end
-
-      _ ->
-        :none
-    end
-  end
-
   defp operator([h | rest], acc, call_op?) when h in @operators do
     operator(rest, [h | acc], call_op?)
   end
 
-  defp operator(_rest, acc, call_op?) when acc in @incomplete_operators do
-    if call_op?, do: :none, else: {:operator, acc}
-  end
+  defp operator(rest, acc, call_op?) when acc in @incomplete_operators do
+    {rest, _} = strip_spaces(rest, 0)
 
-  defp operator(rest, [?. | acc], call_op?) when acc in @incomplete_operators do
-    if call_op?, do: :none, else: dot(rest, acc)
+    cond do
+      call_op? -> :none
+      match?([?. | rest] when rest == [] or hd(rest) != ?., rest) -> dot(tl(rest), acc)
+      true -> {:operator, acc}
+    end
   end
 
   defp operator(rest, acc, _call_op?) do
     case :elixir_tokenizer.tokenize(acc, 1, 1, []) do
-      {:ok, _, [{:atom, _, acc}]} ->
-        {:unquoted_atom, Atom.to_charlist(acc)}
-
-      {:ok, _, [{:., _}, {_, _, op}]} ->
-        if Code.Identifier.unary_op(op) != :error or Code.Identifier.binary_op(op) != :error do
-          dot(rest, Atom.to_charlist(op))
-        else
-          :none
-        end
+      {:ok, _, [{:atom, _, _}]} ->
+        {:unquoted_atom, tl(acc)}
 
       {:ok, _, [{_, _, op}]} ->
-        if Code.Identifier.unary_op(op) != :error or Code.Identifier.binary_op(op) != :error do
-          {:operator, Atom.to_charlist(op)}
-        else
-          :none
+        {rest, _} = strip_spaces(rest, 0)
+
+        cond do
+          Code.Identifier.unary_op(op) == :error and Code.Identifier.binary_op(op) == :error ->
+            :none
+
+          match?([?. | rest] when rest == [] or hd(rest) != ?., rest) ->
+            dot(tl(rest), acc)
+
+          true ->
+            {:operator, acc}
         end
 
       _ ->
