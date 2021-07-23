@@ -477,7 +477,7 @@ defmodule Keyword do
   catch
     element ->
       raise ArgumentError,
-            "expected a keyword list, but an entry in the list is not a two-element tuple" <>
+            "expected a keyword list, but an entry in the list is not a two-element tuple " <>
               "with an atom as its first element, got: #{inspect(element)}"
   end
 
