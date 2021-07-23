@@ -29,10 +29,10 @@ defmodule Code.Fragment do
 
   ## Examples
 
-      iex> Code.cursor_context("")
+      iex> Code.Fragment.cursor_context("")
       :expr
 
-      iex> Code.cursor_context("hello_wor")
+      iex> Code.Fragment.cursor_context("hello_wor")
       {:local_or_var, 'hello_wor'}
 
   ## Return values
