@@ -382,7 +382,7 @@ defmodule Keyword do
   end
 
   defp get_and_update!([], key, _fun, acc) when is_atom(key) do
-    raise(KeyError, key: key, term: acc)
+    raise KeyError, key: key, term: acc
   end
 
   @doc """
@@ -423,7 +423,7 @@ defmodule Keyword do
   def fetch!(keywords, key) when is_list(keywords) and is_atom(key) do
     case :lists.keyfind(key, 1, keywords) do
       {^key, value} -> value
-      false -> raise(KeyError, key: key, term: keywords)
+      false -> raise KeyError, key: key, term: keywords
     end
   end
 
@@ -468,20 +468,18 @@ defmodule Keyword do
   """
   @spec keys(t) :: [key]
   def keys(keywords) when is_list(keywords) do
-    try do
-      :lists.map(
-        fn
-          {key, _} when is_atom(key) -> key
-          element -> throw(element)
-        end,
-        keywords
-      )
-    catch
-      element ->
-        raise ArgumentError,
-              "expected a keyword list, but an entry in the list is not a two-element tuple with an atom as its first element, " <>
-                "got: #{inspect(element)}"
-    end
+    :lists.map(
+      fn
+        {key, _} when is_atom(key) -> key
+        element -> throw(element)
+      end,
+      keywords
+    )
+  catch
+    element ->
+      raise ArgumentError,
+            "expected a keyword list, but an entry in the list is not a two-element tuple" <>
+              "with an atom as its first element, got: #{inspect(element)}"
   end
 
   @doc """
@@ -719,7 +717,7 @@ defmodule Keyword do
   end
 
   defp replace!([], key, _value, original) do
-    raise(KeyError, key: key, term: original)
+    raise KeyError, key: key, term: original
   end
 
   @doc """
@@ -908,7 +906,7 @@ defmodule Keyword do
   end
 
   defp update!([], key, _fun, original) do
-    raise(KeyError, key: key, term: original)
+    raise KeyError, key: key, term: original
   end
 
   @doc """
@@ -1017,7 +1015,7 @@ defmodule Keyword do
   """
   @spec drop(t, [key]) :: t
   def drop(keywords, keys) when is_list(keywords) and is_list(keys) do
-    :lists.filter(fn {key, _} -> key not in keys end, keywords)
+    :lists.filter(fn {k, _} -> k not in keys end, keywords)
   end
 
   @doc """
@@ -1139,11 +1137,8 @@ defmodule Keyword do
   def pop_lazy(keywords, key, fun)
       when is_list(keywords) and is_atom(key) and is_function(fun, 0) do
     case fetch(keywords, key) do
-      {:ok, value} ->
-        {value, delete(keywords, key)}
-
-      :error ->
-        {fun.(), keywords}
+      {:ok, value} -> {value, delete(keywords, key)}
+      :error -> {fun.(), keywords}
     end
   end
 
@@ -1182,13 +1177,13 @@ defmodule Keyword do
 
   """
   @spec to_list(t) :: t
-  def to_list(keyword) when is_list(keyword) do
-    keyword
+  def to_list(keywords) when is_list(keywords) do
+    keywords
   end
 
   @doc false
   @deprecated "Use Kernel.length/1 instead"
-  def size(keyword) do
-    length(keyword)
+  def size(keywords) do
+    length(keywords)
   end
 end
