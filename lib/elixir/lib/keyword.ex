@@ -17,8 +17,7 @@ defmodule Keyword do
 
       [exit_on_close: true, active: :once, packet_size: 1024]
 
-  The two syntaxes are slightly different but as values they are
-  completely equivalent.
+  The two syntaxes return the exact same value.
 
   A *key* can be any atom, consisting of Unicode letters, numbers,
   an underscore or the `@` sign. If the *key* should have any other
