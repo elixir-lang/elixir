@@ -12,6 +12,14 @@ defmodule ExUnit.CaptureIO do
         test "example" do
           assert capture_io(fn -> IO.puts("a") end) == "a\n"
         end
+
+        test "another example" do
+          assert with_io(fn ->
+            IO.puts("a")
+            IO.puts("b")
+            2 + 2
+          end) == {4, "a\nb\n"}
+        end
       end
 
   """
@@ -88,55 +96,96 @@ defmodule ExUnit.CaptureIO do
   ## Returning values
 
   As seen in the examples above, `capture_io` returns the captured output.
-  If you want to also capture the result of the function executed inside
-  the `capture_io`, you can use `Kernel.send/2` to send yourself a message
-  and use `ExUnit.Assertions.assert_received/2` to match on the results:
-
-      capture_io([input: "this is input", capture_prompt: false], fn ->
-        send(self(), {:block_result, 42})
-        # ...
-      end)
-
-      assert_received {:block_result, 42}
-
+  If you want to also capture the result of the function executed,
+  use `with_io/2`.
   """
   @spec capture_io((() -> any())) :: String.t()
   def capture_io(fun) when is_function(fun, 0) do
-    capture_io(:stdio, [], fun)
+    {_result, capture} = with_io(fun)
+    capture
   end
 
   @spec capture_io(atom(), (() -> any())) :: String.t()
   def capture_io(device, fun) when is_atom(device) and is_function(fun, 0) do
-    capture_io(device, [], fun)
+    {_result, capture} = with_io(device, fun)
+    capture
   end
 
   @spec capture_io(String.t(), (() -> any())) :: String.t()
   def capture_io(input, fun) when is_binary(input) and is_function(fun, 0) do
-    capture_io(:stdio, [input: input], fun)
+    {_result, capture} = with_io(input, fun)
+    capture
   end
 
   @spec capture_io(keyword(), (() -> any())) :: String.t()
   def capture_io(options, fun) when is_list(options) and is_function(fun, 0) do
-    capture_io(:stdio, options, fun)
+    {_result, capture} = with_io(options, fun)
+    capture
   end
 
   @spec capture_io(atom(), String.t(), (() -> any())) :: String.t()
   def capture_io(device, input, fun)
       when is_atom(device) and is_binary(input) and is_function(fun, 0) do
-    capture_io(device, [input: input], fun)
+    {_result, capture} = with_io(device, input, fun)
+    capture
   end
 
   @spec capture_io(atom(), keyword(), (() -> any())) :: String.t()
   def capture_io(device, options, fun)
       when is_atom(device) and is_list(options) and is_function(fun, 0) do
-    do_capture_io(map_dev(device), options, fun)
+    {_result, capture} = with_io(device, options, fun)
+    capture
+  end
+
+  @doc """
+  Same functionality as `capture_io/2`, but returns a tuple
+  with the result of the evaluation and the captured output.
+
+  ## Examples
+
+      assert with_io(fn ->
+        IO.puts("a")
+        IO.puts("b")
+        2 + 2
+      end) == {4, "a\nb\n"}
+  """
+  @spec with_io((() -> any())) :: {any(), String.t()}
+  def with_io(fun) when is_function(fun, 0) do
+    with_io(:stdio, [], fun)
+  end
+
+  @spec with_io(atom(), (() -> any())) :: {any(), String.t()}
+  def with_io(device, fun) when is_atom(device) and is_function(fun, 0) do
+    with_io(device, [], fun)
+  end
+
+  @spec with_io(String.t(), (() -> any())) :: {any(), String.t()}
+  def with_io(input, fun) when is_binary(input) and is_function(fun, 0) do
+    with_io(:stdio, [input: input], fun)
+  end
+
+  @spec with_io(keyword(), (() -> any())) :: {any(), String.t()}
+  def with_io(options, fun) when is_list(options) and is_function(fun, 0) do
+    with_io(:stdio, options, fun)
+  end
+
+  @spec with_io(atom(), String.t(), (() -> any())) :: {any(), String.t()}
+  def with_io(device, input, fun)
+      when is_atom(device) and is_binary(input) and is_function(fun, 0) do
+    with_io(device, [input: input], fun)
+  end
+
+  @spec with_io(atom(), keyword(), (() -> any())) :: {any(), String.t()}
+  def with_io(device, options, fun)
+      when is_atom(device) and is_list(options) and is_function(fun, 0) do
+    do_with_io(map_dev(device), options, fun)
   end
 
   defp map_dev(:stdio), do: :standard_io
   defp map_dev(:stderr), do: :standard_error
   defp map_dev(other), do: other
 
-  defp do_capture_io(:standard_io, options, fun) do
+  defp do_with_io(:standard_io, options, fun) do
     prompt_config = Keyword.get(options, :capture_prompt, true)
     encoding = Keyword.get(options, :encoding, :unicode)
     input = Keyword.get(options, :input, "")
@@ -152,15 +201,15 @@ defmodule ExUnit.CaptureIO do
     end
   end
 
-  defp do_capture_io(device, options, fun) do
+  defp do_with_io(device, options, fun) do
     input = Keyword.get(options, :input, "")
     encoding = Keyword.get(options, :encoding, :unicode)
 
     case ExUnit.CaptureServer.device_capture_on(device, encoding, input) do
       {:ok, ref} ->
         try do
-          fun.()
-          ExUnit.CaptureServer.device_output(device, ref)
+          result = fun.()
+          {result, ExUnit.CaptureServer.device_output(device, ref)}
         after
           ExUnit.CaptureServer.device_capture_off(ref)
         end
@@ -194,9 +243,9 @@ defmodule ExUnit.CaptureIO do
         _ = StringIO.close(string_io)
         :erlang.raise(kind, reason, __STACKTRACE__)
     else
-      _ ->
+      result ->
         {:ok, {_input, output}} = StringIO.close(string_io)
-        output
+        {result, output}
     end
   end
 end
