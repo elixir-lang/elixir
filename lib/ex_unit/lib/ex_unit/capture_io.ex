@@ -138,8 +138,10 @@ defmodule ExUnit.CaptureIO do
   end
 
   @doc ~S"""
-  Same functionality as `capture_io/2`, but returns a tuple
-  with the result of the evaluation and the captured output.
+  Invokes the given `fun` and returns a tuple with its result
+  and the captured output.
+  
+  It accepts the same arguments and options as `capture_io/2`.
 
   ## Examples
 

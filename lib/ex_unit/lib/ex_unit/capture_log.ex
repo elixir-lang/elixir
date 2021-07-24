@@ -76,8 +76,10 @@ defmodule ExUnit.CaptureLog do
   end
 
   @doc """
-  Same functionality as `capture_log/2`, but returns a tuple
-  with the result of the evaluation and the captured output.
+  Invokes the given `fun` and returns a tuple with its result
+  and the captured log.
+
+  It accepts the same arguments and options as `capture_log/2`.
   """
   @spec with_log(keyword, (() -> any)) :: {any, String.t()}
   def with_log(opts \\ [], fun) do
