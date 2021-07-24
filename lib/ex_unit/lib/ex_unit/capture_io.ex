@@ -137,7 +137,7 @@ defmodule ExUnit.CaptureIO do
     capture
   end
 
-  @doc """
+  @doc ~S"""
   Same functionality as `capture_io/2`, but returns a tuple
   with the result of the evaluation and the captured output.
 
