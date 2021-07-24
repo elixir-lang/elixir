@@ -11,9 +11,14 @@ defmodule ExUnit.CaptureLog do
         require Logger
 
         test "example" do
-          assert capture_log(fn ->
-                   Logger.error("log msg")
-                 end) =~ "log msg"
+          {result, log} =
+            with_log(fn ->
+              Logger.error("log msg")
+              2 + 2
+            end)
+
+          assert result == 4
+          assert log =~ "log msg"
         end
 
         test "check multiple captures concurrently" do
@@ -60,9 +65,24 @@ defmodule ExUnit.CaptureLog do
   The format, metadata and colors can be configured with `:format`,
   `:metadata` and `:colors` respectively. These three options
   defaults to the `:console` backend configuration parameters.
+
+  To get the result of the evaluation along with the captured log,
+  use `with_log/2`.
   """
   @spec capture_log(keyword, (() -> any)) :: String.t()
   def capture_log(opts \\ [], fun) do
+    {_, log} = with_log(opts, fun)
+    log
+  end
+
+  @doc """
+  Invokes the given `fun` and returns a tuple with its result
+  and the captured log.
+
+  It accepts the same arguments and options as `capture_log/2`.
+  """
+  @spec with_log(keyword, (() -> any)) :: {any, String.t()}
+  def with_log(opts \\ [], fun) do
     opts = Keyword.put_new(opts, :level, nil)
     {:ok, string_io} = StringIO.open("")
 
@@ -77,16 +97,14 @@ defmodule ExUnit.CaptureLog do
         :ok = ExUnit.CaptureServer.log_capture_off(ref)
         :ok = remove_capture(string_io)
       end
-
-      :ok
     catch
       kind, reason ->
         _ = StringIO.close(string_io)
         :erlang.raise(kind, reason, __STACKTRACE__)
     else
-      :ok ->
+      result ->
         {:ok, content} = StringIO.close(string_io)
-        elem(content, 1)
+        {result, elem(content, 1)}
     end
   end
 
