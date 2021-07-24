@@ -461,6 +461,13 @@ defmodule ExUnit.CaptureIOTest do
     end
   end
 
+  test "with_io" do
+    assert with_io(fn ->
+             :io.put_chars("xyz")
+             2 + 2
+           end) == {4, "xyz"}
+  end
+
   defp send_and_receive_io(req) do
     pid = self()
     send(:erlang.group_leader(), {:io_request, pid, pid, req})
