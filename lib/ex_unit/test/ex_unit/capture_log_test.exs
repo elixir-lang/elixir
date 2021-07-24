@@ -84,6 +84,16 @@ defmodule ExUnit.CaptureLogTest do
     end
   end
 
+  test "with_log" do
+    {4, log} =
+      with_log(fn ->
+        Logger.error("calculating...")
+        2 + 2
+      end)
+
+    assert log =~ "calculating..."
+  end
+
   defp wait_capture_removal() do
     case :gen_event.which_handlers(Logger) do
       [Logger.Config] ->
