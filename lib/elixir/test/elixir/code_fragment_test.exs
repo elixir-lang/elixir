@@ -121,6 +121,7 @@ defmodule CodeFragmentTest do
     test "alias" do
       assert CF.cursor_context("HelloWor") == {:alias, 'HelloWor'}
       assert CF.cursor_context("Hello.Wor") == {:alias, 'Hello.Wor'}
+      assert CF.cursor_context("Hello . Wor") == {:alias, 'Hello.Wor'}
       assert CF.cursor_context("Hello::Wor") == {:alias, 'Wor'}
       assert CF.cursor_context("Hello..Wor") == {:alias, 'Wor'}
       assert CF.cursor_context("%Hello.Wor") == {:alias, 'Hello.Wor'}
@@ -258,6 +259,105 @@ defmodule CodeFragmentTest do
     test "newlines" do
       assert CF.cursor_context("this+does-not*matter\nHello.") == {:dot, {:alias, 'Hello'}, ''}
       assert CF.cursor_context('this+does-not*matter\nHello.') == {:dot, {:alias, 'Hello'}, ''}
+    end
+  end
+
+  describe "surround_context/2" do
+    test "newlines" do
+      for i <- 1..7 do
+        assert CF.surround_context("\n\nhello_wo\n", {3, i}) == %{
+                 context: {:local_or_var, 'hello_wo'},
+                 begin: {3, 1},
+                 end: {3, 8}
+               }
+      end
+    end
+
+    test "local_or_var" do
+      for i <- 1..7 do
+        assert CF.surround_context("hello_wo", {1, i}) == %{
+                 context: {:local_or_var, 'hello_wo'},
+                 begin: {1, 1},
+                 end: {1, 8}
+               }
+      end
+
+      assert CF.surround_context("hello_wo", {1, 8}) == :none
+
+      for i <- 1..5 do
+        assert CF.surround_context("hello!", {1, i}) == %{
+                 context: {:local_or_var, 'hello!'},
+                 begin: {1, 1},
+                 end: {1, 6}
+               }
+      end
+
+      assert CF.surround_context("hello!", {1, 6}) == :none
+
+      for i <- 1..4 do
+        assert CF.surround_context("안녕_세상", {1, i}) == %{
+                 context: {:local_or_var, '안녕_세상'},
+                 begin: {1, 1},
+                 end: {1, 5}
+               }
+      end
+
+      assert CF.surround_context("안녕_세상", {1, 5}) == :none
+
+      # Keywords are not local or var
+      for keyword <- ~w(do end after catch else rescue) do
+        assert CF.surround_context(keyword, {1, 1}) == :none
+      end
+    end
+
+    test "textual operators" do
+      for op <- ~w(when not or and in), i <- 1..(byte_size(op) - 1) do
+        assert CF.surround_context("#{op}", {1, i}) == %{
+                 context: {:operator, String.to_charlist(op)},
+                 begin: {1, 1},
+                 end: {1, byte_size(op)}
+               }
+      end
+    end
+
+    test "alias" do
+      for i <- 1..7 do
+        assert CF.surround_context("HelloWor", {1, i}) == %{
+                 context: {:alias, 'HelloWor'},
+                 begin: {1, 1},
+                 end: {1, 8}
+               }
+      end
+
+      assert CF.surround_context("HelloWor", {1, 8}) == :none
+
+      for i <- 1..8 do
+        assert CF.surround_context("Hello.Wor", {1, i}) == %{
+                 context: {:alias, 'Hello.Wor'},
+                 begin: {1, 1},
+                 end: {1, 9}
+               }
+      end
+
+      assert CF.surround_context("Hello.Wor", {1, 9}) == :none
+
+      for i <- 1..10 do
+        assert CF.surround_context("Hello . Wor", {1, i}) == %{
+                 context: {:alias, 'Hello.Wor'},
+                 begin: {1, 1},
+                 end: {1, 11}
+               }
+      end
+
+      assert CF.surround_context("Hello . Wor", {1, 11}) == :none
+
+      for i <- 1..14 do
+        assert CF.surround_context("Foo . Bar . Baz", {1, i}) == %{
+                 context: {:alias, 'Foo.Bar.Baz'},
+                 begin: {1, 1},
+                 end: {1, 15}
+               }
+      end
     end
   end
 end
