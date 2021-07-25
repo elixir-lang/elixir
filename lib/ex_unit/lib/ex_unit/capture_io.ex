@@ -63,6 +63,8 @@ defmodule ExUnit.CaptureIO do
 
   ## Options
 
+    * `:input` - An input to the IO device, defaults to `""`.
+
     * `:capture_prompt` - Define if prompts (specified as arguments to
       `IO.get*` functions) should be captured. Defaults to `true`. For
       IO devices other than `:stdio`, the option is ignored.
@@ -105,32 +107,43 @@ defmodule ExUnit.CaptureIO do
     capture
   end
 
-  @spec capture_io(atom(), (() -> any())) :: String.t()
+  @doc """
+  Captures IO generated when evaluating `fun`.
+
+  See `capture_io/1` for more information.
+  """
+  @spec capture_io(atom() | String.t() | keyword(), (() -> any())) :: String.t()
+  def capture_io(device_input_or_options, fun)
+
   def capture_io(device, fun) when is_atom(device) and is_function(fun, 0) do
     {_result, capture} = with_io(device, fun)
     capture
   end
 
-  @spec capture_io(String.t(), (() -> any())) :: String.t()
   def capture_io(input, fun) when is_binary(input) and is_function(fun, 0) do
     {_result, capture} = with_io(input, fun)
     capture
   end
 
-  @spec capture_io(keyword(), (() -> any())) :: String.t()
   def capture_io(options, fun) when is_list(options) and is_function(fun, 0) do
     {_result, capture} = with_io(options, fun)
     capture
   end
 
-  @spec capture_io(atom(), String.t(), (() -> any())) :: String.t()
+  @doc """
+  Captures IO generated when evaluating `fun`.
+
+  See `capture_io/1` for more information.
+  """
+  @spec capture_io(atom(), String.t() | keyword(), (() -> any())) :: String.t()
+  def capture_io(device, input_or_options, fun)
+
   def capture_io(device, input, fun)
       when is_atom(device) and is_binary(input) and is_function(fun, 0) do
     {_result, capture} = with_io(device, input, fun)
     capture
   end
 
-  @spec capture_io(atom(), keyword(), (() -> any())) :: String.t()
   def capture_io(device, options, fun)
       when is_atom(device) and is_list(options) and is_function(fun, 0) do
     {_result, capture} = with_io(device, options, fun)
@@ -138,9 +151,9 @@ defmodule ExUnit.CaptureIO do
   end
 
   @doc ~S"""
-  Invokes the given `fun` and returns a tuple with its result
-  and the captured output.
-  It accepts the same arguments and options as `capture_io/2`.
+  Invokes the given `fun` and returns the result and captured output.
+
+  It accepts the same arguments and options as `capture_io/1`.
 
   ## Examples
 
@@ -150,33 +163,47 @@ defmodule ExUnit.CaptureIO do
         2 + 2
       end) == {4, "a\nb\n"}
   """
+  @doc since: "1.13.0"
   @spec with_io((() -> any())) :: {any(), String.t()}
   def with_io(fun) when is_function(fun, 0) do
     with_io(:stdio, [], fun)
   end
 
-  @spec with_io(atom(), (() -> any())) :: {any(), String.t()}
+  @doc """
+  Invokes the given `fun` and returns the result and captured output.
+
+  See `with_io/1` for more information.
+  """
+  @doc since: "1.13.0"
+  @spec with_io(atom() | String.t() | keyword(), (() -> any())) :: {any(), String.t()}
+  def with_io(device_input_or_options, fun)
+
   def with_io(device, fun) when is_atom(device) and is_function(fun, 0) do
     with_io(device, [], fun)
   end
 
-  @spec with_io(String.t(), (() -> any())) :: {any(), String.t()}
   def with_io(input, fun) when is_binary(input) and is_function(fun, 0) do
     with_io(:stdio, [input: input], fun)
   end
 
-  @spec with_io(keyword(), (() -> any())) :: {any(), String.t()}
   def with_io(options, fun) when is_list(options) and is_function(fun, 0) do
     with_io(:stdio, options, fun)
   end
 
-  @spec with_io(atom(), String.t(), (() -> any())) :: {any(), String.t()}
+  @doc """
+  Invokes the given `fun` and returns the result and captured output.
+
+  See `with_io/1` for more information.
+  """
+  @doc since: "1.13.0"
+  @spec with_io(atom(), String.t() | keyword(), (() -> any())) :: {any(), String.t()}
+  def with_io(device, input_or_options, fun)
+
   def with_io(device, input, fun)
       when is_atom(device) and is_binary(input) and is_function(fun, 0) do
     with_io(device, [input: input], fun)
   end
 
-  @spec with_io(atom(), keyword(), (() -> any())) :: {any(), String.t()}
   def with_io(device, options, fun)
       when is_atom(device) and is_list(options) and is_function(fun, 0) do
     do_with_io(map_dev(device), options, fun)
