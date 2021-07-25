@@ -76,11 +76,22 @@ defmodule ExUnit.CaptureLog do
   end
 
   @doc """
-  Invokes the given `fun` and returns a tuple with its result
-  and the captured log.
+  Invokes the given `fun` and returns the result and captured log.
 
   It accepts the same arguments and options as `capture_log/2`.
+
+  ## Examples
+
+      {result, log} =
+        with_log(fn ->
+          Logger.error("log msg")
+          2 + 2
+        end)
+
+      assert result == 4
+      assert log =~ "log msg"
   """
+  @doc since: "1.13.0"
   @spec with_log(keyword, (() -> any)) :: {any, String.t()}
   def with_log(opts \\ [], fun) do
     opts = Keyword.put_new(opts, :level, nil)
