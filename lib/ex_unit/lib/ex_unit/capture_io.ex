@@ -157,11 +157,15 @@ defmodule ExUnit.CaptureIO do
 
   ## Examples
 
-      assert with_io(fn ->
-        IO.puts("a")
-        IO.puts("b")
-        2 + 2
-      end) == {4, "a\nb\n"}
+      {result, output} =
+        assert with_io(fn ->
+          IO.puts("a")
+          IO.puts("b")
+          2 + 2
+        end)
+
+      assert result == 4
+      assert output == "a\nb\n"
   """
   @doc since: "1.13.0"
   @spec with_io((() -> any())) :: {any(), String.t()}
