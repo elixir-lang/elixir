@@ -434,24 +434,46 @@ defmodule Code.Fragment do
     surround_context(to_charlist(other), position, opts)
   end
 
-  # TODO: Handle unquoted atoms
   # TODO: Handle operators and dot operators
   # TODO: Handle left..right and left .. right around the operator
   # TODO: Make sure a ! is handled properly
   defp position_surround_context(charlist, line, column, opts)
        when is_integer(line) and line >= 1 and is_integer(column) and column >= 1 do
-    {reversed_pre, post} = string_reverse_at(charlist, column, [])
-    {reversed_pre, post} = adjust_spaces(reversed_pre, post)
+    {reversed_pre, post} = string_reverse_at(charlist, column - 1, [])
+    {reversed_pre, post} = adjust_position(reversed_pre, post)
 
     case take_identifier(post, []) do
       {_, [], _} ->
-        :none
+        case take_operator(post, []) do
+          {[], _rest} ->
+            :none
+
+          {reversed_post, _rest} ->
+            reversed = reversed_post ++ reversed_pre
+
+            case codepoint_cursor_context(reversed, opts) do
+              {{:operator, acc}, offset} ->
+                build_surround({:operator, acc}, reversed, line, offset)
+
+              {{:dot, _, _} = dot, offset} ->
+                build_surround(dot, reversed, line, offset)
+
+              _ ->
+                :none
+            end
+        end
 
       {:identifier, reversed_post, rest} ->
         {rest, _} = strip_spaces(rest, 0)
         reversed = reversed_post ++ reversed_pre
 
         case codepoint_cursor_context(reversed, opts) do
+          {{:alias, acc}, offset} ->
+            build_surround({:alias, acc}, reversed, line, offset)
+
+          {{:dot, _, _} = dot, offset} ->
+            build_surround(dot, reversed, line, offset)
+
           {{:local_or_var, acc}, offset} when hd(rest) == ?( ->
             build_surround({:local_call, acc}, reversed, line, offset)
 
@@ -464,14 +486,14 @@ defmodule Code.Fragment do
           {{:local_or_var, acc}, offset} when acc not in ~w(do end after else catch rescue)c ->
             build_surround({:local_or_var, acc}, reversed, line, offset)
 
-          {{:alias, acc}, offset} ->
-            build_surround({:alias, acc}, reversed, line, offset)
+          {{:module_attribute, ''}, offset} ->
+            build_surround({:operator, '@'}, reversed, line, offset)
 
           {{:module_attribute, acc}, offset} ->
             build_surround({:module_attribute, acc}, reversed, line, offset)
 
-          {{:dot, _, _} = dot, offset} ->
-            build_surround(dot, reversed, line, offset)
+          {{:unquoted_atom, acc}, offset} ->
+            build_surround({:unquoted_atom, acc}, reversed, line, offset)
 
           _ ->
             :none
@@ -493,11 +515,11 @@ defmodule Code.Fragment do
   defp build_surround(context, reversed, line, offset) do
     {post, reversed_pre} = enum_reverse_at(reversed, offset, [])
     pre = :lists.reverse(reversed_pre)
-    pre_length = :string.length(pre)
+    pre_length = :string.length(pre) + 1
 
     %{
       context: context,
-      begin: {line, pre_length + 1},
+      begin: {line, pre_length},
       end: {line, pre_length + :string.length(post)}
     }
   end
@@ -529,12 +551,22 @@ defmodule Code.Fragment do
     end
   end
 
-  defp adjust_spaces(reversed_pre, post) do
+  defp take_operator([h | t], acc) when h in @operators, do: take_operator(t, [h | acc])
+  defp take_operator(rest, acc), do: {acc, rest}
+
+  # Unquoted atom handling
+  defp adjust_position(reversed_pre, [?: | post]) when hd(post) != ?: do
+    {[?: | reversed_pre], post}
+  end
+
+  # Dot handling
+  defp adjust_position(reversed_pre, post) do
     case move_spaces(post, reversed_pre) do
       # If we are between spaces and a dot, move past the dot
       {[?. | post], reversed_pre} when hd(post) != ?. ->
         {post, reversed_pre} = move_spaces(post, [?. | reversed_pre])
         {reversed_pre, post}
+
       _ ->
         case strip_spaces(reversed_pre, 0) do
           # If there is a dot to our left, make sure to move to the first character
