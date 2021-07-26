@@ -310,6 +310,90 @@ defmodule CodeFragmentTest do
       end
     end
 
+    test "local call" do
+      for i <- 1..7 do
+        assert CF.surround_context("hello_wo(", {1, i}) == %{
+                 context: {:local_call, 'hello_wo'},
+                 begin: {1, 1},
+                 end: {1, 8}
+               }
+      end
+
+      assert CF.surround_context("hello_wo(", {1, 8}) == :none
+
+      for i <- 1..7 do
+        assert CF.surround_context("hello_wo (", {1, i}) == %{
+                 context: {:local_call, 'hello_wo'},
+                 begin: {1, 1},
+                 end: {1, 8}
+               }
+      end
+
+      assert CF.surround_context("hello_wo (", {1, 8}) == :none
+
+      for i <- 1..5 do
+        assert CF.surround_context("hello!(", {1, i}) == %{
+                 context: {:local_call, 'hello!'},
+                 begin: {1, 1},
+                 end: {1, 6}
+               }
+      end
+
+      assert CF.surround_context("hello!(", {1, 6}) == :none
+
+      for i <- 1..4 do
+        assert CF.surround_context("안녕_세상(", {1, i}) == %{
+                 context: {:local_call, '안녕_세상'},
+                 begin: {1, 1},
+                 end: {1, 5}
+               }
+      end
+
+      assert CF.surround_context("안녕_세상(", {1, 5}) == :none
+    end
+
+    test "local arity" do
+      for i <- 1..7 do
+        assert CF.surround_context("hello_wo/", {1, i}) == %{
+                 context: {:local_arity, 'hello_wo'},
+                 begin: {1, 1},
+                 end: {1, 8}
+               }
+      end
+
+      assert CF.surround_context("hello_wo/", {1, 8}) == :none
+
+      for i <- 1..7 do
+        assert CF.surround_context("hello_wo /", {1, i}) == %{
+                 context: {:local_arity, 'hello_wo'},
+                 begin: {1, 1},
+                 end: {1, 8}
+               }
+      end
+
+      assert CF.surround_context("hello_wo /", {1, 8}) == :none
+
+      for i <- 1..5 do
+        assert CF.surround_context("hello!/", {1, i}) == %{
+                 context: {:local_arity, 'hello!'},
+                 begin: {1, 1},
+                 end: {1, 6}
+               }
+      end
+
+      assert CF.surround_context("hello!/", {1, 6}) == :none
+
+      for i <- 1..4 do
+        assert CF.surround_context("안녕_세상/", {1, i}) == %{
+                 context: {:local_arity, '안녕_세상'},
+                 begin: {1, 1},
+                 end: {1, 5}
+               }
+      end
+
+      assert CF.surround_context("안녕_세상/", {1, 5}) == :none
+    end
+
     test "textual operators" do
       for op <- ~w(when not or and in), i <- 1..(byte_size(op) - 1) do
         assert CF.surround_context("#{op}", {1, i}) == %{
@@ -317,6 +401,60 @@ defmodule CodeFragmentTest do
                  begin: {1, 1},
                  end: {1, byte_size(op)}
                }
+      end
+    end
+
+    test "dot" do
+      for i <- 1..4 do
+        assert CF.surround_context("Hello.wor", {1, i}) == %{
+          context: {:alias, 'Hello'},
+          begin: {1, 1},
+          end: {1, 5}
+        }
+      end
+
+      for i <- 5..8 do
+        assert CF.surround_context("Hello.wor", {1, i}) == %{
+          context: {:dot, {:alias, 'Hello'}, 'wor'},
+          begin: {1, 1},
+          end: {1, 9}
+        }
+      end
+
+      assert CF.surround_context("Hello.", {1, 5}) == :none
+
+      for i <- 1..4 do
+        assert CF.surround_context("Hello . wor", {1, i}) == %{
+          context: {:alias, 'Hello'},
+          begin: {1, 1},
+          end: {1, 5}
+        }
+      end
+
+      for i <- 5..10 do
+        assert CF.surround_context("Hello . wor", {1, i}) == %{
+          context: {:dot, {:alias, 'Hello'}, 'wor'},
+          begin: {1, 1},
+          end: {1, 11}
+        }
+      end
+
+      assert CF.surround_context("Hello .", {1, 5}) == :none
+
+      for i <- 1..4 do
+        assert CF.surround_context("hello.wor", {1, i}) == %{
+          context: {:local_or_var, 'hello'},
+          begin: {1, 1},
+          end: {1, 5}
+        }
+      end
+
+      for i <- 5..8 do
+        assert CF.surround_context("hello.wor", {1, i}) == %{
+          context: {:dot, {:var, 'hello'}, 'wor'},
+          begin: {1, 1},
+          end: {1, 9}
+        }
       end
     end
 
@@ -358,6 +496,19 @@ defmodule CodeFragmentTest do
                  end: {1, 15}
                }
       end
+    end
+
+    test "module attributes" do
+      for i <- 1..9 do
+        assert CF.surround_context("@hello_wor", {1, i}) == %{
+          context: {:module_attribute, 'hello_wor'},
+          begin: {1, 1},
+          end: {1, 10}
+        }
+      end
+
+      assert CF.surround_context("@", {1, 1}) == :none
+      assert CF.surround_context("@Hello", {1, 1}) == :none
     end
   end
 end

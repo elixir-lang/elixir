@@ -387,8 +387,32 @@ defmodule Code.Fragment do
   end
 
   @doc """
+  ...
 
+  In contrast to `cursor_context/3`, `surround_context/3` does not
+  return `dot_call`/`dot_arity` nor `operator_call`/`operator_arity`
+  contexts because they should behave the same as `dot` and `operator`
+  respectively. The difference only exists for `local_call`/`local_arity`
+  as they contrast to `local_or_var` which may be a local or variable.
   """
+  @doc since: "1.13.0"
+  @spec surround_context(List.Chars.t(), position(), keyword()) ::
+          %{begin: position, end: position, context: context} | :none
+        when context:
+               {:alias, charlist}
+               | {:dot, inside_dot, charlist}
+               | {:local_or_var, charlist}
+               | {:local_arity, charlist}
+               | {:local_call, charlist}
+               | {:module_attribute, charlist}
+               | {:operator, charlist}
+               | {:unquoted_atom, charlist},
+             inside_dot:
+               {:alias, charlist}
+               | {:dot, inside_dot, charlist}
+               | {:module_attribute, charlist}
+               | {:unquoted_atom, charlist}
+               | {:var, charlist}
   def surround_context(fragment, position, options \\ [])
 
   def surround_context(binary, {line, column}, opts) when is_binary(binary) do
@@ -411,6 +435,7 @@ defmodule Code.Fragment do
   end
 
   # TODO: Handle unquoted atoms
+  # TODO: Handle operators and dot operators
   # TODO: Handle left..right and left .. right around the operator
   # TODO: Make sure a ! is handled properly
   defp position_surround_context(charlist, line, column, opts)
@@ -423,11 +448,15 @@ defmodule Code.Fragment do
         :none
 
       {:identifier, reversed_post, rest} ->
+        {rest, _} = strip_spaces(rest, 0)
         reversed = reversed_post ++ reversed_pre
 
         case codepoint_cursor_context(reversed, opts) do
           {{:local_or_var, acc}, offset} when hd(rest) == ?( ->
             build_surround({:local_call, acc}, reversed, line, offset)
+
+          {{:local_or_var, acc}, offset} when hd(rest) == ?/ ->
+            build_surround({:local_arity, acc}, reversed, line, offset)
 
           {{:local_or_var, acc}, offset} when acc in @textual_operators ->
             build_surround({:operator, acc}, reversed, line, offset)
@@ -437,6 +466,12 @@ defmodule Code.Fragment do
 
           {{:alias, acc}, offset} ->
             build_surround({:alias, acc}, reversed, line, offset)
+
+          {{:module_attribute, acc}, offset} ->
+            build_surround({:module_attribute, acc}, reversed, line, offset)
+
+          {{:dot, _, _} = dot, offset} ->
+            build_surround(dot, reversed, line, offset)
 
           _ ->
             :none
@@ -495,14 +530,14 @@ defmodule Code.Fragment do
   end
 
   defp adjust_spaces(reversed_pre, post) do
-    # If we are between spaces and a dot with an alias, move to the right
-    with {[?. | post], reversed_pre} <- move_spaces(post, reversed_pre),
-         {[h | _] = post, reversed_pre} when h in ?A..?Z <- move_spaces(post, [?. | reversed_pre]) do
-      {reversed_pre, post}
-    else
+    case move_spaces(post, reversed_pre) do
+      # If we are between spaces and a dot, move past the dot
+      {[?. | post], reversed_pre} when hd(post) != ?. ->
+        {post, reversed_pre} = move_spaces(post, [?. | reversed_pre])
+        {reversed_pre, post}
       _ ->
-        # If there is a dot to our left, make sure to move to the first character
         case strip_spaces(reversed_pre, 0) do
+          # If there is a dot to our left, make sure to move to the first character
           {[?. | rest], _} when rest == [] or hd(rest) not in '.:' ->
             {post, reversed_pre} = move_spaces(post, reversed_pre)
             {reversed_pre, post}
