@@ -351,19 +351,25 @@ defmodule Code do
       and the second a list of imported macro names and arity; the list
       of function names and arity must be sorted
 
+    * `:tracers` - set the compilation tracers to be used during code
+      evaluation
+
   Note that setting any of the values above overrides Elixir's default
   values. For example, setting `:requires` to `[]` will no longer
   automatically require the `Kernel` module. In the same way setting
   `:macros` will no longer auto-import `Kernel` macros like `Kernel.if/2`,
   `Kernel.SpecialForms.case/2`, and so on.
 
-  Returns a tuple of the form `{value, binding}`,
-  where `value` is the value returned from evaluating `string`.
-  If an error occurs while evaluating `string` an exception will be raised.
+  On the other hand, if the evaluated code requires or compiles another
+  file, the settings given to this function will not apply to said files.
 
-  `binding` is a list with all variable bindings
-  after evaluating `string`. The binding keys are usually atoms, but they
-  may be a tuple for variables defined in a different context.
+  Returns a tuple of the form `{value, binding}`, where `value` is the value
+  returned from evaluating `string`. If an error occurs while evaluating
+  `string` an exception will be raised.
+
+  `binding` is a list with all variable bindings after evaluating `string`.
+  The binding keys are usually atoms, but they may be a tuple for variables
+  defined in a different context.
 
   ## Examples
 
