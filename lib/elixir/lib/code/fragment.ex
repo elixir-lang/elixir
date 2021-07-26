@@ -266,10 +266,10 @@ defmodule Code.Fragment do
   defp identifier([?! | rest], count), do: check_identifier(rest, count + 1, [?!])
   defp identifier(rest, count), do: check_identifier(rest, count, [])
 
-  defp check_identifier([h | _], _count, _acc) when h in @operators, do: :operator
-  defp check_identifier([h | _], _count, _acc) when h in @non_identifier, do: :none
-  defp check_identifier([], _count, _acc), do: :operator
-  defp check_identifier(rest, count, acc), do: rest_identifier(rest, count, acc)
+  defp check_identifier([h | t], count, acc) when h not in @non_identifier,
+    do: rest_identifier(t, count + 1, [h | acc])
+
+  defp check_identifier(_, _, _), do: :operator
 
   defp rest_identifier([h | rest], count, acc) when h not in @non_identifier do
     rest_identifier(rest, count + 1, [h | acc])
@@ -375,7 +375,7 @@ defmodule Code.Fragment do
             :none
 
           match?([?. | rest] when rest == [] or hd(rest) != ?., rest) ->
-            dot(tl(rest), dot_count, acc)
+            dot(tl(rest), dot_count + 1, acc)
 
           true ->
             {{:operator, acc}, count}
@@ -434,9 +434,6 @@ defmodule Code.Fragment do
     surround_context(to_charlist(other), position, opts)
   end
 
-  # TODO: Handle operators and dot operators
-  # TODO: Handle left..right and left .. right around the operator
-  # TODO: Make sure a ! is handled properly
   defp position_surround_context(charlist, line, column, opts)
        when is_integer(line) and line >= 1 and is_integer(column) and column >= 1 do
     {reversed_pre, post} = string_reverse_at(charlist, column - 1, [])
@@ -444,24 +441,7 @@ defmodule Code.Fragment do
 
     case take_identifier(post, []) do
       {_, [], _} ->
-        case take_operator(post, []) do
-          {[], _rest} ->
-            :none
-
-          {reversed_post, _rest} ->
-            reversed = reversed_post ++ reversed_pre
-
-            case codepoint_cursor_context(reversed, opts) do
-              {{:operator, acc}, offset} ->
-                build_surround({:operator, acc}, reversed, line, offset)
-
-              {{:dot, _, _} = dot, offset} ->
-                build_surround(dot, reversed, line, offset)
-
-              _ ->
-                :none
-            end
-        end
+        maybe_operator(reversed_pre, post, line, opts)
 
       {:identifier, reversed_post, rest} ->
         {rest, _} = strip_spaces(rest, 0)
@@ -471,7 +451,7 @@ defmodule Code.Fragment do
           {{:alias, acc}, offset} ->
             build_surround({:alias, acc}, reversed, line, offset)
 
-          {{:dot, _, _} = dot, offset} ->
+          {{:dot, _, [_ | _]} = dot, offset} ->
             build_surround(dot, reversed, line, offset)
 
           {{:local_or_var, acc}, offset} when hd(rest) == ?( ->
@@ -496,7 +476,7 @@ defmodule Code.Fragment do
             build_surround({:unquoted_atom, acc}, reversed, line, offset)
 
           _ ->
-            :none
+            maybe_operator(reversed_pre, post, line, opts)
         end
 
       {:alias, reversed_post, _rest} ->
@@ -505,6 +485,27 @@ defmodule Code.Fragment do
         case codepoint_cursor_context(reversed, opts) do
           {{:alias, acc}, offset} ->
             build_surround({:alias, acc}, reversed, line, offset)
+
+          _ ->
+            :none
+        end
+    end
+  end
+
+  defp maybe_operator(reversed_pre, post, line, opts) do
+    case take_operator(post, []) do
+      {[], _rest} ->
+        :none
+
+      {reversed_post, _rest} ->
+        reversed = reversed_post ++ reversed_pre
+
+        case codepoint_cursor_context(reversed, opts) do
+          {{:operator, acc}, offset} ->
+            build_surround({:operator, acc}, reversed, line, offset)
+
+          {{:dot, _, [_ | _]} = dot, offset} ->
+            build_surround(dot, reversed, line, offset)
 
           _ ->
             :none
@@ -552,10 +553,12 @@ defmodule Code.Fragment do
   end
 
   defp take_operator([h | t], acc) when h in @operators, do: take_operator(t, [h | acc])
+  defp take_operator([h | t], acc) when h == ?., do: take_operator(t, [h | acc])
   defp take_operator(rest, acc), do: {acc, rest}
 
   # Unquoted atom handling
-  defp adjust_position(reversed_pre, [?: | post]) when hd(post) != ?: do
+  defp adjust_position(reversed_pre, [?: | post])
+       when hd(post) != ?: and (reversed_pre == [] or hd(reversed_pre) != ?:) do
     {[?: | reversed_pre], post}
   end
 
@@ -563,7 +566,7 @@ defmodule Code.Fragment do
   defp adjust_position(reversed_pre, post) do
     case move_spaces(post, reversed_pre) do
       # If we are between spaces and a dot, move past the dot
-      {[?. | post], reversed_pre} when hd(post) != ?. ->
+      {[?. | post], reversed_pre} when hd(post) != ?. and hd(reversed_pre) != ?. ->
         {post, reversed_pre} = move_spaces(post, [?. | reversed_pre])
         {reversed_pre, post}
 

@@ -526,6 +526,96 @@ defmodule CodeFragmentTest do
                  end: {1, 6}
                }
       end
+
+      for i <- 2..3 do
+        assert CF.surround_context("1::3", {1, i}) == %{
+                 context: {:operator, '::'},
+                 begin: {1, 2},
+                 end: {1, 4}
+               }
+      end
+
+      for i <- 3..4 do
+        assert CF.surround_context("1 :: 3", {1, i}) == %{
+                 context: {:operator, '::'},
+                 begin: {1, 3},
+                 end: {1, 5}
+               }
+      end
+
+      for i <- 2..3 do
+        assert CF.surround_context("x..y", {1, i}) == %{
+                 context: {:operator, '..'},
+                 begin: {1, 2},
+                 end: {1, 4}
+               }
+      end
+
+      for i <- 3..4 do
+        assert CF.surround_context("x .. y", {1, i}) == %{
+                 context: {:operator, '..'},
+                 begin: {1, 3},
+                 end: {1, 5}
+               }
+      end
+
+      assert CF.surround_context("@", {1, 1}) == %{
+               context: {:operator, '@'},
+               begin: {1, 1},
+               end: {1, 2}
+             }
+
+      assert CF.surround_context("!", {1, 1}) == %{
+               context: {:operator, '!'},
+               begin: {1, 1},
+               end: {1, 2}
+             }
+
+      assert CF.surround_context("!foo", {1, 1}) == %{
+               context: {:operator, '!'},
+               begin: {1, 1},
+               end: {1, 2}
+             }
+
+      assert CF.surround_context("foo !bar", {1, 5}) == %{
+               context: {:operator, '!'},
+               begin: {1, 5},
+               end: {1, 6}
+             }
+    end
+
+    test "dot operator" do
+      for i <- 4..7 do
+        assert CF.surround_context("Foo.<<<", {1, i}) == %{
+                 context: {:dot, {:alias, 'Foo'}, '<<<'},
+                 begin: {1, 1},
+                 end: {1, 8}
+               }
+      end
+
+      for i <- 4..9 do
+        assert CF.surround_context("Foo . <<<", {1, i}) == %{
+                 context: {:dot, {:alias, 'Foo'}, '<<<'},
+                 begin: {1, 1},
+                 end: {1, 10}
+               }
+      end
+
+      for i <- 4..6 do
+        assert CF.surround_context("Foo.::", {1, i}) == %{
+                 context: {:dot, {:alias, 'Foo'}, '::'},
+                 begin: {1, 1},
+                 end: {1, 7}
+               }
+      end
+
+      for i <- 4..8 do
+        assert CF.surround_context("Foo . ::", {1, i}) == %{
+                 context: {:dot, {:alias, 'Foo'}, '::'},
+                 begin: {1, 1},
+                 end: {1, 9}
+               }
+      end
     end
 
     test "unquoted atom" do
