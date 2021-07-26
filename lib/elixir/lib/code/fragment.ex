@@ -3,7 +3,7 @@ defmodule Code.Fragment do
   This module provides conveniences for analyzing fragments of
   textual code and extract available information whenever possible.
 
-  Most of the function in this module provides a best-effort
+  Most of the functions in this module provide a best-effort
   and may not be accurate under all circumstances. Read each
   documentation for more information.
 
