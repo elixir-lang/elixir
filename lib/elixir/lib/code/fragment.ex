@@ -387,13 +387,66 @@ defmodule Code.Fragment do
   end
 
   @doc """
-  ...
+  Receives a string and returns the surround context.
 
-  In contrast to `cursor_context/3`, `surround_context/3` does not
+  This function receives a string with an Elixir code fragment
+  and a `position`. It returns a map containing the beginning
+  and ending of the expression alongside its context, or `:none`
+  if there is nothing with a known context.
+
+  The difference between `cursor_context/2` and `surround_context/3`
+  is that the former assumes the expression in the code fragment
+  is incomplete. For example, `do` in `cursor_context/2` may be
+  a keyword or a variable or a local call, while `surround_context/3`
+  assumes the expression in the code fragment is complete, therefore
+  `do` would always be a keyword.
+
+  The `position` contains both the `line` and `column`, both starting
+  with the index of 1. The column must preceed the surrounding expression.
+  For example, the expression `foo`, will return something for the columns
+  1, 2, and 3, but not 4:
+
+      foo
+      ^ column 1
+
+      foo
+       ^ column 2
+
+      foo
+        ^ column 3
+
+      foo
+         ^ column 4
+
+  The returned map contains the column the expression starts and the
+  first column after the expression ends.
+
+  This function builds on top of `cursor_context/2`. Therefore
+  it also provides a best-effort detection and may not be accurate
+  under all circumstances. See the "Return values" section for more
+  information on the available contexts as well as the "Limitations"
+  section.
+
+  ## Examples
+
+      iex> Code.Fragment.surround_context("foo", {1, 1})
+      %{begin: {1, 1}, context: {:local_or_var, 'foo'}, end: {1, 4}}
+
+  ## Differences to `cursor_context/2`
+
+  In contrast to `cursor_context/2`, `surround_context/3` does not
   return `dot_call`/`dot_arity` nor `operator_call`/`operator_arity`
   contexts because they should behave the same as `dot` and `operator`
-  respectively. The difference only exists for `local_call`/`local_arity`
-  as they contrast to `local_or_var` which may be a local or variable.
+  respectively in complete expressions.
+
+  On the other hand, it does make a distinction between `local_call`/
+  `local_arity` to `local_or_var`, since the latter can be a local or
+  variable.
+
+  Also note that `@` when not followed by any identifier is returned
+  as `{:operator, '@'}`, while it is a `{:module_attribute, ''}` in
+  `cursor_context/3`. Once again, this happens because `surround_context/3`
+  assumes the expression is complete, while `cursor_context/2` does not.
   """
   @doc since: "1.13.0"
   @spec surround_context(List.Chars.t(), position(), keyword()) ::
