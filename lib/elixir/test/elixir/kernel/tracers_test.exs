@@ -168,4 +168,17 @@ defmodule Kernel.TracersTest do
     :code.purge(Sample)
     :code.delete(Sample)
   end
+
+  test "traces modules" do
+    compile_string("""
+    defmodule Sample do
+      :ok
+    end
+    """)
+
+    assert_receive {{:on_module, <<_::binary>>, :none}, %{module: Sample, function: nil}}
+  after
+    :code.purge(Sample)
+    :code.delete(Sample)
+  end
 end
