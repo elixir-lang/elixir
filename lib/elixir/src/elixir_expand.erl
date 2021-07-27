@@ -472,10 +472,12 @@ escape_env_entries(Meta, #{current_vars := {Read, Write}, unused_vars := {Unused
     #{function := nil} -> Env0;
     _ -> Env0#{lexical_tracker := nil, tracers := []}
   end,
-  Current = {maybe_escape_map(Read), maybe_escape_map(Write)},
-  Env2 = Env1#{current_vars := Current, unused_vars := {maybe_escape_map(Unused), Version}},
-  Env3 = elixir_env:linify({?line(Meta), Env2}),
-  Env3.
+
+  Env1#{
+    current_vars := {maybe_escape_map(Read), maybe_escape_map(Write)},
+    unused_vars := {maybe_escape_map(Unused), Version},
+    line := ?line(Meta)
+  }.
 
 maybe_escape_map(#{} = Map) -> {'%{}', [], maps:to_list(Map)};
 maybe_escape_map(Other) -> Other.

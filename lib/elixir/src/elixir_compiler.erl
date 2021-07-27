@@ -41,12 +41,10 @@ file_to_path(File, Dest, Callback) when is_binary(File), is_binary(Dest) ->
 %% more efficient strategy depending on the code snippet.
 
 eval_forms(Forms, Args, E) ->
-  case (?key(E, module) == nil) andalso allows_fast_compilation(Forms) of
-    true  ->
-      {Result, _Binding, EE} = elixir:eval_forms(Forms, [], E),
-      {Result, EE};
-    false ->
-      compile(Forms, Args, E)
+  case (?key(E, module) == nil) andalso allows_fast_compilation(Forms) andalso
+        (not elixir_config:is_bootstrap()) of
+    true  -> fast_compile(Forms, E);
+    false -> compile(Forms, Args, E)
   end.
 
 compile(Quoted, ArgsList, E) ->
@@ -108,10 +106,22 @@ is_purgeable(Module, Binary) ->
 
 allows_fast_compilation({'__block__', _, Exprs}) ->
   lists:all(fun allows_fast_compilation/1, Exprs);
-allows_fast_compilation({defmodule, _, _}) ->
+allows_fast_compilation({defmodule, _, [_, [{do, _}]]}) ->
   true;
 allows_fast_compilation(_) ->
   false.
+
+fast_compile({'__block__', _, Exprs}, E) ->
+  lists:foldl(fun(Expr, _) -> fast_compile(Expr, E) end, nil, Exprs);
+fast_compile({defmodule, Meta, [Mod, [{do, TailBlock}]]}, NoLineE) ->
+  E = NoLineE#{line := ?line(Meta)},
+  Block = {'__block__', Meta, [
+    {'=', Meta, [{result, Meta, ?MODULE}, TailBlock]},
+    {{'.', Meta, [elixir_utils, noop]}, Meta, []},
+    {result, Meta, ?MODULE}
+  ]},
+  Expanded = 'Elixir.Macro':expand(Mod, E),
+  elixir_module:compile(Expanded, Block, [], E).
 
 %% Bootstrapper
 
