@@ -245,20 +245,26 @@ defmodule Code.Fragment do
       {:unquoted_atom, acc, count} ->
         {{:unquoted_atom, acc}, count}
 
-      {:alias, '.' ++ rest, acc, count} when rest == [] or hd(rest) != ?. ->
-        nested_alias(rest, count + 1, acc)
+      {:alias, rest, acc, count} ->
+        case strip_spaces(rest, count) do
+          {'.' ++ rest, count} when rest == [] or hd(rest) != ?. ->
+            nested_alias(rest, count + 1, acc)
 
-      {:identifier, '.' ++ rest, acc, count} when rest == [] or hd(rest) != ?. ->
-        dot(rest, count + 1, acc)
-
-      {:alias, _, acc, count} ->
-        {{:alias, acc}, count}
+          _ ->
+            {{:alias, acc}, count}
+        end
 
       {:identifier, _, acc, count} when call_op? and acc in @textual_operators ->
         {{:operator, acc}, count}
 
-      {:identifier, _, acc, count} ->
-        {{:local_or_var, acc}, count}
+      {:identifier, rest, acc, count} ->
+        case strip_spaces(rest, count) do
+          {'.' ++ rest, count} when rest == [] or hd(rest) != ?. ->
+            dot(rest, count + 1, acc)
+
+          _ ->
+            {{:local_or_var, acc}, count}
+        end
     end
   end
 
@@ -312,7 +318,6 @@ defmodule Code.Fragment do
         if ?@ in extra do
           :none
         else
-          {rest, count} = strip_spaces(rest, count)
           {kind, rest, acc, count}
         end
 
