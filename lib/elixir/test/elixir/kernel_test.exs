@@ -845,6 +845,18 @@ defmodule KernelTest do
     end
 
     test "raises with non-variable arguments" do
+      assert_raise ArgumentError,
+                   "guards are not allowed in defdelegate/2, got: when is_list(term) or is_binary(term)",
+                   fn ->
+                     string = """
+                     defmodule IntDelegateWithGuards do
+                       defdelegate foo(term) when is_list(term) or is_binary(term), to: List
+                     end
+                     """
+
+                     Code.eval_string(string, [], __ENV__)
+                   end
+
       msg = "defdelegate/2 only accepts function parameters, got: 1"
 
       assert_raise ArgumentError, msg, fn ->

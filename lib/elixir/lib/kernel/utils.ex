@@ -29,9 +29,16 @@ defmodule Kernel.Utils do
     append_first? = Keyword.get(opts, :append_first, false)
 
     {name, args} =
-      case Macro.decompose_call(fun) do
-        {_, _} = pair -> pair
-        _ -> raise ArgumentError, "invalid syntax in defdelegate #{Macro.to_string(fun)}"
+      case fun do
+        {:when, _, [_left, right]} ->
+          raise ArgumentError,
+                "guards are not allowed in defdelegate/2, got: when #{Macro.to_string(right)}"
+
+        _ ->
+          case Macro.decompose_call(fun) do
+            {_, _} = pair -> pair
+            _ -> raise ArgumentError, "invalid syntax in defdelegate #{Macro.to_string(fun)}"
+          end
       end
 
     as = Keyword.get(opts, :as, name)
