@@ -187,6 +187,193 @@ defmodule Keyword do
   end
 
   @doc """
+  Ensures the first argument is a `keyword` with the given
+  keys and default values.
+  The second argument must be a list of atoms, specifying
+  a given key, or tuples specifying a key and a default value.
+  If any of the keys in the `keyword` is not defined on
+  `values`, it raises an error.
+
+  See also: `validate/2`
+
+  ## Examples
+      iex> Keyword.validate!([], [one: 1, two: 2]) |> Enum.sort()
+      [one: 1, two: 2]
+      iex> Keyword.validate!([two: 3], [one: 1, two: 2]) |> Enum.sort()
+      [one: 1, two: 3]
+
+  If atoms are given, they are supported as keys but do not
+  provide a default value:
+
+      iex> Keyword.validate!([], [:one, two: 2]) |> Enum.sort()
+      [two: 2]
+      iex> Keyword.validate!([one: 1], [:one, two: 2]) |> Enum.sort()
+      [one: 1, two: 2]
+
+  Passing an unknown key raises:
+
+      iex> Keyword.validate!([three: 3], [one: 1, two: 2])
+      ** (ArgumentError) unknown key :three in [three: 3], expected one of [:one, :two]
+  """
+  def validate!(keyword, values) when is_list(keyword) and is_list(values) do
+    # We use two lists to avoid reversing/concatenating
+    # lists in the middle of traversals.
+    case validate!(keyword, values, [], []) do
+      {:ok, keyword} ->
+        keyword
+
+      error ->
+        keys =
+          for value <- values do
+            if is_atom(value) do
+              value
+            else
+              elem(value, 0)
+            end
+          end
+
+        case error do
+          {:badkey, key} ->
+            raise ArgumentError,
+                  "unknown key #{inspect(key)} in #{inspect(keyword)}, " <>
+                    "expected one of #{inspect(keys)}"
+
+          :badkey ->
+            raise ArgumentError,
+                  "expected a keyword list with keys #{inspect(keys)}, got: #{inspect(keyword)}"
+        end
+    end
+  end
+
+  @doc """
+  Ensures the first argument is a `keyword` with the given
+  keys and default values.
+  The second argument must be a list of atoms, specifying
+  a given key, or tuples specifying a key and a default value.
+
+  Possible return values:
+  * `{:ok, keyword}`: Success case. Returns the validated keyword with default values applied.
+  * `{:error, :not_a_keyword}`: Indicates that the validated value is not a keyword.
+  * `{:error, :invalid_expected_values}`: Indicates that the expected values list is invalid.
+  * `{:error, {:invalid_key, key}}`: Indicates that a given key is not expected.
+
+  See also: `validate!/2`
+
+  ## Examples
+      iex> {:ok, result} = Keyword.validate([], [one: 1, two: 2])
+      iex> Enum.sort(result)
+      [one: 1, two: 2]
+
+      iex> {:ok, result} = Keyword.validate([two: 3], [one: 1, two: 2])
+      iex> Enum.sort(result)
+      [one: 1, two: 3]
+
+  If atoms are given, they are supported as keys but do not
+  provide a default value:
+
+      iex> {:ok, result} = Keyword.validate([], [:one, two: 2])
+      iex> Enum.sort(result)
+      [two: 2]
+
+      iex> {:ok, result} = Keyword.validate([one: 1], [:one, two: 2])
+      iex> Enum.sort(result)
+      [one: 1, two: 2]
+
+  Passing an unknown key returns an error:
+
+      iex> Keyword.validate([three: 3], [one: 1, two: 2])
+      {:error, {:invalid_key, :three}}
+
+  Passing an invalid value in either argument also returns errors
+
+      iex> Keyword.validate(%{three: 3}, [one: 1, two: 2])
+      {:error, :not_a_keyword}
+      iex> Keyword.validate([:three], [one: 1, two: 2])
+      {:error, :not_a_keyword}
+      iex> Keyword.validate([three: 3], [{"one", 1}, :two])
+      {:error, :invalid_expected_values}
+  """
+  @spec validate(keyword :: keyword(), values :: [atom() | {atom(), term()}]) ::
+          {:ok, keyword}
+          | {:error,
+             :not_a_keyword
+             | {:invalid_key, term()}
+             | :invalid_expected_values}
+  def validate(keyword, values) do
+    with :ok <- is_atom_or_tuple_list(values),
+         {:ok, kw} <- validate!(keyword, values, [], []) do
+      {:ok, kw}
+    else
+      :badkey ->
+        {:error, :not_a_keyword}
+
+      {:badkey, key} ->
+        {:error, {:invalid_key, key}}
+
+      {:error, :not_atom_or_tuple_list} ->
+        {:error, :invalid_expected_values}
+    end
+  end
+
+  defp is_atom_or_tuple_list(values) when is_list(values) do
+    validation_fn = fn
+      v when is_atom(v) -> true
+      {k, _} when is_atom(k) -> true
+      _ -> false
+    end
+
+    if Enum.all?(values, validation_fn) do
+      :ok
+    else
+      {:error, :not_atom_or_tuple_list}
+    end
+  end
+
+  defp validate!([{key, _} = pair | keyword], values1, values2, acc) when is_atom(key) do
+    case find_key!(key, values1, values2) do
+      {values1, values2} ->
+        validate!(keyword, values1, values2, [pair | acc])
+
+      :error ->
+        case find_key!(key, values2, values1) do
+          {values1, values2} ->
+            validate!(keyword, values1, values2, [pair | acc])
+
+          :error ->
+            {:badkey, key}
+        end
+    end
+  end
+
+  defp validate!([], values1, values2, acc) do
+    {:ok, move_pairs!(values1, move_pairs!(values2, acc))}
+  end
+
+  defp validate!(_keyword, _values1, _values2, _acc) do
+    :badkey
+  end
+
+  defp find_key!(key, [head | tail], acc) when key == head, do: {tail, acc}
+  defp find_key!(key, [{head, _} | tail], acc) when key == head, do: {tail, acc}
+  defp find_key!(key, [head | tail], acc), do: find_key!(key, tail, [head | acc])
+  defp find_key!(_key, [], _acc), do: :error
+
+  defp move_pairs!([key | rest], acc) when is_atom(key),
+    do: move_pairs!(rest, acc)
+
+  defp move_pairs!([{key, _} = pair | rest], acc) when is_atom(key),
+    do: move_pairs!(rest, [pair | acc])
+
+  defp move_pairs!([], acc),
+    do: acc
+
+  defp move_pairs!([other | _], _) do
+    raise ArgumentError,
+          "validate!/2 expects the second argument to be a list of atoms or tuples, " <>
+            "got: #{inspect(other)}"
+  end
+
+  @doc """
   Gets the value under the given `key`.
 
   Returns the default value if `key` does not exist
