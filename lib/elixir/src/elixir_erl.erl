@@ -19,7 +19,7 @@ debug_info(core_v1, _Module, {elixir_v1, Map, Specs}, Opts) ->
   #{compile_opts := CompileOpts} = Map,
   AllOpts = CompileOpts ++ Opts,
 
-  %% Do not rely on elixir_erl_compiler because we don't
+  %% Do not rely on elixir_erl_compiler because we don't warn
   %% warnings nor the other functionality provided there.
   case elixir_erl_compiler:erl_to_core(Prefix ++ Specs ++ Forms, AllOpts) of
     {ok, CoreForms, _} ->
