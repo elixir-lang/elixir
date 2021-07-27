@@ -650,7 +650,7 @@ defmodule Code.Fragment do
     case :unicode_util.gc(charlist) do
       [gc | cont] when is_integer(gc) -> string_reverse_at(cont, n - 1, [gc | acc])
       [gc | cont] when is_list(gc) -> string_reverse_at(cont, n - 1, :lists.reverse(gc, acc))
-      [] -> {[], acc}
+      [] -> string_reverse_at([], 0, acc)
     end
   end
 

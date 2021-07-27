@@ -273,6 +273,10 @@ defmodule CodeFragmentTest do
       end
     end
 
+    test "column out of range" do
+      assert CF.surround_context("hello", {1, 20}) == :none
+    end
+
     test "local_or_var" do
       for i <- 1..8 do
         assert CF.surround_context("hello_wo", {1, i}) == %{
