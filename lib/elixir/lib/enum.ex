@@ -1080,7 +1080,7 @@ defmodule Enum do
   end
 
   @doc """
-  Returns the first element for which `fun` returns a truthy value.
+  Returns the first element for which `find` returns a truthy value.
   If no such element is found, returns `default`.
 
   ## Examples
