@@ -230,7 +230,7 @@ defmodule Mix.Tasks.Test.Coverage do
     print_summary(module_results, totals, summary_opts)
 
     if totals < get_threshold(summary_opts) do
-      System.at_exit(fn _ -> exit({:shutdown, 1}) end)
+      System.at_exit(fn _ -> exit({:shutdown, 3}) end)
     end
 
     :ok
