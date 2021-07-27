@@ -30,9 +30,9 @@ defmodule Kernel.Utils do
 
     {name, args} =
       case fun do
-        {:when, _, [_guard_arg_head | [guard_arg_rest]]} ->
+        {:when, _, [_left, right]} ->
           raise ArgumentError,
-                "guards are not allowed in defdelegate/2, got: when #{Macro.to_string(guard_arg_rest)}"
+                "guards are not allowed in defdelegate/2, got: when #{Macro.to_string(right)}"
 
         _ ->
           case Macro.decompose_call(fun) do
