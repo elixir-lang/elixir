@@ -284,6 +284,16 @@ defmodule CodeFragmentTest do
 
       assert CF.surround_context("hello_wo", {1, 9}) == :none
 
+      for i <- 2..9 do
+        assert CF.surround_context(" hello_wo", {1, i}) == %{
+                 context: {:local_or_var, 'hello_wo'},
+                 begin: {1, 2},
+                 end: {1, 10}
+               }
+      end
+
+      assert CF.surround_context(" hello_wo", {1, 10}) == :none
+
       for i <- 1..6 do
         assert CF.surround_context("hello!", {1, i}) == %{
                  context: {:local_or_var, 'hello!'},
@@ -468,6 +478,16 @@ defmodule CodeFragmentTest do
       end
 
       assert CF.surround_context("HelloWor", {1, 9}) == :none
+
+      for i <- 2..9 do
+        assert CF.surround_context(" HelloWor", {1, i}) == %{
+                 context: {:alias, 'HelloWor'},
+                 begin: {1, 2},
+                 end: {1, 10}
+               }
+      end
+
+      assert CF.surround_context(" HelloWor", {1, 10}) == :none
 
       for i <- 1..9 do
         assert CF.surround_context("Hello.Wor", {1, i}) == %{
