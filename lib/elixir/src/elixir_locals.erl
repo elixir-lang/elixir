@@ -14,7 +14,7 @@
 -define(tracker, 'Elixir.Module.LocalsTracker').
 
 setup({DataSet, _DataBag}) ->
-  ets:insert(DataSet, {?cache, 0, nil}),
+  ets:insert(DataSet, {?cache, 0}),
 
   case elixir_config:is_bootstrap() of
     false -> ets:insert(DataSet, {?locals, true});
@@ -66,15 +66,16 @@ if_tracker(Module, Default, Callback) ->
 cache_env(#{line := Line, module := Module} = E) ->
   {Set, _} = elixir_module:data_tables(Module),
   Cache = elixir_env:reset_vars(E#{line := nil}),
+  PrevKey = ets:lookup_element(Set, ?cache, 2),
 
   Pos =
-    case ets:lookup(Set, ?cache) of
-      [{_, Key, Cache}] ->
-        Key;
-      [{_, PrevKey, _}] ->
-        Key = PrevKey + 1,
-        ets:insert(Set, [{{cache_env, Key}, Cache},{?cache, Key, Cache}]),
-        Key
+    case ets:lookup(Set, {cache_env, PrevKey}) of
+      [{_, Cache}] ->
+        PrevKey;
+      _ ->
+        NewKey = PrevKey + 1,
+        ets:insert(Set, [{{cache_env, NewKey}, Cache}, {?cache, NewKey}]),
+        NewKey
     end,
 
   {Module, {Line, Pos}}.
