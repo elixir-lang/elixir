@@ -59,6 +59,9 @@ defmodule Kernel.Overridable do
   true = Module.overridable?(__MODULE__, {:without_super, 0})
   true = Module.overridable?(__MODULE__, {:with_super, 0})
 
+  true = {:with_super, 0} in Module.overridables_in(__MODULE__)
+  true = {:without_super, 0} in Module.overridables_in(__MODULE__)
+
   def without_super do
     :without_super
   end
@@ -66,6 +69,12 @@ defmodule Kernel.Overridable do
   def with_super do
     super() + 2
   end
+
+  true = Module.overridable?(__MODULE__, {:without_super, 0})
+  true = Module.overridable?(__MODULE__, {:with_super, 0})
+
+  true = {:with_super, 0} in Module.overridables_in(__MODULE__)
+  true = {:without_super, 0} in Module.overridables_in(__MODULE__)
 
   def super_with_multiple_args(x, y) do
     super(x, y * 2)
