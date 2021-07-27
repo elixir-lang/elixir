@@ -215,6 +215,7 @@ defmodule Keyword do
       iex> Keyword.validate!([three: 3], [one: 1, two: 2])
       ** (ArgumentError) unknown key :three in [three: 3], expected one of [:one, :two]
   """
+  @doc since: "1.13.0"
   def validate!(keyword, values) when is_list(keyword) and is_list(values) do
     # We use two lists to avoid reversing/concatenating
     # lists in the middle of traversals.
