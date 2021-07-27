@@ -34,6 +34,11 @@ defmodule Record do
         # expands to: "@type user :: {:user, String.t(), integer}"
       end
 
+  ## Reflection
+
+  A list of all records in a module, if any, can be retrieved by calling
+  reading the `@__records__` module attribute. It returns a list of maps
+  with the record kind, name, tag, and fields.
   """
 
   @doc """
@@ -244,10 +249,8 @@ defmodule Record do
   """
   defmacro defrecord(name, tag \\ nil, kv) do
     quote bind_quoted: [name: name, tag: tag, kv: kv] do
-      fields = Record.__fields__(:defrecord, kv)
-      Record.__validate__(__MODULE__, name, fields)
-
       tag = tag || name
+      fields = Record.__record__(__MODULE__, :defrecord, name, tag, kv)
 
       defmacro unquote(name)(args \\ []) do
         Record.__access__(unquote(tag), unquote(fields), args, __CALLER__)
@@ -264,10 +267,8 @@ defmodule Record do
   """
   defmacro defrecordp(name, tag \\ nil, kv) do
     quote bind_quoted: [name: name, tag: tag, kv: kv] do
-      fields = Record.__fields__(:defrecordp, kv)
-      Record.__validate__(__MODULE__, name, fields)
-
       tag = tag || name
+      fields = Record.__record__(__MODULE__, :defrecordp, name, tag, kv)
 
       defmacrop unquote(name)(args \\ []) do
         Record.__access__(unquote(tag), unquote(fields), args, __CALLER__)
@@ -277,13 +278,6 @@ defmodule Record do
         Record.__access__(unquote(tag), unquote(fields), record, args, __CALLER__)
       end
     end
-  end
-
-  @doc false
-  def __validate__(module, name, fields) do
-    error_on_duplicate_record(module, name)
-    # TODO: Make it raise on v2.0
-    warn_on_duplicate_key(:lists.keysort(1, fields))
   end
 
   defp error_on_duplicate_record(module, name) do
@@ -311,9 +305,28 @@ defmodule Record do
     warn_on_duplicate_key(rest)
   end
 
-  # Normalizes of record fields to have default values.
+  # Callback invoked from the record/2 macro.
   @doc false
-  def __fields__(type, fields) do
+  def __record__(module, kind, name, tag, kv) do
+    error_on_duplicate_record(module, name)
+
+    fields = fields(kind, kv)
+    Module.register_attribute(module, :__records__, accumulate: true)
+
+    Module.put_attribute(module, :__records__, %{
+      kind: kind,
+      name: name,
+      tag: tag,
+      fields: :lists.map(&elem(&1, 0), fields)
+    })
+
+    # TODO: Make it raise on v2.0
+    warn_on_duplicate_key(:lists.keysort(1, fields))
+    fields
+  end
+
+  # Normalizes of record fields to have default values.
+  defp fields(kind, fields) do
     normalizer_fun = fn
       {key, value} when is_atom(key) ->
         try do
@@ -329,7 +342,7 @@ defmodule Record do
         {key, nil}
 
       other ->
-        raise ArgumentError, "#{type} fields must be atoms, got: #{inspect(other)}"
+        raise ArgumentError, "#{kind} fields must be atoms, got: #{inspect(other)}"
     end
 
     :lists.map(normalizer_fun, fields)

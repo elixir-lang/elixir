@@ -287,6 +287,12 @@ defmodule RecordTest do
     refute macro_exported?(__MODULE__, :file_info, 1)
   end
 
+  test "records reflection" do
+    assert %{fields: [:name, :age], kind: :defrecord, name: :user, tag: RecordTest} in @__records__
+
+    assert %{fields: [:date, :time], kind: :defrecord, name: :timestamp, tag: :timestamp} in @__records__
+  end
+
   test "records with no defaults" do
     record = timestamp()
     assert timestamp(record, :date) == nil
