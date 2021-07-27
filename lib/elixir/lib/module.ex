@@ -1112,6 +1112,32 @@ defmodule Module do
   end
 
   @doc """
+  Returns all module attributes names defined in `module`.
+
+  This function can only be used on modules that have not yet been compiled.
+
+  ## Examples
+
+      defmodule Example do
+        @foo 1
+        Module.register_attribute(__MODULE__, :bar, accumulate: true)
+
+        :foo in Module.attributes_in(__MODULE__)
+        #=> true
+
+        :bar in Module.attributes_in(__MODULE__)
+        #=> true
+      end
+
+  """
+  @spec attributes_in(module) :: [atom]
+  def attributes_in(module) when is_atom(module) do
+    assert_not_compiled!(__ENV__.function, module)
+    {set, _} = data_tables_for(module)
+    :ets.select(set, [{{:"$1", :_, :_}, [{:is_atom, :"$1"}], [:"$1"]}])
+  end
+
+  @doc """
   Returns all functions and macros defined in `module`.
 
   It returns a list with all defined functions and macros, public and private,

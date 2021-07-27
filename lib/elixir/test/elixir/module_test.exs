@@ -547,7 +547,7 @@ defmodule ModuleTest do
     end
   end
 
-  describe "has_attribute?/2" do
+  describe "has_attribute?/2 and attributes_in/2" do
     test "returns true when attribute has been defined" do
       in_module do
         @foo 1
@@ -559,9 +559,13 @@ defmodule ModuleTest do
         _ = @foo
 
         assert Module.has_attribute?(__MODULE__, :foo)
+        assert :foo in Module.attributes_in(__MODULE__)
         assert Module.has_attribute?(__MODULE__, :bar)
+        assert :bar in Module.attributes_in(__MODULE__)
         assert Module.has_attribute?(__MODULE__, :baz)
+        assert :baz in Module.attributes_in(__MODULE__)
         assert Module.has_attribute?(__MODULE__, :qux)
+        assert :qux in Module.attributes_in(__MODULE__)
       end
     end
 

@@ -3305,6 +3305,10 @@ defmodule Kernel do
   will be available at compile-time. Custom attributes may be configured to
   behave closer to Erlang by using `Module.register_attribute/3`.
 
+  > **Important:** Libraries and frameworks should consider prefixing any
+  > module attributes that are private by underscore, such as `@_my_data`
+  > so code completion tools do not show them on suggestions and prompts.
+
   Finally, note that attributes can also be read inside functions:
 
       defmodule MyServer do
