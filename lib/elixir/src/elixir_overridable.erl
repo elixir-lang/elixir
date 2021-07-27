@@ -1,12 +1,18 @@
 % Holds the logic responsible for defining overridable functions and handling super.
 -module(elixir_overridable).
--export([overridable_for/2, record_overridable/4, super/4, store_not_overridden/1, format_error/1]).
+-export([overridables_for/1, overridable_for/2,
+         record_overridable/4, super/4,
+         store_not_overridden/1, format_error/1]).
 -include("elixir.hrl").
 -define(overridden_pos, 5).
 
 overridables_for(Module) ->
   {_, Bag} = elixir_module:data_tables(Module),
-  ets:lookup(Bag, overridables).
+  try
+    ets:lookup_element(Bag, overridables, 2)
+  catch
+    _:_ -> []
+  end.
 
 overridable_for(Module, Tuple) ->
   {Set, _} = elixir_module:data_tables(Module),
@@ -116,7 +122,7 @@ format_error({bad_kind, Module, {Name, Arity}, Kind}) ->
   end;
 
 format_error({no_super, Module, {Name, Arity}}) ->
-  Bins   = [format_fa(Tuple) || {_, Tuple} <- overridables_for(Module)],
+  Bins   = [format_fa(Tuple) || Tuple <- overridables_for(Module)],
   Joined = 'Elixir.Enum':join(Bins, <<", ">>),
   io_lib:format("no super defined for ~ts/~B in module ~ts. Overridable functions available are: ~ts",
     [Name, Arity, elixir_aliases:inspect(Module), Joined]).

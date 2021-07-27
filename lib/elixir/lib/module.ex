@@ -1138,6 +1138,33 @@ defmodule Module do
   end
 
   @doc """
+  Returns all overridable definitions in `module`.
+
+  Note a definition is included even if it was was already overridden.
+  You can use `defines?/2` to see if a definition exists or one is pending.
+
+  This function can only be used on modules that have not yet been compiled.
+
+  ## Examples
+
+      defmodule Example do
+        def foo, do: 1
+        def bar, do: 2
+
+        defoverridable foo: 1, bar: 1
+        def foo, do: 3
+
+        [:bar, :foo] = Module.overridables_in(__MODULE__) |> Enum.sort()
+      end
+
+  """
+  @spec overridables_in(module) :: [atom]
+  def overridables_in(module) when is_atom(module) do
+    assert_not_compiled!(__ENV__.function, module)
+    :elixir_overridable.overridables_for(module)
+  end
+
+  @doc """
   Returns all functions and macros defined in `module`.
 
   It returns a list with all defined functions and macros, public and private,
@@ -1351,7 +1378,12 @@ defmodule Module do
   end
 
   @doc """
-  Returns `true` if `tuple` in `module` is marked as overridable.
+  Returns `true` if `tuple` in `module` was marked as overridable
+  at some point.
+
+  Note `overridable?/2` returns true even if the definition was
+  already overridden. You can use `defines?/2` to see if a definition
+  exists or one is pending.
   """
   @spec overridable?(module, definition) :: boolean
   def overridable?(module, {function_name, arity} = tuple)
