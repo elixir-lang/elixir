@@ -149,6 +149,12 @@ defmodule Code do
       of keys to traverse in the application environment and `return` is either
       `{:ok, value}` or `:error`.
 
+    * `{:on_module, bytecode, :none}` - (since v1.11.0) traced whenever a module
+      is defined. This is equivalent to the `@after_compile` callback and invoked
+      after any `@after_compile` in the given module. The third element is currently
+      `:none` but it may provide more metadata in the future. It is best to ignore
+      it at the moment.
+
   The `:tracers` compiler option can be combined with the `:parser_options`
   compiler option to enrich the metadata of the traced events above.
 

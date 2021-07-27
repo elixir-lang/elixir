@@ -156,6 +156,7 @@ compile(Line, Module, Block, Vars, E) ->
 
     Autoload andalso code:load_binary(Module, beam_location(Module), Binary),
     eval_callbacks(Line, DataBag, after_compile, [NE, Binary], NE),
+    elixir_env:trace({on_module, Binary, none}, E),
     warn_unused_attributes(File, DataSet, DataBag, PersistedAttributes),
     make_module_available(Module, Binary, CheckerPid),
     {module, Module, Binary, Result}
