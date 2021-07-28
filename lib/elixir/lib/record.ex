@@ -38,8 +38,8 @@ defmodule Record do
 
   A list of all records in a module, if any, can be retrieved by reading the
   `@__records__` module attribute. It returns a list of maps with the record
-  kind, name, tag, and fields. The attribute is only available at the build
-  time.
+  kind, name, tag, and fields. The attribute is only available inside the
+  module definition.
   """
 
   @doc """
