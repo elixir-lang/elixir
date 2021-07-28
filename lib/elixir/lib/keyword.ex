@@ -300,9 +300,15 @@ defmodule Keyword do
   defp validate_apply_defaults(kw, defaults, valid_defaults \\ [])
 
   defp validate_apply_defaults(kw, [], valid_defaults), do: merge(valid_defaults, kw)
-  defp validate_apply_defaults(kw, [{k, _v} = item | t], valid_defaults) when is_atom(k), do: validate_apply_defaults(kw, t, [item | valid_defaults])
-  defp validate_apply_defaults(kw, [k | t], valid_defaults) when is_atom(k), do: validate_apply_defaults(kw, t, valid_defaults)
-  defp validate_apply_defaults(_kw, [val | _], _valid_defaults), do: validate_raise_on_invalid_value(val)
+
+  defp validate_apply_defaults(kw, [{k, _v} = item | t], valid_defaults) when is_atom(k),
+    do: validate_apply_defaults(kw, t, [item | valid_defaults])
+
+  defp validate_apply_defaults(kw, [k | t], valid_defaults) when is_atom(k),
+    do: validate_apply_defaults(kw, t, valid_defaults)
+
+  defp validate_apply_defaults(_kw, [val | _], _valid_defaults),
+    do: validate_raise_on_invalid_value(val)
 
   defp validate_raise_on_invalid_value(value) do
     raise ArgumentError,
