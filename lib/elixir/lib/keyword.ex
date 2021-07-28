@@ -240,7 +240,8 @@ defmodule Keyword do
         {:ok, validate_apply_defaults(kw, remaining_values)}
 
       {_valid_keys, invalid_keys, _remaining_values} ->
-        {:error, Enum.reverse(invalid_keys)}
+        reversed = for item <- invalid_keys, reduce: [], do: (acc -> [item | acc])
+        {:error, reversed}
     end
   end
 
@@ -296,15 +297,12 @@ defmodule Keyword do
     raise ArgumentError, "expected a keyword list with keys #{inspect(keys)}, got: #{inspect(kw)}"
   end
 
-  defp validate_apply_defaults(kw, defaults) do
-    defaults
-    |> Enum.filter(fn
-      {k, _} when is_atom(k) -> true
-      k when is_atom(k) -> false
-      val -> validate_raise_on_invalid_value(val)
-    end)
-    |> merge(kw)
-  end
+  defp validate_apply_defaults(kw, defaults, valid_defaults \\ [])
+
+  defp validate_apply_defaults(kw, [], valid_defaults), do: merge(valid_defaults, kw)
+  defp validate_apply_defaults(kw, [{k, _v} = item | t], valid_defaults) when is_atom(k), do: validate_apply_defaults(kw, t, [item | valid_defaults])
+  defp validate_apply_defaults(kw, [k | t], valid_defaults) when is_atom(k), do: validate_apply_defaults(kw, t, valid_defaults)
+  defp validate_apply_defaults(_kw, [val | _], _valid_defaults), do: validate_raise_on_invalid_value(val)
 
   defp validate_raise_on_invalid_value(value) do
     raise ArgumentError,
