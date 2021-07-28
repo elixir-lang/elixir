@@ -189,10 +189,11 @@ defmodule Keyword do
   @doc """
   Ensures the first argument is a `keyword` with the given
   keys and default values.
+
   The second argument must be a list of atoms, specifying
   a given key, or tuples specifying a key and a default value.
 
-  Raises upon invalid arguments
+  Raises upon invalid arguments.
 
   Possible return values:
   * `{:ok, keyword}`: Success case. Returns the validated keyword with default values applied.
@@ -201,6 +202,7 @@ defmodule Keyword do
   See also: `validate!/2`
 
   ## Examples
+
       iex> {:ok, result} = Keyword.validate([], [one: 1, two: 2])
       iex> Enum.sort(result)
       [one: 1, two: 2]
@@ -224,22 +226,10 @@ defmodule Keyword do
 
       iex> Keyword.validate([three: 3, four: 4], [one: 1, two: 2])
       {:error, [:three, :four]}
-
-  Passing an invalid value in either argument raises
-
-      iex> Keyword.validate(%{three: 3}, [one: 1, two: 2])
-      ** (ArgumentError) expected a keyword list with keys [:one, :two], got: %{three: 3}
-
-      iex> Keyword.validate([:three], [one: 1, two: 2])
-      ** (ArgumentError) expected a keyword list with keys [:one, :two], got: [:three]
-
-      iex> Keyword.validate([three: 3], [:three, 3, :two])
-      ** (ArgumentError) expected the second argument to be a list of atoms or tuples, got item: 3
   """
   @doc since: "1.13.0"
-  @spec validate(keyword :: keyword(), values :: [atom() | {atom(), term()}]) ::
-          {:ok, keyword}
-          | {:error, [atom]}
+  @spec validate(keyword(), values :: [atom() | {atom(), term()}]) ::
+          {:ok, keyword()} | {:error, [atom]}
   def validate(keyword, values) when is_list(keyword) and is_list(values) do
     case validate(keyword, values, [], [], []) do
       {:error, :invalid_item} ->
@@ -326,6 +316,7 @@ defmodule Keyword do
   Similar to `validate/2` but returns the keyword or raises an error.
 
   ## Examples
+
       iex> Keyword.validate!([], [one: 1, two: 2]) |> Enum.sort()
       [one: 1, two: 2]
       iex> Keyword.validate!([two: 3], [one: 1, two: 2]) |> Enum.sort()
@@ -345,7 +336,7 @@ defmodule Keyword do
       ** (ArgumentError) unknown keys [:three] in [three: 3], the allowed keys are: [:one, :two]
   """
   @doc since: "1.13.0"
-  @spec validate!(keyword :: keyword(), values :: [atom() | {atom(), term()}]) :: keyword
+  @spec validate!(keyword(), values :: [atom() | {atom(), term()}]) :: keyword()
   def validate!(keyword, values) do
     case validate(keyword, values) do
       {:ok, kw} ->
