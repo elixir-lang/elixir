@@ -85,7 +85,7 @@
   * [mix deps] Raise if local dep is unavailable while compiling
   * [mix local.install] Do not respect `MIX_DEPS_PATH` for install commands
   * [mix release] Improve release scripts to make sure shell errors cascade by avoiding exporting and defining variables at once
-  * [mix release] Raise if RELEASE_COOKIE is empty
+  * [mix release] Do not boot release if RELEASE_COOKIE is empty
   * [Mix.Shell] Add `default` option to `Mix.Shell.yes?`
 
 ### 3. Soft-deprecations (no warnings emitted)
@@ -96,9 +96,9 @@
 
 #### Elixir
 
-  * [Code] `Code.cursor_context/2` has been deprecated in favor of `Code.Fragment.cursor_context/2`
+  * [Code] `Code.cursor_context/2` is deprecated, use `Code.Fragment.cursor_context/2` instead
   * [Macro] `Macro.to_string/2` is deprecated, use `Macro.to_string/1` instead
-  * [System] Deprecate `System.get_pid/0`, use `System.pid/0` instead
+  * [System] `System.get_pid/0` is deprecated, use `System.pid/0` instead
 
 #### Mix
 

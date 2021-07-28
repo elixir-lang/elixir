@@ -98,9 +98,12 @@ defmodule Code.Fragment do
 
   ## Limitations
 
-    * The current algorithm only considers the last line of the input
-    * Context does not yet track strings and sigils
-    * Arguments of functions calls are not currently recognized
+    * The current algorithm only considers the last line of the input.
+      This means it will also show suggestions inside strings, heredocs,
+      etc, which is intentional as it helps with doctests, references,
+      and more
+
+    * Context does not yet track `alias A.{B`, structs, nor sigils
 
   """
   @doc since: "1.13.0"
