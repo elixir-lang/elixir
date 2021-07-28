@@ -45,7 +45,7 @@ with_vars(Env, Vars) ->
   NumVars = length(Vars),
   VarVersions = lists:zip(Vars, lists:seq(0, NumVars - 1)),
   Read = maps:from_list(VarVersions),
-  Env#{vars := Vars, current_vars := {Read, false}, unused_vars := {#{}, NumVars}}.
+  Env#{current_vars := {Read, false}, unused_vars := {#{}, NumVars}}.
 
 env_to_scope(#{context := Context, current_vars := {Read, _}}) ->
   {VarsList, _Counter} = lists:mapfoldl(fun to_scope_var/2, 0, maps:values(Read)),
@@ -61,7 +61,7 @@ to_scope_var(Version, Counter) ->
   {{Version, list_to_atom("_@" ++ integer_to_list(Counter))}, Counter + 1}.
 
 reset_vars(Env) ->
-  Env#{vars := [], current_vars := {#{}, false}, unused_vars := {#{}, 0}}.
+  Env#{current_vars := {#{}, false}, unused_vars := {#{}, 0}}.
 
 %% SCOPE MERGING
 

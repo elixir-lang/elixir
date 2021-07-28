@@ -344,12 +344,11 @@ expand({Name, Meta, Kind}, #{context := match} = E) when is_atom(Name), is_atom(
 
     %% Variable defined for the first time
     _ ->
-      NewVars = ordsets:add_element(Pair, ?key(E, vars)),
       NewUnused = var_unused(Pair, Meta, Version, Unused, false),
       NewReadCurrent = ReadCurrent#{Pair => Version},
       NewWriteCurrent = (WriteCurrent /= false) andalso WriteCurrent#{Pair => Version},
       Var = {Name, [{version, Version} | Meta], Kind},
-      {Var, E#{vars := NewVars, current_vars := {NewReadCurrent, NewWriteCurrent}, unused_vars := {NewUnused, Version + 1}}}
+      {Var, E#{current_vars := {NewReadCurrent, NewWriteCurrent}, unused_vars := {NewUnused, Version + 1}}}
   end;
 
 expand({Name, Meta, Kind}, E) when is_atom(Name), is_atom(Kind) ->

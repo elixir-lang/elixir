@@ -47,10 +47,6 @@ defmodule Macro.Env do
     * `tracers`
     * `unused_vars`
 
-  The following fields are deprecated and must not be accessed or relied on:
-
-    * `vars` - a list keeping all defined variables as `{var, context}`
-
   """
 
   @type aliases :: [{module, module}]
@@ -81,7 +77,6 @@ defmodule Macro.Env do
   @typep tracers :: [module]
   @typep var_type :: :term
   @typep var_version :: non_neg_integer
-  @typep vars :: [variable]
 
   @type t :: %{
           __struct__: __MODULE__,
@@ -101,8 +96,7 @@ defmodule Macro.Env do
           prematch_vars: prematch_vars,
           unused_vars: unused_vars,
           requires: requires,
-          tracers: tracers,
-          vars: vars
+          tracers: tracers
         }
 
   # Define the __struct__ callbacks by hand for bootstrap reasons.
