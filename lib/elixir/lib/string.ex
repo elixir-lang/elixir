@@ -494,6 +494,12 @@ defmodule String do
       {:infinity, false} ->
         :binary.split(string, pattern, [:global])
 
+      {:infinity, true} ->
+        :binary.split(string, pattern, [:global, :trim_all])
+
+      {2, false} ->
+        :binary.split(string, pattern)
+
       _ ->
         pattern = maybe_compile_pattern(pattern)
         split_each(string, pattern, trim, parts_to_index(parts))
