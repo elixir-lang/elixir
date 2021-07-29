@@ -193,11 +193,9 @@ defmodule Keyword do
   The second argument must be a list of atoms, specifying
   a given key, or tuples specifying a key and a default value.
 
-
-  It returns `{:ok, keyword}` in case the keyword list only has
-  the given keys with returns the validated keyword with default
-  values applied. Otherwise it returns `{:error, invalid_keys}`
-  with invalid keys.
+  If the keyword list has only the given keys, it returns
+  `{:ok, keyword}` with default values applied. Otherwise it
+  returns `{:error, invalid_keys}` with invalid keys.
 
   See also: `validate!/2`.
 
@@ -222,7 +220,7 @@ defmodule Keyword do
       iex> Enum.sort(result)
       [one: 1, two: 2]
 
-  Passing an unknown key returns an error:
+  Passing unknown keys returns an error:
 
       iex> Keyword.validate([three: 3, four: 4], [one: 1, two: 2])
       {:error, [:four, :three]}
@@ -300,7 +298,7 @@ defmodule Keyword do
       iex> Keyword.validate!([one: 1], [:one, two: 2]) |> Enum.sort()
       [one: 1, two: 2]
 
-  Passing an unknown key raises:
+  Passing unknown keys raises an error:
 
       iex> Keyword.validate!([three: 3], [one: 1, two: 2])
       ** (ArgumentError) unknown keys [:three] in [three: 3], the allowed keys are: [:one, :two]
