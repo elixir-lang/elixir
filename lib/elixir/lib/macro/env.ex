@@ -121,8 +121,7 @@ defmodule Macro.Env do
       prematch_vars: :warn,
       requires: [],
       tracers: [],
-      unused_vars: {%{}, 0},
-      vars: []
+      unused_vars: {%{}, 0}
     }
   end
 
