@@ -974,7 +974,15 @@ defmodule Logger do
   defp compile_time_purge_matching?(level, compile_metadata) do
     matching = Application.get_env(:logger, :compile_time_purge_matching, [])
 
+    if not is_list(matching) do
+      bad_compile_time_purge_matching!(matching)
+    end
+
     Enum.any?(matching, fn filter ->
+      if not is_list(filter) do
+        bad_compile_time_purge_matching!(matching)
+      end
+
       Enum.all?(filter, fn
         {:level_lower_than, min_level} ->
           compare_levels(level, min_level) == :lt
@@ -992,10 +1000,14 @@ defmodule Logger do
           Map.fetch(compile_metadata, k) == {:ok, v}
 
         _ ->
-          raise "expected :compile_time_purge_matching to be a list of keyword lists, " <>
-                  "got: #{inspect(matching)}"
+          bad_compile_time_purge_matching!(matching)
       end)
     end)
+  end
+
+  defp bad_compile_time_purge_matching!(matching) do
+    raise "expected :compile_time_purge_matching to be a list of keyword lists, " <>
+            "got: #{inspect(matching)}"
   end
 
   defp maybe_log(level, data, metadata, caller) do
