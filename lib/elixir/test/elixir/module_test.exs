@@ -16,8 +16,9 @@ defmodule ModuleTest.ToBeUsed do
     quote(do: def(before_compile, do: unquote(Macro.Env.vars(env))))
   end
 
-  defmacro __after_compile__(%Macro.Env{module: ModuleTest.ToUse, vars: []}, bin)
+  defmacro __after_compile__(%Macro.Env{module: ModuleTest.ToUse} = env, bin)
            when is_binary(bin) do
+    [] = Macro.Env.vars(env)
     # IO.puts "HELLO"
   end
 
@@ -32,7 +33,7 @@ end
 
 defmodule ModuleTest.ToUse do
   # Moving the next line around can make tests fail
-  35 = __ENV__.line
+  36 = __ENV__.line
   var = 1
   # Not available in callbacks
   _ = var
@@ -134,7 +135,7 @@ defmodule ModuleTest do
   end
 
   test "retrieves line from use callsite" do
-    assert ModuleTest.ToUse.line() == 40
+    assert ModuleTest.ToUse.line() == 41
   end
 
   ## Callbacks
