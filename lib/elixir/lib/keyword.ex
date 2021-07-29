@@ -193,13 +193,13 @@ defmodule Keyword do
   The second argument must be a list of atoms, specifying
   a given key, or tuples specifying a key and a default value.
 
-  Raises upon invalid arguments.
 
-  Possible return values:
-  * `{:ok, keyword}`: Success case. Returns the validated keyword with default values applied.
-  * `{:error, unknown_keys}`: Indicates the unknown keys found in the keyword
+  It returns `{:ok, keyword}` in case the keyword list only has
+  the given keys with returns the validated keyword with default
+  values applied. Otherwise it returns `{:error, invalid_keys}`
+  with invalid keys.
 
-  See also: `validate!/2`
+  See also: `validate!/2`.
 
   ## Examples
 
@@ -225,95 +225,61 @@ defmodule Keyword do
   Passing an unknown key returns an error:
 
       iex> Keyword.validate([three: 3, four: 4], [one: 1, two: 2])
-      {:error, [:three, :four]}
+      {:error, [:four, :three]}
   """
   @doc since: "1.13.0"
   @spec validate(keyword(), values :: [atom() | {atom(), term()}]) ::
           {:ok, keyword()} | {:error, [atom]}
   def validate(keyword, values) when is_list(keyword) and is_list(values) do
-    case validate(keyword, values, [], [], []) do
-      {:error, :invalid_item} ->
-        validate_raise_on_invalid_keyword(keyword, values)
+    validate(keyword, values, [], [], [])
+  end
 
-      {kw, [], found_values} ->
-        remaining_values = values -- found_values
-        {:ok, validate_apply_defaults(kw, remaining_values)}
+  defp validate([{key, _} = pair | keyword], values1, values2, acc, bad_keys) when is_atom(key) do
+    case find_key!(key, values1, values2) do
+      {values1, values2} ->
+        validate(keyword, values1, values2, [pair | acc], bad_keys)
 
-      {_valid_keys, invalid_keys, _remaining_values} ->
-        reversed = for item <- invalid_keys, reduce: [], do: (acc -> [item | acc])
-        {:error, reversed}
+      :error ->
+        case find_key!(key, values2, values1) do
+          {values1, values2} ->
+            validate(keyword, values1, values2, [pair | acc], bad_keys)
+
+          :error ->
+            validate(keyword, values1, values2, acc, [key | bad_keys])
+        end
     end
   end
 
-  def validate(keyword, values) when not is_list(keyword) and is_list(values) do
-    validate_raise_on_invalid_keyword(keyword, values)
+  defp validate([], values1, values2, acc, []) do
+    {:ok, move_pairs!(values1, move_pairs!(values2, acc))}
   end
 
-  def validate(_, val) when not is_list(val) do
-    raise ArgumentError, "expected a keyword list as a second argument, got #{inspect(val)}"
+  defp validate([], _values1, _values2, _acc, bad_keys) do
+    {:error, bad_keys}
   end
 
-  # returns {validated_kw_list, invalid_keys_list, found_values_list} | {:error, :invalid_item}
-  defp validate([], _values, kw, invalid_keys, found_values), do: {kw, invalid_keys, found_values}
-
-  defp validate([{k, _} = item | tl], values, kw, invalid_keys, found_values) when is_atom(k) do
-    if find_key!(k, values) do
-      validate(tl, values, [item | kw], invalid_keys, [k | found_values])
-    else
-      validate(tl, values, kw, [k | invalid_keys], found_values)
-    end
-  end
-
-  defp validate(_, _values, _kw, _invalid_keys, _found_values) do
-    {:error, :invalid_item}
-  end
-
-  defp find_key!(key, [head | _tail]) when is_atom(head) and key == head, do: true
-  defp find_key!(key, [{head, _} | _tail]) when is_atom(head) and key == head, do: true
-  # the following 2 clauses ensure that the second argument is a valid tuple-or-atom list
-  defp find_key!(key, [{head, _} | tail]) when is_atom(head), do: find_key!(key, tail)
-  defp find_key!(key, [head | tail]) when is_atom(head), do: find_key!(key, tail)
-  defp find_key!(_key, [head | _tail]), do: validate_raise_on_invalid_value(head)
-  defp find_key!(_key, []), do: false
-
-  defp validate_get_keys(kw) do
-    for value <- kw do
-      case value do
-        _ when is_atom(value) ->
-          value
-
-        {key, _} when is_atom(key) ->
-          key
-
-        val ->
-          validate_raise_on_invalid_value(val)
-      end
-    end
-  end
-
-  defp validate_raise_on_invalid_keyword(kw, values) do
-    keys = validate_get_keys(values)
-
-    raise ArgumentError, "expected a keyword list with keys #{inspect(keys)}, got: #{inspect(kw)}"
-  end
-
-  defp validate_apply_defaults(kw, defaults, valid_defaults \\ [])
-
-  defp validate_apply_defaults(kw, [], valid_defaults), do: merge(valid_defaults, kw)
-
-  defp validate_apply_defaults(kw, [{k, _v} = item | t], valid_defaults) when is_atom(k),
-    do: validate_apply_defaults(kw, t, [item | valid_defaults])
-
-  defp validate_apply_defaults(kw, [k | t], valid_defaults) when is_atom(k),
-    do: validate_apply_defaults(kw, t, valid_defaults)
-
-  defp validate_apply_defaults(_kw, [val | _], _valid_defaults),
-    do: validate_raise_on_invalid_value(val)
-
-  defp validate_raise_on_invalid_value(value) do
+  defp validate([pair | _], _values1, _values2, _acc, []) do
     raise ArgumentError,
-          "expected the second argument to be a list of atoms or tuples, " <>
-            "got item: #{inspect(value)}"
+          "expected a keyword list as first argument, got invalid entry: #{inspect pair}"
+  end
+
+  defp find_key!(key, [key | rest], acc), do: {rest, acc}
+  defp find_key!(key, [{key, _} | rest], acc), do: {rest, acc}
+  defp find_key!(key, [head | tail], acc), do: find_key!(key, tail, [head | acc])
+  defp find_key!(_key, [], _acc), do: :error
+
+  defp move_pairs!([key | rest], acc) when is_atom(key),
+    do: move_pairs!(rest, acc)
+
+  defp move_pairs!([{key, _} = pair | rest], acc) when is_atom(key),
+    do: move_pairs!(rest, [pair | acc])
+
+  defp move_pairs!([], acc),
+    do: acc
+
+  defp move_pairs!([other | _], _) do
+    raise ArgumentError,
+          "expected the second argument to be a list of atoms or tuples, got: #{inspect(other)}"
   end
 
   @doc """
@@ -347,7 +313,9 @@ defmodule Keyword do
         kw
 
       {:error, invalid_keys} ->
-        keys = validate_get_keys(values)
+        keys =
+          for value <- values,
+              do: Kernel.if(is_atom(value), do: value, else: Kernel.elem(value, 0))
 
         raise ArgumentError,
               "unknown keys #{inspect(invalid_keys)} in #{inspect(keyword)}, the allowed keys are: #{inspect(keys)}"
