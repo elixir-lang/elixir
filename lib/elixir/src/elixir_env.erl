@@ -23,7 +23,6 @@ new() ->
     macros => elixir_dispatch:default_macros(),       %% a list with macros imported from module
     macro_aliases => [],                              %% keep aliases defined inside a macro
     context_modules => [],                            %% modules defined in the current context
-    vars => [],                                       %% a set of defined variables
     current_vars => {#{}, false},                     %% a tuple with maps of read and optional write current vars
     unused_vars => {#{}, 0},                          %% a map of unused vars and a version counter for vars
     prematch_vars => warn,                            %% controls behaviour outside and inside matches
