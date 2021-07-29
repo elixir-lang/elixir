@@ -208,21 +208,11 @@ defmodule KeywordTest do
 
   test "validate/2 raises on invalid arguments" do
     assert_raise ArgumentError,
-                 "expected a keyword list with keys [:one, :two], got: %{three: 3}",
-                 fn ->
-                   Keyword.validate(%{three: 3}, one: 1, two: 2)
-                 end
+                 "expected a keyword list as first argument, got invalid entry: :three",
+                 fn -> Keyword.validate([:three], one: 1, two: 2) end
 
     assert_raise ArgumentError,
-                 "expected a keyword list with keys [:one, :two], got: [:three]",
-                 fn ->
-                   Keyword.validate([:three], one: 1, two: 2)
-                 end
-
-    assert_raise ArgumentError,
-                 "expected the second argument to be a list of atoms or tuples, got item: 3",
-                 fn ->
-                   Keyword.validate([three: 3], [:three, 3, :two])
-                 end
+                 "expected the second argument to be a list of atoms or tuples, got: 3",
+                 fn -> Keyword.validate([three: 3], [:three, 3, :two]) end
   end
 end
