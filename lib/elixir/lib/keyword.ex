@@ -315,7 +315,7 @@ defmodule Keyword do
       {:error, invalid_keys} ->
         keys =
           for value <- values,
-              do: if(is_atom(value), do: value, else: Kernel.elem(value, 0))
+              do: if(is_atom(value), do: value, else: elem(value, 0)
 
         raise ArgumentError,
               "unknown keys #{inspect(invalid_keys)} in #{inspect(keyword)}, the allowed keys are: #{inspect(keys)}"
