@@ -187,6 +187,140 @@ defmodule Keyword do
   end
 
   @doc """
+  Ensures the first argument is a `keyword` with the given
+  keys and default values.
+
+  The second argument must be a list of atoms, specifying
+  a given key, or tuples specifying a key and a default value.
+
+  If the keyword list has only the given keys, it returns
+  `{:ok, keyword}` with default values applied. Otherwise it
+  returns `{:error, invalid_keys}` with invalid keys.
+
+  See also: `validate!/2`.
+
+  ## Examples
+
+      iex> {:ok, result} = Keyword.validate([], [one: 1, two: 2])
+      iex> Enum.sort(result)
+      [one: 1, two: 2]
+
+      iex> {:ok, result} = Keyword.validate([two: 3], [one: 1, two: 2])
+      iex> Enum.sort(result)
+      [one: 1, two: 3]
+
+  If atoms are given, they are supported as keys but do not
+  provide a default value:
+
+      iex> {:ok, result} = Keyword.validate([], [:one, two: 2])
+      iex> Enum.sort(result)
+      [two: 2]
+
+      iex> {:ok, result} = Keyword.validate([one: 1], [:one, two: 2])
+      iex> Enum.sort(result)
+      [one: 1, two: 2]
+
+  Passing unknown keys returns an error:
+
+      iex> Keyword.validate([three: 3, four: 4], [one: 1, two: 2])
+      {:error, [:four, :three]}
+  """
+  @doc since: "1.13.0"
+  @spec validate(keyword(), values :: [atom() | {atom(), term()}]) ::
+          {:ok, keyword()} | {:error, [atom]}
+  def validate(keyword, values) when is_list(keyword) and is_list(values) do
+    validate(keyword, values, [], [], [])
+  end
+
+  defp validate([{key, _} = pair | keyword], values1, values2, acc, bad_keys) when is_atom(key) do
+    case find_key!(key, values1, values2) do
+      {values1, values2} ->
+        validate(keyword, values1, values2, [pair | acc], bad_keys)
+
+      :error ->
+        case find_key!(key, values2, values1) do
+          {values1, values2} ->
+            validate(keyword, values1, values2, [pair | acc], bad_keys)
+
+          :error ->
+            validate(keyword, values1, values2, acc, [key | bad_keys])
+        end
+    end
+  end
+
+  defp validate([], values1, values2, acc, []) do
+    {:ok, move_pairs!(values1, move_pairs!(values2, acc))}
+  end
+
+  defp validate([], _values1, _values2, _acc, bad_keys) do
+    {:error, bad_keys}
+  end
+
+  defp validate([pair | _], _values1, _values2, _acc, []) do
+    raise ArgumentError,
+          "expected a keyword list as first argument, got invalid entry: #{inspect(pair)}"
+  end
+
+  defp find_key!(key, [key | rest], acc), do: {rest, acc}
+  defp find_key!(key, [{key, _} | rest], acc), do: {rest, acc}
+  defp find_key!(key, [head | tail], acc), do: find_key!(key, tail, [head | acc])
+  defp find_key!(_key, [], _acc), do: :error
+
+  defp move_pairs!([key | rest], acc) when is_atom(key),
+    do: move_pairs!(rest, acc)
+
+  defp move_pairs!([{key, _} = pair | rest], acc) when is_atom(key),
+    do: move_pairs!(rest, [pair | acc])
+
+  defp move_pairs!([], acc),
+    do: acc
+
+  defp move_pairs!([other | _], _) do
+    raise ArgumentError,
+          "expected the second argument to be a list of atoms or tuples, got: #{inspect(other)}"
+  end
+
+  @doc """
+  Similar to `validate/2` but returns the keyword or raises an error.
+
+  ## Examples
+
+      iex> Keyword.validate!([], [one: 1, two: 2]) |> Enum.sort()
+      [one: 1, two: 2]
+      iex> Keyword.validate!([two: 3], [one: 1, two: 2]) |> Enum.sort()
+      [one: 1, two: 3]
+
+  If atoms are given, they are supported as keys but do not
+  provide a default value:
+
+      iex> Keyword.validate!([], [:one, two: 2]) |> Enum.sort()
+      [two: 2]
+      iex> Keyword.validate!([one: 1], [:one, two: 2]) |> Enum.sort()
+      [one: 1, two: 2]
+
+  Passing unknown keys raises an error:
+
+      iex> Keyword.validate!([three: 3], [one: 1, two: 2])
+      ** (ArgumentError) unknown keys [:three] in [three: 3], the allowed keys are: [:one, :two]
+  """
+  @doc since: "1.13.0"
+  @spec validate!(keyword(), values :: [atom() | {atom(), term()}]) :: keyword()
+  def validate!(keyword, values) do
+    case validate(keyword, values) do
+      {:ok, kw} ->
+        kw
+
+      {:error, invalid_keys} ->
+        keys =
+          for value <- values,
+              do: if(is_atom(value), do: value, else: elem(value, 0))
+
+        raise ArgumentError,
+              "unknown keys #{inspect(invalid_keys)} in #{inspect(keyword)}, the allowed keys are: #{inspect(keys)}"
+    end
+  end
+
+  @doc """
   Gets the value under the given `key`.
 
   Returns the default value if `key` does not exist
