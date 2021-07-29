@@ -100,7 +100,6 @@ defmodule Macro.Env do
         }
 
   # Define the __struct__ callbacks by hand for bootstrap reasons.
-  # TODO: Remove :vars field on v2.0
   @doc false
   def __struct__ do
     %{
