@@ -223,7 +223,9 @@ defmodule MapTest do
              keyword?: 1,
              pop_first: 2,
              pop_first: 3,
-             pop_values: 2
+             pop_values: 2,
+             validate: 2,
+             validate!: 2
            ]
   end
 
