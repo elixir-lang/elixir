@@ -228,7 +228,7 @@ defmodule Map do
   a given key, or tuples specifying a key and a default value.
 
   If the map has only the given keys, it returns
-  `{:ok, keyword}` with default values applied. Otherwise it
+  `{:ok, map}` with default values applied. Otherwise it
   returns `{:error, invalid_keys}` with invalid keys.
 
   See also: `validate!/2`.
@@ -328,7 +328,9 @@ defmodule Map do
           end
 
         raise ArgumentError,
-              "unknown keys #{inspect(invalid_keys)} in #{inspect(map)}, the allowed keys are: #{inspect(keys)}"
+              "unknown keys #{inspect(invalid_keys)} in #{inspect(map)}, the allowed keys are: #{
+                inspect(keys)
+              }"
     end
   end
 
