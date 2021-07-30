@@ -7,9 +7,9 @@ defmodule Code.Typespec do
   @spec spec_to_quoted(atom, tuple) :: {atom, keyword, [Macro.t()]}
   def spec_to_quoted(name, spec)
 
-  def spec_to_quoted(name, {:type, line, :fun, [{:type, _, :product, args}, result]})
+  def spec_to_quoted(name, {:type, anno, :fun, [{:type, _, :product, args}, result]})
       when is_atom(name) do
-    meta = [line: line]
+    meta = meta(anno)
     body = {name, meta, Enum.map(args, &typespec_to_quoted/1)}
 
     vars =
@@ -27,11 +27,13 @@ defmodule Code.Typespec do
     end
   end
 
-  def spec_to_quoted(name, {:type, line, :fun, []}) when is_atom(name) do
-    {:"::", [line: line], [{name, [line: line], []}, quote(do: term)]}
+  def spec_to_quoted(name, {:type, anno, :fun, []}) when is_atom(name) do
+    meta = meta(anno)
+    {:"::", meta, [{name, meta, []}, quote(do: term)]}
   end
 
-  def spec_to_quoted(name, {:type, line, :bounded_fun, [type, constrs]}) when is_atom(name) do
+  def spec_to_quoted(name, {:type, anno, :bounded_fun, [type, constrs]}) when is_atom(name) do
+    meta = meta(anno)
     {:type, _, :fun, [{:type, _, :product, args}, result]} = type
 
     guards =
@@ -39,7 +41,6 @@ defmodule Code.Typespec do
         {erl_to_ex_var(var), typespec_to_quoted(type)}
       end
 
-    meta = [line: line]
     ignore_vars = Keyword.keys(guards)
 
     vars =
@@ -52,7 +53,7 @@ defmodule Code.Typespec do
     args = for arg <- args, do: typespec_to_quoted(arg)
 
     when_args = [
-      {:"::", meta, [{name, [line: line], args}, typespec_to_quoted(result)]},
+      {:"::", meta, [{name, meta, args}, typespec_to_quoted(result)]},
       guards ++ vars
     ]
 
@@ -188,27 +189,27 @@ defmodule Code.Typespec do
 
   ## To AST conversion
 
-  defp collect_vars({:ann_type, _line, args}) when is_list(args) do
+  defp collect_vars({:ann_type, _anno, args}) when is_list(args) do
     []
   end
 
-  defp collect_vars({:type, _line, _kind, args}) when is_list(args) do
+  defp collect_vars({:type, _anno, _kind, args}) when is_list(args) do
     Enum.flat_map(args, &collect_vars/1)
   end
 
-  defp collect_vars({:remote_type, _line, args}) when is_list(args) do
+  defp collect_vars({:remote_type, _anno, args}) when is_list(args) do
     Enum.flat_map(args, &collect_vars/1)
   end
 
-  defp collect_vars({:typed_record_field, _line, type}) do
+  defp collect_vars({:typed_record_field, _anno, type}) do
     collect_vars(type)
   end
 
-  defp collect_vars({:paren_type, _line, [type]}) do
+  defp collect_vars({:paren_type, _anno, [type]}) do
     collect_vars(type)
   end
 
-  defp collect_vars({:var, _line, var}) do
+  defp collect_vars({:var, _anno, var}) do
     [erl_to_ex_var(var)]
   end
 
@@ -216,48 +217,48 @@ defmodule Code.Typespec do
     []
   end
 
-  defp typespec_to_quoted({:user_type, line, name, args}) do
+  defp typespec_to_quoted({:user_type, anno, name, args}) do
     args = for arg <- args, do: typespec_to_quoted(arg)
-    {name, [line: line], args}
+    {name, meta(anno), args}
   end
 
-  defp typespec_to_quoted({:type, line, :tuple, :any}) do
-    {:tuple, [line: line], []}
+  defp typespec_to_quoted({:type, anno, :tuple, :any}) do
+    {:tuple, meta(anno), []}
   end
 
-  defp typespec_to_quoted({:type, line, :tuple, args}) do
+  defp typespec_to_quoted({:type, anno, :tuple, args}) do
     args = for arg <- args, do: typespec_to_quoted(arg)
-    {:{}, [line: line], args}
+    {:{}, meta(anno), args}
   end
 
-  defp typespec_to_quoted({:type, _line, :list, [{:type, _, :union, unions} = arg]}) do
+  defp typespec_to_quoted({:type, _anno, :list, [{:type, _, :union, unions} = arg]}) do
     case unpack_typespec_kw(unions, []) do
       {:ok, ast} -> ast
       :error -> [typespec_to_quoted(arg)]
     end
   end
 
-  defp typespec_to_quoted({:type, line, :list, []}) do
-    {:list, [line: line], []}
+  defp typespec_to_quoted({:type, anno, :list, []}) do
+    {:list, meta(anno), []}
   end
 
-  defp typespec_to_quoted({:type, _line, :list, [arg]}) do
+  defp typespec_to_quoted({:type, _anno, :list, [arg]}) do
     [typespec_to_quoted(arg)]
   end
 
-  defp typespec_to_quoted({:type, line, :nonempty_list, []}) do
-    [{:..., [line: line], nil}]
+  defp typespec_to_quoted({:type, anno, :nonempty_list, []}) do
+    [{:..., meta(anno), nil}]
   end
 
-  defp typespec_to_quoted({:type, line, :nonempty_list, [arg]}) do
-    [typespec_to_quoted(arg), {:..., [line: line], nil}]
+  defp typespec_to_quoted({:type, anno, :nonempty_list, [arg]}) do
+    [typespec_to_quoted(arg), {:..., meta(anno), nil}]
   end
 
-  defp typespec_to_quoted({:type, line, :map, :any}) do
-    {:map, [line: line], []}
+  defp typespec_to_quoted({:type, anno, :map, :any}) do
+    {:map, meta(anno), []}
   end
 
-  defp typespec_to_quoted({:type, line, :map, fields}) do
+  defp typespec_to_quoted({:type, anno, :map, fields}) do
     fields =
       Enum.map(fields, fn
         {:type, _, :map_field_assoc, :any} ->
@@ -275,16 +276,17 @@ defmodule Code.Typespec do
 
     case List.keytake(fields, :__struct__, 0) do
       {{:__struct__, struct}, fields_pruned} when is_atom(struct) and struct != nil ->
-        map_pruned = {:%{}, [line: line], fields_pruned}
-        {:%, [line: line], [struct, map_pruned]}
+        map_pruned = {:%{}, meta(anno), fields_pruned}
+        {:%, meta(anno), [struct, map_pruned]}
 
       _ ->
-        {:%{}, [line: line], fields}
+        {:%{}, meta(anno), fields}
     end
   end
 
-  defp typespec_to_quoted({:type, line, :binary, [arg1, arg2]}) do
+  defp typespec_to_quoted({:type, anno, :binary, [arg1, arg2]}) do
     [arg1, arg2] = for arg <- [arg1, arg2], do: typespec_to_quoted(arg)
+    line = meta(anno)[:line]
 
     case {typespec_to_quoted(arg1), typespec_to_quoted(arg2)} do
       {arg1, 0} ->
@@ -298,57 +300,57 @@ defmodule Code.Typespec do
     end
   end
 
-  defp typespec_to_quoted({:type, line, :union, args}) do
+  defp typespec_to_quoted({:type, anno, :union, args}) do
     args = for arg <- args, do: typespec_to_quoted(arg)
-    Enum.reduce(Enum.reverse(args), fn arg, expr -> {:|, [line: line], [arg, expr]} end)
+    Enum.reduce(Enum.reverse(args), fn arg, expr -> {:|, meta(anno), [arg, expr]} end)
   end
 
-  defp typespec_to_quoted({:type, line, :fun, [{:type, _, :product, args}, result]}) do
+  defp typespec_to_quoted({:type, anno, :fun, [{:type, _, :product, args}, result]}) do
     args = for arg <- args, do: typespec_to_quoted(arg)
-    [{:->, [line: line], [args, typespec_to_quoted(result)]}]
+    [{:->, meta(anno), [args, typespec_to_quoted(result)]}]
   end
 
-  defp typespec_to_quoted({:type, line, :fun, [args, result]}) do
-    [{:->, [line: line], [[typespec_to_quoted(args)], typespec_to_quoted(result)]}]
+  defp typespec_to_quoted({:type, anno, :fun, [args, result]}) do
+    [{:->, meta(anno), [[typespec_to_quoted(args)], typespec_to_quoted(result)]}]
   end
 
-  defp typespec_to_quoted({:type, line, :fun, []}) do
-    typespec_to_quoted({:type, line, :fun, [{:type, line, :any}, {:type, line, :any, []}]})
+  defp typespec_to_quoted({:type, anno, :fun, []}) do
+    typespec_to_quoted({:type, anno, :fun, [{:type, anno, :any}, {:type, anno, :any, []}]})
   end
 
-  defp typespec_to_quoted({:type, line, :range, [left, right]}) do
-    {:.., [line: line], [typespec_to_quoted(left), typespec_to_quoted(right)]}
+  defp typespec_to_quoted({:type, anno, :range, [left, right]}) do
+    {:.., meta(anno), [typespec_to_quoted(left), typespec_to_quoted(right)]}
   end
 
-  defp typespec_to_quoted({:type, _line, nil, []}) do
+  defp typespec_to_quoted({:type, _anno, nil, []}) do
     []
   end
 
-  defp typespec_to_quoted({:type, line, name, args}) do
+  defp typespec_to_quoted({:type, anno, name, args}) do
     args = for arg <- args, do: typespec_to_quoted(arg)
-    {name, [line: line], args}
+    {name, meta(anno), args}
   end
 
-  defp typespec_to_quoted({:var, line, var}) do
-    {erl_to_ex_var(var), [line: line], nil}
+  defp typespec_to_quoted({:var, anno, var}) do
+    {erl_to_ex_var(var), meta(anno), nil}
   end
 
-  defp typespec_to_quoted({:op, line, op, arg}) do
-    {op, [line: line], [typespec_to_quoted(arg)]}
+  defp typespec_to_quoted({:op, anno, op, arg}) do
+    {op, meta(anno), [typespec_to_quoted(arg)]}
   end
 
-  defp typespec_to_quoted({:remote_type, line, [mod, name, args]}) do
-    remote_type(line, mod, name, args)
+  defp typespec_to_quoted({:remote_type, anno, [mod, name, args]}) do
+    remote_type(anno, mod, name, args)
   end
 
-  defp typespec_to_quoted({:ann_type, line, [var, type]}) do
-    {:"::", [line: line], [typespec_to_quoted(var), typespec_to_quoted(type)]}
+  defp typespec_to_quoted({:ann_type, anno, [var, type]}) do
+    {:"::", meta(anno), [typespec_to_quoted(var), typespec_to_quoted(type)]}
   end
 
   defp typespec_to_quoted(
-         {:typed_record_field, {:record_field, line, {:atom, line1, name}}, type}
+         {:typed_record_field, {:record_field, anno1, {:atom, anno2, name}}, type}
        ) do
-    typespec_to_quoted({:ann_type, line, [{:var, line1, name}, type]})
+    typespec_to_quoted({:ann_type, anno1, [{:var, anno2, name}, type]})
   end
 
   defp typespec_to_quoted({:type, _, :any}) do
@@ -359,7 +361,7 @@ defmodule Code.Typespec do
     typespec_to_quoted(type)
   end
 
-  defp typespec_to_quoted({type, _line, atom}) when is_atom(type) do
+  defp typespec_to_quoted({type, _anno, atom}) when is_atom(type) do
     atom
   end
 
@@ -367,30 +369,30 @@ defmodule Code.Typespec do
 
   ## Helpers
 
-  defp remote_type(line, {:atom, _, :elixir}, {:atom, _, :charlist}, []) do
-    typespec_to_quoted({:type, line, :charlist, []})
+  defp remote_type(anno, {:atom, _, :elixir}, {:atom, _, :charlist}, []) do
+    typespec_to_quoted({:type, anno, :charlist, []})
   end
 
-  defp remote_type(line, {:atom, _, :elixir}, {:atom, _, :nonempty_charlist}, []) do
-    typespec_to_quoted({:type, line, :nonempty_charlist, []})
+  defp remote_type(anno, {:atom, _, :elixir}, {:atom, _, :nonempty_charlist}, []) do
+    typespec_to_quoted({:type, anno, :nonempty_charlist, []})
   end
 
-  defp remote_type(line, {:atom, _, :elixir}, {:atom, _, :struct}, []) do
-    typespec_to_quoted({:type, line, :struct, []})
+  defp remote_type(anno, {:atom, _, :elixir}, {:atom, _, :struct}, []) do
+    typespec_to_quoted({:type, anno, :struct, []})
   end
 
-  defp remote_type(line, {:atom, _, :elixir}, {:atom, _, :as_boolean}, [arg]) do
-    typespec_to_quoted({:type, line, :as_boolean, [arg]})
+  defp remote_type(anno, {:atom, _, :elixir}, {:atom, _, :as_boolean}, [arg]) do
+    typespec_to_quoted({:type, anno, :as_boolean, [arg]})
   end
 
-  defp remote_type(line, {:atom, _, :elixir}, {:atom, _, :keyword}, args) do
-    typespec_to_quoted({:type, line, :keyword, args})
+  defp remote_type(anno, {:atom, _, :elixir}, {:atom, _, :keyword}, args) do
+    typespec_to_quoted({:type, anno, :keyword, args})
   end
 
-  defp remote_type(line, mod, name, args) do
+  defp remote_type(anno, mod, name, args) do
     args = for arg <- args, do: typespec_to_quoted(arg)
-    dot = {:., [line: line], [typespec_to_quoted(mod), typespec_to_quoted(name)]}
-    {dot, [line: line], args}
+    dot = {:., meta(anno), [typespec_to_quoted(mod), typespec_to_quoted(name)]}
+    {dot, meta(anno), args}
   end
 
   defp erl_to_ex_var(var) do
@@ -413,5 +415,13 @@ defmodule Code.Typespec do
 
   defp unpack_typespec_kw(_, _acc) do
     :error
+  end
+
+  defp meta(line) when is_integer(line) do
+    [line: line]
+  end
+
+  defp meta({line, _column}) when is_integer(line) do
+    [line: line]
   end
 end
