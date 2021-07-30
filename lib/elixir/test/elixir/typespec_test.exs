@@ -1518,4 +1518,63 @@ defmodule TypespecTest do
                ["MACRO-last": 1, bar: 2, first: 1]
     end
   end
+
+  @tag tmp_dir: true
+  test "erlang module", c do
+    erlc(c, :typespec_test_mod, """
+    -module(typespec_test_mod).
+    -export([f/1]).
+    -export_type([t/1]).
+
+    -type t(X) :: list(X).
+
+    -spec f(X) -> X.
+    f(X) -> X.
+    """)
+
+    [type: type] = types(:typespec_test_mod)
+    line = 5
+
+    assert Code.Typespec.type_to_quoted(type) ==
+             {:"::", [], [{:t, [], [{:x, [line: line], nil}]}, [{:x, [line: line], nil}]]}
+
+    [{{:f, 1}, [spec]}] = specs(:typespec_test_mod)
+    line = 7
+
+    assert Code.Typespec.spec_to_quoted(:f, spec) ==
+             {:when, [line: line],
+              [
+                {:"::", [line: line],
+                 [{:f, [line: line], [{:x, [line: line], nil}]}, {:x, [line: line], nil}]},
+                [x: {:var, [line: line], nil}]
+              ]}
+  end
+
+  defp erlc(context, module, code) do
+    dir = context.tmp_dir
+
+    src_path = Path.join([dir, "#{module}.erl"])
+    src_path |> Path.dirname() |> File.mkdir_p!()
+    File.write!(src_path, code)
+
+    ebin_dir = Path.join(dir, "ebin")
+    File.mkdir_p!(ebin_dir)
+
+    {:ok, module} =
+      :compile.file(String.to_charlist(src_path), [
+        :debug_info,
+        outdir: String.to_charlist(ebin_dir)
+      ])
+
+    true = Code.prepend_path(ebin_dir)
+    {:module, ^module} = :code.load_file(module)
+
+    ExUnit.Callbacks.on_exit(fn ->
+      :code.purge(module)
+      :code.delete(module)
+      File.rm_rf!(dir)
+    end)
+
+    :ok
+  end
 end
