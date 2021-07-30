@@ -328,9 +328,7 @@ defmodule Map do
           end
 
         raise ArgumentError,
-              "unknown keys #{inspect(invalid_keys)} in #{inspect(map)}, the allowed keys are: #{
-                inspect(keys)
-              }"
+              "unknown keys #{inspect(invalid_keys)} in #{inspect(map)}, the allowed keys are: #{inspect(keys)}"
     end
   end
 
