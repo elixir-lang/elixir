@@ -417,11 +417,5 @@ defmodule Code.Typespec do
     :error
   end
 
-  defp meta(line) when is_integer(line) do
-    [line: line]
-  end
-
-  defp meta({line, _column}) when is_integer(line) do
-    [line: line]
-  end
+  defp meta(anno), do: [line: :erl_anno.line(anno)]
 end
