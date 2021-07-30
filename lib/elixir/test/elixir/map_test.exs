@@ -468,4 +468,19 @@ defmodule MapTest do
   test "validate/2 raises on invalid arguments" do
     assert_raise FunctionClauseError, fn -> Map.validate([:three], one: 1, two: 2) end
   end
+
+  test "validate/2 works with non-atom keys" do
+    assert {:ok,
+            %{
+              {1, 2, 3} => 4,
+              {7, 8} => 9,
+              key: :value
+            }} =
+             Map.validate(%{{1, 2, 3} => 4, "5" => 6, {7, 8} => 9}, [
+               "5",
+               {1, 2, 3},
+               {{7, 8}, nil},
+               key: :value
+             ])
+  end
 end
