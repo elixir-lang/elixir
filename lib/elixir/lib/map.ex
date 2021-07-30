@@ -221,6 +221,118 @@ defmodule Map do
   end
 
   @doc """
+  Ensures the first argument is a `map` with the given
+  keys and default values.
+
+  The second argument must be a list of `t:term`s, specifying
+  a given key, or tuples specifying a key and a default value.
+
+  If the map has only the given keys, it returns
+  `{:ok, keyword}` with default values applied. Otherwise it
+  returns `{:error, invalid_keys}` with invalid keys.
+
+  See also: `validate!/2`.
+
+  ## Examples
+
+      iex> Map.validate(%{}, [{"one", 1}, two: 2])
+      {:ok, %{"one" => 1, two: 2}}
+
+      iex> Map.validate(%{two: 3}, [one: 1, two: 2])
+      {:ok, %{one: 1, two: 3}}
+
+  If atoms are given, they are supported as keys but do not
+  provide a default value:
+
+      iex> Map.validate(%{}, [:one, two: 2])
+      {:ok, %{two: 2}}
+
+      iex> Map.validate(%{one: 1}, [:one, two: 2])
+      {:ok, %{one: 1, two: 2}}
+
+  Passing unknown keys returns an error:
+
+      iex> Map.validate(%{three: 3, four: 4}, [one: 1, two: 2])
+      {:error, [:three, :four]}
+  """
+  @doc since: "1.13.0"
+  @spec validate(map, [{term(), term()} | term()]) :: {:ok, map()} | {:error, [atom]}
+  def validate(map, values) when is_map(map) and is_list(values) do
+    # split values into the default half and the non-default half
+    {keys_with_defaults, non_default_keys} =
+      for val <- values, reduce: {[], []} do
+        {with_defaults, non_defaults} ->
+          case val do
+            {_, _} -> {[val | with_defaults], non_defaults}
+            _ -> {with_defaults, [val | non_defaults]}
+          end
+      end
+
+    defaults = new(keys_with_defaults)
+
+    invalid_keys =
+      for {k, _} <- map, reduce: [] do
+        acc ->
+          if has_key?(defaults, k) or k in non_default_keys do
+            acc
+          else
+            [k | acc]
+          end
+      end
+
+    case invalid_keys do
+      [] -> {:ok, merge(defaults, map)}
+      _ -> {:error, invalid_keys}
+    end
+  end
+
+  @doc """
+  Similar to `validate/2` but returns the keyword or raises an error.
+
+  ## Examples
+
+      iex> Map.validate!(%{}, [{"one", 1}, two: 2])
+      %{"one" => 1, two: 2}
+
+      iex> Map.validate!(%{two: 3}, [one: 1, two: 2])
+      %{one: 1, two: 3}
+
+  If atoms are given, they are supported as keys but do not
+  provide a default value:
+
+      iex> Map.validate!(%{}, [:one, two: 2])
+      %{two: 2}
+
+      iex> Map.validate!(%{one: 1}, [:one, two: 2])
+      %{one: 1, two: 2}
+
+  Passing unknown keys returns an error:
+
+      iex> Map.validate!(%{three: 3, four: 4}, [one: 1, two: 2])
+      ** (ArgumentError) unknown keys [:three, :four] in %{four: 4, three: 3}, the allowed keys are: [:one, :two]
+  """
+  @doc since: "1.13.0"
+  @spec validate!(map(), values :: [atom() | {atom(), term()}]) :: map()
+  def validate!(map, values) do
+    case validate(map, values) do
+      {:ok, kw} ->
+        kw
+
+      {:error, invalid_keys} ->
+        keys =
+          for value <- values do
+            case value do
+              {k, _} -> k
+              value -> value
+            end
+          end
+
+        raise ArgumentError,
+              "unknown keys #{inspect(invalid_keys)} in #{inspect(map)}, the allowed keys are: #{inspect(keys)}"
+    end
+  end
+
+  @doc """
   Returns whether the given `key` exists in the given `map`.
 
   Inlined by the compiler.

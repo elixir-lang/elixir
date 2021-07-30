@@ -223,9 +223,7 @@ defmodule MapTest do
              keyword?: 1,
              pop_first: 2,
              pop_first: 3,
-             pop_values: 2,
-             validate: 2,
-             validate!: 2
+             pop_values: 2
            ]
   end
 
@@ -465,5 +463,9 @@ defmodule MapTest do
   test "struct from erlang module" do
     struct = %:elixir_struct_from_erlang_module{}
     assert :elixir_struct_from_erlang_module.world(struct) == struct
+  end
+
+  test "validate/2 raises on invalid arguments" do
+    assert_raise FunctionClauseError, fn -> Map.validate([:three], one: 1, two: 2) end
   end
 end
