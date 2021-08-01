@@ -347,6 +347,14 @@ defmodule Mix.Tasks.XrefTest do
       """)
     end
 
+    test "only nodes with compile direct label" do
+      assert_graph(~w[--label compile-direct --only-nodes], """
+      lib/a.ex
+      lib/b.ex
+      lib/c.ex
+      """)
+    end
+
     test "filter by compile label" do
       assert_graph(~w[--label compile], """
       lib/a.ex
@@ -392,8 +400,6 @@ defmodule Mix.Tasks.XrefTest do
       `-- lib/e.ex (compile)
       lib/c.ex
       `-- lib/d.ex (compile)
-      lib/d.ex
-      lib/e.ex
       """)
     end
 
@@ -491,6 +497,13 @@ defmodule Mix.Tasks.XrefTest do
       |-- lib/a.ex
       |   `-- lib/b.ex (compile)
       `-- lib/c.ex
+      """)
+    end
+
+    test "multiple sinks with only nodes" do
+      assert_graph(~w[--sink lib/a.ex --sink lib/c.ex --sink lib/e.ex --only-nodes], """
+      lib/b.ex
+      lib/d.ex
       """)
     end
 

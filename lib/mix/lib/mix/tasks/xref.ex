@@ -538,7 +538,16 @@ defmodule Mix.Tasks.Xref do
         true -> file_references
       end
 
+    # Filter according to non direct label
     file_references = filter(file_references, filter)
+
+    # If a label is given, remove empty root nodes
+    file_references =
+      if opts[:label] do
+        for {_, [_ | _]} = pair <- file_references, into: %{}, do: pair
+      else
+        file_references
+      end
 
     roots =
       if sources do
@@ -618,10 +627,8 @@ defmodule Mix.Tasks.Xref do
     filter_fn = filter_fn(file_references, compile_time, filter)
 
     for {key, children} <- file_references,
-        filtered = Enum.filter(children, filter_fn),
-        filtered != [],
         into: %{},
-        do: {key, filtered}
+        do: {key, Enum.filter(children, filter_fn)}
   end
 
   defp source_tree(file_references, keys) do
