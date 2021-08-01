@@ -39,10 +39,9 @@ defmodule Mix.Tasks.Xref do
 
     * `--label` - only shows relationships with the given label.
       By default, it keeps all labels that are transitive.
-      The labels are "compile", "export" and "runtime" and
-      there are two additional label modifiers "compile-direct"
-      and "compile-connected". See "Dependencies types" section
-      below.
+      The labels are "compile", "export" and "runtime" and the label
+      modifiers called "compile-direct" and "compile-connected".
+      See "Dependencies types" section below.
 
     * `--only-nodes` - only shows the node names (no edges).
       Generally useful with the `--sink` flag
@@ -92,9 +91,6 @@ defmodule Mix.Tasks.Xref do
       # To show general statistics about the graph
       mix xref graph --format stats
 
-      # To limit statistics only to certain labels
-      mix xref graph --format stats --label compile
-
   ### Understanding the printed graph
 
   When `mix xref graph` runs, it will print a tree of the following
@@ -120,34 +116,57 @@ defmodule Mix.Tasks.Xref do
       $ mix xref graph
       lib/a.ex
       `-- lib/b.ex (compile)
-          `-- lib/c.ex
+      lib/b.ex
+      `-- lib/c.ex
+      lib/c.ex
 
   This tree means that `lib/a.ex` depends on `lib/b.ex` at compile
-  time which then depends on `lib/c.ex` at runtime. This is often
+  time. And `lib/b.ex` depends on `lib/c.ex` at runtime. This is often
   problematic because if `lib/c.ex` changes, `lib/a.ex` also has to
-  recompile due to this indirect compile time dependency.
+  recompile due to this indirect compile time dependency. For this reason,
+  when you pass `--label compile`, the graph remains the same, as `lib/a.ex`
+  effectively has an indirect compile-time dependency on `lib/c.ex`:
 
-  The flags `--source` or `--sink` filters the graph but does not
-  ultimately change how you read it. For example, if we use the
-  `--sink lib/c.ex` flag, we would see the same tree:
-
-      $ mix xref graph --sink lib/c.ex
+      $ mix xref graph --label compile
       lib/a.ex
       `-- lib/b.ex (compile)
-          `-- lib/c.ex
+      lib/b.ex
+      `-- lib/c.ex
 
-  If the `--label compile` flag is given with `--sink`, then `lib/c.ex`
-  won't be shown, because no module has a compile time dependency on
-  `lib/c.ex` but `lib/a.ex` still has an indirect compile time dependency
-  on `lib/c.ex` via `lib/b.ex`:
+  In other words, when using `--label compile`, any dependency on the graph
+  without the "(compile)" label is a transitive compile time dependency.
+  If you want to keep only the direct compile time dependencies, you can
+  use `--label compile-direct`:
 
-      $ mix xref graph --sink lib/c.ex --label compile
+      $ mix xref graph --label compile-direct
       lib/a.ex
       `-- lib/b.ex (compile)
 
-  Therefore, using a combination of `--sink` with `--label` is useful to
-  find all files that will change once the sink changes, alongside the
-  transitive dependencies that will cause said recompilations.
+  On the other hand, having direct compile time dependencies is not
+  necessarily an issue. The biggest concern, as mentioned above, are the
+  transitive compile time dependencies. You can get all compile time
+  dependencies that cause transitive compile time dependencies by using
+  `--label compile-connected`:
+
+      $ mix xref graph --label compile-connected
+      lib/a.ex
+      `-- lib/b.ex (compile)
+
+  Once you find all "compile-connected" dependencies, you can get the
+  transitive ones by passing the compile-connected dependencies with the
+  label "(compile)" as `--source`:
+
+      $ mix xref graph --source lib/b.ex
+      lib/b.ex
+      └── lib/c.ex
+
+  Similarly, you can use the `--label compile` and the `--sink` flag to
+  find all compile time dependencies that will recompile once the sink
+  changes:
+
+      $ mix xref graph --label compile --sink lib/c.ex
+      lib/a.ex
+      `-- lib/b.ex (compile)
 
   ### Dependencies types
 
@@ -169,15 +188,14 @@ defmodule Mix.Tasks.Xref do
   Runtime dependencies are added whenever you invoke another module
   inside a function. Modules with runtime dependencies do not have
   to be compiled when the callee changes, unless there is a transitive
-  compile or export time dependency between them. The option
-  `--label compile-connected` can be used to find such cases.
+  compile or an outdated export time dependency between them. The option
+  `--label compile-connected` can be used to find the first case.
 
   Overall, there are two label modifiers: "compile-connected" and
   "compile-direct". The label modifier "compile-connected" can be
-  used to find files that have at least one compile dependency
-  between them, excluding the compile time dependency itself.
-  "compile-direct" only shows direct compile time dependencies,
-  removing the transitive aspect.
+  used to find compile time dependencies that cause transitive compile
+  time dependencies. "compile-direct" only shows direct compile time
+  dependencies, removing the transitive aspect.
 
   ## Shared options
 
@@ -514,15 +532,17 @@ defmodule Mix.Tasks.Xref do
     sinks = get_files(:sink, opts, file_references)
 
     file_references =
-      if sinks do
-        filter_for_sinks(file_references, sinks, filter)
-      else
-        filter_for_source(file_references, filter)
+      cond do
+        sinks -> sink_tree(file_references, sinks)
+        sources -> source_tree(file_references, sources)
+        true -> file_references
       end
+
+    file_references = filter(file_references, filter)
 
     roots =
       if sources do
-        file_to_roots(sources)
+        Enum.map(sources, &{&1, nil})
       else
         file_references
         |> Map.drop(sinks || [])
@@ -582,81 +602,87 @@ defmodule Mix.Tasks.Xref do
     Enum.reduce(file_references, 0, fn {_, refs}, total -> total + length(refs) end)
   end
 
-  defp connected?([_ | _]), do: true
-  defp connected?(_), do: false
+  defp filter_fn(file_references, _compile_time, :compile_connected),
+    do: fn {key, type} -> type == :compile and match?([_ | _], file_references[key]) end
 
-  defp filter_fn(_file_references, :all), do: fn _ -> true end
+  defp filter_fn(_file_references, compile_time, :compile),
+    do: fn {key, type} -> type == :compile or Map.has_key?(compile_time, key) end
 
-  defp filter_fn(file_references, :compile_connected) do
-    fn {key, type} -> type == :compile && connected?(file_references[key]) end
+  defp filter_fn(_file_references, _compile_time, filter),
+    do: fn {_key, type} -> type == filter end
+
+  defp filter(file_references, :all), do: file_references
+
+  defp filter(file_references, filter) do
+    compile_time = compile_time_references(file_references)
+    filter_fn = filter_fn(file_references, compile_time, filter)
+
+    for {key, children} <- file_references,
+        filtered = Enum.filter(children, filter_fn),
+        filtered != [],
+        into: %{},
+        do: {key, filtered}
   end
 
-  defp filter_fn(_file_references, filter), do: fn {_, type} -> type == filter end
-
-  defp filter_for_source(file_references, :all), do: file_references
-
-  defp filter_for_source(file_references, filter) do
-    fun = filter_fn(file_references, filter)
-
-    Enum.reduce(file_references, %{}, fn {key, _}, acc ->
-      {children, _} = filter_for_source(file_references, key, %{}, %{}, fun)
-      Map.put(acc, key, children |> Map.delete(key) |> Map.to_list())
+  defp source_tree(file_references, keys) do
+    keys
+    |> Enum.reduce({%{}, %{}}, fn key, {acc, seen} ->
+      source_tree(file_references, key, acc, seen)
     end)
+    |> elem(0)
   end
 
-  defp filter_for_source(references, key, acc, seen, filter_fn) do
-    nodes = references[key]
+  defp source_tree(file_references, key, acc, seen) do
+    nodes = file_references[key]
 
-    if is_nil(nodes) || seen[key] do
+    if is_nil(nodes) or Map.has_key?(seen, key) do
       {acc, seen}
     else
+      acc = Map.put(acc, key, nodes)
       seen = Map.put(seen, key, true)
 
-      Enum.reduce(nodes, {acc, seen}, fn {child_key, type} = reference, {acc, seen} ->
-        if filter_fn.(reference) do
-          {Map.put(acc, child_key, type), Map.put(seen, child_key, true)}
-        else
-          filter_for_source(references, child_key, acc, seen, filter_fn)
-        end
+      Enum.reduce(nodes, {acc, seen}, fn {key, _type}, {acc, seen} ->
+        source_tree(file_references, key, acc, seen)
       end)
     end
   end
 
-  defp file_to_roots(files) do
-    Enum.map(files, &{&1, nil})
-  end
-
-  defp filter_for_sinks(file_references, sinks, filter) do
-    fun = filter_fn(file_references, filter)
-
+  defp sink_tree(file_references, keys) do
     file_references
-    |> invert_references(fn _ -> true end)
-    |> depends_on_sink(file_to_roots(sinks), %{})
-    |> invert_references(fun)
+    |> invert_references()
+    |> source_tree(keys)
+    |> invert_references()
   end
 
-  defp depends_on_sink(file_references, new_nodes, acc) do
-    Enum.reduce(new_nodes, acc, fn {new_node_name, _type}, acc ->
-      new_nodes = file_references[new_node_name]
-
-      if acc[new_node_name] || !new_nodes do
-        acc
-      else
-        depends_on_sink(file_references, new_nodes, Map.put(acc, new_node_name, new_nodes))
-      end
-    end)
-  end
-
-  defp invert_references(file_references, fun) do
+  defp invert_references(file_references) do
     Enum.reduce(file_references, %{}, fn {file, references}, acc ->
-      Enum.reduce(references, acc, fn {file_reference, type} = reference, acc ->
-        if fun.(reference) do
-          Map.update(acc, file_reference, [{file, type}], &[{file, type} | &1])
-        else
-          acc
-        end
+      Enum.reduce(references, acc, fn {file_reference, type}, acc ->
+        Map.update(acc, file_reference, [{file, type}], &[{file, type} | &1])
       end)
     end)
+  end
+
+  defp compile_time_references(file_references) do
+    acc =
+      for {_, children} <- file_references,
+          {key, :compile} <- children,
+          into: %{},
+          do: {key, true}
+
+    compile_time_references(file_references, acc)
+  end
+
+  defp compile_time_references(file_references, acc) do
+    new_acc =
+      for {key, children} <- file_references,
+          acc[key],
+          {key, _} <- children,
+          into: acc,
+          do: {key, true}
+
+    if map_size(new_acc) == map_size(acc),
+      do: acc,
+      else: compile_time_references(file_references, new_acc)
   end
 
   defp print_stats(references, opts) do

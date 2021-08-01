@@ -352,12 +352,13 @@ defmodule Mix.Tasks.XrefTest do
       lib/a.ex
       `-- lib/b.ex (compile)
       lib/b.ex
-      |-- lib/d.ex (compile)
+      |-- lib/a.ex
+      |-- lib/c.ex
       `-- lib/e.ex (compile)
       lib/c.ex
       `-- lib/d.ex (compile)
       lib/d.ex
-      lib/e.ex
+      `-- lib/e.ex
       """)
     end
 
@@ -365,28 +366,20 @@ defmodule Mix.Tasks.XrefTest do
       assert_graph(~w[--label compile-connected], """
       lib/a.ex
       `-- lib/b.ex (compile)
-      lib/b.ex
-      `-- lib/d.ex (compile)
       lib/c.ex
       `-- lib/d.ex (compile)
-      lib/d.ex
-      lib/e.ex
       """)
     end
 
     test "filter by compile-connected label with fail-above" do
-      message = "Too many references (found: 3, permitted: 2)"
+      message = "Too many references (found: 2, permitted: 1)"
 
       assert_raise Mix.Error, message, fn ->
-        assert_graph(~w[--label compile-connected --fail-above 2], """
+        assert_graph(~w[--label compile-connected --fail-above 1], """
         lib/a.ex
         `-- lib/b.ex (compile)
-        lib/b.ex
-        `-- lib/d.ex (compile)
         lib/c.ex
         `-- lib/d.ex (compile)
-        lib/d.ex
-        lib/e.ex
         """)
       end
     end
@@ -406,16 +399,11 @@ defmodule Mix.Tasks.XrefTest do
 
     test "filter by runtime label" do
       assert_graph(~w[--label runtime], """
-      lib/a.ex
-      `-- lib/c.ex
       lib/b.ex
       |-- lib/a.ex
       `-- lib/c.ex
-      lib/c.ex
-      `-- lib/e.ex
       lib/d.ex
       `-- lib/e.ex
-      lib/e.ex
       """)
     end
 
@@ -436,7 +424,10 @@ defmodule Mix.Tasks.XrefTest do
       assert_graph(~w[--source lib/a.ex --label compile], """
       lib/a.ex
       `-- lib/b.ex (compile)
-          |-- lib/d.ex (compile)
+          |-- lib/a.ex
+          |-- lib/c.ex
+          |   `-- lib/d.ex (compile)
+          |       `-- lib/e.ex
           `-- lib/e.ex (compile)
       """)
     end
@@ -475,9 +466,13 @@ defmodule Mix.Tasks.XrefTest do
       lib/a.ex
       `-- lib/b.ex (compile)
       lib/b.ex
+      |-- lib/a.ex
+      |-- lib/c.ex
       `-- lib/e.ex (compile)
       lib/c.ex
       `-- lib/d.ex (compile)
+      lib/d.ex
+      `-- lib/e.ex
       """)
     end
 
