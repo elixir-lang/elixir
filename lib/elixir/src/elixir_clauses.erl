@@ -252,10 +252,10 @@ expand_try(Meta, {Key, _}, _S, E) ->
   form_error(Meta, E, ?MODULE, {unexpected_option, 'try', Key}).
 
 expand_clauses_with_stacktrace(Meta, Fun, Clauses, S, E) ->
-  OldContextualVars = ?key(E, contextual_vars),
-  ES = E#{contextual_vars := ['__STACKTRACE__' | OldContextualVars]},
-  {Ret, S, EE} = expand_clauses(Meta, 'try', Fun, Clauses, S, ES),
-  {Ret, S, EE#{contextual_vars := OldContextualVars}}.
+  OldStacktrace = S#elixir_ex.stacktrace,
+  SS = S#elixir_ex{stacktrace=true},
+  {Ret, SE, EE} = expand_clauses(Meta, 'try', Fun, Clauses, SS, E),
+  {Ret, SE#elixir_ex{stacktrace=OldStacktrace}, EE}.
 
 expand_catch(_Meta, [_] = Args, S, E) ->
   head(Args, S, E);

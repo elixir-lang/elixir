@@ -27,7 +27,6 @@ new() ->
     unused_vars => {#{}, 0},                          %% a map of unused vars and a version counter for vars
     prematch_vars => warn,                            %% controls behaviour outside and inside matches
     lexical_tracker => nil,                           %% lexical tracker PID
-    contextual_vars => [],                            %% available contextual variables
     tracers => []                                     %% available compilation tracers
   }.
 

@@ -71,8 +71,9 @@ defmodule Module.LocalsTracker do
     :ok
   end
 
-  # Collecting all conflicting imports with the given functions
-  @doc false
+  @doc """
+  Collect all conflicting imports with the given functions
+  """
   def collect_imports_conflicts({set, _bag}, all_defined) do
     for {pair, _, meta, _} <- all_defined, n = out_neighbour(set, {:import, pair}) do
       {meta, {n, pair}}

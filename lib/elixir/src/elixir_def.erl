@@ -181,9 +181,10 @@ store_definition(Meta, Kind, CheckClauses, Name, Arity, DefaultsArgs, Guards, Bo
   Tuple.
 
 env_for_expansion(Kind, Tuple, E) when Kind =:= defmacro; Kind =:= defmacrop ->
-  {elixir_env:env_to_ex(E), E#{function := Tuple, contextual_vars := ['__CALLER__']}};
+  S = elixir_env:env_to_ex(E),
+  {S#elixir_ex{caller=true}, E#{function := Tuple}};
 env_for_expansion(_Kind, Tuple, E) ->
-  {elixir_env:env_to_ex(E), E#{function := Tuple, contextual_vars := []}}.
+  {elixir_env:env_to_ex(E), E#{function := Tuple}}.
 
 retrieve_location(Location, Module) ->
   {Set, _} = elixir_module:data_tables(Module),

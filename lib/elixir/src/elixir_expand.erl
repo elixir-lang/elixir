@@ -114,11 +114,15 @@ expand({'__MODULE__', _, Atom}, S, E) when is_atom(Atom) ->
 expand({'__DIR__', _, Atom}, S, E) when is_atom(Atom) ->
   {filename:dirname(?key(E, file)), S, E};
 expand({'__CALLER__', Meta, Atom} = Caller, S, E) when is_atom(Atom) ->
-  assert_contextual_var(Meta, '__CALLER__', E, caller_not_allowed),
-  {Caller, S, E};
+  case S#elixir_ex.caller of
+    true -> {Caller, S, E};
+    false -> form_error(Meta, E, ?MODULE, caller_not_allowed)
+  end;
 expand({'__STACKTRACE__', Meta, Atom} = Stacktrace, S, E) when is_atom(Atom) ->
-  assert_contextual_var(Meta, '__STACKTRACE__', E, stacktrace_not_allowed),
-  {Stacktrace, S, E};
+  case S#elixir_ex.stacktrace of
+    true -> {Stacktrace, S, E};
+    false -> form_error(Meta, E, ?MODULE, stacktrace_not_allowed)
+  end;
 expand({'__ENV__', Meta, Atom}, _S, #{context := match} = E) when is_atom(Atom) ->
   form_error(Meta, E, ?MODULE, env_not_allowed);
 expand({'__ENV__', Meta, Atom}, S, E) when is_atom(Atom) ->
@@ -1077,12 +1081,6 @@ assert_no_match_scope(_Meta, _Kind, _E) -> [].
 assert_no_guard_scope(Meta, Kind, #{context := guard, file := File}) ->
   form_error(Meta, File, ?MODULE, {invalid_expr_in_guard, Kind});
 assert_no_guard_scope(_Meta, _Kind, _E) -> [].
-
-assert_contextual_var(Meta, Name, #{contextual_vars := Vars, file := File}, Error) ->
-  case lists:member(Name, Vars) of
-    true -> ok;
-    false -> form_error(Meta, File, ?MODULE, Error)
-  end.
 
 %% Here we look into the Clauses "optimistically", that is, we don't check for
 %% multiple "do"s and similar stuff. After all, the error we're gonna give here

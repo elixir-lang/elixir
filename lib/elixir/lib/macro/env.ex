@@ -36,15 +36,16 @@ defmodule Macro.Env do
     * `macros` - a list of macros imported from each module
     * `module` - the current module name
     * `requires` - the list of required modules
+    * `tracers` - the list of compilations tracers (see the `Code` module for more info)
 
   The following fields are private to Elixir's macro expansion mechanism and
   must not be accessed directly:
 
-    * `contextual_vars`
-    * `current_vars`
     * `lexical_tracker`
+    * `versioned_vars`
+
+    * `current_vars`
     * `prematch_vars`
-    * `tracers`
     * `unused_vars`
 
   """
@@ -62,7 +63,6 @@ defmodule Macro.Env do
   @type requires :: [module]
   @type variable :: {atom, atom | term}
 
-  @typep contextual_vars :: [atom]
   @typep current_vars ::
            {%{optional(variable) => var_version}, %{optional(variable) => var_version} | false}
   @typep unused_vars ::
@@ -81,7 +81,6 @@ defmodule Macro.Env do
           aliases: aliases,
           context: context,
           context_modules: context_modules,
-          contextual_vars: contextual_vars,
           current_vars: current_vars,
           file: file,
           function: name_arity | nil,
@@ -105,7 +104,6 @@ defmodule Macro.Env do
       aliases: [],
       context: nil,
       context_modules: [],
-      contextual_vars: [],
       current_vars: {%{}, %{}},
       file: "nofile",
       function: nil,
