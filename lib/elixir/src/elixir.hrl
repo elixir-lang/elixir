@@ -7,6 +7,7 @@
 
 -record(elixir_ex, {
   caller=false,            %% stores if __CALLER__ is allowed
+  prematch=warn,           %% {Read, Counter} | warn | raise | pin
   stacktrace=false         %% stores if __STACKTRACE__ is allowed
 }).
 

@@ -303,12 +303,14 @@ expand({super, Meta, Args}, S, E) when is_list(Args) ->
 %% Vars
 
 expand({'^', Meta, [Arg]}, S, #{context := match} = E) ->
-  #{current_vars := {_ReadCurrent, WriteCurrent}, prematch_vars := {Prematch, _}} = E,
+  #{current_vars := {_ReadCurrent, WriteCurrent}} = E,
+  #elixir_ex{prematch={Prematch, _}} = S,
 
   %% We need to rollback to a no match context.
-  NoMatchE = E#{context := nil, current_vars := {Prematch, WriteCurrent}, prematch_vars := pin},
+  NoMatchE = E#{context := nil, current_vars := {Prematch, WriteCurrent}},
+  NoMatchS = S#elixir_ex{prematch=pin},
 
-  case expand(Arg, S, NoMatchE) of
+  case expand(Arg, NoMatchS, NoMatchE) of
     {{Name, _, Kind} = Var, _, #{unused_vars := Unused}} when is_atom(Name), is_atom(Kind) ->
       {{'^', Meta, [Var]}, S, E#{unused_vars := Unused}};
     _ ->
@@ -325,9 +327,10 @@ expand({'_', Meta, Kind}, _S, E) when is_atom(Kind) ->
 expand({Name, Meta, Kind}, S, #{context := match} = E) when is_atom(Name), is_atom(Kind) ->
   #{
     current_vars := {ReadCurrent, WriteCurrent},
-    unused_vars := {Unused, Version},
-    prematch_vars := {_, PrematchVersion}
+    unused_vars := {Unused, Version}
   } = E,
+
+  #elixir_ex{prematch={_, PrematchVersion}} = S,
 
   Pair = {Name, elixir_utils:var_context(Meta, Kind)},
 
@@ -367,15 +370,18 @@ expand({Name, Meta, Kind}, S, E) when is_atom(Name), is_atom(Kind) ->
       {Var, S, E#{unused_vars := {var_used(Pair, PairVersion, Unused), Version}}};
 
     _ ->
-      %% TODO: Remove this check on v2.0 as we can always raise undefined_var
-      case lists:keyfind(var, 1, Meta) of
-        {var, true} ->
-          form_error(Meta, E, ?MODULE, {undefined_var_bang, Name, Kind});
+      case lists:keyfind(if_undefined, 1, Meta) of
+        %% TODO: Remove this clause on v2.0 as we will always raise
+        {if_undefined, raise} ->
+          form_error(Meta, E, ?MODULE, {undefined_var, Name, Kind});
+
+        {if_undefined, apply} ->
+          expand({Name, Meta, []}, S, E);
 
         _ ->
-          case ?key(E, prematch_vars) of
+          case S#elixir_ex.prematch of
+            %% TODO: Remove this clause on v2.0 as we will always raise
             warn ->
-              %% TODO: Remove warn option on v2.0
               elixir_errors:form_warn(Meta, E, ?MODULE, {unknown_variable, Name}),
               expand({Name, Meta, []}, S, E);
 
@@ -383,10 +389,7 @@ expand({Name, Meta, Kind}, S, E) when is_atom(Name), is_atom(Kind) ->
               form_error(Meta, E, ?MODULE, {undefined_var, Name, Kind});
 
             pin ->
-              form_error(Meta, E, ?MODULE, {undefined_var_pin, Name, Kind});
-
-            apply ->
-              expand({Name, Meta, []}, S, E)
+              form_error(Meta, E, ?MODULE, {undefined_var_pin, Name, Kind})
           end
       end
   end;
@@ -1158,9 +1161,6 @@ format_error({undefined_var, Name, Kind}) ->
 format_error({undefined_var_pin, Name, Kind}) ->
   Message = "undefined variable ^~ts. No variable \"~ts\"~ts has been defined before the current pattern",
   io_lib:format(Message, [Name, Name, context_info(Kind)]);
-format_error({undefined_var_bang, Name, Kind}) ->
-  Message = "expected \"~ts\"~ts to expand to an existing variable or be part of a match",
-  io_lib:format(Message, [Name, context_info(Kind)]);
 format_error(underscore_in_cond) ->
   "invalid use of _ inside \"cond\". If you want the last clause to always match, "
     "you probably meant to use: true ->";

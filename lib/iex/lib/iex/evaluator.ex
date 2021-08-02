@@ -199,7 +199,6 @@ defmodule IEx.Evaluator do
 
   defp loop_state(ref, server, history, opts) do
     env = opts[:env] || :elixir.env_for_eval(file: "iex")
-    env = %{env | prematch_vars: :apply}
     {_, _, env} = :elixir.eval_quoted(quote(do: import(IEx.Helpers)), [], env)
     stacktrace = opts[:stacktrace]
     binding = opts[:binding] || []
@@ -295,6 +294,7 @@ defmodule IEx.Evaluator do
   end
 
   defp handle_eval(forms, line, state) do
+    forms = add_if_undefined_apply_to_vars(forms)
     {result, binding, env} = :elixir.eval_forms(forms, state.binding, state.env)
 
     unless result == IEx.dont_display_result() do
@@ -303,6 +303,16 @@ defmodule IEx.Evaluator do
 
     state = %{state | env: env, binding: binding}
     update_history(state, line, result)
+  end
+
+  defp add_if_undefined_apply_to_vars(forms) do
+    Macro.prewalk(forms, fn
+      {var, meta, context} when is_atom(var) and is_atom(context) ->
+        {var, Keyword.put_new(meta, :if_undefined, :apply), context}
+
+      other ->
+        other
+    end)
   end
 
   defp update_history(state, counter, result) do

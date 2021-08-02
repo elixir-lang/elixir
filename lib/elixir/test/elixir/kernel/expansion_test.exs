@@ -333,14 +333,13 @@ defmodule Kernel.ExpansionTest do
 
       assert expand(code)
 
-      message = ~r"expected \"a\" to expand to an existing variable or be part of a match"
+      message = ~r"undefined variable \"a\""
 
       assert_raise CompileError, message, fn ->
         expand(quote(do: var!(a)))
       end
 
-      message =
-        ~r"expected \"a\" \(context Unknown\) to expand to an existing variable or be part of a match"
+      message = ~r"undefined variable \"a\" \(context Unknown\)"
 
       assert_raise CompileError, message, fn ->
         expand(quote(do: var!(a, Unknown)))

@@ -12,31 +12,32 @@ match(Fun, Expr, S, E, #{context := match}) ->
 match(Fun, Expr, S, #{current_vars := Current, unused_vars := {_, Counter} = Unused} = AfterE, BeforeE) ->
   #{
     context := Context,
-    prematch_vars := Prematch,
     current_vars := {Read, _}
   } = BeforeE,
 
+  CallS = S#elixir_ex{
+    prematch={Read, Counter}
+  },
+
   CallE = BeforeE#{
     context := match,
-    prematch_vars := {Read, Counter},
     current_vars := Current,
     unused_vars := Unused
   },
 
-  {EExpr, SE, #{current_vars := NewCurrent, unused_vars := NewUnused}} = Fun(Expr, S, CallE),
+  {EExpr, SE, #{current_vars := NewCurrent, unused_vars := NewUnused}} = Fun(Expr, CallS, CallE),
 
   EndE = AfterE#{
     context := Context,
-    prematch_vars := Prematch,
     current_vars := NewCurrent,
     unused_vars := NewUnused
   },
 
-  {EExpr, SE, EndE}.
+  {EExpr, SE#elixir_ex{prematch=S#elixir_ex.prematch}, EndE}.
 
 def({Meta, Args, Guards, Body}, S, E) ->
-  {EArgs, SA, EA}   = elixir_expand:expand_args(Args, S, E#{context := match, prematch_vars := {#{}, 0}}),
-  {EGuards, SG, EG} = guard(Guards, SA, EA#{context := guard, prematch_vars := warn}),
+  {EArgs, SA, EA} = elixir_expand:expand_args(Args, S#elixir_ex{prematch={#{}, 0}}, E#{context := match}),
+  {EGuards, SG, EG} = guard(Guards, SA#elixir_ex{prematch=warn}, EA#{context := guard}),
   {EBody, _SB, EB} = elixir_expand:expand(Body, SG, EG#{context := nil}),
   elixir_env:check_unused_vars(EB),
   {Meta, EArgs, EGuards, EBody}.
@@ -52,12 +53,12 @@ clause(Meta, Kind, _Fun, _, _, E) ->
 
 head([{'when', Meta, [_ | _] = All}], S, E) ->
   {Args, Guard} = elixir_utils:split_last(All),
-  Prematch = ?key(E, prematch_vars),
+  Prematch = S#elixir_ex.prematch,
 
   {{EArgs, EGuard}, SG, EG} =
     match(fun(ok, SM, EM) ->
       {EArgs, SA, EA} = elixir_expand:expand_args(Args, SM, EM),
-      {EGuard, SG, EG} = guard(Guard, SA, EA#{context := guard, prematch_vars := Prematch}),
+      {EGuard, SG, EG} = guard(Guard, SA#elixir_ex{prematch=Prematch}, EA#{context := guard}),
       {{EArgs, EGuard}, SG, EG}
     end, ok, S, E, E),
 

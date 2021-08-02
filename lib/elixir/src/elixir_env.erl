@@ -26,7 +26,6 @@ new() ->
     versioned_vars => #{},                            %% a map of vars with their latest versions
     current_vars => {#{}, false},                     %% a tuple with maps of read and optional write current vars
     unused_vars => {#{}, 0},                          %% a map of unused vars and a version counter for vars
-    prematch_vars => warn,                            %% controls behaviour outside and inside matches
     lexical_tracker => nil,                           %% lexical tracker PID
     tracers => []                                     %% available compilation tracers
   }.
@@ -50,11 +49,8 @@ reset_vars(Env) ->
 
 %% CONVERSIONS
 
-% def to_match(%{__struct__: Macro.Env, current_vars: {read, _}, unused_vars: {_, counter}} = env) do
-%   %{env | context: :match, prematch_vars: {read, counter}}
-% end
-env_to_ex(#{context := match}) ->
-  #elixir_ex{};
+env_to_ex(#{context := match, current_vars := {Read, _}, unused_vars := {_, Counter}}) ->
+  #elixir_ex{prematch={Read, Counter}};
 env_to_ex(#{}) ->
   #elixir_ex{}.
 

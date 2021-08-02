@@ -36,16 +36,15 @@ defmodule Macro.Env do
     * `macros` - a list of macros imported from each module
     * `module` - the current module name
     * `requires` - the list of required modules
-    * `tracers` - the list of compilations tracers (see the `Code` module for more info)
 
   The following fields are private to Elixir's macro expansion mechanism and
   must not be accessed directly:
 
     * `lexical_tracker`
+    * `tracers`
     * `versioned_vars`
 
     * `current_vars`
-    * `prematch_vars`
     * `unused_vars`
 
   """
@@ -61,9 +60,9 @@ defmodule Macro.Env do
   @type macros :: [{module, [name_arity]}]
   @type name_arity :: {atom, arity}
   @type requires :: [module]
-  @type tracers :: [module]
   @type variable :: {atom, atom | term}
 
+  @typep tracers :: [module]
   @typep var_version :: non_neg_integer
   @typep versioned_vars :: %{optional(variable) => var_version}
 
@@ -71,12 +70,6 @@ defmodule Macro.Env do
            {%{optional(variable) => var_version}, %{optional(variable) => var_version} | false}
   @typep unused_vars ::
            {%{optional({atom, var_version}) => non_neg_integer | false}, non_neg_integer}
-  @typep prematch_vars ::
-           {%{optional(variable) => var_version}, non_neg_integer}
-           | :warn
-           | :raise
-           | :pin
-           | :apply
 
   @type t :: %{
           __struct__: __MODULE__,
@@ -92,7 +85,6 @@ defmodule Macro.Env do
           macro_aliases: macro_aliases,
           macros: macros,
           module: module,
-          prematch_vars: prematch_vars,
           unused_vars: unused_vars,
           requires: requires,
           tracers: tracers,
@@ -116,7 +108,6 @@ defmodule Macro.Env do
       macro_aliases: [],
       macros: [],
       module: nil,
-      prematch_vars: :warn,
       requires: [],
       tracers: [],
       unused_vars: {%{}, 0},
@@ -171,12 +162,8 @@ defmodule Macro.Env do
   Returns a `Macro.Env` in the match context.
   """
   @spec to_match(t) :: t
-  def to_match(%{__struct__: Macro.Env, context: :match} = env) do
-    env
-  end
-
-  def to_match(%{__struct__: Macro.Env, current_vars: {read, _}, unused_vars: {_, counter}} = env) do
-    %{env | context: :match, prematch_vars: {read, counter}}
+  def to_match(%{__struct__: Macro.Env} = env) do
+    %{env | context: :match}
   end
 
   @doc """

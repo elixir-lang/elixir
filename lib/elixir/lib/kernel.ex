@@ -4364,7 +4364,7 @@ defmodule Kernel do
   defmacro var!({name, meta, atom}, context) when is_atom(name) and is_atom(atom) do
     # Remove counter and force them to be vars
     meta = :lists.keydelete(:counter, 1, meta)
-    meta = :lists.keystore(:var, 1, meta, {:var, true})
+    meta = :lists.keystore(:if_undefined, 1, meta, {:if_undefined, :raise})
 
     case Macro.expand(context, __CALLER__) do
       context when is_atom(context) ->

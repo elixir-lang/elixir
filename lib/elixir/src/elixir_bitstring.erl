@@ -188,7 +188,7 @@ expand_each_spec(Meta, [{Expr, _, Args} = H | T], Map, S, E, OriginalE) when is_
   case validate_spec(Expr, Args) of
     {Key, Arg} ->
       {Value, SE, EE} = expand_spec_arg(Arg, S, E, OriginalE),
-      validate_spec_arg(Meta, Key, Value, EE, OriginalE),
+      validate_spec_arg(Meta, Key, Value, S, EE, OriginalE),
 
       case maps:get(Key, Map) of
         default -> ok;
@@ -245,17 +245,17 @@ validate_spec(_, _)          -> none.
 expand_spec_arg(Expr, S, E, _OriginalE) when is_atom(Expr); is_integer(Expr) ->
   {Expr, S, E};
 expand_spec_arg(Expr, S, #{context := match} = E, _OriginalE) ->
-  {EExpr, S, EE} = elixir_expand:expand(Expr, S, E#{context := nil, prematch_vars := raise}),
-  {EExpr, S, EE#{context := match, prematch_vars := ?key(E, prematch_vars)}};
+  {EExpr, SE, EE} = elixir_expand:expand(Expr, S#elixir_ex{prematch=raise}, E#{context := nil}),
+  {EExpr, SE#elixir_ex{prematch=S#elixir_ex.prematch}, EE#{context := match}};
 expand_spec_arg(Expr, S, E, OriginalE) ->
   elixir_expand:expand(Expr, S, elixir_env:reset_read(E, OriginalE)).
 
-validate_spec_arg(Meta, size, Value, E, OriginalE) ->
+validate_spec_arg(Meta, size, Value, S, E, OriginalE) ->
   case Value of
     {Var, VarMeta, Context} when is_atom(Var) and is_atom(Context) ->
       Tuple = {Var, elixir_utils:var_context(VarMeta, Context)},
 
-      case is_valid_spec_arg_var(Tuple, E, OriginalE) of
+      case is_valid_spec_arg_var(Tuple, S, E, OriginalE) of
         true -> ok;
         false -> form_error(Meta, E, ?MODULE, {undefined_var_in_spec, Value})
       end;
@@ -266,17 +266,17 @@ validate_spec_arg(Meta, size, Value, E, OriginalE) ->
     _ ->
       form_error(Meta, E, ?MODULE, {bad_size_argument, Value})
   end;
-validate_spec_arg(Meta, unit, Value, E, _OriginalE) when not is_integer(Value) ->
+validate_spec_arg(Meta, unit, Value, _S, E, _OriginalE) when not is_integer(Value) ->
   form_error(Meta, E, ?MODULE, {bad_unit_argument, Value});
-validate_spec_arg(_Meta, _Key, _Value, _E, _OriginalE) ->
+validate_spec_arg(_Meta, _Key, _Value, _S, _E, _OriginalE) ->
   ok.
 
-is_valid_spec_arg_var(Var, E, #{context := match} = OriginalE) ->
-  case OriginalE of
-    #{prematch_vars := {#{Var := _}, _}} -> true;
+is_valid_spec_arg_var(Var, S, E, #{context := match} = OriginalE) ->
+  case S#elixir_ex.prematch of
+    {#{Var := _}, _} -> true;
     _ -> is_var(Var, E) andalso not is_var(Var, OriginalE)
   end;
-is_valid_spec_arg_var(_Var, _E, _OriginalE) ->
+is_valid_spec_arg_var(_Var, _S, _E, _OriginalE) ->
   true.
 
 is_var(Var, #{current_vars := {Read, _}}) ->
