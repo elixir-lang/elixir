@@ -367,17 +367,21 @@ eval_form(Line, Module, DataBag, Block, Vars, E) ->
 eval_callbacks(Line, DataBag, Name, Args, E) ->
   Callbacks = bag_lookup_element(DataBag, {accumulate, Name}, 2),
   lists:foldl(fun({M, F}, Acc) ->
-    expand_callback(Line, M, F, Args, elixir_env:reset_vars(Acc),
-                    fun(AM, AF, AA) -> apply(AM, AF, AA) end)
+    expand_callback(Line, M, F, Args, Acc, fun(AM, AF, AA) -> apply(AM, AF, AA) end)
   end, E, Callbacks).
 
-expand_callback(Line, M, F, Args, E, Fun) ->
+expand_callback(Line, M, F, Args, Acc, Fun) ->
+  %% TODO: Remove this reset_vars once we move variables to S
+  %% as we can expect all variables to have been previously reset
+  E = elixir_env:reset_vars(Acc),
+  S = elixir_env:env_to_ex(E),
   Meta = [{line, Line}, {required, true}],
 
-  {EE, ET} = elixir_dispatch:dispatch_require(Meta, M, F, Args, E, fun(AM, AF, AA) ->
-    Fun(AM, AF, AA),
-    {ok, E}
-  end),
+  {EE, _S, ET} =
+    elixir_dispatch:dispatch_require(Meta, M, F, Args, S, E, fun(AM, AF, AA) ->
+      Fun(AM, AF, AA),
+      {ok, S, E}
+    end),
 
   if
     is_atom(EE) ->

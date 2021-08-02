@@ -226,7 +226,7 @@ defmodule Kernel.Utils do
   def defguard(args, expr, env) do
     {^args, vars} = extract_refs_from_args(args)
     env = :elixir_env.with_vars(%{env | context: :guard}, vars)
-    {expr, _scope} = :elixir_expand.expand(expr, env)
+    {expr, _, _} = :elixir_expand.expand(expr, :elixir_env.env_to_ex(env), env)
 
     quote do
       case Macro.Env.in_guard?(__CALLER__) do

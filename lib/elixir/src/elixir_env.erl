@@ -2,7 +2,7 @@
 -include("elixir.hrl").
 -export([
   new/0, linify/1, with_vars/2, reset_vars/1,
-  env_to_scope/1,
+  env_to_ex/1, env_to_erl/1, mapfold/4,
   reset_unused_vars/1, check_unused_vars/1,
   merge_and_check_unused_vars/2,
   trace/2, format_error/1,
@@ -41,13 +41,20 @@ linify(#{} = Env) ->
   Env.
 
 with_vars(Env, Vars) ->
-  NumVars = length(Vars),
-  VarVersions = lists:zip(Vars, lists:seq(0, NumVars - 1)),
+  {VarVersions, _} = lists:mapfoldl(fun(Var, I) -> {{Var, I}, I + 1} end, 0, Vars),
   Read = maps:from_list(VarVersions),
-  Env#{current_vars := {Read, false}, unused_vars := {#{}, NumVars}}.
+  Env#{current_vars := {Read, false}, unused_vars := {#{}, map_size(Read)}}.
 
-env_to_scope(#{context := Context, current_vars := {Read, _}}) ->
-  {VarsList, _Counter} = lists:mapfoldl(fun to_scope_var/2, 0, maps:values(Read)),
+reset_vars(Env) ->
+  Env#{current_vars := {#{}, false}, unused_vars := {#{}, 0}}.
+
+%% CONVERSIONS
+
+env_to_ex(#{}) ->
+  #elixir_ex{}.
+
+env_to_erl(#{context := Context, current_vars := {Read, _}}) ->
+  {VarsList, _Counter} = lists:mapfoldl(fun to_erl_var/2, 0, maps:values(Read)),
   VarsMap = maps:from_list(VarsList),
   Scope = #elixir_erl{
     context=Context,
@@ -56,13 +63,21 @@ env_to_scope(#{context := Context, current_vars := {Read, _}}) ->
   },
   {VarsList, Scope}.
 
-to_scope_var(Version, Counter) ->
+to_erl_var(Version, Counter) ->
   {{Version, list_to_atom("_@" ++ integer_to_list(Counter))}, Counter + 1}.
 
-reset_vars(Env) ->
-  Env#{current_vars := {#{}, false}, unused_vars := {#{}, 0}}.
+%% TRAVERSAL HELPERS
 
-%% SCOPE MERGING
+mapfold(Fun, S, E, List) ->
+  mapfold(Fun, S, E, List, []).
+
+mapfold(Fun, S, E, [H | T], Acc) ->
+  {RH, RS, RE} = Fun(H, S, E),
+  mapfold(Fun, RS, RE, T, [RH | Acc]);
+mapfold(_Fun, S, E, [], Acc) ->
+  {lists:reverse(Acc), S, E}.
+
+%% VAR HANDLING
 
 reset_read(#{current_vars := {_, Write}} = E, #{current_vars := {Read, _}}) ->
   E#{current_vars := {Read, Write}}.

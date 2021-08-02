@@ -1534,7 +1534,10 @@ defmodule Macro do
           []
         end
 
-      expand = :elixir_dispatch.expand_import(meta, {atom, length(args)}, args, env, extra, true)
+      s = :elixir_env.env_to_ex(env)
+
+      expand =
+        :elixir_dispatch.expand_import(meta, {atom, length(args)}, args, s, env, extra, true)
 
       case expand do
         {:ok, receiver, quoted} ->
@@ -1565,7 +1568,9 @@ defmodule Macro do
         {original, false}
 
       true ->
-        expand = :elixir_dispatch.expand_require(meta, receiver, {right, length(args)}, args, env)
+        s = :elixir_env.env_to_ex(env)
+        name_arity = {right, length(args)}
+        expand = :elixir_dispatch.expand_require(meta, receiver, name_arity, args, s, env)
 
         case expand do
           {:ok, receiver, quoted} ->

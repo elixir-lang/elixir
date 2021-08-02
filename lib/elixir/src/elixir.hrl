@@ -5,6 +5,9 @@
 -define(var_context, ?MODULE).
 -define(remote(Ann, Module, Function, Args), {call, Ann, {remote, Ann, {atom, Ann, Module}, {atom, Ann, Function}}, Args}).
 
+-record(elixir_ex, {
+}).
+
 -record(elixir_erl, {
   context=nil,             %% can be match, guards or nil
   extra=nil,               %% extra information about the context, like pin_guard and map_key

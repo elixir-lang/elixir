@@ -64,18 +64,16 @@ defmodule Macro.Env do
 
   @typep contextual_vars :: [atom]
   @typep current_vars ::
-           {%{optional(variable) => {var_version, var_type}},
-            %{optional(variable) => {var_version, var_type}} | false}
+           {%{optional(variable) => var_version}, %{optional(variable) => var_version} | false}
   @typep unused_vars ::
            {%{optional({atom, var_version}) => non_neg_integer | false}, non_neg_integer}
   @typep prematch_vars ::
-           {%{optional(variable) => {var_version, var_type}}, non_neg_integer}
+           {%{optional(variable) => var_version}, non_neg_integer}
            | :warn
            | :raise
            | :pin
            | :apply
   @typep tracers :: [module]
-  @typep var_type :: :term
   @typep var_version :: non_neg_integer
 
   @type t :: %{

@@ -79,7 +79,8 @@ defmodule Kernel.ExpansionTest do
 
   defp expand_with_version(expr) do
     env = :elixir_env.reset_vars(__ENV__)
-    elem(:elixir_expand.expand(expr, env), 0)
+    {expr, _, _} = :elixir_expand.expand(expr, :elixir_env.env_to_ex(env), env)
+    expr
   end
 
   describe "__block__" do
@@ -2809,11 +2810,12 @@ defmodule Kernel.ExpansionTest do
 
   defp expand_env(expr, env) do
     ExUnit.CaptureIO.capture_io(:stderr, fn ->
-      send(self(), {:expand_env, :elixir_expand.expand(expr, env)})
+      send(self(), {:expand_env, :elixir_expand.expand(expr, :elixir_env.env_to_ex(env), env)})
     end)
 
     receive do
-      {:expand_env, {expr, env}} -> {clean_meta(expr, [:version, :inferred_bitstring_spec]), env}
+      {:expand_env, {expr, _, env}} ->
+        {clean_meta(expr, [:version, :inferred_bitstring_spec]), env}
     end
   end
 end

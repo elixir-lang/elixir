@@ -242,10 +242,10 @@ eval_quoted(Tree, Binding, #{line := Line} = E) ->
 
 eval_forms(Tree, Binding, Opts) when is_list(Opts) ->
   eval_forms(Tree, Binding, env_for_eval(Opts));
-eval_forms(Tree, RawBinding, OE) ->
+eval_forms(Tree, RawBinding, OrigE) ->
   {Vars, Binding} = normalize_binding(RawBinding, [], []),
-  E = elixir_env:with_vars(OE, Vars),
-  {_, S} = elixir_env:env_to_scope(E),
+  E = elixir_env:with_vars(OrigE, Vars),
+  {_, S} = elixir_env:env_to_erl(E),
   {Erl, NewE, NewS} = quoted_to_erl(Tree, E, S),
 
   case Erl of
@@ -325,11 +325,11 @@ merge_stacktrace([StackItem | Stacktrace], CurrentStack) ->
 %% Converts a quoted expression to Erlang abstract format
 
 quoted_to_erl(Quoted, E) ->
-  {_, S} = elixir_env:env_to_scope(E),
+  {_, S} = elixir_env:env_to_erl(E),
   quoted_to_erl(Quoted, E, S).
 
 quoted_to_erl(Quoted, Env, Scope) ->
-  {Expanded, NewEnv} = elixir_expand:expand(Quoted, Env),
+  {Expanded, _, NewEnv} = elixir_expand:expand(Quoted, elixir_env:env_to_ex(Env), Env),
   {Erl, NewScope} = elixir_erl_pass:translate(Expanded, Scope),
   {Erl, NewEnv, NewScope}.
 
