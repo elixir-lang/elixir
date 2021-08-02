@@ -6,10 +6,8 @@ defmodule Mix.Tasks.Release do
   @moduledoc """
   Assembles a self-contained release for the current project:
 
-  ```bash
-  $ MIX_ENV=prod mix release
-  $ MIX_ENV=prod mix release NAME
-  ```
+      $ MIX_ENV=prod mix release
+      $ MIX_ENV=prod mix release NAME
 
   Once a release is assembled, it can be packaged and deployed to a
   target, as long as the target runs on the same operating system (OS)
@@ -36,9 +34,7 @@ defmodule Mix.Tasks.Release do
   and the value is a keyword list with the release configuration.
   Releasing a certain name is done with:
 
-  ```bash
-  $ MIX_ENV=prod mix release demo
-  ```
+      $ MIX_ENV=prod mix release demo
 
   If the given name does not exist, an error is raised.
 
@@ -91,10 +87,8 @@ defmodule Mix.Tasks.Release do
   Once a release is assembled, you can start it by calling
   `bin/RELEASE_NAME start` inside the release. In production, you would do:
 
-  ```bash
-  $ MIX_ENV=prod mix release
-  $ _build/prod/rel/my_app/bin/my_app start
-  ```
+      $ MIX_ENV=prod mix release
+      $ _build/prod/rel/my_app/bin/my_app start
 
   `bin/my_app start` will start the system connected to the current standard
   input/output, where logs are also written to by default. This is the
@@ -114,10 +108,8 @@ defmodule Mix.Tasks.Release do
   If you want to invoke specific modules and functions in your release,
   you can do so in two ways: using `eval` or `rpc`.
 
-  ```bash
-  $ bin/RELEASE_NAME eval "IO.puts(:hello)"
-  $ bin/RELEASE_NAME rpc "IO.puts(:hello)"
-  ```
+      $ bin/RELEASE_NAME eval "IO.puts(:hello)"
+      $ bin/RELEASE_NAME rpc "IO.puts(:hello)"
 
   The `eval` command starts its own instance of the VM but without
   starting any of the applications in the release and without starting
@@ -169,18 +161,14 @@ defmodule Mix.Tasks.Release do
 
   And to run them:
 
-  ```bash
-  $ bin/RELEASE_NAME eval "MyApp.ReleaseTasks.eval_purge_stale_data()"
-  $ bin/RELEASE_NAME rpc "MyApp.ReleaseTasks.rpc_print_connected_users()"
-  ```
+      $ bin/RELEASE_NAME eval "MyApp.ReleaseTasks.eval_purge_stale_data()"
+      $ bin/RELEASE_NAME rpc "MyApp.ReleaseTasks.rpc_print_connected_users()"
 
   ### Daemon mode (Unix-like)
 
   You can run the release in daemon mode with the command:
 
-  ```bash
-  $ bin/RELEASE_NAME daemon
-  ```
+      $ bin/RELEASE_NAME daemon
 
   In daemon mode, the system is started on the background via
   [`run_erl`](https://erlang.org/doc/man/run_erl.html). You may also
@@ -210,9 +198,7 @@ defmodule Mix.Tasks.Release do
   [`erlsrv`](https://erlang.org/doc/man/erlsrv.html). This can be done by
   running:
 
-  ```bash
-  $ bin/RELEASE_NAME install
-  ```
+      $ bin/RELEASE_NAME install
 
   Once installed, the service must be explicitly managed via the `erlsrv`
   executable, which is included in the `erts-VSN/bin` directory.
@@ -221,10 +207,8 @@ defmodule Mix.Tasks.Release do
   For example, if you have a release named `demo`, you can install
   the service and then start it from the release root as follows:
 
-  ```shell
-  $ bin/demo install
-  $ erts-VSN/bin/erlsrv.exe start demo_demo
-  ```
+      $ bin/demo install
+      $ erts-VSN/bin/erlsrv.exe start demo_demo
 
   The name of the service is `demo_demo` because the name is built
   by concatenating the node name with the release name. Since Elixir
@@ -322,26 +306,22 @@ defmodule Mix.Tasks.Release do
   compile the code and assemble the release on the target itself. It would
   be something like this:
 
-  ```bash
-  $ git clone remote://path/to/my_app.git my_app_source
-  $ cd my_app_source
-  $ mix deps.get --only prod
-  $ MIX_ENV=prod mix release
-  $ _build/prod/rel/my_app/bin/my_app start
-  ```
+      $ git clone remote://path/to/my_app.git my_app_source
+      $ cd my_app_source
+      $ mix deps.get --only prod
+      $ MIX_ENV=prod mix release
+      $ _build/prod/rel/my_app/bin/my_app start
 
   If you prefer, you can also compile the release to a separate directory,
   so you can erase all source after the release is assembled:
 
-  ```bash
-  $ git clone remote://path/to/my_app.git my_app_source
-  $ cd my_app_source
-  $ mix deps.get --only prod
-  $ MIX_ENV=prod mix release --path ../my_app_release
-  $ cd ../my_app_release
-  $ rm -rf ../my_app_source
-  $ bin/my_app start
-  ```
+      $ git clone remote://path/to/my_app.git my_app_source
+      $ cd my_app_source
+      $ mix deps.get --only prod
+      $ MIX_ENV=prod mix release --path ../my_app_release
+      $ cd ../my_app_release
+      $ rm -rf ../my_app_source
+      $ bin/my_app start
 
   However, this option can be expensive if you have multiple production
   nodes or if the release assembling process is a long one, as each node
