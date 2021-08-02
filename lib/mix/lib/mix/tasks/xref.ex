@@ -13,7 +13,7 @@ defmodule Mix.Tasks.Xref do
 
   The `xref` task expects a mode as first argument:
 
-      mix xref MODE
+      $ mix xref MODE
 
   All available modes are discussed below.
 
@@ -24,14 +24,14 @@ defmodule Mix.Tasks.Xref do
 
   Prints all callers of the given `MODULE`. Example:
 
-      mix xref callers MyMod
+      $ mix xref callers MyMod
 
   ## mix xref graph
 
   Prints a file dependency graph where an edge from `A` to `B` indicates
   that `A` (source) depends on `B` (sink).
 
-      mix xref graph --format stats
+      $ mix xref graph --format stats
 
   The following options are accepted:
 
@@ -115,9 +115,9 @@ defmodule Mix.Tasks.Xref do
 
       $ mix xref graph
       lib/a.ex
-      `-- lib/b.ex (compile)
+      └── lib/b.ex (compile)
       lib/b.ex
-      `-- lib/c.ex
+      └── lib/c.ex
       lib/c.ex
 
   This tree means that `lib/a.ex` depends on `lib/b.ex` at compile
@@ -129,9 +129,9 @@ defmodule Mix.Tasks.Xref do
 
       $ mix xref graph --label compile
       lib/a.ex
-      `-- lib/b.ex (compile)
+      └── lib/b.ex (compile)
       lib/b.ex
-      `-- lib/c.ex
+      └── lib/c.ex
 
   In other words, when using `--label compile`, any dependency on the graph
   without the "(compile)" label is a transitive compile time dependency.
@@ -140,7 +140,7 @@ defmodule Mix.Tasks.Xref do
 
       $ mix xref graph --label compile-direct
       lib/a.ex
-      `-- lib/b.ex (compile)
+      └── lib/b.ex (compile)
 
   On the other hand, having direct compile time dependencies is not
   necessarily an issue. The biggest concern, as mentioned above, are the
@@ -150,7 +150,7 @@ defmodule Mix.Tasks.Xref do
 
       $ mix xref graph --label compile-connected
       lib/a.ex
-      `-- lib/b.ex (compile)
+      └── lib/b.ex (compile)
 
   Once you find all "compile-connected" dependencies, you can get the
   transitive ones by passing the compile-connected dependencies with the
@@ -166,7 +166,7 @@ defmodule Mix.Tasks.Xref do
 
       $ mix xref graph --label compile --sink lib/c.ex
       lib/a.ex
-      `-- lib/b.ex (compile)
+      └── lib/b.ex (compile)
 
   ### Dependencies types
 
