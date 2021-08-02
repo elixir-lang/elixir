@@ -56,10 +56,12 @@ expand({'__aliases__', Meta, _} = Alias, #{aliases := Aliases, macro_aliases := 
 
 expand({'__aliases__', Meta, [H | T]}, Aliases, E) when is_atom(H) ->
   Lookup  = list_to_atom("Elixir." ++ atom_to_list(H)),
+
   Counter = case lists:keyfind(counter, 1, Meta) of
     {counter, C} -> C;
     _ -> nil
   end,
+
   case lookup(Lookup, Aliases, Counter) of
     Lookup -> [H | T];
     Atom ->

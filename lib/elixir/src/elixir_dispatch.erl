@@ -194,9 +194,9 @@ expand_require(Meta, Receiver, {Name, Arity} = Tuple, Args, S, E) ->
 
 %% Expansion helpers
 
-expand_macro_fun(Meta, Fun, Receiver, Name, Args, _S, E) ->
+expand_macro_fun(Meta, Fun, Receiver, Name, Args, S, E) ->
   Line = ?line(Meta),
-  EArg = {Line, E},
+  EArg = {Line, S, E},
 
   try
     apply(Fun, [EArg | Args])

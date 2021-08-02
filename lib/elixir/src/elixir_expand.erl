@@ -479,6 +479,7 @@ escape_env_entries(Meta, _S, #{current_vars := {Read, Write}, unused_vars := {Un
   Env1#{
     current_vars := {maybe_escape_map(Read), maybe_escape_map(Write)},
     unused_vars := {maybe_escape_map(Unused), Version},
+    versioned_vars := maybe_escape_map(Read),
     line := ?line(Meta)
   }.
 

@@ -1,7 +1,7 @@
 -module(elixir_env).
 -include("elixir.hrl").
 -export([
-  new/0, linify/1, with_vars/2, reset_vars/1,
+  new/0, to_caller/1, with_vars/2, reset_vars/1,
   env_to_ex/1, env_to_erl/1, mapfold/4,
   reset_unused_vars/1, check_unused_vars/1,
   merge_and_check_unused_vars/2,
@@ -23,6 +23,7 @@ new() ->
     macros => elixir_dispatch:default_macros(),       %% a list with macros imported from module
     macro_aliases => [],                              %% keep aliases defined inside a macro
     context_modules => [],                            %% modules defined in the current context
+    versioned_vars => #{},                            %% a map of vars with their latest versions
     current_vars => {#{}, false},                     %% a tuple with maps of read and optional write current vars
     unused_vars => {#{}, 0},                          %% a map of unused vars and a version counter for vars
     prematch_vars => warn,                            %% controls behaviour outside and inside matches
@@ -34,9 +35,9 @@ trace(Event, #{tracers := Tracers} = E) ->
   [ok = Tracer:trace(Event, E) || Tracer <- Tracers],
   ok.
 
-linify({Line, Env}) ->
-  Env#{line := Line};
-linify(#{} = Env) ->
+to_caller({Line, _S, #{current_vars := {Read, _}} = Env}) ->
+  Env#{line := Line, versioned_vars := Read};
+to_caller(#{} = Env) ->
   Env.
 
 with_vars(Env, Vars) ->
@@ -49,6 +50,11 @@ reset_vars(Env) ->
 
 %% CONVERSIONS
 
+% def to_match(%{__struct__: Macro.Env, current_vars: {read, _}, unused_vars: {_, counter}} = env) do
+%   %{env | context: :match, prematch_vars: {read, counter}}
+% end
+env_to_ex(#{context := match}) ->
+  #elixir_ex{};
 env_to_ex(#{}) ->
   #elixir_ex{}.
 

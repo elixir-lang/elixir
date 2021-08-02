@@ -2814,7 +2814,8 @@ defmodule Kernel.ExpansionTest do
     end)
 
     receive do
-      {:expand_env, {expr, _, env}} ->
+      {:expand_env, {expr, scope, env}} ->
+        env = :elixir_env.to_caller({env.line, scope, env})
         {clean_meta(expr, [:version, :inferred_bitstring_spec]), env}
     end
   end

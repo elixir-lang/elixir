@@ -61,7 +61,11 @@ defmodule Macro.Env do
   @type macros :: [{module, [name_arity]}]
   @type name_arity :: {atom, arity}
   @type requires :: [module]
+  @type tracers :: [module]
   @type variable :: {atom, atom | term}
+
+  @typep var_version :: non_neg_integer
+  @typep versioned_vars :: %{optional(variable) => var_version}
 
   @typep current_vars ::
            {%{optional(variable) => var_version}, %{optional(variable) => var_version} | false}
@@ -73,8 +77,6 @@ defmodule Macro.Env do
            | :raise
            | :pin
            | :apply
-  @typep tracers :: [module]
-  @typep var_version :: non_neg_integer
 
   @type t :: %{
           __struct__: __MODULE__,
@@ -93,7 +95,8 @@ defmodule Macro.Env do
           prematch_vars: prematch_vars,
           unused_vars: unused_vars,
           requires: requires,
-          tracers: tracers
+          tracers: tracers,
+          versioned_vars: versioned_vars
         }
 
   # Define the __struct__ callbacks by hand for bootstrap reasons.
@@ -116,7 +119,8 @@ defmodule Macro.Env do
       prematch_vars: :warn,
       requires: [],
       tracers: [],
-      unused_vars: {%{}, 0}
+      unused_vars: {%{}, 0},
+      versioned_vars: %{}
     }
   end
 
@@ -137,8 +141,8 @@ defmodule Macro.Env do
   @spec vars(t) :: [variable]
   def vars(env)
 
-  def vars(%{__struct__: Macro.Env, current_vars: {read, _}}) do
-    Map.keys(read)
+  def vars(%{__struct__: Macro.Env, versioned_vars: vars}) do
+    Map.keys(vars)
   end
 
   @doc """
@@ -148,8 +152,8 @@ defmodule Macro.Env do
   @spec has_var?(t, variable) :: boolean()
   def has_var?(env, var)
 
-  def has_var?(%{__struct__: Macro.Env, current_vars: {read, _}}, var) do
-    Map.has_key?(read, var)
+  def has_var?(%{__struct__: Macro.Env, versioned_vars: vars}, var) do
+    Map.has_key?(vars, var)
   end
 
   @doc """

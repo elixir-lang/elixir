@@ -198,7 +198,7 @@ expand_each_spec(Meta, [{Expr, _, Args} = H | T], Map, S, E, OriginalE) when is_
 
       expand_each_spec(Meta, T, maps:put(Key, Value, Map), SE, EE, OriginalE);
     none ->
-      case 'Elixir.Macro':expand(H, elixir_env:linify({?line(Meta), E})) of
+      case 'Elixir.Macro':expand(H, E#{line := ?line(Meta)}) of
         H ->
           form_error(Meta, E, ?MODULE, {undefined_bittype, H});
         NewTypes ->

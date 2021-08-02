@@ -35,7 +35,7 @@
    {defmodule, 2},
    {defp, 2}].
 
-define({Line, E}, Kind, Call, Expr) ->
+define({Line, _S, E}, Kind, Call, Expr) ->
   UC = elixir_quote:has_unquotes(Call),
   UE = elixir_quote:has_unquotes(Expr),
   EscapedCall = elixir_quote:escape(Call, default, true),
