@@ -10,13 +10,13 @@ Usage: $(basename "$0") [options] [.exs file] [data]
 ## General options
 
   -e "COMMAND"                 Evaluates the given command (*)
-  -h, --help                   Prints this message and exits
+  -h, --help                   Prints this message and exits (standalone)
   -r "FILE"                    Requires the given files/patterns (*)
   -S SCRIPT                    Finds and executes the given script in \$PATH
   -pr "FILE"                   Requires the given files/patterns in parallel (*)
   -pa "PATH"                   Prepends the given path to Erlang code path (*)
   -pz "PATH"                   Appends the given path to Erlang code path (*)
-  -v, --version                Prints Elixir version information and exits
+  -v, --version                Prints Elixir version information and exits (standalone)
 
   --app APP                    Starts the given app and its dependencies (*)
   --erl "SWITCHES"             Switches to be passed down to Erlang (*)
@@ -24,7 +24,7 @@ Usage: $(basename "$0") [options] [.exs file] [data]
   --logger-otp-reports BOOL    Enables or disables OTP reporting
   --logger-sasl-reports BOOL   Enables or disables SASL reporting
   --no-halt                    Does not halt the Erlang VM after execution
-  --short-version              Prints Elixir version and exits
+  --short-version              Prints Elixir version and exits (standalone)
   --werl                       Uses Erlang's Windows shell GUI (Windows only)
 
 Options given after the .exs file or -- are passed down to the executed code.
@@ -55,7 +55,16 @@ It will attempt to create PIPEDIR and LOGDIR if they don't exist.
 See run_erl to learn more. To reattach, run: to_erl PIPEDIR.
 
 ** Options marked with (*) can be given more than once.
+** Standalone options can't be combined with other options.
+
 USAGE
+
+  if [ $# -gt 1 ]; then
+    echo
+    echo "Warning:" >&2
+    echo "-h/--help is a standalone option, remaining arguments are dropped." >&2
+  fi
+
   exit 1
 fi
 
@@ -69,8 +78,13 @@ readlink_f () {
   fi
 }
 
-if [ $# -eq 1 ] && [ "$1" = "--short-version" ]; then
+if [ "$1" = "--short-version" ]; then
   echo "$ELIXIR_VERSION"
+  if [ $# -gt 1 ]; then
+    echo
+    echo "Warning:" >&2
+    echo "--short-version is a standalone option, remaining arguments are dropped." >&2
+  fi
   exit 0
 fi
 

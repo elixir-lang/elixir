@@ -17,13 +17,13 @@ echo.
 echo ## General options
 echo.
 echo   -e "COMMAND"                 Evaluates the given command (*)
-echo   -h, --help                   Prints this message and exits
+echo   -h, --help                   Prints this message and exits (standalone)
 echo   -r "FILE"                    Requires the given files/patterns (*)
 echo   -S SCRIPT                    Finds and executes the given script in $PATH
 echo   -pr "FILE"                   Requires the given files/patterns in parallel (*)
 echo   -pa "PATH"                   Prepends the given path to Erlang code path (*)
 echo   -pz "PATH"                   Appends the given path to Erlang code path (*)
-echo   -v, --version                Prints Elixir version information and exits
+echo   -v, --version                Prints Elixir version information and exits (standalone)
 echo.
 echo   --app APP                    Starts the given app and its dependencies (*)
 echo   --erl "SWITCHES"             Switches to be passed down to Erlang (*)
@@ -31,7 +31,7 @@ echo   --eval "COMMAND"             Evaluates the given command, same as -e (*)
 echo   --logger-otp-reports BOOL    Enables or disables OTP reporting
 echo   --logger-sasl-reports BOOL   Enables or disables SASL reporting
 echo   --no-halt                    Does not halt the Erlang VM after execution
-echo   --short-version              Prints Elixir version and exits
+echo   --short-version              Prints Elixir version and exits (standalone)
 echo   --werl                       Uses Erlang's Windows shell GUI (Windows only)
 echo.
 echo Options given after the .exs file or -- are passed down to the executed code.
@@ -59,15 +59,24 @@ echo.
 echo --pipe-to is not supported on Windows. If set, Elixir won't boot.
 echo.
 echo ** Options marked with (*) can be given more than once.
+echo ** Standalone options can't be combined with other options.
+
+if ""%2"" NEQ """" (
+  echo.
+  echo Warning:
+  echo -h/--help is a standalone option, remaining arguments are dropped.
+)
 goto end
 
 :shortversion
-if ""%2""=="""" (
-  echo !ELIXIR_VERSION!
-  goto end
-) else (
-  goto parseopts
+echo !ELIXIR_VERSION!
+
+if ""%2"" NEQ """" (
+  echo.
+  echo Warning:
+  echo --short-version is a standalone option, remaining arguments are dropped.
 )
+goto end
 
 :parseopts
 
