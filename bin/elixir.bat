@@ -63,8 +63,7 @@ echo ** Standalone options can't be combined with other options.
 
 if ""%2"" NEQ """" (
   echo.
-  echo Warning:
-  echo -h/--help is a standalone option, remaining arguments are dropped.
+  echo warning: -h/--help is a standalone option, remaining arguments are dropped
 )
 goto end
 
