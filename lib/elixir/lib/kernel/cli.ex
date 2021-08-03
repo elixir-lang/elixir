@@ -227,6 +227,11 @@ defmodule Kernel.CLI do
     System.halt(0)
   end
 
+  defp parse_shared([opt | _t], _config) when opt in ["-h", "--help", "--short-version"] do
+    IO.puts(:stderr, "#{opt} is a standalone option and can't be combined with other options.")
+    System.halt(1)
+  end
+
   defp parse_shared(["-pa", h | t], config) do
     paths = expand_code_path(h)
     Enum.each(paths, &:code.add_patha/1)
