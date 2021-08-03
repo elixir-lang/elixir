@@ -72,8 +72,7 @@ echo !ELIXIR_VERSION!
 
 if ""%2"" NEQ """" (
   echo.
-  echo Warning:
-  echo --short-version is a standalone option, remaining arguments are dropped.
+  echo warning: --short-version is a standalone option, remaining arguments are dropped
 )
 goto end
 
