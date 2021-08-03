@@ -10,7 +10,7 @@ Usage: $(basename "$0") [options] [.exs file] [data]
   -e "COMMAND"                 Evaluates the given command (*)
   -h, --help                   Prints this message and exits
   -r "FILE"                    Requires the given files/patterns (*)
-  -S SCRIPT                    Finds and executes the given script in \$PATH
+  -S SCRIPT                    Finds and executes the given script in \$PATH
   -pr "FILE"                   Requires the given files/patterns in parallel (*)
   -pa "PATH"                   Prepends the given path to Erlang code path (*)
   -pz "PATH"                   Appends the given path to Erlang code path (*)
