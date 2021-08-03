@@ -30,6 +30,23 @@ defmodule Kernel.CLITest do
            end)
   end
 
+  test "--version smoke test" do
+    output = elixir(~w[--version])
+    assert output =~ ~r/Erlang\/OTP [0-9]+ \[.+]/
+    assert output =~ ~r/Elixir [1-9]\.[0-9]+\.[0-9]+.*\(compiled with Erlang\/OTP [0-9]+\)/
+  end
+
+  test "--short-version smoke test" do
+    output = elixir(~w[--short-version])
+    assert output =~ ~r/^[1-9]\.[0-9]+\.[0-9]+(?:-dev)?\n$/m
+    refute output =~ "Erlang"
+  end
+
+  test "--short-version with additional param" do
+    output = elixir(~w[--short-version -e 1])
+    assert output =~ ~r/^[1-9]\.[0-9]+\.[0-9]+(?:-dev)?\n$/m
+  end
+
   test "properly parses paths" do
     root = fixture_path("../../..") |> to_charlist
 
