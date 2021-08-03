@@ -48,17 +48,17 @@ eval_forms(Forms, Args, E) ->
   end.
 
 compile(Quoted, ArgsList, E) ->
-  Args = list_to_tuple(ArgsList),
-  {Expanded, EE} = elixir_expand:expand(Quoted, E),
-  elixir_env:check_unused_vars(EE),
+  {Expanded, SE, EE} = elixir_expand:expand(Quoted, elixir_env:env_to_ex(E), E),
+  elixir_env:check_unused_vars(SE, EE),
 
   {Module, Fun, Purgeable} =
     elixir_erl_compiler:spawn(fun() -> spawned_compile(Expanded, E) end),
 
+  Args = list_to_tuple(ArgsList),
   {dispatch(Module, Fun, Args, Purgeable), EE}.
 
 spawned_compile(ExExprs, #{line := Line, file := File} = E) ->
-  {Vars, S} = elixir_env:env_to_scope(E),
+  {Vars, S} = elixir_env:env_to_erl(E),
   {ErlExprs, _} = elixir_erl_pass:translate(ExExprs, S),
 
   Module = retrieve_compiler_module(),

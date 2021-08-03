@@ -3500,7 +3500,7 @@ defmodule Kernel do
           end
 
         try do
-          :elixir_quote.escape(value, :default, false)
+          :elixir_quote.escape(value, :none, false)
         rescue
           ex in [ArgumentError] ->
             raise ArgumentError,
@@ -4364,7 +4364,7 @@ defmodule Kernel do
   defmacro var!({name, meta, atom}, context) when is_atom(name) and is_atom(atom) do
     # Remove counter and force them to be vars
     meta = :lists.keydelete(:counter, 1, meta)
-    meta = :lists.keystore(:var, 1, meta, {:var, true})
+    meta = :lists.keystore(:if_undefined, 1, meta, {:if_undefined, :raise})
 
     case Macro.expand(context, __CALLER__) do
       context when is_atom(context) ->
@@ -4526,10 +4526,10 @@ defmodule Kernel do
           quote(do: Kernel.LexicalTracker.read_cache(unquote(pid), unquote(integer)))
 
         %{} ->
-          :elixir_quote.escape(block, :default, false)
+          :elixir_quote.escape(block, :none, false)
       end
 
-    module_vars = :lists.map(&module_var/1, :maps.keys(elem(env.current_vars, 0)))
+    module_vars = :lists.map(&module_var/1, :maps.keys(env.versioned_vars))
 
     quote do
       unquote(with_alias)
@@ -4781,12 +4781,12 @@ defmodule Kernel do
 
     unquoted_call = :elixir_quote.has_unquotes(call)
     unquoted_expr = :elixir_quote.has_unquotes(expr)
-    escaped_call = :elixir_quote.escape(call, :default, true)
+    escaped_call = :elixir_quote.escape(call, :none, true)
 
     escaped_expr =
       case unquoted_expr do
         true ->
-          :elixir_quote.escape(expr, :default, true)
+          :elixir_quote.escape(expr, :none, true)
 
         false ->
           key = :erlang.unique_integer()

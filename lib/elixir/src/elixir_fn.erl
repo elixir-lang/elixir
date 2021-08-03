@@ -1,28 +1,31 @@
 -module(elixir_fn).
--export([capture/3, expand/3, format_error/1]).
+-export([capture/4, expand/4, format_error/1]).
 -import(elixir_errors, [form_error/4]).
 -include("elixir.hrl").
 
 %% Anonymous functions
 
-expand(Meta, Clauses, E) when is_list(Clauses) ->
-  Transformer = fun({_, _, [Left, _Right]} = Clause, Acc) ->
+expand(Meta, Clauses, S, E) when is_list(Clauses) ->
+  Transformer = fun({_, _, [Left, _Right]} = Clause, SA) ->
     case lists:any(fun is_invalid_arg/1, Left) of
       true ->
         form_error(Meta, E, ?MODULE, defaults_in_args);
       false ->
-        EReset = elixir_env:reset_unused_vars(Acc),
-        {EClause, EAcc} = elixir_clauses:clause(Meta, fn, fun elixir_clauses:head/2, Clause, EReset),
-        {EClause, elixir_env:merge_and_check_unused_vars(Acc, EAcc)}
+        SReset = elixir_env:reset_unused_vars(SA),
+
+        {EClause, SAcc, EAcc} =
+          elixir_clauses:clause(Meta, fn, fun elixir_clauses:head/3, Clause, SReset, E),
+
+        {EClause, elixir_env:merge_and_check_unused_vars(SAcc, SA, EAcc)}
     end
   end,
 
-  {EClauses, EE} = lists:mapfoldl(Transformer, E, Clauses),
+  {EClauses, SE} = lists:mapfoldl(Transformer, S, Clauses),
   EArities = [fn_arity(Args) || {'->', _, [Args, _]} <- EClauses],
 
   case lists:usort(EArities) of
     [_] ->
-      {{fn, Meta, EClauses}, EE};
+      {{fn, Meta, EClauses}, SE, E};
     _ ->
       form_error(Meta, E, ?MODULE, clauses_with_different_arities)
   end.
@@ -35,51 +38,52 @@ fn_arity(Args) -> length(Args).
 
 %% Capture
 
-capture(Meta, {'/', _, [{{'.', _, [M, F]} = Dot, DotMeta, []}, A]}, E) when is_atom(F), is_integer(A) ->
+capture(Meta, {'/', _, [{{'.', _, [M, F]} = Dot, DotMeta, []}, A]}, S, E) when is_atom(F), is_integer(A) ->
   Args = args_from_arity(Meta, A, E),
   handle_capture_possible_warning(Meta, DotMeta, M, F, A, E),
-  capture_require(Meta, {Dot, Meta, Args}, E, true);
+  capture_require(Meta, {Dot, Meta, Args}, S, E, true);
 
-capture(Meta, {'/', _, [{F, _, C}, A]}, E) when is_atom(F), is_integer(A), is_atom(C) ->
+capture(Meta, {'/', _, [{F, _, C}, A]}, S, E) when is_atom(F), is_integer(A), is_atom(C) ->
   Args = args_from_arity(Meta, A, E),
-  capture_import(Meta, {F, Meta, Args}, E, true);
+  capture_import(Meta, {F, Meta, Args}, S, E, true);
 
-capture(Meta, {{'.', _, [_, Fun]}, _, Args} = Expr, E) when is_atom(Fun), is_list(Args) ->
-  capture_require(Meta, Expr, E, is_sequential_and_not_empty(Args));
+capture(Meta, {{'.', _, [_, Fun]}, _, Args} = Expr, S, E) when is_atom(Fun), is_list(Args) ->
+  capture_require(Meta, Expr, S, E, is_sequential_and_not_empty(Args));
 
-capture(Meta, {{'.', _, [_]}, _, Args} = Expr, E) when is_list(Args) ->
-  capture_expr(Meta, Expr, E, false);
+capture(Meta, {{'.', _, [_]}, _, Args} = Expr, S, E) when is_list(Args) ->
+  capture_expr(Meta, Expr, S, E, false);
 
-capture(Meta, {'__block__', _, [Expr]}, E) ->
-  capture(Meta, Expr, E);
+capture(Meta, {'__block__', _, [Expr]}, S, E) ->
+  capture(Meta, Expr, S, E);
 
-capture(Meta, {'__block__', _, _} = Expr, E) ->
+capture(Meta, {'__block__', _, _} = Expr, _S, E) ->
   form_error(Meta, E, ?MODULE, {block_expr_in_capture, Expr});
 
-capture(Meta, {Atom, _, Args} = Expr, E) when is_atom(Atom), is_list(Args) ->
-  capture_import(Meta, Expr, E, is_sequential_and_not_empty(Args));
+capture(Meta, {Atom, _, Args} = Expr, S, E) when is_atom(Atom), is_list(Args) ->
+  capture_import(Meta, Expr, S, E, is_sequential_and_not_empty(Args));
 
-capture(Meta, {Left, Right}, E) ->
-  capture(Meta, {'{}', Meta, [Left, Right]}, E);
+capture(Meta, {Left, Right}, S, E) ->
+  capture(Meta, {'{}', Meta, [Left, Right]}, S, E);
 
-capture(Meta, List, E) when is_list(List) ->
-  capture_expr(Meta, List, E, is_sequential_and_not_empty(List));
+capture(Meta, List, S, E) when is_list(List) ->
+  capture_expr(Meta, List, S, E, is_sequential_and_not_empty(List));
 
-capture(Meta, Integer, E) when is_integer(Integer) ->
+capture(Meta, Integer, _S, E) when is_integer(Integer) ->
   form_error(Meta, E, ?MODULE, {capture_arg_outside_of_capture, Integer});
 
-capture(Meta, Arg, E) ->
+capture(Meta, Arg, _S, E) ->
   invalid_capture(Meta, Arg, E).
 
-capture_import(Meta, {Atom, ImportMeta, Args} = Expr, E, Sequential) ->
+capture_import(Meta, {Atom, ImportMeta, Args} = Expr, S, E, Sequential) ->
   Res = Sequential andalso
         elixir_dispatch:import_function(ImportMeta, Atom, length(Args), E),
-  handle_capture(Res, Meta, Expr, E, Sequential).
+  handle_capture(Res, Meta, Expr, S, E, Sequential).
 
-capture_require(Meta, {{'.', DotMeta, [Left, Right]}, RequireMeta, Args}, E, Sequential) ->
+capture_require(Meta, {{'.', DotMeta, [Left, Right]}, RequireMeta, Args}, S, E, Sequential) ->
   case escape(Left, E, []) of
     {EscLeft, []} ->
-      {ELeft, EE} = elixir_expand:expand(EscLeft, E),
+      {ELeft, SE, EE} = elixir_expand:expand(EscLeft, S, E),
+
       Res = Sequential andalso case ELeft of
         {Name, _, Context} when is_atom(Name), is_atom(Context) ->
           {remote, ELeft, Right, length(Args)};
@@ -88,28 +92,30 @@ capture_require(Meta, {{'.', DotMeta, [Left, Right]}, RequireMeta, Args}, E, Seq
         _ ->
           false
       end,
-      handle_capture(Res, Meta, {{'.', DotMeta, [ELeft, Right]}, RequireMeta, Args},
-                     EE, Sequential);
+
+      Dot = {{'.', DotMeta, [ELeft, Right]}, RequireMeta, Args},
+      handle_capture(Res, Meta, Dot, SE, EE, Sequential);
+
     {EscLeft, Escaped} ->
-      capture_expr(Meta, {{'.', DotMeta, [EscLeft, Right]}, RequireMeta, Args},
-                   E, Escaped, Sequential)
+      Dot = {{'.', DotMeta, [EscLeft, Right]}, RequireMeta, Args},
+      capture_expr(Meta, Dot, S, E, Escaped, Sequential)
   end.
 
-handle_capture(false, Meta, Expr, E, Sequential) ->
-  capture_expr(Meta, Expr, E, Sequential);
-handle_capture(LocalOrRemote, _Meta, _Expr, E, _Sequential) ->
-  {LocalOrRemote, E}.
+handle_capture(false, Meta, Expr, S, E, Sequential) ->
+  capture_expr(Meta, Expr, S, E, Sequential);
+handle_capture(LocalOrRemote, _Meta, _Expr, S, E, _Sequential) ->
+  {LocalOrRemote, S, E}.
 
-capture_expr(Meta, Expr, E, Sequential) ->
-  capture_expr(Meta, Expr, E, [], Sequential).
-capture_expr(Meta, Expr, E, Escaped, Sequential) ->
+capture_expr(Meta, Expr, S, E, Sequential) ->
+  capture_expr(Meta, Expr, S, E, [], Sequential).
+capture_expr(Meta, Expr, S, E, Escaped, Sequential) ->
   case escape(Expr, E, Escaped) of
     {_, []} when not Sequential ->
       invalid_capture(Meta, Expr, E);
     {EExpr, EDict} ->
       EVars = validate(Meta, EDict, 1, E),
       Fn = {fn, Meta, [{'->', Meta, [EVars, EExpr]}]},
-      {expand, Fn, E}
+      {expand, Fn, S, E}
   end.
 
 invalid_capture(Meta, Arg, E) ->

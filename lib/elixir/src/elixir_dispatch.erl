@@ -2,9 +2,9 @@
 %% This module access the information stored on the scope
 %% by elixir_import and therefore assumes it is normalized (ordsets)
 -module(elixir_dispatch).
--export([dispatch_import/5, dispatch_require/6,
+-export([dispatch_import/6, dispatch_require/7,
   require_function/5, import_function/4,
-  expand_import/6, expand_require/5,
+  expand_import/7, expand_require/6,
   default_functions/0, default_macros/0, default_requires/0,
   find_import/4, format_error/1]).
 -include("elixir.hrl").
@@ -86,50 +86,47 @@ remote_function(Meta, Receiver, Name, Arity, E) ->
 
 %% Dispatches
 
-dispatch_import(Meta, Name, Args, E, Callback) ->
+dispatch_import(Meta, Name, Args, S, E, Callback) ->
   Arity = length(Args),
-  case expand_import(Meta, {Name, Arity}, Args, E, [], false) of
+  case expand_import(Meta, {Name, Arity}, Args, S, E, [], false) of
     {ok, Receiver, Quoted} ->
-      expand_quoted(Meta, Receiver, Name, Arity, Quoted, E);
+      expand_quoted(Meta, Receiver, Name, Arity, Quoted, S, E);
     {ok, Receiver, NewName, NewArgs} ->
-      elixir_expand:expand({{'.', Meta, [Receiver, NewName]}, Meta, NewArgs}, E);
+      elixir_expand:expand({{'.', Meta, [Receiver, NewName]}, Meta, NewArgs}, S, E);
     error ->
       Callback()
   end.
 
 %% TODO: Remove this rewrite when we require Erlang/OTP 23+
-dispatch_require(_Meta, 'Elixir.System', stacktrace, [], #{contextual_vars := Vars} = E, Callback) ->
-  case lists:member('__STACKTRACE__', Vars) of
-    true -> {{'__STACKTRACE__', [], nil}, E};
-    false -> Callback('Elixir.System', stacktrace, [])
-  end;
+dispatch_require(_Meta, 'Elixir.System', stacktrace, [], #elixir_ex{stacktrace=true} = S, E, _Callback) ->
+  {{'__STACKTRACE__', [], nil}, S, E};
 
-dispatch_require(Meta, Receiver, Name, Args, E, Callback) when is_atom(Receiver) ->
+dispatch_require(Meta, Receiver, Name, Args, S, E, Callback) when is_atom(Receiver) ->
   Arity = length(Args),
 
   case elixir_rewrite:inline(Receiver, Name, Arity) of
     {AR, AN} ->
       Callback(AR, AN, Args);
     false ->
-      case expand_require(Meta, Receiver, {Name, Arity}, Args, E) of
-        {ok, Receiver, Quoted} -> expand_quoted(Meta, Receiver, Name, Arity, Quoted, E);
+      case expand_require(Meta, Receiver, {Name, Arity}, Args, S, E) of
+        {ok, Receiver, Quoted} -> expand_quoted(Meta, Receiver, Name, Arity, Quoted, S, E);
         error -> Callback(Receiver, Name, Args)
       end
   end;
 
-dispatch_require(_Meta, Receiver, Name, Args, _E, Callback) ->
+dispatch_require(_Meta, Receiver, Name, Args, _S, _E, Callback) ->
   Callback(Receiver, Name, Args).
 
 %% Macros expansion
 
-expand_import(Meta, {Name, Arity} = Tuple, Args, E, Extra, External) ->
+expand_import(Meta, {Name, Arity} = Tuple, Args, S, E, Extra, External) ->
   Module = ?key(E, module),
   Function = ?key(E, function),
   Dispatch = find_dispatch(Meta, Tuple, Extra, E),
 
   case Dispatch of
     {import, _} ->
-      do_expand_import(Meta, Tuple, Args, Module, E, Dispatch);
+      do_expand_import(Meta, Tuple, Args, Module, S, E, Dispatch);
     _ ->
       AllowLocals = External orelse ((Function /= nil) andalso (Function /= Tuple)),
       Local = AllowLocals andalso
@@ -144,17 +141,17 @@ expand_import(Meta, {Name, Arity} = Tuple, Args, E, Extra, External) ->
 
         %% There is no local. Dispatch the import.
         _ when Local == false ->
-          do_expand_import(Meta, Tuple, Args, Module, E, Dispatch);
+          do_expand_import(Meta, Tuple, Args, Module, S, E, Dispatch);
 
         %% Dispatch to the local.
         _ ->
           elixir_env:trace({local_macro, Meta, Name, Arity}, E),
           elixir_locals:record_local(Tuple, Module, Function, Meta, true),
-          {ok, Module, expand_macro_fun(Meta, Local, Module, Name, Args, E)}
+          {ok, Module, expand_macro_fun(Meta, Local, Module, Name, Args, S, E)}
       end
   end.
 
-do_expand_import(Meta, {Name, Arity} = Tuple, Args, Module, E, Result) ->
+do_expand_import(Meta, {Name, Arity} = Tuple, Args, Module, S, E, Result) ->
   case Result of
     {function, Receiver} ->
       elixir_env:trace({imported_function, Meta, Receiver, Name, Arity}, E),
@@ -164,9 +161,9 @@ do_expand_import(Meta, {Name, Arity} = Tuple, Args, Module, E, Result) ->
       check_deprecated(Meta, macro, Receiver, Name, Arity, E),
       elixir_env:trace({imported_macro, Meta, Receiver, Name, Arity}, E),
       elixir_locals:record_import(Tuple, Receiver, Module, ?key(E, function)),
-      {ok, Receiver, expand_macro_named(Meta, Receiver, Name, Arity, Args, E)};
+      {ok, Receiver, expand_macro_named(Meta, Receiver, Name, Arity, Args, S, E)};
     {import, Receiver} ->
-      case expand_require([{required, true} | Meta], Receiver, Tuple, Args, E) of
+      case expand_require([{required, true} | Meta], Receiver, Tuple, Args, S, E) of
         {ok, _, _} = Response -> Response;
         error -> {ok, Receiver, Name, Args}
       end;
@@ -179,14 +176,14 @@ do_expand_import(Meta, {Name, Arity} = Tuple, Args, Module, E, Result) ->
       error
   end.
 
-expand_require(Meta, Receiver, {Name, Arity} = Tuple, Args, E) ->
+expand_require(Meta, Receiver, {Name, Arity} = Tuple, Args, S, E) ->
   Required = (Receiver == ?key(E, module)) orelse required(Meta) orelse is_element(Receiver, ?key(E, requires)),
 
   case is_element(Tuple, get_macros(Receiver, Required)) of
     true when Required ->
       check_deprecated(Meta, macro, Receiver, Name, Arity, E),
       elixir_env:trace({remote_macro, Meta, Receiver, Name, Arity}, E),
-      {ok, Receiver, expand_macro_named(Meta, Receiver, Name, Arity, Args, E)};
+      {ok, Receiver, expand_macro_named(Meta, Receiver, Name, Arity, Args, S, E)};
     true ->
       Info = {unrequired_module, {Receiver, Name, length(Args)}},
       elixir_errors:form_error(Meta, E, ?MODULE, Info);
@@ -197,9 +194,9 @@ expand_require(Meta, Receiver, {Name, Arity} = Tuple, Args, E) ->
 
 %% Expansion helpers
 
-expand_macro_fun(Meta, Fun, Receiver, Name, Args, E) ->
+expand_macro_fun(Meta, Fun, Receiver, Name, Args, S, E) ->
   Line = ?line(Meta),
-  EArg = {Line, E},
+  EArg = {Line, S, E},
 
   try
     apply(Fun, [EArg | Args])
@@ -211,20 +208,19 @@ expand_macro_fun(Meta, Fun, Receiver, Name, Args, E) ->
       erlang:raise(Kind, Reason, prune_stacktrace(Stacktrace, MFA, Info, {ok, EArg}))
   end.
 
-expand_macro_named(Meta, Receiver, Name, Arity, Args, E) ->
+expand_macro_named(Meta, Receiver, Name, Arity, Args, S, E) ->
   ProperName  = elixir_utils:macro_name(Name),
   ProperArity = Arity + 1,
   Fun         = fun Receiver:ProperName/ProperArity,
-  expand_macro_fun(Meta, Fun, Receiver, Name, Args, E).
+  expand_macro_fun(Meta, Fun, Receiver, Name, Args, S, E).
 
-expand_quoted(Meta, Receiver, Name, Arity, Quoted, E) ->
+expand_quoted(Meta, Receiver, Name, Arity, Quoted, S, E) ->
   Line = ?line(Meta),
   Next = elixir_module:next_counter(?key(E, module)),
 
   try
-    elixir_expand:expand(
-      elixir_quote:linify_with_context_counter(Line, {Receiver, Next}, Quoted),
-      E)
+    ToExpand = elixir_quote:linify_with_context_counter(Line, {Receiver, Next}, Quoted),
+    elixir_expand:expand(ToExpand, S, E)
   catch
     Kind:Reason:Stacktrace ->
       MFA  = {Receiver, elixir_utils:macro_name(Name), Arity+1},

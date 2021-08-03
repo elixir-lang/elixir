@@ -36,7 +36,7 @@ defmodule Module.Types.PatternTest do
         other -> other
       end)
 
-    {ast, _env} = :elixir_expand.expand(fun, __ENV__)
+    {ast, _, _} = :elixir_expand.expand(fun, :elixir_env.env_to_ex(__ENV__), __ENV__)
     {:fn, _, [{:->, _, [[{:when, _, [patterns, guards]}], _]}]} = ast
     {patterns, guards}
   end

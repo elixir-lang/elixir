@@ -44,7 +44,7 @@ build_name(Name, Count) -> list_to_atom("_" ++ atom_to_list(Name) ++ "@" ++ inte
 
 %% BINDINGS
 
-load_binding(Binding, #{current_vars := {ExVars, _}}, #elixir_erl{var_names=ErlVars}) ->
+load_binding(Binding, #{versioned_vars := ExVars}, #elixir_erl{var_names=ErlVars}) ->
   %% TODO: Remove me once we require Erlang/OTP 24+
   %% Also revisit dump_binding below and remove the vars field for simplicity.
   Mod =
@@ -62,7 +62,7 @@ load_binding(Binding, #{current_vars := {ExVars, _}}, #elixir_erl{var_names=ErlV
 
   Mod:from_list(KV).
 
-dump_binding(Binding, #{current_vars := {ExVars, _}}, #elixir_erl{var_names=ErlVars}) ->
+dump_binding(Binding, #elixir_ex{vars={ExVars, _}}, #elixir_erl{var_names=ErlVars}) ->
   maps:fold(fun
     ({Var, Kind} = Pair, Version, Acc) when is_atom(Kind) ->
       Key = case Kind of
@@ -73,6 +73,7 @@ dump_binding(Binding, #{current_vars := {ExVars, _}}, #elixir_erl{var_names=ErlV
       ErlName = maps:get(Version, ErlVars),
       Value = find_binding(ErlName, Binding),
       [{Key, Value} | Acc];
+
     (_, _, Acc) ->
       Acc
   end, [], ExVars).
