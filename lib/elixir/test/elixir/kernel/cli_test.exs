@@ -42,11 +42,6 @@ defmodule Kernel.CLITest do
     refute output =~ "Erlang"
   end
 
-  test "--short-version with additional param" do
-    output = elixir('--short-version -e 1')
-    assert output =~ ~r/^[1-9]\.[0-9]+\.[0-9]+(?:-dev)?\n$/m
-  end
-
   test "properly parses paths" do
     root = fixture_path("../../..") |> to_charlist
 
