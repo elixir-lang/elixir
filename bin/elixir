@@ -10,13 +10,13 @@ Usage: $(basename "$0") [options] [.exs file] [data]
 ## General options
 
   -e "COMMAND"                 Evaluates the given command (*)
-  -h, --help                   Prints this message and exits (standalone)
+  -h, --help                   Prints this message (standalone)
   -r "FILE"                    Requires the given files/patterns (*)
   -S SCRIPT                    Finds and executes the given script in \$PATH
   -pr "FILE"                   Requires the given files/patterns in parallel (*)
   -pa "PATH"                   Prepends the given path to Erlang code path (*)
   -pz "PATH"                   Appends the given path to Erlang code path (*)
-  -v, --version                Prints Elixir version information and exits (standalone)
+  -v, --version                Prints Elixir version information (standalone)
 
   --app APP                    Starts the given app and its dependencies (*)
   --erl "SWITCHES"             Switches to be passed down to Erlang (*)
@@ -24,7 +24,7 @@ Usage: $(basename "$0") [options] [.exs file] [data]
   --logger-otp-reports BOOL    Enables or disables OTP reporting
   --logger-sasl-reports BOOL   Enables or disables SASL reporting
   --no-halt                    Does not halt the Erlang VM after execution
-  --short-version              Prints Elixir version and exits (standalone)
+  --short-version              Prints Elixir version (standalone)
   --werl                       Uses Erlang's Windows shell GUI (Windows only)
 
 Options given after the .exs file or -- are passed down to the executed code.
