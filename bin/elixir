@@ -61,8 +61,7 @@ USAGE
 
   if [ $# -gt 1 ]; then
     echo
-    echo "Warning:" >&2
-    echo "-h/--help is a standalone option, remaining arguments are dropped." >&2
+    echo "warning: -h/--help is a standalone option, remaining arguments are dropped" >&2
   fi
 
   exit 1
