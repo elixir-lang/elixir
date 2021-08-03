@@ -30,6 +30,16 @@ defmodule Kernel.CLITest do
            end)
   end
 
+  test "--help smoke test" do
+    output = elixir('--help')
+    assert output =~ "Usage: elixir"
+  end
+
+  test "combining standalone options results in error" do
+    output = elixir('-e 1 --help')
+    assert output =~ "--help is a standalone option and can't be combined with other options"
+  end
+
   test "--version smoke test" do
     output = elixir('--version')
     assert output =~ ~r/Erlang\/OTP [0-9]+ \[.+]/
