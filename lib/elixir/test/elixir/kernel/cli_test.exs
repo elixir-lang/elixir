@@ -38,7 +38,7 @@ defmodule Kernel.CLITest do
 
   test "--short-version smoke test" do
     output = elixir('--short-version')
-    assert output =~ ~r/^[1-9]\.[0-9]+\.[0-9]+(?:-dev)?\n$/m
+    assert output == System.version() <> "\n"
     refute output =~ "Erlang"
   end
 
