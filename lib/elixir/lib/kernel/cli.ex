@@ -16,7 +16,7 @@ defmodule Kernel.CLI do
     profile: nil
   }
 
-  @standalone_opts ["-h", "--help", "-v", "--version", "--short-version"]
+  @standalone_opts ["-h", "--help", "--short-version"]
 
   @doc """
   This is the API invoked by Elixir boot process.
@@ -218,13 +218,12 @@ defmodule Kernel.CLI do
 
   # Parse shared options
 
-  defp parse_shared([opt | t], _config) when opt in @standalone_opts and t != [],
-    do: print_standalone_error(opt)
+  defp parse_shared([opt | _], _config) when opt in @standalone_opts do
+    IO.puts(:stderr, "#{opt} : Standalone options can't be combined with other options")
+    System.halt(1)
+  end
 
-  defp parse_shared([opt | _t], config) when opt in @standalone_opts and config != @blank_config,
-    do: print_standalone_error(opt)
-
-  defp parse_shared([opt | _t], _config) when opt in ["-v", "--version"] do
+  defp parse_shared([opt | t], config) when opt in ["-v", "--version"] do
     if function_exported?(IEx, :started?, 0) and IEx.started?() do
       IO.puts("IEx " <> System.build_info()[:build])
     else
@@ -232,7 +231,7 @@ defmodule Kernel.CLI do
       IO.puts("Elixir " <> System.build_info()[:build])
     end
 
-    System.halt(0)
+    parse_shared(t, config)
   end
 
   defp parse_shared(["-pa", h | t], config) do
@@ -278,11 +277,6 @@ defmodule Kernel.CLI do
 
   defp parse_shared(list, config) do
     {list, config}
-  end
-
-  defp print_standalone_error(opt) do
-    IO.puts(:stderr, "#{opt} : Standalone options can't be combined with other options")
-    System.halt(1)
   end
 
   defp append_hostname(node) do
