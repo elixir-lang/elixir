@@ -1,7 +1,6 @@
 @if defined ELIXIR_CLI_ECHO (@echo on) else (@echo off)
 
-rem Designates the path to the current script
-set SCRIPT_PATH=%~dp0
+set ELIXIR_VERSION="1.13.0-dev"
 
 setlocal enabledelayedexpansion
 if    ""%1""==""""                goto documentation
@@ -26,13 +25,13 @@ echo   -pa "PATH"                   Prepends the given path to Erlang code path 
 echo   -pz "PATH"                   Appends the given path to Erlang code path (*)
 echo   -v, --version                Prints Elixir version information and exits
 echo.
-echo   --short-version              Prints Elixir version and exits, much faster than --version
 echo   --app APP                    Starts the given app and its dependencies (*)
 echo   --erl "SWITCHES"             Switches to be passed down to Erlang (*)
 echo   --eval "COMMAND"             Evaluates the given command, same as -e (*)
 echo   --logger-otp-reports BOOL    Enables or disables OTP reporting
 echo   --logger-sasl-reports BOOL   Enables or disables SASL reporting
 echo   --no-halt                    Does not halt the Erlang VM after execution
+echo   --short-version              Prints Elixir version and exits
 echo   --werl                       Uses Erlang's Windows shell GUI (Windows only)
 echo.
 echo Options given after the .exs file or -- are passed down to the executed code.
@@ -63,9 +62,12 @@ echo ** Options marked with (*) can be given more than once.
 goto end
 
 :shortversion
-type "!SCRIPT_PATH!..\VERSION"
-echo.
-goto end
+echo "!ELIXIR_VERSION!"
+if ""%2""=="""" (
+  goto end
+) else (
+  goto parseopts
+)
 
 :parseopts
 
@@ -83,6 +85,9 @@ set endLoop=0
 
 rem Designates which mode / Elixir component to run as
 set runMode="elixir"
+
+rem Designates the path to the current script
+set SCRIPT_PATH=%~dp0
 
 rem Designates the path to the ERTS system
 set ERTS_BIN=
