@@ -1,6 +1,6 @@
 @if defined ELIXIR_CLI_ECHO (@echo on) else (@echo off)
 
-set ELIXIR_VERSION="1.13.0-dev"
+set ELIXIR_VERSION=1.13.0-dev
 
 setlocal enabledelayedexpansion
 if    ""%1""==""""                goto documentation
@@ -62,8 +62,8 @@ echo ** Options marked with (*) can be given more than once.
 goto end
 
 :shortversion
-echo "!ELIXIR_VERSION!"
 if ""%2""=="""" (
+  echo !ELIXIR_VERSION!
   goto end
 ) else (
   goto parseopts
