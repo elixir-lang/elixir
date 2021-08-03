@@ -14,8 +14,9 @@ Usage: $(basename "$0") [options] [.exs file] [data]
   -pr "FILE"                   Requires the given files/patterns in parallel (*)
   -pa "PATH"                   Prepends the given path to Erlang code path (*)
   -pz "PATH"                   Appends the given path to Erlang code path (*)
-  -v, --version                Prints Elixir version and exits
+  -v, --version                Prints Elixir version information and exits
 
+  --short-version              Prints Elixir version and exits, much faster than --version
   --app APP                    Starts the given app and its dependencies (*)
   --erl "SWITCHES"             Switches to be passed down to Erlang (*)
   --eval "COMMAND"             Evaluates the given command, same as -e (*)
@@ -65,6 +66,15 @@ readlink_f () {
     echo "$(pwd -P)/$filename"
   fi
 }
+
+SELF=$(readlink_f "$0")
+SCRIPT_PATH=$(dirname "$SELF")
+
+if [ "$1" = "--short-version" ]; then
+  cat "$SCRIPT_PATH/../VERSION"
+  echo # always emit newline after version
+  exit 0
+fi
 
 # Stores static Erlang arguments and --erl (which is passed as is)
 ERL=""
@@ -199,9 +209,6 @@ while [ $I -ge 0 ]; do
   set -- "$VAL" "$@"
   I=$((I - 1))
 done
-
-SELF=$(readlink_f "$0")
-SCRIPT_PATH=$(dirname "$SELF")
 
 if [ "$OSTYPE" = "cygwin" ]; then SCRIPT_PATH=$(cygpath -m "$SCRIPT_PATH"); fi
 if [ "$MODE" != "iex" ]; then ERL="-noshell -s elixir start_cli $ERL"; fi

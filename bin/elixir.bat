@@ -1,10 +1,15 @@
 @if defined ELIXIR_CLI_ECHO (@echo on) else (@echo off)
+
+rem Designates the path to the current script
+set SCRIPT_PATH=%~dp0
+
 setlocal enabledelayedexpansion
-if    ""%1""==""""       goto documentation
-if /I ""%1""==""--help"" goto documentation
-if /I ""%1""==""-h""     goto documentation
-if /I ""%1""==""/h""     goto documentation
-if    ""%1""==""/?""     goto documentation
+if    ""%1""==""""                goto documentation
+if /I ""%1""==""--help""          goto documentation
+if /I ""%1""==""-h""              goto documentation
+if /I ""%1""==""/h""              goto documentation
+if    ""%1""==""/?""              goto documentation
+if /I ""%1""==""--short-version"" goto shortversion
 goto parseopts
 
 :documentation
@@ -19,8 +24,9 @@ echo   -S SCRIPT                    Finds and executes the given script in $PATH
 echo   -pr "FILE"                   Requires the given files/patterns in parallel (*)
 echo   -pa "PATH"                   Prepends the given path to Erlang code path (*)
 echo   -pz "PATH"                   Appends the given path to Erlang code path (*)
-echo   -v, --version                Prints Elixir version and exits
+echo   -v, --version                Prints Elixir version information and exits
 echo.
+echo   --short-version              Prints Elixir version and exits, much faster than --version
 echo   --app APP                    Starts the given app and its dependencies (*)
 echo   --erl "SWITCHES"             Switches to be passed down to Erlang (*)
 echo   --eval "COMMAND"             Evaluates the given command, same as -e (*)
@@ -56,6 +62,11 @@ echo.
 echo ** Options marked with (*) can be given more than once.
 goto end
 
+:shortversion
+type "!SCRIPT_PATH!..\VERSION"
+echo.
+goto end
+
 :parseopts
 
 rem Parameters for Elixir
@@ -72,9 +83,6 @@ set endLoop=0
 
 rem Designates which mode / Elixir component to run as
 set runMode="elixir"
-
-rem Designates the path to the current script
-set SCRIPT_PATH=%~dp0
 
 rem Designates the path to the ERTS system
 set ERTS_BIN=
