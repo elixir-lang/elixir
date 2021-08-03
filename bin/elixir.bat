@@ -23,7 +23,7 @@ echo   -S SCRIPT                    Finds and executes the given script in $PATH
 echo   -pr "FILE"                   Requires the given files/patterns in parallel (*)
 echo   -pa "PATH"                   Prepends the given path to Erlang code path (*)
 echo   -pz "PATH"                   Appends the given path to Erlang code path (*)
-echo   -v, --version                Prints Elixir version information (standalone)
+echo   -v, --version                Prints Erlang/OTP and Elixir versions
 echo.
 echo   --app APP                    Starts the given app and its dependencies (*)
 echo   --erl "SWITCHES"             Switches to be passed down to Erlang (*)
