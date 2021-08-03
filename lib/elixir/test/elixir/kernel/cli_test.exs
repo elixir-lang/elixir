@@ -37,7 +37,7 @@ defmodule Kernel.CLITest do
 
   test "combining standalone options results in error" do
     output = elixir('-e 1 --help')
-    assert output =~ "--help is a standalone option and can't be combined with other options"
+    assert output =~ "--help : Standalone options can't be combined with other options"
   end
 
   test "--version smoke test" do
