@@ -281,7 +281,7 @@ defmodule Kernel.CLI do
   end
 
   defp print_standalone_error(opt) do
-    IO.puts(:stderr, "#{opt} is a standalone option and can't be combined with other options.")
+    IO.puts(:stderr, "#{opt} : Standalone options can't be combined with other options")
     System.halt(1)
   end
 
