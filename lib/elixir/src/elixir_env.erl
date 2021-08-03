@@ -10,23 +10,31 @@
 ]).
 
 new() ->
-  #{
-    '__struct__' => 'Elixir.Macro.Env',
-    module => nil,                                    %% the current module
-    file => <<"nofile">>,                             %% the current filename
-    line => 1,                                        %% the current line
-    function => nil,                                  %% the current function
-    context => nil,                                   %% can be match, guard or nil
-    aliases => [],                                    %% a list of aliases by new -> old names
-    requires => elixir_dispatch:default_requires(),   %% a set with modules required
-    functions => elixir_dispatch:default_functions(), %% a list with functions imported from module
-    macros => elixir_dispatch:default_macros(),       %% a list with macros imported from module
-    macro_aliases => [],                              %% keep aliases defined inside a macro
-    context_modules => [],                            %% modules defined in the current context
-    versioned_vars => #{},                            %% a map of vars with their latest versions
-    lexical_tracker => nil,                           %% lexical tracker PID
-    tracers => []                                     %% available compilation tracers
-  }.
+  case persistent_term:get(?MODULE, nil) of
+    nil ->
+      Res = #{
+        '__struct__' => 'Elixir.Macro.Env',
+        module => nil,                                    %% the current module
+        file => <<"nofile">>,                             %% the current filename
+        line => 1,                                        %% the current line
+        function => nil,                                  %% the current function
+        context => nil,                                   %% can be match, guard or nil
+        aliases => [],                                    %% a list of aliases by new -> old names
+        requires => elixir_dispatch:default_requires(),   %% a set with modules required
+        functions => elixir_dispatch:default_functions(), %% a list with functions imported from module
+        macros => elixir_dispatch:default_macros(),       %% a list with macros imported from module
+        macro_aliases => [],                              %% keep aliases defined inside a macro
+        context_modules => [],                            %% modules defined in the current context
+        versioned_vars => #{},                            %% a map of vars with their latest versions
+        lexical_tracker => nil,                           %% lexical tracker PID
+        tracers => []                                     %% available compilation tracers
+      },
+      elixir_config:is_bootstrap() orelse persistent_term:put(?MODULE, Res),
+      Res;
+
+    Res ->
+      Res
+  end.
 
 trace(Event, #{tracers := Tracers} = E) ->
   [ok = Tracer:trace(Event, E) || Tracer <- Tracers],
