@@ -604,8 +604,7 @@ defmodule Macro do
 
     * `:prune_metadata` - when true, removes metadata from escaped AST
       nodes. Note this option changes the semantics of escaped code and
-      it should only be used when escaping ASTs, never values. Defaults
-      to false.
+      it should only be used when escaping ASTs. Defaults to false.
 
       As an example, `ExUnit` stores the AST of every assertion, so when
       an assertion fails we can show code snippets to users. Without this
@@ -613,7 +612,8 @@ defmodule Macro do
       MD5 of the module bytecode, because the AST contains metadata,
       such as counters, specific to the compilation environment. By pruning
       the metadata, we ensure that the module is deterministic and reduce
-      the amount of data `ExUnit` needs to keep around.
+      the amount of data `ExUnit` needs to keep around. Only the minimal
+      amount of metadata is kept, such as `:line` and `:no_parens`.
 
   ## Comparison to `Kernel.SpecialForms.quote/2`
 
@@ -644,7 +644,7 @@ defmodule Macro do
   @spec escape(term, keyword) :: t()
   def escape(expr, opts \\ []) do
     unquote = Keyword.get(opts, :unquote, false)
-    kind = if Keyword.get(opts, :prune_metadata, false), do: :prune_metadata, else: :default
+    kind = if Keyword.get(opts, :prune_metadata, false), do: :prune_metadata, else: :none
     :elixir_quote.escape(expr, kind, unquote)
   end
 
