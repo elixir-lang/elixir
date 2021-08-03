@@ -4529,7 +4529,7 @@ defmodule Kernel do
           :elixir_quote.escape(block, :default, false)
       end
 
-    module_vars = :lists.map(&module_var/1, :maps.keys(elem(env.current_vars, 0)))
+    module_vars = :lists.map(&module_var/1, :maps.keys(env.versioned_vars))
 
     quote do
       unquote(with_alias)

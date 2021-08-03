@@ -48,8 +48,8 @@ eval_forms(Forms, Args, E) ->
   end.
 
 compile(Quoted, ArgsList, E) ->
-  {Expanded, _SE, EE} = elixir_expand:expand(Quoted, elixir_env:env_to_ex(E), E),
-  elixir_env:check_unused_vars(EE),
+  {Expanded, SE, EE} = elixir_expand:expand(Quoted, elixir_env:env_to_ex(E), E),
+  elixir_env:check_unused_vars(SE, EE),
 
   {Module, Fun, Purgeable} =
     elixir_erl_compiler:spawn(fun() -> spawned_compile(Expanded, E) end),

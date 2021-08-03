@@ -8,7 +8,7 @@
 expand({'=', Meta, [Left, Right]}, S, E) ->
   assert_no_guard_scope(Meta, "=", E),
   {ERight, SR, ER} = expand(Right, S, E),
-  {ELeft, SL, EL} = elixir_clauses:match(fun expand/3, Left, SR, ER, E),
+  {ELeft, SL, EL} = elixir_clauses:match(fun expand/3, Left, SR, S, ER),
   refute_parallel_bitstring_match(ELeft, ERight, E, ?key(E, context) == match),
   {{'=', Meta, [ELeft, ERight]}, SL, EL};
 
@@ -126,13 +126,13 @@ expand({'__STACKTRACE__', Meta, Atom} = Stacktrace, S, E) when is_atom(Atom) ->
 expand({'__ENV__', Meta, Atom}, _S, #{context := match} = E) when is_atom(Atom) ->
   form_error(Meta, E, ?MODULE, env_not_allowed);
 expand({'__ENV__', Meta, Atom}, S, E) when is_atom(Atom) ->
-  {maybe_escape_map(escape_env_entries(Meta, S, E)), S, E};
-expand({{'.', DotMeta, [{'__ENV__', Meta, Atom}, Field]}, CallMeta, []}, S, E)
-    when is_atom(Atom), is_atom(Field) ->
+  {escape_map(escape_env_entries(Meta, S, E)), S, E};
+expand({{'.', DotMeta, [{'__ENV__', Meta, Atom}, Field]}, CallMeta, []}, S, #{context := Context} = E)
+    when is_atom(Atom), is_atom(Field), Context /= match ->
   Env = escape_env_entries(Meta, S, E),
   case maps:is_key(Field, Env) of
     true  -> {maps:get(Field, Env), S, E};
-    false -> {{{'.', DotMeta, [maybe_escape_map(Env), Field]}, CallMeta, []}, S, E}
+    false -> {{{'.', DotMeta, [escape_map(Env), Field]}, CallMeta, []}, S, E}
   end;
 
 %% Quote
@@ -274,8 +274,8 @@ expand({for, Meta, [_ | _] = Args}, S, E) ->
         form_error(Meta, E, ?MODULE, {missing_option, for, [do]})
     end,
 
-  {EOpts, SO, EO} = expand(Opts, S, elixir_env:reset_unused_vars(E)),
-  {ECases, SC, EC} = elixir_env:mapfold(fun expand_for/3, SO, EO, Cases),
+  {EOpts, SO, EO} = expand(Opts, elixir_env:reset_unused_vars(S), E),
+  {ECases, SC, EC} = mapfold(fun expand_for/3, SO, EO, Cases),
   assert_generator_start(Meta, ECases, E),
 
   {EExpr, SE, EE} =
@@ -284,7 +284,9 @@ expand({for, Meta, [_ | _] = Args}, S, E) ->
       {error, Error} -> form_error(Meta, E, ?MODULE, Error)
     end,
 
-  {{for, Meta, ECases ++ [[{do, EExpr} | EOpts]]}, SE, elixir_env:merge_and_check_unused_vars(E, EE)};
+  {{for, Meta, ECases ++ [[{do, EExpr} | EOpts]]},
+   elixir_env:merge_and_check_unused_vars(SE, S, EE),
+   E};
 
 %% With
 
@@ -303,16 +305,16 @@ expand({super, Meta, Args}, S, E) when is_list(Args) ->
 %% Vars
 
 expand({'^', Meta, [Arg]}, S, #{context := match} = E) ->
-  #{current_vars := {_ReadCurrent, WriteCurrent}} = E,
-  #elixir_ex{prematch={Prematch, _}} = S,
+  #elixir_ex{prematch={Prematch, _}, vars={_Read, Write}} = S,
 
-  %% We need to rollback to a no match context.
-  NoMatchE = E#{context := nil, current_vars := {Prematch, WriteCurrent}},
-  NoMatchS = S#elixir_ex{prematch=pin},
+  %% We need to rollback to a no match context
+  NoMatchE = E#{context := nil},
+  NoMatchS = S#elixir_ex{prematch=pin, vars={Prematch, Write}},
 
   case expand(Arg, NoMatchS, NoMatchE) of
-    {{Name, _, Kind} = Var, _, #{unused_vars := Unused}} when is_atom(Name), is_atom(Kind) ->
-      {{'^', Meta, [Var]}, S, E#{unused_vars := Unused}};
+    {{Name, _, Kind} = Var, #elixir_ex{unused=Unused}, _} when is_atom(Name), is_atom(Kind) ->
+      {{'^', Meta, [Var]}, S#elixir_ex{unused=Unused}, E};
+
     _ ->
       form_error(Meta, E, ?MODULE, {invalid_arg_for_pin, Arg})
   end;
@@ -325,49 +327,48 @@ expand({'_', Meta, Kind}, _S, E) when is_atom(Kind) ->
   form_error(Meta, E, ?MODULE, unbound_underscore);
 
 expand({Name, Meta, Kind}, S, #{context := match} = E) when is_atom(Name), is_atom(Kind) ->
-  #{
-    current_vars := {ReadCurrent, WriteCurrent},
-    unused_vars := {Unused, Version}
-  } = E,
-
-  #elixir_ex{prematch={_, PrematchVersion}} = S,
+  #elixir_ex{
+    prematch={_, PrematchVersion},
+    unused={Unused, Version},
+    vars={Read, Write}
+  } = S,
 
   Pair = {Name, elixir_utils:var_context(Meta, Kind)},
 
-  case ReadCurrent of
+  case Read of
     %% Variable was already overridden
     #{Pair := VarVersion} when VarVersion >= PrematchVersion ->
       maybe_warn_underscored_var_repeat(Meta, Name, Kind, E),
       NewUnused = var_used(Pair, VarVersion, Unused),
       Var = {Name, [{version, VarVersion} | Meta], Kind},
-      {Var, S, E#{unused_vars := {NewUnused, Version}}};
+      {Var, S#elixir_ex{unused={NewUnused, Version}}, E};
 
     %% Variable is being overridden now
     #{Pair := _} ->
       NewUnused = var_unused(Pair, Meta, Version, Unused, true),
-      NewReadCurrent = ReadCurrent#{Pair => Version},
-      NewWriteCurrent = (WriteCurrent /= false) andalso WriteCurrent#{Pair => Version},
+      NewRead = Read#{Pair => Version},
+      NewWrite = (Write /= false) andalso Write#{Pair => Version},
       Var = {Name, [{version, Version} | Meta], Kind},
-      {Var, S, E#{current_vars := {NewReadCurrent, NewWriteCurrent}, unused_vars := {NewUnused, Version + 1}}};
+      {Var, S#elixir_ex{vars={NewRead, NewWrite}, unused={NewUnused, Version + 1}}, E};
 
     %% Variable defined for the first time
     _ ->
       NewUnused = var_unused(Pair, Meta, Version, Unused, false),
-      NewReadCurrent = ReadCurrent#{Pair => Version},
-      NewWriteCurrent = (WriteCurrent /= false) andalso WriteCurrent#{Pair => Version},
+      NewRead = Read#{Pair => Version},
+      NewWrite = (Write /= false) andalso Write#{Pair => Version},
       Var = {Name, [{version, Version} | Meta], Kind},
-      {Var, S, E#{current_vars := {NewReadCurrent, NewWriteCurrent}, unused_vars := {NewUnused, Version + 1}}}
+      {Var, S#elixir_ex{vars={NewRead, NewWrite}, unused={NewUnused, Version + 1}}, E}
   end;
 
 expand({Name, Meta, Kind}, S, E) when is_atom(Name), is_atom(Kind) ->
-  #{current_vars := {ReadCurrent, _WriteCurrent}, unused_vars := {Unused, Version}} = E,
+  #elixir_ex{vars={Read, _Write}, unused={Unused, Version}} = S,
   Pair = {Name, elixir_utils:var_context(Meta, Kind)},
 
-  case ReadCurrent of
+  case Read of
     #{Pair := PairVersion} ->
       maybe_warn_underscored_var_access(Meta, Name, Kind, E),
       Var = {Name, [{version, PairVersion} | Meta], Kind},
-      {Var, S, E#{unused_vars := {var_used(Pair, PairVersion, Unused), Version}}};
+      {Var, S#elixir_ex{unused={var_used(Pair, PairVersion, Unused), Version}}, E};
 
     _ ->
       case lists:keyfind(if_undefined, 1, Meta) of
@@ -397,7 +398,7 @@ expand({Name, Meta, Kind}, S, E) when is_atom(Name), is_atom(Kind) ->
 %% Local calls
 
 expand({Atom, Meta, Args}, S, E) when is_atom(Atom), is_list(Meta), is_list(Args) ->
-  assert_no_ambiguous_op(Atom, Meta, Args, E),
+  assert_no_ambiguous_op(Atom, Meta, Args, S, E),
 
   elixir_dispatch:dispatch_import(Meta, Atom, Args, S, E, fun() ->
     expand_local(Meta, Atom, Args, S, E)
@@ -407,10 +408,10 @@ expand({Atom, Meta, Args}, S, E) when is_atom(Atom), is_list(Meta), is_list(Args
 
 expand({{'.', DotMeta, [Left, Right]}, Meta, Args}, S, E)
     when (is_tuple(Left) orelse is_atom(Left)), is_atom(Right), is_list(Meta), is_list(Args) ->
-  {ELeft, SL, EL} = expand(Left, S, elixir_env:prepare_write(E)),
+  {ELeft, SL, EL} = expand(Left, elixir_env:prepare_write(S), E),
 
   elixir_dispatch:dispatch_require(Meta, ELeft, Right, Args, S, EL, fun(AR, AF, AA) ->
-    expand_remote(AR, DotMeta, AF, Meta, AA, SL, E, EL)
+    expand_remote(AR, DotMeta, AF, Meta, AA, S, SL, EL)
   end);
 
 %% Anonymous calls
@@ -441,10 +442,10 @@ expand(List, S, #{context := match} = E) when is_list(List) ->
   expand_list(List, fun expand/3, S, E, []);
 
 expand(List, S, E) when is_list(List) ->
-  {EArgs, SE, {EE, _}} =
-    expand_list(List, fun expand_arg/3, S, {elixir_env:prepare_write(E), E}, []),
+  {EArgs, {SE, _}, EE} =
+    expand_list(List, fun expand_arg/3, {elixir_env:prepare_write(S), S}, E, []),
 
-  {EArgs, SE, elixir_env:close_write(EE, E)};
+  {EArgs, elixir_env:close_write(SE, S), EE};
 
 expand(Function, S, E) when is_function(Function) ->
   case (erlang:fun_info(Function, type) == {type, external}) andalso
@@ -473,21 +474,15 @@ expand(Other, _S, E) ->
 
 %% Helpers
 
-escape_env_entries(Meta, _S, #{current_vars := {Read, Write}, unused_vars := {Unused, Version}} = Env0) ->
+escape_env_entries(Meta, #elixir_ex{vars={Read, _}}, Env0) ->
   Env1 = case Env0 of
     #{function := nil} -> Env0;
     _ -> Env0#{lexical_tracker := nil, tracers := []}
   end,
 
-  Env1#{
-    current_vars := {maybe_escape_map(Read), maybe_escape_map(Write)},
-    unused_vars := {maybe_escape_map(Unused), Version},
-    versioned_vars := maybe_escape_map(Read),
-    line := ?line(Meta)
-  }.
+  Env1#{versioned_vars := escape_map(Read), line := ?line(Meta)}.
 
-maybe_escape_map(#{} = Map) -> {'%{}', [], maps:to_list(Map)};
-maybe_escape_map(Other) -> Other.
+escape_map(Map) -> {'%{}', [], maps:to_list(Map)}.
 
 expand_multi_alias_call(Kind, Meta, Base, Refs, Opts, S, E) ->
   {BaseRef, SB, EB} = expand_without_aliases_report(Base, S, E),
@@ -503,7 +498,7 @@ expand_multi_alias_call(Kind, Meta, Base, Refs, Opts, S, E) ->
       form_error(Meta, E, ?MODULE, {expected_compile_time_module, Kind, Other})
   end,
 
-  elixir_env:mapfold(Fun, SB, EB, Refs).
+  mapfold(Fun, SB, EB, Refs).
 
 resolve_super(Meta, Arity, E) ->
   Module = assert_module_scope(Meta, super, E),
@@ -535,7 +530,7 @@ expand_fn_capture(Meta, Arg, S, E) ->
   end.
 
 expand_list([{'|', Meta, [_, _] = Args}], Fun, S, E, List) ->
-  {EArgs, SAcc, EAcc} = elixir_env:mapfold(Fun, S, E, Args),
+  {EArgs, SAcc, EAcc} = mapfold(Fun, S, E, Args),
   expand_list([], Fun, SAcc, EAcc, [{'|', Meta, EArgs} | List]);
 expand_list([H | T], Fun, S, E, List) ->
   {EArg, SAcc, EAcc} = Fun(H, S, E),
@@ -597,20 +592,29 @@ is_useless_building(_, _, _) ->
 %%   3
 %%
 %% However, lexical information is.
-expand_arg(Arg, S, Acc) when is_number(Arg); is_atom(Arg); is_binary(Arg); is_pid(Arg) ->
-  {Arg, S, Acc};
-expand_arg(Arg, S, {Acc, E}) ->
-  {EArg, SAcc, EAcc} = expand(Arg, S, elixir_env:reset_read(Acc, E)),
-  {EArg, SAcc, {EAcc, E}}.
+expand_arg(Arg, Acc, E) when is_number(Arg); is_atom(Arg); is_binary(Arg); is_pid(Arg) ->
+  {Arg, Acc, E};
+expand_arg(Arg, {Acc, S}, E) ->
+  {EArg, SAcc, EAcc} = expand(Arg, elixir_env:reset_read(Acc, S), E),
+  {EArg, {SAcc, S}, EAcc}.
 
 expand_args([Arg], S, E) ->
   {EArg, SE, EE} = expand(Arg, S, E),
   {[EArg], SE, EE};
 expand_args(Args, S, #{context := match} = E) ->
-  elixir_env:mapfold(fun expand/3, S, E, Args);
+  mapfold(fun expand/3, S, E, Args);
 expand_args(Args, S, E) ->
-  {EArgs, SA, {EA, _}} = elixir_env:mapfold(fun expand_arg/3, S, {elixir_env:prepare_write(E), E}, Args),
-  {EArgs, SA, elixir_env:close_write(EA, E)}.
+  {EArgs, {SA, _}, EA} = mapfold(fun expand_arg/3, {elixir_env:prepare_write(S), S}, E, Args),
+  {EArgs, elixir_env:close_write(SA, S), EA}.
+
+mapfold(Fun, S, E, List) ->
+  mapfold(Fun, S, E, List, []).
+
+mapfold(Fun, S, E, [H | T], Acc) ->
+  {RH, RS, RE} = Fun(H, S, E),
+  mapfold(Fun, RS, RE, T, [RH | Acc]);
+mapfold(_Fun, S, E, [], Acc) ->
+  {lists:reverse(Acc), S, E}.
 
 %% Match/var helpers
 
@@ -730,38 +734,36 @@ validate_for_options([], Into, Uniq, {reduce, _}) when Into /= false; Uniq /= fa
 validate_for_options([], _Into, _Uniq, Reduce) ->
   {ok, Reduce}.
 
-expand_for_do_block(Meta, Expr, S, E, false) ->
-  case Expr of
-    [{'->', _, _} | _] -> form_error(Meta, E, ?MODULE, for_without_reduce_bad_block);
-    _ -> expand(Expr, S, E)
-  end;
-expand_for_do_block(Meta, Clauses, S, E, {reduce, _}) ->
-  Transformer = fun({_, _, [Left, _Right]} = Clause, SA, EA) ->
-    case Left of
-      [_] ->
-        EReset = elixir_env:reset_unused_vars(EA),
+expand_for_do_block(Meta, [{'->', _, _} | _], _S, E, false) ->
+  form_error(Meta, E, ?MODULE, for_without_reduce_bad_block);
+expand_for_do_block(_Meta, Expr, S, E, false) ->
+  expand(Expr, S, E);
+expand_for_do_block(Meta, [{'->', _, _} | _] = Clauses, S, E, {reduce, _}) ->
+  Transformer = fun
+    ({_, _, [[_], _]} = Clause, SA) ->
+      SReset = elixir_env:reset_unused_vars(SA),
 
-        {EClause, SC, EC} =
-          elixir_clauses:clause(Meta, fn, fun elixir_clauses:head/3, Clause, SA, EReset),
+      {EClause, SAcc, EAcc} =
+        elixir_clauses:clause(Meta, fn, fun elixir_clauses:head/3, Clause, SReset, E),
 
-        {EClause, SC, elixir_env:merge_and_check_unused_vars(EA, EC)};
-      _ ->
-        form_error(Meta, E, ?MODULE, for_with_reduce_bad_block)
-    end
+      {EClause, elixir_env:merge_and_check_unused_vars(SAcc, SA, EAcc)};
+
+    (_, _) ->
+      form_error(Meta, E, ?MODULE, for_with_reduce_bad_block)
   end,
 
-  case Clauses of
-    [{'->', _, _} | _] -> elixir_env:mapfold(Transformer, S, E, Clauses);
-    _ -> form_error(Meta, E, ?MODULE, for_with_reduce_bad_block)
-  end.
+  {Do, SA} = lists:mapfoldl(Transformer, S, Clauses),
+  {Do, SA, E};
+expand_for_do_block(Meta, _Expr, _S, E, {reduce, _}) ->
+  form_error(Meta, E, ?MODULE, for_with_reduce_bad_block).
 
 %% Locals
 
-assert_no_ambiguous_op(Name, Meta, [Arg], E) ->
+assert_no_ambiguous_op(Name, Meta, [Arg], S, E) ->
   case lists:keyfind(ambiguous_op, 1, Meta) of
     {ambiguous_op, Kind} ->
       Pair = {Name, Kind},
-      case ?key(E, current_vars) of
+      case S#elixir_ex.vars of
         {#{Pair := _}, _} ->
           form_error(Meta, E, ?MODULE, {op_ambiguity, Name, Arg});
         _ ->
@@ -770,7 +772,7 @@ assert_no_ambiguous_op(Name, Meta, [Arg], E) ->
     _ ->
       ok
   end;
-assert_no_ambiguous_op(_Atom, _Meta, _Args, _E) ->
+assert_no_ambiguous_op(_Atom, _Meta, _Args, _S, _E) ->
   ok.
 
 assert_no_clauses(_Name, _Meta, [], _E) ->
@@ -805,12 +807,12 @@ expand_local(Meta, Name, Args, _S, #{context := Context} = E) when Context == ma
 
 %% Remote
 
-expand_remote(Receiver, DotMeta, Right, Meta, Args, S, #{context := Context} = E, EL) when is_atom(Receiver) or is_tuple(Receiver) ->
+expand_remote(Receiver, DotMeta, Right, Meta, Args, S, SL, #{context := Context} = E) when is_atom(Receiver) or is_tuple(Receiver) ->
   assert_no_clauses(Right, Meta, Args, E),
 
   case {Context, lists:keyfind(no_parens, 1, Meta)} of
     {guard, {no_parens, true}} when is_tuple(Receiver) ->
-      {{{'.', DotMeta, [Receiver, Right]}, Meta, []}, S, EL};
+      {{{'.', DotMeta, [Receiver, Right]}, Meta, []}, SL, E};
 
     {guard, _} when is_tuple(Receiver) ->
       form_error(Meta, E, ?MODULE, {parens_map_lookup_guard, Receiver, Right});
@@ -821,17 +823,17 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, S, #{context := Context} = E
       is_atom(Receiver) andalso
         elixir_env:trace({remote_function, Meta, Receiver, Right, length(Args)}, E),
 
-      {EArgs, SA, {EA, _}} = elixir_env:mapfold(fun expand_arg/3, S, {EL, E}, Args),
+      {EArgs, {SA, _}, EA} = mapfold(fun expand_arg/3, {SL, S}, E, Args),
 
       case rewrite(Context, Receiver, AttachedDotMeta, Right, Meta, EArgs) of
         {ok, Rewritten} ->
           maybe_warn_comparison(Rewritten, Args, E),
-          {Rewritten, SA, elixir_env:close_write(EA, E)};
+          {Rewritten, elixir_env:close_write(SA, S), EA};
         {error, Error} ->
           form_error(Meta, E, elixir_rewrite, Error)
       end
   end;
-expand_remote(Receiver, DotMeta, Right, Meta, Args, _S, E, _) ->
+expand_remote(Receiver, DotMeta, Right, Meta, Args, _, _, E) ->
   Call = {{'.', DotMeta, [Receiver, Right]}, Meta, Args},
   form_error(Meta, E, ?MODULE, {invalid_call, Call}).
 
@@ -1002,17 +1004,17 @@ expand_aliases({'__aliases__', Meta, _} = Alias, S, E, Report) ->
 
 expand_for({'<-', Meta, [Left, Right]}, S, E) ->
   {ERight, SR, ER} = expand(Right, S, E),
-  EM = elixir_env:reset_read(ER, E),
-  {[ELeft], SL, EL} = elixir_clauses:head([Left], SR, EM),
+  SM = elixir_env:reset_read(SR, S),
+  {[ELeft], SL, EL} = elixir_clauses:head([Left], SM, ER),
   {{'<-', Meta, [ELeft, ERight]}, SL, EL};
 expand_for({'<<>>', Meta, Args} = X, S, E) when is_list(Args) ->
   case elixir_utils:split_last(Args) of
     {LeftStart, {'<-', OpMeta, [LeftEnd, Right]}} ->
       {ERight, SR, ER} = expand(Right, S, E),
-      EM = elixir_env:reset_read(ER, E),
+      SM = elixir_env:reset_read(SR, S),
       {ELeft, SL, EL} = elixir_clauses:match(fun(BArg, BS, BE) ->
         elixir_bitstring:expand(Meta, BArg, BS, BE, true)
-      end, LeftStart ++ [LeftEnd], SR, EM, EM),
+      end, LeftStart ++ [LeftEnd], SM, SM, ER),
       {{'<<>>', [], [{'<-', OpMeta, [ELeft, ERight]}]}, SL, EL};
     _ ->
       expand(X, S, E)

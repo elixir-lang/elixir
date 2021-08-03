@@ -44,9 +44,6 @@ defmodule Macro.Env do
     * `tracers`
     * `versioned_vars`
 
-    * `current_vars`
-    * `unused_vars`
-
   """
 
   @type aliases :: [{module, module}]
@@ -66,17 +63,11 @@ defmodule Macro.Env do
   @typep var_version :: non_neg_integer
   @typep versioned_vars :: %{optional(variable) => var_version}
 
-  @typep current_vars ::
-           {%{optional(variable) => var_version}, %{optional(variable) => var_version} | false}
-  @typep unused_vars ::
-           {%{optional({atom, var_version}) => non_neg_integer | false}, non_neg_integer}
-
   @type t :: %{
           __struct__: __MODULE__,
           aliases: aliases,
           context: context,
           context_modules: context_modules,
-          current_vars: current_vars,
           file: file,
           function: name_arity | nil,
           functions: functions,
@@ -85,7 +76,6 @@ defmodule Macro.Env do
           macro_aliases: macro_aliases,
           macros: macros,
           module: module,
-          unused_vars: unused_vars,
           requires: requires,
           tracers: tracers,
           versioned_vars: versioned_vars
@@ -99,7 +89,6 @@ defmodule Macro.Env do
       aliases: [],
       context: nil,
       context_modules: [],
-      current_vars: {%{}, %{}},
       file: "nofile",
       function: nil,
       functions: [],
@@ -110,7 +99,6 @@ defmodule Macro.Env do
       module: nil,
       requires: [],
       tracers: [],
-      unused_vars: {%{}, 0},
       versioned_vars: %{}
     }
   end

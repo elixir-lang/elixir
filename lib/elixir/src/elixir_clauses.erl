@@ -7,39 +7,35 @@
 -import(elixir_errors, [form_error/4, form_warn/4]).
 -include("elixir.hrl").
 
-match(Fun, Expr, S, E, #{context := match}) ->
-  Fun(Expr, S, E);
-match(Fun, Expr, S, #{current_vars := Current, unused_vars := {_, Counter} = Unused} = AfterE, BeforeE) ->
-  #{
-    context := Context,
-    current_vars := {Read, _}
-  } = BeforeE,
+match(Fun, Expr, AfterS, _BeforeS, #{context := match} = E) ->
+  Fun(Expr, AfterS, E);
+match(Fun, Expr, AfterS, BeforeS, E) ->
+  #elixir_ex{vars=Current, unused={_, Counter} = Unused} = AfterS,
+  #elixir_ex{vars={Read, _}, prematch=Prematch} = BeforeS,
 
-  CallS = S#elixir_ex{
-    prematch={Read, Counter}
+  CallS = BeforeS#elixir_ex{
+    prematch={Read, Counter},
+    unused=Unused,
+    vars=Current
   },
 
-  CallE = BeforeE#{
-    context := match,
-    current_vars := Current,
-    unused_vars := Unused
+  CallE = E#{context := match},
+  {EExpr, #elixir_ex{vars=NewCurrent, unused=NewUnused}, EE} = Fun(Expr, CallS, CallE),
+
+  EndS = AfterS#elixir_ex{
+    prematch=Prematch,
+    unused=NewUnused,
+    vars=NewCurrent
   },
 
-  {EExpr, SE, #{current_vars := NewCurrent, unused_vars := NewUnused}} = Fun(Expr, CallS, CallE),
-
-  EndE = AfterE#{
-    context := Context,
-    current_vars := NewCurrent,
-    unused_vars := NewUnused
-  },
-
-  {EExpr, SE#elixir_ex{prematch=S#elixir_ex.prematch}, EndE}.
+  EndE = EE#{context := ?key(E, context)},
+  {EExpr, EndS, EndE}.
 
 def({Meta, Args, Guards, Body}, S, E) ->
   {EArgs, SA, EA} = elixir_expand:expand_args(Args, S#elixir_ex{prematch={#{}, 0}}, E#{context := match}),
   {EGuards, SG, EG} = guard(Guards, SA#elixir_ex{prematch=warn}, EA#{context := guard}),
-  {EBody, _SB, EB} = elixir_expand:expand(Body, SG, EG#{context := nil}),
-  elixir_env:check_unused_vars(EB),
+  {EBody, SB, EB} = elixir_expand:expand(Body, SG, EG#{context := nil}),
+  elixir_env:check_unused_vars(SB, EB),
   {Meta, EArgs, EGuards, EBody}.
 
 clause(Meta, Kind, Fun, {'->', ClauseMeta, [_, _]} = Clause, S, E) when is_function(Fun, 4) ->
@@ -60,11 +56,11 @@ head([{'when', Meta, [_ | _] = All}], S, E) ->
       {EArgs, SA, EA} = elixir_expand:expand_args(Args, SM, EM),
       {EGuard, SG, EG} = guard(Guard, SA#elixir_ex{prematch=Prematch}, EA#{context := guard}),
       {{EArgs, EGuard}, SG, EG}
-    end, ok, S, E, E),
+    end, ok, S, S, E),
 
   {[{'when', Meta, EArgs ++ [EGuard]}], SG, EG};
 head(Args, S, E) ->
-  match(fun elixir_expand:expand_args/3, Args, S, E, E).
+  match(fun elixir_expand:expand_args/3, Args, S, S, E).
 
 guard({'when', Meta, [Left, Right]}, S, E) ->
   {ELeft, SL, EL}  = guard(Left, S, E),
@@ -99,7 +95,8 @@ warn_zero_length_guard(_, _) ->
   ok = assert_at_most_once('do', Opts, 0, fun(Key) ->
     form_error(Meta, E, ?MODULE, {duplicated_clauses, 'case', Key})
   end),
-  elixir_env:mapfold(fun(X, SA, EA) -> expand_case(Meta, X, SA, EA) end, S, E, Opts).
+  {Case, SA} = lists:mapfoldl(fun(X, SA) -> expand_case(Meta, X, SA, E) end, S, Opts),
+  {Case, SA, E}.
 
 expand_case(Meta, {'do', _} = Do, S, E) ->
   Fun = expand_head(Meta, 'case', 'do'),
@@ -117,7 +114,8 @@ expand_case(Meta, {Key, _}, _S, E) ->
   ok = assert_at_most_once('do', Opts, 0, fun(Key) ->
     form_error(Meta, E, ?MODULE, {duplicated_clauses, 'cond', Key})
   end),
-  elixir_env:mapfold(fun(X, SA, EA) -> expand_cond(Meta, X, SA, EA) end, S, E, Opts).
+  {Cond, SA} = lists:mapfoldl(fun(X, SA) -> expand_cond(Meta, X, SA, E) end, S, Opts),
+  {Cond, SA, E}.
 
 expand_cond(Meta, {'do', _} = Do, S, E) ->
   Fun = expand_one(Meta, 'cond', 'do', fun elixir_expand:expand_args/3),
@@ -137,10 +135,11 @@ expand_cond(Meta, {Key, _}, _S, E) ->
   end,
   ok = assert_at_most_once('do', Opts, 0, RaiseError),
   ok = assert_at_most_once('after', Opts, 0, RaiseError),
-  elixir_env:mapfold(fun(X, SA, EA) -> expand_receive(Meta, X, SA, EA) end, S, E, Opts).
+  {Receive, SA} = lists:mapfoldl(fun(X, SA) -> expand_receive(Meta, X, SA, E) end, S, Opts),
+  {Receive, SA, E}.
 
-expand_receive(_Meta, {'do', {'__block__', _, []}} = Do, S, E) ->
-  {Do, S, E};
+expand_receive(_Meta, {'do', {'__block__', _, []}} = Do, S, _E) ->
+  {Do, S};
 expand_receive(Meta, {'do', _} = Do, S, E) ->
   Fun = expand_head(Meta, 'receive', 'do'),
   expand_clauses(Meta, 'receive', Fun, Do, S, E);
@@ -163,10 +162,10 @@ with(Meta, Args, S, E) ->
         {Args, []}
     end,
 
-  E0 = elixir_env:reset_unused_vars(E),
-  {EExprs, S1, {E1, HasMatch}} = elixir_env:mapfold(fun expand_with/3, S, {E0, false}, Exprs),
-  {EDo, Opts1, S2, E2} = expand_with_do(Meta, Opts0, S1, E, E1),
-  {EOpts, Opts2, S3, E3} = expand_with_else(Meta, Opts1, S2, E2, HasMatch),
+  S0 = elixir_env:reset_unused_vars(S),
+  {EExprs, {S1, E1, HasMatch}} = lists:mapfoldl(fun expand_with/2, {S0, E, false}, Exprs),
+  {EDo, Opts1, S2} = expand_with_do(Meta, Opts0, S, S1, E1),
+  {EOpts, Opts2, S3} = expand_with_else(Meta, Opts1, S2, E, HasMatch),
 
   case Opts2 of
     [{Key, _} | _] ->
@@ -175,22 +174,22 @@ with(Meta, Args, S, E) ->
       ok
   end,
 
-  {{with, Meta, EExprs ++ [[{do, EDo} | EOpts]]}, S3, E3}.
+  {{with, Meta, EExprs ++ [[{do, EDo} | EOpts]]}, S3, E}.
 
-expand_with({'<-', Meta, [Left, Right]}, S, {E, _HasMatch}) ->
+expand_with({'<-', Meta, [Left, Right]}, {S, E, _HasMatch}) ->
   {ERight, SR, ER} = elixir_expand:expand(Right, S, E),
-  EM = elixir_env:reset_read(ER, E),
-  {[ELeft], SL, EL} = head([Left], SR, EM),
-  {{'<-', Meta, [ELeft, ERight]}, SL, {EL, true}};
-expand_with(Expr, S, {E, HasMatch}) ->
+  SM = elixir_env:reset_read(SR, S),
+  {[ELeft], SL, EL} = head([Left], SM, ER),
+  {{'<-', Meta, [ELeft, ERight]}, {SL, EL, true}};
+expand_with(Expr, {S, E, HasMatch}) ->
   {EExpr, SE, EE} = elixir_expand:expand(Expr, S, E),
-  {EExpr, SE, {EE, HasMatch}}.
+  {EExpr, {SE, EE, HasMatch}}.
 
-expand_with_do(Meta, Opts, S, E, Acc) ->
+expand_with_do(Meta, Opts, S, Acc, E) ->
   case lists:keytake(do, 1, Opts) of
     {value, {do, Expr}, RestOpts} ->
-      {EExpr, SAcc, EAcc} = elixir_expand:expand(Expr, S, Acc),
-      {EExpr, RestOpts, SAcc, elixir_env:merge_and_check_unused_vars(E, EAcc)};
+      {EExpr, SAcc, EAcc} = elixir_expand:expand(Expr, Acc, E),
+      {EExpr, RestOpts, elixir_env:merge_and_check_unused_vars(SAcc, S, EAcc)};
     false ->
       form_error(Meta, E, elixir_expand, {missing_option, 'with', [do]})
   end.
@@ -203,10 +202,10 @@ expand_with_else(Meta, Opts, S, E, HasMatch) ->
         true -> form_warn(Meta, ?key(E, file), ?MODULE, unmatchable_else_in_with)
       end,
       Fun = expand_head(Meta, 'with', 'else'),
-      {EPair, SE, EE} = expand_clauses(Meta, 'with', Fun, Pair, S, E),
-      {[EPair], RestOpts, SE, EE};
+      {EPair, SE} = expand_clauses(Meta, 'with', Fun, Pair, S, E),
+      {[EPair], RestOpts, SE};
     false ->
-      {[], Opts, S, E}
+      {[], Opts, S}
   end.
 
 %% Try
@@ -234,14 +233,15 @@ expand_with_else(Meta, Opts, S, E, HasMatch) ->
   ok = assert_at_most_once('else', Opts, 0, RaiseError),
   ok = assert_at_most_once('after', Opts, 0, RaiseError),
   ok = warn_catch_before_rescue(Opts, Meta, E, false),
-  elixir_env:mapfold(fun(X, SA, EA) -> expand_try(Meta, X, SA, EA) end, S, E, Opts).
+  {Try, SA} = lists:mapfoldl(fun(X, SA) -> expand_try(Meta, X, SA, E) end, S, Opts),
+  {Try, SA, E}.
 
 expand_try(_Meta, {'do', Expr}, S, E) ->
-  {EExpr, SE, EE} = elixir_expand:expand(Expr, S, elixir_env:reset_unused_vars(E)),
-  {{'do', EExpr}, SE, elixir_env:merge_and_check_unused_vars(E, EE)};
+  {EExpr, SE, EE} = elixir_expand:expand(Expr, elixir_env:reset_unused_vars(S), E),
+  {{'do', EExpr}, elixir_env:merge_and_check_unused_vars(SE, S, EE)};
 expand_try(_Meta, {'after', Expr}, S, E) ->
-  {EExpr, SE, EE} = elixir_expand:expand(Expr, S, elixir_env:reset_unused_vars(E)),
-  {{'after', EExpr}, SE, elixir_env:merge_and_check_unused_vars(E, EE)};
+  {EExpr, SE, EE} = elixir_expand:expand(Expr, elixir_env:reset_unused_vars(S), E),
+  {{'after', EExpr}, elixir_env:merge_and_check_unused_vars(SE, S, EE)};
 expand_try(Meta, {'else', _} = Else, S, E) ->
   Fun = expand_head(Meta, 'try', 'else'),
   expand_clauses(Meta, 'try', Fun, Else, S, E);
@@ -255,8 +255,8 @@ expand_try(Meta, {Key, _}, _S, E) ->
 expand_clauses_with_stacktrace(Meta, Fun, Clauses, S, E) ->
   OldStacktrace = S#elixir_ex.stacktrace,
   SS = S#elixir_ex{stacktrace=true},
-  {Ret, SE, EE} = expand_clauses(Meta, 'try', Fun, Clauses, SS, E),
-  {Ret, SE#elixir_ex{stacktrace=OldStacktrace}, EE}.
+  {Ret, SE} = expand_clauses(Meta, 'try', Fun, Clauses, SS, E),
+  {Ret, SE#elixir_ex{stacktrace=OldStacktrace}}.
 
 expand_catch(_Meta, [_] = Args, S, E) ->
   head(Args, S, E);
@@ -279,7 +279,7 @@ expand_rescue(Meta, _, _, E) ->
 
 %% rescue var
 expand_rescue({Name, _, Atom} = Var, S, E) when is_atom(Name), is_atom(Atom) ->
-  match(fun elixir_expand:expand/3, Var, S, E, E);
+  match(fun elixir_expand:expand/3, Var, S, S, E);
 
 %% rescue var in _ => rescue var
 expand_rescue({in, _, [{Name, _, VarContext} = Var, {'_', _, UnderscoreContext}]}, S, E)
@@ -288,7 +288,7 @@ expand_rescue({in, _, [{Name, _, VarContext} = Var, {'_', _, UnderscoreContext}]
 
 %% rescue var in [Exprs]
 expand_rescue({in, Meta, [Left, Right]}, S, E) ->
-  {ELeft, SL, EL}  = match(fun elixir_expand:expand/3, Left, S, E, E),
+  {ELeft, SL, EL}  = match(fun elixir_expand:expand/3, Left, S, S, E),
   {ERight, SR, ER} = elixir_expand:expand(Right, SL, EL),
 
   case ELeft of
@@ -338,12 +338,14 @@ expand_clauses(Meta, Kind, Fun, Clauses, S, E) ->
   expand_clauses_origin(Meta, NewKind, Fun, Clauses, S, E).
 
 expand_clauses_origin(Meta, Kind, Fun, {Key, [_ | _] = Clauses}, S, E) ->
-  Transformer = fun(Clause, SA, EA) ->
-    {EClause, SAcc, EAcc} = clause(Meta, {Kind, Key}, Fun, Clause, SA, elixir_env:reset_unused_vars(EA)),
-    {EClause, SAcc, elixir_env:merge_and_check_unused_vars(EA, EAcc)}
+  Transformer = fun(Clause, SA) ->
+    {EClause, SAcc, EAcc} =
+      clause(Meta, {Kind, Key}, Fun, Clause, elixir_env:reset_unused_vars(SA), E),
+
+    {EClause, elixir_env:merge_and_check_unused_vars(SAcc, SA, EAcc)}
   end,
-  {Values, SE, EE} = elixir_env:mapfold(Transformer, S, E, Clauses),
-  {{Key, Values}, SE, EE};
+  {Values, SE} = lists:mapfoldl(Transformer, S, Clauses),
+  {{Key, Values}, SE};
 expand_clauses_origin(Meta, Kind, _Fun, {Key, _}, _, E) ->
   form_error(Meta, E, ?MODULE, {bad_or_missing_clauses, {Kind, Key}}).
 

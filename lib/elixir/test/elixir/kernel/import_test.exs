@@ -174,6 +174,28 @@ defmodule Kernel.ImportTest do
     end
   end
 
+  test "import lexical on for" do
+    for x <- [1, 2, 3], x > 10 do
+      import List
+      flatten([1, [2], 3])
+      flunk()
+    end
+
+    # Buggy local duplicate is untouched
+    assert duplicate([1], 2) == [1]
+  end
+
+  test "import lexical on with" do
+    with true <- false do
+      import List
+      flatten([1, [2], 3])
+      flunk()
+    end
+
+    # Buggy local duplicate is untouched
+    assert duplicate([1], 2) == [1]
+  end
+
   test "import lexical on try" do
     try do
       import List

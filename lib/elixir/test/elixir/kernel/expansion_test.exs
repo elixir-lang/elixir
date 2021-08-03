@@ -273,10 +273,6 @@ defmodule Kernel.ExpansionTest do
   end
 
   describe "=" do
-    test "sets context to match" do
-      assert expand(quote(do: __ENV__.context = :match)) == quote(do: :match = :match)
-    end
-
     test "defines vars" do
       {output, env} = expand_env(quote(do: a = 1), __ENV__)
       assert output == quote(do: a = 1)

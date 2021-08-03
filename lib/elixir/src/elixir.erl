@@ -246,7 +246,7 @@ eval_forms(Tree, RawBinding, OrigE) ->
   {Vars, Binding} = normalize_binding(RawBinding, [], []),
   E = elixir_env:with_vars(OrigE, Vars),
   {_, S} = elixir_env:env_to_erl(E),
-  {Erl, NewE, NewS} = quoted_to_erl(Tree, E, S),
+  {Erl, NewErlS, NewExS, NewE} = quoted_to_erl(Tree, E, S),
 
   case Erl of
     {atom, _, Atom} ->
@@ -261,7 +261,7 @@ eval_forms(Tree, RawBinding, OrigE) ->
 
       ErlBinding = elixir_erl_var:load_binding(Binding, E, S),
       {value, Value, NewBinding} = recur_eval(Exprs, ErlBinding, NewE),
-      {Value, elixir_erl_var:dump_binding(NewBinding, NewE, NewS), NewE}
+      {Value, elixir_erl_var:dump_binding(NewBinding, NewExS, NewErlS), NewE}
   end.
 
 normalize_binding([{Key, Value} | Binding], Vars, Acc) when is_atom(Key) ->
@@ -329,9 +329,9 @@ quoted_to_erl(Quoted, E) ->
   quoted_to_erl(Quoted, E, S).
 
 quoted_to_erl(Quoted, Env, Scope) ->
-  {Expanded, _, NewEnv} = elixir_expand:expand(Quoted, elixir_env:env_to_ex(Env), Env),
-  {Erl, NewScope} = elixir_erl_pass:translate(Expanded, Scope),
-  {Erl, NewEnv, NewScope}.
+  {Expanded, NewExS, NewEnv} = elixir_expand:expand(Quoted, elixir_env:env_to_ex(Env), Env),
+  {Erl, NewErlS} = elixir_erl_pass:translate(Expanded, Scope),
+  {Erl, NewErlS, NewExS, NewEnv}.
 
 %% Converts a given string (charlist) into quote expression
 

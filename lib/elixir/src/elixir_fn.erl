@@ -6,23 +6,26 @@
 %% Anonymous functions
 
 expand(Meta, Clauses, S, E) when is_list(Clauses) ->
-  Transformer = fun({_, _, [Left, _Right]} = Clause, SA, EA) ->
+  Transformer = fun({_, _, [Left, _Right]} = Clause, SA) ->
     case lists:any(fun is_invalid_arg/1, Left) of
       true ->
         form_error(Meta, E, ?MODULE, defaults_in_args);
       false ->
-        EReset = elixir_env:reset_unused_vars(EA),
-        {EClause, SAcc, EAcc} = elixir_clauses:clause(Meta, fn, fun elixir_clauses:head/3, Clause, SA, EReset),
-        {EClause, SAcc, elixir_env:merge_and_check_unused_vars(EA, EAcc)}
+        SReset = elixir_env:reset_unused_vars(SA),
+
+        {EClause, SAcc, EAcc} =
+          elixir_clauses:clause(Meta, fn, fun elixir_clauses:head/3, Clause, SReset, E),
+
+        {EClause, elixir_env:merge_and_check_unused_vars(SAcc, SA, EAcc)}
     end
   end,
 
-  {EClauses, SE, EE} = elixir_env:mapfold(Transformer, S, E, Clauses),
+  {EClauses, SE} = lists:mapfoldl(Transformer, S, Clauses),
   EArities = [fn_arity(Args) || {'->', _, [Args, _]} <- EClauses],
 
   case lists:usort(EArities) of
     [_] ->
-      {{fn, Meta, EClauses}, SE, EE};
+      {{fn, Meta, EClauses}, SE, E};
     _ ->
       form_error(Meta, E, ?MODULE, clauses_with_different_arities)
   end.

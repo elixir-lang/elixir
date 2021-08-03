@@ -67,17 +67,17 @@ next_counter(Module) ->
 compile(Module, _Block, _Vars, #{line := Line, file := File}) when Module == nil; is_boolean(Module) ->
   elixir_errors:form_error([{line, Line}], File, ?MODULE, {invalid_module, Module});
 compile(Module, Block, Vars, Env) when is_atom(Module) ->
-  #{line := Line, current_vars := {Read, _}, function := Function} = Env,
+  #{line := Line, function := Function, versioned_vars := OldVerVars} = Env,
 
-  %% In case we are generating a module from inside a function,
-  %% we get rid of the lexical tracker information as, at this
-  %% point, the lexical tracker process is long gone.
-  ResetEnv = elixir_env:reset_unused_vars(Env),
+  {VerVars, _} =
+    lists:mapfoldl(fun({Var, _}, I) -> {{Var, I}, I + 1} end, 0, maps:to_list(OldVerVars)),
+
+  BaseEnv = Env#{module := Module, versioned_vars := maps:from_list(VerVars)},
 
   MaybeLexEnv =
     case Function of
-      nil -> ResetEnv#{module := Module, current_vars := {Read, false}};
-      _   -> ResetEnv#{lexical_tracker := nil, tracers := [], function := nil, module := Module, current_vars := {Read, false}}
+      nil -> BaseEnv;
+      _   -> BaseEnv#{lexical_tracker := nil, tracers := [], function := nil}
     end,
 
   case MaybeLexEnv of

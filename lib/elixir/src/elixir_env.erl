@@ -2,9 +2,9 @@
 -include("elixir.hrl").
 -export([
   new/0, to_caller/1, with_vars/2, reset_vars/1,
-  env_to_ex/1, env_to_erl/1, mapfold/4,
-  reset_unused_vars/1, check_unused_vars/1,
-  merge_and_check_unused_vars/2,
+  env_to_ex/1, env_to_erl/1,
+  reset_unused_vars/1, check_unused_vars/2,
+  merge_and_check_unused_vars/3,
   trace/2, format_error/1,
   reset_read/2, prepare_write/1, close_write/2
 ]).
@@ -24,8 +24,6 @@ new() ->
     macro_aliases => [],                              %% keep aliases defined inside a macro
     context_modules => [],                            %% modules defined in the current context
     versioned_vars => #{},                            %% a map of vars with their latest versions
-    current_vars => {#{}, false},                     %% a tuple with maps of read and optional write current vars
-    unused_vars => {#{}, 0},                          %% a map of unused vars and a version counter for vars
     lexical_tracker => nil,                           %% lexical tracker PID
     tracers => []                                     %% available compilation tracers
   }.
@@ -34,27 +32,27 @@ trace(Event, #{tracers := Tracers} = E) ->
   [ok = Tracer:trace(Event, E) || Tracer <- Tracers],
   ok.
 
-to_caller({Line, _S, #{current_vars := {Read, _}} = Env}) ->
+to_caller({Line, #elixir_ex{vars={Read, _}}, Env}) ->
   Env#{line := Line, versioned_vars := Read};
 to_caller(#{} = Env) ->
   Env.
 
 with_vars(Env, Vars) ->
   {VarVersions, _} = lists:mapfoldl(fun(Var, I) -> {{Var, I}, I + 1} end, 0, Vars),
-  Read = maps:from_list(VarVersions),
-  Env#{current_vars := {Read, false}, unused_vars := {#{}, map_size(Read)}}.
+  Env#{versioned_vars := maps:from_list(VarVersions)}.
 
 reset_vars(Env) ->
-  Env#{current_vars := {#{}, false}, unused_vars := {#{}, 0}}.
+  Env#{versioned_vars := #{}}.
 
 %% CONVERSIONS
 
-env_to_ex(#{context := match, current_vars := {Read, _}, unused_vars := {_, Counter}}) ->
-  #elixir_ex{prematch={Read, Counter}};
-env_to_ex(#{}) ->
-  #elixir_ex{}.
+env_to_ex(#{context := match, versioned_vars := Vars}) ->
+  Counter = map_size(Vars),
+  #elixir_ex{prematch={Vars, Counter}, vars={Vars, false}, unused={#{}, Counter}};
+env_to_ex(#{versioned_vars := Vars}) ->
+  #elixir_ex{vars={Vars, false}, unused={#{}, map_size(Vars)}}.
 
-env_to_erl(#{context := Context, current_vars := {Read, _}}) ->
+env_to_erl(#{context := Context, versioned_vars := Read}) ->
   {VarsList, _Counter} = lists:mapfoldl(fun to_erl_var/2, 0, maps:values(Read)),
   VarsMap = maps:from_list(VarsList),
   Scope = #elixir_erl{
@@ -67,29 +65,18 @@ env_to_erl(#{context := Context, current_vars := {Read, _}}) ->
 to_erl_var(Version, Counter) ->
   {{Version, list_to_atom("_@" ++ integer_to_list(Counter))}, Counter + 1}.
 
-%% TRAVERSAL HELPERS
-
-mapfold(Fun, S, E, List) ->
-  mapfold(Fun, S, E, List, []).
-
-mapfold(Fun, S, E, [H | T], Acc) ->
-  {RH, RS, RE} = Fun(H, S, E),
-  mapfold(Fun, RS, RE, T, [RH | Acc]);
-mapfold(_Fun, S, E, [], Acc) ->
-  {lists:reverse(Acc), S, E}.
-
 %% VAR HANDLING
 
-reset_read(#{current_vars := {_, Write}} = E, #{current_vars := {Read, _}}) ->
-  E#{current_vars := {Read, Write}}.
+reset_read(#elixir_ex{vars={_, Write}} = S, #elixir_ex{vars={Read, _}}) ->
+  S#elixir_ex{vars={Read, Write}}.
 
-prepare_write(#{current_vars := {Read, _}} = E) ->
-  E#{current_vars := {Read, Read}}.
+prepare_write(#elixir_ex{vars={Read, _}} = S) ->
+  S#elixir_ex{vars={Read, Read}}.
 
-close_write(#{current_vars := {_Read, Write}} = E, #{current_vars := {_, false}}) ->
-  E#{current_vars := {Write, false}};
-close_write(#{current_vars := {_Read, Write}} = E, #{current_vars := {_, UpperWrite}}) ->
-  E#{current_vars := {Write, merge_vars(UpperWrite, Write)}}.
+close_write(#elixir_ex{vars={_Read, Write}} = S, #elixir_ex{vars={_, false}}) ->
+  S#elixir_ex{vars={Write, false}};
+close_write(#elixir_ex{vars={_Read, Write}} = S, #elixir_ex{vars={_, UpperWrite}}) ->
+  S#elixir_ex{vars={Write, merge_vars(UpperWrite, Write)}}.
 
 merge_vars(V, V) ->
   V;
@@ -103,17 +90,18 @@ merge_vars(V1, V2) ->
 
 %% UNUSED VARS
 
-reset_unused_vars(#{unused_vars := {_Unused, Version}} = E) ->
-  E#{unused_vars := {#{}, Version}}.
+reset_unused_vars(#elixir_ex{unused={_Unused, Version}} = S) ->
+  S#elixir_ex{unused={#{}, Version}}.
 
-check_unused_vars(#{unused_vars := {Unused, _Version}} = E) ->
+check_unused_vars(#elixir_ex{unused={Unused, _Version}}, E) ->
   [elixir_errors:form_warn([{line, Line}], E, ?MODULE, {unused_var, Name, Overridden}) ||
     {{Name, _}, {Line, Overridden}} <- maps:to_list(Unused), is_unused_var(Name)],
   E.
 
-merge_and_check_unused_vars(E, #{unused_vars := {ClauseUnused, Version}}) ->
-  #{current_vars := {Read, _}, unused_vars := {Unused, _Version}} = E,
-  E#{unused_vars := {merge_and_check_unused_vars(Read, Unused, ClauseUnused, E), Version}}.
+merge_and_check_unused_vars(S, #elixir_ex{vars={Read, Write}, unused={Unused, _Version}}, E) ->
+  #elixir_ex{unused={ClauseUnused, Version}} = S,
+  NewUnused = merge_and_check_unused_vars(Read, Unused, ClauseUnused, E),
+  S#elixir_ex{unused={NewUnused, Version}, vars={Read, Write}}.
 
 merge_and_check_unused_vars(Current, Unused, ClauseUnused, E) ->
   maps:fold(fun

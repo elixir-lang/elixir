@@ -8,7 +8,9 @@
 -record(elixir_ex, {
   caller=false,            %% stores if __CALLER__ is allowed
   prematch=warn,           %% {Read, Counter} | warn | raise | pin
-  stacktrace=false         %% stores if __STACKTRACE__ is allowed
+  stacktrace=false,        %% stores if __STACKTRACE__ is allowed
+  unused={#{}, 0},         %% a map of unused vars and a version counter for vars
+  vars={#{}, false}        %% a tuple with maps of read and optional write current vars
 }).
 
 -record(elixir_erl, {
