@@ -81,8 +81,7 @@ if [ "$1" = "--short-version" ]; then
   echo "$ELIXIR_VERSION"
   if [ $# -gt 1 ]; then
     echo
-    echo "Warning:" >&2
-    echo "--short-version is a standalone option, remaining arguments are dropped." >&2
+    echo "warning: --short-version is a standalone option, remaining arguments are dropped" >&2
   fi
   exit 0
 fi
