@@ -1,22 +1,22 @@
 -module(elixir_map).
--export([expand_map/3, expand_struct/4, format_error/1, load_struct/5]).
+-export([expand_map/4, expand_struct/5, format_error/1, load_struct/5]).
 -import(elixir_errors, [form_error/4, form_warn/4]).
 -include("elixir.hrl").
 
-expand_map(Meta, [{'|', UpdateMeta, [Left, Right]}], #{context := nil} = E) ->
-  {[ELeft | ERight], EE} = elixir_expand:expand_args([Left | Right], E),
+expand_map(Meta, [{'|', UpdateMeta, [Left, Right]}], S, #{context := nil} = E) ->
+  {[ELeft | ERight], SE, EE} = elixir_expand:expand_args([Left | Right], S, E),
   validate_kv(Meta, ERight, Right, E),
-  {{'%{}', Meta, [{'|', UpdateMeta, [ELeft, ERight]}]}, EE};
-expand_map(Meta, [{'|', _, [_, _]}] = Args, #{context := Context, file := File}) ->
+  {{'%{}', Meta, [{'|', UpdateMeta, [ELeft, ERight]}]}, SE, EE};
+expand_map(Meta, [{'|', _, [_, _]}] = Args, _S, #{context := Context, file := File}) ->
   form_error(Meta, File, ?MODULE, {update_syntax_in_wrong_context, Context, {'%{}', Meta, Args}});
-expand_map(Meta, Args, E) ->
-  {EArgs, EE} = elixir_expand:expand_args(Args, E),
+expand_map(Meta, Args, S, E) ->
+  {EArgs, SE, EE} = elixir_expand:expand_args(Args, S, E),
   validate_kv(Meta, EArgs, Args, E),
-  {{'%{}', Meta, EArgs}, EE}.
+  {{'%{}', Meta, EArgs}, SE, EE}.
 
-expand_struct(Meta, Left, {'%{}', MapMeta, MapArgs}, #{context := Context} = E) ->
+expand_struct(Meta, Left, {'%{}', MapMeta, MapArgs}, S, #{context := Context} = E) ->
   CleanMapArgs = clean_struct_key_from_map_args(Meta, MapArgs, E),
-  {[ELeft, ERight], EE} = elixir_expand:expand_args([Left, {'%{}', MapMeta, CleanMapArgs}], E),
+  {[ELeft, ERight], SE, EE} = elixir_expand:expand_args([Left, {'%{}', MapMeta, CleanMapArgs}], S, E),
 
   case validate_struct(ELeft, Context) of
     true when is_atom(ELeft) ->
@@ -26,16 +26,16 @@ expand_struct(Meta, Left, {'%{}', MapMeta, MapArgs}, #{context := Context} = E) 
           Struct = load_struct(Meta, ELeft, [Assocs], AssocKeys, EE),
           Keys = ['__struct__'] ++ AssocKeys,
           WithoutKeys = maps:to_list(maps:without(Keys, Struct)),
-          StructAssocs = elixir_quote:escape(WithoutKeys, default, false),
-          {{'%', Meta, [ELeft, {'%{}', MapMeta, StructAssocs ++ Assocs}]}, EE};
+          StructAssocs = elixir_quote:escape(WithoutKeys, none, false),
+          {{'%', Meta, [ELeft, {'%{}', MapMeta, StructAssocs ++ Assocs}]}, SE, EE};
 
         {_, _, Assocs} -> %% Update or match
           _ = load_struct(Meta, ELeft, [], [K || {K, _} <- Assocs], EE),
-          {{'%', Meta, [ELeft, ERight]}, EE}
+          {{'%', Meta, [ELeft, ERight]}, SE, EE}
       end;
 
     true ->
-      {{'%', Meta, [ELeft, ERight]}, EE};
+      {{'%', Meta, [ELeft, ERight]}, SE, EE};
 
     false when Context == match ->
       form_error(Meta, E, ?MODULE, {invalid_struct_name_in_match, ELeft});
@@ -43,7 +43,7 @@ expand_struct(Meta, Left, {'%{}', MapMeta, MapArgs}, #{context := Context} = E) 
     false ->
       form_error(Meta, E, ?MODULE, {invalid_struct_name, ELeft})
   end;
-expand_struct(Meta, _Left, Right, E) ->
+expand_struct(Meta, _Left, Right, _S, E) ->
   form_error(Meta, E, ?MODULE, {non_map_after_struct, Right}).
 
 clean_struct_key_from_map_args(Meta, [{'|', PipeMeta, [Left, MapAssocs]}], E) ->

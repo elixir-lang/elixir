@@ -221,7 +221,7 @@ translate_clause(Kind, {Meta, Args, Guards, Body}, ExpandCaptures) ->
         true  ->
           FBody = {'match', Ann,
             {'var', Ann, '__CALLER__'},
-            ?remote(Ann, elixir_env, linify, [{var, Ann, '_@CALLER'}])
+            ?remote(Ann, elixir_env, to_caller, [{var, Ann, '_@CALLER'}])
           },
           setelement(5, MClause, [FBody | element(5, TClause)]);
         false ->

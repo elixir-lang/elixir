@@ -231,8 +231,8 @@ defmodule IEx.Pry do
         end
       end
 
-    {{:case, _, [_, [do: [{:->, [], [[condition], _]}]]]}, _} =
-      :elixir_expand.expand(to_expand, env)
+    {{:case, _, [_, [do: [{:->, [], [[condition], _]}]]]}, _, _} =
+      :elixir_expand.expand(to_expand, :elixir_env.env_to_ex(env), env)
 
     condition
   end

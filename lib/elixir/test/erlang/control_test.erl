@@ -3,7 +3,7 @@
 
 to_erl(String) ->
   Forms = elixir:'string_to_quoted!'(String, 1, 1, <<"nofile">>, []),
-  {Expr, _, _} = elixir:quoted_to_erl(Forms, elixir:env_for_eval([])),
+  {Expr, _, _, _} = elixir:quoted_to_erl(Forms, elixir:env_for_eval([])),
   Expr.
 
 cond_line_test() ->

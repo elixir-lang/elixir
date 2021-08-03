@@ -162,10 +162,10 @@ store_definition(Kind, CheckClauses, Call, Body, Pos) ->
 store_definition(Meta, Kind, CheckClauses, Name, Arity, DefaultsArgs, Guards, Body, File, ER) ->
   Module = ?key(ER, module),
   Tuple = {Name, Arity},
-  E = env_for_expansion(Kind, Tuple, ER),
+  {S, E} = env_for_expansion(Kind, Tuple, ER),
 
-  {Args, Defaults} = unpack_defaults(Kind, Meta, Name, DefaultsArgs, E),
-  Clauses = [elixir_clauses:def(Clause, E) ||
+  {Args, Defaults} = unpack_defaults(Kind, Meta, Name, DefaultsArgs, S, E),
+  Clauses = [elixir_clauses:def(Clause, S, E) ||
              Clause <- def_to_clauses(Kind, Meta, Args, Guards, Body, E)],
 
   DefaultsLength = length(Defaults),
@@ -181,9 +181,10 @@ store_definition(Meta, Kind, CheckClauses, Name, Arity, DefaultsArgs, Guards, Bo
   Tuple.
 
 env_for_expansion(Kind, Tuple, E) when Kind =:= defmacro; Kind =:= defmacrop ->
-  E#{function := Tuple, contextual_vars := ['__CALLER__']};
+  S = elixir_env:env_to_ex(E),
+  {S#elixir_ex{caller=true}, E#{function := Tuple}};
 env_for_expansion(_Kind, Tuple, E) ->
-  E#{function := Tuple, contextual_vars := []}.
+  {elixir_env:env_to_ex(E), E#{function := Tuple}}.
 
 retrieve_location(Location, Module) ->
   {Set, _} = elixir_module:data_tables(Module),
@@ -259,26 +260,26 @@ store_definition(Check, Kind, Meta, Name, Arity, File, Module, Defaults, Clauses
 
 %% Handling of defaults
 
-unpack_defaults(Kind, Meta, Name, Args, E) ->
-  Expanded = expand_defaults(Args, E#{context := nil}),
-  unpack_defaults(Kind, Meta, Name, Expanded, [], []).
+unpack_defaults(Kind, Meta, Name, Args, S, E) ->
+  Expanded = expand_defaults(Args, S, E#{context := nil}),
+  unpack_expanded(Kind, Meta, Name, Expanded, [], []).
 
-unpack_defaults(Kind, Meta, Name, [{'\\\\', DefaultMeta, [Expr, _]} | T] = List, Acc, Clauses) ->
+unpack_expanded(Kind, Meta, Name, [{'\\\\', DefaultMeta, [Expr, _]} | T] = List, Acc, Clauses) ->
   Base = match_defaults(Acc, length(Acc), []),
   {Args, Invoke} = extract_defaults(List, length(Base), [], []),
   Clause = {Meta, Base ++ Args, [], {super, [{super, {Kind, Name}} | DefaultMeta], Base ++ Invoke}},
-  unpack_defaults(Kind, Meta, Name, T, [Expr | Acc], [Clause | Clauses]);
-unpack_defaults(Kind, Meta, Name, [H | T], Acc, Clauses) ->
-  unpack_defaults(Kind, Meta, Name, T, [H | Acc], Clauses);
-unpack_defaults(_Kind, _Meta, _Name, [], Acc, Clauses) ->
+  unpack_expanded(Kind, Meta, Name, T, [Expr | Acc], [Clause | Clauses]);
+unpack_expanded(Kind, Meta, Name, [H | T], Acc, Clauses) ->
+  unpack_expanded(Kind, Meta, Name, T, [H | Acc], Clauses);
+unpack_expanded(_Kind, _Meta, _Name, [], Acc, Clauses) ->
   {lists:reverse(Acc), lists:reverse(Clauses)}.
 
-expand_defaults([{'\\\\', Meta, [Expr, Default]} | Args], E) ->
-  {ExpandedDefault, _} = elixir_expand:expand(Default, E),
-  [{'\\\\', Meta, [Expr, ExpandedDefault]} | expand_defaults(Args, E)];
-expand_defaults([Arg | Args], E) ->
-  [Arg | expand_defaults(Args, E)];
-expand_defaults([], _E) ->
+expand_defaults([{'\\\\', Meta, [Expr, Default]} | Args], S, E) ->
+  {ExpandedDefault, _, _} = elixir_expand:expand(Default, S, E),
+  [{'\\\\', Meta, [Expr, ExpandedDefault]} | expand_defaults(Args, S, E)];
+expand_defaults([Arg | Args], S, E) ->
+  [Arg | expand_defaults(Args, S, E)];
+expand_defaults([], _S, _E) ->
   [].
 
 extract_defaults([{'\\\\', _, [_Expr, Default]} | T], Counter, NewArgs, NewInvoke) ->

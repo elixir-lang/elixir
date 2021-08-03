@@ -30,7 +30,7 @@ defmodule TypeHelper do
         fn unquote(patterns) when unquote(guards) -> unquote(expr) end
       end
 
-    {ast, _env} = :elixir_expand.expand(fun, env)
+    {ast, _, _} = :elixir_expand.expand(fun, :elixir_env.env_to_ex(env), env)
     {:fn, _, [{:->, _, [[{:when, _, [patterns, guards]}], body]}]} = ast
     {patterns, guards, body}
   end

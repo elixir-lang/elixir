@@ -1,152 +1,157 @@
 -module(elixir_expand).
--export([expand/2, expand_args/2, expand_arg/2, format_error/1]).
+-export([expand/3, expand_args/3, expand_arg/3, format_error/1]).
 -import(elixir_errors, [form_error/4]).
 -include("elixir.hrl").
 
 %% =
 
-expand({'=', Meta, [Left, Right]}, E) ->
+expand({'=', Meta, [Left, Right]}, S, E) ->
   assert_no_guard_scope(Meta, "=", E),
-  {ERight, ER} = expand(Right, E),
-  {ELeft, EL} = elixir_clauses:match(fun expand/2, Left, ER, E),
+  {ERight, SR, ER} = expand(Right, S, E),
+  {ELeft, SL, EL} = elixir_clauses:match(fun expand/3, Left, SR, S, ER),
   refute_parallel_bitstring_match(ELeft, ERight, E, ?key(E, context) == match),
-  {{'=', Meta, [ELeft, ERight]}, EL};
+  {{'=', Meta, [ELeft, ERight]}, SL, EL};
 
 %% Literal operators
 
-expand({'{}', Meta, Args}, E) ->
-  {EArgs, EA} = expand_args(Args, E),
-  {{'{}', Meta, EArgs}, EA};
+expand({'{}', Meta, Args}, S, E) ->
+  {EArgs, SA, EA} = expand_args(Args, S, E),
+  {{'{}', Meta, EArgs}, SA, EA};
 
-expand({'%{}', Meta, Args}, E) ->
-  elixir_map:expand_map(Meta, Args, E);
+expand({'%{}', Meta, Args}, S, E) ->
+  elixir_map:expand_map(Meta, Args, S, E);
 
-expand({'%', Meta, [Left, Right]}, E) ->
-  elixir_map:expand_struct(Meta, Left, Right, E);
+expand({'%', Meta, [Left, Right]}, S, E) ->
+  elixir_map:expand_struct(Meta, Left, Right, S, E);
 
-expand({'<<>>', Meta, Args}, E) ->
-  elixir_bitstring:expand(Meta, Args, E, false);
+expand({'<<>>', Meta, Args}, S, E) ->
+  elixir_bitstring:expand(Meta, Args, S, E, false);
 
-expand({'->', Meta, _Args}, E) ->
+expand({'->', Meta, _Args}, _S, E) ->
   form_error(Meta, E, ?MODULE, unhandled_arrow_op);
 
 %% __block__
 
-expand({'__block__', _Meta, []}, E) ->
-  {nil, E};
-expand({'__block__', _Meta, [Arg]}, E) ->
-  expand(Arg, E);
-expand({'__block__', Meta, Args}, E) when is_list(Args) ->
-  {EArgs, EA} = expand_block(Args, [], Meta, E),
-  {{'__block__', Meta, EArgs}, EA};
+expand({'__block__', _Meta, []}, S, E) ->
+  {nil, S, E};
+expand({'__block__', _Meta, [Arg]}, S, E) ->
+  expand(Arg, S, E);
+expand({'__block__', Meta, Args}, S, E) when is_list(Args) ->
+  {EArgs, SA, EA} = expand_block(Args, [], Meta, S, E),
+  {{'__block__', Meta, EArgs}, SA, EA};
 
 %% __aliases__
 
-expand({'__aliases__', _, _} = Alias, E) ->
-  expand_aliases(Alias, E, true);
+expand({'__aliases__', _, _} = Alias, S, E) ->
+  expand_aliases(Alias, S, E, true);
 
 %% alias
 
-expand({Kind, Meta, [{{'.', _, [Base, '{}']}, _, Refs} | Rest]}, E)
+expand({Kind, Meta, [{{'.', _, [Base, '{}']}, _, Refs} | Rest]}, S, E)
     when Kind == alias; Kind == require; Kind == import ->
   case Rest of
     [] ->
-      expand_multi_alias_call(Kind, Meta, Base, Refs, [], E);
+      expand_multi_alias_call(Kind, Meta, Base, Refs, [], S, E);
     [Opts] ->
       case lists:keymember(as, 1, Opts) of
         true ->
           form_error(Meta, E, ?MODULE, as_in_multi_alias_call);
         false ->
-          expand_multi_alias_call(Kind, Meta, Base, Refs, Opts, E)
+          expand_multi_alias_call(Kind, Meta, Base, Refs, Opts, S, E)
       end
   end;
-expand({alias, Meta, [Ref]}, E) ->
-  expand({alias, Meta, [Ref, []]}, E);
-expand({alias, Meta, [Ref, Opts]}, E) ->
+expand({alias, Meta, [Ref]}, S, E) ->
+  expand({alias, Meta, [Ref, []]}, S, E);
+expand({alias, Meta, [Ref, Opts]}, S, E) ->
   assert_no_match_or_guard_scope(Meta, "alias", E),
-  {ERef, ER} = expand_without_aliases_report(Ref, E),
-  {EOpts, ET}  = expand_opts(Meta, alias, [as, warn], no_alias_opts(Opts), ER),
+  {ERef, SR, ER} = expand_without_aliases_report(Ref, S, E),
+  {EOpts, ST, ET} = expand_opts(Meta, alias, [as, warn], no_alias_opts(Opts), SR, ER),
 
   if
     is_atom(ERef) ->
-      {ERef, expand_alias(Meta, true, ERef, EOpts, ET)};
+      {ERef, ST, expand_alias(Meta, true, ERef, EOpts, ET)};
     true ->
       form_error(Meta, E, ?MODULE, {expected_compile_time_module, alias, Ref})
   end;
 
-expand({require, Meta, [Ref]}, E) ->
-  expand({require, Meta, [Ref, []]}, E);
-expand({require, Meta, [Ref, Opts]}, E) ->
+expand({require, Meta, [Ref]}, S, E) ->
+  expand({require, Meta, [Ref, []]}, S, E);
+expand({require, Meta, [Ref, Opts]}, S, E) ->
   assert_no_match_or_guard_scope(Meta, "require", E),
 
-  {ERef, ER} = expand_without_aliases_report(Ref, E),
-  {EOpts, ET}  = expand_opts(Meta, require, [as, warn], no_alias_opts(Opts), ER),
+  {ERef, SR, ER} = expand_without_aliases_report(Ref, S, E),
+  {EOpts, ST, ET}  = expand_opts(Meta, require, [as, warn], no_alias_opts(Opts), SR, ER),
 
   if
     is_atom(ERef) ->
       elixir_aliases:ensure_loaded(Meta, ERef, ET),
-      {ERef, expand_require(Meta, ERef, EOpts, ET)};
+      {ERef, ST, expand_require(Meta, ERef, EOpts, ET)};
     true ->
       form_error(Meta, E, ?MODULE, {expected_compile_time_module, require, Ref})
   end;
 
-expand({import, Meta, [Left]}, E) ->
-  expand({import, Meta, [Left, []]}, E);
+expand({import, Meta, [Left]}, S, E) ->
+  expand({import, Meta, [Left, []]}, S, E);
 
-expand({import, Meta, [Ref, Opts]}, E) ->
+expand({import, Meta, [Ref, Opts]}, S, E) ->
   assert_no_match_or_guard_scope(Meta, "import", E),
-  {ERef, ER} = expand_without_aliases_report(Ref, E),
-  {EOpts, ET}  = expand_opts(Meta, import, [only, except, warn], Opts, ER),
+  {ERef, SR, ER} = expand_without_aliases_report(Ref, S, E),
+  {EOpts, ST, ET} = expand_opts(Meta, import, [only, except, warn], Opts, SR, ER),
 
   if
     is_atom(ERef) ->
       elixir_aliases:ensure_loaded(Meta, ERef, ET),
       {Functions, Macros} = elixir_import:import(Meta, ERef, EOpts, ET),
-      {ERef, expand_require(Meta, ERef, EOpts, ET#{functions := Functions, macros := Macros})};
+      {ERef, ST, expand_require(Meta, ERef, EOpts, ET#{functions := Functions, macros := Macros})};
     true ->
       form_error(Meta, E, ?MODULE, {expected_compile_time_module, import, Ref})
   end;
 
 %% Compilation environment macros
 
-expand({'__MODULE__', _, Atom}, E) when is_atom(Atom) ->
-  {?key(E, module), E};
-expand({'__DIR__', _, Atom}, E) when is_atom(Atom) ->
-  {filename:dirname(?key(E, file)), E};
-expand({'__CALLER__', Meta, Atom} = Caller, E) when is_atom(Atom) ->
-  assert_contextual_var(Meta, '__CALLER__', E, caller_not_allowed),
-  {Caller, E};
-expand({'__STACKTRACE__', Meta, Atom} = Stacktrace, E) when is_atom(Atom) ->
-  assert_contextual_var(Meta, '__STACKTRACE__', E, stacktrace_not_allowed),
-  {Stacktrace, E};
-expand({'__ENV__', Meta, Atom}, #{context := match} = E) when is_atom(Atom) ->
+expand({'__MODULE__', _, Atom}, S, E) when is_atom(Atom) ->
+  {?key(E, module), S, E};
+expand({'__DIR__', _, Atom}, S, E) when is_atom(Atom) ->
+  {filename:dirname(?key(E, file)), S, E};
+expand({'__CALLER__', Meta, Atom} = Caller, S, E) when is_atom(Atom) ->
+  case S#elixir_ex.caller of
+    true -> {Caller, S, E};
+    false -> form_error(Meta, E, ?MODULE, caller_not_allowed)
+  end;
+expand({'__STACKTRACE__', Meta, Atom} = Stacktrace, S, E) when is_atom(Atom) ->
+  case S#elixir_ex.stacktrace of
+    true -> {Stacktrace, S, E};
+    false -> form_error(Meta, E, ?MODULE, stacktrace_not_allowed)
+  end;
+expand({'__ENV__', Meta, Atom}, _S, #{context := match} = E) when is_atom(Atom) ->
   form_error(Meta, E, ?MODULE, env_not_allowed);
-expand({'__ENV__', Meta, Atom}, E) when is_atom(Atom) ->
-  {maybe_escape_map(escape_env_entries(Meta, E)), E};
-expand({{'.', DotMeta, [{'__ENV__', Meta, Atom}, Field]}, CallMeta, []}, E) when is_atom(Atom), is_atom(Field) ->
-  Env = escape_env_entries(Meta, E),
+expand({'__ENV__', Meta, Atom}, S, E) when is_atom(Atom) ->
+  {escape_map(escape_env_entries(Meta, S, E)), S, E};
+expand({{'.', DotMeta, [{'__ENV__', Meta, Atom}, Field]}, CallMeta, []}, S, #{context := Context} = E)
+    when is_atom(Atom), is_atom(Field), Context /= match ->
+  Env = escape_env_entries(Meta, S, E),
   case maps:is_key(Field, Env) of
-    true  -> {maps:get(Field, Env), E};
-    false -> {{{'.', DotMeta, [maybe_escape_map(Env), Field]}, CallMeta, []}, E}
+    true  -> {maps:get(Field, Env), S, E};
+    false -> {{{'.', DotMeta, [escape_map(Env), Field]}, CallMeta, []}, S, E}
   end;
 
 %% Quote
 
-expand({Unquote, Meta, [_]}, E) when Unquote == unquote; Unquote == unquote_splicing ->
+expand({Unquote, Meta, [_]}, _S, E) when Unquote == unquote; Unquote == unquote_splicing ->
   form_error(Meta, E, ?MODULE, {unquote_outside_quote, Unquote});
 
-expand({quote, Meta, [Opts]}, E) when is_list(Opts) ->
+expand({quote, Meta, [Opts]}, S, E) when is_list(Opts) ->
   case lists:keyfind(do, 1, Opts) of
     {do, Do} ->
-      expand({quote, Meta, [lists:keydelete(do, 1, Opts), [{do, Do}]]}, E);
+      expand({quote, Meta, [lists:keydelete(do, 1, Opts), [{do, Do}]]}, S, E);
     false ->
       form_error(Meta, E, ?MODULE, {missing_option, 'quote', [do]})
   end;
 
-expand({quote, Meta, [_]}, E) ->
+expand({quote, Meta, [_]}, _S, E) ->
   form_error(Meta, E, ?MODULE, {invalid_args, 'quote'});
 
-expand({quote, Meta, [Opts, Do]}, E) when is_list(Do) ->
+expand({quote, Meta, [Opts, Do]}, S, E) when is_list(Do) ->
   Exprs =
     case lists:keyfind(do, 1, Do) of
       {do, Expr} -> Expr;
@@ -154,7 +159,7 @@ expand({quote, Meta, [Opts, Do]}, E) when is_list(Do) ->
     end,
 
   ValidOpts = [context, location, line, file, unquote, bind_quoted, generated],
-  {EOpts, ET} = expand_opts(Meta, quote, ValidOpts, Opts, E),
+  {EOpts, ST, ET} = expand_opts(Meta, quote, ValidOpts, Opts, S, E),
 
   Context = proplists:get_value(context, EOpts, case ?key(E, module) of
     nil -> 'Elixir';
@@ -184,66 +189,66 @@ expand({quote, Meta, [Opts, Do]}, E) when is_list(Do) ->
 
   {Q, Prelude} = elixir_quote:build(Meta, Line, File, Context, Unquote, Generated),
   Quoted = elixir_quote:quote(Meta, Exprs, Binding, Q, Prelude, ET),
-  expand(Quoted, ET);
+  expand(Quoted, ST, ET);
 
-expand({quote, Meta, [_, _]}, E) ->
+expand({quote, Meta, [_, _]}, _S, E) ->
   form_error(Meta, E, ?MODULE, {invalid_args, 'quote'});
 
 %% Functions
 
-expand({'&', Meta, [{super, SuperMeta, Args} = Expr]}, E) when is_list(Args) ->
+expand({'&', Meta, [{super, SuperMeta, Args} = Expr]}, S, E) when is_list(Args) ->
   assert_no_match_or_guard_scope(Meta, "&", E),
 
   case resolve_super(Meta, length(Args), E) of
     {Kind, Name, _} when Kind == def; Kind == defp ->
-      expand_fn_capture(Meta, {Name, SuperMeta, Args}, E);
+      expand_fn_capture(Meta, {Name, SuperMeta, Args}, S, E);
     _ ->
-      expand_fn_capture(Meta, Expr, E)
+      expand_fn_capture(Meta, Expr, S, E)
   end;
 
-expand({'&', Meta, [{'/', _, [{super, _, Context}, Arity]} = Expr]}, E) when is_atom(Context), is_integer(Arity) ->
+expand({'&', Meta, [{'/', _, [{super, _, Context}, Arity]} = Expr]}, S, E) when is_atom(Context), is_integer(Arity) ->
   assert_no_match_or_guard_scope(Meta, "&", E),
 
   case resolve_super(Meta, Arity, E) of
     {Kind, Name, _} when Kind == def; Kind == defp ->
-      {{'&', Meta, [{'/', [], [{Name, [], Context}, Arity]}]}, E};
+      {{'&', Meta, [{'/', [], [{Name, [], Context}, Arity]}]}, S, E};
     _ ->
-      expand_fn_capture(Meta, Expr, E)
+      expand_fn_capture(Meta, Expr, S, E)
   end;
 
-expand({'&', Meta, [Arg]}, E) ->
+expand({'&', Meta, [Arg]}, S, E) ->
   assert_no_match_or_guard_scope(Meta, "&", E),
-  expand_fn_capture(Meta, Arg, E);
+  expand_fn_capture(Meta, Arg, S, E);
 
-expand({fn, Meta, Pairs}, E) ->
+expand({fn, Meta, Pairs}, S, E) ->
   assert_no_match_or_guard_scope(Meta, "fn", E),
-  elixir_fn:expand(Meta, Pairs, E);
+  elixir_fn:expand(Meta, Pairs, S, E);
 
 %% Case/Receive/Try
 
-expand({'cond', Meta, [Opts]}, E) ->
+expand({'cond', Meta, [Opts]}, S, E) ->
   assert_no_match_or_guard_scope(Meta, "cond", E),
   assert_no_underscore_clause_in_cond(Opts, E),
-  {EClauses, EC} = elixir_clauses:'cond'(Meta, Opts, E),
-  {{'cond', Meta, [EClauses]}, EC};
+  {EClauses, SC, EC} = elixir_clauses:'cond'(Meta, Opts, S, E),
+  {{'cond', Meta, [EClauses]}, SC, EC};
 
-expand({'case', Meta, [Expr, Options]}, E) ->
+expand({'case', Meta, [Expr, Options]}, S, E) ->
   assert_no_match_or_guard_scope(Meta, "case", E),
-  expand_case(Meta, Expr, Options, E);
+  expand_case(Meta, Expr, Options, S, E);
 
-expand({'receive', Meta, [Opts]}, E) ->
+expand({'receive', Meta, [Opts]}, S, E) ->
   assert_no_match_or_guard_scope(Meta, "receive", E),
-  {EClauses, EC} = elixir_clauses:'receive'(Meta, Opts, E),
-  {{'receive', Meta, [EClauses]}, EC};
+  {EClauses, SC, EC} = elixir_clauses:'receive'(Meta, Opts, S, E),
+  {{'receive', Meta, [EClauses]}, SC, EC};
 
-expand({'try', Meta, [Opts]}, E) ->
+expand({'try', Meta, [Opts]}, S, E) ->
   assert_no_match_or_guard_scope(Meta, "try", E),
-  {EClauses, EC} = elixir_clauses:'try'(Meta, Opts, E),
-  {{'try', Meta, [EClauses]}, EC};
+  {EClauses, SC, EC} = elixir_clauses:'try'(Meta, Opts, S, E),
+  {{'try', Meta, [EClauses]}, SC, EC};
 
 %% Comprehensions
 
-expand({for, Meta, [_ | _] = Args}, E) ->
+expand({for, Meta, [_ | _] = Args}, S, E) ->
   assert_no_match_or_guard_scope(Meta, "for", E),
 
   {Cases, Block} =
@@ -269,229 +274,231 @@ expand({for, Meta, [_ | _] = Args}, E) ->
         form_error(Meta, E, ?MODULE, {missing_option, for, [do]})
     end,
 
-  {EOpts, EO} = expand(Opts, elixir_env:reset_unused_vars(E)),
-  {ECases, EC} = lists:mapfoldl(fun expand_for/2, EO, Cases),
+  {EOpts, SO, EO} = expand(Opts, elixir_env:reset_unused_vars(S), E),
+  {ECases, SC, EC} = mapfold(fun expand_for/3, SO, EO, Cases),
   assert_generator_start(Meta, ECases, E),
 
-  {EExpr, EE} =
+  {EExpr, SE, EE} =
     case validate_for_options(EOpts, false, false, false) of
-      {ok, MaybeReduce} -> expand_for_do_block(Meta, Expr, EC, MaybeReduce);
+      {ok, MaybeReduce} -> expand_for_do_block(Meta, Expr, SC, EC, MaybeReduce);
       {error, Error} -> form_error(Meta, E, ?MODULE, Error)
     end,
 
-  {{for, Meta, ECases ++ [[{do, EExpr} | EOpts]]}, elixir_env:merge_and_check_unused_vars(E, EE)};
+  {{for, Meta, ECases ++ [[{do, EExpr} | EOpts]]},
+   elixir_env:merge_and_check_unused_vars(SE, S, EE),
+   E};
 
 %% With
 
-expand({with, Meta, [_ | _] = Args}, E) ->
+expand({with, Meta, [_ | _] = Args}, S, E) ->
   assert_no_match_or_guard_scope(Meta, "with", E),
-  elixir_clauses:with(Meta, Args, E);
+  elixir_clauses:with(Meta, Args, S, E);
 
 %% Super
 
-expand({super, Meta, Args}, E) when is_list(Args) ->
+expand({super, Meta, Args}, S, E) when is_list(Args) ->
   assert_no_match_or_guard_scope(Meta, "super", E),
   {Kind, Name, _} = resolve_super(Meta, length(Args), E),
-  {EArgs, EA} = expand_args(Args, E),
-  {{super, [{super, {Kind, Name}} | Meta], EArgs}, EA};
+  {EArgs, SA, EA} = expand_args(Args, S, E),
+  {{super, [{super, {Kind, Name}} | Meta], EArgs}, SA, EA};
 
 %% Vars
 
-expand({'^', Meta, [Arg]}, #{context := match} = E) ->
-  #{current_vars := {_ReadCurrent, WriteCurrent}, prematch_vars := {Prematch, _}} = E,
+expand({'^', Meta, [Arg]}, S, #{context := match} = E) ->
+  #elixir_ex{prematch={Prematch, _}, vars={_Read, Write}} = S,
 
-  %% We need to rollback to a no match context.
-  NoMatchE = E#{context := nil, current_vars := {Prematch, WriteCurrent}, prematch_vars := pin},
+  %% We need to rollback to a no match context
+  NoMatchE = E#{context := nil},
+  NoMatchS = S#elixir_ex{prematch=pin, vars={Prematch, Write}},
 
-  case expand(Arg, NoMatchE) of
-    {{Name, _, Kind} = Var, #{unused_vars := Unused}} when is_atom(Name), is_atom(Kind) ->
-      {{'^', Meta, [Var]}, E#{unused_vars := Unused}};
+  case expand(Arg, NoMatchS, NoMatchE) of
+    {{Name, _, Kind} = Var, #elixir_ex{unused=Unused}, _} when is_atom(Name), is_atom(Kind) ->
+      {{'^', Meta, [Var]}, S#elixir_ex{unused=Unused}, E};
+
     _ ->
       form_error(Meta, E, ?MODULE, {invalid_arg_for_pin, Arg})
   end;
-expand({'^', Meta, [Arg]}, E) ->
+expand({'^', Meta, [Arg]}, _S, E) ->
   form_error(Meta, E, ?MODULE, {pin_outside_of_match, Arg});
 
-expand({'_', _Meta, Kind} = Var, #{context := match} = E) when is_atom(Kind) ->
-  {Var, E};
-expand({'_', Meta, Kind}, E) when is_atom(Kind) ->
+expand({'_', _Meta, Kind} = Var, S, #{context := match} = E) when is_atom(Kind) ->
+  {Var, S, E};
+expand({'_', Meta, Kind}, _S, E) when is_atom(Kind) ->
   form_error(Meta, E, ?MODULE, unbound_underscore);
 
-expand({Name, Meta, Kind}, #{context := match} = E) when is_atom(Name), is_atom(Kind) ->
-  #{
-    current_vars := {ReadCurrent, WriteCurrent},
-    unused_vars := {Unused, Version},
-    prematch_vars := {_, PrematchVersion}
-  } = E,
+expand({Name, Meta, Kind}, S, #{context := match} = E) when is_atom(Name), is_atom(Kind) ->
+  #elixir_ex{
+    prematch={_, PrematchVersion},
+    unused={Unused, Version},
+    vars={Read, Write}
+  } = S,
 
   Pair = {Name, elixir_utils:var_context(Meta, Kind)},
 
-  case ReadCurrent of
+  case Read of
     %% Variable was already overridden
     #{Pair := VarVersion} when VarVersion >= PrematchVersion ->
       maybe_warn_underscored_var_repeat(Meta, Name, Kind, E),
       NewUnused = var_used(Pair, VarVersion, Unused),
       Var = {Name, [{version, VarVersion} | Meta], Kind},
-      {Var, E#{unused_vars := {NewUnused, Version}}};
+      {Var, S#elixir_ex{unused={NewUnused, Version}}, E};
 
     %% Variable is being overridden now
     #{Pair := _} ->
       NewUnused = var_unused(Pair, Meta, Version, Unused, true),
-      NewReadCurrent = ReadCurrent#{Pair => Version},
-      NewWriteCurrent = (WriteCurrent /= false) andalso WriteCurrent#{Pair => Version},
+      NewRead = Read#{Pair => Version},
+      NewWrite = (Write /= false) andalso Write#{Pair => Version},
       Var = {Name, [{version, Version} | Meta], Kind},
-      {Var, E#{current_vars := {NewReadCurrent, NewWriteCurrent}, unused_vars := {NewUnused, Version + 1}}};
+      {Var, S#elixir_ex{vars={NewRead, NewWrite}, unused={NewUnused, Version + 1}}, E};
 
     %% Variable defined for the first time
     _ ->
       NewUnused = var_unused(Pair, Meta, Version, Unused, false),
-      NewReadCurrent = ReadCurrent#{Pair => Version},
-      NewWriteCurrent = (WriteCurrent /= false) andalso WriteCurrent#{Pair => Version},
+      NewRead = Read#{Pair => Version},
+      NewWrite = (Write /= false) andalso Write#{Pair => Version},
       Var = {Name, [{version, Version} | Meta], Kind},
-      {Var, E#{current_vars := {NewReadCurrent, NewWriteCurrent}, unused_vars := {NewUnused, Version + 1}}}
+      {Var, S#elixir_ex{vars={NewRead, NewWrite}, unused={NewUnused, Version + 1}}, E}
   end;
 
-expand({Name, Meta, Kind}, E) when is_atom(Name), is_atom(Kind) ->
-  #{current_vars := {ReadCurrent, _WriteCurrent}, unused_vars := {Unused, Version}} = E,
+expand({Name, Meta, Kind}, S, E) when is_atom(Name), is_atom(Kind) ->
+  #elixir_ex{vars={Read, _Write}, unused={Unused, Version}} = S,
   Pair = {Name, elixir_utils:var_context(Meta, Kind)},
 
-  case ReadCurrent of
+  case Read of
     #{Pair := PairVersion} ->
       maybe_warn_underscored_var_access(Meta, Name, Kind, E),
       Var = {Name, [{version, PairVersion} | Meta], Kind},
-      {Var, E#{unused_vars := {var_used(Pair, PairVersion, Unused), Version}}};
+      {Var, S#elixir_ex{unused={var_used(Pair, PairVersion, Unused), Version}}, E};
 
     _ ->
-      %% TODO: Remove this check on v2.0 as we can always raise undefined_var
-      case lists:keyfind(var, 1, Meta) of
-        {var, true} ->
-          form_error(Meta, E, ?MODULE, {undefined_var_bang, Name, Kind});
+      case lists:keyfind(if_undefined, 1, Meta) of
+        %% TODO: Remove this clause on v2.0 as we will always raise
+        {if_undefined, raise} ->
+          form_error(Meta, E, ?MODULE, {undefined_var, Name, Kind});
+
+        {if_undefined, apply} ->
+          expand({Name, Meta, []}, S, E);
 
         _ ->
-          case ?key(E, prematch_vars) of
+          case S#elixir_ex.prematch of
+            %% TODO: Remove this clause on v2.0 as we will always raise
             warn ->
-              %% TODO: Remove warn option on v2.0
               elixir_errors:form_warn(Meta, E, ?MODULE, {unknown_variable, Name}),
-              expand({Name, Meta, []}, E);
+              expand({Name, Meta, []}, S, E);
 
             raise ->
               form_error(Meta, E, ?MODULE, {undefined_var, Name, Kind});
 
             pin ->
-              form_error(Meta, E, ?MODULE, {undefined_var_pin, Name, Kind});
-
-            apply ->
-              expand({Name, Meta, []}, E)
+              form_error(Meta, E, ?MODULE, {undefined_var_pin, Name, Kind})
           end
       end
   end;
 
 %% Local calls
 
-expand({Atom, Meta, Args}, E) when is_atom(Atom), is_list(Meta), is_list(Args) ->
-  assert_no_ambiguous_op(Atom, Meta, Args, E),
+expand({Atom, Meta, Args}, S, E) when is_atom(Atom), is_list(Meta), is_list(Args) ->
+  assert_no_ambiguous_op(Atom, Meta, Args, S, E),
 
-  elixir_dispatch:dispatch_import(Meta, Atom, Args, E, fun() ->
-    expand_local(Meta, Atom, Args, E)
+  elixir_dispatch:dispatch_import(Meta, Atom, Args, S, E, fun() ->
+    expand_local(Meta, Atom, Args, S, E)
   end);
 
 %% Remote calls
 
-expand({{'.', DotMeta, [Left, Right]}, Meta, Args}, E)
+expand({{'.', DotMeta, [Left, Right]}, Meta, Args}, S, E)
     when (is_tuple(Left) orelse is_atom(Left)), is_atom(Right), is_list(Meta), is_list(Args) ->
-  {ELeft, EL} = expand(Left, elixir_env:prepare_write(E)),
+  {ELeft, SL, EL} = expand(Left, elixir_env:prepare_write(S), E),
 
-  elixir_dispatch:dispatch_require(Meta, ELeft, Right, Args, EL, fun(AR, AF, AA) ->
-    expand_remote(AR, DotMeta, AF, Meta, AA, E, EL)
+  elixir_dispatch:dispatch_require(Meta, ELeft, Right, Args, S, EL, fun(AR, AF, AA) ->
+    expand_remote(AR, DotMeta, AF, Meta, AA, S, SL, EL)
   end);
 
 %% Anonymous calls
 
-expand({{'.', DotMeta, [Expr]}, Meta, Args}, E) when is_list(Args) ->
+expand({{'.', DotMeta, [Expr]}, Meta, Args}, S, E) when is_list(Args) ->
   assert_no_match_or_guard_scope(Meta, "anonymous call", E),
 
-  case expand_args([Expr | Args], E) of
-    {[EExpr | _], _} when is_atom(EExpr) ->
+  case expand_args([Expr | Args], S, E) of
+    {[EExpr | _], _, _} when is_atom(EExpr) ->
       form_error(Meta, E, ?MODULE, {invalid_function_call, EExpr});
 
-    {[EExpr | EArgs], EA} ->
-      {{{'.', DotMeta, [EExpr]}, Meta, EArgs}, EA}
+    {[EExpr | EArgs], SA, EA} ->
+      {{{'.', DotMeta, [EExpr]}, Meta, EArgs}, SA, EA}
   end;
 
 %% Invalid calls
 
-expand({_, Meta, Args} = Invalid, E) when is_list(Meta) and is_list(Args) ->
+expand({_, Meta, Args} = Invalid, _S, E) when is_list(Meta) and is_list(Args) ->
   form_error(Meta, E, ?MODULE, {invalid_call, Invalid});
-
-expand({_, _, _} = Tuple, E) ->
-  form_error([{line, 0}], ?key(E, file), ?MODULE, {invalid_quoted_expr, Tuple});
 
 %% Literals
 
-expand({Left, Right}, E) ->
-  {[ELeft, ERight], EE} = expand_args([Left, Right], E),
-  {{ELeft, ERight}, EE};
+expand({Left, Right}, S, E) ->
+  {[ELeft, ERight], SE, EE} = expand_args([Left, Right], S, E),
+  {{ELeft, ERight}, SE, EE};
 
-expand(List, #{context := match} = E) when is_list(List) ->
-  expand_list(List, fun expand/2, E, []);
+expand(List, S, #{context := match} = E) when is_list(List) ->
+  expand_list(List, fun expand/3, S, E, []);
 
-expand(List, E) when is_list(List) ->
-  {EArgs, {EE, _}} = expand_list(List, fun expand_arg/2, {elixir_env:prepare_write(E), E}, []),
-  {EArgs, elixir_env:close_write(EE, E)};
+expand(List, S, E) when is_list(List) ->
+  {EArgs, {SE, _}, EE} =
+    expand_list(List, fun expand_arg/3, {elixir_env:prepare_write(S), S}, E, []),
 
-expand(Function, E) when is_function(Function) ->
+  {EArgs, elixir_env:close_write(SE, S), EE};
+
+expand(Function, S, E) when is_function(Function) ->
   case (erlang:fun_info(Function, type) == {type, external}) andalso
        (erlang:fun_info(Function, env) == {env, []}) of
     true ->
-      {elixir_quote:fun_to_quoted(Function), E};
+      {elixir_quote:fun_to_quoted(Function), S, E};
     false ->
       form_error([{line, 0}], ?key(E, file), ?MODULE, {invalid_quoted_expr, Function})
   end;
 
-expand(Pid, E) when is_pid(Pid) ->
+expand(Pid, S, E) when is_pid(Pid) ->
   case ?key(E, function) of
     nil ->
-      {Pid, E};
+      {Pid, S, E};
     Function ->
       %% TODO: Make me an error on v2.0
       elixir_errors:form_warn([], E, ?MODULE, {invalid_pid_in_function, Pid, Function}),
       {Pid, E}
   end;
 
-expand(Other, E) when is_number(Other); is_atom(Other); is_binary(Other) ->
-  {Other, E};
+expand(Other, S, E) when is_number(Other); is_atom(Other); is_binary(Other) ->
+  {Other, S, E};
 
-expand(Other, E) ->
+expand(Other, _S, E) ->
   form_error([{line, 0}], ?key(E, file), ?MODULE, {invalid_quoted_expr, Other}).
 
 %% Helpers
 
-escape_env_entries(Meta, #{current_vars := {Read, Write}, unused_vars := {Unused, Version}} = Env0) ->
+escape_env_entries(Meta, #elixir_ex{vars={Read, _}}, Env0) ->
   Env1 = case Env0 of
     #{function := nil} -> Env0;
     _ -> Env0#{lexical_tracker := nil, tracers := []}
   end,
 
-  Env1#{
-    current_vars := {maybe_escape_map(Read), maybe_escape_map(Write)},
-    unused_vars := {maybe_escape_map(Unused), Version},
-    line := ?line(Meta)
-  }.
+  Env1#{versioned_vars := escape_map(Read), line := ?line(Meta)}.
 
-maybe_escape_map(#{} = Map) -> {'%{}', [], maps:to_list(Map)};
-maybe_escape_map(Other) -> Other.
+escape_map(Map) -> {'%{}', [], maps:to_list(Map)}.
 
-expand_multi_alias_call(Kind, Meta, Base, Refs, Opts, E) ->
-  {BaseRef, EB} = expand_without_aliases_report(Base, E),
+expand_multi_alias_call(Kind, Meta, Base, Refs, Opts, S, E) ->
+  {BaseRef, SB, EB} = expand_without_aliases_report(Base, S, E),
+
   Fun = fun
-    ({'__aliases__', _, Ref}, ER) ->
-      expand({Kind, Meta, [elixir_aliases:concat([BaseRef | Ref]), Opts]}, ER);
-    (Ref, ER) when is_atom(Ref) ->
-      expand({Kind, Meta, [elixir_aliases:concat([BaseRef, Ref]), Opts]}, ER);
-    (Other, _ER) ->
+    ({'__aliases__', _, Ref}, SR, ER) ->
+      expand({Kind, Meta, [elixir_aliases:concat([BaseRef | Ref]), Opts]}, SR, ER);
+
+    (Ref, SR, ER) when is_atom(Ref) ->
+      expand({Kind, Meta, [elixir_aliases:concat([BaseRef, Ref]), Opts]}, SR, ER);
+
+    (Other, _SR, _ER) ->
       form_error(Meta, E, ?MODULE, {expected_compile_time_module, Kind, Other})
   end,
-  lists:mapfoldl(Fun, EB, Refs).
+
+  mapfold(Fun, SB, EB, Refs).
 
 resolve_super(Meta, Arity, E) ->
   Module = assert_module_scope(Meta, super, E),
@@ -507,37 +514,37 @@ resolve_super(Meta, Arity, E) ->
       form_error(Meta, E, ?MODULE, wrong_number_of_args_for_super)
   end.
 
-expand_fn_capture(Meta, Arg, E) ->
-  case elixir_fn:capture(Meta, Arg, E) of
-    {{remote, Remote, Fun, Arity}, EE} ->
+expand_fn_capture(Meta, Arg, S, E) ->
+  case elixir_fn:capture(Meta, Arg, S, E) of
+    {{remote, Remote, Fun, Arity}, SE, EE} ->
       is_atom(Remote) andalso
         elixir_env:trace({remote_function, Meta, Remote, Fun, Arity}, E),
       AttachedMeta = attach_context_module(Remote, Meta, E),
-      {{'&', AttachedMeta, [{'/', [], [{{'.', [], [Remote, Fun]}, [], []}, Arity]}]}, EE};
-    {{local, Fun, Arity}, #{function := nil}} ->
+      {{'&', AttachedMeta, [{'/', [], [{{'.', [], [Remote, Fun]}, [], []}, Arity]}]}, SE, EE};
+    {{local, Fun, Arity}, _SE, #{function := nil}} ->
       form_error(Meta, E, ?MODULE, {undefined_local_capture, Fun, Arity});
-    {{local, Fun, Arity}, EE} ->
-      {{'&', Meta, [{'/', [], [{Fun, [], nil}, Arity]}]}, EE};
-    {expand, Expr, EE} ->
-      expand(Expr, EE)
+    {{local, Fun, Arity}, SE, EE} ->
+      {{'&', Meta, [{'/', [], [{Fun, [], nil}, Arity]}]}, SE, EE};
+    {expand, Expr, SE, EE} ->
+      expand(Expr, SE, EE)
   end.
 
-expand_list([{'|', Meta, [_, _] = Args}], Fun, Acc, List) ->
-  {EArgs, EAcc} = lists:mapfoldl(Fun, Acc, Args),
-  expand_list([], Fun, EAcc, [{'|', Meta, EArgs} | List]);
-expand_list([H | T], Fun, Acc, List) ->
-  {EArg, EAcc} = Fun(H, Acc),
-  expand_list(T, Fun, EAcc, [EArg | List]);
-expand_list([], _Fun, Acc, List) ->
-  {lists:reverse(List), Acc}.
+expand_list([{'|', Meta, [_, _] = Args}], Fun, S, E, List) ->
+  {EArgs, SAcc, EAcc} = mapfold(Fun, S, E, Args),
+  expand_list([], Fun, SAcc, EAcc, [{'|', Meta, EArgs} | List]);
+expand_list([H | T], Fun, S, E, List) ->
+  {EArg, SAcc, EAcc} = Fun(H, S, E),
+  expand_list(T, Fun, SAcc, EAcc, [EArg | List]);
+expand_list([], _Fun, S, E, List) ->
+  {lists:reverse(List), S, E}.
 
-expand_block([], Acc, _Meta, E) ->
-  {lists:reverse(Acc), E};
-expand_block([H], Acc, Meta, E) ->
-  {EH, EE} = expand(H, E),
-  expand_block([], [EH | Acc], Meta, EE);
-expand_block([H | T], Acc, Meta, E) ->
-  {EH, EE} = expand(H, E),
+expand_block([], Acc, _Meta, S, E) ->
+  {lists:reverse(Acc), S, E};
+expand_block([H], Acc, Meta, S, E) ->
+  {EH, SE, EE} = expand(H, S, E),
+  expand_block([], [EH | Acc], Meta, SE, EE);
+expand_block([H | T], Acc, Meta, S, E) ->
+  {EH, SE, EE} = expand(H, S, E),
 
   %% Note that checks rely on the code BEFORE expansion
   %% instead of relying on Erlang checks.
@@ -552,11 +559,12 @@ expand_block([H | T], Acc, Meta, E) ->
   case is_useless_building(H, EH, Meta) of
     {UselessMeta, UselessTerm} ->
       elixir_errors:form_warn(UselessMeta, E, ?MODULE, UselessTerm);
+
     false ->
       ok
   end,
 
-  expand_block(T, [EH | Acc], Meta, EE).
+  expand_block(T, [EH | Acc], Meta, SE, EE).
 
 %% Note that we don't handle atoms on purpose. They are common
 %% when unquoting AST and it is unlikely that we would catch
@@ -584,20 +592,29 @@ is_useless_building(_, _, _) ->
 %%   3
 %%
 %% However, lexical information is.
-expand_arg(Arg, Acc) when is_number(Arg); is_atom(Arg); is_binary(Arg); is_pid(Arg) ->
-  {Arg, Acc};
-expand_arg(Arg, {Acc, E}) ->
-  {EArg, EAcc} = expand(Arg, elixir_env:reset_read(Acc, E)),
-  {EArg, {EAcc, E}}.
+expand_arg(Arg, Acc, E) when is_number(Arg); is_atom(Arg); is_binary(Arg); is_pid(Arg) ->
+  {Arg, Acc, E};
+expand_arg(Arg, {Acc, S}, E) ->
+  {EArg, SAcc, EAcc} = expand(Arg, elixir_env:reset_read(Acc, S), E),
+  {EArg, {SAcc, S}, EAcc}.
 
-expand_args([Arg], E) ->
-  {EArg, EE} = expand(Arg, E),
-  {[EArg], EE};
-expand_args(Args, #{context := match} = E) ->
-  lists:mapfoldl(fun expand/2, E, Args);
-expand_args(Args, E) ->
-  {EArgs, {EA, _}} = lists:mapfoldl(fun expand_arg/2, {elixir_env:prepare_write(E), E}, Args),
-  {EArgs, elixir_env:close_write(EA, E)}.
+expand_args([Arg], S, E) ->
+  {EArg, SE, EE} = expand(Arg, S, E),
+  {[EArg], SE, EE};
+expand_args(Args, S, #{context := match} = E) ->
+  mapfold(fun expand/3, S, E, Args);
+expand_args(Args, S, E) ->
+  {EArgs, {SA, _}, EA} = mapfold(fun expand_arg/3, {elixir_env:prepare_write(S), S}, E, Args),
+  {EArgs, elixir_env:close_write(SA, S), EA}.
+
+mapfold(Fun, S, E, List) ->
+  mapfold(Fun, S, E, List, []).
+
+mapfold(Fun, S, E, [H | T], Acc) ->
+  {RH, RS, RE} = Fun(H, S, E),
+  mapfold(Fun, RS, RE, T, [RH | Acc]);
+mapfold(_Fun, S, E, [], Acc) ->
+  {lists:reverse(Acc), S, E}.
 
 %% Match/var helpers
 
@@ -653,8 +670,8 @@ should_warn(Meta) ->
 
 %% Case
 
-expand_case(Meta, Expr, Opts, E) ->
-  {EExpr, EE} = expand(Expr, E),
+expand_case(Meta, Expr, Opts, S, E) ->
+  {EExpr, SE, EE} = expand(Expr, S, E),
 
   ROpts =
     case proplists:get_value(optimize_boolean, Meta, false) of
@@ -668,8 +685,8 @@ expand_case(Meta, Expr, Opts, E) ->
         Opts
     end,
 
-  {EOpts, EO} = elixir_clauses:'case'(Meta, ROpts, EE),
-  {{'case', Meta, [EExpr, EOpts]}, EO}.
+  {EOpts, SO, EO} = elixir_clauses:'case'(Meta, ROpts, SE, EE),
+  {{'case', Meta, [EExpr, EOpts]}, SO, EO}.
 
 rewrite_case_clauses([{do, [
   {'->', FalseMeta, [
@@ -717,35 +734,36 @@ validate_for_options([], Into, Uniq, {reduce, _}) when Into /= false; Uniq /= fa
 validate_for_options([], _Into, _Uniq, Reduce) ->
   {ok, Reduce}.
 
-expand_for_do_block(Meta, Expr, E, false) ->
-  case Expr of
-    [{'->', _, _} | _] -> form_error(Meta, E, ?MODULE, for_without_reduce_bad_block);
-    _ -> expand(Expr, E)
-  end;
-expand_for_do_block(Meta, Clauses, E, {reduce, _}) ->
-  Transformer = fun({_, _, [Left, _Right]} = Clause, Acc) ->
-    case Left of
-      [_] ->
-        EReset = elixir_env:reset_unused_vars(Acc),
-        {EClause, EAcc} = elixir_clauses:clause(Meta, fn, fun elixir_clauses:head/2, Clause, EReset),
-        {EClause, elixir_env:merge_and_check_unused_vars(Acc, EAcc)};
-      _ ->
-        form_error(Meta, E, ?MODULE, for_with_reduce_bad_block)
-    end
+expand_for_do_block(Meta, [{'->', _, _} | _], _S, E, false) ->
+  form_error(Meta, E, ?MODULE, for_without_reduce_bad_block);
+expand_for_do_block(_Meta, Expr, S, E, false) ->
+  expand(Expr, S, E);
+expand_for_do_block(Meta, [{'->', _, _} | _] = Clauses, S, E, {reduce, _}) ->
+  Transformer = fun
+    ({_, _, [[_], _]} = Clause, SA) ->
+      SReset = elixir_env:reset_unused_vars(SA),
+
+      {EClause, SAcc, EAcc} =
+        elixir_clauses:clause(Meta, fn, fun elixir_clauses:head/3, Clause, SReset, E),
+
+      {EClause, elixir_env:merge_and_check_unused_vars(SAcc, SA, EAcc)};
+
+    (_, _) ->
+      form_error(Meta, E, ?MODULE, for_with_reduce_bad_block)
   end,
 
-  case Clauses of
-    [{'->', _, _} | _] -> lists:mapfoldl(Transformer, E, Clauses);
-    _ -> form_error(Meta, E, ?MODULE, for_with_reduce_bad_block)
-  end.
+  {Do, SA} = lists:mapfoldl(Transformer, S, Clauses),
+  {Do, SA, E};
+expand_for_do_block(Meta, _Expr, _S, E, {reduce, _}) ->
+  form_error(Meta, E, ?MODULE, for_with_reduce_bad_block).
 
 %% Locals
 
-assert_no_ambiguous_op(Name, Meta, [Arg], E) ->
+assert_no_ambiguous_op(Name, Meta, [Arg], S, E) ->
   case lists:keyfind(ambiguous_op, 1, Meta) of
     {ambiguous_op, Kind} ->
       Pair = {Name, Kind},
-      case ?key(E, current_vars) of
+      case S#elixir_ex.vars of
         {#{Pair := _}, _} ->
           form_error(Meta, E, ?MODULE, {op_ambiguity, Name, Arg});
         _ ->
@@ -754,7 +772,7 @@ assert_no_ambiguous_op(Name, Meta, [Arg], E) ->
     _ ->
       ok
   end;
-assert_no_ambiguous_op(_Atom, _Meta, _Args, _E) ->
+assert_no_ambiguous_op(_Atom, _Meta, _Args, _S, _E) ->
   ok.
 
 assert_no_clauses(_Name, _Meta, [], _E) ->
@@ -772,29 +790,29 @@ assert_arg_with_no_clauses(Name, Meta, [{Key, Value} | Rest], E) when is_atom(Ke
 assert_arg_with_no_clauses(_Name, _Meta, _Arg, _E) ->
   ok.
 
-expand_local(Meta, Name, Args, #{module := Module, function := Function, context := nil} = E)
+expand_local(Meta, Name, Args, S, #{module := Module, function := Function, context := nil} = E)
     when Function /= nil ->
   assert_no_clauses(Name, Meta, Args, E),
   Arity = length(Args),
   elixir_env:trace({local_function, Meta, Name, Arity}, E),
   elixir_locals:record_local({Name, Arity}, Module, Function, Meta, false),
-  {EArgs, EA} = expand_args(Args, E),
-  {{Name, Meta, EArgs}, EA};
-expand_local(Meta, Name, Args, E) when Name == '|'; Name == '::' ->
+  {EArgs, SA, EA} = expand_args(Args, S, E),
+  {{Name, Meta, EArgs}, SA, EA};
+expand_local(Meta, Name, Args, _S, E) when Name == '|'; Name == '::' ->
   form_error(Meta, E, ?MODULE, {undefined_function, Name, Args});
-expand_local(Meta, Name, Args, #{function := nil} = E) ->
+expand_local(Meta, Name, Args, _S, #{function := nil} = E) ->
   form_error(Meta, E, ?MODULE, {undefined_function, Name, Args});
-expand_local(Meta, Name, Args, #{context := Context} = E) when Context == match; Context == guard ->
+expand_local(Meta, Name, Args, _S, #{context := Context} = E) when Context == match; Context == guard ->
   form_error(Meta, E, ?MODULE, {invalid_local_invocation, Context, {Name, Meta, Args}}).
 
 %% Remote
 
-expand_remote(Receiver, DotMeta, Right, Meta, Args, #{context := Context} = E, EL) when is_atom(Receiver) or is_tuple(Receiver) ->
+expand_remote(Receiver, DotMeta, Right, Meta, Args, S, SL, #{context := Context} = E) when is_atom(Receiver) or is_tuple(Receiver) ->
   assert_no_clauses(Right, Meta, Args, E),
 
   case {Context, lists:keyfind(no_parens, 1, Meta)} of
     {guard, {no_parens, true}} when is_tuple(Receiver) ->
-      {{{'.', DotMeta, [Receiver, Right]}, Meta, []}, EL};
+      {{{'.', DotMeta, [Receiver, Right]}, Meta, []}, SL, E};
 
     {guard, _} when is_tuple(Receiver) ->
       form_error(Meta, E, ?MODULE, {parens_map_lookup_guard, Receiver, Right});
@@ -805,17 +823,17 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, #{context := Context} = E, E
       is_atom(Receiver) andalso
         elixir_env:trace({remote_function, Meta, Receiver, Right, length(Args)}, E),
 
-      {EArgs, {EA, _}} = lists:mapfoldl(fun expand_arg/2, {EL, E}, Args),
+      {EArgs, {SA, _}, EA} = mapfold(fun expand_arg/3, {SL, S}, E, Args),
 
       case rewrite(Context, Receiver, AttachedDotMeta, Right, Meta, EArgs) of
         {ok, Rewritten} ->
           maybe_warn_comparison(Rewritten, Args, E),
-          {Rewritten, elixir_env:close_write(EA, E)};
+          {Rewritten, elixir_env:close_write(SA, S), EA};
         {error, Error} ->
           form_error(Meta, E, elixir_rewrite, Error)
       end
   end;
-expand_remote(Receiver, DotMeta, Right, Meta, Args, E, _) ->
+expand_remote(Receiver, DotMeta, Right, Meta, Args, _, _, E) ->
   Call = {{'.', DotMeta, [Receiver, Right]}, Meta, Args},
   form_error(Meta, E, ?MODULE, {invalid_call, Call}).
 
@@ -885,10 +903,10 @@ is_comparison_expression(_Other) -> false.
 
 %% Lexical helpers
 
-expand_opts(Meta, Kind, Allowed, Opts, E) ->
-  {EOpts, EE} = expand(Opts, E),
+expand_opts(Meta, Kind, Allowed, Opts, S, E) ->
+  {EOpts, SE, EE} = expand(Opts, S, E),
   validate_opts(Meta, Kind, Allowed, EOpts, EE),
-  {EOpts, EE}.
+  {EOpts, SE, EE}.
 
 validate_opts(Meta, Kind, Allowed, Opts, E) when is_list(Opts) ->
   [begin
@@ -958,25 +976,25 @@ expand_as({as, Other}, Meta, _IncludeByDefault, _Ref, E) ->
 
 %% Aliases
 
-expand_without_aliases_report({'__aliases__', _, _} = Alias, E) ->
-  expand_aliases(Alias, E, false);
-expand_without_aliases_report(Other, E) ->
-  expand(Other, E).
+expand_without_aliases_report({'__aliases__', _, _} = Alias, S, E) ->
+  expand_aliases(Alias, S, E, false);
+expand_without_aliases_report(Other, S, E) ->
+  expand(Other, S, E).
 
-expand_aliases({'__aliases__', Meta, _} = Alias, E, Report) ->
+expand_aliases({'__aliases__', Meta, _} = Alias, S, E, Report) ->
   case elixir_aliases:expand(Alias, E) of
     Receiver when is_atom(Receiver) ->
       Report andalso elixir_env:trace({alias_reference, Meta, Receiver}, E),
-      {Receiver, E};
+      {Receiver, S, E};
 
     Aliases ->
-      {EAliases, EA} = expand_args(Aliases, E),
+      {EAliases, SA, EA} = expand_args(Aliases, S, E),
 
       case lists:all(fun is_atom/1, EAliases) of
         true ->
           Receiver = elixir_aliases:concat(EAliases),
           Report andalso elixir_env:trace({alias_reference, Meta, Receiver}, E),
-          {Receiver, EA};
+          {Receiver, SA, EA};
         false ->
           form_error(Meta, E, ?MODULE, {invalid_alias, Alias})
       end
@@ -984,25 +1002,25 @@ expand_aliases({'__aliases__', Meta, _} = Alias, E, Report) ->
 
 %% Comprehensions
 
-expand_for({'<-', Meta, [Left, Right]}, E) ->
-  {ERight, ER} = expand(Right, E),
-  EM = elixir_env:reset_read(ER, E),
-  {[ELeft], EL} = elixir_clauses:head([Left], EM),
-  {{'<-', Meta, [ELeft, ERight]}, EL};
-expand_for({'<<>>', Meta, Args} = X, E) when is_list(Args) ->
+expand_for({'<-', Meta, [Left, Right]}, S, E) ->
+  {ERight, SR, ER} = expand(Right, S, E),
+  SM = elixir_env:reset_read(SR, S),
+  {[ELeft], SL, EL} = elixir_clauses:head([Left], SM, ER),
+  {{'<-', Meta, [ELeft, ERight]}, SL, EL};
+expand_for({'<<>>', Meta, Args} = X, S, E) when is_list(Args) ->
   case elixir_utils:split_last(Args) of
     {LeftStart, {'<-', OpMeta, [LeftEnd, Right]}} ->
-      {ERight, ER} = expand(Right, E),
-      EM = elixir_env:reset_read(ER, E),
-      {ELeft, EL} = elixir_clauses:match(fun(BArg, BE) ->
-        elixir_bitstring:expand(Meta, BArg, BE, true)
-      end, LeftStart ++ [LeftEnd], EM, EM),
-      {{'<<>>', [], [{'<-', OpMeta, [ELeft, ERight]}]}, EL};
+      {ERight, SR, ER} = expand(Right, S, E),
+      SM = elixir_env:reset_read(SR, S),
+      {ELeft, SL, EL} = elixir_clauses:match(fun(BArg, BS, BE) ->
+        elixir_bitstring:expand(Meta, BArg, BS, BE, true)
+      end, LeftStart ++ [LeftEnd], SM, SM, ER),
+      {{'<<>>', [], [{'<-', OpMeta, [ELeft, ERight]}]}, SL, EL};
     _ ->
-      expand(X, E)
+      expand(X, S, E)
   end;
-expand_for(X, E) ->
-  expand(X, E).
+expand_for(X, S, E) ->
+  expand(X, S, E).
 
 assert_generator_start(_, [{'<-', _, [_, _]} | _], _) ->
   ok;
@@ -1069,12 +1087,6 @@ assert_no_match_scope(_Meta, _Kind, _E) -> [].
 assert_no_guard_scope(Meta, Kind, #{context := guard, file := File}) ->
   form_error(Meta, File, ?MODULE, {invalid_expr_in_guard, Kind});
 assert_no_guard_scope(_Meta, _Kind, _E) -> [].
-
-assert_contextual_var(Meta, Name, #{contextual_vars := Vars, file := File}, Error) ->
-  case lists:member(Name, Vars) of
-    true -> ok;
-    false -> form_error(Meta, File, ?MODULE, Error)
-  end.
 
 %% Here we look into the Clauses "optimistically", that is, we don't check for
 %% multiple "do"s and similar stuff. After all, the error we're gonna give here
@@ -1151,9 +1163,6 @@ format_error({undefined_var, Name, Kind}) ->
 format_error({undefined_var_pin, Name, Kind}) ->
   Message = "undefined variable ^~ts. No variable \"~ts\"~ts has been defined before the current pattern",
   io_lib:format(Message, [Name, Name, context_info(Kind)]);
-format_error({undefined_var_bang, Name, Kind}) ->
-  Message = "expected \"~ts\"~ts to expand to an existing variable or be part of a match",
-  io_lib:format(Message, [Name, context_info(Kind)]);
 format_error(underscore_in_cond) ->
   "invalid use of _ inside \"cond\". If you want the last clause to always match, "
     "you probably meant to use: true ->";

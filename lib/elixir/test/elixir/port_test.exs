@@ -28,7 +28,7 @@ defmodule PortTest do
   end
 
   defp expand(expr, env) do
-    {expr, _env} = :elixir_expand.expand(expr, env)
+    {expr, _, _} = :elixir_expand.expand(expr, :elixir_env.env_to_ex(env), env)
     expr
   end
 end

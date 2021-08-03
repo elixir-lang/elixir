@@ -79,7 +79,8 @@ defmodule Kernel.ExpansionTest do
 
   defp expand_with_version(expr) do
     env = :elixir_env.reset_vars(__ENV__)
-    elem(:elixir_expand.expand(expr, env), 0)
+    {expr, _, _} = :elixir_expand.expand(expr, :elixir_env.env_to_ex(env), env)
+    expr
   end
 
   describe "__block__" do
@@ -272,10 +273,6 @@ defmodule Kernel.ExpansionTest do
   end
 
   describe "=" do
-    test "sets context to match" do
-      assert expand(quote(do: __ENV__.context = :match)) == quote(do: :match = :match)
-    end
-
     test "defines vars" do
       {output, env} = expand_env(quote(do: a = 1), __ENV__)
       assert output == quote(do: a = 1)
@@ -332,14 +329,13 @@ defmodule Kernel.ExpansionTest do
 
       assert expand(code)
 
-      message = ~r"expected \"a\" to expand to an existing variable or be part of a match"
+      message = ~r"undefined variable \"a\""
 
       assert_raise CompileError, message, fn ->
         expand(quote(do: var!(a)))
       end
 
-      message =
-        ~r"expected \"a\" \(context Unknown\) to expand to an existing variable or be part of a match"
+      message = ~r"undefined variable \"a\" \(context Unknown\)"
 
       assert_raise CompileError, message, fn ->
         expand(quote(do: var!(a, Unknown)))
@@ -2809,11 +2805,13 @@ defmodule Kernel.ExpansionTest do
 
   defp expand_env(expr, env) do
     ExUnit.CaptureIO.capture_io(:stderr, fn ->
-      send(self(), {:expand_env, :elixir_expand.expand(expr, env)})
+      send(self(), {:expand_env, :elixir_expand.expand(expr, :elixir_env.env_to_ex(env), env)})
     end)
 
     receive do
-      {:expand_env, {expr, env}} -> {clean_meta(expr, [:version, :inferred_bitstring_spec]), env}
+      {:expand_env, {expr, scope, env}} ->
+        env = :elixir_env.to_caller({env.line, scope, env})
+        {clean_meta(expr, [:version, :inferred_bitstring_spec]), env}
     end
   end
 end

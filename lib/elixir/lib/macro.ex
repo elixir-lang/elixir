@@ -604,8 +604,7 @@ defmodule Macro do
 
     * `:prune_metadata` - when true, removes metadata from escaped AST
       nodes. Note this option changes the semantics of escaped code and
-      it should only be used when escaping ASTs, never values. Defaults
-      to false.
+      it should only be used when escaping ASTs. Defaults to false.
 
       As an example, `ExUnit` stores the AST of every assertion, so when
       an assertion fails we can show code snippets to users. Without this
@@ -613,7 +612,8 @@ defmodule Macro do
       MD5 of the module bytecode, because the AST contains metadata,
       such as counters, specific to the compilation environment. By pruning
       the metadata, we ensure that the module is deterministic and reduce
-      the amount of data `ExUnit` needs to keep around.
+      the amount of data `ExUnit` needs to keep around. Only the minimal
+      amount of metadata is kept, such as `:line` and `:no_parens`.
 
   ## Comparison to `Kernel.SpecialForms.quote/2`
 
@@ -644,7 +644,7 @@ defmodule Macro do
   @spec escape(term, keyword) :: t()
   def escape(expr, opts \\ []) do
     unquote = Keyword.get(opts, :unquote, false)
-    kind = if Keyword.get(opts, :prune_metadata, false), do: :prune_metadata, else: :default
+    kind = if Keyword.get(opts, :prune_metadata, false), do: :prune_metadata, else: :none
     :elixir_quote.escape(expr, kind, unquote)
   end
 
@@ -1534,7 +1534,10 @@ defmodule Macro do
           []
         end
 
-      expand = :elixir_dispatch.expand_import(meta, {atom, length(args)}, args, env, extra, true)
+      s = :elixir_env.env_to_ex(env)
+
+      expand =
+        :elixir_dispatch.expand_import(meta, {atom, length(args)}, args, s, env, extra, true)
 
       case expand do
         {:ok, receiver, quoted} ->
@@ -1565,7 +1568,9 @@ defmodule Macro do
         {original, false}
 
       true ->
-        expand = :elixir_dispatch.expand_require(meta, receiver, {right, length(args)}, args, env)
+        s = :elixir_env.env_to_ex(env)
+        name_arity = {right, length(args)}
+        expand = :elixir_dispatch.expand_require(meta, receiver, name_arity, args, s, env)
 
         case expand do
           {:ok, receiver, quoted} ->

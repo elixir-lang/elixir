@@ -67,17 +67,17 @@ next_counter(Module) ->
 compile(Module, _Block, _Vars, #{line := Line, file := File}) when Module == nil; is_boolean(Module) ->
   elixir_errors:form_error([{line, Line}], File, ?MODULE, {invalid_module, Module});
 compile(Module, Block, Vars, Env) when is_atom(Module) ->
-  #{line := Line, current_vars := {Read, _}, function := Function} = Env,
+  #{line := Line, function := Function, versioned_vars := OldVerVars} = Env,
 
-  %% In case we are generating a module from inside a function,
-  %% we get rid of the lexical tracker information as, at this
-  %% point, the lexical tracker process is long gone.
-  ResetEnv = elixir_env:reset_unused_vars(Env),
+  {VerVars, _} =
+    lists:mapfoldl(fun({Var, _}, I) -> {{Var, I}, I + 1} end, 0, maps:to_list(OldVerVars)),
+
+  BaseEnv = Env#{module := Module, versioned_vars := maps:from_list(VerVars)},
 
   MaybeLexEnv =
     case Function of
-      nil -> ResetEnv#{module := Module, current_vars := {Read, false}};
-      _   -> ResetEnv#{lexical_tracker := nil, tracers := [], function := nil, module := Module, current_vars := {Read, false}}
+      nil -> BaseEnv;
+      _   -> BaseEnv#{lexical_tracker := nil, tracers := [], function := nil}
     end,
 
   case MaybeLexEnv of
@@ -359,7 +359,7 @@ build(Line, File, Module) ->
 eval_form(Line, Module, DataBag, Block, Vars, E) ->
   {Value, EE} = elixir_compiler:eval_forms(Block, Vars, E),
   elixir_overridable:store_not_overridden(Module),
-  EV = elixir_env:linify({Line, elixir_env:reset_vars(EE)}),
+  EV = (elixir_env:reset_vars(EE))#{line := Line},
   EC = eval_callbacks(Line, DataBag, before_compile, [EV], EV),
   elixir_overridable:store_not_overridden(Module),
   {Value, EC}.
@@ -367,17 +367,21 @@ eval_form(Line, Module, DataBag, Block, Vars, E) ->
 eval_callbacks(Line, DataBag, Name, Args, E) ->
   Callbacks = bag_lookup_element(DataBag, {accumulate, Name}, 2),
   lists:foldl(fun({M, F}, Acc) ->
-    expand_callback(Line, M, F, Args, elixir_env:reset_vars(Acc),
-                    fun(AM, AF, AA) -> apply(AM, AF, AA) end)
+    expand_callback(Line, M, F, Args, Acc, fun(AM, AF, AA) -> apply(AM, AF, AA) end)
   end, E, Callbacks).
 
-expand_callback(Line, M, F, Args, E, Fun) ->
+expand_callback(Line, M, F, Args, Acc, Fun) ->
+  %% TODO: Remove this reset_vars once we move variables to S
+  %% as we can expect all variables to have been previously reset
+  E = elixir_env:reset_vars(Acc),
+  S = elixir_env:env_to_ex(E),
   Meta = [{line, Line}, {required, true}],
 
-  {EE, ET} = elixir_dispatch:dispatch_require(Meta, M, F, Args, E, fun(AM, AF, AA) ->
-    Fun(AM, AF, AA),
-    {ok, E}
-  end),
+  {EE, _S, ET} =
+    elixir_dispatch:dispatch_require(Meta, M, F, Args, S, E, fun(AM, AF, AA) ->
+      Fun(AM, AF, AA),
+      {ok, S, E}
+    end),
 
   if
     is_atom(EE) ->

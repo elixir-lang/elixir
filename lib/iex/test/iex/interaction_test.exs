@@ -194,14 +194,6 @@ defmodule IEx.InteractionTest do
       input = "nested_var\nmy_variable\nputs \"hello\""
       assert capture_iex(input, [], dot_iex_path: path) == "13\n14\nhello\n:ok"
     end
-
-    @tag :tmp_dir
-    test "malformed .iex", %{tmp_dir: tmp_dir} do
-      path = write_dot_iex!(tmp_dir, "dot-iex", "malformed")
-
-      assert capture_iex("1 + 2", [], dot_iex_path: path) =~
-               "dot-iex:1: undefined function malformed/0"
-    end
   end
 
   defp write_dot_iex!(tmp_dir, name, contents) do
