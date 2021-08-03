@@ -227,6 +227,11 @@ defmodule Kernel.CLI do
     System.halt(0)
   end
 
+  defp parse_shared(["--short-version" | _t], _config) do
+    IO.puts(System.build_info()[:version])
+    System.halt(0)
+  end
+
   defp parse_shared(["-pa", h | t], config) do
     paths = expand_code_path(h)
     Enum.each(paths, &:code.add_patha/1)
