@@ -16,7 +16,7 @@ defmodule Kernel.CLI do
     profile: nil
   }
 
-  @standalone_opts ["-h", "--help", "-v", "--version", "--short-version"]
+  @standalone_opts ["-h", "--help", "--short-version"]
 
   @doc """
   This is the API invoked by Elixir boot process.
