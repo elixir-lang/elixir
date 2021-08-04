@@ -236,6 +236,7 @@ defmodule Macro.Env do
       true
   """
   @doc since: "1.13.0"
+  @spec required?(t, module) :: boolean
   def required?(%{__struct__: Macro.Env, requires: requires}, mod) when is_atom(mod),
     do: mod in requires
 
