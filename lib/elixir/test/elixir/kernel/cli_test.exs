@@ -35,11 +35,6 @@ defmodule Kernel.CLITest do
     assert output =~ "Usage: elixir"
   end
 
-  test "combining standalone options results in error" do
-    output = elixir('-e 1 --help')
-    assert output =~ "--help : Standalone options can't be combined with other options"
-  end
-
   test "--version smoke test" do
     {:ok, otp_regex} =
       ("Erlang/OTP " <> Regex.escape(System.otp_release()))
@@ -60,6 +55,23 @@ defmodule Kernel.CLITest do
     output = elixir('--short-version')
     assert output =~ version_regex
     refute output =~ "Erlang"
+  end
+
+  test "combining standalone options results in error" do
+    output = elixir('-e 1 --help')
+    assert output =~ "--help : Standalone options can't be combined with other options"
+
+    output = elixir('--help -e 1')
+    assert output =~ "--help : Standalone options can't be combined with other options"
+
+    output = elixir('--short-version -e 1')
+    assert output =~ "--short-version : Standalone options can't be combined with other options"
+
+    output = elixir('-e 1 --short-version')
+    assert output =~ "--short-version : Standalone options can't be combined with other options"
+
+    output = elixir('-h --short-version')
+    assert output =~ "-h : Standalone options can't be combined with other options"
   end
 
   test "properly parses paths" do
