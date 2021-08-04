@@ -1,10 +1,14 @@
 @if defined ELIXIR_CLI_ECHO (@echo on) else (@echo off)
+
+set ELIXIR_VERSION=1.13.0-dev
+
 setlocal enabledelayedexpansion
-if    ""%1""==""""       goto documentation
-if /I ""%1""==""--help"" goto documentation
-if /I ""%1""==""-h""     goto documentation
-if /I ""%1""==""/h""     goto documentation
-if    ""%1""==""/?""     goto documentation
+if    ""%1""==""""                if ""%2""=="""" goto documentation
+if /I ""%1""==""--help""          if ""%2""=="""" goto documentation
+if /I ""%1""==""-h""              if ""%2""=="""" goto documentation
+if /I ""%1""==""/h""              if ""%2""=="""" goto documentation
+if    ""%1""==""/?""              if ""%2""=="""" goto documentation
+if /I ""%1""==""--short-version"" if ""%2""=="""" goto shortversion
 goto parseopts
 
 :documentation
@@ -13,13 +17,13 @@ echo.
 echo ## General options
 echo.
 echo   -e "COMMAND"                 Evaluates the given command (*)
-echo   -h, --help                   Prints this message and exits
+echo   -h, --help                   Prints this message (standalone)
 echo   -r "FILE"                    Requires the given files/patterns (*)
 echo   -S SCRIPT                    Finds and executes the given script in $PATH
 echo   -pr "FILE"                   Requires the given files/patterns in parallel (*)
 echo   -pa "PATH"                   Prepends the given path to Erlang code path (*)
 echo   -pz "PATH"                   Appends the given path to Erlang code path (*)
-echo   -v, --version                Prints Elixir version and exits
+echo   -v, --version                Prints Erlang/OTP and Elixir versions
 echo.
 echo   --app APP                    Starts the given app and its dependencies (*)
 echo   --erl "SWITCHES"             Switches to be passed down to Erlang (*)
@@ -27,6 +31,7 @@ echo   --eval "COMMAND"             Evaluates the given command, same as -e (*)
 echo   --logger-otp-reports BOOL    Enables or disables OTP reporting
 echo   --logger-sasl-reports BOOL   Enables or disables SASL reporting
 echo   --no-halt                    Does not halt the Erlang VM after execution
+echo   --short-version              Prints Elixir version (standalone)
 echo   --werl                       Uses Erlang's Windows shell GUI (Windows only)
 echo.
 echo Options given after the .exs file or -- are passed down to the executed code.
@@ -54,6 +59,11 @@ echo.
 echo --pipe-to is not supported on Windows. If set, Elixir won't boot.
 echo.
 echo ** Options marked with (*) can be given more than once.
+echo ** Standalone options can't be combined with other options.
+goto end
+
+:shortversion
+echo !ELIXIR_VERSION!
 goto end
 
 :parseopts
@@ -126,6 +136,7 @@ if ""==!par:-pr=!         (set "parsElixir=!parsElixir! -pr %1" && shift && goto
 if ""==!par:-pa=!         (set "parsElixir=!parsElixir! -pa %1" && shift && goto startloop)
 if ""==!par:-pz=!         (set "parsElixir=!parsElixir! -pz %1" && shift && goto startloop)
 if ""==!par:-v=!          (set "parsElixir=!parsElixir! -v" && goto startloop)
+if ""==!par:--version=!   (set "parsElixir=!parsElixir! --version" && goto startloop)
 if ""==!par:--app=!       (set "parsElixir=!parsElixir! --app %1" && shift && goto startloop)
 if ""==!par:--no-halt=!   (set "parsElixir=!parsElixir! --no-halt" && goto startloop)
 if ""==!par:--remsh=!     (set "parsElixir=!parsElixir! --remsh %1" && shift && goto startloop)

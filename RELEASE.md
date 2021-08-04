@@ -4,7 +4,7 @@
 
 1. Ensure you are running on the oldest supported Erlang version
 
-2. Update version in /VERSION
+2. Update version in /VERSION, bin/elixir and bin/elixir.bat
 
 3. Ensure /CHANGELOG.md is updated, versioned and add the current date
 
@@ -36,7 +36,7 @@
 
 ### Back in master
 
-1. Bump /VERSION file
+1. Bump /VERSION file, bin/elixir and bin/elixir.bat
 
 2. Start new /CHANGELOG.md
 

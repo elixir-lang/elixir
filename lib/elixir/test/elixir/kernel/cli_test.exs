@@ -30,6 +30,45 @@ defmodule Kernel.CLITest do
            end)
   end
 
+  test "--help smoke test" do
+    output = elixir('--help')
+    assert output =~ "Usage: elixir"
+  end
+
+  test "--version smoke test" do
+    output = elixir('--version')
+    assert output =~ "Erlang/OTP #{System.otp_release()}"
+    assert output =~ "Elixir #{System.version()}"
+
+    output = elixir('--version -e "IO.puts(:test_output)"')
+    assert output =~ "Erlang/OTP #{System.otp_release()}"
+    assert output =~ "Elixir #{System.version()}"
+    assert output =~ "test_output"
+  end
+
+  test "--short-version smoke test" do
+    output = elixir('--short-version')
+    assert output =~ System.version()
+    refute output =~ "Erlang"
+  end
+
+  test "combining standalone options results in error" do
+    output = elixir('-e 1 --help')
+    assert output =~ "--help : Standalone options can't be combined with other options"
+
+    output = elixir('--help -e 1')
+    assert output =~ "--help : Standalone options can't be combined with other options"
+
+    output = elixir('--short-version -e 1')
+    assert output =~ "--short-version : Standalone options can't be combined with other options"
+
+    output = elixir('-e 1 --short-version')
+    assert output =~ "--short-version : Standalone options can't be combined with other options"
+
+    output = elixir('-h --short-version')
+    assert output =~ "-h : Standalone options can't be combined with other options"
+  end
+
   test "properly parses paths" do
     root = fixture_path("../../..") |> to_charlist
 
