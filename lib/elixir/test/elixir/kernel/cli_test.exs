@@ -47,6 +47,11 @@ defmodule Kernel.CLITest do
     output = elixir('--version')
     assert output =~ otp_regex
     assert output =~ version_regex
+
+    output = elixir('--version -e \'IO.puts("test_output")\'')
+    assert output =~ otp_regex
+    assert output =~ version_regex
+    assert output =~ "test_output"
   end
 
   test "--short-version smoke test" do
