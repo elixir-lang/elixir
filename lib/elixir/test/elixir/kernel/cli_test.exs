@@ -36,29 +36,19 @@ defmodule Kernel.CLITest do
   end
 
   test "--version smoke test" do
-    {:ok, otp_regex} =
-      ("Erlang/OTP " <> Regex.escape(System.otp_release()))
-      |> Regex.compile()
-
-    {:ok, version_regex} =
-      ("Elixir " <> Regex.escape(System.version()) <> ".*\(compiled with Erlang/OTP [0-9]+\)")
-      |> Regex.compile()
-
     output = elixir('--version')
-    assert output =~ otp_regex
-    assert output =~ version_regex
+    assert output =~ "Erlang/OTP #{System.otp_release()}"
+    assert output =~ "Elixir #{System.version()}"
 
     output = elixir('--version -e "IO.puts(:test_output)"')
-    assert output =~ otp_regex
-    assert output =~ version_regex
+    assert output =~ "Erlang/OTP #{System.otp_release()}"
+    assert output =~ "Elixir #{System.version()}"
     assert output =~ "test_output"
   end
 
   test "--short-version smoke test" do
-    {:ok, version_regex} = (Regex.escape(System.version()) <> "\r?\n") |> Regex.compile()
-
     output = elixir('--short-version')
-    assert output =~ version_regex
+    assert output =~ System.version()
     refute output =~ "Erlang"
   end
 
