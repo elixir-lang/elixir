@@ -789,6 +789,8 @@ defmodule MacroTest do
   end
 
   describe "env" do
+    doctest Macro.Env
+
     test "stacktrace" do
       env = %{__ENV__ | file: "foo", line: 12}
 

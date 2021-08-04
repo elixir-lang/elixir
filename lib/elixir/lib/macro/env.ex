@@ -21,8 +21,6 @@ defmodule Macro.Env do
 
   It contains the following fields:
 
-    * `aliases` -  a list of two-element tuples, where the first
-      element is the aliased name and the second one the actual name
     * `context` - the context of the environment; it can be `nil`
       (default context), `:guard` (inside a guard) or `:match` (inside a match)
     * `context_modules` - a list of modules defined in the current context
@@ -30,38 +28,38 @@ defmodule Macro.Env do
     * `function` - a tuple as `{atom, integer}`, where the first
       element is the function name and the second its arity; returns
       `nil` if not inside a function
-    * `functions` - a list of functions imported from each module
     * `line` - the current line as an integer
-    * `macro_aliases` - a list of aliases defined inside the current macro
-    * `macros` - a list of macros imported from each module
     * `module` - the current module name
-    * `requires` - the list of required modules
 
   The following fields are private to Elixir's macro expansion mechanism and
   must not be accessed directly:
 
+    * `aliases`
+    * `functions`
+    * `macro_aliases`
+    * `macros`
     * `lexical_tracker`
+    * `requires`
     * `tracers`
     * `versioned_vars`
 
   """
 
-  @type aliases :: [{module, module}]
   @type context :: :match | :guard | nil
   @type context_modules :: [module]
   @type file :: binary
-  @type functions :: [{module, [name_arity]}]
-  @type lexical_tracker :: pid | nil
   @type line :: non_neg_integer
-  @type macro_aliases :: [{module, {term, module}}]
-  @type macros :: [{module, [name_arity]}]
   @type name_arity :: {atom, arity}
-  @type requires :: [module]
   @type variable :: {atom, atom | term}
 
+  @typep aliases :: [{module, module}]
+  @typep functions :: [{module, [name_arity]}]
+  @typep lexical_tracker :: pid | nil
+  @typep macro_aliases :: [{module, {term, module}}]
+  @typep macros :: [{module, [name_arity]}]
+  @typep requires :: [module]
   @typep tracers :: [module]
-  @typep var_version :: non_neg_integer
-  @typep versioned_vars :: %{optional(variable) => var_version}
+  @typep versioned_vars :: %{optional(variable) => var_version :: non_neg_integer}
 
   @type t :: %{
           __struct__: __MODULE__,
@@ -126,6 +124,17 @@ defmodule Macro.Env do
 
   @doc """
   Checks if a variable belongs to the environment.
+
+  ## Examples
+
+      iex> x = 13
+      iex> x
+      13
+      iex> Macro.Env.has_var?(__ENV__, {:x, nil})
+      true
+      iex> Macro.Env.has_var?(__ENV__, {:unknown, nil})
+      false
+
   """
   @doc since: "1.7.0"
   @spec has_var?(t, variable) :: boolean()
@@ -145,6 +154,89 @@ defmodule Macro.Env do
   def location(%{__struct__: Macro.Env, file: file, line: line}) do
     [file: file, line: line]
   end
+
+  @doc """
+  Returns the alias for the given atom, `nil` otherwise.
+
+  ## Examples
+
+      iex> alias Foo.Bar, as: Baz
+      iex> Baz
+      Foo.Bar
+      iex> Macro.Env.alias_for(__ENV__, :Baz)
+      {:ok, Foo.Bar}
+      iex> Macro.Env.alias_for(__ENV__, :Unknown)
+      :error
+
+  """
+  @doc since: "1.13.0"
+  @spec alias_for(t, atom) :: {:ok, atom} | :error
+  def alias_for(%{__struct__: Macro.Env, aliases: aliases}, atom) when is_atom(atom),
+    do: Keyword.fetch(aliases, :"Elixir.#{atom}")
+
+  @doc """
+  Returns the macro alias for the given atom, `nil` otherwise.
+
+  A macro alias is only used inside quoted expansion. See
+  `alias_for/2` for a more general example.
+  """
+  @doc since: "1.13.0"
+  @spec macro_alias_for(t, atom) :: {:ok, atom} | :error
+  def macro_alias_for(%{__struct__: Macro.Env, macro_aliases: aliases}, atom) when is_atom(atom),
+    do: Keyword.fetch(aliases, :"Elixir.#{atom}")
+
+  @doc """
+  Returns from which modules the given `{name, arity}` is
+  imported from.
+
+  It returns a list of two element tuples in the shape of
+  `{:function | :macro, module}`. The elements in the list
+  are in no particular order and the order is not guaranteed.
+
+  ## Examples
+
+      iex> Macro.Env.imported_from(__ENV__, {:duplicate, 2})
+      []
+      iex> import Tuple, only: [duplicate: 2], warn: false
+      iex> Macro.Env.imported_from(__ENV__, {:duplicate, 2})
+      [{:function, Tuple}]
+      iex> import List, only: [duplicate: 2], warn: false
+      iex> Macro.Env.imported_from(__ENV__, {:duplicate, 2})
+      [{:function, List}, {:function, Tuple}]
+
+      iex> Macro.Env.imported_from(__ENV__, {:def, 1})
+      [{:macro, Kernel}]
+
+  """
+  @doc since: "1.13.0"
+  @spec imported_from(t, name_arity) :: [{:function | :macro, module}]
+  def imported_from(
+        %{__struct__: Macro.Env, functions: functions, macros: macros},
+        {name, arity} = pair
+      )
+      when is_atom(name) and is_integer(arity) do
+    f = for {mod, pairs} <- functions, :ordsets.is_element(pair, pairs), do: {:function, mod}
+    m = for {mod, pairs} <- macros, :ordsets.is_element(pair, pairs), do: {:macro, mod}
+    f ++ m
+  end
+
+  @doc """
+  Returns true if the given module has been required.
+
+  ## Examples
+
+      iex> Macro.Env.required?(__ENV__, Integer)
+      false
+      iex> require Integer
+      iex> Macro.Env.required?(__ENV__, Integer)
+      true
+
+      iex> Macro.Env.required?(__ENV__, Kernel)
+      true
+  """
+  @doc since: "1.13.0"
+  def required?(%{__struct__: Macro.Env, requires: requires}, mod) when is_atom(mod),
+    do: mod in requires
 
   @doc """
   Returns a `Macro.Env` in the match context.
