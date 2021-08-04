@@ -3,7 +3,7 @@ set -e
 
 ELIXIR_VERSION=1.13.0-dev
 
-if [ $# -eq 0 ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+if [ $# -eq 0 ] || { [ $# -eq 1 ] && { [ "$1" = "--help" ] || [ "$1" = "-h" ]; }; }; then
   cat <<USAGE >&2
 Usage: $(basename "$0") [options] [.exs file] [data]
 
@@ -56,14 +56,7 @@ See run_erl to learn more. To reattach, run: to_erl PIPEDIR.
 
 ** Options marked with (*) can be given more than once.
 ** Standalone options can't be combined with other options.
-
 USAGE
-
-  if [ $# -gt 1 ]; then
-    echo
-    echo "warning: -h/--help is a standalone option, remaining arguments are dropped" >&2
-  fi
-
   exit 1
 fi
 
@@ -77,12 +70,8 @@ readlink_f () {
   fi
 }
 
-if [ "$1" = "--short-version" ]; then
+if [ $# -eq 1 ] && [ "$1" = "--short-version" ]; then
   echo "$ELIXIR_VERSION"
-  if [ $# -gt 1 ]; then
-    echo
-    echo "warning: --short-version is a standalone option, remaining arguments are dropped" >&2
-  fi
   exit 0
 fi
 
