@@ -3,12 +3,12 @@
 set ELIXIR_VERSION=1.13.0-dev
 
 setlocal enabledelayedexpansion
-if    ""%1""==""""                goto documentation
-if /I ""%1""==""--help""          goto documentation
-if /I ""%1""==""-h""              goto documentation
-if /I ""%1""==""/h""              goto documentation
-if    ""%1""==""/?""              goto documentation
-if /I ""%1""==""--short-version"" goto shortversion
+if    ""%1""==""""                if ""%2""=="""" goto documentation
+if /I ""%1""==""--help""          if ""%2""=="""" goto documentation
+if /I ""%1""==""-h""              if ""%2""=="""" goto documentation
+if /I ""%1""==""/h""              if ""%2""=="""" goto documentation
+if    ""%1""==""/?""              if ""%2""=="""" goto documentation
+if /I ""%1""==""--short-version"" if ""%2""=="""" goto shortversion
 goto parseopts
 
 :documentation
@@ -60,20 +60,10 @@ echo --pipe-to is not supported on Windows. If set, Elixir won't boot.
 echo.
 echo ** Options marked with (*) can be given more than once.
 echo ** Standalone options can't be combined with other options.
-
-if ""%2"" NEQ """" (
-  echo.
-  echo warning: -h/--help is a standalone option, remaining arguments are dropped
-)
 goto end
 
 :shortversion
 echo !ELIXIR_VERSION!
-
-if ""%2"" NEQ """" (
-  echo.
-  echo warning: --short-version is a standalone option, remaining arguments are dropped
-)
 goto end
 
 :parseopts
