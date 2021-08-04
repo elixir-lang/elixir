@@ -136,6 +136,7 @@ if ""==!par:-pr=!         (set "parsElixir=!parsElixir! -pr %1" && shift && goto
 if ""==!par:-pa=!         (set "parsElixir=!parsElixir! -pa %1" && shift && goto startloop)
 if ""==!par:-pz=!         (set "parsElixir=!parsElixir! -pz %1" && shift && goto startloop)
 if ""==!par:-v=!          (set "parsElixir=!parsElixir! -v" && goto startloop)
+if ""==!par:--version=!   (set "parsElixir=!parsElixir! --version" && goto startloop)
 if ""==!par:--app=!       (set "parsElixir=!parsElixir! --app %1" && shift && goto startloop)
 if ""==!par:--no-halt=!   (set "parsElixir=!parsElixir! --no-halt" && goto startloop)
 if ""==!par:--remsh=!     (set "parsElixir=!parsElixir! --remsh %1" && shift && goto startloop)
