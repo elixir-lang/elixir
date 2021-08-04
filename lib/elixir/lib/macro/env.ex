@@ -182,8 +182,9 @@ defmodule Macro.Env do
   """
   @doc since: "1.13.0"
   @spec fetch_macro_alias(t, atom) :: {:ok, atom} | :error
-  def fetch_macro_alias(%{__struct__: Macro.Env, macro_aliases: aliases}, atom) when is_atom(atom),
-    do: Keyword.fetch(aliases, :"Elixir.#{atom}")
+  def fetch_macro_alias(%{__struct__: Macro.Env, macro_aliases: aliases}, atom)
+      when is_atom(atom),
+      do: Keyword.fetch(aliases, :"Elixir.#{atom}")
 
   @doc """
   Returns from which modules the given `{name, arity}` is
@@ -235,6 +236,7 @@ defmodule Macro.Env do
       true
   """
   @doc since: "1.13.0"
+  @spec required?(t, module) :: boolean
   def required?(%{__struct__: Macro.Env, requires: requires}, mod) when is_atom(mod),
     do: mod in requires
 
