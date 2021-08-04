@@ -163,26 +163,26 @@ defmodule Macro.Env do
       iex> alias Foo.Bar, as: Baz
       iex> Baz
       Foo.Bar
-      iex> Macro.Env.alias_for(__ENV__, :Baz)
+      iex> Macro.Env.fetch_alias(__ENV__, :Baz)
       {:ok, Foo.Bar}
-      iex> Macro.Env.alias_for(__ENV__, :Unknown)
+      iex> Macro.Env.fetch_alias(__ENV__, :Unknown)
       :error
 
   """
   @doc since: "1.13.0"
-  @spec alias_for(t, atom) :: {:ok, atom} | :error
-  def alias_for(%{__struct__: Macro.Env, aliases: aliases}, atom) when is_atom(atom),
+  @spec fetch_alias(t, atom) :: {:ok, atom} | :error
+  def fetch_alias(%{__struct__: Macro.Env, aliases: aliases}, atom) when is_atom(atom),
     do: Keyword.fetch(aliases, :"Elixir.#{atom}")
 
   @doc """
   Returns the macro alias for the given atom, `nil` otherwise.
 
   A macro alias is only used inside quoted expansion. See
-  `alias_for/2` for a more general example.
+  `fetch_alias/2` for a more general example.
   """
   @doc since: "1.13.0"
-  @spec macro_alias_for(t, atom) :: {:ok, atom} | :error
-  def macro_alias_for(%{__struct__: Macro.Env, macro_aliases: aliases}, atom) when is_atom(atom),
+  @spec fetch_macro_alias(t, atom) :: {:ok, atom} | :error
+  def fetch_macro_alias(%{__struct__: Macro.Env, macro_aliases: aliases}, atom) when is_atom(atom),
     do: Keyword.fetch(aliases, :"Elixir.#{atom}")
 
   @doc """
