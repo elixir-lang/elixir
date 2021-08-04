@@ -41,13 +41,21 @@ defmodule Kernel.CLITest do
   end
 
   test "--version smoke test" do
+    {:ok, otp_regex} =
+      ("Erlang/OTP " <> Regex.escape(System.otp_release()))
+      |> Regex.compile()
+
+    {:ok, version_regex} =
+      ("Elixir " <> Regex.escape(System.version()) <> ".*\(compiled with Erlang/OTP [0-9]+\)")
+      |> Regex.compile()
+
     output = elixir('--version')
-    assert output =~ ~r/Erlang\/OTP [0-9]+ \[.+]/
-    assert output =~ ~r/Elixir [1-9]\.[0-9]+\.[0-9]+.*\(compiled with Erlang\/OTP [0-9]+\)/
+    assert output =~ otp_regex
+    assert output =~ version_regex
   end
 
   test "--short-version smoke test" do
-    {:ok, version_regex} = "#{Regex.escape(System.version())}\r?\n" |> Regex.compile()
+    {:ok, version_regex} = (Regex.escape(System.version()) <> "\r?\n") |> Regex.compile()
 
     output = elixir('--short-version')
     assert output =~ version_regex
