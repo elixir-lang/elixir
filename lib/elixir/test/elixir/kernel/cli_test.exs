@@ -47,8 +47,10 @@ defmodule Kernel.CLITest do
   end
 
   test "--short-version smoke test" do
+    {:ok, version_regex} = "#{Regex.escape(System.version())}\r?\n" |> Regex.compile()
+
     output = elixir('--short-version')
-    assert output == System.version() <> "\n"
+    assert output =~ version_regex
     refute output =~ "Erlang"
   end
 
