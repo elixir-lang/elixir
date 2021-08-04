@@ -205,9 +205,10 @@ defmodule Mix.Tasks.Deps.Compile do
 
     # REBAR_BARE_COMPILER_OUTPUT_DIR is only honored by rebar3 >= 3.14
     env = [
+      {"REBAR_BARE_COMPILER_OUTPUT_DIR", dep_path},
       {"REBAR_CONFIG", config_path},
-      {"TERM", "dumb"},
-      {"REBAR_BARE_COMPILER_OUTPUT_DIR", dep_path}
+      {"REBAR_PROFILE", "prod"},
+      {"TERM", "dumb"}
     ]
 
     cmd = "#{rebar_cmd(dep)} bare compile --paths #{lib_path}"
