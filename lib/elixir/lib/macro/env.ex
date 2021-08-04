@@ -195,22 +195,22 @@ defmodule Macro.Env do
 
   ## Examples
 
-      iex> Macro.Env.imported_from(__ENV__, {:duplicate, 2})
+      iex> Macro.Env.lookup_import(__ENV__, {:duplicate, 2})
       []
       iex> import Tuple, only: [duplicate: 2], warn: false
-      iex> Macro.Env.imported_from(__ENV__, {:duplicate, 2})
+      iex> Macro.Env.lookup_import(__ENV__, {:duplicate, 2})
       [{:function, Tuple}]
       iex> import List, only: [duplicate: 2], warn: false
-      iex> Macro.Env.imported_from(__ENV__, {:duplicate, 2})
+      iex> Macro.Env.lookup_import(__ENV__, {:duplicate, 2})
       [{:function, List}, {:function, Tuple}]
 
-      iex> Macro.Env.imported_from(__ENV__, {:def, 1})
+      iex> Macro.Env.lookup_import(__ENV__, {:def, 1})
       [{:macro, Kernel}]
 
   """
   @doc since: "1.13.0"
-  @spec imported_from(t, name_arity) :: [{:function | :macro, module}]
-  def imported_from(
+  @spec lookup_import(t, name_arity) :: [{:function | :macro, module}]
+  def lookup_import(
         %{__struct__: Macro.Env, functions: functions, macros: macros},
         {name, arity} = pair
       )
