@@ -258,7 +258,7 @@ defmodule List do
       iex> List.foldr([1, 2, 3, 4], 0, fn x, acc -> x - acc end)
       -2
       
-      iex> List.foldr([1, 2, 3, 4], %{:sum => 0, :product => 1}, fn x, %{sum: a1, product: a2} -> %{sum: a1 + x, product: a2 * x} end)
+      iex> List.foldr([1, 2, 3, 4], %{sum: 0, product: 1}, fn x, %{sum: a1, product: a2} -> %{sum: a1 + x, product: a2 * x} end)
       %{product: 24, sum: 10}
 
   """
