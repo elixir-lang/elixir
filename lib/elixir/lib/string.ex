@@ -2114,7 +2114,7 @@ defmodule String do
       iex> String.slice("elixir", -4..6)
       "ixir"
 
-  For ranges where `start > stop`, you need to explicit
+  For ranges where `start > stop`, you need to explicitly
   mark them as increasing:
 
       iex> String.slice("elixir", 2..-1//1)
