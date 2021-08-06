@@ -321,6 +321,33 @@ defmodule Module.Types.TypesTest do
              """
     end
 
+    test "is_tuple warning" do
+      string = warning([foo], [is_tuple(foo)], {_} = foo)
+
+      assert string == """
+             incompatible types:
+
+                 tuple() !~ {dynamic()}
+
+             in expression:
+
+                 # types_test.ex:1
+                 {_} = foo
+
+             where "foo" was given the type tuple() in:
+
+                 # types_test.ex:1
+                 is_tuple(foo)
+
+             where "foo" was given the type {dynamic()} in:
+
+                 # types_test.ex:1
+                 {_} = foo
+
+             HINT: use "is_tuple(foo) and tuple_size(foo) == 1" to infer a sized tuple.
+             """
+    end
+
     test "function call" do
       string = warning([foo], [rem(foo, 2.0) == 0], foo)
 
