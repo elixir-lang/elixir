@@ -230,7 +230,7 @@ defmodule List do
 
   @doc """
   Folds (reduces) the given list from the left with
-  a function. Requires an [accumulator](https://hexdocs.pm/elixir/Enum.html#t:acc/0).
+  a function. Requires an accumulator, which can be any value.
 
   ## Examples
 
@@ -240,8 +240,8 @@ defmodule List do
       iex> List.foldl([1, 2, 3, 4], 0, fn x, acc -> x - acc end)
       2
       
-      iex> List.foldl([1,2,3], [0,0], fn x, [a1, a2] -> [a1 + x, a2 - x] end)
-      [6, -6]
+      iex> List.foldl([1, 2, 3], {0, 0}, fn x, {a1, a2} -> {a1 + x, a2 - x} end)
+      {6, -6}
 
   """
   @spec foldl([elem], acc, (elem, acc -> acc)) :: acc when elem: var, acc: var
@@ -251,7 +251,7 @@ defmodule List do
 
   @doc """
   Folds (reduces) the given list from the right with
-  a function. Requires an [accumulator](https://hexdocs.pm/elixir/Enum.html#t:acc/0).
+  a function. Requires an accumulator, which can be any value.
 
   ## Examples
 
