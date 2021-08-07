@@ -230,7 +230,7 @@ defmodule List do
 
   @doc """
   Folds (reduces) the given list from the left with
-  a function. Requires an accumulator.
+  a function. Requires an accumulator, which can be any value.
 
   ## Examples
 
@@ -239,6 +239,9 @@ defmodule List do
 
       iex> List.foldl([1, 2, 3, 4], 0, fn x, acc -> x - acc end)
       2
+      
+      iex> List.foldl([1, 2, 3], {0, 0}, fn x, {a1, a2} -> {a1 + x, a2 - x} end)
+      {6, -6}
 
   """
   @spec foldl([elem], acc, (elem, acc -> acc)) :: acc when elem: var, acc: var
@@ -248,12 +251,15 @@ defmodule List do
 
   @doc """
   Folds (reduces) the given list from the right with
-  a function. Requires an accumulator.
+  a function. Requires an accumulator, which can be any value.
 
   ## Examples
 
       iex> List.foldr([1, 2, 3, 4], 0, fn x, acc -> x - acc end)
       -2
+      
+      iex> List.foldr([1, 2, 3, 4], %{sum: 0, product: 1}, fn x, %{sum: a1, product: a2} -> %{sum: a1 + x, product: a2 * x} end)
+      %{product: 24, sum: 10}
 
   """
   @spec foldr([elem], acc, (elem, acc -> acc)) :: acc when elem: var, acc: var
