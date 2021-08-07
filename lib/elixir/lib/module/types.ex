@@ -215,7 +215,7 @@ defmodule Module.Types do
     mfa_args = Macro.generate_arguments(arity, __MODULE__)
     {module, function, ^arity} = call_to_mfa(erl_to_ex(module, function, mfa_args, []))
     format_mfa = Exception.format_mfa(module, function, arity)
-    {traces, [] = _hints} = format_traces(traces, false)
+    {traces, [] = _hints} = format_traces(traces, [], false)
 
     clauses =
       Enum.map(
@@ -241,7 +241,7 @@ defmodule Module.Types do
 
       # Drop the last trace which is the expression map.foo
       traces = Enum.drop(traces, 1)
-      {traces, hints} = format_traces(traces, true)
+      {traces, hints} = format_traces(traces, [left, right], true)
 
       [
         "undefined field \"#{atom}\" ",
@@ -257,7 +257,7 @@ defmodule Module.Types do
       simplify_left? = simplify_type?(left, right)
       simplify_right? = simplify_type?(right, left)
 
-      {traces, hints} = format_traces(traces, simplify_left? or simplify_right?)
+      {traces, hints} = format_traces(traces, [left, right], simplify_left? or simplify_right?)
 
       [
         "incompatible types:\n\n    ",
@@ -298,17 +298,17 @@ defmodule Module.Types do
     end
   end
 
-  defp format_traces([], _simplify?) do
+  defp format_traces([], _types, _simplify?) do
     {[], []}
   end
 
-  defp format_traces(traces, simplify?) do
+  defp format_traces(traces, types, simplify?) do
     traces
     |> Enum.uniq()
     |> Enum.reverse()
     |> Enum.map_reduce([], fn
       {:type, var, type, expr, location}, hints ->
-        {hint, hints} = format_type_hint(type, expr, hints)
+        {hint, hints} = format_type_hint(type, types, expr, hints)
 
         trace = [
           "where \"",
@@ -399,14 +399,13 @@ defmodule Module.Types do
     hints
     |> Enum.uniq()
     |> Enum.reverse()
-    |> Enum.map(&format_message_hint/1)
+    |> Enum.map(&[format_message_hint(&1), "\n"])
   end
 
   defp format_message_hint(:inferred_dot) do
     """
     HINT: "var.field" (without parentheses) implies "var" is a map() while \
     "var.fun()" (with parentheses) implies "var" is an atom()
-
     """
   end
 
@@ -416,18 +415,24 @@ defmodule Module.Types do
     integer() unless said otherwise. For example, <<expr>> assumes "expr" \
     is an integer. Pass a modifier, such as <<expr::float>> or <<expr::binary>>, \
     to change the default behaviour.
-
     """
   end
 
-  defp format_type_hint(type, expr, hints) do
-    case format_type_hint(type, expr) do
+  defp format_message_hint({:sized_and_unsize_tuples, {size, var}}) do
+    """
+    HINT: use "is_tuple(#{Macro.to_string(var)}) and \
+    tuple_size(#{Macro.to_string(var)}) == #{size}" to guard a sized tuple.
+    """
+  end
+
+  defp format_type_hint(type, types, expr, hints) do
+    case format_type_hint(type, types, expr) do
       {message, hint} -> {message, [hint | hints]}
       :error -> {[], hints}
     end
   end
 
-  defp format_type_hint(type, expr) do
+  defp format_type_hint(type, types, expr) do
     cond do
       dynamic_map_dot?(type, expr) ->
         {" (due to calling var.field)", :inferred_dot}
@@ -437,6 +442,9 @@ defmodule Module.Types do
 
       inferred_bitstring_spec?(type, expr) ->
         {[], :inferred_bitstring_spec}
+
+      message = sized_and_unsize_tuples(expr, types) ->
+        {[], {:sized_and_unsize_tuples, message}}
 
       true ->
         :error
@@ -471,6 +479,20 @@ defmodule Module.Types do
     else
       _ -> false
     end
+  end
+
+  defp sized_and_unsize_tuples({{:., _, [:erlang, :is_tuple]}, _, [var]}, types) do
+    case Enum.find(types, &match?({:tuple, _, _}, &1)) do
+      {:tuple, size, _} ->
+        {size, var}
+
+      nil ->
+        nil
+    end
+  end
+
+  defp sized_and_unsize_tuples(_expr, _types) do
+    nil
   end
 
   ## Formatting helpers

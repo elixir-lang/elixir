@@ -500,5 +500,28 @@ defmodule Module.Types.PatternTest do
       assert {:error, {:unable_unify, {:atom, :integer, _}}} =
                quoted_head([%var{}], [is_integer(var)])
     end
+
+    test "tuple_size/1" do
+      assert quoted_head([x], [tuple_size(x) == 0]) == {:ok, [{:tuple, 0, []}]}
+      assert quoted_head([x], [0 == tuple_size(x)]) == {:ok, [{:tuple, 0, []}]}
+      assert quoted_head([x], [tuple_size(x) == 2]) == {:ok, [{:tuple, 2, [:dynamic, :dynamic]}]}
+      assert quoted_head([x], [is_tuple(x) and tuple_size(x) == 0]) == {:ok, [{:tuple, 0, []}]}
+      assert quoted_head([x], [tuple_size(x) == 0 and is_tuple(x)]) == {:ok, [{:tuple, 0, []}]}
+
+      assert quoted_head([x = {y}], [is_integer(y) and tuple_size(x) == 1]) ==
+               {:ok, [{:tuple, 1, [:integer]}]}
+
+      assert {:error, {:unable_unify, {{:tuple, 0, []}, :integer, _}}} =
+               quoted_head([x], [tuple_size(x) == 0 and is_integer(x)])
+
+      assert {:error, {:unable_unify, {{:tuple, 0, []}, :integer, _}}} =
+               quoted_head([x], [is_integer(x) and tuple_size(x) == 0])
+
+      assert {:error, {:unable_unify, {{:tuple, 0, []}, :integer, _}}} =
+               quoted_head([x], [is_tuple(x) and tuple_size(x) == 0 and is_integer(x)])
+
+      assert {:error, {:unable_unify, {{:tuple, 1, [:dynamic]}, {:tuple, 0, []}, _}}} =
+               quoted_head([x = {}], [tuple_size(x) == 1])
+    end
   end
 end

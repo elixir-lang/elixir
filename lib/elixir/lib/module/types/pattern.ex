@@ -228,6 +228,28 @@ defmodule Module.Types.Pattern do
     {:ok, :float, context}
   end
 
+  # tuple_size(arg) == integer
+  def of_guard(
+        {{:., _, [:erlang, :==]}, _, [{{:., _, [:erlang, :tuple_size]}, _, [var]}, size]} = expr,
+        expected,
+        stack,
+        context
+      )
+      when is_var(var) and is_integer(size) do
+    of_tuple_size(var, size, expr, expected, stack, context)
+  end
+
+  # integer == tuple_size(arg)
+  def of_guard(
+        {{:., _, [:erlang, :==]}, _, [size, {{:., _, [:erlang, :tuple_size]}, _, [var]}]} = expr,
+        expected,
+        stack,
+        context
+      )
+      when is_var(var) and is_integer(size) do
+    of_tuple_size(var, size, expr, expected, stack, context)
+  end
+
   # fun(args)
   def of_guard({{:., _, [:erlang, guard]}, _, args} = expr, expected, stack, context) do
     type_guard? = type_guard?(guard)
@@ -272,6 +294,31 @@ defmodule Module.Types.Pattern do
 
   def of_guard(expr, _expected, stack, context) do
     of_shared(expr, stack, context, &of_guard(&1, :dynamic, &2, &3))
+  end
+
+  defp of_tuple_size(var, size, expr, _expected, stack, context) do
+    {consider_type_guards?, _keep_guarded?} = stack.type_guards
+
+    result =
+      if consider_type_guards? do
+        stack = push_expr_stack(expr, stack)
+        tuple_elems = Enum.map(1..size//1, fn _ -> :dynamic end)
+
+        with {:ok, type, context} <- of_guard(var, :dynamic, stack, context),
+             {:ok, _type, context} <- unify({:tuple, size, tuple_elems}, type, stack, context),
+             do: {:ok, context}
+      else
+        {:ok, context}
+      end
+
+    case result do
+      {:ok, context} ->
+        boolean = {:union, [atom: true, atom: false]}
+        {:ok, boolean, context}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
   end
 
   defp signature_to_param_unions(signature, context) do
