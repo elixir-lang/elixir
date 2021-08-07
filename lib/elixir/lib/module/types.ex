@@ -421,7 +421,7 @@ defmodule Module.Types do
   defp format_message_hint({:sized_and_unsize_tuples, {size, var}}) do
     """
     HINT: use "is_tuple(#{Macro.to_string(var)}) and \
-    tuple_size(#{Macro.to_string(var)}) == #{size}" to infer a sized tuple.
+    tuple_size(#{Macro.to_string(var)}) == #{size}" to guard a sized tuple.
     """
   end
 

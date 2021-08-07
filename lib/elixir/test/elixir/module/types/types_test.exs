@@ -344,7 +344,7 @@ defmodule Module.Types.TypesTest do
                  # types_test.ex:1
                  {_} = foo
 
-             HINT: use "is_tuple(foo) and tuple_size(foo) == 1" to infer a sized tuple.
+             HINT: use "is_tuple(foo) and tuple_size(foo) == 1" to guard a sized tuple.
              """
     end
 
