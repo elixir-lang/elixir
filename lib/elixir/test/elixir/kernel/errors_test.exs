@@ -648,17 +648,6 @@ defmodule Kernel.ErrorsTest do
                       '''
   end
 
-  test "unrequired macro" do
-    assert_eval_raise CompileError,
-                      "nofile:2: you must require Kernel.ErrorsTest before invoking " <>
-                        "the macro Kernel.ErrorsTest.hello/0",
-                      '''
-                      defmodule Kernel.ErrorsTest.UnrequiredMacro do
-                        Kernel.ErrorsTest.hello()
-                      end
-                      '''
-  end
-
   test "def defmacro clause change" do
     assert_eval_raise CompileError,
                       "nofile:3: defmacro foo/1 already defined as def in nofile:2",

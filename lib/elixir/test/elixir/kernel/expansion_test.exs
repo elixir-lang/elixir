@@ -628,15 +628,6 @@ defmodule Kernel.ExpansionTest do
       assert expand(before_expansion) == after_expansion
     end
 
-    test "raises when not required" do
-      msg =
-        ~r"you must require Kernel\.ExpansionTarget before invoking the macro Kernel\.ExpansionTarget\.seventeen/0"
-
-      assert_raise CompileError, msg, fn ->
-        expand(quote(do: Kernel.ExpansionTarget.seventeen()))
-      end
-    end
-
     test "in matches" do
       message = ~r"cannot invoke remote function Hello.fun_that_does_not_exist/0 inside a match"
 

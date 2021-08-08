@@ -69,7 +69,7 @@ import_function(Meta, Name, Arity, E) ->
 
 require_function(Meta, Receiver, Name, Arity, E) ->
   Required = is_element(Receiver, ?key(E, requires)),
-  case is_element({Name, Arity}, get_macros(Receiver, Required)) of
+  case is_macro({Name, Arity}, Receiver, Required) of
     true  -> false;
     false ->
       elixir_env:trace({remote_function, Meta, Receiver, Name, Arity}, E),
@@ -179,14 +179,11 @@ do_expand_import(Meta, {Name, Arity} = Tuple, Args, Module, S, E, Result) ->
 expand_require(Meta, Receiver, {Name, Arity} = Tuple, Args, S, E) ->
   Required = (Receiver == ?key(E, module)) orelse required(Meta) orelse is_element(Receiver, ?key(E, requires)),
 
-  case is_element(Tuple, get_macros(Receiver, Required)) of
-    true when Required ->
+  case is_macro(Tuple, Receiver, Required) of
+    true ->
       check_deprecated(Meta, macro, Receiver, Name, Arity, E),
       elixir_env:trace({remote_macro, Meta, Receiver, Name, Arity}, E),
       {ok, Receiver, expand_macro_named(Meta, Receiver, Name, Arity, Args, S, E)};
-    true ->
-      Info = {unrequired_module, {Receiver, Name, length(Args)}},
-      elixir_errors:form_error(Meta, E, ?MODULE, Info);
     false ->
       check_deprecated(Meta, function, Receiver, Name, Arity, E),
       error
@@ -287,10 +284,6 @@ prune_stacktrace([], _MFA, Info, _E) ->
 
 %% ERROR HANDLING
 
-format_error({unrequired_module, {Receiver, Name, Arity}}) ->
-  Module = elixir_aliases:inspect(Receiver),
-  io_lib:format("you must require ~ts before invoking the macro ~ts.~ts/~B",
-    [Module, Module, Name, Arity]);
 format_error({macro_conflict, {Receiver, Name, Arity}}) ->
   io_lib:format("call to local macro ~ts/~B conflicts with imported ~ts.~ts/~B, "
     "please rename the local macro or remove the conflicting import",
@@ -305,23 +298,13 @@ format_error({deprecated, Mod, Fun, Arity, Message}) ->
 
 %% INTROSPECTION
 
-%% Do not try to get macros from Erlang. Speeds up compilation a bit.
-get_macros(erlang, _) -> [];
-
-%% Module was not required, so we don't try to load it.
-get_macros(Receiver, false) ->
-  case erlang:module_loaded(Receiver) of
-    true -> get_info(Receiver, macros);
-    false -> []
-  end;
-
-%% If module was required, do a function call to force
-%% the error handler in.
-get_macros(Receiver, true) ->
-  try
-    Receiver:'__info__'(macros)
+is_macro(_Tuple, _Module, false) ->
+  false;
+is_macro(Tuple, Receiver, true) ->
+  try Receiver:'__info__'(macros) of
+    Macros -> is_element(Tuple, Macros)
   catch
-    error:_ -> []
+    error:_ -> false
   end.
 
 %% Deprecations checks only happen at the module body,
