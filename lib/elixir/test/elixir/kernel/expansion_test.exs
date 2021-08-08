@@ -1403,7 +1403,7 @@ defmodule Kernel.ExpansionTest do
         expand(quote(do: cond([])))
       end)
 
-      assert_compile_error(~r"duplicated :do clauses given for \"cond\"", fn ->
+      assert_compile_error(~r"duplicate :do clauses given for \"cond\"", fn ->
         expand(quote(do: cond(do: (x -> x), do: (y -> y))))
       end)
     end
@@ -1575,7 +1575,7 @@ defmodule Kernel.ExpansionTest do
         expand(quote(do: case(e, [])))
       end)
 
-      assert_compile_error(~r"duplicated :do clauses given for \"case\"", fn ->
+      assert_compile_error(~r"duplicate :do clauses given for \"case\"", fn ->
         expand(quote(do: case(e, do: (x -> x), do: (y -> y))))
       end)
     end
@@ -1775,11 +1775,11 @@ defmodule Kernel.ExpansionTest do
         expand(quote(do: receive([])))
       end)
 
-      assert_compile_error(~r"duplicated :do clauses given for \"receive\"", fn ->
+      assert_compile_error(~r"duplicate :do clauses given for \"receive\"", fn ->
         expand(quote(do: receive(do: (x -> x), do: (y -> y))))
       end)
 
-      assert_compile_error(~r"duplicated :after clauses given for \"receive\"", fn ->
+      assert_compile_error(~r"duplicate :after clauses given for \"receive\"", fn ->
         code =
           quote do
             receive do
@@ -2012,11 +2012,11 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "expects at most one clause" do
-      assert_compile_error(~r"duplicated :do clauses given for \"try\"", fn ->
+      assert_compile_error(~r"duplicate :do clauses given for \"try\"", fn ->
         expand(quote(do: try(do: e, do: f)))
       end)
 
-      assert_compile_error(~r"duplicated :rescue clauses given for \"try\"", fn ->
+      assert_compile_error(~r"duplicate :rescue clauses given for \"try\"", fn ->
         code =
           quote do
             try do
@@ -2031,7 +2031,7 @@ defmodule Kernel.ExpansionTest do
         expand(code)
       end)
 
-      assert_compile_error(~r"duplicated :after clauses given for \"try\"", fn ->
+      assert_compile_error(~r"duplicate :after clauses given for \"try\"", fn ->
         code =
           quote do
             try do
@@ -2046,7 +2046,7 @@ defmodule Kernel.ExpansionTest do
         expand(code)
       end)
 
-      assert_compile_error(~r"duplicated :else clauses given for \"try\"", fn ->
+      assert_compile_error(~r"duplicate :else clauses given for \"try\"", fn ->
         code =
           quote do
             try do
@@ -2061,7 +2061,7 @@ defmodule Kernel.ExpansionTest do
         expand(code)
       end)
 
-      assert_compile_error(~r"duplicated :catch clauses given for \"try\"", fn ->
+      assert_compile_error(~r"duplicate :catch clauses given for \"try\"", fn ->
         code =
           quote do
             try do

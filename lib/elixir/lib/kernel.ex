@@ -2364,7 +2364,7 @@ defmodule Kernel do
 
   Keys in the `Enumerable` that don't exist in the struct are automatically
   discarded. Note that keys must be atoms, as only atoms are allowed when
-  defining a struct. If keys in the `Enumerable` are duplicated, the last
+  defining a struct. If there are duplicate keys in the `Enumerable`, the last
   entry will be taken (same behaviour as `Map.new/1`).
 
   This function is useful for dynamically creating and updating structs, as

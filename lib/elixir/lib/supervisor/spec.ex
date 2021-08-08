@@ -194,7 +194,7 @@ defmodule Supervisor.Spec do
   defp assert_unique_ids([id | rest]) do
     if id in rest do
       raise ArgumentError,
-            "duplicated ID #{inspect(id)} found in the supervisor specification, " <>
+            "duplicate ID #{inspect(id)} found in the supervisor specification, " <>
               "please explicitly pass the :id option when defining this worker/supervisor"
     else
       assert_unique_ids(rest)
