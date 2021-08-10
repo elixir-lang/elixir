@@ -87,7 +87,11 @@ defmodule Module.Types.Pattern do
   @boolean {:union, [{:atom, true}, {:atom, false}]}
   @number {:union, [:integer, :float]}
   @unary_number_fun [{[:integer], :integer}, {[@number], :float}]
-  @binary_number_fun [{[:integer, :integer], :integer}, {[@number, @number], :float}]
+  @binary_number_fun [
+    {[:integer, :integer], :integer},
+    {[:float, @number], :float},
+    {[@number, :float], :float}
+  ]
 
   @guard_functions %{
     {:is_atom, 1} => [{[:atom], @boolean}],
@@ -164,7 +168,6 @@ defmodule Module.Types.Pattern do
     :is_bitstring,
     :is_boolean,
     :is_float,
-    :is_function,
     :is_function,
     :is_integer,
     :is_list,
@@ -261,7 +264,8 @@ defmodule Module.Types.Pattern do
     # should not affect the inference of x
     if not type_guard? or consider_type_guards? do
       stack = push_expr_stack(expr, stack)
-      param_unions = signature_to_param_unions(signature, context)
+      expected_signature = filter_clauses(signature, expected, stack, context)
+      param_unions = signature_to_param_unions(expected_signature, context)
       arg_stack = %{stack | type_guards: {false, keep_guarded?}}
       mfa = {:erlang, guard, length(args)}
 
@@ -392,7 +396,7 @@ defmodule Module.Types.Pattern do
 
     expanded_args =
       args
-      |> Enum.map(&flatten_union/1)
+      |> Enum.map(&flatten_union(&1, context))
       |> cartesian_product()
 
     # Remove clauses that do not match the expected type
@@ -464,7 +468,7 @@ defmodule Module.Types.Pattern do
         end
 
       {:error, args} ->
-        error(:unable_apply, {mfa, args, signature, stack}, context)
+        error(:unable_apply, {mfa, args, expected, signature, stack}, context)
     end
   end
 
@@ -588,19 +592,21 @@ defmodule Module.Types.Pattern do
   defp keep_guarded(%{type_guards: {consider?, _}} = stack),
     do: %{stack | type_guards: {consider?, true}}
 
-  defp guard_signature(name, arity) do
-    Map.fetch!(@guard_functions, {name, arity})
-  end
-
   defp filter_clauses(signature, expected, stack, context) do
     Enum.filter(signature, fn {_params, return} ->
       match?({:ok, _type, _context}, unify(return, expected, stack, context))
     end)
   end
 
-  defp type_guard?(name) do
-    name in @type_guards
-  end
+  Enum.each(@guard_functions, fn {{name, arity}, signature} ->
+    defp guard_signature(unquote(name), unquote(arity)), do: unquote(Macro.escape(signature))
+  end)
+
+  Enum.each(@type_guards, fn name ->
+    defp type_guard?(unquote(name)), do: true
+  end)
+
+  defp type_guard?(name) when is_atom(name), do: false
 
   ## Shared
 

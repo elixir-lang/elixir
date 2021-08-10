@@ -352,11 +352,11 @@ defmodule Module.Types.TypesTest do
       string = warning([foo], [rem(foo, 2.0) == 0], foo)
 
       assert string == """
-             incompatible arguments passed to function: Kernel.rem/2:
+             expected Kernel.rem/2 to have signature:
 
-                 var1, float()
+                 var1, float() -> dynamic()
 
-             expected types:
+             but it has signature:
 
                  integer(), integer() -> integer()
 
@@ -371,14 +371,15 @@ defmodule Module.Types.TypesTest do
       string = warning([foo], [foo - :bar == 0], foo)
 
       assert string == """
-             incompatible arguments passed to function: Kernel.-/2:
+             expected Kernel.-/2 to have signature:
 
-                 var1, :bar
+                 var1, :bar -> dynamic()
 
-             expected types:
+             but it has signature:
 
                  integer(), integer() -> integer()
-                 integer() | float(), integer() | float() -> float()
+                 float(), integer() | float() -> float()
+                 integer() | float(), float() -> float()
 
              in expression:
 
