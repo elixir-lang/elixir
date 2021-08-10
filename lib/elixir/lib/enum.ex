@@ -277,7 +277,7 @@ defmodule Enum do
   end
 
   @doc """
-  Returns `true` if  all elements in `enumerable` are truthy.
+  Returns `true` if all elements in `enumerable` are truthy.
 
   When an element has a falsy value (`false` or `nil`) iteration stops immediately
   and `false` is returned. In all other cases `true` is returned.
