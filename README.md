@@ -198,7 +198,7 @@ and `mix` under the `doc` directory. If you are planning to contribute documenta
 
 ## License
 
-"Elixir" and the Elixir logo are copyright (c) 2012 Plataformatec.
+"Elixir" and the Elixir logo are registered trademarks of The Elixir Team.
 
 Elixir source code is released under Apache License 2.0.
 
