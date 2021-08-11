@@ -71,52 +71,53 @@ defmodule Mix.Compilers.Elixir do
 
     if opts[:all_warnings], do: show_warnings(sources)
 
-    cond do
-      stale != [] ->
-        Mix.Utils.compiling_n(length(stale), hd(exts))
-        Mix.Project.ensure_structure()
-        true = Code.prepend_path(dest)
+    if stale != [] do
+      Mix.Utils.compiling_n(length(stale), hd(exts))
+      Mix.Project.ensure_structure()
+      true = Code.prepend_path(dest)
 
-        previous_opts =
-          {stale_local_deps, opts}
-          |> Mix.Compilers.ApplicationTracer.init()
-          |> set_compiler_opts()
+      previous_opts =
+        {stale_local_deps, opts}
+        |> Mix.Compilers.ApplicationTracer.init()
+        |> set_compiler_opts()
 
-        # Stores state for keeping track which files were compiled
-        # and the dependencies between them.
-        put_compiler_info({modules, exports, sources, modules, removed_modules})
+      # Stores state for keeping track which files were compiled
+      # and the dependencies between them.
+      put_compiler_info({modules, exports, sources, modules, removed_modules})
 
-        try do
-          compile_path(stale, dest, timestamp, opts)
-        else
-          {:ok, _, warnings} ->
-            {modules, _exports, sources, _pending_modules, _pending_exports} = get_compiler_info()
-            sources = apply_warnings(sources, warnings)
-            write_manifest(manifest, modules, sources, all_local_exports, timestamp)
-            put_compile_env(sources)
-            {:ok, Enum.map(warnings, &diagnostic(&1, :warning))}
+      try do
+        compile_path(stale, dest, timestamp, opts)
+      else
+        {:ok, _, warnings} ->
+          {modules, _exports, sources, _pending_modules, _pending_exports} = get_compiler_info()
+          sources = apply_warnings(sources, warnings)
+          write_manifest(manifest, modules, sources, all_local_exports, timestamp)
+          put_compile_env(sources)
+          {:ok, Enum.map(warnings, &diagnostic(&1, :warning))}
 
-          {:error, errors, warnings} ->
-            # In case of errors, we show all previous warnings and all new ones
-            {_, _, sources, _, _} = get_compiler_info()
-            errors = Enum.map(errors, &diagnostic(&1, :error))
-            warnings = Enum.map(warnings, &diagnostic(&1, :warning))
-            {:error, warning_diagnostics(sources) ++ warnings ++ errors}
-        after
-          Code.compiler_options(previous_opts)
-          Mix.Compilers.ApplicationTracer.stop()
-          Code.purge_compiler_modules()
-          delete_compiler_info()
-        end
-
+        {:error, errors, warnings} ->
+          # In case of errors, we show all previous warnings and all new ones
+          {_, _, sources, _, _} = get_compiler_info()
+          errors = Enum.map(errors, &diagnostic(&1, :error))
+          warnings = Enum.map(warnings, &diagnostic(&1, :warning))
+          {:error, warning_diagnostics(sources) ++ warnings ++ errors}
+      after
+        Code.compiler_options(previous_opts)
+        Mix.Compilers.ApplicationTracer.stop()
+        Code.purge_compiler_modules()
+        delete_compiler_info()
+      end
+    else
       # We need to return ok if stale_local_mods changed
       # because we want that to propagate to compile.protocols
-      removed != [] or stale_local_mods != %{} ->
-        write_manifest(manifest, modules, sources, all_local_exports, timestamp)
-        {:ok, warning_diagnostics(sources)}
+      status = if removed != [] or stale_local_mods != %{}, do: :ok, else: :noop
 
-      true ->
-        {:noop, warning_diagnostics(sources)}
+      # If nothing changed but there is one more recent mtime, bump the manifest
+      if status != :noop or Enum.any?(Map.values(sources_stats), &(elem(&1, 0) > modified)) do
+        write_manifest(manifest, modules, sources, all_local_exports, timestamp)
+      end
+
+      {status, warning_diagnostics(sources)}
     end
   end
 
@@ -207,7 +208,7 @@ defmodule Mix.Compilers.Elixir do
           {last_mtime, last_size} = Map.fetch!(sources_stats, source),
           times = Enum.map(external, &(sources_stats |> Map.fetch!(&1) |> elem(0))),
           Enum.any?(modules, &Map.has_key?(modules_to_recompile, &1)) or
-            Mix.Utils.stale?(times, [modified]) or
+            Enum.any?(times, &(&1 > modified)) or
             (size != last_size or (last_mtime > modified and digest != digest(source))),
           do: source
 
