@@ -133,14 +133,14 @@ defmodule Module.Types do
   ## ERROR TO WARNING
 
   # Collect relevant information from context and traces to report error
-  def error_to_warning(:unable_apply, {mfa, args, signature, stack}, context) do
+  def error_to_warning(:unable_apply, {mfa, args, expected, signature, stack}, context) do
     {fun, arity} = context.function
     line = get_meta(stack.last_expr)[:line]
     location = {context.file, line, {context.module, fun, arity}}
 
     traces = type_traces(stack, context)
     {[signature | args], traces} = lift_all_types([signature | args], traces, context)
-    error = {:unable_apply, mfa, args, signature, {location, stack.last_expr, traces}}
+    error = {:unable_apply, mfa, args, expected, signature, {location, stack.last_expr, traces}}
     {Module.Types, error, location}
   end
 
@@ -210,7 +210,7 @@ defmodule Module.Types do
 
   ## FORMAT WARNINGS
 
-  def format_warning({:unable_apply, mfa, args, signature, {location, expr, traces}}) do
+  def format_warning({:unable_apply, mfa, args, expected, signature, {location, expr, traces}}) do
     {module, function, arity} = mfa
     mfa_args = Macro.generate_arguments(arity, __MODULE__)
     {module, function, ^arity} = call_to_mfa(erl_to_ex(module, function, mfa_args, []))
@@ -224,9 +224,10 @@ defmodule Module.Types do
       )
 
     [
-      "incompatible arguments passed to function: #{format_mfa}:\n\n    ",
+      "expected #{format_mfa} to have signature:\n\n    ",
       Enum.map_join(args, ", ", &Unify.format_type(&1, false)),
-      "\n\nexpected types:\n\n    ",
+      " -> #{Unify.format_type(expected, false)}",
+      "\n\nbut it has signature:\n\n    ",
       indent(Enum.join(clauses, "\n")),
       "\n\n",
       format_expr(expr, location),
