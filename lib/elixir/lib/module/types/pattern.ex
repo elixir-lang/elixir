@@ -264,8 +264,8 @@ defmodule Module.Types.Pattern do
     # should not affect the inference of x
     if not type_guard? or consider_type_guards? do
       stack = push_expr_stack(expr, stack)
-      expected_signature = filter_clauses(signature, expected, stack, context)
-      param_unions = signature_to_param_unions(expected_signature, context)
+      expected_clauses = filter_clauses(signature, expected, stack, context)
+      param_unions = signature_to_param_unions(expected_clauses, context)
       arg_stack = %{stack | type_guards: {false, keep_guarded?}}
       mfa = {:erlang, guard, length(args)}
 
@@ -274,7 +274,16 @@ defmodule Module.Types.Pattern do
                of_guard(arg, param, arg_stack, context)
              end),
            {:ok, return_type, context} <-
-             unify_call(arg_types, signature, expected, mfa, stack, context, type_guard?) do
+             unify_call(
+               arg_types,
+               expected_clauses,
+               expected,
+               mfa,
+               signature,
+               stack,
+               context,
+               type_guard?
+             ) do
         guard_sources = guard_sources(arg_types, type_guard?, keep_guarded?, context)
         {:ok, return_type, %{context | guard_sources: guard_sources}}
       end
@@ -369,19 +378,19 @@ defmodule Module.Types.Pattern do
     Map.keys(vars)
   end
 
-  defp unify_call(args, clauses, _expected, _mfa, stack, context, true = _type_guard?) do
+  defp unify_call(args, clauses, _expected, _mfa, _signature, stack, context, true = _type_guard?) do
     unify_type_guard_call(args, clauses, stack, context)
   end
 
-  defp unify_call(args, clauses, expected, mfa, stack, context, false = _type_guard?) do
-    unify_call(args, clauses, expected, mfa, stack, context)
+  defp unify_call(args, clauses, expected, mfa, signature, stack, context, false = _type_guard?) do
+    unify_call(args, clauses, expected, mfa, signature, stack, context)
   end
 
-  defp unify_call([], [{[], return}], _expected, _mfa, _stack, context) do
+  defp unify_call([], [{[], return}], _expected, _mfa, _signature, _stack, context) do
     {:ok, return, context}
   end
 
-  defp unify_call(args, signature, expected, mfa, stack, context) do
+  defp unify_call(args, clauses, expected, mfa, signature, stack, context) do
     # Given the arguments:
     # foo | bar, {:ok, baz | bat}
 
@@ -403,7 +412,7 @@ defmodule Module.Types.Pattern do
     # Ignore type variables in parameters by changing them to dynamic
 
     clauses =
-      signature
+      clauses
       |> filter_clauses(expected, stack, context)
       |> Enum.map(fn {params, return} ->
         {Enum.map(params, &var_to_dynamic/1), return}
