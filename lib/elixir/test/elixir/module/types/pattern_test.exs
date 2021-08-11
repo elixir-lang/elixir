@@ -357,7 +357,7 @@ defmodule Module.Types.PatternTest do
 
     test "interesection functions" do
       assert quoted_head([x], [+x]) == {:ok, [{:union, [:integer, :float]}]}
-      assert quoted_head([x], [x + 1]) == {:ok, [{:union, [:integer, :float]}]}
+      assert quoted_head([x], [x + 1]) == {:ok, [{:union, [:float, :integer]}]}
       assert quoted_head([x], [x + 1.0]) == {:ok, [{:union, [:integer, :float]}]}
     end
 
@@ -368,12 +368,21 @@ defmodule Module.Types.PatternTest do
       assert quoted_head([x], [:erlang.bnot(+x)]) == {:ok, [:integer]}
       assert quoted_head([x], [:erlang.bnot(x + 1)]) == {:ok, [:integer]}
 
+      assert quoted_head([x], [is_integer(1 + x - 1)]) == {:ok, [:integer]}
+
+      assert quoted_head([x], [is_integer(1 + x - 1) and is_integer(1 + x - 1)]) ==
+               {:ok, [:integer]}
+
+      assert quoted_head([x], [1 - x >= 0]) == {:ok, [{:union, [:float, :integer]}]}
+      assert quoted_head([x], [1 - x >= 0 and 1 - x < 0]) == {:ok, [{:union, [:float, :integer]}]}
+
       assert {:error,
               {:unable_apply,
-               {_, [{:var, 0}, :float],
+               {_, [{:var, 0}, :float], _,
                 [
                   {[:integer, :integer], :integer},
-                  {[union: [:integer, :float], union: [:integer, :float]], :float}
+                  {[:float, {:union, [:integer, :float]}], :float},
+                  {[{:union, [:integer, :float]}, :float], :float}
                 ], _}}} = quoted_head([x], [:erlang.bnot(x + 1.0)])
     end
 
@@ -387,25 +396,26 @@ defmodule Module.Types.PatternTest do
 
       assert {:error,
               {:unable_apply,
-               {{:erlang, :length, 1}, [{:atom, :foo}], [{[{:list, :dynamic}], :integer}], _}}} =
+               {{:erlang, :length, 1}, [{:atom, :foo}], _, [{[{:list, :dynamic}], :integer}], _}}} =
                quoted_head([x], [length(:foo)])
 
       assert {:error,
               {:unable_apply,
-               {_, [{:union, [{:atom, true}, {:atom, false}]}], [{[{:list, :dynamic}], :integer}],
-                _}}} = quoted_head([x], [length(is_tuple(x))])
+               {_, [{:union, [{:atom, true}, {:atom, false}]}], _,
+                [{[{:list, :dynamic}], :integer}], _}}} = quoted_head([x], [length(is_tuple(x))])
 
       assert {:error,
               {:unable_apply,
-               {_, [:integer, {:union, [{:atom, true}, {:atom, false}]}],
+               {_, [:integer, {:union, [{:atom, true}, {:atom, false}]}], _,
                 [{[:integer, :tuple], :dynamic}], _}}} = quoted_head([x], [elem(is_tuple(x), 0)])
 
       assert {:error,
               {:unable_apply,
-               {_, [{:union, [{:atom, true}, {:atom, false}]}, :integer],
+               {_, [{:union, [{:atom, true}, {:atom, false}]}, :integer], _,
                 [
                   {[:integer, :integer], :integer},
-                  {[union: [:integer, :float], union: [:integer, :float]], :float}
+                  {[:float, {:union, [:integer, :float]}], :float},
+                  {[{:union, [:integer, :float]}, :float], :float}
                 ], _}}} = quoted_head([x], [elem({}, is_tuple(x))])
 
       assert quoted_head([x], [elem({}, 1)]) == {:ok, [var: 0]}
