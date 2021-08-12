@@ -11,8 +11,8 @@ defmodule Mix.Tasks.Local.Rebar do
   @moduledoc """
   Fetches a copy of `rebar` or `rebar3` from the given path or URL.
 
-  It defaults to safely download a Rebar copy from  Hex's CDN.
-  However, a URL can be given as argument, usually for an existing
+  It defaults to safely download a Rebar copy from Hex's CDN.
+  However, a URL can be given as an argument, usually for an existing
   local copy of Rebar:
 
       mix local.rebar rebar path/to/rebar
