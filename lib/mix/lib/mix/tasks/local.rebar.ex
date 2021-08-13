@@ -52,14 +52,14 @@ defmodule Mix.Tasks.Local.Rebar do
 
     case argv do
       ["rebar", path | _] ->
-        install_from_path(:rebar, path, opts)
+        maybe_install_from_path(:rebar, path, opts)
 
       ["rebar3", path | _] ->
-        install_from_path(:rebar3, path, opts)
+        maybe_install_from_path(:rebar3, path, opts)
 
       [] ->
-        install_from_s3(:rebar, @rebar2_list_url, @rebar2_escript_url, opts)
-        install_from_s3(:rebar3, @rebar3_list_url, @rebar3_escript_url, opts)
+        maybe_install_from_s3(:rebar, @rebar2_list_url, @rebar2_escript_url, opts)
+        maybe_install_from_s3(:rebar3, @rebar3_list_url, @rebar3_escript_url, opts)
 
       _ ->
         Mix.raise(
@@ -69,10 +69,16 @@ defmodule Mix.Tasks.Local.Rebar do
     end
   end
 
+  defp maybe_install_from_path(manager, path, opts) do
+    if not skip_install?(manager, opts) do
+      install_from_path(manager, path, opts)
+    end
+  end
+
   defp install_from_path(manager, path, opts) do
     local = Mix.Rebar.local_rebar_path(manager)
 
-    if not skip_install?(manager, opts) && (opts[:force] || Mix.Generator.overwrite?(local)) do
+    if opts[:force] || Mix.Generator.overwrite?(local) do
       case Mix.Utils.read_path(path, opts) do
         {:ok, binary} ->
           File.mkdir_p!(Path.dirname(local))
@@ -104,7 +110,7 @@ defmodule Mix.Tasks.Local.Rebar do
     true
   end
 
-  defp install_from_s3(manager, list_url, escript_url, opts) do
+  defp maybe_install_from_s3(manager, list_url, escript_url, opts) do
     if not skip_install?(manager, opts) do
       hex_mirror = Mix.Hex.mirror()
       list_url = hex_mirror <> list_url
