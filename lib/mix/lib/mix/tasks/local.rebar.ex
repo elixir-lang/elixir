@@ -34,6 +34,10 @@ defmodule Mix.Tasks.Local.Rebar do
     * `--force` - forces installation without a shell prompt; primarily
       intended for automation in build systems like `make`
 
+    * `--if-missing` - performs installation only if not installed yet;
+      intended to avoid repeatedly reinstalling in automation when a script
+      may be run multiple times
+
   ## Mirrors
 
   If you want to change the [default mirror](https://repo.hex.pm)
@@ -68,7 +72,7 @@ defmodule Mix.Tasks.Local.Rebar do
   defp install_from_path(manager, path, opts) do
     local = Mix.Rebar.local_rebar_path(manager)
 
-    if opts[:force] || Mix.Generator.overwrite?(local) do
+    if !skip_install?(manager, opts) && (opts[:force] || Mix.Generator.overwrite?(local)) do
       case Mix.Utils.read_path(path, opts) do
         {:ok, binary} ->
           File.mkdir_p!(Path.dirname(local))
@@ -101,17 +105,26 @@ defmodule Mix.Tasks.Local.Rebar do
   end
 
   defp install_from_s3(manager, list_url, escript_url, opts) do
-    hex_mirror = Mix.Hex.mirror()
-    list_url = hex_mirror <> list_url
+    if !skip_install?(manager, opts) do
+      hex_mirror = Mix.Hex.mirror()
+      list_url = hex_mirror <> list_url
 
-    {elixir_version, rebar_version, sha512} =
-      Mix.Local.find_matching_versions_from_signed_csv!("Rebar", list_url)
+      {elixir_version, rebar_version, sha512} =
+        Mix.Local.find_matching_versions_from_signed_csv!("Rebar", list_url)
 
-    url =
-      (hex_mirror <> escript_url)
-      |> String.replace("[ELIXIR_VERSION]", elixir_version)
-      |> String.replace("[REBAR_VERSION]", rebar_version)
+      url =
+        (hex_mirror <> escript_url)
+        |> String.replace("[ELIXIR_VERSION]", elixir_version)
+        |> String.replace("[REBAR_VERSION]", rebar_version)
 
-    install_from_path(manager, url, Keyword.put(opts, :sha512, sha512))
+      install_from_path(manager, url, Keyword.put(opts, :sha512, sha512))
+    end
+  end
+
+  defp skip_install?(manager, opts) do
+    Keyword.get(opts, :if_missing, false) &&
+      manager
+      |> Mix.Rebar.local_rebar_path()
+      |> File.exists?()
   end
 end
