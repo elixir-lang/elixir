@@ -69,6 +69,18 @@ defmodule Mix.Tasks.Local.Rebar do
     end
   end
 
+  defp maybe_install_from_path(manager, path, opts) do
+    if not skip_install?(manager, opts) do
+      install_from_path(manager, path, opts)
+    end
+  end
+
+  defp maybe_install_from_s3(manager, list_url, escript_url, opts) do
+    if not skip_install?(manager, opts) do
+      install_from_s3(manager, list_url, escript_url, opts)
+    end
+  end
+
   defp install_from_path(manager, path, opts) do
     local = Mix.Rebar.local_rebar_path(manager)
 
@@ -103,28 +115,20 @@ defmodule Mix.Tasks.Local.Rebar do
 
     true
   end
+  
+  defp install_from_s3(manager, list_url, escript_url, opts) do
+    hex_mirror = Mix.Hex.mirror()
+    list_url = hex_mirror <> list_url
 
-  defp maybe_install_from_path(manager, path, opts) do
-    if not skip_install?(manager, opts) do
-      install_from_path(manager, path, opts)
-    end
-  end
+    {elixir_version, rebar_version, sha512} =
+      Mix.Local.find_matching_versions_from_signed_csv!("Rebar", list_url)
 
-  defp maybe_install_from_s3(manager, list_url, escript_url, opts) do
-    if not skip_install?(manager, opts) do
-      hex_mirror = Mix.Hex.mirror()
-      list_url = hex_mirror <> list_url
+    url =
+      (hex_mirror <> escript_url)
+      |> String.replace("[ELIXIR_VERSION]", elixir_version)
+      |> String.replace("[REBAR_VERSION]", rebar_version)
 
-      {elixir_version, rebar_version, sha512} =
-        Mix.Local.find_matching_versions_from_signed_csv!("Rebar", list_url)
-
-      url =
-        (hex_mirror <> escript_url)
-        |> String.replace("[ELIXIR_VERSION]", elixir_version)
-        |> String.replace("[REBAR_VERSION]", rebar_version)
-
-      install_from_path(manager, url, Keyword.put(opts, :sha512, sha512))
-    end
+    install_from_path(manager, url, Keyword.put(opts, :sha512, sha512))
   end
 
   defp skip_install?(manager, opts) do
