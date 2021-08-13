@@ -34,13 +34,17 @@ defmodule Mix.Tasks.Local.Rebar do
     * `--force` - forces installation without a shell prompt; primarily
       intended for automation in build systems like `make`
 
+    * `--if-missing` - performs installation only if not installed yet;
+      intended to avoid repeatedly reinstalling in automation when a script
+      may be run multiple times
+
   ## Mirrors
 
   If you want to change the [default mirror](https://repo.hex.pm)
   to use for fetching `rebar` please set the `HEX_MIRROR` environment variable.
   """
 
-  @switches [force: :boolean, sha512: :string]
+  @switches [force: :boolean, sha512: :string, if_missing: :boolean]
 
   @impl true
   def run(argv) do
@@ -48,20 +52,32 @@ defmodule Mix.Tasks.Local.Rebar do
 
     case argv do
       ["rebar", path | _] ->
-        install_from_path(:rebar, path, opts)
+        maybe_install_from_path(:rebar, path, opts)
 
       ["rebar3", path | _] ->
-        install_from_path(:rebar3, path, opts)
+        maybe_install_from_path(:rebar3, path, opts)
 
       [] ->
-        install_from_s3(:rebar, @rebar2_list_url, @rebar2_escript_url, opts)
-        install_from_s3(:rebar3, @rebar3_list_url, @rebar3_escript_url, opts)
+        maybe_install_from_s3(:rebar, @rebar2_list_url, @rebar2_escript_url, opts)
+        maybe_install_from_s3(:rebar3, @rebar3_list_url, @rebar3_escript_url, opts)
 
       _ ->
         Mix.raise(
           "Invalid arguments given to mix local.rebar. " <>
             "To find out the proper call syntax run \"mix help local.rebar\""
         )
+    end
+  end
+
+  defp maybe_install_from_path(manager, path, opts) do
+    if not skip_install?(manager, opts) do
+      install_from_path(manager, path, opts)
+    end
+  end
+
+  defp maybe_install_from_s3(manager, list_url, escript_url, opts) do
+    if not skip_install?(manager, opts) do
+      install_from_s3(manager, list_url, escript_url, opts)
     end
   end
 
@@ -113,5 +129,12 @@ defmodule Mix.Tasks.Local.Rebar do
       |> String.replace("[REBAR_VERSION]", rebar_version)
 
     install_from_path(manager, url, Keyword.put(opts, :sha512, sha512))
+  end
+
+  defp skip_install?(manager, opts) do
+    Keyword.get(opts, :if_missing, false) and
+      manager
+      |> Mix.Rebar.local_rebar_path()
+      |> File.exists?()
   end
 end
