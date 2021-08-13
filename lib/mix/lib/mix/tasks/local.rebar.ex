@@ -69,12 +69,6 @@ defmodule Mix.Tasks.Local.Rebar do
     end
   end
 
-  defp maybe_install_from_path(manager, path, opts) do
-    if not skip_install?(manager, opts) do
-      install_from_path(manager, path, opts)
-    end
-  end
-
   defp install_from_path(manager, path, opts) do
     local = Mix.Rebar.local_rebar_path(manager)
 
@@ -108,6 +102,12 @@ defmodule Mix.Tasks.Local.Rebar do
     end
 
     true
+  end
+
+  defp maybe_install_from_path(manager, path, opts) do
+    if not skip_install?(manager, opts) do
+      install_from_path(manager, path, opts)
+    end
   end
 
   defp maybe_install_from_s3(manager, list_url, escript_url, opts) do
