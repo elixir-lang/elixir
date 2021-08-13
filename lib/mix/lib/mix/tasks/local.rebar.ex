@@ -44,7 +44,7 @@ defmodule Mix.Tasks.Local.Rebar do
   to use for fetching `rebar` please set the `HEX_MIRROR` environment variable.
   """
 
-  @switches [force: :boolean, sha512: :string]
+  @switches [force: :boolean, sha512: :string, if_missing: :boolean]
 
   @impl true
   def run(argv) do
@@ -72,7 +72,7 @@ defmodule Mix.Tasks.Local.Rebar do
   defp install_from_path(manager, path, opts) do
     local = Mix.Rebar.local_rebar_path(manager)
 
-    if !skip_install?(manager, opts) && (opts[:force] || Mix.Generator.overwrite?(local)) do
+    if not skip_install?(manager, opts) && (opts[:force] || Mix.Generator.overwrite?(local)) do
       case Mix.Utils.read_path(path, opts) do
         {:ok, binary} ->
           File.mkdir_p!(Path.dirname(local))
@@ -105,7 +105,7 @@ defmodule Mix.Tasks.Local.Rebar do
   end
 
   defp install_from_s3(manager, list_url, escript_url, opts) do
-    if !skip_install?(manager, opts) do
+    if not skip_install?(manager, opts) do
       hex_mirror = Mix.Hex.mirror()
       list_url = hex_mirror <> list_url
 
@@ -122,7 +122,7 @@ defmodule Mix.Tasks.Local.Rebar do
   end
 
   defp skip_install?(manager, opts) do
-    Keyword.get(opts, :if_missing, false) &&
+    Keyword.get(opts, :if_missing, false) and
       manager
       |> Mix.Rebar.local_rebar_path()
       |> File.exists?()
