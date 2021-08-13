@@ -115,7 +115,7 @@ defmodule Mix.Tasks.Local.Rebar do
 
     true
   end
-  
+
   defp install_from_s3(manager, list_url, escript_url, opts) do
     hex_mirror = Mix.Hex.mirror()
     list_url = hex_mirror <> list_url
