@@ -224,6 +224,10 @@ defmodule Kernel.ParserTest do
       foo = {:foo, [line: 1, column: 1], nil}
       bar = {:bar, [line: 1, column: 7], nil}
       assert string_to_quoted.("foo + bar") == {:ok, {:+, [line: 1, column: 5], [foo, bar]}}
+
+      foo = [106, 111, 115, 101, 769]
+      bar = 1
+      assert string_to_quoted.("'josé' = 1") == {:ok, {:=, [line: 1, column: 8], [foo, bar]}}
     end
   end
 

@@ -244,10 +244,26 @@ finish_extraction(Line, Column, Buffer, Output, Remaining) ->
     F  -> F
   end,
 
-  {Line, Column, lists:reverse(Final), Remaining}.
+  FinalColumn = build_column(Final, Column),
+  {Line, FinalColumn, lists:reverse(Final), Remaining}.
 
 build_string(_Line, [], Output) -> Output;
 build_string(_Line, Buffer, Output) -> [lists:reverse(Buffer) | Output].
 
 build_interpol(Line, Column, EndLine, EndColumn, Buffer, Output) ->
   [{{Line, Column, nil}, {EndLine, EndColumn, nil}, lists:reverse(Buffer)} | Output].
+
+%% Remove extra columns added by NFD formatted characters.
+build_column([String], Column) when is_list(String) ->
+  case lists:all(fun(Char) -> is_integer(Char) end, String) of
+    true ->
+      FinalLine = string:slice(string:reverse(String), 0, Column - 1),
+      Length = length(FinalLine),
+      StringLength = length(unicode:characters_to_nfc_list(FinalLine)),
+      Column - (Length - StringLength);
+
+    false ->
+      Column
+  end;
+
+build_column(_, Column) -> Column.
