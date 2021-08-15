@@ -221,6 +221,21 @@ defmodule Mix.Tasks.CompileTest do
     end)
   end
 
+  test "loads consolidated protocols even on --no-compile" do
+    in_fixture("no_mixfile", fn ->
+      File.rm("_build/dev/lib/sample/.mix/compile.protocols")
+      consolidated = "_build/dev/lib/sample/consolidated" |> Path.expand() |> to_charlist()
+
+      assert Mix.Task.run("compile") == {:ok, []}
+      assert File.regular?("_build/dev/lib/sample/consolidated/Elixir.Enumerable.beam")
+      assert consolidated in :code.get_path()
+
+      Code.delete_path("_build/dev/lib/sample/consolidated")
+      assert Mix.Task.rerun("compile", ["--no-compile"]) == {:noop, []}
+      assert consolidated in :code.get_path()
+    end)
+  end
+
   test "loads Mix config with --erl-config" do
     in_fixture("no_mixfile", fn ->
       File.write!("mix.config", "{erl_config_app, [{value, true}]}.")

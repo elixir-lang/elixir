@@ -111,7 +111,8 @@ defmodule Mix.Tasks.Compile do
       shell.info(format('mix ~-#{max}s # ~ts', [task, doc]))
     end)
 
-    compilers = compilers() ++ if(consolidate_protocols?(:ok), do: [:protocols], else: [])
+    consolidate_protocols? = Mix.Project.config()[:consolidate_protocols]
+    compilers = compilers() ++ if(consolidate_protocols?, do: [:protocols], else: [])
     shell.info("\nEnabled compilers: #{Enum.join(compilers, ", ")}")
     :ok
   end
@@ -124,6 +125,8 @@ defmodule Mix.Tasks.Compile do
     {opts, _, _} = OptionParser.parse(args, switches: [erl_config: :string])
     load_erl_config(opts)
 
+    # We invoke compile.all even on --no-compile because compile.all
+    # loads the apps, and we still want to do that.
     {res, diagnostics} =
       Mix.Task.run("compile.all", args)
       |> List.wrap()
@@ -132,17 +135,31 @@ defmodule Mix.Tasks.Compile do
 
     config = Mix.Project.config()
 
-    cond do
-      "--no-compile" in args ->
-        Mix.Task.reenable("compile")
-        {:noop, []}
+    consolidate_protocols? =
+      config[:consolidate_protocols] and "--no-protocol-consolidation" not in args
 
-      config[:consolidate_protocols] and "--no-protocol-consolidation" not in args ->
-        {consolidate_and_load_protocols(args, config, res), diagnostics}
+    res =
+      cond do
+        "--no-compile" in args ->
+          Mix.Task.reenable("compile")
+          :noop
 
-      true ->
-        {res, diagnostics}
+        consolidate_protocols? and reconsolidate_protocols?(res) ->
+          Mix.Task.run("compile.protocols", args)
+          :ok
+
+        true ->
+          res
+      end
+
+    with true <- consolidate_protocols?,
+         path = Mix.Project.consolidation_path(config),
+         {:ok, protocols} <- File.ls(path) do
+      Code.prepend_path(path)
+      Enum.each(protocols, &load_protocol/1)
     end
+
+    {res, diagnostics}
   end
 
   defp format(expression, args) do
@@ -186,28 +203,9 @@ defmodule Mix.Tasks.Compile do
 
   ## Consolidation handling
 
-  defp consolidate_protocols?(:ok), do: true
-  defp consolidate_protocols?(:noop), do: not Mix.Tasks.Compile.Protocols.consolidated?()
-  defp consolidate_protocols?(:error), do: false
-
-  defp consolidate_and_load_protocols(args, config, res) do
-    res =
-      if consolidate_protocols?(res) do
-        Mix.Task.run("compile.protocols", args)
-        :ok
-      else
-        res
-      end
-
-    path = Mix.Project.consolidation_path(config)
-
-    with {:ok, protocols} <- File.ls(path) do
-      Code.prepend_path(path)
-      Enum.each(protocols, &load_protocol/1)
-    end
-
-    res
-  end
+  defp reconsolidate_protocols?(:ok), do: true
+  defp reconsolidate_protocols?(:noop), do: not Mix.Tasks.Compile.Protocols.consolidated?()
+  defp reconsolidate_protocols?(:error), do: false
 
   defp load_protocol(file) do
     case file do
