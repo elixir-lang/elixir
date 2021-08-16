@@ -671,39 +671,31 @@ defmodule Mix.Project do
   """
   @spec build_structure(keyword, keyword) :: :ok
   def build_structure(config \\ config(), opts \\ []) do
-    app = app_path(config)
-    File.mkdir_p!(app)
+    source = opts[:source] || File.cwd!()
+    target = app_path(config)
+    File.mkdir_p!(target)
 
-    source = Path.expand("ebin")
-    target = Path.join(app, "ebin")
+    target_ebin = Path.join(target, "ebin")
+    hard_copy? = config[:build_embedded]
 
     _ =
       cond do
         opts[:symlink_ebin] ->
-          _ = symlink_or_copy(config, source, target)
+          _ = Mix.Utils.symlink_or_copy(hard_copy?, Path.join(source, "ebin"), target_ebin)
 
-        match?({:ok, _}, :file.read_link(target)) ->
-          _ = File.rm_rf!(target)
-          File.mkdir_p!(target)
+        match?({:ok, _}, :file.read_link(target_ebin)) ->
+          _ = File.rm_rf!(target_ebin)
+          File.mkdir_p!(target_ebin)
 
         true ->
-          File.mkdir_p!(target)
+          File.mkdir_p!(target_ebin)
       end
 
-    _ = symlink_or_copy(config, Path.expand("include"), Path.join(app, "include"))
-    _ = symlink_or_copy(config, Path.expand("priv"), Path.join(app, "priv"))
-    :ok
-  end
-
-  defp symlink_or_copy(config, source, target) do
-    if config[:build_embedded] do
-      if File.exists?(source) do
-        File.rm_rf!(target)
-        File.cp_r!(source, target)
-      end
-    else
-      Mix.Utils.symlink_or_copy(source, target)
+    for dir <- ~w(include priv) do
+      Mix.Utils.symlink_or_copy(hard_copy?, Path.join(source, dir), Path.join(target, dir))
     end
+
+    :ok
   end
 
   @doc """

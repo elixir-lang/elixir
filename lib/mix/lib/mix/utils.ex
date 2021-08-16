@@ -436,6 +436,20 @@ defmodule Mix.Utils do
   end
 
   @doc """
+  Symlinks or copy with the option to force a hard copy.
+  """
+  def symlink_or_copy(hard_copy?, source, target) do
+    if hard_copy? do
+      if File.exists?(source) do
+        File.rm_rf!(target)
+        File.cp_r!(source, target)
+      end
+    else
+      symlink_or_copy(source, target)
+    end
+  end
+
+  @doc """
   Symlinks directory `source` to `target` or copies it recursively
   in case symlink fails.
 
@@ -500,12 +514,12 @@ defmodule Mix.Utils do
         :ok
 
       {:error, _} ->
-        file =
+        files =
           File.cp_r!(source, target, fn orig, dest ->
             File.stat!(orig).mtime > File.stat!(dest).mtime
           end)
 
-        {:ok, file}
+        {:ok, files}
     end
   end
 
