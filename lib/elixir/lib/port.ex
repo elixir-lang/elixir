@@ -222,7 +222,7 @@ defmodule Port do
   @doc """
   Sends `data` to the port driver `port`.
 
-  For more information, see `:erlang.port_command/2`.
+  For more information, see `:erlang.port_command/3`.
 
   Inlined by the compiler.
   """
