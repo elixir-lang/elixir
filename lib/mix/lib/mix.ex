@@ -587,6 +587,7 @@ defmodule Mix do
 
     config = [
       version: "0.1.0",
+      build_embedded: false,
       build_per_environment: true,
       build_path: "_build",
       lockfile: "mix.lock",

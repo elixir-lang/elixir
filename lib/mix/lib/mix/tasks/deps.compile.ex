@@ -234,7 +234,7 @@ defmodule Mix.Tasks.Deps.Compile do
 
     # Copy priv/ after compilation too if it was created then
     if File.exists?(dep_priv) and not File.exists?(build_priv) do
-      Mix.Utils.symlink_or_copy(config[:build_embedded] == true, dep_priv, build_priv)
+      Mix.Utils.symlink_or_copy(config[:build_embedded], dep_priv, build_priv)
     end
 
     Code.prepend_path(Path.join(build_path, "ebin"))
