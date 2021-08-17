@@ -198,7 +198,7 @@ defmodule Mix.Tasks.Deps.Compile do
     true
   end
 
-defp do_rebar3(%Mix.Dep{opts: opts} = dep, config) do
+  defp do_rebar3(%Mix.Dep{opts: opts} = dep, config) do
     dep_path = opts[:dest]
     build_path = opts[:build]
 
