@@ -1,6 +1,6 @@
 -module(elixir_aliases).
 -export([inspect/1, last/1, concat/1, safe_concat/1, format_error/1,
-         ensure_loaded/3, expand/2, store/5]).
+         ensure_loaded/3, expand/2, expand_or_concat/2, store/5]).
 -include("elixir.hrl").
 
 inspect(Atom) when is_atom(Atom) ->
@@ -74,6 +74,14 @@ expand({'__aliases__', Meta, [H | T]}, Aliases, E) when is_atom(H) ->
 
 expand({'__aliases__', _Meta, List}, _Aliases, _E) ->
   List.
+
+%% Expands or concat if possible.
+
+expand_or_concat(Aliases, E) ->
+  case expand(Aliases, E) of
+    [H | T] when is_atom(H) -> concat([H | T]);
+    AtomOrList -> AtomOrList
+  end.
 
 %% Ensure a module is loaded before its usage.
 

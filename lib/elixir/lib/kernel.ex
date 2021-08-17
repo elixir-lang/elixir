@@ -4488,19 +4488,13 @@ defmodule Kernel do
 
   defmacro defmodule(alias, do: block) do
     env = __CALLER__
-    boot? = bootstrapped?(Macro)
-
-    expanded =
-      case boot? do
-        true -> Macro.expand(alias, env)
-        false -> alias
-      end
+    expanded = expand_module_alias(alias, env)
 
     {expanded, with_alias} =
-      case boot? and is_atom(expanded) do
+      case is_atom(expanded) do
         true ->
           # Expand the module considering the current environment/nesting
-          {full, old, new} = expand_module(alias, expanded, env)
+          {full, old, new} = alias_defmodule(alias, expanded, env)
           meta = [defined: full, context: env.module] ++ alias_meta(alias)
           {full, {:alias, meta, [old, [as: new, warn: false]]}}
 
@@ -4540,16 +4534,34 @@ defmodule Kernel do
   defp alias_meta({:__aliases__, meta, _}), do: meta
   defp alias_meta(_), do: []
 
+  # We don't want to trace :alias_reference since we are defining the alias
+  defp expand_module_alias({:__aliases__, _, _} = original, env) do
+    case :elixir_aliases.expand_or_concat(original, env) do
+      receiver when is_atom(receiver) ->
+        receiver
+
+      aliases ->
+        aliases = :lists.map(&Macro.expand(&1, env), aliases)
+
+        case :lists.all(&is_atom/1, aliases) do
+          true -> :elixir_aliases.concat(aliases)
+          false -> original
+        end
+    end
+  end
+
+  defp expand_module_alias(other, env), do: Macro.expand(other, env)
+
   # defmodule Elixir.Alias
-  defp expand_module({:__aliases__, _, [:"Elixir", _ | _]}, module, _env),
+  defp alias_defmodule({:__aliases__, _, [:"Elixir", _ | _]}, module, _env),
     do: {module, module, nil}
 
   # defmodule Alias in root
-  defp expand_module({:__aliases__, _, _}, module, %{module: nil}),
+  defp alias_defmodule({:__aliases__, _, _}, module, %{module: nil}),
     do: {module, module, nil}
 
   # defmodule Alias nested
-  defp expand_module({:__aliases__, _, [h | t]}, _module, env) when is_atom(h) do
+  defp alias_defmodule({:__aliases__, _, [h | t]}, _module, env) when is_atom(h) do
     module = :elixir_aliases.concat([env.module, h])
     alias = String.to_atom("Elixir." <> Atom.to_string(h))
 
@@ -4560,7 +4572,7 @@ defmodule Kernel do
   end
 
   # defmodule _
-  defp expand_module(_raw, module, _env) do
+  defp alias_defmodule(_raw, module, _env) do
     {module, module, nil}
   end
 
