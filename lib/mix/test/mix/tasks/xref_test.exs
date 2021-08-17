@@ -226,6 +226,118 @@ defmodule Mix.Tasks.XrefTest do
     end
   end
 
+  describe "mix xref trace FILE" do
+    test "shows labelled traces" do
+      files = %{
+        "lib/a.ex" => ~S"""
+        defmodule A do
+          defstruct [:foo, :bar]
+          defmacro macro, do: :ok
+          def fun, do: :ok
+        end
+        """,
+        "lib/b.ex" => ~S"""
+        defmodule B do
+          import A
+          A.macro()
+          macro()
+          A.fun()
+          fun()
+          def calls_macro, do: A.macro()
+          def calls_fun, do: A.fun()
+          def calls_struct, do: %A{}
+        end
+        """
+      }
+
+      output = """
+      Compiling 2 files (.ex)
+      Generated sample app
+      lib/b.ex:2: require A (export)
+      lib/b.ex:3: call A.macro/0 (compile)
+      lib/b.ex:4: import A.macro/0 (compile)
+      lib/b.ex:5: call A.fun/0 (compile)
+      lib/b.ex:6: call A.fun/0 (compile)
+      lib/b.ex:6: import A.fun/0 (compile)
+      lib/b.ex:7: call A.macro/0 (compile)
+      lib/b.ex:8: call A.fun/0 (runtime)
+      lib/b.ex:9: struct A (export)
+      """
+
+      assert_trace("lib/b.ex", files, output)
+    end
+
+    test "filters per label" do
+      files = %{
+        "lib/a.ex" => ~S"""
+        defmodule A do
+          defmacro macro, do: :ok
+          def fun, do: :ok
+        end
+        """,
+        "lib/b.ex" => ~S"""
+        defmodule B do
+          require A
+          def calls_macro, do: A.macro()
+          def calls_fun, do: A.fun()
+        end
+        """
+      }
+
+      output = """
+      Compiling 2 files (.ex)
+      Generated sample app
+      lib/b.ex:3: call A.macro/0 (compile)
+      """
+
+      assert_trace(~w[--label compile], "lib/b.ex", files, output)
+    end
+
+    test "fails if above limit per label" do
+      files = %{
+        "lib/a.ex" => ~S"""
+        defmodule A do
+          defmacro macro, do: :ok
+          def fun, do: :ok
+        end
+        """,
+        "lib/b.ex" => ~S"""
+        defmodule B do
+          require A
+          def calls_macro, do: A.macro()
+          def calls_fun, do: A.fun()
+        end
+        """
+      }
+
+      output = """
+      Compiling 2 files (.ex)
+      Generated sample app
+      lib/b.ex:3: call A.macro/0 (compile)
+      """
+
+      message = "Too many traces (found: 1, permitted: 0)"
+
+      assert_raise Mix.Error, message, fn ->
+        assert_trace(~w[--label compile --fail-above 0], "lib/b.ex", files, output)
+      end
+    end
+
+    defp assert_trace(opts \\ [], file, files, expected) do
+      in_fixture("no_mixfile", fn ->
+        for {file, contents} <- files do
+          File.write!(file, contents)
+        end
+
+        capture_io(:stderr, fn ->
+          assert Mix.Task.run("xref", opts ++ ["trace", file]) == :ok
+        end)
+
+        assert ^expected = receive_until_no_messages([])
+      end)
+    end
+  end
+
   describe "mix xref graph" do
     test "basic usage" do
       assert_graph("""
@@ -304,13 +416,13 @@ defmodule Mix.Tasks.XrefTest do
     end
 
     test "unknown label" do
-      assert_raise Mix.Error, "Unknown --label bad", fn ->
+      assert_raise Mix.Error, "Unknown --label bad in mix xref graph", fn ->
         assert_graph(["--label", "bad"], "")
       end
     end
 
     test "unknown format" do
-      assert_raise Mix.Error, "Unknown --format bad", fn ->
+      assert_raise Mix.Error, "Unknown --format bad in mix xref graph", fn ->
         assert_graph(["--format", "bad"], "")
       end
     end

@@ -402,6 +402,7 @@ defmodule MapSet do
   end
 
   defimpl Collectable do
+    # TODO: Optimize into an empty mapset by using :maps.from_keys/2 on Erlang/OTP 24+
     def into(map_set) do
       fun = fn
         list, {:cont, x} -> [{x, []} | list]

@@ -115,12 +115,24 @@ fast_compile({'__block__', _, Exprs}, E) ->
   lists:foldl(fun(Expr, _) -> fast_compile(Expr, E) end, nil, Exprs);
 fast_compile({defmodule, Meta, [Mod, [{do, TailBlock}]]}, NoLineE) ->
   E = NoLineE#{line := ?line(Meta)},
+
   Block = {'__block__', Meta, [
     {'=', Meta, [{result, Meta, ?MODULE}, TailBlock]},
     {{'.', Meta, [elixir_utils, noop]}, Meta, []},
     {result, Meta, ?MODULE}
   ]},
-  Expanded = 'Elixir.Macro':expand(Mod, E),
+
+  Expanded = case Mod of
+    {'__aliases__', _, _} ->
+      case elixir_aliases:expand_or_concat(Mod, E) of
+        Receiver when is_atom(Receiver) -> Receiver;
+        _ -> 'Elixir.Macro':expand(Mod, E)
+      end;
+
+    _ ->
+      'Elixir.Macro':expand(Mod, E)
+  end,
+
   elixir_module:compile(Expanded, Block, [], E).
 
 %% Bootstrapper

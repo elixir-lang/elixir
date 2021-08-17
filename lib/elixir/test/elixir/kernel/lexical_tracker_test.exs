@@ -209,10 +209,41 @@ defmodule Kernel.LexicalTrackerTest do
       refute String in runtime
     end
 
+    test "structs are exports or compile time" do
+      {{compile, exports, runtime, _}, _binding} =
+        Code.eval_string("""
+        defmodule Kernel.LexicalTrackerTest.StructRuntime do
+          def expand, do: %URI{}
+          Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
+        end |> elem(3)
+        """)
+
+      refute URI in compile
+      assert URI in exports
+      assert URI in runtime
+
+      {{compile, exports, runtime, _}, _binding} =
+        Code.eval_string("""
+        defmodule Kernel.LexicalTrackerTest.StructCompile do
+          _ = %URI{}
+          Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
+        end |> elem(3)
+        """)
+
+      assert URI in compile
+      assert URI in exports
+      refute URI in runtime
+    end
+
     test "Macro.struct! adds an export dependency" do
       {{compile, exports, runtime, _}, _binding} =
         Code.eval_string("""
         defmodule Kernel.LexicalTrackerTest.MacroStruct do
+          # We do not use the alias because it would be a compile time
+          # dependency. The alias may happen in practice, which is the
+          # mechanism to make this expansion become a compile-time one.
+          # However, in some cases, such as typespecs, we don't necessarily
+          # want the compile-time dependency to happen.
           Macro.struct!(:"Elixir.URI", __ENV__)
           Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
         end |> elem(3)
@@ -236,6 +267,19 @@ defmodule Kernel.LexicalTrackerTest do
       refute URI in compile
       refute URI in exports
       assert URI in runtime
+    end
+
+    test "defmodule does not add a compile dependency" do
+      {{compile, exports, runtime, _}, _binding} =
+        Code.eval_string("""
+        defmodule Kernel.LexicalTrackerTest.Defmodule do
+          Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
+        end |> elem(3)
+        """)
+
+      refute Kernel.LexicalTrackerTest.Defmodule in compile
+      refute Kernel.LexicalTrackerTest.Defmodule in exports
+      refute Kernel.LexicalTrackerTest.Defmodule in runtime
     end
   end
 end
