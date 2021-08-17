@@ -237,7 +237,7 @@ defmodule Mix.Tasks.Deps.Compile do
       Mix.Utils.symlink_or_copy(config[:build_embedded] == true, dep_priv, build_priv)
     end
 
-    Code.prepend_path(build_ebin)
+    Code.prepend_path(Path.join(build_path, "ebin"))
     true
   end
 
