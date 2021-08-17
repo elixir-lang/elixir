@@ -218,19 +218,19 @@ defmodule Mix.Tasks.Deps.Compile do
     File.write!(config_path, rebar_config(dep))
 
     build_ebin = Path.join(build_path, "ebin")
-    hard_copy? = config[:build_embedded]
+    hard_copy? = config[:build_embedded] == true
 
     # For Rebar3, we need to copy the source/ebin to the target/ebin
     # before we run the command given that REBAR_BARE_COMPILER_OUTPUT_DIR
     # writes directly to _build.
     #
-    # TODO: We still symlink ebin by default for backwards compatibility.
+    # TODO: We still symlink ebin/ by default for backwards compatibility.
     # This partially negates the effects of REBAR_BARE_COMPILER_OUTPUT_DIR
     # if an ebin diretory exists, so we should consider disabling it in future
     # releases when rebar3 v3.14+ is reasonably adopted.
     Mix.Utils.symlink_or_copy(hard_copy?, Path.join(dep_path, "ebin"), build_ebin)
 
-    # We also need to copy include before compilation, since the -include(...)
+    # We also need to copy include/ before compilation, since the -include(...)
     # directive looks in the current working directory.
     Mix.Utils.symlink_or_copy(
       hard_copy?,
@@ -238,16 +238,19 @@ defmodule Mix.Tasks.Deps.Compile do
       Path.join(build_path, "include")
     )
 
+    source_priv_dir = Path.join(dep_path, "priv")
+    target_priv_dir = Path.join(build_path, "priv")
+
+    # Copy priv/ before compilation in case it is used in parse transforms
+    Mix.Utils.symlink_or_copy(hard_copy?, source_priv_dir, target_priv_dir)
+
     # Compile the project
     do_command(dep, config, cmd, false, env)
 
-    # After compilation, we symlink/copy priv. This should be fine because
-    # Rebar projects cannot read from lib_dir until after compilation.
-    Mix.Utils.symlink_or_copy(
-      hard_copy?,
-      Path.join(dep_path, "priv"),
-      Path.join(build_path, "priv")
-    )
+    # Copy priv/ after compilation too if it was created then
+    unless File.exists?(target_priv_dir) do
+      Mix.Utils.symlink_or_copy(hard_copy?, source_priv_dir, target_priv_dir)
+    end
 
     Code.prepend_path(build_ebin)
     true
