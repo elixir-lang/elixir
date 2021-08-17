@@ -2163,6 +2163,7 @@ defmodule Kernel do
       iex> "abcd" =~ ""
       true
 
+  For more information about regular expressions, please check `Regex` docs.
   """
   @spec String.t() =~ (String.t() | Regex.t()) :: boolean
   def left =~ "" when is_binary(left), do: true

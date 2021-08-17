@@ -274,6 +274,8 @@ defmodule Regex do
       iex> Regex.match?(~r/foo/, "bar")
       false
 
+  Elixir also provides `Kernel.=~/2` and `String.match?/2` as alternative ways to test strings against regular expressions.
+
   """
   @spec match?(t, String.t()) :: boolean
   def match?(%Regex{} = regex, string) when is_binary(string) do
