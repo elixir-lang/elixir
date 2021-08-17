@@ -198,27 +198,9 @@ defmodule Mix.Tasks.Deps.Compile do
     true
   end
 
-  defp do_rebar3(%Mix.Dep{opts: opts} = dep, config) do
+defp do_rebar3(%Mix.Dep{opts: opts} = dep, config) do
     dep_path = opts[:dest]
     build_path = opts[:build]
-    config_path = Path.join(build_path, "mix.rebar.config")
-    lib_path = Path.join(config[:env_path], "lib/*/ebin")
-
-    # REBAR_BARE_COMPILER_OUTPUT_DIR is only honored by rebar3 >= 3.14
-    env = [
-      {"REBAR_BARE_COMPILER_OUTPUT_DIR", build_path},
-      {"REBAR_CONFIG", config_path},
-      {"REBAR_PROFILE", "prod"},
-      {"TERM", "dumb"}
-    ]
-
-    cmd = "#{rebar_cmd(dep)} bare compile --paths #{lib_path}"
-
-    File.mkdir_p!(build_path)
-    File.write!(config_path, rebar_config(dep))
-
-    build_ebin = Path.join(build_path, "ebin")
-    hard_copy? = config[:build_embedded] == true
 
     # For Rebar3, we need to copy the source/ebin to the target/ebin
     # before we run the command given that REBAR_BARE_COMPILER_OUTPUT_DIR
@@ -228,28 +210,31 @@ defmodule Mix.Tasks.Deps.Compile do
     # This partially negates the effects of REBAR_BARE_COMPILER_OUTPUT_DIR
     # if an ebin diretory exists, so we should consider disabling it in future
     # releases when rebar3 v3.14+ is reasonably adopted.
-    Mix.Utils.symlink_or_copy(hard_copy?, Path.join(dep_path, "ebin"), build_ebin)
+    config = Keyword.put(config, :app_path, build_path)
+    Mix.Project.build_structure(config, symlink_ebin: true, source: dep_path)
 
-    # We also need to copy include/ before compilation, since the -include(...)
-    # directive looks in the current working directory.
-    Mix.Utils.symlink_or_copy(
-      hard_copy?,
-      Path.join(dep_path, "include"),
-      Path.join(build_path, "include")
-    )
+    # Build the rebar config and setup the command line
+    config_path = Path.join(build_path, "mix.rebar.config")
+    lib_path = Path.join(config[:env_path], "lib/*/ebin")
+    File.write!(config_path, rebar_config(dep))
 
-    source_priv_dir = Path.join(dep_path, "priv")
-    target_priv_dir = Path.join(build_path, "priv")
+    env = [
+      # REBAR_BARE_COMPILER_OUTPUT_DIR is only honored by rebar3 >= 3.14
+      {"REBAR_BARE_COMPILER_OUTPUT_DIR", build_path},
+      {"REBAR_CONFIG", config_path},
+      {"REBAR_PROFILE", "prod"},
+      {"TERM", "dumb"}
+    ]
 
-    # Copy priv/ before compilation in case it is used in parse transforms
-    Mix.Utils.symlink_or_copy(hard_copy?, source_priv_dir, target_priv_dir)
-
-    # Compile the project
+    cmd = "#{rebar_cmd(dep)} bare compile --paths #{lib_path}"
     do_command(dep, config, cmd, false, env)
 
+    build_priv = Path.join(build_path, "priv")
+    dep_priv = Path.join(dep_path, "priv")
+
     # Copy priv/ after compilation too if it was created then
-    unless File.exists?(target_priv_dir) do
-      Mix.Utils.symlink_or_copy(hard_copy?, source_priv_dir, target_priv_dir)
+    if File.exists?(dep_priv) and not File.exists?(build_priv) do
+      Mix.Utils.symlink_or_copy(config[:build_embedded] == true, dep_priv, build_priv)
     end
 
     Code.prepend_path(build_ebin)
