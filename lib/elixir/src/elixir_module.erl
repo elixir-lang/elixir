@@ -103,7 +103,6 @@ compile(Line, Module, Block, Vars, E) ->
 
   try
     put_compiler_modules([Module | CompilerModules]),
-    elixir_env:trace({defmodule, [{line, Line}]}, E),
     {Result, NE} = eval_form(Line, Module, DataBag, Block, Vars, E),
     CheckerInfo = get(elixir_checker_info),
 
