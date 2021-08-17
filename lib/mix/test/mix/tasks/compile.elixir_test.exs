@@ -10,8 +10,8 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     :ok
   end
 
-  def trace(event, _e) do
-    send(__MODULE__, event)
+  def trace(event, env) do
+    send(__MODULE__, {event, env})
     :ok
   end
 
@@ -50,8 +50,8 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
     in_fixture("no_mixfile", fn ->
       Mix.Tasks.Compile.Elixir.run(["--tracer", "Mix.Tasks.Compile.ElixirTest"])
-      assert_received {:alias_reference, _meta, A}
-      assert_received {:alias_reference, _meta, B}
+      assert_received {{:on_module, _, :none}, %{module: A}}
+      assert_received {{:on_module, _, :none}, %{module: B}}
     end)
   after
     Code.put_compiler_option(:tracers, [])
@@ -63,8 +63,8 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
     in_fixture("no_mixfile", fn ->
       Mix.Tasks.Compile.Elixir.run([])
-      assert_received {:alias_reference, _meta, A}
-      assert_received {:alias_reference, _meta, B}
+      assert_received {{:on_module, _, :none}, %{module: A}}
+      assert_received {{:on_module, _, :none}, %{module: B}}
     end)
   after
     Code.put_compiler_option(:tracers, [])

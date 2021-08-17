@@ -134,8 +134,6 @@ defmodule Kernel.TracersTest do
     end
     """)
 
-    assert_receive {{:defmodule, _meta}, %{module: Sample}}
-
     assert_receive {{:local_macro, meta, :foo, 1}, _}
     assert meta[:line] == 4
     assert meta[:column] == 21

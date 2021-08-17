@@ -1264,8 +1264,8 @@ defmodule Code do
   @doc """
   Stores all given compilation options.
 
-  To store individual options, see `put_compiler_option/2`.
-  For a description of all options, see `put_compiler_option/2`.
+  To store individual options and for a description of all
+  options, see `put_compiler_option/2`.
 
   ## Examples
 

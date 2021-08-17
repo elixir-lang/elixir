@@ -1475,7 +1475,7 @@ defmodule Macro do
   end
 
   defp do_expand_once({:__aliases__, meta, _} = original, env) do
-    case :elixir_aliases.expand(original, env) do
+    case :elixir_aliases.expand_or_concat(original, env) do
       receiver when is_atom(receiver) ->
         :elixir_env.trace({:alias_reference, meta, receiver}, env)
         {receiver, true}

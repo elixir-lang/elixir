@@ -20,11 +20,49 @@ defmodule Mix.Tasks.Xref do
   This task is automatically reenabled, so you can print
   information multiple times in the same Mix invocation.
 
-  ## mix xref callers CALLEE
+  ## mix xref callers MODULE
 
   Prints all callers of the given `MODULE`. Example:
 
       $ mix xref callers MyMod
+
+  ## mix xref trace FILE
+
+  Compiles the given file listing all dependencies within the same app.
+  It includes the type and line for each one. Example:
+
+      $ mix xref trace lib/my_app/router.ex
+
+  The `--label` option may be given to keep only certain traces:
+
+      $ mix xref trace lib/my_app/router.ex --label compile
+
+  ### Example
+
+  Imagine the given file lib/b.ex:
+
+      defmodule B do
+        import A
+        A.macro()
+        macro()
+        A.fun()
+        fun()
+        def calls_macro, do: A.macro()
+        def calls_fun, do: A.fun()
+        def calls_struct, do: %A{}
+      end
+
+  `mix xref trace` will print:
+
+      lib/b.ex:2: require A (export)
+      lib/b.ex:3: call A.macro/0 (compile)
+      lib/b.ex:4: import A.macro/0 (compile)
+      lib/b.ex:5: call A.fun/0 (compile)
+      lib/b.ex:6: call A.fun/0 (compile)
+      lib/b.ex:6: import A.fun/0 (compile)
+      lib/b.ex:7: call A.macro/0 (compile)
+      lib/b.ex:8: call A.fun/0 (runtime)
+      lib/b.ex:9: struct A (export)
 
   ## mix xref graph
 
@@ -175,7 +213,8 @@ defmodule Mix.Tasks.Xref do
   another module, the caller module has to be recompiled whenever the
   callee changes. Compile-time dependencies are typically added when
   using macros or when invoking functions in the module body (outside
-  of functions).
+  of functions). You can list all dependencies in a file by running
+  `mix xref trace path/to/file.ex`.
 
   Exports dependencies are compile time dependencies on the module API,
   namely structs and its public definitions. For example, if you import
@@ -221,7 +260,6 @@ defmodule Mix.Tasks.Xref do
   """
 
   @switches [
-    abort_if_any: :boolean,
     archives_check: :boolean,
     compile: :boolean,
     deps_check: :boolean,
@@ -245,11 +283,14 @@ defmodule Mix.Tasks.Xref do
     {opts, args} = OptionParser.parse!(args, strict: @switches)
 
     case args do
-      ["callers", callee] ->
-        callers(callee, opts)
+      ["callers", module] ->
+        handle_callers(module, opts)
+
+      ["trace", file] ->
+        handle_trace(file, opts)
 
       ["graph"] ->
-        graph(opts)
+        handle_graph(opts)
 
       # TODO: Remove on v2.0
       ["deprecated"] ->
@@ -396,8 +437,8 @@ defmodule Mix.Tasks.Xref do
 
   ## Modes
 
-  defp callers(callee, opts) do
-    module = parse_callee(callee)
+  defp handle_callers(module, opts) do
+    module = parse_module(module)
 
     file_callers =
       for source <- sources(opts),
@@ -411,26 +452,49 @@ defmodule Mix.Tasks.Xref do
     check_failure(:references, length(file_callers), opts[:fail_above])
   end
 
-  defp check_failure(found, count, max_count)
-       when not is_nil(max_count) and count > max_count do
-    Mix.raise("Too many #{found} (found: #{count}, permitted: #{max_count})")
+  defp handle_trace(file, opts) do
+    set =
+      for app <- apps(opts),
+          modules = Application.spec(app, :modules),
+          module <- modules,
+          into: MapSet.new(),
+          do: module
+
+    old = Code.compiler_options(ignore_module_conflict: true, tracers: [__MODULE__])
+    ets = :ets.new(__MODULE__, [:named_table, :duplicate_bag, :public])
+    :ets.insert(ets, [{:config, set, trace_label(opts[:label])}])
+
+    try do
+      Code.compile_file(file)
+    else
+      _ ->
+        :ets.delete(ets, :modules)
+
+        traces =
+          try do
+            print_traces(Enum.sort(:ets.lookup_element(__MODULE__, :entry, 2)))
+          rescue
+            _ -> []
+          end
+
+        check_failure(:traces, length(traces), opts[:fail_above])
+    after
+      :ets.delete(ets)
+      Code.compiler_options(old)
+    end
   end
 
-  defp check_failure(_, _, _) do
-    :ok
-  end
-
-  defp graph(opts) do
+  defp handle_graph(opts) do
     {direct_filter, transitive_filter} = label_filter(opts[:label])
     write_graph(file_references(direct_filter, opts), transitive_filter, opts)
   end
 
   ## Callers
 
-  defp parse_callee(callee) do
-    case Mix.Utils.parse_mfa(callee) do
+  defp parse_module(module) do
+    case Mix.Utils.parse_mfa(module) do
       {:ok, [module]} -> module
-      _ -> Mix.raise("xref callers MODULE expects a MODULE, got: " <> callee)
+      _ -> Mix.raise("xref callers MODULE expects a MODULE, got: " <> module)
     end
   end
 
@@ -442,6 +506,84 @@ defmodule Mix.Tasks.Xref do
       true -> nil
     end
   end
+
+  ## Trace
+
+  @doc false
+  def trace({:require, meta, module, _opts}, env),
+    do: add_trace(:export, :require, module, module, meta, env)
+
+  def trace({:struct_expansion, meta, module, _keys}, env),
+    do: add_trace(:export, :struct, module, module, meta, env)
+
+  def trace({:alias_reference, meta, module}, env) when env.module != module,
+    do: add_trace(mode(env), :alias, module, module, meta, env)
+
+  def trace({:remote_function, meta, module, function, arity}, env),
+    do: add_trace(mode(env), :call, module, {module, function, arity}, meta, env)
+
+  def trace({:remote_macro, meta, module, function, arity}, env),
+    do: add_trace(:compile, :call, module, {module, function, arity}, meta, env)
+
+  def trace({:imported_function, meta, module, function, arity}, env),
+    do: add_trace(mode(env), :import, module, {module, function, arity}, meta, env)
+
+  def trace({:imported_macro, meta, module, function, arity}, env),
+    do: add_trace(:compile, :import, module, {module, function, arity}, meta, env)
+
+  def trace(_event, _env),
+    do: :ok
+
+  defp mode(%{function: nil}), do: :compile
+  defp mode(_), do: :runtime
+
+  defp add_trace(mode, type, module, module_or_mfa, meta, env) do
+    [{:config, modules, label}] = :ets.lookup(__MODULE__, :config)
+
+    if module in modules and (label == nil or mode == label) do
+      line = meta[:line] || env.line
+      :ets.insert(__MODULE__, {:entry, {env.file, line, module_or_mfa, mode, type}})
+    end
+
+    :ok
+  end
+
+  defp print_traces(entries) do
+    # We don't want to show aliases if there is an entry of the same type
+    non_aliases =
+      for {_file, _line, module_or_mfa, mode, type} <- entries,
+          type != :alias,
+          into: %{},
+          do: {{trace_module(module_or_mfa), mode}, []}
+
+    shell = Mix.shell()
+
+    for {file, line, module_or_mfa, mode, type} <- entries,
+        type != :alias or not Map.has_key?(non_aliases, {module_or_mfa, mode}) do
+      shell.info([
+        Exception.format_file_line(Path.relative_to_cwd(file), line),
+        ?\s,
+        Atom.to_string(type),
+        ?\s,
+        format_module_or_mfa(module_or_mfa),
+        " (#{mode})"
+      ])
+
+      :ok
+    end
+  end
+
+  defp trace_label(nil), do: nil
+  defp trace_label("compile"), do: :compile
+  defp trace_label("export"), do: :export
+  defp trace_label("runtime"), do: :runtime
+  defp trace_label(other), do: Mix.raise("Unknown --label #{other} in mix xref trace")
+
+  defp trace_module({m, _, _}), do: m
+  defp trace_module(m), do: m
+
+  defp format_module_or_mfa({m, f, a}), do: Exception.format_mfa(m, f, a)
+  defp format_module_or_mfa(m), do: inspect(m)
 
   ## Graph
 
@@ -457,7 +599,7 @@ defmodule Mix.Tasks.Xref do
   defp label_filter("runtime"), do: {:all, nil}
   defp label_filter("compile-connected"), do: {:all, :compile_connected}
   defp label_filter("compile-direct"), do: {:compile, :all}
-  defp label_filter(other), do: Mix.raise("Unknown --label #{other}")
+  defp label_filter(other), do: Mix.raise("Unknown --label #{other} in mix xref graph")
 
   defp file_references(filter, opts) do
     module_sources =
@@ -601,7 +743,7 @@ defmodule Mix.Tasks.Xref do
           {:references, count_references(file_references)}
 
         other ->
-          Mix.raise("Unknown --format #{other}")
+          Mix.raise("Unknown --format #{other} in mix xref graph")
       end
 
     check_failure(found, count, opts[:fail_above])
@@ -799,6 +941,19 @@ defmodule Mix.Tasks.Xref do
         do: source
   end
 
+  defp apps(opts) do
+    siblings =
+      if opts[:include_siblings] do
+        for %{scm: Mix.SCM.Path, opts: opts, app: app} <- Mix.Dep.cached(),
+            opts[:in_umbrella],
+            do: app
+      else
+        []
+      end
+
+    [Mix.Project.config()[:app] | siblings]
+  end
+
   defp manifests(opts) do
     siblings =
       if opts[:include_siblings] do
@@ -810,5 +965,14 @@ defmodule Mix.Tasks.Xref do
       end
 
     [Path.join(Mix.Project.manifest_path(), @manifest) | siblings]
+  end
+
+  defp check_failure(found, count, max_count)
+       when not is_nil(max_count) and count > max_count do
+    Mix.raise("Too many #{found} (found: #{count}, permitted: #{max_count})")
+  end
+
+  defp check_failure(_, _, _) do
+    :ok
   end
 end
