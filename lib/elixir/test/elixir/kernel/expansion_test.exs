@@ -311,6 +311,20 @@ defmodule Kernel.ExpansionTest do
       assert __ENV__.lexical_tracker == nil
       assert __ENV__.tracers == []
     end
+
+    test "on match" do
+      assert_raise CompileError,
+                   ~r"invalid pattern in match, __ENV__ is not allowed in matches",
+                   fn -> expand(quote(do: __ENV__ = :ok)) end
+
+      assert_raise CompileError,
+                   ~r"invalid pattern in match, __CALLER__ is not allowed in matches",
+                   fn -> expand(quote(do: __CALLER__ = :ok)) end
+
+      assert_raise CompileError,
+                   ~r"invalid pattern in match, __STACKTRACE__ is not allowed in matches",
+                   fn -> expand(quote(do: __STACKTRACE__ = :ok)) end
+    end
   end
 
   describe "vars" do
