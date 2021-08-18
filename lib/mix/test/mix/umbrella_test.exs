@@ -94,23 +94,6 @@ defmodule Mix.UmbrellaTest do
     end)
   end
 
-  test "recompiles umbrella on config change" do
-    in_fixture("umbrella_dep/deps/umbrella", fn ->
-      Mix.Project.in_project(:umbrella, ".", fn _ ->
-        Mix.Task.run("compile", [])
-        bar = File.stat!("_build/dev/lib/bar/.mix/compile.elixir").mtime
-        foo = File.stat!("_build/dev/lib/foo/.mix/compile.elixir").mtime
-
-        ensure_touched("mix.exs", max(foo, bar))
-
-        Mix.Task.clear()
-        Mix.Task.run("compile", [])
-        assert File.stat!("_build/dev/lib/bar/.mix/compile.elixir").mtime > bar
-        assert File.stat!("_build/dev/lib/foo/.mix/compile.elixir").mtime > foo
-      end)
-    end)
-  end
-
   test "recursively compiles umbrella with protocol consolidation" do
     in_fixture("umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->

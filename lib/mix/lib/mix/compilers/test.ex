@@ -82,9 +82,9 @@ defmodule Mix.Compilers.Test do
     removed =
       for source(source: source) <- all_sources, source not in matched_test_files, do: source
 
-    config_mtime = Mix.Project.config_mtime()
     test_helpers = Enum.map(test_paths, &Path.join(&1, "test_helper.exs"))
-    force = opts[:force] || Mix.Utils.stale?([config_mtime | test_helpers], [modified])
+    sources = [Mix.Project.config_mtime(), Mix.Project.project_file() | test_helpers]
+    force = opts[:force] || Mix.Utils.stale?(sources, [modified])
 
     changed =
       if force do

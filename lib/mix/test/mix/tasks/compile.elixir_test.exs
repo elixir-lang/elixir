@@ -5,11 +5,6 @@ defmodule Mix.Tasks.Compile.ElixirTest do
   alias Mix.Task.Compiler.Diagnostic
   use MixTest.Case
 
-  setup do
-    Mix.Project.push(MixTest.Case.Sample)
-    :ok
-  end
-
   def trace(event, env) do
     send(__MODULE__, {event, env})
     :ok
@@ -18,7 +13,6 @@ defmodule Mix.Tasks.Compile.ElixirTest do
   @elixir_otp_version {System.version(), :erlang.system_info(:otp_release)}
 
   test "compiles a project without per environment build" do
-    Mix.Project.pop()
     Mix.ProjectStack.post_config(build_per_environment: false)
 
     in_fixture("no_mixfile", fn ->
@@ -35,6 +29,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
   test "compiles a project with per environment build" do
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
       Mix.Tasks.Compile.Elixir.run(["--verbose"])
 
       assert File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
@@ -49,6 +44,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     Process.register(self(), __MODULE__)
 
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
       Mix.Tasks.Compile.Elixir.run(["--tracer", "Mix.Tasks.Compile.ElixirTest"])
       assert_received {{:on_module, _, :none}, %{module: A}}
       assert_received {{:on_module, _, :none}, %{module: B}}
@@ -62,6 +58,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     Code.put_compiler_option(:tracers, [__MODULE__])
 
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
       Mix.Tasks.Compile.Elixir.run([])
       assert_received {{:on_module, _, :none}, %{module: A}}
       assert_received {{:on_module, _, :none}, %{module: B}}
@@ -72,6 +69,8 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
   test "warns when Logger is used but not depended on" do
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
       File.write!("lib/a.ex", """
       defmodule A do
         require Logger
@@ -96,6 +95,8 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
   test "does not warn when __info__ is used but not depended on" do
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
       File.write!("lib/a.ex", """
       defmodule A do
         require Logger
@@ -109,21 +110,21 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   end
 
-  test "recompiles module-application manifest if manifest is outdated" do
+  test "recompiles module-application manifest if manifest changes" do
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
       Mix.Tasks.Compile.Elixir.run(["--force"])
       purge([A, B])
 
-      mtime = {{1970, 1, 1}, {0, 0, 0}}
-      File.touch!("_build/dev/lib/sample/.mix/compile.app_tracer", mtime)
-
+      File.rm!("_build/dev/lib/sample/.mix/compile.app_tracer")
       Mix.Tasks.Compile.Elixir.run(["--force"])
-      assert File.stat!("_build/dev/lib/sample/.mix/compile.app_tracer").mtime > mtime
+      assert File.exists?("_build/dev/lib/sample/.mix/compile.app_tracer")
     end)
   end
 
   test "recompiles project if Elixir version changed" do
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
       Mix.Tasks.Compile.run([])
       purge([A, B])
 
@@ -149,6 +150,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
   test "recompiles project if scm changed" do
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
       Mix.Tasks.Compile.run(["--verbose"])
       purge([A, B])
 
@@ -170,6 +172,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
   test "does not write BEAM files down on failures" do
     in_tmp("blank", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
       File.mkdir_p!("lib")
       File.write!("lib/a.ex", "raise ~s(oops)")
 
@@ -183,6 +186,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
   test "removes, purges and deletes old artifacts" do
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
       assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
       assert File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
       assert Code.ensure_loaded?(A)
@@ -197,6 +201,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
   test "compiles mtime changed files if content changed but not length" do
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
@@ -229,6 +234,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
   test "does not recompile mtime changed but identical files" do
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
@@ -259,6 +265,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
   test "does recompile a file restored after a compile error (and .beam file were deleted)" do
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
@@ -294,6 +301,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
   test "compiles size changed files" do
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
       past = {{2010, 1, 1}, {0, 0, 0}}
       File.touch!("lib/a.ex", past)
 
@@ -315,6 +323,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
   test "compiles dependent changed modules" do
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
       File.write!("lib/a.ex", "defmodule A, do: B.module_info()")
 
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
@@ -334,6 +343,8 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
   test "compiles dependent changed modules without beam files" do
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
       File.write!("lib/b.ex", """
       defmodule B do
         def a, do: A.__info__(:module)
@@ -360,6 +371,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
   test "compiles dependent changed modules even on removal" do
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
       File.write!("lib/a.ex", "defmodule A, do: B.module_info()")
 
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
@@ -380,6 +392,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
   test "compiles dependent changed files" do
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
       tmp = tmp_path("c.eex")
       File.touch!("lib/a.eex")
 
@@ -404,7 +417,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
 
       # Does not update on old existing resource
-      File.touch!("lib/a.eex", {{2000, 1, 1}, {0, 0, 0}})
+      File.touch!("lib/a.eex", {{2010, 1, 1}, {0, 0, 0}})
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:noop, []}
       Mix.shell().flush
       purge([A, B])
@@ -421,6 +434,8 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
   test "recompiles modules with exports tracking" do
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
       File.write!("lib/a.ex", """
       defmodule A do
         defstruct [:foo]
@@ -519,6 +534,8 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
   test "recompiles modules with async tracking" do
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
       File.write!("lib/a.ex", """
       Kernel.ParallelCompiler.async(fn ->
         defmodule A do
@@ -549,6 +566,8 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
   test "recompiles modules with multiple sources" do
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
       File.write!("lib/a.ex", """
       defmodule A do
         def one, do: 1
@@ -584,6 +603,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
   test "recompiles with --force" do
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       purge([A, B])
 
@@ -598,6 +618,8 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
   test "compiles files with autoload disabled" do
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
       File.write!("lib/a.ex", """
       defmodule A do
         @compile {:autoload, false}
@@ -611,6 +633,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
   test "does not recompile files that are empty or has no code" do
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
       File.write!("lib/a.ex", "")
       File.write!("lib/b.ex", "# Just a comment")
       File.write!("lib/c.ex", "\n\n")
@@ -629,6 +652,8 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
   test "recompiles modules with __mix_recompile__ check" do
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
       File.write!("lib/a.ex", """
       defmodule A do
         def __mix_recompile__?(), do: true
@@ -667,6 +692,8 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
   test "does not treat remote typespecs as compile time dependencies" do
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
       File.write!("lib/b.ex", """
       defmodule B do
         @type t :: A.t
@@ -690,6 +717,8 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
   test "prints warnings from non-stale files with --all-warnings" do
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
       File.write!("lib/a.ex", """
       defmodule A do
         def my_fn(unused), do: :ok
@@ -720,6 +749,8 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
   test "returns warning diagnostics" do
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
       File.write!("lib/a.ex", """
       defmodule A do
         def my_fn(unused), do: :ok
@@ -747,6 +778,8 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
   test "returns warning diagnostics for external files" do
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
       File.write!("lib/a.ex", """
       IO.warn "warning", [{nil, nil, 0, file: 'lib/foo.txt', line: 3}]
       """)
@@ -767,6 +800,8 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
   test "returns warning diagnostics for unused imports" do
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
       File.write!("lib/a.ex", """
       defmodule A do
         import B
@@ -795,6 +830,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
   test "returns error diagnostics", context do
     in_tmp(context.test, fn ->
+      Mix.Project.push(MixTest.Case.Sample)
       File.mkdir_p!("lib")
 
       File.write!("lib/a.ex", """
@@ -821,6 +857,8 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
   test "returns error diagnostics when deadlocked" do
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
       File.write!("lib/a.ex", """
       defmodule A do
         B.__info__(:module)
@@ -849,8 +887,6 @@ defmodule Mix.Tasks.Compile.ElixirTest do
   end
 
   test "verify runtime dependent modules that haven't been compiled" do
-    Mix.Project.pop()
-
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample)
 

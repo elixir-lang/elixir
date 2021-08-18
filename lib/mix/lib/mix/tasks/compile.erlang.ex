@@ -10,16 +10,9 @@ defmodule Mix.Tasks.Compile.Erlang do
   Compiles Erlang source files.
 
   When this task runs, it will first check the modification times of
-  all files to be compiled and if they haven't been
-  changed since the last compilation, it will not compile
-  them. If any of them have changed, it compiles
-  everything.
-
-  For this reason, the task touches your `:compile_path`
-  directory and sets the modification time to the current
-  time and date at the end of each compilation. You can
-  force compilation regardless of modification times by passing
-  the `--force` option.
+  all files to be compiled and if they haven't been changed since the
+  last compilation, it will not compile them. If any of them have changed,
+  it compiles everything.
 
   ## Command line options
 
@@ -44,9 +37,8 @@ defmodule Mix.Tasks.Compile.Erlang do
       compiler. Defaults to `[]`.
 
       For a complete list of options, see `:compile.file/2`.
-
-      The option `:debug_info` is always added to the end of it. You can
-      disable that using:
+      The option `:debug_info` is always added to the end of it.
+      You can disable that using:
 
           erlc_options: [debug_info: false]
 
