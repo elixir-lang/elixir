@@ -139,12 +139,12 @@ defmodule Mix.Tasks.Compile.App do
     modules = modules_from(Path.wildcard("#{path}/*.beam")) |> Enum.sort()
 
     target = Path.join(path, "#{app}.app")
-    source = Mix.Project.config_mtime()
+    sources = [Mix.Project.config_mtime(), Mix.Project.project_file()]
 
     current_properties = current_app_properties(target)
     compile_env = load_compile_env(current_properties)
 
-    if opts[:force] || Mix.Utils.stale?([source], [target]) ||
+    if opts[:force] || Mix.Utils.stale?(sources, [target]) ||
          app_changed?(current_properties, modules, compile_env) do
       properties =
         [

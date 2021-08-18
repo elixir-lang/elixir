@@ -62,6 +62,12 @@ defmodule Mix.ProjectTest do
     end
   end
 
+  test "returns mix.exs path" do
+    assert Mix.Project.project_file() == nil
+    Mix.Project.push(SampleProject, "sample")
+    assert Mix.Project.project_file() == "sample"
+  end
+
   test "push and pop projects" do
     refute Mix.Project.get()
     Mix.Project.push(SampleProject, "sample")

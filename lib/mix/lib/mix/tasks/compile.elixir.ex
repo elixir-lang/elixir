@@ -100,8 +100,13 @@ defmodule Mix.Tasks.Compile.Elixir do
       Mix.raise(":elixirc_paths should be a list of paths, got: #{inspect(srcs)}")
     end
 
+    configs = [
+      Mix.Project.config_mtime(),
+      Mix.Project.project_file()
+      | Mix.Tasks.Compile.Erlang.manifests()
+    ]
+
     manifest = manifest()
-    configs = [Mix.Project.config_mtime() | Mix.Tasks.Compile.Erlang.manifests()]
     force = opts[:force] || Mix.Utils.stale?(configs, [manifest])
     {tracers, opts} = pop_tracers(opts)
 

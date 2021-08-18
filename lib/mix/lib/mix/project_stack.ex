@@ -76,17 +76,27 @@ defmodule Mix.ProjectStack do
     end)
   end
 
+  # We include the year 2000 as a minimum value in case we
+  # don't have any config files, which would return 0 and
+  # then not trigger stale sources.
+  @minimum_mtime 946_684_800
+
   @spec config_mtime() :: integer
   def config_mtime() do
     mtime_or_files =
       get_stack(fn
         [%{config_mtime: nil, config_files: files} | _] -> files
         [%{config_mtime: mtime} | _] -> mtime
-        [] -> 0
+        [] -> @minimum_mtime
       end)
 
     if is_list(mtime_or_files) do
-      mtime = mtime_or_files |> Enum.map(&Mix.Utils.last_modified/1) |> Enum.max()
+      mtime =
+        mtime_or_files
+        |> Enum.map(&Mix.Utils.last_modified/1)
+        |> Enum.max()
+        |> max(@minimum_mtime)
+
       update_stack(fn [h | t] -> {mtime, [%{h | config_mtime: mtime} | t]} end)
     else
       mtime_or_files
@@ -116,6 +126,14 @@ defmodule Mix.ProjectStack do
     get_stack(fn
       [h | _] -> h.config_files
       [] -> []
+    end)
+  end
+
+  @spec project_file() :: binary | nil
+  def project_file() do
+    get_stack(fn
+      [h | _] -> h.file
+      [] -> nil
     end)
   end
 
@@ -214,7 +232,6 @@ defmodule Mix.ProjectStack do
         # because we don't need to print anything unless another
         # project takes ahold of the shell.
         io_done? = stack == []
-
         config = Keyword.merge(config, post_config)
         manifest_file = Path.join(Mix.Project.manifest_path(config), @manifest)
         parent_config = peek_config_files(config[:inherit_parent_config_files], stack)
@@ -227,7 +244,7 @@ defmodule Mix.ProjectStack do
           recursing?: false,
           io_done: io_done?,
           config_apps: [],
-          config_files: [manifest_file, file | parent_config],
+          config_files: [manifest_file | parent_config],
           config_mtime: nil,
           after_compiler: %{},
           compile_env: :unset

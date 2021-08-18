@@ -49,9 +49,9 @@ defmodule Mix.Tasks.FormatTest do
       foo(bar)
       """)
 
-      File.touch!("a.ex", {{2000, 1, 1}, {0, 0, 0}})
+      File.touch!("a.ex", {{2010, 1, 1}, {0, 0, 0}})
       Mix.Tasks.Format.run(["a.ex"])
-      assert File.stat!("a.ex").mtime == {{2000, 1, 1}, {0, 0, 0}}
+      assert File.stat!("a.ex").mtime == {{2010, 1, 1}, {0, 0, 0}}
     end)
   end
 
@@ -274,10 +274,10 @@ defmodule Mix.Tasks.FormatTest do
       assert File.regular?(manifest_path)
 
       # Let's check that the manifest gets updated if it's stale.
-      File.touch!(manifest_path, {{1970, 1, 1}, {0, 0, 0}})
+      File.touch!(manifest_path, {{2010, 1, 1}, {0, 0, 0}})
 
       Mix.Tasks.Format.run(["lib/a.ex"])
-      assert File.stat!(manifest_path).mtime > {{1970, 1, 1}, {0, 0, 0}}
+      assert File.stat!(manifest_path).mtime > {{2010, 1, 1}, {0, 0, 0}}
     end)
   end
 
@@ -309,13 +309,13 @@ defmodule Mix.Tasks.FormatTest do
       assert File.regular?(manifest_path)
 
       # Let's check that the manifest gets updated if it's stale.
-      File.touch!(manifest_path, {{1970, 1, 1}, {0, 0, 0}})
+      File.touch!(manifest_path, {{2010, 1, 1}, {0, 0, 0}})
 
       formatter_opts = Mix.Tasks.Format.formatter_opts_for_file("a.ex")
       assert [my_fun: 2] = Keyword.get(formatter_opts, :locals_without_parens)
 
       Mix.Tasks.Format.run(["a.ex"])
-      assert File.stat!(manifest_path).mtime > {{1970, 1, 1}, {0, 0, 0}}
+      assert File.stat!(manifest_path).mtime > {{2010, 1, 1}, {0, 0, 0}}
     end)
   end
 

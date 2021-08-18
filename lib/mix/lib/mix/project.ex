@@ -178,6 +178,16 @@ defmodule Mix.Project do
   end
 
   @doc """
+  Returns the path to the file that defines the current project.
+
+  The majority of the time, it will point to a `mix.exs` file.
+  Returns nil if not inside a project.
+  """
+  @doc since: "1.13.0"
+  @spec project_file() :: binary | nil
+  defdelegate project_file(), to: Mix.ProjectStack
+
+  @doc """
   Returns the project configuration.
 
   If there is no project defined, it still returns a keyword
@@ -206,9 +216,13 @@ defmodule Mix.Project do
   This function is usually used in compilation tasks to trigger
   a full recompilation whenever such configuration files change.
 
-  It returns the `mix.exs` file, the lock manifest, and all config
-  files in the `config` directory that do not start with a leading
-  period (for example, `.my_config.exs`).
+  It returns the lock manifest, and all config files in the `config`
+  directory that do not start with a leading period (for example,
+  `.my_config.exs`).
+
+  Note: before Elixir v1.13.0, the `mix.exs` file was also included
+  as a config file, but since then it has been moved to its own
+  function called `project_file/0`.
   """
   @spec config_files() :: [Path.t()]
   def config_files do
@@ -221,6 +235,10 @@ defmodule Mix.Project do
   This function is usually used in compilation tasks to trigger
   a full recompilation whenever such configuration files change.
   For this reason, the mtime is cached to avoid file system lookups.
+
+  Note: before Elixir v1.13.0, the `mix.exs` file was also included
+  in the mtimes, but not anymore. You can compute its modification
+  date by calling  `project_file/0`.
   """
   @doc since: "1.7.0"
   @spec config_mtime() :: posix_mtime when posix_mtime: integer()
