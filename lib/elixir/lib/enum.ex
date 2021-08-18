@@ -3623,7 +3623,7 @@ defmodule Enum do
 
       Enum.reduce(Stream.zip(enums), acc, reducer)
 
-  But `zip_reduce/4` exists for convenience purposes.
+  But `zip_reduce/3` exists for convenience purposes.
 
   ## Examples
 
