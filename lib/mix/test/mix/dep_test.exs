@@ -56,9 +56,9 @@ defmodule Mix.DepTest do
   end
 
   test "extracts all dependencies from the given project" do
-    Mix.Project.push(DepsApp)
-
     in_fixture("deps_status", fn ->
+      Mix.Project.push(DepsApp)
+
       deps = Mix.Dep.load_on_environment([])
       assert length(deps) == 6
       assert Enum.find(deps, &match?(%Mix.Dep{app: :ok, status: {:ok, _}}, &1))
@@ -71,9 +71,9 @@ defmodule Mix.DepTest do
   end
 
   test "extracts all dependencies paths/scms from the given project" do
-    Mix.Project.push(DepsApp)
-
     in_fixture("deps_status", fn ->
+      Mix.Project.push(DepsApp)
+
       apps = Mix.Project.deps_apps()
       assert length(apps) == 6
       assert :ok in apps

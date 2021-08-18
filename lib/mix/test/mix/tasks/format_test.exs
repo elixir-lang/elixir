@@ -282,9 +282,9 @@ defmodule Mix.Tasks.FormatTest do
   end
 
   test "can read exported configuration from dependencies", context do
-    Mix.Project.push(__MODULE__.FormatWithDepsApp)
-
     in_tmp(context.test, fn ->
+      Mix.Project.push(__MODULE__.FormatWithDepsApp)
+
       File.write!(".formatter.exs", """
       [import_deps: [:my_dep]]
       """)
@@ -320,9 +320,9 @@ defmodule Mix.Tasks.FormatTest do
   end
 
   test "can read exported configuration from dependencies and subdirectories", context do
-    Mix.Project.push(__MODULE__.FormatWithDepsApp)
-
     in_tmp(context.test, fn ->
+      Mix.Project.push(__MODULE__.FormatWithDepsApp)
+
       File.mkdir_p!("deps/my_dep/")
 
       File.write!("deps/my_dep/.formatter.exs", """
@@ -426,9 +426,9 @@ defmodule Mix.Tasks.FormatTest do
   end
 
   test "validates dependencies in :import_deps", context do
-    Mix.Project.push(__MODULE__.FormatWithDepsApp)
-
     in_tmp(context.test, fn ->
+      Mix.Project.push(__MODULE__.FormatWithDepsApp)
+
       File.write!(".formatter.exs", """
       [import_deps: [:my_dep]]
       """)

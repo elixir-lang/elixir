@@ -64,9 +64,9 @@ defmodule Mix.Tasks.Compile.AppTest do
   end
 
   test "generates .app file when changes happen" do
-    Mix.Project.push(MixTest.Case.Sample)
-
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
       Mix.Tasks.Compile.Elixir.run([])
       assert Mix.Tasks.Compile.App.run([]) == {:ok, []}
 
@@ -81,9 +81,9 @@ defmodule Mix.Tasks.Compile.AppTest do
   end
 
   test "generates .app file with compile_env" do
-    Mix.Project.push(MixTest.Case.Sample)
-
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
       Mix.ProjectStack.compile_env([{:app, :key, :error}])
       assert Mix.Tasks.Compile.App.run([]) == {:ok, []}
       assert parse_resource_file(:sample)[:compile_env] == [{:app, :key, :error}]
@@ -107,9 +107,9 @@ defmodule Mix.Tasks.Compile.AppTest do
   end
 
   test "uses custom application settings" do
-    Mix.Project.push(CustomProject)
-
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(CustomProject)
+
       Mix.Tasks.Compile.Elixir.run([])
       Mix.Tasks.Compile.App.run([])
 
@@ -123,9 +123,9 @@ defmodule Mix.Tasks.Compile.AppTest do
   end
 
   test "infers applications" do
-    Mix.Project.push(CustomDeps)
-
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(CustomDeps)
+
       Mix.Tasks.Compile.Elixir.run([])
       Mix.Tasks.Compile.App.run([])
 
@@ -137,9 +137,9 @@ defmodule Mix.Tasks.Compile.AppTest do
   end
 
   test "validates properties" do
-    Mix.Project.push(InvalidProject)
-
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(InvalidProject)
+
       Process.put(:application, [:not_a_keyword, applications: []])
       message = "Application configuration returned from application/0 should be a keyword list"
 
@@ -234,9 +234,9 @@ defmodule Mix.Tasks.Compile.AppTest do
   end
 
   test ".app contains description and registered (as required by systools)" do
-    Mix.Project.push(MixTest.Case.Sample)
-
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
       Mix.Tasks.Compile.Elixir.run([])
       assert Mix.Tasks.Compile.App.run([]) == {:ok, []}
 
@@ -250,9 +250,9 @@ defmodule Mix.Tasks.Compile.AppTest do
   end
 
   test "raises on invalid version" do
-    Mix.Project.push(InvalidVsnProject)
-
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(InvalidVsnProject)
+
       message = ~r"Expected :version to be a valid Version, got: \"0.3\""
 
       assert_raise Mix.Error, message, fn ->

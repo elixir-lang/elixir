@@ -6,9 +6,9 @@ defmodule Mix.Tasks.Compile.ProtocolsTest do
   @old {{2010, 1, 1}, {0, 0, 0}}
 
   test "compiles and consolidates local protocols", context do
-    Mix.Project.push(MixTest.Case.Sample)
-
     in_tmp(context.test, fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
       File.mkdir_p!("lib")
       assert Mix.Task.run("compile")
 
@@ -49,9 +49,9 @@ defmodule Mix.Tasks.Compile.ProtocolsTest do
   end
 
   test "compiles after converting a protocol into a standard module", context do
-    Mix.Project.push(MixTest.Case.Sample)
-
     in_tmp(context.test, fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
       File.mkdir_p!("lib")
       Mix.Task.run("compile")
       purge_protocol(Compile.Protocol)
@@ -87,9 +87,9 @@ defmodule Mix.Tasks.Compile.ProtocolsTest do
   end
 
   test "compiles and consolidates deps protocols", context do
-    Mix.Project.push(MixTest.Case.Sample)
-
     in_tmp(context.test, fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
       File.mkdir_p!("lib")
       Mix.Task.run("compile")
       purge_protocol(String.Chars)
@@ -119,9 +119,8 @@ defmodule Mix.Tasks.Compile.ProtocolsTest do
   end
 
   test "consolidated protocols keep relative path to their source" do
-    Mix.Project.push(MixTest.Case.Sample)
-
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
       compile_elixir_and_protocols()
 
       # Load consolidated

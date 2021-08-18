@@ -109,17 +109,17 @@ defmodule Mix.Project do
   # Push a project onto the project stack.
   # Only the top of the stack can be accessed.
   @doc false
-  def push(atom, file \\ nil, app \\ nil) when is_atom(atom) do
-    file = file || (atom && List.to_string(atom.__info__(:compile)[:source]))
-    config = Keyword.merge([app: app] ++ default_config(), get_project_config(atom))
+  def push(module, file \\ nil, app \\ nil) when is_atom(module) do
+    file = file || (module && List.to_string(module.__info__(:compile)[:source]))
+    config = Keyword.merge([app: app] ++ default_config(), get_project_config(module))
 
-    case Mix.ProjectStack.push(atom, config, file) do
+    case Mix.ProjectStack.push(module, config, file) do
       :ok ->
         :ok
 
       {:error, other} when is_binary(other) ->
         Mix.raise(
-          "Trying to load #{inspect(atom)} from #{inspect(file)}" <>
+          "Trying to load #{inspect(module)} from #{inspect(file)}" <>
             " but another project with the same name was already defined at #{inspect(other)}"
         )
     end
@@ -212,7 +212,7 @@ defmodule Mix.Project do
   """
   @spec config_files() :: [Path.t()]
   def config_files do
-    [Mix.Tasks.WillRecompile.manifest() | Mix.ProjectStack.config_files()]
+    Mix.ProjectStack.config_files()
   end
 
   @doc """
@@ -225,9 +225,7 @@ defmodule Mix.Project do
   @doc since: "1.7.0"
   @spec config_mtime() :: posix_mtime when posix_mtime: integer()
   def config_mtime do
-    Mix.Tasks.WillRecompile.manifest()
-    |> Mix.Utils.last_modified()
-    |> max(Mix.ProjectStack.config_mtime())
+    Mix.ProjectStack.config_mtime()
   end
 
   @doc """
