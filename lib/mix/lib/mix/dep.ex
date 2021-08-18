@@ -260,7 +260,6 @@ defmodule Mix.Dep do
       |> Keyword.put(:build_scm, scm)
 
     config = Keyword.take(opts, [:inherit_parent_config_files]) ++ config
-
     env = opts[:env] || :prod
     old_env = Mix.env()
 

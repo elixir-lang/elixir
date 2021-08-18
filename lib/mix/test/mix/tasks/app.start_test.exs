@@ -14,9 +14,9 @@ defmodule Mix.Tasks.App.StartTest do
   end
 
   test "compiles and starts the project" do
-    Mix.Project.push(AppStartSample)
-
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(AppStartSample)
+
       assert_raise Mix.Error, fn ->
         Mix.Task.run("app.start", ["--no-compile"])
       end
@@ -73,9 +73,9 @@ defmodule Mix.Tasks.App.StartTest do
     end
 
     test "start points to report on error", context do
-      Mix.Project.push(ReturnSample)
-
       in_tmp(context.test, fn ->
+        Mix.Project.push(ReturnSample)
+
         Process.put(:application_definition, mod: {ReturnApp, {:error, :bye}})
         Mix.Tasks.Compile.run([])
 
@@ -91,9 +91,9 @@ defmodule Mix.Tasks.App.StartTest do
     end
 
     test "start points to report on exception error", context do
-      Mix.Project.push(ReturnSample)
-
       in_tmp(context.test, fn ->
+        Mix.Project.push(ReturnSample)
+
         mod = {ReturnApp, {:error, {:badarg, [{ReturnApp, :start, 2, []}]}}}
         Process.put(:application_definition, mod: mod)
         Mix.Tasks.Compile.run([])
@@ -112,9 +112,9 @@ defmodule Mix.Tasks.App.StartTest do
     end
 
     test "start points to report on bad return", context do
-      Mix.Project.push(ReturnSample)
-
       in_tmp(context.test, fn ->
+        Mix.Project.push(ReturnSample)
+
         Process.put(:application_definition, mod: {ReturnApp, :bad})
         Mix.Tasks.Compile.run([])
 
@@ -146,9 +146,9 @@ defmodule Mix.Tasks.App.StartTest do
     end
 
     test "start points to report on exit", context do
-      Mix.Project.push(ExitSample)
-
       in_tmp(context.test, fn ->
+        Mix.Project.push(ExitSample)
+
         Process.put(:application_definition, mod: {ExitApp, :bye})
         Mix.Tasks.Compile.run([])
 
@@ -163,9 +163,9 @@ defmodule Mix.Tasks.App.StartTest do
     end
 
     test "start points to report on normal exit", context do
-      Mix.Project.push(ExitSample)
-
       in_tmp(context.test, fn ->
+        Mix.Project.push(ExitSample)
+
         Process.put(:application_definition, mod: {ExitApp, :normal})
         Mix.Tasks.Compile.run([])
 

@@ -4,9 +4,9 @@ defmodule Mix.Tasks.LoadconfigTest do
   use MixTest.Case
 
   test "reads and persists project configuration", context do
-    Mix.Project.push(MixTest.Case.Sample)
-
     in_tmp(context.test, fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
       write_config("""
       [my_app: [key: :project]]
       """)
@@ -27,9 +27,9 @@ defmodule Mix.Tasks.LoadconfigTest do
   end
 
   test "sets config_env() and config_target()", context do
-    Mix.Project.push(MixTest.Case.Sample)
-
     in_tmp(context.test, fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
       write_config("""
       import Config
       config :opts_app, :key, {config_env(), config_target()}
@@ -43,9 +43,10 @@ defmodule Mix.Tasks.LoadconfigTest do
 
   test "reads from custom config_path", context do
     Mix.ProjectStack.post_config(config_path: "fresh.config")
-    Mix.Project.push(MixTest.Case.Sample)
 
     in_tmp(context.test, fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
       write_config("fresh.config", """
       [config_app: [key: :value]]
       """)
@@ -63,9 +64,9 @@ defmodule Mix.Tasks.LoadconfigTest do
   end
 
   test "updates config files and config mtime", context do
-    Mix.Project.push(MixTest.Case.Sample)
-
     in_tmp(context.test, fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
       mtime = Mix.Project.config_mtime()
       config = Path.expand("config/config.exs")
       refute config in Mix.Project.config_files()

@@ -17,9 +17,9 @@ defmodule Mix.Tasks.CleanTest do
   end
 
   test "cleans the application build" do
-    Mix.Project.push(Sample)
-
     in_fixture("deps_status", fn ->
+      Mix.Project.push(Sample)
+
       File.mkdir_p!("_build/dev/lib/sample/consolidated")
       File.mkdir_p!("_build/dev/lib/sample")
       File.mkdir_p!("_build/test/lib/sample")
@@ -34,9 +34,9 @@ defmodule Mix.Tasks.CleanTest do
   end
 
   test "cleans dependencies build" do
-    Mix.Project.push(Sample)
-
     in_fixture("deps_status", fn ->
+      Mix.Project.push(Sample)
+
       File.mkdir_p!("_build/dev/lib/ok")
       File.mkdir_p!("_build/test/lib/ok")
 
@@ -51,9 +51,10 @@ defmodule Mix.Tasks.CleanTest do
 
   test "invokes compiler hook defined in project" do
     Mix.ProjectStack.post_config(compilers: Mix.compilers() ++ [:testc])
-    Mix.Project.push(MixTest.Case.Sample)
 
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
       File.write!("lib/testc.ex", """
       defmodule Mix.Tasks.Compile.Testc do
         use Mix.Task.Compiler

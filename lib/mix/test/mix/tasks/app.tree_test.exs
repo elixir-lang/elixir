@@ -15,9 +15,9 @@ defmodule Mix.Tasks.App.TreeTest do
 
   @tag apps: [:test, :app_deps_sample, :app_deps2_sample, :app_deps3_sample, :app_deps4_sample]
   test "shows the application tree", context do
-    Mix.Project.push(AppDepsSample)
-
     in_tmp(context.test, fn ->
+      Mix.Project.push(AppDepsSample)
+
       load_apps()
       Mix.Tasks.App.Tree.run(["--format", "pretty"])
 
@@ -46,9 +46,9 @@ defmodule Mix.Tasks.App.TreeTest do
 
   @tag apps: [:test, :app_deps_sample, :app_deps2_sample, :app_deps3_sample, :app_deps4_sample]
   test "shows the given application tree", context do
-    Mix.Project.push(AppDepsSample)
-
     in_tmp(context.test, fn ->
+      Mix.Project.push(AppDepsSample)
+
       assert_raise Mix.Error, "could not find application app_deps_sample", fn ->
         Mix.Tasks.App.Tree.run(["--format", "pretty", "app_deps_sample"])
       end
@@ -65,9 +65,9 @@ defmodule Mix.Tasks.App.TreeTest do
 
   @tag apps: [:test, :app_deps_sample, :app_deps2_sample, :app_deps3_sample, :app_deps4_sample]
   test "shows the application dependency tree excluding applications", context do
-    Mix.Project.push(AppDepsSample)
-
     in_tmp(context.test, fn ->
+      Mix.Project.push(AppDepsSample)
+
       load_apps()
 
       exclude = ["--exclude", "app_deps4_sample", "--exclude", "app_deps3_sample"]
@@ -84,9 +84,9 @@ defmodule Mix.Tasks.App.TreeTest do
 
   @tag apps: [:test, :app_deps_sample, :app_deps2_sample, :app_deps3_sample, :app_deps4_sample]
   test "shows the application tree in dot form", context do
-    Mix.Project.push(AppDepsSample)
-
     in_tmp(context.test, fn ->
+      Mix.Project.push(AppDepsSample)
+
       load_apps()
       Mix.Tasks.App.Tree.run(["--format", "dot"])
 

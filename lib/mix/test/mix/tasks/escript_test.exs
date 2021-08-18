@@ -97,9 +97,9 @@ defmodule Mix.Tasks.EscriptTest do
   end
 
   test "generate escript" do
-    Mix.Project.push(Escript)
-
     in_fixture("escript_test", fn ->
+      Mix.Project.push(Escript)
+
       Mix.Tasks.Escript.Build.run([])
       assert_received {:mix_shell, :info, ["Generated escript escript_test with MIX_ENV=dev"]}
       assert System.cmd("escript", ["escript_test"]) == {"TEST\n", 0}
@@ -108,9 +108,9 @@ defmodule Mix.Tasks.EscriptTest do
   end
 
   test "generate escript with --no-compile option" do
-    Mix.Project.push(Escript)
-
     in_fixture("escript_test", fn ->
+      Mix.Project.push(Escript)
+
       Mix.Tasks.Compile.run([])
       purge([EscriptTest])
 
@@ -120,9 +120,9 @@ defmodule Mix.Tasks.EscriptTest do
   end
 
   test "generate escript with compile config" do
-    Mix.Project.push(Escript)
-
     in_fixture("escript_test", fn ->
+      Mix.Project.push(Escript)
+
       File.mkdir_p!("config")
 
       File.write!("config/config.exs", ~S"""
@@ -137,9 +137,9 @@ defmodule Mix.Tasks.EscriptTest do
   end
 
   test "generate escript with runtime config" do
-    Mix.Project.push(Escript)
-
     in_fixture("escript_test", fn ->
+      Mix.Project.push(Escript)
+
       File.mkdir_p!("config")
 
       File.write!("config/config.exs", """
@@ -164,9 +164,9 @@ defmodule Mix.Tasks.EscriptTest do
   end
 
   test "generate escript with debug information" do
-    Mix.Project.push(EscriptWithDebugInfo)
-
     in_fixture("escript_test", fn ->
+      Mix.Project.push(EscriptWithDebugInfo)
+
       Mix.Tasks.Escript.Build.run([])
 
       msg = "Generated escript escript_test_with_debug_info with MIX_ENV=dev"
@@ -207,9 +207,9 @@ defmodule Mix.Tasks.EscriptTest do
   end
 
   test "generate escript with path" do
-    Mix.Project.push(EscriptWithPath)
-
     in_fixture("escript_test", fn ->
+      Mix.Project.push(EscriptWithPath)
+
       Mix.Tasks.Escript.Build.run([])
 
       message = "Generated escript ebin/escript_test_with_path with MIX_ENV=dev"
@@ -220,9 +220,9 @@ defmodule Mix.Tasks.EscriptTest do
   end
 
   test "generate escript with deps" do
-    Mix.Project.push(EscriptWithDeps)
-
     in_fixture("escript_test", fn ->
+      Mix.Project.push(EscriptWithDeps)
+
       Mix.Tasks.Escript.Build.run([])
 
       message = "Generated escript escript_test_with_deps with MIX_ENV=dev"
@@ -235,9 +235,9 @@ defmodule Mix.Tasks.EscriptTest do
   end
 
   test "generate escript with Erlang and deps" do
-    Mix.Project.push(EscriptErlangWithDeps)
-
     in_fixture("escript_test", fn ->
+      Mix.Project.push(EscriptErlangWithDeps)
+
       Mix.Tasks.Escript.Build.run([])
 
       message = "Generated escript escript_test_erlang_with_deps with MIX_ENV=dev"
@@ -251,9 +251,9 @@ defmodule Mix.Tasks.EscriptTest do
   end
 
   test "generate escript with Erlang main module" do
-    Mix.Project.push(EscriptErlangMainModule)
-
     in_fixture("escript_test", fn ->
+      Mix.Project.push(EscriptErlangMainModule)
+
       Mix.Tasks.Escript.Build.run([])
 
       message = "Generated escript escript_test_erlang_main_module with MIX_ENV=dev"
@@ -267,9 +267,9 @@ defmodule Mix.Tasks.EscriptTest do
   end
 
   test "generate escript with consolidated protocols" do
-    Mix.Project.push(EscriptConsolidated)
-
     in_fixture("escript_test", fn ->
+      Mix.Project.push(EscriptConsolidated)
+
       Mix.Tasks.Escript.Build.run([])
 
       message = "Generated escript escript_test_consolidated with MIX_ENV=dev"
@@ -282,9 +282,10 @@ defmodule Mix.Tasks.EscriptTest do
 
   test "escript install and uninstall" do
     File.rm_rf!(tmp_path(".mix/escripts"))
-    Mix.Project.push(Escript)
 
     in_fixture("escript_test", fn ->
+      Mix.Project.push(Escript)
+
       # check that no escripts are installed
       Mix.Tasks.Escript.run([])
       assert_received {:mix_shell, :info, ["No escripts currently installed."]}
@@ -317,9 +318,10 @@ defmodule Mix.Tasks.EscriptTest do
 
   test "escript install and uninstall --force" do
     File.rm_rf!(tmp_path(".mix/escripts"))
-    Mix.Project.push(Escript)
 
     in_fixture("escript_test", fn ->
+      Mix.Project.push(Escript)
+
       Mix.Tasks.Escript.Install.run(["--force"])
 
       # check that it shows in the list
@@ -347,9 +349,9 @@ defmodule Mix.Tasks.EscriptTest do
   end
 
   test "escript invalid main module" do
-    Mix.Project.push(EscriptWithUnknownMainModule)
-
     in_fixture("escript_test", fn ->
+      Mix.Project.push(EscriptWithUnknownMainModule)
+
       message =
         "Could not generate escript, module Elixir.BogusEscriptTest defined as :main_module could not be loaded"
 

@@ -9,9 +9,8 @@ defmodule Mix.Tasks.App.ConfigTest do
       env: [from_env: :env, from_compile: :env, from_runtime: :env]
     )
 
-    Mix.Project.push(MixTest.Case.Sample)
-
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
       File.mkdir_p!("config")
 
       File.write!("config/config.exs", """
@@ -44,9 +43,8 @@ defmodule Mix.Tasks.App.ConfigTest do
   end
 
   test "sets config_env() and config_target()" do
-    Mix.Project.push(MixTest.Case.Sample)
-
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
       File.mkdir_p!("config")
 
       File.write!("config/runtime.exs", """
@@ -62,9 +60,8 @@ defmodule Mix.Tasks.App.ConfigTest do
   end
 
   test "warns if kernel/stdlib are configured" do
-    Mix.Project.push(MixTest.Case.Sample)
-
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
       File.mkdir_p!("config")
 
       File.write!("config/runtime.exs", """
@@ -80,9 +77,9 @@ defmodule Mix.Tasks.App.ConfigTest do
   end
 
   test "compiles and preloads the project" do
-    Mix.Project.push(MixTest.Case.Sample)
-
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
       Mix.Task.run("app.config", ["--no-compile"])
       refute :code.is_loaded(A)
       refute File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
@@ -104,9 +101,9 @@ defmodule Mix.Tasks.App.ConfigTest do
   end
 
   test "start checks for invalid configuration", context do
-    Mix.Project.push(MixTest.Case.Sample)
-
     in_tmp(context.test, fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
       :ok = :application.load({:application, :loaded_sample, [vsn: '1.0.0', env: []]})
       Mix.ProjectStack.loaded_config([:sample, :unknown_sample, :loaded_sample], [])
       Mix.Tasks.App.Config.run([])
@@ -121,9 +118,10 @@ defmodule Mix.Tasks.App.ConfigTest do
 
   test "validates Elixir version requirement", context do
     Mix.ProjectStack.post_config(elixir: "~> ~> 0.8.1")
-    Mix.Project.push(MixTest.Case.Sample)
 
     in_tmp(context.test, fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
       assert_raise Mix.Error, ~r"Invalid Elixir version requirement", fn ->
         Mix.Tasks.App.Start.run(["--no-start"])
       end
@@ -132,9 +130,10 @@ defmodule Mix.Tasks.App.ConfigTest do
 
   test "validates the Elixir version with requirement", context do
     Mix.ProjectStack.post_config(elixir: "~> 0.8.1")
-    Mix.Project.push(MixTest.Case.Sample)
 
     in_tmp(context.test, fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
       assert_raise Mix.ElixirVersionError, ~r/You're trying to run :sample on Elixir/, fn ->
         Mix.Tasks.App.Start.run(["--no-start"])
       end
@@ -143,9 +142,10 @@ defmodule Mix.Tasks.App.ConfigTest do
 
   test "does not validate the Elixir version with requirement when disabled", context do
     Mix.ProjectStack.post_config(elixir: "~> 0.8.1")
-    Mix.Project.push(MixTest.Case.Sample)
 
     in_tmp(context.test, fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
       Mix.Tasks.App.Start.run(["--no-start", "--no-elixir-version-check"])
     end)
   end

@@ -30,9 +30,9 @@ defmodule Mix.Tasks.Deps.TreeTest do
   end
 
   test "shows the dependency tree", context do
-    Mix.Project.push(ConvergedDepsApp)
-
     in_tmp(context.test, fn ->
+      Mix.Project.push(ConvergedDepsApp)
+
       Mix.Tasks.Deps.Tree.run(["--format", "pretty"])
       assert_received {:mix_shell, :info, ["sample"]}
       assert_received {:mix_shell, :info, ["├── deps_on_git_repo 0.2.0 (" <> _]}
@@ -61,9 +61,9 @@ defmodule Mix.Tasks.Deps.TreeTest do
   end
 
   test "shows the given dependency", context do
-    Mix.Project.push(ConvergedDepsApp)
-
     in_tmp(context.test, fn ->
+      Mix.Project.push(ConvergedDepsApp)
+
       assert_raise Mix.Error, "could not find dependency unknown", fn ->
         Mix.Tasks.Deps.Tree.run(["--format", "pretty", "unknown"])
       end
@@ -75,9 +75,9 @@ defmodule Mix.Tasks.Deps.TreeTest do
   end
 
   test "shows overridden deps", context do
-    Mix.Project.push(OverriddenDepsApp)
-
     in_tmp(context.test, fn ->
+      Mix.Project.push(OverriddenDepsApp)
+
       Mix.Tasks.Deps.Tree.run(["--format", "pretty"])
       assert_received {:mix_shell, :info, ["sample"]}
       assert_received {:mix_shell, :info, ["└── git_repo (" <> msg]}
@@ -87,9 +87,9 @@ defmodule Mix.Tasks.Deps.TreeTest do
   end
 
   test "excludes the given deps", context do
-    Mix.Project.push(OverriddenDepsApp)
-
     in_tmp(context.test, fn ->
+      Mix.Project.push(OverriddenDepsApp)
+
       Mix.Tasks.Deps.Tree.run(["--format", "pretty", "--exclude", "deps_on_git_repo"])
       assert_received {:mix_shell, :info, ["sample"]}
       assert_received {:mix_shell, :info, ["└── git_repo (" <> _]}
@@ -98,9 +98,9 @@ defmodule Mix.Tasks.Deps.TreeTest do
   end
 
   test "shows a particular environment", context do
-    Mix.Project.push(OverriddenDepsApp)
-
     in_tmp(context.test, fn ->
+      Mix.Project.push(OverriddenDepsApp)
+
       Mix.Tasks.Deps.Tree.run(["--format", "pretty", "--only", "prod"])
       assert_received {:mix_shell, :info, ["sample"]}
       assert_received {:mix_shell, :info, ["└── git_repo (" <> _]}
@@ -109,9 +109,9 @@ defmodule Mix.Tasks.Deps.TreeTest do
   end
 
   test "shows the dependency tree in DOT graph format", context do
-    Mix.Project.push(ConvergedDepsApp)
-
     in_tmp(context.test, fn ->
+      Mix.Project.push(ConvergedDepsApp)
+
       Mix.Tasks.Deps.Tree.run(["--format", "dot"])
 
       assert File.read!("deps_tree.dot") == """
