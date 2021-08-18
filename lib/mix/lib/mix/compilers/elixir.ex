@@ -175,11 +175,8 @@ defmodule Mix.Compilers.Elixir do
     {[], %{}, all_paths, sources_stats}
   end
 
-  # Assume that either all .beam files are missing, or none of them are.
-  defp missing_beam_file?(dest, [module | _]) do
-    !File.exists?(beam_path(dest, module))
-  end
-
+  # Assume that either all .beam files are missing, or none of them are
+  defp missing_beam_file?(dest, [mod | _]), do: not File.exists?(beam_path(dest, mod))
   defp missing_beam_file?(_dest, []), do: false
 
   defp compiler_info_from_updated(
