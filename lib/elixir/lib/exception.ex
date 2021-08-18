@@ -68,7 +68,7 @@ defmodule Exception do
       caught_exception ->
         "got #{inspect(caught_exception.__struct__)} with message " <>
           "#{inspect(message(caught_exception))} while retrieving Exception.message/1 " <>
-          "for #{inspect(exception)}"
+          "for #{inspect(exception)}. Stacktrace:\n#{format_stacktrace(__STACKTRACE__)}"
     else
       result when is_binary(result) ->
         result
