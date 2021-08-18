@@ -114,21 +114,23 @@ expand({'__MODULE__', _, Atom}, S, E) when is_atom(Atom) ->
 expand({'__DIR__', _, Atom}, S, E) when is_atom(Atom) ->
   {filename:dirname(?key(E, file)), S, E};
 expand({'__CALLER__', Meta, Atom} = Caller, S, E) when is_atom(Atom) ->
+  assert_no_match_scope(Meta, "__CALLER__", E),
   case S#elixir_ex.caller of
     true -> {Caller, S, E};
     false -> form_error(Meta, E, ?MODULE, caller_not_allowed)
   end;
 expand({'__STACKTRACE__', Meta, Atom} = Stacktrace, S, E) when is_atom(Atom) ->
+  assert_no_match_scope(Meta, "__STACKTRACE__", E),
   case S#elixir_ex.stacktrace of
     true -> {Stacktrace, S, E};
     false -> form_error(Meta, E, ?MODULE, stacktrace_not_allowed)
   end;
-expand({'__ENV__', Meta, Atom}, _S, #{context := match} = E) when is_atom(Atom) ->
-  form_error(Meta, E, ?MODULE, env_not_allowed);
 expand({'__ENV__', Meta, Atom}, S, E) when is_atom(Atom) ->
+  assert_no_match_scope(Meta, "__ENV__", E),
   {escape_map(escape_env_entries(Meta, S, E)), S, E};
-expand({{'.', DotMeta, [{'__ENV__', Meta, Atom}, Field]}, CallMeta, []}, S, #{context := Context} = E)
-    when is_atom(Atom), is_atom(Field), Context /= match ->
+expand({{'.', DotMeta, [{'__ENV__', Meta, Atom}, Field]}, CallMeta, []}, S, E)
+    when is_atom(Atom), is_atom(Field) ->
+  assert_no_match_scope(Meta, "__ENV__", E),
   Env = escape_env_entries(Meta, S, E),
   case maps:is_key(Field, Env) of
     true  -> {maps:get(Field, Env), S, E};
@@ -1278,8 +1280,6 @@ format_error({nested_comparison, CompExpr}) ->
                 "You wrote: ~ts", [String]);
 format_error({undefined_local_capture, Fun, Arity}) ->
   io_lib:format("undefined function ~ts/~B (there is no such import)", [Fun, Arity]);
-format_error(env_not_allowed) ->
-  "__ENV__ is not allowed inside a match";
 format_error(caller_not_allowed) ->
   "__CALLER__ is available only inside defmacro and defmacrop";
 format_error(stacktrace_not_allowed) ->
