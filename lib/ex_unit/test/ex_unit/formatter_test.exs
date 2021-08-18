@@ -251,6 +251,29 @@ defmodule ExUnit.FormatterTest do
            """
   end
 
+  test "formats assertions with patterns and values" do
+    failure = [{:error, catch_assertion(assert {1, 2, 3} > {1, 2, 3}), []}]
+
+    assert format_test_failure(test(), failure, 1, 80, &formatter/2) =~ """
+             1) world (Hello)
+                test/ex_unit/formatter_test.exs:1
+                Assertion with > failed, both sides are exactly equal
+                code: assert {1, 2, 3} > {1, 2, 3}
+                left: {1, 2, 3}
+           """
+
+    failure = [{:error, catch_assertion(assert {3, 2, 1} = {1, 2, 3}), []}]
+
+    assert format_test_failure(test(), failure, 1, 80, &formatter/2) =~ """
+             1) world (Hello)
+                test/ex_unit/formatter_test.exs:1
+                match (=) failed
+                code:  assert {3, 2, 1} = {1, 2, 3}
+                left:  {3, 2, 1}
+                right: {1, 2, 3}
+           """
+  end
+
   test "formats multiple assertions" do
     failure = [
       {:error, catch_assertion(assert ExUnit.FormatterTest.falsy()), []},
@@ -348,7 +371,9 @@ defmodule ExUnit.FormatterTest do
              1) Hello: failure on setup_all callback, all tests have been invalidated
                 Assertion with == failed
                 code:  assert [1, 2, 3] == [4, 5, 6]
-                left:  [1, 2, 3]
+                left:  [1,
+                        2,
+                        3]
                 right: [4,
                         5,
                         6]
@@ -433,7 +458,7 @@ defmodule ExUnit.FormatterTest do
 
     message =
       "got RuntimeError with message \"oops\" while retrieving Exception.message/1 " <>
-        "for %ExUnit.FormatterTest.BadMessage{key: 0}"
+        "for %ExUnit.FormatterTest.BadMessage{key: 0}. Stacktrace:"
 
     assert format_test_failure(test(), failure, 1, 80, &formatter/2) =~ """
              1) world (Hello)

@@ -443,6 +443,9 @@ defmodule ExUnit.Formatter do
 
         {left, right}
 
+      nil when is_atom(context) ->
+        {if_value(left, inspect), if_value(right, inspect)}
+
       nil ->
         {if_value(left, &code_multiline(&1, padding_size)), if_value(right, inspect)}
     end
