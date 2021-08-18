@@ -20,9 +20,9 @@ defmodule Mix.Tasks.Compile.ElixirTest do
   test "compiles a project without per environment build" do
     Mix.Project.pop()
     Mix.ProjectStack.post_config(build_per_environment: false)
-    Mix.Project.push(MixTest.Case.Sample)
 
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
       Mix.Tasks.Compile.Elixir.run(["--verbose"])
 
       assert File.regular?("_build/shared/lib/sample/ebin/Elixir.A.beam")
@@ -850,9 +850,10 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
   test "verify runtime dependent modules that haven't been compiled" do
     Mix.Project.pop()
-    Mix.Project.push(MixTest.Case.Sample)
 
     in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
       File.write!("lib/a.ex", """
       defmodule A do
         def foo(), do: :ok

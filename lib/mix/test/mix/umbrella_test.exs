@@ -143,9 +143,9 @@ defmodule Mix.UmbrellaTest do
   end
 
   test "loads umbrella dependencies" do
-    Mix.Project.push(UmbrellaDeps)
-
     in_fixture("umbrella_dep/deps/umbrella", fn ->
+      Mix.Project.push(UmbrellaDeps)
+
       File.mkdir_p!("deps/some_dep/ebin")
       File.mkdir_p!("_build/dev/lib/some_dep/ebin")
       File.mkdir_p!("_build/dev/lib/foo/ebin")
@@ -304,9 +304,9 @@ defmodule Mix.UmbrellaTest do
   end
 
   test "handles dependencies with cycles" do
-    Mix.Project.push(CycleDeps)
-
     in_fixture("umbrella_dep", fn ->
+      Mix.Project.push(CycleDeps)
+
       assert Enum.map(Mix.Dep.load_on_environment([]), & &1.app) == [:foo, :bar, :umbrella]
     end)
   end

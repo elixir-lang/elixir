@@ -50,9 +50,10 @@ defmodule Mix.Tasks.CompileTest do
 
   test "compiles a project with cached deps information" do
     Mix.Project.pop()
-    Mix.Project.push(DepsApp)
 
     in_fixture("deps_status", fn ->
+      Mix.Project.push(DepsApp)
+
       File.mkdir_p!("lib")
 
       File.write!("lib/a.ex", """

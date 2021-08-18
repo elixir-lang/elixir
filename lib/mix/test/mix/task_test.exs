@@ -79,9 +79,9 @@ defmodule Mix.TaskTest do
   end
 
   test "run/2 tries to load deps if task is missing" do
-    Mix.Project.push(DepsApp)
-
     in_fixture("deps_status", fn ->
+      Mix.Project.push(DepsApp)
+
       assert_raise Mix.NoTaskError, fn ->
         Mix.Task.run("task_hello")
       end

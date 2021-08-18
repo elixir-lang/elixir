@@ -5,6 +5,10 @@ defmodule Mix.ProjectStack do
   @name __MODULE__
   @timeout :infinity
 
+  # compile.lock is not the best name, but the name is completely
+  # opaque and we keep it for backwards compatibility (just in case).
+  @manifest "compile.lock"
+
   @typep file :: binary
   @typep config :: keyword
   @typep project :: %{name: module, config: config, file: file}
@@ -87,6 +91,16 @@ defmodule Mix.ProjectStack do
     else
       mtime_or_files
     end
+  end
+
+  @spec reset_config_mtime() :: :ok
+  def reset_config_mtime() do
+    update_stack(fn
+      [h | t] -> {:ok, [%{h | config_mtime: nil} | t]}
+      [] -> {:ok, []}
+    end)
+
+    @manifest
   end
 
   @spec config_apps() :: [atom]
@@ -197,9 +211,13 @@ defmodule Mix.ProjectStack do
       else
         # Consider the first children to always have io_done
         # because we don't need to print anything unless another
+        # because we don't need to print anything unless another
         # project takes ahold of the shell.
         io_done? = stack == []
+
         config = Keyword.merge(config, post_config)
+        manifest_file = Path.join(Mix.Project.manifest_path(config), @manifest)
+        parent_config = peek_config_files(config[:inherit_parent_config_files], stack)
 
         project = %{
           name: module,
@@ -209,7 +227,7 @@ defmodule Mix.ProjectStack do
           recursing?: false,
           io_done: io_done?,
           config_apps: [],
-          config_files: [file] ++ peek_config_files(config[:inherit_parent_config_files], stack),
+          config_files: [manifest_file, file | parent_config],
           config_mtime: nil,
           after_compiler: %{},
           compile_env: :unset
