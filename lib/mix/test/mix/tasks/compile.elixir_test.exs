@@ -257,6 +257,41 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   end
 
+  test "does recompile a file restored after a compile error (and .beam file were deleted)" do
+    in_fixture("no_mixfile", fn ->
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+
+      Mix.shell().flush
+      purge([A, B])
+
+      # Compile with error
+      original_content = File.read!("lib/b.ex")
+      File.write!("lib/b.ex", "this will not compile")
+
+      assert capture_io(fn ->
+               {:error, _} = Mix.Tasks.Compile.Elixir.run(["--verbose"])
+             end) =~ "Compilation error in file lib/b.ex"
+
+      assert_received {:mix_shell, :info, ["Compiling 1 file (.ex)"]}
+
+      # Revert change
+      File.write!("lib/b.ex", original_content)
+      future = {{2038, 1, 1}, {0, 0, 0}}
+      File.touch!("lib/b.ex", future)
+
+      Mix.Tasks.Compile.Elixir.run(["--verbose"])
+
+      message =
+        "warning: mtime (modified time) for \"lib/b.ex\" was set to the future, resetting to now"
+
+      assert_received {:mix_shell, :error, [^message]}
+      assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+      refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+    end)
+  end
+
   test "compiles size changed files" do
     in_fixture("no_mixfile", fn ->
       past = {{2010, 1, 1}, {0, 0, 0}}
