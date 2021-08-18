@@ -175,6 +175,13 @@ defmodule Mix.Compilers.Elixir do
     {[], %{}, all_paths, sources_stats}
   end
 
+  # Assume that either all .beam files are missing, or none of them are.
+  defp missing_beam_file?(dest, [module | _]) do
+    !File.exists?(beam_path(dest, module))
+  end
+
+  defp missing_beam_file?(_dest, []), do: false
+
   defp compiler_info_from_updated(
          modified,
          all_paths,
@@ -209,7 +216,10 @@ defmodule Mix.Compilers.Elixir do
           times = Enum.map(external, &(sources_stats |> Map.fetch!(&1) |> elem(0))),
           Enum.any?(modules, &Map.has_key?(modules_to_recompile, &1)) or
             Enum.any?(times, &(&1 > modified)) or
-            (size != last_size or (last_mtime > modified and digest != digest(source))),
+            (size != last_size or
+               (last_mtime > modified and
+                  (missing_beam_file?(dest, modules) or
+                     digest != digest(source)))),
           do: source
 
     changed = new_paths ++ changed
