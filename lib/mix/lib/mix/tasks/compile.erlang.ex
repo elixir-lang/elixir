@@ -113,6 +113,16 @@ defmodule Mix.Tasks.Compile.Erlang do
     Mix.Compilers.Erlang.clean(manifest())
   end
 
+  @doc false
+  def modules do
+    for output <- Mix.Compilers.Erlang.outputs(manifest()) do
+      output
+      |> Path.basename()
+      |> Path.rootname()
+      |> String.to_atom()
+    end
+  end
+
   ## Internal helpers
 
   defp scan_sources(files, include_path, source_paths, compile_path, opts) do

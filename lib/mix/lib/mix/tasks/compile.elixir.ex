@@ -91,6 +91,7 @@ defmodule Mix.Tasks.Compile.Elixir do
   @impl true
   def run(args) do
     {opts, _, _} = OptionParser.parse(args, switches: @switches)
+    {tracers, opts} = pop_tracers(opts)
 
     project = Mix.Project.config()
     dest = Mix.Project.compile_path(project)
@@ -100,19 +101,22 @@ defmodule Mix.Tasks.Compile.Elixir do
       Mix.raise(":elixirc_paths should be a list of paths, got: #{inspect(srcs)}")
     end
 
-    configs = [
-      Mix.Project.config_mtime() | Mix.Tasks.Compile.Erlang.manifests()
-    ]
-
     manifest = manifest()
     manifest_last_modified = Mix.Utils.last_modified(manifest)
-    force = opts[:force] || Mix.Utils.stale?(configs, [manifest_last_modified])
-    {tracers, opts} = pop_tracers(opts)
+
+    force =
+      opts[:force] ||
+        Mix.Utils.stale?([Mix.Project.config_mtime()], [manifest_last_modified])
+
+    stale =
+      if Mix.Utils.stale?(Mix.Tasks.Compile.Erlang.manifests(), [manifest_last_modified]),
+        do: Mix.Tasks.Compile.Erlang.modules(),
+        else: []
 
     stale =
       if Mix.Utils.stale?([Mix.Project.project_file()], [manifest_last_modified]),
-        do: [Mix.Project],
-        else: []
+        do: [Mix.Project | stale],
+        else: stale
 
     base = xref_exclude_opts(project[:elixirc_options] || [], project)
     cache_key = {base, srcs}
