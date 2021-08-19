@@ -743,7 +743,7 @@ defmodule Mix.Compilers.Elixir do
         )
     end
 
-    {[], [], %{}}
+    {[], [], %{}, nil}
   end
 
   defp write_manifest(manifest, [], [], _exports, _cache_key, _timestamp) do
