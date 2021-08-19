@@ -1,5 +1,41 @@
 # Changelog for Elixir v1.13
 
+The focus behind Elixir v1.13 has been on tooling, mainly tooling related to code formatting, code fragments, code reflection, and code recompilation. A lot of this functionality will directly impact developers working on large codebases and provide meaningful quality of life improvements for those working on Elixir tooling and environments, such as IDEs, notebooks, etc.
+
+## Reduced recompilation
+
+Elixir v1.13 comes with many improvements to the compiler, so it recompiles your files less frequently. In particular:
+
+  * The digest of the files are considered in addition to their size. This avoids recompiling many files when switching or rebasing branches.
+
+  * Changing your `mix.exs` will no longer trigger a whole project recompilation, unless you specifically change the configuration used by the Elixir compiler.
+
+  * If your project has both Erlang and Elixir files, changing an Erlang file will now recompile only the Elixir files that depend on it.
+
+## mix xref
+
+`mix xref` is a tool that analyzes relationships between files. By analyzing the compile-time and runtime dependencies between files, it allows developers to understand what files have to be recompiled whenever a file changes.
+
+Elixir v1.13 comes with many improvements to `mix xref`, such as:
+
+  * `mix xref graph` now supports multiple `--sink` and `--source` to be given.
+
+  * `mix xref graph` now supports `--label` to be set to "compile-connected" and "compile-direct", which returns all compile files that lead to transitive dependencies and direct compile-time dependencies respectively.
+
+  * A new `mix xref trace FILE` subcommand receives a file and returns all dependencies in said file, including the line and what caused said dependency (a function/macro call, an alias, a struct, etc).
+
+  * All `mix xref` subcommands support the `--fail-above` flag, which allows you to enforce your project has at most a certain number of compile-time cycles, transitive compile-time dependencies, etc.
+
+With these improvements, it has become simpler to understand the impact code recompilation has in our codebases and how to limit it.
+
+## Code wrangling
+
+The `Code` has been augmented with two functions: `Code.string_to_quoted_with_comments/2` and `Code.quoted_to_algebra/2`. Those functions allow someone to retrieve the Elixir AST with their original source code comments, and then convert this AST to formatted code. In other words, those functions provide a wrapper around the Elixir Code Formatter, supporting developers who wish to create tools that directly manipulate source code and keep it formatted.
+
+The `Code` module also got a companion module called `Code.Fragment`, which hosts functions that work on incomplete code, as is often the scenario in editors, command line, etc. The module contains different heuristics to analyze the source code and return context informational.
+
+Finally, new compilation tracers have been added, alongside a handful of functions in `Module` to help reflect on module metadata, which can be used to enrich suggestions in programming environments.
+
 ## v1.13.0-dev
 
 ### 1. Enhancements
@@ -10,6 +46,7 @@
 
 #### Elixir
 
+  * [CLI] Support `--short-version` on the CLI that does not boot the VM
   * [Code] Add `Code.string_to_quoted_with_comments/2` and `Code.quoted_to_algebra/2`
   * [Code] Add more `:token_metadata` to aliases and remote calls when parsing strings
   * [Code] Add `Code.Fragment` module to provide best-effort information from code fragments. The module currently provides an updated `Code.Fragment.cursor_context/2` with operator support and `Code.Fragment.surround_context/2` which looks at a given position in a fragment and find its surrounding delimiters
@@ -22,7 +59,9 @@
   * [Kernel] Improve compilation times by reducing the amount of copies of the AST across compiler processes
   * [Kernel] Warn when `?\` is used and there is no need for a escape character
   * [Kernel] Track structs in typespecs as export deps instead of compile-time deps
+  * [Keyword] Add `Keyword.validate/2`
   * [List] Add `List.keyfind!/3`
+  * [Macro.Env] Add the following reflection functions: `required?/2`, `lookup_import/2`, `fetch_alias/2`, and `fetch_macro_alias/2`
   * [Module] Support `:nillify_clauses` in `Module.get_definition/3`
   * [Module] Add `Module.attributes_in/1` and `Module.overridables_in/1`
   * [OptionParser] Add "did you mean?" suggestions to `OptionParser.ParseError` messages
@@ -46,15 +85,20 @@
 
   * [mix archive.install] Run `loadconfig` before building archive
   * [mix compile] Move Elixir version check to before deps are compiled, in order to give feedback earlier
+  * [mix compile.elixir] Do not recompile all Elixir sources when Erlang modules change, only dependent ones
+  * [mix compile.elixir] Do not recompile Elixir files if `mix.exs` changes, instead recompile only files using `Mix.Project` or trigger a recompilation if a compiler option changes
   * [mix deps] Add `:subdir` option to git deps
   * [mix escript.install] Run `loadconfig` before building escript
-  * [mix rebar] No longer support `sub_dirs` in Rebar 2 to help migration towards Rebar 3
+  * [mix local.rebar] No longer support `sub_dirs` in Rebar 2 to help migration towards Rebar 3
+  * [mix local.rebar] Support `--if-missing` option when installing Rebar
+  * [mix local.rebar] Set `REBAR_PROFILE=prod` when compiling Rebar dependencies
   * [mix test] Support `--profile-require=time` to profile the time loading test files themselves
   * [mix test] Allow filtering modules from coverage using regex
   * [mix test] Allow the exit status of ExUnit to be configured and set the default to 2
   * [mix test] Exit with a status of 3 when coverage falls below threshold
   * [mix test] Write failed manifest when suite fails due to --warnings-as-errors
   * [mix xref] Support multiple sinks and sources in `mix xref graph`
+  * [mix xref] Add `trace` subcommand to print compilation dependencies between files
   * [mix xref] Add `--fail-above` option to `mix xref`
   * [mix xref] Add `--label compile-connected` to `mix xref`
   * [mix xref] Add `--label compile-direct` to `mix xref` (instead of `--only-direct`)
@@ -64,6 +108,7 @@
 #### Elixir
 
   * [Code] Ensure bindings with no context are returned as atoms instead of `{binding, nil}` in eval operations
+  * [Kernel] Raise if `__CALLER__` or `__ENV__` or `__STACKTRACE__` are used in match
   * [Kernel] Improve error message on invalid argument for `byte_size` from binary concat
   * [Kernel] Raise when aliasing non-Elixir modules without `:as`
   * [Kernel] Allow `unquote_splicing` inside `%{...}` without parens
@@ -79,6 +124,10 @@
 
   * [ExUnit] Invalidate a module's tests in `ExUnit.run/0` results if that module's `setup_all` fails
   * [ExUnit] Fix count in formatter if a module's `setup_all` fails
+
+#### Logger
+
+  * [Logger] Raise clear error message for invalid `:compile_time_purge_matching` configuration
 
 #### Mix
 
