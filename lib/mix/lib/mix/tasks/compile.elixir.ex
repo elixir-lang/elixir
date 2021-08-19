@@ -101,23 +101,29 @@ defmodule Mix.Tasks.Compile.Elixir do
     end
 
     configs = [
-      Mix.Project.config_mtime(),
-      Mix.Project.project_file()
-      | Mix.Tasks.Compile.Erlang.manifests()
+      Mix.Project.config_mtime() | Mix.Tasks.Compile.Erlang.manifests()
     ]
 
     manifest = manifest()
-    force = opts[:force] || Mix.Utils.stale?(configs, [manifest])
+    manifest_last_modified = Mix.Utils.last_modified(manifest)
+    force = opts[:force] || Mix.Utils.stale?(configs, [manifest_last_modified])
     {tracers, opts} = pop_tracers(opts)
 
+    stale =
+      if Mix.Utils.stale?([Mix.Project.project_file()], [manifest_last_modified]),
+        do: [Mix.Project],
+        else: []
+
+    base = xref_exclude_opts(project[:elixirc_options] || [], project)
+    cache_key = {base, srcs}
+
     opts =
-      (project[:elixirc_options] || [])
+      base
       |> Keyword.merge(opts)
-      |> xref_exclude_opts(project)
       |> tracers_opts(tracers)
       |> profile_opts()
 
-    Mix.Compilers.Elixir.compile(manifest, srcs, dest, [:ex], force, opts)
+    Mix.Compilers.Elixir.compile(manifest, srcs, dest, [:ex], stale, cache_key, force, opts)
   end
 
   @impl true

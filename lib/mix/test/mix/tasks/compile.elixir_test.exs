@@ -122,6 +122,42 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   end
 
+  test "recompiles project if elixirc_options changed" do
+    in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+
+      Mix.Task.clear()
+      Mix.ProjectStack.merge_config(xref: [exclude: [Foo]])
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+    end)
+  end
+
+  test "recompiles files using Mix.Project if mix.exs changes" do
+    in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample, __ENV__.file)
+
+      File.write!("lib/a.ex", """
+      defmodule A do
+        Mix.Project.config()
+      end
+      """)
+
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+
+      Mix.Task.clear()
+      mtime = File.stat!("_build/dev/lib/sample/.mix/compile.elixir").mtime
+      ensure_touched(__ENV__.file, mtime)
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+    end)
+  end
+
   test "recompiles project if Elixir version changed" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample)
@@ -390,7 +426,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   end
 
-  test "compiles dependent changed files" do
+  test "compiles dependent changed externa resources" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample)
       tmp = tmp_path("c.eex")
@@ -631,7 +667,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   end
 
-  test "does not recompile files that are empty or has no code" do
+  test "does not recompile files that are empty or have no code" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample)
       File.write!("lib/a.ex", "")
@@ -687,31 +723,6 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       File.rm!("lib/a.ex")
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       refute_received _
-    end)
-  end
-
-  test "does not treat remote typespecs as compile time dependencies" do
-    in_fixture("no_mixfile", fn ->
-      Mix.Project.push(MixTest.Case.Sample)
-
-      File.write!("lib/b.ex", """
-      defmodule B do
-        @type t :: A.t
-      end
-      """)
-
-      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
-      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
-      assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
-
-      Mix.shell().flush
-      purge([A, B])
-
-      force_recompilation("lib/a.ex")
-      Mix.Tasks.Compile.Elixir.run(["--verbose"])
-
-      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
-      refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
     end)
   end
 
@@ -790,36 +801,6 @@ defmodule Mix.Tasks.Compile.ElixirTest do
         position: 3,
         compiler_name: "Elixir",
         message: "warning"
-      }
-
-      capture_io(:stderr, fn ->
-        assert {:ok, [^diagnostic]} = Mix.Tasks.Compile.Elixir.run([])
-      end)
-    end)
-  end
-
-  test "returns warning diagnostics for unused imports" do
-    in_fixture("no_mixfile", fn ->
-      Mix.Project.push(MixTest.Case.Sample)
-
-      File.write!("lib/a.ex", """
-      defmodule A do
-        import B
-      end
-      """)
-
-      File.write!("lib/b.ex", """
-      defmodule B do
-        def foo, do: :ok
-      end
-      """)
-
-      diagnostic = %Diagnostic{
-        file: Path.absname("lib/a.ex"),
-        severity: :warning,
-        position: 2,
-        compiler_name: "Elixir",
-        message: "unused import B"
       }
 
       capture_io(:stderr, fn ->
