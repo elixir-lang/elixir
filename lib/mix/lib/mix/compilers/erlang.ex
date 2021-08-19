@@ -16,10 +16,7 @@ defmodule Mix.Compilers.Erlang do
 
     * `:force` - forces compilation regardless of modification times
 
-    * `:parallel` - if `true` all files will be compiled in parallel,
-      otherwise the given list of source file names will be compiled
-      in parallel, all other files are compiled serially before the
-      parallel files
+    * `:parallel` - a mapset of files to compile in parallel
 
   ## Examples
 
@@ -65,16 +62,6 @@ defmodule Mix.Compilers.Erlang do
     compile(manifest, files, src_ext, opts, callback)
   end
 
-  def compile(manifest, mappings, src_ext, dest_ext, force, callback)
-      when is_boolean(force) or is_nil(force) do
-    IO.warn(
-      "Mix.Compilers.Erlang.compile/6 with a boolean or nil as 5th argument is deprecated, " <>
-        "please pass [force: true] or [] instead"
-    )
-
-    compile(manifest, mappings, src_ext, dest_ext, [force: force], callback)
-  end
-
   @doc """
   Compiles the given `mappings`.
 
@@ -88,10 +75,7 @@ defmodule Mix.Compilers.Erlang do
 
     * `:force` - forces compilation regardless of modification times
 
-    * `:parallel` - if `true` all files will be compiled in parallel,
-      otherwise the given list of source file names will be compiled
-      in parallel, all other files are compiled serially before the
-      parallel files
+    * `:parallel` - a mapset of files to compile in parallel
 
   """
   def compile(manifest, mappings, opts \\ [], callback) do
@@ -224,6 +208,13 @@ defmodule Mix.Compilers.Erlang do
     end
   end
 
+  @doc """
+  Returns the output paths in the manifest.
+  """
+  def outputs(manifest) do
+    manifest |> read_manifest() |> Enum.map(&elem(&1, 0))
+  end
+
   defp extract_targets(src_dir, src_ext, dest_dir, dest_ext, force) do
     files = Mix.Utils.extract_files(List.wrap(src_dir), List.wrap(src_ext))
 
@@ -327,7 +318,6 @@ defmodule Mix.Compilers.Erlang do
   end
 
   defp line({line, _column}) when is_integer(line) and line >= 1, do: line
-  # TODO: remove when we require Erlang/OTP 24
   defp line(line) when is_integer(line) and line >= 1, do: line
   defp line(_), do: nil
 end
