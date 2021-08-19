@@ -158,6 +158,37 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   end
 
+  test "recompiles files using Erlang modules if Erlang manifest changes" do
+    in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample, __ENV__.file)
+      File.mkdir_p!("src")
+
+      File.write!("src/foo.erl", """
+      -module(foo).
+      -export([bar/0]).
+      bar() -> ok.
+      """)
+
+      File.write!("lib/a.ex", """
+      defmodule A do
+        :foo.bar()
+      end
+      """)
+
+      assert Mix.Tasks.Compile.run(["--verbose"]) == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+
+      Mix.Task.clear()
+      mtime = File.stat!("_build/dev/lib/sample/.mix/compile.elixir").mtime
+      ensure_touched("src/foo.erl", mtime)
+
+      assert Mix.Tasks.Compile.run(["--verbose"]) == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+    end)
+  end
+
   test "recompiles project if Elixir version changed" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample)
