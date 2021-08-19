@@ -1061,6 +1061,7 @@ defmodule Code do
 
   Check `string_to_quoted/2` for options information.
   """
+  @doc since: "1.13.0"
   @spec string_to_quoted_with_comments!(List.Chars.t(), keyword) :: {Macro.t(), list(map())}
   def string_to_quoted_with_comments!(string, opts \\ []) do
     case string_to_quoted_with_comments(string, opts) do
