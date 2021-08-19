@@ -41,6 +41,14 @@ defmodule Mix.ProjectStack do
     end)
   end
 
+  @spec merge_config(config) :: :ok
+  def merge_config(config) do
+    update_stack(fn
+      [h | t] -> {:ok, [update_in(h.config, &Keyword.merge(&1, config)) | t]}
+      [] -> {:ok, []}
+    end)
+  end
+
   @spec on_recursing_root((() -> result)) :: result when result: var
   def on_recursing_root(fun) do
     {top, file} =
