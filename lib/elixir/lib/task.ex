@@ -490,9 +490,9 @@ defmodule Task do
 
   Each element of `enumerable` will be prepended to the given `args` and
   processed by its own task. Those tasks will be linked to an intermediate
-  process that is then linked to the current caller process. This means a
-  failure in a task terminates the current caller process and a failure in
-  the current caller process terminates all tasks.
+  process that is then linked to the caller process. This means a failure
+  in a task terminates the caller process and a failure in the caller
+  process terminates all tasks.
 
   When streamed, each task will emit `{:ok, value}` upon successful
   completion or `{:exit, reason}` if the caller is trapping exits.
@@ -624,8 +624,8 @@ defmodule Task do
   module-function-arguments tuple. `fun` must be a one-arity anonymous function.
 
   Each `enumerable` element is passed as argument to the given function `fun` and
-  processed by its own task. The tasks will be linked to the current caller
-  process, similarly to `async/1`.
+  processed by its own task. The tasks will be linked to the caller process, similarly
+  to `async/1`.
 
   ## Example
 
@@ -675,15 +675,15 @@ defmodule Task do
   @doc ~S"""
   Awaits a task reply and returns it.
 
-  In case the task process dies, the current caller process will exit with the same
+  In case the task process dies, the caller process will exit with the same
   reason as the task.
 
   A timeout, in milliseconds or `:infinity`, can be given with a default value
-  of `5000`. If the timeout is exceeded, then the current caller process will exit.
-  If the task process is linked to the current caller process which is the case
-  when a task is started with `async`, then the task process will also exit. If the
-  task process is trapping exits or not linked to the current caller process, then
-  it will continue to run.
+  of `5000`. If the timeout is exceeded, then the caller process will exit.
+  If the task process is linked to the caller process which is the case when
+  a task is started with `async`, then the task process will also exit. If the
+  task process is trapping exits or not linked to the caller process, then it
+  will continue to run.
 
   This function assumes the task's monitor is still active or the monitor's
   `:DOWN` message is in the message queue. If it has been demonitored, or the
@@ -802,16 +802,16 @@ defmodule Task do
   given time interval. It returns a list of the results, in the same order as
   the tasks supplied in the `tasks` input argument.
 
-  If any of the task processes dies, the current caller process will exit with
-  the same reason as that task.
+  If any of the task processes dies, the caller process will exit with the same
+  reason as that task.
 
   A timeout, in milliseconds or `:infinity`, can be given with a default value
-  of `5000`. If the timeout is exceeded, then the current caller process will exit.
-  Any task processes that are linked to the current caller process (which is the
-  case when a task is started with `async`) will also exit. Any task processes that
-  are trapping exits or not linked to the current caller process will continue to run.
+  of `5000`. If the timeout is exceeded, then the caller process will exit.
+  Any task processes that are linked to the caller process (which is the case
+  when a task is started with `async`) will also exit. Any task processes that
+  are trapping exits or not linked to the caller process will continue to run.
 
-  This function assumes the tasks' monitors are still active or the monitors'
+  This function assumes the tasks' monitors are still active or the monitor's
   `:DOWN` message is in the message queue. If any tasks have been demonitored,
   or the message already received, this function will wait for the duration of
   the timeout.
@@ -924,7 +924,7 @@ defmodule Task do
   end
 
   @doc ~S"""
-  Temporarily blocks the current caller process waiting for a task reply.
+  Temporarily blocks the caller process waiting for a task reply.
 
   Returns `{:ok, reply}` if the reply is received, `nil` if
   no reply has arrived, or `{:exit, reason}` if the task has already

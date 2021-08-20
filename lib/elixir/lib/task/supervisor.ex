@@ -249,7 +249,7 @@ defmodule Task.Supervisor do
 
   Each element will be prepended to the given `args` and processed by its
   own task. The tasks will be spawned under the given `supervisor` and
-  linked to the current caller process, similarly to `async/4`.
+  linked to the caller process, similarly to `async/4`.
 
   When streamed, each task will emit `{:ok, value}` upon successful
   completion or `{:exit, reason}` if the caller is trapping exits.
@@ -308,7 +308,7 @@ defmodule Task.Supervisor do
 
   Each element in `enumerable` is passed as argument to the given function `fun`
   and processed by its own task. The tasks will be spawned under the given
-  `supervisor` and linked to the current caller process, similarly to `async/2`.
+  `supervisor` and linked to the caller process, similarly to `async/2`.
 
   See `async_stream/6` for discussion, options, and examples.
   """
@@ -325,7 +325,7 @@ defmodule Task.Supervisor do
 
   Each element in `enumerable` will be prepended to the given `args` and processed
   by its own task. The tasks will be spawned under the given `supervisor` and
-  will not be linked to the current caller process, similarly to `async_nolink/4`.
+  will not be linked to the caller process, similarly to `async_nolink/4`.
 
   See `async_stream/6` for discussion, options, and examples.
   """
@@ -349,8 +349,8 @@ defmodule Task.Supervisor do
 
   Each element in `enumerable` is passed as argument to the given function `fun`
   and processed by its own task. The tasks will be spawned under the given
-  `supervisor` and will not be linked to the current caller process,
-  similarly to `async_nolink/2`.
+  `supervisor` and will not be linked to the caller process, similarly
+  to `async_nolink/2`.
 
   See `async_stream/6` for discussion and examples.
   """
