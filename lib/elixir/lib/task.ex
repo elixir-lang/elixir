@@ -35,7 +35,7 @@ defmodule Task do
 
     1. If you are using async tasks, you **must await** a reply
        as they are *always* sent. If you are not expecting a reply,
-       consider using `Task.start_link/1` detailed below.
+       consider using `Task.start_link/1` or `Task.start/1` as detailed below.
 
     2. async tasks link the caller and the spawned process. This
        means that, if the caller crashes, the task will crash
@@ -110,8 +110,8 @@ defmodule Task do
       Task.Supervisor.async(supervisor, MyMod, :my_fun, [arg1, arg2, arg3])
 
   Note that, when working with distributed tasks, one should use the
-  `Task.Supervisor.async/4` function that expects explicit module, function,
-  and arguments, instead of `Task.Supervisor.async/2` that works with anonymous
+  `Task.Supervisor.async/5` function that expects explicit module, function,
+  and arguments, instead of `Task.Supervisor.async/3` that works with anonymous
   functions. That's because anonymous functions expect the same module version
   to exist on all involved nodes. Check the `Agent` module documentation for
   more information on distributed processes as the limitations described there
@@ -155,8 +155,8 @@ defmodule Task do
       ], strategy: :one_for_one)
 
   Since these tasks are supervised and not directly linked to the caller,
-  they cannot be awaited on. By default, the functions `Task.start`
-  and `Task.start_link` are for fire-and-forget tasks, where you don't
+  they cannot be awaited on. By default, the functions `Task.start/1`
+  and `Task.start_link/1` are for fire-and-forget tasks, where you don't
   care about the results or if it completes successfully or not.
 
   `use Task` defines a `child_spec/1` function, allowing the
@@ -192,7 +192,7 @@ defmodule Task do
   For example, we recommend developers to always start tasks under a supervisor.
   This provides more visibility and allows you to control how those tasks are
   terminated when a node shuts down. That might look something like
-  `Task.Supervisor.start_child(MySupervisor, task_specification)`. This means
+  `Task.Supervisor.start_child(MySupervisor, task_function)`. This means
   that, although your code is the one who invokes the task, the actual ancestor of
   the task is the supervisor, as the supervisor is the one effectively starting it.
 
@@ -364,7 +364,7 @@ defmodule Task do
 
   `fun` must be a zero-arity anonymous function. This function
   spawns a process that is linked to and monitored by the caller
-  process. A `Task` struct is returned containing the relevant
+  process. A `%Task{}` struct is returned containing the relevant
   information. Developers must eventually call `Task.await/2` or
   `Task.yield/2` followed by `Task.shutdown/2` on the returned task.
 
@@ -390,13 +390,13 @@ defmodule Task do
       Task.await(x) + y
 
   As before, if `heavy_fun/0` fails, the whole computation will
-  fail, including the parent process. If you don't want the task
+  fail, including the caller process. If you don't want the task
   to fail then you must change the `heavy_fun/0` code in the
   same way you would achieve it if you didn't have the async call.
   For example, to either return `{:ok, val} | :error` results or,
   in more extreme cases, by using `try/rescue`. In other words,
-  an asynchronous task should be thought of as an extension of a
-  process rather than a mechanism to isolate it from all errors.
+  an asynchronous task should be thought of as an extension of the
+  caller process rather than a mechanism to isolate it from all errors.
 
   If you don't want to link the caller to the task, then you
   must use a supervised task with `Task.Supervisor` and call
@@ -416,7 +416,7 @@ defmodule Task do
     * Unlinking the task process started with `async`/`await`.
       If you unlink the processes and the task does not belong
       to any supervisor, you may leave dangling tasks in case
-      the parent dies.
+      the caller process dies.
 
   """
   @spec async((() -> any)) :: t
@@ -489,10 +489,10 @@ defmodule Task do
   is mapped concurrently on each element in `enumerable`.
 
   Each element of `enumerable` will be prepended to the given `args` and
-  processed by its own task. The tasks will be linked to an intermediate
-  process that is then linked to the current process. This means a failure
-  in a task terminates the current process and a failure in the current process
-  terminates all tasks.
+  processed by its own task. Those tasks will be linked to an intermediate
+  process that is then linked to the current caller process. This means a
+  failure in a task terminates the current caller process and a failure in
+  the current caller process terminates all tasks.
 
   When streamed, each task will emit `{:ok, value}` upon successful
   completion or `{:exit, reason}` if the caller is trapping exits.
@@ -624,8 +624,8 @@ defmodule Task do
   module-function-arguments tuple. `fun` must be a one-arity anonymous function.
 
   Each `enumerable` element is passed as argument to the given function `fun` and
-  processed by its own task. The tasks will be linked to the current process,
-  similarly to `async/1`.
+  processed by its own task. The tasks will be linked to the current caller
+  process, similarly to `async/1`.
 
   ## Example
 
@@ -675,15 +675,15 @@ defmodule Task do
   @doc ~S"""
   Awaits a task reply and returns it.
 
-  In case the task process dies, the current process will exit with the same
+  In case the task process dies, the current caller process will exit with the same
   reason as the task.
 
   A timeout, in milliseconds or `:infinity`, can be given with a default value
-  of `5000`. If the timeout is exceeded, then the current process will exit. If
-  the task process is linked to the current process which is the case when a
-  task is started with `async`, then the task process will also exit. If the
-  task process is trapping exits or not linked to the current process, then it
-  will continue to run.
+  of `5000`. If the timeout is exceeded, then the current caller process will exit.
+  If the task process is linked to the current caller process which is the case
+  when a task is started with `async`, then the task process will also exit. If the
+  task process is trapping exits or not linked to the current caller process, then
+  it will continue to run.
 
   This function assumes the task's monitor is still active or the monitor's
   `:DOWN` message is in the message queue. If it has been demonitored, or the
@@ -802,14 +802,14 @@ defmodule Task do
   given time interval. It returns a list of the results, in the same order as
   the tasks supplied in the `tasks` input argument.
 
-  If any of the task processes dies, the current process will exit with the
-  same reason as that task.
+  If any of the task processes dies, the current caller process will exit with
+  the same reason as that task.
 
   A timeout, in milliseconds or `:infinity`, can be given with a default value
-  of `5000`. If the timeout is exceeded, then the current process will exit.
-  Any task processes that are linked to the current process (which is the case
-  when a task is started with `async`) will also exit. Any task processes that
-  are trapping exits or not linked to the current process will continue to run.
+  of `5000`. If the timeout is exceeded, then the current caller process will exit.
+  Any task processes that are linked to the current caller process (which is the
+  case when a task is started with `async`) will also exit. Any task processes that
+  are trapping exits or not linked to the current caller process will continue to run.
 
   This function assumes the tasks' monitors are still active or the monitors'
   `:DOWN` message is in the message queue. If any tasks have been demonitored,
@@ -924,7 +924,7 @@ defmodule Task do
   end
 
   @doc ~S"""
-  Temporarily blocks the current process waiting for a task reply.
+  Temporarily blocks the current caller process waiting for a task reply.
 
   Returns `{:ok, reply}` if the reply is received, `nil` if
   no reply has arrived, or `{:exit, reason}` if the task has already
