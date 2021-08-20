@@ -35,7 +35,7 @@ defmodule Task do
 
     1. If you are using async tasks, you **must await** a reply
        as they are *always* sent. If you are not expecting a reply,
-       consider using `Task.start_link/1` or `Task.start/1` as detailed below.
+       consider using `Task.start_link/1` as detailed below.
 
     2. async tasks link the caller and the spawned process. This
        means that, if the caller crashes, the task will crash
@@ -364,7 +364,7 @@ defmodule Task do
 
   `fun` must be a zero-arity anonymous function. This function
   spawns a process that is linked to and monitored by the caller
-  process. A `%Task{}` struct is returned containing the relevant
+  process. A `Task` struct is returned containing the relevant
   information. Developers must eventually call `Task.await/2` or
   `Task.yield/2` followed by `Task.shutdown/2` on the returned task.
 
