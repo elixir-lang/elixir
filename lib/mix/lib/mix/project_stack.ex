@@ -111,7 +111,7 @@ defmodule Mix.ProjectStack do
     end
   end
 
-  @spec reset_config_mtime() :: :ok
+  @spec reset_config_mtime() :: binary
   def reset_config_mtime() do
     update_stack(fn
       [h | t] -> {:ok, [%{h | config_mtime: nil} | t]}
