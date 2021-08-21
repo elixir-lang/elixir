@@ -1751,6 +1751,8 @@ defmodule String do
 
   """
   @spec valid?(t) :: boolean
+  def valid?(string)
+  
   def valid?(<<string::binary>>), do: valid_utf8?(string)
   def valid?(_), do: false
 
