@@ -192,6 +192,18 @@ defmodule IEx.AutocompleteTest do
     assert expand('++/') == {:yes, '', ['++/2']}
   end
 
+  test "sigil completion" do
+    {:yes, '', sigils} = expand('~')
+    assert '~C (sigil_C)' in sigils
+
+    eval("import Bitwise")
+    {:yes, '', sigils} = expand('~')
+    assert '~~~/1' in sigils
+
+    assert expand('~~') == {:yes, '~', []}
+    assert expand('~~~') == {:yes, '', ['~~~/1']}
+  end
+
   test "function completion using a variable bound to a module" do
     eval("mod = String")
     assert expand('mod.print') == {:yes, 'able?', []}

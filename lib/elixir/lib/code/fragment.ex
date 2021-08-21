@@ -75,36 +75,35 @@ defmodule Code.Fragment do
     * `{:local_call, charlist}` - the context is a local (import or local)
       call, such as `hello_world(` and `hello_world `
 
-    * `{:module_attribute, charlist}` - the context is a module attribute, such
-      as `@hello_wor`
+    * `{:module_attribute, charlist}` - the context is a module attribute,
+      such as `@hello_wor`
 
-    * `{:operator, charlist}` (since v1.13.0) - the context is an operator,
-      such as `+` or `==`. Note textual operators, such as `when` do not
-      appear as operators but rather as `:local_or_var`. `@` is never an
-      `:operator` and always a `:module_attribute`
+    * `{:operator, charlist}` - the context is an operator, such as `+` or
+      `==`. Note textual operators, such as `when` do not appear as operators
+      but rather as `:local_or_var`. `@` is never an `:operator` and always a
+      `:module_attribute`
 
-    * `{:operator_arity, charlist}` (since v1.13.0)  - the context is an
-      operator arity, which is an operator followed by /, such as `+/`,
-      `not/` or `when/`
+    * `{:operator_arity, charlist}` - the context is an operator arity, which
+      is an operator followed by /, such as `+/`, `not/` or `when/`
 
-    * `{:operator_call, charlist}` (since v1.13.0)  - the context is an
-      operator call, which is an operator followed by space, such as
-      `left + `, `not ` or `x when `
+    * `{:operator_call, charlist}` - the context is an operator call, which is
+      an operator followed by space, such as `left + `, `not ` or `x when `
 
     * `:none` - no context possible
+
+    * `{:sigil, charlist}` - the context is a sigil. It may be either the beginning
+      of a sigil, such as `~s"foo"`, or an operator starting with `~`, such as
+      `~>` and `~>>`. At the moment, `charlist` is always an empty list
 
     * `{:unquoted_atom, charlist}` - the context is an unquoted atom. This
       can be any atom or an atom representing a module
 
   ## Limitations
 
-    * The current algorithm only considers the last line of the input.
-      This means it will also show suggestions inside strings, heredocs,
-      etc, which is intentional as it helps with doctests, references,
-      and more
-
-    * Context does not yet track `alias A.{B`, structs, nor sigils
-
+  The current algorithm only considers the last line of the input. This means
+  it will also show suggestions inside strings, heredocs, etc, which is
+  intentional as it helps with doctests, references, and more. Other functions
+  may be added in the future that consider the tree-structure of the code.
   """
   @doc since: "1.13.0"
   @spec cursor_context(List.Chars.t(), keyword()) ::
@@ -364,6 +363,9 @@ defmodule Code.Fragment do
 
       match?([?. | rest] when rest == [] or hd(rest) != ?., rest) ->
         dot(tl(rest), dot_count + 1, acc)
+
+      acc == '~' ->
+        {{:sigil, ''}, count}
 
       true ->
         {{:operator, acc}, count}

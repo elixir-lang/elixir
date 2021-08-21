@@ -66,13 +66,16 @@ defmodule IEx.Autocomplete do
         expand_local_call(List.to_atom(local), shell)
 
       {:operator, operator} ->
-        expand_local_or_var(List.to_string(operator), shell)
+        expand_local(List.to_string(operator), false, shell)
 
       {:operator_arity, operator} ->
         expand_local(List.to_string(operator), true, shell)
 
       {:operator_call, _operator} ->
         expand_local_or_var("", shell)
+
+      {:sigil, ''} ->
+        expand_sigil(shell)
 
       # {:module_attribute, charlist}
       # :none
@@ -216,6 +219,14 @@ defmodule IEx.Autocomplete do
 
   defp expand_local(hint, exact?, shell) do
     format_expansion(match_local(hint, exact?, shell), hint)
+  end
+
+  defp expand_sigil(shell) do
+    sigils =
+      match_local("sigil_", false, shell)
+      |> Enum.map(fn %{name: "sigil_" <> rest} -> %{kind: :sigil, name: rest} end)
+
+    format_expansion(match_local("~", false, shell) ++ sigils, "~")
   end
 
   defp match_local(hint, exact?, shell) do
@@ -505,22 +516,24 @@ defmodule IEx.Autocomplete do
 
   ## Ad-hoc conversions
 
-  defp to_entries(%{kind: kind, name: name})
-       when kind in [:map_key, :module, :variable, :dir, :file] do
-    [name]
-  end
-
   defp to_entries(%{kind: :function, name: name, arity: arity}) do
     ["#{name}/#{arity}"]
   end
 
-  defp to_uniq_entries(%{kind: kind})
-       when kind in [:map_key, :module, :variable, :dir, :file] do
-    []
+  defp to_entries(%{kind: :sigil, name: name}) do
+    ["~#{name} (sigil_#{name})"]
   end
 
-  defp to_uniq_entries(%{kind: :function} = fun) do
+  defp to_entries(%{kind: _, name: name}) do
+    [name]
+  end
+
+  defp to_uniq_entries(%{kind: kind} = fun) when kind in [:function, :sigil] do
     to_entries(fun)
+  end
+
+  defp to_uniq_entries(%{kind: _}) do
+    []
   end
 
   defp to_hint(%{kind: :module, name: name}, hint) when name == hint do
@@ -531,16 +544,15 @@ defmodule IEx.Autocomplete do
     format_hint(name, hint) <> "."
   end
 
-  defp to_hint(%{kind: :dir, name: name}, hint) when name == hint do
-    format_hint(name, name) <> "/"
+  defp to_hint(%{kind: :dir, name: hint}, hint) do
+    "/"
   end
 
-  defp to_hint(%{kind: :file, name: name}, hint) when name == hint do
-    format_hint(name, name) <> "\""
+  defp to_hint(%{kind: :file, name: hint}, hint) do
+    "\""
   end
 
-  defp to_hint(%{kind: kind, name: name}, hint)
-       when kind in [:function, :map_key, :module, :variable, :dir, :file] do
+  defp to_hint(%{kind: _, name: name}, hint) do
     format_hint(name, hint)
   end
 

@@ -194,9 +194,7 @@ defmodule CodeFragmentTest do
     end
 
     test "incomplete operators" do
-      assert CF.cursor_context("~") == {:operator, '~'}
       assert CF.cursor_context("~~") == {:operator, '~~'}
-      assert CF.cursor_context("~ ") == :none
       assert CF.cursor_context("~~ ") == :none
       assert CF.cursor_context("^^") == {:operator, '^^'}
       assert CF.cursor_context("^^ ") == :none
@@ -210,6 +208,11 @@ defmodule CodeFragmentTest do
       assert CF.cursor_context("Foo.^^") == {:dot, {:alias, 'Foo'}, '^^'}
       assert CF.cursor_context("Foo . ^^") == {:dot, {:alias, 'Foo'}, '^^'}
       assert CF.cursor_context("Foo.^^ ") == :none
+    end
+
+    test "sigil" do
+      assert CF.cursor_context("~") == {:sigil, ''}
+      assert CF.cursor_context("~ ") == :none
     end
 
     test "module attribute" do
