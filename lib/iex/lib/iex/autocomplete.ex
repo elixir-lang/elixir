@@ -74,8 +74,11 @@ defmodule IEx.Autocomplete do
       {:operator_call, _operator} ->
         expand_local_or_var("", shell)
 
-      {:sigil, ''} ->
+      {:sigil, []} ->
         expand_sigil(shell)
+
+      {:sigil, [_]} ->
+        {:yes, [], ~w|" """ ' ''' \( / < [ { \||c}
 
       # {:module_attribute, charlist}
       # :none

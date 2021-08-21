@@ -195,6 +195,9 @@ defmodule IEx.AutocompleteTest do
   test "sigil completion" do
     {:yes, '', sigils} = expand('~')
     assert '~C (sigil_C)' in sigils
+    {:yes, '', sigils} = expand('~r')
+    assert '"' in sigils
+    assert '(' in sigils
 
     eval("import Bitwise")
     {:yes, '', sigils} = expand('~')

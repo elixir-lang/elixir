@@ -92,8 +92,8 @@ defmodule Code.Fragment do
     * `:none` - no context possible
 
     * `{:sigil, charlist}` - the context is a sigil. It may be either the beginning
-      of a sigil, such as `~s"foo"`, or an operator starting with `~`, such as
-      `~>` and `~>>`. At the moment, `charlist` is always an empty list
+      of a sigil, such as `~` or `~s`, or an operator starting with `~`, such as
+      `~>` and `~>>`
 
     * `{:unquoted_atom, charlist}` - the context is an unquoted atom. This
       can be any atom or an atom representing a module
@@ -169,6 +169,7 @@ defmodule Code.Fragment do
   @non_starter_punctuation ')]}"\'.$'
   @space '\t\s'
   @trailing_identifier '?!'
+  @tilde_op_prefix '<=~'
 
   @non_identifier @trailing_identifier ++
                     @operators ++ @starter_punctuation ++ @non_starter_punctuation ++ @space
@@ -258,6 +259,10 @@ defmodule Code.Fragment do
 
       {:identifier, _, acc, count} when call_op? and acc in @textual_operators ->
         {{:operator, acc}, count}
+
+      {:identifier, [?~ | rest], [_] = acc, count}
+      when rest == [] or hd(rest) not in @tilde_op_prefix ->
+        {{:sigil, acc}, count}
 
       {:identifier, rest, acc, count} ->
         case strip_spaces(rest, count) do
@@ -372,6 +377,13 @@ defmodule Code.Fragment do
     end
   end
 
+  # If we are opening a sigil, ignore the operator.
+  defp operator([letter, ?~ | rest], _count, [op], _call_op?)
+       when op in '<|/' and (letter in ?A..?Z or letter in ?a..?z) and
+              (rest == [] or hd(rest) not in @tilde_op_prefix) do
+    {:none, 0}
+  end
+
   defp operator(rest, count, acc, _call_op?) do
     case :elixir_tokenizer.tokenize(acc, 1, 1, []) do
       {:ok, _, [{:atom, _, _}]} ->
@@ -431,11 +443,10 @@ defmodule Code.Fragment do
   The returned map contains the column the expression starts and the
   first column after the expression ends.
 
-  This function builds on top of `cursor_context/2`. Therefore
-  it also provides a best-effort detection and may not be accurate
-  under all circumstances. See the "Return values" section for more
-  information on the available contexts as well as the "Limitations"
-  section.
+  Similar to `cursor_context/2`, this function also provides a best-effort
+  detection and may not be accurate under all circumstances. See the
+  "Return values" and "Limitations" section under `cursor_context/2` for
+  more information.
 
   ## Examples
 

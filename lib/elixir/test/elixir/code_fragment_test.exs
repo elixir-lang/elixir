@@ -212,6 +212,9 @@ defmodule CodeFragmentTest do
 
     test "sigil" do
       assert CF.cursor_context("~") == {:sigil, ''}
+      assert CF.cursor_context("~r") == {:sigil, 'r'}
+      assert CF.cursor_context("~r/") == :none
+      assert CF.cursor_context("~r<") == :none
       assert CF.cursor_context("~ ") == :none
     end
 
