@@ -10,7 +10,11 @@ defmodule Mix.Compilers.ApplicationTracer do
     modified = Mix.Utils.last_modified(manifest)
 
     cond do
-      Mix.Utils.stale?([Mix.Project.config_mtime()], [modified]) ->
+      # We need to know whenever the application definition changes and
+      # whenever dependencies are updated. We don't actually depend on
+      # config/*.exs files (only the lock) but this command is fast,
+      # so we are happy with rebuilding even if configs change.
+      Mix.Utils.stale?([Mix.Project.config_mtime(), Mix.Project.project_file()], [modified]) ->
         build_manifest(config, manifest)
 
       table = read_manifest(manifest, stale_deps) ->
