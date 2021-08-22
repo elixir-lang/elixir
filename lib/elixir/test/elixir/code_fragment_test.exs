@@ -124,7 +124,17 @@ defmodule CodeFragmentTest do
       assert CF.cursor_context("Hello . Wor") == {:alias, 'Hello.Wor'}
       assert CF.cursor_context("Hello::Wor") == {:alias, 'Wor'}
       assert CF.cursor_context("Hello..Wor") == {:alias, 'Wor'}
-      assert CF.cursor_context("%Hello.Wor") == {:alias, 'Hello.Wor'}
+    end
+
+    test "structs" do
+      assert CF.cursor_context("%") == {:struct, ''}
+      assert CF.cursor_context(":%") == {:unquoted_atom, '%'}
+      assert CF.cursor_context("::%") == {:struct, ''}
+
+      assert CF.cursor_context("%HelloWor") == {:struct, 'HelloWor'}
+      assert CF.cursor_context("%Hello.") == {:struct, 'Hello.'}
+      assert CF.cursor_context("%Hello.Wor") == {:struct, 'Hello.Wor'}
+      assert CF.cursor_context("% Hello . Wor") == {:struct, 'Hello.Wor'}
     end
 
     test "unquoted atom" do
@@ -144,6 +154,7 @@ defmodule CodeFragmentTest do
       assert CF.cursor_context(":.") == {:unquoted_atom, '.'}
       assert CF.cursor_context(":..") == {:unquoted_atom, '..'}
       assert CF.cursor_context(":->") == {:unquoted_atom, '->'}
+      assert CF.cursor_context(":%") == {:unquoted_atom, '%'}
     end
 
     test "operators" do
@@ -194,9 +205,7 @@ defmodule CodeFragmentTest do
     end
 
     test "incomplete operators" do
-      assert CF.cursor_context("~") == {:operator, '~'}
       assert CF.cursor_context("~~") == {:operator, '~~'}
-      assert CF.cursor_context("~ ") == :none
       assert CF.cursor_context("~~ ") == :none
       assert CF.cursor_context("^^") == {:operator, '^^'}
       assert CF.cursor_context("^^ ") == :none
@@ -210,6 +219,14 @@ defmodule CodeFragmentTest do
       assert CF.cursor_context("Foo.^^") == {:dot, {:alias, 'Foo'}, '^^'}
       assert CF.cursor_context("Foo . ^^") == {:dot, {:alias, 'Foo'}, '^^'}
       assert CF.cursor_context("Foo.^^ ") == :none
+    end
+
+    test "sigil" do
+      assert CF.cursor_context("~") == {:sigil, ''}
+      assert CF.cursor_context("~r") == {:sigil, 'r'}
+      assert CF.cursor_context("~r/") == :none
+      assert CF.cursor_context("~r<") == :none
+      assert CF.cursor_context("~ ") == :none
     end
 
     test "module attribute" do
@@ -522,6 +539,83 @@ defmodule CodeFragmentTest do
       end
     end
 
+    test "struct" do
+      assert CF.surround_context("%", {1, 1}) == :none
+      assert CF.surround_context("::%", {1, 1}) == :none
+      assert CF.surround_context("::%", {1, 2}) == :none
+      assert CF.surround_context("::%Hello", {1, 1}) == :none
+      assert CF.surround_context("::%Hello", {1, 2}) == :none
+
+      assert CF.surround_context("::%Hello", {1, 3}) == %{
+               context: {:struct, 'Hello'},
+               begin: {1, 3},
+               end: {1, 9}
+             }
+
+      assert CF.surround_context("::% Hello", {1, 3}) == %{
+               context: {:struct, 'Hello'},
+               begin: {1, 3},
+               end: {1, 10}
+             }
+
+      assert CF.surround_context("::% Hello", {1, 4}) == %{
+               context: {:struct, 'Hello'},
+               begin: {1, 3},
+               end: {1, 10}
+             }
+
+      # Alias
+      assert CF.surround_context("%HelloWor", {1, 1}) == %{
+               context: {:struct, 'HelloWor'},
+               begin: {1, 1},
+               end: {1, 10}
+             }
+
+      for i <- 2..9 do
+        assert CF.surround_context("%HelloWor", {1, i}) == %{
+                 context: {:struct, 'HelloWor'},
+                 begin: {1, 1},
+                 end: {1, 10}
+               }
+      end
+
+      assert CF.surround_context("%HelloWor", {1, 10}) == :none
+
+      # With dot
+      assert CF.surround_context("%Hello.Wor", {1, 1}) == %{
+               context: {:struct, 'Hello.Wor'},
+               begin: {1, 1},
+               end: {1, 11}
+             }
+
+      for i <- 2..10 do
+        assert CF.surround_context("%Hello.Wor", {1, i}) == %{
+                 context: {:struct, 'Hello.Wor'},
+                 begin: {1, 1},
+                 end: {1, 11}
+               }
+      end
+
+      assert CF.surround_context("%Hello.Wor", {1, 11}) == :none
+
+      # With spaces
+      assert CF.surround_context("% Hello . Wor", {1, 1}) == %{
+               context: {:struct, 'Hello.Wor'},
+               begin: {1, 1},
+               end: {1, 14}
+             }
+
+      for i <- 2..13 do
+        assert CF.surround_context("% Hello . Wor", {1, i}) == %{
+                 context: {:struct, 'Hello.Wor'},
+                 begin: {1, 1},
+                 end: {1, 14}
+               }
+      end
+
+      assert CF.surround_context("% Hello . Wor", {1, 14}) == :none
+    end
+
     test "module attributes" do
       for i <- 1..10 do
         assert CF.surround_context("@hello_wor", {1, i}) == %{
@@ -606,6 +700,46 @@ defmodule CodeFragmentTest do
                begin: {1, 5},
                end: {1, 6}
              }
+    end
+
+    test "sigil" do
+      assert CF.surround_context("~", {1, 1}) == :none
+      assert CF.surround_context("~~r", {1, 1}) == :none
+      assert CF.surround_context("~~r", {1, 2}) == :none
+
+      assert CF.surround_context("~~~", {1, 1}) == %{
+               begin: {1, 1},
+               context: {:operator, '~~~'},
+               end: {1, 4}
+             }
+
+      assert CF.surround_context("~r/foo/", {1, 1}) == %{
+               begin: {1, 1},
+               context: {:sigil, 'r'},
+               end: {1, 3}
+             }
+
+      assert CF.surround_context("~r/foo/", {1, 2}) == %{
+               begin: {1, 1},
+               context: {:sigil, 'r'},
+               end: {1, 3}
+             }
+
+      assert CF.surround_context("~r/foo/", {1, 3}) == :none
+
+      assert CF.surround_context("~r<foo>", {1, 1}) == %{
+               begin: {1, 1},
+               context: {:sigil, 'r'},
+               end: {1, 3}
+             }
+
+      assert CF.surround_context("~r<foo>", {1, 2}) == %{
+               begin: {1, 1},
+               context: {:sigil, 'r'},
+               end: {1, 3}
+             }
+
+      assert CF.surround_context("~r<foo>", {1, 3}) == :none
     end
 
     test "dot operator" do
