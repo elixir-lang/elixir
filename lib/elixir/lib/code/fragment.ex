@@ -175,6 +175,7 @@ defmodule Code.Fragment do
                     @operators ++ @starter_punctuation ++ @non_starter_punctuation ++ @space
 
   @textual_operators ~w(when not and or in)c
+  @incomplete_operators ~w(^^ ~~ ~)c
 
   defp codepoint_cursor_context(reverse, _opts) do
     {stripped, spaces} = strip_spaces(reverse, 0)
@@ -262,7 +263,7 @@ defmodule Code.Fragment do
 
       {:identifier, [?~ | rest], [_] = acc, count}
       when rest == [] or hd(rest) not in @tilde_op_prefix ->
-        {{:sigil, acc}, count}
+        {{:sigil, acc}, count + 1}
 
       {:identifier, rest, acc, count} ->
         case strip_spaces(rest, count) do
@@ -359,7 +360,7 @@ defmodule Code.Fragment do
     operator(rest, count + 1, [h | acc], call_op?)
   end
 
-  defp operator(rest, count, acc, call_op?) when acc in ~w(^^ ~~ ~)c do
+  defp operator(rest, count, acc, call_op?) when acc in @incomplete_operators do
     {rest, dot_count} = strip_spaces(rest, count)
 
     cond do
@@ -455,19 +456,21 @@ defmodule Code.Fragment do
 
   ## Differences to `cursor_context/2`
 
-  In contrast to `cursor_context/2`, `surround_context/3` does not
-  return `dot_call`/`dot_arity` nor `operator_call`/`operator_arity`
-  contexts because they should behave the same as `dot` and `operator`
-  respectively in complete expressions.
+  Because `surround_context/3` deals with complete code, it has some
+  difference to `cursor_context/2`:
 
-  On the other hand, it does make a distinction between `local_call`/
-  `local_arity` to `local_or_var`, since the latter can be a local or
-  variable.
+    * `dot_call`/`dot_arity` and `operator_call`/`operator_arity`
+      are collapsed into `dot` and `operator` contexts respectively
+      as they are not meaningful distinction between them
 
-  Also note that `@` when not followed by any identifier is returned
-  as `{:operator, '@'}`, while it is a `{:module_attribute, ''}` in
-  `cursor_context/3`. Once again, this happens because `surround_context/3`
-  assumes the expression is complete, while `cursor_context/2` does not.
+    * On the other hand, this function still makes a distinction between
+      `local_call`/`local_arity` and `local_or_var`, since the latter can
+      be a local or variable
+
+    * `@` when not followed by any identifier is returned as `{:operator, '@'}`
+      (in contrast to `{:module_attribute, ''}` in `cursor_context/2`
+
+    * This function never returns an empty sigil `{:sigil, ''}` as context
   """
   @doc since: "1.13.0"
   @spec surround_context(List.Chars.t(), position(), keyword()) ::
@@ -546,6 +549,9 @@ defmodule Code.Fragment do
           {{:module_attribute, acc}, offset} ->
             build_surround({:module_attribute, acc}, reversed, line, offset)
 
+          {{:sigil, acc}, offset} ->
+            build_surround({:sigil, acc}, reversed, line, offset)
+
           {{:unquoted_atom, acc}, offset} ->
             build_surround({:unquoted_atom, acc}, reversed, line, offset)
 
@@ -571,12 +577,15 @@ defmodule Code.Fragment do
       {[], _rest} ->
         :none
 
-      {reversed_post, _rest} ->
+      {reversed_post, rest} ->
         reversed = reversed_post ++ reversed_pre
 
         case codepoint_cursor_context(reversed, opts) do
-          {{:operator, acc}, offset} ->
+          {{:operator, acc}, offset} when acc not in @incomplete_operators ->
             build_surround({:operator, acc}, reversed, line, offset)
+
+          {{:sigil, ''}, offset} when hd(rest) in ?A..?Z or hd(rest) in ?a..?z ->
+            build_surround({:sigil, [hd(rest)]}, [hd(rest) | reversed], line, offset + 1)
 
           {{:dot, _, [_ | _]} = dot, offset} ->
             build_surround(dot, reversed, line, offset)

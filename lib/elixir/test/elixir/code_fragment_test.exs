@@ -614,6 +614,46 @@ defmodule CodeFragmentTest do
              }
     end
 
+    test "sigil" do
+      assert CF.surround_context("~", {1, 1}) == :none
+      assert CF.surround_context("~~r", {1, 1}) == :none
+      assert CF.surround_context("~~r", {1, 2}) == :none
+
+      assert CF.surround_context("~~~", {1, 1}) == %{
+               begin: {1, 1},
+               context: {:operator, '~~~'},
+               end: {1, 4}
+             }
+
+      assert CF.surround_context("~r/foo/", {1, 1}) == %{
+               begin: {1, 1},
+               context: {:sigil, 'r'},
+               end: {1, 3}
+             }
+
+      assert CF.surround_context("~r/foo/", {1, 2}) == %{
+               begin: {1, 1},
+               context: {:sigil, 'r'},
+               end: {1, 3}
+             }
+
+      assert CF.surround_context("~r/foo/", {1, 3}) == :none
+
+      assert CF.surround_context("~r<foo>", {1, 1}) == %{
+               begin: {1, 1},
+               context: {:sigil, 'r'},
+               end: {1, 3}
+             }
+
+      assert CF.surround_context("~r<foo>", {1, 2}) == %{
+               begin: {1, 1},
+               context: {:sigil, 'r'},
+               end: {1, 3}
+             }
+
+      assert CF.surround_context("~r<foo>", {1, 3}) == :none
+    end
+
     test "dot operator" do
       for i <- 4..7 do
         assert CF.surround_context("Foo.<<<", {1, i}) == %{
