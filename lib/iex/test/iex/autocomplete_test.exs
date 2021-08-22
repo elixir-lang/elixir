@@ -377,7 +377,20 @@ defmodule IEx.AutocompleteTest do
   end
 
   test "completion for struct names" do
-    assert expand('%IEx.AutocompleteTest.MyStr') == {:yes, 'uct', []}
+    assert {:yes, '', entries} = expand('%')
+    assert 'URI' in entries
+    assert 'IEx.History' in entries
+    assert 'IEx.State' in entries
+
+    assert {:yes, '', entries} = expand('%IEx.')
+    assert 'IEx.History' in entries
+    assert 'IEx.State' in entries
+
+    assert expand('%IEx.AutocompleteTe') == {:yes, 'st.MyStruct{', []}
+    assert expand('%IEx.AutocompleteTest.MyStr') == {:yes, 'uct{', []}
+
+    eval("alias IEx.AutocompleteTest.MyStruct")
+    assert expand('%MyStr') == {:yes, 'uct{', []}
   end
 
   test "completion for struct keys" do
@@ -435,7 +448,7 @@ defmodule IEx.AutocompleteTest do
     assert expand('"#{dir}/single1') == {:yes, '"', []}
     assert expand('"#{dir}/fi') == {:yes, 'le', []}
     assert expand('"#{dir}/file') == path_autocompletion(dir, "file")
-    assert expand('"#{dir}/d') == {:yes, 'ir', []}
+    assert expand('"#{dir}/d') == {:yes, 'ir/', []}
     assert expand('"#{dir}/dir') == {:yes, '/', []}
     assert expand('"#{dir}/dir/') == {:yes, 'file', []}
     assert expand('"#{dir}/dir/file') == dir |> Path.join("dir") |> path_autocompletion("file")

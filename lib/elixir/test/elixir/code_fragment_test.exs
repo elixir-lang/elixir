@@ -132,6 +132,7 @@ defmodule CodeFragmentTest do
       assert CF.cursor_context("::%") == {:struct, ''}
 
       assert CF.cursor_context("%HelloWor") == {:struct, 'HelloWor'}
+      assert CF.cursor_context("%Hello.") == {:struct, 'Hello.'}
       assert CF.cursor_context("%Hello.Wor") == {:struct, 'Hello.Wor'}
       assert CF.cursor_context("% Hello . Wor") == {:struct, 'Hello.Wor'}
     end

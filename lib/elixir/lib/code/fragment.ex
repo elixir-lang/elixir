@@ -364,6 +364,7 @@ defmodule Code.Fragment do
       {{:alias, _} = prev, count} -> {{:dot, prev, acc}, count}
       {{:dot, _, _} = prev, count} -> {{:dot, prev, acc}, count}
       {{:module_attribute, _} = prev, count} -> {{:dot, prev, acc}, count}
+      {{:struct, acc}, count} -> {{:struct, acc ++ '.'}, count}
       {_, _} -> {:none, 0}
     end
   end
