@@ -124,7 +124,16 @@ defmodule CodeFragmentTest do
       assert CF.cursor_context("Hello . Wor") == {:alias, 'Hello.Wor'}
       assert CF.cursor_context("Hello::Wor") == {:alias, 'Wor'}
       assert CF.cursor_context("Hello..Wor") == {:alias, 'Wor'}
-      assert CF.cursor_context("%Hello.Wor") == {:alias, 'Hello.Wor'}
+    end
+
+    test "structs" do
+      assert CF.cursor_context("%") == {:struct, ''}
+      assert CF.cursor_context(":%") == {:unquoted_atom, '%'}
+      assert CF.cursor_context("::%") == {:struct, ''}
+
+      assert CF.cursor_context("%HelloWor") == {:struct, 'HelloWor'}
+      assert CF.cursor_context("%Hello.Wor") == {:struct, 'Hello.Wor'}
+      assert CF.cursor_context("% Hello . Wor") == {:struct, 'Hello.Wor'}
     end
 
     test "unquoted atom" do
@@ -144,6 +153,7 @@ defmodule CodeFragmentTest do
       assert CF.cursor_context(":.") == {:unquoted_atom, '.'}
       assert CF.cursor_context(":..") == {:unquoted_atom, '..'}
       assert CF.cursor_context(":->") == {:unquoted_atom, '->'}
+      assert CF.cursor_context(":%") == {:unquoted_atom, '%'}
     end
 
     test "operators" do
@@ -526,6 +536,83 @@ defmodule CodeFragmentTest do
                  end: {1, 16}
                }
       end
+    end
+
+    test "struct" do
+      assert CF.surround_context("%", {1, 1}) == :none
+      assert CF.surround_context("::%", {1, 1}) == :none
+      assert CF.surround_context("::%", {1, 2}) == :none
+      assert CF.surround_context("::%Hello", {1, 1}) == :none
+      assert CF.surround_context("::%Hello", {1, 2}) == :none
+
+      assert CF.surround_context("::%Hello", {1, 3}) == %{
+               context: {:struct, 'Hello'},
+               begin: {1, 3},
+               end: {1, 9}
+             }
+
+      assert CF.surround_context("::% Hello", {1, 3}) == %{
+               context: {:struct, 'Hello'},
+               begin: {1, 3},
+               end: {1, 10}
+             }
+
+      assert CF.surround_context("::% Hello", {1, 4}) == %{
+               context: {:struct, 'Hello'},
+               begin: {1, 3},
+               end: {1, 10}
+             }
+
+      # Alias
+      assert CF.surround_context("%HelloWor", {1, 1}) == %{
+               context: {:struct, 'HelloWor'},
+               begin: {1, 1},
+               end: {1, 10}
+             }
+
+      for i <- 2..9 do
+        assert CF.surround_context("%HelloWor", {1, i}) == %{
+                 context: {:struct, 'HelloWor'},
+                 begin: {1, 1},
+                 end: {1, 10}
+               }
+      end
+
+      assert CF.surround_context("%HelloWor", {1, 10}) == :none
+
+      # With dot
+      assert CF.surround_context("%Hello.Wor", {1, 1}) == %{
+               context: {:struct, 'Hello.Wor'},
+               begin: {1, 1},
+               end: {1, 11}
+             }
+
+      for i <- 2..10 do
+        assert CF.surround_context("%Hello.Wor", {1, i}) == %{
+                 context: {:struct, 'Hello.Wor'},
+                 begin: {1, 1},
+                 end: {1, 11}
+               }
+      end
+
+      assert CF.surround_context("%Hello.Wor", {1, 11}) == :none
+
+      # With spaces
+      assert CF.surround_context("% Hello . Wor", {1, 1}) == %{
+               context: {:struct, 'Hello.Wor'},
+               begin: {1, 1},
+               end: {1, 14}
+             }
+
+      for i <- 2..13 do
+        assert CF.surround_context("% Hello . Wor", {1, i}) == %{
+                 context: {:struct, 'Hello.Wor'},
+                 begin: {1, 1},
+                 end: {1, 14}
+               }
+      end
+
+      assert CF.surround_context("% Hello . Wor", {1, 14}) == :none
     end
 
     test "module attributes" do

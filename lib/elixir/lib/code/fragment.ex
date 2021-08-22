@@ -95,6 +95,8 @@ defmodule Code.Fragment do
       of a sigil, such as `~` or `~s`, or an operator starting with `~`, such as
       `~>` and `~>>`
 
+    * `{:struct, charlist}` - the context is a struct, such as `%`, `%UR` or `%URI`
+
     * `{:unquoted_atom, charlist}` - the context is an unquoted atom. This
       can be any atom or an atom representing a module
 
@@ -120,6 +122,8 @@ defmodule Code.Fragment do
           | {:operator_arity, charlist}
           | {:operator_call, charlist}
           | :none
+          | {:sigil, charlist}
+          | {:struct, charlist}
           | {:unquoted_atom, charlist}
         when inside_dot:
                {:alias, charlist}
@@ -183,6 +187,10 @@ defmodule Code.Fragment do
     case stripped do
       # It is empty
       [] -> {:expr, 0}
+      # Structs
+      [?%, ?:, ?: | _] -> {{:struct, ''}, 1}
+      [?%, ?: | _] -> {{:unquoted_atom, '%'}, 2}
+      [?% | _] -> {{:struct, ''}, 1}
       # Token/AST only operators
       [?>, ?= | rest] when rest == [] or hd(rest) != ?: -> {:expr, 0}
       [?>, ?- | rest] when rest == [] or hd(rest) != ?: -> {:expr, 0}
@@ -253,6 +261,9 @@ defmodule Code.Fragment do
         case strip_spaces(rest, count) do
           {'.' ++ rest, count} when rest == [] or hd(rest) != ?. ->
             nested_alias(rest, count + 1, acc)
+
+          {'%' ++ _, count} ->
+            {{:struct, acc}, count + 1}
 
           _ ->
             {{:alias, acc}, count}
@@ -338,6 +349,7 @@ defmodule Code.Fragment do
     {rest, count} = strip_spaces(rest, count)
 
     case identifier_to_cursor_context(rest, count, true) do
+      {{:struct, prev}, count} -> {{:struct, prev ++ '.' ++ acc}, count}
       {{:alias, prev}, count} -> {{:alias, prev ++ '.' ++ acc}, count}
       _ -> {:none, 0}
     end
@@ -470,7 +482,8 @@ defmodule Code.Fragment do
     * `@` when not followed by any identifier is returned as `{:operator, '@'}`
       (in contrast to `{:module_attribute, ''}` in `cursor_context/2`
 
-    * This function never returns an empty sigil `{:sigil, ''}` as context
+    * This function never returns empty sigils `{:sigil, ''}` or empty structs
+      `{:struct, ''}` as context
   """
   @doc since: "1.13.0"
   @spec surround_context(List.Chars.t(), position(), keyword()) ::
@@ -525,6 +538,9 @@ defmodule Code.Fragment do
         reversed = reversed_post ++ reversed_pre
 
         case codepoint_cursor_context(reversed, opts) do
+          {{:struct, acc}, offset} ->
+            build_surround({:struct, acc}, reversed, line, offset)
+
           {{:alias, acc}, offset} ->
             build_surround({:alias, acc}, reversed, line, offset)
 
@@ -565,6 +581,9 @@ defmodule Code.Fragment do
         case codepoint_cursor_context(reversed, opts) do
           {{:alias, acc}, offset} ->
             build_surround({:alias, acc}, reversed, line, offset)
+
+          {{:struct, acc}, offset} ->
+            build_surround({:struct, acc}, reversed, line, offset)
 
           _ ->
             :none
@@ -645,7 +664,11 @@ defmodule Code.Fragment do
     {[?: | reversed_pre], post}
   end
 
-  # Dot handling
+  defp adjust_position(reversed_pre, [?% | post]) do
+    adjust_position([?% | reversed_pre], post)
+  end
+
+  # Dot/struct handling
   defp adjust_position(reversed_pre, post) do
     case move_spaces(post, reversed_pre) do
       # If we are between spaces and a dot, move past the dot
@@ -659,6 +682,16 @@ defmodule Code.Fragment do
           {[?. | rest], _} when rest == [] or hd(rest) not in '.:' ->
             {post, reversed_pre} = move_spaces(post, reversed_pre)
             {reversed_pre, post}
+
+          # If there is a % to our left, make sure to move to the first character
+          {[?% | _], _} ->
+            case move_spaces(post, reversed_pre) do
+              {[h | _] = post, reversed_pre} when h in ?A..?Z ->
+                {reversed_pre, post}
+
+              _ ->
+                {reversed_pre, post}
+            end
 
           _ ->
             {reversed_pre, post}
