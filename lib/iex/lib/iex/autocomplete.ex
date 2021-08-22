@@ -66,13 +66,22 @@ defmodule IEx.Autocomplete do
         expand_local_call(List.to_atom(local), shell)
 
       {:operator, operator} ->
-        expand_local_or_var(List.to_string(operator), shell)
+        expand_local(List.to_string(operator), false, shell)
 
       {:operator_arity, operator} ->
         expand_local(List.to_string(operator), true, shell)
 
       {:operator_call, _operator} ->
         expand_local_or_var("", shell)
+
+      {:sigil, []} ->
+        expand_sigil(shell)
+
+      {:sigil, [_]} ->
+        {:yes, [], ~w|" """ ' ''' \( / < [ { \||c}
+
+      {:struct, struct} ->
+        expand_structs(List.to_string(struct), shell)
 
       # {:module_attribute, charlist}
       # :none
@@ -160,7 +169,7 @@ defmodule IEx.Autocomplete do
 
   defp expand_dot(path, hint, exact?, shell) do
     case expand_dot_path(path, shell) do
-      {:ok, mod} when is_atom(mod) and hint == "" -> expand_aliases(mod, "", [], true)
+      {:ok, mod} when is_atom(mod) and hint == "" -> expand_dot_aliases(mod)
       {:ok, mod} when is_atom(mod) -> expand_require(mod, hint, exact?)
       {:ok, map} when is_map(map) -> expand_map_field_access(map, hint)
       _ -> no()
@@ -204,8 +213,16 @@ defmodule IEx.Autocomplete do
     end
   end
 
+  defp expand_dot_aliases(mod) do
+    all = match_elixir_modules(mod, "") ++ match_module_funs(get_module_funs(mod), "", false)
+    format_expansion(all, "")
+  end
+
   defp expand_require(mod, hint, exact?) do
-    format_expansion(match_module_funs(get_module_funs(mod), hint, exact?), hint)
+    mod
+    |> get_module_funs()
+    |> match_module_funs(hint, exact?)
+    |> format_expansion(hint)
   end
 
   ## Expand local or var
@@ -216,6 +233,14 @@ defmodule IEx.Autocomplete do
 
   defp expand_local(hint, exact?, shell) do
     format_expansion(match_local(hint, exact?, shell), hint)
+  end
+
+  defp expand_sigil(shell) do
+    sigils =
+      match_local("sigil_", false, shell)
+      |> Enum.map(fn %{name: "sigil_" <> rest} -> %{kind: :sigil, name: rest} end)
+
+    format_expansion(match_local("~", false, shell) ++ sigils, "~")
   end
 
   defp match_local(hint, exact?, shell) do
@@ -237,37 +262,51 @@ defmodule IEx.Autocomplete do
   end
 
   defp match_erlang_modules(hint) do
-    for mod <- match_modules(hint, true), usable_as_unquoted_module?(mod) do
-      %{kind: :module, name: mod, type: :erlang}
+    for mod <- match_modules(hint, false), usable_as_unquoted_module?(mod) do
+      %{kind: :module, name: mod}
     end
   end
 
   ## Elixir modules
 
+  defp expand_structs(hint, shell) do
+    aliases =
+      for {alias, mod} <- aliases_from_env(shell),
+          [name] = Module.split(alias),
+          String.starts_with?(name, hint),
+          has_struct?(mod),
+          do: %{kind: :struct, name: name}
+
+    modules =
+      for "Elixir." <> name = full_name <- match_modules("Elixir." <> hint, true),
+          String.starts_with?(name, hint),
+          mod = String.to_atom(full_name),
+          has_struct?(mod),
+          do: %{kind: :struct, name: name}
+
+    format_expansion(aliases ++ modules, hint)
+  end
+
+  defp has_struct?(mod) do
+    Code.ensure_loaded?(mod) and function_exported?(mod, :__struct__, 1) and
+      not function_exported?(mod, :exception, 1)
+  end
+
   defp expand_aliases(all, shell) do
     case String.split(all, ".") do
       [hint] ->
-        aliases = match_aliases(hint, shell)
-        expand_aliases(Elixir, hint, aliases, false)
+        all = match_aliases(hint, shell) ++ match_elixir_modules(Elixir, hint)
+        format_expansion(all, hint)
 
       parts ->
         hint = List.last(parts)
         list = Enum.take(parts, length(parts) - 1)
 
         case value_from_alias(list, shell) do
-          {:ok, alias} -> expand_aliases(alias, hint, [], false)
+          {:ok, alias} -> match_elixir_modules(alias, hint) |> format_expansion(hint)
           :error -> no()
         end
     end
-  end
-
-  defp expand_aliases(mod, hint, aliases, include_funs?) do
-    aliases
-    |> Kernel.++(match_elixir_modules(mod, hint))
-    |> Kernel.++(
-      if include_funs?, do: match_module_funs(get_module_funs(mod), hint, false), else: []
-    )
-    |> format_expansion(hint)
   end
 
   defp value_from_alias([name | rest], shell) when is_binary(name) do
@@ -285,10 +324,10 @@ defmodule IEx.Autocomplete do
   end
 
   defp match_aliases(hint, shell) do
-    for {alias, _mod} <- aliases_from_env(shell),
+    for {alias, module} <- aliases_from_env(shell),
         [name] = Module.split(alias),
         String.starts_with?(name, hint) do
-      %{kind: :module, type: :alias, name: name}
+      %{kind: :module, name: name, module: module}
     end
   end
 
@@ -303,7 +342,7 @@ defmodule IEx.Autocomplete do
         name = Enum.at(parts, depth - 1),
         valid_alias_piece?("." <> name),
         uniq: true,
-        do: %{kind: :module, type: :elixir, name: name}
+        do: %{kind: :module, name: name}
   end
 
   defp valid_alias_piece?(<<?., char, rest::binary>>) when char in ?A..?Z,
@@ -329,7 +368,7 @@ defmodule IEx.Autocomplete do
 
   defp format_expansion([uniq], hint) do
     case to_hint(uniq, hint) do
-      "" -> yes("", to_uniq_entries(uniq))
+      "" -> yes("", to_entries(uniq))
       hint -> yes(hint, [])
     end
   end
@@ -362,8 +401,8 @@ defmodule IEx.Autocomplete do
     Code.Identifier.classify(String.to_atom(name)) != :other
   end
 
-  defp match_modules(hint, root) do
-    get_modules(root)
+  defp match_modules(hint, elixir_root?) do
+    get_modules(elixir_root?)
     |> Enum.sort()
     |> Enum.dedup()
     |> Enum.drop_while(&(not String.starts_with?(&1, hint)))
@@ -505,42 +544,41 @@ defmodule IEx.Autocomplete do
 
   ## Ad-hoc conversions
 
-  defp to_entries(%{kind: kind, name: name})
-       when kind in [:map_key, :module, :variable, :dir, :file] do
-    [name]
-  end
-
   defp to_entries(%{kind: :function, name: name, arity: arity}) do
     ["#{name}/#{arity}"]
   end
 
-  defp to_uniq_entries(%{kind: kind})
-       when kind in [:map_key, :module, :variable, :dir, :file] do
-    []
+  defp to_entries(%{kind: :sigil, name: name}) do
+    ["~#{name} (sigil_#{name})"]
   end
 
-  defp to_uniq_entries(%{kind: :function} = fun) do
-    to_entries(fun)
+  defp to_entries(%{kind: _, name: name}) do
+    [name]
   end
 
-  defp to_hint(%{kind: :module, name: name}, hint) when name == hint do
-    format_hint(name, name) <> "."
+  # Add extra character only if pressing tab when done
+  defp to_hint(%{kind: :module, name: hint}, hint) do
+    "."
   end
 
-  defp to_hint(%{kind: :map_key, name: name, value_is_map: true}, hint) when name == hint do
-    format_hint(name, hint) <> "."
+  defp to_hint(%{kind: :map_key, name: hint, value_is_map: true}, hint) do
+    "."
   end
 
-  defp to_hint(%{kind: :dir, name: name}, hint) when name == hint do
-    format_hint(name, name) <> "/"
+  defp to_hint(%{kind: :file, name: hint}, hint) do
+    "\""
   end
 
-  defp to_hint(%{kind: :file, name: name}, hint) when name == hint do
-    format_hint(name, name) <> "\""
+  # Add extra character whenever possible
+  defp to_hint(%{kind: :dir, name: name}, hint) do
+    format_hint(name, hint) <> "/"
   end
 
-  defp to_hint(%{kind: kind, name: name}, hint)
-       when kind in [:function, :map_key, :module, :variable, :dir, :file] do
+  defp to_hint(%{kind: :struct, name: name}, hint) do
+    format_hint(name, hint) <> "{"
+  end
+
+  defp to_hint(%{kind: _, name: name}, hint) do
     format_hint(name, hint)
   end
 
@@ -601,43 +639,39 @@ defmodule IEx.Autocomplete do
   defp path_fragment([?" | _], _acc), do: []
   defp path_fragment([h | t], acc), do: path_fragment(t, [h | acc])
 
-  defp expand_path(path_fragment) do
-    path = List.to_string(path_fragment)
-    dir = Path.dirname(path_fragment)
-
+  defp expand_path(path) do
     path
-    |> ls_prefix(dir)
+    |> List.to_string()
+    |> ls_prefix()
     |> Enum.map(fn path ->
       %{
         kind: if(File.dir?(path), do: :dir, else: :file),
         name: Path.basename(path)
       }
     end)
-    |> format_expansion(path_hint(path, dir))
+    |> format_expansion(path_hint(path))
   end
 
-  defp path_hint(path, dir) do
-    path_size = byte_size(path)
-    dir_size = byte_size(dir)
-
-    if path_size == dir_size do
+  defp path_hint(path) do
+    if List.last(path) in [?/, ?\\] do
       ""
     else
-      binary_part(path, dir_size + 1, path_size - (dir_size + 1))
+      Path.basename(path)
     end
   end
 
   defp prefix_from_dir(".", <<c, _::binary>>) when c != ?., do: ""
   defp prefix_from_dir(dir, _fragment), do: dir
 
-  defp ls_prefix(path_fragment, dir) do
-    prefix = prefix_from_dir(dir, path_fragment)
+  defp ls_prefix(path) do
+    dir = Path.dirname(path)
+    prefix = prefix_from_dir(dir, path)
 
     case File.ls(dir) do
       {:ok, list} ->
         list
         |> Enum.map(&Path.join(prefix, &1))
-        |> Enum.filter(&String.starts_with?(&1, path_fragment))
+        |> Enum.filter(&String.starts_with?(&1, path))
 
       _ ->
         []
