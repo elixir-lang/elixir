@@ -78,11 +78,12 @@ The first column is the version the feature was hard deprecated. The second colu
 
 Version | Deprecated feature                                  | Replaced by (available since)
 :-------| :-------------------------------------------------- | :---------------------------------------------------------------
-[v1.13] | `Mix.Config`                                        | Use `Config` instead (v1.9)
-[v1.13] | `:strip_beam` config to `mix escript.build`         | Use `:strip_beams` instead (v1.9)
-[v1.13] | `Macro.to_string/2`                                 | Use `Macro.to_string/1` instead (v1.0)
-[v1.13] | `System.get_pid/0`                                  | Use `System.pid/0` instead (v1.9)
-[v1.12] | `^^^/2`                                             | Use `bxor/2` instead (v1.0)
+[v1.13] | `!` and `!=` in Version requirements                | `~>` or `>=` (v1.0)
+[v1.13] | `Mix.Config`                                        | `Config` (v1.9)
+[v1.13] | `:strip_beam` config to `mix escript.build`         | `:strip_beams` (v1.9)
+[v1.13] | `Macro.to_string/2`                                 | `Macro.to_string/1` (v1.0)
+[v1.13] | `System.get_pid/0`                                  | `System.pid/0` (v1.9)
+[v1.12] | `^^^/2`                                             | `bxor/2` (v1.0)
 [v1.12] | `@foo()` to read module attributes                  | Remove the parenthesis (v1.0)
 [v1.12] | `use EEx.Engine`                                    | Explicitly delegate to EEx.Engine instead (v1.0)
 [v1.12] | `:xref` compiler in Mix                             | Nothing (it always runs as part of the compiler now)

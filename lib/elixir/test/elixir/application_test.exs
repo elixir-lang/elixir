@@ -113,13 +113,23 @@ defmodule ApplicationTest do
     def trace(_, _), do: :ok
 
     defp compile_env(app, key, default \\ nil) do
-      code = quote do: Application.compile_env(unquote(app), unquote(key), unquote(default))
+      code =
+        quote do
+          require Application
+          Application.compile_env(unquote(app), unquote(key), unquote(default))
+        end
+
       {result, _binding} = Code.eval_quoted(code, [], tracers: [__MODULE__])
       result
     end
 
     defp compile_env!(app, key) do
-      code = quote do: Application.compile_env!(unquote(app), unquote(key))
+      code =
+        quote do
+          require Application
+          Application.compile_env!(unquote(app), unquote(key))
+        end
+
       {result, _binding} = Code.eval_quoted(code, [], tracers: [__MODULE__])
       result
     end

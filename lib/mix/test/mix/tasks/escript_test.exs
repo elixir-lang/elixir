@@ -371,6 +371,7 @@ defmodule Mix.Tasks.EscriptTest do
       """)
 
       File.write!("lib/git_repo.ex", """
+      require Application
       true = Application.compile_env!(:git_repo, :escript_config)
 
       defmodule GitRepo do

@@ -28,13 +28,40 @@ Elixir v1.13 comes with many improvements to `mix xref`, such as:
 
 With these improvements, it has become simpler to understand the impact code recompilation has in our codebases and how to limit it.
 
-## Code wrangling
-
-The `Code` has been augmented with two functions: `Code.string_to_quoted_with_comments/2` and `Code.quoted_to_algebra/2`. Those functions allow someone to retrieve the Elixir AST with their original source code comments, and then convert this AST to formatted code. In other words, those functions provide a wrapper around the Elixir Code Formatter, supporting developers who wish to create tools that directly manipulate source code and keep it formatted.
+## Code fragments
 
 The `Code` module also got a companion module called `Code.Fragment`, which hosts functions that work on incomplete code, as is often the scenario in editors, command line, etc. The module contains different heuristics to analyze the source code and return context informational.
 
+Thanks to these improvements, `IEx`' autocomplete got several quality of life improvements, such as the autocompletion of sigils, structs, and paths. For example, typing `~<TAB>` now shows:
+
+```iex
+iex(1)> ~
+~C (sigil_C)    ~D (sigil_D)    ~N (sigil_N)    ~R (sigil_R)
+~S (sigil_S)    ~T (sigil_T)    ~U (sigil_U)    ~W (sigil_W)
+~c (sigil_c)    ~r (sigil_r)    ~s (sigil_s)    ~w (sigil_w)
+
+```
+
+Adding the sigil and pressing tab then shows the available operators:
+
+```iex
+iex(1)> ~r
+"      """    '      '''    (      /      <      [      {      |
+
+```
+
+Similarly, `%<TAB>` now shows only the available structs (exceptions excluded), instead of all modules:
+
+```elixir
+iex(1)> %File.St
+File.Stat      File.Stream
+```
+
 Finally, new compilation tracers have been added, alongside a handful of functions in `Module` to help reflect on module metadata, which can be used to enrich suggestions in programming environments.
+
+## Extended code formatting
+
+The `Code` has been augmented with two functions: `Code.string_to_quoted_with_comments/2` and `Code.quoted_to_algebra/2`. Those functions allow someone to retrieve the Elixir AST with their original source code comments, and then convert this AST to formatted code. In other words, those functions provide a wrapper around the Elixir Code Formatter, supporting developers who wish to create tools that directly manipulate source code.
 
 ## v1.13.0-dev
 
@@ -76,6 +103,7 @@ Finally, new compilation tracers have been added, alongside a handful of functio
 #### IEx
 
   * [IEx.Autocomplete] Add path autocompletion whenever when the cursor follows `"./` or `"/` or `"DRIVER:` where `DRIVER` is a single letter
+  * [IEx.Autocomplete] Add autocompletion for sigils and structs
 
 #### Logger
 
@@ -107,6 +135,7 @@ Finally, new compilation tracers have been added, alongside a handful of functio
 
 #### Elixir
 
+  * [Application] Warn if `Application.compile_env` or `Application.compile_env!` are called without a require
   * [Code] Ensure bindings with no context are returned as atoms instead of `{binding, nil}` in eval operations
   * [Kernel] Raise if `__CALLER__` or `__ENV__` or `__STACKTRACE__` are used in match
   * [Kernel] Improve error message on invalid argument for `byte_size` from binary concat
@@ -148,6 +177,7 @@ Finally, new compilation tracers have been added, alongside a handful of functio
   * [Code] `Code.cursor_context/2` is deprecated, use `Code.Fragment.cursor_context/2` instead
   * [Macro] `Macro.to_string/2` is deprecated, use `Macro.to_string/1` instead
   * [System] `System.get_pid/0` is deprecated, use `System.pid/0` instead
+  * [Version] Using `!` or `!=` in version requirements is deprecated, use `~>` or `>=` instead
 
 #### Mix
 
