@@ -258,6 +258,7 @@ defmodule Kernel.LexicalTrackerTest do
       {{compile, exports, runtime, _}, _binding} =
         Code.eval_string("""
         defmodule Kernel.LexicalTrackerTest.CompileEnvStruct do
+          require Application
           Application.compile_env(:elixir, URI)
           Application.compile_env(:elixir, [:foo, URI, :bar])
           Kernel.LexicalTracker.references(__ENV__.lexical_tracker)

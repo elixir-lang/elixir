@@ -96,6 +96,7 @@ defmodule Application do
   first choice. However, if you really have to read the application environment
   during compilation, we recommend you to use `compile_env/3` instead:
 
+      require Application
       @db_host Application.compile_env(:my_app, :db_host, "db.local")
 
   By using `compile_env/3`, tools like Mix will store the values used during
