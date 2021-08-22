@@ -528,6 +528,7 @@ defmodule Mix.Tasks.ReleaseTest do
       config = [releases: [compile_env_config: []], config_path: "different_config/config.exs"]
 
       File.write!("lib/compile_env.ex", """
+      require Application
       _ = Application.compile_env(:release_test, :static)
       """)
 
@@ -567,6 +568,7 @@ defmodule Mix.Tasks.ReleaseTest do
       config = [releases: [no_compile_env_config: [validate_compile_env: false]]]
 
       File.write!("lib/compile_env.ex", """
+      require Application
       _ = Application.compile_env(:release_test, :static)
       """)
 
@@ -596,6 +598,7 @@ defmodule Mix.Tasks.ReleaseTest do
 
       # We write the compile env to guarantee rpc still works
       File.write!("lib/compile_env.ex", """
+      require Application
       _ = Application.compile_env(:release_test, :static)
       """)
 

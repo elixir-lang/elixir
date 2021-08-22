@@ -145,6 +145,7 @@ defmodule Mix.Tasks.ArchiveTest do
       """)
 
       File.write!("lib/git_repo.ex", """
+      require Application
       true = Application.compile_env!(:git_repo, :archive_config)
 
       defmodule GitRepo do

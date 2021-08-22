@@ -287,6 +287,7 @@ defmodule Mix.Tasks.CompileTest do
 
       File.write!("lib/a.ex", """
       defmodule A do
+        require Application
         _ = Application.compile_env(:sample, :hello)
       end
       """)
