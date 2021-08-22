@@ -49,9 +49,8 @@ defmodule VersionTest do
   end
 
   test "lexes specifications properly" do
-    assert Parser.lexer("== != > >= < <= ~>", []) == [:==, :!=, :>, :>=, :<, :<=, :~>]
+    assert Parser.lexer("== > >= < <= ~>", []) == [:==, :>, :>=, :<, :<=, :~>]
     assert Parser.lexer("2.3.0", []) == [:==, {2, 3, 0, [], []}]
-    assert Parser.lexer("!2.3.0", []) == [:!=, {2, 3, 0, [], []}]
     assert Parser.lexer(">>=", []) == [:>, :>=]
     assert Parser.lexer(">2.4.0", []) == [:>, {2, 4, 0, [], []}]
     assert Parser.lexer("> 2.4.0", []) == [:>, {2, 4, 0, [], []}]
@@ -157,11 +156,13 @@ defmodule VersionTest do
   end
 
   test "!=" do
-    assert Version.match?("2.4.0", "!2.3.0")
-    refute Version.match?("2.3.0", "!2.3.0")
+    ExUnit.CaptureIO.capture_io(:stderr, fn ->
+      assert Version.match?("2.4.0", "!2.3.0")
+      refute Version.match?("2.3.0", "!2.3.0")
 
-    assert Version.match?("2.4.0", "!= 2.3.0")
-    refute Version.match?("2.3.0", "!= 2.3.0")
+      assert Version.match?("2.4.0", "!= 2.3.0")
+      refute Version.match?("2.3.0", "!= 2.3.0")
+    end)
   end
 
   test ">" do
