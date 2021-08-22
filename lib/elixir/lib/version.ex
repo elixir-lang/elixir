@@ -38,8 +38,9 @@ defmodule Version do
 
   Requirements allow you to specify which versions of a given
   dependency you are willing to work against. Requirements support the common
-  comparison operators such as `>`, `>=`, `<`, `<=`, `==`, `!=` that work as one would expect,
-  and additionally the special operator `~>` described in detail further below.
+  comparison operators such as `>`, `>=`, `<`, `<=`, and `==` that work as one
+  would expect, and additionally the special operator `~>` described in detail
+  further below.
 
       # Only version 2.0.0
       "== 2.0.0"
@@ -470,8 +471,6 @@ defmodule Version do
       {">", :>},
       {"<", :<},
       {"==", :==},
-      {"!=", :!=},
-      {"!", :!=},
       {" or ", :||},
       {" and ", :&&}
     ]
@@ -480,6 +479,16 @@ defmodule Version do
       def lexer(unquote(string_op) <> rest, acc) do
         lexer(rest, [unquote(atom_op) | acc])
       end
+    end
+
+    def lexer("!=" <> rest, acc) do
+      IO.warn("!= inside Version requirements is deprecated, use ~> or >= instead")
+      lexer(rest, [:!= | acc])
+    end
+
+    def lexer("!" <> rest, acc) do
+      IO.warn("! inside Version requirements is deprecated, use ~> or >= instead")
+      lexer(rest, [:!= | acc])
     end
 
     def lexer(" " <> rest, acc) do
