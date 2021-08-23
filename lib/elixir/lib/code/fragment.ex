@@ -254,6 +254,9 @@ defmodule Code.Fragment do
       {:module_attribute, acc, count} ->
         {{:module_attribute, acc}, count}
 
+      {:sigil, acc, count} ->
+        {{:sigil, acc}, count}
+
       {:unquoted_atom, acc, count} ->
         {{:unquoted_atom, acc}, count}
 
@@ -271,10 +274,6 @@ defmodule Code.Fragment do
 
       {:identifier, _, acc, count} when call_op? and acc in @textual_operators ->
         {{:operator, acc}, count}
-
-      {:identifier, [?~ | rest], [_] = acc, count}
-      when rest == [] or hd(rest) not in @tilde_op_prefix ->
-        {{:sigil, acc}, count + 1}
 
       {:identifier, rest, acc, count} ->
         case strip_spaces(rest, count) do
@@ -306,6 +305,12 @@ defmodule Code.Fragment do
       :none when acc == [] -> {:module_attribute, '', count}
       _ -> :none
     end
+  end
+
+  defp rest_identifier([?~ | rest], count, [letter])
+       when (letter in ?A..?Z or letter in ?a..?z) and
+              (rest == [] or hd(rest) not in @tilde_op_prefix) do
+    {:sigil, [letter], count + 1}
   end
 
   defp rest_identifier([?: | rest], count, acc) when rest == [] or hd(rest) != ?: do

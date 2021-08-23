@@ -223,10 +223,15 @@ defmodule CodeFragmentTest do
 
     test "sigil" do
       assert CF.cursor_context("~") == {:sigil, ''}
+      assert CF.cursor_context("~ ") == :none
+
       assert CF.cursor_context("~r") == {:sigil, 'r'}
       assert CF.cursor_context("~r/") == :none
       assert CF.cursor_context("~r<") == :none
-      assert CF.cursor_context("~ ") == :none
+
+      assert CF.cursor_context("~R") == {:sigil, 'R'}
+      assert CF.cursor_context("~R/") == :none
+      assert CF.cursor_context("~R<") == :none
     end
 
     test "module attribute" do
@@ -727,19 +732,19 @@ defmodule CodeFragmentTest do
 
       assert CF.surround_context("~r/foo/", {1, 3}) == :none
 
-      assert CF.surround_context("~r<foo>", {1, 1}) == %{
+      assert CF.surround_context("~R<foo>", {1, 1}) == %{
                begin: {1, 1},
-               context: {:sigil, 'r'},
+               context: {:sigil, 'R'},
                end: {1, 3}
              }
 
-      assert CF.surround_context("~r<foo>", {1, 2}) == %{
+      assert CF.surround_context("~R<foo>", {1, 2}) == %{
                begin: {1, 1},
-               context: {:sigil, 'r'},
+               context: {:sigil, 'R'},
                end: {1, 3}
              }
 
-      assert CF.surround_context("~r<foo>", {1, 3}) == :none
+      assert CF.surround_context("~R<foo>", {1, 3}) == :none
     end
 
     test "dot operator" do
