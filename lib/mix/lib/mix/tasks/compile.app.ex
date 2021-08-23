@@ -177,8 +177,8 @@ defmodule Mix.Tasks.Compile.App do
   end
 
   defp load_compile_env(current_properties) do
-    case Mix.ProjectStack.compile_env(:unset) do
-      :unset -> Keyword.get(current_properties, :compile_env, [])
+    case Mix.ProjectStack.compile_env(nil) do
+      nil -> Keyword.get(current_properties, :compile_env, [])
       list -> list
     end
   end

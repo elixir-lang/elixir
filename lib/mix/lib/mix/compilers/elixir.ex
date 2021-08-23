@@ -1,7 +1,7 @@
 defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
-  @manifest_vsn 10
+  @manifest_vsn 11
 
   import Record
 
@@ -30,25 +30,41 @@ defmodule Mix.Compilers.Elixir do
   between modules, which helps it recompile only the modules that
   have changed at runtime.
   """
-  def compile(manifest, srcs, dest, exts, stale_modules, new_cache_key, force, opts) do
+  def compile(manifest, srcs, dest, exts, force, deps_changed?, new_cache_key, stale, opts) do
     # We fetch the time from before we read files so any future
     # change to files are still picked up by the compiler. This
     # timestamp is used when writing BEAM files and the manifest.
     timestamp = System.os_time(:second)
     all_paths = Mix.Utils.extract_files(srcs, exts)
 
-    {all_modules, all_sources, all_local_exports, old_cache_key} = parse_manifest(manifest, dest)
+    {all_modules, all_sources, all_local_exports, old_cache_key, old_lock, old_config} =
+      parse_manifest(manifest, dest)
+
+    {force?, write?, new_lock, new_config} =
+      cond do
+        !!force or is_nil(old_lock) or is_nil(old_config) or old_cache_key != new_cache_key ->
+          {true, true, Enum.sort(Mix.Dep.Lock.read()),
+           Enum.sort(Mix.Tasks.Loadconfig.read_compile())}
+
+        deps_changed? ->
+          {true, true, Enum.sort(Mix.Dep.Lock.read()),
+           Enum.sort(Mix.Tasks.Loadconfig.read_compile())}
+
+        true ->
+          {false, false, old_lock, old_config}
+      end
+
     modified = Mix.Utils.last_modified(manifest)
 
     {stale_local_deps, stale_local_mods, stale_local_exports, all_local_exports} =
-      stale_local_deps(manifest, stale_modules, modified, all_local_exports)
+      stale_local_deps(manifest, stale, modified, all_local_exports)
 
     prev_paths = for source(source: source) <- all_sources, do: source
     removed = prev_paths -- all_paths
     {sources, removed_modules} = remove_removed_sources(all_sources, removed)
 
     {modules, exports, changed, sources_stats} =
-      if force || old_cache_key != new_cache_key do
+      if force? do
         compiler_info_from_force(manifest, all_paths, all_modules, dest)
       else
         compiler_info_from_updated(
@@ -91,7 +107,18 @@ defmodule Mix.Compilers.Elixir do
         {:ok, _, warnings} ->
           {modules, _exports, sources, _pending_modules, _pending_exports} = get_compiler_info()
           sources = apply_warnings(sources, warnings)
-          write_manifest(manifest, modules, sources, all_local_exports, new_cache_key, timestamp)
+
+          write_manifest(
+            manifest,
+            modules,
+            sources,
+            all_local_exports,
+            new_cache_key,
+            new_lock,
+            new_config,
+            timestamp
+          )
+
           put_compile_env(sources)
           {:ok, Enum.map(warnings, &diagnostic(&1, :warning))}
 
@@ -113,8 +140,18 @@ defmodule Mix.Compilers.Elixir do
       status = if removed != [] or stale_local_mods != %{}, do: :ok, else: :noop
 
       # If nothing changed but there is one more recent mtime, bump the manifest
-      if status != :noop or Enum.any?(Map.values(sources_stats), &(elem(&1, 0) > modified)) do
-        write_manifest(manifest, modules, sources, all_local_exports, new_cache_key, timestamp)
+      if write? or status != :noop or
+           Enum.any?(Map.values(sources_stats), &(elem(&1, 0) > modified)) do
+        write_manifest(
+          manifest,
+          modules,
+          sources,
+          all_local_exports,
+          new_cache_key,
+          new_lock,
+          new_config,
+          timestamp
+        )
       end
 
       {status, warning_diagnostics(sources)}
@@ -152,7 +189,7 @@ defmodule Mix.Compilers.Elixir do
     rescue
       _ -> {[], []}
     else
-      {@manifest_vsn, modules, sources, _local_exports, _cache_key} -> {modules, sources}
+      {@manifest_vsn, modules, sources, _, _, _, _} -> {modules, sources}
       _ -> {[], []}
     end
   end
@@ -709,13 +746,13 @@ defmodule Mix.Compilers.Elixir do
       manifest |> File.read!() |> :erlang.binary_to_term()
     rescue
       _ ->
-        {[], [], %{}, nil}
+        {[], [], %{}, nil, nil, nil}
     else
-      {@manifest_vsn, modules, sources, local_exports, cache_key} ->
-        {modules, sources, local_exports, cache_key}
+      {@manifest_vsn, modules, sources, local_exports, cache_key, lock, config} ->
+        {modules, sources, local_exports, cache_key, lock, config}
 
       # {vsn, modules, sources} v5-v7 (v1.10)
-      # {vsn, modules, sources, local_exports} v8-v9 (v1.11)
+      # {vsn, modules, sources, local_exports} v8-v10 (v1.11)
       manifest when is_tuple(manifest) and is_integer(elem(manifest, 0)) ->
         purge_old_manifest(compile_path, elem(manifest, 1))
 
@@ -724,7 +761,7 @@ defmodule Mix.Compilers.Elixir do
         purge_old_manifest(compile_path, data)
 
       _ ->
-        {[], [], %{}, nil}
+        {[], [], %{}, nil, nil, nil}
     end
   end
 
@@ -743,18 +780,18 @@ defmodule Mix.Compilers.Elixir do
         )
     end
 
-    {[], [], %{}, nil}
+    {[], [], %{}, nil, nil, nil}
   end
 
-  defp write_manifest(manifest, [], [], _exports, _cache_key, _timestamp) do
+  defp write_manifest(manifest, [], [], _exports, _cache_key, _lock, _config, _timestamp) do
     File.rm(manifest)
     :ok
   end
 
-  defp write_manifest(manifest, modules, sources, exports, cache_key, timestamp) do
+  defp write_manifest(manifest, modules, sources, exports, cache_key, lock, config, timestamp) do
     File.mkdir_p!(Path.dirname(manifest))
 
-    term = {@manifest_vsn, modules, sources, exports, cache_key}
+    term = {@manifest_vsn, modules, sources, exports, cache_key, lock, config}
     manifest_data = :erlang.term_to_binary(term, [:compressed])
     File.write!(manifest, manifest_data)
     File.touch!(manifest, timestamp)
