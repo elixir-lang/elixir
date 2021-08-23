@@ -104,7 +104,6 @@ defmodule Mix.Tasks.Compile.Elixir do
     manifest = manifest()
     manifest_last_modified = Mix.Utils.last_modified(manifest)
 
-    force = opts[:force]
     deps_changed? = Mix.Utils.stale?([Mix.Project.config_mtime()], [manifest_last_modified])
 
     stale =
@@ -126,17 +125,7 @@ defmodule Mix.Tasks.Compile.Elixir do
       |> tracers_opts(tracers)
       |> profile_opts()
 
-    Mix.Compilers.Elixir.compile(
-      manifest,
-      srcs,
-      dest,
-      [:ex],
-      force,
-      deps_changed?,
-      cache_key,
-      stale,
-      opts
-    )
+    Mix.Compilers.Elixir.compile(manifest, srcs, dest, deps_changed?, cache_key, stale, opts)
   end
 
   @impl true

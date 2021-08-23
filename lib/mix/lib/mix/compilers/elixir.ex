@@ -30,19 +30,19 @@ defmodule Mix.Compilers.Elixir do
   between modules, which helps it recompile only the modules that
   have changed at runtime.
   """
-  def compile(manifest, srcs, dest, exts, force, deps_changed?, new_cache_key, stale, opts) do
+  def compile(manifest, srcs, dest, deps_changed?, new_cache_key, stale, opts) do
     # We fetch the time from before we read files so any future
     # change to files are still picked up by the compiler. This
     # timestamp is used when writing BEAM files and the manifest.
     timestamp = System.os_time(:second)
-    all_paths = Mix.Utils.extract_files(srcs, exts)
+    all_paths = Mix.Utils.extract_files(srcs, [:ex])
 
     {all_modules, all_sources, all_local_exports, old_cache_key, old_lock, old_config} =
       parse_manifest(manifest, dest)
 
     {force?, write?, stale, new_lock, new_config} =
       cond do
-        !!force or is_nil(old_lock) or is_nil(old_config) or old_cache_key != new_cache_key ->
+        !!opts[:force] or is_nil(old_lock) or is_nil(old_config) or old_cache_key != new_cache_key ->
           {true, true, stale, Enum.sort(Mix.Dep.Lock.read()),
            Enum.sort(Mix.Tasks.Loadconfig.read_compile())}
 
@@ -103,7 +103,7 @@ defmodule Mix.Compilers.Elixir do
     if opts[:all_warnings], do: show_warnings(sources)
 
     if stale != [] do
-      Mix.Utils.compiling_n(length(stale), hd(exts))
+      Mix.Utils.compiling_n(length(stale), :ex)
       Mix.Project.ensure_structure()
       true = Code.prepend_path(dest)
 
