@@ -112,7 +112,7 @@ defmodule Inspect.Opts do
   @doc since: "1.13.0"
   @spec new(keyword()) :: t
   def new(opts) do
-    struct!(%Inspect.Opts{inspect_fun: default_inspect_fun()}, opts)
+    struct(%Inspect.Opts{inspect_fun: default_inspect_fun()}, opts)
   end
 
   @doc """
