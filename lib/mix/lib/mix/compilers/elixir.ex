@@ -40,18 +40,33 @@ defmodule Mix.Compilers.Elixir do
     {all_modules, all_sources, all_local_exports, old_cache_key, old_lock, old_config} =
       parse_manifest(manifest, dest)
 
-    {force?, write?, new_lock, new_config} =
+    {force?, write?, stale, new_lock, new_config} =
       cond do
         !!force or is_nil(old_lock) or is_nil(old_config) or old_cache_key != new_cache_key ->
-          {true, true, Enum.sort(Mix.Dep.Lock.read()),
+          {true, true, stale, Enum.sort(Mix.Dep.Lock.read()),
            Enum.sort(Mix.Tasks.Loadconfig.read_compile())}
 
         deps_changed? ->
-          {true, true, Enum.sort(Mix.Dep.Lock.read()),
-           Enum.sort(Mix.Tasks.Loadconfig.read_compile())}
+          new_lock = Enum.sort(Mix.Dep.Lock.read())
+          new_config = Enum.sort(Mix.Tasks.Loadconfig.read_compile())
+
+          with {:apps, apps} <- merge_lock(old_lock, new_lock, []),
+               apps = merge_config(old_config, new_config, apps),
+               # If the current app is in the list of changes, then we need to force it
+               false <- Mix.Project.config()[:app] in apps do
+            apps_stale =
+              apps
+              |> deps_on()
+              |> Enum.flat_map(fn {app, _} -> Application.spec(app, :modules) || [] end)
+
+            {false, true, stale ++ apps_stale, new_lock, new_config}
+          else
+            _ ->
+              {true, true, stale, new_lock, new_config}
+          end
 
         true ->
-          {false, false, old_lock, old_config}
+          {false, false, stale, old_lock, old_config}
       end
 
     modified = Mix.Utils.last_modified(manifest)
@@ -635,6 +650,8 @@ defmodule Mix.Compilers.Elixir do
 
   defp stale_local_deps(manifest, stale_modules, modified, old_exports) do
     base = Path.basename(manifest)
+
+    # TODO: Use :maps.from_keys/2 on Erlang/OTP 24+
     stale_modules = for module <- stale_modules, do: {module, true}, into: %{}
 
     for %{scm: scm, opts: opts} = dep <- Mix.Dep.cached(),
@@ -737,6 +754,78 @@ defmodule Mix.Compilers.Elixir do
       compiler_name: "Elixir"
     }
   end
+
+  ## Merging of lock and config files
+
+  # Lock for app didn't change
+  defp merge_lock([{app, value} | old_lock], [{app, value} | new_lock], apps),
+    do: merge_lock(old_lock, new_lock, apps)
+
+  # Lock for app changed
+  defp merge_lock([{app, _} | old_lock], [{app, _} | new_lock], apps),
+    do: merge_lock(old_lock, new_lock, [app | apps])
+
+  # App is in new lock but not the old one, add it to the list
+  defp merge_lock([{app1, _} | _] = old_lock, [{app2, _} | new_lock], apps) when app1 > app2,
+    do: merge_lock(old_lock, new_lock, [app2 | apps])
+
+  # We are done and we may have left overs on new lock, add them to apps
+  defp merge_lock([], new_lock, apps),
+    do: {:apps, Enum.reduce(new_lock, apps, fn {app, _}, apps -> [app | apps] end)}
+
+  # However, if the old lock has exclusive entries, it means deps were deleted,
+  # so we need to force recompilation
+  defp merge_lock(_, _, _),
+    do: :force
+
+  # Config for app didn't change
+  defp merge_config([{app, value} | old_config], [{app, value} | new_config], apps),
+    do: merge_config(old_config, new_config, apps)
+
+  # Config for app changed
+  defp merge_config([{app, _} | old_config], [{app, _} | new_config], apps),
+    do: merge_config(old_config, new_config, [app | apps])
+
+  # Added config for app
+  defp merge_config([{app1, _} | _] = old_config, [{app2, _} | new_config], apps)
+       when app1 > app2,
+       do: merge_config(old_config, new_config, [app2 | apps])
+
+  # Removed config for app
+  defp merge_config([{app1, _} | old_config], [{app2, _} | _] = new_config, apps)
+       when app1 < app2,
+       do: merge_config(old_config, new_config, [app1 | apps])
+
+  # One of them is done, add the others
+  defp merge_config(old_config, new_config, apps) do
+    apps = Enum.reduce(old_config, apps, fn {app, _}, apps -> [app | apps] end)
+    Enum.reduce(new_config, apps, fn {app, _}, apps -> [app | apps] end)
+  end
+
+  defp deps_on(apps) do
+    # TODO: Use :maps.from_keys/2 on Erlang/OTP 24+
+    apps = for app <- apps, do: {app, true}, into: %{}
+    deps_on(Mix.Dep.cached(), apps, [], false)
+  end
+
+  defp deps_on([%{app: app, deps: deps} = dep | cached_deps], apps, acc, stored?) do
+    cond do
+      # We have already seen this dep
+      Map.has_key?(apps, app) ->
+        deps_on(cached_deps, apps, acc, stored?)
+
+      # It depends on one of the apps, store it
+      Enum.any?(deps, &Map.has_key?(apps, &1.app)) ->
+        deps_on(cached_deps, Map.put(apps, app, true), acc, true)
+
+      # Otherwise we will check it later
+      true ->
+        deps_on(cached_deps, apps, [dep | acc], stored?)
+    end
+  end
+
+  defp deps_on([], apps, cached_deps, true), do: deps_on(cached_deps, apps, [], false)
+  defp deps_on([], apps, _cached_deps, false), do: apps
 
   ## Manifest handling
 
