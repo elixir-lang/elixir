@@ -250,6 +250,8 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
       assert File.stat!("_build/dev/lib/sample/.mix/compile.elixir").mtime > @old_time
     end)
+  after
+    Application.delete_env(:sample, :foo, persistent: true)
   end
 
   test "recompiles files when lock changes" do
