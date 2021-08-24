@@ -1,7 +1,7 @@
 defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
-  @manifest_vsn 9
+  @manifest_vsn 8
 
   import Record
 
@@ -10,7 +10,6 @@ defmodule Mix.Compilers.Elixir do
   defrecord :source,
     source: nil,
     size: 0,
-    digest: nil,
     compile_references: [],
     export_references: [],
     runtime_references: [],
@@ -176,10 +175,6 @@ defmodule Mix.Compilers.Elixir do
     {[], %{}, all_paths, sources_stats}
   end
 
-  # Assume that either all .beam files are missing, or none of them are
-  defp missing_beam_file?(dest, [mod | _]), do: not File.exists?(beam_path(dest, mod))
-  defp missing_beam_file?(_dest, []), do: false
-
   defp compiler_info_from_updated(
          modified,
          all_paths,
@@ -211,16 +206,12 @@ defmodule Mix.Compilers.Elixir do
     # Sources that have changed on disk or
     # any modules associated with them need to be recompiled
     changed =
-      for source(source: source, external: external, size: size, digest: digest, modules: modules) <-
+      for source(source: source, external: external, size: size, modules: modules) <-
             all_sources,
           {last_mtime, last_size} = Map.fetch!(sources_stats, source),
           times = Enum.map(external, &(sources_stats |> Map.fetch!(&1) |> elem(0))),
-          Enum.any?(modules, &Map.has_key?(modules_to_recompile, &1)) or
-            Mix.Utils.stale?(times, [modified]) or
-            (size != last_size or
-               (last_mtime > modified and
-                  (missing_beam_file?(dest, modules) or
-                     digest != digest(source)))),
+          size != last_size or Mix.Utils.stale?([last_mtime | times], [modified]) or
+            Enum.any?(modules, &Map.has_key?(modules_to_recompile, &1)),
           do: source
 
     changed = new_paths ++ changed
@@ -253,12 +244,6 @@ defmodule Mix.Compilers.Elixir do
         Map.put_new_lazy(map, file, fn -> Mix.Utils.last_modified_and_size(file) end)
       end)
     end)
-  end
-
-  defp digest(file) do
-    file
-    |> File.read!()
-    |> :erlang.md5()
   end
 
   defp compile_path(stale, dest, timestamp, opts) do
@@ -475,8 +460,6 @@ defmodule Mix.Compilers.Elixir do
     source =
       source(
         source,
-        # We preserve the digest if the file is recompiled but not changed
-        digest: source(source, :digest) || digest(file),
         compile_references: compile_references,
         export_references: export_references,
         runtime_references: runtime_references,
@@ -526,11 +509,11 @@ defmodule Mix.Compilers.Elixir do
   # to be recompiled (but were not changed on disk)
   defp update_stale_sources(sources, changed) do
     Enum.reduce(changed, {sources, %{}}, fn file, {acc_sources, acc_modules} ->
-      {source(size: size, digest: digest, modules: modules), acc_sources} =
+      {source(size: size, modules: modules), acc_sources} =
         List.keytake(acc_sources, file, source(:source))
 
       acc_modules = Enum.reduce(modules, acc_modules, &Map.put(&2, &1, true))
-      {[source(source: file, size: size, digest: digest) | acc_sources], acc_modules}
+      {[source(source: file, size: size) | acc_sources], acc_modules}
     end)
   end
 
@@ -717,15 +700,11 @@ defmodule Mix.Compilers.Elixir do
       {@manifest_vsn, modules, sources, local_exports} ->
         {modules, sources, local_exports}
 
-      # v8-v* (v1.11)
-      {vsn, modules, _sources, _local_exports} when is_integer(vsn) ->
-        purge_old_manifest(compile_path, modules)
-
-      # v5-v7 (v1.10)
+      # From v5 and later
       {vsn, modules, _sources} when is_integer(vsn) ->
         purge_old_manifest(compile_path, modules)
 
-      # v1-v4
+      # From v4 and before
       [vsn | data] when is_integer(vsn) ->
         purge_old_manifest(compile_path, data)
 

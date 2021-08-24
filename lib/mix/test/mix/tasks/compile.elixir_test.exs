@@ -195,39 +195,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   end
 
-  test "compiles mtime changed files if content changed but not length" do
-    in_fixture("no_mixfile", fn ->
-      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
-      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
-      assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
-
-      Mix.shell().flush
-      purge([A, B])
-
-      same_length_content = "lib/a.ex" |> File.read!() |> String.replace("A", "Z")
-      File.write!("lib/a.ex", same_length_content)
-      future = {{2038, 1, 1}, {0, 0, 0}}
-      File.touch!("lib/a.ex", future)
-      Mix.Tasks.Compile.Elixir.run(["--verbose"])
-
-      message =
-        "warning: mtime (modified time) for \"lib/a.ex\" was set to the future, resetting to now"
-
-      assert_received {:mix_shell, :error, [^message]}
-
-      message =
-        "warning: mtime (modified time) for \"lib/b.ex\" was set to the future, resetting to now"
-
-      refute_received {:mix_shell, :error, [^message]}
-      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
-      refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
-
-      File.touch!("_build/dev/lib/sample/.mix/compile.elixir", future)
-      assert Mix.Tasks.Compile.Elixir.run([]) == {:noop, []}
-    end)
-  end
-
-  test "does not recompile mtime changed but identical files" do
+  test "compiles mtime changed files" do
     in_fixture("no_mixfile", fn ->
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
@@ -249,46 +217,11 @@ defmodule Mix.Tasks.Compile.ElixirTest do
         "warning: mtime (modified time) for \"lib/b.ex\" was set to the future, resetting to now"
 
       refute_received {:mix_shell, :error, [^message]}
-      refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
 
       File.touch!("_build/dev/lib/sample/.mix/compile.elixir", future)
       assert Mix.Tasks.Compile.Elixir.run([]) == {:noop, []}
-    end)
-  end
-
-  test "does recompile a file restored after a compile error (and .beam file were deleted)" do
-    in_fixture("no_mixfile", fn ->
-      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
-      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
-      assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
-
-      Mix.shell().flush
-      purge([A, B])
-
-      # Compile with error
-      original_content = File.read!("lib/b.ex")
-      File.write!("lib/b.ex", "this will not compile")
-
-      assert capture_io(fn ->
-               {:error, _} = Mix.Tasks.Compile.Elixir.run(["--verbose"])
-             end) =~ "Compilation error in file lib/b.ex"
-
-      assert_received {:mix_shell, :info, ["Compiling 1 file (.ex)"]}
-
-      # Revert change
-      File.write!("lib/b.ex", original_content)
-      future = {{2038, 1, 1}, {0, 0, 0}}
-      File.touch!("lib/b.ex", future)
-
-      Mix.Tasks.Compile.Elixir.run(["--verbose"])
-
-      message =
-        "warning: mtime (modified time) for \"lib/b.ex\" was set to the future, resetting to now"
-
-      assert_received {:mix_shell, :error, [^message]}
-      assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
-      refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
     end)
   end
 
@@ -324,7 +257,8 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       Mix.shell().flush
       purge([A, B])
 
-      force_recompilation("lib/b.ex")
+      future = {{2038, 1, 1}, {0, 0, 0}}
+      File.touch!("lib/b.ex", future)
       Mix.Tasks.Compile.Elixir.run(["--verbose"])
 
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
@@ -349,7 +283,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
       Code.put_compiler_option(:ignore_module_conflict, true)
       Code.compile_file("lib/b.ex")
-      force_recompilation("lib/a.ex")
+      File.touch!("lib/a.ex", {{2038, 1, 1}, {0, 0, 0}})
 
       Mix.Tasks.Compile.Elixir.run(["--verbose"])
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
@@ -538,7 +472,8 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
       purge([A, B])
 
-      force_recompilation("lib/a.ex")
+      future = {{2038, 1, 1}, {0, 0, 0}}
+      File.touch!("lib/a.ex", future)
 
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
@@ -680,7 +615,8 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       Mix.shell().flush
       purge([A, B])
 
-      force_recompilation("lib/a.ex")
+      future = {{2038, 1, 1}, {0, 0, 0}}
+      File.touch!("lib/a.ex", future)
       Mix.Tasks.Compile.Elixir.run(["--verbose"])
 
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}

@@ -179,10 +179,6 @@ defmodule MixTest.Case do
     ])
   end
 
-  def force_recompilation(file) do
-    File.write!(file, File.read!(file) <> "\n")
-  end
-
   defp mix_executable do
     Path.expand("../../../bin/mix", __DIR__)
   end
