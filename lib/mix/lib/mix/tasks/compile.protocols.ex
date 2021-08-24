@@ -52,6 +52,8 @@ defmodule Mix.Tasks.Compile.Protocols do
     protocols_and_impls = protocols_and_impls(config)
 
     cond do
+      # We need to reconsolidate all protocols whenever the dependency changes
+      # because we only track protocols from the current app and from local deps.
       opts[:force] || Mix.Utils.stale?([Mix.Project.config_mtime()], [manifest]) ->
         clean()
         paths = consolidation_paths()
@@ -91,21 +93,18 @@ defmodule Mix.Tasks.Compile.Protocols do
   defp protocols_and_impls(config) do
     deps = for %{scm: scm, opts: opts} <- Mix.Dep.cached(), not scm.fetchable?, do: opts[:build]
 
-    app =
+    paths =
       if Mix.Project.umbrella?(config) do
-        []
+        deps
       else
-        [Mix.Project.app_path(config)]
+        [Mix.Project.app_path(config) | deps]
       end
 
-    protocols_and_impls =
-      for path <- app ++ deps do
-        manifest_path = Path.join(path, ".mix/compile.elixir")
-        compile_path = Path.join(path, "ebin")
-        Mix.Compilers.Elixir.protocols_and_impls(manifest_path, compile_path)
-      end
-
-    Enum.concat(protocols_and_impls)
+    Enum.flat_map(paths, fn path ->
+      manifest_path = Path.join(path, ".mix/compile.elixir")
+      compile_path = Path.join(path, "ebin")
+      Mix.Compilers.Elixir.protocols_and_impls(manifest_path, compile_path)
+    end)
   end
 
   defp consolidation_paths do

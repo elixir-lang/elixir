@@ -478,9 +478,7 @@ defmodule Mix.UmbrellaTest do
 
         Mix.Task.clear()
         Application.unload(:foo)
-
-        mtime = File.stat!("_build/dev/lib/bar/.mix/compile.elixir").mtime
-        ensure_touched("../foo/lib/foo.ex", mtime)
+        ensure_touched("../foo/lib/foo.ex", "_build/dev/lib/bar/.mix/compile.elixir")
 
         assert Mix.Task.run("compile", ["--verbose"]) == {:ok, []}
         assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
@@ -508,8 +506,10 @@ defmodule Mix.UmbrellaTest do
         # Mark protocol as outdated
         File.touch!("_build/dev/lib/bar/consolidated/Elixir.Foo.beam", {{2010, 1, 1}, {0, 0, 0}})
 
-        mtime = File.stat!("_build/dev/lib/bar/.mix/compile.protocols").mtime
-        ensure_touched("_build/dev/lib/foo/ebin/Elixir.Foo.beam", mtime)
+        ensure_touched(
+          "_build/dev/lib/foo/ebin/Elixir.Foo.beam",
+          "_build/dev/lib/bar/.mix/compile.protocols"
+        )
 
         assert Mix.Tasks.Compile.Protocols.run([]) == :ok
 

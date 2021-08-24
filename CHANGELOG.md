@@ -2,15 +2,25 @@
 
 The focus behind Elixir v1.13 has been on tooling, mainly tooling related to code formatting, code fragments, code reflection, and code recompilation. A lot of this functionality will directly impact developers working on large codebases and provide meaningful quality of life improvements for those working on Elixir tooling and environments, such as IDEs, notebooks, etc.
 
-## Reduced recompilation
+## Semantic recompilation
 
 Elixir v1.13 comes with many improvements to the compiler, so it recompiles your files less frequently. In particular:
 
   * The digest of the files are considered in addition to their size. This avoids recompiling many files when switching or rebasing branches.
 
-  * Changing your `mix.exs` will no longer trigger a whole project recompilation, unless you specifically change the configuration used by the Elixir compiler.
+  * Changing your `mix.exs` will no longer trigger a full recompilation, unless you specifically change the configurations used by the Elixir compiler (`:elixirc_paths` and `:elixirc_options`).
+
+  * Changing compile-time configuration files (`config/config.exs` and any other file imported from it) now only recompiles the project files that depend on the reconfigured applications, instead of a full recompilation. However, if you change the configuration of your application itself, the whole project is still recompiled.
+
+  * Adding or updating a dependency now only recompiles the project files that depend on the modified a dependency. Removing a dependency still triggers a whole project recompilation.
 
   * If your project has both Erlang and Elixir files, changing an Erlang file will now recompile only the Elixir files that depend on it.
+
+In a nutshell, Elixir went from triggering full recompilations whenever any of `mix.exs`, `config/config.exs`, `src/*`, and `mix.lock` changed on disk to semantic recompilations where it only fully recompiles when:
+
+  * you change the compilation options in `mix.exs`
+  * you change the configuration for the current project in `config/config.exs`
+  * you remove a dependency
 
 ## mix xref
 
@@ -57,7 +67,7 @@ iex(1)> %File.St
 File.Stat      File.Stream
 ```
 
-Finally, new compilation tracers have been added, alongside a handful of functions in `Module` to help reflect on module metadata, which can be used to enrich suggestions in programming environments.
+Finally, new compilation tracers have been added, alongside a handful of functions in `Module` to retrieve module metadata, which can be used to enrich suggestions in programming environments.
 
 ## Extended code formatting
 
@@ -113,8 +123,11 @@ The `Code` has been augmented with two functions: `Code.string_to_quoted_with_co
 
   * [mix archive.install] Run `loadconfig` before building archive
   * [mix compile] Move Elixir version check to before deps are compiled, in order to give feedback earlier
+  * [mix compile.elixir] Do not recompile files if their modification time change but their contents are still the same and the .beam files are still on disk
   * [mix compile.elixir] Do not recompile all Elixir sources when Erlang modules change, only dependent ones
   * [mix compile.elixir] Do not recompile Elixir files if `mix.exs` changes, instead recompile only files using `Mix.Project` or trigger a recompilation if a compiler option changes
+  * [mix compile.elixir] Only recompile needed files when a dependency is added or updated
+  * [mix compile.elixir] Only recompile needed files when a dependency is configured
   * [mix deps] Add `:subdir` option to git deps
   * [mix escript.install] Run `loadconfig` before building escript
   * [mix local.rebar] No longer support `sub_dirs` in Rebar 2 to help migration towards Rebar 3
