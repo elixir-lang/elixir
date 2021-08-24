@@ -1,7 +1,7 @@
 defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
-  @manifest_vsn 10
+  @manifest_vsn 11
 
   import Record
 
@@ -30,25 +30,55 @@ defmodule Mix.Compilers.Elixir do
   between modules, which helps it recompile only the modules that
   have changed at runtime.
   """
-  def compile(manifest, srcs, dest, exts, stale_modules, new_cache_key, force, opts) do
+  def compile(manifest, srcs, dest, deps_changed?, new_cache_key, stale, opts) do
     # We fetch the time from before we read files so any future
     # change to files are still picked up by the compiler. This
     # timestamp is used when writing BEAM files and the manifest.
     timestamp = System.os_time(:second)
-    all_paths = Mix.Utils.extract_files(srcs, exts)
+    all_paths = Mix.Utils.extract_files(srcs, [:ex])
 
-    {all_modules, all_sources, all_local_exports, old_cache_key} = parse_manifest(manifest, dest)
+    {all_modules, all_sources, all_local_exports, old_cache_key, old_lock, old_config} =
+      parse_manifest(manifest, dest)
+
+    {force?, stale, new_lock, new_config} =
+      cond do
+        !!opts[:force] or is_nil(old_lock) or is_nil(old_config) or old_cache_key != new_cache_key ->
+          {true, stale, Enum.sort(Mix.Dep.Lock.read()),
+           Enum.sort(Mix.Tasks.Loadconfig.read_compile())}
+
+        deps_changed? ->
+          new_lock = Enum.sort(Mix.Dep.Lock.read())
+          new_config = Enum.sort(Mix.Tasks.Loadconfig.read_compile())
+
+          with {:apps, apps} <- merge_lock(old_lock, new_lock, []),
+               apps = merge_config(old_config, new_config, apps),
+               # If the current app is in the list of changes, then we need to force it
+               false <- Mix.Project.config()[:app] in apps do
+            apps_stale =
+              apps
+              |> deps_on()
+              |> Enum.flat_map(fn {app, _} -> Application.spec(app, :modules) || [] end)
+
+            {false, stale ++ apps_stale, new_lock, new_config}
+          else
+            _ -> {true, stale, new_lock, new_config}
+          end
+
+        true ->
+          {false, stale, old_lock, old_config}
+      end
+
     modified = Mix.Utils.last_modified(manifest)
 
     {stale_local_deps, stale_local_mods, stale_local_exports, all_local_exports} =
-      stale_local_deps(manifest, stale_modules, modified, all_local_exports)
+      stale_local_deps(manifest, stale, modified, all_local_exports)
 
     prev_paths = for source(source: source) <- all_sources, do: source
     removed = prev_paths -- all_paths
     {sources, removed_modules} = remove_removed_sources(all_sources, removed)
 
     {modules, exports, changed, sources_stats} =
-      if force || old_cache_key != new_cache_key do
+      if force? do
         compiler_info_from_force(manifest, all_paths, all_modules, dest)
       else
         compiler_info_from_updated(
@@ -72,7 +102,7 @@ defmodule Mix.Compilers.Elixir do
     if opts[:all_warnings], do: show_warnings(sources)
 
     if stale != [] do
-      Mix.Utils.compiling_n(length(stale), hd(exts))
+      Mix.Utils.compiling_n(length(stale), :ex)
       Mix.Project.ensure_structure()
       true = Code.prepend_path(dest)
 
@@ -91,7 +121,18 @@ defmodule Mix.Compilers.Elixir do
         {:ok, _, warnings} ->
           {modules, _exports, sources, _pending_modules, _pending_exports} = get_compiler_info()
           sources = apply_warnings(sources, warnings)
-          write_manifest(manifest, modules, sources, all_local_exports, new_cache_key, timestamp)
+
+          write_manifest(
+            manifest,
+            modules,
+            sources,
+            all_local_exports,
+            new_cache_key,
+            new_lock,
+            new_config,
+            timestamp
+          )
+
           put_compile_env(sources)
           {:ok, Enum.map(warnings, &diagnostic(&1, :warning))}
 
@@ -108,13 +149,33 @@ defmodule Mix.Compilers.Elixir do
         delete_compiler_info()
       end
     else
-      # We need to return ok if stale_local_mods changed
-      # because we want that to propagate to compile.protocols
+      # We need to return ok if stale_local_mods changed because we want to
+      # propagate the changed status to compile.protocols. `stale_local_mods`
+      # will be non-empty whenever:
+      #
+      #   * the lock file or a config changes
+      #   * any module in a path dependency changes
+      #   * the mix.exs changes
+      #   * the Erlang manifest updates (Erlang files are compiled)
+      #
+      # In the first case, we will recompile from scratch. In the remaining, we
+      # will only compute the diff with current protocols. In fact, there is no
+      # need to reconsolidate if an Erlang file changes and it doesn't trigger
+      # any other change, but the diff check should be reasonably fast anyway.
       status = if removed != [] or stale_local_mods != %{}, do: :ok, else: :noop
 
       # If nothing changed but there is one more recent mtime, bump the manifest
       if status != :noop or Enum.any?(Map.values(sources_stats), &(elem(&1, 0) > modified)) do
-        write_manifest(manifest, modules, sources, all_local_exports, new_cache_key, timestamp)
+        write_manifest(
+          manifest,
+          modules,
+          sources,
+          all_local_exports,
+          new_cache_key,
+          new_lock,
+          new_config,
+          timestamp
+        )
       end
 
       {status, warning_diagnostics(sources)}
@@ -152,7 +213,7 @@ defmodule Mix.Compilers.Elixir do
     rescue
       _ -> {[], []}
     else
-      {@manifest_vsn, modules, sources, _local_exports, _cache_key} -> {modules, sources}
+      {@manifest_vsn, modules, sources, _, _, _, _} -> {modules, sources}
       _ -> {[], []}
     end
   end
@@ -598,6 +659,8 @@ defmodule Mix.Compilers.Elixir do
 
   defp stale_local_deps(manifest, stale_modules, modified, old_exports) do
     base = Path.basename(manifest)
+
+    # TODO: Use :maps.from_keys/2 on Erlang/OTP 24+
     stale_modules = for module <- stale_modules, do: {module, true}, into: %{}
 
     for %{scm: scm, opts: opts} = dep <- Mix.Dep.cached(),
@@ -701,6 +764,78 @@ defmodule Mix.Compilers.Elixir do
     }
   end
 
+  ## Merging of lock and config files
+
+  # Lock for app didn't change
+  defp merge_lock([{app, value} | old_lock], [{app, value} | new_lock], apps),
+    do: merge_lock(old_lock, new_lock, apps)
+
+  # Lock for app changed
+  defp merge_lock([{app, _} | old_lock], [{app, _} | new_lock], apps),
+    do: merge_lock(old_lock, new_lock, [app | apps])
+
+  # App is in new lock but not the old one, add it to the list
+  defp merge_lock([{app1, _} | _] = old_lock, [{app2, _} | new_lock], apps) when app1 > app2,
+    do: merge_lock(old_lock, new_lock, [app2 | apps])
+
+  # We are done and we may have left overs on new lock, add them to apps
+  defp merge_lock([], new_lock, apps),
+    do: {:apps, Enum.reduce(new_lock, apps, fn {app, _}, apps -> [app | apps] end)}
+
+  # However, if the old lock has exclusive entries, it means deps were deleted,
+  # so we need to force recompilation
+  defp merge_lock(_, _, _),
+    do: :force
+
+  # Config for app didn't change
+  defp merge_config([{app, value} | old_config], [{app, value} | new_config], apps),
+    do: merge_config(old_config, new_config, apps)
+
+  # Config for app changed
+  defp merge_config([{app, _} | old_config], [{app, _} | new_config], apps),
+    do: merge_config(old_config, new_config, [app | apps])
+
+  # Added config for app
+  defp merge_config([{app1, _} | _] = old_config, [{app2, _} | new_config], apps)
+       when app1 > app2,
+       do: merge_config(old_config, new_config, [app2 | apps])
+
+  # Removed config for app
+  defp merge_config([{app1, _} | old_config], [{app2, _} | _] = new_config, apps)
+       when app1 < app2,
+       do: merge_config(old_config, new_config, [app1 | apps])
+
+  # One of them is done, add the others
+  defp merge_config(old_config, new_config, apps) do
+    apps = Enum.reduce(old_config, apps, fn {app, _}, apps -> [app | apps] end)
+    Enum.reduce(new_config, apps, fn {app, _}, apps -> [app | apps] end)
+  end
+
+  defp deps_on(apps) do
+    # TODO: Use :maps.from_keys/2 on Erlang/OTP 24+
+    apps = for app <- apps, do: {app, true}, into: %{}
+    deps_on(Mix.Dep.cached(), apps, [], false)
+  end
+
+  defp deps_on([%{app: app, deps: deps} = dep | cached_deps], apps, acc, stored?) do
+    cond do
+      # We have already seen this dep
+      Map.has_key?(apps, app) ->
+        deps_on(cached_deps, apps, acc, stored?)
+
+      # It depends on one of the apps, store it
+      Enum.any?(deps, &Map.has_key?(apps, &1.app)) ->
+        deps_on(cached_deps, Map.put(apps, app, true), acc, true)
+
+      # Otherwise we will check it later
+      true ->
+        deps_on(cached_deps, apps, [dep | acc], stored?)
+    end
+  end
+
+  defp deps_on([], apps, cached_deps, true), do: deps_on(cached_deps, apps, [], false)
+  defp deps_on([], apps, _cached_deps, false), do: apps
+
   ## Manifest handling
 
   # Similar to read_manifest, but for internal consumption and with data migration support.
@@ -709,13 +844,13 @@ defmodule Mix.Compilers.Elixir do
       manifest |> File.read!() |> :erlang.binary_to_term()
     rescue
       _ ->
-        {[], [], %{}, nil}
+        {[], [], %{}, nil, nil, nil}
     else
-      {@manifest_vsn, modules, sources, local_exports, cache_key} ->
-        {modules, sources, local_exports, cache_key}
+      {@manifest_vsn, modules, sources, local_exports, cache_key, lock, config} ->
+        {modules, sources, local_exports, cache_key, lock, config}
 
       # {vsn, modules, sources} v5-v7 (v1.10)
-      # {vsn, modules, sources, local_exports} v8-v9 (v1.11)
+      # {vsn, modules, sources, local_exports} v8-v10 (v1.11)
       manifest when is_tuple(manifest) and is_integer(elem(manifest, 0)) ->
         purge_old_manifest(compile_path, elem(manifest, 1))
 
@@ -724,7 +859,7 @@ defmodule Mix.Compilers.Elixir do
         purge_old_manifest(compile_path, data)
 
       _ ->
-        {[], [], %{}, nil}
+        {[], [], %{}, nil, nil, nil}
     end
   end
 
@@ -743,18 +878,18 @@ defmodule Mix.Compilers.Elixir do
         )
     end
 
-    {[], [], %{}, nil}
+    {[], [], %{}, nil, nil, nil}
   end
 
-  defp write_manifest(manifest, [], [], _exports, _cache_key, _timestamp) do
+  defp write_manifest(manifest, [], [], _exports, _cache_key, _lock, _config, _timestamp) do
     File.rm(manifest)
     :ok
   end
 
-  defp write_manifest(manifest, modules, sources, exports, cache_key, timestamp) do
+  defp write_manifest(manifest, modules, sources, exports, cache_key, lock, config, timestamp) do
     File.mkdir_p!(Path.dirname(manifest))
 
-    term = {@manifest_vsn, modules, sources, exports, cache_key}
+    term = {@manifest_vsn, modules, sources, exports, cache_key, lock, config}
     manifest_data = :erlang.term_to_binary(term, [:compressed])
     File.write!(manifest, manifest_data)
     File.touch!(manifest, timestamp)

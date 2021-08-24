@@ -44,11 +44,16 @@ defmodule Mix.Tasks.Loadconfig do
   end
 
   @doc false
+  def read_compile() do
+    Mix.State.read_cache(__MODULE__) || []
+  end
+
+  @doc false
   # Loads compile-time configuration, they support imports, and are not deep merged.
   def load_compile(file) do
     {config, files} = Config.Reader.read_imports!(file, env: Mix.env(), target: Mix.target())
     Mix.ProjectStack.loaded_config(persist_apps(config, file), files)
-    config
+    Mix.State.write_cache(__MODULE__, config)
   end
 
   @doc false

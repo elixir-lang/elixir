@@ -136,10 +136,14 @@ defmodule MixTest.Case do
   end
 
   def ensure_touched(file) do
-    ensure_touched(file, File.stat!(file).mtime)
+    ensure_touched(file, file)
   end
 
-  def ensure_touched(file, current) do
+  def ensure_touched(file, current) when is_binary(current) do
+    ensure_touched(file, File.stat!(current).mtime)
+  end
+
+  def ensure_touched(file, current) when is_tuple(current) do
     File.touch!(file)
     mtime = File.stat!(file).mtime
 

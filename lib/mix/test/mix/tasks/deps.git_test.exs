@@ -192,42 +192,6 @@ defmodule Mix.Tasks.DepsGitTest do
     purge([GitRepo, GitRepo.MixProject])
   end
 
-  test "recompiles the project when a dep is fetched" do
-    in_fixture("no_mixfile", fn ->
-      Mix.Project.push(GitApp)
-
-      Mix.Tasks.Deps.Get.run([])
-      assert File.exists?("deps/git_repo/.fetch")
-
-      # We can compile just fine
-      assert Mix.Tasks.Compile.run(["--verbose"]) == {:ok, []}
-
-      # Clear up to prepare for the update
-      Mix.Task.clear()
-      Mix.shell().flush
-      purge([A, B, GitRepo])
-
-      # Update will mark the update required
-      Mix.Tasks.Deps.Update.run(["git_repo"])
-      assert File.exists?("deps/git_repo/.fetch")
-      # Ensure timestamp differs
-      ensure_touched("deps/git_repo/.fetch")
-
-      # mix deps.compile is required...
-      Mix.Tasks.Deps.run([])
-      msg = "  the dependency build is outdated, please run \"mix deps.compile\""
-      assert_received {:mix_shell, :info, [^msg]}
-
-      # But also ran automatically
-      Mix.Tasks.Compile.run(["--verbose"])
-      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
-      assert File.exists?("_build/dev/lib/git_repo/.mix/compile.fetch")
-      :ok
-    end)
-  after
-    purge([A, B, GitRepo, GitRepo.MixProject])
-  end
-
   test "all dependencies are up to date" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(GitApp)

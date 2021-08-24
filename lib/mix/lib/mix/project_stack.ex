@@ -145,11 +145,11 @@ defmodule Mix.ProjectStack do
     end)
   end
 
-  @spec compile_env([term] | :unset) :: [term] | :unset
+  @spec compile_env([term] | nil) :: [term] | nil
   def compile_env(compile_env) do
     update_stack(fn
       [h | t] -> {h.compile_env, [%{h | compile_env: compile_env} | t]}
-      [] -> {:unset, []}
+      [] -> {nil, []}
     end)
   end
 
@@ -255,7 +255,7 @@ defmodule Mix.ProjectStack do
           config_files: [manifest_file | parent_config],
           config_mtime: nil,
           after_compiler: %{},
-          compile_env: :unset
+          compile_env: nil
         }
 
         {:ok, {[project | stack], []}}
