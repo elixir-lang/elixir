@@ -2,10 +2,41 @@ Code.require_file("../test_helper.exs", __DIR__)
 
 import PathHelpers
 
+defmodule Retry do
+  # Tests that write to stderr fail on Windows due to late writes,
+  # so we do a simple retry already them.
+  defmacro stderr_test(msg, context \\ quote(do: _), do: block) do
+    if windows?() do
+      quote do
+        test unquote(msg), unquote(context) do
+          unquote(__MODULE__).retry(fn -> unquote(block) end, 3)
+        end
+      end
+    else
+      quote do
+        test unquote(msg), unquote(context), do: unquote(block)
+      end
+    end
+  end
+
+  def retry(fun, 1) do
+    fun.()
+  end
+
+  def retry(fun, n) do
+    try do
+      fun.()
+    rescue
+      _ -> retry(fun, n - 1)
+    end
+  end
+end
+
 defmodule Kernel.CLITest do
   use ExUnit.Case, async: true
 
   import ExUnit.CaptureIO
+  import Retry
 
   defp run(argv) do
     {config, argv} = Kernel.CLI.parse_argv(argv)
@@ -30,7 +61,7 @@ defmodule Kernel.CLITest do
            end)
   end
 
-  test "--help smoke test" do
+  stderr_test "--help smoke test" do
     output = elixir('--help')
     assert output =~ "Usage: elixir"
   end
@@ -52,21 +83,20 @@ defmodule Kernel.CLITest do
     refute output =~ "Erlang"
   end
 
-  test "combining standalone options results in error" do
+  stderr_test "combining --help results in error" do
     output = elixir('-e 1 --help')
     assert output =~ "--help : Standalone options can't be combined with other options"
 
     output = elixir('--help -e 1')
     assert output =~ "--help : Standalone options can't be combined with other options"
+  end
 
+  stderr_test "combining --short-version results in error" do
     output = elixir('--short-version -e 1')
     assert output =~ "--short-version : Standalone options can't be combined with other options"
 
     output = elixir('-e 1 --short-version')
     assert output =~ "--short-version : Standalone options can't be combined with other options"
-
-    output = elixir('-h --short-version')
-    assert output =~ "-h : Standalone options can't be combined with other options"
   end
 
   test "properly parses paths" do
@@ -87,7 +117,7 @@ defmodule Kernel.CLITest do
     assert to_charlist(Path.expand('lib/list', root)) in path
   end
 
-  test "properly formats errors" do
+  stderr_test "properly formats errors" do
     assert String.starts_with?(elixir('-e ":erlang.throw 1"'), "** (throw) 1")
     assert String.starts_with?(elixir('-e ":erlang.error 1"'), "** (ErlangError) Erlang error: 1")
     assert String.starts_with?(elixir('-e "1 +"'), "** (TokenMissingError)")
@@ -99,7 +129,7 @@ defmodule Kernel.CLITest do
              "false\n"
   end
 
-  test "blames exceptions" do
+  stderr_test "blames exceptions" do
     error = elixir('-e "Access.fetch :foo, :bar"')
     assert error =~ "** (FunctionClauseError) no function clause matching in Access.fetch/2"
     assert error =~ "The following arguments were given to Access.fetch/2"
@@ -111,6 +141,8 @@ end
 
 defmodule Kernel.CLI.RPCTest do
   use ExUnit.Case, async: true
+
+  import Retry
 
   defp rpc_eval(command) do
     node = "cli-rpc#{System.unique_integer()}@127.0.0.1"
@@ -126,7 +158,7 @@ defmodule Kernel.CLI.RPCTest do
     assert elixir('--name #{node}@127.0.0.1 --rpc-eval #{node} "IO.puts :ok"') == "ok\n"
   end
 
-  test "properly formats errors" do
+  stderr_test "properly formats errors" do
     assert String.starts_with?(rpc_eval(":erlang.throw 1"), "** (throw) 1")
     assert String.starts_with?(rpc_eval(":erlang.error 1"), "** (ErlangError) Erlang error: 1")
     assert String.starts_with?(rpc_eval("1 +"), "** (TokenMissingError)")
@@ -151,6 +183,7 @@ end
 defmodule Kernel.CLI.CompileTest do
   use ExUnit.Case, async: true
 
+  import Retry
   @moduletag :tmp_dir
 
   setup context do
@@ -173,29 +206,31 @@ defmodule Kernel.CLI.CompileTest do
   end
 
   @tag :windows
-  test "compiles code with Windows paths", context do
-    fixture = String.replace(context.fixture, "/", "\\")
-    tmp_dir_path = String.replace(context.tmp_dir, "/", "\\")
-    assert elixirc('#{fixture} -o #{tmp_dir_path}') == ""
-    assert File.regular?(context[:beam_file_path])
+  stderr_test "compiles code with Windows paths", context do
+    try do
+      fixture = String.replace(context.fixture, "/", "\\")
+      tmp_dir_path = String.replace(context.tmp_dir, "/", "\\")
+      assert elixirc('#{fixture} -o #{tmp_dir_path}') == ""
+      assert File.regular?(context[:beam_file_path])
 
-    # Assert that the module is loaded into memory with the proper destination for the BEAM file.
-    Code.append_path(context.tmp_dir)
-    assert :code.which(CompileSample) |> List.to_string() == Path.expand(context[:beam_file_path])
-  after
-    :code.purge(CompileSample)
-    :code.delete(CompileSample)
-    Code.delete_path(context.tmp_dir)
+      # Assert that the module is loaded into memory with the proper destination for the BEAM file.
+      Code.append_path(context.tmp_dir)
+      assert :code.which(CompileSample) |> List.to_string() == Path.expand(context[:beam_file_path])
+    after
+      :code.purge(CompileSample)
+      :code.delete(CompileSample)
+      Code.delete_path(context.tmp_dir)
+    end
   end
 
-  test "fails on missing patterns", context do
+  stderr_test "fails on missing patterns", context do
     output = elixirc('#{context.fixture} non_existing.ex -o #{context.tmp_dir}')
     assert output =~ "non_existing.ex"
     refute output =~ "compile_sample.ex"
     refute File.exists?(context.beam_file_path)
   end
 
-  test "fails on missing write access to .beam file", context do
+  stderr_test "fails on missing write access to .beam file", context do
     compilation_args = '#{context.fixture} -o #{context.tmp_dir}'
 
     assert elixirc(compilation_args) == ""
