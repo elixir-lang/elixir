@@ -14,7 +14,7 @@ defmodule Retry do
       end
     else
       quote do
-        test unquote(msg), unquote(context), do: unquote(block)
+        test(unquote(msg), unquote(context), do: unquote(block))
       end
     end
   end
@@ -215,7 +215,9 @@ defmodule Kernel.CLI.CompileTest do
 
       # Assert that the module is loaded into memory with the proper destination for the BEAM file.
       Code.append_path(context.tmp_dir)
-      assert :code.which(CompileSample) |> List.to_string() == Path.expand(context[:beam_file_path])
+
+      assert :code.which(CompileSample) |> List.to_string() ==
+               Path.expand(context[:beam_file_path])
     after
       :code.purge(CompileSample)
       :code.delete(CompileSample)
