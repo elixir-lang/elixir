@@ -40,10 +40,10 @@ defmodule Mix.Compilers.Elixir do
     {all_modules, all_sources, all_local_exports, old_cache_key, old_lock, old_config} =
       parse_manifest(manifest, dest)
 
-    {force?, write?, stale, new_lock, new_config} =
+    {force?, stale, new_lock, new_config} =
       cond do
         !!opts[:force] or is_nil(old_lock) or is_nil(old_config) or old_cache_key != new_cache_key ->
-          {true, true, stale, Enum.sort(Mix.Dep.Lock.read()),
+          {true, stale, Enum.sort(Mix.Dep.Lock.read()),
            Enum.sort(Mix.Tasks.Loadconfig.read_compile())}
 
         deps_changed? ->
@@ -59,14 +59,13 @@ defmodule Mix.Compilers.Elixir do
               |> deps_on()
               |> Enum.flat_map(fn {app, _} -> Application.spec(app, :modules) || [] end)
 
-            {false, true, stale ++ apps_stale, new_lock, new_config}
+            {false, stale ++ apps_stale, new_lock, new_config}
           else
-            _ ->
-              {true, true, stale, new_lock, new_config}
+            _ -> {true, stale, new_lock, new_config}
           end
 
         true ->
-          {false, false, stale, old_lock, old_config}
+          {false, stale, old_lock, old_config}
       end
 
     modified = Mix.Utils.last_modified(manifest)
@@ -150,13 +149,23 @@ defmodule Mix.Compilers.Elixir do
         delete_compiler_info()
       end
     else
-      # We need to return ok if stale_local_mods changed
-      # because we want that to propagate to compile.protocols
+      # We need to return ok if stale_local_mods changed because we want to
+      # propagate the changed status to compile.protocols. `stale_local_mods`
+      # will be non-empty whenever:
+      #
+      #   * the lock file or a config changes
+      #   * any module in a path dependency changes
+      #   * the mix.exs changes
+      #   * the Erlang manifest updates (Erlang files are compiled)
+      #
+      # In the first case, we will recompile from scratch. In the remaining, we
+      # will only compute the diff with current protocols. In fact, there is no
+      # need to reconsolidate if an Erlang file changes and it doesn't trigger
+      # any other change, but the diff check should be reasonably fast anyway.
       status = if removed != [] or stale_local_mods != %{}, do: :ok, else: :noop
 
       # If nothing changed but there is one more recent mtime, bump the manifest
-      if write? or status != :noop or
-           Enum.any?(Map.values(sources_stats), &(elem(&1, 0) > modified)) do
+      if status != :noop or Enum.any?(Map.values(sources_stats), &(elem(&1, 0) > modified)) do
         write_manifest(
           manifest,
           modules,
