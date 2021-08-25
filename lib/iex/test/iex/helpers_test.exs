@@ -831,7 +831,7 @@ defmodule IEx.HelpersTest do
 
                @macrocallback optional_macrocallback(:bar) :: atom()
 
-               @optional_callbacks [optional_callback: 1, optional_macrocallback: 1]
+               @optional_callbacks optional_callback: 1, optional_macrocallback: 1
 
                """
       end)

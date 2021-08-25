@@ -373,6 +373,7 @@ defmodule Code.Normalizer.QuotedASTTest do
       assert quoted_to_string(quote(do: (x, y when z -> w))) == "(x, y when z -> w)"
       assert quoted_to_string(quote(do: (x, y when z -> w))) == "(x, y when z -> w)"
       assert quoted_to_string(quote(do: (x when y: z))) == "x when y: z"
+      assert quoted_to_string(quote(do: (x when y: z, z: w))) == "x when y: z, z: w"
     end
 
     test "nested" do
