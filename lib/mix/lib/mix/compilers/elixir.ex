@@ -149,20 +149,20 @@ defmodule Mix.Compilers.Elixir do
         delete_compiler_info()
       end
     else
-      # We need to return ok if stale_local_mods changed because we want to
-      # propagate the changed status to compile.protocols. `stale_local_mods`
-      # will be non-empty whenever:
+      # We need to return ok if deps_changed? or stale_local_mods changed
+      # because we want to propagate the changed status to compile.protocols.
+      # This will be the case whenever:
       #
       #   * the lock file or a config changes
       #   * any module in a path dependency changes
       #   * the mix.exs changes
       #   * the Erlang manifest updates (Erlang files are compiled)
       #
-      # In the first case, we will recompile from scratch. In the remaining, we
+      # In the first case, we will consolidate from scratch. In the remaining, we
       # will only compute the diff with current protocols. In fact, there is no
       # need to reconsolidate if an Erlang file changes and it doesn't trigger
       # any other change, but the diff check should be reasonably fast anyway.
-      status = if removed != [] or stale_local_mods != %{}, do: :ok, else: :noop
+      status = if removed != [] or deps_changed? or stale_local_mods != %{}, do: :ok, else: :noop
 
       # If nothing changed but there is one more recent mtime, bump the manifest
       if status != :noop or Enum.any?(Map.values(sources_stats), &(elem(&1, 0) > modified)) do
