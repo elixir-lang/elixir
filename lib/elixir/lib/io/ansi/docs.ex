@@ -802,14 +802,14 @@ defmodule IO.ANSI.Docs do
     Regex.replace(~r{\[([^\]]*?)\]\((.*?)\)}, text, "\\1 (\\2)")
   end
 
-  # We have four entries: **, *, _ and `.
+  # We have four entries: **, __, *, _ and `.
   #
-  # The first three behave the same while the last one is simpler
+  # The first four behave the same while the last one is simpler
   # when it comes to delimiters as it ignores spaces and escape
-  # characters. But, since the first has two characters, we need to
-  # handle 3 cases:
+  # characters. But, since the first two has two characters,
+  # we need to handle 3 cases:
   #
-  # 1. **
+  # 1. __ and **
   # 2. _ and *
   # 3. `
   #
@@ -823,8 +823,8 @@ defmodule IO.ANSI.Docs do
 
   ### Inline start
 
-  defp handle_inline(<<?*, ?*, rest::binary>>, options) do
-    handle_inline(rest, ?d, ["**"], [], options)
+  defp handle_inline(<<mark, mark, rest::binary>>, options) when mark in @single do
+    handle_inline(rest, [mark | mark], [<<mark, mark>>], [], options)
   end
 
   defp handle_inline(<<mark, rest::binary>>, options) when mark in @single do
@@ -837,9 +837,10 @@ defmodule IO.ANSI.Docs do
 
   ### Inline delimiters
 
-  defp handle_inline(<<delimiter, ?*, ?*, rest::binary>>, nil, buffer, acc, options)
-       when rest != "" and delimiter in @delimiters do
-    handle_inline(rest, ?d, ["**"], [delimiter, Enum.reverse(buffer) | acc], options)
+  defp handle_inline(<<delimiter, mark, mark, rest::binary>>, nil, buffer, acc, options)
+       when rest != "" and delimiter in @delimiters and mark in @single do
+    acc = [delimiter, Enum.reverse(buffer) | acc]
+    handle_inline(rest, [mark | mark], [<<mark, mark>>], acc, options)
   end
 
   defp handle_inline(<<delimiter, mark, rest::binary>>, nil, buffer, acc, options)
@@ -854,9 +855,10 @@ defmodule IO.ANSI.Docs do
 
   ### Clauses for handling escape
 
-  defp handle_inline(<<?\\, ?\\, ?*, ?*, rest::binary>>, nil, buffer, acc, options)
-       when rest != "" do
-    handle_inline(rest, ?d, ["**"], [?\\, Enum.reverse(buffer) | acc], options)
+  defp handle_inline(<<?\\, ?\\, mark, mark, rest::binary>>, nil, buffer, acc, options)
+       when rest != "" and mark in @single do
+    acc = [?\\, Enum.reverse(buffer) | acc]
+    handle_inline(rest, [mark | mark], [<<mark, mark>>], acc, options)
   end
 
   defp handle_inline(<<?\\, ?\\, mark, rest::binary>>, nil, buffer, acc, options)
@@ -875,8 +877,8 @@ defmodule IO.ANSI.Docs do
 
   ### Inline end
 
-  defp handle_inline(<<?*, ?*, delimiter, rest::binary>>, ?d, buffer, acc, options)
-       when delimiter in @delimiters do
+  defp handle_inline(<<mark, mark, delimiter, rest::binary>>, [mark | mark], buffer, acc, options)
+       when delimiter in @delimiters and mark in @single do
     inline_buffer = inline_buffer(buffer, options)
     handle_inline(<<delimiter, rest::binary>>, nil, [], [inline_buffer | acc], options)
   end
@@ -887,8 +889,8 @@ defmodule IO.ANSI.Docs do
     handle_inline(<<delimiter, rest::binary>>, nil, [], [inline_buffer | acc], options)
   end
 
-  defp handle_inline(<<?*, ?*, rest::binary>>, ?d, buffer, acc, options)
-       when rest == "" do
+  defp handle_inline(<<mark, mark, rest::binary>>, [mark | mark], buffer, acc, options)
+       when rest == "" and mark in @single do
     handle_inline(<<>>, nil, [], [inline_buffer(buffer, options) | acc], options)
   end
 
@@ -934,10 +936,11 @@ defmodule IO.ANSI.Docs do
 
   defp color_for(mark, colors) do
     case mark do
-      "`" -> color(:doc_inline_code, colors)
-      "_" -> color(:doc_underline, colors)
-      "*" -> color(:doc_bold, colors)
+      "__" -> color(:doc_bold, colors)
       "**" -> color(:doc_bold, colors)
+      "_" -> color(:doc_underline, colors)
+      "*" -> color(:doc_underline, colors)
+      "`" -> color(:doc_inline_code, colors)
     end
   end
 

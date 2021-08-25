@@ -90,7 +90,7 @@ defmodule IO.ANSI.DocsTest do
                """
                line
                \e[0m
-               \e[90m> \e[0mnormal \e[1mitalics\e[0m \e[36mcode\e[0m
+               \e[90m> \e[0mnormal \e[4mitalics\e[0m \e[36mcode\e[0m
                \e[0m
                line2
                \e[0m\
@@ -113,7 +113,7 @@ defmodule IO.ANSI.DocsTest do
                """
                line
                \e[0m
-               \e[90m> \e[0mnormal \e[1mitalics\e[0m \e[36mcode\e[0m
+               \e[90m> \e[0mnormal \e[4mitalics\e[0m \e[36mcode\e[0m
                \e[0m
                line2
                \e[0m\
@@ -137,7 +137,7 @@ defmodule IO.ANSI.DocsTest do
                """
                line
                \e[0m
-               \e[90m> \e[0mnormal \e[1mitalics\e[0m \e[36mcode\e[0m
+               \e[90m> \e[0mnormal \e[4mitalics\e[0m \e[36mcode\e[0m
                \e[90m> \e[0msome-extremely-long-word-which-can-not-possibly-fit-into-the-previous-line
                \e[0m
                line2
@@ -163,7 +163,7 @@ defmodule IO.ANSI.DocsTest do
                """
                line
                \e[0m
-               \e[90m> \e[0mnormal \e[1mitalics\e[0m
+               \e[90m> \e[0mnormal \e[4mitalics\e[0m
                \e[90m> \e[0m
                \e[90m> \e[0m\e[36mcode\e[0m
                \e[90m> \e[0msome-extremely-long-word-which-can-not-possibly-fit-into-the-previous-line
@@ -271,10 +271,10 @@ defmodule IO.ANSI.DocsTest do
 
     test "star/underscore/backtick works" do
       result = format_markdown("*world*")
-      assert result == "\e[1mworld\e[0m\n\e[0m"
+      assert result == "\e[4mworld\e[0m\n\e[0m"
 
       result = format_markdown("*world*.")
-      assert result == "\e[1mworld\e[0m.\n\e[0m"
+      assert result == "\e[4mworld\e[0m.\n\e[0m"
 
       result = format_markdown("**world**")
       assert result == "\e[1mworld\e[0m\n\e[0m"
@@ -282,19 +282,25 @@ defmodule IO.ANSI.DocsTest do
       result = format_markdown("_world_")
       assert result == "\e[4mworld\e[0m\n\e[0m"
 
+      result = format_markdown("__world__")
+      assert result == "\e[1mworld\e[0m\n\e[0m"
+
       result = format_markdown("`world`")
       assert result == "\e[36mworld\e[0m\n\e[0m"
     end
 
     test "star/underscore/backtick works across words" do
       result = format_markdown("*hello world*")
-      assert result == "\e[1mhello world\e[0m\n\e[0m"
+      assert result == "\e[4mhello world\e[0m\n\e[0m"
 
       result = format_markdown("**hello world**")
       assert result == "\e[1mhello world\e[0m\n\e[0m"
 
       result = format_markdown("_hello world_")
       assert result == "\e[4mhello world\e[0m\n\e[0m"
+
+      result = format_markdown("__hello world__")
+      assert result == "\e[1mhello world\e[0m\n\e[0m"
 
       result = format_markdown("`hello world`")
       assert result == "\e[36mhello world\e[0m\n\e[0m"
@@ -310,13 +316,16 @@ defmodule IO.ANSI.DocsTest do
       result = format_markdown("_hello world_", enabled: false)
       assert result == "_hello world_"
 
+      result = format_markdown("__hello world__", enabled: false)
+      assert result == "__hello world__"
+
       result = format_markdown("`hello world`", enabled: false)
       assert result == "`hello world`"
     end
 
     test "multiple stars/underscores/backticks work" do
       result = format_markdown("*hello world* *hello world*")
-      assert result == "\e[1mhello world\e[0m \e[1mhello world\e[0m\n\e[0m"
+      assert result == "\e[4mhello world\e[0m \e[4mhello world\e[0m\n\e[0m"
 
       result = format_markdown("_hello world_ _hello world_")
       assert result == "\e[4mhello world\e[0m \e[4mhello world\e[0m\n\e[0m"
@@ -327,7 +336,7 @@ defmodule IO.ANSI.DocsTest do
 
     test "multiple stars/underscores/backticks work when separated by other words" do
       result = format_markdown("*hello world* unit test *hello world*")
-      assert result == "\e[1mhello world\e[0m unit test \e[1mhello world\e[0m\n\e[0m"
+      assert result == "\e[4mhello world\e[0m unit test \e[4mhello world\e[0m\n\e[0m"
 
       result = format_markdown("_hello world_ unit test _hello world_")
       assert result == "\e[4mhello world\e[0m unit test \e[4mhello world\e[0m\n\e[0m"
@@ -354,9 +363,9 @@ defmodule IO.ANSI.DocsTest do
       assert result == "<\e[36mhello world\e[0m>\n\e[0m"
 
       result = format_markdown("(*hello world*)")
-      assert result == "(\e[1mhello world\e[0m)\n\e[0m"
+      assert result == "(\e[4mhello world\e[0m)\n\e[0m"
       result = format_markdown("@*hello world*@")
-      assert result == "@\e[1mhello world\e[0m@\n\e[0m"
+      assert result == "@\e[4mhello world\e[0m@\n\e[0m"
 
       result = format_markdown("(_hello world_)")
       assert result == "(\e[4mhello world\e[0m)\n\e[0m"
@@ -418,7 +427,7 @@ defmodule IO.ANSI.DocsTest do
 
     test "star/underscore/backtick with double escape" do
       result = format_markdown("\\\\*world*")
-      assert result == "\\\e[1mworld\e[0m\n\e[0m"
+      assert result == "\\\e[4mworld\e[0m\n\e[0m"
 
       result = format_markdown("\\\\_world_")
       assert result == "\\\e[4mworld\e[0m\n\e[0m"
@@ -698,7 +707,7 @@ defmodule IO.ANSI.DocsTest do
       assert format_erlang([{:i, [], ["Hello"]}]) == "\e[4mHello\e[0m"
       assert format_erlang([{:i, [], ["Hello"]}], enabled: false) == "_Hello_"
 
-      assert format_erlang([{:em, [], ["Hello"]}]) == "\e[1mHello\e[0m"
+      assert format_erlang([{:em, [], ["Hello"]}]) == "\e[4mHello\e[0m"
       assert format_erlang([{:em, [], ["Hello"]}], enabled: false) == "*Hello*"
 
       assert format_erlang([{:b, [], ["Hello"]}]) == "\e[1mHello\e[0m"
@@ -712,14 +721,14 @@ defmodule IO.ANSI.DocsTest do
 
     test "inline tags within paragraphs" do
       assert format_erlang([{:p, [], [[{:em, [], ["Hello"]}, {:code, [], ["World"]}]]}]) ==
-               "\e[1mHello\e[0m\e[36mWorld\e[0m"
+               "\e[4mHello\e[0m\e[36mWorld\e[0m"
     end
 
     test "inline tags within list item" do
       assert format_erlang([
                {:ul, [], [{:li, [], [{:em, [], ["Hello"]}, {:code, [], ["World"]}]}]}
              ]) ==
-               "  • \e[1mHello\e[0m\e[36mWorld\e[0m\n\n"
+               "  • \e[4mHello\e[0m\e[36mWorld\e[0m\n\n"
     end
 
     test "links" do
