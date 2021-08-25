@@ -309,7 +309,7 @@ defmodule Code.Normalizer do
 
         last_args =
           case last_arg do
-            {:__block__, _, [[{{:__block__, key_meta, _}, _}] | _] = last_args} ->
+            {:__block__, _, [[{{:__block__, key_meta, _}, _} | _]] = last_args} ->
               if key_meta[:format] == :keyword do
                 last_args
               else
