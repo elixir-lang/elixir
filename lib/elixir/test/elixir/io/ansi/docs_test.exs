@@ -701,6 +701,11 @@ defmodule IO.ANSI.DocsTest do
       assert format_erlang([{:em, [], ["Hello"]}]) == "\e[1mHello\e[0m"
       assert format_erlang([{:em, [], ["Hello"]}], enabled: false) == "*Hello*"
 
+      assert format_erlang([{:b, [], ["Hello"]}]) == "\e[1mHello\e[0m"
+      assert format_erlang([{:b, [], ["Hello"]}], enabled: false) == "**Hello**"
+      assert format_erlang([{:strong, [], ["Hello"]}]) == "\e[1mHello\e[0m"
+      assert format_erlang([{:strong, [], ["Hello"]}], enabled: false) == "**Hello**"
+
       assert format_erlang([{:code, [], ["Hello"]}]) == "\e[36mHello\e[0m"
       assert format_erlang([{:code, [], ["Hello"]}], enabled: false) == "`Hello`"
     end
