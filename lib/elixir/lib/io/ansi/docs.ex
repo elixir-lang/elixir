@@ -194,6 +194,10 @@ defmodule IO.ANSI.Docs do
     inline_text("*", traverse_erlang_html(entries, indent, options), options)
   end
 
+  defp traverse_erlang_html({tag, _, entries}, indent, options) when tag in [:strong, :b] do
+    inline_text("**", traverse_erlang_html(entries, indent, options), options)
+  end
+
   defp traverse_erlang_html({:code, _, entries}, indent, options) do
     inline_text("`", traverse_erlang_html(entries, indent, options), options)
   end
@@ -295,7 +299,7 @@ defmodule IO.ANSI.Docs do
   end
 
   defp inline_html?(binary) when is_binary(binary), do: true
-  defp inline_html?({tag, _, _}) when tag in [:a, :code, :em, :i, :br], do: true
+  defp inline_html?({tag, _, _}) when tag in [:a, :code, :em, :i, :strong, :b, :br], do: true
   defp inline_html?(_), do: false
 
   ## Markdown
