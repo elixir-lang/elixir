@@ -92,7 +92,7 @@ defmodule Logger.App do
     # in case of mismatches.
     #
     # If it is not set, we revert Erlang's kernel to debug, if it
-    # has its default value, otherwise we keep it as is.
+    # has its default value, otherwise, we keep it as is.
     case Application.fetch_env(:logger, :level) do
       {:ok, app_level} ->
         level = Logger.Handler.elixir_level_to_erlang_level(app_level)

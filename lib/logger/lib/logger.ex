@@ -65,7 +65,7 @@ defmodule Logger do
 
   Whenever a message is logged, additional information can be given
   via metadata. Each log operation, such as `Logger.info/2`, allows
-  metadata to be given as argument.
+  metadata to be given as an argument.
 
   Furthermore, metadata can be set per process with `Logger.metadata/1`.
 
@@ -441,7 +441,7 @@ defmodule Logger do
   @compile {:inline, enabled?: 1}
 
   @doc """
-  Alters the current process metadata according the given keyword list.
+  Alters the current process metadata according to the given keyword list.
 
   This function will merge the given keyword list into the existing metadata,
   with the exception of setting a key to `nil`, which will remove that key
@@ -510,7 +510,7 @@ defmodule Logger do
   end
 
   @doc """
-  Returns whether the logging is enabled for given process.
+  Returns whether the logging is enabled for a given process.
 
   Currently the only accepted PID is `self()`.
   """
@@ -628,8 +628,8 @@ defmodule Logger do
   @doc """
   Gets logging level for given module.
 
-  Returned value will be the effective value used. If no value
-  was set for given module, then it will not be present in
+  The returned value will be the effective value used. If no value
+  was set for a given module, then it will not be present in
   the returned list.
   """
   @doc since: "1.11.0"
@@ -637,21 +637,21 @@ defmodule Logger do
   defdelegate get_module_level(mod), to: :logger
 
   @doc """
-  Deletes logging level for given module to primary level.
+  Deletes logging level for a given module to primary level.
   """
   @doc since: "1.11.0"
   @spec delete_module_level(module() | [module()]) :: :ok
   defdelegate delete_module_level(module), to: :logger, as: :unset_module_level
 
   @doc """
-  Deletes logging level for all modules to primary level
+  Deletes logging level for all modules to primary level.
   """
   @doc since: "1.11.0"
   @spec delete_all_module_levels() :: :ok
   defdelegate delete_all_module_levels(), to: :logger, as: :unset_module_level
 
   @doc """
-  Puts logging level for modules in given application.
+  Puts logging level for modules in a given application.
 
   This will take priority over the primary level set, so it can be
   used to increase or decrease verbosity of some parts of the project.
@@ -665,7 +665,7 @@ defmodule Logger do
   defdelegate put_application_level(appname, level), to: :logger, as: :set_application_level
 
   @doc """
-  Deletes logging level for all modules in given application to primary level
+  Deletes logging level for all modules in given application to primary level.
 
   Equivalent of:
 
