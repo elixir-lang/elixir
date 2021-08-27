@@ -299,6 +299,8 @@ tokenize("%{}:" ++ Rest, Line, Column, Scope, Tokens) when ?is_space(hd(Rest)) -
   tokenize(Rest, Line, Column + 4, Scope, [{kw_identifier, {Line, Column, nil}, '%{}'} | Tokens]);
 tokenize("%:" ++ Rest, Line, Column, Scope, Tokens) when ?is_space(hd(Rest)) ->
   tokenize(Rest, Line, Column + 2, Scope, [{kw_identifier, {Line, Column, nil}, '%'} | Tokens]);
+tokenize("&:" ++ Rest, Line, Column, Scope, Tokens) when ?is_space(hd(Rest)) ->
+  tokenize(Rest, Line, Column + 2, Scope, [{kw_identifier, {Line, Column, nil}, '&'} | Tokens]);
 tokenize("{}:" ++ Rest, Line, Column, Scope, Tokens) when ?is_space(hd(Rest)) ->
   tokenize(Rest, Line, Column + 3, Scope, [{kw_identifier, {Line, Column, nil}, '{}'} | Tokens]);
 tokenize("..//:" ++ Rest, Line, Column, Scope, Tokens) when ?is_space(hd(Rest)) ->
@@ -350,7 +352,7 @@ tokenize("=>" ++ Rest, Line, Column, Scope, Tokens) ->
   Token = {assoc_op, {Line, Column, previous_was_eol(Tokens)}, '=>'},
   tokenize(Rest, Line, Column + 2, Scope, add_token_with_eol(Token, Tokens));
 
-tokenize("..//" ++ Rest = String, Line, Column, Scope, [{capture_op, _, _} | _] = Tokens) ->
+tokenize("..//" ++ Rest = String, Line, Column, Scope, Tokens) ->
   case strip_horizontal_space(Rest, 0) of
     {[$/ | _] = Remaining, Extra} ->
       Token = {identifier, {Line, Column, nil}, '..//'},
@@ -360,12 +362,6 @@ tokenize("..//" ++ Rest = String, Line, Column, Scope, [{capture_op, _, _} | _] 
   end;
 
 % ## Ternary operator
-
-tokenize([T1, T2 | Rest], Line, Column, Scope, Tokens)
-    when ?ternary_op(T1, T2), element(1, hd(Tokens)) /= capture_op ->
-  Op = list_to_atom([T1, T2]),
-  Token = {ternary_op, {Line, Column, previous_was_eol(Tokens)}, Op},
-  tokenize(Rest, Line, Column + 2, Scope, add_token_with_eol(Token, Tokens));
 
 % ## Three token operators
 tokenize([T1, T2, T3 | Rest], Line, Column, Scope, Tokens) when ?unary_op3(T1, T2, T3) ->
@@ -415,6 +411,11 @@ tokenize([T | Rest], Line, Column, Scope, Tokens) when T =:= $); T =:= $}; T =:=
   handle_terminator(Rest, Line, Column + 1, Scope, Token, Tokens);
 
 % ## Two Token Operators
+tokenize([T1, T2 | Rest], Line, Column, Scope, Tokens) when ?ternary_op(T1, T2) ->
+  Op = list_to_atom([T1, T2]),
+  Token = {ternary_op, {Line, Column, previous_was_eol(Tokens)}, Op},
+  tokenize(Rest, Line, Column + 2, Scope, add_token_with_eol(Token, Tokens));
+
 tokenize([T1, T2 | Rest], Line, Column, Scope, Tokens) when ?concat_op(T1, T2) ->
   handle_op(Rest, Line, Column, concat_op, 2, list_to_atom([T1, T2]), Scope, Tokens);
 
@@ -444,11 +445,24 @@ tokenize([T1, T2 | Rest], Line, Column, Scope, Tokens) when ?stab_op(T1, T2) ->
 
 % ## Single Token Operators
 
+tokenize([T | Rest], Line, Column, Scope, Tokens) when ?capture_op(T) ->
+  Kind =
+    case strip_horizontal_space(Rest, 0) of
+      {[$/ | NewRest], _} ->
+        case strip_horizontal_space(NewRest, 0) of
+          {[$/ | _], _} -> capture_op;
+          {_, _} -> identifier
+        end;
+
+      {_, _} ->
+        capture_op
+    end,
+
+  Token = {Kind, {Line, Column, nil}, '&'},
+  tokenize(Rest, Line, Column + 1, Scope, [Token | Tokens]);
+
 tokenize([T | Rest], Line, Column, Scope, Tokens) when ?at_op(T) ->
   handle_unary_op(Rest, Line, Column, at_op, 1, list_to_atom([T]), Scope, Tokens);
-
-tokenize([T | Rest], Line, Column, Scope, Tokens) when ?capture_op(T) ->
-  handle_unary_op(Rest, Line, Column, capture_op, 1, list_to_atom([T]), Scope, Tokens);
 
 tokenize([T | Rest], Line, Column, Scope, Tokens) when ?unary_op(T) ->
   handle_unary_op(Rest, Line, Column, unary_op, 1, list_to_atom([T]), Scope, Tokens);
@@ -767,11 +781,11 @@ handle_unary_op([$: | Rest], Line, Column, _Kind, Length, Op, Scope, Tokens) whe
   tokenize(Rest, Line, Column + Length + 1, Scope, [Token | Tokens]);
 
 handle_unary_op(Rest, Line, Column, Kind, Length, Op, Scope, Tokens) ->
-  case {strip_horizontal_space(Rest, 0), Tokens} of
-    {{[$/ | _] = Remaining, Extra}, [{capture_op, _, '&'} | _]} ->
+  case strip_horizontal_space(Rest, 0) of
+    {[$/ | _] = Remaining, Extra} ->
       Token = {identifier, {Line, Column, nil}, Op},
       tokenize(Remaining, Line, Column + Length + Extra, Scope, [Token | Tokens]);
-    {{Remaining, Extra}, _} ->
+    {Remaining, Extra} ->
       Token = {Kind, {Line, Column, nil}, Op},
       tokenize(Remaining, Line, Column + Length + Extra, Scope, [Token | Tokens])
   end.

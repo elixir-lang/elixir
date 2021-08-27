@@ -389,6 +389,8 @@ unary_op_eol -> unary_op : '$1'.
 unary_op_eol -> unary_op eol : '$1'.
 unary_op_eol -> dual_op : '$1'.
 unary_op_eol -> dual_op eol : '$1'.
+unary_op_eol -> ternary_op : '$1'.
+unary_op_eol -> ternary_op eol : '$1'.
 
 capture_op_eol -> capture_op : '$1'.
 capture_op_eol -> capture_op eol : '$1'.
@@ -744,6 +746,14 @@ build_op(Left, {_Kind, Location, 'not in'}, Right) ->
 
 build_op(Left, {_Kind, Location, Op}, Right) ->
   {Op, newlines_op(Location) ++ meta_from_location(Location), [Left, Right]}.
+
+build_unary_op({_Kind, {Line, Column, _}, '//'}, Expr) ->
+  {Outer, Inner} =
+    case ?columns() of
+      true -> {[{column, Column+1}], [{column, Column}]};
+      false -> {[], []}
+    end,
+  {'/', [{line, Line} | Outer], [{'/', [{line, Line} | Inner], nil}, Expr]};
 
 build_unary_op({_Kind, Location, Op}, Expr) ->
   {Op, meta_from_location(Location), [Expr]}.
