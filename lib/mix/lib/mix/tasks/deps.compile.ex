@@ -181,8 +181,7 @@ defmodule Mix.Tasks.Deps.Compile do
 
           Mix.shell().error(
             "could not compile dependency #{inspect(app)}, \"mix compile\" failed. " <>
-              "You can recompile this dependency with \"mix deps.compile #{app}\", update it " <>
-              "with \"mix deps.update #{app}\" or clean it with \"mix deps.clean #{app}\""
+              deps_compile_feedback(app)
           )
 
           :erlang.raise(kind, reason, __STACKTRACE__)
@@ -324,8 +323,7 @@ defmodule Mix.Tasks.Deps.Compile do
       if Mix.shell().cmd(command, env: env, print_app: print_app?) != 0 do
         Mix.raise(
           "Could not compile dependency #{inspect(app)}, \"#{command}\" command failed. " <>
-            "You can recompile this dependency with \"mix deps.compile #{app}\", update it " <>
-            "with \"mix deps.update #{app}\" or clean it with \"mix deps.clean #{app}\""
+            deps_compile_feedback(app)
         )
       end
     end)
@@ -374,6 +372,17 @@ defmodule Mix.Tasks.Deps.Compile do
       Enum.filter(deps, fn %{scm: scm} -> scm.fetchable? end)
     else
       deps
+    end
+  end
+
+  defp deps_compile_feedback(app) do
+    if Mix.install?() do
+      "Errors may have been logged above. You may run Mix.install/2 to try again or " <>
+        "change the arguments to Mix.install/2 to try another version"
+    else
+      "Errors may have been logged above. You can recompile this dependency with " <>
+        "\"mix deps.compile #{app}\", update it with \"mix deps.update #{app}\" or " <>
+        "clean it with \"mix deps.clean #{app}\""
     end
   end
 end

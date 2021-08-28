@@ -275,6 +275,8 @@ defmodule Mix do
   ```
   """
 
+  @mix_install_project __MODULE__.InstallProject
+
   use Application
 
   import Kernel, except: [raise: 2]
@@ -601,7 +603,7 @@ defmodule Mix do
     ]
 
     :ok = Mix.Local.append_archives()
-    :ok = Mix.ProjectStack.push(__MODULE__.InstallProject, config, "nofile")
+    :ok = Mix.ProjectStack.push(@mix_install_project, config, "nofile")
     build_dir = Path.join(dir, "_build")
 
     try do
@@ -635,4 +637,7 @@ defmodule Mix do
       opts
     end
   end
+
+  @doc false
+  def install?, do: Mix.Project.get() == @mix_install_project
 end
