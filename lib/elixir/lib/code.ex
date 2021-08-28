@@ -38,8 +38,8 @@ defmodule Code do
   are loaded as needed. In embedded mode the opposite happens, as all
   modules need to be loaded upfront or explicitly.
 
-  You can use `ensure_loaded/1` (as well as `ensure_lodead?/1` and
-  `ensure_lodead!/1`) to check if a module is loaded before using it and
+  You can use `ensure_loaded/1` (as well as `ensure_loaded?/1` and
+  `ensure_loaded!/1`) to check if a module is loaded before using it and
   act.
 
   ## `ensure_compiled/1` and `ensure_compiled!/1`
