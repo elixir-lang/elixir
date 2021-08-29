@@ -895,6 +895,14 @@ defmodule KernelTest do
   end
 
   describe "defmodule" do
+    test "expects atoms as module names" do
+      msg = ~r"invalid module name: 3"
+
+      assert_raise CompileError, msg, fn ->
+        defmodule 1 + 2, do: :ok
+      end
+    end
+
     test "does not accept special atoms as module names" do
       special_atoms = [nil, true, false]
 
@@ -905,6 +913,16 @@ defmodule KernelTest do
           defmodule special_atom, do: :ok
         end
       end)
+    end
+
+    test "does not accept slashes in module names" do
+      assert_raise CompileError, ~r(invalid module name: :"foo/bar"), fn ->
+        defmodule :"foo/bar", do: :ok
+      end
+
+      assert_raise CompileError, ~r(invalid module name: :"foo\\\\bar"), fn ->
+        defmodule :"foo\\bar", do: :ok
+      end
     end
   end
 

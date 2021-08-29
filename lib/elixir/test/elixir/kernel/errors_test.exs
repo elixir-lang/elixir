@@ -412,10 +412,6 @@ defmodule Kernel.ErrorsTest do
     end
   end
 
-  test "name for defmodule" do
-    assert_eval_raise CompileError, "nofile:1: invalid module name: 3", 'defmodule 1 + 2, do: 3'
-  end
-
   test "invalid unquote" do
     assert_eval_raise CompileError, "nofile:1: unquote called outside quote", 'unquote 1'
   end
