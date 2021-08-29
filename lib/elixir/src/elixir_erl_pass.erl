@@ -603,7 +603,7 @@ translate_remote(maps, merge, Meta, [Map1, Map2], S) ->
       {{call, Ann, {remote, Ann, {atom, Ann, maps}, {atom, Ann, merge}}, [TMap1, TMap2]}, TS}
   end;
 translate_remote(Left, Right, Meta, Args, S) ->
-  Ann    = ?ann(Meta),
+  Ann = ?ann(Meta),
   {TLeft, SL} = translate(Left, S),
   {TArgs, SA} = translate_args(Args, Ann, SL),
 
