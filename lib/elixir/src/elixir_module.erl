@@ -64,8 +64,6 @@ next_counter(Module) ->
 
 %% Compilation hook
 
-compile(Module, _Block, _Vars, #{line := Line, file := File}) when Module == nil; is_boolean(Module) ->
-  elixir_errors:form_error([{line, Line}], File, ?MODULE, {invalid_module, Module});
 compile(Module, Block, Vars, Env) when is_atom(Module) ->
   #{line := Line, function := Function, versioned_vars := OldVerVars} = Env,
 
@@ -96,6 +94,7 @@ compile(Module, _Block, _Vars, #{line := Line, file := File}) ->
 compile(Line, Module, Block, Vars, E) ->
   File = ?key(E, file),
   check_module_availability(Line, File, Module),
+  ModuleAsCharlist = validate_module_name(Line, File, Module),
 
   CompilerModules = compiler_modules(),
   {Tables, Ref} = build(Line, File, Module),
@@ -153,7 +152,7 @@ compile(Line, Module, Block, Vars, E) ->
         {Binary, PersistedAttributes, Autoload, CheckerPid}
       end),
 
-    Autoload andalso code:load_binary(Module, beam_location(Module), Binary),
+    Autoload andalso code:load_binary(Module, beam_location(ModuleAsCharlist), Binary),
     eval_callbacks(Line, DataBag, after_compile, [NE, Binary], NE),
     elixir_env:trace({on_module, Binary, none}, E),
     warn_unused_attributes(File, DataSet, DataBag, PersistedAttributes),
@@ -264,6 +263,17 @@ check_module_availability(Line, File, Module) ->
       end;
     true ->
       ok
+  end.
+
+validate_module_name(Line, File, Module) when Module == nil; is_boolean(Module) ->
+  elixir_errors:form_error([{line, Line}], File, ?MODULE, {invalid_module, Module});
+validate_module_name(Line, File, Module) ->
+  Charlist = atom_to_list(Module),
+  case lists:any(fun(Char) -> (Char =:= $/) or (Char =:= $\\) end, Charlist) of
+    true ->
+      elixir_errors:form_error([{line, Line}], File, ?MODULE, {invalid_module, Module});
+    false ->
+      Charlist
   end.
 
 %% Hook that builds both attribute and functions and set up common hooks.
@@ -439,10 +449,10 @@ bag_lookup_element(Table, Name, Pos) ->
     error:badarg -> []
   end.
 
-beam_location(Module) ->
+beam_location(ModuleAsCharlist) ->
   case get(elixir_compiler_dest) of
     Dest when is_binary(Dest) ->
-      filename:join(elixir_utils:characters_to_list(Dest), atom_to_list(Module) ++ ".beam");
+      filename:join(elixir_utils:characters_to_list(Dest), ModuleAsCharlist ++ ".beam");
     _ ->
       ""
   end.
