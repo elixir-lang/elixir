@@ -5968,6 +5968,9 @@ defmodule Kernel do
       iex> ~w(foo bar baz)a
       [:foo, :bar, :baz]
 
+      iex> ~w(foo bar baz)c
+      ['foo', 'bar', 'baz']
+
   """
   defmacro sigil_w(term, modifiers)
 
