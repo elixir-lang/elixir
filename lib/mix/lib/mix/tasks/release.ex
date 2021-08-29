@@ -572,30 +572,29 @@ defmodule Mix.Tasks.Release do
 
   ## Application configuration
 
-  Releases provides two mechanisms for configuring OTP applications:
-  build-time and runtime.
+  Mix provides two mechanisms for configuring the application environment
+  of your application and your dependencies: build-time and runtime. On this
+  section, we will learn how those mechanisms apply to releases. An introduction
+  to this topic can be found in the "Configuration" section of the `Mix` module.
 
   ### Build-time configuration
 
-  Whenever you invoke a `mix` command, Mix loads the configuration
-  in `config/config.exs`, if said file exists. It is common for the
-  `config/config.exs` file itself to import other configuration based
-  on the current `MIX_ENV`, such as `config/dev.exs`, `config/test.exs`,
-  and `config/prod.exs`. We say that this configuration is a build-time
-  configuration as it is evaluated whenever you compile your code or
-  whenever you assemble the release.
+  Whenever you invoke a `mix` command, Mix loads the configuration in
+  `config/config.exs`, if said file exists. We say that this configuration
+  is a build-time configuration as it is evaluated whenever you compile your
+  code or whenever you assemble the release.
 
   In other words, if your configuration does something like:
 
+      import Config
       config :my_app, :secret_key, System.fetch_env!("MY_APP_SECRET_KEY")
 
   The `:secret_key` key under `:my_app` will be computed on the
-  host machine, whenever the release is built. Setting the
-  `MY_APP_SECRET_KEY` right before starting your release will have
-  no effect.
-
-  Luckily, releases also provide runtime configuration, which we will
-  see next.
+  host machine, whenever the release is built. Therefore if the machine
+  assembling the release not have access to all environment variables used
+  to run your code, loading the configuration will fail as the environment
+  variable is missing. Luckily, Mix also provides runtime configuration,
+  which should be preferred and we will see next.
 
   ### Runtime configuration
 
