@@ -19,7 +19,8 @@ defmodule Code.Formatter.CommentsTest do
     end
 
     test "recognizes hashbangs" do
-      assert_format "#!/usr/bin/env elixir", "#! /usr/bin/env elixir"
+      assert_format "#! /usr/bin/env elixir", "#! /usr/bin/env elixir"
+      assert_format "#!/usr/bin/env elixir", "#!/usr/bin/env elixir"
       assert_same "#!"
     end
 

@@ -238,22 +238,14 @@ defmodule Code.Formatter do
   end
 
   defp format_comment(%{text: text} = comment) do
-    %{comment | text: format_comment_text(text, "")}
+    %{comment | text: format_comment_text(text)}
   end
 
-  defp format_comment_text("##" <> rest, acc), do: format_comment_text("#" <> rest, "#" <> acc)
-
-  defp format_comment_text("#!", acc), do: reverse_with_prefix(acc, "#!")
-  defp format_comment_text("#! " <> _ = rest, acc), do: reverse_with_prefix(acc, rest)
-  defp format_comment_text("#!" <> rest, acc), do: reverse_with_prefix(acc, "#! " <> rest)
-
-  defp format_comment_text("#", acc), do: reverse_with_prefix(acc, "#")
-  defp format_comment_text("# " <> _ = rest, acc), do: reverse_with_prefix(acc, rest)
-  defp format_comment_text("#" <> rest, acc), do: reverse_with_prefix(acc, "# " <> rest)
-
-  defp reverse_with_prefix(acc, prefix) do
-    String.reverse(acc) <> prefix
-  end
+  defp format_comment_text("#"), do: "#"
+  defp format_comment_text("#!" <> rest), do: "#!" <> rest
+  defp format_comment_text("##" <> rest), do: "#" <> format_comment_text("#" <> rest)
+  defp format_comment_text("# " <> rest), do: "# " <> rest
+  defp format_comment_text("#" <> rest), do: "# " <> rest
 
   # If there is a no new line before, we can't gather all followup comments.
   defp gather_comments([%{previous_eol_count: 0} = comment | comments]) do
