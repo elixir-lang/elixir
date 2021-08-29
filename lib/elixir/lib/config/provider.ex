@@ -20,8 +20,8 @@ defmodule Config.Provider do
 
   For example, imagine you want to list some basic configuration
   on Mix's built-in `config/runtime.exs` file, but you also want
-  some additional configuration files. To do so, you can do this
-  in your `mix.exs`:
+  to support additional configuration files. To do so, you can add
+  this inside the `def project` portion of  your `mix.exs`:
 
       releases: [
         demo: [
@@ -42,7 +42,8 @@ defmodule Config.Provider do
       simply copy it to the release root as a step in your deployment
 
   Now once the system boots, it will load both `config/runtime.exs`
-  and `extra_config.exs` early in the boot process.
+  and `extra_config.exs` early in the boot process. You can learn
+  more options on `Config.Reader`.
 
   ## Custom config provider
 

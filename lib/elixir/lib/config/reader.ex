@@ -4,15 +4,23 @@ defmodule Config.Reader do
 
   ## As a provider
 
-  `Config.Reader` can also be used as a `Config.Provider`. When used
-  as a provider, it expects a single argument: the configuration path
-  (as outlined in `t:Config.Provider.config_path/0`) for the file to
-  be read and loaded during the system boot.
+  `Config.Reader` can also be used as a `Config.Provider`. A config
+  provider is used during releases to customize how applications are
+  configured. When used as a provider, it expects a single argument:
+  the configuration path (as outlined in `t:Config.Provider.config_path/0`)
+  for the file to be read and loaded during the system boot.
 
   For example, if you expect the target system to have a config file
-  in an absolute path, you can configure your `mix release` as:
+  in an absolute path, you can add this inside the `def project` portion
+  of  your `mix.exs`:
 
-      config_providers: [{Config.Reader, "/etc/config.exs"}]
+      releases: [
+        demo: [
+          config_providers: [
+            {Config.Reader, "/etc/config.exs"}
+          ]
+        ]
+      ]
 
   Or if you want to read a custom path inside the release:
 
@@ -28,10 +36,8 @@ defmodule Config.Reader do
          imports: :disabled}
       ]
 
-  Note by default Mix releases supports runtime configuration via
-  a `config/runtime.exs`. If a `config/runtime.exs` exists in your
-  application, it is automatically copied inside the release and
-  automatically set as a config provider.
+  Remember Mix already loads `config/runtime.exs` by default.
+  For more examples and scenarios, see the `Config.Providers` module.
   """
 
   @behaviour Config.Provider
