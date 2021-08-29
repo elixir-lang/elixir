@@ -118,6 +118,54 @@ defmodule Mix do
   is `:host` but it can be set via the `MIX_TARGET` environment variable.
   The target can be read via `Mix.target/0`.
 
+  ## Configuration
+
+  Mix allows you configure the application environment of your application
+  and of your dependencies. See the `Application` module to learn more about
+  the application environment. On this section, we will focus on how to configure
+  it at two distinct moments: build-time and runtime.
+
+  > Note: The application environment is discouraged for libraries. See Elixir's
+  > [Library Guidelines](https://hexdocs.pm/elixir/library-guidelines.html) for
+  > more information.
+
+  ### Build-time configuration
+
+  Whenever you invoke a `mix` command, Mix loads the configuration
+  in `config/config.exs`, if said file exists. It is common for the
+  `config/config.exs` file itself to import other configuration based
+  on the current `MIX_ENV`, such as `config/dev.exs`, `config/test.exs`,
+  and `config/prod.exs`, by calling `Config.import_config/1`:
+
+      import Config
+      import_config "#{config_env()}.exs"
+
+  We say `config/config.exs` and all imported files are build-time
+  configuration as they are evaluated whenever you compile your code.
+  In other words, if your configuration does something like:
+
+      import Config
+      config :my_app, :secret_key, System.fetch_env!("MY_APP_SECRET_KEY")
+
+  The `:secret_key` key under `:my_app` will be computed on the host
+  machine before your code compiles. This can be an issue if the machine
+  compiling your code does not have access to all environment variables
+  used to run your code, as loading the config above will fail due to the
+  missing environment variable. Luckily, Mix also provides runtime
+  configuration, which should be preferred and we will see next.
+
+  ### Runtime configuration
+
+  To enable runtime configuration in your release, all you need to do is
+  to create a file named `config/runtime.exs`:
+
+      import Config
+      config :my_app, :secret_key, System.fetch_env!("MY_APP_SECRET_KEY")
+
+  This file will be executed whenever your Mix project. If you assemble
+  a release with `mix release`, it is also booted every time your release
+  starts.
+
   ## Aliases
 
   Aliases are shortcuts or tasks specific to the current project.

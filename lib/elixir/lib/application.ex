@@ -42,11 +42,15 @@ defmodule Application do
       end
 
   In Mix projects, the environment of the application and its dependencies can
-  be overridden via the `config/config.exs` file. For example, someone using
-  your application can override its `:db_host` environment variable as follows:
+  be overridden via the `config/config.exs` and `config/runtime.exs` files. The
+  former is loaded at build-time, before your code compiles, and the latter at
+  runtime, just before your app starts. For example, someone using your application
+  can override its `:db_host` environment variable as follows:
 
       import Config
       config :my_app, :db_host, "db.local"
+
+  See the "Configuration" section in the `Mix` module for more information.
 
   You can also change the application environment dynamically by using functions
   such as `put_env/3` and `delete_env/2`. However, as a rule of thumb, each application
