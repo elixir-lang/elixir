@@ -37,6 +37,10 @@ defmodule Mix.Tasks.Xref do
 
       $ mix xref trace lib/my_app/router.ex --label compile
 
+  If you have an umbrella application, we also recommend using the
+  `--include-siblings` flag to see the dependencies on other
+  umbrella applications.
+
   ### Example
 
   Imagine the given file lib/b.ex:
