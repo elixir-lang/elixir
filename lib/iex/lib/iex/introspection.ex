@@ -376,8 +376,9 @@ defmodule IEx.Introspection do
         :type_found
 
       is_nil(docs) and spec != [] ->
-        message = %{"en" => "Module was compiled without docs. Showing only specs."}
-        print_doc(["#{inspect(mod)}.#{fun}/#{arity}"], spec, "text/markdown", message, %{})
+        en = "Module was compiled without docs. Showing only specs."
+        formatted = Exception.format_mfa(mod, fun, arity)
+        print_doc([formatted], spec, "text/markdown", %{"en" => en}, %{})
         :ok
 
       is_nil(docs) ->
@@ -452,12 +453,24 @@ defmodule IEx.Introspection do
          {{kind, fun, arity}, _line, signature, doc, metadata},
          spec
        ) do
-    if callback_module = doc == %{} and callback_module(mod, fun, arity) do
+    callback_module = doc == %{} and callback_module(mod, fun, arity)
+
+    if callback_module do
       filter = &match?({_, ^fun, ^arity}, elem(&1, 0))
 
       case get_callback_docs(callback_module, filter) do
-        :no_beam -> nil
-        callback_docs -> Enum.each(callback_docs, &print_typespec/1)
+        :no_beam ->
+          nil
+
+        callback_docs ->
+          en =
+            "#{Exception.format_mfa(mod, fun, arity)} has no docs but is a callback for behaviour " <>
+              "#{inspect(callback_module)}. Showing callback docs instead."
+
+          format_signature(language, kind, signature)
+          |> print_doc(spec, format, %{"en" => en}, metadata)
+
+          Enum.each(callback_docs, &print_typespec/1)
       end
     else
       print_doc(format_signature(language, kind, signature), spec, format, doc, metadata)

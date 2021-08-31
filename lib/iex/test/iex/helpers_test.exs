@@ -497,6 +497,7 @@ defmodule IEx.HelpersTest do
       impl = """
       defmodule Impl do
         @behaviour MyBehaviour
+        @doc delegate_to: {Foo, :bar, 3}
         def first(0), do: 0
         @doc "Docs for Impl.second/1"
         def second(0), do: 0
@@ -511,6 +512,14 @@ defmodule IEx.HelpersTest do
         assert c(files, ".") |> Enum.sort() == [Impl, MyBehaviour]
 
         assert capture_io(fn -> h(Impl.first() / 1) end) == """
+
+                                                def first(int)
+
+               delegate_to: Foo.bar/3
+
+               Impl.first/1 has no docs but is a callback for behaviour MyBehaviour. Showing
+               callback docs instead.
+
                @callback first(integer()) :: integer()
 
                Docs for MyBehaviour.first
@@ -533,12 +542,7 @@ defmodule IEx.HelpersTest do
 
                """
 
-        assert capture_io(fn -> h(Impl.first()) end) == """
-               @callback first(integer()) :: integer()
-
-               Docs for MyBehaviour.first
-
-               """
+        assert capture_io(fn -> h(Impl.first()) end) == capture_io(fn -> h(Impl.first() / 1) end)
 
         assert capture_io(fn -> h(Impl.second()) end) == """
 
