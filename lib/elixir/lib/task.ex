@@ -502,9 +502,10 @@ defmodule Task do
   be controlled via options (see the "Options" section below).
 
   Consider using `Task.Supervisor.async_stream/6` to start tasks
-  under a supervisor. If you find yourself trapping exits to handle exits
-  inside the async stream, consider using `Task.Supervisor.async_stream_nolink/6`
-  to start tasks that are not linked to the calling process.
+  under a supervisor. If you find yourself trapping exits to ensure
+  errors in the tasks do not terminate the caller process, consider
+  using `Task.Supervisor.async_stream_nolink/6` to start tasks that
+  are not linked to the caller process.
 
   ## Options
 
@@ -525,7 +526,7 @@ defmodule Task do
 
     * `:on_timeout` - what to do when a task times out. The possible
       values are:
-      * `:exit` (default) - the process that spawned the tasks exits.
+      * `:exit` (default) - the caller (the process that spawned the tasks) exits.
       * `:kill_task` - the task that timed out is killed. The value
         emitted for that task is `{:exit, :timeout}`.
 
@@ -574,8 +575,8 @@ defmodule Task do
   ### Attention: unbound async + take
 
   If you want to potentially process a high number of items and keep only
-  part of the results, it may be undesirable to process all of them at the
-  same time. Let's see an example:
+  part of the results, you may end-up processing more items than desired.
+  Let's see an example:
 
       1..100
       |> Task.async_stream(fn i ->
@@ -584,13 +585,12 @@ defmodule Task do
       end)
       |> Enum.take(10)
 
-  In cases like the above, it is important to keep in mind that you will
-  likely end-up processing more items than required. For instance, in a
-  machine with 8 cores, the above will process 16 items, even though you
-  want only 10 elements, since `async_stream/3` process items concurrently.
-  So it will process 8 elements at once. Then all 8 elements complete at
-  roughly the same time, causing 8 elements to be kicked off for processing.
-  Out of these extra 8, only 2 will be used, and the rest will be terminated.
+  Running the example above in a machine with 8 cores will process 16 items,
+  even though you want only 10 elements, since `async_stream/3` process items
+  concurrently. That's because it will process 8 elements at once. Then all 8
+  elements complete at roughly the same time, causing 8 elements to be kicked
+  off for processing. Out of these extra 8, only 2 will be used, and the rest
+  will be terminated.
 
   Depending on the problem, you can filter or limit the number of elements
   upfront:
