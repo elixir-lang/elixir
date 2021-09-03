@@ -135,6 +135,15 @@ defmodule Logger.HandlerTest do
     assert_received {:format, ^report}
   end
 
+  test "respects translator_inspect_opts for reports" do
+    Application.put_env(:logger, :translator_inspect_opts, printable_limit: 1)
+
+    assert capture_log(fn -> :logger.error(%{foo: "bar"}) end) =~
+             ~S([error] [foo: "b" <> ...])
+  after
+    Application.put_env(:logger, :translator_inspect_opts, [])
+  end
+
   test "calls report_cb/2 when supplied" do
     report = %{foo: "bar"}
 
@@ -155,9 +164,11 @@ defmodule Logger.HandlerTest do
     assert %{chars_limit: 1000} = opts
     assert %{depth: 10} = opts
     assert %{single_line: false} = opts
+  after
+    Application.put_env(:logger, :translator_inspect_opts, [])
   end
 
-  test "calls report_cb when passed %{label: term(), report: term()}" do
+  test "calls report_cb/2 when passed %{label: term(), report: term()}" do
     report = %{label: :foo, report: %{bar: 1, baz: 2}}
 
     assert capture_log(fn -> :logger.error(report, %{report_cb: &format_report/1}) end)

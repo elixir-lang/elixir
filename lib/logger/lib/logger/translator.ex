@@ -108,7 +108,7 @@ defmodule Logger.Translator do
       # This is no longer emitted by Erlang/OTP but it may be
       # manually emitted by libraries like connection.
       {'** Generic server ' ++ _, [name, last, state, reason | client]} ->
-        opts = Application.get_env(:logger, :translator_inspect_opts)
+        opts = Application.fetch_env!(:logger, :translator_inspect_opts)
         {formatted, reason} = format_reason(reason)
         metadata = [crash_reason: reason] ++ registered_name(name)
 
@@ -180,7 +180,7 @@ defmodule Logger.Translator do
   end
 
   defp report_gen_server_terminate(min_level, report) do
-    inspect_opts = Application.get_env(:logger, :translator_inspect_opts)
+    inspect_opts = Application.fetch_env!(:logger, :translator_inspect_opts)
 
     %{
       client_info: client,
@@ -206,7 +206,7 @@ defmodule Logger.Translator do
   end
 
   defp report_gen_event_terminate(min_level, report) do
-    inspect_opts = Application.get_env(:logger, :translator_inspect_opts)
+    inspect_opts = Application.fetch_env!(:logger, :translator_inspect_opts)
 
     %{
       handler: handler,
