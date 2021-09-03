@@ -243,7 +243,7 @@ defmodule Logger.Handler do
 
   defp translate_fallback({:report, data}, %{report_cb: callback}, _truncate)
        when is_function(callback, 2) do
-    translator_opts = Inspect.Opts.new(Application.fetch_env!(:logger, :translator_inspect_opts))
+    translator_opts = Inspect.Opts.new(translator_inspect_opts())
 
     opts = %{
       depth: translator_opts.limit,
@@ -255,16 +255,20 @@ defmodule Logger.Handler do
   end
 
   defp translate_fallback({:report, %{} = data}, _meta, _truncate) do
-    Kernel.inspect(Map.to_list(data))
+    Kernel.inspect(Map.to_list(data), translator_inspect_opts())
   end
 
   defp translate_fallback({:report, data}, _meta, _truncate) do
-    Kernel.inspect(data)
+    Kernel.inspect(data, translator_inspect_opts())
   end
 
   defp translate_fallback({format, args}, _meta, truncate) do
     format
     |> Logger.Utils.scan_inspect(args, truncate)
     |> :io_lib.build_text()
+  end
+
+  defp translator_inspect_opts() do
+    Application.fetch_env!(:logger, :translator_inspect_opts)
   end
 end
