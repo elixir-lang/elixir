@@ -79,6 +79,10 @@ defprotocol Enumerable do
 
   Furthermore, a `:suspend` call must always be followed by another call,
   eventually halting or continuing until the end.
+
+  `Enum.zip/2` uses suspension, so it can be used
+  to test whether your implementation handles suspension corectly.
+  You can also use `Stream.zip/2` with `Enum.take/2` to test the combination of `:suspend` with `:halt`.
   """
   @type result ::
           {:done, term}
