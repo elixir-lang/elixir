@@ -70,15 +70,20 @@ defprotocol Enumerable do
 
   It may be *done* when the enumeration is finished by reaching
   its end, or *halted*/*suspended* when the enumeration was halted
-  or suspended by the `t:reducer/0` function.
+  or suspended by the tagged accumulator.
 
-  In case a `t:reducer/0` function returns the `:suspend` accumulator, the
-  `:suspended` tuple must be explicitly handled by the caller and
-  never leak. In practice, this means regular enumeration functions
-  just need to be concerned about `:done` and `:halted` results.
+  In case the tagged `:halt` accumulator is given, the `:halted` tuple
+  with the accumulator must be returned. Functions like `Enum.take_while/2`
+  use `:halt` underneath and can be used to test halting enumerables.
 
-  Furthermore, a `:suspend` call must always be followed by another call,
-  eventually halting or continuing until the end.
+  In case the tagged `:suspend` accumulator is given, the caller must
+  return the `:suspended` tuple with the accumulator and a continuation.
+  The caller is then responsible of managing the continuation and the
+  caller must always call the continuation, eventually halting or continuing
+  until the end. `Enum.zip/2` uses suspension, so it can be used to test
+  whether your implementation handles suspension corectly. You can also use
+  `Stream.zip/2` with `Enum.take_while/2` to test the combination of
+  `:suspend` with `:halt`.
   """
   @type result ::
           {:done, term}
