@@ -1061,7 +1061,9 @@ defmodule Registry do
       :ets.lookup(registry, key)
     catch
       :error, :badarg ->
-        raise ArgumentError, "unknown registry: #{inspect(registry)}"
+        raise ArgumentError,
+              "unknown registry: #{inspect(registry)}. Either the registry name is invalid or " <>
+                "the registry is not running, possibly because its application isn't started"
     else
       [{^key, value}] -> {:ok, value}
       _ -> :error
